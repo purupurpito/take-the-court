@@ -1233,7 +1233,7 @@
 
       // --- overlay táctil: en partido, en horizontal, si se está jugando con el dedo
       var touchy = T.used || ctx.isTouch;
-      var show = touchy && it.device === 'touch' && ctx.state === 'playing' && !ctx.portraitBlock && !(ctx.game && ctx.game.watch);   // (6v6 espectador, g.watch: sin mandos)
+      var show = touchy && it.device === 'touch' && ctx.state === 'playing' && !ctx.portraitBlock && !(ctx.game && ctx.game.watch) && !ctx.replay;   // (6v6 espectador, g.watch: sin mandos) (repetición C1: tampoco)
       if (show !== T.shown) setShown(show);
       if (show) { touchContext(); touchVisibility(); }
       return it;

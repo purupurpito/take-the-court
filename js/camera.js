@@ -2491,6 +2491,30 @@
     A.x = D.x - cp * 10; A.y = D.y + (TVS.ay - D.y) * 0.5; A.z = D.z + Math.sin(p) * 10;
   }
 
+  /* REPETICIÓN (C1, sprint 3): VB.CameraRig.replay(on, o) con o = {kind, slowFrom, slowTo, fx, fy, fz}. Mientras dure, update(R) va
+   * directo a este plano: el de tele (tvShot, también vale en 2v2: encuadra con g.players) y, en el tramo lento (R.time entre slowFrom
+   * y slowTo, s de juego de la sombra), un acercamiento suave hacia el toque decisivo (fx, fy, fz): lente ×0,85 y la mira a medias
+   * hacia él. Con comfort() (Menos movimiento / Cámara estable) no hay acercamiento. Sin temblor, punch, hit-stop ni cámara lenta
+   * propia (shake/punch/hitStop/slowmo no hacen nada mientras RP.on). Todo escalares: cero basura por frame. */
+  var RP = { on: false, cutIn: false, cutOut: false, k: 0, kind: '', sf: -1, st: -1, fx: 0, fy: 0, fz: 1, hasF: false, prev: '', from: '' };
+  var RPD = { on: false, k: 0, kind: '' };   // (getDebug().replay)
+  var RP_ZOOM = 0.85;
+  function replayShot(g) {
+    tvShot(g);
+    TVS.cut = false;   // (los cortes del plano de tele del 6v6 no cuentan aquí)
+    var dt = K.dt, t = +g.time || 0;
+    var want = (RP.hasF && RP.st > RP.sf && t >= RP.sf && t <= RP.st && !comfort()) ? 1 : 0;
+    // entra en ~0,6 s y sale en ~0,4 s (ritmo real); con dt = 0 (cortes) va a su objetivo
+    if (dt > 0) RP.k += (want - RP.k) * mn(1, dt * (want > RP.k ? 3.5 : 5)); else RP.k = want;
+    if (RP.k < 0.001) { RP.k = 0; return; }
+    var w = smooth01(RP.k);
+    K.fovWant *= 1 - (1 - RP_ZOOM) * w;
+    // la mira (a 10 m de la cámara) gira a medias hacia el toque decisivo
+    var dx = RP.fx - D.x, dy = RP.fy - D.y, dz = RP.fz - D.z, dl = Math.sqrt(dx * dx + dy * dy + dz * dz) || 1;
+    var fx = D.x + dx / dl * 10, fy = D.y + dy / dl * 10, fz = D.z + dz / dl * 10, wa = 0.5 * w;
+    A.x += (fx - A.x) * wa; A.y += (fy - A.y) * wa; A.z += (fz - A.z) * wa;
+  }
+
   /* ================= 6v6 — CÁMARA EN 3ª PERSONA (ajuste ctx.settings.cam6: '3p' por defecto, 'tv' = la de televisión) =================
    * notes/diseno-6v6-carrera.md §1.6: detrás y por encima del jugador que llevas, mirando a la red y al balón, con más campo que la del 2v2
    * (entre 12 hay que leer la formación) y la red entera. Encuadre por AJUSTE (fit2): los pies del sujeto abajo (nB) y, arriba, lo que pida
@@ -2763,7 +2787,8 @@
 
   function computeDesired(g) {
     var s = shot, dt = K.dt;
-    if (s === 'tv') tvShot(g);
+    if (s === 'replay') replayShot(g);
+    else if (s === 'tv') tvShot(g);
     else if (s === 'tp') tpShot(g);
     else if (s === 'tpPoint') tpPointShot(g);
     else if (s === 'menu') menuShot(g);
@@ -3576,7 +3601,7 @@
     onGameStart: function (g) {
       slow.t = 0; if (ctx) ctx.timeScale = 1; readBounds();
       sw.active = false; K.shakeT = 0; K.shakeA = 0; K.kick = 0; ant.x = ant.y = antV.x = antV.y = 0; CC.on = false; CC.cut = false; RV.cutIn = RV.cutOut = false;
-      K.hsT = 0; K.hsE = 0; K.punchA = 0; FB.on = false; HS.on = false; FT.on = false; K.ftU = 0; K.ftW = 0; CL.on = false; CL.phase = ''; CL.cutNow = false; CL.abortCut = false; CW.on = false; CW.cutIn = false; CW.cutOut = false; INTRO.on = false; INTRO.cut = false; backPending = false; cutCheck = false; settleSmoothers = false; spikeTeam = -1; pointEv = null;
+      K.hsT = 0; K.hsE = 0; K.punchA = 0; FB.on = false; HS.on = false; FT.on = false; K.ftU = 0; K.ftW = 0; CL.on = false; CL.phase = ''; CL.cutNow = false; CL.abortCut = false; CW.on = false; CW.cutIn = false; CW.cutOut = false; INTRO.on = false; INTRO.cut = false; RP.on = false; RP.cutIn = false; RP.cutOut = false; RP.k = 0; backPending = false; cutCheck = false; settleSmoothers = false; spikeTeam = -1; pointEv = null;
       TPP.cutDone = false; TPP.cutNow = false; TPP.backCut = false; TPP.swCut = false; TPP.hero = null; TP.ph = '';
       if (!g) return;
       // del menú (o de una partida anterior) a un partido nuevo: transición larga y suave
@@ -3611,7 +3636,7 @@
     /** Temblor: amplitud en metros (0,03-0,15) y duración en s. */
     shake: function (amount, dur) {
       amount = +amount || 0; if (amount <= 0) return;
-      if (shot === 'review' && comfort()) return;   // (revisión del challenge con Cámara estable: sin sacudidas)
+      if (RP.on || (shot === 'review' && comfort())) return;   // (repetición: sin temblor) (revisión del challenge con Cámara estable: sin sacudidas)
       if (amount >= K.shakeA * Math.pow(K.shakeT / (K.shakeDur || 1), 2)) { K.shakeA = amount; K.shakeDur = mx(0.05, dur || 0.3); K.shakeT = K.shakeDur; K.shakeRoll = 0.35; }
     },
     /** Cámara lenta: escala `scale` durante `realSeconds` reales; vuelve a 1 con suavidad en `easeOut` s (opcional).
@@ -3619,6 +3644,7 @@
      *  entra si aidOk() lo permite: en Fácil siempre; a partir de Normal, solo si `aid === 'novice'` (el que llama certifica con
      *  el récord que son los primeros partidos del jugador). Devuelve false si no ha entrado. */
     slowmo: function (scale, realSeconds, easeOut, aid) {
+      if (RP.on) return false;   // (repetición: su ritmo lo lleva VB.Replay)
       if (aid && !this.aidOk(aid === 'novice')) return false;
       scale = mn(mx(+scale || 1, 0.05), 1);
       if (slow.t > 0 && slow.scale < scale && slow.t > slow.out) return false; // no pisar una más intensa en curso
@@ -3638,7 +3664,7 @@
     kick: function (deg) { this.punch(deg || 2.5); },
     /** OPCIONAL: impulso de FOV del impacto (grados que CIERRA la lente en 1 frame; vuelve en ~150 ms). Nada en confort. */
     punch: function (deg) {
-      deg = +deg || 0; if (deg <= 0 || comfort()) return;
+      deg = +deg || 0; if (deg <= 0 || comfort() || RP.on) return;
       var t = K.punchT / 0.045, left = K.punchA > 0 ? K.punchA * (1 + t) * Math.exp(-t) : 0;
       if (deg >= left) { K.punchA = deg; K.punchT = 0; }
     },
@@ -3648,7 +3674,7 @@
       if (ms == null) ms = grade === 'perfect' ? 60 : grade === 'good' ? 35 : 0;
       ms = mn(mx(+ms || 0, 0), 150);
       if (BRK === 'hitstop') ms = 0;
-      if (ms <= 0 || comfort()) return;
+      if (ms <= 0 || comfort() || RP.on) return;
       K.hsT = mx(K.hsT, ms / 1000); K.hsEDur = 0.08; K.hsE = 0;
       // (tope en frames: la congelación nunca dura más de su nominal + 2 frames pintados, aunque un frame lento del dispositivo
       // descuente poco tiempo —dt recortado— o el reloj se atasque: un tirón no la estira)
@@ -3667,12 +3693,34 @@
      *  {heroId, mateId, team, camX, camY (sitio de la cámara, sim), hx, hy (sitio del héroe), heroYaw (rad, sim: de cara a la
      *  cámara, abierto hacia el compañero), conv (el compañero va a su sitio), mx, my (sitio del compañero; NaN si no va),
      *  mateYaw, t (g.time del plan)}. Solo cambia la cámara si VB.Players.heroShotAware === true. No modificar. */
-    heroShot: function () { var g = ctx && ctx.game; return HS.on && !cutsLess && g && !g.drill && (g.mode === 'point') && !reviewOn(g) ? HS : null; },
+    heroShot: function () { var g = ctx && ctx.game; return HS.on && !RP.on && !cutsLess && g && !g.drill && (g.mode === 'point') && !reviewOn(g) ? HS : null; },
+    /** REPETICIÓN (C1). replay(true, {kind:'set'|'match'|'best', slowFrom, slowTo (R.time, s de juego de la sombra), fx, fy, fz
+     *  (toque decisivo, sim)}): desde el siguiente update(R) el plano es 'replay' (getShot() 'replay'), entra por corte asentado
+     *  (markCut(prev, 'replay', 'replay')) y no procesa eventos, cierre, grúa, seguimiento ni héroe. replay(false): el siguiente
+     *  update(g en vivo) vuelve al plano de antes por corte asentado (markCut('replay', plano, 'replay')); los relojes del cierre,
+     *  la grúa y el seguimiento siguen donde estaban (congelados). Llamarla con otro `o` estando dentro cambia la jugada (cola de
+     *  mejores jugadas): corte nuevo. */
+    replay: function (on, o) {
+      if (on) {
+        RP.from = RP.on ? 'replay' : shot;
+        if (!RP.on) { RP.prev = shot; RP.cutOut = false; }
+        RP.on = true; RP.cutIn = true; RP.k = 0;
+        RP.kind = o && o.kind ? '' + o.kind : '';
+        var sf = o ? +o.slowFrom : NaN, st = o ? +o.slowTo : NaN;
+        RP.sf = sf === sf ? sf : -1; RP.st = st === st ? st : -1;
+        var fx = o ? +o.fx : NaN, fy = o ? +o.fy : NaN, fz = o ? +o.fz : NaN;
+        RP.hasF = fx === fx && fy === fy; RP.fx = RP.hasF ? fx : 0; RP.fy = RP.hasF ? fy : 0; RP.fz = fz === fz ? fz : 1;
+        K.shakeT = 0; K.shakeA = 0; K.punchA = 0;
+      } else if (RP.on) {
+        RP.on = false; RP.cutIn = false; RP.cutOut = true; RP.k = 0;
+      }
+    },
     /** Ejes de la cámara de juego en el plano del suelo (coordenadas de simulación). */
     getBasis: function () { return basis; },
     /** OPCIONAL (depuración / tests): plano actual y datos de encuadre. */
     getDebug: function () { var clH = shot === 'clinch' && CL.phase === 'hero';
       CLD.phase = CL.on ? CL.phase : ''; CLD.left = clinchLeftS(ctx && ctx.game); CLD.team = CL.on ? CL.team : -1; CLD.why = CLW.why; CLD.x = CLX; dbg.clinch = CLD;
+      RPD.on = RP.on; RPD.k = RP.k; RPD.kind = RP.on ? RP.kind : ''; dbg.replay = RPD;
       dbg.pf = shot === 'tpPoint' && !TPP.willCut ? TPPF : (shot === 'point' || clH) ? { lx: PF.lx, ly: PF.ly, c0x: PF.c0x, c0y: PF.c0y, R: PF.R, ang: PF.ang, fov: PF.fov, cut: PF.cut, vic: PF.vic && PF.vic.num, hero: PF.hero && PF.hero.num, heroIn: PF.heroIn,
         mode: PF.mode, how: PF.how, both: PF.both, team: PF.w, score: PF.score, backCut: PF.backCut, heroX: clH ? CL.hx : PF.mode === 'hero' ? PF.side * PF.hxo : 0, parts: PF.mode === 'hero' ? JSON.parse(JSON.stringify(HPB)) : null } : null; return dbg; },
     getShot: function () { return shot === 'tpPoint' ? 'point' : shot === 'clinch' ? (CL.phase === 'hero' || CL.phase === 'hold' ? (CL.match ? 'over' : 'point') : 'clinch') : shot; },
@@ -3697,6 +3745,23 @@
       var dt = mx(0, mn(0.1, realDt || 0));
       K.dt = dt; K.timeAcc += dt; readComfort();
       CUT.frame = false;
+      if (RP.on) {
+        // REPETICIÓN (C1): g es la sombra R. Solo el plano de tele (+ acercamiento) y apply; sin eventos ni relojes del vivo
+        if (shot !== 'replay') { prevShot = shot; shot = 'replay'; }
+        if (RP.cutIn) { RP.cutIn = false; K.shakeT = 0; settle(g); markCut(RP.from || prevShot, 'replay', 'replay'); }
+        else {
+          computeDesired(g);
+          if (dt > 0) { K.sdT = 0.4; K.sdMax = 40; sdv(P, D, PV); K.sdT = 0.3; K.sdMax = 56; sdv(L, A, LV); }
+        }
+        clampInside(P, false);
+        apply(g);
+        K.nextCut = -1; dbg.cutN = CUT.n; dbg.nextCutIn = -1; dbg.timeScale = ctx.timeScale; dbg.hitStop = K.hsT; dbg.fb = -1;
+        return;
+      }
+      if (RP.cutOut) {
+        // vuelta de la repetición: al plano de antes (si sigue siendo el que toca, sin onShotChange) y corte asentado más abajo
+        if (shot === 'replay') { shot = RP.prev || pickShot(g); prevShot = 'replay'; }
+      }
       var playing = ctx.state === 'playing' && !g.demo, human = playing && !g.autopilot, calm = comfort();
       for (var i = 0; i < events.length; i++) {
         var e = events[i];
@@ -3844,6 +3909,7 @@
       computeDesired(g);
       svcPrewarm(g);
       // CORTES DE PLANO deliberados: el rig queda asentado en el plano nuevo (settle) y se anotan (cutN / lastCut)
+      if (RP.cutOut) { RP.cutOut = false; settle(g); markCut('replay', shot, 'replay'); }
       if (CC.cut) { CC.cut = false; settle(g); markCut(prevShot, shot, 'court'); }
       if (RV.cutIn) { RV.cutIn = false; if (shot === 'review') { settle(g); markCut(prevShot, 'review', 'replay'); } }
       if (RV.cutOut) { RV.cutOut = false; if (shot !== 'review') { settle(g); markCut('point', shot, (shot === 'serveUs' || shot === 'serveThem') ? 'serve' : shot === 'over' ? 'over' : 'replay'); } }

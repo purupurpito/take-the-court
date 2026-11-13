@@ -87,7 +87,21 @@
     '#career .cw-form i.w{background:#4be0a0}#career .cw-form i.l{background:#ff7a8a}#career .cw-form small{margin-left:4px;color:var(--muted);font:600 12.5px var(--ui)}',
     '#career .cw-tl{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:4px}#career .cw-tl li{font:600 14.5px var(--ui)}',
     '#career .cw-head .cw-list{margin-bottom:8px}',
-    '#career .cw-nb:focus-visible,#career .cw-nb.kf,#career .cw-row:focus-visible,#career .cw-row.kf{box-shadow:inset 0 0 0 3px #ffb238}'
+    '#career .cw-nb:focus-visible,#career .cw-nb.kf,#career .cw-row:focus-visible,#career .cw-row.kf{box-shadow:inset 0 0 0 3px #ffb238}',
+    // S2 B2b: escudo paródico (SVG en línea; tamaños 72 ficha, 56 VS y ofertas, 40 portada y cabecera, 22 mini en tablas)
+    '.cw-crest{display:inline-block;vertical-align:middle;flex:none;overflow:visible}',
+    '#career .cw-card .row>.cw-crest{margin-right:10px}',
+    // S2 B2c: vitrina con huecos (no enfocables). 3 por fila a 390 px
+    '#career .tc .tc-g{margin:10px 0 6px;font:800 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-shadow:none}',
+    '#career .tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}',
+    '#career .tc-slot{display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;padding:8px 6px;border-radius:10px;min-width:0}',
+    '#career .tc-slot svg{width:34px;height:34px;flex:none}',
+    '#career .tc-slot.got{background:rgba(255,210,63,.14);box-shadow:inset 0 0 0 1.5px var(--gold,#ffd23f);color:var(--gold,#ffd23f)}',
+    '#career .tc-slot.empty{box-shadow:none;border:1.5px dashed rgba(255,255,255,.3);color:#fff}',
+    '#career .tc-slot.empty svg{opacity:.35}',
+    '#career .tc-n{font:700 12.5px/1.2 var(--ui);color:#fff;letter-spacing:0;text-transform:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}',
+    '#career .tc-slot small{display:block;font:600 11.5px/1.2 var(--ui);color:var(--muted);letter-spacing:0;text-transform:none}',
+    '#career .tc-slot.got small{color:#ffe28a}#career .tc-slot small.tc-ul{color:#7fe6dc}'
   ].join('\n');
   function css() { if (typeof document === 'undefined' || document.getElementById('careerWorldCss')) return; var s = document.createElement('style'); s.id = 'careerWorldCss'; s.textContent = CSS; document.head.appendChild(s); }
 
@@ -122,7 +136,12 @@
   function ordn(n) { return n + (n === 1 || n === 3 ? 'r' : 'º'); }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
   function stars(n) { var s = ''; for (var i = 0; i < 5; i++) s += i < n ? '★' : '<span class="off">★</span>'; return '<span class="stars" aria-label="Prestigio ' + n + ' de 5">' + s + '</span>'; }
-  function kitMini(k) { return H && H.kitSw && k ? H.kitSw(k).replace('cr-kit', 'cr-kit kit-mini') : ''; }
+  /** Escudo mini (22) de una fila de club; sin escudos (HLP sin crest), la muestra de equipación de siempre. */
+  function kitMini(c, r) {
+    if (!H || !r) return '';
+    if (H.crest) { var k = C().club ? C().club(c, r.id) : null; if (k) return H.crest(k, 22, { c: c }); }
+    return H.kitSw && r.kit ? H.kitSw(r.kit).replace('cr-kit', 'cr-kit kit-mini') : '';
+  }
   /** Una noticia: botón que abre la ficha de su primer club (si existe) o texto suelto. fresh: sin ver hasta este pintado. */
   function newsItem(c, x, fresh) {
     var id = x.c && x.c.length ? x.c[0] : -1, k = id >= 0 ? C().club(c, id) : null;
@@ -161,7 +180,7 @@
     return '<div class="card">' + (sw != null ? sw : lgSw(lvl)) + '<h3>' + sp([esc(L.name), plural(rows.length, 'club', 'clubes')], 'd') + '</h3><div class="cw-list">' + rows.map(function (r) {
       var vs = r.vs ? { h: 'Tú ' + r.vs.g + '-' + r.vs.p, c: 'dv' + (r.vs.g > r.vs.p ? ' g' : r.vs.g < r.vs.p ? ' r' : '') } : '';
       var mk = r.mine ? '<span class="cw-mk">Tu club</span>' : r.rival ? '<span class="cw-mk rv">Tu rival juega aquí</span>' : '';
-      return '<button class="cw-row' + (r.mine ? ' me' : r.rival ? ' rv' : '') + '" data-act="cw-club" data-id="' + r.id + '">' + kitMini(r.kit) +
+      return '<button class="cw-row' + (r.mine ? ' me' : r.rival ? ' rv' : '') + '" data-act="cw-club" data-id="' + r.id + '">' + kitMini(c, r) +
         '<span class="cw-rn"><b>' + esc(r.name) + '</b>' + mk + '<small>' + sp([r.pj ? ordn(r.pos) : '', 'Media ' + r.ovr, { h: stars(r.stars) }, vs], 'c') + '</small></span><span class="cw-go" aria-hidden="true">›</span></button>';
     }).join('') + '</div></div>';
   }
@@ -169,7 +188,7 @@
   function cardHTML(c, k) {
     var lo = k.lore || {}, h = '', hall = isH(c), KT = hall ? KIND_T6 : KIND_T;
     // 1) cabecera
-    h += '<div class="card cw-card"><button class="cw-back" data-act="cw-list">‹ Clubes</button><div class="row" style="margin-top:8px">' + (H.kitSw ? H.kitSw(k.kit, true) : '') +
+    h += '<div class="card cw-card"><button class="cw-back" data-act="cw-list">‹ Clubes</button><div class="row" style="margin-top:8px">' + (H.crest ? H.crest(k, 72, { c: c }) : H.kitSw ? H.kitSw(k.kit, true) : '') +
       '<div class="grow" style="min-width:0"><small class="cw-kick">' + sp([esc(k.league), 'Fundado en ' + lo.founded], 'd') + '</small><p class="bigname" style="font-size:21px">' + esc(k.name) + '</p>' +
       '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i></p></div></div>' +
       '<p class="muted" style="margin-top:6px">' + sp([{ h: stars(k.stars) }, 'Media ' + k.ovr, esc(k.style), esc(k.beach || k.city)], 'c') + '</p>' +
@@ -199,6 +218,107 @@
   }
   /** career-ui, al entrar en Liga › Clubes desde la barra: vuelve a la lista. */
   function reset() { sel = null; }
+
+  // ---------------------------------------------------------------- S2 B2b: escudo paródico (SVG en línea, sin red)
+  var INK = '#1d1530';
+  var SHAPE_D = {
+    clasico: 'M5 5H59V36C59 53 46 63 32 69C18 63 5 53 5 36Z',
+    redondo: 'M3 36A29 29 0 1 0 61 36A29 29 0 1 0 3 36Z',
+    frances: 'M5 5H59V42L32 69L5 42Z',
+    hex: 'M32 3L60 19V53L32 69L4 53V19Z',
+    moderno: 'M5 5H47L59 17V67H5Z'
+  };
+  function hexC(n) { return '#' + ('00000' + ((n >>> 0) & 0xffffff).toString(16)).slice(-6); }
+  function divSVG(d, c2) {
+    var f = ' fill="' + c2 + '"';
+    if (d === 'partido') return '<rect x="32" y="0" width="32" height="72"' + f + '/>';
+    if (d === 'tronchado') return '<path d="M64 0V72H0Z"' + f + '/>';
+    if (d === 'franja') return '<rect x="0" y="29" width="64" height="14"' + f + '/>';
+    if (d === 'cuartel') return '<path d="M0 0H32V36H0ZM32 36H64V72H32Z"' + f + '/>';
+    return '';
+  }
+  // Emblemas genéricos (centrados en 0,0, ±12): blanco con contorno de tinta; los de trazo (sol, ancla) van con trazo doble
+  function line2(d) { return '<g fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="' + d + '" stroke="' + INK + '" stroke-width="5.5"/><path d="' + d + '" stroke="#fff" stroke-width="2.6"/></g>'; }
+  var EMB = {
+    balon: '<circle r="11"/><path d="M-11 0C-4-3 4-3 11 0M-6-9C-1-3-1 3-6 9M6-9C1-3 1 3 6 9" fill="none"/>',
+    estrella: '<path d="M0-12L2.94-4.05L11.41-3.71L4.76 1.55L7.05 9.71L0 5L-7.05 9.71L-4.76 1.55L-11.41-3.71L-2.94-4.05Z"/>',
+    ola: '<path d="M-12 3C-9-5-3-7 1-3C3-1 2 2-1 2C3 5 8 3 12-1V9H-12Z"/>',
+    sol: line2('M0-12V-9M0 9V12M-12 0H-9M9 0H12M-8.5-8.5L-6.4-6.4M6.4 6.4L8.5 8.5M-8.5 8.5L-6.4 6.4M6.4-6.4L8.5-8.5') + '<circle r="6"/>',
+    red: '<rect x="-12" y="-8" width="24" height="16" rx="1.5"/><path d="M-6-8V8M0-8V8M6-8V8M-12 0H12" fill="none"/>',
+    torre: '<path d="M-9 12V-4H-11V-12H-6V-8H-2V-12H2V-8H6V-12H11V-4H9V12Z"/><path d="M-3 12V5A3 3 0 0 1 3 5V12Z" fill="' + INK + '"/>',
+    ancla: line2('M0-6V10M-6-3H6M-10 3C-10 9-5 11 0 11C5 11 10 9 10 3') + '<circle cy="-9" r="3"/>',
+    rayo: '<path d="M3-12L-8 2H-1L-4 12L8-3H1Z"/>'
+  };
+  var crestTpl = {}, crestTplN = 0, crestN = 0;
+  /** Escudo de un club en SVG (px = ancho; alto = px × 72/64). o: {c (la Carrera; si no, la guardada), label (aria-label; si no,
+   *  decorativo), year (false: sin año)}. ≤ 28 px: mini (sin banda); ≥ 64 px: con el año de fundación. Plantilla en caché con %ID%
+   *  para el clipPath (id único por instancia: innerHTML repite escudos). Sin career-world.js: la muestra de equipación. */
+  function crestSVG(k, px, o) {
+    o = o || {}; px = Math.max(12, Math.round(+px || 40));
+    var w = W(), cr = k && w && w.crestOf ? w.crestOf(k, o.c || undefined) : null;
+    if (!cr) return k && H && H.kitSw && k.kit ? H.kitSw(k.kit, px >= 48) : '';
+    var cls = px <= 28 ? 'm' : px >= 64 ? 'l' : 's', year = cls === 'l' && o.year !== false && cr.year ? cr.year : 0;
+    var key = [cr.shape, cr.div, cr.emblem, cr.c1, cr.c2, cr.txt, year, cls].join('|'), t = crestTpl[key];
+    if (!t) {
+      if (++crestTplN > 600) { crestTpl = {}; crestTplN = 1; }   // (tope de memoria: 390 clubes de pista × 2-3 tamaños)
+      var d = SHAPE_D[cr.shape] || SHAPE_D.clasico, c1 = hexC(cr.c1), c2 = hexC(cr.c2);
+      var ey = cls === 'm' ? 35 : cls === 'l' ? 22 : 25, es = cls === 'm' ? 1.15 : cls === 'l' ? 0.8 : 0.85, by = cls === 'l' ? 36 : 41;
+      var txt = esc(cr.txt), fit = cr.txt.length > 3 ? ' textLength="40" lengthAdjust="spacingAndGlyphs"' : '';
+      t = '<defs><clipPath id="%ID%"><path d="' + d + '"/></clipPath></defs>' +
+        '<g clip-path="url(#%ID%)"><rect width="64" height="72" fill="' + c1 + '"/>' + divSVG(cr.div, c2) + '</g>' +
+        '<g transform="translate(32 ' + ey + ') scale(' + es + ')" fill="#fff" stroke="' + INK + '" stroke-width="2" stroke-linejoin="round">' + (EMB[cr.emblem] || EMB.balon) + '</g>' +
+        (cls !== 'm' ? '<rect x="9" y="' + by + '" width="46" height="14" rx="3" fill="' + INK + '"/><text x="32" y="' + (by + 11) + '" text-anchor="middle" fill="#fff"' + fit + ' style="font:900 13px var(--display,sans-serif)">' + txt + '</text>' : '') +
+        (year ? '<text x="32" y="' + (by + 22) + '" text-anchor="middle" fill="' + INK + '" stroke="#fff" stroke-width="2" paint-order="stroke" style="font:800 7.5px var(--ui,sans-serif)">' + year + '</text>' : '') +
+        '<path d="' + d + '" fill="none" stroke="#fff" stroke-opacity=".75" stroke-width="7" clip-path="url(#%ID%)"/>' +
+        '<path d="' + d + '" fill="none" stroke="' + INK + '" stroke-width="3" stroke-linejoin="round"/>';
+      crestTpl[key] = t;
+    }
+    var id = 'cr' + (k.id != null ? String(k.id).replace(/\W/g, '') : 'x') + 'n' + (++crestN);
+    return '<svg class="cw-crest cw-crest-' + cls + '" width="' + px + '" height="' + Math.round(px * 72 / 64) + '" viewBox="0 0 64 72"' +
+      (o.label ? ' role="img" aria-label="' + esc(o.label) + '"' : ' aria-hidden="true"') + ' focusable="false">' + t.replace(/%ID%/g, id) + '</svg>';
+  }
+
+  // ---------------------------------------------------------------- S2 B2c: vitrina de palmarés con huecos
+  var TC_SVG = '<svg viewBox="0 0 32 32" aria-hidden="true" focusable="false" fill="currentColor" stroke="var(--tk,#1d1530)" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round">';
+  var TC_ICON = {
+    liga: '<path d="M9 4h14v7a7 7 0 0 1-14 0z"/><path d="M9 7H5.5a4 4 0 0 0 4 5M23 7h3.5a4 4 0 0 1-4 5" fill="none"/><path d="M14 18h4v5h-4zM10 23h12v5H10z"/>',
+    copa: '<ellipse cx="16" cy="13" rx="12" ry="9"/><ellipse cx="16" cy="13" rx="6" ry="4.5" fill="none"/><path d="M13 22h6v4h-6zM10 26h12v3H10z"/>',
+    intl: '<circle cx="16" cy="10" r="7"/><path d="M9 10h14M16 3c-3 4-3 10 0 14M16 3c3 4 3 10 0 14" fill="none"/><path d="M12 17h8l-2 6h-4zM10 23h12v5H10z"/>',
+    ascenso: '<path d="M8 3v26" fill="none"/><path d="M9 4h15l-4 5 4 5H9z"/><path d="M22 28V19M18.5 22.5L22 19l3.5 3.5" fill="none"/>',
+    premio: '<path d="M16 2l2.4 4.9 5.4.8-3.9 3.8.9 5.4L16 14.4l-4.8 2.5.9-5.4-3.9-3.8 5.4-.8z"/><path d="M14 17h4v6h-4zM10 23h12v5H10z"/>'
+  };
+  /** Dificultad de los títulos (como diffUsed de career-ui: solo si la carrera ha usado algo que no sea Normal; playa). */
+  function tcDiff(c) {
+    var CD = C() && C().CDIFF; if (!CD || !c || isH(c)) return null;
+    var k = C().diffOf ? C().diffOf(c) : c.diff, o = function (x) { return x && x.d && x.d !== 'normal'; };
+    if (!(CD[k] && k !== 'normal') && !(c.history || []).some(o) && !(c.trophies || []).some(o)) return null;
+    var keys = C().CDIFF_KEYS || ['easy', 'normal', 'hard', 'expert'];
+    return function (won) {
+      var best = -1; won.forEach(function (x) { var i = keys.indexOf(CD[x.d] ? x.d : 'normal'); if (best < 0 || i < best) best = i; });
+      return best >= 0 && CD[keys[best]] ? CD[keys[best]].name : '';
+    };
+  }
+  function seasonsTxt(won) { var a = won.map(function (x) { return x.season; }); return W() && W()._andList ? W()._andList(a.map(String)) : a.join(', '); }
+  function slotHTML(s, du) {
+    var got = s.won.length > 0, n = s.won.length, ts = s.won.map(function (x) { return 'T' + x.season; }).join(', ');
+    var line = got ? sp([n > 1 ? '×' + n : '', ts, du ? esc(du(s.won)) : ''], 'v') : '<small>' + esc(s.need) + '</small>';
+    var ul = !got && s.unlock ? '<small class="tc-ul">Desbloquea: ' + esc(s.unlock.name) + '</small>' : '';
+    var al = s.name + ': ' + (got ? 'ganado ' + (n === 1 ? '1 vez, temporada ' : n + ' veces, temporadas ') + seasonsTxt(s.won) : 'sin ganar' + (s.need ? '. ' + s.need : '')) + (ul ? '. Desbloquea: ' + s.unlock.name : '');
+    return '<div class="tc-slot ' + (got ? 'got' : 'empty') + '" role="img" aria-label="' + esc(al) + '">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' +
+      '<b class="tc-n">' + esc(s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</div>';
+  }
+  /** Palmarés › Palmarés: «Vitrina (4 de 20)» con un bloque por grupo (playa: un circuito por fila y Premios; pista: Liga, Copa,
+   *  Internacional, Ascenso y Premios) y «Otros títulos» si algo no casa. Es su propia tarjeta. Sin career-world.js: ''. */
+  function trophyCaseHTML(c, h0) {
+    if (h0) H = h0; css();
+    var w = W(); if (!w || !w.trophyCase || !c || !H) return '';
+    var tc = w.trophyCase(c); if (!tc) return '';
+    var du = tcDiff(c), groups = [], by = {};
+    tc.slots.concat(tc.other || []).forEach(function (s) { if (!by[s.group]) { by[s.group] = []; groups.push(s.group); } by[s.group].push(s); });
+    return '<div class="card tc"><h3>Vitrina <span class="muted">(' + tc.got + ' de ' + tc.total + ')</span></h3>' + groups.map(function (g) {
+      return '<h4 class="tc-g">' + esc(g) + '</h4><div class="tc-grid">' + by[g].map(function (s) { return slotHTML(s, du); }).join('') + '</div>';
+    }).join('') + '</div>';
+  }
 
   // ---------------------------------------------------------------- acciones (career-ui.js onClick)
   /** Devuelve null si no es suya; si no, {render, focus, tab, s}: career-ui repinta, enfoca el selector o va a la pestaña. */
@@ -234,5 +354,6 @@
   function focusSel() { return lastSel != null ? '.cw-row[data-id="' + lastSel + '"]' : ''; }
 
   VB.CareerWorldUI = { mentorCard: mentorCard, optsHTML: optsHTML, headlines: headlines, newsHTML: newsHTML, clubsHTML: clubsHTML, act: act, back: back, focusSel: focusSel, reset: reset, css: css, FACE: FACE,
+    crestSVG: crestSVG, trophyCaseHTML: trophyCaseHTML,
     isCard: function () { return sel != null; } };
 })();

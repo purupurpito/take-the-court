@@ -21,6 +21,7 @@
  *   SIMTEST_ONLY=e1: solo la sección «Maestría (E1)». SIMTEST_MASTERY=1: la matriz con createGame({mastery:true}) (la CPU lee la finta
  *   y usa golpe colocado / colocación a un lado); SIMTEST_MASTERY=2: además los bots usan finta, colocado, filo y colocación dirigida.
  *   SIMTEST_ONLY=gym: solo la sección «Gimnasio (E6)» (createGame({drill}): ejercicios y peloteo libre).
+ *   SIMTEST_ONLY=replay: solo la sección «[repetición]» (S3-C1: copyGame, stateHash, resim idéntica; SIMTEST_RP_SECS = s por partido, 180).
  */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm'), os = require('os');
@@ -1107,7 +1108,156 @@ function gymSection() {
   console.log('Gimnasio (E6): ' + res.length + ' pruebas, ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + (failures === f0 ? ' OK' : ''));
 }
 
+// ================= Repetición (S3-C1): VB.Sim.copyGame / stateHash / g.rng.get-set =================
+/* «[repetición] resim idéntica y sin interferencia» (portado de la sonda c1probe/resim.js y resim6.js del plan S3-C1). Por caso:
+ * un partido humano con un bot de solo entrada (el de fingerprint6.js); en cada peloteo, copyGame de la partida en vivo a una sombra en
+ * el lanzamiento del saque (evento toss) y cada 360 pasos (foto clave), registro de las entradas por paso (Float64Array + bits) y
+ * stateHash en el punto y tras la cola (TAIL = 156 pasos, R12). Con resim: en cuanto se cierra el peloteo (el partido en vivo está en la
+ * pausa del punto), se copia la foto a la partida de repetición R (con R.replay = true) y se resimula con las entradas grabadas:
+ * el hash del punto, el de la cola y la firma completa tienen que ser los del vivo, desde el saque y desde la última foto clave. El
+ * partido entero tiene que acabar igual con y sin resimulaciones intercaladas. Además, una vez por caso: la copia no comparte ningún
+ * objeto con el origen (salvo las constantes DIFF/TIMING y opts), conserva R.replay/R.stats, iguala el JSON del estado y deja
+ * rng.get() igual; y g.rng.get/set no cambian la secuencia. SIMTEST_ONLY=replay: solo esta sección. */
+function replaySection() {
+  const t0 = Date.now(), f0 = failures;
+  console.log('\n== [repetición] resim idéntica y sin interferencia ==');
+  const TAIL = 156, KF_EVERY = 360, CAP = 2400 * 4, GAME_S = +(process.env.SIMTEST_RP_SECS || 180);
+  const rpMul = s => () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  function rpBot(seed) { // = tools/fingerprint6.js (bot de solo entrada)
+    const r = rpMul(seed * 7919 + 13); let serveWait = -1, jumpCd = 0;
+    return function (g) {
+      const p = g.ctrl, b = g.ball, inp = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
+      if (g.mode === 'serve') {
+        if (g.server !== p || g.serving !== 0) return inp;
+        if (serveWait < 0) serveWait = 40 + Math.floor(r() * 200);
+        if (--serveWait === 0) { if (r() < 0.4) inp.jump = true; else inp.hit = true; }
+        if (g.serveState === 'toss' && b.z > 2.3 && b.vz < 0 && r() < 0.25) inp.hit = true;
+        inp.move = [0, r() < 0.5 ? 0 : (r() - 0.5)]; return inp;
+      }
+      serveWait = -1; if (g.mode !== 'rally') return inp;
+      const pr = g.pr1, dx = pr.x - p.x, dy = pr.y - p.y, d = Math.hypot(dx, dy), mine = S.side(0) * pr.x > 0;
+      if (mine && d > 0.25) inp.move = [dx / d * Math.min(1, d), dy / d * Math.min(1, d)];
+      else if (!mine) { const hx = S.side(0) * 5 - p.x, hy = -p.y * 0.5, hd = Math.hypot(hx, hy); if (hd > 0.5) inp.move = [hx / hd * 0.7, hy / hd * 0.7]; }
+      if (r() < 0.15) inp.move = [inp.move[0] + (r() - 0.5) * 0.8, inp.move[1] + (r() - 0.5) * 0.8];
+      const bd = Math.hypot(b.x - p.x, b.y - p.y);
+      if (bd < 1.6 && b.z < 3.2 && r() < 0.35) inp.hit = true;
+      if (--jumpCd <= 0 && Math.abs(p.x) < 2.5 && bd < 2.5 && b.z > 2.3 && r() < 0.2) { inp.jump = true; jumpCd = 60; }
+      if (p.z > 0.6 && bd < 2 && r() < 0.05) inp.jump = true;
+      if (p.z > 0.6 && bd < 2 && r() < 0.04) inp.jset = true;
+      if (r() < 0.004) inp.switchPlayer = true;
+      return inp;
+    };
+  }
+  const sig = g => { const o = [g.time, g.score.join('-'), g.sets.join('-'), g.setNo, g.mode, g.ball.x, g.ball.y, g.ball.z, g.ball.vx, g.ball.vy, g.ball.vz, g.rng.get(), g.touches, g.lastKind, g.ctrl && g.ctrl.id];
+    for (const p of g.players) o.push(p.id, p.x, p.y, p.z, p.vx, p.vy, p.anim, p.lastAction); return JSON.stringify(o); };
+  const SKIP = { rng: 1, events: 1, stats: 1, replay: 1, opts: 1 };
+  const stateJSON = g => JSON.stringify(g, function (k, v) { return this === g && SKIP[k] ? undefined : v; });
+  const CONST = new Set(); for (const k in S.DIFF) if (S.DIFF[k] && typeof S.DIFF[k] === 'object') CONST.add(S.DIFF[k]); for (const k in S.TIMING) if (S.TIMING[k] && typeof S.TIMING[k] === 'object') CONST.add(S.TIMING[k]);
+  function reach(g, set) { (function w(v, top) { if (v === null || typeof v !== 'object' || set.has(v) || CONST.has(v)) return; set.add(v); for (const k in v) { if (top && (k === 'opts' || k === 'events')) continue; w(v[k], false); } })(g, true); return set; }
+  // auditoría de la copia (una vez por caso, desde una foto clave de mitad de peloteo): sin objetos compartidos, mismo estado,
+  // R.replay/R.stats intactos y toda referencia a jugador dentro de R
+  function audit(R, src, live, tag) {
+    const bad = [];
+    const a = reach(src, new Set()); reach(live, a);
+    const shared = [...reach(R, new Set())].filter(o => a.has(o)).length;
+    if (shared) bad.push(shared + ' objetos compartidos con el origen');
+    if (stateJSON(R) !== stateJSON(src)) bad.push('el estado copiado no es igual (JSON)');
+    if (R.rng.get() !== src.rng.get() || R.rng === src.rng) bad.push('rng');
+    if (R.replay !== true) bad.push('R.replay perdido');
+    if (R.stats !== null) bad.push('R.stats sobrescrito');
+    if (R.events.length) bad.push('R.events sin vaciar');
+    const own = new Set(R.players); if (R.roster) for (const L of R.roster) for (const p of L) own.add(p); if (R.libero) for (const p of R.libero) own.add(p);
+    if (R.roster) for (const p of R.players) if (!R.roster[p.team].includes(p)) bad.push('jugador ' + p.id + ' fuera de R.roster');
+    for (const [k, v] of [['ctrl', R.ctrl], ['ctrlBase', R.ctrlBase], ['server', R.server], ['lastPlayer', R.lastPlayer], ['atkSet', R.atkSet], ['ritual.player', R.ritual.player], ['jobs0', R.jobs[0]], ['jobs1', R.jobs[1]], ['jobMem0', R.jobMem[0]], ['jobMem1', R.jobMem[1]]])
+      if (v && !own.has(v)) bad.push('R.' + k + ' no es un jugador de R');
+    if (bad.length) fail('[repetición] copyGame ' + tag + ': ' + bad.join('; '));
+    return !bad.length;
+  }
+  function run(seed, withReplay, opts, tag) {
+    const o = Object.assign({ demo: false, seed, stats: true, difficulty: 'normal', ctrl: seed % 2 ? 'one' : 'both', present: true }, opts || {});
+    const g = S.createGame(o), so = Object.assign({}, o, { stats: false });
+    const kfT = S.createGame(so), kfM = S.createGame(so), R = S.createGame(so); R.replay = true;
+    const bot = rpBot(seed), evs = [], evR = [], inR = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
+    const mv = new Float64Array(CAP * 2), fl = new Uint8Array(CAP);
+    const res = { rallies: 0, ok: 0, bad: 0, okMid: 0, badMid: 0, cut: 0, steps: 0, ns: 0, copies: 0, copyNs: 0, mids: 0, audits: 0, subs: 0 };
+    let rec = false, n = 0, nMid = -1, pointAt = -1, endAt = -1, hashPt = 0, lastSub = 0;
+    const copy = (d, s) => { const t = process.hrtime.bigint(); S.copyGame(d, s); res.copyNs += Number(process.hrtime.bigint() - t); res.copies++; };
+    function resim(from, k0, hashEnd, sigEnd) { // R ← foto; pasos k0..endAt-1 con las entradas grabadas
+      copy(R, from); let okPt = true;
+      if (from === kfM && res.mids++ % 3 === 0) { audit(R, from, g, tag); res.audits++; }   // (1 de cada 3 fotos clave: también tras los cambios)
+      const t = process.hrtime.bigint();
+      for (let k = k0; k < endAt; k++) {
+        inR.move[0] = mv[2 * k]; inR.move[1] = mv[2 * k + 1]; const f = fl[k];
+        inR.hit = !!(f & 1); inR.jump = !!(f & 2); inR.jset = !!(f & 4); inR.switchPlayer = !!(f & 8);
+        S.step(R, DT, inR); evR.length = 0; S.drainEvents(R, evR);
+        if (k + 1 === pointAt && S.stateHash(R) !== hashPt) okPt = false;
+      }
+      res.ns += Number(process.hrtime.bigint() - t); res.steps += endAt - k0;
+      return okPt && S.stateHash(R) === hashEnd && sig(R) === sigEnd;
+    }
+    for (let i = 0; i < Math.round(GAME_S / DT) && !g.finished; i++) {
+      // banquillo (carrera-pista): un cambio pedido por el humano en la pausa de un punto cada ~40 s (fuera del tramo grabado: requestSub
+      // escribe g.subQ fuera de Sim.step y se aplica en el siguiente balón muerto, así que la foto del saque ya lo lleva)
+      if (o.bench && !rec && g.mode === 'point' && i - lastSub > 4800) { lastSub = i; done: for (const q of g.rot[0]) for (const b of S.benchOf(g, 0)) if (S.requestSub(g, 0, q, b) === '') break done; }
+      const x = bot(g);
+      if (rec) { if (n >= CAP) { rec = false; res.cut++; } else { mv[2 * n] = x.move[0]; mv[2 * n + 1] = x.move[1]; fl[n] = (x.hit ? 1 : 0) | (x.jump ? 2 : 0) | (x.jset ? 4 : 0) | (x.switchPlayer ? 8 : 0); } }
+      S.step(g, DT, x);
+      evs.length = 0; S.drainEvents(g, evs);
+      if (rec) {
+        n++;
+        if (pointAt < 0 && n % KF_EVERY === 0) { copy(kfM, g); nMid = n; }
+        if (endAt >= 0 && n === endAt) {
+          rec = false; const hEnd = S.stateHash(g), sEnd = sig(g);
+          if (withReplay) {
+            if (resim(kfT, 0, hEnd, sEnd)) res.ok++; else { res.bad++; if (res.bad < 3) console.log('  DESAJUSTE ' + tag + ' peloteo ' + res.rallies + ' (desde el saque)'); }
+            if (nMid > 0) { if (resim(kfM, nMid, hEnd, sEnd)) res.okMid++; else { res.badMid++; if (res.badMid < 3) console.log('  DESAJUSTE ' + tag + ' peloteo ' + res.rallies + ' (desde la foto clave ' + nMid + ')'); } }
+          }
+        }
+      }
+      for (const e of evs) {
+        if (e.type === 'toss') { if (rec) res.cut++; copy(kfT, g); rec = true; n = 0; nMid = -1; pointAt = -1; endAt = -1; res.rallies++; }
+        else if (e.type === 'point' && rec && pointAt < 0) { pointAt = n; endAt = n + TAIL; hashPt = S.stateHash(g); }
+      }
+    }
+    if (g.subs) res.subs = g.subs[0].n + g.subs[1].n;
+    res.final = JSON.stringify([g.setScores, g.score, g.sets, g.rng.get(), g.time, g.ball.x, g.finished]);
+    return res;
+  }
+  // g.rng.get/set: misma secuencia que siempre (makeRng sin los métodos) y set() reproduce desde un estado
+  { const a = S._makeRng(12345), ref = rpMul(12345); let same = true; for (let i = 0; i < 1000; i++) if (a() !== ref()) same = false;
+    const st = a.get(), x1 = [a(), a(), a()]; a.set(st); const x2 = [a(), a(), a()];
+    const zs = S._makeRng(0).get();
+    if (!same || x1.join() !== x2.join() || zs !== 0x9e3779b9 || st !== st >>> 0) fail('[repetición] g.rng.get/set: misma secuencia ' + same + ', set reproduce ' + (x1.join() === x2.join()) + ', semilla 0 ' + zs);
+    else console.log('g.rng.get/set: misma secuencia que mulberry32 (1000 valores), set(get()) reproduce, estado uint32 OK'); }
+  const attrsFor = s => { const a = k => ({ jump: 30 + (s * 7 + k * 13) % 60, speed: 30 + (s * 11 + k * 5) % 60, react: 40 + (s + k * 17) % 50, recv: 35 + (s * 3 + k) % 55, dig: 50, set: 25 + (s * 5 + k * 9) % 70, spike: 30 + (s * 13 + k) % 65, ctl: 45, block: 20 + (s + k * 7) % 75, serve: 30 + (s * 17 + k * 3) % 65 }); return [[a(0), a(1)], [a(2), a(3)]]; };
+  const BENCH = t => [{ role: 'OH', num: 14 + t, st: { jump: 70, spike: 75 } }, { role: 'MB', st: { block: 80 } }, { role: 'S' }, { role: 'OPP', fat: 20 }, { role: 'L' }];
+  const CASES = [];
+  for (const seed of [3, 7, 11, 12345]) {
+    CASES.push(['pabellón ' + seed, seed, {}], ['playa ' + seed, seed, { venue: 'beach' }], ['maestría ' + seed, seed, { mastery: true }],
+      ['atributos+insignias ' + seed, seed, { attrs: attrsFor(seed), badges: [[{ canon: 2, sangrefria: 3 }, { seda: 2, lider: 3 }], [{ muro: 2, rompemanos: 3 }, { red: 1, bombardero: 2 }]] }]);
+  }
+  for (const seed of [5, 9]) CASES.push(['6v6 ' + seed, seed, { format: '6v6', ctrl: 'one', ctrlRole: 'OH' }]);
+  CASES.push(['6v6 banquillo 9', 9, { format: '6v6', ctrl: 'one', ctrlRole: 'S', bench: [BENCH(0), BENCH(1)], coach: [{ iq: 3 }, { iq: 3 }], meSlot: 0 }]);
+  const tot = { rallies: 0, ok: 0, bad: 0, okMid: 0, badMid: 0, steps: 0, ns: 0, copies: 0, copyNs: 0 }, rows = [];
+  let same = 0;
+  for (const [tag, seed, o] of CASES) {
+    const a = run(seed, true, o, tag), b = run(seed, false, o, tag), eq = a.final === b.final;
+    if (eq) same++; else fail('[repetición] ' + tag + ': el partido cambia con resimulaciones intercaladas\n   con ' + a.final + '\n   sin ' + b.final);
+    if (a.bad || a.badMid) fail('[repetición] ' + tag + ': ' + a.bad + ' + ' + a.badMid + ' resimulaciones desincronizadas');
+    if (!a.ok) fail('[repetición] ' + tag + ': ningún peloteo resimulado');
+    for (const k in tot) tot[k] += a[k];
+    rows.push(tag + ': ' + a.ok + '/' + (a.ok + a.bad) + ' desde el saque, ' + a.okMid + '/' + (a.okMid + a.badMid) + ' desde foto clave, igual con/sin ' + eq +
+      ', ' + (a.ns / Math.max(1, a.steps) / 1000).toFixed(1) + ' µs/paso, copia ' + (a.copyNs / Math.max(1, a.copies) / 1000).toFixed(0) + ' µs, ' + a.audits + ' auditorías de la copia' + (o.bench ? ', cambios ' + a.subs : ''));
+    if (!a.audits) fail('[repetición] ' + tag + ': copia sin auditar');
+  }
+  console.log('  ' + rows.join('\n  '));
+  const nAll = tot.ok + tot.bad + tot.okMid + tot.badMid;
+  console.log('[repetición] resim idéntica: ' + (nAll ? (100 * (tot.ok + tot.okMid) / nAll).toFixed(1) : '0') + ' % (' + (tot.ok + tot.okMid) + '/' + nAll + ' resims de ' + tot.rallies + ' peloteos), sin interferencia ' + same + '/' + CASES.length +
+    ', ' + (tot.ns / Math.max(1, tot.steps) / 1000).toFixed(1) + ' µs/paso (vm), copyGame ' + (tot.copyNs / Math.max(1, tot.copies) / 1000).toFixed(0) + ' µs de media (vm), ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + (failures === f0 ? ' OK' : ''));
+}
+
 async function main() {
+if (ONLY === 'replay') { replaySection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // S3-C1: SIMTEST_ONLY=replay
 // E1: SIMTEST_ONLY=e1, solo la sección de maestría
 if (ONLY === 'gym') { gymSection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // E6: SIMTEST_ONLY=gym
 if (ONLY === 'e1') { e1Section(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); }
@@ -3081,6 +3231,9 @@ if (ONLY !== 'matrix') {
 
   // GIMNASIO (E6, sprint 5): createGame({drill})
   if (ONLY !== 'matrix') gymSection();
+
+  // REPETICIÓN (S3-C1): copyGame/stateHash, resim idéntica y sin interferencia
+  if (ONLY !== 'matrix') replaySection();
 
   // Huella 2v2 (sprint 1 del 6v6): 150 partidas de referencia deben dar EXACTAMENTE lo mismo que tools/fp-2v2.json
   if (ONLY !== 'matrix') {

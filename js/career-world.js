@@ -108,7 +108,9 @@
     down: { t: 'Descenso', l: ['Bajar duele. A mí me pasó dos veces y aquí sigo.', 'Una temporada abajo puede ser el mejor sitio para coger confianza.'] },
     move: { t: 'Club nuevo', l: ['Cambiar de club es empezar de cero con {mate}: la química no se ficha, se juega.'] },
     top: { t: 'En la élite', l: ['El Circuito Mundial. Aquí jugué yo doce años.', 'Ahora entiendes por qué te hacía repetir la recepción.'] },
-    vet: { t: 'Treinta años', l: ['Treinta. Las piernas empiezan a hablar, la cabeza va mejor que nunca.', 'Tú decides cuándo parar. Lo verás en Fama › Legado.'], act: 'life:legacy', al: 'Ver legado' }
+    vet: { t: 'Treinta años', l: ['Treinta. Las piernas empiezan a hablar, la cabeza va mejor que nunca.', 'Tú decides cuándo parar. Lo verás en Fama › Legado.'], act: 'life:legacy', al: 'Ver legado' },
+    // (S2-S4, entrenos de la Carrera: lo dispara career-train.js con _beat en 'join' o en el 1r 'match' de un guardado antiguo)
+    ses1: { t: 'El primer entreno', l: ['Entre jornada y jornada, a entrenar. Te preparo ejercicios según lo que más falla y quién viene.', 'Bronce, plata u oro: cuanto mejor, más subes. Si un día no te apetece, no pasa nada.'] }
   };
   // Carrera de pista: las frases que hablan de arena, pareja o del Circuito Mundial (mismo id, mismo título; el resto, igual).
   var BEATS_H = {
@@ -116,10 +118,11 @@
     slump: ['{n} derrotas seguidas. Todo el mundo pasa por esto, hasta en las grandes ligas.', '{tip}'],
     streak: ['Cinco seguidas. Disfrútalo, pero no te lo creas: la pista siempre te baja los humos.'],
     move: ['Club nuevo, vestuario nuevo: la química no se ficha, se juega.'],
-    top: ['{lg}: una de las grandes ligas del mundo. Ahí jugué yo doce años.', 'Ahora entiendes por qué te hacía repetir la recepción.']
+    top: ['{lg}: una de las grandes ligas del mundo. Ahí jugué yo doce años.', 'Ahora entiendes por qué te hacía repetir la recepción.'],
+    ses1: ['Entre jornada y jornada, a entrenar. Te preparo ejercicios según lo que más falla en tu puesto y quién viene.', 'Bronce, plata u oro: cuanto mejor, más subes. Si un día no te apetece, no pasa nada.']
   };
   // (midLow del diseño, recortado por el plan: midWindow del entrenador ya cubre el ecuador)
-  var BEAT_ORDER = ['hola', 'debut', 'win1', 'loss1', 'rival', 'bench1', 'slump', 'streak', 'title', 'award', 'up', 'down', 'move', 'top', 'vet'];
+  var BEAT_ORDER = ['hola', 'debut', 'win1', 'loss1', 'rival', 'bench1', 'slump', 'streak', 'title', 'award', 'up', 'down', 'move', 'top', 'vet', 'ses1'];
   function fill(s, v) { return String(s).replace(/\{(\w+)\}/g, function (a, k) { return v && v[k] != null ? String(v[k]) : ''; }); }
   function inbox(c, q) { var B = BEATS[q.id]; if (B) K()._msg(c, 'mentor', 'Faro: ' + B.t.toLowerCase(), q.l.join(' ')); }
   /** Dispara una escena (una vez en la carrera; slump hasta 3 veces, una por temporada). Con escenas: a la cola; si no, a la bandeja. */
@@ -202,6 +205,7 @@
     open: ['{a} gana {elCup} ({sc})', '{a} se lleva {elCup} tras vencer a {b}'],
     cup: ['Título de {cup} para {a} tras ganar a {b} ({sc})', '{a} gana la final de {cup} a {b} ({sc})'],   // (pista: copa nacional e internacionales)
     moves: ['{txt}'],
+    boss: ['{a} «{nick}» cae ante {p}'],   // (C3: la 1ª victoria jugada contra el jefe del circuito; newsBoss)
     mkt: ['Rumor de verano: {nm} deja {b} y ficha por {a}', '{a} ficha a {nm}, una de las promesas {deL}', '{nm} renueva con {a} hasta la temporada {n}']
   };
   /** Variante de la plantilla (nunca la misma dos veces seguidas en un tipo: w.tpl). okv(i): variantes que se pueden usar. */
@@ -380,6 +384,17 @@
   function markNewsSeen() { var c = K().load(); if (!c) return 0; var w = ensure(c), n = newsUnseen(c); if (n) { w.newsSeen = w.newsN; K().save(c); } return n; }
   /** Antetítulo de una noticia: «T3 J5», «T3 Verano», «T3 Open» (la final; pista: «T3 Copa») o «T3 Cierre» (campeones y movimientos). */
   function newsWhen(x) { return 'T' + x.s + ' ' + (x.w === W_SUMMER ? 'Verano' : x.w >= W_END ? (x.k === 'open' ? 'Open' : x.k === 'cup' ? 'Copa' : 'Cierre') : 'J' + x.w); }
+  /** C3: noticia de la liga cuando tumbas al jefe del circuito (la llama career-life.js, con guarda, en la 1ª victoria jugada).
+   *  boss = {name, nick, club, …}. Una por jefe y temporada. wk opcional (jornada; por defecto, la que se acaba de jugar). */
+  function newsBoss(c, boss, wk) {
+    if (!c || !boss || !boss.name || !c.player) return null;
+    var w = ensure(c), s = c.season | 0, X = E(c);
+    if (w.news.some(function (x) { return x.k === 'boss' && x.s === s && x.c[0] === boss.club; })) return null;
+    if (wk == null) wk = isH(c) || c.phase === 'league' ? Math.max(1, c.week | 0) : (X && X.WEEKS) | 0 || W_END - 1;
+    var t = fill(TPL.boss[0], { a: boss.name, nick: boss.nick || '', p: c.player.name }).replace(/ «»/, '');
+    addNews(c, 'boss', { t: t, v: 0 }, [boss.club, c.myClub], 1, Math.min(W_END - 1, Math.max(1, wk | 0)));
+    return w.news[w.news.length - 1];
+  }
 
   // ------------------------------------------------------------------ enciclopedia de clubes (E5b)
   // Apodos de cosas del mar (no de personas): masculinos y femeninos sin marcar género de nadie.
@@ -444,6 +459,159 @@
       rival: rv && rv.club === id ? { name: rv.name, w: rv.w | 0, l: rv.l | 0 } : null, mine: c.myClub === id, mySeasons: mySeasons, since: w.since | 0 };
   }
 
+  // ------------------------------------------------------------------ escudos paródicos (S2 B2b) y vitrina con huecos (B2c)
+  // Escudo: forma, partición y emblema por un hash de cadenas (playa: la ciudad, que no cambia con los renombrados; pista: el nombre),
+  // nunca g.rng. Colisiones: dentro de un grupo fijo (playa: los 40 clubes; pista: los de un país, que suben y bajan entre su 1ª y su 2ª)
+  // no se repite la terna, así que tampoco dentro de una liga. Se resuelve recorriendo el grupo por id: determinista y estable.
+  var CREST_SHAPES = ['clasico', 'redondo', 'frances', 'hex', 'moderno'], CREST_DIVS = ['liso', 'partido', 'tronchado', 'franja', 'cuartel'];
+  var CREST_EMB = ['balon', 'estrella', 'ola', 'sol', 'red', 'torre', 'ancla', 'rayo'], CREST_EMB_H = ['balon', 'estrella', 'red', 'torre', 'ancla', 'rayo'];
+  var CREST_SALT = {};   // nombre del club → sal (por si Ferran ve uno que «recuerda» a un escudo real)
+  var CREST_INK = 0x1d1530, CREST_WHITE = 0xffffff, CREST_MIN = 0.18;
+  /** Hash de una cadena (FNV-1a, el mismo que hash() de career.js con un argumento). */
+  function hstr(s) { var h = 2166136261; s = String(s); for (var j = 0; j < s.length; j++) { h ^= s.charCodeAt(j); h = Math.imul(h, 16777619); } h ^= 124; return h >>> 0; }
+  function colN(v, d) { if (typeof v === 'number' && isFinite(v)) return (v >>> 0) & 0xffffff; if (typeof v === 'string' && /^#?[0-9a-f]{6}$/i.test(v)) return parseInt(v.replace('#', ''), 16); return d; }
+  function lumC(h) { return (0.299 * (h >> 16 & 255) + 0.587 * (h >> 8 & 255) + 0.114 * (h & 255)) / 255; }
+  function crestCols(k) {
+    var kit = k && k.kit || {}, c1 = colN(kit.shirt, 0xd8262e), c2 = colN(kit.accent, CREST_WHITE), l1 = lumC(c1);
+    if (Math.abs(l1 - lumC(c2)) < CREST_MIN) c2 = Math.abs(l1 - 1) >= Math.abs(l1 - lumC(CREST_INK)) ? CREST_WHITE : CREST_INK;
+    return [c1, c2];
+  }
+  function crestSeed(k, hall) { return (hstr('crest|' + (hall ? 'h|' + k.name : 'b|' + (k.city || k.name))) + Math.imul(CREST_SALT[k.name] | 0, 2654435761)) >>> 0; }
+  /** Terna base (sin resolver colisiones): índices de forma, partición y emblema. */
+  function crestBase(k, hall) { var s = crestSeed(k, hall), nE = (hall ? CREST_EMB_H : CREST_EMB).length; return [s % 5, Math.floor(s / 5) % 5, Math.floor(s / 25) % nE]; }
+  function crestMake(k, hall, t) {
+    var cols = crestCols(k), E2 = hall ? CREST_EMB_H : CREST_EMB;
+    return { shape: CREST_SHAPES[t[0]], div: CREST_DIVS[t[1]], emblem: E2[t[2]], c1: cols[0], c2: cols[1], txt: String(k.short || ''), year: 0 };
+  }
+  var crestCache = typeof WeakMap === 'function' ? new WeakMap() : null;
+  /** Escudos de un grupo (lista de clubes crudos) por id, con las colisiones resueltas. Caché por array de clubes y grupo. */
+  function crestGroup(list, hall, gk) {
+    var per = crestCache && crestCache.get(list);
+    if (!per) { per = {}; if (crestCache) crestCache.set(list, per); }
+    if (per[gk]) return per[gk];
+    var ks = list.filter(function (k) { return k && (hall ? 'h|' + k.cc : 'b') === gk; }).sort(function (a, b) { return a.id - b.id; });
+    var used = {}, out = {}, nE = (hall ? CREST_EMB_H : CREST_EMB).length, N = 25 * nE;
+    ks.forEach(function (k) {
+      var b = crestBase(k, hall), t = b;
+      for (var i = 0; i < N; i++) {
+        t = [(b[0] + Math.floor(i / (nE * 5))) % 5, (b[1] + Math.floor(i / nE)) % 5, (b[2] + i) % nE];
+        if (!used[t.join()]) break;
+      }
+      used[t.join()] = 1; out[k.id] = crestMake(k, hall, t);
+    });
+    return (per[gk] = out);
+  }
+  /** La Carrera (playa o pista) guardada que tiene a este club, para resolver colisiones y el año sin que la UI pase c. */
+  function crestCarrera(k, hall) {
+    try {
+      var X = K() && K()[hall ? 'hall' : 'beach'], c = X && X.load ? X.load() : null;
+      return c && Array.isArray(c.clubs) && c.clubs[k.id] && c.clubs[k.id].name === k.name ? c : null;
+    } catch (e) { return null; }
+  }
+  /** Escudo de un club → {shape, div, emblem, c1, c2, txt, year}. mode: la Carrera c (mejor), 'beach' | 'hall', o nada (pista si el
+   *  club tiene lid). mates: lista de clubes opcional (si no, los de c o los de la Carrera guardada). Determinista; year = fundación. */
+  function crestOf(k, mode, mates) {
+    if (!k) return null;
+    var c = mode && typeof mode === 'object' ? mode : null;
+    var hall = c ? isH(c) : mode === 'hall' ? true : mode === 'beach' ? false : k.lid != null;
+    if (!c && !Array.isArray(mates)) c = crestCarrera(k, hall);
+    var list = Array.isArray(mates) ? mates : c && Array.isArray(c.clubs) ? c.clubs : null, raw = null;
+    if (list) {
+      raw = list[k.id] && list[k.id].id === k.id ? list[k.id] : list.filter(function (x) { return x && x.id === k.id; })[0];
+      if (raw && raw.name !== k.name) raw = null;
+    }
+    var r = raw ? crestGroup(list, hall, hall ? 'h|' + raw.cc : 'b')[raw.id] : crestMake(k, hall, crestBase(k, hall));
+    var y = /(\d{4})$/.exec(k.name || ''), year = y ? +y[1] : 0;
+    if (!year && c && raw) { try { var lo = lore(c, raw); year = lo ? lo.founded | 0 : 0; } catch (e) { year = 0; } }
+    return { shape: r.shape, div: r.div, emblem: r.emblem, c1: r.c1, c2: r.c2, txt: r.txt, year: year };
+  }
+
+  /** Premios de la gala (los de CareerLife si está; si no, copia de los ids y nombres). */
+  var AW_FALLBACK = [{ id: 'mvp', name: 'MVP' }, { id: 'pts', name: 'Máximo anotador' }, { id: 'ace', name: 'Mejor sacador' }, { id: 'blk', name: 'Muro del año' },
+    { id: 'dig', name: 'Mejor defensa' }, { id: 'set', name: 'Mejor colocador', only: 'hall' }, { id: 'rook', name: 'Revelación' }];
+  var TC_GROUP_H = { liga: 'Liga', copa: 'Copa', intl: 'Internacional', ascenso: 'Ascenso' }, TC_OTHER = 'Otros títulos';
+  var TC_NEED_H = { liga: 'Gana la liga', copa: 'Gana la copa', intl: 'Gana la competición', ascenso: 'Sube a la 1ª' };
+  // Logros que Vestuario usa como desbloqueo y a qué huecos van ligados (solo lectura de VB.Look: el sistema de desbloqueos es el suyo)
+  function tcTitle(s) { return s.kind === 'liga' || s.kind === 'copa' || s.kind === 'intl'; }
+  var TC_ACH = { up: function (s) { return s.kind === 'ascenso'; }, t1: tcTitle, t5: tcTitle, mvp: function (s) { return s.id === 'aw-mvp'; }, aw1: function (s) { return s.kind === 'premio'; } };
+  function tcUnlock(s, hall) {
+    var Lk = VB.Look; if (!Lk || !Array.isArray(Lk.CATALOG)) return null;
+    try {
+      for (var i = 0; i < Lk.CATALOG.length; i++) {
+        var it = Lk.CATALOG[i]; if (!it || !it.id || (it.venue === 'P' && !hall) || (it.venue === 'Y' && hall)) continue;
+        var u = Array.isArray(it.unlock) ? it.unlock : [], hit = false;
+        for (var j = 0; j < u.length && !hit; j++) hit = !!(u[j] && ((u[j].award && s.id === 'aw-' + u[j].award) || (u[j].ach && TC_ACH[u[j].ach] && TC_ACH[u[j].ach](s))));
+        if (hit && !(typeof Lk.owned === 'function' && Lk.owned(it.id))) return { id: it.id, name: String(it.name || it.id) };
+      }
+    } catch (e) { }
+    return null;
+  }
+  function byId(a, id) { for (var i = 0; i < a.length; i++) if (a[i].id === id) return a[i]; return null; }
+  /** Vitrina de palmarés con huecos → {slots:[{id, group, kind, name, need, won:[{season, club, d}], unlock}], total, got, other:[…]}.
+   *  Playa: 20 huecos fijos (por circuito Campeón, Open y Ascenso, menos el Ascenso del Mundial; y 6 premios). Pista: liga, copa,
+   *  internacional (rangos 1 y 2) y ascenso de tu país, más las otras que hayas ganado, y 7 premios. Lo que no case va a other. */
+  function trophyCase(c) {
+    if (!c) return null;
+    var hall = isH(c), X = E(c), slots = [], other = [], byKey = {};
+    var add = function (id, group, kind, name, need) {
+      var s = { id: id, group: group, kind: kind, name: String(name || ''), need: need || '', won: [], unlock: null };
+      slots.push(s); if (kind !== 'premio') byKey[kind + '|' + s.name] = s; return s;
+    };
+    if (!hall) {
+      var LG = (K().beach || K()).LEAGUES || [];
+      LG.forEach(function (L, i) {
+        add('b' + i + '-liga', L.short, 'liga', L.name, 'Gana el circuito');
+        add('b' + i + '-copa', L.short, 'copa', L.cup, 'Gana el Open');
+        if (i < LG.length - 1) add('b' + i + '-up', L.short, 'ascenso', 'Ascenso ' + X.toL(LG[i + 1]), 'Sube de circuito');
+      });
+    } else {
+      var me = c.myClub >= 0 && X.myClub(c), cc = me ? me.cc : c.cc;
+      var L1 = cc && lgBy(c, cc + '1'), L2 = cc && lgBy(c, cc + '2');
+      if (L1) add('h-lg-' + L1.id, 'Liga', 'liga', L1.name, TC_NEED_H.liga);
+      if (L2) add('h-lg-' + L2.id, 'Liga', 'liga', L2.name, TC_NEED_H.liga);
+      if (cc) add('h-cup-' + cc, 'Copa', 'copa', c.cups && c.cups[cc] && c.cups[cc].name || 'Copa Nacional', TC_NEED_H.copa);
+      var it = cc && X.intlFor ? X.intlFor(c, cc) : [];
+      (it || []).forEach(function (cp) { if (cp && (cp.rank === 1 || cp.rank === 2)) add('h-intl-' + cp.rank, 'Internacional', 'intl', cp.name, TC_NEED_H.intl); });
+      if (L1 && L2) add('h-up-' + cc, 'Ascenso', 'ascenso', 'Ascenso a la ' + L1.name, TC_NEED_H.ascenso);
+    }
+    var AW = (VB.CareerLife && Array.isArray(VB.CareerLife.AWARDS) ? VB.CareerLife.AWARDS : AW_FALLBACK).filter(function (a) { return !a.only || a.only === (hall ? 'hall' : 'beach'); });
+    AW.forEach(function (a) { add('aw-' + a.id, 'Premios', 'premio', a.name, a.id === 'rook' ? 'Una vez, con 23 años o menos' : 'Premio de la gala'); });
+    var tro = Array.isArray(c.trophies) ? c.trophies : [], aws = c.life && Array.isArray(c.life.awards) ? c.life.awards : [];
+    var push = function (s, t) { s.won.push({ season: t.season | 0, club: t.club || '', d: t.d || '' }); };
+    var toOther = function (t) {
+      var key = t.kind + '|' + t.name, o = null;
+      for (var i = 0; i < other.length; i++) if (other[i].key === key) o = other[i];
+      if (!o) { o = { id: 'x-' + other.length, key: key, group: TC_OTHER, kind: t.kind || '', name: String(t.name || ''), need: '', won: [], unlock: null }; other.push(o); }
+      push(o, t);
+    };
+    // premios: por id (c.life.awards); los trofeos 'premio' no cuentan dos veces (solo los que no tengan su award, por el nombre)
+    aws.forEach(function (a) {
+      if (!a) return;
+      var s = byId(slots, 'aw-' + a.id), t = tro.filter(function (x) { return x && x.kind === 'premio' && (x.season | 0) === (a.season | 0) && x.name === a.name; })[0];
+      if (s) push(s, { season: a.season, club: a.club, d: t && t.d }); else toOther({ kind: 'premio', name: a.name, season: a.season, club: a.club, d: t && t.d });
+    });
+    tro.forEach(function (t) {
+      if (!t || !t.kind) return;
+      if (t.kind === 'premio') {
+        if (aws.some(function (a) { return a && (a.season | 0) === (t.season | 0) && a.name === t.name; })) return;
+        var aw = AW.filter(function (a) { return t.name === a.name || String(t.name).indexOf(a.name + ' ') === 0; })[0];
+        if (aw) push(byId(slots, 'aw-' + aw.id), t); else toOther(t);
+        return;
+      }
+      var s = byKey[t.kind + '|' + t.name];
+      if (!s && hall && TC_GROUP_H[t.kind]) s = add('h-x' + slots.length, TC_GROUP_H[t.kind], t.kind, t.name, TC_NEED_H[t.kind]);   // (liga de otro país, otra copa…)
+      if (s) push(s, t); else toOther(t);
+    });
+    var got = 0;
+    slots.forEach(function (s) { s.won.sort(function (a, b) { return a.season - b.season; }); if (s.won.length) got++; s.unlock = tcUnlock(s, hall); });
+    other.forEach(function (o) { o.won.sort(function (a, b) { return a.season - b.season; }); delete o.key; });
+    if (hall) {   // (pista: los grupos en su orden aunque se hayan añadido huecos al final)
+      var GO = ['Liga', 'Copa', 'Internacional', 'Ascenso', 'Premios'];
+      slots = slots.map(function (s, i) { return [s, i]; }).sort(function (a, b) { return GO.indexOf(a[0].group) - GO.indexOf(b[0].group) || a[1] - b[1]; }).map(function (x) { return x[0]; });
+    }
+    return { slots: slots, total: slots.length, got: got, other: other, hall: hall };
+  }
+
   // ------------------------------------------------------------------ ganchos de career.js (después de CareerLife)
   function afterMatch(c, sum, f) {
     if (!sum) return;
@@ -499,6 +667,9 @@
     TPL: TPL, NEWS_MAX: NEWS_MAX, ANNALS_MAX: ANNALS_MAX, W_SUMMER: W_SUMMER, W_END: W_END, MKT: MKT,
     news: news, newsUnseen: newsUnseen, markNewsSeen: markNewsSeen, newsWhen: newsWhen,
     lore: lore, clubRows: clubRows, clubCard: clubCard, leaguesOf: leaguesOf, topLv: topLv, otherLv: otherLv, isTop: isTop, lgBy: lgBy, lgOf: lgOf, BEATS_H: BEATS_H,
-    _andList: andList, _ordn: ordn
+    _andList: andList, _ordn: ordn,
+    // S2-S4 (T11): escudos, vitrina y noticia del jefe
+    crestOf: crestOf, trophyCase: trophyCase, newsBoss: newsBoss, CREST_SHAPES: CREST_SHAPES, CREST_DIVS: CREST_DIVS, CREST_EMB: CREST_EMB, CREST_EMB_H: CREST_EMB_H,
+    CREST_MIN: CREST_MIN, CREST_SALT: CREST_SALT, _lum: lumC
   };
 })();

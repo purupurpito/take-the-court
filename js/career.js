@@ -693,7 +693,7 @@
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
   /** «Vida» de la Carrera (js/career-life.js: retos, fama, patrocinios, decisiones, rival, tienda, premios, logros, legado). Sin el
    *  fichero, nada cambia. */
-  function life(c, kind, a, b) { [VB.CareerLife, VB.CareerWorld].forEach(function (Lf) { if (!Lf || !Lf.hook) return; try { Lf.hook(c, kind, a, b); } catch (e) { try { console.error('Career hook ' + kind, e); } catch (e2) { } } }); }
+  function life(c, kind, a, b) { [VB.CareerLife, VB.CareerWorld, VB.CareerTrain].forEach(function (Lf) { if (!Lf || !Lf.hook) return; try { Lf.hook(c, kind, a, b); } catch (e) { try { console.error('Career hook ' + kind, e); } catch (e2) { } } }); }
   /** Inicio: rechazar todas → nuevas ofertas, peores (de los clubes más flojos de la Regional y sin prueba). */
   function rejectAll() {
     var c = load(); if (!c || c.phase !== 'pick') return false;
@@ -1942,6 +1942,7 @@
       e.sel = e.t.ovr + e.t.form + e.t.conf + e.t.fat + e.keep + noise(e.id);
     });
     if (rl === 1) me.sel += TIT_BONUS;
+    me.sel += VB.CareerTrain && VB.CareerTrain.selBonus ? VB.CareerTrain.selBonus(c) : 0;   // entrenos con el club (career-train.js): la sesión de la jornada anterior
     // con confianza < OUT_COACH: la Rotación se queda fuera de la convocatoria, pero nunca dos jornadas seguidas (como benchFor en la
     // playa); el Titular nunca queda fuera por eso: va al banquillo ('coachSub', primer suplente de su puesto)
     var prevOut = !!q.outC;   // (squadWeek6: la jornada anterior te dejó fuera el entrenador)
@@ -2777,7 +2778,8 @@
     difficultyFor: difficultyFor6, diffLabel: diffLabel6, softFor: soft6, chemBonus: chemBonus6, physio: physio6, physioCost: physioCost6,
     acceptOffer: acceptOffer6, stay: stay6, negotiate: negotiate6, rejectAll: rejectAll6, moreTime: moreTime6, changeMate: function () { return ''; },
     setTraining: setTraining6, requestTransfer: requestTransfer6, bump: bump6, toggleBadge: toggleBadge6, unread: unread6, readMsg: readMsg6, readAll: readAll6,
-    _genOffers: genOffers6, _scout: scoutCheck6, _wkKey: wkKey6, _name: function (r) { return pick(r, FIRST) + ' ' + pick(r, LAST); },   // (vida de la Carrera)
+    _genOffers: genOffers6, _scout: scoutCheck6, _wkKey: wkKey6, _genSt: genSt, _cd: function () { return { train: 1 }; }, _coachFloor: coachFloor,   // (entrenos: career-train.js)
+    _name: function (r) { return pick(r, FIRST) + ' ' + pick(r, LAST); },   // (vida de la Carrera)
     _reset: function () { cur6 = null; M = null; }, _buildWorld: buildWorld6, _endLeague: endLeague6,
     // titularidad (13-nov-2026): plantilla, seis de la jornada, profundidad en las ofertas y textos de rol de la pista
     ROLE_HINT: ROLE_HINT6, benchWhy: whyText6, whyText: whyText6, WHY: WHY6, lineup: lineup6, squad: squad6, squadWeek: squadWeek6, depth: depth6, depthNow: depthNow6,
@@ -2808,6 +2810,8 @@
     BROKEN_BONUS: BROKEN_BONUS, PAY_WEEK: PAY_WEEK, PHYSIO_FAT: PHYSIO_FAT, benchNext: benchNext, benchWhy: benchWhy, BENCH_REST: BENCH_REST, physio: physio, physioCost: physioCost, roleIdx: roleIdx, _beachTrophies: beachTrophies,
     // vida de la Carrera (career-life.js)
     _msg: msg, _addXP: addXP, _wkKey: wkKey,
+    // entrenos con el club (career-train.js)
+    _genSt: genSt, _cd: function (c) { return cd(c); }, _coachFloor: coachFloor,
     // dificultad de la Carrera (12-nov-2026)
     CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, diffOf: diffOf, rivalAI: rivalAI, attrOf: attrOf, baseStep: baseStep, seasonDiff: seasonDiff, midNota: midNota, setDifficulty: setDifficulty,
     _M: function () { return M; }, _reset: function () { cur = null; M = null; }, _genOffers: genOffers, _rng: rng, _hash: hash

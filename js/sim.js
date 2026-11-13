@@ -159,13 +159,17 @@
   // PRNG determinista (mulberry32) para escenas de depuración y tests
   function makeRng(seed) {
     var s = (seed >>> 0) || 0x9e3779b9;
-    return function () {
+    var f = function () {
       s = (s + 0x6D2B79F5) >>> 0;
       var t = s;
       t = Math.imul(t ^ (t >>> 15), t | 1);
       t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
+    // S3-C1 (repetición): leer y fijar el estado (uint32) sin gastar azar; la secuencia es la de siempre (copyGame, stateHash)
+    f.get = function () { return s; };
+    f.set = function (v) { s = v >>> 0; };
+    return f;
   }
 
   // ---------- Entidades ----------
@@ -371,6 +375,8 @@
       call: null, challenges: [2, 2], review: null, cpuChal: null, _pendCall: null, _snap: null, _digWho: null,
       events: [],              // cola de eventos del paso (main.js la vacía cada frame)
       drill: null,             // E6 (Entrenamiento): estado del ejercicio (mkDrill) o null fuera del modo (siempre en el literal: misma forma)
+      replay: false,           // S3-C1: true solo en la partida sombra que pinta una repetición (VB.Replay); la sim no lo lee. En el
+                               // literal para que la sombra tenga la misma forma que la partida en vivo; copyGame no lo copia
       stats: opts.stats ? {
         hits: { pass: 0, set: 0, spike: 0, free: 0, serve: 0 }, blocks: 0, points: 0, why: {}, rallies: [],
         grades: { perfect: 0, good: 0, poor: 0 }, hgrades: { perfect: 0, good: 0, poor: 0 }, shots: {},
@@ -3471,6 +3477,111 @@
     }
   }
 
+  /* ---------- Repetición (S3-C1): copia de una partida en una partida sombra y huella del estado ----------
+   * copyGame(dst, src) → dst: copia profunda del estado de src SOBRE dst, una partida creada antes con createGame y las mismas opts
+   * (las «sombras» de VB.Replay). Sirve para todo lo que cuelga de g, en 2v2 y en 6v6, sin una lista de campos que se quede vieja:
+   *  - Jugadores: los de src (g.players, g.roster con banquillo y líbero, g.libero) se emparejan con los de dst por p.id y se copian
+   *    sobre los objetos de dst, así que TODA referencia a un jugador (players, teams, rot, lineup, roster, libero, liberoFor, ctrl,
+   *    ctrlBase, server, jobs, jobMem, lastPlayer, blockBy, atkSet, ritual.player, subQ, subAtk, subWalkL, subs[t].pairs, _subU,
+   *    atkServe.player, _digWho, lastPoint y cualquier campo nuevo) queda apuntando al jugador de dst con el mismo id.
+   *  - El resto se copia por estructura, conservando los objetos de dst (no asigna en régimen). Dos campos de src que apuntan al mismo
+   *    objeto apuntan al mismo objeto en dst (tabla de memoria CP_*). Un null/número de dst donde src tiene objeto crea uno nuevo (lo
+   *    único que asigna); un campo de dst que src no tiene se pone a undefined (la sim no mira presencia de claves; sin delete, que
+   *    pasaría el objeto a modo diccionario).
+   *  - Constantes de módulo (perfiles DIFF.*, TIMING.*, objetos congelados) y los objetos que dst ya comparte con src: por referencia,
+   *    nunca se escribe en ellos.
+   *  - Excepciones: rng (se copia su estado con get/set), events (dst.events.length = 0), stats (se queda el de dst), replay (solo de
+   *    dst) y opts (las de dst). Invalida las cachés de módulo (_jrG/_arG) si apuntaban a dst.
+   *  No lee ni escribe nada fuera de dst, src y las tablas de memoria del módulo (que suelta al acabar). No gasta azar. */
+  var CP_S = [], CP_D = [], CP_N = 0, CP_K = null;
+  var CP_SKIP = { rng: 1, events: 1, stats: 1, replay: 1, opts: 1 };
+  function cpConst(v) {
+    if (!CP_K) { CP_K = []; var k; for (k in DIFF) if (DIFF[k] && typeof DIFF[k] === 'object') CP_K.push(DIFF[k]); for (k in TIMING) if (TIMING[k] && typeof TIMING[k] === 'object') CP_K.push(TIMING[k]); }
+    for (var i = 0; i < CP_K.length; i++) if (CP_K[i] === v) return true;
+    return Object.isFrozen(v);
+  }
+  function cpFind(s) { for (var i = 0; i < CP_N; i++) if (CP_S[i] === s) return CP_D[i]; return null; }
+  function cpUsed(d) { for (var i = 0; i < CP_N; i++) if (CP_D[i] === d) return true; return false; }
+  function cpAdd(s, d) { CP_S[CP_N] = s; CP_D[CP_N] = d; CP_N++; }
+  function cpVal(dv, sv) {
+    if (sv === null || typeof sv !== 'object') return sv;   // primitivos (y funciones, que no hay más que g.rng: por referencia)
+    if (sv === dv || cpConst(sv)) return sv;
+    var m = cpFind(sv); if (m) return m;
+    var isA = Array.isArray(sv);
+    if (dv === null || typeof dv !== 'object' || Array.isArray(dv) !== isA || cpUsed(dv) || cpConst(dv)) dv = isA ? [] : {};
+    cpAdd(sv, dv);
+    cpInto(dv, sv, null);
+    return dv;
+  }
+  function cpInto(d, s, skip) {
+    var k;
+    if (Array.isArray(s)) {
+      if (d.length !== s.length) d.length = s.length;
+      for (var i = 0; i < s.length; i++) d[i] = cpVal(d[i], s[i]);
+      return;
+    }
+    var ns = 0, nd = 0, v;
+    for (k in s) {
+      ns++;
+      if (skip && skip[k] === 1) continue;
+      v = s[k];
+      d[k] = v !== null && typeof v === 'object' ? cpVal(d[k], v) : v;   // (primitivos sin leer d[k]: es el grueso del coste)
+    }
+    for (k in d) nd++;                       // tras la copia, d tiene todas las claves de s: solo sobran si hay más
+    if (nd !== ns) for (k in d) if ((!skip || skip[k] !== 1) && d[k] !== undefined && !(k in s)) d[k] = undefined;
+  }
+  /** Jugadores de g (en pista, plantilla con banquillo y líberos) a la tabla de memoria, emparejados por id con los de dst. */
+  function cpPairList(dst, L) {
+    if (!L) return;
+    for (var i = 0; i < L.length; i++) {
+      var sp = L[i]; if (!sp || typeof sp !== 'object' || cpFind(sp)) continue;
+      var dp = cpPlayerById(dst, sp.id); if (dp) cpAdd(sp, dp);
+    }
+  }
+  function cpPlayerById(g, id) {
+    var i, t, L = g.players;
+    for (i = 0; i < L.length; i++) if (L[i].id === id) return L[i];
+    if (g.roster) for (t = 0; t < 2; t++) { L = g.roster[t]; for (i = 0; i < L.length; i++) if (L[i].id === id) return L[i]; }
+    if (g.libero) for (t = 0; t < 2; t++) if (g.libero[t] && g.libero[t].id === id) return g.libero[t];
+    return null;
+  }
+  function copyGame(dst, src) {
+    if (!dst || !src || dst === src) return dst;
+    CP_N = 0;
+    cpPairList(dst, src.players);
+    if (src.roster) { cpPairList(dst, src.roster[0]); cpPairList(dst, src.roster[1]); }
+    cpPairList(dst, src.libero);
+    var np = CP_N, i;
+    for (i = 0; i < np; i++) cpInto(CP_D[i], CP_S[i], null);   // primero los jugadores, sobre sus objetos de dst
+    cpInto(dst, src, CP_SKIP);
+    if (dst.rng && dst.rng.set && src.rng && src.rng.get) dst.rng.set(src.rng.get());
+    dst.events.length = 0;
+    for (i = 0; i < CP_N; i++) { CP_S[i] = null; CP_D[i] = null; }   // suelta las referencias (sin encoger los arrays)
+    CP_N = 0;
+    if (_jrG === dst) _jrG = null;
+    if (_arG === dst) _arG = null;
+    return dst;
+  }
+  /** stateHash(g) → uint32: FNV-1a sobre (v·1e6)|0 del balón (x, y, z, vx, vy, vz), x/y/z de los jugadores en pista, marcador,
+   *  sets, set en curso, modo, estado de g.rng y (g.time·120)|0. Puro y sin memoria nueva: la repetición lo compara en el punto. */
+  var HASH_MODES = ['serve', 'rally', 'point', 'over'];
+  function fnv(h, v) {
+    v = v | 0;
+    h = Math.imul(h ^ (v & 255), 16777619); h = Math.imul(h ^ ((v >>> 8) & 255), 16777619);
+    h = Math.imul(h ^ ((v >>> 16) & 255), 16777619); return Math.imul(h ^ (v >>> 24), 16777619);
+  }
+  function fq(v) { return isFinite(v) ? (v * 1e6) | 0 : -1; }
+  function stateHash(g) {
+    var h = 2166136261 | 0, b = g.ball, i, P = g.players;
+    h = fnv(h, fq(b.x)); h = fnv(h, fq(b.y)); h = fnv(h, fq(b.z)); h = fnv(h, fq(b.vx)); h = fnv(h, fq(b.vy)); h = fnv(h, fq(b.vz));
+    for (i = 0; i < P.length; i++) { h = fnv(h, fq(P[i].x)); h = fnv(h, fq(P[i].y)); h = fnv(h, fq(P[i].z)); }
+    h = fnv(h, g.score[0]); h = fnv(h, g.score[1]); h = fnv(h, g.sets[0]); h = fnv(h, g.sets[1]); h = fnv(h, g.setNo);
+    var mi = HASH_MODES.indexOf(g.mode); h = fnv(h, mi < 0 ? 4 : mi);
+    h = fnv(h, g.rng && g.rng.get ? g.rng.get() : 0);
+    h = fnv(h, (g.time * 120) | 0);
+    return h >>> 0;
+  }
+
   VB.Sim = {
     createGame: createGame, step: step, drainEvents: drainEvents, setTarget: setTarget, SET_POINTS: SET_POINTS, court: court,
     predict: predict, predictLanding: predictLanding, focusPoint: focusPoint, askOk: askOk,
@@ -3507,6 +3618,8 @@
     // banquillo y cambios (6v6 con opts.bench; notes/titularidad-y-cambios.md §B e §I.2)
     canSub: canSub, requestSub: requestSub, cancelSub: cancelSub, subsLeft: subsLeft, benchOf: benchOf, subInfo: subInfo,
     defaultBench: defaultBench, SUB_MAX: SUB_MAX, SUB_HOLD: SUB_HOLD, SUBK: SUBK, hash01: hash01,
-    _canSubC: function (g, t, out, inn) { return canSubX(g, t, out, inn, true); }, _applySubs: applySubs
+    _canSubC: function (g, t, out, inn) { return canSubX(g, t, out, inn, true); }, _applySubs: applySubs,
+    // repetición (S3-C1): copia sobre una partida sombra y huella del estado (g.rng.get/set en makeRng)
+    copyGame: copyGame, stateHash: stateHash
   };
 })();

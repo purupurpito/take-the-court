@@ -1302,6 +1302,95 @@
   }
   var confM = null;
 
+  /* ---------- C1 (sprint 3): repetición (VB.FX.replay(on)) ----------
+   * Durante la repetición main.js llama a FX.update con la partida sombra R (R.replay = true). Al entrar se guardan y se ocultan las
+   * calcomanías persistentes de la partida en vivo (marcas del bote, huella y línea del challenge, huellas de la playa) y se apagan
+   * estelas y partículas vivas; al salir se borra lo creado durante la repetición y se restaura lo guardado. Las copias se reservan
+   * la primera vez (nada por frame). Aro amarillo, retícula, setPreview y pista de posición del 6v6 se ocultan con g.replay (update). */
+  var rpOn = false, rpMk = null, rpFp = null, rpFpHead = 0, rpFpAlive = 0, rpRv = { on: false, hold: 0, x: 0.5, y: 0.5, res: -1, a: 0.5, k: 0.5, sx: 0.5, sy: 0.5 };
+  var RP_MK = 8, RP_FP = 8; // campos guardados por marca (t, d, s, stretch, inside, x, y, giro) y por huella (x, y, yaw, k, sx, sy, op, t)
+  function rpKillLive() { // estelas, partículas, destellos, ondas, piezas cartoon y confeti: fuera (no se guardan)
+    trailA = 0; trailN = 0; if (trail) trail.visible = false;
+    for (var i = 0; i < SPARK_N; i++) sp[i].life = 0;
+    spAlive = 0; if (sparks) sparks.visible = false;
+    for (var d = 0; d < DUST_N; d++) du[d].life = 0;
+    duAlive = 0; if (dust) dust.visible = false;
+    for (var f = 0; f < FLASH_N; f++) { flashPool[f].t = 0; flashPool[f].s.visible = false; }
+    for (var w = 0; w < WAVE_N; w++) { wavePool[w].t = 0; wavePool[w].s.visible = false; }
+    for (var r = 0; r < RIP_N; r++) { ripPool[r].t = 0; ripPool[r].m.visible = false; }
+    for (var t = 0; t < tb.length; t++) tb[t].life = 0;
+    speedT = 0; tbAlive = 1; // updateToonFx esconde el lote en el siguiente frame
+    for (var s = 0; s < SANDY_N; s++) { sandy[s].t = 0; sandy[s].p = null; }
+    if (conf) { confAlive = 0; conf.count = 0; conf.visible = false; }
+    // ayudas de juego y cachés con referencias a atletas de la otra partida
+    aim.a = 0; aim.on = false; aim.kill = 0; aimR.on = false; hwC.p = null; hwC.t = -1;
+    if (aimRet) aimRet.visible = false;
+    if (aimFill) aimFill.visible = false;
+    if (aimArc) aimArc.visible = false;
+    if (aimXray) { aimXray.visible = false; aimLx.visible = false; aimLy.visible = false; }
+    if (focusRing) focusRing.visible = false;
+    focusVis = false; posA = 0; posSwap = false; posWt = 0; spA = 0;
+    if (posMark) { posMark.visible = false; posMark2.visible = false; posArrow.visible = false; }
+    if (setMk) setMk.visible = false;
+    squash.t = 0; heat = 0; fpLast.length = 0;
+  }
+  function rpClearDecals() { // marcas, huella del challenge y huellas: todo apagado
+    for (var m = 0; m < MARK_N; m++) { markPool[m].t = 0; markPool[m].m.visible = false; markPool[m].r.visible = false; }
+    rv.on = false; rv.hold = 0; rv.a = 0; rv.res = -1;
+    if (revFill) revFill.visible = revLine.visible = revGlow.visible = false;
+    for (var i = 0; i < fp.length; i++) fp[i].t = 0;
+    fpAlive = 0;
+  }
+  function rpSave() {
+    var m, i, o;
+    if (!rpMk) rpMk = new Float32Array(MARK_N * RP_MK);
+    if (!rpFp && fp.length) rpFp = new Float32Array(fp.length * RP_FP);
+    for (m = 0; m < MARK_N; m++) {
+      var Mk = markPool[m]; o = m * RP_MK;
+      rpMk[o] = Mk.m.visible ? Mk.t : 0; rpMk[o + 1] = Mk.d; rpMk[o + 2] = Mk.s || 0.5; rpMk[o + 3] = Mk.stretch || 1;
+      rpMk[o + 4] = Mk.inside ? 1 : 0; rpMk[o + 5] = Mk.m.position.x; rpMk[o + 6] = -Mk.m.position.z; rpMk[o + 7] = Mk.m.rotation.z;
+    }
+    for (var k in rv) rpRv[k] = rv[k];
+    if (rpFp) {
+      for (i = 0; i < fp.length; i++) {
+        var F = fp[i]; o = i * RP_FP;
+        rpFp[o] = F.x; rpFp[o + 1] = F.y; rpFp[o + 2] = F.yaw; rpFp[o + 3] = F.k; rpFp[o + 4] = F.sx; rpFp[o + 5] = F.sy; rpFp[o + 6] = F.op; rpFp[o + 7] = F.t;
+      }
+      rpFpHead = fpHead; rpFpAlive = fpAlive;
+    }
+  }
+  function rpRestore() {
+    var m, i, o;
+    if (rpMk) for (m = 0; m < MARK_N; m++) {
+      var Mk = markPool[m]; o = m * RP_MK;
+      Mk.t = rpMk[o]; Mk.d = rpMk[o + 1]; Mk.s = rpMk[o + 2]; Mk.stretch = rpMk[o + 3]; Mk.inside = rpMk[o + 4] > 0.5;
+      if (!(Mk.t > 0)) { Mk.t = 0; continue; }
+      var x = rpMk[o + 5], y = rpMk[o + 6];
+      Mk.m.position.x = x; Mk.m.position.z = -y; Mk.r.position.x = x; Mk.r.position.z = -y; Mk.m.rotation.z = rpMk[o + 7];
+      Mk.m.scale.set(Mk.s * 1.24 * Mk.stretch, Mk.s * 1.24, 1);
+      if (Mk.inside) { Mk.r.material.color.copy(RIM_IN); Mk.m.material.color.copy(MARK_IN); Mk.r.material.map = rimInTex; }
+      else { Mk.r.material.color.copy(RIM_OUT); Mk.m.material.color.copy(MARK_OUT); Mk.r.material.map = rimOutTex; }
+      Mk.m.visible = true; Mk.r.visible = true; // opacidad y filo: los recalcula el bucle de marcas en el siguiente update
+    }
+    for (var k in rpRv) rv[k] = rpRv[k];
+    if (rv.on && revFill) placeReview(rv.x, rv.y); // (escalas de la huella: rv.sx/sy ya vienen restauradas; placeReview las vuelve a calcular igual)
+    if (rpFp && rpFp.length === fp.length * RP_FP) {
+      for (i = 0; i < fp.length; i++) {
+        var F = fp[i]; o = i * RP_FP;
+        F.x = rpFp[o]; F.y = rpFp[o + 1]; F.yaw = rpFp[o + 2]; F.k = rpFp[o + 3]; F.sx = rpFp[o + 4]; F.sy = rpFp[o + 5]; F.op = rpFp[o + 6]; F.t = i < footCap ? rpFp[o + 7] : 0;
+      }
+      fpHead = rpFpHead % footCap; fpAlive = rpFpAlive;
+    }
+  }
+  function replayMode(on) {
+    on = !!on;
+    if (on === rpOn || !markPool.length) { rpOn = on && markPool.length > 0; return; }
+    if (on) { rpSave(); rpClearDecals(); rpKillLive(); }
+    else { rpKillLive(); rpClearDecals(); rpRestore(); }
+    rpOn = on;
+    writeDecals(); writeBills(); // el lote del suelo y el de destellos se rehacen ya (sin esperar al siguiente update)
+  }
+
   /** Copias «de compilación» (ARN-03): por cada combinación material + tipo de objeto, un objeto NUEVO que comparte geometría
    *  y material con el original (no lo saca de su padre ni lo modifica). Visibles y sin recorte: para renderer.compile(). */
   function prewarmProxies(top, out) {
@@ -1571,6 +1660,9 @@
     comicBurst: function (x, y, z, size) { burstToon(x, y, z, size || 0.9, 0.16); },
     puffs: function (x, y, n, dirx, diry, size) { puffsAt(x, y, n || 4, dirx || 0, diry || 0, 1.2, size || 0.45); },
     onomatopoeia: function (x, y, z) { onoAt(x, y, z); },
+    /** C1: repetición. on = true al entrar (tras la cortinilla: guarda y oculta las calcomanías de la partida en vivo, apaga estelas y
+     *  partículas); false al salir (borra lo de la repetición y restaura lo guardado). Idempotente. Opcional para main.js. */
+    replay: function (on) { replayMode(on); },
     /** Confeti del color de un equipo (opcional). */
     confetti: function (team, n) { confetti(team === 1 ? 1 : 0, n || 400); },
     /** Malla del balón (opcional, para otros módulos). */
@@ -1578,7 +1670,7 @@
     /** ARN-03: copias de compilación de todos los pools de efectos (ver VB.Arena.prewarmList, que ya las incluye). */
     prewarmList: function () { return root ? prewarmProxies(root, []) : []; },
     /** Solo depuración: escala de legibilidad del balón (ARN-06) y brillo de borde actual. */
-    _dbg: function () { return { ballBs: ballBs, rim: ballRim ? ballRim.value : 0, ringD: focusRing && focusRing.visible ? focusD : 0, ringOp: focusU ? focusU.uOp.value.toArray() : null, toon: toon, toonN: toon ? toon.count : 0, decals: decals, decOrder: decOrder, bills: bills, billOrder: billOrder, dropLine: dropLine, posPh: posPh, posA: posA }; },
+    _dbg: function () { return { ballBs: ballBs, rim: ballRim ? ballRim.value : 0, ringD: focusRing && focusRing.visible ? focusD : 0, ringOp: focusU ? focusU.uOp.value.toArray() : null, toon: toon, toonN: toon ? toon.count : 0, decals: decals, decOrder: decOrder, bills: bills, billOrder: billOrder, dropLine: dropLine, posPh: posPh, posA: posA, replay: rpOn }; },
     /** Solo depuración (tools): fuerza la fase de la pista de posición del 6v6 ('recv'|'set'|'attack'|'cover'|'block'|'dig'|'net'|'serve'|'';
      *  null = la que diga la sim). Para ver cada marca y medir el lote con las tres mallas encendidas. */
     _hint6: function (ph) { posForce = ph == null ? null : (PH[ph] ? ph : ''); },
@@ -1642,7 +1734,7 @@
       setBlob(0, b.x, b.y, s, s, 0, 0.85 * Math.max(0.22, 0.95 / (1 + h * 0.22)) * (0.5 + 0.5 * air));
       updateAthleteBlobs(g);
 
-      var inPlay = g.mode === 'rally' && !b.held;
+      var inPlay = g.mode === 'rally' && !b.held, rpG = rpOn || !!g.replay; // C1: en la repetición no hay ayudas de juego
       // ---- línea de altura ----
       dropLine.visible = inPlay && b.z > 1.4;
       if (dropLine.visible) {
@@ -1655,7 +1747,7 @@
       // 6v6 con humano (control Uno por puesto): el aro solo marca TU balón; si lo juega un compañero, no hay aro (seguirlo
       // llevaba a robarle el balón con «¡mía!»). En 2v2 sigue como siempre (también con el compañero IA en modo Uno)
       var six = g.size === 6 && g.ctrlMode === 'one';
-      var showFocus = inPlay && !g.demo && !g.watch && g.jobs && g.jobs[0] && (!six || g.jobs[0] === g.ctrl) && Sim.focusPoint;
+      var showFocus = inPlay && !rpG && !g.demo && !g.watch && g.jobs && g.jobs[0] && (!six || g.jobs[0] === g.ctrl) && Sim.focusPoint;
       var fpt = showFocus ? Sim.focusPoint(g) : null; // (no «fp»: taparía el pool de huellas del módulo)
       focusVis = !!fpt;
       focusRing.visible = focusVis;
@@ -1684,7 +1776,7 @@
       if (posMark) {
         var pc = g.ctrl, A6 = VB.AI6, pdt = ctx.realDt || 0, pTo = 0, pLive = false, ph = '', ptx = 0, pty = 0;
         var pSv = g.mode === 'serve' && g.server !== pc;
-        if (six && (inPlay || pSv) && !g.demo && !g.watch && pc && A6 && A6.spot && !(g.jobs && g.jobs[0] === pc)) {
+        if (six && (inPlay || pSv) && !rpG && !g.demo && !g.watch && pc && A6 && A6.spot && !(g.jobs && g.jobs[0] === pc)) {
           var psp = A6.spot(g, pc); ph = psp.phase || ''; ptx = psp.x; pty = psp.y;
           // saque rival: setupServe deja lastKind '' y spot() aún no «recibe» (da la defensa): su sitio legal es p.fx/fy (placeServe)
           if (pSv && g.server && g.server.team !== pc.team && pc.fx !== undefined) { ph = 'recv'; ptx = pc.fx; pty = pc.fy; }
@@ -1747,7 +1839,7 @@
           }
         }
         // ---- E1: marcador de la colocación dirigida (Sim.setPreview: destino sin error de la colocación con el stick de ahora) ----
-        var spv = Sim.setPreview && !g.demo && !g.autopilot && g.mastery ? Sim.setPreview(g, spOut) : null;
+        var spv = Sim.setPreview && !rpG && !g.demo && !g.autopilot && g.mastery ? Sim.setPreview(g, spOut) : null;
         if (spv && isFinite(spv.x) && isFinite(spv.y)) {
           var stp = SP_COL[spv.tempo] ? spv.tempo : '';
           if (spA < 0.02 || stp !== spT) { spT = stp; setMk.material.color.copy(SP_COL[stp]); }
@@ -1777,7 +1869,7 @@
         markerMat.opacity = mo * (out ? 0.55 : 1);
       }
       // ---- retícula de apuntado (saque / remate del humano) ----
-      var am = aimTarget(g, aimOut), rdt = ctx.realDt || 0;
+      var am = rpG ? 0 : aimTarget(g, aimOut), rdt = ctx.realDt || 0;
       // A4: en el remate con spreadNow, el RADIO de la diana = dispersión si pulsaras ahora (mín. AIM_RMIN): se encoge hacia el
       // momento perfecto y crece si te pasas. Saque (o sim sin spreadNow): como antes.
       var spr = am === 2 && (g.mode === 'rally' || aimSv) && typeof aimOut.spreadNow === 'number' && aimOut.spreadNow >= 0 && isFinite(aimOut.spreadNow) ? aimOut.spreadNow : -1;
@@ -1863,7 +1955,7 @@
       aimArc.visible = aimRet.visible && aim.on && am === 2 && !b.held;
       if (aimArc.visible) updateAimArc(b, aim.x, aim.y, aim.a, aimSv ? AIM_SV : null);
 
-      updateReview(g, rdt);
+      if (!rpG) updateReview(g, rdt); // (la huella del challenge en vivo se guardó al entrar en la repetición)
       updateTrail(dt);
 
       // ---- chispas ----
