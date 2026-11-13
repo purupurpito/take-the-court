@@ -131,6 +131,16 @@
     }
     return { rk: rk, rk0: rk0 };
   }
+  /** Equipación (el tc de doll.js y de VB.Look.resolve) desde un objeto tipo ajustes {kitShirt, kitAccent, kitShorts, kitPattern,
+   *  kitLibero}, sin aplicar nada: la vista previa del Vestuario en la Carrera viste el kit del club. Con st.libero y kitLibero, la
+   *  camiseta del líbero del club (como liberoKit). Lo que falte, la equipación de serie. Devuelve un objeto nuevo. */
+  function kitFrom(st) {
+    st = st || {};
+    var k = mkKit(typeof st.kitShirt === 'number' ? st.kitShirt : TEAM0_DEF.base, typeof st.kitAccent === 'number' ? st.kitAccent : TEAM0_DEF.accent,
+      typeof st.kitShorts === 'number' ? st.kitShorts : TEAM0_DEF.shorts, st.kitPattern || 'diag');
+    if (st.libero && typeof st.kitLibero === 'number') { var l = mkKit(st.kitLibero, k.base, k.shorts, 'liso'); l.libero = true; l.club = true; return l; }
+    return k;
+  }
   function setKit(st) {
     st = st || {};
     var shirt = typeof st.kitShirt === 'number' ? st.kitShirt : TEAM0_DEF.base;
@@ -153,7 +163,18 @@
     }
     // color del líbero del club (Carrera de pista): el tuyo siempre; el del rival solo si viste de su club (1ª o 2ª)
     var lib0 = typeof st.kitLibero === 'number' ? st.kitLibero : -1, lib1 = rk && typeof rv.kitLibero === 'number' ? rv.kitLibero : -1;
-    var sig = [shirt, acc, sh, pat, rk ? [rk.base, rk.accent, rk.shorts, rk.pattern].join('/') : '', lib0, lib1].join(':');
+    // Vestuario: st.looks = [fit|null, fit|null] los fija (null en una casilla = sin look), null los quita y undefined CONSERVA los
+    // de antes (Ajustes › Equipación pasa los ajustes sin looks: tocar un color no puede quitarte el look)
+    if (st.looks !== undefined) {
+      var lk = st.looks && typeof st.looks === 'object' ? st.looks : null;
+      for (var li = 0; li < 2; li++) {
+        var fv = lk ? lk[li] : null, so = null;
+        if (fv && typeof fv === 'object' && VB.Look && VB.Look.sane) { try { so = VB.Look.sane(fv, li) || null; } catch (e) { so = null; } }
+        LOOK_OVR[li] = so;
+      }
+      LOOK_SIG = LOOK_OVR[0] || LOOK_OVR[1] ? fitSig(LOOK_OVR[0]) + '/' + fitSig(LOOK_OVR[1]) : '';
+    }
+    var sig = [shirt, acc, sh, pat, rk ? [rk.base, rk.accent, rk.shorts, rk.pattern].join('/') : '', lib0, lib1].join(':') + (LOOK_SIG ? ':' + LOOK_SIG : '');
     if (sig === TEAMS._sig) return false;
     TEAMS[0] = t0; TEAMS[1] = best; TEAMS._sig = sig; kitSig++; LIBC[0] = lib0; LIBC[1] = lib1;
     RIVAL_SIG = rk ? hash32(((rk0.base >>> 8) ^ (rk0.accent >>> 4) ^ rk0.shorts) >>> 0) & 0xffff : 0;   // MUÑECO: aspecto de los rivales por club
@@ -162,16 +183,16 @@
   }
   /** Libera todos los atletas construidos (equipación nueva o cambio de escenario). */
   function flushCache() {
-    for (var key in cache) {
-      var r = cache[key];
-      if (r.ink && VB.TOON && VB.TOON.drop) VB.TOON.drop(r.ink);   // integración: el contorno vive en la lista de VB.TOON
-      else if (r.ink && r.ink.parent) r.ink.parent.remove(r.ink);
-      try { if (r.skin && r.skin.material) { if (r.skin.material.map) r.skin.material.map.dispose(); r.skin.material.dispose(); } for (var gi in r.geos) if (r.geos[gi] && r.geos[gi].dispose) r.geos[gi].dispose(); } catch (e) { }
-      // la textura de huesos del esqueleto (16×16 RGBA32F, una por atleta; la comparte el contorno) también es una textura de
-      // GPU: sin esto se perdían 4 por cambio de escenario o de equipación en 2v2 (14 en 6v6)
-      try { if (r.skin && r.skin.skeleton && r.skin.skeleton.dispose) r.skin.skeleton.dispose(); } catch (e) { }
-      delete cache[key];
-    }
+    for (var key in cache) { disposeRig(cache[key]); delete cache[key]; }
+  }
+  /** Libera la GPU de un atleta construido: contorno, atlas, material, geometrías de los LOD y textura de huesos. */
+  function disposeRig(r) {
+    if (r.ink && VB.TOON && VB.TOON.drop) VB.TOON.drop(r.ink);   // integración: el contorno vive en la lista de VB.TOON
+    else if (r.ink && r.ink.parent) r.ink.parent.remove(r.ink);
+    try { if (r.skin && r.skin.material) { if (r.skin.material.map) r.skin.material.map.dispose(); r.skin.material.dispose(); } for (var gi in r.geos) if (r.geos[gi] && r.geos[gi].dispose) r.geos[gi].dispose(); } catch (e) { }
+    // la textura de huesos del esqueleto (16×16 RGBA32F, una por atleta; la comparte el contorno) también es una textura de
+    // GPU: sin esto se perdían 4 por cambio de escenario o de equipación en 2v2 (14 en 6v6)
+    try { if (r.skin && r.skin.skeleton && r.skin.skeleton.dispose) r.skin.skeleton.dispose(); } catch (e) { }
   }
   // ---------- TAJO: escenario (pabellón / playa) ----------
   // Los atletas se visten según el escenario que publica arena (VB.Arena.venue(): 'hall' | 'beach'; si no existe, el ajuste
@@ -242,14 +263,70 @@
   function hash32(n) { n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n = n ^ (n >>> 4); n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return n >>> 0; }
   // escala de altura por puesto (solo visual): centrales y opuestos altos, colocador y líbero algo más bajos
   var ROLE_H = { MB: 1.05, OPP: 1.03, OH: 1.015, S: 0.985, L: 0.955 };
-  function lookOf(p) {
-    var beach = VEN === 'beach', L;
-    if (!p.role && p.team === 0 && p.idx < 2) { L = MY_LOOKS[p.idx]; return { skin: L.skin, hair: L.hair, style: L.style, acc: beach ? L.accB : L.acc, h: L.h }; }
+  // ---------- Vestuario (js/look.js, VB.Look): el aspecto guardado de tus jugadores ----------
+  // LOOK_OVR[i]: fit saneado (VB.Look.sane) de tu n.º 1 / n.º 2 (o del compañero de la Carrera de playa); null = el aspecto de
+  // siempre. Lo fija setKit con st.looks. LOOK_SIG: firma de los dos ('' sin looks); entra en la firma de setKit (un cambio de look
+  // libera la caché) y en la clave de caché de tus rigs (rigFor). ME6_ID: en el 6v6, id de g.ctrlBase (tu atleta; -1 en 2v2 y con
+  // espectador). Todo es estética: nada de esto llega a la sim, a attrs, a badges ni a g.rng.
+  var LOOK_OVR = [null, null], LOOK_SIG = '', ME6_ID = -1;
+  // D7: los NPC ganan extras del atlas por hash (manguitos, coderas, calcetines, rodilleras, zapatillas; en la playa rayas, pecas y
+  // manguito): 0 triángulos y ninguna pieza de geometría, así el 6v6 no sube. false = los NPC como antes del Vestuario.
+  var NPC_EXTRAS = true;
+  /** Casilla de look de un jugador: 0 = tu n.º 1 (o tu atleta del 6v6), 1 = tu n.º 2 / compañero, -1 = NPC. En el 6v6 va con
+   *  g.ctrlBase (ME6_ID): el líbero que entra por ti no lleva tu look. */
+  function meSlot(p) {
+    if (!p || p.team !== 0) return -1;
+    if (!p.role) return p.idx < 2 ? p.idx : -1;
+    return p.id === ME6_ID ? 0 : -1;
+  }
+  /** Extras de NPC (D7) sobre L (aún sin congelar), con los bits altos del mismo hash del aspecto (>>>20 y >>>24: no tocan los de
+   *  piel, pelo, peinado y complemento). Solo ranuras que pinta el atlas. */
+  function npcExtras(L, h, beach) {
+    var e = (h >>> 20) & 15, f = (h >>> 24) & 255;
+    if (beach) {
+      if ((e & 3) === 0) L.paint = 'rayas';            // 1 de cada 4 (en vez del zinc)
+      if ((f & 3) === 0) L.marks = 'pecas';            // 1 de cada 4
+      if (((f >>> 2) & 7) === 0) L.armR = 'manguito';  // 1 de cada 8
+      return L;
+    }
+    var a = e & 7;                                     // manguito: dcha. 1/8, izq. 1/8, los dos 1/8
+    if (a === 0 || a === 2) L.armR = 'manguito';
+    if (a === 1 || a === 2) L.armL = 'manguito';
+    if (((f >>> 1) & 3) === 0) L.elbows = 'coderas';   // 1 de cada 4
+    var sk = (f >>> 3) & 3;                            // calcetines altos 1/4, tobilleros 1/4 (si no, los de siempre)
+    if (sk === 0) L.socks = 'altos'; else if (sk === 1) L.socks = 'tobilleros';
+    var kn = (f >>> 5) & 7;                            // rodilleras altas 1/8, bajadas 1/8 (si no, las de siempre)
+    if (kn === 0) L.knees = 'altas'; else if (kn === 1) L.knees = 'bajadas';
+    if ((e & 8) && (f & 1)) L.shoes = 'negras';        // 1 de cada 4
+    return L;
+  }
+  var LOOK_ERR = false;
+  /** Aspecto de un jugador para doll.js (L de la especificación del Vestuario §2.2), CONGELADO: los LOD se construyen más tarde
+   *  desde r.look y no pueden ver otro. tc = su equipación (las fichas de color eq/ac/os del look salen de ella).
+   *  La altura h es siempre la de hoy (puesto y dorsal en el 6v6, MY_LOOKS para tus dos del 2v2, hash para los NPC): el look nunca
+   *  aporta h. Sin look guardado (o sin VB.Look) devuelve exactamente lo de hoy, más los extras de los NPC (NPC_EXTRAS). */
+  function lookOf(p, tc) {
+    var beach = VEN === 'beach', s = meSlot(p), L;
+    if (s >= 0 && LOOK_OVR[s] && VB.Look && VB.Look.resolve) {
+      var hm = p.role ? (ROLE_H[p.role] || 1) * (1 + ((p.num * 13) % 5 - 2) * 0.006) : MY_LOOKS[s].h;
+      try { return Object.freeze(Object.assign({ h: hm }, VB.Look.resolve(LOOK_OVR[s], VEN, tc || kitOf(p)), { h: hm })); }
+      catch (e) { if (!LOOK_ERR) { LOOK_ERR = true; try { console.error('[VB][ERROR] Players.lookOf: ' + e); } catch (e2) { } } }   // sigue con el de hoy
+    }
+    if (!p.role && p.team === 0 && p.idx < 2) { L = MY_LOOKS[p.idx]; return Object.freeze({ skin: L.skin, hair: L.hair, style: L.style, acc: beach ? L.accB : L.acc, h: L.h }); }
     var h = hash32(((p.num | 0) * 131 + p.team * 17 + (p.role ? 1009 : 0) + (p.team === 1 && !p.role ? RIVAL_SIG : 0)) >>> 0);
     var skin = SKINS[h % SKINS.length], hair = HAIRS[(h >>> 4) % HAIRS.length], style = STYLES[(h >>> 8) % STYLES.length];
     var acc = beach ? ACC_BEACH[(h >>> 12) % ACC_BEACH.length] : ACC_HALL[(h >>> 12) % ACC_HALL.length];
     var hh = p.role ? (ROLE_H[p.role] || 1) * (1 + ((p.num * 13) % 5 - 2) * 0.006) : 1 + ((h >>> 16) % 5 - 2) * 0.012;
-    return { skin: skin, hair: hair, style: style, acc: acc, h: hh };
+    L = { skin: skin, hair: hair, style: style, acc: acc, h: hh };
+    // (tu atleta del 6v6 sin look guardado —Carrera de pista antigua— conserva la cara de hoy: sin extras)
+    if (NPC_EXTRAS && s < 0) npcExtras(L, h, beach);
+    return Object.freeze(L);
+  }
+  /** Firma de un fit (VB.Look.sig; sin ella, el JSON). */
+  function fitSig(f) {
+    if (!f) return '-';
+    try { if (VB.Look && VB.Look.sig) return String(VB.Look.sig(f)); } catch (e) { }
+    try { return JSON.stringify(f); } catch (e) { return '?'; }
   }
 
   var rigs = [], byId = [], cache = {}, lastBlocker = null;
@@ -288,6 +365,7 @@
   }
   function nowMs() { try { return performance.now(); } catch (e) { return Date.now(); } }
   var groupRoot, marker, markerCone, markerMat, coneMat;
+  var SHOWROOM = false;   // Vestuario abierto (showroom): atletas ocultos y sin animar
   var markerDim = 1;   // atenuación del halo con el balón muerto
   var lastCtrl = null; // 6v6: el control pasa al líbero y vuelve (sim setupServe, sin evento switch): el halo entra con fundido en el nuevo
 
@@ -501,7 +579,7 @@
   //  CONSTRUCCIÓN DEL RIG
   // =====================================================================
   function buildRig(p) {
-    var id = p.id, team = p.team, L = lookOf(p), tc = kitOf(p);
+    var id = p.id, team = p.team, tc = kitOf(p), L = lookOf(p, tc);   // L congelado (Vestuario: los LOD se construyen después desde r.look)
     var root = new THREE.Group(); root.name = 'athlete' + id;
     var bones = [];
     function bone(parent, x, y, z) { var b = new THREE.Bone(); b.position.set(x || 0, y || 0, z || 0); parent.add(b); bones.push(b); return b; }
@@ -542,7 +620,7 @@
       persona: personaOf(p), cvar: '', dvar: '', lvar: '', idle: '', evG: '', blkRes: '', forceCel: '', forceIdle: '', hitTempo: '', hitFeint: false,
       acF: 0, vfP: 0, spP: 0, accT: -99, lagOn: false, jvM: 0, cvarT: -99, spkYaw: 0, evT: -99, evX: 0, evY: 0, blkResT: -99,
       dvSide: 0, dvYaw0: 0, dvExtra: 0, dvFxT: -99, lvX: 0, lvY: 0, lvD: 0, lvGiven: 0, idleT: -99, idleNext: 0, idleN: 0, leaveW: 0, leaveT: -99,
-      yawAtk: 0, yawAtkT: -99, fist0: 0, fist1: 0, celFxT: -99, celFx2: -99, rivalOn: false, sigOn: !p.role && p.team === 0 && p.idx === 0, digT: -99, atkT: -99
+      yawAtk: 0, yawAtkT: -99, fist0: 0, fist1: 0, celFxT: -99, celFx2: -99, rivalOn: false, sigOn: meSlot(p) === 0, digT: -99, atkT: -99
     };
     for (var k = 0; k < 2; k++) {
       var s = k === 0 ? 1 : -1;
@@ -554,8 +632,9 @@
     // ---- UNA malla con piel rígida por hueso: 1 llamada de dibujo + 1 de sombra por atleta
     root.updateMatrixWorld(true);
     r.bones = bones; r.rest = []; r.geos = [null, null, null]; r.look = L; r.tc = tc;
-    // escenario de playa (el rig se construye para un escenario: la clave de caché lo incluye, rigFor) y complemento de cabeza (lookOf)
-    r.beach = VEN === 'beach'; r.acc = L.acc || '';
+    // escenario de playa (el rig se construye para un escenario: la clave de caché lo incluye, rigFor) y complemento de cabeza (lookOf):
+    // el id real del gorro, o 'gafas' con las gafas en la frente; es lo que activa el gesto `ajuste` (mangas y muñequeras no)
+    r.beach = VEN === 'beach'; r.acc = L.acc || (L.eyes === 'frente' ? 'gafas' : '');
     for (k = 0; k < bones.length; k++) r.rest.push(bones[k].matrixWorld.clone()); // pose de reposo (para reconstruir el LOD)
     // atlas del muñeco: 1024² solo en alta y con pocos muñecos (2v2); con 12-14 en pista o en media/baja, 512² (1 MB por atlas)
     var px = (QRANK >= 2 && !p.role) ? 2 : 1;
@@ -3620,7 +3699,8 @@
   }
 
   function rigFor(p) {
-    var key = p.id + ':' + p.team + ':' + p.num + ':' + kitSig + (p.role ? ':' + p.role : '') + ':' + VEN;   // 6v6: el puesto cambia aspecto y equipación; TAJO: escenario
+    var key = p.id + ':' + p.team + ':' + p.num + ':' + kitSig + (p.role ? ':' + p.role : '') + ':' + VEN +   // 6v6: el puesto cambia aspecto y equipación; TAJO: escenario
+      (meSlot(p) >= 0 ? ':me' + LOOK_SIG : '');   // Vestuario: tus atletas (look propio) no comparten rig con el NPC del mismo id
     var r = cache[key];
     if (!r) { r = cache[key] = buildRig(p); }
     r.p = p; return r;
@@ -3634,7 +3714,7 @@
     // E2
     r.cvar = r.dvar = r.lvar = r.idle = r.evG = r.blkRes = r.celV = ''; r.dvSide = 0; r.dvExtra = 0; r.lvD = 0; r.lvGiven = 0; r.leaveW = 0; r.leaveT = -99;
     r.evT = r.blkResT = r.cvarT = r.digT = r.atkT = -99; r.idleNext = 0; r.acF = 0; r.lagOn = false; r.jvM = 0; r.hitFeint = false; r.hitTempo = ''; r.forceCel = ''; r.forceIdle = '';
-    r.sigOn = !r.p.role && r.p.team === 0 && r.p.idx === 0;
+    r.sigOn = meSlot(r.p) === 0;   // firma: tu n.º 1 del 2v2 y tu atleta del 6v6 (también en la Carrera de pista)
     r.rivalOn = RIVAL_NUM >= 0 && r.p.team === 1 && !r.p.role && r.p.num === RIVAL_NUM;
   }
 
@@ -3656,6 +3736,68 @@
     }
     for (i = 0; i < old.length; i++) if (rigs.indexOf(old[i]) < 0) groupRoot.remove(old[i].root);   // los que salen de pista
     return true;
+  }
+
+  /** 6v6 (Vestuario): tu atleta cambió (g.ctrlBase: Controlar en la pausa o applyRole6 → setCtrlRole justo después de empezar el
+   *  6v6 rápido). Rehace SOLO los dos rigs afectados —el que deja de llevar tu look y el que pasa a llevarlo— con la clave de caché
+   *  nueva, les pasa la posición y el estado de animación de los anteriores (sin resetRig de los demás ni limpiar DIG_LAST/ATK_LAST)
+   *  y libera las entradas de caché de esos dos jugadores que ya no usa nadie. Un jugador que está en el banquillo (el central por el
+   *  que entró el líbero) no tiene rig en pista: syncRigs lo construye con la clave buena cuando vuelva. */
+  function swapMe(g, oldId, newId) {
+    ME6_ID = newId;
+    var ids = [oldId, newId];
+    for (var n = 0; n < 2; n++) {
+      var id = ids[n]; if (id < 0 || (n === 1 && id === oldId)) continue;
+      var r = byId[id], at = r ? rigs.indexOf(r) : -1; if (at < 0) continue;
+      var nr = rigFor(r.p); if (nr === r) continue;
+      copyRigState(r, nr);
+      nr.sigOn = meSlot(nr.p) === 0;
+      if (LODR > 0) rigGeometry(nr, LODR - 1);
+      if (LODR < 2) rigGeometry(nr, 2);
+      var want = r.skin.geometry === r.geos[2] ? 2 : r.skin.geometry === r.geos[0] ? 0 : r.skin.geometry === r.geos[1] ? 1 : LODR;
+      var geo = nr.geos[want] || rigGeometry(nr, LODR); if (nr.skin.geometry !== geo) nr.skin.geometry = geo;
+      if (QRANK > 0) ensureInk(nr);
+      if (nr.ink) { if (nr.ink.geometry !== nr.skin.geometry) nr.ink.geometry = nr.skin.geometry; nr.ink.visible = QRANK > 0 && !(g.size > 2 && nr.far); }
+      nr.skin.castShadow = r.skin.castShadow;
+      rigs[at] = nr; byId[id] = nr;
+      if (r.root.parent) r.root.parent.remove(r.root);
+      if (nr.root.parent !== groupRoot) groupRoot.add(nr.root);
+      if (lastBlocker === r) lastBlocker = nr;
+      for (var t = 0; t < 2; t++) { if (DIG_LAST[t] === r) DIG_LAST[t] = nr; if (ATK_LAST[t] === r) ATK_LAST[t] = nr; }
+    }
+    // fuera de la caché las entradas de esos dos jugadores que no están en pista (las de la clave vieja): textura, material, geometrías
+    for (var key in cache) {
+      var c = cache[key], kid = +key.slice(0, key.indexOf(':'));
+      if ((kid === oldId || kid === newId) && rigs.indexOf(c) < 0) { if (c.root.parent) c.root.parent.remove(c.root); disposeRig(c); delete cache[key]; }
+    }
+  }
+  // campos de un rig que son suyos (huesos, malla, aspecto) y no se copian al cambiar de rig en swapMe
+  var RIG_OWN = { p: 1, id: 1, team: 1, num: 1, root: 1, body: 1, pelvis: 1, spine: 1, chest: 1, head: 1, eyes: 1, mouth: 1, teeth: 1, brow: 1, hair: 1,
+    sh: 1, up: 1, el: 1, hand: 1, hip: 1, th: 1, kn: 1, ft: 1, bones: 1, rest: 1, geos: 1, look: 1, tc: 1, beach: 1, acc: 1, skin: 1, ink: 1,
+    handL: 1, handR: 1, footL: 1, footR: 1, scale: 1, sigOn: 1, persona: 1 };
+  /** Copia el estado de animación de un rig en otro del mismo jugador (swapMe): escalares, vectores, poses, pasos de los pies y la
+   *  transformación de cada hueso y de la raíz (mismo esqueleto: mismos huesos en el mismo orden). */
+  function copyRigState(a, b) {
+    for (var k in a) {
+      if (RIG_OWN[k] === 1) continue;
+      var v = a[k];
+      if (v === null || typeof v !== 'object') { if (typeof v !== 'function') b[k] = v; continue; }
+      var w = b[k];
+      if (v instanceof Pose) { if (w instanceof Pose) copyP(w, v); }
+      else if (v.isVector3 || v.isQuaternion || v.isEuler || v.isColor) { if (w && w.copy) w.copy(v); else b[k] = v.clone(); }
+      else if (Array.isArray(v) && Array.isArray(w) && v.length === w.length) {
+        for (var i = 0; i < v.length; i++) {
+          var e = v[i];
+          if (e === null || typeof e !== 'object') w[i] = e;
+          else if (w[i] && typeof w[i] === 'object' && !e.isObject3D) for (var q in e) if (typeof e[q] !== 'object' || e[q] === null) w[i][q] = e[q];
+        }
+      }
+    }
+    for (var j = 0; j < a.bones.length && j < b.bones.length; j++) {
+      var ba = a.bones[j], bb = b.bones[j];
+      bb.position.copy(ba.position); bb.quaternion.copy(ba.quaternion); bb.scale.copy(ba.scale);
+    }
+    b.root.position.copy(a.root.position); b.root.quaternion.copy(a.root.quaternion);
   }
 
   /** Tipo de salto: remate (o saque en salto) / bloqueo. */
@@ -3977,7 +4119,7 @@
       ctx = c; THREE = c.THREE; C = VB.C; if (C && C.BR) BR = C.BR;
       applyDoll();   // MUÑECO: longitudes del rig de VB.Doll.dims(), antes de construir atletas
       ensureTemps();
-      groupRoot = new THREE.Group(); groupRoot.name = 'players'; ctx.scene.add(groupRoot);
+      groupRoot = new THREE.Group(); groupRoot.name = 'players'; groupRoot.visible = !SHOWROOM; ctx.scene.add(groupRoot);
       // marcador del jugador controlado: aro luminoso + flecha flotante
       markerMat = new THREE.MeshBasicMaterial({ map: markerTexture(), transparent: true, depthWrite: false, opacity: 1, toneMapped: false });
       marker = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), markerMat);
@@ -4004,6 +4146,25 @@
     /** Equipación personalizable: aplica settings.kit* (ver setKit arriba). Con g, reconstruye ya los atletas del partido
      *  visible (la demo del menú o el partido en pausa). Devuelve true si cambió algo. */
     setKit: function (st, g) { var ch = setKit(st); if (ch && g) this.onGameStart(g); return ch; },
+    /** Vestuario: copia de la equipación actual de un equipo (0 tuyo, 1 rival): el tc de la vista previa y de VB.Look.resolve. */
+    kit: function (team) { return Object.assign({}, TEAMS[team ? 1 : 0]); },
+    /** Vestuario: equipación (tc) desde un objeto tipo ajustes {kitShirt, kitAccent, kitShorts, kitPattern, kitLibero, libero?},
+     *  sin aplicar nada (la vista previa de la Carrera viste el kit del club). */
+    kitFrom: function (st) { return kitFrom(st); },
+    /** Vestuario: con on, oculta los atletas (el grupo entero, una vez) y se salta su animación mientras dura la vista previa; los
+     *  partidos que empiecen mientras tanto (la demo con los looks nuevos) se construyen ocultos. Devuelve el estado. */
+    showroom: function (on) {
+      SHOWROOM = !!on;
+      if (groupRoot) groupRoot.visible = !SHOWROOM;
+      if (SHOWROOM && marker) marker.visible = markerCone.visible = false;
+      return SHOWROOM;
+    },
+    /** Vestuario (pruebas): id del atleta que lleva tu look en el 6v6 (g.ctrlBase; -1 en 2v2 y con espectador). */
+    lookOf6Id: function () { return ME6_ID; },
+    /** Vestuario (pruebas): aspecto (L congelado) con el que está construido el rig de p, o null. */
+    _look: function (p) { var r = this.rigOf(p); return r ? r.look : null; },
+    /** Vestuario (pruebas, sin THREE): el aspecto que tendría p con los looks y el escenario actuales. */
+    _lookOf: function (p) { return lookOf(p, kitOf(p)); },
     /** Colores actuales (para la UI): {t0: {base, accent, shorts}, t1: {...}}. */
     /** 6v6: color de la camiseta del líbero del equipo t (0xRRGGBB; para la UI o pruebas). */
     liberoColor: function (t) { return liberoKit(t ? 1 : 0).base; },
@@ -4042,6 +4203,8 @@
       if (RIVAL_NUM >= 0 && RIVAL_G !== g) { if (nowMs() - RIVAL_AT < 3000) RIVAL_G = g; else { RIVAL_NUM = -1; RIVAL_G = null; } }
       DIG_LAST[0] = DIG_LAST[1] = ATK_LAST[0] = ATK_LAST[1] = null;
       CUR_G = g;
+      // Vestuario: en el 6v6 tu look va con g.ctrlBase (nunca con el líbero que entra por ti); con espectador, nadie lo lleva
+      ME6_ID = g.rot && g.ctrlBase && !g.watch ? g.ctrlBase.id : -1;
       for (var i = 0; i < rigs.length; i++) groupRoot.remove(rigs[i].root);
       rigs.length = 0; byId.length = 0;
       for (var j = 0; j < g.players.length; j++) {
@@ -4152,8 +4315,14 @@
     _update: function (g, dt, events) {
       // (con banquillo, g.subsOn, un cambio puede sustituir a g.players[0]: mismo partido = syncRigs, sin rehacer a todos)
       if (syncVenue() || !rigs.length || (rigs[0].p !== g.players[0] && !(g.subsOn && CUR_G === g))) this.onGameStart(g);   // TAJO: al cambiar de escenario, se visten de nuevo
-      else if (g.size > 2) syncRigs(g);   // 6v6: el líbero (o un cambio) entra/sale de pista sin rehacer a los demás
+      else if (g.size > 2) {
+        // Vestuario: cambió tu atleta (g.ctrlBase) → solo se rehacen los 2 rigs afectados (comparar un id por frame)
+        if (g.rot && !g.watch) { var me6 = g.ctrlBase ? g.ctrlBase.id : -1; if (me6 !== ME6_ID) swapMe(g, ME6_ID, me6); }
+        syncRigs(g);   // 6v6: el líbero (o un cambio) entra/sale de pista sin rehacer a los demás
+      }
       var i;
+      // Vestuario abierto (showroom): los atletas están ocultos (groupRoot) y no se animan; el muñeco de la vista previa es de doll.js
+      if (SHOWROOM) { marker.visible = markerCone.visible = false; return; }
       // los rigs recién creados se orientan antes de leer eventos (puntos de contacto en su espacio)
       for (i = 0; i < rigs.length; i++) if (!rigs[i].inited) rigs[i].yaw = desiredYaw(g, rigs[i]);
       for (i = 0; i < events.length; i++) { try { onEvent(g, events[i]); } catch (e) { if (!window.__plErr) { window.__plErr = 1; console.error("[VB][ERROR] Players.onEvent: " + e); } } }

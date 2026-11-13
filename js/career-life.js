@@ -9,6 +9,9 @@
  *    agente estrella). Por fin hay en qué gastar el sueldo.
  *  - Premios de la temporada (MVP, máximo anotador, mejor sacador, muro, defensa, revelación) y logros de carrera con recompensa.
  *  - Legado: puntuación de leyenda, declive físico desde los 32 y retirada (desde los 30) al Salón de la Fama del dispositivo.
+ *  - Vestuario (sprint «personaliza», spec §7): el aspecto de tu jugador en c.life.look (un «fit» de VB.Look, js/look.js); lo que
+ *    ganas en la Carrera (fama, logros, premios) va al inventario GLOBAL (VB.Look.grant) y hay tienda de cosméticos (solo estética:
+ *    nunca toca GEAR, gearBonus ni attrs; su gasto va en l.spentLook, no en l.spent). Sin look.js no hace nada.
  * Sin DOM (se carga en node: tools/careertest.js). Guarda en c.life dentro de la carrera (sin cambiar su versión: todo tiene valor
  * por defecto y se crea al vuelo con ensure()). career.js llama a hook(c, tipo, …) en sus puntos clave; si este fichero no está,
  * la Carrera funciona igual que antes.
@@ -56,6 +59,7 @@
   var SALARY = [600, 1500, 4000, 9000, 20000];
 
   // ------------------------------------------------------------------ estado
+  var lookOk = null;   // último c.life.look ya saneado por ensure (VB.Look.sane)
   function ensure(c) {
     if (!c) return null;
     var l = c.life;
@@ -68,12 +72,17 @@
     if (!Array.isArray(l.awards)) l.awards = [];
     if (!Array.isArray(l.spOffers)) l.spOffers = [];
     if (!Array.isArray(l.log)) l.log = [];
-    ['chDone', 'chTried', 'streak', 'best', 'bestNota', 'evN', 'duelW', 'duelL', 'hurt', 'spent', 'earned'].forEach(function (k) { if (!(+l[k] >= 0)) l[k] = 0; });
+    ['chDone', 'chTried', 'streak', 'best', 'bestNota', 'evN', 'duelW', 'duelL', 'hurt', 'spent', 'earned', 'spentLook'].forEach(function (k) { if (!(+l[k] >= 0)) l[k] = 0; });
     if (l.sponsor && typeof l.sponsor !== 'object') l.sponsor = null;
     if (l.ev && (typeof l.ev !== 'object' || !EVENTS[l.ev.key])) l.ev = null;
     // celebración de firma (sprint 5, E2): '' = ninguna; celebAnn = último escalón ya avisado (las carreras viejas no reciben avisos atrasados)
     if (typeof l.celeb !== 'string') l.celeb = '';
     if (!(l.celebAnn >= 0)) l.celebAnn = tierIdx(l.fameMax);
+    // Vestuario: el aspecto de esta Carrera (null = el de siempre: guardados de antes del Vestuario, hasta que guardes uno) y
+    // lookAnn = 1 si ya se ha repasado lo ganado (0: guardado antiguo; su primer lookCheck da un solo resumen)
+    if (!l.look || typeof l.look !== 'object') l.look = null;
+    else if (l.look !== lookOk && VB.Look && VB.Look.sane) l.look = lookOk = VB.Look.sane(l.look, 0);   // (ensure se llama mucho: se sanea una vez por objeto)
+    l.lookAnn = +l.lookAnn > 0 ? 1 : 0;
     return l;
   }
 
@@ -101,6 +110,7 @@
       if (t1 >= 1) sponsorOffers(c, 'tier');
     }
     celebCheck(c);
+    lookCheck(c);
     return n;
   }
 
@@ -566,8 +576,11 @@
       }
     });
     if (got.length) K(c)._msg(c, 'fans', got.length === 1 ? 'Logro: ' + achName(got[0], c) : plural(got.length, 'logro nuevo', 'logros nuevos'), got.map(function (a) { return achName(a, c) + ' (' + achD(a, c).toLowerCase() + '): ' + rewardTxt(a); }).join('. ') + '.');
+    lookCheck(c);
     return got;
   }
+  /** Nombre del logro id para textos de fuera (VB.Look.lockText): el de pabellón (nh) en la pista; '' si no existe. */
+  function achNameOf(id, h) { var a = ACH.filter(function (x) { return x.id === id; })[0]; return a ? (h && a.nh ? a.nh : a.name) : ''; }
 
   // ------------------------------------------------------------------ legado y retirada
   var LEG_KEY = 'voley3d.legends';
@@ -623,6 +636,95 @@
     ['jump', 'speed', 'react'].forEach(function (k) { var x = d + (r() < 0.4 ? 1 : 0) - (r() < 0.3 ? 1 : 0); if (x > 0 && a.st[k] > 20) { a.st[k] = Math.max(20, a.st[k] - x); lost.push(k); } });
     if (lost.length) K(c)._msg(c, 'train', 'Los años pesan', 'Con ' + age + ' años el cuerpo ya no responde igual: pierdes algo de físico (' + lost.map(function (k) { return (VB.Prog && VB.Prog.LABEL && VB.Prog.LABEL[k] || k).toLowerCase(); }).join(', ') + '). Tu experiencia sigue intacta.' + (age >= RETIRE_AGE ? ' Puedes retirarte cuando quieras desde Fama › Legado.' : ''));
     return lost;
+  }
+
+  // ------------------------------------------------------------------ Vestuario (cosméticos; spec §7)
+  // Todo con guarda: sin VB.Look (js/look.js) nada cambia. El inventario es GLOBAL (voley3d.look.own, de look.js): lo que ganas o
+  // compras aquí vale también en Partido rápido y en la otra Carrera. Nada de esto entra en GEAR, gearBonus, attrs ni la sim.
+  function LK() { var X = VB.Look; return X && Array.isArray(X.CATALOG) && X.grant && X.owned ? X : null; }
+  function unlocksOf(x) { var u = x && x.unlock; return Array.isArray(u) ? u : u && typeof u === 'object' ? [u] : []; }
+  function lookName(X, x) { var n = ''; try { n = X.name ? X.name(x.id) : ''; } catch (e) { n = ''; } return String(n || x.name || x.id); }
+  /** Carrera nueva (gancho 'create', de playa o de pista): lleva el aspecto de tu n.º 1 de Partido rápido (VB.Look.fit(0)). */
+  function initLook(c) {
+    var l = ensure(c), X = VB.Look, f = null;
+    try { f = X && X.fit ? X.fit(0) : null; } catch (e) { f = null; }
+    l.look = f && typeof f === 'object' ? (X.sane ? X.sane(f, 0) : f) : null;
+    l.lookAnn = 1;   // (carrera nueva: los avisos, uno a uno; nada atrasado que resumir)
+    return l.look;
+  }
+  /** Motivo por el que la carrera c ya tiene el objeto x («Estrella», «Saque bomba», «MVP»); '' si aún no. Solo lo que mide la
+   *  Carrera: fama (por fameMax, nunca se pierde), logros y premios. La tienda, el Entrenamiento y el récord van por otro lado. */
+  function lookReason(c, x) {
+    var l = c.life, ti = tierIdx(l.fameMax), u = unlocksOf(x);
+    for (var i = 0; i < u.length; i++) {
+      var o = u[i]; if (!o || typeof o !== 'object') continue;
+      if (typeof o.fame === 'number' && ti >= o.fame) return tierName(o.fame, c);
+      if (typeof o.ach === 'string' && l.ach[o.ach]) return achNameOf(o.ach, hall(c)) || o.ach;
+      if (typeof o.award === 'string' && l.awards.some(function (a) { return a && a.id === o.award; })) {
+        var aw = AWARDS.filter(function (a) { return a.id === o.award; })[0]; return aw ? aw.name : o.award;
+      }
+    }
+    return '';
+  }
+  function andList(a) { return a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' y ' + a[a.length - 1]; }
+  /** Da (VB.Look.grant) lo que la carrera c ya se ha ganado y avisa en la bandeja: «Nuevo en tu vestuario: …». Con más de 3 de golpe,
+   *  con quiet o la primera vez en un guardado antiguo (lookAnn 0), un solo resumen. Devuelve los ids nuevos. Sin look.js, []. */
+  function lookCheck(c, quiet) {
+    var X = LK(); if (!X || !c) return [];
+    var l = ensure(c), got = [];
+    if (!l.lookAnn) { quiet = true; l.lookAnn = 1; }
+    var cat = X.CATALOG.concat(Array.isArray(X.PALETTE) ? X.PALETTE.filter(function (p) { return p && unlocksOf(p).length; }) : []);
+    cat.forEach(function (x) {
+      if (!x || typeof x.id !== 'string') return;
+      var why = lookReason(c, x); if (!why) return;   // (primero lo que mide la carrera, sin leer el guardado; luego el inventario)
+      var have = false; try { have = !!X.owned(x.id); } catch (e) { have = true; } if (have) return;
+      var nw = false; try { nw = X.grant(x.id, 'carrera') === true; } catch (e) { nw = false; }
+      if (nw) got.push({ id: x.id, name: lookName(X, x), why: why });
+    });
+    if (!got.length) return [];
+    var one = function (g) { K(c)._msg(c, 'fans', 'Nuevo en tu vestuario: ' + g.name, 'Lo ganaste con «' + g.why + '». Póntelo en Jugador › Vestuario.'); };
+    if (got.length === 1) one(got[0]);
+    else if (got.length > 3 || quiet) K(c)._msg(c, 'fans', 'Nuevo en tu vestuario: ' + got.length + ' objetos', 'Lo has ganado en tu carrera: ' + andList(got.map(function (g) { return g.name + ' («' + g.why + '»)'; })) + '. Pruébalos en Jugador › Vestuario.');
+    else got.forEach(one);
+    return got.map(function (g) { return g.id; });
+  }
+  /** Precio en la tienda del objeto x (su desbloqueo {shop: €}); 0 si no se vende. */
+  function lookPrice(x) { var u = unlocksOf(x); for (var i = 0; i < u.length; i++) if (u[i] && +u[i].shop > 0) return Math.round(+u[i].shop); return 0; }
+  /** Fama › Tienda › Vestuario: todo lo que se vende (sin rotación), por precio. [{id, name, slot, venue, rarity, price, owned}]. */
+  function lookShop(c) {
+    var X = LK(); if (!X) return [];
+    var out = [];
+    X.CATALOG.forEach(function (x) {
+      var p = x && typeof x.id === 'string' ? lookPrice(x) : 0; if (!p) return;
+      var own = false; try { own = !!X.owned(x.id); } catch (e) { own = false; }
+      out.push({ id: x.id, name: lookName(X, x), slot: String(x.slot || ''), venue: x.venue === 'P' || x.venue === 'Y' ? x.venue : 'A', rarity: clamp(x.rarity | 0, 0, 3), price: p, owned: own });
+    });
+    return out.sort(function (a, b) { return a.price - b.price || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0); });
+  }
+  /** Compra un cosmético con el dinero de la Carrera activa: 'ok' | 'money' | 'owned' | '' (no existe, no se vende o sin look.js).
+   *  Va a l.spentLook (no a l.spent: no cuenta para ningún logro de gasto ni para «Equipado hasta arriba»). */
+  function buyLook(id) {
+    var X = LK(), c = K().load(); if (!X || !c) return '';
+    var x = X.CATALOG.filter(function (e) { return e && e.id === id; })[0], p = lookPrice(x); if (!p) return '';
+    var l = ensure(c);
+    if (X.owned(id)) return 'owned';
+    if ((+c.money || 0) < p) return 'money';
+    try { X.grant(id, 'tienda'); } catch (e) { }
+    if (!X.owned(id)) return '';   // (no se ha podido guardar el inventario: no se cobra)
+    c.money = Math.round(c.money - p); l.spentLook += p;
+    K(c).save(c); return 'ok';
+  }
+  /** Guarda el aspecto de la Carrera activa (desde el Vestuario). false sin carrera o sin look.js. */
+  function setLook(fit) {
+    var X = VB.Look, c = K().load(); if (!c || !X || !X.sane || !fit || typeof fit !== 'object') return false;
+    var l = ensure(c); l.look = X.sane(fit, 0); K(c).save(c); return true;
+  }
+  /** Aspecto de la Carrera activa para el partido (main.js → VB.Look.matchLooks) y el Vestuario; null = el de siempre. */
+  function lookNow() {
+    try {
+      var c = K() && K().load && K().load(); if (!c || !c.life || !c.life.look || typeof c.life.look !== 'object') return null;
+      return VB.Look && VB.Look.sane ? VB.Look.sane(c.life.look, 0) : null;
+    } catch (e) { return null; }
   }
 
   // ------------------------------------------------------------------ ganchos de career.js
@@ -686,6 +788,7 @@
     if (r.move > 0) addFame(c, 200 * LV_MULT[L]);
     var aw = seasonAwards(c);
     r.awards = aw.map(function (a) { return a.name; });
+    lookCheck(c);   // Vestuario: lo que dan los premios recién entregados (p. ej. el MVP)
     if (l.sponsor && l.sponsor.season <= c.season && !l.sponsor.done) {
       var got = sponsorProgress(c), s = l.sponsor;
       if (got >= s.goal.n) { c.money = Math.round((+c.money || 0) + s.goal.bonus); l.earned += s.goal.bonus; K(c)._msg(c, 'fans', 'Bonus de ' + s.name, 'Has cumplido el objetivo (' + s.goal.txt + '): ' + eur(s.goal.bonus) + ' para ti.'); r.spBonus = s.goal.bonus; }
@@ -717,7 +820,7 @@
     // E2: dorsal del rival personal solo en el duelo (main.js lo pasa a nums[1] y a Players.setRival)
     if (ch && ch.duel && m.career && l.rival && l.rival.num >= 0) m.career.rivalNum = l.rival.num | 0;
   }
-  function onCreate(c) { var f = legacyStart(); var l = ensure(c); if (f) { l.fame = l.fameMax = f; } }
+  function onCreate(c) { var f = legacyStart(); var l = ensure(c); if (f) { l.fame = l.fameMax = f; } initLook(c); lookCheck(c); }
   function hook(c, kind, a, b) {
     if (!c) return;
     if (kind === 'match') afterMatch(c, a, b);
@@ -737,6 +840,7 @@
     achList: achList, check: check, AWARDS: AWARDS,
     legacyScore: legacyScore, legacyTier: legacyTier, canRetire: canRetire, retire: retire, legends: legends, RETIRE_AGE: RETIRE_AGE, DECLINE_AGE: DECLINE_AGE,
     eur: eur, num: num,
-    CELEB_DEF: CELEB_DEF, celebs: celebs, setCeleb: setCeleb, signatureNow: signatureNow
+    CELEB_DEF: CELEB_DEF, celebs: celebs, setCeleb: setCeleb, signatureNow: signatureNow,
+    initLook: initLook, lookCheck: lookCheck, lookShop: lookShop, buyLook: buyLook, setLook: setLook, lookNow: lookNow, achName: achNameOf
   };
 })();

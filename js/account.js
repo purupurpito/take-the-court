@@ -8,7 +8,9 @@
  *    apunta la hora y sube el cambio a los ~1,5 s (y al ocultar la pestaña). Sin cuenta o sin red, todo sigue en local.
  *  - Al entrar se une lo del dispositivo con lo de la cuenta: gana lo más reciente; si las dos Carreras son distintas, se pregunta.
  *    Si llega algo de la cuenta, la página se recarga para que el juego lo lea.
- *  - 'voley3d.gym' (Entrenamiento) tiene la fusión por máximo escrita (mergeGym) pero NO se sincroniza hasta GYM_SYNC = true.
+ *  - 'voley3d.gym' (Entrenamiento) se une por máximo (mergeGym); se sincroniza desde el 12-nov-2026 (GYM_SYNC = true).
+ *  - 'voley3d.look' (Vestuario, js/look.js) tiene su fusión escrita (mergeLook: une lo ganado y lo visto con VB.Look.mergeRaw y toma
+ *    los looks del lado más reciente) pero NO se sincroniza hasta LOOK_SYNC = true.
  *  - Panel propio (#account) que se abre con el botón «Cuenta» del menú principal (#btnAcc, lo crea este módulo).
  */
 (function () {
@@ -23,6 +25,12 @@
   // Orden obligatorio: 1) desplegar reglas, 2) GYM_SYNC = true. 'voley3d.seen' y 'voley3d.device' NUNCA van a DOCS (son del dispositivo).
   var GYM_SYNC = true;   // reglas con 'gym' desplegadas el 12-nov-2026 (firebase deploy --only firestore:rules)
   if (GYM_SYNC) DOCS['voley3d.gym'] = 'gym';
+  // Vestuario (js/look.js): 'voley3d.look' irá a users/{uid}/saves/look con la fusión mergeLook. APAGADO: las reglas con 'look' están en
+  // firebase/firestore.rules pero sin desplegar. Orden obligatorio, como con el gym: 1) Ferran despliega las reglas, 2) LOOK_SYNC = true.
+  // Mientras tanto se apunta igual la hora de cada escritura (TRACK), para que la primera fusión ya sepa qué looks son los más nuevos.
+  var LOOK_SYNC = false;
+  if (LOOK_SYNC) DOCS['voley3d.look'] = 'look';
+  var TRACK = { 'voley3d.look': 1 };
   var LS = null; try { LS = window.localStorage; } catch (e) { }
   var rawSet = Storage.prototype.setItem, rawRemove = Storage.prototype.removeItem;
 
@@ -37,14 +45,15 @@
   if (LS) {
     Storage.prototype.setItem = function (k, v) {
       rawSet.call(this, k, v);
-      if (this === LS && !applying && DOCS[k]) touch(k);
+      if (this === LS && !applying) { if (DOCS[k]) touch(k); else if (TRACK[k]) stamp(k); }
     };
     Storage.prototype.removeItem = function (k) {
       rawRemove.call(this, k);
-      if (this === LS && !applying && DOCS[k]) touch(k);
+      if (this === LS && !applying) { if (DOCS[k]) touch(k); else if (TRACK[k]) stamp(k); }
     };
   }
   function touch(k) { meta[k] = Date.now(); jset(META, meta); if (acc) { dirty[k] = 1; schedule(); } }
+  function stamp(k) { meta[k] = Date.now(); jset(META, meta); }   // solo la hora (clave que aún no se sube)
   function schedule() { clearTimeout(pushT); pushT = setTimeout(function () { push().catch(function () { }); }, 1500); }
 
   // ---------------------------------------------------------------- Firebase (REST)
@@ -149,6 +158,13 @@
         if (Mg !== Rd) dirty[k] = 1;
         return;
       }
+      if (k === 'voley3d.look') { // Vestuario: lo ganado nunca se pierde (unión); los looks, del lado más reciente (primera vez: la cuenta)
+        var Ml = mergeLook(L, Rd, first || R.at > Lt);
+        if (Ml !== L) { apply(k, Ml); changed = true; }
+        meta[k] = Math.max(Lt, R.at); synced[k] = R.at;
+        if (Ml !== Rd) dirty[k] = 1;
+        return;
+      }
       var remoteWins = first ? (k === 'voley3d.squad' ? score(Rd) >= score(L) : k !== 'voley3d.record' || recPlayed(Rd) >= recPlayed(L)) : R.at > Lt;
       if (remoteWins) { apply(k, Rd); meta[k] = R.at; synced[k] = R.at; changed = true; } else dirty[k] = 1;
     });
@@ -175,6 +191,22 @@
     out.free.rally = Math.max(n(A.free && A.free.rally), n(B.free && B.free.rally));
     var txt = JSON.stringify(out);
     return Lraw != null && txt === JSON.stringify(p(Lraw)) ? Lraw : txt;
+  }
+  /** Une dos guardados de 'voley3d.look' (texto JSON {v, fits, own, seen}). own y seen: unión con VB.Look.mergeRaw (gana la t mínima);
+   *  fits: los del lado más reciente por la hora de meta (remoteNewer), los dé como los dé mergeRaw. Sin js/look.js (o con un mergeRaw
+   *  que falla) gana entero el más reciente. Devuelve texto JSON (el local tal cual si no cambia nada). look.js sanea al cargar. */
+  function mergeLook(Lraw, Rraw, remoteNewer) {
+    function p(r) { try { var o = JSON.parse(r); return o && typeof o === 'object' && !Array.isArray(o) ? o : null; } catch (e) { return null; } }
+    var A = p(Lraw), B = p(Rraw);
+    if (!B) return Lraw != null ? Lraw : Rraw;
+    if (!A) return Rraw;
+    var out = null, Lk = VB.Look;
+    if (Lk && typeof Lk.mergeRaw === 'function') { try { out = p(Lk.mergeRaw(Lraw, Rraw)); } catch (e) { out = null; } }
+    if (!out) return remoteNewer ? Rraw : Lraw;
+    var src = remoteNewer ? B : A;
+    if (Array.isArray(src.fits)) out.fits = src.fits;
+    var txt = JSON.stringify(out);
+    return txt === JSON.stringify(A) ? Lraw : txt;
   }
   function recPlayed(raw) { try { return +(JSON.parse(raw).played) || 0; } catch (e) { return 0; } }
   function reloadSoon(msg) {
@@ -419,6 +451,6 @@
     open: open, close: close, isOpen: isOpen, user: function () { return acc ? acc.user : null; }, status: function () { return status; },
     sync: function () { return syncDown(false); }, signOut: signOut, onChange: function (f) { listeners.push(f); },
     // pruebas (tools/cuentatest.js): entrar sin la interfaz y borrar la cuenta al acabar
-    _enter: enter, _delete: deleteAccount, _mergeGym: mergeGym, _gymSync: GYM_SYNC, _push: function () { for (var k in DOCS) if ((meta[k] || 0) > (synced[k] || 0)) dirty[k] = 1; return push(); }
+    _enter: enter, _delete: deleteAccount, _mergeGym: mergeGym, _gymSync: GYM_SYNC, _mergeLook: mergeLook, _lookSync: LOOK_SYNC, _push: function () { for (var k in DOCS) if ((meta[k] || 0) > (synced[k] || 0)) dirty[k] = 1; return push(); }
   };
 })();

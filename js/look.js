@@ -1,0 +1,743 @@
+/* MAKE THE CUT — js/look.js (owner: ui_main)
+ * Vestuario (personalización de los muñecos): catálogo, reglas de compatibilidad, saneado, resolución para doll.js, inventario
+ * y guardado. Es PURO: sin THREE ni DOM (localStorage siempre dentro de try/catch); se prueba en node con vm (tools/looktest.js).
+ * index.html lo carga entre js/badges.js y js/venues.js. Todo es estético: nada de esto entra en la sim, en attrs, en badges ni
+ * en g.rng (la única semilla aleatoria es la que pasa la UI a random(), Date.now()).
+ *
+ * «Fit» (lo que se guarda y se edita; §2.1 de la especificación):
+ *   { v:1, skin:hex, hair:hex | id de tinte, style,
+ *     hall:{ head, eyes, paint, marks, beard, neck, under, band, armL, armR, elbows, wristL, wristR, hands, legs, knees, socks,
+ *            ankle, shoes },  beach:{ …las mismas ranuras… },
+ *     colors:{ acc, acc2, sock, shoe, glass } }      (fichas: auto | eq | ac | os | bl | ne | id de PALETTE)
+ * «L» resuelto (lo que recibe doll.js, congelado): { skin, hair, style, acc (= gorro), eyes … shoes, cA, cB, cSock, cShoe, cGlass }
+ *   con los colores en hex o -1 (= auto, el de hoy). Nunca lleva h: la altura la pone players.js.
+ *
+ * Guardado: localStorage 'voley3d.look' (JSON, v1, < 8 KB):
+ *   { v:1, fits:[fit n.º 1, fit n.º 2], ft: ms de la última edición de fits (para unir con la cuenta),
+ *     own:{ id:{ s:'carrera'|'tienda'|'gym'|'record', t:ms } }, seen:{ id:1 } }
+ *   No se escribe hasta la primera edición (setFit) o el primer desbloqueo (grant). Lo de inicio no se guarda en own.
+ *   La Carrera guarda su propio fit en c.life.look (career-life.js); el inventario (own) es global para todo el juego.
+ *
+ * API (VB.Look): ver el bloque del final. Notas para quien la usa:
+ *   - Las ranuras armL/armR y wristL/wristR comparten objetos: cada objeto lleva slot (la 1ª) y slots (todas las que admite).
+ *     Para listar lo de una ranura, mejor choices(slot, venue) o items(slot, venue).
+ *   - fix() devuelve removed:[{slot, id, why, msg}]: why = el motivo («no cabe con el moño»), msg = el aviso entero
+ *     («Quitado: Coronita (no cabe con el moño)»).
+ *   - geoSig() cambia con todo lo que toca la malla (peinado, piel y pelo, que van por vértice, gorros, gafas, cuello, muñecas,
+ *     manos, coderas, rodilleras, tobillera, zapatillas, manguitos por la bola del codo, la térmica) y con las fichas de color
+ *     de las piezas que llevan ese color por vértice; un color que solo va en el atlas no lo cambia. atlasSig() cambia con
+ *     cualquier cosa del L resuelto o de la equipación: si geoSig no cambió y atlasSig sí, basta con repintar el atlas.
+ */
+(function () {
+  'use strict';
+  var VB = window.VB = window.VB || {};
+  var KEY = 'voley3d.look', V = 1, MAX_BYTES = 8192;
+
+  var SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
+    'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes'];
+  var COLOR_KEYS = ['acc', 'acc2', 'sock', 'shoe', 'glass'];
+  // hueco de color → campo de L y letra de «vc» (colores por vértice de cada objeto)
+  var COLOR_L = { acc: 'cA', acc2: 'cB', sock: 'cSock', shoe: 'cShoe', glass: 'cGlass' };
+  var VC_KEY = { A: 'acc', B: 'acc2', S: 'sock', H: 'shoe', G: 'glass' };
+  var SRCS = ['carrera', 'tienda', 'gym', 'record'];
+
+  // ---------------------------------------------------------------- colores de identidad
+  // Piel: los 10 SKINS de players.js (mismo orden) + 4 nuevos. Pelo: los 10 HAIRS + el del n.º 2 + canas, gris, platino y cobrizo.
+  var SKINS = [0xdba27a, 0x8a5638, 0xc68a5f, 0xf0c6a4, 0xb07650, 0xe6b48e, 0x6e4430, 0xf3d0b0, 0xa36a48, 0xd9a07c,
+    0x5a3626, 0xf7dcc4, 0xc9a27a, 0x9c6b4a];
+  var HAIRS = [0x3a2416, 0x241a14, 0x7a3a16, 0x1e1612, 0x6a4424, 0x9a6a3a, 0xb88a4e, 0x2b1d17, 0x4b2a18, 0xe0c070,
+    0x3a2a1e, 0xd8d4cc, 0x8f8a86, 0xf1e3b0, 0xb4471c];
+  var HAIR_NAMES = { 0x3a2416: 'Castaño oscuro', 0x241a14: 'Negro', 0x7a3a16: 'Caoba', 0x1e1612: 'Azabache', 0x6a4424: 'Castaño',
+    0x9a6a3a: 'Avellana', 0xb88a4e: 'Rubio oscuro', 0x2b1d17: 'Moreno', 0x4b2a18: 'Chocolate', 0xe0c070: 'Rubio', 0x3a2a1e: 'Café',
+    0xd8d4cc: 'Canas', 0x8f8a86: 'Gris', 0xf1e3b0: 'Platino', 0xb4471c: 'Cobrizo' };
+  function lum(h) { return (0.299 * ((h >> 16) & 255) + 0.587 * ((h >> 8) & 255) + 0.114 * (h & 255)) / 255; }
+  // en la UI la piel va de clara a oscura; el nombre es «Tono N» en ese orden
+  var SKIN_ORDER = SKINS.slice().sort(function (a, b) { return lum(b) - lum(a); });
+
+  // Fichas de color: las fijas y la paleta (dorado se gana)
+  var TOKENS = [{ id: 'auto', name: 'Automático' }, { id: 'eq', name: 'Color del equipo' }, { id: 'ac', name: 'Acento del equipo' },
+    { id: 'os', name: 'Oscuro del equipo' }, { id: 'bl', name: 'Blanco', hex: 0xf4f4f4 }, { id: 'ne', name: 'Negro', hex: 0x22222a }];
+  var PALETTE = [
+    { id: 'rojo', name: 'Rojo', hex: 0xe0383e }, { id: 'naranja', name: 'Naranja', hex: 0xff8a2a },
+    { id: 'amarillo', name: 'Amarillo', hex: 0xffd23a }, { id: 'verde', name: 'Verde', hex: 0x3fbf5a },
+    { id: 'turquesa', name: 'Turquesa', hex: 0x2ec4c4 }, { id: 'azul', name: 'Azul', hex: 0x3a6cf0 },
+    { id: 'morado', name: 'Morado', hex: 0x8a4fd8 }, { id: 'rosa', name: 'Rosa', hex: 0xff6fae },
+    { id: 'gris', name: 'Gris', hex: 0x8a8f99 }, { id: 'dorado', name: 'Dorado', hex: 0xf2c14e, unlock: [{ fame: 6 }, { ach: 't5' }] }
+  ];
+
+  // ---------------------------------------------------------------- catálogo
+  // Campos: id, name, slot (+ slots si admite varias), venue 'P' pista | 'Y' playa | 'A' ambas, rarity 0-3, unlock (alternativas:
+  // vale cualquiera), geo (cambia la malla: geometría o color por vértice), vc (huecos de color que usa por vértice: A acc, B acc2,
+  // S sock, H shoe, G glass), tris [LOD0, LOD1, LOD2] (Δ estimado sobre el muñeco de hoy; lo medido manda: VB.Doll.lookSelfTest),
+  // hint (ayuda corta en la UI), g 'm'|'f' y pl (género y número del nombre, para los avisos «no cabe con el moño»), lux (de lujo).
+  var S = [{ start: 1 }];
+  function shop(e) { return { shop: e }; }
+  function rec(k, n) { return { rec: { k: k, n: n } }; }
+  function gym(id, m) { return { gym: { id: id, m: m } }; }
+  var HIDE_HAIR_HINT = 'Con gorra no se ve el peinado entero';
+  var CATALOG = [
+    // peinados (slot 'style'; común a pista y playa)
+    { id: 'tupe', name: 'Tupé', slot: 'style', g: 'm' },
+    { id: 'coleta', name: 'Coleta', slot: 'style', g: 'f' },
+    { id: 'afro', name: 'Afro', slot: 'style', g: 'm' },
+    { id: 'flequillo', name: 'Flequillo', slot: 'style', g: 'm' },
+    { id: 'rapado', name: 'Rapado', slot: 'style', g: 'm' },
+    { id: 'mono', name: 'Moño', slot: 'style', g: 'm' },
+    { id: 'trenzas', name: 'Trenzas', slot: 'style', g: 'f', pl: 1 },
+    { id: 'dosmonos', name: 'Dos moños', slot: 'style', g: 'm', pl: 1, tris: [300, 580, 860] },
+    { id: 'coletas', name: 'Coletas', slot: 'style', g: 'f', pl: 1, tris: [320, 560, 800] },
+    { id: 'cresta', name: 'Cresta', slot: 'style', rarity: 1, unlock: [shop(3000), { gymN: 3 }], g: 'f', tris: [250, 420, 600] },
+    // gorro
+    { id: 'cinta', name: 'Cinta', slot: 'head', vc: 'A', g: 'f', tris: [180, 360, 704] },
+    { id: 'cintaRizo', name: 'Cinta de rizo', slot: 'head', unlock: [shop(800), rec('wins', 10)], vc: 'A', g: 'f', tris: [110, 240, 384] },
+    { id: 'bandana', name: 'Pañuelo', slot: 'head', rarity: 1, unlock: [{ ach: 's10' }, gym('serve', 1)], vc: 'A', g: 'm', tris: [250, 470, 700] },
+    { id: 'gorra', name: 'Gorra', slot: 'head', venue: 'Y', vc: 'A', g: 'f', hint: HIDE_HAIR_HINT, tris: [290, 409, 806] },
+    { id: 'gorraAtras', name: 'Gorra al revés', slot: 'head', venue: 'Y', vc: 'A', g: 'f', hint: HIDE_HAIR_HINT, tris: [330, 470, 926] },
+    { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'A', g: 'f', tris: [100, 190, 336] },
+    { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'A', g: 'm', hint: HIDE_HAIR_HINT, tris: [340, 480, 936] },
+    { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [120, 180, 250] },
+    // gafas
+    { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [350, 600, 1040] },
+    { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
+    { id: 'oscuras', name: 'Gafas oscuras', slot: 'eyes', venue: 'Y', unlock: [shop(1000)], vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
+    { id: 'deporte', name: 'Gafas deportivas', slot: 'eyes', rarity: 1, unlock: [{ fame: 2 }, gym('recv', 1)], vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
+    { id: 'espejo', name: 'Gafas de espejo', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [{ fame: 4 }, shop(15000)], vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
+    // cara (pintada en el atlas: 0 triángulos)
+    { id: 'zinc', name: 'Crema de zinc', slot: 'paint', venue: 'Y', g: 'f' },
+    { id: 'rayas', name: 'Rayas bajo los ojos', slot: 'paint', g: 'f', pl: 1 },
+    { id: 'rayasEq', name: 'Rayas del equipo', slot: 'paint', rarity: 1, unlock: [{ ach: 'duel5' }, rec('wins', 25)], g: 'f', pl: 1 },
+    { id: 'estrella', name: 'Estrella en la mejilla', slot: 'paint', rarity: 2, unlock: [{ fame: 5 }, shop(20000)], g: 'f' },
+    { id: 'pecas', name: 'Pecas', slot: 'marks', g: 'f', pl: 1 },
+    { id: 'tirita', name: 'Tirita', slot: 'marks', unlock: [{ ach: 'm50' }, rec('played', 50)], g: 'f' },
+    { id: 'tiraNasal', name: 'Tira nasal', slot: 'marks', unlock: [shop(500)], g: 'f' },
+    { id: 'bigote', name: 'Bigote', slot: 'beard', g: 'm' },
+    { id: 'perilla', name: 'Perilla', slot: 'beard', g: 'f' },
+    { id: 'tresDias', name: 'Barba de tres días', slot: 'beard', g: 'f' },
+    // cuello, cuerpo y brazos
+    { id: 'medalla', name: 'Medalla', slot: 'neck', rarity: 2, unlock: [{ ach: 't1' }], g: 'f', tris: [110, 170, 240] },
+    { id: 'conchas', name: 'Collar de conchas', slot: 'neck', venue: 'Y', unlock: [shop(800)], g: 'm', tris: [100, 300, 600] },
+    { id: 'termica', name: 'Camiseta térmica', slot: 'under', venue: 'P', vc: 'B', g: 'f' },
+    { id: 'licra', name: 'Licra de surf', slot: 'under', venue: 'Y', rarity: 1, unlock: [shop(5000)], vc: 'B', g: 'f' },   // geo: la bola del hombro va en cB (color por vértice)
+    { id: 'capitan', name: 'Brazalete', slot: 'band', rarity: 2, unlock: [{ fame: 4 }, { ach: 'top' }], geo: false, g: 'm', hint: 'En el brazo izquierdo' },
+    { id: 'malla', name: 'Malla corta', slot: 'legs', geo: false, g: 'f' },
+    { id: 'mallaLarga', name: 'Malla larga', slot: 'legs', unlock: [shop(1000)], vc: 'B', g: 'f' },   // geo: la bola de la rodilla sin rodillera va en cB
+    { id: 'manguito', name: 'Manguito', slot: 'arm', vc: 'A', g: 'm' },
+    { id: 'manguitoRayas', name: 'Manguito de rayas', slot: 'arm', unlock: [shop(1200)], vc: 'A', g: 'm' },
+    { id: 'manguitoCuadros', name: 'Manguito de cuadros', slot: 'arm', rarity: 1, unlock: [shop(6000)], vc: 'A', g: 'm' },
+    { id: 'manguitoLlamas', name: 'Manguito de llamas', slot: 'arm', rarity: 2, unlock: [{ ach: 'a50' }, gym('serve', 3)], vc: 'A', g: 'm' },
+    { id: 'manguitoRayos', name: 'Manguito de rayos', slot: 'arm', rarity: 2, unlock: [{ ach: 'b50' }, gym('block', 3)], vc: 'A', g: 'm' },
+    { id: 'manguitoOro', name: 'Manguito dorado', slot: 'arm', rarity: 3, unlock: [shop(45000)], lux: 1, g: 'm' },
+    { id: 'kinesio', name: 'Kinesio', slot: 'arm', unlock: [{ ach: 'm1' }, rec('played', 1)], geo: false, g: 'm' },
+    { id: 'coderas', name: 'Coderas', slot: 'elbows', vc: 'A', g: 'f', pl: 1 },
+    // manos, piernas y pies
+    { id: 'muneq', name: 'Muñequera de rizo', slot: 'wrist', vc: 'A', g: 'f', tris: [80, 120, 160] },
+    { id: 'reloj', name: 'Reloj gordo', slot: 'wrist', rarity: 1, unlock: [{ ach: 'up' }, rec('wins', 50)], vc: 'A', g: 'm', tris: [100, 160, 220] },
+    { id: 'dedos', name: 'Dedos vendados', slot: 'hands', rarity: 1, unlock: [{ ach: 'b50' }, gym('block', 1)], g: 'm', pl: 1, tris: [160, 240, 320] },
+    { id: 'mitones', name: 'Mitones', slot: 'hands', venue: 'Y', rarity: 1, unlock: [shop(3000)], vc: 'A', g: 'm', pl: 1 },
+    { id: 'cortas', name: 'Rodilleras', slot: 'knees', g: 'f', pl: 1 },
+    { id: 'altas', name: 'Rodilleras altas', slot: 'knees', g: 'f', pl: 1 },
+    { id: 'bajadas', name: 'Rodilleras bajadas', slot: 'knees', venue: 'P', rarity: 1, unlock: [{ ach: 'm150' }, rec('played', 100)], g: 'f', pl: 1 },
+    { id: 'tobilleros', name: 'Calcetines tobilleros', slot: 'socks', venue: 'P', geo: false, g: 'm', pl: 1 },
+    { id: 'media', name: 'Calcetines', slot: 'socks', venue: 'P', geo: false, g: 'm', pl: 1 },
+    { id: 'altos', name: 'Calcetines altos', slot: 'socks', venue: 'P', geo: false, g: 'm', pl: 1 },
+    { id: 'altosRayas', name: 'Calcetines altos de rayas', slot: 'socks', venue: 'P', unlock: [shop(900)], geo: false, g: 'm', pl: 1 },
+    { id: 'desparejados', name: 'Calcetines desparejados', slot: 'socks', venue: 'P', rarity: 1, unlock: [{ ach: 's5' }, rec('streak', 5)], geo: false, g: 'm', pl: 1 },
+    { id: 'blanca', name: 'Tobillera', slot: 'ankle', venue: 'P', g: 'f' },
+    { id: 'tela', name: 'Tobillera de tela', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f' },
+    { id: 'pulseraTob', name: 'Pulsera de tobillo', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f', tris: [0, 40, 80] },
+    { id: 'escarpines', name: 'Escarpines', slot: 'ankle', venue: 'Y', rarity: 1, unlock: [shop(3500)], vc: 'S', g: 'm', pl: 1 },
+    { id: 'clasicas', name: 'Zapatillas', slot: 'shoes', venue: 'P', g: 'f', pl: 1 },
+    { id: 'negras', name: 'Zapatillas negras', slot: 'shoes', venue: 'P', g: 'f', pl: 1 },
+    { id: 'neon', name: 'Zapatillas neón', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(8000)], vc: 'H', g: 'f', pl: 1 },
+    { id: 'doradas', name: 'Zapatillas doradas', slot: 'shoes', venue: 'P', rarity: 3, unlock: [{ ach: 'mvp' }, { award: 'mvp' }, shop(60000)], lux: 1, g: 'f', pl: 1 },
+    // tintes de fantasía (el color de pelo se guarda como su id)
+    { id: 'tAzul', name: 'Tinte azul', slot: 'hairTint', hex: 0x3a6cf0, unlock: [shop(1200)], g: 'm' },
+    { id: 'tRosa', name: 'Tinte rosa', slot: 'hairTint', hex: 0xff7fb8, unlock: [shop(1200)], g: 'm' },
+    { id: 'tVerde', name: 'Tinte verde', slot: 'hairTint', hex: 0x3fbf5a, rarity: 1, unlock: [{ fame: 2 }], g: 'm' },
+    { id: 'tMorado', name: 'Tinte morado', slot: 'hairTint', hex: 0x8a4fd8, rarity: 1, unlock: [{ gymN: 5 }], g: 'm' },
+    { id: 'tTurquesa', name: 'Tinte turquesa', slot: 'hairTint', hex: 0x2ec4c4, rarity: 2, unlock: [{ ach: 'n9' }], g: 'm' },
+    { id: 'tDorado', name: 'Tinte dorado', slot: 'hairTint', hex: 0xe8b830, rarity: 3, unlock: [shop(40000)], lux: 1, g: 'm' },
+    // ficha de color que se gana (la misma de PALETTE): así la Carrera la concede recorriendo el catálogo
+    { id: 'dorado', name: 'Dorado', slot: 'color', hex: 0xf2c14e, rarity: 2, unlock: PALETTE[9].unlock, g: 'm' }
+  ];
+  var SLOT_GROUP = { arm: ['armL', 'armR'], wrist: ['wristL', 'wristR'] };
+  // ranuras cuya pieza va en la malla (geometría o color por vértice); las demás (pintura, marcas, barba, brazalete, mallas,
+  // calcetines) solo van en el atlas, salvo lo que diga geo:false en el objeto
+  var GEO_SLOT = { head: 1, eyes: 1, neck: 1, under: 1, armL: 1, armR: 1, elbows: 1, wristL: 1, wristR: 1, hands: 1, knees: 1, ankle: 1, shoes: 1 };
+  var BY_ID = {};
+  CATALOG.forEach(function (it, i) {
+    it.slots = SLOT_GROUP[it.slot] ? SLOT_GROUP[it.slot].slice() : [it.slot];
+    if (SLOT_GROUP[it.slot]) it.slot = it.slots[0];
+    it.venue = it.venue || 'A';
+    it.rarity = it.rarity | 0;
+    it.unlock = it.unlock || S;
+    // cambia la malla: lo que tiene triángulos, color por vértice o es de una ranura de geometría (sin geo:false explícito)
+    if (it.geo !== false) it.geo = !!(it.tris || it.vc || it.slot === 'style' || it.slot === 'hairTint' || GEO_SLOT[it.slot]);
+    it.vc = it.vc || '';
+    it.tris = it.tris || [0, 0, 0];
+    it.hint = it.hint || '';
+    it.pl = !!it.pl;
+    it.lux = !!it.lux;
+    it.ord = i;
+    BY_ID[it.id] = it;
+    Object.freeze(it.slots); Object.freeze(it.tris); Object.freeze(it);
+  });
+  var STYLES = CATALOG.filter(function (it) { return it.slot === 'style'; }).map(function (it) { return it.id; });
+  var TINTS = CATALOG.filter(function (it) { return it.slot === 'hairTint'; }).map(function (it) { return it.id; });
+  var PAL_BY = {}; PALETTE.forEach(function (p) { PAL_BY[p.id] = p; Object.freeze(p); });
+  var TOK_BY = {}; TOKENS.forEach(function (t) { TOK_BY[t.id] = t; Object.freeze(t); });
+
+  // ---------------------------------------------------------------- compatibilidades (§1.4)
+  // a: lo que se quita por defecto; b: lo que se quita si el cambio fue en la ranura de a (al elegir algo que choca, se quita lo
+  // otro). why.a / why.b: el motivo cuando se quita a / b; {cabe} = cabe | caben (según el nombre quitado), {a}/{b} = el otro
+  // objeto con artículo y en minúscula («el moño»).
+  var HEAD_IDS = CATALOG.filter(function (it) { return it.slot === 'head'; }).map(function (it) { return it.id; });
+  var CLASH = [
+    { a: { slot: 'eyes', ids: ['frente'] }, b: { slot: 'head', ids: HEAD_IDS.filter(function (id) { return id !== 'gorraAtras'; }) },
+      why: { a: 'no caben con ese gorro', b: 'no {cabe} con {a}' } },
+    { a: { slot: 'head', ids: ['bandana', 'pescador'] }, b: { slot: 'style', ids: ['afro'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } },
+    { a: { slot: 'head', ids: ['corona'] }, b: { slot: 'style', ids: ['mono', 'dosmonos', 'cresta'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } },
+    { a: { slot: 'head', ids: ['cintaRizo', 'bandana'] }, b: { slot: 'style', ids: ['dosmonos'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } },
+    { a: { slot: 'head', ids: ['bandana'] }, b: { slot: 'style', ids: ['coletas'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } }
+  ];
+  CLASH.forEach(function (r) { Object.freeze(r.a.ids); Object.freeze(r.b.ids); Object.freeze(r.a); Object.freeze(r.b); Object.freeze(r.why); Object.freeze(r); });
+  var STYLE_FALLBACK = 'tupe';   // al quitar un peinado que choca (ninguna regla lo nombra)
+  // objetos que sustituyen al pelo (gorra, gorra al revés y pescador): se dibuja el pelo de nuca, salvo coleta / trenzas / coletas
+  var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador'];
+
+  // ---------------------------------------------------------------- utilidades
+  function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
+  function own(o, k) { return Object.prototype.hasOwnProperty.call(o, k); }
+  function hash32(n) { n = (n ^ 61) ^ (n >>> 16); n = (n + (n << 3)) | 0; n = n ^ (n >>> 4); n = Math.imul(n, 0x27d4eb2d); n = n ^ (n >>> 15); return n >>> 0; }
+  /** Hash de 32 bits de un texto (FNV-1a + mezcla): estable entre navegadores y node. */
+  function hashStr(s) {
+    s = String(s == null ? '' : s);
+    var h = 0x811c9dc5;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+    return hash32(h >>> 0);
+  }
+  function hex8(n) { return ('0000000' + (n >>> 0).toString(16)).slice(-8); }
+  // generador determinista (mulberry32): solo para fromSeed y random (semilla de la UI o del nombre); nunca g.rng
+  function prng(seed) {
+    var a = (seed >>> 0) || 0x9e3779b9;
+    return function () { a = (a + 0x6d2b79f5) | 0; var t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  function pick(r, arr) { return arr[Math.floor(r() * arr.length) % arr.length]; }
+  function fmtEur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
+  function now() { return Date.now(); }
+  /** 'hall' | 'beach' a partir de lo que pasen (true / 'Y' / 'beach' = playa); null si no dice (= las dos, en fix y ok). */
+  function venueOf(v) {
+    if (v === 'beach' || v === true || v === 'Y' || v === 'playa') return 'beach';
+    if (v === 'hall' || v === false || v === 'P' || v === 'pista') return 'hall';
+    return null;
+  }
+  function venueCode(v) { return v === 'beach' ? 'Y' : 'P'; }
+  function slotOk(it, slot) { return !!it && it.slots.indexOf(slot) >= 0; }
+  function venueOk(it, ven) { return !!it && (it.venue === 'A' || it.venue === venueCode(ven)); }
+  /** ¿Vale ese valor en esa ranura y sede? ('' siempre vale) */
+  function valid(slot, id, ven) { return id === '' || (typeof id === 'string' && own(BY_ID, id) && slotOk(BY_ID[id], slot) && venueOk(BY_ID[id], ven)); }
+  function isHair(v) { return (typeof v === 'number' && HAIRS.indexOf(v) >= 0) || (typeof v === 'string' && TINTS.indexOf(v) >= 0); }
+  function isColorTok(v) { return typeof v === 'string' && (own(TOK_BY, v) || own(PAL_BY, v)); }
+
+  // ---------------------------------------------------------------- valores por defecto (iguales a MY_LOOKS de players.js)
+  function emptySet() { var o = {}; SLOTS.forEach(function (s) { o[s] = ''; }); return o; }
+  function defaults(i) {
+    var two = i === 1, hall = emptySet(), beach = emptySet();
+    hall.knees = 'cortas'; hall.socks = 'media'; hall.ankle = 'blanca'; hall.shoes = 'clasicas';
+    beach.head = 'gorra'; beach.paint = 'zinc'; beach.ankle = 'tela';
+    if (two) { hall.head = 'cinta'; beach.head = 'visera'; }
+    return { v: V, skin: two ? 0x8a5638 : 0xdba27a, hair: two ? 0x3a2a1e : 0x3a2416, style: two ? 'afro' : 'tupe',
+      hall: hall, beach: beach, colors: { acc: 'auto', acc2: 'auto', sock: 'auto', shoe: 'auto', glass: 'auto' } };
+  }
+  // lo que pone fix al quitar algo fuera de su sede: nada, salvo en pista lo que lleva siempre un muñeco de pabellón
+  function emptyFor(slot, ven) { var d = defaults(0)[ven][slot]; return (slot === 'knees' || slot === 'socks' || slot === 'ankle' || slot === 'shoes') ? d : ''; }
+
+  function cloneFit(f) {
+    var o = { v: V, skin: f.skin, hair: f.hair, style: f.style, hall: {}, beach: {}, colors: {} };
+    SLOTS.forEach(function (s) { o.hall[s] = f.hall[s]; o.beach[s] = f.beach[s]; });
+    COLOR_KEYS.forEach(function (k) { o.colors[k] = f.colors[k]; });
+    return o;
+  }
+  // saneado campo a campo sin reglas de compatibilidad (lo irreparable vuelve al valor por defecto de esa ranura)
+  function saneRaw(fit, i) {
+    var d = defaults(i === 1 ? 1 : 0);
+    if (!isObj(fit)) return d;
+    var o = cloneFit(d);
+    if (typeof fit.skin === 'number' && SKINS.indexOf(fit.skin) >= 0) o.skin = fit.skin;
+    if (isHair(fit.hair)) o.hair = fit.hair;
+    if (typeof fit.style === 'string' && STYLES.indexOf(fit.style) >= 0) o.style = fit.style;
+    ['hall', 'beach'].forEach(function (ven) {
+      var src = isObj(fit[ven]) ? fit[ven] : null;
+      if (!src) return;
+      SLOTS.forEach(function (s) { if (own(src, s) && valid(s, src[s], ven)) o[ven][s] = src[s]; });
+    });
+    var c = isObj(fit.colors) ? fit.colors : {};
+    COLOR_KEYS.forEach(function (k) { if (isColorTok(c[k])) o.colors[k] = c[k]; });
+    return o;
+  }
+
+  // ---------------------------------------------------------------- reglas
+  function art(id) {
+    var it = BY_ID[id]; if (!it) return String(id);
+    var nm = it.name.charAt(0).toLowerCase() + it.name.slice(1);
+    return (it.pl ? (it.g === 'f' ? 'las ' : 'los ') : (it.g === 'f' ? 'la ' : 'el ')) + nm;
+  }
+  function whyText(tpl, removedId, otherId, otherKey) {
+    var it = BY_ID[removedId];
+    return tpl.replace('{cabe}', it && it.pl ? 'caben' : 'cabe').replace('{' + otherKey + '}', art(otherId));
+  }
+  function removedRow(slot, id, why) { return { slot: slot, id: id, why: why, msg: 'Quitado: ' + name(id) + ' (' + why + ')' }; }
+  function getVal(f, ven, slot) { return slot === 'style' ? f.style : f[ven][slot]; }
+  function setGone(f, ven, slot) { if (slot === 'style') f.style = STYLE_FALLBACK; else f[ven][slot] = ''; }
+
+  /** Aplica las compatibilidades sobre una copia. venue: 'hall' | 'beach' (null = las dos); changedSlot: la ranura que acaba de
+   *  cambiar (gana ella; lo otro se quita). Devuelve {fit, removed:[{slot, id, why, msg}]}. */
+  function fix(fit, venue, changedSlot) {
+    var f = saneRaw(fit, 0), removed = [], vens = venueOf(venue) ? [venueOf(venue)] : ['hall', 'beach'];
+    // (saneRaw quita en silencio lo que no es de la sede; aquí se avisa: se mira el fit original)
+    vens.forEach(function (ven) {
+      var src = isObj(fit) && isObj(fit[ven]) ? fit[ven] : {};
+      SLOTS.forEach(function (s) {
+        var id = src[s];
+        if (typeof id === 'string' && id && own(BY_ID, id) && slotOk(BY_ID[id], s) && !venueOk(BY_ID[id], ven)) {
+          f[ven][s] = emptyFor(s, ven);
+          removed.push(removedRow(s, id, BY_ID[id].venue === 'Y' ? 'solo en playa' : 'solo en pista'));
+        }
+      });
+    });
+    // el peinado es común a las dos sedes: sus reglas se miran también en la otra (elegir Afro en la playa quita el Pañuelo de pista
+    // y se avisa ahora, no en silencio al cambiar de sede o al guardar). En la otra sede solo cuenta como cambiado el peinado: un
+    // gorro elegido en esta no quita nada allí
+    var cvens = vens.length === 2 ? vens : vens.concat([vens[0] === 'hall' ? 'beach' : 'hall']);
+    for (var pass = 0; pass < 4; pass++) {
+      var any = false;
+      cvens.forEach(function (ven) {
+        var other = vens.indexOf(ven) < 0, chg = other && changedSlot !== 'style' ? null : changedSlot;
+        CLASH.forEach(function (r) {
+          if (other && r.a.slot !== 'style' && r.b.slot !== 'style') return;
+          var va = getVal(f, ven, r.a.slot), vb = getVal(f, ven, r.b.slot);
+          if (r.a.ids.indexOf(va) < 0 || r.b.ids.indexOf(vb) < 0) return;
+          var dropB = chg === r.a.slot;
+          var side = dropB ? r.b : r.a, gone = dropB ? vb : va, keep = dropB ? va : vb;
+          setGone(f, ven, side.slot);
+          var row = removedRow(side.slot, gone, whyText(dropB ? r.why.b : r.why.a, gone, keep, dropB ? 'a' : 'b'));
+          if (side.slot !== 'style') row.ven = ven;   // la sede de lo quitado (la UI avisa aparte de lo de la otra sede)
+          removed.push(row);
+          any = true;
+        });
+      });
+      if (!any) break;
+    }
+    // el mismo aviso dos veces (un peinado quitado por el gorro de pista y el de playa) se dice una
+    var seen = {};
+    removed = removed.filter(function (x) { var k = x.slot + ':' + x.id; if (seen[k]) return false; seen[k] = 1; return true; });
+    return { fit: f, removed: removed };
+  }
+  /** ¿Cumple el fit las reglas de sede y compatibilidad? (venue null = las dos sedes) */
+  function ok(fit, venue) {
+    if (!isObj(fit)) return false;
+    var vens = venueOf(venue) ? [venueOf(venue)] : ['hall', 'beach'];
+    for (var i = 0; i < vens.length; i++) {
+      var ven = vens[i], set = fit[ven];
+      if (!isObj(set)) return false;
+      for (var j = 0; j < SLOTS.length; j++) if (own(set, SLOTS[j]) && !valid(SLOTS[j], set[SLOTS[j]], ven)) return false;
+      for (var k = 0; k < CLASH.length; k++) {
+        var r = CLASH[k];
+        var va = r.a.slot === 'style' ? fit.style : set[r.a.slot], vb = r.b.slot === 'style' ? fit.style : set[r.b.slot];
+        if (r.a.ids.indexOf(va) >= 0 && r.b.ids.indexOf(vb) >= 0) return false;
+      }
+    }
+    return true;
+  }
+  /** Fit válido a partir de cualquier cosa: ids de otra ranura o sede y colores fuera de lista vuelven al valor por defecto;
+   *  después se aplican las compatibilidades. NO quita lo bloqueado (eso es wearable, al guardar). */
+  function sane(fit, i) { return fix(saneRaw(fit, i), null, null).fit; }
+
+  // ---------------------------------------------------------------- resolver para doll.js
+  function hairHex(v) { return typeof v === 'string' ? (BY_ID[v] ? BY_ID[v].hex : HAIRS[0]) : v; }
+  function colorHex(tok, tc) {
+    if (own(PAL_BY, tok)) return PAL_BY[tok].hex;
+    var t = TOK_BY[tok];
+    if (!t || tok === 'auto') return -1;
+    if (t.hex != null) return t.hex;
+    var k = tok === 'eq' ? 'base' : tok === 'ac' ? 'accent' : 'dark', v = tc && tc[k];
+    return typeof v === 'number' && isFinite(v) ? v : -1;
+  }
+  function resolveRaw(f, ven, tc) {
+    var set = f[ven], L = { skin: f.skin, hair: hairHex(f.hair), style: f.style, acc: set.head };
+    SLOTS.forEach(function (s) { if (s !== 'head') L[s] = set[s]; });
+    COLOR_KEYS.forEach(function (k) { L[COLOR_L[k]] = colorHex(f.colors[k], tc); });
+    return L;
+  }
+  /** L resuelto y congelado (§2.2) para la sede ('hall' | 'beach') y la equipación tc ({base, accent, dark…}). Sin h. */
+  function resolve(fit, venue, tc) { return Object.freeze(resolveRaw(sane(fit, 0), venueOf(venue) || 'hall', tc)); }
+
+  /** Firma de lo que cambia la malla del muñeco (sin equipación: sus colores se ven por ficha, no por hex). */
+  function geoSig(fit, venue) {
+    var f = sane(fit, 0), ven = venueOf(venue) || 'hall', set = f[ven], parts = [ven, f.skin, hairHex(f.hair), f.style], vc = {};
+    SLOTS.forEach(function (s) {
+      var it = set[s] && BY_ID[set[s]];
+      if (!it || !it.geo) return;
+      parts.push(s + '=' + it.id);
+      for (var i = 0; i < it.vc.length; i++) vc[VC_KEY[it.vc.charAt(i)]] = 1;
+    });
+    COLOR_KEYS.forEach(function (k) { if (vc[k]) parts.push(k + '~' + f.colors[k]); });
+    return 'g' + hex8(hashStr(parts.join('|')));
+  }
+  var TC_KEYS = ['base', 'top', 'accent', 'dark', 'trim', 'shorts', 'sole', 'band', 'pad', 'pattern', 'numFill'];
+  /** Firma de todo lo que se pinta en el atlas (L resuelto entero + equipación). */
+  function atlasSig(fit, venue, tc) {
+    var ven = venueOf(venue) || 'hall', L = resolveRaw(sane(fit, 0), ven, tc), parts = [ven];
+    Object.keys(L).sort().forEach(function (k) { parts.push(k + '=' + L[k]); });
+    if (isObj(tc)) TC_KEYS.forEach(function (k) { if (tc[k] != null) parts.push('tc.' + k + '=' + tc[k]); });
+    return 'a' + hex8(hashStr(parts.join('|')));
+  }
+  function canon(f) {
+    var p = ['v' + V, f.skin, typeof f.hair === 'number' ? f.hair : '#' + f.hair, f.style];
+    ['hall', 'beach'].forEach(function (ven) { SLOTS.forEach(function (s) { p.push(f[ven][s]); }); });
+    COLOR_KEYS.forEach(function (k) { p.push(f.colors[k]); });
+    return p.join('|');
+  }
+  /** Firma corta de un fit (8 hex). Dos fits que se ven igual dan la misma; null/indefinido da ''. */
+  function sig(fit) { return fit == null ? '' : hex8(hashStr(canon(sane(fit, 0)))); }
+
+  // ---------------------------------------------------------------- generadores
+  /** Fit determinista a partir de un número (compañero de la Carrera de playa: hashStr de su nombre). Solo objetos de inicio. */
+  function fromSeed(n) {
+    var r = prng(hash32((n >>> 0) ^ 0x5bd1e995)), d = defaults(0), f = cloneFit(d), h = f.hall, b = f.beach;
+    var pr = function (p) { return r() < p; };
+    f.skin = pick(r, SKINS);
+    f.hair = pick(r, HAIRS.slice(0, 11).concat(pr(0.25) ? [0xd8d4cc, 0x8f8a86, 0xf1e3b0, 0xb4471c] : []));
+    f.style = pick(r, STYLES.filter(function (id) { return isStart(id); }));
+    // cara (común a las dos sedes: es la misma persona)
+    var beard = pr(0.3) ? pick(r, ['bigote', 'perilla', 'tresDias']) : '';
+    var marks = pr(0.18) ? 'pecas' : '';
+    h.beard = b.beard = beard; h.marks = b.marks = marks;
+    h.paint = pr(0.12) ? 'rayas' : '';
+    b.paint = pr(0.7) ? 'zinc' : pr(0.4) ? 'rayas' : '';
+    if (pr(0.1)) h.eyes = b.eyes = 'pasta';
+    // pista
+    h.head = pr(0.25) ? 'cinta' : '';
+    if (pr(0.2)) h.under = 'termica';
+    if (pr(0.2)) h[pr(0.5) ? 'armL' : 'armR'] = 'manguito';
+    if (pr(0.15)) h.elbows = 'coderas';
+    if (pr(0.2)) h[pr(0.5) ? 'wristL' : 'wristR'] = 'muneq';
+    if (pr(0.15)) h.legs = 'malla';
+    h.knees = pr(0.25) ? 'altas' : 'cortas';
+    h.socks = pick(r, ['media', 'media', 'altos', 'tobilleros']);
+    h.shoes = pr(0.3) ? 'negras' : 'clasicas';
+    // playa
+    b.head = pick(r, ['gorra', 'visera', 'gorraAtras', 'cinta', '', 'gorra', 'visera']);
+    if (!b.eyes && (b.head === '' || b.head === 'gorraAtras') && pr(0.35)) b.eyes = 'frente';
+    b.ankle = pick(r, ['tela', 'tela', 'pulseraTob', '']);
+    if (pr(0.15)) b.armR = 'manguito';
+    if (pr(0.15)) b.wristR = 'muneq';
+    return fix(f, null, null).fit;
+  }
+  /** Fit al azar (botón «Al azar»): seed lo da la UI (Date.now()); ownedOnly = solo lo que ya tienes. */
+  function random(seed, ownedOnly) {
+    var r = prng(hash32((seed >>> 0) ^ ((seed / 4294967296) >>> 0) ^ 0x2545f491)), f = cloneFit(defaults(0));
+    var can = function (id) { return !ownedOnly || owned(id); };
+    f.skin = pick(r, SKINS);
+    var hairs = HAIRS.slice(), tints = TINTS.filter(can);
+    f.hair = tints.length && r() < 0.2 ? pick(r, tints) : pick(r, hairs);
+    f.style = pick(r, STYLES.filter(can));
+    // probabilidad de llevar algo en cada ranura (lo demás, nada: un muñeco con todo a la vez parece un árbol de Navidad)
+    var P = { head: 0.45, eyes: 0.3, paint: 0.3, marks: 0.25, beard: 0.25, neck: 0.15, under: 0.25, band: 0.12, armL: 0.25, armR: 0.3,
+      elbows: 0.2, wristL: 0.25, wristR: 0.25, hands: 0.12, legs: 0.2, knees: 0.85, socks: 0.95, ankle: 0.7, shoes: 1 };
+    ['hall', 'beach'].forEach(function (ven) {
+      SLOTS.forEach(function (s) {
+        var list = items(s, ven).filter(can);
+        f[ven][s] = list.length && r() < P[s] ? pick(r, list) : (s === 'shoes' && ven === 'hall' ? 'clasicas' : '');
+      });
+    });
+    var toks = TOKENS.map(function (t) { return t.id; }).concat(PALETTE.map(function (p) { return p.id; }).filter(can));
+    COLOR_KEYS.forEach(function (k) { f.colors[k] = r() < 0.55 ? 'auto' : pick(r, toks); });
+    return fix(f, null, null).fit;
+  }
+
+  // ---------------------------------------------------------------- catálogo: consultas y textos
+  function item(id) { return own(BY_ID, id) ? BY_ID[id] : null; }
+  var NONE = { head: 'Sin gorro', eyes: 'Sin gafas', paint: 'Sin pintura', marks: 'Sin marcas', beard: 'Sin barba', neck: 'Nada',
+    under: 'Nada', band: 'Sin brazalete', armL: 'Sin manguito', armR: 'Sin manguito', elbows: 'Sin coderas', wristL: 'Nada',
+    wristR: 'Nada', hands: 'Nada', legs: 'Sin mallas', knees: 'Sin rodilleras', socks: 'Sin calcetines', ankle: 'Nada',
+    shoes: 'Sin zapatillas' };
+  /** Nombre de un objeto, peinado, tinte, ficha de color o color de piel/pelo (hex). slot opcional para el «nada» de esa ranura. */
+  function name(id, slot) {
+    if (id === '' || id == null) return NONE[slot] || 'Nada';
+    if (typeof id === 'number') {
+      if (own(HAIR_NAMES, id) && slot !== 'skin') return HAIR_NAMES[id];
+      var k = SKIN_ORDER.indexOf(id);
+      return k >= 0 ? 'Tono ' + (k + 1) : '#' + ('00000' + id.toString(16)).slice(-6);
+    }
+    if (own(BY_ID, id)) return BY_ID[id].name;
+    if (own(PAL_BY, id)) return PAL_BY[id].name;
+    if (own(TOK_BY, id)) return TOK_BY[id].name;
+    return String(id);
+  }
+  function rarityOf(id) { var it = item(id); return it ? it.rarity : (own(PAL_BY, id) && PAL_BY[id].unlock ? 2 : 0); }
+  /** Rareza en estrellas: '★☆☆☆' (común) … '★★★★' (de lujo). '' si no es un objeto del catálogo. */
+  function stars(id) { if (!item(id)) return ''; var r = rarityOf(id); return '★★★★'.slice(0, r + 1) + '☆☆☆☆'.slice(0, 3 - r); }
+  /** Para aria-label: «Rareza: 2 de 4». */
+  function rarityLabel(id) { return item(id) ? 'Rareza: ' + (rarityOf(id) + 1) + ' de 4' : ''; }
+  function unlockOf(id) { var it = item(id); return it ? it.unlock : own(PAL_BY, id) ? (PAL_BY[id].unlock || S) : S; }
+  function isStart(id) { if (id === '' || typeof id === 'number') return true; var u = unlockOf(id); for (var i = 0; i < u.length; i++) if (u[i].start) return true; return false; }
+  /** Precio en la tienda de la Carrera (0 si no se vende). */
+  function price(id) { var u = unlockOf(id); for (var i = 0; i < u.length; i++) if (u[i].shop) return u[i].shop; return 0; }
+  /** Objetos de una ranura que valen en esa sede (sin ''), en el orden del catálogo. Ranuras extra: 'style', 'hairTint'. */
+  function items(slot, venue) {
+    var ven = venueOf(venue);
+    return CATALOG.filter(function (it) { return slotOk(it, slot) && (!ven || venueOk(it, ven)); }).map(function (it) { return it.id; });
+  }
+  /** Valores en el orden de la UI para cualquier fila: una ranura de SLOTS ('' primero), 'style', 'skin', 'hair' (tonos y
+   *  tintes) o un hueco de color (acc, acc2, sock, shoe, glass: fichas). */
+  function choices(key, venue) {
+    if (key === 'style') return STYLES.slice();
+    if (key === 'skin') return SKIN_ORDER.slice();
+    if (key === 'hair') return HAIRS.slice().concat(TINTS);
+    if (COLOR_KEYS.indexOf(key) >= 0) return TOKENS.map(function (t) { return t.id; }).concat(PALETTE.map(function (p) { return p.id; }));
+    if (SLOTS.indexOf(key) >= 0) return [''].concat(items(key, venue));
+    return [];
+  }
+
+  // nombres que da la Carrera; si no está cargada (o es node), lo de aquí
+  var TIER_NAMES = [['Desconocido'], ['Promesa local'], ['Conocido en el circuito', 'Conocido en la liga'], ['Figura'], ['Estrella'],
+    ['Ídolo', 'Ídolo de la grada'], ['Leyenda viva']];
+  // lo que pide cada logro, en corto, para el paréntesis de lockText (b: playa, h: pista si cambia)
+  var ACH_SHORT = { m1: { b: '1 partido' }, m50: { b: '50 partidos' }, m150: { b: '150 partidos' }, w1: { b: '1 victoria' },
+    w50: { b: '50 victorias' }, a50: { b: '50 aces' }, b50: { b: '50 bloqueos punto' }, n9: { b: 'un 9 en un partido' },
+    s5: { b: '5 victorias seguidas' }, s10: { b: '10 victorias seguidas' }, duel5: { b: '5 duelos a tu rival' },
+    up: { b: 'un ascenso' }, t1: { b: 'un título' }, t5: { b: '5 títulos' }, mvp: { b: 'un MVP' },
+    top: { b: 'la máxima categoría', h: 'una liga de élite' } };
+  var AWARD_NAMES = { mvp: 'MVP', pts: 'Máximo anotador', ace: 'Mejor sacador', blk: 'Muro del año', dig: 'Mejor defensa',
+    set: 'Mejor colocador', rook: 'Revelación' };
+  var GYM_SHORT = { serve: 'Saque', recv: 'Recepción', set: 'Colocación', atk: 'Remate', block: 'Bloqueo' };
+  function CL() { return VB.CareerLife || null; }
+  function tierName(i, hall) {
+    var T = CL() && CL().TIERS, t = T && T[i];
+    if (t && typeof t[1] === 'string') return hall && t[2] ? t[2] : t[1];
+    t = TIER_NAMES[Math.max(0, Math.min(TIER_NAMES.length - 1, i | 0))];
+    return hall && t[1] ? t[1] : t[0];
+  }
+  function achLabel(id, hall) {
+    var c = CL(), nm = '';
+    if (c && typeof c.achName === 'function') { try { nm = c.achName(id, !!hall) || ''; } catch (e) { nm = ''; } }
+    return typeof nm === 'string' && nm ? nm : id;
+  }
+  function awardLabel(id) {
+    var A = CL() && CL().AWARDS;
+    if (A && A.length) for (var i = 0; i < A.length; i++) if (A[i].id === id && A[i].name) return A[i].name;
+    return AWARD_NAMES[id] || id;
+  }
+  function gymLabel(id) {
+    var d = VB.Gym && typeof VB.Gym.drill === 'function' ? VB.Gym.drill(id) : null;
+    return d && d.short ? d.short : GYM_SHORT[id] || id;
+  }
+  function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
+  function unlockText(u, hall) {
+    if (u.shop) return 'Tienda de la Carrera: ' + fmtEur(u.shop);
+    if (u.fame != null) return 'Fama: ' + tierName(u.fame, hall);
+    if (u.ach) { var s = ACH_SHORT[u.ach]; return 'Logro: ' + achLabel(u.ach, hall) + (s ? ' (' + (hall && s.h ? s.h : s.b) + ')' : ''); }
+    if (u.award) return 'Premio: ' + awardLabel(u.award);
+    if (u.gym) return 'Entrenamiento: ' + (u.gym.m >= 3 ? 'oro' : u.gym.m === 2 ? 'plata' : 'medalla') + ' en ' + gymLabel(u.gym.id);
+    if (u.gymN) return 'Entrenamiento: ' + plural(u.gymN, 'medalla', 'medallas');
+    if (u.rec) return 'Récord: ' + (u.rec.k === 'wins' ? plural(u.rec.n, 'victoria', 'victorias') : u.rec.k === 'played' ? plural(u.rec.n, 'partido', 'partidos') : 'racha de ' + u.rec.n + ' victorias');
+    return '';
+  }
+  /** Cómo se gana, una línea por alternativa (vacío si es de inicio). hall = Carrera de pista (nombres de logro de pista). */
+  function lockList(id, hall) { return unlockOf(id).filter(function (u) { return !u.start; }).map(function (u) { return unlockText(u, hall); }).filter(Boolean); }
+  /** Cómo se gana, en una línea: «Logro: Muralla (50 bloqueos punto) o Entrenamiento: medalla en Bloqueo». */
+  function lockText(id, hall) { return lockList(id, hall).join(' o '); }
+
+  // ---------------------------------------------------------------- guardado e inventario
+  var cacheRaw = null, cacheObj = null;
+  function emptyStore() { return { v: V, fits: [defaults(0), defaults(1)], ft: 0, own: {}, seen: {} }; }
+  function lockable(id) { return typeof id === 'string' && (own(BY_ID, id) || own(PAL_BY, id)) && !isStart(id); }
+  function cleanStore(o) {
+    var out = emptyStore();
+    if (!isObj(o)) return out;
+    var fits = Array.isArray(o.fits) ? o.fits : [];
+    out.fits = [fits[0] ? sane(fits[0], 0) : defaults(0), fits[1] ? sane(fits[1], 1) : defaults(1)];
+    out.ft = +o.ft > 0 && isFinite(+o.ft) ? Math.floor(+o.ft) : 0;
+    var ow = isObj(o.own) ? o.own : {};
+    Object.keys(ow).forEach(function (id) {
+      if (!lockable(id)) return;
+      var e = isObj(ow[id]) ? ow[id] : {};
+      out.own[id] = { s: SRCS.indexOf(e.s) >= 0 ? e.s : 'carrera', t: +e.t > 0 && isFinite(+e.t) ? Math.floor(+e.t) : 0 };
+    });
+    var se = isObj(o.seen) ? o.seen : {};
+    Object.keys(se).forEach(function (id) { if (lockable(id) && se[id]) out.seen[id] = 1; });
+    return out;
+  }
+  function readRaw() { try { return window.localStorage.getItem(KEY); } catch (e) { return null; } }
+  /** Copia validada del guardado (sin guardado: los valores por defecto). */
+  function load() {
+    var raw = readRaw();
+    if (raw !== cacheRaw || !cacheObj) {
+      var o = null;
+      if (raw) { try { o = JSON.parse(raw); } catch (e) { o = null; } }
+      cacheObj = cleanStore(o); cacheRaw = raw;
+    }
+    return JSON.parse(JSON.stringify(cacheObj));
+  }
+  function save(o) {
+    var c = cleanStore(o), txt = JSON.stringify(c);
+    try { window.localStorage.setItem(KEY, txt); } catch (e) { return false; }
+    cacheRaw = txt; cacheObj = c;
+    return true;
+  }
+  /** Fit guardado del n.º i+1 (0 o 1). */
+  function fit(i) { return load().fits[i === 1 ? 1 : 0]; }
+  /** Guarda el fit del n.º i+1 (saneado). Devuelve lo guardado. */
+  function setFit(i, f) {
+    var o = load(), k = i === 1 ? 1 : 0;
+    o.fits[k] = sane(f, k); o.ft = now();
+    save(o);
+    return o.fits[k];
+  }
+  /** ¿Lo tienes? Lo de inicio y '' siempre; lo demás si está en el inventario (own). */
+  function owned(id) {
+    if (id === '' || id == null || typeof id === 'number') return true;
+    if (!own(BY_ID, id) && !own(PAL_BY, id)) return own(TOK_BY, id);
+    if (isStart(id)) return true;
+    return own(load().own, id);
+  }
+  /** Concede un objeto (src: 'carrera' | 'tienda' | 'gym' | 'record'). true si es nuevo. */
+  function grant(id, src) {
+    if (!lockable(id)) return false;
+    var o = load();
+    if (own(o.own, id)) return false;
+    o.own[id] = { s: SRCS.indexOf(src) >= 0 ? src : 'carrera', t: now() };
+    return save(o);
+  }
+  /** Lo bloqueado de un fit: [{slot, id}] (slot = 'style', 'hair', una ranura con su sede 'hall.head' o 'colors.acc'). */
+  function locked(f) {
+    var x = saneRaw(f, 0), out = [];
+    if (!owned(x.style)) out.push({ slot: 'style', id: x.style });
+    if (typeof x.hair === 'string' && !owned(x.hair)) out.push({ slot: 'hair', id: x.hair });
+    ['hall', 'beach'].forEach(function (ven) { SLOTS.forEach(function (s) { if (!owned(x[ven][s])) out.push({ slot: ven + '.' + s, id: x[ven][s] }); }); });
+    COLOR_KEYS.forEach(function (k) { if (!owned(x.colors[k])) out.push({ slot: 'colors.' + k, id: x.colors[k] }); });
+    return out;
+  }
+  /** Lo que se puede guardar: cada ranura con algo bloqueado vuelve a lo de saved (o a lo de por defecto si saved tampoco lo
+   *  tiene); después, las compatibilidades. */
+  function wearable(f, saved) {
+    var x = sane(f, 0), s = sane(saved, 0), d = defaults(0);
+    var back = function (v, sv, dv) { return owned(v) ? v : owned(sv) ? sv : dv; };
+    x.style = back(x.style, s.style, d.style);
+    x.hair = back(x.hair, s.hair, d.hair);
+    ['hall', 'beach'].forEach(function (ven) { SLOTS.forEach(function (k) { x[ven][k] = back(x[ven][k], s[ven][k], d[ven][k]); }); });
+    COLOR_KEYS.forEach(function (k) { x.colors[k] = back(x.colors[k], s.colors[k], 'auto'); });
+    return fix(x, null, null).fit;
+  }
+  /** Lo ganado que aún no se ha visto en el Vestuario (orden del catálogo). */
+  function unseen() {
+    var o = load();
+    return Object.keys(o.own).filter(function (id) { return !o.seen[id]; }).sort(function (a, b) { return ordOf(a) - ordOf(b); });
+  }
+  function ordOf(id) { return own(BY_ID, id) ? BY_ID[id].ord : 999; }
+  function markSeen(ids) {
+    ids = Array.isArray(ids) ? ids : [ids];
+    var o = load(), ch = false;
+    ids.forEach(function (id) { if (own(o.own, id) && !o.seen[id]) { o.seen[id] = 1; ch = true; } });
+    if (ch) save(o);
+    return ch;
+  }
+
+  /** ¿Cumple d alguna alternativa de desbloqueo de id? d = {fame (índice del escalón), ach {id:…}, awards [ids], gym {id: 0-3},
+   *  gymN, rec {wins, played, streak}}; lo que no venga no cuenta. Devuelve la alternativa cumplida o null. */
+  function meets(id, d) {
+    d = d || {};
+    var u = unlockOf(id);
+    for (var i = 0; i < u.length; i++) {
+      var x = u[i];
+      if (x.start) return x;
+      if (x.fame != null && typeof d.fame === 'number' && d.fame >= x.fame) return x;
+      if (x.ach && isObj(d.ach) && d.ach[x.ach]) return x;
+      if (x.award && Array.isArray(d.awards) && d.awards.indexOf(x.award) >= 0) return x;
+      if (x.gym && isObj(d.gym) && (d.gym[x.gym.id] | 0) >= x.gym.m) return x;
+      if (x.gymN && typeof d.gymN === 'number' && d.gymN >= x.gymN) return x;
+      if (x.rec && isObj(d.rec) && (+d.rec[x.rec.k] || 0) >= x.rec.n) return x;
+    }
+    return null;
+  }
+  // datos globales que no pasen: del Entrenamiento (VB.Gym) y del récord de Partido rápido ('voley3d.record')
+  function globalData(d) {
+    d = isObj(d) ? d : {};
+    var out = { gym: isObj(d.gym) ? d.gym : null, gymN: typeof d.gymN === 'number' ? d.gymN : null, rec: isObj(d.rec) ? d.rec : null };
+    if (!out.gym && VB.Gym && typeof VB.Gym.get === 'function') {
+      out.gym = {};
+      Object.keys(GYM_SHORT).forEach(function (k) { var e = null; try { e = VB.Gym.get(k); } catch (er) { } out.gym[k] = e ? e.m | 0 : 0; });
+    }
+    if (out.gymN == null && VB.Gym && typeof VB.Gym.count === 'function') { try { out.gymN = VB.Gym.count() | 0; } catch (er) { } }
+    if (!out.rec) {
+      var r = null; try { r = JSON.parse(window.localStorage.getItem('voley3d.record') || 'null'); } catch (er) { r = null; }
+      if (isObj(r)) out.rec = { wins: +r.wins || 0, played: +r.played || 0, streak: +(r.streak != null ? r.streak : r.bestStreak) || 0 };
+    }
+    return out;
+  }
+  /** Concede lo que se gana fuera de la Carrera (Entrenamiento y récord). d = {gym:{serve,recv,set,atk,block: medalla 0-3}, gymN,
+   *  rec:{wins, played, streak}}; lo que falte se lee de VB.Gym y de 'voley3d.record'. Devuelve los ids nuevos. */
+  function checkGlobal(d) {
+    var g = globalData(d), out = [];
+    var lists = CATALOG.map(function (it) { return it.id; });
+    lists.forEach(function (id) {
+      if (!lockable(id) || owned(id)) return;
+      var u = unlockOf(id);
+      for (var i = 0; i < u.length; i++) {
+        var x = u[i], one = {};
+        if (x.gym) one.gym = g.gym; else if (x.gymN) one.gymN = g.gymN; else if (x.rec) one.rec = g.rec; else continue;
+        if (meets(id, one)) { if (grant(id, x.rec ? 'record' : 'gym')) out.push(id); break; }
+      }
+    });
+    return out;
+  }
+
+  // ---------------------------------------------------------------- quién lleva qué (§2.4)
+  /** o = {career, hall, look (fit de la Carrera | null), mate (nombre del compañero | null), watch (6v6 espectador),
+   *  six (6v6 rápido)} → [fit de tu atleta | null, fit del compañero | null]. null = el aspecto de hoy. */
+  function matchLooks(o) {
+    o = isObj(o) ? o : {};
+    if (o.watch) return [null, null];
+    if (o.career) {
+      if (o.hall) return [o.look ? sane(o.look, 0) : null, null];
+      return [o.look ? sane(o.look, 0) : fit(0), o.mate ? fromSeed(hashStr(o.mate)) : null];
+    }
+    var st = load();
+    return [st.fits[0], o.six ? null : st.fits[1]];
+  }
+
+  /** Une dos guardados de 'voley3d.look' (texto JSON): own y seen por unión (gana la t mínima), fits del más reciente (ft, o
+   *  remoteNewer si se pasa). Devuelve texto JSON (el local tal cual si no cambia nada). */
+  function mergeRaw(Lraw, Rraw, remoteNewer) {
+    function p(r) { try { var o = JSON.parse(r); return isObj(o) ? o : null; } catch (e) { return null; } }
+    var Lp = p(Lraw), Rp = p(Rraw);
+    if (!Rp) return Lraw;
+    var A = cleanStore(Lp), B = cleanStore(Rp), out = emptyStore();
+    var useR = typeof remoteNewer === 'boolean' ? remoteNewer : (Lp ? B.ft > A.ft : true);
+    out.fits = useR ? B.fits : A.fits; out.ft = Math.max(A.ft, B.ft);
+    [A, B].forEach(function (X) {
+      Object.keys(X.own).forEach(function (id) {
+        var e = X.own[id], c = out.own[id];
+        if (!c || (e.t && (!c.t || e.t < c.t))) out.own[id] = { s: e.s, t: e.t };
+      });
+      Object.keys(X.seen).forEach(function (id) { out.seen[id] = 1; });
+    });
+    var txt = JSON.stringify(out);
+    if (Lp && JSON.stringify(A) === txt) return Lraw;
+    return txt;
+  }
+
+  VB.Look = {
+    V: V, KEY: KEY, MAX_BYTES: MAX_BYTES, SLOTS: SLOTS, COLOR_KEYS: COLOR_KEYS, CATALOG: CATALOG, CLASH: CLASH,
+    STYLES: STYLES, SKINS: SKINS, HAIRS: HAIRS, TINTS: TINTS, TOKENS: TOKENS, PALETTE: PALETTE, HIDE_HAIR: HIDE_HAIR,
+    item: item, name: name, stars: stars, rarityLabel: rarityLabel, price: price, isStart: isStart, items: items, choices: choices,
+    lockText: lockText, lockList: lockList, art: art,
+    defaults: defaults, sane: sane, fix: fix, ok: ok, resolve: resolve, geoSig: geoSig, atlasSig: atlasSig, sig: sig,
+    fromSeed: fromSeed, random: random, hashStr: hashStr,
+    load: load, fit: fit, setFit: setFit, owned: owned, grant: grant, locked: locked, wearable: wearable,
+    unseen: unseen, markSeen: markSeen, meets: meets, checkGlobal: checkGlobal,
+    matchLooks: matchLooks, mergeRaw: mergeRaw,
+    reset: function () { try { window.localStorage.removeItem(KEY); } catch (e) { } cacheRaw = null; cacheObj = null; }
+  };
+})();

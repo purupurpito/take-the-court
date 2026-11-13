@@ -2,9 +2,11 @@
  * Pantallas de la «vida» de la Carrera (VB.CareerLifeUI), dentro del hub de career-ui.js:
  *  - Partido: tarjeta «Reto de la jornada» (con el duelo contra tu rival) y la decisión pendiente (botones con sus efectos).
  *  - Último partido: reto cumplido o no, seguidores, dinero, duelo y logros.
- *  - Pestaña «Fama»: Fama (seguidores, patrocinio, rival, decisiones) · Tienda (material y servicios) · Logros · Legado (premios,
+ *  - Pestaña «Fama»: Fama (seguidores, patrocinio, rival, decisiones) · Tienda (material, servicios y Vestuario) · Logros · Legado (premios,
  *    puntuación de leyenda, retirada y Salón de la Fama). En las dos Carreras (playa y pista); los textos de pabellón los da career-life.js.
  * Solo devuelve HTML; las acciones (data-act="lf-…") las atiende career-ui.js (onClick → VB.CareerLifeUI.act). Datos: career-life.js.
+ * Tienda › Vestuario (sprint «personaliza», spec §7): cosméticos de VB.Look (js/look.js) con el dinero de la Carrera; solo estética.
+ * Sin look.js el bloque no sale.
  */
 (function () {
   'use strict';
@@ -41,7 +43,9 @@
     '#career .lf-a b{display:block;font:800 14px var(--display);letter-spacing:.04em;text-transform:uppercase}#career .lf-a small{display:block;color:#cfc8f2;font:600 12px var(--ui);margin:1px 0 5px}',
     '#career .lf-a .bar{display:block;height:8px;border-radius:5px;background:rgba(0,0,0,.4);overflow:hidden}#career .lf-a .bar i{display:block;height:100%;background:#ffd23f}',
     '#career .lf-a em{display:block;font:700 11.5px var(--ui);font-style:normal;color:#ffd23f;margin-top:4px}',
-    '#career .lf-fm .bar{display:block;height:12px;border-radius:7px;background:rgba(0,0,0,.4);overflow:hidden;margin:6px 0 2px}#career .lf-fm .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff8040,#ffd23f)}'
+    '#career .lf-fm .bar{display:block;height:12px;border-radius:7px;background:rgba(0,0,0,.4);overflow:hidden;margin:6px 0 2px}#career .lf-fm .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff8040,#ffd23f)}',
+    // Tienda › Vestuario: estrellas de rareza (★ a ★★★★, las que faltan apagadas) junto al nombre
+    '#career .lf-stars{margin-left:6px;font:700 13px var(--ui);letter-spacing:.06em;color:#ffd23f;white-space:nowrap}#career .lf-stars .off{color:rgba(255,255,255,.22)}'
   ].join('\n');
   function css() { if (document.getElementById('careerLifeCss')) return; var s = document.createElement('style'); s.id = 'careerLifeCss'; s.textContent = CSS; document.head.appendChild(s); }
   function arrow(h) { return h.map(function (x) { return '<span class="' + (x[1] ? 'lf-up' : 'lf-dn') + '">' + esc(x[0]) + ' ' + (x[1] ? '▲' : '▼') + '</span>'; }).join(' '); }
@@ -139,7 +143,31 @@
       return '<div class="lf-item"><div><b>' + esc(S.name) + (on ? ' <span class="tag g">Contratado</span>' : '') + '</b><small>' + sp([esc(S.hint), eur(cost) + ' por jornada'], 'v') + '</small></div>' +
         '<button data-act="lf-svc" data-id="' + id + '" aria-pressed="' + on + '">' + (on ? 'Cancelar' : 'Contratar') + '</button></div>';
     }).join('') + '<p class="muted">' + sp(['Gastado en la carrera: ' + eur(l.spent | 0), 'ganado fuera del sueldo: ' + eur(l.earned | 0)], 'v') + '</p></div>';
+    h += lookCard(c, money);
     return h;
+  }
+  // nombre corto de cada ranura (las filas del Vestuario, ui.js), para la ayuda de cada objeto de la tienda
+  var SLOT_N = { style: 'Peinado', hairTint: 'Color de pelo', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba', neck: 'Cuello',
+    under: 'Interior', band: 'Brazalete', armL: 'Manguito', armR: 'Manguito', elbows: 'Coderas', wristL: 'Muñeca', wristR: 'Muñeca', hands: 'Manos',
+    legs: 'Mallas', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas', color: 'Color' };
+  /** Rareza 0-3 en estrellas (★ … ★★★★), con su lectura para el lector de pantalla. */
+  function starsHTML(r) {
+    var n = Math.max(0, Math.min(3, r | 0)) + 1, s = '';
+    for (var i = 0; i < 4; i++) s += i < n ? '★' : '<span class="off">★</span>';
+    return '<span class="lf-stars" role="img" aria-label="Rareza: ' + n + ' de 4">' + s + '</span>';
+  }
+  /** Tienda › Vestuario: cosméticos a la venta (VB.CareerLife.lookShop), por precio. Sin look.js, nada. */
+  function lookCard(c, money) {
+    var L = Lf(), list = L.lookShop ? L.lookShop(c) : [];
+    if (!list.length) return '';
+    var hallC = isHall(c), own = list.filter(function (x) { return x.owned; }).length, sl = c.life.spentLook | 0;
+    return '<div class="card" data-nav><h3>' + sp(['Vestuario', own + ' de ' + list.length], 'd') + '</h3>' +
+      '<p class="muted">Solo estética: no cambia cómo juegas. Lo que compras queda en tu vestuario para siempre, también en Partido rápido. Póntelo en Jugador › Vestuario.</p>' +
+      list.map(function (x) {
+        var other = x.venue === 'Y' && hallC ? 'solo en playa' : x.venue === 'P' && !hallC ? 'solo en pista' : '';
+        return '<div class="lf-item"><div><b>' + esc(x.name) + starsHTML(x.rarity) + '</b><small>' + sp([esc(SLOT_N[x.slot] || ''), other ? esc(other) + ' (para Partido rápido)' : ''], 'v') + '</small></div>' +
+          (x.owned ? '<span class="tag g">En tu vestuario</span>' : '<button data-act="lf-look" data-id="' + esc(x.id) + '"' + (money < x.price ? ' aria-disabled="true"' : '') + '>Comprar <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">' + eur(x.price) + '</small></button>') + '</div>';
+      }).join('') + (sl ? '<p class="muted">Gastado en el vestuario: ' + eur(sl) + '</p>' : '') + '</div>';
   }
   function goals(c) {
     var a = Lf().achList(c), done = a.filter(function (x) { return x.done; }).length;
@@ -182,6 +210,8 @@
         note = k === 'ok' ? 'Comprado: ' + L.gearName(c, id) + '.' : k === 'money' ? 'No te llega: cuesta ' + eur(p) + '.' : k === 'max' ? 'Ya está al máximo.' : ''; return 'render'; }
       case 'lf-svc': { var c2 = C().get(), id2 = b.getAttribute('data-id'), k2 = L.toggleSvc(id2);
         note = k2 === 'on' ? 'Contratado: ' + L.SVC[id2].name + '.' : k2 === 'off' ? 'Cancelado: ' + L.SVC[id2].name + '.' : k2 === 'money' ? 'No te llega para la primera jornada (' + eur(L.svcCost(c2, id2)) + ').' : ''; return 'render'; }
+      case 'lf-look': { var lid = b.getAttribute('data-id') || '', it = L.lookShop ? L.lookShop(C().get()).filter(function (x) { return x.id === lid; })[0] : null, k3 = L.buyLook ? L.buyLook(lid) : '';
+        note = k3 === 'ok' ? 'Comprado: ' + (it ? it.name : lid) + '.' : k3 === 'money' ? 'No te llega: cuesta ' + eur(it ? it.price : 0) + '.' : k3 === 'owned' ? 'Ya está en tu vestuario.' : 'No se ha podido comprar.'; return 'render'; }
       case 'lf-celeb': { var cid = b.getAttribute('data-id') || ''; note = L.setCeleb && L.setCeleb(cid) ? (cid ? 'Celebración elegida.' : 'Sin celebración propia.') : 'Aún no la tienes.'; return 'render'; }
       case 'lf-ret':
         if (retArm && performance.now() - retArm < 4000) { retArm = 0; var rec = L.retire(); return rec ? 'retired' : 'render'; }

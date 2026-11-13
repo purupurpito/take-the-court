@@ -9,16 +9,26 @@
  * género neutro, sin nombres reales ni patrocinadores de verdad. Este fichero no lleva arrobas ni la palabra del programa de
  * navegación web (tools/abouttest.js lo comprueba en todo el fichero, comentarios incluidos).
  * 1.0.0 (12-nov-2026, decisión de Ferran): cierre del sprint 5. Sin créditos a herramientas de IA (Ferran, 12-nov-2026).
+ * 1.1.0 (13-nov-2026): Vestuario (personalización del aspecto, js/look.js). Solo estética.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.0.1';
-  VB.VERSION_DATE = '2026-11-12';
+  VB.VERSION = '1.1.0';
+  VB.VERSION_DATE = '2026-11-13';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.1.0', d: '2026-11-13', t: 'Vestuario',
+      items: [
+        'Nuevo Vestuario: peinados, gorras, gafas, manguitos, rodilleras y mucho más.',
+        'Cada jugador con su aspecto en pista y otro en playa.',
+        'Se gana en la Carrera, en el Entrenamiento y en la tienda.',
+        'Solo estética: nada cambia cómo juega tu atleta.'
+      ]
+    },
     {
       v: '1.0.1', d: '2026-11-12', t: 'Arreglos de línea y marcador',
       items: [
