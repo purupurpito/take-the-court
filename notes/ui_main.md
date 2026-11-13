@@ -1638,3 +1638,72 @@ con la columna de ataque.
   del ejercicio con barras planas y botones alineados (≥ 44 px a ≤ 420 px de alto); tarjeta de Faro plana con franja turquesa y
   botón `cw-ok` (así «Jugar partido» es el único botón cómic, D1). Para Ferran: el turquesa de Faro y la etiqueta nueva.
 - Mundo de la Carrera también en la pista: Liga › Noticias y Clubes (selector país/división `lgSw6`), mentor arriba en Partido.
+
+## Vestuario (rama personaliza, 13-nov-2026): main.js, account.js, reglas, versión y contrato (agente main)
+Personalización del aspecto de tus jugadores. Todo es estético: nada entra en la sim, en `attrs`, en `badges` ni en `g.rng`. Reparto
+de la fase paralela: look (js/look.js, tools/looktest.js), doll (js/doll.js y notes/players.md), players (js/players.js), ui (js/ui.js,
+index.html), career (career-life.js, career-life-ui.js, career-ui.js) y main (esto).
+- **Propiedad** (CONTRACT §1): `js/look.js` (`VB.Look`) y `tools/looktest.js` son de **ui_main**, como prog.js y gym.js (guardado). `js/doll.js`
+  es de **players** y consta ya en el JSON de dueños; la sección del muñeco y del Vestuario de doll.js se documenta en notes/players.md.
+- **Orden de carga** (CONTRACT §2): `js/badges.js` → `js/look.js` → `js/venues.js`. look.js es puro (sin THREE ni DOM; `localStorage` en
+  try/catch), así que también se carga con vm en careertest, badgetest y looktest.
+- **Guardado nuevo `voley3d.look`** (perfil global, < 8 KB): `{v:1, fits:[fitN1, fitN2], own:{id:{s, t}}, seen:{id:1}}`. Sin guardado,
+  `VB.Look.defaults()` (= `MY_LOOKS` de hoy). El de la Carrera va en `c.life.look` (sube con `voley3d.career` en la playa; la pista sigue sin
+  nube). Inventario global: lo ganado en una Carrera vale también en el Partido rápido.
+- **main.js**:
+  - `ctx.noteHitch()`: `aq.skip = 1` (la ventana de fps en curso no cuenta para la calidad adaptativa). Interfaz nueva de este sprint.
+  - `curLooks` = `VB.Look.matchLooks(o)` del partido en curso, fijado en `setGame(g, kit, lookOpts)` y pasado a `Players.setKit` en una copia
+    `Object.assign({}, kit || ctx.settings, {looks: curLooks})` (nunca se escribe en `ctx.settings` ni en el kit del club). `o`: `{}` en
+    Partido rápido, 6v6 humano, Entrenamiento, demo y escenas; `{watch:true}` en el 6v6 espectador (`g.watch`); en la Carrera
+    `{career:true, hall: venue === 'hall', look: VB.CareerLife.lookNow(), mate: m.career.mate}` (matchSetup no trae `c.life`). Sin look.js,
+    `curLooks = null` (= `st.looks === null`: lo de hoy). Ajustes › Equipación también pasa `looks: curLooks`.
+  - `ctx.actions.showroom(on, L, o)`: con `on` (solo en el estado `'menu'`) llama a `VB.Doll.preview.start(ctx, L, o)` o, si ya estaba
+    encendida, a `preview.set(L, o)`; luego `Players.showroom(true)`, y la sim de la demo deja de avanzar (`running` mira `lookOn`). Sin
+    `on`: `preview.stop()` y `Players.showroom(false)`. `noteHitch()` al empezar, al acabar y cuando `set` devuelve `'geo'`. Devuelve
+    true si la vista previa queda encendida (false sin `VB.Doll.preview`: la demo sigue como estaba). `o.px` por defecto: 1 en táctil, 2 en
+    escritorio con calidad alta. setState la apaga si el estado deja de ser `'menu'` (además de lo que haga ui.js en `onState`/`menuReset`).
+    ui.js puede llamar a `preview.set` directamente (cambios de cada flecha): entonces llama él a `ctx.noteHitch()` cuando devuelva `'geo'`,
+    o usa `showroom(true, L, o)` otra vez, que lo hace solo.
+  - Bucle: `if (lookOn) VB.Doll.preview.update(realDt)` DESPUÉS de `CameraRig.update` (y de `Doll.update` de `?debug=doll`), con try/catch.
+  - `ctx.actions.looksChanged()`: con la demo del menú en `ctx.game`, recalcula `curLooks` y llama a `Players.setKit(… {looks}, g)`. Un
+    partido de verdad no cambia a medias.
+  - `?debug=look&tab=…&venue=hall|beach&item=<id>&pick=1|2|career`: escena nueva; abre el menú (`toMenu`) y llama a
+    `VB.UI.openLook({tab, venue, item, pick})`. `tab` en minúscula; `venue` acepta también pista/playa; `item` solo si tiene el formato de
+    id del catálogo; `pick` llega como el número 1 o 2 (el N.º, no el índice) o `'career'`. Sin `VB.UI.openLook`, aviso en consola y el menú.
+- **account.js**: `LOOK_SYNC = false` (con true, `DOCS['voley3d.look'] = 'look'`). `merge()` tiene la rama `mergeLook(L, R, remoteNewer)`:
+  own y seen con `VB.Look.mergeRaw` (unión, gana la `t` mínima), fits del lado más reciente por la hora de meta (en la primera entrada en el
+  dispositivo, la cuenta), lo dé como lo dé mergeRaw; sin look.js gana entero el más reciente. Aunque no suba, el envoltorio de `setItem`
+  ya apunta la hora de cada escritura de `voley3d.look` en `voley3d.account.meta` (`TRACK`), así la primera fusión sabe qué looks son más
+  nuevos. Pruebas: `VB.Account._mergeLook`, `_lookSync`.
+- **firebase/firestore.rules**: `'look'` en la lista de `key`. **SIN DESPLEGAR.** Orden obligatorio (como con el gym): 1) Ferran despliega
+  (`firebase deploy --only firestore:rules`), 2) `LOOK_SYNC = true` en account.js.
+- **version.js**: 1.1.0 (13-nov-2026), «Vestuario», con las 4 frases de la spec. `node tools/abouttest.js` y `node tools/build-pages.js`
+  pasan.
+- **Comprobado**: `node --check` de los 3 JS; abouttest OK; build-pages a una carpeta temporal (v1.1.0); `tools/shot.js menu,look,rally`
+  sin errores JS antes de que existan look.js, `VB.Doll.preview` y `VB.UI.openLook` (las guardas aguantan); en Chrome, con dobles de
+  `VB.Doll.preview`, `Players.showroom` y `VB.Look.matchLooks`: showroom enciende, la sim de la demo queda parada, `update` corre cada frame,
+  el segundo `showroom(true)` va a `set`, `looksChanged` y Ajustes › Equipación pasan los looks, y `startMatch` apaga la vista previa;
+  `mergeLook` en vm (con y sin mergeRaw).
+- **tools/shot.js**: `look` está en `ALL` (y con ello en `console.sh all`); `?debug=look&tab=…&venue=…&item=…&pick=…`.
+
+### Vestuario: página de ui.js e integración (13-nov-2026)
+- **Página `#mpLook`** (`data-page="look"`, estado `'menu'`): `menuGo('look', o)` / `VB.UI.openLook(o)`. `o = {who:'career', hall, tc,
+  back}` desde la Carrera (career-ui.js cierra antes el hub, así `CareerUI.isOpen()` da false; Volver guarda con
+  `CareerLife.setLook` y llama a `o.back()`), o `{tab, venue, item, pick}` para `?debug=look`. Entradas: `#btnLook` en la portada (rejilla
+  de 6 columnas: Jugar entero, Jugadores y Vestuario a medias) y «Aspecto» (`#btnSqLook`) en Jugadores. Nunca desde la pausa.
+- Copia de trabajo: cada cambio pasa por `VB.Look.fix` (avisos con el `msg` de `removed`) y, como mucho cada 120 ms, por
+  `ctx.actions.showroom(true, L, o)`; se guarda al salir o al cambiar de n.º (`wearable`, `setFit` / `CareerLife.setLook`,
+  `looksChanged`), y solo si algo cambió (una Carrera de pista con `l.look === null` sigue en null hasta que se toque).
+- **Encuadre (integración):** `lkPlace()` mide el borde derecho de la columna y del pie en iconos y pone el centro del muñeco en el
+  hueco libre (`VB.Doll.preview.place(cx, half)`, entre 0,62 y 0,9 del ancho, con el medio hueco `half` para que doll.js aleje la
+  cámara si no cabe; se vuelve a medir durante 0,7 s al abrir, mientras entra la columna; en vertical no se toca) y la variable CSS `--lkcx` en `#menu`,
+  que usan los botones ⟲ ⟳ (`.lk-rot`) y los avisos (`#lkNote`). Se llama al abrir y en `resize`. Antes, a 844×390 el pie (hasta x ≈ 570)
+  tapaba la cabeza del muñeco puesto en x = 0,68.
+- «Probar» rota remate, celebración, recepción y de pie (`stand`, la pose por defecto de la vista previa).
+- look.js: `licra` y `mallaLarga` cambian la malla (`vc: 'B'`: la bola del hombro y la de la rodilla van en cB por vértice), así que
+  entran en `geoSig` (antes `geo:false`: con `VB.Look.geoSig` se habría dejado de rehacer la malla). looktest lo comprueba.
+- **Pruebas de la integración** (todas bien): looktest (node y `--gl`), simtest (huella 2v2 idéntica), `fingerprint6 --variant mastery`,
+  careertest (y `NOWORLD=1`), badgetest, kittest, settest, keytest, abouttest, `console.sh all` (1280×720; `format=6v6`; `map=beach`;
+  844×390 táctil), drive.js 1280 720 30, drive6.js 1280 720 60. Flujo real Carrera de pista › Jugador › Vestuario › Abrir › cambiar el
+  peinado › Volver: se guarda en `c.life.look` y vuelve al hub. 6v6 humano: tu look en `ctrlBase` y, tras `setCtrlRole`, en el nuevo;
+  espectador: nadie. perf.js sin lanzar (pendiente: 2v2/6v6 con un look máximo en `fits[0]`).

@@ -4,7 +4,8 @@
  * reparto de eventos a los módulos, calidad adaptativa (con histéresis)
  * y escenas de depuración deterministas:
  *   ?debug=menu|serve|rally|spike|block|point|ace|setpoint|switch|over|end|
- *          mobile|pause|tutorial|controls|settings|toss|jumpserve|dive|doll (maqueta del muñeco nuevo, js/doll.js; &view=fila|poses|cara|cuerpo)
+ *          mobile|pause|tutorial|controls|settings|toss|jumpserve|dive|doll (maqueta del muñeco nuevo, js/doll.js; &view=fila|poses|cara|cuerpo)|
+ *          look (Vestuario abierto en el menú; &tab=pelo|cabeza|cara|cuerpo|brazos|piernas|colores &venue=hall|beach &item=<id> &pick=1|2|career)
  *   &seed=N  &live=1  &quality=low|medium|high  &maxdt=0.25  &fps=1  &clock=1 (serve/hud con regla de 8 s)
  *   &diff=easy|normal|hard  &panel=tut|ctl|set  &step=N (tutorial)
  * Ver CONTRACT.md para el orden por frame y las interfaces.
@@ -351,14 +352,35 @@
   }
 
   // ---------- Partidas ----------
-  function setGame(g, kit) {
+  // ---------- Vestuario: aspecto de tus jugadores en el partido en curso (js/look.js) ----------
+  // curLooks = VB.Look.matchLooks(o) del partido en curso: [fit del n.º 1 | null, fit del n.º 2 | null] o null sin look.js. Solo
+  // estética: va a Players.setKit (st.looks) y nunca a la sim (ni attrs, ni badges, ni g.rng). o: {} en Partido rápido, Entrenamiento,
+  // demo y 6v6 humano; {watch:true} en el 6v6 espectador (nadie lleva tu look); en la Carrera {career, hall, look, mate} (spec §2.4).
+  var curLooks = null;
+  function lookOptsOf(g) { return g && g.watch ? { watch: true } : {}; }
+  function calcLooks(o) {
+    var Lk = VB.Look; if (!Lk || typeof Lk.matchLooks !== 'function') return null;
+    try { var r = Lk.matchLooks(o || {}); return Array.isArray(r) ? r : null; } catch (e) { reportError('Look.matchLooks', e); return null; }
+  }
+  /** Opciones de matchLooks de un partido de Carrera (cs = m.career de matchSetup, que no trae c.life: el look sale de lookNow). */
+  function careerLookOpts(cs, hall) {
+    var look = null, CL = VB.CareerLife;
+    try { if (CL && CL.lookNow) look = CL.lookNow() || null; } catch (e) { reportError('CareerLife.lookNow', e); }
+    return { career: true, hall: !!hall, look: look, mate: cs && cs.mate ? String(cs.mate) : null };
+  }
+  /** Kit para Players.setKit con los looks del partido (copia: nunca se escribe en ctx.settings ni en el kit del club). */
+  function kitWithLooks(kit) { return Object.assign({}, kit || ctx.settings, { looks: curLooks }); }
+
+  function setGame(g, kit, lookOpts) {
     ctx.game = g; ctx.timeScale = 1; acc = 0;
     // g.watch0 = espectador de verdad (?format=6v6, escenas); g.watch se recalcula cada frame con el banquillo (g.watch0 || g.ctrlOut)
     if (g && g.watch0 === undefined) g.watch0 = !!g.watch;
     bench.fast = false; bench.ff = ''; bench.out = !!(g && g.ctrlOut); ctx.bench = bench;
     pendingEvents.length = 0;
-    // equipación personalizada (Ajustes · Equipación) antes de construir atletas; en Carrera, la del club
-    call('Players', 'setKit', kit || ctx.settings, null);
+    // equipación personalizada (Ajustes · Equipación) antes de construir atletas; en Carrera, la del club. Con ella, el aspecto de
+    // tus jugadores en este partido (Vestuario; lookOpts lo da startMatch, si no sale de g: espectador o el resto)
+    curLooks = calcLooks(lookOpts || lookOptsOf(g));
+    call('Players', 'setKit', kitWithLooks(kit), null);
     Sim.drainEvents(g, pendingEvents); // eventos iniciales (newMatch, serveReady...) se entregan en el primer frame
     for (var i = 0; i < MODS.length; i++) call(MODS[i], 'onGameStart', g);
     fixShadowDepth(); // los jugadores se reconstruyen en onGameStart
@@ -482,7 +504,7 @@
     if (watch6 && !opts.autopilot) g.watch = true;
     endTweaked = false; careerEnd = null;
     if (!cs) restoreEndButtons();
-    setGame(g, opts.kit || null);
+    setGame(g, opts.kit || null, cs ? careerLookOpts(cs, cv === 'hall') : lookOptsOf(g));
     setState('playing');
     // los jugadores se reconstruyen en onGameStart: sube sus texturas/programas antes del primer frame
     // (sin pintar: aquí no hay telón que tape los objetos ocultos)
@@ -667,7 +689,8 @@
     ctx.settings[k] = v; saveSettings();
     if (k === 'muted') call('Audio', 'setMuted', !!v);
     if (k === 'subs6' && ctx.game && ctx.game.subsOn && !ctx.game.career && ctx.game.coach) ctx.game.coach[0].auto = v !== 'manual';   // en vivo
-    if (k.indexOf('kit') === 0 && ctx.game) call('Players', 'setKit', ctx.settings, ctx.game); // vista previa en vivo
+    // vista previa en vivo; con los looks del partido en curso (setKit conserva los de antes sin st.looks, pero así no depende de ello)
+    if (k.indexOf('kit') === 0 && ctx.game) call('Players', 'setKit', kitWithLooks(ctx.settings), ctx.game);
     if (k === 'quality') { aq.downs = 0; aq.lastDown = -99; aq.noScale = false; aq.chk = null; applyQuality(pickQuality()); }
     // E3: resolución fija o automática, tope de 30 fps, contador de FPS y menos movimiento
     if (k === 'resScale') { aq.downs = 0; aq.lastDown = -99; aq.noScale = false; aq.chk = null; aq.low = aq.mild = aq.high = 0; aq.skip = 1; if (!(+v > 0)) renderScale = 1; applyQuality(ctx.quality); }
@@ -703,9 +726,61 @@
     return ok;
   };
 
+  // ---------- Vestuario: vista previa en el menú (VB.Doll.preview, js/doll.js; spec «Vestuario» §4.5 y §6.4) ----------
+  // Un muñeco de muestra en ctx.scene (mismo renderer, luces y programas: cero programas nuevos) con la demo oculta y su sim parada.
+  // ui.js la enciende al abrir la página `look` y la apaga al salir (menuReset, onState); setState también la apaga fuera del menú.
+  var lookOn = false;
+  function previewApi() { var D = VB.Doll; return D && D.preview && typeof D.preview.start === 'function' ? D.preview : null; }
+  /** Opciones de la vista previa con lo que falte: px 1 en táctil (atlas de 512) y, en escritorio, el de los atletas en calidad alta. */
+  function previewOpts(o) {
+    var r = Object.assign({}, o || {});
+    if (r.px == null) r.px = isTouch ? 1 : (ctx.quality && ctx.quality.rank >= 2 ? 2 : 1);
+    return r;
+  }
+  /** showroom(true, L, o): enciende la vista previa con el aspecto resuelto L (VB.Look.resolve, congelado) y o = {tc, num, beach, px};
+   *  si ya estaba encendida, la actualiza (preview.set). showroom(false): la apaga y vuelve la demo. Devuelve true si queda encendida.
+   *  Avisa a la calidad adaptativa (noteHitch) al empezar, al acabar y cada vez que se rehace la geometría ('geo'). */
+  ctx.actions.showroom = function (on, L, o) {
+    var P = previewApi();
+    if (!on) {
+      if (!lookOn) return false;
+      lookOn = false;
+      if (P) { try { if (P.stop) P.stop(); } catch (e) { reportError('Doll.preview.stop', e); } }
+      call('Players', 'showroom', false);
+      ctx.noteHitch();
+      return false;
+    }
+    if (!P || ctx.state !== 'menu') return false;   // sin vista previa (o fuera del menú) la demo sigue como estaba
+    if (lookOn && (!P.active || P.active())) {
+      var how = '';
+      try { how = P.set ? P.set(L, previewOpts(o)) : ''; } catch (e) { reportError('Doll.preview.set', e); }
+      if (how === 'geo') ctx.noteHitch();
+      return true;
+    }
+    try { P.start(ctx, L, previewOpts(o)); } catch (e) { reportError('Doll.preview.start', e); return false; }
+    lookOn = true;
+    call('Players', 'showroom', true);
+    ctx.noteHitch();
+    return true;
+  };
+  /** El Vestuario guardó (VB.Look.setFit o CareerLife.setLook): la demo del menú se viste con los looks nuevos. Un partido de verdad
+   *  no cambia a medias (el Vestuario nunca se abre desde la pausa): sus looks se fijan en setGame. */
+  ctx.actions.looksChanged = function () {
+    var g = ctx.game; if (!g || !g.demo) return false;
+    curLooks = calcLooks(lookOptsOf(g));
+    call('Players', 'setKit', kitWithLooks(ctx.settings), g);
+    return true;
+  };
+  function previewUpdate(dt) {
+    var P = previewApi(); if (!P || !P.update) return;
+    try { P.update(dt); } catch (e) { reportError('Doll.preview.update', e); }
+  }
+
   function setState(s) {
     var prev = ctx.state; ctx.state = s;
     if (prev !== s) aq.skip = 1; // la ventana de fps que cruza un cambio de estado no cuenta para la calidad adaptativa
+    // el Vestuario solo vive en el menú: fuera de él nunca queda la vista previa encendida (ui.js también la apaga en onState)
+    if (s !== 'menu' && lookOn) ctx.actions.showroom(false);
     if (prev !== s) for (var i = 0; i < MODS.length; i++) call(MODS[i], 'onState', s, prev);
   }
 
@@ -855,7 +930,8 @@
       }
     }
     ctx.portraitBlock = isTouch && ctx.state === 'playing' && ctx.height > ctx.width;
-    var running = !ctx.frozen && ctx.state !== 'paused' && !ctx.portraitBlock;
+    // (Vestuario abierto: la sim de la demo no avanza; el muñeco de muestra se anima solo en previewUpdate)
+    var running = !ctx.frozen && ctx.state !== 'paused' && !ctx.portraitBlock && !lookOn;
 
     frameEvents.length = 0;
     // eventos pendientes (inicio de partida, escenas de depuración)
@@ -921,6 +997,7 @@
     // indicador de borde (UI-10), p. ej. ?debug=rally&live=1&seed=4&camyaw=0.9
     if (ctx.debug && Q.camyaw && ctx.camera) { ctx.camera.rotateY(+Q.camyaw || 0); ctx.camera.updateMatrixWorld(true); }
     if (dollOn) call('Doll', 'update', g, realDt);   // ?debug=doll: animación de la maqueta y cámara fija (después de la cámara)
+    if (lookOn) previewUpdate(realDt);                // Vestuario: anima el muñeco de muestra y coloca ctx.camera (después de la cámara)
     call('Audio', 'handle', ev, g);
     call('Audio', 'update', g, realDt);
     call('UI', 'update', g, gdt, ev);
@@ -1027,6 +1104,9 @@
   //    de sombras/materiales y subida de texturas dan picos que no son el ritmo real).
   // Desactivada con ?quality=, en depuración (salvo &aq=1, para tools/perf.js) o con calidad fija en Ajustes.
   var aq = { low: 0, mild: 0, high: 0, downs: 0, lastDown: -99, skip: 1, warmUntil: 0, boot: 0, chk: null, noScale: false };
+  /** Un parón que no es el ritmo real (rehacer el muñeco del Vestuario, subir su atlas…): la ventana de fps en curso no cuenta para la
+   *  calidad adaptativa. Lo llama showroom; ui.js también puede llamarlo si rehace la geometría de la vista previa por su cuenta. */
+  ctx.noteHitch = function () { aq.skip = 1; };
   ctx.cpuBusy = 0; // fracción ocupada del hilo principal en la última ventana (máx. de JS del juego y tareas largas)
   ctx.frameMsAvg = 0; // coste JS medio por frame de la última ventana (ms)
   function measure(raw) {
@@ -1130,6 +1210,10 @@
     switch (name) {
       case 'menu': case 'tutorial': case 'controls': case 'settings':
         ctx.actions.toMenu(); return;
+      // Vestuario (tools/shot.js): el menú con la página `look` abierta. &tab=pelo|cabeza|cara|cuerpo|brazos|piernas|colores,
+      // &venue=hall|beach (pista o playa del Vestuario, no el escenario), &item=<id del catálogo> (lo prueba puesto), &pick=1|2|career
+      case 'look':
+        ctx.actions.toMenu(); openLookDebug(); return;
       case 'serve': case 'hud':
         // sin la regla de 8 s: las capturas largas no acaban en falta de saque (&clock=1 la activa)
         g = mk(false, Q.clock !== '1'); break;
@@ -1295,6 +1379,21 @@
     if (name === 'subs6menu') call('UI', 'openSubs', Q.pick === '1');
     if (name === 'doll') { dollOn = true; call('Doll', 'start', ctx, g); }
     console.info('[VB] escena de depuración: ' + name + ' (modo ' + g.mode + ', ' + g.score.join('-') + ', sets ' + g.sets.join('-') + ')');
+  }
+
+  /** ?debug=look: parámetros de la URL para VB.UI.openLook({tab, venue, item, pick}); lo que falta lo decide ui.js. */
+  function lookDebugOpts() {
+    var o = {};
+    if (Q.tab) o.tab = String(Q.tab).toLowerCase();
+    if (Q.venue) { var v = String(Q.venue).toLowerCase(); o.venue = v === 'beach' || v === 'playa' ? 'beach' : v === 'hall' || v === 'pista' ? 'hall' : undefined; if (!o.venue) delete o.venue; }
+    if (Q.item && /^[a-z][a-zA-Z0-9]{1,15}$/.test(Q.item)) o.item = Q.item;
+    if (Q.pick) { var pk = String(Q.pick).toLowerCase(); o.pick = pk === 'career' || pk === 'carrera' ? 'career' : (+pk === 2 ? 2 : 1); }
+    return o;
+  }
+  function openLookDebug() {
+    var U = VB.UI;
+    if (!U || typeof U.openLook !== 'function') { console.warn('[VB] escena look: VB.UI.openLook no existe'); return; }
+    try { U.openLook(lookDebugOpts()); } catch (e) { reportError('UI.openLook', e); }
   }
 
   // ---------- Precalentado de GPU ----------

@@ -1039,3 +1039,134 @@ por `drainFx`. Rig de solo lectura: `persona, cvar, dvar, lvar, idle`.
 ### Problemas conocidos
 - `pina` sale a menudo contra la CPU en Difícil (8 veces en ~65 puntos): si cansa, subir el umbral en `cvPoint`.
 - Las celebraciones nuevas para puntos normales (`baile`, `asiente`) y `palmLook` salen poco en autopilot (casi todo son remates o errores).
+
+## Vestuario: el muñeco personalizable (13-nov-2026, agente doll; spec «Vestuario» §4 y §9)
+
+Todo es estético: nada llega a la sim, a `attrs`, a `badges` ni a `g.rng`. Cero dibujos y cero programas nuevos: las piezas van en la
+misma malla del muñeco (piel + tinta + sombra = 3 dibujos) y en el mismo atlas (`vbDollToon`, sin atributos ni `defines` nuevos).
+Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main); doll.js solo sabe DIBUJAR.
+
+### Qué recibe doll.js
+- La L del Vestuario (§2.2, `VB.Look.resolve`, congelada) o la vieja `{skin, hair, style, acc}` (NPC por hash, maqueta). `normLook(L,
+  beach)` la normaliza: un campo que no llega vale lo de hoy (pista: `knees 'cortas'`, `socks 'media'`, `ankle 'blanca'`, `shoes
+  'clasicas'`; playa: `paint 'zinc'`, `ankle 'tela'`); `acc: 'gafas'` = gafas en la frente sin gorro; un id desconocido vale lo de hoy;
+  `hair` como id de tinte se traduce con `VB.Look.item` (con guarda).
+- La sede solo se impone donde cambia el sentido (`VENUE_STRICT`: interior, calcetines, tobillera, zapatillas). Gorros y gafas se dibujan
+  tal cual llegan (la maqueta lleva gorra y gafas en pista); quitarlos es cosa de `VB.Look.fix`.
+- Colores `cA cB cSock cShoe cGlass`: hex o -1 (automático). Automático: `cA` = acento, `cB` = oscuro del equipo, `cSock` = acento,
+  montura = acento (frente y deportivas), plata (espejo) o casi negro (pasta y oscuras). `cA` también tiñe las gomas del pelo y `cB` las
+  viseras y el filete de la cinta (con automático, lo de siempre).
+
+### Tiras por columna (u propia del tubo)
+- `Geo.su` = columna `[u0, u1]`; en modo `'strip'` u = u0 + 0,006 + gu × (u1 − u0 − 0,012) (margen contra los mipmaps). Columnas: `ARM_R`
+  0-0,25 brazo izq., 0,25-0,5 brazo dcha., 0,5-0,75 antebrazo izq., 0,75-1 antebrazo dcha.; `TH_R` y `SHN_R` 0-0,5 izq., 0,5-1 dcha.
+- Cada tubo se gira (`TUBE_RY`) para que gu = 0,5 mire hacia FUERA (izquierdo +X, derecho −X; la costura queda por dentro). La columna
+  izquierda va espejada (u0 > u1): llamas, rayos y kinesio salen en espejo, y la «C» del brazalete se pinta volteada en su columna para
+  que se lea bien desde fuera (comprobado en captura de cerca del brazo izquierdo).
+- El antebrazo pasa a `'strip'` (antes, color por vértice de piel). Con el aspecto de hoy pinta piel: mismo color.
+- `paintLimbs(g, tc, X, beach)` sustituye a `paintStrips`. Con L por defecto, el atlas es idéntico píxel a píxel al de antes salvo las
+  columnas del antebrazo en pista (antes llevaban las rayas de la manga a todo el ancho, pero el antebrazo no las leía) y la pintura de
+  mejilla de playa (comparado en Chrome con 3 aspectos × 2 sedes × 2 equipaciones, por regiones del atlas).
+
+### Geometría por ranura (helpers de LOD; `owk` 0,5 en los toros de banda, 0 en filetes, patillas y lentes)
+- Peinados nuevos: `dosmonos` (2 bolas + gomas), `coletas` (nudo + goma + cola a cada lado, rígidas en la cabeza), `cresta` (rapado + 3
+  mechones en fila).
+- Gorros: `cintaRizo` (toro grueso), `bandana` (cinta + nudo y dos colas en el hueso `hair`, con el muelle), `gorraAtras` (espejo exacto
+  de la gorra: visera atrás; el casquete de la nuca va algo más bajo delante), `pescador` (copa θ 0,4π para que se vean los ojos, ala
+  caída en anillo cerrado y cinta de cB), `corona` (anillo en zigzag dorado con gema, inclinado; con afro, en lo alto del afro).
+  `HIDE_HAIR = {gorra, gorraAtras, pescador}` sustituye el pelo; la coleta sale por debajo del borde de atrás (no con el pescador) y las
+  trenzas y las coletas se dibujan debajo (§1.4 regla 8).
+- `eyesGeo`: las gafas en la frente de siempre (montura de cGlass) y, para las pintadas, dos patillas rectas de 6 lados por fuera de la
+  cabeza, del borde de la lámina de ojos a la oreja (no en LOD0).
+- `neckGeo` en el pecho: aro inclinado sobre el domo, por debajo de la mandíbula. Medalla (cinta de cA + disco dorado; relieve no en LOD0)
+  y conchas (cordón + 5 conchas solo en LOD2).
+- `wristGeo` en el ANTEBRAZO (`r.el[k]`, y = −FORE + 0,015): muñequera (toro de cA) y reloj (correa, caja de cA y esfera blanca hacia
+  fuera, la esfera no en LOD0). Se estira con el brazo (comprobado en `view=estiron`).
+- `handGeo`: mitones (cA) y dedos vendados (pulgar de esparadrapo + vuelta en la punta, la vuelta no en LOD0). Coderas: bola del codo de
+  cA ×1,12. El codo toma el color de la térmica o del manguito de su lado.
+- Rodilleras: `altas` (bola ×1,12/1,1 + muslo 0,82-1 y espinilla 0-0,22), `bajadas` (bola de piel + espinilla 0,12-0,42), `''` (piel; con
+  malla larga, cB). Zapatillas: `negras` (tobillera oscura), `neon` (cShoe, por defecto amarillo neón, suela negra), `doradas`; las clásicas
+  y las neón aceptan cShoe. Tobillera de pista `''` = del color del empeine. Playa: `pulseraTob` (aro fino, no en LOD0), `escarpines` (pie
+  de cSock, sin tobillera) y `''`.
+
+### Atlas
+- `paintBody`: con la licra (playa) la piel de hombros, sisas, escote y espalda pasa a cB (tirantes y dorsal encima); la bola del hombro
+  también (color por vértice).
+- Cara: halo de las pieles oscuras → `paintPaint` → `paintMarks` → ojos → `paintGlasses` → cejas, en las 8 celdas (con el aspecto de hoy
+  el resultado es el de siempre: el halo de un ojo no toca el otro). `paintMouth` llama a `paintBeard` antes de la boca (perilla y barba de
+  tres días con el borde degradado en el último 15 % de la lámina; en la celda del grito, el bigote) y después (bigote).
+- **`CHEEK_DY0 = FM_DY1 + 0,03`** (en el lienzo, `CHEEK_Y`): toda la pintura de mejilla y nariz y las gafas pintadas quedan por encima
+  (recorte), fuera del solape de las láminas de ojos y de boca: sin z-fighting. En la celda de boca nada pasa de `FE_DY0 − 0,02`.
+- El zinc (y las rayas del equipo) son dos rayas que asoman bajo el ojo y suben hacia el rabillo, donde el ojo ya no tapa: pasan de
+  `EYE_Y − 0,05` por fuera del ojo (la franja de debajo del ojo mide ~1 cm y las tapaba casi enteras). Es el cambio visible aceptado.
+- El repintado al cargar la fuente del dorsal usa `material.userData.paint` (lo último pintado), no la L con la que se creó.
+
+### Firmas, vista previa y prueba
+- `VB.Doll.geoSig(L, tc, beach)` (malla: geometría y colores por vértice; un color solo entra si alguna pieza lo usa por vértice) y
+  `VB.Doll.atlasSig(L, tc, num, beach)`. La vista previa usa estas y no las de look.js (allí `licra` y `mallaLarga` son `geo:false`, pero
+  cambian la bola del hombro y la de la rodilla).
+- `VB.Doll.preview`: `start(ctx, L, o)`, `set(L, o)` → `'geo'` | `'atlas'` | `''`, `pose`, `face`, `spin`, `yaw`, `frame('cuerpo' |
+  'cabeza' | 'brazos' | 'piernas')`, `update(dt)`, `stop()`, `active()`, `info()`. Un solo LOD (el de la calidad activa), atlas de `o.px`.
+  Muñeco en three (5, 0, 0) mirando a cámara, fov 46 sin el `filmOffset` de la cámara del menú (se devuelve al parar), el muñeco hacia
+  x ≈ 0,68 del ancho o donde diga `place(cx)` (fracción del ancho; ui.js `lkPlace` lo pone en el hueco libre a la derecha de su columna y
+  del pie en iconos: a 844×390 sale ~0,84); en vertical, entero en la parte de arriba (siempre con la distancia de `cuerpo`, salvo
+  `cabeza`). La cámara se DESPLAZA de lado (no gira) y el muñeco gira para mirarla: girada, el muñeco quedaba en el borde del cono, más
+  cerca en profundidad y un 15-20 % más grande (a 844×390 se cortaba). Encuadres [altura mirada, distancia, altura de cámara]: cuerpo
+  [mitad del muñeco, 2,6], cabeza [centro de la cabeza + 0,06, 1,85, 0,02 × d], brazos [hombro − 0,25, 1,75], piernas [cadera × 0,45, 1,5].
+  `place(cx, half)`: `half` (opcional) = medio hueco libre en fracción del ancho; si el encuadre (medio ancho en `PV_LAT`) no cabe, la
+  cámara se aleja (a 667×375 el pie de iconos tapaba el hombro). Con «Probar» (pose ≠ `stand`) y encuadre `cuerpo`, `pvEnv` recorre
+  un ciclo de `animate` de la pose (`PV_CYCLE`) y la cámara encuadra la caja entera: salto del remate y brazos en V (antes la cabeza y la
+  mano se salían). El muñeco de la vista previa no recibe sombras (`receiveShadow = false`, un uniform: el mapa de sombras de la pista
+  salía a escalones en la cara a 1,85 m, sobre todo en calidad media). Coronita con tupé: más alta, atrás e inclinada (rx −0,5).
+  Pose por defecto `stand` con respiración (la `stand` de las hojas de `?debug=doll` sigue quieta); «Probar» de ui.js acaba en `stand`
+  (la `idle` lleva el brazo del balón delante de la cara). Con solo atlas repinta el mismo lienzo (`map.needsUpdate`); al rehacer
+  libera atlas, material, malla, textura de huesos y tinta (`freeRig`, que ahora usa también `restyle` de la maqueta). Oculta balón y
+  manchas cada frame (y `players` si no hay `Players.showroom`) y lo devuelve al parar. Lo de o que no llega se queda como estaba (por
+  defecto: `VB.Players.kit(0)`, la sede de `VB.Arena.venue()`, dorsal 1, px 2).
+- `VB.Doll.lookSelfTest()` (lo usa `tools/looktest.js --gl`): cada objeto × sede × LOD se construye y se pinta; el catálogo de look.js no
+  trae nada que doll.js no sepa dibujar ni con otra sede; triángulos exactos de hoy; `defaults()` de look.js dan la malla de MY_LOOKS;
+  `geoSig` fiel a la malla (también con cada color); peor combinación permitida por sede (peinado × gorro × gafas con `VB.Look.CLASH` + lo
+  peor de cada ranura) bajo los topes; 3 dibujos por muñeco; vista previa (un cambio solo de atlas no crea mallas ni texturas; 20 cambios
+  de peinado dejan `renderer.info.memory` como estaba; al parar, como antes de empezar). Si la vista previa ya estaba encendida, la deja
+  como estaba. En node (sin lienzo) hace la parte de geometría.
+
+### Vestuario en players.js (agente players)
+- `setKit(st, g)` acepta `st.looks` = `[fit|null, fit|null]` (los fija), `null` (los quita) o `undefined` (conserva los que había:
+  Ajustes › Equipación no los borra). Los looks se sanean con `VB.Look.sane` y su firma (`LOOK_SIG`) entra en la de `setKit`, así que
+  cambiar de look libera la caché.
+- `lookOf(p, tc)` devuelve una L congelada. Tus atletas, por `meSlot`: n.º 1 y 2 del 2v2, o `g.ctrlBase` en el 6v6 (`ME6_ID`, nunca con
+  espectador ni el líbero que entra por ti), salen de `VB.Look.resolve(fit, VEN, tc)`; la altura es siempre la de hoy (el look nunca
+  aporta `h`). Los NPC llevan extras de atlas por hash (`NPC_EXTRAS`, D7: manguitos, coderas, calcetines, rodilleras, zapatillas negras;
+  en playa rayas, pecas y manguito), 0 triángulos. Tu atleta de pista sin look (Carrera antigua) no lleva extras: conserva la cara de hoy.
+- `r.acc` es el gorro real, o `'gafas'` con las gafas en la frente (lo que activa el gesto `ajuste`). La clave de `rigFor` añade
+  `':me' + LOOK_SIG` para tus atletas. Si cambia tu atleta del 6v6 (`setCtrlRole`), `swapMe` rehace solo 2 rigs, les copia el estado
+  (posición, poses, pasos, huesos, LOD, tinta y sombra) y libera la caché vieja.
+- API: `kit(team)`, `kitFrom(st)`, `showroom(on)` (oculta `groupRoot` y salta la animación), `lookOf6Id()`, `_look(p)` / `_lookOf(p)`
+  (pruebas). La firma de celebración (`sigOn`) sale también en el 6v6 y en la Carrera de pista.
+
+### Medido (ejecutado)
+- Triángulos LOD0/1/2 de los looks de hoy, EXACTOS: rapado sin complemento 2418/3739/8438, afro + gafas 3786/5208/11276 (también con la
+  L nueva `eyes:'frente'`), gorra 2708/4148/9244. Las 70 combinaciones viejas de peinado × complemento × sede dan los mismos triángulos
+  que antes salvo coleta y trenzas con gorra (ahora se ven la cola y las trenzas: 2924/4432/9760 y 3108/4588/9884 en pista).
+- Peor combinación permitida: pista 3874/5632/11992 (afro + cinta + gafas pintadas + lo peor de cada ranura), playa 4306/5794/12616 (afro
+  + gafas en la frente + ...); topes 4400/6000/12800. Para caber en LOD0 no se construyen allí la vuelta de esparadrapo, la esfera del
+  reloj ni el relieve de la medalla (piezas de menos de 3 cm, §1.5).
+- Δ triángulos (LOD0/1/2): dosmonos 168/300/824, coletas 288/288/400, cresta 60/70/100, cintaRizo 112/168/384, bandana 388/500/1072,
+  gorraAtras = gorra, pescador 178/275/718 (playa, sobre sin gorro), corona 128/128/176, gafas pintadas 0/24/24, medalla 120/168/252,
+  conchas 88/128/592, muñequera 80/80/160, reloj 112/124/228, dedos 0/160/320; lo demás, 0 (atlas o color por vértice).
+- `lookSelfTest()` en Chrome (menú, con y sin la vista previa abierta): bien, 128 objetos, 3 dibujos, memoria 58/51 → 58/51 tras 20
+  cambios, ~8 s. En node con y sin look.js: bien.
+- Capturas `?debug=doll` (fila, cara, cuerpo, peinados, estiron; pista y playa) iguales a las de antes salvo la mejilla de playa y las
+  trenzas y la cola de la coleta (abajo). Escenas `serve`, `rally6`, `point` y `rally` en playa sin errores.
+
+### Arreglado de paso (cambio visible)
+- `lathe()`: un perfil que baja (cola de la coleta, trenzas) daba normales y caras hacia dentro y se veía el casco de la tinta: trenzas
+  oscuras aunque el pelo fuera rubio y la cola de la coleta casi invisible. Ahora se recorre de abajo arriba (mismos triángulos).
+
+### Problemas conocidos
+- La pintura de mejilla es pequeña: el ojo tapa casi toda la franja permitida bajo él; se lee sobre todo en el rabillo.
+- El brazalete va en la fracción 0,5-0,65 del brazo (playa 0,42-0,57, 0,47-0,62 con licra) y no en 0,22-0,34: allí lo tapa la bola del
+  hombro, que cubre el ~40 % alto del brazo.
+- La gorra al revés no lleva mechón delante: asomaba atravesando la copa; el pelo de delante queda dentro de la gorra.
+- El gesto `ajuste` con gorra al revés, pescador, corona, pañuelo y cinta de rizo: revisado en captura de cerca (integración, n.º 2 en
+  `?debug=serve` con `Players._idle(p, 'ajuste')`); la mano no atraviesa la visera trasera ni el ala, no hace falta un blanco por gorro.
