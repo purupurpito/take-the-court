@@ -626,7 +626,7 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
 #menu.enter .tagline{animation:fadeUp .5s .06s var(--ease) both}
 #menu.enter .mi{animation:miIn .5s var(--ease) both}
 #menu.enter .mi:nth-child(1){animation-delay:.08s}#menu.enter .mi:nth-child(2){animation-delay:.14s}#menu.enter .mi:nth-child(3){animation-delay:.2s}
-#menu.enter .mi:nth-child(4){animation-delay:.26s}#menu.enter .mi:nth-child(5){animation-delay:.32s}
+#menu.enter .mi:nth-child(4){animation-delay:.26s}#menu.enter .mi:nth-child(5){animation-delay:.32s}#menu.enter .mi:nth-child(6){animation-delay:.38s}
 #menu.enter .menu-foot,#menu.enter .live{animation:fadeUp .5s .38s var(--ease) both}
 @keyframes miIn{from{opacity:0;transform:translateX(-26px)}to{opacity:1;transform:none}}
 .brand{position:relative}
@@ -1288,19 +1288,24 @@ kbd,.key{background:#fff7e8;color:var(--tk);border:1.5px solid var(--tk);border-
 /* teléfonos apaisados (≤ 420 px de alto): filas de 44 px (dedo) y «Cómo se juega» + «Controles» juntas en una fila de dos
    botones, para que las 7 opciones quepan a 844×390 y 667×375 (backlog del modo Uno: antes 7 filas de 42 px) */
 @media (max-height:420px){
-  #menu .mlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px 6px}
+  #menu .mlist{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px 6px}
   #menu .mlist>.mi{grid-column:1/-1;height:44px}
   #menu .mlist>.mi.primary{height:48px}
-  #menu .mlist>#btnTut,#menu .mlist>#btnControls,#menu .mlist>#btnSettings{grid-column:auto;grid-template-columns:minmax(0,1fr);padding:0 6px;text-align:center;font-size:16px}
+  /* Vestuario (1.1.0): Jugadores y Vestuario a medias en la misma fila (rejilla de 6: mismas 4 filas que antes) */
+  #menu .mlist>#btnSquad,#menu .mlist>#btnLook{grid-column:span 3;grid-template-columns:minmax(0,1fr);align-content:center;row-gap:1px}
+  #menu .mlist>#btnSquad .mi-s,#menu .mlist>#btnLook .mi-s{font-size:11px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #menu .mlist>#btnTut,#menu .mlist>#btnControls,#menu .mlist>#btnSettings{grid-column:span 2;grid-template-columns:minmax(0,1fr);padding:0 6px;text-align:center;font-size:16px}
   #menu .mlist>#btnTut .mi-n,#menu .mlist>#btnControls .mi-n,#menu .mlist>#btnSettings .mi-n,#menu .mlist>#btnTut .mi-s,#menu .mlist>#btnControls .mi-s,#menu .mlist>#btnSettings .mi-s{display:none}
   #menu .mlist>#btnTut:hover,#menu .mlist>#btnControls:hover,#menu .mlist>#btnSettings:hover,#menu .mlist>#btnTut.kf,#menu .mlist>#btnControls.kf,#menu .mlist>#btnSettings.kf{padding-left:6px}
 }
 /* Carrera (02) bajo Jugar = 9 filas. Entre 421 y 820 px de alto «Cómo se juega», «Controles» y «Ajustes» van juntas en una fila de
    tres botones (como en el teléfono): el menú queda en 7 filas y ya no pisa la ayuda de teclas de abajo (a 1280×720 la pisaba con 8) */
 @media (min-height:421px) and (max-height:820px){
-  #menu .mlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:6px}
+  #menu .mlist{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));column-gap:6px}
   #menu .mlist>.mi{grid-column:1/-1}
-  #menu .mlist>#btnTut,#menu .mlist>#btnControls,#menu .mlist>#btnSettings{grid-column:auto;grid-template-columns:minmax(0,1fr);padding:0 8px;text-align:center;font-size:19px}
+  #menu .mlist>#btnSquad,#menu .mlist>#btnLook{grid-column:span 3;grid-template-columns:minmax(0,1fr);align-content:center;row-gap:1px}
+  #menu .mlist>#btnSquad .mi-s,#menu .mlist>#btnLook .mi-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #menu .mlist>#btnTut,#menu .mlist>#btnControls,#menu .mlist>#btnSettings{grid-column:span 2;grid-template-columns:minmax(0,1fr);padding:0 8px;text-align:center;font-size:19px}
   #menu .mlist>#btnTut .mi-n,#menu .mlist>#btnControls .mi-n,#menu .mlist>#btnSettings .mi-n,#menu .mlist>#btnTut .mi-s,#menu .mlist>#btnControls .mi-s,#menu .mlist>#btnSettings .mi-s{display:none}
   #menu .mlist>#btnTut:hover,#menu .mlist>#btnControls:hover,#menu .mlist>#btnSettings:hover,#menu .mlist>#btnTut.kf,#menu .mlist>#btnControls.kf,#menu .mlist>#btnSettings.kf{padding-left:8px}
 }
@@ -1634,9 +1639,11 @@ kbd.ms{height:auto;padding:2px 6px 1px}
 #menu .menu-col,#menu .menu-foot,#menu .live,#menu .fs-btn{zoom:var(--vs)}
 /* con zoom, el alto útil del menú es alto/--vs (~840 px a 2560×1440): misma rejilla compacta que 1280×720 (Cómo se juega,
    Controles y Ajustes en una fila de 3), si no las 9 filas pisan la ayuda de teclas. ui.js pone .vs-up con --vs > 1,05 */
-#app.vs-up #menu .mlist{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:6px}
+#app.vs-up #menu .mlist{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));column-gap:6px}
 #app.vs-up #menu .mlist>.mi{grid-column:1/-1}
-#app.vs-up #menu .mlist>#btnTut,#app.vs-up #menu .mlist>#btnControls,#app.vs-up #menu .mlist>#btnSettings{grid-column:auto;grid-template-columns:minmax(0,1fr);padding:0 8px;text-align:center;font-size:19px}
+#app.vs-up #menu .mlist>#btnSquad,#app.vs-up #menu .mlist>#btnLook{grid-column:span 3;grid-template-columns:minmax(0,1fr);align-content:center;row-gap:1px}
+#app.vs-up #menu .mlist>#btnSquad .mi-s,#app.vs-up #menu .mlist>#btnLook .mi-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#app.vs-up #menu .mlist>#btnTut,#app.vs-up #menu .mlist>#btnControls,#app.vs-up #menu .mlist>#btnSettings{grid-column:span 2;grid-template-columns:minmax(0,1fr);padding:0 8px;text-align:center;font-size:19px}
 #app.vs-up #menu .mlist>#btnTut .mi-n,#app.vs-up #menu .mlist>#btnControls .mi-n,#app.vs-up #menu .mlist>#btnSettings .mi-n,
 #app.vs-up #menu .mlist>#btnTut .mi-s,#app.vs-up #menu .mlist>#btnControls .mi-s,#app.vs-up #menu .mlist>#btnSettings .mi-s{display:none}
 #app.vs-up #menu .mlist>#btnTut:hover,#app.vs-up #menu .mlist>#btnControls:hover,#app.vs-up #menu .mlist>#btnSettings:hover,
@@ -2463,6 +2470,150 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   .ge-btns{align-items:stretch}
   .ge-btns button{height:auto;min-height:44px;padding:6px 8px;font-size:14px;white-space:normal;line-height:1.1}
 }
+/* =====================================================================
+   VESTUARIO (1.1.0, look-spec §6): botón de la portada, «Aspecto» en Jugadores y página #mpLook (ui.js lkRender). Columna a la
+   izquierda (~330 px a 844×390, min(460px, 46vw) en escritorio) y el muñeco de muestra a la derecha, hacia x ≈ 0,68·W (main.js);
+   #lkSpin cubre la mitad derecha para girarlo. Sin backdrop-filter. Mismos tokens planos de TV D1/D7/D8.
+   ===================================================================== */
+/* sin look.js no hay botón: Jugadores ocupa la fila entera */
+#menu .mlist>#btnSquad:has(+#btnLook[hidden]){grid-column:1/-1}
+#btnLook.has-new>span:first-child::after{content:"";display:inline-block;width:8px;height:8px;margin-left:7px;border-radius:50%;background:#ff6a2e;box-shadow:0 0 0 1.5px var(--tk);vertical-align:3px}
+/* Jugadores: selector + «Aspecto» */
+.sq-top{display:flex;align-items:stretch;gap:8px;margin:0 0 10px}
+.sq-top .sq-pick{flex:1 1 auto;min-width:0;margin:0}
+.sq-lk{display:flex;flex:0 0 auto}
+#btnSqLook{display:flex;align-items:center;gap:7px;height:auto;min-height:52px;padding:0 14px;font-size:15px}
+#btnSqLook svg{width:20px;height:20px;fill:currentColor;flex:none}
+@media (max-height:420px){.sq-top{margin-bottom:6px}#btnSqLook{min-height:44px;padding:0 10px;font-size:14px}}
+@media (max-width:520px){#btnSqLook span{display:none}#btnSqLook{padding:0 12px}}
+/* página */
+#mpLook{--lkw:min(460px,calc(46vw / var(--vs)));position:relative;z-index:1;flex:none;width:var(--lkw);height:calc(100% / var(--vs));min-height:0;padding-bottom:30px;box-sizing:border-box}
+#menu[data-page="look"]{justify-content:flex-start;padding-top:calc(18px + var(--st));padding-bottom:calc(12px + var(--sbm));
+  background:linear-gradient(90deg,rgba(5,8,15,.9) 0%,rgba(5,8,15,.74) 28%,rgba(5,8,15,.3) 44%,rgba(5,8,15,0) 54%)}
+#menu[data-page="look"] .live,#menu[data-page="look"] #menuRecord{display:none}
+#mpLook .mp-head{margin-bottom:12px}
+.lk-top{display:flex;align-items:center;gap:8px;margin:0 0 10px;min-width:0}
+.lk-pick,.lk-ven{display:flex;gap:3px;padding:3px;border-radius:8px;background:var(--tk);min-width:0}
+.lk-ven{margin-left:auto}
+.lk-ven[hidden]{display:none}
+.lk-pk,.lk-ven button{flex:0 0 auto;height:38px;padding:0 12px;border-radius:6px;font:700 15px/1 var(--ui);letter-spacing:0;text-transform:none;white-space:nowrap;
+  color:var(--muted);background:transparent;box-shadow:none;text-shadow:none}
+.lk-pk:hover:not(.on),.lk-ven button:hover:not(.on){background:rgba(255,255,255,.09);color:#fff;filter:none}
+.lk-pk.on,.lk-ven button.on{background:var(--sel);color:var(--tk)}
+.lk-pk.kf,.lk-pk:focus-visible,.lk-ven button.kf,.lk-ven button:focus-visible{outline:none;box-shadow:var(--focus-ring)}
+.lk-pk.on.kf,.lk-pk.on:focus-visible,.lk-ven button.on.kf,.lk-ven button.on:focus-visible{box-shadow:inset 0 0 0 2px var(--tk),inset 0 0 0 4px var(--focus)}
+/* pestañas y, en la misma línea, el pie en iconos (sale de la columna hacia la derecha: no tapa la lista) */
+.lk-bar{position:relative;z-index:2;display:flex;align-items:center;gap:8px;width:calc(var(--lkw) + 196px);max-width:calc(100vw / var(--vs) - 40px);margin:0 0 10px}
+.lk-bar .tabs{flex:0 1 var(--lkw);min-width:0;margin:0}
+#lkTabs .tab{padding:6px 9px;gap:5px}
+#lkTabs .tab.lk-new::after{content:"";width:7px;height:7px;border-radius:50%;background:#ff6a2e;box-shadow:0 0 0 1.5px var(--tk);flex:none}
+#lkTabs .tab.on.lk-new::after{background:var(--tk);box-shadow:none}
+.lk-foot{display:flex;gap:4px;flex:none}
+.lk-foot button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border-radius:8px;color:var(--fg);
+  background:var(--flat);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.1),var(--flat-sh);text-shadow:none}
+.lk-foot button:hover{background:var(--flat-hi);filter:none}
+.lk-foot button:active{transform:translateY(1px)}
+.lk-foot button.kf,.lk-foot button:focus-visible{outline:none;background:var(--flat-hi);box-shadow:var(--ring-f),var(--flat-sh)}
+.lk-foot button[hidden]{display:none}
+.lk-foot svg{width:22px;height:22px;fill:currentColor}
+.lk-foot svg.st{fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+.lk-help{margin:-2px 2px 8px;font:600 13px/1.25 var(--ui);color:#ffe08a}
+.lk-help[hidden]{display:none}
+/* filas: etiqueta pequeña, valor (muestra, nombre y estrellas) y, si está bloqueado, candado + cómo se gana; flechas a la derecha */
+.lk-list{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;padding:3px 4px 8px 3px;margin:0 -4px 0 -3px;scrollbar-width:thin;overscroll-behavior:contain}
+.lk-list.has-more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 40px),transparent)}
+#mpLook .lk-r{flex:none;height:auto;min-height:58px;padding:6px 4px 6px 16px;grid-template-columns:minmax(0,1fr) auto;font-size:17px}
+#mpLook .lk-r:focus-visible,#mpLook .lk-r.kf{padding-left:20px}
+.lk-r .mi-l{gap:2px}
+.lk-k{font:700 12px/1.1 var(--ui);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+/* nombre, estrellas y «(bloqueado)»: si no caben en una línea, bajan (antes «Manguito de lla…»); el nombre, como mucho en 2 */
+.lk-v{display:flex;flex-wrap:wrap;align-items:center;gap:1px 7px;min-width:0;font:700 17px/1.2 var(--ui);color:var(--fg)}
+.lk-n{flex:0 1 auto;min-width:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.lk-st{flex:none;font-size:13px;letter-spacing:1px;color:#ffd23f}
+.lk-lk{flex:none;font:600 12px/1 var(--ui);font-style:normal;color:#ffe08a}
+.lk-sw{flex:none;width:28px;height:28px;border-radius:50%;box-shadow:0 0 0 2px var(--tk),inset 0 0 0 1.5px rgba(255,255,255,.35)}
+.lk-sw.auto{background:repeating-linear-gradient(135deg,#fff7e8 0 4px,#9a91c9 4px 8px)}
+/* cómo se gana (lockText): en 2-3 líneas si hace falta; antes se cortaba con «…» y solo se leía entero en el aria-label */
+.lk-r .mi-h{margin-top:1px;white-space:normal;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3}
+.lk-r .mi-h svg{width:12px;height:12px;fill:currentColor;vertical-align:-1px;margin-right:4px}
+.lk-r.lock .mi-h{color:#ffe08a}
+#mpLook .lk-r[aria-disabled=true]{opacity:1;filter:none;cursor:pointer}
+.lk-r.lock .lk-n{color:var(--soft)}
+.lk-r.new .lk-k::after{content:"";display:inline-block;width:7px;height:7px;margin-left:6px;border-radius:50%;background:#ff6a2e;box-shadow:0 0 0 1.5px var(--tk);vertical-align:1px}
+#mpLook .lk-r .mi-v{margin-right:0;gap:0}
+#mpLook .lk-r .mi-v .arr{width:42px}
+.is-touch #mpLook .lk-r .mi-v .arr{width:46px}
+.lk-empty{margin:6px 2px;font:600 14px/1.3 var(--ui);color:var(--muted)}
+/* mitad derecha: arrastrar gira; ⟲ ⟳ abajo, bajo el muñeco */
+#lkSpin{position:absolute;top:0;right:0;bottom:0;left:50%;z-index:0;touch-action:none;cursor:grab;-webkit-user-select:none;user-select:none}
+#lkSpin[hidden]{display:none}
+#lkSpin.drag{cursor:grabbing}
+.lk-rot{position:absolute;left:calc((var(--lkcx, .68) - .5) * 200%);bottom:calc(14px + var(--sbm));transform:translateX(-50%);display:flex;gap:12px}
+.lk-rot button{display:flex;align-items:center;justify-content:center;width:44px;height:44px;padding:0;border-radius:50%;color:var(--fg);
+  background:var(--flat);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.12),var(--flat-sh);text-shadow:none}
+.lk-rot button:hover{background:var(--flat-hi);filter:none}
+.lk-rot button:focus-visible{outline:none;box-shadow:var(--ring-f),var(--flat-sh)}
+.lk-rot svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+/* avisos («Guardado», «Quitado: …», «Nuevo en tu vestuario: …»): abajo a la derecha, sobre el 3D (en el Vestuario, bajo el muñeco) */
+#lkNote{position:absolute;left:68%;bottom:calc(60px + var(--sbm));z-index:3;max-width:min(460px,58%);margin:0;padding:9px 16px;border-radius:8px;
+  background:var(--tk);color:#fff7e8;font:700 15px/1.25 var(--ui);text-align:center;box-shadow:0 0 0 1.5px rgba(255,255,255,.14),0 8px 24px rgba(0,0,0,.4);
+  opacity:0;transform:translate(-50%,8px);transition:opacity .2s,transform .2s var(--ease);pointer-events:none}
+#lkNote.on{opacity:1;transform:translate(-50%,0)}
+#lkNote:empty{display:none}
+#menu[data-page="look"] #lkNote{left:calc(var(--lkcx, .68) * 100%);bottom:calc(72px + var(--sbm));max-width:min(420px,58%)}
+/* poco alto (portátiles) */
+@media (max-height:700px){
+  #mpLook .mp-head{margin-bottom:8px}
+  #mpLook .lk-r{min-height:54px}
+}
+@media (max-height:560px){#menu[data-page="look"] .menu-foot{display:none}#mpLook{padding-bottom:0}}
+/* teléfonos apaisados (844×390, 740×360, 667×375): columna de ~330 px, ~5 filas de 44-46 px */
+@media (max-height:420px){
+  #mpLook{--lkw:min(330px,48vw)}
+  #menu[data-page="look"]{padding-top:calc(10px + var(--st));padding-bottom:calc(8px + var(--sbm))}
+  #mpLook .mp-head{margin-bottom:5px}
+  .lk-top{margin-bottom:6px;gap:6px}
+  .lk-pk,.lk-ven button{height:34px;padding:0 9px;font-size:13.5px}
+  .lk-bar{margin-bottom:6px;gap:6px;width:calc(var(--lkw) + 190px)}
+  #lkTabs .tb-row{padding:2px}
+  #lkTabs .tab{padding:5px 8px;min-height:36px}
+  .is-touch #lkTabs .tab{min-height:40px}
+  .lk-help{margin:-1px 2px 5px;font-size:11.5px}
+  .lk-list{padding-bottom:6px}
+  #mpLook .lk-r{min-height:46px;padding:3px 2px 3px 11px}
+  #mpLook .lk-r:focus-visible,#mpLook .lk-r.kf{padding-left:15px}
+  .lk-r .mi-l{gap:0}
+  .lk-k{font-size:11px}
+  .lk-v{font-size:15px;gap:6px}
+  .lk-st{font-size:11.5px}
+  .lk-lk{font-size:11px}
+  .lk-r .mi-h{font-size:11px;margin-top:1px}
+  #mpLook .lk-r .mi-v .arr{width:38px}
+  .is-touch #mpLook .lk-r .mi-v .arr{width:44px}
+  .qlist.lk-list{gap:4px}
+  /* sin las insignias LB/RB (Q/E): con ellas las 7 pestañas no cabían y se veían 5 (como en la barra táctil; LB/RB siguen yendo) */
+  #lkTabs .tb-k{display:none}
+  #lkNote{font-size:13px;padding:7px 12px}
+  /* el aviso, abajo sobre la columna y no sobre el muñeco: con el encuadre de cabeza le tapaba la barbilla y el cuello */
+  #menu[data-page="look"] #lkNote{left:calc(clamp(24px,6vw,96px) + var(--sl));bottom:calc(8px + var(--sbm));max-width:min(322px,calc(48vw - 8px));text-align:left;transform:translate(0,8px)}
+  #menu[data-page="look"] #lkNote.on{transform:translate(0,0)}
+  .lk-rot{bottom:calc(8px + var(--sbm))}
+  #menu[data-page="look"] .fs-btn{width:38px;padding:0;justify-content:center;gap:0;right:calc(10px + var(--sr))}
+  #menu[data-page="look"] .fs-btn span{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .is-touch #menu[data-page="look"] .fs-btn{width:44px}
+}
+/* móvil en vertical: el muñeco arriba y la columna abajo, a todo el ancho */
+@media (max-aspect-ratio:1/1){
+  #menu[data-page="look"]{justify-content:flex-end;background:linear-gradient(0deg,rgba(5,8,15,.94) 0%,rgba(5,8,15,.8) 44%,rgba(5,8,15,0) 58%)}
+  #mpLook{--lkw:100%;width:100%;height:auto;max-height:56%;padding-bottom:0}
+  .lk-bar{width:100%;max-width:none;flex-wrap:wrap}
+  .lk-bar .tabs{flex:1 1 100%}
+  .lk-foot{margin-left:auto}
+  #lkSpin{left:0;bottom:46%}
+  .lk-rot{left:calc(12px + var(--sl));top:calc(12px + var(--st));bottom:auto;transform:none}
+  #menu[data-page="look"] #lkNote{left:50%;top:calc(68px + var(--st));bottom:auto;max-width:calc(100% - 32px)}
+  #menu[data-page="look"] .menu-foot{display:none}
+}
 </style>
 
 <div id="app">
@@ -2545,6 +2696,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
       <nav class="mlist" data-nav aria-label="Menú principal">
         <button class="mi primary" id="btnPlay"><span>Jugar</span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi" id="btnSquad"><span>Jugadores</span><span class="mi-s" id="squadSub">Estadísticas y mejoras</span></button>
+        <button class="mi" id="btnLook"><span>Vestuario</span><span class="mi-s" id="lookSub">Aspecto de tus jugadores</span></button>
         <button class="mi" id="btnTut"><span>Cómo se juega</span><span class="mi-s">Tutorial</span></button>
         <button class="mi" id="btnControls"><span>Controles</span><span class="mi-s" id="ctlSub">Teclado</span></button>
         <button class="mi" id="btnSettings"><span>Ajustes</span><span class="mi-s">Audio, imagen y equipación</span></button>
@@ -2589,6 +2741,37 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
       <div class="qlist gy-list" id="gymList" data-nav aria-label="Ejercicios"></div>
       <p class="gy-foot" id="gymFoot"></p>
     </div>
+    <!-- VESTUARIO (1.1.0, look-spec §6): aspecto de los n.º 1 y 2 y del jugador de la Carrera. Mitad izquierda: selector, escenario,
+         pestañas con el pie en iconos y filas con flechas (ui.js lkRender). Mitad derecha: el muñeco de muestra (main.js lo pinta en la
+         escena del menú) y #lkSpin para girarlo. Se guarda al salir. -->
+    <div class="mpage" id="mpLook" data-page="look" hidden>
+      <div class="mp-head">
+        <button class="mp-back" id="btnLookBack" aria-label="Volver y guardar el aspecto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker">Jugadores</p><h2 class="mp-t">Vestuario</h2></div>
+      </div>
+      <div class="lk-top">
+        <div class="lk-pick" id="lkPick" data-nav role="radiogroup" aria-label="Jugador"></div>
+        <div class="lk-ven" id="lkVen" data-nav role="radiogroup" aria-label="Escenario">
+          <button type="button" role="radio" data-ven="hall" aria-checked="true">En pista</button><button type="button" role="radio" data-ven="beach" aria-checked="false">En playa</button>
+        </div>
+      </div>
+      <div class="lk-bar">
+        <div id="lkTabs" aria-label="Apartado del vestuario"></div>
+        <div class="lk-foot" id="lkFoot" data-nav role="toolbar" aria-label="Acciones">
+          <button type="button" data-lkf="try" aria-label="Probar" title="Probar (pose y cara)"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM10 7.8v8.4l6.4-4.2z"/></svg></button>
+          <button type="button" data-lkf="rand" aria-label="Al azar" title="Al azar"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 3.2a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z"/></svg></button>
+          <button type="button" data-lkf="reset" aria-label="Restablecer este apartado" title="Restablecer este apartado"><svg viewBox="0 0 24 24" aria-hidden="true" class="st"><path d="M5 9.5h10a5 5 0 0 1 0 10H8.5"/><path d="M9 5 4.5 9.5 9 14"/></svg></button>
+          <button type="button" data-lkf="copy" aria-label="Copiar a playa" title="Copiar a playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h9.5A1.5 1.5 0 0 1 20 3.5V17h-2.4V4.4H9z"/><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h9A1.5 1.5 0 0 1 16 7.5v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 20.5z"/></svg></button>
+        </div>
+      </div>
+      <p class="lk-help" id="lkHelp" hidden></p>
+      <div class="qlist lk-list" id="lkList" data-nav role="tabpanel" aria-label="Piezas"></div>
+    </div>
+    <!-- Vestuario: mitad derecha (arrastrar gira el muñeco; botones de 44 px para el dedo) -->
+    <div id="lkSpin" hidden>
+      <div class="lk-rot"><button type="button" data-rot="-1" aria-label="Girar a la izquierda" title="Girar (Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5A8 8 0 1 1 4.6 14"/><path d="M3.5 4.5 8 6.5l-1.6 4.6"/></svg></button><button type="button" data-rot="1" aria-label="Girar a la derecha" title="Girar (X)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6.5A8 8 0 1 0 19.4 14"/><path d="M20.5 4.5 16 6.5l1.6 4.6"/></svg></button></div>
+    </div>
+    <p id="lkNote" role="status" aria-live="off"></p>
     <div class="menu-foot">
       <span class="navhint" id="navHint"></span>
       <button type="button" class="ver" id="btnVer" aria-label="Novedades de la versión" hidden></button>
@@ -2690,7 +2873,11 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
       </div>
       <div id="pnSquad" hidden>
         <!-- Estadísticas de tus jugadores (js/prog.js): nivel, experiencia, puntos de mejora y los 10 atributos con «+» -->
-        <div class="sq-pick" id="sqPick" data-nav role="radiogroup" aria-label="Atleta"></div>
+        <div class="sq-top">
+          <div class="sq-pick" id="sqPick" data-nav role="radiogroup" aria-label="Atleta"></div>
+          <!-- Vestuario: el aspecto del atleta elegido (cierra el panel y abre la página del menú con el mismo n.º) -->
+          <div class="sq-lk" data-nav><button type="button" class="ghost" id="btnSqLook" aria-label="Aspecto del atleta en el vestuario"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3 3 6l2 5 2.2-1V21h9.6V10l2.2 1 2-5-5.5-3c-.5 1.6-1.8 2.6-3.5 2.6S9 4.6 8.5 3z"/></svg><span>Aspecto</span></button></div>
+        </div>
         <div id="sqTabs" aria-label="Apartado"></div>
         <div class="sq tab-pane" id="sqBody" data-nav role="tabpanel"></div>
         <p class="sq-note">Ganas experiencia en cada partido (más si ganas, si puntúas y cuanto más alto es el nivel). Cada nivel da 3 puntos de mejora. Las mejoras son definitivas.</p>
@@ -2825,6 +3012,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 <script src="js/prog.js"></script>
 <script src="js/gym.js"></script>
 <script src="js/badges.js"></script>
+<script src="js/look.js"></script>
 <script src="js/venues.js"></script>
 <script src="js/arena.js"></script>
 <script src="js/venue-fanals.js"></script>

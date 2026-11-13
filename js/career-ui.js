@@ -6,6 +6,9 @@
  * Dificultad de la Carrera (12-nov-2026): fila «Dificultad» al crear, «Dificultad · Cambiar» en Partido, tarjeta en Palmarés ›
  * Opciones y el nivel en Palmarés, Temporadas y fin de temporada (solo si se ha usado algo que no sea Normal; notes/carrera.md §Dificultad).
  * Datos y reglas: js/career.js (VB.Career). Los partidos los arranca main.js (ctx.actions.startCareerMatch).
+ * Vestuario (sprint «personaliza», spec §6.1 y §7): Jugador › Vestuario (resumen y «Abrir el vestuario», que cierra la Carrera y abre
+ * la página del menú con VB.UI.openLook({who:'career', hall, tc, back}) y el kit de tu club; al volver se reabre aquí), punto en la
+ * pestaña con novedades sin ver (VB.Look.unseen) y la fila «Aspecto» al crear. Sin js/look.js o sin VB.UI.openLook no sale nada.
  *
  * Entrada: botón #btnCareer del menú (index.html). Ratón, táctil (botones ≥ 44 px) y teclado/mando: ↑/↓ (y ←/→) mueven el foco,
  * Intro acepta, Esc vuelve; con mando main.js llama a VB.CareerUI.nav(it, dt) mientras está abierta (en lugar de VB.UI.nav).
@@ -28,7 +31,7 @@
   // «Fama» (career-life-ui.js): seguidores, patrocinio, rival, tienda, logros y legado
   var TABS = [['match', 'Partido'], ['inbox', 'Mensajes'], ['player', 'Jugador'], ['club', 'Club'], ['life', 'Fama'], ['league', 'Liga'], ['honors', 'Palmarés']];
   var SUBS = {   // (Jugador: el mismo orden que Jugadores del menú, Físico · Defensa · Ataque, que sale de VB.Prog.GROUPS)
-    player: [['phys', 'Físico'], ['def', 'Defensa'], ['atk', 'Ataque'], ['badges', 'Insignias'], ['train', 'Entreno']],
+    player: [['phys', 'Físico'], ['def', 'Defensa'], ['atk', 'Ataque'], ['badges', 'Insignias'], ['train', 'Entreno'], ['look', 'Vestuario']],   // (Vestuario: solo con js/look.js)
     club: [['info', 'Ficha'], ['mate', 'Compañero'], ['contract', 'Contrato'], ['offers', 'Ofertas']],
     league: [['table', 'Clasificación'], ['cal', 'Calendario'], ['news', 'Noticias'], ['clubs', 'Clubes']],   // (Noticias y Clubes: career-world-ui.js; sin él no salen)
     honors: [['titles', 'Palmarés'], ['seasons', 'Temporadas'], ['opts', 'Opciones']],
@@ -46,6 +49,10 @@
   function LUI() { return VB.CareerLife && VB.CareerLifeUI || null; }
   /** Mundo de la Carrera (career-world-ui.js, sprint 5): Faro; noticias y clubes en C2. Sin los dos ficheros, null. */
   function WUI() { return VB.CareerWorld && VB.CareerWorldUI || null; }
+  /** Vestuario (js/look.js, VB.Look): sin él no hay sub-pestaña, ni punto, ni fila «Aspecto». */
+  function LOOK() { var X = VB.Look; return X && Array.isArray(X.CATALOG) && X.SLOTS ? X : null; }
+  /** Hay objetos del vestuario que aún no has visto (punto en Jugador y en Vestuario). */
+  function lookNew() { var X = LOOK(); if (!X || !X.unseen) return false; try { var u = X.unseen(); return !!(u && u.length); } catch (e) { return false; } }
   var HLP = { esc: function (s) { return esc(s); }, sp: function (a, k) { return sp(a, k); }, kitSw: function (k, big) { return kitSw(k, big); } };
   var tabsApi = null, subApi = null, rejArm = 0, stayArm = 0, offArm = -1;   // offArm: oferta de mitad de temporada pendiente de confirmar
   var GROUP_OF = { atk: 'Ataque', def: 'Defensa', phys: 'Físico' };
@@ -452,18 +459,18 @@
     var newsN = CW ? CW.newsUnseen(c) : 0;
     tabsEl.hidden = false;
     drawBar('tab', TABS.filter(function (t) { return t[0] !== 'life' || !!LUI(); }).map(function (t) {
-      var dot = (t[0] === 'player' && c.player.pts > 0) || (t[0] === 'club' && (c.window === 'mid' || c.phase === 'off') && offN) || (t[0] === 'match' && c.phase === 'off') ||
+      var dot = (t[0] === 'player' && (c.player.pts > 0 || lookNew())) || (t[0] === 'club' && (c.window === 'mid' || c.phase === 'off') && offN) || (t[0] === 'match' && c.phase === 'off') ||
         (t[0] === 'life' && !!(c.life && c.life.spOffers && c.life.spOffers.length)) || (t[0] === 'league' && newsN > 0);
       return [t[0], t[1] + (t[0] === 'inbox' && un ? ' (' + un + ')' : ''), dot];
     }), tab);
     // Noticias y Clubes (career-world-ui.js), en las dos Carreras; sin career-world no salen
     var sl = subsOf(tab);
-    if (sl) sl = sl.filter(function (s) { return CW || (s[0] !== 'news' && s[0] !== 'clubs'); });
+    if (sl) sl = sl.filter(function (s) { return (CW || (s[0] !== 'news' && s[0] !== 'clubs')) && (s[0] !== 'look' || !!LOOK()); });
     if (sl && !sl.some(function (s) { return s[0] === sub[tab]; })) sub[tab] = sl[0][0];   // (p. ej. «Compañero» al pasar a la pista, o Noticias sin career-world)
     if (sl) {
       subEl.hidden = false;
       drawBar('sub', sl.map(function (s) {
-        var dot = (s[0] === 'offers' && (offN || c.phase === 'off')) || (tab === 'player' && GROUP_OF[s[0]] && c.player.pts > 0) || (s[0] === 'news' && newsN > 0);
+        var dot = (s[0] === 'offers' && (offN || c.phase === 'off')) || (tab === 'player' && GROUP_OF[s[0]] && c.player.pts > 0) || (s[0] === 'news' && newsN > 0) || (s[0] === 'look' && lookNew());
         return [s[0], s[1], dot];
       }), sub[tab]);
     } else { subEl.hidden = true; }
@@ -712,6 +719,7 @@
     var s = sub.player;
     if (s === 'badges') return renderBadges(c);
     if (s === 'train') return renderTrain(c);
+    if (s === 'look') return renderLook(c);
     var a = c.player, P = VB.Prog, need = C().need(a.lvl), h = '<div class="card"><div class="row">' + kitSw(C().myClub(c).kit) +
       '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp([esc(a.name), 'n.º ' + a.num], 's') + '</p><p class="muted" style="margin:0">' + sp([esc(a.role), a.age + ' años', 'Nivel ' + a.lvl, plural(a.matches | 0, 'partido', 'partidos')], 'c') + '</p></div></div>' +
       '<div class="xp" role="progressbar" aria-valuemin="0" aria-valuemax="' + need + '" aria-valuenow="' + a.xp + '" aria-label="Experiencia"><i style="width:' + Math.round(100 * a.xp / need) + '%"></i></div>' +
@@ -746,6 +754,52 @@
     }
     badgeMsg = '';
     return h + '</div>';
+  }
+  /** Nombre de un objeto o peinado del vestuario ('' si no hay). */
+  function lookName(X, id) { if (!id || typeof id !== 'string') return ''; var n = ''; try { n = X.name ? X.name(id) : ''; } catch (e) { n = ''; } return String(n || id); }
+  /** Jugador › Vestuario: lo que llevas en esta Carrera (su sede: pista o playa), lo que tienes y «Abrir el vestuario». */
+  function renderLook(c) {
+    var X = LOOK(), hallC = isHall(c), l = c.life || {}, k = C().myClub(c), can = !!(X && VB.UI && VB.UI.openLook);
+    var mine = l.look && typeof l.look === 'object' ? l.look : null, fit = mine;
+    if (!fit && X && !hallC) { try { fit = X.fit ? X.fit(0) : null; } catch (e) { fit = null; } }   // (playa sin aspecto propio: el de tu n.º 1)
+    var h = '<div class="card"><div class="row">' + (k ? kitSw(k.kit) : '') + '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp(['Vestuario', hallC ? 'En pista' : 'En playa'], 'd') + '</p>' +
+      '<p class="muted" style="margin:0">Con los colores de tu club. Solo estética: no cambia cómo juegas.</p></div></div>';
+    if (!X) return h + '<p class="muted">El vestuario no está disponible.</p></div>';
+    if (!mine) h += '<p>' + (hallC ? 'Tu jugador lleva su aspecto de siempre hasta que guardes uno en el vestuario.' : 'Llevas el aspecto de tu n.º 1 de Partido rápido hasta que guardes uno propio en el vestuario.') + '</p>';
+    if (fit) {
+      var set = fit[hallC ? 'hall' : 'beach'] || {}, worn = [];
+      (X.SLOTS || []).forEach(function (s) { var n = lookName(X, set[s]); if (n && worn.indexOf(n) < 0) worn.push(n); });
+      h += '<p style="margin:8px 0 0"><b>Peinado:</b> ' + esc(lookName(X, fit.style) || '—') + '</p>' +
+        (worn.length ? '<p class="muted" style="margin:4px 0 0">' + sp(worn.map(esc), 'c') + '</p>' : '');
+    }
+    var all = (X.CATALOG || []).filter(function (x) { return x && typeof x.id === 'string'; }), have = 0, nu = 0;
+    all.forEach(function (x) { try { if (X.owned(x.id)) have++; } catch (e) { } });
+    try { nu = X.unseen ? (X.unseen() || []).length : 0; } catch (e) { nu = 0; }
+    h += '<p class="muted" style="margin:8px 0 0">' + sp(['Tienes ' + have + ' de ' + all.length + ' objetos', nu ? plural(nu, 'novedad sin ver', 'novedades sin ver') : ''], 'v') + '</p>' +
+      '<div class="acts"><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Abrir el vestuario</button></div>' +
+      '<p class="muted">Más objetos con la fama, los logros y los premios de la Carrera, o en Fama › Tienda. Lo que ganas vale también en Partido rápido.</p></div>';
+    return h;
+  }
+  /** «Abrir el vestuario»: la Carrera se cierra (CareerUI.isOpen() false mientras tanto) y se abre la página del menú con el kit de tu
+   *  club (el mismo que lleva al partido: playa sin líbero, pista con kitLibero). Al volver, de nuevo en Jugador › Vestuario. */
+  function openLook(c) {
+    if (!c || !LOOK() || !(VB.UI && VB.UI.openLook)) { snd('back'); return; }
+    var k = C().myClub(c), kit = (k && k.kit) || {}, st = { kitShirt: kit.shirt, kitAccent: kit.accent, kitShorts: kit.shorts, kitPattern: kit.pattern };
+    if (isHall(c) && typeof kit.libero === 'number') st.kitLibero = kit.libero;
+    var tc = null; try { tc = VB.Players && VB.Players.kitFrom ? VB.Players.kitFrom(st) : null; } catch (e) { tc = null; }
+    var back = function () { tab = 'player'; sub.player = 'look'; view = 'hub'; show('hub'); };
+    snd('click'); close(true);
+    try { VB.UI.openLook({ who: 'career', hall: isHall(c), tc: tc, back: back }); }
+    catch (e) { try { if (window.console) console.error('CareerUI.openLook', e); } catch (e2) { } back(); }
+  }
+  /** Al abrir la Carrera: lo que ya se ha ganado y aún no está en el vestuario (en un guardado antiguo, un solo resumen). */
+  function lookSync() {
+    var Lf = VB.CareerLife, c = null; if (!LOOK() || !Lf || !Lf.lookCheck) return;
+    try {
+      c = C() && C().get(); if (!c) return;
+      var a0 = c.life && c.life.lookAnn, got = Lf.lookCheck(c);
+      if (got.length || a0 !== (c.life && c.life.lookAnn)) C().save(c);
+    } catch (e) { }
   }
   function meter(v, label, col) {
     return '<div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + v + '" aria-label="' + esc(label) + '"><i style="width:' + v + '%;background:' + col + '"></i></div>';
@@ -1085,7 +1139,7 @@
       '<div class="cf-col"><div><label>País</label>' + countryPick(cos) + '</div>' +
       '<div><label>Puntos por set</label><div class="seg" role="group" aria-label="Puntos por set">' + H6.POINTS.map(function (v) {
         return '<button data-act="pts6" data-v="' + v + '" aria-pressed="' + (form.pts6 === v) + '">' + v + '</button>';
-      }).join('') + '</div><p class="muted" style="margin:6px 0 0">Al mejor de 3 sets; el tercero, a 15. Con 15 la temporada se juega más rápido.</p></div>' +
+      }).join('') + '</div><p class="muted" style="margin:6px 0 0">Al mejor de 3 sets; el tercero, a 15. Con 15 la temporada se juega más rápido.</p></div>' + lookRow() +
       (has ? '<div class="card confirm"><p>Ya tienes una Carrera de pista. Para empezar otra, abandónala antes en Palmarés › Opciones.</p><div class="acts"><button class="pri" data-act="openmode" data-m="hall">Abrir la Carrera de pista</button></div></div>' :
         '<div class="acts"><button class="pri" data-act="create">Crear y ver ofertas</button></div>') +
       '</div></div>';
@@ -1136,6 +1190,8 @@
     }).join('') + '</div><p class="muted dh">' + esc(D[form.diff].name) + ': ' + esc(hn.charAt(0).toLowerCase() + hn.slice(1)) + '.</p>' +
       '<p class="muted" style="margin:6px 0 0">Puedes cambiarla entre partidos en Palmarés › Opciones.</p></div>';
   }
+  /** Fila «Aspecto» de crear (v1 sin editor: la carrera nueva copia tu n.º 1, VB.CareerLife.initLook). */
+  function lookRow() { return LOOK() ? '<div><label>Aspecto</label><p class="muted" style="margin:0">El de tu n.º 1 de Partido rápido (cámbialo luego en el vestuario).</p></div>' : ''; }
   function renderCreate(c) {
     if (!form.mode) form.mode = C().mode ? C().mode() : 'beach';
     if (form.mode === 'hall' && C().hall) { renderCreate6(c); return; }
@@ -1150,7 +1206,7 @@
       '<div><label>Rol</label><div class="roles" role="group" aria-label="Rol">' + ['atk', 'uni', 'cr'].map(function (k) {
         return '<button data-act="role" data-r="' + k + '" aria-pressed="' + (form.role === k) + '">' + esc(R[k].name) + '<small>' + esc(R[k].hint) + '</small></button>';
       }).join('') + '</div><div class="card prev-box" style="margin:8px 0 0"><h3>' + sp(['Tus atributos', esc(R[form.role].name)], 'v') + '</h3><div class="prev">' + C().KEYS.map(function (k) { return '<span>' + esc(P && P.LABEL ? P.LABEL[k] : k) + ' <b>' + st[k] + '</b></span>'; }).join('') + '</div></div></div></div>' +
-      '<div class="cf-col">' + (CD() ? createDiff() : '') + '<div><label>Reglas de playa</label><p class="muted" style="margin:0">' + 'Sets a ' + B.PTS + ' y el tercero a ' + B.PTS3 + '. Pista de 16 × 8, cambio de campo cada 7 puntos (5 en el tercero), el bloqueo cuenta como toque y la dejada va de nudillos. ' + B.WEEKS + ' jornadas a doble vuelta y el Open de los 4 primeros.</p></div>' +
+      '<div class="cf-col">' + (CD() ? createDiff() : '') + '<div><label>Reglas de playa</label><p class="muted" style="margin:0">' + 'Sets a ' + B.PTS + ' y el tercero a ' + B.PTS3 + '. Pista de 16 × 8, cambio de campo cada 7 puntos (5 en el tercero), el bloqueo cuenta como toque y la dejada va de nudillos. ' + B.WEEKS + ' jornadas a doble vuelta y el Open de los 4 primeros.</p></div>' + lookRow() +
       (C().has('beach') ? '<div class="card confirm"><p>Ya tienes una Carrera de playa. Para empezar otra, abandónala antes en Palmarés › Opciones.</p><div class="acts"><button class="pri" data-act="openmode" data-m="beach">Abrir la Carrera de playa</button></div></div>' :
         '<div class="acts"><button class="pri" data-act="create">Crear y ver ofertas</button></div>') +
       '</div></div>';
@@ -1189,6 +1245,7 @@
     switch (act) {
       case 'close': snd('back'); close(); return;
       case 'hub': snd('back'); view = 'hub'; render(); focusFirst(); return;
+      case 'look-open': openLook(c); return;
       case 'num': form.num = ((form.num - 1 + (+b.getAttribute('data-d')) + 99) % 99) + 1; snd('select'); keepFocus(b, render); return;
       case 'role': form.role = b.getAttribute('data-r'); snd('select'); keepFocus(b, render); return;
       case 'cdiff': form.diff = b.getAttribute('data-d'); snd('select'); keepFocus(b, render); return;
@@ -1384,7 +1441,7 @@
       var c = null; try { c = C() && C().get(); } catch (e) { c = null; }
       if (c && view === 'hub' && c.phase === 'off' && !root.querySelector('[data-act="play"]')) { focusTab(); return; }
       if (c && view === 'hub' && c.phase === 'pick') { focusTab(); return; }   // eligiendo club: la pestaña de la oferta (no «Firmar» de golpe)
-      var pref = root.querySelector('[data-act="cw-next"]') || root.querySelector('[data-act="play"]') || root.querySelector('[data-act="stay"]') || root.querySelector('#crName') || root.querySelector('[data-act="create"]');
+      var pref = root.querySelector('[data-act="cw-next"]') || root.querySelector('[data-act="play"]') || root.querySelector('[data-act="stay"]') || root.querySelector('#crName') || root.querySelector('[data-act="create"]') || root.querySelector('[data-act="look-open"]');
       if (!pref && view === 'hub') { focusTab(); return; }   // (p. ej. reabrir en Mensajes: la pestaña, no «‹ Jugar»)
       focusEl(pref || focusables()[0], kbNav);
     }, 60);
@@ -1489,6 +1546,7 @@
     if (!open) lastFocus = document.activeElement;
     open = true; confirmStep = 0;
     var app = document.getElementById('app'); if (app) app.classList.add('cr-on');
+    lookSync();
     render(); syncMenu();
     root.hidden = false; root.classList.remove('in');
     requestAnimationFrame(function () { if (root) root.classList.add('in'); });

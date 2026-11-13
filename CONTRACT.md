@@ -6,7 +6,7 @@ Proyecto personal. Este documento es la ley para los 6 especialistas que trabaja
 ## 1. Propiedad de ficheros (exacta)
 
 ```json
-{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js (athlete models, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js and js/main.js (boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)"}
+{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js and js/look.js (wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)"}
 ```
 
 `js/prog.js` (estadísticas y progresión de tus jugadores: `VB.Prog`, guardado en `voley3d.squad`) también es de **ui_main**; sim lo recibe ya convertido en `createGame({attrs: [[st7, st11], [st3, st9]]})` (atributos 1-99 con las claves `VB.ATTR_KEYS`; 50 = neutro; sin `attrs` la sim no cambia), que deja `p.st`, `p.prof` (perfil de IA, `Sim.statProf`) y `p.ak` (multiplicadores del humano, `Sim.attrK`; constantes en `VB.ATTR_K`). Integración (10-nov-2026): `p.ak` añade `eRecv/eDig/eSet/eAtk` (precisión del toque: dispersión ×1,5-0,6 y calidad del pase/colocación) y `rRecv/rDig` (alcance del 1r toque ×0,94-1,05); con Velocidad < 50 frenar y girar es al momento (la rampa `accT` solo al arrancar).
@@ -21,11 +21,20 @@ guardado `voley3d.gym`), `js/career-world.js` (`VB.CareerWorld`: Faro el mentor,
 `js/career-world-ui.js` (`VB.CareerWorldUI`), y las herramientas `tools/og-image.js` (→ `pages/og.png`), `tools/abouttest.js`,
 `tools/gymtest.js` y `tools/settest.js`. `tools/keytest.js` es de **camera_input**; `tools/animtest.js` de **players**;
 `tools/fp-mastery.json` (huella de la maestría, `node tools/fingerprint6.js --variant mastery`) de **sim**. Guardados nuevos:
-`voley3d.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; aún NO va a `DOCS`: `GYM_SYNC = false` en account.js hasta que Ferran
-despliegue firebase/firestore.rules, que ya admiten `'gym'`), `voley3d.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
+`voley3d.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; va a `DOCS` desde que Ferran desplegó las reglas con `'gym'` el
+12-nov-2026: `GYM_SYNC = true` en account.js), `voley3d.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
 padDead`), `voley3d.seen` (`{v}`: última versión cuyas Novedades se vieron) y `voley3d.e1tips` (consejos de maestría vistos); estos tres
 NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
 `newsSeen`, `annals[≤40]`, `lead`, `tpl`; ≈ 13 KB a 12 temporadas) y `c.life.celeb` / `c.life.celebAnn`.
+
+**Vestuario (rama personaliza, 13-nov-2026).** `js/look.js` (`VB.Look`: catálogo, compatibilidades, saneado, resolución del aspecto,
+inventario y guardado; puro, sin THREE ni DOM) es de **ui_main**, igual que `tools/looktest.js`. `js/doll.js` (el muñeco: geometría,
+atlas, ranuras del Vestuario y `VB.Doll.preview`) es de **players** (ya lo era en la práctica; ahora consta en el JSON). Guardado nuevo
+`voley3d.look` (perfil global, < 8 KB): `{v:1, fits:[fitN1, fitN2], own:{id:{s:'carrera'|'tienda'|'gym'|'record', t:ms}}, seen:{id:1}}`;
+no se escribe hasta la primera edición o el primer desbloqueo. AÚN NO va a `DOCS`: `LOOK_SYNC = false` en account.js hasta que Ferran
+despliegue firebase/firestore.rules, que ya admiten `'look'` (orden obligatorio: 1) desplegar, 2) `LOOK_SYNC = true`). Dentro de la Carrera
+(sin subir VER): `c.life.look` (fit de tu jugador o `null` en los guardados de antes: cara de siempre hasta guardar), `c.life.lookAnn` y
+`c.life.spentLook`. Detalle en «Vestuario» al final, en notes/ui_main.md y en notes/players.md.
 
 **Reglas**
 - Cada especialista edita SOLO sus ficheros. Nada de tocar ficheros ajenos "solo una línea".
@@ -42,7 +51,7 @@ NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`ment
 
 - Scripts clásicos (`<script src>`), SIN módulos ES, sin import/export, sin bundler. Un único espacio global `window.VB`.
 - Orden de carga (index.html, sprint 5): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/account.js` → `js/sim.js` → `js/ai.js` →
-  `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
+  `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/look.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
   `js/career-world-ui.js` → `js/career-ui.js` → `js/ui.js` → `js/install.js` → `js/main.js` (main arranca). gym.js lee `VB.DRILL` (sim) de forma
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
@@ -126,6 +135,10 @@ por debajo de 26 fps y no sube), `showFps`, `camDist` ('near' \| 'normal' \| 'fa
 'on' \| 'off'), `cbColors`, `ballStyle` ('clasico' \| 'contraste'), `keys` / `padKeys` (objeto plano con solo las diferencias; ≤ 12
 acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3), `aimSet` (true: colocación dirigida de E1), `msTiming`
 (false: sello en ms). `DEVICE_KEYS` van a `voley3d.device`, no a `voley3d.settings`.
+
+**Vestuario en `VB.ctx`** (main.js, 13-nov-2026): `noteHitch()` (la ventana de fps en curso no cuenta para la calidad adaptativa:
+`aq.skip = 1`), `actions.showroom(on, L, o)` (vista previa del Vestuario en el menú; ver «Vestuario» al final) y `actions.looksChanged()`
+(el Vestuario guardó: la demo del menú se viste con los looks nuevos).
 
 ### 4.2 Simulación `VB.Sim` (sim.js) + `VB.AI` (ai.js) + `VB.C` (constantes)
 - `createGame(opts)` → `game`. `opts = {demo, autopilot, seed, difficulty ('easy'|'normal'|'hard'|'expert' = Fácil/Normal/Difícil/Experto, alias castellanos; orden en `VB.DIFF_ORDER`, nombre visible `VB.DIFF[k].name`), serveClock (false = sin regla de 8 s), stats, rookie (primer partido: la CPU saca más suave; sin efecto en Difícil/Experto), present (pausas de presentación del punto, SIM-03: main.js lo pone en partidos humanos sin autopilot), ctrl ('both' por defecto: el control pasa a quien da el siguiente toque; 'one': el humano lleva siempre a `teams[0][0]` y la IA al compañero en todo, saque incluido, sin eventos `switch`; queda en `g.ctrlMode`; main.js lo toma de `ctx.settings.ctrlMode`), ctrlIdx (0 \| 1, solo con ctrl 'one': 0 = `teams[0][0]` n.º 1, 1 = `teams[0][1]` n.º 2; queda en `g.ctrlIdx`; con 1 el orden de saque del equipo 0 va en espejo; el juego pasa siempre 0, el 1 solo con `&ctrlidx=1` o `opts.ctrlIdx` en pruebas), ctrlRole ('OH': 6v6, sprint 3; puesto del jugador del humano, el primero de ese puesto = OH1, n.º 2; v1 solo el receptor, `CTRL_ROLES6` en sim.js; queda en `g.ctrlRole`, '' en 2v2. En 6v6 sin `demo` `ctrlMode` es siempre 'one')}`.
@@ -733,3 +746,42 @@ contorno grueso DE COLOR, cara grande dibujada, uniforme de equipo con el «tajo
 - Regla de datos: para cambiar un club o una competición se corrige el JSON de `notes/clubes/` y se ejecuta `node tools/build-leagues.js`
   (comprueba unicidad, colores, patrocinadores conocidos y «masculino/femenino» antes de escribir). `tools/careertest.js` falla si js/leagues.js
   no está al día con los JSON.
+
+### Vestuario: personalización del aspecto (rama personaliza, 13-nov-2026)
+Todo es estético: nada entra en la sim, en `attrs`, en `badges` ni en `g.rng` (huella 2v2 idéntica); cero programas y cero llamadas de
+dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle en notes/players.md (muñeco) y notes/ui_main.md (resto).
+- **`VB.Look`** (js/look.js, ui_main): `V, SLOTS, CATALOG [{id, name, slot, venue:'P'|'Y'|'A', rarity:0..3, unlock:[…], geo, tris, hint}],
+  CLASH, STYLES, SKINS, HAIRS, PALETTE`, `item(id), name(id), stars(id), lockText(id, hall)`, `defaults(i), sane(fit, i), fix(fit, venue,
+  slot) → {fit, removed}, ok(fit, venue)`, `resolve(fit, venue, tc)` → L congelado (sin `h`: la altura la pone players), `geoSig, atlasSig,
+  sig`, `fromSeed(n)`, `random(seed, ownedOnly)` (semilla de la UI = `Date.now()`, nunca `g.rng`), `load(), fit(i), setFit(i, fit),
+  owned(id), grant(id, src), wearable(fit, saved), unseen(), markSeen(ids), checkGlobal({gym, gymN, rec})`, `matchLooks(o)` y
+  `mergeRaw(Lraw, Rraw)`. Fit: `{v:1, skin, hair (hex o id de tinte), style, hall:{ranura:id}, beach:{ranura:id}, colors:{acc, acc2,
+  sock, shoe, glass}}`.
+- **`VB.Look.matchLooks(o)`** → `[fit0|null, fit1|null]`, con `o = {career, hall, look, mate, watch}`: Partido rápido 2v2, Entrenamiento y
+  demo `{}` → `[fits[0], fits[1]]`; 6v6 rápido `{}` (players solo viste a tu atleta, el de `ctrlBase`); 6v6 espectador `{watch:true}` →
+  `[null, null]`; Carrera de playa → `[o.look || fits[0], fromSeed(hash del compañero)]`; Carrera de pista → `[o.look, null]` (`null` en
+  guardados antiguos: la cara de siempre).
+- **main.js**: guarda `curLooks` (= `matchLooks` del partido en curso) en `setGame(g, kit, lookOpts)` y lo pasa a
+  `Players.setKit(Object.assign({}, kit || settings, {looks: curLooks}))`; también en Ajustes › Equipación. En la Carrera,
+  `lookOpts = {career:true, hall, look: VB.CareerLife.lookNow(), mate: m.career.mate}`. `ctx.actions.showroom(on, L, o)`: con `on` llama a
+  `VB.Doll.preview.start(ctx, L, o)` (o a `set` si ya estaba encendida), a `Players.showroom(true)` y para la sim de la demo; sin `on`,
+  `stop()` y `Players.showroom(false)`; `ctx.noteHitch()` al empezar, al acabar y cuando `set` devuelve `'geo'`. Solo en el estado
+  `'menu'` (setState la apaga fuera de él). En el bucle, `VB.Doll.preview.update(realDt)` va DESPUÉS de `CameraRig.update` (coloca
+  `ctx.camera`). `o.px` por defecto: 1 en táctil, 2 en escritorio con calidad alta (como los atletas).
+- **players** (js/players.js): `setKit(st, g)` con `st.looks = [fit|null, fit|null]` (aplica), `null` (borra) o `undefined` (conserva lo
+  que había); la firma de los looks entra en la de `setKit` (pasa por `flushCache`). `kit(team)`, `kitFrom(st)` (tc desde un objeto de
+  ajustes), `showroom(on)`, `lookOf6Id()`. Tu look solo lo lleva quien tiene `meSlot(p) >= 0` (equipo 0: idx 0/1 sin rol; con rol, el
+  `ctrlBase` del 6v6 humano; nunca el líbero que entra por ti ni nadie en espectador); al cambiar `ctrlBase`, `swapMe` rehace solo los 2 rigs.
+- **doll** (js/doll.js): `VB.Doll.material(tc, L, num, beach, px)` y `geometry(r, lod)` con `r.look` = L; lo que falte en L vale lo de hoy.
+  `VB.Doll.preview = {start(ctx, L, o), set(L, o) → 'atlas'|'geo'|'', pose(name), face(expr), spin(dRad), yaw(rad), frame(name),
+  place(cx, half) (centro del muñeco en fracción del ancho y, opcional, medio hueco libre; ui.js lo pone en el hueco libre), update(dt), stop(), active(), info()}`, `VB.Doll.HIDE_HAIR`, `VB.Doll.lookSelfTest()` (navegador).
+- **ui** (js/ui.js, index.html): página `#mpLook` (`menuGo('look', o)`; `VB.UI.openLook(o)` con `{who, hall, tc, back}` o, para
+  `?debug=look`, `{tab, venue, item, pick}`). Guarda con `VB.Look.setFit` o `VB.CareerLife.setLook` y llama a `ctx.actions.looksChanged()`.
+- **Carrera** (career-life.js): `initLook(c), lookCheck(c, quiet), lookShop(c), buyLook(id) → 'ok'|'money'|'owned'|'', setLook(fit),
+  lookNow(), achName(id, hall)`. La tienda del Vestuario no toca `GEAR`, `gearBonus`, `attrs`, `l.spent` ni el logro `gear`.
+- **account.js**: `LOOK_SYNC = false`; con él a true, `DOCS['voley3d.look'] = 'look'` y `merge()` une con `mergeLook` (own y seen con
+  `VB.Look.mergeRaw`; fits del lado más reciente por la hora de meta; sin look.js gana entero el más reciente). Ya apunta la hora de cada
+  escritura de `voley3d.look` aunque no suba. `VB.Account._mergeLook` y `_lookSync` (pruebas).
+- **Depuración**: `?debug=look&tab=pelo|cabeza|cara|cuerpo|brazos|piernas|colores&venue=hall|beach&item=<id>&pick=1|2|career` (main.js
+  abre el menú y llama a `VB.UI.openLook({tab, venue, item, pick})`; `pick` llega como 1, 2 o `'career'`, `venue` también acepta
+  pista/playa); `&looktest=1` para `node tools/looktest.js --gl`.
