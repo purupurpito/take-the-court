@@ -1248,3 +1248,53 @@ Pedido de Ferran: mapas nuevos de playa y de pista. Plan aprobado con 4 sedes; e
   RU:SOS/BLG, ES:TAM/BND) son azul sobre amarillo de leagues.js con otro fondo. Sin tocar (bajos, para la hoja): IT:MOD/IT:CON,
   ES:LAG/ES:SCG.
 - Pendiente: el visto bueno de Ferran a la hoja (tools/out/gen/index.html).
+
+## Pelota por sede: ¿se ve en todas? (arena, 15-nov-2026; pregunta de Ferran, sin commitear)
+- `tools/balltest.js` (CDP, como venueshots): cada sede (las 6 a mano + 390 pistas + 390 playas generadas) en `?debug=rally` con la
+  cámara de juego 2v2 CONGELADA (CameraRig.update anulado), sin jugadores ni el resto de fx, y la pelota en 6 posiciones de sim:
+  `saque` (rival, x -HL-0,5, z 3,4), `red` (x 0, z 4,2), `propio` (x 3,5, z 0,8), `rival` (x -5, y -3,4, z 0,9; fuera del «M T C»
+  de la red), `alto` (x -6, z 5,5), `banda` (y -HW-0,8, z 4,5). Por posición: fotograma sin pelota y tres con pelota en tres
+  orientaciones FIJAS (la pelota gira y la nota dependía de los paneles que miraban a cámara: ±5); media de las tres.
+  Medidas en el recorte (radio proyectado Rb, contorno ol·Rb): ΔE76 media del cuerpo (r < 0,8 Rb) / media del anillo de fondo;
+  `borde` = p25 sobre 48 radios del ΔE máximo entre el fondo justo fuera y el contorno o el panel; `vis` = parte del disco que se
+  ve (no tapada). raw = min(ΔE, borde) + 0,5·max(ΔE, borde); **score = raw·√(Rb/10)** (la pelota cercana, Rb ≈ 23 px, se lee
+  aunque sus paneles crema caigan sobre arena crema; la del saque rival, 8-9 px, necesita más). **Umbral 30**, calibrado mirando
+  los recortes: < 25 cuesta (turquesa sobre agua turquesa, letras verde agua con sodio), 28-32 se ve con esfuerzo, ≥ 35 bien.
+  Salidas en tools/out/ball/ (index.html con las 60 peores, ball.json, crops/, full/ con FULL=1). Variables: MODE=6 (cámara
+  rally6, solo pistas), Q=low, CLUBS, KIND, TAG, QS, VB_ROOT (otra copia del juego: «antes»). ~15 min todo.
+- Hallazgos (antes, umbral 30): 16 sedes. 15 son el SAQUE RIVAL en playa de día (BR, PH, lago) y en Moll: con el post-proceso
+  de calidad alta el horizonte casi blanco entra en el bloom y su halo lava la pelota lejana (el contorno de tinta salía
+  #546b75 en vez de #1d1530; con `post=0` la misma pelota da 48 en vez de 26). Más GR:DKS (franja de letras turquesa con sodio)
+  y US:MNO. Al borde (30-33): 37 posiciones más. Aparte (común a todas): el «M T C» turquesa #22d8c6 de la red (arena.js) se
+  come la pelota que cae en campo rival justo detrás; no se toca aquí (propuesta: letras de la malla en tinta o crema).
+- Arreglos:
+  - venue-gen-beach.js `looksOf`: horizonte y bruma de día (mediodía y tarde dorada) con el canal más alto ≤ SKY_MAX 0,84
+    (capSky, mismo tono): fuera del bloom. Río y lago, agua más azul (mezcla con #24508a / #4f7fb8). Sin cambio de receta.
+  - venue-gen.js: `BALL` = turquesa #1cc4b4 y el medio #14a79d (el oscuro no: con él los verdes oscuros, que se ven bien, huían a
+    un verde menta claro); `ballD(h, tint)`; `apart` acepta un segundo grupo (extra, wantX, tintX: con sodio la distancia se mide
+    con los dos colores bajo #ffcf8a) y prefiere oscurecer a aclarar. SEP.ball 26 zona libre (fuera el verde #3f7f5a de
+    NEUTRAL_FREE, que con sodio era la pelota: ES:NIV, ES:VEG, AR:FOR), 32 pared (menos tinte del club), 22 asientos y acento
+    (pancartas, carteles, franja de letras: GR:DKS, US:ORL), 20 zócalo, 16 pista (solo si casi la calca: JP:BRH #2dd2ab).
+  - venue-genkit.js `viewPaint`: colinas delanteras de la vista «montañas» en oliva #7d8448 (antes #5f8a5a, la pelota alta se
+    perdía en la ventana: SI:KNL, DE:NSP).
+  - venue-moll.js (a mano): agua #2f6f8f / #4f93b0 (antes teal #2f7f86 / #4fa7a0, justo detrás del saque rival).
+  - Instantánea regenerada (UPDATE=1 node tools/venuegen-test.js): cambian solo pistas (playas igual).
+  - venue-gen.js: `apart` con memo (APART) y `lin` con tabla de 8 bits: el coste por spec vuelve a ~0,17 ms (sin ellos, 0,9 ms).
+- Resultado (2v2, alta, 786 sedes, 4716 posiciones): antes 16 sedes < 30 (+37 posiciones entre 30 y 33); después 0 (3 entre 30 y
+  33: GR:DKS saque 31,8, moll saque 32,2, RU:SUD saque 32,5). En baja, los peores pasan (33-40).
+- 6v6 (MODE=6, cámara rally6 congelada, solo pistas): 3 de color al borde (PH:PWC saque 20: barandilla del palco sobre una franja
+  verde; SI:CAP rival 26: pista #3092a6 con sodio; PH:SFX 29,6) y un FALLO DE CÁMARA: en 5 pistas H1 pequeñas (CZ:FIE, PE:REM,
+  TR:ANG, ES:SRQ, JP:SPZ; wx 20-24, alero ~8 m) la cámara de TV de 6v6 (x ≈ 14, z ≈ 7,8) queda fuera del edificio y se ve a
+  través del marco de la pared del fondo / una viga que tapa media pista. Sin tocar (camera_input / venue-gen-hall): pendiente.
+- venuegen-test: «AR la plata H4,H4» ya fallaba sin estos cambios (copia con venue-gen*.js de HEAD); la instantánea ya estaba
+  desfasada (437 cambios) por cambios sin commitear de otros en el árbol; se regeneró con UPDATE=1.
+- Seguimiento (15-nov-2026):
+  - Cámara del 6v6 tapada: `tools/cam6clip.js` lanza rayos (Raycaster contra los triángulos del grupo de la sede dentro de la caja
+    |x| ≤ 16, |y| ≤ 7, z 0,3-8,6; sin haces de luz ni cristal) desde la envolvente de las cámaras del 6v6 (TV: x ±14,2, y ±1,1,
+    z 7,8; 3ª persona: x ±11/13,5/15, y 0/±4,5, z 4,9/6,4) a una rejilla de la pista. Antes: 5 tapadas, todas H1 con dientes de
+    sierra y alero < 9 m (PE:REM 35 % de los rayos de TV, CZ:FIE 14 %, TR:ANG 10 %, ES:SRQ 5 %, JP:SPZ 5 %): el cordón inferior
+    de la cercha (alero − 0,95) quedaba por debajo de la cámara de TV. Arreglo: venue-gen.js `plan`, alero mínimo SAW_EAVE = 9,0
+    con techo de sierra (no cambia la receta: instantánea igual, 96/96). Después: 0 de 392 (las H8/H9 son la piel de Palau).
+  - «M T C» de la red (arena.js, NET_MTC): de teal #22d8c6 a tinta #1d1530 (en crema la pelota se perdía igual con sus paneles
+    crema: palau 15 frente a 20 en teal y 27,5 en tinta, con la pelota justo detrás de las letras, `balltest LOGO=1`). Se sigue
+    leyendo: son cuerdas tres veces más gruesas que las negras de la malla.

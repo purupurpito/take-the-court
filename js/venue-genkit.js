@@ -982,7 +982,7 @@
     if (view === 'mountains' || view === 'snow') {
       hills(night ? '#262c4a' : '#8aa3bf', Hh * 0.75, 7);
       if (view === 'snow' || !night) { g.fillStyle = night ? '#4a5378' : '#ffffff'; for (var s = 0; s < 6; s++) { var sx = x0 + W * (0.1 + s * 0.16); g.beginPath(); g.moveTo(sx - 18, y0 + Hh * 0.42); g.lineTo(sx, y0 + Hh * 0.28); g.lineTo(sx + 18, y0 + Hh * 0.42); g.fill(); } }
-      hills(night ? '#1c2238' : (view === 'snow' ? '#dfe8ef' : '#5f8a5a'), Hh * 0.35, 11);
+      hills(night ? '#1c2238' : (view === 'snow' ? '#dfe8ef' : '#7d8448'), Hh * 0.35, 11);   // (oliva: el verde #5f8a5a de antes, tras la pelota alta, la escondía; tools/balltest.js)
     } else if (view === 'desert') {
       hills(night ? '#3a3040' : '#e0b878', Hh * 0.3, 5); hills(night ? '#2a2230' : '#cf9f5f', Hh * 0.18, 4);
     } else if (view === 'palms') {

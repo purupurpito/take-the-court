@@ -100,7 +100,10 @@
   }
   function hslHex(q) { return hex(hsl2rgb(q)); }
   function hexHsl(h) { return rgb2hsl(toRGB(h)); }
-  function lin(v) { return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  function linRaw(v) { return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }
+  var LIN8 = []; for (var li = 0; li < 256; li++) LIN8.push(linRaw(li / 255));
+  // (tabla para los valores de 8 bits, que son casi todos: apart y ballD convierten a Lab cientos de candidatos por sede)
+  function lin(v) { var k = v * 255, i = Math.round(k); return Math.abs(k - i) < 1e-6 && i >= 0 && i < 256 ? LIN8[i] : linRaw(v); }
   /** Luminancia relativa (sRGB) 0..1. */
   function lum(h) { var c = typeof h === 'string' ? toRGB(h) : h; return 0.2126 * lin(c[0]) + 0.7152 * lin(c[1]) + 0.0722 * lin(c[2]); }
   function contrast(a, b) { return Math.abs(lum(a) - lum(b)); }
@@ -727,17 +730,27 @@
   /** Superficie SEPARADA de las camisetas (F2, revisión): si el color queda a ΔE76 < want de alguna (shirt, shirt2), se busca el
    *  más parecido (mismo tono; desaturar o mover L dentro de sus rangos, y si no basta, girar el tono hasta ±16°) que llegue a
    *  want; si ninguno llega, el más alejado. Pura y determinista (no tira del PRNG: no mueve ningún otro eje). */
-  function apart(h, shirts, want, sMin, sMax, lMin, lMax) {
-    var SL = shirts.map(function (x) { return labRGB(toRGB(x)); });
-    function md(c) { var L = labRGB(c), m = 1e9; for (var i = 0; i < SL.length; i++) m = Math.min(m, dLab(L, SL[i])); return m; }
-    if (!SL.length || md(toRGB(h)) >= want) return h;
+  var APART = {};   // (memo: la misma búsqueda se repite al recalcular las sedes de un país para los gemelos)
+  function apart(h, shirts, want, sMin, sMax, lMin, lMax, extra, wantX, tintX) {
+    var key = [h, shirts.join(), want, sMin, sMax, lMin, lMax, extra ? extra.join() : '', wantX, tintX ? tintX.join() : ''].join('|');
+    if (Object.prototype.hasOwnProperty.call(APART, key)) return APART[key];
+    return (APART[key] = apartRaw(h, shirts, want, sMin, sMax, lMin, lMax, extra, wantX, tintX));
+  }
+  function apartRaw(h, shirts, want, sMin, sMax, lMin, lMax, extra, wantX, tintX) {
+    // (tintX: luz de la sede [r, g, b]; la distancia a extra se mide con los dos colores bajo esa luz: con sodio un cian se ve verde agua)
+    function tn(c) { return tintX ? [c[0] * tintX[0], c[1] * tintX[1], c[2] * tintX[2]] : c; }
+    var SL = shirts.map(function (x) { return labRGB(toRGB(x)); }), XL = (extra || []).map(function (x) { return labRGB(tn(toRGB(x))); }), wx = wantX || want;
+    function mdOf(L, A) { var m = 1e9; for (var i = 0; i < A.length; i++) m = Math.min(m, dLab(L, A[i])); return m; }
+    // (con extra: la nota es la peor de las dos razones distancia/umbral; ≥ 1 = vale)
+    function md(c) { var a = SL.length ? mdOf(labRGB(c), SL) / want : 1e9, b = XL.length ? mdOf(labRGB(tn(c)), XL) / wx : 1e9; return Math.min(a, b) * want; }
+    if ((!SL.length && !XL.length) || md(toRGB(h)) >= want) return h;
     var q = hexHsl(h), best = null, bestC = 1e9, far = h, farD = md(toRGB(h));
     for (var dh = 0; dh <= 16; dh += 4) for (var sg = -1; sg <= 1; sg += 2) {
       if (!dh && sg > 0) continue;
       var hh = (q[0] + sg * dh + 360) % 360;
       for (var S = sMin; S <= sMax + 1e-9; S += 0.05) for (var Lq = lMin; Lq <= lMax + 1e-9; Lq += 0.02) {
         if (isYellow(hh) && Lq > 0.48) continue;
-        var cost = Math.abs(S - q[1]) + 2 * Math.abs(Lq - q[2]) + dh / 40;
+        var cost = Math.abs(S - q[1]) + 2 * Math.abs(Lq - q[2]) + dh / 40 + (XL.length && Lq > q[2] ? 4 * (Lq - q[2]) : 0);   // (lejos de la pelota, mejor más oscuro que más claro)
         if (cost >= bestC) continue;
         var rgb = toRGB(hex(hsl2rgb([hh, S, Lq]))), d = md(rgb);   // (redondeado a 8 bits: lo que se pinta)
         if (d >= want) { bestC = cost; best = [hh, S, Lq]; } else if (d > farD) { farD = d; far = hex(rgb); }
@@ -746,15 +759,29 @@
     }
     return far;
   }
+  /** PELOTA (15-nov-2026, tools/balltest.js; «¿hay algún pabellón en el que se vea mal la pelota?»): el balón clásico es turquesa
+   *  #1cc4b4 / turquesa oscuro #0b8a86 / crema. Las superficies grandes que quedan DETRÁS de la pelota en la cámara de juego (pista,
+   *  zona libre, pared, zócalo, asientos y franja de letras del fondo) se mantienen a ΔE76 ≥ SEP.ball de los dos turquesas: una pista
+   *  verde menta (JP:BRH #2dd2ab), una zona libre verde con sodio (ES:NIV, ES:VEG, AR:FOR) o una franja de letras turquesa (GR:DKS)
+   *  dejaban la pelota con solo su contorno. */
+  // (el turquesa claro y el medio entre él y el oscuro, GR:DKS #35a0b6; el oscuro #0b8a86 no: es el panel pequeño y con él los verdes
+  // oscuros, que se ven bien, huían a un verde menta claro, que se ve peor: CN:FUJ, CA:SAS, PT:LEA)
+  var BALL = ['#1cc4b4', '#14a79d'];
+  function ballD(h, tint) {
+    function tn(c) { return tint ? [c[0] * tint[0], c[1] * tint[1], c[2] * tint[2]] : c; }
+    var L = labRGB(tn(toRGB(h))), m = 1e9; for (var i = 0; i < BALL.length; i++) m = Math.min(m, dLab(L, labRGB(tn(toRGB(BALL[i]))))); return m;
+  }
+  var SODIUM = [1, 0.81, 0.54];   // (#ffcf8a, la luz de sodio de hallSpec)
   var NEUTRAL_FREE = [['#5d6b7a', 210], ['#3f7f5a', 145], ['#9a7450', 30], ['#6b6f75', 220]];
 
   // ------------------------------------------------------------------ spec de pista
-  var SEP = { court: 26, seat: 14 };   // ΔE76 mínimo contra las camisetas del club (pista; asientos de la grada)
+  var SEP = { court: 26, seat: 14, ball: 26, ballC: 22, ballP: 16, ballD: 20, ballW: 32 };   // ΔE76 mínimo contra las camisetas del club (pista; asientos de la grada) y contra la pelota
+  // (BALL: zona libre 26, pared 32; asientos y acento 22; pista 16, solo si casi calca la pelota: al huir, un verde se iba a menta claro; que son el color del club y solo se tocan si casi calcan la pelota; zócalo 20)
   function sector(h) { return Math.floor((((h % 360) + 360) % 360) / 45); }
   function lBucket(l) { return l < 0.37 ? 0 : l < 0.45 ? 1 : 2; }
   function hallSpec(c, tpl, salt) {
     var s = c.seed, sx = salt ? '#' + salt : '', env = c.env, tier = c.tier, arch = tpl.arch, palau = !!PALAU[arch], p = c.p;
-    var pal = palette(c.kit, env, c.city, s), kits = pal.kits;
+    var pal = palette(c.kit, env, c.city, s), kits = pal.kits, bt = tpl.light === 'sodium' ? SODIUM : null;   // (bt: luz para la distancia a la pelota)
     // reparación de gemelos (salt > 0): pista con el otro color del club (impares) y otro fondo rival (desde 2)
     if (salt % 2 === 1 && pal.other && !neutral(pal.other)) { var tmp = pal.main; pal.main = pal.other; pal.other = tmp; }
     var back = salt >= 2 ? pick(rng(s, 'back' + sx), backOpts(arch, env.style)) : tpl.back;
@@ -772,17 +799,17 @@
     if (tpl.flavor === 'jpkr') mats = ['maple', 'maple', 'oak'];
     var floorMat = pick(rfl, mats), multiA = floorMat === 'multi' ? rr(rfl, 0.3, 0.5) : 0, floorLogo = rfl() < 0.5;
     var shirts = [c.kit.h1, c.kit.h2].filter(Boolean);   // (las camisetas: la sede nunca se les parece; floorAdjust ya no salta con la propia)
-    var rc = rng(s, 'color'), court = apart(surf(pal.main, 0.35, 0.65, 0.30, 0.52, kits), shirts, SEP.court, 0.35, 0.65, 0.30, 0.52), cq = hexHsl(court), free;
+    var rc = rng(s, 'color'), court = apart(surf(pal.main, 0.35, 0.65, 0.30, 0.52, kits), shirts, SEP.court, 0.35, 0.65, 0.30, 0.52, BALL, SEP.ballP, bt), cq = hexHsl(court), free;
     // F6 (hoja de contactos): con luz de sodio (#ffcf8a, poco azul) una pista fría (verde azulado, azul, violeta) se ve casi negra si es
     // oscura (FR:CLP, RO:GLT) o gris verdosa si está apagada (CN:BEI): S ≥ 0,55 y L entre 0,42 y 0,52, otra vez separada de las camisetas
     if (tpl.light === 'sodium' && cq[0] >= 160 && cq[0] <= 290 && (cq[2] < 0.42 || cq[1] < 0.55)) {
-      court = apart(hslHex([cq[0], Math.max(cq[1], 0.55), clamp(cq[2], 0.42, 0.52)]), shirts, SEP.court, 0.55, 0.65, 0.42, 0.52); cq = hexHsl(court);
+      court = apart(hslHex([cq[0], Math.max(cq[1], 0.55), clamp(cq[2], 0.42, 0.52)]), shirts, SEP.court, 0.55, 0.65, 0.42, 0.52, BALL, SEP.ballP, bt); cq = hexHsl(court);
     }
     var oq = pal.other ? [pal.other[0], clamp(pal.other[1], 0.35, 0.7), clamp(pal.other[2], 0.28, 0.55)] : null;
-    if (oq && Math.abs(oq[2] - cq[2]) >= 0.08 && hueD(oq[0], cq[0]) >= 25) free = surf(oq, 0.35, 0.7, 0.28, 0.55, kits);
+    if (oq && Math.abs(oq[2] - cq[2]) >= 0.08 && hueD(oq[0], cq[0]) >= 25 && ballD(surf(oq, 0.35, 0.7, 0.28, 0.55, kits), bt) >= SEP.ball) free = surf(oq, 0.35, 0.7, 0.28, 0.55, kits);
     else {
       // (F6: y bien separada de la pista; una verde azulada sobre verde se confundía, JP:LAF)
-      var nf = NEUTRAL_FREE.filter(function (x) { return hueD(x[1], cq[0]) >= 25 && dE76(x[0], court) >= 22; });
+      var nf = NEUTRAL_FREE.filter(function (x) { return hueD(x[1], cq[0]) >= 25 && dE76(x[0], court) >= 22 && ballD(x[0], bt) >= SEP.ball; });   // (y lejos de la pelota: el verde #3f7f5a, no)
       free = pick(rc, nf.length ? nf : NEUTRAL_FREE)[0];
     }
     var line = contrast(court, '#ffffff') >= 0.35 ? '#ffffff' : contrast(court, '#1b1b1b') >= 0.35 ? '#1b1b1b' : '#ffe14d';
@@ -806,6 +833,8 @@
     var wall = pick(rw, wallOpts), dado = rr(rw, 1.2, 2.4), wallTint = rr(rw, 0.15, 0.3);
     var WALLC = { 'brick-red': '#9c4a36', 'brick-yellow': '#c9a66b', concrete: '#a7a59f', block2: '#bfc3c7', metal: '#8f98a3', wood: '#b0844f', stucco: '#e3dccd', tile: '#d9e4e6', palau: '#2a2d36' };
     var wallHex = mixHex(WALLC[wall], hslHex([pal.main[0], 0.5, 0.45]), wallTint);
+    // (pelota: si el tinte del club acerca la pared a los turquesas, menos tinte; PL:OLS, JP:BRH)
+    for (var wt = wallTint; ballD(wallHex, bt) < SEP.ballW && wt > 0.001; ) { wt = Math.max(0, wt - 0.05); wallHex = mixHex(WALLC[wall], hslHex([pal.main[0], 0.5, 0.45]), wt); }
     // ventanas y vista
     var rwi = rng(s, 'win' + sx), win = { H1: pick(rwi, ['band', 'none']), H2: 'skylight', H3: pick(rwi, ['band', 'none', 'skylight']), H4: 'band', H5: 'arches', H6: 'glass', H7: 'ring', H8: 'none', H9: 'none' }[arch];
     if (!palau && tpl.flavor === 'gulf') win = 'lattice'; if (!palau && tpl.flavor === 'trop') win = 'brise';
@@ -827,9 +856,10 @@
     // pancartas y banderines
     var rb = rng(s, 'banner'), nb = clamp(2 + tier * 2 + ri(rb, 0, 1), 2, 8), pennants = clamp(Math.round(((c.ovr || p) - 70) / 5) + ri(rb, -1, 1), 0, 5);
     // colores restantes
-    var seatA = apart(surf(pal.main, 0.35, 0.7, 0.3, 0.55, kits), shirts, SEP.seat, 0.3, 0.7, 0.26, 0.6), seatB = pal.other ? apart(surf(pal.other, 0.35, 0.7, 0.3, 0.55, kits), shirts, SEP.seat, 0.3, 0.7, 0.26, 0.6) : '#7d838c';
+    var seatA = apart(surf(pal.main, 0.35, 0.7, 0.3, 0.55, kits), shirts, SEP.seat, 0.3, 0.7, 0.26, 0.6, BALL, SEP.ballC, bt), seatB = pal.other ? apart(surf(pal.other, 0.35, 0.7, 0.3, 0.55, kits), shirts, SEP.seat, 0.3, 0.7, 0.26, 0.6, BALL, SEP.ballC, bt) : '#7d838c';
     var accent = pal.qa && !neutral(pal.qa) ? surf(pal.qa, 0.35, 0.7, 0.3, 0.55, kits) : (pal.other ? seatB : surf([(pal.main[0] + 180) % 360, 0.5, 0.45], 0.35, 0.7, 0.3, 0.55, kits));
-    var dadoHex = surf([pal.main[0], pal.main[1] * 0.5, 0.38], 0.12, 0.4, 0.3, 0.45, kits);
+    accent = apart(accent, [], SEP.ballC, 0.35, 0.7, 0.3, 0.55, BALL, SEP.ballC, bt);   // (pancartas, carteles y peña del fondo: US:ORL #28a7a5)
+    var dadoHex = apart(surf([pal.main[0], pal.main[1] * 0.5, 0.38], 0.12, 0.4, 0.3, 0.45, kits), [], SEP.ballD, 0.12, 0.4, 0.3, 0.45, BALL, SEP.ballD, bt);
     var sigA = [arch, tpl.flavor || '-', back, light, floorMat + '/' + sector(cq[0]) + '/' + lBucket(cq[2]), stands, roof, score, win + '/' + view];
     return {
       arch: arch, flavor: tpl.flavor || '', night: night, lights: null, sand: null,
@@ -1173,6 +1203,7 @@
   // ------------------------------------------------------------------ planta de pista (F2: pura; la usan el constructor y el coste)
   // Paredes, gradas, alero, techo EFECTIVO (el del arquetipo construido: BUILD_AS), marcador, ventanales y rejilla de focos.
   // Medidas en metros, coordenadas de la simulación (x a lo largo de la pista, y a lo ancho; −y = lado del 1r árbitro).
+  var SAW_EAVE = 9.0;   // alero mínimo con techo de dientes de sierra: cordón inferior de la cercha (alero − 0,95) por encima de la cámara de TV del 6v6 (z 7,8)
   var PV0 = 11.9, PVE = 17.4, LAMP_MID = 8.3;   // primera fila de las gradas laterales (tras banquillos y cámara) y de las de los fondos (tras la tarima); altura mínima de la fila central de focos
   function planRoof(A, p) {
     if (A === 'H1') return { t: 'saw', n: clamp(p.roof === 'saw' ? p.roofN : Math.round((p.roofN || 6) / 2), 4, 8) };
@@ -1203,7 +1234,9 @@
     // flavor jpkr: escenario con telón en el fondo −x (el que ve la cámara de juego; el otro conserva su fondo rival); con 'stage' en la receta, en los dos (2)
     var stageE = p.back === 'stage' ? 2 : sp.flavor === 'jpkr' && !SE && p.back !== 'view' ? 1 : 0;
     var dado = p.dado || 1.2, zSc = SE ? Math.max(4.6, topE + 2.6) : (stageE ? 6.9 : p.back === 'mural' || p.back === 'letters' ? Math.max(5.4, dado + 3.0 + 0.925) : 4.6);
-    var eave = Math.max(p.eave, topS + 3.6, topN + 3.6, zSc + 2.2, rf.t === 'flat' || rf.t === 'louvre' || rf.t === 'octagon' ? 7.2 : 7.5);
+    // (dientes de sierra: las cerchas cuelgan 0,95 m bajo el alero, a lo ancho de la nave; por debajo de la cámara de televisión del
+    // 6v6 —x 14,2, z 7,8, js/camera.js tvShot— una de ellas cruzaba el encuadre: CZ:FIE, PE:REM, TR:ANG, ES:SRQ, JP:SPZ. tools/cam6clip.js)
+    var eave = Math.max(p.eave, topS + 3.6, topN + 3.6, zSc + 2.2, rf.t === 'saw' ? SAW_EAVE : rf.t === 'flat' || rf.t === 'louvre' || rf.t === 'octagon' ? 7.2 : 7.5);
     WX = R2(WX); eave = R2(eave);
     var hs = (R2(yn) + R2(ys)) / 2;
     if (rf.t === 'saw') rf.rise = R2(clamp(2 * WX / rf.n * 0.3, 1.8, 3));
@@ -1394,7 +1427,7 @@
     'ES:SRQ': { arch: 'H1' },
     'ES:CHT': { arch: 'H3' },
     // segunda revisión (gemelas en el umbral: Hamming 10-14 con casi el mismo color)
-    'AR:PIN': { arch: 'H4', light: 'led', stands: 'U' }, // = AR:NUN (H2 bóveda con sodio, pista roja sobre madera naranja, pared marrón; misma liga)
+    'AR:PIN': { arch: 'H5', light: 'led', stands: 'U' }, // H5: AR:LOB (misma ciudad) ya es H4. = AR:NUN (H2 bóveda con sodio, pista roja sobre madera naranja, pared marrón; misma liga)
     'IT:CHI': { arch: 'H3' },     // = IT:VER (H8/H9 de noche con LED, azul sobre naranja: con otra luz seguían gemelas)
     'PL:MUR': { arch: 'H3' }      // = PL:WAR (H8/H9 de noche con luces de espectáculo, azul sobre amarillo)
   };

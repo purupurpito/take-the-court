@@ -10,16 +10,25 @@
  * navegación web (tools/abouttest.js lo comprueba en todo el fichero, comentarios incluidos).
  * 1.0.0 (12-nov-2026, decisión de Ferran): cierre del sprint 5. Sin créditos a herramientas de IA (Ferran, 12-nov-2026).
  * 1.1.0 (13-nov-2026): Vestuario (personalización del aspecto, js/look.js). Solo estética.
+ * 1.2.0 (15-nov-2026): sedes generadas por club (js/venue-gen*.js) y pabellón al azar por partido.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.1.2';
+  VB.VERSION = '1.2.0';
   VB.VERSION_DATE = '2026-11-15';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.2.0', d: '2026-11-15', t: 'Sedes de club',
+      items: [
+        'Cada club de las 28 ligas tiene su pabellón y cada club de playa, su playa.',
+        'En la Carrera se juega en casa del local; las finales, en las grandes sedes.',
+        'Partido rápido: un pabellón distinto en cada partido, o el que elijas.'
+      ]
+    },
     {
       v: '1.1.2', d: '2026-11-15', t: 'Dificultad en la pista',
       items: [

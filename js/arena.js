@@ -422,11 +422,12 @@
    * ===================================================================== */
   var casters = []; // mallas del pabellón que proyectan sombra (en calidad baja solo la proyectan jugadores y balón)
   var net = null, netRip = { a: 0, y: 0, z: 0, t: 9, dir: 1 };
-  var NET_W = 10, NET_HH = 1, NSX = 50, NSY = 6;
+  var NET_W = 10, NET_HH = 1, NSX = 50, NSY = 6, NET_MTC = '#1d1530';
   /** beach: red de playa estilo AVP (referencia: foto del Manhattan Beach Open; decisión de Ferran, 10-nov-2026): cuerda
    *  negra, banda superior amarilla y alta con el logo del juego repetido en tinta, banda inferior y laterales amarillas.
    *  En las dos sedes, «M T C» (Make the Cut) en el centro: no es un estampado, son las propias cuerdas y nudos de la malla
-   *  pintados de teal dentro de la forma de las letras (bien separadas). */
+   *  pintados de tinta dentro de la forma de las letras (bien separadas; antes teal #22d8c6, el turquesa de la pelota: la que caía
+   *  justo detrás de la red se perdía; en crema se perdía igual con sus paneles crema. tools/balltest.js LOGO=1, 15-nov-2026). */
   function netTexture(beach) {
     var Wd = ctx.isMobile ? 1024 : 2048, Ht = Wd / 8, cv = canvas(Wd, Ht), g = cv.getContext('2d');
     var ppm = Wd / NET_W, cell = 0.1 * ppm, top = (beach ? 0.10 : 0.07) * ppm, bot = (beach ? 0.06 : 0.05) * ppm;
@@ -437,14 +438,14 @@
     // nudos
     g.fillStyle = 'rgba(10,10,12,1)';
     for (var nx = cell / 2; nx <= Wd; nx += cell) for (var ny = top + cell; ny < Ht - bot; ny += cell) g.fillRect(nx - 1.5, ny - 1.5, 3, 3);
-    // «M T C»: la misma malla (cuerdas y nudos) pintada de teal, recortada por la forma de tres letras separadas
+    // «M T C»: la misma malla (cuerdas y nudos) pintada de tinta (NET_MTC; cuerdas más gruesas que las negras de la malla), recortada por la forma de tres letras separadas
     var mh = Ht - top - bot;
     (function paintLetters() {
       var off = canvas(Wd, Ht), og = off.getContext('2d');
-      og.strokeStyle = '#22d8c6'; og.lineWidth = Math.max(3, ppm * 0.032); og.lineCap = 'round';
+      og.strokeStyle = NET_MTC; og.lineWidth = Math.max(3, ppm * 0.032); og.lineCap = 'round';
       for (var x2 = cell / 2; x2 <= Wd; x2 += cell) { og.beginPath(); og.moveTo(x2, top); og.lineTo(x2, Ht - bot); og.stroke(); }
       for (var y2 = top + cell; y2 < Ht - bot; y2 += cell) { og.beginPath(); og.moveTo(0, y2); og.lineTo(Wd, y2); og.stroke(); }
-      og.fillStyle = '#22d8c6';
+      og.fillStyle = NET_MTC;
       for (var nx2 = cell / 2; nx2 <= Wd; nx2 += cell) for (var ny2 = top + cell; ny2 < Ht - bot; ny2 += cell) { og.beginPath(); og.arc(nx2, ny2, Math.max(3, ppm * 0.034), 0, 6.283); og.fill(); }
       // máscara: letras gruesas (relleno + trazo) con mucho aire entre ellas
       // letras con los huecos abiertos (Arial Black, poco ensanchadas, trazo fino): si el trazo es grueso la M se cierra
@@ -5011,6 +5012,9 @@
     map: function () { return VENUE.map; },
     /** Sede ya sorteada para «Al azar» de un tipo ('hall' | 'beach'; '' = aún sin sortear). */
     randPick: function (kind) { return randPick[kind] || ''; },
+    /** Olvida la sede sorteada de «Al azar» / «Sede de un club» (main.js, al empezar cada partido rápido): la siguiente vez que se
+     *  monte ese tipo se vuelve a sortear. Sin tipo, los dos. */
+    reroll: function (kind) { if (kind !== 'beach') randPick.hall = ''; if (kind !== 'hall') randPick.beach = ''; },
     /** Ids de las sedes registradas (con constructor). */
     maps: function () { return Object.keys(MAPS); },
     /** Datos de luz de la sede para otros módulos: sand = color de las partículas de arena (fx.js). */

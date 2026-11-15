@@ -47,6 +47,11 @@
   var SKY = { med: ['#3a8fe6', '#a6d8fb'], oce: ['#6d9cc8', '#cfe0ea'], cold: ['#7aa2c8', '#d8e4ec'], trop: ['#2f9cf0', '#9fe4ff'], arid: ['#4a9ad8', '#efe0c0'],
     cont: ['#4f94da', '#bfe0f4'], templ: ['#4a90dc', '#b8dcf4'] };
   function envOf(sp) { var E = VB.VenueGen.ENV || {}; return E[sp.cc] || E.XX || { clima: 'med', style: 'med' }; }
+  /** PELOTA (15-nov-2026, tools/balltest.js): con el post-proceso de calidad alta, un horizonte casi blanco (canal ≥ ~235) entra en el
+   *  bloom y su halo lava la pelota lejana del saque rival, que vuela justo ahí (el contorno de tinta salía gris azulado, #546b75): el
+   *  horizonte y la bruma de día, como mucho SKY_MAX en su canal más alto (mismo tono). */
+  var SKY_MAX = 0.84;
+  function capSky(h) { var c = KIT.rgbOf(h), m = Math.max(c[0], c[1], c[2]); return m <= SKY_MAX ? h : hexOf(c.map(function (v) { return v * SKY_MAX / m; })); }
   /** Las luces de la sede (entradas de P.looks): mismas claves que Platja / Fanals; mismas luces siempre (no recompila). */
   function looksOf(sp) {
     var p = sp.p, env = envOf(sp), sk = SKY[env.clima] || SKY.med, sand = sp.sand || [0.96, 0.85, 0.64];
@@ -54,12 +59,14 @@
     function sun(el) { var hz = Math.sqrt(Math.max(0, 1 - el * el)); return [-Math.cos(side) * hz, Math.sin(side) * hz, el]; }
     var ground = hexOf(sand.map(function (v) { return v * 0.92; })), deep = p.deep, shal = p.shal, foam = p.foam;
     if (p.scen === 'river') { deep = mix(deep, '#2f6a8f', 0.45); shal = mix(shal, '#5f9ab0', 0.4); }   // (el verde de río de la receta, de lejos, no se leía como agua)
+    // (pelota, tools/balltest.js: el agua verde agua del río y del lago, de lejos, es casi el turquesa de la pelota del saque rival; más azul)
+    if (p.scen === 'river' || p.scen === 'lake') { deep = mix(deep, '#24508a', 0.45); shal = mix(shal, '#4f7fb8', 0.45); }
     var noon = {
-      sky: { zen: sk[0], hor: sk[1], fog: mix(sk[1], '#ffffff', 0.25), sun: '#fff3c4' }, sun: sun(0.44), hemi: num(mix(sk[1], '#ffffff', 0.4)), ground: num(ground),
+      sky: { zen: sk[0], hor: capSky(sk[1]), fog: capSky(mix(sk[1], '#ffffff', 0.25)), sun: '#fff3c4' }, sun: sun(0.44), hemi: num(mix(sk[1], '#ffffff', 0.4)), ground: num(ground),
       key: 0xfff0d4, fill: 0xcfe4ff, rim: 0xffe2b4, keyK: 1, hemiK: 1, deep: deep, shal: shal, foam: foam, tint: '#ffffff', glint: '#ffffff', glintK: 0.25, sand: sand
     };
     var golden = {
-      sky: { zen: mix(sk[0], '#5a78c8', 0.4), hor: '#ffd9ae', fog: '#f6dcc0', sun: '#ffe6b0' }, sun: sun(0.24), hemi: 0xf6e2cc, ground: num(mix(ground, '#e9b47e', 0.3)),
+      sky: { zen: mix(sk[0], '#5a78c8', 0.4), hor: capSky('#ffd9ae'), fog: capSky('#f6dcc0'), sun: '#ffe6b0' }, sun: sun(0.24), hemi: 0xf6e2cc, ground: num(mix(ground, '#e9b47e', 0.3)),
       key: 0xffd9a4, fill: 0xc4ccff, rim: 0xffc88a, keyK: 1.04, hemiK: 0.9, deep: mix(deep, '#2d5fae', 0.25), shal: mix(shal, '#e9c08e', 0.15), foam: '#fff6e6',
       tint: '#ffe8d2', glint: '#ffd9a0', glintK: 0.55, sand: sand.map(function (v, i) { return Math.round(v * [1, 0.95, 0.88][i] * 100) / 100; })
     };

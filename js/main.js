@@ -79,7 +79,7 @@
     return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
-      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: 'palau', mapBeach: 'platja', subs6: 'auto' };
+      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto' };
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
     // El tipo (`arena`) sigue siendo lo único que va a la sim; la sede solo cambia el escenario. Lo desconocido vuelve a la de serie.
   }
@@ -128,6 +128,10 @@
     }
     // migración arenaV 2 (una sola vez, para todos): los ajustes guardados de antes pasan a la Playa. Luego se respeta lo que se elija.
     if (o && !(o.arenaV >= 2) && !Q.debug) s.arena = 'beach';
+    // migración mapV 1 (15-nov-2026, una sola vez): el pabellón de serie pasa a «Al azar» (hechas a mano + sedes de club, un sorteo
+    // por partido). Quien ya había elegido otra sede la conserva; quien vuelva a elegir Palau después, también.
+    if (o && !(o.mapV >= 1) && !Q.debug && s.mapHall === 'palau') s.mapHall = 'rand';
+    s.mapV = 1;
     // ajustes de antes de existir coachTips: quien ya ha ganado algún partido empieza sin consejos (como si acabara de ganar)
     if (!Q.debug && rec && rec.wins > 0 && !(o && 'coachTips' in o)) s.coachTips = false;
     if (DIFFS.indexOf(s.difficulty) < 0) s.difficulty = 'normal';
@@ -139,7 +143,7 @@
     if ([1, 1.15, 1.3].indexOf(s.hudScale) < 0) s.hudScale = 1;
     if (s.beachLight !== 'tarde') s.beachLight = 'dia';
     var VV = VB.Venues;
-    if (!VV || !VV.valid('hall', s.mapHall)) s.mapHall = 'palau';
+    if (!VV || !VV.valid('hall', s.mapHall)) s.mapHall = 'rand';
     if (!VV || !VV.valid('beach', s.mapBeach)) s.mapBeach = 'platja';
     if ([11, 15, 21, 25].indexOf(s.setPoints) < 0) s.setPoints = 25;
     // equipación: solo colores de las paletas de ui.js (OPT.kit*) y diseños conocidos
@@ -476,6 +480,12 @@
     var watch6 = !!fmt && qWatch && opts.format == null;
     var auto = !!opts.autopilot || watch6;
     applyVenuePend();
+    // «Al azar» / «Sede de un club»: cada partido rápido humano se sortea de nuevo (también la revancha). No en la Carrera (sede del
+    // local), ni con ?map= (pruebas), ni en autopilot (herramientas de medida: perf, drive)
+    if (!cs && !auto && !Q.map && VB.Arena && VB.Arena.reroll) {
+      var rk = fmt ? 'hall' : venueNow(), rp = ctx.settings[rk === 'beach' ? 'mapBeach' : 'mapHall'];
+      if (rp === 'rand' || rp === 'club') { VB.Arena.reroll(rk); if (venueNow() === rk) applyVenue(rk); }   // (6v6 desde la playa: lo monta forceVenue)
+    }
     // Carrera: VÓLEY PLAYA (sprint playa, 10-nov-2026): el partido se juega en Platja Llarga con sus reglas (sets a 21 y el 3r a
     // 15, pista 16×8, cambio de campo cada 7) aunque el ajuste «Escenario» sea el pabellón; el hub y quickSim cuentan con ellas
     // (el 6v6 al revés: siempre en el pabellón, aunque el ajuste sea la playa; la sim juega en su pista 18×9)
@@ -752,7 +762,7 @@
   ctx.actions.resetSettings = function (keys) {
     var d = DEFAULTS(), list = Array.isArray(keys) ? keys : Object.keys(d);
     for (var i = 0; i < list.length; i++) {
-      var k = list[i]; if (!(k in d) || k === 'difficulty' || k === 'arena' || k === 'arenaV') continue;
+      var k = list[i]; if (!(k in d) || k === 'difficulty' || k === 'arena' || k === 'arenaV' || k === 'mapV') continue;
       var v = d[k];
       if (v && typeof v === 'object') { if (JSON.stringify(ctx.settings[k]) === JSON.stringify(v)) continue; v = JSON.parse(JSON.stringify(v)); }
       ctx.actions.setSetting(k, v);

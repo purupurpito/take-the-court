@@ -146,6 +146,7 @@
     var s = seed != null && isFinite(+seed) ? (+seed >>> 0) : Math.floor(Math.random() * 1e9);
     try { return ensure(VB.VenueGen.random(kind, s)); } catch (e) { console.warn('[VB] venues: random', e); return ''; }
   }
+  var RAND_GEN = 4;   // «Al azar»: peso de las sedes de club frente a cada sede hecha a mano (pabellón: 3 a mano + 4 → ~57 % de club)
   function h32(s) { s = String(s); var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
   // «Final» como palabra (no «Semifinal»); copa continental por la etiqueta si next() no trae comp
   var FINAL_RE = /\bfinal\b/i, INTL_RE = /\b(CEV|AVC|CSV|NORCECA|Champions|Challenge|Continental|Internacional|Intercontinental|Asian|Sudamericano)\b/i;
@@ -214,7 +215,13 @@
       if (VB.VENUES[x] && ready[x]) return x;
       var kind = kindOf(x) || (settings && settings.arena === 'beach' ? 'beach' : 'hall');
       var pref = settings ? settings[kind === 'beach' ? 'mapBeach' : 'mapHall'] : '';
-      if (pref === 'rand') { var L = list(kind); return L.length ? L[pickIdx(L.length, seed)] : DEF[kind]; }
+      // «Al azar»: las hechas a mano y, si hay generador, también la sede de un club al azar (RAND_GEN huecos de más en el sorteo)
+      if (pref === 'rand') {
+        var L = list(kind), ng = canGen(kind) ? RAND_GEN : 0, n = L.length + ng;
+        if (!n) return DEF[kind];
+        var i = pickIdx(n, seed);
+        return i < L.length ? L[i] : randomGen(kind, seed != null && isFinite(+seed) ? (+seed ^ 0x9e3779b9) >>> 0 : null) || L[0] || DEF[kind];
+      }
       if (pref === 'club') return randomGen(kind, seed) || DEF[kind];
       if (pref && ready[pref] && kindOf(pref) === kind) return pref;
       return DEF[kind];
