@@ -86,7 +86,7 @@ check(eq(L.items('armR'), L.items('armL')) && eq(L.items('wristR'), L.items('wri
 check(L.STYLES.length === 10 && L.TINTS.length === 6 && L.SKINS.length === 14 && L.HAIRS.length === 15, '10 peinados, 6 tintes, 14 pieles y 15 colores de pelo');
 // sede (§1.4.1)
 const ONLY_Y = 'gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines'.split(' ');
-const ONLY_P = ['termica', 'bajadas', 'blanca'].concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
+const ONLY_P = ['termica', 'bajadas', 'blanca', 'cortas', 'altas', 'coderas'].concat(SPEC.armL.split(' ').filter(x => x !== 'kinesio')).concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
 check(C.filter(x => x.venue === 'Y').map(x => x.id).sort().join() === ONLY_Y.slice().sort().join(), 'solo en playa: la lista de §1.4');
 check(C.filter(x => x.venue === 'P').map(x => x.id).sort().join() === ONLY_P.slice().sort().join(), 'solo en pista: la lista de §1.4');
 // CLASH

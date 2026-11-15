@@ -15,11 +15,20 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.1.0';
-  VB.VERSION_DATE = '2026-11-13';
+  VB.VERSION = '1.1.1';
+  VB.VERSION_DATE = '2026-11-15';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.1.1', d: '2026-11-15', t: 'Cuentas con correo',
+      items: [
+        'Crea tu cuenta con tu correo y recupera la contraseña si la olvidas.',
+        'Entrar con Google (en cuanto esté activado).',
+        'Tu Vestuario también se guarda en tu cuenta.',
+        'Manguitos, coderas y rodilleras solo en pista, como en el vóley de verdad.'
+      ]
+    },
     {
       v: '1.1.0', d: '2026-11-13', t: 'Vestuario',
       items: [

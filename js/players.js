@@ -286,7 +286,7 @@
     if (beach) {
       if ((e & 3) === 0) L.paint = 'rayas';            // 1 de cada 4 (en vez del zinc)
       if ((f & 3) === 0) L.marks = 'pecas';            // 1 de cada 4
-      if (((f >>> 2) & 7) === 0) L.armR = 'manguito';  // 1 de cada 8
+      if (((f >>> 2) & 7) === 0) L.armR = 'kinesio';   // 1 de cada 8 (en playa casi nadie lleva manguito; kinesio sí)
       return L;
     }
     var a = e & 7;                                     // manguito: dcha. 1/8, izq. 1/8, los dos 1/8

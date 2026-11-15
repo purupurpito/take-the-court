@@ -67,3 +67,14 @@ para que vea todas las escrituras de los guardados.
 - **Contraseña olvidada:** no hay recuperación porque no hay correo. Hay que avisarlo al crear la cuenta.
 - **Pruebas:** una herramienta tipo `tools/cuentatest.mjs` contra el Firebase de verdad, que borre su cuenta al acabar (como
   `t-cuenta.mjs` de emPat Data).
+
+## Correo y Google (15-nov-2026)
+- **Correo y contraseña:** el campo admite un correo de verdad (con @) o un usuario (sin @, las cuentas de antes con correo ficticio).
+  Con correo hay «¿Has olvidado la contraseña?» (`accounts:sendOobCode` PASSWORD_RESET; Firebase no dice si el correo existe).
+- **Google:** `account.js` carga el SDK compat de Firebase Auth 10.12.5 desde gstatic SOLO al pulsar «Entrar con Google», hace
+  `signInWithPopup` (si el navegador bloquea la ventana, `signInWithRedirect` y a la vuelta `getRedirectResult`), toma el uid, el id token y el
+  refresh token y cierra el SDK: la sesión sigue por REST como las demás (`acc.kind = 'google'`).
+- **Falta en la consola de Firebase (Ferran):** 1) Authentication › Sign-in method › Google › Activar (elegir correo de asistencia);
+  2) Authentication › Settings › Authorized domains › añadir `purupurpito.github.io`. Hasta entonces el botón avisa «Entrar con Google aún no
+  está activado. Usa tu correo de momento.»
+- Reglas de Firestore con `'look'` desplegadas el 15-nov-2026 (`LOOK_SYNC = true`).
