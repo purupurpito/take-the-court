@@ -411,7 +411,7 @@
   }
   function forceVenue(v) {
     var id = isMapId(v), cur = id ? mapNow() : venueNow(); if (cur === v) return;
-    venueForced = mapNow() || venueNow(); applyVenue(v);
+    venueForced = venueForced || mapNow() || venueNow(); applyVenue(v);   // (ya forzado, p. ej. por el fondo de la Carrera: se guarda el del ajuste)
   }
   function unforceVenue() {
     if (!venueForced) return;
@@ -700,6 +700,18 @@
     else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
+  };
+  /** Fondo del menú según la Carrera abierta (career-ui.js): 'hall' = demo 6v6 en el pabellón, 'beach' = demo de playa, '' = el
+   *  del ajuste. Solo en el menú con la demo; no cambia nada si el fondo ya es ese (15-nov-2026: antes se veía la playa detrás del
+   *  hub de la Carrera de pista). */
+  ctx.actions.menuBackdrop = function (k) {
+    var g = ctx.game; if (ctx.state !== 'menu' || !g || !g.demo || ctx.debug) return;
+    k = k === 'hall' || k === 'beach' ? k : '';
+    if (!k) { if (!venueForced) return; unforceVenue(); setGame(demoGame()); return; }
+    var six = g.format === '6v6';
+    if (k === 'hall' ? (six && venueNow() === 'hall') : (!six && g.venue === 'beach' && venueNow() === 'beach')) return;
+    forceVenue(k);
+    setGame(Sim.createGame({ demo: true, seed: seed(), difficulty: 'normal', format: k === 'hall' ? '6v6' : undefined, venue: k === 'hall' ? undefined : 'beach' }));
   };
   ctx.actions.pause = function () { if (ctx.state === 'playing') setState('paused'); };
   ctx.actions.resume = function () { if (ctx.state === 'paused') setState('playing'); };

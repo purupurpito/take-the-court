@@ -436,6 +436,7 @@
   // =================================================================== render
   function render() {
     if (!root) return;
+    if (open) { var cc = C() && C().get(); backdrop(cc ? (isHall(cc) ? 'hall' : 'beach') : ''); }   // (cambiar de Carrera playa/pista con el hub abierto)
     try { renderInner(); }
     catch (e) {   // guardado raro que career.js no ha sabido reparar: no dejar el hub vacío y sin salida
       try { if (window.console) console.error('CareerUI.render', e); } catch (e2) { }
@@ -1681,6 +1682,8 @@
   }
 
   // =================================================================== abrir / cerrar
+  /** Fondo del menú: el escenario de la Carrera abierta (main.js ctx.actions.menuBackdrop). */
+  function backdrop(k) { try { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.menuBackdrop) VB.ctx.actions.menuBackdrop(k); } catch (e) { } }
   function show(v) {
     build();
     var c = C() && C().get();
@@ -1701,6 +1704,7 @@
     var app = document.getElementById('app'); if (app) app.classList.remove('cr-on');
     var k = root.querySelectorAll('.kf'); for (var i = 0; i < k.length; i++) k[i].classList.remove('kf');
     syncMenu();
+    if (!toPlay) backdrop('');
     if (!toPlay) { var b = document.getElementById('btnCareer'); setTimeout(function () { if (b && !open) { try { b.focus({ preventScroll: true }); } catch (e) { } if (kbNav) b.classList.add('kf'); } }, 40); }
   }
   /** Subtítulo de la fila «Carrera» del menú. */
