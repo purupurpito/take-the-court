@@ -244,6 +244,41 @@
     for (var i = STAG_SAVE.length - 1; i >= 0; i--) { var s = STAG_SAVE[i]; s.a.array.set(s.d, s.v0 * 3); s.a.needsUpdate = true; }
     STAG_SAVE = [];
   }
+  /* Ganchos de PIEL DE PALAU (sedes generadas H8/H9 y las que quieran repintar Palau sin construir nada): repintan el color por vértice
+   * de la estática fusionada `static` sobre la MISMA memoria; la copia del color original va a STAG_SAVE y staticRestore la devuelve al
+   * salir de la sede. Coordenadas de sim (x a lo largo, y a lo ancho, z arriba). */
+  var _rc = null;
+  /** fn(color, x, y, z, PAL) → true si lo ha cambiado (color = THREE.Color del vértice, se edita en el sitio). Toda la estática. */
+  function recolorStatic(fn) {
+    var m = root && root.getObjectByName('static'); if (!m || !m.geometry || typeof fn !== 'function') return 0;
+    var ca = m.geometry.attributes.color, pa = m.geometry.attributes.position, A = ca.array, P = pa.array, n = ca.count, ch = 0;
+    var c = _rc || (_rc = new THREE.Color()), saved = false;
+    for (var v = 0; v < n; v++) {
+      var j = v * 3; c.setRGB(A[j], A[j + 1], A[j + 2]);
+      if (!fn(c, P[j], -P[j + 2], P[j + 1], PAL)) continue;
+      if (!saved) { tagSave(ca, 0, n); saved = true; }
+      A[j] = c.r; A[j + 1] = c.g; A[j + 2] = c.b; ch++;
+    }
+    if (ch) ca.needsUpdate = true;
+    return ch;
+  }
+  /** Asientos de la grada de Palau (tramos 'seat'): fn(extra {b: bloque, r: fila, k: sombreado}) → Color por tramo, o con 4
+   *  argumentos fn(extra, x, y, z) → Color por vértice (mosaicos). Conserva el sombreado de la fila (extra.k). */
+  function seatPaint(fn) {
+    if (typeof fn !== 'function') return;
+    if (fn.length < 2) { staticTint('seat', fn); return; }
+    var L = STAG.seat || [];
+    for (var i = 0; i < L.length; i++) {
+      var e = L[i]; if (!e.B || !e.B.geometry) continue;
+      var a = e.B.geometry.attributes.color, A = a.array, P = e.B.geometry.attributes.position.array, k = e.x && e.x.k != null ? e.x.k : 1, saved = false;
+      for (var j = e.v0 * 3; j < e.v1 * 3; j += 3) {
+        var c = fn(e.x, P[j], -P[j + 2], P[j + 1]); if (!c) continue;
+        if (!saved) { tagSave(a, e.v0, e.v1); saved = true; }
+        A[j] = c.r * k; A[j + 1] = c.g * k; A[j + 2] = c.b * k;
+      }
+      if (saved) a.needsUpdate = true;
+    }
+  }
 
   function canvas(w, h) { var c = document.createElement('canvas'); c.width = w; c.height = h; return c; }
   function texOf(cv, srgb) {
@@ -271,7 +306,7 @@
     var FD = VENUE.id === 'hall' && VENUE.def && VENUE.def.floor ? VENUE.def : null;
     if (FD) {
       _seed = FD.seed || 77001;
-      try { FD.floor(g, { W: W, H: H, ppm: ppm, X: X, Y: Y, rect: rect, C: C, FZX: FZX, FZY: FZY, TX: TX, TY: TY, rnd: rnd, FONT: FONT, kit: HMAP.kit }); }
+      try { FD.floor(g, { W: W, H: H, ppm: ppm, X: X, Y: Y, rect: rect, C: C, FZX: FZX, FZY: FZY, TX: TX, TY: TY, rnd: rnd, FONT: FONT, kit: HMAP.kit, hue: VENUE.floorHue || 0 }); }
       catch (e) { console.warn('[VB] arena: suelo ' + FD.id, e); }
       floorLines(g, rect, FD.floorLine || PAL.line);
       return;
@@ -387,11 +422,12 @@
    * ===================================================================== */
   var casters = []; // mallas del pabellón que proyectan sombra (en calidad baja solo la proyectan jugadores y balón)
   var net = null, netRip = { a: 0, y: 0, z: 0, t: 9, dir: 1 };
-  var NET_W = 10, NET_HH = 1, NSX = 50, NSY = 6;
+  var NET_W = 10, NET_HH = 1, NSX = 50, NSY = 6, NET_MTC = '#1d1530';
   /** beach: red de playa estilo AVP (referencia: foto del Manhattan Beach Open; decisión de Ferran, 10-nov-2026): cuerda
    *  negra, banda superior amarilla y alta con el logo del juego repetido en tinta, banda inferior y laterales amarillas.
    *  En las dos sedes, «M T C» (Make the Cut) en el centro: no es un estampado, son las propias cuerdas y nudos de la malla
-   *  pintados de teal dentro de la forma de las letras (bien separadas). */
+   *  pintados de tinta dentro de la forma de las letras (bien separadas; antes teal #22d8c6, el turquesa de la pelota: la que caía
+   *  justo detrás de la red se perdía; en crema se perdía igual con sus paneles crema. tools/balltest.js LOGO=1, 15-nov-2026). */
   function netTexture(beach) {
     var Wd = ctx.isMobile ? 1024 : 2048, Ht = Wd / 8, cv = canvas(Wd, Ht), g = cv.getContext('2d');
     var ppm = Wd / NET_W, cell = 0.1 * ppm, top = (beach ? 0.10 : 0.07) * ppm, bot = (beach ? 0.06 : 0.05) * ppm;
@@ -402,14 +438,14 @@
     // nudos
     g.fillStyle = 'rgba(10,10,12,1)';
     for (var nx = cell / 2; nx <= Wd; nx += cell) for (var ny = top + cell; ny < Ht - bot; ny += cell) g.fillRect(nx - 1.5, ny - 1.5, 3, 3);
-    // «M T C»: la misma malla (cuerdas y nudos) pintada de teal, recortada por la forma de tres letras separadas
+    // «M T C»: la misma malla (cuerdas y nudos) pintada de tinta (NET_MTC; cuerdas más gruesas que las negras de la malla), recortada por la forma de tres letras separadas
     var mh = Ht - top - bot;
     (function paintLetters() {
       var off = canvas(Wd, Ht), og = off.getContext('2d');
-      og.strokeStyle = '#22d8c6'; og.lineWidth = Math.max(3, ppm * 0.032); og.lineCap = 'round';
+      og.strokeStyle = NET_MTC; og.lineWidth = Math.max(3, ppm * 0.032); og.lineCap = 'round';
       for (var x2 = cell / 2; x2 <= Wd; x2 += cell) { og.beginPath(); og.moveTo(x2, top); og.lineTo(x2, Ht - bot); og.stroke(); }
       for (var y2 = top + cell; y2 < Ht - bot; y2 += cell) { og.beginPath(); og.moveTo(0, y2); og.lineTo(Wd, y2); og.stroke(); }
-      og.fillStyle = '#22d8c6';
+      og.fillStyle = NET_MTC;
       for (var nx2 = cell / 2; nx2 <= Wd; nx2 += cell) for (var ny2 = top + cell; ny2 < Ht - bot; ny2 += cell) { og.beginPath(); og.arc(nx2, ny2, Math.max(3, ppm * 0.034), 0, 6.283); og.fill(); }
       // máscara: letras gruesas (relleno + trazo) con mucho aire entre ellas
       // letras con los huecos abiertos (Arial Black, poco ensanchadas, trazo fino): si el trazo es grueso la M se cierra
@@ -2251,7 +2287,13 @@
   /** Campo de la piel de la sede de pabellón actual (def.brands, def.flagPal, def.screen…) o null (Palau y playa). */
   function skinDef(k) { var d = VENUE && VENUE.id === 'hall' && VENUE.def; return d && d[k] ? d[k] : null; }
   /** Marcas de las vallas: las de siempre; una sede de pabellón puede cambiar alguna por nombre (def.brands = {nombre: marca}). */
-  function brandsNow() { var D = skinDef('brands'); return D ? BRANDS.map(function (b) { return D[b.name] || b; }) : BRANDS; }
+  function brandsNow() {
+    var D = skinDef('brands'), L = skinDef('ledText');
+    var out = D ? BRANDS.map(function (b) { return D[b.name] || b; }) : BRANDS;
+    // piel de Palau: def.ledText = [texto | {name, fg, bg: [a, b], deco}] en lugar de las marcas (mismo número de marcas, en rueda)
+    if (L && L.length) out = out.map(function (b, i) { var t = L[i % L.length]; return Object.assign({}, b, typeof t === 'string' ? { name: t } : t); });
+    return out;
+  }
   function drawBrands(cv) {
     var BR = brandsNow(), g = cv.getContext('2d'), W = cv.width, H = cv.height, seg = W / BR.length;
     for (var i = 0; i < BR.length; i++) {
@@ -2807,7 +2849,13 @@
   var banner = { cv: null, tex: null, list: null };
   function drawBanners() {
     var g = banner.cv.getContext('2d');
-    for (var b = 0; b < banner.list.length; b++) { var B = banner.list[b]; drawBanner(g, b * 256, B[0], B[1], B[2], B[3]); }
+    // piel de Palau (def.bannerPaint(g, x0, i, B) pinta la banderola i en su franja de 256 × 512; B = la de Palau)
+    var BP = skinDef('bannerPaint');
+    for (var b = 0; b < banner.list.length; b++) {
+      var B = banner.list[b];
+      if (BP) { g.save(); try { BP(g, b * 256, b, B); } catch (e) { console.warn('[VB] arena: bannerPaint', e); } g.restore(); }
+      else drawBanner(g, b * 256, B[0], B[1], B[2], B[3]);
+    }
   }
   /** Halos de los focos: como PointsMaterial con sizeAttenuation (tamaño 3,4 m) pero con tamaño por punto (aS), opacidad y el
    *  fundido de la franja superior del HUD (como topFade). uScale = alto del búfer / 2 (lo pone postResize, que llama resize). */
@@ -3524,7 +3572,7 @@
    * es una «piel» del constructor de playa (`buildBeach(def)`: parámetros P sobre los de Platja + `build` para sus piezas);
    * un pabellón que no sea Palau monta su grupo propio sobre Palau y oculta las piezas de `def.hide`. Los mapas nuevos se
    * registran desde js/venue-<id>.js con VB.Arena.registerMap(def) (ver notes/arena.md «Sedes»). */
-  var VENUE = { id: 'hall', map: 'palau', def: null, hidden: [], crowdK: 1, hazeK: null };
+  var VENUE = { id: 'hall', map: 'palau', def: null, hidden: [], crowdK: 1, hazeK: null, floorHue: 0 };
   var MAPS = { palau: { id: 'palau', kind: 'hall' }, platja: { id: 'platja', kind: 'beach', P: {} } };
   VENUE.def = MAPS.palau;
   function venueInfo(id) { return (VB.Venues && VB.Venues.def(id)) || { name: id === 'platja' ? 'Platja Llarga' : 'Palau del Mar', pad: id === 'platja' ? 'PLATJA LLARGA' : 'PALAU DEL MAR' }; }
@@ -3555,7 +3603,7 @@
     brand: { name: 'PLATJA LLARGA', fg: '#ffffff', bg: ['#0f8fb3', '#22b8d6'], deco: 'cut' },
     bannerBg: null, bannerFg: null, bannerCut: '#ffffff', bannerHem: 'rgba(255,255,255,0.85)', bannerFrame: '#e9eef3',
     bcol: null,              // colores de red, silla y mesa (sobre BCOL0)
-    stands: { frame: '#2f6fb6', can: ['#ffffff', '#22b8d6', '#ff6b5a'] },
+    stands: { frame: '#2f6fb6', can: ['#ffffff', '#22b8d6', '#ff6b5a'] },   // (+ rows, sides [-1, 1], fill: playas generadas; por defecto 5, los dos, 0,74)
     score: { frame: '#22b8d6', cab: '#2b3d5c', top: '#ee4a2f', cut: '#f4f2ec' },
     crowd: { shirts: null, hatP: 0.5, hats: null },
     benchUmbrella: true,
@@ -3983,15 +4031,17 @@
   /* ---------- gradas de aluminio con toldo (y sus asientos para el público) ---------- */
   function beachStands(B) {
     var ST = BEACH.P.stands, seats = [], alu = col('#c9d3de'), aluD = col('#9aa6b4'), frame = col(ST.frame), canA = col(ST.can[0]), canB = col(ST.can[1]), canC = col(ST.can[2]);
+    // (sedes generadas: ST.rows filas, ST.sides lados y ST.fill ocupación; Platja y las sedes a mano: 5, los dos, 0,74)
+    var rows = ST.rows || 5, sides = ST.sides || [-1, 1], fill = ST.fill == null ? 0.74 : ST.fill, up = Math.max(0, rows - 5) * 0.42;
     objM(0, 0, 0, 1);
     for (var s = -1; s <= 1; s += 2) {
-      var rows = 5;
+      if (sides.indexOf(s) < 0) continue;
       for (var r = 0; r < rows; r++) {
         var yc = s * (BLY + 0.55 + r * 0.8), zs = 0.45 + r * 0.42;
         B.sbox(2 * BLX, 0.32, 0.05, 0, yc, zs - 0.025, alu);                                  // asiento
         B.sbox(2 * BLX, 0.3, 0.035, 0, s * (BLY + 0.18 + r * 0.8), zs - 0.42 + 0.03, aluD);    // reposapiés
         for (var sx = -BLX; sx <= BLX + 0.01; sx += 3.8) { var y0 = s * (BLY + 0.55 + r * 0.8 + 0.12); lrod(B, sx, 0, -y0, sx, zs - 0.03, -y0, 0.035, frame); }
-        for (var si = -BLX + 0.42; si < BLX - 0.3; si += SEAT_W) if (rnd() < 0.74) seats.push({ x: si + (rnd() - 0.5) * 0.12, y: yc + s * 0.02, z: zs, fx: 0, fy: -s, row: r });
+        for (var si = -BLX + 0.42; si < BLX - 0.3; si += SEAT_W) if (rnd() < fill) seats.push({ x: si + (rnd() - 0.5) * 0.12, y: yc + s * 0.02, z: zs, fx: 0, fy: -s, row: r });
       }
       // largueros inclinados y barandilla trasera
       var ytop = s * (BLY + 0.55 + (rows - 1) * 0.8 + 0.22), ztop = 0.45 + (rows - 1) * 0.42;
@@ -4002,7 +4052,7 @@
       lrod(B, -BLX, ztop + 1.0, -ytop, BLX, ztop + 1.0, -ytop, 0.03, frame);
       lrod(B, -BLX, ztop + 0.5, -ytop, BLX, ztop + 0.5, -ytop, 0.025, frame);
       // toldo a rayas sobre las filas altas, con faldón festoneado delante (lo sujetan postes en los extremos y detrás)
-      var y1 = s * (BLY + 1.0), zc1 = 3.15, zc2 = 3.75, dy = ytop - y1, rxT = Math.atan2(zc2 - zc1, Math.abs(dy)) * s, nseg = 10, segL = 2 * BLX / nseg;
+      var y1 = s * (BLY + 1.0), zc1 = 3.15 + up, zc2 = 3.75 + up, dy = ytop - y1, rxT = Math.atan2(zc2 - zc1, Math.abs(dy)) * s, nseg = 10, segL = 2 * BLX / nseg;
       for (var k = 0; k < nseg; k++) {
         var cx = -BLX + (k + 0.5) * segL, cc = k % 2 ? canA : (k % 4 === 0 ? canB : canC);
         B.box(segL, 0.05, Math.hypot(dy, zc2 - zc1) + 0.1, cx, (zc1 + zc2) / 2, -(y1 + ytop) / 2, cc, 0, rxT);
@@ -4327,7 +4377,8 @@
       shirts: CP.shirts || BEACH_SHIRTS, hatP: CP.hatP, hats: CP.hats || BEACH_HATS, pants: BEACH_PANTS, name: 'beachCrowd',
       // peñas por equipo: tramos de ~3,2 m de grada con su afición (la de casa más numerosa), el resto, neutral
       fan: function (st) { return BEACH_FANS[(Math.floor((st.x + BLX) / 3.2) + (st.y > 0 ? 0 : 7)) % BEACH_FANS.length]; },
-      sphere: new THREE.Sphere(new THREE.Vector3(0, 1.6, 0), Math.hypot(BLX, BLY + 4.5) + 2) });
+      // (radio: el de Platja, o más si una sede generada pone más filas o una grada de fondo)
+      sphere: new THREE.Sphere(new THREE.Vector3(0, 1.6, 0), seats.reduce(function (r, st) { return Math.max(r, Math.hypot(st.x, st.y, st.z - 1.6) + 1.5); }, Math.hypot(BLX, BLY + 4.5) + 2)) });
   }
   /** Público instanciado sobre una lista de asientos {x, y, z, fx, fy} (sim): el material animado del pabellón (ánimos, ola,
    *  cabezas que siguen el balón) con el muñeco cabezón, LOD 'hi' / 'lo' (mapQuality elige). o = { shirts, hatP, hats, pants,
@@ -4545,12 +4596,35 @@
           sphere: new THREE.Sphere(new THREE.Vector3(0, 1.6, 0), 40) }, o || {}));
         if (m) T.crowd = m; return m;
       },
+      /** Impostores del público de la sede (el programa de los de Palau: cartel de ~2 triángulos por persona orientado a la
+       *  cámara, la misma gente, colores y animación que la malla 3D m3). Para la calidad baja: 1 dibujo, oculto al crear; el
+       *  material es propio (se libera al salir) y el atlas es el de Palau (compartido, no se libera). near(k) → 1 = fila cercana. */
+      crowdImp: function (m3, near) {
+        if (!m3 || !imp.tex) return null;
+        var n = m3.userData.full || m3.count, g3 = m3.geometry, geo = new THREE.PlaneGeometry(1, 1), ai = new Float32Array(n * 2);
+        geo.translate(0, 0.5, 0);
+        ['aAnim', 'aSkin', 'aHair', 'aPants'].forEach(function (a) { var s = g3.attributes[a]; geo.setAttribute(a, new THREE.InstancedBufferAttribute(new Float32Array(s.array), s.itemSize)); });
+        for (var k = 0; k < n; k++) { ai[k * 2] = rnd(); ai[k * 2 + 1] = near && near(k) ? 1 : 0; }
+        geo.setAttribute('aImp', new THREE.InstancedBufferAttribute(ai, 2));
+        var U = THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uAtlas: { value: null }, uLight: { value: new THREE.Vector3(IMP_LIGHT[0], IMP_LIGHT[0], IMP_LIGHT[0]) },
+          uDens: { value: 1 }, uSkipNear: { value: 0 } }]);
+        U.uAtlas.value = imp.tex;
+        for (var ck in crowdU) U[ck] = crowdU[ck];
+        var mesh = new THREE.InstancedMesh(geo, new THREE.ShaderMaterial({ uniforms: U, vertexShader: IMP_VS, fragmentShader: IMP_FS, fog: true }), n);
+        mesh.instanceMatrix.array.set(m3.instanceMatrix.array.subarray(0, n * 16)); mesh.instanceMatrix.needsUpdate = true;
+        if (m3.instanceColor) { mesh.instanceColor = new THREE.InstancedBufferAttribute(new Float32Array(m3.instanceColor.array.subarray(0, n * 3)), 3); mesh.instanceColor.needsUpdate = true; }
+        mesh.frustumCulled = false; mesh.visible = false; mesh.name = (m3.name || 'crowdMap') + 'Imp'; mesh.userData.impU = U;
+        G.add(mesh); return mesh;
+      },
       /** Estado del marcador (solo lectura): names, score, sets, setNo, serving, tag, msg, msgSub, msgCol, msgT. */
       SB: SB,
       /** Pabellón sobre Palau: tramos con nombre de la estática / emisiva de Palau ('seat' {b: bloque, r: fila, k: sombreado},
        *  'cove', 'truss', 'lampRing', 'hung'). staticHide(nombres) los aplasta; staticTint(nombre, fn(extra) → Color) los
        *  recolorea. Todo vuelve solo al salir de la sede. 0 dibujos, 0 memoria nueva. */
       staticHide: staticHide, staticTint: staticTint, SEAT_BLOCKS: SEAT_BLOCKS,
+      /** Piel de Palau: recolorStatic(fn(color, x, y, z, PAL) → cambiado) sobre toda la estática y seatPaint(fn(extra[, x, y, z]) → Color)
+       *  sobre los asientos (por tramo, o por vértice con 4 argumentos: mosaicos). Vuelven solos al salir, como staticTint. */
+      recolorStatic: recolorStatic, seatPaint: seatPaint,
       /** Material del marcador colgado de Palau (LED, destello y apagado bajo el HUD incluidos: lo pinta redrawScreens) y su
        *  textura 16:9. Compartido: la malla que lo use lleva userData.sharedMat. */
       hungMat: screens.hungMat, hungTex: screens.hungTex,
@@ -4682,9 +4756,12 @@
   }
   /** Lienzos de Palau que una sede de pabellón puede vestir (vallas LED, estandartes, cabecera del videomarcador): se
    *  repintan al entrar y al salir, en los MISMOS lienzos y texturas (0 memoria). */
-  var skinOf = 'palau';
+  var skinOf = 'palau', bannerOf = 'palau';
   function skinRepaint() {
-    var d = VENUE.id === 'hall' ? VENUE.def : null, want = d && (d.brands || d.flagPal || d.screen) ? VENUE.map : 'palau';
+    var d = VENUE.id === 'hall' ? VENUE.def : null, want = d && (d.brands || d.flagPal || d.screen || d.ledText) ? VENUE.map : 'palau';
+    // banderolas de la grada: solo se repintan si la sede las viste (def.bannerPaint) o si vuelven a las de Palau
+    var wantB = d && d.bannerPaint ? VENUE.map : 'palau';
+    if (wantB !== bannerOf) { bannerOf = wantB; if (banner.cv) { drawBanners(); banner.tex.needsUpdate = true; } }
     if (want === skinOf) return;
     skinOf = want;
     if (led.cv) {
@@ -4697,7 +4774,7 @@
   // piezas de Palau que se ocultan en la playa (las de los pabellones nuevos, en su def.hide)
   var BEACH_HIDE = Object.assign({ poles: 1 }, HALL_ONLY);
   function hideOf(def) {
-    if (!def) return null;
+    if (!def || def.skin === 'palau') return null;   // piel de Palau: no se oculta nada (solo repintado y luz)
     var h = def.hide || (def.kind === 'beach' ? BEACH_HIDE : null);
     if (Array.isArray(h)) { var o = {}; for (var i = 0; i < h.length; i++) o[h[i]] = 1; def.hide = h = o; }
     return h;
@@ -4720,6 +4797,7 @@
   function curLook() {
     if (VENUE.id === 'beach' && BEACH.grp) return beachPal();
     if (HMAP.grp && HMAP.def && HMAP.def.look) return HMAP.def.look;
+    if (VENUE.id === 'hall' && VENUE.def && VENUE.def.skin === 'palau' && VENUE.def.look) return VENUE.def.look;   // piel sin grupo propio
     return null;
   }
   /** Cielo, niebla, tono de las luces y bruma del público de cada sede (guarda los de Palau la primera vez). */
@@ -4774,8 +4852,15 @@
   var randPick = { hall: '', beach: '' };
   function resolveMap(x, s) {
     s = s || ctx.settings;
-    var V = VB.Venues, rk = V && !V.def(x) ? V.kindOf(x) || (s && s.arena === 'beach' ? 'beach' : 'hall') : '';
-    var rand = rk && s && s[rk === 'beach' ? 'mapBeach' : 'mapHall'] === 'rand';
+    var V = VB.Venues;
+    // sede generada pedida por club o por semilla (?map=club:IT:PER, club:IT:PER:b, gen:h:123): js/venues.js la registra
+    if (typeof x === 'string' && /^(club|gen):/.test(x) && !MAPS[x]) {
+      var gid = V && V.parse ? V.parse(x) : '';
+      if (gid && MAPS[gid]) return gid;
+      x = V && V.kindOf(x) === 'beach' ? 'beach' : 'hall';
+    }
+    var rk = V && !V.def(x) ? V.kindOf(x) || (s && s.arena === 'beach' ? 'beach' : 'hall') : '';
+    var pref = rk && s ? s[rk === 'beach' ? 'mapBeach' : 'mapHall'] : '', rand = pref === 'rand' || pref === 'club';   // 'club' = sede de un club al azar
     if (rand && randPick[rk] && MAPS[randPick[rk]] && V.kindOf(randPick[rk]) === rk) return randPick[rk];
     var id = V ? V.resolve(x, s) : (x === 'beach' || x === 'playa' ? 'platja' : 'palau');
     if (rand && MAPS[id]) randPick[rk] = id;
@@ -4789,7 +4874,7 @@
   }
   function setVenue(x) {
     var id = MAPS[x] ? x : resolveMap(x), def = MAPS[id], kind = def.kind;
-    if (id === VENUE.map && (id === 'palau' || (kind === 'beach' ? BEACH.grp : HMAP.grp))) return;
+    if (id === VENUE.map && (id === 'palau' || def.skin === 'palau' || (kind === 'beach' ? BEACH.grp : HMAP.grp))) return;
     // 1) fuera la sede actual (Palau es la base: no se libera; sus piezas ocultas vuelven y setQuality oculta lo de cada nivel)
     for (var i = 0; i < VENUE.hidden.length; i++) VENUE.hidden[i].visible = true;
     VENUE.hidden = [];
@@ -4797,9 +4882,16 @@
     if (BEACH.grp) { BEACH.on = false; disposeBeach(); }
     if (HMAP.grp) disposeHallMap();
     // 2) la nueva
-    VENUE.id = kind; VENUE.map = id; VENUE.def = def;
+    VENUE.id = kind; VENUE.map = id; VENUE.def = def; VENUE.floorHue = 0;
     if (kind === 'beach') { buildBeach(def); BEACH.on = true; netScale(BEACH.hw); placeOfficials(BEACH.hl, BEACH.hw); }
-    else { BEACH.on = false; netScale(C.HW); placeOfficials(C.HL, C.HW); if (id !== 'palau') buildHallMap(def); }
+    else {
+      BEACH.on = false; netScale(C.HW); placeOfficials(C.HL, C.HW);
+      // piel de Palau (def.skin === 'palau'): sin grupo propio salvo que traiga build (p. ej. la cúpula de H9); repinta la estática
+      if (id !== 'palau' && (def.skin !== 'palau' || def.build)) buildHallMap(def);
+      if (def.skin === 'palau') {
+        try { if (def.recolor) recolorStatic(def.recolor); if (def.seatPaint) seatPaint(def.seatPaint); } catch (e) { console.warn('[VB] arena: piel ' + id, e); }
+      }
+    }
     // 3) luz, rótulos, marcador, calidad y sombras
     floorRepaint(); // tarima: la del pabellón nuevo (def.floor) o la de Palau
     skinRepaint(); // vallas, estandartes y cabecera del videomarcador: los de la sede (def.brands / flagPal / screen) o los de Palau
@@ -4807,6 +4899,15 @@
     refLook(); venueLook(); padRedraw();
     if (lastQ) VB.Arena.setQuality(lastQ); else venueVis();
     if (ctx.fixShadowDepth) { try { ctx.fixShadowDepth(); } catch (e) { } }
+  }
+  /** def.floorAdjust(camisetaA, camisetaB) → grados de giro del tono de la pista (0 = nada): con las equipaciones del partido
+   *  (Players.setKit va antes de onGameStart). Se repinta en el MISMO lienzo de la tarima (0 memoria); h.hue lo lleva a def.floor. */
+  function floorAdjust() {
+    var d = VENUE.id === 'hall' ? VENUE.def : null; if (!d || !d.floorAdjust || !d.floor) return;
+    var kc = VB.Players && VB.Players.kitColors ? VB.Players.kitColors() : null, deg = 0;
+    if (kc) { try { deg = +d.floorAdjust(kc.t0.base, kc.t1.base) || 0; } catch (e) { console.warn('[VB] arena: floorAdjust ' + d.id, e); } }
+    if (deg === VENUE.floorHue) return;
+    VENUE.floorHue = deg; floorOf = ''; floorRepaint();
   }
   function beachStep() {
     if (BEACH.seaU) BEACH.seaU.uT.value = ctx.time % 3600;
@@ -4897,10 +4998,23 @@
       if (!def.kind) def.kind = (VB.Venues && VB.Venues.kindOf(def.id)) || 'beach';
       MAPS[def.id] = def; if (VB.Venues) VB.Venues.markReady(def.id);
     },
+    /** Quita una sede GENERADA del registro (js/venues.js forget, cola LRU): nunca la montada ni las de serie o hechas a mano. */
+    unregisterMap: function (id) {
+      var d = MAPS[id], vi = VB.VENUES && VB.VENUES[id];
+      if (!d || id === VENUE.map || id === 'palau' || id === 'platja' || !(d.gen || (vi && vi.gen))) return false;
+      delete MAPS[id];
+      if (randPick.hall === id) randPick.hall = ''; if (randPick.beach === id) randPick.beach = '';
+      return true;
+    },
+    /** Definición registrada de una sede (o null): para los constructores de sedes generadas que parten de otra. */
+    mapDef: function (id) { return MAPS[id] || null; },
     /** Id del mapa montado (palau, platja, fanals…). */
     map: function () { return VENUE.map; },
     /** Sede ya sorteada para «Al azar» de un tipo ('hall' | 'beach'; '' = aún sin sortear). */
     randPick: function (kind) { return randPick[kind] || ''; },
+    /** Olvida la sede sorteada de «Al azar» / «Sede de un club» (main.js, al empezar cada partido rápido): la siguiente vez que se
+     *  monte ese tipo se vuelve a sortear. Sin tipo, los dos. */
+    reroll: function (kind) { if (kind !== 'beach') randPick.hall = ''; if (kind !== 'hall') randPick.beach = ''; },
     /** Ids de las sedes registradas (con constructor). */
     maps: function () { return Object.keys(MAPS); },
     /** Datos de luz de la sede para otros módulos: sand = color de las partículas de arena (fx.js). */
@@ -4909,6 +5023,7 @@
       return { map: VENUE.map, kind: VENUE.id, night: !!vi.night, sand: (LK && LK.sand) || vi.sand || SAND_DEF };
     },
     onGameStart: function (g) {
+      floorAdjust();
       RT.cheerT[0] = RT.cheerT[1] = 0; RT.waveAmp = 0; RT.waveT = 0; netRip.t = 9; led.msgT = 0; setLedMode(false); led.w = 0;
       SB.msgT = 0; SB.msg = ''; SB.next = null; led.next = null; RT.ccT = 0; scoreFromGame(g);
       MOOD.winOn = false; MOOD.win = 0; MOOD.pfT = 9; MOOD.tense = 0; MOOD.dirty = true;

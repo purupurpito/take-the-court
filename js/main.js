@@ -79,7 +79,7 @@
     return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
-      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: 'palau', mapBeach: 'platja', subs6: 'auto',
+      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
       replays: 'auto' };   // S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
     // El tipo (`arena`) sigue siendo lo único que va a la sim; la sede solo cambia el escenario. Lo desconocido vuelve a la de serie.
@@ -129,6 +129,10 @@
     }
     // migración arenaV 2 (una sola vez, para todos): los ajustes guardados de antes pasan a la Playa. Luego se respeta lo que se elija.
     if (o && !(o.arenaV >= 2) && !Q.debug) s.arena = 'beach';
+    // migración mapV 1 (15-nov-2026, una sola vez): el pabellón de serie pasa a «Al azar» (hechas a mano + sedes de club, un sorteo
+    // por partido). Quien ya había elegido otra sede la conserva; quien vuelva a elegir Palau después, también.
+    if (o && !(o.mapV >= 1) && !Q.debug && s.mapHall === 'palau') s.mapHall = 'rand';
+    s.mapV = 1;
     // ajustes de antes de existir coachTips: quien ya ha ganado algún partido empieza sin consejos (como si acabara de ganar)
     if (!Q.debug && rec && rec.wins > 0 && !(o && 'coachTips' in o)) s.coachTips = false;
     if (DIFFS.indexOf(s.difficulty) < 0) s.difficulty = 'normal';
@@ -141,7 +145,7 @@
     if ([1, 1.15, 1.3].indexOf(s.hudScale) < 0) s.hudScale = 1;
     if (s.beachLight !== 'tarde') s.beachLight = 'dia';
     var VV = VB.Venues;
-    if (!VV || !VV.valid('hall', s.mapHall)) s.mapHall = 'palau';
+    if (!VV || !VV.valid('hall', s.mapHall)) s.mapHall = 'rand';
     if (!VV || !VV.valid('beach', s.mapBeach)) s.mapBeach = 'platja';
     if ([11, 15, 21, 25].indexOf(s.setPoints) < 0) s.setPoints = 25;
     // equipación: solo colores de las paletas de ui.js (OPT.kit*) y diseños conocidos
@@ -425,7 +429,11 @@
   }
   function forceVenue(v) {
     var id = isMapId(v), cur = id ? mapNow() : venueNow(); if (cur === v) return;
-    venueForced = venueForced || mapNow() || venueNow(); applyVenue(v);   // (ya forzado, p. ej. por el fondo de la Carrera: se guarda el del ajuste)
+    // (se guarda lo de antes de la PRIMERA vez: de una sede de Carrera a otra sin pasar por el menú se vuelve igual al ajuste;
+    //  una sede generada se guarda como su tipo, porque puede salir del registro LRU de venues.js antes de volver;
+    //  ya forzado, p. ej. por el fondo de la Carrera: se guarda el del ajuste)
+    if (!venueForced) { var m0 = mapNow(), d0 = m0 && VB.VENUES && VB.VENUES[m0]; venueForced = (m0 && !(d0 && d0.gen) && m0) || venueNow(); }
+    applyVenue(v);
   }
   function unforceVenue() {
     if (!venueForced) return;
@@ -532,6 +540,12 @@
     var watch6 = !!fmt && qWatch && opts.format == null;
     var auto = !!opts.autopilot || watch6;
     applyVenuePend();
+    // «Al azar» / «Sede de un club»: cada partido rápido humano se sortea de nuevo (también la revancha). No en la Carrera (sede del
+    // local), ni con ?map= (pruebas), ni en autopilot (herramientas de medida: perf, drive)
+    if (!cs && !auto && !Q.map && VB.Arena && VB.Arena.reroll) {
+      var rk = fmt ? 'hall' : venueNow(), rp = ctx.settings[rk === 'beach' ? 'mapBeach' : 'mapHall'];
+      if (rp === 'rand' || rp === 'club') { VB.Arena.reroll(rk); if (venueNow() === rk) applyVenue(rk); }   // (6v6 desde la playa: lo monta forceVenue)
+    }
     // Carrera: VÓLEY PLAYA (sprint playa, 10-nov-2026): el partido se juega en Platja Llarga con sus reglas (sets a 21 y el 3r a
     // 15, pista 16×8, cambio de campo cada 7) aunque el ajuste «Escenario» sea el pabellón; el hub y quickSim cuentan con ellas
     // (el 6v6 al revés: siempre en el pabellón, aunque el ajuste sea la playa; la sim juega en su pista 18×9)
@@ -539,6 +553,8 @@
     // la del ajuste (y si un partido anterior forzó otra sin pasar por el menú, se deshace)
     var mapK = opts.map && isMapId(opts.map) ? VB.Venues.kindOf(opts.map) : '';
     var cv = cs ? (opts.venue === 'hall' ? 'hall' : 'beach') : fmt ? (mapK === 'hall' ? opts.map : 'hall') : (mapK ? opts.map : null);
+    // (Carrera: opts.venueMap = sede del partido, VB.Venues.forMatch: la del local, una emblema o null = la del ajuste del tipo)
+    if (cs && opts.venueMap && VB.Venues && VB.Venues.kindOf(opts.venueMap) === cv) cv = opts.venueMap;
     if (cv) forceVenue(cv); else unforceVenue();
     var cvK = cv ? (isMapId(cv) ? VB.Venues.kindOf(cv) : cv) : '';   // tipo ('hall' | 'beach') para la sim
     if (!auto) animHooks(cs);
@@ -576,7 +592,7 @@
     if (watch6 && !opts.autopilot) g.watch = true;
     endTweaked = false; careerEnd = null;
     if (!cs) restoreEndButtons();
-    setGame(g, opts.kit || null, cs ? careerLookOpts(cs, cv === 'hall') : lookOptsOf(g));
+    setGame(g, opts.kit || null, cs ? careerLookOpts(cs, cvK === 'hall') : lookOptsOf(g));
     setState('playing');
     // los jugadores se reconstruyen en onGameStart: sube sus texturas/programas antes del primer frame
     // (sin pintar: aquí no hay telón que tape los objetos ocultos)
@@ -667,7 +683,8 @@
     careerSes = null; try { var ti = K.trainInfo ? K.trainInfo() : null; if (ti) careerSes = { used: ti.used | 0, max: ti.max | 0 }; } catch (e) { careerSes = null; }
     // C3: el jefe del circuito es el n.º 1 rival (su club excluye el de tu rival personal: no coincide con rivalNum)
     var bossNum = m.career && m.career.rivalNum == null && (m.career.bossNum | 0) > 0 ? m.career.bossNum | 0 : 0;
-    ctx.actions.startMatch({ career: m.career, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
+    var n = null; try { n = K.next && K.next(); } catch (e) { } var vid = n && VB.Venues && VB.Venues.forMatch ? VB.Venues.forMatch(n, m.venue || 'beach') : null; // sede del partido (js/venues.js, tabla EMBLEM)
+    ctx.actions.startMatch({ career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
       venue: m.venue || 'beach', // vóley playa: Platja Llarga y sus reglas (VB.Career.matchSetup().venue); la Carrera de pista, 'hall'
       format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, // Carrera de pista (lote C): 6v6 en tu puesto
       // titularidad y cambios (notes/titularidad-y-cambios.md §I.1): tal cual a Sim.createGame
@@ -811,7 +828,7 @@
   ctx.actions.resetSettings = function (keys) {
     var d = DEFAULTS(), list = Array.isArray(keys) ? keys : Object.keys(d);
     for (var i = 0; i < list.length; i++) {
-      var k = list[i]; if (!(k in d) || k === 'difficulty' || k === 'arena' || k === 'arenaV') continue;
+      var k = list[i]; if (!(k in d) || k === 'difficulty' || k === 'arena' || k === 'arenaV' || k === 'mapV') continue;
       var v = d[k];
       if (v && typeof v === 'object') { if (JSON.stringify(ctx.settings[k]) === JSON.stringify(v)) continue; v = JSON.parse(JSON.stringify(v)); }
       ctx.actions.setSetting(k, v);

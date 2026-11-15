@@ -484,6 +484,17 @@
   var FP_CELL = [9, 10, 11]; // 0 = pie, 1 = surco de la plancha (también las lenguas del cráter del remate), 2 = cráter del balón
   var SAND_C = [0.98, 0.87, 0.66]; // arena seca (Platja Llarga); las demás sedes, VB.Arena.look().sand
   function onBeach() { var A = VB.Arena; return !!(A && A.venue && A.venue() === 'beach'); }
+  /* Tinte de las piezas de arena del lote toon (nubes, terrones, corona): el atlas va pintado con la arena de Platja y en las
+   * sedes GENERADAS se multiplica por look().sand / SAND_C (tope 0,6..1,1 por canal). Las sedes a mano conservan su aspecto (k = 1).
+   * Se recalcula en cada evento de arena (bote, plancha), nunca por frame; updateSandy usa el último. */
+  var sandK = [1, 1, 1];
+  function sandTint() {
+    sandK[0] = sandK[1] = sandK[2] = 1;
+    try {
+      var lk = VB.Arena.look && VB.Arena.look(), d = lk && VB.VENUES && VB.VENUES[lk.map];
+      if (lk && lk.sand && d && d.gen) for (var c = 0; c < 3; c++) sandK[c] = Math.max(0.6, Math.min(1.1, lk.sand[c] / SAND_C[c]));
+    } catch (e) { }
+  }
   function footAtlas(g) {
     var C0 = DEC_CELL, x, y;
     // celda 9: pie descalzo mirando a +u (talón a la izquierda), hundido (oscuro) con el reborde de arena empujada delante
@@ -824,7 +835,7 @@
       var px = x + ux * u + Math.cos(a) * r0, py = y + uy * u + Math.sin(a) * r0, ov = (0.35 + 0.9 * k) * (0.6 + Math.random() * 0.6);
       var s0 = (0.32 + 0.36 * k) * (0.75 + Math.random() * 0.4);
       tbAdd(i % 2 ? TBK.sand2 : TBK.sand, px, py, 0, Math.cos(a) * ov + ux * ov * 0.5, Math.sin(a) * ov + uy * ov * 0.5, 0.25 + 0.5 * k * Math.random(),
-        0.75 + 0.55 * k + Math.random() * 0.25, s0, s0 * (1.7 + 0.5 * Math.random()), (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.8, 1, 1, 1, 1, -0.2);
+        0.75 + 0.55 * k + Math.random() * 0.25, s0, s0 * (1.7 + 0.5 * Math.random()), (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.8, sandK[0], sandK[1], sandK[2], 1, -0.2);
     }
   }
   function sandClumps(x, y, n, k, ux, uy, fan, rad) {
@@ -833,16 +844,17 @@
       if (fan > 0) { var b = Math.atan2(uy, ux) + (Math.random() - 0.5) * fan; hx = Math.cos(b); hy = Math.sin(b); }
       var v = (1.0 + 3.6 * k) * (0.45 + Math.random() * 0.75), r0 = rad * Math.random();
       tbAdd(TBK.clump, x + hx * r0, y + hy * r0, 0.06, hx * v, hy * v, (1.6 + 3.8 * k) * (0.55 + Math.random() * 0.6), 1.4,
-        (0.1 + 0.08 * k) * (0.7 + Math.random() * 0.6), 0, Math.random() * 6.283, (Math.random() - 0.5) * 14, 1, 1, 1, 1, 9.8);
+        (0.1 + 0.08 * k) * (0.7 + Math.random() * 0.6), 0, Math.random() * 6.283, (Math.random() - 0.5) * 14, sandK[0], sandK[1], sandK[2], 1, 9.8);
     }
   }
   /** Arena del balón al tocar el suelo (coords de sim): k = fuerza 0..1, (dx, dy) dirección del vuelo (corona algo hacia delante). */
   function sandImpact(x, y, k, dx, dy) {
     if (!toonOn()) return;
+    sandTint();
     var dl = Math.sqrt(dx * dx + dy * dy), ux = dl > 0.3 ? dx / dl : 0, uy = dl > 0.3 ? dy / dl : 0;
     if (k > 0.3 && (!tbLow || k > 0.7)) {
       var cs = 0.9 + 1.6 * k;
-      tbAdd(TBK.crown, x + ux * 0.1, y + uy * 0.1, 0, 0, 0, 0, 0.5 + 0.35 * k, cs * 0.35, cs, (Math.random() - 0.5) * 0.15, 0, 1, 1, 1, 1, 0);
+      tbAdd(TBK.crown, x + ux * 0.1, y + uy * 0.1, 0, 0, 0, 0, 0.5 + 0.35 * k, cs * 0.35, cs, (Math.random() - 0.5) * 0.15, 0, sandK[0], sandK[1], sandK[2], 1, 0);
     }
     sandClouds(x + ux * 0.25 * k, y + uy * 0.25 * k, sandQ(1 + 6 * k), 0.15 + 1.05 * k, ux * 0.6, uy * 0.6, 0.5 * k, 0.15 + 0.6 * k);
     sandClumps(x, y, sandQ(3 + 14 * k), 0.1 + 1.1 * k, ux, uy, dl > 0.3 ? 2.6 : 0, 0.15);
@@ -850,13 +862,14 @@
       var nr = sandQ(7), a0 = Math.random() * 6.283;
       for (var i = 0; i < nr; i++) {
         var a = a0 + i * 6.283 / nr, ca = Math.cos(a), sa = Math.sin(a), v = 2.2 + 1.6 * k, s0 = 0.28 + 0.12 * k;
-        tbAdd(i % 2 ? TBK.sand2 : TBK.sand, x + ca * 0.3, y + sa * 0.3, 0, ca * v, sa * v, 0.15, 0.7 + 0.2 * k, s0, s0 * 2, (Math.random() - 0.5) * 0.6, 0, 1, 1, 1, 1, -0.1);
+        tbAdd(i % 2 ? TBK.sand2 : TBK.sand, x + ca * 0.3, y + sa * 0.3, 0, ca * v, sa * v, 0.15, 0.7 + 0.2 * k, s0, s0 * 2, (Math.random() - 0.5) * 0.6, 0, sandK[0], sandK[1], sandK[2], 1, -0.1);
       }
     }
   }
   /** Arena de la plancha: abanico de terrones hacia delante, nubes a lo largo del cuerpo (piernas → pecho) y una nube baja delante. */
   function sandDive(px, py, dx, dy, k) {
     if (!toonOn()) return;
+    sandTint();
     var dl = Math.sqrt(dx * dx + dy * dy), ux = dl > 1e-4 ? dx / dl : 1, uy = dl > 1e-4 ? dy / dl : 0;
     // nubes a los LADOS del cuerpo (lo que aparta al deslizarse), no encima: el muñeco tiene que seguir viéndose
     for (var sdS = -1; sdS <= 1; sdS += 2) sandClouds(px + ux * 0.25 - uy * 0.45 * sdS, py + uy * 0.25 + ux * 0.45 * sdS, sandQ(2), 0.35 + 0.15 * k, ux - uy * sdS * 0.8, uy + ux * sdS * 0.8, 1.2, 0.08);
@@ -886,7 +899,7 @@
         S2.acc -= 1;
         var a = Math.random() * 6.283, r0 = 0.08 + Math.random() * 0.14, z0 = (p.down > 0 ? 0.25 : 0.55) + Math.random() * 0.4;
         tbAdd(TBK.clump, x + Math.cos(a) * r0, y + Math.sin(a) * r0, z0, Math.cos(a) * 0.4, Math.sin(a) * 0.4, 0.3 + Math.random() * 0.5, 0.9,
-          0.06 + Math.random() * 0.04, 0, Math.random() * 6.283, (Math.random() - 0.5) * 10, 1, 1, 1, 1, 9.8);
+          0.06 + Math.random() * 0.04, 0, Math.random() * 6.283, (Math.random() - 0.5) * 10, sandK[0], sandK[1], sandK[2], 1, 9.8);
       }
     }
   }
@@ -1638,6 +1651,7 @@
       for (var dI = 0; dI < DUST_N; dI++) du[dI].life = 0;
       for (var fI = 0; fI < fp.length; fI++) fp[fI].t = 0; fpLast.length = 0; fpAlive = 0;
       for (var sI = 0; sI < SANDY_N; sI++) { sandy[sI].t = 0; sandy[sI].p = null; }
+      sandTint();
       for (var f = 0; f < FLASH_N; f++) { flashPool[f].t = 0; flashPool[f].s.visible = false; }
       for (var w = 0; w < WAVE_N; w++) { wavePool[w].t = 0; wavePool[w].s.visible = false; }
       for (var r = 0; r < RIP_N; r++) { ripPool[r].t = 0; ripPool[r].m.visible = false; }
