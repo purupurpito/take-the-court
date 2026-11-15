@@ -814,10 +814,12 @@ else {
     while (c.contract.role === 'Rotación' && g++ < 6) { if (!toLeagueFixture(c)) break; c.fatigue = 0; if (C.next(c).status === 'start') st++; C.simulateNext(); }
     ok(c.contract.role === 'Titular' && st === H.STARTS_PROMOTE && c.contract.salary >= s0 && c.inbox.some(m => m.t === 'Te has ganado la titularidad'), 'rotación: ' + H.STARTS_PROMOTE + ' jornadas seguidas de inicio → titular (sueldo ' + s0 + ' → ' + c.contract.salary + ')');
   }
-  // club de 14: convocatoria de 12; con la confianza por debajo de 20, fuera
+  // club de 14: convocatoria de 13; con la confianza por debajo de 20, fuera
   { const c = fresh(4500, 'OH', 'Rotación'); toLeagueFixture(c); const k = C.myClub(c); k.ovr = 75; c.sq6 = null; setAll(c, 70);
     const L = H.lineup(c);
-    ok(c.sq6.list.length === 13 && L.start.length === 6 && L.bench.length === 5 && L.out.length === 2 && L.out.indexOf('me') < 0 && L.lib, 'club de 14: seis, líbero y 5 suplentes; 2 fuera de la convocatoria de 12');
+    ok(c.sq6.list.length === 13 && L.start.length === 6 && L.bench.length === 6 && L.out.length === 1 && L.out.indexOf('me') < 0 && L.lib, 'club de 14: seis, líbero y 6 suplentes; 1 fuera de la convocatoria de 13');
+    { const m = fresh(4501, 'MB', 'Rotación'); toLeagueFixture(m); C.myClub(m).ovr = 78; m.sq6 = null; setAll(m, 50); const Lm = H.lineup(m);
+      ok(Lm.stat !== 'out', 'central novato en un club de 14: convocado (' + Lm.stat + ')'); }
     c.coach = 10; reLine(c); const n = C.next(c);
     ok(n.status === 'out' && n.bench && n.whyCode === 'coach' && C.matchSetup(c) === null && cntMsg(c, 'Fuera de la convocatoria') === 1, 'confianza 10: fuera de la convocatoria (sin partido; mensaje «Fuera de la convocatoria»)');
     const b0 = c.stats.bench | 0, xp0 = c.player.xp, coach0 = c.coach, r = C.benchNext(c);

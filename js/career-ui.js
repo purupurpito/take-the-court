@@ -607,9 +607,9 @@
   function trainFight6(c) {
     var H6 = C().hall || {}, L = H6.lineup ? H6.lineup(c) : null; if (!L) return '';
     var rv = L.rival && c.sq6 ? c.sq6.list.filter(function (x) { return x.id === L.rival; })[0] : null, nm = rv ? esc(rv.name) : '', g = Math.abs(L.gap), imp = L.imp || 0;
-    var t = L.stat === 'start' ? (rv ? 'Sales de inicio: le sacas ' + num1(g) + ' a ' + nm + ', tu suplente' : 'Sales de inicio')
-      : L.stat === 'out' ? 'Fuera de la convocatoria' + (rv ? ': a ' + num1(g) + ' de ' + nm : '')
-        : rv ? 'Empiezas en el banquillo: a ' + num1(g) + ' de ' + nm : 'Empiezas en el banquillo';
+    var t = L.stat === 'start' ? (rv ? 'Sales de inicio: le sacas ' + num1(g) + ' puntos de valoración a ' + nm + ', tu suplente' : 'Sales de inicio')
+      : L.stat === 'out' ? 'Fuera de la convocatoria' + (rv ? ': a ' + num1(g) + ' puntos de valoración de ' + nm : '')
+        : rv ? 'Empiezas en el banquillo: a ' + num1(g) + ' puntos de valoración de ' + nm : 'Empiezas en el banquillo';
     return '<p class="tr-fight"><b>Pelea por el puesto.</b> ' + sp([t, imp >= 0.05 ? 'los entrenos te suman +' + num1(imp) : 'aún no te has hecho notar en los entrenos', 'tu media vale +' + (L.edge != null ? L.edge : 12) + ' en la elección'], 'v') + '</p>';
   }
   function trainCard(c) {

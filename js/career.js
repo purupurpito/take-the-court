@@ -1681,7 +1681,7 @@
   // Titularidad (13-nov-2026, notes/titularidad-y-cambios.md §A): el club tiene una plantilla con profundidad (c.sq6) y el entrenador
   // elige el seis inicial de cada jornada (lineup6). Sustituye en la pista al banquillo por confianza de la playa (BENCH/benchFor).
   var SQ_SIZE = { S: 2, OPP: 2, OH: 4, MB: 3, L: 1 }, SQ_BIG = 70, SQ_POS = ['S', 'OPP', 'OH', 'MB', 'L'];   // por puesto, contándote a ti
-  var SLOTS6 = { S: 1, OPP: 1, OH: 2, MB: 2, L: 1 }, LIST6 = 12;   // plazas en el seis (+ líbero) y convocatoria
+  var SLOTS6 = { S: 1, OPP: 1, OH: 2, MB: 2, L: 1 }, LIST6 = 13;   // plazas en el seis (+ líbero) y convocatoria (reglamento: hasta 14 con dos líberos; con uno, 13)
   var SEL_FORM = 0.8, SEL_CONF = 12, SEL_FAT0 = 50, SEL_FATK = 10, SEL_KEEP = 0.75, SEL_NOISE = 0.5;
   // Tu media cuenta más en la elección (meEdge6): el resto del equipo lo lleva la IA y tú lo juegas a mano. Con los datos reales un
   // jugador de Carrera va 6-12 por debajo de la media de su club las primeras temporadas (un novato de 45 empieza en clubes de 57-61):
@@ -2117,7 +2117,7 @@
     else if (force === 'fatiga' || force === 'coachSub') mine.splice(Math.min(mine.length, SLOTS6[pos]), 0, me);
     else mine.splice(mi, 0, me);
     var ord = mine.map(function (e) { return e.id; }); if (force === 'coach') ord.push('me');
-    // convocatoria de 12: fuera los peores de los puestos con más suplentes
+    // convocatoria de LIST6 (13): fuera los peores de los puestos con más suplentes
     var n = ent.length - out.length, why = force === 'coach' || force === 'coachSub' ? 'coach' : force === 'fatiga' ? 'fatiga' : '';
     while (n > LIST6) {
       var bp = '', br = 0;
