@@ -197,8 +197,8 @@ trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
    5ª (por temporadas jugadas, no por nivel: el nivel depende de la dificultad y de simular). A cambio, las **sesiones de entrenamiento**
    (hasta 3 antes de cada partido) dan una «impresión en los entrenos» que suma hasta +4 en la elección: un veterano que ficha por un club 8
    por encima empieza de suplente y, entrenando bien, se gana el puesto en la jornada 4-10 (mediana 5); sin entrenar casi nunca. En un club
-   de su nivel sigue saliendo de inicio. Medidas en notes/carrera.md §Sesiones. Queda abierto lo del central novato en un club de 14
-   («la convocatoria está llena»).
+   de su nivel sigue saliendo de inicio. Medidas en notes/carrera.md §Sesiones. El central novato en un club de 14 ya no
+   queda fuera: la convocatoria es de 13 (reglamento: 14 con dos líberos, 13 con uno; 15-nov-2026).
    *Arreglado tras la revisión:* el entrenador ya no mete al suplente en casi todos los partidos (sets a 15: partido roto con 7 de
    diferencia a 4 del final y solo en el set que decide; entras ~45 % de los partidos desde el banquillo, unos pocos puntos; simular
    está calibrado igual), no te vuelve a meter tras sacarte, «Tu sitio» de la oferta dice lo que pasará en la 1ª jornada, el Titular

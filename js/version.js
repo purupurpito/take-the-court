@@ -35,6 +35,22 @@
       ]
     },
     {
+      v: '1.1.2', d: '2026-11-15', t: 'Dificultad en la pista',
+      items: [
+        'La Carrera de pista ya tiene dificultad: Fácil, Normal, Difícil o Experto.',
+        'Elígela al crear la Carrera y cámbiala entre partidos en Palmarés › Opciones.',
+        'Cada título guarda la dificultad más fácil de su temporada.'
+      ]
+    },
+    {
+      v: '1.1.1', d: '2026-11-15', t: 'Cuentas con correo',
+      items: [
+        'Crea tu cuenta con tu correo y recupera la contraseña si la olvidas.',
+        'Entrar con Google (en cuanto esté activado).',
+        'Tu Vestuario también se guarda en tu cuenta.'
+      ]
+    },
+    {
       v: '1.1.0', d: '2026-11-13', t: 'Vestuario',
       items: [
         'Nuevo Vestuario: peinados, gorras, gafas, manguitos, rodilleras y mucho más.',

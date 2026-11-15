@@ -869,7 +869,11 @@ contorno grueso DE COLOR, cara grande dibujada, uniforme de equipo con el «tajo
   390 clubes; nombres y abreviaturas únicos en todo el juego; sin nombres reales ni oficiales (están en notes/clubes/*.json y en la lista de
   revisión notes/clubes-reales.md). `gender` es un dato interno: ningún texto del juego lo enseña.
 - **IA de la pista** por la media del club rival (`VB.Career.hall.DIFF_AT` / `SOFT`): < 56 Fácil, 56-61 Normal suave, 62-75 Normal, 76-87
-  Difícil, ≥ 88 Experto.
+  Difícil, ≥ 88 Experto. Es la base Normal: la dificultad de la Carrera (15-nov-2026) la mueve con `hall.rivalAI(c, k)`.
+- **Dificultad de la Carrera de pista** (15-nov-2026): mismas claves que la playa en `VB.Career.hall` (`CDIFF, CDIFF_KEYS, STEPS, DIFF_MSG,
+  diffOf, rivalAI, attrOf, baseStep, seasonDiff, midNota, setDifficulty`) y `GATE6`, `TOP6` (87), `top(c, k)`. `create({mode:'hall', diff})`;
+  `next()` añade `ovrClub`, `ovrSim`, `cdiff`; `matchSetup()` añade `cdiff` (también en `career.cdiff`) y sube los atributos del seis y del
+  banquillo rival con `attr`. Guardado `voley3d.career6` sin subir VER6 (`saneDiff6`: lo que falta es Normal). Detalle en notes/carrera.md.
 - Regla de datos: para cambiar un club o una competición se corrige el JSON de `notes/clubes/` y se ejecuta `node tools/build-leagues.js`
   (comprueba unicidad, colores, patrocinadores conocidos y «masculino/femenino» antes de escribir). `tools/careertest.js` falla si js/leagues.js
   no está al día con los JSON.

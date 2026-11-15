@@ -327,6 +327,28 @@ M4, una temporada entera JUGADA en el Circuito Mundial con tu media fija (club m
 - Calibrado hecho (§Calibrado; scripts en `tools/out/carrera-playa/dif_*.js`). Queda una decisión: si Fácil debe dejar el Mundial
   al alcance del jugador medio (`shift` −2) o se deja como está.
 
+### Dificultad en la Carrera de pista (15-nov-2026; Ferran: «metele la dificultad»)
+
+Las mismas palancas y la misma tabla `CDIFF` que la playa (IA rival, atributos, XP, entreno, entrenador, objetivo y ofertas), con
+el guardado de pista (`voley3d.career6`, sin subir `VER6`). **Normal es exactamente la Carrera de pista de antes**: comprobado contra el
+`career.js` anterior (5 semillas × 4 temporadas simuladas: guardado y `next()`/`matchSetup()` de cada jornada idénticos, quitando los
+campos nuevos) y con careertest (sección «Dificultad de la Carrera de pista»).
+
+- **Lo propio de la pista:** `baseStep6` sale de `difficultyFor6`/`soft6` (cortes 56/62/76/88). `GATE6` (media mínima para SUBIR de perfil
+  por desplazamiento), a la misma distancia de los cortes que la playa: Difícil `{hard: 66, expert: 84}`, Experto `{hard: 58, expert: 76}`.
+  `TOP6` = 87: las ligas de élite (Italia, Polonia, Brasil y Turquía) hacen de «Mundial» para `shiftTop`, `attrTop` y `topX`. `regEasy`:
+  en Fácil, las 2ªs divisiones juegan en Fácil puro (como el Circuito Regional).
+- **Reparto de la IA rival** en los 390 clubes: Fácil 195 Fácil / 126 Normal suave / 69 Normal (élite: Normal y Normal suave); Normal
+  18 / 81 / 183 / 86 Difícil / 22 Experto (la de siempre); Difícil 155 Normal / 201 Difícil / 34 Experto; Experto 47 / 261 / 82. En
+  Difícil y Experto la élite se queda como en Normal (22 Experto, 26 Difícil): nadie sube a Experto allí por desplazamiento.
+- **Atributos del rival:** `attr` se suma a la media de cada jugador del seis y del banquillo rival en `matchSetup6` (con 0, la misma
+  tirada de siempre); simular y el banquillo usan `ovrSim` (club + `simAttr`).
+- **Sellos y cambio entre partidos:** como la playa (`dUse`, `objective.d`, `coachD`, `seasonDiff`, historial, títulos y resumen con
+  `d`/`dm`). En la pista la temporada «en juego» es `league` o `ko`.
+- **UI** (career-ui.js): fila «Dificultad» al crear la Carrera de pista, línea «Dificultad: X · Cambiar» en Partido, tarjeta en Palmarés ›
+  Opciones, columna «Dif.» en Temporadas y nivel en el resumen (ya no se ocultan en la pista).
+- **Pendiente:** calibrado con partidos jugados de verdad (la playa se calibró con bots; aquí los valores se trasladan por escala).
+
 ## Vida de la Carrera (12-nov-2026; pedido de Ferran: «que el modo carrera sea más extenso y mejor, más entretenido y "enticing"»)
 
 Ficheros nuevos: `js/career-life.js` (`VB.CareerLife`, datos y reglas, sin DOM, se carga en node) y `js/career-life-ui.js`
