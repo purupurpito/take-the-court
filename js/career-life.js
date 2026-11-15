@@ -12,7 +12,9 @@
  *  - Vestuario (sprint «personaliza», spec §7): el aspecto de tu jugador en c.life.look (un «fit» de VB.Look, js/look.js); lo que
  *    ganas en la Carrera (fama, logros, premios) va al inventario GLOBAL (VB.Look.grant) y hay tienda de cosméticos (solo estética:
  *    nunca toca GEAR, gearBonus ni attrs; su gasto va en l.spentLook, no en l.spent). Sin look.js no hace nada.
- * Sin DOM (se carga en node: tools/careertest.js). Guarda en c.life dentro de la carrera (sin cambiar su versión: todo tiene valor
+ *  - Sprint 2-4: jefes del circuito (S3 C3, solo playa: l.boss, l.bossW, l.rival.style), química con nombre (S3 C5: chemLevel,
+ *    chemInfo, chemCheck, 3 decisiones raras), logros ses10/sesg5/boss3 al final de ACH y ACH_INFO (S4 D2). notes/s234/T10.md.
+ * Sin DOM (se carga en node: tools/careertest.js, tools/lifetest.js). Guarda en c.life dentro de la carrera (sin cambiar su versión: todo tiene valor
  * por defecto y se crea al vuelo con ensure()). career.js llama a hook(c, tipo, …) en sus puntos clave; si este fichero no está,
  * la Carrera funciona igual que antes.
  * Vale para las DOS Carreras (12-nov-2026): playa (voley3d.career) y pista (voley3d.career6, c.mode 'hall'). En la pista: textos de
@@ -83,6 +85,16 @@
     if (!l.look || typeof l.look !== 'object') l.look = null;
     else if (l.look !== lookOk && VB.Look && VB.Look.sane) l.look = lookOk = VB.Look.sane(l.look, 0);   // (ensure se llama mucho: se sanea una vez por objeto)
     l.lookAnn = +l.lookAnn > 0 ? 1 : 0;
+    // jefes del circuito (S3 C3, solo playa): l.boss = {clave: jefe}, l.bossW = jefes distintos tumbados jugando
+    if (!l.boss || typeof l.boss !== 'object' || Array.isArray(l.boss)) l.boss = {};
+    // química con nombre (S3 C5): jN = jornadas cerradas, rareJ = jornada de la última decisión rara, rareN = contador de las raras
+    // (ids propios: no mueven evN), chemEv = nivel recién alcanzado que fuerza «pairSign», sign = saludo de pareja (1 = sí)
+    ['bossW', 'jN', 'rareJ', 'rareN', 'chemEv'].forEach(function (k) { if (!(+l[k] >= 0)) l[k] = 0; });
+    if (l.sign !== 0) l.sign = 1;
+    if (l.rival && typeof l.rival === 'object' && !BOSS_STYLES[l.rival.style]) l.rival.style = rivalStyleOf(l.rival.name);
+    // nivel de química ya avisado: se fija al cargar con el actual (sin avisos atrasados en guardados viejos)
+    if (c.mate && typeof c.mate === 'object' && !(c.mate.chemLv >= 0)) c.mate.chemLv = chemLevel(c.mate.chem);
+    if (hall(c) && !(c.chemLv >= 0)) c.chemLv = chemLevel(c.chem);
     return l;
   }
 
@@ -411,8 +423,21 @@
     fans: { t: 'Pancarta de la afición', x: 'Un grupo de seguidores ha venido con una pancarta enorme con tu cara (no te han sacado muy favorecido).', when: function (c) { return tierOf(c) >= 1; },
       o: [{ t: 'Foto con todos', e: { fame: 0.04, fameMin: 30 } }, { t: 'Saludar de lejos', e: { fame: 0.01 } }] },
     sponsorShoot: { t: 'Rodaje del anuncio', x: '{sponsor} quiere grabar un anuncio contigo el día de descanso. El guion incluye un disfraz.', when: function (c) { return !!(c.life && c.life.sponsor); },
-      o: [{ t: 'Ponerte el disfraz', e: { money: 0.5, fame: 0.04, fameMin: 30, fatigue: 5 } }, { t: 'Solo una foto', e: { money: 0.15 } }] }
+      o: [{ t: 'Ponerte el disfraz', e: { money: 0.5, fame: 0.04, fameMin: 30, fatigue: 5 } }, { t: 'Solo una foto', e: { money: 0.15 } }] },
+    // química con nombre (S3 C5): decisiones RARAS, fuera de la bolsa normal (maybeEvent). pairSign es forzada (la jornada siguiente a
+    // llegar al nivel 2 o 3 en la playa); pairClash y pairTrip, una tirada aparte de 0,1 tras fallar la normal y ≥ 5 jornadas entre dos.
+    // th/xh: título y texto de pabellón; en las opciones, th = texto de pabellón de la opción
+    pairSign: { rare: true, t: 'Una señal vuestra', th: 'Un grito de equipo', x: '{mate} propone inventar un saludo solo vuestro para los puntos grandes. Dice que ya tiene la coreografía.',
+      xh: 'El vestuario quiere un grito propio antes de cada partido y te piden que lo estrenes tú.', when: function () { return true; },
+      o: [{ t: 'Ensayarlo hasta que salga', e: { chem: 5, fatigue: 3, sign: 1 } }, { t: 'Algo sencillo y a jugar', e: { chem: 2, sign: 1 } }, { t: 'Mejor nos concentramos', e: { coach: 2, chem: -2, sign: 0 } }] },
+    pairClash: { rare: true, t: 'Pique en el calentamiento', th: 'Bronca en el vestuario', x: 'Tras la derrota, {mate} y tú acabáis discutiendo por quién cubría la diagonal. Nadie se acuerda de quién empezó.',
+      xh: 'Tras la derrota, dos veteranos acaban discutiendo y todo el vestuario te mira a ti.', when: function (c, s) { return !s.win && !s.bench && chemNow(c) >= 60; },
+      o: [{ t: 'Hablarlo en frío', e: { chem: 4, coach: 1 } }, { t: 'Dejarlo correr', e: {} }, { t: 'Tenías tú la diagonal', th: 'Ponerte de un lado', e: { chem: -8, form: 1 } }] },
+    pairTrip: { rare: true, t: 'Invitación al pueblo', th: 'Barbacoa del equipo', x: '{mate} te invita a pasar el día de descanso en su pueblo: fiesta mayor, paella y un torneo de vóley de barrio.',
+      xh: 'El líbero organiza una barbacoa en su casa el día de descanso. Va toda la plantilla.', when: function (c) { return chemNow(c) >= 90; },
+      o: [{ t: 'Ir y jugar el torneo', th: 'Ir y montar un partidillo', e: { chem: 4, fatigue: 6, fame: 0.03, fameMin: 20 } }, { t: 'Ir solo a la paella', th: 'Ir solo a comer', e: { chem: 3, fatigue: -6 } }, { t: 'Descansar en casa', e: { fatigue: -12 } }] }
   };
+  var RARE_P = 0.1, RARE_GAP = 5;   // tirada rara (tras fallar la normal) y jornadas mínimas entre dos raras (la spec decía 0,15: medido, 7,8 % de las jornadas con química 95; con 0,1, 2-6 %)
   var EV_KEYS = Object.keys(EVENTS);
   var EV_P = 0.4;   // probabilidad de decisión tras cada jornada (si no hay otra pendiente)
   /** Un compañero de tu plantilla de pista (determinista por temporada), para los textos con {mate}. */
@@ -425,23 +450,36 @@
     return String(s).replace('{rival}', l.rival ? l.rival.name : 'Tu rival').replace('{mate}', c.mate ? c.mate.name : hall(c) ? mate6(c) : 'Un compañero').replace('{sponsor}', sp);
   }
   function evTitle(c, E) { return hall(c) && E.th ? E.th : E.t; }
-  function maybeEvent(c, sum) {
+  /** Decisión tras la jornada. Orden (S3 C5): 1) la forzada pairSign si chemEv venía de ANTES de esta jornada (force); 2) la tirada
+   *  normal, idéntica a la de siempre (mismo rng, misma bolsa sin las raras, mismo evN); 3) si falla, la tirada rara. Las raras llevan
+   *  ids propios (rareN) y no tocan evN ni lastEv: la secuencia normal de decisiones, rivales y patrocinios no cambia. */
+  function maybeEvent(c, sum, force) {
     var l = ensure(c);
     if (l.ev) { K(c)._msg(c, 'fans', 'Sin respuesta: ' + evTitle(c, EVENTS[l.ev.key]).toLowerCase(), 'No contestaste a tiempo. La vida sigue.'); l.ev = null; }
     if (c.phase === 'off' || c.phase === 'pick') return;
+    if (force && l.chemEv) { l.chemEv = 0; l.ev = { key: 'pairSign', id: 100000 + (++l.rareN), rare: 1 }; return; }
     var r = rngOf(c.seed, 'ev', c.season, c.week, c.phase, l.evN);
-    if (r() >= EV_P) return;
-    var ok = EV_KEYS.filter(function (k) { return k !== l.lastEv && modeOk(EVENTS[k], c) && EVENTS[k].when(c, sum); });
+    if (r() >= EV_P) { rareEvent(c, sum); return; }
+    var ok = EV_KEYS.filter(function (k) { return !EVENTS[k].rare && k !== l.lastEv && modeOk(EVENTS[k], c) && EVENTS[k].when(c, sum); });
     if (!ok.length) return;
     var key = pick(r, ok);
     l.ev = { key: key, id: ++l.evN }; l.lastEv = key;
+  }
+  function rareEvent(c, sum) {
+    var l = c.life; if ((l.jN | 0) - (l.rareJ | 0) < RARE_GAP) return;
+    var r = rngOf(c.seed, 'evr', c.season, c.week, c.phase, l.evN);
+    if (r() >= RARE_P) return;
+    var ok = ['pairClash', 'pairTrip'].filter(function (k) { return modeOk(EVENTS[k], c) && EVENTS[k].when(c, sum || {}); });
+    if (!ok.length) return;
+    l.ev = { key: pick(r, ok), id: 100000 + (++l.rareN), rare: 1 }; l.rareJ = l.jN | 0;
   }
   /** Evento pendiente para la UI: {key, title, text, opts:[{t, hint}]}. */
   function pendingEvent(c) {
     var l = c && c.life; if (!l || !l.ev) return null;
     var E = EVENTS[l.ev.key], H6 = hall(c);
-    return { key: l.ev.key, id: l.ev.id, title: evText(c, evTitle(c, E)), text: evText(c, H6 && E.xh ? E.xh : E.x), opts: E.o.map(function (o) { return { t: evText(c, o.t), hint: effHint(o.e, c) }; }) };
+    return { key: l.ev.key, id: l.ev.id, rare: !!E.rare, title: evText(c, evTitle(c, E)), text: evText(c, H6 && E.xh ? E.xh : E.x), opts: E.o.map(function (o) { return { t: evText(c, optT(c, o)), hint: effHint(o.e, c) }; }) };
   }
+  function optT(c, o) { return hall(c) && o.th ? o.th : o.t; }
   function effHint(e, c) {
     var h = [];
     if (e.coach) h.push(['Entrenador', e.coach > 0]);
@@ -453,13 +491,15 @@
     if (e.form && (!c || c.mate)) h.push(['Forma del compañero', true]);
     if (e.hurt) h.push(['Riesgo', false]);
     if (e.scout) h.push(['Ofertas', true]);
+    if ('sign' in e && !hall(c)) h.push(['Celebración', e.sign > 0]);
     return h;
   }
   function answer(i) {
     var c = K().load(); if (!c) return null; var l = ensure(c); if (!l.ev) return null;
     var E = EVENTS[l.ev.key], o = E.o[i]; if (!o) return null;
     var res = applyEff(c, o.e);
-    l.log.push({ s: c.season, t: evTitle(c, E), o: evText(c, o.t) }); if (l.log.length > 30) l.log = l.log.slice(-30);
+    var cu = chemCheck(c); if (cu && cu.up) res.push('¡Nivel de química: ' + cu.name + '!');
+    l.log.push({ s: c.season, t: evTitle(c, E), o: evText(c, optT(c, o)) }); if (l.log.length > 30) l.log = l.log.slice(-30);
     l.ev = null;
     check(c); K(c).save(c);
     return res;
@@ -476,6 +516,7 @@
     if (e.tp && c.tp) { addTp(c, trainGroup(c), e.tp); out.push('Entreno +' + e.tp); }
     if (e.hurt) { l.hurt = 1; out.push('Juegas tocado el próximo partido que juegues (−2)'); }
     if (e.scout) { l.scout = c.season; out.push('Más interés de los clubes esta temporada'); }
+    if ('sign' in e && !hall(c)) { l.sign = e.sign ? 1 : 0; out.push(e.sign ? 'Saludo de pareja: sí' : 'Saludo de pareja: no'); }
     return out;
   }
   function addTp(c, g, n) { c.tp[g] = Math.min(99, (c.tp[g] | 0) + n); }   // (migrate recorta a 99: lo que pase se perdería al recargar)
@@ -554,8 +595,15 @@
     { id: 'l10', name: 'Nivel 10', d: 'Llega al nivel 10', n: 10, v: function (c) { return c.player.lvl; }, money: 1500 },
     { id: 'l25', name: 'Nivel 25', d: 'Llega al nivel 25', n: 25, v: function (c) { return c.player.lvl; }, pts: 3 },
     { id: 'sp', name: 'Cara de anuncio', d: 'Firma con un patrocinador', n: 1, v: function (c) { return c.life.sponsor || c.life.spDone ? 1 : 0; }, fans: 100 },
-    { id: 'gear', name: 'Equipado hasta arriba', d: 'Todo el material a nivel 3', n: 12, v: function (c) { var s = 0; GEAR_KEYS.forEach(function (k) { s += c.life.gear[k] | 0; }); return s; }, pts: 2 }
+    { id: 'gear', name: 'Equipado hasta arriba', d: 'Todo el material a nivel 3', n: 12, v: function (c) { var s = 0; GEAR_KEYS.forEach(function (k) { s += c.life.gear[k] | 0; }); return s; }, pts: 2 },
+    // sprint 2-4 (SIEMPRE al final, para no mover índices): entrenos con el club (c.sesN = [sin, bronce, plata, oro], career-train.js)
+    // y jefes del circuito (l.bossW)
+    { id: 'ses10', name: 'Siempre a punto', d: 'Acaba 10 entrenos con plata u oro', n: 10, v: function (c) { var s = c.sesN; return Array.isArray(s) ? (+s[2] || 0) + (+s[3] || 0) : 0; }, pts: 1 },
+    { id: 'sesg5', name: 'Matrícula de honor', d: 'Saca oro en 5 entrenos', n: 5, v: function (c) { var s = c.sesN; return Array.isArray(s) ? +s[3] || 0 : 0; }, fans: 40 },
+    { id: 'boss3', name: 'Cazajefes', d: 'Gana a 3 jefes distintos', n: 3, v: function (c) { return c.life.bossW | 0; }, pts: 3, only: 'beach' }
   ];
+  /** Lista estática de los logros (sin funciones) para el álbum del perfil (S4 D2): cuenta ACH.length, nunca un número fijo. */
+  var ACH_INFO = ACH.map(function (a) { var o = { id: a.id, name: a.name, d: a.d }; if (a.nh) o.nh = a.nh; if (a.dh) o.dh = a.dh; if (a.only) o.only = a.only; return o; });
   function achName(a, c) { return hall(c) && a.nh ? a.nh : a.name; }
   function achD(a, c) { return hall(c) && a.dh ? a.dh : a.d; }
   function achList(c) {
@@ -663,6 +711,10 @@
       if (typeof o.award === 'string' && l.awards.some(function (a) { return a && a.id === o.award; })) {
         var aw = AWARDS.filter(function (a) { return a.id === o.award; })[0]; return aw ? aw.name : o.award;
       }
+      if (typeof o.boss === 'string' && l.boss) {   // jefe del circuito de ese estilo ya tumbado jugando
+        for (var bk in l.boss) { var bb = l.boss[bk]; if (bb && bb.beat > 0 && bb.style === o.boss) return 'Jefe: ' + bb.nick; }
+      }
+      if (typeof o.chem === 'number' && o.chem > 0 && chemLevel(c) >= o.chem) return 'Química: ' + chemName(chemLevel(c), c);   // (química de la pareja o del equipo)
     }
     return '';
   }
@@ -727,10 +779,190 @@
     } catch (e) { return null; }
   }
 
+  // ------------------------------------------------------------------ jefes del circuito (S3 C3; solo playa en esta fase)
+  // Un jefe fijo por circuito de playa (clave 'b' + nivel), generado con la semilla de la carrera (rngOf: nunca el rng de career.js
+  // ni g.rng). Juega en el club más fuerte de su liga (sin el tuyo ni el de tu rival). En los partidos contra su club, su n.º 1 lleva
+  // atributos de jefe (bossSt: desvíos sobre la media, recentrada exacta) e insignias: solo attrs + badges, sin tocar sim.js ni ai.js.
+  // Desvíos medidos con boss-exp.js / tools/lifetest.js (muro2 y remate2 de la spec; muro SIN 'rompemanos': tira un dado extra de g.rng).
+  var BOSS_STYLES = {
+    saque: { name: 'Cañón', nicks: ['Cañón', 'Bazuca', 'Misil'], hint: 'Saca en salto y muy fuerte: recibe atrás y sin prisa.', base: 'atk',
+      d: { serve: 24, spike: 6, ctl: 4, recv: -10, dig: -8, block: -8, set: -8 }, badges: { bombardero: 2, flotador: 2 }, item: 'Muñequera de cañón', celeb: 'sopla', rage: 'manotazo' },
+    muro: { name: 'Muro', nicks: ['Muro', 'Paredón', 'Frontón'], hint: 'Bloquea fuerte por su lado: ataca por el otro.', base: 'atk',
+      d: { block: 30, jump: 16, spike: 4, recv: -14, dig: -12, serve: -8, speed: -8, set: -8 }, badges: { muro: 3 }, item: 'Dedos de hierro', celeb: 'muralla', rage: 'grito' },
+    remate: { name: 'Martillo', nicks: ['Martillo', 'Mazo', 'Trueno'], hint: 'Remata durísimo: defiende atrás cuando ataque.', base: 'atk',
+      d: { spike: 30, ctl: 18, jump: 10, recv: -16, dig: -14, set: -12, serve: -8, block: -8 }, badges: { canon: 3, mira: 3 }, item: 'Manguito del martillo', celeb: 'martillo', rage: 'rabia' },
+    defensa: { name: 'Pulpo', nicks: ['Pulpo', 'Imán', 'Lapa'], hint: 'Lo saca todo, pero remata flojo: ten paciencia.', base: 'cr',
+      d: { dig: 22, recv: 14, react: 14, speed: 10, spike: -16, block: -16, jump: -14, serve: -6 }, badges: { ancla: 2, red: 2, motor: 1 }, item: 'Tobillera de pulpo', celeb: 'escoba', rage: 'arena' }
+  };
+  var BOSS_KEYS = ['saque', 'muro', 'remate', 'defensa'];
+  var BOSS_UP = 4, RIVAL_UP = 2, BOSS_FANS = 250;
+  // compañero de playa: su estilo (career.js MATE_STYLES) → personalidad, firma y rabia en pista (players: setMate, S3 C2)
+  var MATE_ANIM = {
+    'Rematador potente': ['fuego', 'martillo', 'rabia'], 'Saltador': ['show', 'biceps', 'grito'], 'Muro en la red': ['fuego', 'muralla', 'manotazo'],
+    'Colocador fino': ['calma', 'sien', 'headHands'], 'Pulpo en la arena': ['guason', 'escoba', 'arena'], 'Receptor seguro': ['calma', 'sien', 'jarras'],
+    'Todoterreno': ['show', 'biceps', 'grito'], 'Jugador listo': ['guason', 'sien', 'headHands'], 'Sacador': ['fuego', 'sopla', 'rabia']
+  };
+  function rivalStyleOf(name) { return BOSS_KEYS[Math.floor(rngOf('rstyle', String(name || ''))() * 4) % 4]; }
+  function engineGenSt() { var C = VB.Career, B = C && (C.beach || C); return B && (B.genSt || B._genSt); }
+  /** Atributos de jefe: genSt(o, base) + desvíos del estilo, recentrados a la media o exacta (±0,5) y recortados a 1-99. */
+  function bossSt(o, style, r) {
+    var S = BOSS_STYLES[style] || BOSS_STYLES.saque, G = engineGenSt(), st = G(o, S.base, r), ks = Object.keys(st), k, i, it;
+    for (i = 0; i < ks.length; i++) { k = ks[i]; st[k] = st[k] + (S.d[k] || 0); }
+    // recentrar: se reparte la diferencia entre los que no están en el tope (unas pocas pasadas bastan)
+    for (it = 0; it < 6; it++) {
+      var sum = 0, free = 0;
+      for (i = 0; i < ks.length; i++) { k = ks[i]; st[k] = clamp(st[k], 1, 99); sum += st[k]; }
+      var d = o - sum / ks.length; if (Math.abs(d) < 0.05) break;
+      for (i = 0; i < ks.length; i++) { k = ks[i]; if ((d > 0 && st[k] < 99) || (d < 0 && st[k] > 1)) free++; }
+      if (!free) break;
+      for (i = 0; i < ks.length; i++) { k = ks[i]; if ((d > 0 && st[k] < 99) || (d < 0 && st[k] > 1)) st[k] += d * ks.length / free; }
+    }
+    for (i = 0; i < ks.length; i++) { k = ks[i]; st[k] = clamp(Math.round(st[k]), 1, 99); }
+    return st;
+  }
+  /** Clave del circuito de la carrera c ('b0'…'b4'); '' en la pista (fase 2) o sin club. */
+  function bossKey(c) { return c && !hall(c) && c.myClub >= 0 && K(c).myClub(c) ? 'b' + lvlOf(c) : ''; }
+  /** Club más fuerte de la liga lvl sin el tuyo ni el de tu rival personal (null si no hay). */
+  function bossClub(c, lvl) {
+    var E = K(c), l = c.life, rv = l && l.rival ? l.rival.club : -1;
+    var pool = (E.clubsOf ? E.clubsOf(c, lvl) : []).filter(function (k) { return k.id !== c.myClub && k.id !== rv; });
+    pool.sort(function (a, b) { return E.clubOvr(b) - E.clubOvr(a) || a.id - b.id; });
+    return pool[0] || null;
+  }
+  /** Estilo del circuito lvl: una permutación de los 4 estilos por semilla (los 4 primeros circuitos, distintos; el 5º repite el 1º). */
+  function bossStyleAt(c, lvl) {
+    var r = rngOf(c.seed, 'bossperm'), p = BOSS_KEYS.slice();
+    for (var i = p.length - 1; i > 0; i--) { var j = Math.floor(r() * (i + 1)); var t = p[i]; p[i] = p[j]; p[j] = t; }
+    return p[(lvl | 0) % 4];
+  }
+  /** Crea o repasa el jefe de tu circuito (club que ya no vale → el más fuerte; reclub = true: se recoloca siempre, en verano). */
+  function ensureBoss(c, reclub) {
+    var key = bossKey(c); if (!key) return null;
+    var l = ensure(c), E = K(c), lvl = lvlOf(c), b = l.boss[key];
+    if (b && (typeof b !== 'object' || !BOSS_STYLES[b.style] || typeof b.name !== 'string')) b = null;   // dañado: se regenera igual (misma semilla)
+    if (!b) {
+      var r = rngOf(c.seed, 'boss', key), k0 = bossClub(c, lvl); if (!k0) return null;
+      var style = bossStyleAt(c, lvl), S = BOSS_STYLES[style];
+      var name = E._name ? E._name(r) : E._newMate ? E._newMate(c, k0, r).name : 'Jefe';
+      var used = [c.player && c.player.num, c.mate && c.mate.num, l.rival && l.rival.num, 9, 13], num;
+      var guard = 0; do { num = 1 + Math.floor(r() * 20); } while (used.indexOf(num) >= 0 && guard++ < 50);
+      b = l.boss[key] = { k: key, name: name, nick: pick(r, S.nicks), style: style, num: num, club: k0.id, w: 0, l: 0, beat: 0, seen: 0 };
+      return b;
+    }
+    var rv = l.rival ? l.rival.club : -1, kb = E.club(c, b.club);
+    if (reclub || !kb || (kb.lvl | 0) !== lvl || b.club === c.myClub || b.club === rv) { var k1 = bossClub(c, lvl); if (k1) b.club = k1.id; }
+    ['w', 'l', 'beat', 'seen', 'num'].forEach(function (x) { if (!(+b[x] >= 0)) b[x] = 0; });
+    return b;
+  }
+  /** Jefe de tu circuito (o null: pista, sin club o sin liga). */
+  function boss(c) { c = c || (K() && K().get && K().get()); try { return c ? ensureBoss(c) : null; } catch (e) { return null; } }
+  function bossOf(c, key) { var l = c && c.life; return l && l.boss && l.boss[key] || null; }
+  /** Jefe si el partido f / próximo partido n es contra su club (null si no). */
+  function bossFor(c, rivalId) { var b = boss(c); return b && rivalId != null && b.club === rivalId ? b : null; }
+  /** {estilo: 1} de los jefes ya tumbados jugando en la carrera c (para VB.Look: desbloqueo {boss: estilo}). */
+  function bossBeaten(c) {
+    c = c || (K() && K().get && K().get()); var out = {}, l = c && c.life;
+    if (l && l.boss) Object.keys(l.boss).forEach(function (k) { var b = l.boss[k]; if (b && b.beat > 0 && BOSS_STYLES[b.style]) out[b.style] = 1; });
+    return out;
+  }
+  /** Ficha del jefe para la UI y el partido: {name, nick, style, styleName, hint, num, club, h2h:[j, g, p], w, l, beat, first, item}. */
+  function bossInfo(c, b) {
+    var S = BOSS_STYLES[b.style];
+    return { name: b.name, nick: b.nick, style: b.style, styleName: S.name, hint: S.hint, num: b.num, club: b.club, h2h: [b.w + b.l, b.w, b.l], w: b.w, l: b.l, beat: b.beat, first: !b.beat, item: bossItemName(c, b.style) };
+  }
+  /** Objeto de Vestuario de un estilo (desbloqueo {boss: estilo}); en la Carrera de playa, el de playa o de las dos sedes. */
+  function bossItem(c, style) {
+    var X = LK(); if (!X) return null;
+    var want = hall(c) ? 'P' : 'Y', best = null, bs = -1;
+    X.CATALOG.forEach(function (x) {
+      if (!x || typeof x.id !== 'string') return;
+      if (!unlocksOf(x).some(function (u) { return u && u.boss === style; })) return;
+      var v = x.venue === 'P' || x.venue === 'Y' ? x.venue : 'A', s = v === want ? 2 : v === 'A' ? 1 : 0;   // su sede > las dos > la otra
+      if (s > bs) { best = x; bs = s; }
+    });
+    return best;
+  }
+  function bossItemsOf(X, style) {
+    var a = null; try { a = X.bossItems ? X.bossItems(style) : null; } catch (e) { a = null; }
+    if (Array.isArray(a)) return a.filter(function (id) { return typeof id === 'string'; });
+    return X.CATALOG.filter(function (x) { return x && typeof x.id === 'string' && unlocksOf(x).some(function (u) { return u && u.boss === style; }); }).map(function (x) { return x.id; });
+  }
+  function bossItemName(c, style) { var X = LK(), x = bossItem(c, style); return x ? lookName(X, x) : X ? BOSS_STYLES[style].item : ''; }
+  /** Personalidad, firma y rabia del compañero en pista (players setMate): {num, pers, sig, rage}; null en la pista o sin compañero. */
+  function mateAnim(c) {
+    c = c || (K() && K().get && K().get()); if (!c || hall(c) || !c.mate) return null;
+    var a = MATE_ANIM[c.mate.style]; if (!a) return null;
+    return { num: c.mate.num | 0, pers: a[0], sig: a[1], rage: a[2] };
+  }
+  /** Gestos del jefe (players setBoss, sin idx/num/fit): {pers, style, sig, rage}. */
+  function bossAnim(style) { var S = BOSS_STYLES[style]; return S ? { pers: 'fuego', style: style, sig: S.celeb, rage: S.rage } : null; }
+  /** Fin de partido contra el jefe: cara a cara (también simulado) y, la 1ª victoria JUGADA, recompensa. Devuelve out.boss o null. */
+  function bossAfter(c, sum, L) {
+    if (hall(c) || sum.bench) return null;
+    var b = bossFor(c, sum.rival); if (!b) return null;
+    if (sum.win) b.w++; else b.l++;
+    var first = false, fans = 0;
+    if (sum.win && !sum.sim && !b.beat) {
+      first = true; b.beat = c.season | 0 || 1;
+      var l = c.life; l.bossW = Object.keys(l.boss).filter(function (k) { return l.boss[k] && l.boss[k].beat > 0; }).length;
+      var X = LK(), x = bossItem(c, b.style), got = '';
+      if (X && x) {
+        // todos los objetos de ese estilo (defensa: rodilleras de pista y tobillera de playa); el aviso nombra el de tu sede
+        bossItemsOf(X, b.style).forEach(function (id) {
+          var own = false; try { own = !!X.owned(id); } catch (e) { own = true; }
+          if (!own) { try { if (X.grant(id, 'boss') !== true && !X.owned(id)) X.grant(id, 'carrera'); } catch (e) { } }
+        });
+        got = lookName(X, x);
+      }
+      var k = K(c).club(c, b.club), Lg = leagueOf(c);
+      K(c)._msg(c, 'boss', 'Has tumbado a ' + b.nick, b.name + ' (' + (k ? k.name : '') + ') era el jefe ' + deL(Lg) + '.' + (got ? ' Premio para tu vestuario: ' + got + '. Póntelo en Jugador › Vestuario.' : ''));
+      try { if (VB.CareerWorld && VB.CareerWorld.newsBoss) VB.CareerWorld.newsBoss(c, b); } catch (e) { }
+      fans = addFame(c, BOSS_FANS * LV_MULT[L]);   // (después del objeto: lookCheck de addFame ya lo encuentra en el inventario)
+    }
+    return { name: b.name, nick: b.nick, style: b.style, styleName: BOSS_STYLES[b.style].name, win: !!sum.win, w: b.w, l: b.l, h2h: [b.w + b.l, b.w, b.l], first: first, fans: fans };
+  }
+
+  // ------------------------------------------------------------------ química con nombre (S3 C5)
+  // Niveles alineados con el bonus de career.js (chemBonus = min(3, floor(chem/30))): no cambia ninguna mecánica.
+  var CHEM_LV = [[0, 'Conocidos'], [30, 'Buena sintonía'], [60, 'Compenetrados'], [90, 'Pareja de oro']];
+  var CHEM_LV6 = ['Vestuario nuevo', 'Buen ambiente', 'Bloque sólido', 'Equipo de oro'];
+  var CHEM_UP = [null,
+    ['Con {mate} ya os entendéis sin hablar: +1 en reacción, colocación y recepción para los dos.', 'El vestuario empieza a funcionar: +1 en reacción, colocación y recepción para todo el equipo.'],
+    ['{mate} y tú os buscáis sin mirar: +2 en reacción, colocación y recepción. En los puntos grandes lo celebraréis a vuestra manera.', 'Os movéis como un bloque: +2 en reacción, colocación y recepción para todo el equipo.'],
+    ['Sois la pareja que todos quieren evitar: +3 en reacción, colocación y recepción, y un saludo que ya imitan en la grada.', 'Nadie quiere cruzarse con vosotros: +3 en reacción, colocación y recepción para todo el equipo.']];
+  /** Química actual de la carrera c (la de la pareja en la playa, la del equipo en la pista). */
+  function chemNow(c) { return clamp(hall(c) ? +c.chem || 0 : c && c.mate ? +c.mate.chem || 0 : 0, 0, 100); }
+  /** Nivel 0-3 de una química v (número) o de la carrera c (objeto). */
+  function chemLevel(v) { if (v && typeof v === 'object') v = chemNow(v); return Math.min(3, Math.floor(clamp(+v || 0, 0, 100) / 30)); }
+  function chemName(lv, c) { lv = clamp(lv | 0, 0, 3); return hall(c) ? CHEM_LV6[lv] : CHEM_LV[lv][1]; }
+  /** {v, lv, name, next, need, bonus, hall}: next = nombre del siguiente nivel ('' en el máximo), need = puntos que faltan. */
+  function chemInfo(c) {
+    var v = Math.round(chemNow(c)), lv = chemLevel(v), H6 = hall(c);
+    return { v: v, lv: lv, name: chemName(lv, c), next: lv < 3 ? chemName(lv + 1, c) : '', need: lv < 3 ? CHEM_LV[lv + 1][0] - v : 0, bonus: lv, hall: H6 };
+  }
+  /** Compara el nivel de química con el último avisado. Al subir: mensaje 'chem' y (playa, nivel ≥ 2) chemEv para la decisión
+   *  pairSign. Al bajar: se apunta sin aviso (volver a subir avisa otra vez). {lv, name, up} o null (sin química). */
+  function chemCheck(c) {
+    var l = ensure(c); if (!l) return null;
+    var H6 = hall(c), o = H6 ? c : c.mate; if (!o) return null;
+    if (Array.isArray(c.squad)) c.squad.forEach(function (p) { if (p && typeof p === 'object' && !(p.chemLv >= 0)) p.chemLv = chemLevel(p.chem); });
+    var lv = chemLevel(c), up = lv > (o.chemLv | 0);
+    if (lv !== (o.chemLv | 0)) o.chemLv = lv;
+    if (up) {
+      var name = chemName(lv, c), txt = CHEM_UP[lv][H6 ? 1 : 0].replace('{mate}', c.mate ? c.mate.name : 'Tu compañero');
+      K(c)._msg(c, 'chem', 'Química: ' + name, txt);
+      if (!H6 && lv >= 2) l.chemEv = lv;
+      lookCheck(c);   // Vestuario: lo que se desbloquea con la química ({chem: n})
+    }
+    return { lv: lv, name: chemName(lv, c), up: up };
+  }
+
   // ------------------------------------------------------------------ ganchos de career.js
   /** Tras cada jornada tuya (jugada, simulada o en el banquillo). f = partido, sum = resumen (se le añade sum.life). */
   function afterMatch(c, sum, f) {
     var l = ensure(c), L = lvlOf(c), out = { fans: 0, money: 0, xp: 0, ch: null, ach: [], duel: null };
+    l.jN++;
+    var chemEv0 = l.chemEv;   // (nivel alcanzado en una jornada ANTERIOR o en una decisión: pairSign sale en esta)
     // el reto y el duelo, con el rival de ANTES del partido (el que se enseñó en la tarjeta y en g.career.goal)
     var ch = sum.bench ? null : challengeAt(c, sum.season, sum.phase, f, sum.rival), rv0 = l.rival;
     // rival: se crea en tu primera jornada en una liga (o al cambiar de liga)
@@ -764,7 +996,10 @@
       // duelo con tu rival
       if (ch.duel && rv0) { if (sum.win) { rv0.w++; l.duelW++; } else { rv0.l++; l.duelL++; } out.duel = { name: rv0.name, win: sum.win, w: rv0.w, l: rv0.l }; }
       if (l.hurt && !sum.sim) l.hurt = 0;
+      // jefe del circuito: cara a cara y, la 1ª victoria jugada, objeto, seguidores, bandeja y noticia
+      var bo = bossAfter(c, sum, L); if (bo) { out.boss = bo; out.fans += bo.fans; }
     }
+    ensureBoss(c);   // (crea el de un circuito nuevo o un guardado antiguo; deterministas)
     // patrocinador y servicios (cada jornada, también en el banquillo)
     if (l.sponsor) { c.money = Math.round((+c.money || 0) + l.sponsor.pay); out.money += l.sponsor.pay; l.earned += l.sponsor.pay; }
     SVC_KEYS.forEach(function (id) {
@@ -775,7 +1010,8 @@
       if (id === 'coach' && c.tp) addTp(c, trainGroup(c), c.train === 'rest' ? 0 : c.train === 'bal' ? 8 : 25);
       if (id === 'nutri') c.fatigue = clamp((c.fatigue | 0) - 5, 0, 100);
     });
-    maybeEvent(c, sum);
+    var cu = chemCheck(c); if (cu && cu.up) out.chemUp = { lv: cu.lv, name: cu.name };
+    maybeEvent(c, sum, chemEv0 > 0);
     out.ach = check(c).map(function (a) { return achName(a, c); });
     sum.life = out;
   }
@@ -806,6 +1042,8 @@
     if (l.sponsor && (l.sponsor.done || l.sponsor.season < c.season)) l.sponsor = null;
     if (tierOf(c) >= 1) sponsorOffers(c, 'season');
     ensureRival(c);
+    ensureBoss(c, true);   // el jefe juega en el club más fuerte de su liga ESTA temporada
+    chemCheck(c);   // (verano de la pista ×0,6 o compañero nuevo: si baja, se apunta sin aviso)
   }
   /** matchSetup: material (+ a dos atributos por pieza y nivel) y molestias (−2 a todo). Solo en el partido. */
   function setup(c, m) {
@@ -819,7 +1057,44 @@
     var ch = challenge(c); if (ch && m.career) { m.career.goal = ch.txt; m.career.duel = ch.duel; }
     // E2: dorsal del rival personal solo en el duelo (main.js lo pasa a nums[1] y a Players.setRival)
     if (ch && ch.duel && m.career && l.rival && l.rival.num >= 0) m.career.rivalNum = l.rival.num | 0;
+    setupExtra(c, m, l, ch);
   }
+  /** S3 (al FINAL de setup, sin tocar lo de arriba): jefe del circuito (playa), estilo del rival en el duelo, química y gestos.
+   *  Sin jefe ni duelo, m.attrs/m.badges quedan exactamente como antes. */
+  function setupExtra(c, m, l, ch) {
+    var cs = m.career, n = null;
+    try { n = K(c).next(c); } catch (e) { n = null; }
+    if (!hall(c) && n && n.rival && m.attrs && m.attrs[1] && m.attrs[1][0]) {
+      var b = bossFor(c, n.rival.id), r;
+      if (b) {
+        r = rngOf(c.seed, 'bossm', c.season, n.week | 0, n.round | 0);
+        m.attrs[1][0] = bossSt(clamp((n.ovrRival | 0) + BOSS_UP, 1, 99), b.style, r);
+        m.badges = m.badges || [null, null]; m.badges[1] = [copyObj(BOSS_STYLES[b.style].badges), null];
+        if (cs) {
+          var bi = bossInfo(c, b), an = bossAnim(b.style), fit = null;
+          cs.boss = { name: bi.name, nick: bi.nick, style: bi.style, styleName: bi.styleName, hint: bi.hint, num: bi.num, h2h: bi.h2h, w: bi.w, l: bi.l, first: bi.first, item: bi.item };
+          cs.bossNum = bi.num;
+          try { fit = VB.Look && VB.Look.bossFit ? VB.Look.bossFit(b.style, hashName(b.name)) || null : null; } catch (e) { fit = null; }
+          cs.bossAnim = { idx: 0, num: bi.num, fit: fit, style: b.style, pers: an.pers, sig: an.sig, rage: an.rage };
+        }
+      } else if (ch && ch.duel && l.rival && BOSS_STYLES[l.rival.style]) {
+        // tu rival en el duelo: su estilo con RIVAL_UP y las insignias del estilo a nivel 1 (gestos: pique y rabia de siempre)
+        r = rngOf(c.seed, 'rivalm', c.season, n.week | 0, n.round | 0);
+        m.attrs[1][0] = bossSt(clamp((n.ovrRival | 0) + RIVAL_UP, 1, 99), l.rival.style, r);
+        var b1 = {}; Object.keys(BOSS_STYLES[l.rival.style].badges).forEach(function (k) { b1[k] = 1; });
+        m.badges = m.badges || [null, null]; m.badges[1] = [b1, null];
+        if (cs) cs.rivalStyle = l.rival.style;
+      }
+    }
+    if (cs) {
+      var ci = chemInfo(c);
+      cs.chemLv = ci.lv; cs.chemName = ci.name; cs.pairSign = l.sign;
+      if (cs.rivalNum != null && l.rival) cs.rivalP = l.rival.name;
+      cs.mateAnim = mateAnim(c);
+    }
+  }
+  function copyObj(o) { var x = {}; for (var k in o) x[k] = o[k]; return x; }
+  function hashName(s) { return Math.floor(rngOf('bossfit', String(s || ''))() * 4294967296) >>> 0; }
   function onCreate(c) { var f = legacyStart(); var l = ensure(c); if (f) { l.fame = l.fameMax = f; } initLook(c); lookCheck(c); }
   function hook(c, kind, a, b) {
     if (!c) return;
@@ -841,6 +1116,12 @@
     legacyScore: legacyScore, legacyTier: legacyTier, canRetire: canRetire, retire: retire, legends: legends, RETIRE_AGE: RETIRE_AGE, DECLINE_AGE: DECLINE_AGE,
     eur: eur, num: num,
     CELEB_DEF: CELEB_DEF, celebs: celebs, setCeleb: setCeleb, signatureNow: signatureNow,
-    initLook: initLook, lookCheck: lookCheck, lookShop: lookShop, buyLook: buyLook, setLook: setLook, lookNow: lookNow, achName: achNameOf
+    initLook: initLook, lookCheck: lookCheck, lookShop: lookShop, buyLook: buyLook, setLook: setLook, lookNow: lookNow, achName: achNameOf,
+    // sprint 2-4: jefes del circuito (C3), química con nombre (C5), logros para el álbum (D2)
+    BOSS_STYLES: BOSS_STYLES, BOSS_KEYS: BOSS_KEYS, BOSS_UP: BOSS_UP, RIVAL_UP: RIVAL_UP, BOSS_FANS: BOSS_FANS, MATE_ANIM: MATE_ANIM,
+    boss: boss, bossOf: bossOf, bossFor: bossFor, bossSt: bossSt, bossInfo: bossInfo, bossBeaten: bossBeaten, bossKey: bossKey, bossItem: bossItem, ensureBoss: ensureBoss,
+    mateAnim: mateAnim, bossAnim: bossAnim, rivalStyleOf: rivalStyleOf,
+    CHEM_LV: CHEM_LV, CHEM_LV6: CHEM_LV6, chemLevel: chemLevel, chemInfo: chemInfo, chemName: chemName, chemCheck: chemCheck,
+    ACH_INFO: ACH_INFO
   };
 })();

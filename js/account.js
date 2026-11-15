@@ -11,6 +11,13 @@
  *  - 'voley3d.gym' (Entrenamiento) se une por máximo (mergeGym); se sincroniza desde el 12-nov-2026 (GYM_SYNC = true).
  *  - 'voley3d.look' (Vestuario, js/look.js) tiene su fusión escrita (mergeLook: une lo ganado y lo visto con VB.Look.mergeRaw y toma
  *    los looks del lado más reciente) pero NO se sincroniza hasta LOOK_SYNC = true.
+ *  - S4 (T13): 'voley3d.profile', 'voley3d.career6', 'voley3d.career.mode', 'voley3d.legends' y 'voley3d.retos' tienen su fusión
+ *    (MERGE: perfil y retos con su mergeRaw, Salón de la Fama por unión; Carrera de pista y modo, gana lo más reciente) pero NO se
+ *    sincronizan hasta S4_SYNC = true (antes, Ferran despliega firebase/firestore.rules). Hasta entonces, TRACK (solo la hora).
+ *  - Conflictos en cola (Carrera y Carrera de pista, la primera vez); antes de pisar una Carrera local, copia en '<clave>.prev'.
+ *  - Las bajadas solo se aplican en el menú (fuera, quedan pendientes hasta VB.Account.menuReady()); tras la primera recarga de la
+ *    pestaña, las claves con caché llaman a su gancho (Prog._reload, Career.beach/hall._reset) y VB.UI.refreshMenu.
+ *  - Tope de subida 390 000 caracteres (las reglas admiten 400 000): lo que pase no se sube hasta su siguiente cambio.
  *  - Panel propio (#account) que se abre con el botón «Cuenta» del menú principal (#btnAcc, lo crea este módulo).
  */
 (function () {
@@ -31,6 +38,17 @@
   var LOOK_SYNC = false;
   if (LOOK_SYNC) DOCS['voley3d.look'] = 'look';
   var TRACK = { 'voley3d.look': 1 };
+  if (LOOK_SYNC) delete TRACK['voley3d.look'];
+  // S4 (D2/D4, T13): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos. APAGADO hasta que Ferran despliegue
+  // firebase/firestore.rules (ya tiene las 11 claves). Orden obligatorio: 1) desplegar reglas, 2) S4_SYNC = true (y LOOK_SYNC).
+  // Mientras tanto van a TRACK: se apunta la hora de cada escritura sin subir, para que la primera fusión sepa qué es más nuevo.
+  // NUNCA van a DOCS ni a TRACK: '<clave>.bak', 'voley3d.career.prev', 'voley3d.career6.prev', 'voley3d.devid', 'voley3d.retostab'.
+  var S4_SYNC = false;
+  var S4_DOCS = { 'voley3d.profile': 'profile', 'voley3d.career6': 'career6', 'voley3d.career.mode': 'cmode', 'voley3d.legends': 'legends', 'voley3d.retos': 'retos' };
+  Object.keys(S4_DOCS).forEach(function (k) { if (S4_SYNC) DOCS[k] = S4_DOCS[k]; else TRACK[k] = 1; });
+  // Carreras: la primera vez en un dispositivo, si la local y la de la cuenta son distintas, se pregunta (en cola, una tras otra).
+  var CONFLICT = { 'voley3d.career': 'Carrera', 'voley3d.career6': 'Carrera de pista' };
+  var MAX_RAW = 390000;   // tope de subida (las reglas admiten 400 000 caracteres)
   var LS = null; try { LS = window.localStorage; } catch (e) { }
   var rawSet = Storage.prototype.setItem, rawRemove = Storage.prototype.removeItem;
 
@@ -40,6 +58,7 @@
   var meta = jget(META) || {};          // {clave: ms de la última escritura local}
   var synced = jget(META + '.up') || {}; // {clave: ms subido a la cuenta}
   var applying = false, dirty = {}, pushT = 0, lastSync = 0, status = acc ? 'idle' : 'off', lastErr = '';
+  var pendingDown = false, big = {}, conflicts = [];   // big: {clave: meta de la versión demasiado grande (no se reintenta)}
 
   // ---------------------------------------------------------------- escuchar las escrituras del juego
   if (LS) {
@@ -104,7 +123,7 @@
   }
   function docPath(name) { return 'users/' + acc.uid + '/saves/' + name; }
   function readAll() {
-    return fs('GET', 'users/' + acc.uid + '/saves?pageSize=20').then(function (j) {
+    return fs('GET', 'users/' + acc.uid + '/saves?pageSize=50').then(function (j) {
       var out = {};
       ((j && j.documents) || []).forEach(function (d) {
         var f = d.fields || {}, name = d.name.split('/').pop();
@@ -116,19 +135,27 @@
   function writeDoc(k, keep) {
     var at = meta[k] || Date.now(), raw = null;
     try { raw = LS.getItem(k); } catch (e) { }
-    var body = { fields: { data: { stringValue: raw == null ? 'null' : raw }, updatedAt: { integerValue: String(at) }, v: { integerValue: '1' } } };
+    if (raw != null && raw.length > MAX_RAW) { big[k] = at; return Promise.reject(err('too_big')); }   // las reglas lo rechazarían
+    var body ={ fields: { data: { stringValue: raw == null ? 'null' : raw }, updatedAt: { integerValue: String(at) }, v: { integerValue: '1' } } };
     return fs('PATCH', docPath(DOCS[k]), body, keep).then(function () { synced[k] = at; jset(META + '.up', synced); });
   }
   function push(keep) {
     if (!acc) return Promise.resolve();
-    var ks = Object.keys(dirty); if (!ks.length) return Promise.resolve();
-    dirty = {}; setStatus('busy');
-    return Promise.all(ks.map(function (k) { return writeDoc(k, keep); })).then(function () { lastSync = Date.now(); setStatus('idle'); },
-      function (e) { ks.forEach(function (k) { dirty[k] = 1; }); setStatus('error', e); if (e.code === 'unavailable') { /* se reintenta al volver la red */ } });
+    var ks = Object.keys(dirty).filter(function (k) { return !(big[k] && big[k] === meta[k]); });   // (lo demasiado grande espera a su siguiente cambio)
+    dirty = {}; if (!ks.length) return Promise.resolve();
+    setStatus('busy');
+    var fails = [];
+    return Promise.all(ks.map(function (k) { return writeDoc(k, keep).catch(function (e) { fails.push({ k: k, e: e }); }); })).then(function () {
+      if (!fails.length) { lastSync = Date.now(); setStatus('idle'); return; }
+      var e0 = null;
+      fails.forEach(function (f) { if (f.e && f.e.code === 'too_big') { if (!e0) e0 = f.e; } else { dirty[f.k] = 1; e0 = f.e; } });   // too_big: fuera de dirty
+      setStatus('error', e0);   // (unavailable: se reintenta al volver la red)
+    });
   }
   document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden') push(true); else if (acc) syncDown(false); });
   window.addEventListener('pagehide', function () { push(true); });
-  window.addEventListener('online', function () { if (acc) { for (var k in DOCS) if ((meta[k] || 0) > (synced[k] || 0)) dirty[k] = 1; push(); } });
+  window.addEventListener('online', function () { if (acc) { markDirty(); push(); } });
+  function markDirty() { for (var k in DOCS) if ((meta[k] || 0) > (synced[k] || 0)) dirty[k] = 1; }
 
   // ---------------------------------------------------------------- unir dispositivo y cuenta
   function score(raw) { // progreso del escuadrón para decidir sin fechas (primera vez en este dispositivo)
@@ -136,40 +163,70 @@
   }
   function apply(k, raw) {
     applying = true;
-    try { if (raw == null || raw === 'null') rawRemove.call(LS, k); else rawSet.call(LS, k, raw); } catch (e) { }
+    try {
+      // Carreras: antes de pisar una local que no está vacía y es distinta, copia del aparato en '<clave>.prev' (nunca sube; se
+      // recupera a mano con tools/eval.js)
+      if (CONFLICT[k]) { var L0 = LS.getItem(k); if (L0 != null && L0 !== 'null' && L0 !== raw) rawSet.call(LS, k + '.prev', L0); }
+      if (raw == null || raw === 'null') rawRemove.call(LS, k); else rawSet.call(LS, k, raw);
+    } catch (e) { }
     applying = false;
   }
-  /** Une lo local con lo remoto. first: primera entrada en este dispositivo (sin fechas fiables). Devuelve {changed, conflict}. */
+  // Fusiones propias (lo que no es «gana lo más reciente»). Firma (L, R, remoteNewer) → texto (L tal cual si no cambia nada).
+  function modMerge(n) {
+    return function (L, R, rn) {
+      var M = VB[n]; if (!M || typeof M.mergeRaw !== 'function') return rn ? R : L;
+      try { var o = M.mergeRaw(L, R, rn); return typeof o === 'string' ? o : (rn ? R : L); } catch (e) { return rn ? R : L; }
+    };
+  }
+  var MERGE = { 'voley3d.gym': mergeGym, 'voley3d.look': mergeLook, 'voley3d.legends': mergeLegends,
+    'voley3d.profile': modMerge('Profile'), 'voley3d.retos': modMerge('Retos') };
+  /** Une lo local con lo remoto. first: primera entrada en este dispositivo (sin fechas fiables). Devuelve {changed, keys (claves
+   *  cambiadas en local), conflicts:[{k, remote, local, at}], conflict (el primero o null)}. Los conflictos también quedan en la
+   *  cola del módulo (los resuelve act('keepRemote'|'keepLocal') uno a uno). */
   function merge(remote, first) {
-    var changed = false, conflict = null;
+    var changed = false, keys = [], found = [];
     Object.keys(DOCS).forEach(function (k) {
       var name = DOCS[k], R = remote[name], L = null; try { L = LS.getItem(k); } catch (e) { }
       var Lt = meta[k] || 0;
+      var put = function (raw) { apply(k, raw); changed = true; if (keys.indexOf(k) < 0) keys.push(k); };
       if (!R) { if (L != null) dirty[k] = 1; return; }
       var Rd = R.data === 'null' ? null : R.data;
       if (Rd === L) { synced[k] = R.at; return; }
-      if (L == null) { apply(k, Rd); meta[k] = R.at; synced[k] = R.at; changed = true; return; }
-      if (Rd == null) { if (first || Lt > R.at) dirty[k] = 1; else { apply(k, null); meta[k] = R.at; changed = true; } return; }
-      if (k === 'voley3d.career' && first) { conflict = { k: k, remote: Rd, local: L, at: R.at }; return; }
-      if (k === 'voley3d.gym') { // récords del Entrenamiento: nunca se pierde uno, se une por máximo en cualquier entrada
-        var Mg = mergeGym(L, Rd);
-        if (Mg !== L) { apply(k, Mg); changed = true; }
+      if (L == null) { put(Rd); meta[k] = R.at; synced[k] = R.at; return; }
+      if (Rd == null) { if (first || Lt > R.at) dirty[k] = 1; else { put(null); meta[k] = R.at; } return; }
+      if (CONFLICT[k] && first) { found.push({ k: k, remote: Rd, local: L, at: R.at }); return; }
+      if (MERGE[k]) {   // gym por máximo, look y retos por unión, perfil conmutativo, Salón de la Fama por unión (top 20)
+        var Mx = MERGE[k](L, Rd, first || R.at > Lt);
+        if (Mx !== L) put(Mx);
         meta[k] = Math.max(Lt, R.at); synced[k] = R.at;
-        if (Mg !== Rd) dirty[k] = 1;
-        return;
-      }
-      if (k === 'voley3d.look') { // Vestuario: lo ganado nunca se pierde (unión); los looks, del lado más reciente (primera vez: la cuenta)
-        var Ml = mergeLook(L, Rd, first || R.at > Lt);
-        if (Ml !== L) { apply(k, Ml); changed = true; }
-        meta[k] = Math.max(Lt, R.at); synced[k] = R.at;
-        if (Ml !== Rd) dirty[k] = 1;
+        if (Mx !== Rd) dirty[k] = 1;
         return;
       }
       var remoteWins = first ? (k === 'voley3d.squad' ? score(Rd) >= score(L) : k !== 'voley3d.record' || recPlayed(Rd) >= recPlayed(L)) : R.at > Lt;
-      if (remoteWins) { apply(k, Rd); meta[k] = R.at; synced[k] = R.at; changed = true; } else dirty[k] = 1;
+      if (remoteWins) { put(Rd); meta[k] = R.at; synced[k] = R.at; } else dirty[k] = 1;
     });
     jset(META, meta); jset(META + '.up', synced);
-    return { changed: changed, conflict: conflict };
+    found.forEach(function (c) { conflicts = conflicts.filter(function (x) { return x.k !== c.k; }); conflicts.push(c); });
+    return { changed: changed, keys: keys, conflicts: found, conflict: found[0] || null };
+  }
+  /** Une dos Salones de la Fama ('voley3d.legends', [rec ≤ 20]) por la clave name|num|date; orden por score de mayor a menor, las
+   *  20 primeras. Devuelve el local tal cual si no cambia nada. */
+  function mergeLegends(Lraw, Rraw) {
+    function p(r) { try { var a = JSON.parse(r); return Array.isArray(a) ? a.filter(function (x) { return x && typeof x === 'object'; }) : null; } catch (e) { return null; } }
+    var A = p(Lraw), B = p(Rraw);
+    if (!B) return Lraw != null ? Lraw : Rraw;
+    if (!A) return Rraw;
+    var by = {}, out = [], added = false;
+    A.concat(B).forEach(function (r, i) { var id = String(r.name) + '|' + String(r.num) + '|' + String(r.date); if (!by[id]) { by[id] = 1; out.push(r); if (i >= A.length) added = true; } });
+    if (!added && A.length <= 20) return Lraw;   // el remoto no trae nada nuevo
+    out.sort(function (a, b) {
+      var d = (+b.score || 0) - (+a.score || 0); if (d) return d;
+      var ka = String(a.name) + '|' + String(a.num) + '|' + String(a.date), kb = String(b.name) + '|' + String(b.num) + '|' + String(b.date);
+      return ka < kb ? -1 : ka > kb ? 1 : 0;
+    });
+    out = out.slice(0, 20);
+    var txt = JSON.stringify(out);
+    return txt === JSON.stringify(A) ? Lraw : txt;
   }
   /** Une dos guardados de 'voley3d.gym' (texto JSON) por máximo: por ejercicio b (récord, con su fecha t), m (medalla),
    *  n (intentos) y xp (nivel ya cobrado); free.rally. Devuelve texto JSON (el local tal cual si no cambia nada). */
@@ -213,18 +270,43 @@
     try { sessionStorage.setItem('voley3d.account.toast', msg); } catch (e) { }
     setTimeout(function () { location.reload(); }, 350);
   }
-  /** Al abrir el juego (y al volver a la pestaña) con sesión: baja lo que haya cambiado en otro dispositivo. */
+  function inMenu() { var c = VB.ctx; return !c || !c.state || c.state === 'menu'; }
+  /** Al abrir el juego (y al volver a la pestaña) con sesión: baja lo que haya cambiado en otro dispositivo. Solo en el menú: en un
+   *  partido (o en cualquier otro estado) se deja pendiente y la lanza menuReady() (si no, los módulos con caché seguirían con lo
+   *  viejo y su siguiente save() pisaría lo que llegó). */
   function syncDown(atBoot) {
     if (!acc) return Promise.resolve();
+    if (!inMenu()) { pendingDown = true; return Promise.resolve(); }
+    pendingDown = false;
     setStatus('busy');
     return readAll().then(function (remote) {
       var r = merge(remote, false);
       lastSync = Date.now(); setStatus('idle'); push();
-      var c = VB.ctx, inMenu = !c || !c.state || c.state === 'menu';
-      if (r.changed && inMenu && !reloadedOnce()) reloadSoon('Progreso actualizado desde tu cuenta');
+      if (r.changed) afterDown(r.keys);
     }, function (e) { setStatus('error', e); });
   }
+  // Ganchos de las claves con caché en memoria (tras la primera recarga de la pestaña se llaman en vez de recargar otra vez).
+  var HOOKS = {
+    'voley3d.squad': function () { if (VB.Prog && VB.Prog._reload) VB.Prog._reload(); },
+    'voley3d.career': function () { var b = VB.Career && VB.Career.beach; if (b && b._reset) b._reset(); },
+    'voley3d.career6': function () { var h = VB.Career && VB.Career.hall; if (h && h._reset) h._reset(); }
+    // gym, look, profile y retos leen el texto cada vez (o cachean por el texto): no necesitan gancho
+  };
+  function afterDown(keys) {
+    keys = keys || [];
+    if (!reloadedOnce()) { reloadSoon('Progreso actualizado desde tu cuenta'); return 'reload'; }
+    if (keys.indexOf('voley3d.settings') >= 0 && reloadCount() < 3) { reloadSoon('Ajustes actualizados desde tu cuenta'); return 'reload'; }
+    keys.forEach(function (k) { if (HOOKS[k]) { try { HOOKS[k](); } catch (e) { } } });
+    try { if (VB.UI && VB.UI.refreshMenu) VB.UI.refreshMenu(); } catch (e) { }
+    return 'hooks';
+  }
   function reloadedOnce() { try { if (sessionStorage.getItem('voley3d.account.rl')) return true; sessionStorage.setItem('voley3d.account.rl', '1'); } catch (e) { } return false; }
+  function reloadCount() {   // recargas por ajustes en esta pestaña (tope, para que nunca haya bucle)
+    var n = 0; try { n = +sessionStorage.getItem('voley3d.account.rls') || 0; sessionStorage.setItem('voley3d.account.rls', String(n + 1)); } catch (e) { n = 9; }
+    return n;
+  }
+  /** Lo llama ui.js al entrar en el menú: lanza la bajada que quedó pendiente durante un partido. */
+  function menuReady() { if (pendingDown && acc && inMenu()) return syncDown(false); return Promise.resolve(); }
 
   // ---------------------------------------------------------------- entrar, crear, salir, borrar
   function normUser(u) { return String(u || '').trim().toLowerCase(); }
@@ -236,7 +318,7 @@
     return idt(create ? 'accounts:signUp' : 'accounts:signInWithPassword', { email: user + FB.mail, password: pass, returnSecureToken: true })
       .then(function (j) {
         acc = { user: user, uid: j.localId, rt: j.refreshToken, it: j.idToken, ie: Date.now() + (+j.expiresIn || 3600) * 1000 };
-        jset(SES, acc); synced = {}; jset(META + '.up', synced);
+        jset(SES, acc); synced = {}; jset(META + '.up', synced); conflicts = [];
         return readAll();
       }).then(function (remote) {
         var r = merge(remote, true);
@@ -247,7 +329,12 @@
   function lost() { acc = null; jset(SES, null); setStatus('off'); toast('Se ha cerrado la sesión de tu cuenta. Vuelve a entrar desde «Cuenta».'); }
   function deleteAccount() {
     if (!acc) return Promise.resolve();
-    return Promise.all(Object.keys(DOCS).map(function (k) { return fs('DELETE', docPath(DOCS[k])).catch(function () { }); }))
+    // todos los documentos que lista la cuenta (también los de versiones más nuevas o más viejas), y además los de DOCS
+    return readAll().catch(function () { return {}; }).then(function (remote) {
+      var names = Object.keys(remote || {});
+      Object.keys(DOCS).forEach(function (k) { if (names.indexOf(DOCS[k]) < 0) names.push(DOCS[k]); });
+      return Promise.all(names.map(function (n) { return fs('DELETE', docPath(n)).catch(function () { }); }));
+    })
       .then(function () { return token(); })
       .then(function (t) { return idt('accounts:delete', { idToken: t }); })
       .then(function () { signOut(); });
@@ -260,6 +347,7 @@
     if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(c)) return 'Usuario o contraseña incorrectos.';
     if (c === 'TOO_MANY_ATTEMPTS_TRY_LATER') return 'Demasiados intentos. Espera un poco y vuelve a probar.';
     if (c === 'unavailable') return 'No hay conexión. Prueba otra vez en un momento.';
+    if (c === 'too_big') return 'Tu Carrera es demasiado grande para la nube';
     return 'No se ha podido completar. Prueba otra vez.';
   }
 
@@ -339,15 +427,16 @@
   function render() {
     var h = '<div class="ac-sheet"><button class="ac-x" data-ac="close" aria-label="Cerrar"' + (busy || view === 'conflict' ? ' hidden' : '') + '>✕</button>';
     if (view === 'conflict' && pending) {
-      h += '<p class="ac-k">Tu cuenta</p><h2 id="acTitle">¿Qué Carrera te quedas?</h2>' +
-        '<p>Tienes una Carrera en este dispositivo y otra distinta en tu cuenta. Elige con cuál seguir: la otra se perderá.</p>' +
+      var cn = CONFLICT[pending.k] || 'Carrera';
+      h += '<p class="ac-k">Tu cuenta</p><h2 id="acTitle">¿Qué ' + esc(cn) + ' te quedas?</h2>' +
+        '<p>Tienes una ' + esc(cn) + ' en este dispositivo y otra distinta en tu cuenta. Elige con cuál seguir: la otra se perderá.</p>' +
         '<div class="ac-choice"><button data-ac="keepRemote"><b>La de la cuenta</b>' + esc(careerInfo(pending.remote)) + '</button>' +
         '<button data-ac="keepLocal"><b>La de este dispositivo</b>' + esc(careerInfo(pending.local)) + '</button></div>';
     } else if (acc) {
       var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Guardado en la nube ' + ago(lastSync);
       h += '<p class="ac-k">Tu cuenta</p><h2 id="acTitle">Cuenta</h2>' +
         '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small>' + esc(st) + '</small></span></div>' +
-        '<p>Tu progreso (jugadores, Carrera, récord y ajustes) se guarda solo en tu cuenta. Entra con el mismo usuario en otro dispositivo para seguir donde lo dejaste.</p>' +
+        '<p>Tu progreso (jugadores, Carreras, perfil, vestuario, récord y ajustes) se guarda solo en tu cuenta. Entra con el mismo usuario en otro dispositivo para seguir donde lo dejaste.</p>' +
         '<div class="ac-row"><button data-ac="sync">Sincronizar ahora</button><button data-ac="out">Cerrar sesión</button></div>' +
         (view === 'del' ? '<p class="ac-warn">¿Seguro? Se borra la cuenta y lo guardado en ella, y no se puede deshacer. Lo de este dispositivo se queda.</p><div class="ac-acts"><button data-ac="cancel">No, volver</button><button class="dan" data-ac="delYes">Sí, borrar la cuenta</button></div>'
           : '<div class="ac-acts"><button class="dan" data-ac="del">Borrar la cuenta</button><button class="pri" data-ac="close">Hecho</button></div>');
@@ -379,20 +468,16 @@
       busy = true; msg = ''; render();
       enter(u, p, tab === 'new').then(function (r) {
         busy = false;
-        if (r.conflict) { pending = r.conflict; view = 'conflict'; render(); return; }
+        r.created = tab === 'new';
+        if (conflicts.length) { pending = conflicts[0]; pendRes = { remote: false, enter: r }; view = 'conflict'; render(); return; }
         view = 'in'; render();
         if (r.changed) reloadSoon(tab === 'new' ? 'Cuenta creada' : 'Has entrado: progreso cargado desde tu cuenta');
         else toast(tab === 'new' ? 'Cuenta creada: tu progreso ya se guarda en la nube' : 'Has entrado en tu cuenta');
       }, function (e) { busy = false; if (acc && e.code !== 'unauthenticated') { view = 'in'; } msg = errText(e); render(); });
       return;
     }
-    if (a === 'keepRemote' || a === 'keepLocal') {
-      var p2 = pending; pending = null; view = 'in';
-      if (a === 'keepRemote') { apply(p2.k, p2.remote); meta[p2.k] = p2.at; synced[p2.k] = p2.at; jset(META, meta); jset(META + '.up', synced); render(); reloadSoon('Carrera cargada desde tu cuenta'); }
-      else { meta[p2.k] = Date.now(); jset(META, meta); dirty[p2.k] = 1; push(); render(); toast('Te quedas con la Carrera de este dispositivo'); }
-      return;
-    }
-    if (a === 'sync') { for (var k in DOCS) if ((meta[k] || 0) > (synced[k] || 0)) dirty[k] = 1; busy = true; render(); syncDown(false).then(function () { busy = false; render(); }); return; }
+    if (a === 'keepRemote' || a === 'keepLocal') { resolve(a); return; }
+    if (a === 'sync') { markDirty(); busy = true; render(); syncDown(false).then(function () { busy = false; render(); }); return; }
     if (a === 'out') { signOut(); view = 'enter'; tab = 'in'; render(); toast('Sesión cerrada. Tu progreso sigue en este dispositivo.'); return; }
     if (a === 'del') { view = 'del'; render(); return; }
     if (a === 'cancel') { view = 'in'; render(); return; }
@@ -400,6 +485,20 @@
       busy = true; render();
       deleteAccount().then(function () { busy = false; view = 'enter'; render(); toast('Cuenta borrada'); }, function (e) { busy = false; view = 'in'; lastErr = errText(e); render(); });
     }
+  }
+  /** Resuelve el primer conflicto de la cola; si quedan, pinta el siguiente. Al acabar: recarga si alguno fue keepRemote (o si la
+   *  entrada ya trajo cambios); si no, aviso. Devuelve 'next' | 'reload' | 'done' | null. */
+  var pendRes = { remote: false, enter: null };
+  function resolve(a) {
+    var p2 = conflicts.shift() || pending; if (!p2) return null;
+    if (a === 'keepRemote') { apply(p2.k, p2.remote); meta[p2.k] = p2.at; synced[p2.k] = p2.at; jset(META, meta); jset(META + '.up', synced); pendRes.remote = true; }
+    else { meta[p2.k] = Date.now(); jset(META, meta); dirty[p2.k] = 1; push(); }
+    if (conflicts.length) { pending = conflicts[0]; view = 'conflict'; if (root) render(); return 'next'; }
+    pending = null; view = 'in'; if (root) render();
+    var er = pendRes.enter, rem = pendRes.remote; pendRes = { remote: false, enter: null };
+    if (rem || (er && er.changed)) { reloadSoon(rem ? 'Carrera cargada desde tu cuenta' : 'Has entrado: progreso cargado desde tu cuenta'); return 'reload'; }
+    toast(p2.k === 'voley3d.career6' ? 'Te quedas con la Carrera de pista de este dispositivo' : 'Te quedas con la Carrera de este dispositivo');
+    return 'done';
   }
   function focusFirst() { try { var i = root.querySelector('#acUser') || root.querySelector('[data-ac=close]'); if (i) i.focus({ preventScroll: true }); } catch (e) { } }
   function open() {
@@ -451,6 +550,14 @@
     open: open, close: close, isOpen: isOpen, user: function () { return acc ? acc.user : null; }, status: function () { return status; },
     sync: function () { return syncDown(false); }, signOut: signOut, onChange: function (f) { listeners.push(f); },
     // pruebas (tools/cuentatest.js): entrar sin la interfaz y borrar la cuenta al acabar
-    _enter: enter, _delete: deleteAccount, _mergeGym: mergeGym, _gymSync: GYM_SYNC, _mergeLook: mergeLook, _lookSync: LOOK_SYNC, _push: function () { for (var k in DOCS) if ((meta[k] || 0) > (synced[k] || 0)) dirty[k] = 1; return push(); }
+    menuReady: menuReady, S4_SYNC: S4_SYNC,
+    _enter: enter, _delete: deleteAccount, _mergeGym: mergeGym, _gymSync: GYM_SYNC, _mergeLook: mergeLook, _lookSync: LOOK_SYNC, _push: function () { markDirty(); return push(); },
+    // pruebas (tools/synctest.js)
+    _merge: merge, _docs: function () { return Object.assign({}, DOCS); }, _track: function () { return Object.assign({}, TRACK); },
+    _mergeLegends: mergeLegends, _s4Sync: S4_SYNC, _conflicts: function () { return conflicts.slice(); }, _resolve: resolve,
+    _pendingDown: function () { return pendingDown; }, _afterDown: afterDown, _MAX_RAW: MAX_RAW,
+    _careerInfo: careerInfo, _lastErr: function () { return lastErr; },
+    // capturas (tools/eval.js): pinta la cola de conflictos dada [{k, remote, local, at}] sin tocar la nube
+    _showConflicts: function (list) { conflicts = (list || []).slice(); if (!conflicts.length) return false; build(); pending = conflicts[0]; pendRes = { remote: false, enter: null }; view = 'conflict'; render(); lastFocus = document.activeElement; root.hidden = false; return true; }
   };
 })();

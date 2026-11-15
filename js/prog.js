@@ -14,6 +14,9 @@
  * guardado). Las de siempre (addXP(i), award, bump(i), attrs) trabajan sobre el escuadrón de Partido rápido (los atletas n.º 1 y
  * n.º 2) y guardan en localStorage ('voley3d.squad'); si no hay almacenamiento, funciona en memoria.
  * Guardado v1 (sin insignias) → v2: se migra solo, sin perder nada.
+ * Contrato D4 (S4, T13): texto ilegible o sin la lista de atletas → copia en 'voley3d.squad.bak', lost() = true y escuadrón nuevo;
+ * antes de migrar (v < VER) → 'voley3d.squad.bak' = {from: v, raw}; versión más nueva (v > VER, normalmente llegada por la nube) →
+ * readOnly() = true: se juega con la copia saneada en memoria y save() no escribe (no se «rebaja» el guardado de la cuenta).
  * Sin DOM ni Three: lo usan main.js (atributos al crear el partido), ui.js (panel «Jugadores» y experiencia al acabar) y badges.js.
  */
 (function () {
@@ -124,16 +127,24 @@
     }
     return f;
   }
-  var data = null;
+  var data = null, lost = false, ro = false;
+  function bak(txt) { try { localStorage.setItem(KEY + '.bak', txt); } catch (e) { } }
   function load() {
     if (data) return data;
-    var o = null; try { o = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { }
+    var raw = null, o = null;
+    try { raw = localStorage.getItem(KEY); } catch (e) { raw = null; }
+    if (raw != null && raw !== '' && raw !== 'null') {
+      try { o = JSON.parse(raw); } catch (e) { o = undefined; }
+      if (!o || typeof o !== 'object' || !Array.isArray(o.a)) { o = null; lost = true; bak(raw); }   // dañado: copia y en blanco
+    }
+    ro = !!(o && +o.v > VER);
+    if (o && !ro && !(+o.v >= VER)) bak(JSON.stringify({ from: +o.v || 0, raw: raw }));   // copia antes de migrar
     data = sane(o);
     var re = data.renum; delete data.renum;
-    if (o && (o.v !== VER || re)) save(); // migración (v1 sin insignias → v2; dorsales 7 y 11 → 1 y 2)
+    if (o && !ro && (o.v !== VER || re)) save(); // migración (v1 sin insignias → v2; dorsales 7 y 11 → 1 y 2)
     return data;
   }
-  function save() { try { if (data) localStorage.setItem(KEY, JSON.stringify(data)); } catch (e) { } }
+  function save() { if (ro) return false; try { if (data) { localStorage.setItem(KEY, JSON.stringify(data)); return true; } } catch (e) { } return false; }
   /** Los dos atletas del escuadrón (objetos vivos: si se modifican, llamar a save()). */
   function squad() { return load().a; }
 
@@ -156,12 +167,13 @@
     KEYS.forEach(function (k) { st[k] = v; });
     return st;
   }
-  function reset() { data = fresh(); save(); return data; }
-  /** Pruebas: olvida lo cargado (vuelve a leer localStorage en el siguiente get). */
-  function _reload() { data = null; return load(); }
+  function reset() { ro = false; data = fresh(); save(); return data; }
+  /** Olvida lo cargado y vuelve a leer localStorage (pruebas y gancho de recarga de account.js tras una bajada de la cuenta). */
+  function _reload() { data = null; lost = false; ro = false; return load(); }
 
   VB.Prog = { KEYS: KEYS, LABEL: LABEL, HINT: HINT, GROUPS: GROUPS, MAX: MAX, PTS_LVL: PTS_LVL, MAX_EQ: MAX_EQ, VER: VER, STORE: KEY,
     get: load, save: save, squad: squad, need: need, cost: cost, ovr: ovr, matchXP: matchXP, addXP: addXP, award: award, bump: bump,
     attrs: attrs, cpuSt: cpuSt, CPU_K: CPU_K, reset: reset, _fresh: fresh, _reload: _reload,
+    lost: function () { load(); return lost; }, readOnly: function () { load(); return ro; },
     newAthlete: newAthlete, saneAthlete: saneAthlete, athleteAddXP: athleteAddXP, athleteBump: athleteBump, athleteAttrs: athleteAttrs };
 })();

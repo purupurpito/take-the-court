@@ -45,6 +45,8 @@
     '#career .lf-a em{display:block;font:700 11.5px var(--ui);font-style:normal;color:#ffd23f;margin-top:4px}',
     '#career .lf-fm .bar{display:block;height:12px;border-radius:7px;background:rgba(0,0,0,.4);overflow:hidden;margin:6px 0 2px}#career .lf-fm .bar i{display:block;height:100%;background:linear-gradient(90deg,#ff8040,#ffd23f)}',
     // Tienda › Vestuario: estrellas de rareza (★ a ★★★★, las que faltan apagadas) junto al nombre
+    // jefe del circuito (S3 C3): tarjeta normal; la pista en frase plana (var(--ui), minúscula de frase)
+    '#career .lf-bh{font:600 14px var(--ui);margin:6px 0 4px;color:#e9e4ff}',
     '#career .lf-stars{margin-left:6px;font:700 13px var(--ui);letter-spacing:.06em;color:#ffd23f;white-space:nowrap}#career .lf-stars .off{color:rgba(255,255,255,.22)}'
   ].join('\n');
   function css() { if (document.getElementById('careerLifeCss')) return; var s = document.createElement('style'); s.id = 'careerLifeCss'; s.textContent = CSS; document.head.appendChild(s); }
@@ -61,12 +63,18 @@
         '</div><p class="muted" style="margin:6px 0 0">Si juegas o simulas sin contestar, la oportunidad se pierde.</p></div>';
     }
     if (ch) {
-      var rv = l.rival;
+      var rv = l.rival, bm = nextBoss(c);
       h += '<div class="card lf-ch' + (ch.duel ? ' lf-duel' : '') + '"><h3>' + (ch.duel ? sp(['Duelo', 'contra ' + esc(rv.name)], 'd') : posName(c) ? sp(['Reto de la jornada', esc(posName(c))], 'd') : 'Reto de la jornada') + '</h3><b class="goal">' + esc(ch.txt) + '</b><p>' +
-        '<span class="tag y">+' + num(ch.fans) + ' seguidores</span><span class="tag y">+' + ch.xp + ' XP</span><span class="tag y">+' + eur(ch.money) + '</span>' + (ch.duel ? '<span class="tag r">Premio doble</span>' : '') + '</p>' +
-        '<p class="muted" style="margin:4px 0 0">' + sp([ch.duel ? 'Cara a cara ' + rv.w + '-' + rv.l : '', 'Solo cuenta si juegas el partido', 'Retos cumplidos: ' + (l.chDone | 0)], 'v') + '</p></div>';
+        '<span class="tag y">+' + num(ch.fans) + ' seguidores</span><span class="tag y">+' + ch.xp + ' XP</span><span class="tag y">+' + eur(ch.money) + '</span>' + (ch.duel ? '<span class="tag r">Premio doble</span>' : '') + (bm ? '<span class="tag r">Jefe: ' + esc(bm.nick) + '</span>' : '') + '</p>' +
+        (bm ? '<p class="lf-bh">' + sp([esc(bm.name) + ' «' + esc(bm.nick) + '»', esc(bm.hint)], 'v') + '</p>' : '') +
+        '<p class="muted" style="margin:4px 0 0">' + sp([ch.duel ? 'Cara a cara ' + rv.w + '-' + rv.l : bm ? 'Cara a cara ' + bm.w + '-' + bm.l : '', 'Solo cuenta si juegas el partido', 'Retos cumplidos: ' + (l.chDone | 0)], 'v') + '</p></div>';
     }
     return h;
+  }
+  /** Jefe del circuito si el próximo partido es contra su club (playa); null si no. */
+  function nextBoss(c) {
+    var L = Lf(); if (!L || !L.bossFor || isHall(c)) return null;
+    try { var n = C().next(c), b = n && n.rival ? L.bossFor(c, n.rival.id) : null; return b ? L.bossInfo(c, b) : null; } catch (e) { return null; }
   }
   /** Líneas extra de la tarjeta del último partido. */
   function lastExtra(c, s, h0) {
@@ -76,6 +84,8 @@
     if (x.fans) h += '<span class="tag ' + (x.fans > 0 ? 'y' : 'r') + '">' + (x.fans > 0 ? '+' : '−') + num(Math.abs(x.fans)) + ' seguidores</span>';
     if (x.money) h += '<span class="tag">' + (x.money > 0 ? '+' : '−') + eur(Math.abs(x.money)) + '</span>';
     if (x.duel) h += '<span class="tag ' + (x.duel.win ? 'g' : 'r') + '">' + (x.duel.win ? 'Duelo ganado' : 'Duelo perdido') + ' contra ' + esc(x.duel.name) + ' (' + x.duel.w + '-' + x.duel.l + ')</span>';
+    if (x.boss) h += x.boss.first ? '<span class="tag g">Jefe tumbado: ' + esc(x.boss.nick) + '</span>' : '<span class="tag ' + (x.boss.win ? 'g' : 'r') + '">Jefe: ' + esc(x.boss.nick) + ' (' + x.boss.w + '-' + x.boss.l + ')</span>';
+    if (x.chemUp) h += '<span class="tag g">▲ Química: ' + esc(x.chemUp.name) + '</span>';
     (x.ach || []).forEach(function (a) { h += '<span class="tag g">Logro: ' + esc(a) + '</span>'; });
     return h === '<p>' ? '' : h + '</p>';
   }
@@ -111,10 +121,32 @@
     var rv = l.rival, rk = rv && C().club(c, rv.club);
     h += '<div class="card"><h3>Tu rival</h3>' + (rv && rk ? '<div class="row">' + '<div class="grow"><p class="bigname" style="font-size:20px">' + esc(rv.name) + ' <span class="muted">#' + rv.num + '</span></p><p class="muted" style="margin:2px 0 0">' +
       sp([esc(rk.name), 'Media ' + Lf().rivalOvr(c), 'Rival desde la temporada ' + rv.since], 'v') + '</p></div><div style="text-align:center"><p class="lf-big" style="font-size:26px">' + rv.w + '-' + rv.l + '</p><small class="muted">cara a cara</small></div></div>' +
+      rivalStyleLine(c, rv) +
       '<p class="muted">Cada partido contra ' + esc(rk.name) + ' es un duelo: el reto vale el doble.</p>' : '<p class="muted">Aparecerá cuando juegues tu primera jornada en una liga.</p>') + '</div>';
+    h += bossCard(c);
     // decisiones recientes
     if (l.log && l.log.length) h += '<div class="card"><h3>Tus decisiones</h3>' + l.log.slice(-6).reverse().map(function (x) { return '<p class="muted" style="margin:3px 0">' + sp(['T' + x.s, esc(x.t), '<b style="color:#fff">' + esc(x.o) + '</b>'], 'v') + '</p>'; }).join('') + '</div>';
     return h;
+  }
+  /** «Tu rival» (playa): su estilo de juego en el duelo y la pista para jugarle. */
+  function rivalStyleLine(c, rv) {
+    var S = Lf().BOSS_STYLES && rv && Lf().BOSS_STYLES[rv.style]; if (!S || isHall(c)) return '';
+    return '<p class="lf-bh">' + sp(['Estilo: ' + esc(S.name), esc(S.hint)], 'v') + '</p>';
+  }
+  /** Fama: tarjeta «Jefe del circuito» (S3 C3; solo playa). */
+  function bossCard(c) {
+    var L = Lf(); if (!L.boss || isHall(c)) return '';
+    var b = L.boss(c); if (!b) return '';
+    var bi = L.bossInfo(c, b), k = C().club(c, b.club), o = 0;
+    try { o = C().clubOvr(k) + (C().attrOf ? C().attrOf(c, k) | 0 : 0) + (L.BOSS_UP | 0); } catch (e) { o = 0; }
+    var own = true; try { var it = L.bossItem ? L.bossItem(c, b.style) : null; own = it ? !!VB.Look.owned(it.id) : true; } catch (e) { own = true; }
+    return '<div class="card lf-boss" data-nav><h3>Jefe del circuito</h3><div class="row"><div class="grow"><p class="bigname" style="font-size:20px">' + esc(bi.name) + ' «' + esc(bi.nick) + '»</p>' +
+      '<p class="muted" style="margin:2px 0 0">' + sp([k ? esc(k.name) : '', o ? 'Media ' + o : '', esc(bi.styleName)], 'v') + '</p></div>' +
+      '<div style="text-align:center"><p class="lf-big" style="font-size:26px">' + bi.w + '-' + bi.l + '</p><small class="muted">cara a cara</small></div></div>' +
+      '<p class="lf-bh">' + esc(bi.hint) + '</p>' +
+      '<p>' + (bi.beat ? '<span class="tag g">Derrotado en T' + bi.beat + '</span>' : '<span class="tag r">Sin derrotar</span>') +
+      (!bi.beat && bi.item && !own ? '<span class="tag y">Si le ganas: ' + esc(bi.item) + '</span>' : '') + '</p>' +
+      '<p class="muted" style="margin:4px 0 0">Cada partido contra ' + (k ? esc(k.name) : 'su club') + ' es partido de jefe. Solo cuenta la victoria jugada.</p></div>';
   }
   /** Celebración de firma (sprint 5, E2): «Ninguna» y una fila por celebración (Elegida / Elegir / bloqueada con su escalón). */
   function celebCard(c) {

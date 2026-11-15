@@ -26,7 +26,8 @@
   // Presentación (UI-02/03/04): banKind = qué anuncia el banner visible ('point' | 'set' | 'match' | 'court' | 'info' | 'sp');
   // banGate = cómo acaba ('cut' = con el corte de vuelta al saque; 'court' = al bajar la grúa del cambio de campo)
   var banKind = '', banTier = 0, banRect = null, bugT = 0, bugOut = false;
-  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '' }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
+  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '', byD: {} }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
+  // byD (B5): {easy:[ganados, perdidos], normal, hard, expert}, solo partidos 2v2 de Partido rápido (la previa dice «3-1 en Normal»)
   var hudScale = 1;            // UI-16: escala del HUD (ctx.settings.hudScale) × vpScale (pantallas grandes; vpFit)
   var hudSet = 1, vpScale = 1; // ajuste del jugador (1 | 1,15 | 1,3) y escala por tamaño de pantalla (--vs)
 
@@ -341,10 +342,36 @@
   }
   var stats = newStats();
 
-  function loadRecord() { try { var r = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); if (r && typeof r.played === 'number') for (var k in record) if (typeof r[k] === typeof record[k]) record[k] = r[k]; } catch (e) { } }
+  function loadRecord() { try { var r = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); if (r && typeof r.played === 'number') for (var k in record) if (typeof r[k] === typeof record[k]) record[k] = r[k]; } catch (e) { } record.byD = cleanByD(record.byD); }
+  /** record.byD saneado: solo claves de dificultad (VB.DIFF) con un par de enteros ≥ 0; lo demás fuera ({} si no hay nada). */
+  function cleanByD(o) {
+    var out = {}, ks = VB.DIFF_ORDER || ['easy', 'normal', 'hard', 'expert'];
+    if (!o || typeof o !== 'object' || Array.isArray(o)) return out;
+    for (var i = 0; i < ks.length; i++) {
+      var v = o[ks[i]]; if (!Array.isArray(v) || v.length !== 2) continue;
+      var a = Math.floor(+v[0]), b = Math.floor(+v[1]);
+      if (isFinite(a) && isFinite(b) && a >= 0 && b >= 0 && a < 1e7 && b < 1e7) out[ks[i]] = [a, b];
+    }
+    return out;
+  }
   function saveRecord() { try { localStorage.setItem('voley3d.record', JSON.stringify(record)); } catch (e) { } }
-  function click() { if (VB.Audio && VB.Audio.click) try { VB.Audio.click(); } catch (e) { } }
-  function uiSound(kind) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(kind); else click(); } catch (e) { } }
+  function click() { sndT = performance.now(); if (VB.Audio && VB.Audio.click) try { VB.Audio.click(); } catch (e) { } }
+  function uiSound(kind) { sndT = performance.now(); try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(kind); else click(); } catch (e) { } }
+  // B4: un sonido por tipo de acción. uiK(tipo, reserva, a, b): VB.Audio.ui(tipo) si audio.js lo tiene (VB.Audio.UI_KINDS); si no, la
+  // reserva ('click' = el clic de siempre; null = nada). panelSnd(on): abrir o cerrar una hoja o un panel sin cortinilla en marcha,
+  // y sin apilarse con otro sonido de interfaz de hace un momento (el clic del botón que la abre, la cortinilla o el `start`)
+  var sndT = -1e9;
+  function uiK(kind, fb, a, b) {
+    var A = VB.Audio, ks = A && A.UI_KINDS, k = ks && ks.indexOf(kind) >= 0 ? kind : fb;
+    if (!k) return;
+    if (k === 'click' && !(ks && ks.indexOf(kind) >= 0)) { click(); return; }
+    sndT = performance.now();
+    try { if (A && A.ui) A.ui(k, a, b); } catch (e) { }
+  }
+  function panelSnd(on) {
+    if (wp.ph || wp.aud || performance.now() - sndT < 150 || (ctx && ctx.debug)) return;
+    uiK(on ? 'panelIn' : 'panelOut', null);
+  }
   function hoverSound() { try { if (VB.Audio && VB.Audio.hover) VB.Audio.hover(); } catch (e) { } }
   function setText(node, key, val) { if (last[key] !== val) { last[key] = val; node.textContent = val; return true; } return false; }
   function setHTML(node, key, val) { if (last[key] !== val) { last[key] = val; node.innerHTML = val; return true; } return false; }
@@ -387,7 +414,7 @@
       'btnVer', 'abTabs', 'abBody', 'btnAbOk', 'optVer', 'optSave', 'resNote', 'ctlMsg',
       // E6: Entrenamiento (tarjeta, página, pastilla del HUD, tarjeta de presentación y hoja final)
       'btnGym', 'mpGym', 'gymList', 'gymFoot', 'btnGymBack', 'gymSub', 'drillBar', 'drillTxt', 'introDrill', 'idTitle', 'idGoal', 'idKeys', 'idMed',
-      'gymEnd', 'geKick', 'geTitle', 'geTotal', 'geMax', 'geMeds', 'geReps', 'geRec', 'btnGeAgain', 'btnGeNext', 'btnGeList',
+      'gymEnd', 'geKick', 'geTitle', 'geTotal', 'geMax', 'geMeds', 'geReps', 'geRec', 'btnGeAgain', 'btnGeNext', 'btnGeList', 'idSes',
       // Vestuario (1.1.0): botón de la portada, atajo de Jugadores, página, giro y avisos
       'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote'].forEach(function (k) { el[k] = $(k); });
     el.bn1 = $('bn1'); el.bn2 = $('bn2'); el.bn3 = $('bn3'); el.pbug = $('pbug'); el.pbT = $('pbT'); el.pbS = $('pbS'); el.pbX = $('pbX'); el.sbBody = document.querySelector('.sb-body'); el.sb = $('sb'); el.sbSet = $('sbSet'); el.tag = $('sbTag'); el.hist = $('sbHist');
@@ -882,6 +909,56 @@
     txt = cpuTxt(txt);
     var now = performance.now(); if (txt === srLast && now - srT < 1500) return;
     srLast = txt; srT = now; el.sr.textContent = ''; el.sr.textContent = txt;
+  }
+
+  // =====================================================================
+  //  RETRATOS (B2; spec S2-B2B3 §3.2)
+  // =====================================================================
+  // portraitHTML(req, cls, alt): <img class="pt cls" data-pt="clave"> si main.js ya lo tiene en caché (ctx.actions.portrait), o un
+  // hueco <span class="pt pt-ph"> con el color de fondo y el dorsal mientras se pinta (y queda encolado). Un único oyente del evento
+  // `vb-portrait` {key, url} cambia todos los [data-pt="clave"] del documento por la imagen. Sin VB.Doll.portrait, el hueco se queda.
+  function hex6(n) { return '#' + ('000000' + ((n >>> 0) & 0xffffff).toString(16)).slice(-6); }
+  function mixHex(a, b, t) {
+    var r = ((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t, g = ((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t, bl = (a & 255) * (1 - t) + (b & 255) * t;
+    return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(bl);
+  }
+  function portraitHTML(req, cls, alt) {
+    var A = ctx && ctx.actions, r = null;
+    if (req && A && typeof A.portrait === 'function') { try { r = A.portrait(req); } catch (e) { r = null; } }
+    var key = r && r.key ? String(r.key) : '', c = 'pt' + (cls ? ' ' + cls : ''), a = escT(alt || '');
+    var bg = req && typeof req.bg === 'number' ? hex6(req.bg) : '#2a1f4a', sty = ' style="--pt-bg:' + bg + '"';
+    if (r && r.url) return '<img class="' + c + '" data-pt="' + escT(key) + '" src="' + escT(r.url) + '" alt="' + a + '" draggable="false"' + sty + '>';
+    var num = req && (req.num | 0) > 0 ? String(req.num | 0) : '';
+    return '<span class="' + c + ' pt-ph"' + (key ? ' data-pt="' + escT(key) + '"' : '') + sty + ' role="img" aria-label="' + a + '">' + num + '</span>';
+  }
+  function onPortrait(ev) {
+    var d = ev && ev.detail; if (!d || !d.key || !d.url) return;
+    var ns = document.querySelectorAll('[data-pt]');
+    for (var i = 0; i < ns.length; i++) {
+      var n = ns[i]; if (n.getAttribute('data-pt') !== d.key) continue;
+      if (n.tagName === 'IMG') { if (n.getAttribute('src') !== d.url) n.setAttribute('src', d.url); continue; }
+      var img = document.createElement('img');
+      img.className = n.className.replace(/(^|\s)pt-ph(?=\s|$)/g, ' ').replace(/\s+/g, ' ').trim();
+      img.setAttribute('data-pt', d.key); img.setAttribute('alt', n.getAttribute('aria-label') || ''); img.draggable = false;
+      if (n.getAttribute('style')) img.setAttribute('style', n.getAttribute('style'));
+      img.src = d.url;
+      if (n.parentNode) n.parentNode.replaceChild(img, n);
+    }
+  }
+  /** Retrato de un atleta de TU equipo en Partido rápido (team 0, idx 0 = tu n.º 1, 1 = el n.º 2) con el aspecto del Vestuario (o el
+   *  de serie, VB.Players.baseLook) y tu equipación; px = tamaño CSS (se pinta al doble y por --vs, tope 384). null para el rival (R8:
+   *  sin retratos de rivales) o si falta lo necesario. */
+  function portraitReqMatch(team, idx, px) {
+    if ((team | 0) !== 0) return null;
+    idx = idx === 1 ? 1 : 0; px = Math.max(16, +px || 72);
+    var P = VB.Players, Lk = VB.Look, st = (ctx && ctx.settings) || {}, num = idx + 1, L = null, tc = null;
+    var beach = VB.Arena && VB.Arena.venue ? VB.Arena.venue() === 'beach' : st.arena === 'beach';
+    try { tc = P && P.kitFrom ? P.kitFrom(st) : null; } catch (e) { tc = null; }
+    try { var f = Lk && Lk.matchLooks ? Lk.matchLooks({}) : null; if (f && f[idx] && Lk.resolve) L = Lk.resolve(f[idx], beach ? 'beach' : 'hall', tc); } catch (e) { L = null; }
+    if (!L && P && P.baseLook) { try { L = P.baseLook({ team: 0, idx: idx, num: num, beach: beach }); } catch (e) { L = null; } }
+    if (!L) return null;
+    var shirt = typeof st.kitShirt === 'number' ? st.kitShirt : 0xff5a2c;
+    return { L: L, tc: tc, num: num, beach: beach, pose: 'stand', face: 'neutra', yaw: 0.35, bg: mixHex(shirt, 0x1d1530, 0.6), size: Math.min(384, Math.round(px * 2 * (vpScale || 1))) };
   }
 
   // =====================================================================
@@ -2177,11 +2254,31 @@
     var more = sh.scrollHeight - sh.clientHeight > 20 && sh.scrollTop + sh.clientHeight < sh.scrollHeight - 20;
     if (sh.classList.contains('has-more') !== more) sh.classList.toggle('has-more', more);
   }
+  /** B4: las hojas y paneles también SALEN animados (.out: corte diagonal de 160 ms, fundido de 80 con «Menos movimiento», solo
+   *  opacidad en calidad baja; CSS «TV B4»). Mientras sale lleva `inert` y no cuenta como capa activa ni para el foco; si se vuelve a
+   *  mostrar a medias, se cancela. Al momento, como antes: bajo la cortinilla (wp.ph), con el telón del arranque, en las escenas
+   *  debug= y con &uianim=0 (herramientas). */
+  var SND_NODES = null;
+  function uiAnimOff() { return !!(ctx && (ctx.debug || (ctx.params && ctx.params.uianim === '0'))); }
   function showNode(node, on) {
+    if (!SND_NODES) SND_NODES = [el.panel, el.pause, el.end];
     if (on) {
-      if (node.hidden) { node.hidden = false; fitSheet(node); checkMore(node); node.classList.remove('in'); requestAnimationFrame(function () { node.classList.add('in'); }); }
-    } else { node.hidden = true; node.classList.remove('in'); }
+      if (node._outT) { clearTimeout(node._outT); node._outT = 0; node.classList.remove('out'); node.removeAttribute('inert'); }
+      if (node.hidden) {
+        node.hidden = false; fitSheet(node); checkMore(node); node.classList.remove('in'); requestAnimationFrame(function () { node.classList.add('in'); });
+        if (SND_NODES.indexOf(node) >= 0) panelSnd(true);
+      }
+    } else {
+      if (node.hidden) { node.classList.remove('in'); return; }
+      if (node._outT) return;
+      if (uiAnimOff() || wp.ph || bootStage < 2) { node.hidden = true; node.classList.remove('in', 'out'); return; }
+      if (SND_NODES.indexOf(node) >= 0) panelSnd(false);
+      node.classList.add('out'); node.setAttribute('inert', '');
+      if (node.contains(document.activeElement) && document.activeElement.blur) { try { document.activeElement.blur(); } catch (e) { } }
+      node._outT = setTimeout(function () { node._outT = 0; node.hidden = true; node.classList.remove('in', 'out'); node.removeAttribute('inert'); }, rm() ? 80 : 160);
+    }
   }
+  function isOut(node) { return !!(node && node._outT); }
   function syncScreens(g) {
     var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (panel || '');
     if (key === shown) return;
@@ -2212,15 +2309,15 @@
     if (panel) return el.panel;
     if (ctx.state === 'menu') return el.menu;
     if (ctx.state === 'paused') return el.pause;
-    if (ctx.state === 'over' && !el.end.hidden) return el.end;
-    if (ctx.state === 'over' && el.gymEnd && !el.gymEnd.hidden) return el.gymEnd;
+    if (ctx.state === 'over' && !el.end.hidden && !isOut(el.end)) return el.end;
+    if (ctx.state === 'over' && el.gymEnd && !el.gymEnd.hidden && !isOut(el.gymEnd)) return el.gymEnd;
     return null;
   }
   function focusables(layer) {
     if (!layer) return [];
     var all = layer.querySelectorAll('[data-nav] button, .pn-head button, .mp-head button'), out = [];
     // (las pestañas no elegidas y las pistas Q/E llevan data-skip: solo la pestaña activa entra en el recorrido ↑/↓)
-    for (var i = 0; i < all.length; i++) if (!all[i].closest('[hidden]') && !all[i].disabled && !all[i].hasAttribute('data-skip')) out.push(all[i]);
+    for (var i = 0; i < all.length; i++) if (!all[i].closest('[hidden]') && !all[i].closest('[inert]') && !all[i].disabled && !all[i].hasAttribute('data-skip')) out.push(all[i]);
     // en paneles y páginas del menú: primero el contenido y "Volver" al final
     var isBack = function (b) { return b.id === 'btnPanelBack' || b.classList.contains('mp-back') ? 1 : 0; };
     out.sort(function (a, b) { return isBack(a) - isBack(b); });
@@ -2410,7 +2507,8 @@
     var dr = !!(g && g.drill && !g.demo);
     el.pause.classList.toggle('drill', dr);
     el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : 'Reiniciar partido';
-    el.btnQuit.textContent = dr ? 'Salir al entrenamiento' : 'Salir al menú';
+    // (T-training: un ejercicio del entreno de la Carrera vuelve a la Carrera, no a la página Entrenamiento)
+    el.btnQuit.textContent = isSes() ? 'Volver a la Carrera' : dr ? 'Salir al entrenamiento' : 'Salir al menú';
     disarmRestart();
     el.pS0.textContent = g.score[0]; el.pS1.textContent = g.score[1];
     el.pMid.innerHTML = 'SETS<b>' + g.sets[0] + '-' + g.sets[1] + '</b>';
@@ -2436,6 +2534,9 @@
       if (win && record.wins === 1 && ctx.settings.coachTips !== false) ctx.actions.setSetting('coachTips', false);
       if (T[0].best > record.bestStreak) { record.bestStreak = T[0].best; isNew = record.bestStreak >= 3; } // las rachas cortas no son récord
       if (ctx.game && ctx.game.sets) { record.lastA = ctx.game.sets[0] | 0; record.lastB = ctx.game.sets[1] | 0; record.lastD = String(ctx.game.difficulty || ''); }
+      // B5: partidos ganados y perdidos por dificultad (solo 2v2 de Partido rápido: aquí ya no llegan Carrera, espectador ni 6v6)
+      var dK = ctx.game && String(ctx.game.difficulty || ''); record.byD = cleanByD(record.byD);
+      if (dK && (VB.DIFF_ORDER || ['easy', 'normal', 'hard', 'expert']).indexOf(dK) >= 0) { var bd = record.byD[dK] || [0, 0]; bd[win ? 0 : 1]++; record.byD[dK] = bd; }
       saveRecord();
     }
     el.end.classList.toggle('win', win); el.end.classList.toggle('lose', !win);
@@ -2653,7 +2754,7 @@
       if (nb && nb.scrollIntoView) try { nb.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { }
       if (onTab && nb) focusEl(nb, kb || how === 'key' || how === 'pad');
       if (o.pane) { o.pane.setAttribute('aria-labelledby', hid + '-' + id); restartAnim(o.pane, i > j ? 'tp-n' : 'tp-p'); }
-      if (o.sound !== false && how !== 'api') click();
+      if (o.sound !== false && how !== 'api') uiK('tab', 'click');   // B4: sonido propio de pestaña (el clic si audio no lo tiene)
       if (o.onChange) o.onChange(id, i > j ? 1 : -1, how || 'api');
       if (host.classList.contains('tabs-ic')) fitTabs(api);
       return true;
@@ -4418,6 +4519,13 @@
   var gymLast = { t: NaN, miss: '' }, gymTip = '', gymTipT = 0, gymSel = 'serve', gymHov = null, gymBestV = 0;
   var geGate = false, geWait = false, geT0 = 0;
   function isDrill() { var g = ctx && ctx.game; return !!(g && g.drill && !g.demo); }
+  /** T-training: ejercicio de un entreno de la Carrera (main.js startCareerDrill marca g.ses). */
+  function isSes() { var g = ctx && ctx.game; return !!(g && g.drill && g.ses && !g.demo); }
+  /** Al hub de la Carrera bajo la cortinilla (main.js toMenu lo reabre en la tarjeta del entreno con g.ses). */
+  function goCareerHub() { if (!wipeRun(2, function () { ctx.actions.toMenu(); }) && !wp.cb) ctx.actions.toMenu(); }
+  /** Reiniciar en la pausa: el ejercicio de la sesión o el reto (R16: ctx.actions.restart sabe qué toca). */
+  function goRestart() { var f = function () { if (ctx.actions.restart) ctx.actions.restart(); }; if (!wipeRun(2, f) && !wp.cb) f(); }
+  var sesRes = null;   // último resultado de VB.CareerTrain.drillDone (hoja final del ejercicio de la sesión)
   function altR(g) { try { return VB.Sim.altReady(g) || ''; } catch (e) { return ''; } }
   function gymRow(id) { var Gm = VB.Gym; return Gm && Gm.drill ? Gm.drill(id) : null; }
   function drillName(id, short) { var d = gymRow(id); return d ? (short ? d.short : d.name) : id === 'free' ? 'Peloteo libre' : 'Entrenamiento'; }
@@ -4426,6 +4534,12 @@
     var Gm = VB.Gym; if (!Gm) return null;
     if (Gm.medalsOf) { try { var m = Gm.medalsOf(id); if (m) return m; } catch (e) { } }
     return Gm.MEDALS && Gm.MEDALS[id] || null;
+  }
+  /** Umbrales de medalla del ejercicio: los del entreno de la Carrera con g.ses (VB.CareerTrain.medalsOf), si no los del gimnasio. */
+  function sesMedals(g, id) {
+    var T = VB.CareerTrain;
+    if (g && g.ses && T && T.medalsOf) { try { var m = T.medalsOf(id); if (m) return m; } catch (e) { } }
+    return gymMedals(id);
   }
   function gymBestOf(id) { var Gm = VB.Gym; if (!Gm) return 0; try { if (id === 'free') return Gm.bestRally ? Gm.bestRally() | 0 : 0; var r = Gm.get(id); return r ? r.b | 0 : 0; } catch (e) { return 0; } }
   /** Medalla en SVG (sin emoji): m 0 = círculo hueco, 1 bronce, 2 plata, 3 oro; extra: clase («off» = apagada). */
@@ -4478,7 +4592,7 @@
   function gymKicker(g) {
     var d = g.drill;
     if (d.kind === 'free') return ['Entrenamiento', gymBestV ? 'Récord ' + gymBestV + ' toques' : 'Peloteo libre'];
-    return ['Entrenamiento', { h: escT(drillName(d.kind, true)) + ' <span style="white-space:nowrap">' + Math.min(d.of, d.n + 1) + '/' + d.of + SEP_V + (d.total | 0) + '&nbsp;pts</span>' }]; // («Remate 3/10 | 6 pts»: el grupo salta de línea entero por el espacio, sin separador colgando)
+    return [g.ses ? 'Entreno de la Carrera' : 'Entrenamiento', { h: escT(drillName(d.kind, true)) + ' <span style="white-space:nowrap">' + Math.min(d.of, d.n + 1) + '/' + d.of + SEP_V + (d.total | 0) + '&nbsp;pts</span>' }]; // («Remate 3/10 | 6 pts»: el grupo salta de línea entero por el espacio, sin separador colgando)
   }
   /** Pastilla del HUD en el sitio del marcador: «Saque 4/10 ◆ 11 pts ◆ Récord 21» (solo reescribe si cambia algo). */
   function drillHud(g) {
@@ -4494,6 +4608,8 @@
   function drillIntro(g) {
     var id = g.drill.kind, gl = G(), ik = function (k, t) { return '<span class="ik">' + k + (k ? ' ' : '') + t + '</span>'; };
     el.idTitle.textContent = drillName(id);
+    // T-training §2.5 C: «Entreno ◆ Faro ◆ 1/2» encima del título (solo en el entreno de la Carrera)
+    if (el.idSes) { var ss = g.ses; el.idSes.hidden = !ss; if (ss) setSep(el.idSes, ['Entreno', ss.who === 'faro' ? 'Faro' : 'El entrenador', (ss.i | 0) + '/' + (ss.n | 0)], 'd'); }
     var row = gymRow(id); el.idGoal.textContent = row ? row.help : '';
     var keys = id === 'serve' ? ik(gl.serve, 'flotante') + ik(gl.jump, 'en salto') + ik('', 'Apunta con ' + gl.aim)
       : id === 'recv' ? ik(gl.move, 'te mueves') + ik(gl.hit, 'recibes')
@@ -4502,7 +4618,7 @@
       : id === 'block' ? ik(gl.jump, 'saltas') + ik(gl.hit, 'cierras al remate')
       : ik(gl.hit, 'golpeas') + ik(gl.jump, 'saltas') + ik(gl.jset, 'colocas');
     el.idKeys.innerHTML = keys;
-    var M = gymMedals(id);
+    var M = sesMedals(g, id);
     if (M) el.idMed.innerHTML = M.map(function (v, i) { return '<span class="im">' + medalSVG(i + 1) + MEDAL_N[i + 1] + ' ' + v + '</span>'; }).join('<span class="sep sep-v"><span class="sr">, </span></span>');
     else { var b = gymBestOf('free'); el.idMed.textContent = b ? 'Mejor peloteo: ' + b + ' toques' : 'Sin marcador ni sets'; }
   }
@@ -4555,6 +4671,9 @@
   }
   /** drillEnd: apunta el total (VB.Gym.record, que da la XP de las medallas nuevas) y prepara la hoja final; se abre tras el sello. */
   function gymEndShow(e, g) {
+    sesRes = null;
+    if (g && g.ses && !g.demo) { sesEndShow(e, g); return; }
+    gymEndBtns(false);
     var Gm = VB.Gym, id = e.kind, total = e.total | 0, res = null, M = gymMedals(id) || [99, 99, 99];
     if (Gm && Gm.record && !ctx.debug) { try { res = Gm.record(id, total); } catch (er) { res = null; } }
     if (!res) {   // depuración (o sin gym.js): lo que pasaría, sin guardar nada
@@ -4586,6 +4705,51 @@
     if (nx) el.btnGeNext.textContent = 'Siguiente: ' + drillName(nx, true);
     srSay(drillName(id) + ': ' + total + ' puntos' + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + (total > 0 && res.isBest ? ', nuevo récord' : ''));
     // depuración: la hoja al momento; si no, tras el sello de la última repetición (0,75 s) y la cortinilla
+    geGate = !(ctx.debug && ctx.params.hold !== '1'); geWait = geGate; geT0 = ctx.time; shown = '';
+  }
+  /** Botones de la hoja final: los del gimnasio (Repetir, Siguiente, Entrenamiento) o los del entreno de la Carrera (sin Repetir:
+   *  un ejercicio ya apuntado no se repite; «Siguiente: Bloqueo (2/2)» o «Ver el entreno» como acción principal y «Volver a la Carrera»). */
+  function gymEndBtns(ses) {
+    if (!el.btnGeAgain) return;
+    el.btnGeAgain.hidden = !!ses;
+    el.btnGeNext.classList.toggle('ghost', !ses);
+    if (!ses) { el.btnGeAgain.textContent = 'Repetir'; el.btnGeList.textContent = 'Entrenamiento'; }
+    else el.btnGeList.textContent = 'Volver a la Carrera';
+    if (el.gymEnd) el.gymEnd.classList.toggle('ses', !!ses);
+  }
+  /** T-training §2.5 C: hoja final del ejercicio de un entreno de la Carrera. Apunta en la Carrera (VB.CareerTrain.drillDone; en
+   *  depuración, dry: sin guardar). Nunca en el gimnasio: ni VB.Gym.record, ni récord, ni experiencia del escuadrón. */
+  function sesEndShow(e, g) {
+    var T = VB.CareerTrain, id = e.kind, total = e.total | 0, res = null, M = sesMedals(g, id) || [99, 99, 99];
+    if (T && T.drillDone) { try { res = T.drillDone(id, total, e.reps, ctx.debug ? { dry: true } : undefined); } catch (er) { console.error('[VB][ERROR] CareerTrain.drillDone: ' + (er && er.stack || er)); res = null; } }
+    if (!res) {   // sin career-train.js o sin sesión (escena ses_end de prueba): lo que saldría, sin guardar nada
+      var mm = 0; for (var mi = 0; mi < 3; mi++) if (total >= M[mi]) mm = mi + 1;
+      var at = (VB.Gym && VB.Gym.ATTR && VB.Gym.ATTR[id]) || ({ serve: 'serve', recv: 'recv', set: 'set', atk: 'spike', block: 'block' })[id] || id, ss = g.ses || {};
+      res = { id: id, medal: mm, total: total, tp: [5, 12, 20, 30][mm], attr: at, v: 0, up: false, pts: Math.min(99, [5, 12, 20, 30][mm]), i: ss.i | 0 || 1, n: ss.n | 0 || 1,
+        next: null, last: true, toNext: mm < 3 && M[mm] < 99 ? { m: mm + 1, name: MEDAL_N[mm + 1], need: Math.max(1, M[mm] - total) } : null };
+    }
+    sesRes = res;
+    gymEndBtns(true);
+    var aL = T && T.attrLabel ? T.attrLabel(res.attr) : (VB.Prog && VB.Prog.LABEL && VB.Prog.LABEL[res.attr]) || res.attr;
+    setSep(el.geKick, ['Entreno de la Carrera', venueName()], 'd');
+    el.geTitle.textContent = drillName(id);
+    el.geTotal.textContent = total; el.geTotal.setAttribute('data-cu', total);
+    el.geMax.textContent = (VB.Gym && VB.Gym.MAX) || 30;
+    var mh = '';
+    for (var i = 1; i <= 3; i++) {
+      var on = res.medal >= i;
+      mh += '<span class="ge-m' + (on ? ' on' : '') + (on && i === res.medal ? ' new' : '') + '">' + medalSVG(i, on ? '' : 'off') + '<span>' + MEDAL_N[i] + ' ' + M[i - 1] + '</span></span>';
+    }
+    el.geMeds.innerHTML = mh;
+    el.geReps.innerHTML = (e.reps || []).map(function (p) { return '<i class="p' + Math.max(0, Math.min(3, p | 0)) + '"></i>'; }).join('');
+    var rec = '<span>' + escT(aL) + ': <b>+' + (res.tp | 0) + ' de progreso</b> (' + (res.pts | 0) + '/100)</span>';
+    if (res.up) rec += '<span class="new">¡+1 en ' + escT(aL) + '!</span>';
+    if (res.toNext) rec += '<span>' + escT(res.toNext.name) + ': ' + (res.toNext.need | 0) + ((res.toNext.need | 0) === 1 ? ' punto' : ' puntos') + '</span>';
+    el.geRec.innerHTML = rec;
+    el.btnGeNext.hidden = false;
+    var nShort = res.next ? (T && T.drillShort ? T.drillShort(res.next) : drillName(res.next, true)) : '';
+    el.btnGeNext.textContent = res.next ? 'Siguiente: ' + nShort + ' (' + ((res.i | 0) + 1) + '/' + (res.n | 0) + ')' : 'Ver el entreno';
+    srSay(drillName(id) + ': ' + total + ' puntos' + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + '. ' + aL + ': más ' + (res.tp | 0) + ' de progreso');
     geGate = !(ctx.debug && ctx.params.hold !== '1'); geWait = geGate; geT0 = ctx.time; shown = '';
   }
   function geTick() {
@@ -4946,6 +5110,10 @@
     _gym: function () { return gym; },
     /** Pruebas (UI-09): estado del sello {t, x, y (px del centro sin la subida), ox, oy, dir, cost}. */
     _stamp: function () { return stp; },
+    /** B2: retrato de un atleta (req de VB.CareerUI.portraitReq o portraitReqMatch) como HTML; se completa solo con `vb-portrait`. */
+    portraitHTML: function (req, cls, alt) { return portraitHTML(req, cls, alt); },
+    /** B2: req del retrato de tu n.º 1 (idx 0) o n.º 2 (idx 1) en Partido rápido; null para el rival. */
+    portraitReqMatch: function (team, idx, px) { return portraitReqMatch(team, idx, px); },
     /** UI-14 (main.js): empieza / acaba la tarjeta de presentación. */
     introStart: function (g) { introStart(g); },
     introEnd: function (skipped) { introEndUI(skipped); },
@@ -5017,9 +5185,13 @@
       if (el.btnGym) el.btnGym.addEventListener('click', function () { menuGo('gym'); });
       if (el.gymList) el.gymList.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b) { uiSound('start'); goGym(b.getAttribute('data-drill')); } });
       if (el.gymList) el.gymList.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b && b !== gymHov) { gymHov = b; hoverSound(); } });
-      if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () { uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind); });
-      if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () { var g = ctx.game, n = g && g.drill && VB.Gym && VB.Gym.nextOf ? VB.Gym.nextOf(g.drill.kind) : null; uiSound('start'); if (n) goGym(n); });
-      if (el.btnGeList) el.btnGeList.addEventListener('click', function () { uiSound('back'); goGymList(ctx.game && ctx.game.drill ? ctx.game.drill.kind : null); });
+      if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () { if (isSes()) return; uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind); });
+      if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () {
+        // T-training: siguiente ejercicio de la sesión o, con el último, la tarjeta del entreno en el hub
+        if (isSes()) { var nx = sesRes && sesRes.next; uiSound('start'); if (nx && ctx.actions.startCareerDrill) { if (!wipeRun(2, function () { ctx.actions.startCareerDrill(nx); }) && !wp.cb) ctx.actions.startCareerDrill(nx); } else goCareerHub(); return; }
+        var g = ctx.game, n = g && g.drill && VB.Gym && VB.Gym.nextOf ? VB.Gym.nextOf(g.drill.kind) : null; uiSound('start'); if (n) goGym(n);
+      });
+      if (el.btnGeList) el.btnGeList.addEventListener('click', function () { uiSound('back'); if (isSes()) { goCareerHub(); return; } goGymList(ctx.game && ctx.game.drill ? ctx.game.drill.kind : null); });
       if (el.sqPick) el.sqPick.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-pick]') : null; if (b) sqPick(+b.getAttribute('data-pick'), b.classList.contains('kf') ? true : null); });
       buildTabs();
       lkInit();   // Vestuario
@@ -5088,13 +5260,13 @@
       on(el.btnPSettings, function () { openPanel('set', 'paused'); });
       // Reiniciar en dos pasos (un dedo que se escapa no tira el partido): 1r toque arma 2 s, el 2º reinicia. Sin confirm().
       on(el.btnRestart, function () {
-        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
+        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (isSes() || (ctx.game && ctx.game.retoOpts && !ctx.game.demo)) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
         restartArm = performance.now();
         el.btnRestart.textContent = device() === 'touch' ? 'Toca otra vez para reiniciar' : 'Pulsa otra vez para reiniciar';
         el.btnRestart.classList.add('arm');
         clearTimeout(restartTo); restartTo = setTimeout(disarmRestart, 2000);
       });
-      on(el.btnQuit, function () { if (isDrill()) goGymList(ctx.game.drill.kind); else goMenu(); });
+      on(el.btnQuit, function () { if (isSes()) goCareerHub(); else if (isDrill()) goGymList(ctx.game.drill.kind); else goMenu(); });
       el.btnAgain.addEventListener('click', function () { uiSound('start'); goMatch(); });
       el.btnMenu.addEventListener('click', function () { uiSound('back'); goMenu(); });
       if (el.btnEndOpts) el.btnEndOpts.addEventListener('click', function () { uiSound('click'); goOptions(); });
@@ -5143,6 +5315,7 @@
       if (el.btnAbOk) el.btnAbOk.addEventListener('click', function () { uiSound('back'); closePanel(); });
       if (el.btnVer) el.btnVer.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; click(); openAbout('news', 'menu'); });
       window.addEventListener('keydown', onKey);
+      window.addEventListener('vb-portrait', onPortrait);   // B2: retratos que llegan de la cola de main.js
       [el.pause, el.end, el.panel, el.gymEnd].forEach(function (n) { var sh = n && n.querySelector('.sheet'); if (sh) sh.addEventListener('scroll', function () { checkMore(n); }, { passive: true }); });
       window.addEventListener('pointerdown', function () { var p = document.querySelectorAll('.kf'); for (var i = 0; i < p.length; i++) p[i].classList.remove('kf'); }, { passive: true });
       document.addEventListener('focusout', function (e) { if (e.target && e.target.classList) e.target.classList.remove('kf'); });
@@ -5170,7 +5343,11 @@
       renderOpts();
       [el.pause, el.end, el.panel].forEach(function (n) { if (n && !n.hidden) { fitSheet(n); checkMore(n); } });
     },
-    setQuality: function () { if (panel === 'set') renderOpts(); vigTick(); },
+    setQuality: function (q) {
+      // B4: calidad baja (rank 0) → #app.q-low: las hojas entran y salen sin clip-path (solo translate y opacidad: compositor del móvil)
+      if (el.app) el.app.classList.toggle('q-low', !!(q ? q.rank === 0 : ctx.quality && ctx.quality.rank === 0));
+      if (panel === 'set') renderOpts(); vigTick();
+    },
     resize: function () { vpFit(); offA.obsF = -999; tbx.ok = false; tbx.f = -9999; hudFit(); [el.pause, el.end, el.panel].forEach(function (n) { if (n && !n.hidden) { fitSheet(n); checkMore(n); } }); if (panel) fitAllTabs(); if (lk.on) { fitTabs(lkTabs); lkMore(); lkPlace(); } tbRect = coachRect = guideRect = null; joyR = null; promptW = 0; },
     onState: function (s, prev) {
       shown = '';
@@ -5208,7 +5385,7 @@
       el.end.classList.remove('win', 'lose');
       // E6 / E1: estado del ejercicio y del consejo de maestría de este partido
       geGate = false; geWait = false; gymTip = ''; gymTipT = 0; gymLast.t = NaN; gymLast.miss = ''; e1.k = ''; e1.t = 0; e1.on = false; lastSetJ = false;
-      gymBestV = g && g.drill && !g.demo ? gymBestOf(g.drill.kind) : 0;
+      gymBestV = g && g.drill && !g.demo && !g.ses ? gymBestOf(g.drill.kind) : 0;   // (entreno de la Carrera: sin «Récord», es del gimnasio)
       el.app.classList.toggle('drill-on', !!(g && g.drill && !g.demo)); last.drOn = !!(g && g.drill && !g.demo);
       kitTick();
     },
@@ -5218,7 +5395,7 @@
     back: function () {
       if (panel) { uiSound('back'); return closePanel(); }
       // E6: B / Esc en la hoja final del ejercicio = «Entrenamiento» (vuelve a la lista)
-      if (ctx.state === 'over' && el.gymEnd && !el.gymEnd.hidden && ctx.game && ctx.game.drill) { uiSound('back'); goGymList(ctx.game.drill.kind); return true; }
+      if (ctx.state === 'over' && el.gymEnd && !el.gymEnd.hidden && ctx.game && ctx.game.drill) { uiSound('back'); if (isSes()) goCareerHub(); else goGymList(ctx.game.drill.kind); return true; }
       return menuBack();
     },
     /** Navegación con mando fuera del partido (main.js la llama con las intenciones del frame). */

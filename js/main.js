@@ -475,8 +475,12 @@
     // Carrera: VÓLEY PLAYA (sprint playa, 10-nov-2026): el partido se juega en Platja Llarga con sus reglas (sets a 21 y el 3r a
     // 15, pista 16×8, cambio de campo cada 7) aunque el ajuste «Escenario» sea el pabellón; el hub y quickSim cuentan con ellas
     // (el 6v6 al revés: siempre en el pabellón, aunque el ajuste sea la playa; la sim juega en su pista 18×9)
-    var cv = cs ? (opts.venue === 'hall' ? 'hall' : 'beach') : fmt ? 'hall' : null;
-    if (cv) forceVenue(cv);
+    // S4-D1 (reto del día): opts.map = id de sede fuera de la Carrera (venues.js); en 6v6 solo sedes de pabellón. Sin sede pedida,
+    // la del ajuste (y si un partido anterior forzó otra sin pasar por el menú, se deshace)
+    var mapK = opts.map && isMapId(opts.map) ? VB.Venues.kindOf(opts.map) : '';
+    var cv = cs ? (opts.venue === 'hall' ? 'hall' : 'beach') : fmt ? (mapK === 'hall' ? opts.map : 'hall') : (mapK ? opts.map : null);
+    if (cv) forceVenue(cv); else unforceVenue();
+    var cvK = cv ? (isMapId(cv) ? VB.Venues.kindOf(cv) : cv) : '';   // tipo ('hall' | 'beach') para la sim
     if (!auto) animHooks(cs);
     // banquillo y cambios (6v6): la Carrera trae bench / meSlot / meBench / names / coach (VB.Career.matchSetup); el Partido rápido 6v6
     // humano, el banquillo neutro de los dos equipos (Sim.defaultBench) y el entrenador de cada uno (el tuyo según «Cambios de tu
@@ -491,16 +495,24 @@
       bench: b6 || undefined, coach: c6 || undefined, meSlot: cs && b6 ? opts.meSlot : undefined, meBench: cs && b6 ? opts.meBench : undefined, names: fmt && cs ? opts.names : undefined,
       points: opts.points || +Q.points || ctx.settings.setPoints, ctrl: fmt ? 'one' : (opts.ctrl || Q.ctrl || ctx.settings.ctrlMode), ctrlRole: fmt ? (cs && opts.ctrlRole) || 'OH' : undefined, // (6v6: siempre 'one'; el receptor, o tu puesto en la Carrera de pista; espectador sin eventos switch)
       ctrlIdx: ctrlIdxOf(opts),
-      attrs: opts.attrs || (own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null),
-      badges: cs ? (opts.badges || null) : (own && !Q.nobadges ? squadBadges() : null),
+      // (S4-D1: opts.noAttrs / opts.noBadges = retos «sin mejoras»: el escuadrón juega con atributos e insignias neutros)
+      attrs: opts.attrs || (own && !opts.noAttrs && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null),
+      badges: cs ? (opts.badges || null) : (own && !opts.noBadges && !Q.nobadges ? squadBadges() : null),
       // (Carrera: cv = 'beach'; antes jugaba siempre con reglas de pabellón)
-      ref: opts.ref || undefined, nums: opts.nums || undefined, format: fmt, venue: fmt ? undefined : cv || venueNow(),
+      ref: opts.ref || undefined, nums: opts.nums || undefined, format: fmt, venue: fmt ? undefined : cvK || venueNow(),
       // E1 (sprint 5): maestría (finta, golpe colocado, al filo, colocación dirigida) en los partidos humanos de 2v2; la sim la
       // ignora sola en demo, autopilot y 6v6. aimSet = Ajustes · Juego · Colocación dirigida
-      mastery: !fmt && !auto, aimSet: ctx.settings.aimSet !== false });
+      mastery: !fmt && !auto, aimSet: ctx.settings.aimSet !== false,
+      // R21: estadísticas de la sim en los partidos humanos (masteryLine de la hoja final y los retos las leen). Son de solo
+      // escritura: misma partida con y sin ellas (comprobado con stateHash y g.rng en 12 partidas, notes/s234/T14.md)
+      stats: !auto || undefined });
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
+    // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
+    if (opts.reto && !cs) { g.reto = opts.reto; g.retoOpts = Object.assign({}, opts); delete g.retoOpts.introKind; delete g.retoOpts.noIntro; }
+    // R16: opciones del último partido humano de Partido rápido (restart las repite con la previa mini)
+    if (!cs && !auto) lastOpts = Object.assign({}, opts);
     if (watch6 && !opts.autopilot) g.watch = true;
     endTweaked = false; careerEnd = null;
     if (!cs) restoreEndButtons();
@@ -510,8 +522,9 @@
     // (sin pintar: aquí no hay telón que tape los objetos ocultos)
     if (Q.prewarm !== '0') { prewarm('t'); prewarmPrograms(false); }
     // UI-14: tarjeta de presentación (partidos humanos; en depuración solo con &intro=1)
-    if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart();
+    if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   };
+  var lastOpts = null;
   /** E6: arranca un ejercicio (ver startMatch). createGame({drill}) monta la 1ª repetición; la sim no emite point/whistle/gameOver
    *  y al acabar la 10ª emite drillEnd (frame → 'over'). g.gym = id (marca para ui.js). */
   function startDrill(id, opts) {
@@ -521,24 +534,46 @@
     call('Audio', 'unlock');
     tryFullscreen();
     ctx.frozen = false;
-    applyVenuePend(); unforceVenue();
+    // T-training §3.5: ejercicio de un entreno de la Carrera (opts.ses, de VB.CareerTrain.drillSetup): en la sede de la Carrera
+    // (playa o pabellón), con tus atributos, insignias, dorsales y la equipación del club. Sin opts.ses, todo como siempre
+    var ses = opts.ses || null;
+    applyVenuePend();
+    if (ses) forceVenue(opts.venue === 'hall' ? 'hall' : 'beach'); else unforceVenue();
     var free = id === 'free', own = !auto && !Q.debug;
     animHooks(null);
     var g = Sim.createGame({ demo: false, seed: seed(), drill: id, venue: venueNow(), autopilot: auto, present: false, rookie: false,
       difficulty: free ? ctx.settings.difficulty : 'normal', ctrl: free ? (Q.ctrl || ctx.settings.ctrlMode) : 'one', ctrlIdx: 0,
       points: ctx.settings.setPoints,
-      attrs: own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null,
-      badges: own && !Q.nobadges ? squadBadges() : null,
+      attrs: ses ? (opts.attrs || null) : own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null,
+      badges: ses ? (opts.badges || null) : own && !Q.nobadges ? squadBadges() : null,
+      nums: ses ? opts.nums || undefined : undefined,
       // E1: la maestría también se practica en los ejercicios (finta y golpe colocado en Remate, colocación dirigida en Colocación)
       mastery: !auto, aimSet: ctx.settings.aimSet !== false });
     g.gym = g.drill ? id : null;
+    if (ses) g.ses = ses;   // marca (como g.career): ui.js apunta el resultado en la Carrera y no en el gimnasio
     endTweaked = false; careerEnd = null;
     restoreEndButtons();
-    setGame(g, null);
+    setGame(g, ses ? opts.kit || null : null, ses ? careerLookOpts({ mate: sesMate() }, ses.mode === 'hall') : undefined);
     setState('playing');
     if (Q.prewarm !== '0') { prewarm('t'); prewarmPrograms(false); }
-    if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart();
+    if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   }
+  /** Nombre del compañero de playa de la Carrera (para su aspecto en el entreno, como en el partido) o null. */
+  function sesMate() {
+    try { var c = VB.Career && VB.Career.get ? VB.Career.get() : null; return c && c.mate && c.mate.name ? String(c.mate.name) : null; } catch (e) { return null; }
+  }
+  /** T-training §3.5: ejercicio `id` del entreno de la Carrera de esta jornada. false (y vuelta al hub) si ya no toca. */
+  ctx.actions.startCareerDrill = function (id, opts) {
+    var T = VB.CareerTrain, s = null;
+    if (T && typeof T.drillSetup === 'function' && drillId(id)) { try { s = T.drillSetup(id); } catch (e) { reportError('CareerTrain.drillSetup', e); s = null; } }
+    if (!s) {
+      if (ctx.game && ctx.game.ses && ctx.state !== 'menu') ctx.actions.toMenu();   // (toMenu reabre el hub en el entreno)
+      else if (VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { focus: 'train' }); } catch (e) { reportError('CareerUI.open', e); } }
+      return false;
+    }
+    startDrill(id, { drill: id, attrs: s.attrs, badges: s.badges, venue: s.venue, nums: s.nums, kit: s.kit, ses: s.ses, autopilot: !!(opts && opts.autopilot) });
+    return true;
+  };
   /** Insignias equipadas del escuadrón de Partido rápido para createGame({badges}) (null sin js/badges.js o sin ninguna). */
   function squadBadges() {
     var B = VB.Badges; if (!B) return null;
@@ -648,15 +683,20 @@
   // la salta en el frame siguiente. Cámara: VB.CameraRig.playIntro(s) (playIntro(0) al acabar antes); audio: sting('intro').
   var INTRO_SEC = 2.5, intro = { left: 0, held: [] };
   ctx.introLeft = 0; ctx.introSkipReq = false;
-  function introStart() {
-    intro.left = INTRO_SEC; intro.held.length = 0; ctx.introSkipReq = false;
+  // B5: con VB.UI.introPlan (si existe) la duración es la del plan (mini 2,5 / corta 4,5 / larga 6 s; opts.introKind la fuerza);
+  // sin él, INTRO_SEC como siempre
+  function introStart(opts) {
+    var pl = null;
+    if (VB.UI && typeof VB.UI.introPlan === 'function') pl = call('UI', 'introPlan', ctx.game, opts || {});
+    var dur = pl && +pl.dur > 0 ? Math.min(6, +pl.dur) : INTRO_SEC;
+    intro.left = dur; intro.held.length = 0; ctx.introSkipReq = false;
     var keep = [];
     for (var i = 0; i < pendingEvents.length; i++) (pendingEvents[i].type === 'newMatch' ? keep : intro.held).push(pendingEvents[i]);
     pendingEvents.length = 0; for (var j = 0; j < keep.length; j++) pendingEvents.push(keep[j]);
     ctx.introLeft = intro.left;
-    call('CameraRig', 'playIntro', INTRO_SEC);
+    call('CameraRig', 'playIntro', dur);
     call('Audio', 'sting', 'intro');
-    call('UI', 'introStart', ctx.game);
+    call('UI', 'introStart', ctx.game, pl);
   }
   function introEnd(skipped) {
     if (!(intro.left > 0)) return;
@@ -668,14 +708,17 @@
   }
   ctx.actions.toMenu = function () {
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
-    var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
-    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
+    // (T-training: un ejercicio del entreno de la Carrera, g.ses, también vuelve al hub, a la tarjeta del entreno)
+    var fromSes = !!(ctx.game && ctx.game.ses && !ctx.game.demo && !ctx.debug);
+    var fromCareer = fromSes || !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
+    if (fromCareer && !fromSes && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
     restoreEndButtons();
     unforceVenue();   // Carrera en la playa: de vuelta al escenario del ajuste
     setGame(demoGame());
     setState('menu');
-    if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
+    if (fromSes && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { focus: 'train' }); } catch (e) { reportError('CareerUI.open', e); } }
+    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
   };
@@ -683,7 +726,17 @@
   ctx.actions.resume = function () { if (ctx.state === 'paused') setState('playing'); };
   ctx.actions.togglePause = function () { if (ctx.state === 'playing') ctx.actions.pause(); else if (ctx.state === 'paused') ctx.actions.resume(); };
   // (E6: con un ejercicio en curso, «Reiniciar» repite el mismo ejercicio)
-  ctx.actions.restart = function () { var g = ctx.game; if (g && g.drill && !g.demo) ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); else ctx.actions.startMatch(); };
+  // R16 (plan del sprint 2-4): ejercicio del entreno de la Carrera → el mismo ejercicio de la sesión; reto → el mismo reto con la
+  // previa mini; Carrera → startMatch() (repite el partido con la previa normal, o vuelve al hub desde la hoja); si no, las opciones
+  // del último partido de Partido rápido con la previa mini
+  ctx.actions.restart = function () {
+    var g = ctx.game, live = !!(g && !g.demo);
+    if (live && g.ses && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, { autopilot: !!g.autopilot }); return; }
+    if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
+    if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
+    if (live && g.career) { ctx.actions.startMatch(); return; }
+    ctx.actions.startMatch(Object.assign({}, live && lastOpts || {}, { introKind: 'mini' }));
+  };
   ctx.actions.setSetting = function (k, v) {
     if (ctx.settings[k] === v) return;
     ctx.settings[k] = v; saveSettings();
@@ -771,6 +824,90 @@
     call('Players', 'setKit', kitWithLooks(ctx.settings), g);
     return true;
   };
+  // ---------- Retratos del muñeco (B2: VB.Doll.portrait de players; spec S2-B2B3 §3.2) ----------
+  // ctx.actions.portrait(req) → {key, url}: url al momento si está en la caché (LRU de 12 URL blob: por sesión, nunca en localStorage);
+  // si no, se encola (sin repetir clave) y llega luego con el evento DOM `vb-portrait` {key, url} (ui.js cambia los [data-pt]).
+  // Se pinta uno por frame en el paso 4b del bucle (portraitStep). Con la cola vacía 1 s, VB.Doll.portrait.free() suelta el muñeco.
+  // Sin VB.Doll.portrait (players aún sin él) → {key: '', url: ''} y ui.js deja la silueta.
+  var PQ = [], PCACHE = {}, PORDER = [], P2D = null, PMAX = 12;
+  var pt = { idleT: 0, freed: true, warm: '', n: 0, ms: 0 };
+  function portraitApi() { var D = VB.Doll; return D && D.portrait && typeof D.portrait.draw === 'function' && typeof D.portrait.key === 'function' ? D.portrait : null; }
+  function ptKey(P, req) { try { var k = P.key(req); return k ? String(k) : ''; } catch (e) { reportError('Doll.portrait.key', e); return ''; } }
+  function ptTouch(key) { var i = PORDER.indexOf(key); if (i >= 0) PORDER.splice(i, 1); PORDER.push(key); }
+  function ptStore(key, url) {
+    if (PCACHE[key] && PCACHE[key] !== url) ptRevoke(PCACHE[key]);
+    PCACHE[key] = url; ptTouch(key);
+    while (PORDER.length > PMAX) { var old = PORDER.shift(); ptRevoke(PCACHE[old]); delete PCACHE[old]; }
+  }
+  function ptRevoke(url) { if (url && url.indexOf('blob:') === 0) { try { URL.revokeObjectURL(url); } catch (e) { } } }
+  ctx.actions.portrait = function (req) {
+    var P = portraitApi(); if (!P || !req) return { key: '', url: '' };
+    var key = ptKey(P, req); if (!key) return { key: '', url: '' };
+    if (PCACHE[key]) { ptTouch(key); return { key: key, url: PCACHE[key] }; }
+    for (var i = 0; i < PQ.length; i++) if (PQ[i].key === key) return { key: key, url: '' };
+    PQ.push({ key: key, req: req });
+    return { key: key, url: '' };
+  };
+  ctx.actions.portraitDrop = function (key) {
+    key = String(key || '');
+    if (PCACHE[key]) { ptRevoke(PCACHE[key]); delete PCACHE[key]; }
+    var i = PORDER.indexOf(key); if (i >= 0) PORDER.splice(i, 1);
+    for (var j = PQ.length - 1; j >= 0; j--) if (PQ[j].key === key) PQ.splice(j, 1);
+  };
+  /** Pruebas (portraittest): estado de la cola. */
+  ctx.portraitInfo = function () { return { queue: PQ.length, cached: PORDER.length, n: pt.n, ms: pt.ms, warm: pt.warm, freed: pt.freed }; };
+  function portraitStep() {
+    var P = portraitApi(); if (!P) { PQ.length = 0; return; }
+    if (progWarm.pending && progsPending()) return;              // programas del retrato (o del partido) compilándose: espera
+    if (prewarmPortrait(P)) return;                               // acaba de pedir los programas del retrato (alta con post): espera
+    var q = PQ.shift(); if (!q || PCACHE[q.key]) return;
+    var r = ctx.renderer, sz = Math.max(16, Math.min(512, (+q.req.size | 0) || 144));
+    if (!P2D) P2D = document.createElement('canvas');
+    if (P2D.width !== sz || P2D.height !== sz) { P2D.width = sz; P2D.height = sz; }
+    var t0 = performance.now(), ms = -1;
+    try { ms = P.draw(ctx, q.req, P2D); } catch (e) { reportError('Doll.portrait.draw', e); ms = -1; }
+    // (por si draw saliera a medias: el render del juego de este frame necesita el viewport entero y sin tijera)
+    if (r.getScissorTest && r.getScissorTest()) { r.setScissorTest(false); r.setViewport(0, 0, ctx.width, ctx.height); }
+    var dt = performance.now() - t0;
+    pt.freed = false; pt.idleT = 0; pt.ms = Math.round(dt * 10) / 10;
+    if (dt > 50) ctx.noteHitch();                                  // la ventana de fps no cuenta para la calidad adaptativa
+    if (!(ms >= 0)) return;                                        // no se pudo: queda la silueta
+    pt.n++;
+    var key = q.key, done = function (url) {
+      if (!url) return;
+      ptStore(key, url);
+      try { window.dispatchEvent(new CustomEvent('vb-portrait', { detail: { key: key, url: url } })); } catch (e) { reportError('vb-portrait', e); }
+    };
+    // toBlob copia el lienzo al llamarlo (P2D se puede reutilizar en el frame siguiente) y codifica fuera del bucle
+    if (P2D.toBlob) { try { P2D.toBlob(function (b) { done(b ? URL.createObjectURL(b) : ''); }, 'image/png'); return; } catch (e) { } }
+    var url = ''; try { url = P2D.toDataURL('image/png'); } catch (e) { }
+    setTimeout(function () { done(url); }, 0);
+  }
+  function portraitFree() {
+    pt.freed = true; pt.idleT = 0;
+    var P = VB.Doll && VB.Doll.portrait;
+    if (P && typeof P.free === 'function') { try { P.free(); } catch (e) { reportError('Doll.portrait.free', e); } }
+  }
+  /** Calidad alta con el post de arena: los 2 programas del retrato (otra codificación de salida) se compilan en paralelo con KHR una
+   *  vez por calidad (asyncCompile, destino de pantalla). true = los ha pedido (portraitStep espera a que acaben). Sin la extensión, o
+   *  sin post (baja, media, móvil: comparte los programas del juego), nada: como mucho un tirón de ~250 ms la primera vez. */
+  function prewarmPortrait(P) {
+    var post = !!(VB.Arena && VB.Arena.postActive && safeBool(VB.Arena.postActive));
+    var want = post ? 'post' : 'plain'; if (pt.warm === want) return false;
+    pt.warm = want;
+    if (!post || Q.prewarm === '0' || glLost || typeof P.warm !== 'function') return false;
+    var gl = ctx.renderer.getContext(), ext = null;
+    try { ext = gl.getExtension('KHR_parallel_shader_compile'); } catch (e) { }
+    if (!ext) return false;
+    var w = null; try { w = P.warm(ctx); } catch (e) { reportError('Doll.portrait.warm', e); }
+    if (!w || !w.scene || !w.camera) return false;
+    var pend = asyncCompile(w.scene, w.camera, null, false);
+    if (!pend.length) return false;
+    progWarm.ext = ext; progWarm.pending = pend; progWarm.t0 = performance.now(); progWarm.n = pend.length; progWarm.gate = false;
+    ctx.noteHitch();
+    return true;
+  }
+  function safeBool(f) { try { return !!f(); } catch (e) { return false; } }
   function previewUpdate(dt) {
     var P = previewApi(); if (!P || !P.update) return;
     try { P.update(dt); } catch (e) { reportError('Doll.preview.update', e); }
@@ -1017,6 +1154,10 @@
     if (needWarmDraw && !throttled && !glLost && !(progWarm.pending && progWarm.gate)) { needWarmDraw = false; warmDraw(); }
     if (!throttled && !glLost) {
       drawn++;
+      // 4b (B2): un retrato en cola, solo en el menú y en la hoja final (nunca en partido), con el telón ya quitado y sin el
+      // precompilado del arranque en curso; se pinta en una esquina del lienzo ANTES del render, que lo tapa en este mismo frame
+      if (PQ.length) { if ((ctx.state === 'menu' || ctx.state === 'over') && drawn >= 3 && !progWarm.gate) portraitStep(); }
+      else if (!pt.freed && (pt.idleT += realDt) > 1) portraitFree();
       ctx.renderer.info.reset();
       try {
         if (ctx.renderFn) ctx.renderFn(ctx); else ctx.renderer.render(ctx.scene, ctx.camera);
@@ -1206,7 +1347,7 @@
       return keep;
     }
     function uiIngest(evs, g) { call('UI', 'ingest', evs, g); }
-    var g, keep = [], state = 'playing', live = Q.live === '1';
+    var g, keep = [], state = 'playing', live = Q.live === '1', sesKit = null;
     switch (name) {
       case 'menu': case 'tutorial': case 'controls': case 'settings':
         ctx.actions.toMenu(); return;
@@ -1342,6 +1483,18 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'drillStage' && e.n >= dn - 1; }, dt0, 900);
         break;
       }
+      // T-training: hoja final de un ejercicio del entreno de la Carrera (autopilot hasta drillEnd). Con una Carrera guardada y
+      // js/career-train.js, el ejercicio pendiente de verdad (sede, atributos, dorsales y equipación); si no, uno de prueba en la
+      // playa (&drill= elige el ejercicio). Nunca guarda nada (ctx.debug: drillDone con dry)
+      case 'ses_end': {
+        var sT = VB.CareerTrain, sId = null, sS = null;
+        try { if (sT && sT.cur) sT.cur(); sId = sT && sT.pending ? sT.pending() : null; sS = sId ? sT.drillSetup(sId) : null; } catch (e) { reportError('CareerTrain (ses_end)', e); sS = null; }
+        if (!sS) { sId = drillId(Q.drill) && Q.drill !== 'free' ? Q.drill : 'recv'; sS = { venue: Q.venue === 'hall' ? 'hall' : 'beach', ses: { k: 0, i: 1, n: 2, who: 'faro', mode: Q.venue === 'hall' ? 'hall' : 'beach', id: sId, kind: 'week', _debug: true } }; }
+        forceVenue(sS.venue === 'hall' ? 'hall' : 'beach');
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, drill: sId, venue: venueNow(), difficulty: 'normal', attrs: sS.attrs || null, badges: sS.badges || null, nums: sS.nums || undefined });
+        g.gym = sId; g.ses = sS.ses; sesKit = sS.kit || null;
+        keep = advanceUntil(g, function (e) { return e && e.type === 'drillEnd'; }, 0, 900); state = 'over'; break;
+      }
       // banquillo y cambios (6v6): sub6 = rótulo de un cambio recién hecho (pedido para tu equipo: entra el opuesto suplente; &team=1
       // el rival), bench6 = Carrera empezando en el banquillo (barra «En el banquillo», cámara de televisión), subs6menu = pausa con el
       // panel «Cambios» abierto (Partido rápido; &pick=1 con uno de pista ya elegido)
@@ -1371,7 +1524,7 @@
         console.warn('[VB] escena de depuración desconocida:', name); ctx.actions.toMenu(); return;
     }
     // las escenas que ya han pasado los eventos por ingest no los vuelven a contar
-    setGame(g);
+    setGame(g, sesKit);
     for (var i = 0; i < keep.length; i++) pendingEvents.push(keep[i]);
     if (state === 'paused') { setState('playing'); setState('paused'); } else setState(state);
     ctx.frozen = !live && name !== 'serve' && name !== 'hud' && name !== 'pause';
@@ -1447,10 +1600,11 @@
       if (VB.Arena && VB.Arena.prewarmCompile) { try { ctx.prewarmMs = VB.Arena.prewarmCompile(); } catch (e) { reportError('prewarmCompile', e); } }
       return;
     }
-    var list = [], grp = new THREE.Group(), progs = r.info.programs, push = progs.push, wrapped = [], prevRT = r.getRenderTarget();
+    var list = [], grp = new THREE.Group();
     try { if (VB.Arena && VB.Arena.prewarmList) list = VB.Arena.prewarmList() || []; } catch (e) { reportError('prewarmList', e); }
     grp.name = 'prewarm';
     for (var i = 0; i < list.length; i++) grp.add(list[i]);
+    var pend = [];
     try {
       sc.add(grp); grp.updateMatrixWorld(true);
       var rt = null;
@@ -1458,18 +1612,32 @@
         if (VB.Arena.prewarmTarget) rt = VB.Arena.prewarmTarget();
         else if (VB.Arena.postActive && VB.Arena.postActive() && VB.Arena._dbg) { var dd = VB.Arena._dbg(); rt = dd && dd.post && dd.post.rt || null; }
       }
-      if (rt) r.setRenderTarget(rt);
+      pend = asyncCompile(sc, ctx.camera, rt, true);
+    } catch (e) { reportError('prewarmPrograms', e); }
+    sc.remove(grp);
+    progWarm.ext = ext; progWarm.pending = pend.length ? pend : null; progWarm.t0 = performance.now(); progWarm.n = pend.length;
+    progWarm.gate = !!gate && pend.length > 0; progWarm.issueMs = Math.round(performance.now() - t0); progWarm.total = r.info.programs.length;
+    ctx.prewarmMs = (ctx.prewarmMs || 0) + progWarm.issueMs;
+    if (ctx.debug) console.info('[VB] precompilado asíncrono: ' + pend.length + ' programas nuevos, ' + list.length + ' copias, ' + progWarm.issueMs + ' ms en el hilo');
+  }
+  /** Compila en paralelo (KHR_parallel_shader_compile ya pedida) los programas de `sc` vistos por `cam` con el destino `rt` (null =
+   *  pantalla) y, con `extra`, lo que compile() no ve (extraCompile). Devuelve los programas pendientes (progWarm.pending). Lo usan el
+   *  precompilado del arranque y del partido (prewarmPrograms) y el de los retratos (prewarmPortrait, con la escena propia del retrato). */
+  function asyncCompile(sc, cam, rt, extra) {
+    var r = ctx.renderer, progs = r.info.programs, push = progs.push, wrapped = [], prevRT = r.getRenderTarget();
+    try {
+      if (rt) r.setRenderTarget(rt); else if (prevRT) r.setRenderTarget(null);
       // programas nuevos: uniformes vacíos mientras dura compile() (no espera al enlace)
       progs.push = function (p) { if (p && p.getUniforms) { wrapped.push(p, p.getUniforms); p.getUniforms = function () { return DUMMY_UNIFORMS; }; } return push.apply(progs, arguments); };
       // en depuración three comprueba cada programa al crearlo (getProgramInfoLog espera al driver): se comprueba al acabar
       var chk = r.debug.checkShaderErrors; r.debug.checkShaderErrors = false;
       try {
-        r.compile(sc, ctx.camera);
-        extraCompile(r, sc);
+        r.compile(sc, cam);
+        if (extra) extraCompile(r, sc);
       } finally { r.debug.checkShaderErrors = chk; }
-    } catch (e) { reportError('prewarmPrograms', e); }
+    } catch (e) { reportError('asyncCompile', e); }
     delete progs.push; if (progs.push !== push) progs.push = push;
-    r.setRenderTarget(prevRT); sc.remove(grp);
+    r.setRenderTarget(prevRT);
     var pend = [];
     if (wrapped.length) {
       var set = typeof Set === 'function' ? new Set() : null;
@@ -1479,12 +1647,11 @@
       // indefinido y el render reventaba en cada frame («reading 'getUniforms'») tras cambiar la calidad
       var fix = function (m) { if (!m) return; var pr = r.properties.get(m); if (pr && pr.currentProgram && set && set.has(pr.currentProgram)) { pr.currentProgram = undefined; pr.uniformsList = null; pr.__version = -1; } };
       var fixObj = function (o) { var m = o.material; if (!m) return; if (Array.isArray(m)) { for (var k = 0; k < m.length; k++) fix(m[k]); } else fix(m); };
-      sc.traverse(fixObj); for (var j = 0; j < list.length; j++) fixObj(list[j]);
+      sc.traverse(fixObj);
+      // (los materiales de la escena del juego también: el retrato comparte materiales del muñeco con los atletas)
+      if (sc !== ctx.scene && ctx.scene) ctx.scene.traverse(fixObj);
     }
-    progWarm.ext = ext; progWarm.pending = pend.length ? pend : null; progWarm.t0 = performance.now(); progWarm.n = pend.length;
-    progWarm.gate = !!gate && pend.length > 0; progWarm.issueMs = Math.round(performance.now() - t0); progWarm.total = r.info.programs.length;
-    ctx.prewarmMs = (ctx.prewarmMs || 0) + progWarm.issueMs;
-    if (ctx.debug) console.info('[VB] precompilado asíncrono: ' + pend.length + ' programas nuevos, ' + list.length + ' copias, ' + progWarm.issueMs + ' ms en el hilo');
+    return pend;
   }
   // Lo que compile() no ve: los materiales de profundidad de las sombras (se pintan con una escena vacía: sin niebla ni luces)
   // y las pasadas del post-proceso de arena (cuadro a pantalla completa: brillo/desenfoque/copia al destino lineal y la mezcla
@@ -1620,6 +1787,8 @@
     if (ctx.debug) debugScene(ctx.debug); else ctx.actions.toMenu();
     // E6: &drill=<id> empieza ese ejercicio (&gymauto=1: la IA juega por ti; lo usa tools/gymtest.js); sin autopilot espera al telón
     if (!ctx.debug && drillId(Q.drill)) ctx.actions.startMatch({ drill: Q.drill, autopilot: Q.gymauto === '1' });
+    // T-training: &sesauto=1 = el ejercicio pendiente del entreno de la Carrera guardada, con la IA jugando (gymtest, traintest)
+    else if (!ctx.debug && Q.sesauto === '1') sesAuto();
     if (Q.prewarm !== '0') prewarm(Q.prewarm === 'c' || Q.prewarm === 'r' ? Q.prewarm : 't'); // tras el telón de carga (en depuración, el primer frame lo tapa)
     // programas: en paralelo bajo el telón; no se pinta hasta que estén (el hilo queda libre: telón, fuentes y audio siguen)
     if (Q.prewarm !== '0' && Q.prewarm !== 'c' && Q.prewarm !== 'r') { prewarmPrograms(true); needWarmDraw = Q.warmdraw !== '0'; }
@@ -1628,6 +1797,15 @@
     bi.end = Math.round(performance.now());
     requestAnimationFrame(frame);
   }
+  /** &sesauto=1: crea (si falta) la sesión de la jornada y empieza su ejercicio pendiente en autopilot. false sin Carrera o sin sesión. */
+  function sesAuto() {
+    var T = VB.CareerTrain, id = null;
+    if (!T) { console.warn('[VB] sesauto: falta js/career-train.js'); return false; }
+    try { if (T.cur) T.cur(); id = T.pending ? T.pending() : null; } catch (e) { reportError('CareerTrain.pending', e); }
+    if (!id) { console.warn('[VB] sesauto: no hay ningún ejercicio pendiente'); return false; }
+    return ctx.actions.startCareerDrill(id, { autopilot: true });
+  }
+  ctx.actions.sesAuto = sesAuto;   // (pruebas: lo mismo que &sesauto=1 con la página ya cargada)
   function showFatal(msg, soft) {
     var d = document.getElementById('fatal');
     if (d) { d.innerHTML = '<b>Make the Cut</b><span></span>'; d.lastChild.textContent = msg; d.hidden = false; d.classList.toggle('soft', !!soft); }

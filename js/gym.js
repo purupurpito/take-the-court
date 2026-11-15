@@ -8,7 +8,11 @@
  *   { v:1, d:{ serve:{b,m,n,t}, recv:{…}, set:{…}, atk:{…}, block:{…} }, free:{rally}, xp:{ serve:2, … } }
  *   b = récord (0-40), m = medalla 0-3, n = intentos, t = fecha del récord (ms), rally = peloteo más largo (toques),
  *   xp = nivel de medalla ya cobrado (evita cobrar dos veces, también tras unir con la cuenta).
- * Cuentas: se sincroniza con la cuenta (account.js GYM_SYNC = true desde el 12-nov-2026, reglas de Firestore ya desplegadas).
+ * Cuentas: SÍ se sincroniza con la cuenta (users/{uid}/saves/gym, fusión por máximo mergeGym): js/account.js tiene GYM_SYNC = true
+ *   desde el 12-nov-2026, con las reglas de Firestore ya desplegadas. (CONTRACT §1 decía «GYM_SYNC = false»: errata; manda el código.)
+ * Contrato D4 (S4, T13): texto ilegible o que no es un objeto → copia en 'voley3d.gym.bak' y lost() = true (se sigue en blanco);
+ *   versión más nueva (v > VER, llegada por la nube) → readOnly() = true: se lee la copia saneada, save() no escribe y record() no paga
+ *   XP (no se rebaja el guardado de la cuenta). '.bak' nunca va a la nube.
  *
  * API (VB.Gym):
  *   DRILLS [{id, name, short, help}] en el orden de la página (5 con medallas + 'free'), IDS (los 5 con medallas),
@@ -17,7 +21,9 @@
  *   load() → copia validada del guardado · save(o) · get(id) → {b,m,n,t} | null · drill(id) → fila de DRILLS | null
  *   medalOf(id, total) → 0..3 · record(id, total) → {best, prev, isBest, medal, newMedal, xp, n}
  *   recordRally(hits) → {best, isBest} · count() → medallas conseguidas (de 15) · nextOf(id) → id siguiente con medallas | null
- *   bestRally() → toques · reset() (pruebas).
+ *   bestRally() → toques · reset() (pruebas) · lost() · readOnly()
+ *   ATTR {serve:'serve', recv:'recv', set:'set', atk:'spike', block:'block'}: atributo (VB.Prog.KEYS) que entrena cada ejercicio
+ *   (lo usan los entrenos de la Carrera, js/career-train.js; R19).
  */
 (function () {
   'use strict';
@@ -38,6 +44,8 @@
   var MEDALS = { serve: [12, 18, 24], recv: [18, 24, 28], set: [16, 22, 27], atk: [12, 18, 23], block: [6, 11, 16] };
   var XP = [30, 50, 80];
   var MAX = 30, B_MAX = 40, RALLY_MAX = 999;
+  var ATTR = { serve: 'serve', recv: 'recv', set: 'set', atk: 'spike', block: 'block' };
+  var lost = false, ro = false;
 
   function isId(id) { return IDS.indexOf(id) >= 0; }
   function num(v, lo, hi) { v = +v; if (!isFinite(v)) return lo; v = Math.floor(v); return v < lo ? lo : v > hi ? hi : v; }
@@ -58,13 +66,23 @@
     IDS.forEach(function (id) { var v = num(x[id], 0, 3); if (v) out.xp[id] = v; });
     return out;
   }
+  function readRaw() { try { return window.localStorage.getItem(KEY); } catch (e) { return null; } }
   function load() {
-    var raw = null;
-    try { raw = window.localStorage.getItem(KEY); } catch (e) { }
-    if (!raw) return empty();
-    try { return clean(JSON.parse(raw)); } catch (e) { return empty(); }
+    var raw = readRaw(), o;
+    ro = false;
+    if (!raw || raw === 'null') return empty();
+    try { o = JSON.parse(raw); } catch (e) { o = null; }
+    if (!o || typeof o !== 'object' || Array.isArray(o)) {   // dañado: copia en .bak (una vez) y en blanco
+      lost = true;
+      try { if (window.localStorage.getItem(KEY + '.bak') !== raw) window.localStorage.setItem(KEY + '.bak', raw); } catch (e) { }
+      return empty();
+    }
+    ro = +o.v > VER;
+    return clean(o);
   }
   function save(o) {
+    load();   // (actualiza ro con lo guardado ahora)
+    if (ro) return false;
     try { window.localStorage.setItem(KEY, JSON.stringify(clean(o))); return true; } catch (e) { return false; }
   }
 
@@ -90,6 +108,7 @@
     var medal = medalOf(id, total), newMedal = medal > e.m;
     if (newMedal) e.m = medal;
     var paid = o.xp[id] || 0, xp = 0;
+    if (ro) paid = Math.max(paid, e.m);   // solo lectura: no se paga lo que no se puede apuntar como cobrado
     for (var lv = paid + 1; lv <= e.m; lv++) {
       xp += XP[lv - 1];
       if (VB.Prog && VB.Prog.addXP) { try { VB.Prog.addXP(0, XP[lv - 1]); VB.Prog.addXP(1, XP[lv - 1]); } catch (er) { } }
@@ -110,9 +129,10 @@
   function drill(id) { for (var i = 0; i < DRILLS.length; i++) if (DRILLS[i].id === id) return DRILLS[i]; return null; }
 
   VB.Gym = {
-    KEY: KEY, VER: VER, DRILLS: DRILLS, IDS: IDS, MEDALS: MEDALS, XP: XP, MAX: MAX, MEDAL_NAMES: ['', 'Bronce', 'Plata', 'Oro'],
+    KEY: KEY, VER: VER, ATTR: ATTR, DRILLS: DRILLS, IDS: IDS, MEDALS: MEDALS, XP: XP, MAX: MAX, MEDAL_NAMES: ['', 'Bronce', 'Plata', 'Oro'],
     load: load, save: save, clean: clean, get: get, drill: drill, medalsOf: medalsOf, medalOf: medalOf, record: record, recordRally: recordRally,
     count: count, nextOf: nextOf, bestRally: function () { return load().free.rally; },
+    lost: function () { load(); return lost; }, readOnly: function () { load(); return ro; },
     reset: function () { try { window.localStorage.removeItem(KEY); } catch (e) { } }
   };
 })();

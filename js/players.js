@@ -620,7 +620,11 @@
       persona: personaOf(p), cvar: '', dvar: '', lvar: '', idle: '', evG: '', blkRes: '', forceCel: '', forceIdle: '', hitTempo: '', hitFeint: false,
       acF: 0, vfP: 0, spP: 0, accT: -99, lagOn: false, jvM: 0, cvarT: -99, spkYaw: 0, evT: -99, evX: 0, evY: 0, blkResT: -99,
       dvSide: 0, dvYaw0: 0, dvExtra: 0, dvFxT: -99, lvX: 0, lvY: 0, lvD: 0, lvGiven: 0, idleT: -99, idleNext: 0, idleN: 0, leaveW: 0, leaveT: -99,
-      yawAtk: 0, yawAtkT: -99, fist0: 0, fist1: 0, celFxT: -99, celFx2: -99, rivalOn: false, sigOn: meSlot(p) === 0, digT: -99, atkT: -99
+      yawAtk: 0, yawAtkT: -99, fist0: 0, fist1: 0, celFxT: -99, celFx2: -99, rivalOn: false, sigOn: meSlot(p) === 0, digT: -99, atkT: -99,
+      // S3-C1 §1.1: ancla de bloqueo (bk*: punto y dirección del balón en el block; bkOne: 0 las dos palmas, 1 izquierda, 2 derecha) y
+      // paso atrás visual de la plataforma (pb*: dirección fijada, metros, instante del contacto, metros ya dados, último frame visto)
+      bkT: -99, bkX: 0, bkY: 0, bkZ: 0, bkDx: 0, bkDy: 0, bkDz: 0, bkOne: 0, pbX: 0, pbY: 0, pbM: 0, pbTc: -99, pbG: 0, pbSeen: -99,
+      pLive: null, lastCel0: '', lastPrev0: '', lcLive: '', lpLive: ''   // repetición (bindReplay): jugador en vivo, variantes de antes del último punto y las de ahora
     };
     for (var k = 0; k < 2; k++) {
       var s = k === 0 ? 1 : -1;
@@ -1427,6 +1431,7 @@
         return;
       }
     }
+    if (blkAnchor(g, r)) return;                            // S3-C1: bloqueo (modo blk)
     if (r.pdLive && r.pdTp < ANC_PRE) {                     // plancha prevista: manos al balón previsto
       w = sstep(ANC_PRE, 0, r.pdTp); w = w * w * (3 - 2 * w);
       r.aMode = 'dive'; r.aX = r.pdX; r.aY = r.pdY; r.aZ = r.pdZ; r.aDx = 0; r.aDy = 0; r.aDz = 1; r.aw0 = r.aw1 = w; ancLimits(r, 'dive');
@@ -1445,16 +1450,91 @@
     var k = hw.kind, mode;
     if (k === 'pass') mode = 'plat';
     else if (k === 'set') mode = 'set';
-    else if (k === 'free') mode = z - p.z < 1.75 ? 'plat' : 'palm';
+    else if (k === 'free') mode = z - p.z < FREE_OH ? 'plat' : 'palm';
     else mode = 'palm';
     w = sstep(mode === 'set' ? 0.075 : ANC_PRE, 0, tc); w = w * w * (3 - 2 * w);   // colocación: la ventana manda hasta el final
     r.aMode = mode; r.aX = x; r.aY = y; r.aZ = z;
-    if (mode === 'plat') { r.aDx = -sd * 0.3; r.aDy = 0; r.aDz = 1; }
+    if (mode === 'plat') {
+      // S3-C1: plataforma a la BISECTRIZ entre la entrada (−v del balón en el contacto) y la salida de siempre (−sd·0,3, 0, 1): el
+      // balón que llega plano desde la red ya no cruza las muñecas en el frame anterior al toque
+      var ivx = b.vx, ivy = b.vy, ivz = b.vz - G * tq, il = Math.sqrt(ivx * ivx + ivy * ivy + ivz * ivz);
+      r.aDx = -sd * PLAT_AX; r.aDy = 0; r.aDz = PLAT_AZ;
+      if (il > 0.5) { r.aDx -= ivx / il; r.aDy -= ivy / il; r.aDz -= ivz / il; }
+      platStep(g, r, x, y, tc);
+    }
     else if (k === 'spike') { r.aDx = -sd * 0.93; r.aDy = 0; r.aDz = -0.36; }
     else { r.aDx = -sd * 0.97; r.aDy = 0; r.aDz = 0.12; }
-    var dl = Math.sqrt(r.aDx * r.aDx + r.aDz * r.aDz); r.aDx /= dl; r.aDz /= dl;
+    var dl = Math.sqrt(r.aDx * r.aDx + r.aDy * r.aDy + r.aDz * r.aDz) || 1; r.aDx /= dl; r.aDy /= dl; r.aDz /= dl;
     if (mode === 'palm') r.aw1 = w; else { r.aw0 = w; r.aw1 = w; }
     ancLimits(r, mode);
+  }
+  // S3-C1 §1.1. FREE_OH: el balón libre va por arriba desde 1,6 m sobre los pies (= sim, b.z − p.z > 1,6 → 'overhead'; antes 1,75 y
+  // entre las dos alturas se veía la plataforma en un toque de dedos). PLAT_A*: salida de siempre de la plataforma, normalizada.
+  var FREE_OH = 1.6, PLAT_AX = 0.3 / Math.sqrt(1.09), PLAT_AZ = 1 / Math.sqrt(1.09);
+  // Balón dibujado en el frame anterior (para el punto del bloqueo: la sim emite 'block' con b.x ya rebotado)
+  var BPV = { g: null, t: -99, x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 };
+  /** Ancla de bloqueo (modo blk): ANTES del block, con el bloqueador en el aire (salto de bloqueo) a < 1,7 m de la red y balón rival
+   *  que viene hacia su campo, se extrapola el cruce del balón con el plano de entrada del volumen de manos (|x| = BLK_XC) y, si queda
+   *  a < 0,8 m de lado y a la altura de las manos, las palmas van hacia él en los últimos BLK_PRE s (las dos si el balón llega por el
+   *  centro; si no, la mano de su lado). DESPUÉS del evento, el punto exacto (el balón dibujado justo antes del contacto) durante
+   *  BLK_HOLD s y se suelta en BLK_REL: directo (stuff) con las dos palmas mirando al atacante y separadas 0,18 m; toque, block-out y
+   *  amortiguado con la mano más cercana y la palma en la superficie del balón. → true si ancla. */
+  var BLK_LEAN = 0.5, BLK_UP = 0.4, BLK_PRE = 0.08, BLK_HOLD = 0.1, BLK_REL = 0.12, BLK_XC = 0.55, BLK_LAT = 0.8, BLK_CEN = 0.3;
+  function blkAnchor(g, r) {
+    var p = r.p, tm = g.time, ba = tm - r.blockT, w, x, y, z, dx, dy, dz, one;
+    if (ba >= 0 && ba < BLK_HOLD + BLK_REL && r.bkT === r.blockT) {
+      w = ba < BLK_HOLD ? 1 : 1 - sstep(BLK_HOLD, BLK_HOLD + BLK_REL, ba);
+      x = r.bkX; y = r.bkY; z = r.bkZ; dx = r.bkDx; dy = r.bkDy; dz = r.bkDz; one = r.bkOne;
+      if (one <= 2 && ba < BLK_HOLD) {   // directo: las palmas empujan el balón (detrás de él en su nueva dirección) mientras sale
+        var bo = g.ball, ol = Math.sqrt(bo.vx * bo.vx + bo.vy * bo.vy + bo.vz * bo.vz);
+        if (ol > 0.5) { x = bo.x; y = bo.y; z = bo.z; dx = bo.vx / ol; dy = bo.vy / ol; dz = bo.vz / ol; }
+      }
+    } else {
+      if (!(p.z > 0.05) || r.jumpKind !== 'block' || g.mode !== 'rally' || Math.abs(p.x) > 1.7 || g.lastTeam === p.team) return false;
+      var b = g.ball, sq = side(p.team);
+      if (b.held || !(b.vx * sq > 0.5)) return false;
+      var t = (sq * -BLK_XC - b.x) / b.vx;
+      if (!(t >= 0 && t < BLK_PRE)) return false;
+      var G = C.G + (b.dip || 0);
+      x = sq * -BLK_XC; y = b.y + b.vy * t; z = b.z + b.vz * t - 0.5 * G * t * t;
+      var hz = z - p.z;
+      if (Math.abs(y - p.y) > BLK_LAT || hz < 1.6 || hz > 3.1) return false;
+      var ivz = b.vz - G * t, il = Math.sqrt(b.vx * b.vx + b.vy * b.vy + ivz * ivz) || 1;
+      dx = -b.vx / il; dy = -b.vy / il; dz = -ivz / il;
+      w = sstep(BLK_PRE, 0, t); w = w * w * (3 - 2 * w);
+      toBody(r, x, y, z, tV3);
+      one = Math.abs(tV3.x) <= BLK_CEN ? 0 : tV3.x > 0 ? 1 : 2;
+      x = b.x; y = b.y; z = b.z;   // las palmas van al balón DIBUJADO (el contacto llega en el paso siguiente al último frame)
+    }
+    r.aMode = 'blk'; r.aX = x; r.aY = y; r.aZ = z; r.aDx = dx; r.aDy = dy; r.aDz = dz; r.bkOne = one;
+    r.aw0 = one === 2 || one === 4 ? 0 : w; r.aw1 = one === 1 || one === 3 ? 0 : w;
+    ancLimits(r, 'blk');
+    return true;
+  }
+  /** Punto del bloqueo (evento block): el balón dibujado en el frame anterior (antes del rebote que la sim ya aplicó) y su dirección
+   *  de llegada; sin frame anterior de esta partida, el del evento con x en la red. Toque, block-out y amortiguado: la mano más cercana. */
+  function blkEvent(g, r, e, tm) {
+    var ok = BPV.g === g && tm - BPV.t >= 0 && tm - BPV.t < 0.06;
+    var vx = ok ? BPV.vx : side(r.p.team), vy = ok ? BPV.vy : 0, vz = ok ? BPV.vz : 0, l = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
+    r.bkX = ok ? BPV.x : 0; r.bkY = ok ? BPV.y : e.y; r.bkZ = ok ? BPV.z : e.z;
+    r.bkDx = -vx / l; r.bkDy = -vy / l; r.bkDz = -vz / l; r.bkT = tm;
+    toBody(r, r.bkX, r.bkY, r.bkZ, tV3);
+    var lr = tV3.x > 0 ? 1 : 2;
+    r.bkOne = e.result === 'stuff' ? (Math.abs(tV3.x) <= BLK_CEN ? 0 : lr) : lr + 2;   // 3/4: una mano, palma en la superficie
+  }
+  /** Paso atrás visual de la plataforma (S3-C1): si el contacto previsto queda a < 0,35 m de la raíz en planta, la raíz se desplaza
+   *  hacia atrás ≤ 0,25 m en los últimos 0,15 s y lo recupera en 0,3 s tras el toque (diveOffset). La dirección se fija al empezar. */
+  var PB_NEAR = 0.35, PB_MAX = 0.25, PB_IN = 0.15, PB_OUT = 0.3, PB_CHEST = 0.2;
+  function platStep(g, r, x, y, tc) {
+    var p = r.p;
+    if (p.z > 0.05 || p.down > 0 || !(tc >= 0)) return;
+    // pecho en planta: la raíz sin el paso ya dado, adelantada PB_CHEST (agachado, el pecho va por delante de los pies)
+    var fx = Math.cos(r.yaw), fy = Math.sin(r.yaw), cs = PB_CHEST * r.scale;
+    var dx = x - (p.x + r.offX - r.pbX * r.pbG + fx * cs), dy = y - (p.y + r.offY - r.pbY * r.pbG + fy * cs), d = Math.sqrt(dx * dx + dy * dy);
+    var m = d < PB_NEAR ? Math.min(PB_MAX, PB_NEAR - d) * r.scale : 0;
+    if (m <= 0) return;   // (si deja de hacer falta, diveOffset lo recupera en PB_OUT s)
+    if (r.pbG <= 0 && m > 0) { r.pbX = -fx; r.pbY = -fy; }
+    r.pbM = m; r.pbTc = g.time + tc; r.pbSeen = g.time;
   }
   /** RITUAL DEL SACADOR CPU (PLY-16, datos de SIM-04 en g.ritual): la mano izquierda va con el balón. 'pre': de debajo del
    *  balón pasa por el lado de fuera hasta encima (empuja el primer bote); 'dribble': palma ENCIMA del balón mientras está
@@ -1509,8 +1589,8 @@
   }
   /** Límites de la corrección de cuerpo por modo: inclinación horizontal (aLean) y subida (aUp: puntillas/saltito). */
   function ancLimits(r, m) {
-    r.aLean = m === 'dive' ? 0.4 : m === 'set' ? 0.38 : m === 'plat' ? 0.3 : 0.25;
-    r.aUp = m === 'palm' ? 0.24 : m === 'tip' ? 0.2 : m === 'set' ? SET_UP : 0;
+    r.aLean = m === 'dive' ? 0.4 : m === 'set' ? 0.38 : m === 'plat' ? 0.3 : m === 'blk' ? BLK_LEAN : 0.25;
+    r.aUp = m === 'palm' ? 0.24 : m === 'tip' ? 0.2 : m === 'set' ? SET_UP : m === 'blk' ? BLK_UP : 0;
   }
   /** Colocación en salto (solo visual): si el balón de la colocación llega por encima del alcance de pie, el cuerpo
    *  despega en una parábola que culmina en el contacto previsto (se fija al despegar: sin temblores) y cae después. */
@@ -1556,6 +1636,7 @@
     else if (sh === 'tip') m = 'tip';
     else m = 'palm';
     r.hitMode = m; r.hwx = e.x; r.hwy = e.y; r.hwz = e.z;
+    var et = e.t != null ? e.t : g.time; if (r.pbM > 0 && r.pbTc > et) { r.pbTc = et; r.pbSeen = et; }
     var b = g.ball, vx, vy, vz;
     if (Math.abs((g.lastTouchT || 0) - e.t) < 1e-6) { vx = b.vx; vy = b.vy; vz = b.vz; }
     else if (e.target) { vx = e.target[0] - e.x; vy = e.target[1] - e.y; vz = 0.3 * Math.sqrt(vx * vx + vy * vy); }
@@ -1639,7 +1720,7 @@
     if ((job || tossing) && !recentHit) hw = predictHit(g, p, r);
     if (hw) toBodyV(r, hw, CL);
     // contacto previsto del ataque o saque de este equipo (para el paso de reacción, split-step, del rival)
-    if (hw && (tossing || (job && (hw.attack || hw.kind === 'spike' || (hw.kind === 'free' && hw.z - p.z > 1.75))))) {
+    if (hw && (tossing || (job && (hw.attack || hw.kind === 'spike' || (hw.kind === 'free' && hw.z - p.z > FREE_OH))))) {
       var tca = contactIn(g, p, hw); if (hw.attack && hw.jumpT === hw.jumpT) tca = Math.max(tca, hw.jumpT + 0.32);
       if (tca > -0.05 && tca < 1.5) { TEAM_TC[p.team] = tm + Math.max(0, tca); TEAM_TS[p.team] = tm; }
     }
@@ -1706,7 +1787,7 @@
       if (hw.attack && hw.jumpT === hw.jumpT) {
         if (r.apOn) { copyP(T2, P); approachPose(r, T2, apS); blendP(P, T2, r.apW); }
       } else if (ht > -0.05 && hw.d < 2.6) {
-        if (pk === 'pass' || (pk === 'free' && hz < 1.75)) {
+        if (pk === 'pass' || (pk === 'free' && hz < FREE_OH)) {
           var wA = 1 - sstep(0.18, 0.75, ht);
           if (wA > 0) {
             copyP(T2, P); passPose(r, T2, CL, 0);
@@ -1963,7 +2044,7 @@
         r.pdW = Math.max(r.pdW, 1 - pdt / DIVE_PRE); r.pdTp = pdt; r.pdX = PDB.x; r.pdY = PDB.y; r.pdZ = PDB.z; r.pdLive = true;
         r.diveYaw = Math.atan2(PDB.y - p.y, PDB.x - p.x);
         if (pdFresh) { r.dvar = ''; r.dvExtra = 0; }
-        if (pdFresh) diveSideOf(r, Math.sqrt((PDB.x - p.x) * (PDB.x - p.x) + (PDB.y - p.y) * (PDB.y - p.y)));   // E2: lateral, con el frente de antes
+        if (pdFresh) diveSideOf(g, r, Math.sqrt((PDB.x - p.x) * (PDB.x - p.x) + (PDB.y - p.y) * (PDB.y - p.y)));   // E2: lateral, con el frente de antes
       } else { r.pdLive = false; if (r.pdW > 0) r.pdW = Math.max(0, r.pdW - dt * 5); }
       if (r.pdW > 0) {
         var keepUp = r.diveUp, keepDz = r.diveDz, keepUT = r.upDiveT, keepU0 = r.upT0, keepTc = r.diveTc, keepDist = r.diveDist;
@@ -2314,7 +2395,8 @@
    *  tipo (saque, bloqueado, «no la toqué»). Nunca la misma dos veces seguidas (CEL_ALT). */
   function pickCeleb(g, r, e, scorer) {
     var p = r.p, won = e.team === p.team, seq = (e.score ? e.score[0] + e.score[1] : 0) + r.id, v;
-    var long = (e.rallyHits || 0) >= 10, pr = PERSONA[r.persona] || PERSONA.calma, h = hash32((seq * 13 + r.id * 7 + 1) >>> 0);
+    // R12 (S3-C1/C2): el azar sale de hash32(semilla del partido, set, marcador, jugador): la repetición (sombra con la misma semilla) elige igual
+    var long = (e.rallyHits || 0) >= 10, pr = PERSONA[r.persona] || PERSONA.calma, h = hash32(((g.seed | 0) ^ hash32(((g.setNo || 1) * 977 + seq * 13 + r.id * 7 + 1) >>> 0)) >>> 0);
     if (r.forceCel) return r.forceCel;
     if (won) {
       if (scorer === r) {
@@ -3242,23 +3324,20 @@
     } else if (mode === 3) {                 // plat: plataforma de antebrazos
       AX.addVectors(AS0, AS1).multiplyScalar(0.5);                 // centro de hombros
       AU.subVectors(AB, AX).normalize();
-      for (var it = 0; it < 3; it++) {
-        AN.copy(AD); AN.addScaledVector(AU, -AN.dot(AU)).normalize();
-        AW1.copy(AB).addScaledVector(AN, -(BR + 0.038)).addScaledVector(AU, 0.12);
-        AU.subVectors(AW1, AX).normalize();
-      }
-      AN.copy(AD); AN.addScaledVector(AU, -AN.dot(AU)).normalize();
-      AW1.copy(AB).addScaledVector(AN, -(BR + 0.038)).addScaledVector(AU, 0.12);
+      // S3-C1: la normal se proyecta ⟂ hombros → balón (sin iterar sobre las muñecas: la iteración saltaba entre dos soluciones)
+      platN();
+      AW1.copy(AB).addScaledVector(AN, -(BR + PLAT_OFF)).addScaledVector(AU, PLAT_FWD);
+      AU.subVectors(AW1, AX).normalize();
       AW0.crossVectors(AU, AN); if (AW0.x < 0) AW0.multiplyScalar(-1); AW0.normalize();
       AX.subVectors(AW1, AX); d = AX.length(); AX.multiplyScalar(1 / (d || 1));
-      e = d > 0.53 * AWK ? d - 0.53 * AWK : d < 0.42 * AWK ? d - 0.42 * AWK : 0;
+      e = d > PLAT_B1 * AWK ? d - PLAT_B1 * AWK : d < PLAT_B0 * AWK ? d - PLAT_B0 * AWK : 0;
       var cx = AW1.x, cy = AW1.y, cz = AW1.z;
       AW1.set(cx - AW0.x * 0.04, cy - AW0.y * 0.04, cz - AW0.z * 0.04);
       AW0.set(cx + AW0.x * 0.04, cy + AW0.y * 0.04, cz + AW0.z * 0.04);
     } else if (mode === 4) {                 // set: ventana de los dedos
       // las muñecas quedan del lado de los hombros (debajo-detrás del balón), separadas 0,16 m
       AU.addVectors(AS0, AS1).multiplyScalar(0.5).sub(AB); AU.y = Math.min(AU.y, -0.25); AU.normalize();
-      var wd = BR * 0.62 + HAND_OVER, wl = BR * 0.5 + 0.03;   // muñecas debajo-detrás, manoplas abrazando la parte de atrás del balón
+      var wd = BR * 0.62 + HAND_OVER + SET_WD, wl = BR * 0.5 + 0.03;   // S3-C1: +SET_WD (los dedos ya no se meten en el balón)   // muñecas debajo-detrás, manoplas abrazando la parte de atrás del balón
       AW0.set(AB.x + AU.x * wd + wl, AB.y + AU.y * wd, AB.z + AU.z * wd);
       AW1.set(AB.x + AU.x * wd - wl, AB.y + AU.y * wd, AB.z + AU.z * wd);
       var e0 = AW0.distanceTo(AS0), e1 = AW1.distanceTo(AS1);
@@ -3281,6 +3360,22 @@
       AU.subVectors(AW0, AS0); AU.addScaledVector(AD, -AU.dot(AD)); var aul = AU.length();
       if (aul > 1e-4) AW0.addScaledVector(AU, -0.04 / aul);
       AX.subVectors(AW0, AS0); d = AX.length(); e = d - ARM_WE * 0.97; AX.multiplyScalar(1 / (d || 1));
+    } else if (mode === 9) {                 // blk (S3-C1): palmas al balón del bloqueo; AD = hacia el atacante (−llegada)
+      var one = r.bkOne, ee = -9;
+      AN.set(1, 0, 0); AN.addScaledVector(AD, -AN.dot(AD)); if (AN.lengthSq() < 1e-6) AN.set(1, 0, 0); AN.normalize();   // lateral (izquierda +)
+      for (var kb = 0; kb < 2; kb++) {
+        if (one === 1 || one === 3 ? kb === 1 : one === 2 || one === 4 ? kb === 0 : false) continue;
+        var ASk = kb ? AS1 : AS0, AWk = kb ? AW1 : AW0;
+        if (one >= 3) {                      // toque, block-out, amortiguado: la palma en la superficie, del lado de su hombro
+          AU.subVectors(ASk, AB); AU.addScaledVector(AD, -AU.dot(AD));
+          if (AU.lengthSq() < 1e-6) AU.copy(AN).multiplyScalar(kb ? -1 : 1);
+          AU.normalize(); AWk.copy(AB).addScaledVector(AU, BR + BLK_GAP);
+        } else AWk.copy(AB).addScaledVector(AD, -(BR + BLK_GAP)).addScaledVector(AN, one === 0 ? (kb ? -BLK_SEP : BLK_SEP) : 0);   // detrás del balón
+        AU.subVectors(AWk, ASk).normalize(); AWk.addScaledVector(AU, -HAND_OVER);
+        AP.subVectors(AWk, ASk); d = AP.length() - ARM_WE * 0.985;
+        if (d > ee) { ee = d; AX.copy(AP).normalize(); }
+      }
+      e = ee > -9 ? ee : 0;
     } else if (mode === 7) {                 // pt: muñecas a puntos dados (AB derecha, AD izquierda)
       AW1.copy(AB); AW0.copy(AD);
       var f0 = r.aw0 > 0 ? AW0.distanceTo(AS0) : 0, f1 = r.aw1 > 0 ? AW1.distanceTo(AS1) : 0;
@@ -3289,7 +3384,24 @@
     }
     return e;
   }
-  var ANC_MODE = { palm: 1, tip: 2, plat: 3, set: 4, dive: 5, hold: 6, pt: 7, drib: 8 };
+  /** Normal de la plataforma (AN) ⟂ a los brazos (AU) desde la deseada (AD). S3-C1: con el balón bajo y pegado al cuerpo los brazos
+   *  caen casi verticales y AD (hacia arriba) queda casi paralela a ellos: la proyección se hacía diminuta y su signo saltaba de un
+   *  frame a otro (plataforma por delante y por detrás del balón: el balón atravesaba los antebrazos). Por debajo de PLAT_DEG se mezcla
+   *  el frente horizontal hombros → balón, siempre con algo hacia delante (AX = centro de hombros): la plataforma mira hacia fuera. */
+  var PLAT_DEG = 0.5;
+  function platN() {
+    AN.copy(AD); AN.addScaledVector(AU, -AN.dot(AU));
+    var l = AN.length();
+    if (l < PLAT_DEG) {
+      AP.set(AB.x - AX.x, 0, Math.max(0, AB.z - AX.z) + 0.3);   // hacia delante siempre (sin saltos de signo con el balón bajo el hombro)
+      AP.addScaledVector(AU, -AP.dot(AU)); var la = AP.length();
+      if (la > 1e-6) AN.addScaledVector(AP, (PLAT_DEG - l) / la);
+    }
+    AN.normalize();
+  }
+  var ANC_MODE = { palm: 1, tip: 2, plat: 3, set: 4, dive: 5, hold: 6, pt: 7, drib: 8, blk: 9 };
+  var PLAT_OFF = 0.145, PLAT_FWD = 0.12, PLAT_B0 = 0.42, PLAT_B1 = 0.53;   // plataforma: holgura bajo el balón, muñecas más allá, banda de distancia
+  var SET_WD = 0.065, BLK_GAP = 0.01, BLK_SEP = 0.09;   // S3-C1 §1.1: dedos de la colocación, palma del bloqueo (holgura y media separación)
 
   function applyPose(r) {
     var c = r.cur, s = c.s, v = c.v, k;
@@ -3317,7 +3429,11 @@
           if (r.p.z < 0.01) { var tp = Math.asin(Math.min(up, 0.12) / 0.17); s[FPL] += tp; s[FPR] += tp; }
         }
         s[DROP] = Math.min(nd, 0.78 * LEG_K) / LEG_K;
-        torso(r, s); e = ancSolve(r, s, mode);
+        torso(r, s);
+        // S3-C1: el saltito (HOP) también mueve el hueso body, y AB/AD van en su marco: sin recalcularlos, las puntillas subían el
+        // balón con el cuerpo y el brazo no ganaba nada (bloqueo, balón libre por arriba, colocación alta)
+        if (s[HOP] !== SVS[HOP] + (r.vh > 0 ? r.vh : 0)) { toBodyBone(r, s, r.aX, r.aY, r.aZ, AB); if (mode === 7) toBodyBone(r, s, r.aDx, r.aDy, r.aDz, AD); }
+        e = ancSolve(r, s, mode);
       }
       r.aE = e;
       // orientación de la mano en el contacto
@@ -3711,6 +3827,7 @@
     r.hitKind = ''; r.hitShot = ''; r.hitGrade = ''; r.jumpKind = ''; r.hasFace = false; r.yawRate = 0; r.yawV = 0; r.vf = r.vl = 0;
     r.diveUp = 1; r.diveDz = 0; r.ozGiven = 0; r.upBoost = 0; r.offX = r.offY = r.ox0 = r.oy0 = 0; r.lpx = r.p.x; r.lpy = r.p.y;
     r.fk[0].lock = r.fk[1].lock = false; r.locoOwn = 0; r.aw0 = r.aw1 = 0; r.hitMode = ''; r.pdW = 0; r.pdLive = false; r.diveTc = 0;
+    r.bkT = -99; r.bkOne = 0; r.pbM = 0; r.pbG = 0; r.pbTc = -99; r.pbSeen = -99;
     // E2
     r.cvar = r.dvar = r.lvar = r.idle = r.evG = r.blkRes = r.celV = ''; r.dvSide = 0; r.dvExtra = 0; r.lvD = 0; r.lvGiven = 0; r.leaveW = 0; r.leaveT = -99;
     r.evT = r.blkResT = r.cvarT = r.digT = r.atkT = -99; r.idleNext = 0; r.acF = 0; r.lagOn = false; r.jvM = 0; r.hitFeint = false; r.hitTempo = ''; r.forceCel = ''; r.forceIdle = '';
@@ -3864,6 +3981,15 @@
         return;
       }
     }
+    // S3-C1: paso atrás de la plataforma (platStep): entra en los últimos PB_IN s antes del contacto y se recupera en PB_OUT s
+    if (r.pbM > 0 || r.pbG > 0) {
+      var tmb = g.time;
+      if (tmb < r.pbTc && tmb - r.pbSeen > 0.02) { r.pbTc = tmb; r.pbM = r.pbG; }   // ya no hay contacto previsto: se recupera desde aquí
+      var ub = tmb - r.pbTc, wb = ub < 0 ? r.pbM * sstep(-PB_IN, 0, ub) : r.pbM * (1 - sstep(0, PB_OUT, ub));
+      if (ub >= PB_OUT) { wb = 0; r.pbM = 0; }
+      var db = wb - r.pbG; r.pbG = wb; r.offX += r.pbX * db; r.offY += r.pbY * db;
+      if (r.pbG > 0) return;
+    }
     // E2: caída desequilibrada (lvar 'stumble'): pasitos hacia la deriva (desfase ≤ 0,6 m que luego se recupera como el de la plancha)
     if (r.lvD > 0) {
       var tsl = g.time - r.landT;
@@ -3970,10 +4096,10 @@
     if (r.beach && big && !g.drill) dustFx(r, 0.05, 6 + (hash32((r.id * 31 + ((tm * 10) | 0)) >>> 0) % 5));
   }
   /** E2: ¿plancha lateral? (balón a más de ~55º y menos de 115º del frente, y cerca). */
-  function diveSideOf(r, bd) {
+  function diveSideOf(g, r, bd) {
     // frente de referencia: hacia donde miraba cuando el rival golpeó (de cara al atacante: en la barrida lateral el pecho sigue
     // mirándolo y el cuerpo se estira de lado; si no hubo golpe rival reciente, el frente actual)
-    var base = ctx && ctx.game && ctx.game.time - r.yawAtkT < 1.6 ? r.yawAtk : r.yaw;
+    var base = g && g.time - r.yawAtkT < 1.6 ? r.yawAtk : r.yaw;   // S3-C1: el g del frame (en la repetición, la sombra), no ctx.game
     r.dvYaw0 = base;
     var a = wrapA(r.diveYaw - base), aa = Math.abs(a);
     r.dvSide = aa > 0.95 && aa < 2.0 && bd < 3.1 ? (a > 0 ? 1 : -1) : 0;   // (bd: balón previsto, la plancha cubre REACH + DIVE)
@@ -4018,11 +4144,11 @@
         r.diveUp = 0; r.ozGiven = 0; r.upBoost = 0; r.pdW = 0; r.pdLive = false;
         r.diveYaw = e.dir ? Math.atan2(e.dir[1], e.dir[0]) : r.yaw;
         // E2: variante de la plancha: lateral (balón a > 60º del frente y cerca), mano plana al suelo (balón bajo) o fallida
-        if (!(Lc > 0)) diveSideOf(r, Math.sqrt((e.x - r.p.x) * (e.x - r.p.x) + (e.y - r.p.y) * (e.y - r.p.y)));
+        if (!(Lc > 0)) diveSideOf(g, r, Math.sqrt((e.x - r.p.x) * (e.x - r.p.x) + (e.y - r.p.y) * (e.y - r.p.y)));
         r.dvar = e.miss ? 'miss' : r.dvSide ? 'side' : (e.z < 0.25 ? 'pancake' : 'front');
         r.dvExtra = e.miss ? 0.25 : 0; r.diveEnd += r.dvExtra;
         break;
-      case 'block': if (r) { r.blockT = tm; r.blockHard = !!e.pressed; lastBlocker = r; r.blkRes = e.result || ''; r.blkResT = tm; } break;
+      case 'block': if (r) { r.blockT = tm; r.blockHard = !!e.pressed; lastBlocker = r; r.blkRes = e.result || ''; r.blkResT = tm; blkEvent(g, r, e, tm); } break;
       case 'netTouch': if (r) { r.evG = 'netTouch'; r.evT = tm; } break;   // E2: las manos fuera de la red
       case 'net':
         // E2: su balón a la red (no el roce de la cinta): manos a la cabeza
@@ -4065,7 +4191,7 @@
           // las manos (≈1,55 m por delante de los pies, tumbado) acaban junto al balón
           best.diveDist = clamp(bd - 1.5, 0, 1.2) / best.scale; best.diveUp = 0; best.ozGiven = 0; best.upBoost = 0;
           // E2: plancha sin balón = fallida (lateral si el balón cae de lado)
-          best.dvYaw0 = best.yaw; diveSideOf(best, bd); best.dvar = 'miss'; best.dvExtra = 0.25; best.diveEnd += 0.25;
+          best.dvYaw0 = best.yaw; diveSideOf(g, best, bd); best.dvar = 'miss'; best.dvExtra = 0.25; best.diveEnd += 0.25;
         }
         break;
       case 'point':
@@ -4077,6 +4203,7 @@
           rr.fault = !!(e.player && e.player === pp && !rr.pointWin);   // MUÑECO: el que cometió la falta pone cara de sorpresa primero
           rr.celeb = (sum + pp.idx * 2 + (e.setWon ? 1 : 0)) % 3;
           var scR = e.how === 'ace' && g.server && g.server.team === won ? byId[g.server.id] : e.how === 'block' && lastBlocker && lastBlocker.team === won ? lastBlocker : (g.lastTeam === won && g.lastPlayer) ? byId[g.lastPlayer.id] : null;
+          if (!g.replay) { rr.lastCel0 = rr.lastCel; rr.lastPrev0 = rr.lastPrev; }
           rr.celV = e.matchWon ? '' : pickCeleb(g, rr, e, scR); rr.lastCel = rr.celV; rr.celId = rr.celV;
           rr.faceKeep = rr.yaw; rr.hasFace = true;
           var mate = VB.Sim.other(g, pp);
@@ -4109,6 +4236,58 @@
     if (e.team !== 0 && e.team !== 1) e.team = g.sets && g.sets[1] > g.sets[0] ? 1 : 0;
     onEvent(g, e);
     if (ctx.frozen) for (var t = 0; t < 2; t++) if (CVP[t]) CVP[t].on = false;
+  }
+
+  // ---------- S3-C1: repetición (bindReplay) ----------
+  var LIVE_PT = { e: null, g: null };   // último 'point' de una partida en vivo (lastLivePoint)
+  var REP = { g: null, cvp: [null, null], own: [null, null], dig: [null, null], atk: [null, null], blocker: null };
+  function bindReplay(g) {
+    var i, t, r;
+    if (g) {
+      if (!REP.g) {
+        for (t = 0; t < 2; t++) { REP.cvp[t] = CVP[t]; REP.dig[t] = DIG_LAST[t]; REP.atk[t] = ATK_LAST[t]; }
+        REP.blocker = lastBlocker;
+        for (i = 0; i < rigs.length; i++) { r = rigs[i]; r.pLive = r.p; r.lcLive = r.lastCel; r.lpLive = r.lastPrev; }
+      }
+      for (t = 0; t < 2; t++) {
+        if (!REP.own[t]) REP.own[t] = cvNew();
+        REP.own[t].on = false; REP.own[t].clap = false; CVP[t] = REP.own[t];
+        DIG_LAST[t] = ATK_LAST[t] = null;
+      }
+      lastBlocker = null; FXQ.length = 0; TAB.g = null;
+      for (i = 0; i < rigs.length; i++) {
+        r = rigs[i];
+        var q = null, pl = g.players, id = r.pLive ? r.pLive.id : r.id;
+        for (var j = 0; j < pl.length; j++) if (pl[j].id === id) { q = pl[j]; break; }
+        if (q) r.p = q;
+        resetRig(r); r.lastCel = r.lastCel0; r.lastPrev = r.lastPrev0;
+      }
+      REP.g = g;
+      return true;
+    }
+    if (!REP.g) return false;
+    REP.g = null;
+    for (t = 0; t < 2; t++) { CVP[t] = REP.cvp[t]; DIG_LAST[t] = REP.dig[t]; ATK_LAST[t] = REP.atk[t]; REP.cvp[t] = REP.dig[t] = REP.atk[t] = null; }
+    lastBlocker = REP.blocker; REP.blocker = null; FXQ.length = 0; TAB.g = null;
+    var lg = ctx && ctx.game, again = !!(lg && LIVE_PT.e && LIVE_PT.g === lg && lg.mode === 'point' && !lg.drill);
+    for (i = 0; i < rigs.length; i++) {
+      r = rigs[i];
+      if (r.pLive) r.p = r.pLive;
+      r.pLive = null; resetRig(r);
+      if (again) { r.lastCel = r.lastCel0; r.lastPrev = r.lastPrev0; } else { r.lastCel = r.lcLive; r.lastPrev = r.lpLive; }
+    }
+    if (again && rigs.length && rigs[0].p === lg.players[0]) { try { onEvent(lg, LIVE_PT.e); } catch (e) { } }
+    return true;
+  }
+  /** B2: aspecto base sin Vestuario (VB.Players.baseLook). */
+  function baseLook(o) {
+    var team = o.team ? 1 : 0, idx = o.idx | 0, num = o.num | 0, role = o.role || '', beach = !!o.beach, L;
+    if (!role && team === 0 && idx < 2) { L = MY_LOOKS[idx]; return Object.freeze({ skin: L.skin, hair: L.hair, style: L.style, acc: beach ? L.accB : L.acc }); }
+    var h = hash32((num * 131 + team * 17 + (role ? 1009 : 0) + (team === 1 && !role ? RIVAL_SIG : 0)) >>> 0);
+    L = { skin: SKINS[h % SKINS.length], hair: HAIRS[(h >>> 4) % HAIRS.length], style: STYLES[(h >>> 8) % STYLES.length],
+      acc: beach ? ACC_BEACH[(h >>> 12) % ACC_BEACH.length] : ACC_HALL[(h >>> 12) % ACC_HALL.length] };
+    if (NPC_EXTRAS && !(team === 0 && role)) npcExtras(L, h, beach);
+    return Object.freeze(L);
   }
 
   VB.Players = {
@@ -4267,13 +4446,25 @@
     /** Depuración (pruebas): reloj del cuadro vivo de la escena congelada del punto (s desde la escena; -1 sin cuadro). */
     _tab: function () { return TAB.g ? { t: +TAB.t.toFixed(3), max: +TAB.max.toFixed(3) } : -1; },
     rigOf: function (p) { return p && byId[p.id] && byId[p.id].p === p ? byId[p.id] : null; },
+    /** S3-C1 (repetición): con g (sombra de VB.Replay), cada rig pasa a animar al jugador de g con su mismo id (r.pLive guarda el de
+     *  la partida en vivo) y se reinicia (resetRig), sin rigFor ni onGameStart: el aspecto (Vestuario, rival, firma, personalidad) es
+     *  el del rig. Guarda y vacía la convergencia (CVP), la cola de FX y DIG_LAST/ATK_LAST/lastBlocker, y deja como «variante
+     *  anterior» la de antes del último punto en vivo (la celebración repetida sale igual). Llamarla otra vez con otra sombra (R↔PR)
+     *  solo cambia de jugadores. Con null: vuelve a la partida en vivo, restaura lo guardado y, si esa partida está en 'point',
+     *  re-emite su último punto (lastLivePoint) para rehacer la celebración; en 'over', overPose. → true si cambió algo. */
+    bindReplay: function (g) { return bindReplay(g); },
+    /** B2 (retrato sin Vestuario): el aspecto congelado que daría lookOf sin el look guardado, SIN altura h. o = {team, idx, num, role,
+     *  beach}: MY_LOOKS para tus dos del 2v2 (equipo 0, sin puesto, idx < 2); si no, hash de dorsal, equipo y puesto (con la firma del
+     *  club rival en el equipo 1, como en el partido). Tu atleta de pista (equipo 0 con puesto) sin extras de NPC; el resto con ellos.
+     *  Pura: solo lee tablas. */
+    baseLook: function (o) { return baseLook(o || {}); },
     /** Pruebas (PLY-18): fuerza una expresión ('shout'|'effort'|'joy'|'sad'|'neutral'; '' = automática) durante `sec` s
      *  de tiempo real (sec < 0: hasta que se quite). */
     _face: function (p, expr, sec) { var r = this.rigOf(p); if (!r) return false; r.fxForce = expr || ''; r.fxForceT = sec == null || sec < 0 ? -1 : ctx.time + sec; return true; },
     /** Frente (rad, coords de sim, como rig.yaw) hacia el que va a mirar el jugador: en el punto, el OBJETIVO del giro de la
      *  celebración (compañero, cámara del héroe…); si no, el frente actual. Lo usa camera.js (planHero) con guarda. */
     faceOf: function (p) {
-      var r = this.rigOf(p), g = ctx && ctx.game; if (!r) return NaN;
+      var r = this.rigOf(p), g = REP.g || (ctx && ctx.game); if (!r) return NaN;
       if (g && (g.mode === 'point' || g.mode === 'over')) { try { var f = desiredYaw(g, r); if (f === f) return f; } catch (e) { } }
       return r.yaw;
     },
@@ -4325,7 +4516,10 @@
       if (SHOWROOM) { marker.visible = markerCone.visible = false; return; }
       // los rigs recién creados se orientan antes de leer eventos (puntos de contacto en su espacio)
       for (i = 0; i < rigs.length; i++) if (!rigs[i].inited) rigs[i].yaw = desiredYaw(g, rigs[i]);
-      for (i = 0; i < events.length; i++) { try { onEvent(g, events[i]); } catch (e) { if (!window.__plErr) { window.__plErr = 1; console.error("[VB][ERROR] Players.onEvent: " + e); } } }
+      for (i = 0; i < events.length; i++) {
+        if (events[i].type === 'point' && !g.replay && !events[i].replay) { LIVE_PT.e = events[i]; LIVE_PT.g = g; }   // lastLivePoint (bindReplay)
+        try { onEvent(g, events[i]); } catch (e) { if (!window.__plErr) { window.__plErr = 1; console.error("[VB][ERROR] Players.onEvent: " + e); } }
+      }
       if (g.mode === 'over' && g.finished && g.lastPoint && rigs.length && !rigs[0].matchEnd) overPose(g);
       if (g.mode === 'point' || g.mode === 'over') for (i = 0; i < 2; i++) if (CVP[i] && CVP[i].on && CVP[i].ts < 0) cvStart(g, CVP[i], i);
       var frozen = ctx.frozen, paused = dt <= 0 && !frozen;
@@ -4367,8 +4561,10 @@
       screenLod(g);
       for (i = 0; i < rigs.length; i++) { var ik = rigs[i].ink; if (ik && ik.geometry !== rigs[i].skin.geometry) ik.geometry = rigs[i].skin.geometry; }
       cvEmit(g, dt);
-      // marcador del jugador controlado
-      var show = !g.demo && !g.watch && ctx.state !== 'menu' && g.ctrl; // (6v6 espectador, g.watch: sin halo ni flecha)
+      // balón de este frame (el punto del bloqueo del frame siguiente: blkEvent)
+      var bb = g.ball; BPV.g = g; BPV.t = g.time; BPV.x = bb.x; BPV.y = bb.y; BPV.z = bb.z; BPV.vx = bb.vx; BPV.vy = bb.vy; BPV.vz = bb.vz;
+      // marcador del jugador controlado (nunca en la repetición: g.replay)
+      var show = !g.demo && !g.watch && !g.replay && ctx.state !== 'menu' && g.ctrl; // (6v6 espectador, g.watch: sin halo ni flecha)
       marker.visible = markerCone.visible = !!show;
       if (show) {
         var c = g.ctrl, reach = VB.Sim.canReach(g, c), rc0 = byId[c.id];

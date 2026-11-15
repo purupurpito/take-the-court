@@ -1848,8 +1848,10 @@
     if (CAT && CAT.length) CAT.forEach(function (it) {
       (it.slots || [it.slot]).forEach(function (sl) {
         if (sl === 'hairTint' || sl === 'color') return;
-        if (!ITEMS[sl] || !ITEMS[sl][it.id]) fail('sin dibujo en doll.js: ' + sl + '=' + it.id);
-        else if (sl !== 'style' && (it.venue || 'A') !== ITEMS[sl][it.id]) fail('sede distinta en doll.js: ' + it.id + ' (' + it.venue + ' / ' + ITEMS[sl][it.id] + ')');
+        // «as» (variantes como los objetos de jefe): sin dibujo propio, VB.Look.resolve pasa la pieza base (drawId de look.js)
+        var did = ITEMS[sl] && !ITEMS[sl][it.id] && it.as ? it.as : it.id;
+        if (!ITEMS[sl] || !ITEMS[sl][did]) fail('sin dibujo en doll.js: ' + sl + '=' + it.id + (did !== it.id ? ' (como ' + did + ')' : ''));
+        else if (sl !== 'style' && did === it.id && (it.venue || 'A') !== ITEMS[sl][did]) fail('sede distinta en doll.js: ' + it.id + ' (' + it.venue + ' / ' + ITEMS[sl][did] + ')');
       });
     });
     // 2) cada objeto × sede × LOD se construye (y se pinta) sin errores; deltas sobre el muñeco base y geoSig fiel a la malla
@@ -1971,6 +1973,196 @@
     return res;
   }
 
+  // =====================================================================
+  //  RETRATO DEL MUÑECO (VB.Doll.portrait; spec S2-B2B3 §2.1 y §3.1, sprint 2)
+  // =====================================================================
+  // Busto de tres cuartos con el aspecto del Vestuario, pintado con el MISMO renderer en la esquina inferior izquierda del lienzo
+  // (tijera) y copiado con drawImage a un canvas 2D. main.js lo llama en el paso 4b, ANTES del render del frame, que tapa el recuadro
+  // (sin destello y sin leer píxeles de la GPU). Escena propia PT.scene: las luces copian TIPO, NÚMERO y castShadow de las visibles
+  // de ctx.scene (así comparten programa con el juego), con posiciones fijas; niebla del mismo tipo, lejísimos. El muñeco no da ni
+  // recibe sombra (si no, programa de profundidad nuevo y el mapa de sombras vacío ensucia la luz). Temporales de módulo: draw no
+  // asigna nada salvo cuando cambia la firma de luces o el muñeco.
+  var PT = null, PT_V2 = null, PT_V4 = null, PT_SC = null, PT_FOV = 28, PT_LS = [];
+  var PT_ST = { n: 0, ms: 0, last: '', progs: 0 };
+  // posiciones fijas de las luces direccionales (cámara en +X; a la izquierda de quien mira = +Z): principal arriba, izquierda y
+  // por delante; relleno a la derecha y bajo; borde por detrás
+  var PT_DIR = [[3, 4.2, 2.4], [2.2, 1.2, -3], [-3, 2.6, -1.6], [-2, 3, 2.5]];
+  var PT_DEF = { skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: '' };   // = MY_LOOKS[0] de players (por si falta players.js)
+  function ptLightPush(o) { if (o.isLight && !o.isRectAreaLight && !o.isLightProbe) PT_LS.push(o); }
+  /** Firma de las luces visibles de la escena del juego (tipo + sombra, en orden); deja la lista en PT_LS. */
+  function ptLightSig(sc) {
+    var s = '';
+    PT_LS.length = 0;
+    sc.traverseVisible(ptLightPush);
+    for (var i = 0; i < PT_LS.length; i++) s += PT_LS[i].type.charAt(0) + (PT_LS[i].castShadow ? '*' : '') + ',';
+    return s;
+  }
+  function ptDropLights() {
+    for (var i = 0; i < PT.lights.length; i++) { var o = PT.lights[i]; PT.scene.remove(o); if (o.shadow && o.shadow.map) o.shadow.dispose(); }
+    PT.lights.length = 0;
+  }
+  /** Rehace las luces de PT.scene con la firma de ctx.scene (src = PT_LS, recién llenada por ptLightSig). */
+  function ptLights(src) {
+    var i, o, n, d = 0;
+    ptDropLights();
+    for (i = 0; i < src.length; i++) {
+      o = src[i]; n = null;
+      if (o.isHemisphereLight) { n = new THREE.HemisphereLight(0xffffff, 0x000000, 1); n.position.copy(o.position); if (n.position.lengthSq() < 1e-6) n.position.set(0, 1, 0); n.position.normalize(); }
+      else if (o.isDirectionalLight) { n = new THREE.DirectionalLight(0xffffff, 1); var p = PT_DIR[d++ % PT_DIR.length]; n.position.set(p[0], p[1], p[2]); }
+      else if (o.isAmbientLight) n = new THREE.AmbientLight(0xffffff, 1);
+      else if (o.isSpotLight) { n = new THREE.SpotLight(0xffffff, 0); n.position.set(0, 6, 0); }
+      else if (o.isPointLight) { n = new THREE.PointLight(0xffffff, 0); n.position.set(0, 6, 0); }
+      if (!n) continue;
+      if (o.castShadow && n.shadow) { n.castShadow = true; n.shadow.mapSize.set(64, 64); }
+      n.userData.ptSrc = o; PT.lights.push(n); PT.scene.add(n);
+    }
+  }
+  /** Color e intensidad de cada luz copiada (la playa cambia de luz en vivo sin recompilar: aquí igual). Focos y puntos van a 0. */
+  function ptLightTone() {
+    for (var i = 0; i < PT.lights.length; i++) {
+      var n = PT.lights[i], o = n.userData.ptSrc; if (!o) continue;
+      n.color.copy(o.color);
+      if (!n.isSpotLight && !n.isPointLight) n.intensity = o.intensity;
+      if (n.groundColor && o.groundColor) n.groundColor.copy(o.groundColor);
+    }
+  }
+  function ptFog(c) {
+    var f = c.scene && c.scene.fog, want = !f ? '' : f.isFogExp2 ? 'e' : 'l';
+    if (want === PT.fogT) return;
+    PT.fogT = want;
+    PT.scene.fog = !want ? null : want === 'e' ? new THREE.FogExp2(0x000000, 1e-7) : new THREE.Fog(0x000000, 900, 1000);
+  }
+  function ptKit(req) {
+    if (req && req.tc && req.tc.base != null) return req.tc;
+    try { if (VB.Players && VB.Players.kit) { var k = VB.Players.kit(0); if (k && k.base != null) return k; } } catch (e) { }
+    return TEAMS[0];
+  }
+  /** Aspecto del retrato: req.L (VB.Look.resolve o una L vieja); si no, req.fit (un fit del Vestuario, se resuelve aquí con la sede y
+   *  el kit); si no, VB.Players.baseLook (el de hoy sin Vestuario; T2) con guarda; si tampoco, el n.º 1 de siempre. Congelado. */
+  function ptLook(req, tc) {
+    var L = req && req.L, bch = !!(req && req.beach);
+    if (!L && req && req.fit && VB.Look && VB.Look.resolve) { try { L = VB.Look.resolve(req.fit, bch ? 'beach' : 'hall', tc); } catch (e) { L = null; } }
+    if (!L && VB.Players && typeof VB.Players.baseLook === 'function') {
+      try { L = VB.Players.baseLook({ team: 0, idx: req && req.idx != null ? req.idx | 0 : 0, num: req && req.num, role: req && req.role, beach: bch }); } catch (e) { L = null; }
+    }
+    if (!L) L = bch ? PT_DEF_B : PT_DEF;
+    return Object.isFrozen(L) ? L : Object.freeze(Object.assign({}, L));
+  }
+  var PT_DEF_B = { skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: 'gorra' };
+  function ptNum(req) { var n = req && req.num; return n != null && n !== '' ? n : 1; }
+  function ptSize(req) { var s = +(req && req.size); return s > 8 ? Math.min(1024, Math.round(s)) : 256; }
+  function ptBg(req) { var b = req && req.bg; return typeof b === 'number' && b >= 0 ? b & 0xffffff : 0x2a1f4a; }
+  function ptYaw(req) { var y = req && req.yaw; return typeof y === 'number' && isFinite(y) ? y : 0.35; }
+  function ptPose(req) { var p = req && req.pose; return p && POSES[p] ? p : 'stand'; }
+  function ptFace(req) { var f = req && req.face; return f && EXPR[f] ? f : 'neutra'; }
+  function ptInit(c) {
+    if (!THREE) THREE = (c && c.THREE) || window.THREE;
+    if (!THREE) return false;
+    if (!PT_V2) { PT_V2 = new THREE.Vector2(); PT_V4 = new THREE.Vector4(); PT_SC = new THREE.Vector4(); }
+    if (!PT) {
+      PT = { scene: new THREE.Scene(), cam: new THREE.PerspectiveCamera(PT_FOV, 1, 0.1, 20), lights: [], sig: null, fogT: null, r: null, gs: '', as: '', bch: null, ty: 0, d: 0 };
+      PT.scene.name = 'portrait'; PT.scene.background = new THREE.Color(0x2a1f4a);
+    }
+    ptFrame();
+    return true;
+  }
+  /** Cámara del busto (medidas del muñeco activo): mira a la altura de los hombros + algo de cabeza, a la distancia en que caben la
+   *  cabeza con gorro y los hombros. */
+  var PT_TY = 0.8, PT_D = 2.0, PT_UP = 0.05;
+  function ptFrame() {
+    var top = SH_H + HEAD_C + HEAD_RY, ty = SH_H + HEAD_C * PT_TY, d = PT_D * top / 1.64;
+    if (ty === PT.ty && d === PT.d) return;
+    PT.cam.position.set(d, ty + PT_UP, 0); PT.cam.lookAt(0, ty, 0); PT.cam.updateMatrixWorld(true);
+    PT.ty = ty; PT.d = d;
+  }
+  /** Prepara la escena para req (luces, niebla, fondo, muñeco, pose y cara). Devuelve el rig. */
+  function ptSetup(c, req) {
+    var sig = c && c.scene ? ptLightSig(c.scene) : '';
+    if (sig !== PT.sig) { PT.sig = sig; ptLights(PT_LS); }
+    ptLightTone(); if (c && c.scene) ptFog(c);
+    PT.scene.background.setHex(ptBg(req));
+    var tc = ptKit(req), L = ptLook(req, tc), num = ptNum(req), bch = !!req.beach, gs = geoSig(L, tc, bch), as = atlasSig(L, tc, num, bch), r = PT.r;
+    if (!r || gs !== PT.gs || bch !== PT.bch) {
+      if (r) freeRig(r);
+      r = PT.r = buildRig(L, 97, { tc: tc, num: num, beach: bch, px: 1, lod: 2 });
+      r.root.name = 'dollPortrait';
+      r.skin.castShadow = false; r.skin.receiveShadow = false;
+      if (r.ink) { r.ink.castShadow = false; r.ink.receiveShadow = false; }
+      PT.scene.add(r.root); PT.gs = gs; PT.as = as; PT.bch = bch;
+    } else if (as !== PT.as) {   // solo el atlas: se repinta el mismo lienzo (como preview.set)
+      var m = r.skin.material, cv = m.map && m.map.image;
+      r.look = L; r.tc = tc; r.num = num;
+      m.userData.paint = { tc: tc, L: L, num: num, beach: bch };
+      if (cv) { paintAtlas(cv, tc, L, num, bch); m.map.needsUpdate = true; }
+      PT.as = as;
+    }
+    r.pose = ptPose(req); r.blinkOn = 0; r.tFix = 0;
+    animate(r, 0); setFace(r, ptFace(req));
+    r.root.rotation.y = PI / 2 + ptYaw(req);
+    r.root.updateMatrixWorld(true);
+    return r;
+  }
+  var portrait = {
+    /** Clave de caché: 'geoSig|atlasSig|pose|face|yaw|bg|size' (cambia sola si cambian el look, la equipación o el dorsal). */
+    key: function (req) {
+      req = req || {};
+      if (!THREE) THREE = window.THREE;
+      var tc = ptKit(req), L = ptLook(req, tc), bch = !!req.beach;
+      return geoSig(L, tc, bch) + '|' + atlasSig(L, tc, ptNum(req), bch) + '|' + ptPose(req) + '|' + ptFace(req) + '|' + ptYaw(req).toFixed(3) + '|' + ptBg(req).toString(16) + '|' + ptSize(req);
+    },
+    /** Pinta el retrato en out2d (canvas 2D; se escala a su tamaño). c = VB.ctx. Devuelve los ms, o -1 si no puede (sin renderer, sin
+     *  lienzo, error). Guarda y restaura viewport, tijera y render target; no toca autoClear. */
+    draw: function (c, req, out2d) {
+      c = c || VB.ctx; req = req || {};
+      var R = c && c.renderer;
+      if (!R || !out2d || !out2d.getContext || !ptInit(c)) return -1;
+      var t0 = performance.now(), rt = R.getRenderTarget(), sct = R.getScissorTest(), T = VB.TOON, ok = false;
+      R.getViewport(PT_V4); R.getScissor(PT_SC);
+      try {
+        R.getDrawingBufferSize(PT_V2);
+        var S = Math.min(ptSize(req), PT_V2.x, PT_V2.y), pr = R.getPixelRatio(), w = S / pr;
+        if (S >= 8) {
+          ptSetup(c, req);
+          if (T && T.frame) T.frame(PT.cam, S);   // grosor de la tinta para este lienzo (se devuelve abajo)
+          if (rt) R.setRenderTarget(null);
+          R.setScissorTest(true); R.setViewport(0, 0, w, w); R.setScissor(0, 0, w, w);
+          R.render(PT.scene, PT.cam);
+          out2d.getContext('2d').drawImage(R.domElement, 0, PT_V2.y - S, S, S, 0, 0, out2d.width, out2d.height);
+          ok = true;
+        }
+      } catch (e) {
+        try { console.error('[VB][ERROR] Doll.portrait.draw: ' + (e && e.message || e)); } catch (e2) { }
+      } finally {
+        R.setScissorTest(sct); R.setViewport(PT_V4); R.setScissor(PT_SC);
+        if (rt) R.setRenderTarget(rt);
+        if (T && T.frame && c.camera) T.frame(c.camera, c.height || 720);
+      }
+      if (!ok) return -1;
+      var ms = performance.now() - t0;
+      PT_ST.n++; PT_ST.ms = ms; PT_ST.last = portrait.key(req); PT_ST.progs = R.info && R.info.programs ? R.info.programs.length : 0;
+      return ms;
+    },
+    /** Libera el muñeco, las luces (mapas de sombra) y la escena. main.js lo llama 1 s después de vaciar la cola. */
+    free: function () {
+      if (!PT) return false;
+      if (PT.r) freeRig(PT.r);
+      ptDropLights();
+      PT = null; PT_LS.length = 0;
+      return true;
+    },
+    /** Escena lista con un muñeco por defecto (o el de req) para que main.js la precompile (compileAsync). → {scene, camera} | null. */
+    warm: function (c, req) {
+      c = c || VB.ctx;
+      if (!ptInit(c)) return null;
+      try { ptSetup(c, req || {}); } catch (e) { try { console.error('[VB][ERROR] Doll.portrait.warm: ' + (e && e.message || e)); } catch (e2) { } return null; }
+      return { scene: PT.scene, camera: PT.cam };
+    },
+    /** Para pruebas: {n retratos pintados, ms del último, clave del último, programas del renderer tras él}. */
+    stats: function () { return { n: PT_ST.n, ms: PT_ST.ms, last: PT_ST.last, progs: PT_ST.progs }; },
+    /** Para pruebas: estado interno (firma de luces, niebla, muñeco vivo, encuadre). */
+    info: function () { return PT ? { sig: PT.sig, fog: PT.fogT, rig: !!PT.r, lights: PT.lights.length, ty: PT.ty, d: PT.d } : null; }
+  };
+
   VB.Doll = {
     rigs: rigs, LOOKS: LOOKS, STYLES: STYLES, ACCS: ACCS, EXPR: EXPR, POSES: POSES,
     /** Vestuario: lo que el muñeco sabe dibujar por ranura (id → sede 'A' | 'P' | 'Y') y los gorros que sustituyen al pelo. */
@@ -1980,6 +2172,8 @@
     atlasSig: function (L, tc, num, beach) { return atlasSig(L, tc || TEAMS[0], num, !!beach); },
     /** Vista previa del Vestuario (ver arriba): start, set, pose, face, spin, yaw, frame, update, stop, active, info. */
     preview: preview,
+    /** Retrato del muñeco (spec S2-B2B3 §3.1): key, draw, free, warm, stats (e info para pruebas). */
+    portrait: portrait,
     /** Prueba del Vestuario en el navegador (spec §9): devuelve {ok, fails, items, today, worst, draws, preview, ms}. */
     lookSelfTest: lookSelfTest,
     squash: squash, stretchArm: stretchArm, reachTo: reachTo, headBob: headBob, setFaceOf: setFace,
