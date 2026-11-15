@@ -91,9 +91,14 @@
     // S2 B2b: escudo paródico (SVG en línea; tamaños 72 ficha, 56 VS y ofertas, 40 portada y cabecera, 22 mini en tablas)
     '.cw-crest{display:inline-block;vertical-align:middle;flex:none;overflow:visible}',
     '#career .cw-card .row>.cw-crest{margin-right:10px}',
-    // S2 B2c: vitrina con huecos (no enfocables). 3 por fila a 390 px
-    '#career .tc .tc-g{margin:10px 0 6px;font:800 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-shadow:none}',
-    '#career .tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}',
+    // S2 B2c: vitrina con huecos (no enfocables). 3 por fila a 390 px. T21: bloques de 3 huecos uno al lado del otro, llenando el
+    // ancho (1280: tres bloques por fila; 844 y 667: dos; móvil en vertical: uno). Un circuito es un bloque; Premios y Otros títulos se
+    // parten de 3 en 3; los grupos cortos seguidos comparten bloque (pista: Liga 2 + Copa 1), cada uno con su cabecera encima de
+    // sus huecos (fila 1 cabeceras con span, fila 2 huecos). Todos los huecos miden lo mismo
+    '#career .tc .tc-g{grid-row:1;margin:10px 0 -2px;font:800 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}',
+    '#career .tc .tc-g.s2{grid-column:span 2}#career .tc .tc-g.s3{grid-column:span 3}#career .tc-grid>.tc-slot{grid-row:2}',
+    '#career .tc-gs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:0 18px;align-items:start}',
+    '#career .tc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0}',
     '#career .tc-slot{display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;padding:8px 6px;border-radius:10px;min-width:0}',
     '#career .tc-slot svg{width:34px;height:34px;flex:none}',
     '#career .tc-slot.got{background:rgba(255,210,63,.14);box-shadow:inset 0 0 0 1.5px var(--gold,#ffd23f);color:var(--gold,#ffd23f)}',
@@ -307,17 +312,26 @@
     return '<div class="tc-slot ' + (got ? 'got' : 'empty') + '" role="img" aria-label="' + esc(al) + '">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' +
       '<b class="tc-n">' + esc(s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</div>';
   }
-  /** Palmarés › Palmarés: «Vitrina (4 de 20)» con un bloque por grupo (playa: un circuito por fila y Premios; pista: Liga, Copa,
-   *  Internacional, Ascenso y Premios) y «Otros títulos» si algo no casa. Es su propia tarjeta. Sin career-world.js: ''. */
+  /** Palmarés › Palmarés: «Vitrina (4 de 20)» con un bloque por grupo (playa: un circuito por bloque y Premios; pista: Liga, Copa,
+   *  Internacional, Ascenso y Premios) y «Otros títulos» si algo no casa. Bloques .tc-grid de 3 huecos dentro de .tc-gs, que se reparten el
+   *  ancho (grupos largos partidos, cortos juntos; cabecera h4.tc-g con .s2/.s3 según los huecos que cubre). Es su propia tarjeta. Sin career-world.js: ''. */
   function trophyCaseHTML(c, h0) {
     if (h0) H = h0; css();
     var w = W(); if (!w || !w.trophyCase || !c || !H) return '';
     var tc = w.trophyCase(c); if (!tc) return '';
     var du = tcDiff(c), groups = [], by = {};
     tc.slots.concat(tc.other || []).forEach(function (s) { if (!by[s.group]) { by[s.group] = []; groups.push(s.group); } by[s.group].push(s); });
-    return '<div class="card tc"><h3>Vitrina <span class="muted">(' + tc.got + ' de ' + tc.total + ')</span></h3>' + groups.map(function (g) {
-      return '<h4 class="tc-g">' + esc(g) + '</h4><div class="tc-grid">' + by[g].map(function (s) { return slotHTML(s, du); }).join('') + '</div>';
-    }).join('') + '</div>';
+    // trozos de ≤ 3 huecos (la continuación de un grupo largo, con la cabecera vacía y oculta para leer) y bloques de 3 (greedy, en orden)
+    var parts = [], blocks = [];
+    groups.forEach(function (g) { for (var i = 0; i < by[g].length; i += 3) parts.push({ g: i ? '' : g, s: by[g].slice(i, i + 3) }); });
+    parts.forEach(function (p) { var b = blocks[blocks.length - 1]; if (b && b.n + p.s.length <= 3) { b.p.push(p); b.n += p.s.length; } else blocks.push({ p: [p], n: p.s.length }); });
+    return '<div class="card tc"><h3>Vitrina <span class="muted">(' + tc.got + ' de ' + tc.total + ')</span></h3><div class="tc-gs">' + blocks.map(function (b) {
+      var hs = b.p.map(function (p) {
+        var cl = 'tc-g' + (p.s.length > 1 ? ' s' + p.s.length : '');
+        return p.g ? '<h4 class="' + cl + '">' + esc(p.g) + '</h4>' : '<h4 class="' + cl + '" aria-hidden="true">&nbsp;</h4>';
+      }).join('');
+      return '<div class="tc-grid">' + hs + b.p.map(function (p) { return p.s.map(function (s) { return slotHTML(s, du); }).join(''); }).join('') + '</div>';
+    }).join('') + '</div></div>';
   }
 
   // ---------------------------------------------------------------- acciones (career-ui.js onClick)

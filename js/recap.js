@@ -147,7 +147,7 @@
       var k = STAKE_ORDER[i], S = STAKES[k];
       if (k === 'final' && st === 'final') return { k: k, t1: finalTitle(cs), t2: S.t2 };
       if (k === 'semi' && st === 'semi') return { k: k, t1: S.t1, t2: S.t2 };
-      if (k === 'boss' && cs.boss && (cs.boss.nick || cs.boss.name)) return { k: k, t1: fill(S.t1, { nick: cs.boss.nick || cs.boss.name }), t2: cs.boss.style || cs.boss.hint || '' };
+      if (k === 'boss' && cs.boss && (cs.boss.nick || cs.boss.name)) return { k: k, t1: fill(S.t1, { nick: cs.boss.nick || cs.boss.name }), t2: cs.boss.styleName || cs.boss.style || cs.boss.hint || '' };
       if (k === 'duel' && cs.duel && rv && rv.name) return { k: k, t1: S.t1, t2: fill(S.t2, { name: rv.name, w: rv.w | 0, l: rv.l | 0 }) };
       if (k === 'first' && (cs.first != null ? cs.first : cs.phase === 'league' && cs.week === 0)) return { k: k, t1: fill(S.t1, { season: cs.season | 0 || 1 }), t2: cs.league || cs.leagueName || '' };
     }
@@ -171,7 +171,7 @@
       else A.sm = info.ctrlOne ? 'Llevas al n.º ' + (n[0] | 0 || 1) : 'N.º ' + (n[0] | 0 || 1) + ' y N.º ' + (n[1] | 0 || 2);
     }
     A.tr = trait(info.stA, info.stA2);
-    B.tr = cs && cs.boss && cs.boss.style ? { k: 'boss', t: cs.boss.style } : trait(info.stB, info.stB2);
+    B.tr = cs && cs.boss && (cs.boss.styleName || cs.boss.style) ? { k: 'boss', t: cs.boss.styleName || cs.boss.style } : trait(info.stB, info.stB2);
     return [A, B];
   }
   /** Plan de la previa. info = {again, drill, kind (forzado), diff, diffName, byD:[g,p], winRun, size, ctrlOne, nums, posName,
@@ -207,10 +207,11 @@
     s = contract(s);
     return start ? cap(s) : s;
   }
+  var CLUB_ART = /^(Voley|Vóley|Club|Equipo|Real|Atlético|Deportivo|equipo|rival)(\s|$)/;
   /** El equipo t en una frase: «tu pareja» / «tu equipo» / «la CPU» / «el Voley Gandia». */
   function teamName(t, d, start) {
     var cs = d.career, s;
-    if (cs) s = 'el ' + (t === 0 ? cs.meName || 'equipo' : cs.rivalName || 'rival');
+    if (cs) { s = t === 0 ? cs.meName || 'equipo' : cs.rivalName || 'rival'; if (CLUB_ART.test(s)) s = 'el ' + s; }   // «el Voley Gandia», pero «Sorra Brisamar Dunes»
     else s = t === 0 ? ((d.size | 0) === 6 ? 'tu equipo' : 'tu pareja') : low1(d.cpu || 'la CPU');
     return start ? cap(s) : s;
   }
@@ -402,7 +403,7 @@
   }
   function cupLine(sum, cs, win) {
     var lab = String(sum && sum.label || cs && cs.label || ''), st = stageOf({ label: lab, stage: sum && sum.stage }), name = 'del Open';
-    if (lab.indexOf(' · ') >= 0) name = 'de la ' + lab.split(' · ')[0];
+    if (lab.indexOf(' · ') >= 0) { name = lab.split(' · ')[0]; name = (/^\S*a(\s|$)/.test(name) ? 'de la ' : 'del ') + name; }   // «de la Copa…», «del Open…»
     else if (/ del (.+)$/.test(lab)) name = 'del ' + lab.replace(/^.* del /, '');
     if (st === 'final') return win ? '¡Campeones ' + name + '!' : 'Subcampeones ' + name;
     if (st === 'semi') return win ? 'Pasas a la final' : 'Fuera en semifinales';

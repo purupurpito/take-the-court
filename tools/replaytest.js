@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /* MAKE THE CUT — tools/replaytest.js (owner: ui_main). Pruebas de VB.Replay (js/replay.js, S3-C1 / plan T18).
- *  node tools/replaytest.js --node   parte node (esta): sim + ai + ai6 + recap + replay.js en un vm, sin navegador.
- *  (La parte CDP —escenas debug=replay / debug=best, cortinilla, pestaña «Jugadas», montón y dibujos— la añade T22 al integrar
- *   main.js/ui.js; sin --node, este fichero de momento corre solo la parte node.)
+ *  node tools/replaytest.js          las dos partes;  --node  solo la parte node (sim + ai + ai6 + recap + replay.js en un vm);
+ *  --cdp  solo la parte CDP (el juego en Chrome headless: escenas debug=replay / debug=best, saltar con teclado, mando y toque,
+ *  pestaña «Jugadas», ajustes, 6v6, ejercicio, montón, dibujos, Carrera y punto de partido; ver cdpPart al final).
  * Parte node:
  *  (1) elegibilidad: 2v2 humano sí; 6v6, demo, ejercicio, espectador y autopilot (sin force) no.
  *  (2) partidos con el bucle de main.js (frames de 1/60 s, 2 pasos, flancos solo en el 1r subpaso) grabados con onStep/onEvents:
@@ -127,6 +127,8 @@ function match(o) {
   return R0;
 }
 
+const ONLY_CDP = process.argv.indexOf('--cdp') >= 0, ONLY_NODE = process.argv.indexOf('--node') >= 0;
+if (!ONLY_CDP) {
 console.log('== replaytest (parte node) ==');
 // (1) elegibilidad
 {
@@ -267,5 +269,252 @@ console.log('== replaytest (parte node) ==');
   RP2.reset(null);
 }
 
-console.log(failures ? failures + ' FALLOS' : 'TODO OK');
-process.exit(failures ? 1 : 0);
+}   // (fin de la parte node)
+
+// ---------------------------------------------------------------------------------------------------------------------------------
+// Parte CDP (T22, plan §5.3 a-j): el juego de verdad en Chrome headless (tools/cdp.js), escenas debug=replay / debug=best de main.js.
+//  (a) debug=replay: kind 'set', fases prep → in → play → out, ≥ 3 s, desync 0, #app.replay con mosca/rótulo/pista, la sim en vivo
+//      vuelve y g.setNo sube, sin errores JS
+//  (b) saltar en < 0,4 s: ctx.replaySkipReq, Intro (teclado), A (mando falso de padplay.js) y toque (TOUCH, 844×390); B / Esc / «Salir»
+//      en mejores jugadas salen de todas
+//  (c) pestaña «Jugadas (n)»: 1-3 clips en orden de puntuación con «Verlas todas»; «Ver» de una sola y vuelta a la hoja con el foco en
+//      ese «Ver»
+//  (d) «Menos movimiento»: sin repetición automática (&auto=1) y sin cámara lenta en mejores jugadas; con el ajuste por defecto sí hay
+//      automática; ajuste «Al final»: sin automática; «No»: sin pestaña
+//  (e) 6v6 humano: Replay apagado ('6v6'), bestCount 0 y sin pestaña en la hoja 6v6
+//  (f) ejercicio: apagado ('drill')
+//  (g) montón: HeapProfiler.collectGarbage antes y después de 3 repeticiones, Δ < 1 MB
+//  (h) dibujos (renderer.info.render.calls) en la repetición ≤ en vivo + margen, misma calidad (quality=low)
+//  (i) Carrera de prueba (&career=1, playa): la frase lleva el nombre (g.career.player / mate)
+//  (j) punto de partido (&match=1&auto=1): la hoja final espera a la repetición (R11) y no se ve durante ella
+async function cdpPart() {
+  const CDP = require(path.join(__dirname, 'cdp.js'));
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/const PAD = `([\s\S]*?)`;/)[1].replace('__PADID__', JSON.stringify('Mando virtual de pruebas (STANDARD GAMEPAD)'));
+  // registro por frame de las fases (desde el primer frame: init antes de la página)
+  const LOG = `(function(){ var L = window.__rp = { ph: [], t0: 0 }; var last = 'x';
+    function f(){ try { var c = window.VB && VB.ctx; var p = c && c.replay ? c.replay.phase + ':' + c.replay.kind + ':' + c.replay.i : null;
+      if (p !== last) { L.ph.push([p, performance.now()]); last = p; } } catch (e) {} requestAnimationFrame(f); } requestAnimationFrame(f); })();`;
+  const ok = (c, m, info) => { if (c) console.log('  ok   ' + m); else fail(m + (info !== undefined ? '  ' + JSON.stringify(info) : '')); return !!c; };
+  let page = null;
+  const open = async (size, touch) => { if (page) page.close(); page = await CDP.open({ size: size || '1280x720', touch: !!touch, init: [PAD, LOG] }); return page; };
+  const E = s => page.evalJs(s);
+  const J = async s => JSON.parse(await E('JSON.stringify(' + s + ')'));
+  const waitFor = async (expr, ms) => { const t = Date.now(); while (Date.now() - t < ms) { try { if (await E(expr)) return true; } catch (e) { } await sleep(40); } return false; };
+  const go = async q => { page.errors.length = 0; await page.navigate(q); return waitFor('!!(window.VB && VB.ctx && VB.ctx.game && VB.Replay && VB.UI)', 20000); };
+  const KEYS = { Enter: ['Enter', 13], Escape: ['Escape', 27] };
+  const key = async code => { const k = KEYS[code]; for (const type of ['keyDown', 'keyUp']) { await page.send('Input.dispatchKeyEvent', { type, code, key: k[0], windowsVirtualKeyCode: k[1], nativeVirtualKeyCode: k[1] }); await sleep(50); } };
+  const pad = async b => { await E(`__pad.set(null,{${b}:1})`); await sleep(100); await E(`__pad.set(null,{${b}:0})`); };
+  const tap = async (x, y) => { await page.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] }); await sleep(40); await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); };
+  const PH = 'VB.ctx.replay ? VB.ctx.replay.phase : null';
+  const playing = async ms => waitFor(`VB.ctx.replay && VB.ctx.replay.phase === 'play' && VB.Replay.info().t > 0.8`, ms || 15000);
+  /** Salta con act() y mide hasta ctx.replay null (o hasta la siguiente jugada si next). */
+  const skipTime = async (act, next) => {
+    const i0 = await E('VB.ctx.replay ? VB.ctx.replay.i : -1');
+    const t0 = Date.now(); await act();
+    const done = await waitFor(next ? `!VB.ctx.replay || VB.ctx.replay.i !== ${i0}` : '!VB.ctx.replay', 3000);
+    return done ? (Date.now() - t0) / 1000 : 99;
+  };
+  console.log('== replaytest (parte CDP) ==');
+  try {
+    // ---------------------------------------------------------------- (a)
+    await open('1280x720');
+    console.log('(a) debug=replay');
+    await go('debug=replay');
+    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.phase === 'play'`, 15000), '(a) la repetición llega a play');
+    const a1 = await J(`{kind: VB.ctx.replay && VB.ctx.replay.kind, app: document.getElementById('app').classList.contains('replay'), bug: !document.getElementById('rpBug').hidden,
+      cap: document.getElementById('rpCap').textContent, skip: document.getElementById('rpSkipT').textContent, hud: getComputedStyle(document.getElementById('hud')).visibility,
+      aria: document.getElementById('rpAria').textContent, set0: VB.ctx.game.setNo}`);
+    ok(a1.kind === 'set', '(a) kind set', a1.kind);
+    ok(a1.app && a1.bug && /Punto de set/.test(a1.cap) && /1r set/.test(a1.cap) && !/·|1\.er/.test(a1.cap), '(a) #app.replay, mosca y rótulo «Punto de set | 1r set»', a1);
+    ok(/Saltar/i.test(a1.skip) && a1.hud === 'hidden', '(a) pista «Intro Saltar» y HUD tapado', [a1.skip, a1.hud]);
+    ok(/^Repetición: punto de set del 1r set$/.test(a1.aria), '(a) aria-live', a1.aria);
+    ok(await waitFor('!VB.ctx.replay', 20000), '(a) la repetición acaba sola');
+    const ph = await J('window.__rp.ph');
+    const seq = ph.map(p => p[0] && p[0].split(':')[0]).filter((p, i, A) => p && A.indexOf(p) === i);
+    const tPlay = (ph.find(p => p[0] && p[0].indexOf('play') === 0) || [0, 0])[1], tOut = (ph.find(p => p[0] && p[0].indexOf('out') === 0) || [0, 0])[1];
+    ok(seq.join() === 'prep,in,play,out', '(a) fases prep → in → play → out', seq);
+    ok(tOut - tPlay >= 3000, '(a) dura ≥ 3 s (' + ((tOut - tPlay) / 1000).toFixed(1) + ' s)');
+    const a2 = await J(`{d: VB.Replay.desync(), app: document.getElementById('app').classList.contains('replay'), aria: document.getElementById('rpAria').textContent, prep: VB.Replay.prepMs()}`);
+    ok(a2.d === 0 && !a2.app && a2.aria === 'Fin de la repetición', '(a) desync 0, sin #app.replay y «Fin de la repetición»', a2);
+    ok(a2.prep < 8, '(a) preparación ' + a2.prep.toFixed(2) + ' ms por frame (< 8)');
+    ok(await waitFor('VB.ctx.game.setNo > ' + a1.set0, 30000), '(a) la sim en vivo sigue: g.setNo sube');
+    ok(!page.errors.length, '(a) sin errores JS', page.errors.slice(0, 3));
+
+    // ---------------------------------------------------------------- (b)
+    console.log('(b) saltar');
+    const tries = [
+      ['ctx.replaySkipReq', () => E('VB.ctx.replaySkipReq = true, 1')],
+      ['Intro (teclado)', () => key('Enter')],
+      ['A (mando)', async () => { await pad(0); }]
+    ];
+    for (const [name, act] of tries) {
+      await go('debug=replay');
+      if (name.indexOf('mando') >= 0) { await E('__pad.connect(), 1'); await sleep(200); }
+      if (!ok(await playing(), '(b) ' + name + ': en play')) continue;
+      const t = await skipTime(act);
+      ok(t < 0.4, '(b) ' + name + ' salta en ' + t.toFixed(2) + ' s (< 0,4)');
+      if (name.indexOf('mando') >= 0) await E('__pad.disconnect(), 1');
+    }
+    // mejores jugadas: Intro = siguiente, Esc = salir de todas
+    await go('debug=best&tab=plays&play=1');
+    if (ok(await playing(), '(b) mejores jugadas en play')) {
+      const n = await E('VB.ctx.replay.n');
+      const sk = await J(`document.getElementById('rpSkipT').textContent`);
+      ok(n < 2 || (/Siguiente/.test(sk) && /Salir/.test(sk)), '(b) pista «Siguiente» y «Salir»', sk);
+      if (n > 1) { const t = await skipTime(() => key('Enter'), true); ok(t < 0.6 && await E('!!VB.ctx.replay && VB.ctx.replay.i === 1'), '(b) Intro → la siguiente (' + t.toFixed(2) + ' s)'); }
+      await playing();
+      const t2 = await skipTime(() => key('Escape'));
+      ok(t2 < 0.4, '(b) Esc sale de todas en ' + t2.toFixed(2) + ' s');
+      ok(await waitFor(`!document.getElementById('end').hidden && VB.ctx.state === 'over'`, 3000), '(b) vuelve la hoja final');
+    }
+    await go('debug=best&tab=plays&play=1');
+    await E('__pad.connect(), 1'); await sleep(200);
+    if (await playing()) { const t = await skipTime(() => pad(1)); ok(t < 0.4, '(b) B (mando) sale de todas en ' + t.toFixed(2) + ' s'); }
+    await E('__pad.disconnect(), 1');
+    // táctil 844×390
+    await open('844x390', true);
+    await go('debug=replay');
+    if (ok(await playing(), '(b) táctil: en play')) {
+      const tt = await J(`[document.getElementById('rpSkipT').textContent, getComputedStyle(document.getElementById('touch')).visibility, document.getElementById('touch').hidden]`);
+      ok(/Toca para saltar/.test(tt[0]) && (tt[1] === 'hidden' || tt[2]), '(b) táctil: «Toca para saltar» y mandos ocultos', tt);
+      const t = await skipTime(() => tap(420, 200));
+      ok(t < 0.4, '(b) toque salta en ' + t.toFixed(2) + ' s');
+    }
+    await go('debug=best&tab=plays&play=1');
+    if (await playing()) {
+      const n = await E('VB.ctx.replay.n');
+      const r = await J(`(function(){ var b = document.getElementById('rpExit'); if (b.hidden) return null; var q = b.getBoundingClientRect(); return [q.left + q.width / 2, q.top + q.height / 2, q.height]; })()`);
+      if (n > 1 || r) {
+        ok(r && r[2] >= 44, '(b) táctil: botón «Salir» de ≥ 44 px', r);
+        if (r) { const t = await skipTime(() => tap(r[0], r[1])); ok(t < 0.4 && await waitFor(`!document.getElementById('end').hidden`, 2000), '(b) «Salir» sale de todas en ' + t.toFixed(2) + ' s y vuelve la hoja'); }
+      }
+    }
+    ok(!page.errors.length, '(b) sin errores JS', page.errors.slice(0, 3));
+
+    // ---------------------------------------------------------------- (c)
+    await open('1280x720');
+    console.log('(c) pestaña «Jugadas»');
+    await go('debug=best&tab=plays');
+    await waitFor(`!document.getElementById('end').hidden && !document.getElementById('endPlays').hidden`, 8000);
+    const c1 = await J(`{n: VB.Replay.bestCount(), pts: VB.Replay.list().map(function (o) { return o.pts; }), rows: document.querySelectorAll('#endPlays [data-play]').length,
+      all: !!document.querySelector('#endPlays [data-play="all"]'), tab: (document.getElementById('endTabs-plays') || {}).textContent, txt: document.getElementById('endPlays').textContent}`);
+    ok(c1.n >= 1 && c1.n <= 3, '(c) entre 1 y 3 jugadas (' + c1.n + ')');
+    ok(c1.pts.every((v, i) => !i || c1.pts[i - 1] >= v), '(c) en orden de puntuación', c1.pts);
+    ok(c1.rows === c1.n + (c1.n > 1 ? 1 : 0) && c1.all === c1.n > 1, '(c) un «Ver» por jugada y «Verlas todas»', c1);
+    ok(c1.tab === 'Jugadas (' + c1.n + ')', '(c) pestaña «Jugadas (n)»', c1.tab);
+    ok(!/·|1\.er|navegador/.test(c1.txt), '(c) textos sin «·» ni «1.er»', c1.txt);
+    await E(`(function(){ var b = document.querySelector('#endPlays [data-play="${c1.n > 1 ? 1 : 0}"]'); b.focus(); b.click(); return 1; })()`);
+    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'best'`, 3000), '(c) «Ver» lanza esa jugada');
+    const c2 = await J(`{i: VB.ctx.replay.i, n: VB.ctx.replay.n}`);
+    ok(c2.i === (c1.n > 1 ? 1 : 0) && c2.n === c1.n, '(c) es la pulsada (i ' + c2.i + ' de ' + c2.n + ')');
+    ok(await waitFor(`!VB.ctx.replay`, 25000), '(c) acaba (una sola jugada, sin la cola)');
+    ok(await waitFor(`!document.getElementById('end').hidden && document.activeElement && document.activeElement.getAttribute('data-play') === '${c1.n > 1 ? 1 : 0}'`, 3000), '(c) vuelve la hoja con el foco en el «Ver» pulsado',
+      await E(`document.activeElement && document.activeElement.outerHTML.slice(0, 80)`));
+    // «Verlas todas»: todas en orden
+    if (c1.n > 1) {
+      await E(`document.querySelector('#endPlays [data-play="all"]').click(), 1`);
+      const seen = [];
+      const t0 = Date.now();
+      while (Date.now() - t0 < 60000) { const s = await E('VB.ctx.replay ? VB.ctx.replay.i : -1'); if (s < 0 && seen.length) break; if (s >= 0 && seen[seen.length - 1] !== s) seen.push(s); await sleep(60); }
+      ok(seen.join() === [...Array(c1.n).keys()].join(), '(c) «Verlas todas»: ' + c1.n + ' jugadas en orden', seen);
+      ok(await waitFor(`document.activeElement && document.activeElement.getAttribute('data-play') === 'all'`, 3000), '(c) foco de vuelta en «Verlas todas»');
+      ok(await E('VB.Replay.desync()') === 0, '(c) desync 0');
+    }
+    ok(!page.errors.length, '(c) sin errores JS', page.errors.slice(0, 3));
+
+    // ---------------------------------------------------------------- (d)
+    console.log('(d) ajustes y «Menos movimiento»');
+    const withSettings = async (st, q) => { await E(`(function(){ try { localStorage.setItem('voley3d.settings', ${JSON.stringify(JSON.stringify(st))}); } catch (e) {} return 1; })()`); await go(q); };
+    await withSettings({}, 'debug=replay&auto=1');
+    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set'`, 8000), '(d) por defecto (Automáticas): repetición automática del punto de set');
+    await withSettings({ lessMotion: 'on' }, 'debug=replay&auto=1');
+    await sleep(4000);
+    ok(await E('!VB.ctx.replay && VB.ctx.reduceMotion === true'), '(d) «Menos movimiento»: sin automática');
+    await withSettings({ lessMotion: 'on' }, 'debug=best&play=1');
+    let slowSeen = false; const td = Date.now();
+    await waitFor('!!VB.ctx.replay', 8000);
+    while (Date.now() - td < 25000) { const s = await J('VB.Replay.info() ? [VB.Replay.info().slow, VB.Replay.info().phase] : null'); if (!s) break; if (s[0]) slowSeen = true; await sleep(50); }
+    ok(!slowSeen, '(d) «Menos movimiento»: sin cámara lenta en mejores jugadas');
+    await withSettings({ replays: 'end' }, 'debug=replay&auto=1');
+    await sleep(4000);
+    ok(await E(`!VB.ctx.replay && VB.ctx.settings.replays === 'end' && VB.Replay.enabled()`), '(d) «Al final»: graba pero sin automática');
+    await withSettings({ replays: 'off' }, 'debug=best&tab=plays');
+    await waitFor(`!document.getElementById('end').hidden`, 8000);
+    ok(await E(`!document.querySelector('#endTabs [data-tab="plays"], #endTabs-plays') && !document.querySelector('#endPlays [data-play]')`), '(d) «No»: sin pestaña «Jugadas»');
+    const optRow = await J(`(function(){ var b = document.querySelector('[data-opt="replays"]'); return b ? [b.closest('.opt-g').getAttribute('data-tab'), b.textContent] : null; })()`);
+    ok(optRow && optRow[0] === 'game' && /Repeticiones/.test(optRow[1]), '(d) fila «Repeticiones» en Ajustes · Juego', optRow);
+    await withSettings({ replays: 'basura' }, 'nonews=1');
+    ok(await E(`VB.ctx.settings.replays === 'auto'`), '(d) valor corrupto → «Automáticas»');
+    await E(`localStorage.removeItem('voley3d.settings'), 1`);
+
+    // ---------------------------------------------------------------- (e)(f)
+    console.log('(e)(f) 6v6 y ejercicio');
+    await go('nonews=1');
+    await waitFor(`VB.ctx.state === 'menu'`, 8000);
+    await E(`VB.ctx.actions.startMatch({ format: '6v6', noIntro: true }), 1`); await waitFor('VB.ctx.game.size === 6 && !VB.ctx.game.demo', 10000);
+    const e1 = await J(`{why: VB.Replay._state().why, on: VB.Replay.enabled(), n: VB.Replay.bestCount(), size: VB.ctx.game.size}`);
+    ok(e1.size === 6 && e1.why === '6v6' && !e1.on && e1.n === 0, '(e) 6v6 humano: Replay apagado y bestCount 0', e1);
+    await go('debug=over&format=6v6');
+    await waitFor(`!document.getElementById('end').hidden`, 8000);
+    ok(await E(`!document.querySelector('#endTabs-plays')`), '(e) hoja final 6v6 sin pestaña «Jugadas»');
+    await go('nonews=1'); await waitFor(`VB.ctx.state === 'menu'`, 8000);
+    await E(`VB.ctx.actions.startMatch({ drill: 'serve', noIntro: true }), 1`); await waitFor('!!VB.ctx.game.drill', 10000);
+    const f1 = await J(`{why: VB.Replay._state().why, on: VB.Replay.enabled(), drill: !!VB.ctx.game.drill}`);
+    ok(f1.drill && f1.why === 'drill' && !f1.on, '(f) ejercicio: apagado', f1);
+
+    // ---------------------------------------------------------------- (g)(h)
+    console.log('(g)(h) montón y dibujos');
+    await go('debug=best&tab=plays&quality=low');
+    await waitFor(`!document.getElementById('end').hidden`, 8000);
+    await sleep(500);
+    const heap = async () => { await page.send('HeapProfiler.collectGarbage'); await sleep(200); await page.send('HeapProfiler.collectGarbage'); return (await page.send('Runtime.getHeapUsage')).usedSize; };
+    let calls = 0;
+    const sample = async () => { const c = await E('VB.ctx.renderer.info.render.calls'); if (c > calls) calls = c; };
+    let h0 = 0;
+    for (let r = 0; r < 4; r++) {   // (la 1ª calienta: compilación JIT y cachés de la 1ª repetición, ~0,7 MB que no vuelven a crecer)
+      if (r === 1) h0 = await heap();
+      await E('VB.ctx.actions.playBest(0), 1');
+      await waitFor('!!VB.ctx.replay', 3000);
+      const t0 = Date.now(); while (Date.now() - t0 < 25000 && await E('!!VB.ctx.replay')) { await sample(); await sleep(60); }
+      await waitFor(`!document.getElementById('end').hidden`, 3000);
+    }
+    const h1 = await heap();
+    ok(h1 - h0 < 1024 * 1024, '(g) montón tras 3 repeticiones: Δ ' + ((h1 - h0) / 1024).toFixed(0) + ' KB (< 1 MB)');
+    const rpCalls = calls;
+    await go('debug=rally&live=1&quality=low');
+    calls = 0; { const t0 = Date.now(); while (Date.now() - t0 < 6000) { await sample(); await sleep(60); } }
+    ok(rpCalls > 0 && rpCalls <= calls + 4, '(h) dibujos en la repetición ' + rpCalls + ' frente a ' + calls + ' en vivo (baja, margen 4)');
+
+    // ---------------------------------------------------------------- (i)
+    console.log('(i) Carrera');
+    await go('debug=replay&career=1&map=beach&rpt=1');
+    await waitFor(`VB.ctx.replay && VB.ctx.replay.phase === 'play'`, 15000);
+    const i1 = await J(`{L: VB.Replay.list().map(function (o) { return [o.team, o.phrase]; }), p: VB.ctx.game.career.player, m: VB.ctx.game.career.mate, venue: VB.ctx.game.venue}`);
+    const mine = i1.L.filter(x => x[0] === 0 && !/^Peloteo/.test(x[1]));
+    ok(i1.venue === 'beach' && mine.length > 0 && mine.every(x => x[1].indexOf(i1.p) >= 0 || x[1].indexOf(i1.m) >= 0), '(i) frases de tus jugadas con el nombre de la Carrera', i1);
+
+    // ---------------------------------------------------------------- (j)
+    console.log('(j) punto de partido');
+    // (&hold=1: la celebración de END_CELEB como en un partido; sin él, la depuración abre la hoja al llegar gameOver. Con la ventana
+    // del challenge abierta no hay automática: empieza al cerrarse, en el gameOver)
+    await go('debug=replay&match=1&auto=1&hold=1');
+    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'match'`, 15000), '(j) repetición automática del punto de partido');
+    let endDuring = false, tRp = 0;
+    { const t0 = Date.now(); while (Date.now() - t0 < 25000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden]`); if (s[0] && s[1]) endDuring = true; if (!s[0]) { tRp = Date.now(); break; } await sleep(50); } }
+    ok(!endDuring && tRp > 0, '(j) la hoja no se ve durante la repetición');
+    ok(await waitFor(`!document.getElementById('end').hidden && VB.ctx.state === 'over'`, 15000), '(j) la hoja final sale después');
+    const dtEnd = (Date.now() - tRp) / 1000;
+    ok(dtEnd > 0.3, '(j) la hoja sale ' + dtEnd.toFixed(1) + ' s después de la repetición (resto de la celebración)');
+    ok(!page.errors.length, '(d-j) sin errores JS', page.errors.slice(0, 3));
+  } catch (e) { fail('CDP: ' + (e && e.stack || e)); }
+  if (page) page.close();
+}
+
+(async () => {
+  if (!ONLY_NODE) await cdpPart();
+  console.log(failures ? failures + ' FALLOS' : 'TODO OK');
+  process.exit(failures ? 1 : 0);
+})();
+
+

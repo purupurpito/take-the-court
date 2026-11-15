@@ -340,7 +340,10 @@
     // que golpeó del equipo que puntúa; el ace, del sacador; el de bloqueo, del bloqueador. Los errores del rival no son de nadie.
     // (C4: lastHuman[t] = el último toque del equipo t fue del humano; blockHuman = el último bloqueo lo hizo el humano: la cinta
     // cinética de ¡Ace! / ¡Muro! sale siempre si el golpe es tuyo)
-    return { t: [t(), t()], run: 0, runTeam: -1, longest: 0, lastHitKind: '', lastHitTeam: -1, blockTeam: -1, p: {}, lastHitter: [null, null], blocker: null, lastHuman: [false, false], blockHuman: false };
+    // (B6/C4, titular del resumen: spSaved = puntos de set salvados por equipo; moments = registro de momentos {k:'spSave'|'comeback'|
+    // 'rally'|'streak', team, n, setNo, match, won} para VB.Recap.headline; close = cómo se cerró el partido {how, who:{num, team}})
+    return { t: [t(), t()], run: 0, runTeam: -1, longest: 0, lastHitKind: '', lastHitTeam: -1, blockTeam: -1, p: {}, lastHitter: [null, null], blocker: null, lastHuman: [false, false], blockHuman: false,
+      spSaved: [0, 0], spSet: [0, 0], spM: [false, false], def: [0, 0], sets: [0, 0], setNo: 1, moments: [], rallyM: null, streakM: null, close: null };
   }
   var stats = newStats();
 
@@ -420,7 +423,13 @@
       // Vestuario (1.1.0): botón de la portada, atajo de Jugadores, página, giro y avisos
       'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote',
       // sprint 2-4: B3 «Continuar carrera» (portada) y B5 previa (rótulo inferior y lo que está en juego)
-      'btnCont', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake'].forEach(function (k) { el[k] = $(k); });
+      'btnCont', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake',
+      // B6 hoja final con pestañas y D1 retos (franja de Jugar y página)
+      'endTabs', 'endSum', 'endStatsTab', 'endPlays', 'btnRetos', 'retoSub', 'retoMeds', 'mpRetos', 'btnRetosBack', 'rtTabs', 'rtBody', 'rtFoot',
+      // S3-C1: repetición (mosca, rótulo, pista de saltar con «Salir» y aviso para el lector de pantalla)
+      'rpBug', 'rpCap', 'rpTitle', 'rpPill', 'rpPhrase', 'rpSub', 'rpSkip', 'rpSkipT', 'rpExit', 'rpAria',
+      // S4-D2: perfil (chip de la portada, página con nivel, vitrina y álbum, y avisos)
+      'menuFoot', 'btnProf', 'mpProf', 'btnProfBack', 'pfKick', 'pfCard', 'pfVit', 'pfRo', 'pfTabs', 'pfGrid', 'pfFoot', 'pfPin', 'pfNote'].forEach(function (k) { el[k] = $(k); });
     el.bn1 = $('bn1'); el.bn2 = $('bn2'); el.bn3 = $('bn3'); el.pbug = $('pbug'); el.pbT = $('pbT'); el.pbS = $('pbS'); el.pbX = $('pbX'); el.sbBody = document.querySelector('.sb-body'); el.sb = $('sb'); el.sbSet = $('sbSet'); el.tag = $('sbTag'); el.hist = $('sbHist');
     el.row0 = $('sbRow0'); el.row1 = $('sbRow1'); el.name0 = $('sbName0'); el.name1 = $('sbName1');
     el.pts0 = $('sbPts0'); el.pts1 = $('sbPts1');
@@ -693,7 +702,7 @@
       case 'point': {
         var w = e.team, T = s.t[w];
         // deshacer (punto anulado por challenge: sim vuelve a pitar el punto con la llamada buena, ver untally)
-        var U = s.undo = { w: w, field: '', P: null, pf: '', best: T.best, run: s.run, runTeam: s.runTeam, longest: s.longest };
+        var U = s.undo = { w: w, field: '', P: null, pf: '', best: T.best, run: s.run, runTeam: s.runTeam, longest: s.longest, sp: !!e.savedSetPoint };
         T.points++;
         if (s.runTeam === w) s.run++; else { s.run = 1; s.runTeam = w; }
         if (s.run > T.best) T.best = s.run;
@@ -722,17 +731,34 @@
           P.pts++; if (kind === 'ace') P.aces++; else if (kind === 'blockPt') P.blocks++; else P.kills++;
           U.P = P; U.pf = kind === 'ace' ? 'aces' : kind === 'blockPt' ? 'blocks' : 'kills';
         }
+        tallyMoments(s, e, w, kind, who);
         break;
       }
     }
   }
 
+  /** B6/C4: momentos del partido para el titular (VB.Recap.headline). Solo en los puntos (unas decenas por partido). */
+  function tallyMoments(s, e, w, kind, who) {
+    var sn = s.setNo, sc = e.score;
+    if (e.savedSetPoint) { s.spSaved[w]++; s.spSet[w]++; if (s.sets[1 - w] >= 1) s.spM[w] = true; }
+    if (sc) { var d0 = (sc[1] | 0) - (sc[0] | 0); if (d0 > s.def[0]) s.def[0] = d0; if (-d0 > s.def[1]) s.def[1] = -d0; }
+    var rh = e.rallyHits | 0, st = e.streak | 0;
+    if (rh >= 14 && (!s.rallyM || rh >= s.rallyM.n)) s.rallyM = { k: 'rally', team: w, n: rh, setNo: sn };
+    if (st >= 6 && (!s.streakM || st >= s.streakM.n)) s.streakM = { k: 'streak', team: w, n: st, setNo: sn };
+    if (e.setWon) {
+      for (var t = 0; t < 2; t++) if (s.spSet[t]) s.moments.push({ k: 'spSave', team: t, n: s.spSet[t], setNo: sn, match: s.spM[t], won: t === w });
+      if (s.def[w] >= 4) s.moments.push({ k: 'comeback', team: w, n: s.def[w], setNo: sn });
+      s.sets[w]++; s.setNo++; s.spSet[0] = s.spSet[1] = 0; s.spM[0] = s.spM[1] = false; s.def[0] = s.def[1] = 0;
+    }
+    if (e.matchWon) s.close = { how: kind === 'ace' ? 'ace' : kind === 'blockPt' ? 'block' : kind, who: who && who.team === w ? { num: who.num, team: who.team } : null };
+  }
   /** Punto anulado por challenge: quita de las estadísticas el último punto contado (sim ya corrige g.stats). */
   function untally() {
     var s = stats, U = s && s.undo; if (!U) return;
     var T = s.t[U.w]; T.points = Math.max(0, T.points - 1); if (U.field) T[U.field] = Math.max(0, T[U.field] - 1);
     T.best = U.best; s.run = U.run; s.runTeam = U.runTeam; s.longest = U.longest;
     if (U.P) { U.P.pts = Math.max(0, U.P.pts - 1); U.P[U.pf] = Math.max(0, U.P[U.pf] - 1); }
+    if (U.sp) { s.spSaved[U.w] = Math.max(0, s.spSaved[U.w] - 1); s.spSet[U.w] = Math.max(0, s.spSet[U.w] - 1); }
     s.undo = null;
   }
   /** Puntos del set decisivo (3r): min(15, puntos por set del partido). */
@@ -746,7 +772,7 @@
     if (g.subsOn && !g.demo && events.length) subsEvents(g, events);   // banquillo: rótulo de los cambios y avisos de entrar / salir
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.type === 'newMatch') { stats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; }
+      if (e.type === 'newMatch') { stats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; unl0 = g.demo ? null : lkUnseen().slice(); }   // (B6: lo del Vestuario sin ver al empezar)
       if (e.type === 'newSet') lastSpKey = '';
       if (g.demo) continue;
       if (ovr && e.type === 'point') { untally(); e._ovr = true; }
@@ -2445,16 +2471,18 @@
   }
   function isOut(node) { return !!(node && node._outT); }
   function syncScreens(g) {
-    var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (panel || '');
+    var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (ctx.replay ? 'R' : '') + (panel || '');
     if (key === shown) return;
     shown = key;
     showNode(el.menu, s === 'menu' && !panel);
     showNode(el.pause, s === 'paused' && !panel);
-    var endOn = s === 'over' && !!g.finished && !g.drill && !panel && !ctx.endHold && !endGate;
+    // (S3-C1: mientras se ven las jugadas desde la pestaña «Jugadas», la hoja se aparta como con «Ver celebración»)
+    var endOn = s === 'over' && !!g.finished && !g.drill && !panel && !ctx.endHold && !endGate && !ctx.replay;
     // E6: hoja final del ejercicio (sin gameOver: g.drill.done), tras el sello de la última repetición y la cortinilla
     var geOn = s === 'over' && !!(g.drill && g.drill.done && !g.demo) && !panel && !geGate;
     if (el.gymEnd) showNode(el.gymEnd, geOn);
-    if (endOn && el.end.hidden) { el.end.classList.toggle('dock', endDocked()); countUp(el.end); }
+    if (endOn && el.end.hidden) { el.end.classList.toggle('dock', endDocked()); if (!rpBack) { countUp(el.end); endRcSounds(); } rpBack = false; setTimeout(endMore, 60); }
+    if (!endOn && ctx.replay && s === 'over' && !el.end.hidden) rpBack = true;   // (al volver de las jugadas, sin la entrada otra vez)
     showNode(el.end, endOn);
     el.app.classList.toggle('end-on', s === 'over' && !!g.finished);
     showNode(el.panel, !!panel);
@@ -2464,7 +2492,7 @@
     el.hud.hidden = false; el.hud.classList.toggle('warm', s === 'menu');
     el.rotate.hidden = !ctx.portraitBlock;
     // la viñeta no se suma al velo de las hojas (pausa, final, paneles)
-    el.veil.classList.toggle('under', (s === 'paused' || geOn || (s === 'over' && !!g.finished && !ctx.endHold && !endGate && !el.end.classList.contains('dock')) || !!panel));
+    el.veil.classList.toggle('under', (s === 'paused' || geOn || (s === 'over' && !!g.finished && !ctx.endHold && !endGate && !ctx.replay && !el.end.classList.contains('dock')) || !!panel));
     if (s === 'menu') { hideBanner(); renderMenu(); }
     if (s === 'paused') renderPause(g);
     focusLayer();
@@ -2497,7 +2525,10 @@
   function focusLayer(pref) {
     setTimeout(function () {
       var L = activeLayer(); if (!L) return;
-      var f = pref || (ctx.state === 'menu' && !panel ? pageFocus() : null) || focusables(L)[0];
+      // S3-C1 / R10: de vuelta de las jugadas, el foco al «Ver» (o «Verlas todas») que se pulsó
+      if (!pref && L === el.end && rpFocus) { var rb = el.endPlays && el.endPlays.querySelector('[data-play="' + rpFocus + '"]'); rpFocus = ''; if (rb && !rb.closest('[hidden]')) { focusEl(rb, rpKb || ctx.inputDevice === 'gamepad'); return; } }
+      // (hoja final: el botón principal, no la pestaña que va antes en el DOM)
+      var f = pref || (ctx.state === 'menu' && !panel ? pageFocus() : null) || (L === el.end && !el.btnAgain.hidden ? el.btnAgain : null) || focusables(L)[0];
       focusEl(f, false);
     }, 30);
   }
@@ -2554,10 +2585,12 @@
     // según la página (antes la misma en todas: en el principal no hay nada que «cambiar» ni adónde «volver»)
     var pg = mpage, ud = '<span class="key">↑</span><span class="key">↓</span>', lr = '<span class="key">←</span><span class="key">→</span>';
     var h = d === 'gamepad' ? kh('<span class="key">Stick</span>', pg === 'quick' ? 'elegir y cambiar' : 'elegir') + kh(padKey('a'), 'aceptar') + (pg === 'main' ? '' : kh(padKey('b'), 'volver'))
-      : d === 'touch' ? '' : kh(pg === 'play' ? lr : ud, 'elegir') + kh('<span class="key">Intro</span>', 'aceptar') + (pg === 'quick' ? kh(lr, 'cambiar') : '') + (pg === 'main' ? '' : kh('<span class="key">Esc</span>', 'volver'));
+      : d === 'touch' ? '' : kh(pg === 'play' ? (VB.Retos && el.btnRetos ? ud + lr : lr) : ud, 'elegir') + kh('<span class="key">Intro</span>', 'aceptar') + (pg === 'quick' ? kh(lr, 'cambiar') : '') + (pg === 'main' ? '' : kh('<span class="key">Esc</span>', 'volver'));
     // Vestuario: cambiar, apartado, girar y volver (al azar con X en el mando)
     if (pg === 'look') h = d === 'gamepad' ? kh('<span class="key">Stick</span>', 'elegir y cambiar') + kh(padKey('x'), 'al azar') + kh('<span class="key">Stick der.</span>', 'girar') + kh(padKey('b'), 'volver')
       : d === 'touch' ? '' : kh(ud, 'elegir') + kh(lr, 'cambiar') + kh('<span class="key">Q</span><span class="key">E</span>', 'apartado') + kh('<span class="key">Z</span><span class="key">X</span>', 'girar') + kh('<span class="key">Esc</span>', 'volver');
+    if (pg === 'prof') h = d === 'gamepad' ? kh('<span class="key">Stick</span>', 'elegir') + kh('<span class="key">' + padSet().lb + '</span><span class="key">' + padSet().rb + '</span>', 'apartado') + kh(padKey('x'), 'vitrina') + kh(padKey('b'), 'volver')
+      : d === 'touch' ? '' : kh(ud + lr, 'elegir') + kh('<span class="key">Q</span><span class="key">E</span>', 'apartado') + kh('<span class="key">F</span>', 'vitrina') + kh('<span class="key">Esc</span>', 'volver');
     setHTML(el.navHint, 'navh', h);
     setText(el.ctlSub, 'ctls', d === 'gamepad' ? 'Mando conectado' : d === 'touch' ? 'Táctil' : 'Teclado y mando');
     var rec = record.played ? '<span><b>' + record.wins + '/' + record.played + '</b>Victorias</span>' + (record.bestStreak ? '<span><b>' + record.bestStreak + '</b>Mejor racha</span>' : '') : '';
@@ -2573,6 +2606,8 @@
       var gc = safe(VB.Gym.count) | 0;
       setHTML(el.gymSub, 'gyms', gc ? 'Ejercicios con medallas y peloteo libre <span class="chip">Medallas ' + gc + '/15</span>' : 'Ejercicios con medallas y peloteo libre');
     }
+    renderRetoStrip();   // D1: franja de Retos en Jugar (solo se rehace si cambia la medalla de hoy o lo nuevo)
+    pfChip();            // D2: chip del perfil en el pie de la portada (lee pfSum; album() solo con pfDirty)
     // bajo el logo, en vez del lema de folleto, el dato vivo del último Partido rápido (TV D6); sin partidos, nada
     if (el.menuLast) {
       var lA = record.lastA, lB = record.lastB, lDn = record.lastD && VB.DIFF && VB.DIFF[record.lastD] && VB.DIFF[record.lastD].name;
@@ -2703,7 +2738,9 @@
     if (g && g.drill && !g.demo) return gymKicker(g);   // E6: «Entrenamiento ◆ Saque 4/10 | 11 pts»
     var nm = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
     // «Set 1 | 24-10 ◆ Normal»: el set y el tanteo van juntos con la barra fina (datos del HUD) y el nivel tras el rombo
-    return [{ h: 'Set ' + g.setNo + SEP_V + g.score[0] + '-' + g.score[1] }, nm || OPT.difficulty.labels[optIndex('difficulty')]];
+    var pk = [{ h: 'Set ' + g.setNo + SEP_V + g.score[0] + '-' + g.score[1] }, nm || OPT.difficulty.labels[optIndex('difficulty')]];
+    if (g && g.reto && !g.demo) pk.unshift('Reto del día');   // D1: «Reto del día ◆ Set 1 | 24-10 ◆ Difícil»
+    return pk;
   }
   var SEP_V = '<span class="sep sep-v"><span class="sr">, </span></span>'; // barra vertical fina suelta (entre trozos ya en HTML)
   function renderPause(g) {
@@ -2726,6 +2763,7 @@
   // ---------- Final ----------
   function showEnd(e) {
     var win = e.team === 0, T = stats.t;
+    endAw = []; endBd = []; endAltName = '';
     var isNew = false, career = !!(ctx.game && ctx.game.career && !ctx.game.demo);
     var watch = !!(ctx.game && ctx.game.watch0 && !ctx.game.demo);   // 6v6 espectador: tampoco cuenta (g.watch0: el de verdad; g.watch también vale en el banquillo)
     // 6v6 con humano (sprint 3): tampoco. El récord (y con él el fin de los consejos a la 1ª victoria, el novato de main.js
@@ -2781,7 +2819,11 @@
     var di = optIndex('difficulty'), alt = win ? (di < OPT.difficulty.vals.length - 1 ? di + 1 : -1) : (di > 0 ? di - 1 : -1);
     if (!win && alt >= 0 && !career) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
     el.btnAgainAlt.hidden = alt < 0;
-    if (alt >= 0) { el.btnAgainAlt.textContent = 'Revancha en ' + OPT.difficulty.labels[alt]; el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); }
+    if (alt >= 0) { el.btnAgainAlt.textContent = 'Revancha en ' + OPT.difficulty.labels[alt]; el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); endAltName = OPT.difficulty.labels[alt]; }
+    // (botones de siempre; el Resumen de B6 los vuelve a rotular según el caso: Carrera, reto, Partido rápido)
+    el.btnAgain.textContent = 'Revancha'; el.btnAgain.setAttribute('data-act', 'again');
+    if (el.btnEndOpts) { el.btnEndOpts.textContent = 'Cambiar opciones'; el.btnEndOpts.setAttribute('data-act', 'opts'); }
+    el.btnMenu.textContent = 'Menú principal'; el.btnMenu.hidden = false;
     // «Cambiar opciones»: al menú, directo a la preparación del Partido rápido (dificultad, puntos, control, escenario). En la
     // Carrera no (main.js careerEndSheet esconde además «Revancha en…»); en el 6v6 espectador de pruebas (?format=6v6) tampoco
     var noOpts = !!career || !!(ctx.game && ctx.game.watch0);   // (6v6 humano, sprint 3: sí, vuelve a la preparación con Formato 6 contra 6)
@@ -2793,9 +2835,11 @@
       var aw = VB.Prog.award(perP, { win: win, setsWon: e.sets ? e.sets[0] : 0, difficulty: dfk }), sqa = VB.Prog.get().a, xh = '';
       aw.forEach(function (r, i) {
         xh += '<span>N.º ' + sqa[i].num + ': <b>+' + r.xp + ' XP</b>' + (r.lvlUp ? ' <span class="lv">¡NIVEL ' + r.lvl + '! +' + r.pts + ' puntos</span>' : '') + '</span>';
+        // (B6: lo mismo para el bloque «Progreso» del Resumen, con la barra de nivel)
+        endAw.push({ num: sqa[i].num, xp: r.xp | 0, lvl: r.lvl | 0, lvlUp: !!r.lvlUp, pts: r.pts | 0, cur: sqa[i].xp | 0, need: VB.Prog.need ? VB.Prog.need(sqa[i].lvl) : 0 });
       });
-      rec += '<div class="end-xp">' + xh + '</div>';
-      if (VB.Badges) rec += endBadgesHTML(VB.Badges.endMatch(ctx.game, win));
+      endBd = VB.Badges ? VB.Badges.endMatch(ctx.game, win) || [] : [];
+      if (!VB.Recap) { rec += '<div class="end-xp">' + xh + '</div>'; rec += endBadgesHTML(endBd); }   // (sin recap.js: como antes)
     }
     el.endRecord.innerHTML = rec;
     // MVP de cada equipo (UI-11). UI-18: una tabla pequeña: un solo rótulo «MVP», la cabecera «Ataque · Bloqueo · Saque» una vez y en
@@ -2813,42 +2857,345 @@
     }
     el.endMvp.innerHTML = nMv ? '<span class="mvp-h" aria-hidden="true">MVP</span><div class="mvp-cols" aria-hidden="true"><span></span><span></span><span>Ataque</span><span>Bloqueo</span><span>Saque</span></div>' + mv : '';
     el.endMvp.classList.toggle('two', nMv > 1);
+    // B6: el Vestuario de Partido rápido (récord, Entrenamiento, retos y nivel de perfil) se concede ya, sin aviso, para enseñarlo en
+    // el Resumen (el aviso del menú, lkCheckNew, ya no lo repite). En la Carrera lo concede VB.Career.matchDone
+    if (!ctx.debug && !career && !watch && ctx.game && !ctx.game.autopilot && !ctx.game.demo) lookGrantNow();
+    endRecap(e, ctx.game, null, null);
     shown = '';
+  }
+  // =====================================================================
+  //  B6 (sprint 2-4, spec S2-B4B5B6 §2.3): la hoja final como resumen de jornada
+  // =====================================================================
+  // Pestañas Resumen | Estadísticas | Jugadas (n) en #endTabs. Resumen (#endSum.rc) = bloques en orden fijo con su etiqueta .rc-h, del
+  // modelo puro VB.Recap.endModel(d); Estadísticas (#endStatsTab) = lo de siempre (MVP de los dos, barras, récord); «Jugadas» solo con
+  // jugadas de VB.Replay (la rellena la integración de las repeticiones). Partido rápido y retos: endRecap desde showEnd. Carrera:
+  // main.js llama a VB.UI.endCareer(sum, g, x) tras VB.Career.matchDone, en el mismo frame y después de showEnd, y se repinta.
+  // Sin js/recap.js: sin pestañas, la hoja de antes.
+  var endAw = [], endBd = [], endAltName = '', unl0 = null, recapM = null, recapD = null, endTabsApi = null, endTab = 'sum', endRcSnd = null;
+  var RC_MED = ['', 'bronce', 'plata', 'oro'];
+  /** Concede ya lo que se gana fuera de la Carrera (VB.Look.checkGlobal: Entrenamiento, récord, retos, nivel de perfil). Ids, sin aviso. */
+  function lookGrantNow() {
+    var Lk = LK(); if (!Lk || !Lk.checkGlobal) return [];
+    var gym = {}, gymN = 0, Gm = VB.Gym;
+    try {
+      ['serve', 'recv', 'set', 'atk', 'block'].forEach(function (id) { var r = Gm && Gm.get ? Gm.get(id) : null; gym[id] = r ? Math.max(0, Math.min(3, r.m | 0)) : 0; });
+      gymN = Gm && Gm.count ? Gm.count() | 0 : 0;
+    } catch (e) { }
+    try { return Lk.checkGlobal({ gym: gym, gymN: gymN, rec: { wins: record.wins | 0, played: record.played | 0, streak: record.bestStreak | 0 } }) || []; } catch (e) { return []; }
+  }
+  /** Lo nuevo del Vestuario en este partido: unseen() ahora menos el de al empezar (&unl=n en depuración: los n primeros del catálogo). */
+  function endUnlocks() {
+    if (ctx.debug && ctx.params.unl) { var C = VB.Look && VB.Look.CATALOG || []; return C.slice(0, Math.max(0, +ctx.params.unl | 0)).map(function (it) { return it.id; }); }
+    if (!unl0) return [];
+    var was = {}; unl0.forEach(function (id) { was[id] = 1; });
+    return lkUnseen().filter(function (id) { return !was[id]; });
+  }
+  function replayN() { if (ctx.settings && ctx.settings.replays === 'off') return 0; try { return VB.Replay && VB.Replay.bestCount ? VB.Replay.bestCount() | 0 : 0; } catch (e) { return 0; } }
+  /** Datos de la hoja para VB.Recap.endModel (los de headline más los del Resumen). x = extras de la Carrera (main.js). */
+  function endData(e, g, sum, x) {
+    var pl = [], id, cs = g && g.career && !g.demo ? g.career : null;
+    for (id in stats.p) pl.push(stats.p[id]);
+    var mo = stats.moments.slice(); if (stats.rallyM) mo.push(stats.rallyM); if (stats.streakM) mo.push(stats.streakM);
+    var d = { seed: (g && g.seed) >>> 0, win: e.team === 0, sets: [e.sets[0] | 0, e.sets[1] | 0], setScores: (e.setScores || (g && g.setScores) || []).map(function (s) { return [s[0] | 0, s[1] | 0]; }),
+      to: (g && g.points) || 25, size: (g && g.size) || 2, career: cs, cpu: 'la CPU', pl: pl, spSaved: stats.spSaved.slice(), moments: mo, close: stats.close,
+      longest: stats.longest, watch: !!(g && g.watch0 && !g.demo), drill: false, reto: g && g.reto && !cs ? g.reto : null, plays: replayN(), unlocks: endUnlocks(),
+      profile: profEnd || null };
+    if (cs) {
+      d.sum = sum || null; x = x || {};
+      if (x.tbl) d.table = { rows: x.tbl, myId: x.myId, pos0: cs.pos0 | 0, shortOf: function (k) { return x.short && x.short[k] || ''; } };
+      d.first = !!cs.first; d.next = x.next || 'league'; d.phase = sum && sum.phase; d.pos = x.pos | 0; d.bar = x.bar || null;
+      var lb = sum && sum.life && sum.life.boss;
+      if (lb && (lb.nick || lb.name)) d.boss = { nick: lb.nick || lb.name, win: !!lb.win, h2h: lb.h2h || null };
+      d.train = trainLine(sum, x.ses);
+    } else {
+      d.aw = endAw.slice(); d.badges = endBd.slice(); d.altDiffName = endAltName;
+    }
+    var re = retoEnd;
+    if (re && ((re.up && re.up.length) || (re.xp && !cs))) d.retos = { pills: (re.up || []).map(function (u) { return { name: u.name, lvl: u.lvl | 0, nw: !(u.prev | 0) }; }), xp: cs ? 0 : re.xp | 0 };
+    return d;
+  }
+  /** Entreno de la semana (sesiones de main antes del partido y mejoras del entreno semanal): «2 sesiones de 3 | +1 Recepción». */
+  function trainLine(sum, ses) {
+    var a = [], LB = VB.Prog && VB.Prog.LABEL || {};
+    if (ses && (ses.used | 0) > 0) a.push((ses.used | 0) + ((ses.used | 0) === 1 ? ' sesión' : ' sesiones') + ' de ' + ((ses.max | 0) || 3));
+    var gn = sum && sum.train && sum.train.gains || [];
+    for (var i = 0; i < gn.length && i < 2; i++) a.push('+1 ' + (LB[gn[i]] || gn[i]));
+    return a.join(' | ');
+  }
+  /** Pinta la hoja con el modelo de B6 (Partido rápido, reto, Carrera; el espectador 6v6 se queda con las estadísticas). */
+  function endRecap(e, g, sum, x) {
+    recapM = null; recapD = null; endRcSnd = null;
+    var R = VB.Recap, watch = !!(g && g.watch0 && !g.demo);
+    if (!R || !R.endModel || !el.endSum) { endPanes(['stats'], 'stats', true); return; }
+    var d = endData(e, g, sum, x), M = null;
+    try { M = R.endModel(d); } catch (er) { console.error('[VB][ERROR] Recap.endModel: ' + er); M = null; }
+    if (!M) { endPanes(['stats'], 'stats', true); return; }
+    recapM = M; recapD = d;
+    var cs = d.career;
+    // antetítulo y título: los de la Carrera (competición y «Gana el …») y del reto del día; Partido rápido, los de showEnd
+    if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; }
+    else if (d.reto) {
+      var dn = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
+      setSep(el.endKicker, ['Reto del día', venueName(), { h: 'Nivel ' + escT(dn || '') + SEP_V + 'Sets a ' + ((g && g.points) || 25) }], 'd');
+    }
+    el.endSum.innerHTML = watch ? '' : rcHTML(M, d);
+    renderPlays(watch ? 0 : d.plays | 0);
+    if (!watch) endButtons(M);
+    var tabs = watch ? ['stats'] : M.tabs, q = ctx.debug && ctx.params.tab;
+    endPanes(tabs, q === 'stats' && tabs.indexOf('stats') >= 0 ? 'stats' : q === 'plays' && tabs.indexOf('plays') >= 0 ? 'plays' : tabs[0], watch, M.tabLabels);
+    // sonidos de la entrada escalonada (a los 700 ms la flecha de la tabla, a los 800 ms el desbloqueo): al verse la hoja (syncScreens)
+    endRcSnd = { rank: M.table && M.table.move ? M.table.move.d | 0 : 0, unl: !!M.unlocks };
+  }
+  // =====================================================================
+  //  S3-C1: repeticiones (VB.Replay, js/replay.js): capa de la repetición y pestaña «Jugadas (n)» (R10)
+  // =====================================================================
+  // Durante la repetición (#app.replay, solo con los módulos pintando la sombra: Replay.runner()) se tapan marcador, guía, consejos,
+  // sellos, cintas, challenge y mandos táctiles; se ven la mosca «REPETICIÓN» (#rpBug), el rótulo inferior (#rpCap: título, «1 de 3»,
+  // frase y datos de VB.Replay.info()) y la pista de saltar (#rpSkip; en mejores jugadas, «Siguiente» y «Salir»). Lector de pantalla:
+  // #rpAria (aria-live) con info().aria al empezar cada jugada y «Fin de la repetición» al salir. Saltar: main.js lee el mando y el
+  // teclado (VB.Input) y ui.js el toque (ctx.replaySkipReq; 'all' = «Salir»). Cero basura por frame: el DOM solo se toca si cambia
+  // la jugada, el dispositivo o la cámara lenta.
+  var rpv = { on: false, kind: '', i: -1, n: -1, dev: '', slow: false }, rpBack = false, rpFocus = '', rpKb = false;
+  var RP_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z"/></svg>';
+  function rpApi() { return VB.Replay && VB.Replay.info ? VB.Replay : null; }
+  /** Cortinilla de la repetición (VB.Replay la llama al entrar, entre jugadas y al salir): false si ya hay una (Replay sigue sin ella). */
+  function replayWipe(cb) { return wipeRun(2, cb); }
+  function rpSkipHTML(inf, dev) {
+    var nx = inf.kind === 'best' && inf.i + 1 < inf.n, w = nx ? 'Siguiente' : 'Saltar', best = inf.kind === 'best';
+    if (dev === 'touch') return 'Toca para ' + (nx ? 'ver la siguiente' : 'saltar');
+    if (dev === 'gamepad') return padKey('a') + w + (best ? '<span class="rp-gap"></span>' + padKey('b') + 'Salir' : '');
+    return '<span class="key">Intro</span>' + w + (best ? '<span class="rp-gap"></span><span class="key">Esc</span>Salir' : '');
+  }
+  function rpTick() {
+    var R = rpApi(), vis = !!(R && ctx.replay && R.runner && R.runner());
+    if (vis !== rpv.on) {
+      rpv.on = vis; rpv.kind = ''; rpv.i = rpv.n = -1;
+      el.app.classList.toggle('replay', vis);
+      if (el.rpBug) el.rpBug.hidden = !vis;
+      if (el.rpCap) el.rpCap.hidden = !vis;
+      if (el.rpSkip) el.rpSkip.hidden = !vis;
+      if (!vis && el.rpAria && R && R.TXT) el.rpAria.textContent = R.TXT.end;
+      if (vis) { hideBanner(); if (bugT > 0) hideBug(false); }
+    }
+    if (!vis || !el.rpCap) return;
+    var inf = R.info(); if (!inf) return;
+    var dev = device();
+    if (inf.kind !== rpv.kind || inf.i !== rpv.i || inf.n !== rpv.n) {
+      rpv.kind = inf.kind; rpv.i = inf.i; rpv.n = inf.n; rpv.dev = '';
+      el.rpCap.className = 'rp-' + inf.kind; rpv.slow = false;
+      el.rpTitle.textContent = inf.title || '';
+      el.rpPill.hidden = !inf.pill; el.rpPill.textContent = inf.pill || '';
+      el.rpPhrase.textContent = inf.phrase || '';
+      setSep(el.rpSub, String(inf.sub || '').split(' | '), 'v');
+      if (el.rpAria) el.rpAria.textContent = inf.aria || '';
+      void el.rpCap.offsetWidth; el.rpCap.classList.add('in');   // (entrada del rótulo en cada jugada)
+    }
+    if (dev !== rpv.dev) {
+      rpv.dev = dev;
+      el.rpSkipT.innerHTML = rpSkipHTML(inf, dev);
+      if (el.rpExit) el.rpExit.hidden = !(dev === 'touch' && inf.kind === 'best');
+    }
+    if (inf.slow !== rpv.slow) { rpv.slow = inf.slow; el.rpCap.classList.toggle('slow', inf.slow); }
+  }
+  /** Fin de las jugadas vistas desde la hoja (onEnd de VB.Replay.playBest): la hoja vuelve sola (syncScreens con ctx.replay null) y
+   *  el foco va al «Ver» pulsado (focusLayer con rpFocus). */
+  function replayDone() { shown = ''; if (ctx.game) syncScreens(ctx.game); }
+  /** Pestaña «Jugadas (n)» de la hoja final: filas de VB.Replay.list() (frase y set/marcador) con «Ver» y, con más de una, «Verlas todas». */
+  function renderPlays(n) {
+    if (!el.endPlays) return;
+    var L = [];
+    if (n > 0) { try { L = VB.Replay && VB.Replay.list ? VB.Replay.list() : []; } catch (e) { L = []; console.error('[VB][ERROR] Replay.list: ' + e); } }
+    if (!L.length) { el.endPlays.innerHTML = ''; return; }
+    var h = '<p class="pl-h">Las mejores jugadas del partido</p><ol class="pl-list" data-nav>';
+    L.forEach(function (p) {
+      h += '<li class="pl-row t' + (p.team === 1 ? 1 : 0) + '"><span class="pl-n" aria-hidden="true">' + (p.i + 1) + '</span><span class="pl-tx"><b>' + escT(p.phrase) + '</b><small>' +
+        sepHTML(String(p.sub || '').split(' | '), 'v') + '</small></span><button class="ghost pl-go" data-play="' + p.i + '" aria-label="Ver la jugada ' + (p.i + 1) + ': ' + escT(p.phrase) + '">' + RP_PLAY + 'Ver</button></li>';
+    });
+    h += '</ol>';
+    if (L.length > 1) h += '<div class="pl-all" data-nav><button class="ghost" data-play="all" aria-label="Ver las ' + L.length + ' jugadas seguidas">' + RP_PLAY + 'Verlas todas</button></div>';
+    el.endPlays.innerHTML = h;
+  }
+  function playsClick(ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-play]') : null; if (!b || !el.endPlays.contains(b)) return;
+    var k = b.getAttribute('data-play');
+    rpFocus = k; rpKb = ev.detail === 0 || kbNow();
+    click();
+    if (!(ctx.actions.playBest && ctx.actions.playBest(k === 'all' ? undefined : +k))) rpFocus = '';
+  }
+  /** Pestañas de la hoja: ids de M.tabs; una sola (o sin recap.js) = sin barra. */
+  function endPanes(tabs, cur, noBar, labels) {
+    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas') }; });
+    var bar = !noBar && items.length > 1;
+    if (el.endTabs) {
+      el.endTabs.hidden = !bar;
+      if (bar) {
+        if (!endTabsApi) endTabsApi = makeTabs(el.endTabs, items, { value: cur, label: 'Resultado del partido', onChange: function (id) { endShow(id); } });
+        else { endTabsApi.refresh(items); endTabsApi.set(cur, 'api'); }
+      }
+    }
+    endShow(cur);
+  }
+  function endShow(id) {
+    endTab = id;
+    if (el.endSum) el.endSum.hidden = id !== 'sum';
+    if (el.endStatsTab) el.endStatsTab.hidden = id !== 'stats';
+    if (el.endPlays) el.endPlays.hidden = id !== 'plays';
+    var pn = id === 'sum' ? el.endSum : id === 'stats' ? el.endStatsTab : el.endPlays;
+    if (pn && el.endTabs && !el.endTabs.hidden) pn.setAttribute('aria-labelledby', 'endTabs-' + id);
+    if (pn && pn.scrollTop) pn.scrollTop = 0;
+    el.end.setAttribute('data-tab', id);
+    endMore();
+  }
+  /** Panel de la hoja con más contenido debajo → .more (desvanecido abajo); al desplazarlo, al cambiar de pestaña y al verse la hoja. */
+  function endMore() {
+    var pn = endTab === 'sum' ? el.endSum : endTab === 'stats' ? el.endStatsTab : el.endPlays;
+    if (!pn || pn.hidden || el.end.hidden) return;
+    var m = pn.scrollHeight - pn.clientHeight - pn.scrollTop > 6;
+    if (pn.classList.contains('more') !== m) pn.classList.toggle('more', m);
+  }
+  /** Botones del modelo (principal + resto) sobre los cuatro de siempre: again/next → #btnAgain; againAlt; opts/retos → #btnEndOpts; menu. */
+  function endButtons(M) {
+    var B = M.buttons; if (!B) return;
+    el.btnAgain.textContent = B.primary.label; el.btnAgain.setAttribute('data-act', B.primary.id);
+    var has = {}; (B.rest || []).forEach(function (b) { has[b.id] = b; });
+    el.btnAgainAlt.hidden = !has.againAlt; if (has.againAlt) el.btnAgainAlt.textContent = has.againAlt.label;
+    var o = has.opts || has.retos;
+    if (el.btnEndOpts) { el.btnEndOpts.hidden = !o; if (o) { el.btnEndOpts.textContent = o.label; el.btnEndOpts.setAttribute('data-act', o.id); } }
+    el.btnMenu.hidden = !has.menu; if (has.menu) el.btnMenu.textContent = has.menu.label;
+    el.btnAgain.parentNode.setAttribute('data-n', String((has.againAlt ? 1 : 0) + (o ? 1 : 0) + (has.menu ? 1 : 0)));
+  }
+  /** Retrato pequeño del MVP (tu jugador de la Carrera o tu n.º 1/2 de Partido rápido); nunca de rivales. */
+  function rcPortrait(mv, cs) {
+    try {
+      var req = null;
+      if (cs && VB.CareerUI && VB.CareerUI.portraitReq && VB.Career && VB.Career.get) {
+        var c = VB.Career.get(), who = mv.me ? 'me' : (cs.mateNum | 0) === (mv.num | 0) && cs.mode !== 'hall' ? 'mate' : '';
+        if (c && who && !cs._debug) req = VB.CareerUI.portraitReq(c, who, 44);
+      } else if (!cs && VB.Prog) {
+        var a = VB.Prog.get().a; for (var i = 0; i < 2; i++) if (a[i] && (a[i].num | 0) === (mv.num | 0)) req = portraitReqMatch(0, i, 44);
+      }
+      return req ? portraitHTML(req, 'rc-pt', mv.name) : '<span class="pt pt-ph rc-pt" aria-hidden="true">' + (mv.num | 0) + '</span>';
+    } catch (e) { return ''; }
+  }
+  function rcBadges(list) {
+    if (!list || !list.length || !VB.Badges) return '';
+    var h = '';
+    list.slice(0, 3).forEach(function (u) {
+      var b = VB.Badges.BY && VB.Badges.BY[u.id], tier = u.tier || (VB.Badges.TIERS && VB.Badges.TIERS[u.lvl]) || '';
+      h += '<span class="l' + (u.lvl | 0) + '" title="' + escT(VB.Badges.label ? VB.Badges.label(u) : u.name) + '"><i class="bd-ic">' + (b ? b.icon : '') + '</i>' + (u.num ? 'N.º ' + u.num + ': ' : '') + '<b>' + escT(u.name || '') + '</b><small>' + (u.prev ? 'sube a ' + tier : 'nueva (' + tier + ')') + '</small></span>';
+    });
+    if (list.length > 3) h += '<span class="more">+' + (list.length - 3) + '</span>';
+    return '<div class="end-bd rc-bd">' + h + '</div>';
+  }
+  /** Bloque del reto del día: tres medallas (la nueva destacada), la frase y la experiencia. */
+  function rcDayHTML(day) {
+    var T = ['Bronce', 'Plata', 'Oro'], best = Math.max(day.best | 0, day.medal | 0), mh = '';
+    for (var k = 1; k <= 3; k++) mh += '<span class="ge-m' + (best >= k ? ' on' : '') + (day.newMedal && day.medal === k ? ' new' : '') + '">' + medalSVG(best >= k ? k : 0, best >= k ? '' : 'off') + T[k - 1] + '</span>';
+    var line = day.newMedal && day.medal ? '¡Medalla de ' + RC_MED[day.medal] + ' en el reto del día!' : day.prev && day.medal <= day.prev ? 'Hoy ya tenías ' + RC_MED[day.prev] : 'Sin medalla: gana un set para el bronce';
+    return '<div class="rc-meds">' + mh + '</div><span class="rc-l">' + escT(line) + '</span>' + (day.xp ? '<span class="rc-x">+' + (day.xp | 0) + ' de experiencia (a cada jugador)</span>' : '');
+  }
+  /** HTML del Resumen: bloques del modelo en su orden, cada uno con su etiqueta a la izquierda y entrada escalonada (--i). */
+  function rcHTML(M, d) {
+    var H = M.heads || {}, h = '', i = 0, cs = d.career, re = retoEnd;
+    function blk(cls, head, body) { h += '<div class="rc-b ' + cls + '" style="--i:' + (i++) + '">' + '<span class="rc-h">' + escT(head || '') + '</span><div class="rc-c">' + body + '</div></div>'; }
+    if (M.headline) h += '<p class="rc-hl" style="--i:' + (i++) + '">' + escT(M.headline) + '</p>';
+    if (d.reto && re && re.day) blk('rc-day', 'Reto del día', rcDayHTML(re.day));
+    M.blocks.forEach(function (k) {
+      switch (k) {
+        case 'mvp':
+          if (M.mvp) {
+            var mv = M.mvp, parts = [mv.ptsT].concat(mv.parts || []);
+            blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
+          } else blk('rc-mvp rv', H.mvp, '<span class="rc-l">' + escT(M.mvpRival.t) + '</span>' + (cs && M.nota ? '<em class="rc-nota">Nota ' + escT(M.nota) + '</em>' : ''));
+          break;
+        case 'xp':
+          var xh = '';
+          M.xp.forEach(function (r) {
+            xh += '<span class="rc-xr"><span class="rc-nm">' + escT(r.name) + '</span><b>+<i data-cu="' + r.xp + '">' + r.xp + '</i> XP</b>' +
+              (r.bar != null ? '<i class="rc-bar" aria-hidden="true"><i style="--w:' + Math.round(r.bar * 100) + '%"></i></i>' : '') + (r.lvlUp ? '<span class="lv">' + escT(r.lvlT) + '</span>' : '') + '</span>';
+          });
+          blk('rc-xp', H.xp, xh + (M.badges.length ? rcBadges(M.badges) : ''));
+          break;
+        case 'badges': if (!M.xp.length) blk('rc-bdg', 'Insignias', rcBadges(M.badges)); break;
+        case 'unlocks':
+          var U = M.unlocks;
+          blk('rc-unl', H.unlocks, '<span class="rc-l">' + escT(U.t) + '</span>' + (U.n > 1 ? '<span class="rc-chips">' + sepHTML(U.chips.map(function (c) { return { t: c }; }).concat(U.more ? [{ t: '+' + U.more }] : []), 'c') + '</span>' : ''));
+          break;
+        case 'table':
+          var tb = '';
+          M.table.rows.forEach(function (r) {
+            var mvT = r.me && M.table.move && M.table.move.txt ? M.table.move : null;
+            tb += '<span class="rc-tr' + (r.me ? ' me' : '') + '"><em>' + escT(r.posT) + '</em>' + (mvT ? '<i class="mv ' + (mvT.d > 0 ? 'up' : mvT.d < 0 ? 'dn' : 'eq') + '">' + escT(mvT.txt) + '</i>' : '<i class="mv"></i>') + '<b>' + escT(r.short) + '</b><span>' + r.pts + '</span></span>';
+          });
+          blk('rc-tb', H.table, tb);
+          break;
+        case 'cup': blk('rc-cup', H.cup, '<span class="rc-l">' + escT(M.cup) + '</span>'); break;
+        case 'life': blk('rc-life', H.life, M.life.map(function (t) { return '<span class="rc-l">' + escT(t) + '</span>'; }).join('')); break;
+        case 'chem': blk('rc-chem', H.chem, '<span class="rc-l">' + escT(M.chem.t) + '</span>'); break;
+        case 'boss': blk('rc-boss' + (M.boss.win ? ' win' : ''), H.boss, '<span class="rc-l">' + escT(M.boss.t) + '</span>'); break;
+        case 'train': blk('rc-train', H.train, '<span class="rc-l">' + sepHTML(M.train.t.split(' | '), 'v') + '</span>'); break;
+        case 'retos':
+          var rp = M.retos.pills.map(function (p) { return '<span class="rc-pill' + (p.nw ? ' nw' : '') + '">' + medalSVG(p.lvl) + escT(p.t) + '</span>'; }).join('');
+          blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + ' (a cada jugador)</span>' : ''));
+          break;
+        case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
+        case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
+      }
+    });
+    return h;
+  }
+  /** Sonidos del Resumen al verse la hoja: la flecha de la tabla a los 700 ms y el desbloqueo a los 800 ms (nunca en depuración). */
+  function endRcSounds() {
+    var S = endRcSnd; if (!S || ctx.debug || endTab !== 'sum') return;
+    if (S.rank) setTimeout(function () { if (!el.end.hidden && ctx.state === 'over') uiK('rank', null, S.rank); }, 700);
+    if (S.unl) setTimeout(function () { if (!el.end.hidden && ctx.state === 'over') uiK('unlock', null); }, 800);
+  }
+  /** Carrera (main.js, tras VB.Career.matchDone y después de showEnd): el Resumen de la jornada. x = {tbl, myId, short, pos, next, bar, ses}. */
+  function endCareer(sum, g, x) {
+    g = g || ctx.game; if (!g || !sum) return null;
+    var e = { team: g.sets && g.sets[0] > g.sets[1] ? 0 : 1, sets: g.sets.slice(), setScores: g.setScores };
+    endRecap(e, g, sum, x || null);
+    if (!el.end.hidden && el.endSum) countUp(el.endSum);
+    return recapM;
   }
   /** Cuenta hacia arriba (600 ms, rAF) de las cifras de la hoja final al aparecer: solo textContent (cifras tabulares, la hoja no
    *  cambia de tamaño). Movimiento reducido: cifras finales directamente. */
-  var cuRaf = 0;
+  //  (B6: también el «+184 XP» del Resumen, [data-cu]. root = #end al aparecer la hoja; root = #endSum cuando la Carrera repinta el
+  //  Resumen con la hoja ya a la vista: reloj propio, sin el acento del MVP y sin cortar la cuenta de la hoja)
+  var cuRaf = 0, cuRaf2 = 0;
   function countUp(root) {
+    var main = root === el.end;
     var L = root.querySelectorAll('[data-cu], .st-r b, .es-t b'), items = [];
     for (var i = 0; i < L.length; i++) { var n = L[i], v = +(n.getAttribute('data-cu') || n.textContent) || 0; if (v > 0) items.push([n, v]); }
-    cancelAnimationFrame(cuRaf);
+    cancelAnimationFrame(main ? cuRaf : cuRaf2);
     // AUD-08: revelación del MVP (el acento cae a 0,6 s, cuando se posan las cifras; con movimiento reducido, 0,6 s tras aparecer)
-    if (el.endMvp && el.endMvp.firstChild) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('mvp', root.classList.contains('win')); } catch (e) { } }
+    if (main && el.endMvp && el.endMvp.firstChild) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('mvp', root.classList.contains('win')); } catch (e) { } }
     if (rm() || !items.length) return;
     for (var k = 0; k < items.length; k++) items[k][0].textContent = '0';
     // un solo reloj: t0 = sello del PRIMER frame de rAF (mezclar performance.now() con los sellos de rAF daba cifras negativas)
     var t0 = -1;
-    cuRaf = requestAnimationFrame(function step(now) {
+    var r0 = requestAnimationFrame(function step(now) {
       if (t0 < 0) t0 = now;
       var u2 = Math.max(0, Math.min(1, (now - t0) / 600)), e2 = 1 - Math.pow(1 - u2, 3);
       var chg = false;
       for (var j = 0; j < items.length; j++) { var tv = String(Math.round(items[j][1] * e2)); if (items[j][0].textContent !== tv) { items[j][0].textContent = tv; chg = true; } }
       // AUD-08: tic en los frames en que cambia alguna cifra (audio.js los espacia: ≤ 20/s, se frenan con la cuenta) y «clac» en el último
-      if (chg || u2 >= 1) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('count', u2, now); } catch (e) { } }
-      if (u2 < 1) cuRaf = requestAnimationFrame(step);
+      if (main && (chg || u2 >= 1)) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('count', u2, now); } catch (e) { } }
+      if (u2 < 1) { var r1 = requestAnimationFrame(step); if (main) cuRaf = r1; else cuRaf2 = r1; }
     });
+    if (main) cuRaf = r0; else cuRaf2 = r0;
   }
   // ---------- Flujo hasta la hoja final (UI-11 / UI-13) ----------
   // Escritorio (≥ 1000 px): al llegar gameOver, cortinilla y hoja acoplada a la izquierda (la celebración sigue a la derecha).
   // Móvil: la celebración sin nada encima hasta que acaba el cierre de la cámara (clinchLeft = 0) y han pasado ≥ 2,5 s desde el
   // punto que gana el partido; cualquier botón o toque lo adelanta (tras 0,8 s). Luego cortinilla y hoja.
-  var endGate = false, endWait = 0, endT0 = 0, matchPtT = -99, endTeam = 0, endPeek = false;
+  var endGate = false, endWait = 0, endT0 = 0, matchPtT = -99, endTeam = 0, endPeek = false, endLastT = 0, endRpAcc = 0;
   function endDocked() { return (ctx.width || innerWidth) >= 1000; }
   function endFlow(e) {
     endTeam = e.team === 1 ? 1 : 0; endPeek = false; el.end.classList.remove('peek');
     if (ctx.debug && ctx.params.hold !== '1') { endGate = false; return; }   // depuración: la hoja al momento
-    endGate = true; endT0 = ctx.time;
-    if (endDocked()) { endWait = 0; if (!wipeRun(endTeam, endOpen)) endOpen(); return; }
+    endGate = true; endT0 = ctx.time; endLastT = ctx.time; endRpAcc = 0;
+    // B6: la celebración de END_CELEB s también en escritorio (antes la hoja acoplada salía al momento); al abrirse se acopla igual
     endWait = 1; ctx.endHold = true;
     var d = device();
     el.skip.innerHTML = d === 'touch' ? 'Toca para ver el resultado' : d === 'gamepad' ? padKey('a') + 'Ver el resultado' : '<span class="key">Intro</span>Ver el resultado';
@@ -2860,10 +3207,14 @@
     if (ctx.state !== 'over') { endWait = 0; endGate = false; ctx.endHold = false; el.skip.hidden = true; return; }
     var cl = 0; try { cl = VB.CameraRig && VB.CameraRig.clinchLeft ? +VB.CameraRig.clinchLeft() || 0 : 0; } catch (er) { cl = 0; }
     var ref = matchPtT > endT0 - 12 ? matchPtT : endT0;            // desde el punto que gana el partido (o desde gameOver si no se vio)
-    if (ctx.time - ref >= 2.5 && ctx.time - endT0 >= 0.25 && cl <= 0.01) endGo();
+    // R11: END_CELEB cuenta tiempo vivo; mientras se ve la repetición del punto de partido (ctx.replay) no corre ni se abre la hoja
+    var dT = ctx.time - endLastT; endLastT = ctx.time;
+    if (ctx.replay) { endRpAcc += Math.max(0, dT); return; }
+    var cel = VB.Recap && +VB.Recap.END_CELEB > 0 ? +VB.Recap.END_CELEB : 3;
+    if (ctx.time - ref - endRpAcc >= cel && ctx.time - endT0 >= 0.25 && cl <= 0.01) endGo();
   }
   function endGo() { if (endWait !== 1) return; endWait = 2; el.skip.hidden = true; if (!wipeRun(endTeam, endOpen)) endOpen(); }
-  function endSkip() { if (endWait === 1 && ctx.time - endT0 >= 0.8) endGo(); }
+  function endSkip() { if (endWait === 1 && ctx.time - endT0 >= 0.8 && !ctx.replay) endGo(); }
   /** Cambia entre la hoja y la celebración (móvil). */
   function setPeek(on) { endPeek = !!on; el.end.classList.toggle('peek', endPeek); focusEl(endPeek ? el.btnEndBack : el.btnPeek, false); }
   /** ctx.uiDock = {side:'left', frac} con la hoja final acoplada (CAM-10 encuadra en el resto); null si no. */
@@ -3040,14 +3391,17 @@
   // qué botón se vino, para volver con Esc / B / «Volver» al mismo sitio. La Carrera (career-ui.js) se abre desde la tarjeta
   // #btnCareer de Jugar: mientras está abierta, el menú se queda en Jugar (al cerrarla, el foco vuelve a esa tarjeta).
   var mpage = 'main', mstack = [];
-  function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : el.menuCol; }
-  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : el.btnPlay; }
+  function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : p === 'retos' ? el.mpRetos : p === 'prof' ? el.mpProf : el.menuCol; }
+  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : el.btnPlay; }
   function setPage(p, anim) {
     var was = mpage;
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
+    if (was === 'prof' && p !== 'prof') pfLeave();   // Perfil: lo nuevo de la pestaña a la vista queda visto
     mpage = p;
-    ['main', 'play', 'quick', 'gym', 'look'].forEach(function (k) { var n = pageEl(k); if (n) n.hidden = k !== p; });
+    ['main', 'play', 'quick', 'gym', 'look', 'retos', 'prof'].forEach(function (k) { var n = pageEl(k); if (n) n.hidden = k !== p; });
     if (p === 'gym') renderGym();
+    if (p === 'retos') renderRetos();
+    if (p === 'prof' && was !== 'prof') pfOpen();
     if (p === 'look' && was !== 'look') lkOpen();
     el.menu.setAttribute('data-page', p);
     var n = pageEl(p);
@@ -3273,17 +3627,13 @@
     el.lkNote.textContent = t; restartAnim(el.lkNote, 'on'); lkNT = t.length > 40 ? 3.4 : 2.6;
   }
   /** Lo ganado fuera de la Carrera (récord y Entrenamiento): VB.Look.checkGlobal y aviso «Nuevo en tu vestuario». */
+  //  (B6: la concesión es lookGrantNow, que la hoja final llama antes; aquí queda el aviso de lo que aún no se haya enseñado. Los retos
+  //  y el nivel de perfil los lee checkGlobal solo, de VB.Retos.lookData() y VB.Profile.level())
   function lkCheckNew() {
-    var Lk = LK(); if (!Lk || !Lk.checkGlobal) return;
-    var gym = {}, gymN = 0, Gm = VB.Gym;
-    try {
-      ['serve', 'recv', 'set', 'atk', 'block'].forEach(function (id) { var r = Gm && Gm.get ? Gm.get(id) : null; gym[id] = r ? Math.max(0, Math.min(3, r.m | 0)) : 0; });
-      gymN = Gm && Gm.count ? Gm.count() | 0 : 0;
-    } catch (e) { }
-    var ids = [];
-    try { ids = Lk.checkGlobal({ gym: gym, gymN: gymN, rec: { wins: record.wins | 0, played: record.played | 0, streak: record.bestStreak | 0 } }) || []; } catch (e) { ids = []; }
+    var ids = lookGrantNow();
     if (!ids.length) return;
     var names = ids.map(lkItemName);
+    pfDirty = true; last.pf = null; if (ctx.state === 'menu' && mpage === 'prof') pfRender(true);   // (D2: el álbum y el chip lo cuentan)
     lkNote('Nuevo en tu vestuario: ' + (names.length > 3 ? names.length + ' objetos' : names.length === 1 ? names[0] : names.slice(0, -1).join(', ') + ' y ' + names[names.length - 1]));
     if (ctx.state === 'menu') { last.navh = null; renderMenu(); if (lk.on) lkRender(); }
   }
@@ -3736,15 +4086,25 @@
   //  fmt ('2v2' | '6v6', sin guardarlo en el ajuste): desde un partido (revancha, reiniciar) repite el formato del que acaba; desde
   //  el menú manda el ajuste «Formato» (salvo el tutorial, que enseña el 2 contra 2). El 6v6 espectador (?format=6v6) y la Carrera
   //  siguen sin formato: main.js startMatch los resuelve como siempre
-  function goMatch(diff, fmt) {
+  function goMatch(diff, fmt, mini) {
     if (fmt === undefined && ctx.state !== 'menu') fmt = curFmt();
     var o = fmt ? { format: fmt } : undefined;
+    if (mini) { o = o || {}; o.introKind = 'mini'; }   // B5/B6: la revancha desde la hoja final, con la previa mini
     // (6v6, lote A D9: justo después de startMatch, el puesto elegido en Controlar; la sim mueve g.ctrl a ese jugador)
     if (!wipeRun(2, function () { if (diff) ctx.actions.setSetting('difficulty', diff); ctx.actions.startMatch(o); applyRole6(); }) && !wp.cb) { ctx.actions.startMatch(o); applyRole6(); }
   }
   /** Formato del partido en curso (para repetirlo), o undefined (sin partido humano de Partido rápido). */
   function curFmt() { var g = ctx.game; return g && !g.demo && !g.watch && !g.career ? (g.size === 6 ? '6v6' : '2v2') : undefined; }
   function goMenu() { if (!wipeRun(2, function () { ctx.actions.toMenu(); }) && !wp.cb) ctx.actions.toMenu(); }
+  /** Botón principal de la hoja final (B6, data-act): «Siguiente jornada» (Carrera: al hub, en Partido con el foco en «Jugar
+   *  partido»; main.js toMenu), «Otra vez» (reto del día de hoy, previa mini) o «Revancha» (previa mini). */
+  function endPrimary() {
+    var act = el.btnAgain.getAttribute('data-act') || 'again', g = ctx.game;
+    uiSound('start');
+    if (act === 'next') { goMenu(); return; }
+    if (g && g.retoOpts && !g.demo) { goReto(true); return; }
+    goMatch(null, undefined, !(g && g.career));
+  }
   /** Hoja final → «Cambiar opciones»: al menú y directo a la preparación del Partido rápido (Volver lleva a Jugar y luego a la portada). */
   function goOptions() {
     var f = function () {
@@ -4128,6 +4488,8 @@
     msTiming: { vals: [true, false], labels: ['Sí', 'No'] },
     // 6v6: cambios de tu equipo (main.js ctx.settings.subs6 → coach[0].auto): el entrenador CPU también cambia (nunca a ti) o solo los que pidas
     subs6: { vals: ['auto', 'manual'], labels: ['Automáticos', 'Solo los míos'] },
+    // S3-C1: repeticiones (main.js ctx.settings.replays → VB.Replay): puntos de set y de partido solos, solo en «Jugadas», o ninguna
+    replays: { vals: ['auto', 'end', 'off'], labels: ['Automáticas', 'Al final', 'No'] },
     // sede de cada tipo (Ajustes · Imagen; js/venues.js: las disponibles + «Al azar»). arena.js la cambia en vivo
     mapBeach: mapOpt('beach'), mapHall: mapOpt('hall')
   };
@@ -4158,7 +4520,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camDist', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'aimSet', 'msTiming', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
+    game: ['showHelp', 'coachTips', 'aimSet', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -4797,6 +5159,310 @@
     };
     if (!wipeRun(2, f) && !wp.cb) f();
   }
+  // =====================================================================
+  //  RETOS (D1, sprint 2-4, spec S4-D1 §2.5 A-B): franja #btnRetos en Jugar y página #mpRetos con las pestañas «Hoy | Maestría»
+  // =====================================================================
+  // Datos de js/retos.js (VB.Retos: daily, dayState, progress, summary, unseen…); aquí solo el pintado. El torneo de la semana está
+  // cortado (plan §4): la pestaña Hoy lleva el reto del día. «¡A jugar!» = goReto (cortinilla + startMatch(daily().opts)); la hoja
+  // final del reto ofrece «Otra vez» (el reto de HOY, previa mini) y «Retos» (goRetosList). La pestaña se recuerda en
+  // localStorage 'voley3d.retostab' (comodidad del aparato; nunca a la cuenta).
+  var rtTab = '', rtTabsApi = null, rtStrip = '';
+  function rtTabLoad() { try { return localStorage.getItem('voley3d.retostab') === 'maestria' ? 'maestria' : 'hoy'; } catch (e) { return 'hoy'; } }
+  function rtTabSave(v) { try { localStorage.setItem('voley3d.retostab', v); } catch (e) { } }
+  function rtDaily() { try { return VB.Retos && VB.Retos.daily ? VB.Retos.daily() : null; } catch (e) { return null; } }
+  function rtFocusEl() { return el.rtBody ? el.rtBody.querySelector('[data-reto="day"]') || el.rtBody.querySelector('button') || el.btnRetosBack : null; }
+  /** Franja de Jugar: «Reto del día: Cala dels Fanals» + pastilla «Sin jugar» / «Hoy: plata», la medalla de hoy y el punto de nuevo. */
+  function renderRetoStrip() {
+    if (!el.btnRetos) return;
+    var R = VB.Retos, wrap = el.btnRetos.parentNode;
+    if (wrap && wrap.hidden === !!R) wrap.hidden = !R;
+    if (!R) return;
+    var ds = null, un = 0, k = '';
+    try { ds = R.dayState(); un = R.unseen().length; k = ds.key + '|' + ds.m + '|' + un; } catch (e) { return; }
+    if (k === rtStrip) return;   // (renderMenu corre cada 64 frames en el menú: solo se rehace si cambia algo)
+    rtStrip = k;
+    var dd = rtDaily(), mp = dd ? dd.mapName : '', m = ds.m | 0;
+    el.retoSub.innerHTML = escT('Reto del día' + (mp ? ': ' + mp : '')) + ' <span class="chip">' + (m ? 'Hoy: ' + RC_MED[m] : 'Sin jugar') + '</span>';
+    el.retoMeds.innerHTML = medalSVG(m, m ? '' : 'off') + (un ? '<i class="rt-new"></i>' : '');
+    el.btnRetos.setAttribute('aria-label', 'Retos. Reto del día' + (mp ? ' en ' + mp : '') + ', ' + (m ? 'hoy ' + RC_MED[m] : 'sin jugar') + (un ? '. Hay medallas nuevas' : ''));
+  }
+  /** Página Retos: pestañas y la de ahora (Hoy: el reto del día; Maestría: los 18 retos en 5 grupos). */
+  function renderRetos() {
+    if (!el.rtBody) return;
+    if (!rtTab) rtTab = rtTabLoad();
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, [{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }],
+      { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id) { rtTab = id; rtTabSave(id); renderRetos(); } });
+    else if (rtTabsApi && rtTabsApi.get() !== rtTab) rtTabsApi.set(rtTab, 'api');
+    var R = VB.Retos, h, foot = '';
+    if (!R) h = '<p class="rt-none">Los retos no están disponibles.</p>';
+    else if (rtTab === 'maestria') {
+      var U = {}; try { R.unseen().forEach(function (id) { U[id] = 1; }); } catch (e) { }
+      h = '';
+      (R.GROUPS || []).forEach(function (G) {
+        h += '<p class="rt-grp">' + escT(G.name) + '</p>';
+        R.LIST.forEach(function (b) {
+          if (b.grp !== G.id) return;
+          var pg = R.progress(b.id) || { lvl: 0, txt: '' }, lvl = pg.lvl | 0;
+          h += '<button class="mi rt-r' + (U[b.id] ? ' new' : '') + '" data-rt="' + b.id + '" aria-label="' + escT(b.name + ': ' + (lvl ? RC_MED[lvl] : 'sin medalla') + '. ' + pg.txt + (b.help ? '. ' + b.help : '')) + '">' +
+            '<span class="rt-md">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="mi-l">' + escT(b.name) + '<small class="mi-h">' + escT(pg.txt) + '</small>' +
+            (b.help ? '<small class="rt-help">' + escT(b.help) + '</small>' : '') + '</span></button>';
+        });
+      });
+      var n = 0; try { n = R.count() | 0; } catch (e) { }
+      foot = sepHTML([{ h: 'Medallas: <b>' + n + ' de ' + (R.LIST.length * 3) + '</b>' }, 'Cada medalla nueva da experiencia a tus jugadores'], 'v');
+    } else {
+      var dd = rtDaily(), ds = R.dayState(), m = ds.m | 0;
+      if (!dd) h = '<p class="rt-none">El reto del día no está disponible.</p>';
+      else {
+        var bits = sepHTML(dd.bits, 'v') + (dd.modName ? ' <span class="chip">' + escT(dd.modName) + '</span>' : ''), th = '';
+        dd.tiers.forEach(function (t, i) { th += '<span class="ge-m' + (m > i ? ' on' : '') + '">' + medalSVG(m > i ? i + 1 : 0, m > i ? '' : 'off') + escT(t) + '</span>'; });
+        h = '<div class="rt-day"><p class="rt-k">' + sepHTML(['Reto del día', R.dateLabel(dd.key)], 'd') + '</p><p class="rt-bits">' + bits + '</p><div class="rt-tiers">' + th + '</div>' +
+          '<p class="rt-med">' + (m ? 'Hoy: ' + RC_MED[m] : 'Hoy: sin medalla') + (ds.n ? ' (' + ds.n + (ds.n === 1 ? ' intento' : ' intentos') + ')' : '') + '</p></div>' +
+          '<button class="mi primary rt-go" data-reto="day"><span>' + (m >= 3 ? 'Jugar otra vez' : '¡A jugar!') + '</span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>';
+      }
+      var sm = null; try { sm = R.summary(); } catch (e) { }
+      foot = sm ? sepHTML([{ h: 'Días con medalla: <b>' + (sm.days | 0) + '</b>' }, { h: 'Medallas de maestría: <b>' + (sm.total | 0) + ' de ' + (sm.of | 0) + '</b>' }], 'v') : '';
+    }
+    if (el.rtBody._h !== h) { el.rtBody._h = h; el.rtBody.innerHTML = h; }
+    if (el.rtFoot) el.rtFoot.innerHTML = foot;
+    // Maestría a la vista: lo nuevo queda visto (el punto sale esta vez y la siguiente ya no; la franja se rehace)
+    if (R && rtTab === 'maestria' && R.markSeen) { try { if (R.unseen().length) { R.markSeen(R.unseen()); rtStrip = ''; } } catch (e) { } }
+  }
+  /** Al reto del día (el de HOY: si ha cambiado el día, el nuevo), bajo la cortinilla. mini = previa mini («Otra vez»). */
+  function goReto(mini) {
+    var dd = rtDaily(); if (!dd || !dd.opts) return;
+    var o = Object.assign({}, dd.opts); if (mini) o.introKind = 'mini';
+    var f = function () { ctx.actions.startMatch(o); };
+    if (!wipeRun(2, f) && !wp.cb) f();
+  }
+  /** Hoja final del reto → «Retos»: al menú, en la página Retos (Volver lleva a Jugar). */
+  function goRetosList() {
+    var kb = kbNow() || ctx.inputDevice === 'gamepad';
+    var f = function () {
+      ctx.actions.toMenu();
+      if (ctx.state !== 'menu') return;
+      mstack.length = 0; mstack.push({ p: 'main', f: 'btnPlay' }); mstack.push({ p: 'play', f: 'btnRetos' });
+      setPage('retos');
+      setTimeout(function () { if (mpage === 'retos' && !panel && ctx.state === 'menu') focusEl(pageFocus(), kb); }, 250);
+    };
+    if (!wipeRun(2, f) && !wp.cb) f();
+  }
+
+  // =====================================================================
+  //  PERFIL (S4 D2, sprint 2-4, spec S4-D2D4 §2.5): chip #btnProf de la portada, página #mpProf (nivel, vitrina y álbum) y avisos #pfNote
+  // =====================================================================
+  // Datos de js/profile.js (VB.Profile), todo con guarda: sin el módulo no hay chip ni página. album() es caro (recorre el catálogo
+  // del Vestuario, las insignias, el Entrenamiento, los logros y los retos): solo al abrir la página, al cambiar de pestaña y al fijar
+  // en la vitrina. El chip usa un resumen (pfSum) que se rehace solo con pfDirty: entrada al menú, VB.UI.refreshMenu (bajada de la
+  // cuenta), los avisos de check() y la vitrina. Nunca por frame (renderMenu corre cada 64 frames y solo lee pfSum).
+  var pf = { tab: '', alb: null, map: null, tabs: null, sel: '', pins: [], q: [], noteT: 0, checkPend: true, lostSaid: false, roSaid: false };
+  var pfDirty = true, pfSum = null;
+  var PF_TAB_IDS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos'];
+  var PF_SHIRT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.5 3 3 6l2 4.5 2-.9V21h10V9.6l2 .9L21 6l-5.5-3c-.4 1.6-1.8 2.8-3.5 2.8S8.9 4.6 8.5 3z"/></svg>';
+  var PF_LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 6 10zm2.6 0h4.8V7.5a2.4 2.4 0 0 0-4.8 0z"/></svg>';
+  /** Icono de un hueco: el SVG que da el módulo (insignias, retos, sedes, hitos…) o, si no es un SVG (el Vestuario da texto), la camiseta. */
+  function pfIcon(it) { var ic = it && it.icon; return typeof ic === 'string' && ic.charAt(0) === '<' ? ic : PF_SHIRT; }
+  function pfTier(it) { var t = it ? it.tier | 0 : 0; return it && it.aid && it.aid.indexOf('look:') === 0 ? (t >= 3 ? 3 : t >= 2 ? 2 : 0) : t; }
+  function pfMapOf(alb) { var m = {}; if (alb) alb.tabs.forEach(function (tb) { tb.items.forEach(function (it) { m[it.aid] = it; }); }); return m; }
+  function pfLv() { var P = VB.Profile; try { return P.level(); } catch (e) { return { lvl: 1, into: 0, next: 80, total: 0 }; } }
+  /** Resumen para el chip (pfDirty lo invalida). show: con al menos un partido o un sello (perfil limpio: portada idéntica). */
+  function pfSummary() {
+    if (!pfDirty && pfSum) return pfSum;
+    pfDirty = false; pfSum = null;
+    var P = VB.Profile; if (!P || !P.album) return null;
+    try {
+      var lv = P.level(), st = P.stats(), alb = P.album(), map = pfMapOf(alb);
+      var vit = (P.vitrina() || []).map(function (a) { return map[a]; }).filter(Boolean);
+      pfSum = { lv: lv, st: st, have: alb.have | 0, total: alb.total | 0, vit: vit, un: P.unseenCount() | 0, show: (st.m | 0) > 0 || (alb.have | 0) > 0 };
+    } catch (e) { console.error('[VB][ERROR] Profile (chip): ' + e); pfSum = null; }
+    return pfSum;
+  }
+  /** Chip de la portada (renderMenu): aro con el nivel, hasta 3 de la vitrina, «Álbum 23/140» y punto con sellos sin ver. */
+  function pfChip() {
+    var b = el.btnProf; if (!b) return;
+    var S = VB.Profile ? pfSummary() : null, on = !!(S && S.show) && mpage === 'main';
+    if (b.hidden === on) { b.hidden = !on; if (b.parentNode) b.parentNode.classList.toggle('off', !on); }
+    if (el.menuFoot && el.menuFoot.classList.contains('has-pf') !== on) el.menuFoot.classList.toggle('has-pf', on);
+    if (!on) return;
+    var lv = S.lv, fr = lv.next ? Math.max(0, Math.min(1, lv.into / lv.next)) : 1;
+    var key = lv.total + '|' + S.vit.map(function (it) { return it.aid; }).join(',') + '|' + S.have + '/' + S.total + '|' + S.un;
+    if (last.pf === key) return;
+    last.pf = key;
+    b.innerHTML = '<span class="pf-ring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="tr" cx="18" cy="18" r="15"/><circle class="ar" cx="18" cy="18" r="15" pathLength="100" stroke-dasharray="' +
+      (fr * 100).toFixed(1) + ' 100"/></svg><small>Nv</small><b>' + lv.lvl + '</b></span>' +
+      (S.vit.length ? '<span class="pf-vi" aria-hidden="true">' + S.vit.map(function (it) { return '<i class="pf-ic t' + pfTier(it) + '">' + pfIcon(it) + '</i>'; }).join('') + '</span>' : '') +
+      '<span class="pf-al">Álbum ' + S.have + '/' + S.total + '</span>' + (S.un ? '<i class="pf-dot" aria-hidden="true"></i>' : '');
+    b.setAttribute('aria-label', 'Perfil: nivel ' + lv.lvl + ', álbum ' + S.have + ' de ' + S.total + (S.un ? '. Hay novedades' : ''));
+  }
+  // ---- avisos (#pfNote): de 2,6 a 3,4 s cada uno, como mucho 3 en cola (si hay más, un resumen) ----
+  function pfNote(list) {
+    if (!el.pfNote || !list || !list.length) return;
+    if (list.length > 3) list = ['Perfil: ' + list.length + ' novedades. Míralas en el álbum'];
+    list.forEach(function (t) { if (pf.q.indexOf(t) < 0 && pf.q.length < 3) pf.q.push(t); });
+    if (pf.noteT <= 0) pfNoteNext();
+  }
+  function pfNoteNext() {
+    var t = pf.q.shift();
+    if (!t) { el.pfNote.classList.remove('on'); pf.noteT = 0; return; }
+    el.pfNote.textContent = t; restartAnim(el.pfNote, 'on'); pf.noteT = t.length > 34 ? 3.4 : 2.6;
+  }
+  /** Al entrar en el menú: VB.Profile.check() (insignias, logros, hitos, nivel y premios de nivel) y sus avisos. Los hitos que sellan
+   *  noteMatch/noteGym llegan aquí una vez; el nivel y el premio del partido ya los enseña la hoja final. */
+  function pfCheck() {
+    var P = VB.Profile; if (!P || !P.check) return;
+    var r = null, out = [];
+    try { r = P.check(); } catch (e) { console.error('[VB][ERROR] Profile.check: ' + e); return; }
+    // D4: aviso único por sesión de un guardado dañado (el módulo dejó la copia en <clave>.bak)
+    if (!pf.lostSaid) {
+      pf.lostSaid = true;
+      var LOST = [[P, 'Tu perfil guardado estaba dañado'], [VB.Prog, 'Tus jugadores guardados estaban dañados'], [VB.Look, 'Tu vestuario guardado estaba dañado'], [VB.Retos, 'Tus retos guardados estaban dañados']];
+      LOST.forEach(function (x) { if (x[0] && typeof x[0].lost === 'function' && safe(function () { return x[0].lost(); })) out.push(x[1] + '. Hay una copia en este dispositivo.'); });
+    }
+    if (r) {
+      (r.lvlUp || []).forEach(function (n) { out.push('¡Perfil Nv ' + n + '!'); });
+      (r.hitos || []).forEach(function (id) {
+        var h = (P.HITOS || []).filter(function (x) { return x.id === id; })[0];
+        if (h) out.push('Hito: ' + h.name + ' (+' + h.xp + ' XP)');
+      });
+      (r.grants || []).forEach(function (id) { var nm = VB.Look && VB.Look.name ? safe(function () { return VB.Look.name(id); }) : ''; if (nm) out.push('Nuevo en tu vestuario: ' + nm); });
+      if ((r.lvlUp && r.lvlUp.length) || (r.hitos && r.hitos.length) || (r.grants && r.grants.length)) { pfDirty = true; last.pf = null; }
+    }
+    pfNote(out);
+    if (out.length && ctx.state === 'menu') { pfChip(); if (mpage === 'prof') pfRender(true); }
+  }
+  /** Cada frame (ui.update): avisos y la comprobación pendiente al llegar al menú (como lkCheckNew). */
+  function pfTick(rdt) {
+    if (pf.noteT > 0) { pf.noteT -= rdt; if (pf.noteT <= 0) pfNoteNext(); }
+    if (pf.checkPend && ctx.state === 'menu' && !(bootStage < 2 && bootBusy()) && !wp.ph) { pf.checkPend = false; pfCheck(); }
+  }
+  // ---- página ----
+  function pfFocusEl() { return el.pfGrid ? el.pfGrid.querySelector('[data-aid]') || (pf.tabs && el.pfTabs.querySelector('.tab.on')) || el.btnProfBack : el.btnProfBack; }
+  function pfPinsNow() { var P = VB.Profile; try { var o = P.load(); return Array.isArray(o.pin) ? o.pin : []; } catch (e) { return []; } }
+  /** Sellos a la vista de la pestaña que se deja: el perfil marca los suyos (bd, gym, ach, ven, hit) y Retos los suyos (el Vestuario
+   *  los marca en su página, fila a fila). */
+  function pfSeen(tabId) {
+    var P = VB.Profile, tb = pf.alb && pf.alb.tabs.filter(function (t) { return t.id === tabId; })[0]; if (!tb || !P) return;
+    var mine = [], ret = [];
+    tb.items.forEach(function (it) { if (!it.isNew) return; var k = it.aid.split(':')[0]; if (k === 'reto') ret.push(it.aid.slice(5)); else if (k !== 'look') mine.push(it.aid); });
+    if (mine.length && P.markSeen) { try { P.markSeen(mine); } catch (e) { } }
+    if (ret.length && VB.Retos && VB.Retos.markSeen) { try { VB.Retos.markSeen(ret); } catch (e) { } rtStrip = ''; }
+    if (mine.length || ret.length) { pfDirty = true; last.pf = null; }
+  }
+  function pfTabItems(alb) {
+    return alb.tabs.map(function (tb) { return { id: tb.id, label: escT(tb.label), badge: tb.have + '/' + tb.total, cls: tb.items.some(function (i) { return i.isNew; }) ? 'lk-new' : '' }; });
+  }
+  /** Pinta la página entera: cabecera, tarjeta de nivel, vitrina, pestañas, rejilla y pie (keep: conserva el foco en el mismo hueco). */
+  function pfRender(keep) {
+    if (!el.mpProf) return;
+    var P = VB.Profile;
+    if (!P || !P.album) { el.pfCard.innerHTML = ''; el.pfVit.innerHTML = ''; el.pfGrid.innerHTML = '<p class="rt-none">El perfil no está disponible.</p>'; return; }
+    var a = document.activeElement, fAid = a && a.getAttribute && el.pfGrid.contains(a) ? a.getAttribute('data-aid') : '', kb = !!(a && a.classList && a.classList.contains('kf'));
+    var alb = null; try { alb = P.album(); } catch (e) { console.error('[VB][ERROR] Profile.album: ' + e); }
+    if (!alb || !alb.tabs.length) { el.pfGrid.innerHTML = '<p class="rt-none">El perfil no está disponible.</p>'; return; }
+    pf.alb = alb; pf.map = pfMapOf(alb); pf.pins = pfPinsNow();
+    if (!pf.tab || !alb.tabs.some(function (t) { return t.id === pf.tab; })) pf.tab = alb.tabs[0].id;
+    var ro = !!safe(P.readOnly);
+    // cabecera: el usuario de la cuenta (si hay sesión)
+    var u = VB.Account && VB.Account.user ? safe(VB.Account.user) : null;
+    if (el.pfKick) { el.pfKick.textContent = u ? String(u) : ''; el.pfKick.hidden = !u; }
+    // tarjeta de nivel
+    var lv = pfLv(), st = {}, np = null; try { st = P.stats() || {}; np = P.nextPrize(); } catch (e) { }
+    var pc = lv.next ? Math.round(100 * Math.max(0, Math.min(1, lv.into / lv.next))) : 100;
+    var nx = np ? (np.lvl === lv.lvl + 1 ? 'Siguiente premio: ' + np.name + ' (Nv ' + np.lvl + ')' : 'Siguiente premio en el Nv ' + np.lvl) : 'Todos los premios de nivel conseguidos';
+    var m = st.m | 0, w = st.w | 0;
+    var ch = '<div class="pf-lv"><b class="pf-n"><small>Nv</small>' + lv.lvl + '</b><div class="pf-bx"><i class="pf-bar" aria-hidden="true"><i style="--w:' + pc + '%"></i></i>' +
+      '<span class="pf-xp">' + (lv.next ? lv.into + ' / ' + lv.next + ' XP' : lv.total + ' XP') + '</span></div></div>' +
+      '<p class="pf-nx">' + escT(nx) + '</p><p class="pf-st">' + sepHTML([m + (m === 1 ? ' partido' : ' partidos'), w + (w === 1 ? ' victoria' : ' victorias'), (st.ven | 0) + ' de ' + (st.venAll | 0) + ' sedes'], 'v') + '</p>';
+    if (el.pfCard._h !== ch) { el.pfCard._h = ch; el.pfCard.innerHTML = ch; el.pfCard.setAttribute('aria-label', 'Perfil nivel ' + lv.lvl + '. ' + nx); }
+    // vitrina (3 huecos; vacío = «Libre»)
+    var vit = []; try { vit = (P.vitrina() || []).map(function (x) { return pf.map[x]; }).filter(Boolean); } catch (e) { }
+    var vh = '<p class="pf-vk">Vitrina<small>Fija tus 3 favoritos desde el álbum</small></p><div class="pf-vs">';
+    for (var i = 0; i < 3; i++) {
+      var it = vit[i];
+      vh += it ? '<span class="pf-v t' + pfTier(it) + '" title="' + escT(it.name) + '"><span class="pf-si">' + pfIcon(it) + '</span><span class="pf-vn">' + escT(it.name) + '</span></span>' : '<span class="pf-v free">Libre</span>';
+    }
+    vh += '</div>';
+    if (el.pfVit._h !== vh) { el.pfVit._h = vh; el.pfVit.innerHTML = vh; }
+    if (el.pfRo) el.pfRo.hidden = !ro;
+    // pestañas (con la cuenta de cada una)
+    if (!pf.tabs && el.pfTabs) pf.tabs = makeTabs(el.pfTabs, pfTabItems(alb), { value: pf.tab, label: 'Apartados del álbum', pane: el.pfGrid,
+      onChange: function (id) { pfSeen(pf.tab); pf.tab = id; pf.sel = ''; pfRender(false); if (el.pfGrid) el.pfGrid.scrollTop = 0; } });
+    else if (pf.tabs) { pf.tabs.items = pfTabItems(alb); if (pf.tabs.get() !== pf.tab) pf.tabs.cur = pf.tab; pf.tabs.refresh(); }
+    // rejilla
+    var tb = alb.tabs.filter(function (t) { return t.id === pf.tab; })[0], gh = '';
+    tb.items.forEach(function (it) {
+      var pin = pf.pins.indexOf(it.aid) >= 0;
+      gh += '<button type="button" class="pf-s ' + (it.have ? 'on' : 'off') + ' t' + pfTier(it) + (it.isNew ? ' new' : '') + (pin ? ' pin' : '') + '" data-aid="' + escT(it.aid) + '" aria-label="' +
+        escT(it.name + (it.have ? (pin ? '. En la vitrina' : '') : '. Por conseguir') + (it.isNew ? '. Nuevo' : '')) + '"><span class="pf-si">' + (it.have ? pfIcon(it) : PF_LOCK) + '</span><span class="pf-sn">' + escT(it.name) + '</span></button>';
+    });
+    if (el.pfGrid._h !== gh) { el.pfGrid._h = gh; el.pfGrid.innerHTML = gh; }
+    var fb = fAid ? el.pfGrid.querySelector('[data-aid="' + fAid + '"]') : null;
+    if (keep && fb) focusEl(fb, kb);
+    pfFootSync();
+  }
+  /** Pie: de dónde salió el hueco enfocado (o cómo se gana) y el botón de la vitrina. */
+  function pfFootSync() {
+    if (!el.pfFoot) return;
+    var P = VB.Profile, it = pf.sel && pf.map ? pf.map[pf.sel] : null, t = it && P && P.footText ? safe(function () { return P.footText(it); }) || '' : '';
+    if (!it) t = pf.alb ? 'Elige un hueco para ver de dónde sale' : '';
+    if (el.pfFoot.textContent !== t) el.pfFoot.textContent = t;
+    var ro = P ? !!safe(P.readOnly) : true, can = !!(it && it.have) && !ro;
+    var pinned = !!(it && pf.pins.indexOf(it.aid) >= 0);
+    el.pfPin.hidden = !can;
+    if (can) {
+      var d = device(), k = d === 'gamepad' ? padKey('x') : d === 'touch' ? '' : '<span class="key">F</span>';
+      var h = k + '<span>' + (pinned ? 'Quitar de la vitrina' : 'Fijar en la vitrina') + '</span>';
+      if (el.pfPin._h !== h) { el.pfPin._h = h; el.pfPin.innerHTML = h; }
+    }
+  }
+  function pfSelect(aid) { if (pf.sel === aid) return; pf.sel = aid || ''; pfFootSync(); }
+  /** Hueco enfocado (por si el foco llegó sin focusin: ventana sin foco, pruebas). */
+  function pfCur() { var a = document.activeElement; if (a && a.hasAttribute && a.hasAttribute('data-aid') && el.pfGrid && el.pfGrid.contains(a)) pfSelect(a.getAttribute('data-aid')); return pf.sel; }
+  /** Fija o quita de la vitrina el hueco elegido (X con mando, F con teclado, el botón del pie o un 2º toque en táctil). */
+  function pfPinToggle() {
+    pfCur();
+    var P = VB.Profile, it = pf.sel && pf.map ? pf.map[pf.sel] : null;
+    if (!P || !it || !it.have || safe(P.readOnly)) return false;
+    var on = pf.pins.indexOf(it.aid) >= 0, ok = false;
+    if (on) ok = !!safe(function () { return P.unpin(it.aid); });
+    else if (pf.pins.length >= 3) { pfNote(['La vitrina está llena. Quita uno antes']); uiSound2('arrowEdge', 1); return false; }
+    else ok = !!safe(function () { return P.pin(it.aid); });
+    if (!ok) return false;
+    uiSound('click'); pfDirty = true; last.pf = null;
+    srSay(on ? 'Quitado de la vitrina: ' + it.name : 'En la vitrina: ' + it.name);
+    pfRender(true);
+    return true;
+  }
+  /** Recorrido 2D de la rejilla: ↑/↓ saltan una fila (arriba del todo, a las pestañas; abajo del todo, al pie). true si lo ha hecho. */
+  function pfGridV(d) {
+    var a = document.activeElement;
+    if (!a || !a.hasAttribute || !a.hasAttribute('data-aid') || !el.pfGrid || !el.pfGrid.contains(a)) return false;
+    var L = el.pfGrid.querySelectorAll('[data-aid]'), n = L.length, i = Array.prototype.indexOf.call(L, a), cols = 1;
+    while (cols < n && L[cols].offsetTop === L[0].offsetTop) cols++;
+    var j = i + d * cols;
+    if (j >= n && Math.floor(i / cols) < Math.floor((n - 1) / cols)) j = n - 1;   // última fila a medias: al último hueco
+    if (j < 0) { if (pf.tabs) { pf.tabs.focus(true); hoverSound(); return true; } return false; }
+    if (j >= n) { focusEl(!el.pfPin.hidden ? el.pfPin : el.btnProfBack, true); hoverSound(); return true; }
+    focusEl(L[j], true); pfCur(); hoverSound(); return true;
+  }
+  /** ←/→ en la rejilla: hueco vecino (en el borde, se queda). */
+  function pfGridH(a, d) {
+    var L = el.pfGrid.querySelectorAll('[data-aid]'), i = Array.prototype.indexOf.call(L, a), j = i + (d > 0 ? 1 : -1);
+    if (j < 0 || j >= L.length) { uiSound2('arrowEdge', d); return; }
+    focusEl(L[j], true); pfCur(); hoverSound();
+  }
+  function pfOpen() { pf.sel = ''; pfRender(false); }
+  function pfLeave() { pfSeen(pf.tab); pf.sel = ''; pfDirty = true; last.pf = null; }
+  /** Al perfil (chip de la portada o escena debug=prof): o = {tab: 'vestuario' | 'insignias' | … | 'hitos'}. */
+  function openProfile(o) {
+    if (ctx.state !== 'menu' || !VB.Profile) return false;
+    o = o || {};
+    if (o.tab && PF_TAB_IDS.indexOf(o.tab) >= 0) pf.tab = o.tab;
+    if (mpage === 'prof') { pfRender(false); return true; }
+    mstack.length = 0; mstack.push({ p: 'main', f: 'btnProf' });
+    setPage('prof'); focusSoon(pageFocus(), false);
+    return true;
+  }
   /** Antetítulo de la pausa: «Entrenamiento ◆ Saque 4/10 | 11 pts» (peloteo: «Entrenamiento ◆ Récord 14 toques»). */
   function gymKicker(g) {
     var d = g.drill;
@@ -4984,6 +5650,7 @@
     if (a && a.classList && a.classList.contains('mode') && !panel) { modeStep(a, d); return true; }
     if (a && a.classList && a.classList.contains('mp-back') && !panel && mpage === 'play') { focusEl(el.btnQuick, true); hoverSound(); return true; }
     if (a && a.classList && a.classList.contains('mp-back') && !panel && mpage === 'gym') { focusEl(gymRowEl(gymSel), true); hoverSound(); return true; }
+    if (!panel && mpage === 'prof' && a && a.hasAttribute && a.hasAttribute('data-aid') && el.pfGrid && el.pfGrid.contains(a)) { pfGridH(a, d); return true; }
     if (a && a.getAttribute && a.getAttribute('role') === 'tab') { var tb = activeTabs(); if (tb) { tb.step(d, 'key'); return true; } }
     // Vestuario: fila = valor anterior / siguiente; selector de jugador, escenario y pie = vecino
     if (!panel && mpage === 'look' && a && a.getAttribute && el.mpLook && el.mpLook.contains(a)) {
@@ -5012,16 +5679,20 @@
     ctx.lastKeyT = ctx.time;
     if (capturing || (VB.Input && VB.Input.capturing && safe(VB.Input.capturing))) return;   // E3: reasignando una tecla
     if (ctx.introLeft > 0 && ctx.state === 'playing') { if (!e.repeat) ctx.introSkipReq = true; return; }   // UI-14: cualquier tecla salta la tarjeta
+    // S3-C1: durante una repetición el teclado lo lee main.js (VB.Input: Intro / golpear salta, Esc sale); aquí nada (la hoja tapada
+    // no recibe Intro ni flechas)
+    if (ctx.replay && !panel && ctx.state !== 'paused') { if (e.key === 'Enter' || e.key === 'Tab' || String(e.key).indexOf('Arrow') === 0) e.preventDefault(); return; }
     if (ctx.state === 'playing' && !panel) return;
     var k = e.key;
     if (k === 'ArrowDown' || k === 'ArrowUp' || ((k === 'Tab') && activeLayer())) {
-      e.preventDefault(); navMove(k === 'ArrowUp' || (k === 'Tab' && e.shiftKey) ? -1 : 1); return;
+      e.preventDefault(); if (k !== 'Tab' && mpage === 'prof' && ctx.state === 'menu' && !panel && pfGridV(k === 'ArrowUp' ? -1 : 1)) return; navMove(k === 'ArrowUp' || (k === 'Tab' && e.shiftKey) ? -1 : 1); return;
     }
     if (k === 'ArrowLeft' || k === 'ArrowRight') { if (adjustFocused(k === 'ArrowRight' ? 1 : -1)) e.preventDefault(); return; }
     // Vestuario: Z / X giran el muñeco mientras se mantienen
     if ((k === 'z' || k === 'Z' || k === 'x' || k === 'X') && mpage === 'look' && lk.on && ctx.state === 'menu' && !panel && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault(); if (!e.repeat) { lk.keySpin = k === 'z' || k === 'Z' ? -1 : 1; lkSpinBy(lk.keySpin * 0.25); lk.idle = 0; } return;
     }
+    if ((k === 'f' || k === 'F') && mpage === 'prof' && ctx.state === 'menu' && !panel && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); pfPinToggle(); return; }
     if ((k === 'q' || k === 'Q' || k === 'e' || k === 'E' || k === 'PageUp' || k === 'PageDown') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
       var tq = activeTabs(); if (tq) { e.preventDefault(); tq.step(k === 'q' || k === 'Q' || k === 'PageUp' ? -1 : 1, 'key'); } return;
     }
@@ -5034,7 +5705,7 @@
       else if (ctx.state === 'paused' && !panel) ctx.actions.resume();
       else if (ctx.state === 'over' && endWait) endSkip();
       else if (ctx.state === 'over' && endPeek) setPeek(false);
-      else if (ctx.state === 'over' && ctx.game && ctx.game.finished && !el.end.hidden) goMatch();
+      else if (ctx.state === 'over' && ctx.game && ctx.game.finished && !el.end.hidden) endPrimary();
     }
   }
   var navRep = { y: 0, x: 0, ty: 0, tx: 0 };
@@ -5303,6 +5974,20 @@
     /** Pruebas / hoja de B6 (T19): resultado de VB.Retos.endMatch del último partido (null si no contaba) y del perfil. */
     _retoEnd: function () { return retoEnd; },
     _profEnd: function () { return profEnd; },
+    /** B6: hoja final de un partido de Carrera (main.js, tras VB.Career.matchDone). x = {tbl, myId, short, pos, next, bar, ses}. */
+    endCareer: endCareer,
+    /** S3-C1: cortinilla de VB.Replay (false si ya hay una en marcha) y fin de las jugadas vistas desde la hoja (foco al «Ver»). */
+    replayWipe: replayWipe, replayDone: replayDone,
+    /** Pruebas (B6): último modelo de la hoja, sus datos y la pestaña abierta. */
+    _recap: function () { return recapM ? { M: recapM, tab: endTab, blocks: recapM.blocks, buttons: recapM.buttons, tabs: recapM.tabs } : null; },
+    /** D1: el menú en la página Retos (escena debug=retos; tab = 'hoy' | 'maestria'). */
+    openRetos: function (tab) {
+      if (ctx.state !== 'menu') return false;
+      if (tab === 'hoy' || tab === 'maestria') { rtTab = tab; rtTabSave(tab); }
+      mstack.length = 0; mstack.push({ p: 'main', f: 'btnPlay' }); mstack.push({ p: 'play', f: 'btnRetos' });
+      setPage('retos'); focusSoon(pageFocus(), false);
+      return true;
+    },
     /** Pruebas (B5): último plan de la previa y beat por el que va. */
     _intro: function () { return introUI.plan ? { kind: introUI.plan.kind, dur: introUI.plan.dur, beats: introUI.plan.beats, b: introUI.plan.b, c: introUI.plan.c, t: introUI.plan.t, bi: introUI.bi, on: introUI.on } : null; },
     introEnd: function (skipped) { introEndUI(skipped); },
@@ -5335,10 +6020,14 @@
     /** Página del menú visible: 'main' | 'play' | 'quick' | 'gym' | 'look'; menuGo(p) abre una (apilando la actual), menuBack() vuelve. */
     menuPage: function () { return mpage; },
     /** D4 (account.js tras una bajada con ganchos) y Vestuario: vuelve a leer el récord y la portada (B3) y repinta el menú. */
-    refreshMenu: function () { last.rec = null; last.navh = null; heroDirty = true; if (ctx && ctx.state === 'menu') renderMenu(); },
+    refreshMenu: function () { last.rec = null; last.navh = null; last.pf = null; pfDirty = true; heroDirty = true; if (ctx && ctx.state === 'menu') { renderMenu(); if (mpage === 'prof') pfRender(true); } },
+    /** D2: el menú en la página Perfil (chip de la portada, escena debug=prof). o = {tab: 'vestuario' | 'insignias' | 'entreno' | 'carrera' | 'retos' | 'sedes' | 'hitos'}. */
+    openProfile: openProfile,
+    /** Pruebas (D2): estado de la página y del chip. */
+    _prof: function () { return { tab: pf.tab, sel: pf.sel, pins: pf.pins.slice(), q: pf.q.slice(), note: el.pfNote ? el.pfNote.textContent : '', sum: pfSum ? { lvl: pfSum.lv.lvl, have: pfSum.have, total: pfSum.total, vit: pfSum.vit.map(function (i) { return i.aid; }), un: pfSum.un, show: pfSum.show } : null, dirty: pfDirty }; },
     /** Pruebas (B3): portada con «Continuar carrera» {on, open: abierta desde la portada}. */
     _hero: function () { return { on: heroOn, open: contOpen, dirty: heroDirty }; },
-    menuGo: function (p, o) { if (p === 'look') return openLook(o); if (p === 'play' || p === 'quick' || p === 'gym') menuGo(p); },
+    menuGo: function (p, o) { if (p === 'look') return openLook(o); if (p === 'prof') return openProfile(o); if (p === 'play' || p === 'quick' || p === 'gym') menuGo(p); },
     /** Vestuario (página 'look'): o = {who: 'career', hall, tc, back} desde la Carrera; {tab, venue, item, pick} para ?debug=look
      *  (tab: pelo|cabeza|cara|cuerpo|brazos|piernas|colores; venue: hall|beach; item: id del catálogo que probar; pick: 1 | 2 | 'career').
      *  false si no se puede abrir (sin look.js, fuera del menú). */
@@ -5457,17 +6146,47 @@
         clearTimeout(restartTo); restartTo = setTimeout(disarmRestart, 2000);
       });
       on(el.btnQuit, function () { if (isDrill()) goGymList(ctx.game.drill.kind); else goMenu(); });
-      el.btnAgain.addEventListener('click', function () { uiSound('start'); goMatch(); });
+      el.btnAgain.addEventListener('click', endPrimary);
       el.btnMenu.addEventListener('click', function () { uiSound('back'); goMenu(); });
-      if (el.btnEndOpts) el.btnEndOpts.addEventListener('click', function () { uiSound('click'); goOptions(); });
+      // «Cambiar opciones» o, en el reto del día, «Retos» (vuelve a #mpRetos)
+      if (el.btnEndOpts) el.btnEndOpts.addEventListener('click', function () { uiSound('click'); if (el.btnEndOpts.getAttribute('data-act') === 'retos') goRetosList(); else goOptions(); });
       el.btnAgainAlt.addEventListener('click', function () {
         var d = el.btnAgainAlt.getAttribute('data-d'); uiSound('start');
-        goMatch(d || null);
+        goMatch(d || null, undefined, true);
+      });
+      if (el.btnRetos) el.btnRetos.addEventListener('click', function () { menuGo('retos'); });
+      // D2: perfil (chip de la portada → página; huecos: elegir, y en táctil un 2º toque fija en la vitrina)
+      if (el.btnProf) el.btnProf.addEventListener('click', function () { if (ctx.state === 'menu' && !panel) menuGo('prof'); });
+      if (el.btnProfBack) el.btnProfBack.addEventListener('click', function () { menuBack(); });
+      if (el.pfPin) el.pfPin.addEventListener('click', function () { pfPinToggle(); });
+      if (el.pfGrid) {
+        el.pfGrid.addEventListener('focusin', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-aid]') : null; if (b) pfSelect(b.getAttribute('data-aid')); });
+        el.pfGrid.addEventListener('click', function (ev) {
+          var b = ev.target && ev.target.closest ? ev.target.closest('[data-aid]') : null; if (!b) return;
+          var aid = b.getAttribute('data-aid'), again = pf.sel === aid && pf.tapSel === aid;
+          if (document.activeElement !== b) focusEl(b, false);
+          pfSelect(aid);
+          if (again && device() === 'touch') pfPinToggle(); else click();
+          pf.tapSel = aid;
+        });
+      }
+      if (el.btnRetosBack) el.btnRetosBack.addEventListener('click', function () { menuBack(); });
+      if (el.rtBody) el.rtBody.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('button') : null; if (!b || !el.rtBody.contains(b)) return;
+        if (b.getAttribute('data-reto') === 'day') { uiSound('start'); goReto(false); }
+        else if (b.hasAttribute('data-rt')) click();
       });
       // tocar/clic durante la tarjeta de presentación la salta (UI-14; main.js la quita en el frame siguiente)
       window.addEventListener('pointerdown', function () { if (ctx.introLeft > 0 && ctx.state === 'playing') ctx.introSkipReq = true; }, { passive: true, capture: true });
       // tocar/clic durante la celebración final la salta
       window.addEventListener('pointerdown', function () { if (endWait) endSkip(); }, { passive: true });
+      // S3-C1: tocar durante la repetición la salta (main.js la lee en el frame siguiente); el botón «Salir» (táctil) sale de todas
+      window.addEventListener('pointerdown', function (ev) {
+        if (!ctx.replay || ctx.state === 'paused' || panel) return;
+        var ex = ev.target && ev.target.closest && ev.target.closest('#rpExit');
+        if (ex) ctx.replaySkipReq = 'all'; else if (!ctx.replaySkipReq) ctx.replaySkipReq = true;
+      }, { passive: true, capture: true });
+      if (el.endPlays) el.endPlays.addEventListener('click', playsClick);
       el.btnPeek.addEventListener('click', function () { click(); setPeek(true); });
       el.btnEndBack.addEventListener('click', function () { click(); setPeek(false); });
       el.btnPanelBack.addEventListener('click', function () { uiSound('back'); closePanel(); });
@@ -5507,6 +6226,7 @@
       window.addEventListener('keydown', onKey);
       window.addEventListener('vb-portrait', onPortrait);   // B2: retratos que llegan de la cola de main.js
       [el.pause, el.end, el.panel, el.gymEnd].forEach(function (n) { var sh = n && n.querySelector('.sheet'); if (sh) sh.addEventListener('scroll', function () { checkMore(n); }, { passive: true }); });
+      [el.endSum, el.endStatsTab, el.endPlays].forEach(function (n) { if (n) n.addEventListener('scroll', endMore, { passive: true }); });   // B6: desvanecido del panel
       window.addEventListener('pointerdown', function () { var p = document.querySelectorAll('.kf'); for (var i = 0; i < p.length; i++) p[i].classList.remove('kf'); }, { passive: true });
       document.addEventListener('focusout', function (e) { if (e.target && e.target.classList) e.target.classList.remove('kf'); });
       window.addEventListener('gamepadconnected', function () { last.navh = null; last.ctls = null; padFamF = -999; GLYPH_PS = null; if (ctx.state === 'menu') renderMenu(); if (panel === 'ctl') { ctlView = 'gamepad'; renderCtl(); } });
@@ -5538,7 +6258,7 @@
       if (el.app) el.app.classList.toggle('q-low', !!(q ? q.rank === 0 : ctx.quality && ctx.quality.rank === 0));
       if (panel === 'set') renderOpts(); vigTick();
     },
-    resize: function () { vpFit(); offA.obsF = -999; tbx.ok = false; tbx.f = -9999; hudFit(); [el.pause, el.end, el.panel].forEach(function (n) { if (n && !n.hidden) { fitSheet(n); checkMore(n); } }); if (panel) fitAllTabs(); if (lk.on) { fitTabs(lkTabs); lkMore(); lkPlace(); } tbRect = coachRect = guideRect = null; joyR = null; promptW = 0; },
+    resize: function () { vpFit(); offA.obsF = -999; tbx.ok = false; tbx.f = -9999; hudFit(); [el.pause, el.end, el.panel].forEach(function (n) { if (n && !n.hidden) { fitSheet(n); checkMore(n); } }); endMore(); if (panel) fitAllTabs(); if (lk.on) { fitTabs(lkTabs); lkMore(); lkPlace(); } tbRect = coachRect = guideRect = null; joyR = null; promptW = 0; },
     onState: function (s, prev) {
       shown = '';
       // UI-04: la pausa aparta banner, pestaña y aviso corto; al volver solo reaparecen si les quedaban > 0,4 s
@@ -5560,7 +6280,7 @@
         var a = document.activeElement; if (a && a.blur && a.tagName === 'BUTTON') a.blur(); // que el Espacio no pulse un botón oculto
       }
       if (s !== 'menu' && lk.on) lkClose();   // el Vestuario solo vive en el menú (guarda y apaga la vista previa)
-      if (s === 'menu') { panel = null; pstack.length = 0; tutStop(); if (prev && prev !== 'menu') menuReset(); lkCheckPend = true; heroDirty = true; } // (al volver de un partido; no en los setState('menu') del arranque)
+      if (s === 'menu') { panel = null; pstack.length = 0; tutStop(); if (prev && prev !== 'menu') menuReset(); lkCheckPend = true; heroDirty = true; pf.checkPend = true; pfDirty = true; last.pf = null; } // (al volver de un partido; no en los setState('menu') del arranque)
       else { contOpen = false; crWasOpen = false; }   // (B3: la Carrera abierta desde la portada se cierra al empezar un partido)
     },
     onGameStart: function (g) {
@@ -5601,8 +6321,9 @@
       if (!it || it.device !== 'gamepad') { navRep.y = navRep.x = 0; return; }
       if (!activeLayer()) return;
       var dy = axisRepeat(it.my || 0, 'y', 'ty', dt), dx = axisRepeat(it.mx || 0, 'x', 'tx', dt);
-      if (dy) navMove(-dy);
+      if (dy && !(mpage === 'prof' && ctx.state === 'menu' && !panel && pfGridV(-dy))) navMove(-dy);
       if (dx) adjustFocused(dx);
+      if (it.jset && mpage === 'prof' && ctx.state === 'menu' && !panel) pfPinToggle();   // D2: X = fijar en la vitrina
       var td = it.navTab || 0; if (!td && it.switchPlayer) td = padTabDir();
       if (td) { var tp = activeTabs(); if (tp) tp.step(td, 'pad'); }
       if (mpage === 'look' && lk.on && ctx.state === 'menu' && !panel) lkPad(it, dt);   // X = al azar, stick derecho = girar
@@ -5621,7 +6342,8 @@
       if (ctx.state !== 'menu') hud(g, dt);
       subsTick(g, dt);
       sbLiveTick(g);
-      if (ctx.state === 'playing' || ctx.state === 'over') presUpdate(g, dt);
+      rpTick();
+      if ((ctx.state === 'playing' || ctx.state === 'over') && !rpv.on) presUpdate(g, dt);   // (S3-C1: la cámara pinta la repetición)
       // en pausa no se ve ningún banner, pestaña ni aviso corto (tampoco los que llegan con la pausa ya puesta: escenas de depuración)
       else if (ctx.state === 'paused' && held) {
         if (!el.banner.classList.contains('held')) el.banner.classList.add('held');
@@ -5653,6 +6375,7 @@
       if ((ctx.frame & 15) === 5) { if (!el.panel.hidden) checkMore(el.panel); if (!el.end.hidden) checkMore(el.end); if (!el.pause.hidden) checkMore(el.pause); }
       if (ctx.state === 'menu' && (ctx.frame & 63) === 0) renderMenu();
       lkTick(rdt);
+      pfTick(rdt);
       if (ctx.state === 'menu' && (ctx.frame & 7) === 2 && mpage !== 'play' && mpage !== 'look' && !contOpen && VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen)) { mstack.length = 0; mstack.push({ p: 'main', f: 'btnPlay' }); setPage('play'); }
       // B3: la Carrera se ha cerrado (desde la portada o desde Jugar): la portada vuelve a leer la carrera (y el foco a #btnCont)
       if (ctx.state === 'menu' && (ctx.frame & 7) === 3 && VB.CareerUI && VB.CareerUI.isOpen) {

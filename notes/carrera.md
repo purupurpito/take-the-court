@@ -906,3 +906,24 @@ pelín. Así, un jugador que acaba de unirse a un equipo mejor, puede llegar a s
 - **Carreras simuladas enteras** (6 semillas, 7 temporadas, solo simular y gastar puntos en lo más barato; el jugador simulado va 5-15 por
   debajo de su club porque simular da la mitad de XP): con la ventaja fija de 12 sale de inicio el 50-64 % de T1-T5; con la decreciente, el
   50 % en T1-T3 y el 30-37 % en T4-T5 sin entrenar, 58-66 % haciendo 3 sesiones rápidas por jornada.
+
+## Sprint 2-4 (15-nov-2026, v1.2.0): jefes, química, escudos, vitrina, retrato y portada
+
+Detalle: `notes/s234/T10.md` (career-life: jefes y química), `T11.md` (career-world: escudos, vitrina, `newsBoss`, `ses1`), `T16.md`
+(career-ui), `T21.md` (vitrina a todo el ancho) y `T12.md` (obsoleto: el módulo de entrenos del sprint se quitó en la fusión con main).
+Contrato: CONTRACT §1 y §4.4 «Sprint 2-4».
+- **Jefes del circuito (solo playa):** uno por circuito con estilo saque/muro/remate/defensa (permutación por semilla), `l.boss`,
+  `bossSt(ovrRival + 4)` e insignias del estilo; la 1ª victoria jugada da sus objetos del Vestuario (`grant(id, 'boss')`), 250 × LV_MULT
+  seguidores, la bandeja «Has tumbado a {apodo}» y la noticia. Sin la insignia `rompemanos` (Muro sigue notándose: ≥ 70 %). Jefes de pista,
+  cortados (fase 2). `m.career.boss.style` es la CLAVE; el nombre visible es `styleName`.
+- **Química con nombre:** `CHEM_LV` / `CHEM_LV6`, `chemInfo`, `chemCheck` (bandeja `'chem'` solo al subir), 3 decisiones raras dentro de
+  `EVENTS` (`RARE_P` 0,1: 5,5 % de las jornadas), saludo de pareja en el partido (`setPairChem`).
+- **Logros:** `ses10`, `sesg5` (sobre `c.ts.md` de las sesiones de main) y `boss3`, al final de `ACH`: 32 en `ACH_INFO`.
+- **Escudos y vitrina:** `crestOf` determinista (sin ternas repetidas por grupo fijo: 40 clubes de playa o el país en pista), `crestSVG`,
+  `trophyCase` (20 huecos en la playa; pista por país) y `trophyCaseHTML` en Palmarés, con bloques de 3 a todo el ancho.
+- **career-ui:** `open(v, {from, fresh, focus})` (R15), «‹ Menú» o «‹ Jugar», retrato en la cabecera (44), Jugador (88) y Compañero (72),
+  escudos en VS, ofertas, Club, Clasificación y Calendario, «Química ◆ …», etiqueta «Jefe», `heroData`/`syncHero` para «Continuar
+  carrera» en la portada.
+- careertest: 2012 comprobaciones, progresión Normal 39/45/50/54/57/61 sin cambios (también con `NOWORLD=1`).
+- Abierto (recap.js): `cupLine` con «Open Regional · Final» da «Campeones de la Open Regional»; `teamName` da «El Sorra Brisamar Dunes
+  no da opción» con clubes sin artículo (visto en una carrera real).

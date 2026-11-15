@@ -20,6 +20,8 @@
  * y el atlas (tiras por columna con la u propia del tubo, pintura de cara, marcas, gafas pintadas, barba, licra); todo en la misma
  * malla y el mismo atlas (cero dibujos y programas nuevos). VB.Doll.preview es la vista previa del menú y VB.Doll.lookSelfTest su
  * prueba en el navegador. Nada de esto toca la sim. Notas: notes/players.md § Vestuario.
+ * T21 (sprint 2-4, notes/s234/T21.md): los 5 objetos de jefe con dibujo propio (misma geometría que su base; color por cara con
+ * G.vc o atlas) y el encuadre del retrato según el tamaño (ptZoom: cara a 44 px, busto a 88 px).
  * ===================================================================== */
 (function () {
   'use strict';
@@ -120,7 +122,7 @@
   // id → sede ('A' ambas, 'P' pista, 'Y' playa). El catálogo con nombres, rarezas y desbloqueos es de js/look.js (VB.Look); aquí solo
   // está lo que hace falta para DIBUJAR. La sede solo se impone donde cambia el sentido de la pieza (VENUE_STRICT: interior,
   // calcetines, tobillera y zapatillas); el resto se dibuja tal cual llega (la maqueta ?debug=doll lleva gorra y gafas en pista).
-  var ARMS = { manguito: 'A', manguitoRayas: 'A', manguitoCuadros: 'A', manguitoLlamas: 'A', manguitoRayos: 'A', manguitoOro: 'A', kinesio: 'A' };
+  var ARMS = { manguito: 'A', manguitoRayas: 'A', manguitoCuadros: 'A', manguitoLlamas: 'A', manguitoRayos: 'A', manguitoOro: 'A', kinesio: 'A', manguitoMazo: 'A' };
   var ITEMS = {
     style: { tupe: 'A', coleta: 'A', afro: 'A', flequillo: 'A', rapado: 'A', mono: 'A', trenzas: 'A', dosmonos: 'A', coletas: 'A', cresta: 'A' },
     head: { cinta: 'A', cintaRizo: 'A', bandana: 'A', gorra: 'Y', gorraAtras: 'Y', visera: 'Y', pescador: 'Y', corona: 'A' },
@@ -133,12 +135,12 @@
     band: { capitan: 'A' },
     armL: ARMS, armR: ARMS,
     elbows: { coderas: 'A' },
-    wristL: { muneq: 'A', reloj: 'A' }, wristR: { muneq: 'A', reloj: 'A' },
-    hands: { dedos: 'A', mitones: 'Y' },
+    wristL: { muneq: 'A', reloj: 'A', munhCanon: 'A' }, wristR: { muneq: 'A', reloj: 'A', munhCanon: 'A' },
+    hands: { dedos: 'A', mitones: 'Y', dedosMuro: 'A' },
     legs: { malla: 'A', mallaLarga: 'A' },
-    knees: { cortas: 'A', altas: 'A', bajadas: 'P' },
+    knees: { cortas: 'A', altas: 'A', bajadas: 'P', rodiPulpo: 'P' },
     socks: { tobilleros: 'P', media: 'P', altos: 'P', altosRayas: 'P', desparejados: 'P' },
-    ankle: { blanca: 'P', tela: 'Y', pulseraTob: 'Y', escarpines: 'Y' },
+    ankle: { blanca: 'P', tela: 'Y', pulseraTob: 'Y', escarpines: 'Y', tobiPulpo: 'Y' },
     shoes: { clasicas: 'P', negras: 'P', neon: 'P', doradas: 'P' }
   };
   var LOOK_SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
@@ -149,6 +151,11 @@
   // gorros que sustituyen al pelo (se dibuja el casquete de la nuca; coleta, trenzas y coletas salen por debajo)
   var HIDE_HAIR = { gorra: 1, gorraAtras: 1, pescador: 1 };
   var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
+  // objetos de jefe (variantes de una pieza base con la MISMA geometría: color por vértice o atlas; VB.Look cae a «as» sin dibujo):
+  // cañón (muñequera negra con aro de cA), hierro (esparadrapo gris acero con remaches), martillo (manguito oscuro con un mazo de cA)
+  // y pulpo (rodilleras altas moradas / tobillera de cA, con ventosas)
+  var STEEL = 0x9aa6b4, STEEL_DK = 0x4f5866, MAZO_DK = 0x2b2833, PULPO = 0x9a4fc4, PULPO_HI = 0xf0c8ff;
+  var KNEE_HI = { altas: 1, rodiPulpo: 1 }, TAPED = { dedos: TAPE, dedosMuro: STEEL };
   function slotVal(v, slot, bch) {
     var d = (bch ? SLOT_DEF.beach : SLOT_DEF.hall)[slot] || '', ven;
     if (v === '' && !(slot === 'shoes' && !bch)) return '';      // '' = nada (en pista las zapatillas no se quitan)
@@ -183,16 +190,16 @@
   function colSock(X, tc) { return X.cSock >= 0 ? X.cSock : tc.accent; }
   var TC_GEO = ['base', 'accent', 'dark', 'shorts', 'pad', 'sole'], TC_ATLAS = ['base', 'accent', 'dark', 'trim', 'shorts', 'pad', 'numFill', 'pattern', 'libero'];
   var TIES = { coleta: 1, mono: 1, trenzas: 1, dosmonos: 1, coletas: 1 };   // peinados con gomas de cA
-  function armVc(a) { return ARMS[a] && a !== 'kinesio' && a !== 'manguitoOro' && a !== 'manguitoLlamas'; }   // manguito con la bola del codo de cA
+  function armVc(a) { return ARMS[a] && a !== 'kinesio' && a !== 'manguitoOro' && a !== 'manguitoLlamas' && a !== 'manguitoMazo'; }   // manguito con la bola del codo de cA
   /** Firma de lo que cambia la MALLA (geometría y colores por vértice) de un muñeco con el aspecto L, la equipación tc y la sede.
    *  Un color entra solo si alguna pieza lo lleva por vértice (si no, cambiarlo es solo repintar el atlas). */
   function geoSig(L, tc, bch) {
     var X = normLook(L, bch), p = [bch ? 'Y' : 'P', X.skin, X.hair, X.style, X.head, X.eyes, X.neck, X.under, X.armL, X.armR, X.elbows,
       X.wristL, X.wristR, X.hands, X.legs, X.knees, X.ankle, X.shoes];
     var uA = !!(X.head || TIES[X.style] || armVc(X.armL) || armVc(X.armR) || X.elbows || X.wristL || X.wristR || X.hands === 'mitones' ||
-      X.neck === 'medalla' || (bch && (X.ankle === 'tela' || X.ankle === 'pulseraTob')));
+      X.neck === 'medalla' || (bch && (X.ankle === 'tela' || X.ankle === 'pulseraTob' || X.ankle === 'tobiPulpo')));
     var uB = !!(HIDE_HAIR[X.head] || X.head === 'visera' || X.head === 'cinta' || (!bch && X.under === 'termica') || (bch && X.under === 'licra') ||
-      (X.legs === 'mallaLarga' && X.knees !== 'cortas' && X.knees !== 'altas'));
+      (X.legs === 'mallaLarga' && X.knees !== 'cortas' && !KNEE_HI[X.knees]));
     p.push(uA ? X.cA : '', uB ? X.cB : '', bch && X.ankle === 'escarpines' ? X.cSock : '', !bch && (X.shoes === 'clasicas' || X.shoes === 'neon') ? X.cShoe : '', X.eyes ? X.cGlass : '');
     for (var i = 0; i < TC_GEO.length; i++) p.push(tc ? tc[TC_GEO[i]] : '');
     return p.join('|');
@@ -220,8 +227,9 @@
   // pinta volteado en la columna izquierda para que se lea bien desde fuera. [k] = 0 izquierdo, 1 derecho.
   var SU_ALL = [0, 1], COL_UP = [[0.25, 0], [0.25, 0.5]], COL_FORE = [[0.75, 0.5], [0.75, 1]], COL_TH = [[0.5, 0], [0.5, 1]], COL_SHN = [[0.5, 0], [0.5, 1]];
   var TUBE_RY = [-PI / 2, PI / 2];
-  function Geo() { this.p = []; this.n = []; this.c = []; this.u = []; this.si = []; this.sw = []; this.i = []; this.o = []; this.k = 0; this.pre = null; this.bone = 0; this.bone2 = -1; this.w2 = null; this.owk = 1; this.mode = 'flat'; this.rows = null; this.yr = null; this.su = SU_ALL; }
+  function Geo() { this.p = []; this.n = []; this.c = []; this.u = []; this.si = []; this.sw = []; this.i = []; this.o = []; this.k = 0; this.pre = null; this.bone = 0; this.bone2 = -1; this.w2 = null; this.owk = 1; this.mode = 'flat'; this.rows = null; this.yr = null; this.su = SU_ALL; this.vc = null; }
   Geo.prototype.add = function (geo, hex, x, y, z, rx, ry, rz, sx, sy, sz) {
+    if (this.vc && geo.index) { var g0 = geo; geo = g0.toNonIndexed(); g0.dispose(); }   // dibujo por cara: vértices propios, mismos triángulos
     var m = new THREE.Matrix4(), q = new THREE.Quaternion(), nm = new THREE.Matrix3(), v = new THREE.Vector3();
     q.setFromEuler(new THREE.Euler(rx || 0, ry || 0, rz || 0));
     m.compose(new THREE.Vector3(x || 0, y || 0, z || 0), q, new THREE.Vector3(sx == null ? 1 : sx, sy == null ? (sx == null ? 1 : sx) : sy, sz == null ? (sx == null ? 1 : sx) : sz));
@@ -229,7 +237,13 @@
     if (this.pre) m.premultiply(this.pre);
     nm.getNormalMatrix(m);
     var P = geo.attributes.position, N = geo.attributes.normal, U = geo.attributes.uv, col = new THREE.Color(hex == null ? 0xffffff : hex), i;
+    // G.vc(cx, cy, cz): centro del triángulo en coordenadas de la primitiva → hex, o null (= hex). Dibujo por cara (bordes nítidos)
+    var vc = this.vc, c0 = vc ? col.clone() : null, vh;
     for (i = 0; i < P.count; i++) {
+      if (vc && i % 3 === 0) {
+        vh = vc((P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3);
+        if (vh == null) col.copy(c0); else col.setHex(vh);
+      }
       var w2 = 0; if (m0) { v.fromBufferAttribute(P, i).applyMatrix4(m0); w2 = this.w2(v.y); }
       var gv = U ? U.getY(i) : 0, gu = U ? U.getX(i) : 0;
       v.fromBufferAttribute(P, i).applyMatrix4(m); this.p.push(v.x, v.y, v.z);
@@ -504,9 +518,36 @@
             g.lineTo(-0.2 * s, 5.6 * s); g.lineTo(-1.6 * s, 5.6 * s); g.closePath(); g.fill(); g.stroke(); g.restore();
           });
         });
+        return;
+      }
+      if (id === 'manguitoMazo') {     // jefe Martillo: oscuro, dos rayas cruzadas por detrás y un mazo de cA hacia fuera
+        band(c, f0, f1, MAZO_DK);
+        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+          // medidas en u (alrededor) y filas (a lo largo) con la misma escala física (ax = u por fila): el mazo no sale estirado
+          var H = y1 - y0, ink = mixHex(cA, 0x000000, 0.55), bx = xc + w / 2 > c.x1 ? xc - w / 2 : xc + w / 2;
+          var hw = 0.36 * w, hh = 0.55 * hw / ax, hl = 1.7 * hh, k = Math.min(1, 0.9 * H / (hh + hl)); hw *= k; hh *= k; hl *= k;
+          var top = y0 + (H - hh - hl) / 2, mw = hw * 0.24, lw = Math.max(0.5, 0.05 * hh);
+          g.strokeStyle = hexCss(mixHex(MAZO_DK, cA, 0.4)); g.lineWidth = 0.1 * w; g.lineCap = 'butt';      // rayas cruzadas (detrás)
+          g.beginPath(); g.moveTo(bx - 0.18 * w, y0); g.lineTo(bx + 0.18 * w, y1); g.moveTo(bx + 0.18 * w, y0); g.lineTo(bx - 0.18 * w, y1); g.stroke();
+          g.lineJoin = 'round'; g.lineWidth = lw; g.strokeStyle = hexCss(ink);
+          g.fillStyle = hexCss(mixHex(cA, 0xffffff, 0.3)); g.beginPath(); g.rect(xc - mw / 2, top + hh * 0.9, mw, hl); g.fill(); g.stroke();   // mango
+          g.fillStyle = hexCss(cA); g.beginPath(); g.rect(xc - hw / 2, top, hw, hh); g.fill(); g.stroke();                                  // cabeza
+          g.fillStyle = hexCss(mixHex(cA, 0xffffff, 0.55)); g.fillRect(xc - hw / 2 + hw * 0.08, top + hh * 0.14, hw * 0.84, hh * 0.18);    // brillo
+        });
       }
     }
-    function cuff(c, id) { band(c, 0.88, 0.97, id === 'manguitoOro' ? mixHex(GOLD, 0x8a5a10, 0.35) : id === 'manguitoLlamas' ? cA : cB); }
+    /** ventosas del pulpo: dos filas de círculos claros con el centro hundido, por toda la vuelta del tubo (redondas: u propia) */
+    function suckers(c, f0, f1, tr, len) {
+      draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+        var H = y1 - y0, n = 5, sw = w / n, r = Math.min(sw * 0.3, H * 0.22 * ax), j, i;
+        for (j = 0; j < 2; j++) for (i = -1; i <= n; i++) {
+          var x = c.x0 + (i + (j ? 0.5 : 0) + 0.25) * sw, y = y0 + H * (j ? 0.7 : 0.3);
+          g.fillStyle = hexCss(PULPO_HI); g.beginPath(); g.ellipse(x, y, r, r / ax, 0, 0, PI * 2); g.fill();
+          g.fillStyle = hexCss(mixHex(PULPO, 0x000000, 0.25)); g.beginPath(); g.ellipse(x, y, r * 0.45, r * 0.45 / ax, 0, 0, PI * 2); g.fill();
+        }
+      });
+    }
+    function cuff(c, id) { band(c, 0.88, 0.97, id === 'manguitoOro' ? mixHex(GOLD, 0x8a5a10, 0.35) : id === 'manguitoLlamas' || id === 'manguitoMazo' ? cA : cB); }
     // ---- brazos ([k] 0 izquierdo, 1 derecho): f0 = donde acaba la manga (o la licra) y empieza la piel
     for (k = 0; k < 2; k++) {
       var arm = k ? X.armR : X.armL, cu = col(ARM_R, COL_UP[k]), cf = col(ARM_R, COL_FORE[k]), f0 = beach ? 0.14 : 0.46;
@@ -549,6 +590,7 @@
       if (X.legs === 'malla') { band(c, fs, 0.85, top); band(c, 0.82, 0.85, mixHex(top, tc.accent, 0.5)); }          // malla corta hasta casi la rodilla
       else if (X.legs === 'mallaLarga') band(c, fs, 1, cB);
       if (X.knees === 'altas') band(c, 0.82, 1, tc.pad);
+      else if (X.knees === 'rodiPulpo') { band(c, 0.8, 1, PULPO); suckers(c, 0.8, 1, TUBE_LEG, THIGH); }
     }
     // ---- espinillas
     for (k = 0; k < 2; k++) {
@@ -565,6 +607,7 @@
         else if (!beach && X.socks === 'altosRayas') { band(c, 0.2, 0.4, sc); band(c, 0.26, 0.3, 0xf4f4f4); band(c, 0.35, 0.39, 0xf4f4f4); }
       }
       if (X.knees === 'altas') band(c, 0, 0.22, tc.pad);
+      else if (X.knees === 'rodiPulpo') { band(c, 0, 0.24, PULPO); suckers(c, 0, 0.24, TUBE_LEG * 0.96, SHIN); }
       else if (X.knees === 'bajadas') band(c, 0.12, 0.42, tc.pad);
       if (beach && X.ankle === 'escarpines') band(c, 0.85, 1, cS);
     }
@@ -941,7 +984,7 @@
   function elbowHex(X, tc, k) {
     var arm = k ? X.armR : X.armL, c = X.skin;
     if (!X.beach && X.under === 'termica') c = colB(X, tc);
-    if (ARMS[arm] && arm !== 'kinesio') c = arm === 'manguitoOro' ? GOLD : arm === 'manguitoLlamas' ? tc.dark : colA(X, tc);
+    if (ARMS[arm] && arm !== 'kinesio') c = arm === 'manguitoOro' ? GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : colA(X, tc);
     if (X.elbows === 'coderas') c = colA(X, tc);
     return c;
   }
@@ -959,6 +1002,11 @@
   function wristGeo(G, X, tc, k) {
     var w = k ? X.wristR : X.wristL, s = k ? -1 : 1, y = -FORE + 0.015;
     if (w === 'muneq') { G.owk = 0.5; G.add(torus(TUBE_ARM + 0.008, 0.014, 5, 16), colA(X, tc), 0, y, 0, PI / 2, 0, 0); }
+    else if (w === 'munhCanon') {   // jefe Cañón: la muñequera de rizo, negra con el aro de cA por fuera (la boca del cañón)
+      var rc = TUBE_ARM + 0.008, ca = colA(X, tc);
+      G.owk = 0.5; G.vc = function (px, py, pz) { return Math.sqrt(px * px + py * py) > rc + 0.006 && Math.abs(pz) < 0.007 ? ca : null; };   // rombos de cA en zigzag
+      G.add(torus(rc, 0.0155, 5, 16), NEUTRAL_DK, 0, y, 0, PI / 2, 0, 0, 1, 1, 1.5); G.vc = null;
+    }
     else if (w === 'reloj') {
       G.owk = 0.5; G.add(torus(TUBE_ARM + 0.004, 0.009, 5, 16), NEUTRAL_DK, 0, y, 0, PI / 2, 0, 0, 1, 1, 1.5);                 // correa
       G.add(cyl(0.024, 0.024, 0.014, 14), colA(X, tc), s * (TUBE_ARM + 0.012), y, 0, 0, 0, PI / 2);                            // caja
@@ -969,11 +1017,14 @@
   /** Manopla grande y redonda (sin dedos) con el pulgar insinuado. Plano de la mano = Y-Z del hueso (grosor en X). Vestuario: mitones
    *  (manopla y pulgar de cA) y dedos vendados (pulgar de esparadrapo y una vuelta aplastada en la punta; la vuelta, no en LOD0). */
   function handGeo(G, X, tc, s) {
-    var K = HAND_K, tape = X.hands === 'dedos', cm = X.hands === 'mitones' ? colA(X, tc) : X.skin;
+    var K = HAND_K, tp = TAPED[X.hands], tape = !!tp, cm = X.hands === 'mitones' ? colA(X, tc) : X.skin;
     G.owk = 0.75;
     G.add(sph(1, 16, 12), cm, 0, -PALM, 0.004, 0, 0, 0, 0.058 * K, 0.108 * K, 0.094 * K);
-    G.add(capsule(1, 1.4, 2, 8), tape ? TAPE : cm, 0, -0.06 * K, 0.085 * K, -0.75, 0, 0, 0.034 * K, 0.034 * K, 0.034 * K);   // pulgar
-    if (tape && LODR > 0) { G.owk = 0.5; G.add(torus(1, 0.14, 5, 16), TAPE, 0, -PALM - 0.058 * K, 0.004, PI / 2, 0, 0, 0.05 * K, 0.081 * K, 0.08 * K); }   // (no en LOD0: 1 cm)
+    if (tp === STEEL) G.vc = function (px, py) { return Math.abs(py) < 0.5 ? STEEL_DK : null; };   // hierro: tira oscura en el pulgar
+    G.add(capsule(1, 1.4, 2, 8), tape ? tp : cm, 0, -0.06 * K, 0.085 * K, -0.75, 0, 0, 0.034 * K, 0.034 * K, 0.034 * K);   // pulgar
+    G.vc = null;
+    if (tape && LODR > 0) { G.owk = 0.5; G.add(torus(1, 0.14, 5, 16), tp === STEEL ? STEEL_DK : tp, 0, -PALM - 0.058 * K, 0.004, PI / 2, 0, 0, 0.05 * K, 0.081 * K, 0.08 * K); }   // (no en LOD0: 1 cm)
+    G.vc = null;
     G.owk = 1;
   }
   function thighGeo(G, tc, beach, k) {
@@ -981,11 +1032,20 @@
     G.mode = 'strip'; G.rows = TH_R; G.su = COL_TH[k]; G.add(tube(TUBE_LEG, THIGH), null, 0, -THIGH / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL;
   }
   /** Bola de la rodilla: rodillera (cortas, altas: oscuro del equipo) o rodilla desnuda (bajadas o sin; con malla larga, cB). */
-  function kneeHex(X, tc) { return X.knees === 'cortas' || X.knees === 'altas' ? tc.pad : X.legs === 'mallaLarga' ? colB(X, tc) : X.skin; }
+  function kneeHex(X, tc) { return X.knees === 'rodiPulpo' ? PULPO : X.knees === 'cortas' || X.knees === 'altas' ? tc.pad : X.legs === 'mallaLarga' ? colB(X, tc) : X.skin; }
+  // ventosas de la rodillera de pulpo (solo LOD2, bola de 16 × 12): casillas [columna, fila] de la esfera, una cara doble cada una,
+  // al tresbolillo por delante (+Z: columna 4 de 16 = 90°, filas 5-7 de 12 = el ecuador)
+  var PULPO_Q = { '2,5': 1, '4,5': 1, '6,5': 1, '3,7': 1, '5,7': 1, '1,7': 1, '7,7': 1 };
+  function pulpoDots(x, y, z) {
+    var l = Math.sqrt(x * x + y * y + z * z) || 1, ph = Math.atan2(z, -x); if (ph < 0) ph += PI * 2;
+    return PULPO_Q[Math.floor(ph / (PI / 8)) + ',' + Math.floor(Math.acos(clamp(y / l, -1, 1)) / (PI / 12))] ? PULPO_HI : null;
+  }
   function shinGeo(G, tc, X, beach, k) {
     // rodilla: bola = RODILLERA pintada (oscuro del equipo); en la playa, la rodilla desnuda (piel); altas: algo mayor
-    var hi = X.knees === 'altas';
+    var hi = !!KNEE_HI[X.knees];
+    if (X.knees === 'rodiPulpo' && LODR === 2) G.vc = pulpoDots;   // ventosas por delante
     G.add(sph(BALL_KN, 16, 12), kneeHex(X, tc), 0, 0, 0.004, 0, 0, 0, hi ? 1.08 * 1.12 : 1.08, hi ? 1.1 : 1, hi ? 1.04 * 1.12 : 1.04);
+    G.vc = null;
     G.mode = 'strip'; G.rows = SHN_R; G.su = COL_SHN[k]; G.add(tube(TUBE_LEG * 0.96, SHIN), null, 0, -SHIN / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL;
   }
   /** Playa: pie DESCALZO de muñeco (empeine redondo de piel, planta con arena, dedo gordo insinuado) con la tobillera del Vestuario:
@@ -999,6 +1059,11 @@
     G.add(sph(1, 16, 6, 0, PI * 2, PI * 0.5, PI * 0.5), mixHex(sk, SAND_HEX, esc ? 0.3 : 0.4), 0, Y, 0.045 * K, 0, 0, 0, 0.08 * K, 0.062, 0.142 * K); // planta con arena
     G.owk = 0.5; G.add(sph(0.03 * K, 10, 7), sk, -s * 0.034 * K, Y + 0.004, 0.045 * K + 0.125 * K, 0, 0, 0, 1, 0.8, 1.1);   // dedo gordo
     if (X.ankle === 'tela') { G.owk = 0; G.add(torus(0.05 * K, 0.011, 5, 16), colA(X, tc), 0, -0.01, -0.006, PI / 2, 0, 0, 1, 1, 1.05); }   // tobillera de tela
+    else if (X.ankle === 'tobiPulpo') {   // jefe Pulpo: la tobillera de tela con ventosas claras alternas por fuera
+      var ra = 0.05 * K, ct = mixHex(colA(X, tc), PULPO_HI, 0.7), st = 2 * PI / sg(16, 10);
+      G.vc = function (px, py) { return Math.sqrt(px * px + py * py) > ra + 0.004 && Math.floor((Math.atan2(py, px) + PI) / st) % 2 === 0 ? ct : null; };
+      G.owk = 0; G.add(torus(ra, 0.012, 5, 16), colA(X, tc), 0, -0.01, -0.006, PI / 2, 0, 0, 1, 1, 1.4); G.vc = null;
+    }
     else if (X.ankle === 'pulseraTob' && LODR > 0) { G.owk = 0; G.add(torus(0.053 * K, 0.0045, 4, 10), colA(X, tc), 0, -0.024, -0.006, PI / 2 + 0.14, 0, 0, 1, 1, 1.05); }
     G.owk = 1;
   }
@@ -2067,12 +2132,21 @@
     return true;
   }
   /** Cámara del busto (medidas del muñeco activo): mira a la altura de los hombros + algo de cabeza, a la distancia en que caben la
-   *  cabeza con gorro y los hombros. */
-  var PT_TY = 0.8, PT_D = 2.0, PT_UP = 0.05;
-  function ptFrame() {
-    var top = SH_H + HEAD_C + HEAD_RY, ty = SH_H + HEAD_C * PT_TY, d = PT_D * top / 1.64;
+   *  cabeza con gorro y los hombros. T21: el encuadre depende del tamaño (ptZoom): pequeño (cabecera de 44 px, 72 px) = la cabeza
+   *  con el gorro entero, el cuello y un poco de hombros, más cerca y con aire arriba; grande (88 px y más) = el busto de siempre. */
+  var PT_TY = 0.8, PT_D = 2.0, PT_UP = 0.05, PT_TY_H = 1.0, PT_D_H = 1.5, PT_UP_H = 0.02, PT_SIDE_H = 0.045;
+  /** 0 = cara (lienzo ≤ 96 px: 44 px CSS a ×2), 1 = busto (≥ 176 px: 88 px CSS a ×2); req.zoom (0..1) lo fuerza. */
+  function ptZoom(req) {
+    var z = req && req.zoom;
+    if (typeof z === 'number' && isFinite(z)) return clamp(z, 0, 1);
+    return clamp((ptSize(req) - 96) / 80, 0, 1);
+  }
+  function ptFrame(z) {
+    z = z == null ? 1 : z;
+    var top = SH_H + HEAD_C + HEAD_RY, ty = SH_H + HEAD_C * lerp(PT_TY_H, PT_TY, z), d = lerp(PT_D_H, PT_D, z) * top / 1.64, up = lerp(PT_UP_H, PT_UP, z);
+    var sz = -PT_SIDE_H * (1 - z) * top / 1.64;   // de cerca, el encuadre se corre a la derecha (−Z): cabe la visera, que sale por ese lado
     if (ty === PT.ty && d === PT.d) return;
-    PT.cam.position.set(d, ty + PT_UP, 0); PT.cam.lookAt(0, ty, 0); PT.cam.updateMatrixWorld(true);
+    PT.cam.position.set(d, ty + up, sz); PT.cam.lookAt(0, ty, sz); PT.cam.updateMatrixWorld(true);
     PT.ty = ty; PT.d = d;
   }
   /** Prepara la escena para req (luces, niebla, fondo, muñeco, pose y cara). Devuelve el rig. */
@@ -2096,6 +2170,7 @@
       if (cv) { paintAtlas(cv, tc, L, num, bch); m.map.needsUpdate = true; }
       PT.as = as;
     }
+    ptFrame(ptZoom(req));
     r.pose = ptPose(req); r.blinkOn = 0; r.tFix = 0;
     animate(r, 0); setFace(r, ptFace(req));
     r.root.rotation.y = PI / 2 + ptYaw(req);
@@ -2103,12 +2178,13 @@
     return r;
   }
   var portrait = {
-    /** Clave de caché: 'geoSig|atlasSig|pose|face|yaw|bg|size' (cambia sola si cambian el look, la equipación o el dorsal). */
+    /** Clave de caché: 'geoSig|atlasSig|pose|face|yaw|bg|size' (cambia sola si cambian el look, la equipación o el dorsal); con
+     *  req.zoom, además '|z' + el encuadre. */
     key: function (req) {
       req = req || {};
       if (!THREE) THREE = window.THREE;
       var tc = ptKit(req), L = ptLook(req, tc), bch = !!req.beach;
-      return geoSig(L, tc, bch) + '|' + atlasSig(L, tc, ptNum(req), bch) + '|' + ptPose(req) + '|' + ptFace(req) + '|' + ptYaw(req).toFixed(3) + '|' + ptBg(req).toString(16) + '|' + ptSize(req);
+      return geoSig(L, tc, bch) + '|' + atlasSig(L, tc, ptNum(req), bch) + '|' + ptPose(req) + '|' + ptFace(req) + '|' + ptYaw(req).toFixed(3) + '|' + ptBg(req).toString(16) + '|' + ptSize(req) + (req.zoom != null ? '|z' + ptZoom(req).toFixed(2) : '');
     },
     /** Pinta el retrato en out2d (canvas 2D; se escala a su tamaño). c = VB.ctx. Devuelve los ms, o -1 si no puede (sin renderer, sin
      *  lienzo, error). Guarda y restaura viewport, tijera y render target; no toca autoClear. */

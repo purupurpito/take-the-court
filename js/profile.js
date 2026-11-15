@@ -468,9 +468,8 @@
       var id = it.id, start = false;
       try { start = typeof L.isStart === 'function' ? L.isStart(id) : !it.unlock; } catch (e) { start = true; }
       if (start) return;
+      // icono vacío: L.art(id) es texto para frases («el gorro…») y L.stars, estrellas en texto; la UI pone el dibujo de la ranura
       var have = lookOwned(id), e = own[id] || {}, icon = '';
-      if (typeof L.art === 'function') { try { icon = L.art(id) || ''; } catch (er) { icon = ''; } }
-      if (!icon && typeof L.stars === 'function') { try { icon = L.stars(id) || ''; } catch (er) { icon = ''; } }
       var lt = ''; if (typeof L.lockText === 'function') { try { lt = L.lockText(id) || ''; } catch (er) { lt = ''; } }
       items.push({ aid: 'look:' + id, name: lookName(id), icon: icon, have: have, tier: +it.rarity || 0, t: have ? +e.t || 0 : 0,
         src: have ? e.s || 'carrera' : '', how: lt ? 'Cómo se gana: ' + lt : '', isNew: have && uns.indexOf(id) >= 0 });

@@ -10,6 +10,7 @@
  *     Sprint 2-4 (T9): tipos de desbloqueo boss, reto, retoN, semana, dias, lvl y chem (meets, lockText, checkGlobal y orígenes
  *     retos / hito / boss), 8 premios por nivel sin quitar ninguna alternativa (contra js/look.js del Vestuario original, 928ac39), objetos de jefe,
  *     bossItems / bossFit, drawId (pieza base mientras doll.js no sepa la variante) y el contrato D4 (.bak + lost(), solo lectura).
+ *     T21 (--gl): los 5 objetos de jefe con dibujo propio en doll.js y los mismos triángulos que su pieza base.
  *  2) --gl (tools/cdp.js): abre ?debug=look&looktest=1, comprueba que VB.Look del navegador firma igual que el de node y llama a
  *     VB.Doll.lookSelfTest() si existe (si aún no existe lo dice sin fallar; STRICT=1: fallo). Errores JS de la página = fallo.
  * Uso: node tools/looktest.js [--gl]        Escribe «TODO OK» al final si todo pasa; sale con 1 si falla algo.
@@ -489,6 +490,14 @@ async function browser() {
       const okST = res === true || (Array.isArray(res) && !res.length) || (res && typeof res === 'object' && !Array.isArray(res) && (res.ok === true || (res.ok == null && !fails.length)));
       check(okST, 'VB.Doll.lookSelfTest()' + (res && typeof res === 'object' && res.summary ? ': ' + res.summary : ''));
     }
+    // T21: los 5 objetos de jefe tienen dibujo propio en doll.js (drawId ya no cae a «as») con los MISMOS triángulos que su base
+    const BOSS5 = [['wristR', 'munhCanon', 'muneq', 0], ['hands', 'dedosMuro', 'dedos', 1], ['armR', 'manguitoMazo', 'manguito', 0], ['knees', 'rodiPulpo', 'altas', 0], ['ankle', 'tobiPulpo', 'tela', 1]];
+    const bt = JSON.parse(await pg.evalJs(`(function(){var P=VB.Doll.preview,i=P.info(),out=[];if(!i)return '[]';var L0=i.rig.look,o0={beach:i.beach};
+      ${JSON.stringify(BOSS5)}.forEach(function(b){var o={beach:!!b[3]},La=Object.assign({},L0),Lb=Object.assign({},L0);La[b[0]]=b[2];Lb[b[0]]=b[1];
+        P.set(La,o);var ta=P.info().tris,ga=P.info().geo;P.set(Lb,o);var tb=P.info().tris,gb=P.info().geo;
+        out.push([b[1],VB.Look.drawId(b[0],b[1]),ta,tb,ga!==gb]);});P.set(L0,o0);return JSON.stringify(out);})()`, true));
+    check(bt.length === 5 && bt.every(x => x[1] === x[0]), 'objetos de jefe con dibujo propio en doll.js: ' + bt.map(x => x[0] + '→' + x[1]).join(', '));
+    check(bt.length === 5 && bt.every(x => x[2] === x[3] && x[4]), 'objetos de jefe: mismos triángulos que su pieza base y malla propia (' + bt.map(x => x[0] + ' ' + x[3]).join(', ') + ')');
     const errs = pg.errors.filter(e => !/favicon/i.test(String(e)));
     check(!errs.length, 'sin errores JS en la página' + (errs.length ? ': ' + errs.slice(0, 5).join(' | ') : ''));
   } catch (e) {

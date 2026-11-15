@@ -205,6 +205,23 @@ trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
    nunca queda fuera de la convocatoria por confianza baja y la Rotación nunca dos jornadas seguidas, y el menú «Cambios» solo deja
    cambiar en el mismo puesto u OH↔OPP.
 
+10. **Para Ferran: decisiones pendientes del sprint 2-4 (v1.2.0, 15-nov-2026).** Nada de esto se hace sin él:
+    1. **Desplegar `firebase/firestore.rules`** (ya admiten las 11 claves: squad, career, settings, record, gym, look, profile, career6,
+       cmode, legends y retos): `npx firebase-tools deploy --only firestore:rules` desde `firebase/`. Esperar unos minutos y, en una
+       publicación mínima, `LOOK_SYNC = true` y `S4_SYNC = true` en js/account.js (hoy perfil, retos, Carrera de pista, modo de Carrera y
+       Salón de la Fama NO viajan con la cuenta). Luego, la prueba con dos aparatos de notes/cuentas.md.
+    2. **Tabla de premios por nivel de perfil:** hay 8 (Nv 2 Tira nasal, 4 Collar de conchas, 6 Malla larga, 8 Manguito de rayas, 10 Tinte
+       azul, 14 Mitones, 20 Licra de surf, 28 Zapatillas neón), siempre como alternativa a la tienda. La spec proponía 17. Y el nombre
+       «nivel de perfil».
+    3. **«Punto de set» frente a «bola de set»:** el juego dice «Punto de set» / «Punto de partido» en todo (CONTRACT §7). Cambiarlo es
+       un buscar y reemplazar en recap.js, replay.js y ui.js.
+    4. **«Continuar carrera» abre el hub** (en «Partido», con el foco en «Jugar partido»), no el partido directamente.
+    5. **3 s de celebración también en escritorio** antes de la hoja final (antes, en pantallas ≥ 1000 px, la hoja salía al momento).
+       Cualquier botón la adelanta tras 0,8 s.
+    6. **Calibrar los retos `tidy` y `comeback`:** con autopilot contra Normal salen 1 de 6 y 0 de 6 partidos (los demás, 3-6 de 6).
+       Umbrales sin tocar.
+    7. Demo del menú con la sede de la Carrera activa (sin hacer; sería una bandera aparte, medida con perf.js).
+
 ## Peticiones entre lotes
 (Escribe aquí: lote que pide → fichero, función y cambio exacto.)
 - **Vida de la Carrera (12-nov-2026) → lote C (rama `carrera-pista`)**: main ya tiene js/career-life.js y js/career-life-ui.js y 5 llamadas

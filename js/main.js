@@ -79,7 +79,8 @@
     return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
-      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: 'palau', mapBeach: 'platja', subs6: 'auto' };
+      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: 'palau', mapBeach: 'platja', subs6: 'auto',
+      replays: 'auto' };   // S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
     // El tipo (`arena`) sigue siendo lo único que va a la sim; la sede solo cambia el escenario. Lo desconocido vuelve a la de serie.
   }
@@ -131,7 +132,8 @@
     // ajustes de antes de existir coachTips: quien ya ha ganado algún partido empieza sin consejos (como si acabara de ganar)
     if (!Q.debug && rec && rec.wins > 0 && !(o && 'coachTips' in o)) s.coachTips = false;
     if (DIFFS.indexOf(s.difficulty) < 0) s.difficulty = 'normal';
-    if (s.subs6 !== 'manual') s.subs6 = 'auto';   // 6v6: cambios de tu equipo (ui.js «Cambios de tu equipo»: Automáticos / Solo los míos)
+    if (s.subs6 !== 'manual') s.subs6 = 'auto';
+    if (['auto', 'end', 'off'].indexOf(s.replays) < 0) s.replays = 'auto';   // S3-C1 (sin migración: lo que falte o no valga, 'auto')   // 6v6: cambios de tu equipo (ui.js «Cambios de tu equipo»: Automáticos / Solo los míos)
     if (['auto', 'high', 'medium', 'low'].indexOf(s.quality) < 0) s.quality = 'auto';
     s.camSens = Math.max(0.5, Math.min(1.5, +s.camSens || 1));
     s.sfxVol = Math.max(0, Math.min(1, isFinite(+s.sfxVol) ? +s.sfxVol : 1));
@@ -372,7 +374,8 @@
   function kitWithLooks(kit) { return Object.assign({}, kit || ctx.settings, { looks: curLooks }); }
 
   function setGame(g, kit, lookOpts) {
-    ctx.game = g; ctx.timeScale = 1; acc = 0;
+    call('Replay', 'abort');   // S3-C1: una repetición en curso se corta sin cortinilla (menú, revancha, reiniciar, escenas)
+    ctx.game = g; ctx.timeScale = 1; acc = 0; ctx.replaySkipReq = false;
     // g.watch0 = espectador de verdad (?format=6v6, escenas); g.watch se recalcula cada frame con el banquillo (g.watch0 || g.ctrlOut)
     if (g && g.watch0 === undefined) g.watch0 = !!g.watch;
     bench.fast = false; bench.ff = ''; bench.out = !!(g && g.ctrlOut); ctx.bench = bench;
@@ -384,7 +387,18 @@
     Sim.drainEvents(g, pendingEvents); // eventos iniciales (newMatch, serveReady...) se entregan en el primer frame
     for (var i = 0; i < MODS.length; i++) call(MODS[i], 'onGameStart', g);
     fixShadowDepth(); // los jugadores se reconstruyen en onGameStart
+    // S3-C1: grabador de repeticiones (VB.Replay decide si el partido graba: 2v2 humano, sin demo, ejercicio ni espectador; con
+    // autopilot solo con &replay=1). Las escenas debug=replay/best lo arrancan antes de avanzar la sim (rpPre) y no se rehace aquí
+    if (rpPre === g) rpPre = null; else call('Replay', 'reset', g);
   }
+  var rpPre = null;
+  /** S3-C1 / R10: mejores jugadas desde la hoja final (pestaña «Jugadas»): i = una (índice de VB.Replay.list()) o, sin i, todas.
+   *  Al acabar o salir, ui.js vuelve a enseñar la hoja con el foco en el «Ver» pulsado (VB.UI.replayDone). */
+  ctx.actions.playBest = function (i) {
+    var R = VB.Replay; if (!R || !R.playBest || ctx.state !== 'over') return false;
+    ctx.frozen = false;   // (escenas de depuración congeladas en la hoja: la repetición tiene que correr)
+    try { return !!R.playBest(i == null ? undefined : i | 0, function () { call('UI', 'replayDone'); }); } catch (e) { reportError('Replay.playBest', e); return false; }
+  };
   // primer partido (sin récord guardado): la CPU saca más suave (notes/sim.md, createGame({rookie}))
   function isRookie() { try { var r = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); return !(r && r.played > 0); } catch (e) { return false; } }
   function seed() { return Q.seed ? (+Q.seed | 0) : ((Date.now() ^ (Math.random() * 1e9)) & 0x7fffffff); }
@@ -636,7 +650,7 @@
   // startCareerMatch: el próximo partido de la Carrera (atributos de los 4, tus insignias, puntos, perfil del rival, control y
   // equipación del club). Al llegar gameOver, VB.Career.matchDone (antes de que ui.js pinte la hoja final, para que badges.js
   // cierre las insignias sobre tu atleta y no sobre el escuadrón); la hoja final ofrece «Volver a la Carrera».
-  var endTweaked = false, careerEnd = null, menuOnly = false;
+  var endTweaked = false, careerEnd = null, menuOnly = false, careerEndXv = null, careerSes = null;
   // «Menú principal» de la hoja final de Carrera va al menú principal (antes abría el hub igual que «Volver a la Carrera»).
   // ui.js llama a toMenu() con los dos botones: se marca aquí, en captura, antes de que llegue su manejador.
   document.addEventListener('click', function (e) {
@@ -649,6 +663,8 @@
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
     if (K.abortMatch) K.abortMatch();
     careerIntroData(K, m.career);   // B5: puestos, cara a cara, rival y liga para la previa (solo lectura)
+    // B6: sesiones de entrenamiento hechas antes de este partido (matchDone cierra la jornada y pone el contador a 0)
+    careerSes = null; try { var ti = K.trainInfo ? K.trainInfo() : null; if (ti) careerSes = { used: ti.used | 0, max: ti.max | 0 }; } catch (e) { careerSes = null; }
     // C3: el jefe del circuito es el n.º 1 rival (su club excluye el de tu rival personal: no coincide con rivalNum)
     var bossNum = m.career && m.career.rivalNum == null && (m.career.bossNum | 0) > 0 ? m.career.bossNum | 0 : 0;
     ctx.actions.startMatch({ career: m.career, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
@@ -670,63 +686,27 @@
     var a = document.getElementById('btnAgain'); if (a && a.getAttribute('data-cr')) { a.textContent = a.getAttribute('data-cr'); a.removeAttribute('data-cr'); }
     var m = document.getElementById('btnMenu'); if (m && m.getAttribute('data-cr')) { m.textContent = m.getAttribute('data-cr'); m.removeAttribute('data-cr'); }
   }
-  function fmt1(v) { return (Math.round(v * 10) / 10).toFixed(1).replace('.', ','); }
-  /** Ordinal corto (guía de estilo: «1r», «2º», «3r»; nunca «1.er»): el de la Carrera si lo exporta, si no uno igual. */
-  function ordn(n) { var K = VB.Career; if (K && typeof K.ordn === 'function') { try { return K.ordn(n); } catch (e) { } } n = n | 0; return n + (n === 1 || n === 3 ? 'r' : 'º'); }
-  /** Línea de minutos de la hoja final de Carrera (sum.part, §I.3): «De inicio | 40 de 52 puntos» / «Entraste en el 2º set | …» /
-   *  «No llegaste a entrar», y «Te cambiaron en el 3r set». HTML con el separador de la guía (raya fina). */
-  function partLine(pt) {
-    if (!pt) return '';
-    var pts = (pt.meR | 0) + ' de ' + (pt.rallies | 0) + ' puntos', a = [];
-    if (pt.started) a.push('De inicio', pts);
-    else if (pt.entered) a.push('Entraste en el ' + ordn(pt.entered) + ' set', pts);
-    else a.push(pt.status === 'out' ? 'Fuera de la convocatoria' : 'No llegaste a entrar');
-    if (pt.pulled) a.push('Te cambiaron en el ' + ordn(pt.pulled) + ' set');
-    if (VB.UI && VB.UI.sep) { try { return VB.UI.sep(a, 'v'); } catch (e) { } }
-    return a.map(escHtml).join(' | ');
-  }
-  function escHtml(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
-  /** Hoja final de un partido de Carrera (tras showEnd de ui.js): título con el rival, antetítulo con la competición, nota y
-   *  experiencia, y «Volver a la Carrera» en vez de «Revancha». Solo DOM: ui.js no se toca. */
-  function careerEndSheet(g, s) {
-    endTweaked = true;
-    var cs = g.career || {};
-    var $ = function (id) { return document.getElementById(id); };
-    var en = $('end'); if (en) en.classList.add('career'); // CSS compacto de career-ui.js (#end.career, ≤ 420 px de alto)
-    var a = $('btnAgain'), alt = $('btnAgainAlt'), mn = $('btnMenu'), t = $('endTitle'), k = $('endKicker'), rec = $('endRecord');
-    if (a) { if (!a.getAttribute('data-cr')) a.setAttribute('data-cr', a.textContent); a.textContent = 'Volver a la Carrera'; }
-    if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú principal'; }
-    if (alt) alt.hidden = true;
-    var win = g.sets && g.sets[0] > g.sets[1];
-    if (t && !win && cs.rivalName) t.textContent = 'Gana el ' + cs.rivalName;
-    // (antetítulo: «Circuito Regional ◆ Jornada 1 de 14», con el rombo de la guía; la etiqueta viene con « · » de datos)
-    if (k && cs.label) { if (VB.UI && VB.UI.sep) k.innerHTML = VB.UI.sep(cs.label, 'd'); else k.textContent = cs.label.split(' · ').join(', '); }
-    if (rec && s) {
-      var d = document.createElement('div'); d.className = 'end-xp';
-      // pista con banquillo (sum.part): sin nota con menos de 12 puntos en pista («s. c.», sin calificar)
-      var pt = s.part || null, sc = pt && s.nota == null;
-      var html = '<span>Nota: <b>' + (sc ? 's. c.' : fmt1(s.nota || 0)) + '</b>' + (sc ? ' <small>(menos de 12 puntos en pista)</small>' : '') + '</span><span>' + (cs.player ? escHtml(cs.player) + ': ' : '') + '<b>+' + (s.xp | 0) + ' XP</b>' + (s.lvlUp ? ' <span class="lv">¡NIVEL ' + s.lvl + '! +' + s.ptsGained + ' puntos</span>' : '') + '</span>';
-      d.innerHTML = html; rec.appendChild(d);
-      var pl = partLine(pt);
-      if (pl) { var dp = document.createElement('div'); dp.className = 'end-xp end-part'; dp.innerHTML = '<span>' + pl + '</span>'; rec.appendChild(dp); }
-      // insignias nuevas o que suben: en una fila compacta con su icono (el mismo estilo .end-bd que la hoja de Partido rápido);
-      // con el texto largo («¡Insignia nueva: …!») cada una ocupaba una línea y a 844×390 «Menú principal» quedaba fuera
-      if (s.badges && s.badges.length && VB.Badges) {
-        var bd = document.createElement('div'); bd.className = 'end-bd'; var bh = '';
-        s.badges.forEach(function (u) {
-          var b = VB.Badges.BY && VB.Badges.BY[u.id], tier = u.tier || (VB.Badges.TIERS && VB.Badges.TIERS[u.lvl]) || '';
-          bh += '<span class="l' + (u.lvl | 0) + '" title="' + escHtml(VB.Badges.label ? VB.Badges.label(u) : u.name) + '"><i class="bd-ic">' + (b ? b.icon : '') + '</i><b>' + escHtml(u.name) + '</b><small>' + (u.prev ? 'sube a ' + tier : 'nueva (' + tier + ')') + '</small></span>';
-        });
-        bd.innerHTML = bh; rec.appendChild(bd);
+  /** B6: lo que la hoja final de Carrera necesita además del resumen de VB.Career.matchDone (solo lectura, tras matchDone): la tabla de
+   *  tu liga para cortar 3 filas (tbl, myId, abreviaturas), tu puesto, qué viene ahora (next: 'league' | 'semi' | 'final' | 'cuartos' |
+   *  'octavos' | 'off'), la barra de nivel (si la Carrera exporta need) y las sesiones de entrenamiento hechas antes del partido (ses). */
+  function careerEndX(K, ses) {
+    var x = { ses: ses || null };
+    try {
+      var c = K.get ? K.get() : null; if (!c) return x;
+      var me = K.myClub ? K.myClub(c) : null, hall = K.MODE === 'hall';
+      if (me && K.table) {
+        x.tbl = hall ? K.table(c, me.lid) : K.table(c, me.lvl); x.myId = me.id; x.short = {};
+        (c.clubs || []).forEach(function (k) { if (k && k.id != null) x.short[k.id] = k.short || k.name || ''; });
       }
-      // reto de la jornada (career-life.js): una sola línea corta para no empujar «Menú principal» fuera a 844×390
-      var lch = s.life && s.life.ch;
-      if (lch) {
-        var ld = document.createElement('div'); ld.className = 'end-xp';
-        ld.innerHTML = '<span>' + (lch.ok ? '✓ Reto' : '✗ Reto') + ': <b>' + escHtml(lch.txt) + '</b> (' + escHtml(lch.prog) + ')</span>';
-        rec.appendChild(ld);
-      }
-    }
+      if (me && K.posOf) x.pos = K.posOf(c, me.id) | 0;
+      if (c.review && c.review.pos) x.pos = c.review.pos | 0;
+      var n = c.phase === 'off' ? null : K.next ? K.next(c) : null;
+      if (!n) x.next = 'off';
+      else if (n.kind === 'league') x.next = 'league';
+      else { var st = String(n.label || '').split(' · ').pop().toLowerCase(); x.next = /^final/.test(st) ? 'final' : /semi/.test(st) ? 'semi' : /cuartos/.test(st) ? 'cuartos' : /octavos/.test(st) ? 'octavos' : 'league'; }
+      if (K.need && c.player && c.player.lvl != null) x.bar = { cur: c.player.xp | 0, need: K.need(c.player.lvl) | 0 };
+    } catch (e) { reportError('careerEndX', e); }
+    return x;
   }
   // ---------- Presentación del partido (UI-14) ----------
   // Tarjeta de INTRO_SEC s al empezar: la sim queda parada (sin serveReady ni silbato; los eventos iniciales salvo newMatch se
@@ -771,7 +751,8 @@
     setGame(demoGame());
     setState('menu');
     if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
-    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
+    // (B6: «Siguiente jornada» y los abandonos vuelven al hub en Partido con el foco en «Jugar partido»; R15)
+    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd, focus: 'play' }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
   };
@@ -1083,6 +1064,11 @@
     if (sizeDirty) resize(false);
 
     var it = VB.Input && VB.Input.poll ? safePoll(realDt) : null;
+    // S3-C1: con una repetición en marcha (VB.Replay.active) los botones la saltan y no llegan a nada más (ni golpe, ni pausa, ni la
+    // hoja final tapada): GOLPEAR / SALTAR / CAMBIAR / aceptar / toque (ctx.replaySkipReq) → Replay.skip() (en mejores jugadas, la
+    // siguiente); Esc / Start / B (ctx.replaySkipReq 'all': botón «Salir») → Replay.skip(true), fuera
+    var RPL = VB.Replay, rpA = !!(RPL && RPL.active && RPL.active());
+    if (rpA) rpInput(it); else ctx.replaySkipReq = false;
     if (intro.left > 0) {
       if (ctx.state !== 'playing') { if (ctx.state !== 'paused') introEnd(true); }
       else if (ctx.introSkipReq || (it && (it.hit || it.jump || it.switchPlayer || it.pause || it.confirm))) {
@@ -1129,7 +1115,17 @@
     for (var k = 0; k < pendingEvents.length; k++) frameEvents.push(pendingEvents[k]);
     pendingEvents.length = 0;
 
-    var gdt = 0;
+    var gdt = 0, gdtR = 0, R = null;
+    // S3-C1: repetición. Prepara (avance rápido de la sombra), cortinilla, juega y sale (VB.Replay.tick). Mientras los módulos pintan
+    // la sombra (runner() = R, fases 'play'/'out'), la partida en vivo NO avanza (como con la previa) y se pinta R; en 'prep'/'in' el
+    // vivo sigue normal. En pausa no corre
+    if (rpA) {
+      try {
+        if (running) gdtR = RPL.tick(realDt, evP, evF); else { evP.length = 0; evF.length = 0; }   // (pausa / congelada: R quieta)
+        R = RPL.runner();
+      } catch (e) { reportError('Replay.tick', e); try { RPL.abort(); } catch (e2) { } R = null; }
+      if (R && ctx.debug && Q.rpt && (RPL.info() || {}).t >= +Q.rpt) ctx.frozen = true;   // &rpt=s: congela la repetición a los s (capturas)
+    }
     // tarjeta de presentación: la sim espera; el resto del mundo se anima en tiempo real
     if (running && intro.left > 0) {
       intro.left -= realDt; ctx.introLeft = Math.max(0, intro.left);
@@ -1138,10 +1134,16 @@
       pendingEvents.length = 0;
     }
     if (running && intro.left > 0) { gdt = realDt; edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0; }
+    else if (running && R) {
+      // la sim en vivo espera (su g.timer no corre); los eventos pendientes (escenas, inicio de partida) esperan con ella
+      edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0;
+      for (var rk = 0; rk < frameEvents.length; rk++) pendingEvents.push(frameEvents[rk]);
+      frameEvents.length = 0;
+    }
     else if (running) {
       buildInput(ctx.state === 'playing' ? it : null);
       // ×3 en el banquillo: sin cámara lenta (la escala de camera.js no cuenta)
-      gdt = realDt * (bench.fast && g && g.ctrlOut ? 3 : ctx.timeScale);
+      gdt = realDt * (bench.fast && g && g.ctrlOut ? 3 : slowQ > 0 ? slowQ : ctx.timeScale);   // (&slow=0.5: ritmo fijo en depuración)
       acc += gdt;
       // SIM-03: GOLPEAR o SALTAR durante la pausa del punto la recorta (sim decide: tras 0,8 s y nunca a menos de 0,3 s);
       // el flanco se consume para que no llegue al saque siguiente
@@ -1150,17 +1152,21 @@
         var skipped = false; try { skipped = Sim.skipHold(g); } catch (e) { reportError('Sim.skipHold', e); }
         if (skipped) { edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; call('UI', 'onHoldSkip', g); }
       }
-      var n = 0;
+      var n = 0, rpRec = !!(RPL && RPL.enabled && RPL.enabled());
       if (bench.ff && g && ctx.state === 'playing') { ffRun(g); acc = 0; n = MAX_STEPS + 1; gdt = 0; }
       while (acc >= STEP && n < MAX_STEPS) {
         simIn.hit = edge.hit; simIn.jump = edge.jump; simIn.jset = edge.jset; simIn.switchPlayer = edge.switchPlayer;
         edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; // los flancos solo en el primer subpaso
         try { Sim.step(g, STEP, simIn); } catch (e) { reportError('Sim.step', e); }
+        if (rpRec) RPL.onStep(simIn, g);   // S3-C1: entradas del paso al grabador (después de CADA Sim.step)
         acc -= STEP; n++;
       }
       if (n === MAX_STEPS) acc = 0;
       if (bench.ff) ffDrawSkip = true;
       Sim.drainEvents(g, frameEvents);
+      // S3-C1: eventos del vivo al grabador (saque, toques, punto) y repetición automática de las bolas de set y de partido
+      // (autoReady mira el ajuste, «Menos movimiento», el challenge, la pausa saltada y los 1,6 s tras el punto)
+      if (rpRec) { try { RPL.onEvents(g, frameEvents); if (RPL.autoReady(g)) RPL.start('auto'); } catch (e) { reportError('Replay.onEvents', e); } }
       if (ctx.state === 'playing' && g.finished && frameEvents.some(isGameOver)) setState('over');
       // E6: la 10ª repetición del ejercicio (la sim no emite gameOver: drillEnd y g.drill.done)
       else if (ctx.state === 'playing' && g.drill && g.drill.done && frameEvents.some(isDrillEnd)) { if (g.careerDrill) careerDrillDone(g); setState('over'); }
@@ -1171,7 +1177,10 @@
     var ev = frameEvents.length ? frameEvents : EMPTY;
     // escena tapada (pausa, pantalla final ya visible): se pinta a ritmo reducido. Durante la celebración
     // previa a la pantalla final (ctx.endHold, ui.js) se pinta a ritmo completo.
-    if ((ctx.state === 'over' && g && (g.finished || (g.drill && g.drill.done)) && !ctx.endHold) || ctx.state === 'paused') idleT += realDt; else idleT = 0;
+    // (S3-C1: con una repetición en marcha, a ritmo completo también en la hoja final: «Jugadas»)
+    if (((ctx.state === 'over' && g && (g.finished || (g.drill && g.drill.done)) && !ctx.endHold) || ctx.state === 'paused') && !rpA) idleT += realDt; else idleT = 0;
+    if (R) rpDraw(g, R, gdtR, realDt);
+    else {
     call('Arena', 'update', g, gdt, ev);
     call('Players', 'update', g, gdt, ev);
     // contactos cosméticos de la celebración (players PLY-07): se reparten como eventos 'fx:*' a FX, cámara, audio y UI
@@ -1192,11 +1201,14 @@
     call('Audio', 'handle', ev, g);
     call('Audio', 'update', g, realDt);
     call('UI', 'update', g, gdt, ev);
+    }
     if (g && g.career && !g.demo) {
-      if (careerEnd && !endTweaked && ctx.state === 'over') { try { careerEndSheet(g, careerEnd); } catch (e) { reportError('careerEndSheet', e); } }
+      // B6: la hoja final de Carrera = el Resumen de la jornada de ui.js (VB.UI.endCareer, que sustituye a careerEndSheet), tras showEnd
+      if (careerEnd && !endTweaked && ctx.state === 'over') { endTweaked = true; call('UI', 'endCareer', careerEnd, g, careerEndXv); }
       // (marcador con las abreviaturas de los clubes: lo pinta ui.js con g.career.me / g.career.rival)
     }
 
+    if (bestPend) bestPendTick();
     // En pausa (y en la pantalla final ya asentada) la escena queda detrás de un velo desenfocado: se pinta
     // a 1/3 de frecuencia para ahorrar batería y calor en el móvil. Entrada y UI siguen a ritmo completo.
     // Móvil en vertical: el aviso "Gira el móvil" tapa toda la pantalla, no se pinta nada (batería).
@@ -1227,6 +1239,41 @@
     if (idleT > 0.6 || ctx.portraitBlock || progWarm.gate) { meter.t = 0; meter.n = 0; meter.js = 0; meter.lt = 0; } else measure(raw); // sin medir mientras se pinta a ritmo reducido
     ctx.frameMs = performance.now() - tWork;
   }
+  // S3-C1: repetición. evP = eventos de la sombra para Players (con point); evF = sin point, para FX y Audio (VB.Replay.tick los rellena)
+  var evP = [], evF = [];
+  var slowQ = Q.debug && +Q.slow > 0 ? Math.min(1, +Q.slow) : 0;
+  function rpInput(it) {
+    var rq = ctx.replaySkipReq, exit = rq === 'all', sk = !!rq && !exit;
+    ctx.replaySkipReq = false;
+    if (it && ctx.state !== 'paused') {   // (en pausa manda el menú de pausa; al reanudar, la repetición sigue)
+      if (it.pause || it.navBack) exit = true;
+      else if (it.hit || it.jump || it.confirm || it.switchPlayer || it.navOk) sk = true;
+      it.hit = it.jump = it.jset = it.switchPlayer = it.pause = it.confirm = it.navOk = it.navBack = it.challenge = false; it.navTab = 0; it.mx = it.my = 0;
+    }
+    if (exit || sk) { try { VB.Replay.skip(exit); } catch (e) { reportError('Replay.skip', e); } }
+  }
+  /** Frame de la repetición (orden de S3-C1 §3): el escenario sigue con la partida en vivo; jugadores, efectos, cámara y golpes
+   *  pintan la sombra R; audio y UI siguen el vivo (la UI tapa el HUD con #app.replay). */
+  function rpDraw(g, R, gdtR, realDt) {
+    call('Arena', 'update', g, realDt, EMPTY);
+    call('Players', 'update', R, gdtR, evP);
+    if (VB.Players && VB.Players.drainFx) {
+      PFX.length = 0; try { VB.Players.drainFx(PFX); } catch (e) { reportError('Players.drainFx', e); PFX.length = 0; }
+      for (var pf = 0; pf < PFX.length; pf++) { var fq = PFX[pf]; fq.t = R.time; fq.type = 'fx:' + fq.type; fq.replay = true; evF.push(fq); }
+    }
+    call('FX', 'update', R, gdtR, evF);
+    call('CameraRig', 'update', R, realDt, EMPTY);
+    call('Audio', 'handle', evF, R);
+    call('Audio', 'update', g, realDt);
+    call('UI', 'update', g, 0, EMPTY);
+  }
+  var bestPend = false;   // ?debug=best&play=1: ve todas las jugadas en cuanto se abre la hoja final
+  function bestPendTick() {
+    var g = ctx.game;
+    if (!bestPend || ctx.state !== 'over' || ctx.endHold || !g || !g.finished) return;
+    var e = document.getElementById('end'); if (!e || e.hidden) return;
+    bestPend = false; ctx.actions.playBest();
+  }
   function isGameOver(e) { return e.type === 'gameOver'; }
   function isDrillEnd(e) { return e.type === 'drillEnd'; }
   /** Partido de Carrera: estadísticas para la nota (VB.Career.ingest) y cierre en gameOver (antes de UI.update). */
@@ -1238,6 +1285,7 @@
       if (e.type !== 'gameOver' || careerEnd) continue;
       try { careerEnd = K.matchDone({ sets: [e.sets[0], e.sets[1]], setScores: e.setScores || g.setScores, win: e.team === 0 }, null, g) || { nota: 0, xp: 0 }; }
       catch (er) { reportError('Career.matchDone', er); careerEnd = { nota: 0, xp: 0 }; }
+      careerEndXv = careerEndX(K, careerSes);   // B6: tabla, puesto, lo siguiente, barra y sesiones (solo lectura)
     }
   }
   function safePoll(dt) { try { return VB.Input.poll(dt); } catch (e) { reportError('Input.poll', e); return null; } }
@@ -1565,6 +1613,57 @@
       // &boss=muro|saque|remate|defensa (con career=1: partido de jefe), &duel=1 (duelo con tu rival), &t=s (por defecto 0,6)
       case 'intro':
         g = mk(false, true); break;
+      // B6: hoja final como resumen de jornada. Como 'over' y además &career=1 (Carrera de prueba con resumen: nota, XP, tabla, reto,
+      // seguidores, entreno; &move=±n tu movimiento en la tabla, &boss=1 jefe tumbado, &chem=1 química que sube, &cup=semi|final copa),
+      // &unl=n (n objetos nuevos del Vestuario), &tab=sum|stats (la pestaña abierta)
+      case 'recap':
+        g = mk(true);
+        if (Q.career === '1') g.career = debugCareerCs(g);
+        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
+        if (g.career) debugCareerEnd(g);
+        break;
+      // D1: reto del día terminado (autopilot hasta gameOver con g.reto de hoy o de &retodate=AAAAMMDD; Retos.endMatch en seco)
+      case 'reto_end': {
+        g = mk(true);
+        var rdd = null; try { rdd = VB.Retos && VB.Retos.daily ? VB.Retos.daily() : null; } catch (e) { rdd = null; }
+        g.reto = rdd ? Object.assign({}, rdd.opts.reto) : { kind: 'day', key: 20261115 };
+        g.retoOpts = rdd ? Object.assign({}, rdd.opts) : null;
+        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
+        break;
+      }
+      // D1: el menú en la página Retos (&tab=hoy|maestria; &retodate=AAAAMMDD fija el día)
+      case 'retos':
+        ctx.actions.toMenu(); call('UI', 'openRetos', Q.tab === 'maestria' ? 'maestria' : Q.tab === 'hoy' ? 'hoy' : ''); return;
+      // D2: perfil. menupf = la portada con el chip; prof = la página del perfil (&tab=vestuario|insignias|entreno|carrera|retos|sedes|
+      // hitos). &pfseed=demo: perfil y vestuario de prueba en memoria (pfSeedDemo; nada se guarda)
+      case 'menupf':
+        pfSeedDemo(); ctx.actions.toMenu(); return;
+      case 'prof':
+        pfSeedDemo(); ctx.actions.toMenu(); call('UI', 'openProfile', { tab: Q.tab || '' }); return;
+      // S3-C1: repeticiones. replay = autopilot grabado (como &replay=1) con sets a 11 hasta la 1ª bola de set ganada (&match=1: la de
+      // partido) y su repetición, que se ve entera y vuelve al vivo (&rpt=s la congela a los s; &auto=1 no la lanza: la decide
+      // Replay.autoReady como en un partido; &seed=, &map=). best = el partido entero grabado hasta la hoja final con la pestaña
+      // «Jugadas» (&tab=plays la abre; &play=1 ve todas las jugadas). &career=1: Carrera de prueba (frases con los nombres)
+      case 'replay': case 'best': {
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, venue: venueNow(), points: +Q.points || 11, present: true });
+        if (Q.career === '1') g.career = debugCareerCs(g);
+        var RPd = VB.Replay;
+        if (RPd && RPd.reset && RPd.reset(g, { force: true })) rpPre = g; else console.warn('[VB] escena ' + name + ': sin grabador de repeticiones (' + (RPd && RPd._state ? RPd._state().why : 'sin js/replay.js') + ')');
+        var rpWant = name === 'best' ? function (e) { return e && e.type === 'gameOver'; } : Q.match === '1' ? function (e) { return e && e.type === 'point' && e.matchWon; } : function (e) { return e && e.type === 'point' && (e.setWon || e.matchWon); };
+        var rpEvs = [], rpTrig = -1, rpT = 0, rpExtra = name === 'best' ? 0 : (RPd && RPd.K ? RPd.K.TAIL : 156) * STEP + 0.05;
+        for (var ri = 0; ri < 3600 / STEP; ri++) {   // (el bucle de main.js sin pintar: cada paso y sus eventos pasan por el grabador)
+          Sim.step(g, STEP, null); if (rpPre === g) RPd.onStep(null, g);
+          rpEvs.length = 0; Sim.drainEvents(g, rpEvs);
+          if (rpPre === g) RPd.onEvents(g, rpEvs);
+          if (rpEvs.length) uiIngest(rpEvs, g);
+          for (var rj = 0; rj < rpEvs.length; rj++) { if (rpTrig < 0 && rpWant(rpEvs[rj])) rpTrig = ri; if (rpTrig >= 0) keep.push(rpEvs[rj]); }
+          if (rpTrig >= 0) { rpT += STEP; if (rpT >= rpExtra) break; }
+        }
+        if (rpTrig < 0) console.warn('[VB] escena ' + name + ': no se alcanzó el momento buscado');
+        if (name === 'best') state = 'over';
+        else keep = keep.filter(function (e) { return e.type !== 'point'; });   // (el punto ya pasó: su cinta no tapa la repetición)
+        break;
+      }
       case 'doll':   // maqueta del muñeco nuevo (js/doll.js): el pabellón con 4 muñecos y cámara fija; la sim queda congelada en el saque
         g = mk(true, true); break;
       default:
@@ -1574,7 +1673,9 @@
     setGame(g);
     for (var i = 0; i < keep.length; i++) pendingEvents.push(keep[i]);
     if (state === 'paused') { setState('playing'); setState('paused'); } else setState(state);
-    ctx.frozen = !live && name !== 'serve' && name !== 'hud' && name !== 'pause';
+    ctx.frozen = !live && name !== 'serve' && name !== 'hud' && name !== 'pause' && name !== 'replay' && !(name === 'best' && Q.play === '1');
+    if (name === 'replay' && Q.auto !== '1') call('Replay', 'start', 'auto');
+    bestPend = name === 'best' && Q.play === '1';
     call('CameraRig', 'snap', g);
     if (name === 'subs6menu') call('UI', 'openSubs', Q.pick === '1');
     if (name === 'doll') { dollOn = true; call('Doll', 'start', ctx, g); }
@@ -1583,6 +1684,28 @@
     console.info('[VB] escena de depuración: ' + name + ' (modo ' + g.mode + ', ' + g.score.join('-') + ', sets ' + g.sets.join('-') + ')');
   }
 
+  /** Carrera de prueba (escenas recap/intro): playa, liga, jornada 5 de 14 (con &cup=semi|final, el Open). */
+  function debugCareerCs(g) {
+    var cup = Q.cup === 'semi' || Q.cup === 'final' ? Q.cup : '';
+    var cs = { _debug: true, season: 2, phase: cup ? 'cup' : 'league', week: 4, round: cup === 'final' ? 1 : 0,
+      label: cup ? 'Open Regional · ' + (cup === 'final' ? 'Final' : 'Semifinal') : 'Circuito Regional · Jornada 5 de 14', me: 'ROC', rival: 'SOL',
+      meName: 'Club Platja Rocaverde', rivalName: 'Voley Sóller', player: 'Ares Belmonte', num: 1, mate: 'Iker Sanz', mateNum: 2, goal: 'Gana un set a cero',
+      pos0: 3 + (+Q.move | 0), rivalPos: 5, posN: 10, first: false, league: 'Circuito Regional' };
+    if (Q.boss === '1') cs.boss = { name: 'Bruno Ferrer', nick: 'el Muro', style: 'muro', styleName: 'Muro', hint: '', w: 1, l: 2 };
+    return cs;
+  }
+  /** Resumen de jornada de prueba para la escena recap (main.js lo pasa a VB.UI.endCareer en el frame, como el de matchDone). */
+  function debugCareerEnd(g) {
+    var cs = g.career, win = g.sets[0] > g.sets[1], ids = ['PUE', 'VAL', 'ROC', 'GAN', 'PAL', 'MAR', 'CAL', 'FAR', 'BRI', 'ONA'], tbl = [], sh = {};
+    for (var i = 0; i < ids.length; i++) { tbl.push({ id: i, pts: 30 - i * 3 - (i > 2 ? 1 : 0) }); sh[i] = ids[i]; }
+    var life = { ch: { ok: win, txt: cs.goal, prog: win ? '1/1' : '0/1' }, fans: win ? 1200 : 300, ach: [] };
+    if (Q.chem === '1') life.chemUp = { lv: 2, name: 'Compenetrados' };
+    if (cs.boss) life.boss = { name: cs.boss.name, nick: cs.boss.nick, style: 'muro', styleName: 'Muro', win: win, w: 2, l: 2, h2h: [4, 2, 2], first: win };
+    careerEnd = { phase: cs.phase, label: cs.phase === 'cup' ? (cs.round ? 'Final del Open' : 'Semifinal del Open') : 'Jornada 5', stage: cs.phase === 'cup' ? (cs.round ? 'final' : 'semi') : undefined, win: win, nota: 7.8, xp: 184, lvlUp: true, lvl: 7, ptsGained: 3,
+      badges: [], train: { gains: ['recv'] }, life: life, review: false };
+    careerEndXv = { tbl: tbl, myId: 2, short: sh, pos: 3, next: cs.phase === 'cup' ? (cs.round ? 'off' : 'final') : 'league', bar: { cur: 90, need: 182 }, ses: { used: 2, max: 3 } };
+    endTweaked = false;
+  }
   /** ?debug=intro: la previa de B5 con el plan del tipo pedido, congelada a los &t= s (el tiempo de la previa no corre: ctx.frozen). */
   function debugIntro(g) {
     var kind = Q.kind === 'mini' || Q.kind === 'long' ? Q.kind : 'short';
@@ -1611,6 +1734,29 @@
     if (Q.item && /^[a-z][a-zA-Z0-9]{1,15}$/.test(Q.item)) o.item = Q.item;
     if (Q.pick) { var pk = String(Q.pick).toLowerCase(); o.pick = pk === 'career' || pk === 'carrera' ? 'career' : (+pk === 2 ? 2 : 1); }
     return o;
+  }
+  /** D2 (&pfseed=demo, solo con debug): perfil de prueba EN MEMORIA para las capturas. Tapa en localStorage las claves del perfil,
+   *  del vestuario y del contador del aparato (lo que se escriba ahí se queda en esta página): nada se guarda de verdad. */
+  var pfSeeded = false;
+  function pfSeedDemo() {
+    if (!ctx.debug || Q.pfseed !== 'demo' || pfSeeded) return;
+    pfSeeded = true;
+    var day = Math.floor(Date.now() / 864e5), ach = {}, ven = {}, bd = {}, i;
+    var AI = (VB.CareerLife && VB.CareerLife.ACH_INFO) || [], VV = Object.keys(VB.VENUES || {}), BL = (VB.Badges && VB.Badges.LIST) || [];
+    for (i = 0; i < AI.length; i += 4) ach[AI[i].id] = day - 40 + i;
+    for (i = 0; i < Math.min(4, VV.length); i++) ven[VV[i]] = day - 60 + i * 9;
+    for (i = 0; i < BL.length; i++) if (i % 3 !== 2) bd[BL[i].id] = 1 + (i % 4 === 0 ? 2 : i % 4 === 1 ? 1 : 0);
+    var o = { v: 1, base: { xp: 900, m: 212, w: 131 }, dev: {}, px: 0, ven: ven, ach: ach, hit: { debut: day - 60, m25: day - 50, m100: day - 20, w10: day - 45, w100: day - 5, gira: day - 30, bd1: day - 55 },
+      bd: bd, car: {}, ann: 1, pin: [], pt: 0, seen: {} };
+    var mem = { 'voley3d.profile': JSON.stringify(o), 'voley3d.look': null, 'voley3d.devid': 'demo1' };
+    try {
+      var SP = Storage.prototype, gi = SP.getItem, si = SP.setItem, ri = SP.removeItem, LS = window.localStorage;
+      SP.getItem = function (k) { return this === LS && Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : gi.apply(this, arguments); };
+      SP.setItem = function (k, v) { if (this === LS && Object.prototype.hasOwnProperty.call(mem, k)) { mem[k] = String(v); return; } return si.apply(this, arguments); };
+      SP.removeItem = function (k) { if (this === LS && Object.prototype.hasOwnProperty.call(mem, k)) { mem[k] = null; return; } return ri.apply(this, arguments); };
+    } catch (e) { reportError('pfSeedDemo', e); return; }
+    if (VB.Profile && VB.Profile._reload) try { VB.Profile._reload(); } catch (e) { reportError('Profile._reload', e); }
+    call('UI', 'refreshMenu');
   }
   function openLookDebug() {
     var U = VB.UI;

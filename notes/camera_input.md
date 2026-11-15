@@ -1154,3 +1154,13 @@ Solo input.js, camera.js, tools/keytest.js (nuevo) y tools/padtest.js. Huella 2v
   la copia de antes del cambio (spiker, clutter, wide, fovpump: preexistentes y de ruido); heroAll 3/4 en una pasada (86 % en 844×390t,
   7 puntos), 4/4 en la de antes: ruido, el código por defecto no cambia (distK 1, sin punto tranquilo).
 - **Pruebas:** `node tools/keytest.js` (nuevo, 38 ok) y `node tools/padtest.js` (ampliado: 9-12, 52 ok).
+
+## Sprint 2-4 (15-nov-2026, v1.2.0): cámara de la repetición (T4)
+
+Detalle: `notes/s234/T4.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
+- `VB.CameraRig.replay(on, {kind, slowFrom, slowTo, fx, fy, fz})`: corte asentado al entrar (`markCut(…, 'replay')`), `replayShot` =
+  `tvShot` + acercamiento (lente ×0,85 y mira a medias hacia el toque decisivo) en el tramo lento, sin `comfort()`. Al salir recupera el
+  plano de antes; relojes CL/CC/FT/hit-stop congelados durante la repetición.
+- `getShot()` → 'replay'; `getDebug().replay = {on, k, kind}`; `shake`, `punch`, `hitStop`, `slowmo` y `heroShot` no actúan mientras dura.
+- input.js: mandos táctiles ocultos con `ctx.replay`; el «Toca para saltar» lo da ui.js con `ctx.replaySkipReq`.
+- Sin hacer (opcional): saltar a la grúa tras la repetición de un set.

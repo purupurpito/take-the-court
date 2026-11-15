@@ -1503,7 +1503,7 @@ con la columna de ataque.
   (VB.Prog.addXP a los dos jugadores) una vez por nivel no cobrado (`xp[id]` en el guardado) y devuelve `{best, prev, isBest, medal,
   newMedal, xp, n}`. `load` valida (topes b 0-40, m 0-3, rally 999; claves desconocidas fuera; JSON roto → vacío).
 - **js/account.js:** `mergeGym` (unión por máximo de récord/medalla/intentos/xp cobrado y peloteo) escrita y conectada en `merge`,
-  pero `voley3d.gym` NO entra en `DOCS` hasta `GYM_SYNC = true` (después de que Ferran despliegue las reglas). `VB.Account._mergeGym`,
+  pero `voley3d.gym` NO entraba en `DOCS` hasta `GYM_SYNC = true` (ya lo es desde el 12-nov-2026: reglas desplegadas). `VB.Account._mergeGym`,
   `_gymSync` para pruebas. `voley3d.seen` y `voley3d.device` nunca van a DOCS.
 - **firebase/firestore.rules:** `'gym'` en la lista de `key` (sin desplegar).
 - **tools/build-pages.js:** versión por vm, guardas (semver, CHANGELOG[0].v, pages/og.png, un solo rel="icon"), metadatos
@@ -1707,3 +1707,38 @@ index.html), career (career-life.js, career-life-ui.js, career-ui.js) y main (es
   844×390 táctil), drive.js 1280 720 30, drive6.js 1280 720 60. Flujo real Carrera de pista › Jugador › Vestuario › Abrir › cambiar el
   peinado › Volver: se guarda en `c.life.look` y vuelve al hub. 6v6 humano: tu look en `ctrlBase` y, tras `setCtrlRole`, en el nuevo;
   espectador: nadie. perf.js sin lanzar (pendiente: 2v2/6v6 con un look máximo en `fits[0]`).
+
+## Sprint 2-4 (15-nov-2026, v1.2.0): «Tu carrera», «Partidos que se recuerdan», «Volver mañana»
+
+Plan y specs en el scratchpad del sprint; notas por tarea en `notes/s234/` (se conservan tal cual). Contrato: CONTRACT §1, §2, §4.1, §4.4,
+§5 y §6 «Sprint 2-4». Lo de este dueño, por fichero:
+- **js/recap.js** (T7, nuevo): `VB.Recap`, el único módulo narrativo (R1): `introPlan` (mini 2,5 / corta 4,5 / larga 6 s; beat C: final >
+  semifinal > jefe > duelo > 1ª jornada), `headline` (tabla de 11 reglas, 2 variantes por `h01(seed)`), `playPhrase`, `tableSlice`,
+  `endModel` (bloques, botones y pestañas de la hoja). recaptest 301 comprobaciones.
+- **js/retos.js** (T8, nuevo): 18 retos de maestría (54 medallas) y reto del día (PRNG por fecha; tope de novato); `ingest` O(1) sin asignar,
+  `endMatch` idempotente, `chainOk` = criterio del sello. Torneo de la semana: cortado. retotest 86 (+ parte 5 por CDP de T19).
+- **js/look.js** (T9): desbloqueos `{boss}`, `{reto}`, `{retoN}`, `{dias}`, `{lvl}`, `{chem}`; orígenes `retos`/`hito`/`boss`; 8 premios por
+  nivel (`LVL_PRIZES`: Nv 2, 4, 6, 8, 10, 14, 20, 28; decide Ferran); 5 objetos de jefe; `bossFit`; contrato D4. looktest 177.
+- **js/profile.js, js/account.js, js/prog.js, js/gym.js, firebase/firestore.rules** (T13): `VB.Profile` (XP derivada + contadores por
+  aparato, curva `60 + 20·l`, 16 hitos, álbum de 7 pestañas, vitrina), `S4_SYNC`, contrato D4, `VB.Gym.ATTR`. proftest 79, synctest 47.
+  Ver notes/cuentas.md.
+- **index.html, js/ui.js, js/main.js, tools/shot.js** (T14 → T15 → T19 → T22a → T22b, una tarea por ola):
+  - T14: cola de retratos (paso 4b, LRU 12, `vb-portrait`), `portraitHTML`, B4 (`showNode` con `.out`, `uiK`, `panelSnd`, `#app.q-low`),
+    `record.byD`, `startMatch` con `map`/`noAttrs`/`noBadges`/`reto`/`introKind`, `stats:true` (R21), `restart` (R16).
+  - T15: `<script>` de retos.js, profile.js y recap.js; portada con «Continuar carrera» (`#btnCont`, `syncHero`); previa en tres longitudes
+    (`introPlan`, `introStart(g, plan)`, beats con `uiK('beat')`); ganchos `setMate`/`setBoss`/`setPairChem`; cinta cinética C4 con
+    `Audio.ui('rotulo')`; `Retos.ingest`/`endMatch`; `Profile.noteMatch`/`noteGym`; `Account.menuReady()` desde `renderMenu`.
+  - T19: hoja final B6 (`VB.UI.endCareer`, pestañas Resumen | Estadísticas | Jugadas, bloques del modelo, `END_CELEB` también en
+    escritorio, `lookGrantNow`, «Siguiente jornada» al hub); páginas de Retos (franja `#btnRetos`, `#mpRetos`, «Otra vez», «Retos»).
+  - T22a: integración de `VB.Replay` (rama del frame, `rpInput`, `#rpBug/#rpCap/#rpSkip/#rpAria`, fila «Repeticiones» en Ajustes · Juego,
+    pestaña «Jugadas (n)», `playBest`, escenas `replay`/`best`, `&slow=0.5`). replaytest node + CDP (61).
+  - T22b: perfil (chip `#btnProf`, página `#mpProf` con álbum de 7 pestañas y vitrina, avisos `#pfNote`, escenas `menupf`/`prof` con
+    `&pfseed=demo`), versión 1.2.0 y esta documentación. Ver `notes/s234/T22b.md`.
+- **js/replay.js** (T18, nuevo): resimulación desde fotos clave con 11 sombras, `TAIL = 156`, tres mejores jugadas, desync 0, 0 asignaciones
+  en régimen. Ver CONTRACT §4.4.
+- Carrera (career-life, career-world, career-ui): ver notes/carrera.md.
+- **Abiertos:** fps de la repetición en móvil ×4 sin demostrar «≥ vivo» (perf.js mezcla la carga de la escena); montón tras la primera
+  repetición +20-380 KB por repetición, decreciendo (parece calentamiento del JIT); cámara lenta de ~3 s en un ace de punto de set (sin
+  tope); el banner «SET PARA TI» reaparece al volver de la repetición de un punto de set; calibración de los retos `tidy` (1/6) y `comeback`
+  (0/6) con Ferran; en profile.js el icono de los huecos del Vestuario sale de `VB.Look.art(id)`, que devuelve texto («el gorro…») y no un
+  dibujo: ui.js pone una camiseta genérica (petición en el scratchpad del sprint).

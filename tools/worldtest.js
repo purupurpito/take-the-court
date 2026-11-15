@@ -7,7 +7,8 @@
  *  3. Vitrina de playa (20 huecos): trofeos fabricados de cada tipo y circuito, premios por id, sin contar doble, «Copa Rara» a other.
  *  4. Vitrina de pista (ES con 2ª, IT, BR y un país sin 2ª): grupos, internacional = intlFor (rangos 1 y 2), liga de otro país añadida.
  *  5. Desbloqueos de Vestuario (solo lectura, con un VB.Look falso; sin él, unlock null).
- *  6. trophyCaseHTML: textos exactos, aria-label, sin «·», «undefined» ni «1.er».
+ *  6. trophyCaseHTML: textos exactos, aria-label, sin «·», «undefined» ni «1.er»; T21: bloques de ≤ 3 huecos (tcBlocks) con las
+ *     cabeceras cubriendo justo sus huecos, grupos largos partidos y los cortos juntos (pista: Liga + Copa).
  *  7. newsBoss (C3) y la escena ses1 de Faro (primera sesión de entrenamiento de la Carrera).
  * Uso: node tools/worldtest.js   Sale con 1 si algo falla; acaba en «TODO OK».
  */
@@ -169,7 +170,11 @@ section('3. Vitrina de playa (20 huecos)');
   ok(h.indexOf('aria-label="Circuito Regional: ganado 2 veces, temporadas 1 y 6"') > 0, 'aria-label de un hueco ganado 2 veces');
   ok(h.indexOf('aria-label="Mejor sacador: sin ganar. Premio de la gala"') > 0, 'aria-label de un hueco vacío');
   ok(h.indexOf('×2 | T1, T6') > 0, 'línea «×2 | T1, T6»');
-  ok(h.indexOf('<h4 class="tc-g">Otros títulos</h4>') > 0 && h.indexOf('<h4 class="tc-g">' + LG[0].short + '</h4>') > 0, 'grupos por circuito y «Otros títulos»');
+  ok(tcHead(h, 'Otros títulos') && tcHead(h, LG[0].short), 'grupos por circuito y «Otros títulos»');
+  const bl = tcBlocks(h);
+  ok(tcBlocksOk(bl), 'T21: bloques de 1 a 3 huecos, cabeceras que cubren justo sus huecos (' + bl.map(b => b.slots).join('+') + ')');
+  ok(bl.filter(b => b.heads.some(x => x[0] === 'Premios')).length === 1 && bl.filter(b => b.heads.some(x => x[2])).length >= 1, 'T21: Premios partido de 3 en 3 (una cabecera; la continuación, oculta)');
+  ok(LG.every(L => bl.some(b => b.heads.length === 1 && b.heads[0][0] === L.short)), 'T21: cada circuito, su propio bloque');
   ok(!/·|undefined|NaN|1\.er|2\.º/.test(h), 'sin «·», undefined, NaN ni «1.er»');
   ok((h.match(/class="tc-slot /g) || []).length === 21, '21 huecos pintados (20 + 1 de Otros)');
   // dificultad: solo si la carrera ha usado algo que no sea Normal (aquí un Open en Fácil)
@@ -178,6 +183,16 @@ section('3. Vitrina de playa (20 huecos)');
   const raw0 = JSON.stringify(c); Wp.trophyCase(c); Bp.VB.CareerWorldUI.trophyCaseHTML(c, HLP);
   ok(JSON.stringify(c) === raw0, 'trophyCase y trophyCaseHTML no cambian la carrera');
 }
+
+// T21: bloques de la vitrina (cada .tc-grid): [{heads: [[texto, span]], slots: n}] (texto '' = cabecera de continuación, oculta)
+function tcBlocks(h) {
+  return h.split('<div class="tc-grid">').slice(1).map(b => ({
+    heads: [...b.matchAll(/<h4 class="tc-g( s([23]))?"( aria-hidden="true")?>([^<]*)<\/h4>/g)].map(m => [m[3] ? '' : m[4], m[2] ? +m[2] : 1, !!m[3] && m[4] === '&nbsp;']),
+    slots: (b.match(/class="tc-slot /g) || []).length
+  }));
+}
+function tcHead(h, g) { return new RegExp('<h4 class="tc-g( s[23])?">' + g.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</h4>').test(h); }
+function tcBlocksOk(bl) { return bl.length > 0 && bl.every(b => b.slots >= 1 && b.slots <= 3 && b.heads.reduce((a, x) => a + x[1], 0) === b.slots && b.heads.every(x => x[0] || x[2])); }
 
 // ------------------------------------------------------------------ 4. vitrina de pista
 section('4. Vitrina de pista (ES, IT, BR y un país sin 2ª)');
@@ -215,7 +230,10 @@ section('4. Vitrina de pista (ES, IT, BR y un país sin 2ª)');
   ok(G.join() === G.slice().sort((a, b) => ['Liga', 'Copa', 'Internacional', 'Ascenso', 'Premios'].indexOf(a) - ['Liga', 'Copa', 'Internacional', 'Ascenso', 'Premios'].indexOf(b)).join(), 'grupos en orden: Liga, Copa, Internacional, Ascenso, Premios');
   ok(t.got === 6 && !t.other.length, '6 ganados (liga, copa, intl, liga IT, intl lejana, colocador): ' + t.got);
   const h = Bh.VB.CareerWorldUI.trophyCaseHTML(c, HLP);
-  ok(['Liga', 'Copa', 'Internacional', 'Ascenso', 'Premios'].every(g => h.indexOf('<h4 class="tc-g">' + g + '</h4>') > 0), 'títulos de grupo de pista');
+  ok(['Liga', 'Copa', 'Internacional', 'Ascenso', 'Premios'].every(g => tcHead(h, g)), 'títulos de grupo de pista');
+  const bh = tcBlocks(h);
+  ok(tcBlocksOk(bh), 'T21 pista: bloques de 1 a 3 huecos con sus cabeceras (' + bh.map(b => b.heads.map(x => (x[0] || '…') + ' ' + x[1]).join(' + ')).join(' | ') + ')');
+  ok(bh.length < t.slots.length / 2, 'T21 pista: los grupos cortos comparten bloque (' + bh.length + ' bloques para ' + t.slots.length + ' huecos)');
   ok(!/·|undefined|NaN|1\.er|circuito|\bOpen\b/i.test(h.replace(/Sube a la 1ª/g, '')), 'sin «·», undefined, «1.er», circuito ni Open');
   ok(h.indexOf('aria-label="' + lg('ES1').name + ': ganado 1 vez, temporada 1"') > 0, 'aria-label de pista');
 }

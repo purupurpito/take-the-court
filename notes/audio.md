@@ -675,3 +675,15 @@ mezcla de audiotest no cambian). Eventos desconocidos o con campos que faltan: s
 
 ## Integración sprint 5 (12-nov-2026)
 - `CORE`: `handclap` sube justo detrás de `dribble`. El gesto de espera «muslos» de players (E2) da palmadas (`fx:clap`) antes del 1r saque, y sin Worker con el PC cargado llegaba sin buffer (audiotest b/c: `missed {handclap:1}`). Con el cambio: missed {} en a/b/c y «TODO OK».
+
+## Sprint 2-4 (15-nov-2026, v1.2.0): interfaz, rótulos, previa y repetición (T6)
+
+Detalle: `notes/s234/T6.md`. Contrato: CONTRACT §4.4 «Sprint 2-4». Todo con sonidos que ya están en el banco (ninguna entrada nueva en
+`CATALOG`, `LEVEL` ni `PRIORITY`).
+- `VB.Audio.UI_KINDS` (26) y `ui()` con `tab`, `panelIn`, `panelOut`, `beat(i)`, `rank(d)`, `unlock`, `medal(m)` y `rotulo(tipo, equipo,
+  retraso)` (ace, muro, sp, mp; tope de 3 voces en calidad baja).
+- `introStart(dur)`: con una previa de 4,5 o 6 s la grada se queda a medias (−3 dB) hasta `dur − 0,3` s.
+- `replay(on)`: grada −6 dB; los eventos con `e.replay` no lanzan grada ni ráfagas ni tocan el estado del partido en vivo.
+- `stats.rot`, `stats.rotLast`, `stats.ui2`, `stats.rplCut`; audiotest `--rot-only` y `--s234-only`.
+- Abierto: el partido de 60 s de audiotest da −19,6 LUFS (dentro de ±1 de −18,8, pero más cerca del borde que en el sprint 5); sin
+  comprobar contra el audio.js de antes. Sonidos propios de las firmas: cortado.
