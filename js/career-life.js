@@ -13,7 +13,7 @@
  *    ganas en la Carrera (fama, logros, premios) va al inventario GLOBAL (VB.Look.grant) y hay tienda de cosméticos (solo estética:
  *    nunca toca GEAR, gearBonus ni attrs; su gasto va en l.spentLook, no en l.spent). Sin look.js no hace nada.
  *  - Sprint 2-4: jefes del circuito (S3 C3, solo playa: l.boss, l.bossW, l.rival.style), química con nombre (S3 C5: chemLevel,
- *    chemInfo, chemCheck, 3 decisiones raras), logros ses10/sesg5/boss3 al final de ACH y ACH_INFO (S4 D2). notes/s234/T10.md.
+ *    chemInfo, chemCheck, 3 decisiones raras), logros ses10/sesg5 (sesiones de entrenamiento, c.ts.md) y boss3 al final de ACH y ACH_INFO (S4 D2). notes/s234/T10.md.
  * Sin DOM (se carga en node: tools/careertest.js, tools/lifetest.js). Guarda en c.life dentro de la carrera (sin cambiar su versión: todo tiene valor
  * por defecto y se crea al vuelo con ensure()). career.js llama a hook(c, tipo, …) en sus puntos clave; si este fichero no está,
  * la Carrera funciona igual que antes.
@@ -596,10 +596,10 @@
     { id: 'l25', name: 'Nivel 25', d: 'Llega al nivel 25', n: 25, v: function (c) { return c.player.lvl; }, pts: 3 },
     { id: 'sp', name: 'Cara de anuncio', d: 'Firma con un patrocinador', n: 1, v: function (c) { return c.life.sponsor || c.life.spDone ? 1 : 0; }, fans: 100 },
     { id: 'gear', name: 'Equipado hasta arriba', d: 'Todo el material a nivel 3', n: 12, v: function (c) { var s = 0; GEAR_KEYS.forEach(function (k) { s += c.life.gear[k] | 0; }); return s; }, pts: 2 },
-    // sprint 2-4 (SIEMPRE al final, para no mover índices): entrenos con el club (c.sesN = [sin, bronce, plata, oro], career-train.js)
+    // sprint 2-4 (SIEMPRE al final, para no mover índices): sesiones de entrenamiento (c.ts.md = [sin, bronce, plata, oro], career.js sessDo)
     // y jefes del circuito (l.bossW)
-    { id: 'ses10', name: 'Siempre a punto', d: 'Acaba 10 entrenos con plata u oro', n: 10, v: function (c) { var s = c.sesN; return Array.isArray(s) ? (+s[2] || 0) + (+s[3] || 0) : 0; }, pts: 1 },
-    { id: 'sesg5', name: 'Matrícula de honor', d: 'Saca oro en 5 entrenos', n: 5, v: function (c) { var s = c.sesN; return Array.isArray(s) ? +s[3] || 0 : 0; }, fans: 40 },
+    { id: 'ses10', name: 'Siempre a punto', d: 'Acaba 10 sesiones de entrenamiento con plata u oro', n: 10, v: function (c) { var s = c.ts && c.ts.md; return Array.isArray(s) ? (+s[2] || 0) + (+s[3] || 0) : 0; }, pts: 1 },
+    { id: 'sesg5', name: 'Matrícula de honor', d: 'Saca oro en 5 sesiones de entrenamiento', n: 5, v: function (c) { var s = c.ts && c.ts.md; return Array.isArray(s) ? +s[3] || 0 : 0; }, fans: 40 },
     { id: 'boss3', name: 'Cazajefes', d: 'Gana a 3 jefes distintos', n: 3, v: function (c) { return c.life.bossW | 0; }, pts: 3, only: 'beach' }
   ];
   /** Lista estática de los logros (sin funciones) para el álbum del perfil (S4 D2): cuenta ACH.length, nunca un número fijo. */

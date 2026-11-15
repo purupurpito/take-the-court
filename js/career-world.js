@@ -109,8 +109,8 @@
     move: { t: 'Club nuevo', l: ['Cambiar de club es empezar de cero con {mate}: la química no se ficha, se juega.'] },
     top: { t: 'En la élite', l: ['El Circuito Mundial. Aquí jugué yo doce años.', 'Ahora entiendes por qué te hacía repetir la recepción.'] },
     vet: { t: 'Treinta años', l: ['Treinta. Las piernas empiezan a hablar, la cabeza va mejor que nunca.', 'Tú decides cuándo parar. Lo verás en Fama › Legado.'], act: 'life:legacy', al: 'Ver legado' },
-    // (S2-S4, entrenos de la Carrera: lo dispara career-train.js con _beat en 'join' o en el 1r 'match' de un guardado antiguo)
-    ses1: { t: 'El primer entreno', l: ['Entre jornada y jornada, a entrenar. Te preparo ejercicios según lo que más falla y quién viene.', 'Bronce, plata u oro: cuanto mejor, más subes. Si un día no te apetece, no pasa nada.'] }
+    // (sesiones de entrenamiento de la Carrera, career.js sessDo: gancho 'sess' con la primera sesión de la carrera)
+    ses1: { t: 'El primer entreno', l: ['Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan.', 'Jugado de verdad rinde más que en rápido. Y tu entrenador se fija en cómo entrenas.'] }
   };
   // Carrera de pista: las frases que hablan de arena, pareja o del Circuito Mundial (mismo id, mismo título; el resto, igual).
   var BEATS_H = {
@@ -119,7 +119,7 @@
     streak: ['Cinco seguidas. Disfrútalo, pero no te lo creas: la pista siempre te baja los humos.'],
     move: ['Club nuevo, vestuario nuevo: la química no se ficha, se juega.'],
     top: ['{lg}: una de las grandes ligas del mundo. Ahí jugué yo doce años.', 'Ahora entiendes por qué te hacía repetir la recepción.'],
-    ses1: ['Entre jornada y jornada, a entrenar. Te preparo ejercicios según lo que más falla en tu puesto y quién viene.', 'Bronce, plata u oro: cuanto mejor, más subes. Si un día no te apetece, no pasa nada.']
+    ses1: ['Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan.', 'Jugado de verdad rinde más que en rápido. Y el entrenador mira los entrenos para elegir el seis.']
   };
   // (midLow del diseño, recortado por el plan: midWindow del entrenador ya cubre el ecuador)
   var BEAT_ORDER = ['hola', 'debut', 'win1', 'loss1', 'rival', 'bench1', 'slump', 'streak', 'title', 'award', 'up', 'down', 'move', 'top', 'vet', 'ses1'];
@@ -291,7 +291,8 @@
     var mid = H ? (X.midWeek ? X.midWeek(c) : 0) : X.MID_WEEK;
     if (wk === mid - 1 && t.length > 1) cand.push({ sc: 6.5, k: 'mid', v: { a: X.club(c, lead).name, b: X.club(c, t[t.length - 1].id).name, pts: t[0].pts, deL: A.deL }, ids: [lead] });
     cand.sort(function (x, y) { return y.sc - x.sc; });
-    var used = {}, n = 0;
+    // (lo que ya hay de esta jornada cuenta en el tope: la noticia del jefe, newsBoss, llega antes desde career-life.js)
+    var used = {}, n = w.news.filter(function (x) { return x.s === (c.season | 0) && x.w === J; }).length;
     cand.forEach(function (x) {
       var g = x.k.indexOf('rival') === 0 ? 'rival' : x.k;
       if (n >= ROUND_MAX - 1 || used[g]) return; used[g] = 1; n++;
@@ -299,7 +300,7 @@
     });
     // otra liga, una de cada tres jornadas: el líder de la de arriba (playa: el Mundial; si ya estás arriba, la de debajo; pista: la 1ª
     // de tu país o, si ya juegas en ella, la 1ª más fuerte del mundo; de esa no hay partidos guardados: solo su líder)
-    if (wk % 3 === 1) {
+    if (wk % 3 === 1 && n < ROUND_MAX) {
       var ol = otherLv(c, lvl);
       if (ol == null || (!H && !c.res[ol])) return;
       var OL = lgBy(c, ol); if (!OL) return;
@@ -392,7 +393,15 @@
     if (w.news.some(function (x) { return x.k === 'boss' && x.s === s && x.c[0] === boss.club; })) return null;
     if (wk == null) wk = isH(c) || c.phase === 'league' ? Math.max(1, c.week | 0) : (X && X.WEEKS) | 0 || W_END - 1;
     var t = fill(TPL.boss[0], { a: boss.name, nick: boss.nick || '', p: c.player.name }).replace(/ «»/, '');
-    addNews(c, 'boss', { t: t, v: 0 }, [boss.club, c.myClub], 1, Math.min(W_END - 1, Math.max(1, wk | 0)));
+    wk = Math.min(W_END - 1, Math.max(1, wk | 0));
+    // como mucho ROUND_MAX noticias por jornada: si ya están, la del jefe ocupa el sitio de la menos tuya (ajena antes que del rival)
+    var same = w.news.filter(function (x) { return x.s === s && x.w === wk; });
+    if (same.length >= ROUND_MAX) {
+      var drop = null; same.forEach(function (x) { if (x.me !== 1 && (!drop || (x.me | 0) < (drop.me | 0))) drop = x; });
+      if (!drop) return null;   // (las 3 ya son tuyas: la del jefe no desplaza a ninguna)
+      w.news = w.news.filter(function (x) { return x !== drop; });
+    }
+    addNews(c, 'boss', { t: t, v: 0 }, [boss.club, c.myClub], 1, wk);
     return w.news[w.news.length - 1];
   }
 
@@ -657,6 +666,7 @@
     else if (kind === 'newSeason') seasonStart(c);
     else if (kind === 'create') { ensure(c); beat(c, 'hola'); }
     else if (kind === 'join') onJoin(c, a);
+    else if (kind === 'sess') beat(c, 'ses1');   // primera sesión de entrenamiento de la carrera (career.js sessDo)
   }
 
   VB.CareerWorld = {

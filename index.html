@@ -2308,9 +2308,106 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   border:2px solid rgba(255,255,255,.12)}
 /* entreno de la Carrera (T-training §2.5 C): línea «Entreno ◆ Faro ◆ 1/2» en la presentación y, en la hoja final, sin «Repetir» */
 .id-ses{margin:0 0 6px;font:800 12px var(--display);letter-spacing:.24em;text-transform:uppercase;color:var(--gold)}
-#gymEnd.ses .ge-btns{grid-template-columns:1fr 1fr}
-@media (max-height:420px){.id-ses{margin-bottom:2px;font-size:11px}#gymEnd.ses .ge-btns{grid-template-columns:1fr 1fr}}
+@media (max-height:420px){.id-ses{margin-bottom:2px;font-size:11px}}
 /* ==== fin TV B4 ==== */
+/* ==== TV B3: «Continuar carrera» en la portada (sprint 2-4, spec S2-B2B3 §2.4) ====
+   Solo con una carrera activa (ui.js pone .has-cont en .mlist y quita .primary a #btnPlay; sin :has por iOS 15). El botón es la
+   acción principal en cómic; el retrato sobresale 10 px como una pegatina (a ≤ 420 px de alto se queda dentro). Jugar pasa a fila
+   plana con subtítulo. Sin carrera, la portada es la de siempre. */
+#menu .mlist>#btnCont{grid-template-columns:auto minmax(0,1fr) auto auto;gap:12px;height:76px;padding:0 14px 0 12px;font-size:28px;line-height:1;overflow:visible}
+#menu .mlist>#btnCont .ct-pt{display:block;align-self:end;width:72px;height:72px;margin:-10px 0 4px;flex:none}
+#menu .mlist>#btnCont .ct-pt .pt{width:100%;height:100%;border-radius:14px;box-shadow:0 0 0 2.5px var(--tk,#1d1530),3px 3px 0 var(--tk,#1d1530)}
+#menu .mlist>#btnCont .ct-pt .pt-ph{font-size:30px}
+#menu .mlist>#btnCont .ct-tx{display:flex;flex-direction:column;justify-content:center;gap:3px;min-width:0}
+#menu .mlist>#btnCont .ct-tx>b{display:block;font:inherit;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#menu .mlist>#btnCont .ct-k{font:800 11px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:#fff;opacity:.9}
+#menu .mlist>#btnCont .ct-s{font:600 13px/1.15 var(--ui);letter-spacing:.01em;text-transform:none;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#menu .mlist>#btnCont .ct-s .chip{background:rgba(29,21,48,.42);color:#fff}
+#menu .mlist>#btnCont .ct-cr{display:flex;align-items:center;justify-content:center;width:40px;height:40px}
+#menu .mlist>#btnCont .ct-cr:empty{display:none}
+#menu .mlist>#btnCont .ct-cr svg{width:40px;height:40px}
+#menu .mlist>#btnCont .go{width:34px;height:34px}
+#menu .mlist.has-cont>#btnPlay{height:54px;font-size:22px}
+#menu .mlist.has-cont>#btnPlay .pl-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+#menu .mlist.has-cont>#btnPlay .mi-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#menu .mlist.has-cont>#btnPlay .go{display:none}
+#btnPlay .pl-tx{display:block;min-width:0}
+@media (max-height:420px){
+  #menu .mlist>#btnCont{height:60px;font-size:22px;gap:10px;padding-left:8px}
+  #menu .mlist>#btnCont .ct-pt{width:52px;height:52px;margin:0;align-self:center}
+  #menu .mlist>#btnCont .ct-pt .pt{border-radius:10px}
+  #menu .mlist>#btnCont .ct-pt .pt-ph{font-size:22px}
+  #menu .mlist>#btnCont .ct-k{font-size:10px}
+  #menu .mlist>#btnCont .ct-s{font-size:12px}
+  #menu .mlist>#btnCont .ct-cr{display:none}
+  #menu .mlist>#btnCont .go{width:30px;height:30px}
+  #menu .mlist.has-cont>#btnPlay{height:44px;font-size:19px}
+  #menu .mlist.has-cont>#btnPlay .mi-s{font-size:11px}
+  #menu .menu-col.has-cont .brand .kicker{display:none}
+}
+/* ==== fin TV B3 ==== */
+/* ==== TV B5: previa en tres longitudes (sprint 2-4, spec S2-B4B5B6 §2.2) ====
+   Beat A: los bloques se encuentran en una diagonal de −14° (clip-path en el borde interior), con retrato, nombre, línea pequeña,
+   rasgo y puesto. Beat B (#intro.b2): rótulo inferior a −14° que entra por la izquierda bajo la fila de datos. Beat C (#intro.b3):
+   lo que está en juego, destapándose en diagonal sobre la tarjeta. La barra dura --in-dur (ui.js, plan.dur). */
+#intro.show .in-bar b{animation-duration:var(--in-dur,2.5s)}
+#intro .in-t{position:relative;flex-direction:row;align-items:center;justify-content:center;gap:14px}
+#intro .in-t.t0{clip-path:polygon(0 0,100% 0,calc(100% - 28px) 100%,0 100%)}
+#intro .in-t.t1{margin-left:-28px;padding-left:68px;clip-path:polygon(28px 0,100% 0,100% 100%,0 100%)}
+#intro .in-tx{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;max-width:100%}
+#intro .in-nm{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;max-width:100%;text-align:center;overflow-wrap:anywhere}
+#intro .in-t.long .in-nm{font-size:clamp(26px,4.4vh,40px);line-height:1.02}
+#intro .in-pt{display:flex;flex:none;align-items:flex-end}
+#intro .in-pt:empty{display:none}
+#intro .in-pt .pt{width:72px;height:72px;border-radius:12px;box-shadow:0 0 0 2px rgba(0,0,0,.25)}
+#intro .in-pt .pt+.pt{width:56px;height:56px;margin-left:-22px;order:-1;opacity:.92}
+#intro .in-pt .pt:first-child{position:relative;z-index:1}
+#intro .in-pt .fb{display:inline-flex;align-items:flex-end;justify-content:center;width:72px;height:72px;border-radius:12px;background:rgba(0,0,0,.22);color:#fff;font:900 italic 22px/1 var(--display);position:relative;overflow:hidden}
+#intro .in-pt .fb svg{position:absolute;left:8px;bottom:0;width:56px;height:60px;fill:var(--fb,rgba(255,255,255,.5));opacity:.55}
+#intro .in-pt .fb b{position:relative;margin-bottom:10px;font:inherit;color:#fff;text-shadow:0 1px 0 rgba(0,0,0,.4)}
+#intro .in-tr{display:inline-block;margin-top:2px;padding:2px 8px;border-radius:2px;background:rgba(0,0,0,.28);color:#fff;font:700 12px/1.3 var(--ui);font-style:normal;letter-spacing:.02em}
+#intro .in-tr.boss{background:var(--amber);color:#1d1530}
+#intro .in-pos{position:absolute;top:6px;padding:2px 7px;border-radius:2px;background:#1d1530;color:#fff;font:800 12px/1.2 var(--display);font-style:normal;letter-spacing:.06em}
+#intro .in-t.t0 .in-pos{left:8px}
+#intro .in-t.t1 .in-pos{right:8px}
+#intro .in-lt{padding:0 16px 9px;background:#1d1530;text-align:center}
+#intro .in-lt>span{display:inline-block;max-width:100%;box-sizing:border-box;padding:4px 22px 4px 12px;background:#fff;color:#1d1530;font:700 14px/1.3 var(--ui);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-shadow:inset 4px 0 0 var(--amber);clip-path:polygon(0 0,0 0,-9px 100%,-9px 100%)}
+#intro.b2 .in-lt>span{clip-path:polygon(0 0,100% 0,calc(100% - 9px) 100%,0 100%);animation:tvLtIn .34s var(--ease) both}
+#intro .in-stake{position:absolute;left:50%;bottom:100%;z-index:2;display:flex;flex-direction:column;align-items:center;min-width:min(420px,90%);max-width:100%;box-sizing:border-box;margin-bottom:4px;
+  padding:7px 26px 7px;background:var(--amber);color:#1d1530;transform:translateX(-50%);clip-path:polygon(0 0,0 0,-12px 100%,-12px 100%);pointer-events:none}
+#intro .in-stake b{font:900 italic 30px/1 var(--display);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+#intro .in-stake small{font:700 14px/1.3 var(--ui);white-space:nowrap}
+#intro .in-stake i{font:600 12px/1.3 var(--ui);font-style:normal;opacity:.85;white-space:nowrap}
+#intro .in-stake i:empty,#intro .in-stake small:empty{display:none}
+#intro.b3 .in-stake{clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,-12px 100%);animation:tvStakeIn .4s var(--ease) both}
+#intro.drill .in-lt,#intro.drill .in-stake{display:none}
+.rm #intro.b2 .in-lt>span,.rm #intro.b3 .in-stake{animation:tvFade .15s linear both}
+@keyframes tvLtIn{from{transform:translateX(-24px);clip-path:polygon(0 0,0 0,-9px 100%,-9px 100%)}to{transform:none;clip-path:polygon(0 0,100% 0,calc(100% - 9px) 100%,0 100%)}}
+@keyframes tvStakeIn{from{clip-path:polygon(0 0,0 0,-12px 100%,-12px 100%)}to{clip-path:polygon(0 0,100% 0,calc(100% - 12px) 100%,-12px 100%)}}
+@media (max-height:420px){
+  #intro .in-t{gap:10px}
+  #intro .in-t.t1{padding-left:56px}
+  #intro .in-pt .pt,#intro .in-pt .fb{width:52px;height:52px;border-radius:9px}
+  #intro .in-pt .pt+.pt{width:40px;height:40px;margin-left:-16px}
+  #intro .in-pt .fb svg{width:40px;height:42px;left:6px}
+  #intro .in-t.long .in-nm{font-size:28px}
+  #intro .in-tr{font-size:11px;padding:1px 6px}
+  #intro .in-sm{font-size:12px}
+  #intro .in-lt{padding-bottom:6px}
+  #intro .in-lt>span{font-size:12px;padding:3px 18px 3px 10px}
+  #intro .in-stake{padding:5px 20px;margin-bottom:2px}
+  #intro .in-stake b{font-size:22px}
+  #intro .in-stake small{font-size:12px}
+  #intro .in-stake i{display:none}
+}
+/* ==== fin TV B5 ==== */
+/* ==== C4 rótulos: cinta cinética (sprint 2-4, spec S3-C4C5 §2.1) ====
+   ¡Ace!, ¡Muro!, Punto de set y Punto de partido: el golpe de entrada lo hace ui.js con Web Animations (kinPlay); aquí solo se
+   apaga la entrada de siempre para que no se sumen. Sin tramas ni estrellas: el cómic es solo el golpe. */
+#banner.kin.show #bn1{animation:none}
+#banner.kin .bn-rib{will-change:transform}
+/* ==== fin C4 rótulos ==== */
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
@@ -2698,8 +2795,10 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   <div id="skip" hidden></div>
   <div id="intro" aria-live="polite"><div class="in-card">
     <p class="in-k"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><g><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></svg>Palau del Mar<span><span class="sr">, </span>2 contra 2</span></p>
-    <div class="in-vs"><div class="in-t t0"><b>TÚ</b><small>+ compañero</small></div><div class="in-x">vs</div><div class="in-t t1"><b>CPU</b><small>Pareja rival</small></div></div>
+    <div class="in-vs"><div class="in-t t0"><span class="in-pt" aria-hidden="true"></span><span class="in-tx"><b class="in-nm">TÚ</b><small class="in-sm">+ compañero</small><i class="in-tr" hidden></i></span><em class="in-pos" hidden></em></div><div class="in-x">vs</div><div class="in-t t1"><span class="in-pt" aria-hidden="true"></span><span class="in-tx"><b class="in-nm">CPU</b><small class="in-sm">Pareja rival</small><i class="in-tr" hidden></i></span><em class="in-pos" hidden></em></div></div>
     <div class="in-meta"><span class="in-chip" id="introDiff">Nivel Normal</span><span id="introFmt">Al mejor de 3 sets</span><span class="in-srv" id="introSrv">Sacas tú</span></div>
+    <div class="in-lt" id="introLT" hidden></div>
+    <div class="in-stake" id="introStake" hidden><b></b><small></small><i></i></div>
     <div class="in-drill" id="introDrill"><p class="id-ses" id="idSes" hidden></p><h3 id="idTitle">Saque a diana</h3><p class="id-goal" id="idGoal"></p><p class="id-keys" id="idKeys"></p><p class="id-med" id="idMed"></p></div>
     <p class="in-skip" id="introHint">Pulsa cualquier tecla para empezar ya</p>
     <i class="in-bar"><b></b></i>
@@ -2722,7 +2821,9 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
       <!-- Menú principal (menús v2, nov-2026): pocas entradas grandes y sin números. JUGAR abre la página de modos (#mpPlay) y
            Partido rápido su preparación (#mpQuick); pila de páginas en ui.js (menuGo / menuBack: Esc, B o el botón Volver) -->
       <nav class="mlist" data-nav aria-label="Menú principal">
-        <button class="mi primary" id="btnPlay"><span>Jugar</span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
+        <!-- B3 (sprint 2-4): «Continuar carrera», solo con una carrera activa (ui.js + VB.CareerUI.syncHero pintan los textos) -->
+        <button class="mi primary cont" id="btnCont" hidden><span class="ct-pt" id="contPt"></span><span class="ct-tx"><small class="ct-k" id="contK"></small><b id="contT">Continuar carrera</b><small class="ct-s" id="contS"></small></span><span class="ct-cr" id="contCr" aria-hidden="true"></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
+        <button class="mi primary" id="btnPlay"><span class="pl-tx"><span>Jugar</span><span class="mi-s" id="playMainSub" hidden>Partido rápido, 6 contra 6 y entrenamiento</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi" id="btnSquad"><span>Jugadores</span><span class="mi-s" id="squadSub">Estadísticas y mejoras</span></button>
         <button class="mi" id="btnLook"><span>Vestuario</span><span class="mi-s" id="lookSub">Aspecto de tus jugadores</span></button>
         <button class="mi" id="btnTut"><span>Cómo se juega</span><span class="mi-s">Tutorial</span></button>
@@ -2738,7 +2839,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
       </div>
       <nav class="modes" data-nav aria-label="Modos de juego">
         <button class="mode m-quick" id="btnQuick"><span class="md-art" aria-hidden="true"><span class="md-num">2<i>v</i>2</span></span><span class="md-tx"><b>Partido rápido</b><small>Un partido contra la CPU, a tu medida</small></span></button>
-        <button class="mode m-career" id="btnCareer"><span class="md-art" aria-hidden="true"><svg class="md-trophy" viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span><span class="md-tx"><b>Carrera</b><small class="md-s" id="careerSub">Crea tu jugador: liga, ofertas y fichajes</small></span></button>
+        <button class="mode m-career" id="btnCareer"><span class="md-art" aria-hidden="true"><svg class="md-trophy" viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span><span class="md-tx"><b>Carrera</b><small class="md-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span></button>
         <button class="mode m-6v6" id="btn6v6"><span class="md-art" aria-hidden="true"><span class="md-num">6<i>v</i>6</span></span><span class="md-tx"><b>6 contra 6</b><small>Equipos completos: elige tu puesto</small></span></button>
         <button class="mode m-gym" id="btnGym"><span class="md-art" aria-hidden="true"><svg class="md-flat" viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/><path class="md-gseam" d="M50 8c-3 3-4 7-3 11M59 16c-4-1.5-8-1-11 1.5M44 24c3-2 6-2.6 9.5-2"/></svg></span><span class="md-tx"><b>Entrenamiento</b><small class="md-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
       </nav>
@@ -3040,7 +3141,9 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 <script src="js/prog.js"></script>
 <script src="js/gym.js"></script>
 <script src="js/badges.js"></script>
+<script src="js/retos.js"></script>
 <script src="js/look.js"></script>
+<script src="js/profile.js"></script>
 <script src="js/venues.js"></script>
 <script src="js/arena.js"></script>
 <script src="js/venue-fanals.js"></script>
@@ -3060,6 +3163,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 <script src="js/career-world.js"></script>
 <script src="js/career-world-ui.js"></script>
 <script src="js/career-ui.js"></script>
+<script src="js/recap.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/install.js"></script>
 <script src="js/main.js"></script>

@@ -23,7 +23,7 @@
  *   recordRally(hits) → {best, isBest} · count() → medallas conseguidas (de 15) · nextOf(id) → id siguiente con medallas | null
  *   bestRally() → toques · reset() (pruebas) · lost() · readOnly()
  *   ATTR {serve:'serve', recv:'recv', set:'set', atk:'spike', block:'block'}: atributo (VB.Prog.KEYS) que entrena cada ejercicio
- *   (lo usan los entrenos de la Carrera, js/career-train.js; R19).
+ *   (R19; las sesiones de entrenamiento de la Carrera usan su propio SESS_DRILL en career.js).
  */
 (function () {
   'use strict';

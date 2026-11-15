@@ -8,7 +8,7 @@
  *  4. Vitrina de pista (ES con 2ª, IT, BR y un país sin 2ª): grupos, internacional = intlFor (rangos 1 y 2), liga de otro país añadida.
  *  5. Desbloqueos de Vestuario (solo lectura, con un VB.Look falso; sin él, unlock null).
  *  6. trophyCaseHTML: textos exactos, aria-label, sin «·», «undefined» ni «1.er».
- *  7. newsBoss (C3) y la escena ses1 de Faro (entrenos).
+ *  7. newsBoss (C3) y la escena ses1 de Faro (primera sesión de entrenamiento de la Carrera).
  * Uso: node tools/worldtest.js   Sale con 1 si algo falla; acaba en «TODO OK».
  */
 'use strict';
@@ -265,8 +265,8 @@ section('6. Noticia del jefe (C3) y escena ses1 de Faro (entrenos)');
   ok(h.indexOf('Belmonte «Muro» cae ante Cazajefes Prueba') > 0, 'sale en Liga › Noticias');
   // ses1
   ok(Wn.BEATS.ses1 && Wn.BEATS.ses1.t === 'El primer entreno' && Wn.BEAT_ORDER[Wn.BEAT_ORDER.length - 1] === 'ses1', 'BEATS.ses1 «El primer entreno», al final de BEAT_ORDER');
-  ok(Wn.BEATS.ses1.l.join(' ') === 'Entre jornada y jornada, a entrenar. Te preparo ejercicios según lo que más falla y quién viene. Bronce, plata u oro: cuanto mejor, más subes. Si un día no te apetece, no pasa nada.', 'frases exactas de playa');
-  ok(/según lo que más falla en tu puesto/.test(Wn.BEATS_H.ses1[0]) && !/arena|playa|circuito|\bopen\b|pareja/i.test(Wn.BEATS_H.ses1.join(' ')), 'pista: «…según lo que más falla en tu puesto»');
+  ok(Wn.BEATS.ses1.l.join(' ') === 'Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan. Jugado de verdad rinde más que en rápido. Y tu entrenador se fija en cómo entrenas.', 'frases exactas de playa');
+  ok(/elegir el seis/.test(Wn.BEATS_H.ses1[1]) && !/arena|playa|circuito|open|pareja/i.test(Wn.BEATS_H.ses1.join(' ')), 'pista: «…para elegir el seis»');
   ok(Wn.BEATS.ses1.l.concat(Wn.BEATS_H.ses1).every(l => l.length <= Wn.LINE_MAX), 'frases ≤ ' + Wn.LINE_MAX);
   const q0 = cc.world.mentor.q.length + cc.inbox.length;
   ok(Wn._beat(cc, 'ses1') === true && Wn._beat(cc, 'ses1') === false, 'ses1 se dispara una vez');
@@ -274,7 +274,20 @@ section('6. Noticia del jefe (C3) y escena ses1 de Faro (entrenos)');
   const hb = Cn.create({ mode: 'hall', name: 'Pista Entreno', num: 8, pos: 'OH', seed: 77, now: 1 });
   Wn._beat(hb, 'ses1');
   const qq = hb.world.mentor.q.filter(q => q.id === 'ses1')[0] || null;
-  ok(!qq || /en tu puesto/.test(qq.l[0]), 'pista: la escena usa BEATS_H');
+  ok(!qq || /elegir el seis/.test(qq.l[1]), 'pista: la escena usa BEATS_H');
+  // la primera sesión de entrenamiento de la carrera (career.js sessDo → gancho 'sess') la dispara, una sola vez
+  {
+    const Bs = boot({ ui: true }), Cs = Bs.VB.Career;
+    let cs = Cs.create({ name: 'Primer Entreno', num: 6, seed: 4321, autoClub: true });
+    cs = Cs.get(); const inf = Cs.trainInfo(cs), id = inf && inf.drills[0] && inf.drills[0].id;
+    const has = x => x.world.mentor.q.some(q => q.id === 'ses1') || x.inbox.some(m => m.t === 'Faro: el primer entreno');
+    ok(inf && inf.can && !has(cs) && !cs.world.mentor.seen.ses1, 'antes de entrenar: sin escena ses1');
+    const r1 = Cs.trainSession(id, 'quick'); cs = Cs.get();
+    ok(r1 && r1.ok && has(cs) && cs.world.mentor.seen.ses1 === 1, 'la primera sesión dispara ses1');
+    Cs.trainSession(id, 'quick'); cs = Cs.get();
+    ok(cs.world.mentor.seen.ses1 === 1 && cs.world.mentor.q.filter(q => q.id === 'ses1').length <= 1, 'la segunda no la repite');
+    ok(Array.isArray(cs.ts.md) && cs.ts.md.reduce((a, b) => a + b, 0) === 2, 'c.ts.md cuenta las sesiones por medalla (' + cs.ts.md.join() + ')');
+  }
 }
 
 console.log('\n' + passes + ' comprobaciones, ' + fails + ' fallos');

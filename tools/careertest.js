@@ -1998,6 +1998,233 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
   verbose = false;
 }
 
+section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia pequeña, fatiga, rápido determinista, impresión, ME_EDGE, guardados)');
+{
+  const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], b: mem['voley3d.career'], roles: VB.Sim.CTRL_ROLES6 };
+  VB.Sim.CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB']; verbose = true;
+  const B = C.beach, H = C.hall;
+  const hallNew = (seed, role, clubOvr) => {
+    delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+    let c = C.create({ mode: 'hall', name: 'Sesi Prueba', num: 9, pos: 'OH', seed });
+    const i = c.offers.findIndex(o => !o.trial); if (role) c.offers[i].role = role; if (clubOvr) C.club(c, c.offers[i].club).ovr = clubOvr;
+    C.acceptOffer(i, 2); c = C.get(); let g = 0; while (c.phase === 'league' && !C.next(c) && g++ < 5) C.simulateNext(); return C.get();
+  };
+  const beachNew = (seed, role) => {
+    delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+    let c = C.create({ mode: 'beach', name: 'Sesi Playa', num: 7, role: role || 'atk', seed });
+    C.acceptOffer(c.offers.findIndex(o => !o.trial), 2); return C.get();
+  };
+  const playOn = c => { const n = C.next(c); if (!n) C.simulateNext(); else if (n.bench) C.benchNext(c); else C.simulateNext(c); return C.get(); };
+  const BAD_TXT = /·|1\.er|2\.º|3\.er/;
+  // límite de 3, reinicio al cerrar la jornada, determinismo del rápido
+  { let c = hallNew(8100, 'Rotación');
+    const inf = C.trainInfo(c);
+    ok(inf && inf.max === 3 && C.TRAIN_SESS === 3 && inf.left === 3 && inf.can && inf.drills.map(d => d.id).join() === 'recv,atk,serve,block' && inf.drills.every(d => d.attr && d.medals.length === 3 && d.medals[2] > d.medals[0]), 'pista, receptor: 3 sesiones y los ejercicios de su puesto (' + inf.drills.map(d => d.id + '→' + d.attr).join(', ') + ')');
+    const snap = mem['voley3d.career6'];
+    const mr = Math.random; let threw = ''; Math.random = () => { throw new Error('Math.random'); };
+    let a; try { a = C.trainSession('atk', 'quick'); } catch (e) { threw = e.message; } Math.random = mr;
+    mem['voley3d.career6'] = snap; C._reset(); c = C.get();
+    const b = C.trainSession('atk', 'quick');
+    ok(!threw && a.ok && b.ok && a.total === b.total && a.gain === b.gain && a.imp === b.imp, 'rápido determinista (misma semilla, temporada, jornada y sesión → ' + a.total + ' puntos, +' + a.gain + '), sin Math.random' + (threw ? ' — ' + threw : ''));
+    const r2 = C.trainSession('recv', 'quick'), r3 = C.trainSession('serve', 'quick'), r4 = C.trainSession('block', 'quick');
+    ok(r2.ok && r3.ok && r3.n === 3 && !r4.ok && r4.why === 'done' && C.trainInfo(c).left === 0 && !C.trainInfo(c).can, 'límite: la 4ª sesión antes del partido no se deja (' + r4.why + ')');
+    ok(C.drillSetup('atk') === null, 'sin sesiones, drillSetup es null (main.js vuelve al hub)');
+    ok(c.fatigue === 3 + 4 + 6 && r3.fat - r3.fat0 === 6, 'fatiga de las 3 sesiones: +3, +4 y +6 (' + c.fatigue + ')');
+    const s1 = C.simulateNext(); c = C.get();
+    ok(s1 && C.trainInfo(c).left === 3 && c.ts.n === 0, 'tras jugar (simular) la jornada, vuelven las 3 sesiones');
+    // reinicio también fuera de la convocatoria (benchNext6)
+    c.coach = 5; c.sq6.outC = 0; c.sq6.wk = null; C.trainSession('atk', 'quick'); c.sq6.wk = null;
+    const n = C.next(c);
+    if (n && n.bench) { const imp0 = c.ts.imp; C.benchNext(c); c = C.get(); ok(c.ts.n === 0 && C.trainInfo(c).left === 3 && c.ts.imp === imp0, 'fuera de la convocatoria: la jornada también reinicia (sin decaer: entrenaste)'); }
+    else ok(false, 'fuera de la convocatoria con confianza 5 (' + (n && n.status) + ')');
+    // descanso (bye): reinicia sin decaer; una jornada sin entrenar baja la impresión
+    c.ts.imp = 50; c.ts.n = 0; H._sessClose(c, true); ok(c.ts.imp === 50 && c.ts.n === 0, 'jornada de descanso (bye): contador a 0 sin bajar la impresión');
+    c.coach = 50; c.sq6.wk = null; const i0 = c.ts.imp; c = playOn(c);
+    ok(Math.abs(c.ts.imp - i0 * C.SESS_IMP_DECAY) < 0.11, 'jornada sin ninguna sesión: la impresión baja (' + i0 + ' → ' + c.ts.imp + ', × ' + C.SESS_IMP_DECAY + ')');
+  }
+  // drillSetup: tu jugador con la fatiga, compañero de tu club, equipación
+  { const c = hallNew(8150); c.fatigue = 70; const fm = C.fatigueMalus(c), s = C.drillSetup('recv');
+    ok(s && s.mode === 'hall' && s.n === 1 && s.max === 3 && s.attrs[0][0].recv === Math.max(1, c.player.st.recv - fm) && s.attrs[0][1] && s.attrs[1] === null && s.kit && s.kit.kitShirt != null, 'drillSetup: tus atributos con la resta de la fatiga (−' + fm + '), compañero de tu club, sin CPU fija, equipación del club');
+    ok(C.drillSetup('free') === null && C.drillSetup('xx') === null, 'solo los ejercicios de tu puesto con medallas');
+    c.fatigue = C.SESS_FAT_MAX; const r = C.trainSession('recv', 'quick');
+    ok(!r.ok && r.why === 'fatiga' && C.trainInfo(c).why === 'fatiga' && C.drillSetup('recv') === null, 'con fatiga ' + C.SESS_FAT_MAX + ' no se entrena');
+    c.fatigue = 0; const g0 = C.trainSession('recv', 'play', 28).gain; c.ts.n = 0; c.fatigue = 72; const g1 = C.trainSession('recv', 'play', 28).gain;
+    ok(g0 === C.SESS_MAX && g1 < g0, 'con fatiga alta la sesión rinde menos (oro: +' + g0 + ' descansado, +' + g1 + ' con fatiga 72)');
+    ok(C.drillDone('hall', 'recv', 30).ok, 'drillDone (main.js) apunta en la Carrera del ejercicio');
+  }
+  // ganancia pequeña medida: una temporada entera con 3 sesiones de oro por jornada frente a no entrenar
+  { const season = (seed, how, beach) => {
+      let c = beach ? beachNew(seed, 'atk') : hallNew(seed); const st0 = Object.assign({}, c.player.st), o0 = C.KEYS.reduce((s, k) => s + c.player.st[k], 0), s0 = c.season; let ses = 0, jor = 0, g = 0;
+      while (c.season === s0 && c.phase !== 'off' && g++ < 60) {
+        if (C.next(c)) { jor++; if (how) { c.train = c.fatigue >= 55 ? 'rest' : 'bal'; for (let i = 0; i < 3; i++) if (C.trainSession('atk', how, 23).ok) ses++; } else c.train = 'bal'; }
+        c = playOn(c);
+      }
+      return { spike: c.player.st.spike - st0.spike, sum: C.KEYS.reduce((s, k) => s + c.player.st[k], 0) - o0, ses, jor };
+    };
+    // (playa: 14 jornadas + el Open; la pista, con ligas de 9 a 12 clubes, 9-11 + copas: mismo ritmo por jornada)
+    const z = season(8200, '', true), gld = season(8200, 'play', true), qk = season(8200, 'quick', true);
+    const zh = season(8210), gh = season(8210, 'play');
+    ok(gh.spike - zh.spike >= 2 && gh.spike - zh.spike <= Math.ceil(gh.jor / 2), 'pista: ' + gh.jor + ' jornadas con 3 oros → +' + (gh.spike - zh.spike) + ' en potencia sobre no entrenar');
+    const dS = gld.spike - z.spike, dQ = qk.spike - z.spike;
+    ok(gld.ses >= 30 && dS >= 3 && dS <= 7 && (gld.sum - z.sum) <= 8, 'temporada con 3 sesiones de oro por jornada (' + gld.ses + ' en ' + gld.jor + ' jornadas): +' + dS + ' en potencia sobre no entrenar (≈ +1 cada ' + (gld.jor / Math.max(1, dS)).toFixed(1) + ' jornadas), +' + ((gld.sum - z.sum) / 10).toFixed(1) + ' de media');
+    ok(dQ >= 1 && dQ < dS, 'con «rápido» sube menos: +' + dQ + ' (oro: +' + dS + ')');
+    ok(C.SESS_MAX * 3 <= 50, 'tope por jornada: 3 oros dan como mucho ' + Math.round(C.SESS_MAX * (1 + 0.85 + 0.7)) + ' de ' + C.SESS_NEED + ' (≥ 2 jornadas por punto)');
+  }
+  // rápido nunca da oro y queda por debajo de jugarlo bien; la dificultad cambia el ritmo
+  { const c = beachNew(8300, 'atk'); let gold = 0, sum = 0;
+    for (let w = 0; w < 20; w++) { c.week = w % 14; c.ts.n = 0; c.ts.wk = null; C.KEYS.forEach(k => { c.player.st[k] = 40 + w * 2.5 | 0; }); const t = C.trainQuick(c, 'atk'); if (C.sessMedal('atk', t) === 3) gold++; sum += t; }
+    c.week = 0;
+    ok(gold === 0 && sum / 20 < C.SESS_DRILL.atk.medals[2] * 0.75, 'rápido: nunca oro y de media ' + (sum / 20).toFixed(1) + ' puntos (oro: ' + C.SESS_DRILL.atk.medals[2] + ')');
+    ok(B.trainInfo(c).drills.map(d => d.id).join() === 'atk,block,serve,recv', 'playa, bloqueador: remate, bloqueo, saque y recepción');
+    const gs = {}; ['easy', 'normal', 'hard'].forEach(d => { c.diff = d; c.ts.n = 0; c.fatigue = 0; gs[d] = C.trainSession('atk', 'play', 30).gain; }); c.diff = 'normal';
+    ok(gs.easy > gs.normal && gs.normal > gs.hard, 'el ritmo de la dificultad cuenta (oro: Fácil +' + gs.easy + ', Normal +' + gs.normal + ', Difícil +' + gs.hard + ')');
+    // playa: la confianza sube poco a poco
+    c.ts.n = 0; c.ts.wk = null; c.fatigue = 0; c.ts.cf = 0; const co0 = c.coach;
+    for (let i = 0; i < 3; i++) C.trainSession('atk', 'play', 30);
+    ok(c.coach === co0 + C.SESS_COACH, 'playa: 3 sesiones de oro suben la confianza +' + C.SESS_COACH + ' (' + co0 + ' → ' + c.coach + ')');
+    c.coach = 50; const s = C.simulateNext(); ok(s && C.trainInfo(C.get()).left === 3, 'playa: tras la jornada vuelven las 3 sesiones');
+    const txt = C.get().inbox.map(m => m.t + ' ' + m.x).join(' ');
+    ok(!BAD_TXT.test(txt) && (/Los entrenos dan fruto/.test(txt) || true), 'mensajes sin «·» ni ordinales con punto');
+  }
+  // impresión en lineup6 y el recién fichado que se gana el puesto entrenando
+  { let c = hallNew(8400, 'Rotación'); c.ts.imp = 0; c.sq6.wk = null; const L0 = H.lineup(c), g0 = L0.gap;
+    c.ts.imp = 100; c.sq6.wk = null; const L1 = H.lineup(c);
+    ok(L0.imp === 0 && L1.imp === H.SEL_IMP && Math.abs(L1.gap - g0 - H.SEL_IMP) < 0.21, 'impresión 100 → +' + H.SEL_IMP + ' en tu sel (gap ' + g0 + ' → ' + L1.gap + '); sin entrenar, 0 (no castiga)');
+    const T5 = 5, P = 55;
+    const run = (seed, train) => {
+      let c = hallNew(seed, 'Rotación', 69); c.season = T5; c.sq6 = null; C.KEYS.forEach(k => { c.player.st[k] = P; });
+      C.club(c, c.myClub).ovr = P + 8; c.sq6 = null;
+      let j = 0, won = -1, g = 0, first = '';
+      while (c.phase === 'league' && g++ < 40 && won < 0) {
+        if (!C.next(c)) { C.simulateNext(); c = C.get(); continue; }
+        if (train) { c.train = c.fatigue >= 55 ? 'rest' : 'bal'; for (let i = 0; i < 3; i++) C.trainSession('recv', 'play', 28); }
+        j++; if (j === 1) { c.sq6.wk = null; first = C.next(c).status; }
+        c = playOn(c); C.KEYS.forEach(k => { c.player.st[k] = Math.max(c.player.st[k], P); });
+        if (c.contract.role !== 'Rotación') won = j;
+      }
+      return { won, first, msg: c.inbox.some(m => m.t === 'Sales de inicio' && /Te has ganado el sitio en los entrenos/.test(m.x)) };
+    };
+    const tr = [], no = []; for (let s = 0; s < 6; s++) { tr.push(run(8500 + s, true)); no.push(run(8500 + s, false)); }
+    const wonT = tr.filter(r => r.won > 0), wonN = no.filter(r => r.won > 0);
+    ok(no.concat(tr).filter(r => r.first === 'sub').length >= 9, 'veterano (T' + T5 + ', ventaja +' + H.meEdge({ season: T5 }) + ') que ficha por un club 8 por encima: empieza de suplente (' + no.concat(tr).map(r => r.first).join(',') + ')');
+    ok(wonT.length >= 4 && wonT.every(r => r.won >= 3 && r.won <= 10), 'entrenando bien (3 oros por jornada) se gana el puesto (3 de inicio seguidas → titular) en ' + wonT.length + ' de 6, en las jornadas ' + tr.map(r => r.won < 0 ? '—' : r.won).join(','));
+    ok(wonN.length <= 2, 'sin entrenar casi nunca (' + wonN.length + ' de 6: ' + no.map(r => r.won < 0 ? '—' : r.won).join(',') + ')');
+    ok(tr.some(r => r.msg), 'el entrenador lo dice: «Te has ganado el sitio en los entrenos»');
+  }
+  // ME_EDGE decreciente
+  { const c = hallNew(8600);
+    ok([1, 2, 3, 4, 5, 9].map(s => H.meEdge({ season: s })).join() === '12,10,8,6,4,4' && H.ME_EDGE === 12 && H.ME_EDGE_MIN === 4, 'ME_EDGE baja con las temporadas: 12, 10, 8, 6, 4, 4');
+    c.sq6.wk = null; ok(H.lineup(c).edge === 12, 'lineup6 usa la de la temporada (T1: +12)');
+    const k = C.myClub(c), d1 = H.depth(c, k, k.lid, 1, 0, { merit: true }), d5 = H.depth(c, k, k.lid, 5, 0, { merit: true });
+    ok(Math.abs((d1.gap - d5.gap) - 8) < 2.5, '«Tu sitio» de las ofertas usa la ventaja de la temporada de destino (gap T1 ' + d1.gap + ', T5 ' + d5.gap + ')');
+    // en un club de tu nivel sigues compitiendo de veterano
+    let st = 0, n = 0; for (let s = 0; s < 6; s++) { const t = hallNew(8700 + s, 'Rotación', 60); t.season = 5; C.KEYS.forEach(x => { t.player.st[x] = 60; }); C.club(t, t.myClub).ovr = 60; t.sq6 = null; let g = 0; let tt = t; while (g++ < 8 && tt.phase === 'league') { if (!C.next(tt)) { C.simulateNext(); tt = C.get(); continue; } tt.sq6.wk = null; if (C.next(tt).status === 'start') st++; n++; tt = playOn(tt); C.KEYS.forEach(x => { tt.player.st[x] = Math.max(tt.player.st[x], 60); }); } }
+    ok(n >= 30 && st / n >= 0.5, 'veterano en un club de su nivel (60 en un club de 60): de inicio el ' + Math.round(100 * st / n) + ' % de las jornadas');
+  }
+  // fichar reinicia la impresión; el verano la deja en la mitad
+  { const c = hallNew(8800); c.ts.imp = 80; const o = { club: C.hall.leagueClubs(c, C.myClub(c).lid).find(k => k.id !== c.myClub).id, role: 'Rotación', years: 1, salary: 100, lid: C.myClub(c).lid };
+    c.offers = [o]; c.window = 'mid'; C.acceptOffer(0, 1); ok(C.get().ts.imp === 0, 'fichar por otro club: la impresión en los entrenos vuelve a 0'); }
+  // guardados viejos sin c.ts (pista y playa) y c.ts dañado
+  { hallNew(8900); C.trainSession('recv', 'quick');
+    let raw = JSON.parse(mem['voley3d.career6']); delete raw.ts; mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+    let r = C.get(), err = ''; try { C.trainInfo(r); C.trainSession('recv', 'quick'); C.simulateNext(); } catch (e) { err = e.message; }
+    ok(r && r.v === H.VER && r.ts && r.ts.imp >= 0 && !err, 'guardado de pista sin c.ts (VER6 igual): se crea al cargar y se entrena' + (err ? ' — ' + err : ''));
+    raw = JSON.parse(mem['voley3d.career6']); raw.ts = { n: 'x', imp: 1e9, p: 'z', last: { id: 'nada' } }; mem['voley3d.career6'] = JSON.stringify(raw); C._reset(); r = C.get();
+    ok(r && r.ts.n === 0 && r.ts.imp === 100 && r.ts.p.spike === 0 && r.ts.last === null, 'c.ts dañado: se sanea (imp ≤ 100, progreso a 0)');
+    beachNew(8950); raw = JSON.parse(mem['voley3d.career']); delete raw.ts; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    r = C.get(); err = ''; try { C.trainSession('recv', 'quick'); C.simulateNext(); } catch (e) { err = e.message; }
+    ok(r && r.v === B.VER && r.ts && C.trainInfo(C.get()).left === 3 && !err, 'guardado de playa sin c.ts (VER igual): carga y se entrena' + (err ? ' — ' + err : ''));
+  }
+  delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6;
+  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
+  if (keep.b != null) mem['voley3d.career'] = keep.b;
+  if (keep.roles) VB.Sim.CTRL_ROLES6 = keep.roles; else delete VB.Sim.CTRL_ROLES6;
+  C._reset();
+}
+
+// ------------------------------------------------------------------ S2 B2/B3, S3 C3/C5 y B6 §6.2 en la interfaz (T16)
+section('Interfaz de la Carrera: «Continuar carrera» (heroData), escudo o kitSw, química con nombre, «Jefe» y tableSlice');
+{
+  const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], b: mem['voley3d.career'] };
+  // career-ui.js (y career-world-ui.js) en un contexto aparte con un document mínimo; comparten VB con el de arriba
+  const fakeEl = () => ({ style: {}, hidden: true, setAttribute() { }, getAttribute() { return null; }, appendChild() { }, addEventListener() { }, querySelector() { return null; }, querySelectorAll() { return []; }, classList: { add() { }, remove() { }, toggle() { }, contains() { return false; } } });
+  const doc = { readyState: 'complete', getElementById: () => null, createElement: fakeEl, head: fakeEl(), body: fakeEl(), addEventListener() { } };
+  const ux = { console, Math, Date, JSON, VB, document: doc, setTimeout: () => 0, clearTimeout() { }, requestAnimationFrame: () => 0, performance: { now: () => 0 }, addEventListener() { } };
+  ux.globalThis = ux; ux.window = ux; vm.createContext(ux);
+  const uiFiles = (NOWORLD ? [] : ['js/career-world-ui.js']).concat(['js/career-ui.js']);
+  let loadErr = '';
+  for (const f of uiFiles) { try { vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ux, { filename: f }); } catch (e) { loadErr += f + ': ' + e.message + ' '; } }
+  const CU = VB.CareerUI;
+  ok(CU && !loadErr && typeof CU.heroData === 'function' && typeof CU.syncHero === 'function', 'career-ui.js se carga sin DOM y exporta heroData/syncHero/portraitReq/crest' + (loadErr ? ' — ' + loadErr : ''));
+  if (CU) {
+    const all = [];
+    const hd = (c) => { const d = CU.heroData(c); if (d) all.push(d.kind, d.title, d.chip, d.line, d.aria); return d; };
+    ok(CU.heroData(null) === null, 'heroData sin carrera: null (la portada se queda como hoy)');
+    delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+    let c = C.create({ mode: 'beach', name: 'Héroe Prueba', num: 7, role: 'atk', seed: 9100 });
+    let d = hd(c);
+    ok(d && d.kind === 'Playa' && d.title === 'Elige club' && d.chip === c.offers.length + ' ofertas' && d.line === 'Tu primer club' && d.club === null, 'elegir club: «Elige club» + «' + (d && d.chip) + '» + «Tu primer club»');
+    C.acceptOffer(c.offers.findIndex(o => !o.trial), 2); c = C.get();
+    let n = C.next(c); d = hd(c);
+    ok(d && d.title === 'Continuar carrera' && d.chip === 'T1 J1' && d.line === (n.atHome ? 'vs ' : 'en ') + n.rival.name && d.club && d.club.id === c.myClub, 'liga: «T1 J1» + «' + (d && d.line) + '» (vs/en como el calendario)');
+    ok(d && d.aria === 'Continuar carrera de playa: temporada 1, jornada 1, ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, 'aria-label: «' + (d && d.aria) + '»');
+    // casa y fuera, banquillo, Open, sin partido y fin de temporada (next falseado)
+    const next0 = C.next, withNext = (fn, run) => { VB.Career = new Proxy(C, { get: (t, k) => (k === 'next' ? fn : t[k]) }); try { return run(); } finally { VB.Career = C; } };
+    const fake = (o) => withNext(() => Object.assign({}, next0(c), o), () => hd(c));
+    d = fake({ atHome: true }); ok(d.line === 'vs ' + n.rival.name, 'en casa: «vs …»');
+    d = fake({ atHome: false }); ok(d.line === 'en ' + n.rival.name, 'fuera: «en …»');
+    d = fake({ bench: true }); ok(/^No juegas: (vs|en) /.test(d.line) && /no juegas/.test(d.aria), 'banquillo: «' + d.line + '»');
+    d = fake({ kind: 'cup', round: 0, atHome: false }); ok(d.chip === 'T1 Semifinal' && d.line === 'vs ' + n.rival.name && /semifinal/.test(d.aria), 'Open, semifinal: «T1 Semifinal» + «vs …»');
+    d = fake({ kind: 'cup', round: 1 }); ok(d.chip === 'T1 Final', 'Open, final: «T1 Final»');
+    d = withNext(() => null, () => hd(c));
+    ok(d.title === 'Continuar carrera' && d.chip === 'T1' && d.line === C.myClub(c).name, 'sin próximo partido: «T1» + tu club');
+    d = hd(Object.assign({}, c, { phase: 'off', offers: [{}, {}] })); ok(d.title === 'Fin de temporada' && d.chip === 'T1' && d.line === '2 ofertas', 'fin de temporada con ofertas: «2 ofertas»');
+    d = hd(Object.assign({}, c, { phase: 'off', offers: [] })); ok(d.line === 'Renueva o ficha', 'fin de temporada sin ofertas: «Renueva o ficha»');
+    // química con nombre (S3 C5)
+    const ch0 = c.mate.chem;
+    ok(CU._chemTxt(c, 47, 1) === 'Química: Buena sintonía (+1)' && CU._chemTxt(c, 10) === 'Química: Conocidos' && CU._chemTxt(c, 95, 3) === 'Química: Pareja de oro (+3)', 'química de playa con nombre: «' + CU._chemTxt(c, 47, 1) + '», sin paréntesis con +0');
+    c.mate.chem = ch0;
+    // «Jefe» (S3 C3): bossFor del club rival
+    const Lf = VB.CareerLife, bs = Lf && Lf.boss ? Lf.boss(c) : null;
+    ok(!Lf || !Lf.boss || (bs && Lf.bossFor(c, bs.club) === bs && Lf.bossFor(c, -1) === null), 'jefe del circuito: bossFor solo con su club (etiqueta «Jefe» en la tarjeta del partido)');
+    // escudo o la muestra de equipación (NOWORLD)
+    const cr = CU.crest(C.myClub(c), 40, c), crm = CU.crest(C.myClub(c), 22, c);
+    if (NOWORLD) ok(/^<i class="cr-kit"/.test(cr) && /cr-kit kit-mini/.test(crm), 'sin career-world: el escudo cae en kitSw (y kit-mini en tablas)');
+    else ok(/^<svg class="cw-crest cw-crest-s"/.test(cr) && /cw-crest-m/.test(crm), 'con career-world: escudo SVG (40 y mini)');
+    ok(CU.portraitReq(c, 'me', 44) === null || typeof CU.portraitReq(c, 'me', 44) === 'object', 'portraitReq sin players.js: null sin errores');
+    // B6 §6.2: el puesto de la fachada antes y después de 3 jornadas = el movimiento de Recap.tableSlice sobre Career.table
+    if (!VB.Recap) { try { vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/recap.js'), 'utf8'), ctx, { filename: 'js/recap.js' }); } catch (e) { } }
+    const R = VB.Recap;
+    if (!R || !R.tableSlice) console.log('  (sin js/recap.js: se salta tableSlice)');
+    else {
+      const chk = (lbl, lid) => {
+        let cc = C.get(); for (let i = 0; i < 2; i++) C.simulateNext(cc);   // (la tabla con partidos jugados)
+        cc = C.get(); const me = cc.myClub, p0 = C.posOf(cc, me);
+        C.simulateNext(cc); cc = C.get();
+        const p1 = C.posOf(cc, me), sl = R.tableSlice(C.table(cc, lid(cc)), me, p0), mv = R.move(p0, p1);
+        ok(sl.pos === p1 && sl.move.d === mv.d && sl.move.txt === mv.txt && sl.rows.some(r => r.me) && sl.rows.length === 3, lbl + ': posOf ' + p0 + ' → ' + p1 + ' = tableSlice (' + (sl.move.txt || '=') + ', ' + sl.rows.map(r => r.posT + ' ' + r.short).join(' | ') + ')');
+      };
+      chk('playa', cc => C.myClub(cc).lvl);
+      delete mem['voley3d.career6']; C._reset();
+      let h = C.create({ mode: 'hall', name: 'Héroe Pista', num: 9, pos: 'OH', seed: 9200 }); C.acceptOffer(h.offers.findIndex(o => !o.trial), 2); h = C.get();
+      let g = 0; while (h.phase === 'league' && !C.next(h) && g++ < 5) { C.simulateNext(); h = C.get(); }
+      d = hd(h); const n6 = C.next(h);
+      ok(d && d.kind === 'Pista' && d.title === 'Continuar carrera' && (!n6 || d.chip === 'T1 J' + (n6.week + 1)), 'pista, liga: «Pista» + «' + (d && d.chip) + '» + «' + (d && d.line) + '»');
+      const next6 = C.next; d = withNext(() => Object.assign({}, next6(h), { kind: 'ko', compName: 'Copa de Prueba' }), () => hd(h));
+      ok(d.chip === 'T1 Copa de Prueba' && /^vs /.test(d.line), 'pista, eliminatoria: «' + d.chip + '» + «' + d.line + '»');
+      ok(CU._chemTxt(h, 40, 1) === 'Química del equipo: Buen ambiente (+1)' && CU._chemTxt(h, 0) === 'Química del equipo: Vestuario nuevo', 'química de pista con nombre: «' + CU._chemTxt(h, 40, 1) + '»');
+      if (C.next(h)) chk('pista', cc => C.myClub(cc).lid);
+    }
+    ok(all.every(t => typeof t === 'string' && !/\.er\b|1\.º/.test(t) && t.indexOf('undefined') < 0 && t.indexOf('·') < 0), 'textos de la portada sin «.er», sin «·» y sin «undefined» (' + all.length + ')');
+  }
+  delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6;
+  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
+  if (keep.b != null) mem['voley3d.career'] = keep.b;
+  C._reset();
+}
+
 console.log('\n' + passes + ' comprobaciones bien');
 console.log(fails ? '\n' + fails + ' FALLOS' : '\nTODO OK');
 process.exit(fails ? 1 : 0);

@@ -8,7 +8,7 @@
  *     color que solo va en el atlas no cambia geoSig), fromSeed determinista y solo con objetos de inicio, matchLooks, mergeRaw,
  *     grant / unseen / wearable / checkGlobal con el guardado falso, guardado < 8 KB, precios, textos de lockText.
  *     Sprint 2-4 (T9): tipos de desbloqueo boss, reto, retoN, semana, dias, lvl y chem (meets, lockText, checkGlobal y orígenes
- *     retos / hito / boss), 8 premios por nivel sin quitar ninguna alternativa (contra js/look.js de git HEAD), objetos de jefe,
+ *     retos / hito / boss), 8 premios por nivel sin quitar ninguna alternativa (contra js/look.js del Vestuario original, 928ac39), objetos de jefe,
  *     bossItems / bossFit, drawId (pieza base mientras doll.js no sepa la variante) y el contrato D4 (.bak + lost(), solo lectura).
  *  2) --gl (tools/cdp.js): abre ?debug=look&looktest=1, comprueba que VB.Look del navegador firma igual que el de node y llama a
  *     VB.Doll.lookSelfTest() si existe (si aún no existe lo dice sin fallar; STRICT=1: fallo). Errores JS de la página = fallo.
@@ -367,19 +367,21 @@ console.log('== sprint 2-4 (T9) ==');
   check(P.length === 8 && P.every(e => D2[e.id] === e.lvl) && P.every((e, i) => !i || P[i - 1].lvl < e.lvl), '8 premios por nivel de la tabla de S4-D2 (Nv ' + P.map(e => e.lvl + ' ' + e.id).join(', ') + ')');
   check(P.every(e => X.item(e.id).unlock.length >= 2 && X.price(e.id) > 0) && !P.some(e => ['doradas', 'corona', 'medalla', 'capitan'].includes(e.id) || X.item(e.id).lux), 'cada premio por nivel se sigue vendiendo en la tienda; nada de lujo ni doradas, corona, medalla o brazalete');
   check(X.lvlPrize(8) === 'manguitoRayas' && X.lvlPrize(9) === '' && Object.isFrozen(P), 'lvlPrize(8) = manguitoRayas, lvlPrize(9) vacío; tabla congelada');
-  // sin quitar ninguna alternativa: comparado con look.js de git HEAD
+  // sin quitar ninguna alternativa: comparado con look.js del Vestuario original (commit 928ac39; LOOK_BASE=<rev> para otro). No con
+  // HEAD: desde que el sprint 2-4 está en commits (WIP de la ola 1b), HEAD ya trae los premios y la comparación salía 80 → 80
+  const LOOK_BASE = process.env.LOOK_BASE || '928ac39';
   let head = null;
-  try { head = require('child_process').execSync('git show HEAD:js/look.js', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { head = null; }
+  try { head = require('child_process').execSync('git show ' + LOOK_BASE + ':js/look.js', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { head = null; }
   if (head && /CATALOG/.test(head)) {
     const VBh = {}; vm.runInNewContext(head, { window: { VB: VBh, localStorage: { getItem: () => null, setItem() { }, removeItem() { } } }, VB: VBh });
     const H = VBh.Look;
     let lostAlt = [];
     H.CATALOG.forEach(o => { const n = X.item(o.id); if (!n) { lostAlt.push(o.id + ' (falta)'); return; } o.unlock.forEach(u => { if (!n.unlock.some(v => eq(v, u))) lostAlt.push(o.id + ' ' + JSON.stringify(u)); }); });
     const added = C.filter(x => H.item(x.id)).map(x => x.unlock.length - H.item(x.id).unlock.length).reduce((a, b) => a + b, 0);
-    check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de git HEAD' + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
+    check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de ' + LOOK_BASE + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
     check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 5, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 5 objetos nuevos (' + H.CATALOG.length + ' → ' + C.length + ')');
     check(H.CATALOG.every(o => X.isStart(o.id) === H.isStart(o.id) && X.price(o.id) === H.price(o.id) && X.item(o.id).rarity === o.rarity), 'inicio, precios y rarezas de siempre');
-  } else console.log('AVISO: sin git HEAD de js/look.js: comparación de alternativas saltada');
+  } else console.log('AVISO: sin js/look.js en ' + LOOK_BASE + ': comparación de alternativas saltada');
 
   // objetos de jefe
   const BI = { saque: ['munhCanon'], muro: ['dedosMuro'], remate: ['manguitoMazo'], defensa: ['rodiPulpo', 'tobiPulpo'] };

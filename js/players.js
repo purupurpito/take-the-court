@@ -314,6 +314,12 @@
     }
     if (!p.role && p.team === 0 && p.idx < 2) { L = MY_LOOKS[p.idx]; return Object.freeze({ skin: L.skin, hair: L.hair, style: L.style, acc: beach ? L.accB : L.acc, h: L.h }); }
     var h = hash32(((p.num | 0) * 131 + p.team * 17 + (p.role ? 1009 : 0) + (p.team === 1 && !p.role ? RIVAL_SIG : 0)) >>> 0);
+    // S3-C2/R22: el jefe del circuito sale con su aspecto (VB.Look.bossFit: con su objeto puesto); altura la del NPC de hoy
+    if (BOSS.fit && isBoss(p) && VB.Look && VB.Look.resolve) {
+      var hb = 1 + ((h >>> 16) % 5 - 2) * 0.012;
+      try { return Object.freeze(Object.assign({ h: hb }, VB.Look.resolve(BOSS.fit, VEN, tc || kitOf(p)), { h: hb })); }
+      catch (e) { if (!LOOK_ERR) { LOOK_ERR = true; try { console.error('[VB][ERROR] Players.lookOf (jefe): ' + e); } catch (e2) { } } }
+    }
     var skin = SKINS[h % SKINS.length], hair = HAIRS[(h >>> 4) % HAIRS.length], style = STYLES[(h >>> 8) % STYLES.length];
     var acc = beach ? ACC_BEACH[(h >>> 12) % ACC_BEACH.length] : ACC_HALL[(h >>> 12) % ACC_HALL.length];
     var hh = p.role ? (ROLE_H[p.role] || 1) * (1 + ((p.num * 13) % 5 - 2) * 0.006) : 1 + ((h >>> 16) % 5 - 2) * 0.012;
@@ -346,14 +352,51 @@
   var CELEBS = [{ id: 'saludo', name: 'Saludo', tier: 1 }, { id: 'bailecito', name: 'Bailecito', tier: 2 }, { id: 'avion', name: 'Avioncito', tier: 3 },
     { id: 'arquero', name: 'Arquero', tier: 4 }, { id: 'silencio', name: 'Silencio', tier: 5 }, { id: 'rodillazo', name: 'Rodillazo', tier: 6 }];
   var SIG_ID = '', RIVAL_NUM = -1, RIVAL_AT = -1e9, RIVAL_G = null;
-  var CUR_G = null;   // partido de los rigs actuales (onGameStart): con banquillo, un cambio en g.players[0] no rehace a todos
+  // S3-C2: firmas de NPC (compañero de la Carrera de playa y jefe del circuito; ids con pose propia en celebE2 'firma') y rabias
+  // (celV propios: 'grito', 'manotazo'; los demás ya existían). MATE: setMate (tu n.º 2 del 2v2; vale hasta la siguiente llamada,
+  // como setSignature). BOSS: setBoss (el n.º 1 rival; vale para el partido creado junto a la llamada, como setRival; pid = id del
+  // jugador en ese partido). PAIR_LV: setPairChem (S3-C5, saludo de pareja = convergencia de tipo 6). Todo visual, nunca g.rng.
+  var NPC_SIGS = [{ id: 'martillo', name: 'Martillo' }, { id: 'muralla', name: 'Muralla' }, { id: 'sopla', name: 'Humo' },
+    { id: 'escoba', name: 'Escoba' }, { id: 'sien', name: 'Listo' }, { id: 'biceps', name: 'Bíceps' }];
+  NPC_SIGS.forEach(function (s) { Object.freeze(s); }); Object.freeze(NPC_SIGS);
+  var RAGES = Object.freeze(['rabia', 'grito', 'manotazo', 'arena', 'jarras', 'headHands']);
+  var MATE = { on: false, num: -1, persona: '', sig: '', rage: '' };
+  var BOSS = { on: false, idx: 0, num: -1, persona: '', sig: '', rage: '', style: '', fit: null, fitSig: '', pid: -1, at: -1e9, g: null };
+  var PAIR_LV = 0, PAIR_FORCE = -1;
+  var CUR_G = null;  // partido de los rigs actuales (onGameStart): con banquillo, un cambio en g.players[0] no rehace a todos
   // último defensor (hit.dig) y último atacante de cada equipo en el peloteo (digHero, stuffed); se limpian en serveReady
   var DIG_LAST = [null, null], ATK_LAST = [null, null];
   var LVL = { x: 0, y: 0, z: 0, t: 0 }, LV_KEY = [-2, -2], LV_X = [0, 0], LV_Y = [0, 0];   // bote previsto del saque que se deja pasar
   function personaOf(p) {
-    if (!p.role && p.team === 0 && p.idx < 2) return p.idx === 0 ? 'show' : 'calma';
+    if (!p.role && p.team === 0 && p.idx < 2) return p.idx === 0 ? 'show' : MATE.on && MATE.persona ? MATE.persona : 'calma';
+    if (BOSS.on && BOSS.persona && isBoss(p)) return BOSS.persona;
     return PERSONAS[hash32(((p.num | 0) * 31 + p.team * 7 + (p.team === 1 && !p.role ? RIVAL_SIG : 0)) >>> 0) % 4];
   }
+  function bossClear() {
+    BOSS.on = false; BOSS.num = -1; BOSS.idx = 0; BOSS.persona = BOSS.sig = BOSS.rage = BOSS.style = ''; BOSS.fit = null; BOSS.fitSig = '';
+    BOSS.pid = -1; BOSS.g = null;
+  }
+  /** S3-C2: ¿es p el jefe del circuito? (equipo 1, sin puesto —solo 2v2—, el jugador que bossResolve eligió en el partido) */
+  function isBoss(p) { return BOSS.on && BOSS.pid >= 0 && p.team === 1 && !p.role && p.id === BOSS.pid; }
+  /** Jugador del jefe en g: el n.º 1… del equipo 1 con su dorsal (BOSS.num) o, si nadie lo lleva, el de BOSS.idx. */
+  function bossResolve(g) {
+    BOSS.pid = -1;
+    if (!BOSS.on || !g || !g.teams || !g.teams[1]) return;
+    var t1 = g.teams[1], i;
+    for (i = 0; i < t1.length; i++) if (!t1[i].role && t1[i].num === BOSS.num) { BOSS.pid = t1[i].id; return; }
+    for (i = 0; i < t1.length; i++) if (!t1[i].role && t1[i].idx === BOSS.idx) { BOSS.pid = t1[i].id; return; }
+  }
+  /** Firma del rig ('' = ninguna): tu n.º 1 (SIG_ID), tu compañero (MATE.sig) o el jefe (BOSS.sig). */
+  function sigOf(r) { return r.sigOn ? SIG_ID : r.mateOn ? MATE.sig : r.bossOn ? BOSS.sig : ''; }
+  /** Rabia del rig ('' = ninguna): solo compañero y jefe. */
+  function rageOf(r) { return r.mateOn ? MATE.rage : r.bossOn ? BOSS.rage : ''; }
+  function sigOk(id) {
+    var i; for (i = 0; i < NPC_SIGS.length; i++) if (NPC_SIGS[i].id === id) return id;
+    for (i = 0; i < CELEBS.length; i++) if (CELEBS[i].id === id) return id;
+    return '';
+  }
+  function rageOk(id) { return RAGES.indexOf(id) >= 0 ? id : ''; }
+  function persOk(id) { return PERSONAS.indexOf(id) >= 0 ? id : ''; }
   /** ¿Vale esta variante para este rig? (playa / complemento de cabeza) */
   function varOk(r, id) { return (id !== 'arena' && id !== 'arenaManos') || r.beach ? id !== 'ajuste' || !!r.acc : false; }
   /** Elección ponderada determinista de una tabla [id, peso…] con el hash h. */
@@ -621,6 +664,7 @@
       acF: 0, vfP: 0, spP: 0, accT: -99, lagOn: false, jvM: 0, cvarT: -99, spkYaw: 0, evT: -99, evX: 0, evY: 0, blkResT: -99,
       dvSide: 0, dvYaw0: 0, dvExtra: 0, dvFxT: -99, lvX: 0, lvY: 0, lvD: 0, lvGiven: 0, idleT: -99, idleNext: 0, idleN: 0, leaveW: 0, leaveT: -99,
       yawAtk: 0, yawAtkT: -99, fist0: 0, fist1: 0, celFxT: -99, celFx2: -99, rivalOn: false, sigOn: meSlot(p) === 0, digT: -99, atkT: -99,
+      mateOn: false, bossOn: false,   // S3-C2: tu compañero con setMate / el jefe con setBoss (resetRig)
       // S3-C1 §1.1: ancla de bloqueo (bk*: punto y dirección del balón en el block; bkOne: 0 las dos palmas, 1 izquierda, 2 derecha) y
       // paso atrás visual de la plataforma (pb*: dirección fijada, metros, instante del contacto, metros ya dados, último frame visto)
       bkT: -99, bkX: 0, bkY: 0, bkZ: 0, bkDx: 0, bkDy: 0, bkDz: 0, bkOne: 0, pbX: 0, pbY: 0, pbM: 0, pbTc: -99, pbG: 0, pbSeen: -99,
@@ -1428,6 +1472,7 @@
         if (hm === 'plat' && r.cvar === 'onearm') { var wo = w * (1 - sstep(0, 0.05, hitAge)); if (r.hitC.x >= 0) r.aw1 = wo; else r.aw0 = wo; }
         else if (hm === 'dive' && r.dvar === 'pancake') r.aw0 = 0;
         ancLimits(r, hm);
+        if (hm === 'palm' && r.hitKind === 'free') freeReach(r);
         return;
       }
     }
@@ -1467,7 +1512,12 @@
     var dl = Math.sqrt(r.aDx * r.aDx + r.aDy * r.aDy + r.aDz * r.aDz) || 1; r.aDx /= dl; r.aDy /= dl; r.aDz /= dl;
     if (mode === 'palm') r.aw1 = w; else { r.aw0 = w; r.aw1 = w; }
     ancLimits(r, mode);
+    if (k === 'free' && mode === 'palm') freeReach(r);
   }
+  /** S3-C1 §1.1 (free/overhead): la sim da por bueno el balón libre por arriba hasta ~2,7 m de alto y 1,35 m de lado con los pies en
+   *  el suelo (6v6), y con los límites de un remate (inclinación 0,25, puntillas 0,24) la palma se quedaba a 0,3-0,5 m. Mismo margen
+   *  que el bloqueo: se estira de lado y sube de puntillas/saltito. Solo actúa si no llega (corrección de cuerpo con e > 0). */
+  function freeReach(r) { r.aLean = BLK_LEAN; r.aUp = BLK_UP; }
   // S3-C1 §1.1. FREE_OH: el balón libre va por arriba desde 1,6 m sobre los pies (= sim, b.z − p.z > 1,6 → 'overhead'; antes 1,75 y
   // entre las dos alturas se veía la plataforma en un toque de dedos). PLAT_A*: salida de siempre de la plataforma, normalizada.
   var FREE_OH = 1.6, PLAT_AX = 0.3 / Math.sqrt(1.09), PLAT_AZ = 1 / Math.sqrt(1.09);
@@ -2070,7 +2120,7 @@
     } else {
       r.lkW = 0;
       // E2: el rival personal mira a tu n.º 1 al empezar el saque
-      if (r.rivalOn && mode === 'serve' && !serving && g.server !== p && (g.serveT || 0) < 1.6) { var m1 = myOne(g); if (m1) look(r, m1.p.x, m1.p.y, 1.5 * m1.scale, 0.6); }
+      if ((r.rivalOn || r.bossOn) && mode === 'serve' && !serving && g.server !== p && (g.serveT || 0) < 1.6) { var m1 = myOne(g); if (m1) look(r, m1.p.x, m1.p.y, 1.5 * m1.scale, 0.6); }
     }
     // ---- 5b. E2: gestos de evento (bloqueo, red, challenge, línea, gimnasio)
     eventGesture(g, r, P, tm, air);
@@ -2389,7 +2439,9 @@
     tiredWin: 'vamos', tiredLose: 'lookSpot', headHands: 'shake', shake: 'lookSpot', lookSpot: 'shake', lookAntenna: 'shake', clapUp: 'lookSpot',
     // E2 (sprint 5)
     baile: 'vamos', pecho: 'kill', asiente: 'mateCheer', digHero: 'mateCheer', palmLook: 'shake', stuffed: 'headHands', noToque: 'shake',
-    jarras: 'lookSpot', arena: 'jarras', pina: 'shake', pique: 'vamos', rabia: 'headHands', firma: 'vamos' };
+    jarras: 'lookSpot', arena: 'jarras', pina: 'shake', pique: 'vamos', rabia: 'headHands', firma: 'vamos',
+    // S3-C2
+    grito: 'headHands', manotazo: 'shake' };
   /** E2: elección de la variante. Mandan el contexto (bloqueo, ace, set, remontada, peloteo largo…) y luego la personalidad (tabla
    *  ponderada determinista: hash del marcador y del jugador). Firma de tu n.º 1, rival personal, defensa decisiva, error propio por
    *  tipo (saque, bloqueado, «no la toqué»). Nunca la misma dos veces seguidas (CEL_ALT). */
@@ -2401,7 +2453,8 @@
     if (won) {
       if (scorer === r) {
         var bigAt = VB.HOLD && VB.HOLD.bigAt != null ? VB.HOLD.bigAt : 0.55;
-        if (r.sigOn && SIG_ID && r.lastCel !== 'firma' && (e.setWon || (e.highlight || 0) >= bigAt || (h & 3) === 0)) v = 'firma';
+        var sid = sigOf(r);   // S3-C2: tu n.º 1, tu compañero o el jefe (con los ganchos a null, solo tu n.º 1: lo de siempre)
+        if (sid && r.lastCel !== 'firma' && (e.setWon || (e.highlight || 0) >= bigAt || (h & 3) === 0)) v = 'firma';
         else if (e.how === 'block' && r === lastBlocker) v = 'roar';
         else if (e.how === 'ace' && g.server === p) v = r.persona === 'fuego' && (h & 4) ? 'pecho' : 'ace';
         else if (e.setWon) v = 'bigV';
@@ -2420,7 +2473,12 @@
         if (v === 'pecho') v = 'vamos';                                   // el pecho es para el que hace el punto
       }
     } else {
+      var rg = rageOf(r), bigL = (e.highlight || 0) >= (VB.HOLD && VB.HOLD.bigAt != null ? VB.HOLD.bigAt : 0.55);
       if (r.rivalOn && !long) v = 'rabia';
+      // S3-C2: rabia del jefe (punto grande, set o error suyo); la del compañero solo tras SU error, si le bloquean o al perder el
+      // set, y como mucho 1 de cada 3 (salvo el set). Ninguna señala ni mira a tu n.º 1
+      else if (rg && r.bossOn && (e.setWon || bigL || e.player === p)) v = rg;
+      else if (rg && r.mateOn && (e.player === p || (e.how === 'block' && ATK_LAST[p.team] === r) || e.setWon) && (e.setWon || h % 3 === 0)) v = rg;
       else if (r.evG === 'netHead' && g.time - r.evT < 3) v = 'headHands';
       else if (long) v = 'tiredLose';
       else if (e.player === p && e.reason === 'serve') v = 'palmLook';
@@ -2656,7 +2714,7 @@
       if (t >= 0.27 && r.celFxT !== r.pointT) { r.celFxT = r.pointT; fxFloor(r, 0.6, 0.5); }
       if (t > 0.62) pointAt(r, T, 1, mx, my, 1.4 * r.scale, sstep(0.62, 0.8, t));
       look(r, mx, my, 1.4, sstep(0.55, 0.8, t));
-    } else if (c === 'baile' || (c === 'firma' && SIG_ID === 'bailecito')) {
+    } else if (c === 'baile' || (c === 'firma' && sigOf(r) === 'bailecito')) {
       // pasito lateral a 2 Hz con los puños rodando (1 s; la firma, más amplio, con las manos altas y más largo)
       var big = c === 'firma' ? 1 : 0, bl = sstep(0.05, 0.2, t) * (1 - sstep(1.1 + 0.6 * big, 1.3 + 0.6 * big, t)), ph = t * PI * 2 * 2;
       s2[OX] = (0.08 + 0.05 * big) * Math.sin(ph) * bl; s2[PR] = -0.1 * Math.sin(ph) * bl; s2[DROP] = 0.1 + 0.05 * Math.abs(Math.cos(ph)) * bl; s2[CY] = 0.22 * Math.sin(ph) * bl;
@@ -2740,9 +2798,82 @@
       setV(v2[HL], 0.3, 1.0, 0.12);
       v2[FR].y = ANKLE + 0.15 * st; v2[FR].z = 0.06;
       if (t >= 0.6 && r.celFxT !== r.pointT) { r.celFxT = r.pointT; if (r.beach) dustFx(r, 0.15, 7); }
+    } else if (c === 'grito') {
+      // S3-C2 rabia: encogido con los puños abajo y luego grito al cielo (cara shout); sin mirar a nadie
+      var gh = sstep(0.06, 0.24, t) * (1 - sstep(0.36, 0.56, t)), gu = sstep(0.36, 0.56, t) * (1 - sstep(1.15, 1.45, t));
+      s2[DROP] = 0.1 + 0.16 * gh + 0.06 * gu; s2[PP] = 0.3 * gh + 0.06 * gu; s2[CP] = 0.42 * gh - 0.24 * gu; s2[HP] = 0.35 * gh - 0.7 * gu; s2[LOOK] = 0;
+      setV(v2[HL], lerp(0.27, 0.34, gu), lerp(0.95, 0.86, gh + gu), lerp(0.14, 0.2, gh)); setV(v2[HR], lerp(-0.27, -0.34, gu), lerp(0.95, 0.86, gh + gu), lerp(0.14, 0.2, gh));
+      setV(v2[AL], 1, -0.3, -0.3); setV(v2[AR], -1, -0.3, -0.3); s2[WRL] = s2[WRR] = 0.5;
+      r.fist0 = r.fist1 = Math.max(gh, gu);
+      v2[FL].x = 0.28; v2[FR].x = -0.28;
+    } else if (c === 'manotazo') {
+      // S3-C2 rabia: manotazo al aire de arriba abajo y medio giro de espaldas (±90º, vuelve); sin señalar
+      var mu = sstep(0.06, 0.26, t) * (1 - sstep(0.3, 0.42, t)), md = sstep(0.3, 0.42, t) * (1 - sstep(0.62, 0.85, t));
+      var mt = sstep(0.5, 0.95, t) * (1 - sstep(1.3, 1.7, t)), msg = (r.id & 1) ? 1 : -1;
+      s2[DROP] = 0.06 + 0.08 * md; s2[CP] = -0.08 * mu + 0.28 * md + 0.08 * mt; s2[HP] = -0.25 * mu + 0.3 * md + 0.25 * mt; s2[LOOK] = 0;
+      setV(v2[HR], -0.26, 1.0, 0.16); setV(v2[AR], -1, -0.4, -0.3); setV(v2[HL], 0.26, 1.0, 0.12);
+      if (mu > 0) v2[HR].lerp(tV2.set(-0.34, 1.98, 0.22), mu);
+      if (md > 0) { v2[HR].lerp(tV2.set(0.06, 0.92, 0.42), md); s2[WRR] = 0.6 * md; }
+      s2[PY] = 0.7 * msg * mt; s2[CY] = 0.55 * msg * mt; s2[HY] = 0.3 * msg * mt;
+      if (mt > 0) { v2[HL].lerp(tV2.set(0.24, 1.05, -0.02), mt); v2[HR].lerp(tV2.set(-0.24, 1.05, -0.02), mt); v2[AL].lerp(tV2.set(1, 0.1, -0.6), mt); v2[AR].lerp(tV2.set(-1, 0.1, -0.6), mt); }
+      if (t >= 0.4 && r.celFxT !== r.pointT) { r.celFxT = r.pointT; if (FXQ.length < 32) FXQ.push({ type: 'clap', team: p.team, x: p.x + r.offX, y: p.y + r.offY, z: 1.0 * r.scale, strength: 0.45 }); }
     } else if (c === 'firma') {
-      var sid = SIG_ID;
-      if (sid === 'saludo') {
+      var sid = sigOf(r);
+      if (sid === 'martillo') {
+        // S3-C2 firma de remate: dos golpes de puño de martillo al aire hacia abajo (las dos manos juntas) y mirada a la red
+        var hw = sstep(0.05, 0.25, t) * (1 - sstep(1.45, 1.75, t)), hd = Math.exp(-Math.pow((t - 0.5) / 0.07, 2)) + Math.exp(-Math.pow((t - 0.9) / 0.07, 2));
+        hd = Math.min(1, hd);
+        s2[DROP] = 0.06 + 0.1 * hd * hw; s2[CP] = -0.04 + 0.28 * hd * hw; s2[HP] = -0.2 + 0.2 * hd; s2[LOOK] = 0;
+        setV(v2[HL], 0.26, 1.0, 0.12); setV(v2[HR], -0.26, 1.0, 0.12);
+        // (arriba, por encima del hombro derecho: la cara se ve; abajo, delante del pecho)
+        v2[HL].lerp(tV2.set(lerp(-0.12, 0.04, hd), lerp(2.02, 1.18, hd), lerp(0.16, 0.46, hd)), hw); v2[HR].lerp(tV2.set(lerp(-0.24, -0.06, hd), lerp(2.02, 1.18, hd), lerp(0.16, 0.46, hd)), hw);
+        s2[CY] = -0.18 * hw * (1 - hd);
+        setV(v2[AL], 1, -0.5, -0.4); setV(v2[AR], -1, -0.5, -0.4); r.fist0 = r.fist1 = hw;
+        look(r, p.x * 0.3, p.y, 2.4, hw * sstep(1.0, 1.2, t));   // a la red después de los golpes (antes, la cara al plano)
+      } else if (sid === 'muralla') {
+        // S3-C2 firma de muro: brazos cruzados en X delante del pecho, barbilla alta, de cara a la red
+        var xw = sstep(0.1, 0.4, t) * (1 - sstep(1.6, 1.9, t));
+        s2[DROP] = 0.04; s2[CP] = -0.1 * xw; s2[HP] = -0.32 * xw; s2[LOOK] = 0;
+        setV(v2[HL], 0.26, 1.0, 0.12); setV(v2[HR], -0.26, 1.0, 0.12);
+        v2[HL].lerp(tV2.set(-0.15, 1.48, 0.34), xw); v2[HR].lerp(tV2.set(0.15, 1.42, 0.36), xw);
+        setV(v2[AL], 1, -0.6, -0.2); setV(v2[AR], -1, -0.6, -0.2); r.fist0 = r.fist1 = xw;
+        v2[FL].x = 0.3; v2[FR].x = -0.3;
+        look(r, p.x * 0.3, p.y, 2.0, xw);
+      } else if (sid === 'sopla') {
+        // S3-C2 firma de saque: la mano en pistola delante de la boca, sopla el humo y luego la sacude
+        var sw2 = sstep(0.12, 0.35, t) * (1 - sstep(1.0, 1.2, t)), sk = sstep(1.0, 1.15, t) * (1 - sstep(1.55, 1.8, t));
+        s2[DROP] = 0.03; s2[CP] = -0.06; s2[HP] = 0.08 * sw2; s2[LOOK] = 0;
+        setV(v2[HL], 0.26, 0.98, 0.1); setV(v2[HR], -0.26, 1.0, 0.14); setV(v2[AR], -1, -0.5, -0.4);
+        v2[HR].lerp(tV2.set(-0.07, 1.6, 0.34), sw2); s2[TWR] = -1.2 * sw2; s2[WRR] = 0.5 * sw2;
+        if (sk > 0) { v2[HR].lerp(tV2.set(-0.36, 1.12, 0.22), sk); s2[WRR] += 0.8 * Math.sin(t * 46) * sk; }
+        look(r, crowdX, crowdY, 3, 0.5 * sk);
+      } else if (sid === 'escoba') {
+        // S3-C2 firma de defensa: agachado, barre el suelo con la mano (playa: polvo; pista: palmada al suelo)
+        var ew = sstep(0.08, 0.32, t) * (1 - sstep(1.25, 1.6, t)), ep = Math.sin((t - 0.3) * PI * 2 * 1.6);
+        s2[DROP] = 0.4 * ew; s2[PP] = 0.42 * ew; s2[CP] = 0.5 * ew; s2[HP] = -0.45 * ew; s2[LOOK] = 0;
+        setV(v2[HL], 0.26, 1.0, 0.12); setV(v2[HR], -0.26, 1.0, 0.12);
+        v2[HR].lerp(tV2.set(-0.18 + 0.3 * ep * sstep(0.3, 0.4, t), 0.22, 0.62), ew); v2[HL].lerp(tV2.set(0.3, 0.75, 0.36), ew);
+        setV(v2[AL], 1, -0.2, -0.4); setV(v2[AR], -1, -0.2, -0.4);
+        v2[FL].x = 0.3; v2[FR].x = -0.3;
+        if (t >= 0.5 && r.celFxT !== r.pointT) { r.celFxT = r.pointT; if (r.beach) dustFx(r, 0.6, 8); else fxFloor(r, 0.5, 0.6); }
+        look(r, crowdX, crowdY, 3, 0.4 * (1 - ew));
+      } else if (sid === 'sien') {
+        // S3-C2 firma de jugador listo: dedo en la sien y sonrisa
+        var iw = sstep(0.12, 0.4, t) * (1 - sstep(1.4, 1.7, t)), tap2 = 0.02 * Math.max(0, Math.sin((t - 0.45) * PI * 2 * 2.5)) * sstep(0.45, 0.55, t) * (1 - sstep(1.0, 1.1, t));
+        s2[DROP] = 0.03; s2[CP] = -0.06; s2[HY] = 0.18 * iw; s2[HP] = -0.08 * iw; s2[LOOK] = 0;
+        setV(v2[HL], 0.26, 0.98, 0.1); setV(v2[HR], -0.26, 1.0, 0.14);
+        v2[HR].lerp(tV2.set(-0.3 - tap2, 1.76, 0.08), iw); setV(v2[AR], -1, 0.1, -0.2); s2[TWR] = -0.8 * iw;
+        look(r, crowdX, crowdY, 3, iw);
+      } else if (sid === 'biceps') {
+        // S3-C2 firma de todoterreno o saltador: los dos bíceps y un saltito
+        var bw = sstep(0.05, 0.25, t) * (1 - sstep(1.4, 1.7, t)), hp2 = Math.sin(clamp((t - 0.55) / 0.36, 0, 1) * PI);
+        s2[DROP] = 0.12 * bw * (1 - hp2); s2[CP] = -0.12 * bw; s2[HP] = -0.25 * bw; s2[HOP] = 0.14 * hp2; s2[LOOK] = 0;
+        setV(v2[HL], 0.26, 1.0, 0.12); setV(v2[HR], -0.26, 1.0, 0.12);
+        v2[HL].lerp(tV2.set(0.44, 1.6 + 0.04 * hp2, 0.04), bw); v2[HR].lerp(tV2.set(-0.44, 1.6 + 0.04 * hp2, 0.04), bw);
+        setV(v2[AL], 1, -0.6, -0.2); setV(v2[AR], -1, -0.6, -0.2); s2[WRL] = s2[WRR] = 0.9 * bw; r.fist0 = r.fist1 = bw;
+        v2[FL].x = 0.3; v2[FR].x = -0.3;
+        look(r, crowdX, crowdY, 4, bw);
+      } else if (sid === 'saludo') {
         w = sstep(0.1, 0.35, t) * (1 - sstep(1.7, 2.0, t));
         s2[DROP] = 0.02; s2[CP] = -0.08; s2[PP] = 0;
         setV(v2[HR], -0.14, lerp(1.0, 1.88, w), lerp(0.2, 0.3, w)); setV(v2[AR], -1, 0.2, -0.4); s2[TWR] = -0.6 * w; s2[WRR] = 0.2;
@@ -2867,9 +2998,25 @@
    *  manos) y después saltan con los brazos arriba durante toda la pausa final; los que pierden se arrodillan (uno) o se
    *  agachan con las manos en la cabeza (el otro). */
   function matchCeleb(g, r, T, t) {
-    var s2 = T.s, v2 = T.v, cv = CVP[r.team];
+    var s2 = T.s, v2 = T.v, cv = CVP[r.team], p = r.p;
+    // escena congelada (?debug=over, overPose con ctx.frozen): el reloj no corre; firma y rodillas en su punto, no a medias
+    var frz = OVER_FZ === g && g.mode === 'over';
     if (r.pointWin) {
-      var after = cv && cv.on && cv.ts >= 0 ? sstep(cv.tc + 0.3, cv.tc + 0.6, g.time) : sstep(0.4, 0.7, t);
+      // S3-C2: quien tiene firma (tu n.º 1, tu compañero o el jefe) la hace una vez tras la convergencia (cv.tc + 0,7 s; tras el saludo
+      // de pareja largo, + 1,2 s) o, sin convergencia, de t 1,1 s; luego vuelve a los saltos
+      var sid = sigOf(r);
+      if (sid) {
+        var sw = cv && cv.on ? (cv.ts >= 0 ? cv.tc + (cv.type === 6 ? 1.2 : 0.7) - r.pointT : 99) : 1.1, tl = t - sw;
+        if (frz) tl = Math.max(tl, SIG_PEAK[sid] || 0.9);
+        if (tl >= 0 && tl < SIG_LEN) {
+          var mt0 = byId[mateOf(g, p).id];
+          celebE2(g, r, T, tl, 'firma', mt0 ? mt0.p.x + mt0.offX : p.x, mt0 ? mt0.p.y + mt0.offY : p.y, p.x * 1.15, (p.y >= 0 ? 1 : -1) * 13, 1, 0);
+          r.celId = 'matchSig';
+          return;
+        }
+      }
+      var cvLong = cv && cv.type === 6 ? 1.15 : 0.3;   // (saludo de pareja: los saltos esperan a que acabe)
+      var after = cv && cv.on && cv.ts >= 0 ? sstep(cv.tc + cvLong, cv.tc + cvLong + 0.3, g.time) : sstep(0.4, 0.7, t);
       // primero: puño y a por el compañero (brazos de carrera libres)
       if (t < 0.4) fistPump(s2, v2, t, 1);
       else {
@@ -2881,7 +3028,7 @@
       }
       s2[LOOK] = 0.2;
       if (after > 0) {
-        var t2 = Math.max(0, g.time - (cv && cv.ts >= 0 ? cv.tc + 0.3 : r.pointT + 0.4));
+        var t2 = Math.max(0, g.time - (cv && cv.ts >= 0 ? cv.tc + cvLong : r.pointT + 0.4));
         var hop = Math.abs(Math.sin(t2 * 6.5)) * 0.24;
         s2[HOP] = lerp(s2[HOP], hop, after); s2[DROP] = lerp(s2[DROP], 0.05, after); s2[CP] = lerp(s2[CP], -0.15, after); s2[HP] = lerp(s2[HP], -0.5, after); s2[CY] = lerp(s2[CY], 0, after);
         v2[HL].lerp(tV2.set(0.42, 2.25 + hop * 0.2, 0.1), after); v2[HR].lerp(tV2.set(-0.42, 2.25 + hop * 0.2, 0.1), after);
@@ -2892,7 +3039,12 @@
       r.celId = 'matchWin';
       return;
     }
-    var kneel = r.p.idx === 0, k = sstep(0.5, 1.3, t);
+    // S3-C2: el que pierde con rabia (jefe o compañero) la hace de t 0,15 a 1,3 s y después se arrodilla / se agacha; el jefe que
+    // pierde siempre se arrodilla (sin jefe en ese equipo, como siempre: de rodillas el n.º 1 y manos a la cabeza el otro)
+    var rg = rageOf(r);
+    if (rg && !frz && t < RAGE_END) { if (t >= 0.15) ragePose(g, r, T, t - 0.15, rg); r.celId = 'matchRage'; return; }
+    var bossT = BOSS.on && BOSS.pid >= 0 && r.team === 1;
+    var kneel = bossT ? r.bossOn : r.p.idx === 0, k = rg ? (frz ? 1 : sstep(RAGE_END, RAGE_END + 0.8, t)) : sstep(0.5, 1.3, t);
     if (kneel) {
       // de rodillas: rodilla derecha en el suelo, izquierda delante, mano en la rodilla y la cabeza baja
       s2[DROP] = lerp(0.2, 0.62, k); s2[PP] = 0.25; s2[CP] = 0.35; s2[HP] = 0.55; s2[LOOK] = 0;
@@ -2910,6 +3062,19 @@
       setV(v2[FL], 0.24, ANKLE, 0.14); setV(v2[FR], -0.24, ANKLE, 0.0);
       r.celId = 'matchHeads';
     }
+  }
+  // S3-C2: ventana de la firma en el cierre (s), instante que enseña la escena congelada y fin de la rabia del que pierde
+  var SIG_LEN = 2.1, SIG_PEAK = { martillo: 0.38, biceps: 0.5, sopla: 0.7, escoba: 0.6 }, RAGE_END = 1.3, OVER_FZ = null;   // OVER_FZ: partido de overPose con ctx.frozen (reloj parado)
+  /** Rabia id (RAGES) en la capa T con tiempo local t: las de celebE2 y, aparte, manos a la cabeza (headHands vive en celebrate). */
+  function ragePose(g, r, T, t, id) {
+    var p = r.p;
+    if (id === 'headHands') {
+      var s2 = T.s, v2 = T.v;
+      s2[DROP] = 0.03; s2[CP] = -0.08; s2[HP] = -0.35;
+      setV(v2[HL], 0.1, 1.86, -0.04); setV(v2[HR], -0.1, 1.86, -0.04); setV(v2[AL], 1, 0.3, 0.2); setV(v2[AR], -1, 0.3, 0.2); s2[WRL] = s2[WRR] = 0.6;
+      return;
+    }
+    celebE2(g, r, T, t, id, p.x, p.y, p.x * 1.15, (p.y >= 0 ? 1 : -1) * 13, 0, 0);
   }
 
   // =====================================================================
@@ -2930,7 +3095,8 @@
   var TAB_END = 3.6, TAB_HOLD = 0.6, TAB = { ev: null, g: null, t0: 0, t: 0, max: 0, v: new Float64Array(16) }; // cuadro vivo de la escena congelada del punto (update)
   function cvNew() { return dblFields({ on: false, ts: -1, t0: -99, type: 0, scorer: -1, ax: 0, ay: 0, bx: 0, by: 0, a0x: 0, a0y: 0, b0x: 0, b0y: 0,
     twa: 0, twb: 0, da: 0, db: 0, tc: 0, tr: 0, mx: 0, my: 0, mz: 0, emitted: false, clap: false, clapper: -1, claps: 0, ra: 0, rtA: 0.3, rtB: 0.3,
-    rax: 0, ray: 0, rbx: 0, rby: 0, rStart: false, d0: 0, hs: false, solo: false, hero: 0, hyaw: 0.5, myaw: 0.5, match: false, pA: null, pB: null }); }
+    rax: 0, ray: 0, rbx: 0, rby: 0, rStart: false, d0: 0, hs: false, solo: false, hero: 0, hyaw: 0.5, myaw: 0.5, match: false, pA: null, pB: null,
+    long: false, sc: 1, em: 0 }); }   // S3-C5 (tipo 6): saludo largo (fin de partido), escala media de la pareja, contactos ya emitidos
   /** Compañero de p: en 2v2 el otro (como siempre); con más jugadores, el compañero en pista más cercano (VB.Sim.nearestMate). */
   function mateOf(g, p) {
     var t = g.teams[p.team];
@@ -2946,6 +3112,8 @@
     c.pA = h; c.pB = mateOf(g, h);
   }
   function inPair(c, p) { return p === c.pA || p === c.pB; }
+  /** S3-C5: ¿puede tu pareja hacer el saludo de pareja? (equipo 0 que gana, 2v2, sin gimnasio) */
+  function pairOk(g, won) { return won === 0 && !g.drill && g.teams[0].length === 2 && !(g.size > 2); }
   function cvPoint(g, e) {
     for (var t = 0; t < 2; t++) { if (!CVP[t]) CVP[t] = cvNew(); CVP[t].on = false; CVP[t].clap = false; }
     var won = e.team, sum = e.score ? e.score[0] + e.score[1] : 0, c = CVP[won];
@@ -2953,11 +3121,21 @@
     if (e.matchWon) {
       // fin de partido (PLY-15): la pareja ganadora se junta para un choque de pecho o de las dos manos; no vuelven
       c.on = true; c.ts = -1; c.t0 = e.t != null ? e.t : g.time; c.type = 3 + (sum % 2); c.emitted = false; c.rStart = false; c.match = true; c.scorer = -1;
+      c.long = false; c.em = 0;
+      if (pairOk(g, won) && PAIR_LV === 3) { c.type = 6; c.long = true; }   // S3-C5: «Pareja de oro» cierra con el saludo largo
       return;
     }
     c.match = false;
     if (g.mode === 'over') return;
     c.on = true; c.ts = -1; c.t0 = e.t != null ? e.t : g.time; c.type = sum % 3; c.emitted = false; c.rStart = false;
+    c.long = false; c.em = 0;
+    // S3-C5 saludo de pareja (tipo 6): tu pareja del 2v2, desde «Compenetrados» (2) en los puntos grandes (set o highlight >= bigAt) y,
+    // con «Pareja de oro» (3), además 1 de cada 4 normales (hash del marcador, nunca g.rng). _pair(tipo) lo fuerza (pruebas)
+    if (pairOk(g, won)) {
+      if (PAIR_FORCE >= 0) { c.type = PAIR_FORCE; PAIR_FORCE = -1; }
+      else if (PAIR_LV >= 2 && (e.setWon || (e.highlight || 0) >= (VB.HOLD && VB.HOLD.bigAt != null ? VB.HOLD.bigAt : 0.55) ||
+        (PAIR_LV === 3 && (hash32((sum * 31 + 7) >>> 0) & 3) === 0))) c.type = 6;
+    }
     c.scorer = (!e.player && g.lastTeam === won && g.lastPlayer) ? g.lastPlayer.id : -1;
     // E2: la celebración de firma va sola (sin convergencia ni choque: el plano es suyo)
     var fa = byId[c.pA.id], fb = byId[c.pB.id];
@@ -2988,7 +3166,7 @@
     c.hs = false; c.solo = false;
     if (c.match) {
       if (tm - c.t0 < 0.3) return;                                          // primero, la reacción
-      var S1 = (c.type === 3 ? 0.6 : 0.86) * CV_K, fr = Math.max(0, D - S1);   // PRESET: cuerpos anchos/cabezones, más lejos
+      var S1 = (c.type === 3 ? 0.6 : c.type === 6 ? CV_S0[0] : 0.86) * CV_K, fr = Math.max(0, D - S1);   // PRESET: cuerpos anchos/cabezones, más lejos
       if (D < 0.05) { c.on = false; return; }
       dx /= D; dy /= D;
       c.a0x = ax; c.a0y = ay; c.b0x = bx; c.b0y = by;
@@ -2996,7 +3174,7 @@
       c.twa = c.twb = Math.max(0.35, fr * 0.5 / CV_WALKM); c.da = c.db = 0;
       c.ts = tm; c.tc = tm + 0.14 + c.twa + 0.08; c.tr = 1e9;
       var scm = (ra.scale + rb.scale) * 0.5;
-      c.mx = (c.ax + c.bx) * 0.5; c.my = (c.ay + c.by) * 0.5; c.mz = (c.type === 3 ? 1.35 : 2.12) * scm;
+      c.mx = (c.ax + c.bx) * 0.5; c.my = (c.ay + c.by) * 0.5; c.mz = (c.type === 3 ? 1.35 : c.type === 6 ? 2.02 : 2.12) * scm; c.sc = scm;
       return;
     }
     if (hs && hs.team === won && (hs.heroId === A.id || hs.heroId === B.id)) {
@@ -3012,9 +3190,9 @@
       if (hA) { c.ax = ax; c.ay = ay; c.bx = mTx; c.by = mTy; c.twa = 0.3; c.twb = Math.max(0.3, wm / CV_WALK); }
       else { c.bx = bx; c.by = by; c.ax = mTx; c.ay = mTy; c.twb = 0.3; c.twa = Math.max(0.3, wm / CV_WALK); }
       var Th = Math.max(c.twa, c.twb); c.da = Th - c.twa; c.db = Th - c.twb;
-      c.ts = tm; c.tc = tm + 0.14 + Th + 0.16; c.tr = c.tc + 0.46;
+      c.ts = tm; c.tc = tm + 0.14 + Th + 0.16; c.tr = c.tc + (c.type === 6 ? 0.8 : 0.46);
       var sch = (ra.scale + rb.scale) * 0.5;
-      c.mx = (c.ax + c.bx) * 0.5; c.my = (c.ay + c.by) * 0.5; c.mz = (c.type === 0 ? 2.02 : c.type === 1 ? 0.98 : 1.32) * sch;
+      c.mx = (c.ax + c.bx) * 0.5; c.my = (c.ay + c.by) * 0.5; c.mz = (c.type === 0 || c.type === 6 ? 2.02 : c.type === 1 ? 0.98 : 1.32) * sch; c.sc = sch;
       return;
     }
     var S0 = (c.type === 5 ? 0.66 : c.type === 2 ? CV_S0[2] : c.type === 1 ? CV_S0[1] : CV_S0[0]) * CV_K, free = D - S0;   // PRESET: cuerpos anchos/cabezones, más lejos
@@ -3030,9 +3208,9 @@
     c.ax = ax + dx * wa; c.ay = ay + dy * wa; c.bx = bx - dx * wb; c.by = by - dy * wb;
     c.twa = Math.max(0.3, wa / CV_WALK); c.twb = Math.max(0.3, wb / CV_WALK);
     var Tm = Math.max(c.twa, c.twb); c.da = Tm - c.twa; c.db = Tm - c.twb;
-    c.ts = tm; c.tc = tm + 0.14 + Tm + 0.06; c.tr = c.tc + (c.type === 5 ? 0.95 : 0.46);
+    c.ts = tm; c.tc = tm + 0.14 + Tm + 0.06; c.tr = c.tc + (c.type === 5 ? 0.95 : c.type === 6 ? 0.8 : 0.46);
     var sc = (ra.scale + rb.scale) * 0.5;
-    c.mx = (c.ax + c.bx) * 0.5; c.my = (c.ay + c.by) * 0.5; c.mz = (c.type === 0 ? 2.02 : c.type === 1 ? 0.98 : 1.32) * sc;
+    c.mx = (c.ax + c.bx) * 0.5; c.my = (c.ay + c.by) * 0.5; c.mz = (c.type === 0 || c.type === 6 ? 2.02 : c.type === 1 ? 0.98 : 1.32) * sc; c.sc = sc;
   }
   /** Desfase visual del jugador en la convergencia (sustituye a la recuperación de diveOffset mientras dura). */
   function cvOffset(g, r) {
@@ -3087,6 +3265,7 @@
       s[HP] += 0.35 * w5; s[DROP] += 0.04 * w5;
       return true;
     }
+    if (c.type === 6) return pairPose(g, r, P, c, dtc);
     if (c.type === 3) {
       // choque de pecho en el aire: saltito, brazos atrás y pecho fuera en el contacto
       var cb = Math.exp(-Math.pow(dtc / 0.13, 2)), arm = sstep(-0.35, -0.08, dtc) * (1 - sstep(0.15, 0.4, dtc));
@@ -3124,6 +3303,37 @@
     if (w0 <= 0 && tm < c.tr) { setV(P.v[HL], 0.17, 1.22, 0.28); setV(P.v[AL], 0.35, -1, -0.25); s[WRL] = 0.5; }
     return true;
   }
+  // S3-C5 saludo de pareja (tipo 6): instantes (s desde el contacto tc), alturas (×escala) y fuerza de los tres contactos
+  var PAIR_AT = [0, 0.28, 0.52], PAIR_Z = [2.02, 1.0, 1.32], PAIR_S = [0.8, 0.5, 0.7];
+  /** Pose del saludo de pareja: choque arriba con las dos manos (tc) → choque abajo (tc + 0,28) → puños (tc + 0,52) y, en el largo
+   *  (fin de partido con «Pareja de oro»), la «explosión» (tc + 0,8: manos que se abren hacia atrás y medio giro, sin contacto).
+   *  Ancla de las muñecas como los tipos 2 y 4 (cvR*, cvL*), sin asignaciones. */
+  function pairPose(g, r, P, c, dtc) {
+    var s = P.s, A = c.pA === r.p, mex = A ? c.ax : c.bx, mey = A ? c.ay : c.by;
+    var ux = mex - c.mx, uy = mey - c.my, ul = Math.sqrt(ux * ux + uy * uy) || 1; ux /= ul; uy /= ul;
+    var lx = -uy, ly = ux, zc, both, gap = 0.03;
+    if (dtc < 0.12) { zc = PAIR_Z[0]; both = 1; }
+    else if (dtc < 0.26) { var kd = sstep(0.12, 0.25, dtc); zc = lerp(PAIR_Z[0], PAIR_Z[1], kd); both = 1 - kd; }
+    else if (dtc < 0.38) { zc = PAIR_Z[1]; both = 0; }
+    else { zc = lerp(PAIR_Z[1], PAIR_Z[2], sstep(0.38, 0.5, dtc)); both = 0; gap = 0.055; }
+    var w = sstep(-0.3, 0, dtc) * (1 - sstep(0.62, 0.78, dtc));
+    r.cvRx = c.mx + ux * gap - lx * 0.15 * both; r.cvRy = c.my + uy * gap - ly * 0.15 * both; r.cvRz = zc * c.sc;
+    r.cvLx = r.cvRx + lx * 0.3; r.cvLy = r.cvRy + ly * 0.3; r.cvLz = r.cvRz;
+    r.cvW1 = w; r.cvW0 = w * both; r.cvMode = 2;
+    if (dtc > 0.4 && dtc < 0.66) r.fist1 = 1;
+    // cuerpo: saltito arriba, flexión abajo, erguido en los puños
+    var up = Math.exp(-Math.pow(dtc / 0.09, 2)), dn = Math.exp(-Math.pow((dtc - 0.28) / 0.1, 2));
+    s[HOP] += 0.1 * up; s[DROP] += 0.14 * dn; s[CP] += 0.14 * dn - 0.05; s[LOOK] = 0.2; s[HP] -= 0.1;
+    if (c.long) {
+      var ex = sstep(0.7, 0.85, dtc) * (1 - sstep(1.0, 1.2, dtc));
+      if (ex > 0) {
+        P.v[HL].lerp(tV3.set(0.62, 1.55, -0.28), ex); P.v[HR].lerp(tV3.set(-0.62, 1.55, -0.28), ex);
+        P.v[AL].lerp(tV3.set(1, 0, 0.3), ex); P.v[AR].lerp(tV3.set(-1, 0, 0.3), ex);
+        s[CY] += (A ? 0.45 : -0.45) * Math.sin(PI * sstep(0.72, 1.15, dtc)); s[CP] -= 0.15 * ex; s[HP] -= 0.25 * ex;
+      }
+    } else if (w <= 0 && g.time < c.tr) { setV(P.v[HL], 0.17, 1.22, 0.28); setV(P.v[AL], 0.35, -1, -0.25); s[WRL] = 0.5; }
+    return true;
+  }
   /** Punto de la palmada en el hombro del compañero (cvLx/y/z de r). MUÑECO (11-nov-2026): con la cabeza grande el hombro queda
    *  debajo de ella (cabeza de 0,49 m de ancho, hombros a 0,175 m del eje): la mano a hombro + 0,05 entraba en la cabeza (y en el pelo,
    *  la gorra o la visera) del compañero. Ahora va a la parte de fuera del hombro, algo más abajo (PAT_OUT, PAT_DN), y nunca a menos de
@@ -3143,7 +3353,14 @@
     if (dt <= 0) return;
     for (var t = 0; t < 2; t++) {
       var c = CVP[t]; if (!c) continue;
-      if (c.on && c.ts >= 0 && !c.emitted && !c.solo && g.time >= c.tc) {
+      if (c.on && c.ts >= 0 && !c.emitted && !c.solo && c.type === 6) {
+        // S3-C5: tres contactos del saludo de pareja (arriba, abajo, puños) en su instante
+        while (c.em < 3 && g.time >= c.tc + PAIR_AT[c.em]) {
+          FXQ.push({ type: c.em === 2 ? 'fistbump' : 'highfive', team: t, x: c.mx, y: c.my, z: PAIR_Z[c.em] * c.sc, strength: PAIR_S[c.em] });
+          c.em++;
+        }
+        if (c.em >= 3) c.emitted = true;
+      } else if (c.on && c.ts >= 0 && !c.emitted && !c.solo && g.time >= c.tc) {
         c.emitted = true;
         FXQ.push({ type: c.type === 3 ? 'chestbump' : c.type === 2 ? 'fistbump' : 'highfive', team: t, x: c.mx, y: c.my, z: c.mz, strength: c.type >= 3 || c.type === 0 ? 1 : c.type === 1 ? 0.75 : 0.55 });
       }
@@ -3173,7 +3390,7 @@
     if (c.hs && g.time < c.tr + 0.05) {
       var mh = byId[(A ? c.pB : c.pA).id], dtc = g.time - c.tc, isH = (A ? 0 : 1) === c.hero;
       var toM = mh ? Math.atan2(mh.p.y + mh.offY - p.y - r.offY, mh.p.x + mh.offX - p.x - r.offX) : NaN;
-      var hf = !c.solo && dtc > -0.28 && dtc < 0.22 && toM === toM;   // el choque de manos: cara a cara un instante
+      var hf = !c.solo && dtc > -0.28 && dtc < (c.type === 6 ? 0.66 : 0.22) && toM === toM;   // el choque de manos: cara a cara un instante
       if (isH) return hf ? toM : c.hyaw;
       var tx = A ? c.ax : c.bx, ty = A ? c.ay : c.by, ex = tx - p.x - r.offX, ey = ty - p.y - r.offY;
       if (!c.solo && ex * ex + ey * ey > 0.12) return Math.atan2(ey, ex);
@@ -3185,7 +3402,7 @@
       // (CAM-09) victoria del PARTIDO: medio segundo después del choque, los dos ganadores se abren hacia la cámara de la órbita
       // (≤ 35° vueltos hacia el compañero), en vez de quedarse de cara el uno al otro. La órbita lo detecta (frentes a < 60°) y
       // pasa a encuadrarlos de frente. El giro lo suaviza el muelle de yaw (sin saltos aunque la cámara orbite).
-      var cam = c.match && g.time > c.tc + 0.5 && VB.ctx && VB.ctx.camera;
+      var cam = c.match && g.time > c.tc + (c.type === 6 ? 1.15 : 0.5) && VB.ctx && VB.ctx.camera;
       if (cam) {
         var aC = Math.atan2(-cam.position.z - p.y - r.offY, cam.position.x - p.x - r.offX), dm = wrapA(aM - aC);
         return aC + clamp(dm, -0.61, 0.61);
@@ -3645,8 +3862,12 @@
     // E2: caras de la celebración con las celdas que ya existen: pique (sonrisa chula), «no la toqué» y rabia (ojos 7, dientes)
     if ((g.mode === 'point' || g.mode === 'over') && pa >= 0.15 && pa < 2.2 && !r.matchEnd) {
       var cvf = r.celV;
-      if (cvf === 'pique') { eye = 2; mouth = 1; } else if (cvf === 'noToque' || cvf === 'rabia') { eye = 7; mouth = 3; }
+      if (cvf === 'pique') { eye = 2; mouth = 1; } else if (cvf === 'noToque' || cvf === 'rabia' || cvf === 'manotazo') { eye = 7; mouth = 3; }
+      else if (cvf === 'grito') { eye = 7; mouth = pa > 0.4 && pa < 1.3 ? 2 : 3; }                       // S3-C2: grito al cielo
+      else if (cvf === 'firma' && r.pointWin && sigOf(r) === 'sopla' && pa > 0.45 && pa < 1.0) { eye = 4; mouth = 5; }   // soplando el humo
     }
+    // S3-C2: rabia en el cierre (los que pierden, antes de arrodillarse)
+    if (r.matchEnd && !r.pointWin && r.celId === 'matchRage') { eye = 7; mouth = rageOf(r) === 'grito' && pa > 0.55 && pa < 1.3 ? 2 : 3; }
     if (bl > 0.5 && (eye === 0 || eye === 2 || eye === 5 || eye === 6)) eye = 1;   // parpadeo (no con los ojos ya cerrados)
     var fc = r.fxForce && r.fxForce.charAt(0) === 'c' && /^c(\d)\/(\d)$/.exec(r.fxForce);   // pruebas: _face(p, 'c<ojos>/<boca>')
     if (fc && (r.fxForceT < 0 || (ctx && ctx.time < r.fxForceT))) { eye = +fc[1] & 7; mouth = +fc[2] & 7; }
@@ -3816,7 +4037,8 @@
 
   function rigFor(p) {
     var key = p.id + ':' + p.team + ':' + p.num + ':' + kitSig + (p.role ? ':' + p.role : '') + ':' + VEN +   // 6v6: el puesto cambia aspecto y equipación; TAJO: escenario
-      (meSlot(p) >= 0 ? ':me' + LOOK_SIG : '');   // Vestuario: tus atletas (look propio) no comparten rig con el NPC del mismo id
+      (meSlot(p) >= 0 ? ':me' + LOOK_SIG : '') +   // Vestuario: tus atletas (look propio) no comparten rig con el NPC del mismo id
+      (BOSS.fit && isBoss(p) ? ':boss' + BOSS.fitSig : '');   // S3-C2/R22: el jefe con su aspecto, tampoco
     var r = cache[key];
     if (!r) { r = cache[key] = buildRig(p); }
     r.p = p; return r;
@@ -3833,6 +4055,13 @@
     r.evT = r.blkResT = r.cvarT = r.digT = r.atkT = -99; r.idleNext = 0; r.acF = 0; r.lagOn = false; r.jvM = 0; r.hitFeint = false; r.hitTempo = ''; r.forceCel = ''; r.forceIdle = '';
     r.sigOn = meSlot(r.p) === 0;   // firma: tu n.º 1 del 2v2 y tu atleta del 6v6 (también en la Carrera de pista)
     r.rivalOn = RIVAL_NUM >= 0 && r.p.team === 1 && !r.p.role && r.p.num === RIVAL_NUM;
+    animRoles(r);
+  }
+  /** S3-C2: compañero / jefe y su personalidad (con los ganchos a null, la de siempre: personaOf no cambia). */
+  function animRoles(r) {
+    r.mateOn = MATE.on && meSlot(r.p) === 1;
+    r.bossOn = isBoss(r.p);
+    r.persona = personaOf(r.p);
   }
 
   /** 6v6: si cambió quién está en pista (líbero que entra por un central, cambios: VB.Sim.refreshTeams), rehace la lista de
@@ -3865,22 +4094,7 @@
     var ids = [oldId, newId];
     for (var n = 0; n < 2; n++) {
       var id = ids[n]; if (id < 0 || (n === 1 && id === oldId)) continue;
-      var r = byId[id], at = r ? rigs.indexOf(r) : -1; if (at < 0) continue;
-      var nr = rigFor(r.p); if (nr === r) continue;
-      copyRigState(r, nr);
-      nr.sigOn = meSlot(nr.p) === 0;
-      if (LODR > 0) rigGeometry(nr, LODR - 1);
-      if (LODR < 2) rigGeometry(nr, 2);
-      var want = r.skin.geometry === r.geos[2] ? 2 : r.skin.geometry === r.geos[0] ? 0 : r.skin.geometry === r.geos[1] ? 1 : LODR;
-      var geo = nr.geos[want] || rigGeometry(nr, LODR); if (nr.skin.geometry !== geo) nr.skin.geometry = geo;
-      if (QRANK > 0) ensureInk(nr);
-      if (nr.ink) { if (nr.ink.geometry !== nr.skin.geometry) nr.ink.geometry = nr.skin.geometry; nr.ink.visible = QRANK > 0 && !(g.size > 2 && nr.far); }
-      nr.skin.castShadow = r.skin.castShadow;
-      rigs[at] = nr; byId[id] = nr;
-      if (r.root.parent) r.root.parent.remove(r.root);
-      if (nr.root.parent !== groupRoot) groupRoot.add(nr.root);
-      if (lastBlocker === r) lastBlocker = nr;
-      for (var t = 0; t < 2; t++) { if (DIG_LAST[t] === r) DIG_LAST[t] = nr; if (ATK_LAST[t] === r) ATK_LAST[t] = nr; }
+      reRig(g, id);
     }
     // fuera de la caché las entradas de esos dos jugadores que no están en pista (las de la clave vieja): textura, material, geometrías
     for (var key in cache) {
@@ -3888,10 +4102,31 @@
       if ((kid === oldId || kid === newId) && rigs.indexOf(c) < 0) { if (c.root.parent) c.root.parent.remove(c.root); disposeRig(c); delete cache[key]; }
     }
   }
+  /** Rehace el rig del jugador id con su clave de caché actual (swapMe: tu look en el 6v6; setBoss: el aspecto del jefe), con la
+   *  posición y el estado de animación del anterior. → el rig nuevo, o null si ese jugador no está en pista o no cambia. */
+  function reRig(g, id) {
+    var r = byId[id], at = r ? rigs.indexOf(r) : -1; if (at < 0) return null;
+    var nr = rigFor(r.p); if (nr === r) return null;
+    copyRigState(r, nr);
+    nr.sigOn = meSlot(nr.p) === 0; nr.mateOn = MATE.on && meSlot(nr.p) === 1; nr.bossOn = isBoss(nr.p);
+    if (LODR > 0) rigGeometry(nr, LODR - 1);
+    if (LODR < 2) rigGeometry(nr, 2);
+    var want = r.skin.geometry === r.geos[2] ? 2 : r.skin.geometry === r.geos[0] ? 0 : r.skin.geometry === r.geos[1] ? 1 : LODR;
+    var geo = nr.geos[want] || rigGeometry(nr, LODR); if (nr.skin.geometry !== geo) nr.skin.geometry = geo;
+    if (QRANK > 0) ensureInk(nr);
+    if (nr.ink) { if (nr.ink.geometry !== nr.skin.geometry) nr.ink.geometry = nr.skin.geometry; nr.ink.visible = QRANK > 0 && !(g.size > 2 && nr.far); }
+    nr.skin.castShadow = r.skin.castShadow;
+    rigs[at] = nr; byId[id] = nr;
+    if (r.root.parent) r.root.parent.remove(r.root);
+    if (nr.root.parent !== groupRoot) groupRoot.add(nr.root);
+    if (lastBlocker === r) lastBlocker = nr;
+    for (var t = 0; t < 2; t++) { if (DIG_LAST[t] === r) DIG_LAST[t] = nr; if (ATK_LAST[t] === r) ATK_LAST[t] = nr; }
+    return nr;
+  }
   // campos de un rig que son suyos (huesos, malla, aspecto) y no se copian al cambiar de rig en swapMe
   var RIG_OWN = { p: 1, id: 1, team: 1, num: 1, root: 1, body: 1, pelvis: 1, spine: 1, chest: 1, head: 1, eyes: 1, mouth: 1, teeth: 1, brow: 1, hair: 1,
     sh: 1, up: 1, el: 1, hand: 1, hip: 1, th: 1, kn: 1, ft: 1, bones: 1, rest: 1, geos: 1, look: 1, tc: 1, beach: 1, acc: 1, skin: 1, ink: 1,
-    handL: 1, handR: 1, footL: 1, footR: 1, scale: 1, sigOn: 1, persona: 1 };
+    handL: 1, handR: 1, footL: 1, footR: 1, scale: 1, sigOn: 1, persona: 1, mateOn: 1, bossOn: 1 };
   /** Copia el estado de animación de un rig en otro del mismo jugador (swapMe): escalares, vectores, poses, pasos de los pies y la
    *  transformación de cada hueso y de la raíz (mismo esqueleto: mismos huesos en el mismo orden). */
   function copyRigState(a, b) {
@@ -4204,7 +4439,8 @@
           rr.celeb = (sum + pp.idx * 2 + (e.setWon ? 1 : 0)) % 3;
           var scR = e.how === 'ace' && g.server && g.server.team === won ? byId[g.server.id] : e.how === 'block' && lastBlocker && lastBlocker.team === won ? lastBlocker : (g.lastTeam === won && g.lastPlayer) ? byId[g.lastPlayer.id] : null;
           if (!g.replay) { rr.lastCel0 = rr.lastCel; rr.lastPrev0 = rr.lastPrev; }
-          rr.celV = e.matchWon ? '' : pickCeleb(g, rr, e, scR); rr.lastCel = rr.celV; rr.celId = rr.celV;
+          // S3-C2: en el cierre, celV dice si habrá firma (ganadores) o rabia (los que pierden); la pose la lleva matchCeleb
+          rr.celV = e.matchWon ? (rr.pointWin ? (sigOf(rr) ? 'matchSig' : '') : (rageOf(rr) ? 'matchRage' : '')) : pickCeleb(g, rr, e, scR); rr.lastCel = rr.celV; rr.celId = rr.celV;
           rr.faceKeep = rr.yaw; rr.hasFace = true;
           var mate = VB.Sim.other(g, pp);
           rr.mateHF = Math.hypot(mate.x - pp.x, mate.y - pp.y) < 3.2;
@@ -4234,6 +4470,7 @@
     var lp = g.lastPoint, e = { type: 'point', t: g.time - OVER_BACK, matchWon: true, setWon: true };
     for (var k in lp) if (k !== 'type' && k !== 't' && k !== 'matchWon' && k !== 'setWon') e[k] = lp[k];
     if (e.team !== 0 && e.team !== 1) e.team = g.sets && g.sets[1] > g.sets[0] ? 1 : 0;
+    OVER_FZ = ctx.frozen ? g : null;
     onEvent(g, e);
     if (ctx.frozen) for (var t = 0; t < 2; t++) if (CVP[t]) CVP[t].on = false;
   }
@@ -4380,6 +4617,9 @@
       // E2: el rival personal vale para el partido para el que se llamó a setRival (justo antes o justo después de crearlo); otro
       // partido sin llamada lo limpia. Rehacer los atletas del mismo partido (equipación, escenario) lo conserva.
       if (RIVAL_NUM >= 0 && RIVAL_G !== g) { if (nowMs() - RIVAL_AT < 3000) RIVAL_G = g; else { RIVAL_NUM = -1; RIVAL_G = null; } }
+      // S3-C2: el jefe, igual (setBoss justo antes o después de crear el partido); su jugador se busca en este partido
+      if (BOSS.on && BOSS.g !== g) { if (nowMs() - BOSS.at < 3000) BOSS.g = g; else bossClear(); }
+      bossResolve(g); OVER_FZ = null;
       DIG_LAST[0] = DIG_LAST[1] = ATK_LAST[0] = ATK_LAST[1] = null;
       CUR_G = g;
       // Vestuario: en el 6v6 tu look va con g.ctrlBase (nunca con el líbero que entra por ti); con espectador, nadie lo lleva
@@ -4423,11 +4663,58 @@
       for (var i = 0; i < rigs.length; i++) { var p = rigs[i].p; rigs[i].rivalOn = RIVAL_NUM >= 0 && p.team === 1 && !p.role && p.num === RIVAL_NUM; }
       return RIVAL_NUM;
     },
-    /** E2 (pruebas): variantes actuales de un jugador. */
+    /** S3-C2: firmas de NPC (compañero y jefe; solo lectura): [{id, name}]. */
+    NPC_SIGS: NPC_SIGS,
+    /** S3-C2: rabias que valen en setMate/setBoss (solo lectura). */
+    RAGES: RAGES,
+    /** S3-C2: compañero de la Carrera de playa en tu n.º 2 del 2v2. o = {num, pers|persona, sig, rage} (CareerLife.mateAnim) o null.
+     *  pers: personalidad (show/calma/fuego/guason); sig: firma (NPC_SIGS o CELEBS) en sus puntos grandes; rage: rabia (RAGES) solo tras
+     *  su error, si le bloquean o al perder un set. Vale hasta la siguiente llamada (como setSignature). Con null, todo como siempre.
+     *  → {persona, sig, rage} aceptado, o null. */
+    setMate: function (o) {
+      var on = !!(o && typeof o === 'object');
+      MATE.on = on; MATE.num = on && typeof o.num === 'number' ? o.num | 0 : -1;
+      MATE.persona = on ? persOk(o.pers || o.persona) || 'calma' : ''; MATE.sig = on ? sigOk(o.sig) : ''; MATE.rage = on ? rageOk(o.rage) : '';
+      for (var i = 0; i < rigs.length; i++) animRoles(rigs[i]);
+      return on ? { persona: MATE.persona, sig: MATE.sig, rage: MATE.rage } : null;
+    },
+    /** S3-C2/R22: jefe del circuito en el equipo 1. o = {idx, num, fit, style, pers|persona, sig, rage} (m.career.bossAnim) o null.
+     *  Es el jugador sin puesto del equipo 1 con ese dorsal (o, si nadie lo lleva, el de idx). Sale con fit (VB.Look.bossFit: su
+     *  objeto puesto), te mira en tu saque, hace su firma en sus puntos grandes, su rabia en los que pierde grandes, en un set o en
+     *  un error suyo, y en el cierre, si pierde, rabia y de rodillas. Vale para el partido creado junto a la llamada (como setRival).
+     *  → dorsal, o -1. */
+    setBoss: function (o) {
+      var on = !!(o && typeof o === 'object'), f0 = BOSS.fitSig, pid0 = BOSS.pid, g = ctx && ctx.game;
+      if (!on) bossClear();
+      else {
+        BOSS.on = true; BOSS.idx = typeof o.idx === 'number' ? o.idx | 0 : 0; BOSS.num = typeof o.num === 'number' ? o.num | 0 : -1;
+        BOSS.persona = persOk(o.pers || o.persona) || 'fuego'; BOSS.sig = sigOk(o.sig); BOSS.rage = rageOk(o.rage);
+        BOSS.style = typeof o.style === 'string' ? o.style : '';
+        BOSS.fit = o.fit && typeof o.fit === 'object' ? o.fit : null; BOSS.fitSig = BOSS.fit ? fitSig(BOSS.fit) : '';
+        BOSS.at = nowMs(); BOSS.g = g && rigs.length && rigs[0].p === g.players[0] && (g.time || 0) < 2 ? g : null;
+      }
+      // partido ya en marcha (escena de depuración, llamada tardía): el jugador del jefe y, si cambia su aspecto, su rig
+      if (g && !g.demo && rigs.length && rigs[0].p === g.players[0]) {
+        bossResolve(g);
+        if (pid0 >= 0 && (pid0 !== BOSS.pid || f0 !== BOSS.fitSig)) reRig(g, pid0);
+        if (BOSS.pid >= 0 && (pid0 !== BOSS.pid || f0 !== BOSS.fitSig)) reRig(g, BOSS.pid);
+      }
+      for (var i = 0; i < rigs.length; i++) animRoles(rigs[i]);
+      return BOSS.on ? BOSS.num : -1;
+    },
+    /** S3-C5: nivel de química de tu pareja (0-3; Carrera de playa con el saludo aceptado). Desde 2, el saludo de pareja (convergencia
+     *  de tipo 6) en vuestros puntos grandes; con 3, también en 1 de cada 4 normales y, al ganar el partido, el saludo largo. Vale
+     *  hasta la siguiente llamada. → el nivel aceptado. */
+    setPairChem: function (lv) { lv = +lv; PAIR_LV = lv >= 0 && lv <= 3 ? lv | 0 : 0; return PAIR_LV; },
+    /** S3-C5 (pruebas): fuerza el tipo de la próxima convergencia de tu pareja (0-6; -1 la quita). */
+    _pair: function (type) { PAIR_FORCE = typeof type === 'number' && type >= 0 && type <= 6 ? type | 0 : -1; return PAIR_FORCE; },
+    /** E2 (pruebas): variantes actuales de un jugador (S3: más compañero, jefe, firma, rabia, química y tipo de convergencia). */
     _anim: function (p) {
       var r = this.rigOf(p); if (!r) return null;
+      var c = CVP[r.team];
       return { persona: r.persona, cvar: r.cvar, dvar: r.dvar, lvar: r.lvar, idle: r.idle, celId: r.celId, celV: r.celV, leave: r.leaveW > 0.5, evG: r.evG,
-        blk: r.blkRes, sig: r.sigOn ? SIG_ID : '', rival: r.rivalOn };
+        blk: r.blkRes, sig: r.sigOn ? SIG_ID : '', rival: r.rivalOn,
+        mate: r.mateOn, boss: r.bossOn, sigId: sigOf(r), rageId: rageOf(r), pair: PAIR_LV, cvType: c && c.on && inPair(c, r.p) ? c.type : -1 };
     },
     /** E2 (pruebas): fuerza la variante de celebración de p en los puntos siguientes (y ya, si está en el punto); '' la quita. */
     _celeb: function (p, id) {

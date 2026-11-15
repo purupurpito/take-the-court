@@ -437,10 +437,56 @@
   function drillId(id) { return typeof id === 'string' && VB.DRILL && VB.DRILL.kinds && VB.DRILL.kinds.hasOwnProperty(id) ? id : null; }
   /** E2 (sprint 5): celebración de firma de tu n.º 1 (career-life: la elegida en Fama, también en Partido rápido) y rival personal
    *  (solo en el duelo de la Carrera: m.career.rivalNum). players.js limpia el rival solo si no se vuelve a llamar. */
+  // S3 (sprint 2-4, C2/C3/C5): gestos del compañero de playa (cs.mateAnim), jefe del circuito (cs.bossAnim: {idx, num, fit, style,
+  // pers, sig, rage}, fit ya calculado por career-life con VB.Look.bossFit) y saludo de pareja (química: cs.chemLv si cs.pairSign no
+  // es 0). Sin Carrera (cs null: Partido rápido, ejercicios) los tres a null / 0, así que players queda como siempre.
   function animHooks(cs) {
     var P = VB.Players; if (!P) return;
     try { if (P.setSignature) P.setSignature(VB.CareerLife && VB.CareerLife.signatureNow ? VB.CareerLife.signatureNow() || '' : ''); } catch (e) { reportError('Players.setSignature', e); }
     try { if (P.setRival) P.setRival(cs && cs.rivalNum != null && isFinite(+cs.rivalNum) ? +cs.rivalNum : -1); } catch (e) { reportError('Players.setRival', e); }
+    try { if (P.setMate) P.setMate(cs && cs.mateAnim ? cs.mateAnim : null); } catch (e) { reportError('Players.setMate', e); }
+    try { if (P.setBoss) P.setBoss(cs && cs.bossAnim ? cs.bossAnim : null); } catch (e) { reportError('Players.setBoss', e); }
+    try { if (P.setPairChem) P.setPairChem(cs && cs.pairSign !== 0 ? cs.chemLv | 0 : 0); } catch (e) { reportError('Players.setPairChem', e); }
+  }
+  /** &boss=saque|muro|remate|defensa y &mate=<estilo del compañero> (escenas de depuración y capturas): el jefe en el n.º 1 rival y
+   *  los gestos de tu n.º 2, sin Carrera. Con guarda: sin players nuevo (setBoss/setMate) no hace nada. */
+  function debugAnimHooks(g) {
+    if (!Q.boss && !Q.mate) return;
+    var L = VB.CareerLife, cs = {};
+    try {
+      if (Q.boss && L && L.bossAnim) {
+        var an = L.bossAnim(String(Q.boss)), r0 = g && g.teams && g.teams[1] && g.teams[1][0], fit = null;
+        try { fit = VB.Look && VB.Look.bossFit ? VB.Look.bossFit(String(Q.boss), 1234567) || null : null; } catch (e) { fit = null; }
+        if (an) cs.bossAnim = { idx: 0, num: r0 ? r0.num | 0 : 1, fit: fit, style: an.style, pers: an.pers, sig: an.sig, rage: an.rage };
+      }
+      // (&mate= estilo del compañero: el nombre entero o su principio, p. ej. «rematador», «pulpo»)
+      if (Q.mate && L && L.MATE_ANIM) {
+        var mq = String(Q.mate).toLowerCase(), mk = Object.keys(L.MATE_ANIM).filter(function (k) { return k.toLowerCase().indexOf(mq) === 0 || k.toLowerCase().indexOf(' ' + mq) > 0; })[0];
+        var ma = mk ? L.MATE_ANIM[mk] : null, m0 = g && g.teams && g.teams[0] && g.teams[0][1];
+        if (ma) cs.mateAnim = { num: m0 ? m0.num | 0 : 2, pers: ma[0], sig: ma[1], rage: ma[2] };
+      }
+    } catch (e) { reportError('debugAnimHooks', e); }
+    cs.pairSign = 0;
+    animHooks(cs);
+  }
+  /** B5 (previa): datos de la jornada para VB.Recap.introPlan, sin guardar nada: tu puesto y el del rival (posOf de la fachada, vale
+   *  para playa y pista), clubes de la liga, cara a cara (c.world.h2h), tu rival personal {name, w, l}, primera jornada y liga. */
+  function careerIntroData(K, cs) {
+    if (!cs || !K) return;
+    try {
+      var c = K.get ? K.get() : null; if (!c) return;
+      var n = K.next ? K.next(c) : null, me = K.myClub ? K.myClub(c) : null; if (!n || !me) return;
+      var rid = n.rival ? n.rival.id : null, hall = K.MODE === 'hall';
+      if (K.posOf) { cs.pos0 = K.posOf(c, me.id) | 0; cs.rivalPos = rid != null ? K.posOf(c, rid) | 0 : 0; }
+      if (K.table) { var tb = hall ? K.table(c, me.lid) : K.table(c, me.lvl); cs.posN = tb && tb.length ? tb.length : 0; }
+      var h = c.world && c.world.h2h && rid != null ? c.world.h2h[rid] : null;
+      cs.h2h = h && h.length ? h.slice(0, 6) : null;
+      var rv = c.life && c.life.rival;
+      if (rv && typeof rv === 'object' && rv.name) cs.rivalInfo = { name: String(rv.name), w: rv.w | 0, l: rv.l | 0 };
+      cs.first = n.kind === 'league' && c.phase === 'league' && (n.week | 0) === 0;
+      var lg = K.league ? (hall ? K.league(me.lid, c) : K.league(me.lvl)) : null;
+      if (lg && lg.name) cs.league = String(lg.name);
+    } catch (e) { reportError('careerIntroData', e); }
   }
   ctx.actions.startMatch = function (opts) {
     opts = opts || {};
@@ -534,46 +580,48 @@
     call('Audio', 'unlock');
     tryFullscreen();
     ctx.frozen = false;
-    // T-training §3.5: ejercicio de un entreno de la Carrera (opts.ses, de VB.CareerTrain.drillSetup): en la sede de la Carrera
-    // (playa o pabellón), con tus atributos, insignias, dorsales y la equipación del club. Sin opts.ses, todo como siempre
-    var ses = opts.ses || null;
-    applyVenuePend();
-    if (ses) forceVenue(opts.venue === 'hall' ? 'hall' : 'beach'); else unforceVenue();
-    var free = id === 'free', own = !auto && !Q.debug;
+    applyVenuePend(); unforceVenue();
+    var free = id === 'free', own = !auto && !Q.debug, cd = opts.careerDrill && !free ? opts.careerDrill : null;
     animHooks(null);
+    // sesión de entrenamiento de la Carrera (opts.careerDrill = VB.Career.drillSetup): tu jugador de Carrera (atributos con la fatiga,
+    // tus insignias) y tu compañero o uno de tu club, con la equipación del club; también con autopilot (pruebas: la IA juega por ti)
     var g = Sim.createGame({ demo: false, seed: seed(), drill: id, venue: venueNow(), autopilot: auto, present: false, rookie: false,
       difficulty: free ? ctx.settings.difficulty : 'normal', ctrl: free ? (Q.ctrl || ctx.settings.ctrlMode) : 'one', ctrlIdx: 0,
       points: ctx.settings.setPoints,
-      attrs: ses ? (opts.attrs || null) : own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null,
-      badges: ses ? (opts.badges || null) : own && !Q.nobadges ? squadBadges() : null,
-      nums: ses ? opts.nums || undefined : undefined,
+      attrs: cd ? cd.attrs : own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null,
+      badges: cd ? cd.badges : own && !Q.nobadges ? squadBadges() : null,
       // E1: la maestría también se practica en los ejercicios (finta y golpe colocado en Remate, colocación dirigida en Colocación)
       mastery: !auto, aimSet: ctx.settings.aimSet !== false });
     g.gym = g.drill ? id : null;
-    if (ses) g.ses = ses;   // marca (como g.career): ui.js apunta el resultado en la Carrera y no en el gimnasio
+    // marca de ejercicio de Carrera: al acabar (drillEnd) cuenta como sesión (careerDrillDone) y la hoja final vuelve al hub (ui.js)
+    if (cd && g.drill) g.careerDrill = { id: id, mode: cd.mode, n: cd.n, max: cd.max, attrName: cd.attrName || '', done: false, res: null };
     endTweaked = false; careerEnd = null;
     restoreEndButtons();
-    setGame(g, ses ? opts.kit || null : null, ses ? careerLookOpts({ mate: sesMate() }, ses.mode === 'hall') : undefined);
+    // (Vestuario: en la sesión de Carrera tu atleta lleva el aspecto de la Carrera, y el compañero de playa el suyo, como en el partido)
+    setGame(g, cd ? cd.kit || null : null, cd ? careerLookOpts({ mate: cd.mode === 'hall' ? null : careerMateName() }, cd.mode === 'hall') : undefined);
     setState('playing');
     if (Q.prewarm !== '0') { prewarm('t'); prewarmPrograms(false); }
     if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   }
-  /** Nombre del compañero de playa de la Carrera (para su aspecto en el entreno, como en el partido) o null. */
-  function sesMate() {
+  /** Nombre del compañero de playa de la Carrera (para su aspecto en la sesión de entrenamiento, como en el partido) o null. */
+  function careerMateName() {
     try { var c = VB.Career && VB.Career.get ? VB.Career.get() : null; return c && c.mate && c.mate.name ? String(c.mate.name) : null; } catch (e) { return null; }
   }
-  /** T-training §3.5: ejercicio `id` del entreno de la Carrera de esta jornada. false (y vuelta al hub) si ya no toca. */
-  ctx.actions.startCareerDrill = function (id, opts) {
-    var T = VB.CareerTrain, s = null;
-    if (T && typeof T.drillSetup === 'function' && drillId(id)) { try { s = T.drillSetup(id); } catch (e) { reportError('CareerTrain.drillSetup', e); s = null; } }
-    if (!s) {
-      if (ctx.game && ctx.game.ses && ctx.state !== 'menu') ctx.actions.toMenu();   // (toMenu reabre el hub en el entreno)
-      else if (VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { focus: 'train' }); } catch (e) { reportError('CareerUI.open', e); } }
-      return false;
-    }
-    startDrill(id, { drill: id, attrs: s.attrs, badges: s.badges, venue: s.venue, nums: s.nums, kit: s.kit, ses: s.ses, autopilot: !!(opts && opts.autopilot) });
+  /** Sesión de entrenamiento de la Carrera (career-ui.js, bloque Entrenamiento): el ejercicio id con tu jugador de Carrera. Si no se
+   *  puede entrenar ahora (sin sesiones, fatiga, sin partido), vuelve al hub. auto = la IA juega por ti (pruebas). */
+  ctx.actions.startCareerDrill = function (id, auto) {
+    var K = VB.Career, s = null;
+    try { s = K && K.drillSetup ? K.drillSetup(id) : null; } catch (e) { reportError('Career.drillSetup', e); }
+    if (!s || !drillId(id)) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open('hub', { train: true }); return false; }
+    ctx.actions.startMatch({ drill: id, careerDrill: s, autopilot: !!auto });
     return true;
   };
+  /** drillEnd de un ejercicio de Carrera: apunta la sesión una sola vez (VB.Career.drillDone, a la Carrera del ejercicio). */
+  function careerDrillDone(g) {
+    var d = g && g.careerDrill; if (!d || d.done) return;
+    d.done = true;
+    try { d.res = VB.Career && VB.Career.drillDone ? VB.Career.drillDone(d.mode, d.id, g.drill ? g.drill.total | 0 : 0) : null; } catch (e) { reportError('Career.drillDone', e); d.res = null; }
+  }
   /** Insignias equipadas del escuadrón de Partido rápido para createGame({badges}) (null sin js/badges.js o sin ninguna). */
   function squadBadges() {
     var B = VB.Badges; if (!B) return null;
@@ -600,6 +648,9 @@
     var m = null; try { m = K.matchSetup(); } catch (e) { reportError('Career.matchSetup', e); }
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
     if (K.abortMatch) K.abortMatch();
+    careerIntroData(K, m.career);   // B5: puestos, cara a cara, rival y liga para la previa (solo lectura)
+    // C3: el jefe del circuito es el n.º 1 rival (su club excluye el de tu rival personal: no coincide con rivalNum)
+    var bossNum = m.career && m.career.rivalNum == null && (m.career.bossNum | 0) > 0 ? m.career.bossNum | 0 : 0;
     ctx.actions.startMatch({ career: m.career, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
       venue: m.venue || 'beach', // vóley playa: Platja Llarga y sus reglas (VB.Career.matchSetup().venue); la Carrera de pista, 'hall'
       format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, // Carrera de pista (lote C): 6v6 en tu puesto
@@ -610,7 +661,7 @@
       // tus dorsales (sim: opts.nums; la pista los trae hechos en m.nums) y, en la playa, en el duelo con tu rival personal (career-life
       // setup → m.career.rivalNum), su dorsal en el n.º 1 rival (E2: players lo reconoce con setRival; cambia su aspecto porque el hash
       // del muñeco usa el dorsal)
-      nums: m.nums || (m.career ? [[m.career.num | 0 || null, m.career.mateNum | 0 || null], m.career.rivalNum != null && (m.career.rivalNum | 0) > 0 ? [m.career.rivalNum | 0, (m.career.rivalNum | 0) === 9 ? 3 : null] : null] : undefined) });
+      nums: m.nums || (m.career ? [[m.career.num | 0 || null, m.career.mateNum | 0 || null], m.career.rivalNum != null && (m.career.rivalNum | 0) > 0 ? [m.career.rivalNum | 0, (m.career.rivalNum | 0) === 9 ? 3 : null] : bossNum ? [bossNum, bossNum === 9 ? 3 : null] : null] : undefined) });
     // (si el rival lleva el 9, el 2º CPU, que es el 9 por defecto, pasa al 3: si no, los dos harían de rival en players.js)
     return true;
   };
@@ -695,7 +746,9 @@
     pendingEvents.length = 0; for (var j = 0; j < keep.length; j++) pendingEvents.push(keep[j]);
     ctx.introLeft = intro.left;
     call('CameraRig', 'playIntro', dur);
-    call('Audio', 'sting', 'intro');
+    // (B5: VB.Audio.introStart(dur) es el mismo sting('intro') pero sabe cuánto dura la previa: con 4,5 o 6 s el lecho no vuelve a
+    // los 3 s; sin él, el sting de siempre)
+    if (VB.Audio && typeof VB.Audio.introStart === 'function') call('Audio', 'introStart', dur); else call('Audio', 'sting', 'intro');
     call('UI', 'introStart', ctx.game, pl);
   }
   function introEnd(skipped) {
@@ -708,16 +761,16 @@
   }
   ctx.actions.toMenu = function () {
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
-    // (T-training: un ejercicio del entreno de la Carrera, g.ses, también vuelve al hub, a la tarjeta del entreno)
-    var fromSes = !!(ctx.game && ctx.game.ses && !ctx.game.demo && !ctx.debug);
-    var fromCareer = fromSes || !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
-    if (fromCareer && !fromSes && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
+    var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
+    // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
+    var drillC = !!(ctx.game && ctx.game.careerDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerDrill : null;
+    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
     restoreEndButtons();
     unforceVenue();   // Carrera en la playa: de vuelta al escenario del ajuste
     setGame(demoGame());
     setState('menu');
-    if (fromSes && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { focus: 'train' }); } catch (e) { reportError('CareerUI.open', e); } }
+    if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
@@ -726,12 +779,12 @@
   ctx.actions.resume = function () { if (ctx.state === 'paused') setState('playing'); };
   ctx.actions.togglePause = function () { if (ctx.state === 'playing') ctx.actions.pause(); else if (ctx.state === 'paused') ctx.actions.resume(); };
   // (E6: con un ejercicio en curso, «Reiniciar» repite el mismo ejercicio)
-  // R16 (plan del sprint 2-4): ejercicio del entreno de la Carrera → el mismo ejercicio de la sesión; reto → el mismo reto con la
-  // previa mini; Carrera → startMatch() (repite el partido con la previa normal, o vuelve al hub desde la hoja); si no, las opciones
-  // del último partido de Partido rápido con la previa mini
+  // R16 (plan del sprint 2-4): sesión de entrenamiento de la Carrera a medias → la misma sesión (sin gastarla; main 13-nov); ejercicio
+  // → el mismo ejercicio; reto → el mismo reto con la previa mini; Carrera → startMatch() (repite el partido con la previa normal, o
+  // vuelve al hub desde la hoja); si no, las opciones del último partido de Partido rápido con la previa mini
   ctx.actions.restart = function () {
     var g = ctx.game, live = !!(g && !g.demo);
-    if (live && g.ses && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, { autopilot: !!g.autopilot }); return; }
+    if (live && g.careerDrill && !g.careerDrill.done && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, !!g.autopilot); return; }
     if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
     if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
     if (live && g.career) { ctx.actions.startMatch(); return; }
@@ -822,6 +875,7 @@
     var g = ctx.game; if (!g || !g.demo) return false;
     curLooks = calcLooks(lookOptsOf(g));
     call('Players', 'setKit', kitWithLooks(ctx.settings), g);
+    call('UI', 'refreshMenu');   // B3: la portada repinta «Continuar carrera» (cambia la clave del retrato)
     return true;
   };
   // ---------- Retratos del muñeco (B2: VB.Doll.portrait de players; spec S2-B2B3 §3.2) ----------
@@ -1109,7 +1163,7 @@
       Sim.drainEvents(g, frameEvents);
       if (ctx.state === 'playing' && g.finished && frameEvents.some(isGameOver)) setState('over');
       // E6: la 10ª repetición del ejercicio (la sim no emite gameOver: drillEnd y g.drill.done)
-      else if (ctx.state === 'playing' && g.drill && g.drill.done && frameEvents.some(isDrillEnd)) setState('over');
+      else if (ctx.state === 'playing' && g.drill && g.drill.done && frameEvents.some(isDrillEnd)) { if (g.careerDrill) careerDrillDone(g); setState('over'); }
       if (g.career && !g.demo && frameEvents.length) careerEvents(g, frameEvents);
     } else { edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0; }
     ctx.gameDt = gdt;
@@ -1347,7 +1401,7 @@
       return keep;
     }
     function uiIngest(evs, g) { call('UI', 'ingest', evs, g); }
-    var g, keep = [], state = 'playing', live = Q.live === '1', sesKit = null;
+    var g, keep = [], state = 'playing', live = Q.live === '1';
     switch (name) {
       case 'menu': case 'tutorial': case 'controls': case 'settings':
         ctx.actions.toMenu(); return;
@@ -1411,12 +1465,13 @@
         // salvo &diff= (seed 7 → ace a los ~96 s). sim >= v2 lo marca en point.how (con roce de recepción, rallyHits > 0).
         if (!Q.diff) diff = 'easy';
         g = mk(true);
-        keep = advanceUntil(g, function (e) { return e && e.type === 'point' && e.team === 0 && (e.how ? e.how === 'ace' : (!e.sideout && !e.rallyHits && e.reason === 'in')); }, 0.5, 1500, uiIngest);
+        // (&t= s tras el punto: C4, la cinta cinética ya entrada con t=0.9)
+        keep = advanceUntil(g, function (e) { return e && e.type === 'point' && e.team === 0 && (e.how ? e.how === 'ace' : (!e.sideout && !e.rallyHits && e.reason === 'in')); }, Q.t ? +Q.t : 0.5, 1500, uiIngest);
         if (preLand) keep.unshift(preLand);
         break;
       case 'setpoint':
         g = mk(true);
-        keep = advanceUntil(g, function (e) { return e && e.type === 'serveReady' && (e.setPoint >= 0 || e.matchPoint >= 0); }, 0.5, 1500, uiIngest); break;
+        keep = advanceUntil(g, function (e) { return e && e.type === 'serveReady' && (e.setPoint >= 0 || e.matchPoint >= 0); }, Q.t ? +Q.t : 0.5, 1500, uiIngest); break;
       case 'switch':
         g = mk(true);
         keep = advanceUntil(g, function (e) { return e && e.type === 'switch' && e.auto && !e.reset; }, 0.18); break;
@@ -1483,18 +1538,6 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'drillStage' && e.n >= dn - 1; }, dt0, 900);
         break;
       }
-      // T-training: hoja final de un ejercicio del entreno de la Carrera (autopilot hasta drillEnd). Con una Carrera guardada y
-      // js/career-train.js, el ejercicio pendiente de verdad (sede, atributos, dorsales y equipación); si no, uno de prueba en la
-      // playa (&drill= elige el ejercicio). Nunca guarda nada (ctx.debug: drillDone con dry)
-      case 'ses_end': {
-        var sT = VB.CareerTrain, sId = null, sS = null;
-        try { if (sT && sT.cur) sT.cur(); sId = sT && sT.pending ? sT.pending() : null; sS = sId ? sT.drillSetup(sId) : null; } catch (e) { reportError('CareerTrain (ses_end)', e); sS = null; }
-        if (!sS) { sId = drillId(Q.drill) && Q.drill !== 'free' ? Q.drill : 'recv'; sS = { venue: Q.venue === 'hall' ? 'hall' : 'beach', ses: { k: 0, i: 1, n: 2, who: 'faro', mode: Q.venue === 'hall' ? 'hall' : 'beach', id: sId, kind: 'week', _debug: true } }; }
-        forceVenue(sS.venue === 'hall' ? 'hall' : 'beach');
-        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, drill: sId, venue: venueNow(), difficulty: 'normal', attrs: sS.attrs || null, badges: sS.badges || null, nums: sS.nums || undefined });
-        g.gym = sId; g.ses = sS.ses; sesKit = sS.kit || null;
-        keep = advanceUntil(g, function (e) { return e && e.type === 'drillEnd'; }, 0, 900); state = 'over'; break;
-      }
       // banquillo y cambios (6v6): sub6 = rótulo de un cambio recién hecho (pedido para tu equipo: entra el opuesto suplente; &team=1
       // el rival), bench6 = Carrera empezando en el banquillo (barra «En el banquillo», cámara de televisión), subs6menu = pausa con el
       // panel «Cambios» abierto (Partido rápido; &pick=1 con uno de pista ya elegido)
@@ -1518,22 +1561,48 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'point'; }, Q.t ? +Q.t : 2.6, 900, uiIngest);
         break;
       }
+      // B5: previa congelada a los t s. &kind=mini|short|long (por defecto short), &career=1 (Carrera de prueba; con long, 1ª jornada),
+      // &boss=muro|saque|remate|defensa (con career=1: partido de jefe), &duel=1 (duelo con tu rival), &t=s (por defecto 0,6)
+      case 'intro':
+        g = mk(false, true); break;
       case 'doll':   // maqueta del muñeco nuevo (js/doll.js): el pabellón con 4 muñecos y cámara fija; la sim queda congelada en el saque
         g = mk(true, true); break;
       default:
         console.warn('[VB] escena de depuración desconocida:', name); ctx.actions.toMenu(); return;
     }
     // las escenas que ya han pasado los eventos por ingest no los vuelven a contar
-    setGame(g, sesKit);
+    setGame(g);
     for (var i = 0; i < keep.length; i++) pendingEvents.push(keep[i]);
     if (state === 'paused') { setState('playing'); setState('paused'); } else setState(state);
     ctx.frozen = !live && name !== 'serve' && name !== 'hud' && name !== 'pause';
     call('CameraRig', 'snap', g);
     if (name === 'subs6menu') call('UI', 'openSubs', Q.pick === '1');
     if (name === 'doll') { dollOn = true; call('Doll', 'start', ctx, g); }
+    debugAnimHooks(g);   // &boss= / &mate= (C2/C3, players)
+    if (name === 'intro') debugIntro(g);
     console.info('[VB] escena de depuración: ' + name + ' (modo ' + g.mode + ', ' + g.score.join('-') + ', sets ' + g.sets.join('-') + ')');
   }
 
+  /** ?debug=intro: la previa de B5 con el plan del tipo pedido, congelada a los &t= s (el tiempo de la previa no corre: ctx.frozen). */
+  function debugIntro(g) {
+    var kind = Q.kind === 'mini' || Q.kind === 'long' ? Q.kind : 'short';
+    if (Q.career === '1') {
+      var wk = kind === 'long' && !Q.boss && Q.duel !== '1' ? 0 : 4;
+      g.career = { _debug: true, season: 2, phase: 'league', week: wk, round: 0, label: 'Circuito Regional · Jornada ' + (wk + 1) + ' de 14', me: 'ROC', rival: 'SOL',
+        meName: 'Club Platja Rocaverde', rivalName: 'Voley Sóller', player: 'Ares Belmonte', num: 7, mate: 'Iker Sanz', mateNum: 4, goal: 'Gana un set a cero',
+        pos0: wk ? 3 : 0, rivalPos: wk ? 5 : 0, posN: 10, h2h: wk ? [3, 2, 1, 4, 3, 1] : null, league: 'Circuito Regional', first: wk === 0 };
+      if (Q.duel === '1') { g.career.duel = true; g.career.rivalInfo = { name: 'Dani Roca', w: 2, l: 3 }; }
+      if (Q.boss) {
+        var BS = VB.CareerLife && VB.CareerLife.BOSS_STYLES && VB.CareerLife.BOSS_STYLES[Q.boss];
+        g.career.boss = { name: 'Bruno Ferrer', nick: BS && BS.nicks ? BS.nicks[0] : 'Muro', style: String(Q.boss), styleName: BS ? BS.name : 'Muro',
+          hint: BS && BS.hint ? BS.hint : 'Bloquea fuerte por su lado: ataca por el otro.', w: 1, l: 2, first: false };
+      }
+    }
+    introStart({ introKind: kind });
+    var t = Q.t ? Math.max(0, +Q.t) : 0.6;
+    intro.left = Math.max(0.05, intro.left - t); ctx.introLeft = intro.left;
+    ctx.frozen = true;
+  }
   /** ?debug=look: parámetros de la URL para VB.UI.openLook({tab, venue, item, pick}); lo que falta lo decide ui.js. */
   function lookDebugOpts() {
     var o = {};
@@ -1787,8 +1856,6 @@
     if (ctx.debug) debugScene(ctx.debug); else ctx.actions.toMenu();
     // E6: &drill=<id> empieza ese ejercicio (&gymauto=1: la IA juega por ti; lo usa tools/gymtest.js); sin autopilot espera al telón
     if (!ctx.debug && drillId(Q.drill)) ctx.actions.startMatch({ drill: Q.drill, autopilot: Q.gymauto === '1' });
-    // T-training: &sesauto=1 = el ejercicio pendiente del entreno de la Carrera guardada, con la IA jugando (gymtest, traintest)
-    else if (!ctx.debug && Q.sesauto === '1') sesAuto();
     if (Q.prewarm !== '0') prewarm(Q.prewarm === 'c' || Q.prewarm === 'r' ? Q.prewarm : 't'); // tras el telón de carga (en depuración, el primer frame lo tapa)
     // programas: en paralelo bajo el telón; no se pinta hasta que estén (el hilo queda libre: telón, fuentes y audio siguen)
     if (Q.prewarm !== '0' && Q.prewarm !== 'c' && Q.prewarm !== 'r') { prewarmPrograms(true); needWarmDraw = Q.warmdraw !== '0'; }
@@ -1797,15 +1864,6 @@
     bi.end = Math.round(performance.now());
     requestAnimationFrame(frame);
   }
-  /** &sesauto=1: crea (si falta) la sesión de la jornada y empieza su ejercicio pendiente en autopilot. false sin Carrera o sin sesión. */
-  function sesAuto() {
-    var T = VB.CareerTrain, id = null;
-    if (!T) { console.warn('[VB] sesauto: falta js/career-train.js'); return false; }
-    try { if (T.cur) T.cur(); id = T.pending ? T.pending() : null; } catch (e) { reportError('CareerTrain.pending', e); }
-    if (!id) { console.warn('[VB] sesauto: no hay ningún ejercicio pendiente'); return false; }
-    return ctx.actions.startCareerDrill(id, { autopilot: true });
-  }
-  ctx.actions.sesAuto = sesAuto;   // (pruebas: lo mismo que &sesauto=1 con la página ya cargada)
   function showFatal(msg, soft) {
     var d = document.getElementById('fatal');
     if (d) { d.innerHTML = '<b>Make the Cut</b><span></span>'; d.lastChild.textContent = msg; d.hidden = false; d.classList.toggle('soft', !!soft); }

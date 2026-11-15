@@ -338,7 +338,9 @@
     function t() { return { points: 0, aces: 0, kills: 0, blocks: 0, oppErr: 0, best: 0 }; }
     // p: por jugador (id → {num, team, pts, kills, blocks, aces}) para el MVP de cada equipo (UI-11): el punto de ataque es del último
     // que golpeó del equipo que puntúa; el ace, del sacador; el de bloqueo, del bloqueador. Los errores del rival no son de nadie.
-    return { t: [t(), t()], run: 0, runTeam: -1, longest: 0, lastHitKind: '', lastHitTeam: -1, blockTeam: -1, p: {}, lastHitter: [null, null], blocker: null };
+    // (C4: lastHuman[t] = el último toque del equipo t fue del humano; blockHuman = el último bloqueo lo hizo el humano: la cinta
+    // cinética de ¡Ace! / ¡Muro! sale siempre si el golpe es tuyo)
+    return { t: [t(), t()], run: 0, runTeam: -1, longest: 0, lastHitKind: '', lastHitTeam: -1, blockTeam: -1, p: {}, lastHitter: [null, null], blocker: null, lastHuman: [false, false], blockHuman: false };
   }
   var stats = newStats();
 
@@ -416,7 +418,9 @@
       'btnGym', 'mpGym', 'gymList', 'gymFoot', 'btnGymBack', 'gymSub', 'drillBar', 'drillTxt', 'introDrill', 'idTitle', 'idGoal', 'idKeys', 'idMed',
       'gymEnd', 'geKick', 'geTitle', 'geTotal', 'geMax', 'geMeds', 'geReps', 'geRec', 'btnGeAgain', 'btnGeNext', 'btnGeList', 'idSes',
       // Vestuario (1.1.0): botón de la portada, atajo de Jugadores, página, giro y avisos
-      'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote'].forEach(function (k) { el[k] = $(k); });
+      'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote',
+      // sprint 2-4: B3 «Continuar carrera» (portada) y B5 previa (rótulo inferior y lo que está en juego)
+      'btnCont', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake'].forEach(function (k) { el[k] = $(k); });
     el.bn1 = $('bn1'); el.bn2 = $('bn2'); el.bn3 = $('bn3'); el.pbug = $('pbug'); el.pbT = $('pbT'); el.pbS = $('pbS'); el.pbX = $('pbX'); el.sbBody = document.querySelector('.sb-body'); el.sb = $('sb'); el.sbSet = $('sbSet'); el.tag = $('sbTag'); el.hist = $('sbHist');
     el.row0 = $('sbRow0'); el.row1 = $('sbRow1'); el.name0 = $('sbName0'); el.name1 = $('sbName1');
     el.pts0 = $('sbPts0'); el.pts1 = $('sbPts1');
@@ -682,9 +686,10 @@
     var s = stats;
     switch (e.type) {
       case 'hit':
-        s.lastHitKind = e.kind; s.lastHitTeam = e.team; s.blockTeam = -1; if (e.player) s.lastHitter[e.team === 1 ? 1 : 0] = e.player; break;
+        s.lastHitKind = e.kind; s.lastHitTeam = e.team; s.blockTeam = -1; if (e.player) s.lastHitter[e.team === 1 ? 1 : 0] = e.player;
+        s.lastHuman[e.team === 1 ? 1 : 0] = !!e.human; break;
       case 'block':
-        s.blockTeam = e.team; s.blocker = e.player || null; break;
+        s.blockTeam = e.team; s.blocker = e.player || null; s.blockHuman = !!e.human; break;
       case 'point': {
         var w = e.team, T = s.t[w];
         // deshacer (punto anulado por challenge: sim vuelve a pitar el punto con la llamada buena, ver untally)
@@ -741,11 +746,14 @@
     if (g.subsOn && !g.demo && events.length) subsEvents(g, events);   // banquillo: rótulo de los cambios y avisos de entrar / salir
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.type === 'newMatch') { stats = newStats(); }
+      if (e.type === 'newMatch') { stats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; }
+      if (e.type === 'newSet') lastSpKey = '';
       if (g.demo) continue;
       if (ovr && e.type === 'point') { untally(); e._ovr = true; }
       tally(e);
       if (VB.Badges && !g.drill) VB.Badges.ingest(e, g); // insignias: cuenta remates, aces, recepciones… del equipo 0 (js/badges.js; los ejercicios no cuentan)
+      // S4-D1: retos de maestría y del día (js/retos.js; O(1) por evento, sin asignar; nunca los ejercicios ni la repetición)
+      if (VB.Retos && VB.Retos.ingest && !g.drill && !e.replay) { try { VB.Retos.ingest(e, g); } catch (er) { console.error('[VB][ERROR] Retos.ingest: ' + er); } }
       switch (e.type) {
         // E6: Entrenamiento (sim: sin point/whistle/gameOver con g.drill)
         case 'drillStage': gymLast.t = NaN; gymLast.miss = ''; break;
@@ -774,6 +782,8 @@
         }
         case 'block':
           if (e.human && e.result === 'stuff') pulse(e.team, false);
+          // C4: el bloqueo directo de tu equipo lo dice la cinta cinética («¡Muro!») 0,5 s después: sin aviso duplicado
+          if (e.team === 0 && e.result === 'stuff' && kinOn(g)) break;
           // tu propio bloqueo directo es un logro personal (dorado); el resto, del color del equipo que bloquea
           // (bloqueo activo: el directo con GOLPEAR pulsado a tiempo, e.pressed, es «¡Muro!»)
           callout(e.result === 'soft' || e.result === 'tool' || e.result === 'touch' ? 'Toque de bloqueo' : e.human && e.pressed && e.result === 'stuff' ? '¡Muro!' : '¡Bloqueo!', e.team, e.human && e.result === 'stuff' ? 'good' : '');
@@ -830,8 +840,16 @@
         case 'serveReady':
           atSP = e.matchPoint >= 0 || e.setPoint >= 0;
           // versión compacta, arriba: la cinta grande tapaba la red y al sacador justo cuando va a sacar
-          if (e.matchPoint >= 0) banner('Punto de partido', e.matchPoint === 0 ? 'Un punto para ganar el partido' : 'La CPU tiene punto de partido', '', 'gold compact', BAN.sp, 'sp');
-          else if (e.setPoint >= 0) banner('Punto de set', e.setPoint === 0 ? 'Un punto para ganar el ' + (ORD[g.setNo] || g.setNo + 'º') + ' set' : 'La CPU tiene punto de set', '', 'gold compact', BAN.sp, 'sp');
+          // C4: el primero de cada racha (clave set|equipo|set-o-partido) entra con la cinta cinética (tuyo dorado, del rival azul);
+          // los siguientes de la misma racha, como siempre
+          if (atSP) {
+            var mpN = e.matchPoint >= 0, spT = mpN ? e.matchPoint : e.setPoint, spKey = g.setNo + '|' + spT + '|' + (mpN ? 'm' : 's');
+            var kinSp = spKey !== lastSpKey && kinOn(g); lastSpKey = spKey;
+            var spCls = kinSp ? (spT === 0 ? 'gold' : 'lose') + ' compact kin' : 'gold compact';
+            if (mpN) banner('Punto de partido', spT === 0 ? 'Un punto para ganar el partido' : 'La CPU tiene punto de partido', '', spCls, BAN.sp, 'sp');
+            else banner('Punto de set', spT === 0 ? 'Un punto para ganar el ' + (ORD[g.setNo] || g.setNo + 'º') + ' set' : 'La CPU tiene punto de set', '', spCls, BAN.sp, 'sp');
+            if (kinSp) kinPlay(mpN ? 'mp' : 'sp', spT);
+          }
           break;
         case 'toss':
           // con el balón en el aire no puede quedar nada encima de la jugada
@@ -877,6 +895,14 @@
           banner('Set ' + e.setNo, e.setNo === 3 ? 'Set decisivo, a ' + decT(g) + ' puntos' : 'Sets ' + g.sets[0] + '-' + g.sets[1], '', 'neutral', BAN.info, 'newSet');
           break;
         case 'gameOver':
+          // S4-D1: cierre de los retos ANTES de la hoja (null si el partido no cuenta: demo, ejercicio, espectador, autopilot).
+          // En depuración, en seco (no guarda). Los objetos del Vestuario que dan los retos los concede checkGlobal al volver al
+          // menú (lkCheckNew, con su aviso); la hoja de B6 (T19) los enseñará antes con lookGrantNow
+          retoEnd = null;
+          if (VB.Retos && VB.Retos.endMatch && !e.replay) {
+            try { retoEnd = VB.Retos.endMatch(g, { win: e.team === 0, map: VB.Arena && VB.Arena.map ? VB.Arena.map() : '', sets: e.sets }, !!ctx.debug); }
+            catch (er) { console.error('[VB][ERROR] Retos.endMatch: ' + er); retoEnd = null; }
+          }
           showEnd(e);
           endFlow(e);
           break;
@@ -884,6 +910,8 @@
     }
   }
   var missT = -9999;
+  // S4-D1 / D2: resultado de VB.Retos.endMatch y de VB.Profile.noteMatch del último partido (los lee la hoja de B6, T19)
+  var retoEnd = null, profEnd = null;
   // E1 (sprint 5): rótulos por point.move y la última colocación de tu equipo (¿en salto?) para el sello de la jugada perfecta
   var E1_MOVE = { feint: '¡Finta!', roll: 'Colocado', edge: '¡Al filo!', quick: 'Rápida' }, lastSetJ = false;
   // (en frases de aviso: «Un punto para ganar el primer set», «Fin del segundo set»; las abreviaturas se quedan en etiquetas)
@@ -967,9 +995,109 @@
   // main.js para la sim y llama introStart(g); al acabar (2,5 s) o al saltarla (cualquier botón, tecla o toque → ctx.introSkipReq),
   // introEnd(skipped). La tarjeta sale; el marcador entra deslizando 0,25 s después (con el saque ya en marcha: acaba hacia el
   // silbato, como pide audio) y se avisa a audio (ui('introEnd') al entrar el marcador; ui('introSkip') si la saltan).
-  var introUI = { on: false, hudT: 0, skipped: false };
-  function introStart(g) {
+  // B5 (sprint 2-4, spec S2-B4B5B6 §2.2): la previa tiene un plan (VB.Recap.introPlan: mini 2,5 s, corta 4,5 s, larga 6 s) que
+  // main.js pide con VB.UI.introPlan(g, opts) antes de introStart(g, plan). Beat A: bloques con retrato (solo el tuyo: R8), nombre,
+  // línea pequeña, rasgo y puesto; beat B (#intro.b2): rótulo inferior con dos datos como mucho; beat C (#intro.b3): lo que está en
+  // juego (final, semifinal, jefe, duelo, 1ª jornada). introTick cruza los beats con comparaciones de números (sin cadenas por frame).
+  // Sin recap.js: la tarjeta de siempre (TÚ / CPU o los clubes) y 2,5 s.
+  var introUI = { on: false, hudT: 0, skipped: false, plan: null, bi: 1, dur: 2.5 };
+  var IN_FB = '<svg viewBox="0 0 56 60" aria-hidden="true"><circle cx="28" cy="17" r="12"/><path d="M4 60c0-16 10-26 24-26s24 10 24 26z"/></svg>';
+  /** Datos para VB.Recap.introPlan a partir de la partida montada y de las opciones de startMatch (o.introKind fuerza el tipo). */
+  function introInfo(g, o) {
+    o = o || {};
+    var six = !!(g && g.size === 6), diff = (g && g.difficulty) || ctx.settings.difficulty;
+    var T = (g && g.teams) || [[], []];
+    var stOf = function (t) { var out = [], tm = T[t] || []; for (var i = 0; i < tm.length; i++) if (tm[i] && tm[i].st) out.push(tm[i].st); return out.length ? out : null; };
+    var cp = g && (g.ctrlBase || g.ctrl), nums = [];
+    for (var i = 0; i < Math.min(2, (T[0] || []).length); i++) nums.push(T[0][i].num | 0);
+    var one = !!(g && g.ctrlMode === 'one');
+    if ((six || one) && cp) nums = [cp.num | 0];
+    var info = { kind: o.introKind, again: o.introKind === 'mini', drill: !!(g && g.drill), diff: diff,
+      diffName: (VB.DIFF && VB.DIFF[diff] && VB.DIFF[diff].name) || '', byD: (record.byD && record.byD[diff]) || null, winRun: record.winRun | 0,
+      size: six ? 6 : 2, ctrlOne: one, nums: nums, posName: six && g ? (ROLE_NAME[g.ctrlRole] || '') : '', short: (ctx.height || innerHeight) <= 420,
+      stA: stOf(0), stB: stOf(1) };
+    var cs = g && g.career;
+    if (cs) {
+      var c2 = {}; for (var k in cs) if (Object.prototype.hasOwnProperty.call(cs, k)) c2[k] = cs[k];
+      // (el jefe: recap lee boss.style como texto visible; en m.career.boss es la CLAVE y el nombre va en styleName)
+      if (cs.boss) c2.boss = { name: cs.boss.name, nick: cs.boss.nick, style: cs.boss.styleName || cs.boss.style, hint: cs.boss.hint, w: cs.boss.w, l: cs.boss.l };
+      info.career = c2;
+    }
+    return info;
+  }
+  /** VB.UI.introPlan(g, o): el plan de la previa (lo guarda para introStart y para las pruebas) o null sin recap.js. */
+  function introPlan(g, o) {
+    var R = VB.Recap, pl = null;
+    if (R && typeof R.introPlan === 'function' && g && !g.demo) {
+      try { pl = R.introPlan(introInfo(g, o)); } catch (e) { console.error('[VB][ERROR] UI.introPlan: ' + e); pl = null; }
+    }
+    introUI.plan = pl;
+    return pl;
+  }
+  /** Retratos de tu bloque: en la Carrera el tuyo (y el del compañero en la playa) de VB.CareerUI.portraitReq; en Partido rápido 2v2
+   *  tus n.º 1 y n.º 2 (portraitReqMatch). Solo si ya están en la caché (se precargan en el menú: R8); si no, la silueta con el
+   *  dorsal (.fb). Nunca se pinta un retrato durante la previa (main.js solo dibuja la cola en 'menu'/'over'). */
+  function introPortraits(g) {
+    var cs = g && g.career, six = !!(g && g.size === 6), reqs = [], CU = VB.CareerUI, c = null;
+    try {
+      if (cs && CU && typeof CU.portraitReq === 'function' && VB.Career && VB.Career.get) {
+        c = VB.Career.get();
+        if (c) { reqs.push(CU.portraitReq(c, 'me', 72)); if (!six && cs.mate) reqs.push(CU.portraitReq(c, 'mate', 72)); }
+      } else if (!cs && !six) { reqs.push(portraitReqMatch(0, 0, 72)); reqs.push(portraitReqMatch(0, 1, 72)); }
+    } catch (e) { reqs = []; }
+    var h = '';
+    for (var i = 0; i < reqs.length; i++) {
+      var r = reqs[i]; if (!r) continue;
+      var ph = portraitHTML(r, '', i === 0 ? 'Tu jugador' : 'Tu compañero');
+      if (ph.indexOf('<img') === 0) h += ph;
+      else if (i === 0) h += '<span class="fb">' + IN_FB + '<b>' + (r.num | 0 || '') + '</b></span>';
+    }
+    if (!h) {   // sin retrato posible: la silueta con tu dorsal
+      var cp = g && (g.ctrlBase || g.ctrl), n = cs ? cs.num | 0 : cp ? cp.num | 0 : 1;
+      h = '<span class="fb">' + IN_FB + '<b>' + (n || '') + '</b></span>';
+    }
+    return h;
+  }
+  /** Beat A: los dos bloques (plan.t de recap, o los textos de siempre sin recap.js). */
+  function introFill(g, plan) {
+    var cs = g && g.career, six = !!(g && g.size === 6), t = plan && plan.t;
+    if (!t) {   // (sin recap.js: TÚ / CPU, o los clubes de la Carrera; 6v6: a quién llevas)
+      var p6 = six && (g.ctrlBase || g.ctrl), r6 = six ? (ROLE_NAME[g.ctrlRole] || 'Receptor').toLowerCase() : '';
+      t = [{ nm: (cs && cs.me) || 'TÚ', sm: cs && cs.meName ? cs.meName : p6 ? 'N.º ' + p6.num + ', ' + r6 : '', tr: null, pos: '' },
+        { nm: (cs && cs.rival) || 'CPU', sm: cs && cs.rivalName ? cs.rivalName : six ? 'Equipo rival' : 'Pareja rival', tr: null, pos: '' }];
+    }
+    var bl = el.intro.querySelectorAll('.in-t');
+    for (var i = 0; i < 2 && i < bl.length; i++) {
+      var B = bl[i], d = t[i] || {};
+      var nm = cpuTxt(String(d.nm || '')), n1 = B.querySelector('.in-nm'), n2 = B.querySelector('.in-sm'), n3 = B.querySelector('.in-tr'), n4 = B.querySelector('.in-pos'), n0 = B.querySelector('.in-pt');
+      if (n1) n1.textContent = nm;
+      B.classList.toggle('long', nm.length > 11);
+      if (n2) { n2.textContent = cpuTxt(String(d.sm || '')); n2.hidden = !n2.textContent; }
+      if (n3) { n3.textContent = d.tr && d.tr.t ? d.tr.t : ''; n3.hidden = !n3.textContent; n3.classList.toggle('boss', !!(d.tr && d.tr.k === 'boss')); }
+      if (n4) { n4.textContent = d.pos || ''; n4.hidden = !d.pos; }
+      if (n0) n0.innerHTML = i === 0 ? introPortraits(g) : '';
+    }
+    // beat B: dos datos como mucho (se reserva su hueco desde el principio: la tarjeta no salta al entrar)
+    var b = plan && plan.b && plan.b.length ? plan.b : null;
+    if (el.introLT) { el.introLT.innerHTML = b ? '<span>' + sepHTML(b, 'v') + '</span>' : ''; el.introLT.hidden = !b; }
+    // beat C: lo que está en juego (con el jefe, su pista debajo)
+    var c = plan && plan.c, sk = el.introStake;
+    if (sk) {
+      sk.hidden = !c;
+      if (c) {
+        sk.children[0].textContent = c.t1 || '';
+        var t2 = String(c.t2 || ''), bo = c.k === 'boss' && cs && cs.boss;
+        // (jefe: «Bruno Ferrer | Cara a cara 1-2»; el estilo ya va en el chip del bloque rival y, si no coincide, aquí también)
+        if (bo) t2 = [bo.name || '', (bo.styleName || bo.style) !== bo.nick ? bo.styleName || '' : '', (bo.w | 0) + (bo.l | 0) > 0 ? 'Cara a cara ' + (bo.w | 0) + '-' + (bo.l | 0) : ''].filter(Boolean).join(' | ');
+        if (t2.indexOf(' | ') >= 0) setSep(sk.children[1], t2.split(' | '), 'v'); else sk.children[1].textContent = t2;
+        sk.children[2].textContent = c.k === 'boss' && cs && cs.boss && cs.boss.hint ? cs.boss.hint : '';
+      }
+    }
+  }
+  function introStart(g, plan) {
     introUI.on = true; introUI.hudT = 0; introUI.quiet = true;   // sin avisos ni consejos hasta el primer silbato
+    plan = plan && plan.beats ? plan : null;
+    introUI.plan = plan; introUI.bi = 1; introUI.dur = plan && plan.dur > 0 ? plan.dur : 2.5;
     var di = optIndex('difficulty'), nm = g && VB.DIFF && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
     el.introDiff.textContent = 'Nivel ' + (nm || OPT.difficulty.labels[di]);
     var six = !!(g && g.size === 6);
@@ -979,7 +1107,9 @@
     var ik = el.intro.querySelector('.in-k > span'), it = ik && ik.lastChild;
     var dr = !!(g && g.drill && !g.demo); introUI.drill = dr;
     if (it && it.nodeType === 3) it.nodeValue = dr ? 'Entrenamiento' : six ? '6 contra 6' : '2 contra 2';
-    if (dr) drillIntro(g);
+    if (dr) { drillIntro(g); introUI.plan = null; }
+    else { try { introFill(g, plan); } catch (e) { console.error('[VB][ERROR] UI.introFill: ' + e); } }
+    el.intro.style.setProperty('--in-dur', (dr ? 2.5 : introUI.dur) + 's');
     var d = device();
     el.introHint.innerHTML = d === 'touch' ? 'Toca para empezar ya' : d === 'gamepad' ? padKey('a') + 'para empezar ya' : 'Pulsa cualquier tecla para empezar ya';
     el.intro.className = ''; void el.intro.offsetWidth; el.intro.className = 'show' + (dr ? ' drill' : '');
@@ -997,6 +1127,14 @@
     if (skipped) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('introSkip'); } catch (e) { } }
   }
   function introTick(rdt) {
+    // B5: beats B y C al cruzar su instante (tiempo de la previa = dur − ctx.introLeft); suena ui('beat', i) con i = 1 (B) o 2 (C)
+    var pl = introUI.plan;
+    if (introUI.on && pl && ctx.introLeft > 0 && introUI.bi < pl.beats.length && introUI.dur - ctx.introLeft >= pl.beats[introUI.bi].at) {
+      var bt = pl.beats[introUI.bi];
+      el.intro.classList.add(bt.id === 'C' ? 'b3' : 'b2');
+      uiK('beat', null, introUI.bi);
+      introUI.bi++;
+    }
     if (introUI.outT > 0) { introUI.outT -= rdt; if (introUI.outT <= 0) { el.intro.className = ''; el.intro.getAnimations && el.intro.getAnimations().forEach(function (a) { a.cancel(); }); } }
     if (introUI.hudT > 0) {
       introUI.hudT -= rdt;
@@ -1261,7 +1399,8 @@
     // E1: Ajustes · Juego · Golpe al milisegundo (msTiming): los milisegundos (siempre, también en el perfecto)
     if (ctx.settings && ctx.settings.msTiming && typeof e.timing === 'number') { var ms = Math.round(Math.abs(e.timing) * 1000); hint = ms < 5 ? 'justo a tiempo' : ms + ' ms ' + (e.timing < 0 ? 'pronto' : 'tarde'); }
     // E1 (M7): remate perfecto que cierra 3 toques perfectos seguidos de tu equipo: «¡Jugada perfecta!» y la cadena debajo
-    var chainOk = pf && e.kind === 'spike' && (e.chain | 0) >= 3;
+    // (R4: el criterio es VB.Retos.chainOk, el mismo del reto «Jugada perfecta»; sin retos.js, el de siempre)
+    var chainOk = pf && (VB.Retos && VB.Retos.chainOk ? VB.Retos.chainOk(e) : (e.kind === 'spike' && (e.chain | 0) >= 3));
     var C = sproj(e.x, e.y, e.z, _sp); if (!C.ok) return;
     var cx = C.x, cy = C.y;
     // tamaño aproximado del sello (px CSS; sin medir el DOM)
@@ -1379,6 +1518,11 @@
     var hlv = typeof e.highlight === 'number' ? e.highlight : 0;
     // (un bloqueo directo TUYO de los buenos, highlight ≥ 0,6, sale grande aunque haya habido cinta hace poco: verificación ola 2)
     if (tier === 2 && bigGap < BIG_GAP && hlv < 0.8 && !e.savedSetPoint && !spNow && !(k === 'blockPt' && me && hlv >= 0.6)) tier = 1;
+    // C4: tu ace o tu bloqueo directo (el golpe lo has dado tú) sale siempre en la cinta cinética, sin BIG_GAP ni «la misma dos
+    // veces»; el de tu compañero IA sigue el ritmo de siempre (si baja a la pestaña, sin cinética)
+    var kin = me && (k === 'ace' || k === 'blockPt') && kinOn(g);
+    if (kin && (k === 'ace' ? stats.lastHuman[0] : stats.blockHuman)) tier = 2;
+    kin = kin && tier === 2;
     bigGap = tier === 2 ? 0 : bigGap + 1;
     lastBig = tier === 2 ? { team: e.team, k: k } : null;
     // títulos: mismo estilo siempre («… de la CPU»)
@@ -1386,7 +1530,7 @@
     if (k === 'ace') t1 = me ? (tier > 1 ? '¡Ace!' : 'Ace') : 'Ace de la CPU';
     else if (k === 'kill') t1 = me ? (tier > 1 ? '¡Remate!' : 'Remate') : 'Remate de la CPU';
     else if (k === 'tip') t1 = g && g.beach ? (me ? (tier > 1 ? '¡Pokey!' : 'Pokey') : 'Pokey de la CPU') : me ? (tier > 1 ? '¡Dejada!' : 'Dejada') : 'Dejada de la CPU';
-    else if (k === 'blockPt') t1 = me ? (tier > 1 ? '¡Punto de bloqueo!' : 'Punto de bloqueo') : 'Bloqueo de la CPU';
+    else if (k === 'blockPt') t1 = me ? (tier > 1 ? (kin ? '¡Muro!' : '¡Punto de bloqueo!') : 'Punto de bloqueo') : 'Bloqueo de la CPU';
     // (6v6: la falta de posición del equipo que saca llega como srvErr; su texto va en el subtítulo, el título es el punto)
     else if (k === 'srvErr') t1 = /^falta de (saque|posición)/i.test(txt) ? (me ? 'Error de la CPU' : 'Punto de la CPU') : (me ? 'Falta de saque de la CPU' : 'Falta de saque');
     else if (k === 'error') t1 = me ? 'Error de la CPU' : 'Punto de la CPU';
@@ -1413,7 +1557,31 @@
     if (sub && sub === lastSub && !ref) sub = '';
     if (sub) lastSub = sub;
     hideBug(false);
-    queuePres({ t1: t1, t2: sub, t3: chip, cls: (me ? (k === 'ace' ? 'ace' : 'win') : 'lose') + ' r2', dur: k === 'ace' ? 1.6 : 1.45, kind: 'point', gate: 'cut' });
+    queuePres({ t1: t1, t2: sub, t3: chip, cls: (me ? (k === 'ace' || kin ? 'ace' : 'win') : 'lose') + ' r2' + (kin ? ' kin' : ''), dur: k === 'ace' ? 1.6 : kin ? 1.5 : 1.45, kind: 'point', gate: 'cut',
+      kin: kin ? (k === 'ace' ? 'ace' : 'muro') : '' });
+  }
+  // C4 (sprint 2-4, spec S3-C4C5 §2.1): cinta cinética. ¡Ace! y ¡Muro! de tu equipo y el primer punto de set / partido de cada
+  // racha entran con un golpe de escala y giro (Web Animations sobre #bn1, solo transform y opacidad), una sacudida corta de la cinta,
+  // el destello dorado en el impacto (ace y muro) y el sonido de rótulo (VB.Audio.ui('rotulo', tipo, equipo, retraso al impacto)).
+  // Nunca en demo, espectador, Entrenamiento ni fuera de 'playing'. Menos movimiento: fundido de 150 ms (el sonido se queda).
+  var KIN_KF = null, KIN_KF_SP = null, KIN_SHAKE = null, KIN_KF_RM = [{ opacity: 0 }, { opacity: 1 }], lastSpKey = '';
+  var rot = { n: 0, kind: '', team: -1, t: 0 };
+  function kinOn(g) { return !!g && !g.demo && !g.watch && !g.drill && !!ctx && ctx.state === 'playing'; }
+  function kinKF(s0) {
+    return [{ opacity: 0, transform: 'scale(' + s0 + ') rotate(-7deg)' }, { opacity: 1, transform: 'scale(.9) rotate(1deg)', offset: 0.38 },
+      { transform: 'scale(1.07) rotate(0deg)', offset: 0.62 }, { opacity: 1, transform: 'scale(1)' }];
+  }
+  function kinPlay(kind, team) {
+    if (!KIN_KF) { KIN_KF = kinKF(2.3); KIN_KF_SP = kinKF(1.8); KIN_SHAKE = [{ transform: 'translateX(0)' }, { transform: 'translateX(-5px)' }, { transform: 'translateX(4px)' }, { transform: 'translateX(-2px)' }, { transform: 'translateX(0)' }]; }
+    var r = rm(), sp = kind === 'sp' || kind === 'mp', soft = !!(ctx.settings && ctx.settings.softFlash);
+    try { if (el.bn1.animate) el.bn1.animate(r ? KIN_KF_RM : sp ? KIN_KF_SP : KIN_KF, { duration: r ? 150 : 420, easing: r ? 'linear' : 'cubic-bezier(.2,.9,.3,1)', fill: 'backwards' }); } catch (e) { }
+    var rib = el.banner.firstChild;
+    if (!r && !soft && rib && rib.animate) { try { rib.animate(KIN_SHAKE, { duration: 180, delay: 150, easing: 'ease-out' }); } catch (e) { } }
+    if (!sp && !r) setTimeout(function () { pulse(0, true); }, 160);
+    try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('rotulo', kind, team | 0, r ? 0.05 : 0.16); } catch (e) { }
+    sndT = performance.now();
+    srSay(kind === 'ace' ? 'Ace' : kind === 'muro' ? 'Muro' : kind === 'mp' ? 'Punto de partido' : 'Punto de set');
+    rot.n++; rot.kind = kind; rot.team = team | 0; rot.t = performance.now();
   }
   /** Plano de cámara (con guarda) y contador de cortes (CAM-05: getDebug().cutN; si no existe, se deduce). */
   function camRead() {
@@ -1587,6 +1755,7 @@
       if (reactionReady(pres, d) || ctx.time - pres.rt > 1.2) {
         var o = pres; pres = null;
         banner(o.t1, o.t2, o.t3 || o.chip, o.cls, o.dur, o.kind);
+        if (o.kin) kinPlay(o.kin, 0);   // C4: el golpe de entrada, en el mismo frame en que se pinta la cinta
         if (o.kind === 'set' || o.kind === 'match' || /toques!$/.test(o.t2 || '')) rallyFade();   // UI-15: la cuenta ya no hace falta
         if (o.kind === 'point') placeRib2(g, d); else if (o.kind === 'set' || o.kind === 'match') placeT3(g, d);
         // la cinta del punto no pasa del final de la pausa (sale antes del corte)
@@ -1750,11 +1919,7 @@
       if (!node) return; var ns = node.childNodes;
       for (var i = first ? 0 : ns.length - 1; first ? i < ns.length : i >= 0; i += first ? 1 : -1) if (ns[i].nodeType === 3 && ns[i].nodeValue.trim()) { ns[i].nodeValue = v; return; }
     };
-    var e;
-    if ((e = q('.in-t.t0 b'))) e.textContent = a;
-    if ((e = q('.in-t.t1 b'))) e.textContent = b;
-    if ((e = q('.in-t.t0 small'))) e.textContent = cr && cr.meName ? cr.meName : p6 ? 'N.º ' + p6.num + ', ' + r6 : ''; if (e) e.hidden = !e.textContent;
-    if ((e = q('.in-t.t1 small'))) e.textContent = cr && cr.rivalName ? cr.rivalName : g6 ? 'Equipo rival' : ''; if (e) e.hidden = !e.textContent;
+    // (la tarjeta de presentación, .in-t, la rellena introStart con el plan de la previa: B5)
     txt(q('.p-team.t0'), true, a + ' '); txt(q('.p-team.t1'), false, ' ' + b);
     txt(q('.es-t.t0'), true, a + ' '); txt(q('.es-t.t1'), false, ' ' + b);
   }
@@ -2343,8 +2508,47 @@
     focusEl(list[i], true); if (list[i].classList && list[i].classList.contains('opt')) uiSound2('optHover'); else hoverSound();
   }
 
+  // B3 (sprint 2-4, spec S2-B2B3 §2.4): «Continuar carrera» en la portada. VB.CareerUI.syncHero() (career-ui) rellena #contK/#contT/
+  // #contS/#contPt/#contCr y dice si hay una carrera activa sana; ui.js decide hidden, .primary y .has-cont (sin :has por iOS 15).
+  // Sin carrera (o sin syncHero) la portada es la de siempre. Se repinta al entrar en el menú, al cerrar la Carrera, al cambiar el
+  // Vestuario (la clave del retrato) y tras una bajada de la cuenta (VB.UI.refreshMenu); nunca por frame.
+  var heroDirty = true, heroOn = false, contOpen = false, crWasOpen = false;
+  function syncHero() {
+    heroDirty = false;
+    if (!el.btnCont) return;
+    var CU = VB.CareerUI, show = false;
+    if (CU && typeof CU.syncHero === 'function') { try { show = !!CU.syncHero(); } catch (e) { show = false; console.error('[VB][ERROR] CareerUI.syncHero: ' + e); } }
+    heroOn = show;
+    if (el.btnCont.hidden === show) el.btnCont.hidden = !show;
+    var ml = el.btnCont.parentNode;
+    if (ml && ml.classList.contains('has-cont') !== show) ml.classList.toggle('has-cont', show);
+    if (el.menuCol && el.menuCol.classList.contains('has-cont') !== show) el.menuCol.classList.toggle('has-cont', show);
+    if (el.btnPlay.classList.contains('primary') === show) el.btnPlay.classList.toggle('primary', !show);
+    if (el.playMainSub && el.playMainSub.hidden === show) el.playMainSub.hidden = !show;
+    if (!show && document.activeElement === el.btnCont && mpage === 'main') focusEl(el.btnPlay, kbNow());
+  }
+  /** «Continuar carrera»: abre el hub en «Partido» con el foco en «Jugar partido» (el partido no empieza solo; R15: from 'main'). */
+  function goCont() {
+    var CU = VB.CareerUI; if (!CU || !CU.open) return;
+    contOpen = true;
+    try { CU.open('hub', { from: 'main', focus: 'play' }); } catch (e) { contOpen = false; console.error('[VB][ERROR] CareerUI.open: ' + e); }
+  }
+  /** Vuelta de la Carrera abierta desde la portada: foco en #btnCont si career-ui no lo ha puesto ya en algo visible. */
+  function contBack() {
+    contOpen = false; heroDirty = true;
+    if (ctx.state === 'menu') renderMenu();
+    setTimeout(function () {
+      if (ctx.state !== 'menu' || mpage !== 'main' || (VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen))) return;
+      var a = document.activeElement;
+      if (a && a !== document.body && a.offsetParent !== null && el.menu.contains(a)) return;
+      focusEl(heroOn && !el.btnCont.hidden ? el.btnCont : el.btnPlay, kbNow());
+    }, 80);
+  }
   function renderMenu() {
     var d = device();
+    if (heroDirty) syncHero();
+    // D4: las bajadas de la cuenta solo se aplican en el menú (account.js las deja pendientes hasta aquí)
+    if (VB.Account && VB.Account.menuReady) { try { VB.Account.menuReady(); } catch (e) { } }
     // grupos tecla + acción (.kh) con raya fina entre ellos (CSS), sin «·»
     var kh = function (k, t) { return '<span class="kh">' + k + ' ' + t + '</span>'; };
     // según la página (antes la misma en todas: en el principal no hay nada que «cambiar» ni adónde «volver»)
@@ -2507,8 +2711,7 @@
     var dr = !!(g && g.drill && !g.demo);
     el.pause.classList.toggle('drill', dr);
     el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : 'Reiniciar partido';
-    // (T-training: un ejercicio del entreno de la Carrera vuelve a la Carrera, no a la página Entrenamiento)
-    el.btnQuit.textContent = isSes() ? 'Volver a la Carrera' : dr ? 'Salir al entrenamiento' : 'Salir al menú';
+    el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
     disarmRestart();
     el.pS0.textContent = g.score[0]; el.pS1.textContent = g.score[1];
     el.pMid.innerHTML = 'SETS<b>' + g.sets[0] + '-' + g.sets[1] + '</b>';
@@ -2538,6 +2741,15 @@
       var dK = ctx.game && String(ctx.game.difficulty || ''); record.byD = cleanByD(record.byD);
       if (dK && (VB.DIFF_ORDER || ['easy', 'normal', 'hard', 'expert']).indexOf(dK) >= 0) { var bd = record.byD[dK] || [0, 0]; bd[win ? 0 : 1]++; record.byD[dK] = bd; }
       saveRecord();
+    }
+    // D2 (perfil): cada partido jugado de verdad suma XP de perfil (Partido rápido 2v2/6v6 y Carrera); nunca en depuración,
+    // espectador, autopilot ni demo. El resultado {xp, lvl, lvlUp, prize} lo enseña la hoja de B6 (T19)
+    profEnd = null;
+    if (!ctx.debug && !watch && ctx.game && !ctx.game.autopilot && !ctx.game.demo && VB.Profile && VB.Profile.noteMatch) {
+      try {
+        var pr = VB.Profile.noteMatch({ mode: career ? 'career' : six ? '6v6' : '2v2', win: win, setsWon: e.sets[0] | 0, diff: String(ctx.game.difficulty || ''), venue: VB.Arena && VB.Arena.map ? VB.Arena.map() : '' });
+        if (pr) profEnd = { xp: pr.xp | 0, lvl: pr.lvl | 0, lvlUp: !!pr.lvlUp, prize: pr.prizeName || '' };
+      } catch (er) { console.error('[VB][ERROR] Profile.noteMatch: ' + er); }
     }
     el.end.classList.toggle('win', win); el.end.classList.toggle('lose', !win);
     // (UI-18) antetítulo con contexto, sin repetir el título: «Palau del Mar · Nivel Normal · 3 sets»
@@ -2829,7 +3041,7 @@
   // #btnCareer de Jugar: mientras está abierta, el menú se queda en Jugar (al cerrarla, el foco vuelve a esa tarjeta).
   var mpage = 'main', mstack = [];
   function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : el.menuCol; }
-  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : el.btnPlay; }
+  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : el.btnPlay; }
   function setPage(p, anim) {
     var was = mpage;
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
@@ -2843,6 +3055,10 @@
     if (p === 'quick') renderOpts();
     if (ctx && ctx.state === 'menu') renderMenu();   // pistas de teclado/mando de esta página
     if (p === 'play' && VB.CareerUI && VB.CareerUI.syncMenu) try { VB.CareerUI.syncMenu(); } catch (e) { }
+    // R8: los retratos de la previa de Partido rápido (tus n.º 1 y n.º 2, 72 px) se precargan aquí: main.js solo pinta la cola en el
+    // menú, nunca durante el partido (si no llegan a tiempo, la previa enseña la silueta)
+    if (p === 'play' && was !== 'play') { for (var pi = 0; pi < 2; pi++) { var pr = portraitReqMatch(0, pi, 72); if (pr) portraitHTML(pr, '', ''); } }
+    if (p === 'main') heroDirty = true;
   }
   function kbNow() { var a = document.activeElement; return !!(a && a.classList && a.classList.contains('kf')); }
   function focusSoon(b, kb) { setTimeout(function () { if (b && !b.closest('[hidden]') && ctx.state === 'menu' && !panel) focusEl(b, kb); }, 30); }
@@ -4519,13 +4735,8 @@
   var gymLast = { t: NaN, miss: '' }, gymTip = '', gymTipT = 0, gymSel = 'serve', gymHov = null, gymBestV = 0;
   var geGate = false, geWait = false, geT0 = 0;
   function isDrill() { var g = ctx && ctx.game; return !!(g && g.drill && !g.demo); }
-  /** T-training: ejercicio de un entreno de la Carrera (main.js startCareerDrill marca g.ses). */
-  function isSes() { var g = ctx && ctx.game; return !!(g && g.drill && g.ses && !g.demo); }
-  /** Al hub de la Carrera bajo la cortinilla (main.js toMenu lo reabre en la tarjeta del entreno con g.ses). */
-  function goCareerHub() { if (!wipeRun(2, function () { ctx.actions.toMenu(); }) && !wp.cb) ctx.actions.toMenu(); }
   /** Reiniciar en la pausa: el ejercicio de la sesión o el reto (R16: ctx.actions.restart sabe qué toca). */
   function goRestart() { var f = function () { if (ctx.actions.restart) ctx.actions.restart(); }; if (!wipeRun(2, f) && !wp.cb) f(); }
-  var sesRes = null;   // último resultado de VB.CareerTrain.drillDone (hoja final del ejercicio de la sesión)
   function altR(g) { try { return VB.Sim.altReady(g) || ''; } catch (e) { return ''; } }
   function gymRow(id) { var Gm = VB.Gym; return Gm && Gm.drill ? Gm.drill(id) : null; }
   function drillName(id, short) { var d = gymRow(id); return d ? (short ? d.short : d.name) : id === 'free' ? 'Peloteo libre' : 'Entrenamiento'; }
@@ -4534,12 +4745,6 @@
     var Gm = VB.Gym; if (!Gm) return null;
     if (Gm.medalsOf) { try { var m = Gm.medalsOf(id); if (m) return m; } catch (e) { } }
     return Gm.MEDALS && Gm.MEDALS[id] || null;
-  }
-  /** Umbrales de medalla del ejercicio: los del entreno de la Carrera con g.ses (VB.CareerTrain.medalsOf), si no los del gimnasio. */
-  function sesMedals(g, id) {
-    var T = VB.CareerTrain;
-    if (g && g.ses && T && T.medalsOf) { try { var m = T.medalsOf(id); if (m) return m; } catch (e) { } }
-    return gymMedals(id);
   }
   function gymBestOf(id) { var Gm = VB.Gym; if (!Gm) return 0; try { if (id === 'free') return Gm.bestRally ? Gm.bestRally() | 0 : 0; var r = Gm.get(id); return r ? r.b | 0 : 0; } catch (e) { return 0; } }
   /** Medalla en SVG (sin emoji): m 0 = círculo hueco, 1 bronce, 2 plata, 3 oro; extra: clase («off» = apagada). */
@@ -4572,12 +4777,16 @@
   function goGym(id) {
     if (!id) return;
     gymSel = id;
-    var f = function () { ctx.actions.startMatch({ drill: id }); };
+    // (sesión de entrenamiento de la Carrera a medias: «Reiniciar» la repite con tu jugador de Carrera, sin gastar sesión)
+    var cg = ctx.game && ctx.game.careerDrill && !ctx.game.careerDrill.done && !ctx.game.demo ? ctx.game : null;
+    var f = function () { if (cg && ctx.actions.startCareerDrill) ctx.actions.startCareerDrill(id, !!cg.autopilot); else ctx.actions.startMatch({ drill: id }); };
     if (!wipeRun(2, f) && !wp.cb) f();
   }
   /** Pausa «Salir al entrenamiento» / hoja final «Entrenamiento»: al menú, en la página Entrenamiento con la fila del ejercicio. */
   function goGymList(id) {
     var kb = kbNow() || ctx.inputDevice === 'gamepad';
+    // ejercicio de la Carrera: vuelta al hub de la Carrera (main.js toMenu lo abre en Partido › Entrenamiento con el resultado)
+    if (ctx.game && ctx.game.careerDrill && !ctx.game.demo) { var fc = function () { ctx.actions.toMenu(); }; if (!wipeRun(2, fc) && !wp.cb) fc(); return; }
     var f = function () {
       ctx.actions.toMenu();
       if (ctx.state !== 'menu') return;
@@ -4592,7 +4801,7 @@
   function gymKicker(g) {
     var d = g.drill;
     if (d.kind === 'free') return ['Entrenamiento', gymBestV ? 'Récord ' + gymBestV + ' toques' : 'Peloteo libre'];
-    return [g.ses ? 'Entreno de la Carrera' : 'Entrenamiento', { h: escT(drillName(d.kind, true)) + ' <span style="white-space:nowrap">' + Math.min(d.of, d.n + 1) + '/' + d.of + SEP_V + (d.total | 0) + '&nbsp;pts</span>' }]; // («Remate 3/10 | 6 pts»: el grupo salta de línea entero por el espacio, sin separador colgando)
+    return [g.careerDrill ? 'Carrera' : 'Entrenamiento', { h: escT(drillName(d.kind, true)) + ' <span style="white-space:nowrap">' + Math.min(d.of, d.n + 1) + '/' + d.of + SEP_V + (d.total | 0) + '&nbsp;pts</span>' }]; // («Remate 3/10 | 6 pts»: el grupo salta de línea entero por el espacio, sin separador colgando)
   }
   /** Pastilla del HUD en el sitio del marcador: «Saque 4/10 ◆ 11 pts ◆ Récord 21» (solo reescribe si cambia algo). */
   function drillHud(g) {
@@ -4608,8 +4817,8 @@
   function drillIntro(g) {
     var id = g.drill.kind, gl = G(), ik = function (k, t) { return '<span class="ik">' + k + (k ? ' ' : '') + t + '</span>'; };
     el.idTitle.textContent = drillName(id);
-    // T-training §2.5 C: «Entreno ◆ Faro ◆ 1/2» encima del título (solo en el entreno de la Carrera)
-    if (el.idSes) { var ss = g.ses; el.idSes.hidden = !ss; if (ss) setSep(el.idSes, ['Entreno', ss.who === 'faro' ? 'Faro' : 'El entrenador', (ss.i | 0) + '/' + (ss.n | 0)], 'd'); }
+    // sesión de entrenamiento de la Carrera (g.careerDrill, main.js startCareerDrill): «Carrera ◆ Sesión 1 de 3» encima del título
+    if (el.idSes) { var cdr = g.careerDrill; el.idSes.hidden = !cdr; if (cdr) setSep(el.idSes, ['Carrera', 'Sesión ' + (cdr.n | 0) + ' de ' + (cdr.max | 0)], 'd'); }
     var row = gymRow(id); el.idGoal.textContent = row ? row.help : '';
     var keys = id === 'serve' ? ik(gl.serve, 'flotante') + ik(gl.jump, 'en salto') + ik('', 'Apunta con ' + gl.aim)
       : id === 'recv' ? ik(gl.move, 'te mueves') + ik(gl.hit, 'recibes')
@@ -4618,7 +4827,7 @@
       : id === 'block' ? ik(gl.jump, 'saltas') + ik(gl.hit, 'cierras al remate')
       : ik(gl.hit, 'golpeas') + ik(gl.jump, 'saltas') + ik(gl.jset, 'colocas');
     el.idKeys.innerHTML = keys;
-    var M = sesMedals(g, id);
+    var M = gymMedals(id);
     if (M) el.idMed.innerHTML = M.map(function (v, i) { return '<span class="im">' + medalSVG(i + 1) + MEDAL_N[i + 1] + ' ' + v + '</span>'; }).join('<span class="sep sep-v"><span class="sr">, </span></span>');
     else { var b = gymBestOf('free'); el.idMed.textContent = b ? 'Mejor peloteo: ' + b + ' toques' : 'Sin marcador ni sets'; }
   }
@@ -4671,11 +4880,11 @@
   }
   /** drillEnd: apunta el total (VB.Gym.record, que da la XP de las medallas nuevas) y prepara la hoja final; se abre tras el sello. */
   function gymEndShow(e, g) {
-    sesRes = null;
-    if (g && g.ses && !g.demo) { sesEndShow(e, g); return; }
-    gymEndBtns(false);
-    var Gm = VB.Gym, id = e.kind, total = e.total | 0, res = null, M = gymMedals(id) || [99, 99, 99];
-    if (Gm && Gm.record && !ctx.debug) { try { res = Gm.record(id, total); } catch (er) { res = null; } }
+    var Gm = VB.Gym, id = e.kind, total = e.total | 0, res = null, M = gymMedals(id) || [99, 99, 99], cdr = g && g.careerDrill ? g.careerDrill : null;
+    // (sesión de la Carrera: no toca voley3d.gym ni da experiencia al escuadrón de Partido rápido; cuenta en la Carrera, main.js)
+    if (Gm && Gm.record && !ctx.debug && !cdr) { try { res = Gm.record(id, total); } catch (er) { res = null; } }
+    // D2: sesión del Entrenamiento para el perfil (hito «modos»; la XP de las medallas es derivada de VB.Gym)
+    if (!ctx.debug && g && !g.autopilot && VB.Profile && VB.Profile.noteGym) { try { VB.Profile.noteGym(id); } catch (er) { console.error('[VB][ERROR] Profile.noteGym: ' + er); } }
     if (!res) {   // depuración (o sin gym.js): lo que pasaría, sin guardar nada
       var pv = Gm && Gm.get ? Gm.get(id) : null, pm = pv ? pv.m | 0 : 0, mm = Gm && Gm.medalOf ? Gm.medalOf(id, total) : 0, xp = 0, XP = (Gm && Gm.XP) || [30, 50, 80];
       for (var lv = pm + 1; lv <= mm; lv++) xp += XP[lv - 1] || 0;
@@ -4699,58 +4908,28 @@
     if (res.newMedal && res.medal) rec += '<span class="new">¡Medalla de ' + MEDAL_N[res.medal].toLowerCase() + '!</span>';
     if (res.xp > 0) rec += '<span><b>+' + res.xp + ' de experiencia</b> (a cada jugador)</span>';
     if (res.medal < 3 && M[res.medal] < 99) rec += '<span>' + MEDAL_N[res.medal + 1] + ': ' + M[res.medal] + ' puntos</span>';
+    if (cdr) rec = careerDrillRec(cdr, total, res.medal);
     el.geRec.innerHTML = rec;
-    var nx = Gm && Gm.nextOf ? Gm.nextOf(id) : null;
+    var nx = Gm && Gm.nextOf && !cdr ? Gm.nextOf(id) : null;
     el.btnGeNext.hidden = !nx;
     if (nx) el.btnGeNext.textContent = 'Siguiente: ' + drillName(nx, true);
+    // sesión de la Carrera: sin «Repetir» ni «Siguiente» (cada una gasta sesión); «Entrenamiento» pasa a «Volver a la Carrera»
+    el.btnGeAgain.hidden = !!cdr;
+    if (cdr) { if (!el.btnGeList.getAttribute('data-cr')) el.btnGeList.setAttribute('data-cr', el.btnGeList.textContent); el.btnGeList.textContent = 'Volver a la Carrera'; setSep(el.geKick, ['Carrera', 'Sesión ' + cdr.n + ' de ' + cdr.max], 'd'); }
+    else if (el.btnGeList.getAttribute('data-cr')) { el.btnGeList.textContent = el.btnGeList.getAttribute('data-cr'); el.btnGeList.removeAttribute('data-cr'); }
     srSay(drillName(id) + ': ' + total + ' puntos' + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + (total > 0 && res.isBest ? ', nuevo récord' : ''));
     // depuración: la hoja al momento; si no, tras el sello de la última repetición (0,75 s) y la cortinilla
     geGate = !(ctx.debug && ctx.params.hold !== '1'); geWait = geGate; geT0 = ctx.time; shown = '';
   }
-  /** Botones de la hoja final: los del gimnasio (Repetir, Siguiente, Entrenamiento) o los del entreno de la Carrera (sin Repetir:
-   *  un ejercicio ya apuntado no se repite; «Siguiente: Bloqueo (2/2)» o «Ver el entreno» como acción principal y «Volver a la Carrera»). */
-  function gymEndBtns(ses) {
-    if (!el.btnGeAgain) return;
-    el.btnGeAgain.hidden = !!ses;
-    el.btnGeNext.classList.toggle('ghost', !ses);
-    if (!ses) { el.btnGeAgain.textContent = 'Repetir'; el.btnGeList.textContent = 'Entrenamiento'; }
-    else el.btnGeList.textContent = 'Volver a la Carrera';
-    if (el.gymEnd) el.gymEnd.classList.toggle('ses', !!ses);
-  }
-  /** T-training §2.5 C: hoja final del ejercicio de un entreno de la Carrera. Apunta en la Carrera (VB.CareerTrain.drillDone; en
-   *  depuración, dry: sin guardar). Nunca en el gimnasio: ni VB.Gym.record, ni récord, ni experiencia del escuadrón. */
-  function sesEndShow(e, g) {
-    var T = VB.CareerTrain, id = e.kind, total = e.total | 0, res = null, M = sesMedals(g, id) || [99, 99, 99];
-    if (T && T.drillDone) { try { res = T.drillDone(id, total, e.reps, ctx.debug ? { dry: true } : undefined); } catch (er) { console.error('[VB][ERROR] CareerTrain.drillDone: ' + (er && er.stack || er)); res = null; } }
-    if (!res) {   // sin career-train.js o sin sesión (escena ses_end de prueba): lo que saldría, sin guardar nada
-      var mm = 0; for (var mi = 0; mi < 3; mi++) if (total >= M[mi]) mm = mi + 1;
-      var at = (VB.Gym && VB.Gym.ATTR && VB.Gym.ATTR[id]) || ({ serve: 'serve', recv: 'recv', set: 'set', atk: 'spike', block: 'block' })[id] || id, ss = g.ses || {};
-      res = { id: id, medal: mm, total: total, tp: [5, 12, 20, 30][mm], attr: at, v: 0, up: false, pts: Math.min(99, [5, 12, 20, 30][mm]), i: ss.i | 0 || 1, n: ss.n | 0 || 1,
-        next: null, last: true, toNext: mm < 3 && M[mm] < 99 ? { m: mm + 1, name: MEDAL_N[mm + 1], need: Math.max(1, M[mm] - total) } : null };
-    }
-    sesRes = res;
-    gymEndBtns(true);
-    var aL = T && T.attrLabel ? T.attrLabel(res.attr) : (VB.Prog && VB.Prog.LABEL && VB.Prog.LABEL[res.attr]) || res.attr;
-    setSep(el.geKick, ['Entreno de la Carrera', venueName()], 'd');
-    el.geTitle.textContent = drillName(id);
-    el.geTotal.textContent = total; el.geTotal.setAttribute('data-cu', total);
-    el.geMax.textContent = (VB.Gym && VB.Gym.MAX) || 30;
-    var mh = '';
-    for (var i = 1; i <= 3; i++) {
-      var on = res.medal >= i;
-      mh += '<span class="ge-m' + (on ? ' on' : '') + (on && i === res.medal ? ' new' : '') + '">' + medalSVG(i, on ? '' : 'off') + '<span>' + MEDAL_N[i] + ' ' + M[i - 1] + '</span></span>';
-    }
-    el.geMeds.innerHTML = mh;
-    el.geReps.innerHTML = (e.reps || []).map(function (p) { return '<i class="p' + Math.max(0, Math.min(3, p | 0)) + '"></i>'; }).join('');
-    var rec = '<span>' + escT(aL) + ': <b>+' + (res.tp | 0) + ' de progreso</b> (' + (res.pts | 0) + '/100)</span>';
-    if (res.up) rec += '<span class="new">¡+1 en ' + escT(aL) + '!</span>';
-    if (res.toNext) rec += '<span>' + escT(res.toNext.name) + ': ' + (res.toNext.need | 0) + ((res.toNext.need | 0) === 1 ? ' punto' : ' puntos') + '</span>';
-    el.geRec.innerHTML = rec;
-    el.btnGeNext.hidden = false;
-    var nShort = res.next ? (T && T.drillShort ? T.drillShort(res.next) : drillName(res.next, true)) : '';
-    el.btnGeNext.textContent = res.next ? 'Siguiente: ' + nShort + ' (' + ((res.i | 0) + 1) + '/' + (res.n | 0) + ')' : 'Ver el entreno';
-    srSay(drillName(id) + ': ' + total + ' puntos' + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + '. ' + aL + ': más ' + (res.tp | 0) + ' de progreso');
-    geGate = !(ctx.debug && ctx.params.hold !== '1'); geWait = geGate; geT0 = ctx.time; shown = '';
+  /** Líneas de la hoja final de una sesión de la Carrera (resultado de VB.Career.drillDone en g.careerDrill.res). */
+  function careerDrillRec(cdr, total, medal) {
+    var r = cdr.res, out = '';
+    if (!r || !r.ok) return '<span>' + (r && r.why === 'fatiga' ? 'Demasiada fatiga: la sesión no cuenta' : r && r.why === 'done' ? 'Ya no quedaban sesiones: no cuenta' : 'La sesión no se ha podido apuntar') + '</span>';
+    var an = r.attr && VB.Prog && VB.Prog.LABEL ? VB.Prog.LABEL[r.attr] : cdr.attrName;
+    out += r.up ? '<span class="new">¡+1 en ' + escT(an) + '! (' + r.v + ')</span>' : '<span><b>+' + r.gain + '</b> de progreso en ' + escT(an) + ' (' + r.prog + ' de ' + r.need + ')</span>';
+    out += '<span>Fatiga ' + r.fat0 + ' → ' + r.fat + '</span><span>Impresión en el entrenador ' + Math.round(r.imp0) + ' → ' + Math.round(r.imp) + '</span>';
+    if (r.stat && r.stat0 && r.stat !== r.stat0 && r.stat === 'start') out += '<span class="new">Te has ganado el sitio en los entrenos</span>';
+    return out;
   }
   function geTick() {
     if (ctx.state !== 'over' || !isDrill()) { geWait = false; geGate = false; return; }
@@ -5115,7 +5294,17 @@
     /** B2: req del retrato de tu n.º 1 (idx 0) o n.º 2 (idx 1) en Partido rápido; null para el rival. */
     portraitReqMatch: function (team, idx, px) { return portraitReqMatch(team, idx, px); },
     /** UI-14 (main.js): empieza / acaba la tarjeta de presentación. */
-    introStart: function (g) { introStart(g); },
+    introStart: function (g, plan) { introStart(g, plan); },
+    /** B5 (main.js, antes de introStart): plan de la previa (VB.Recap.introPlan con los datos de la partida) o null sin recap.js.
+     *  o = opciones de startMatch (o.introKind = 'mini' | 'short' | 'long' lo fuerza). */
+    introPlan: function (g, o) { return introPlan(g, o); },
+    /** Pruebas (C4): rótulos cinéticos {n, kind ('ace'|'muro'|'sp'|'mp'), team, t (performance.now)}. */
+    _rot: function () { return { n: rot.n, kind: rot.kind, team: rot.team, t: rot.t }; },
+    /** Pruebas / hoja de B6 (T19): resultado de VB.Retos.endMatch del último partido (null si no contaba) y del perfil. */
+    _retoEnd: function () { return retoEnd; },
+    _profEnd: function () { return profEnd; },
+    /** Pruebas (B5): último plan de la previa y beat por el que va. */
+    _intro: function () { return introUI.plan ? { kind: introUI.plan.kind, dur: introUI.plan.dur, beats: introUI.plan.beats, b: introUI.plan.b, c: introUI.plan.c, t: introUI.plan.t, bi: introUI.bi, on: introUI.on } : null; },
     introEnd: function (skipped) { introEndUI(skipped); },
     /** Pruebas (UI-11): estadística por jugador del partido (id → {num, team, pts, kills, blocks, aces}) y estado de la hoja. */
     _endStats: function () { return { p: stats.p, gate: endGate, wait: endWait, peek: endPeek, dock: ctx.uiDock || null }; },
@@ -5145,6 +5334,10 @@
     padTabDir: padTabDir,
     /** Página del menú visible: 'main' | 'play' | 'quick' | 'gym' | 'look'; menuGo(p) abre una (apilando la actual), menuBack() vuelve. */
     menuPage: function () { return mpage; },
+    /** D4 (account.js tras una bajada con ganchos) y Vestuario: vuelve a leer el récord y la portada (B3) y repinta el menú. */
+    refreshMenu: function () { last.rec = null; last.navh = null; heroDirty = true; if (ctx && ctx.state === 'menu') renderMenu(); },
+    /** Pruebas (B3): portada con «Continuar carrera» {on, open: abierta desde la portada}. */
+    _hero: function () { return { on: heroOn, open: contOpen, dirty: heroDirty }; },
     menuGo: function (p, o) { if (p === 'look') return openLook(o); if (p === 'play' || p === 'quick' || p === 'gym') menuGo(p); },
     /** Vestuario (página 'look'): o = {who: 'career', hall, tc, back} desde la Carrera; {tab, venue, item, pick} para ?debug=look
      *  (tab: pelo|cabeza|cara|cuerpo|brazos|piernas|colores; venue: hall|beach; item: id del catálogo que probar; pick: 1 | 2 | 'career').
@@ -5176,6 +5369,7 @@
       });
       // menús v2: JUGAR → modos; Partido rápido → preparación; ¡A JUGAR! → partido (la Carrera la abre career-ui.js en #btnCareer)
       el.btnPlay.addEventListener('click', function () { menuGo('play'); });
+      if (el.btnCont) on(el.btnCont, goCont);   // B3: «Continuar carrera» → hub de la Carrera en «Partido»
       // tarjeta Partido rápido: la preparación SIEMPRE en 2 contra 2 (la tarjeta 6 contra 6 deja el formato en 6v6; sin esto, mirar
       // esa tarjeta y volver dejaba el Partido rápido en 6v6). Dentro, la fila Formato se puede cambiar igual
       if (el.btnQuick) el.btnQuick.addEventListener('click', function () { if (ctx.settings.format !== '2v2') ctx.actions.setSetting('format', '2v2'); menuGo('quick'); });
@@ -5185,13 +5379,9 @@
       if (el.btnGym) el.btnGym.addEventListener('click', function () { menuGo('gym'); });
       if (el.gymList) el.gymList.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b) { uiSound('start'); goGym(b.getAttribute('data-drill')); } });
       if (el.gymList) el.gymList.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b && b !== gymHov) { gymHov = b; hoverSound(); } });
-      if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () { if (isSes()) return; uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind); });
-      if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () {
-        // T-training: siguiente ejercicio de la sesión o, con el último, la tarjeta del entreno en el hub
-        if (isSes()) { var nx = sesRes && sesRes.next; uiSound('start'); if (nx && ctx.actions.startCareerDrill) { if (!wipeRun(2, function () { ctx.actions.startCareerDrill(nx); }) && !wp.cb) ctx.actions.startCareerDrill(nx); } else goCareerHub(); return; }
-        var g = ctx.game, n = g && g.drill && VB.Gym && VB.Gym.nextOf ? VB.Gym.nextOf(g.drill.kind) : null; uiSound('start'); if (n) goGym(n);
-      });
-      if (el.btnGeList) el.btnGeList.addEventListener('click', function () { uiSound('back'); if (isSes()) { goCareerHub(); return; } goGymList(ctx.game && ctx.game.drill ? ctx.game.drill.kind : null); });
+      if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () { uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind); });
+      if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () { var g = ctx.game, n = g && g.drill && VB.Gym && VB.Gym.nextOf ? VB.Gym.nextOf(g.drill.kind) : null; uiSound('start'); if (n) goGym(n); });
+      if (el.btnGeList) el.btnGeList.addEventListener('click', function () { uiSound('back'); goGymList(ctx.game && ctx.game.drill ? ctx.game.drill.kind : null); });
       if (el.sqPick) el.sqPick.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-pick]') : null; if (b) sqPick(+b.getAttribute('data-pick'), b.classList.contains('kf') ? true : null); });
       buildTabs();
       lkInit();   // Vestuario
@@ -5260,13 +5450,13 @@
       on(el.btnPSettings, function () { openPanel('set', 'paused'); });
       // Reiniciar en dos pasos (un dedo que se escapa no tira el partido): 1r toque arma 2 s, el 2º reinicia. Sin confirm().
       on(el.btnRestart, function () {
-        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (isSes() || (ctx.game && ctx.game.retoOpts && !ctx.game.demo)) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
+        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (ctx.game && ctx.game.retoOpts && !ctx.game.demo) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
         restartArm = performance.now();
         el.btnRestart.textContent = device() === 'touch' ? 'Toca otra vez para reiniciar' : 'Pulsa otra vez para reiniciar';
         el.btnRestart.classList.add('arm');
         clearTimeout(restartTo); restartTo = setTimeout(disarmRestart, 2000);
       });
-      on(el.btnQuit, function () { if (isSes()) goCareerHub(); else if (isDrill()) goGymList(ctx.game.drill.kind); else goMenu(); });
+      on(el.btnQuit, function () { if (isDrill()) goGymList(ctx.game.drill.kind); else goMenu(); });
       el.btnAgain.addEventListener('click', function () { uiSound('start'); goMatch(); });
       el.btnMenu.addEventListener('click', function () { uiSound('back'); goMenu(); });
       if (el.btnEndOpts) el.btnEndOpts.addEventListener('click', function () { uiSound('click'); goOptions(); });
@@ -5370,7 +5560,8 @@
         var a = document.activeElement; if (a && a.blur && a.tagName === 'BUTTON') a.blur(); // que el Espacio no pulse un botón oculto
       }
       if (s !== 'menu' && lk.on) lkClose();   // el Vestuario solo vive en el menú (guarda y apaga la vista previa)
-      if (s === 'menu') { panel = null; pstack.length = 0; tutStop(); if (prev && prev !== 'menu') menuReset(); lkCheckPend = true; } // (al volver de un partido; no en los setState('menu') del arranque)
+      if (s === 'menu') { panel = null; pstack.length = 0; tutStop(); if (prev && prev !== 'menu') menuReset(); lkCheckPend = true; heroDirty = true; } // (al volver de un partido; no en los setState('menu') del arranque)
+      else { contOpen = false; crWasOpen = false; }   // (B3: la Carrera abierta desde la portada se cierra al empezar un partido)
     },
     onGameStart: function (g) {
       if (role6Pend && g && !g.demo) applyRole6();   // 6v6: goMatch llegó antes de que empezara el partido (telón de arranque)
@@ -5385,7 +5576,7 @@
       el.end.classList.remove('win', 'lose');
       // E6 / E1: estado del ejercicio y del consejo de maestría de este partido
       geGate = false; geWait = false; gymTip = ''; gymTipT = 0; gymLast.t = NaN; gymLast.miss = ''; e1.k = ''; e1.t = 0; e1.on = false; lastSetJ = false;
-      gymBestV = g && g.drill && !g.demo && !g.ses ? gymBestOf(g.drill.kind) : 0;   // (entreno de la Carrera: sin «Récord», es del gimnasio)
+      gymBestV = g && g.drill && !g.demo && !g.careerDrill ? gymBestOf(g.drill.kind) : 0;   // (entreno de la Carrera: sin «Récord», es del gimnasio)
       el.app.classList.toggle('drill-on', !!(g && g.drill && !g.demo)); last.drOn = !!(g && g.drill && !g.demo);
       kitTick();
     },
@@ -5395,7 +5586,7 @@
     back: function () {
       if (panel) { uiSound('back'); return closePanel(); }
       // E6: B / Esc en la hoja final del ejercicio = «Entrenamiento» (vuelve a la lista)
-      if (ctx.state === 'over' && el.gymEnd && !el.gymEnd.hidden && ctx.game && ctx.game.drill) { uiSound('back'); if (isSes()) goCareerHub(); else goGymList(ctx.game.drill.kind); return true; }
+      if (ctx.state === 'over' && el.gymEnd && !el.gymEnd.hidden && ctx.game && ctx.game.drill) { uiSound('back'); goGymList(ctx.game.drill.kind); return true; }
       return menuBack();
     },
     /** Navegación con mando fuera del partido (main.js la llama con las intenciones del frame). */
@@ -5462,7 +5653,13 @@
       if ((ctx.frame & 15) === 5) { if (!el.panel.hidden) checkMore(el.panel); if (!el.end.hidden) checkMore(el.end); if (!el.pause.hidden) checkMore(el.pause); }
       if (ctx.state === 'menu' && (ctx.frame & 63) === 0) renderMenu();
       lkTick(rdt);
-      if (ctx.state === 'menu' && (ctx.frame & 7) === 2 && mpage !== 'play' && mpage !== 'look' && VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen)) { mstack.length = 0; mstack.push({ p: 'main', f: 'btnPlay' }); setPage('play'); }
+      if (ctx.state === 'menu' && (ctx.frame & 7) === 2 && mpage !== 'play' && mpage !== 'look' && !contOpen && VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen)) { mstack.length = 0; mstack.push({ p: 'main', f: 'btnPlay' }); setPage('play'); }
+      // B3: la Carrera se ha cerrado (desde la portada o desde Jugar): la portada vuelve a leer la carrera (y el foco a #btnCont)
+      if (ctx.state === 'menu' && (ctx.frame & 7) === 3 && VB.CareerUI && VB.CareerUI.isOpen) {
+        var crO = !!safe(VB.CareerUI.isOpen);
+        if (crWasOpen && !crO) { if (contOpen) contBack(); else heroDirty = true; }
+        crWasOpen = crO;
+      }
       if ((ctx.frame & 7) === 0) sbDimTick(g);
       if (ctx.frame % 15 === 4) tabTitle(g);   // E7: título de la pestaña (solo escribe si cambia el tanteo o el estado)
       if ((ctx.frame & 31) === 1) vigTick();

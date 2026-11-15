@@ -375,11 +375,11 @@ if (!BOSS_ONLY) {
     ok(info.every(a => a.id && a.name && a.d && Object.values(a).every(v => typeof v !== 'function')), 'ACH_INFO sin funciones, con id, name y d');
     ok(info.filter(a => a.id === 'as1k')[0].only === 'hall' && info.filter(a => a.id === 'm50')[0].nh === 'Veterano del parqué', 'ACH_INFO conserva only y nh');
     const c = C.create({ name: 'Entrenos', num: 3, seed: 99, autoClub: true });
-    c.sesN = [0, 2, 6, 3]; let got = Lf.check(c).map(a => a.id);
+    c.ts = { md: [0, 2, 6, 3] }; let got = Lf.check(c).map(a => a.id);
     ok(got.indexOf('ses10') < 0 && got.indexOf('sesg5') < 0, '9 de plata u oro y 3 oros: aún nada');
-    const pts0 = c.player.pts, f0 = c.life.fame; c.sesN = [0, 2, 5, 5]; got = Lf.check(c).map(a => a.id);
-    ok(got.indexOf('ses10') >= 0 && got.indexOf('sesg5') >= 0 && c.player.pts === pts0 + 1 && c.life.fame >= f0 + 40, 'ses10 (+1 punto) y sesg5 (+40 seguidores) con c.sesN');
-    delete c.sesN; let e = ''; try { Lf.achList(c); } catch (x) { e = x.message; } ok(!e, 'sin c.sesN (sin career-train.js) no rompe');
+    const pts0 = c.player.pts, f0 = c.life.fame; c.ts.md = [0, 2, 5, 5]; got = Lf.check(c).map(a => a.id);
+    ok(got.indexOf('ses10') >= 0 && got.indexOf('sesg5') >= 0 && c.player.pts === pts0 + 1 && c.life.fame >= f0 + 40, 'ses10 (+1 punto) y sesg5 (+40 seguidores) con c.ts.md');
+    delete c.ts; let e = ''; try { Lf.achList(c); } catch (x) { e = x.message; } ok(!e, 'sin c.ts (guardado antiguo) no rompe');
   }
 }
 
