@@ -956,6 +956,6 @@ Detalle: `notes/s234/T5.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
   partículas y confeti; al salir borra lo de la repetición y restaura lo guardado. Con `g.replay`: sin aro, retícula, guías del saque,
   `setPreview` ni pista de posición 6v6. Copias en `Float32Array` reservadas una vez; 0 dibujos nuevos.
 - Cortado (plan §4): mensaje «REPETICIÓN» en las vallas.
-- **Pendiente (QA de T20, `notes/s234/T20.md`):** en el evento `block` la sim pone el balón ya al otro lado de la red y el balón pintado salta
+- **Hecho en la integración (T23):** fx.js guarda el balón del frame anterior (`BPF`) y en el evento `block` `BOFF` = BPF − `b`; el balón pintado es `b + BOFF · (1 − smoothstep)` durante `BOFF_T` 0,10 s (cero basura; misma cuenta en players `bkOx`). Antes: en el evento `block` la sim pone el balón ya al otro lado de la red y el balón pintado salta
   0,6-0,9 m en un frame (17 de 18 toques de bloqueo). Propuesta: guardar `blkOff` = balón pintado del frame anterior − `b`, sumarlo a
   `ballPivot` y apagarlo con smoothstep en 0,10 s (sin basura); players apuntaría `blkAnchor` a `b + blkOff`. No toca la sim.

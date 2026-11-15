@@ -1946,8 +1946,9 @@ const UI_PATCH = [
 ];
 /** Test-only probes for the scratch copy: a log of every count-up frame and a hook to rerun the count-up. */
 const UI_PROBE = [
-  { find: "      if (u2 < 1) cuRaf = requestAnimationFrame(step);",
-    repl: "      if (window.__cuLog) { var S = VB.Audio.stats; window.__cuLog.push([now, performance.now(), u2, chg ? 1 : 0, S.count | 0, S.countEnd | 0, S.countAt || 0, S.countEndAt || 0]); }\n      if (u2 < 1) cuRaf = requestAnimationFrame(step);" },
+  // (B6, sprint 2-4: countUp tiene dos relojes, el de la hoja (main) y el del Resumen repintado; solo se registra el de la hoja)
+  { find: "      if (u2 < 1) { var r1 = requestAnimationFrame(step); if (main) cuRaf = r1; else cuRaf2 = r1; }",
+    repl: "      if (main && window.__cuLog) { var S = VB.Audio.stats; window.__cuLog.push([now, performance.now(), u2, chg ? 1 : 0, S.count | 0, S.countEnd | 0, S.countAt || 0, S.countEndAt || 0]); }\n      if (u2 < 1) { var r1 = requestAnimationFrame(step); if (main) cuRaf = r1; else cuRaf2 = r1; }" },
   { find: "  // ---------- Flujo hasta la hoja final (UI-11 / UI-13) ----------",
     repl: "  window.__aud08CountUp = function () { var S = VB.Audio.stats; window.__cuBase = [S.count | 0, S.countEnd | 0]; window.__cuLog = []; countUp(el.end); };\n  // ---------- Flujo hasta la hoja final (UI-11 / UI-13) ----------" }
 ];

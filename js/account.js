@@ -1,6 +1,9 @@
 /* MAKE THE CUT — js/account.js (owner: ui_main)
  * Cuentas para guardar el progreso en la nube (Firebase, proyecto make-the-cut-vb; diseño en notes/cuentas.md).
- *  - Solo usuario y contraseña (correo ficticio <usuario>@cuentas.make-the-cut.invalid). Firebase por REST, sin librerías.
+ *  - Tres formas de entrar (15-nov-2026): correo y contraseña (se puede recuperar la contraseña), usuario y contraseña (correo ficticio
+ *    <usuario>@cuentas.make-the-cut.invalid, las cuentas de antes) y Google. Correo y usuario van por REST, sin librerías; Google carga
+ *    el SDK de Firebase Auth (gstatic) SOLO al pulsar el botón, saca el uid y el refresh token y la sesión sigue por REST como las demás.
+ *    Requisitos de Google (consola de Firebase, los pone Ferran): proveedor Google activado y purupurpito.github.io en dominios autorizados.
  *  - Se sincronizan cuatro guardados del navegador: escuadrón ('voley3d.squad'), Carrera ('voley3d.career'), ajustes
  *    ('voley3d.settings') y récord ('voley3d.record'). Cada uno es un documento users/{uid}/saves/{squad|career|settings|record}
  *    = {data: JSON en texto, updatedAt: ms, v: 1}. Sin cifrar (lo eligió Ferran); las reglas solo dejan leer y escribir al dueño.
@@ -10,7 +13,7 @@
  *    Si llega algo de la cuenta, la página se recarga para que el juego lo lea.
  *  - 'voley3d.gym' (Entrenamiento) se une por máximo (mergeGym); se sincroniza desde el 12-nov-2026 (GYM_SYNC = true).
  *  - 'voley3d.look' (Vestuario, js/look.js) tiene su fusión escrita (mergeLook: une lo ganado y lo visto con VB.Look.mergeRaw y toma
- *    los looks del lado más reciente) pero NO se sincroniza hasta LOOK_SYNC = true.
+ *    los looks del lado más reciente); se sincroniza desde el 15-nov-2026 (LOOK_SYNC = true).
  *  - S4 (T13): 'voley3d.profile', 'voley3d.career6', 'voley3d.career.mode', 'voley3d.legends' y 'voley3d.retos' tienen su fusión
  *    (MERGE: perfil y retos con su mergeRaw, Salón de la Fama por unión; Carrera de pista y modo, gana lo más reciente) pero NO se
  *    sincronizan hasta S4_SYNC = true (antes, Ferran despliega firebase/firestore.rules). Hasta entonces, TRACK (solo la hora).
@@ -23,7 +26,8 @@
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
-  var FB = { key: 'AIzaSyC59o9QtpUvjWT4g3ouOXinghASTuXZSes', project: 'make-the-cut-vb', mail: '@cuentas.make-the-cut.invalid' };
+  var FB = { key: 'AIzaSyC59o9QtpUvjWT4g3ouOXinghASTuXZSes', project: 'make-the-cut-vb', mail: '@cuentas.make-the-cut.invalid',
+    authDomain: 'make-the-cut-vb.firebaseapp.com', sdk: 'https://www.gstatic.com/firebasejs/10.12.5/' };
   var FS = 'https://firestore.googleapis.com/v1/projects/' + FB.project + '/databases/(default)/documents/';
   var SES = 'voley3d.account', META = 'voley3d.account.meta';
   var DOCS = { 'voley3d.squad': 'squad', 'voley3d.career': 'career', 'voley3d.settings': 'settings', 'voley3d.record': 'record' };
@@ -32,10 +36,9 @@
   // Orden obligatorio: 1) desplegar reglas, 2) GYM_SYNC = true. 'voley3d.seen' y 'voley3d.device' NUNCA van a DOCS (son del dispositivo).
   var GYM_SYNC = true;   // reglas con 'gym' desplegadas el 12-nov-2026 (firebase deploy --only firestore:rules)
   if (GYM_SYNC) DOCS['voley3d.gym'] = 'gym';
-  // Vestuario (js/look.js): 'voley3d.look' irá a users/{uid}/saves/look con la fusión mergeLook. APAGADO: las reglas con 'look' están en
-  // firebase/firestore.rules pero sin desplegar. Orden obligatorio, como con el gym: 1) Ferran despliega las reglas, 2) LOOK_SYNC = true.
-  // Mientras tanto se apunta igual la hora de cada escritura (TRACK), para que la primera fusión ya sepa qué looks son los más nuevos.
-  var LOOK_SYNC = false;
+  // Vestuario (js/look.js): 'voley3d.look' va a users/{uid}/saves/look con la fusión mergeLook. Con LOOK_SYNC = false volvería a TRACK
+  // (solo se apunta la hora de cada escritura, para que la primera fusión sepa qué looks son los más nuevos).
+  var LOOK_SYNC = true;   // reglas con 'look' desplegadas el 15-nov-2026 (firebase deploy --only firestore:rules)
   if (LOOK_SYNC) DOCS['voley3d.look'] = 'look';
   var TRACK = { 'voley3d.look': 1 };
   if (LOOK_SYNC) delete TRACK['voley3d.look'];
@@ -311,19 +314,88 @@
   // ---------------------------------------------------------------- entrar, crear, salir, borrar
   function normUser(u) { return String(u || '').trim().toLowerCase(); }
   function userOk(u) { return /^[a-z0-9][a-z0-9._-]{2,29}$/.test(u); }
+  function isMail(u) { return u.indexOf('@') >= 0; }
+  function mailOk(u) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(u) && u.length <= 120; }
+  /** user: un correo de verdad (si lleva @) o un usuario (las cuentas de antes: correo ficticio). */
   function enter(user, pass, create) {
     user = normUser(user);
-    if (!userOk(user)) return Promise.reject(err('bad_user'));
+    var mail = isMail(user);
+    if (mail ? !mailOk(user) : !userOk(user)) return Promise.reject(err(mail ? 'INVALID_EMAIL' : 'bad_user'));
     if (String(pass || '').length < 6) return Promise.reject(err('WEAK_PASSWORD'));
-    return idt(create ? 'accounts:signUp' : 'accounts:signInWithPassword', { email: user + FB.mail, password: pass, returnSecureToken: true })
-      .then(function (j) {
-        acc = { user: user, uid: j.localId, rt: j.refreshToken, it: j.idToken, ie: Date.now() + (+j.expiresIn || 3600) * 1000 };
-        jset(SES, acc); synced = {}; jset(META + '.up', synced); conflicts = [];
-        return readAll();
-      }).then(function (remote) {
-        var r = merge(remote, true);
-        return push().then(function () { lastSync = Date.now(); setStatus('idle'); return r; });
+    return idt(create ? 'accounts:signUp' : 'accounts:signInWithPassword', { email: mail ? user : user + FB.mail, password: pass, returnSecureToken: true })
+      .then(function (j) { return begin({ user: user, kind: mail ? 'mail' : 'user', uid: j.localId, rt: j.refreshToken, it: j.idToken, exp: j.expiresIn }); });
+  }
+  /** Sesión nueva (cualquier forma de entrar): guarda los tokens, une lo del dispositivo con lo de la cuenta y sube. */
+  function begin(o) {
+    acc = { user: o.user, kind: o.kind, uid: o.uid, rt: o.rt, it: o.it, ie: Date.now() + (+o.exp || 3600) * 1000 };
+    jset(SES, acc); synced = {}; jset(META + '.up', synced); conflicts = [];
+    return readAll().then(function (remote) {
+      var r = merge(remote, true);
+      return push().then(function () { lastSync = Date.now(); setStatus('idle'); return r; });
+    });
+  }
+  /** Correo para cambiar la contraseña (solo cuentas con correo de verdad). Firebase no dice si el correo existe. */
+  function resetPass(mail) {
+    mail = normUser(mail);
+    if (!isMail(mail) || !mailOk(mail)) return Promise.reject(err('need_mail'));
+    return idt('accounts:sendOobCode', { requestType: 'PASSWORD_RESET', email: mail });
+  }
+  // ---- Google: SDK de Firebase Auth (compat) cargado a demanda; ventana emergente y, si el navegador la bloquea, redirección
+  var GREDIR = 'voley3d.account.gredir', sdkP = null;
+  function loadSdk() {
+    if (sdkP) return sdkP;
+    function add(f) { return new Promise(function (ok, ko) { var sc = document.createElement('script'); sc.src = FB.sdk + f; sc.async = false; sc.onload = ok; sc.onerror = function () { ko(err('unavailable')); }; document.head.appendChild(sc); }); }
+    sdkP = add('firebase-app-compat.js').then(function () { return add('firebase-auth-compat.js'); }).then(function () {
+      var fb = window.firebase; if (!fb || !fb.auth) throw err('unavailable');
+      if (!fb.apps.length) fb.initializeApp({ apiKey: FB.key, authDomain: FB.authDomain, projectId: FB.project });
+      return fb;
+    });
+    sdkP.catch(function () { sdkP = null; });
+    return sdkP;
+  }
+  function gFinish(cred) {
+    var u = cred && cred.user; if (!u) throw err('g_cancel');
+    return u.getIdTokenResult().then(function (t) {
+      var o = { user: normUser(u.email || u.displayName || 'google'), kind: 'google', uid: u.uid, rt: u.refreshToken, it: t.token,
+        exp: Math.max(60, (Date.parse(t.expirationTime) - Date.now()) / 1000 | 0) };
+      // la sesión sigue por REST con el refresh token: el SDK se cierra (signOut en el cliente no revoca el token)
+      try { window.firebase.auth().signOut(); } catch (e) { }
+      return begin(o);
+    });
+  }
+  function gErr(e) {
+    var c = String(e && e.code || '');
+    if (/popup-closed-by-user|cancelled-popup-request|user-cancelled/.test(c)) return err('g_cancel');
+    if (/operation-not-allowed|configuration-not-found/.test(c)) return err('g_off');
+    if (/unauthorized-domain/.test(c)) return err('g_domain');
+    if (/network-request-failed/.test(c)) return err('unavailable');
+    if (/operation-not-supported-in-this-environment|web-storage-unsupported/.test(c)) return err('g_env');
+    if (/account-exists-with-different-credential/.test(c)) return err('g_exists');
+    return e && e.code && !/^auth\//.test(c) ? e : err('error', c);
+  }
+  function google() {
+    return loadSdk().then(function (fb) {
+      var pr = new fb.auth.GoogleAuthProvider(); pr.setCustomParameters({ prompt: 'select_account' });
+      return fb.auth().signInWithPopup(pr).then(gFinish, function (e) {
+        if (/popup-blocked|operation-not-supported-in-this-environment/.test(String(e && e.code))) {
+          try { sessionStorage.setItem(GREDIR, '1'); } catch (x) { }
+          return fb.auth().signInWithRedirect(pr).then(function () { return new Promise(function () { }); }, function (e2) { throw gErr(e2); });   // la página se va
+        }
+        throw gErr(e);
       });
+    }).catch(function (e) { throw e && /^(g_|unavailable|error|WEAK|INVALID|EMAIL)/.test(e.code) ? e : gErr(e); });
+  }
+  /** Vuelta de la redirección de Google (solo si se salió por redirección: si no, ni se carga el SDK). */
+  function gBack() {
+    var f = null; try { f = sessionStorage.getItem(GREDIR); sessionStorage.removeItem(GREDIR); } catch (e) { }
+    if (!f || acc) return;
+    loadSdk().then(function (fb) { return fb.auth().getRedirectResult(); }).then(function (cred) {
+      if (!cred || !cred.user) return;
+      return gFinish(cred).then(function (r) {
+        if (conflicts.length) { open(); pending = conflicts[0]; pendRes = { remote: false, enter: r }; view = 'conflict'; render(); return; }
+        if (r && r.changed) reloadSoon('Has entrado con Google: progreso cargado desde tu cuenta'); else toast('Has entrado con Google');
+      });
+    }).catch(function (e) { var t = errText(gErr(e)); if (t) toast(t); });
   }
   function signOut() { acc = null; dirty = {}; jset(SES, null); setStatus('off'); }
   function lost() { acc = null; jset(SES, null); setStatus('off'); toast('Se ha cerrado la sesión de tu cuenta. Vuelve a entrar desde «Cuenta».'); }
@@ -341,10 +413,18 @@
   }
   function errText(e) {
     var c = e && e.code || '';
-    if (c === 'bad_user') return 'El usuario debe tener entre 3 y 30 letras o números (también . _ -), sin espacios.';
+    if (c === 'bad_user') return 'El usuario debe tener entre 3 y 30 letras o números (también . _ -), sin espacios. O escribe tu correo.';
+    if (c === 'INVALID_EMAIL') return 'Ese correo no parece válido.';
+    if (c === 'need_mail') return 'Escribe tu correo arriba y vuelve a pulsar. Las cuentas con usuario no tienen correo para recuperarla.';
+    if (c === 'g_cancel') return '';
+    if (c === 'g_off') return 'Entrar con Google aún no está activado. Usa tu correo de momento.';
+    if (c === 'g_env') return 'Este navegador no deja entrar con Google aquí. Prueba con tu correo.';
+    if (c === 'g_domain') return 'Esta página aún no puede entrar con Google. Usa tu correo de momento.';
+    if (c === 'g_exists') return 'Ya hay una cuenta con ese correo. Entra con tu correo y contraseña.';
+    if (c === 'CREDENTIAL_TOO_OLD_LOGIN_AGAIN') return 'Por seguridad, cierra sesión, vuelve a entrar y bórrala entonces.';
     if (c === 'WEAK_PASSWORD') return 'La contraseña debe tener al menos 6 caracteres.';
-    if (c === 'EMAIL_EXISTS') return 'Ese usuario ya existe. Si es tuyo, pulsa «Entrar».';
-    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND|INVALID_EMAIL/.test(c)) return 'Usuario o contraseña incorrectos.';
+    if (c === 'EMAIL_EXISTS') return 'Ya hay una cuenta con ese correo o usuario. Si es tuya, pulsa «Entrar».';
+    if (/INVALID_LOGIN_CREDENTIALS|INVALID_PASSWORD|EMAIL_NOT_FOUND/.test(c)) return 'Correo, usuario o contraseña incorrectos.';
     if (c === 'TOO_MANY_ATTEMPTS_TRY_LATER') return 'Demasiados intentos. Espera un poco y vuelve a probar.';
     if (c === 'unavailable') return 'No hay conexión. Prueba otra vez en un momento.';
     if (c === 'too_big') return 'Tu Carrera es demasiado grande para la nube';
@@ -376,6 +456,11 @@
     '#account input:focus{outline:none;box-shadow:inset 0 0 0 2.5px var(--gold,#ffd23f)}' +
     '#account .ac-warn{padding:8px 10px;border-radius:10px;background:rgba(255,178,56,.12);box-shadow:inset 0 0 0 1.5px rgba(255,178,56,.4);font-size:13px}' +
     '#account .ac-err{color:#ff9b8a;font-weight:700;min-height:1em}' +
+    '#account .ac-g{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;margin:2px 0 8px;border:0;border-radius:12px;background:#fff;color:#1f1f1f;font:700 16px var(--ui,system-ui,sans-serif);cursor:pointer;box-shadow:inset 0 0 0 2px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530)}' +
+    '#account .ac-g:disabled{opacity:.6}' +
+    '#account .ac-or{display:flex;align-items:center;gap:10px;margin:4px 0 10px;font:800 11px var(--display,sans-serif);letter-spacing:.24em;text-transform:uppercase;color:var(--muted,#93a4b9)}' +
+    '#account .ac-or:before,#account .ac-or:after{content:"";flex:1;height:1.5px;background:rgba(255,255,255,.14)}' +
+    '#account .ac-link{display:block;margin:-4px 0 6px auto;padding:6px 2px;border:0;background:none;color:var(--gold,#ffd23f);font:700 13px var(--ui,system-ui,sans-serif);text-decoration:underline;cursor:pointer}' +
     '#account .ac-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:6px}' +
     '#account .ac-acts button,#account .ac-row button{min-height:44px;padding:0 16px;border:0;border-radius:12px;font:800 16px var(--display,sans-serif);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:#fff;background:var(--tp2,#352d5c);box-shadow:inset 0 0 0 2px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530)}' +
     '#account .pri{background:var(--pri,linear-gradient(180deg,#ff8040 0 50%,#f65d1d 50% 100%))!important}' +
@@ -436,7 +521,7 @@
       var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Guardado en la nube ' + ago(lastSync);
       h += '<p class="ac-k">Tu cuenta</p><h2 id="acTitle">Cuenta</h2>' +
         '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small>' + esc(st) + '</small></span></div>' +
-        '<p>Tu progreso (jugadores, Carreras, perfil, vestuario, récord y ajustes) se guarda solo en tu cuenta. Entra con el mismo usuario en otro dispositivo para seguir donde lo dejaste.</p>' +
+        '<p>Tu progreso (jugadores, Carreras, perfil, Vestuario, récord y ajustes) se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
         '<div class="ac-row"><button data-ac="sync">Sincronizar ahora</button><button data-ac="out">Cerrar sesión</button></div>' +
         (view === 'del' ? '<p class="ac-warn">¿Seguro? Se borra la cuenta y lo guardado en ella, y no se puede deshacer. Lo de este dispositivo se queda.</p><div class="ac-acts"><button data-ac="cancel">No, volver</button><button class="dan" data-ac="delYes">Sí, borrar la cuenta</button></div>'
           : '<div class="ac-acts"><button class="dan" data-ac="del">Borrar la cuenta</button><button class="pri" data-ac="close">Hecho</button></div>');
@@ -445,9 +530,11 @@
       h += '<p class="ac-k">Guarda tu progreso</p><h2 id="acTitle">Cuenta</h2>' +
         '<p class="ac-intro">Con una cuenta, tus jugadores, tu Carrera y tus ajustes se guardan en la nube y los tienes en cualquier dispositivo.</p>' +
         '<div class="ac-tabs" role="tablist"><button role="tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
-        '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Usuario</label><input id="acUser" name="username" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="30" required>' +
+        '<button type="button" class="ac-g" data-ac="google"' + (busy ? ' disabled' : '') + '><svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>' + (create ? 'Crear con Google' : 'Entrar con Google') + '</button>' +
+        '<p class="ac-or"><span>o con tu correo</span></p>' +
+        '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
         '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" required>' +
-        (create ? '<p class="ac-warn">No pedimos correo, así que <b>si olvidas la contraseña no se puede recuperar</b>. Apúntala en un sitio seguro.</p>' : '') +
+        (create ? '<p class="ac-warn">Con tu correo podrás recuperar la contraseña si la olvidas. Con un usuario (sin @) no: apúntala bien.</p>' : '<button type="button" class="ac-link" data-ac="forgot">¿Has olvidado la contraseña?</button>') +
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
         '<div class="ac-acts"><button type="button" data-ac="close">Ahora no</button><button class="pri" type="submit"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar') + '</button></div></form>';
     }
@@ -474,6 +561,23 @@
         if (r.changed) reloadSoon(tab === 'new' ? 'Cuenta creada' : 'Has entrado: progreso cargado desde tu cuenta');
         else toast(tab === 'new' ? 'Cuenta creada: tu progreso ya se guarda en la nube' : 'Has entrado en tu cuenta');
       }, function (e) { busy = false; if (acc && e.code !== 'unauthenticated') { view = 'in'; } msg = errText(e); render(); });
+      return;
+    }
+    if (a === 'google') {
+      busy = true; msg = ''; render();
+      google().then(function (r) {
+        busy = false;
+        if (conflicts.length) { pending = conflicts[0]; pendRes = { remote: false, enter: r }; view = 'conflict'; render(); return; }
+        view = 'in'; render();
+        if (r.changed) reloadSoon('Has entrado con Google: progreso cargado desde tu cuenta'); else toast('Has entrado con Google: tu progreso ya se guarda en la nube');
+      }, function (e) { busy = false; msg = errText(e); render(); });
+      return;
+    }
+    if (a === 'forgot') {
+      var um = root.querySelector('#acUser').value;
+      busy = true; msg = ''; render();
+      resetPass(um).then(function () { busy = false; msg = ''; render(); toast('Si hay una cuenta con ese correo, te llegará un enlace para cambiar la contraseña'); },
+        function (e) { busy = false; msg = errText(e); render(); });
       return;
     }
     if (a === 'keepRemote' || a === 'keepLocal') { resolve(a); return; }
@@ -542,7 +646,7 @@
   function boot() {
     build(); initBtn();
     try { var t = sessionStorage.getItem('voley3d.account.toast'); if (t) { sessionStorage.removeItem('voley3d.account.toast'); setTimeout(function () { toast(t); }, 900); } } catch (e) { }
-    if (acc) syncDown(true);
+    if (acc) syncDown(true); else gBack();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 

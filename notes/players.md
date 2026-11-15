@@ -1186,9 +1186,12 @@ Contrato: CONTRACT §4.4 «Sprint 2-4».
   pieza base); `lookSelfTest` acepta `as`.
 - **tools/contacttest.js** (nuevo): `node tools/contacttest.js 180 7,11 hall,beach 2v2` → TODO OK (umbrales S3-C1 §3). 6v6 informativo:
   free/overhead, pass/shank y pass/body siguen fuera (toques de la sim fuera del alcance del muñeco de pie).
+- **Hecho en la integración (T23):** `blkAnchor` mantiene `blk` `BLK_KEEP` (0,12 s) tras pasar el plano `BLK_XC` mientras
+  `|b.x| ≤ 0,6 + BR` y sin evento `block` (`r.bkArmT`, dirección y mano del último frame armado en `r.bkADx/y/z` y `r.bkAOne`). En el
+  bloqueo directo las palmas siguen al balón DIBUJADO: `b + r.bkOx/y/z · (1 − smoothstep(0, BLK_OFF_T, ba))`, la misma cuenta que
+  `BOFF` de fx.js (BLK_OFF_T = BOFF_T = 0,10 s; si se cambia uno, el otro).
 - **Pendiente (QA de T20, `notes/s234/T20.md`; nada toca la sim):**
-  1. `blkAnchor`: una vez armado, mantener `blk` mientras `sign(b.vx) === sq`, `|b.x| ≤ 0,6 + BR`, < 0,12 s y sin evento `block` (1 de 24
-     bloqueos baja las manos 2 frames antes del toque), o armar contra el plano 0,6 de la sim.
+  1. (hecho, ver arriba)
   2. Cabeza a la salida de plataforma o plancha: 0,2 s tras el toque, apartar la cabeza y echar el pecho atrás ~0,15 rad si la salida pasa
      cerca; `PB_NEAR` 0,35 → 0,5 y `PB_MAX` 0,25 → 0,35 (hoy el balón atraviesa la cabeza en 19 de 24 planchas al salir).
   3. Colocación baja (balón < 0,3 m sobre la cabeza): `wd` 0,03 y paso atrás visual (5 colocaciones empeoraron con `SET_WD` 0,065).

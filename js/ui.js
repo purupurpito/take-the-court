@@ -1113,8 +1113,8 @@
       if (c) {
         sk.children[0].textContent = c.t1 || '';
         var t2 = String(c.t2 || ''), bo = c.k === 'boss' && cs && cs.boss;
-        // (jefe: «Bruno Ferrer | Cara a cara 1-2»; el estilo ya va en el chip del bloque rival y, si no coincide, aquí también)
-        if (bo) t2 = [bo.name || '', (bo.styleName || bo.style) !== bo.nick ? bo.styleName || '' : '', (bo.w | 0) + (bo.l | 0) > 0 ? 'Cara a cara ' + (bo.w | 0) + '-' + (bo.l | 0) : ''].filter(Boolean).join(' | ');
+        // (jefe: «Bruno Ferrer | Balance con el jefe 1-2»: el tuyo contra él; el «Cara a cara» del beat B es el de los clubes; el estilo ya va en el chip del bloque rival y, si no coincide, aquí también)
+        if (bo) t2 = [bo.name || '', (bo.styleName || bo.style) !== bo.nick ? bo.styleName || '' : '', (bo.w | 0) + (bo.l | 0) > 0 ? 'Balance con el jefe ' + (bo.w | 0) + '-' + (bo.l | 0) : ''].filter(Boolean).join(' | ');
         if (t2.indexOf(' | ') >= 0) setSep(sk.children[1], t2.split(' | '), 'v'); else sk.children[1].textContent = t2;
         sk.children[2].textContent = c.k === 'boss' && cs && cs.boss && cs.boss.hint ? cs.boss.hint : '';
       }
@@ -2794,7 +2794,7 @@
     var endPts = (ctx.game && ctx.game.points) || 25, dn = VB.DIFF && ctx.game && VB.DIFF[ctx.game.difficulty] && VB.DIFF[ctx.game.difficulty].name;
     // «Palau del Mar ◆ Nivel Normal | Sets a 25»: la sede tras el rombo del antetítulo; nivel y puntos por set, datos con la barra fina
     setSep(el.endKicker, [venueName(), { h: 'Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')]) + SEP_V + 'Sets a ' + endPts }], 'd');
-    el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : 'Gana la CPU';
+    el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : 'Gana la CPU'; el.endTitle.classList.remove('long');
     el.endS0.textContent = e.sets[0]; el.endS1.textContent = e.sets[1];
     el.endSets.innerHTML = (e.setScores || []).map(function (s, i) {
       return '<span class="w' + (s[0] > s[1] ? 0 : 1) + '"><small>SET ' + (i + 1) + '</small>' + s[0] + '-' + s[1] + '</span>';
@@ -2933,7 +2933,7 @@
     recapM = M; recapD = d;
     var cs = d.career;
     // antetítulo y título: los de la Carrera (competición y «Gana el …») y del reto del día; Partido rápido, los de showEnd
-    if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; }
+    if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
     else if (d.reto) {
       var dn = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
       setSep(el.endKicker, ['Reto del día', venueName(), { h: 'Nivel ' + escT(dn || '') + SEP_V + 'Sets a ' + ((g && g.points) || 25) }], 'd');
@@ -3292,7 +3292,15 @@
       host.innerHTML = h + '</div><button type="button" class="tb-k tb-r" tabindex="-1" data-skip data-step="1" aria-hidden="true"></button>';
       if (o.pane) o.pane.setAttribute('aria-labelledby', hid + '-' + api.cur);
       api.hint();
+      showOn();   // innerHTML deja la fila en scrollLeft 0: la pestaña elegida, a la vista (667x375: Perfil con 7 pestañas)
       if (hadF) api.focus(kb);
+    }
+    function showOn() {
+      var row = host.querySelector('.tb-row'), b = host.querySelector('.tab.on');
+      if (!row || !b || row.scrollWidth <= row.clientWidth + 1) return;
+      var rr = row.getBoundingClientRect(), br = b.getBoundingClientRect();
+      if (br.left < rr.left) row.scrollLeft += br.left - rr.left - 8;
+      else if (br.right > rr.right) row.scrollLeft += br.right - rr.right + 8;
     }
     api.get = function () { return api.cur; };
     api.focus = function (kb) { var b = host.querySelector('.tab.on'); if (b) focusEl(b, !!kb); };
@@ -5191,7 +5199,12 @@
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
     if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, [{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }],
-      { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id) { rtTab = id; rtTabSave(id); renderRetos(); } });
+      { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
+        // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
+        var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
+        rtTab = id; rtTabSave(id); renderRetos();
+        if (inP) focusEl(rtFocusEl(), kb);
+      } });
     else if (rtTabsApi && rtTabsApi.get() !== rtTab) rtTabsApi.set(rtTab, 'api');
     var R = VB.Retos, h, foot = '';
     if (!R) h = '<p class="rt-none">Los retos no están disponibles.</p>';
@@ -5386,7 +5399,11 @@
     if (el.pfRo) el.pfRo.hidden = !ro;
     // pestañas (con la cuenta de cada una)
     if (!pf.tabs && el.pfTabs) pf.tabs = makeTabs(el.pfTabs, pfTabItems(alb), { value: pf.tab, label: 'Apartados del álbum', pane: el.pfGrid,
-      onChange: function (id) { pfSeen(pf.tab); pf.tab = id; pf.sel = ''; pfRender(false); if (el.pfGrid) el.pfGrid.scrollTop = 0; } });
+      onChange: function (id, dir, how) {
+        var a = document.activeElement, inP = !!(a && el.pfGrid && el.pfGrid.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
+        pfSeen(pf.tab); pf.tab = id; pf.sel = ''; pfRender(false); if (el.pfGrid) el.pfGrid.scrollTop = 0;
+        if (inP) focusEl(pfFocusEl(), kb);   // Q/E con el foco en una ficha: al panel nuevo, no al body
+      } });
     else if (pf.tabs) { pf.tabs.items = pfTabItems(alb); if (pf.tabs.get() !== pf.tab) pf.tabs.cur = pf.tab; pf.tabs.refresh(); }
     // rejilla
     var tb = alb.tabs.filter(function (t) { return t.id === pf.tab; })[0], gh = '';

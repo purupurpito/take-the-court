@@ -327,7 +327,7 @@ M = R.endModel({ career: csHall, sum: Object.assign({}, sumHall, { phase: 'ko', 
 ok(M.cup === '¡Campeones de la Copa Ibérica!', 'pista: copa ganada (' + M.cup + ')');
 // jefe (C3) y entreno (T)
 M = R.endModel({ career: Object.assign({}, csE, { boss: { name: 'Toni Ferrer', nick: 'El Muro', style: 'Muro' } }), sum: sumE, sets: [2, 0], setScores: [[21, 15], [21, 18]], pl: plE, train: 'Entreno: +12 en saque' });
-ok(M.boss && M.boss.t === 'Has tumbado a El Muro' && M.blocks.indexOf('boss') > M.blocks.indexOf('chem') && M.train.t === 'Entreno: +12 en saque', 'jefe tumbado y entreno como bloques');
+ok(M.boss && M.boss.t === 'Has tumbado a El Muro' && M.blocks.indexOf('boss') === M.blocks.indexOf('mvp') + 1 && M.train.t === 'Entreno: +12 en saque', 'jefe tumbado (justo tras el MVP, T24) y entreno como bloques');
 // duelo en la vida
 M = R.endModel({ career: duelCs, sum: Object.assign({}, sumE, { life: { duel: { name: 'Dani Roca', win: true, w: 3, l: 2 } } }), sets: [2, 0], setScores: [[21, 15], [21, 18]], pl: plE });
 ok(M.life[0] === 'Duelo con Dani Roca: ganado (3-2)', 'duelo en la vida');

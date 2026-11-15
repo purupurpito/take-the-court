@@ -1670,7 +1670,7 @@ index.html), career (career-life.js, career-life-ui.js, career-ui.js) y main (es
   - `?debug=look&tab=…&venue=hall|beach&item=<id>&pick=1|2|career`: escena nueva; abre el menú (`toMenu`) y llama a
     `VB.UI.openLook({tab, venue, item, pick})`. `tab` en minúscula; `venue` acepta también pista/playa; `item` solo si tiene el formato de
     id del catálogo; `pick` llega como el número 1 o 2 (el N.º, no el índice) o `'career'`. Sin `VB.UI.openLook`, aviso en consola y el menú.
-- **account.js**: `LOOK_SYNC = false` (con true, `DOCS['voley3d.look'] = 'look'`). `merge()` tiene la rama `mergeLook(L, R, remoteNewer)`:
+- **account.js**: `LOOK_SYNC = true` desde el 15-nov-2026 (con él, `DOCS['voley3d.look'] = 'look'`). `merge()` tiene la rama `mergeLook(L, R, remoteNewer)`:
   own y seen con `VB.Look.mergeRaw` (unión, gana la `t` mínima), fits del lado más reciente por la hora de meta (en la primera entrada en el
   dispositivo, la cuenta), lo dé como lo dé mergeRaw; sin look.js gana entero el más reciente. Aunque no suba, el envoltorio de `setItem`
   ya apunta la hora de cada escritura de `voley3d.look` en `voley3d.account.meta` (`TRACK`), así la primera fusión sabe qué looks son más

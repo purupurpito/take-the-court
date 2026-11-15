@@ -173,7 +173,7 @@ section('3. Vitrina de playa (20 huecos)');
   ok(tcHead(h, 'Otros títulos') && tcHead(h, LG[0].short), 'grupos por circuito y «Otros títulos»');
   const bl = tcBlocks(h);
   ok(tcBlocksOk(bl), 'T21: bloques de 1 a 3 huecos, cabeceras que cubren justo sus huecos (' + bl.map(b => b.slots).join('+') + ')');
-  ok(bl.filter(b => b.heads.some(x => x[0] === 'Premios')).length === 1 && bl.filter(b => b.heads.some(x => x[2])).length >= 1, 'T21: Premios partido de 3 en 3 (una cabecera; la continuación, oculta)');
+  ok(bl.filter(b => b.heads.some(x => x[0] === 'Premios')).length === 1 && bl.some(b => b.heads.length === 1 && b.heads[0][0] === 'Premios' && b.slots === t.slots.filter(x => x.group === 'Premios').length) && !bl.some(b => b.heads.some(x => x[2])), 'T24: Premios entero en un bloque, en filas de 3 (sin continuación en otra columna)');
   ok(LG.every(L => bl.some(b => b.heads.length === 1 && b.heads[0][0] === L.short)), 'T21: cada circuito, su propio bloque');
   ok(!/·|undefined|NaN|1\.er|2\.º/.test(h), 'sin «·», undefined, NaN ni «1.er»');
   ok((h.match(/class="tc-slot /g) || []).length === 21, '21 huecos pintados (20 + 1 de Otros)');
@@ -186,13 +186,14 @@ section('3. Vitrina de playa (20 huecos)');
 
 // T21: bloques de la vitrina (cada .tc-grid): [{heads: [[texto, span]], slots: n}] (texto '' = cabecera de continuación, oculta)
 function tcBlocks(h) {
-  return h.split('<div class="tc-grid">').slice(1).map(b => ({
+  return h.split(/<div class="tc-grid(?: tall)?">/).slice(1).map(b => ({
     heads: [...b.matchAll(/<h4 class="tc-g( s([23]))?"( aria-hidden="true")?>([^<]*)<\/h4>/g)].map(m => [m[3] ? '' : m[4], m[2] ? +m[2] : 1, !!m[3] && m[4] === '&nbsp;']),
     slots: (b.match(/class="tc-slot /g) || []).length
   }));
 }
 function tcHead(h, g) { return new RegExp('<h4 class="tc-g( s[23])?">' + g.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '</h4>').test(h); }
-function tcBlocksOk(bl) { return bl.length > 0 && bl.every(b => b.slots >= 1 && b.slots <= 3 && b.heads.reduce((a, x) => a + x[1], 0) === b.slots && b.heads.every(x => x[0] || x[2])); }
+// (T24: un grupo de más de 3 huecos va entero en un bloque «alto», con una sola cabecera de 3 y filas de 3)
+function tcBlocksOk(bl) { return bl.length > 0 && bl.every(b => b.heads.every(x => x[0] || x[2]) && (b.slots > 3 ? b.heads.length === 1 && b.heads[0][1] === 3 : b.slots >= 1 && b.heads.reduce((a, x) => a + x[1], 0) === b.slots)); }
 
 // ------------------------------------------------------------------ 4. vitrina de pista
 section('4. Vitrina de pista (ES, IT, BR y un país sin 2ª)');

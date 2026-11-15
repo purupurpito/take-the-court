@@ -31,8 +31,8 @@ NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`ment
 inventario y guardado; puro, sin THREE ni DOM) es de **ui_main**, igual que `tools/looktest.js`. `js/doll.js` (el muñeco: geometría,
 atlas, ranuras del Vestuario y `VB.Doll.preview`) es de **players** (ya lo era en la práctica; ahora consta en el JSON). Guardado nuevo
 `voley3d.look` (perfil global, < 8 KB): `{v:1, fits:[fitN1, fitN2], own:{id:{s:'carrera'|'tienda'|'gym'|'record', t:ms}}, seen:{id:1}}`;
-no se escribe hasta la primera edición o el primer desbloqueo. AÚN NO va a `DOCS`: `LOOK_SYNC = false` en account.js hasta que Ferran
-despliegue firebase/firestore.rules, que ya admiten `'look'` (orden obligatorio: 1) desplegar, 2) `LOOK_SYNC = true`). Dentro de la Carrera
+no se escribe hasta la primera edición o el primer desbloqueo. Va a `DOCS` (`LOOK_SYNC = true` en account.js;
+reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 (sin subir VER): `c.life.look` (fit de tu jugador o `null` en los guardados de antes: cara de siempre hasta guardar), `c.life.lookAnn` y
 `c.life.spentLook`. Detalle en «Vestuario» al final, en notes/ui_main.md y en notes/players.md.
 
@@ -49,8 +49,8 @@ que pierde ante la de la cuenta) NUNCA van a `DOCS` ni a `TRACK`. `record.byD` (
 `voley3d.record` y `settings.replays` ('auto'|'end'|'off', por defecto 'auto') dentro de `voley3d.settings`. Dentro de las Carreras (sin
 subir VER): `c.life.boss` (`{b0..b4: {k, name, nick, style, num, club, w, l, beat, seen}}`), `c.life.bossW`, `c.life.rival.style`, `chemLv`
 (en `c.mate`/`c.squad[i]` en la playa y `c` en la pista: último nivel de química avisado), `l.jN`, `l.rareJ`, `l.rareN`, `l.chemEv`, `l.sign`
-y `c.ts.md`. Interruptores de account.js: `GYM_SYNC = true` (12-nov-2026; donde una nota diga `false`, es errata), `LOOK_SYNC = false` y
-`S4_SYNC = false` (orden: Ferran despliega las reglas y luego los enciende en una publicación mínima).
+y `c.ts.md`. Interruptores de account.js: `GYM_SYNC = true` (12-nov-2026; donde una nota diga `false`, es errata), `LOOK_SYNC = true` (15-nov-2026) y
+`S4_SYNC = false` (orden: Ferran despliega las reglas y luego lo enciende en una publicación mínima).
 **Contrato de guardados (D4):** un guardado ilegible se copia en `<clave>.bak` y el módulo devuelve `lost()` (la interfaz avisa una vez);
 uno con `v` mayor que el del código se lee en memoria, `readOnly()` es true, no se escribe y `mergeRaw` nunca lo rebaja. Lo cumplen
 `VB.Prog`, `VB.Gym`, `VB.Look`, `VB.Profile` y `VB.Retos`. Las bajadas de la cuenta solo se aplican en el menú (`VB.Account.menuReady()`).
@@ -910,7 +910,7 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
   `?debug=look`, `{tab, venue, item, pick}`). Guarda con `VB.Look.setFit` o `VB.CareerLife.setLook` y llama a `ctx.actions.looksChanged()`.
 - **Carrera** (career-life.js): `initLook(c), lookCheck(c, quiet), lookShop(c), buyLook(id) → 'ok'|'money'|'owned'|'', setLook(fit),
   lookNow(), achName(id, hall)`. La tienda del Vestuario no toca `GEAR`, `gearBonus`, `attrs`, `l.spent` ni el logro `gear`.
-- **account.js**: `LOOK_SYNC = false`; con él a true, `DOCS['voley3d.look'] = 'look'` y `merge()` une con `mergeLook` (own y seen con
+- **account.js**: `LOOK_SYNC = true` (15-nov-2026): `DOCS['voley3d.look'] = 'look'` y `merge()` une con `mergeLook` (own y seen con
   `VB.Look.mergeRaw`; fits del lado más reciente por la hora de meta; sin look.js gana entero el más reciente). Ya apunta la hora de cada
   escritura de `voley3d.look` aunque no suba. `VB.Account._mergeLook` y `_lookSync` (pruebas).
 - **Depuración**: `?debug=look&tab=pelo|cabeza|cara|cuerpo|brazos|piernas|colores&venue=hall|beach&item=<id>&pick=1|2|career` (main.js

@@ -312,7 +312,7 @@
   function enabled() { return RP.on; }
 
   /** ¿Toca la repetición automática del último punto? (ajuste 'auto', sin «Menos movimiento», cierre de set o de partido con ace,
-   *  remate, dejada, bloqueo o highlight ≥ 0,55; 1,6 s de juego tras el punto; sin challenge posible ni revisión; sin pausa
+   *  remate, dejada, bloqueo o highlight ≥ 0,55; 1,6 s de juego tras el punto; con challenge posible o revisión se cancela; sin pausa
    *  saltada; partida en vivo en la pausa del punto y ctx.state 'playing'). Solo una vez por punto. */
   function autoReady(g) {
     if (!RP.on || PL.phase || g !== RP.g || !last.ok || !last.auto || RP.autoDone === last.serial || RP.skipSeen || RP.rec) return false;
@@ -324,9 +324,10 @@
       if (cx.frozen) return false;
     }
     if (g.mode !== 'point' && g.mode !== 'over') return false;
-    if (g.review || g.cpuChal) return false;
+    // con challenge posible (o revisión en curso) no hay repetición automática de ese punto: se cancela (S3-C1 §2.1; la jugada sigue
+    // en Mejores jugadas). Antes solo esperaba y, en el punto de partido, salía tras el gameOver (la hoja llegaba ~16 s después).
     var Sm = S();
-    if (Sm.canChallenge && (Sm.canChallenge(g, 0) > 0 || Sm.canChallenge(g, 1) > 0)) return false;
+    if (g.review || g.cpuChal || (Sm.canChallenge && (Sm.canChallenge(g, 0) > 0 || Sm.canChallenge(g, 1) > 0))) { RP.autoDone = last.serial; return false; }
     if (g.time - last.ptT < K.AUTO_AFTER) return false;
     if (RP.step - last.k0 > CAP) return false;
     return true;

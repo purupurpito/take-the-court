@@ -286,7 +286,7 @@
     if (beach) {
       if ((e & 3) === 0) L.paint = 'rayas';            // 1 de cada 4 (en vez del zinc)
       if ((f & 3) === 0) L.marks = 'pecas';            // 1 de cada 4
-      if (((f >>> 2) & 7) === 0) L.armR = 'manguito';  // 1 de cada 8
+      if (((f >>> 2) & 7) === 0) L.armR = 'kinesio';   // 1 de cada 8 (en playa casi nadie lleva manguito; kinesio sí)
       return L;
     }
     var a = e & 7;                                     // manguito: dcha. 1/8, izq. 1/8, los dos 1/8
@@ -667,7 +667,7 @@
       mateOn: false, bossOn: false,   // S3-C2: tu compañero con setMate / el jefe con setBoss (resetRig)
       // S3-C1 §1.1: ancla de bloqueo (bk*: punto y dirección del balón en el block; bkOne: 0 las dos palmas, 1 izquierda, 2 derecha) y
       // paso atrás visual de la plataforma (pb*: dirección fijada, metros, instante del contacto, metros ya dados, último frame visto)
-      bkT: -99, bkX: 0, bkY: 0, bkZ: 0, bkDx: 0, bkDy: 0, bkDz: 0, bkOne: 0, pbX: 0, pbY: 0, pbM: 0, pbTc: -99, pbG: 0, pbSeen: -99,
+      bkT: -99, bkArmT: -99, bkADx: 0, bkADy: 0, bkADz: 0, bkAOne: 0, bkOx: 0, bkOy: 0, bkOz: 0, bkX: 0, bkY: 0, bkZ: 0, bkDx: 0, bkDy: 0, bkDz: 0, bkOne: 0, pbX: 0, pbY: 0, pbM: 0, pbTc: -99, pbG: 0, pbSeen: -99,
       pLive: null, lastCel0: '', lastPrev0: '', lcLive: '', lpLive: ''   // repetición (bindReplay): jugador en vivo, variantes de antes del último punto y las de ahora
     };
     for (var k = 0; k < 2; k++) {
@@ -1530,6 +1530,7 @@
    *  BLK_HOLD s y se suelta en BLK_REL: directo (stuff) con las dos palmas mirando al atacante y separadas 0,18 m; toque, block-out y
    *  amortiguado con la mano más cercana y la palma en la superficie del balón. → true si ancla. */
   var BLK_LEAN = 0.5, BLK_UP = 0.4, BLK_PRE = 0.08, BLK_HOLD = 0.1, BLK_REL = 0.12, BLK_XC = 0.55, BLK_LAT = 0.8, BLK_CEN = 0.3;
+  var BLK_OFF_T = 0.1, BLK_KEEP = 0.12;   // (T20) = BOFF_T de fx.js; ancla mantenida tras pasar el plano
   function blkAnchor(g, r) {
     var p = r.p, tm = g.time, ba = tm - r.blockT, w, x, y, z, dx, dy, dz, one;
     if (ba >= 0 && ba < BLK_HOLD + BLK_REL && r.bkT === r.blockT) {
@@ -1537,14 +1538,24 @@
       x = r.bkX; y = r.bkY; z = r.bkZ; dx = r.bkDx; dy = r.bkDy; dz = r.bkDz; one = r.bkOne;
       if (one <= 2 && ba < BLK_HOLD) {   // directo: las palmas empujan el balón (detrás de él en su nueva dirección) mientras sale
         var bo = g.ball, ol = Math.sqrt(bo.vx * bo.vx + bo.vy * bo.vy + bo.vz * bo.vz);
-        if (ol > 0.5) { x = bo.x; y = bo.y; z = bo.z; dx = bo.vx / ol; dy = bo.vy / ol; dz = bo.vz / ol; }
+        // (T20 1) el balón DIBUJADO (fx.js BOFF): el de la sim más lo que le falta para alcanzarlo desde las manos (0,10 s)
+        var bw = 1 - sstep(0, BLK_OFF_T, ba);
+        if (ol > 0.5) { x = bo.x + r.bkOx * bw; y = bo.y + r.bkOy * bw; z = bo.z + r.bkOz * bw; dx = bo.vx / ol; dy = bo.vy / ol; dz = bo.vz / ol; }
       }
     } else {
       if (!(p.z > 0.05) || r.jumpKind !== 'block' || g.mode !== 'rally' || Math.abs(p.x) > 1.7 || g.lastTeam === p.team) return false;
       var b = g.ball, sq = side(p.team);
       if (b.held || !(b.vx * sq > 0.5)) return false;
       var t = (sq * -BLK_XC - b.x) / b.vx;
-      if (!(t >= 0 && t < BLK_PRE)) return false;
+      if (!(t >= 0 && t < BLK_PRE)) {
+        // (T20 2) ya armado y el balón pasó el plano BLK_XC pero la sim aún no ha dado el bloqueo (lo da en |b.x| <= 0,6): se mantiene
+        // el ancla BLK_KEEP s con la dirección y la mano del último frame armado (antes las manos caían 2 frames y volvían a subir)
+        if (!(t < 0 && tm - r.bkArmT < BLK_KEEP && !(r.bkT >= r.bkArmT) && Math.abs(b.x) <= 0.6 + C.BR)) return false;
+        r.aMode = 'blk'; r.aX = b.x; r.aY = b.y; r.aZ = b.z; r.aDx = r.bkADx; r.aDy = r.bkADy; r.aDz = r.bkADz; one = r.bkOne = r.bkAOne;
+        r.aw0 = one === 2 || one === 4 ? 0 : 1; r.aw1 = one === 1 || one === 3 ? 0 : 1;
+        ancLimits(r, 'blk');
+        return true;
+      }
       var G = C.G + (b.dip || 0);
       x = sq * -BLK_XC; y = b.y + b.vy * t; z = b.z + b.vz * t - 0.5 * G * t * t;
       var hz = z - p.z;
@@ -1555,6 +1566,7 @@
       toBody(r, x, y, z, tV3);
       one = Math.abs(tV3.x) <= BLK_CEN ? 0 : tV3.x > 0 ? 1 : 2;
       x = b.x; y = b.y; z = b.z;   // las palmas van al balón DIBUJADO (el contacto llega en el paso siguiente al último frame)
+      r.bkArmT = tm; r.bkADx = dx; r.bkADy = dy; r.bkADz = dz; r.bkAOne = one;
     }
     r.aMode = 'blk'; r.aX = x; r.aY = y; r.aZ = z; r.aDx = dx; r.aDy = dy; r.aDz = dz; r.bkOne = one;
     r.aw0 = one === 2 || one === 4 ? 0 : w; r.aw1 = one === 1 || one === 3 ? 0 : w;
@@ -1567,6 +1579,7 @@
     var ok = BPV.g === g && tm - BPV.t >= 0 && tm - BPV.t < 0.06;
     var vx = ok ? BPV.vx : side(r.p.team), vy = ok ? BPV.vy : 0, vz = ok ? BPV.vz : 0, l = Math.sqrt(vx * vx + vy * vy + vz * vz) || 1;
     r.bkX = ok ? BPV.x : 0; r.bkY = ok ? BPV.y : e.y; r.bkZ = ok ? BPV.z : e.z;
+    var gb = g.ball; r.bkOx = ok ? BPV.x - gb.x : 0; r.bkOy = ok ? BPV.y - gb.y : 0; r.bkOz = ok ? BPV.z - gb.z : 0;   // (T20 1) = BOFF de fx.js
     r.bkDx = -vx / l; r.bkDy = -vy / l; r.bkDz = -vz / l; r.bkT = tm;
     toBody(r, r.bkX, r.bkY, r.bkZ, tV3);
     var lr = tV3.x > 0 ? 1 : 2;
@@ -4049,7 +4062,7 @@
     r.hitKind = ''; r.hitShot = ''; r.hitGrade = ''; r.jumpKind = ''; r.hasFace = false; r.yawRate = 0; r.yawV = 0; r.vf = r.vl = 0;
     r.diveUp = 1; r.diveDz = 0; r.ozGiven = 0; r.upBoost = 0; r.offX = r.offY = r.ox0 = r.oy0 = 0; r.lpx = r.p.x; r.lpy = r.p.y;
     r.fk[0].lock = r.fk[1].lock = false; r.locoOwn = 0; r.aw0 = r.aw1 = 0; r.hitMode = ''; r.pdW = 0; r.pdLive = false; r.diveTc = 0;
-    r.bkT = -99; r.bkOne = 0; r.pbM = 0; r.pbG = 0; r.pbTc = -99; r.pbSeen = -99;
+    r.bkT = -99; r.bkArmT = -99; r.bkOx = r.bkOy = r.bkOz = 0; r.bkOne = 0; r.pbM = 0; r.pbG = 0; r.pbTc = -99; r.pbSeen = -99;
     // E2
     r.cvar = r.dvar = r.lvar = r.idle = r.evG = r.blkRes = r.celV = ''; r.dvSide = 0; r.dvExtra = 0; r.lvD = 0; r.lvGiven = 0; r.leaveW = 0; r.leaveT = -99;
     r.evT = r.blkResT = r.cvarT = r.digT = r.atkT = -99; r.idleNext = 0; r.acF = 0; r.lagOn = false; r.jvM = 0; r.hitFeint = false; r.hitTempo = ''; r.forceCel = ''; r.forceIdle = '';

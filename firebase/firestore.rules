@@ -1,13 +1,13 @@
 rules_version = '2';
 // Make the Cut: progreso de cada cuenta. Sin cifrar; solo lo lee y lo cambia su dueño.
 // users/{uid}/saves/{key}: data = JSON en texto (≤ 400 000 caracteres; js/account.js no sube más de 390 000); updatedAt = ms del dispositivo.
-// Claves admitidas (11) y qué las enciende en js/account.js:
+// Claves admitidas (11; lo desplegado el 15-nov-2026 admite las 6 primeras) y qué las enciende en js/account.js:
 //   squad, career, settings, record   → siempre (DOCS).                                  DESPLEGADAS.
 //   gym                               → GYM_SYNC = true (12-nov-2026).                    DESPLEGADA el 12-nov-2026.
-//   look                              → LOOK_SYNC (Vestuario, 13-nov-2026).                SIN DESPLEGAR.
+//   look                              → LOOK_SYNC = true (Vestuario, 13-nov-2026).        DESPLEGADA el 15-nov-2026.
 //   profile, career6, cmode, legends, retos → S4_SYNC (S4, perfil y sincronización).       SIN DESPLEGAR.
 // Orden obligatorio: 1) Ferran despliega estas reglas (npx firebase-tools deploy --only firestore:rules, desde firebase/) y espera unos
-// minutos; 2) en una publicación mínima, LOOK_SYNC = true y S4_SYNC = true. Al revés, cada subida daría 403.
+// minutos; 2) en una publicación mínima, S4_SYNC = true (LOOK_SYNC ya está a true). Al revés, cada subida daría 403.
 // '<clave>.bak', 'voley3d.career(6).prev', 'voley3d.devid' y 'voley3d.retostab' son del aparato: nunca llegan aquí.
 // tools/synctest.js comprueba que cada clave de DOCS (con todos los interruptores encendidos) está en la lista de abajo.
 service cloud.firestore {

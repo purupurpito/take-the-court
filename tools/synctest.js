@@ -78,7 +78,7 @@ const S4 = { 'voley3d.profile': 'profile', 'voley3d.career6': 'career6', 'voley3
     const b = boot();
     const d = b.A._docs(), t = b.A._track();
     ok('apagado: ninguna clave S4 en DOCS', Object.keys(S4).every(k => !d[k]) && b.A._s4Sync === false && b.A.S4_SYNC === false);
-    ok('apagado: las 5 en TRACK (y look)', Object.keys(S4).every(k => t[k]) && t['voley3d.look'] === 1);
+    ok('apagado: las 5 en TRACK; look ya en DOCS (LOOK_SYNC = true desde el 15-nov-2026)', Object.keys(S4).every(k => t[k]) && !t['voley3d.look'] && d['voley3d.look'] === 'look' && b.A._lookSync === true);
     ok('nunca en DOCS ni TRACK: .bak, .prev, devid, retostab', ['voley3d.squad.bak', 'voley3d.career.prev', 'voley3d.career6.prev', 'voley3d.devid', 'voley3d.retostab', 'voley3d.profile.bak', 'voley3d.retos.bak'].every(k => !d[k] && !t[k]));
     b.LS.setItem('voley3d.profile', '{"v":1}'); b.LS.setItem('voley3d.career6', '{"x":1}');
     const meta = JSON.parse(b.LS.getItem('voley3d.account.meta'));
@@ -87,7 +87,7 @@ const S4 = { 'voley3d.profile': 'profile', 'voley3d.career6': 'career6', 'voley3
     ok('…y no genera PATCH', !b.calls.some(c => c.method === 'PATCH'));
     const on = boot({ s4: true }), d2 = on.A._docs();
     ok('encendido: las 5 en DOCS con sus nombres (profile, career6, cmode, legends, retos)', Object.keys(S4).every(k => d2[k] === S4[k]) && !Object.keys(S4).some(k => on.A._track()[k]), J(d2));
-    ok('encendido: gym sigue (GYM_SYNC = true) y DOCS tiene 10 claves sin look', d2['voley3d.gym'] === 'gym' && Object.keys(d2).length === 10 && on.A._gymSync === true);
+    ok('encendido: gym y look siguen (GYM_SYNC y LOOK_SYNC = true) y DOCS tiene las 11 claves', d2['voley3d.gym'] === 'gym' && d2['voley3d.look'] === 'look' && Object.keys(d2).length === 11 && on.A._gymSync === true);
   }
 
   // ---------------------------------------------------------------- 2) fusiones

@@ -801,6 +801,7 @@ h2 span{color:var(--hot)}
     background:linear-gradient(90deg,rgba(5,8,15,.9) 0%,rgba(5,8,15,.72) 34%,rgba(5,8,15,.18) 56%,rgba(5,8,15,0) 72%)}
   #end.dock .sheet{width:min(540px,44vw);max-width:none;padding:22px 28px 20px;max-height:calc(100vh - 24px);overflow:auto}
   #end.dock .end-title{white-space:nowrap;font-size:clamp(34px,4.2vw,64px)}
+  #end.dock .end-title.long{white-space:normal;font-size:clamp(28px,3vw,46px);line-height:1.02}
   #end.dock .end-score{display:inline-flex;margin:8px 18px 0 0;vertical-align:middle}
   #end.dock .es-t b{font-size:44px}
   #end.dock .end-sets{display:inline-flex;margin:8px 0 0;vertical-align:middle}
@@ -2491,7 +2492,12 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   .rc-tr:not(.me){display:none}
   .rc-xr{flex-wrap:nowrap}.rc-bar{max-width:70px;min-width:30px}
   .rc-xr .lv{font-size:11.5px;white-space:nowrap}
+  .rc-xr .rc-nm{min-width:0;flex:1 1 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rc-xr b{white-space:nowrap}
 }
+@media (max-height:420px) and (max-width:720px){
+  .rc-xr:has(.lv) .rc-bar{display:none}   /* 667: con subida de nivel no cabe todo; fuera la barra, que no se corte el nombre */
+}
+@media (max-height:420px){#end .end-title.long{font-size:26px;line-height:1.04}}   /* «Gana el Litoral Puertoluz Marina» en dos líneas */
 /* panel con más contenido debajo (ui.js endMore): se desvanece el borde inferior */
 #end .end-body>.more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 22px),transparent)}
 /* ventana estrecha (390×844): etiquetas más estrechas y la nota del MVP bajo su nombre */
@@ -2730,6 +2736,8 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   .pf-foot{margin-top:4px}
   #pfFoot{font-size:12px}
   #pfNote{font-size:13px;padding:7px 12px;top:calc(8px + var(--st))}
+  /* en el Perfil, sobre la línea del pie (no sobre la última fila de fichas, donde suele estar el cursor) */
+  #menu[data-page="prof"] #pfNote{bottom:calc(2px + var(--sbm));padding:5px 12px}
 }
 @media (max-width:700px){
   .pf-vit{flex-basis:200px}

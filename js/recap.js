@@ -520,6 +520,8 @@
     var B = [];
     if (M.headline) B.push('headline');
     if (M.mvp || M.mvpRival) B.push('mvp');
+    var bossUp = !!(M.boss && M.boss.win);   // jefe tumbado: arriba, que no quede bajo el fundido del móvil
+    if (bossUp) B.push('boss');
     if (M.xp.length) B.push('xp');
     if (M.badges.length) B.push('badges');
     if (M.unlocks) B.push('unlocks');
@@ -527,7 +529,7 @@
     if (M.cup) B.push('cup');
     if (M.life.length) B.push('life');
     if (M.chem) B.push('chem');
-    if (M.boss) B.push('boss');
+    if (M.boss && !bossUp) B.push('boss');
     if (M.train) B.push('train');
     if (M.retos) B.push('retos');
     if (M.profile) B.push('profile');

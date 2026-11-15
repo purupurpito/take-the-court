@@ -109,6 +109,9 @@
   var YEL = [1, 0.76, 0.04]; // "aro amarillo" = dónde tienes que jugar el balón (focusRing)
   var spinQ, squashQ, tmpQ, tv, tv2, tv3, axis, UPV;
   var spin = { rate: 0, sign: 1, wob: 0 }, squash = { t: 0, k: 0 }, heat = 0;
+  // Toque de bloqueo (T20 1): la sim recoloca el balón al otro lado de la red en el paso del evento (0,6-0,9 m de golpe). El balón
+  // DIBUJADO sale del punto del frame anterior (en las manos) y alcanza al de la sim en BOFF_T s (smoothstep; solo dibujo, sin basura).
+  var BOFF_T = 0.1, BOFF = { g: null, t0: -99, x: 0, y: 0, z: 0 }, BPF = { g: null, t: -99, x: 0, y: 0, z: 0 };
   var SQ_MAX = 0.095; // (1 + k/2) / (1 - k) ≈ 1,15: el balón se deforma sin dejar de leerse como balón
   // Campos de las partículas que nacen enteros (Smi) y luego reciben doubles: se generalizan al crear el pool (ver dblFields
   // en sim.js; si no, V8 depreca el mapa con la primera ráfaga de la partida y desoptimiza todo a la vez).
@@ -1682,7 +1685,10 @@
       for (var i = 0; i < events.length; i++) this._event(events[i], g);
 
       // ---- balón: posición, giro con efecto, aplastamiento al golpear ----
-      VB.toThree(b.x, b.y, b.z, ballPivot.position);
+      var oa = BOFF.g === g ? g.time - BOFF.t0 : -1;
+      if (oa >= 0 && oa < BOFF_T) { var ou = oa / BOFF_T, ow = 1 - ou * ou * (3 - 2 * ou); VB.toThree(b.x + BOFF.x * ow, b.y + BOFF.y * ow, b.z + BOFF.z * ow, ballPivot.position); }
+      else VB.toThree(b.x, b.y, b.z, ballPivot.position);
+      BPF.g = g; BPF.t = g.time; BPF.x = b.x; BPF.y = b.y; BPF.z = b.z;
       if (dt > 0) {
         var hs = Math.hypot(b.vx, b.vy);
         if (b.held) {
@@ -1852,7 +1858,7 @@
         }
       }
       // ---- marcador de caída (secundario si el aro amarillo está activo) ----
-      marker.visible = inPlay && b.vz < 6 && b.z > 0.5;
+      marker.visible = inPlay && !rpG && b.vz < 6 && b.z > 0.5;   // en la repetición no hay ayudas de juego
       if (marker.visible) {
         Sim.predictLanding(g, land);
         marker.position.x = land.x; marker.position.z = -land.y;
@@ -2123,6 +2129,9 @@
         }
         case 'block': {
           var tb = T[e.team === 1 ? 1 : 0], res = e.result || 'stuff';
+          if (BPF.g === g && g.time - BPF.t >= 0 && g.time - BPF.t < 0.06) {   // (T20 1) punto de partida del balón dibujado
+            BOFF.g = g; BOFF.t0 = g.time; BOFF.x = BPF.x - g.ball.x; BOFF.y = BPF.y - g.ball.y; BOFF.z = BPF.z - g.ball.z;
+          }
           if (res === 'stuff') { // bloqueo directo: impacto contundente
             if (!tbSwap) {
               flashAt(e.x, e.y, e.z, 1.25, 0.14, 1, 0.97, 0.92);

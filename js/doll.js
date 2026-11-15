@@ -122,7 +122,7 @@
   // id → sede ('A' ambas, 'P' pista, 'Y' playa). El catálogo con nombres, rarezas y desbloqueos es de js/look.js (VB.Look); aquí solo
   // está lo que hace falta para DIBUJAR. La sede solo se impone donde cambia el sentido de la pieza (VENUE_STRICT: interior,
   // calcetines, tobillera y zapatillas); el resto se dibuja tal cual llega (la maqueta ?debug=doll lleva gorra y gafas en pista).
-  var ARMS = { manguito: 'A', manguitoRayas: 'A', manguitoCuadros: 'A', manguitoLlamas: 'A', manguitoRayos: 'A', manguitoOro: 'A', kinesio: 'A', manguitoMazo: 'A' };
+  var ARMS = { manguito: 'P', manguitoRayas: 'P', manguitoCuadros: 'P', manguitoLlamas: 'P', manguitoRayos: 'P', manguitoOro: 'P', kinesio: 'A', manguitoMazo: 'P' };   // manguitos solo en pista (1.1.1)
   var ITEMS = {
     style: { tupe: 'A', coleta: 'A', afro: 'A', flequillo: 'A', rapado: 'A', mono: 'A', trenzas: 'A', dosmonos: 'A', coletas: 'A', cresta: 'A' },
     head: { cinta: 'A', cintaRizo: 'A', bandana: 'A', gorra: 'Y', gorraAtras: 'Y', visera: 'Y', pescador: 'Y', corona: 'A' },
@@ -134,11 +134,11 @@
     under: { termica: 'P', licra: 'Y' },
     band: { capitan: 'A' },
     armL: ARMS, armR: ARMS,
-    elbows: { coderas: 'A' },
+    elbows: { coderas: 'P' },
     wristL: { muneq: 'A', reloj: 'A', munhCanon: 'A' }, wristR: { muneq: 'A', reloj: 'A', munhCanon: 'A' },
     hands: { dedos: 'A', mitones: 'Y', dedosMuro: 'A' },
     legs: { malla: 'A', mallaLarga: 'A' },
-    knees: { cortas: 'A', altas: 'A', bajadas: 'P', rodiPulpo: 'P' },
+    knees: { cortas: 'P', altas: 'P', bajadas: 'P', rodiPulpo: 'P' },
     socks: { tobilleros: 'P', media: 'P', altos: 'P', altosRayas: 'P', desparejados: 'P' },
     ankle: { blanca: 'P', tela: 'Y', pulseraTob: 'Y', escarpines: 'Y', tobiPulpo: 'Y' },
     shoes: { clasicas: 'P', negras: 'P', neon: 'P', doradas: 'P' }

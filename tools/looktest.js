@@ -90,7 +90,7 @@ check(eq(L.items('armR'), L.items('armL')) && eq(L.items('wristR'), L.items('wri
 check(L.STYLES.length === 10 && L.TINTS.length === 6 && L.SKINS.length === 14 && L.HAIRS.length === 15, '10 peinados, 6 tintes, 14 pieles y 15 colores de pelo');
 // sede (§1.4.1)
 const ONLY_Y = 'gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines tobiPulpo'.split(' ');
-const ONLY_P = ['termica', 'bajadas', 'blanca', 'rodiPulpo'].concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
+const ONLY_P = ['termica', 'bajadas', 'blanca', 'rodiPulpo', 'cortas', 'altas', 'coderas'].concat(SPEC.armL.split(' ').filter(x => x !== 'kinesio')).concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
 check(C.filter(x => x.venue === 'Y').map(x => x.id).sort().join() === ONLY_Y.slice().sort().join(), 'solo en playa: la lista de §1.4');
 check(C.filter(x => x.venue === 'P').map(x => x.id).sort().join() === ONLY_P.slice().sort().join(), 'solo en pista: la lista de §1.4');
 // CLASH
@@ -389,7 +389,7 @@ console.log('== sprint 2-4 (T9) ==');
   check(eq(X.BOSS_STYLES, ['saque', 'muro', 'remate', 'defensa']) && X.BOSS_STYLES.every(st => eq(X.bossItems(st), BI[st])) && eq(X.bossItems('nada'), []), 'bossItems: un objeto por estilo (defensa: pista y playa)');
   const bossIds = [].concat(...Object.values(BI));
   check(bossIds.every(id => { const it = X.item(id); return it.rarity === 2 && it.unlock.length === 1 && it.unlock[0].boss && it.as && X.item(it.as) && it.as !== id && it.slots.every(s => X.item(it.as).slots.includes(s)) && X.price(id) === 0; }), 'objetos de jefe: rareza 2, solo {boss}, sin tienda, con pieza base en la misma ranura');
-  check(X.item('munhCanon').venue === 'A' && X.item('dedosMuro').venue === 'A' && X.item('manguitoMazo').venue === 'A' && X.item('rodiPulpo').venue === 'P' && X.item('tobiPulpo').venue === 'Y', 'sedes: A los tres primeros; pulpo, rodilleras en pista y tobillera en playa');
+  check(X.item('munhCanon').venue === 'A' && X.item('dedosMuro').venue === 'A' && X.item('manguitoMazo').venue === 'P' && X.item('rodiPulpo').venue === 'P' && X.item('tobiPulpo').venue === 'Y', 'sedes: muñequera y dedos en las dos; manguito (como todos) y rodilleras de pulpo en pista; tobillera en playa');
   // drawId / resolve: sin doll.js la pieza base; si doll.js sabe la variante, la variante
   const fb = X.defaults(0); fb.hall.wristR = 'munhCanon'; fb.hall.knees = 'rodiPulpo'; fb.hall.armL = 'manguitoMazo'; fb.beach.ankle = 'tobiPulpo'; fb.beach.hands = 'dedosMuro';
   const Rh = X.resolve(fb, 'hall'), Rb = X.resolve(fb, 'beach');

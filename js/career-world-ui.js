@@ -96,7 +96,7 @@
     // parten de 3 en 3; los grupos cortos seguidos comparten bloque (pista: Liga 2 + Copa 1), cada uno con su cabecera encima de
     // sus huecos (fila 1 cabeceras con span, fila 2 huecos). Todos los huecos miden lo mismo
     '#career .tc .tc-g{grid-row:1;margin:10px 0 -2px;font:800 11.5px var(--display);letter-spacing:.1em;text-transform:uppercase;color:var(--muted);text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}',
-    '#career .tc .tc-g.s2{grid-column:span 2}#career .tc .tc-g.s3{grid-column:span 3}#career .tc-grid>.tc-slot{grid-row:2}',
+    '#career .tc .tc-g.s2{grid-column:span 2}#career .tc .tc-g.s3{grid-column:span 3}#career .tc-grid>.tc-slot{grid-row:2}#career .tc-grid.tall>.tc-slot{grid-row:auto}',
     '#career .tc-gs{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:0 18px;align-items:start}',
     '#career .tc-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;min-width:0}',
     '#career .tc-slot{display:flex;flex-direction:column;align-items:center;text-align:center;gap:3px;padding:8px 6px;border-radius:10px;min-width:0}',
@@ -104,7 +104,7 @@
     '#career .tc-slot.got{background:rgba(255,210,63,.14);box-shadow:inset 0 0 0 1.5px var(--gold,#ffd23f);color:var(--gold,#ffd23f)}',
     '#career .tc-slot.empty{box-shadow:none;border:1.5px dashed rgba(255,255,255,.3);color:#fff}',
     '#career .tc-slot.empty svg{opacity:.35}',
-    '#career .tc-n{font:700 12.5px/1.2 var(--ui);color:#fff;letter-spacing:0;text-transform:none;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}',
+    '#career .tc-n{font:700 12.5px/1.2 var(--ui);color:#fff;letter-spacing:0;text-transform:none;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}',
     '#career .tc-slot small{display:block;font:600 11.5px/1.2 var(--ui);color:var(--muted);letter-spacing:0;text-transform:none}',
     '#career .tc-slot.got small{color:#ffe28a}#career .tc-slot small.tc-ul{color:#7fe6dc}'
   ].join('\n');
@@ -321,16 +321,18 @@
     var tc = w.trophyCase(c); if (!tc) return '';
     var du = tcDiff(c), groups = [], by = {};
     tc.slots.concat(tc.other || []).forEach(function (s) { if (!by[s.group]) { by[s.group] = []; groups.push(s.group); } by[s.group].push(s); });
-    // trozos de ≤ 3 huecos (la continuación de un grupo largo, con la cabecera vacía y oculta para leer) y bloques de 3 (greedy, en orden)
+    // bloques de 3 huecos (los grupos cortos seguidos comparten bloque, greedy y en orden)
     var parts = [], blocks = [];
-    groups.forEach(function (g) { for (var i = 0; i < by[g].length; i += 3) parts.push({ g: i ? '' : g, s: by[g].slice(i, i + 3) }); });
-    parts.forEach(function (p) { var b = blocks[blocks.length - 1]; if (b && b.n + p.s.length <= 3) { b.p.push(p); b.n += p.s.length; } else blocks.push({ p: [p], n: p.s.length }); });
+    // un grupo de más de 3 huecos (Premios: 6) va entero en su bloque, en filas de 3 bajo su cabecera: partido en dos bloques, la
+    // continuación caía en otra columna (1280: bajo «Continental») y se leía como de otro grupo
+    groups.forEach(function (g) { parts.push({ g: g, s: by[g] }); });
+    parts.forEach(function (p) { var b = blocks[blocks.length - 1]; if (p.s.length <= 3 && b && b.n + p.s.length <= 3) { b.p.push(p); b.n += p.s.length; } else blocks.push({ p: [p], n: p.s.length }); });
     return '<div class="card tc"><h3>Vitrina <span class="muted">(' + tc.got + ' de ' + tc.total + ')</span></h3><div class="tc-gs">' + blocks.map(function (b) {
       var hs = b.p.map(function (p) {
-        var cl = 'tc-g' + (p.s.length > 1 ? ' s' + p.s.length : '');
+        var cl = 'tc-g' + (p.s.length > 1 ? ' s' + Math.min(3, p.s.length) : '');
         return p.g ? '<h4 class="' + cl + '">' + esc(p.g) + '</h4>' : '<h4 class="' + cl + '" aria-hidden="true">&nbsp;</h4>';
       }).join('');
-      return '<div class="tc-grid">' + hs + b.p.map(function (p) { return p.s.map(function (s) { return slotHTML(s, du); }).join(''); }).join('') + '</div>';
+      return '<div class="tc-grid' + (b.n > 3 ? ' tall' : '') + '">' + hs + b.p.map(function (p) { return p.s.map(function (s) { return slotHTML(s, du); }).join(''); }).join('') + '</div>';
     }).join('') + '</div></div>';
   }
 

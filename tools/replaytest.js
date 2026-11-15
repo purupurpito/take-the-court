@@ -496,16 +496,27 @@ async function cdpPart() {
 
     // ---------------------------------------------------------------- (j)
     console.log('(j) punto de partido');
-    // (&hold=1: la celebración de END_CELEB como en un partido; sin él, la depuración abre la hoja al llegar gameOver. Con la ventana
-    // del challenge abierta no hay automática: empieza al cerrarse, en el gameOver)
+    // (&hold=1: la celebración de END_CELEB como en un partido; sin él, la depuración abre la hoja al llegar gameOver.) Con challenge
+    // posible en el punto de partido (cantada de línea) NO hay automática (S3-C1 §2.1, T24): la hoja sale sin esperar a ninguna
+    // repetición. Sin challenge posible, R11: la automática sale y la hoja espera a que acabe.
     await go('debug=replay&match=1&auto=1&hold=1');
-    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'match'`, 15000), '(j) repetición automática del punto de partido');
-    let endDuring = false, tRp = 0;
-    { const t0 = Date.now(); while (Date.now() - t0 < 25000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden]`); if (s[0] && s[1]) endDuring = true; if (!s[0]) { tRp = Date.now(); break; } await sleep(50); } }
-    ok(!endDuring && tRp > 0, '(j) la hoja no se ve durante la repetición');
-    ok(await waitFor(`!document.getElementById('end').hidden && VB.ctx.state === 'over'`, 15000), '(j) la hoja final sale después');
-    const dtEnd = (Date.now() - tRp) / 1000;
-    ok(dtEnd > 0.3, '(j) la hoja sale ' + dtEnd.toFixed(1) + ' s después de la repetición (resto de la celebración)');
+    let chal = false, sawRp = false;
+    { const t0 = Date.now(); while (Date.now() - t0 < 4000) { const s = await J(`[!!(VB.Sim.canChallenge && (VB.Sim.canChallenge(VB.ctx.game, 0) > 0 || VB.Sim.canChallenge(VB.ctx.game, 1) > 0)), !!VB.ctx.replay]`); if (s[0]) chal = true; if (s[1]) sawRp = true; if (chal || sawRp) break; await sleep(50); } }
+    if (chal) {
+      const t0 = Date.now(); let rpSeen = false;
+      while (Date.now() - t0 < 25000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden && VB.ctx.state === 'over']`); if (s[0]) rpSeen = true; if (s[1]) break; await sleep(50); }
+      const dt = (Date.now() - t0) / 1000;
+      ok(!rpSeen, '(j) con challenge posible en el punto de partido, sin repetición automática');
+      ok(dt < 14, '(j) la hoja final sale ' + dt.toFixed(1) + ' s después (ventana del challenge + celebración, sin repetición)');
+    } else {
+      ok(sawRp || await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'match'`, 15000), '(j) repetición automática del punto de partido');
+      let endDuring = false, tRp = 0;
+      { const t0 = Date.now(); while (Date.now() - t0 < 25000) { const s = await J(`[!!VB.ctx.replay, !document.getElementById('end').hidden]`); if (s[0] && s[1]) endDuring = true; if (!s[0]) { tRp = Date.now(); break; } await sleep(50); } }
+      ok(!endDuring && tRp > 0, '(j) la hoja no se ve durante la repetición');
+      ok(await waitFor(`!document.getElementById('end').hidden && VB.ctx.state === 'over'`, 15000), '(j) la hoja final sale después');
+      const dtEnd = (Date.now() - tRp) / 1000;
+      ok(dtEnd > 0.3, '(j) la hoja sale ' + dtEnd.toFixed(1) + ' s después de la repetición (resto de la celebración)');
+    }
     ok(!page.errors.length, '(d-j) sin errores JS', page.errors.slice(0, 3));
   } catch (e) { fail('CDP: ' + (e && e.stack || e)); }
   if (page) page.close();
