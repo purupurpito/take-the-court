@@ -876,7 +876,7 @@ else {
     C.ingest(evs, G.g);
     const xp0 = c.player.xp, lv0 = c.player.lvl, st0 = c.stats.starts | 0, si0 = c.stats.subIn | 0, nn = c.notes.length, L = C.league(C.myClub(c).lid);
     let s = C.matchDone({ sets: [2, 0], setScores: [[11, 9], [12, 8]], win: true }, null, G.g);
-    const xpExp = Math.round((40 + 22 * s.nota + 40 + 6 * 6) * H.xpMul(L) * (0.35 + 0.65 * 0.5)) + ((s.life && s.life.xp) | 0);   // (+ el reto, si se cumple)
+    const xpExp = Math.round((40 + 22 * s.nota + 40 + 6 * 6) * H.xpMul(L) * (0.35 + 0.65 * 0.5) * (H.XP_K || 1)) + ((s.life && s.life.xp) | 0);   // (+ el reto, si se cumple)
     ok(s.part && s.part.status === 'sub' && s.part.entered === 2 && s.part.meR === 20 && s.part.rallies === 40 && Math.abs(s.part.share - 0.5) < 0.01 && s.part.sets.join() === '2', 'entras en el 2º set: 20 de 40 puntos (share ' + s.part.share + ')');
     ok(typeof s.nota === 'number' && !s.bench && s.xp === xpExp && c.notes.length === nn + 1, 'nota con tus puntos en pista (' + s.nota + ') y XP escalada (' + s.xp + ' = ' + xpExp + ')');
     ok((c.stats.starts | 0) === st0 && c.stats.subIn === si0 + 1 && c.stats.mr >= 20 && c.stats.rr >= 40, 'estadísticas: subIn +1, starts igual, puntos en pista');
@@ -885,7 +885,7 @@ else {
       setAll(c, 20); reLine(c); ms = C.matchSetup(c); G = mkG(ms); evs = [{ type: 'newMatch' }]; pts(evs, 40); C.ingest(evs, G.g);
       const b0 = c.stats.bench | 0, pl0 = c.stats.played, n0 = c.notes.length, xp1 = c.player.xp, m0 = c.player.matches;
       s = C.matchDone({ sets: [2, 1], setScores: [[15, 10], [10, 15], [15, 12]], win: true }, null, G.g);
-      const bx = Math.round(H.BENCH_XP * H.xpMul(L));
+      const bx = Math.round(H.BENCH_XP * H.xpMul(L) * (H.XP_K || 1));
       ok(s.nota === null && s.bench && s.part.status === 'sub' && !s.part.entered && s.part.meR === 0 && c.stats.bench === b0 + 1 && c.stats.played === pl0 && c.notes.length === n0, 'sin entrar: «s. c.», banquillo +1, partidos jugados igual, c.notes sin entrada');
       ok(s.xp === bx && c.player.matches === m0, 'experiencia de banquillo: ' + H.BENCH_XP + ' × ' + H.xpMul(L) + ' = ' + s.xp + ' (no cuenta como partido)');
       ok(C.form(c) != null && c.notes.every(x => typeof x.nota === 'number'), 'forma y nota media sin nulos');
@@ -1444,7 +1444,7 @@ section('Dificultad de la Carrera: niveles, IA, atributos, XP, entrenador, ofert
     ok(n.diff === C.difficultyFor(riv) && n.soft === C.softFor(riv) && n.diffName === C.diffLabel(riv), 'Normal: IA de next() = la de siempre (' + n.diffName + ')');
     const c0 = c.coach, L = C.league(C.myClub(c).lvl), s = C.simulateNext();
     const mp = Math.min(s.me.kills + s.me.aces + s.me.blocks, 10);
-    const xpOld = Math.round((40 + 22 * s.nota + (s.win ? 40 : 0) + 6 * mp) * L.xp * 0.5);
+    const xpOld = Math.round((40 + 22 * s.nota + (s.win ? 40 : 0) + 6 * mp) * L.xp * 0.5 * (C.XP_K || 1));
     const coOld = Math.max(0, Math.min(100, Math.round(c0 + (s.nota - 6.2) * 2.5 + (s.win ? 1 : -1))));
     ok(s.xp === xpOld && s.coach === coOld, 'Normal: XP (' + s.xp + ' = ' + xpOld + ') y entrenador (' + s.coach + ' = ' + coOld + ') con la fórmula de antes');
     ok(c.coach >= 0 && C.load().dUse.normal === 1, 'el partido simulado cuenta en dUse.normal');

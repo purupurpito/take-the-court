@@ -240,7 +240,7 @@
     var Lg = hall(c) ? leagueOf(c) : K(c).league(L);   // (en la pista league() busca por id, no por nivel)
     var xpm = hall(c) ? (K(c).xpMul ? K(c).xpMul(Lg) : 1) : (Lg && Lg.xp) || 1;
     return { key: key, id: id, n: n, duel: duel, txt: chTxt(d, n),
-      fans: Math.round(60 * LV_MULT[L] * mult), xp: Math.round(45 * xpm * mult), money: Math.round(SALARY[L] * 0.4 * mult / 10) * 10 };
+      fans: Math.round(60 * LV_MULT[L] * mult), xp: Math.round(45 * xpm * mult * (K(c).XP_K || 1)), money: Math.round(SALARY[L] * 0.4 * mult / 10) * 10 };
   }
   /** Reto del próximo partido (para la UI). null si no hay partido o te toca banquillo. */
   function challenge(c) {

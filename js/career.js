@@ -192,6 +192,11 @@
   // a la élite en ~6-8 temporadas): ver notes/carrera.md §Progresión.
   var PTS_LVL = 4;
   function need(lvl) { return 140 + 6 * lvl; }
+  // XP_K (15-nov-2026, Ferran: «tras terminar un partido ganas demasiada EXP, teniendo en cuenta que tus stats pueden ir subiendo con
+  // los entrenamientos también»): × la XP de cada partido y de cada reto de jornada. Playa 0,6: jugando, la élite (~70) llega hacia la
+  // 7ª-8ª temporada (con 1 era la 4ª-5ª, ~3 niveles y 12 puntos por partido); pista 0,8 (su ritmo ya era más lento: suplencias y
+  // ligas de 50 a 95). Medido con 3 sesiones rápidas por jornada y la mejor oferta (notes/carrera.md §Progresión).
+  var XP_K = 0.6, XP_K6 = 0.8;
   function addXP(a, xp) {
     var up = 0;
     a.xp += xp; a.matches = (a.matches | 0) + 1;
@@ -1209,7 +1214,7 @@
     var nota = me.nota;
     var mpts = (me.kills || 0) + (me.aces || 0) + (me.blocks || 0);
     // tus puntos cuentan hasta 10 por partido (con control «uno» rematas casi todo y la XP jugada se disparaba)
-    var xp = Math.round((40 + 22 * nota + (win ? 40 : 0) + 6 * Math.min(mpts, 10)) * L.xp * (sim ? 0.5 : 1) * D.xp);   // (× xp de la dificultad)
+    var xp = Math.round((40 + 22 * nota + (win ? 40 : 0) + 6 * Math.min(mpts, 10)) * L.xp * (sim ? 0.5 : 1) * D.xp * XP_K);   // (× xp de la dificultad y XP_K)
     var lv = addXP(c.player, xp);
     // entrenador
     var ct0 = coachText(c.coach);
@@ -2751,8 +2756,8 @@
     if (!c.dUse || typeof c.dUse !== 'object') c.dUse = dZeros();
     c.dUse[diffOf(c)] = (c.dUse[diffOf(c)] | 0) + 1;   // dificultad: el partido cuenta en su nivel (antes de finishRound6)
     // experiencia: con nota, la de siempre × (0,35 + 0,65 × parte jugada); sin nota, la del banquillo
-    var xp = has ? Math.round((40 + 22 * nota + (win ? 40 : 0) + 6 * Math.min(mpts, 10)) * xpMul6(L) * (sim ? 0.5 : 1) * (0.35 + 0.65 * share) * D.xp)
-      : Math.round(BENCH_XP * xpMul6(L) * (sim ? 0.5 : 1) * D.xp);   // (× xp de la dificultad)
+    var xp = has ? Math.round((40 + 22 * nota + (win ? 40 : 0) + 6 * Math.min(mpts, 10)) * xpMul6(L) * (sim ? 0.5 : 1) * (0.35 + 0.65 * share) * D.xp * XP_K6)
+      : Math.round(BENCH_XP * xpMul6(L) * (sim ? 0.5 : 1) * D.xp * XP_K6);   // (× xp de la dificultad)
     var lv = addXP(c.player, xp), ct0 = coachText(c.coach);
     if (!played) c.player.matches = Math.max(0, (c.player.matches | 0) - 1);   // (addXP cuenta un partido: sin entrar no lo es)
     // confianza: la nota y el resultado pesan por la parte jugada; entrenar siendo suplente (+1), un buen cambio (+2), que te saquen (−2)
@@ -3030,7 +3035,7 @@
     ROLE_HINT: ROLE_HINT6, benchWhy: whyText6, whyText: whyText6, WHY: WHY6, lineup: lineup6, squad: squad6, squadWeek: squadWeek6, depth: depth6, depthNow: depthNow6,
     capRole: capRole6, meRules: meRules6, SQ_SIZE: SQ_SIZE, SQ_BIG: SQ_BIG, SLOTS: SLOTS6, LIST: LIST6, ME_EDGE: ME_EDGE, ME_EDGE_STEP: ME_EDGE_STEP, ME_EDGE_MIN: ME_EDGE_MIN, meEdge: meEdge6, SEL_IMP: SEL_IMP, OUT_COACH: OUT_COACH, FAT_REST: FAT_REST, FAT_REST_TOP: FAT_REST_TOP,
     TIT_BONUS: TIT_BONUS, STARTS_PROMOTE: STARTS_PROMOTE, TIT_BROKEN: TIT_BROKEN, TRAIN_COACH: TRAIN_COACH, IMPACT_COACH: IMPACT_COACH, FIT_START: FIT_START, FIT_DEEP: FIT_DEEP,
-    NOTA_MIN_R: NOTA_MIN_R, BENCH_XP: BENCH_XP,
+    NOTA_MIN_R: NOTA_MIN_R, BENCH_XP: BENCH_XP, XP_K: XP_K6,
     // dificultad de la Carrera (15-nov-2026): mismas claves que la playa, con el guardado y la escala de la pista
     CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, GATE6: GATE6, TOP6: TOP6, top: top6,
     diffOf: function (c) { return diffOf(c || load6()); }, rivalAI: rivalAI6, attrOf: attrOf6, baseStep: baseStep6,
@@ -3061,7 +3066,7 @@
     SOFT: SOFT, softFor: softFor, diffLabel: diffLabel, MATE_CAP: MATE_CAP, mateFormCap: mateFormCap, BENCH: BENCH, PROMOTE_AT: PROMOTE_AT, ROLE_FLOOR: ROLE_FLOOR, ROLE_HINT: ROLE_HINT,
     BROKEN_BONUS: BROKEN_BONUS, PAY_WEEK: PAY_WEEK, PHYSIO_FAT: PHYSIO_FAT, benchNext: benchNext, benchWhy: benchWhy, BENCH_REST: BENCH_REST, physio: physio, physioCost: physioCost, roleIdx: roleIdx, _beachTrophies: beachTrophies,
     // vida de la Carrera (career-life.js)
-    _msg: msg, _addXP: addXP, _wkKey: wkKey,
+    _msg: msg, _addXP: addXP, _wkKey: wkKey, XP_K: XP_K,
     // jefes de la Carrera (career-life.js bossSt)
     _genSt: genSt,
     // dificultad de la Carrera (12-nov-2026)
