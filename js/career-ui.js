@@ -1122,9 +1122,9 @@
     h += optsModeHTML(c);
     h += '<div class="card"><h3>Opciones</h3>';
     if (WUI() && WUI().optsHTML) h += WUI().optsHTML(c, HLP);   // escenas del mentor: Sí | No
-    if (!confirmStep) h += '<button class="warn" data-act="quit1">Abandonar carrera</button>';
+    if (!confirmStep) h += '<button class="warn" data-act="quit1">Borrar carrera</button>';
     else h += '<div class="confirm"><p><b>¿Seguro?</b> Se borra la carrera ' + (isHall(c) ? 'de pista' : 'de playa') + ' entera: jugador, insignias, temporadas y palmarés. No se puede deshacer.</p><div class="acts">' +
-      '<button class="warn" data-act="quit2">' + (confirmStep === 2 ? (device() === 'touch' ? 'Toca otra vez para borrar' : 'Pulsa otra vez para borrar') : 'Sí, abandonar') + '</button><button data-act="quit0">Cancelar</button></div></div>';
+      '<button class="warn" data-act="quit2">' + (confirmStep === 2 ? (device() === 'touch' ? 'Toca otra vez para borrar' : 'Pulsa otra vez para borrar') : 'Sí, borrar') + '</button><button data-act="quit0">Cancelar</button></div></div>';
     return h + '</div>';
   }
   function device() { return (VB.ctx && VB.ctx.inputDevice) || 'keyboard'; }

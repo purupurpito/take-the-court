@@ -18,11 +18,17 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.3.0';
+  VB.VERSION = '1.3.1';
   VB.VERSION_DATE = '2026-11-15';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.3.1', d: '2026-11-15', t: 'Borrar carrera',
+      items: [
+        'Borra tu Carrera de playa o de pista desde Ajustes › Info.'
+      ]
+    },
     {
       v: '1.3.0', d: '2026-11-15', t: 'Tu carrera, tus partidos',
       items: [

@@ -4128,6 +4128,7 @@
   }
   function openPanel(name, from) {
     if (!PANELS[name]) return;
+    if (name === 'set') wipeNote = '';   // (aviso de «Carrera borrada»: solo hasta cerrar Ajustes)
     var o = from && typeof from === 'object' ? from : null;
     if (capCancel) capCancel();
     if (o && !o.back && panel && panel !== name) {
@@ -4557,6 +4558,28 @@
     b.classList.add('arm'); uiSound('click');
     resetArm.to = setTimeout(resetDisarm, 3000);
   }
+  /** Ajustes · Info: borrar la Carrera de playa o la de pista (VB.Career.beach / hall.abandon, como «Borrar carrera» de la propia
+   *  Carrera). Doble pulsación como «Restablecer»; los botones solo salen si esa Carrera existe y nunca en un partido de Carrera. */
+  function wipeClick(b) {
+    var m = b.getAttribute('data-wipe') === 'hall' ? 'hall' : 'beach', now = performance.now(), K = VB.Career;
+    if (resetArm.b === b && now - resetArm.t < 3000) {
+      resetDisarm();
+      var ok = false; try { var E = K && K[m]; ok = !!(E && E.abandon && E.abandon()); } catch (e) { console.warn('[VB] ui: Career.abandon', e); }
+      uiSound('back');
+      if (ok) { try { if (VB.CareerUI && VB.CareerUI.syncMenu) VB.CareerUI.syncMenu(); } catch (e) { } try { VB.UI.refreshMenu(); } catch (e) { } }
+      wipeNote = ok ? (m === 'hall' ? 'Carrera de pista borrada.' : 'Carrera de playa borrada.') : 'No se ha podido borrar.';
+      renderOpts();
+      var nb = el.panel.querySelector('.opt-wipe:not([hidden])') || el.panel.querySelector('[data-go="news"]'); if (nb) focusEl(nb, kbNow() || ctx.inputDevice === 'gamepad');
+      return;
+    }
+    resetDisarm();
+    if (!b.getAttribute('data-lbl')) b.setAttribute('data-lbl', b.textContent);
+    resetArm.b = b; resetArm.t = now;
+    b.textContent = (device() === 'touch' ? 'Toca' : 'Pulsa') + ' otra vez: se borra entera';
+    b.classList.add('arm'); uiSound('click');
+    resetArm.to = setTimeout(resetDisarm, 3000);
+  }
+  var wipeNote = '';
   /** Fila que abre otro panel: Controles (en la pestaña del dispositivo en uso), Novedades y Créditos (E7). Se apila Ajustes. */
   function goRow(b) {
     var g = b.getAttribute('data-go');
@@ -4759,6 +4782,15 @@
       var sv = au ? 'Guardado en tu cuenta (' + au + ')' : 'Guardado en este dispositivo';
       if (el.optSave.textContent !== sv) el.optSave.textContent = sv;
     }
+    // Ajustes · Info: «Borrar Carrera de playa / de pista» (solo si existe; nunca en mitad de un partido de Carrera)
+    var inCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && ctx.state !== 'menu' && ctx.state !== 'over'), wb = el.panel ? el.panel.querySelectorAll('.opt-wipe') : [];
+    for (var wi = 0; wi < wb.length; wi++) {
+      var wm = wb[wi].getAttribute('data-wipe'), has = false;
+      try { has = !!(VB.Career && VB.Career.has && VB.Career.has(wm === 'hall' ? 'hall' : 'beach')); } catch (e) { has = false; }
+      var wh = !has || inCareer; if (wb[wi].hidden !== wh) wb[wi].hidden = wh;
+    }
+    var wn = document.getElementById('optWipeN');
+    if (wn) { if (wn.textContent !== wipeNote) wn.textContent = wipeNote; wn.hidden = !wipeNote; }
     var snd = document.querySelector('.opt-snd');
     if (snd) { snd.classList.toggle('muted', !!ctx.settings.muted); var mb = snd.querySelector('[data-mute]'); if (mb) mb.setAttribute('aria-checked', ctx.settings.muted ? 'true' : 'false'); }
     var q = ctx.quality && ctx.quality.level, qn = { high: 'alta', medium: 'media', low: 'baja' }[q] || '';
@@ -6236,6 +6268,7 @@
       el.panel.addEventListener('click', function (ev) {
         var t = ev.target && ev.target.closest ? ev.target : null; if (!t) return;
         var rb = t.closest('.opt-reset[data-reset]'); if (rb && el.panel.contains(rb)) { resetClick(rb); return; }
+        var wbt = t.closest('.opt-wipe[data-wipe]'); if (wbt && el.panel.contains(wbt)) { wipeClick(wbt); return; }
         var ks = t.closest('.kslot'); if (ks && el.panel.contains(ks)) { ctlSlot(ks); return; }
         var ab = t.closest('[data-ab]');
         if (ab && el.panel.contains(ab)) {
