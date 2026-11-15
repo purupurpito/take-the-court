@@ -3255,11 +3255,12 @@
     });
     var L = lg6(c, k.lid), kt = k.kit || {}, goals = trialGoals(c, o), ref = copy(REF[ref6(L ? L.strength : 50)]); ref.chal = 0;
     var kit = { kitShirt: kt.shirt, kitAccent: kt.accent, kitShorts: kt.shorts, kitPattern: kt.pattern, kitLibero: kt.libero };
+    var tai = rivalAI6(c, k);   // la IA del club con la dificultad de la Carrera (1.1.2), como en los partidos
     trialMark(c, i, o, goals); M = null; save6(c);
     return {
       format: '6v6', venue: 'hall', ctrlRole: role, ctrlIdx: idx, ctrl: 'one', attrs: [a0, a1],
       badges: bd ? [R.map(function (x, j) { return j === idx ? bd : null; }), null] : null, nums: [nums0, nums1], names: [names0, names1],
-      meOn: true, meSlot: idx, meBench: -1, sets: 1, points: TRIAL_PTS, difficulty: difficultyFor6(k), rookie: !!soft6(k), diffName: diffLabel6(k),
+      meOn: true, meSlot: idx, meBench: -1, sets: 1, points: TRIAL_PTS, difficulty: tai.diff, rookie: !!tai.soft, diffName: tai.name, cdiff: diffOf(c),
       ref: ref, kit: kit, rivalKit: copy(kit), scrim: { base: trainShirt(kt.shirt), shorts: kt.shorts },
       career: { trial: true, mode: 'hall', club: o.club, offer: i, goals: goals, season: c.season, phase: c.phase, week: 0, round: c.pick.round,
         label: 'Partidillo de prueba: ' + k.name, me: 'SUP', rival: 'TIT', venue: 'hall', meName: 'Suplentes', rivalName: 'Titulares',

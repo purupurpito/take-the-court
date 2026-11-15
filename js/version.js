@@ -9,17 +9,29 @@
  * género neutro, sin nombres reales ni patrocinadores de verdad. Este fichero no lleva arrobas ni la palabra del programa de
  * navegación web (tools/abouttest.js lo comprueba en todo el fichero, comentarios incluidos).
  * 1.0.0 (12-nov-2026, decisión de Ferran): cierre del sprint 5. Sin créditos a herramientas de IA (Ferran, 12-nov-2026).
+ * 1.2.0 (15-nov-2026): pruebas con partidillo de petos y entrenos de Carrera Rápido/Manual (notes/pruebas-entrenos-spec.md).
  * 1.1.0 (13-nov-2026): Vestuario (personalización del aspecto, js/look.js). Solo estética.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.1.2';
+  VB.VERSION = '1.2.0';
   VB.VERSION_DATE = '2026-11-15';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.2.0', d: '2026-11-15', t: 'Pruebas y entrenos',
+      items: [
+        'Las pruebas de club son un partidillo con petos: un set a 15 y tres objetivos.',
+        'Saca nota B o mejor y te fichan. También puedes simularla, con menos opciones.',
+        'Plan del entrenador: tres sesiones por jornada, jugadas, rápidas o de descanso.',
+        'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
+        'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
+        'Entreno automático para quien solo quiere jugar los partidos.'
+      ]
+    },
     {
       v: '1.1.2', d: '2026-11-15', t: 'Dificultad en la pista',
       items: [

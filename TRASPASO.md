@@ -238,7 +238,12 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
     Carrera son solo de Carrera), D2 perfil y álbum con huecos (nivel de cuenta nuevo), D3 cosméticos que lucen, D4 sincronizar
     cada guardado nuevo en account.js con migraciones, ~~D5 playa nocturna~~ (HECHO 12-nov: sede «Cala dels Fanals», ver Hecho «Sedes»).
   - Preguntas para Ferran: música en ogg dentro de index.html o procedural; moneda única o ninguna; ¿6v6 visible en JUGAR?
-  - **Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K** (idea de Ferran, 12-nov-2026: «que nos entrenen y nos
+  - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
+    sesiones Jugar/Rápido/Descanso, notas A+-F, Rápido = récord sin oro, «Simular jornada», entreno automático; y la PRUEBA de club
+    como partidillo con petos (1 set a 15, 3 objetivos, nota B ficha). Diseño en notes/pruebas-entrenos-spec.md. PENDIENTE (backlog):
+    P7 partidillo sorpresa del entrenador entre jornadas; ejercicios propios de 6v6 (hoy los de pista son 2v2); calibrar TRIAL_CUT
+    jugando (la medida dice que los cortes son blandos).
+  - (texto original) **Entrenamientos de la Carrera al estilo NBA 2K** (idea de Ferran, 12-nov-2026: «que nos entrenen y nos
     hagan hacer ejercicios»). Entre jornadas, sesión de entrenamiento con el club: Faro (el mentor del E4) o el entrenador del club
     elige 1-3 ejercicios del gimnasio (E6, `g.drill`) según tus puntos flojos o el rival siguiente. La nota de la sesión (bronce,
     plata u oro) da progreso de atributos (`c.train`/`c.tp`), confianza del entrenador, química con la pareja y minutos o titularidad.
