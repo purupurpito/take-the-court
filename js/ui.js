@@ -3814,20 +3814,24 @@
     // sede de cada tipo (Ajustes · Imagen; js/venues.js: las disponibles + «Al azar»). arena.js la cambia en vivo
     mapBeach: mapOpt('beach'), mapHall: mapOpt('hall')
   };
-  /** Valores de las filas de sede: las sedes disponibles del tipo (VB.Venues.list) y «Al azar». */
+  /** Valores de las filas de sede: las sedes disponibles del tipo (VB.Venues.list), «Al azar» y «Sede de un club» ('club': una sede
+   *  generada de un club al azar, js/venue-gen*.js; se sortea al aplicar el ajuste y se queda hasta que se cambia: la revancha repite). */
   function mapOpt(kind) {
-    var V = VB.Venues, L = V ? V.list(kind) : [kind === 'beach' ? 'platja' : 'palau'];
-    return { vals: L.concat(L.length > 1 ? ['rand'] : []), labels: L.map(function (id) { var d = V && V.def(id); return (d && (d.short || d.name)) || id; }).concat(L.length > 1 ? ['Al azar'] : []) };
+    var V = VB.Venues, L = V ? V.list(kind) : [kind === 'beach' ? 'platja' : 'palau'], club = !!(V && V.valid && V.valid(kind, 'club'));
+    return { vals: L.concat(L.length > 1 ? ['rand'] : [], club ? ['club'] : []),
+      labels: L.map(function (id) { var d = V && V.def(id); return (d && (d.short || d.name)) || id; }).concat(L.length > 1 ? ['Al azar'] : [], club ? ['Sede de un club'] : []) };
   }
   /** Ayuda de una sede (venues.js `help`). */
   function venueHelpOf(kind) {
     var V = VB.Venues, A = VB.Arena, id = '';
     if (!V) return '';
     if (A && A.map && V.kindOf(A.map()) === kind) id = A.map();
-    else if (ctx.settings[kind === 'beach' ? 'mapBeach' : 'mapHall'] === 'rand') {
-      // «Al azar» sin montar: la ya sorteada, o una línea genérica (no se sortea al redibujar)
+    else if (/^(rand|club)$/.test(ctx.settings[kind === 'beach' ? 'mapBeach' : 'mapHall'])) {
+      // «Al azar» / «Sede de un club» sin montar: la ya sorteada, o una línea genérica (no se sortea al redibujar)
       id = A && A.randPick ? A.randPick(kind) : '';
-      if (!id) return kind === 'beach' ? 'Sede de playa al azar, pista de 16 × 8' : 'Pabellón al azar, pista de 18 × 9';
+      var clubP = ctx.settings[kind === 'beach' ? 'mapBeach' : 'mapHall'] === 'club';
+      if (!id) return clubP ? (kind === 'beach' ? 'La playa de un club al azar, pista de 16 × 8' : 'El pabellón de un club al azar, pista de 18 × 9')
+        : kind === 'beach' ? 'Sede de playa al azar, pista de 16 × 8' : 'Pabellón al azar, pista de 18 × 9';
     } else id = V.resolve(kind, ctx.settings);
     var d = V.def(id); return d && d.help;
   }
@@ -3876,12 +3880,25 @@
   function venueName() { return VB.Arena && VB.Arena.venueName ? VB.Arena.venueName() : 'Palau del Mar'; }
   /** Pone el nombre de la sede en los textos fijos del HTML (antetítulo del menú, tarjeta de presentación, cortinilla,
    *  marcador, final). Busca cada vez (otros pueden rehacer esos nodos) y respeta MAYÚSCULAS. */
+  // nombres de sede ya vistos: las generadas (js/venues.js) salen del registro LRU, pero su nombre puede seguir en la tarjeta de
+  // presentación o en el marcador hasta el siguiente cambio; por eso se recuerdan aquí (texto corto, sin límite práctico)
+  var VENUE_NAMES = ['Palau del Mar', 'Platja Llarga'];
+  function reEsc(t) { return String(t).replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
   function applyVenue() {
-    var NAMES = ['Palau del Mar', 'Platja Llarga']; if (VB.VENUES) for (var vk in VB.VENUES) if (NAMES.indexOf(VB.VENUES[vk].name) < 0) NAMES.push(VB.VENUES[vk].name);
-    var nm = venueName(), re = new RegExp(NAMES.join('|'), 'gi'), w, n;
+    var NAMES = VENUE_NAMES; if (VB.VENUES) for (var vk in VB.VENUES) if (VB.VENUES[vk].name && NAMES.indexOf(VB.VENUES[vk].name) < 0) NAMES.push(VB.VENUES[vk].name);
+    var nm = venueName(); if (nm && NAMES.indexOf(nm) < 0) NAMES.push(nm);
+    // (las más largas primero: «Platja Llarga Nord» antes que «Platja Llarga»)
+    var re = new RegExp(NAMES.slice().sort(function (a, b) { return b.length - a.length; }).map(reEsc).join('|'), 'gi'), low = NAMES.map(function (x) { return x.toLowerCase(); }), w, n;
     try { w = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false); } catch (e) { return; }
     while ((n = w.nextNode())) {
-      var v = n.nodeValue; if (!v || v.length < 12) continue; re.lastIndex = 0; if (!re.test(v)) continue;
+      // (los nodos cortos solo si son un nombre de sede entero: las generadas pueden tener menos de 12 letras)
+      //  (fuera de las filas de opciones: «Can Rebot» o «Cúpula» allí son valores del selector, no la sede montada)
+      var v = n.nodeValue; if (!v) continue;
+      // (nunca dentro de la Carrera, #career: allí el nombre de la playa de un club, k.beach, es la ficha del club / las ofertas,
+      //  no la sede montada; cambiarlo dejaba «Sede: Moll de la Sorra» en la ficha tras jugar en tu playa)
+      if (n.parentNode && n.parentNode.closest && n.parentNode.closest('#career')) continue;
+      if (v.length < 12 && (low.indexOf(v.trim().toLowerCase()) < 0 || (n.parentNode && n.parentNode.closest && n.parentNode.closest('.mi, #optList')))) continue;
+      re.lastIndex = 0; if (!re.test(v)) continue;
       var hits = v.match(re), many = false; for (var hi = 1; hits && hi < hits.length; hi++) if (hits[hi].toLowerCase() !== hits[0].toLowerCase()) many = true;
       if (many) continue; // «Palau del Mar o Platja Llarga» (ayuda de Escenario) nombra varias sedes: se deja
       var nv = v.replace(re, function (m) { return m === m.toUpperCase() ? nm.toUpperCase() : nm; }); if (nv !== v) n.nodeValue = nv;
@@ -4027,9 +4044,9 @@
     var rowS6 = document.querySelector('[data-opt="subs6"]'); if (rowS6) rowS6.hidden = ctx.settings.format !== '6v6';   // «Cambios de tu equipo»: solo con 6 contra 6
     if (rowH) rowH.hidden = OPT.mapHall.vals.length < 2;
     if (rowB) rowB.hidden = OPT.mapBeach.vals.length < 2;
-    if (rowL) {   // con «Al azar», manda la sede de playa montada (o ya sorteada): la de luz fija oculta la fila
+    if (rowL) {   // con «Al azar» o «Sede de un club», manda la sede de playa montada (o ya sorteada): la de luz fija oculta la fila
       var mb = ctx.settings.mapBeach, AR = VB.Arena;
-      if (mb === 'rand' && AR && AR.map && VB.Venues) mb = VB.Venues.kindOf(AR.map()) === 'beach' ? AR.map() : (AR.randPick && AR.randPick('beach')) || mb;
+      if (/^(rand|club)$/.test(mb) && AR && AR.map && VB.Venues) mb = VB.Venues.kindOf(AR.map()) === 'beach' ? AR.map() : (AR.randPick && AR.randPick('beach')) || mb;
       var dB = VB.Venues && VB.Venues.def(mb); rowL.hidden = !!(dB && !dB.lights);
     }
     var sls = document.querySelectorAll('[data-sl]');

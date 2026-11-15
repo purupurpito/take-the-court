@@ -948,3 +948,303 @@ Pedido de Ferran: mapas nuevos de playa y de pista. Plan aprobado con 4 sedes; e
   - El brillo del bloom alrededor de las camisetas en alta es el de siempre (también en Palau); sobre la zona libre oscura se nota más.
 - Pendiente: Carrera con sede por club (`matchSetup().map`); la cámara de la
   grúa del cambio de campo en la playa sigue sin `courttest`.
+
+## Sedes generadas por club, F1: fontanería (arena, 12-nov-2026; plan «sedes-gen», sin commitear)
+- **Carga** (index.html): `venue-gen.js` (receta pura, F0) justo después de `venues.js`; `venue-gen-hall.js` y `venue-gen-beach.js`
+  (constructores; en F1, STUB) después de `venue-cupula.js` y antes de `fx.js`.
+- **`js/venues.js`**: `forClub(club, kind, opt)` → id (caché LRU de 64 recetas, `ensure`); `ensure(spec)` registra `VB.VENUES[id] =
+  {kind, name, short, pad, tier, help, sand, lights, night, gen: true}` y `VB.Arena.registerMap(VB.VenueGen.hallDef|beachDef(spec))`,
+  con cola LRU de 4 generadas por tipo (`forget(id)` = `VB.Arena.unregisterMap` + fuera del registro; nunca la montada); `parse`
+  ('club:IT:PER', 'club:IT:PER:b', 'gen:h:123', 'gen:b:7'); `randomGen(kind, seed)`; `plan(next, kind, ficha, temporada)` (tabla EMBLEM
+  pura: liga y copa previa → sede del local; copa internacional → la del local con `{stage: 'intl'}` (H8/H9 si es de 1.ª); final de copa
+  → Palau; final internacional → Cúpula (o Palau); Can Rebot en el debut y en el 20 % de las jornadas de 2.ª española en casa; playa:
+  la del local, Open 1-2 Platja, 3-4 Moll, 5 y la final Fanals) y `forMatch(next, kind[, c])` (plan + `VB.Career.clubInfo` del local
+  + registro; null = el tipo de siempre). `kindOf` entiende club:/gen:; `list()` no devuelve las generadas; `valid()` acepta 'club'
+  (si hay constructor) y no acepta ids generados; `resolve` con el ajuste 'club' sortea `randomGen(kind, seed)`. `generated(kind)`.
+- **`js/arena.js`**: `unregisterMap(id)` (rechaza la montada, Palau, Platja y las que no son `gen`); `mapDef(id)`; `resolveMap` con
+  club:/gen: (`VB.Venues.parse`) y 'club' guardado como «Al azar» (`randPick`); ganchos de PIEL DE PALAU (`def.skin === 'palau'`: sin
+  grupo propio salvo que traiga `build`, sin ocultar nada, luz `def.look`): `def.recolor(color, x, y, z, PAL)` sobre toda la estática
+  (`recolorStatic`, copia del color en STAG_SAVE), `def.seatPaint(extra[, x, y, z])` sobre los tramos 'seat', `def.ledText` (textos u
+  objetos de marca en lugar de las de las vallas) y `def.bannerPaint(g, x0, i, B)` (banderolas de la grada); todo vuelve con
+  `staticRestore` / `skinRepaint` al salir (0 memoria). En el kit: `K.recolorStatic`, `K.seatPaint`. `def.floorAdjust(camA, camB)` →
+  grados: en `onGameStart` (con `VB.Players.kitColors()`), si cambia, repinta la tarima con `h.hue` (mismo lienzo).
+- **Stub** (`venue-gen-hall.js`): H1-H7 = la def de Can Rebot con la semilla de la receta y la tarima con su paleta (pista, zona libre,
+  líneas, madera / sintético / multideporte, nombre); H8/H9 = piel de Palau (tono del club en la estática, asientos, vallas con nombre,
+  siglas y cántico, banderolas, tarima). floorAdjust: ±30° si ΔE76(pista, camiseta) < 25. Playa (`venue-gen-beach.js`): Platja con la
+  arena, la cinta, la lona, las gradas y el marcador de la receta. F2-F4 sustituyen el stub.
+- **Probado**: `GEN=8 node tools/venuetest.js 3` (6 de pista con una piel H8 + 2 de playa por vuelta; la LRU olvida): base = fin
+  (44 geo / 44 tex / 44 prog en este PC hoy; también sin GEN). `?map=club:IT:PER`, `club:TR:CAN` (piel), `gen:h:123`, `club:IT:PER:b`,
+  `gen:b:7` montan sin errores; piel = Palau en dibujos y triángulos (55 · 1,27 M en 844×390), stub ≈ Can Rebot (48). Palau y las 5
+  sedes a mano antes/después iguales salvo vallas LED y público animados (`tools/out/gen/f1/antes|despues/`); Palau después de la
+  piel, idéntica (`palau-tras-piel.png`).
+
+## Sedes generadas por club, F2: pista t0-1, arquetipos H1 / H3 / H2 (arena, 12-nov-2026; plan «sedes-gen», sin commitear)
+- **`js/venue-genkit.js`** (nuevo; carga tras `venue-cupula.js`, antes de `venue-gen-hall.js`): `VB.VenueGen.kit`, piezas que escriben en
+  los Builder de la sede (S estática, E emisiva) o pintan lienzos, sin crear mallas. COPIADAS de Can Rebot (que no se toca hasta F7) y
+  parametrizadas: `sportLines`, `grain`, `scoreSegments` (+ `seg7`), `quad`/`geoOf`, `windowRow`, `roofSaw`, `wallBars`, `basketFolded`,
+  `matLean`/`matPile`, `exitDoor`, `rollerDoor`, `scoreHousing`, `stand` (la telescópica de Can Rebot generalizada a los 4 lados, con
+  hormigón y bleacher, pasillos y asientos por celdas de 2 para los esquemas de color), `lockerDoor`, `vending`, `fountain`, `trophyCase`,
+  `corkBoard`, `clock`, `extinguisher`, `benches`, `highBay`. Nuevas: `wall` (zócalo + acabado por bandas de color de vértice: hiladas y
+  pilastras, juntas, bloque a dos tonos, chapa grecada, tablas, azulejo, estuco), `endWindow`, `roofGable` (cerchas de par y tirante),
+  `roofFlat` (cerchas Warren vistas), `roofBarrel` (facetas, costillas, lucernario en la clave y lunetos), `truss`, `ledPanel`, `radiator`,
+  `stage` (escenario con telón), `scoreFlip` (tablillas), `scoreLed` (+ `ledGrid`), `mosaic` (fuente 5 × 7 para las siglas en la grada),
+  `crest` (escudo inventado: forma × franja × inicial), `viewPaint` (vista de ventana: ciudad, montes, palmeras, nieve, desierto, puerto),
+  `planks`, `ATL` (regiones del atlas de rótulos 1024 × 512) y `uvOf`.
+- **`js/venue-gen.js`** (receta, sin cambiar ninguna receta ni la instantánea): `plan(sp)` (planta PURA: paredes, gradas, alero, techo
+  efectivo, marcador, ventanales, rejilla de focos; la usan el constructor y el coste), `BUILD_AS` + `builtArch(sp)` (arquetipos sin
+  constructor: H4 → H1 zigzag, H5 → H2, H6 → H3 plano, H7 octógono → H3 / cúpula rebajada → H2; F3 los vacía) y tabla `COST` CORREGIDA
+  con lo medido (término por pieza sobre la planta: muro por acabado, techo, ventanas, filas de grada por tipo, fondo, atrezo, focos; y
+  la emisiva). `cost(sp).parts` da el reparto.
+- **`js/venue-gen-hall.js`**: H1-H7 = `hallBuilt(sp)` (un constructor paramétrico sobre `plan`): H1 dientes de sierra, H3 dos aguas o
+  plano con cerchas, H2 bóveda. Gradas none (dos filas de bancos) / one (lado −y, el del 1r árbitro) / two / U (−y + los dos fondos,
+  filas de los fondos ≤ 6), hasta 12 filas por lado; asientos liso / alterno / degradado / gris con acento / mosaico de siglas (solo la
+  grada principal). Fondo rival en los DOS fondos: espalderas + colchonetas + canasta plegada, mural geométrico o la ciudad en letras
+  (franja 8:1 del atlas), peña (pancartas), ventanal con vista o escenario; con U, lo que no cabe pasa a peña. Lateral +y sin grada:
+  vestuarios, máquina, fuente, vitrina, corcho, reloj, extintores (radiadores con frío). Luz: sol (haces, `keyDir` del acimut/elevación
+  de la receta), nublado, sodio o LED (halos; ventanas de noche oscuras). Marcador de segmentos / tablillas / LED. `def.plan`, `def.built`
+  y `def.parts()` (triángulos por pieza) para las pruebas. H8/H9: la piel de Palau de F1 sin cambios.
+- **Presupuesto**: dibujos propios 6 en baja (suelo exterior, estática, emisiva, rótulos, marcador, público) y 8 en media/alta (+ tinta,
+  + haces o halos); sin programas nuevos frente a Can Rebot salvo la primera vez que sale un tipo de luz. Escena ≤ Palau: el público se
+  baraja al montar; en media `quality` lo topa (`CROWD_ROOM[1]` = 86 k triángulos de estática + público; en alta no hace falta) y en
+  baja va entero en impostores (revisión, abajo). Estática medida 6-29 k (≤ 40 k), emisiva ≤ 1,4 k. Montaje 8-37 ms en el PC.
+- **Pruebas**: `node tools/venuegen-cost.js [low,medium,high]` (nuevo; muestra de 3 clubes por arquetipo de receta; estática medida
+  contra `cost` ±15 % en alta, emisiva, dibujos propios, escena ≤ Palau, programas): todo dentro de −6…+2 % en alta (en baja se podan
+  nervios y diagonales). `venuegen-test` (e): la variedad de lo CONSTRUIDO (≥ 3 arquetipos hechos y ≥ 5 firmas por país, sin gemelos a
+  la vista). perf (`EXTRA=map=club:PL:SUW|TR:GEB|IT:MIL perf.js 844x390 8 high,medium,low 4`): alta 36-38/39-42 · 656-735 k, media
+  37-39/39-41 · 305-309 k, baja 26-27/28-29 · 101-102 k (Palau en el mismo PC: 52 · 1272 k, 46 · 316 k, 29 · 105 k). Capturas en
+  `tools/out/gen/hall/<H1|H2|H3>/<CC_SIGLAS>/` (`d1280/` menú, saque, rally y cambio de campo; `m844/` táctil; `m844-low/`), vistas
+  generales y sedes a mano después (iguales) en `tools/out/gen/f2/`.
+
+## Sedes generadas por club, F2: revisión (arena, 13-nov-2026; plan «sedes-gen», sin commitear)
+- **Focos y cámara del 6v6** (alta): la fila central de campanas o paneles (y = 0) colgaba a ~7 m y la cámara de televisión del 6v6
+  (x 14,2, z 7,8, mirando a lo largo de la pista) la veía encima de la pista (PL:GOR, CN:BEI, US:OMA). `plan()` (venue-gen.js) solo pone la
+  fila central si cuelga a ≥ `LAMP_MID` = 8,3 m; si no, dos filas (± 7 en pabellones anchos, ± 4,8 en los estrechos). Prueba nueva
+  **`node tools/venuegen-lamps.js`**: toma las matrices reales de la cámara (serve6, rally6, serve6h, rally6h × 1280×720 y 844×390,
+  8 muestras cada una) y proyecta cada foco (centro, boca de la campana o esquinas del panel) de las 390 sedes construidas y 200 al azar;
+  falla si alguno cae dentro de la pista en pantalla (con 0,5 m de margen). Antes: 99 sedes; ahora 0.
+- **Seña del arquetipo a la vista** (media): el techo no sale en ninguna cámara de juego. `KIT.endSig` (venue-genkit.js) la baja a la
+  franja del fondo que sí se ve, A LA ALTURA DEL MARCADOR (del pie del marcador a 0,6 m por encima; `plan().sig`, null si no caben 1,6 m;
+  el marcador queda delante): H1 perfil de dientes de sierra (faldón oscuro + lucernario de vidrio en la emisiva, viga y montantes); H2
+  arco rebajado de dovelas rojo ladrillo / piedra con luneto acristalado y parteluces; H3 frontón (relleno, tirante, pares, pendolón y
+  tornapuntas, con la pendiente del techo) o, con techo plano, cercha Warren vista sobre un paño. Colores que se separan de la pared.
+  Lo que choca: el escudo junto al marcador se quita (queda en el letrero y la vitrina), el reloj del fondo sube, las pancartas de peña
+  con gradas en los fondos bajan a la barandilla, la canasta plegada cede si choca y el ventanal del fondo (vista) va por debajo o por
+  encima de la franja. `KIT.tri` = triángulo plano por las dos caras en un Builder. Comparación (la misma sede con H1 / H2 / H3 dos aguas /
+  H3 plano, tercio superior del rally a 1280×720): `tools/out/gen/hall/sena/`. En 844×390 la franja queda casi entera bajo el HUD (como el
+  marcador).
+- **Público en baja** (media): `K.crowdImp(m3[, near])` (arena.js, kit) crea los impostores de la malla 3D de una sede (misma gente,
+  colores y animación; el programa de los impostores de Palau, ~2 triángulos por persona; material propio que se libera al salir, atlas
+  de Palau compartido). La def de pabellón generado los crea oculto y `quality` en baja oculta la malla 3D y muestra los impostores
+  (`uDens` = densidad del nivel, mín. 0,6): FR:VLR en baja pasa de ~15 personas a la grada llena. Escena en baja 74-95 k (Palau 105 k).
+- **Colores contra la equipación** (media): `apart()` en la receta separa la pista (ΔE76 ≥ 26) y los asientos A y B (≥ 14) de la camiseta
+  y la segunda del club (mismo tono desaturando o moviendo L en sus rangos; si no basta, giro de hasta ± 16°; pura, sin tirar del PRNG).
+  Así floorAdjust (25) ya no gira la pista contra la camiseta propia. El público de la sede viste los colores de la grada (sin `lift`).
+  `venuegen-test` (c): pista ≥ 25 y asientos ≥ 10 contra las camisetas de los 390 clubes. Nombres sin cambios; la firma de 137 sedes
+  cambia (cubeta de L de la pista) y la reparación de gemelos mueve el arquetipo / techo / fondo de 55 clubes (en F2, sin publicar).
+  Instantánea rehecha con UPDATE=1 SIN subir V (V está en la semilla: subirla rehace todos los nombres que Ferran revisó).
+- **Coste** (baja): `cost()` da también `trisLow` (lo que poda lite: nervios y correas del techo, barras de las cerchas, separadores
+  cada 1,12 m y barandillas de la grada, barras de la seña) y la parte `sig`. `venuegen-cost.js` compara ±15 % en las tres calidades
+  (baja con `trisLow`) y `SAMPLE=b` mide otros clubes que no se usaron para calibrar: −5…+3 % en baja, media y alta en las dos muestras.
+  El 9.º «dibujo propio» era de la herramienta: contaba dos veces la tinta (`genStatic:ink` es hija de la estática). Son 6 en baja y 7-8
+  en media/alta.
+- **Tarima pintada** (baja): `KIT.planks(…, k)` con k = 0,45 en las pistas de madera (vetas y juntas más suaves) y barniz 0,05: sin las
+  franjas que parpadeaban en el 6v6.
+- **Pruebas**: simtest (huella 2v2 idéntica), careertest, venuetest 3 (y `GEN=8`, y `Q=low GEN=8`: impostores sin fugas), venuegen-test
+  (96, todo OK), venuegen-lamps, venuegen-cost (las dos muestras), console.sh all (sin EXTRA, `map=club:PL:GOR` y 844×390
+  `map=club:IT:MIL&quality=low`). Palau y las 5 sedes a mano iguales salvo el público y las vallas animados. Capturas por arquetipo con
+  `serve6` y `rally6` en `d1280/` y `m844/` y `rally6` en `m844-low/` (`tools/out/gen/hall/<H1|H2|H3>/<CC_SIGLAS>/`; las de antes, en el
+  scratchpad).
+
+
+## Sedes generadas por club, F3: pista H4-H7, flavors, pieles H8/H9 y recorrido (arena, 13-nov-2026; plan «sedes-gen», sin commitear)
+- **Receta** (`js/venue-gen.js`; ninguna receta, nombre ni instantánea cambia): `BUILD_AS = {}` (los nueve arquetipos tienen constructor;
+  `builtArch(sp)` = `sp.arch`). `plan(sp)` gana: techo efectivo de H4 (`folded`, flecha 1-2,2 m), H5 (`glulam`, flecha 2,4-4,5), H6
+  (`louvre`), H7 (`octagon` / `domelow`); `rowsN`/`topN` (H6 con dos gradas: la de enfrente con la mitad de filas, grada asimétrica);
+  `ch` (H7 octógono: chaflanes de 1,5-6 m que no tocan gradas ni el atrezo de fondos y laterales); `balc` (H7: balconada de 1-2 pisos
+  a z 3,4 / 6,3 en el lateral +y si no hay grada ahí); `stageE` (flavor jpkr sin gradas en los fondos: escenario en el fondo −x, el
+  que ve la cámara de juego; 2 = la receta ya pedía escenario en los dos); la seña de H6 sube hasta el alero; ventanas `ring` (óculos)
+  con banda de 1,8 m. Tabla `COST` y `cost()` calibradas con lo medido (techos nuevos, óculos 40, chaflanes, balconada, `flavor`
+  {trop 1148, us 240}, escenario de un fondo, seña y emisiva de H4-H7).
+- **Kit** (`js/venue-genkit.js`): `roofFolded`, `roofGlulam` (devuelve los pilares), `roofLouvre`, `roofOctagon`, `roofDomeLow`,
+  `chamferWall`, `balcony` (devuelve asientos), `oculus`, `fan`, `planter`, `friezePaint`, `mosaicPaint`, región `ATL.frieze`
+  (640-1024 × 480-512) y `endSigF3` (llamada desde `endSig`): H4 perfil de lámina plegada a dos tonos, H5 arco laminado de madera de
+  tres láminas con lamas y vidrio detrás, H6 muro cortina (vidrio en la emisiva, la ciudad del atlas entre el vidrio y la
+  carpintería), H7 arquería de medio punto con pilastras y cornisa.
+- **Constructor** (`js/venue-gen-hall.js`): H4-H7 en `hallBuilt`; el atrezo del lateral +y se aparta de los pilares de H5 (`freeX`);
+  pancartas sobre el antepecho de la balconada; sin reloj ni banderines donde chocan. Flavors: **jpkr** escenario con telón en −x y
+  zócalo de madera clara; **us** bleachers amarillos y 5 estandartes colgados por lateral (con su barra); **trop** hasta 8
+  ventiladores de techo y 4 jardineras; **gulf** cenefa de estrellas de 8 puntas en el lateral +y y, con peña, bajo el marcador;
+  **east** mural de mosaico de teselas (en la franja del fondo, también en lugar de la peña, o en el lateral +y). med / alpnord /
+  latam siguen con lo que ya daba la receta (estuco, vistas, colores).
+- **Pieles de Palau**: H8 más oscura (recolor × 0,76); las dos con el escudo del club en la zona libre detrás de cada fondo
+  (`floorPainter(sp, true)`); H9 con `build` = cúpula (`domeBuild`: costillas, anillos y óculo bajo el techo de Palau, 1 malla toon de
+  ~2,8 k triángulos = +1 dibujo; casi no sale en las cámaras de juego). Palau medido antes y después: 29 / 105 k, 46 / 316 k,
+  52 / 1272 k (igual que en F2).
+- **`tools/venuegen-browse.js`** (nuevo; CDP): por calidad, monta cada sede como forceVenue en ?debug=serve y mide ms de setVenue,
+  dibujos y triángulos tras 2 fotogramas, dibujos propios, estática, emisiva, geometrías / texturas / programas; pasada aparte con la
+  CPU ×4 en baja (`NO4=1` la salta). Asserts: 0 errores, escena ≤ Palau (H9 + la cúpula), propios ≤ 6 / 9 / 9, estática ≤ 40 k,
+  emisiva ≤ 4 k, programas sin subir tras la primera sede generada (salvo un tipo de luz / marcador / cúpula nuevo), vuelta a la base
+  con tolerancia 0 por lote, montaje ≤ 120 ms (aviso ≥ 400 ms con CPU ×4). Muestra por defecto: 2 clubes por país + la primera H8 y
+  H9 (58); `ALL=1` los 390 por lotes de 50; `CLUBS=…`. Salidas `tools/out/gen/report.json` y `stats.csv`.
+- **Medido** (muestra por defecto, 1280×720, PC): baja 26 dibujos / 76-95 k (Palau 29 / 105 k), media 37-38 / 215-308 k (46 / 316 k),
+  alta 44-45 / 296-748 k (52 / 1272 k); propios 6 en baja y 7-8 en media/alta; estática ≤ 29 k, emisiva ≤ 2,5 k; montaje ≤ 48 ms en esa muestra (corregido en «F3: revisión»: con `ALL=1`, hasta 70-83 ms)
+  (CPU ×4: máx. 210 ms, mediana 68 ms). `ALL=1` (390 clubes × 3 calidades + CPU ×4): todo OK, vuelta a la base en los 8 lotes, CPU ×4
+  máx. 217 ms. `venuegen-cost` (las dos muestras, ahora con H4-H7 nativos): −6…+5 %.
+- **Capturas**: `tools/out/gen/hall/<H4…H9>/<CC_SIGLAS>/` y `tools/out/gen/hall/flavor/<CC_SIGLAS>/` (`d1280/` saque, peloteo, cambio de
+  campo, serve6, rally6; `m844/` táctil; `m844-low/rally6.png`); sedes a mano después en `tools/out/gen/f3/despues/`.
+- **Visto (corregido en la revisión)**: un `Q=low GEN=8 venuetest` acabó una vez con 1 textura menos que la base (39 → 38). NO es
+  una fuga: no se reproduce (6 de 6 pasadas limpias, 43/39/71 → 43/39/71); era una carrera de la medida (base tomada con un lienzo
+  o una textura aún pendiente). Ver «F3: revisión».
+
+## Sedes generadas por club, F3: revisión (arena, 13-nov-2026; plan «sedes-gen», sin commitear)
+- **trop (media)**: los ventiladores del techo no salen en las cámaras de juego. Nueva pieza `KIT.openBand` (js/venue-genkit.js):
+  lateral abierto en los DOS fondos, a la altura del zócalo (lo que sí ven serve, serve6, rally y rally6). Hueco en la emisiva (jardín
+  verde abajo, cielo arriba; de noche, tonos oscuros), lamas verticales de hormigón cada 0,42 m y alféizares en la estática.
+  Tramos sin puertas (salida y persiana). Alto hasta 2,1 m; con mural o letras, hasta el pie de la franja; con peña, 1,85 m (por
+  debajo de las pancartas). Con espalderas no lleva lamas: los barrotes hacen de lamas. Con pilastras de ladrillo, el hueco va
+  0,095 m por delante. Con gradas en los fondos (U/bowl), paños altos del suelo a la seña, a los lados de la grada y de la seña.
+  Ahí la seña es más débil: con chaflanes de H7 queda casi fuera de cuadro (BR:URU, PH:KSM, BR:MRC, BR:BSL). Los ventiladores y
+  las jardineras se quedan.
+- **gulf**: la misma pieza con `kind 'lattice'` (celosía de retícula de madera oscura delante de una luz cálida), además de la cenefa.
+- **H9 (baja)**: se retira la cúpula (`domeBuild`). Estaba a 16-21 m bajo el techo de Palau, no salía en ninguna cámara y costaba
+  1 dibujo y unos 2,8 k triángulos. La seña de H9 son ahora las vallas LED de gala: oro sobre negro con la estrella de 8 puntas, que
+  se ven en serve6 y rally. H9 = Palau + 0 (medido: 29 / 105 k en baja, 52 / 1272 k en alta, igual que Palau). Receta: `cost()` de
+  las pieles = 0 y fuera `COST.dome`. Ninguna spec cambia: la instantánea sigue verde sin UPDATE.
+- **Coste**: `cost()` estima la banda por tramo (48 + lamas × 12, y en gulf también las filas de la celosía; 24 de emisiva por
+  tramo). `venuegen-cost` con 10 clubes trop/gulf: −2…+1 % en baja y en alta (antes, hasta +13 % sin la banda).
+- **venuetest**: la base y el final se toman tras `document.fonts.ready`, 500 ms y 4 fotogramas (`settle()`).
+- **Tiempos de setVenue (PC, 1280×720)**: «≤ 48 ms» en la nota de F3 se quedaba corto. Lo medido:
+  - F3, `ALL=1` (report.json de entonces): máximo 69,6 ms, H7 cúpula rebajada en alta.
+  - Esta revisión, muestra por defecto (58 sedes): máximo 59,7 ms (IR:SRJ, H7, media).
+  - Esta revisión, `ALL=1` (390 × 3 calidades): baja 44,8 ms (TR:GAL, H7), media 51,1 ms (FR:ORB, H7), alta 82,8 ms (CZ:KLA, H3).
+  - Con la CPU ×4 en baja: mediana de 70-124 ms por lote y máximos de 177-256 ms. Una muestra suelta de 500 ms (TR:GAL, aviso ≥ 400),
+    aunque el mismo club monta en 39-48 ms en las tres calidades a velocidad normal: parece una pausa del recolector, no la sede.
+  - El montaje varía unos ±20 ms entre pasadas. Siempre por debajo del tope de 120 ms en PC; el resto de asserts de browse, OK.
+- **Pendiente (no tocado: cambia la instantánea y necesita el visto bueno de Ferran)**: 58 clubes tienen la pista amarillo mostaza
+  (H ≈ 49°, S 0,65, L 0,46; JP:HGS, IT:MOD, PL:ZAW). El anillo del colocador y la marca de caída, amarillos, casi desaparecen
+  encima (JP_HGS/d1280/rally.png). Propuesta: en la receta, las pistas con tono 40-70° y S > 0,4 bajan a L ≤ 0,38 o se cambian
+  por la zona libre; o bien floorAdjust oscurece el marcador del colocador.
+- **Capturas**: `tools/out/gen/hall/flavor/<BR_CML, PH_BAY, PE_SPL, PH_KSM, IR_GRG>/` y `tools/out/gen/hall/H9/IT_VER/` (d1280,
+  m844 táctil, m844-low).
+
+## Sedes generadas por club, F4: playas (arena, 13-nov-2026; plan «sedes-gen», sin commitear)
+- **`js/venue-gen-beach.js`** (sustituye al stub de F1): `VB.VenueGen.beachDef(spec)` = PIEL de `PLATJA_P` (como Moll y Fanals) + piezas
+  propias en `build(G, K, B)`, todas en la estática de la playa salvo la luz de noche. Lo que distingue cada escenario está donde mira
+  la cámara de juego (el agua, detrás del fondo rival):
+  - **OPEN** sombrillas, hamacas, toallas, boyas amarillas de la zona de baño y lanchas fondeadas; **COVE** acantilados que cierran la
+    cala en el telón, peñascos en la orilla y en el agua, dos lanchas; **PORT** rompeolas con faro, pantalán con lanchas, contenedores en
+    tierra, norays y la bocana con grúas en el telón; **LAKE** embarcadero, línea de boyas, trampolín flotante, barcas de remos, juncos,
+    césped en tierra (`sand` por vértice) y la otra orilla con la sierra en el telón; **PLAZA** adoquinado propio (`tile`: espiga u
+    hiladas), isla de arena con esquinas redondeadas y bordillo de granito (`courtBase`), fachadas con toldos en los cuatro lados,
+    fuente en el eje del fondo rival, farolas y árboles en alcorque; el mar se oculta y la ciudad da toda la vuelta en el telón;
+    **RIVER** la otra orilla a 45 m (muro, paseo con abedules y farolas, fachadas) y un puente de arcos; **TROPICAL** arena de coral,
+    palmeras, sombrillas de paja, canoas, selva e islotes; **DUNES** casetas de baño a rayas, dunas con barrón, cortavientos y el faro
+    sobre un cabo de arena; **DESERT** arena ocre, jaimas en vez de sombrillas, pitas y chumberas, oasis y dunas que bajan al agua.
+  - Los llaüts que navegan (`boats`) quedan solo para Platja Llarga (su seña); las generadas los llevan fondeados en la estática.
+  - **Luz**: 'dia' y 'tarde' (el ajuste «Luz de playa» sigue mandando). En una sede de hora 'tarde' la entrada 'dia' es una hora dorada;
+    'tarde' es la puesta de sol. Cielo de día por clima, sol sobre el agua girado por `p.sunAz`, agua de la receta (el río, algo más
+    azul), telón repintado con ventanas encendidas (`relight`). **Noche** (tier 3): luz fija con luna, estrellas y rielada, 4 mástiles
+    de focos (LED frío, o sodio en 1 de cada 4), guirnalda de bombillas en el fondo rival y chiringuito encendido (emisiva + halos;
+    haces en media/alta); en la plaza y el río, ventanas encendidas en las fachadas de los fondos.
+  - **Colores del club**: cinta, lonas con el nombre de la sede, red / silla / mesa, armazón y toldos de las gradas, marcador, banderas
+    de vela, sombrillas, público y gorras (`p.caps`).
+  - **Gradas** (`p.blocks` × `p.rows`): 0 = ninguna, 1 = solo el lado de la cámara, 2 = los dos, 3-4 = + grada de fondo detrás de
+    nuestro fondo (`KIT.beach.endStand`). Público ≤ 240 (como Platja: el muñeco del público es lo que más pesa en triángulos).
+- **`js/arena.js`** (3 líneas): `beachStands` lee `P.stands.rows` / `sides` / `fill` (por defecto 5, los dos, 0,74: Platja, Moll y
+  Fanals no cambian, mismo azar) y sube los toldos con más de 5 filas; la esfera de recorte del público de playa cubre todos sus asientos.
+- **`js/venue-genkit.js`**: `KIT.beach` = `beachSky` (el telón: montañas, nieve en alpnord / frío, selva, dunas, acantilados, ciudad con
+  remate por estilo —cúpula, minarete, pagoda o campanario—, otra orilla del lago, islotes, bocana del puerto, faro de las dunas; de noche
+  apagado y con ventanas) y los props nuevos (birch, olive, agave, cactus, duneGrass, reeds, jetty, buoyLine, breakwater, lighthouse,
+  bridge, facadeRow —con ventanas encendidas en una emisiva opcional—, stripedHut, strawHut, kiosk, desertTent, containerBar, lifeTower,
+  windbreak, rock, containerStack, endStand, lightTower, garland). Los de Platja se usan por `K.props`.
+- **Receta** (`js/venue-gen.js`): solo la tabla `COST.beach` y la rama de playa de `cost()`, calibradas con `def.parts()` (triángulos
+  por parte en el último montaje). Ninguna spec, nombre ni la instantánea cambian.
+- **Prueba nueva `node tools/venuegen-beach.js [calidades] [WxH]`** (CDP, como venuegen-browse): por calidad monta cada playa como
+  forceVenue y mide montaje, dibujos y triángulos, dibujos propios, estática, emisiva, público y memoria; pasada aparte con CPU ×4 en
+  baja (`NO4=1` la salta). Asserts: 0 errores; dibujos ≤ Platja (+ 2 de noche); propios ≤ Platja (+ 2); triángulos ≤ Platja + el margen
+  de la estática (32 k − la de Platja; × 3 en media/alta por sombra y tinta); estática ≤ 32 k; emisiva ≤ 4 k; público ≤ 240; programas
+  sin subir tras la primera playa (día / noche); vuelta a Palau con tolerancia 0 por lote; montaje ≤ 120 ms (aviso ≥ 400 ms con CPU ×4;
+  un montaje por encima se repite una vez pasando por Palau y cuenta el mejor, con aviso: picos sueltos de GC de 140-180 ms en clubes de 20 ms);
+  coste de la receta a ±15 % de lo medido; plaza sin agua visible; **LAKE obligado**: AT, CH, CZ y RS montan una playa de lago con agua.
+  Muestra por defecto (67): 2 clubes por país + un club y la primera noche de cada escenario + los lagos de AT/CH/CZ/RS + 4 `gen:b:n`;
+  `ALL=1` los 390 por lotes de 50; `CLUBS=…`. Salidas `tools/out/gen/beach-report.json` y `beach-stats.csv`.
+- **Medido** (muestra por defecto, 1280×720, PC): baja 26-28 dibujos / 70-118 k (Platja 29 / 113 k), media 36-39 /
+  191-277 k (39 / 260 k), alta 43-46 / 253-462 k (46 / 448 k); propios 10-12 en baja y 12-15 en media/alta (Platja 13 / 15); estática
+  7,4-29,8 k (Platja 19,5 k); emisiva de noche 1,3 k (plaza 3,7 k); montaje ≤ 45 ms (CPU ×4 en baja: máx. 243 ms, mediana 92 ms);
+  coste estimado −4…+8 % de lo medido; sin programas nuevos tras la primera playa de día / de noche; vuelta a la base exacta.
+- **Capturas**: `tools/out/gen/beach/<escenario>/<CC_SIGLAS>/` (`d1280/` saque, peloteo y punto; `d1280-tarde-rally.png`; `m844/`
+  táctil; `m844-low-rally.png`) con open IT_PIA, cove IT_MIL, port IT_GRO, lake AT_HAR, plaza IT_CUN, river PL_WAR, tropical BR_CML,
+  dunes FR_TRN, desert IR_GRG y las noches `noche-cove` IT_PER, `noche-lake` PL_LUB, `noche-plaza` IT_CIV, `noche-port` IT_VER.
+  Platja, Moll, Fanals y Palau antes y después en el scratchpad de la sesión (iguales salvo el público animado).
+
+## Sedes generadas por club, F4: revisión (arena, 13-nov-2026; plan «sedes-gen», sin commitear)
+- **Arena de fx con el color de la sede** (fx.js `sandTint`/`sandK`): las nubes (`TBK.sand`/`sand2`), los terrones (`clump`), la corona del
+  remate y la arena pegada al muñeco (`updateSandy`) iban con el atlas de Platja y tinte 1,1,1. Ahora, en las sedes GENERADAS, `tbAdd`
+  recibe k = `look().sand` / `SAND_C` por canal (tope 0,6..1,1), recalculado en cada evento de arena (bote, plancha) y en `onGameStart`,
+  nunca por frame; sin memoria ni programas nuevos. Las sedes a mano (Platja, Moll, Fanals) siguen con k = 1. Huellas y cráter sin tocar.
+- **Noche de cala** (venue-gen-beach.js): para no repetir Cala dels Fanals, los dos mástiles del fondo rival se adelantan a (−17,4, ±12,6),
+  la guirnalda va en V hacia el agua con el poste a −21,4 (mismos tramos de ~13,3 m: mismas bombillas y coste) y la luna sale claramente a
+  un lado (`sunAz`). Las demás noches no cambian.
+- **venuegen-beach.js**: la repetición de un montaje lento es EN FRÍO (`VB.Venues.forget` + `parse` antes de volver a montar); tope duro
+  del primer montaje 250 ms en PC; más de 2 repeticiones por calidad y lote fallan; el informe cuenta las repeticiones (`reps`).
+- **ALL=1 (los 390 clubes, baja y alta)**: presupuesto dentro en todos (peores: dibujos 46 = Platja en alta, triángulos 479 k en alta con
+  Platja 448 k + margen, estática 30,6 k, emisiva 3,7 k en la plaza de noche, público 240). Destapó dos cosas que la muestra no veía:
+  - el coste estimado de la plaza se pasaba hasta +17 %: la plaza (y la noche) no lleva sombrillas en los banquillos (−224) y los árboles
+    en alcorque no son 10 árboles enteros. `COST.beach.benchUmb` y `plazaVeg` (la fila entera por especie, medida en los 65 clubes de plaza).
+    Con eso, todos los escenarios quedan en −3,7…+10 %;
+  - «programas +2» en la primera playa con agua de un lote que empieza en plaza: la plaza esconde el agua y no compila sus programas.
+    La prueba cuenta la plaza aparte (como la noche). Es una compilación única al montar la sede, no durante el juego.
+
+## Sedes generadas por club, F5: integración (arena + ui_main, 13-nov-2026; plan «sedes-gen», sin commitear)
+- main.js `startCareerMatch`: `VB.Venues.forMatch(K.next(), m.venue)` → `startMatch({ venueMap })`; `startMatch` fuerza esa sede si es del
+  tipo del partido (si no, o null, el tipo de siempre). La sim sigue recibiendo solo 'hall' | 'beach'. `forceVenue` guarda lo de antes
+  solo la PRIMERA vez (de una sede de Carrera a otra sin pasar por el menú se vuelve igual al ajuste) y una sede generada la guarda como
+  su tipo (puede salir del LRU de venues.js antes de volver). career*.js y leagues.js: 0 líneas.
+- ui.js: filas «Pabellón» y «Sede de playa» con «Sede de un club» (valor 'club', solo si `VB.Venues.valid(kind, 'club')`); arena.js
+  la sortea al aplicar el ajuste y la guarda en `randPick` hasta que se cambia (la revancha y el 6v6 rápido repiten sede). Ayuda sin
+  montar: «El pabellón / La playa de un club al azar…». `applyVenue` recuerda los nombres ya vistos (las generadas salen del registro),
+  escapa la regex y cambia también nodos cortos que sean un nombre entero (fuera de las filas de opciones): el nombre de la sede sale
+  en la presentación, el marcador y la cortinilla. Nunca entra en `#career` (hub y fichas de la Carrera): allí el nombre de una
+  playa de club (k.beach) es dato del club, no la sede montada (revisión de F5: tras jugar en tu playa, cambiar «Sede de playa»
+  dejaba «Sede: Moll de la Sorra» en la ficha). «Luz de playa» con 'club' mira la sede montada o sorteada, como con «Al azar».
+- venuetest: si el fin no cuadra con la base espera hasta 8 `settle()` más antes de dar FUGA (las pieles de atleta, lienzos 1024²
+  que se rehacen al cambiar de sede, a veces se suben a la GPU tarde: fin = base − 1 en 2 de 5 pasadas, vuelve solo en 1-3 s).
+- Prueba (eval, Carrera real; las rondas de copa con `next()` sustituido sobre la jornada real): T1J1 → canrebot; J2 fuera → g-ES-VEG-h
+  (el local); J3 casa → g-ES-LAG-h; final de copa nacional → palau; final continental → cupula; cuartos continentales → g-ES-LAG-hx
+  (tier 3); semifinal de copa → la del local; playa J1/J2 → g-XX-ARE-…-b con nombre = k.beach; Open nivel 0/3/final → platja/moll/fanals.
+  Tras cada partido, `toMenu` vuelve al ajuste. venuetest sin fugas (44/44/44).
+
+## Sedes generadas por club, F6: variedad visual (arena, 15-nov-2026; plan «sedes-gen», sin commitear)
+- `tools/venueshots.js` (CDP, como venuegen-browse): monta cada sede como forceVenue en `?debug=rally` (cámara de juego de la jugada
+  2v2), oculta jugadores, balón, fx y aros (`players, fx, ro3, ro4`) y saca del lienzo WebGL una imagen de 480×270 + dHash de 64 bits
+  del fondo (55 % de arriba) + color medio en rejilla 4×3. 390 pistas + 40 playas (la primera de cada escenario, de día/tarde/noche,
+  y después una por país), lotes de 50, ~4 min. Gemela = Hamming ≤ 10 Y color < 40, o Hamming ≤ 16 Y color < 15 (aviso, no
+  bloquea; las del umbral también salen). Salidas en tools/out/gen/:
+  `<cc>/<SIGLAS>-h|b.jpg` + `<cc>/index.html` (hoja del país, imágenes relativas), `index.html` autocontenido (miniaturas de 320×180
+  embebidas, ~7 MB: cabe en un artifact) y `shots.json`. Variables: CLUBS, CC, PLAYAS, Q, NOHTML (CC/CLUBS reescriben index y json
+  solo con ese subconjunto).
+- Arreglo en la herramienta: el color de la rejilla no se guardaba en la fila, así que la condición de color nunca se cumplía y
+  salían 0 gemelas siempre; ahora sí cuenta.
+- Revisión de las hojas (las 39 a ojo) y arreglos en tablas/OVERRIDES (instantánea regenerada con UPDATE=1; 96/96):
+  - venue-gen.js `hallSpec`: con luz de sodio (#ffcf8a) una pista fría (tono 160-290) pasa a S ≥ 0,55 y L 0,42-0,52, otra vez
+    separada de las camisetas. Antes salían casi negras (FR:CLP, FR:NAZ, RU:APK, DE:BFX, RO:GLT/VOL…) o gris verdosas (CN:BEI).
+  - zona libre neutra: además de ≥ 25° de tono, ΔE76 ≥ 22 con la pista (JP:LAF, verde azulado sobre verde).
+  - OVERRIDES: IT:PRA H3, PL:JAS H7, BR:GRU H7, RU:PLA H3 (eran H6 cristalera gemelas de IT:VAL, PL:ZAW, BR:CEL, RU:DYM);
+    JP:LAF H3 + led; BR:CDG H4 (= BR:MOC); ES:BND H5, ES:SRQ H1, ES:CHT H3 (cinco clubes azul sobre amarillo en ES, cada uno
+    con su arquetipo).
+- Segunda revisión (15-nov-2026):
+  - venue-gen-hall.js, franja del fondo (mural / letras): va a 0,12 m de la pared, DELANTE de las pilastras de ladrillo (0,09 m)
+    y de los nervios de chapa (0,05 m), que cortaban la ciudad en los 96 fondos con letras (PT:ESP «ESP NHO», CA:WPG, CH:JON…).
+    Con gradas en los fondos la franja va pegada al marcador y de 1,8 m como mucho (antes llegaba al alero y la cámara de juego la
+    cortaba por arriba: IT:MOD, IT:PRA, PL:OLS…). Fuera el override ES:RNB (ya no hacía falta; reordena el sorteo de ES).
+  - OVERRIDES: AR:PIN H4 + led + gradas en U (= AR:NUN), IT:CHI H3 (= IT:VER, H8/H9), PL:MUR H3 (= PL:WAR, H8/H9), IT:PRA con
+    una sola grada (con U quedaba = IT:MOD).
+- (primer pase) Quedaban 11 avisos de pista, todos con arquetipo distinto y mirados a ojo: PL:SUW/GOR, PL:CHE/MIE, TR:GEN/YES,
+  RU:KUZ/NIZ, FR:TRN/BDA, FR:EST|PRE/ARV, DE:FCH/EDV, ES:LAG/BND, US:HOU/ORL, JP:QZK/HGS (TR:ARI/KAN, dos pieles de Palau de
+  tier 3, entra y sale del umbral según la pasada). Los colores repetidos salen de leagues.js (el diseño los separa con pared y
+  material, no con otra paleta). Los 12 de playa son entre países distintos (una playa por país en la muestra) y no coinciden en
+  un mismo circuito.
+- Con el criterio nuevo quedan 22 avisos de pista, todos con arquetipo distinto; los de color casi igual (PL:KED/CZE, PL:CHE/MIE,
+  RU:SOS/BLG, ES:TAM/BND) son azul sobre amarillo de leagues.js con otro fondo. Sin tocar (bajos, para la hoja): IT:MOD/IT:CON,
+  ES:LAG/ES:SCG.
+- Pendiente: el visto bueno de Ferran a la hoja (tools/out/gen/index.html).

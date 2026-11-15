@@ -411,7 +411,11 @@
   }
   function forceVenue(v) {
     var id = isMapId(v), cur = id ? mapNow() : venueNow(); if (cur === v) return;
-    venueForced = venueForced || mapNow() || venueNow(); applyVenue(v);   // (ya forzado, p. ej. por el fondo de la Carrera: se guarda el del ajuste)
+    // (se guarda lo de antes de la PRIMERA vez: de una sede de Carrera a otra sin pasar por el menú se vuelve igual al ajuste;
+    //  una sede generada se guarda como su tipo, porque puede salir del registro LRU de venues.js antes de volver;
+    //  ya forzado, p. ej. por el fondo de la Carrera: se guarda el del ajuste)
+    if (!venueForced) { var m0 = mapNow(), d0 = m0 && VB.VENUES && VB.VENUES[m0]; venueForced = (m0 && !(d0 && d0.gen) && m0) || venueNow(); }
+    applyVenue(v);
   }
   function unforceVenue() {
     if (!venueForced) return;
@@ -476,7 +480,8 @@
     // 15, pista 16×8, cambio de campo cada 7) aunque el ajuste «Escenario» sea el pabellón; el hub y quickSim cuentan con ellas
     // (el 6v6 al revés: siempre en el pabellón, aunque el ajuste sea la playa; la sim juega en su pista 18×9)
     var cv = cs ? (opts.venue === 'hall' ? 'hall' : 'beach') : fmt ? 'hall' : null;
-    if (cv) forceVenue(cv);
+    // (Carrera: opts.venueMap = sede del partido, VB.Venues.forMatch: la del local, una emblema o null = la del ajuste del tipo)
+    if (cv) forceVenue((cs && opts.venueMap && VB.Venues && VB.Venues.kindOf(opts.venueMap) === cv && opts.venueMap) || cv);
     if (!auto) animHooks(cs);
     // banquillo y cambios (6v6): la Carrera trae bench / meSlot / meBench / names / coach (VB.Career.matchSetup); el Partido rápido 6v6
     // humano, el banquillo neutro de los dos equipos (Sim.defaultBench) y el entrenador de cada uno (el tuyo según «Cambios de tu
@@ -584,7 +589,8 @@
     var m = null; try { m = K.matchSetup(); } catch (e) { reportError('Career.matchSetup', e); }
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
     if (K.abortMatch) K.abortMatch();
-    ctx.actions.startMatch({ career: m.career, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
+    var n = null; try { n = K.next && K.next(); } catch (e) { } var vid = n && VB.Venues && VB.Venues.forMatch ? VB.Venues.forMatch(n, m.venue || 'beach') : null; // sede del partido (js/venues.js, tabla EMBLEM)
+    ctx.actions.startMatch({ career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
       venue: m.venue || 'beach', // vóley playa: Platja Llarga y sus reglas (VB.Career.matchSetup().venue); la Carrera de pista, 'hall'
       format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, // Carrera de pista (lote C): 6v6 en tu puesto
       // titularidad y cambios (notes/titularidad-y-cambios.md §I.1): tal cual a Sim.createGame
