@@ -2145,6 +2145,62 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
   verbose = false;
 }
 
+section('Dificultad de la Carrera de pista: niveles, IA, atributos del rival, cambio entre partidos, sellos y migración');
+if (C.hall && C.hall.rivalAI) {
+  const H = C.hall;
+  const mk = (d, seed) => { delete mem['voley3d.career6']; C._reset(); const o = { mode: 'hall', name: 'Dif Pista', num: 8, pos: 'OH', seed: seed || 9100, autoClub: true }; if (d) o.diff = d; return C.create(o); };
+  // misma semilla, misma carrera en cualquier nivel (create no gasta tiradas)
+  const strip = x => { const o = JSON.parse(JSON.stringify(x)); ['diff', 'dUse', 'coachD', 'coach', 'created', 'inbox', 'msgN', 'world'].forEach(k => delete o[k]); if (o.objective) { delete o.objective.d; delete o.objective.text; delete o.objective.pos; } return JSON.stringify(o.clubs) + JSON.stringify(o.leagues) + o.myClub; };
+  const cE = mk('easy'), sE = strip(cE), cX = mk('expert'), sX = strip(cX), cN = mk();
+  ok(sE === sX && sX === strip(cN), 'pista: misma semilla, mismo mundo y mismo club en Fácil, Experto y sin nivel');
+  ok(cN.diff === 'normal' && cX.diff === 'expert' && H.diffOf(cX) === 'expert', 'pista: sin nivel → Normal; el elegido se guarda (c.diff)');
+  ok(cE.coach - cN.coach === C.CDIFF.easy.coach0 && cX.coach - cN.coach === C.CDIFF.expert.coach0, 'pista: confianza inicial ± coach0 (' + cE.coach + ' / ' + cN.coach + ' / ' + cX.coach + ')');
+  ok(cX.objective.d === 'expert' && cX.coachD === 'expert', 'pista: objetivo y confianza con su sello (objective.d, coachD)');
+  // IA rival: Normal = la de siempre; Experto nunca por debajo; Fácil nunca por encima; élite sin Experto por desplazamiento
+  const c = mk('normal');
+  let normOk = true, upOk = true, downOk = true, eliteOk = true;
+  c.diff = 'normal'; const base = c.clubs.map(k => H.rivalAI(c, k));
+  c.clubs.forEach((k, i) => { if (base[i].diff !== H.difficultyFor(k) || base[i].soft !== H.softFor(k)) normOk = false; });
+  c.diff = 'expert'; c.clubs.forEach((k, i) => { const a = H.rivalAI(c, k); if (a.step < base[i].step) upOk = false; if (H.top(c, k) && a.diff === 'expert' && H.difficultyFor(k) !== 'expert') eliteOk = false; });
+  c.diff = 'easy'; c.clubs.forEach((k, i) => { const a = H.rivalAI(c, k); if (a.step > base[i].step) downOk = false; if (H.league(k.lid, c).lvl === 2 && a.diff !== 'easy') downOk = false; });
+  c.diff = 'normal';
+  ok(normOk, 'pista: en Normal la IA rival es la de siempre (difficultyFor + softFor)');
+  ok(upOk && eliteOk, 'pista: en Experto la IA nunca baja y la élite no sube a Experto por desplazamiento');
+  ok(downOk, 'pista: en Fácil la IA nunca sube y las 2ªs divisiones juegan en Fácil puro');
+  // next / matchSetup: media efectiva del rival y cdiff
+  let cx = mk('expert'), n = C.next();
+  ok(n && n.ovrRival === n.ovrClub + H.attrOf(cx, n.rival) && n.ovrSim === n.ovrClub + C.CDIFF.expert.simAttr && n.cdiff === 'expert', 'pista: next() con ovrRival/ovrSim/cdiff del nivel');
+  const ms = C.matchSetup();
+  ok(ms && ms.cdiff === 'expert' && ms.career.cdiff === 'expert' && ms.difficulty === n.diff, 'pista: matchSetup lleva cdiff y la IA del nivel');
+  const avg = a => a.reduce((t, st) => t + C.ovrOf(st), 0) / a.length;
+  mk('normal'); const msN = C.matchSetup();
+  ok(msN && avg(ms.attrs[1]) > avg(msN.attrs[1]), 'pista: en Experto el seis rival tiene más media que en Normal (' + avg(ms.attrs[1]).toFixed(1) + ' > ' + avg(msN.attrs[1]).toFixed(1) + ')');
+  // cambiar entre partidos
+  mk('normal'); const bSave0 = mem['voley3d.career'];
+  ok(C.setDifficulty('hard') === 'ok' && C.load().diff === 'hard' && C.setDifficulty('hard') === 'same' && C.setDifficulty('xx') === 'bad', 'pista: setDifficulty ok/same/bad');
+  ok(C.load().objective.d === 'hard' && C.load().inbox.some(m => /Dificultad: Difícil/.test(m.t)), 'pista: sin partidos aún, el objetivo se rehace con el nivel nuevo y llega el mensaje');
+  ok(mem['voley3d.career'] === bSave0, 'pista: setDifficulty no toca la Carrera de playa');
+  for (let i = 0; i < 3; i++) { const nn = C.next(); if (nn && nn.bench) C.benchNext(); else C.simulateNext(); }
+  const u = C.load().dUse;
+  ok(u.hard === 3 && u.normal === 0, 'pista: dUse cuenta los partidos en su nivel (' + JSON.stringify(u) + ')');
+  ok(C.setDifficulty('easy') === 'ok' && C.seasonDiff().d === 'hard' && (C.next().bench ? C.benchNext() : C.simulateNext()) && C.seasonDiff().d === 'easy' && C.setDifficulty('expert') === 'ok' && C.seasonDiff().d === 'easy' && C.seasonDiff().dm === true, 'pista: el sello de la temporada es el nivel más fácil con partidos (mixta)');
+  // temporada entera: historial, títulos y resumen sellados
+  let g = 0; while (C.load().phase !== 'off' && g++ < 80) { const nn = C.next(); if (!nn) break; if (nn.bench) C.benchNext(); else C.simulateNext(); }
+  const ce = C.load();
+  ok(ce.phase === 'off' && ce.history.length && ce.history[ce.history.length - 1].d === 'easy' && ce.review.d === 'easy' && ce.review.dm, 'pista: historial y resumen con el sello (Fácil, mixta)');
+  ok(ce.trophies.every(t => C.CDIFF_KEYS.indexOf(t.d) >= 0), 'pista: todos los títulos con sello');
+  C.stay(); const cs = C.load();
+  ok(cs.dUse.easy + cs.dUse.normal + cs.dUse.hard + cs.dUse.expert === 0 && cs.objective.d === 'expert' && cs.coachD == null, 'pista: temporada nueva con dUse a ceros, objetivo en el nivel actual y sin coachD');
+  // migración: un guardado de pista de antes (sin campos de dificultad) carga en Normal
+  mk(null, 9200); for (let i = 0; i < 2; i++) C.simulateNext();
+  const raw = JSON.parse(mem['voley3d.career6']); ['diff', 'dUse', 'coachD'].forEach(k => delete raw[k]); delete raw.objective.d;
+  mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+  const cm = C.load();
+  ok(cm && cm.diff === 'normal' && cm.dUse.normal === cm.stats.played + (cm.stats.bench | 0) && cm.objective.d === 'normal', 'pista: guardado antiguo → Normal, dUse.normal = lo jugado, objetivo sellado');
+  C._reset(); ok(JSON.stringify(C.load().dUse) === JSON.stringify(cm.dUse), 'pista: migración idempotente');
+  delete mem['voley3d.career6']; C._reset();
+} else console.log('(sin dificultad de pista)');
+
 console.log('\n' + passes + ' comprobaciones bien');
 console.log(fails ? '\n' + fails + ' FALLOS' : '\nTODO OK');
 process.exit(fails ? 1 : 0);

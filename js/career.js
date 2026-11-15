@@ -1671,6 +1671,13 @@
   // italiana entera era Difícil desde la jornada 1 y casi ningún club era Fácil. Reparto de los 390 clubes: 18 Fácil, 81 Normal suave,
   // 182 Normal, 87 Difícil y 22 Experto (tools/careertest.js, «datos reales»).
   var DIFF6_AT = [[88, 'expert'], [76, 'hard'], [56, 'normal'], [0, 'easy']], SOFT6 = [56, 62];
+  // Dificultad de la Carrera en la pista (15-nov-2026; Ferran: «metele la dificultad»). Las mismas palancas que la playa (CDIFF: IA
+  // rival, atributos, experiencia, entreno, entrenador, objetivo y ofertas; CDIFF.normal = la Carrera de pista de siempre). Lo que
+  // depende de la escala de la pista: GATE6 (media mínima para SUBIR de perfil por desplazamiento, con la misma distancia a los
+  // cortes de DIFF6_AT que la playa a los suyos: Difícil 76 → 66/58, Experto 88 → 84/76), TOP6 (ligas de élite, fuerza ≥ 87:
+  // Italia, Polonia, Brasil y Turquía, el «Mundial» de la pista para shiftTop/attrTop/topX) y regEasy (en Fácil, las 2ªs divisiones
+  // juegan en Fácil puro, como el Circuito Regional de la playa).
+  var GATE6 = { easy: {}, normal: {}, hard: { hard: 66, expert: 84 }, expert: { hard: 58, expert: 76 } }, TOP6 = 87;
   // nota del partido en 6v6: tu jugador toca menos balones que en la pareja; la parte de estadísticas se escala por puesto
   // medido (autopilot de la sim como receptor, 10 partidos a 15 por nivel): × 1 → 6,5 / 6,5 / 5,7 contra Fácil / Normal / Difícil; × 2,2 → 6,8 / 7,0 / 6,2.
   // Con × 3 el receptor queda ~7,3 contra Normal (el autopilot juega algo mejor que una persona media: ~6,5 jugando de verdad). Los
@@ -1902,6 +1909,7 @@
     var cos = countries6(); if (typeof o.cc !== 'string' || !o.leagues.some(function (L) { return L.cc === o.cc; })) o.cc = o.leagues[0].cc;
     o.notes = o.notes.filter(function (n) { return n && num(n.nota); });
     sessSane(o);   // sesiones de entrenamiento (13-nov-2026): un guardado sin c.ts lo crea vacío (sin subir VER6)
+    saneDiff6(o);   // dificultad (15-nov-2026): sin diff → Normal, la Carrera de pista de antes (sin subir VER6)
     if (o.phase === 'pick') {
       o.myClub = -1; o.window = 'start';
       if (!o.pick || typeof o.pick !== 'object') o.pick = { round: 0, more: false };
@@ -1918,7 +1926,7 @@
       var rl = o.coach >= 70 ? 2 : o.coach >= 45 ? 1 : 0;
       o.contract = { club: me.id, years: 2, left: 2, role: ROLE_LV[rl], salary: salary6(o, me, rl), since: o.season };
     } else { ct.left = clampI(ct.left, 0, 5); ct.years = clampI(ct.years, 1, 5); ct.club = o.myClub; if (!num(ct.salary)) ct.salary = salary6(o, me, ROLE_LV.indexOf(ct.role)); }
-    if (!o.objective || typeof o.objective.text !== 'string' || !num(o.objective.pos)) o.objective = objectiveFor6(o, me);
+    if (!o.objective || typeof o.objective.text !== 'string' || !num(o.objective.pos)) o.objective = makeObjective6(o, me);
     // titularidad (13-nov-2026): un guardado sin plantilla (c.sq6) o con una dañada la crea aquí (sin subir VER6)
     var q6 = o.sq6;
     if (!q6 || typeof q6 !== 'object' || q6.club !== me.id || !arr(q6.list) || !q6.list.length || !q6.list.every(function (x) { return x && typeof x.id === 'string' && typeof x.name === 'string' && SQ_POS.indexOf(x.pos) >= 0 && num(x.ovr) && num(x.num); })) o.sq6 = null;
@@ -2019,7 +2027,7 @@
   }
   function objectiveFor6(c, k, lid) {
     lid = lid || k.lid;
-    var L = lg6(c, lid), n = lgClubs6(c, lid).length, e = expectedPos6(c, k, lid), up = L.lvl === 2, down = L.lvl === 1 && !!lg6(c, L.cc + '2'), half = Math.ceil(n * 0.6);
+    var L = lg6(c, lid), n = lgClubs6(c, lid).length, e = clamp(expectedPos6(c, k, lid) + cd(c).objE, 1, n), up = L.lvl === 2, down = L.lvl === 1 && !!lg6(c, L.cc + '2'), half = Math.ceil(n * 0.6);
     if (e <= 1 && !up) return { pos: 1, text: 'Ganar la ' + L.name };
     if (e <= 2) return up ? { pos: 2, text: 'Subir de categoría (quedar entre los 2 primeros)' } : { pos: 2, text: 'Quedar entre los 2 primeros (y jugar la copa internacional)' };
     if (e <= 4) return { pos: 4, text: 'Quedar entre los 4 primeros' };
@@ -2029,6 +2037,67 @@
   function difficultyFor6(k) { var o = k.ovr; for (var i = 0; i < DIFF6_AT.length; i++) if (o >= DIFF6_AT[i][0]) return DIFF6_AT[i][1]; return 'easy'; }
   function soft6(k) { return k.ovr >= SOFT6[0] && k.ovr < SOFT6[1]; }
   function diffLabel6(k) { var d = difficultyFor6(k), nm = VB.DIFF && VB.DIFF[d] && VB.DIFF[d].name || d; return soft6(k) ? nm + ' suave' : nm; }
+  /** ¿El club juega en una liga de élite (TOP6)? */
+  function top6(c, k) { var L = c && k ? lg6(c, k.lid) : null; return !!L && L.strength >= TOP6; }
+  /** Peldaño base (Normal) de un club de pista: 0 Fácil, 1 Normal suave, 2 Normal, 3 Difícil, 4 Experto. */
+  function baseStep6(k) { var d = difficultyFor6(k); return d === 'expert' ? 4 : d === 'hard' ? 3 : d === 'normal' ? (soft6(k) ? 1 : 2) : 0; }
+  /** Desvío de la media del rival en tus partidos jugados (attrTop en la élite). */
+  function attrOf6(c, k) { var D = cd(c); return D.attrTop != null && top6(c, k) ? D.attrTop : D.attr; }
+  /** IA rival efectiva en la dificultad de la carrera c (como rivalAI de la playa, con GATE6, TOP6 y las 2ªs como «Regional»). */
+  function rivalAI6(c, k) {
+    var D = cd(c), G = GATE6[diffOf(c)] || {}, b = baseStep6(k), s, top = top6(c, k), L = lg6(c, k.lid);
+    if (D.regEasy && L && L.lvl === 2) s = 0;
+    else {
+      s = clamp(b + (top && D.shiftTop != null ? D.shiftTop : D.shift), 0, STEPS.length - 1);
+      if (D.noSoft && s === 1) s = 2;
+      while (s > b) { var g = G[STEPS[s].d]; if (STEPS[s].d === 'expert' && top && D.topX === false) { s--; continue; } if (g == null || STEPS[s].soft || k.ovr >= g) break; s--; }
+      if (D.noSoft && s === 1) s = 2;
+    }
+    var st = STEPS[s], nm = (VB.DIFF && VB.DIFF[st.d] && VB.DIFF[st.d].name) || st.d;
+    return { step: s, base: b, diff: st.d, soft: st.soft, name: st.soft ? nm + ' suave' : nm };
+  }
+  function makeObjective6(c, k, lid) { var o = objectiveFor6(c, k, lid); o.d = diffOf(c); return o; }
+  /** Cambiar la dificultad de la Carrera de pista (como setDifficulty de la playa, con su guardado). */
+  function setDifficulty6(k) {
+    var c = load6(); if (!c) return '';
+    if (CDIFF_KEYS.indexOf(k) < 0) return 'bad';
+    if (M) return 'match';
+    if (diffOf(c) === k) return 'same';
+    var low = seasonDiff(c), used = CDIFF_KEYS.reduce(function (s, x) { return s + ((c.dUse && c.dUse[x]) | 0); }, 0), live = c.phase === 'league' || c.phase === 'ko';
+    c.diff = k;
+    var x = DIFF_MSG[k];
+    if (myClub(c) && c.phase === 'league' && used === 0) {
+      var ob = c.objective && c.objective.text; c.objective = makeObjective6(c, myClub(c));
+      if (CDIFF[c.coachD]) { c.coach = clamp(c.coach + CDIFF[k].coach0 - CDIFF[c.coachD].coach0, 0, 100); c.coachD = k; }
+      x += ' Aún no has jugado esta temporada: ' + (ob !== c.objective.text ? 'el objetivo del club pasa a ser ' + c.objective.text.toLowerCase() + '.' : 'el objetivo del club se mantiene.');
+    } else if (myClub(c) && live) x += ' El objetivo del club no cambia hasta la temporada que viene.';
+    if (live && used > 0 && CDIFF_KEYS.indexOf(low.d) < CDIFF_KEYS.indexOf(k))
+      x += ((c.dUse && c.dUse[low.d]) | 0) > 0 ? ' Esta temporada ya has jugado en ' + CDIFF[low.d].name + ': sus títulos contarán como ' + CDIFF[low.d].name + '.'
+        : ' El objetivo de esta temporada se fijó en ' + CDIFF[low.d].name + ': sus títulos contarán como ' + CDIFF[low.d].name + '.';
+    msg(c, 'club', 'Dificultad: ' + CDIFF[k].name, x);
+    save6(c); return 'ok';
+  }
+  /** Migración de la dificultad en un guardado de pista (idempotente; como la de la playa): lo que falta es Normal. */
+  function saneDiff6(o) {
+    var num = function (v) { return typeof v === 'number' && isFinite(v); };
+    if (CDIFF_KEYS.indexOf(o.diff) < 0) o.diff = 'normal';
+    var hadUse = !!o.dUse && typeof o.dUse === 'object';
+    if (!hadUse) o.dUse = {};
+    CDIFF_KEYS.forEach(function (k) { o.dUse[k] = num(o.dUse[k]) ? Math.max(0, o.dUse[k] | 0) : 0; });
+    if (!hadUse && o.stats && num(o.stats.played)) o.dUse.normal = Math.max(0, (o.stats.played | 0) + (num(o.stats.bench) ? o.stats.bench | 0 : 0));
+    if (o.coachD != null && CDIFF_KEYS.indexOf(o.coachD) < 0) delete o.coachD;
+    if (o.objective && typeof o.objective === 'object' && CDIFF_KEYS.indexOf(o.objective.d) < 0) o.objective.d = lowUse(o.dUse) || o.diff;
+    (Array.isArray(o.history) ? o.history : []).forEach(function (h) { if (h && typeof h === 'object') { if (CDIFF_KEYS.indexOf(h.d) < 0) h.d = 'normal'; h.dm = !!h.dm; } });
+    (Array.isArray(o.trophies) ? o.trophies : []).forEach(function (t) { if (t && typeof t === 'object' && CDIFF_KEYS.indexOf(t.d) < 0) t.d = 'normal'; });
+    if (o.review && typeof o.review === 'object') {
+      if (CDIFF_KEYS.indexOf(o.review.d) < 0) {
+        var hs = (Array.isArray(o.history) ? o.history : []).filter(function (h) { return h && typeof h === 'object' && h.season === o.review.season; }).pop();
+        var sd0 = hs ? { d: hs.d, dm: hs.dm } : hadUse ? seasonDiff(o) : { d: 'normal', dm: false };
+        o.review.d = sd0.d; o.review.dm = sd0.dm;
+      }
+      o.review.dm = !!o.review.dm;
+    }
+  }
   function chemBonus6(c) { return c ? Math.min(3, Math.floor(clamp(c.chem | 0, 0, 100) / 30)) : 0; }
   /** Fuerza de tu equipo para la simulación: la del club, movida por tu media (un 30 %), insignias, forma, química y fatiga. */
   function teamOvr6(c) {
@@ -2258,7 +2327,8 @@
       tab: {}, myRes: { lid: '', w: [] }, kos: [], koI: 0, notes: [], coach: 50, objective: null, offers: [], window: 'start', review: null, last: null,
       stats: newSeasonStats6(), career: newSeasonStats6(), history: [], trophies: [], pick: { round: 0, more: false }, inbox: [], msgN: 0,
       train: 'bal', tp: { phys: 0, def: 0, atk: 0 }, fatigue: 0, listed: false, contract: null, money: 0, chem: 0, scouts: {},
-      provisional: !!(VB.Leagues && VB.Leagues.provisional) };
+      provisional: !!(VB.Leagues && VB.Leagues.provisional),
+      diff: CDIFF_KEYS.indexOf(o.diff) >= 0 ? o.diff : 'normal', dUse: dZeros() };   // dificultad (15-nov-2026)
     buildWorld6(c);
     if (!c.leagues.length) return null;
     var cos = countries6();
@@ -2302,7 +2372,8 @@
     c.myClub = k.id; c.chem = 0;
     years = clampI(years != null ? years : o.years || 1, 1, 3);
     c.contract = { club: k.id, years: years, left: years, role: ROLE_LV[rl], salary: o.salary || salary6(c, k, rl), since: c.season + (c.phase === 'off' ? 1 : 0) };
-    c.coach = clamp(ROLE_COACH[rl] - (o.early ? EARLY_COACH : 0) - (o.negNo ? NEG_COACH : 0), 0, 100); c.listed = false; c.broken = 0;
+    c.coach = clamp(ROLE_COACH[rl] + cd(c).coach0 - (o.early ? EARLY_COACH : 0) - (o.negNo ? NEG_COACH : 0), 0, 100); c.listed = false; c.broken = 0;   // (+ coach0 de la dificultad)
+    c.coachD = diffOf(c);
     c.joinWk = c.phase === 'off' ? (c.season + 1) * 1000 : wkKey6(c);
     sessSane(c).imp = 0; c.ts.cf = 0;   // entrenador nuevo: la impresión en los entrenos empieza de cero
     c.sq6 = newSq6(c, k, c.season + (c.phase === 'off' ? 1 : 0));   // plantilla del club nuevo (titularidad)
@@ -2310,7 +2381,7 @@
     if (c.phase === 'pick') { c.phase = 'league'; c.week = 0; c.pick = null; }
     if (c.phase !== 'off') {
       c.myRes = { lid: k.lid, w: [] };
-      c.objective = objectiveFor6(c, k);
+      c.objective = makeObjective6(c, k);
       if (c.phase === 'league') { if (c.week >= weeksOf6(c, k.lid)) endLeague6(c); else skipBye6(c); }
       welcome6(c);   // (tras los descansos: la bienvenida ya sabe si sales de inicio en tu primer partido)
     }
@@ -2349,9 +2420,9 @@
     var f = myFixture6(c); if (!f) return null;
     var me = myClub(c), riv = club(c, f.home === me.id ? f.away : f.home), L = lg6(c, me.lid), ko = f.kind === 'ko' ? c.kos[f.ko] : null;
     var label = ko ? ko.name + ' · ' + roundName6(ko.rounds[f.round].length) : L.name + ' · Jornada ' + (f.week + 1) + ' de ' + weeksOf6(c, me.lid);
-    var lu = lineup6(c), rv = lu.rival ? sqEntry6(c, c.sq6, lu.rival) : null;
+    var lu = lineup6(c), rv = lu.rival ? sqEntry6(c, c.sq6, lu.rival) : null, ai = rivalAI6(c, riv);
     return { kind: f.kind, week: f.week, round: f.round, ko: f.ko, i: f.i, label: label, home: club(c, f.home), away: club(c, f.away), me: me, rival: riv, atHome: f.home === me.id,
-      ovrMe: Math.round(teamOvr6(c)), ovrRival: riv.ovr, diff: difficultyFor6(riv), soft: soft6(riv), diffName: diffLabel6(riv), comp: ko ? ko.kind : 'league', compName: ko ? ko.name : L.name,
+      ovrMe: Math.round(teamOvr6(c)), ovrRival: riv.ovr + attrOf6(c, riv), ovrClub: riv.ovr, ovrSim: riv.ovr + cd(c).simAttr, diff: ai.diff, soft: ai.soft, diffName: ai.name, cdiff: diffOf(c), comp: ko ? ko.kind : 'league', compName: ko ? ko.name : L.name,
       foreign: riv.cc !== me.cc, rivalLeague: lg6(c, riv.lid), bench: lu.stat === 'out',
       // titularidad: 'start' (de inicio), 'sub' (empiezas en el banquillo: el partido se juega igual) o 'out' (fuera de la convocatoria)
       status: lu.stat, whyCode: lu.why, why: whyText6(c), gap: lu.gap, slot: lu.slot,
@@ -2384,11 +2455,11 @@
       var x = sqEntry6(c, q, id); b0.push({ role: x.pos, st: stOf(x, x.pos, true), num: x.num, name: x.name, fat: x.fat | 0, badges: null });
     });
     // el rival: su plantilla (squad6) con su seis por medias y 5 suplentes
-    var rs = squad6(c, n.rival, c.season, ''), byp = {};
+    var rs = squad6(c, n.rival, c.season, ''), byp = {}, at = n.ovrRival - n.ovrClub, stR = function (x, p) { return stOf(at ? { ovr: x.ovr + at, form: x.form } : x, p, false); };   // (dificultad: attr)
     SQ_POS.forEach(function (p) { byp[p] = rs.filter(function (x) { return x.pos === p; }).sort(function (a, b) { return b.ovr - a.ovr; }); });
     var cnt = {}, a1 = [], nums1 = [], names1 = [], b1 = [];
-    R.forEach(function (p) { var i = cnt[p] = (cnt[p] || 0); cnt[p]++; var x = byp[p][i]; a1.push(stOf(x, p, false)); nums1.push(x.num); names1.push(x.name); });
-    ['S', 'OPP', 'OH', 'MB'].forEach(function (p) { byp[p].slice(SLOTS6[p], SLOTS6[p] + (p === 'OH' || p === 'MB' ? 2 : 1)).forEach(function (x) { b1.push({ role: p, st: stOf(x, p, false), num: x.num, name: x.name, fat: 0, badges: null }); }); });
+    R.forEach(function (p) { var i = cnt[p] = (cnt[p] || 0); cnt[p]++; var x = byp[p][i]; a1.push(stR(x, p)); nums1.push(x.num); names1.push(x.name); });
+    ['S', 'OPP', 'OH', 'MB'].forEach(function (p) { byp[p].slice(SLOTS6[p], SLOTS6[p] + (p === 'OH' || p === 'MB' ? 2 : 1)).forEach(function (x) { b1.push({ role: p, st: stR(x, p), num: x.num, name: x.name, fat: 0, badges: null }); }); });
     b1 = b1.slice(0, 4).concat(b1.slice(4).sort(function (a, b) { return ovrOf(b.st) - ovrOf(a.st); }).slice(0, 1));
     var L = lg6(c, n.me.lid), k = n.me.kit, rk = n.rival.kit;
     var out = {
@@ -2397,13 +2468,13 @@
       // titularidad y cambios (contrato §I.1): main.js lo pasa tal cual a Sim.createGame
       meOn: meOn, meSlot: idx, meBench: meOn ? -1 : meBench, names: [names0, names1], bench: [b0, b1],
       coach: [{ auto: true, iq: iq6(difficultyFor6(n.me)), me: meRules6(c, Lu) }, { auto: true, iq: iq6(n.diff) }],
-      points: c.points, difficulty: n.diff, rookie: !!n.soft, diffName: n.diffName, chem: ch, fatigue: fm,
+      points: c.points, difficulty: n.diff, rookie: !!n.soft, diffName: n.diffName, cdiff: n.cdiff, chem: ch, fatigue: fm,
       ref: copy(REF[ref6(L.strength)]),
       kit: { kitShirt: k.shirt, kitAccent: k.accent, kitShorts: k.shorts, kitPattern: k.pattern, kitLibero: k.libero },
       rivalKit: { kitShirt: rk.shirt, kitAccent: rk.accent, kitShorts: rk.shorts, kitPattern: rk.pattern, kitLibero: rk.libero },
       career: { mode: 'hall', season: c.season, phase: c.phase, week: n.week, round: n.round, label: n.label, me: n.me.short, rival: n.rival.short, venue: 'hall',
         meName: n.me.name, rivalName: n.rival.name, player: c.player.name, num: c.player.num, pos: role, posName: POS6[role].name, mate: '', mateNum: 0,
-        meOn: meOn, status: meOn ? 'start' : 'sub' }
+        meOn: meOn, status: meOn ? 'start' : 'sub', cdiff: n.cdiff }
     };
     life(c, 'setup', out);   // material de la tienda y molestias (en tu hueco, ctrlIdx) y reto de la jornada (career-life.js)
     return out;
@@ -2525,7 +2596,8 @@
   function endSeason6(c) {
     var me = myClub(c), L = lg6(c, me.lid), t = table6(c, me.lid), pos = posOf6(c, me.id), n = t.length;
     var objOk = pos <= c.objective.pos;
-    c.coach = clamp(c.coach + (objOk ? 15 : -15), 0, 100); coachFloor(c);
+    var D = cd(c), sd = seasonDiff(c);   // dificultad: premio/castigo del objetivo y sello de la temporada (la más fácil usada)
+    c.coach = clamp(c.coach + (objOk ? D.objWin : D.objLose), 0, 100); coachFloor(c);
     var champ = t[0].id === me.id, cups = c.kos.map(function (ko) { return { kind: ko.kind, name: ko.name, short: ko.short, champion: ko.champion, mine: ko.ids.indexOf(me.id) >= 0, reach: reachOf6(ko, me.id) }; });
     // ascensos y descensos dentro de cada país con dos divisiones (2 si las ligas son de 6 y 4 clubes o más; si no, 1)
     var moves = [];
@@ -2536,13 +2608,13 @@
       t1.slice(-k).forEach(function (r) { moves.push({ id: r.id, to: L2.id }); });
     });
     var myMove = 0; moves.forEach(function (m) { if (m.id === me.id) myMove = lg6(c, m.to).lvl < L.lvl ? 1 : -1; });
-    if (champ) c.trophies.push({ season: c.season, kind: 'liga', name: L.name, club: me.name });
-    cups.forEach(function (x) { if (x.champion === me.id) c.trophies.push({ season: c.season, kind: x.kind === 'cup' ? 'copa' : 'intl', name: x.name, club: me.name }); });
-    if (myMove > 0) c.trophies.push({ season: c.season, kind: 'ascenso', name: 'Ascenso a la ' + lg6(c, L.cc + '1').name, club: me.name });
+    if (champ) c.trophies.push({ season: c.season, kind: 'liga', name: L.name, club: me.name, d: sd.d });
+    cups.forEach(function (x) { if (x.champion === me.id) c.trophies.push({ season: c.season, kind: x.kind === 'cup' ? 'copa' : 'intl', name: x.name, club: me.name, d: sd.d }); });
+    if (myMove > 0) c.trophies.push({ season: c.season, kind: 'ascenso', name: 'Ascenso a la ' + lg6(c, L.cc + '1').name, club: me.name, d: sd.d });
     var an = avgNota(c), cupR = cups.filter(function (x) { return x.kind === 'cup' && x.mine; })[0], intR = cups.filter(function (x) { return x.kind === 'intl' && x.mine; })[0];
     c.history.push({ season: c.season, club: me.id, clubName: me.name, lid: me.lid, lgShort: L.short, country: L.country, pos: pos, pts: t[pos - 1].pts, objective: c.objective.text, objOk: objOk,
-      cup: cupR ? cupR.reach : '—', intl: intR ? intR.name + ': ' + intR.reach : '', nota: an, played: c.stats.played, won: c.stats.won, ppts: c.stats.pts, move: myMove, ovr: playerOvr(c), lvlP: c.player.lvl });
-    c.review = { season: c.season, pos: pos, n: n, lid: me.lid, objective: c.objective.text, objOk: objOk, champion: champ, cups: cups, move: myMove, nota: an, coach: c.coach, moves: moves };
+      cup: cupR ? cupR.reach : '—', intl: intR ? intR.name + ': ' + intR.reach : '', nota: an, played: c.stats.played, won: c.stats.won, ppts: c.stats.pts, move: myMove, ovr: playerOvr(c), lvlP: c.player.lvl, d: sd.d, dm: sd.dm });
+    c.review = { season: c.season, pos: pos, n: n, lid: me.lid, objective: c.objective.text, objOk: objOk, champion: champ, cups: cups, move: myMove, nota: an, coach: c.coach, moves: moves, d: sd.d, dm: sd.dm };
     c.pendingMoves = moves; c.pendingOvr = nextOvrs6(c, moves);
     c.phase = 'off';
     c.offers = genOffers6(c, false); c.window = 'end';
@@ -2557,6 +2629,7 @@
       (c.offers.length ? 'Tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + ' de otros clubes' + (c.offers.some(function (x) { return x.foreign; }) ? ', también del extranjero' : '') + '.' : 'No han llegado ofertas de otros clubes.') +
       (c.review.renew ? ' Se te acaba el contrato: el club te ofrece renovar como ' + c.review.renew.role.toLowerCase() + '.' : ''));
     life(c, 'season');   // premios, títulos a fama, objetivo del patrocinador y logros
+    c.trophies.forEach(function (t) { if (t && t.season === c.season && !t.d) t.d = sd.d; });   // premios de career-life: su sello
   }
   function applyMoves6(c) {
     var ov = c.pendingOvr || nextOvrs6(c, c.pendingMoves);
@@ -2576,17 +2649,18 @@
         c.contract = { club: k.id, years: y, left: y, role: renew ? renew.role : ct.role, salary: renew ? renew.salary : ct.salary, since: c.season + 1 };
         msg(c, 'club', 'Contrato renovado', 'Has renovado con ' + k.name + ' por ' + plural(y, 'temporada', 'temporadas') + ' como ' + c.contract.role.toLowerCase() + '.');
       } else c.contract = ct;
+      delete c.coachD;   // la confianza viene de la temporada pasada
       c.chem = Math.round((c.chem | 0) * 0.6);   // verano: parte del equipo cambia, algo de química se pierde
     }
     if (!moved) { var tsv = sessSane(c); tsv.imp = round1(tsv.imp * 0.5); }   // verano: la impresión en los entrenos se queda en la mitad
-    c.season++; c.week = 0; c.phase = 'league'; c.kos = []; c.koI = 0; c.notes = []; c.stats = newSeasonStats6(); c.offers = []; c.window = ''; c.review = null;
+    c.season++; c.week = 0; c.phase = 'league'; c.kos = []; c.koI = 0; c.notes = []; c.stats = newSeasonStats6(); c.offers = []; c.window = ''; c.review = null; c.dUse = dZeros();
     if (!moved) sqSummer6(c);   // la plantilla sigue (±2, forma y fatiga a 0); si fichaste, joinClub6 ya la hizo nueva
     c.tab = {}; c.myRes = { lid: myClub(c).lid, w: [] }; c.scouts = {};
     c.player.age = (c.player.age | 0) + 1;
     var fat0 = c.fatigue | 0; c.fatigue = 0;
     if (fat0 > FAT_FREE) msg(c, 'train', 'Vacaciones', 'El verano te ha sentado bien: llegas a la pretemporada sin fatiga (tenías ' + fat0 + ').');
     if (c.listed) { c.listed = false; msg(c, 'agent', 'Traspaso', 'Tu petición de traspaso caduca con la temporada. Si quieres salir, vuelve a pedirlo.'); }
-    c.objective = objectiveFor6(c, myClub(c));
+    c.objective = makeObjective6(c, myClub(c));
     if (moved) welcome6(c);
     else msg(c, 'obj', 'Objetivo de la temporada ' + c.season, 'El club quiere: ' + c.objective.text.toLowerCase() + '.');
     c.last = null;
@@ -2613,7 +2687,7 @@
    *  países. Las ligas fuertes piden más nivel (umbral = media del club − 5, +2 si es de fuera, + (fuerza − 70) / 5 en las de élite). */
   function genOffers6(c, mid) {
     var me = myClub(c), sc = offerScore(c), r = rng(hash(c.seed, 'off6', c.season, mid ? 'mid' : 'end')), an = avgNota(c) || 0, cand = [];
-    if (mid && an < (c.listed || c.broken === c.season ? 6.5 : 7)) return [];
+    if (mid && an < midNota(c)) return [];   // (dificultad: midNota suma su desvío; el umbral de interés, offer)
     var po = !mid && c.pendingOvr ? c.pendingOvr : null, ovr = function (k) { return po && po[k.id] != null ? po[k.id] : k.ovr; };
     var lidOf = function (k) { return mid ? k.lid : nextLid6(c, k); }, myL = lg6(c, lidOf(me)), myO = ovr(me);
     c.clubs.forEach(function (k) {
@@ -2621,7 +2695,7 @@
       var L = lg6(c, lidOf(k)), o = ovr(k), foreign = L.cc !== me.cc, sct = !!(c.scouts && c.scouts[k.id]);
       if (o <= myO + 1 || L.strength < myL.strength - 6) return;
       if (mid && (foreign || L.strength > myL.strength + 2) && an < 7.5 && !sct) return;
-      var thr = o - 5 + (foreign ? 2 : 0) + Math.max(0, (L.strength - 70) / 5);
+      var thr = o - 5 + (foreign ? 2 : 0) + Math.max(0, (L.strength - 70) / 5) + cd(c).offer;
       var it = sc - thr + (r() - 0.5) * 8 - (mid ? 3 : 0) + (sct ? SCOUT_BONUS : 0);
       var yy = 1 + Math.floor(r() * 3);   // (se tira siempre: así la plantilla de un club no cambia el azar de los demás)
       if (it + FIT_START > 0) {
@@ -2669,14 +2743,16 @@
     var win = res.sets[0] > res.sets[1], mk = myClub(c), L = lg6(c, mk.lid), rival = club(c, f.home === c.myClub ? f.away : f.home), nota = me.nota;
     var part = extra && extra.part || { status: 'start', started: true, entered: 0, pulled: 0, pullWhy: '', meR: 0, rallies: 0, share: 1, sets: [] };
     var has = nota != null, played = extra && extra.part ? (part.meR | 0) > 0 : true, share = clamp(+part.share || 0, 0, 1), sub = part.status !== 'start', rl = roleIdx(c);
-    var mpts = (me.kills || 0) + (me.aces || 0) + (me.blocks || 0);
+    var mpts = (me.kills || 0) + (me.aces || 0) + (me.blocks || 0), D = cd(c);
+    if (!c.dUse || typeof c.dUse !== 'object') c.dUse = dZeros();
+    c.dUse[diffOf(c)] = (c.dUse[diffOf(c)] | 0) + 1;   // dificultad: el partido cuenta en su nivel (antes de finishRound6)
     // experiencia: con nota, la de siempre × (0,35 + 0,65 × parte jugada); sin nota, la del banquillo
-    var xp = has ? Math.round((40 + 22 * nota + (win ? 40 : 0) + 6 * Math.min(mpts, 10)) * xpMul6(L) * (sim ? 0.5 : 1) * (0.35 + 0.65 * share))
-      : Math.round(BENCH_XP * xpMul6(L) * (sim ? 0.5 : 1));
+    var xp = has ? Math.round((40 + 22 * nota + (win ? 40 : 0) + 6 * Math.min(mpts, 10)) * xpMul6(L) * (sim ? 0.5 : 1) * (0.35 + 0.65 * share) * D.xp)
+      : Math.round(BENCH_XP * xpMul6(L) * (sim ? 0.5 : 1) * D.xp);   // (× xp de la dificultad)
     var lv = addXP(c.player, xp), ct0 = coachText(c.coach);
     if (!played) c.player.matches = Math.max(0, (c.player.matches | 0) - 1);   // (addXP cuenta un partido: sin entrar no lo es)
     // confianza: la nota y el resultado pesan por la parte jugada; entrenar siendo suplente (+1), un buen cambio (+2), que te saquen (−2)
-    var dc = has ? (nota - 6.2) * 2.5 * share + (win ? 1 : -1) * share : 0, impact = false, pulledBad = false;
+    var dc = has ? (nota - D.coachPivot) * 2.5 * share + (win ? 1 : -1) * share : 0, impact = false, pulledBad = false;
     if (sub && c.train !== 'rest') dc += TRAIN_COACH;
     if (sub && part.entered && has && nota >= 7) { dc += IMPACT_COACH; impact = true; }
     if (part.pulled && rl < 2 && /^(meOut|bad|sim)$/.test(part.pullWhy || '')) { dc -= PULL_COACH; pulledBad = true; }
@@ -2768,7 +2844,7 @@
     var Lu = lineup6(c), sub = Lu.stat !== 'start', rl = roleIdx(c), role = ctrlRole6(c);
     var r = rng(sub ? hash(c.seed, 'mine6', c.season, c.phase, f.week, f.round, f.ko, c.notes.length, 'sub') : hash(c.seed, 'mine6', c.season, c.phase, f.week, f.round, f.ko, c.notes.length)), to = teamOvr6(c);
     if (sub && n.rivalIn) to += 0.3 * (n.rivalIn.ovr - playerOvr(c));   // juega el titular de tu puesto
-    var q = quickSim(to + (r() - 0.5) * 4, n.ovrRival + (r() - 0.5) * 4, r, c.points), win = q.sets[0] > q.sets[1];
+    var q = quickSim(to + (r() - 0.5) * 4, n.ovrSim + (r() - 0.5) * 4, r, c.points), win = q.sets[0] > q.sets[1];   // (dificultad: ovrSim)
     var tot = q.setScores.reduce(function (s, x) { return s + x[0]; }, 0), all = q.setScores.reduce(function (s, x) { return s + x[0] + x[1]; }, 0), ns = q.setScores.length;
     var share = 1, entered = 0, pulled = 0, pullWhy = '', sets = [];
     if (sub) {
@@ -2790,7 +2866,7 @@
     if (share > 0) {
       var mp = Math.round(tot * sh * share), kills = Math.round(mp * (role === 'MB' ? 0.55 : 0.75)), aces = Math.round(mp * 0.1), blocks = Math.max(0, mp - kills - aces);
       me = { kills: kills, aces: aces, blocks: blocks, assists: Math.round(tot * share * (role === 'S' ? 0.45 : 0.03)), digs: Math.round((2 + r() * (role === 'L' || role === 'OH' ? 8 : 4)) * share), errors: Math.round((1 + r() * 3) * share), recvP: 0, perfect: 0, good: 0, poor: 0 };
-      nota = round1(clamp(6.1 + (to - n.ovrRival) * 0.04 + (win ? 0.6 : -0.6) + (r() - 0.5) * 1.6, 3, 9.5));
+      nota = round1(clamp(6.1 + (to - n.ovrSim) * 0.04 + (win ? 0.6 : -0.6) + (r() - 0.5) * 1.6, 3, 9.5));
       // de inicio con un partido flojo, a veces el entrenador te sienta (no siendo indiscutible)
       if (!sub && nota < 5.5 && rl < 2 && r() < 0.3) {
         share = 0.5 + 0.3 * r(); pulled = clamp(Math.floor(share * ns) + 1, 1, ns); pullWhy = 'sim'; sets = sets.slice(0, pulled);
@@ -2808,9 +2884,11 @@
     c = c || load6(); if (!c) return null;
     var f = myFixture6(c), n = f && next6(c); if (!n || !n.bench) return null;
     var r = rng(hash(c.seed, 'bench6', c.season, f.week)), me = myClub(c);
-    var q = quickSim(me.ovr - 1 + (r() - 0.5) * 4, n.ovrRival + (r() - 0.5) * 4, r, c.points), win = q.sets[0] > q.sets[1];
+    var q = quickSim(me.ovr - 1 + (r() - 0.5) * 4, n.ovrSim + (r() - 0.5) * 4, r, c.points), win = q.sets[0] > q.sets[1];
     var why = whyText6(c), all = q.setScores.reduce(function (s, x) { return s + x[0] + x[1]; }, 0);
     c.benchWk = wkKey6(c); pay(c);
+    if (!c.dUse || typeof c.dUse !== 'object') c.dUse = dZeros();
+    c.dUse[diffOf(c)] = (c.dUse[diffOf(c)] | 0) + 1;   // la jornada sin ti también cuenta en su nivel
     var tr = trainWeek(c);
     c.fatigue = clamp((c.fatigue | 0) - BENCH_REST, 0, 100);
     if (c.train !== 'rest') c.coach = clamp(c.coach + TRAIN_COACH, 0, 100);   // entrenar bien también cuenta
@@ -2949,6 +3027,10 @@
     capRole: capRole6, meRules: meRules6, SQ_SIZE: SQ_SIZE, SQ_BIG: SQ_BIG, SLOTS: SLOTS6, LIST: LIST6, ME_EDGE: ME_EDGE, ME_EDGE_STEP: ME_EDGE_STEP, ME_EDGE_MIN: ME_EDGE_MIN, meEdge: meEdge6, SEL_IMP: SEL_IMP, OUT_COACH: OUT_COACH, FAT_REST: FAT_REST, FAT_REST_TOP: FAT_REST_TOP,
     TIT_BONUS: TIT_BONUS, STARTS_PROMOTE: STARTS_PROMOTE, TIT_BROKEN: TIT_BROKEN, TRAIN_COACH: TRAIN_COACH, IMPACT_COACH: IMPACT_COACH, FIT_START: FIT_START, FIT_DEEP: FIT_DEEP,
     NOTA_MIN_R: NOTA_MIN_R, BENCH_XP: BENCH_XP,
+    // dificultad de la Carrera (15-nov-2026): mismas claves que la playa, con el guardado y la escala de la pista
+    CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, GATE6: GATE6, TOP6: TOP6, top: top6,
+    diffOf: function (c) { return diffOf(c || load6()); }, rivalAI: rivalAI6, attrOf: attrOf6, baseStep: baseStep6,
+    seasonDiff: function (c) { return seasonDiff(c || load6()); }, midNota: function (c) { return midNota(c || load6()); }, setDifficulty: setDifficulty6,
     // sesiones de entrenamiento (13-nov-2026): las mismas que la playa, con el guardado de pista
     trainInfo: function (c) { return sessInfo(c || load6()); }, trainSession: function (id, how, total) { var c = load6(); if (!c) return null; var r = sessDo(c, id, how, total); if (r.ok) save6(c); return r; },
     drillSetup: function (id) { var c = load6(); return c ? drillSetup(c, id) : null; }, trainQuick: sessQuick, _sessClose: sessClose

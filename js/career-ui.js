@@ -83,7 +83,7 @@
   function dName(k) { var D = CD(); return D && D[k] ? D[k].name : diffName(k); }
   /** ¿La carrera ha usado alguna vez algo que no sea Normal? (si no, Palmarés y Temporadas se quedan como siempre) */
   function diffUsed(c) {
-    if (!CD() || !c || isHall(c)) return false;   // (la Carrera de pista aún no tiene niveles)
+    if (!CD() || !c) return false;
     if (dkey(c) !== 'normal') return true;
     var o = function (x) { return x && x.d && x.d !== 'normal'; };
     return (c.history || []).some(o) || (c.trophies || []).some(o);
@@ -671,7 +671,7 @@
         })() + '</p>' +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
           'Química ' + (c.mate.chem | 0) + (C().chemBonus(c) ? ' (+' + C().chemBonus(c) + ')' : '')], 'v') + '</p>' +
-        (CD() && !isHall(c) ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
+        (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
         (n.bench
           // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
           ? '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>' +
@@ -700,7 +700,7 @@
       (r.champion ? '<span class="tag y">Campeón ' + esc(deL(L)) + '</span>' : '') + (!hall && r.cup ? '<span class="tag y">Campeón del ' + esc(L.cup) + '</span>' : '') + cupTags +
       (r.move > 0 ? '<span class="tag g">Ascenso</span>' : r.move < 0 ? '<span class="tag r">Descenso</span>' : '') +
       '<span class="tag ' + (r.objOk ? 'g' : 'r') + '">Objetivo ' + (r.objOk ? 'cumplido' : 'no cumplido') + '</span></p>' +
-      '<p class="muted">' + sp(['Objetivo: ' + esc(r.objective), 'Nota media ' + dec(r.nota), 'Entrenador: ' + esc(C().coachText(c.coach)), CD() && !isHall(c) ? 'Dificultad: ' + esc(dName(dkey(c, r.d || 'normal'))) + (r.dm ? ' (mixta)' : '') : ''], 'v') + '</p></div>';
+      '<p class="muted">' + sp(['Objetivo: ' + esc(r.objective), 'Nota media ' + dec(r.nota), 'Entrenador: ' + esc(C().coachText(c.coach)), CD() ? 'Dificultad: ' + esc(dName(dkey(c, r.d || 'normal'))) + (r.dm ? ' (mixta)' : '') : ''], 'v') + '</p></div>';
     var rn = r.renew, ct = c.contract, nOf = (c.offers || []).length;
     // las ofertas viven en Club › Ofertas (en el móvil quedaban 1000 px más abajo, tras «Seguir en…»): aquí, un aviso arriba
     if (nOf) h += '<div class="card"><h3>Ofertas <span class="muted">(' + plural(nOf, 'club te quiere', 'clubes te quieren') + ')</span></h3><p class="muted">Míralas antes de decidir: si sigues en tu club, se pierden.</p>' +
@@ -1004,7 +1004,7 @@
       }).join('') + '</tbody></table>' + (du && c.history.some(function (r) { return r.dm; }) ? '<p class="muted">* Dificultad mixta: cuenta la más fácil.</p>' : '') : '<p class="muted">Tu primera temporada está en marcha.</p>') + '</div>';
     }
     // dificultad (se cambia entre partidos; career.js setDifficulty)
-    if (CD() && C().setDifficulty && !isHall(c)) {   // (solo la Carrera de playa: la de pista aún no tiene niveles)
+    if (CD() && C().setDifficulty) {   // (las dos Carreras: la fachada lleva a la activa)
       var dk = dkey(c), DD = CD()[dk];
       h += '<div class="card"><h3>Dificultad</h3><div class="seg" role="group" aria-label="Dificultad">' + DKEYS().map(function (k) {
         return '<button data-act="cdiff-set" data-d="' + k + '" aria-pressed="' + (k === dk) + '">' + esc(dName(k)) + '</button>';
@@ -1071,6 +1071,7 @@
         (role !== c.player.roleKey ? '<p class="muted">Tu puesto (' + esc(posName(c.player.roleKey).toLowerCase()) + ') aún no se puede llevar en el 6 contra 6: juegas de ' + esc(posName(role).toLowerCase()) + '.</p>' : '') +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
           'Química del equipo ' + (c.chem | 0) + (C().chemBonus(c) ? ' (+' + C().chemBonus(c) + ')' : '')], 'v') + '</p>' +
+        (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
         statusHTML6(c, n);
 
     }
@@ -1270,7 +1271,7 @@
         return '<button data-act="pos" data-p="' + k + '" aria-pressed="' + (form.pos === k) + '">' + esc(P6[k].name) + '<small>' + esc(P6[k].hint) + '</small></button>';
       }).join('') + '</div>' + (ps.length < 4 ? '<p class="muted" style="margin:6px 0 0">Colocador, opuesto y central llegarán pronto: la lista crece sola.</p>' : '') +
       '<div class="prev" style="margin-top:8px">' + C().KEYS.map(function (k) { return '<span>' + esc(P && P.LABEL ? P.LABEL[k] : k) + ' <b>' + st[k] + '</b></span>'; }).join('') + '</div></div></div>' +
-      '<div class="cf-col"><div><label>País</label>' + countryPick(cos) + '</div>' +
+      '<div class="cf-col"><div><label>País</label>' + countryPick(cos) + '</div>' + (CD() ? createDiff() : '') +
       '<div><label>Puntos por set</label><div class="seg" role="group" aria-label="Puntos por set">' + H6.POINTS.map(function (v) {
         return '<button data-act="pts6" data-v="' + v + '" aria-pressed="' + (form.pts6 === v) + '">' + v + '</button>';
       }).join('') + '</div><p class="muted" style="margin:6px 0 0">Al mejor de 3 sets; el tercero, a 15. Con 15 la temporada se juega más rápido.</p></div>' + lookRow() +
@@ -1391,7 +1392,7 @@
       case 'create': {
         var inp = root.querySelector('#crName'); if (inp) form.name = inp.value;
         if (!String(form.name).trim()) { if (inp) { inp.focus(); inp.placeholder = 'Escribe un nombre'; } snd('back'); return; }
-        if (form.mode === 'hall') C().create({ mode: 'hall', name: form.name, num: form.num, pos: form.pos, country: form.country, points: form.pts6 });   // Carrera de pista (6v6)
+        if (form.mode === 'hall') C().create({ mode: 'hall', name: form.name, num: form.num, pos: form.pos, country: form.country, points: form.pts6, diff: CD() && CD()[form.diff] ? form.diff : 'normal' });   // Carrera de pista (6v6)
         else C().create({ mode: 'beach', name: form.name, num: form.num, role: form.role, diff: CD() && CD()[form.diff] ? form.diff : 'normal' });   // (playa: siempre a 21)
         form.name = '';   // (si luego creas la otra Carrera, el nombre no viene ya puesto)
         tblLid = '';

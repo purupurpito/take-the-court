@@ -15,11 +15,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.1.1';
+  VB.VERSION = '1.1.2';
   VB.VERSION_DATE = '2026-11-15';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.1.2', d: '2026-11-15', t: 'Dificultad en la pista',
+      items: [
+        'La Carrera de pista ya tiene dificultad: Fácil, Normal, Difícil o Experto.',
+        'Elígela al crear la Carrera y cámbiala entre partidos en Palmarés › Opciones.',
+        'Cada título guarda la dificultad más fácil de su temporada.'
+      ]
+    },
     {
       v: '1.1.1', d: '2026-11-15', t: 'Cuentas con correo',
       items: [
