@@ -10,7 +10,7 @@
  *    Si llega algo de la cuenta, la página se recarga para que el juego lo lea.
  *  - 'voley3d.gym' (Entrenamiento) se une por máximo (mergeGym); se sincroniza desde el 12-nov-2026 (GYM_SYNC = true).
  *  - 'voley3d.look' (Vestuario, js/look.js) tiene su fusión escrita (mergeLook: une lo ganado y lo visto con VB.Look.mergeRaw y toma
- *    los looks del lado más reciente) pero NO se sincroniza hasta LOOK_SYNC = true.
+ *    los looks del lado más reciente); se sincroniza desde el 15-nov-2026 (LOOK_SYNC = true).
  *  - Panel propio (#account) que se abre con el botón «Cuenta» del menú principal (#btnAcc, lo crea este módulo).
  */
 (function () {
@@ -28,7 +28,7 @@
   // Vestuario (js/look.js): 'voley3d.look' irá a users/{uid}/saves/look con la fusión mergeLook. APAGADO: las reglas con 'look' están en
   // firebase/firestore.rules pero sin desplegar. Orden obligatorio, como con el gym: 1) Ferran despliega las reglas, 2) LOOK_SYNC = true.
   // Mientras tanto se apunta igual la hora de cada escritura (TRACK), para que la primera fusión ya sepa qué looks son los más nuevos.
-  var LOOK_SYNC = false;
+  var LOOK_SYNC = true;   // reglas con 'look' desplegadas el 15-nov-2026 (firebase deploy --only firestore:rules)
   if (LOOK_SYNC) DOCS['voley3d.look'] = 'look';
   var TRACK = { 'voley3d.look': 1 };
   var LS = null; try { LS = window.localStorage; } catch (e) { }
