@@ -67,19 +67,91 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
   ok(C.rejectAll() && c.pick.round === 1, 'rechazar todas');
   ok(c.offers.length >= 2 && c.offers.every(o => !o.trial && o.lvl === 0), 'nuevas ofertas, sin prueba');
   ok(avg(c.offers) <= a0 + 0.01, 'las nuevas son peores (media ' + avg(c.offers).toFixed(1) + ' ≤ ' + a0.toFixed(1) + ')');
-  // la prueba: con suerte o sin ella acaba en firmar o en quitar la oferta (semillas distintas)
-  let passN = 0, failN = 0;
+  // la prueba simulada (acceptOffer con una prueba = trialSim: la tirada de antes con o.chance × TRIAL_SIM): con suerte o sin ella
+  // acaba en firmar o en quitar la oferta (semillas distintas), y aprueba menos que la tirada de antes (jugarla compensa)
+  let passN = 0, failN = 0, oldN = 0, simOk = true;
   for (let s = 1; s <= 30; s++) {
     const keep = mem['voley3d.career'];
     const t = C.create({ name: 'Prueba', seed: 5000 + s }); const i = t.offers.findIndex(o => o.trial);
     if (i < 0) { mem['voley3d.career'] = keep; C._reset(); continue; }
+    const o = t.offers[i], draw = C._rng(C._hash(t.seed, 'trial', o.club, t.pick.round))();
+    if (draw < o.chance) oldN++;
     const n0 = t.offers.length, r = C.acceptOffer(i);
+    if (r !== (draw < o.chance * C.TRIAL_SIM)) simOk = false;
     if (r) { passN++; ok(C.myClub(t).lvl === 1 && t.phase === 'league', 'prueba superada: al Circuito Nacional'); }
-    else { failN++; ok(t.phase === 'pick' && t.offers.length === n0 - 1 && t.pick.fail >= 0, 'prueba fallida: se quita la oferta y sigues eligiendo'); }
+    else { failN++; ok(t.phase === 'pick' && t.offers.length === n0 - 1 && t.pick.fail >= 0 && t.pick.res && t.pick.res.letter === 'D' && t.pick.res.sim, 'prueba fallida: se quita la oferta, sigues eligiendo y el informe dice D'); }
     mem['voley3d.career'] = keep; C._reset();
   }
   c = C.get();
-  ok(passN > 0 && failN > passN, 'pruebas: ' + passN + ' superadas, ' + failN + ' no (≈30 %)');
+  ok(simOk, 'simular la prueba: la tirada determinista de siempre con la probabilidad × ' + C.TRIAL_SIM);
+  ok(passN > 0 && failN > passN && passN <= oldN, 'pruebas simuladas: ' + passN + ' superadas, ' + failN + ' no (con la tirada de antes, ' + oldN + ')');
+  // la prueba jugada: partidillo a un set a 15 con petos, 3 objetivos, nota con letra (eventos falsos como en «Partido jugado»)
+  {
+    const keep = mem['voley3d.career'];
+    let seed = 6000, t = null, i = -1;
+    while (seed < 6100) { C._reset(); t = C.create({ name: 'Partidillo', seed: seed++ }); i = t.offers.findIndex(o => o.trial); if (i >= 0) break; }
+    ok(i >= 0, 'una carrera con prueba (semilla ' + (seed - 1) + ')');
+    const snap = mem['voley3d.career'];
+    // trialSetup: sin life(), sin tocar la jornada, la experiencia ni el entrenador
+    let hooks = 0; const hk = [VB.CareerLife, VB.CareerWorld].filter(L => L && L.hook), h0 = hk.map(L => L.hook);
+    hk.forEach(L => { const f = L.hook; L.hook = function () { hooks++; return f.apply(this, arguments); }; });
+    const xp0 = t.player.xp, wk0 = t.week, co0 = t.coach, nIn = t.inbox.length, ms = C.trialSetup(i);
+    hk.forEach((L, j) => { L.hook = h0[j]; });
+    ok(ms && ms.sets === 1 && ms.points === 15 && ms.venue === 'beach' && ms.scrim && typeof ms.scrim.base === 'number' && ms.ref.chal === 0, 'trialSetup: un set a 15 en la playa, con petos y sin challenge');
+    ok(ms.career.trial && ms.career.offer === i && ms.career.goals.length === 3 && ms.career.goals.every(g => g.txt && g.stat && (g.op === '>=' || g.op === '<=') && g.n > 0), '3 objetivos (' + ms.career.goals.map(g => g.txt).join('; ') + ')');
+    ok(ms.attrs[0][1].jump === t.offers[i].mateP.st.jump && ms.attrs[1].length === 2, 'juegas con tu futura pareja contra una pareja del club');
+    ok(hooks === 0 && t.player.xp === xp0 && t.week === wk0 && t.coach === co0 && t.inbox.length === nIn && t.phase === 'pick', 'trialSetup no llama a life() ni toca jornada, experiencia, entrenador ni bandeja');
+    ok(t.pick.trial && t.pick.trial.club === t.offers[i].club && t.pick.trial.offer === i && t.pick.trial.tries === 1, 'prueba pendiente en c.pick.trial');
+    // abandonar a medias (sin trialDone): la oferta y la prueba pendiente siguen (y reintentar suma un intento)
+    C._reset(); t = C.get();
+    ok(t.phase === 'pick' && t.offers[i] && t.offers[i].trial && t.pick.trial && t.pick.trial.club === t.offers[i].club, 'abandonar a medias: la oferta y c.pick.trial intactos tras cargar');
+    C.trialSetup(i); ok(t.pick.trial.tries === 2, 'reintentar la prueba: intento 2 (no la gasta)');
+    const snap2 = mem['voley3d.career'];
+    const p = [0, 1, 2, 3].map(j => ({ id: j, team: j >> 1, idx: j & 1, num: [7, 11, 3, 9][j] }));
+    const game = () => ({ career: ms.career, teams: [[p[0], p[1]], [p[2], p[3]]], players: p, demo: false, autopilot: false });
+    const evKill = E => E.push({ type: 'hit', team: 1, kind: 'serve', touch: 0, player: p[2] }, { type: 'hit', team: 0, kind: 'pass', touch: 1, player: p[0], grade: 'perfect', human: true },
+      { type: 'hit', team: 0, kind: 'set', touch: 2, player: p[1], grade: 'good' }, { type: 'hit', team: 0, kind: 'spike', touch: 3, player: p[0], grade: 'perfect', human: true }, { type: 'point', team: 0, how: 'kill', reason: 'in' });
+    const evErr = E => E.push({ type: 'hit', team: 0, kind: 'spike', touch: 3, player: p[0], human: true }, { type: 'point', team: 1, how: 'error', reason: 'net', player: p[0] });
+    const evBlock = E => E.push({ type: 'hit', team: 1, kind: 'spike', touch: 3, player: p[3] }, { type: 'block', team: 0, player: p[0], result: 'stuff' }, { type: 'point', team: 0, how: 'block', reason: 'in' });
+    const play = (kills, errs, blocks, win) => {
+      const g = game(), E = [{ type: 'newMatch' }];
+      for (let j = 0; j < kills; j++) evKill(E); for (let j = 0; j < errs; j++) evErr(E); for (let j = 0; j < blocks; j++) evBlock(E);
+      C.ingest(E, g);
+      return C.trialDone('beach', i, { sets: win ? [1, 0] : [0, 1], setScores: [win ? [15, 9] : [10, 15]], win: win }, g);
+    };
+    // una A: te fichan
+    const ra = play(10, 0, 1, true); t = C.get();
+    ok(ra && (ra.letter === 'A+' || ra.letter === 'A') && ra.pass && ra.met === 3 && ra.goals.every(g => g.ok) && ra.left === 0, 'partidillo de A (' + (ra && ra.letter) + ', nota ' + (ra && ra.nota) + ', 3 objetivos): te fichan');
+    ok(t.phase === 'league' && C.myClub(t).lvl === 1 && t.player.xp === xp0, 'al Circuito Nacional, sin experiencia por el partidillo');
+    ok(t.inbox.some(m => m.t === '¡Prueba superada!' && /nota A/.test(m.x)), 'el agente lo cuenta con la nota');
+    // una F: fuera la oferta
+    mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+    const n0 = t.offers.length, rf = play(0, 5, 0, false); t = C.get();
+    ok(rf && rf.letter === 'F' && !rf.pass && rf.left === n0 - 1 && t.phase === 'pick' && t.offers.length === n0 - 1 && t.pick.fail >= 0 && !t.pick.trial, 'partidillo de F (nota ' + (rf && rf.nota) + '): se quita la oferta y sigues eligiendo');
+    ok(t.pick.res && t.pick.res.letter === 'F' && t.pick.res.pass === false && t.pick.res.goals.length === 3 && !t.pick.res.sim, 'c.pick.res guarda el último resultado para la UI');
+    C._reset(); ok(C.get().pick.res && C.get().pick.res.letter === 'F', 'c.pick.res se guarda');
+    // una C: decide la tirada (o.chance + TRIAL_C_BONUS), siempre igual con la misma semilla
+    mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+    const o = t.offers[i], exp = C._rng(C._hash(t.seed, 'trial', o.club, t.pick.round))() < o.chance + C.TRIAL_C_BONUS;
+    const rc = play(2, 0, 0, false);
+    mem['voley3d.career'] = snap2; C._reset();
+    const rc2 = play(2, 0, 0, false);
+    ok(rc && rc.letter === 'C' && rc.luck && rc.pass === exp && rc2.pass === rc.pass, 'partidillo de C (nota ' + (rc && rc.nota) + '): decide la tirada, determinista (' + (rc && rc.pass ? 'te fichan' : 'no') + ')');
+    // la nota: escalada a un set corto y + objetivos
+    const gr = C.trialGrade(t, { kills: 4 }, { sets: [1, 0], setScores: [[15, 12]] }, 27, [{ id: 'kills', stat: 'kills', op: '>=', n: 2, txt: '' }]);
+    ok(gr.met === 1 && Math.abs(gr.nota - (gr.base + C.TRIAL_GOAL)) < 0.051 && C.trialLetter(8) === 'A+' && C.trialLetter(6.5) === 'B' && C.trialLetter(6.49) === 'C' && C.trialLetter(4.9) === 'F', 'trialGrade: nota ' + gr.nota + ' = ' + gr.base + ' + ' + C.TRIAL_GOAL + ' por objetivo; cortes de letra');
+    const txt = C.get().inbox.map(m => m.t + ' ' + m.x).join(' ') + ms.career.label + ms.career.goals.map(g => g.txt).join(' ');
+    ok(!/·|1\.er|2\.º|3\.er|\/a\b/.test(txt), 'textos de la prueba sin «·», sin ordinales con punto y sin «/a»');
+    // guardado viejo en la fase pick (sin c.pick.trial ni c.pick.res) y prueba pendiente que ya no cuadra
+    mem['voley3d.career'] = snap; C._reset();
+    let raw = JSON.parse(mem['voley3d.career']); delete raw.pick.trial; delete raw.pick.res; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    ok(C.get() && C.get().phase === 'pick' && !C.get().pick.trial && C.trialSetup(i) && C.get().pick.trial, 'guardado de antes del partidillo en plena elección: sin prueba pendiente y se puede jugar');
+    raw = JSON.parse(mem['voley3d.career']); raw.pick.trial = { club: -5, offer: 9, goals: 'x' }; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    ok(C.get().pick.trial === null, 'prueba pendiente que no cuadra con su oferta: se olvida');
+    ok(C.trialSetup(0) === null || C.get().offers[0].trial, 'trialSetup solo con una oferta de prueba');
+    mem['voley3d.career'] = keep; C._reset();
+  }
+  c = C.get();
   // firmar
   const pickI = c.offers.findIndex(o => !o.trial), o = c.offers[pickI], mate = o.mateP;
   ok(C.acceptOffer(pickI, 3), 'firmar por un club');
@@ -316,6 +388,7 @@ section('Gestión: entrenamiento, fatiga, química, compañero, traspaso, negoci
 {
   C.abandon(); c = C.create({ name: 'Gestor', num: 5, role: 'atk', seed: 2468, autoClub: true });
   ok(c.phase === 'league' && C.myClub(c), 'autoClub: club asignado (pruebas)');
+  C.setTrainAuto(false);   // (aquí se mide el entreno semanal solo: el automático de las sesiones, en «Sesiones de entrenamiento»)
   // entrenamiento: enfoque Físico → mejoras gratis en salto/velocidad/reacción y fatiga
   ok(C.setTraining('phys') && c.train === 'phys', 'enfoque Físico');
   ok(!C.setTraining('xx'), 'enfoque inválido no cambia');
@@ -387,6 +460,7 @@ section('Gestión: entrenamiento, fatiga, química, compañero, traspaso, negoci
 section('Integración: fatiga que se recupera, contrato, negociar con riesgo, estilo del club');
 {
   C.abandon(); c = C.create({ name: 'Decide', num: 3, role: 'uni', seed: 777, autoClub: true });
+  C.setTrainAuto(false);   // (el enfoque Equilibrado no cansa; el entreno automático sí, hasta FAT_FREE: se prueba en «Sesiones de entrenamiento»)
   ok(C.setTraining('bal') === false || c.train === 'bal', 'Equilibrado por defecto');
   for (let i = 0; i < 8; i++) C.simulateNext(c);
   ok((c.fatigue | 0) === 0, 'Equilibrado no cansa (fatiga ' + c.fatigue + ' tras 8 semanas)');
@@ -628,6 +702,60 @@ section('Carrera de pista (6v6): crear, guardado aparte, modo activo');
   ok(C.setMode('beach') && C.get().v === 3 && C.get().clubs.length === 40, 'se vuelve a la playa con su carrera intacta (v3, 40 clubes)');
   C.setMode('hall'); ok(C.get() === c6, 'y de nuevo a la pista');
   C._reset(); c6 = C.get(); ok(c6 && c6.mode === 'hall' && c6.phase === 'pick' && C.mode() === 'hall', 'se guarda y se carga en plena elección');
+}
+section('Carrera de pista: prueba con partidillo (suplentes contra titulares, un set a 15, petos, objetivos, nota)');
+{
+  const keep = mem['voley3d.career6'], H = C.hall;
+  let t = null, i = -1, seed = 900;
+  while (seed < 1000) { C._reset(); t = C.create({ mode: 'hall', name: 'Pista Partidillo', num: 9, pos: 'OH', seed: seed++ }); i = t.offers.findIndex(o => o.trial); if (i >= 0) break; }
+  ok(i >= 0 && t.offers[i].lid === 'ES1', 'carrera de pista con prueba en la 1ª (semilla ' + (seed - 1) + ')');
+  const snap = mem['voley3d.career6'], xp0 = t.player.xp, nIn = t.inbox.length;
+  const ms = C.trialSetup(i);
+  ok(ms && ms.format === '6v6' && ms.venue === 'hall' && ms.sets === 1 && ms.points === 15 && ms.scrim && ms.ref.chal === 0 && ms.career.trial && ms.career.mode === 'hall', 'trialSetup (pista): 6v6 en el pabellón, un set a 15, petos, sin challenge');
+  ok(ms.attrs[0].length === 6 && ms.attrs[1].length === 6 && ms.ctrlRole === 'OH' && ms.attrs[0][ms.ctrlIdx].jump === t.player.st.jump && ms.nums[0][ms.ctrlIdx] === 9, 'tú en tu hueco (' + ms.ctrlIdx + ', receptor) con tus atributos y tu dorsal');
+  ok(new Set(ms.nums[0]).size === 6 && new Set(ms.nums[1]).size === 6 && ms.names[0].every(n => n) && ms.names[1].every(n => n), 'dorsales y nombres en los dos equipos (' + ms.nums[0].join(',') + ' contra ' + ms.nums[1].join(',') + ')');
+  const ov = a => a.reduce((s, st) => s + C.ovrOf(st), 0) / a.length, k = C.club(t, t.offers[i].club);
+  ok(ov(ms.attrs[1]) > ov(ms.attrs[0].filter((x, j) => j !== ms.ctrlIdx)), 'los titulares (' + ov(ms.attrs[1]).toFixed(1) + ') por encima de los suplentes (' + ov(ms.attrs[0].filter((x, j) => j !== ms.ctrlIdx)).toFixed(1) + '; club ' + k.ovr + ')');
+  ok(ms.career.goals.length === 3 && ms.career.goals.map(g => g.stat).join() === 'kills,recvP,errors', 'objetivos del receptor: ' + ms.career.goals.map(g => g.txt).join('; '));
+  ok(t.player.xp === xp0 && t.inbox.length === nIn && t.phase === 'pick' && t.pick.trial && t.pick.trial.club === k.id, 'sin experiencia ni mensajes; prueba pendiente');
+  C._reset(); t = C.get(); ok(t.pick.trial && t.offers[i] && t.offers[i].trial, 'abandonar a medias: la prueba sigue pendiente tras cargar');
+  const snap2 = mem['voley3d.career6'];
+  const play = (kills, errs, win, sc) => {
+    const team0 = [0, 1, 2, 3, 4, 5].map(j => ({ team: 0, id: j, num: ms.nums[0][j] })), me6 = team0[ms.ctrlIdx];
+    const g = { career: ms.career, size: 6, teams: [team0, [0, 1, 2, 3, 4, 5].map(j => ({ team: 1, id: 16 + j }))], ctrl: me6, rallyN: sc[0] + sc[1] };
+    const evs = [{ type: 'newMatch' }];
+    for (let j = 0; j < kills; j++) evs.push({ type: 'hit', team: 0, player: me6, kind: 'spike', touch: 3, human: true, grade: 'good' }, { type: 'point', team: 0, how: 'kill' });
+    for (let j = 0; j < errs; j++) evs.push({ type: 'hit', team: 0, player: me6, kind: 'spike', touch: 3, human: true }, { type: 'point', team: 1, how: 'error', player: me6 });
+    C.ingest(evs, g);
+    return C.trialDone('hall', i, { sets: win ? [1, 0] : [0, 1], setScores: [sc], win: win }, g);
+  };
+  const ra = play(4, 0, true, [15, 10]); t = C.get();
+  ok(ra && ra.nota != null && ra.pass && TRIAL_OK(ra.letter) && ra.met === 2, 'partidillo bueno (4 remates, nota ' + (ra && ra.nota) + ', ' + (ra && ra.letter) + '): te fichan');
+  function TRIAL_OK(l) { return ['A+', 'A', 'B'].indexOf(l) >= 0; }
+  ok(t.phase === 'league' && C.myClub(t).lid === 'ES1' && t.player.xp === xp0, 'a la 1ª, sin experiencia por el partidillo');
+  mem['voley3d.career6'] = snap2; C._reset(); t = C.get();
+  const n0 = t.offers.length, rf = play(0, 4, false, [8, 15]); t = C.get();
+  ok(rf && rf.nota != null && rf.letter === 'F' && !rf.pass && t.phase === 'pick' && t.offers.length === n0 - 1 && t.pick.fail >= 0 && t.pick.res.letter === 'F', 'partidillo malo (4 errores, nota ' + (rf && rf.nota) + '): se quita la oferta');
+  const txt6 = t.inbox.map(m => m.t + ' ' + m.x).join(' ') + ms.career.label + ms.career.goals.map(g => g.txt).join(' ');
+  ok(!/·|1\.er|2\.º|3\.er|\/a\b/.test(txt6), 'pista: textos de la prueba sin «·», sin ordinales con punto y sin «/a»');
+  // una C (pista): decide la tirada con la clave 'trial6' (o.chance + TRIAL_C_BONUS), siempre igual con la misma semilla
+  {
+    mem['voley3d.career6'] = snap2; C._reset(); t = C.get();
+    let cK = -1, cE = 0;
+    for (let kk = 0; kk <= 8 && cK < 0; kk++) for (let ee = 0; ee <= 5 && cK < 0; ee++)
+      if (C.trialGrade(t, { kills: kk, errors: ee, good: kk }, { sets: [0, 1], setScores: [[12, 15]] }, 27, ms.career.goals).letter === 'C') { cK = kk; cE = ee; }
+    const o6 = t.offers[i], exp6 = C._rng(C._hash(t.seed, 'trial6', o6.club, t.pick.round))() < o6.chance + C.TRIAL_C_BONUS;
+    const rc = cK >= 0 ? play(cK, cE, false, [12, 15]) : null;
+    mem['voley3d.career6'] = snap2; C._reset();
+    const rc2 = cK >= 0 ? play(cK, cE, false, [12, 15]) : null;
+    ok(rc && rc.letter === 'C' && rc.luck && rc.pass === exp6 && rc2.pass === rc.pass, 'pista: partidillo de C (' + cK + ' remates, ' + cE + ' errores, nota ' + (rc && rc.nota) + '): decide la tirada \'trial6\', determinista (' + (rc && rc.pass ? 'te fichan' : 'no') + ')');
+  }
+  // nota nunca null con 15 puntos o más (aunque NOTA_MIN_R sea 12) y simular con la clave 'trial6'
+  ok(C.trialGrade(t, {}, { sets: [0, 1], setScores: [[13, 15]] }, 28).nota != null, 'la nota del partidillo nunca es null');
+  mem['voley3d.career6'] = snap; C._reset(); t = C.get();
+  const o = t.offers[i], exp = C._rng(C._hash(t.seed, 'trial6', o.club, t.pick.round))() < o.chance * C.TRIAL_SIM;
+  ok(C.acceptOffer(i) === exp && (exp ? C.get().phase === 'league' : C.get().pick.res.sim && C.get().pick.res.letter === 'D'), 'acceptOffer con la prueba de pista = simularla (tirada \'trial6\' × ' + C.TRIAL_SIM + ': ' + (exp ? 'superada, informe C' : 'no, informe D') + ')');
+  mem['voley3d.career6'] = keep; C._reset();
 }
 section('Carrera de pista: partido 6v6, nota, calendario impar, temporada, copas');
 {
@@ -1893,12 +2021,12 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
     delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
     let c = C.create({ mode: 'hall', name: 'Sesi Prueba', num: 9, pos: 'OH', seed });
     const i = c.offers.findIndex(o => !o.trial); if (role) c.offers[i].role = role; if (clubOvr) C.club(c, c.offers[i].club).ovr = clubOvr;
-    C.acceptOffer(i, 2); c = C.get(); let g = 0; while (c.phase === 'league' && !C.next(c) && g++ < 5) C.simulateNext(); return C.get();
+    C.acceptOffer(i, 2); C.setTrainAuto(false); c = C.get(); let g = 0; while (c.phase === 'league' && !C.next(c) && g++ < 5) C.simulateNext(); return C.get();
   };
   const beachNew = (seed, role) => {
     delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
     let c = C.create({ mode: 'beach', name: 'Sesi Playa', num: 7, role: role || 'atk', seed });
-    C.acceptOffer(c.offers.findIndex(o => !o.trial), 2); return C.get();
+    C.acceptOffer(c.offers.findIndex(o => !o.trial), 2); C.setTrainAuto(false); return C.get();
   };
   const playOn = c => { const n = C.next(c); if (!n) C.simulateNext(); else if (n.bench) C.benchNext(c); else C.simulateNext(c); return C.get(); };
   const BAD_TXT = /·|1\.er|2\.º|3\.er/;
@@ -1934,7 +2062,7 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
     ok(C.drillSetup('free') === null && C.drillSetup('xx') === null, 'solo los ejercicios de tu puesto con medallas');
     c.fatigue = C.SESS_FAT_MAX; const r = C.trainSession('recv', 'quick');
     ok(!r.ok && r.why === 'fatiga' && C.trainInfo(c).why === 'fatiga' && C.drillSetup('recv') === null, 'con fatiga ' + C.SESS_FAT_MAX + ' no se entrena');
-    c.fatigue = 0; const g0 = C.trainSession('recv', 'play', 28).gain; c.ts.n = 0; c.fatigue = 72; const g1 = C.trainSession('recv', 'play', 28).gain;
+    c.fatigue = 0; c.ts.seen.recv = 1; const g0 = C.trainSession('recv', 'play', 28).gain; c.ts.n = 0; c.fatigue = 72; const g1 = C.trainSession('recv', 'play', 28).gain;
     ok(g0 === C.SESS_MAX && g1 < g0, 'con fatiga alta la sesión rinde menos (oro: +' + g0 + ' descansado, +' + g1 + ' con fatiga 72)');
     ok(C.drillDone('hall', 'recv', 30).ok, 'drillDone (main.js) apunta en la Carrera del ejercicio');
   }
@@ -1962,7 +2090,7 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
     c.week = 0;
     ok(gold === 0 && sum / 20 < C.SESS_DRILL.atk.medals[2] * 0.75, 'rápido: nunca oro y de media ' + (sum / 20).toFixed(1) + ' puntos (oro: ' + C.SESS_DRILL.atk.medals[2] + ')');
     ok(B.trainInfo(c).drills.map(d => d.id).join() === 'atk,block,serve,recv', 'playa, bloqueador: remate, bloqueo, saque y recepción');
-    const gs = {}; ['easy', 'normal', 'hard'].forEach(d => { c.diff = d; c.ts.n = 0; c.fatigue = 0; gs[d] = C.trainSession('atk', 'play', 30).gain; }); c.diff = 'normal';
+    c.ts.seen.atk = 1; const gs = {}; ['easy', 'normal', 'hard'].forEach(d => { c.diff = d; c.ts.n = 0; c.fatigue = 0; gs[d] = C.trainSession('atk', 'play', 30).gain; }); c.diff = 'normal';
     ok(gs.easy > gs.normal && gs.normal > gs.hard, 'el ritmo de la dificultad cuenta (oro: Fácil +' + gs.easy + ', Normal +' + gs.normal + ', Difícil +' + gs.hard + ')');
     // playa: la confianza sube poco a poco
     c.ts.n = 0; c.ts.wk = null; c.fatigue = 0; c.ts.cf = 0; const co0 = c.coach;
@@ -2020,6 +2148,89 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
     beachNew(8950); raw = JSON.parse(mem['voley3d.career']); delete raw.ts; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
     r = C.get(); err = ''; try { C.trainSession('recv', 'quick'); C.simulateNext(); } catch (e) { err = e.message; }
     ok(r && r.v === B.VER && r.ts && C.trainInfo(C.get()).left === 3 && !err, 'guardado de playa sin c.ts (VER igual): carga y se entrena' + (err ? ' — ' + err : ''));
+  }
+  // entrenos al estilo EA FC (15-nov-2026): nota con letra, Rápido = récord, primera vez, foco, descanso, plan, automático
+  { let c = beachNew(9100, 'atk'); c.train = 'bal'; c.fatigue = 0;
+    const gold = id => C.SESS_DRILL[id].medals[2];
+    const ids = C.trainInfo(c).drills.map(d => d.id);
+    ok(ids.every(id => C.trainQuick(c, id) <= Math.floor(gold(id) * C.SESS_QUICK_D) && ['D', 'F'].indexOf(C.trainGrade(id, C.trainQuick(c, id))) >= 0), 'Rápido sin récord: como mucho D (' + ids.map(id => id + ' ' + C.trainQuick(c, id) + ' ' + C.trainGrade(id, C.trainQuick(c, id))).join(', ') + ')');
+    ok(C.trainGrade('atk', 23) === 'A+' && C.trainGrade('atk', 20) === 'A' && C.trainGrade('atk', 17) === 'B' && C.trainGrade('atk', 13) === 'C' && C.trainGrade('atk', 9) === 'D' && C.trainGrade('atk', 7) === 'F', 'letras de la sesión sobre el oro (A+ oro, A 0,85, B 0,70, C 0,55, D 0,35)');
+    // primera vez × 1,5, la segunda no
+    const r1 = C.trainSession('recv', 'play', gold('recv'));
+    c.ts.n = 0; const r2 = C.trainSession('recv', 'play', gold('recv'));
+    ok(r1.ok && r1.first && r1.gain === Math.round(C.SESS_MAX * C.SESS_FIRST) && r2.ok && !r2.first && r2.gain === C.SESS_MAX, 'primera vez que juegas un ejercicio: × ' + C.SESS_FIRST + ' (+' + r1.gain + '); la segunda, normal (+' + r2.gain + ')');
+    ok(r1.grade === 'A+' && r1.best0 === null && r1.best === gold('recv') && r2.best0 === gold('recv') && typeof r1.prog0 === 'number', 'jugado: letra, récord de antes y de ahora, progreso de antes');
+    // Rápido con récord de oro: oro − 1, nunca oro; con resta de fatiga, uno menos por punto
+    ok(C.trainQuick(c, 'recv') === gold('recv') - 1 && C.sessMedal('recv', C.trainQuick(c, 'recv')) < 3, 'Rápido con récord de oro: oro − 1 (' + C.trainQuick(c, 'recv') + ' de ' + gold('recv') + '), nunca oro');
+    c.fatigue = 60; ok(C.trainQuick(c, 'recv') === gold('recv') - 1 - C.fatigueMalus(c), 'Rápido con fatiga 60: récord − ' + C.fatigueMalus(c) + ' (' + C.trainQuick(c, 'recv') + ')'); c.fatigue = 0;
+    c.ts.best.serve = 15; ok(C.trainQuick(c, 'serve') === 15, 'Rápido = tu récord jugando (15) sin azar');
+    // el foco del plan que coincide: × 1,2
+    c.ts.n = 0; c.train = 'def'; const rf = C.trainSession('recv', 'play', gold('recv'));
+    c.ts.n = 0; c.train = 'atk'; const rn = C.trainSession('recv', 'play', gold('recv'));
+    ok(rf.focus && rf.gain === Math.round(C.SESS_MAX * C.SESS_FOCUS) && !rn.focus && rn.gain === C.SESS_MAX, 'ejercicio del grupo del plan: × ' + C.SESS_FOCUS + ' (+' + rf.gain + '; fuera del plan +' + rn.gain + ')');
+    c.ts.n = 0; c.train = 'bal'; const rq = C.trainSession('recv', 'quick');
+    ok(rq.ok && rq.how === 'quick' && rq.total === gold('recv') - 1 && rq.gain === Math.round(C.SESS_MAX * (0.2 + 0.8 * rq.q) * C.SESS_QUICK_K), 'Rápido rinde × ' + C.SESS_QUICK_K + ' (+' + rq.gain + ', ' + rq.grade + ')');
+    // descansar: −8 de fatiga, gasta la sesión, ni atributos ni impresión (también con fatiga alta)
+    c.ts.n = 0; c.fatigue = 30; const imp0 = c.ts.imp, p0 = JSON.stringify(c.ts.p), rr = C.trainSession(null, 'rest');
+    ok(rr.ok && rr.how === 'rest' && c.fatigue === 30 - C.SESS_REST && c.ts.n === 1 && c.ts.imp === imp0 && JSON.stringify(c.ts.p) === p0, 'descansar: −' + C.SESS_REST + ' de fatiga (30 → ' + c.fatigue + '), gasta la sesión, sin progreso ni impresión');
+    c.fatigue = C.SESS_FAT_MAX; ok(C.trainSession(null, 'rest').ok && c.fatigue === C.SESS_FAT_MAX - C.SESS_REST && C.trainInfo(c).canRest, 'con fatiga ' + C.SESS_FAT_MAX + ' no se entrena, pero sí se descansa');
+    c.fatigue = 0; C.trainSession(null, 'rest'); ok(!C.trainSession(null, 'rest').ok, 'el descanso también cuenta para el límite de 3');
+    // plan del entrenador
+    c.ts.n = 0; c.train = 'def'; const pd = C.trainPlan(c), bl = c.player.st.block, rv = c.player.st.recv;
+    ok(pd.length === 3 && pd.slice(0, 2).sort().join() === 'block,recv' && pd[0] === (bl <= rv ? 'block' : 'recv'), 'plan Defensa: primero los ejercicios de defensa, del atributo más bajo (' + pd.join(', ') + ')');
+    c.train = 'atk'; const pa = C.trainPlan(c); ok(pa.slice(0, 2).sort().join() === 'atk,serve' && pa[2] === 'block', 'plan Ataque: remate y saque, luego el orden del puesto (' + pa.join(', ') + ')');
+    c.train = 'phys'; ok(C.trainPlan(c).join() === 'atk,block,serve', 'plan Físico: el orden del puesto');
+    c.train = 'rest'; ok(C.trainPlan(c).join() === 'rest,rest,rest', 'plan Descanso: 3 descansos');
+    c.train = 'bal'; ok(C.trainRecommend(c) === 'atk', 'recomendación del bloqueador: Ataque'); c.fatigue = 65; ok(C.trainRecommend(c) === 'rest', 'con fatiga 65: Descanso'); c.fatigue = 0;
+    // «Simular jornada»: las sesiones que quedan del plan, en Rápido
+    c.ts.n = 1; const sd = C.trainSimDay(); c = C.get();
+    ok(sd && sd.ok && sd.done.length === 2 && sd.done.every(x => x.how === 'quick') && c.ts.n === 3 && sd.done[0].id === C.trainPlan(c)[1], 'Simular jornada: las 2 sesiones que quedan del plan, en Rápido (' + sd.done.map(x => x.id + ' ' + x.grade).join(', ') + ')');
+    ok(!C.trainSimDay().ok, 'sin sesiones, Simular jornada no hace nada');
+    // drillSetup: sede de tu Carrera y petos de entreno
+    c.ts.n = 0; const ds = C.drillSetup('atk');
+    ok(ds && ds.venue === 'beach' && ds.scrim && ds.scrim.bib0 === C.myClub(c).kit.shirt && typeof ds.scrim.base === 'number' && ds.scrim.bib1 !== ds.scrim.bib0, 'drillSetup: en la playa y con peto del color del club');
+  }
+  // entreno automático: por defecto sí, nunca pasa de la fatiga libre, no actúa en jornadas de descanso, se apaga
+  { let c = beachNew(9200, 'cr'); const raw0 = JSON.parse(mem['voley3d.career']); delete raw0.ts.auto; mem['voley3d.career'] = JSON.stringify(raw0); C._reset(); c = C.get();
+    ok(c.ts.auto === true && C.trainInfo(c).auto, 'entreno automático activado por defecto (también en guardados viejos)');
+    let maxF = 0, autoN = 0, g = 0, msgs = 0; const in0 = c.inbox.filter(m => m.t === 'Entreno automático').length, sp0 = C.KEYS.reduce((s, k) => s + c.player.st[k], 0);
+    while (c.phase === 'league' && g++ < 10) { c.train = 'bal'; const s = C.simulateNext(c); c = C.get(); if (s && s.auto) autoN += s.auto.done.length; maxF = Math.max(maxF, c.fatigue); }
+    msgs = c.inbox.filter(m => m.t === 'Entreno automático').length - in0;
+    ok(autoN > 0 && maxF <= C.SESS_AUTO_FAT && C.fatigueMalus(c) === 0, 'automático: ' + autoN + ' sesiones en 10 jornadas sin pasar de ' + C.SESS_AUTO_FAT + ' de fatiga (máx. ' + maxF + ')');
+    ok(msgs <= g, 'en silencio: como mucho un mensaje por jornada (' + msgs + ')');
+    c.ts.n = 0; c.fatigue = 0; ok(C.beach._sessAuto(c, true) === null && c.ts.n === 0, 'no actúa en una jornada de descanso (bye)');
+    c.train = 'phys'; c.fatigue = 25; c.ts.n = 0; const ra = C.beach._sessAuto(c); ok(!ra || c.fatigue + 12 <= C.SESS_AUTO_FAT, 'cuenta la fatiga del enfoque de la semana (Físico +12: ' + c.fatigue + ')'); c.train = 'bal';
+    ok(C.setTrainAuto(false) && C.get().ts.auto === false, 'se puede apagar');
+    c = C.get(); const t0 = c.ts.tot; C.simulateNext(c); ok(C.get().ts.tot === t0, 'apagado: no entrena solo');
+    const txt = c.inbox.map(m => m.t + ' ' + m.x).join(' ');
+    ok(!BAD_TXT.test(txt), 'mensajes del automático sin «·» ni ordinales con punto');
+  }
+  // pista: el automático también (y sin tocar el seis de la jornada que se cierra)
+  { let c = hallNew(9300); C.setTrainAuto(true); c = C.get(); let n = 0, g = 0, maxF = 0;
+    while (c.phase === 'league' && g++ < 6) { const s = C.simulateNext(); c = C.get(); if (s && s.auto) n += s.auto.done.length; maxF = Math.max(maxF, c.fatigue); }
+    ok(n > 0 && maxF <= C.SESS_AUTO_FAT, 'pista: automático ' + n + ' sesiones en ' + g + ' jornadas (fatiga máx. ' + maxF + ')');
+    const ds = C.drillSetup(C.trainPlan(c)[0]); ok(!ds || ds.venue === 'hall', 'pista: el ejercicio se juega en el pabellón');
+  }
+  // el automático nunca descansa por ti: con el enfoque Descanso, la misma fatiga con él que sin él (antes, 3 descansos callados)
+  { let c = beachNew(9250, 'cr'); C.setTraining('rest'); c = C.get(); c.fatigue = 60; C.setTrainAuto(true);
+    const snap = mem['voley3d.career']; C.simulateNext(C.get()); const on = C.get(), fOn = on.fatigue, nOn = on.ts.tot;
+    mem['voley3d.career'] = snap; C._reset(); C.setTrainAuto(false); C.simulateNext(C.get()); const fOff = C.get().fatigue;
+    ok(fOn === fOff && nOn === 0, 'automático con el enfoque Descanso: no descansa por ti (fatiga ' + fOn + ' con él, ' + fOff + ' sin él)');
+  }
+  // pista: descansar recalcula el seis de la jornada (por debajo de FAT_REST ya no te sientan por fatiga)
+  { let c = hallNew(9350); c.coach = 60; c.fatigue = C.hall.FAT_REST + 2; c.sq6.wk = null; c.sq6.L = null;
+    const n0 = C.next(c);
+    if (n0 && n0.whyCode === 'fatiga') {
+      const rr = C.trainSession(null, 'rest'), n1 = C.next(C.get());
+      ok(rr.ok && c.fatigue < C.hall.FAT_REST && typeof rr.stat === 'string' && n1 && n1.whyCode !== 'fatiga', 'pista: descansar baja de ' + C.hall.FAT_REST + ' y el seis de la jornada se recalcula (' + (rr.stat0 || '?') + ' → ' + rr.stat + ')');
+    } else ok(true, 'pista: descansar recalcula el seis (sin caso de fatiga en esta semilla: ' + (n0 && n0.whyCode) + ')');
+  }
+  // guardados viejos sin best, seen, auto ni wkLog; dañados
+  { beachNew(9400); C.trainSession('recv', 'play', 20);
+    let raw = JSON.parse(mem['voley3d.career']); delete raw.ts.best; delete raw.ts.seen; delete raw.ts.auto; delete raw.ts.wkLog; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    let r = C.get(); ok(r.ts.best && !Object.keys(r.ts.best).length && r.ts.seen && r.ts.auto === true && Array.isArray(r.ts.wkLog) && C.trainInfo(r).drills.every(d => d.best === null && d.first), 'guardado sin récords: se sanean (sin récord, primera vez pendiente, automático activado)');
+    raw = JSON.parse(mem['voley3d.career']); raw.ts.best = { recv: 99, nada: 3, atk: 'x' }; raw.ts.seen = [1]; raw.ts.auto = 'si'; raw.ts.wkLog = 'z'; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    r = C.get(); ok(r.ts.best.recv === 30 && !('nada' in r.ts.best) && !('atk' in r.ts.best) && r.ts.auto === true && Array.isArray(r.ts.wkLog) && !Array.isArray(r.ts.seen), 'récords dañados: se recortan y se limpian');
   }
   delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
   if (keep.c6 != null) mem['voley3d.career6'] = keep.c6;

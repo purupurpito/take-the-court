@@ -450,9 +450,13 @@
     if (drill) { startDrill(drill, opts); return; }
     // Carrera: «Reiniciar partido» (pausa) repite el partido de Carrera; «Revancha» / Intro en la hoja final vuelven al hub
     // (ui.js llama a startMatch() sin opciones en los dos casos)
+    // (partidillo de prueba: «Reiniciar» lo vuelve a empezar con la misma oferta, sin gastar la prueba)
     if (!opts.career && !opts.autopilot && ctx.game && ctx.game.career && !ctx.game.demo) {
       if (ctx.state === 'over') { ctx.actions.toMenu(); return; }
-      if (ctx.state === 'paused' || ctx.state === 'playing') { ctx.actions.startCareerMatch(); return; }
+      if (ctx.state === 'paused' || ctx.state === 'playing') {
+        if (ctx.game.career.trial) ctx.actions.startCareerTrial(ctx.game.career.offer); else ctx.actions.startCareerMatch();
+        return;
+      }
     }
     // (solo partidos humanos: los de autopilot —herramientas de medida— empiezan al momento, como siempre)
     if (!ctx.debug && !opts.autopilot && call('UI', 'bootBusy')) { startWait = opts; return; }
@@ -489,6 +493,8 @@
     }
     var g = Sim.createGame({ demo: false, seed: seed(), difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : isRookie(), present: !opts.autopilot,
       bench: b6 || undefined, coach: c6 || undefined, meSlot: cs && b6 ? opts.meSlot : undefined, meBench: cs && b6 ? opts.meBench : undefined, names: fmt && cs ? opts.names : undefined,
+      // (sets: 1 = partido a un solo set, el partidillo de prueba de la Carrera; sin él, al mejor de 3 como siempre)
+      sets: opts.sets === 1 ? 1 : undefined,
       points: opts.points || +Q.points || ctx.settings.setPoints, ctrl: fmt ? 'one' : (opts.ctrl || Q.ctrl || ctx.settings.ctrlMode), ctrlRole: fmt ? (cs && opts.ctrlRole) || 'OH' : undefined, // (6v6: siempre 'one'; el receptor, o tu puesto en la Carrera de pista; espectador sin eventos switch)
       ctrlIdx: ctrlIdxOf(opts),
       attrs: opts.attrs || (own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null),
@@ -521,12 +527,18 @@
     call('Audio', 'unlock');
     tryFullscreen();
     ctx.frozen = false;
-    applyVenuePend(); unforceVenue();
+    applyVenuePend();
     var free = id === 'free', own = !auto && !Q.debug, cd = opts.careerDrill && !free ? opts.careerDrill : null;
+    // ejercicio de la Carrera: en la sede de tu Carrera (cd.venue: playa o pabellón, como sus partidos; toMenu la suelta); los del
+    // Entrenamiento de Partido rápido, en el escenario del ajuste. (En el pabellón el ejercicio sigue siendo 2 contra 2: la sim no
+    // tiene ejercicios de 6.)
+    var dv = cd && (cd.venue === 'hall' || cd.venue === 'beach') ? cd.venue : null;
+    if (dv) forceVenue(dv); else unforceVenue();
     animHooks(null);
     // sesión de entrenamiento de la Carrera (opts.careerDrill = VB.Career.drillSetup): tu jugador de Carrera (atributos con la fatiga,
-    // tus insignias) y tu compañero o uno de tu club, con la equipación del club; también con autopilot (pruebas: la IA juega por ti)
-    var g = Sim.createGame({ demo: false, seed: seed(), drill: id, venue: venueNow(), autopilot: auto, present: false, rookie: false,
+    // tus insignias) y tu compañero o uno de tu club, con los petos de entreno (cd.scrim: camiseta de entreno, tu peto del color del
+    // club y el lima para la CPU); también con autopilot (pruebas: la IA juega por ti)
+    var g = Sim.createGame({ demo: false, seed: seed(), drill: id, venue: dv || venueNow(), autopilot: auto, present: false, rookie: false,
       difficulty: free ? ctx.settings.difficulty : 'normal', ctrl: free ? (Q.ctrl || ctx.settings.ctrlMode) : 'one', ctrlIdx: 0,
       points: ctx.settings.setPoints,
       attrs: cd ? cd.attrs : own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null,
@@ -538,7 +550,7 @@
     if (cd && g.drill) g.careerDrill = { id: id, mode: cd.mode, n: cd.n, max: cd.max, attrName: cd.attrName || '', done: false, res: null };
     endTweaked = false; careerEnd = null;
     restoreEndButtons();
-    setGame(g, cd ? cd.kit || null : null);
+    setGame(g, cd ? Object.assign({}, cd.kit || {}, cd.scrim ? { scrim: cd.scrim } : null) : null);
     setState('playing');
     if (Q.prewarm !== '0') { prewarm('t'); prewarmPrograms(false); }
     if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart();
@@ -552,11 +564,19 @@
     ctx.actions.startMatch({ drill: id, careerDrill: s, autopilot: !!auto });
     return true;
   };
-  /** drillEnd de un ejercicio de Carrera: apunta la sesión una sola vez (VB.Career.drillDone, a la Carrera del ejercicio). */
+  /** drillEnd de un ejercicio de Carrera: apunta la sesión una sola vez (VB.Career.drillDone, a la Carrera del ejercicio). Con ella,
+   *  d.next = el ejercicio que toca en la siguiente sesión del plan del entrenador (botón «Siguiente sesión» de la hoja final, ui.js)
+   *  si quedan sesiones y la fatiga deja; null si no (o si el plan dice descansar). */
   function careerDrillDone(g) {
     var d = g && g.careerDrill; if (!d || d.done) return;
-    d.done = true;
+    d.done = true; d.next = null;
     try { d.res = VB.Career && VB.Career.drillDone ? VB.Career.drillDone(d.mode, d.id, g.drill ? g.drill.total | 0 : 0) : null; } catch (e) { reportError('Career.drillDone', e); d.res = null; }
+    try {
+      var E = VB.Career && (d.mode === 'hall' ? VB.Career.hall : VB.Career.beach), inf = d.res && d.res.ok && E && E.trainInfo ? E.trainInfo() : null;
+      // el siguiente del plan que se ve en pantalla (con los cambios a mano de «Cambiar», que solo conoce career-ui)
+      var CU = VB.CareerUI, nx = inf && inf.can && inf.plan ? (CU && CU.nextPlanned ? CU.nextPlanned(inf) : inf.plan[inf.used]) : null;
+      if (nx && drillId(nx) && inf.drills.some(function (x) { return x.id === nx; })) d.next = nx;
+    } catch (e) { reportError('Career.trainInfo', e); d.next = null; }
   }
   /** Insignias equipadas del escuadrón de Partido rápido para createGame({badges}) (null sin js/badges.js o sin ninguna). */
   function squadBadges() {
@@ -598,8 +618,26 @@
     // (si el rival lleva el 9, el 2º CPU, que es el 9 por defecto, pasa al 3: si no, los dos harían de rival en players.js)
     return true;
   };
+  /** Partidillo de prueba de la oferta i (fase de elegir club; VB.Career.trialSetup): un solo set a 15 con petos (kit.scrim: los dos
+   *  equipos con la camiseta de entreno del club y peto naranja / lima, players.js), en la playa con tu pareja de prueba contra una
+   *  pareja del club y en la pista con los suplentes contra los titulares. No toca la jornada (no la hay): al acabar, careerEvents
+   *  llama a VB.Career.trialDone en vez de matchDone. Abandonar o reiniciar no gasta la prueba. Sin prueba, vuelve a las ofertas. */
+  ctx.actions.startCareerTrial = function (i) {
+    var K = VB.Career; if (!K || !K.trialSetup) return false;
+    var m = null; try { m = K.trialSetup(i | 0); } catch (e) { reportError('Career.trialSetup', e); }
+    if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open('pick'); return false; }
+    if (K.abortMatch) K.abortMatch();
+    var six = m.format === '6v6', cs = m.career || {};
+    ctx.actions.startMatch({ career: cs, attrs: m.attrs, badges: m.badges, points: m.points, sets: 1, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref,
+      venue: m.venue || 'beach', format: six ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, names: m.names || undefined,
+      // los petos van sobre la equipación del club (sin rival: los dos equipos son del mismo club, players.js se salta rivalPick)
+      kit: m.kit ? Object.assign({}, m.kit, { scrim: m.scrim || {} }) : { scrim: m.scrim || {} },
+      nums: m.nums || [[cs.num | 0 || null, cs.mateNum | 0 || null], null] });
+    return true;
+  };
   function restoreEndButtons() {
-    var e = document.getElementById('end'); if (e) e.classList.remove('career'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
+    var tb = document.getElementById('endTrial'); if (tb && tb.parentNode) tb.parentNode.removeChild(tb);   // (hoja de la prueba)
+    var e = document.getElementById('end'); if (e) e.classList.remove('career', 'trial'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
     var a = document.getElementById('btnAgain'); if (a && a.getAttribute('data-cr')) { a.textContent = a.getAttribute('data-cr'); a.removeAttribute('data-cr'); }
     var m = document.getElementById('btnMenu'); if (m && m.getAttribute('data-cr')) { m.textContent = m.getAttribute('data-cr'); m.removeAttribute('data-cr'); }
   }
@@ -630,6 +668,7 @@
     if (a) { if (!a.getAttribute('data-cr')) a.setAttribute('data-cr', a.textContent); a.textContent = 'Volver a la Carrera'; }
     if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú principal'; }
     if (alt) alt.hidden = true;
+    if (cs.trial) { trialEndSheet(g, s, en, t, k, rec); return; }
     var win = g.sets && g.sets[0] > g.sets[1];
     if (t && !win && cs.rivalName) t.textContent = 'Gana el ' + cs.rivalName;
     // (antetítulo: «Circuito Regional ◆ Jornada 1 de 14», con el rombo de la guía; la etiqueta viene con « · » de datos)
@@ -661,6 +700,38 @@
       }
     }
   }
+  /** Hoja final del partidillo de prueba (careerEndSheet con g.career.trial; s = VB.Career.trialDone): el veredicto de título
+   *  («¡Te fichan!» / «Esta vez no»), la letra grande con la nota, los 3 objetivos con su marca y, si no, cuántas ofertas quedan.
+   *  Sin experiencia (la prueba no da). Va en #endTrial, justo bajo el resultado (antes del MVP), y sin la comparación de equipos
+   *  (#end.trial: estilos en career-ui.js, como #end.career; restoreEndButtons lo quita). */
+  function trialEndSheet(g, s, en, t, k, rec) {
+    var cs = g.career || {}, club = (s && s.clubName) || cs.clubName || cs.rivalName || '';
+    var old = document.getElementById('endTrial'); if (old && old.parentNode) old.parentNode.removeChild(old);
+    var mv = document.getElementById('endMvp'), box = document.createElement('div'); box.id = 'endTrial'; box.className = 'end-rec end-trialbox';
+    if (mv && mv.parentNode) mv.parentNode.insertBefore(box, mv); else if (rec) rec.appendChild(box);
+    rec = box;
+    if (en) en.classList.add('trial');
+    if (k) { var kp = ['Partidillo de prueba', club, '1 set a ' + ((g.points | 0) || 15)]; if (VB.UI && VB.UI.sep) k.innerHTML = VB.UI.sep(kp, 'd'); else k.textContent = kp.filter(Boolean).join(', '); }
+    if (!s || s.none) {   // (la oferta ya no estaba: guardado tocado a mano o la Carrera cambió por detrás)
+      if (t) t.textContent = 'Prueba sin resolver';
+      if (rec) { var dn = document.createElement('div'); dn.className = 'end-xp'; dn.innerHTML = '<span>La oferta de la prueba ya no está disponible.</span>'; rec.appendChild(dn); }
+      return;
+    }
+    var L = String(s.letter || 'F'), lc = L === 'A+' || L === 'A' ? 'a' : L === 'B' ? 'b' : L === 'C' ? 'c' : 'd', left = s.left | 0;
+    if (t) t.textContent = s.pass ? '¡Te fichan!' : 'Esta vez no';
+    if (!rec) return;
+    var why = s.pass ? escHtml(club) + ' te ficha: 1 temporada de contrato.' : 'Te ' + (left === 1 ? 'queda 1 oferta' : 'quedan ' + left + ' ofertas') + '.';
+    if (s.luck) why += s.pass ? ' Con C decidía la suerte, y ha salido de cara.' : ' Con C decidía la suerte, y no ha salido.';
+    // objetivos: ✓ / ✗ con lo que has hecho, en pastillas junto a la letra (a 844×390 la hoja cabe entera)
+    var gl = (s.goals || []).filter(Boolean), gh = gl.length ? '<div class="et-goals">' + gl.map(function (o) {
+      var ok = o.ok === true, no = o.ok === false;
+      return '<span class="' + (ok ? 'ok' : no ? 'no' : '') + '"><i aria-hidden="true">' + (ok ? '✓' : no ? '✗' : '–') + '</i>' + escHtml(o.txt) + (o.v != null ? ' <small>(' + (o.v | 0) + ')</small>' : '') + '<span class="sr">' + (ok ? ', cumplido' : no ? ', no cumplido' : '') + '</span></span>';
+    }).join('') + '</div>' : '';
+    var d = document.createElement('div'); d.className = 'end-trial ' + (s.pass ? 'pass' : 'fail');
+    d.innerHTML = '<div class="et-l l-' + lc + '" aria-label="Nota ' + escHtml(L) + '"><b>' + escHtml(L) + '</b><small>' + (s.nota != null ? fmt1(s.nota) : 'NOTA') + '</small></div>' +
+      '<div class="et-t"><strong>' + (s.pass ? 'Superas la prueba' : 'No superas la prueba') + '</strong><span>' + why + '</span>' + gh + '</div>';
+    rec.appendChild(d);
+  }
   // ---------- Presentación del partido (UI-14) ----------
   // Tarjeta de INTRO_SEC s al empezar: la sim queda parada (sin serveReady ni silbato; los eventos iniciales salvo newMatch se
   // guardan y se entregan al acabar), el mundo sigue animándose (dt de presentación = tiempo real). Cualquier botón, tecla o toque
@@ -690,6 +761,9 @@
     var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
     // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
     var drillC = !!(ctx.game && ctx.game.careerDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerDrill : null;
+    // partidillo de prueba: aprobado, al hub de tu club nuevo; suspendido, a las ofertas con el resultado; abandonado a medias, a las
+    // ofertas sin gastar nada (la prueba sigue pendiente: c.pick.trial)
+    var trialC = fromCareer && ctx.game.career.trial ? ctx.game.career : null, trialE = trialC ? careerEnd : null;
     if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
     restoreEndButtons();
@@ -697,6 +771,10 @@
     setGame(demoGame());
     setState('menu');
     if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
+    else if (trialC && !menuOnly && VB.CareerUI && VB.CareerUI.open) {
+      try { if (trialE && trialE.pass) VB.CareerUI.open('hub', { fresh: true, trialRes: trialE }); else VB.CareerUI.open('pick', { trialRes: trialE && !trialE.none ? trialE : null }); }
+      catch (e) { reportError('CareerUI.open', e); }
+    }
     else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
@@ -1075,6 +1153,14 @@
     for (var i = 0; i < evs.length; i++) {
       var e = evs[i];
       if (e.type !== 'gameOver' || careerEnd) continue;
+      // partidillo de prueba: lo cierra trialDone (nota con letra, objetivos, te fichan o no); ni jornada, ni XP, ni entrenador
+      if (g.career && g.career.trial) {
+        var tr = null;
+        try { tr = K.trialDone ? K.trialDone(g.career.mode, g.career.offer, { sets: [e.sets[0], e.sets[1]], setScores: e.setScores || g.setScores, win: e.team === 0 }, g) : null; }
+        catch (er) { reportError('Career.trialDone', er); tr = null; }
+        careerEnd = tr ? Object.assign({ trial: true }, tr) : { trial: true, none: true };
+        continue;
+      }
       try { careerEnd = K.matchDone({ sets: [e.sets[0], e.sets[1]], setScores: e.setScores || g.setScores, win: e.team === 0 }, null, g) || { nota: 0, xp: 0 }; }
       catch (er) { reportError('Career.matchDone', er); careerEnd = { nota: 0, xp: 0 }; }
     }
@@ -1240,7 +1326,7 @@
       return keep;
     }
     function uiIngest(evs, g) { call('UI', 'ingest', evs, g); }
-    var g, keep = [], state = 'playing', live = Q.live === '1';
+    var g, keep = [], state = 'playing', live = Q.live === '1', dbgKit = null, trialDbg = null;   // (dbgKit: equipación de la escena; trialDbg: hoja de la prueba)
     switch (name) {
       case 'menu': case 'tutorial': case 'controls': case 'settings':
         ctx.actions.toMenu(); return;
@@ -1370,6 +1456,15 @@
         var dk = name === 'drill_end' ? (drillId(Q.drill) || 'serve') : name.slice(6);
         g = Sim.createGame({ demo: false, autopilot: true, seed: sd, drill: dk, venue: venueNow(), difficulty: dk === 'free' ? diff : 'normal' });
         g.gym = dk;
+        // drill_end&career=1: la hoja de una sesión de la Carrera (P6: letra, «Récord: B → A», barra del atributo, «¡Primera vez!» y
+        // «Siguiente sesión»), con petos de entreno y un resultado de muestra (no toca ninguna Carrera); por defecto la 1ª vez («Primer récord»); &up=1 el +1 al atributo y «Récord: C → A»
+        if (name === 'drill_end' && Q.career === '1') {
+          var dup = Q.up === '1';
+          g.careerDrill = { id: dk, mode: 'beach', n: 2, max: 3, attrName: 'Saque', done: true, next: dk === 'atk' ? 'serve' : 'atk',
+            res: { ok: true, id: dk, how: 'play', total: 22, medal: 2, grade: 'A', gain: 18, mul: dup ? 1 : 1.5, first: !dup, focus: false, attr: 'serve', prog0: dup ? 88 : 41, prog: dup ? 6 : 59, need: 100,
+              up: dup ? 'serve' : '', v: dup ? 52 : 51, fat0: 12, fat: 16, imp0: 30, imp: 38, best0: dup ? 14 : null, best: 22, bestGrade0: dup ? 'C' : null, bestGrade: 'A' } };
+          dbgKit = { kitShirt: 0xc8202e, kitAccent: 0xffffff, kitShorts: 0x1b1b1b, kitPattern: 'liso', scrim: { bib0: 0xc8202e, bib1: 0x9be52e } };
+        }
         if (name === 'drill_end') { keep = advanceUntil(g, function (e) { return e && e.type === 'drillEnd'; }, 0, 900); state = 'over'; break; }
         var dn = Q.n ? Math.max(1, +Q.n | 0) : ({ serve: 3, recv: 2, set: 2, atk: 6, block: 2, free: 1 })[dk];
         var dt0 = Q.t ? +Q.t : ({ serve: 1.15, recv: 1.25, set: 0.45, atk: 0.85, block: 0.95, free: 6 })[dk];
@@ -1399,15 +1494,48 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'point'; }, Q.t ? +Q.t : 2.6, 900, uiIngest);
         break;
       }
+      // partidillo de prueba de la Carrera (P4): un set a 15 con petos, la IA jugando por ti hasta el final y la hoja de la prueba
+      // (veredicto, letra y objetivos). Datos de muestra: no toca ninguna Carrera guardada. &mode=hall la pista (6 contra 6, suplentes
+      // contra titulares); &fail=1 suspendida (D); &at=rally congela la colocación de tu equipo a mitad de set (&n=N el N-ésimo
+      // peloteo; para ver los petos); &pre=1 la previa de la Carrera (club, «1 set a 15» con petos, objetivos, «Saltar a la pista» y
+      // «Simular»); &shirt=RRGGBB el color del club (por defecto azul marino: petos naranja contra lima)
+      case 'trial': {
+        var th = Q.mode === 'hall' || Q.format === '6v6', tsh = /^[0-9a-fA-F]{6}$/.test(Q.shirt || '') ? parseInt(Q.shirt, 16) : 0x1d3f7a;
+        if (Q.pre === '1') {
+          ctx.actions.toMenu();
+          if (VB.CareerUI && VB.CareerUI.debugTrial) { try { VB.CareerUI.debugTrial({ hall: th, shirt: tsh }); } catch (e) { reportError('CareerUI.debugTrial', e); } }
+          return;
+        }
+        forceVenue(th ? 'hall' : 'beach');
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, sets: 1, points: 15, present: true,
+          format: th ? '6v6' : undefined, venue: th ? undefined : 'beach', ctrl: th ? 'one' : undefined, ctrlRole: th ? 'OH' : undefined });
+        g.career = { _debug: true, trial: true, mode: th ? 'hall' : 'beach', me: th ? 'SUP' : 'TÚ', rival: th ? 'TIT' : 'VAL', meName: th ? 'Suplentes' : 'Tu pareja de prueba',
+          rivalName: th ? 'Titulares' : 'Voley Valencia', clubName: 'Voley Valencia', label: 'Partidillo de prueba: Voley Valencia', player: 'Tú', sets: 1, points: 15 };
+        dbgKit = { kitShirt: tsh, kitAccent: 0xffffff, kitShorts: 0x14213d, kitPattern: 'liso', kitLibero: th ? 0xffd21a : undefined, scrim: {} };
+        if (Q.at === 'rally') {
+          var trn = Q.n ? Math.max(1, +Q.n | 0) : 3, trc = 0;
+          keep = advanceUntil(g, function (e) { return e && e.type === 'hit' && e.team === 0 && e.touch === 2 && ++trc >= trn; }, Q.t ? +Q.t : 0.35, 900);
+          break;
+        }
+        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
+        // (objetivos como los de VB.Career.trialGoals: [stat, texto, cantidad, operador])
+        var tf = Q.fail === '1', tg = th ? [['kills', '2 remates ganados', 2, '>='], ['recvP', '2 recepciones perfectas', 2, '>='], ['errors', 'Como mucho 2 errores', 2, '<=']]
+          : [['kills', '2 remates ganados', 2, '>='], ['blocks', '1 bloqueo punto', 1, '>='], ['errors', 'Como mucho 2 errores', 2, '<=']];
+        var tv = tf ? [1, 0, 3] : [4, 1, 1];
+        trialDbg = { trial: true, letter: tf ? 'D' : 'B', nota: tf ? 5.3 : 6.9, pass: !tf, luck: false, left: tf ? 3 : 0, clubName: 'Voley Valencia', sim: false,
+          goals: tg.map(function (x, j) { return { id: x[0], stat: x[0], txt: x[1], n: x[2], op: x[3], v: tv[j], ok: x[3] === '<=' ? tv[j] <= x[2] : tv[j] >= x[2] }; }) };
+        break;
+      }
       case 'doll':   // maqueta del muñeco nuevo (js/doll.js): el pabellón con 4 muñecos y cámara fija; la sim queda congelada en el saque
         g = mk(true, true); break;
       default:
         console.warn('[VB] escena de depuración desconocida:', name); ctx.actions.toMenu(); return;
     }
     // las escenas que ya han pasado los eventos por ingest no los vuelven a contar
-    setGame(g);
+    setGame(g, dbgKit);
     for (var i = 0; i < keep.length; i++) pendingEvents.push(keep[i]);
     if (state === 'paused') { setState('playing'); setState('paused'); } else setState(state);
+    if (trialDbg) { careerEnd = trialDbg; endTweaked = false; }   // (la pinta careerEndSheet en el frame, tras la hoja de ui.js)
     ctx.frozen = !live && name !== 'serve' && name !== 'hud' && name !== 'pause';
     call('CameraRig', 'snap', g);
     if (name === 'subs6menu') call('UI', 'openSubs', Q.pick === '1');

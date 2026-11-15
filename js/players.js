@@ -134,8 +134,44 @@
   /** Equipación (el tc de doll.js y de VB.Look.resolve) desde un objeto tipo ajustes {kitShirt, kitAccent, kitShorts, kitPattern,
    *  kitLibero}, sin aplicar nada: la vista previa del Vestuario en la Carrera viste el kit del club. Con st.libero y kitLibero, la
    *  camiseta del líbero del club (como liberoKit). Lo que falte, la equipación de serie. Devuelve un objeto nuevo. */
+  // ---------- PETOS (partidillo de la prueba y ejercicios de la Carrera) ----------
+  // st.scrim = {base, shorts, bib0, bib1}: los dos equipos con la MISMA camiseta de entreno (base; si falta, la del club mezclada al
+  // 55 % con gris) y el mismo pantalón, y encima un peto de color distinto por equipo (doll.js lo pinta con el diseño 'peto': paneles
+  // delante y detrás, costados abiertos y dorsal grande). Sin bib0/bib1, naranja contra lima; si el peto se funde con la camiseta
+  // (kitDist < 1,1) se cambia por su reserva (BIB.alt[equipo]), y el peto del equipo 1 siempre se distingue del otro peto.
+  // Un peto que viene dado (bib0/bib1, p. ej. el color del club en los ejercicios) solo se cambia si choca con el otro peto.
+  var BIB = { a: 0xff7a1a, b: 0x9be52e, alt: [0xffd21a, 0x2e8bff], num: '#1b1b1b', grey: 0x8a8f98 };
+  /** Camiseta de entreno desde el color del club (al 55 % con el gris). */
+  function scrimBase(shirt) { return mixHex(typeof shirt === 'number' ? shirt : TEAM0_DEF.base, BIB.grey, 0.55); }
+  /** Peto del equipo t: el preferido, su reserva o el que mejor se separe (de la camiseta y, en el equipo 1, del peto rival). */
+  function bibPick(t, want, given, base, other) {
+    var cands = (given ? [want] : [want, BIB.alt[t]]).concat([BIB.a, BIB.b, BIB.alt[0], BIB.alt[1]]), best = cands[0], bd = -1;
+    for (var i = 0; i < cands.length; i++) {
+      var c = cands[i], dB = given && i === 0 ? 9 : kitDist(base, c), dO = other >= 0 ? kitDist(other, c) : 9;
+      if (dB >= 1.1 && dO >= 1.1) return c;
+      var d = Math.min(dB, dO < 1.1 ? dO - 5 : dO);   // chocar con el otro peto es peor que fundirse con la camiseta
+      if (d > bd) { bd = d; best = c; }
+    }
+    return best;
+  }
+  /** Las dos equipaciones con peto (o null sin st.scrim): tc de doll.js con pattern 'peto', bib y numFill (oscuro en peto claro). */
+  function scrimKits(st) {
+    var s = st && st.scrim; if (!s || typeof s !== 'object') return null;
+    var base = typeof s.base === 'number' ? s.base : scrimBase(st.kitShirt);
+    var sh = typeof s.shorts === 'number' ? s.shorts : typeof st.kitShorts === 'number' ? st.kitShorts : TEAM0_DEF.shorts;
+    var acc = mixHex(typeof st.kitAccent === 'number' ? st.kitAccent : 0xffffff, BIB.grey, 0.55);   // detalles apagados (ribetes)
+    var g0 = typeof s.bib0 === 'number', g1 = typeof s.bib1 === 'number', out = [], b0, b1;
+    b0 = bibPick(0, g0 ? s.bib0 : BIB.a, g0, base, -1);
+    b1 = bibPick(1, g1 ? s.bib1 : BIB.b, g1, base, b0);
+    [b0, b1].forEach(function (b) {
+      var k = mkKit(base, acc, sh, 'peto'); k.bib = b; k.numFill = lumHex(b) > 0.45 ? BIB.num : '#ffffff';
+      out.push(k);
+    });
+    return out;
+  }
   function kitFrom(st) {
     st = st || {};
+    var sk = scrimKits(st); if (sk) return sk[st.team ? 1 : 0];   // con peto (el líbero también)
     var k = mkKit(typeof st.kitShirt === 'number' ? st.kitShirt : TEAM0_DEF.base, typeof st.kitAccent === 'number' ? st.kitAccent : TEAM0_DEF.accent,
       typeof st.kitShorts === 'number' ? st.kitShorts : TEAM0_DEF.shorts, st.kitPattern || 'diag');
     if (st.libero && typeof st.kitLibero === 'number') { var l = mkKit(st.kitLibero, k.base, k.shorts, 'liso'); l.libero = true; l.club = true; return l; }
@@ -154,15 +190,19 @@
     // rival si se distingue de la tuya; si se parece, la CPU de siempre (la alternativa más distinta)
     // Carrera de pista: si la 1ª se parece, su 2ª equipación (camiseta = su 2º color, kitAccent; detalles = su camiseta) antes
     // que la de la CPU. rk0 = la 1ª del club (de ella sale RIVAL_SIG: los rivales del club se reconocen con cualquiera de las dos)
-    var rv = st.rival && typeof st.rival.kitShirt === 'number' ? st.rival : null, rp = rivalPick(shirt, sh, rv), rk = rp.rk, rk0 = rp.rk0;
-    if (rk) { best = rk; bd = 9; }
+    // partidillo con petos (st.scrim): los dos equipos visten los kits de scrimKits y se SALTA rivalPick (los dos son del mismo
+    // club: rivalPick daría la equipación de la CPU); sin líbero de club (kitOf le pone el peto de su equipo)
+    var sk = scrimKits(st); if (sk) { t0 = sk[0]; shirt = t0.base; }
+    var rv = !sk && st.rival && typeof st.rival.kitShirt === 'number' ? st.rival : null, rp = rivalPick(shirt, sh, rv), rk = rp.rk, rk0 = rp.rk0;
+    if (sk) { best = sk[1]; bd = 9; }
+    else if (rk) { best = rk; bd = 9; }
     else for (var i = 0; i < CPU_KITS.length; i++) {   // la azul de siempre si se distingue bien; si no, la alternativa más distinta
       var d = Math.min(kitDist(shirt, CPU_KITS[i].base), kitDist(sh, CPU_KITS[i].shorts) + 1.5);
       if (i === 0 && d >= 1.1) { best = CPU_KITS[0]; bd = 9; break; }
       if (d > bd) { bd = d; best = CPU_KITS[i]; }
     }
     // color del líbero del club (Carrera de pista): el tuyo siempre; el del rival solo si viste de su club (1ª o 2ª)
-    var lib0 = typeof st.kitLibero === 'number' ? st.kitLibero : -1, lib1 = rk && typeof rv.kitLibero === 'number' ? rv.kitLibero : -1;
+    var lib0 = !sk && typeof st.kitLibero === 'number' ? st.kitLibero : -1, lib1 = rk && typeof rv.kitLibero === 'number' ? rv.kitLibero : -1;
     // Vestuario: st.looks = [fit|null, fit|null] los fija (null en una casilla = sin look), null los quita y undefined CONSERVA los
     // de antes (Ajustes › Equipación pasa los ajustes sin looks: tocar un color no puede quitarte el look)
     if (st.looks !== undefined) {
@@ -174,7 +214,8 @@
       }
       LOOK_SIG = LOOK_OVR[0] || LOOK_OVR[1] ? fitSig(LOOK_OVR[0]) + '/' + fitSig(LOOK_OVR[1]) : '';
     }
-    var sig = [shirt, acc, sh, pat, rk ? [rk.base, rk.accent, rk.shorts, rk.pattern].join('/') : '', lib0, lib1].join(':') + (LOOK_SIG ? ':' + LOOK_SIG : '');
+    var sig = [shirt, acc, sh, pat, rk ? [rk.base, rk.accent, rk.shorts, rk.pattern].join('/') : '', lib0, lib1].join(':') +
+      (sk ? ':peto/' + [sk[0].base, sk[0].shorts, sk[0].bib, sk[1].bib].join('/') : '') + (LOOK_SIG ? ':' + LOOK_SIG : '');
     if (sig === TEAMS._sig) return false;
     TEAMS[0] = t0; TEAMS[1] = best; TEAMS._sig = sig; kitSig++; LIBC[0] = lib0; LIBC[1] = lib1;
     RIVAL_SIG = rk ? hash32(((rk0.base >>> 8) ^ (rk0.accent >>> 4) ^ rk0.shorts) >>> 0) & 0xffff : 0;   // MUÑECO: aspecto de los rivales por club
@@ -244,8 +285,8 @@
     k.libero = true;
     return (LIBK[team] = k);
   }
-  /** Equipación de un jugador: la del equipo o, si es el líbero (6v6), la suya. */
-  function kitOf(p) { return p.role === 'L' ? liberoKit(p.team) : TEAMS[p.team]; }
+  /** Equipación de un jugador: la del equipo o, si es el líbero (6v6), la suya (salvo con petos). */
+  function kitOf(p) { return p.role === 'L' && !TEAMS[p.team].bib ? liberoKit(p.team) : TEAMS[p.team]; }   // con petos, el líbero lleva el de su equipo
   // ---------- Aspecto de cada muñeco (MUÑECO): piel, pelo, peinado, complemento, escala de altura ----------
   // Peinados de doll.js (headGeo): tupe, coleta, afro, flequillo, rapado, mono, trenzas. Complementos: '' | 'cinta' (pabellón);
   // en la playa visera / gorra / gafas / cinta. Tus dos jugadores (2v2, equipo 0, n.º 1 y 2) tienen un look FIJO y distinto; los
@@ -4146,8 +4187,16 @@
     /** Equipación personalizable: aplica settings.kit* (ver setKit arriba). Con g, reconstruye ya los atletas del partido
      *  visible (la demo del menú o el partido en pausa). Devuelve true si cambió algo. */
     setKit: function (st, g) { var ch = setKit(st); if (ch && g) this.onGameStart(g); return ch; },
-    /** Vestuario: copia de la equipación actual de un equipo (0 tuyo, 1 rival): el tc de la vista previa y de VB.Look.resolve. */
-    kit: function (team) { return Object.assign({}, TEAMS[team ? 1 : 0]); },
+    /** Vestuario: copia de la equipación actual de un equipo (0 tuyo, 1 rival): el tc de la vista previa y de VB.Look.resolve.
+     *  Con role ('L'), la de ese puesto (la del líbero; con petos, el peto de su equipo). */
+    kit: function (team, role) { return Object.assign({}, role ? kitOf({ team: team ? 1 : 0, role: role }) : TEAMS[team ? 1 : 0]); },
+    /** Petos: colores de serie {a, b, alt, num, grey} y camiseta de entreno desde el color del club (al 55 % con el gris). */
+    BIB: BIB,
+    scrimBase: function (shirt) { return scrimBase(shirt); },
+    /** Petos: color del peto del equipo t (0xRRGGBB) o null si no se juega con petos. */
+    /** Parecido entre dos colores de equipación (0 = iguales; < 1,1 = chocan), para la UI y las pruebas. */
+    kitDist: function (a, b) { return kitDist(a, b); },
+    bibColor: function (t) { var b = TEAMS[t ? 1 : 0].bib; return typeof b === 'number' ? b : null; },
     /** Vestuario: equipación (tc) desde un objeto tipo ajustes {kitShirt, kitAccent, kitShorts, kitPattern, kitLibero, libero?},
      *  sin aplicar nada (la vista previa de la Carrera viste el kit del club). */
     kitFrom: function (st) { return kitFrom(st); },
@@ -4167,7 +4216,7 @@
     _lookOf: function (p) { return lookOf(p, kitOf(p)); },
     /** Colores actuales (para la UI): {t0: {base, accent, shorts}, t1: {...}}. */
     /** 6v6: color de la camiseta del líbero del equipo t (0xRRGGBB; para la UI o pruebas). */
-    liberoColor: function (t) { return liberoKit(t ? 1 : 0).base; },
+    liberoColor: function (t) { return kitOf({ team: t ? 1 : 0, role: 'L' }).base; },
     /** Qué vestirá el rival con estos datos de setKit (para la UI, sin aplicar nada): null sin st.rival; si no
      *  {kind: '1a' | '2a' | 'cpu', shirt, accent, shorts, pattern} (colores de la 2ª solo con kind '2a'). */
     rivalKit: function (st) {
@@ -4176,7 +4225,11 @@
       var rk = rivalPick(t0.base, t0.shorts, rv).rk;
       return !rk ? { kind: 'cpu' } : rk.alt ? { kind: '2a', shirt: rv.kitAccent, accent: rk.accent, shorts: rk.shorts, pattern: rk.pattern } : { kind: '1a' };
     },
-    kitColors: function () { return { t0: { base: TEAMS[0].base, accent: TEAMS[0].accent, shorts: TEAMS[0].shorts }, t1: { base: TEAMS[1].base, accent: TEAMS[1].accent, shorts: TEAMS[1].shorts } }; },
+    // (con petos, los dos equipos llevan la misma camiseta de entreno: el color del equipo para el HUD es el del peto)
+    kitColors: function () {
+      var c = function (k) { return { base: typeof k.bib === 'number' ? k.bib : k.base, accent: k.accent, shorts: k.shorts }; };
+      return { t0: c(TEAMS[0]), t1: c(TEAMS[1]) };
+    },
     /** Modelo de personaje activo: siempre 'doll' (el muñeco de js/doll.js; los presets ?body= del atleta antiguo ya no existen). */
     body: function () { return BODY; },
     bodyPresets: function () { return [BODY]; },

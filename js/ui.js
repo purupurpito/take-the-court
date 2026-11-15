@@ -726,7 +726,7 @@
         case 'drillEnd': gymEndShow(e, g); break;
         case 'newMatch':
           if (ctx.introLeft > 0 || introUI.on) break;           // la tarjeta de presentación ya lo dice (UI-14)
-          banner('Set 1', 'Al mejor de 3 sets a ' + (g.points || 25) + (g.serving === 0 ? ', sacas tú' : ', saca la CPU'), '', 'neutral', BAN.info, 'newSet');
+          banner(g.toWin === 1 ? 'Set único' : 'Set 1', fmtTxt(g) + (g.serving === 0 ? ', sacas tú' : ', saca la CPU'), '', 'neutral', BAN.info, 'newSet');
           break;
         case 'point': {
           var me = e.team === 0, k = e._uiKind;
@@ -812,7 +812,8 @@
           break;
         case 'set':
           // nivel 3, tras el momento del héroe: espera al corte al plano de reacción; acaba antes de la grúa del cambio de campo
-          if (!e.sets || e.sets[e.team] < 2) queuePres({ t1: e.team === 0 ? 'Set para ti' : 'Set para la CPU', t2: (SET_ORD[e.setNo - 1] || e.setNo + 'º') + ' set ' + e.score[0] + '-' + e.score[1] + ' | ' + e.sets[0] + '-' + e.sets[1] + ' en sets',
+          // (partido a un solo set, g.toWin = 1: el set ya es el partido, solo sale el rótulo de 'match')
+          if (!e.sets || e.sets[e.team] < ((g && g.toWin) || 2)) queuePres({ t1: e.team === 0 ? 'Set para ti' : 'Set para la CPU', t2: (SET_ORD[e.setNo - 1] || e.setNo + 'º') + ' set ' + e.score[0] + '-' + e.score[1] + ' | ' + e.sets[0] + '-' + e.sets[1] + ' en sets',
             t3: '', cls: (e.team === 0 ? 'win' : 'lose') + ' t3', dur: BAN.set, kind: 'set', gate: 'cut' });
           break;
         case 'match':
@@ -891,13 +892,15 @@
   // introEnd(skipped). La tarjeta sale; el marcador entra deslizando 0,25 s después (con el saque ya en marcha: acaba hacia el
   // silbato, como pide audio) y se avisa a audio (ui('introEnd') al entrar el marcador; ui('introSkip') si la saltan).
   var introUI = { on: false, hudT: 0, skipped: false };
+  /** Formato del partido para la tarjeta y el aviso del primer set: a un set (g.toWin 1, el partidillo de prueba) o al mejor de 3. */
+  function fmtTxt(g) { return (g && g.toWin === 1 ? '1 set a ' : 'Al mejor de 3 sets a ') + ((g && g.points) || 25); }
   function introStart(g) {
     introUI.on = true; introUI.hudT = 0; introUI.quiet = true;   // sin avisos ni consejos hasta el primer silbato
     var di = optIndex('difficulty'), nm = g && VB.DIFF && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
     el.introDiff.textContent = 'Nivel ' + (nm || OPT.difficulty.labels[di]);
     var six = !!(g && g.size === 6);
     el.introSrv.textContent = cpuTxt(g && g.serving === 1 ? 'Saca la CPU' : six ? 'Saca tu equipo' : 'Sacas tú');
-    if (el.introFmt) el.introFmt.textContent = 'Al mejor de 3 sets a ' + ((g && g.points) || 25) + '';
+    if (el.introFmt) el.introFmt.textContent = fmtTxt(g);
     // antetítulo «Palau del Mar ◆ 2 contra 2» (texto fijo del HTML): el formato del partido (6v6, sprint 3)
     var ik = el.intro.querySelector('.in-k > span'), it = ik && ik.lastChild;
     var dr = !!(g && g.drill && !g.demo); introUI.drill = dr;
@@ -1687,7 +1690,8 @@
     var drOn = !!(g.drill && !demo); e1.on = false;
     if (last.drOn !== drOn) { last.drOn = drOn; el.app.classList.toggle('drill-on', drOn); }
     if (drOn) drillHud(g);
-    setHTML(el.sbSet, 'set', demo ? 'DEMO' : sepHTML(['SET ' + g.setNo, g.setNo === 3 ? 'A 15' : ''], 's'));
+    // (partido a un solo set —partidillo de prueba de la Carrera—: «SET ÚNICO | A 15»)
+    setHTML(el.sbSet, 'set', demo ? 'DEMO' : g.toWin === 1 ? sepHTML(['SET ÚNICO', 'A ' + g.points], 's') : sepHTML(['SET ' + g.setNo, g.setNo === 3 ? 'A 15' : ''], 's'));
     // partido de Carrera (g.career, main.js): abreviaturas de los dos clubes en vez de TÚ / CPU
     var cr = !demo && (g.career || (g.watch0 && WATCH_CR));
     setText(el.name0, 'n0', demo ? 'ROJO' : (cr && cr.me) || 'TÚ'); setText(el.name1, 'n1', demo ? 'AZUL' : (cr && cr.rival) || 'CPU');
@@ -1697,6 +1701,8 @@
     if (last.sets !== sk) {
       last.sets = sk;
       for (var i = 0; i < 2; i++) { el.pips0[i].classList.toggle('on', i < g.sets[0]); el.pips1[i].classList.toggle('on', i < g.sets[1]); }
+      // un solo set: un piloto por equipo (con dos, un 1-0 se leía como «1 de 2», al mejor de 3)
+      el.pips0[1].style.display = el.pips1[1].style.display = g.toWin === 1 ? 'none' : '';
       if (el.sn0) { el.sn0.textContent = g.sets[0]; el.sn1.textContent = g.sets[1]; }
     }
     var hk = (g.setScores || []).length;
@@ -2174,8 +2180,12 @@
     var sh = node && node.querySelector ? node.querySelector('.sheet') : null; if (!sh || node.hidden) return;
     // margen de 20 px: si solo sobra el relleno de abajo (hoja final a 667×375: 11 px), el desvanecido de 46 px taparía los
     // últimos botones sin que haya nada más que ver
+    // se mide SIN la clase: su ::after (margen de -28 px abajo) encoge 28 px una hoja de alto libre y la hacía «desbordar» sola,
+    // así que una hoja que menguaba después de marcarse (la de la prueba de Carrera a 390×844) se quedaba con el desvanecido
+    var had = sh.classList.contains('has-more');
+    if (had) sh.classList.remove('has-more');
     var more = sh.scrollHeight - sh.clientHeight > 20 && sh.scrollTop + sh.clientHeight < sh.scrollHeight - 20;
-    if (sh.classList.contains('has-more') !== more) sh.classList.toggle('has-more', more);
+    if (more) sh.classList.add('has-more');
   }
   function showNode(node, on) {
     if (on) {
@@ -2442,7 +2452,7 @@
     // (UI-18) antetítulo con contexto, sin repetir el título: «Palau del Mar · Nivel Normal · 3 sets»
     var endPts = (ctx.game && ctx.game.points) || 25, dn = VB.DIFF && ctx.game && VB.DIFF[ctx.game.difficulty] && VB.DIFF[ctx.game.difficulty].name;
     // «Palau del Mar ◆ Nivel Normal | Sets a 25»: la sede tras el rombo del antetítulo; nivel y puntos por set, datos con la barra fina
-    setSep(el.endKicker, [venueName(), { h: 'Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')]) + SEP_V + 'Sets a ' + endPts }], 'd');
+    setSep(el.endKicker, [venueName(), { h: 'Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')]) + SEP_V + (ctx.game && ctx.game.toWin === 1 ? '1 set a ' : 'Sets a ') + endPts }], 'd');
     el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : 'Gana la CPU';
     el.endS0.textContent = e.sets[0]; el.endS1.textContent = e.sets[1];
     el.endSets.innerHTML = (e.setScores || []).map(function (s, i) {
@@ -4577,6 +4587,11 @@
       var on = res.medal >= i;
       mh += '<span class="ge-m' + (on ? ' on' : '') + (on && res.newMedal && i === res.medal ? ' new' : '') + '">' + medalSVG(i, on ? '' : 'off') + '<span>' + MEDAL_N[i] + ' ' + M[i - 1] + '</span></span>';
     }
+    // sesión de la Carrera: delante de las medallas, la nota en letra grande (A+ … F, VB.Career.trainGrade)
+    if (cdr && cdr.res && cdr.res.ok && cdr.res.grade) {
+      var gk = cdr.res.grade === 'A+' ? 'ap' : String(cdr.res.grade).toLowerCase();
+      mh = '<span class="cdr-g gr-' + escT(gk) + '" aria-label="Nota ' + escT(cdr.res.grade) + '"><b>' + escT(cdr.res.grade) + '</b><small>NOTA</small></span>' + mh;
+    }
     el.geMeds.innerHTML = mh;
     el.geReps.innerHTML = (e.reps || []).map(function (p) { return '<i class="p' + Math.max(0, Math.min(3, p | 0)) + '"></i>'; }).join('');
     var rec = '';
@@ -4588,23 +4603,38 @@
     if (cdr) rec = careerDrillRec(cdr, total, res.medal);
     el.geRec.innerHTML = rec;
     var nx = Gm && Gm.nextOf && !cdr ? Gm.nextOf(id) : null;
-    el.btnGeNext.hidden = !nx;
+    el.btnGeNext.hidden = !nx && !(cdr && cdr.next);
     if (nx) el.btnGeNext.textContent = 'Siguiente: ' + drillName(nx, true);
-    // sesión de la Carrera: sin «Repetir» ni «Siguiente» (cada una gasta sesión); «Entrenamiento» pasa a «Volver a la Carrera»
+    else if (cdr && cdr.next) el.btnGeNext.textContent = 'Siguiente sesión: ' + drillName(cdr.next, true);   // (el ejercicio que toca en el plan, main.js careerDrillDone)
+    // sesión de la Carrera: sin «Repetir» (gastaría otra sesión); «Siguiente sesión» si quedan y la fatiga deja; «Entrenamiento»
+    // pasa a «Volver a la Carrera»
     el.btnGeAgain.hidden = !!cdr;
     if (cdr) { if (!el.btnGeList.getAttribute('data-cr')) el.btnGeList.setAttribute('data-cr', el.btnGeList.textContent); el.btnGeList.textContent = 'Volver a la Carrera'; setSep(el.geKick, ['Carrera', 'Sesión ' + cdr.n + ' de ' + cdr.max], 'd'); }
     else if (el.btnGeList.getAttribute('data-cr')) { el.btnGeList.textContent = el.btnGeList.getAttribute('data-cr'); el.btnGeList.removeAttribute('data-cr'); }
-    srSay(drillName(id) + ': ' + total + ' puntos' + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + (total > 0 && res.isBest ? ', nuevo récord' : ''));
+    srSay(drillName(id) + ': ' + total + ' puntos' + (cdr && cdr.res && cdr.res.grade ? ', nota ' + cdr.res.grade : '') + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + (total > 0 && res.isBest && !cdr ? ', nuevo récord' : ''));
     // depuración: la hoja al momento; si no, tras el sello de la última repetición (0,75 s) y la cortinilla
     geGate = !(ctx.debug && ctx.params.hold !== '1'); geWait = geGate; geT0 = ctx.time; shown = '';
   }
-  /** Líneas de la hoja final de una sesión de la Carrera (resultado de VB.Career.drillDone en g.careerDrill.res). */
+  /** Líneas de la hoja final de una sesión de la Carrera (resultado de VB.Career.drillDone en g.careerDrill.res; P6): «Récord: B → A»
+   *  (o el primero), la barra del atributo que se llena de prog0 a prog con lo ganado (si llega a 100, «+1 Recepción (64)»), las marcas
+   *  «¡Primera vez! +50 %» y «Plan +20 %», y fatiga e impresión antes y después. Estilos en career-ui.js (#gymEnd .cdr-*). */
   function careerDrillRec(cdr, total, medal) {
     var r = cdr.res, out = '';
     if (!r || !r.ok) return '<span>' + (r && r.why === 'fatiga' ? 'Demasiada fatiga: la sesión no cuenta' : r && r.why === 'done' ? 'Ya no quedaban sesiones: no cuenta' : 'La sesión no se ha podido apuntar') + '</span>';
-    var an = r.attr && VB.Prog && VB.Prog.LABEL ? VB.Prog.LABEL[r.attr] : cdr.attrName;
-    out += r.up ? '<span class="new">¡+1 en ' + escT(an) + '! (' + r.v + ')</span>' : '<span><b>+' + r.gain + '</b> de progreso en ' + escT(an) + ' (' + r.prog + ' de ' + r.need + ')</span>';
-    out += '<span>Fatiga ' + r.fat0 + ' → ' + r.fat + '</span><span>Impresión en el entrenador ' + Math.round(r.imp0) + ' → ' + Math.round(r.imp) + '</span>';
+    var an = r.attr && VB.Prog && VB.Prog.LABEL ? VB.Prog.LABEL[r.attr] : cdr.attrName, need = r.need || 100;
+    if (r.bestGrade0 && r.bestGrade !== r.bestGrade0) out += '<span class="new">Récord: ' + escT(r.bestGrade0) + ' → ' + escT(r.bestGrade) + '</span>';
+    else if (r.best0 == null && r.bestGrade) out += '<span class="new">Primer récord: ' + escT(r.bestGrade) + '</span>';
+    else if (r.bestGrade) out += '<span>Récord: <b>' + escT(r.bestGrade) + '</b> (' + (r.best | 0) + ' puntos)</span>';
+    var tags = [];
+    if (r.first) tags.push('¡Primera vez! +50 %');
+    if (r.focus) tags.push('Plan del entrenador +20 %');
+    if (tags.length) out += '<div class="cdr-tags">' + tags.map(function (t) { return '<span>' + escT(t) + '</span>'; }).join('') + '</div>';
+    // barra: de prog0 a prog (si sube, se llena hasta el final y el +1 va al lado)
+    var a = Math.max(0, Math.min(100, Math.round(100 * (r.prog0 | 0) / need))), b = r.up ? 100 : Math.max(a, Math.min(100, Math.round(100 * (r.prog | 0) / need)));
+    out += '<div class="cdr-bar" role="img" aria-label="' + escT(an) + ': ' + (r.up ? 'sube a ' + r.v : '+' + r.gain + ' de progreso, ' + r.prog + ' de ' + need) + '"><span>' + escT(an) + ' ' + (r.up ? r.v - 1 : r.v) + '</span>' +
+      '<span class="bar"><i class="b1" style="--from:' + a + '%;--to:' + b + '%"></i><i class="b0" style="width:' + a + '%"></i></span>' +
+      '<b>' + (r.up ? '+1 ' + escT(an) + ' (' + r.v + ')' : '+' + r.gain) + '</b></div>';
+    out += '<span>' + sepHTML(['Fatiga ' + r.fat0 + ' → ' + r.fat, 'Impresión ' + Math.round(r.imp0) + ' → ' + Math.round(r.imp)], 'v') + '</span>';
     if (r.stat && r.stat0 && r.stat !== r.stat0 && r.stat === 'start') out += '<span class="new">Te has ganado el sitio en los entrenos</span>';
     return out;
   }
@@ -5038,7 +5068,12 @@
       if (el.gymList) el.gymList.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b) { uiSound('start'); goGym(b.getAttribute('data-drill')); } });
       if (el.gymList) el.gymList.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b && b !== gymHov) { gymHov = b; hoverSound(); } });
       if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () { uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind); });
-      if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () { var g = ctx.game, n = g && g.drill && VB.Gym && VB.Gym.nextOf ? VB.Gym.nextOf(g.drill.kind) : null; uiSound('start'); if (n) goGym(n); });
+      if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () {
+        var g = ctx.game;
+        // sesión de la Carrera: la siguiente del plan (otra sesión; main.js startCareerDrill vuelve al hub si ya no se puede)
+        if (g && g.careerDrill && !g.demo) { var cn = g.careerDrill.next; if (!cn) return; uiSound('start'); var fn = function () { ctx.actions.startCareerDrill(cn, !!g.autopilot); }; if (!wipeRun(2, fn) && !wp.cb) fn(); return; }
+        var n = g && g.drill && VB.Gym && VB.Gym.nextOf ? VB.Gym.nextOf(g.drill.kind) : null; uiSound('start'); if (n) goGym(n);
+      });
       if (el.btnGeList) el.btnGeList.addEventListener('click', function () { uiSound('back'); goGymList(ctx.game && ctx.game.drill ? ctx.game.drill.kind : null); });
       if (el.sqPick) el.sqPick.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-pick]') : null; if (b) sqPick(+b.getAttribute('data-pick'), b.classList.contains('kf') ? true : null); });
       buildTabs();

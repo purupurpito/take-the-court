@@ -302,6 +302,7 @@
       if (!o.pick || typeof o.pick !== 'object') o.pick = { round: 0, more: false };
       o.pick.round = clampI(o.pick.round, 0, 9); o.pick.more = !!o.pick.more;
       if (!arr(o.offers) || !o.offers.length || !o.offers.every(function (x) { var k = x && club(o, x.club); return k && k.lvl <= 1 && x.mateP && x.mateP.st; })) o.offers = genStartOffers(o, o.pick.round);
+      trialSane(o);
       ['notes', 'history', 'trophies'].forEach(function (k) { if (!arr(o[k])) o[k] = []; });
       if (!o.stats || typeof o.stats !== 'object') o.stats = newSeasonStats();
       if (!o.career || typeof o.career !== 'object') o.career = newSeasonStats();
@@ -602,6 +603,20 @@
   // progresión. Lo que más pesa es la impresión en el entrenador (pista: ver SEL_IMP y lineup6).
   var TRAIN_SESS = 3, SESS_NEED = 100, SESS_MAX = 15, SESS_EFF = [1, 0.85, 0.7], SESS_FAT = [3, 4, 6], SESS_FAT_MAX = 80;
   var SESS_QUICK = [0.3, 0.85], SESS_IMP_A = 0.15, SESS_IMP_DECAY = 0.75, SESS_COACH = 1;
+  // Entrenos al estilo EA FC (15-nov-2026, notes/pruebas-entrenos-spec.md P5): cada sesión puede ser Jugar, Rápido o Descansar.
+  //   - Nota con letra (sessGrade) sobre q = puntos / oro: A+ con oro, A ≥ 0,85, B ≥ 0,70, C ≥ 0,55, D ≥ 0,35; por debajo, F.
+  //   - Rápido = tu récord jugando en ese ejercicio (c.ts.best), nunca el oro (oro − 1) y menos 1 por punto de resta de fatiga; sin
+  //     récord, D como mucho (SESS_QUICK_D del oro). Determinista. Rinde × SESS_QUICK_K y la impresión avanza a la mitad.
+  //   - Jugar conserva la ganancia de siempre (× 1: en la práctica Jugar da SESS_PLAY_K = 1,25 veces el Rápido); la primera vez que
+  //     juegas cada ejercicio, × SESS_FIRST; si el ejercicio es del grupo del Plan (c.train atk/def), × SESS_FOCUS.
+  //   - Descansar (how 'rest'): gasta la sesión y baja SESS_REST de fatiga; ni sube atributos ni toca la impresión.
+  //   - Plan del entrenador (sessPlan, guiado por c.train), recomendación (sessRecommend), «Simular jornada» (sessSimDay) y
+  //     entreno automático (sessAuto, c.ts.auto, activado por defecto): al cerrar la jornada rellena en silencio las sesiones libres
+  //     con Rápido del plan sin pasar nunca de SESS_AUTO_FAT de fatiga (no te mete en la resta de los partidos).
+  var SESS_GRADE = [['A+', 1.0], ['A', 0.85], ['B', 0.70], ['C', 0.55], ['D', 0.35]];
+  var SESS_PLAY_K = 1.25, SESS_FIRST = 1.5, SESS_FOCUS = 1.2, SESS_QUICK_K = 0.8, SESS_QUICK_D = 0.45, SESS_REST = 8, SESS_AUTO_FAT = FAT_FREE;
+  var SESS_FOCUS_G = { atk: 'atk', def: 'def' };   // enfoque (c.train) → grupo de ejercicios (SESS_DRILL[id].g); phys, bal y rest no tienen
+  var SESS_LOG_MAX = 6;
   // ejercicios con medallas de VB.Gym: atributo que sube (k), grupo (g) y umbrales de reserva (los de gym.js/sim, por si no están)
   var SESS_DRILL = {
     serve: { k: 'serve', g: 'atk', name: 'Saque a diana', short: 'Saque', help: '10 saques a la diana que se mueve', medals: [12, 18, 24] },
@@ -634,75 +649,210 @@
     if (!t.p || typeof t.p !== 'object') t.p = {};
     Object.keys(SESS_DRILL).forEach(function (id) { var k = SESS_DRILL[id].k; t.p[k] = num(t.p[k]) ? clamp(Math.round(t.p[k]), 0, SESS_NEED - 1) : 0; });
     if (!t.last || typeof t.last !== 'object' || !SESS_DRILL[t.last.id]) t.last = null;
+    // (15-nov-2026) récord jugando por ejercicio (0-30), ejercicios ya jugados alguna vez, entreno automático (por defecto sí, también
+    // en los guardados viejos) y las sesiones de la jornada para el resumen (wkLog: se vacía al cerrar la jornada)
+    var obj = function (v) { return v && typeof v === 'object' && !Array.isArray(v); };
+    if (!obj(t.best)) t.best = {};
+    Object.keys(t.best).forEach(function (id) { if (!SESS_DRILL[id] || !num(t.best[id])) delete t.best[id]; else t.best[id] = clampI(t.best[id], 0, 30); });
+    if (!obj(t.seen)) t.seen = {};
+    Object.keys(t.seen).forEach(function (id) { if (!SESS_DRILL[id] || !t.seen[id]) delete t.seen[id]; else t.seen[id] = 1; });
+    t.auto = typeof t.auto === 'boolean' ? t.auto : true;
+    if (!Array.isArray(t.wkLog)) t.wkLog = [];
+    t.wkLog = t.wkLog.filter(function (x) { return obj(x) && (x.id === 'rest' || SESS_DRILL[x.id]); }).slice(-SESS_LOG_MAX);
     return t;
   }
-  function sessState(c) { var t = sessSane(c); if (t.wk != null && t.wk !== sessKey(c)) { t.n = 0; t.wk = null; } return t; }
+  function sessState(c) { var t = sessSane(c); if (t.wk != null && t.wk !== sessKey(c)) { t.n = 0; t.wk = null; t.wkLog = []; } return t; }
   function sessFixture(c) { return isHallC(c) ? (c.phase === 'league' || c.phase === 'ko') && !!myFixture6(c) : (c.phase === 'league' || c.phase === 'cup') && !!myFixture(c); }
-  /** Ejercicios de tu puesto con lo que sube cada uno. */
+  /** Ejercicios de tu puesto con lo que sube cada uno, tu récord jugando (best, con su letra), lo que daría el Rápido ahora (quick,
+   *  con su letra) y si aún no lo has jugado nunca (first: la primera vez rinde × SESS_FIRST). */
   function sessDrills(c) {
-    var pos = c && c.player ? c.player.roleKey : 'uni', ids = SESS_BY[pos] || SESS_BY.uni, G = VB.Gym;
+    var pos = c && c.player ? c.player.roleKey : 'uni', ids = SESS_BY[pos] || SESS_BY.uni, G = VB.Gym, t = c && c.ts;
     return ids.map(function (id) {
-      var D = SESS_DRILL[id], gd = G && G.drill ? G.drill(id) : null;
+      var D = SESS_DRILL[id], gd = G && G.drill ? G.drill(id) : null, b = t && t.best && typeof t.best[id] === 'number' ? t.best[id] : null;
+      var qk = c && c.player && t ? sessQuick(c, id) : 0;
       return { id: id, name: gd ? gd.name : D.name, short: gd ? gd.short : D.short, help: gd ? gd.help : D.help, attr: D.k, attrName: attrTxt(D.k), group: D.g,
-        medals: sessMedals(id).slice(), v: c && c.player ? c.player.st[D.k] | 0 : 0, prog: c && c.ts && c.ts.p ? c.ts.p[D.k] | 0 : 0 };
+        medals: sessMedals(id).slice(), v: c && c.player ? c.player.st[D.k] | 0 : 0, prog: t && t.p ? t.p[D.k] | 0 : 0,
+        best: b, bestGrade: b == null ? '' : sessGrade(id, b), quick: qk, quickGrade: sessGrade(id, qk), first: !(t && t.seen && t.seen[id]) };
     });
   }
-  /** Lo que la UI necesita: { max, used, left, can, why ('' | 'none' | 'done' | 'fatiga'), fat, fatMax, nextFat, imp, last, drills, need }. */
+  /** Lo que la UI necesita: { max, used, left, can, why ('' | 'none' | 'done' | 'fatiga'), canRest, fat, fatMax, nextFat, imp, last,
+   *  drills, need, tot, auto, plan (3 ids, 'rest' = descansar), rec (enfoque recomendado), focus (c.train), log (sesiones de la jornada),
+   *  wk (clave de la jornada), mode ('beach' | 'hall') }. */
   function sessInfo(c) {
     if (!c || !c.player) return null;
     var t = sessState(c), why = !myClub(c) || !sessFixture(c) ? 'none' : t.n >= TRAIN_SESS ? 'done' : (c.fatigue | 0) >= SESS_FAT_MAX ? 'fatiga' : '';
-    return { max: TRAIN_SESS, used: t.n, left: TRAIN_SESS - t.n, can: !why, why: why, fat: c.fatigue | 0, fatMax: SESS_FAT_MAX, nextFat: SESS_FAT[Math.min(t.n, TRAIN_SESS - 1)],
-      fatK: sessFatK(c), imp: t.imp, last: t.last, drills: sessDrills(c), need: SESS_NEED, tot: t.tot };
+    return { max: TRAIN_SESS, used: t.n, left: TRAIN_SESS - t.n, can: !why, why: why, canRest: !why || why === 'fatiga', fat: c.fatigue | 0, fatMax: SESS_FAT_MAX, nextFat: SESS_FAT[Math.min(t.n, TRAIN_SESS - 1)],
+      fatK: sessFatK(c), imp: t.imp, last: t.last, drills: sessDrills(c), need: SESS_NEED, tot: t.tot,
+      auto: t.auto, autoFat: SESS_AUTO_FAT, plan: sessPlan(c), rec: sessRecommend(c), focus: TRAIN[c.train] ? c.train : 'bal', log: t.wkLog.slice(), rest: SESS_REST,
+      wk: sessKey(c), mode: isHallC(c) ? 'hall' : 'beach' };
   }
-  function sessOk(c, id) {
+  /** ¿Se puede hacer la sesión id? '' si sí; si no 'none' | 'done' | 'fatiga' | 'drill'. auto (entreno automático, al cerrar la
+   *  jornada): no mira si queda partido (sessFixture), porque la jornada se está cerrando. */
+  function sessOk(c, id, auto) {
     var inf = sessInfo(c); if (!inf) return 'none';
     if (!SESS_DRILL[id] || !inf.drills.some(function (d) { return d.id === id; })) return 'drill';
+    if (auto) return !myClub(c) ? 'none' : inf.used >= TRAIN_SESS ? 'done' : inf.fat >= SESS_FAT_MAX ? 'fatiga' : '';
     return inf.why;
   }
-  /** Resultado del «Entrenar rápido»: determinista (nunca g.rng); fracción del oro según tu atributo (35 → 0,3; 85 → 0,8; tope 0,85)
-   *  ± 0,08 y la resta de la fatiga. Nunca llega al oro. */
-  function sessQuick(c, id) {
-    var D = SESS_DRILL[id], m = sessMedals(id), t = sessState(c), r = rng(hash(c.seed, 'sess', c.season, sessKey(c), t.n, id));
-    var v = (c.player.st[D.k] | 0) - 2 * fatigueMalus(c);
-    return clampI(m[2] * (clamp(SESS_QUICK[0] + (v - 35) / 100, SESS_QUICK[0], SESS_QUICK[1]) + (r() - 0.5) * 0.16), 0, 30);
+  /** Letra de una sesión (A+ … F) por la fracción del oro (SESS_GRADE). */
+  function sessGrade(id, total) {
+    var m = sessMedals(id), q = m[2] > 0 ? (+total || 0) / m[2] : 0;
+    for (var i = 0; i < SESS_GRADE.length; i++) if (q >= SESS_GRADE[i][1] - 1e-9) return SESS_GRADE[i][0];
+    return 'F';
   }
-  /** Una sesión: how 'play' (total del ejercicio jugado, 0-30) | 'quick'. Devuelve el resultado (también en c.ts.last) o
-   *  { ok: false, why } ('none' | 'done' | 'fatiga' | 'drill'). No guarda: lo hace el motor (trainSession de BEACH / HALL). */
-  function sessDo(c, id, how, total) {
-    var w = sessOk(c, id); if (w) return { ok: false, why: w };
+  /** Resultado del «Entrenar rápido» (determinista, nunca g.rng):
+   *  - con récord jugando (c.ts.best[id]): el récord, como mucho oro − 1, menos 1 por punto de resta de la fatiga (sin azar);
+   *  - sin récord: la fórmula de antes (fracción del oro según tu atributo, 35 → 0,3; 85 → 0,8; ± 0,08; con la fatiga), como mucho
+   *    SESS_QUICK_D del oro (una D). Nunca llega al oro. */
+  function sessQuick(c, id) {
+    var D = SESS_DRILL[id], m = sessMedals(id), t = sessState(c);
+    var r = rng(hash(c.seed, 'sess', c.season, sessKey(c), t.n, id));
+    var v = (c.player.st[D.k] | 0) - 2 * fatigueMalus(c);
+    var f = clampI(m[2] * (clamp(SESS_QUICK[0] + (v - 35) / 100, SESS_QUICK[0], SESS_QUICK[1]) + (r() - 0.5) * 0.16), 0, 30);
+    var d = Math.min(f, Math.floor(m[2] * SESS_QUICK_D));   // sin récord: la D como mucho
+    // con récord: el récord (sin oro), pero nunca peor que sin haberlo jugado (jugarlo una vez y mal no debe castigar el Rápido)
+    if (typeof t.best[id] === 'number') return clampI(Math.max(Math.min(t.best[id], m[2] - 1) - fatigueMalus(c), d), 0, 30);
+    return d;
+  }
+  /** Una sesión: how 'play' (total del ejercicio jugado, 0-30) | 'quick' | 'rest' (id se ignora). Devuelve el resultado (también en
+   *  c.ts.last, salvo el descanso) o { ok: false, why } ('none' | 'done' | 'fatiga' | 'drill'). No guarda: lo hace el motor
+   *  (trainSession de BEACH / HALL). opt.auto: entreno automático (sin mirar sessFixture); opt.quiet: sin el mensaje de la bandeja
+   *  (el automático deja uno solo, de resumen). Resultado jugado o rápido: { ok, id, how, total, medal, grade, q, gain, mul, first,
+   *  focus, attr, prog0, prog, need, up, v, fat0, fat, imp0, imp, coach0, coach, n, max, s, wk } y, jugado, best0 (récord de antes o
+   *  null) y best (pista: además stat0, stat, sel, gap). */
+  function sessDo(c, id, how, total, opt) {
+    opt = opt || {};
+    if (how === 'rest') return sessRest(c, opt);
+    var w = sessOk(c, id, opt.auto); if (w) return { ok: false, why: w };
     var t = sessState(c), D = SESS_DRILL[id], m = sessMedals(id), n = t.n, quick = how !== 'play';
     total = quick ? sessQuick(c, id) : clampI(total, 0, 30);
-    var q = clamp(total / m[2], 0, 1), fk = sessFatK(c);
-    var gain = Math.max(1, Math.round(SESS_MAX * (0.2 + 0.8 * q) * SESS_EFF[n] * fk * cd(c).train));
-    var k = D.k, up = '', st = c.player.st, fat0 = c.fatigue | 0, imp0 = t.imp, coach0 = c.coach | 0;
+    var q = clamp(total / m[2], 0, 1), fk = sessFatK(c), first = !quick && !t.seen[id], focus = SESS_FOCUS_G[c.train] === D.g;
+    var mul = (quick ? SESS_QUICK_K : 1) * (first ? SESS_FIRST : 1) * (focus ? SESS_FOCUS : 1);
+    var gain = Math.max(1, Math.round(SESS_MAX * (0.2 + 0.8 * q) * SESS_EFF[n] * fk * cd(c).train * mul));
+    var k = D.k, up = '', st = c.player.st, fat0 = c.fatigue | 0, imp0 = t.imp, coach0 = c.coach | 0, prog0 = t.p[k] | 0;
     t.p[k] = (t.p[k] | 0) + gain;
     if (t.p[k] >= SESS_NEED) { t.p[k] -= SESS_NEED; if (st[k] < 99) { st[k]++; up = k; } else t.p[k] = 0; }
-    c.fatigue = clamp(fat0 + SESS_FAT[n], 0, 100);
-    t.imp = round1(clamp(t.imp + SESS_IMP_A * (100 * q - t.imp), 0, 100));
+    c.fatigue = clamp(fat0 + SESS_FAT[n], 0, 100);   // (la misma fatiga sea cual sea la nota)
+    t.imp = round1(clamp(t.imp + SESS_IMP_A * (quick ? 0.5 : 1) * (100 * q - t.imp), 0, 100));   // (el Rápido, a la mitad)
     if (!isHallC(c)) {   // playa: la confianza del entrenador sube poco a poco (entera: se acumula la fracción)
       t.cf += SESS_COACH * q / TRAIN_SESS; var whole = Math.floor(t.cf + 1e-9);
       if (whole > 0) { t.cf -= whole; c.coach = clamp((c.coach | 0) + whole, 0, 100); }
     }
     t.n = n + 1; t.wk = sessKey(c); t.tot++;
-    if (up) msg(c, 'train', 'Los entrenos dan fruto', '+1 en ' + attrTxt(k).toLowerCase() + ' (' + st[k] + ') gracias a las sesiones de ' + (SESS_DRILL[id].short).toLowerCase() + '.');
-    var res = { ok: true, id: id, how: quick ? 'quick' : 'play', total: total, medal: sessMedal(id, total), q: Math.round(q * 100) / 100, gain: gain, attr: k, prog: t.p[k], need: SESS_NEED,
+    if (up && !opt.quiet) msg(c, 'train', 'Los entrenos dan fruto', '+1 en ' + attrTxt(k).toLowerCase() + ' (' + st[k] + ') gracias a las sesiones de ' + (SESS_DRILL[id].short).toLowerCase() + '.');
+    var res = { ok: true, id: id, how: quick ? 'quick' : 'play', total: total, medal: sessMedal(id, total), grade: sessGrade(id, total), q: Math.round(q * 100) / 100, gain: gain,
+      mul: Math.round(mul * 100) / 100, first: first, focus: focus, attr: k, prog0: prog0, prog: t.p[k], need: SESS_NEED,
       up: up, v: st[k], fat0: fat0, fat: c.fatigue, imp0: imp0, imp: t.imp, coach0: coach0, coach: c.coach | 0, n: t.n, max: TRAIN_SESS, s: c.season | 0, wk: t.wk };
-    if (isHallC(c) && c.sq6) {   // pista: la impresión cuenta ya en el seis de esta jornada (y el entrenador avisa si cambia tu sitio)
+    if (!quick) {   // jugado: récord y «ya lo has jugado»
+      var b0 = typeof t.best[id] === 'number' ? t.best[id] : null;
+      t.best[id] = Math.max(b0 == null ? 0 : b0, total); t.seen[id] = 1;
+      res.best0 = b0; res.best = t.best[id]; res.bestGrade0 = b0 == null ? '' : sessGrade(id, b0); res.bestGrade = sessGrade(id, t.best[id]);
+    }
+    // pista: la impresión cuenta ya en el seis de esta jornada (y el entrenador avisa si cambia tu sitio). El automático no: la jornada
+    // ya se está cerrando y el seis de la siguiente lo elige nextLine6
+    if (isHallC(c) && c.sq6 && !opt.auto) {
       var st0 = c.sq6.stat; c.sq6.wk = null; var L = lineup6(c);
       res.stat0 = st0; res.stat = L ? L.stat : ''; res.sel = L ? L.imp : 0; res.gap = L ? L.gap : 0;
     }
+    t.wkLog.push({ id: id, how: res.how, total: total, grade: res.grade, gain: gain, attr: k, up: up });
+    if (t.wkLog.length > SESS_LOG_MAX) t.wkLog = t.wkLog.slice(-SESS_LOG_MAX);
     t.last = res;
     return res;
   }
-  /** Cierre de tu jornada (jugada, simulada, banquillo, fuera; bye = descanso de una liga impar, sin decaer: no hubo ocasión de
-   *  entrenar): sin ninguna sesión, la impresión baja; el contador vuelve a 0. */
-  function sessClose(c, bye) {
-    var t = sessSane(c);
-    if (!bye && !t.n && t.imp > 0) t.imp = round1(t.imp * SESS_IMP_DECAY);
-    t.n = 0; t.wk = null;
+  /** Descansar en una sesión: la gasta y baja SESS_REST de fatiga (también con fatiga alta, que es cuando hace falta). Ni atributos
+   *  ni impresión. { ok, id: 'rest', how: 'rest', fat0, fat, n, max, s, wk } o { ok: false, why } ('none' | 'done'). */
+  function sessRest(c, opt) {
+    if (!c || !c.player) return { ok: false, why: 'none' };
+    var t = sessState(c);
+    if (!myClub(c) || (!opt.auto && !sessFixture(c))) return { ok: false, why: 'none' };
+    if (t.n >= TRAIN_SESS) return { ok: false, why: 'done' };
+    var fat0 = c.fatigue | 0;
+    c.fatigue = clamp(fat0 - SESS_REST, 0, 100);
+    t.n++; t.wk = sessKey(c);
+    t.wkLog.push({ id: 'rest', how: 'rest', total: 0, grade: '', gain: 0, attr: '', up: '' });
+    if (t.wkLog.length > SESS_LOG_MAX) t.wkLog = t.wkLog.slice(-SESS_LOG_MAX);
+    var res = { ok: true, id: 'rest', how: 'rest', fat0: fat0, fat: c.fatigue, n: t.n, max: TRAIN_SESS, s: c.season | 0, wk: t.wk };
+    // pista: la fatiga cuenta en el seis de esta jornada (por debajo de FAT_REST ya no te sientan por cansancio), como en sessDo
+    if (isHallC(c) && c.sq6 && !opt.auto) {
+      var st0 = c.sq6.stat; c.sq6.wk = null; var L = lineup6(c);
+      res.stat0 = st0; res.stat = L ? L.stat : ''; res.sel = L ? L.imp : 0; res.gap = L ? L.gap : 0;
+    }
+    return res;
   }
+  /** Plan del entrenador para las 3 sesiones de la jornada (guiado por el enfoque c.train): primero los ejercicios de tu puesto del
+   *  grupo del enfoque (atk: saque, colocación, remate; def: recepción, bloqueo), del atributo más bajo al más alto; luego el orden
+   *  de tu puesto (se repite si no hay bastantes). Físico y Equilibrado: solo el orden del puesto. Descanso: ['rest', 'rest', 'rest']. */
+  function sessPlan(c) {
+    if (!c || !c.player) return [];
+    if (c.train === 'rest') return ['rest', 'rest', 'rest'];
+    var ds = sessDrills(c), g = SESS_FOCUS_G[c.train], out = [];
+    if (g) out = ds.filter(function (d) { return d.group === g; }).sort(function (a, b) { return a.v - b.v || ds.indexOf(a) - ds.indexOf(b); }).map(function (d) { return d.id; });
+    ds.forEach(function (d) { if (out.indexOf(d.id) < 0) out.push(d.id); });
+    for (var i = 0; out.length && out.length < TRAIN_SESS; i++) out.push(out[i]);
+    return out.slice(0, TRAIN_SESS);
+  }
+  /** Enfoque que recomienda el entrenador: con fatiga > 60, Descanso; si no, el grupo de tu puesto (bloqueador, opuesto, receptor y
+   *  colocador → Ataque; defensor, líbero y central → Defensa; universal → Equilibrado), salvo que el grupo de atributos más flojo
+   *  quede 6 o más por debajo de tu media: entonces, ese grupo. */
+  function sessRecommend(c) {
+    if (!c || !c.player) return 'bal';
+    if ((c.fatigue | 0) > 60) return 'rest';
+    var rk = c.player.roleKey, base = { atk: 'atk', OPP: 'atk', OH: 'atk', S: 'atk', cr: 'def', L: 'def', MB: 'def' }[rk] || 'bal';
+    var st = c.player.st, avg = ovrOf(st), lo = '', gap = 0;
+    Object.keys(TGROUP).forEach(function (g) {
+      var s = 0; TGROUP[g].forEach(function (k) { s += st[k] | 0; });
+      var d = avg - s / TGROUP[g].length; if (d > gap) { gap = d; lo = g; }
+    });
+    return lo && gap >= 6 ? lo : base;
+  }
+  /** «Simular jornada»: hace en Rápido (o descansando, si el plan lo dice) las sesiones que quedan del plan. Para en la primera que
+   *  no se deje (fatiga). Devuelve { ok, done: [resultados], n, left, fat0, fat, ups: [atributos que suben], why } (why si no se ha
+   *  hecho ninguna). No guarda: lo hace el motor. */
+  function sessSimDay(c, opt) {
+    opt = opt || {};
+    var t = sessState(c), plan = sessPlan(c), done = [], ups = [], fat0 = c.fatigue | 0, why = '';
+    // tope del automático: SESS_AUTO_FAT menos la fatiga que suma después el entreno semanal (trainWeek, según el enfoque)
+    var capF = SESS_AUTO_FAT - Math.max(0, (TRAIN[c.train] || TRAIN.bal).fat);
+    for (var i = t.n; i < TRAIN_SESS; i++) {
+      var id = plan[i] || plan[0];
+      if (opt.auto && id === 'rest') { why = 'rest'; break; }   // el automático solo hace Rápidos: descansar lo decides tú (el enfoque Descanso ya baja la fatiga en trainWeek)
+      if (opt.auto && (c.fatigue | 0) + SESS_FAT[t.n] > capF) { why = 'fatiga'; break; }   // el automático no te mete en la resta de fatiga
+      var r = sessDo(c, id, id === 'rest' ? 'rest' : 'quick', null, { auto: opt.auto, quiet: opt.quiet });
+      if (!r.ok) { why = r.why; break; }
+      done.push(r); if (r.up) ups.push(r.up);
+    }
+    return { ok: done.length > 0, done: done, n: t.n, left: TRAIN_SESS - t.n, fat0: fat0, fat: c.fatigue | 0, ups: ups, why: done.length ? '' : why || 'done' };
+  }
+  /** Entreno automático al cerrar la jornada (closeMine, benchNext y sus equivalentes de pista; justo antes de trainWeek): si c.ts.auto
+   *  y no es una jornada de descanso (bye), rellena las sesiones libres con el Rápido del plan sin pasar de SESS_AUTO_FAT de fatiga
+   *  (contando la que suma después el entreno semanal del enfoque). Nunca descansa por ti: con el enfoque Descanso no hace nada.
+   *  En silencio: como mucho un mensaje de resumen si algún atributo sube. Devuelve el resumen de sessSimDay o null. */
+  function sessAuto(c, bye) {
+    if (bye || !c || !c.player || !myClub(c)) return null;
+    var t = sessState(c); if (!t.auto || t.n >= TRAIN_SESS) return null;
+    var r = sessSimDay(c, { auto: true, quiet: true });
+    if (!r.ok) return null;
+    if (r.ups.length) msg(c, 'train', 'Entreno automático', 'El cuerpo técnico ha completado tus sesiones libres de la jornada (' + plural(r.done.length, 'sesión', 'sesiones') + ' en Rápido): +1 en ' +
+      r.ups.map(function (k) { return attrTxt(k).toLowerCase() + ' (' + c.player.st[k] + ')'; }).join(', ') + '. Jugar los ejercicios rinde más.');
+    return r;
+  }
+  /** Cierre de tu jornada (jugada, simulada, banquillo, fuera; bye = descanso de una liga impar, sin decaer: no hubo ocasión de
+   *  entrenar): sin ninguna sesión de entreno (descansar no cuenta), la impresión baja; el contador vuelve a 0. */
+  function sessClose(c, bye) {
+    var t = sessSane(c), rests = t.wkLog.filter(function (x) { return x.how === 'rest'; }).length;
+    if (!bye && t.n - rests <= 0 && t.imp > 0) t.imp = round1(t.imp * SESS_IMP_DECAY);
+    t.n = 0; t.wk = null; t.wkLog = [];
+  }
+  /** Camiseta de entreno: el color del club al 55 % con el gris (la misma fórmula que players.js scrimBase). */
+  function trainShirt(shirt) {
+    var a = typeof shirt === 'number' ? shirt : 0x8a8f98, b = 0x8a8f98, t = 0.55;
+    var ch = function (s) { return Math.round((a >> s & 255) + ((b >> s & 255) - (a >> s & 255)) * t); };
+    return (ch(16) << 16) | (ch(8) << 8) | ch(0);
+  }
+  var BIB_B = 0x9be52e;   // peto lima (players.js BIB.b), el del compañero de la CPU en los ejercicios
   /** Lo que main.js necesita para jugar un ejercicio de la Carrera con tu jugador: atributos (con la resta de la fatiga), tus
-   *  insignias, la equipación de tu club y el n.º de sesión. null si no se puede entrenar ahora. */
+   *  insignias, la equipación de tu club, la sede de tu Carrera (venue), los petos de entreno (scrim: camiseta de entreno, tu peto
+   *  del color del club y el lima para la CPU) y el n.º de sesión. null si no se puede entrenar ahora. */
   function drillSetup(c, id) {
     if (sessOk(c, id)) return null;
     var k = myClub(c), fm = fatigueMalus(c), me = copy(c.player.st), mate;
@@ -710,9 +860,11 @@
     if (!isHallC(c) && c.mate && c.mate.st) mate = copy(c.mate.st);
     else mate = genSt(clamp(isHallC(c) ? k.ovr : clubOvr(k), 1, 99), id === 'atk' ? 'S' : id === 'set' ? 'OH' : 'OH', rng(hash(c.seed, 'sessmate', c.season, k.id)));
     var bd = B() && B().forPlayer ? B().forPlayer(c.player) : null; if (bd && !Object.keys(bd).length) bd = null;
-    var kt = k.kit || {};
-    return { id: id, mode: isHallC(c) ? 'hall' : 'beach', n: sessState(c).n + 1, max: TRAIN_SESS, attrs: [[me, mate], null], badges: bd ? [[bd, null], null] : null,
-      kit: { kitShirt: kt.shirt, kitAccent: kt.accent, kitShorts: kt.shorts, kitPattern: kt.pattern }, player: c.player.name, club: k.name, attr: SESS_DRILL[id].k, attrName: attrTxt(SESS_DRILL[id].k) };
+    var kt = k.kit || {}, t = sessState(c);
+    return { id: id, mode: isHallC(c) ? 'hall' : 'beach', n: t.n + 1, max: TRAIN_SESS, attrs: [[me, mate], null], badges: bd ? [[bd, null], null] : null,
+      kit: { kitShirt: kt.shirt, kitAccent: kt.accent, kitShorts: kt.shorts, kitPattern: kt.pattern }, player: c.player.name, club: k.name, attr: SESS_DRILL[id].k, attrName: attrTxt(SESS_DRILL[id].k),
+      venue: isHallC(c) ? 'hall' : 'beach', scrim: { base: trainShirt(kt.shirt), shorts: kt.shorts, bib0: kt.shirt, bib1: BIB_B },
+      best: typeof t.best[id] === 'number' ? t.best[id] : null, first: !t.seen[id], plan: sessPlan(c), fat: c.fatigue | 0 };
   }
 
   function badgePower(a) { var b = a.beq || [], s = 0; for (var i = 0; i < b.length; i++) s += (a.bd && a.bd[b[i]]) | 0; return s; }
@@ -805,6 +957,13 @@
   }
   /** Probabilidad de superar la prueba del Circuito Nacional: con la media inicial ~30 %. */
   function trialChance(c) { return round1(clamp(0.3 + (playerOvr(c) - START_OVR) * 0.04, 0.1, 0.75) * 10) / 10; }
+  /** Fase pick: prueba pendiente (c.pick.trial) que ya no cuadra con su oferta → no pendiente; resultado (c.pick.res) dañado → fuera.
+   *  Sin ellos (guardados de antes del partidillo) la fase pick funciona igual. */
+  function trialSane(o) {
+    var p = o.pick, t = p.trial, x = t && typeof t === 'object' && o.offers[t.offer];
+    if (t != null && !(x && x.trial && x.club === t.club && Array.isArray(t.goals))) p.trial = null;
+    if (p.res != null && !(typeof p.res === 'object' && typeof p.res.letter === 'string')) p.res = null;
+  }
   /** Firma por el club de la oferta o (inicio, mitad o fin de temporada): compañero anunciado, plantilla, contrato, objetivo. */
   function joinClub(c, o, years) {
     var k = club(c, o.club), r = rng(hash(c.seed, 'join', c.season, o.club));
@@ -1216,6 +1375,7 @@
     // gestión: química con el compañero (jugando juntos; simulado cuenta menos), su forma y la semana de entrenamiento
     if (c.mate) c.mate.chem = clamp((c.mate.chem | 0) + (sim ? 3 : 5), 0, 100);
     var mf0 = c.mate ? c.mate.form | 0 : 0, mf = mateFormStep(c);
+    var au = sessAuto(c);   // entreno automático: las sesiones libres de la jornada, en Rápido (antes del entreno semanal)
     var tr = trainWeek(c);
     // temporada
     var S = c.stats, T = c.career;
@@ -1231,7 +1391,7 @@
     recordMine(c, f, res.sets, res.setScores);
     var round = finishRound(c);
     var sum = { season: season0, phase: phase0, label: label, rival: rival.id, rivalName: rival.name, win: win, sets: res.sets.slice(), setScores: res.setScores.map(function (x) { return x.slice(); }),
-      sim: !!sim, nota: nota, me: me, xp: xp, lvlUp: lv.lvlUp, lvl: lv.lvl, ptsGained: lv.pts, badges: badges, coach: c.coach, train: tr, chem: c.mate ? c.mate.chem : 0, mateForm: mf, mateForm0: mf0,
+      sim: !!sim, nota: nota, me: me, xp: xp, lvlUp: lv.lvlUp, lvl: lv.lvl, ptsGained: lv.pts, badges: badges, coach: c.coach, train: tr, auto: au, chem: c.mate ? c.mate.chem : 0, mateForm: mf, mateForm0: mf0,
       round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }), offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     life(c, 'match', sum, f);
     c.last = sum;
@@ -1463,21 +1623,13 @@
   }
   /** Acepta la oferta i (inicio: firmas por el club —o haces la prueba—; fin de temporada: empieza la siguiente en el club nuevo;
    *  mitad: cambias de club ya). years = duración del contrato que eliges (1-3; por defecto la de la oferta). Devuelve true si has
-   *  firmado; false si no (en una prueba fallida c.pick.fail = id del club y la oferta desaparece). */
+   *  firmado; false si no (en una prueba fallida c.pick.fail = id del club y la oferta desaparece). Una prueba aceptada así se
+   *  simula (trialSim: la tirada con o.chance × TRIAL_SIM); jugarla es trialSetup + trialDone. */
   function acceptOffer(i, years) {
     var c = load(); if (!c || !c.offers || !c.offers[i]) return false;
     var o = c.offers[i];
     if (c.phase === 'pick') {
-      if (o.trial) {
-        var pass = rng(hash(c.seed, 'trial', o.club, c.pick.round))() < o.chance;
-        if (!pass) {
-          c.offers.splice(i, 1); c.pick.fail = o.club;
-          msg(c, 'agent', 'Prueba no superada', club(c, o.club).name + ' te ha visto en la prueba y prefiere esperar. Aún tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + ' d' + lname(league(0)) + '.');
-          if (!c.offers.length) c.offers = genStartOffers(c, ++c.pick.round);
-          save(c); return false;
-        }
-        msg(c, 'agent', '¡Prueba superada!', club(c, o.club).name + ' te ficha tras la prueba. Empiezas en ' + lname(league(o.lvl)) + ', una categoría por encima.');
-      }
+      if (o.trial) return !!trialSimOn(c, i, years).pass;   // prueba: aceptarla sin jugarla es simularla (trialSim)
       joinClub(c, o, years); save(c); return true;
     }
     // salir con contrato en vigor (te quedan más temporadas que esta) sin haberte declarado transferible: el club anterior pone
@@ -1572,7 +1724,7 @@
     if (!c.dUse || typeof c.dUse !== 'object') c.dUse = dZeros();
     c.dUse[diffOf(c)] = (c.dUse[diffOf(c)] | 0) + 1;
     pay(c);
-    var mf0 = c.mate.form | 0, mf = mateFormStep(c), tr = trainWeek(c);
+    var mf0 = c.mate.form | 0, mf = mateFormStep(c), au = sessAuto(c), tr = trainWeek(c);
     c.fatigue = clamp((c.fatigue | 0) - BENCH_REST, 0, 100);
     c.stats.bench = (c.stats.bench | 0) + 1; c.career.bench = (c.career.bench | 0) + 1;
     if (rl === 1 && c.broken !== c.season) {
@@ -1585,7 +1737,7 @@
     var round = finishRound(c);
     var sum = { season: season0, phase: phase0, label: label, rival: rival.id, rivalName: rival.name, win: win, sets: q.sets.slice(), setScores: q.setScores.map(function (x) { return x.slice(); }),
       sim: true, bench: true, why: why, sub: alt ? alt.name : '', nota: null, me: { kills: 0, aces: 0, blocks: 0, assists: 0, digs: 0, errors: 0 }, xp: 0, lvlUp: 0, lvl: c.player.lvl, ptsGained: 0, badges: [],
-      coach: c.coach, train: tr, chem: c.mate.chem | 0, mateForm: mf, mateForm0: mf0, round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }),
+      coach: c.coach, train: tr, auto: au, chem: c.mate.chem | 0, mateForm: mf, mateForm0: mf0, round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }),
       offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     life(c, 'match', sum, f);
     c.last = sum;
@@ -1915,6 +2067,7 @@
       if (!o.pick || typeof o.pick !== 'object') o.pick = { round: 0, more: false };
       o.pick.round = clampI(o.pick.round, 0, 9); o.pick.more = !!o.pick.more;
       if (!o.offers.length || !o.offers.every(function (x) { var k = x && club(o, x.club); return k && k.cc === o.cc; })) o.offers = genStartOffers6(o, o.pick.round);
+      trialSane(o);
       o.week = 0; o.last = null; o.kos = []; o.koI = 0; o.myRes = { lid: '', w: [] };
       return o;
     }
@@ -2762,6 +2915,7 @@
     if (impact) msg(c, 'coach', 'Buen cambio', 'Saliste desde el banquillo y cambiaste el partido (nota ' + String(nota).replace('.', ',') + '). Así se gana el puesto.');
     if (pulledBad && (!has || nota < 6)) msg(c, 'coach', 'Te he cambiado', 'Hoy no era tu día y te senté en el ' + ordn(part.pulled) + ' set. La próxima, más concentración.');
     c.chem = clamp((c.chem | 0) + (played ? (sim ? 3 : 5) : 2), 0, 100);
+    var au = sessAuto(c);   // entreno automático (antes del entreno semanal)
     var tr = trainWeek(c);
     if (!played) c.fatigue = clamp((c.fatigue | 0) - BENCH_REST, 0, 100);   // sin jugar, descansas
     [c.stats, c.career].forEach(function (x) {
@@ -2781,7 +2935,7 @@
     recordMine6(c, f, res.sets, res.setScores);
     var round = finishRound6(c);
     var sum = { mode: 'hall', season: season0, phase: phase0, label: label, rival: rival.id, rivalName: rival.name, win: win, sets: res.sets.slice(), setScores: res.setScores.map(function (x) { return x.slice(); }),
-      sim: !!sim, nota: has ? nota : null, bench: !has, me: me, xp: xp, lvlUp: lv.lvlUp, lvl: lv.lvl, ptsGained: lv.pts, badges: extra && extra.badges || [], coach: c.coach, train: tr, chem: c.chem, scout: scout,
+      sim: !!sim, nota: has ? nota : null, bench: !has, me: me, xp: xp, lvlUp: lv.lvlUp, lvl: lv.lvl, ptsGained: lv.pts, badges: extra && extra.badges || [], coach: c.coach, train: tr, auto: au, chem: c.chem, scout: scout,
       part: { status: sub ? 'sub' : 'start', started: !sub, entered: part.entered | 0, pulled: part.pulled | 0, meR: part.meR | 0, rallies: part.rallies | 0, share: Math.round(share * 100) / 100, sets: (part.sets || []).slice() },
       round: f.kind === 'league' ? round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }) : [], offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     life(c, 'match', sum, f);   // reto, fama, patrocinio, servicios, rival, decisión y logros (sum.life)
@@ -2889,7 +3043,7 @@
     c.benchWk = wkKey6(c); pay(c);
     if (!c.dUse || typeof c.dUse !== 'object') c.dUse = dZeros();
     c.dUse[diffOf(c)] = (c.dUse[diffOf(c)] | 0) + 1;   // la jornada sin ti también cuenta en su nivel
-    var tr = trainWeek(c);
+    var au = sessAuto(c), tr = trainWeek(c);
     c.fatigue = clamp((c.fatigue | 0) - BENCH_REST, 0, 100);
     if (c.train !== 'rest') c.coach = clamp(c.coach + TRAIN_COACH, 0, 100);   // entrenar bien también cuenta
     c.stats.bench = (c.stats.bench | 0) + 1; c.career.bench = (c.career.bench | 0) + 1;
@@ -2901,7 +3055,7 @@
     var sum = { mode: 'hall', season: season0, phase: phase0, label: label, rival: rival.id, rivalName: rival.name, win: win, sets: q.sets.slice(), setScores: q.setScores.map(function (x) { return x.slice(); }),
       sim: true, bench: true, why: why, sub: '', nota: null, me: { kills: 0, aces: 0, blocks: 0, assists: 0, digs: 0, errors: 0 }, xp: 0, lvlUp: 0, lvl: c.player.lvl, ptsGained: 0, badges: [],
       part: { status: 'out', started: false, entered: 0, pulled: 0, meR: 0, rallies: all, share: 0, sets: [] },
-      coach: c.coach, train: tr, chem: c.chem | 0, round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }), offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
+      coach: c.coach, train: tr, auto: au, chem: c.chem | 0, round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }), offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     life(c, 'match', sum, f);   // fuera de la convocatoria: patrocinio y servicios (sin reto)
     c.last = sum; nextLine6(c); save6(c);
     return sum;
@@ -2912,16 +3066,7 @@
     var c = load6(); if (!c || !c.offers || !c.offers[i]) return false;
     var o = c.offers[i];
     if (c.phase === 'pick') {
-      if (o.trial) {
-        var pass = rng(hash(c.seed, 'trial6', o.club, c.pick.round))() < o.chance;
-        if (!pass) {
-          c.offers.splice(i, 1); c.pick.fail = o.club;
-          msg(c, 'agent', 'Prueba no superada', club(c, o.club).name + ' te ha visto en la prueba y prefiere esperar. Aún tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + '.');
-          if (!c.offers.length) c.offers = genStartOffers6(c, ++c.pick.round);
-          save6(c); return false;
-        }
-        msg(c, 'agent', '¡Prueba superada!', club(c, o.club).name + ' te ficha tras la prueba. Empiezas en la ' + lg6(c, o.lid).name + ', una categoría por encima.');
-      }
+      if (o.trial) return !!trialSimOn(c, i, years).pass;   // prueba: aceptarla sin jugarla es simularla (trialSim)
       joinClub6(c, o, years); save6(c); return true;
     }
     o.early = earlyExit(c);
@@ -3010,6 +3155,188 @@
   var readMsg6 = withC6(function (c, id) { var ok = false; c.inbox.forEach(function (m) { if (m.id === id && !m.r) { m.r = 1; ok = true; } }); return ok; });
   var readAll6 = withC6(function (c) { var n = 0; c.inbox.forEach(function (m) { if (!m.r) { m.r = 1; n++; } }); return n; });
 
+  // ---------------------------------------------------------------- prueba con partidillo (playa y pista; 15-nov-2026)
+  // notes/pruebas-entrenos-spec.md P3. La prueba de la oferta de inicio ya no es solo una tirada: es un partidillo a un set a
+  // TRIAL_PTS con petos (playa: tú y tu futura pareja contra una pareja del club; pista: tú con los suplentes contra los titulares).
+  // El cuerpo técnico pone 3 objetivos según tu puesto (trialGoals); la nota del partido (rating, con la parte de estadísticas
+  // escalada a un set corto) + TRIAL_GOAL por objetivo cumplido da una letra (TRIAL_CUT): A+, A o B → te fichan; C → decide la
+  // tirada de siempre con o.chance + TRIAL_C_BONUS; D o F → no. Sin experiencia, ni jornada, ni entrenador (no hay club todavía).
+  // Abandonar o reiniciar no gasta la prueba (c.pick.trial queda pendiente; la oferta sigue). Simularla (trialSim, y acceptOffer
+  // con una prueba) es la tirada de antes con o.chance × TRIAL_SIM: jugarla siempre compensa.
+  // Guardado: c.pick.trial = { club, offer, goals, tries } mientras está pendiente; c.pick.res = { letter, nota, pass, goals:
+  // [{id, ok}], sim, club } con el último resultado (la UI lo enseña en la fase pick; al aprobar, joinClub borra c.pick).
+  var TRIAL_PTS = 15, TRIAL_SIM = 0.7, TRIAL_C_BONUS = 0.15, TRIAL_GOAL = 0.25;
+  var TRIAL_CUT = [['A+', 8.0], ['A', 7.2], ['B', 6.5], ['C', 5.8], ['D', 5.0]];   // por debajo, F
+  var TRIAL_PASS = ['A+', 'A', 'B'];
+  // objetivos por puesto: [stat de ingest (M.p[0]), operador, cantidad]
+  var TRIAL_GOALS = {
+    atk: [['kills', '>=', 2], ['blocks', '>=', 1], ['errors', '<=', 2]],
+    cr: [['perfect', '>=', 2], ['digs', '>=', 3], ['errors', '<=', 2]],
+    uni: [['kills', '>=', 2], ['perfect', '>=', 2], ['errors', '<=', 2]],
+    OH: [['kills', '>=', 2], ['recvP', '>=', 2], ['errors', '<=', 2]],
+    OPP: [['kills', '>=', 3], ['errors', '<=', 2], ['aces', '>=', 1]],
+    MB: [['blocks', '>=', 1], ['kills', '>=', 1], ['errors', '<=', 1]],
+    S: [['assists', '>=', 4], ['errors', '<=', 1], ['aces', '>=', 1]],
+    L: [['perfect', '>=', 2], ['digs', '>=', 3], ['poor', '<=', 2]]
+  };
+  var TRIAL_WORD = { kills: ['remate ganado', 'remates ganados'], blocks: ['bloqueo punto', 'bloqueos punto'], errors: ['error', 'errores'],
+    perfect: ['toque perfecto', 'toques perfectos'], digs: ['defensa', 'defensas'], recvP: ['recepción perfecta', 'recepciones perfectas'],
+    aces: ['ace', 'aces'], assists: ['asistencia', 'asistencias'], poor: ['toque flojo', 'toques flojos'] };
+  /** Los 3 objetivos de la prueba según tu puesto (deterministas): [{ id, txt, stat, op: '>=' | '<=', n }]. */
+  function trialGoals(c, o) {
+    var pos = isHallC(c) ? ctrlRole6(c) : c && c.player ? c.player.roleKey : 'uni', l = TRIAL_GOALS[pos] || TRIAL_GOALS[isHallC(c) ? 'OH' : 'uni'];
+    return l.map(function (g) {
+      var w = TRIAL_WORD[g[0]], t = plural(g[2], w[0], w[1]);
+      return { id: g[0], txt: g[1] === '<=' ? 'Como mucho ' + t : t.charAt(0).toUpperCase() + t.slice(1), stat: g[0], op: g[1], n: g[2] };
+    });
+  }
+  /** Letra de la nota de la prueba (TRIAL_CUT). */
+  function trialLetter(nota) {
+    if (nota == null) return 'F';
+    for (var i = 0; i < TRIAL_CUT.length; i++) if (nota >= TRIAL_CUT[i][1] - 1e-9) return TRIAL_CUT[i][0];
+    return 'F';
+  }
+  /** La oferta i de la fase pick, si es una prueba (o null). */
+  function trialOffer(c, i) { var o = c && c.phase === 'pick' && c.offers ? c.offers[i] : null; return o && o.trial ? o : null; }
+  /** Apunta la prueba pendiente (c.pick.trial): los reintentos de la misma oferta suman tries. */
+  function trialMark(c, i, o, goals) {
+    var p = c.pick.trial, same = p && p.club === o.club && p.offer === i;
+    c.pick.trial = { club: o.club, offer: i, goals: goals.map(function (g) { return { id: g.id, stat: g.stat, op: g.op, n: g.n, txt: g.txt }; }), tries: same ? (p.tries | 0) + 1 : 1 };
+  }
+  /** Partidillo de la prueba en la playa (oferta i): tú y la pareja que te ofrecen (o.mateP) contra una pareja del club, a un set a
+   *  TRIAL_PTS, con petos (scrim) y sin challenge. Opciones para Sim.createGame como matchSetup, con career.trial. No llama a life(),
+   *  ni toca la jornada, la experiencia o el entrenador. null si la oferta no es una prueba. */
+  function trialSetup(c, i) {
+    c = c || load(); var o = trialOffer(c, i); if (!o) return null;
+    var k = club(c, o.club), ko = clubOvr(k), r = rng(hash(c.seed, 'trialp', o.club, c.pick.round)), ai = rivalAI(c, k);
+    var rivA = genSt(clamp(ko + 1, 1, 99), 'atk', r), rivB = genSt(clamp(ko - 1, 1, 99), 'cr', r);
+    var fm = fatigueMalus(c), stMe = copy(c.player.st), mate = o.mateP && o.mateP.st ? o.mateP : newMate(c, k, r, o.mate);
+    KEYS.forEach(function (key) { stMe[key] = clampI(stMe[key] - fm, 1, 99); });
+    var bd = B() && B().forPlayer ? B().forPlayer(c.player) : null; if (bd && !Object.keys(bd).length) bd = null;
+    var kt = k.kit || {}, goals = trialGoals(c, o), ref = copy(REF[league(k.lvl).ref]); ref.chal = 0;
+    var kit = { kitShirt: kt.shirt, kitAccent: kt.accent, kitShorts: kt.shorts, kitPattern: kt.pattern };
+    trialMark(c, i, o, goals); M = null; save(c);
+    return {
+      attrs: [[stMe, copy(mate.st)], [rivA, rivB]], badges: bd ? [[bd, null], null] : null,
+      sets: 1, points: TRIAL_PTS, venue: VENUE, difficulty: ai.diff, ctrl: 'one', ctrlIdx: 0, rookie: !!ai.soft, diffName: ai.name, cdiff: diffOf(c),
+      ref: ref, kit: kit, rivalKit: copy(kit), scrim: { base: trainShirt(kt.shirt), shorts: kt.shorts },
+      career: { trial: true, mode: 'beach', club: o.club, offer: i, goals: goals, season: c.season, phase: c.phase, week: 0, round: c.pick.round,
+        label: 'Partidillo de prueba: ' + k.name, me: 'TÚ', rival: k.short, venue: VENUE, meName: 'Tu pareja de prueba', rivalName: k.name,
+        clubName: k.name, player: c.player.name, num: c.player.num, mate: mate.name, mateNum: mate.num, cdiff: diffOf(c), sets: 1, points: TRIAL_PTS }
+    };
+  }
+  /** Partidillo de la prueba en la pista (oferta i): tú (en tu puesto, ctrlRole6) con los suplentes del club contra sus titulares, a
+   *  un set a TRIAL_PTS, con petos. La plantilla es la del club (squad6, determinista: la misma que verás si fichas): los titulares
+   *  son los mejores de cada puesto en el orden de la rotación; tu equipo, el resto, y los huecos que falten se generan con la
+   *  media del club − 4 (semilla 'trial6p'). Sin banquillo ni cambios. */
+  function trialSetup6(c, i) {
+    c = c || load6(); var o = trialOffer(c, i); if (!o) return null;
+    var k = club(c, o.club), R = simRoles6(), role = ctrlRole6(c), r = rng(hash(c.seed, 'trial6p', o.club, c.pick.round));
+    var idx = R.indexOf(role); if (idx < 0) idx = R.indexOf('OH') >= 0 ? R.indexOf('OH') : 0;
+    var stMe = copy(c.player.st), fm = fatigueMalus(c);
+    KEYS.forEach(function (key) { stMe[key] = clampI(stMe[key] - fm, 1, 99); });
+    var bd = B() && B().forPlayer ? B().forPlayer(c.player) : null; if (bd && !Object.keys(bd).length) bd = null;
+    var sq = squad6(c, k, c.season, ''), byp = {}, used = {}, names = {};
+    used[c.player.num | 0] = 1; names[c.player.name] = 1;
+    SQ_POS.forEach(function (p) { byp[p] = sq.filter(function (x) { return x.pos === p; }).sort(function (a, b) { return b.ovr - a.ovr; }); });
+    sq.forEach(function (x) { used[x.num] = 1; names[x.name] = 1; });
+    var cnt = {}, a1 = [], nums1 = [], names1 = [], a0 = [], nums0 = [], names0 = [];
+    // titulares (rival): el n.º i de cada puesto en el orden de la rotación
+    R.forEach(function (p) { var j = cnt[p] = (cnt[p] || 0); cnt[p]++; var x = byp[p][j]; a1.push(genSt(clamp(x ? x.ovr : k.ovr, 1, 99), p, r)); nums1.push(x ? x.num : 0); names1.push(x ? x.name : ''); });
+    // suplentes (tu equipo): los que quedan; tú en el 1r hueco de tu puesto
+    var rest = {}; SQ_POS.forEach(function (p) { rest[p] = byp[p].slice(cnt[p] || 0); });
+    R.forEach(function (p, j) {
+      if (j === idx) { a0.push(stMe); nums0.push(c.player.num); names0.push(c.player.name); return; }
+      var x = rest[p].shift();
+      if (x) { a0.push(genSt(clamp(x.ovr, 1, 99), p, r)); nums0.push(x.num); names0.push(x.name); return; }
+      var n = 1; while (used[n] || n === 13) n++; used[n] = 1;   // (hueco sin suplente: uno generado, con dorsal libre)
+      var nm, g = 0; do { nm = pick(r, FIRST) + ' ' + pick(r, LAST); } while (names[nm] && g++ < 30); names[nm] = 1;
+      a0.push(genSt(clamp(k.ovr - 4, 1, 99), p, r)); nums0.push(n); names0.push(nm);
+    });
+    var L = lg6(c, k.lid), kt = k.kit || {}, goals = trialGoals(c, o), ref = copy(REF[ref6(L ? L.strength : 50)]); ref.chal = 0;
+    var kit = { kitShirt: kt.shirt, kitAccent: kt.accent, kitShorts: kt.shorts, kitPattern: kt.pattern, kitLibero: kt.libero };
+    trialMark(c, i, o, goals); M = null; save6(c);
+    return {
+      format: '6v6', venue: 'hall', ctrlRole: role, ctrlIdx: idx, ctrl: 'one', attrs: [a0, a1],
+      badges: bd ? [R.map(function (x, j) { return j === idx ? bd : null; }), null] : null, nums: [nums0, nums1], names: [names0, names1],
+      meOn: true, meSlot: idx, meBench: -1, sets: 1, points: TRIAL_PTS, difficulty: difficultyFor6(k), rookie: !!soft6(k), diffName: diffLabel6(k),
+      ref: ref, kit: kit, rivalKit: copy(kit), scrim: { base: trainShirt(kt.shirt), shorts: kt.shorts },
+      career: { trial: true, mode: 'hall', club: o.club, offer: i, goals: goals, season: c.season, phase: c.phase, week: 0, round: c.pick.round,
+        label: 'Partidillo de prueba: ' + k.name, me: 'SUP', rival: 'TIT', venue: 'hall', meName: 'Suplentes', rivalName: 'Titulares',
+        clubName: k.name, player: c.player.name, num: c.player.num, pos: role, posName: POS6[role].name, mate: '', mateNum: 0, meOn: true, status: 'start', sets: 1, points: TRIAL_PTS }
+    };
+  }
+  /** Nota de la prueba: me = tus estadísticas (ingest), res = { sets: [tú, rival], setScores }, rallies = puntos jugados, goals = los
+   *  objetivos (por defecto trialGoals). La parte de estadísticas de rating se escala a un set corto (kmul = max(24, R) / max(15, R);
+   *  pista, × RATE6 del puesto) y cada objetivo cumplido suma TRIAL_GOAL (tope 10). { nota, base, letter, met, goals: [{ id, txt,
+   *  stat, op, n, v, ok }] }. */
+  function trialGrade(c, me, res, rallies, goals) {
+    me = me || {}; res = res || {};
+    var sets = res.sets || [0, 0], R = rallies || (res.setScores || []).reduce(function (s, x) { return s + (x[0] | 0) + (x[1] | 0); }, 0) || TRIAL_PTS;
+    var kmul = Math.max(24, R) / Math.max(15, R) * (isHallC(c) ? RATE6[ctrlRole6(c)] || RATE6.OH : 1);
+    // a un set, perder 0-1 cuenta como un 1-2 (−0,3; rating miraría sets[0] === 1 y lo contaría como un 0-2, −0,6). Ganar 1-0 ya es +0,9
+    var rs = sets[0] === 0 && sets[1] === 1 ? [1, 2] : sets;
+    var base = rating(me, { win: sets[0] > sets[1], sets: rs }, R, kmul);
+    var gl = (goals || trialGoals(c)).map(function (g) {
+      var v = me[g.stat] | 0; return { id: g.id, txt: g.txt, stat: g.stat, op: g.op, n: g.n, v: v, ok: g.op === '<=' ? v <= g.n : v >= g.n };
+    });
+    var met = gl.filter(function (g) { return g.ok; }).length, nota = round1(Math.min(10, base + TRIAL_GOAL * met));
+    return { nota: nota, base: base, letter: trialLetter(nota), met: met, goals: gl };
+  }
+  /** Cierra la prueba de la oferta i (aprobada o no): es lo que antes hacía acceptOffer con la tirada. Aprobada: mensaje del agente y
+   *  joinClub / joinClub6. Suspendida: se quita la oferta (c.pick.fail) y, si no quedan, llegan otras. Borra c.pick.trial y deja el
+   *  resultado en c.pick.res. Guarda. */
+  function trialResolve(c, i, pass, info) {
+    var o = c.offers[i], k = club(c, o.club), hall = isHallC(c), L = info.letter;
+    var nt = info.sim ? 'informe del cuerpo técnico: ' + L : 'nota ' + L;
+    c.pick.trial = null;
+    c.pick.res = { letter: L, nota: info.nota == null ? null : info.nota, pass: !!pass, sim: !!info.sim, club: o.club,
+      goals: (info.goals || []).map(function (g) { return { id: g.id, ok: g.ok == null ? null : !!g.ok }; }) };
+    if (pass) {
+      msg(c, 'agent', '¡Prueba superada!', k.name + ' te ficha tras la prueba (' + nt + '). Empiezas en ' + (hall ? 'la ' + lg6(c, o.lid).name : lname(league(o.lvl))) + ', una categoría por encima.');
+      if (hall) { joinClub6(c, o, info.years); save6(c); } else { joinClub(c, o, info.years); save(c); }
+      return true;
+    }
+    c.offers.splice(i, 1); c.pick.fail = o.club;
+    msg(c, 'agent', 'Prueba no superada', k.name + ' te ha visto en la prueba (' + nt + ') y prefiere esperar. Aún tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + (hall ? '' : ' d' + lname(league(0))) + '.');
+    if (!c.offers.length) c.offers = hall ? genStartOffers6(c, ++c.pick.round) : genStartOffers(c, ++c.pick.round);
+    if (hall) save6(c); else save(c);
+    return false;
+  }
+  /** Fin del partidillo jugado (main.js, con gameOver): res = { sets, setScores, win }; g = la partida (ingest ya ha contado tus
+   *  estadísticas en M.p[0]). Sin closeMine: ni experiencia, ni jornada, ni entrenador. Devuelve { letter, nota, base, pass, luck (la
+   *  C la decidió la tirada), goals, met, me, club, clubName, left (ofertas que quedan; 0 si te fichan), sim: false } o null. */
+  function trialDoneOn(c, i, res, g) {
+    var o = trialOffer(c, i); if (!o || !res || !res.sets) return null;
+    var m = M && (!g || M.g === g) ? M : newM(g), me = m.p[0];
+    var sets = [res.sets[0] | 0, res.sets[1] | 0], sc = (res.setScores || []).map(function (x) { return [x[0] | 0, x[1] | 0]; });
+    var rallies = (isHallC(c) && g && g.rallyN) || m.rallies || sc.reduce(function (s, x) { return s + x[0] + x[1]; }, 0);
+    var goals = c.pick.trial && c.pick.trial.club === o.club && Array.isArray(c.pick.trial.goals) && c.pick.trial.goals.length ? c.pick.trial.goals : trialGoals(c, o);
+    var gr = trialGrade(c, me, { sets: sets, setScores: sc }, rallies, goals), pass = TRIAL_PASS.indexOf(gr.letter) >= 0, luck = false;
+    if (gr.letter === 'C') { luck = true; pass = rng(hash(c.seed, isHallC(c) ? 'trial6' : 'trial', o.club, c.pick.round))() < o.chance + TRIAL_C_BONUS; }
+    var mine = { kills: me.kills | 0, aces: me.aces | 0, blocks: me.blocks | 0, assists: me.assists | 0, digs: me.digs | 0, errors: me.errors | 0,
+      recvP: me.recvP | 0, perfect: me.perfect | 0, good: me.good | 0, poor: me.poor | 0 };
+    var k = club(c, o.club); M = null;
+    trialResolve(c, i, pass, { letter: gr.letter, nota: gr.nota, goals: gr.goals, sim: false });
+    return { letter: gr.letter, nota: gr.nota, base: gr.base, pass: pass, luck: luck, goals: gr.goals, met: gr.met, me: mine, sets: sets, setScores: sc,
+      club: o.club, clubName: k.name, left: c.phase === 'pick' ? c.offers.length : 0, sim: false };
+  }
+  /** Simular la prueba de la oferta i: la tirada determinista de antes con o.chance × TRIAL_SIM. El informe dice C si apruebas y D si
+   *  no (objetivos sin marca: ok null). Devuelve { letter, nota: null, pass, luck: false, goals, met: 0, club, clubName, left, sim:
+   *  true } o null. years: los del contrato (acceptOffer). */
+  function trialSimOn(c, i, years) {
+    var o = trialOffer(c, i); if (!o) return null;
+    var pass = rng(hash(c.seed, isHallC(c) ? 'trial6' : 'trial', o.club, c.pick.round))() < o.chance * TRIAL_SIM;
+    var goals = trialGoals(c, o).map(function (g) { return { id: g.id, txt: g.txt, stat: g.stat, op: g.op, n: g.n, v: null, ok: null }; }), k = club(c, o.club), L = pass ? 'C' : 'D';
+    M = null;
+    trialResolve(c, i, pass, { letter: L, nota: null, goals: goals, sim: true, years: years });
+    return { letter: L, nota: null, pass: pass, luck: false, goals: goals, met: 0, club: o.club, clubName: k.name, left: c.phase === 'pick' ? c.offers.length : 0, sim: true };
+  }
+  /** Probabilidad de aprobar simulando (para el botón «Simular (prob. N %)»): o.chance × TRIAL_SIM. */
+  function trialSimChance(o) { return o && o.trial ? Math.round(o.chance * TRIAL_SIM * 100) / 100 : 0; }
+  var TRIAL_API = { TRIAL_PTS: TRIAL_PTS, TRIAL_SIM: TRIAL_SIM, TRIAL_C_BONUS: TRIAL_C_BONUS, TRIAL_GOAL: TRIAL_GOAL, TRIAL_CUT: TRIAL_CUT, TRIAL_PASS: TRIAL_PASS, TRIAL_GOALS: TRIAL_GOALS,
+    trialLetter: trialLetter, trialSimChance: trialSimChance };
+
   var HALL = {
     MODE: 'hall', VER: VER6, STORE: KEY6, START_OVR: START6, POS: POS6, POINTS: POINTS6, WEEKS: 99, DIFF_AT: DIFF6_AT, SOFT: SOFT6, RATE6: RATE6, DOUBLE_MAX: DOUBLE_MAX, SCOUT_BONUS: SCOUT_BONUS,
     exists: function () { return !!load6(); }, get: function () { return load6(); }, load: load6, lost: function () { return lost6; }, save: save6, create: create6, abandon: abandon6,
@@ -3033,8 +3360,18 @@
     seasonDiff: function (c) { return seasonDiff(c || load6()); }, midNota: function (c) { return midNota(c || load6()); }, setDifficulty: setDifficulty6,
     // sesiones de entrenamiento (13-nov-2026): las mismas que la playa, con el guardado de pista
     trainInfo: function (c) { return sessInfo(c || load6()); }, trainSession: function (id, how, total) { var c = load6(); if (!c) return null; var r = sessDo(c, id, how, total); if (r.ok) save6(c); return r; },
-    drillSetup: function (id) { var c = load6(); return c ? drillSetup(c, id) : null; }, trainQuick: sessQuick, _sessClose: sessClose
+    drillSetup: function (id) { var c = load6(); return c ? drillSetup(c, id) : null; }, trainQuick: sessQuick, _sessClose: sessClose,
+    // entrenos con nota, Rápido = récord, plan del entrenador y automático (15-nov-2026)
+    trainPlan: function (c) { return sessPlan(c || load6()); }, trainRecommend: function (c) { return sessRecommend(c || load6()); }, trainGrade: sessGrade,
+    trainSimDay: function () { var c = load6(); if (!c) return null; var r = sessSimDay(c); if (r.ok) save6(c); return r; },
+    setTrainAuto: function (b) { var c = load6(); if (!c) return false; sessSane(c).auto = !!b; save6(c); return true; },
+    _sessAuto: sessAuto,
+    // prueba con partidillo (15-nov-2026)
+    trialSetup: function (i) { var c = load6(); return c ? trialSetup6(c, i) : null; }, trialDone: function (i, res, g) { var c = load6(); return c ? trialDoneOn(c, i, res, g) : null; },
+    trialSim: function (i) { var c = load6(); return c ? trialSimOn(c, i) : null; }, trialGoals: function (c, o) { c = c || load6(); return c ? trialGoals(c, o) : []; },
+    trialGrade: function (c, me, res, rallies, goals) { return trialGrade(c || load6(), me, res, rallies, goals); }
   };
+  Object.keys(TRIAL_API).forEach(function (k) { HALL[k] = TRIAL_API[k]; });
 
   var BEACH = {
     VER: VER, STORE: KEY, KEYS: KEYS, LEAGUES: LEAGUES, ROLES: ROLES, REF: REF, POINTS: POINTS, WEEKS: WEEKS, MID_WEEK: MID_WEEK, START_OVR: START_OVR, PTS_LVL: PTS_LVL,
@@ -3065,8 +3402,19 @@
     TRAIN_SESS: TRAIN_SESS, SESS_NEED: SESS_NEED, SESS_MAX: SESS_MAX, SESS_EFF: SESS_EFF, SESS_FAT: SESS_FAT, SESS_FAT_MAX: SESS_FAT_MAX, SESS_QUICK: SESS_QUICK,
     SESS_IMP_A: SESS_IMP_A, SESS_IMP_DECAY: SESS_IMP_DECAY, SESS_COACH: SESS_COACH, SESS_DRILL: SESS_DRILL, SESS_BY: SESS_BY, sessMedal: sessMedal,
     trainInfo: function (c) { return sessInfo(c || load()); }, trainSession: function (id, how, total) { var c = load(); if (!c) return null; var r = sessDo(c, id, how, total); if (r.ok) save(c); return r; },
-    drillSetup: function (id) { var c = load(); return c ? drillSetup(c, id) : null; }, trainQuick: sessQuick, _sessClose: sessClose
+    drillSetup: function (id) { var c = load(); return c ? drillSetup(c, id) : null; }, trainQuick: sessQuick, _sessClose: sessClose,
+    // entrenos con nota, Rápido = récord, plan del entrenador y automático (15-nov-2026)
+    SESS_GRADE: SESS_GRADE, SESS_PLAY_K: SESS_PLAY_K, SESS_FIRST: SESS_FIRST, SESS_FOCUS: SESS_FOCUS, SESS_QUICK_K: SESS_QUICK_K, SESS_QUICK_D: SESS_QUICK_D, SESS_REST: SESS_REST, SESS_AUTO_FAT: SESS_AUTO_FAT,
+    trainPlan: function (c) { return sessPlan(c || load()); }, trainRecommend: function (c) { return sessRecommend(c || load()); }, trainGrade: sessGrade,
+    trainSimDay: function () { var c = load(); if (!c) return null; var r = sessSimDay(c); if (r.ok) save(c); return r; },
+    setTrainAuto: function (b) { var c = load(); if (!c) return false; sessSane(c).auto = !!b; save(c); return true; },
+    _sessAuto: sessAuto,
+    // prueba con partidillo (15-nov-2026)
+    trialSetup: function (i) { var c = load(); return c ? trialSetup(c, i) : null; }, trialDone: function (i, res, g) { var c = load(); return c ? trialDoneOn(c, i, res, g) : null; },
+    trialSim: function (i) { var c = load(); return c ? trialSimOn(c, i) : null; }, trialGoals: function (c, o) { c = c || load(); return c ? trialGoals(c, o) : []; },
+    trialGrade: function (c, me, res, rallies, goals) { return trialGrade(c || load(), me, res, rallies, goals); }
   };
+  Object.keys(TRIAL_API).forEach(function (k) { BEACH[k] = TRIAL_API[k]; });
 
   // =====================================================================================================================
   // VB.Career: fachada de las dos Carreras. Cada clave lleva a la Carrera ACTIVA ('beach' | 'hall'): las que la pista redefine van a
@@ -3097,6 +3445,8 @@
     ingest: ingest, abortMatch: abortMatch, owns: owns,
     /** Fin de un ejercicio de Carrera jugado (main.js): a la Carrera del ejercicio (g.careerDrill.mode), aunque la activa hubiera cambiado. */
     drillDone: function (mode, id, total) { return (mode === 'hall' ? HALL : BEACH).trainSession(id, 'play', total); },
+    /** Fin del partidillo de una prueba (main.js, g.career.trial): a la Carrera de la prueba (mode o g.career.mode). */
+    trialDone: function (mode, i, res, g) { var m = mode || (g && g.career && g.career.mode) || 'beach'; return (m === 'hall' ? HALL : BEACH).trialDone(i, res, g); },
     _reset: function () { cur = null; cur6 = null; M = null; }
   };
   var C = {};

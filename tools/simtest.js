@@ -3076,6 +3076,53 @@ if (ONLY !== 'matrix') {
     console.log('\nVóley playa (' + NB + ' partidos, ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)' + (failures === f0 ? ' OK' : '') + '\n  ' + res.map(r => r[0] + ' ' + JSON.stringify(r[2])).join('\n  '));
   }
 
+  // PARTIDO A UN SOLO SET (P1 de notes/pruebas-entrenos-spec.md, la prueba de la Carrera): createGame({sets:1, points:15}).
+  // Sin la opción, g.toWin no existe (al mejor de 3, huella intacta); con ella, un set a 15 también en la playa, y el partido acaba
+  // 1-0 o 0-1 sin 3r set, sin cambio a los 8 y con el punto de set como punto de partido
+  if (ONLY !== 'matrix') {
+    const f0 = failures, res = [], t0 = Date.now();
+    const pb = (o) => S.createGame(Object.assign({ seed: 7 }, o));
+    res.push(['(a) opciones: sin sets no hay toWin (playa a 21 siempre); con sets 1, toWin 1 y 11/15 también en la playa',
+      !('toWin' in pb({})) && !('toWin' in pb({ venue: 'beach' })) && !('toWin' in pb({ format: '6v6' })) && !('toWin' in pb({ sets: 3 })) &&
+      pb({ venue: 'beach', points: 15 }).points === 21 && pb({ venue: 'beach', sets: 1, points: 15 }).toWin === 1 &&
+      pb({ venue: 'beach', sets: 1, points: 15 }).points === 15 && pb({ venue: 'beach', sets: 1, points: 11 }).points === 11 &&
+      pb({ venue: 'beach', sets: 1 }).points === 21 && pb({ venue: 'beach', sets: 1, points: 13 }).points === 21 &&
+      pb({ sets: 1, points: 15 }).points === 15 && pb({ sets: 1 }).points === 25 && pb({ format: '6v6', sets: 1, points: 15 }).toWin === 1, {}]);
+    // (b) partidos enteros: playa (demo y autopilot), pabellón 2v2 y 6v6 (demo)
+    const CASES = [['playa demo', { venue: 'beach', demo: true }], ['playa autopilot', { venue: 'beach', autopilot: true, difficulty: 'normal' }],
+      ['pabellón demo', { demo: true }], ['6v6 demo', { format: '6v6', demo: true }]];
+    const out = {}; let ex = null;
+    try {
+      for (const [tag, o] of CASES) for (let s = 0; s < 3; s++) {
+        const g = S.createGame(Object.assign({ seed: 1300 + s, sets: 1, points: 15 }, o)); S.drainEvents(g);
+        const r = out[tag] = out[tag] || { n: 0, ok: 0, mal: [] };
+        let sets = 0, matchN = 0, over = null, mpBad = 0, eight = 0, newSet = 0, mp = -1, setTo = 0;
+        for (let i = 0; i < 120 * 60 * 40 && !over; i++) {
+          S.step(g, DT, null);
+          for (const e of S.drainEvents(g)) {
+            if (e.type === 'serveReady') { mp = e.matchPoint; if (e.setPoint !== e.matchPoint) mpBad++; }
+            if (e.type === 'set') { sets++; setTo = Math.max(e.score[0], e.score[1]); }
+            if (e.type === 'match') matchN++;
+            if (e.type === 'newSet') newSet++;
+            if (e.type === 'courtChange' && (e.why === 'eight' || e.why === 'set')) eight++;
+            if (e.type === 'point' && e.matchWon && mp !== e.team) mpBad++;
+            if (e.type === 'gameOver' || (o.demo && e.type === 'newMatch')) over = e;
+          }
+          if (o.demo && g.mode === 'over' && !over) over = { type: 'over', sets: g.sets.slice() };
+        }
+        r.n++;
+        const sc = over && over.sets, fin = sc && ((sc[0] === 1 && sc[1] === 0) || (sc[0] === 0 && sc[1] === 1));
+        if (fin && sets === 1 && matchN === 1 && newSet === 0 && eight === 0 && mpBad === 0 && setTo >= 15 && g.setNo === 1 && g.setScores.length === 1) r.ok++;
+        else r.mal.push({ s, sets: sc, setEv: sets, match: matchN, newSet, cambio: eight, mpBad, setTo, setNo: g.setNo });
+      }
+    } catch (e) { ex = e && e.stack || String(e); }
+    res.push(['(b) un set a 15 en playa, pabellón y 6v6: acaba 1-0 o 0-1 sin 3r set ni cambio a los 8, punto de set = punto de partido',
+      !ex && CASES.every(c => out[c[0]] && out[c[0]].ok === out[c[0]].n && out[c[0]].n === 3), ex ? { ex } : out]);
+    const bad = res.filter(r => !r[1]);
+    if (bad.length) fail('partido a un set: ' + bad.map(r => r[0] + ' ' + JSON.stringify(r[2])).join('; '));
+    console.log('\nPartido a un solo set (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)' + (failures === f0 ? ' OK' : '') + '\n  ' + res.map(r => r[0] + ' ' + JSON.stringify(r[2])).join('\n  '));
+  }
+
   // MAESTRÍA (E1, sprint 5): createGame({mastery:true})
   if (ONLY !== 'matrix') e1Section();
 
