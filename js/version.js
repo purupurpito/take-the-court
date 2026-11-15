@@ -25,8 +25,7 @@
       items: [
         'Crea tu cuenta con tu correo y recupera la contraseña si la olvidas.',
         'Entrar con Google (en cuanto esté activado).',
-        'Tu Vestuario también se guarda en tu cuenta.',
-        'Manguitos, coderas y rodilleras solo en pista, como en el vóley de verdad.'
+        'Tu Vestuario también se guarda en tu cuenta.'
       ]
     },
     {
