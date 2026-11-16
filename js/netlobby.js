@@ -175,7 +175,7 @@
     if (Math.random() < 0.2) api().sweep().catch(function () { });
   }
   function setView(v) {
-    L.view = v; L.edit = '';
+    L.view = v; L.edit = ''; L.osk = null;
     stop('list');
     if (v === 'list') { every('list', LIST_EVERY, function () { if (document.visibilityState !== 'hidden') refreshList(false); }); }
     render(true);
@@ -468,6 +468,107 @@
     // sede y partido a la vista (decisión 1: la lista dice formato, sede y configuración)
     '#mpOnline{width:min(560px,100%)}#mpOnline .ol-rooms .mi{height:52px}#mpOnline .ol-rooms .mi-h{display:block;font-size:11px;margin-top:2px}}' +
     '@media (min-width:621px){#mpPlay .modes.has-onl{grid-template-columns:repeat(5,minmax(0,1fr))}}' +
+    // ---- rediseño 1.5.x: barra de acciones, cartelera de salas (rótulo de TV), sala de espera y teclado en pantalla ----
+    '#mpOnline .ol-bar{display:flex;gap:8px;align-items:stretch;flex:none}' +
+    '#mpOnline .ol-act{display:flex;align-items:center;justify-content:center;gap:7px;height:46px;padding:0 15px;margin:0;border-radius:10px;font:800 16px/1 var(--display);letter-spacing:.08em;' +
+    'text-transform:uppercase;white-space:nowrap;color:var(--fg);background:var(--cel-a);box-shadow:inset 0 0 0 2.5px var(--tk),3px 4px 0 var(--tk);text-shadow:var(--ring1)}' +
+    '#mpOnline .ol-act svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}' +
+    '#mpOnline .ol-act:hover{background:var(--cel-hi)}' +
+    '#mpOnline .ol-act:focus-visible,#mpOnline .ol-act.kf{background:var(--cel-hi);box-shadow:inset 0 0 0 2.5px var(--tk),inset 0 0 0 5px #ffb238,3px 4px 0 var(--tk);outline:none}' +
+    '#mpOnline .ol-act.ol-new{background:var(--pri);color:#fff;padding:0 18px;font-size:18px}#mpOnline .ol-act.ol-new:hover{background:var(--pri-hi)}' +
+    '#mpOnline .ol-act.ol-new:focus-visible,#mpOnline .ol-act.ol-new.kf{background:var(--pri-hi);box-shadow:inset 0 0 0 2.5px var(--tk),inset 0 0 0 5px #fff,3px 4px 0 var(--tk)}' +
+    '#mpOnline .ol-act.ol-nm{flex:1 1 auto;min-width:0;justify-content:flex-start}' +
+    '#mpOnline .ol-me{min-width:0;overflow:hidden;text-overflow:ellipsis;text-transform:none;letter-spacing:.02em;font-size:18px;color:#ffd23f}' +
+    '#mpOnline .ol-act.ol-ico{width:46px;padding:0;flex:none}#mpOnline .ol-q{font:900 22px/1 var(--display)}' +
+    '#mpOnline .ol-act.spin svg{animation:olSpin .8s linear infinite}@keyframes olSpin{to{transform:rotate(360deg)}}' +
+    '#mpOnline .ol-bar2 .ol-act{flex:1 1 0}#mpOnline .ol-act.ol-out{color:#ffd0c0}' +
+    '#mpOnline .ol-board{display:flex;flex-direction:column;gap:6px;min-height:0}' +
+    '#mpOnline .ol-bh{align-self:flex-start;display:flex;align-items:center;gap:9px;margin:4px 0 0 4px;padding:5px 16px 5px 12px;background:var(--tk);color:#fff8ee;' +
+    'font:800 14px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;text-shadow:none;transform:skewX(-12deg);box-shadow:3px 3px 0 rgba(0,0,0,.35)}' +
+    '#mpOnline .ol-bh>*{transform:skewX(12deg)}' +
+    '#mpOnline .ol-live{width:9px;height:9px;border-radius:50%;background:#ff4d5e;box-shadow:0 0 0 0 rgba(255,77,94,.6);animation:olLive 1.8s ease-out infinite}' +
+    '@keyframes olLive{0%{box-shadow:0 0 0 0 rgba(255,77,94,.65)}70%,100%{box-shadow:0 0 0 7px rgba(255,77,94,0)}}' +
+    '#mpOnline .ol-n{color:#ffd23f;letter-spacing:.08em}#mpOnline .ol-rec{padding-left:10px;border-left:1px solid rgba(255,255,255,.25);color:var(--muted);letter-spacing:.08em}' +
+    '#mpOnline .ol-rec b{color:#fff8ee}' +
+    '#mpOnline .ol-rooms{display:flex;flex-direction:column;gap:7px;max-height:calc(4 * 69px);overflow:auto;padding:3px 10px 6px 6px;margin:0 -10px 0 -6px;scrollbar-width:thin}' +
+    // franja: el botón no lleva fondo (el deshabilitado de siempre quitaría la inclinación); la pieza inclinada es .fx-in
+    '#mpOnline .ol-fx{display:block;flex:none;width:100%;height:62px;padding:0;margin:0;border-radius:0;background:none;box-shadow:none;text-align:left;text-transform:none;letter-spacing:0;color:#fff;text-shadow:none;outline:none}' +
+    '#mpOnline .ol-fx:hover,#mpOnline .ol-fx:active{filter:none;transform:none;box-shadow:none}' +
+    '#mpOnline .fx-in{display:grid;grid-template-columns:100px minmax(0,1fr) auto;height:100%;overflow:hidden;background:rgba(22,16,40,.93);transform:skewX(-9deg);transform-origin:50% 100%;' +
+    'box-shadow:inset 0 0 0 2.5px var(--tk),4px 4px 0 var(--tk);transition:transform .16s var(--ease),background .16s}' +
+    '#mpOnline .fx-in>*{transform:skewX(9deg)}' +
+    '#mpOnline .ol-fx:hover .fx-in{background:rgba(40,31,74,.95)}' +
+    '#mpOnline .ol-fx:focus-visible .fx-in,#mpOnline .ol-fx.kf .fx-in{background:rgba(44,34,82,.97);transform:skewX(-9deg) translateX(6px);box-shadow:inset 0 0 0 2.5px var(--tk),inset 0 0 0 5px #ffd23f,5px 5px 0 var(--tk)}' +
+    '#mpOnline .ol-fx:active .fx-in{transform:skewX(-9deg) translate(3px,2px);box-shadow:inset 0 0 0 2.5px var(--tk),1px 1px 0 var(--tk)}' +
+    '#mpOnline .fx-ven{display:flex;flex-direction:column;justify-content:center;gap:2px;min-width:0;padding:0 8px 0 20px;margin-left:-10px;color:var(--tk);box-shadow:inset -2.5px 0 0 var(--tk)}' +
+    '#mpOnline .v-beach .fx-ven,#mpOnline .v-beach .mt-top{background:repeating-linear-gradient(115deg,rgba(255,255,255,.2) 0 5px,transparent 5px 13px),#f0bd5e}' +
+    '#mpOnline .v-hall .fx-ven,#mpOnline .v-hall .mt-top{background:repeating-linear-gradient(90deg,rgba(60,24,0,.18) 0 2px,transparent 2px 19px),#c97f40}' +
+    '#mpOnline .fx-ven b{font:900 15px/1 var(--display);font-style:italic;letter-spacing:.06em;text-transform:uppercase}' +
+    '#mpOnline .fx-ven small{font:700 10.5px/1.1 var(--ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85}' +
+    '#mpOnline .fx-main{display:flex;flex-direction:column;justify-content:center;gap:5px;min-width:0;padding:0 8px 0 14px}' +
+    '#mpOnline .fx-line{display:flex;align-items:center;gap:9px;min-width:0}' +
+    '#mpOnline .fx-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:900 27px/1 var(--display);font-style:italic;letter-spacing:.02em;text-transform:uppercase;' +
+    'color:#fff8ee;text-shadow:var(--ring1),2px 2px 0 var(--tk)}' +
+    '#mpOnline .fx-vs{flex:none;font:900 15px/1 var(--display);font-style:italic;color:#ffd23f}' +
+    '#mpOnline .fx-slot{flex:none;display:inline-flex;align-items:center;justify-content:center;min-width:32px;height:25px;padding:0 6px;border:2px dashed rgba(255,255,255,.4);border-radius:3px;' +
+    'font:900 17px/1 var(--display);color:rgba(255,255,255,.55)}' +
+    '#mpOnline .fx-slot.in{max-width:110px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;border-style:solid;color:#fff8ee;text-transform:uppercase;font-size:15px}' +
+    '#mpOnline .fx-chips{display:flex;gap:5px;min-width:0;overflow:hidden}' +
+    '#mpOnline .fx-chips i{flex:none;font:700 11.5px/1 var(--ui);font-style:normal;padding:3px 7px;border-radius:3px;background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);color:var(--soft);white-space:nowrap}' +
+    '#mpOnline .fx-end{display:flex;align-items:center;gap:12px;padding:0 20px 0 6px}' +
+    '#mpOnline .fx-st{display:flex;align-items:center;gap:6px;font:700 12px/1 var(--ui);color:var(--soft);white-space:nowrap}' +
+    '#mpOnline .fx-st::before{content:"";width:8px;height:8px;border-radius:50%;background:#49dd85;box-shadow:0 0 6px #49dd85}' +
+    '#mpOnline .fx-st.st-full::before{background:#ff8a3d;box-shadow:0 0 6px #ff8a3d}#mpOnline .fx-st.st-ver::before{background:#8f88b5;box-shadow:none}' +
+    '#mpOnline .fx-go{padding:8px 13px 7px;border-radius:3px;font:900 17px/1 var(--display);font-style:italic;letter-spacing:.06em;text-transform:uppercase;color:#ffd23f;box-shadow:inset 0 0 0 2px #ffd23f;transition:background .16s,color .16s}' +
+    '#mpOnline .ol-fx:hover .fx-go,#mpOnline .ol-fx:focus-visible .fx-go,#mpOnline .ol-fx.kf .fx-go{background:#ffd23f;color:var(--tk);box-shadow:inset 0 0 0 2px var(--tk),2px 3px 0 var(--tk)}' +
+    '#mpOnline .ol-fx.fx-off{opacity:1;filter:none}#mpOnline .ol-fx.fx-off .fx-in{background:rgba(22,16,40,.7)}#mpOnline .ol-fx.fx-off .fx-name{color:var(--dim-text)}' +
+    '#mpOnline .ol-fx.fx-off .fx-ven{filter:saturate(.3) brightness(.8)}' +
+    '#mpOnline .ol-fx.fx-new{animation:fxIn .38s var(--ease) both}@keyframes fxIn{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}' +
+    '#mpOnline .ol-empty{display:flex;align-items:center;gap:16px;margin:0 6px;padding:12px 18px;border-radius:0;background:rgba(22,16,40,.72);box-shadow:none;outline:2px dashed rgba(255,255,255,.28);outline-offset:-2px;' +
+    'transform:skewX(-9deg);font:700 15px/1.3 var(--ui);color:var(--fg2)}#mpOnline .ol-empty>*{transform:skewX(9deg)}' +
+    '#mpOnline .ol-ghost{flex:none;display:flex;align-items:center;gap:7px;font:900 26px/1 var(--display);font-style:italic;color:rgba(255,255,255,.28)}' +
+    '#mpOnline .ol-ghost i{font-style:italic}#mpOnline .ol-ghost em{font-size:14px;font-style:italic;color:rgba(255,210,63,.6)}' +
+    // sala de espera: el mismo rótulo, en grande
+    '#mpOnline .ol-card.ol-match{padding:0 0 12px;border-radius:12px;overflow:hidden;background:rgba(22,16,40,.93);box-shadow:inset 0 0 0 2.5px var(--tk),4px 5px 0 var(--tk)}' +
+    '#mpOnline .mt-top{display:flex;align-items:center;gap:10px;padding:8px 12px 8px 16px;color:var(--tk);box-shadow:inset 0 -2.5px 0 var(--tk),inset 0 0 0 2.5px var(--tk)}' +
+    '#mpOnline .mt-ven{display:flex;align-items:baseline;gap:8px;min-width:0}#mpOnline .mt-ven b{font:900 17px/1 var(--display);font-style:italic;letter-spacing:.06em;text-transform:uppercase}' +
+    '#mpOnline .mt-ven small{font:700 12px/1 var(--ui);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '#mpOnline .mt-who{margin-left:auto;font:700 13px/1 var(--ui);white-space:nowrap}' +
+    '#mpOnline .mt-top .ol-code{margin:0;padding:4px 9px;border-radius:3px;background:var(--tk);color:#ffd23f}' +
+    '#mpOnline .ol-match .ol-vs{grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:end;gap:10px;margin:14px 16px 10px}' +
+    '#mpOnline .mt-side{gap:4px}#mpOnline .mt-side small{display:flex;gap:5px;align-items:center}' +
+    '#mpOnline .mt-side b{font:900 36px/1 var(--display);font-style:italic;letter-spacing:.02em;text-transform:uppercase;color:#fff8ee;text-shadow:var(--ring1),3px 3px 0 var(--tk)}' +
+    '#mpOnline .mt-side.riv b{animation:mtIn .42s var(--ease) both}@keyframes mtIn{from{opacity:0;transform:translateX(26px) scale(1.15)}to{opacity:1;transform:none}}' +
+    '#mpOnline .ol-match .mt-side.wait b .ol-q{font:900 36px/1 var(--display)}#mpOnline .mt-side.wait b{display:flex;align-items:center;gap:8px;color:rgba(255,255,255,.4);font-size:36px}' +
+    '#mpOnline .ol-dots{display:flex;gap:4px}#mpOnline .ol-dots i{width:7px;height:7px;border-radius:50%;background:#ffd23f;animation:olDot 1.2s ease-in-out infinite}' +
+    '#mpOnline .ol-dots i:nth-child(2){animation-delay:.2s}#mpOnline .ol-dots i:nth-child(3){animation-delay:.4s}@keyframes olDot{0%,80%,100%{opacity:.2;transform:none}40%{opacity:1;transform:translateY(-4px)}}' +
+    '#mpOnline .ol-match .ol-mid{padding:0;font:900 30px/1 var(--display);font-style:italic;color:#ffd23f;text-shadow:var(--ring1),2px 3px 0 var(--tk);transform:rotate(-6deg)}' +
+    '#mpOnline .mt-chips{justify-content:center;margin:0 16px}#mpOnline .ol-match .ol-st{margin:10px 16px 0;text-align:center}#mpOnline .ol-match p.ol-tip{margin:6px 16px 0;text-align:center}' +
+    // teclado en pantalla (mando)
+    '#mpOnline .ol-osk{display:flex;flex-direction:column;gap:5px;padding:8px 10px 10px;border-radius:12px;background:rgba(22,16,40,.95);box-shadow:inset 0 0 0 2.5px var(--tk),4px 5px 0 var(--tk)}' +
+    '#mpOnline .osk-show{display:flex;align-items:center;gap:10px;min-width:0;padding:2px 4px 4px}' +
+    '#mpOnline .osk-lbl{flex:none;font:800 12px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}' +
+    '#mpOnline .osk-val{flex:1 1 auto;min-width:0;display:flex;align-items:center;height:34px;padding:0 10px;overflow:hidden;white-space:pre;background:rgba(5,9,18,.85);box-shadow:inset 0 0 0 2px #ff7a3e;' +
+    'font:800 22px/1 var(--display);letter-spacing:.04em;color:#fff}#mpOnline .ol-osk.code .osk-val{letter-spacing:.3em}' +
+    '#mpOnline .osk-car{display:inline-block;width:2px;height:22px;margin-left:2px;background:#ffd23f;animation:oskCar 1s steps(1) infinite}@keyframes oskCar{50%{opacity:0}}' +
+    '#mpOnline .osk-tip{flex:none;font:600 12px/1 var(--ui);color:var(--muted)}' +
+    '#mpOnline .osk-row{display:flex;gap:5px}' +
+    '#mpOnline .osk-k{flex:1 1 0;min-width:0;height:36px;padding:0;margin:0;border-radius:6px;font:800 18px/1 var(--display);letter-spacing:.02em;text-transform:none;color:#fff;background:var(--cel-a);' +
+    'box-shadow:inset 0 0 0 2px var(--tk),0 3px 0 var(--tk);text-shadow:var(--ring1)}' +
+    '#mpOnline .osk-k.fn{font-size:15px;letter-spacing:.08em;text-transform:uppercase}#mpOnline .osk-k.w{flex:2.4 1 0}#mpOnline .osk-k.ok{background:var(--pri)}' +
+    '#mpOnline .osk-k:focus-visible,#mpOnline .osk-k.kf{background:var(--cel-hi);box-shadow:inset 0 0 0 2px var(--tk),inset 0 0 0 4px #ffd23f,0 3px 0 var(--tk);outline:none;transform:translateY(-2px)}' +
+    '#mpOnline .ol-edit .ol-act{height:52px}' +
+    '@media (max-height:420px){#mpOnline .ol-body{gap:8px}#mpOnline .ol-act{height:40px;font-size:14px;padding:0 11px}#mpOnline .ol-act.ol-new{font-size:15px;padding:0 13px}' +
+    '#mpOnline .ol-act.ol-ico{width:40px}#mpOnline .ol-me{font-size:15px}#mpOnline .ol-bh{font-size:12px;padding:4px 13px 4px 10px;margin-top:0}' +
+    '#mpOnline .ol-rooms{gap:4px;max-height:calc(100vh - 178px)}#mpOnline .ol-fx{height:46px}' +
+    '#mpOnline .fx-in{grid-template-columns:80px minmax(0,1fr) auto}#mpOnline .fx-ven b{font-size:13px}#mpOnline .fx-ven small{font-size:9.5px}' +
+    '#mpOnline .fx-main{gap:3px;padding-left:11px}#mpOnline .fx-name{font-size:21px}#mpOnline .fx-vs{font-size:13px}#mpOnline .fx-slot{height:21px;min-width:28px;font-size:15px}' +
+    '#mpOnline .fx-chips i{font-size:10px;padding:2px 6px}#mpOnline .fx-end{gap:9px;padding-right:16px}#mpOnline .fx-st{font-size:11px}#mpOnline .fx-go{font-size:14px;padding:6px 10px 5px}' +
+    '#mpOnline .ol-empty{padding:9px 14px;font-size:13px}#mpOnline .ol-ghost{font-size:21px}' +
+    '#mpOnline .mt-top{padding:5px 10px 5px 14px}#mpOnline .ol-match .ol-vs{margin:8px 14px 6px}#mpOnline .mt-side b,#mpOnline .mt-side.wait b{font-size:27px}#mpOnline .ol-match .ol-mid{font-size:24px}#mpOnline .ol-match .mt-side.wait b .ol-q{font-size:27px}' +
+    '#mpOnline .ol-card.ol-match{padding-bottom:8px}#mpOnline .ol-match .ol-st{margin-top:6px}' +
+    '#mpOnline .ol-osk{gap:4px;padding:6px 8px 8px}#mpOnline .osk-show{padding:0 2px 2px}#mpOnline .osk-val{height:30px;font-size:19px}#mpOnline .osk-k{height:31px;font-size:16px}#mpOnline .osk-k.fn{font-size:13px}}' +
+    '@media (prefers-reduced-motion:reduce){#mpOnline .ol-fx.fx-new,#mpOnline .mt-side.riv b{animation:none}#mpOnline .ol-live,#mpOnline .ol-dots i{animation:none}}' +
     '#menu .m-onl .md-art{background:#3d5bd9}';
   function ensureCss() { if (document.getElementById('olCss')) return; var s = document.createElement('style'); s.id = 'olCss'; s.textContent = CSS; document.head.appendChild(s); }
   ensureCss();   // (ya al cargar: la tarjeta de Jugar usa .has-onl / .m-onl antes de abrir el lobby)
@@ -496,6 +597,75 @@
   function helpHTML() {
     return '<div class="ol-card ol-help"><h3>Cómo funciona el online</h3><dl>' + HELP.map(function (x) { return '<dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd>'; }).join('') + '</dl></div>';
   }
+  function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>'; }
+  var IC = {
+    plus: svg('M12 5v14M5 12h14'), hash: svg('M9 4 7 20M17 4l-2 16M4.5 9h16M3.5 15h16'), pen: svg('M4 20l1-4L16 5l3 3L8 19zM14 7l3 3'),
+    ref: svg('M19 12a7 7 0 1 1-2.05-4.95M19 4v4h-4'), copy: svg('M8 8h11v11H8zM5 16V5h11'), out: svg('M14 5h5v14h-5M10 8l-4 4 4 4M6 12h10')
+  };
+  /* ---------------- escribir el nombre y el código ----------------
+   * Con teclado, ratón o táctil: un <input> como siempre. Si lo último que se ha tocado es un MANDO (ctx.inputDevice === 'gamepad'),
+   * un teclado en pantalla: cruceta para moverse (↑↓ entre filas, ←→ dentro de la fila), A escribe, B cancela. Para que ↑↓ de ui.js
+   * baje de fila y no de tecla, solo la tecla de la columna actual de cada fila queda sin data-skip (L.osk.col). */
+  function padNow() { var C = ctx(); return !!(C && C.inputDevice === 'gamepad'); }
+  var OSK_N = ['1234567890', 'QWERTYUIOP', 'ASDFGHJKLÑ', 'ZXCVBNM-._'], OSK_C = ['23456789', 'ABCDEFGHJK', 'MNPQRSTUVW'];
+  var OSK_W = 10;   // (columnas de la fila más larga)
+  function oskRows() {
+    var o = L.osk, code = L.edit === 'code', rows = (code ? OSK_C : OSK_N).map(function (s) {
+      return Array.from(s).map(function (c) { var ch = code || o.up ? c : c.toLowerCase(); return { k: 'c' + ch, t: ch }; });
+    });
+    rows.push(code ? [{ k: 'cX', t: 'X' }, { k: 'cY', t: 'Y' }, { k: 'cZ', t: 'Z' }, { k: 'bs', t: 'Borrar', w: 1 }, { k: 'ok', t: 'Entrar', w: 1 }] :
+      [{ k: 'sh', t: o.up ? 'abc' : 'ABC' }, { k: 'sp', t: 'Espacio', w: 1 }, { k: 'bs', t: 'Borrar' }, { k: 'ok', t: 'Guardar', w: 1 }]);
+    return rows;
+  }
+  function oskIdx(len, col) { return len >= OSK_W ? Math.min(col, len - 1) : Math.round(col * (len - 1) / (OSK_W - 1)); }
+  function editHTML(nm) {
+    var code = L.edit === 'code';
+    if (!L.osk) {
+      if (code) return '<div class="ol-edit"><input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="ol-act ol-new" data-a="codeOk">Entrar</button></div>';
+      return '<div class="ol-edit"><input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="ol-act ol-new" data-a="nameOk">Guardar</button></div>';
+    }
+    var o = L.osk, h = '<div class="ol-osk' + (code ? ' code' : '') + '"><div class="osk-show"><span class="osk-lbl">' + (code ? 'Código' : 'Tu nombre') + '</span>' +
+      '<b class="osk-val" aria-live="polite">' + esc(o.v) + '<i class="osk-car" aria-hidden="true"></i></b><span class="osk-tip">A escribe. B cancela.</span></div>';
+    oskRows().forEach(function (row, ri) {
+      var ci = oskIdx(row.length, o.col);
+      h += '<div class="osk-row" data-nav>' + row.map(function (x, i) {
+        return '<button class="osk-k' + (x.k.charAt(0) === 'c' ? '' : ' fn') + (x.w ? ' w' : '') + (x.k === 'ok' ? ' ok' : '') + '" data-a="osk" data-id="' + esc(x.k) + '" data-r="' + ri + '" data-i="' + i + '"' + (i === ci ? '' : ' data-skip') +
+          (x.k === 'sp' ? ' aria-label="Espacio"' : '') + '>' + esc(x.t) + '</button>';
+      }).join('') + '</div>';
+    });
+    return h + '</div>';
+  }
+  function oskKey(k) {
+    var o = L.osk, max = L.edit === 'code' ? 6 : 16; if (!o) return;
+    if (k === 'ok') { commitEdit(); return; }
+    if (k === 'bs') o.v = Array.from(o.v).slice(0, -1).join('');
+    else if (k === 'sh') o.up = !o.up;
+    else if (k === 'sp') { if (o.v && !/ $/.test(o.v) && o.v.length < max) o.v += ' '; }
+    else if (k.charAt(0) === 'c' && Array.from(o.v).length < max) { o.v += k.slice(1); if (L.edit === 'name' && o.up && o.auto) o.up = false; }
+    o.auto = false;
+    sound('optChange'); render(true);
+  }
+  /** ←→ dentro de una fila del teclado en pantalla (o de una barra de acciones). */
+  function rowStep(el, d) {
+    var par = el.parentNode, bs = Array.prototype.filter.call(par.querySelectorAll('button'), function (b) { return !b.disabled; }), i = bs.indexOf(el);
+    if (i < 0 || bs.length < 2) return true;
+    var nb = bs[(i + d + bs.length) % bs.length];
+    bs.forEach(function (b) { if (b !== nb && par.classList.contains('ol-bar') && !par.classList.contains('ol-bar2')) b.setAttribute('data-skip', ''); });
+    nb.removeAttribute('data-skip');
+    if (el.classList.contains('osk-k')) {
+      var n = bs.length, ni = +nb.getAttribute('data-i');
+      L.osk.col = n >= OSK_W ? ni : Math.round(ni * (OSK_W - 1) / (n - 1));
+      // (las demás filas: su tecla de la columna nueva queda sin data-skip)
+      Array.prototype.forEach.call(L.host.querySelectorAll('.osk-row'), function (r) {
+        var ks = r.querySelectorAll('.osk-k'), ci = oskIdx(ks.length, L.osk.col);
+        for (var j = 0; j < ks.length; j++) { if (j === ci) ks[j].removeAttribute('data-skip'); else ks[j].setAttribute('data-skip', ''); }
+      });
+    } else if (par.classList.contains('ol-bar') && !par.classList.contains('ol-bar2')) L.barKey = nb.getAttribute('data-a');
+    try { nb.focus(); } catch (e) { }
+    var pv = document.querySelectorAll('.kf'); for (var j = 0; j < pv.length; j++) pv[j].classList.remove('kf');
+    nb.classList.add('kf'); sound('optHover');
+    return true;
+  }
   function note() { return L.msg ? '<p class="ol-note' + (L.msgBad ? ' bad' : '') + '" role="status">' + esc(L.msg) + '</p>' : ''; }
   function viewHTML() {
     var v = L.view, h = '';
@@ -510,24 +680,47 @@
     } else if (v === 'help') {
       h = helpHTML() + '<div class="qlist" data-nav>' + row('helpOk', 'Entendido', '', '', { primary: true }) + '</div>';
     } else if (v === 'list') {
-      var nm = myName();
-      h = note() + '<div class="qlist" data-nav>' + row('new', 'Crear sala', 'Eliges sede y partido, y alguien entra desde la lista', '', { primary: true, dis: L.busy });
-      if (L.edit === 'name') h += '<div class="ol-edit"><input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="mi" data-a="nameOk">Guardar</button></div>';
-      else h += row('name', 'Tu nombre', 'Lo único que ve tu rival', '<b>' + esc(nm) + '</b>', { aria: 'Tu nombre: ' + nm + '. Cambiar' });
+      // (rediseño 1.5.x, petición de Ferran: que las salas no parezcan botones del menú) Arriba, una BARRA de acciones compacta
+      // (un solo alto en ↑↓; ←→ recorre la barra). Debajo, la CARTELERA: una franja por sala como un rótulo de TV.
+      var nm = myName(), bk = L.barKey || 'new';
+      if (bk === 'new' && L.busy) bk = 'code';   // («Crear sala» desactivado: la parada de la barra pasa a «Código», para no quedarse sin ninguna)
+      var act = function (a, inner, cls, aria, dis) {
+        return '<button class="ol-act' + (cls ? ' ' + cls : '') + '" data-a="' + a + '"' + (a === bk ? '' : ' data-skip') + (dis ? ' disabled' : '') +
+          (aria ? ' aria-label="' + esc(aria) + '"' : '') + '>' + inner + '</button>';
+      };
+      h = note() + '<div class="ol-bar" data-nav>' +
+        act('new', IC.plus + '<span>Crear sala</span>', 'ol-new', '', L.busy) +
+        act('code', IC.hash + '<span>Código</span>', '', 'Entrar con código') +
+        act('name', IC.pen + '<span class="ol-me">' + esc(nm) + '</span>', 'ol-nm', 'Tu nombre: ' + nm + '. Cambiar') +
+        act('refresh', IC.ref, 'ol-ico' + (L.loading ? ' spin' : ''), 'Actualizar') +
+        act('help', '<span class="ol-q">?</span>', 'ol-ico', 'Cómo funciona') + '</div>';
+      if (L.edit === 'name' || L.edit === 'code') h += editHTML(nm);
+      if (L.osk) return h;   // (teclado en pantalla abierto: ocupa el sitio de la cartelera, sobre todo en un teléfono apaisado)
       // (fase 3: tu récord online, aparte del de Partido rápido; abandonar cuenta como derrota)
       var rl = VB.NetRec ? safe(function () { return VB.NetRec.line(); }) : '';
-      if (rl) h += '<p class="ol-empty ol-rec">Tu récord online: <b>' + esc(rl) + '</b></p>';
-      if (L.edit === 'code') h += '<div class="ol-edit"><input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="mi" data-a="codeOk">Entrar</button></div>';
-      else h += row('code', 'Entrar con código', 'Si te han pasado el código de una sala', '');
-      h += '</div><h3 class="ol-h">Salas abiertas<small>' + (L.loading && !L.listAt ? 'Buscando…' : L.listAt ? (L.rooms.length === 1 ? '1 sala' : L.rooms.length + ' salas') : '') + '</small></h3>';
+      var n = L.rooms.length, cnt = L.loading && !L.listAt ? 'Buscando…' : L.listAt ? (n === 1 ? '1 sala' : n + ' salas') : '';
+      h += '<div class="ol-board"><h3 class="ol-bh"><span class="ol-live" aria-hidden="true"></span>Salas abiertas<span class="ol-n">' + cnt + '</span>' +
+        (rl ? '<span class="ol-rec">Tu récord <b>' + esc(rl) + '</b></span>' : '') + '</h3>';
       if (L.listErr) h += '<p class="ol-note bad">' + esc(L.listErr) + '</p>';
-      h += '<div class="qlist ol-rooms" data-nav>';
-      if (!L.rooms.length) h += L.listAt ? '<p class="ol-empty">No hay salas abiertas ahora mismo. Crea una y aparecerá aquí para los demás.</p>' : '';
+      h += '<div class="ol-rooms" data-nav>';
+      if (!n) h += L.listAt ? '<div class="ol-empty"><span class="ol-ghost" aria-hidden="true"><i>?</i><em>VS</em><i>?</i></span><span>Aún no hay salas. Crea una y avisa a alguien.</span></div>' : '';
+      // (animación de entrada: una sala es «nueva» durante 1 s desde que se ve por primera vez; así un repintado en ese segundo no la corta)
+      var seen = L.seenAt || {}, now = {}, k = 0, tn = Date.now();
       L.rooms.forEach(function (r) {
-        var parts = cfgParts(r);
-        h += row('join', esc(r.name), sep(parts), r.other ? 'Otra versión' : '<b>1/2</b>', { id: r.id, dis: r.other || L.busy, aria: 'Sala de ' + r.name + '. ' + parts.join(', ') + (r.other ? '. Otra versión del juego' : '. Una plaza libre') });
+        var t1 = now[r.id] = seen[r.id] || tn, parts = cfgParts(r), isNew = tn - t1 < 1000, full = r.state === 'full', off = r.other || full;
+        var beach = r.venue === 'beach', vn = venueName(r), kind = beach ? 'Playa' : 'Pabellón';
+        h += '<button class="ol-fx ' + (beach ? 'v-beach' : 'v-hall') + (isNew ? ' fx-new' : '') + (off ? ' fx-off' : '') + '" data-a="join" data-id="' + esc(r.id) + '"' +
+          (off || L.busy ? ' disabled' : '') + (isNew ? ' style="animation-delay:' + (k++ * 70) + 'ms"' : '') +
+          ' aria-label="' + esc('Sala de ' + r.name + '. ' + parts.join(', ') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : '. Una plaza libre')) + '"><span class="fx-in">' +
+          '<span class="fx-ven"><b>' + kind + '</b>' + (vn && vn !== kind ? '<small>' + esc(vn) + '</small>' : '') + '</span>' +
+          '<span class="fx-main"><span class="fx-line"><b class="fx-name">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
+          '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>' +
+          '<span class="fx-chips"><i>' + (r.bo === 3 ? 'Mejor de 3' : '1 set a ' + (r.pts || 21)) + '</i><i>' + (r.even ? 'Igualado' : 'Con sus atributos') + '</i></span></span>' +
+          '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
+          (off ? '' : '<span class="fx-go">Entrar</span>') + '</span></span></button>';
       });
-      h += '</div><div class="qlist" data-nav>' + row('refresh', 'Actualizar', '', '') + row('help', 'Cómo funciona', 'Partido, reglas y récord del online', '') + '</div>';
+      if (L.listAt) L.seenAt = now;
+      h += '</div></div>';
     } else if (v === 'create') {
       var c = L.cfg, ms = maps(c.venue), cur = c.venue === 'beach' ? c.mapB : c.mapH;
       if (ms.indexOf(cur) < 0) { cur = ms[0]; if (c.venue === 'beach') c.mapB = cur; else c.mapH = cur; }
@@ -546,16 +739,23 @@
       else if (L.status === 'connecting') st = 'Conectando con ' + riv + '…';
       else if (L.status === 'linked') st = 'Conectados. Empieza el partido…';
       bad = !!L.fail && L.status === 'wait';
+      // (rediseño 1.5.x) El mismo rótulo que la cartelera, en grande: sede a la izquierda, tú VS rival, y el hueco «?» hasta que llega.
       var left = host ? me : riv, right = host ? (riv || '') : me;
-      var pl = function (n, who, isRival) {
-        if (!n) return '<div class="ol-p wait"><span class="ar" aria-hidden="true">&nbsp;</span><b>Esperando…</b><small>' + who + '</small></div>';
-        return '<div class="ol-p">' + (isRival ? '<span class="ar" aria-hidden="true">▼</span>' : '<span class="ar" aria-hidden="true">&nbsp;</span>') + '<b>' + esc(n) + '</b><small>' + who + '</small></div>';
+      var pl = function (n, who, isRival, side) {
+        if (!n) return '<div class="ol-p mt-side ' + side + ' wait"><small>' + who + '</small><b><span class="ol-q">?</span><span class="ol-dots" aria-label="Esperando"><i></i><i></i><i></i></span></b></div>';
+        return '<div class="ol-p mt-side ' + side + (isRival ? ' riv' : '') + '"><small>' + who + (isRival ? ' <span class="ar" aria-hidden="true">▼</span>' : '') + '</small><b>' + esc(n) + '</b></div>';
       };
-      h = '<div class="ol-card"><p>' + (host ? 'Tu sala' : 'Sala de ' + esc(r2.name)) + ' <span class="ol-code" aria-label="Código ' + esc(r2.code.split('').join(' ')) + '">' + esc(r2.code) + '</span></p>' +
-        '<div class="ol-vs">' + pl(left, host ? 'Tú' : 'Rival', !host) + '<span class="ol-mid">—</span>' + pl(right, host ? 'Rival' : 'Tú', host && !!riv) + '</div>' +
-        '<p>' + sep(cfgParts(r2)) + '</p><p class="ol-st' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p>' +
+      var b2 = r2.venue === 'beach', vn2 = venueName(r2), k2 = b2 ? 'Playa' : 'Pabellón';
+      h = '<div class="ol-card ol-match ' + (b2 ? 'v-beach' : 'v-hall') + (riv ? ' has-riv' : '') + '">' +
+        '<div class="mt-top"><span class="mt-ven"><b>' + k2 + '</b>' + (vn2 && vn2 !== k2 ? '<small>' + esc(vn2) + '</small>' : '') + '</span>' +
+        '<span class="mt-who">' + (host ? 'Tu sala' : 'Sala de ' + esc(r2.name)) + '</span>' +
+        '<span class="ol-code" aria-label="Código ' + esc(r2.code.split('').join(' ')) + '">' + esc(r2.code) + '</span></div>' +
+        '<div class="ol-vs">' + pl(left, host ? 'Tú' : 'Rival', !host, 'mt-a') + '<span class="ol-mid">VS</span>' + pl(right, host ? 'Rival' : 'Tú', host && !!riv, 'mt-b') + '</div>' +
+        '<div class="fx-chips mt-chips"><i>' + (r2.bo === 3 ? 'Mejor de 3' : '1 set a ' + (r2.pts || 21)) + '</i><i>' + (r2.even ? 'Igualado' : 'Con sus atributos') + '</i></div>' +
+        '<p class="ol-st' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p>' +
         (L.started ? '' : '<p class="ol-tip">Llevas a tu n.º 1 y la IA a tu pareja. No hay pausa durante el juego: entre sets, 10 s de descanso. Abandonar cuenta como derrota.</p>') + '</div>' +
-        '<div class="qlist" data-nav>' + (host ? row('copy', 'Copiar código', 'Para pasárselo a alguien', '') : '') + row('leave', 'Salir de la sala', '', '') + '</div>';
+        '<div class="ol-bar ol-bar2" data-nav>' + (host ? '<button class="ol-act" data-a="copy">' + IC.copy + '<span>Copiar código</span></button>' : '') +
+        '<button class="ol-act ol-out" data-a="leave">' + IC.out + '<span>Salir de la sala</span></button></div>';
     }
     return h;
   }
@@ -571,9 +771,9 @@
     if (inp) { bindInput(inp); setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { } }, 20); return; }
     if (key) { var b = findKey(body, key) || first(); if (b) { try { b.focus({ preventScroll: !kf }); } catch (e) { } if (kf) b.classList.add('kf'); } }
   }
-  function keyOf(b) { return b.getAttribute('data-a') ? b.getAttribute('data-a') + '|' + (b.getAttribute('data-id') || '') : b.getAttribute('data-ol') ? 'ol|' + b.getAttribute('data-ol') : null; }
+  function keyOf(b) { if (b.getAttribute('data-a') === 'osk') return 'oskp|' + b.getAttribute('data-r') + '|' + b.getAttribute('data-i'); return b.getAttribute('data-a') ? b.getAttribute('data-a') + '|' + (b.getAttribute('data-id') || '') : b.getAttribute('data-ol') ? 'ol|' + b.getAttribute('data-ol') : null; }
   function findKey(body, k) {
-    var p = k.split('|'), sel = p[0] === 'ol' ? '[data-ol="' + p[1] + '"]' : '[data-a="' + p[0] + '"]' + (p[1] ? '[data-id="' + p[1] + '"]' : '');
+    var p = k.split('|'), sel = p[0] === 'oskp' ? '.osk-k[data-r="' + p[1] + '"][data-i="' + p[2] + '"]' : p[0] === 'ol' ? '[data-ol="' + p[1] + '"]' : '[data-a="' + p[0] + '"]' + (p[1] ? '[data-id="' + p[1] + '"]' : '');
     var b = body.querySelector(sel); return b && !b.disabled ? b : null;
   }
   function first() { var b = L.host && L.host.querySelector('.ol-body button:not([disabled])'); return b || null; }
@@ -582,16 +782,24 @@
       if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'Tab') return;   // (navegación del menú)
       e.stopPropagation();
       if (e.key === 'Enter') { e.preventDefault(); commitEdit(); }
-      else if (e.key === 'Escape') { e.preventDefault(); var k = L.edit; L.edit = ''; render(true); focusA(k); }
+      else if (e.key === 'Escape') { e.preventDefault(); var k = L.edit; L.edit = ''; L.osk = null; render(true); focusA(k); }
     });
   }
   function commitEdit() {
-    var inp = L.host && L.host.querySelector('#olIn'), v = inp ? inp.value : '', k = L.edit;
+    var inp = L.host && L.host.querySelector('#olIn'), v = inp ? inp.value : L.osk ? L.osk.v : '', k = L.edit;
+    L.osk = null;
     if (k === 'name') {
       var n = NR().cleanName(v);
       if (!n) { L.msg = 'El nombre tiene que tener entre 2 y 16 caracteres (y no puede ser un correo).'; L.msgBad = true; L.edit = ''; render(true); focusA('name'); return; }
       ls(NICK, n); L.msg = ''; L.edit = ''; render(true); focusA('name');
     } else if (k === 'code') { L.edit = ''; render(true); joinCode(v); }
+  }
+  function focusSel(sel, kf) {
+    setTimeout(function () {
+      var b = L.host && L.host.querySelector(sel); if (!b) return;
+      try { b.focus(); } catch (e) { }
+      if (kf) { var pv = document.querySelectorAll('.kf'); for (var j = 0; j < pv.length; j++) pv[j].classList.remove('kf'); b.classList.add('kf'); }
+    }, 30);
   }
   function focusA(a) { setTimeout(function () { var b = L.host && L.host.querySelector('[data-a="' + a + '"]'); if (b) { try { b.focus(); } catch (e) { } } }, 30); }
 
@@ -617,7 +825,13 @@
     else if (a === 'helpOk') { ls(HELPK, '1'); setView('list'); refreshList(false); focusA(L.helpFrom || 'help'); L.helpFrom = ''; }
     else if (a === 'new') { L.cfg = prefs(); L.msg = ''; setView('create'); setTimeout(function () { var f = first(); if (f) f.focus(); }, 30); }
     else if (a === 'open') createRoom();
-    else if (a === 'name' || a === 'code') { L.edit = a; L.msg = ''; render(true); }
+    else if (a === 'name' || a === 'code') {
+      L.edit = a; L.msg = '';
+      // (con mando: teclado en pantalla, con el foco en la primera letra)
+      if (padNow()) { var v0 = a === 'name' ? myName() : ''; L.osk = { v: v0, col: 0, up: !v0, auto: !v0 }; render(true); focusSel('.osk-k[data-r="1"][data-i="0"]', true); }
+      else { L.osk = null; render(true); }
+    }
+    else if (a === 'osk') oskKey(b.getAttribute('data-id'));
     else if (a === 'nameOk' || a === 'codeOk') commitEdit();
     else if (a === 'join') joinRoom(b.getAttribute('data-id'));
     else if (a === 'refresh') refreshList(true);
@@ -636,6 +850,13 @@
     if (!L.host) {
       L.host = host;
       host.addEventListener('click', onClick);
+      // (barra de acciones: el botón que recibe el foco —ratón, Tab— pasa a ser la parada de ↑↓ de la barra)
+      host.addEventListener('focusin', function (e) {
+        var b = e.target, par = b && b.parentNode;
+        if (!par || !par.classList || !par.classList.contains('ol-bar') || par.classList.contains('ol-bar2') || !b.hasAttribute('data-skip')) return;
+        Array.prototype.forEach.call(par.querySelectorAll('button'), function (x) { if (x !== b) x.setAttribute('data-skip', ''); });
+        b.removeAttribute('data-skip'); L.barKey = b.getAttribute('data-a');
+      });
       if (VB.Account && VB.Account.onChange) VB.Account.onChange(function () {
         var k = accKey(), was = L.accKey; L.accKey = k;
         if (k === was || !L.on || L.room || L.view === 'nortc') return;   // (las sincronizaciones también avisan: no echan de «Crear sala» ni cierran «Tu nombre»)
@@ -665,23 +886,78 @@
   /** Esc / B dentro del lobby: primero se cierra lo abierto (edición, crear sala, la sala) y solo luego se sale de la página. */
   function back() {
     if (!L.on) return false;
-    if (L.edit) { var k = L.edit; L.edit = ''; render(true); focusA(k); return true; }
+    if (L.edit) { var k = L.edit; L.edit = ''; L.osk = null; render(true); focusA(k); return true; }
     if (L.view === 'create') { L.msg = ''; setView('list'); refreshList(false); focusA('new'); return true; }
     if (L.view === 'help') { ls(HELPK, '1'); setView('list'); refreshList(false); focusA(L.helpFrom || 'help'); L.helpFrom = ''; return true; }
     if (L.view === 'room' && !L.started) { leaveRoom(); setView('list'); refreshList(true); focusA('new'); return true; }
     return false;
   }
-  function side(el, d) { var k = el && el.getAttribute && el.getAttribute('data-ol'); if (k) { step(k, d); return true; } return false; }
+  function side(el, d) {
+    var k = el && el.getAttribute && el.getAttribute('data-ol'); if (k) { step(k, d); return true; }
+    if (el && el.parentNode && el.parentNode.classList && (el.parentNode.classList.contains('ol-bar') || el.parentNode.classList.contains('osk-row'))) return rowStep(el, d);
+    return false;
+  }
 
   // Cerrar o recargar la pestaña: la sala (anfitrión) o el hueco (invitado) se liberan al momento, sin esperar a que caduquen.
   // (pagehide también salta al ir a otra página; 'persisted' = la página queda en la caché del navegador y puede volver: entonces
   // también se suelta, y al volver se está en la lista.)
   window.addEventListener('pagehide', function () {
     if (!rooms || !L.room || !L.role) return;
-    try { rooms.bye(L.role, L.room.id); } catch (e) { }
+    // (vuelta al partido tras recargar: ver «VUELTA AL PARTIDO» abajo. Si se ha apuntado la vuelta, el invitado NO suelta su
+    // hueco: con la sala aún en 'full' el PATCH de bye entraría y la sala volvería a la lista sin él. Si no vuelve, el anfitrión
+    // lo ve como una desconexión normal.)
+    if (!backSave()) { try { rooms.bye(L.role, L.room.id); } catch (e) { } }
     if (L.started) return;   // (en pleno partido la sesión sigue a lo suyo: para el rival es una desconexión normal)
     abortConn(); stopAll(); L.room = null; L.role = ''; L.rival = ''; L.started = false; L.view = 'list';
   });
+
+  /* ---------------- VUELTA AL PARTIDO TRAS RECARGAR (net: robustez; notes/net.md «Robustez y privacidad») ----------------
+   * Solo el INVITADO (el anfitrión tiene la partida de verdad: si recarga él, el invitado espera y a los 60 s «no cuenta»).
+   * pagehide en pleno partido → sessionStorage BACK = {id sala, uid, gen, ep (época), rival, look, t}. Al cargar (misma pestaña,
+   * misma cuenta, < BACK_MS): sala aún en 'full'/'play' con este uid de invitado → enlace nuevo, se contesta a la siguiente oferta
+   * del anfitrión (su relink manda una con gen+1 cada 10 s durante ~60 s) y una sesión nueva sin opciones: el saludo trae las del
+   * anfitrión y su 'ready' provoca el resync con la foto (Sim.serialize). Cabe en las reglas ya desplegadas (respuesta del invitado
+   * con la sala en 'full'/'play'). La marca de partido (NetRec.resume) se hereda: si no se llega a jugar, cuenta como abandono. */
+  var BACK = 'voley3d.online.back', BACK_MS = 50000;
+  function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { } return null; }
+  function backSave() {
+    try {
+      var C = ctx(), n = C && C.net, st = n && n.sess && n.sess.status;
+      if (!L.started || L.role !== 'guest' || !n || n.slot !== 1 || !(st === 'playing' || st === 'waiting' || st === 'connecting' || st === 'starting')) return;
+      ss(BACK, JSON.stringify({ id: L.room.id, uid: api().uid() || '', gen: L.gen | 0, ep: n.epoch | 0, rival: L.rival || n.rival || '', look: n.look && n.look.theirs || null, t: Date.now() }));
+      return !!ss(BACK);   // (sessionStorage puede fallar: entonces se suelta el hueco como siempre)
+    } catch (e) { }
+    return false;
+  }
+  function backTry() {
+    var b = null; try { b = JSON.parse(ss(BACK) || 'null'); } catch (e) { b = null; }
+    ss(BACK, null);   // (un solo intento)
+    if (!b || typeof b.id !== 'string' || !b.uid || !(Date.now() - (+b.t || 0) < BACK_MS) || noRtc()) return;
+    var tries = 0, wait = setInterval(function () {
+      var C = ctx(), U = VB.UI;
+      if (++tries > 40 || Date.now() - b.t > BACK_MS) { clearInterval(wait); return; }
+      if (!signedIn() || !C || C.state !== 'menu' || !C.actions || !C.actions.startOnline || !U || !U.menuIdle || !U.menuIdle() || L.room) return;
+      clearInterval(wait);
+      api().get(b.id).then(function (r) {
+        if (!r || api().uid() !== b.uid || r.guest !== b.uid || (r.state !== 'full' && r.state !== 'play') || r.age > NR().LIVE_MS || L.room) return;
+        rejoin(r, b);
+      }, function () { });
+    }, 500);
+  }
+  function rejoin(r, b) {
+    var C = ctx();
+    try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }
+    L.role = 'guest'; L.room = r; L.rival = NR().cleanName(b.rival) || r.name || 'Rival'; L.gen = b.gen | 0; L.started = true; L.status = 'play';
+    var link = newLink();
+    link.onclose = function () { matchClosed(link); };
+    var ok = C.actions.startOnline({ slot: 1, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) } });
+    if (!ok) { matchClosed(link); return; }
+    // revancha n.º k: la sesión nueva tiene que hablar en la época del anfitrión
+    var ep = Math.max(0, Math.min(1e6, b.ep | 0));
+    if (ep && C.net && C.net.sess) { C.net.epoch = ep; C.net.sess.epoch = ep; }
+    guestListen(L.gen);
+  }
+  setTimeout(backTry, 300);
 
   // ?sala=CÓDIGO: abre Online y entra en esa sala en cuanto el menú está libre
   if (Q.sala && NR && VB.NetRoom) {

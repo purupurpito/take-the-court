@@ -19,11 +19,20 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.0';
+  VB.VERSION = '1.5.1';
   VB.VERSION_DATE = '2026-11-16';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.1', d: '2026-11-16', t: 'Lobby online',
+      items: [
+        'Lobby online nuevo: las salas salen como una cartelera, con la sede y el «VS» a la vista.',
+        'Con mando, el nombre y el código se escriben con un teclado en pantalla.',
+        'Si recargas la página en mitad de un partido online, vuelves a él como invitado.',
+        'El récord online solo cuenta partidos en los que las dos partidas cuadran al final.'
+      ]
+    },
     {
       v: '1.5.0', d: '2026-11-16', t: 'Online (beta)',
       items: [

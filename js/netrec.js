@@ -6,7 +6,8 @@
  *
  * Guardado 'voley3d.online' (JSON, v1): { v:1, played, wins, losses, quits, nc, streak, best, last:[{n, w, s, t}] (10 como mucho) }
  *   played = partidos que cuentan (ganados + perdidos); quits = cuántas de las derrotas fueron por abandonar (o tardar en volver);
- *   nc = partidos que no cuentan (se cayó quien creó la sala, otra versión, partido no válido por reparaciones).
+ *   nc = partidos que no cuentan (se cayó quien creó la sala, otra versión, partido no válido por reparaciones o final con huellas
+ *   que no cuadraban: result.unverified → «no válido»).
  *   last: n = NOMBRE del rival (lo único que se sabe de él; nunca IP ni correo), w = 1 ganado / 0 perdido / -1 no cuenta,
  *   s = '2-1' (sets) o 'abandono' / 'abandonó' / 'no volvió' / 'no cuenta', t = ms.
  * Abandonar = derrota (D11): quit() o tardar más de 60 s en volver. Cerrar la pestaña en pleno partido también: al empezar se deja
@@ -16,6 +17,7 @@
  *   outcome(result, valid) → {w: 1|0|-1, kind}  (result = r.result de VB.Net.Session; valid = r.valid)
  *   begin(rivalName)       marca de partido en curso (cerrar la pestaña = abandono); beat() la renueva cada 10 s
  *   end(rivalName, result, valid, sets) → {rec, entry, cap: true si la gorra es nueva}  una vez por partido; quita la marca
+ *   resume()               vuelta tras recargar: el siguiente begin() hereda la marca reciente de la página anterior
  *   boot()                 al cargar: una marca que quedó (sin latido en 90 s) = abandono (devuelve la entrada o null). Las marcas
  *                          son una lista (una por página); begin/beat/end también barren las viejas de otras páginas (90 s sin latido)
  *   get() → récord saneado · line(rec) → «3 ganados de 5» · CAP = 'gorraMTC'
@@ -58,14 +60,15 @@
     if (!why || why === 'version' || why === 'hostGone' || why === 'bye') return { w: -1, kind: why || 'none' };
     if (why === 'noShow' || why === 'cancel') return { w: -1, kind: 'bye' };   // (antes de empezar: no hubo partido; main.js ni siquiera lo apunta)
     if (valid === false) return { w: -1, kind: 'invalid' };
+    if (why === 'over' && res.unverified) return { w: -1, kind: 'unverified' };   // (las huellas no cuadraban al final: «no válido»)
     if (why === 'quit' || why === 'late') return { w: 0, kind: 'quit' };
     if (why === 'rivalQuit') return { w: 1, kind: 'rivalQuit' };
     if (why === 'rivalGone') return { w: 1, kind: 'rivalGone' };
     return { w: res.win ? 1 : 0, kind: 'over' };
   }
-  var S_TXT = { quit: 'abandono', rivalQuit: 'abandonó', rivalGone: 'no volvió', invalid: 'no cuenta', hostGone: 'no cuenta', version: 'no cuenta', bye: 'no cuenta', none: 'no cuenta' };
+  var S_TXT = { quit: 'abandono', rivalQuit: 'abandonó', rivalGone: 'no volvió', invalid: 'no cuenta', unverified: 'no válido', hostGone: 'no cuenta', version: 'no cuenta', bye: 'no cuenta', none: 'no cuenta' };
   /** ¿Terminaste el partido? (para la gorra: sí si se jugó hasta el final o el rival se fue; no si abandonaste tú). */
-  function finished(o) { return o.kind === 'over' || o.kind === 'rivalQuit' || o.kind === 'rivalGone' || o.kind === 'hostGone' || o.kind === 'invalid'; }
+  function finished(o) { return o.kind === 'over' || o.kind === 'rivalQuit' || o.kind === 'rivalGone' || o.kind === 'hostGone' || o.kind === 'invalid' || o.kind === 'unverified'; }
 
   function grantCap() {
     var L = VB.Look; if (!L || !L.grant) return false;
@@ -94,10 +97,24 @@
     for (i = 0; i < old.length; i++) got.push(settle(old[i].n, { why: 'quit', win: false }, true, null).entry);
     return got;
   }
+  /* Vuelta al partido tras recargar (notes/net.md «Robustez y privacidad»): resume() apunta la marca reciente que dejó la página
+   * anterior (latido de hace < 90 s); el begin() del partido recuperado la hereda en vez de crear otra. Si la vuelta no llega a
+   * jugarse, la marca se queda sin latido y a los 90 s cuenta como abandono, como siempre (recargar no sale gratis). */
+  var resumeId = '';
+  function resume() {
+    var L = marks(), now = Date.now(), best = null;
+    for (var i = 0; i < L.length; i++) if (L[i].id !== cur && now - L[i].t < STALE_MS && (!best || L[i].t > best.t)) best = L[i];
+    resumeId = best ? best.id : '';
+    return best ? { n: best.n, t: best.t } : null;
+  }
   function begin(name) {
     sweep();
-    cur = 'm' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
     var L = marks();
+    if (resumeId) {
+      var rid = resumeId; resumeId = '';
+      for (var j = 0; j < L.length; j++) if (L[j].id === rid) { cur = rid; L[j].t = Date.now(); putMarks(L); return; }
+    }
+    cur = 'm' + Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36);
     L.push({ id: cur, n: cleanName(name), t: Date.now() }); putMarks(L.slice(-8));
   }
   /** Latido de la marca (main.js cada 10 s): otra pestaña del juego abierta a la vez no la toma por un partido abandonado. */
@@ -135,5 +152,5 @@
     return r.wins + (r.wins === 1 ? ' ganado' : ' ganados') + ' de ' + r.played + (r.quits ? ' (' + r.quits + (r.quits === 1 ? ' abandono)' : ' abandonos)') : '');
   }
 
-  VB.NetRec = { KEY: KEY, PEND: PEND, CAP: CAP, get: get, outcome: outcome, begin: begin, beat: beat, end: end, boot: boot, line: line, _sane: sane };
+  VB.NetRec = { KEY: KEY, PEND: PEND, CAP: CAP, get: get, outcome: outcome, begin: begin, beat: beat, end: end, boot: boot, resume: resume, line: line, _sane: sane };
 })();

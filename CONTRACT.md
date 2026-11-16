@@ -1032,3 +1032,19 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
 - **Sprint 2-4 (fusión 15-nov-2026):** `c.ts.md = [sin, bronce, plata, oro]` (sesiones por medalla, `sessSane` lo crea; logros `ses10` y
   `sesg5` de career-life.js) y gancho de vida `life(c, 'sess', res)` en la PRIMERA sesión de la carrera (`c.ts.tot === 1`): career-world.js
   dispara la escena `ses1` de Faro («El primer entreno»). Sustituye al módulo aparte del sprint (career-train.js), que se quitó.
+
+**Online, 1.5.x (net, 16-nov-2026; detalle en notes/net.md «Lobby rediseñado…», «Fase 5», «Robustez y privacidad» y «Revisión final»).**
+- `js/netconfig.js` (nuevo; `index.html` lo carga antes de `js/netrtc.js`) → `VB.NET_ICE = null` por defecto. Con servidores TURN
+  (`{turn:[{urls, username, credential}], relayOnly}`; credenciales temporales servidas desde fuera, nunca fijas en el repositorio) `js/netrtc.js` negocia en
+  `iceTransportPolicy: 'relay'`. `VB.NetRtc.relayOn()` (¿se usará TURN en la próxima conexión?), `VB.NetRtc._pcConfig()` (pruebas)
+  y `_relayReset()`; si una conexión por TURN no abre, la siguiente va en directo.
+- `js/net.js`: `session.result.unverified = true` cuando al final ninguna huella cuadró o hay una distinta sin reparar.
+- `js/netrec.js`: `outcome` → `{kind:'unverified'}` («no válido», no suma ni a ganados ni a perdidos); `VB.NetRec.resume()` hereda
+  la marca de partido de la página anterior (vuelta tras recargar). `end()` devuelve `{rec, entry, cap, outcome}`.
+- `js/netlobby.js`: vuelta del INVITADO tras recargar (`sessionStorage` `voley3d.online.back`, < 50 s, misma cuenta, sala en
+  'full'/'play' con ese invitado; sin direcciones de red); si se apunta la vuelta, `pagehide` no suelta el hueco. Lobby rediseñado
+  (barra de acciones + cartelera) y teclado en pantalla con mando.
+- `js/main.js`: `view.netCr.col` (colores de camiseta de los dos lados para el marcador colgado de `js/arena.js`, que pone «TÚ» y el
+  nombre del rival) y `netMastery` (maestría de la hoja online, solo de los eventos confirmados de tu jugador). `ctx.net.recRes` =
+  lo que devolvió `NetRec.end`.
+- `js/ui.js` (toques): pista «↑↓←→ elegir» en la página Online y aviso «No válido…» en el resumen de la hoja final online.

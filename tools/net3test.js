@@ -105,6 +105,30 @@ function recCtx() {
     a.VB.NetRec.end('Ana', { why: 'over', win: true }, true, [1, 0]);
     check('dos páginas a la vez con latido: ninguna cuenta la marca de la otra; end solo quita la suya', n1 === 2 && a.VB.NetRec.get().losses === 0 && JSON.parse(st[a.VB.NetRec.PEND]).length === 1);
   }
+  // (robustez) vuelta al partido tras recargar: el begin() del partido recuperado hereda la marca de la página anterior
+  {
+    const r1 = recCtx(), st = r1.store; let now = 1e12; r1.ctx.Date = { now: () => now };
+    r1.VB.NetRec.begin('Ana');                           // página 1 jugando... y recarga
+    const r2 = recCtx(); for (const k in st) r2.store[k] = st[k]; r2.ctx.Date = { now: () => now };
+    const R2 = r2.VB.NetRec;
+    now += 5000; const bt = R2.boot(); const rs = R2.resume();
+    now += 3000; R2.begin('Ana');                        // la vuelta llega a jugarse
+    const nm = JSON.parse(r2.store[R2.PEND]).length;
+    for (let k = 0; k < 12; k++) { now += 10000; R2.beat(); }
+    const x = R2.end('Ana', { why: 'over', win: true }, true, [1, 0]);
+    check('recargar y volver: una sola marca heredada, sin abandono, gana normal', bt === null && rs && rs.n === 'Ana' && nm === 1 && x.rec.wins === 1 && x.rec.losses === 0 && !r2.store[R2.PEND], x.rec);
+    // la vuelta no llega a jugarse: la marca vieja se queda sin latido y cuenta como abandono
+    const r3 = recCtx(); r3.ctx.Date = { now: () => now }; const R3 = r3.VB.NetRec;
+    R3.begin('Bea'); const r4 = recCtx(); for (const k in r3.store) r4.store[k] = r3.store[k]; r4.ctx.Date = { now: () => now };
+    const R4 = r4.VB.NetRec; R4.resume(); now += 100000; const e4 = R4.boot();
+    check('recargar y no volver: la marca cuenta como abandono a los 90 s', e4 && e4.s === 'abandono' && R4.get().quits === 1, e4);
+  }
+  // (robustez) anti-trampas ligero: un final sin huellas que cuadren no suma («no válido»)
+  {
+    const r = recCtx(), R = r.VB.NetRec;
+    R.begin('Ana'); const x = R.end('Ana', { why: 'over', win: true, unverified: true }, true, [1, 0]);
+    check('final sin huellas que cuadren: «no válido», no suma ni resta', x.entry.w === -1 && x.entry.s === 'no válido' && x.rec.wins === 0 && x.rec.nc === 1 && R.get().last[0].s === 'no válido', x.entry);
+  }
   store[VB.NetRec.KEY] = '{roto';
   check('guardado dañado: se lee vacío', VB.NetRec.get().played === 0);
   store[VB.NetRec.KEY] = JSON.stringify({ wins: 5, losses: -3, quits: 99, last: [{ n: 'A', w: 7 }, 3, null] });
@@ -149,6 +173,7 @@ function load() {
   check('primer partido (pabellón, 1 set a 11) hasta el final', over && !err, { st: [sA.status, sB.status], score: sA.gc.score, t: Math.round(T / 1000), err: err && String(err) });
   const res0 = [sA.result, sB.result];
   check('resultados complementarios', res0[0] && res0[1] && res0[0].why === 'over' && res0[0].win !== res0[1].win, res0);
+  check('final con huellas que cuadran: válido en los dos (anti-trampas ligero)', !res0[0].unverified && !res0[1].unverified && sA.cmpOk > 0 && sB.cmpOk > 0 && sA.cmpBad < 0 && sB.cmpBad < 0, { ok: [sA.cmpOk, sB.cmpOk], bad: [sA.cmpBad, sB.cmpBad] });
   // revancha: los dos la piden por el canal de la interfaz
   sA.sendApp({ t: 'again' }); sB.sendApp({ t: 'again' });
   let gotA = false, gotB = false;
@@ -258,6 +283,25 @@ function load() {
     let worst = 0;
     run(c, L, 6000, () => { if (sA.status === 'playing' && sB.status === 'playing') worst = Math.max(worst, sA.rtt, sB.rtt); return false; });
     check('ping tras volver la red (corte de 14 s, 80 ms): nunca por encima de 200 ms', before > 50 && before < 150 && worst > 0 && worst < 200, { before, worst: Math.round(worst), st: [sA.status, sB.status] });
+  }
+  // f) (robustez) el invitado recarga la página en pleno partido: enlace nuevo y sesión nueva sin opciones; el anfitrión lo resincroniza
+  {
+    const { A, B, la, lb, c } = pair({ lag: 60, seed: 8 });
+    const sA = new A.Net.Session({ slot: 0, link: la, opts, name: 'Anfi', rivalName: 'Invi' }), sB = new B.Net.Session({ slot: 1, link: lb, opts: null, name: 'Invi', rivalName: 'Anfi' });
+    const botA = A.Net.bot(0, 1, 'bueno');
+    run(c, [[sA, 0, botA], [sB, 1234.5, B.Net.bot(1, 2, 'bueno')]], 15000);
+    const t1 = sA.gcTick;
+    run(c, [[sA, 0, botA]], 6000);                          // la página del invitado se recarga (6 s sin él: el anfitrión espera)
+    const waited = sA.status;
+    const B2 = load(), [la2, lb2] = A.Net.memPair({ lag: 60, seed: 9, clock: () => c.T });
+    sA.link = la2;                                          // (en el juego es el MISMO Link de WebRTC renegociado con gen+1)
+    const sB2 = new B2.Net.Session({ slot: 1, link: lb2, opts: null, name: 'Invi', rivalName: 'Anfi' });
+    const back = run(c, [[sA, 0, botA], [sB2, 987.25, B2.Net.bot(1, 2, 'bueno')]], 8000, () => sB2.status === 'playing' && sA.status === 'playing');
+    const hA = [], hB = []; sA.hashLog = hA; sB2.hashLog = hB;
+    run(c, [[sA, 0, botA], [sB2, 987.25, B2.Net.bot(1, 2, 'bueno')]], 20000);
+    const mB = new Map(hB.map(x => [x[0], x[1]])); let n = 0, bad = 0; for (const [t, h] of hA) if (mB.has(t)) { n++; if (mB.get(t) !== h) bad++; }
+    check('el invitado recarga y vuelve: resync con la foto del anfitrión, mismas opciones y huellas iguales después', t1 > 1000 && waited === 'waiting' && back && sB2.opts && sB2.opts.seed === 77 &&
+      n > 10 && bad === 0 && sB2.valid && sA.stats.resyncs >= 1 && !sA.result && !sB2.result, { t1, waited, back, n, bad, st: [sA.status, sB2.status], res: sA.stats.resyncs });
   }
 })();
 

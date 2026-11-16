@@ -2631,7 +2631,7 @@
     // según la página (antes la misma en todas: en el principal no hay nada que «cambiar» ni adónde «volver»)
     var pg = mpage, ud = '<span class="key">↑</span><span class="key">↓</span>', lr = '<span class="key">←</span><span class="key">→</span>';
     var h = d === 'gamepad' ? kh('<span class="key">Stick</span>', pg === 'quick' ? 'elegir y cambiar' : 'elegir') + kh(padKey('a'), 'aceptar') + (pg === 'main' ? '' : kh(padKey('b'), 'volver'))
-      : d === 'touch' ? '' : kh(pg === 'play' ? (VB.Retos && el.btnRetos ? ud + lr : lr) : ud, 'elegir') + kh('<span class="key">Intro</span>', 'aceptar') + (pg === 'quick' ? kh(lr, 'cambiar') : '') + (pg === 'main' ? '' : kh('<span class="key">Esc</span>', 'volver'));
+      : d === 'touch' ? '' : kh(pg === 'play' ? (VB.Retos && el.btnRetos ? ud + lr : lr) : pg === 'online' ? ud + lr : ud, 'elegir') + kh('<span class="key">Intro</span>', 'aceptar') + (pg === 'quick' ? kh(lr, 'cambiar') : '') + (pg === 'main' ? '' : kh('<span class="key">Esc</span>', 'volver'));
     // Vestuario: cambiar, apartado, girar y volver (al azar con X en el mando)
     if (pg === 'look') h = d === 'gamepad' ? kh('<span class="key">Stick</span>', 'elegir y cambiar') + kh(padKey('x'), 'al azar') + kh('<span class="key">Stick der.</span>', 'girar') + kh(padKey('b'), 'volver')
       : d === 'touch' ? '' : kh(ud, 'elegir') + kh(lr, 'cambiar') + kh('<span class="key">Q</span><span class="key">E</span>', 'apartado') + kh('<span class="key">Z</span><span class="key">X</span>', 'girar') + kh('<span class="key">Esc</span>', 'volver');
@@ -2861,6 +2861,9 @@
     var rec = '<span>Jugada más larga: <b>' + stats.longest + ' toques</b></span>';
     // E1: lo que has usado de la maestría (usos), en una línea y solo si hay algo que contar
     var e1l = masteryLine(ctx.game); if (e1l && !watch) rec += '<span class="e1">' + e1l + '</span>';
+    // (online, anti-trampas: las huellas de los dos lados no cuadraron al final → el récord lo apunta como «no válido»; aquí se dice por qué)
+    var nrr = online && ctx.net && ctx.net.recRes;
+    if (nrr && nrr.outcome && nrr.outcome.kind === 'unverified') rec += '<span class="new">No válido: las dos partidas no cuadraban al final. No cuenta en tu récord online.</span>';
     if (!ctx.debug && !career && !six && !online) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
     var bs = record.bestStreak;
     if (isNew) rec += '<span class="new">¡Nueva mejor racha: ' + (bs === 1 ? '1 punto seguido' : bs + ' puntos seguidos') + '!</span>';

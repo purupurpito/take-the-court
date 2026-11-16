@@ -4,7 +4,7 @@
  *   - Dos canales «negociados» (los crean los dos lados con el mismo id, sin esperar a ondatachannel):
  *       'in'  id 1, {ordered:false, maxRetransmits:0}  → entradas (no fiable: la redundancia la pone la sesión)
  *       'ctl' id 2, fiable y en orden                  → control (JSON)
- *   - STUN públicos y gratuitos (Google y Cloudflare). Sin TURN de momento (decisión D4 de Ferran): si las redes no dejan conectar
+ *   - STUN públicos y gratuitos (Google y Cloudflare). TURN opcional (js/netconfig.js, vacío por defecto; ver pcConfig): si las redes no dejan conectar
  *     directamente, el lobby lo dice. La SDP va COMPLETA (se espera a reunir los candidatos, como mucho GATHER_MS): una oferta y una
  *     respuesta por conexión, sin goteo de candidatos.
  *   - Mismo contrato que memPair/BcLink de js/net.js: {send(ch, data), poll(now) → [{ch, data}], close()}. Además:
@@ -23,10 +23,30 @@
 
   var ICE = [{ urls: 'stun:stun.l.google.com:19302' }, { urls: 'stun:stun.cloudflare.com:3478' }];
   var GATHER_MS = 3500, CTL_MAX = 400, DOWN_MS = 4000;
+  /* TURN opcional (js/netconfig.js, VB.NET_ICE): con servidores TURN, iceTransportPolicy 'relay' (el rival solo ve la dirección del
+   * TURN, nunca la tuya). Si una conexión por TURN se cae o se sustituye sin haber llegado a abrirse, esta página deja el TURN y
+   * vuelve a lo normal (STUN, directa) en la siguiente negociación (relayBad). */
+  var relayBad = false;
+  function turnCfg() {
+    var c = VB.NET_ICE;
+    if (!c || !Array.isArray(c.turn)) return null;
+    var L = c.turn.filter(function (s) { return s && (typeof s.urls === 'string' || Array.isArray(s.urls)) && /^turns?:/.test([].concat(s.urls)[0] || ''); });
+    return L.length ? { servers: L, relay: c.relayOnly !== false } : null;
+  }
+  /** Configuración del RTCPeerConnection: (iceServers explícitos de las pruebas) > TURN (si lo hay y no ha fallado) > STUN. */
+  function pcConfig(explicit) {
+    if (explicit) return { cfg: { iceServers: explicit }, relay: false };
+    var t = relayBad ? null : turnCfg();
+    if (!t) return { cfg: { iceServers: ICE }, relay: false };
+    var cfg = { iceServers: t.servers.concat(ICE) };
+    if (t.relay) cfg.iceTransportPolicy = 'relay';
+    return { cfg: cfg, relay: !!t.relay };
+  }
 
   function Link(o) {
     o = o || {};
-    this.ice = Array.isArray(o.iceServers) ? o.iceServers : ICE;
+    this.ice = Array.isArray(o.iceServers) ? o.iceServers : null;   // (null: netconfig/STUN, ver pcConfig)
+    this._relay = false; this._pcOpened = false;
     this.q = []; this.pend = []; this.pc = null; this.dIn = null; this.dCtl = null;
     this.state = 'new'; this.onstate = typeof o.onstate === 'function' ? o.onstate : null;
     this.onclose = null; this._disc = 0; this._type = ''; this._rtt = 0; this.opens = 0;
@@ -37,6 +57,7 @@
   LP._set = function (s) { if (this.state === s || this.state === 'closed') return; this.state = s; if (this.onstate) { try { this.onstate(s); } catch (e) { } } };
   LP._drop = function () {
     var pc = this.pc; this.pc = null;
+    if (pc && this._relay && !this._pcOpened) relayBad = true;   // (TURN que no llegó a abrir: la siguiente, directa)
     if (this.dIn) { this.dIn.onmessage = this.dIn.onopen = this.dIn.onclose = null; }
     if (this.dCtl) { this.dCtl.onmessage = this.dCtl.onopen = this.dCtl.onclose = null; }
     this.dIn = this.dCtl = null;
@@ -44,8 +65,10 @@
   };
   LP._mk = function () {
     this._drop();
-    var self = this, pc = new RTCPeerConnection({ iceServers: this.ice });
-    this.pc = pc; this._disc = 0;
+    var pcc = pcConfig(this.ice), pc;
+    try { pc = new RTCPeerConnection(pcc.cfg); } catch (e) { relayBad = true; pcc = pcConfig(this.ice); pc = new RTCPeerConnection(pcc.cfg); }   // (TURN mal escrito)
+    var self = this;
+    this.pc = pc; this._disc = 0; this._relay = pcc.relay; this._pcOpened = false;
     var dIn = pc.createDataChannel('in', { negotiated: true, id: 1, ordered: false, maxRetransmits: 0 });
     var dCtl = pc.createDataChannel('ctl', { negotiated: true, id: 2, ordered: true });
     this.dIn = dIn; this.dCtl = dCtl;
@@ -61,7 +84,7 @@
     pc.onconnectionstatechange = function () {
       if (self.pc !== pc) return;
       var s = pc.connectionState;
-      if (s === 'failed' || s === 'closed') { if (self.state === 'open' || self.state === 'connecting') self._set('down'); }
+      if (s === 'failed' || s === 'closed') { if (self._relay && !self._pcOpened) relayBad = true; if (self.state === 'open' || self.state === 'connecting') self._set('down'); }
       else if (s === 'disconnected') { if (!self._disc) self._disc = Date.now(); }
       else if (s === 'connected') self._disc = 0;
     };
@@ -70,7 +93,7 @@
   };
   LP._opened = function () {
     if (!this.dIn || !this.dCtl || this.dIn.readyState !== 'open' || this.dCtl.readyState !== 'open') return;
-    this.opens++;
+    this.opens++; this._pcOpened = true;
     this._set('open');
     var p = this.pend; this.pend = [];
     for (var i = 0; i < p.length; i++) this._sendCtl(p[i]);
@@ -132,5 +155,6 @@
   /** Pruebas: simula una caída (cierra la conexión sin avisar al otro lado de nada más). */
   LP._kill = function () { this._drop(); if (this.state !== 'closed') this._set('down'); };
 
-  VB.NetRtc = { Link: Link, ICE: ICE, GATHER_MS: GATHER_MS, supported: function () { return typeof RTCPeerConnection === 'function'; } };
+  VB.NetRtc = { Link: Link, ICE: ICE, GATHER_MS: GATHER_MS, supported: function () { return typeof RTCPeerConnection === 'function'; },
+    _pcConfig: pcConfig, relayOn: function () { return !relayBad && !!turnCfg(); }, _relayReset: function () { relayBad = false; } };
 })();

@@ -347,7 +347,7 @@ Las huellas de siempre no cambian (no se toca `sim.js` ni `net.js`).
 
 ### Conexión (`js/netrtc.js` + `js/netlobby.js`)
 
-- `Link`: `RTCPeerConnection` con STUN `stun.l.google.com:19302` y `stun.cloudflare.com:3478`, sin TURN (D4). Canales negociados
+- `Link`: `RTCPeerConnection` con STUN `stun.l.google.com:19302` y `stun.cloudflare.com:3478`, sin TURN (D4; desde «Robustez y privacidad», TURN opcional con `VB.NET_ICE`). Canales negociados
   `'in'` (id 1, `{ordered:false, maxRetransmits:0}`) y `'ctl'` (id 2, fiable). SDP completa: se espera a reunir candidatos (máx. 3,5 s).
   Mientras está caído, `'in'` se pierde (la sesión espera) y `'ctl'` se guarda en cola (400) y sale al reabrir. `close()` cierra 0,4 s
   después (sale el adiós de la sesión: el rival ve «ha abandonado» al momento). `info()` = `{type: 'host'|'srflx'|'relay', rtt}`.
@@ -547,10 +547,10 @@ gorra «MTC»: las dos páginas comparten el guardado y así se distinguen), `&k
   oculta no cuenta). La línea de maestría (`g.stats`) no sale en el online (`view.stats` no se copia). Si molesta: calcularlas de
   `confirmedGame().stats` giradas para el invitado.
 - «Mejores jugadas» y repetición: siguen apagadas en el online.
-- Volver a la sala tras recargar la página (fase 2) sigue pendiente; hoy recargar = abandono al cabo de 60 s (y la marca lo apunta).
+- ~~Volver a la sala tras recargar la página (fase 2) sigue pendiente~~ SUPERADO: el invitado vuelve solo (ver «Robustez y privacidad»); el anfitrión aún no.
 - Intensive throttling de Chrome (pestaña oculta más de 5 min): el Worker debería seguir; no medido con un navegador de verdad.
 - El récord online es por aparato (no va a la cuenta).
-- El marcador colgado del pabellón (arena.js) aún pone «TÚ / CPU» en el online; los rótulos de punto, set y partido ya dicen «EL RIVAL».
+- ~~El marcador colgado del pabellón (arena.js) aún pone «TÚ / CPU» en el online~~ SUPERADO en «Fase 5»: «TÚ» y el nombre del rival, con el color de cada camiseta.
 
 ---
 
@@ -622,8 +622,77 @@ Decisión 7 de Ferran: la entrada «Online» se ve en el menú y él pondrá gen
 
 - Lo de las fases anteriores: volver a la sala tras recargar, TURN si fallan muchas conexiones entre redes distintas (medirlo con los
   primeros probadores: `VB.NetLobby._state().linkInfo.type`), escribir con mando, estadísticas de maestría en la hoja online, marcador
-  colgado del pabellón con «TÚ / CPU».
+  colgado del pabellón con «TÚ / CPU». (SUPERADO casi todo: escribir con mando en «Lobby rediseñado y teclado en pantalla»; maestría
+  y marcador colgado en «Fase 5»; vuelta del invitado y soporte de TURN en «Robustez y privacidad». Queda: vuelta del anfitrión y
+  activar TURN con una cuenta.)
 - Las Novedades del online las escribe la sesión principal (esta fase no toca Novedades ni Controles).
+
+---
+
+## Fase 5 — pulido de partido y final online (16-nov-2026)
+
+Ficheros: `js/arena.js` (solo el marcador colgado), rama online de `js/main.js`. `net.js`, `netview.js`, `sim.js` y
+`firebase/firestore.rules` sin cambios; huellas idénticas.
+
+- **Marcador colgado del pabellón:** en el online pone «TÚ» y el nombre del rival en mayúsculas (`hungRival`: si pasa de 10 letras, la
+  primera palabra; si aún pasa, 9 letras y punto; `fitFont` encoge). Colores de cada lado = las camisetas del partido (`netCr.col`, de
+  `netKit()` en `netBuildView`): el invitado ya no ve su lado en rojo yendo de azul. `TEAMC` vuelve a los de siempre en el siguiente
+  partido offline (`TEAMC0`). La vista ya está girada (`NetView.mirror`): tu equipo siempre a la izquierda, anfitrión e invitado igual.
+  Capturas `tools/out/f5-colgado-{anf,inv}.png` y `tools/out/f5-juego-{anf,inv}-{1280x720,844x390}.png` (HUD «Contra X | ping» y
+  flechita con el nombre: bien en los dos tamaños).
+- **Línea de maestría en la hoja online:** `netMastery` (main.js) suma a `view.stats.mastery` los usos de TU jugador (equipo canónico
+  `net.slot`, toques `human`) de los eventos CONFIRMADOS (`r.confirmed`, también con la pestaña oculta), con las reglas de sim.js
+  (finta > colocado > al filo en remate o dejada; rápida al colocarla). La `g.stats` canónica no sirve: junta a los dos humanos.
+
+### Pendiente (fase 5)
+
+- **Resto de estadísticas de la hoja** (puntos, remates, jugadores…): las cuenta `tally()` de `ui.js` con los eventos presentados, que
+  también pintan banners y efectos, así que no se pueden separar sin tocar `ui.js` (no era de esta parte). Propuesta: en `onEvents`
+  saltar `tally(e)` si `e._noTally`, exportar `VB.UI.netTally(evs)` (tally + untally del challenge) y que main.js marque los
+  presentados y pase `r.confirmed` mapeados (`NetView.mapEvents`). Mientras, un toque predicho que el rollback anuló puede contar.
+- **«Mejores jugadas» y repetición:** siguen apagadas. `js/replay.js` graba UNA entrada humana por paso (`onStep(simIn, g)`) y resimula
+  con ella; el online necesita las DOS (`Sim.step(gc, STEP, ins)`) y la sombra habría que girarla para el invitado. La sesión ya sabe
+  grabar las dos (`record: true` → `rec[t]`), pero hace falta cambiar replay.js (no es de esta parte). Sin repetición, las «Mejores
+  jugadas» no tienen qué enseñar.
+- Hoja final online no capturada en esta fase (falta de tiempo); `node tools/netdrive.js --guion` la cubre.
+
+---
+
+## Lobby rediseñado y teclado en pantalla (16-nov-2026, tras el 1.5.0)
+
+Petición de Ferran: «haz que se diferencien los lobbies de los botones del menú, hazlo un poco atractivo». Solo `js/netlobby.js`
+(vistas y su CSS, que vive en la cadena `CSS` del propio fichero; `index.html` no cambia). Sin reglas nuevas; las huellas no cambian.
+
+- **Lista = barra de acciones + cartelera.** Arriba, una barra compacta: «Crear sala» (naranja), «Código», tu nombre (lápiz y nombre
+  en amarillo), actualizar (gira mientras busca) y «?» (Cómo funciona). Debajo, la cartelera: rótulo inclinado «● Salas abiertas
+  N salas | Tu récord …» y una franja por sala tipo rótulo de TV (`.ol-fx`, la pieza inclinada es `.fx-in` porque el deshabilitado
+  global quita las transformaciones del botón): a la izquierda la sede con su color (arena con rayas / madera con tablas) y el nombre
+  de la sede si lo hay; el anfitrión grande en condensada, «VS» y el hueco «?» discontinuo (con el nombre del rival si la sala está
+  llena); chips de partido (1 set a 21 / Mejor de 3, Igualado / Con sus atributos); piloto Abierta (verde) / Llena (naranja) / Otra
+  versión (gris) y «Entrar», que se rellena de amarillo con el foco. Una sala nueva entra deslizándose (0,38 s, escalonadas; nada con
+  `prefers-reduced-motion`). Lista vacía: franja discontinua «? VS ?  Aún no hay salas. Crea una y avisa a alguien.»
+- **Sala de espera:** el mismo rótulo en grande: franja de sede arriba con «Tu sala / Sala de …» y el código; TÚ VS RIVAL en grande, el
+  hueco del rival con «?» y tres puntos que laten hasta que llega, y su nombre entra deslizándose. «Copiar código» y «Salir de la sala»
+  como barra de dos botones.
+- **Navegación:** la barra es UNA parada en ↑↓ (solo el botón activo de la barra no lleva `data-skip`; `L.barKey`) y ←→ la recorre
+  (`side()` → `rowStep`). ↓ desde la barra va a la primera sala; ↑ desde la primera sala vuelve al botón de la barra donde estabas. Esc /
+  B como antes. Con ratón o Tab, el botón enfocado pasa a ser la parada (`focusin`).
+- **Escribir con mando (pendiente de las fases 2-4, HECHO):** si lo último fue un mando (`ctx.inputDevice === 'gamepad'`), «Código» y tu
+  nombre abren un teclado en pantalla en lugar del `<input>` (que sigue igual con teclado, ratón y táctil). Nombre: cifras, QWERTY con Ñ,
+  `- . _`, mayúsculas/minúsculas (empieza en mayúscula y pasa a minúscula tras la primera letra si el nombre estaba vacío), Espacio,
+  Borrar y Guardar. Código: solo las letras y cifras válidas (sin 0, O, 1, I ni L), Borrar y Entrar. Cruceta ↑↓ cambia de fila en la
+  misma columna (de nuevo con `data-skip`: solo la tecla de la columna actual de cada fila entra en el recorrido de ui.js), ←→ dentro
+  de la fila, A escribe, B cancela. Mientras está abierto, la cartelera se esconde (en 844×390 no caben los dos).
+
+Pruebas: `node tools/roomtest.js` 69 ok; `bash tools/console.sh all 844 390` sin errores JS; `node tools/netdrive.js --rtc` 22 ok;
+`node tools/simtest.js` «huella 2v2 idéntica». Navegación (prueba aparte en el scratchpad, `NetRoom` simulado, mando falso de
+padtest): 23 comprobaciones (barra, salas, ←→, Intro/Esc en el campo, teclado en pantalla con mando: Q → W → S, escribir, Guardar
+guarda el nombre, código sin caracteres prohibidos, B cierra). Capturas: `tools/out/lob-{lista0,lista1,lista1-anim,lista4,teclado,
+teclado-codigo,sala-espera,sala-rival,sala-invitado}-{1280x720,844x390}.png`.
+
+Pendiente: «Crear sala» sigue con las filas de opciones de siempre (es un formulario, como Partido rápido); en vertical (≤ 620 px de
+ancho) la cartelera no se ha mirado a fondo; el teclado en pantalla no acepta teclas físicas a la vez (si se toca el teclado, al volver a
+abrir sale el `<input>`).
 
 ---
 
@@ -771,9 +840,95 @@ con sesión las borra desde el lobby).
    abandone (cuenta como derrota). Al terminar el primer partido, mirad la gorra «Online Beta Tester» en el Vestuario.
 
 **Si no conectan** («vuestras redes no lo permiten»): pasa con algunas redes (datos móviles, wifi de empresa o de universidad) porque
-aún no hay servidor de paso (TURN). Probad desde otra red. Si a los probadores les pasa a menudo, es lo siguiente que habría que poner.
+aún no hay servidor de paso (TURN) activado (el soporte está listo: «Robustez y privacidad»). Probad desde otra red. Si a los probadores les pasa a menudo, es lo siguiente que habría que poner.
 Para saber qué tipo de conexión salió, en la consola del navegador: `VB.NetLobby._state().linkInfo` (`host` = misma red, `srflx` = a
 través de internet; nunca enseña la IP).
 
 **Límites de la beta que conviene decir a los probadores:** los atributos «de tu Carrera» los manda cada uno desde su navegador (quien
 quiera ir a la par, «Igualado»); recargar la página en pleno partido cuenta como abandono a los 60 s; el récord online es por aparato.
+
+---
+
+## Robustez y privacidad (16-nov-2026, tras el 1.5.0)
+
+Ficheros: `js/net.js`, `js/netrec.js`, `js/netrtc.js`, `js/netconfig.js` (nuevo, una línea en `index.html` antes de netrtc.js;
+`tools/build-pages.js` copia `js/` entero, no hay que tocarlo), y en `js/netlobby.js` solo un bloque aparte «VUELTA AL PARTIDO» y una
+línea (`backSave()`) en el `pagehide`. **`firebase/firestore.rules` NO cambia.** `sim.js` no se toca: huella 2v2 idéntica.
+
+### 1. Volver al partido tras recargar (solo el INVITADO)
+
+- `pagehide` del invitado en pleno partido → `sessionStorage['voley3d.online.back']` = `{id sala, uid, gen, ep (época), rival, look
+  del rival ya saneado, t}`. Nada de SDP ni direcciones de red. sessionStorage: misma pestaña (recargar), no otra pestaña ni otro aparato.
+- Al cargar (`backTry`, un solo intento, la marca se borra al leerla): si han pasado menos de 50 s, hay sesión, el menú está libre
+  y la sala sigue en `full`/`play` con este uid de invitado → `rejoin`: `NetRec.resume()`, enlace nuevo, `startOnline` con
+  `opts: null` (la sesión nueva pide el saludo; el anfitrión contesta con sus opciones y, al llegar su `ready`, manda el resync con
+  la foto de `Sim.serialize`), época de la revancha copiada a `ctx.net`, y `guestListen(gen)` contesta a la siguiente oferta.
+- El anfitrión no cambia nada: su enlace pasa a `down` al cerrarse la página del invitado y su `relink` manda una oferta nueva
+  (gen+1) a los 0,6 s y luego cada 10 s durante ~60 s. Su sesión espera («Esperando a…»), con o sin «Seguir contra la IA».
+- Reglas: el invitado escribe su respuesta con la sala en `full`/`play` y el anfitrión reescribe la oferta: ya lo permitían. El
+  `pagehide` del invitado en `play` intenta dejar la sala en `open` y las reglas lo rechazan (solo dejan salir desde `full`), justo lo
+  que hace falta para volver (comprobado en roomtest).
+- Récord: `NetRec.resume()` apunta la marca reciente de la página anterior y el `begin()` del partido recuperado la hereda (no crea
+  otra). Si la vuelta no llega a jugarse, esa marca se queda sin latido y a los 90 s cuenta como abandono: recargar no sale gratis.
+- **Pendiente:** recarga del ANFITRIÓN (su `pagehide` borra la sala y él tiene la partida de verdad: el invitado espera y a los 60 s
+  «no cuenta»). Haría falta: no borrar la sala en `play`, que la página nueva pida la foto al invitado (el anfitrión pasaría a
+  adoptarla) y reofrezca con gen+1. Tampoco hay aviso en pantalla («Volviendo al partido…»): se va directo a «Conectando…» (con
+  «Salir»). Sin prueba en Chrome de la recarga (`netdrive --rtc` sin ese caso todavía).
+
+### 2. TURN opcional (ocultar la dirección de red)
+
+- `js/netconfig.js` define `VB.NET_ICE = null` (sin TURN: como hasta ahora, STUN y conexión directa).
+- Con `VB.NET_ICE = { turn: [{ urls: ['turn:…:3478?transport=udp', 'turns:…:443?transport=tcp'], username, credential }], relayOnly: true }`
+  `js/netrtc.js` (`pcConfig`) usa esos servidores más los STUN y `iceTransportPolicy: 'relay'`: el rival solo ve la dirección del TURN.
+  `Link.info().type` pasa a ser `relay`. Si una conexión por TURN no llega a abrirse (falla o se sustituye antes), esa página
+  deja el TURN (`relayBad`) y la siguiente negociación va en directo. Un TURN mal escrito tampoco rompe nada.
+- Cómo activarlo: una cuenta de TURN (p. ej. Cloudflare Calls TURN: crear una clave de TURN en el panel; su API da credenciales
+  temporales). **No pongas credenciales fijas en el repositorio (es público).** Lo correcto es servir credenciales de vida corta
+  desde fuera (una función pequeña que llame a la API del proveedor) y rellenar `VB.NET_ICE` al cargar. Sin servidor propio, de
+  momento no hay forma limpia: por eso queda vacío.
+
+### 3. Anti-trampas ligero
+
+- `Session`: `cmpOk` (huellas comparadas que cuadraron) y `cmpBad` (tic de la última distinta sin reparar; se borra con la
+  reparación, el `snapok` o un resync). Al llegar el final (`gameOver`), si no cuadró ninguna o hay una distinta pendiente →
+  `result.unverified = true`. `NetRec.outcome` lo cuenta como «no válido» (`kind 'unverified'`, entrada `w -1`, `s 'no válido'`,
+  suma en `nc`, no en ganados ni perdidos). Sigue valiendo lo de antes: 3 reparaciones en 60 s = «no cuenta».
+- Límite: sin servidor no hay árbitro. Un cliente modificado puede mandar huellas falsas que cuadren, o cortar la red antes de
+  perder (abandono = derrota, eso sí). Esto solo pilla partidas que de verdad se desincronizaron al final. El récord es por aparato.
+
+### 4. Salas fantasma
+
+- Ya estaba: `pagehide` del anfitrión borra su sala y la señalización con `fetch keepalive` (`rooms.bye`), comprobado en roomtest
+  y en `netdrive --rtc` («la sala desaparece al momento»). Si el token ya no vale o el navegador corta, la sala sale de la lista a
+  los 90 s sin latido y se barre a los 5 min. Sin cambios en esta tanda.
+
+### Pruebas
+
+- `node tools/nettest.js` 61 ok. `node tools/net3test.js` 51 ok (nuevas: heredar la marca al volver, no volver = abandono, final
+  «no válido», final normal válido en los dos, y (f) el invitado recarga: sesión nueva sin opciones sobre un enlace nuevo, resync,
+  opciones del anfitrión y huellas iguales 20 s después). `node tools/roomtest.js` 69 ok con el emulador (nuevas: recarga del
+  invitado en `play`: la sala sigue con él, oferta gen+1 y respuesta nuevas caben en las reglas; un tercero no lee la oferta).
+  `node tools/simtest.js`: huella 2v2 idéntica.
+
+---
+
+## Revisión final (16-nov-2026, tanda de 2 h)
+
+Problemas de la revisión, verificados en el código y arreglados:
+
+- **Recarga del invitado antes de 'play'** (`js/netlobby.js`): `backSave()` devuelve si ha apuntado la vuelta. Si la ha apuntado,
+  `pagehide` ya no llama a `rooms.bye('guest')`. Antes, con la sala aún en 'full', ese PATCH entraba: el invitado perdía el hueco
+  y la sala volvía a la lista. Si el invitado no vuelve, el anfitrión lo vive como una desconexión normal (60 s).
+- **Teclado del nombre en mayúsculas** con un nombre ya guardado: ahora abre en minúsculas (`up: !v0`). Con el nombre vacío sigue
+  la mayúscula inicial automática.
+- **Barra sin parada** mientras «Crear sala» está desactivado (`L.busy`): la parada pasa a «Código».
+- **Pista inferior** (`js/ui.js`): en la página Online dice «↑↓←→ elegir» (barra y teclado en pantalla).
+- **«No válido» en la hoja final online** (`js/ui.js`, resumen): si `NetRec.end` da `outcome.kind === 'unverified'`, sale
+  «No válido: las dos partidas no cuadraban al final. No cuenta en tu récord online.».
+- **Documentación:** marcadas como superadas las líneas antiguas de «TÚ / CPU», «sin TURN» y «volver tras recargar»; CONTRACT.md
+  recoge `js/netconfig.js`, `NetRec.resume`, `result.unverified`, `NetRtc.relayOn/_pcConfig` y la vuelta del invitado.
+
+Sigue pendiente (sin cambios): recarga del ANFITRIÓN, aviso «Volviendo al partido…», caso de recarga en `netdrive --rtc`,
+estadísticas generales de la hoja desde la partida confirmada (hook en ui.js), repetición y «Mejores jugadas» online (replay.js),
+nombres de más de 16 letras cortados, vertical ≤ 620 px del lobby, «Crear sala» con el lenguaje del rótulo, y probar con un mando
+y un móvil de verdad.

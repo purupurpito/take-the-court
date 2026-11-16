@@ -133,6 +133,7 @@
     this.rtt = 0; this.rttN = 0; this.remoteTick = 0; this.remoteTickAt = 0; this.adv = 0;
     this.waitStart = -1; this.waitMs = 0; this.myHash = {}; this.theirHash = {}; this.snaps = [];
     this.repairPending = false; this.repairs = []; this.mismatches = 0; this.repaired = 0;
+    this.cmpOk = 0; this.cmpBad = -1;   // anti-trampas ligero: huellas que cuadraron y tic de la última que no (sin reparar aún)
     this.presTick = 0; this.presKeys = {}; this.presList = []; this.overSeen = false;
     this.stats = { frames: 0, maxDepth: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0 };
     this.initEvents = []; this._cand = []; this._conf = [];
@@ -284,7 +285,7 @@
       case 'snap': if (!this.host) this._applySnap(c, now); break;
       case 'snapok':
         if (!this.host) break;
-        this.repairPending = false;
+        this.repairPending = false; if (this.cmpBad <= (c.t | 0)) this.cmpBad = -1;
         for (var ht in this.theirHash) if (+ht > c.t) this._checkHash(+ht, now);
         break;
       case 'resync':
@@ -321,7 +322,9 @@
   SP._checkHash = function (t, now) {
     if (t <= this.syncFloor) return;
     var a = this.myHash[t], b = this.theirHash[t];
-    if (a === undefined || b === undefined || a === b) return;
+    if (a === undefined || b === undefined) return;
+    if (a === b) { this.cmpOk++; if (t > this.cmpBad) this.cmpBad = -1; return; }
+    if (t > this.cmpBad) this.cmpBad = t;
     if (!this.host) return;                 // el invitado espera la foto del anfitrión
     if (this.repairPending && now - this.repairAt < 3000) return;
     var sn = null; for (var i = 0; i < this.snaps.length; i++) if (this.snaps[i].t === t) sn = this.snaps[i];
@@ -334,7 +337,7 @@
     if (t > this.gcTick || t < this.gcTick - RING / 2 || t < this.syncFloor) return;
     var to = this.gcTick;
     if (!S.deserialize(c.d, this.gc)) return;
-    this.gcTick = t; this.mismatches++; this.repaired++;
+    this.gcTick = t; this.mismatches++; this.repaired++; this.cmpBad = -1;
     this._confirm(to, true);               // resimula hasta donde estaba, con las entradas que ya tenía (sin presentar eventos)
     for (var k = t + HASH_EVERY; k <= this.gcTick; k += HASH_EVERY) if (this.myHash[k] !== undefined) this._ctl({ k: 'hash', t: k, h: this.myHash[k] });
     this._ctl({ k: 'snapok', t: t });
@@ -355,7 +358,7 @@
     for (k = T; this.mine.has(k); k++) { i = k & RM; mine.push(this.mine.X[i], this.mine.Y[i], this.mine.B[i]); }
     for (k = T; k < F; k++) { i = k & RM; fab.push(this.theirs.X[i], this.theirs.Y[i], this.theirs.B[i]); }
     this.solo = false; this.rivalSolo = false; this.lostAt = -1; this.waitStart = -1; this.stats.resyncs++; this.syncFloor = T; this.repairPending = false;
-    this.theirHash = {};   // (las de antes y las de la partida del invitado contra la IA no valen)
+    this.theirHash = {}; this.cmpBad = -1;   // (las de antes y las de la partida del invitado contra la IA no valen)
     this._ctl({ k: 'resync', T: T, F: F, d: S.serialize(this.gc), t0: this.t0, mine: mine, fab: fab, valid: this.valid });
     this._log('resync: foto del tic ' + T + ', IA del rival hasta ' + F);
     void sv;
@@ -372,7 +375,7 @@
     this.valid = c.valid !== false && !this.repInvalid;   // (las reparaciones propias ya se avisaron con 'invalid'; seguir contra la IA no cuenta si se vuelve)
     if (this.status !== 'over') this.result = null;
     this.edges = 0; this.edgesAt = -1;
-    this.myHash = {}; this.theirHash = {}; this.syncFloor = T;
+    this.myHash = {}; this.theirHash = {}; this.syncFloor = T; this.cmpBad = -1;
     if (this.status !== 'over') this.status = 'playing';
     this.waitStart = -1; this.started = true; this.stats.resyncs++;
     this.presTick = Math.max(T, this._target(now)); this.muteBefore = this.presTick; this.presKeys = {}; this.presList.length = 0;   // lo de antes de volver no suena
@@ -507,7 +510,12 @@
         if (this._conf[i].type === 'gameOver') {
           this.status = 'over';
           if (this.solo && !this.goneFlag) this._gone();   // acabó contra la IA sin que el rival volviera: abandono
-          if (!this.result) this.result = { why: 'over', win: this._conf[i].team === this.slot };
+          if (!this.result) {
+            this.result = { why: 'over', win: this._conf[i].team === this.slot };
+            // anti-trampas ligero (sin servidor no hay árbitro): el final solo cuenta si las huellas de los dos lados cuadraban al
+            // acabar: alguna comparada y ninguna distinta sin reparar. Si no, «no válido» (NetRec: no suma ni resta)
+            if (!this.cmpOk || this.cmpBad >= 0) { this.result.unverified = true; this._log('final sin huellas que cuadren: no válido'); }
+          }
         }
       }
       this._predict();

@@ -204,6 +204,22 @@ async function emuTests(base) {
     check('pestaña cerrada (pagehide) del invitado: hueco libre y su respuesta borrada', gr && gr.state === 'open' && gr.guest === '' && (await raw('GET', '/rooms/uidJ/sig/answer')).status === 404);
     H.bye('host'); await sleep(600);
     check('pestaña cerrada (pagehide) del anfitrión: sala borrada al momento', (await raw('GET', '/rooms/uidJ')).status === 404); }
+  // (robustez) vuelta del invitado tras recargar: con la sala en 'play', su pagehide no la reabre (las reglas solo dejan salir desde
+  // 'full') y, ya de vuelta, el anfitrión reescribe la oferta (gen+1) y el invitado su respuesta, sin cambiar las reglas
+  { const H = mk('uidL'), G = mk('uidM'); await H.open({ name: 'Lu' }); await G.join('uidL', 'Mo'); await H.beat({ state: 'play' });
+    await H.putSig('uidL', 'offer', { sdp: 'o1', gen: 10, to: 'uidM' }); await G.putSig('uidL', 'answer', { sdp: 'a1', gen: 10 });
+    G.bye('guest', 'uidL'); await sleep(600);
+    const r1 = await H.get('uidL');
+    const G2 = mk('uidM');   // (la página recargada: cliente nuevo, misma cuenta)
+    const okOffer = await H.putSig('uidL', 'offer', { sdp: 'o2', gen: 11, to: 'uidM' }).then(() => true, e => e.code);
+    const o2 = await G2.getSig('uidL', 'offer');
+    const okAns = await G2.putSig('uidL', 'answer', { sdp: 'a2', gen: 11 }).then(() => true, e => e.code);
+    const a2 = await H.getSig('uidL', 'answer');
+    check('recarga del invitado en pleno partido: la sala sigue en juego con él; nueva oferta (gen+1) y nueva respuesta caben en las reglas',
+      r1 && r1.state === 'play' && r1.guest === 'uidM' && okOffer === true && o2 && o2.gen === 11 && okAns === true && a2 && a2.gen === 11 && a2.uid === 'uidM', { r1: r1 && r1.state, okOffer, okAns });
+    const C2 = mk('uidC'); const peek = await C2.getSig('uidL', 'offer');
+    check('… y un tercero no puede leer la oferta nueva', peek === null);
+    await H.close(); }
   check('C no puede borrar la sala de otro con latido vivo', await (async () => { const r = await mk('uidG').open({ name: 'Gal' }); const d = await raw('DELETE', '/rooms/uidG', null, fakeToken('uidC')); await mk('uidG').close(); return r && d.status === 403; })());
 }
 

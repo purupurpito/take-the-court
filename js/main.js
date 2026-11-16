@@ -738,6 +738,22 @@
     var ab = rv.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/g, '').slice(0, 3).toUpperCase() || 'RIV';
     net.cr = v.netCr = { me: 'TÚ', rival: ab, meName: net.name || 'Tú', rivalName: rv };
   }
+  /** Línea de maestría de la hoja final online (ui.js masteryLine lee g.stats.mastery): copyGame no copia stats, y la g.stats de la
+   *  partida canónica junta las jugadas de los DOS humanos. Se cuentan aquí de los eventos CONFIRMADOS (un toque predicho que el
+   *  rollback anuló no cuenta; lo de la pestaña oculta sí, porque la partida es la misma): los toques humanos de tu equipo canónico
+   *  (net.slot), con las mismas reglas que sim.js (finta > colocado > al filo en remate o dejada; rápida al colocarla). Solo usos. */
+  function netMastery(list) {
+    var st = net.view && net.view.stats, m = st && st.mastery, tag = VB.MASTERY && VB.MASTERY.edge ? VB.MASTERY.edge.tag : 0.5;
+    if (!m || !net.view.mastery) return;
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i]; if (!e || e.type !== 'hit' || !e.human || e.team !== net.slot) continue;
+      if (e.kind === 'spike' || (e.kind === 'free' && e.shot === 'tip')) {
+        var mv = e.feint ? 'feint' : e.shot === 'roll' ? 'roll' : e.edge > tag ? 'edge' : '';
+        if (mv) m[mv][0]++;
+      }
+      if (e.tempo && e.tempo !== 'lane' && e.tempo !== 'high') m.quick[0]++;
+    }
+  }
   function netBuildView() {
     var s = net.sess, o = s.opts;
     if (o.mapId && isMapId(o.mapId)) forceVenue(o.mapId); else forceVenue(o.venue === 'beach' ? 'beach' : 'hall');
@@ -748,6 +764,9 @@
     net.view = v;
     restoreEndButtons(); endTweaked = false; careerEnd = null;
     var kit = null; try { kit = netKit(); } catch (e) { reportError('netKit', e); }
+    // (colores de los dos equipos para el marcador colgado del pabellón, arena.js: el invitado no viste el rojo del equipo 0)
+    var hx = function (c) { return typeof c === 'number' ? '#' + ('00000' + (c >>> 0).toString(16)).slice(-6) : null; };
+    net.cr.col = kit && kit.kit1 && hx(kit.kitShirt) && hx(kit.kit1.kitShirt) ? [hx(kit.kitShirt), hx(kit.kit1.kitShirt)] : null;
     var mf = net.look && net.look.mine && net.look.mine.fits;
     setGame(v, kit, mf && (mf[0] || mf[1]) ? { fits: mf } : {});
     VB.NetView.mapEvents(s.initEvents, v, net.slot, pendingEvents);   // (setGame vacía pendingEvents)
@@ -774,6 +793,7 @@
     if (v) {
       VB.NetView.mirror(v, r.g, net.slot);
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
+      if (r.confirmed.length) netMastery(r.confirmed);
       if (r.events.length) VB.NetView.mapEvents(r.events, v, net.slot, frameEvents);
       if (ctx.state === 'playing' && !net.over && frameEvents.some(isGameOver)) { net.over = true; netSettle(); setState('over'); }
     }
@@ -808,6 +828,7 @@
     var s = net.sess, r;
     try { r = s.advance(t, null); } catch (e) { reportError('Net.advance (oculta)', e); return; }
     net.r = r; net.bgTicks = (net.bgTicks | 0) + 1;
+    if (net.view && r.confirmed.length) netMastery(r.confirmed);
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return; }
     netRecTick(r);
     // (el final del partido llega al volver: gameOver confirmado a la cola de eventos del siguiente frame)
