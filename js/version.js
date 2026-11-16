@@ -33,7 +33,7 @@
         'Saca nota B o mejor y te fichan. También puedes simularla, con menos opciones.',
         'Ojo: si reinicias o abandonas la prueba, la pierdes.',
         'Nota en directo en los partidos de Carrera: tus buenas acciones suman y las malas restan.',
-        'Pista: con muy mala nota irás al banquillo; si destacas desde el banquillo, saldrás de inicio.',
+        'Pista: con muy mala nota vas al banquillo; si destacas saliendo de él, juegas de inicio.',
         'Plan del entrenador: tres sesiones por jornada, jugadas, rápidas o de descanso.',
         'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
         'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
