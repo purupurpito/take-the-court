@@ -194,6 +194,10 @@
     // club: rivalPick daría la equipación de la CPU); sin líbero de club (kitOf le pone el peto de su equipo)
     var sk = scrimKits(st); if (sk) { t0 = sk[0]; shirt = t0.base; }
     var rv = !sk && st.rival && typeof st.rival.kitShirt === 'number' ? st.rival : null, rp = rivalPick(shirt, sh, rv), rk = rp.rk, rk0 = rp.rk0;
+    // ONLINE (fase 3, especialista net): st.kit1 = {kitShirt, kitAccent, kitShorts, kitPattern} ya decidida por quien creó la sala
+    // (VB.Players.onlineKits): el equipo 1 la viste tal cual, sin comparar (los dos jugadores ven lo mismo)
+    var k1 = !sk && st.kit1 && typeof st.kit1.kitShirt === 'number' ? st.kit1 : null;
+    if (k1) { rk = rk0 = mkKit(k1.kitShirt, typeof k1.kitAccent === 'number' ? k1.kitAccent : 0xffffff, typeof k1.kitShorts === 'number' ? k1.kitShorts : 0x0b0e17, k1.kitPattern || 'diag'); rv = null; }
     if (sk) { best = sk[1]; bd = 9; }
     else if (rk) { best = rk; bd = 9; }
     else for (var i = 0; i < CPU_KITS.length; i++) {   // la azul de siempre si se distingue bien; si no, la alternativa más distinta
@@ -202,25 +206,47 @@
       if (d > bd) { bd = d; best = CPU_KITS[i]; }
     }
     // color del líbero del club (Carrera de pista): el tuyo siempre; el del rival solo si viste de su club (1ª o 2ª)
-    var lib0 = !sk && typeof st.kitLibero === 'number' ? st.kitLibero : -1, lib1 = rk && typeof rv.kitLibero === 'number' ? rv.kitLibero : -1;
+    var lib0 = !sk && typeof st.kitLibero === 'number' ? st.kitLibero : -1, lib1 = rk && rv && typeof rv.kitLibero === 'number' ? rv.kitLibero : -1;
     // Vestuario: st.looks = [fit|null, fit|null] los fija (null en una casilla = sin look), null los quita y undefined CONSERVA los
     // de antes (Ajustes › Equipación pasa los ajustes sin looks: tocar un color no puede quitarte el look)
     if (st.looks !== undefined) {
       var lk = st.looks && typeof st.looks === 'object' ? st.looks : null;
-      for (var li = 0; li < 2; li++) {
-        var fv = lk ? lk[li] : null, so = null;
-        if (fv && typeof fv === 'object' && VB.Look && VB.Look.sane) { try { so = VB.Look.sane(fv, li) || null; } catch (e) { so = null; } }
+      // (ONLINE: st.looks1 = los del rival, equipo 1, n.º 1 y n.º 2; fuera del online no vienen y se quitan)
+      var lk1 = st.looks1 && typeof st.looks1 === 'object' ? st.looks1 : null;
+      for (var li = 0; li < 4; li++) {
+        var fv = li < 2 ? (lk ? lk[li] : null) : (lk1 ? lk1[li - 2] : null), so = null;
+        if (fv && typeof fv === 'object' && VB.Look && VB.Look.sane) { try { so = VB.Look.sane(fv, li & 1) || null; } catch (e) { so = null; } }
         LOOK_OVR[li] = so;
       }
-      LOOK_SIG = LOOK_OVR[0] || LOOK_OVR[1] ? fitSig(LOOK_OVR[0]) + '/' + fitSig(LOOK_OVR[1]) : '';
+      LOOK_SIG = LOOK_OVR[0] || LOOK_OVR[1] || LOOK_OVR[2] || LOOK_OVR[3] ? fitSig(LOOK_OVR[0]) + '/' + fitSig(LOOK_OVR[1]) + (LOOK_OVR[2] || LOOK_OVR[3] ? '/' + fitSig(LOOK_OVR[2]) + '/' + fitSig(LOOK_OVR[3]) : '') : '';
     }
-    var sig = [shirt, acc, sh, pat, rk ? [rk.base, rk.accent, rk.shorts, rk.pattern].join('/') : '', lib0, lib1].join(':') +
+    var sig = [shirt, acc, sh, pat, rk ? [rk.base, rk.accent, rk.shorts, rk.pattern].join('/') : '', lib0, lib1, k1 ? 'k1' : ''].join(':') +
       (sk ? ':peto/' + [sk[0].base, sk[0].shorts, sk[0].bib, sk[1].bib].join('/') : '') + (LOOK_SIG ? ':' + LOOK_SIG : '');
     if (sig === TEAMS._sig) return false;
     TEAMS[0] = t0; TEAMS[1] = best; TEAMS._sig = sig; kitSig++; LIBC[0] = lib0; LIBC[1] = lib1;
     RIVAL_SIG = rk ? hash32(((rk0.base >>> 8) ^ (rk0.accent >>> 4) ^ rk0.shorts) >>> 0) & 0xffff : 0;   // MUÑECO: aspecto de los rivales por club
     flushCache();   // fuera los atletas construidos con la equipación anterior (texturas y mallas)
     return true;
+  }
+  /** ONLINE (fase 3, especialista net): equipaciones del partido, decididas UNA vez por quien creó la sala (equipo 0) con las mismas
+   *  reglas de setKit: el equipo 1 viste la suya si se distingue de la del equipo 0; si se parece, la de la CPU más distinta. a / b =
+   *  ajustes de equipación {kitShirt, kitAccent, kitShorts, kitPattern} del equipo 0 / 1 → [k0, k1] con la misma forma (k1 para
+   *  setKit st.kit1). Sin estado ni g.rng. */
+  function onlineKits(a, b) {
+    var num = function (v, d) { return typeof v === 'number' && isFinite(v) ? v & 0xffffff : d; };
+    var pat = function (v) { return typeof v === 'string' && /^[a-z]{2,12}$/.test(v) ? v : 'diag'; };
+    a = a || {}; b = b || {};
+    var k0 = { kitShirt: num(a.kitShirt, TEAM0_DEF.base), kitAccent: num(a.kitAccent, TEAM0_DEF.accent), kitShorts: num(a.kitShorts, TEAM0_DEF.shorts), kitPattern: pat(a.kitPattern) };
+    var g1 = { kitShirt: num(b.kitShirt, TEAM0_DEF.base), kitAccent: num(b.kitAccent, TEAM0_DEF.accent), kitShorts: num(b.kitShorts, TEAM0_DEF.shorts), kitPattern: pat(b.kitPattern) };
+    var t0 = mkKit(k0.kitShirt, k0.kitAccent, k0.kitShorts, k0.kitPattern), rk = rivalPick(t0.base, t0.shorts, g1).rk;
+    if (rk) return [k0, g1];
+    var best = CPU_KITS[0], bd = -1;
+    for (var i = 0; i < CPU_KITS.length; i++) {
+      var d = Math.min(kitDist(t0.base, CPU_KITS[i].base), kitDist(t0.shorts, CPU_KITS[i].shorts) + 1.5);
+      if (i === 0 && d >= 1.1) { best = CPU_KITS[0]; break; }
+      if (d > bd) { bd = d; best = CPU_KITS[i]; }
+    }
+    return [k0, { kitShirt: best.base, kitAccent: best.accent, kitShorts: best.shorts, kitPattern: best.pattern || 'diag' }];
   }
   /** Libera todos los atletas construidos (equipación nueva o cambio de escenario). */
   function flushCache() {
@@ -309,7 +335,7 @@
   // siempre. Lo fija setKit con st.looks. LOOK_SIG: firma de los dos ('' sin looks); entra en la firma de setKit (un cambio de look
   // libera la caché) y en la clave de caché de tus rigs (rigFor). ME6_ID: en el 6v6, id de g.ctrlBase (tu atleta; -1 en 2v2 y con
   // espectador). Todo es estética: nada de esto llega a la sim, a attrs, a badges ni a g.rng.
-  var LOOK_OVR = [null, null], LOOK_SIG = '', ME6_ID = -1;
+  var LOOK_OVR = [null, null, null, null], LOOK_SIG = '', ME6_ID = -1;   // (2 y 3: el rival online, equipo 1: setKit st.looks1)
   // D7: los NPC ganan extras del atlas por hash (manguitos, coderas, calcetines, rodilleras, zapatillas; en la playa rayas, pecas y
   // manguito): 0 triángulos y ninguna pieza de geometría, así el 6v6 no sube. false = los NPC como antes del Vestuario.
   var NPC_EXTRAS = true;
@@ -319,6 +345,11 @@
     if (!p || p.team !== 0) return -1;
     if (!p.role) return p.idx < 2 ? p.idx : -1;
     return p.id === ME6_ID ? 0 : -1;
+  }
+  /** Casilla de look para dibujar: la de meSlot o, en el online, 2 / 3 para el n.º 1 / n.º 2 del rival (equipo 1) si trae look. */
+  function lookSlot(p) {
+    var s = meSlot(p); if (s >= 0) return s;
+    return p && p.team === 1 && !p.role && p.idx < 2 && LOOK_OVR[2 + p.idx] ? 2 + p.idx : -1;
   }
   /** Extras de NPC (D7) sobre L (aún sin congelar), con los bits altos del mismo hash del aspecto (>>>20 y >>>24: no tocan los de
    *  piel, pelo, peinado y complemento). Solo ranuras que pinta el atlas. */
@@ -347,9 +378,9 @@
    *  La altura h es siempre la de hoy (puesto y dorsal en el 6v6, MY_LOOKS para tus dos del 2v2, hash para los NPC): el look nunca
    *  aporta h. Sin look guardado (o sin VB.Look) devuelve exactamente lo de hoy, más los extras de los NPC (NPC_EXTRAS). */
   function lookOf(p, tc) {
-    var beach = VEN === 'beach', s = meSlot(p), L;
+    var beach = VEN === 'beach', s = lookSlot(p), L;
     if (s >= 0 && LOOK_OVR[s] && VB.Look && VB.Look.resolve) {
-      var hm = p.role ? (ROLE_H[p.role] || 1) * (1 + ((p.num * 13) % 5 - 2) * 0.006) : MY_LOOKS[s].h;
+      var hm = p.role ? (ROLE_H[p.role] || 1) * (1 + ((p.num * 13) % 5 - 2) * 0.006) : MY_LOOKS[s & 1].h;
       try { return Object.freeze(Object.assign({ h: hm }, VB.Look.resolve(LOOK_OVR[s], VEN, tc || kitOf(p)), { h: hm })); }
       catch (e) { if (!LOOK_ERR) { LOOK_ERR = true; try { console.error('[VB][ERROR] Players.lookOf: ' + e); } catch (e2) { } } }   // sigue con el de hoy
     }
@@ -4091,7 +4122,7 @@
 
   function rigFor(p) {
     var key = p.id + ':' + p.team + ':' + p.num + ':' + kitSig + (p.role ? ':' + p.role : '') + ':' + VEN +   // 6v6: el puesto cambia aspecto y equipación; TAJO: escenario
-      (meSlot(p) >= 0 ? ':me' + LOOK_SIG : '') +   // Vestuario: tus atletas (look propio) no comparten rig con el NPC del mismo id
+      (meSlot(p) >= 0 ? ':me' + LOOK_SIG : lookSlot(p) >= 2 ? ':rv' + LOOK_SIG : '') +   // Vestuario: tus atletas (look propio) no comparten rig con el NPC del mismo id (online: tampoco el rival)
       (BOSS.fit && isBoss(p) ? ':boss' + BOSS.fitSig : '');   // S3-C2/R22: el jefe con su aspecto, tampoco
     var r = cache[key];
     if (!r) { r = cache[key] = buildRig(p); }
@@ -4583,6 +4614,7 @@
 
   VB.Players = {
     rigs: rigs,
+    onlineKits: onlineKits,
     /** La convergencia sigue la coreografía de VB.CameraRig.heroShot() (CAM-02). */
     heroShotAware: true,
     init: function (c) {

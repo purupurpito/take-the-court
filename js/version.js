@@ -13,20 +13,21 @@
  * 1.2.0 (15-nov-2026): sedes generadas por club (js/venue-gen*.js) y pabellón al azar por partido.
  * 1.3.0 (15-nov-2026): sprint 2-4 «Tu carrera», «Partidos que se recuerdan» y «Volver mañana» (retratos y escudos, portada con la
  *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
- * 1.5.0 (16-nov-2026): pruebas con partidillo de petos, entrenos de Carrera Rápido/Manual y nota en directo (notes/pruebas-entrenos-spec.md,
+ * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
+ * 1.6.0 (17-nov-2026): pruebas con partidillo de petos, entrenos de Carrera Rápido/Manual y nota en directo (notes/pruebas-entrenos-spec.md,
  *   notes/nota-en-directo-spec.md).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.0';
-  VB.VERSION_DATE = '2026-11-16';
+  VB.VERSION = '1.6.0';
+  VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.5.0', d: '2026-11-16', t: 'Pruebas, entrenos y nota en directo',
+      v: '1.6.0', d: '2026-11-17', t: 'Pruebas, entrenos y nota en directo',
       items: [
         'Las pruebas de club son un partidillo con petos: un set a 15 y tres objetivos.',
         'Saca nota B o mejor y te fichan. También puedes simularla, con menos opciones.',
@@ -37,6 +38,26 @@
         'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
         'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
         'Entreno automático para quien solo quiere jugar los partidos.'
+      ]
+    },
+    {
+      v: '1.5.1', d: '2026-11-16', t: 'Lobby online',
+      items: [
+        'Lobby online nuevo: las salas salen como una cartelera, con la sede y el «VS» a la vista.',
+        'Con mando, el nombre y el código se escriben con un teclado en pantalla.',
+        'Si recargas la página en mitad de un partido online, vuelves a él como invitado.',
+        'El récord online solo cuenta partidos en los que las dos partidas cuadran al final.'
+      ]
+    },
+    {
+      v: '1.5.0', d: '2026-11-16', t: 'Online (beta)',
+      items: [
+        'Online (beta): juega 1 contra 1 con otra persona, cada una con su n.º 1 y la IA de pareja.',
+        'Lobby con las salas abiertas, o entra con el código que te pase tu rival.',
+        'Juegas con tus atributos de la Carrera, o en una sala «Igualado».',
+        'Entre sets hay 10 s de pausa; si los dos pulsáis «Continuar», se salta.',
+        'Tu rival solo ve tu nombre, con una flecha encima de su jugador.',
+        'Termina tu primer partido online y llévate la gorra «Online Beta Tester».'
       ]
     },
     {

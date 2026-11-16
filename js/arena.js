@@ -40,6 +40,7 @@
   // asientos por bloques de colores (grada de dibujo: cada bloque entre pasillos de un color)
   var SEAT_BLOCKS = ['#e8504a', '#ffb43c', '#2fb6c9', '#5a7dff', '#ff7aa8', '#7ad36a'];
   var TEAMC = ['#ff5b3a', '#3f8cff'];
+  var TEAMC0 = TEAMC.slice();   // (los de siempre; scoreFromGame pone los del online y los devuelve después)
 
   // Utilidades reutilizables (nada de `new` por frame)
   var _m, _m3, _q, _e, _v, _v2, _s, _p, _col, UNIT_BOX;
@@ -2832,9 +2833,20 @@
     drawScoreHung(screens.hung); screens.hungTex.needsUpdate = true;
     SB.dirty = false;
   }
+  /** Online (g.netCr, main.js netNames): el nombre del rival en el marcador colgado, en mayúsculas y corto (cabe de sobra: fitFont
+   *  encoge); si pasa de 10 letras, la primera palabra, y si aún pasa, 9 letras y punto. La vista ya está girada para el invitado
+   *  (VB.NetView.mirror): su equipo es el 0, a la izquierda, como el anfitrión. */
+  function hungRival(cr) {
+    var n = String(cr.rivalName || '').replace(/\s+/g, ' ').trim().toUpperCase();
+    if (n.length > 10) n = n.split(' ')[0];
+    if (n.length > 10) n = n.slice(0, 9) + '.';
+    return n || cr.rival || 'RIVAL';
+  }
   function scoreFromGame(g) {
     if (!g) return;
-    SB.names = g.demo ? ['LOCAL', 'VISITA'] : ['TÚ', 'CPU'];
+    SB.names = g.demo ? ['LOCAL', 'VISITA'] : g.netCr ? ['TÚ', hungRival(g.netCr)] : ['TÚ', 'CPU'];
+    var nc = !g.demo && g.netCr && g.netCr.col;   // (online: las camisetas de cada uno; el invitado suele ir de azul y el rival de rojo)
+    TEAMC[0] = nc ? nc[0] : TEAMC0[0]; TEAMC[1] = nc ? nc[1] : TEAMC0[1];
     SB.score[0] = g.score[0]; SB.score[1] = g.score[1]; SB.sets[0] = g.sets[0]; SB.sets[1] = g.sets[1];
     SB.setNo = g.setNo || 1; SB.serving = g.serving === 1 ? 1 : 0;
     SB.tag = g.mode === 'over' || g.pendingSet ? '' : g.matchPoint >= 0 ? 'PUNTO DE PARTIDO' : g.setPoint >= 0 ? 'PUNTO DE SET' : '';
@@ -3396,9 +3408,9 @@
   function startCheer(t, sec) { if (RT.cheerT[t] < 0.3) RT.cheerAge[t] = 0; RT.cheerT[t] = sec; }
   function teamName(t, g) { return g && g.demo ? (t === 0 ? 'LOCAL' : 'VISITA') : (t === 0 ? 'TÚ' : 'CPU'); }
   /** «PUNTO PARA TI» / «SET PARA LA CPU» (rótulos del pabellón, 10-nov-2026: frases en vez de «PUNTO · TÚ»). */
-  function teamFor(t, g) { return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : 'LA CPU'); }
+  function teamFor(t, g) { return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : g && g.online ? 'EL RIVAL' : 'LA CPU'); }   // (online: el rival es una persona)
   /** «CHALLENGE TUYO» / «CHALLENGE DE LA CPU». */
-  function teamOf(t, g) { return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : 'DE LA CPU'); }
+  function teamOf(t, g) { return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : g && g.online ? 'DEL RIVAL' : 'DE LA CPU'); }
   var REASON = { 'in': 'DENTRO', out: 'FUERA', antenna: 'ANTENA', 'double': 'DOBLES', four: '4 TOQUES', net: 'TOQUE DE RED',
     serve: 'FALTA DE SAQUE', under: 'BAJO LA RED', block: 'BLOQUEO DEL SAQUE', attackServe: 'ATAQUE SOBRE EL SAQUE' };
   var HOW = { ace: '¡ACE!', kill: 'REMATE', tip: 'DEJADA', block: 'BLOQUEO' };
@@ -3475,7 +3487,7 @@
         case 'match':
           var win = e.team === 0 && !g.demo;
           ledMessage(win ? '¡VICTORIA!' : 'FIN DEL PARTIDO', TEAMC[e.team], 9);
-          screenMsg(win ? '¡VICTORIA!' : 'GANA ' + (g && g.demo ? (e.team === 0 ? 'EL LOCAL' : 'LA VISITA') : 'LA CPU'), 'SETS ' + (e.sets ? e.sets[0] + ' – ' + e.sets[1] : ''), TEAMC[e.team], 9);
+          screenMsg(win ? '¡VICTORIA!' : 'GANA ' + (g && g.demo ? (e.team === 0 ? 'EL LOCAL' : 'LA VISITA') : g && g.online ? 'EL RIVAL' : 'LA CPU'), 'SETS ' + (e.sets ? e.sets[0] + ' – ' + e.sets[1] : ''), TEAMC[e.team], 9);
           RT.waveAmp = 1; RT.waveT = 10; flRate = 40; MOOD.winOn = true;
           break;
         case 'block':

@@ -126,7 +126,7 @@
       pick = (clearly || hopeless) ? o : mem;
     } else {
       // primera elección: a igualdad (±0,12 s), se queda el jugador que ya controla el humano (menos cambios de cámara)
-      var bias = t === 0 && !g.demo ? 0.12 : 0;
+      var bias = (g.online ? S.humOn(g, t) : t === 0) && !g.demo ? 0.12 : 0;
       pick = (ca - (g.ctrl === a ? bias : 0)) <= (cb - (g.ctrl === bb ? bias : 0)) ? a : bb;
     }
     if (g.jobMem) {
@@ -143,7 +143,7 @@
     var tm = g.teams[t], excl = g.touchTeam === t && g.touches >= 1 ? g.lastPlayer : null;
     var mem = g.jobMem && g.jobMemT[t] === g.lastTouchT ? g.jobMem[t] : null;
     if (mem === excl) mem = null;
-    var bias = t === 0 && !g.demo ? 0.12 : 0, best = null, bc = 1e9, alt = null, ac = 1e9, cm = 1e9;
+    var bias = (g.online ? S.humOn(g, t) : t === 0) && !g.demo ? 0.12 : 0, best = null, bc = 1e9, alt = null, ac = 1e9, cm = 1e9;
     for (var i = 0; i < tm.length; i++) {
       var q = tm[i]; if (q === excl) continue;
       var c = jobCost(g, q, pr);
@@ -229,7 +229,7 @@
       if (g.touches === 1 && g.lastKind !== 'set') { // seré el atacante (no tras mi colocación en salto)
         // C2 (colocar por destino, con g.mastery): el humano coloca y el marcador ya dice adónde; me voy a la batida de ese destino
         // (S.setPreview, lectura pura y sin azar; cambia si el humano cambia de dirección). Con él en el aire, lo de siempre
-        if (g.mastery && t === 0 && mate === g.ctrl && mate.z <= 0.05 && S.setPreview(g, _pv)) return setTg(_pv.bx, _pv.by);
+        if (g.mastery && (g.online ? S.humOn(g, t) : t === 0) && mate === g.ctrl && mate.z <= 0.05 && S.setPreview(g, _pv)) return setTg(_pv.bx, _pv.by);
         return setTg(sd * 4.3 * cs, clamp(p.y, -3 * cs, 3 * cs));
       }
       return setTg(sd * 5.5 * cs, (idx ? 2 : -2) * cs);
@@ -242,10 +242,13 @@
     // más (35 → 51 % en Normal). Sin esta lectura, tras una colocación en salto (0,8 s hasta el remate) el bloqueo no
     // llegaba nunca. Tras el toque sigue con este objetivo (reacción) y luego pasa al bloqueo normal de abajo.
     // La IA rival que coloca en salto (plan 'jset', ya en el aire) se lee igual, sin el gesto de ataque.
-    var jsP = !S.atkPhase(g, opp) ? (opp === 0 && S.jsetReady(g) ? g.ctrl : aiJsetUp(g, opp)) : null;
+    // (online: el humano rival es el del otro hueco, S.jsetHum lo lee con su hueco activo y deja su gesto en S.jsetHumSw)
+    var jsH = g.online && !S.atkPhase(g, opp) ? S.jsetHum(g, opp) : null;
+    var jsP = !S.atkPhase(g, opp) ? (g.online ? jsH || aiJsetUp(g, opp) : (opp === 0 && S.jsetReady(g) ? g.ctrl : aiJsetUp(g, opp))) : null;
     if (jsP) {
-      var hJs = jsP === g.ctrl && opp === 0 && !g.demo && !g.autopilot;
-      var ay0 = other(g, jsP).y, bl0 = ay0 < 0 ? g.teams[t][0] : g.teams[t][1], atk0 = hJs && g.swingLive && g.swingShot !== 'jset';
+      var hJs = g.online ? !!jsH && jsP === jsH : jsP === g.ctrl && opp === 0 && !g.demo && !g.autopilot;
+      var ay0 = other(g, jsP).y, bl0 = ay0 < 0 ? g.teams[t][0] : g.teams[t][1];
+      var atk0 = g.online ? hJs && S.jsetHumSw.live && S.jsetHumSw.shot !== 'jset' : hJs && g.swingLive && g.swingShot !== 'jset';
       if (p === bl0) return setTg(sd * 0.6, clamp(atk0 ? jsP.y : ay0, -4.2 * cs, 4.2 * cs), false, atk0);
       return setTg(sd * 5.4 * cs, clamp(-ay0 * 0.3, -2 * cs, 2 * cs));
     }
@@ -253,7 +256,7 @@
       var bl = g.pr3.y < 0 ? g.teams[t][0] : g.teams[t][1];
       // con humano: el rol lo fija la sim al colocar la CPU (g.defRole: 'dig' = el humano defiende y bloquea su
       // compañero IA; 'block' = bloquea el humano). Antes de eso, el compañero IA bloquea si el humano está atrás.
-      if (t === 0 && !g.demo && !g.autopilot) {
+      if (g.online ? S.humOn(g, t) : t === 0 && !g.demo && !g.autopilot) {
         var hc = g.ctrl, hm = other(g, hc);
         bl = g.defRole === 'block' ? hc : g.defRole === 'dig' ? hm : (Math.abs(hc.x) > 4 ? hm : hc);
       }
@@ -361,7 +364,7 @@
     // vista (tipRead). Sin azar: solo mueve el retardo de reacción
     // El que estaba en el aire al llegar la finta (el bloqueador que saltó contra el remate armado) sigue engañado feintRead s DESPUÉS
     // de caer: sin eso la dejada por encima del bloqueo la recogía siempre él al aterrizar, a 1-2 m, y la finta no valía nada
-    if (g.mastery && t === 1 && g.lastTeam === 0) {
+    if (g.mastery && (g.online ? g.lastTeam === 1 - t : t === 1 && g.lastTeam === 0)) {
       if (g.feintT === g.lastTouchT) {
         if (p.e1T !== g.lastTouchT) { p.e1T = g.lastTouchT; p.e1Until = g.time + (pr.feintRead || 0) + (p.z > 0 ? (p.vz + Math.sqrt(p.vz * p.vz + 2 * C.G * p.z)) / C.G : 0); }
         react = Math.max(react + (pr.feintRead || 0), p.e1Until - g.lastTouchT);
@@ -429,7 +432,7 @@
     if (g.touchTeam === t && since < TEAM_GAP && !exiting) return; // el balón aún sale de las manos del compañero
     // C2 (con g.mastery): la colocación del humano va a un sitio de ataque; el compañero no la juega de pie cuando le pasa cerca al salir
     // (exiting): espera a rematarla en su batida (sin azar; solo lee el estado)
-    if (g.mastery && t === 0 && g.lastKind === 'set' && g.touches === 2 && g.lastPlayer === g.ctrl && p.z === 0 && g.pr3.t > 0.25 &&
+    if (g.mastery && (g.online ? S.humOn(g, t) : t === 0) && g.lastKind === 'set' && g.touches === 2 && g.lastPlayer === g.ctrl && p.z === 0 && g.pr3.t > 0.25 &&
         Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5) return;
     if (!(w.t <= -p.aiTe || exiting || !w.reach)) return;
     if (beaten) { // llega pero no la controla: toque desviado (casi siempre injugable)

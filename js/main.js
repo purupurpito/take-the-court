@@ -51,7 +51,7 @@
     game: null,                 // partido actual (VB.Sim.createGame)
     timeScale: 1,               // escala del tiempo de juego (cámara la usa para cámara lenta)
     realDt: 0, gameDt: 0, time: 0, frame: 0, fps: 60,
-    debug: Q.debug || null, params: Q, frozen: false,
+    debug: Q.debug || (Q.net ? 'net' : null), params: Q, frozen: false,   // (?net=bc: partida online de prueba, ver startNetTest)
     portraitBlock: false,       // móvil en vertical durante el partido: se detiene la simulación
     renderFn: null,             // si un módulo (arena) quiere post-proceso, pone aquí function(ctx){...}
     inputDevice: isTouch ? 'touch' : 'keyboard', // último dispositivo usado ('keyboard'|'gamepad'|'touch'), lo lee la UI
@@ -365,6 +365,7 @@
   var curLooks = null;
   function lookOptsOf(g) { return g && g.watch ? { watch: true } : {}; }
   function calcLooks(o) {
+    if (o && Array.isArray(o.fits)) return [o.fits[0] || null, o.fits[1] || null];   // (online: los looks que se mandaron al rival, VB.NetLobby.myLook)
     var Lk = VB.Look; if (!Lk || typeof Lk.matchLooks !== 'function') return null;
     try { var r = Lk.matchLooks(o || {}); return Array.isArray(r) ? r : null; } catch (e) { reportError('Look.matchLooks', e); return null; }
   }
@@ -512,6 +513,7 @@
   }
   ctx.actions.startMatch = function (opts) {
     opts = opts || {};
+    netStop(true);   // (un partido normal pedido con el online en marcha: el online se abandona)
     // E6: ejercicio del Entrenamiento (opts.drill). Siempre 2v2 en el escenario del ajuste; dificultad Normal y control Uno salvo en
     // el peloteo libre (los del Partido rápido); sin marcador ni récord. &gymauto=1 / opts.autopilot: la IA juega por ti (pruebas)
     var drill = drillId(opts.drill);
@@ -608,6 +610,324 @@
     if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   };
   var lastOpts = null;
+
+  // ---------- ONLINE (fase 1; owner net, notes/net.md) ----------
+  // Partido 1 contra 1 dentro del 2v2 entre dos máquinas (VB.Net.Session: rollback simétrico). ctx.game es la VISTA (net.view): una
+  // copia de la partida predicha, girada para el invitado (VB.NetView.mirror), así cámara, interfaz, efectos y sonido no cambian.
+  // Sin pausa, sin cámara lenta, sin repetición automática ni intro: manda el reloj de la sesión (no timeScale ni MAX_STEPS).
+  // Prueba en este PC: ?net=bc&slot=0|1&lag=80&jit=15&loss=3 (&room=, &name=, &bot=1 = juega un bot, &bo=3, &points=, &map=).
+  var net = null;   // {sess, slot, view, over, menu, r, name, rival, look, base, epoch, want, rivalWants, rec*, away0, …}
+  ctx.net = null;
+  ctx.netBot = null;   // depuración (tools/netdrive.js): function(gCanónica) → entrada en coordenadas del mundo canónico
+  // Fase 3 (notes/net.md «Fase 3»): o.look = {mine, theirs} (VB.NetLobby.myLook / saneLook: looks del Vestuario y equipación de
+  // cada uno, solo estética), o.rivalName (el del «pre»; la sesión lo confirma en su saludo). Revancha sobre el MISMO enlace con una
+  // sesión nueva de la época siguiente (VB.Net Session epoch). Récord online y gorra: VB.NetRec.
+  ctx.actions.startOnline = function (o) {
+    o = o || {};
+    if (!VB.Net || !VB.NetView || !o.link) return false;
+    netStop(false);
+    call('Audio', 'unlock');
+    net = ctx.net = { sess: null, slot: o.slot === 1 ? 1 : 0, view: null, over: false, menu: false, r: null, name: o.name || '', rival: o.rivalName || '',
+      look: o.look || null, base: o.opts || null, link: o.link, delay: o.delay, epoch: 0, away0: !!document.hidden };
+    netSession(o.opts || null, 0);
+    if (net.away0) netAway(true);
+    netHud(null);
+    return true;
+  };
+  function netSession(opts, epoch) {
+    var s = new VB.Net.Session({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch,
+      log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null });
+    net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
+    net.want = false; net.rivalWants = false; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
+    if (net.away0) { s.setAway(true); s.maxCatch = 150; }
+    return s;
+  }
+  ctx.actions.netVsAI = function () { if (net && net.sess.vsAI()) call('Audio', 'ui', 'click'); };
+  ctx.actions.netQuit = function () { if (net) { net.sess.quit(); netSettle(); } ctx.actions.toMenu(); };
+  /** «Continuar» en la pausa del punto y en la de entre sets (se salta solo cuando los DOS lo han pulsado). */
+  ctx.actions.netSkip = function () { if (net && net.view) { net.sess.request('skip'); call('Audio', 'ui', 'click'); } };
+  /** Revancha (hoja final): se pide al rival; cuando los dos la quieren, quien creó la sala manda la semilla nueva y los dos empiezan
+   *  una sesión de la época siguiente sobre el mismo enlace (mismos nombres, looks y opciones de la sala). */
+  ctx.actions.netRematch = function () {
+    if (!net || !net.sess || net.want || net.sess.rivalLeft || net.sess.status !== 'over') return false;
+    net.want = true; net.sess.sendApp({ t: 'again' }); call('Audio', 'ui', 'click');
+    netRematchGo();
+    return true;
+  };
+  function netRematchGo() {
+    if (!net || !net.want || !net.rivalWants || net.slot !== 0 || !net.base) return;
+    var o = {}, k; for (k in net.base) o[k] = net.base[k];
+    o.seed = netSeed(); net.base = o;
+    var e = net.epoch + 1;
+    net.sess.sendApp({ t: 'go', e: e });
+    netSession(o, e);
+  }
+  function netSeed() {
+    try { if (window.crypto && crypto.getRandomValues) return crypto.getRandomValues(new Uint32Array(1))[0] >>> 1; } catch (e) { }
+    return Math.floor(Math.random() * 2147483647);
+  }
+  /** Mensajes de la interfaz del rival (r.app): revancha. */
+  function netApp(list) {
+    for (var i = 0; i < list.length; i++) {
+      var m = list[i]; if (!m || typeof m !== 'object') continue;
+      if (m.t === 'again') { net.rivalWants = true; netRematchGo(); }
+      else if (m.t === 'go' && net.slot === 1 && net.want && (m.e | 0) === net.epoch + 1) { netSession(null, net.epoch + 1); return; }
+    }
+  }
+  /** Récord online (VB.NetRec): marca al empezar (cerrar la pestaña = abandono) y, una vez por partido, el resultado cuando ya no
+   *  cambia (final confirmado, abandono, o juzgado por tiempo). En depuración (?net=) solo con &netrec=1 (pruebas). */
+  function netRecOn() { return !!VB.NetRec && (!ctx.debug || Q.netrec === '1'); }
+  function netSettle() {
+    if (!net || !net.sess || net.recDone || !net.recBegun || !netRecOn()) return;
+    var s = net.sess, res = s.result;
+    if (!res || !(s.status === 'over' || s.status === 'ended' || s.goneFlag)) return;
+    net.recDone = true;
+    var gc = s.confirmedGame(), sets = gc && gc.sets ? [gc.sets[net.slot] | 0, gc.sets[1 - net.slot] | 0] : null;
+    try { net.recRes = VB.NetRec.end(s.rivalName || net.rival, res, s.valid, sets); } catch (e) { reportError('NetRec.end', e); }
+  }
+  function netRecTick(r) {
+    if (!netRecOn()) return;
+    if (!net.recBegun && (r.status === 'playing' || r.status === 'waiting')) { net.recBegun = true; net.recBeat = performance.now(); try { VB.NetRec.begin(net.sess.rivalName || net.rival); } catch (e) { } }
+    else if (net.recBegun && !net.recDone && performance.now() - net.recBeat > 10000) { net.recBeat = performance.now(); try { VB.NetRec.beat(); } catch (e) { } }
+    netSettle();
+  }
+  function netStop(quit) {
+    if (!net) return;
+    netTicker(false);
+    try { if (quit) { net.sess.quit(); netSettle(); } } catch (e) { }
+    try { if (net.link && net.link.close) net.link.close(); } catch (e) { }
+    net = ctx.net = null; ctx.netBot = null;
+    var h = document.getElementById('netHud'); if (h) h.hidden = true;
+    var a = document.getElementById('netTag'); if (a) a.hidden = true;
+  }
+  /** ?net=bc: partida de prueba entre dos pestañas (o dos páginas del mismo Chrome). El hueco 0 es el anfitrión: decide las opciones.
+   *  Antes de la sesión, un «pre» como el del lobby (looks y equipación de cada uno) por el mismo BroadcastChannel. */
+  function startNetTest() {
+    var slot = Q.slot === '1' ? 1 : 0, link;
+    try { link = new VB.Net.BcLink({ room: Q.room || 'prueba', slot: slot, lag: +Q.lag || 0, jit: +Q.jit || 0, loss: +Q.loss || 0 }); }
+    catch (e) { showFatal('Este navegador no permite la prueba online entre pestañas (BroadcastChannel).', true); return; }
+    var opts = null;
+    if (slot === 0) {
+      var kind = Q.map && isMapId(Q.map) ? VB.Venues.kindOf(Q.map) : (Q.venue === 'beach' || Q.venue === 'hall' ? Q.venue : venueNow());
+      opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{}, {}], bestOf: Q.bo === '3' ? 3 : 1,
+        points: +Q.points || 21, present: true, stats: true };
+    }
+    var NL = VB.NetLobby, mine = NL && NL.myLook ? NL.myLook() : null, name = Q.name || (slot ? 'Invitado' : 'Anfitrión'), sent = -1e9, t0 = performance.now();
+    // (pruebas: &netcap=1 = tu n.º 1 con la gorra «MTC»; &kitshirt=RRGGBB = otra camiseta; así las dos páginas, que comparten el
+    //  guardado, se distinguen y se ve que llega lo del rival)
+    if (mine && Q.netcap === '1' && VB.Look) { var f0 = VB.Look.sane(mine.fits[0] || VB.Look.defaults(0), 0); f0.hall.head = f0.beach.head = 'gorraMTC'; mine.fits[0] = VB.Look.sane(f0, 0); }
+    if (mine && /^[0-9a-f]{6}$/i.test(Q.kitshirt || '')) mine.kit.kitShirt = parseInt(Q.kitshirt, 16);
+    var tm = setInterval(function () {
+      var msgs = link.poll(performance.now()), got = null;
+      for (var i = 0; i < msgs.length; i++) { var c = null; if (msgs[i].ch === 'ctl') { try { c = JSON.parse(msgs[i].data); } catch (e) { } } if (c && c.k === 'pre' && !got) got = c; }
+      if (!got && performance.now() - sent > 300 && performance.now() - t0 < 60000) { sent = performance.now(); link.send('ctl', JSON.stringify({ k: 'pre', name: name, look: mine })); }
+      if (!got) return;
+      clearInterval(tm);
+      link.send('ctl', JSON.stringify({ k: 'pre', name: name, look: mine }));   // (por si el otro aún no tenía el nuestro; la sesión ignora los «pre» que sobren)
+      ctx.actions.startOnline({ slot: slot, link: link, opts: opts, name: name, rivalName: String(got.name || ''), look: { mine: mine, theirs: NL && NL.saneLook ? NL.saneLook(got.look) : null } });
+      if (Q.bot === '1') ctx.netBot = VB.Net.bot(slot, +Q.botseed || (slot + 1), Q.botprof === 'flojo' ? 'flojo' : 'bueno');
+    }, 50);
+  }
+  /** Equipaciones y looks del partido online (solo estética): las dos equipaciones las decide VB.Players.onlineKits con las de los
+   *  dos (los dos lados calculan lo mismo: misma función y mismos datos); el equipo 0 de la vista es siempre el tuyo. */
+  function netKit() {
+    var lk = net.look || {}, me = lk.mine || {}, th = lk.theirs || {};
+    var host = net.slot === 0 ? me : th, guest = net.slot === 0 ? th : me;
+    var P = VB.Players, ks = P && P.onlineKits ? P.onlineKits(host.kit, guest.kit) : null;
+    if (!ks) return null;
+    var mineK = ks[net.slot], theirK = ks[1 - net.slot];
+    return { kitShirt: mineK.kitShirt, kitAccent: mineK.kitAccent, kitShorts: mineK.kitShorts, kitPattern: mineK.kitPattern, kit1: theirK,
+      looks1: th.fits && (th.fits[0] || th.fits[1]) ? [th.fits[0] || null, th.fits[1] || null] : null };
+  }
+  /** Nombres del marcador y de los textos («Saca la CPU» → «Saca el rival»): ui.js mira g.netCr igual que g.career. */
+  function netNames(v) {
+    var rv = net.sess.rivalName || net.rival || 'Rival';
+    var ab = rv.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/g, '').slice(0, 3).toUpperCase() || 'RIV';
+    net.cr = v.netCr = { me: 'TÚ', rival: ab, meName: net.name || 'Tú', rivalName: rv };
+  }
+  /** Línea de maestría de la hoja final online (ui.js masteryLine lee g.stats.mastery): copyGame no copia stats, y la g.stats de la
+   *  partida canónica junta las jugadas de los DOS humanos. Se cuentan aquí de los eventos CONFIRMADOS (un toque predicho que el
+   *  rollback anuló no cuenta; lo de la pestaña oculta sí, porque la partida es la misma): los toques humanos de tu equipo canónico
+   *  (net.slot), con las mismas reglas que sim.js (finta > colocado > al filo en remate o dejada; rápida al colocarla). Solo usos. */
+  function netMastery(list) {
+    var st = net.view && net.view.stats, m = st && st.mastery, tag = VB.MASTERY && VB.MASTERY.edge ? VB.MASTERY.edge.tag : 0.5;
+    if (!m || !net.view.mastery) return;
+    for (var i = 0; i < list.length; i++) {
+      var e = list[i]; if (!e || e.type !== 'hit' || !e.human || e.team !== net.slot) continue;
+      if (e.kind === 'spike' || (e.kind === 'free' && e.shot === 'tip')) {
+        var mv = e.feint ? 'feint' : e.shot === 'roll' ? 'roll' : e.edge > tag ? 'edge' : '';
+        if (mv) m[mv][0]++;
+      }
+      if (e.tempo && e.tempo !== 'lane' && e.tempo !== 'high') m.quick[0]++;
+    }
+  }
+  function netBuildView() {
+    var s = net.sess, o = s.opts;
+    if (o.mapId && isMapId(o.mapId)) forceVenue(o.mapId); else forceVenue(o.venue === 'beach' ? 'beach' : 'hall');
+    var v = Sim.createGame(o);
+    VB.NetView.mirror(v, s.predictedGame(), net.slot);
+    v.events.length = 0;
+    netNames(v);
+    net.view = v;
+    restoreEndButtons(); endTweaked = false; careerEnd = null;
+    var kit = null; try { kit = netKit(); } catch (e) { reportError('netKit', e); }
+    // (colores de los dos equipos para el marcador colgado del pabellón, arena.js: el invitado no viste el rojo del equipo 0)
+    var hx = function (c) { return typeof c === 'number' ? '#' + ('00000' + (c >>> 0).toString(16)).slice(-6) : null; };
+    net.cr.col = kit && kit.kit1 && hx(kit.kitShirt) && hx(kit.kit1.kitShirt) ? [hx(kit.kitShirt), hx(kit.kit1.kitShirt)] : null;
+    var mf = net.look && net.look.mine && net.look.mine.fits;
+    setGame(v, kit, mf && (mf[0] || mf[1]) ? { fits: mf } : {});
+    VB.NetView.mapEvents(s.initEvents, v, net.slot, pendingEvents);   // (setGame vacía pendingEvents)
+    setState('playing');
+  }
+  /** Un frame online: entrada (de la vista al mundo canónico), sesión, espejo y eventos. Devuelve el dt de juego para los módulos. */
+  function netFrame(it, realDt) {
+    var s = net.sess, raw = null, v = net.view;
+    net.frameAt = performance.now();
+    if (v && ctx.state === 'playing') {
+      buildInput(it);
+      // «Continuar» en la pausa del punto y entre sets (se salta solo si los dos lo piden): cualquier botón
+      if ((v.mode === 'point' || v.mode === 'over') && (edge.hit || edge.jump || edge.switchPlayer || (it && it.confirm))) s.request('skip');
+      if (ctx.netBot) { try { raw = ctx.netBot(s.predictedGame()); } catch (e) { reportError('netBot', e); } }
+      else raw = VB.NetView.inputToWorld({ move: simIn.move, hit: edge.hit, jump: edge.jump, jset: edge.jset }, net.slot);
+      edge.hit = edge.jump = edge.jset = edge.switchPlayer = false;
+    }
+    var r;
+    try { r = s.advance(performance.now(), raw); } catch (e) { reportError('Net.advance', e); netStop(false); return 0; }
+    net.r = r;
+    if (r.app.length) { netApp(r.app); if (net.sess !== s) return 0; }   // (revancha: sesión nueva; la vista llega con sus opciones)
+    netRecTick(r);
+    if (!v && s.opts && r.status !== 'ended') { netBuildView(); v = net.view; }
+    if (v) {
+      VB.NetView.mirror(v, r.g, net.slot);
+      v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
+      if (r.confirmed.length) netMastery(r.confirmed);
+      if (r.events.length) VB.NetView.mapEvents(r.events, v, net.slot, frameEvents);
+      if (ctx.state === 'playing' && !net.over && frameEvents.some(isGameOver)) { net.over = true; netSettle(); setState('over'); }
+    }
+    netHud(r);
+    return v ? realDt : 0;
+  }
+  /** Pestaña oculta (fase 3): tu jugador pasa a la IA (bit ai, al instante) y la sesión sigue avanzando con un temporizador (en una
+   *  pestaña oculta no hay requestAnimationFrame y el rival se quedaría esperando). Un Worker de un Blob da el pulso: sus mensajes no
+   *  se frenan como setInterval en segundo plano (si no se puede crear, setInterval y más tics por llamada). Al volver, el control es
+   *  tuyo en el siguiente balón muerto. Lo que pasa mientras no miras no suena; el final del partido sí llega. */
+  var netTk = null;
+  function netAway(hidden) {
+    if (!net) return;
+    net.away0 = !!hidden;
+    try { net.sess.setAway(!!hidden); net.sess.maxCatch = hidden ? 150 : 0; } catch (e) { }
+    netTicker(!!hidden);
+  }
+  function netTicker(on) {
+    if (!on) { if (netTk) { try { if (netTk.w) netTk.w.terminate(); else clearInterval(netTk.i); } catch (e) { } netTk = null; } return; }
+    if (netTk) return;
+    netTk = {};
+    try {
+      var url = URL.createObjectURL(new Blob(['setInterval(function(){postMessage(0)},16)'], { type: 'text/javascript' }));
+      netTk.w = new Worker(url); URL.revokeObjectURL(url);
+      netTk.w.onmessage = netBgTick;
+    } catch (e) { netTk.w = null; netTk.i = setInterval(netBgTick, 16); }
+  }
+  function netBgTick() {
+    if (!net || !net.sess) { netTicker(false); return; }
+    var t = performance.now();
+    if (net.frameAt && t - net.frameAt < 100) return;   // (la página aún pinta: ya avanza netFrame)
+    var s = net.sess, r;
+    try { r = s.advance(t, null); } catch (e) { reportError('Net.advance (oculta)', e); return; }
+    net.r = r; net.bgTicks = (net.bgTicks | 0) + 1;
+    if (net.view && r.confirmed.length) netMastery(r.confirmed);
+    if (r.app.length) { netApp(r.app); if (net.sess !== s) return; }
+    netRecTick(r);
+    // (el final del partido llega al volver: gameOver confirmado a la cola de eventos del siguiente frame)
+    if (net.view) for (var i = 0; i < r.confirmed.length; i++) if (r.confirmed[i].type === 'gameOver') { var ev = []; VB.NetView.mapEvents([r.confirmed[i]], net.view, net.slot, ev); for (var k = 0; k < ev.length; k++) pendingEvents.push(ev[k]); }
+  }
+  function netEl(id, css) {
+    var e = document.getElementById(id); if (e) return e;
+    e = document.createElement('div'); e.id = id; e.style.cssText = css; (document.getElementById('app') || document.body).appendChild(e); return e;
+  }
+  /** HUD online: rival, ping, «Esperando a …», «Conexión inestable», seguir contra la IA y abandonar. */
+  function netHud(r) {
+    var h = netEl('netHud', 'position:absolute;top:calc(110px + var(--st,0px));left:calc(14px + var(--sl,0px));z-index:30;display:flex;gap:8px;align-items:center;' +
+      'padding:5px 12px;border-radius:16px;background:var(--glass,rgba(9,14,26,.8));color:var(--fg,#f7f2ea);font:600 13px/1.35 var(--ui,system-ui);pointer-events:auto;' +
+      'flex-wrap:wrap;max-width:calc(100vw - 28px - var(--sl,0px) - var(--sr,0px));box-sizing:border-box');   // (fase 4: en un teléfono el aviso largo con dos botones baja de línea)
+    if (!net || (ctx.state === 'over' && net.view)) { h.hidden = true; if (net) netTag(r); return; }   // (la hoja final ya dice lo suyo)
+    h.hidden = false;
+    // (revisión F4: en los textos el nombre va como marca \u0001 y se pinta aparte; antes un replace() del nombre podía dar en el texto fijo, p. ej. «en» en «Siguiente»)
+    var s = net.sess, name = s.rivalName || 'tu rival', who = '\u0001', msg = '', btn = '';
+    // (revisión F3: antes de empezar siempre hay salida; salir aquí no cuenta para nadie, y a los 20 s sin noticias del rival la sesión lo deja)
+    if (!r || r.status === 'connecting') { msg = s.host ? 'Esperando a que entre tu rival…' : 'Conectando…'; btn = '<button data-n="quit">Salir</button>'; }
+    else if (r.status === 'starting') { msg = 'Contra ' + who + ' | empieza en ' + (r.startIn / 1000).toFixed(1).replace('.', ',') + ' s'; btn = '<button data-n="quit">Salir</button>'; }
+    else if (r.status === 'ended') {
+      var w = r.result && r.result.why;
+      msg = w === 'rivalQuit' ? who + ' ha abandonado: ganas tú' : w === 'quit' ? 'Has abandonado' : w === 'version' ? 'Tu rival tiene otra versión del juego: recargad los dos' :
+        w === 'rivalGone' ? who + ' no ha vuelto: ganas tú' : w === 'hostGone' ? who + ' no ha vuelto: el partido no cuenta' :
+        w === 'late' ? 'Has tardado demasiado en volver: cuenta como abandono' :
+        w === 'noShow' ? (s.rivalName ? who + ' se ha ido: no hay partido' : 'Tu rival no ha llegado: no hay partido') : 'Partido terminado';
+      btn = '<button data-n="menu">Volver al menú</button>';
+    } else if (r.status === 'waiting') {
+      // (revisión F3: abandonar SIEMPRE es derrota, también si quien se cayó es el rival; por eso el botón lo dice y la cuenta atrás
+      //  enseña la salida que no castiga: esperar los 60 s, seguir o no contra la IA)
+      msg = 'Esperando a ' + who + '…' + (r.rivalSolo ? ' (sigue contra la IA)' : '');
+      if (r.canAI) {
+        msg += ' Si no vuelve en ' + Math.ceil((r.goneIn || 0) / 1000) + ' s, ' + (s.host ? 'ganas tú' : 'el partido no cuenta');
+        btn = '<button data-n="ai">Seguir contra la IA</button><button data-n="quit">Abandonar (cuenta como derrota)</button>';
+      }
+    } else {
+      var pc = r.ping > 150 ? 'var(--amber,#ffb238)' : 'inherit', v = net.view;
+      // (fase 4, guía de estilo de textos: datos del HUD separados con la barra fina, lo secundario entre paréntesis)
+      msg = 'Contra ' + who + ' | <span style="color:' + pc + '">' + r.ping + ' ms</span>' + (r.unstable ? ' | Conexión inestable' : '') + (r.solo ? (r.gone ? (r.valid ? ' | No ha vuelto: ganas tú (contra la IA)' : ' | Contra la IA (no cuenta)') : ' | Contra la IA (puede volver en ' + Math.ceil((r.goneIn || 0) / 1000) + ' s)') : '');
+      // fase 3: pausa de 10 s entre sets (decisión 5): cuenta atrás y «Continuar»; se salta cuando los dos lo han pulsado
+      if (v && v.pendingSet && v.mode === 'point' && ctx.state === 'playing') {
+        var sk = v.skipReq || [false, false], left = Math.max(0, Math.ceil(v.timer || 0));
+        msg = 'Siguiente set en ' + left + ' s' + (sk[0] ? (sk[1] ? '' : ', esperando a ' + who) : sk[1] ? ' (' + who + ' ya quiere seguir)' : '');
+        if (!sk[0]) btn = '<button data-n="skip">Continuar</button>';
+      } else if (net.away0) msg += ' (tu jugador lo lleva la IA)';
+      if (net.menu) btn = r.gone ? '<button data-n="quit">Salir</button>' : '<button data-n="quit">Abandonar (cuenta como derrota)</button>';
+    }
+    if (r && r.status === 'ended' && net.recRes && net.recRes.cap) msg += '. Nuevo en tu vestuario: Online Beta Tester';
+    var key = msg + btn + who + name;
+    netHudPlace(h);
+    if (h._k !== key) {
+      h._k = key; h.innerHTML = '<span></span>' + btn;
+      h.firstChild.innerHTML = msg.split(who).join('<b class="nn"></b>');
+      var nn = h.querySelectorAll('.nn'); for (var j = 0; j < nn.length; j++) nn[j].textContent = name;   // (el nombre del rival nunca se pinta como HTML)
+      var bs = h.querySelectorAll('button');
+      for (var i = 0; i < bs.length; i++) {
+        bs[i].style.cssText = 'font:700 12px var(--ui,system-ui);padding:3px 10px;border-radius:999px;border:0;background:var(--hot,#ff5a2c);color:#fff;cursor:pointer';
+        bs[i].onclick = function (ev) { var n = ev.currentTarget.getAttribute('data-n'); if (n === 'ai') ctx.actions.netVsAI(); else if (n === 'skip') ctx.actions.netSkip(); else ctx.actions.netQuit(); };
+      }
+    }
+    netTag(r);
+  }
+  /** #netHud justo debajo del marcador (#sb), nunca encima (se mira cada medio segundo: el marcador cambia de alto con los sets). */
+  var _hudPlaceAt = 0;
+  function netHudPlace(h) {
+    var t = performance.now(); if (t - _hudPlaceAt < 500) return; _hudPlaceAt = t;
+    var sb = document.getElementById('sb'), app = document.getElementById('app') || document.body;
+    if (!sb || !sb.offsetParent) return;   // (sin marcador a la vista: se queda donde estaba)
+    var r = sb.getBoundingClientRect(), a = app.getBoundingClientRect();
+    if (r.height > 0) { h.style.top = Math.round(r.bottom - a.top + 8) + 'px'; h.style.left = Math.round(r.left - a.left) + 'px'; }
+  }
+  /** Flechita con el NOMBRE del rival encima de su jugador (nunca la IP ni el correo). z-index 2: por debajo del marcador (#hud, 3). */
+  var _tagV = null;
+  function netTag(r) {
+    var a = netEl('netTag', 'position:absolute;z-index:2;pointer-events:none;transform:translate(-50%,-100%);color:#fff;font:700 13px var(--ui,system-ui);' +
+      'text-shadow:0 1px 3px rgba(0,0,0,.8);text-align:center;white-space:nowrap');
+    var v = net && net.view, p = v && v.hum && v.hum[1] && v.hum[1].p;
+    if (!p || !ctx.camera || !VB.toThree || ctx.state !== 'playing' || !r || r.status === 'connecting') { a.hidden = true; return; }
+    if (!_tagV) _tagV = new THREE.Vector3();
+    VB.toThree(p.x, p.y, (p.z || 0) + 2.25, _tagV); _tagV.project(ctx.camera);
+    if (_tagV.z > 1 || _tagV.z < -1) { a.hidden = true; return; }
+    var nm = net.sess.rivalName || 'Rival';
+    if (a._n !== nm) {
+      a._n = nm; a.textContent = '';
+      var t = document.createElement('div'); t.textContent = nm;
+      var ar = document.createElement('div'); ar.textContent = '▼'; ar.style.fontSize = '11px';
+      a.appendChild(t); a.appendChild(ar);
+    }
+    a.hidden = false;
+    a.style.left = ((_tagV.x + 1) * 0.5 * ctx.width) + 'px'; a.style.top = ((1 - _tagV.y) * 0.5 * ctx.height) + 'px';
+  }
   /** E6: arranca un ejercicio (ver startMatch). createGame({drill}) monta la 1ª repetición; la sim no emite point/whistle/gameOver
    *  y al acabar la 10ª emite drillEnd (frame → 'over'). g.gym = id (marca para ui.js). */
   function startDrill(id, opts) {
@@ -937,6 +1257,7 @@
     call('UI', 'introEnd', !!skipped);
   }
   ctx.actions.toMenu = function () {
+    netStop(true);   // (online: salir al menú es abandonar)
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
     var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
     // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
@@ -974,7 +1295,10 @@
     forceVenue(k);
     setGame(Sim.createGame({ demo: true, seed: seed(), difficulty: 'normal', format: k === 'hall' ? '6v6' : undefined, venue: k === 'hall' ? undefined : 'beach' }));
   };
-  ctx.actions.pause = function () { if (ctx.state === 'playing') setState('paused'); };
+  ctx.actions.pause = function () {
+    if (net) { if (net.view && ctx.state === 'playing') net.menu = !net.menu; return; }   // online: no hay pausa (Esc enseña «Abandonar»)
+    if (ctx.state === 'playing') setState('paused');
+  };
   ctx.actions.resume = function () { if (ctx.state === 'paused') setState('playing'); };
   ctx.actions.togglePause = function () { if (ctx.state === 'playing') ctx.actions.pause(); else if (ctx.state === 'paused') ctx.actions.resume(); };
   // (E6: con un ejercicio en curso, «Reiniciar» repite el mismo ejercicio)
@@ -1025,6 +1349,7 @@
   };
   // Challenge (B7): pide revisión de la última llamada de línea para el humano (equipo 0). true si sim la acepta
   ctx.actions.challenge = function () {
+    if (net) { if (net.view && ctx.state === 'playing') { net.sess.request('chal'); return true; } return false; }   // online: viaja en la entrada
     if (ctx.state !== 'playing' || !ctx.game || !Sim.challenge) return false;
     var ok = false; try { ok = !!Sim.challenge(ctx.game, 0); } catch (e) { reportError('Sim.challenge', e); }
     if (ok) call('UI', 'onChallenge', ctx.game, 0);
@@ -1348,13 +1673,15 @@
       if (R && ctx.debug && Q.rpt && (RPL.info() || {}).t >= +Q.rpt) ctx.frozen = true;   // &rpt=s: congela la repetición a los s (capturas)
     }
     // tarjeta de presentación: la sim espera; el resto del mundo se anima en tiempo real
-    if (running && intro.left > 0) {
+    if (net) { gdt = netFrame(it, realDt); }   // ONLINE: manda el reloj de la sesión (sin pausa, intro, repetición ni timeScale)
+    else if (running && intro.left > 0) {
       intro.left -= realDt; ctx.introLeft = Math.max(0, intro.left);
       if (intro.left <= 0) { intro.left = 1e-6; introEnd(false); }
       for (var ih = 0; ih < pendingEvents.length; ih++) frameEvents.push(pendingEvents[ih]);
       pendingEvents.length = 0;
     }
-    if (running && intro.left > 0) { gdt = realDt; edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0; }
+    if (net) { /* (online: netFrame ya lo hizo arriba) */ }
+    else if (running && intro.left > 0) { gdt = realDt; edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0; }
     else if (running && R) {
       // la sim en vivo espera (su g.timer no corre); los eventos pendientes (escenas, inicio de partida) esperan con ella
       edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0;
@@ -1705,6 +2032,9 @@
     switch (name) {
       case 'menu': case 'tutorial': case 'controls': case 'settings':
         ctx.actions.toMenu(); return;
+      // ONLINE (fase 1, notes/net.md): ?net=bc&slot=0|1&lag=&jit=&loss= — dos pestañas unidas por BroadcastChannel
+      case 'net':
+        ctx.actions.toMenu(); startNetTest(); return;
       // Vestuario (tools/shot.js): el menú con la página `look` abierta. &tab=pelo|cabeza|cara|cuerpo|brazos|piernas|colores,
       // &venue=hall|beach (pista o playa del Vestuario, no el escenario), &item=<id del catálogo> (lo prueba puesto), &pick=1|2|career
       case 'look':
@@ -2308,8 +2638,11 @@
     window.addEventListener('keydown', unlock);
     window.addEventListener('resize', function () { sizeDirty = true; });
     try { if (window.ResizeObserver) new ResizeObserver(function () { sizeDirty = true; }).observe(ctx.container); } catch (e) { }
-    document.addEventListener('visibilitychange', function () { if (document.hidden && ctx.state === 'playing' && !ctx.debug) ctx.actions.pause(); last = 0; });
-    window.addEventListener('blur', function () { if (ctx.state === 'playing' && !ctx.debug) ctx.actions.pause(); });
+    // (online: no hay pausa; la pestaña oculta pasa tu jugador a la IA y la sesión sigue con su temporizador: netAway)
+    document.addEventListener('visibilitychange', function () { if (net) netAway(document.hidden); else if (document.hidden && ctx.state === 'playing' && !ctx.debug) ctx.actions.pause(); last = 0; });
+    window.addEventListener('blur', function () { if (ctx.state === 'playing' && !ctx.debug && !net) ctx.actions.pause(); });
+    // récord online: un partido que quedó a medias al cerrar la pestaña cuenta como abandono (VB.NetRec.boot)
+    if (VB.NetRec && !ctx.debug) { try { VB.NetRec.boot(); } catch (e) { reportError('NetRec.boot', e); } }
     if (ctx.debug) debugScene(ctx.debug); else ctx.actions.toMenu();
     // E6: &drill=<id> empieza ese ejercicio (&gymauto=1: la IA juega por ti; lo usa tools/gymtest.js); sin autopilot espera al telón
     if (!ctx.debug && drillId(Q.drill)) ctx.actions.startMatch({ drill: Q.drill, autopilot: Q.gymauto === '1' });

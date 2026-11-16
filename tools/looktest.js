@@ -63,7 +63,7 @@ const SLOTX = L.SLOTS.concat(['style', 'hairTint', 'color']);
 check(C.every(x => x.slots.length && x.slots.every(s => SLOTX.includes(s)) && x.slot === x.slots[0]), 'cada objeto con ranura válida');
 check(C.every(x => ['P', 'Y', 'A'].includes(x.venue)), 'cada objeto con sede válida (P, Y, A)');
 check(C.every(x => x.rarity >= 0 && x.rarity <= 3 && L.stars(x.id).length === 4 && L.stars(x.id).replace(/☆/g, '').length === x.rarity + 1), 'rareza 0-3 y estrellas');
-const KINDS = ['start', 'shop', 'fame', 'ach', 'award', 'gym', 'gymN', 'rec', 'boss', 'reto', 'retoN', 'semana', 'dias', 'lvl', 'chem'];
+const KINDS = ['start', 'shop', 'fame', 'ach', 'award', 'gym', 'gymN', 'rec', 'boss', 'reto', 'retoN', 'semana', 'dias', 'lvl', 'chem', 'online'];   // (online: la gorra «Online Beta Tester», fase 3 del online)
 check(C.every(x => Array.isArray(x.unlock) && x.unlock.length && x.unlock.every(u => Object.keys(u).length === 1 && KINDS.includes(Object.keys(u)[0]))), 'desbloqueos con formato (una clave conocida por alternativa)');
 check(C.every(x => Array.isArray(x.tris) && x.tris.length === 3 && x.tris[0] <= x.tris[1] && x.tris[1] <= x.tris[2]), 'tris [LOD0, LOD1, LOD2] crecientes');
 check(C.every(x => typeof x.geo === 'boolean' && typeof x.hint === 'string' && x.name && !/·|1\.er|2\.º/.test(x.name + x.hint)), 'geo booleano, hint y nombres sin «·»');
@@ -75,7 +75,7 @@ check(C.every(x => Object.isFrozen(x)), 'objetos del catálogo congelados');
 // ids de la especificación (§1.2 y §1.3), por ranura
 const SPEC = {
   style: 'tupe coleta afro flequillo rapado mono trenzas dosmonos coletas cresta',
-  head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona',
+  head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC',   // (gorraMTC: online, fase 3)
   eyes: 'frente pasta oscuras deporte espejo', paint: 'zinc rayas rayasEq estrella', marks: 'pecas tirita tiraNasal', beard: 'bigote perilla tresDias',
   neck: 'medalla conchas', under: 'termica licra', band: 'capitan', legs: 'malla mallaLarga',
   armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo', elbows: 'coderas',
@@ -331,7 +331,7 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   check(L.name('', 'head') === 'Sin gorro' && L.name('rojo') === 'Rojo' && L.name('auto') === 'Automático' && L.name(0xd8d4cc) === 'Canas' && /^Tono \d+$/.test(L.name(0x5a3626, 'skin')) && L.name('cintaRizo') === 'Cinta de rizo', 'name: objetos, «nada», fichas, colores de pelo y tonos de piel');
   check(L.stars('corona') === '★★★★' && L.stars('pasta') === '★☆☆☆' && L.rarityLabel('espejo') === 'Rareza: 3 de 4', 'estrellas y aria-label de la rareza');
   check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 21 && L.choices('skin').length === 14, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale)');
-  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador', 'HIDE_HAIR: gorra, gorra al revés y pescador');
+  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC', 'HIDE_HAIR: gorra, gorra al revés, pescador y la gorra «MTC» del online');
 }
 // sin tocar VB ajeno
 check(Object.keys(VB).join() === 'Look', 'look.js solo publica VB.Look');
@@ -380,7 +380,7 @@ console.log('== sprint 2-4 (T9) ==');
     H.CATALOG.forEach(o => { const n = X.item(o.id); if (!n) { lostAlt.push(o.id + ' (falta)'); return; } o.unlock.forEach(u => { if (!n.unlock.some(v => eq(v, u))) lostAlt.push(o.id + ' ' + JSON.stringify(u)); }); });
     const added = C.filter(x => H.item(x.id)).map(x => x.unlock.length - H.item(x.id).unlock.length).reduce((a, b) => a + b, 0);
     check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de ' + LOOK_BASE + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
-    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 5, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 5 objetos nuevos (' + H.CATALOG.length + ' → ' + C.length + ')');
+    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online; ' + H.CATALOG.length + ' → ' + C.length + ')');
     check(H.CATALOG.every(o => X.isStart(o.id) === H.isStart(o.id) && X.price(o.id) === H.price(o.id) && X.item(o.id).rarity === o.rarity), 'inicio, precios y rarezas de siempre');
   } else console.log('AVISO: sin js/look.js en ' + LOOK_BASE + ': comparación de alternativas saltada');
 

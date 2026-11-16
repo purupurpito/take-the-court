@@ -1,11 +1,11 @@
 rules_version = '2';
 // Make the Cut: progreso de cada cuenta. Sin cifrar; solo lo lee y lo cambia su dueño.
 // users/{uid}/saves/{key}: data = JSON en texto (≤ 400 000 caracteres; js/account.js no sube más de 390 000); updatedAt = ms del dispositivo.
-// Claves admitidas (11; lo desplegado el 15-nov-2026 admite las 6 primeras) y qué las enciende en js/account.js:
+// Claves admitidas (11; todas desplegadas el 16-nov-2026) y qué las enciende en js/account.js:
 //   squad, career, settings, record   → siempre (DOCS).                                  DESPLEGADAS.
 //   gym                               → GYM_SYNC = true (12-nov-2026).                    DESPLEGADA el 12-nov-2026.
 //   look                              → LOOK_SYNC = true (Vestuario, 13-nov-2026).        DESPLEGADA el 15-nov-2026.
-//   profile, career6, cmode, legends, retos → S4_SYNC (S4, perfil y sincronización).       SIN DESPLEGAR.
+//   profile, career6, cmode, legends, retos → S4_SYNC (S4, perfil y sincronización).       DESPLEGADAS el 16-nov-2026.
 // Orden obligatorio: 1) Ferran despliega estas reglas (npx firebase-tools deploy --only firestore:rules, desde firebase/) y espera unos
 // minutos; 2) en una publicación mínima, S4_SYNC = true (LOOK_SYNC ya está a true). Al revés, cada subida daría 403.
 // '<clave>.bak', 'voley3d.career(6).prev', 'voley3d.devid' y 'voley3d.retostab' son del aparato: nunca llegan aquí.
@@ -21,6 +21,86 @@ service cloud.firestore {
         && request.resource.data.data is string && request.resource.data.data.size() <= 400000
         && request.resource.data.updatedAt is number
         && (!('v' in request.resource.data) || request.resource.data.v is int);
+    }
+    // ------------------------------------------------------------------------------------------------------------------------
+    // ONLINE (especialista net, notes/net.md, 16-nov-2026). DESPLEGADO el 16-nov-2026. Si faltaran estas reglas, el juego diría
+    // «El online aún no está activado en el servidor» al entrar en Online (403 al listar rooms) y no se rompe nada más.
+    // Desplegar (desde firebase/): npx firebase-tools deploy --only firestore:rules
+    //
+    // rooms/{uid}: la sala que tiene abierta cada cuenta (el id del documento ES el uid del anfitrión: una sala por cuenta).
+    //   Campos públicos para la lista del lobby (los ve cualquiera con sesión; nunca correos): code (6 letras/cifras, para compartir),
+    //   name (nombre visible del anfitrión, 1-16), gname (el de quien entra), host/guest (uid), fmt ('2v2'), venue ('beach'|'hall'),
+    //   map (id de la sede), even (Igualado), bo (1|3 sets), pts, state ('open' en la lista | 'full' con rival | 'play' jugando),
+    //   v (versión del protocolo y del juego) y seen (hora del SERVIDOR del último latido del anfitrión: el cliente la manda como
+    //   transformación REQUEST_TIME, así no depende del reloj de nadie).
+    //   - Crear / cambiar: solo el anfitrión (doc = su uid) y con seen = hora del servidor.
+    //   - Unirse: quien no es el anfitrión, a una sala 'open', vacía y viva (latido de hace < 90 s); solo toca guest/gname/state.
+    //   - Salir antes de empezar: el invitado devuelve la sala a 'open'.
+    //   - Borrar: el anfitrión, o cualquiera con sesión si la sala lleva más de 5 min sin latido (limpieza desde el lobby).
+    // rooms/{uid}/sig/{offer|answer}: señalización de WebRTC (SDP, que lleva direcciones de red): SOLO la leen y escriben los dos
+    //   jugadores de la sala (offer el anfitrión, con to = uid del invitado al que va; answer el invitado, con uid = el suyo) y cada
+    //   uno solo lee lo que va dirigido a él: un invitado nuevo nunca lee la respuesta (ni la oferta) de uno anterior. El cliente la
+    //   borra al conectar, al salir el invitado y al volver a abrir la sala. Nada de esto se enseña en el juego: del rival solo se ve
+    //   su nombre.
+    // ------------------------------------------------------------------------------------------------------------------------
+    function signed() { return request.auth != null; }
+    function nameOk(n) { return n is string && n.size() >= 1 && n.size() <= 16; }
+    function roomOk(d) {
+      return d.keys().hasOnly(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen'])
+        && d.keys().hasAll(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen'])
+        && d.code is string && d.code.matches('[2-9A-HJKMNP-Z]{6}')
+        && nameOk(d.name) && d.gname is string && d.gname.size() <= 16
+        && d.host is string && d.guest is string && d.guest.size() <= 128
+        && d.fmt in ['2v2'] && d.venue in ['beach', 'hall'] && d.map is string && d.map.size() <= 40
+        && d.even is bool && d.bo in [1, 3] && d.pts in [11, 15, 21, 25]
+        && d.state in ['open', 'full', 'play'] && d.v is string && d.v.size() <= 40
+        && d.seen == request.time;
+    }
+    function members(d) { return [d.host, d.guest]; }
+    function live(d) { return d.seen > request.time - duration.value(90, 's'); }
+    function stale(d) { return d.seen < request.time - duration.value(300, 's'); }
+    match /rooms/{rid} {
+      allow get: if signed();
+      allow list: if signed() && request.query.limit <= 50;
+      allow create: if signed() && rid == request.auth.uid && roomOk(request.resource.data)
+        && request.resource.data.host == request.auth.uid && request.resource.data.guest == '' && request.resource.data.gname == ''
+        && request.resource.data.state == 'open';
+      allow update: if signed() && (
+        // el anfitrión: lo que quiera de su sala (latido, estado, echar al invitado), siempre válida y con seen del servidor
+        (rid == request.auth.uid && resource.data.host == request.auth.uid && request.resource.data.host == request.auth.uid
+          && roomOk(request.resource.data))
+        // entrar: una sala abierta, vacía y viva; solo guest (= quien entra), gname y state ('full')
+        || (resource.data.state == 'open' && resource.data.guest == '' && resource.data.host != request.auth.uid && live(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guest', 'gname', 'state'])
+          && request.resource.data.guest == request.auth.uid && request.resource.data.state == 'full' && nameOk(request.resource.data.gname))
+        // salir antes de empezar: el invitado deja la sala abierta y vacía
+        || (resource.data.state == 'full' && resource.data.guest == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guest', 'gname', 'state'])
+          && request.resource.data.guest == '' && request.resource.data.gname == '' && request.resource.data.state == 'open'));
+      allow delete: if signed() && (resource.data.host == request.auth.uid || stale(resource.data));
+      match /sig/{kind} {
+        function room() { return get(/databases/$(database)/documents/rooms/$(rid)).data; }
+        function here() { return exists(/databases/$(database)/documents/rooms/$(rid)); }
+        // leer: la oferta, el anfitrión o su destinatario (to); la respuesta, quien la escribió (uid) o el anfitrión mientras ese
+        // sea su invitado. Así nadie hereda la SDP de otro (quien entra después de que alguien saliera no puede leer la suya).
+        // (resource == null: el documento no existe y la lectura da 404, no 403)
+        allow get: if signed() && here() && (resource == null
+          || (kind == 'offer' && (room().host == request.auth.uid || resource.data.to == request.auth.uid))
+          || (kind == 'answer' && (resource.data.uid == request.auth.uid
+                || (room().host == request.auth.uid && resource.data.uid == room().guest))));
+        allow create, update: if signed() && here() && room().state in ['full', 'play']
+          && ((kind == 'offer' && room().host == request.auth.uid && request.resource.data.keys().hasOnly(['sdp', 'gen', 'to'])
+                && request.resource.data.to == room().guest)
+            || (kind == 'answer' && room().guest == request.auth.uid && request.resource.data.keys().hasOnly(['sdp', 'gen', 'uid'])
+                && request.resource.data.uid == request.auth.uid))
+          && request.resource.data.keys().hasAll(['sdp', 'gen'])
+          && request.resource.data.sdp is string && request.resource.data.sdp.size() <= 20000
+          && request.resource.data.gen is int && request.resource.data.gen >= 0;
+        // borrar: los dos jugadores, quien escribió la respuesta aunque ya haya salido (al cerrar la pestaña el borrado y la salida
+        // van a la vez) y cualquiera si la sala ya no existe o está caducada
+        allow delete: if signed() && (!here() || request.auth.uid in members(room()) || stale(room())
+          || (resource != null && resource.data.get('uid', '') == request.auth.uid));
+      }
     }
   }
 }

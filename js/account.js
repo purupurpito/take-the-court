@@ -653,6 +653,11 @@
   VB.Account = {
     open: open, close: close, isOpen: isOpen, user: function () { return acc ? acc.user : null; }, status: function () { return status; },
     sync: function () { return syncDown(false); }, signOut: signOut, onChange: function (f) { listeners.push(f); },
+    // ONLINE (especialista net, js/netroom.js / js/netlobby.js): token de la sesión para las salas de Firestore (rooms/…). netInfo
+    // nunca da el correo: user solo es el nombre de usuario de las cuentas «usuario y contraseña» (las de correo y Google dan '').
+    netAuth: function () { if (!acc) return Promise.reject(err('unauthenticated')); return token().then(function (t) { return { uid: acc.uid, token: t }; }); },
+    netInfo: function () { return acc ? { uid: acc.uid, kind: acc.kind || 'user', user: acc.kind === 'user' || !acc.kind ? acc.user : '' } : null; },
+    FS_BASE: FS,
     // pruebas (tools/cuentatest.js): entrar sin la interfaz y borrar la cuenta al acabar
     menuReady: menuReady, S4_SYNC: S4_SYNC,
     _enter: enter, _delete: deleteAccount, _mergeGym: mergeGym, _gymSync: GYM_SYNC, _mergeLook: mergeLook, _lookSync: LOOK_SYNC, _push: function () { markDirty(); return push(); },

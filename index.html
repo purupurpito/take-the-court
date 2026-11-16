@@ -3186,6 +3186,8 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
         <button class="mode m-career" id="btnCareer"><span class="md-art" aria-hidden="true"><svg class="md-trophy" viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span><span class="md-tx"><b>Carrera</b><small class="md-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span></button>
         <button class="mode m-6v6" id="btn6v6"><span class="md-art" aria-hidden="true"><span class="md-num">6<i>v</i>6</span></span><span class="md-tx"><b>6 contra 6</b><small>Equipos completos: elige tu puesto</small></span></button>
         <button class="mode m-gym" id="btnGym"><span class="md-art" aria-hidden="true"><svg class="md-flat" viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/><path class="md-gseam" d="M50 8c-3 3-4 7-3 11M59 16c-4-1.5-8-1-11 1.5M44 24c3-2 6-2.6 9.5-2"/></svg></span><span class="md-tx"><b>Entrenamiento</b><small class="md-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
+        <!-- ONLINE (especialista net, js/netlobby.js): 1 contra 1 con otra persona; oculta hasta que VB.NetLobby.menuOn() (o ?online=1) -->
+        <button class="mode m-onl" id="btnOnline" hidden><span class="md-art" aria-hidden="true"><span class="md-num">1<i>v</i>1</span><i class="md-soon">Beta</i></span><span class="md-tx"><b>Online</b><small>Contra otra persona, con tu jugador</small></span></button>
       </nav>
     </div>
     <!-- PARTIDO RÁPIDO: preparación (formato, escenario, dificultad, puntos y control) y ¡A JUGAR! (en 6 contra 6, Controlar queda fijo: .lock; y en
@@ -3204,6 +3206,14 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
         <button class="mi" id="optCtrl" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <button class="mi primary" id="btnGo"><span>¡A jugar!<br><span class="mi-s" id="playSub"><span class="chip">Partido rápido</span></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
       </div>
+    </div>
+    <!-- ONLINE (especialista net): lobby con la lista de salas, crear sala y sala de espera (js/netlobby.js pinta .ol-body; ui.js la abre) -->
+    <div class="mpage" id="mpOnline" data-page="online" hidden>
+      <div class="mp-head">
+        <button class="mp-back" id="btnOnlineBack" aria-label="Volver a los modos de juego"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker">Jugar</p><h2 class="mp-t">Online</h2></div>
+      </div>
+      <div class="ol-body"></div>
     </div>
     <!-- ENTRENAMIENTO (E6, sprint 5): 5 ejercicios con medallas y el peloteo libre (filas de js/gym.js; ui.js renderGym) -->
     <div class="mpage" id="mpGym" data-page="gym" hidden>
@@ -3523,11 +3533,18 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 <script src="js/sim.js"></script>
 <script src="js/ai.js"></script>
 <script src="js/ai6.js"></script>
+<script src="js/net.js"></script>
+<script src="js/netview.js"></script>
+<script src="js/netroom.js"></script>
+<script src="js/netconfig.js"></script>
+<script src="js/netrtc.js"></script>
+<script src="js/netlobby.js"></script>
 <script src="js/prog.js"></script>
 <script src="js/gym.js"></script>
 <script src="js/badges.js"></script>
 <script src="js/retos.js"></script>
 <script src="js/look.js"></script>
+<script src="js/netrec.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/venues.js"></script>
 <script src="js/venue-gen.js"></script>
