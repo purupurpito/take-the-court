@@ -7,6 +7,10 @@
  *     con basura y su ida y vuelta, cada choque arreglado por fix() (ok() da true después) con sus avisos, firmas estables (un
  *     color que solo va en el atlas no cambia geoSig), fromSeed determinista y solo con objetos de inicio, matchLooks, mergeRaw,
  *     grant / unseen / wearable / checkGlobal con el guardado falso, guardado < 8 KB, precios, textos de lockText.
+ *     Sprint 2-4 (T9): tipos de desbloqueo boss, reto, retoN, semana, dias, lvl y chem (meets, lockText, checkGlobal y orígenes
+ *     retos / hito / boss), 8 premios por nivel sin quitar ninguna alternativa (contra js/look.js del Vestuario original, 928ac39), objetos de jefe,
+ *     bossItems / bossFit, drawId (pieza base mientras doll.js no sepa la variante) y el contrato D4 (.bak + lost(), solo lectura).
+ *     T21 (--gl): los 5 objetos de jefe con dibujo propio en doll.js y los mismos triángulos que su pieza base.
  *  2) --gl (tools/cdp.js): abre ?debug=look&looktest=1, comprueba que VB.Look del navegador firma igual que el de node y llama a
  *     VB.Doll.lookSelfTest() si existe (si aún no existe lo dice sin fallar; STRICT=1: fallo). Errores JS de la página = fallo.
  * Uso: node tools/looktest.js [--gl]        Escribe «TODO OK» al final si todo pasa; sale con 1 si falla algo.
@@ -59,7 +63,7 @@ const SLOTX = L.SLOTS.concat(['style', 'hairTint', 'color']);
 check(C.every(x => x.slots.length && x.slots.every(s => SLOTX.includes(s)) && x.slot === x.slots[0]), 'cada objeto con ranura válida');
 check(C.every(x => ['P', 'Y', 'A'].includes(x.venue)), 'cada objeto con sede válida (P, Y, A)');
 check(C.every(x => x.rarity >= 0 && x.rarity <= 3 && L.stars(x.id).length === 4 && L.stars(x.id).replace(/☆/g, '').length === x.rarity + 1), 'rareza 0-3 y estrellas');
-const KINDS = ['start', 'shop', 'fame', 'ach', 'award', 'gym', 'gymN', 'rec'];
+const KINDS = ['start', 'shop', 'fame', 'ach', 'award', 'gym', 'gymN', 'rec', 'boss', 'reto', 'retoN', 'semana', 'dias', 'lvl', 'chem'];
 check(C.every(x => Array.isArray(x.unlock) && x.unlock.length && x.unlock.every(u => Object.keys(u).length === 1 && KINDS.includes(Object.keys(u)[0]))), 'desbloqueos con formato (una clave conocida por alternativa)');
 check(C.every(x => Array.isArray(x.tris) && x.tris.length === 3 && x.tris[0] <= x.tris[1] && x.tris[1] <= x.tris[2]), 'tris [LOD0, LOD1, LOD2] crecientes');
 check(C.every(x => typeof x.geo === 'boolean' && typeof x.hint === 'string' && x.name && !/·|1\.er|2\.º/.test(x.name + x.hint)), 'geo booleano, hint y nombres sin «·»');
@@ -74,9 +78,9 @@ const SPEC = {
   head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona',
   eyes: 'frente pasta oscuras deporte espejo', paint: 'zinc rayas rayasEq estrella', marks: 'pecas tirita tiraNasal', beard: 'bigote perilla tresDias',
   neck: 'medalla conchas', under: 'termica licra', band: 'capitan', legs: 'malla mallaLarga',
-  armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio', elbows: 'coderas',
-  wristL: 'muneq reloj', hands: 'dedos mitones', knees: 'cortas altas bajadas', socks: 'tobilleros media altos altosRayas desparejados',
-  ankle: 'blanca tela pulseraTob escarpines', shoes: 'clasicas negras neon doradas',
+  armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo', elbows: 'coderas',
+  wristL: 'muneq reloj munhCanon', hands: 'dedos mitones dedosMuro', knees: 'cortas altas bajadas rodiPulpo', socks: 'tobilleros media altos altosRayas desparejados',
+  ankle: 'blanca tela pulseraTob escarpines tobiPulpo', shoes: 'clasicas negras neon doradas',
   hairTint: 'tAzul tRosa tVerde tMorado tTurquesa tDorado', color: 'dorado'
 };
 let specOk = true;
@@ -85,8 +89,8 @@ check(specOk, 'el catálogo tiene exactamente los ids de la especificación por 
 check(eq(L.items('armR'), L.items('armL')) && eq(L.items('wristR'), L.items('wristL')), 'manguitos y muñecas valen en los dos lados');
 check(L.STYLES.length === 10 && L.TINTS.length === 6 && L.SKINS.length === 14 && L.HAIRS.length === 15, '10 peinados, 6 tintes, 14 pieles y 15 colores de pelo');
 // sede (§1.4.1)
-const ONLY_Y = 'gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines'.split(' ');
-const ONLY_P = ['termica', 'bajadas', 'blanca', 'cortas', 'altas', 'coderas'].concat(SPEC.armL.split(' ').filter(x => x !== 'kinesio')).concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
+const ONLY_Y = 'gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines tobiPulpo'.split(' ');
+const ONLY_P = ['termica', 'bajadas', 'blanca', 'rodiPulpo', 'cortas', 'altas', 'coderas'].concat(SPEC.armL.split(' ').filter(x => x !== 'kinesio')).concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
 check(C.filter(x => x.venue === 'Y').map(x => x.id).sort().join() === ONLY_Y.slice().sort().join(), 'solo en playa: la lista de §1.4');
 check(C.filter(x => x.venue === 'P').map(x => x.id).sort().join() === ONLY_P.slice().sort().join(), 'solo en pista: la lista de §1.4');
 // CLASH
@@ -313,10 +317,10 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   check(shopIt.every(x => { const p = L.price(x.id), b = band[x.lux ? 3 : x.rarity]; return p >= b[0] && p <= b[1]; }), 'precios por rareza (común 500-1.200, rara 3.000-8.000, épica 15.000-20.000, lujo 40.000-60.000)');
   check(L.lockText('manguitoCuadros') === 'Tienda de la Carrera: 6.000 €', 'lockText: «Tienda de la Carrera: 6.000 €»');
   // (fame = índice de TIERS de career-life.js, contra tierIdx(fameMax): 4 Estrella, 5 Ídolo, 6 Leyenda viva)
-  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 €' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
+  check(L.lockText('estrella') === 'Fama: Ídolo o Tienda de la Carrera: 20.000 € o Reto: Rodillo (oro)' && L.lockText('estrella', true).indexOf('Fama: Ídolo de la grada') === 0 && L.lockText('capitan').indexOf('Fama: Estrella') === 0,'lockText: «' + L.lockText('estrella') + '»');
   check(L.lockText('dedos') === 'Logro: b50 (50 bloqueos punto) o Entrenamiento: medalla en Bloqueo', 'lockText sin la Carrera cargada enseña el id: «' + L.lockText('dedos') + '»');
   check(L.lockText('manguitoLlamas').indexOf('Entrenamiento: oro en Saque') > 0 && L.lockText('cresta') === 'Tienda de la Carrera: 3.000 € o Entrenamiento: 3 medallas', 'lockText: oro en Saque; 3 medallas');
-  check(L.lockText('kinesio').endsWith('Récord: 1 partido') && L.lockText('rayasEq').endsWith('Récord: 25 victorias') && L.lockText('desparejados').endsWith('Récord: racha de 5 victorias'), 'lockText: récords');
+  check(L.lockText('kinesio').endsWith('Récord: 1 partido') && L.lockText('rayasEq').indexOf('Récord: 25 victorias') > 0 && L.lockText('desparejados').endsWith('Récord: racha de 5 victorias'), 'lockText: récords');
   check(L.lockText('doradas').indexOf('Premio: MVP') >= 0 && L.lockText('tupe') === '' && L.lockText('deporte').indexOf('Fama: Conocido en el circuito') === 0 && L.lockText('deporte', true).indexOf('Fama: Conocido en la liga') === 0, 'lockText: premio, inicio vacío, fama por modo');
   const names = { m50: ['Veterano de la arena', 'Veterano del parqué'], b50: ['Muralla'], top: ['En la élite'] };
   const sc = sandbox({ CareerLife: { achName: (id, hall) => (names[id] ? (hall && names[id][1]) || names[id][0] : id), TIERS: [[0, 'Desconocido'], [500, 'Promesa local'], [2000, 'Conocido en el circuito', 'Conocido en la liga'], [7000, 'Figura'], [20000, 'Estrella'], [50000, 'Ídolo', 'Ídolo de la grada'], [120000, 'Leyenda viva']] } });
@@ -331,6 +335,125 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
 }
 // sin tocar VB ajeno
 check(Object.keys(VB).join() === 'Look', 'look.js solo publica VB.Look');
+
+// ---------------------------------------------------------------- sprint 2-4 (T9): tipos nuevos, jefes, premios por nivel, D4
+console.log('== sprint 2-4 (T9) ==');
+{
+  const S = sandbox();
+  const X = S.L;
+  check(['retos', 'hito', 'boss'].every(k => X.SRCS.includes(k)) && X.SRCS.slice(0, 4).join() === 'carrera,tienda,gym,record', 'SRCS += retos, hito y boss (los de antes, en su sitio)');
+  // meets: cada tipo nuevo
+  check(X.meets('munhCanon', { boss: { saque: true } }) && !X.meets('munhCanon', { boss: { muro: true } }) && !X.meets('munhCanon', { boss: 'saque' }) && !X.meets('munhCanon', {}), 'meets {boss}: solo con ese estilo derrotado');
+  check(X.meets('bandana', { reto: { r_aces: 2 } }) && X.meets('bandana', { reto: { r_aces: 3 } }) && !X.meets('bandana', { reto: { r_aces: 1 } }) && !X.meets('bandana', { reto: { r_kills: 3 } }), 'meets {reto:{id, m}}: nivel ≥ m en ese reto');
+  check(X.meets('tTurquesa', { retoN: 30 }) && !X.meets('tTurquesa', { retoN: 29 }), 'meets {retoN}');
+  check(X.meets('tVerde', { dias: 7 }) && !X.meets('tVerde', { dias: 6 }), 'meets {dias}');
+  check(X.meets('manguitoRayas', { lvl: 8 }) && X.meets('manguitoRayas', { lvl: 30 }) && !X.meets('manguitoRayas', { lvl: 7 }) && !X.meets('manguitoRayas', { lvl: '9' }), 'meets {lvl}: número ≥ N');
+  check(X.meets('rayasEq', { chem: 3 }) && !X.meets('rayasEq', { chem: 2 }), 'meets {chem:3}');
+  // {semana} queda soportado aunque el torneo esté cortado (ningún objeto lo usa todavía)
+  check(X.unlockText({ semana: 1 }) === 'Torneo de la semana: 1 ganado' && X.unlockText({ semana: 5 }) === 'Torneo de la semana: 5 ganados' && !C.some(x => x.unlock.some(u => u.semana)), 'unlockText {semana} listo; ningún objeto lo usa (torneo cortado)');
+  // textos
+  check(X.lockText('munhCanon') === 'Jefe: gana a un Cañón' && X.lockText('dedosMuro') === 'Jefe: gana a un Muro' && X.lockText('manguitoMazo') === 'Jefe: gana a un Martillo' && X.lockText('rodiPulpo') === 'Jefe: gana a un Pulpo' && X.lockText('tobiPulpo') === 'Jefe: gana a un Pulpo', 'lockText jefe: «' + X.lockText('dedosMuro') + '»');
+  check(X.lockText('bandana').endsWith(' o Reto: Lluvia de aces (plata)') && X.lockText('deporte').endsWith('Reto: Pase al dedo (plata)'), 'lockText reto: «' + X.lockText('bandana') + '»');
+  check(X.lockText('tTurquesa').endsWith('Retos: 30 medallas') && X.lockText('tVerde').endsWith('Reto del día: 7 oros'), 'lockText retoN / dias: «' + X.lockText('tTurquesa') + '», «' + X.lockText('tVerde') + '»');
+  check(X.lockText('manguitoRayas') === 'Tienda de la Carrera: 1.200 € o Perfil: Nv 8' && X.lockText('tAzul') === 'Tienda de la Carrera: 1.200 € o Perfil: Nv 10', 'lockText lvl: «' + X.lockText('tAzul') + '»');
+  check(X.lockText('rayasEq').endsWith('Química: Pareja de oro') && X.lockText('rayasEq', true).endsWith('Química: Equipo de oro'), 'lockText chem por modo: «' + X.lockText('rayasEq', true) + '»');
+  const S2 = sandbox({ Retos: { BY: { r_aces: { name: 'Aces a mansalva' } } }, CareerLife: { CHEM_LV: [[0, 'a'], [30, 'b'], [60, 'c'], [90, 'Dúo de oro']], CHEM_LV6: ['a', 'b', 'c', 'Bloque de oro'] } });
+  check(S2.L.lockText('bandana').endsWith('Reto: Aces a mansalva (plata)') && S2.L.lockText('rayasEq').endsWith('Química: Dúo de oro') && S2.L.lockText('rayasEq', true).endsWith('Química: Bloque de oro'), 'lockText lee los nombres de VB.Retos.BY y VB.CareerLife.CHEM_LV/CHEM_LV6');
+  const allT = C.map(x => X.lockText(x.id) + X.lockText(x.id, true)).join('|');
+  check(!/·|1\.er|undefined|NaN|null/.test(allT), 'textos nuevos sin «·», «1.er», undefined ni null');
+
+  // premios por nivel: 8, de la tabla de S4-D2 §2.3, siempre como alternativa
+  const D2 = { tiraNasal: 2, altosRayas: 3, conchas: 4, oscuras: 5, mallaLarga: 6, manguitoRayas: 8, tAzul: 10, tRosa: 12, mitones: 14, escarpines: 16, pescador: 18, licra: 20, tVerde: 22, manguitoCuadros: 24, neon: 28, manguitoOro: 40, tDorado: 50 };
+  const P = X.LVL_PRIZES;
+  check(P.length === 8 && P.every(e => D2[e.id] === e.lvl) && P.every((e, i) => !i || P[i - 1].lvl < e.lvl), '8 premios por nivel de la tabla de S4-D2 (Nv ' + P.map(e => e.lvl + ' ' + e.id).join(', ') + ')');
+  check(P.every(e => X.item(e.id).unlock.length >= 2 && X.price(e.id) > 0) && !P.some(e => ['doradas', 'corona', 'medalla', 'capitan'].includes(e.id) || X.item(e.id).lux), 'cada premio por nivel se sigue vendiendo en la tienda; nada de lujo ni doradas, corona, medalla o brazalete');
+  check(X.lvlPrize(8) === 'manguitoRayas' && X.lvlPrize(9) === '' && Object.isFrozen(P), 'lvlPrize(8) = manguitoRayas, lvlPrize(9) vacío; tabla congelada');
+  // sin quitar ninguna alternativa: comparado con look.js del Vestuario original (commit 928ac39; LOOK_BASE=<rev> para otro). No con
+  // HEAD: desde que el sprint 2-4 está en commits (WIP de la ola 1b), HEAD ya trae los premios y la comparación salía 80 → 80
+  const LOOK_BASE = process.env.LOOK_BASE || '928ac39';
+  let head = null;
+  try { head = require('child_process').execSync('git show ' + LOOK_BASE + ':js/look.js', { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { head = null; }
+  if (head && /CATALOG/.test(head)) {
+    const VBh = {}; vm.runInNewContext(head, { window: { VB: VBh, localStorage: { getItem: () => null, setItem() { }, removeItem() { } } }, VB: VBh });
+    const H = VBh.Look;
+    let lostAlt = [];
+    H.CATALOG.forEach(o => { const n = X.item(o.id); if (!n) { lostAlt.push(o.id + ' (falta)'); return; } o.unlock.forEach(u => { if (!n.unlock.some(v => eq(v, u))) lostAlt.push(o.id + ' ' + JSON.stringify(u)); }); });
+    const added = C.filter(x => H.item(x.id)).map(x => x.unlock.length - H.item(x.id).unlock.length).reduce((a, b) => a + b, 0);
+    check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de ' + LOOK_BASE + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
+    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 5, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 5 objetos nuevos (' + H.CATALOG.length + ' → ' + C.length + ')');
+    check(H.CATALOG.every(o => X.isStart(o.id) === H.isStart(o.id) && X.price(o.id) === H.price(o.id) && X.item(o.id).rarity === o.rarity), 'inicio, precios y rarezas de siempre');
+  } else console.log('AVISO: sin js/look.js en ' + LOOK_BASE + ': comparación de alternativas saltada');
+
+  // objetos de jefe
+  const BI = { saque: ['munhCanon'], muro: ['dedosMuro'], remate: ['manguitoMazo'], defensa: ['rodiPulpo', 'tobiPulpo'] };
+  check(eq(X.BOSS_STYLES, ['saque', 'muro', 'remate', 'defensa']) && X.BOSS_STYLES.every(st => eq(X.bossItems(st), BI[st])) && eq(X.bossItems('nada'), []), 'bossItems: un objeto por estilo (defensa: pista y playa)');
+  const bossIds = [].concat(...Object.values(BI));
+  check(bossIds.every(id => { const it = X.item(id); return it.rarity === 2 && it.unlock.length === 1 && it.unlock[0].boss && it.as && X.item(it.as) && it.as !== id && it.slots.every(s => X.item(it.as).slots.includes(s)) && X.price(id) === 0; }), 'objetos de jefe: rareza 2, solo {boss}, sin tienda, con pieza base en la misma ranura');
+  check(X.item('munhCanon').venue === 'A' && X.item('dedosMuro').venue === 'A' && X.item('manguitoMazo').venue === 'P' && X.item('rodiPulpo').venue === 'P' && X.item('tobiPulpo').venue === 'Y', 'sedes: muñequera y dedos en las dos; manguito (como todos) y rodilleras de pulpo en pista; tobillera en playa');
+  // drawId / resolve: sin doll.js la pieza base; si doll.js sabe la variante, la variante
+  const fb = X.defaults(0); fb.hall.wristR = 'munhCanon'; fb.hall.knees = 'rodiPulpo'; fb.hall.armL = 'manguitoMazo'; fb.beach.ankle = 'tobiPulpo'; fb.beach.hands = 'dedosMuro';
+  const Rh = X.resolve(fb, 'hall'), Rb = X.resolve(fb, 'beach');
+  check(Rh.wristR === 'muneq' && Rh.knees === 'altas' && Rh.armL === 'manguito' && Rb.ankle === 'tela' && Rb.hands === 'dedos', 'resolve sin doll.js: cada objeto de jefe sale como su pieza base');
+  const SD = sandbox({ Doll: { ITEMS: { wristR: { muneq: 'A', munhCanon: 'A' }, knees: { altas: 'A' } } } });
+  const Rd = SD.L.resolve(fb, 'hall');
+  check(Rd.wristR === 'munhCanon' && Rd.knees === 'altas', 'resolve con VB.Doll.ITEMS: la variante si doll.js la sabe dibujar, la base si no');
+  check(X.geoSig(fb, 'hall') !== X.geoSig(X.defaults(0), 'hall') && X.sig(fb) !== X.sig(Object.assign(X.defaults(0))), 'un objeto de jefe cambia las firmas');
+  // bossFit
+  let bfOk = true;
+  X.BOSS_STYLES.forEach(st => {
+    for (let n = 0; n < 60; n++) {
+      const a = X.bossFit(st, n * 7919), b = X.bossFit(st, n * 7919);
+      if (!eq(a, b) || !X.ok(a)) bfOk = false;
+      const vals = [].concat(X.SLOTS.map(s => a.hall[s]), X.SLOTS.map(s => a.beach[s]));
+      BI[st].forEach(id => { const it = X.item(id); ['hall', 'beach'].forEach(v => { if ((it.venue === 'A' || it.venue === (v === 'beach' ? 'Y' : 'P')) && !X.SLOTS.some(s => a[v][s] === id)) bfOk = false; }); });
+      if (vals.some(v => v && !X.isStart(v) && !BI[st].includes(v))) bfOk = false;
+    }
+  });
+  check(bfOk, 'bossFit: determinista, ok(), con su objeto en cada sede donde vale y el resto de inicio (4 estilos × 60 semillas)');
+  check(eq(X.bossFit('muro', 'Belmonte'), X.bossFit('muro', X.hashStr('Belmonte'))) && eq(X.bossFit('nada', 5), X.fromSeed(5)) && !eq(X.bossFit('muro', 5), X.bossFit('saque', 5)), 'bossFit: texto = hashStr(texto); estilo desconocido = fromSeed');
+  check(X.bossFit('remate', 3).hall.armR === 'manguitoMazo' && X.bossFit('saque', 3).beach.wristR === 'munhCanon' && X.bossFit('muro', 3).beach.hands === 'dedosMuro' && X.bossFit('defensa', 3).hall.knees === 'rodiPulpo' && X.bossFit('defensa', 3).beach.ankle === 'tobiPulpo', 'bossFit: manguito y muñequera en la derecha, dedos, rodilleras en pista y tobillera en playa');
+
+  // checkGlobal: nivel → hito; retos → retos; jefe y química nunca
+  const G = sandbox();
+  const g1 = G.L.checkGlobal({ lvl: 8, boss: { saque: true }, chem: 3 });
+  check(eq(g1.slice().sort(), ['conchas', 'mallaLarga', 'manguitoRayas', 'tiraNasal']), 'checkGlobal({lvl:8}) da los premios hasta el Nv 8: ' + g1.join(', '));
+  const so = JSON.parse(G.store['voley3d.look']).own;
+  check(Object.keys(so).every(id => so[id].s === 'hito') && !G.L.owned('munhCanon') && !G.L.owned('rayasEq'), 'origen hito; jefe y química no se dan fuera de la Carrera');
+  check(eq(G.L.checkGlobal({ lvl: 8 }), []) && eq(G.L.checkGlobal({ lvl: 28 }).sort(), ['licra', 'mitones', 'neon', 'tAzul']), 'checkGlobal por nivel: nada la segunda vez; luego lo que falta hasta el Nv 28');
+  const g2 = G.L.checkGlobal({ reto: { r_aces: 2, r_recv: 1, r_streak: 3 }, retoN: 30, dias: 7 });
+  const so2 = JSON.parse(G.store['voley3d.look']).own;
+  check(eq(g2.slice().sort(), ['bandana', 'estrella', 'tTurquesa', 'tVerde']) && g2.every(id => so2[id].s === 'retos'), 'checkGlobal con retos (origen retos): ' + g2.join(', '));
+  // sin datos: lee VB.Profile.level() y VB.Retos.lookData()
+  const GP = sandbox({ Profile: { level: () => ({ lvl: 4 }) }, Retos: { lookData: () => ({ reto: { r_recv: 2 }, retoN: 3, dias: 7, semana: 0 }) } });
+  const g3 = GP.L.checkGlobal();
+  check(eq(g3.slice().sort(), ['conchas', 'deporte', 'tVerde', 'tiraNasal']), 'checkGlobal() sin datos lee VB.Profile.level() y VB.Retos.lookData(): ' + g3.join(', '));
+  const GR = sandbox({ Retos: { lookData: () => { throw new Error('x'); } }, Profile: { level: () => null } });
+  check(eq(GR.L.checkGlobal({ retos: { total: 30, daysGold: 0 } }), ['tTurquesa']), 'checkGlobal con retos: summary() (total) y módulos que fallan no rompen');
+  // grant con los orígenes nuevos
+  const GG = sandbox();
+  check(GG.L.grant('munhCanon', 'boss') && GG.L.grant('rayasEq', 'carrera') && GG.L.grant('tAzul', 'hito') && JSON.parse(GG.store['voley3d.look']).own.munhCanon.s === 'boss' && GG.L.load().own.tAzul.s === 'hito', 'grant con origen boss / hito se guarda tal cual');
+  const mOld = JSON.parse(GG.L.mergeRaw(JSON.stringify({ v: 1, own: { tAzul: { s: 'hito', t: 5 } } }), JSON.stringify({ v: 1, own: { munhCanon: { s: 'boss', t: 7 } } })));
+  check(mOld.own.tAzul.s === 'hito' && mOld.own.munhCanon.s === 'boss', 'mergeRaw conserva los orígenes nuevos');
+
+  // contrato D4: dañado → .bak + lost(); versión más nueva → solo lectura
+  ['{roto', '[1,2]', '"texto"', '7'].forEach(bad => {
+    const B = sandbox(); B.store['voley3d.look'] = bad;
+    const f0 = B.L.fit(0);
+    check(eq(f0, B.L.defaults(0)) && B.store['voley3d.look.bak'] === bad && !('voley3d.look' in B.store) && B.L.lost() === true && B.L.readOnly() === false, 'dañado ' + JSON.stringify(bad) + ': copia en voley3d.look.bak, se borra y lost()');
+    check(B.L.grant('pescador', 'tienda') === true && JSON.parse(B.store['voley3d.look']).own.pescador && B.store['voley3d.look.bak'] === bad && B.L.lost() === true, 'tras un dañado se vuelve a guardar y la copia se queda');
+  });
+  const N = sandbox(); N.store['voley3d.look'] = JSON.stringify({ v: 1, own: {} });
+  check(N.L.lost() === false && N.L.readOnly() === false && !('voley3d.look.bak' in N.store), 'guardado sano: ni lost() ni solo lectura ni .bak');
+  const RO = sandbox(); const v2 = JSON.stringify({ v: 2, fits: [{ style: 'afro' }], own: { pescador: { s: 'tienda', t: 9 } }, extra: { nuevo: 1 } });
+  RO.store['voley3d.look'] = v2; RO.io.writes = 0;
+  check(RO.L.readOnly() === true && RO.L.lost() === false && RO.L.owned('pescador') && RO.L.fit(0).style === 'afro', 'v:2: solo lectura, se lee saneado en memoria');
+  check(RO.L.grant('corona', 'carrera') === false && (RO.L.setFit(0, RO.L.defaults(0)), true) && RO.L.markSeen(['pescador']) === true && RO.io.writes === 0 && RO.store['voley3d.look'] === v2, 'v:2: grant, setFit y markSeen no escriben nada');
+  const v1 = JSON.stringify({ v: 1, ft: 999, own: { tAzul: { s: 'tienda', t: 3 } } });
+  check(RO.L.mergeRaw(v1, v2) === v2 && RO.L.mergeRaw(v2, v1) === v2 && RO.L.mergeRaw(null, v2) === v2 && RO.L.mergeRaw(v2, JSON.stringify({ v: 3 })) === JSON.stringify({ v: 3 }), 'mergeRaw: gana entera la de mayor v y nunca la rebaja');
+  RO.store['voley3d.look'] = v1;
+  check(RO.L.readOnly() === false && RO.L.grant('corona', 'carrera') === true, 'si vuelve un guardado v1, se puede escribir otra vez');
+  check(Object.keys(S.VB).join() === 'Look', 'look.js sigue publicando solo VB.Look');
+}
 
 // ---------------------------------------------------------------- 2) con navegador
 async function browser() {
@@ -367,6 +490,14 @@ async function browser() {
       const okST = res === true || (Array.isArray(res) && !res.length) || (res && typeof res === 'object' && !Array.isArray(res) && (res.ok === true || (res.ok == null && !fails.length)));
       check(okST, 'VB.Doll.lookSelfTest()' + (res && typeof res === 'object' && res.summary ? ': ' + res.summary : ''));
     }
+    // T21: los 5 objetos de jefe tienen dibujo propio en doll.js (drawId ya no cae a «as») con los MISMOS triángulos que su base
+    const BOSS5 = [['wristR', 'munhCanon', 'muneq', 0], ['hands', 'dedosMuro', 'dedos', 1], ['armR', 'manguitoMazo', 'manguito', 0], ['knees', 'rodiPulpo', 'altas', 0], ['ankle', 'tobiPulpo', 'tela', 1]];
+    const bt = JSON.parse(await pg.evalJs(`(function(){var P=VB.Doll.preview,i=P.info(),out=[];if(!i)return '[]';var L0=i.rig.look,o0={beach:i.beach};
+      ${JSON.stringify(BOSS5)}.forEach(function(b){var o={beach:!!b[3]},La=Object.assign({},L0),Lb=Object.assign({},L0);La[b[0]]=b[2];Lb[b[0]]=b[1];
+        P.set(La,o);var ta=P.info().tris,ga=P.info().geo;P.set(Lb,o);var tb=P.info().tris,gb=P.info().geo;
+        out.push([b[1],VB.Look.drawId(b[0],b[1]),ta,tb,ga!==gb]);});P.set(L0,o0);return JSON.stringify(out);})()`, true));
+    check(bt.length === 5 && bt.every(x => x[1] === x[0]), 'objetos de jefe con dibujo propio en doll.js: ' + bt.map(x => x[0] + '→' + x[1]).join(', '));
+    check(bt.length === 5 && bt.every(x => x[2] === x[3] && x[4]), 'objetos de jefe: mismos triángulos que su pieza base y malla propia (' + bt.map(x => x[0] + ' ' + x[3]).join(', ') + ')');
     const errs = pg.errors.filter(e => !/favicon/i.test(String(e)));
     check(!errs.length, 'sin errores JS en la página' + (errs.length ? ': ' + errs.slice(0, 5).join(' | ') : ''));
   } catch (e) {

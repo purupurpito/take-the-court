@@ -9,20 +9,24 @@
  * género neutro, sin nombres reales ni patrocinadores de verdad. Este fichero no lleva arrobas ni la palabra del programa de
  * navegación web (tools/abouttest.js lo comprueba en todo el fichero, comentarios incluidos).
  * 1.0.0 (12-nov-2026, decisión de Ferran): cierre del sprint 5. Sin créditos a herramientas de IA (Ferran, 12-nov-2026).
- * 1.2.0 (15-nov-2026): pruebas con partidillo de petos y entrenos de Carrera Rápido/Manual (notes/pruebas-entrenos-spec.md).
  * 1.1.0 (13-nov-2026): Vestuario (personalización del aspecto, js/look.js). Solo estética.
+ * 1.2.0 (15-nov-2026): sedes generadas por club (js/venue-gen*.js) y pabellón al azar por partido.
+ * 1.3.0 (15-nov-2026): sprint 2-4 «Tu carrera», «Partidos que se recuerdan» y «Volver mañana» (retratos y escudos, portada con la
+ *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
+ * 1.4.0 (16-nov-2026): pruebas con partidillo de petos, entrenos de Carrera Rápido/Manual y nota en directo (notes/pruebas-entrenos-spec.md,
+ *   notes/nota-en-directo-spec.md).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.2.0';
-  VB.VERSION_DATE = '2026-11-15';
+  VB.VERSION = '1.4.0';
+  VB.VERSION_DATE = '2026-11-16';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.2.0', d: '2026-11-15', t: 'Pruebas, entrenos y nota en directo',
+      v: '1.4.0', d: '2026-11-16', t: 'Pruebas, entrenos y nota en directo',
       items: [
         'Las pruebas de club son un partidillo con petos: un set a 15 y tres objetivos.',
         'Saca nota B o mejor y te fichan. También puedes simularla, con menos opciones.',
@@ -32,6 +36,39 @@
         'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
         'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
         'Entreno automático para quien solo quiere jugar los partidos.'
+      ]
+    },
+    {
+      v: '1.3.2', d: '2026-11-16', t: 'Reto del día al entrar',
+      items: [
+        'El reto del día te espera nada más abrir el juego (una vez al día).',
+        'Carrera: los partidos dan menos experiencia; con los entrenamientos se subía demasiado.'
+      ]
+    },
+    {
+      v: '1.3.1', d: '2026-11-15', t: 'Borrar carrera',
+      items: [
+        'Borra tu Carrera de playa o de pista desde Ajustes › Info.'
+      ]
+    },
+    {
+      v: '1.3.0', d: '2026-11-15', t: 'Tu carrera, tus partidos',
+      items: [
+        'Carrera con el retrato de tu jugador, escudos de los clubes y vitrina de trofeos.',
+        'La Carrera en la portada: sigue donde lo dejaste.',
+        'Previa y resumen de jornada como en la tele.',
+        'Repeticiones de los puntos de set y de partido, y las mejores jugadas al final.',
+        'Jefes del circuito y química de pareja en la Carrera de playa.',
+        'Retos de maestría y un reto del día nuevo cada día.',
+        'Nivel de perfil y álbum con todo lo que has conseguido.'
+      ]
+    },
+    {
+      v: '1.2.0', d: '2026-11-15', t: 'Sedes de club',
+      items: [
+        'Cada club de las 28 ligas tiene su pabellón y cada club de playa, su playa.',
+        'En la Carrera se juega en casa del local; las finales, en las grandes sedes.',
+        'Partido rápido: un pabellón distinto en cada partido, o el que elijas.'
       ]
     },
     {

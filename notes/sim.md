@@ -1596,3 +1596,17 @@ activo) 6/10/4, 7/3/1, 6/0/0 → umbrales nuevos: el perfecto saca oro en saque 
   Difícil (remate perfecto 35 %).
 - `tools/fp-mastery.json` regenerada (`--variant mastery --write`): cambian a propósito el plantado y la finta. La huella 2v2 no cambia.
   OJO: hay que regenerarla otra vez tras fusionar origin/main (0565a4f cambia el sobrepase en 2v2).
+
+## Sprint 2-4 (15-nov-2026, v1.2.0): base de las repeticiones (T1)
+
+Detalle: `notes/s234/T1.md`. Contrato: CONTRACT §4.2 «Sprint 2-4».
+- `g.rng.get()` / `g.rng.set(v)` en el cierre de `makeRng` (misma secuencia; simtest la compara con mulberry32).
+- `VB.Sim.copyGame(dst, src)`: copia estructural sobre las sombras de `VB.Replay`, con jugadores emparejados por `p.id` (cubre sola los
+  campos de banquillo y cambios). Excepciones `rng`, `events`, `stats`, `replay`, `opts`. 28 µs en 2v2 y 108 µs en 6v6; asigna ~2,8 KB
+  por copia (con una foto cada 3 s no importa).
+- `VB.Sim.stateHash(g)`: FNV-1a del estado visible + `rng.get()` + tiempo.
+- `g.replay = false` en el literal de `createGame` (forma monomórfica con las sombras).
+- simtest: sección «[repetición] resim idéntica y sin interferencia» (`SIMTEST_ONLY=replay`): 385/385 resims de 219 peloteos, 19/19 sin
+  interferencia, también 6v6 con banquillo.
+- Aviso: lo que muta `g` fuera de `Sim.step` (`requestSub`, `setCtrlRole`, `skipHold`, `challenge`) no se graba. Hoy solo actúa en pausas;
+  si algún día actúa en pleno peloteo, la repetición se desincroniza (replay.js lo detecta y lo avisa).

@@ -78,3 +78,16 @@ para que vea todas las escrituras de los guardados.
   2) Authentication › Settings › Authorized domains › añadir `purupurpito.github.io`. Hasta entonces el botón avisa «Entrar con Google aún no
   está activado. Usa tu correo de momento.»
 - Reglas de Firestore con `'look'` desplegadas el 15-nov-2026 (`LOOK_SYNC = true`).
+
+## Sprint 2-4 (15-nov-2026, v1.2.0): sincronización y migraciones (D4, T13)
+
+Detalle: `notes/s234/T13.md`. Contrato: CONTRACT §1 «Sprint 2-4».
+- account.js: un solo interruptor nuevo `S4_SYNC = false` (profile, career6, cmode, legends y retos; con `false` van a `TRACK`). Tabla
+  `MERGE` (gym, look, legends por unión top 20, profile y retos con su `mergeRaw`; el resto LWW). Cola de conflictos de Carrera (playa y
+  pista, «¿Qué Carrera de pista te quedas?»), copia `.prev` de la Carrera que pierde, bajadas solo en el menú (`menuReady`), recargas sin
+  bucle (ganchos `Prog._reload`, `Career.*._reset`, `VB.UI.refreshMenu`), tope de 390 000 caracteres y `pageSize` 50.
+- firebase/firestore.rules: las 11 claves (`squad, career, settings, record, gym, look, profile, career6, cmode, legends, retos`).
+  **Sin desplegar.** Para Ferran: desplegar (`npx firebase-tools deploy --only firestore:rules` desde `firebase/`), esperar unos minutos y,
+  en una publicación mínima, `S4_SYNC = true` (`LOOK_SYNC` ya está a `true` desde el 15-nov-2026). synctest comprueba que las reglas cubren `DOCS` con todo encendido.
+- Riesgo conocido: un aparato que crea su perfil con un récord ya sincronizado puede contar dos veces el relleno inicial; desaparece con
+  `S4_SYNC`.

@@ -23,8 +23,8 @@ guardado `voley3d.gym`), `js/career-world.js` (`VB.CareerWorld`: Faro el mentor,
 `tools/fp-mastery.json` (huella de la maestría, `node tools/fingerprint6.js --variant mastery`) de **sim**. Guardados nuevos:
 `voley3d.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; va a `DOCS` desde que Ferran desplegó las reglas con `'gym'` el
 12-nov-2026: `GYM_SYNC = true` en account.js), `voley3d.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
-padDead`), `voley3d.seen` (`{v}`: última versión cuyas Novedades se vieron) y `voley3d.e1tips` (consejos de maestría vistos); estos tres
-NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
+padDead`), `voley3d.seen` (`{v}`: última versión cuyas Novedades se vieron), `voley3d.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
+al entrar; ui.js `retoAuto`, 16-nov-2026) y `voley3d.e1tips` (consejos de maestría vistos); estos NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
 `newsSeen`, `annals[≤40]`, `lead`, `tpl`; ≈ 13 KB a 12 temporadas) y `c.life.celeb` / `c.life.celebAnn`.
 
 **Vestuario (rama personaliza, 13-nov-2026).** `js/look.js` (`VB.Look`: catálogo, compatibilidades, saneado, resolución del aspecto,
@@ -35,6 +35,26 @@ no se escribe hasta la primera edición o el primer desbloqueo. Va a `DOCS` (`LO
 reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 (sin subir VER): `c.life.look` (fit de tu jugador o `null` en los guardados de antes: cara de siempre hasta guardar), `c.life.lookAnn` y
 `c.life.spentLook`. Detalle en «Vestuario» al final, en notes/ui_main.md y en notes/players.md.
+
+**Sprint 2-4 (15-nov-2026, v1.2.0: «Tu carrera», «Partidos que se recuerdan», «Volver mañana»).** Nuevos de **ui_main**:
+`js/recap.js` (`VB.Recap`: el único módulo narrativo; previa, titular, frase de la jugada y modelo de la hoja final; puro),
+`js/retos.js` (`VB.Retos`: 18 retos de maestría y el reto del día), `js/profile.js` (`VB.Profile`: nivel de perfil, hitos y álbum),
+`js/replay.js` (`VB.Replay`: repeticiones por resimulación, sin guardado) y las pruebas `tools/recaptest.js`, `tools/retotest.js`,
+`tools/proftest.js`, `tools/synctest.js`, `tools/replaytest.js`, `tools/lifetest.js` y `tools/worldtest.js`. De **players**:
+`tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **sin desplegar**.
+Guardados nuevos: `voley3d.retos` (v1) y `voley3d.profile` (v1) sincronizan solo con `S4_SYNC = true` en account.js. Hoy es `false`: ellos,
+`voley3d.career6`, `voley3d.career.mode` (`cmode`) y `voley3d.legends` van a `TRACK` (hora sin subir). `voley3d.retostab` (pestaña de Retos),
+`voley3d.devid` (contador del perfil por aparato), `<clave>.bak` (copia de un guardado dañado) y `voley3d.career(6).prev` (la Carrera local
+que pierde ante la de la cuenta) NUNCA van a `DOCS` ni a `TRACK`. `record.byD` (`{easy|normal|hard|expert:[g,p]}`) va dentro de
+`voley3d.record` y `settings.replays` ('auto'|'end'|'off', por defecto 'auto') dentro de `voley3d.settings`. Dentro de las Carreras (sin
+subir VER): `c.life.boss` (`{b0..b4: {k, name, nick, style, num, club, w, l, beat, seen}}`), `c.life.bossW`, `c.life.rival.style`, `chemLv`
+(en `c.mate`/`c.squad[i]` en la playa y `c` en la pista: último nivel de química avisado), `l.jN`, `l.rareJ`, `l.rareN`, `l.chemEv`, `l.sign`
+y `c.ts.md`. Interruptores de account.js: `GYM_SYNC = true` (12-nov-2026; donde una nota diga `false`, es errata), `LOOK_SYNC = true` (15-nov-2026) y
+`S4_SYNC = false` (orden: Ferran despliega las reglas y luego lo enciende en una publicación mínima).
+**Contrato de guardados (D4):** un guardado ilegible se copia en `<clave>.bak` y el módulo devuelve `lost()` (la interfaz avisa una vez);
+uno con `v` mayor que el del código se lee en memoria, `readOnly()` es true, no se escribe y `mergeRaw` nunca lo rebaja. Lo cumplen
+`VB.Prog`, `VB.Gym`, `VB.Look`, `VB.Profile` y `VB.Retos`. Las bajadas de la cuenta solo se aplican en el menú (`VB.Account.menuReady()`).
+Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por dueño, en `notes/<dueño>.md` («Sprint 2-4»).
 
 **Reglas**
 - Cada especialista edita SOLO sus ficheros. Nada de tocar ficheros ajenos "solo una línea".
@@ -50,10 +70,11 @@ reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 ## 2. Restricciones técnicas
 
 - Scripts clásicos (`<script src>`), SIN módulos ES, sin import/export, sin bundler. Un único espacio global `window.VB`.
-- Orden de carga (index.html, sprint 5): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/account.js` → `js/sim.js` → `js/ai.js` →
-  `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/look.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
+- Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/account.js` → `js/sim.js` → `js/ai.js` →
+  `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
-  `js/career-world-ui.js` → `js/career-ui.js` → `js/ui.js` → `js/install.js` → `js/main.js` (main arranca). gym.js lee `VB.DRILL` (sim) de forma
+  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/ui.js` → `js/install.js` → `js/main.js` (main arranca).
+  recap.js, retos.js, profile.js y replay.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
 - **Versión:** cada publicación visible sube `VB.VERSION` (semver) y añade su entrada al principio de `VB.CHANGELOG` (js/version.js);
   `tools/build-pages.js` falla si `CHANGELOG[0].v !== VERSION`, si falta `pages/og.png` o si no hay exactamente un `rel="icon"`.
@@ -139,6 +160,22 @@ acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3)
 **Vestuario en `VB.ctx`** (main.js, 13-nov-2026): `noteHitch()` (la ventana de fps en curso no cuenta para la calidad adaptativa:
 `aq.skip = 1`), `actions.showroom(on, L, o)` (vista previa del Vestuario en el menú; ver «Vestuario» al final) y `actions.looksChanged()`
 (el Vestuario guardó: la demo del menú se viste con los looks nuevos).
+
+**Sprint 2-4 en `VB.ctx`** (main.js, 15-nov-2026):
+- `replay`: `{phase:'prep'|'in'|'play'|'out', kind:'set'|'match'|'best', i, n}` o null. Lo escribe SOLO `VB.Replay` (objeto reutilizado);
+  ui.js, input.js y main.js lo leen (input.js oculta los mandos táctiles; ui.js tapa la hoja final y el HUD).
+- `replaySkipReq`: petición de ui.js (toque o «Salir»): `true` = saltar la jugada; `'all'` = salir de todas. main.js (`rpInput`) la consume.
+- `actions.portrait(req)` → `{key, url}` (cola de retratos: `url` al momento si está en la caché LRU de 12 URL `blob:`; si no, encola y
+  avisa con el evento DOM `vb-portrait` `{key, url}`), `actions.portraitDrop(key)`, `portraitInfo()` (pruebas: `{queue, cached, n, ms, warm,
+  freed}`). Los retratos solo se pintan en `'menu'`/`'over'`, nunca en `'playing'` (R8: la previa usa los ya precargados).
+- `actions.playBest(i?)`: mejores jugadas desde la hoja final (`VB.Replay.playBest(i, VB.UI.replayDone)`); solo en `'over'`.
+- `actions.startMatch(opts)` admite además `map` (id de sede fuera de la Carrera; 6v6 solo sedes de pabellón), `noAttrs`, `noBadges`,
+  `reto` (→ `g.reto` y `g.retoOpts`, copia de opts para «Otra vez») e `introKind` ('mini'|'short'|'long'). Los partidos humanos crean la
+  partida con `stats: true` (R21: escritura sola; comprobado que no cambia la sim). `restart()` (R16): ejercicio de la Carrera →
+  `startCareerDrill`; reto → `startMatch(retoOpts + {introKind:'mini'})`; Carrera → la previa normal; Partido rápido → las mismas opciones
+  con previa mini.
+- `settings.replays` ('auto' = automáticas en los puntos de set y de partido y la pestaña «Jugadas»; 'end' = solo la pestaña; 'off' = nada).
+- `&slow=0.5` (depuración): ritmo fijo de la sim en vivo.
 
 ### 4.2 Simulación `VB.Sim` (sim.js) + `VB.AI` (ai.js) + `VB.C` (constantes)
 - `createGame(opts)` → `game`. `opts = {demo, autopilot, seed, difficulty ('easy'|'normal'|'hard'|'expert' = Fácil/Normal/Difícil/Experto, alias castellanos; orden en `VB.DIFF_ORDER`, nombre visible `VB.DIFF[k].name`), serveClock (false = sin regla de 8 s), stats, rookie (primer partido: la CPU saca más suave; sin efecto en Difícil/Experto), present (pausas de presentación del punto, SIM-03: main.js lo pone en partidos humanos sin autopilot), ctrl ('both' por defecto: el control pasa a quien da el siguiente toque; 'one': el humano lleva siempre a `teams[0][0]` y la IA al compañero en todo, saque incluido, sin eventos `switch`; queda en `g.ctrlMode`; main.js lo toma de `ctx.settings.ctrlMode`), ctrlIdx (0 \| 1, solo con ctrl 'one': 0 = `teams[0][0]` n.º 1, 1 = `teams[0][1]` n.º 2; queda en `g.ctrlIdx`; con 1 el orden de saque del equipo 0 va en espejo; el juego pasa siempre 0, el 1 solo con `&ctrlidx=1` o `opts.ctrlIdx` en pruebas), ctrlRole ('OH': 6v6, sprint 3; puesto del jugador del humano, el primero de ese puesto = OH1, n.º 2; v1 solo el receptor, `CTRL_ROLES6` en sim.js; queda en `g.ctrlRole`, '' en 2v2. En 6v6 sin `demo` `ctrlMode` es siempre 'one')}`.
@@ -256,6 +293,16 @@ ejercicio tiene error arbitral ni challenges. `VB.DRILL {hold, order, text, kind
 bronce/plata/oro que usa `VB.Gym.medalsOf`), `VB.Sim.drillStage(g)`, `VB.Sim.drillScore(kind, ctx)` (pura → `{pts 0..3, res, text, d}`),
 `VB.AI.leaving(g, team)` (la IA ha decidido dejar botar el saque: lectura pura de `g._lv`).
 
+**Sprint 2-4 (sim, 15-nov-2026; notes/s234/T1.md).** Solo añadidos, sin azar nuevo ni eventos nuevos (huellas idénticas):
+- `g.rng.get()` → uint32 / `g.rng.set(v)`: estado del generador sin gastar azar (misma secuencia de siempre).
+- `VB.Sim.copyGame(dst, src)` → dst: copia profunda y estructural de `src` sobre una partida `dst` creada con las mismas opts (las sombras de
+  `VB.Replay`). Jugadores emparejados por `p.id` (toda referencia a un jugador acaba en los de `dst`, también los campos de banquillo y
+  cambios de carrera-pista); sin tabla de campos que mantener. Excepciones: `rng` (get/set), `events` (vacío), `stats`, `replay` y `opts`
+  (los de `dst`). Coste: 28 µs en 2v2, 108 µs en 6v6 con banquillo; asigna ~2,8 KB por copia en régimen.
+- `VB.Sim.stateHash(g)` → uint32: FNV-1a del balón, posiciones, marcador, sets, `setNo`, modo, `rng.get()` y tiempo. Puro.
+- `g.replay = false` en `createGame` (las sombras lo ponen a true; la sim no lo lee). Lo que muta `g` fuera de `Sim.step` (`requestSub`,
+  `setCtrlRole`, `skipHold`, `challenge`) no se graba: hoy solo actúa en pausas, fuera del tramo que se repite.
+
 ### 4.3 Eventos (cada frame main.js pasa el mismo array `events` a todos los módulos)
 Todos llevan `type` y `t` (tiempo de juego). `player` es la referencia al objeto jugador de `game.players`.
 | type | payload | cuándo |
@@ -333,6 +380,10 @@ Todos llevan `type` y `t` (tiempo de juego). `player` es la referencia al objeto
   estadísticas quedan a 0, y entre repeticiones `g.lastPoint.how === 'drill'` (no pintar rótulos de punto con él).
 - `fx:floor {team, x, y, z, strength}` (players, por `drainFx`): palmada al suelo de `digHero` (0,6) y puñetazo de la plancha fallida (0,4).
   Audio: golpe sordo en el pabellón, «puf» de arena en la playa.
+
+**Sprint 2-4 (15-nov-2026).** `e.replay = true` en los eventos que emite la repetición (`VB.Replay.tick` rellena dos arrays propios: el de
+Players con `point` y el de FX/Audio sin él). **No hay eventos de sim nuevos.** Los eventos con `e.replay` nunca llegan a `UI.ingest`,
+`careerEvents`, `Badges`, `Retos`, `Profile` ni `Career`; audio.js no lanza grada ni ráfagas con ellos.
 
 ### 4.4 Módulos de presentación (todas las funciones son opcionales; main.js las llama con guarda y try/catch)
 Objetos: `VB.Arena`, `VB.FX`, `VB.Players`, `VB.CameraRig`, `VB.Input`, `VB.Audio`, `VB.UI`.
@@ -542,6 +593,53 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `dm` (solo nivel: decide el tope del rol y la negociación); `c.sq6.outC` (la jornada anterior te dejó fuera el entrenador: no dos
   seguidas; el Titular va al banquillo, nunca fuera, por confianza baja); migrar un guardado sin `c.sq6` no te hace recién llegado.
 
+**Sprint 2-4 (15-nov-2026).** Todo opcional y con guarda; detalle en `notes/s234/T*.md` y en `notes/<dueño>.md`.
+- **players** (players.js): `bindReplay(g|null)` (los rigs pasan a los jugadores de la sombra por id y vuelven; con null re-emite el último
+  `point` en vivo), `baseLook({team, idx, num, role, beach})` (L sin el Vestuario, para el retrato), `setMate(o|null)` con `o = {num,
+  pers|persona, sig, rage}` → `{persona, sig, rage}|null` (tu n.º 2 del 2v2), `setBoss(o|null)` con `o = {idx, num, fit, style, pers, sig,
+  rage}` → dorsal|-1 (con `fit` = `VB.Look.bossFit`, clave de caché `':boss' + sig`), `setPairChem(lv 0-3)`, `_pair(type)` (pruebas),
+  `NPC_SIGS` (6 firmas), `RAGES` (6 rabias); `_anim(p)` añade `mate, boss, sigId, rageId, pair, cvType`. Convergencia tipo 6 (saludo de
+  pareja, `fx:highfive`×2 + `fx:fistbump`), celId del cierre `'matchSig'`/`'matchRage'`, `celV` nuevos `'grito'`/`'manotazo'`. Las
+  celebraciones eligen con `hash32(g.seed, setNo, marcador, id)` (R12), nunca con `Math.random`. No existe `CEL_IDS`. Ancla de bloqueo `blk`
+  (modo 9), plataforma a la bisectriz y marcador oculto con `g.replay`. Con los ganchos a null todo queda como antes (salvo que tu n.º 1
+  con firma la hace también en el cierre).
+- **players** (doll.js): `VB.Doll.portrait.{key(req), draw(ctx, req, out2d) → ms|-1, free(), warm(ctx) → {scene, camera}, stats(), info()}`,
+  `req = {L|fit, tc, num, beach, pose:'stand', face:'neutra'|'alegria', yaw:0.35, bg, size, zoom?}` (escena propia, tijera abajo a la
+  izquierda, sin segundo renderer). Encuadre según el tamaño (`ptZoom`: cara a ≤ 44 CSS px, busto a ≥ 88). Los 5 objetos de jefe dibujados
+  en `ITEMS` (`munhCanon`, `dedosMuro`, `manguitoMazo`, `rodiPulpo`, `tobiPulpo`) con el hook `G.vc` (color por triángulo).
+- **camera_input:** `VB.CameraRig.replay(on, {kind, slowFrom, slowTo, fx, fy, fz})` (tiempos en `R.time`; `tvShot` + acercamiento ×0,85
+  sin «Menos movimiento»); `getShot()` → 'replay'; `getDebug().replay = {on, k, kind}`; `shake`/`punch`/`hitStop`/`slowmo`/`heroShot`
+  callan durante la repetición. input.js oculta los mandos táctiles con `ctx.replay`.
+- **arena:** `VB.FX.replay(on)` (guarda y oculta marcas, huellas y la línea del challenge; apaga partículas; al salir lo restaura). Con
+  `g.replay`: sin aro, retícula, guías ni `setPreview`.
+- **audio:** `VB.Audio.UI_KINDS` (26 tipos), `ui('tab'|'panelIn'|'panelOut'|'beat', i|'rank', d|'unlock'|'medal', m|'rotulo', tipo, equipo,
+  retraso)`, `introStart(dur)` (la grada a medias en la previa larga), `replay(on)` (grada −6 dB). `stats.rot`, `stats.ui2`, `stats.rplCut`.
+- **ui_main** — `VB.UI`: `portraitHTML(req, cls, alt)`, `portraitReqMatch(team, idx, px)` (null para el rival), `introPlan(g, o)`,
+  `introStart(g, plan)`, `endCareer(sum, g, x)` (sustituye a `careerEndSheet`; `x = {tbl, myId, short, pos, next, bar, ses}`),
+  `replayWipe(cb)` (false si ya hay cortinilla), `replayDone()`, `openRetos(tab)`, `openProfile({tab})`, `refreshMenu()` (también limpia el
+  chip del perfil), `menuGo('prof')`; pruebas `_recap()`, `_intro()`, `_hero()`, `_rot()`, `_retoEnd()`, `_profEnd()`, `_prof()`.
+- **ui_main** — `VB.Recap.{ord, move, trait, introPlan, history, stake, headline, playPhrase, tableSlice, endModel, DUR:{mini:2.5,
+  short:4.5, long:6}, END_CELEB:3, TRAITS, STAKES}` (más `h01`, `RULES`, `ordw`, `partParts`). Ordinales «1r» «2º»; «Punto de set».
+- **ui_main** — `VB.Replay.{reset(g, o), enabled, onStep(simIn, g), onEvents(g, evs), autoReady(g), start(kind, j, onEnd), playBest(i,
+  onEnd), tick(realDt, outP, outF), skip(all), abort, active, runner, info, list, bestCount, desync, prepMs}`, `K` (con `TAIL = 156`),
+  `PASS`, `TXT`. Solo 2v2 humano (no 6v6, ejercicios, demo ni espectador).
+- **ui_main** — `VB.Retos.{LIST, ingest(e, g), endMatch(g, info, dry), daily(k?), summary, clean, mergeRaw, profileXP, album, chainOk(e,
+  n?)}` y `level`, `progress`, `count`, `unseen`, `markSeen`, `today`, `dayState`, `lookData`, `lost`, `readOnly`.
+- **ui_main** — `VB.Profile.{need, levelOf, level, xp, stats, noteMatch(o) (= addMatch), noteGym(id), check() → {lvlUp, hitos, grants},
+  album() → {tabs, have, total}, vitrina, pin, unpin, unseenCount, markSeen, nextPrize, footText, load, pack, lost, readOnly, mergeRaw,
+  clean}`, `HITOS` (16), `LVL_XP`.
+- **ui_main** — `VB.Look` añade los desbloqueos `{boss}`, `{reto:{id, m}}`, `{retoN}`, `{dias}`, `{semana}` (sin usar), `{lvl}` y `{chem}`;
+  orígenes `'retos'`, `'hito'`, `'boss'`; `bossFit(style, seed)`, `bossItems(style)`, `BOSS_STYLES`, `BOSS_NAME`, `LVL_PRIZES` (8),
+  `lvlPrize(n)`, `unlockText(u, hall)`, `drawId(slot, id)`, `lost()`, `readOnly()`.
+- **ui_main** — `VB.Account.menuReady()` y los interruptores `S4_SYNC`/`LOOK_SYNC`/`GYM_SYNC` (§1); cola de conflictos de Carrera (playa y
+  pista), tope de 390 000 caracteres por documento.
+- **ui_main** — Carrera: `VB.CareerUI.open(v, {from:'main'|'play', fresh, focus:'play'|'train'|'bench', res})` (R15), `from()`,
+  `heroData(c)` (puro), `syncHero()`, `portraitReq(c, who, px, face)`, `crest(k, px, c)`; `VB.CareerWorld.crestOf(k, mode)`,
+  `trophyCase(c)`, `newsBoss(c, boss, wk?)`, `BEATS.ses1`; `VB.CareerWorldUI.crestSVG(k, px, o)`, `trophyCaseHTML(c, H)`;
+  `VB.CareerLife.boss(c)`, `bossFor`, `bossInfo`, `bossBeaten`, `mateAnim`, `bossAnim`, `chemLevel`, `chemName`, `chemInfo`, `chemCheck`,
+  `ACH_INFO` (32 logros; `boss3` solo playa), y en `setup`: `m.career.boss`, `bossNum`, `bossAnim`, `mateAnim`, `chemLv`, `chemName`,
+  `pairSign`, `rivalP`, `rivalStyle`. `VB.Gym.ATTR`, `VB.Gym.lost/readOnly`, `VB.Prog.lost/readOnly`.
+
 ## 5. Orden por frame (main.js)
 1. `realDt = min(maxdt, Δ)`; `resize` si cambió el contenedor.
 2. `it = Input.poll(realDt)`; `it.pause` → `togglePause`; `it.mute` → `toggleMute`; `it.any` → `Audio.unlock`.
@@ -558,6 +656,17 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
    y los primeros 8 s reales tras el arranque (`&aqwarm=s`).
    Desactivada con `?quality=` o en depuración (salvo `&aq=1`). En el móvil, bajar de calidad no cambia el tipo de sombra ni el número de luces
    (sin recompilar materiales). En el escritorio todos los niveles usan sombra PCF suave y "baja" usa mapa de 1024 (móvil: 512, PCF).
+
+**Sprint 2-4 (15-nov-2026):**
+- **Paso 4b (retratos):** con `PQ.length && (state 'menu' | 'over') && drawn ≥ 3 && !progWarm.gate`, `portraitStep()` (uno por frame) justo
+  antes de `renderer.info.reset()` y del render. Cola vacía = cero asignaciones; vacía 1 s → `VB.Doll.portrait.free()`.
+- **Repetición:** tras cada `Sim.step` en vivo, `Replay.onStep(simIn, g)`; tras `drainEvents`, `Replay.onEvents(g, events)` y
+  `if (Replay.autoReady(g)) Replay.start('auto')`. Con `Replay.active()`, `rpInput(it)` consume los flancos (saltar / salir). Si
+  `R = Replay.runner()` (fases 'play'/'out'), la sim en vivo NO avanza y se pinta R: `Arena.update(g, dt, EMPTY)` → `Players.update(R, gdtR,
+  evP)` → `drainFx` (`replay = true`) → `FX.update(R, gdtR, evF)` → `CameraRig.update(R, dt, EMPTY)` → `Audio.handle(evF, R)` →
+  `Audio.update(g, dt)` → `UI.update(g, 0, EMPTY)` → render. En 'prep'/'in' se pinta el vivo. `idleT` no corre con una repetición activa.
+- **Celebración (R11):** con `matchWon`, la hoja final espera `END_CELEB` (3 s de tiempo vivo, sin contar la repetición) también en
+  escritorio, y nunca se abre durante `ctx.replay`.
 
 ## 6. Depuración y verificación
 - `node tools/simtest.js [min] [seed] [minMatriz=20] [semillas=4]` (+ `SIMTEST_ONLY=matrix`, `MATRIX_FILTER=<regex>`; rápido: `node tools/simtest.js 10 12345 0`) — sim headless: CPU vs CPU, autopilot, fuzz aleatorio, humano heurístico, reglas (4 toques, dobles,
@@ -627,6 +736,14 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - Arreglos ola 3: simtest falla si la IA (equipo CPU, demo, autopilot o compañero IA del humano; no el jugador que controla el humano) comete un punto `double`/`four`.
   camtest: `feel` descuenta un frame lento del PC dentro de la congelación y `wide` ignora los frames a ≤ 0,4 s de un tirón del PC (lo indican); `serve` en pantalla
   baja/táctil admite el sacador en x ≥ −0,02 NDC.
+- **Sprint 2-4 (15-nov-2026):** pruebas nuevas `node tools/recaptest.js`, `retotest.js` (con su parte CDP en el scratchpad de T19),
+  `lifetest.js`, `worldtest.js`, `proftest.js`, `synctest.js`, `contacttest.js [s] [semillas] [mapas] [2v2|6v6]`, `replaytest.js`
+  (`--node` | `--cdp`) y `portraittest` (sondas de T14). Escenas: `debug=intro` (`&kind=mini|short|long&career=1&boss=<estilo>&duel=1&t=`),
+  `recap` (`&career=1&move=±n&boss=1&chem=1&cup=semi|final&unl=n&tab=sum|stats`), `retos` (`&tab=hoy|maestria`), `reto_end`,
+  `replay` (`&rpt=s&match=1&auto=1&career=1`), `best` (`&tab=plays&play=1`), `menupf` y `prof` (`&tab=vestuario|insignias|entreno|carrera|
+  retos|sedes|hitos`; `&pfseed=demo` = perfil de prueba en memoria, nada se guarda). En cualquier escena: `&boss=<estilo>`, `&mate=<estilo>`,
+  `&retodate=AAAAMMDD`, `&uianim=0`, `&slow=0.5`, `&replay=1` (graba también con autopilot). Todas en `tools/shot.js ALL`.
+
 - Capturas y logs en `tools/out/`.
 
 ## 7. Terminología (castellano, árbitro FCVB)
@@ -761,21 +878,6 @@ contorno grueso DE COLOR, cara grande dibujada, uniforme de equipo con el «tajo
   (comprueba unicidad, colores, patrocinadores conocidos y «masculino/femenino» antes de escribir). `tools/careertest.js` falla si js/leagues.js
   no está al día con los JSON.
 
-### Sesiones de entrenamiento de la Carrera (13-nov-2026; playa y pista)
-- **API (VB.Career, en los dos motores; la fachada va a la activa):** `trainInfo(c?)` → `{max:3, used, left, can, why:''|'none'|'done'|'fatiga',
-  fat, fatMax:80, nextFat, fatK, imp, last, drills:[{id, name, short, help, attr, attrName, group, medals, v, prog}], need:100}`;
-  `trainSession(id, 'quick'|'play', total?)` → `{ok, id, how, total, medal, q, gain, attr, prog, need, up, v, fat0, fat, imp0, imp, coach0, coach,
-  n, max, s, wk}` (pista: `stat0, stat, sel, gap` del seis tras la sesión) o `{ok:false, why}`; `drillSetup(id)` → `{id, mode, n, max, attrs:
-  [[tú, compañero], null], badges, kit, attrName}` o null; `drillDone(mode, id, total)` (fachada: a la Carrera del ejercicio). Constantes
-  `TRAIN_SESS, SESS_NEED, SESS_MAX, SESS_EFF, SESS_FAT, SESS_FAT_MAX, SESS_QUICK, SESS_IMP_A, SESS_IMP_DECAY, SESS_COACH, SESS_DRILL, SESS_BY`;
-  pista: `hall.meEdge(c, season?)`, `ME_EDGE` (12), `ME_EDGE_STEP` (2), `ME_EDGE_MIN` (4), `SEL_IMP` (4); `lineup(c)` añade `imp` y `edge`.
-- **main.js:** `ctx.actions.startCareerDrill(id, auto)` (career-ui «Jugar») → `startMatch({drill, careerDrill: drillSetup})`: el ejercicio con tu
-  jugador de Carrera y la equipación del club, `g.careerDrill = {id, mode, n, max, attrName, done, res}`; en `drillEnd`, `careerDrillDone(g)` apunta
-  la sesión una vez; `toMenu()` vuelve al hub (`CareerUI.open('hub', {train:true, res})`). Abandonar o reiniciar a medias no gasta la sesión.
-- **ui.js:** con `g.careerDrill` la hoja final no llama a `VB.Gym.record` (ni `voley3d.gym` ni XP del escuadrón), enseña progreso, fatiga e
-  impresión, oculta «Repetir» y «Siguiente» y «Entrenamiento» pasa a «Volver a la Carrera» (también en la pausa).
-- **Guardado:** `c.ts = {n, wk, imp, cf, tot, p:{serve, recv, set, spike, block}, last}` en `voley3d.career` y `voley3d.career6` (sin subir VER ni
-  VER6; un guardado sin él o dañado se sanea al cargar con `sessSane`).
 ### Vestuario: personalización del aspecto (rama personaliza, 13-nov-2026)
 Todo es estético: nada entra en la sim, en `attrs`, en `badges` ni en `g.rng` (huella 2v2 idéntica); cero programas y cero llamadas de
 dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle en notes/players.md (muñeco) y notes/ui_main.md (resto).
@@ -814,3 +916,21 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
 - **Depuración**: `?debug=look&tab=pelo|cabeza|cara|cuerpo|brazos|piernas|colores&venue=hall|beach&item=<id>&pick=1|2|career` (main.js
   abre el menú y llama a `VB.UI.openLook({tab, venue, item, pick})`; `pick` llega como 1, 2 o `'career'`, `venue` también acepta
   pista/playa); `&looktest=1` para `node tools/looktest.js --gl`.
+### Sesiones de entrenamiento de la Carrera (13-nov-2026; playa y pista)
+- **API (VB.Career, en los dos motores; la fachada va a la activa):** `trainInfo(c?)` → `{max:3, used, left, can, why:''|'none'|'done'|'fatiga',
+  fat, fatMax:80, nextFat, fatK, imp, last, drills:[{id, name, short, help, attr, attrName, group, medals, v, prog}], need:100}`;
+  `trainSession(id, 'quick'|'play', total?)` → `{ok, id, how, total, medal, q, gain, attr, prog, need, up, v, fat0, fat, imp0, imp, coach0, coach,
+  n, max, s, wk}` (pista: `stat0, stat, sel, gap` del seis tras la sesión) o `{ok:false, why}`; `drillSetup(id)` → `{id, mode, n, max, attrs:
+  [[tú, compañero], null], badges, kit, attrName}` o null; `drillDone(mode, id, total)` (fachada: a la Carrera del ejercicio). Constantes
+  `TRAIN_SESS, SESS_NEED, SESS_MAX, SESS_EFF, SESS_FAT, SESS_FAT_MAX, SESS_QUICK, SESS_IMP_A, SESS_IMP_DECAY, SESS_COACH, SESS_DRILL, SESS_BY`;
+  pista: `hall.meEdge(c, season?)`, `ME_EDGE` (12), `ME_EDGE_STEP` (2), `ME_EDGE_MIN` (4), `SEL_IMP` (4); `lineup(c)` añade `imp` y `edge`.
+- **main.js:** `ctx.actions.startCareerDrill(id, auto)` (career-ui «Jugar») → `startMatch({drill, careerDrill: drillSetup})`: el ejercicio con tu
+  jugador de Carrera y la equipación del club, `g.careerDrill = {id, mode, n, max, attrName, done, res}`; en `drillEnd`, `careerDrillDone(g)` apunta
+  la sesión una vez; `toMenu()` vuelve al hub (`CareerUI.open('hub', {train:true, res})`). Abandonar o reiniciar a medias no gasta la sesión.
+- **ui.js:** con `g.careerDrill` la hoja final no llama a `VB.Gym.record` (ni `voley3d.gym` ni XP del escuadrón), enseña progreso, fatiga e
+  impresión, oculta «Repetir» y «Siguiente» y «Entrenamiento» pasa a «Volver a la Carrera» (también en la pausa).
+- **Guardado:** `c.ts = {n, wk, imp, cf, tot, p:{serve, recv, set, spike, block}, last}` en `voley3d.career` y `voley3d.career6` (sin subir VER ni
+  VER6; un guardado sin él o dañado se sanea al cargar con `sessSane`).
+- **Sprint 2-4 (fusión 15-nov-2026):** `c.ts.md = [sin, bronce, plata, oro]` (sesiones por medalla, `sessSane` lo crea; logros `ses10` y
+  `sesg5` de career-life.js) y gancho de vida `life(c, 'sess', res)` en la PRIMERA sesión de la carrera (`c.ts.tot === 1`): career-world.js
+  dispara la escena `ses1` de Faro («El primer entreno»). Sustituye al módulo aparte del sprint (career-train.js), que se quitó.

@@ -227,16 +227,38 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 - **«Que no parezca un Doodle»: plan de juego completo** (12-nov-2026; informe entero con propuestas A1-E7, referencias y fuentes en
   notes/juego-completo.md). Ferran aprobó **los sprints 2, 3 y 4** («son muy buenos») y abrió **el 5** a continuación. El sprint 1
   («Los primeros 60 segundos»: A1-A8) queda apuntado, sin decisión de Ferran.
-  - **Sprint 2 «Tu carrera»:** B1 creador de personaje (choca con «personalización más adelante» del lote C: confirmar), B2 retrato
-    del muñeco a render target + escudo paródico + vitrina con huecos, B3 Carrera como puerta principal (solo tras B1 y B2), B4
-    lenguaje visual de retransmisión, B5 previa corta (4-5 s; larga en finales y jefes), B6 cierre como resumen de jornada.
-  - **Sprint 3 «Partidos que se recuerdan»:** revisar contactos mano-balón, C1 grabador y repetición mínima (no existe; búfer
-    circular sin basura por frame), C2 celebraciones y rabia con personalidad, C3 rivales «jefe» con estilo por `attrs` sin tocar
-    ai.js (el rival personal de Vida de la Carrera ya existe: construir encima), C4 rótulos cinéticos, C5 niveles de química,
-    «Mejores jugadas» en el cierre.
-  - **Sprint 4 «Volver mañana»:** D1 retos bronce/plata/oro + diario y semanal por fecha-semilla (los 28 logros de Vida de la
-    Carrera son solo de Carrera), D2 perfil y álbum con huecos (nivel de cuenta nuevo), D3 cosméticos que lucen, D4 sincronizar
-    cada guardado nuevo en account.js con migraciones, ~~D5 playa nocturna~~ (HECHO 12-nov: sede «Cala dels Fanals», ver Hecho «Sedes»).
+  - **Sprints 2, 3 y 4 HECHOS (15-nov-2026, v1.2.0; worktree `voley-3d-sprint234`, plan y specs en el scratchpad del sprint; notas por
+    tarea en `notes/s234/`, resumen en CONTRACT §1-§6 «Sprint 2-4» y en notes/<dueño>.md).** Salvo los cortes de abajo:
+    - **Sprint 2 «Tu carrera»:** ~~B2 retrato del muñeco + escudo paródico + vitrina con huecos~~ HECHO (`VB.Doll.portrait`, cola de
+      retratos en main.js, `crestOf`/`crestSVG`, `trophyCase`); ~~B3 la Carrera en la portada~~ HECHO («Continuar carrera» encima de JUGAR,
+      solo con una carrera activa; abre el hub); ~~B4 lenguaje de retransmisión~~ HECHO (cortes diagonales, `.out`, sonidos de panel y
+      pestaña); ~~B5 previa corta~~ HECHO (mini 2,5 / corta 4,5 / larga 6 s con final, semifinal, jefe, duelo o 1ª jornada);
+      ~~B6 cierre como resumen de jornada~~ HECHO (hoja con pestañas Resumen | Estadísticas | Jugadas). B1 (creador de personaje) no
+      entró: el Vestuario 1.1.0 ya cubre el aspecto.
+    - **Sprint 3 «Partidos que se recuerdan»:** ~~contactos mano-balón~~ HECHO (bloqueo, recepción y colocación dentro de los umbrales;
+      quedan los pendientes de la QA de T20 en notes/players.md y notes/arena.md); ~~C1 repetición~~ HECHO (resimulación desde fotos
+      clave, automática en los puntos de set y de partido, ajuste «Repeticiones»); ~~C2 celebraciones y rabia con personalidad~~ HECHO;
+      ~~C3 jefes~~ HECHO en la playa; ~~C4 rótulos cinéticos~~ HECHO; ~~C5 química con nombre~~ HECHO; ~~«Mejores jugadas»~~ HECHO
+      (pestaña «Jugadas (n)» de la hoja final).
+    - **Sprint 4 «Volver mañana»:** ~~D1 retos bronce/plata/oro y reto del día~~ HECHO (18 retos de maestría); ~~D2 perfil y álbum con
+      huecos~~ HECHO (nivel de perfil, 16 hitos, álbum de 7 pestañas, vitrina; chip en la portada); ~~D3 cosméticos que lucen~~ HECHO
+      a través del Vestuario (objetos de jefe, premios de nivel y de retos); ~~D4 sincronizar y migrar~~ HECHO en el código
+      (`S4_SYNC = false` hasta que Ferran despliegue las reglas); ~~D5 playa nocturna~~ (HECHO 12-nov: sede «Cala dels Fanals»).
+    - **Cortado del sprint 2-4 (para otro sprint o para Ferran):**
+      - Torneo de la semana (D1): la API de retos ya lo admite (`{semana}`, `w`/`weeks` en el guardado).
+      - Jefes en la Carrera de pista (C3 fase 2) e insignia `rompemanos` del jefe Muro (tiraría un dado extra de `g.rng`).
+      - R3: el rival personal te sigue al ascender.
+      - Repeticiones en 6v6, primeros planos, varios ángulos y guardar o compartir jugadas; mensaje «REPETICIÓN» en las vallas.
+      - Pose «brazos cruzados» del retrato, retratos de rivales, escudo en la camiseta 3D o en la grada, selector de dos carreras en
+        la portada.
+      - `VB.Arena.mapId()` (ui.js busca la sede por el nombre) y sonidos propios de las firmas (se reutilizan highfive/fistbump).
+      - Celebración conjunta en 6v6 o en la Carrera de pista, rótulos del rival y locutor.
+      - Ejercicios de 5 repeticiones o de físico (tocarían la sim).
+      - 17 premios por nivel: se quedan en 8, siempre como alternativa (decide Ferran).
+      - Tarjeta de presentación propia del reto del día (UI-14): el reto usa la previa normal y la pausa lo dice.
+      - Perfil: deslizar para cambiar de pestaña en táctil, el muñeco de tu n.º 1 en la página (fase 2) y el retrato en la tarjeta de
+        nivel.
+      - El módulo de entrenos del sprint (career-train.js): lo sustituyeron las sesiones de main (13-nov).
   - Preguntas para Ferran: música en ogg dentro de index.html o procedural; moneda única o ninguna; ¿6v6 visible en JUGAR?
   - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
     sesiones Jugar/Rápido/Descanso, notas A+-F, Rápido = récord sin oro, «Simular jornada», entreno automático; y la PRUEBA de club

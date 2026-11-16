@@ -1096,7 +1096,7 @@ else {
     C.ingest(evs, G.g);
     const xp0 = c.player.xp, lv0 = c.player.lvl, st0 = c.stats.starts | 0, si0 = c.stats.subIn | 0, nn = c.notes.length, L = C.league(C.myClub(c).lid);
     let s = C.matchDone({ sets: [2, 0], setScores: [[11, 9], [12, 8]], win: true }, null, G.g);
-    const xpExp = Math.round((40 + 22 * s.nota + 40 + 6 * 6) * H.xpMul(L) * (0.35 + 0.65 * 0.5)) + ((s.life && s.life.xp) | 0);   // (+ el reto, si se cumple)
+    const xpExp = Math.round((40 + 22 * s.nota + 40 + 6 * 6) * H.xpMul(L) * (0.35 + 0.65 * 0.5) * (H.XP_K || 1)) + ((s.life && s.life.xp) | 0);   // (+ el reto, si se cumple)
     ok(s.part && s.part.status === 'sub' && s.part.entered === 2 && s.part.meR === 20 && s.part.rallies === 40 && Math.abs(s.part.share - 0.5) < 0.01 && s.part.sets.join() === '2', 'entras en el 2º set: 20 de 40 puntos (share ' + s.part.share + ')');
     ok(typeof s.nota === 'number' && !s.bench && s.xp === xpExp && c.notes.length === nn + 1, 'nota con tus puntos en pista (' + s.nota + ') y XP escalada (' + s.xp + ' = ' + xpExp + ')');
     ok((c.stats.starts | 0) === st0 && c.stats.subIn === si0 + 1 && c.stats.mr >= 20 && c.stats.rr >= 40, 'estadísticas: subIn +1, starts igual, puntos en pista');
@@ -1105,7 +1105,7 @@ else {
       setAll(c, 20); reLine(c); ms = C.matchSetup(c); G = mkG(ms); evs = [{ type: 'newMatch' }]; pts(evs, 40); C.ingest(evs, G.g);
       const b0 = c.stats.bench | 0, pl0 = c.stats.played, n0 = c.notes.length, xp1 = c.player.xp, m0 = c.player.matches;
       s = C.matchDone({ sets: [2, 1], setScores: [[15, 10], [10, 15], [15, 12]], win: true }, null, G.g);
-      const bx = Math.round(H.BENCH_XP * H.xpMul(L));
+      const bx = Math.round(H.BENCH_XP * H.xpMul(L) * (H.XP_K || 1));
       ok(s.nota === null && s.bench && s.part.status === 'sub' && !s.part.entered && s.part.meR === 0 && c.stats.bench === b0 + 1 && c.stats.played === pl0 && c.notes.length === n0, 'sin entrar: «s. c.», banquillo +1, partidos jugados igual, c.notes sin entrada');
       ok(s.xp === bx && c.player.matches === m0, 'experiencia de banquillo: ' + H.BENCH_XP + ' × ' + H.xpMul(L) + ' = ' + s.xp + ' (no cuenta como partido)');
       ok(C.form(c) != null && c.notes.every(x => typeof x.nota === 'number'), 'forma y nota media sin nulos');
@@ -1680,7 +1680,7 @@ section('Dificultad de la Carrera: niveles, IA, atributos, XP, entrenador, ofert
     ok(n.diff === C.difficultyFor(riv) && n.soft === C.softFor(riv) && n.diffName === C.diffLabel(riv), 'Normal: IA de next() = la de siempre (' + n.diffName + ')');
     const c0 = c.coach, L = C.league(C.myClub(c).lvl), s = C.simulateNext();
     const mp = Math.min(s.me.kills + s.me.aces + s.me.blocks, 10);
-    const xpOld = Math.round((40 + 22 * s.nota + (s.win ? 40 : 0) + 6 * mp) * L.xp * 0.5);
+    const xpOld = Math.round((40 + 22 * s.nota + (s.win ? 40 : 0) + 6 * mp) * L.xp * 0.5 * (C.XP_K || 1));
     const coOld = Math.max(0, Math.min(100, Math.round(c0 + (s.nota - 6.2) * 2.5 + (s.win ? 1 : -1))));
     ok(s.xp === xpOld && s.coach === coOld, 'Normal: XP (' + s.xp + ' = ' + xpOld + ') y entrenador (' + s.coach + ' = ' + coOld + ') con la fórmula de antes');
     ok(c.coach >= 0 && C.load().dUse.normal === 1, 'el partido simulado cuenta en dUse.normal');
@@ -2120,6 +2120,122 @@ else {
   C._reset(); verbose = false;
 }
 
+// ------------------------------------------------------------------ Vestuario en la Carrera (sprint «personaliza», spec §7 y §9)
+// Cada prueba en su propio contexto (localStorage propio): el inventario de VB.Look es global (voley3d.look) y no debe mezclarse con
+// lo de arriba. Sin js/look.js, las guardas; con él, initLook, lookCheck, la tienda, setLook/lookNow y el guardado antiguo de pista.
+// LOOKJS=ruta: prueba con otro look.js (por defecto js/look.js).
+section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tienda (spentLook), setLook y guardados antiguos');
+{
+  verbose = true;
+  const LOOKF = process.env.LOOKJS ? path.resolve(process.env.LOOKJS) : path.join(ROOT, 'js/look.js');
+  const bootL = (withLook) => {
+    const m2 = {}; const LS = { getItem: k => (k in m2 ? m2[k] : null), setItem: (k, v) => { m2[k] = String(v); }, removeItem: k => { delete m2[k]; } };
+    const cx = { console, Math, Date, JSON, Set, localStorage: LS }; cx.globalThis = cx; cx.window = cx; vm.createContext(cx);
+    const files = FILES.slice(); if (withLook) files.splice(files.indexOf('js/badges.js') + 1, 0, LOOKF);   // (orden de index.html: badges → look)
+    for (const f of files) {
+      if (NOWORLD && f === 'js/career-world.js') continue;
+      const fp = path.isAbsolute(f) ? f : path.join(ROOT, f); if (fs.existsSync(fp)) vm.runInContext(fs.readFileSync(fp, 'utf8'), cx, { filename: f });
+    }
+    return { VB: cx.VB, mem: m2 };
+  };
+  const hasHall = !!(C.hall && C.hall.available());
+  const played = (K, stats, win) => { const n = K.next(K.load()); if (n && n.bench) return K.benchNext(); return K.matchDone({ sets: win === false ? [0, 2] : [2, 0], setScores: win === false ? [[10, 21], [9, 21]] : [[21, 10], [21, 9]], win: win !== false },
+    stats || { kills: 12, aces: 2, blocks: 1, digs: 8, assists: 3, errors: 3 }, { career: { season: 1 }, teams: [[{}, {}], [{}, {}]], demo: false, autopilot: false }); };
+  // 1) sin look.js: nada cambia ni se rompe
+  {
+    const B = bootL(false), K = B.VB.Career, L = B.VB.CareerLife;
+    ok(L && L.initLook && L.lookCheck && L.lookShop && L.buyLook && L.setLook && L.lookNow && L.achName, 'API del Vestuario en CareerLife (initLook, lookCheck, lookShop, buyLook, setLook, lookNow, achName)');
+    let err = '';
+    try {
+      const c0 = K.create({ name: 'Sin Look', num: 4, seed: 61, autoClub: true });
+      ok(c0.life.look === null && c0.life.lookAnn === 1, 'sin look.js: carrera nueva con l.look = null');
+      ok(Array.isArray(L.lookCheck(K.load())) && L.lookCheck(K.load()).length === 0, 'sin look.js: lookCheck no hace nada');
+      ok(L.lookShop(K.load()).length === 0 && L.buyLook('tiraNasal') === '' && L.setLook({ v: 1 }) === false && L.lookNow() === null, 'sin look.js: tienda vacía, buyLook «», setLook false, lookNow null');
+      const m0 = K.load().money; played(K); ok(K.load().money >= m0 && !('voley3d.look' in B.mem), 'sin look.js: se juega igual y no se escribe voley3d.look');
+    } catch (e) { err = e.message; }
+    ok(!err, 'sin look.js: las guardas no rompen nada' + (err ? ' — ' + err : ''));
+    ok(L.achName('m50', true) === 'Veterano del parqué' && L.achName('m50', false) === 'Veterano de la arena' && L.achName('m1') === 'Debut' && L.achName('nada') === '', 'achName: nh en la pista, name en la playa, «» si no existe');
+  }
+  if (!fs.existsSync(LOOKF)) console.log('  (sin js/look.js: se salta el Vestuario con look.js)');
+  else {
+    // 2) con look.js: carrera nueva de playa
+    const B = bootL(true), K = B.VB.Career, L = B.VB.CareerLife, X = B.VB.Look;
+    ok(X && Array.isArray(X.CATALOG) && X.grant && X.owned && X.fit && X.sane, 'look.js cargado (VB.Look)');
+    const fit0 = JSON.stringify(X.sane(X.fit(0), 0));
+    let c = K.create({ name: 'Con Look', num: 8, role: 'atk', seed: 62, autoClub: true });
+    ok(c.life.look && JSON.stringify(c.life.look) === fit0 && c.life.lookAnn === 1, 'initLook: la carrera nueva copia el n.º 1 (VB.Look.fit(0))');
+    ok(JSON.stringify(L.lookNow()) === fit0, 'lookNow() devuelve el aspecto de la carrera');
+    // logro m1 (Debut) → lo que lo pide (p. ej. Kinesio)
+    const byAch = id => X.CATALOG.filter(x => (Array.isArray(x.unlock) ? x.unlock : [x.unlock]).some(u => u && u.ach === id)).map(x => x.id);
+    const m1Items = byAch('m1');
+    played(K); c = K.load();
+    ok(c.life.ach.m1 && m1Items.every(id => X.owned(id)), 'lookCheck: tras el «Debut» ya tienes ' + (m1Items.join(', ') || '(nada pide m1)'));
+    const nw = c.inbox.filter(m => m.k === 'fans' && /^Nuevo en tu vestuario: /.test(m.t));
+    ok(!m1Items.length || nw.some(m => m.x ? /«Debut»/.test(m.x) : true), 'aviso «Nuevo en tu vestuario» con el motivo («Debut»): ' + nw.map(m => m.t).join(' | '));
+    ok(L.lookCheck(K.load()).length === 0, 'lookCheck no da dos veces lo mismo');
+    // tienda: precios, orden, compra
+    const shop = L.lookShop(K.load());
+    ok(shop.length >= 4 && shop.every((x, i) => x.price > 0 && x.name && x.rarity >= 0 && x.rarity <= 3 && (!i || shop[i - 1].price <= x.price)), 'lookShop: ' + shop.length + ' objetos a la venta, por precio (' + shop.slice(0, 3).map(x => x.id + ' ' + x.price).join(', ') + '…)');
+    const cheap = shop.filter(x => !x.owned)[0];
+    c = K.load(); c.money = cheap.price - 1; K.save(c);
+    ok(L.buyLook(cheap.id) === 'money' && !X.owned(cheap.id) && K.load().money === cheap.price - 1, 'buyLook sin dinero: «money» y no se cobra');
+    c = K.load(); c.money = 100000; const sp0 = c.life.spent, gear0 = !!c.life.ach.gear, sl0 = c.life.spentLook | 0; K.save(c);
+    ok(L.buyLook(cheap.id) === 'ok' && X.owned(cheap.id), 'buyLook: «ok» y ya está en tu vestuario (' + cheap.name + ')');
+    c = K.load();
+    ok(c.money === 100000 - cheap.price && c.life.spentLook === sl0 + cheap.price, 'buyLook descuenta ' + cheap.price + ' € y suma en l.spentLook (' + c.life.spentLook + ')');
+    ok(c.life.spent === sp0 && !!c.life.ach.gear === gear0 && Object.keys(L.gearBonus(c)).length === 0, 'comprar cosméticos no toca l.spent, el logro «gear» ni el material');
+    ok(L.buyLook(cheap.id) === 'owned' && K.load().money === 100000 - cheap.price, 'buyLook de algo que ya tienes: «owned» y no se cobra');
+    ok(L.buyLook('noExiste') === '' && (!m1Items.length || L.buyLook(m1Items[0]) === (shop.some(x => x.id === m1Items[0]) ? 'owned' : '')), 'buyLook: «» si no existe o no se vende');
+    ok(L.lookShop(K.load()).filter(x => x.id === cheap.id)[0].owned, 'lookShop lo marca como tuyo');
+    // el material sigue igual: matchSetup sin cosméticos en attrs
+    const ms = K.matchSetup(); ok(ms && !('look' in ms.attrs[0][0]) && JSON.stringify(ms.gear || {}) === '{}', 'nada del vestuario en attrs ni en el material del partido');
+    // setLook / lookNow
+    const f2 = X.sane(X.fit(0), 0); f2.style = f2.style === 'afro' ? 'rapado' : 'afro';
+    ok(L.setLook(f2) && K.load().life.look.style === f2.style && L.lookNow().style === f2.style, 'setLook guarda en c.life.look y lookNow lo devuelve');
+    K._reset(); ok(K.load().life.look.style === f2.style, 'el aspecto sobrevive a guardar y cargar');
+    // fama y premio: más de 3 a la vez → un solo mensaje
+    c = K.load(); const n0 = c.inbox.length;
+    c.life.awards.push({ season: c.season, id: 'mvp', name: 'MVP de prueba', club: 'X' });
+    L.addFame(c, 125000); K.save(c); c = K.load();
+    const fameItems = X.CATALOG.filter(x => (Array.isArray(x.unlock) ? x.unlock : [x.unlock]).some(u => u && (typeof u.fame === 'number' || u.award === 'mvp'))).map(x => x.id);
+    ok(fameItems.every(id => X.owned(id)), 'con «Leyenda viva» y un MVP: todo lo de fama y premio es tuyo (' + fameItems.join(', ') + ')');
+    const nw2 = c.inbox.slice(n0).filter(m => /^Nuevo en tu vestuario/.test(m.t));
+    ok(fameItems.length <= 3 ? nw2.length >= 1 : nw2.length === 1 && /objetos$/.test(nw2[0].t), 'más de 3 de golpe: un solo aviso («' + (nw2[0] && nw2[0].t) + '»)');
+    // guardado de playa de antes del Vestuario: lookAnn 0 → un solo resumen la primera vez
+    {
+      const B2 = bootL(true), K2 = B2.VB.Career, L2 = B2.VB.CareerLife, X2 = B2.VB.Look;
+      K2.create({ name: 'Antiguo', num: 3, seed: 63, autoClub: true });
+      let o = K2.load(); delete o.life.look; delete o.life.lookAnn; o.life.ach.m1 = 1; o.life.ach.t1 = 1; o.life.ach.s5 = 1; K2.save(o); K2._reset();
+      o = K2.load(); L2.ensure(o);
+      ok(o.life.look === null && o.life.lookAnn === 0, 'guardado de playa antiguo: l.look = null y lookAnn 0 tras ensure');
+      const i0 = o.inbox.length, got = L2.lookCheck(o);
+      const msgs = o.inbox.slice(i0).filter(m => /^Nuevo en tu vestuario/.test(m.t));
+      ok(o.life.lookAnn === 1 && (got.length < 2 ? msgs.length === got.length : msgs.length === 1), 'guardado antiguo: el primer lookCheck da ' + got.length + ' objetos en ' + msgs.length + ' aviso(s)');
+      ok(L2.lookNow() === null, 'playa sin aspecto propio: lookNow() null (main usa tu n.º 1)');
+    }
+    // pista: nueva con aspecto; antigua sin él sigue con la cara de siempre (l.look null) hasta guardar
+    if (hasHall) {
+      const B3 = bootL(true), K3 = B3.VB.Career, L3 = B3.VB.CareerLife;
+      let h = K3.create({ mode: 'hall', name: 'Pista Look', num: 6, pos: 'OH', seed: 64 });
+      ok(h && h.life.look && h.life.lookAnn === 1 && JSON.parse(B3.mem['voley3d.career6']).life.look, 'pista: carrera nueva con aspecto (en voley3d.career6)');
+      h = K3.load(); delete h.life.look; delete h.life.lookAnn; K3.save(h); K3._reset();
+      h = K3.load();
+      ok(h.life.look === null && L3.lookNow() === null, 'pista: guardado antiguo sigue con l.look === null tras ensure (cara de siempre)');
+      L3.lookCheck(h); K3.save(h); K3._reset();
+      ok(K3.load().life.look === null, 'pista: lookCheck no le pone aspecto (solo al guardar en el vestuario)');
+      ok(L3.setLook(B3.VB.Look.fit(0)) && K3.load().life.look && L3.lookNow(), 'pista: setLook le da aspecto propio');
+      ok(L3.buyLook('noExiste') === '' && L3.lookShop(K3.load()).length >= 4, 'pista: misma tienda (inventario global)');
+    }
+    // determinismo: el vestuario no cambia la carrera (fuera de inbox/msgN/created/life.look/lookAnn/spentLook)
+    {
+      const strip = x => { const o = JSON.parse(JSON.stringify(x)); delete o.inbox; delete o.msgN; delete o.created; delete o.world; if (o.life) { delete o.life.look; delete o.life.lookAnn; } return JSON.stringify(o); };
+      const runS = withLook => { const Bx = bootL(withLook), Kx = Bx.VB.Career; Kx.create({ name: 'Det', num: 5, seed: 65, autoClub: true }); for (let i = 0; i < 30 && Kx.load().phase !== 'off'; i++) { if (i % 3 === 0) played(Kx); else Kx.simulateNext(); } return Kx.load(); };
+      ok(strip(runS(true)) === strip(runS(false)), 'misma carrera con y sin look.js (una temporada)');
+    }
+  }
+  verbose = false;
+}
+
 section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia pequeña, fatiga, rápido determinista, impresión, ME_EDGE, guardados)');
 {
   const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], b: mem['voley3d.career'], roles: VB.Sim.CTRL_ROLES6 };
@@ -2348,120 +2464,86 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
   C._reset();
 }
 
-// ------------------------------------------------------------------ Vestuario en la Carrera (sprint «personaliza», spec §7 y §9)
-// Cada prueba en su propio contexto (localStorage propio): el inventario de VB.Look es global (voley3d.look) y no debe mezclarse con
-// lo de arriba. Sin js/look.js, las guardas; con él, initLook, lookCheck, la tienda, setLook/lookNow y el guardado antiguo de pista.
-// LOOKJS=ruta: prueba con otro look.js (por defecto js/look.js).
-section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tienda (spentLook), setLook y guardados antiguos');
+// ------------------------------------------------------------------ S2 B2/B3, S3 C3/C5 y B6 §6.2 en la interfaz (T16)
+section('Interfaz de la Carrera: «Continuar carrera» (heroData), escudo o kitSw, química con nombre, «Jefe» y tableSlice');
 {
-  verbose = true;
-  const LOOKF = process.env.LOOKJS ? path.resolve(process.env.LOOKJS) : path.join(ROOT, 'js/look.js');
-  const bootL = (withLook) => {
-    const m2 = {}; const LS = { getItem: k => (k in m2 ? m2[k] : null), setItem: (k, v) => { m2[k] = String(v); }, removeItem: k => { delete m2[k]; } };
-    const cx = { console, Math, Date, JSON, Set, localStorage: LS }; cx.globalThis = cx; cx.window = cx; vm.createContext(cx);
-    const files = FILES.slice(); if (withLook) files.splice(files.indexOf('js/badges.js') + 1, 0, LOOKF);   // (orden de index.html: badges → look)
-    for (const f of files) {
-      if (NOWORLD && f === 'js/career-world.js') continue;
-      const fp = path.isAbsolute(f) ? f : path.join(ROOT, f); if (fs.existsSync(fp)) vm.runInContext(fs.readFileSync(fp, 'utf8'), cx, { filename: f });
+  const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], b: mem['voley3d.career'] };
+  // career-ui.js (y career-world-ui.js) en un contexto aparte con un document mínimo; comparten VB con el de arriba
+  const fakeEl = () => ({ style: {}, hidden: true, setAttribute() { }, getAttribute() { return null; }, appendChild() { }, addEventListener() { }, querySelector() { return null; }, querySelectorAll() { return []; }, classList: { add() { }, remove() { }, toggle() { }, contains() { return false; } } });
+  const doc = { readyState: 'complete', getElementById: () => null, createElement: fakeEl, head: fakeEl(), body: fakeEl(), addEventListener() { } };
+  const ux = { console, Math, Date, JSON, VB, document: doc, setTimeout: () => 0, clearTimeout() { }, requestAnimationFrame: () => 0, performance: { now: () => 0 }, addEventListener() { } };
+  ux.globalThis = ux; ux.window = ux; vm.createContext(ux);
+  const uiFiles = (NOWORLD ? [] : ['js/career-world-ui.js']).concat(['js/career-ui.js']);
+  let loadErr = '';
+  for (const f of uiFiles) { try { vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ux, { filename: f }); } catch (e) { loadErr += f + ': ' + e.message + ' '; } }
+  const CU = VB.CareerUI;
+  ok(CU && !loadErr && typeof CU.heroData === 'function' && typeof CU.syncHero === 'function', 'career-ui.js se carga sin DOM y exporta heroData/syncHero/portraitReq/crest' + (loadErr ? ' — ' + loadErr : ''));
+  if (CU) {
+    const all = [];
+    const hd = (c) => { const d = CU.heroData(c); if (d) all.push(d.kind, d.title, d.chip, d.line, d.aria); return d; };
+    ok(CU.heroData(null) === null, 'heroData sin carrera: null (la portada se queda como hoy)');
+    delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+    let c = C.create({ mode: 'beach', name: 'Héroe Prueba', num: 7, role: 'atk', seed: 9100 });
+    let d = hd(c);
+    ok(d && d.kind === 'Playa' && d.title === 'Elige club' && d.chip === c.offers.length + ' ofertas' && d.line === 'Tu primer club' && d.club === null, 'elegir club: «Elige club» + «' + (d && d.chip) + '» + «Tu primer club»');
+    C.acceptOffer(c.offers.findIndex(o => !o.trial), 2); c = C.get();
+    let n = C.next(c); d = hd(c);
+    ok(d && d.title === 'Continuar carrera' && d.chip === 'T1 J1' && d.line === (n.atHome ? 'vs ' : 'en ') + n.rival.name && d.club && d.club.id === c.myClub, 'liga: «T1 J1» + «' + (d && d.line) + '» (vs/en como el calendario)');
+    ok(d && d.aria === 'Continuar carrera de playa: temporada 1, jornada 1, ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, 'aria-label: «' + (d && d.aria) + '»');
+    // casa y fuera, banquillo, Open, sin partido y fin de temporada (next falseado)
+    const next0 = C.next, withNext = (fn, run) => { VB.Career = new Proxy(C, { get: (t, k) => (k === 'next' ? fn : t[k]) }); try { return run(); } finally { VB.Career = C; } };
+    const fake = (o) => withNext(() => Object.assign({}, next0(c), o), () => hd(c));
+    d = fake({ atHome: true }); ok(d.line === 'vs ' + n.rival.name, 'en casa: «vs …»');
+    d = fake({ atHome: false }); ok(d.line === 'en ' + n.rival.name, 'fuera: «en …»');
+    d = fake({ bench: true }); ok(/^No juegas: (vs|en) /.test(d.line) && /no juegas/.test(d.aria), 'banquillo: «' + d.line + '»');
+    d = fake({ kind: 'cup', round: 0, atHome: false }); ok(d.chip === 'T1 Semifinal' && d.line === 'vs ' + n.rival.name && /semifinal/.test(d.aria), 'Open, semifinal: «T1 Semifinal» + «vs …»');
+    d = fake({ kind: 'cup', round: 1 }); ok(d.chip === 'T1 Final', 'Open, final: «T1 Final»');
+    d = withNext(() => null, () => hd(c));
+    ok(d.title === 'Continuar carrera' && d.chip === 'T1' && d.line === C.myClub(c).name, 'sin próximo partido: «T1» + tu club');
+    d = hd(Object.assign({}, c, { phase: 'off', offers: [{}, {}] })); ok(d.title === 'Fin de temporada' && d.chip === 'T1' && d.line === '2 ofertas', 'fin de temporada con ofertas: «2 ofertas»');
+    d = hd(Object.assign({}, c, { phase: 'off', offers: [] })); ok(d.line === 'Renueva o ficha', 'fin de temporada sin ofertas: «Renueva o ficha»');
+    // química con nombre (S3 C5)
+    const ch0 = c.mate.chem;
+    ok(CU._chemTxt(c, 47, 1) === 'Química: Buena sintonía (+1)' && CU._chemTxt(c, 10) === 'Química: Conocidos' && CU._chemTxt(c, 95, 3) === 'Química: Pareja de oro (+3)', 'química de playa con nombre: «' + CU._chemTxt(c, 47, 1) + '», sin paréntesis con +0');
+    c.mate.chem = ch0;
+    // «Jefe» (S3 C3): bossFor del club rival
+    const Lf = VB.CareerLife, bs = Lf && Lf.boss ? Lf.boss(c) : null;
+    ok(!Lf || !Lf.boss || (bs && Lf.bossFor(c, bs.club) === bs && Lf.bossFor(c, -1) === null), 'jefe del circuito: bossFor solo con su club (etiqueta «Jefe» en la tarjeta del partido)');
+    // escudo o la muestra de equipación (NOWORLD)
+    const cr = CU.crest(C.myClub(c), 40, c), crm = CU.crest(C.myClub(c), 22, c);
+    if (NOWORLD) ok(/^<i class="cr-kit"/.test(cr) && /cr-kit kit-mini/.test(crm), 'sin career-world: el escudo cae en kitSw (y kit-mini en tablas)');
+    else ok(/^<svg class="cw-crest cw-crest-s"/.test(cr) && /cw-crest-m/.test(crm), 'con career-world: escudo SVG (40 y mini)');
+    ok(CU.portraitReq(c, 'me', 44) === null || typeof CU.portraitReq(c, 'me', 44) === 'object', 'portraitReq sin players.js: null sin errores');
+    // B6 §6.2: el puesto de la fachada antes y después de 3 jornadas = el movimiento de Recap.tableSlice sobre Career.table
+    if (!VB.Recap) { try { vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/recap.js'), 'utf8'), ctx, { filename: 'js/recap.js' }); } catch (e) { } }
+    const R = VB.Recap;
+    if (!R || !R.tableSlice) console.log('  (sin js/recap.js: se salta tableSlice)');
+    else {
+      const chk = (lbl, lid) => {
+        let cc = C.get(); for (let i = 0; i < 2; i++) C.simulateNext(cc);   // (la tabla con partidos jugados)
+        cc = C.get(); const me = cc.myClub, p0 = C.posOf(cc, me);
+        C.simulateNext(cc); cc = C.get();
+        const p1 = C.posOf(cc, me), sl = R.tableSlice(C.table(cc, lid(cc)), me, p0), mv = R.move(p0, p1);
+        ok(sl.pos === p1 && sl.move.d === mv.d && sl.move.txt === mv.txt && sl.rows.some(r => r.me) && sl.rows.length === 3, lbl + ': posOf ' + p0 + ' → ' + p1 + ' = tableSlice (' + (sl.move.txt || '=') + ', ' + sl.rows.map(r => r.posT + ' ' + r.short).join(' | ') + ')');
+      };
+      chk('playa', cc => C.myClub(cc).lvl);
+      delete mem['voley3d.career6']; C._reset();
+      let h = C.create({ mode: 'hall', name: 'Héroe Pista', num: 9, pos: 'OH', seed: 9200 }); C.acceptOffer(h.offers.findIndex(o => !o.trial), 2); h = C.get();
+      let g = 0; while (h.phase === 'league' && !C.next(h) && g++ < 5) { C.simulateNext(); h = C.get(); }
+      d = hd(h); const n6 = C.next(h);
+      ok(d && d.kind === 'Pista' && d.title === 'Continuar carrera' && (!n6 || d.chip === 'T1 J' + (n6.week + 1)), 'pista, liga: «Pista» + «' + (d && d.chip) + '» + «' + (d && d.line) + '»');
+      const next6 = C.next; d = withNext(() => Object.assign({}, next6(h), { kind: 'ko', compName: 'Copa de Prueba' }), () => hd(h));
+      ok(d.chip === 'T1 Copa de Prueba' && /^vs /.test(d.line), 'pista, eliminatoria: «' + d.chip + '» + «' + d.line + '»');
+      ok(CU._chemTxt(h, 40, 1) === 'Química del equipo: Buen ambiente (+1)' && CU._chemTxt(h, 0) === 'Química del equipo: Vestuario nuevo', 'química de pista con nombre: «' + CU._chemTxt(h, 40, 1) + '»');
+      if (C.next(h)) chk('pista', cc => C.myClub(cc).lid);
     }
-    return { VB: cx.VB, mem: m2 };
-  };
-  const hasHall = !!(C.hall && C.hall.available());
-  const played = (K, stats, win) => { const n = K.next(K.load()); if (n && n.bench) return K.benchNext(); return K.matchDone({ sets: win === false ? [0, 2] : [2, 0], setScores: win === false ? [[10, 21], [9, 21]] : [[21, 10], [21, 9]], win: win !== false },
-    stats || { kills: 12, aces: 2, blocks: 1, digs: 8, assists: 3, errors: 3 }, { career: { season: 1 }, teams: [[{}, {}], [{}, {}]], demo: false, autopilot: false }); };
-  // 1) sin look.js: nada cambia ni se rompe
-  {
-    const B = bootL(false), K = B.VB.Career, L = B.VB.CareerLife;
-    ok(L && L.initLook && L.lookCheck && L.lookShop && L.buyLook && L.setLook && L.lookNow && L.achName, 'API del Vestuario en CareerLife (initLook, lookCheck, lookShop, buyLook, setLook, lookNow, achName)');
-    let err = '';
-    try {
-      const c0 = K.create({ name: 'Sin Look', num: 4, seed: 61, autoClub: true });
-      ok(c0.life.look === null && c0.life.lookAnn === 1, 'sin look.js: carrera nueva con l.look = null');
-      ok(Array.isArray(L.lookCheck(K.load())) && L.lookCheck(K.load()).length === 0, 'sin look.js: lookCheck no hace nada');
-      ok(L.lookShop(K.load()).length === 0 && L.buyLook('tiraNasal') === '' && L.setLook({ v: 1 }) === false && L.lookNow() === null, 'sin look.js: tienda vacía, buyLook «», setLook false, lookNow null');
-      const m0 = K.load().money; played(K); ok(K.load().money >= m0 && !('voley3d.look' in B.mem), 'sin look.js: se juega igual y no se escribe voley3d.look');
-    } catch (e) { err = e.message; }
-    ok(!err, 'sin look.js: las guardas no rompen nada' + (err ? ' — ' + err : ''));
-    ok(L.achName('m50', true) === 'Veterano del parqué' && L.achName('m50', false) === 'Veterano de la arena' && L.achName('m1') === 'Debut' && L.achName('nada') === '', 'achName: nh en la pista, name en la playa, «» si no existe');
+    ok(all.every(t => typeof t === 'string' && !/\.er\b|1\.º/.test(t) && t.indexOf('undefined') < 0 && t.indexOf('·') < 0), 'textos de la portada sin «.er», sin «·» y sin «undefined» (' + all.length + ')');
   }
-  if (!fs.existsSync(LOOKF)) console.log('  (sin js/look.js: se salta el Vestuario con look.js)');
-  else {
-    // 2) con look.js: carrera nueva de playa
-    const B = bootL(true), K = B.VB.Career, L = B.VB.CareerLife, X = B.VB.Look;
-    ok(X && Array.isArray(X.CATALOG) && X.grant && X.owned && X.fit && X.sane, 'look.js cargado (VB.Look)');
-    const fit0 = JSON.stringify(X.sane(X.fit(0), 0));
-    let c = K.create({ name: 'Con Look', num: 8, role: 'atk', seed: 62, autoClub: true });
-    ok(c.life.look && JSON.stringify(c.life.look) === fit0 && c.life.lookAnn === 1, 'initLook: la carrera nueva copia el n.º 1 (VB.Look.fit(0))');
-    ok(JSON.stringify(L.lookNow()) === fit0, 'lookNow() devuelve el aspecto de la carrera');
-    // logro m1 (Debut) → lo que lo pide (p. ej. Kinesio)
-    const byAch = id => X.CATALOG.filter(x => (Array.isArray(x.unlock) ? x.unlock : [x.unlock]).some(u => u && u.ach === id)).map(x => x.id);
-    const m1Items = byAch('m1');
-    played(K); c = K.load();
-    ok(c.life.ach.m1 && m1Items.every(id => X.owned(id)), 'lookCheck: tras el «Debut» ya tienes ' + (m1Items.join(', ') || '(nada pide m1)'));
-    const nw = c.inbox.filter(m => m.k === 'fans' && /^Nuevo en tu vestuario: /.test(m.t));
-    ok(!m1Items.length || nw.some(m => m.x ? /«Debut»/.test(m.x) : true), 'aviso «Nuevo en tu vestuario» con el motivo («Debut»): ' + nw.map(m => m.t).join(' | '));
-    ok(L.lookCheck(K.load()).length === 0, 'lookCheck no da dos veces lo mismo');
-    // tienda: precios, orden, compra
-    const shop = L.lookShop(K.load());
-    ok(shop.length >= 4 && shop.every((x, i) => x.price > 0 && x.name && x.rarity >= 0 && x.rarity <= 3 && (!i || shop[i - 1].price <= x.price)), 'lookShop: ' + shop.length + ' objetos a la venta, por precio (' + shop.slice(0, 3).map(x => x.id + ' ' + x.price).join(', ') + '…)');
-    const cheap = shop.filter(x => !x.owned)[0];
-    c = K.load(); c.money = cheap.price - 1; K.save(c);
-    ok(L.buyLook(cheap.id) === 'money' && !X.owned(cheap.id) && K.load().money === cheap.price - 1, 'buyLook sin dinero: «money» y no se cobra');
-    c = K.load(); c.money = 100000; const sp0 = c.life.spent, gear0 = !!c.life.ach.gear, sl0 = c.life.spentLook | 0; K.save(c);
-    ok(L.buyLook(cheap.id) === 'ok' && X.owned(cheap.id), 'buyLook: «ok» y ya está en tu vestuario (' + cheap.name + ')');
-    c = K.load();
-    ok(c.money === 100000 - cheap.price && c.life.spentLook === sl0 + cheap.price, 'buyLook descuenta ' + cheap.price + ' € y suma en l.spentLook (' + c.life.spentLook + ')');
-    ok(c.life.spent === sp0 && !!c.life.ach.gear === gear0 && Object.keys(L.gearBonus(c)).length === 0, 'comprar cosméticos no toca l.spent, el logro «gear» ni el material');
-    ok(L.buyLook(cheap.id) === 'owned' && K.load().money === 100000 - cheap.price, 'buyLook de algo que ya tienes: «owned» y no se cobra');
-    ok(L.buyLook('noExiste') === '' && (!m1Items.length || L.buyLook(m1Items[0]) === (shop.some(x => x.id === m1Items[0]) ? 'owned' : '')), 'buyLook: «» si no existe o no se vende');
-    ok(L.lookShop(K.load()).filter(x => x.id === cheap.id)[0].owned, 'lookShop lo marca como tuyo');
-    // el material sigue igual: matchSetup sin cosméticos en attrs
-    const ms = K.matchSetup(); ok(ms && !('look' in ms.attrs[0][0]) && JSON.stringify(ms.gear || {}) === '{}', 'nada del vestuario en attrs ni en el material del partido');
-    // setLook / lookNow
-    const f2 = X.sane(X.fit(0), 0); f2.style = f2.style === 'afro' ? 'rapado' : 'afro';
-    ok(L.setLook(f2) && K.load().life.look.style === f2.style && L.lookNow().style === f2.style, 'setLook guarda en c.life.look y lookNow lo devuelve');
-    K._reset(); ok(K.load().life.look.style === f2.style, 'el aspecto sobrevive a guardar y cargar');
-    // fama y premio: más de 3 a la vez → un solo mensaje
-    c = K.load(); const n0 = c.inbox.length;
-    c.life.awards.push({ season: c.season, id: 'mvp', name: 'MVP de prueba', club: 'X' });
-    L.addFame(c, 125000); K.save(c); c = K.load();
-    const fameItems = X.CATALOG.filter(x => (Array.isArray(x.unlock) ? x.unlock : [x.unlock]).some(u => u && (typeof u.fame === 'number' || u.award === 'mvp'))).map(x => x.id);
-    ok(fameItems.every(id => X.owned(id)), 'con «Leyenda viva» y un MVP: todo lo de fama y premio es tuyo (' + fameItems.join(', ') + ')');
-    const nw2 = c.inbox.slice(n0).filter(m => /^Nuevo en tu vestuario/.test(m.t));
-    ok(fameItems.length <= 3 ? nw2.length >= 1 : nw2.length === 1 && /objetos$/.test(nw2[0].t), 'más de 3 de golpe: un solo aviso («' + (nw2[0] && nw2[0].t) + '»)');
-    // guardado de playa de antes del Vestuario: lookAnn 0 → un solo resumen la primera vez
-    {
-      const B2 = bootL(true), K2 = B2.VB.Career, L2 = B2.VB.CareerLife, X2 = B2.VB.Look;
-      K2.create({ name: 'Antiguo', num: 3, seed: 63, autoClub: true });
-      let o = K2.load(); delete o.life.look; delete o.life.lookAnn; o.life.ach.m1 = 1; o.life.ach.t1 = 1; o.life.ach.s5 = 1; K2.save(o); K2._reset();
-      o = K2.load(); L2.ensure(o);
-      ok(o.life.look === null && o.life.lookAnn === 0, 'guardado de playa antiguo: l.look = null y lookAnn 0 tras ensure');
-      const i0 = o.inbox.length, got = L2.lookCheck(o);
-      const msgs = o.inbox.slice(i0).filter(m => /^Nuevo en tu vestuario/.test(m.t));
-      ok(o.life.lookAnn === 1 && (got.length < 2 ? msgs.length === got.length : msgs.length === 1), 'guardado antiguo: el primer lookCheck da ' + got.length + ' objetos en ' + msgs.length + ' aviso(s)');
-      ok(L2.lookNow() === null, 'playa sin aspecto propio: lookNow() null (main usa tu n.º 1)');
-    }
-    // pista: nueva con aspecto; antigua sin él sigue con la cara de siempre (l.look null) hasta guardar
-    if (hasHall) {
-      const B3 = bootL(true), K3 = B3.VB.Career, L3 = B3.VB.CareerLife;
-      let h = K3.create({ mode: 'hall', name: 'Pista Look', num: 6, pos: 'OH', seed: 64 });
-      ok(h && h.life.look && h.life.lookAnn === 1 && JSON.parse(B3.mem['voley3d.career6']).life.look, 'pista: carrera nueva con aspecto (en voley3d.career6)');
-      h = K3.load(); delete h.life.look; delete h.life.lookAnn; K3.save(h); K3._reset();
-      h = K3.load();
-      ok(h.life.look === null && L3.lookNow() === null, 'pista: guardado antiguo sigue con l.look === null tras ensure (cara de siempre)');
-      L3.lookCheck(h); K3.save(h); K3._reset();
-      ok(K3.load().life.look === null, 'pista: lookCheck no le pone aspecto (solo al guardar en el vestuario)');
-      ok(L3.setLook(B3.VB.Look.fit(0)) && K3.load().life.look && L3.lookNow(), 'pista: setLook le da aspecto propio');
-      ok(L3.buyLook('noExiste') === '' && L3.lookShop(K3.load()).length >= 4, 'pista: misma tienda (inventario global)');
-    }
-    // determinismo: el vestuario no cambia la carrera (fuera de inbox/msgN/created/life.look/lookAnn/spentLook)
-    {
-      const strip = x => { const o = JSON.parse(JSON.stringify(x)); delete o.inbox; delete o.msgN; delete o.created; delete o.world; if (o.life) { delete o.life.look; delete o.life.lookAnn; } return JSON.stringify(o); };
-      const runS = withLook => { const Bx = bootL(withLook), Kx = Bx.VB.Career; Kx.create({ name: 'Det', num: 5, seed: 65, autoClub: true }); for (let i = 0; i < 30 && Kx.load().phase !== 'off'; i++) { if (i % 3 === 0) played(Kx); else Kx.simulateNext(); } return Kx.load(); };
-      ok(strip(runS(true)) === strip(runS(false)), 'misma carrera con y sin look.js (una temporada)');
-    }
-  }
-  verbose = false;
+  delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6;
+  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
+  if (keep.b != null) mem['voley3d.career'] = keep.b;
+  C._reset();
 }
 
 section('Dificultad de la Carrera de pista: niveles, IA, atributos del rival, cambio entre partidos, sellos y migración');

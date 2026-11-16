@@ -109,6 +109,9 @@
   var YEL = [1, 0.76, 0.04]; // "aro amarillo" = dónde tienes que jugar el balón (focusRing)
   var spinQ, squashQ, tmpQ, tv, tv2, tv3, axis, UPV;
   var spin = { rate: 0, sign: 1, wob: 0 }, squash = { t: 0, k: 0 }, heat = 0;
+  // Toque de bloqueo (T20 1): la sim recoloca el balón al otro lado de la red en el paso del evento (0,6-0,9 m de golpe). El balón
+  // DIBUJADO sale del punto del frame anterior (en las manos) y alcanza al de la sim en BOFF_T s (smoothstep; solo dibujo, sin basura).
+  var BOFF_T = 0.1, BOFF = { g: null, t0: -99, x: 0, y: 0, z: 0 }, BPF = { g: null, t: -99, x: 0, y: 0, z: 0 };
   var SQ_MAX = 0.095; // (1 + k/2) / (1 - k) ≈ 1,15: el balón se deforma sin dejar de leerse como balón
   // Campos de las partículas que nacen enteros (Smi) y luego reciben doubles: se generalizan al crear el pool (ver dblFields
   // en sim.js; si no, V8 depreca el mapa con la primera ráfaga de la partida y desoptimiza todo a la vez).
@@ -481,6 +484,17 @@
   var FP_CELL = [9, 10, 11]; // 0 = pie, 1 = surco de la plancha (también las lenguas del cráter del remate), 2 = cráter del balón
   var SAND_C = [0.98, 0.87, 0.66]; // arena seca (Platja Llarga); las demás sedes, VB.Arena.look().sand
   function onBeach() { var A = VB.Arena; return !!(A && A.venue && A.venue() === 'beach'); }
+  /* Tinte de las piezas de arena del lote toon (nubes, terrones, corona): el atlas va pintado con la arena de Platja y en las
+   * sedes GENERADAS se multiplica por look().sand / SAND_C (tope 0,6..1,1 por canal). Las sedes a mano conservan su aspecto (k = 1).
+   * Se recalcula en cada evento de arena (bote, plancha), nunca por frame; updateSandy usa el último. */
+  var sandK = [1, 1, 1];
+  function sandTint() {
+    sandK[0] = sandK[1] = sandK[2] = 1;
+    try {
+      var lk = VB.Arena.look && VB.Arena.look(), d = lk && VB.VENUES && VB.VENUES[lk.map];
+      if (lk && lk.sand && d && d.gen) for (var c = 0; c < 3; c++) sandK[c] = Math.max(0.6, Math.min(1.1, lk.sand[c] / SAND_C[c]));
+    } catch (e) { }
+  }
   function footAtlas(g) {
     var C0 = DEC_CELL, x, y;
     // celda 9: pie descalzo mirando a +u (talón a la izquierda), hundido (oscuro) con el reborde de arena empujada delante
@@ -821,7 +835,7 @@
       var px = x + ux * u + Math.cos(a) * r0, py = y + uy * u + Math.sin(a) * r0, ov = (0.35 + 0.9 * k) * (0.6 + Math.random() * 0.6);
       var s0 = (0.32 + 0.36 * k) * (0.75 + Math.random() * 0.4);
       tbAdd(i % 2 ? TBK.sand2 : TBK.sand, px, py, 0, Math.cos(a) * ov + ux * ov * 0.5, Math.sin(a) * ov + uy * ov * 0.5, 0.25 + 0.5 * k * Math.random(),
-        0.75 + 0.55 * k + Math.random() * 0.25, s0, s0 * (1.7 + 0.5 * Math.random()), (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.8, 1, 1, 1, 1, -0.2);
+        0.75 + 0.55 * k + Math.random() * 0.25, s0, s0 * (1.7 + 0.5 * Math.random()), (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 0.8, sandK[0], sandK[1], sandK[2], 1, -0.2);
     }
   }
   function sandClumps(x, y, n, k, ux, uy, fan, rad) {
@@ -830,16 +844,17 @@
       if (fan > 0) { var b = Math.atan2(uy, ux) + (Math.random() - 0.5) * fan; hx = Math.cos(b); hy = Math.sin(b); }
       var v = (1.0 + 3.6 * k) * (0.45 + Math.random() * 0.75), r0 = rad * Math.random();
       tbAdd(TBK.clump, x + hx * r0, y + hy * r0, 0.06, hx * v, hy * v, (1.6 + 3.8 * k) * (0.55 + Math.random() * 0.6), 1.4,
-        (0.1 + 0.08 * k) * (0.7 + Math.random() * 0.6), 0, Math.random() * 6.283, (Math.random() - 0.5) * 14, 1, 1, 1, 1, 9.8);
+        (0.1 + 0.08 * k) * (0.7 + Math.random() * 0.6), 0, Math.random() * 6.283, (Math.random() - 0.5) * 14, sandK[0], sandK[1], sandK[2], 1, 9.8);
     }
   }
   /** Arena del balón al tocar el suelo (coords de sim): k = fuerza 0..1, (dx, dy) dirección del vuelo (corona algo hacia delante). */
   function sandImpact(x, y, k, dx, dy) {
     if (!toonOn()) return;
+    sandTint();
     var dl = Math.sqrt(dx * dx + dy * dy), ux = dl > 0.3 ? dx / dl : 0, uy = dl > 0.3 ? dy / dl : 0;
     if (k > 0.3 && (!tbLow || k > 0.7)) {
       var cs = 0.9 + 1.6 * k;
-      tbAdd(TBK.crown, x + ux * 0.1, y + uy * 0.1, 0, 0, 0, 0, 0.5 + 0.35 * k, cs * 0.35, cs, (Math.random() - 0.5) * 0.15, 0, 1, 1, 1, 1, 0);
+      tbAdd(TBK.crown, x + ux * 0.1, y + uy * 0.1, 0, 0, 0, 0, 0.5 + 0.35 * k, cs * 0.35, cs, (Math.random() - 0.5) * 0.15, 0, sandK[0], sandK[1], sandK[2], 1, 0);
     }
     sandClouds(x + ux * 0.25 * k, y + uy * 0.25 * k, sandQ(1 + 6 * k), 0.15 + 1.05 * k, ux * 0.6, uy * 0.6, 0.5 * k, 0.15 + 0.6 * k);
     sandClumps(x, y, sandQ(3 + 14 * k), 0.1 + 1.1 * k, ux, uy, dl > 0.3 ? 2.6 : 0, 0.15);
@@ -847,13 +862,14 @@
       var nr = sandQ(7), a0 = Math.random() * 6.283;
       for (var i = 0; i < nr; i++) {
         var a = a0 + i * 6.283 / nr, ca = Math.cos(a), sa = Math.sin(a), v = 2.2 + 1.6 * k, s0 = 0.28 + 0.12 * k;
-        tbAdd(i % 2 ? TBK.sand2 : TBK.sand, x + ca * 0.3, y + sa * 0.3, 0, ca * v, sa * v, 0.15, 0.7 + 0.2 * k, s0, s0 * 2, (Math.random() - 0.5) * 0.6, 0, 1, 1, 1, 1, -0.1);
+        tbAdd(i % 2 ? TBK.sand2 : TBK.sand, x + ca * 0.3, y + sa * 0.3, 0, ca * v, sa * v, 0.15, 0.7 + 0.2 * k, s0, s0 * 2, (Math.random() - 0.5) * 0.6, 0, sandK[0], sandK[1], sandK[2], 1, -0.1);
       }
     }
   }
   /** Arena de la plancha: abanico de terrones hacia delante, nubes a lo largo del cuerpo (piernas → pecho) y una nube baja delante. */
   function sandDive(px, py, dx, dy, k) {
     if (!toonOn()) return;
+    sandTint();
     var dl = Math.sqrt(dx * dx + dy * dy), ux = dl > 1e-4 ? dx / dl : 1, uy = dl > 1e-4 ? dy / dl : 0;
     // nubes a los LADOS del cuerpo (lo que aparta al deslizarse), no encima: el muñeco tiene que seguir viéndose
     for (var sdS = -1; sdS <= 1; sdS += 2) sandClouds(px + ux * 0.25 - uy * 0.45 * sdS, py + uy * 0.25 + ux * 0.45 * sdS, sandQ(2), 0.35 + 0.15 * k, ux - uy * sdS * 0.8, uy + ux * sdS * 0.8, 1.2, 0.08);
@@ -883,7 +899,7 @@
         S2.acc -= 1;
         var a = Math.random() * 6.283, r0 = 0.08 + Math.random() * 0.14, z0 = (p.down > 0 ? 0.25 : 0.55) + Math.random() * 0.4;
         tbAdd(TBK.clump, x + Math.cos(a) * r0, y + Math.sin(a) * r0, z0, Math.cos(a) * 0.4, Math.sin(a) * 0.4, 0.3 + Math.random() * 0.5, 0.9,
-          0.06 + Math.random() * 0.04, 0, Math.random() * 6.283, (Math.random() - 0.5) * 10, 1, 1, 1, 1, 9.8);
+          0.06 + Math.random() * 0.04, 0, Math.random() * 6.283, (Math.random() - 0.5) * 10, sandK[0], sandK[1], sandK[2], 1, 9.8);
       }
     }
   }
@@ -1302,6 +1318,95 @@
   }
   var confM = null;
 
+  /* ---------- C1 (sprint 3): repetición (VB.FX.replay(on)) ----------
+   * Durante la repetición main.js llama a FX.update con la partida sombra R (R.replay = true). Al entrar se guardan y se ocultan las
+   * calcomanías persistentes de la partida en vivo (marcas del bote, huella y línea del challenge, huellas de la playa) y se apagan
+   * estelas y partículas vivas; al salir se borra lo creado durante la repetición y se restaura lo guardado. Las copias se reservan
+   * la primera vez (nada por frame). Aro amarillo, retícula, setPreview y pista de posición del 6v6 se ocultan con g.replay (update). */
+  var rpOn = false, rpMk = null, rpFp = null, rpFpHead = 0, rpFpAlive = 0, rpRv = { on: false, hold: 0, x: 0.5, y: 0.5, res: -1, a: 0.5, k: 0.5, sx: 0.5, sy: 0.5 };
+  var RP_MK = 8, RP_FP = 8; // campos guardados por marca (t, d, s, stretch, inside, x, y, giro) y por huella (x, y, yaw, k, sx, sy, op, t)
+  function rpKillLive() { // estelas, partículas, destellos, ondas, piezas cartoon y confeti: fuera (no se guardan)
+    trailA = 0; trailN = 0; if (trail) trail.visible = false;
+    for (var i = 0; i < SPARK_N; i++) sp[i].life = 0;
+    spAlive = 0; if (sparks) sparks.visible = false;
+    for (var d = 0; d < DUST_N; d++) du[d].life = 0;
+    duAlive = 0; if (dust) dust.visible = false;
+    for (var f = 0; f < FLASH_N; f++) { flashPool[f].t = 0; flashPool[f].s.visible = false; }
+    for (var w = 0; w < WAVE_N; w++) { wavePool[w].t = 0; wavePool[w].s.visible = false; }
+    for (var r = 0; r < RIP_N; r++) { ripPool[r].t = 0; ripPool[r].m.visible = false; }
+    for (var t = 0; t < tb.length; t++) tb[t].life = 0;
+    speedT = 0; tbAlive = 1; // updateToonFx esconde el lote en el siguiente frame
+    for (var s = 0; s < SANDY_N; s++) { sandy[s].t = 0; sandy[s].p = null; }
+    if (conf) { confAlive = 0; conf.count = 0; conf.visible = false; }
+    // ayudas de juego y cachés con referencias a atletas de la otra partida
+    aim.a = 0; aim.on = false; aim.kill = 0; aimR.on = false; hwC.p = null; hwC.t = -1;
+    if (aimRet) aimRet.visible = false;
+    if (aimFill) aimFill.visible = false;
+    if (aimArc) aimArc.visible = false;
+    if (aimXray) { aimXray.visible = false; aimLx.visible = false; aimLy.visible = false; }
+    if (focusRing) focusRing.visible = false;
+    focusVis = false; posA = 0; posSwap = false; posWt = 0; spA = 0;
+    if (posMark) { posMark.visible = false; posMark2.visible = false; posArrow.visible = false; }
+    if (setMk) setMk.visible = false;
+    squash.t = 0; heat = 0; fpLast.length = 0;
+  }
+  function rpClearDecals() { // marcas, huella del challenge y huellas: todo apagado
+    for (var m = 0; m < MARK_N; m++) { markPool[m].t = 0; markPool[m].m.visible = false; markPool[m].r.visible = false; }
+    rv.on = false; rv.hold = 0; rv.a = 0; rv.res = -1;
+    if (revFill) revFill.visible = revLine.visible = revGlow.visible = false;
+    for (var i = 0; i < fp.length; i++) fp[i].t = 0;
+    fpAlive = 0;
+  }
+  function rpSave() {
+    var m, i, o;
+    if (!rpMk) rpMk = new Float32Array(MARK_N * RP_MK);
+    if (!rpFp && fp.length) rpFp = new Float32Array(fp.length * RP_FP);
+    for (m = 0; m < MARK_N; m++) {
+      var Mk = markPool[m]; o = m * RP_MK;
+      rpMk[o] = Mk.m.visible ? Mk.t : 0; rpMk[o + 1] = Mk.d; rpMk[o + 2] = Mk.s || 0.5; rpMk[o + 3] = Mk.stretch || 1;
+      rpMk[o + 4] = Mk.inside ? 1 : 0; rpMk[o + 5] = Mk.m.position.x; rpMk[o + 6] = -Mk.m.position.z; rpMk[o + 7] = Mk.m.rotation.z;
+    }
+    for (var k in rv) rpRv[k] = rv[k];
+    if (rpFp) {
+      for (i = 0; i < fp.length; i++) {
+        var F = fp[i]; o = i * RP_FP;
+        rpFp[o] = F.x; rpFp[o + 1] = F.y; rpFp[o + 2] = F.yaw; rpFp[o + 3] = F.k; rpFp[o + 4] = F.sx; rpFp[o + 5] = F.sy; rpFp[o + 6] = F.op; rpFp[o + 7] = F.t;
+      }
+      rpFpHead = fpHead; rpFpAlive = fpAlive;
+    }
+  }
+  function rpRestore() {
+    var m, i, o;
+    if (rpMk) for (m = 0; m < MARK_N; m++) {
+      var Mk = markPool[m]; o = m * RP_MK;
+      Mk.t = rpMk[o]; Mk.d = rpMk[o + 1]; Mk.s = rpMk[o + 2]; Mk.stretch = rpMk[o + 3]; Mk.inside = rpMk[o + 4] > 0.5;
+      if (!(Mk.t > 0)) { Mk.t = 0; continue; }
+      var x = rpMk[o + 5], y = rpMk[o + 6];
+      Mk.m.position.x = x; Mk.m.position.z = -y; Mk.r.position.x = x; Mk.r.position.z = -y; Mk.m.rotation.z = rpMk[o + 7];
+      Mk.m.scale.set(Mk.s * 1.24 * Mk.stretch, Mk.s * 1.24, 1);
+      if (Mk.inside) { Mk.r.material.color.copy(RIM_IN); Mk.m.material.color.copy(MARK_IN); Mk.r.material.map = rimInTex; }
+      else { Mk.r.material.color.copy(RIM_OUT); Mk.m.material.color.copy(MARK_OUT); Mk.r.material.map = rimOutTex; }
+      Mk.m.visible = true; Mk.r.visible = true; // opacidad y filo: los recalcula el bucle de marcas en el siguiente update
+    }
+    for (var k in rpRv) rv[k] = rpRv[k];
+    if (rv.on && revFill) placeReview(rv.x, rv.y); // (escalas de la huella: rv.sx/sy ya vienen restauradas; placeReview las vuelve a calcular igual)
+    if (rpFp && rpFp.length === fp.length * RP_FP) {
+      for (i = 0; i < fp.length; i++) {
+        var F = fp[i]; o = i * RP_FP;
+        F.x = rpFp[o]; F.y = rpFp[o + 1]; F.yaw = rpFp[o + 2]; F.k = rpFp[o + 3]; F.sx = rpFp[o + 4]; F.sy = rpFp[o + 5]; F.op = rpFp[o + 6]; F.t = i < footCap ? rpFp[o + 7] : 0;
+      }
+      fpHead = rpFpHead % footCap; fpAlive = rpFpAlive;
+    }
+  }
+  function replayMode(on) {
+    on = !!on;
+    if (on === rpOn || !markPool.length) { rpOn = on && markPool.length > 0; return; }
+    if (on) { rpSave(); rpClearDecals(); rpKillLive(); }
+    else { rpKillLive(); rpClearDecals(); rpRestore(); }
+    rpOn = on;
+    writeDecals(); writeBills(); // el lote del suelo y el de destellos se rehacen ya (sin esperar al siguiente update)
+  }
+
   /** Copias «de compilación» (ARN-03): por cada combinación material + tipo de objeto, un objeto NUEVO que comparte geometría
    *  y material con el original (no lo saca de su padre ni lo modifica). Visibles y sin recorte: para renderer.compile(). */
   function prewarmProxies(top, out) {
@@ -1546,6 +1651,7 @@
       for (var dI = 0; dI < DUST_N; dI++) du[dI].life = 0;
       for (var fI = 0; fI < fp.length; fI++) fp[fI].t = 0; fpLast.length = 0; fpAlive = 0;
       for (var sI = 0; sI < SANDY_N; sI++) { sandy[sI].t = 0; sandy[sI].p = null; }
+      sandTint();
       for (var f = 0; f < FLASH_N; f++) { flashPool[f].t = 0; flashPool[f].s.visible = false; }
       for (var w = 0; w < WAVE_N; w++) { wavePool[w].t = 0; wavePool[w].s.visible = false; }
       for (var r = 0; r < RIP_N; r++) { ripPool[r].t = 0; ripPool[r].m.visible = false; }
@@ -1571,6 +1677,9 @@
     comicBurst: function (x, y, z, size) { burstToon(x, y, z, size || 0.9, 0.16); },
     puffs: function (x, y, n, dirx, diry, size) { puffsAt(x, y, n || 4, dirx || 0, diry || 0, 1.2, size || 0.45); },
     onomatopoeia: function (x, y, z) { onoAt(x, y, z); },
+    /** C1: repetición. on = true al entrar (tras la cortinilla: guarda y oculta las calcomanías de la partida en vivo, apaga estelas y
+     *  partículas); false al salir (borra lo de la repetición y restaura lo guardado). Idempotente. Opcional para main.js. */
+    replay: function (on) { replayMode(on); },
     /** Confeti del color de un equipo (opcional). */
     confetti: function (team, n) { confetti(team === 1 ? 1 : 0, n || 400); },
     /** Malla del balón (opcional, para otros módulos). */
@@ -1578,7 +1687,7 @@
     /** ARN-03: copias de compilación de todos los pools de efectos (ver VB.Arena.prewarmList, que ya las incluye). */
     prewarmList: function () { return root ? prewarmProxies(root, []) : []; },
     /** Solo depuración: escala de legibilidad del balón (ARN-06) y brillo de borde actual. */
-    _dbg: function () { return { ballBs: ballBs, rim: ballRim ? ballRim.value : 0, ringD: focusRing && focusRing.visible ? focusD : 0, ringOp: focusU ? focusU.uOp.value.toArray() : null, toon: toon, toonN: toon ? toon.count : 0, decals: decals, decOrder: decOrder, bills: bills, billOrder: billOrder, dropLine: dropLine, posPh: posPh, posA: posA }; },
+    _dbg: function () { return { ballBs: ballBs, rim: ballRim ? ballRim.value : 0, ringD: focusRing && focusRing.visible ? focusD : 0, ringOp: focusU ? focusU.uOp.value.toArray() : null, toon: toon, toonN: toon ? toon.count : 0, decals: decals, decOrder: decOrder, bills: bills, billOrder: billOrder, dropLine: dropLine, posPh: posPh, posA: posA, replay: rpOn }; },
     /** Solo depuración (tools): fuerza la fase de la pista de posición del 6v6 ('recv'|'set'|'attack'|'cover'|'block'|'dig'|'net'|'serve'|'';
      *  null = la que diga la sim). Para ver cada marca y medir el lote con las tres mallas encendidas. */
     _hint6: function (ph) { posForce = ph == null ? null : (PH[ph] ? ph : ''); },
@@ -1590,7 +1699,10 @@
       for (var i = 0; i < events.length; i++) this._event(events[i], g);
 
       // ---- balón: posición, giro con efecto, aplastamiento al golpear ----
-      VB.toThree(b.x, b.y, b.z, ballPivot.position);
+      var oa = BOFF.g === g ? g.time - BOFF.t0 : -1;
+      if (oa >= 0 && oa < BOFF_T) { var ou = oa / BOFF_T, ow = 1 - ou * ou * (3 - 2 * ou); VB.toThree(b.x + BOFF.x * ow, b.y + BOFF.y * ow, b.z + BOFF.z * ow, ballPivot.position); }
+      else VB.toThree(b.x, b.y, b.z, ballPivot.position);
+      BPF.g = g; BPF.t = g.time; BPF.x = b.x; BPF.y = b.y; BPF.z = b.z;
       if (dt > 0) {
         var hs = Math.hypot(b.vx, b.vy);
         if (b.held) {
@@ -1642,7 +1754,7 @@
       setBlob(0, b.x, b.y, s, s, 0, 0.85 * Math.max(0.22, 0.95 / (1 + h * 0.22)) * (0.5 + 0.5 * air));
       updateAthleteBlobs(g);
 
-      var inPlay = g.mode === 'rally' && !b.held;
+      var inPlay = g.mode === 'rally' && !b.held, rpG = rpOn || !!g.replay; // C1: en la repetición no hay ayudas de juego
       // ---- línea de altura ----
       dropLine.visible = inPlay && b.z > 1.4;
       if (dropLine.visible) {
@@ -1655,7 +1767,7 @@
       // 6v6 con humano (control Uno por puesto): el aro solo marca TU balón; si lo juega un compañero, no hay aro (seguirlo
       // llevaba a robarle el balón con «¡mía!»). En 2v2 sigue como siempre (también con el compañero IA en modo Uno)
       var six = g.size === 6 && g.ctrlMode === 'one';
-      var showFocus = inPlay && !g.demo && !g.watch && g.jobs && g.jobs[0] && (!six || g.jobs[0] === g.ctrl) && Sim.focusPoint;
+      var showFocus = inPlay && !rpG && !g.demo && !g.watch && g.jobs && g.jobs[0] && (!six || g.jobs[0] === g.ctrl) && Sim.focusPoint;
       var fpt = showFocus ? Sim.focusPoint(g) : null; // (no «fp»: taparía el pool de huellas del módulo)
       focusVis = !!fpt;
       focusRing.visible = focusVis;
@@ -1684,7 +1796,7 @@
       if (posMark) {
         var pc = g.ctrl, A6 = VB.AI6, pdt = ctx.realDt || 0, pTo = 0, pLive = false, ph = '', ptx = 0, pty = 0;
         var pSv = g.mode === 'serve' && g.server !== pc;
-        if (six && (inPlay || pSv) && !g.demo && !g.watch && pc && A6 && A6.spot && !(g.jobs && g.jobs[0] === pc)) {
+        if (six && (inPlay || pSv) && !rpG && !g.demo && !g.watch && pc && A6 && A6.spot && !(g.jobs && g.jobs[0] === pc)) {
           var psp = A6.spot(g, pc); ph = psp.phase || ''; ptx = psp.x; pty = psp.y;
           // saque rival: setupServe deja lastKind '' y spot() aún no «recibe» (da la defensa): su sitio legal es p.fx/fy (placeServe)
           if (pSv && g.server && g.server.team !== pc.team && pc.fx !== undefined) { ph = 'recv'; ptx = pc.fx; pty = pc.fy; }
@@ -1747,7 +1859,7 @@
           }
         }
         // ---- E1: marcador de la colocación dirigida (Sim.setPreview: destino sin error de la colocación con el stick de ahora) ----
-        var spv = Sim.setPreview && !g.demo && !g.autopilot && g.mastery ? Sim.setPreview(g, spOut) : null;
+        var spv = Sim.setPreview && !rpG && !g.demo && !g.autopilot && g.mastery ? Sim.setPreview(g, spOut) : null;
         if (spv && isFinite(spv.x) && isFinite(spv.y)) {
           var stp = SP_COL[spv.tempo] ? spv.tempo : '';
           if (spA < 0.02 || stp !== spT) { spT = stp; setMk.material.color.copy(SP_COL[stp]); }
@@ -1760,7 +1872,7 @@
         }
       }
       // ---- marcador de caída (secundario si el aro amarillo está activo) ----
-      marker.visible = inPlay && b.vz < 6 && b.z > 0.5;
+      marker.visible = inPlay && !rpG && b.vz < 6 && b.z > 0.5;   // en la repetición no hay ayudas de juego
       if (marker.visible) {
         Sim.predictLanding(g, land);
         marker.position.x = land.x; marker.position.z = -land.y;
@@ -1777,7 +1889,7 @@
         markerMat.opacity = mo * (out ? 0.55 : 1);
       }
       // ---- retícula de apuntado (saque / remate del humano) ----
-      var am = aimTarget(g, aimOut), rdt = ctx.realDt || 0;
+      var am = rpG ? 0 : aimTarget(g, aimOut), rdt = ctx.realDt || 0;
       // A4: en el remate con spreadNow, el RADIO de la diana = dispersión si pulsaras ahora (mín. AIM_RMIN): se encoge hacia el
       // momento perfecto y crece si te pasas. Saque (o sim sin spreadNow): como antes.
       var spr = am === 2 && (g.mode === 'rally' || aimSv) && typeof aimOut.spreadNow === 'number' && aimOut.spreadNow >= 0 && isFinite(aimOut.spreadNow) ? aimOut.spreadNow : -1;
@@ -1863,7 +1975,7 @@
       aimArc.visible = aimRet.visible && aim.on && am === 2 && !b.held;
       if (aimArc.visible) updateAimArc(b, aim.x, aim.y, aim.a, aimSv ? AIM_SV : null);
 
-      updateReview(g, rdt);
+      if (!rpG) updateReview(g, rdt); // (la huella del challenge en vivo se guardó al entrar en la repetición)
       updateTrail(dt);
 
       // ---- chispas ----
@@ -2031,6 +2143,9 @@
         }
         case 'block': {
           var tb = T[e.team === 1 ? 1 : 0], res = e.result || 'stuff';
+          if (BPF.g === g && g.time - BPF.t >= 0 && g.time - BPF.t < 0.06) {   // (T20 1) punto de partida del balón dibujado
+            BOFF.g = g; BOFF.t0 = g.time; BOFF.x = BPF.x - g.ball.x; BOFF.y = BPF.y - g.ball.y; BOFF.z = BPF.z - g.ball.z;
+          }
           if (res === 'stuff') { // bloqueo directo: impacto contundente
             if (!tbSwap) {
               flashAt(e.x, e.y, e.z, 1.25, 0.14, 1, 0.97, 0.92);

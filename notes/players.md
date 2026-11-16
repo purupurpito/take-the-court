@@ -1170,3 +1170,31 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
 - La gorra al revés no lleva mechón delante: asomaba atravesando la copa; el pelo de delante queda dentro de la gorra.
 - El gesto `ajuste` con gorra al revés, pescador, corona, pañuelo y cinta de rizo: revisado en captura de cerca (integración, n.º 2 en
   `?debug=serve` con `Players._idle(p, 'ajuste')`); la mano no atraviesa la visera trasera ni el ala, no hace falta un blanco por gorro.
+
+## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
+
+Detalle: `notes/s234/T2.md` (contactos, `bindReplay`, `baseLook`, celebraciones con hash), `T3.md` (retrato), `T17.md` (firmas, rabias,
+jefe y saludo de pareja), `T21.md` (objetos de jefe, encuadre del retrato y vitrina) y `T20.md` (QA de contactos, solo lectura).
+Contrato: CONTRACT §4.4 «Sprint 2-4».
+- **players.js:** `bindReplay(g|null)`, `baseLook(o)`, marcador oculto con `g.replay`, `diveSideOf(g, …)` con el `g` del frame. Ancla de
+  bloqueo `blk` (modo 9), plataforma a la bisectriz con paso atrás visual (`platStep`), `SET_WD` 0,065, `FREE_OH` 1,6 y `freeReach`.
+  `pickCeleb` con `hash32` (R12). `setMate`, `setBoss` (con `fit` de `VB.Look.bossFit`), `setPairChem`, `_pair`, `NPC_SIGS`, `RAGES`,
+  `_anim(p)` con `mate, boss, sigId, rageId, pair, cvType`; convergencia tipo 6; cierre `'matchSig'`/`'matchRage'`; el jefe que pierde se
+  arrodilla. Con los ganchos a null, huella neutra idéntica (animtest).
+- **doll.js:** `VB.Doll.portrait.*` (escena propia, tijera, sin segundo renderer; programas +2 como mucho en alta y 0 en baja); encuadre
+  por tamaño (`ptZoom`, `req.zoom`, clave con `|z0.50`); los 5 objetos de jefe en `ITEMS` con el hook `G.vc` (mismos triángulos que su
+  pieza base); `lookSelfTest` acepta `as`.
+- **tools/contacttest.js** (nuevo): `node tools/contacttest.js 180 7,11 hall,beach 2v2` → TODO OK (umbrales S3-C1 §3). 6v6 informativo:
+  free/overhead, pass/shank y pass/body siguen fuera (toques de la sim fuera del alcance del muñeco de pie).
+- **Hecho en la integración (T23):** `blkAnchor` mantiene `blk` `BLK_KEEP` (0,12 s) tras pasar el plano `BLK_XC` mientras
+  `|b.x| ≤ 0,6 + BR` y sin evento `block` (`r.bkArmT`, dirección y mano del último frame armado en `r.bkADx/y/z` y `r.bkAOne`). En el
+  bloqueo directo las palmas siguen al balón DIBUJADO: `b + r.bkOx/y/z · (1 − smoothstep(0, BLK_OFF_T, ba))`, la misma cuenta que
+  `BOFF` de fx.js (BLK_OFF_T = BOFF_T = 0,10 s; si se cambia uno, el otro).
+- **Pendiente (QA de T20, `notes/s234/T20.md`; nada toca la sim):**
+  1. (hecho, ver arriba)
+  2. Cabeza a la salida de plataforma o plancha: 0,2 s tras el toque, apartar la cabeza y echar el pecho atrás ~0,15 rad si la salida pasa
+     cerca; `PB_NEAR` 0,35 → 0,5 y `PB_MAX` 0,25 → 0,35 (hoy el balón atraviesa la cabeza en 19 de 24 planchas al salir).
+  3. Colocación baja (balón < 0,3 m sobre la cabeza): `wd` 0,03 y paso atrás visual (5 colocaciones empeoraron con `SET_WD` 0,065).
+  4. Ancla de reserva `plat` con bisectriz si el toque previsto es `set` pero el balón va bajo, o no hay ventana a < 0,6 m.
+  En la cámara lenta de la repetición (×0,5) estos fallos se ven el doble de tiempo. El 1 de fx.js está en notes/arena.md.
+- Las ventosas de `rodiPulpo` son caras cuadradas de una esfera de 16×12; las pintadas en muslo y espinilla casi no se ven.

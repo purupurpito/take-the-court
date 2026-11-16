@@ -34,7 +34,7 @@
     dia: {
       sky: { zen: '#8fc6ee', hor: '#d6ecf7', fog: '#d6e4ec', sun: '#fff3c4' }, sun: [-0.74, 0.42, 0.52],
       hemi: 0xd6ecf7, ground: 0xd8cdb8, key: 0xfff1d8, fill: 0xcfe4ff, rim: 0xd6ecf7, keyK: 1, hemiK: 1, floorK: 0.9,
-      near: 60, far: 210, deep: '#2f7f86', shal: '#4fa7a0', foam: '#e8f4f2', tint: '#ffffff',
+      near: 60, far: 210, deep: '#2f6f8f', shal: '#4f93b0', foam: '#e8f4f2', tint: '#ffffff',   // (agua algo más azul: la teal #2f7f86 / #4fa7a0 escondía la pelota del saque rival, que vuela sobre ella; tools/balltest.js)
       glint: '#ffffff', glintK: 0.35, sand: [0.9, 0.83, 0.68]
     },
     tarde: {

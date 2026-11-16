@@ -1261,12 +1261,16 @@
   var vol = { master: 0.9, sfx: 1, music: 0.75, crowd: 0.85 };
   var MAX_VOICES = 32, ends = new Float64Array(40), slowRate = 1;
   var last = {};                      // nombre -> último instante (anti-amontonado)
+  // S3-C1 (T6): repetición. evRpl = el evento que se está tratando viene de la repetición (e.replay): sus capas de grada no suenan
+  var evRpl = false, rpl = { on: false, n: 0 }, REPLAY_CROWD = 0.5; // grada -6 dB mientras VB.Audio.replay(true)
   var stats = { played: {}, chain: 0, skipped: 0, built: 0, synth: 0, total: 0, genMs: 0, steps: 0, maxStepMs: 0, maxStep: '', maxSliceMs: 0, slow: [], hist: new Uint32Array(41), // hist[k]: pasos de k/4..(k+1)/4 ms (el último: ≥ 10 ms)
                 startedAt: -1, synthDoneAt: -1, unlockAt: -1, bankDoneAt: -1, reverbAt: -1,
                 deferred: 0, lateDrop: 0, lateMax: 0, ticks: 0, worker: 'none', workerMs: 0, workerHi: -1, bumped: 0, missed: {},
                 // AUD-05: contactos de celebración y botes del ritual recibidos / que sonaron; tiras del pool usadas / pool lleno;
                 // máximo de voces simultáneas (ranuras ocupadas, sin lechos). AUD-06/07: presentaciones, cortinillas, reacciones.
-                fxIn: 0, fxOut: 0, dribIn: 0, dribOut: 0, pooled: 0, poolFull: 0, voicesMax: 0, intro: 0, wipe: 0, react: 0, toon: 0, pam: 0 }; // missed: nombre -> veces que se pidió sin buffer (y no se pudo aplazar) // ticks: "toc" del reloj de saque programados · aplazados (sin buffer aún), descartados por llegar tarde, retraso máx. (ms)
+                fxIn: 0, fxOut: 0, dribIn: 0, dribOut: 0, pooled: 0, poolFull: 0, voicesMax: 0, intro: 0, wipe: 0, react: 0, toon: 0, pam: 0,
+                // S2-S4 (T6): rótulos cinéticos que sonaron y el último tipo; sonidos nuevos de ui() que sonaron; eventos de repetición omitidos
+                rot: 0, rotLast: '', ui2: 0, rplCut: 0 }; // missed: nombre -> veces que se pidió sin buffer (y no se pudo aplazar) // ticks: "toc" del reloj de saque programados · aplazados (sin buffer aún), descartados por llegar tarde, retraso máx. (ms)
   var stingDone = false, beatNext = 0, clapNext = 0, clapBeat = 0, serveWait = 0, serveTeam = -1;
   /* Tensión del saque: 2 = punto de partido (latido 0,9 s, ganancia 1), 1 = punto de set (latido 1,0 s, ×0,6), 0 = nada.
    * El latido para en cuanto el sacador lanza (el gesto resuelve la tensión). */
@@ -1664,6 +1668,7 @@
   function play(name, gain, px, py, rate, send, delay, bus) {
     lastGain = null;
     if (!live()) return null;
+    if (evRpl && bus === 'crowd') { stats.rplCut++; return null; } // repetición: sin reacciones de grada por sus eventos
     // argumentos saneados: un NaN en gain.value lanza en Chrome (el sonido se perdía con nodos creados sin conectar)
     gain = isFinite(gain) ? clamp(+gain, 0, 4) : 1;
     if (px != null && !isFinite(px)) px = null;
@@ -2126,7 +2131,11 @@
    * la bienvenida); si llega después de empezar, se deja (cortarla sonaría a corte). */
   // INTRO_DUCK: el lecho vuelve solo a los 3 s aunque la tarjeta siga, bajo la meseta del crescendo (que se apaga a los 3,6 s):
   // sin esto, una tarjeta larga dejaba un hueco (la grada parecía callarse con la tarjeta aún en pantalla)
-  var intro = { on: false, t0: -9, until: 0, relUntil: 0, gS: null, gW: null }, INTRO_MAX = 6.5, INTRO_BED = 0.45, INTRO_DUCK = 3.0;
+  // S2-B5 (T6): introStart(dur) con una previa más larga que INTRO_DUCK + 0,5 s (corta 4,5 s, larga 6 s): de los 3 s al final de la
+  // tarjeta (dur - INTRO_TAIL) el lecho se queda a medias (INTRO_HALF, -3 dB) en vez de volver entero, y vuelve del todo al acabar.
+  // La firma y el crescendo no cambian. Sin dur (o con la de 2,5 s), como siempre.
+  var intro = { on: false, t0: -9, until: 0, relUntil: 0, half: 0, dur: 0, gS: null, gW: null }, INTRO_MAX = 6.5, INTRO_BED = 0.45, INTRO_DUCK = 3.0,
+      INTRO_HALF = 0.7, INTRO_TAIL = 0.3, INTRO_LONG = 8;
   var welcome = [], deferTag = 0, lastGain = null;
   function fadeGain(gn, tc) {
     if (!gn || !AC) return;
@@ -2136,13 +2145,14 @@
       p.setTargetAtTime(0, t0, tc);
     } catch (e) { }
   }
-  function introStart() {
+  function introStart(dur) {
     if (!live()) return false;                    // antes del primer gesto: no-op (sin contexto no suena nada)
-    var t = now();
+    var t = now(), d = isFinite(dur) && dur > 0 ? clamp(+dur, 0, INTRO_LONG) : 0;
     for (var k = 0; k < welcome.length; k++) if (welcome[k].at > t + 0.003) { try { welcome[k].src.stop(0); } catch (e) { } }
     welcome.length = 0;
     if (intro.on) introEnd('restart');
-    intro.on = true; intro.t0 = t; intro.until = t + INTRO_MAX; intro.relUntil = t + INTRO_DUCK + 1.2; stats.intro++;
+    intro.on = true; intro.t0 = t; intro.dur = d; intro.half = d > INTRO_DUCK + 0.5 ? d - INTRO_TAIL : 0;
+    intro.until = t + Math.max(INTRO_MAX, d + 0.5); intro.relUntil = t + Math.max(INTRO_DUCK, intro.half) + 1.2; stats.intro++;
     var s1 = play('introSting', 0.85, null, null, 1, 0.1, 0.02, 'music'); intro.gS = s1 ? lastGain : null;
     var s2 = play('introSwell', 0.8, null, null, 1, 0, 0.06, 'crowd'); intro.gW = s2 ? lastGain : null;
     return true;
@@ -2262,11 +2272,15 @@
   }
   function drillEnd(e) {
     if (demo || e.kind === 'free') return;
-    var m = medalOf(e), d = 0.4; // tras el «ding» de la última repetición (llega en el mismo paso)
-    if (m === 3) play('setWin', 0.7, null, null, 1, 0.12, d, 'music');
-    else if (m === 2) play('mvpWin', 0.75, null, null, 1, 0.1, d - 0.3, 'music');   // su acento cae a 0,6 s
-    else if (m === 1) play('cntLock', 0.7, null, null, 1, 0.05, d, 'music');
-    else play('mvpLose', 0.55, null, null, 1, 0.08, d - 0.3, 'music');
+    medalSting(medalOf(e), 0.4); // tras el «ding» de la última repetición (llega en el mismo paso)
+  }
+  /** Ráfaga de medalla (m 0-3), `d` s tarde: oro setWin, plata mvpWin (su acento cae a 0,6 s: sale 0,3 s antes), bronce «clac»,
+   *  sin medalla mvpLose suave. La comparten el final del ejercicio (drillEnd) y ui('medal', m) de la hoja final (S4-D1). */
+  function medalSting(m, d) {
+    if (m === 3) return play('setWin', 0.7, null, null, 1, 0.12, d, 'music');
+    if (m === 2) return play('mvpWin', 0.75, null, null, 1, 0.1, d - 0.3, 'music');
+    if (m === 1) return play('cntLock', 0.7, null, null, 1, 0.05, d, 'music');
+    return play('mvpLose', 0.55, null, null, 1, 0.08, d - 0.3, 'music');
   }
   /** Muestra al mover un deslizador de volumen (E3): 'crowd' oleada de 0,6 s por el bus de la grada; 'sfx' un toque de
    *  recepción; 'music' / 'master' un clic. Antes del primer gesto (sin contexto) o en silencio: no suena y devuelve false. */
@@ -2289,6 +2303,89 @@
     if (kind === 'music' || kind === 'master' || kind === 'volume') return !!playGap('click', 0.06, 0.6, null, null, jit(0.04), 0, 0, 'music');
     return false;
   }
+
+  /* ---------- Sprints 2-4 (T6): interfaz nueva, rótulos cinéticos, medallas ----------
+   * Todo con sonidos que ya están en el banco (ninguna entrada nueva en el catálogo ni en LEVEL; la síntesis y el arranque en frío no
+   * cambian). Por el bus de música (no les afecta la pausa ni la cámara lenta). Objetivos (tools/audiotest.js, parte 2): pestaña y
+   * panel -26 (entre el clic -24 y el hover -28), beat de la previa -20, flecha de la tabla y desbloqueo -19 (bajo las ráfagas -16).
+   *  - 'tab': retén de opción (optSel) más agudo y flojo que el de Ajustes.
+   *  - 'panelIn' / 'panelOut': soplo de aire (whoosh) agudo al abrir / más grave al cerrar; anti-repetición 0,08 s cada uno.
+   *  - 'beat', i: beat de la previa (i = 1 B, 2 C…): «clac» con un golpe grave debajo; el tono sube 3 semitonos por beat.
+   *  - 'rank', d: flecha de la clasificación: d > 0 trinquete que sube (+ destello), d < 0 trinquete que baja; 0 nada.
+   *  - 'unlock': desbloqueo en el resumen: arpegio de tres notas que sube y un destello arriba.
+   *  - 'medal', m: medalla (0-3) en la hoja final, la misma ráfaga del Entrenamiento; anti-repetición 1 s.
+   *  - 'rotulo', tipo, equipo, retraso: golpe y segunda ola de grada del rótulo cinético (ver rotulo()). */
+  var UI2_GAP = { tab: 0.08, panelIn: 0.08, panelOut: 0.08, beat: 0.25, rank: 0.15, unlock: 0.3, medal: 1.0 };
+  var ui2T = { tab: -9, panelIn: -9, panelOut: -9, beat: -9, rank: -9, unlock: -9, medal: -9 };
+  var UNLOCK_R = [1, 1.26, 1.5];
+  function ui2Gap(kind) { var t = now(); if (t - ui2T[kind] < UI2_GAP[kind] && t >= ui2T[kind]) return false; ui2T[kind] = t; return true; }
+  function uiNew(kind, a) {
+    if (!live()) return false;
+    if (kind === 'rank' && !(isFinite(a) && +a)) return false; // dirección 0: nada (y no gasta la anti-repetición)
+    if (!ui2Gap(kind)) return false;
+    var src = null, k, s1;
+    switch (kind) {
+      case 'tab': src = play('optSel', 0.47, null, null, 1.19 * jit(0.02), 0.03, 0, 'music'); break;
+      case 'panelIn': src = play('whoosh', 0.245, null, null, 1.7 * jit(0.03), 0.04, 0, 'music'); break;
+      case 'panelOut': src = play('whoosh', 0.235, null, null, 1.25 * jit(0.03), 0.04, 0, 'music'); break;
+      case 'beat': {
+        var i = isFinite(a) ? clamp(Math.round(+a), 1, 4) : 1, r = Math.pow(2, 3 * (i - 1) / 12);
+        src = play('cntLock', 0.98, null, null, r, 0.08, 0, 'music');
+        play('slamSub', 0.3, null, null, 0.85 * r, 0, 0, 'music');
+        break;
+      }
+      case 'rank':
+        if (+a > 0) { src = play('stepUp', 0.77, null, null, 1, 0.06, 0, 'music'); play('perfect', 0.185, null, null, 1.26, 0.1, 0.09, 'music'); }
+        else src = play('stepDown', 1.05, null, null, 0.94, 0.06, 0, 'music');
+        break;
+      case 'unlock':
+        for (k = 0; k < 3; k++) { s1 = play('optSel', 0.37 + 0.04 * k, null, null, UNLOCK_R[k], 0.06, 0.075 * k, 'music'); if (s1) src = s1; }
+        play('perfect', 0.19, null, null, 1.5, 0.12, 0.24, 'music');
+        break;
+      case 'medal': src = medalSting(isFinite(a) ? clamp(Math.round(+a), 0, 3) : 0, 0.3); break;
+    }
+    if (src) stats.ui2++;
+    return !!src;
+  }
+  /* Rótulo cinético (S3-C4): ui('rotulo', tipo, equipo, retraso). UI lo llama en el mismo frame en que pinta la cinta; `retraso` = s
+   * hasta el impacto del texto (0,16; 0,05 con «Menos movimiento»), para que el golpe caiga con él. Es una SEGUNDA ola de la grada
+   * encima de crowdReact (que ya sonó al pitar). tipo 'ace' | 'muro' | 'sp' | 'mp'; equipo 0 = tuyo (en sp/mp decide qué fila suena).
+   *  ace:         slamSub 0,75 (bus de refuerzo, techo LIGHT) + cntLock 0,55 ×1,12 | grada: bombo 0,42 (+0,02), bombo 0,34 (+0,30), roar 0,32 ×1,07 (+0,04)
+   *  muro:        slamSub 0,8 ×0,9 + cntLock 0,55 ×0,94                           | grada: igual que el ace
+   *  sp/mp tuyo:  slamSub 0,45 ×0,8 + cntLock 0,45                                | grada: roar 0,3 (mp 0,42) (+0,05), bombo 0,35 (+0,05)
+   *  sp/mp rival: slamSub 0,45 ×0,8 + cntLock 0,45 ×0,84                          | grada: ooh 0,26 (mp 0,34) ×0,96 (+0,02)
+   * Nada en demo ni antes del primer gesto; anti-repetición 0,5 s por tipo. Calidad baja (MAX_VOICES < 32): sin el segundo bombo ni
+   * el roar de acento (sp/mp tuyo: sin el bombo): como mucho 3 voces. Sin capas de dibujo (toonSfx), sin el «clac». */
+  var ROT_GAP = 0.5, rotT = { ace: -9, muro: -9, sp: -9, mp: -9 };
+  function rotCrowd(name, gain, delay, rate) { return play(name, gain, null, null, (rate || 1) * jit(0.04), 0, delay, 'crowd'); }
+  function rotulo(kind, team, delay) {
+    if (!live() || demo || !Object.prototype.hasOwnProperty.call(rotT, kind)) return false;
+    var t = now(); if (t - rotT[kind] < ROT_GAP && t >= rotT[kind]) return false;
+    var d = isFinite(delay) ? clamp(+delay, 0, 1) : 0.16, low = MAX_VOICES < 32, toonOk = toonAllowed(), n = 0;
+    var mine = !(team === 1 || team === '1'), mp = kind === 'mp';
+    if (kind === 'ace' || kind === 'muro') {
+      var wall = kind === 'muro';
+      if (play('slamSub', punchCap('slamSub', wall ? 0.8 : 0.75, null, null, PUNCH_CEIL_LIGHT), null, null, wall ? 0.9 : 1.0, 0, d, 'punch')) n++;
+      if (toonOk && play('cntLock', 0.55, null, null, wall ? 0.94 : 1.12, 0.05, d, 'music')) n++;
+      if (rotCrowd('bombo', 0.42, d + 0.02)) n++;
+      if (!low && rotCrowd('bombo', 0.34, d + 0.30)) n++;
+      if (!low && rotCrowd('roar', 0.32, d + 0.04, 1.07)) n++;
+      exciteBoost = Math.max(exciteBoost, 0.35);
+    } else {
+      if (play('slamSub', punchCap('slamSub', 0.45, null, null, PUNCH_CEIL_LIGHT), null, null, 0.8, 0, d, 'punch')) n++;
+      if (toonOk && play('cntLock', 0.45, null, null, mine ? 1.0 : 0.84, 0.05, d, 'music')) n++;
+      if (mine) {
+        if (rotCrowd('roar', mp ? 0.42 : 0.3, d + 0.05)) n++;
+        if (!low && rotCrowd('bombo', 0.35, d + 0.05)) n++;
+      } else if (rotCrowd('ooh', mp ? 0.34 : 0.26, d + 0.02, 0.96)) n++;
+    }
+    if (!n) return false;
+    rotT[kind] = t; stats.rot++; stats.rotLast = kind;
+    return true;
+  }
+  /** Repetición (S3-C1): con on, la grada baja 6 dB (update) y los eventos con e.replay no lanzan reacciones de grada (play()) ni
+   *  tocan el estado del partido en vivo (handle()). Los golpes, el silbato y las capas de dibujo suenan como en vivo. */
+  function setReplay(on) { on = !!on; if (on && !rpl.on) rpl.n++; rpl.on = on; return rpl.on; }
 
   /** Silbato + hueco en la grada: mientras suena, un ecualizador de campana en el bus de la grada baja ~9 dB la
    *  banda del silbato (2,6-4,2 kHz). El punto lo pita el árbitro justo cuando la grada estalla; sin el hueco, en
@@ -2467,6 +2564,15 @@
 
   if (root.__vbAudioWorker && typeof root.postMessage === 'function') workerMain(); // este módulo cargado como hilo de síntesis
 
+  /** Tipos de ui(kind, …) (VB.Audio.UI_KINDS, congelado). */
+  var UI_KINDS = ['click', 'hover', 'back', 'start', 'wipe', 'intro', 'introEnd', 'introSkip', 'count', 'countEnd', 'mvp',
+    'arrowHover', 'arrow', 'arrowEdge', 'optHover', 'toggle', 'select', 'slide',
+    'tab', 'panelIn', 'panelOut', 'beat', 'rank', 'unlock', 'rotulo', 'medal'];
+  if (Object.freeze) Object.freeze(UI_KINDS);
+  /** Eventos de la repetición (e.replay) que no suenan: marcador, reacciones, ráfagas y estado del saque del partido en vivo. */
+  var RPL_SKIP = { point: 1, set: 1, match: 1, gameOver: 1, newSet: 1, newMatch: 1, challenge: 1, challengeResult: 1, serveReady: 1,
+    courtChange: 1, sideout: 1, drillRep: 1, drillEnd: 1, switch: 1, ask: 1 };
+
   /* ------------------------------------------------------------------
    * 5. API pública
    * ------------------------------------------------------------------ */
@@ -2498,11 +2604,20 @@
         bed: N.murG ? N.murG.gain.value : 0, chant: { t0: chantT0, n: chantN, until: chantUntil },
         crowd: N.crowd ? N.crowd.gain.value : 0, endFocus: endFocus, count: { on: cnt.on, n: cnt.n }, stingTeam: stingTeam,
         review: { on: rev.on, n: rev.n, res: rev.res, team: rev.team, last: rev.last, mur: REV_MUR },
-        toon: { on: toonAllowed(), n: stats.toon, pam: stats.pam, pamT: pamT } };
+        toon: { on: toonAllowed(), n: stats.toon, pam: stats.pam, pamT: pamT },
+        rot: { n: stats.rot, last: stats.rotLast }, replay: { on: rpl.on, n: rpl.n, cut: stats.rplCut },
+        introPlan: { dur: intro.dur, half: intro.half } };
     },
     /** OPCIONAL (sprint cartoon): activa / quita las capas de dibujo animado (bonk, zas, zumbido, muelle, «¡PAM!»). Por defecto,
      *  activas; ctx.settings.toonSfx === false también las quita. */
     setToon: function (on) { toonOn = on !== false; return toonOn; },
+    /** Tipos que admite ui(kind, …) (solo lectura). ui.js lo mira para usar un sonido de reserva con un audio.js antiguo (S2-B4). */
+    UI_KINDS: UI_KINDS,
+    /** S2-B5: presentación con la duración de la previa (s). Con dur > 3,5 (previa corta 4,5 s, larga 6 s) el lecho de la grada se
+     *  queda a medias (-3 dB) de los 3 s hasta 0,3 s antes del final, en vez de volver entero a los 3 s. Sin dur = sting('intro'). */
+    introStart: function (dur) { try { return introStart(dur); } catch (e) { return false; } },
+    /** S3-C1: repetición. on → la grada baja 6 dB y los eventos con e.replay no lanzan reacciones de grada; off → como siempre. */
+    replay: function (on) { return setReplay(on); },
     /** OPCIONAL (UI-14): estado de la presentación → {active, t (s desde que empezó; -1 sin presentación)}. */
     introInfo: function () { return { active: intro.on, t: intro.t0 > 0 ? now() - intro.t0 : -1 }; },
     /** OPCIONAL: voces sonando ahora (ranuras ocupadas; los lechos en bucle no cuentan). */
@@ -2565,15 +2680,21 @@
      *  de rAF en ms; tics de ≤ 20/s que se frenan con la cuenta y suben de tono; u ≥ 1 = «clac» final). 'countEnd' = el «clac» si la cuenta acaba sin un frame con u = 1. 'mvp', win —
      *  revelación del MVP (llamarlo al EMPEZAR la cuenta: el acento cae a 0,6 s, cuando se posan las cifras; win = ganó el humano).
      *  AUD-08 (menús): 'arrowHover', dir · 'arrow', dir, nivel, nNiveles (paso de dificultad; la nota sigue al nivel) · 'arrowEdge', dir
-     *  (tope) · 'optHover' (fila de Ajustes) · 'toggle', on (Sí/No) · 'select', i, n (opción de varios valores) · 'slide', v (0..1). */
+     *  (tope) · 'optHover' (fila de Ajustes) · 'toggle', on (Sí/No) · 'select', i, n (opción de varios valores) · 'slide', v (0..1).
+     *  S2-S4 (T6; devuelven true si ha sonado): 'tab' (cambiar de pestaña) · 'panelIn' / 'panelOut' (abrir / cerrar panel u hoja) ·
+     *  'beat', i (beat de la previa: i = 1 B, 2 C; el tono sube) · 'rank', d (flecha de la tabla: d > 0 sube, d < 0 baja, 0 nada) ·
+     *  'unlock' (desbloqueo en el resumen) · 'medal', m (medalla 0-3 en la hoja final) · 'rotulo', tipo ('ace'|'muro'|'sp'|'mp'), equipo,
+     *  retraso (s hasta el impacto del texto). 'intro', dur = introStart(dur). Lista completa: VB.Audio.UI_KINDS. */
     ui: function (kind, a, b, c) {
+      if (kind === 'rotulo') { try { return rotulo(a, b, c); } catch (e) { return false; } }
+      if (UI2_GAP.hasOwnProperty(kind)) { try { return uiNew(kind, a); } catch (e) { return false; } }
       if (kind === 'hover') return VB.Audio.hover();
       if (kind === 'count') return countTick(a, b);
       if (kind === 'countEnd') return countEnd();
       if (kind === 'mvp') return mvpReveal(a);
       if (kind === 'arrowHover' || kind === 'arrow' || kind === 'arrowEdge' || kind === 'optHover' || kind === 'toggle' || kind === 'select' || kind === 'slide') return uiMenu(kind, a, b, c);
       if (kind === 'wipe') return wipe();
-      if (kind === 'intro') return introStart();
+      if (kind === 'intro') return introStart(a);
       if (kind === 'introEnd' || kind === 'introSkip') return introEnd(kind === 'introSkip' ? 'skip' : 'end');
       if (kind && !(kind === 'click' || kind === 'back' || kind === 'start')) return;
       play(kind || 'click', 0.6, null, null, 1, 0, 0, 'music');
@@ -2596,6 +2717,7 @@
       demo = !!(g && g.demo); stingDone = false; excite = 0; exciteBoost = 0; lastSpikeTeam = -1; rallyDigs = 0; chantN = 0; chantUntil = 0;
       if (demo && intro.on) introEnd('menu');
       serveTeam = -1; tension = 0; clapNext = 0; tickNext = 0; cancelTick(); lowT = 0; rev.on = false; rev.until = 0;
+      rotT.ace = rotT.muro = rotT.sp = rotT.mp = -9; rpl.on = false; evRpl = false;
       for (var i = 0; i < 8; i++) { pvx[i] = pvy[i] = 0; scd[i] = 0.5; }
       applyVolumes(false);
     },
@@ -2603,6 +2725,7 @@
       // en pausa no debe sonar un "toc" ya programado (el reloj se para): se cancela y se vuelve a marcar al reanudar
       if (s === 'paused' && state !== 'paused' && cancelTick() && tickNext < 3) tickNext++;
       if (s === 'menu' && intro.on) introEnd('menu');
+      if (s === 'menu') rpl.on = false;
       if (s !== 'over') { endFocus = false; cnt.on = false; }
       state = s;
       if (vctx && vctx.game) demo = !!vctx.game.demo;
@@ -2633,12 +2756,19 @@
       var longWh = false, i, e;
       frame.cr = false; frame.big = false;
       for (i = 0; i < events.length; i++) {
-        e = events[i]; if (!e) continue;
+        e = events[i]; if (!e || e.replay) continue;
         if (e.type === 'point' && (e.setWon || e.matchWon)) { longWh = true; frame.big = true; }
         if (e.type === 'challengeResult') frame.cr = true;
       }
       for (i = 0; i < events.length; i++) {
         e = events[i]; if (!e || typeof e.type !== 'string') continue;
+        if (e.replay) { // repetición (S3-C1): ni marcador, ni grada, ni estado del partido en vivo; los golpes suenan
+          if (RPL_SKIP.hasOwnProperty(e.type)) { stats.rplCut++; continue; }
+          var eb = exciteBoost; evRpl = true;
+          try { handleOne(e, g, false); } catch (err) { }
+          evRpl = false; exciteBoost = eb;
+          continue;
+        }
         try { handleOne(e, g, longWh); } catch (err) { }
       }
     },
@@ -2679,10 +2809,11 @@
       // hoja final a la vista (AUD-08): la grada baja -6 dB en ~0,35 s (a la salida, con el compresor, ~-3 dB) y vuelve al salir de 'over'
       var ef = endFocus && st === 'over';
       if (endFocus && st !== 'over' && st !== 'paused') endFocus = false;
-      setParam(N.crowd.gain, 'crowd', vol.crowd * (paused ? 0.45 : 1) * (st === 'menu' ? 0.6 : 1) * (ef ? END_DUCK : 1), ef ? 0.35 : 0.15);
+      setParam(N.crowd.gain, 'crowd', vol.crowd * (paused ? 0.45 : 1) * (st === 'menu' ? 0.6 : 1) * (ef ? END_DUCK : 1) * (rpl.on ? REPLAY_CROWD : 1), ef ? 0.35 : rpl.on ? 0.25 : 0.15);
       // presentación (AUD-06): el lecho se agacha bajo la tarjeta (-7 dB, entra en ~0,3 s) y vuelve en ~1 s al soltarla
       if (intro.on && t > intro.until) introEnd('timeout');
-      var ducked = intro.on && t < intro.t0 + INTRO_DUCK, bd = ducked ? INTRO_BED : 1, btc = ducked ? 0.3 : t < intro.relUntil ? 0.45 : 0;
+      var ducked = intro.on && t < intro.t0 + INTRO_DUCK, half = intro.on && !ducked && t < intro.t0 + intro.half;
+      var bd = ducked ? INTRO_BED : half ? INTRO_HALF : 1, btc = ducked ? 0.3 : half ? 0.6 : t < intro.relUntil ? 0.45 : 0;
       setParam(N.murG.gain, 'mur', Math.round((0.32 + 0.1 * (1 - excite)) * (tossHush > 0 ? 0.6 : 1) * bd * (rv >= 0 ? REV_MUR + REV_MUR_UP * rv : 1) * LEVEL_LIN.murmur * 400) / 400, rv >= 0 ? 0.35 : btc || (tossHush > 0 ? 0.25 : 0.2));
       setParam(N.excG.gain, 'exc', Math.round(Math.max(0, excite - 0.12) * 0.75 * bd * LEVEL_LIN.excite * 400) / 400, btc || 0.15);
       var vn = voicesNow(); if (vn > stats.voicesMax) stats.voicesMax = vn;

@@ -35,6 +35,8 @@
  *   --no-cold         skip part 5 (cold start in the real game: synthesis Worker, fallback, CSP, bit-identical bank)
  *   --cold-only       run part 5 only
  *   --no-endui        skip part 6 (AUD-08: end sheet and menus in the real game)   --endui-only  run part 6 only
+ *   --rot-only        part 7 «rótulos» only (S3-C4: kinetic banner hit + second crowd wave; mock engine, ~20 s)
+ *   --s234-only       part 7 whole (S2-S4 / T6: rótulos, new ui() kinds, medal, introStart(dur), replay(on))
  * Exits 1 if a sound has NaN, peaks over 1, edge or inner clicks, a mix target miss, a clip in the match
  * or a masked whistle.
  */
@@ -396,7 +398,11 @@ const PLAN = {
   toonHit: { target: -21, desc: 'cartoon «whack» under a spike (7 LU under the -14 spike)' },
   toonZip: { target: -24, desc: 'speed-line whizz of a hard spike' },
   toonBoing: { target: -24, desc: 'subtle spring when the ball bounces off the block or the net (6 LU under the -18 net)' },
-  stinger: { target: -21, desc: 'perfect-spike «¡PAM!» brass hit (a reward: like a moderate crowd reaction, under the -16 set stings)' }
+  stinger: { target: -21, desc: 'perfect-spike «¡PAM!» brass hit (a reward: like a moderate crowd reaction, under the -16 set stings)' },
+  // sprints 2-4 (T6, S2-B4/B5/B6): new interface sounds
+  uiTab: { target: -26, desc: 'tab change / panel open-close (near the click: -28..-24)' },
+  uiBeat: { target: -20, desc: 'TV-style intro beat (B, C)' },
+  uiRank: { target: -19, desc: 'table arrow / unlock in the summary (under the -16 stings)' }
 };
 /** The end-sheet count-up of ui.js (UI-11: 600 ms, cubic ease-out, one rAF per frame) with AUD-08 wired as notes/ui_main.md asks:
  *  ui('count', u) on every frame where a displayed number changes, and on the last frame (u = 1). Returns [[t, u], ...] (s from
@@ -502,7 +508,19 @@ const SCEN = [
   { id: 'cartoon: muelle del bloqueo (toque)', cat: 'toonBoing', only: ['boing'], ev: [{ type: 'block', result: 'soft', x: 0.3, y: 1, z: 3, team: 1, player: { x: -0.4, y: 1, z: 0.5, team: 1 } }] },
   { id: 'cartoon: muelle de la red', cat: 'toonBoing', only: ['boing'], ev: [{ type: 'net', x: 0, y: 1, z: 2.2, tape: false }] },
   { id: 'cartoon: ¡PAM! del remate perfecto', cat: 'stinger', only: ['pamSting'], ev: [hitE('spike', { touch: 3, speed: 20, power: 0.8, human: true, grade: 'perfect' })] },
-  { id: 'cartoon: remate perfecto entero', cat: 'spike', only: ['spike', 'spikeHero', 'sub', 'perfect', 'toonWhack', 'toonZip', 'pamSting'], ev: [hitE('spike', { touch: 3, speed: 20, power: 0.8, human: true, grade: 'perfect' })], info: true }
+  { id: 'cartoon: remate perfecto entero', cat: 'spike', only: ['spike', 'spikeHero', 'sub', 'perfect', 'toonWhack', 'toonZip', 'pamSting'], ev: [hitE('spike', { touch: 3, speed: 20, power: 0.8, human: true, grade: 'perfect' })], info: true },
+  // sprints 2-4 (T6): ui('tab'|'panelIn'|'panelOut'|'beat'|'rank'|'unlock'|'medal')
+  { id: 's234: pestaña', cat: 'uiTab', only: ['optSel'], api: A => A.ui('tab') },
+  { id: 's234: abrir panel', cat: 'uiTab', only: ['whoosh'], api: A => A.ui('panelIn') },
+  { id: 's234: cerrar panel', cat: 'uiTab', only: ['whoosh'], api: A => A.ui('panelOut') },
+  { id: 's234: beat de la previa (B)', cat: 'uiBeat', only: ['cntLock', 'slamSub'], api: A => A.ui('beat', 1) },
+  { id: 's234: beat de la previa (C)', cat: 'uiBeat', only: ['cntLock', 'slamSub'], api: A => A.ui('beat', 2) },
+  { id: 's234: clasificación sube', cat: 'uiRank', only: ['stepUp', 'perfect'], api: A => A.ui('rank', 1) },
+  { id: 's234: clasificación baja', cat: 'uiRank', only: ['stepDown'], api: A => A.ui('rank', -1) },
+  { id: 's234: desbloqueo', cat: 'uiRank', only: ['optSel', 'perfect'], api: A => A.ui('unlock') },
+  { id: 's234: medalla de oro (hoja)', cat: 'sting', only: ['setWin'], api: A => A.ui('medal', 3), info: true },
+  { id: 's234: medalla de plata (hoja)', cat: 'mvp', only: ['mvpWin'], api: A => A.ui('medal', 2), info: true },
+  { id: 's234: medalla de bronce (hoja)', cat: 'uiLock', only: ['cntLock'], api: A => A.ui('medal', 1), info: true }
 ];
 function seeded(seed) { let s = seed >>> 0 || 1; return function () { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
 
@@ -1928,8 +1946,9 @@ const UI_PATCH = [
 ];
 /** Test-only probes for the scratch copy: a log of every count-up frame and a hook to rerun the count-up. */
 const UI_PROBE = [
-  { find: "      if (u2 < 1) cuRaf = requestAnimationFrame(step);",
-    repl: "      if (window.__cuLog) { var S = VB.Audio.stats; window.__cuLog.push([now, performance.now(), u2, chg ? 1 : 0, S.count | 0, S.countEnd | 0, S.countAt || 0, S.countEndAt || 0]); }\n      if (u2 < 1) cuRaf = requestAnimationFrame(step);" },
+  // (B6, sprint 2-4: countUp tiene dos relojes, el de la hoja (main) y el del Resumen repintado; solo se registra el de la hoja)
+  { find: "      if (u2 < 1) { var r1 = requestAnimationFrame(step); if (main) cuRaf = r1; else cuRaf2 = r1; }",
+    repl: "      if (main && window.__cuLog) { var S = VB.Audio.stats; window.__cuLog.push([now, performance.now(), u2, chg ? 1 : 0, S.count | 0, S.countEnd | 0, S.countAt || 0, S.countEndAt || 0]); }\n      if (u2 < 1) { var r1 = requestAnimationFrame(step); if (main) cuRaf = r1; else cuRaf2 = r1; }" },
   { find: "  // ---------- Flujo hasta la hoja final (UI-11 / UI-13) ----------",
     repl: "  window.__aud08CountUp = function () { var S = VB.Audio.stats; window.__cuBase = [S.count | 0, S.countEnd | 0]; window.__cuLog = []; countUp(el.end); };\n  // ---------- Flujo hasta la hoja final (UI-11 / UI-13) ----------" }
 ];
@@ -2034,7 +2053,160 @@ function enduiTable(rows) {
   for (const x of rows) { console.log(pad(x.name, 84) + (x.pass ? 'OK  ' : 'FAIL') + '  ' + x.info); if (!x.pass) bad++; }
   return bad;
 }
-module.exports = { UI_PATCH, enduiReport, countUpCalls, METRICS, loadAudio, synthReport, mixReport, featureReport, chromeReport, robustReport, PLAN, pageHtml, PAGE_RUN, pcmOf, winLoud, clickTimes, variantsOf, chromeFeatures, coldReport, coldRun };
+/* ====================================================================
+ * Part 7: sprints 2-4 (T6) on the mock engine
+ *  rótulos (S3-C4): ui('rotulo', kind, team, delay) → true once, anti-repeat 0.5 s per kind, nothing in demo or before the
+ *     gesture, ≤ 5 new voices (≤ 3 at low quality), layers per kind/team, toonSfx off drops the «clac», and the loudness of
+ *     «ace con rótulo» (whistle + point, rótulo 0.6 s later) vs the usual ace: +0.5..+2 LU over 4 s; the hit's peak through the
+ *     punch bus ≤ PUNCH_CEIL_LIGHT.
+ *  rest (S2-B4/B5/B6, S3-C1, S4-D1): UI_KINDS, new ui() kinds (gaps, rank 0, beat pitch), medal(m) → the drillEnd sting,
+ *     introStart(dur) keeps the bed half-ducked on a long intro (and is unchanged without dur), replay(on): crowd -6 dB and no
+ *     crowd reaction / match state from events with e.replay.
+ * ==================================================================== */
+const ROT_DELTA = [0.5, 2.0], PUNCH_CEIL_LIGHT = 0.5;
+async function s234Report(file, rotOnly) {
+  const rows = [], ok = (name, pass, info) => rows.push({ name, pass: !!pass, info: info || '' });
+  const { A, C, mock, vctx } = await mockEngine(file);
+  const realRandom = Math.random;
+  const fresh = () => { A.onGameStart({ demo: false }); A.onState('playing'); C.currentTime += 20; return mock.started.length; };
+  const since = mark => mock.started.slice(mark).filter(s => !s.cancelled);
+  const names = recs => recs.map(s => nameOfBuf(A, s.src.buffer));
+  const count = (arr, n) => arr.filter(x => x === n).length;
+  const G = { mode: 'point', players: [], rally: { t: 0, hits: 0 }, serving: 0, matchPoint: -1, setPoint: -1, lastKind: 'serve' };
+
+  // ---------- rótulos ----------
+  {
+    let m = fresh(); const n0 = A._debug().rot.n;
+    const r1st = A.ui('rotulo', 'ace', 0, 0.16), n1 = A._debug().rot.n, recs = names(since(m));
+    C.currentTime += 0.2; const r2nd = A.ui('rotulo', 'ace', 0, 0.16);
+    const rMuro = A.ui('rotulo', 'muro', 0, 0.16);                                             // another kind: its own anti-repeat
+    C.currentTime += 0.4; const r3rd = A.ui('rotulo', 'ace', 0, 0.16);
+    ok('rot a. ace → true, rot.n +1; again 0.2 s later → false; 0.6 s later → true', r1st && n1 === n0 + 1 && !r2nd && r3rd && A._debug().rot.last === 'ace',
+      'first ' + r1st + ' (rot.n ' + n0 + '→' + n1 + ', layers ' + recs.join(' ') + '), +0.2 s ' + r2nd + ', muro at +0.2 s ' + rMuro + ', +0.6 s ' + r3rd);
+    ok('rot a2. ace layers: slamSub + clac + 2 bombos + roar (≤ 5 voices)', recs.length <= 5 && count(recs, 'slamSub') === 1 && count(recs, 'cntLock') === 1 && count(recs, 'bombo') === 2 && count(recs, 'roar') === 1, recs.join(' '));
+    // delay: the hit lands `delay` s after the call
+    m = fresh(); A.ui('rotulo', 'ace', 0, 0.16); const hit = since(m).find(s => nameOfBuf(A, s.src.buffer) === 'slamSub');
+    ok('rot a3. the hit lands with the text (delay 0.16 s)', hit && Math.abs(hit.when - hit.at - 0.16) < 1e-6, hit ? 'slamSub at +' + (hit.when - hit.at).toFixed(3) + ' s' : 'no slamSub');
+    // demo / before the gesture
+    A.onGameStart({ demo: true }); C.currentTime += 20; const rDemo = A.ui('rotulo', 'ace', 0, 0.16); A.onGameStart({ demo: false });
+    const cold = loadAudio(file).VB.Audio; let rCold; try { rCold = cold.ui('rotulo', 'ace', 0, 0.16); } catch (e) { rCold = 'throws: ' + e.message; }
+    ok('rot b. demo → false; before the first gesture → false (no throw)', rDemo === false && rCold === false, 'demo ' + rDemo + ', cold ' + rCold);
+    // low quality
+    A.setQuality({ rank: 0 }); m = fresh(); A.ui('rotulo', 'ace', 0, 0.16); const lowAce = names(since(m));
+    m = fresh(); A.ui('rotulo', 'sp', 0, 0.16); const lowSp = names(since(m));
+    m = fresh(); A.ui('rotulo', 'mp', 1, 0.16); const lowMp = names(since(m)); A.setQuality({ rank: 1 });
+    ok('rot c. setQuality({rank:0}) → at most 3 new voices (ace / sp mine / mp rival)', lowAce.length <= 3 && lowSp.length <= 3 && lowMp.length <= 3 && lowAce.length > 0,
+      'ace ' + lowAce.join(' ') + ' · sp ' + lowSp.join(' ') + ' · mp rival ' + lowMp.join(' '));
+    // layers by team, toon off
+    m = fresh(); A.ui('rotulo', 'sp', 0, 0.16); const spMine = names(since(m));
+    m = fresh(); A.ui('rotulo', 'sp', 1, 0.16); const spRiv = names(since(m));
+    A.setToon(false); m = fresh(); A.ui('rotulo', 'muro', 0, 0.05); const noToon = names(since(m)); A.setToon(true);
+    const bad = A.ui('rotulo', 'nope', 0, 0.16);
+    ok('rot d. sp mine → roar + bombo; sp rival → ooh; toonSfx off → no clac; unknown kind → false', count(spMine, 'roar') === 1 && count(spMine, 'bombo') === 1 && count(spRiv, 'ooh') === 1 && !spRiv.includes('roar') && !noToon.includes('cntLock') && noToon.includes('slamSub') && bad === false,
+      'mine ' + spMine.join(' ') + ' · rival ' + spRiv.join(' ') + ' · toon off ' + noToon.join(' ') + ' · unknown ' + bad);
+    // loudness: whistle + ace point, rótulo 0.6 s later, vs the usual ace (same variant picks: seeded Math.random)
+    const ev = h => [{ type: 'whistle', reason: 'point' }, { type: 'point', team: 0, reason: 'in', how: 'ace', rallyHits: 1, lastKind: 'serve', highlight: h }];
+    const res = [];
+    for (const h of [0.35, 0.55, 0.8]) {
+      let eB = 0, eR = 0, eBc = 0, eRc = 0, pk = 0;
+      for (let k = 0; k < 6; k++) {
+        for (const withRot of [false, true]) {
+          Math.random = seeded(4242 + k * 31 + Math.round(h * 100));
+          m = fresh(); A.handle(ev(h), G);
+          if (withRot) { C.currentTime += 0.6; A.ui('rotulo', 'ace', 0, 0.16); C.currentTime -= 0.6; }
+          const recs = since(m), mx = mixRecords(recs), crowd = mixRecords(recs.filter(s => /^(roar|applause|bombo|groan|ooh)$/.test(nameOfBuf(A, s.src.buffer))));
+          const e = Math.pow(10, (stLoud(mx, 4) + 0.691) / 10), ec = crowd ? Math.pow(10, (stLoud(crowd, 4) + 0.691) / 10) : 0;
+          if (withRot) { eR += e; eRc += ec; const sub = mixRecords(recs.filter(s => nameOfBuf(A, s.src.buffer) === 'slamSub')); if (sub) pk = Math.max(pk, M.peak([sub.L, sub.R])); }
+          else { eB += e; eBc += ec; }
+        }
+      }
+      Math.random = realRandom;
+      res.push({ h, d: M.LU(eR / 6) - M.LU(eB / 6), dc: M.LU(eRc / 6) - M.LU(eBc / 6), base: M.LU(eB / 6), pk });
+    }
+    const worst = res.reduce((a, r) => Math.max(a, r.d), -99), least = res.filter(r => r.h < 0.8).reduce((a, r) => Math.min(a, r.d), 99), pkMax = res.reduce((a, r) => Math.max(a, r.pk), 0);
+    ok('rot e. «ace con rótulo» vs ace: +' + ROT_DELTA[0] + '..+' + ROT_DELTA[1] + ' LU (4 s, whistle + point; h 0.35/0.55; h 0.8 ≤ +' + ROT_DELTA[1] + ')', least >= ROT_DELTA[0] && worst <= ROT_DELTA[1],
+      res.map(r => 'h ' + r.h + ': ' + (r.d >= 0 ? '+' : '') + r1(r.d) + ' LU (ace ' + r1(r.base) + ' LUFS; crowd alone ' + (r.dc >= 0 ? '+' : '') + r1(r.dc) + ')').join(' · '));
+    ok('rot f. the hit through the punch bus: peak ≤ PUNCH_CEIL_LIGHT (' + PUNCH_CEIL_LIGHT + ')', pkMax > 0 && pkMax <= PUNCH_CEIL_LIGHT * 1.001, 'peak ' + pkMax.toFixed(3) + ' (' + r1(M.db(pkMax)) + ' dBFS)');
+  }
+  if (rotOnly) return rows;
+
+  // ---------- new ui() kinds ----------
+  {
+    const NEW = ['tab', 'panelIn', 'panelOut', 'beat', 'rank', 'unlock', 'rotulo', 'medal'];
+    const K = A.UI_KINDS || [];
+    ok('ui a. VB.Audio.UI_KINDS lists the 8 new kinds (frozen) and the old ones', Array.isArray(K) && NEW.every(k => K.includes(k)) && ['click', 'back', 'start', 'wipe', 'count', 'mvp', 'select'].every(k => K.includes(k)) && Object.isFrozen(K),
+      K.length + ' kinds' + (Object.isFrozen(K) ? ', frozen' : ', NOT frozen'));
+    const cold = loadAudio(file).VB.Audio; let coldOut = [];
+    try { coldOut = ['tab', 'panelIn', 'panelOut', 'beat', 'rank', 'unlock', 'medal'].map(k => cold.ui(k, 1)); } catch (e) { coldOut = ['throws ' + e.message]; }
+    ok('ui b. every new kind is a silent false before the first gesture', coldOut.every(x => x === false), coldOut.join(' '));
+    let m = fresh(); const got = {};
+    for (const k of ['tab', 'panelIn', 'panelOut', 'unlock']) { const mk = mock.started.length; got[k] = [A.ui(k), names(since(mk)).join('+')]; }
+    let mk = mock.started.length; const b1 = A.ui('beat', 1), rb1 = since(mk).find(s => nameOfBuf(A, s.src.buffer) === 'cntLock');
+    C.currentTime += 0.3; mk = mock.started.length; const b2 = A.ui('beat', 2), rb2 = since(mk).find(s => nameOfBuf(A, s.src.buffer) === 'cntLock');
+    ok('ui c. tab / panelIn / panelOut / unlock sound once; beat C higher than beat B', Object.keys(got).every(k => got[k][0] === true) && b1 && b2 && rb1 && rb2 && rb2.src.playbackRate.value > rb1.src.playbackRate.value,
+      Object.keys(got).map(k => k + ' ' + got[k][1]).join(' · ') + ' · beat B ×' + (rb1 ? rb1.src.playbackRate.value.toFixed(2) : '?') + ' C ×' + (rb2 ? rb2.src.playbackRate.value.toFixed(2) : '?'));
+    m = fresh(); const t1 = A.ui('tab'); C.currentTime += 0.05; const t2 = A.ui('tab'); C.currentTime += 0.05; const t3 = A.ui('tab');
+    const p1 = A.ui('panelIn'), p2 = A.ui('panelOut');
+    ok('ui d. tab anti-repeat 0.08 s (each kind its own gap)', t1 && !t2 && t3 && p1 && p2, 'tab ' + t1 + ' / +0.05 ' + t2 + ' / +0.10 ' + t3 + ' · panelIn ' + p1 + ' panelOut ' + p2 + ' in the same instant');
+    m = fresh(); const r0 = A.ui('rank', 0), n0 = since(m).length; const rU = A.ui('rank', 1), up = names(since(m)); C.currentTime += 0.3; mk = mock.started.length; const rD = A.ui('rank', -2), dn = names(since(mk));
+    ok('ui e. rank 0 → nothing; rank > 0 → step up (+glint); rank < 0 → step down', r0 === false && n0 === 0 && rU && up.includes('stepUp') && rD && dn.includes('stepDown') && !dn.includes('stepUp'), 'rank0 ' + r0 + ' (' + n0 + ' voices) · up ' + up.join('+') + ' · down ' + dn.join('+'));
+    const medal = {};
+    for (const mm of [3, 2, 1, 0]) { fresh(); const mk2 = mock.started.length; medal[mm] = [A.ui('medal', mm), names(since(mk2)).join('+')]; }
+    fresh(); A.ui('medal', 2); C.currentTime += 0.5; const mRep = A.ui('medal', 2);
+    ok('ui f. medal(m): oro setWin, plata mvpWin, bronce clac, sin medalla mvpLose; anti-repeat 1 s', medal[3][1] === 'setWin' && medal[2][1] === 'mvpWin' && medal[1][1] === 'cntLock' && medal[0][1] === 'mvpLose' && [3, 2, 1, 0].every(x => medal[x][0]) && mRep === false,
+      [3, 2, 1, 0].map(x => x + ' ' + medal[x][1]).join(' · ') + ' · again at +0.5 s ' + mRep);
+    // drillEnd still plays the same burst (refactor)
+    fresh(); mk = mock.started.length; A.handle([{ type: 'drillEnd', kind: 'serve', total: 30 }], G); const de = names(since(mk));
+    ok('ui g. drillEnd unchanged (gold → setWin 0.4 s later)', de.join('+') === 'setWin' && Math.abs(since(mk)[0].when - since(mk)[0].at - 0.4) < 1e-6, de.join('+'));
+  }
+
+  // ---------- introStart(dur) ----------
+  {
+    const run = (fn, marks) => {
+      fresh(); A.onState('playing'); const gs = { mode: 'serve', serving: 1, players: [], rally: { t: 0, hits: 0 }, matchPoint: -1, setPoint: -1, serveState: 'ready' };
+      for (let f = 0; f < 120; f++) { A.update(gs, 1 / 60); C.currentTime += 1 / 60; }         // settle the bed
+      const ref = A._debug().bed; fn(); const out = [];
+      let t = 0, i = 0;
+      for (let f = 0; f < 60 * 7.5 && i < marks.length; f++) { A.update(gs, 1 / 60); C.currentTime += 1 / 60; t += 1 / 60; if (t >= marks[i]) { out.push(A._debug().bed / ref); i++; } }
+      return out;
+    };
+    const marks = [1, 4, 5.4, 7.2];
+    const old = run(() => A.sting('intro'), marks), long = run(() => A.introStart(6), marks), short = run(() => A.introStart(2.5), marks), mid = run(() => A.introStart(4.5), marks);
+    const f = a => a.map(x => x.toFixed(2)).join('/');
+    const near = (a, b) => a.every((x, i) => Math.abs(x - b[i]) < 0.02);
+    ok('intro a. introStart(6): bed ducked to 3 s, half (-3 dB) to 5.7 s, back after', long[0] < 0.55 && long[1] > 0.6 && long[1] < 0.8 && long[2] > 0.6 && long[2] < 0.8 && long[3] > 0.93,
+      'bed vs before at 1/4/5.4/7.2 s: ' + f(long) + ' (old ' + f(old) + ')');
+    ok('intro b. introStart(4.5): half to 4.2 s; introStart(2.5) and sting(\'intro\') unchanged', mid[1] > 0.6 && mid[1] < 0.8 && mid[2] > 0.9 && near(short, old) && old[1] > 0.93,
+      '4.5 s: ' + f(mid) + ' · 2.5 s: ' + f(short) + ' · sting: ' + f(old));
+    A.onState('menu'); A.onState('playing');
+  }
+
+  // ---------- replay(on) ----------
+  {
+    fresh(); const gs = { mode: 'point', players: [], rally: { t: 0, hits: 0 }, matchPoint: -1, setPoint: -1, serving: 0 };
+    A.update(gs, 1 / 60); const c0 = A._debug().crowd;
+    A.replay(true); A.update(gs, 1 / 60); const c1 = A._debug().crowd;
+    const re0 = A.stats.react, mk = mock.started.length;
+    A.handle([{ type: 'whistle', reason: 'point', replay: true }, { type: 'point', team: 0, reason: 'in', how: 'block', rallyHits: 6, highlight: 0.9, replay: true },
+      hitE('spike', { touch: 3, speed: 22, replay: true }), { type: 'block', result: 'stuff', x: 0.3, y: 1, z: 3, team: 0, replay: true, player: { x: 0.4, y: 1, z: 0.5, team: 0 } },
+      { type: 'set', team: 0, sets: [1, 0], replay: true }], gs);
+    const nm = names(since(mk)), crowd = nm.filter(n => /^(roar|applause|groan|ooh|bombo|palmas)$/.test(n)), stings = nm.filter(n => /Win|Lose/.test(n));
+    const dbg = A._debug().replay, re1 = A.stats.react;
+    A.replay(false); A.update(gs, 1 / 60); const c2 = A._debug().crowd;
+    fresh(); const mk2 = mock.started.length; A.handle([{ type: 'point', team: 0, reason: 'in', how: 'block', rallyHits: 6, highlight: 0.9 }], gs); const liveCrowd = names(since(mk2)).length;
+    ok('replay a. replay(true): crowd bus -6 dB; replay(false) restores it', Math.abs(c1 / c0 - 0.5) < 0.01 && Math.abs(c2 - c0) < 1e-6 && dbg.on, 'crowd ' + c0.toFixed(3) + ' → ' + c1.toFixed(3) + ' → ' + c2.toFixed(3) + ' (replay n ' + dbg.n + ')');
+    ok('replay b. events with e.replay: hits and whistle sound, no crowd reaction / stings / react', crowd.length === 0 && stings.length === 0 && re1 === re0 && nm.includes('spike') && nm.some(n => /^whistle/.test(n)) && liveCrowd > 0,
+      'played ' + nm.join(' ') + ' · react ' + re0 + '→' + re1 + ' · cut ' + dbg.cut + ' · live point → ' + liveCrowd + ' crowd layers');
+  }
+  return rows;
+}
+function s234Table(rows) {
+  console.log('\n== 7. Sprints 2-4 (T6): rótulos, new ui() kinds, medal, introStart(dur), replay(on) — mock engine ==');
+  let bad = 0;
+  for (const x of rows) { console.log(pad(x.name, 96) + (x.pass ? 'OK  ' : 'FAIL') + '  ' + x.info); if (!x.pass) bad++; }
+  return bad;
+}
+module.exports = { s234Report, UI_PATCH, enduiReport, countUpCalls, METRICS, loadAudio, synthReport, mixReport, featureReport, chromeReport, robustReport, PLAN, pageHtml, PAGE_RUN, pcmOf, winLoud, clickTimes, variantsOf, chromeFeatures, coldReport, coldRun };
 if (require.main === module) (async () => {
   let bad = 0; const out = {};
   console.log('audiotest: ' + path.relative(ROOT, FILE) + (BEFORE ? '  (before: ' + path.relative(ROOT, BEFORE) + ')' : ''));
@@ -2042,6 +2214,7 @@ if (require.main === module) (async () => {
   if (has('--sweep-only')) { const c = await chromeReport(FILE, 'after'); const w = c.sweep.slice().sort((a, b) => b.tp - a.tp); console.log(w.slice(0, 12).map(x => x.id + ' @' + x.cam + 'm ' + r1(x.tp) + ' dBTP clip ' + x.clip).join('\n')); process.exit(w[0].tp <= -1 && !w.some(x => x.clip) ? 0 : 1); }
   if (has('--w3-only')) { const c = await chromeReport(FILE, 'after'); console.log(JSON.stringify(c.w3, (k, v) => typeof v === 'number' ? Math.round(v * 100) / 100 : v)); process.exit(0); }
   if (has('--endui-only')) { const er = await enduiReport(); bad += enduiTable(er); console.log(bad ? 'FALLOS: ' + bad : 'TODO OK'); process.exit(bad ? 1 : 0); }
+  if (has('--rot-only') || has('--s234-only')) { const sr = await s234Report(FILE, has('--rot-only')); bad += s234Table(sr); console.log(bad ? 'FALLOS: ' + bad : 'TODO OK'); process.exit(bad ? 1 : 0); }
   const syn = synthReport(FILE, !has('--no-wav')); out.synth = syn;
   bad += synthTable(syn);
   if (has('--synth-only')) { console.log(bad ? 'FALLOS: ' + bad : 'TODO OK'); process.exit(bad ? 1 : 0); }
@@ -2058,6 +2231,8 @@ if (require.main === module) (async () => {
   bad += wave3Table(w3);
   const rob = await robustReport(FILE); out.robust = rob;
   bad += robustTable(rob);
+  const s234 = await s234Report(FILE, false); out.s234 = s234;
+  bad += s234Table(s234);
   if (has('--calibrate')) { // suggested LEVEL table for js/audio.js: current level + (target - measured) of the first scenario of each sound
     const { VB } = loadAudio(FILE), cur = VB.Audio.LEVELS || {}, sug = {};
     for (const r of mix) { const sc = SCEN.find(x => x.id === r.id); if (!sc || r.info || !sc.only) continue; for (const n of sc.only) if (!(n in sug)) sug[n] = Math.round(((cur[n] || 0) - r.delta) * 10) / 10; }

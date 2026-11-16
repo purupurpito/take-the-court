@@ -9,6 +9,9 @@
  * Vestuario (sprint «personaliza», spec §6.1 y §7): Jugador › Vestuario (resumen y «Abrir el vestuario», que cierra la Carrera y abre
  * la página del menú con VB.UI.openLook({who:'career', hall, tc, back}) y el kit de tu club; al volver se reabre aquí), punto en la
  * pestaña con novedades sin ver (VB.Look.unseen) y la fila «Aspecto» al crear. Sin js/look.js o sin VB.UI.openLook no sale nada.
+ * Sprint 2-4 (T16, notes/s234/T16.md): retrato en la cabecera, Jugador y Compañero (ptReq → VB.UI.portraitHTML), escudos paródicos
+ * (crest → VB.CareerWorldUI.crestSVG; sin él kitSw), vitrina en Palmarés, «Continuar carrera» de la portada (heroData/syncHero), open con
+ * {from, fresh, focus} (R15) y «‹ Menú», química con nombre de nivel (chemTxt, marcas del medidor) y la etiqueta «Jefe».
  *
  * Entrada: botón #btnCareer del menú (index.html). Ratón, táctil (botones ≥ 44 px) y teclado/mando: ↑/↓ (y ←/→) mueven el foco,
  * Intro acepta, Esc vuelve; con mando main.js llama a VB.CareerUI.nav(it, dt) mientras está abierta (en lugar de VB.UI.nav).
@@ -21,7 +24,7 @@
   function ordn(n) { return n + (n === 1 || n === 3 ? 'r' : 'º'); }
   var VB = window.VB = window.VB || {};
   var root = null, body = null, head = null, tabsEl = null, subEl = null, styleEl = null;
-  var view = 'hub', tab = 'match', open = false, lastFocus = null, tblLvl = -1, armT = 0, armTo = 0, confirmStep = 0, freshLast = false;
+  var view = 'hub', tab = 'match', open = false, lastFocus = null, from = 'play', focusReq = '', ptDone = false, tblLvl = -1, armT = 0, armTo = 0, confirmStep = 0, freshLast = false;
   // (sin «Controlar»: en la Carrera solo se controla a tu jugador)
   var form = { name: '', num: 1, role: 'atk', mode: '', country: 'ES', pos: 'OH', pts6: 15, diff: 'normal' }, badgeMsg = '', note = '', dnote = '', yrs = {};   // (playa: sin puntos por set, siempre a 21; pista: 15/21/25)
   var tblLid = '';   // Carrera de pista: liga que se ve en Clasificación ('' = la tuya)
@@ -53,7 +56,73 @@
   function LOOK() { var X = VB.Look; return X && Array.isArray(X.CATALOG) && X.SLOTS ? X : null; }
   /** Hay objetos del vestuario que aún no has visto (punto en Jugador y en Vestuario). */
   function lookNew() { var X = LOOK(); if (!X || !X.unseen) return false; try { var u = X.unseen(); return !!(u && u.length); } catch (e) { return false; } }
-  var HLP = { esc: function (s) { return esc(s); }, sp: function (a, k) { return sp(a, k); }, kitSw: function (k, big) { return kitSw(k, big); } };
+  var HLP = { esc: function (s) { return esc(s); }, sp: function (a, k) { return sp(a, k); }, kitSw: function (k, big) { return kitSw(k, big); },
+    // B2: escudo paródico (career-world-ui.js); sin él, la muestra de equipación de siempre
+    crest: function (k, px, o) { var W = WUI(); return W && W.crestSVG ? W.crestSVG(k, px, o) : k && k.kit ? kitSw(k.kit, px >= 48) : ''; } };
+  /** Química de la Carrera (career-life.js S3 C5: chemInfo/chemName/chemLevel/bossFor); sin ella, null y la cifra de siempre. */
+  function LIFE() { var L = VB.CareerLife; return L && L.chemInfo ? L : null; }
+  /** Escudo del club k a px (≤ 28: mini, para tablas y calendarios). Sin career-world: kitSw (en mini, kit-mini). */
+  function crest(k, px, c) {
+    if (!k) return '';
+    var W = WUI();
+    if (W && W.crestSVG) { try { return W.crestSVG(k, px, { c: c || (C() && C().get()) || undefined }); } catch (e) { } }
+    if (!k.kit) return '';
+    return px <= 28 ? kitSw(k.kit).replace('cr-kit', 'cr-kit kit-mini') : kitSw(k.kit, px >= 48);
+  }
+  /** Línea de química con nombre de nivel (S3 C5): «Química: Buena sintonía (+1)» / pista «Química del equipo: Buen ambiente (+1)»;
+   *  con +0 sin paréntesis. v = química (por defecto la de la carrera); bonus = el +n que enseñar (0/omitido: sin paréntesis).
+   *  Sin career-life: «Química 47 (+1)» como siempre. */
+  function chemTxt(c, v, bonus) {
+    var hall = isHall(c), L = LIFE();
+    if (v == null) v = hall ? c.chem : c.mate ? c.mate.chem : 0;
+    v = v | 0; bonus = bonus | 0;
+    var b = bonus ? ' (+' + bonus + ')' : '';
+    if (L && L.chemName && L.chemLevel) { try { return (hall ? 'Química del equipo: ' : 'Química: ') + L.chemName(L.chemLevel(v), c) + b; } catch (e) { } }
+    return (hall ? 'Química del equipo ' : 'Química ') + v + b;
+  }
+  // ---------------------------------------------------------------- B2: retratos (VB.Doll.portrait → main.js → VB.UI.portraitHTML)
+  function mixHex(a, b, t) {
+    var r = ((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t, g = ((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t, bl = (a & 255) * (1 - t) + (b & 255) * t;
+    return (Math.round(r) << 16) | (Math.round(g) << 8) | Math.round(bl);
+  }
+  /** --vs de #app (pantallas grandes: el retrato se pinta a CSS × 2 × --vs, con tope de 384 px). */
+  function vsc() {
+    try { var a = document.getElementById('app'), v = a && window.getComputedStyle ? parseFloat(getComputedStyle(a).getPropertyValue('--vs')) : 1; return v > 0 ? v : 1; } catch (e) { return 1; }
+  }
+  /** Petición de retrato (S2-B2B3 §2.1) de tu atleta (who 'me') o del compañero de playa ('mate'): tu aspecto del Vestuario (o el de
+   *  serie, VB.Players.baseLook), la equipación de tu club y tu dorsal, fondo = color oscuro del club. px = tamaño CSS. null si falta algo. */
+  function ptReq(c, who, px, face) {
+    if (!c || !c.player) return null;
+    var hall = isHall(c), mate = who === 'mate';
+    if (mate && (hall || !c.mate)) return null;
+    var k = c.myClub != null && C().myClub ? C().myClub(c) : null, kit = (k && k.kit) || {}, tc = null, L = null, num = mate ? c.mate.num | 0 : c.player.num | 0;
+    try { tc = VB.Players && VB.Players.kitFrom ? VB.Players.kitFrom({ kitShirt: kit.shirt, kitAccent: kit.accent, kitShorts: kit.shorts, kitPattern: kit.pattern }) : null; } catch (e) { tc = null; }
+    var X = LOOK();
+    if (X && X.matchLooks && X.resolve) {
+      try {
+        var look = c.life && c.life.look && typeof c.life.look === 'object' ? c.life.look : null;
+        var f = X.matchLooks({ career: true, hall: hall, look: look, mate: c.mate && c.mate.name ? String(c.mate.name) : null }), fi = f && f[mate ? 1 : 0];
+        if (fi) L = X.resolve(fi, hall ? 'hall' : 'beach', tc);
+      } catch (e) { L = null; }
+    }
+    if (!L && VB.Players && VB.Players.baseLook) { try { L = VB.Players.baseLook({ team: 0, idx: mate ? 1 : 0, num: num, role: hall ? String(c.player.roleKey || '') : '', beach: !hall }); } catch (e) { L = null; } }
+    if (!L) return null;
+    return { L: L, tc: tc, num: num, beach: !hall, pose: 'stand', face: face || 'neutra', yaw: 0.35, bg: mixHex(typeof kit.shirt === 'number' ? kit.shirt : 0xff5a2c, 0x1d1530, 0.6),
+      size: Math.min(384, Math.round(Math.max(16, +px || 72) * 2 * vsc())) };
+  }
+  /** HTML del retrato (o el hueco con el dorsal mientras se pinta). Sin ui.js (pruebas) o sin petición: hueco sin imagen. */
+  function ptHTML(c, who, px, cls, alt, face) {
+    var r = ptReq(c, who, px, face);
+    if (r && VB.UI && VB.UI.portraitHTML) { try { return VB.UI.portraitHTML(r, cls, alt); } catch (e) { } }
+    var k = c && c.myClub != null && C().myClub ? C().myClub(c) : null, bg = hex(mixHex(k && typeof k.kit.shirt === 'number' ? k.kit.shirt : 0xff5a2c, 0x1d1530, 0.6));
+    var n = who === 'mate' ? (c && c.mate ? c.mate.num : '') : (c && c.player ? c.player.num : '');
+    return '<span class="pt pt-ph ' + (cls || '') + '" style="--pt-bg:' + bg + '" role="img" aria-label="' + esc(alt || '') + '">' + esc(n) + '</span>';
+  }
+  /** R8: el hub encola tu retrato y el del compañero a 72 px (para la previa del partido), una vez por apertura. */
+  function prePt(c) {
+    var A = VB.ctx && VB.ctx.actions; if (!c || !A || typeof A.portrait !== 'function') return;
+    ['me', 'mate'].forEach(function (w) { var r = ptReq(c, w, 72); if (r) { try { A.portrait(r); } catch (e) { } } });
+  }
   var tabsApi = null, subApi = null, rejArm = 0, stayArm = 0, offArm = -1;   // offArm: oferta de mitad de temporada pendiente de confirmar
   var GROUP_OF = { atk: 'Ataque', def: 'Defensa', phys: 'Físico' };
   var TIER_C = ['var(--tier0,#6b6390)', 'var(--tier1,#e08a45)', 'var(--tier2,#cfdbe9)', 'var(--tier3,#ffd23f)'];   // (los tonos de .bd-t de Jugadores)
@@ -262,6 +331,20 @@
     '#career .offer:first-of-type{border-top:0}',
     '#career .meter{height:12px;border-radius:7px;background:rgba(0,0,0,.4);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}',
     '#career .meter i{display:block;height:100%}',
+    // química con nombre (S3 C5): marcas de nivel a 30, 60 y 90 sobre el medidor
+    '#career .meter{position:relative}#career .meter i.mk{position:absolute;top:0;bottom:0;width:2px;height:auto;background:rgba(29,21,48,.85);box-shadow:1px 0 0 rgba(255,255,255,.18)}',
+    // B2: retratos (ui.js portraitHTML, clase base .pt de index.html) y escudos (career-world-ui.js crestSVG)
+    '#career .cr-head .pt.cr-pt{width:44px;height:44px;border-radius:11px;box-shadow:0 0 0 2px var(--tk),2px 3px 0 var(--tk)}',
+    '#career .cr-head .pt-ph.cr-pt{font-size:19px}',
+    '#career .cr-hcr{flex:none;display:flex;align-items:center}',
+    '#career .cr-ptw{position:relative;flex:none;display:inline-block;margin:0 6px 6px 0}',
+    '#career .pt.cr-pt88{width:88px;height:88px;border-radius:16px;box-shadow:0 0 0 2.5px var(--tk),3px 4px 0 var(--tk)}',
+    '#career .pt-ph.cr-pt88{font-size:34px}',
+    '#career .cr-ptc{position:absolute;right:-9px;bottom:-9px;display:flex}',
+    '#career .pt.cr-pt72{width:72px;height:72px;border-radius:14px;box-shadow:0 0 0 2.5px var(--tk),3px 4px 0 var(--tk)}',
+    '#career .pt-ph.cr-pt72{font-size:28px}',
+    '#career td.club .cw-crest-m,#career .cal-r .cw-crest-m{margin-right:6px;vertical-align:-6px}',
+    '#career .team .cw-crest,#career .row>.cw-crest{flex:none}',
     // crear
     '#career .cf{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:12px 18px;align-items:start}',
     '#career .cf>.card{grid-column:1/-1;margin:0}',
@@ -359,7 +442,7 @@
     '#career .tp-hero>*{position:relative;z-index:1}',
     '#career .tp-hero small{display:block;font:800 11.5px var(--display);letter-spacing:.3em;text-transform:uppercase;color:var(--gold);text-shadow:var(--ring1)}',
     '#career .tp-hero b{display:block;font:900 clamp(26px,6.4vw,38px)/1 var(--display);letter-spacing:.03em;text-transform:uppercase;text-shadow:var(--ring2),3px 3px 0 var(--tk);overflow-wrap:anywhere}',
-    '#career .tp-hero span.muted{display:block;margin-top:4px}',
+    '#career .tp-hero span.muted{display:block;margin-top:4px;color:#e8e2f6;text-shadow:var(--ring1)}',   // (con contorno: en el móvil la 2.ª línea cae sobre la cuña del color del club, que puede ser claro)
     '#career .tp-eye{font:800 15px var(--ui);color:#fff;margin:2px 0 8px}',
     '#career .tp-fmt{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:0 0 6px;font:900 20px var(--display);letter-spacing:.04em;text-transform:uppercase}',
     '#career .tp-fmt .sep{opacity:.8}',
@@ -409,6 +492,7 @@
     ' #career .card{padding:9px 11px;margin-bottom:9px}',
     ' #career .team b{font-size:18px}',
     ' #career .cr-kit.big{width:38px;height:44px}',
+    ' #career .team .cw-crest{width:40px;height:45px}',   // (escudo del VS al tamaño de la muestra de antes: la tarjeta no crece)
     ' #career .nota{width:54px;height:54px;font-size:24px}',
     ' #career .roles button{min-height:70px}',
     ' #career .cr-sub{padding-bottom:3px}',
@@ -425,6 +509,12 @@
     ' #career .cr-head{grid-column:1;grid-row:1;gap:8px}',
     ' #career .cr-head .cr-title{display:none}',
     ' #career .cr-head .cr-ovr{font-size:20px}',
+    ' #career .cr-head .pt.cr-pt{width:36px;height:36px;border-radius:9px}',
+    ' #career .cr-head .pt-ph.cr-pt{font-size:16px}',
+    ' #career .cr-head .cr-hcr{display:none}',
+    ' #career .cr-in:has(>.cr-tabs[hidden]) .cr-head .cr-hcr{display:flex}',
+    ' #career .pt.cr-pt88{width:72px;height:72px}',
+    ' #career .pt.cr-pt72{width:56px;height:56px;border-radius:12px}',
     ' #career .cr-head .cr-ovr small{font-size:11px;letter-spacing:.08em}',
     ' #career .cr-tabs{grid-column:2;grid-row:1;padding:0}',
     ' #career .cr-sub{grid-column:1/-1;grid-row:2;padding:0}',
@@ -599,7 +689,7 @@
     }
   }
   function renderBroken() {
-    head.innerHTML = '<button data-act="close" aria-label="Volver a Jugar">‹ Jugar</button><div class="cr-title"><small>Carrera</small><b>Guardado dañado</b></div>';
+    head.innerHTML = backBtn() + '<div class="cr-title"><small>Carrera</small><b>Guardado dañado</b></div>';
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
     body.innerHTML = '<div class="card"><h3>No se puede abrir la carrera</h3><p>La carrera guardada en este dispositivo está dañada y no se ha podido reparar.</p>' +
       (view === 'create' ? '<div class="acts">' :   // (fallo al pintar la ficha de crear: la Carrera activa puede estar sana, no ofrecer borrarla)
@@ -613,9 +703,10 @@
     if (c.phase === 'pick') { renderPick(c); return; }
     var k = C().myClub(c), L = isHall(c) ? C().league(k.lid) : C().league(k.lvl);
     if (!TABS.some(function (t) { return t[0] === tab; }) || (tab === 'life' && !LUI())) tab = 'match';   // (Fama: playa y pista, 12-nov-2026)
-    head.innerHTML = '<button data-act="close" aria-label="Volver a Jugar">‹ Jugar</button>' +
+    // B2: retrato (44; 36 a ≤ 420 de alto) delante del título y escudo del club (40, oculto a ≤ 420) antes de «TU MEDIA»
+    head.innerHTML = backBtn() + ptHTML(c, 'me', 44, 'cr-pt', 'Retrato de ' + c.player.name) +
       '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada ' + c.season, esc(L.name)], 'd') + '</small><b>' + sp([esc(c.player.name), esc(k.name)], 's') + '</b></div>' +
-      '<div class="cr-ovr">' + C().playerOvr(c) + '<small>TU MEDIA</small></div>';
+      '<span class="cr-hcr">' + crest(k, 40, c) + '</span><div class="cr-ovr">' + C().playerOvr(c) + '<small>TU MEDIA</small></div>';
     // bandeja: lo no leído se marca como leído ANTES de pintar (el contador ya no sigue en la pestaña mientras la miras); el
     // resaltado de lo nuevo se conserva en este pintado (freshIds)
     var freshIds = {};
@@ -690,7 +781,7 @@
   function money(v) { return eur(v) + ' al mes'; }
   function fact(label, val) { return '<div><small>' + esc(label) + '</small><b>' + val + '</b></div>'; }
   function teamBlock(c, club, right, extra) {
-    return '<div class="team' + (right ? ' r' : '') + '">' + kitSw(club.kit, true) + '<span style="min-width:0"><b>' + esc(club.name) + '</b><small>' + extra + '</small></span></div>';
+    return '<div class="team' + (right ? ' r' : '') + '">' + crest(club, 56, c) + '<span style="min-width:0"><b>' + esc(club.name) + '</b><small>' + extra + '</small></span></div>';
   }
   /** Pista (titularidad): «De inicio | 40 de 52 puntos en pista | Te cambiaron en el 2º set» / «Entraste en el 2º set | …» / «No llegaste a entrar». */
   function partLine6(pt) {
@@ -884,7 +975,8 @@
     if (n) {
       // posiciones solo con la liga empezada (en la jornada 1 la tabla vacía daba «6º» contra «3r»)
       var pm = C().posOf(c, n.me.id), pr = C().posOf(c, n.rival.id), lg = c.phase === 'league' && c.week > 0;
-      h += '<div class="card"><h3>' + sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + '</h3><div class="vs">' +
+      var bf = null; try { bf = LIFE() && LIFE().bossFor ? LIFE().bossFor(c, n.rival.id) : null; } catch (e) { bf = null; }   // S3 C3: el jefe del circuito juega en su club
+      h += '<div class="card"><h3>' + sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + (bf ? ' <span class="tag r">Jefe</span>' : '') + '</h3><div class="vs">' +
         // («Pareja»: la fuerza de los dos —teamOvr— y la del rival; la media de la cabecera es solo la tuya)
         teamBlock(c, n.me, false, sp([lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'c')) +
         '<div class="vs-mid">VS</div>' +
@@ -895,7 +987,7 @@
           return sp(['Compañero: ' + esc(c.mate.name), esc(c.mate.role), 'Media ' + mo, { h: esc(vsClub(dd)), c: tg ? 'dv ' + tg : 'dv' }, 'Forma: ' + esc(C().formText(c.mate.form | 0)).toLowerCase()], 'c');
         })() + '</p>' +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
-          'Química ' + (c.mate.chem | 0) + (C().chemBonus(c) ? ' (+' + C().chemBonus(c) + ')' : '')], 'v') + '</p>' +
+          esc(chemTxt(c, c.mate.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
         (n.bench
           // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
@@ -961,7 +1053,7 @@
   function offerCard(c, o, i, full) {
     if (isHall(c)) return offerCard6(c, o, i, full);
     var k = C().club(c, o.club), f = C().clubInfo(c, k, o.lvl != null ? o.lvl : k.lvl, o.q), mp = o.mateP, y = yrs[o.club] || o.years || 1;
-    var h = '<div class="' + (full ? 'card offer-full' : 'offer-x') + '"' + (full ? '' : ' style="padding:8px 0;border-top:1px solid var(--sep)"') + '><div class="row">' + kitSw(k.kit, full) +
+    var h = '<div class="' + (full ? 'card offer-full' : 'offer-x') + '"' + (full ? '' : ' style="padding:8px 0;border-top:1px solid var(--sep)"') + '><div class="row">' + crest(k, full ? 56 : 40, c) +
       '<div class="grow" style="min-width:0"><p class="bigname"' + (full ? '' : ' style="font-size:18px"') + '>' + esc(k.name) + '</p><p class="muted" style="margin:2px 0 0">' +
       sp([stars(f.stars), esc(f.league), esc(f.beach || k.city)], 'v') + '</p></div></div>';
     var rl = Math.max(0, C().ROLE_LV.indexOf(o.role)), early = !o.trial && C().earlyExit && C().earlyExit(c), cov = o.ovr != null ? o.ovr : f.ovr;
@@ -1024,7 +1116,7 @@
       if (r.id === c.myClub) cls.push('me');
       if (!top && r.pos <= 2) cls.push('up'); else if (r.pos <= 4) cls.push('cup');
       if (!low && r.pos >= 7) cls.push('down');
-      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + kitSw(cl.kit).replace('cr-kit', 'cr-kit kit-mini') + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(cl.name) + '</button>' : esc(cl.name)) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
+      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + crest(cl, 22, c) + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(cl.name) + '</button>' : esc(cl.name)) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
     });
     h += '</tbody></table><p class="muted" style="margin-top:8px">' + (top ? '' : '<span class="tag g">1-2 ascienden</span>') + '<span class="tag y">1-4 juegan el Open</span>' + (low ? '' : '<span class="tag r">7-8 descienden</span>') +
       ' Puntos: 3 por ganar 2-0, 2 por ganar 2-1 y 1 por perder 1-2.</p></div>';
@@ -1038,7 +1130,7 @@
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = c.res[k.lvl][w] && c.res[k.lvl][w][i], res = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; res = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
       else res = '<span class="muted">' + (c.phase === 'league' && w === c.week ? 'Próximo' : 'Pendiente') + '</span>';
-      h += '<div class="cal-r' + (c.phase === 'league' && w === c.week ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + kitSw(rv.kit).replace('cr-kit', 'cr-kit kit-mini') + (home ? 'vs ' : 'en ') + esc(rv.name) + '</span>' + res + '</div>';
+      h += '<div class="cal-r' + (c.phase === 'league' && w === c.week ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(rv.name) + '</span>' + res + '</div>';
     });
     h += '</div>';
     if (c.cup) {
@@ -1053,7 +1145,7 @@
     if (s === 'badges') return renderBadges(c);
     if (s === 'train') return renderTrain(c);
     if (s === 'look') return renderLook(c);
-    var a = c.player, P = VB.Prog, need = C().need(a.lvl), h = '<div class="card"><div class="row">' + kitSw(C().myClub(c).kit) +
+    var a = c.player, P = VB.Prog, need = C().need(a.lvl), h = '<div class="card"><div class="row"><span class="cr-ptw">' + ptHTML(c, 'me', 88, 'cr-pt88', 'Retrato de ' + a.name) + '<span class="cr-ptc">' + crest(C().myClub(c), 28, c) + '</span></span>' +
       '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp([esc(a.name), 'n.º ' + a.num], 's') + '</p><p class="muted" style="margin:0">' + sp([esc(a.role), a.age + ' años', 'Nivel ' + a.lvl, plural(a.matches | 0, 'partido', 'partidos')], 'c') + '</p></div></div>' +
       '<div class="xp" role="progressbar" aria-valuemin="0" aria-valuemax="' + need + '" aria-valuenow="' + a.xp + '" aria-label="Experiencia"><i style="width:' + Math.round(100 * a.xp / need) + '%"></i></div>' +
       '<p class="muted">' + sp([a.xp + ' / ' + need + ' XP para el nivel ' + (a.lvl + 1), 'Puntos de mejora: <b style="color:var(--gold)">' + a.pts + '</b>'], 'v') + '</p>';
@@ -1134,8 +1226,16 @@
       if (got.length || a0 !== (c.life && c.life.lookAnn)) C().save(c);
     } catch (e) { }
   }
-  function meter(v, label, col) {
-    return '<div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + v + '" aria-label="' + esc(label) + '"><i style="width:' + v + '%;background:' + col + '"></i></div>';
+  /** Medidor 0-100; marks = posiciones (0-100) de las marcas de nivel (química: 30, 60 y 90), solo CSS. */
+  function meter(v, label, col, marks) {
+    var mk = marks ? marks.map(function (x) { return '<i class="mk" style="left:' + x + '%"></i>'; }).join('') : '';
+    return '<div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + v + '" aria-label="' + esc(label) + '"><i style="width:' + v + '%;background:' + col + '"></i>' + mk + '</div>';
+  }
+  var CHEM_MK = [30, 60, 90];
+  /** «71 de 100 | Faltan 19 para «Pareja de oro».» / «100 de 100 | Nivel máximo.» (ci = CareerLife.chemInfo; null: nada). */
+  function chemNext(ci) {
+    if (!ci) return '';
+    return '<p class="muted" style="margin-top:6px">' + sp([ci.v + ' de 100', ci.next ? 'Faltan ' + ci.need + ' para «' + esc(ci.next) + '».' : 'Nivel máximo.'], 'v') + '</p>';
   }
   /** Jugador › Entreno: el enfoque se elige ya en el Plan del entrenador (pestaña Partido; aquí solo el enlace), progreso por grupo
    *  del entreno semanal y fatiga. */
@@ -1171,9 +1271,10 @@
     }
     var k = C().myClub(c), L = C().league(k.lvl), f = C().clubInfo(c, k), coach = c.coach, cc = coach < 30 ? '#d8364a' : coach < 50 ? '#e07b2b' : coach < 70 ? '#d9a520' : '#2fbf71';
     var ref = C().REF[L.ref];
-    var h = '<div class="card"><div class="row">' + kitSw(k.kit, true) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
+    var h = '<div class="card"><div class="row">' + crest(k, 72, c) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
       '<p class="muted" style="margin:2px 0 0">' + sp([stars(f.stars), esc(L.name), esc(k.city)], 'v') + '</p></div></div>' +
-      '<div class="fact">' + fact('Media del club', C().clubOvr(k)) + fact('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + fact('Sede', esc(f.beach || k.city)) + fact('Estilo', esc(f.style) + styleTrain(f.style)) +
+      '<div class="fact">' + fact('Media del club', C().clubOvr(k)) + fact('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + fact('Sede', esc(f.beach || k.city)) +
+      fact('Equipación', kitSw(k.kit).replace('cr-kit', 'cr-kit kit-mini') + ' <span class="muted">camiseta, detalle y pantalón</span>') + fact('Estilo', esc(f.style) + styleTrain(f.style)) +
       // (el compañero, con pastillas como en la oferta; antes rol, media y desvío iban metidos en un paréntesis)
       fact('Compañero', esc(c.mate.name) + (function () {
         var mo = C().mateOvr(c), dd = mo - C().clubOvr(k), tg = dd >= 3 ? 'g' : dd <= -3 ? 'r' : '';
@@ -1187,16 +1288,18 @@
   /** Club › Compañero: el actual (química) y la plantilla para pedir cambio. */
   function renderMate(c) {
     var m = c.mate, ch = m.chem | 0, cb = C().chemBonus(c), k = C().myClub(c), co = C().clubOvr(k), mo = C().mateOvr(c), mf = m.form | 0;
-    var h = '<div class="card"><h3>Tu compañero</h3><p class="bigname" style="font-size:20px">' + sp([esc(m.name), 'n.º ' + m.num], 's') + '</p>' + mateLine(m, co, true) +
+    var ci = null; try { ci = LIFE() ? LIFE().chemInfo(c) : null; } catch (e) { ci = null; }
+    var h = '<div class="card"><h3>Tu compañero</h3><div class="row" style="align-items:flex-start;flex-wrap:nowrap">' + ptHTML(c, 'mate', 72, 'cr-pt72', 'Retrato de ' + m.name) +
+      '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp([esc(m.name), 'n.º ' + m.num], 's') + '</p>' + mateLine(m, co, true) + '</div></div>' +
       '<p class="muted">' + (mo - co <= -3 ? 'Con un compañero flojo tendrás más trabajo y más protagonismo: la IA se la jugará menos y tú llevarás el peso.' : mo - co >= 3 ? 'Con un compañero bueno tienes más ayuda: recibe, defiende y remata por encima del nivel del club.' : 'Un compañero al nivel del club: ni carga ni muleta.') +
       (mf ? ' Su forma (' + esc(C().formText(mf)).toLowerCase() + ') ' + (mf > 0 ? 'suma +' : 'resta −') + Math.abs(mf) + ' a todos sus atributos en el próximo partido; cambia tras cada partido.' : ' Su forma cambia tras cada partido y suma o resta hasta ' + C().FORM_MAX + ' a sus atributos.') + '</p>' +
-      '<h3 style="margin-top:10px">' + sp(['Química', ch + ' de 100'], 'd') + '</h3>' + meter(ch, 'Química con el compañero', '#4be0a0') +
+      '<h3 style="margin-top:10px">' + sp(['Química', ci ? esc(ci.name) : ch + ' de 100'], 'd') + '</h3>' + meter(ch, 'Química con el compañero', '#4be0a0', ci ? CHEM_MK : null) + chemNext(ci) +
       '<p class="muted">Sube cada partido juntos (+5 jugado, +3 simulado). ' + (cb ? 'Ahora suma +' + cb + ' a los dos en reacción, colocación y recepción.' : 'A partir de 30 suma +1 a los dos en reacción, colocación y recepción (hasta +3).') + '</p></div>';
     h += '<div class="card"><h3>Plantilla</h3><p class="muted">Puedes pedir jugar con otro compañero del club' + (c.coach < C().MATE_COACH ? ', pero el entrenador aún no te deja (necesitas su confianza: «Tiene dudas» o mejor).' : '. La química se guarda con cada uno; las medias y los puntos fuertes son de verdad en el partido.') + '</p>' +
       (c.squad || []).map(function (s, i) {
         var so = C().ovrOf(s.st), d = so - mo;
         return '<div class="mate"><div style="min-width:0"><b style="font:800 17px var(--display);text-transform:uppercase">' + esc(s.name) + '</b>' + mateLine(s, co, true) +
-          '<p class="muted" style="margin:2px 0 0">' + sp([(d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d) + ' respecto a ' + esc(m.name.split(' ')[0]), 'Química ' + (s.chem | 0)], 'c') + '</p></div><button data-act="mate" data-i="' + i + '"' + (c.coach < C().MATE_COACH ? ' disabled' : '') + '>Elegir</button></div>';
+          '<p class="muted" style="margin:2px 0 0">' + sp([(d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d) + ' respecto a ' + esc(m.name.split(' ')[0]), esc(chemTxt(c, s.chem))], 'c') + '</p></div><button data-act="mate" data-i="' + i + '"' + (c.coach < C().MATE_COACH ? ' disabled' : '') + '>Elegir</button></div>';
       }).join('') + '<p class="note" role="status" aria-live="polite">' + esc(note) + '</p></div>';
     note = '';
     return h;
@@ -1219,7 +1322,7 @@
     return h;
   }
   /** Mensajes: entrenador, agente, ofertas, objetivos. Lo nuevo resaltado (se marca como leído al verlo). */
-  var MSG_K = { coach: 'Entrenador', agent: 'Agente', offer: 'Ofertas', obj: 'Objetivo', club: 'Club', train: 'Preparador físico', fans: 'Fama', mentor: 'Mentor' };
+  var MSG_K = { coach: 'Entrenador', agent: 'Agente', offer: 'Ofertas', obj: 'Objetivo', club: 'Club', train: 'Preparador físico', fans: 'Fama', mentor: 'Mentor', boss: 'Jefe', chem: 'Química' };
   function msgHTML(m, fresh) {
     return '<div class="msg' + (m.r && !(fresh && fresh[m.id]) ? '' : ' unread') + '"><small>' + sp([esc(MSG_K[m.k] || 'Club'), 'T' + m.s + (m.ph === 'pick' ? '' : ' J' + Math.min(m.w, C().WEEKS))], 'v') + '</small><b>' + esc(m.t) + '</b><p>' + esc(m.x) + '</p></div>';
   }
@@ -1230,8 +1333,10 @@
   function renderHonors(c) {
     var T = c.career, s = sub.honors, h = '', du = diffUsed(c);
     if (s === 'titles') {
-      h = '<div class="card"><h3>Palmarés</h3>';
-      h += c.trophies.length ? c.trophies.map(function (t) { return '<p><span class="tag ' + (t.kind === 'ascenso' ? 'g' : 'y') + '">' + (t.kind === 'liga' ? 'Campeón' : t.kind === 'copa' ? (isHall(c) ? 'Copa' : 'Open') : t.kind === 'intl' ? 'Internacional' : t.kind === 'premio' ? 'Premio' : 'Ascenso') + '</span> ' + sp([esc(t.name), 'T' + t.season, esc(t.club), du ? esc(dName(dkey(c, t.d || 'normal'))) : ''], 'v') + '</p>'; }).join('') : '<p class="muted">Aún sin títulos.</p>';
+      // B2c: vitrina con huecos (career-world-ui.js; su propia tarjeta) y debajo la lista de siempre como «Títulos por temporada»
+      var tcH = ''; try { tcH = WUI() && WUI().trophyCaseHTML ? WUI().trophyCaseHTML(c, HLP) : ''; } catch (e) { tcH = ''; }
+      h = tcH + '<div class="card"><h3>' + (tcH ? 'Títulos por temporada' : 'Palmarés') + '</h3>';
+      h += c.trophies.length ? c.trophies.map(function (t) { return '<p><span class="tag ' + (t.kind === 'ascenso' ? 'g' : 'y') + '">' + (t.kind === 'liga' ? 'Campeón' : t.kind === 'copa' ? (isHall(c) ? 'Copa' : 'Open') : t.kind === 'intl' ? 'Internacional' : t.kind === 'premio' ? 'Premio' : 'Ascenso') + '</span> ' + sp([esc(t.name), 'T' + t.season, esc(t.club), du ? esc(dName(dkey(c, t.d || 'normal'))) : ''], 'v') + '</p>'; }).join('') : '<p class="muted">' + (tcH ? 'Aún sin títulos: los huecos de arriba esperan.' : 'Aún sin títulos.') + '</p>';
       h += '<h3 style="margin-top:10px">Totales de la carrera</h3><p>' + sp([plural(T.played, 'partido', 'partidos') + ' (' + plural(T.won, 'ganado', 'ganados') + ', ' + plural(T.sim, 'simulado', 'simulados') + ((T.bench | 0) ? ', ' + (T.bench | 0) + ' en el banquillo' : '') + ')', isHall(c) && (T.rr | 0) > 0 ? Math.round(100 * (T.mr | 0) / T.rr) + ' % de puntos jugados' : '', isHall(c) && ((T.starts | 0) + (T.subIn | 0)) ? (T.starts | 0) + ' de inicio y ' + (T.subIn | 0) + ' desde el banquillo' : '', plural(T.pts, 'punto', 'puntos'), T.kills + ' remates ganadores', plural(T.aces, 'ace', 'aces'), T.blocks + ' bloqueos', plural(T.assists, 'asistencia', 'asistencias')], 'v') + '</p></div>';
       return h;
     }
@@ -1254,9 +1359,9 @@
     h += optsModeHTML(c);
     h += '<div class="card"><h3>Opciones</h3>';
     if (WUI() && WUI().optsHTML) h += WUI().optsHTML(c, HLP);   // escenas del mentor: Sí | No
-    if (!confirmStep) h += '<button class="warn" data-act="quit1">Abandonar carrera</button>';
+    if (!confirmStep) h += '<button class="warn" data-act="quit1">Borrar carrera</button>';
     else h += '<div class="confirm"><p><b>¿Seguro?</b> Se borra la carrera ' + (isHall(c) ? 'de pista' : 'de playa') + ' entera: jugador, insignias, temporadas y palmarés. No se puede deshacer.</p><div class="acts">' +
-      '<button class="warn" data-act="quit2">' + (confirmStep === 2 ? (device() === 'touch' ? 'Toca otra vez para borrar' : 'Pulsa otra vez para borrar') : 'Sí, abandonar') + '</button><button data-act="quit0">Cancelar</button></div></div>';
+      '<button class="warn" data-act="quit2">' + (confirmStep === 2 ? (device() === 'touch' ? 'Toca otra vez para borrar' : 'Pulsa otra vez para borrar') : 'Sí, borrar') + '</button><button data-act="quit0">Cancelar</button></div></div>';
     return h + '</div>';
   }
   function device() { return (VB.ctx && VB.ctx.inputDevice) || 'keyboard'; }
@@ -1307,7 +1412,7 @@
         '<p class="muted" style="margin-top:8px">6 contra 6 en el pabellón: al mejor de 3 sets a ' + c.points + (c.points > 15 ? ', el tercero a 15' : '') + '. Tú llevas a ' + esc(c.player.name) + ' (dorsal ' + c.player.num + ', ' + esc(posName(role).toLowerCase()) + ') y al resto del equipo la IA.</p>' +
         (role !== c.player.roleKey ? '<p class="muted">Tu puesto (' + esc(posName(c.player.roleKey).toLowerCase()) + ') aún no se puede llevar en el 6 contra 6: juegas de ' + esc(posName(role).toLowerCase()) + '.</p>' : '') +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
-          'Química del equipo ' + (c.chem | 0) + (C().chemBonus(c) ? ' (+' + C().chemBonus(c) + ')' : '')], 'v') + '</p>' +
+          esc(chemTxt(c, c.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
         statusHTML6(c, n);
 
@@ -1370,7 +1475,7 @@
       if (r.id === c.myClub) cls.push('me');
       if (L.lvl === 2 && r.pos <= mv) cls.push('up'); else if (L.lvl === 1 && comps.some(function (cp) { return r.pos > cp.rank * 2 - 2 && r.pos <= cp.rank * 2; })) cls.push('cup');
       if (L.lvl === 1 && mv && r.pos > t.length - mv) cls.push('down');
-      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + kitSw(cl.kit).replace('cr-kit', 'cr-kit kit-mini') + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(cl.name) + '</button>' : esc(cl.name)) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
+      h += '<tr class="' + cls.join(' ') + '"><td class="l">' + r.pos + '</td><td class="club">' + crest(cl, 22, c) + (WUI() ? '<button class="cw-tl-b" data-act="cw-club" data-id="' + r.id + '" aria-label="Ficha de ' + esc(cl.name) + '">' + esc(cl.name) + '</button>' : esc(cl.name)) + '</td><td>' + r.pj + '</td><td>' + r.g + '</td><td>' + r.p + '</td><td class="hide-s">' + r.sf + '-' + r.sc + '</td><td class="hide-s">' + r.pf + '-' + r.pc + '</td><td class="pts">' + r.pts + '</td></tr>';
     });
     var tags = [];
     if (L.lvl === 2 && mv) tags.push('<span class="tag g">' + (mv === 2 ? '1-2 ascienden' : '1º asciende') + '</span>');
@@ -1390,7 +1495,7 @@
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = res[w] && res[w][i], out = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; out = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
       else out = '<span class="muted">' + (nx ? 'Próximo' : w < c.week || c.phase !== 'league' ? '—' : 'Pendiente') + '</span>';
-      h += '<div class="cal-r' + (nx ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + kitSw(rv.kit).replace('cr-kit', 'cr-kit kit-mini') + (home ? 'vs ' : 'en ') + esc(rv.name) + '</span>' + out + '</div>';
+      h += '<div class="cal-r' + (nx ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(rv.name) + '</span>' + out + '</div>';
     });
     return h + '</div><p class="muted" style="margin-top:8px">Al acabar la liga: copas (Liga › Copas).</p></div>';
   }
@@ -1414,7 +1519,7 @@
   }
   function renderClubInfo6(c) {
     var k = C().myClub(c), f = C().clubInfo(c, k), coach = c.coach, cc = coach < 30 ? '#d8364a' : coach < 50 ? '#e07b2b' : coach < 70 ? '#d9a520' : '#2fbf71', ref = C().REF[C().ref(f.strength)];
-    return '<div class="card"><div class="row">' + kitSw(k.kit, true) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
+    return '<div class="card"><div class="row">' + crest(k, 72, c) + '<div class="grow" style="min-width:0"><p class="bigname">' + esc(k.name) + '</p>' +
       '<p class="muted" style="margin:2px 0 0">' + sp([stars(f.stars), esc(f.league), esc(f.country)], 'v') + '</p></div></div>' +
       '<div class="fact">' + fact('Media del club', k.ovr) + fact('Posición', c.phase === 'league' && c.week === 0 ? '—' : ordn(C().posOf(c, k.id))) + fact('Ciudad', esc(k.city || '—')) +
       fact('Liga', esc(f.league) + ' <span class="muted">(nivel ' + f.strength + ')</span>') + fact('Estilo', esc(f.style) + styleTrain(f.style)) + fact('Colores', kitDots(k.kit) + ' <span class="muted">camiseta, 2º color y líbero</span>') +
@@ -1438,7 +1543,8 @@
         '<p class="muted" style="margin:2px 0 0">' + sp(['Media ' + p.ovr, 'Forma: ' + esc(formTxt6(p.form)), p.me ? 'Tú' : ''], 'c') + ' <span class="tag ' + tg[1] + '">' + tg[0] + '</span></p></div></div>';
     });
     h += '<p class="muted" style="margin-top:8px">El entrenador elige el seis de cada jornada por media, forma, confianza, fatiga y la impresión de tus entrenos (lo que haces en pista cuenta: esta temporada tu media vale ' + (H6.meEdge ? H6.meEdge(c) : H6.ME_EDGE || 12) + ' más en su elección; la ventaja baja ' + (H6.ME_EDGE_STEP || 2) + ' cada temporada hasta ' + (H6.ME_EDGE_MIN || 4) + ').</p>';
-    return h + '</div><div class="card"><h3>' + sp(['Química', ch + ' de 100'], 'd') + '</h3>' + meter(ch, 'Química del equipo', '#4be0a0') +
+    var ci = null; try { ci = LIFE() ? LIFE().chemInfo(c) : null; } catch (e) { ci = null; }
+    return h + '</div><div class="card"><h3>' + sp(['Química', ci ? esc(ci.name) : ch + ' de 100'], 'd') + '</h3>' + meter(ch, 'Química del equipo', '#4be0a0', ci ? CHEM_MK : null) + chemNext(ci) +
       '<p class="muted">Sube cada partido (+5 jugado, +3 simulado, +2 en el banquillo) y en verano se pierde una parte. ' + (cb ? 'Ahora suma +' + cb + ' a todo el equipo en reacción, colocación y recepción.' : 'A partir de 30 suma +1 a todo el equipo en reacción, colocación y recepción (hasta +3).') + ' Al fichar por otro club empieza de cero.</p></div>';
   }
   /** Profundidad de tu puesto en el club de una oferta (titularidad): «Serías titular» o «Competencia: X (66) y Y (63)». */
@@ -1451,7 +1557,7 @@
   /** Ficha de una oferta de pista: país, liga y su nivel, club, puesto, rol prometido, sueldo, contrato. */
   function offerCard6(c, o, i, full) {
     var k = C().club(c, o.club), f = C().clubInfo(c, k, o.lid, o.ovr), y = yrs[o.club] || o.years || 1;
-    var h = '<div class="' + (full ? 'card offer-full' : 'offer-x') + '"' + (full ? '' : ' style="padding:8px 0;border-top:1px solid rgba(255,255,255,.1)"') + '><div class="row">' + kitSw(k.kit, full) +
+    var h = '<div class="' + (full ? 'card offer-full' : 'offer-x') + '"' + (full ? '' : ' style="padding:8px 0;border-top:1px solid rgba(255,255,255,.1)"') + '><div class="row">' + crest(k, full ? 56 : 40, c) +
       '<div class="grow" style="min-width:0"><p class="bigname"' + (full ? '' : ' style="font-size:18px"') + '>' + esc(k.name) + '</p><p class="muted" style="margin:2px 0 0">' +
       sp([stars(f.stars), esc(f.league), esc(f.country)], 'v') + (o.foreign ? ' <span class="tag y">Extranjero</span>' : '') + (o.scout ? ' <span class="tag g">Te vio un ojeador</span>' : '') + '</p></div></div>';
     var rl = Math.max(0, C().ROLE_LV.indexOf(o.role)), early = !o.trial && C().earlyExit && C().earlyExit(c);
@@ -1602,7 +1708,7 @@
     var offs = c.offers || [];
     if (trialI >= 0) { if (offs[trialI] && offs[trialI].trial) { renderTrialPre(trialInfo(c, trialI)); return; } trialI = -1; }   // previa de la prueba
     if (sub.pick !== 'cmp' && !(+sub.pick >= 0 && +sub.pick < offs.length)) sub.pick = 0;
-    head.innerHTML = '<button data-act="close" aria-label="Volver a Jugar">‹ Jugar</button>' +
+    head.innerHTML = backBtn() + ptHTML(c, 'me', 44, 'cr-pt', 'Retrato de ' + c.player.name) +
       '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada 1', 'Ofertas'], 'd') + '</small><b>' + sp([esc(c.player.name), 'Elige club'], 's') + '</b></div>' +
       '<div class="cr-ovr">' + C().playerOvr(c) + '<small>TU MEDIA</small></div>';
     tabsEl.hidden = false;
@@ -1614,7 +1720,7 @@
       h += '<div class="card"><h3>Comparar ofertas</h3><table><thead><tr><th class="l">Club</th><th class="hide-s">Liga</th><th>Media</th><th>' + (isHall(c) ? 'País' : 'Compañero') + '</th><th class="hide-s">Rol</th><th class="hide-s">Objetivo</th><th>Sueldo</th><th class="hide-s">Años</th><th></th></tr></thead><tbody>' +
         offs.map(function (o, i) {
           var k = C().club(c, o.club), f = C().clubInfo(c, k);
-          return '<tr><td class="club">' + kitSw(k.kit).replace('cr-kit', 'cr-kit kit-mini') + esc(k.name) + '<br><span class="muted">' + stars(f.stars) + '</span></td><td class="hide-s nw">' + esc(isHall(c) ? C().league(o.lid).short : C().league(o.lvl).short) + (o.trial ? '&nbsp;(prueba)' : '') + '</td><td>' + o.ovr + '</td><td>' + (isHall(c) ? esc(C().league(o.lid).country) : o.mate + (o.ovr != null && o.mate != null ? ' <span class="muted">(' + sgn(o.mate - o.ovr) + ')</span>' : '')) +
+          return '<tr><td class="club">' + crest(k, 22, c) + esc(k.name) + '<br><span class="muted">' + stars(f.stars) + '</span></td><td class="hide-s nw">' + esc(isHall(c) ? C().league(o.lid).short : C().league(o.lvl).short) + (o.trial ? '&nbsp;(prueba)' : '') + '</td><td>' + o.ovr + '</td><td>' + (isHall(c) ? esc(C().league(o.lid).country) : o.mate + (o.ovr != null && o.mate != null ? ' <span class="muted">(' + sgn(o.mate - o.ovr) + ')</span>' : '')) +
             '</td><td class="hide-s">' + esc(o.role) + '</td><td class="hide-s l">' + esc(objShort(o.objective)) + '</td><td class="nw">' + Math.round(o.salary) + '&nbsp;€/mes</td><td class="hide-s">' + (o.trial ? 1 : (yrs[o.club] || o.years || 1)) +
             '</td><td><button data-sub="' + i + '" aria-label="Ver ' + esc(k.name) + '">Ver</button></td></tr>';
         }).join('') + '</tbody></table><p class="muted">Sueldo ficticio, en euros al mes. Los años del contrato los eliges al firmar.</p></div>';
@@ -1946,6 +2052,9 @@
       // previa de la prueba: «Saltar a la pista»
       if (dbgTrial || (c && view === 'hub' && c.phase === 'pick' && trialI >= 0)) { var tpb = root.querySelector('[data-act="trial-play"]'); if (tpb) { focusEl(tpb, kbNav); return; } }
       if (c && view === 'hub' && c.phase === 'pick') { focusTab(); return; }   // eligiendo club: la pestaña de la oferta (no «Firmar» de golpe)
+      var fr = focusReq; focusReq = '';
+      var frb = fr && view === 'hub' ? root.querySelector('[data-act="' + fr + '"]') || root.querySelector('[data-act="play"]') || root.querySelector('[data-act="bench"]') : null;
+      if (frb) { focusEl(frb, kbNav); return; }
       var pref = root.querySelector('[data-act="cw-next"]') || root.querySelector('[data-act="play"]') || root.querySelector('[data-act="stay"]') || root.querySelector('#crName') || root.querySelector('[data-act="create"]') || root.querySelector('[data-act="look-open"]');
       if (!pref && view === 'hub') { focusTab(); return; }   // (p. ej. reabrir en Mensajes: la pestaña, no «‹ Jugar»)
       focusEl(pref || focusables()[0], kbNav);
@@ -2045,6 +2154,8 @@
   }
 
   // =================================================================== abrir / cerrar
+  /** Botón de volver de la cabecera: «‹ Menú» si se abrió desde la portada (B3), «‹ Jugar» si no. */
+  function backBtn() { return from === 'main' ? '<button data-act="close" aria-label="Volver al menú">‹ Menú</button>' : '<button data-act="close" aria-label="Volver a Jugar">‹ Jugar</button>'; }
   /** Fondo del menú: el escenario de la Carrera abierta (main.js ctx.actions.menuBackdrop). */
   function backdrop(k) { try { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.menuBackdrop) VB.ctx.actions.menuBackdrop(k); } catch (e) { } }
   function show(v) {
@@ -2056,11 +2167,12 @@
     var c = C() && C().get();
     view = v || (c ? 'hub' : 'create');
     if (view === 'hub' && !c) view = 'create';
-    if (!open) lastFocus = document.activeElement;
+    if (!open) { lastFocus = document.activeElement; ptDone = false; }
     open = true; confirmStep = 0;
     var app = document.getElementById('app'); if (app) app.classList.add('cr-on');
     lookSync();
     render(); syncMenu();
+    if (!ptDone && c && view === 'hub') { ptDone = true; prePt(c); }   // R8: retratos de la previa (tú y tu compañero, 72 px)
     root.hidden = false; root.classList.remove('in');
     requestAnimationFrame(function () { if (root) root.classList.add('in'); });
     focusFirst();
@@ -2072,10 +2184,71 @@
     var k = root.querySelectorAll('.kf'); for (var i = 0; i < k.length; i++) k[i].classList.remove('kf');
     syncMenu();
     if (!toPlay) backdrop('');
-    if (!toPlay) { var b = document.getElementById('btnCareer'); setTimeout(function () { if (b && !open) { try { b.focus({ preventScroll: true }); } catch (e) { } if (kbNav) b.classList.add('kf'); } }, 40); }
+    // abierta desde la portada: el foco vuelve a «Continuar carrera» (#btnCont) si se ve; si no (o desde Jugar), a #btnCareer
+    if (!toPlay) {
+      setTimeout(function () {
+        if (open) return;
+        var bc = from === 'main' ? document.getElementById('btnCont') : null, b = bc && !bc.hidden && bc.offsetParent !== null ? bc : document.getElementById('btnCareer');
+        if (b) { try { b.focus({ preventScroll: true }); } catch (e) { } if (kbNav) b.classList.add('kf'); }
+      }, 40);
+    }
   }
-  /** Subtítulo de la fila «Carrera» del menú. */
-  function syncMenu() { try { syncMenu0(); } catch (e) { } }
+  /** Subtítulo de la fila «Carrera» del menú y la tarjeta «Continuar carrera» de la portada (B3). */
+  function syncMenu() { try { syncMenu0(); } catch (e) { } try { syncHero(); } catch (e) { } }
+  /** B3: textos de «Continuar carrera» (S2-B2B3 §2.4), puro (sin DOM). null sin carrera. Devuelve {mode:'beach'|'hall', kind (chip
+   *  de arriba: «Playa»/«Pista»), title, chip (pastilla de la línea pequeña, '' si no hay), line, aria, club (tu club o null)}. */
+  function heroData(c) {
+    var K = C(); if (!c || !K || !c.player) return null;
+    var hall = isHall(c), word = hall ? 'pista' : 'playa', k = null;
+    try { k = K.myClub(c); } catch (e) { k = null; }
+    var d = { mode: hall ? 'hall' : 'beach', kind: hall ? 'Pista' : 'Playa', title: 'Continuar carrera', chip: '', line: '', aria: '', club: k || null };
+    var T = 'T' + (c.season | 0), tS = 'temporada ' + (c.season | 0);
+    if (c.phase === 'pick') {
+      var no = (c.offers || []).length;
+      d.title = 'Elige club'; d.chip = plural(no, 'oferta', 'ofertas'); d.line = 'Tu primer club'; d.club = null;
+      d.aria = 'Elige club en tu carrera de ' + word + ': ' + d.chip; return d;
+    }
+    if (c.phase === 'off') {
+      var nf = (c.offers || []).length;
+      d.title = 'Fin de temporada'; d.chip = T; d.line = nf ? plural(nf, 'oferta', 'ofertas') : 'Renueva o ficha';
+      d.aria = 'Fin de temporada en tu carrera de ' + word + ': ' + tS + ', ' + (nf ? d.line : 'renueva o ficha'); return d;
+    }
+    var n = null; try { n = K.next(c); } catch (e) { n = null; }
+    if (!n || !n.rival) {
+      d.chip = T; d.line = k ? k.name : '';
+      d.aria = 'Continuar carrera de ' + word + ': ' + tS + (k ? ', ' + k.name : ''); return d;
+    }
+    var rv = n.rival.name, when, whenA;
+    if (n.kind === 'league') { when = ' J' + ((n.week | 0) + 1); whenA = 'jornada ' + ((n.week | 0) + 1); }
+    else if (hall && n.kind === 'ko') { when = n.compName ? ' ' + n.compName : ''; whenA = n.compName || ''; }
+    else { when = n.round === 0 ? ' Semifinal' : ' Final'; whenA = n.round === 0 ? 'semifinal' : 'final'; }
+    var away = n.kind === 'league' && n.atHome === false, out = !!(n.bench || n.status === 'out');
+    d.chip = T + when; d.line = (out ? 'No juegas: ' : '') + (away ? 'en ' : 'vs ') + rv;
+    d.aria = 'Continuar carrera de ' + word + ': ' + [tS, whenA, (out ? 'no juegas, ' : '') + (away ? 'en casa de ' : 'contra ') + rv].filter(function (x) { return x; }).join(', ');
+    return d;
+  }
+  /** B3: rellena #contK/#contT/#contS/#contPt/#contCr y el aria-label de #btnCont (index.html, T15) con heroData. Devuelve true si
+   *  hay que enseñar la tarjeta (ui.js decide hidden y .primary). Sin #btnCont solo dice si habría tarjeta. */
+  var heroPt = '', heroCr = '';
+  function syncHero() {
+    var c = null; try { c = C() && C().get(); } catch (e) { c = null; }
+    var d = null; try { d = heroData(c); } catch (e) { d = null; }
+    var b = typeof document !== 'undefined' && document.getElementById ? document.getElementById('btnCont') : null;
+    if (!b || !d) return !!d;
+    var set = function (id, txt) { var n = document.getElementById(id); if (n && n.textContent !== txt) n.textContent = txt; };
+    set('contK', d.kind); set('contT', d.title);
+    var s = document.getElementById('contS'), sh = (d.chip ? sp([esc(d.chip)], 'c') + ' ' : '') + esc(d.line);
+    if (s && s._h !== sh) { s._h = sh; s.innerHTML = sh; }
+    if (b.getAttribute('aria-label') !== d.aria) b.setAttribute('aria-label', d.aria);
+    var low = typeof window !== 'undefined' && window.innerHeight <= 420, pt = document.getElementById('contPt');
+    if (pt) { var ph = ptHTML(c, 'me', low ? 56 : 72, 'ct-ptimg', 'Retrato de ' + c.player.name, 'alegria'); if (ph !== heroPt || !pt.firstChild) { heroPt = ph; pt.innerHTML = ph; } }
+    var cr = document.getElementById('contCr');
+    if (cr) {   // (los ids de clipPath cambian en cada llamada: se compara sin el contador)
+      var chh = d.club ? crest(d.club, 40, c) : '', cmp = chh.replace(/n\d+"/g, '"').replace(/n\d+\)/g, ')');
+      if (cmp !== heroCr || (chh && !cr.firstChild)) { heroCr = cmp; cr.innerHTML = chh; }
+    }
+    return true;
+  }
   function syncMenu0() {
     var s = document.getElementById('careerSub'); if (!s || !C()) return;
     var c = C().get(), t;
@@ -2106,15 +2279,28 @@
 
   VB.CareerUI = {
     /** Abre la Carrera ('hub' | 'create'; sin argumento: el hub si hay carrera, si no crear). opts.fresh = acaba de jugarse un partido. */
+    /** R15: open(v, {from:'main'|'play', fresh, focus:'play'|'train'|'bench'[, res]}). from (por defecto 'play'; al volver de un
+     *  partido o de una sesión sin from, se queda el de antes) decide «‹ Menú»/«‹ Jugar» y adónde vuelve el foco al cerrar.
+     *  focus 'train' (o el antiguo train:true) = vuelta de un ejercicio: Partido con el resultado (res) en el bloque Entrenamiento. */
     open: function (v, opts) {
+      opts = opts || {};
       if (v === 'pick') v = 'hub';   // (fase de elegir club: el hub ya enseña las ofertas)
-      if (opts && opts.fresh) { freshLast = true; tab = 'match'; }
       // vuelta de una prueba (main.js): su resultado arriba (ofertas o, si te fichan, tu club nuevo; si la dejaste a medias, «Prueba suspendida»)
-      if (opts && 'trialRes' in opts) { trialI = -1; trialRes = opts.trialRes || null; if (trialRes && !trialRes.pass) sub.pick = 0; }
-      // vuelta de un ejercicio de Carrera (main.js): a Partido, con el resultado en el bloque Entrenamiento
-      if (opts && opts.train) { tab = 'match'; trainNote = opts.res ? trainResText(opts.res) : ''; trainFocus = true; }
+      if ('trialRes' in opts) { trialI = -1; trialRes = opts.trialRes || null; if (trialRes && !trialRes.pass) sub.pick = 0; }
+      var back0 = opts.fresh || opts.train || opts.focus === 'train';
+      if (opts.from === 'main' || opts.from === 'play') from = opts.from; else if (!back0) from = 'play';
+      if (opts.fresh) { freshLast = true; tab = 'match'; }
+      if (opts.train || opts.focus === 'train') { tab = 'match'; trainNote = opts.res ? trainResText(opts.res) : ''; trainFocus = true; }
+      else if (opts.focus === 'play' || opts.focus === 'bench') { tab = 'match'; focusReq = opts.focus; }
       show(v);
     },
+    /** 'main' (abierta desde la portada) | 'play' (desde Jugar). */
+    from: function () { return from; },
+    syncHero: function () { try { return syncHero(); } catch (e) { return false; } },
+    heroData: heroData,
+    portraitReq: function (c, who, px, face) { try { return ptReq(c || (C() && C().get()), who, px, face); } catch (e) { return null; } },
+    crest: function (k, px, c) { return crest(k, px, c); },
+    _chemTxt: chemTxt,
     close: function () { close(); },
     isOpen: function () { return open; },
     /** Siguiente sesión del plan que se ve en pantalla (con los cambios a mano), para «Siguiente sesión» de la hoja del ejercicio
@@ -2136,6 +2322,6 @@
         player: 'Ari Lluch', ovrMe: 40, pend: 0, ai: hall ? '' : 'la IA rival juega en Normal suave' };
       show('hub');
     },
-    _tab: function (t) { if (open) setTab(t); }
+    _tab: function (t, s) { if (open) setTab(t, s); }
   };
 })();
