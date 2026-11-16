@@ -14,7 +14,7 @@
  *
  * Guardado: localStorage 'voley3d.look' (JSON, v1, < 8 KB):
  *   { v:1, fits:[fit n.º 1, fit n.º 2], ft: ms de la última edición de fits (para unir con la cuenta),
- *     own:{ id:{ s:'carrera'|'tienda'|'gym'|'record'|'retos'|'hito'|'boss', t:ms } }, seen:{ id:1 } }
+ *     own:{ id:{ s:'carrera'|'tienda'|'gym'|'record'|'retos'|'hito'|'boss'|'online', t:ms } }, seen:{ id:1 } }
  *   Dañado → copia en 'voley3d.look.bak' y lost(); v > 1 (versión más nueva) → solo lectura (readOnly) y mergeRaw no lo rebaja.
  *   No se escribe hasta la primera edición (setFit) o el primer desbloqueo (grant). Lo de inicio no se guarda en own.
  *   La Carrera guarda su propio fit en c.life.look (career-life.js); el inventario (own) es global para todo el juego.
@@ -40,8 +40,9 @@
   // hueco de color → campo de L y letra de «vc» (colores por vértice de cada objeto)
   var COLOR_L = { acc: 'cA', acc2: 'cB', sock: 'cSock', shoe: 'cShoe', glass: 'cGlass' };
   var VC_KEY = { A: 'acc', B: 'acc2', S: 'sock', H: 'shoe', G: 'glass' };
-  // origen de lo ganado (own[id].s): 'retos' (VB.Retos), 'hito' (nivel de perfil, VB.Profile) y 'boss' (jefe de la Carrera)
-  var SRCS = ['carrera', 'tienda', 'gym', 'record', 'retos', 'hito', 'boss'];
+  // origen de lo ganado (own[id].s): 'retos' (VB.Retos), 'hito' (nivel de perfil, VB.Profile), 'boss' (jefe de la Carrera) y
+  // 'online' (primer partido online: VB.NetRec)
+  var SRCS = ['carrera', 'tienda', 'gym', 'record', 'retos', 'hito', 'boss', 'online'];
 
   // ---------------------------------------------------------------- colores de identidad
   // Piel: los 10 SKINS de players.js (mismo orden) + 4 nuevos. Pelo: los 10 HAIRS + el del n.º 2 + canas, gris, platino y cobrizo.
@@ -101,6 +102,9 @@
     { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'A', g: 'f', tris: [100, 190, 336] },
     { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'A', g: 'm', hint: HIDE_HAIR_HINT, tris: [340, 480, 936] },
     { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [120, 180, 250] },
+    // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «MTC» en el frontal; se gana al
+    // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
+    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [400, 519, 916] },
     // gafas
     { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [350, 600, 1040] },
     { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
@@ -216,7 +220,7 @@
   CLASH.forEach(function (r) { Object.freeze(r.a.ids); Object.freeze(r.b.ids); Object.freeze(r.a); Object.freeze(r.b); Object.freeze(r.why); Object.freeze(r); });
   var STYLE_FALLBACK = 'tupe';   // al quitar un peinado que choca (ninguna regla lo nombra)
   // objetos que sustituyen al pelo (gorra, gorra al revés y pescador): se dibuja el pelo de nuca, salvo coleta / trenzas / coletas
-  var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador'];
+  var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador', 'gorraMTC'];
 
   // ---------------------------------------------------------------- utilidades
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
@@ -587,6 +591,7 @@
     if (u.dias) return 'Reto del día: ' + plural(u.dias, 'oro', 'oros');
     if (u.lvl) return 'Perfil: Nv ' + u.lvl;
     if (u.chem) return 'Química: ' + chemLabel(u.chem, hall);
+    if (u.online) return 'Online: termina tu primer partido';
     return '';
   }
   /** Cómo se gana, una línea por alternativa (vacío si es de inicio). hall = Carrera de pista (nombres de logro de pista). */
@@ -658,7 +663,7 @@
     if (isStart(id)) return true;
     return own(load().own, id);
   }
-  /** Concede un objeto (src: 'carrera' | 'tienda' | 'gym' | 'record' | 'retos' | 'hito' | 'boss'). true si es nuevo (false también
+  /** Concede un objeto (src: 'carrera' | 'tienda' | 'gym' | 'record' | 'retos' | 'hito' | 'boss' | 'online'). true si es nuevo (false también
    *  si el guardado es de solo lectura). */
   function grant(id, src) {
     if (!lockable(id)) return false;

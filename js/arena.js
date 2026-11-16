@@ -3396,9 +3396,9 @@
   function startCheer(t, sec) { if (RT.cheerT[t] < 0.3) RT.cheerAge[t] = 0; RT.cheerT[t] = sec; }
   function teamName(t, g) { return g && g.demo ? (t === 0 ? 'LOCAL' : 'VISITA') : (t === 0 ? 'TÚ' : 'CPU'); }
   /** «PUNTO PARA TI» / «SET PARA LA CPU» (rótulos del pabellón, 10-nov-2026: frases en vez de «PUNTO · TÚ»). */
-  function teamFor(t, g) { return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : 'LA CPU'); }
+  function teamFor(t, g) { return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : g && g.online ? 'EL RIVAL' : 'LA CPU'); }   // (online: el rival es una persona)
   /** «CHALLENGE TUYO» / «CHALLENGE DE LA CPU». */
-  function teamOf(t, g) { return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : 'DE LA CPU'); }
+  function teamOf(t, g) { return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : g && g.online ? 'DEL RIVAL' : 'DE LA CPU'); }
   var REASON = { 'in': 'DENTRO', out: 'FUERA', antenna: 'ANTENA', 'double': 'DOBLES', four: '4 TOQUES', net: 'TOQUE DE RED',
     serve: 'FALTA DE SAQUE', under: 'BAJO LA RED', block: 'BLOQUEO DEL SAQUE', attackServe: 'ATAQUE SOBRE EL SAQUE' };
   var HOW = { ace: '¡ACE!', kill: 'REMATE', tip: 'DEJADA', block: 'BLOQUEO' };
@@ -3475,7 +3475,7 @@
         case 'match':
           var win = e.team === 0 && !g.demo;
           ledMessage(win ? '¡VICTORIA!' : 'FIN DEL PARTIDO', TEAMC[e.team], 9);
-          screenMsg(win ? '¡VICTORIA!' : 'GANA ' + (g && g.demo ? (e.team === 0 ? 'EL LOCAL' : 'LA VISITA') : 'LA CPU'), 'SETS ' + (e.sets ? e.sets[0] + ' – ' + e.sets[1] : ''), TEAMC[e.team], 9);
+          screenMsg(win ? '¡VICTORIA!' : 'GANA ' + (g && g.demo ? (e.team === 0 ? 'EL LOCAL' : 'LA VISITA') : g && g.online ? 'EL RIVAL' : 'LA CPU'), 'SETS ' + (e.sets ? e.sets[0] + ' – ' + e.sets[1] : ''), TEAMC[e.team], 9);
           RT.waveAmp = 1; RT.waveT = 10; flRate = 40; MOOD.winOn = true;
           break;
         case 'block':

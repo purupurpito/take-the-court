@@ -429,7 +429,9 @@
       // S3-C1: repetición (mosca, rótulo, pista de saltar con «Salir» y aviso para el lector de pantalla)
       'rpBug', 'rpCap', 'rpTitle', 'rpPill', 'rpPhrase', 'rpSub', 'rpSkip', 'rpSkipT', 'rpExit', 'rpAria',
       // S4-D2: perfil (chip de la portada, página con nivel, vitrina y álbum, y avisos)
-      'menuFoot', 'btnProf', 'mpProf', 'btnProfBack', 'pfKick', 'pfCard', 'pfVit', 'pfRo', 'pfTabs', 'pfGrid', 'pfFoot', 'pfPin', 'pfNote'].forEach(function (k) { el[k] = $(k); });
+      'menuFoot', 'btnProf', 'mpProf', 'btnProfBack', 'pfKick', 'pfCard', 'pfVit', 'pfRo', 'pfTabs', 'pfGrid', 'pfFoot', 'pfPin', 'pfNote',
+      // ONLINE (especialista net, js/netlobby.js): tarjeta de Jugar y página del lobby
+      'btnOnline', 'mpOnline', 'btnOnlineBack'].forEach(function (k) { el[k] = $(k); });
     el.bn1 = $('bn1'); el.bn2 = $('bn2'); el.bn3 = $('bn3'); el.pbug = $('pbug'); el.pbT = $('pbT'); el.pbS = $('pbS'); el.pbX = $('pbX'); el.sbBody = document.querySelector('.sb-body'); el.sb = $('sb'); el.sbSet = $('sbSet'); el.tag = $('sbTag'); el.hist = $('sbHist');
     el.row0 = $('sbRow0'); el.row1 = $('sbRow1'); el.name0 = $('sbName0'); el.name1 = $('sbName1');
     el.pts0 = $('sbPts0'); el.pts1 = $('sbPts1');
@@ -577,7 +579,7 @@
   // 6v6 espectador (g.watch de main.js, sprint 2: CPU contra CPU): rótulos de local / visitante en vez de TÚ / CPU
   var WATCH_CR = { me: 'LOC', rival: 'VIS', meName: 'Equipo local', rivalName: 'Equipo visitante' };
   function cpuTxt(s) {
-    var g = ctx && ctx.game, cr = g && !g.demo && (g.career || (g.watch0 && WATCH_CR));
+    var g = ctx && ctx.game, cr = g && !g.demo && (g.career || (g.watch0 && WATCH_CR) || g.netCr);   // (online: g.netCr, el nombre del rival)
     if (!cr || typeof s !== 'string' || s.indexOf('CPU') < 0) return s;
     return s.replace(/de la CPU/g, 'del rival').replace(/a la CPU/g, 'al rival').replace(/la CPU/g, 'el rival').replace(/La CPU/g, 'El rival')
       .replace(/\bCPU\b/g, cr.rival || 'RIVAL');
@@ -930,7 +932,7 @@
           // En depuración, en seco (no guarda). Los objetos del Vestuario que dan los retos los concede checkGlobal al volver al
           // menú (lkCheckNew, con su aviso); la hoja de B6 (T19) los enseñará antes con lookGrantNow
           retoEnd = null;
-          if (VB.Retos && VB.Retos.endMatch && !e.replay) {
+          if (VB.Retos && VB.Retos.endMatch && !e.replay && !(g && g.online)) {   // (online: sin retos, decisión 4 de Ferran)
             try { retoEnd = VB.Retos.endMatch(g, { win: e.team === 0, map: VB.Arena && VB.Arena.map ? VB.Arena.map() : '', sets: e.sets }, !!ctx.debug); }
             catch (er) { console.error('[VB][ERROR] Retos.endMatch: ' + er); retoEnd = null; }
           }
@@ -1998,7 +2000,7 @@
     if (drOn) drillHud(g);
     setHTML(el.sbSet, 'set', demo ? 'DEMO' : sepHTML(['SET ' + g.setNo, g.setNo === 3 ? 'A 15' : ''], 's'));
     // partido de Carrera (g.career, main.js): abreviaturas de los dos clubes en vez de TÚ / CPU
-    var cr = !demo && (g.career || (g.watch0 && WATCH_CR));
+    var cr = !demo && (g.career || (g.watch0 && WATCH_CR) || g.netCr);   // (online, fase 3: TÚ / las 3 primeras letras del nombre del rival)
     setText(el.name0, 'n0', demo ? 'ROJO' : (cr && cr.me) || 'TÚ'); setText(el.name1, 'n1', demo ? 'AZUL' : (cr && cr.rival) || 'CPU');
     if (!demo) teamNames(cr);
     setText(el.pts0, 'p0', g.score[0]); setText(el.pts1, 'p1', g.score[1]);
@@ -2813,7 +2815,9 @@
     // 6v6 con humano (sprint 3): tampoco. El récord (y con él el fin de los consejos a la 1ª victoria, el novato de main.js
     // isRookie y la guía del primer partido) es del 2 contra 2; el 6v6 lo arrastra su equipo IA
     var six = !!(ctx.game && ctx.game.size === 6 && !ctx.game.demo);
-    if (!ctx.debug && !career && !watch && !six) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
+    // ONLINE (decisión 4 de Ferran): sin récord de Partido rápido, experiencia, perfil, insignias ni Vestuario; el récord online va aparte (fase 3)
+    var online = !!(ctx.game && ctx.game.online) || !!ctx.net;
+    if (!ctx.debug && !career && !watch && !six && !online) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
       record.played++; if (win) { record.wins++; record.winRun++; } else record.winRun = 0;
       // los consejos del partido acompañan hasta la primera victoria; luego se apagan (se reactivan en Ajustes · Juego · Consejos)
       if (win && record.wins === 1 && ctx.settings.coachTips !== false) ctx.actions.setSetting('coachTips', false);
@@ -2827,7 +2831,7 @@
     // D2 (perfil): cada partido jugado de verdad suma XP de perfil (Partido rápido 2v2/6v6 y Carrera); nunca en depuración,
     // espectador, autopilot ni demo. El resultado {xp, lvl, lvlUp, prize} lo enseña la hoja de B6 (T19)
     profEnd = null;
-    if (!ctx.debug && !watch && ctx.game && !ctx.game.autopilot && !ctx.game.demo && VB.Profile && VB.Profile.noteMatch) {
+    if (!ctx.debug && !watch && !online && ctx.game && !ctx.game.autopilot && !ctx.game.demo && VB.Profile && VB.Profile.noteMatch) {
       try {
         var pr = VB.Profile.noteMatch({ mode: career ? 'career' : six ? '6v6' : '2v2', win: win, setsWon: e.sets[0] | 0, diff: String(ctx.game.difficulty || ''), venue: VB.Arena && VB.Arena.map ? VB.Arena.map() : '' });
         if (pr) profEnd = { xp: pr.xp | 0, lvl: pr.lvl | 0, lvlUp: !!pr.lvlUp, prize: pr.prizeName || '' };
@@ -2838,7 +2842,9 @@
     var endPts = (ctx.game && ctx.game.points) || 25, dn = VB.DIFF && ctx.game && VB.DIFF[ctx.game.difficulty] && VB.DIFF[ctx.game.difficulty].name;
     // «Palau del Mar ◆ Nivel Normal | Sets a 25»: la sede tras el rombo del antetítulo; nivel y puntos por set, datos con la barra fina
     setSep(el.endKicker, [venueName(), { h: 'Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')]) + SEP_V + 'Sets a ' + endPts }], 'd');
-    el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : 'Gana la CPU'; el.endTitle.classList.remove('long');
+    var gNet = ctx.game && ctx.game.netCr;   // (online: el nombre del rival y «Online» en vez del nivel)
+    if (gNet) setSep(el.endKicker, [venueName(), { h: 'Online' + SEP_V + 'Sets a ' + endPts }], 'd');
+    el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : gNet ? 'Gana ' + gNet.rivalName : 'Gana la CPU'; el.endTitle.classList.toggle('long', !!gNet && !win && gNet.rivalName.length > 11);
     el.endS0.textContent = e.sets[0]; el.endS1.textContent = e.sets[1];
     el.endSets.innerHTML = (e.setScores || []).map(function (s, i) {
       return '<span class="w' + (s[0] > s[1] ? 0 : 1) + '"><small>SET ' + (i + 1) + '</small>' + s[0] + '-' + s[1] + '</span>';
@@ -2855,13 +2861,13 @@
     var rec = '<span>Jugada más larga: <b>' + stats.longest + ' toques</b></span>';
     // E1: lo que has usado de la maestría (usos), en una línea y solo si hay algo que contar
     var e1l = masteryLine(ctx.game); if (e1l && !watch) rec += '<span class="e1">' + e1l + '</span>';
-    if (!ctx.debug && !career && !six) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
+    if (!ctx.debug && !career && !six && !online) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
     var bs = record.bestStreak;
     if (isNew) rec += '<span class="new">¡Nueva mejor racha: ' + (bs === 1 ? '1 punto seguido' : bs + ' puntos seguidos') + '!</span>';
-    else if (record.winRun > 1 && !career) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
+    else if (record.winRun > 1 && !career && !online) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
     // siguiente paso en un clic: tras ganar, revancha un nivel por encima; tras perder (salvo en Fácil), uno por debajo
     var di = optIndex('difficulty'), alt = win ? (di < OPT.difficulty.vals.length - 1 ? di + 1 : -1) : (di > 0 ? di - 1 : -1);
-    if (!win && alt >= 0 && !career) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
+    if (!win && alt >= 0 && !career && !online) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
     el.btnAgainAlt.hidden = alt < 0;
     if (alt >= 0) { el.btnAgainAlt.textContent = 'Revancha en ' + OPT.difficulty.labels[alt]; el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); endAltName = OPT.difficulty.labels[alt]; }
     // (botones de siempre; el Resumen de B6 los vuelve a rotular según el caso: Carrera, reto, Partido rápido)
@@ -2874,7 +2880,7 @@
     if (el.btnEndOpts) { el.btnEndOpts.hidden = noOpts; el.btnEndOpts.parentNode.setAttribute('data-n', String((alt >= 0 && !career ? 1 : 0) + (noOpts ? 0 : 1) + 1)); }
     // (partido de Carrera, g.career: la experiencia y las insignias de su atleta las reparte VB.Career.matchDone, no el escuadrón)
     // (6v6 de pruebas, ?format=6v6: tampoco reparte al escuadrón de 2v2)
-    if (!ctx.debug && VB.Prog && ctx.game && !ctx.game.autopilot && !ctx.game.career && ctx.game.size !== 6) {
+    if (!ctx.debug && !online && VB.Prog && ctx.game && !ctx.game.autopilot && !ctx.game.career && ctx.game.size !== 6) {
       var dfk = ctx.game.difficulty, perP = [stats.p[0], stats.p[1]];
       var aw = VB.Prog.award(perP, { win: win, setsWon: e.sets ? e.sets[0] : 0, difficulty: dfk }), sqa = VB.Prog.get().a, xh = '';
       aw.forEach(function (r, i) {
@@ -2903,7 +2909,7 @@
     el.endMvp.classList.toggle('two', nMv > 1);
     // B6: el Vestuario de Partido rápido (récord, Entrenamiento, retos y nivel de perfil) se concede ya, sin aviso, para enseñarlo en
     // el Resumen (el aviso del menú, lkCheckNew, ya no lo repite). En la Carrera lo concede VB.Career.matchDone
-    if (!ctx.debug && !career && !watch && ctx.game && !ctx.game.autopilot && !ctx.game.demo) lookGrantNow();
+    if (!ctx.debug && !career && !watch && !online && ctx.game && !ctx.game.autopilot && !ctx.game.demo) lookGrantNow();
     endRecap(e, ctx.game, null, null);
     shown = '';
   }
@@ -2941,7 +2947,7 @@
     for (id in stats.p) pl.push(stats.p[id]);
     var mo = stats.moments.slice(); if (stats.rallyM) mo.push(stats.rallyM); if (stats.streakM) mo.push(stats.streakM);
     var d = { seed: (g && g.seed) >>> 0, win: e.team === 0, sets: [e.sets[0] | 0, e.sets[1] | 0], setScores: (e.setScores || (g && g.setScores) || []).map(function (s) { return [s[0] | 0, s[1] | 0]; }),
-      to: (g && g.points) || 25, size: (g && g.size) || 2, career: cs, cpu: 'la CPU', pl: pl, spSaved: stats.spSaved.slice(), moments: mo, close: stats.close,
+      to: (g && g.points) || 25, size: (g && g.size) || 2, career: cs, cpu: g && g.netCr ? 'el rival' : 'la CPU', pl: pl, spSaved: stats.spSaved.slice(), moments: mo, close: stats.close,
       longest: stats.longest, watch: !!(g && g.watch0 && !g.demo), drill: false, reto: g && g.reto && !cs ? g.reto : null, plays: replayN(), unlocks: endUnlocks(),
       profile: profEnd || null };
     if (cs) {
@@ -2985,6 +2991,7 @@
     el.endSum.innerHTML = watch ? '' : rcHTML(M, d);
     renderPlays(watch ? 0 : d.plays | 0);
     if (!watch) endButtons(M);
+    if (ctx.net) { onlineEndButtons(); onlineEndRec(); }
     var tabs = watch ? ['stats'] : M.tabs, q = ctx.debug && ctx.params.tab;
     endPanes(tabs, q === 'stats' && tabs.indexOf('stats') >= 0 ? 'stats' : q === 'plays' && tabs.indexOf('plays') >= 0 ? 'plays' : tabs[0], watch, M.tabLabels);
     // sonidos de la entrada escalonada (a los 700 ms la flecha de la tabla, a los 800 ms el desbloqueo): al verse la hoja (syncScreens)
@@ -3100,13 +3107,40 @@
   /** Botones del modelo (principal + resto) sobre los cuatro de siempre: again/next → #btnAgain; againAlt; opts/retos → #btnEndOpts; menu. */
   function endButtons(M) {
     var B = M.buttons; if (!B) return;
-    el.btnAgain.textContent = B.primary.label; el.btnAgain.setAttribute('data-act', B.primary.id);
+    el.btnAgain.textContent = B.primary.label; el.btnAgain.setAttribute('data-act', B.primary.id); el.btnAgain.disabled = false;   // (la revancha online lo deja desactivado)
     var has = {}; (B.rest || []).forEach(function (b) { has[b.id] = b; });
     el.btnAgainAlt.hidden = !has.againAlt; if (has.againAlt) el.btnAgainAlt.textContent = has.againAlt.label;
     var o = has.opts || has.retos;
     if (el.btnEndOpts) { el.btnEndOpts.hidden = !o; if (o) { el.btnEndOpts.textContent = o.label; el.btnEndOpts.setAttribute('data-act', o.id); } }
     el.btnMenu.hidden = !has.menu; if (has.menu) el.btnMenu.textContent = has.menu.label;
     el.btnAgain.parentNode.setAttribute('data-n', String((has.againAlt ? 1 : 0) + (o ? 1 : 0) + (has.menu ? 1 : 0)));
+  }
+  /** Online (main.js ctx.net; notes/net.md «Fase 3»): la hoja final ofrece «Revancha» (se pide al rival: cuando los dos la quieren,
+   *  empieza otro partido con la misma sala) y «Volver al menú» (nada de un partido offline contra la CPU). Salir tras el final no es
+   *  abandonar (VB.Net Session.quit). onlineEndSync lo pone al día cada frame (esperando al rival, el rival la pide, el rival se fue). */
+  function onlineEndButtons() {
+    el.btnAgain.setAttribute('data-act', 'rematch'); el.btnAgain.disabled = false; netEndKey = '';
+    el.btnAgainAlt.hidden = true; if (el.btnEndOpts) el.btnEndOpts.hidden = true;
+    el.btnMenu.hidden = false; el.btnMenu.textContent = 'Volver al menú';
+    el.btnAgain.parentNode.setAttribute('data-n', '1');
+    onlineEndSync();
+  }
+  var netEndKey = '';
+  function onlineEndSync() {
+    var n = ctx.net; if (!n || !n.sess || el.btnAgain.getAttribute('data-act') !== 'rematch') return;
+    var s = n.sess, who = s.rivalName || n.rival || 'tu rival', left = !!s.rivalLeft || s.status === 'ended';
+    var t = left ? who + ' se ha ido' : n.want ? (n.rivalWants ? 'Empezando…' : 'Esperando a ' + who + '…') : n.rivalWants ? '¡Revancha! (' + who + ' quiere)' : 'Revancha';
+    var k = t + (left || n.want ? '|x' : '');
+    if (netEndKey === k) return; netEndKey = k;
+    el.btnAgain.textContent = t; el.btnAgain.disabled = left || n.want;
+  }
+  /** Récord online (VB.NetRec) al pie del resumen, y la gorra si es nueva (también sale en «Nuevo en tu vestuario»). */
+  function onlineEndRec() {
+    var R = VB.NetRec, n = ctx.net; if (!R || !el.endSum || !n) return;
+    var ln = ''; try { ln = R.line(); } catch (e) { ln = ''; }
+    if (!ln) return;
+    var p = document.createElement('p'); p.className = 'rc-net'; p.style.cssText = 'margin:8px 0 0;font:700 14px var(--ui);color:var(--soft,#cfd6e4);text-align:center';
+    p.textContent = 'Tu récord online: ' + ln; el.endSum.appendChild(p);
   }
   /** Retrato pequeño del MVP (tu jugador de la Carrera o tu n.º 1/2 de Partido rápido); nunca de rivales. */
   function rcPortrait(mv, cs) {
@@ -3443,14 +3477,17 @@
   // qué botón se vino, para volver con Esc / B / «Volver» al mismo sitio. La Carrera (career-ui.js) se abre desde la tarjeta
   // #btnCareer de Jugar: mientras está abierta, el menú se queda en Jugar (al cerrarla, el foco vuelve a esa tarjeta).
   var mpage = 'main', mstack = [];
-  function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : p === 'retos' ? el.mpRetos : p === 'prof' ? el.mpProf : el.menuCol; }
-  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : el.btnPlay; }
+  function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : p === 'retos' ? el.mpRetos : p === 'prof' ? el.mpProf : p === 'online' ? el.mpOnline : el.menuCol; }
+  function netLobbyFocus() { var f = VB.NetLobby && VB.NetLobby.focus ? safe(VB.NetLobby.focus) : null; return f || el.btnOnlineBack; }
+  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : el.btnPlay; }
   function setPage(p, anim) {
     var was = mpage;
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
     if (was === 'prof' && p !== 'prof') pfLeave();   // Perfil: lo nuevo de la pestaña a la vista queda visto
+    if (was === 'online' && p !== 'online' && VB.NetLobby) { try { VB.NetLobby.leave(); } catch (e) { console.error('[VB][ERROR] NetLobby.leave: ' + e); } }   // (sale de la sala que hubiera)
     mpage = p;
-    ['main', 'play', 'quick', 'gym', 'look', 'retos', 'prof'].forEach(function (k) { var n = pageEl(k); if (n) n.hidden = k !== p; });
+    ['main', 'play', 'quick', 'gym', 'look', 'retos', 'prof', 'online'].forEach(function (k) { var n = pageEl(k); if (n) n.hidden = k !== p; });
+    if (p === 'online' && was !== 'online' && VB.NetLobby && el.mpOnline) { try { VB.NetLobby.open(el.mpOnline); } catch (e) { console.error('[VB][ERROR] NetLobby.open: ' + e); } }
     if (p === 'gym') renderGym();
     if (p === 'retos') renderRetos();
     if (p === 'prof' && was !== 'prof') pfOpen();
@@ -3477,6 +3514,7 @@
   }
   function menuBack() {
     if (!mstack.length || ctx.state !== 'menu' || panel) return false;
+    if (mpage === 'online' && VB.NetLobby && VB.NetLobby.back && safe(VB.NetLobby.back)) { uiSound('back'); return true; }   // (online: primero lo abierto dentro del lobby)
     var kb = kbNow(), s = mstack.pop();
     // Vestuario abierto desde la Carrera: al volver, la Carrera se abre otra vez por su cuenta (o.back) y se queda con el foco
     var fn = mpage === 'look' && lk.o && typeof lk.o.back === 'function' ? lk.o.back : null;
@@ -4153,7 +4191,8 @@
   function endPrimary() {
     var act = el.btnAgain.getAttribute('data-act') || 'again', g = ctx.game;
     uiSound('start');
-    if (act === 'next') { goMenu(); return; }
+    if (ctx.net && act === 'rematch') { if (ctx.actions.netRematch) ctx.actions.netRematch(); onlineEndSync(); return; }   // (online: revancha pactada, fase 3)
+    if (act === 'next' || ctx.net) { goMenu(); return; }   // (online: si no, al menú)
     if (g && g.retoOpts && !g.demo) { goReto(true); return; }
     goMatch(null, undefined, !(g && g.career));
   }
@@ -5794,6 +5833,7 @@
     if (a && a.classList && a.classList.contains('mode') && !panel) { modeStep(a, d); return true; }
     if (a && a.classList && a.classList.contains('mp-back') && !panel && mpage === 'play') { focusEl(el.btnQuick, true); hoverSound(); return true; }
     if (a && a.classList && a.classList.contains('mp-back') && !panel && mpage === 'gym') { focusEl(gymRowEl(gymSel), true); hoverSound(); return true; }
+    if (!panel && mpage === 'online' && el.mpOnline && a && el.mpOnline.contains(a) && VB.NetLobby && VB.NetLobby.side && VB.NetLobby.side(a, d)) return true;   // (online: filas de crear sala)
     if (!panel && mpage === 'prof' && a && a.hasAttribute && a.hasAttribute('data-aid') && el.pfGrid && el.pfGrid.contains(a)) { pfGridH(a, d); return true; }
     if (a && a.getAttribute && a.getAttribute('role') === 'tab') { var tb = activeTabs(); if (tb) { tb.step(d, 'key'); return true; } }
     // Vestuario: fila = valor anterior / siguiente; selector de jugador, escenario y pie = vecino
@@ -6171,7 +6211,7 @@
     _prof: function () { return { tab: pf.tab, sel: pf.sel, pins: pf.pins.slice(), q: pf.q.slice(), note: el.pfNote ? el.pfNote.textContent : '', sum: pfSum ? { lvl: pfSum.lv.lvl, have: pfSum.have, total: pfSum.total, vit: pfSum.vit.map(function (i) { return i.aid; }), un: pfSum.un, show: pfSum.show } : null, dirty: pfDirty }; },
     /** Pruebas (B3): portada con «Continuar carrera» {on, open: abierta desde la portada}. */
     _hero: function () { return { on: heroOn, open: contOpen, dirty: heroDirty }; },
-    menuGo: function (p, o) { if (p === 'look') return openLook(o); if (p === 'prof') return openProfile(o); if (p === 'play' || p === 'quick' || p === 'gym') menuGo(p); },
+    menuGo: function (p, o) { if (p === 'look') return openLook(o); if (p === 'prof') return openProfile(o); if (p === 'play' || p === 'quick' || p === 'gym') menuGo(p); if (p === 'online' && ctx.state === 'menu' && !panel && el.mpOnline) { if (mpage === 'main') { mstack.push({ p: 'main', f: 'btnPlay' }); setPage('play'); } menuGo('online'); } },
     /** Vestuario (página 'look'): o = {who: 'career', hall, tc, back} desde la Carrera; {tab, venue, item, pick} para ?debug=look
      *  (tab: pelo|cabeza|cara|cuerpo|brazos|piernas|colores; venue: hall|beach; item: id del catálogo que probar; pick: 1 | 2 | 'career').
      *  false si no se puede abrir (sin look.js, fuera del menú). */
@@ -6208,6 +6248,9 @@
       if (el.btnQuick) el.btnQuick.addEventListener('click', function () { if (ctx.settings.format !== '2v2') ctx.actions.setSetting('format', '2v2'); menuGo('quick'); });
       if (el.btnGo) el.btnGo.addEventListener('click', play);
       [el.btnPlayBack, el.btnQuickBack, el.btnGymBack].forEach(function (b) { if (b) b.addEventListener('click', function () { menuBack(); }); });
+      // ONLINE (especialista net): tarjeta en Jugar solo si VB.NetLobby.menuOn() (publicación o ?online=1); su «Volver» sale de la página
+      if (el.btnOnline && VB.NetLobby && el.mpOnline && safe(VB.NetLobby.menuOn)) { el.btnOnline.hidden = false; if (el.btnOnline.parentNode) el.btnOnline.parentNode.classList.add('has-onl'); el.btnOnline.addEventListener('click', function () { menuGo('online'); }); }
+      if (el.btnOnlineBack) el.btnOnlineBack.addEventListener('click', function () { while (mpage === 'online' && menuBack()) { } });
       // E6: Entrenamiento (tarjeta de Jugar → página; fila → ejercicio; botones de la hoja final)
       if (el.btnGym) el.btnGym.addEventListener('click', function () { menuGo('gym'); });
       if (el.gymList) el.gymList.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b) { uiSound('start'); goGym(b.getAttribute('data-drill')); } });
@@ -6479,6 +6522,7 @@
     },
     /** dt = tiempo de juego (0 en pausa/congelado: los banners se quedan). */
     update: function (g, dt, events) {
+      if (ctx.net && ctx.state === 'over') onlineEndSync();   // (online: rótulo de la revancha)
       if (!g) return;
       if ((ctx.frame & 31) === 7) kitTick();   // por si players cambia la equipación de la CPU por su cuenta
       onEvents(g, events);

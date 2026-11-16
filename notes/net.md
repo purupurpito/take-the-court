@@ -1,0 +1,779 @@
+# notes/net.md — modo online (especialista `net`)
+
+Dueño: **net** (`js/net*.js`, `tools/mptest.js`, `tools/net*.js`, `tools/viewtest.js`, `tools/roomtest.js`). Diseño aprobado: rollback simétrico entre dos
+pares con reparación por instantánea del anfitrión; solo viajan las entradas con su tic; WebRTC DataChannel; señalización por Firestore
+REST; vista espejo para el invitado (`js/netview.js`). Decisiones de Ferran (16-nov-2026) que mandan sobre el diseño: lobby con lista de
+salas, solo con cuenta, stats de la Carrera por defecto (opción «Igualado»), cada humano lleva SIEMPRE a 1 jugador, gorra «Online Beta
+Tester» como única recompensa, sin pausa en juego (10 s entre sets, se salta si los dos pulsan «Continuar»), del rival solo el nombre
+(nunca la IP ni el correo).
+
+---
+
+## Fase 0 — simulación con dos huecos humanos (16-nov-2026)
+
+Solo Node, sin red ni interfaz. Todo va detrás de `opts.online`: sin esa opción la simulación hace exactamente lo de siempre
+(`node tools/simtest.js` → «huella 2v2 idéntica», `node tools/fingerprint6.js --variant mastery` → idéntica).
+
+### Cómo se crea y se avanza
+
+```js
+var g = VB.Sim.createGame({
+  online: true, seed: 12345, venue: 'beach' | 'hall', points: 21, bestOf: 1 | 3, present: true, stats: true,
+  even: false,                                   // «Igualado»: sin atributos ni insignias para nadie
+  humans: [ { idx: 0, aimSet: true, attrs: {...}, badges: {...} },   // hueco 0 = equipo 0 = anfitrión
+            { idx: 0, aimSet: true, attrs: {...}, badges: {...} } ]  // hueco 1 = equipo 1 = invitado
+});
+VB.Sim.step(g, 1 / 120, [entradaHueco0, entradaHueco1]);
+```
+
+- **Hueco = equipo.** El hueco 0 es el equipo 0 (x > 0, el anfitrión) y el hueco 1 el equipo 1. `idx` = qué jugador lleva (0 = su
+  n.º 1, por defecto). Cada humano lleva siempre a UN jugador (`ctrlMode 'one'`); su compañero es la IA con `DIFF.mate`.
+- **Forzado por el online:** 2v2, sin demo ni autopilot, sin Entrenamiento ni banquillo, nivel `'normal'` (lo usa el toque de red del
+  bloqueo activo), sin «primer partido», maestría activada (`mastery: false` la apaga), `g.prof = [DIFF.mate, DIFF.mate]` y timing común
+  `VB.TIMING.online` (= el de Normal: `assist` 0,22, `swing` 0,36, `lock` 0,09; decisión D9).
+- **Partido:** a 21 por defecto (`points` acepta 11/15/21/25; la playa siempre 21). `bestOf: 3` = mejor de 3 (21-21-15); si no, **1 set**
+  (`g.bo1`). El 3r set a 15 sale del `setTarget` de siempre.
+- **Atributos por hueco:** `humans[s].attrs` / `.badges` van al jugador `idx` del equipo `s` (internamente `opts.attrs` /
+  `opts.badges` de siempre). Los compañeros IA, neutros. `even: true` (Igualado) los ignora todos.
+  - **De dónde salen (para las fases de interfaz):** por defecto, los atributos e insignias del jugador de la Carrera activa
+    (`voley3d.career` o `voley3d.career6`, según `voley3d.career.mode`); si no hay Carrera, los del escuadrón de Partido rápido
+    (`VB.Prog`, `voley3d.squad`); si tampoco, neutros (sin `attrs`). Cada uno manda los suyos en el apretón; la sim solo los recibe.
+- **Saque:** cada equipo empieza sacando con su jugador humano (con `idx 1` en el equipo 1 el orden de saque se refleja, como `ctrlIdx`
+  en el equipo 0).
+
+### Entrada por hueco (un objeto por tic)
+
+`{move:[x,y], hit, jump, jset, switchPlayer}` como siempre (mundo; `switchPlayer` no hace nada en el online) y los **bits de partido**:
+
+| bit | tipo | qué hace |
+|---|---|---|
+| `chal` | flanco | challenge del equipo del hueco en ese tic (`challenge(g, s)`; solo vale si `canChallenge(g, s) > 0`) |
+| `tmo` | flanco | **desactivado por defecto** (decisión 5 de Ferran: no hay pausa durante el juego; `g.tmoPer = 0`, `tmoLeft [0, 0]`, el bit no hace nada). Solo con `createGame({…, timeouts: true})` (opción de sala que, si Ferran la quiere, habrá que confirmar con él): `ONLINE.tmoPerSet` = 1 por set y equipo. No se puede pedir en la pausa entre sets (`g.pendingSet`) y, si el set acaba con uno pedido, se anula (`timeoutCancel`) y no pasa al set siguiente. Empieza con el balón muerto (modo `point`, o saque con el balón en la mano) **y solo cuando ya no queda ventana de challenge para nadie** (ni `cpuChal` pendiente): así el tiempo muerto de uno nunca le quita el challenge al otro. Dura `tmoDur` = 30 s y cualquiera lo reanuda con `skip` a partir de `tmoMin` = 10 s (una pulsación anterior queda apuntada) |
+| `skip` | flanco | «Continuar»: queda apuntado hasta el final de la pausa; la pausa del punto (y la de **10 s entre sets**, `ONLINE.setPause`) solo se salta cuando los DOS lo han pulsado. Un hueco con la IA cuenta como «sí» |
+| `ai` | nivel | mientras vale `true`, el hueco lo lleva la IA (al instante, también si sacaba con el balón en la mano: se le prepara el ritual de la CPU). Al soltarlo vuelve al humano en el siguiente balón muerto (`point`/`over`) |
+
+No hay pausa local: la simulación online nunca se para salvo la revisión del challenge (y el tiempo muerto, si la sala lo activa).
+
+### Eventos nuevos (solo online)
+
+`timeoutReq {team}`, `timeout {team, dur, left:[n0, n1]}`, `timeoutEnd {team}`, `timeoutCancel {team}`, `skipReq {team}`, `slotAI {team, on}`.
+`point` lleva además `text1`: el mismo texto visto desde el equipo 1 (el invitado). `text` sigue escrito desde el equipo 0 («El balón cae
+en tu campo» = en el campo del equipo 0); la vista del invitado debe pintar `text1` (y `g.lastPoint.text` es el del anfitrión;
+`stats.why` cuenta con el texto del anfitrión). Los demás, como siempre (`hit.human`, `toss.human`… valen para los dos equipos). `cpuChallengeDecide` solo actúa en un hueco traspasado a la IA.
+
+### Cómo está hecho (para quien toque `sim.js` / `ai.js`)
+
+- `g.hum[s] = {team, p, ai, aiBack, aim3, swingAim, aimIn, …SLOT_S}`: el estado del gesto de cada humano (`hitBuf, jsetQ, swingLive,
+  swingShot, swingLock, swingHasAim, setWinOn, setCarry, setCarryK, setDirA, lastGrade, swingT0, swingShot0, swingSwapT, defRole, aimOn,
+  aimLen, swingLen, aimSet`).
+- **Hueco activo** `g.hT`: el gesto del hueco activo vive en los campos de siempre de `g` (`g.ctrl`, `g.hitBuf`, `g.aim3`…), así todo el
+  código del humano sirve igual. `VB.Sim.useSlot(g, t)` cambia el activo (guarda el gesto del anterior en `g.hum`). Al acabar cada paso
+  el activo es el 0 y `g.hum[0]` queda al día: `g.ctrl` es el jugador del anfitrión. Para leer el de otro hueco sin activarlo:
+  `VB.Sim.slotGet(g, t, campo)`. **La interfaz y la red leen siempre con `slotGet`, nunca con `useSlot`** (useSlot cambia `g`). Por si
+  acaso, `serialize` deja antes el hueco 0 activo, así la foto es canónica aunque alguien haya llamado a `useSlot` entre pasos.
+- `step(g, dt, inputs)` con `g.online` va a `stepOnline` (camino aparte; el `step` de siempre no se toca). Orden de un paso: entradas de
+  los dos huecos → bits → revisión → tiempo muerto → punto → saque (con el hueco del sacador activo) → peloteo: `computeJob` de cada
+  equipo con su hueco activo, humano 0, humano 1 y luego la IA de cada jugador con el hueco de su equipo activo.
+- Funciones compartidas con el humano generalizadas al «equipo del humano» (`ht`), idénticas con `ht = 0` fuera del online: `isHuman`,
+  `jsetReady`/`altReady`/`setTurn` (la caché por paso también mira `g.ctrl` en el online), `updateDefense`, `updateAim3`, `assistMove`,
+  `focusPoint`, `aimPoint`, `serveAimReset`, `stepServe`, `setAim` (colocador IA lejos del humano rival), la racha de la jugada perfecta,
+  `digTight`, `checkBody` (gesto del hueco del jugador), el fin del gesto y la diana al tocar o pitar (`endSwingX`, `aimOff`: los dos
+  huecos). En `ai.js`, el sesgo de `computeJob`, la batida del atacante IA ante la colocación del humano, el reparto bloqueo/defensa, la
+  lectura de la finta y la lectura de la colocación en salto del humano rival (`VB.Sim.jsetHum(g, t)` + `VB.Sim.jsetHumSw`).
+- `VB.Sim.humOn(g, t)` (¿el equipo t tiene humano ahora?), `VB.Sim.humSlot(g, p)` (hueco que lleva a p o -1), `VB.Sim.setSlotAI(g, s,
+  on)` (lo usa el bit `ai`; también vale para la red si hace falta un traspaso inmediato).
+
+### Foto del estado (reparación por instantánea)
+
+- `VB.Sim.serialize(g)` → `{v: VB.Sim.SER_V, rng, o: [...]}` (JSON-able): grafo con referencias `{$r}`, perfiles y timings del módulo por
+  nombre `{$c: 'DIFF.mate'}`, `-0`/`NaN`/`±Infinity` como `{$n}`, `undefined` como `{$u}`. Sin `rng` (va su estado), `events`, `replay`
+  ni `opts`; **con** `stats`. `SER_V` = 2 (desde que existe `g.tmoPer`). Unos 9-11 KB en JSON (≈ 3-4 KB con gzip, estudio 1).
+- `VB.Sim.deserialize(obj, dst)` → dst (creada con `createGame` y las MISMAS opts) idéntica bit a bit a la original, o `null` si la
+  versión no cuadra. Usa `copyGame` sobre la foto decodificada (jugadores por id, objetos de dst). `SER_V` se sube si cambia la forma
+  del estado; la red además ata la versión de protocolo a `VB.VERSION`.
+- `copyGame` funciona igual entre partidas online (prueba (d)).
+
+### Pruebas — `node tools/mptest.js` (Node, ~3 min)
+
+(a) 20 partidos con un bot de solo entrada en cada hueco (playa y pabellón, 1 set a 21): sin excepciones, todos acaban, los dos equipos
+dan toques humanos calificados y sacan como humanos, sin ritual de la CPU para un sacador humano, sin challenges de la CPU, cada toque
+humano del jugador de su hueco. (b) Simetría: misma semilla con el bot fuerte en el equipo 0 y luego en el 1 (cuota de puntos y % de
+perfectos ±5 %) y bots iguales (el equipo 0 gana el 50 % ±5 %). Medido: fuerte 65,4 % / 63,6 %, perfectos 73,7 % / 74,4 %; iguales
+50,2 %. (c) Bits: `chal` de cada equipo (el del otro no vale y gasta solo el suyo), `skip` con uno no salta y con los dos sí (también los
+10 s entre sets), `tmo` (sin `timeouts: true` no existe; con él: pedido en juego, entra en balón muerto, nadie se mueve, no antes de
+10 s, 1 por set; un tiempo muerto pendiente no le quita el challenge al rival; entre sets no se puede pedir y la pausa sigue en 10 s con
+el set siguiente con su tiempo muerto entero), `text1` del punto (visto desde el invitado; fuera del online no existe), `ai` (juega y saca la IA,
+la entrada no cuenta, vuelve en el balón muerto). (d) `serialize → JSON → deserialize` en saque, peloteo, punto, revisión y tiempo
+muerto, pabellón y playa: huella canónica exacta (bits de cada double, -0 y NaN incluidos) igual al instante y durante 2 000 pasos con
+bits mezclados; `copyGame` también; la foto es la misma aunque la interfaz haya llamado a `useSlot`. 30 pruebas. (e) Atributos por hueco, Igualado, perfil común, 1 set / mejor de 3, saque del n.º 2 del equipo 1 y
+que fuera del online no exista nada de esto.
+
+### Pendiente de la fase 0 (ya resuelto o repartido)
+
+- Bit `away` (pestaña oculta): en la red es `session.setAway(bool)` → bit `ai`. Falta conectarlo a `visibilitychange` (fase 3; ver abajo).
+- Tiempos muertos: apagados. Si Ferran los quiere, será una opción de la sala (`timeouts: true`) que pasa a `createGame`.
+- `text1` del punto: HECHO en `netview.mapEvents` (el invitado ve `text1` como `text`; `lastPoint.text` también se gira).
+
+---
+
+## Fase 1 — partida online entre dos pestañas de este PC (16-nov-2026)
+
+Ficheros: `js/net.js` (`VB.Net`), `js/netview.js` (`VB.NetView`), rama online de `js/main.js`, `tools/nettest.js`, `tools/viewtest.js`,
+`tools/netdrive.js`. Las huellas de siempre no cambian (todo lo online va por `opts.online` / `ctx.net`).
+
+### Sesión (`js/net.js`)
+
+```js
+var s = new VB.Net.Session({ slot: 0 | 1, link, opts /* createGame; el invitado: null = adopta las del anfitrión */, delay: 2, name: 'Nombre' });
+var r = s.advance(performance.now(), { move: [x, y] /* mundo canónico */, hit, jump, jset });   // una vez por frame
+// r = {g (partida predicha), events (para presentar), confirmed (de gc), status, tick, gcTick, ping, waitMs, unstable, canAI, startIn, solo, valid, result,
+//      rivalSolo (el rival sigue contra la IA mientras espera), gone (ya juzgado el abandono por tiempo)}
+s.request('chal' | 'skip' | 'tmo'); s.setAway(true); s.vsAI(); s.quit();
+```
+
+- **Dos partidas:** `gc` (confirmada: avanza solo con las dos entradas de cada tic; de ella salen huella, estadísticas y final) y `gp`
+  (predicha, la que se pinta): cada frame `copyGame(gp, gc)` y se resimula hasta el tic actual con las entradas propias reales y las del
+  rival predichas (su último `move`, los flancos a falso, el bit `ai` como estaba). Sin búfer de instantáneas: `gc` es la única foto.
+- **Entrada:** se cuantiza antes de usarla también en local (`move` en int16, bits `hit 1, jump 2, jset 4, chal 8, skip 16, tmo 32, ai 64`).
+  La propia se aplica con `delay` = 2 tics (17 ms). Un flanco pulsado entre tics se queda apuntado hasta el primer tic que se genera
+  (un tic, una entrada), **como mucho 150 ms** (`EDGE_TTL_MS`): pulsado con la partida congelada o en la cuenta atrás se descarta (nada de
+  saltos o golpes «fantasma» segundos después al volver la red). Los tics `0..delay-1` son neutros para los dos (no viajan).
+- **Paquete** (canal `'in'`, no fiable, cada frame): `[1, u32 primer tic, u8 n, n × (i16 x, i16 y, u8 bits), u32 ack, u32 tic del emisor]`.
+  Lleva todo lo que el otro aún no ha confirmado (`ack` = cuántas entradas seguidas tiene): la redundancia cubre la pérdida sin
+  retransmitir (en trozos de 255, 4 paquetes por frame como mucho). Unos 1,6 KB/s con RTT 0 y ~10 KB/s con RTT 250 y 5 % de pérdida.
+- **Control** (canal `'ctl'`, fiable y en orden, JSON): `hello {v, ver, name, cfg, live}`, `ping/pong`, `ready`, `start {t0}`, `hash {t, h}`,
+  `snap {t, d}`, `snapok`, `resync {T, F, d, t0, mine, fab, valid}`, `solo`, `rejoin {e}`, `invalid`, `bye {why: quit|left|gone|late|version}`. El saludo compara `PROTO` y `VB.VERSION`:
+  si no coinciden, `status 'ended'`, `result.why 'version'` («Tu rival tiene otra versión del juego: recargad los dos»).
+- **Reloj común:** el invitado hace 8 pings y toma la mediana del desfase de los 3 de menor RTT; el anfitrión fija `t0` = su reloj + 1,5 s
+  y lo manda; cada uno calcula su tic objetivo `(now − t0) / (1000/120)`. Se pone al día por tandas de 40 tics como mucho por frame
+  (sin `MAX_STEPS` ni `acc = 0`). **Ventaja de frames** (GGPO): si de media vas más de 1,5 tics por delante del rival (su tic + medio
+  RTT), cedes 1/8 de tic por frame hasta igualar.
+- **Espera:** la predicción llega a 24 tics (200 ms). Más allá, la partida se congela (`status 'waiting'` a los 100 ms, `waitMs`) y el
+  reloj se congela con ella (al volver no hay ráfaga). `unstable` = más de 1 s sin recibir nada. `canAI` a los 10 s de espera → la
+  interfaz ofrece «Seguir contra la IA» (`vsAI()`, solo en `'waiting'` y pasados 10 s: el hueco del rival lo lleva la IA en todos los
+  tics que hagan falta **hasta que vuelva**) o «Abandonar». Ver «Desconexión y reconexión».
+- **Huella y reparación:** cada 120 tics confirmados (1 s) los dos se mandan `Sim.stateHash(gc)`; el anfitrión guarda además
+  `Sim.serialize(gc)` de las 6 últimas. Si una huella no cuadra, el anfitrión manda la foto de ese tic; el invitado hace
+  `Sim.deserialize(foto, gc)`, resimula hasta donde estaba con las entradas que ya tenía (sin presentar eventos), reenvía sus huellas
+  rehechas y contesta `snapok`. Con 3 reparaciones en 60 s el partido queda «no válido» para los dos (`valid = false`).
+- **Reconexión** (`resync`): si el invitado vuelve (página recargada → saludo y reloj de nuevo, la red vuelve con el anfitrión contra
+  la IA, o el invitado contra la IA pide `rejoin`), el anfitrión fija la IA en el hueco del invitado hasta `F` = su tic + delay + 60, confirma lo que puede y le manda la foto de
+  `gc` (tic `T`), sus entradas desde `T`, las de IA `T..F` y su `t0`. El invitado lo adopta todo y manda desde `F`. Huellas y fotos de
+  antes de `T` ya no cuentan (`syncFloor`; el anfitrión borra TODAS las huellas recibidas) y lo de antes de volver no se presenta
+  (`muteBefore`). El invitado borra de sus dos historiales todo lo del tic `T` en adelante (`Ring.clearFrom`: lo de su partida contra la
+  IA no vale) y su `valid` pasa a ser el del anfitrión (salvo que él mismo lo anulara por reparaciones, que ya avisó con `invalid`).
+- **Desconexión y reconexión** (revisión de la fase 1). Regla única: **el rival tiene 60 s desde que se perdió para volver, elija quien
+  elija la IA** (`lostAt` = inicio de la espera; el contador sigue corriendo contra la IA, no solo esperando).
+  - Cualquiera de los dos (o los dos, que en un corte ven la oferta a la vez) puede pulsar «Seguir contra la IA». Contra la IA no se
+    mandan huellas. El invitado contra la IA no manda entradas y su partido no cuenta mientras no vuelva (`valid = false`).
+  - Vuelve la red dentro de los 60 s: si el invitado esperaba, sus entradas le llegan al anfitrión contra la IA y este manda el
+    `resync`; si el invitado estaba contra la IA, al oír de nuevo al anfitrión manda `rejoin {e}` (una «época» por cada vez que eligió
+    la IA; el anfitrión contesta un resync por época, esté esperando o contra la IA). Los dos siguen en el MISMO partido, el del
+    anfitrión. `solo` ya no acaba nada: solo avisa (`r.rivalSolo`, «Esperando a <nombre>… (sigue contra la IA)»).
+  - Pasados 60 s sin volver, cada lado juzga por su cuenta y no cambia después (`gone`): el anfitrión `result {rivalGone, win: true}`
+    (válido), el invitado `{hostGone, win: false}` con `valid = false` (no cuenta: no se sabe quién se cayó y «si se cae el anfitrión no
+    cuenta»). Los dos pueden seguir contra la IA, sin que cambie el resultado. Se manda `bye {why: 'gone'}` (llega al volver la red). Si
+    el partido contra la IA acaba antes de que el rival vuelva, se juzga igual en ese momento. Un rival que vuelve tarde recibe
+    `bye {why: 'late'}` (`result {late, win: false}`, «Has tardado demasiado en volver: cuenta como abandono») salvo que ya se hubiera
+    juzgado él mismo; un `resync` que llega a un invitado ya juzgado se contesta con `bye {why: 'gone'}`.
+  - Comprobado (Node, `memPair` 80 ms ± 10, 2 % de pérdida, corte a los 20 s): corte de 15 s y de 40 s con IA elegida por el anfitrión,
+    por el invitado o por los dos → resync, sin reparaciones, y el partido acaba con resultados complementarios (gana uno, pierde el
+    otro, los dos válidos); corte de 70 s y de 120 s → anfitrión `rivalGone` (gana), invitado `hostGone` (no cuenta), sin cambios al volver.
+- **Abandono:** `quit()` manda `bye {why: 'quit'}` → `result {why: 'quit', win: false}` para ti y `{why: 'rivalQuit', win: true}` para el rival.
+  Tras el final (`'over'`) o ya juzgado el abandono por tiempo, `quit()` solo manda `bye {why: 'left'}` y **no toca el resultado** (main.js
+  lo llama al volver al menú desde la hoja final).
+- **Eventos para presentar:** salen de las dos partidas (los de `gc` al confirmar y los de `gp` al predecir) con su tic. Clave
+  `(tic, tipo, jugador, equipo)`; el punto por marcador (`P` + marcador + sets + equipo; a más de 2 s de distancia es otro punto).
+  Un evento ya presentado no se repite; uno que aparece «en el pasado» tras un rollback se presenta si tiene menos de 150 ms o si no es
+  de solo sonido/efecto (los de marcador y partido siempre); `gameOver` solo cuando está confirmado. Lo que desaparece tras un rollback
+  ya sonó (aceptado). Lo que deja huella (récord, estadísticas) debe leerse de `confirmedGame()` / `r.confirmed`.
+- **Transportes:** `{send(ch, data), poll(now) → [{ch, data}], close()}`. `memPair({lag, jit, loss, seed, clock})` (Node; `down(ms)` corta la
+  red: las entradas se pierden y el control llega al volver; `flush()`), `BcLink({room, slot, lag, jit, loss})` (BroadcastChannel; el
+  retraso se aplica al recibir, con el reloj de cada página). `lag` = RTT en ms (ida = lag/2), `jit` = ± variación de cada sentido,
+  `loss` = % de pérdida del canal de entradas. `RtcLink` (WebRTC) es de la fase 2.
+- **Ganchos de prueba:** `record` (entradas confirmadas por tic), `hashLog`, `onTick(tic, gc)`; `VB.Net.bot(team, seed)` (bot de solo
+  entrada; lee con `useSlot` y deja el hueco 0).
+
+### Vista espejo (`js/netview.js`)
+
+- `mirror(view, g, slot)`: `copyGame(view, g)` y, con `slot 1`, `flip(view)`. `view` = `Sim.createGame` con las MISMAS opciones (la
+  crea main.js una vez; cada frame se copia encima, así los módulos ven siempre el mismo objeto).
+- `flip` es una **involución exacta** (`flip(flip(v))` = `v` bit a bit): x → −x, y → −y en balón, jugadores (`x, y, vx, vy, jvx, jvy, lvx, lvy,
+  rvx, rvy, tgx, tgy`), predicciones, `aim3`, `lastLand`, `antennaHit`, `call`, `review`, `ritual.rx/ry`; parejas por equipo
+  intercambiadas (`score`, `sets`, `setScores`, `serverIdx`, `challenges`, `jobs`, `prof`, `skipReq`, `tmoLeft`…, `blockOff` además
+  negado); índices de equipo 0 ↔ 1 (`serving`, `touchTeam`, `lastTeam`, `setPoint`…, `p.team`, `lastPoint.team/landSide`); `teams`
+  intercambiados y `players` = teams[0] + teams[1]; `hum` intercambiado y el gesto del invitado pasa a los campos de siempre de `g`
+  (`view.ctrl` = su jugador, `ctrlIdx`, `hitBuf`, `aim3`…). Los textos del árbitro que dependen de quién mira se cambian
+  («El balón cae en tu campo» ↔ «…en el campo rival»).
+- **Lista cerrada:** `FIELDS` (g), `PLAYER`, `NESTED` (objetos anidados) y `EVENT`. `tools/viewtest.js` falla si aparece un campo sin
+  clasificar: quien añada un campo a la sim tiene que clasificarlo aquí (girar, intercambiar, equipo o tal cual).
+- `mapEvents(evs, view, slot, out)`: copias de los eventos con los jugadores de la vista (por id) y, para el invitado, girados
+  (`x, y, vx, vy, aim, target, dir, antenna`), equipos cambiados (`team, landSide, setPoint, matchPoint`), parejas intercambiadas
+  (`score, sets, left, challenges, setScores`) y `text` ↔ `text1`.
+- `inputToWorld(inp, slot)`: la entrada se construye con la cámara de la vista; el invitado gira `move` antes de mandarla.
+
+### Rama online de `js/main.js`
+
+- `ctx.actions.startOnline({slot, link, opts, name})` crea la sesión (`ctx.net`). Cuando hay opciones (el invitado las recibe en el
+  saludo) se crea la vista, se fuerza la sede (`opts.mapId` o el tipo) y `setGame(vista)`. Cada frame `netFrame`: entrada de la vista →
+  `inputToWorld` (o `ctx.netBot(gCanónica)` en pruebas) → `session.advance` → `NetView.mirror` → `mapEvents` a `frameEvents`.
+  `gameOver` confirmado → `'over'`. Cualquier botón en la pausa del punto = «Continuar» (`request('skip')`); el challenge (V / LT) =
+  `request('chal')`. Sin pausa (Esc alterna un botón «Abandonar» en el HUD), sin intro, sin repetición y sin `timeScale`.
+- HUD `#netHud` (arriba a la izquierda, bajo el marcador): «Esperando a que entre tu rival…», «Conectando…», «Contra <nombre> · empieza
+  en 1,2 s», «Contra <nombre> · 80 ms» (ámbar por encima de 150 ms), «Conexión inestable», «Esperando a <nombre>…» con «Seguir contra la
+  IA» / «Abandonar» a los 10 s, y los finales («<nombre> ha abandonado: ganas tú», «Tu rival tiene otra versión del juego…»). El nombre
+  se pinta siempre como texto (nunca HTML). `#netTag`: el NOMBRE del rival con una flechita encima de su jugador (proyección de su
+  posición + 2,25 m), con `z-index` 2: por debajo del marcador (`#hud`, 3). `#netHud` se coloca cada medio segundo justo debajo de `#sb`
+  (el marcador cambia de alto). Nunca se enseña la IP ni el correo.
+- Hoja final online: hasta la revancha (fase 3) solo «Volver al menú» (ui.js `onlineEndButtons`; `endPrimary` con `ctx.net` va al menú,
+  nunca a un partido offline contra la CPU).
+- **Prueba en este PC:** `index.html?net=bc&slot=0` y `?net=bc&slot=1` (mismo `room`), con `&lag=80&jit=15&loss=3`, `&name=`, `&bot=1`
+  (juega un bot), `&bo=3`, `&points=`, `&map=palau`. `?net=` implica `ctx.debug = 'net'` (sin récord ni XP; la pestaña oculta no pausa).
+  A mano: dos VENTANAS del mismo Chrome lado a lado (no pestañas: la oculta se frena), teclado en una y mando en la otra.
+
+### Pruebas
+
+- `node tools/nettest.js` (Node, ~1 min; `--quick` = 90 s de partido): dos sesiones en contextos vm distintos (cada una con su Math),
+  relojes desfasados 123 s, frames con tirones. (1) RTT 0/60/120/250 ms, variación, 5 % de pérdida, 5 min de partido con bots: huellas
+  iguales en todos los controles, **prueba de oro** (offline con las mismas entradas = partida en red: `stateHash` cada segundo, huella
+  canónica completa cada 10 s y al final), cero congelaciones hasta 120 ms. Medido: rollback máx 9/13/16/23 tics; CPU de la sesión por
+  frame 0,17/0,23/0,30/0,50 ms de media (p99 0,4-1,6 ms) en Node. (2) Estado del invitado tocado → huella distinta, foto, reparado en
+  249 ms y luego bit a bit igual; ruido de 1e-9 en `Math.hypot` del invitado → 3 reparaciones en 120 s y siempre vuelve a coincidir.
+  (3) Corte de 3 s (los dos esperan y siguen, sin oferta de IA), de 15 s (oferta de IA a los 10,2 s, el anfitrión la elige, resync al
+  volver la red y el invitado recupera su jugador), recarga del invitado (sesión nueva, saludo, reloj y resync), abandono, versión
+  distinta y códec. Desde la revisión, además: corte de 15 s con la IA elegida por el invitado y por los dos (un resync, mismo
+  partido, sin reparaciones, válido, = offline), corte de 70 s (anfitrión `rivalGone`, invitado `hostGone`, sin cambios al volver),
+  salir tras el final (no cambia el resultado) y un salto pulsado con la partida congelada (se descarta). 61 pruebas, ~80 s. La huella
+  canónica de la prueba trata una clave a `undefined` como ausente y todos los NaN como uno (copyGame no borra claves, las pone a
+  `undefined`; no es estado).
+- `node tools/viewtest.js` (Node, ~1 min): involución bit a bit en 2 700 fotos (saque, peloteo, punto, revisión, IA, tiempo muerto y
+  final), lista cerrada sin huecos (g, jugadores, anidados y 6 000 eventos), sentido de la vista (el invitado es el equipo 0 y saca
+  desde x > 0, marcador, balón, predicciones, hueco y aim3) y entrada del invitado (`inputToWorld` + espejo = la dirección pedida).
+- `node tools/netdrive.js [s=120] [lag=80] [query]`: UN Chrome headless con dos páginas (`/json/new`), banderas anti-frenado, 800×450 y
+  calidad baja. Medido (120 s, 80 ms ±15, 3 % de pérdida): 119 huellas iguales, 0 congelaciones, 0 reparaciones, sesión 0,21-0,23 ms
+  por frame (máx 2 ms), frame JS 1-1,5 ms, consola limpia. Capturas `tools/out/netdrive-{anfitrion,invitado}-{1,2,fin}.png`.
+
+### Pendiente (fases siguientes)
+
+- **Fase 2:** HECHA (ver «Fase 2» más abajo).
+- **Fase 3:** HECHA (ver «Fase 3» al final). Lo que se pedía: marcador y textos con el nombre del rival en vez de «CPU» («Saca la CPU», «Gana la CPU»…), hoja
+  final online (estadísticas de `confirmedGame()` vistas desde tu equipo: `view.stats` NO se copia), pausa de 10 s entre sets con
+  «Continuar» visible, récord online aparte y gorra «Online Beta Tester» (look.js), `visibilitychange` → `setAway` (y avanzar la
+  sesión con un temporizador mientras la pestaña está oculta), stats de la Carrera por hueco (`humans[s].attrs/badges`) y opción
+  «Igualado», equipaciones y looks de los dos, revancha. La partida de prueba `?net=bc` usa la sede del anfitrión (`opts.mapId`).
+- **Ventaja de frames y reloj:** el desfase se mide una vez al empezar (y en cada resync); con relojes de dos máquinas reales la
+  ventaja de frames corrige la deriva lenta. Medir en la fase 2 con dos ordenadores.
+- **Eventos fantasma:** un punto predicho que el rollback anula puede verse un instante (aceptado; con RTT ≤ 120 ms la profundidad es
+  ≤ 16 tics). Si molesta, presentar `point` solo desde `gc` (≈ medio RTT más tarde). Medido en la revisión: con RTT 200 ms, unos 6 `hit`
+  por lado en 4 min que nunca se confirmaron (sonido y chispa); con 120 ms, 1-2 (`hit`, `landPlayer`). Ni dobles ni puntos fantasma.
+- **Récord online (fase 3):** leer `r.result` + `r.valid` al acabar: `over` (gana/pierde), `rivalQuit`/`rivalGone` (victoria),
+  `quit`/`late` (derrota), `hostGone`/`version`/`valid = false` (no cuenta).
+
+---
+
+## Fase 2 — transporte real y lobby (16-nov-2026)
+
+Ficheros: `js/netroom.js` (`VB.NetRoom`, salas y señalización en Firestore por REST; sin DOM), `js/netrtc.js` (`VB.NetRtc.Link`, WebRTC),
+`js/netlobby.js` (`VB.NetLobby`, la página «Online» y la conexión), `tools/roomtest.js`, `tools/netdrive.js --rtc`. Toques mínimos en
+ficheros de ui_main (ver CONTRACT.md «Online, fase 2»): `index.html`, `js/ui.js`, `js/account.js`, `firebase/firestore.rules`.
+Las huellas de siempre no cambian (no se toca `sim.js` ni `net.js`).
+
+### Lo que ve el jugador (decisiones de Ferran)
+
+- **Jugar › Online** (tarjeta «1v1» con la pastilla «Beta», `#btnOnline`; visible para todo el mundo desde la fase 4: `MENU_ON = true` en netlobby.js).
+- **Sin cuenta** (decisión 2): «Necesitas una cuenta para jugar online» y el botón «Ir a Cuenta» (`VB.Account.open()`). Al entrar en la
+  cuenta, la página pasa sola a la lista (`VB.Account.onChange`). No hay login anónimo.
+- **Reglas sin desplegar** (decisión 7): cualquier 403 al listar, crear o buscar por código → «El online aún no está activado en el
+  servidor» con «Volver a probar». Nada más se rompe (las reglas de antes siguen guardando el progreso: comprobado en roomtest).
+- **Lista** (decisión 1): «Crear sala», «Tu nombre», «Entrar con código» y SALAS ABIERTAS: cada fila = nombre de quien la creó y
+  «Playa | Platja Llarga | 1 set a 21 | Con sus atributos» (o «Igualado»), y «1/2» (o «Otra versión», sin poder entrar). Se refresca
+  cada 8 s y con «Actualizar». Vacía: «No hay salas abiertas ahora mismo. Crea una y aparecerá aquí para los demás.»
+- **Crear sala:** Escenario (Playa / Pabellón), Sede (las de `VB.Venues.list(tipo)`), Partido (1 set a 21 / Mejor de 3: 21, 21 y 15),
+  Atributos («Los suyos» / «Igualado») y «Abrir sala». Se recuerda en `voley3d.netroom` (aparato).
+- **Sala de espera:** «Tu sala» + código de 6 («Copiar código»), los dos nombres con «—» en medio (el del rival con su flechita ▼),
+  la configuración y el estado: «Esperando rival. Tu sala sale en la lista de Online.» → «Conectando con <nombre>…» → «Conectados.
+  Empieza el partido…». Si no conectan en 30 s: «No se ha podido conectar directamente con <nombre>: vuestras redes no lo permiten.
+  Probad otra vez o desde otra red.» (el anfitrión reabre su sala; el invitado vuelve a la lista). «Salir de la sala» / Esc la cierran.
+  Enlace directo: `?sala=CÓDIGO` abre Online y entra en esa sala.
+- **Nombre** (decisión 6): `voley3d.nick` si lo has cambiado («Tu nombre», 2-16, sin controles ni `<`, `>`, comillas; nunca con @); si
+  no, el nombre de tu jugador de la Carrera activa; si no, el usuario de una cuenta «usuario y contraseña»; si no, «Jugador 1234» (del
+  uid). Nunca el correo (`netInfo()` no lo da). Es lo único que el rival ve de ti: en la lista, en la sala, en el HUD y en la flechita.
+- **Atributos** (decisión 3): cada uno juega con los de SU jugador de la Carrera activa (`VB.Career.mode()` → `player.st` e
+  `VB.Badges.forPlayer`), sin la fatiga ni la química de la Carrera; sin Carrera, los de su n.º 1 del escuadrón de Partido rápido
+  (`VB.Prog.attrs()[0][0]`, `VB.Badges.forSquad()[0][0]`); si tampoco, neutros. «Igualado»: `even: true` (neutros y sin insignias).
+  El invitado manda los suyos en el «pre» y el anfitrión los sanea (claves de `VB.ATTR_KEYS`, enteros 1-99; insignias `[a-z]` nivel 1-3,
+  12 como mucho). **Límite conocido de la beta:** los atributos e insignias «de tu Carrera» los declara tu propio cliente y nadie los
+  comprueba (no hay servidor de juego: P2P). Con la consola o un cliente modificado alguien puede jugar con todo a 99 y todas las
+  insignias al máximo fuera de «Igualado», y el rival no lo ve. Lo acepta el diseño (partidas entre conocidos, sin clasificación ni
+  premios más allá de la gorra); quien quiera ir a la par, «Igualado». Si un día hay clasificación, hará falta otra cosa (p. ej. que
+  el anfitrión lea el guardado del rival en el servidor, o un árbitro).
+- **Sin progreso** (decisión 4): un partido online no suma récord de Partido rápido, XP, perfil, insignias, retos ni objetos del
+  Vestuario (`online` en ui.js `showEnd` y en el `gameOver` de los retos). La gorra «Online Beta Tester» es de la fase 3.
+
+### Salas en Firestore (`js/netroom.js`)
+
+- `rooms/{uid del anfitrión}` (una sala por cuenta) = `{code, name, gname, host, guest, fmt:'2v2', venue, map, even, bo, pts, state:
+  'open'|'full'|'play', v: '<PROTO>|<VB.VERSION>', seen}`. `seen` es la hora del **servidor**: cada escritura del anfitrión va por
+  `documents:commit` con la transformación `REQUEST_TIME` (las reglas exigen `seen == request.time`), así nadie depende de su reloj.
+  `host`/`guest` son uid (no son datos personales; los ve cualquiera con sesión, igual que los nombres).
+- **Latido:** el anfitrión renueva `seen` cada 20 s (`beat()`, solo la transformación: nunca reescribe `guest`). Una sala con latido de
+  hace más de 90 s no sale en la lista ni deja entrar (reglas `live`; el margen cubre una pestaña en segundo plano más de 5 min, que
+  Chrome frena a un temporizador por minuto); a los 5 min cualquiera con sesión puede borrarla (reglas
+  `stale`): `list()` borra de paso hasta 3 abiertas caducadas con su señalización y `sweep()` (1 de cada 5 refrescos) las llenas o
+  jugando que se quedaron sin latido. No hace falta TTL en la consola.
+- **Unirse:** `join(id, nombre)` = PATCH con máscara `guest/gname/state` (las reglas: sala `open`, vacía, viva, no tuya; solo esos tres
+  campos; `state 'full'`). Dos a la vez: el segundo recibe 403 → `'full'`. `leave(id)`: el invitado borra su respuesta y devuelve la sala
+  a `open` antes de empezar.
+- **Cerrar o recargar la pestaña** (`pagehide` en netlobby → `rooms.bye(role, id)`): `fetch` con `keepalive` y el último token, sin
+  esperar respuesta. El anfitrión borra sala y señalización; el invitado borra su respuesta y suelta el hueco. Si eso no llega (sin red,
+  token caducado), la sala deja de salir en la lista a los 90 s y quien entre antes, si a los 10 s (`OFFER_MS`) no tiene oferta y el
+  latido de la sala va atrasado (> `BEAT_MS` + 10 s), recibe «<nombre> no responde: parece que ya no está en la sala. Prueba con otra.»
+  y suelta el hueco. Con el latido al día se espera hasta 65 s (`OFFER_MAX`: anfitrión con la pestaña frenada). «Vuestras redes no lo
+  permiten» solo sale si hubo oferta y la conexión no se abrió en 35 s.
+- **Nombres:** `cleanName` recorta a 16 **unidades UTF-16**, como cuenta `size()` en las reglas (un emoji suele valer 2: caben 8), sin
+  partir un emoji. `open()` solo devuelve `'off'` si tras un 403 al crear tampoco se puede listar; si se puede, es `'denied'` («No se
+  ha podido crear la sala.»), nunca «el servidor no está activado».
+- **Señalización:** `rooms/{uid}/sig/offer` = `{sdp, gen, to}` (la escribe el anfitrión; `to` = uid del invitado al que va, las reglas
+  exigen que sea el `guest` de la sala) y `/answer` = `{sdp, gen, uid}` (la escribe el invitado; `uid` = el suyo). **Lectura:** la oferta,
+  el anfitrión o su destinatario; la respuesta, quien la escribió o el anfitrión mientras ese siga siendo su invitado. Así quien entra
+  después de que otro saliera nunca hereda la SDP (con su IP) del anterior, aunque se haya quedado en Firestore (revisión F2 n.º 1).
+  `getSig` trata ese 403 como «no hay». SDP ≤ 20 000. Se borran al conectar, cuando el invitado sale o cambia (el anfitrión llama a
+  `delSig`), cuando el invitado sale (`leave` borra su respuesta) y al (re)abrir la sala (`open` borra la de una sesión anterior que no
+  se cerró). Borrar: los dos jugadores, quien escribió la respuesta aunque ya haya salido, o cualquiera si la sala no existe o caducó.
+  `gen` sube en cada negociación (también al reconectar) y nunca baja entre recargas: `max(gen + 1, segundos desde oct-2025)`, así
+  una oferta o respuesta vieja nunca pasa por nueva; el anfitrión además solo acepta una respuesta con `uid` = su invitado.
+- **Estados:** `open` (en la lista) → `full` (entró alguien; el anfitrión negocia) → `play` (conectados; fuera de la lista, la sala sigue
+  viva con el latido para poder reconectar) → borrada al acabar (el anfitrión al salir del partido, `close()`).
+
+### Conexión (`js/netrtc.js` + `js/netlobby.js`)
+
+- `Link`: `RTCPeerConnection` con STUN `stun.l.google.com:19302` y `stun.cloudflare.com:3478`, sin TURN (D4). Canales negociados
+  `'in'` (id 1, `{ordered:false, maxRetransmits:0}`) y `'ctl'` (id 2, fiable). SDP completa: se espera a reunir candidatos (máx. 3,5 s).
+  Mientras está caído, `'in'` se pierde (la sesión espera) y `'ctl'` se guarda en cola (400) y sale al reabrir. `close()` cierra 0,4 s
+  después (sale el adiós de la sesión: el rival ve «ha abandonado» al momento). `info()` = `{type: 'host'|'srflx'|'relay', rtt}`.
+- **Anfitrión:** lee su sala cada 2 s; al ver un invitado, `offer()` → `putSig('offer', gen)` → lee la respuesta cada 1 s → `accept()`.
+  **Invitado:** lee la oferta cada 1 s y contesta con `answer()` → `putSig('answer', gen)`; lee la sala cada 3 s (si el anfitrión la
+  cierra o le echa: «Quien creó la sala la ha cerrado.»).
+- **«pre»** (por `'ctl'`, antes de la sesión): el invitado manda `{k:'pre', name, st:{attrs, badges}}`; el anfitrión construye las
+  opciones del partido (`online, seed, venue, mapId, bestOf, points: 21, even, humans: [suyos, del invitado]`), contesta `{k:'pre',
+  name}`, pasa la sala a `play`, borra la señalización y los dos llaman a `ctx.actions.startOnline({slot, link, opts, name})` (el
+  invitado con `opts: null`: las recibe en el saludo de la sesión). Lo que llegue detrás del «pre» se devuelve a la cola del enlace.
+- **Reconexión en pleno partido:** si la conexión cae (`failed`/`closed`, canal cerrado o `disconnected` más de 4 s), el anfitrión
+  renegocia sobre la MISMA sala (`gen + 1`, reintento cada 10 s, 7 veces); el invitado vigila ofertas nuevas cada segundo (solo lee
+  Firestore si su conexión no está abierta o la sesión está esperando). La sesión ni se entera: espera, y a los 10 s ofrece seguir
+  contra la IA como siempre (fase 1). Una página recargada NO vuelve a la sala (pendiente).
+- **Privacidad:** las direcciones de red solo van dentro de las SDP (cada una la lee solo su destinatario y el anfitrión; se borran al
+  conectar, al salir y al reabrir) y nunca se pintan. netdrive comprueba que en pantalla no hay IP, `.local` ni `candidate:`.
+
+### Cuotas de Firestore (plan gratuito: 50 000 lecturas y 20 000 escrituras al día)
+
+Lobby abierto: 1 consulta cada 8 s (lecturas = salas devueltas, mínimo 1). Anfitrión esperando: 1 lectura cada 2 s + 1 escritura cada
+20 s. Conexión: 2-4 escrituras (y 2 borrados) + 2-10 lecturas. Partido: 1 escritura cada 20 s (latido) y nada más salvo reconexiones. Con decenas de
+personas probando a la vez sobra; si algún día hay cientos, subir `LIST_EVERY`/`ROOM_POLL` o escuchar en tiempo real.
+
+### Reglas
+
+**Estado (16-nov-2026): DESPLEGADAS.** Comprobado en la revisión de la fase 3 contra la API de reglas de Firebase: lo publicado en
+make-the-cut-vb (15:43 UTC) es igual que `firebase/firestore.rules` sin contar comentarios (bloque ONLINE incluido). Ferran no tiene
+que desplegar nada para el online mientras no cambie el fichero; si cambia: `npx firebase-tools deploy --only firestore:rules` desde `firebase/`.
+
+
+El bloque ONLINE está al final de `firebase/firestore.rules` (dentro del mismo `match /databases/{database}/documents`; no cambia nada
+de `users/{uid}/saves`). Desplegar desde `firebase/`: `npx firebase-tools deploy --only firestore:rules`. No hace falta índice
+compuesto (la lista filtra solo por `state`; la búsqueda por código usa dos igualdades) ni TTL. La tarjeta del menú ya está encendida
+(`MENU_ON = true`, fase 4).
+
+### Pruebas
+
+- `node tools/roomtest.js` (~10 s con el emulador): 67 comprobaciones (revisión F2: oferta a nombre del invitado, respuesta firmada,
+  un invitado nuevo no lee la señalización del anterior ni el anfitrión la de quien ya salió, salir borra la respuesta, reabrir borra
+  la señalización vieja, nombres con emojis aceptados por las reglas, 403 al crear con la lista viva = `denied`, `bye` del invitado y
+  del anfitrión). Se niega a arrancar si el puerto ya está ocupado y mata el emulador con `taskkill /T` (en Windows `kill()` dejaba
+  vivo el java.exe hijo con las reglas viejas y la siguiente pasada probaba contra él). Fetch simulado (403 → `off`, sin sesión, sin red, 503, filtro y
+  orden de la lista, limpieza, nombres, códigos) y, con Java + el jar del emulador (`~/.cache/firebase/emulators`; con Java 17 vale
+  `npx firebase-tools@13.29.1 setup:emulators:firestore` → v1.19.8), las reglas de verdad con tres cuentas: sin sesión no se lista;
+  crear solo con tu uid, sin campos de más, nombre ≤ 16, `seen` del servidor; entrar una sola vez (también a mano); latido sin pisar al
+  invitado; señalización solo para los dos (C no lee ni escribe; B no escribe la oferta; SDP > 20 000 no); `play` fuera de la lista;
+  salir y reabrir; otra versión; sin latido no se entra; limpieza a los 5 min; cerrar; el progreso propio se sigue guardando. Y con las
+  reglas de hoy (sin el bloque): listar, crear y buscar → `off`, y el progreso se sigue guardando.
+- `node tools/netdrive.js --rtc [s=60]` (~1 min): UN Chrome headless con dos páginas y el emulador de Firestore (`?online=1&netemu=8091&
+  netuid=…&netice=none`; `netemu` solo se acepta desde file:// o localhost, con fichas JWT sin firmar del emulador). Lista vacía, crear
+  sala en la playa, la sala sale en la lista del otro con nombre, sede y partido, entrar, sala de espera con el nombre del rival,
+  WebRTC (par `host`, RTT 1-14 ms), partido con bots, huellas iguales, nombres en sesión, HUD y flechita, señalización borrada, caída
+  de la conexión del invitado y luego la del anfitrión (renegocian solas, misma sesión, sin reparaciones), ninguna IP en pantalla,
+  abandono del anfitrión → el invitado gana al momento, sala borrada, consola limpia. Y (revisión F2 n.º 3) una sala fantasma con
+  latido reciente: quien entra recibe «… no responde» a los ~10 s y el hueco queda libre; el anfitrión recarga, abre otra sala y cierra
+  la pestaña: la sala desaparece al momento. 20 comprobaciones.
+  Capturas: `tools/out/netrtc-{lista-vacia,sala-fantasma,crear,sala-espera,lista,anfitrion,invitado,invitado-fin}.png` (y `netrtc-sin-cuenta.png`,
+  `netrtc-sin-reglas.png`, `netrtc-jugar.png`, hechas aparte).
+
+### Pendiente
+
+- **Publicar:** HECHO en la fase 4 (`MENU_ON = true`; ver «Fase 4»).
+- **Fase 3:** HECHA (ver «Fase 3»). Era: marcador y textos con el nombre del rival en vez de «TÚ / CPU», pausa de 10 s entre sets con «Continuar», récord online
+  (abandonar = derrota), gorra «Online Beta Tester» al acabar el primer partido online, revancha, equipaciones y looks de los dos.
+- Volver a la sala tras recargar la página (la sesión ya sabe resincronizar a un invitado nuevo; falta guardar la sala en
+  `sessionStorage` y renegociar).
+- Medir con dos ordenadores en redes distintas cuántas conexiones fallan sin TURN (`Link.info().type`); si fallan a menudo, TURN (D4).
+- Con mando no se puede escribir el nombre ni el código (sí entrar desde la lista, que es lo principal).
+
+---
+
+## Fase 3 — partido completo (16-nov-2026)
+
+Ficheros: `js/netrec.js` (nuevo, `VB.NetRec`), `js/net.js` (época, mensajes de la interfaz), `js/netlobby.js` (looks en el «pre», récord
+en la lista), rama online de `js/main.js`, y toques pedidos por el orquestador en `js/look.js`, `js/doll.js`, `js/players.js`, `js/ui.js`,
+`js/arena.js` e `index.html` (ver CONTRACT.md «Online, fase 3»). Pruebas: `tools/net3test.js` (nueva), `tools/netdrive.js --guion` (nueva),
+`tools/looktest.js` (actualizada). Las huellas de siempre no cambian (`sim.js` no se toca).
+
+### Lo que ve el jugador
+
+- **Equipaciones y looks** (solo estética, nunca en la sim): cada uno manda en el «pre» `myLook()` = sus dos looks del Vestuario (los de
+  Partido rápido: `VB.Look.matchLooks({})`) y su equipación de Ajustes; quien recibe lo pasa SIEMPRE por `saneLook` (`VB.Look.sane`, 8 KB
+  por look como mucho, colores de 24 bits, diseño `[a-z]`). Las equipaciones las decide `VB.Players.onlineKits(anfitrión, invitado)` con
+  las reglas de siempre (la del invitado si se distingue de la del anfitrión; si no, la de la CPU más distinta): los dos lados calculan lo
+  mismo y cada uno ve su equipo como el equipo 0 de su vista. El rival viste sus looks (`setKit` `st.kit1` + `st.looks1`, casillas 2 y 3
+  de `LOOK_OVR` en players.js); sus jugadores sin look, el aspecto de NPC de siempre.
+- **Sede, puntos y sets:** los de la sala (fase 2). **Stats** (decisión 3): por defecto los de tu jugador de la Carrera (sin Carrera, tu
+  n.º 1 de Partido rápido; si tampoco, neutros); «Igualado» = neutros y sin insignias. Siempre llevas a tu n.º 1 con un compañero IA.
+- **Nombres:** el marcador dice «TÚ» y las 3 primeras letras del nombre del rival («ANF»); los textos con «la CPU» pasan a «el rival»
+  (`cpuTxt` con `g.netCr`), los rótulos del pabellón a «SET PARA EL RIVAL», y la hoja final «Gana <nombre>» con el antetítulo
+  «Palau del Mar ◆ Online | Sets a 11». La flechita con el nombre del rival encima de su jugador sigue (fase 1). Nunca IP ni correo.
+- **Sin tiempos muertos** (decisión 5: no hay pausa durante el juego): el bit `tmo` existe pero la sala no los activa (`timeouts` no se
+  pasa a `createGame`); comprobado en el guion que pedirlo no para nada. **Challenge:** V / LT como siempre, viaja como bit.
+- **Pausa de 10 s entre sets** con cuenta atrás y botón «Continuar» en el HUD («Siguiente set en 7 s», «…, esperando a Ana», «(Ana ya
+  quiere seguir)»). Cualquier botón también vale. Se salta solo cuando los dos han pulsado. En la pausa de cada punto, igual (sin botón).
+- **Pestaña oculta:** tu jugador pasa a la IA al momento (bit `ai`) y la sesión sigue avanzando sin pintar con el pulso de un Worker
+  creado de un Blob (`setInterval` de 16 ms dentro del Worker; sus mensajes no se frenan como los temporizadores de la página en segundo
+  plano; si no se puede crear, `setInterval` normal con hasta 150 tics por llamada, `session.maxCatch`). El rival no espera. Al volver,
+  el jugador vuelve a ser tuyo en el siguiente balón muerto. Lo que pasa mientras no miras no suena ni cuenta en las estadísticas de la
+  hoja (sí en el marcador); el final del partido sí llega. El HUD dice «(tu jugador lo lleva la IA)». Ventana que pierde el foco: nada.
+- **Desconexión, reconexión y abandono:** los de la fase 1 (predicción hasta 200 ms, «Esperando a…», a los 10 s «Seguir contra la IA» o
+  «Abandonar», 60 s para volver). **Abandonar = derrota** en el récord online.
+- **Hoja final online:** el resumen de siempre (vista desde tu equipo: las estadísticas salen de los eventos presentados, ya girados para
+  el invitado), «Tu récord online: 3 ganados de 5 (1 abandono)» al pie, «Nuevo en tu vestuario: Online Beta Tester» la primera vez, y
+  los botones «Revancha» y «Volver al menú» (nada de partidos contra la CPU). El HUD online se esconde mientras está la hoja.
+- **Revancha:** «Revancha» se pide al rival (tu botón pasa a «Esperando a Ana…»; al otro le sale «¡Revancha! (Ana quiere)»). Cuando los
+  dos la quieren, quien creó la sala manda `{t:'go', e}` con la época siguiente y los dos abren una sesión nueva sobre el MISMO enlace:
+  semilla nueva, mismas opciones, nombres y looks. Si el rival ya volvió al menú: «Ana se ha ido» (botón desactivado).
+- **Récord online** (aparte del de Partido rápido; no da experiencia, insignias ni retos): `voley3d.online`, ver abajo. En la lista de
+  salas sale «Tu récord online: …».
+- **Gorra «Online Beta Tester»** (decisión 4): objeto `gorraMTC` del Vestuario (cabeza, vale en pista y en playa, rareza 2). Se desbloquea
+  al TERMINAR tu primer partido online: final normal, el rival abandona o no vuelve, o «no cuenta» por caída del anfitrión o por
+  reparaciones (lo jugaste hasta donde se pudo); NO si abandonas tú o si es otra versión. En el Vestuario: «Online: termina tu primer
+  partido». Dibujo (doll.js `mtcPanel`): la gorra de siempre y en el frontal una tira de la misma copa con 13 × 5 caras pintadas por
+  vértice con «MTC» (M de 5 columnas, T y C de 3), letra clara sobre cA oscuro y oscura sobre cA claro; 130 triángulos fijos en todos los
+  LOD (con menos no se lee). Capturas `tools/out/net3-gorra-{hall,beach}.png`.
+
+### Récord online (`js/netrec.js`)
+
+- `voley3d.online` = `{v:1, played, wins, losses, quits, nc, streak, best, last:[{n, w, s, t}]}` (10 últimos; `n` = NOMBRE del rival
+  saneado, nunca con @; `w` 1 / 0 / −1; `s` = «2-1», «abandono», «abandonó», «no volvió», «no cuenta»). Por aparato, como el récord de
+  Partido rápido (no se sube a la cuenta).
+- Cómo cuenta (`outcome`): `over` → gana / pierde; `rivalQuit`, `rivalGone` → victoria; `quit`, `late` → derrota y `quits++`;
+  `hostGone`, `version`, `valid = false` → `nc` (no cuenta).
+- **Cerrar la pestaña en pleno partido = abandono:** al empezar se escribe `voley3d.online.pend` (con latido cada 10 s); al acabar se
+  borra. Si al cargar el juego sigue ahí y su latido tiene más de 90 s, `boot()` lo apunta como abandono (con latido reciente es que otra
+  pestaña está jugando y no se toca). Desde la revisión es una lista, una marca por página (ver «Revisión de la fase 3»).
+- main.js: `netRecTick` (marca al pasar a `playing`, latido, y `netSettle` cuando el resultado ya no cambia: confirmado `over`,
+  `ended`, o juzgado por tiempo `gone`), una vez por sesión. En `?net=` (depuración) solo con `&netrec=1`.
+
+### Red (`js/net.js`)
+
+- `Session({…, epoch})`: época de la sesión (revancha n.º k). El byte 0 del paquete de entradas es `1 | (época & 15) << 4` (época 0 = el
+  `1` de siempre) y cada mensaje de control lleva `ep` (salvo la época 0); lo de otra época se ignora, así un paquete o una huella del
+  partido anterior que llegue tarde no se cuela. (El campo es `ep` y no `e`: `rejoin` ya usa `e`.)
+- `sendApp(obj)` → mensaje `{k:'app', d}` fiable; llega en `r.app` del otro lado (64 en cola como mucho). `r.rivalLeft`: el rival mandó
+  `bye` (`left`/`quit`/`gone`/`late`): no hay revancha.
+- `session.maxCatch`: tics por llamada como mucho (pestaña oculta, 150; si no, 40).
+- Arreglos de esta fase: (1) con frames de menos de 8,3 ms (pantallas de 120-144 Hz, o la página del anfitrión en Chrome headless a
+  128 fps) la espera «parpadeaba» (`waitStart` se borraba en los frames sin tic que hacer) y la oferta «Seguir contra la IA» nunca
+  llegaba: ahora la espera solo se borra si de verdad ya no se está bloqueado (`localTick − rHave < MAXPRED`). (2) Un pong que llega
+  tras un corte (> 3 s) no entra en el ping (el HUD decía «4571 ms» al volver).
+
+### Revisión de la fase 3 (16-nov-2026)
+
+- **Antes de empezar siempre hay salida.** `Session` en `connecting` tenía plazo infinito y el HUD no daba botón: si el rival
+  desaparecía (p. ej. el invitado pide «Revancha» y pulsa «Volver al menú» antes del `go`: su `bye left` es de la época 0 y la sesión
+  nueva lo ignoraba) el anfitrión se quedaba en la pista hasta recargar. Ahora: (1) un `bye` `left`/`quit`/`gone` de la época ANTERIOR
+  llega a una sesión que aún no ha empezado; (2) `CONNECT_MS = 20000`: 20 s sin oír al rival (solo mensajes de esta época, `heardAt`)
+  mientras se conecta; (3) un `bye` en `connecting`/`starting`. Los tres → `status 'ended'`, `result {why:'noShow'}`, `rivalLeft`.
+  `quit()` antes de empezar manda `bye left` y deja `{why:'cancel'}`: no es abandono para nadie. HUD: botón «Salir» en «Conectando…»,
+  «Esperando a que entre tu rival…» y en la cuenta atrás; al acabar, «X se ha ido: no hay partido» / «Tu rival no ha llegado: no hay
+  partido». `NetRec.outcome` cuenta `noShow`/`cancel` como «no cuenta» (y main.js ni lo apunta: la marca solo empieza al jugar).
+- **Marca de partido a medias = lista.** `voley3d.online.pend` es ahora `[{id, n, t}]` (una por página; el formato viejo de un objeto se
+  sigue leyendo). Cada página solo toca la suya; las de otras páginas sin latido en 90 s cuentan como abandono al barrer (`boot`, `begin`,
+  `beat`, `end`). Antes, reabrir antes de 90 s y empezar otro partido borraba la marca vieja y el abandono no contaba.
+- **Nombre del rival limpio.** `Session({rivalName})` (main.js pasa el del lobby/«pre») manda; el del saludo solo se usa si no había y
+  pasa por `VB.Net.cleanName` (igual que `NetRoom.cleanName`: sin < >, comillas ni controles, nada con @, 2-16). Antes el saludo lo sobrescribía crudo.
+- **Abandonar avisa.** Abandonar SIEMPRE es derrota (no se sabe quién se cayó; si no, cortar la red y salir sería gratis). Por eso:
+  «Esperando a X… Si no vuelve en N s, ganas tú» (anfitrión) / «…el partido no cuenta» (invitado), con «Seguir contra la IA» y
+  «Abandonar (cuenta como derrota)»; contra la IA «puede volver (N s)»; con Esc, «Abandonar (cuenta como derrota)» o «Salir» si ya
+  está juzgado (`r.gone`). `r.goneIn` = ms que le quedan al rival para volver.
+- **Ping tras un corte.** Al recibir algo tras más de 1 s sin noticias, `rttFloor = ahora`: los pongs de pings mandados antes no entran
+  en la media (antes, en `netdrive --guion 80`, «673 ms» unos segundos después de volver la red; sin el arreglo, 867 ms en net3test).
+- **Reglas:** desplegadas (ver «Reglas» de la fase 2); CONTRACT.md y estas notas decían «sin desplegar».
+- Pruebas nuevas en `tools/net3test.js` (sección 3 y dos más en la 1): 46 comprobaciones.
+
+### Prueba en este PC (`?net=bc`)
+
+Además de lo de la fase 1: un «pre» por el mismo BroadcastChannel antes de la sesión (looks y equipación), `&netcap=1` (tu n.º 1 con la
+gorra «MTC»: las dos páginas comparten el guardado y así se distinguen), `&kitshirt=RRGGBB`, `&botprof=flojo`, `&netrec=1`.
+
+### Pruebas
+
+- `node tools/net3test.js` (Node, ~1,5 min, 46 comprobaciones; la sección 3 = revisión: antes de empezar, nombre, ping): récord (ganar, perder, abandonar = derrota, tardar en volver, el rival
+  abandona o no vuelve, no cuenta, línea, 10 últimos, nombres sin @ ni `<`), gorra (una vez, con origen `online` y como nueva; no si
+  abandonas tu primer partido ni con otra versión; sí con «no cuenta» por caída del anfitrión), marca a medias (reciente: nada; vieja:
+  abandono), guardado dañado o raro; revancha sobre el mismo `memPair` (60 ms ± 10, 2 % de pérdida): partido a 11 hasta el final,
+  `again` en los dos `r.app`, `go` con la época 1, sesiones nuevas con huellas iguales 60 s y sin reparaciones, otra semilla, mismos
+  nombres, un paquete y una huella de la época 0 tardíos ignorados, otro final y `rivalLeft` cuando el rival sale.
+- `node tools/netdrive.js --guion` (UN Chrome headless con dos páginas, ~9-11 min, 26 comprobaciones; desde la revisión también la cuenta atrás «Si no vuelve en N s, ganas tú», «Abandonar (cuenta como derrota)» y el ping del HUD por debajo de 200 ms justo al volver la red): pabellón (Palau), mejor de 3 a 11, 80 ms ± 15 y 3 %
+  de pérdida, anfitrión con la gorra y camiseta roja, invitado con bot flojo. Comprueba: looks (el invitado ve la gorra en su rival),
+  equipaciones iguales en las dos pantallas, marcador «TÚ / INV» y «TÚ / ANF», tiempo muerto pedido sin pausa, challenge del invitado con
+  revisión en las dos partidas, página del invitado oculta (emulada: visibilidad oculta y sin requestAnimationFrame; Chrome headless
+  minimiza sin ocultar la página y deja de pintarla, así que se restaura y se emula) con su jugador a la IA, el Worker avanzando y el
+  anfitrión sin esperar, vuelta con el jugador recuperado, corte de 14 s con «Seguir contra la IA» y resync, pausa entre sets con un
+  «Continuar» (sigue) y con los dos (se salta en ~3 s), huellas iguales en todo el partido, hoja final con «Revancha» y «Volver al
+  menú», resultado en el récord de cada lado, gorra desbloqueada y en el resumen, «Tu récord online», revancha pactada (época 1, otra
+  semilla, huellas iguales), flechita con el nombre, abandono (= derrota y abandono en el récord; «Invi ha abandonado: ganas tú»),
+  consola limpia y capturas `tools/out/net3-*.png` (contra la IA, pausa de set en las dos, final, revancha, abandono, gorra en pista y
+  playa).
+
+### Pendiente
+
+- **Publicar:** HECHO en la fase 4 (ver «Fase 4» y «Para Ferran»).
+- Estadísticas de la hoja: salen de los eventos presentados (un toque predicho que el rollback anuló puede contar; lo de la pestaña
+  oculta no cuenta). La línea de maestría (`g.stats`) no sale en el online (`view.stats` no se copia). Si molesta: calcularlas de
+  `confirmedGame().stats` giradas para el invitado.
+- «Mejores jugadas» y repetición: siguen apagadas en el online.
+- Volver a la sala tras recargar la página (fase 2) sigue pendiente; hoy recargar = abandono al cabo de 60 s (y la marca lo apunta).
+- Intensive throttling de Chrome (pestaña oculta más de 5 min): el Worker debería seguir; no medido con un navegador de verdad.
+- El récord online es por aparato (no va a la cuenta).
+- El marcador colgado del pabellón (arena.js) aún pone «TÚ / CPU» en el online; los rótulos de punto, set y partido ya dicen «EL RIVAL».
+
+---
+
+## Fase 4 — publicación (16-nov-2026)
+
+Decisión 7 de Ferran: la entrada «Online» se ve en el menú y él pondrá gente a probarlo. No hay reglas nuevas (el bloque ONLINE de
+`firebase/firestore.rules` ya está desplegado desde la fase 2; ver «Para Ferran»). Las huellas de siempre no cambian (`sim.js` no se toca).
+
+### Lo que cambia
+
+- **Menú:** `MENU_ON = true` en `js/netlobby.js`: Jugar › **Online** (quinta tarjeta, «1v1» sobre azul como el «6v6» y el «2v2», texto
+  «Contra otra persona, con tu jugador») con la pastilla amarilla **«Beta»** (la `.md-soon` de siempre). En 1280×720 y 844×390 caben las
+  cinco tarjetas en una fila; en vertical (≤ 620 px de ancho) van en lista como las demás.
+- **«Cómo funciona el online»** (vista `'help'` del lobby): sale sola la PRIMERA vez que se entra en Online con sesión (también al entrar
+  en la cuenta desde el aviso), antes de la lista; «Entendido» (o Esc / B) lleva a la lista y no vuelve a salir (`voley3d.nethelp`, por
+  aparato). Luego, desde la fila «Cómo funciona» debajo de «Actualizar». Siete líneas cortas: 1 contra 1 (tu n.º 1 y la IA a tu pareja),
+  tu jugador (Carrera, si no Partido rápido; «Igualado»), salas (lista o código), sin pausa (10 s entre sets, se salta si pulsáis los dos
+  «Continuar»), si se corta (espera, a los 10 s la IA, 60 s para volver), récord (abandonar = derrota, sin experiencia ni insignias, la
+  gorra «Online Beta Tester» al terminar el primero) y privacidad (solo tu nombre; nunca el correo ni la dirección de red).
+- **Sala de espera:** debajo del estado, «Llevas a tu n.º 1 y la IA a tu pareja. No hay pausa durante el juego: entre sets, 10 s de
+  descanso. Abandonar cuenta como derrota.» (en un teléfono apaisado no sale porque no cabe; está en «Cómo funciona»).
+- **Teléfono apaisado (≤ 420 px de alto):** la página toma el ancho de las demás (560: el botón «Pantalla completa» ya no tapa el nombre)
+  y las filas de sala enseñan sede y partido (antes la ayuda de las filas se escondía y con ella la configuración de la sala).
+- **Filas de sala:** si una sala no trae sede, ya no dice «Playa | Playa».
+- **HUD del partido** (rama online de `js/main.js`): datos con la barra fina (guía de estilo: «Contra Ana | 18 ms | Conexión inestable»,
+  «Contra la IA (puede volver en 42 s)») y el aviso baja de línea si no cabe (en 844×390 «Esperando a… Si no vuelve en 50 s, ganas tú»
+  con «Seguir contra la IA» y «Abandonar (cuenta como derrota)» cabe en una línea; con un nombre largo, baja).
+
+### Repaso general
+
+- **Textos:** castellano, género neutro («tu pareja», «tu rival», «cada persona»), sin « · » de pegamento en lo nuevo.
+- **Teclado, ratón y mando** (prueba aparte, sin red: `NetRoom` simulado): Intro en la tarjeta abre «Cómo funciona» con el foco en
+  «Entendido»; ↓ recorre Crear sala, Tu nombre, Entrar con código, las salas (salta la de otra versión), Actualizar y Cómo funciona; Esc
+  sale a Jugar. Con mando: A entra, la cruceta ← → cambia las opciones de Crear sala, ↓ llega a «Abrir sala», A la abre, B sale de la sala y
+  B otra vez vuelve a Jugar. 13 comprobaciones, consola limpia. (Escribir el nombre o el código con mando sigue sin poder hacerse.)
+- **Táctil (844×390):** lobby, crear sala y sala de espera se tocan bien; en partido el HUD online queda bajo el marcador, lejos del
+  joystick y los botones; el aviso de espera con sus dos botones cabe (`NDTOUCH=1`, abajo).
+- **Errores de red entendibles:** sin cuenta, reglas sin desplegar, sesión caducada, sin conexión, sala llena, sala que ya no existe,
+  otra versión, anfitrión que no responde, redes que no dejan conectar; en partido, espera / IA / abandono / no ha vuelto / no cuenta.
+- **Privacidad:** ninguna IP, `.local` ni candidato ICE en pantalla (netdrive `--rtc`); `js/net*.js` no escriben nada en la consola;
+  en Firestore solo hay nombres visibles y uid (las SDP con direcciones de red las lee solo su destinatario y se borran al conectar).
+  Nunca un correo: `netInfo()` no lo da y los nombres con @ se rechazan.
+
+### Revisión de la fase 4 (16-nov-2026)
+
+- **La cuenta solo cambia el lobby cuando cambia quién hay en ella.** `VB.Account.onChange` avisa en cada `setStatus` (también en
+  cada sincronización: al volver a la pestaña, `visibilitychange` → `syncDown`), y antes eso devolvía a la lista desde «Crear sala»
+  (perdiendo lo elegido), cerraba «Tu nombre» sin guardar y cerraba «Cómo funciona». Ahora `netlobby.js` guarda `L.accKey` (`accKey()`:
+  uid de la cuenta, '' sin sesión) y solo reacciona si cambia: entrar, salir o cambiar de cuenta. Prueba (sin red, salas falsas):
+  «Crear sala» con Pabellón / Mejor de 3 / Igualado y una sincronización → sigue en «Crear sala» con lo mismo; «Tu nombre» abierto con
+  texto → sigue abierto con el texto; cambio de uid → vuelve a la lista.
+- **Navegador sin WebRTC (p. ej. iPhone en modo Aislamiento):** vista propia `nortc` («Este navegador no puede jugar online»), sin
+  «Volver a probar». `noRtc()` se mira al abrir, en «Volver a probar» (desde la vista `off`), en el aviso de la cuenta y al principio de
+  `createRoom`, `joinRoom` y `joinCode`: sin WebRTC nunca se abre ni se ocupa una sala.
+- **HUD online (`js/main.js` `netHud`):** el nombre del rival va en los textos como la marca `\u0001` y se pinta aparte (`textContent`
+  en cada `<b class="nn">`). Antes `msg.replace(who, …)` daba con la primera coincidencia, que podía estar en el texto fijo (un rival
+  «en» en «Siguiente set…»), y el nombre real quedaba dentro de `innerHTML` (un & se leía como entidad).
+
+### Pruebas de la fase
+
+- `node tools/netdrive.js --rtc`: 22 comprobaciones (nueva: «Cómo funciona» la primera vez). Capturas `tools/out/netrtc-*.png`.
+- `NDW=844 NDH=390 NDTOUCH=1 node tools/netdrive.js 40`: teléfono apaisado con pantalla táctil y un corte de 13 s; comprobación nueva
+  «el aviso de espera con sus dos botones cabe en la pantalla» (las congelaciones se cuentan hasta el corte). Captura
+  `tools/out/netdrive-movil-espera.png`.
+- Capturas del menú y del lobby en 1280×720 y 844×390 (táctil): `tools/out/f4-{jugar,online,ayuda,lista,crear,sala}-{1280x720,844x390}.png`
+  (la lista con salas falsas, sin red).
+
+### Pendiente
+
+- Lo de las fases anteriores: volver a la sala tras recargar, TURN si fallan muchas conexiones entre redes distintas (medirlo con los
+  primeros probadores: `VB.NetLobby._state().linkInfo.type`), escribir con mando, estadísticas de maestría en la hoja online, marcador
+  colgado del pabellón con «TÚ / CPU».
+- Las Novedades del online las escribe la sesión principal (esta fase no toca Novedades ni Controles).
+
+---
+
+## Para Ferran
+
+### Reglas de Firestore: ya están puestas
+
+Las reglas del online (bloque ONLINE de `firebase/firestore.rules`) **ya están desplegadas** en make-the-cut-vb desde el 16-nov-2026
+(15:43 UTC), con tu permiso; la revisión de la fase 3 comprobó que lo publicado es igual que el fichero, y el fichero no ha cambiado desde
+entonces. Esta fase no añade reglas. **No tienes que desplegar nada.**
+
+Si algún día dudas (o el juego dice «El online aún no está activado en el servidor»), hay dos caminos; los dos ponen TODO el fichero
+(el progreso de las cuentas y el online), así que no se pierde nada:
+
+1. **Desde este PC:** en la carpeta `firebase/` del proyecto, `npx -y firebase-tools@13 deploy --only firestore:rules --project make-the-cut-vb`.
+2. **Desde la consola web:** console.firebase.google.com › make-the-cut-vb › Firestore Database › pestaña **Reglas** › borra lo que haya,
+   pega el bloque de abajo entero y pulsa **Publicar**. Tarda un par de minutos en notarse.
+
+Bloque listo para pegar (copia exacta de `firebase/firestore.rules` a 16-nov-2026; si el fichero cambia, manda el fichero):
+
+```
+rules_version = '2';
+// Make the Cut: progreso de cada cuenta. Sin cifrar; solo lo lee y lo cambia su dueño.
+// users/{uid}/saves/{key}: data = JSON en texto (≤ 400 000 caracteres; js/account.js no sube más de 390 000); updatedAt = ms del dispositivo.
+// Claves admitidas (11; todas desplegadas el 16-nov-2026) y qué las enciende en js/account.js:
+//   squad, career, settings, record   → siempre (DOCS).                                  DESPLEGADAS.
+//   gym                               → GYM_SYNC = true (12-nov-2026).                    DESPLEGADA el 12-nov-2026.
+//   look                              → LOOK_SYNC = true (Vestuario, 13-nov-2026).        DESPLEGADA el 15-nov-2026.
+//   profile, career6, cmode, legends, retos → S4_SYNC (S4, perfil y sincronización).       DESPLEGADAS el 16-nov-2026.
+// Orden obligatorio: 1) Ferran despliega estas reglas (npx firebase-tools deploy --only firestore:rules, desde firebase/) y espera unos
+// minutos; 2) en una publicación mínima, S4_SYNC = true (LOOK_SYNC ya está a true). Al revés, cada subida daría 403.
+// '<clave>.bak', 'voley3d.career(6).prev', 'voley3d.devid' y 'voley3d.retostab' son del aparato: nunca llegan aquí.
+// tools/synctest.js comprueba que cada clave de DOCS (con todos los interruptores encendidos) está en la lista de abajo.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) { return request.auth != null && request.auth.uid == uid; }
+    match /users/{uid}/saves/{key} {
+      allow get, list, delete: if owner(uid);
+      allow create, update: if owner(uid)
+        && key in ['squad', 'career', 'settings', 'record', 'gym', 'look', 'profile', 'career6', 'cmode', 'legends', 'retos']
+        && request.resource.data.keys().hasOnly(['data', 'updatedAt', 'v'])
+        && request.resource.data.data is string && request.resource.data.data.size() <= 400000
+        && request.resource.data.updatedAt is number
+        && (!('v' in request.resource.data) || request.resource.data.v is int);
+    }
+    // ------------------------------------------------------------------------------------------------------------------------
+    // ONLINE (especialista net, notes/net.md, 16-nov-2026). DESPLEGADO el 16-nov-2026. Si faltaran estas reglas, el juego diría
+    // «El online aún no está activado en el servidor» al entrar en Online (403 al listar rooms) y no se rompe nada más.
+    // Desplegar (desde firebase/): npx firebase-tools deploy --only firestore:rules
+    //
+    // rooms/{uid}: la sala que tiene abierta cada cuenta (el id del documento ES el uid del anfitrión: una sala por cuenta).
+    //   Campos públicos para la lista del lobby (los ve cualquiera con sesión; nunca correos): code (6 letras/cifras, para compartir),
+    //   name (nombre visible del anfitrión, 1-16), gname (el de quien entra), host/guest (uid), fmt ('2v2'), venue ('beach'|'hall'),
+    //   map (id de la sede), even (Igualado), bo (1|3 sets), pts, state ('open' en la lista | 'full' con rival | 'play' jugando),
+    //   v (versión del protocolo y del juego) y seen (hora del SERVIDOR del último latido del anfitrión: el cliente la manda como
+    //   transformación REQUEST_TIME, así no depende del reloj de nadie).
+    //   - Crear / cambiar: solo el anfitrión (doc = su uid) y con seen = hora del servidor.
+    //   - Unirse: quien no es el anfitrión, a una sala 'open', vacía y viva (latido de hace < 90 s); solo toca guest/gname/state.
+    //   - Salir antes de empezar: el invitado devuelve la sala a 'open'.
+    //   - Borrar: el anfitrión, o cualquiera con sesión si la sala lleva más de 5 min sin latido (limpieza desde el lobby).
+    // rooms/{uid}/sig/{offer|answer}: señalización de WebRTC (SDP, que lleva direcciones de red): SOLO la leen y escriben los dos
+    //   jugadores de la sala (offer el anfitrión, con to = uid del invitado al que va; answer el invitado, con uid = el suyo) y cada
+    //   uno solo lee lo que va dirigido a él: un invitado nuevo nunca lee la respuesta (ni la oferta) de uno anterior. El cliente la
+    //   borra al conectar, al salir el invitado y al volver a abrir la sala. Nada de esto se enseña en el juego: del rival solo se ve
+    //   su nombre.
+    // ------------------------------------------------------------------------------------------------------------------------
+    function signed() { return request.auth != null; }
+    function nameOk(n) { return n is string && n.size() >= 1 && n.size() <= 16; }
+    function roomOk(d) {
+      return d.keys().hasOnly(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen'])
+        && d.keys().hasAll(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen'])
+        && d.code is string && d.code.matches('[2-9A-HJKMNP-Z]{6}')
+        && nameOk(d.name) && d.gname is string && d.gname.size() <= 16
+        && d.host is string && d.guest is string && d.guest.size() <= 128
+        && d.fmt in ['2v2'] && d.venue in ['beach', 'hall'] && d.map is string && d.map.size() <= 40
+        && d.even is bool && d.bo in [1, 3] && d.pts in [11, 15, 21, 25]
+        && d.state in ['open', 'full', 'play'] && d.v is string && d.v.size() <= 40
+        && d.seen == request.time;
+    }
+    function members(d) { return [d.host, d.guest]; }
+    function live(d) { return d.seen > request.time - duration.value(90, 's'); }
+    function stale(d) { return d.seen < request.time - duration.value(300, 's'); }
+    match /rooms/{rid} {
+      allow get: if signed();
+      allow list: if signed() && request.query.limit <= 50;
+      allow create: if signed() && rid == request.auth.uid && roomOk(request.resource.data)
+        && request.resource.data.host == request.auth.uid && request.resource.data.guest == '' && request.resource.data.gname == ''
+        && request.resource.data.state == 'open';
+      allow update: if signed() && (
+        // el anfitrión: lo que quiera de su sala (latido, estado, echar al invitado), siempre válida y con seen del servidor
+        (rid == request.auth.uid && resource.data.host == request.auth.uid && request.resource.data.host == request.auth.uid
+          && roomOk(request.resource.data))
+        // entrar: una sala abierta, vacía y viva; solo guest (= quien entra), gname y state ('full')
+        || (resource.data.state == 'open' && resource.data.guest == '' && resource.data.host != request.auth.uid && live(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guest', 'gname', 'state'])
+          && request.resource.data.guest == request.auth.uid && request.resource.data.state == 'full' && nameOk(request.resource.data.gname))
+        // salir antes de empezar: el invitado deja la sala abierta y vacía
+        || (resource.data.state == 'full' && resource.data.guest == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guest', 'gname', 'state'])
+          && request.resource.data.guest == '' && request.resource.data.gname == '' && request.resource.data.state == 'open'));
+      allow delete: if signed() && (resource.data.host == request.auth.uid || stale(resource.data));
+      match /sig/{kind} {
+        function room() { return get(/databases/$(database)/documents/rooms/$(rid)).data; }
+        function here() { return exists(/databases/$(database)/documents/rooms/$(rid)); }
+        // leer: la oferta, el anfitrión o su destinatario (to); la respuesta, quien la escribió (uid) o el anfitrión mientras ese
+        // sea su invitado. Así nadie hereda la SDP de otro (quien entra después de que alguien saliera no puede leer la suya).
+        // (resource == null: el documento no existe y la lectura da 404, no 403)
+        allow get: if signed() && here() && (resource == null
+          || (kind == 'offer' && (room().host == request.auth.uid || resource.data.to == request.auth.uid))
+          || (kind == 'answer' && (resource.data.uid == request.auth.uid
+                || (room().host == request.auth.uid && resource.data.uid == room().guest))));
+        allow create, update: if signed() && here() && room().state in ['full', 'play']
+          && ((kind == 'offer' && room().host == request.auth.uid && request.resource.data.keys().hasOnly(['sdp', 'gen', 'to'])
+                && request.resource.data.to == room().guest)
+            || (kind == 'answer' && room().guest == request.auth.uid && request.resource.data.keys().hasOnly(['sdp', 'gen', 'uid'])
+                && request.resource.data.uid == request.auth.uid))
+          && request.resource.data.keys().hasAll(['sdp', 'gen'])
+          && request.resource.data.sdp is string && request.resource.data.sdp.size() <= 20000
+          && request.resource.data.gen is int && request.resource.data.gen >= 0;
+        // borrar: los dos jugadores, quien escribió la respuesta aunque ya haya salido (al cerrar la pestaña el borrado y la salida
+        // van a la vez) y cualquiera si la sala ya no existe o está caducada
+        allow delete: if signed() && (!here() || request.auth.uid in members(room()) || stale(room())
+          || (resource != null && resource.data.get('uid', '') == request.auth.uid));
+      }
+    }
+  }
+}
+```
+
+No hace falta crear índices ni TTL: las salas caducan solas (a los 90 s sin latido dejan de salir en la lista y a los 5 min cualquiera
+con sesión las borra desde el lobby).
+
+### Cómo probarlo con un amigo
+
+1. **Los dos con cuenta** (Cuenta, en el menú). Sin cuenta el juego dice «Necesitas una cuenta para jugar online». Conviene que cada
+   uno tenga su Carrera o su escuadrón de Partido rápido (si no, se juega con atributos neutros).
+2. **La misma versión del juego:** recargad la página los dos (si no, la sala sale como «Otra versión» y no deja entrar).
+3. Tú: **Jugar › Online** (la primera vez sale «Cómo funciona») › **Crear sala** › escenario, sede, 1 set o mejor de 3, «Los suyos» o
+   «Igualado» › **Abrir sala**. En «Tu nombre» pones cómo quieres que te vean (2-16 caracteres, nunca un correo).
+4. Tu amigo: **Jugar › Online** y toca tu sala en **Salas abiertas** (o «Entrar con código» con el código de 6 de tu sala, o el enlace
+   del juego con `?sala=CÓDIGO` al final).
+5. Se conectan solos en unos segundos y empieza el partido: cada uno lleva a su n.º 1 y la IA a su pareja. No hay pausa; entre sets,
+   10 s (se salta si los dos pulsáis «Continuar»). Al final, «Revancha» o «Volver al menú».
+6. **Probad también:** cortar el wifi unos segundos (debe esperar y seguir), cortarlo más de 10 s (sale «Seguir contra la IA») y que uno
+   abandone (cuenta como derrota). Al terminar el primer partido, mirad la gorra «Online Beta Tester» en el Vestuario.
+
+**Si no conectan** («vuestras redes no lo permiten»): pasa con algunas redes (datos móviles, wifi de empresa o de universidad) porque
+aún no hay servidor de paso (TURN). Probad desde otra red. Si a los probadores les pasa a menudo, es lo siguiente que habría que poner.
+Para saber qué tipo de conexión salió, en la consola del navegador: `VB.NetLobby._state().linkInfo` (`host` = misma red, `srflx` = a
+través de internet; nunca enseña la IP).
+
+**Límites de la beta que conviene decir a los probadores:** los atributos «de tu Carrera» los manda cada uno desde su navegador (quien
+quiera ir a la par, «Igualado»); recargar la página en pleno partido cuenta como abandono a los 60 s; el récord online es por aparato.

@@ -1,12 +1,12 @@
 # VOLEY 3D — Contrato de arquitectura
 
 Juego de voley 2 contra 2 en 3D (Three.js r149), navegador, escritorio + móvil.
-Proyecto personal. Este documento es la ley para los 6 especialistas que trabajan en paralelo.
+Proyecto personal. Este documento es la ley para los 7 especialistas (el 7.º, `net`, desde el online) que trabajan en paralelo.
 
 ## 1. Propiedad de ficheros (exacta)
 
 ```json
-{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js and js/look.js (wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)"}
+{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js and js/look.js (wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
 ```
 
 `js/prog.js` (estadísticas y progresión de tus jugadores: `VB.Prog`, guardado en `voley3d.squad`) también es de **ui_main**; sim lo recibe ya convertido en `createGame({attrs: [[st7, st11], [st3, st9]]})` (atributos 1-99 con las claves `VB.ATTR_KEYS`; 50 = neutro; sin `attrs` la sim no cambia), que deja `p.st`, `p.prof` (perfil de IA, `Sim.statProf`) y `p.ak` (multiplicadores del humano, `Sim.attrK`; constantes en `VB.ATTR_K`). Integración (10-nov-2026): `p.ak` añade `eRecv/eDig/eSet/eAtk` (precisión del toque: dispersión ×1,5-0,6 y calidad del pase/colocación) y `rRecv/rDig` (alcance del 1r toque ×0,94-1,05); con Velocidad < 50 frenar y girar es al momento (la rampa `accT` solo al arrancar).
@@ -41,7 +41,7 @@ reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 `js/retos.js` (`VB.Retos`: 18 retos de maestría y el reto del día), `js/profile.js` (`VB.Profile`: nivel de perfil, hitos y álbum),
 `js/replay.js` (`VB.Replay`: repeticiones por resimulación, sin guardado) y las pruebas `tools/recaptest.js`, `tools/retotest.js`,
 `tools/proftest.js`, `tools/synctest.js`, `tools/replaytest.js`, `tools/lifetest.js` y `tools/worldtest.js`. De **players**:
-`tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **sin desplegar**.
+`tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **desplegadas el 16-nov-2026** (comprobado: lo publicado en make-the-cut-vb es igual que el fichero).
 Guardados nuevos: `voley3d.retos` (v1) y `voley3d.profile` (v1) sincronizan solo con `S4_SYNC = true` en account.js. Hoy es `false`: ellos,
 `voley3d.career6`, `voley3d.career.mode` (`cmode`) y `voley3d.legends` van a `TRACK` (hora sin subir). `voley3d.retostab` (pestaña de Retos),
 `voley3d.devid` (contador del perfil por aparato), `<clave>.bak` (copia de un guardado dañado) y `voley3d.career(6).prev` (la Carrera local
@@ -303,6 +303,103 @@ bronce/plata/oro que usa `VB.Gym.medalsOf`), `VB.Sim.drillStage(g)`, `VB.Sim.dri
 - `VB.Sim.stateHash(g)` → uint32: FNV-1a del balón, posiciones, marcador, sets, `setNo`, modo, `rng.get()` y tiempo. Puro.
 - `g.replay = false` en `createGame` (las sombras lo ponen a true; la sim no lo lee). Lo que muta `g` fuera de `Sim.step` (`requestSub`,
   `setCtrlRole`, `skipHold`, `challenge`) no se graba: hoy solo actúa en pausas, fuera del tramo que se repite.
+
+**Online, fase 0 (net, 16-nov-2026; detalle en notes/net.md).** Cambios en `js/sim.js` / `js/ai.js` hechos por la fase del online, todos detrás
+de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas en `tools/mptest.js`):
+- `createGame({online: true, humans: [h0, h1], even, venue, points, bestOf: 1|3, timeouts, seed, present, stats})`, `h = {idx, aimSet, attrs, badges}`.
+  Hueco s = equipo s (anfitrión = equipo 0). Fuerza 2v2, control 'one' (cada humano lleva a UN jugador), maestría, nivel 'normal',
+  `g.prof = [DIFF.mate, DIFF.mate]` y `g.tm = VB.TIMING.online` (= Normal). A 21 y 1 set por defecto (`g.bo1`); `even` = «Igualado».
+- `Sim.step(g, dt, [in0, in1])`: cada entrada con los bits `chal`, `tmo`, `skip` (flancos) y `ai` (nivel). Tiempo muerto APAGADO por
+  defecto (sin pausas en juego; solo con `timeouts: true`: 30 s, 1 por set y equipo, en balón muerto cuando ya no queda ventana de
+  challenge, nunca entre sets); pausa de 10 s entre sets; «Continuar» (`skip`) solo salta una pausa cuando lo han pulsado los dos.
+- Estado: `g.online`, `g.hum[s]` (gesto de cada humano), `g.hT` (hueco activo: sus campos están en los de siempre de `g`; tras cada paso, el
+  0), `g.skipReq`, `g.tmoReq`, `g.tmoLeft`, `g.tmoPer`, `g.tmo`, `g.bo1`. Eventos nuevos: `timeoutReq`, `timeout`, `timeoutEnd`, `timeoutCancel`,
+  `skipReq`, `slotAI`; el evento `point` online lleva `text1` (texto visto desde el invitado; `text` es el del anfitrión).
+- Funciones: `Sim.useSlot(g, t)` (solo sim/IA: la interfaz lee con `slotGet`), `Sim.slotGet(g, t, k)`, `Sim.humOn(g, t)`, `Sim.humSlot(g, p)`, `Sim.setSlotAI(g, s, on)`, `Sim.jsetHum(g, t)` /
+  `Sim.jsetHumSw` (lectura de la IA), `Sim.ONLINE {setPause, tmoDur, tmoMin, tmoPerSet}`, `Sim.serialize(g)` → objeto JSON-able y
+  `Sim.deserialize(obj, dst)` → dst idéntica bit a bit (o null si `obj.v !== Sim.SER_V`, hoy 2). `serialize` deja
+  antes el hueco 0 activo (foto canónica).
+
+**Online, fase 1 (net, 16-nov-2026; detalle en notes/net.md).** Ficheros nuevos del especialista `net`, sin DOM ni THREE (se prueban en Node):
+- `js/net.js` → `VB.Net`: `new Session({slot: 0|1, link, opts (createGame; el invitado puede pasar null y adopta las del anfitrión), delay
+  (2 tics), name})`. `session.advance(now ms, entrada) → {g (partida predicha), events (para presentar, sin repetir tras un rollback;
+  gameOver solo confirmado), confirmed, status ('connecting'|'starting'|'playing'|'waiting'|'over'|'ended'), tick, gcTick, ping,
+  waitMs, unstable, canAI, startIn, solo, valid, result, rivalSolo, gone}`; `request('chal'|'skip'|'tmo')`, `setAway(bool)` (bit `ai`),
+  `vsAI()` (el rival puede volver hasta 60 s después de perderse), `quit()` (tras el final no cambia el resultado),
+  `confirmedGame()` (lo que deja huella sale de AHÍ), `predictedGame()`, `initEvents`, `rivalName` (nombre, nunca correo ni IP).
+  Entrada = `{move (mundo canónico), hit, jump, jset, chal, skip, tmo, ai}`, cuantizada (int16 + 1 byte) antes de usarla en local.
+  Transportes `{send(ch, data), poll(now), close()}` (`'in'` no fiable, `'ctl'` fiable y en orden): `memPair({lag (RTT), jit, loss, seed,
+  clock})` y `BcLink({room, slot, lag, jit, loss})` (BroadcastChannel). `bot(team, seed)`: bot de solo entrada para pruebas.
+- `js/netview.js` → `VB.NetView`: `mirror(view, g, slot)` (copyGame y, para el invitado, `flip`: giro de 180°, parejas por equipo
+  intercambiadas, equipos 0 ↔ 1 y su hueco como activo: `view.ctrl` = su jugador), `mapEvents(evs, view, slot, out)` (copias remapeadas;
+  el punto con `text1`), `inputToWorld(inp, slot)`. Clasificación cerrada `FIELDS` / `PLAYER` / `NESTED` / `EVENT`: un campo nuevo en `g`,
+  en un jugador o en un evento hace fallar `tools/viewtest.js` hasta que se clasifica allí (girar, intercambiar, equipo o tal cual).
+- `js/main.js` (rama online, hecha por net): `ctx.actions.startOnline({slot, link, opts, name})`, `ctx.net` (sesión y vista), `ctx.netBot`
+  (depuración), `ctx.actions.netVsAI()` / `netQuit()`. Con `ctx.net` el frame no usa `acc`/`MAX_STEPS`/`timeScale`, ni pausa (Esc enseña
+  «Abandonar»), ni intro ni repetición; `ctx.game` es la vista. HUD propio `#netHud` (rival, ping, esperas) y `#netTag` (nombre del rival
+  con flechita encima de su jugador). Prueba: `?net=bc&slot=0|1&lag=&jit=&loss=` (implica `ctx.debug = 'net'`: sin récord ni XP).
+
+**Online, fase 2 (net, 16-nov-2026; detalle en notes/net.md «Fase 2»).** Transporte real y lobby. Ficheros nuevos de `net` (entran en
+`js/net*.js`) y prueba nueva `tools/roomtest.js` (también de **net**):
+- `js/netroom.js` → `VB.NetRoom.create({base, auth, ver})`: salas y señalización en Firestore por REST (sin DOM; Node y navegador).
+  `list()`, `open(cfg)`, `beat(patch)`, `get(id)`, `byCode(code)`, `join(id, nombre)`, `leave(id)`, `close()`, `putSig/getSig/delSig`,
+  `sweep()`, `bye(role, id)` (al cerrar la pestaña, keepalive); la oferta lleva `to` (uid del invitado) y la respuesta `uid` (quien la
+  escribe), y cada una solo la lee su destinatario y el anfitrión; errores con `.code` `'off'` (reglas sin desplegar), `'denied'`, `'auth'`, `'net'`, `'full'`, `'gone'`, `'version'`.
+  Además `cleanName` (nombre visible de 2-16 unidades UTF-16 como las reglas, nunca con @), `newCode/codeOk/normCode` (6 de `23456789ABCDEFGHJKMNPQRSTUVWXYZ`).
+- `js/netrtc.js` → `VB.NetRtc.Link`: enlace WebRTC (`'in'` no fiable id 1, `'ctl'` fiable id 2, negociados), mismo contrato que
+  memPair/BcLink más `offer()/answer(sdp)/accept(sdp)`, `state`, `onstate`, `onclose`, `info()` (solo el TIPO de par, nunca la IP).
+- `js/netlobby.js` → `VB.NetLobby`: la página Online (`open(host)`, `leave()`, `back()`, `side(el, d)`, `focus()`, `menuOn()`), la
+  conexión (señalización, «pre» con nombre y atributos del invitado, `ctx.actions.startOnline`) y la renegociación si la conexión se cae
+  en pleno partido; en `pagehide` suelta la sala o el hueco. Guardados por aparato (nunca a `DOCS`): `voley3d.nick` (tu nombre en el online) y `voley3d.netroom` (última
+  configuración de sala). `MENU_ON` (`true` desde la fase 4: la tarjeta Online de Jugar sale para todo el mundo; con `false` solo con `?online=1`).
+- Toques en ficheros de **ui_main** hechos por esta fase (pedidos por el orquestador; mínimos): `index.html` (scripts nuevos, tarjeta
+  `#btnOnline` oculta en Jugar, página `#mpOnline` con `.ol-body`), `js/ui.js` (página `'online'` en `pageEl/pageFocus/setPage/menuGo`,
+  `menuBack` pregunta antes a `NetLobby.back()`, ←/→ con `NetLobby.side`, y **sin récord, XP, perfil, insignias, retos ni Vestuario en
+  un partido online**: `online = ctx.game.online || ctx.net` en `showEnd` y en el `gameOver` de los retos), `js/account.js`
+  (`VB.Account.netAuth()` → `{uid, token}`, `netInfo()` → `{uid, kind, user}` sin correo, `FS_BASE`) y `firebase/firestore.rules`
+  (bloque ONLINE: `rooms/{uid}` y `rooms/{uid}/sig/{offer|answer}`, **desplegado el 16-nov-2026**; comprobado en la revisión de la fase 3:
+  lo publicado es igual que el fichero del árbol, sin contar comentarios).
+
+**Online, fase 3 (net, 16-nov-2026; detalle en notes/net.md «Fase 3»).** Partido completo. Fichero nuevo de `net`: `js/netrec.js`
+(`VB.NetRec`, sin DOM; `index.html` lo carga tras `js/look.js`) y prueba nueva `tools/net3test.js`; `tools/netdrive.js --guion`.
+- `js/net.js`: `new Session({…, epoch})` (revancha n.º k sobre el MISMO enlace: el byte 0 del paquete de entradas es `1 | época << 4` y
+  los mensajes de control llevan `ep`; lo de otra época se ignora; época 0 = el formato de antes), `sendApp(obj)` → llega en `r.app` del
+  otro lado (revancha), `r.rivalLeft` (el rival se fue tras el final: no hay revancha), `session.maxCatch` (tics por llamada; pestaña oculta).
+  Revisión: `Session({rivalName})` (manda sobre el saludo; `VB.Net.cleanName`), `CONNECT_MS` (20 s sin el rival antes de empezar →
+  `result {why:'noShow'}`; también su adiós de la época anterior), `quit()` antes de empezar → `{why:'cancel'}`, `r.goneIn` (ms que le
+  quedan al rival para volver) y los pongs de antes de un corte no cuentan en el ping.
+- `js/netrec.js` → `VB.NetRec`: récord online aparte en `voley3d.online` (`{played, wins, losses, quits, nc, streak, best, last[10]}`;
+  abandonar o tardar más de 60 s en volver = derrota; caída del anfitrión, otra versión o partido no válido = «no cuenta»), marca
+  `voley3d.online.pend` (lista, una marca por página; cerrar la pestaña en pleno partido = abandono al barrer: al cargar o al empezar,
+  latir o acabar otro partido, cuando la marca lleva 90 s sin latido),
+  `begin/beat/end/boot/get/line/outcome`. `end` concede la gorra `gorraMTC` (`VB.Look.grant(id, 'online')`) si terminaste el partido.
+- `js/look.js` (ui_main; toque de esta fase): objeto `gorraMTC` «Online Beta Tester» (cabeza, pista y playa, rareza 2, desbloqueo
+  `{online: 1}` → «Online: termina tu primer partido»; `checkGlobal` nunca lo concede), origen `'online'` en `SRCS` y en `HIDE_HAIR`.
+  `tools/looktest.js` actualizado (clave `online`, id en la especificación de cabeza, 6 objetos nuevos desde 928ac39).
+- `js/doll.js` (players; toque): `gorraMTC` en `ITEMS.head` y `HIDE_HAIR`; se dibuja como la gorra y una tira de la copa de 13 × 5 caras
+  pintadas por vértice con «MTC» (`mtcPanel`, 130 triángulos fijos; letra clara u oscura según cA).
+- `js/players.js` (players; toque): `setKit(st)` acepta `st.kit1` (equipación del equipo 1 ya decidida, sin comparar) y `st.looks1`
+  (looks del rival, n.º 1 y n.º 2 del equipo 1: `LOOK_OVR[2..3]`, `lookSlot`); fuera del online no vienen y se quitan.
+  `VB.Players.onlineKits(a, b)` → `[k0, k1]` con las reglas de setKit (la del equipo 1 si se distingue; si no, la de la CPU más distinta).
+- `js/netlobby.js`: el «pre» lleva `look = myLook()` (`{fits: [n.º 1, n.º 2] del Vestuario, kit: equipación de Ajustes}`, saneado al
+  mandar y al recibir con `saneLook`: `VB.Look.sane`, 8 KB por fit, colores de 24 bits); `startOnline({…, rivalName, look: {mine, theirs}})`.
+  En la lista sale «Tu récord online».
+- `js/main.js` (rama online): equipaciones (`onlineKits` con las de los dos; el equipo 0 de la vista es siempre el tuyo) y looks
+  (`calcLooks({fits})`), `view.netCr` (nombres; ui.js lo trata como `g.career`), revancha (`ctx.actions.netRematch`; el anfitrión manda
+  `{t:'go', e}` y los dos abren una sesión de la época siguiente), «Continuar» (`ctx.actions.netSkip`, botón del HUD en la pausa de
+  10 s entre sets), pestaña oculta (`visibilitychange` → `setAway` + un Worker de Blob que avanza la sesión sin pintar), récord y gorra
+  (`VB.NetRec`; en `?net=` solo con `&netrec=1`), `VB.NetRec.boot()` al arrancar. Pruebas de `?net=bc`: `&netcap=1`, `&kitshirt=`, `&botprof=flojo`.
+- `js/ui.js` (toque): `cpuTxt` y el marcador miran `g.netCr`; `endData.cpu` = nombre del rival; hoja final online con «Revancha»
+  (`data-act 'rematch'`, rótulo al día en `onlineEndSync`) y «Volver al menú», y «Tu récord online» al pie del resumen (`onlineEndRec`).
+
+**Online, fase 4 (net, 16-nov-2026; detalle en notes/net.md «Fase 4» y «Para Ferran»).** Publicación. `js/netlobby.js`: `MENU_ON = true`, Revisión: el lobby solo reacciona a la cuenta cuando cambia el uid (`accKey`), no en cada sincronización; vista `nortc` sin «Volver a probar» y `noRtc()` antes de abrir u ocupar sala; `netHud` pinta el nombre del rival desde una marca `\u0001`, nunca con replace().
+vista `'help'` («Cómo funciona el online»: sale sola la primera vez que se entra con sesión, guardado por aparato `voley3d.nethelp`; luego
+desde la fila «Cómo funciona» bajo «Actualizar»; Esc/B o «Entendido» vuelven a la lista), consejo corto en la sala de espera, en teléfono
+apaisado la página toma el ancho de las demás (560) y las filas de sala enseñan sede y partido; una sala sin sede no repite «Playa | Playa».
+`index.html` (toque): pastilla «Beta» (`.md-soon`) en la tarjeta `#btnOnline`. `js/main.js` (rama online): el HUD online separa los datos
+con « | » (guía de estilo) y baja de línea en pantallas estrechas (`flex-wrap`, ancho máximo de la pantalla). `tools/netdrive.js`: comprueba
+«Cómo funciona» en `--rtc`; `NDW`/`NDH`/`NDTOUCH=1` en el modo básico (teléfono apaisado con un corte: el aviso de espera cabe). Sin reglas
+nuevas: el bloque ONLINE de `firebase/firestore.rules` ya está desplegado.
 
 ### 4.3 Eventos (cada frame main.js pasa el mismo array `events` a todos los módulos)
 Todos llevan `type` y `t` (tiempo de juego). `player` es la referencia al objeto jugador de `game.players`.

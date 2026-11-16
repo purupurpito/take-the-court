@@ -125,7 +125,7 @@
   var ARMS = { manguito: 'P', manguitoRayas: 'P', manguitoCuadros: 'P', manguitoLlamas: 'P', manguitoRayos: 'P', manguitoOro: 'P', kinesio: 'A', manguitoMazo: 'P' };   // manguitos solo en pista (1.1.1)
   var ITEMS = {
     style: { tupe: 'A', coleta: 'A', afro: 'A', flequillo: 'A', rapado: 'A', mono: 'A', trenzas: 'A', dosmonos: 'A', coletas: 'A', cresta: 'A' },
-    head: { cinta: 'A', cintaRizo: 'A', bandana: 'A', gorra: 'Y', gorraAtras: 'Y', visera: 'Y', pescador: 'Y', corona: 'A' },
+    head: { cinta: 'A', cintaRizo: 'A', bandana: 'A', gorra: 'Y', gorraAtras: 'Y', visera: 'Y', pescador: 'Y', corona: 'A', gorraMTC: 'A' },
     eyes: { frente: 'Y', pasta: 'A', oscuras: 'Y', deporte: 'A', espejo: 'Y' },
     paint: { zinc: 'Y', rayas: 'A', rayasEq: 'A', estrella: 'A' },
     marks: { pecas: 'A', tirita: 'A', tiraNasal: 'A' },
@@ -149,7 +149,7 @@
   // lo que lleva cada sede cuando el campo no llega (L viejas {skin, hair, style, acc} y NPC): exactamente lo de hoy
   var SLOT_DEF = { hall: { knees: 'cortas', socks: 'media', ankle: 'blanca', shoes: 'clasicas' }, beach: { paint: 'zinc', ankle: 'tela' } };
   // gorros que sustituyen al pelo (se dibuja el casquete de la nuca; coleta, trenzas y coletas salen por debajo)
-  var HIDE_HAIR = { gorra: 1, gorraAtras: 1, pescador: 1 };
+  var HIDE_HAIR = { gorra: 1, gorraAtras: 1, pescador: 1, gorraMTC: 1 };
   var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
   // objetos de jefe (variantes de una pieza base con la MISMA geometría: color por vértice o atlas; VB.Look cae a «as» sin dibujo):
   // cañón (muñequera negra con aro de cA), hierro (esparadrapo gris acero con remaches), martillo (manguito oscuro con un mazo de cA)
@@ -1106,6 +1106,23 @@
     }
     G.owk = 1;
   }
+  // ONLINE (fase 3, especialista net): la gorra «Online Beta Tester» lleva «MTC» en el frontal. Es una tira de la misma copa de la gorra
+  // (un 1,2 % más grande) con una malla de 13 × 5 caras alineada con este dibujo de píxeles (M de 5, T y C de 3, separadas por 1): cada
+  // cara se pinta por vértice (G.vc) con la letra o con cA. Siempre 13 × 5 (130 triángulos en todos los LOD): con menos, no se lee.
+  var MTC_ROWS = ['X...X.XXX..XX', 'XX.XX..X..X..', 'X.X.X..X..X..', 'X...X..X..X..', 'X...X..X...XX'];
+  var MTC_PHI0 = PI / 2 - 0.6, MTC_PHI = 1.2, MTC_TH0 = 0.8, MTC_TH = 0.5;   // (frontal, justo encima de la visera)
+  function mtcPanel(G, cA, R) {
+    var ink = lumHex(cA) > 0.6 ? 0x1c2233 : 0xf6f3ea, cols = MTC_ROWS[0].length, rows = MTC_ROWS.length;
+    G.owk = 0;
+    G.vc = function (px, py, pz) {
+      var ph = Math.atan2(pz, -px), th = Math.acos(Math.max(-1, Math.min(1, py / (Math.sqrt(px * px + py * py + pz * pz) || 1))));
+      var c = Math.floor((ph - MTC_PHI0) / MTC_PHI * cols), r = Math.floor((th - MTC_TH0) / MTC_TH * rows);
+      return r >= 0 && r < rows && c >= 0 && c < cols && MTC_ROWS[r].charAt(c) === 'X' ? ink : null;
+    };
+    G.add(new THREE.SphereGeometry(1, cols, rows, MTC_PHI0, MTC_PHI, MTC_TH0, MTC_TH), cA, 0, HEAD_C + 0.02, -0.005, 0.1, 0, 0,
+      (R + 0.012) * 1.015, (HEAD_RY + 0.03) * 1.015, (HEAD_RZ + 0.018) * 1.015);
+    G.vc = null; G.owk = 1;
+  }
   /** Cabeza, orejas, pelo y gorro (hueso head). Con un gorro de HIDE_HAIR el pelo es solo el casquete de la nuca; las trenzas y las
    *  coletas salen por debajo (la coleta, por el hueco de atrás: faceGeo). */
   function headGeo(G, X, tc) {
@@ -1213,6 +1230,7 @@
         if (back) G.add(sph(1, 16, 4, 0, PI * 2, 0, PI * 0.5), cB, 0, HEAD_C + 0.095 * FK, -(HEAD_RZ + 0.055 * FK), 0.3, PI, 0, 0.16 * FK, 0.016, 0.135 * FK);   // visera atrás
         else G.add(sph(1, 16, 4, 0, PI * 2, 0, PI * 0.5), cB, 0, HEAD_C + 0.095 * FK, HEAD_RZ + 0.055 * FK, -0.3, 0, 0, 0.16 * FK, 0.016, 0.135 * FK);       // visera (del oscuro)
         G.owk = 0; G.add(sph(0.016, 6, 4), cB, 0, HEAD_C + HEAD_RY + 0.03, -0.005); G.owk = 1;
+        if (X.head === 'gorraMTC') mtcPanel(G, cA, R);   // ONLINE (fase 3): «MTC» en el frontal de la gorra
         break;
       default:
         cap(hr, PI * 0.44, -0.2);
@@ -1867,7 +1885,7 @@
   ];
   // reglas de compatibilidad (las de VB.Look.CLASH; esta copia solo se usa si look.js no está cargado)
   var CLASH_FALLBACK = [
-    { a: { slot: 'eyes', ids: ['frente'] }, b: { slot: 'head', ids: ['cinta', 'cintaRizo', 'bandana', 'gorra', 'visera', 'pescador', 'corona'] } },
+    { a: { slot: 'eyes', ids: ['frente'] }, b: { slot: 'head', ids: ['cinta', 'cintaRizo', 'bandana', 'gorra', 'visera', 'pescador', 'corona', 'gorraMTC'] } },
     { a: { slot: 'head', ids: ['bandana', 'pescador'] }, b: { slot: 'style', ids: ['afro'] } },
     { a: { slot: 'head', ids: ['corona'] }, b: { slot: 'style', ids: ['mono', 'dosmonos', 'cresta'] } },
     { a: { slot: 'head', ids: ['cintaRizo', 'bandana'] }, b: { slot: 'style', ids: ['dosmonos'] } },
