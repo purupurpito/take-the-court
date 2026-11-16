@@ -760,7 +760,8 @@
    * se eligen entre 21 candidatos: sin oficiales (árbitros, jueces de línea, mesa) cortados por un borde, el campo rival centrado,
    * con histéresis (sin saltos). Sustituye a la cámara alta (5,4 m) con el sacador cortado por el pecho. */
   // oficiales [x, y, z0, z1, radio] (sim): silla del 1r árbitro, 2º árbitro, mesa con anotadores, jueces de línea (con bandera alta)
-  var OFFI = [[0, -6.12, 0, 3.2, 0.55], [0, 6.05, 0, 1.9, 0.42], [-0.6, 8.6, 0, 1.4, 0.42], [0.6, 8.6, 0, 1.4, 0.42], [10.4, -5.9, 0, 2.3, 0.42], [-10.4, 5.9, 0, 2.3, 0.42]];
+  var OFFI = [[0, -6.12, 0, 3.2, 0.55], [0, 6.05, 0, 1.9, 0.42], [-0.6, 8.6, 0, 1.4, 0.42], [0.6, 8.6, 0, 1.4, 0.42], [12, -4.5, 0, 2.3, 0.42], [9, 7.3, 0, 2.3, 0.42], [-12, 4.5, 0, 2.3, 0.42], [-9, -7.3, 0, 2.3, 0.42]];
+  var OFFN = 8;   // entradas de OFFI en uso (sin jueces de línea: 4; readOfficials)
   /** Sitios reales de los oficiales (arena los coloca al construir; el 2º árbitro se mueve junto al poste): se leen al empezar cada saque propio. */
   function readOfficials() {
     var A = VB.Arena, d = null;
@@ -772,6 +773,7 @@
       var o = OFFI[n++], r1 = q.z > 0.5;   // (el 1r árbitro, subido en su silla: toda la silla cuenta)
       o[0] = q.x; o[1] = q.y; o[2] = r1 ? 0 : q.z; o[3] = q.z + (r1 ? 1.85 : Math.abs(q.y) > 8 ? 1.35 : L[i].lines ? 2.25 : 1.85); o[4] = r1 ? 0.55 : 0.4;
     }
+    OFFN = n; for (; n < OFFI.length; n++) { o = OFFI[n]; o[0] = 1e3; o[1] = 1e3; o[2] = 0; o[3] = 0; o[4] = 0; }   // (sin jueces de línea: huecos fuera)
   }
   var SVC = { fullToss: false, pwN: 0, pwX: 0, pwY: 0, pwLow: false, pwAsp: 0, nEval: 0, nOff: 0, rr: 0, wantFull: false, fullF: -1, fullLow: false, fullAsp: 0, lat: 1.2, sx: 0.36, idx: -1, pen: 0.5, off: 0.5, cc: 0.5, yaw: 0.5, p: 0.5, t: 0.4, cx: 0.5, cy: 0.5, cz: 0.5, liftU: 0.5, dB: 0.5, fk: 0.99, inMask: 0 };
   SVC.idx = -1;
@@ -784,7 +786,7 @@
     var fx = cp * cyw, fy = cp * syw, fz = sp, rx = syw, ry = -cyw, ux = -sp * cyw, uy = -sp * syw, uz = cp;
     var M = 1.015, E = 0.985;
     var nWE = sq(1 + E * E * tanW * tanW), nHE = sq(1 + E * E * tanH * tanH), nWM = sq(1 + M * M * tanW * tanW), nHM = sq(1 + M * M * tanH * tanH);
-    for (var i = 0; i < OFFI.length; i++) {
+    for (var i = 0; i < OFFN; i++) {
       var o = OFFI[i], R = o[4];
       // atajo exacto con la esfera que envuelve los 16 puntos (UI-13): si está entera dentro de la banda interior o entera fuera de
       // un borde, el resultado es el mismo que con la caja y nos ahorramos las 16 proyecciones (casi siempre es así)
@@ -818,7 +820,7 @@
     var pen = 0, cx = SVC.cx, cy = SVC.cy, cz = SVC.cz, yaw = SVC.yaw, pitch = SVC.p, tanH = SVC.t, tanW = tanH * aspect();
     var cyw = Math.cos(yaw), syw = Math.sin(yaw), cp = Math.cos(pitch), sp = Math.sin(pitch);
     var fx = cp * cyw, fy = cp * syw, fz = sp, rx = syw, ry = -cyw, ux = -sp * cyw, uy = -sp * syw, uz = cp;
-    for (var i = 0; i < OFFI.length; i++) {
+    for (var i = 0; i < OFFN; i++) {
       if (!(m & (1 << i))) continue;
       var o = OFFI[i], R = o[4], x0 = 9, x1 = -9, y0 = 9, y1 = -9;
       for (var k = 0; k < 8; k++) {   // (4 puntos del círculo a las dos alturas: basta para el tamaño)

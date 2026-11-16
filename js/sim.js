@@ -371,7 +371,7 @@
       aim3: dblFields({ on: false, x: 0.5, y: 0.5, kind: '' }), digTight: false,
       // error arbitral + challenge (B1-B3): llamada del último bote, challenges por set, revisión en curso, petición de la CPU
       // opts.ref (Carrera, error arbitral por competición): {p1, p2, p3, d1?, d2?, d3?, chal} sobre VB.REF_ERR / CHAL.perSet
-      refErr: dk ? refOf(NOREF) : refOf(opts.ref), chalPerSet: dk ? 0 : chalOf(opts.ref), // (E6: en el Entrenamiento el árbitro no falla ni hay challenge)
+      refErr: dk ? refOf(NOREF) : refOf(opts.ref), chalPerSet: dk ? 0 : chalOf(opts.ref), lineJudges: !(opts.ref && opts.ref.judges === false), // jueces de línea en la pista (solo pintado: arena) // (E6: en el Entrenamiento el árbitro no falla ni hay challenge)
       call: null, challenges: [2, 2], review: null, cpuChal: null, _pendCall: null, _snap: null, _digWho: null,
       events: [],              // cola de eventos del paso (main.js la vacía cada frame)
       drill: null,             // E6 (Entrenamiento): estado del ejercicio (mkDrill) o null fuera del modo (siempre en el literal: misma forma)

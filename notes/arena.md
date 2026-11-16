@@ -1309,3 +1309,11 @@ Detalle: `notes/s234/T5.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
   - «M T C» de la red (arena.js, NET_MTC): de teal #22d8c6 a tinta #1d1530 (en crema la pelota se perdía igual con sus paneles
     crema: palau 15 frente a 20 en teal y 27,5 en tinta, con la pelota justo detrás de las letras, `balltest LOGO=1`). Se sigue
     leyendo: son cuerdas tres veces más gruesas que las negras de la malla.
+
+## Jueces de línea según la competición (15-nov-2026, v1.3.2; petición de Ferran)
+- Antes: siempre 2 en esquinas diagonales, también en la Hiperliga 2 y abajo (y desde la cámara se veía uno solo).
+- Ahora: 4 (`judgesAll`), uno por esquina en la prolongación de su línea: los de lateral a 3 m detrás del fondo (lejos del
+  sacador) y los de fondo a 2,8 m fuera de la lateral. `setJudges(on)` en el frame según `g.lineJudges` (sim: `false` solo si
+  `opts.ref.judges === false`, es decir, REF 'low'/'mid' de la Carrera; partido rápido y Entrenamiento, con jueces). Los que
+  no salen se encogen a 1e-4 en la misma malla (0 dibujos). `judges` = los que están en pista (judgeSignal, camera.js).
+- camera.js: OFFI con 8 huecos y `OFFN` = los que están en uso.

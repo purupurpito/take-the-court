@@ -630,6 +630,12 @@
    * Geometría fusionada con color por vértice; brazos y cabeza articulados.
    * ===================================================================== */
   var personMat, refs = [], judges = [], R1 = null, R2 = null, officials = [];
+  var judgesAll = [], judgesOn = true;   // judges = los que están en la pista (los 4 de judgesAll o ninguno)
+  /** Con jueces de línea (4) o sin ellos (categorías inferiores de la Carrera): los que no salen se encogen a nada (misma malla). */
+  function setJudges(on) {
+    on = !!on; if (on === judgesOn) return; judgesOn = on; judges.length = 0;
+    for (var i = 0; i < judgesAll.length; i++) { var J = judgesAll[i]; J.root.scale.setScalar(on ? 1 : 1e-4); if (on) judges.push(J); }
+  }
   /** LatheGeometry a partir de pares [radio, y] (de abajo arriba). */
   function lathePts(pr, seg) {
     var pts = []; for (var i = 0; i < pr.length; i++) pts.push(new THREE.Vector2(pr[i][0], pr[i][1]));
@@ -985,11 +991,16 @@
       for (var pi = 0; pi < 4; pi++) S.sbox(0.012, 0.09, 0.14, pt * 1.12 + (pi - 1.5) * 0.07, ty - 0.2, 0.86, pi % 2 ? pc : whiteS);
     }
     S.sbox(0.09, 0.07, 0.035, 0, ty - 0.22, 0.807, frameC); S.sbox(0.045, 0.045, 0.02, 0, ty - 0.22, 0.832, col('#e0262f'));
-    // Jueces de línea en las esquinas diagonales (a la derecha de cada árbitro)
+    // Jueces de línea: 4, uno por esquina, cada uno en la prolongación de la línea que vigila (a 3 m los de lateral, detrás del sacador, y a 2,8 los de fondo; reglas
+    // FIVB). Los que se ven dependen de la competición: g.lineJudges (sim, opts.ref.judges de la Carrera) → setJudges.
     var lj = { shirt: '#2f4f86', collar: '#f1efe8', pants: '#2c3240', skin: '#e6b48a', hair: '#3a2618', flag: true, badge: '#f4f2ec', badgeMark: '#ffd23f' };
-    var J1 = makePerson(lj); placePerson(J1, C.HL + 1.4, -(C.HW + 1.4), 0, -0.7, 0.7); J1.lines = [0, -1]; judges.push(J1);
-    lj.skin = '#8d5a3b'; lj.hair = '#111111';
-    var J2 = makePerson(lj); placePerson(J2, -(C.HL + 1.4), C.HW + 1.4, 0, 0.7, -0.7); J2.lines = [1, 1]; judges.push(J2);
+    var LJ = [   // [x, y, línea: [eje 0 = lateral | 1 = fondo, signo], piel, pelo]
+      [C.HL + 3, -C.HW, [0, -1], '#e6b48a', '#3a2618'], [C.HL, C.HW + 2.8, [1, 1], '#8d5a3b', '#111111'],
+      [-(C.HL + 3), C.HW, [0, 1], '#c98f68', '#5a3a22'], [-C.HL, -(C.HW + 2.8), [1, -1], '#f0c8a0', '#7a5230']];
+    for (var lji = 0; lji < LJ.length; lji++) {
+      var q = LJ[lji], dn = Math.hypot(q[0], q[1]); lj.skin = q[3]; lj.hair = q[4];
+      var J = makePerson(lj); placePerson(J, q[0], q[1], 0, -q[0] / dn, -q[1] / dn); J.lines = q[2]; judges.push(J); judgesAll.push(J);
+    }
   }
   /* =====================================================================
    * ENTORNO DE PISTA (ARN-14): banquillos con 3 suplentes sentados (equipación) y el entrenador de pie, 4 fotógrafos
@@ -4542,7 +4553,7 @@
       if (P.st) { P.root.updateMatrixWorld(true); P.head.getWorldPosition(_v); P.st.hx = _v.x; P.st.hy = _v.y; P.st.hz = _v.z; }
     }
     for (var i = 0; i < refs.length; i++) mv(refs[i], false);
-    for (var j = 0; j < judges.length; j++) mv(judges[j], true);
+    for (var j = 0; j < judgesAll.length; j++) mv(judgesAll[j], true);
   }
   /** Pista de la partida en la playa: repinta las cintas y rehace postes/silla/mesa si cambia el tamaño (o las reglas). */
   function beachLayout(g) {
@@ -5124,6 +5135,7 @@
       if (BEACH.on) { beachLayout(g); beachStep(); } else screenVis(rdt, g);
       mapStep(rdt, g);
       updateNet(dt > 0 ? dt : 0, g);
+      setJudges(!g || g.lineJudges !== false);
       updateOfficials(g, dt, rdt);
       updateFlashes(rdt);
       applyMood(g, rdt);
@@ -5181,7 +5193,7 @@
       return Math.round(performance.now() - t0);
     },
     /** Solo depuración (tools/eval.js): uniformes del público, oficiales, etc. */
-    _dbg: function () { return { crowdU: crowdU, crowdMeshes: crowdMeshes, refs: refs, judges: judges, led: led, RT: RT, LT: LT, imp: imp,
+    _dbg: function () { return { crowdU: crowdU, crowdMeshes: crowdMeshes, refs: refs, judges: judges, judgesAll: judgesAll, led: led, RT: RT, LT: LT, imp: imp,
       lights: { key: keyLight, hemi: hemi, fill: fillLight, rim: rimLight }, floorMat: floorMat, post: post, mood: MOOD, screens: screens,
       crew: crew, crewReact: crewReact, POSE: POSE }; }
   };
