@@ -13,7 +13,8 @@
  *   node tools/fingerprint6.js            compara con tools/fp-2v2.json (sale con código 1 si algo cambia)
  *   node tools/fingerprint6.js --write    regenera tools/fp-2v2.json (SOLO con el código de referencia, antes de tocar la sim)
  *   node tools/fingerprint6.js --variant mastery [--write]   E1 (sprint 5): 50 semillas × 150 s de partido humano con
- *          createGame({mastery:true}) y el bot pulsando también COLOCAR y GOLPEAR→SALTAR en el aire; compara con / escribe
+ *          createGame({mastery:true}) y el bot pulsando también COLOCAR y GOLPEAR→SALTAR en el aire y, en la ventana de colocación
+ *          (C2), una de las 8 direcciones o ninguna y a veces COLOCAR en el suelo; compara con / escribe
  *          tools/fp-mastery.json (no la llama simtest: protege la maestría frente a cambios de otros lotes)
  * tools/simtest.js lo llama al final (sección «Huella 2v2»).
  */
@@ -41,7 +42,7 @@ function mulberry(seed) {
  *  cambia de jugador alguna vez y saca con flotante o en salto. Solo lee el estado; nunca toca g.rng. */
 function makeBot(seed, mastery) {
   const r = mulberry(seed * 7919 + 13);
-  let serveWait = -1, jumpCd = 0;
+  let serveWait = -1, jumpCd = 0, dirT = -9, setDir = null;
   return function (g, S) {
     const p = g.ctrl, b = g.ball, inp = { move: [0, 0], hit: false, jump: false, switchPlayer: false };
     if (g.mode === 'serve') {
@@ -60,6 +61,13 @@ function makeBot(seed, mastery) {
     else if (!mine) { const hx = S.side(0) * 5 - p.x, hy = -p.y * 0.5; const hd = Math.hypot(hx, hy); if (hd > 0.5) inp.move = [hx / hd * 0.7, hy / hd * 0.7]; }
     if (r() < 0.15) inp.move = [inp.move[0] + (r() - 0.5) * 0.8, inp.move[1] + (r() - 0.5) * 0.8];
     const bd = Math.hypot(b.x - p.x, b.y - p.y);
+    // C2 (colocar por destino, solo la variante mastery): en la ventana de colocación elige una de las 8 direcciones o ninguna (alta a la
+    // 4) y la mantiene cerca del balón; a veces coloca con COLOCAR en el suelo
+    if (mastery && S.setWin(g)) {
+      if (dirT !== g.lastTouchT) { dirT = g.lastTouchT; const k = Math.floor(r() * 9); setDir = k < 8 ? [-Math.cos(k * Math.PI / 4), Math.sin(k * Math.PI / 4)] : null; }
+      if (setDir && bd < 1.6) inp.move = setDir;
+      if (bd < 1.6 && b.z < 3.2 && r() < 0.1) inp.jset = true;
+    }
     if (bd < 1.6 && b.z < 3.2 && r() < 0.35) inp.hit = true;
     if (--jumpCd <= 0 && Math.abs(p.x) < 2.5 && bd < 2.5 && b.z > 2.3 && r() < 0.2) { inp.jump = true; jumpCd = 60; }
     if (p.z > 0.6 && bd < 2 && r() < 0.05) inp.jump = true;

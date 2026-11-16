@@ -1164,3 +1164,14 @@ Detalle: `notes/s234/T4.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
 - `getShot()` → 'replay'; `getDebug().replay = {on, k, kind}`; `shake`, `punch`, `hitStop`, `slowmo` y `heroShot` no actúan mientras dura.
 - input.js: mandos táctiles ocultos con `ctx.replay`; el «Toca para saltar» lo da ui.js con `ctx.replaySkipReq`.
 - Sin hacer (opcional): saltar a la grúa tras la repetición de un set.
+
+## Colocar por destino (C2, 15/16-nov-2026): ratón y ejes de la pista
+- input.js: clic derecho = COLOCAR (`Mouse2 → jset`), rueda = SALTAR (`Mouse1 → jump`); `pointercancel` suelta los tres con sus acciones
+  nuevas; `onCtxMenu` igual (sin menú contextual con el clic derecho sobre la pista). `VB.Input.srcOf(a)` / `srcRev()`: último origen
+  (ratón o tecla) de GOLPEAR / COLOCAR / SALTAR para los glifos de ui.js. `DEFAULT_KEYS` no cambia.
+- main.js `buildInput`: con la ventana de colocación abierta (`VB.Sim.setWin(g)`) la dirección se pasa en ejes de la pista, como en el saque
+  (las 8 direcciones del teclado dan siempre los mismos destinos). Detalle en notes/sim.md «Colocar por destino (C2)».
+- Revisión C2 (16-nov-2026): la misma dirección mueve y apunta, así que la sim decide cuál es (notes/sim.md «Revisión C2»): fuera del aro
+  amarillo, o empujando hacia él, es movimiento; ya en el aro, una dirección nueva es el destino. En la ventana el imán de `assistMove` lleva
+  al centro del aro (antes 0,15 m detrás). Con «Colocación dirigida: No», COLOCAR (clic derecho) en el suelo en tu 2º toque también coloca
+  (`VB.Sim.setTurn`).

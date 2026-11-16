@@ -112,7 +112,20 @@
     feint: { minT: 0.03, q: 0.92 }, // minT: s mínimos entre pulsar GOLPEAR y el cambio (con pulsación perfecta, ventana de 0,03 a 0,07 s)
     roll:  { spread: 0.6, clear: 1.85, digK: 1.0 },
     edge:  { d: 0.9, lim: 0.05, spr: 0.35, spd: 0.8, dig: 0.2, tool: 0.2, tag: 0.5 },
-    set:   { dead: 0.6, fwd: 0.7, lat: 0.5, laneY: 2.6, quickX: 1.0, quickApex: 4.0, quickBlk: 0.6, highX: 2.4, highApex: 5.9 },
+    // colocación por destino (C2, 15-nov-2026; notes/sim.md «Colocar por destino»): dirs = destino [D, L] de cada sector (0 ↑ … 7 ↖;
+    // D = distancia a la red, L = lateral, + a la derecha del colocador; 's' = el lateral del colocador, 's±' = corta: ±corta m de él sin
+    // pasar del destino de ←/→; 'lane' = tempo mínimo: tensa, cima >= laneMin, aunque el colocador esté cerca), en metros de pabellón (×g.cs);
+    // neutral = sin dirección (alta a la 4). Cima = clamp(a0 + aS·s + aD·max(0, D − dD0), apexMin, apexMax) con s = distancia del toque
+    // al destino; tempo 'quick' si s <= quickS y D <= quickD, 'high' con cima >= highApex, si no 'lane'. Error: σ ×(sprS0 + sprS·s) y
+    // cima ±apErr·(1 − q)·ek (hash 0xE18). rho: lo que el tempo resta a la calidad que se arrastra al remate. zoneY: lado de la CPU (E1 e2)
+    set:   { dead: 0.6, snap: 10, plantT: 0.6, posD: 0.6, towD: 0.08, towCos: 0.7, hw4: 1.75, hwT: 1.0,
+             dirs: [[0.8, 's'], [0.9, 's+'], [1.0, 3.5, 'lane'], [2.6, 2.8], [3.0, 0], [2.6, -2.8], [1.0, -3.5, 'lane'], [0.9, 's-']],
+             corta: 1.5, laneMin: 4.4,
+             neutral: [1.0, -2.75], neutralApex: 5.8, a0: 3.3, aS: 0.45, aD: 1.2, dD0: 1.3, apexMin: 3.9, apexMax: 6.0,
+             quickS: 1.6, quickD: 1.2, highApex: 5.1, quickBlk: 0.6, laneBlk: 0.25, laneBlkD: 1.2, rho: { quick: 1.3, lane: 1.1, high: 0.9 },
+             qPow: 4, sprQ: 1.0, backD: 2.2, backBlk: 1.2,
+             sprS0: 0.75, sprS: 0.1, apErr: 0.7, apFloor: 3.6, Dmin: 0.6, Dmax: 3.2, Lpad: 0.6, sClamp: 1.2, zoneY: 2.6,
+             atkAp: { quick: 1.2, lane: 2.2, high: 2.8 }, atkMaxX: 6.5, atkSep: 1.6 },
     // tramo 2: jugada perfecta (recepción, colocación y remate perfectos seguidos, 2 o más del humano): defensa ×dig (con suelo minTight) y +spd m/s
     chain: { dig: 0.85, spd: 0.6, minTight: 0.6 }
   };
@@ -345,6 +358,10 @@
       jsetQ: 0,                // > 0: COLOCAR pulsado justo al despegar, pendiente de lanzarse en cuanto se pueda (s)
       swingLive: false, swingShot: '', swingLock: 0,
       swingAim: [0, 0], swingHasAim: false, // dirección dada durante el gesto (vale aunque se suelte antes del contacto)
+      // C2 (colocar por destino): ventana de colocación del humano abierta (setWin), sector de la dirección pulsada sin soltar (-1 =
+      // ninguna) y de dónde viene (setCarryK 1: de moverse hasta su sitio, neutra; 2: pulsada ya en su sitio) y dirección elegida
+      // (grados, 0 = hacia la red, 90 = derecha; NaN = neutra: alta a la 4). Ver step
+      setWinOn: false, setCarry: -1, setCarryK: 0, setDirA: NaN,
       lastGrade: '',           // calidad del último toque humano
       pendingSet: false, digOk: true, hardIn: false, finished: false,
       swingT0: 0,              // g.time de la pulsación que abrió el gesto humano en curso
@@ -632,20 +649,64 @@
     if (!(p.z + p.vz * t - 0.5 * C.G * t * t > 0.25)) return false;
     return Math.abs(w.x) < 3.8 && w.z > C.NET_H + 0.1;
   }
-  /** E1: vista previa de la colocación dirigida del humano (2v2, g.mastery y g.aimSet): con el 2º toque de su equipo por dar y el
-   *  balón cerca, el destino que tendría la colocación con el stick de ahora (sin el error del timing). Escribe {x, y, tempo} en out
-   *  (mundo; tempo '' = la de siempre) o devuelve null. Sin memoria nueva ni g.rng. */
-  var _sp = { x: 0, y: 0, tempo: '' }, _sa = [0, 0];
+  /** C2 (colocar por destino): ventana de colocación del humano. Verdadera desde que sale el pase de un compañero hasta su toque
+   *  (2º toque del equipo 0 por dar, no tras una colocación en salto), con la puerta de cada formato: 2v2 con g.mastery y g.aimSet
+   *  (falso en demo, autopilot y 6v6), 6v6 con el humano (isHuman) dueño del 2º toque (g.jobs[0]). Pura, sin g.rng. Mientras está
+   *  abierta, la dirección del humano es el destino de la colocación (g.setDirA, step) y main.js la pasa en ejes de la pista. */
+  function setWin(g) { return setTurn(g) && (!!g.rot || g.aimSet); }
+  /** C2: el 2º toque es del humano (setWin sin la opción «Colocación dirigida»: COLOCAR en el suelo coloca también con ella en No). */
+  function setTurn(g) {
+    if (g.mode !== 'rally' || g.ctrlOut) return false;
+    var p = g.ctrl;
+    if (!p || p.team !== 0 || !(g.touchTeam === 0 && g.touches === 1 && g.lastPlayer !== p) || g.lastKind === 'set') return false;
+    // (6v6: el 2º toque es suyo si se lo da el reparto o, siendo el colocador, si el balón le cae cerca o en la zona de ataque: humanOwns)
+    if (g.rot) return !!VB.AI6 && isHuman(g, p) && (g.jobs[0] === p || (p.role === 'S' && VB.AI6.humanOwns(g, 0, p, g.pr1, 1, g.lastPlayer)));
+    return !!g.mastery;
+  }
+  /** C2: sector (0 ↑ hacia la red, 1 ↗, 2 →, 3 ↘, 4 ↓, 5 ↙, 6 ←, 7 ↖) de un ángulo en grados. */
+  function setSec(a) { return ((Math.round(a / 45) % 8) + 8) % 8; }
+  /** C2: COLOCAR en el suelo coloca (no salta) si la ventana está abierta y el balón se juega desde el suelo (su punto más cercano
+   *  no queda por encima del alcance de pie: con el balón alto en la red COLOCAR sigue saltando, «doble pulsación = salta y coloca»). */
+  var _wG = { t: 0, press: 0, d: 9, dz: 9, reach: false, kind: '', zc: 0, x: 0, y: 0, z: 0, active: false, canReach: false, attack: false, jumpT: NaN };
+  function groundSet(g, p) {
+    if (p !== g.ctrl || p.z !== 0 || p.vz !== 0 || !setTurn(g)) return false;
+    var w = hitWindow(g, p, _wG);
+    return !w.attack && w.dz < 2.7 - w.zc;
+  }
+  /** C2: vista previa de la colocación del humano (ventana setWin): el destino sin error con la dirección de ahora (g.setDirA),
+   *  calculado desde el punto de toque previsto. Escribe en out {x, y (mundo), tempo ('quick'|'lane'|'high'), ok (el atacante llega
+   *  a la batida a tiempo; solo informativo), to (el atacante), bx, by (su batida)} o devuelve null. 2v2 en el aire con colocación en
+   *  salto posible: el destino de la colocación en salto (al compañero, tensa). 6v6: VB.AI6.previewSet. Pura, sin g.rng. */
+  var _sp = { x: 0, y: 0, tempo: '', ok: true, to: null, bx: 0, by: 0 }, _wPv = { t: 0, press: 0, d: 9, dz: 9, reach: false, kind: '', zc: 0, x: 0, y: 0, z: 0, active: false, canReach: false, attack: false, jumpT: NaN };
+  var _ps6 = { to: null, tempo: '', kind: '', d: 0, yl: 0, apex: 0 };
   function setPreview(g, out) {
-    if (!g.mastery || !g.aimSet || g.mode !== 'rally') return null;
-    var p = g.ctrl, b = g.ball;
-    if (!p || p.team !== 0 || p.z > 0.05 || !(g.touchTeam === 0 && g.touches === 1 && g.lastPlayer !== p) || g.lastKind === 'set') return null;
-    if (Math.hypot(b.x - p.x, b.y - p.y) > 3.5) return null; // (2v2: con 1 toque de otro, el 2º es suyo)
-    var aim = null, len = 0;
-    if (g.swingLive && g.swingHasAim) { aim = g.swingAim; len = g.swingLen; }
-    else if (g.aimOn) { _sa[0] = g.aimIn[0]; _sa[1] = g.aimIn[1]; aim = _sa; len = g.aimLen; }
-    var st = setAim(g, p, true, aim, len, _st), sd = side(p.team);
-    out = out || _sp; out.x = sd * st.x; out.y = st.y; out.tempo = st.tempo;
+    if (!setWin(g)) return null;
+    var p = g.ctrl, b = g.ball, sd = side(p.team), cs = g.cs || 1, M = MASTERY.set, at = null, D, apex, tempo;
+    out = out || _sp;
+    var w = hitWindow(g, p, _wPv), tc = Math.max(0, w.t), z0 = w.reach ? w.z : b.z, sx = w.reach ? w.x : p.x, sy = w.reach ? w.y : p.y;
+    if (g.rot) {
+      var r = VB.AI6.previewSet(g, p, _ps6);
+      at = r.to; tempo = r.kind; D = r.d; apex = r.apex;
+      out.x = sd * r.d; out.y = clamp(sd * r.yl, -4.2, 4.2);
+    } else if (p.z > 0.05 && jsetReady(g)) {
+      at = other(g, p); tempo = 'quick'; D = JSET.tx; apex = Math.max(JSET.minApex, b.z + JSET.rise);
+      out.x = sd * JSET.tx; out.y = clamp(at.y, -JSET.mate, JSET.mate);
+    } else {
+      var st = setAim(g, p, true, _st, sx, sy);
+      at = other(g, p); tempo = st.tempo; D = st.x / cs; apex = st.apex;
+      out.x = sd * st.x; out.y = st.y;
+    }
+    out.tempo = tempo; out.to = at;
+    out.bx = sd * Math.min((D + (M.atkAp[tempo] || M.atkAp.high)) * cs, M.atkMaxX * cs); out.by = out.y;
+    if (!g.rot && at) { // 2v2: la batida, a >= atkSep m del toque (si no, el balón que sale de las manos le pasa al alcance y lo juega ya)
+      var bdx = out.bx - sx, bdy = out.by - sy, bdl = Math.hypot(bdx, bdy), R = M.atkSep * cs;
+      if (bdl < R) {
+        if (bdl < 0.3 * cs) { bdx = 0; bdy = at.y >= sy ? 1 : -1; bdl = 1; } // (la rápida, delante del colocador: al lado del compañero)
+        out.bx = sx + bdx / bdl * R; out.by = clamp(sy + bdy / bdl * R, -(g.HW - 0.3 * cs), g.HW - 0.3 * cs);
+      }
+    }
+    var fl = Math.sqrt(2 * Math.max(0, apex - z0) / C.G) + Math.sqrt(2 * Math.max(0, apex - 3) / C.G);
+    out.ok = !at || !(VB.AI && VB.AI.timeTo) || VB.AI.timeTo(g, at, out.bx, out.by) <= tc + fl - 0.25;
     return out;
   }
   /** ¿Toca atacar al equipo t en su siguiente toque? Tras su 2º toque o tras una colocación en salto en el 1r. */
@@ -1054,26 +1115,50 @@
    *  safeQ/safeP/safeLo: bola de seguridad de la IA (ai.js) con prob. safeP·(safeQ − c)/(safeQ − safeLo) (0 con c >= safeQ)
    *  jsQ/jsX/jsMate: colocación en salto de la IA (ai.js; prob. prof.jsetAI) solo con pase >= jsQ, balón a < jsX m de la red y el
    *  compañero a < jsMate s de su sitio de remate */
-  /** E1: destino de la colocación de suelo en 2v2 (escribe en out {x, y, apex, tempo}; x = distancia a la red). Sin g.mastery, o sin
-   *  stick, el de siempre: x 1,35 al compañero (mate.y) con cima 5,3 y tempo ''. Con g.mastery:
-   *   - humano (g.aimSet y |stick| >= MASTERY.set.dead): ↑ (hacia la red) 'quick' x 1,0 cima 4,0; ↓ 'high' x 2,4 cima 5,9;
-   *     ← → 'lane' a y = ±2,6·cs (x 1,35, cima 5,3). ax/ay = dirección del stick (mundo, normalizada), len = su módulo;
+  /** Destino de la colocación de suelo en 2v2: escribe en out {x (distancia a la red), y (mundo), apex, tempo, s, D, L}. Sin
+   *  g.mastery, o sin g.aimSet, el de siempre: x 1,35 al compañero (mate.y) con cima 5,3 y tempo ''. Con g.mastery:
+   *   - humano (C2, colocar por destino; notes/sim.md): el destino sale de g.setDirA (la dirección de la ventana, step). Neutra (NaN):
+   *     alta a la 4 (MASTERY.set.neutral, cima >= neutralApex, 'high'). Con dirección: la tabla MASTERY.set.dirs por sectores de 45°,
+   *     interpolada por ángulo (imán de ±snap° a cada sector). La cima y el tempo salen de la distancia s del toque (sx, sy: punto de
+   *     toque; sin él, el de hitWindow o la posición del jugador) al destino;
    *   - colocador CPU (equipo 1) con hk(g, 0xE13) < prof.zoneSet: 'lane' al lado contrario del jugador del humano (g.ctrl).
    *  El compañero IA del humano nunca (tiene que ser predecible). Pura: sin g.rng ni memoria nueva. */
-  var _st = { x: 0, y: 0, apex: 0, tempo: '' };
-  function setAim(g, p, human, aim, len, out) {
+  var _st = { x: 0, y: 0, apex: 0, tempo: '', s: 0, D: 0, L: 0 };
+  /** C2: lateral L de una entrada de MASTERY.set.dirs (número, 's' = el del colocador, 's+'/'s-' = corta a ±corta m de él sin pasar
+   *  del destino de →/←) con el colocador en sL (metros de pabellón, media anchura HW). */
+  function setL(t, sL, HW, M) {
+    if (typeof t === 'number') return t;
+    var lim = HW - M.sClamp, c = clamp(sL, -lim, lim);
+    if (t === 's') return c;
+    var e = t === 's+' ? M.dirs[2][1] : M.dirs[6][1], v = t === 's+' ? Math.min(sL + M.corta, e) : Math.max(sL - M.corta, e);
+    return clamp(v, -(HW - M.Lpad), HW - M.Lpad);
+  }
+  var _wSet = { t: 0, press: 0, d: 9, dz: 9, reach: false, kind: '', zc: 0, x: 0, y: 0, z: 0, active: false, canReach: false, attack: false, jumpT: NaN };
+  function setAim(g, p, human, out, sx, sy) {
     var M = MASTERY.set, sd = side(p.team), cs = g.cs || 1, mate = other(g, p);
-    out.x = 1.35; out.y = clamp(mate.y, -3.6 * cs, 3.6 * cs); out.apex = 5.3; out.tempo = '';
+    out.x = 1.35; out.y = clamp(mate.y, -3.6 * cs, 3.6 * cs); out.apex = 5.3; out.tempo = ''; out.s = 0; out.D = 1.35; out.L = sd * out.y / cs;
     if (!g.mastery) return out;
     if (human) {
-      if (!g.aimSet || !aim || !(len >= M.dead)) return out;
-      var fwd = -sd * aim[0], lat = aim[1];
-      if (fwd > M.fwd) { out.tempo = 'quick'; out.x = M.quickX; out.apex = M.quickApex; }
-      else if (fwd < -M.fwd) { out.tempo = 'high'; out.x = M.highX; out.apex = M.highApex; }
-      else if (Math.abs(lat) > M.lat) { out.tempo = 'lane'; out.y = (lat > 0 ? 1 : -1) * M.laneY * cs; }
+      if (!g.aimSet) return out;
+      if (sx == null) { var w = hitWindow(g, p, _wSet); if (w.reach) { sx = w.x; sy = w.y; } else { sx = p.x; sy = p.y; } }
+      var sD = sd * sx / cs, sL = sd * sy / cs, HW = g.HW / cs, a = g.setDirA, neu = a !== a, D, L;
+      if (neu) { D = M.neutral[0]; L = M.neutral[1]; }
+      else {
+        var th = ((a % 360) + 360) % 360, u = th / 45, n = Math.round(u), k, f;
+        if (Math.abs(th - n * 45) <= M.snap) { k = n % 8; f = 0; } else { k = Math.floor(u) % 8; f = u - Math.floor(u); }
+        var T0 = M.dirs[k], T1 = M.dirs[(k + 1) % 8];
+        D = T0[0] + (T1[0] - T0[0]) * f; L = setL(T0[1], sL, HW, M) + (setL(T1[1], sL, HW, M) - setL(T0[1], sL, HW, M)) * f;
+        var floor = (f < 0.5 ? T0 : T1)[2];
+      }
+      D = clamp(D, M.Dmin, M.Dmax); L = clamp(L, -(HW - M.Lpad), HW - M.Lpad);
+      var s = Math.hypot(D - sD, L - sL), ap = clamp(M.a0 + M.aS * s + M.aD * Math.max(0, D - M.dD0), M.apexMin, M.apexMax);
+      out.tempo = neu ? 'high' : s <= M.quickS && D <= M.quickD ? 'quick' : ap >= M.highApex ? 'high' : 'lane';
+      if (!neu && floor === 'lane' && out.tempo === 'quick') { out.tempo = 'lane'; ap = Math.max(ap, M.laneMin); } // (←/→ siempre tensa o alta)
+      if (neu) ap = Math.max(ap, M.neutralApex);
+      out.x = D * cs; out.y = sd * L * cs; out.apex = ap; out.s = s; out.D = D; out.L = L;
     } else if (p.team === 1 && hk(g, 0xE13) < (profOf(g, p).zoneSet || 0)) {
       var hy = g.ctrl ? g.ctrl.y : 0, sg = Math.abs(hy) > 0.2 ? (hy > 0 ? -1 : 1) : (hk(g, 0xE17) < 0.5 ? -1 : 1);
-      out.tempo = 'lane'; out.y = sg * M.laneY * cs;
+      out.tempo = 'lane'; out.y = sg * M.zoneY * cs;
     }
     return out;
   }
@@ -1190,7 +1275,7 @@
     g.touchTeam = t; g.touches = count; g.lastPlayer = p; g.lastTeam = t; p.anim = 0.3; p.cool = 0.3;
     var prevTempo = g.lastTempo; g.lastTempo = ''; g.atkEdge = 0; // E1: tempo de la colocación que llega; filo de este toque
     var o = { x: b.x, y: b.y, z: b.z };
-    var v, kind, at, er, power = 0, dip = 0, sub = shot, edge = 0, tempo = '';
+    var v, kind, at, er, power = 0, dip = 0, sub = shot, edge = 0, tempo = '', lq = NaN, laneB = false, hSet = false, backB = false; // (lq: calidad que se arrastra, C2)
     if (shot === 'body') {
       // el balón da en el cuerpo sin gesto de golpeo (regla: cualquier parte del cuerpo vale como toque).
       // Rebota amortiguado hacia atrás y hacia arriba, con un desvío lateral: casi nunca controlado.
@@ -1210,9 +1295,9 @@
       var jx = JSET.tx, jy = clamp(mate.y, -JSET.mate, JSET.mate), jap = Math.max(JSET.minApex, b.z + (count === 1 ? JSET.rise1 : JSET.rise));
       // 6v6 (humano colocando en salto de 2º toque): al carril del atacante que elige VB.AI6.chooseSet (deja g.setPlan: ese atacante
       // va a por el 3r toque y el bloqueo rival lo lee), no al compañero más cercano
-      // (colocador humano: la dirección del stick elige el carril, VB.AI6.laneOf: izquierda punta, derecha opuesto, red central, atrás pipe)
+      // (colocador humano, C2: la dirección de la ventana elige atacante, VB.AI6.dirOf8; sin dirección, alta a la 4)
       // (pipe: la colocación en salto va detrás de la línea de 3 m, al destino del plan; si no, el zaguero no podría despegar detrás)
-      if (g.rot && VB.AI6 && count === 2) { var js6 = VB.AI6.chooseSet(g, p, human ? VB.AI6.laneOf(g, p, aim ? aim[0] * g.swingLen : 0, aim ? aim[1] * g.swingLen : 0) : null); jy = clamp(sd * js6.yl, -JSET.mate, JSET.mate); if (g.setPlan[t] && g.setPlan[t].tempo === 'pipe') jx = js6.d; }
+      if (g.rot && VB.AI6 && count === 2) { var jd8 = human ? VB.AI6.dirOf8(g, p) : null, js6 = VB.AI6.chooseSet(g, p, jd8 ? jd8.lane : null, jd8 ? jd8.pref : 0, jd8 ? jd8.apexD : 0); jy = clamp(sd * js6.yl, -JSET.mate, JSET.mate); if (g.setPlan[t] && g.setPlan[t].tempo === 'pipe') jx = js6.d; }
       if (q < JSET.badQ && g.rng() < (JSET.badQ + 0.05 - q) * JSET.badP) {
         if (g.rng() < 0.5) jx = 0.25 + g.rng() * 0.35;          // pegada a la red: toque de red o bloqueo fácil
         else { jx = 3.6 + g.rng() * 1.8; jap -= 0.35; }        // larga y baja: el atacante no llega a rematar
@@ -1321,20 +1406,30 @@
       er = (0.1 + 1.15 * (1 - q)) * mul;
       if (q < 0.35 && g.rng() < 0.12 * ek) v = launchApex(o, -sd * (1 + g.rng() * 2), b.y + rnd(g, 1.5), 0, 4.6); // pasa la red sin querer (×ek: Colocación)
       else if (g.rot && VB.AI6) { // 6v6: el colocador elige atacante y tempo (VB.AI6.chooseSet: bola alta, tensa, rápida o pipe); el
-        // colocador humano, el carril con la dirección del stick (laneOf; aim va normalizado: se le devuelve su módulo, g.swingLen, para
-        // que la zona muerta sea la de D3, 0,4, y no la de aimOn, 0,2; sin dirección, elige la IA)
-        var sp = VB.AI6.chooseSet(g, p, human ? VB.AI6.laneOf(g, p, aim ? aim[0] * g.swingLen : 0, aim ? aim[1] * g.swingLen : 0) : null);
+        // colocador humano (C2), el atacante con la dirección de la ventana (VB.AI6.dirOf8 lee g.setDirA: zona muerta 0,6, arrastre;
+        // sin dirección, alta a la 4)
+        var d8 = human ? VB.AI6.dirOf8(g, p) : null, sp = VB.AI6.chooseSet(g, p, d8 ? d8.lane : null, d8 ? d8.pref : 0, d8 ? d8.apexD : 0);
         v = launchApex(o, sd * Math.max(0.6, sp.d + rnd(g, er * 0.5)), clamp(sd * sp.yl + rnd(g, er * 0.9), -4.2, 4.2), 3, sp.apex);
       }
-      else { // 2v2: al compañero (x 1,35, cima 5,3). E1 (g.mastery): colocación dirigida del humano con el stick y la CPU que coloca a un lado
-        var st = setAim(g, p, human, aim, g.swingLen, _st);
+      else { // 2v2: al compañero (x 1,35, cima 5,3). E1 (g.mastery): la CPU que coloca a un lado; C2: el humano coloca por destino
+        var st = setAim(g, p, human, _st, b.x, b.y), sap = st.apex, MS = MASTERY.set;
         tempo = st.tempo;
-        v = launchApex(o, sd * (st.x + rnd(g, er * 0.5)), st.y + rnd(g, er * 0.9), 3, st.apex);
+        if (g.mastery && g.aimSet && human) { // C2: timing (q) y Colocación (ek) deciden el error del destino, de la cima y del tempo
+          er *= (MS.sprS0 + MS.sprS * st.s) * (1 + MS.sprQ * (1 - q));                          // larga o a destiempo: menos precisa
+          sap = Math.max(MS.apFloor, b.z + 0.3, sap + (2 * hk(g, 0xE18) - 1) * MS.apErr * (1 - q) * ek); // cima: hash, no g.rng
+          lq = q * (1 - (MS.rho[tempo] || 0) * (1 - q));                                         // riesgo del tempo para el remate
+          laneB = tempo === 'lane' && st.D <= MS.laneBlkD; backB = st.D >= MS.backD; hSet = true;
+        }
+        v = launchApex(o, sd * (st.x + rnd(g, er * 0.5)), st.y + rnd(g, er * 0.9), 3, sap);
       }
       kind = 'set'; sub = sub || 'overhead';
       // error de colocación del bloqueador IA rival (el bloqueo es geométrico: peor bloqueador = manos más lejos del balón)
       g.blockOff[1 - t] = rnd(g, 0.35 + 0.9 * (1 - g.prof[1 - t].block));
-      if (tempo === 'quick') g.blockOff[1 - t] *= 1 + MASTERY.set.quickBlk * q; // rápida: el bloqueo rival llega peor colocado (como JSET.blk)
+      // (C2, colocación del humano por destino, hSet: la ventaja va con q^qPow —solo con buen timing— y la de atrás, backB, también)
+      var qB = hSet ? Math.pow(q, MASTERY.set.qPow) : q;
+      if (tempo === 'quick') g.blockOff[1 - t] *= 1 + MASTERY.set.quickBlk * qB; // rápida: el bloqueo rival llega peor colocado (como JSET.blk)
+      else if (laneB) g.blockOff[1 - t] *= 1 + MASTERY.set.laneBlk * qB;         // C2: tensa junto a la red, algo menos
+      else if (backB) g.blockOff[1 - t] *= 1 + MASTERY.set.backBlk * qB;         // C2: desde atrás, el bloqueo lee tarde
       g.lastTempo = tempo;
       if (tempo && g.stats) { var smt = g.stats.mastery; if (human) { if (tempo === 'lane') smt.lane++; else if (tempo === 'high') smt.high++; else smt.quick[0]++; } else if (tempo === 'lane') smt.cpu.lane++; }
       g.hardIn = false; g.digOk = true;
@@ -1343,7 +1438,7 @@
     if (kind !== 'spike') g.digTight = false;
     g.aim3.on = false;
     g.prevKind = g.lastKind;
-    g.lastKind = kind; g.lastShot = sub; g.lastQ = q; g.lastTouchT = g.time; g.netSince = false;
+    g.lastKind = kind; g.lastShot = sub; g.lastQ = lq === lq ? lq : q; g.lastTouchT = g.time; g.netSince = false;
     g.atkEdge = edge;
     if (feint) g.feintT = g.time;
     if (kind === 'spike' || (kind === 'free' && sub === 'tip')) {
@@ -2154,7 +2249,7 @@
     g.lastLand = null; g.antennaHit = null; g.atkServe = null; g.call = null; g._pendCall = null; g.cpuChal = null;
     g.hardIn = false; g.digOk = true; g.prevKind = ''; g.atkTeam = -1; g.atkHow = ''; g.atkHuman = false; g.atkGrade = ''; g.atkSet = null;
     g.rally.t = 0; g.rally.hits = 0; g.rally.digs = 0; g.jobs[0] = g.jobs[1] = null;
-    endSwing(g); g.swingLock = 0; g.jsetQ = 0; g.blockCD = 0; g.netSince = false; g.digTight = false; g.aim3.on = false; g.aim3.kind = '';
+    endSwing(g); g.swingLock = 0; g.jsetQ = 0; g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; g.blockCD = 0; g.netSince = false; g.digTight = false; g.aim3.on = false; g.aim3.kind = '';
     g.atkMove = ''; g.atkEdge = 0; g.lastTempo = ''; g.feintT = -9; g.chain = 0; g.chainH = 0; g.defRole = '';
     g.blockOff[0] = g.blockOff[1] = 0;
     var sx = -4.5 * cs, sy = g.HW + 1.2; // banda rival (los que no juegan)
@@ -2553,12 +2648,12 @@
   /** Asistencia de movimiento: cerca del punto de contacto, el jugador humano se
    *  "imanta" suavemente y frena al llegar (la colocación gruesa sigue siendo suya). */
   var _mv = [0, 0];
-  function assistMove(g, p, mx, my) {
+  function assistMove(g, p, mx, my, ring) {
     _mv[0] = mx; _mv[1] = my;
     if (g.jobs[0] !== p || p.z > 0 || p.down > 0) return _mv;
     var sd = side(p.team), tx, ty;
     if (atkPhase(g, 0) && Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5) { tx = g.pr3.x + sd * 0.35; ty = g.pr3.y; }
-    else { tx = g.pr1.x + sd * 0.15; ty = g.pr1.y; }
+    else { tx = g.pr1.x + (ring ? 0 : sd * 0.15); ty = g.pr1.y; } // (ring: C2, ventana de colocación: al centro del aro amarillo)
     var dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy), il = Math.hypot(mx, my);
     if (dl > 1.8 || dl < 0.03) return _mv;
     // (6v6: el imán solo ayuda si el jugador ya empuja el stick —Ferran, 11-nov-2026: sin entrada el personaje no se mueve solo—; en el
@@ -2977,7 +3072,34 @@
     }
     if (human) {
       hp = g.ctrl;
-      if (input.jump || input.jset) { // COLOCAR (jset) en el suelo salta como SALTAR
+      // C2 (colocar por destino): con la ventana de colocación abierta (setWin) la dirección es el destino (g.setDirA). Mover no es
+      // apuntar (revisión C2):
+      //  - la dirección que traía al abrirse la ventana y, fuera de su sitio (hitWindow sin .reach o a >= posD m del aro amarillo,
+      //    focusPoint), cualquiera son movimiento: quedan de arrastre (setCarry, setCarryK 1) y, ya en su sitio, siguen siendo neutras
+      //    hasta que las suelta (un sector vecino sin soltar, el stick que se desvía o la flecha de al lado, también);
+      //  - en su sitio, una dirección nueva (setCarryK 2) es el destino, salvo si empuja hacia el aro estando a más de towD m de su
+      //    centro (sTow: retocar la posición, o volver tras pasarse): eso también es movimiento y arrastre (setCarryK 1). En la ventana
+      //    el imán lleva al centro del aro (assistMove con ring), así que ya colocado cualquier flecha apunta.
+      // Durante el gesto, soltar conserva la última (como swingHasAim). Sin g.rng
+      var sWin = setWin(g), MS = MASTERY.set, sPos = false, sTow = false;
+      if (sWin) {
+        var sdA = side(hp.team), sAng = aim ? (Math.atan2(sdA * aim[1], -sdA * aim[0]) * 57.29577951308232 + 360) % 360 : 0, sSec = setSec(sAng);
+        var sHeld = !!aim && ml >= MS.dead, wP = hitWindow(g, hp, _wPlant);
+        if (!g.setWinOn) { g.setWinOn = true; g.setCarry = sHeld ? sSec : -1; g.setCarryK = 1; g.setDirA = NaN; } // (la que traía al abrirse)
+        var sFp = focusPoint(g), sFx = sFp.x - hp.x, sFy = sFp.y - hp.y, sFd = Math.hypot(sFx, sFy), sCd = (sSec - g.setCarry + 8) % 8;
+        sPos = hp.z > 0 || (wP.reach && sFd < MS.posD); // (en el aire la dirección ya no mueve: colocación en salto, apunta)
+        if (sHeld && hp.z === 0 && sFd > MS.towD) sTow = (mx * sFx + my * sFy) / (ml * sFd) > MS.towCos;
+        if (!sHeld) { g.setCarry = -1; if (!g.swingLive) g.setDirA = NaN; }
+        else if (!sPos) { g.setCarry = sSec; g.setCarryK = 1; if (!g.swingLive) g.setDirA = NaN; }
+        else {
+          if (g.setCarry < 0 || (sCd > 1 && sCd < 7)) { g.setCarry = sSec; g.setCarryK = sTow ? 1 : 2; }
+          if (g.setCarryK === 1) { if (!g.swingLive) g.setDirA = NaN; }
+          else g.setDirA = sAng;
+        }
+      } else if (g.setWinOn) { g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; }
+      // C2: COLOCAR en el suelo, en la ventana y con el balón a la altura de colocar de pie, coloca (no salta)
+      if (input.jset && g.mode === 'rally' && groundSet(g, hp)) startSwing(g, hp, '');
+      else if (input.jump || input.jset) { // COLOCAR (jset) en el suelo salta como SALTAR
         if (hp.z === 0 && hp.vz === 0) humanJump(g, hp);
         else if (input.jset && jsetVoid(g, hp)) { /* bloqueando un remate rival: COLOCAR no hace nada */ }
         else if (hp.z > 0.2 && hp.actionT > 0.12 && Math.hypot(b.x - hp.x, b.y - hp.y) < 3) startSwing(g, hp, input.jset ? 'jset' : 'tip'); // en el aire: colocación en salto / dejada
@@ -2991,9 +3113,10 @@
         // Solo mientras el stick elige zona (swingHasAim, módulo >= MASTERY.set.dead) Y el balón ya le llega desde donde está
         // (hitWindow .reach y a < 0,6 m): quien pulsa pronto aún corriendo al balón sigue corriendo (el stick es también el movimiento; plantarlo
         // ahí bajaba ~8 puntos la escala del novato en Normal). Plantado sigue el imán de la asistencia (assistMove con 0,0)
-        var plant = g.mastery && g.aimSet && g.swingLive && g.swingHasAim && g.swingLen >= MASTERY.set.dead && g.touchTeam === 0 && g.touches === 1 && g.lastPlayer !== hp &&
-          hitWindow(g, hp, _wPlant).reach && _wPlant.d < 0.6;
-        var am = assistMove(g, hp, plant ? 0 : mx, plant ? 0 : my);
+        // C2: también antes de pulsar, ya en su sitio (sPos) y sin retocar hacia el balón (sTow), con una dirección elegida, con el gesto
+        // abierto o a <= MASTERY.set.plantT s del toque: ahí el imán le centra (2v2) y la flecha que pulse apunta en vez de moverle
+        var plant = sWin && sPos && !sTow && (g.setDirA === g.setDirA || g.swingLive || _wPlant.t <= MS.plantT);
+        var am = assistMove(g, hp, plant ? 0 : mx, plant ? 0 : my, sWin);
         stepPlayer(g, hp, dt, am[0], am[1]);
       }
       if (g.rot && (ml > 0.15 || input.hit || input.jump || input.jset || input.switchPlayer)) g.hAct = g.time; // 6v6: el humano juega (VB.AI6.setReady)
@@ -3598,7 +3721,7 @@
     normDiff: normDiff, DIFF: DIFF, TIMING: TIMING,
     atkPhase: atkPhase, blockPressCase: blockPressCase, canJset: canJset, jsetReady: jsetReady, jsetVoid: jsetVoid, JSET: JSET, // colocación en salto
     // E1 (maestría, sprint 5): botón COLOCAR contextual, vista previa de la colocación dirigida, filo, azar sin g.rng, constantes
-    altReady: altReady, setPreview: setPreview, edgeOf: edgeOf, hk: hk, MASTERY: MASTERY,
+    altReady: altReady, setPreview: setPreview, setWin: setWin, setTurn: setTurn, setAim: setAim, edgeOf: edgeOf, hk: hk, MASTERY: MASTERY,
     // internos expuestos para la IA y los tests
     _aimFloat: aimFloat, _floatPath: floatPath,
     _hit: hit, _jump: jump, _dive: dive, _diveMiss: diveMiss, _humanJump: humanJump, _holdPos: holdPos, _holdBase: holdBase, _ritualBall: ritualBall, _ritualStyle: ritualStyle, _stepPlayer: stepPlayer, _emit: emit, _rnd: rnd, _gauss: gauss,

@@ -34,7 +34,7 @@ async function click(ms) {
   await send('Input.dispatchMouseEvent', Object.assign({ type: 'mousePressed', buttons: 1 }, o)); await sleep(ms || 40);
   await send('Input.dispatchMouseEvent', Object.assign({ type: 'mouseReleased', buttons: 0 }, o));
 }
-// botón del ratón (pointerType 'mouse'): 'middle' = COLOCAR (rueda), 'right' = saltar
+// botón del ratón (pointerType 'mouse'): 'right' = COLOCAR, 'middle' (rueda) = saltar (C2, 15-nov-2026)
 async function mclick(button, ms) {
   const o = { x: Math.round(W / 2), y: Math.round(H * 0.55), button, clickCount: 1 }, bits = button === 'middle' ? 4 : button === 'right' ? 2 : 1;
   await send('Input.dispatchMouseEvent', Object.assign({ type: 'mousePressed', buttons: bits }, o)); await sleep(ms || 40);
@@ -114,7 +114,7 @@ const state = () => evalJs('JSON.stringify({s:VB.ctx.state,m:VB.ctx.game&&VB.ctx
     const mclk = await evalJs('VB.Input._debug().stats.mouse.hit');
     check(mclk > 0, 'el clic izquierdo en la pista cuenta como golpear (' + mclk + ' clics)');
     await shot('3-juego');
-    // colocación en salto: teclado (Espacio + K en el aire) y ratón (clic derecho + clic central en el aire)
+    // colocación en salto: teclado (Espacio + K en el aire) y ratón (rueda para saltar + clic derecho en el aire)
     const drill = require('./jsetdrill.js');
     const shotSet = async () => { const r = await send('Page.captureScreenshot', { format: 'png' }); const d = path.join(OUT, 'colocar'); fs.mkdirSync(d, { recursive: true }); fs.writeFileSync(path.join(d, 'drive-' + W + 'x' + H + '-aviso.png'), Buffer.from(r.data, 'base64')); };
     let shotDone = false;
@@ -122,9 +122,9 @@ const state = () => evalJs('JSON.stringify({s:VB.ctx.state,m:VB.ctx.game&&VB.ctx
     console.log('colocación en salto (teclado):', JSON.stringify(dk));
     check(dk.jsets >= 1, 'Espacio y K en el aire: colocación en salto (' + dk.jsets + '/' + dk.tries + ', remates del compañero ' + dk.spikes + ')');
     check(dk.prompt >= 1, 'en el aire el aviso ofrece las dos opciones (Rematar / Colocar)');
-    const dm = await drill(evalJs, { jump: () => mclick('right', 30), set: () => mclick('middle', 30), serve }, { tries: 4, stopAfter: 1 });
+    const dm = await drill(evalJs, { jump: () => mclick('middle', 30), set: () => mclick('right', 30), serve }, { tries: 4, stopAfter: 1 });
     console.log('colocación en salto (ratón):', JSON.stringify(dm));
-    check(dm.jsets >= 1 && (await evalJs('VB.Input._debug().stats.mouse.jset')) > 0, 'clic derecho y clic central en el aire: colocación en salto (' + dm.jsets + '/' + dm.tries + ')');
+    check(dm.jsets >= 1 && (await evalJs('VB.Input._debug().stats.mouse.jset')) > 0, 'rueda y clic derecho en el aire: colocación en salto (' + dm.jsets + '/' + dm.tries + ')');
     await press('p'); await waitFor("VB.ctx.state==='paused'", 8000);
     st = await state(); check(st.s === 'paused', 'P pausa');
     await shot('4-pausa');

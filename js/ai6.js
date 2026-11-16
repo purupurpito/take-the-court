@@ -13,9 +13,11 @@
  *   placeServe(g, t, sv)    formaciones del saque: el que saca en sus zonas; el que recibe con la formación de su rotación (FORM.RECV:
  *                           3 receptores OH, OH, L a ~6 m y el colocador escondido), legal (overlapCount 0) antes de legalize
  *   passTarget(g, p, hard)  destino de la recepción/defensa (sim.hit, 1r toque)
- *   chooseSet(g, p, lane)   el colocador elige atacante y tempo (sim.hit, 2º toque): bola alta a punta, tensa al opuesto, rápida al
- *                           central o «pipe» al zaguero; lane ('left'|'right'|'mid'|'back', del stick del colocador humano) fuerza el carril
- *   laneOf(g, p, mx, my)    carril que pide el stick del colocador humano (coordenadas locales), o null
+ *   chooseSet(g, p, lane, pref, apexD)  el colocador elige atacante y tempo (sim.hit, 2º toque): bola alta a punta, tensa al opuesto,
+ *                           rápida al central o «pipe» al zaguero; con lane (colocador humano, dirOf8) el atacante sale sin azar
+ *   dirOf8(g, p)            C2 (colocar por destino): lo que pide la dirección del colocador humano (g.setDirA) → {lane, pref, apexD}
+ *   previewSet(g, p, out)   C2: la elección de chooseSet sin g.rng ni g.setPlan (vista previa: marcador del suelo)
+ *   laneOf(g, p, mx, my)    carril del stick por cuadrantes (D3; ya no lo usa la sim, queda para pruebas y compatibilidad)
  * Coordenadas locales de equipo: d = metros desde la red hacia el propio fondo, yl = lateral (+ = derecha del equipo).
  * x = side(t)·d, y = side(t)·yl (CONTRACT §3). Sin asignaciones por frame en pos/computeJob.
  * ===================================================================== */
@@ -382,24 +384,23 @@
   function tempoOf(q) { return !q.front ? 'pipe' : q.role === 'MB' ? 'quick' : q.role === 'OPP' ? 'shoot' : 'high'; }
   var LANE = { high: 'left', shoot: 'right', quick: 'mid', pipe: 'back' };
   /** Lateral LOCAL del destino de la colocación al atacante q con el tempo tp (colocador p): la rápida junto al colocador, el pipe
-   *  en el carril de la zona del zaguero (6 → centro, 1 → derecha, 5 → izquierda), el resto la tabla FORM.set. */
-  function setY(g, p, q, tp) {
+   *  en el carril de la zona del zaguero (6 → centro, 1 → derecha, 5 → izquierda; con bz, la zona que pide el colocador humano con
+   *  ↓ / ↙ / ↘ —C2—, aunque el único zaguero que puede hacer pipe sea de otra), el resto la tabla FORM.set. */
+  function setY(g, p, q, tp, bz) {
     if (tp === 'quick') return clamp(ylOf(p) - 1.0, -2.5, 2.5);
-    if (tp === 'pipe') return q ? S.ZONE[q.zone].yl * FORM.pipeY : FORM.set.pipe.yl;
+    if (tp === 'pipe') return bz ? S.ZONE[bz].yl * FORM.pipeY : q ? S.ZONE[q.zone].yl * FORM.pipeY : FORM.set.pipe.yl;
     return FORM.set[tp].yl;
   }
-  var _sp = { d: 0, yl: 0, apex: 5 }, _cand = [], _w = [];
-  /** El colocador elige atacante y tempo (2º toque). Delanteros que pueden atacar (sin el líbero ni quien coloca); el central
-   *  (rápida) y los zagueros de pipe (canPipe) solo en sistema: recepción buena y el colocador cerca de la red. Peso del puesto
-   *  (pipe bajo), menos si el bloqueo rival ya está enfrente, y azar (g.rng: solo 6v6). lane ('left'|'right'|'mid'|'back', el
-   *  stick del colocador humano, laneOf) se queda solo con los candidatos de ese carril si hay alguno válido; si no, el reparto
-   *  de la IA. Deja g.setPlan[t] = {to, tempo, d, yl, apex, t, sys} para computeJob y el bloqueo rival. */
-  function chooseSet(g, p, lane) {
+  var _sp = { d: 0, yl: 0, apex: 5 }, _cand = [], _w = [], _inSys = false;
+  /** Candidatos a atacar del colocador p (en _cand/_w, con su peso) y suma de pesos. Delanteros que pueden atacar (sin el líbero ni
+   *  quien coloca); el central (rápida) y los zagueros de pipe (canPipe) solo en sistema: recepción buena y el colocador cerca de la
+   *  red (_inSys). Peso del puesto (pipe bajo), menos si el bloqueo rival ya está enfrente. Pura (sin g.rng). */
+  function buildCand(g, p) {
     var t = p.team, tm = g.teams[t], opp = g.teams[1 - t], sd = side(t);
     var pq = g._pq6 && g._pq6[t], good = pq && g.time - pq.t < 3 && pq.q >= 0.45;
-    var inSys = good && p.role === 'S' && dOf(p) < 3.0;
+    var inSys = _inSys = !!(good && p.role === 'S' && dOf(p) < 3.0);
     _cand.length = 0; _w.length = 0;
-    var sum = 0, inLane = false;
+    var sum = 0;
     for (var i = 0; i < tm.length; i++) {
       var q = tm[i]; if (q === p || q.role === 'S' || !(canAttack(q) || canPipe(q))) continue;
       var tempo = tempoOf(q);
@@ -409,20 +410,70 @@
       // (setReady: cerca de la red —o de su batida de zaguero— y del destino, y jugando): no se le regala el balón
       if (S.isHuman(g, q)) { if (!setReady(g, q, sd * T.d, Y)) continue; w *= HUM.atkW * (g.time - g.ask6 < HUM.askT ? HUM.ask : 1); }
       for (var k = 0; k < opp.length; k++) { var o = opp[k]; if (o.front && Math.abs(o.x) < 2 && Math.abs(o.y - Y) < 1.3) w *= 0.7; }
-      if (lane && LANE[tempo] === lane) inLane = true;
       _cand.push(q); _w.push(w); sum += w;
     }
-    if (inLane) { sum = 0; for (var m = 0; m < _cand.length; m++) { if (LANE[tempoOf(_cand[m])] !== lane) _w[m] = 0; sum += _w[m]; } }
-    var plan = g._sp6 || (g._sp6 = [{}, {}]), P = plan[t], to = null, r = g.rng() * sum;
-    for (var j = 0; j < _cand.length; j++) { if (inLane && _w[j] === 0) continue; r -= _w[j]; if (r <= 0 || j === _cand.length - 1) { to = _cand[j]; break; } }
-    if (!to && inLane) for (var n = _cand.length - 1; n >= 0; n--) if (_w[n] > 0) { to = _cand[n]; break; }
+    return sum;
+  }
+  /** Atacante del carril lane entre los candidatos (buildCand), sin azar: en 'back', el zaguero de la zona pref (5, 6 o 1; si no
+   *  hay, el de la 6); si no, el de más peso del carril. null si el carril no tiene atacante válido. */
+  function pickLane(lane, pref) {
+    var best = -1, bw = -1, z6 = null, m;
+    for (m = 0; m < _cand.length; m++) {
+      var q = _cand[m]; if (LANE[tempoOf(q)] !== lane) continue;
+      if (lane === 'back' && pref) { if (q.zone === pref) return q; if (q.zone === 6) z6 = q; }
+      if (_w[m] > bw) { bw = _w[m]; best = m; }
+    }
+    return z6 || (best >= 0 ? _cand[best] : null);
+  }
+  /** C2 (colocar por destino), colocador humano en 6v6: atacante que pide la dirección de la ventana (g.setDirA, sim.step; NaN =
+   *  sin dirección). Sector → {lane, pref, apexD}: neutro y ← alta a la 4 (receptor delantero), ↖ tensa a la 4 (cima −0,6), ↑ rápida
+   *  del central, ↗ tensa al opuesto, → alta al opuesto (cima +0,4), ↓ / ↙ / ↘ pipe por la 6 / la 5 / la 1. Pura. */
+  var DIR8 = [{ lane: 'mid', pref: 0, apexD: 0 }, { lane: 'right', pref: 0, apexD: 0 }, { lane: 'right', pref: 0, apexD: 0.4 },
+    { lane: 'back', pref: 1, apexD: 0 }, { lane: 'back', pref: 6, apexD: 0 }, { lane: 'back', pref: 5, apexD: 0 },
+    { lane: 'left', pref: 0, apexD: 0 }, { lane: 'left', pref: 0, apexD: -0.6 }];
+  var DIR8N = DIR8[6];
+  function dirOf8(g, p) {
+    var a = g.setDirA; if (a !== a) return DIR8N;
+    return DIR8[((Math.round(a / 45) % 8) + 8) % 8];
+  }
+  /** Elección del humano (dirOf8) sobre los candidatos ya construidos: el del carril; si no hay, alta a la 4; si tampoco, al
+   *  opuesto; si tampoco, null (decide el reparto de la IA). Deja en _pk.aD el cambio de cima (0 si se cae a otro carril). */
+  var _pk = { to: null, aD: 0 };
+  function pickHuman(lane, pref, apexD) {
+    _pk.to = pickLane(lane, pref); _pk.aD = apexD || 0;
+    if (!_pk.to) { _pk.aD = 0; _pk.to = pickLane('left', 0) || pickLane('right', 0); }
+    return _pk;
+  }
+  /** Tempo de la sim ('quick' | 'lane' | 'high', color del marcador) de un tempo de FORM con su cambio de cima. */
+  function kindOf(tp, aD) { return tp === 'quick' ? 'quick' : tp === 'high' ? (aD < 0 ? 'lane' : 'high') : tp === 'shoot' ? (aD > 0 ? 'high' : 'lane') : 'lane'; }
+  /** El colocador elige atacante y tempo (2º toque), entre los candidatos de buildCand. Sin lane (la IA): reparto por pesos con
+   *  g.rng (solo 6v6). Con lane (el colocador humano, dirOf8: lane, pref, apexD), el atacante se elige SIN azar (pickHuman: el del
+   *  carril; si no hay, alta a la 4; si tampoco, al opuesto; si tampoco, el reparto de la IA), pero se sigue gastando la misma llamada a
+   *  g.rng. Deja g.setPlan[t] = {to, tempo, d, yl, apex, t, sys} para computeJob y el bloqueo rival. */
+  function chooseSet(g, p, lane, pref, apexD) {
+    var t = p.team, sum = buildCand(g, p), inSys = _inSys;
+    var plan = g._sp6 || (g._sp6 = [{}, {}]), P = plan[t], to = null, aD = 0, r = g.rng() * sum;
+    if (lane) { var hk = pickHuman(lane, pref, apexD); to = hk.to; aD = hk.aD; }
+    if (!to) for (var j = 0; j < _cand.length; j++) { r -= _w[j]; if (r <= 0 || j === _cand.length - 1) { to = _cand[j]; break; } }
     var tp = !to ? 'high' : tempoOf(to), TT = FORM.set[tp];
-    P.to = to; P.tempo = tp; P.d = TT.d; P.yl = setY(g, p, to, tp);
+    P.to = to; P.tempo = tp; P.d = TT.d; P.yl = setY(g, p, to, tp, lane === 'back' && tp === 'pipe' ? pref : 0);
     // fuera de sistema (colocador lejos de la red o no es el colocador): más alta para dar tiempo al atacante
-    P.apex = TT.apex + (inSys || tp === 'quick' ? 0 : 0.4); P.t = g.time; P.sys = inSys;
+    P.apex = TT.apex + aD + (inSys || tp === 'quick' ? 0 : 0.4); P.t = g.time; P.sys = inSys;
     g.setPlan[t] = P;
     _sp.d = P.d; _sp.yl = P.yl; _sp.apex = P.apex;
     return _sp;
+  }
+  /** C2: vista previa pura de la colocación del humano p (sin g.rng ni g.setPlan): lo que haría chooseSet con dirOf8 ahora. Si el
+   *  reparto quedara en manos de la IA (nadie en los carriles de reserva), el candidato de más peso. Escribe en out {to, tempo (FORM),
+   *  kind ('quick'|'lane'|'high'), d, yl, apex}. */
+  function previewSet(g, p, out) {
+    buildCand(g, p);
+    var d8 = dirOf8(g, p), hk = pickHuman(d8.lane, d8.pref, d8.apexD), to = hk.to, aD = hk.aD, inSys = _inSys;
+    if (!to) { var bw = -1; for (var m = 0; m < _cand.length; m++) if (_w[m] > bw) { bw = _w[m]; to = _cand[m]; } }
+    var tp = !to ? 'high' : tempoOf(to), TT = FORM.set[tp];
+    out.to = to; out.tempo = tp; out.kind = kindOf(tp, aD); out.d = TT.d; out.yl = setY(g, p, to, tp, d8.lane === 'back' && tp === 'pipe' ? d8.pref : 0);
+    out.apex = TT.apex + aD + (inSys || tp === 'quick' ? 0 : 0.4);
+    return out;
   }
 
   /** Multiplicador de la defensa rival (digOk) para el remate del equipo t: ataque en sistema (recepción buena, colocador en su
@@ -599,7 +650,7 @@
     return res.length ? res : null;
   }
 
-  VB.AI6 = { computeJob: computeJob, pos: pos, spot: spot, humanOwns: humanOwns, setReady: setReady, placeServe: placeServe, passTarget: passTarget, chooseSet: chooseSet,
+  VB.AI6 = { computeJob: computeJob, pos: pos, spot: spot, humanOwns: humanOwns, setReady: setReady, placeServe: placeServe, passTarget: passTarget, chooseSet: chooseSet, dirOf8: dirOf8, previewSet: previewSet,
     blockPlan: blockPlan, digK: digK, canAttack: canAttack, canPipe: canPipe, laneOf: laneOf, legalFixes: legalFixes, setterOf: setterOf, FORM: FORM, HUM: HUM,
     // entrenador CPU (cambios, solo con banquillo)
     coachPlan: coachPlan, lineupPlan: lineupPlan, COACH: COACH };

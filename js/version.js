@@ -18,11 +18,20 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.3.3';
+  VB.VERSION = '1.4.0';
   VB.VERSION_DATE = '2026-11-16';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.4.0', d: '2026-11-16', t: 'Colocar con destino',
+      items: [
+        'Colocar: con la dirección eliges el destino, y lo ves en el suelo antes del toque.',
+        'Sin dirección, alta a la 4. Cerca de ti sale rápida; lejos, alta.',
+        'La calidad depende de tu timing y de tu Colocación.',
+        'Con ratón: clic para golpear, clic derecho para colocar y la rueda para saltar.'
+      ]
+    },
     {
       v: '1.3.3', d: '2026-11-16', t: 'Jueces de línea',
       items: [

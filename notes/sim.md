@@ -1497,7 +1497,8 @@ SALTAR/COLOCAR). El timing sigue saliendo de la primera pulsación (`swingT0`): 
 - **Al filo y manos fuera** (`edge {d 0,9, lim 0,05, spr 0,35, spd 0,8, dig 0,2, tool 0,2, tag 0,5}`): la mira libre llega hasta
   `g.HW/HL − 0,05`. Con `e = edgeOf` del punto apuntado: dispersión ×(1 + 0,35e), +0,8e m/s, defensa ×(1 − 0,2e); en `checkBlock`,
   block-out + 0,2·e·(1 − cen) (tope 0,6). `atkMove 'edge'` con e > 0,5.
-- **Colocación dirigida** (`set {dead 0,6, fwd 0,7, lat 0,5, laneY 2,6, quickX 1,0, quickApex 4,0, quickBlk 0,6, highX 2,4, highApex
+- **Colocación dirigida** (SUSTITUIDA el 15-nov-2026 por «Colocar por destino (C2)», al final de este fichero; lo de aquí es histórico)
+  (`set {dead 0,6, fwd 0,7, lat 0,5, laneY 2,6, quickX 1,0, quickApex 4,0, quickBlk 0,6, highX 2,4, highApex
   5,9}`, `setAim`): mismas llamadas `rnd` que la de siempre (neutra = byte a byte). Rápida: el error del bloqueador rival ×(1 + 0,6q)
   y `atkMove 'quick'` en el remate siguiente. La CPU (solo el equipo 1) coloca a un lado con `hk(0xE13) < pr.zoneSet` (0 / 0,15 /
   0,30 / 0,45) al lado contrario de `g.ctrl.y`; su atacante la sigue (pr3) y la remata (98-100 %).
@@ -1610,3 +1611,180 @@ Detalle: `notes/s234/T1.md`. Contrato: CONTRACT §4.2 «Sprint 2-4».
   interferencia, también 6v6 con banquillo.
 - Aviso: lo que muta `g` fuera de `Sim.step` (`requestSub`, `setCtrlRole`, `skipHold`, `challenge`) no se graba. Hoy solo actúa en pausas;
   si algún día actúa en pleno peloteo, la repetición se desincroniza (replay.js lo detecta y lo avisa).
+
+## Colocar por destino (C2, 15/16-nov-2026; pedido de Ferran) — sim / ai / ai6 / main / input / fx / ui
+Ferran: «según donde apuntes con el joystick puedas apuntar a dónde colocas, y según el timing tenga mejor o peor calidad la colocación
+(incluyendo tu stat de colocación, siempre)… en un futuro quiero poner ONLINE al juego… por defecto el balón, si no dicen nada, es alto, y si
+no mueves el joystick (o las flechas en PC) la colocas a 4». Sin burbujas ni peticiones de los atacantes: todo sale de la entrada del
+colocador humano (dirección + timing), determinista y apto para online (una entrada por jugador, nada de estado de UI que sincronizar).
+Spec de diseño: scratchpad del workflow `colocar-spec.md` (aquí, lo implementado y lo que cambia respecto a ella).
+
+### Puertas (la huella 2v2 no cambia)
+- 2v2: `g.mastery && g.aimSet` (falso en demo, autopilot y 6v6). 6v6: `g.rot && isHuman(g, p)` con el humano dueño del 2º toque
+  (`g.jobs[0] === p` o, si es el colocador, `VB.AI6.humanOwns(g, 0, p, g.pr1, 1, …)`: el reparto no siempre se lo da aunque el balón le
+  caiga encima). Con «Colocación dirigida: No» (`aimSet:false`) vuelve la de siempre (x 1,35 al compañero, cima 5,3, tempo '').
+- Ninguna llamada nueva ni quitada a `g.rng`: el error de la cima sale de `hk(g, 0xE18)` (0xE19 queda libre); `chooseSet` sigue gastando
+  su `g.rng()` aunque el humano elija sin azar. `node tools/fingerprint6.js` = «huella 2v2 idéntica» SIN regenerar fp-2v2.json; E1 (a)
+  64/64. **`tools/fp-mastery.json` regenerada** (cambio intencionado): su bot elige ahora una de las 8 direcciones (o ninguna) en la
+  ventana y a veces coloca con COLOCAR en el suelo.
+
+### API nueva (todo aditivo salvo `setAim` y `chooseSet`)
+- Estado (literal de `createGame`, se reinicia en el saque): `g.setWinOn` (bool), `g.setCarry` (−1 o sector 0-7), `g.setDirA` (grados en
+  [0, 360): 0 = hacia la red, 90 = derecha del colocador; NaN = sin dirección). Solo lo escribe `step` (rama humana), sin azar.
+- `VB.Sim.setWin(g)`: ventana de colocación (pura). Abierta desde que sale el pase de un compañero (2º toque del equipo 0 por dar, no tras
+  una colocación en salto) hasta el toque, con la puerta del formato. **Ya no exige el balón a < 3,5 m.**
+- `VB.Sim.setAim(g, p, human, out, sx?, sy?)` (antes `(g, p, human, aim, len, out)`): `out = {x (distancia a la red), y (mundo), apex,
+  tempo, s, D, L}`; `sx, sy` = punto de toque (sin ellos, el de `hitWindow` si llega, si no la posición del jugador). Exportada.
+- `VB.Sim.setPreview(g, out)` → null | `{x, y, tempo ('quick'|'lane'|'high'), ok, to, bx, by}`: destino sin error con la dirección de ahora
+  desde el punto de toque previsto; `to` = el atacante (objeto jugador, no índice); `bx, by` = su batida; `ok` = llega a la batida a tiempo
+  (`AI.timeTo ≤ t toque + vuelo(cima) − 0,25`; informativo). En el aire con colocación en salto posible (2v2), el destino de la colocación
+  en salto (`JSET.tx`, mate.y, 'quick'). En 6v6, `VB.AI6.previewSet`.
+- `VB.AI6.dirOf8(g, p)` → `{lane, pref, apexD}`; `VB.AI6.previewSet(g, p, out)` → `{to, tempo (FORM), kind (sim), d, yl, apex}`;
+  `VB.AI6.chooseSet(g, p, lane, pref, apexD)` (antes `(g, p, lane)`; la IA sigue llamando sin carril y da lo mismo que antes).
+  `laneOf` se queda (pruebas), pero la sim ya no lo usa.
+- `VB.MASTERY.set` nuevo (sustituye a fwd/lat/laneY/quickX/quickApex/highX/highApex; `zoneY` 2,6 = lado de la CPU de E1 e2):
+  `dead 0,6, snap 10, plantT 0,6, dirs, neutral [1,0 ; −2,75], neutralApex 5,8, a0 3,3, aS 0,45, aD 1,2, dD0 1,3, apexMin 3,9, apexMax 6,0,
+  quickS 1,6, quickD 1,2, highApex 5,1, quickBlk 0,6, laneBlk 0,25, laneBlkD 1,2, rho {quick 0,4, lane 0,15, high 0}, sprS0 0,75, sprS 0,1,
+  apErr 0,7, apFloor 3,6, Dmin 0,6, Dmax 3,2, Lpad 0,6, sClamp 1,2, atkAp {quick 1,2, lane 2,2, high 2,8}, atkMaxX 6,5, atkSep 1,6`.
+
+### Dirección: ejes de la pista, arrastre y plantado
+- main.js `buildInput`: con `Sim.setWin(g)` la dirección va en ejes de la pista (como en el saque): las 8 direcciones del teclado son
+  siempre los mismos destinos aunque la cámara esté girada. Va dentro de `move` (la repetición lo graba igual).
+- Ejes del colocador: `fwd = −sd·aim[0]` (+ hacia la red), `lat = sd·aim[1]` (+ a su derecha); zona 4 = y < 0 para el equipo 0.
+- Arrastre (step): al abrirse la ventana, el sector que traía (stick ≥ 0,6) queda en `g.setCarry` y cuenta como neutro hasta que suelta o
+  cambia de sector (correr con ↑ no es pedir la rápida). Por debajo de 0,6, neutro. Durante el gesto, soltar conserva la dirección.
+  **Cambio sobre la spec**: `endSwing` NO borra `setDirA`/`setCarry` (un gesto fallido por pronto borraba la dirección elegida y la
+  siguiente pulsación salía neutra); se borran al cerrarse la ventana y en el saque.
+- Plantado (2v2 y 6v6, con la ventana): con una dirección elegida (no de arrastre), el balón llegándole ya (`hitWindow.reach`, d < 0,6 m)
+  y a ≤ `plantT` s del contacto (o con el gesto abierto), el stick apunta y no mueve (`assistMove(0, 0)`, con imán). **Cambio**: el
+  gesto con la dirección de arrastre ya no planta (antes plantaba con cualquier `swingHasAim`).
+
+### Destinos (2v2) y tempo
+| Entrada | Destino | D | L |
+|---|---|---|---|
+| Neutro | Alta a la 4 (cima ≥ 5,8) | 1,0 | −2,75 |
+| ← / → | Tensa a la 4 / a la 2 | 1,0 | ∓3,5 |
+| ↖ / ↗ | Corta a la 4 / a la 2 | 0,9 | ∓1,6 |
+| ↑ | Rápida delante del colocador | 0,8 | la suya (±3,3) |
+| ↙ / ↓ / ↘ | Atrás a la 4 / al centro / a la 2 | 2,8 | −2,2 / 0 / +2,2 |
+
+×`g.cs` en la playa. Stick: interpolación por ángulo entre sectores, imán de ±10°. `D ∈ [0,6, 3,2]`, `|L| ≤ 3,9`. Cima
+`clamp(3,3 + 0,45·s + 1,2·max(0, D − 1,3), 3,9, 6,0)` (s = distancia del toque al destino); 'quick' con s ≤ 1,6 y D ≤ 1,2, 'high' con cima
+≥ 5,1, si no 'lane'. Con el colocador en (2 ; 0): ↑ 3,9 rápida, ↖ 4,17 tensa, ← 4,94 tensa, ↓ 5,46 alta, ↙ 6,0 alta; desde la otra punta,
+← sale alta («lejos, alta»).
+
+### 6v6 (colocador humano)
+`dirOf8`: neutro y ← alta al receptor de la 4; ↖ tensa a la 4 (cima −0,6); ↑ rápida del central; ↗ tensa al opuesto; → alta al opuesto
+(cima +0,4); ↓ / ↙ / ↘ pipe por la 6 / la 5 / la 1 (si no hay zaguero en esa zona, el de la 6; si no, el de más peso). Atacante sin azar;
+carril sin atacante válido (rápida o pipe fuera de sistema…) → alta a la 4 (cambio de cima a 0), si no al opuesto, si no el reparto de la
+IA. También en la colocación en salto de 2º toque. En 6v6 el 2º toque del humano usa siempre `dirOf8` (fuera de la ventana: neutro).
+
+### Calidad (timing + Colocación, siempre los dos)
+Se queda lo de siempre (`wSet`, `timingQ`, `errQ`, `ek`). Nuevo en la rama de suelo con puerta: σ ×(0,75 + 0,10·s) con las mismas dos
+llamadas a `rnd`; cima `+ (2·hk(0xE18) − 1)·0,7·(1 − q)·ek` (suelo `max(3,6, z + 0,3)`); `g.lastQ` (la que lee el remate de la IA y la bola
+de seguridad) = `q·(1 − ρ·(1 − q))`; `hit.quality` sigue siendo q. Premio al bloqueo rival: rápida ×(1 + 0,6q) (ya estaba) y tensa a
+≤ 1,2 m de la red ×(1 + 0,25q). Medido (simtest «Colocar», ←, sL 0, 300 semillas; error del destino / |Δcima| en m):
+
+| Colocación | te 0 | 0,06 | 0,15 | 0,30 |
+|---|---|---|---|---|
+| 15 | 0,36 / 0,13 | 0,65 / 0,27 | 0,89 / 0,41 | 1,06 / 0,51 |
+| 50 | 0,06 / 0 | 0,24 / 0,09 | 0,50 / 0,21 | 0,71 / 0,33 |
+| 90 | 0,04 / 0 | 0,09 / 0,03 | 0,20 / 0,08 | 0,28 / 0,12 |
+
+### Atacante CPU (ai.js, con g.mastery)
+- Antes del toque («seré el atacante»): a la batida del destino previsto (`setPreview.bx/by`: 1,2 / 2,2 / 2,8 m detrás según el tempo).
+  **Añadido**: la batida queda a ≥ `atkSep` 1,6 m del punto de toque (la rápida, al lado del colocador por el lado del compañero): si no,
+  el balón que salía de las manos le pasaba al alcance y la IA lo jugaba de pie (`exiting`, 10 % de las rápidas).
+- **Añadido**: con la colocación del humano en el aire hacia un sitio de ataque (`pr3` alto y cerca de la red), el compañero no la juega
+  de pie al salir (espera a rematarla). Con el humano en el aire (colocación en salto), lo de siempre.
+- Medido (simtest «Colocar» (g), 9 entradas × 100 semillas, pulsación perfecta): remata neutro 97 %, ↑ 100, ↗ 100, → 97, ↘ 98, ↓ 98,
+  ↙ 99, ← 99, ↖ 100; se acerca a su batida en el 100 %.
+
+### COLOCAR en el suelo (input: clic derecho)
+En step, antes de saltar: `input.jset` en el suelo con la ventana abierta y el balón jugable de pie (`groundSet`: el punto más cercano de
+`hitWindow` no queda por encima del alcance de pie) → `startSwing(g, hp, '')` (coloca, no salta). **Cambio sobre la spec**: no exige
+`t ≤ swing + assist` (con la pulsación pronto saltaba, y «clic derecho = colocar» dejaba de ser verdad; ahora es un gesto pronto, como
+GOLPEAR) ni usa `attack` (en el 2º toque siempre es falso). Con el balón alto en la red, fuera del 2º toque o sin la puerta, salta como
+antes, y sigue valiendo «doble pulsación = salta y coloca».
+
+### Pruebas (simtest «Colocar por destino (C2)», `SIMTEST_ONLY=colocar`, `SIMTEST_COL=b,c` filtra; ~35 s)
+(a) identidad 27/27 (demo, autopilot, 6v6 CPU, mastery:false con y sin bandera; nunca abren la ventana). (b) neutro ±0,3 m, 'high', cima
+5,8, pabellón y playa. (c) 8 direcciones × 3 sL × pabellón/playa 48/48 (destino, tempo y cima de la fórmula). (d) analógico sin saltos
+(máx. 0,74 m cada 5°), imán, 0,55 neutro / 0,65 dirección. (e) arrastre. (f) calidad (tabla de arriba, monótona). (g) atacante. (h) vista
+previa siempre presente del pase al toque, = setAim (1e-9), null en demo/autopilot/aimSet:false, en el aire = colocación en salto. (i)
+COLOCAR en el suelo. (j) 6v6 54/54, 1 g.rng por chooseSet, previewSet = plan. (k) plantado anticipado (0 m con dirección; arrastre corre).
+Reescritas: E1 (e) (la neutra ya no es la de siempre: ahora comprueba que sin bandera y con aimSet:false sigue byte a byte) y 6v6 (j)
+(`jsetLane` abre la ventana sin dirección antes de pulsar; stick a 0,3 = alta a la 4). Bot de la matriz con maestría: 8 direcciones.
+(l) Matriz con bots que usan la maestría (8 direcciones al azar): `SIMTEST_MASTERY=2 SIMTEST_ONLY=matrix node tools/simtest.js 0 4242 20 4`
+→ todas las bandas en verde («TODO OK»): perfecto 93,7 / 77,2 / 69,9 / 52,4, bueno 84,2 / 61,5 / 53,7 / 37,8, medio 71,0 / 48,1 / 38,3 /
+21,9, novato 43,8 / 33,2 / 25,2 / 12,9 (Fácil / Normal / Difícil / Experto). No se ha repetido con 12 semillas ni con `SIMTEST_MASTERY=1`
+para comparar (PC justo de memoria): con 4 semillas el ruido es de unos ±3 puntos. Gimnasio 'set' (E6 (5)): totales sin cambios.
+
+### Revisión C2 (16-nov-2026): mover no es apuntar, destinos distintos, riesgo del tempo, COLOCAR sin «Colocación dirigida»
+Sustituye lo de arriba donde choca (arrastre, plantado, tabla de destinos, ρ, `groundSet`, (e) y (k) de las pruebas).
+- **Mover no es apuntar** (step, rama humana con `setWin`). Antes solo se neutralizaba la dirección que traía al abrirse la ventana: quien
+  arrancaba a correr después (lo normal con flechas/WASD) fijaba el destino con la flecha de correr y el plantado le dejaba clavado
+  (reproducción de la revisión: alta a la 4 → «atrás a la 2», al lado contrario; bot que retoca a golpecitos: 200 de 200 rápidas sin
+  querer). Ahora, con el aro amarillo (`focusPoint`, lo que el jugador ve y adonde va) como referencia:
+  - la dirección que traía al abrirse y **cualquier dirección fuera de su sitio** (`hitWindow` sin `.reach` o a ≥ `posD` 0,6 m del aro)
+    son movimiento: quedan de arrastre (`g.setCarry` = sector, `g.setCarryK` 1) y siguen neutras ya en su sitio hasta que las suelta;
+    un sector vecino sin soltar (el stick que se desvía, la flecha de al lado) también es arrastre;
+  - en su sitio, **empujar hacia el aro** estando a más de `towD` 0,08 m de su centro (coseno > `towCos` 0,7: retocar, o volver tras
+    pasarse) también es movimiento (`setCarryK` 1);
+  - cualquier otra dirección pulsada ya en su sitio es el destino (`setCarryK` 2 → `g.setDirA`); durante el gesto, soltar la conserva.
+  - En la ventana el imán (`assistMove(…, ring)`) lleva al **centro del aro** (fuera de ella, 0,15 m detrás, como siempre): el sitio en el
+    que se queda el jugador es el mismo que ve, y desde ahí ↑ (hacia la red) no es «ir hacia el aro».
+  - Plantado: en su sitio y sin retocar hacia el aro, con una dirección elegida, con el gesto abierto o a ≤ `plantT` 0,6 s del toque
+    (ahora también sin dirección: ya colocado no hace falta retocar, el imán centra; en 6v6 sin entrada no hay imán y se queda quieto).
+  - Medido (simtest (l), 40 pases de verdad por modo, humano a 1,6 m del aro con 8 sectores y pulsación perfecta): con la flecha pulsada
+    hasta el toque, parándose a 0,25 m, retocando a golpecitos hasta 0,12 m o pasándose 0,35 m y volviendo: 100 % alta a la 4; en su
+    sitio, soltar y ← = ← el 100 %. Los bots de la revisión que van al aro (`setplay.js` HOLD=1: 0 % sin querer; `run2.js` con
+    `g.pr1`: neutro) ya no apuntan; el de `run2.js` original persigue un punto (el balón a 2,3 m) que está a 0,3-0,5 m del aro y, al
+    pasar por el aro y darse la vuelta, empuja en dirección contraria al aro: eso sí cuenta como destino (no es distinguible de elegirlo).
+- **COLOCAR en el suelo sin «Colocación dirigida»**: `groundSet` mira `VB.Sim.setTurn(g)` (nuevo, exportado: el 2º toque es del humano,
+  la ventana sin la opción `aimSet`); `setWin(g) = setTurn(g) && (g.rot || g.aimSet)`. Con aimSet:false, clic derecho / K / X en el suelo
+  en tu 2º toque colocan (al compañero, como siempre) en vez de saltar.
+- **Destinos que no se pisan** (`MASTERY.set.dirs`): ↖ / ↗ = **corta a `corta` 1,5 m del colocador** (`'s-'`/`'s+'`, sin pasar del
+  destino de ← / →; antes fija en ∓1,6, que con el colocador en un lado quedaba al otro lado de él); ← / → con **tempo mínimo tensa**
+  (`'lane'`: si por distancia saliera rápida, tensa con cima ≥ `laneMin` 4,4); atrás ↙ / ↓ / ↘ = (2,6 ; −2,8) / (3,0 ; 0) / (2,6 ; +2,8)
+  (antes los tres a D 2,8 y 2,2 m entre sí). Con el colocador en (2 ; −2,5): ↑ rápida (0,8 ; −2,5), ↖ rápida (0,9 ; −3,5), ← tensa 4,4
+  (1,0 ; −3,5), neutro alta 5,8 (1,0 ; −2,75), ↗ tensa (0,9 ; −1,0): ya no hay tres teclas con el mismo sitio y tempo.
+
+| Entrada | Destino | D | L |
+|---|---|---|---|
+| Neutro | Alta a la 4 (cima ≥ 5,8) | 1,0 | −2,75 |
+| ← / → | A la 4 / a la 2 (tensa o alta, nunca rápida) | 1,0 | ∓3,5 |
+| ↖ / ↗ | Corta | 0,9 | la suya ∓1,5 (sin pasar de ∓3,5) |
+| ↑ | Rápida delante del colocador | 0,8 | la suya (±3,3) |
+| ↙ / ↓ / ↘ | Atrás por la 4 / al centro / por la 2 | 2,6 / 3,0 / 2,6 | −2,8 / 0 / +2,8 |
+
+- **El timing se nota y la rápida es un riesgo** (solo la colocación del humano con la puerta, `hSet`; la IA no cambia): ρ {quick 1,3,
+  lane 1,1, high 0,9} (antes 0,4 / 0,15 / 0): `g.lastQ = q·(1 − ρ·(1 − q))` baja de la bola de seguridad de la IA (`SETQ.safeQ` 0,45) con
+  mal timing; σ del destino ×(1 + `sprQ` 1,0·(1 − q)); los premios al bloqueo rival van con `q^qPow` (4: solo con buen timing); nuevo
+  premio de atrás (`backD` 2,2 m: ×(1 + `backBlk` 1,2·q⁴), el bloqueo lee tarde). Medido (setplay3, pase ideal, 200 semillas; % de puntos
+  nuestros; «tarde» = pulsar 0,07 s tarde):
+
+| | neutro | ↑ rápida | ← | → | ↙ | ↓ |
+|---|---|---|---|---|---|---|
+| Colocación por defecto, perfecto (q 0,99) | 49 | 66 | 60 | 62 | 56 | 39 |
+| por defecto, tarde (q 0,63) | 40 | 32 | 50 | 43 | 30 | 21 |
+| Colocación 20, perfecto (q 0,78) | 49 | 59 | 59 | 56 | 38 | 33 |
+| Colocación 20, tarde (q 0,41) | 17 | 6 | 9 | 11 | 10 | 7 |
+
+  (antes: neutro 50 perfecto / 51 tarde, rápida 66 / 59 y la mejor siempre; atrás 32-41 siempre lo peor). Error del destino (simtest (f),
+  ←, m): Colocación 15 → 0,45 / 0,97 / 1,52 / 2,07 con te 0 / 0,06 / 0,15 / 0,30; 50 → 0,06 / 0,31 / 0,80 / 1,32; 90 → 0,04 / 0,11 / 0,27 /
+  0,44 (|Δcima| sin cambios: la tabla de arriba).
+- **6v6, pipe**: ↓ / ↙ / ↘ van al carril de la zona pedida (6 → centro, 5 → izquierda, 1 → derecha; `setY(…, bz)`) aunque solo haya un
+  zaguero que pueda hacer pipe (antes los tres daban el mismo atacante y el mismo sitio).
+- **En el aire** la dirección ya no mueve: cuenta como en su sitio (colocación en salto). La que trae del suelo sin soltar sigue siendo
+  arrastre (quien salta corriendo con ← no pide nada); soltar y pulsar en el aire elige (6v6: el carril de la colocación en salto).
+- Pruebas: (e) reescrita (traída, soltar y ↑, ← sin soltar, ↖ vecina = neutra, gesto, retocar hacia el aro y volver tras pasarse = neutro),
+  (j) comprueba también el carril del pipe, (k) reescrita (en su sitio, con dirección o con arrastre, se queda; fuera de su sitio corre y no
+  apunta), (l) nueva (mover no es apuntar con pases de verdad).
+  6v6 con humano (j), `jsetLane`: el bot salta en `pr3` (~1,3 m del aro), así que suelta la dirección al despegar y la vuelve a pulsar en
+  el aire. Bot de la matriz con maestría (`SIMTEST_MASTERY=2`): suelta la flecha al pulsar y elige el destino durante el gesto (como una
+  persona; si no, la dirección pegada a la de correr era arrastre y la matriz bajaba 3-5 puntos: perfecto contra Experto 48,0 %). Con eso,
+  `SIMTEST_MASTERY=2 SIMTEST_ONLY=matrix node tools/simtest.js 0 4242 20 4` → todo en verde: perfecto 89,7 / 77,9 / 68,1 / 50,3, bueno 81,4 /
+  65,0 / 53,0 / 33,4, medio 66,1 / 48,0 / 35,6 / 21,3, novato 44,4 / 31,4 / 20,4 / 11,0 (4 semillas, ruido ±3). `tools/fp-mastery.json`
+  **regenerada otra vez** (cambio intencionado de la mecánica: mover no es apuntar, destinos y ρ); la huella 2v2 sigue idéntica sin tocar
+  fp-2v2.json.

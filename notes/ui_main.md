@@ -1742,3 +1742,57 @@ Plan y specs en el scratchpad del sprint; notas por tarea en `notes/s234/` (se c
   tope); el banner «SET PARA TI» reaparece al volver de la repetición de un punto de set; calibración de los retos `tidy` (1/6) y `comeback`
   (0/6) con Ferran; en profile.js el icono de los huecos del Vestuario sale de `VB.Look.art(id)`, que devuelve texto («el gorro…») y no un
   dibujo: ui.js pone una camiseta genérica (petición en el scratchpad del sprint).
+
+## Colocar por destino (C2) y ratón nuevo (15/16-nov-2026; pedido de Ferran) — ui.js, input.js, fx.js, index.html, tools
+Mecánica en notes/sim.md «Colocar por destino (C2)». Ferran: «en PC la J y la K son muy malas teclas para controlar el remate y la
+colocación, deberías poner por ejemplo el clic para atacar y algo como el clic derecho para colocar».
+- **Ratón** (input.js): clic izquierdo = GOLPEAR, **clic derecho = COLOCAR** (antes saltaba), **rueda = SALTAR** (antes colocaba); Espacio
+  sigue saltando y J / X / K siguen como teclas reasignables. COLOCAR en el suelo coloca en tu 2º toque (sim `groundSet`); si no, salta
+  (poll lo sigue mandando también como SALTAR: bloqueo, batida). `GLYPHS.jset.mouse 'clic der.'`, `GLYPHS.jump.mouse 'rueda'`.
+  **`VB.Input.srcOf(a)`** ('hit' | 'jset' | 'jump' → 'mouse' | 'key': el último origen; arranca en 'mouse' con puntero fino y sin táctil)
+  y **`VB.Input.srcRev()`** (contador de cambios).
+- **Glifos** (ui.js `rebuildGlyph`; `G()` lo rehace cuando cambia `srcRev`): con teclado y ratón, si golpeas con el ratón los avisos dicen
+  «Clic» (`hitT 'CLIC'`) y si colocas con el ratón «Clic derecho» (`jsetT 'CLIC DER.'`); el salto se queda en Espacio.
+- **Controles**: teclado editable con «o clic» / «o clic derecho» / «o rueda» bajo Golpear, Colocar y Saltar; `actLabel.jset` «Colocar»;
+  fila fija «Ratón: clic izq. golpea, der. coloca, rueda salta»; mando, `sub` de COLOCAR «en el suelo, coloca si te toca; si no, salta»;
+  filas no editables (`ctlRowsAll`) con el ratón primero y, en 2v2 con «Colocación dirigida: Sí», la fila «Al colocar: sin dirección,
+  alta a la 4; con dirección, eliges el destino» (también en la nota de abajo del panel).
+- **Marcador del destino** (fx.js `setMk`): con `(g.mastery || g.rot)` desde que sale el pase (ventana `Sim.setWin`), color por tempo
+  (rápida naranja, tensa verde, alta celeste; el neutro, celeste), atenuado ×0,45 si `setPreview.ok` es falso. En 6v6, además, un aro en
+  la batida del atacante elegido (reutiliza `drillRing`, libre fuera del gimnasio; 0 dibujos nuevos).
+- **Consejos**: 2v2 con la ventana abierta, `setCoach`: «2º toque · Colocas *tensa a la 2* con Clic o Clic derecho» (nombre del destino
+  por sector de `g.setDirA`: rápida delante, corta a la 2, tensa a la 2, atrás a la 2 / al centro / a la 4, tensa a la 4, corta a la 4; sin
+  dirección «alta a la 4, o elige otro destino con las flechas»; en la playa «a tiempo (a destiempo, dobles)»); táctil «Bajo el balón y
+  Golpear; sin dirección, alta a la 4»; consejo de maestría «Al colocar, con las flechas eliges el destino: cerca, rápida; lejos, alta»;
+  ayuda del gimnasio «Sin dirección: alta a la 4». 6v6: `lanes6()` = «sin dirección, 4 alta | ↖ 4 tensa | ↑ rápida | ↗ 2 tensa | → 2 alta |
+  ↓ pipe» (por debajo de 1000 px de ancho, la corta «sin dirección, 4 | ← 4 | ↑ rápida | → 2 | ↓ pipe»).
+- **Tutorial** (paso 3): «Ponte bajo el balón y pulsa {hit} o {jset}: es la colocación. Si no tocas la dirección, va alta a la 4…
+  Con la dirección eliges el destino y lo ves en el suelo: cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo
+  precisa que sale. Si saltas, {jset} en el aire coloca en salto».
+- **Ajustes** (index.html): «Colocación dirigida — Sí: eliges el destino con la dirección (sin dirección, alta a la 4). No: siempre a tu
+  compañero».
+- tools/drive.js: la colocación en salto con ratón es rueda (saltar) + clic derecho en el aire; jsetdrill.js, comentario.
+- Capturas de comprobación (1280×720, juego real con el estado montado): 2v2 neutro (aro celeste a la izquierda junto a la red), ←, →,
+  ↑ (naranja delante del colocador), ↓, ↙; 6v6 con el colocador humano: neutro (receptor de la 4), ↑ rápida (central), → alta al opuesto,
+  ↗ tensa al opuesto, ↖ tensa a la 4, ↓ pipe; Controles con «o clic» / «o clic derecho».
+- **Revisión C2 (16-nov-2026)**:
+  - Nombre del destino (`setName`) por lo que **de verdad sale** (`VB.Sim.setPreview`: tempo por distancia y sitio), no por sector:
+    tempo «rápida / tensa / alta» + «delante» (junto a la red y a < 0,7 m de tu lateral), «a la 4» / «a la 2» (a más de 1,8 m del
+    centro), «al centro», «atrás» («por la 4» / «por la 2» a los lados). El texto y el color del marcador del suelo ya no se contradicen.
+  - 6v6: `setName6` («rápida al central», «tensa a la 4», «alta al opuesto», «pipe por la 5»…) en el consejo del colocador humano
+    («2º toque · Colocas *x* con Clic o Clic derecho · carriles») y en táctil. `LANES6L` «sin dirección o ←, 4 alta | ↖ 4 tensa | ↑ rápida |
+    ↗ 2 tensa | → 2 alta | ↙ ↓ ↘ pipe»; la corta (< 1000 px) dice lo mismo agrupado: «←↖ 4 | ↑ rápida | ↗→ 2 | ↓ pipe».
+  - El consejo «Coloca tu compañero: prepárate para atacar» ya no sale cuando el 2º toque es tuyo (`VB.Sim.setTurn`), aunque el reparto
+    de la IA (`g.jobs[0]`) aún diga otra cosa; tampoco tapa la tarjeta guiada ni el consejo de maestría.
+  - 2º toque: aviso grande «{Colocar} ¡Coloca ahora!» (con ratón, «Clic derecho ¡Coloca ahora!»; en táctil «¡Coloca ahora!»); tarjeta
+    guiada «Ponte bajo el balón y pulsa {Golpear} o {Colocar}: colocas *alta a la 4*» (táctil: solo Golpear); consejo de maestría
+    «Colocas *x*; con las flechas eliges otro destino: cerca, rápida; lejos, alta».
+  - Tutorial: en táctil «pulsa Golpear» (COLOCAR solo sale en el aire); con teclado o mando «{hit} o {jset}»; «ya bajo el balón, una
+    dirección elige el destino (la que traías corriendo no cuenta)». Controles: táctil «… en el suelo, tu colocación va con Golpear»;
+    fila de la dirección «ya bajo el balón, con dirección eliges el destino». Gimnasio 'set': «{hit}{jset} de dedos» (táctil: {hit}).
+  - Con «Colocación dirigida: No», COLOCAR en el suelo en tu 2º toque también coloca (sim `setTurn`), así que «clic derecho = colocar»
+    y la fila de Controles valen con las dos opciones.
+  - Marcador del destino (fx `SP_SZ`): rápida 0,72 → 1,1, tensa 0,95 → 1,1, alta 1,25 → 1,3, opacidad 0,85 → 0,95 (la rápida quedaba
+    tapada por el cuerpo del colocador y el aro amarillo).
+  - input.js `rebind`: asignar una tecla a GOLPEAR / COLOCAR / SALTAR en Controles pasa su origen a 'key' (los avisos dicen esa tecla en
+    vez de «Clic»; con Chrome de puntero fino `srcOf` arranca en 'mouse' y settest k) esperaba la tecla).

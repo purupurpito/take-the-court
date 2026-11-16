@@ -133,8 +133,8 @@
   // E6: diana del ejercicio (g.drill.target {x, y, r}) = 2 instancias del lote de calcomanías (celda 8 + aro con filo de la celda 2), tinte cálido.
   // E1: marcador de la colocación dirigida (Sim.setPreview) = 1 instancia más (aro de las ondas), un color por tempo. 0 dibujos nuevos.
   var drillTgt = null, drillRing = null, drA = 0, drX = 0, drY = 0, drR = 0.8, drR2 = 0, drPop = 0, setMk = null, spA = 0, spT = '';
-  var spOut = { x: 0.5, y: 0.5, tempo: '' }, DR_TGT_R = 95 / 256, DR_RING_R = 100 / 256; // radio (m, escala 1) del filo blanco de aimSvTex y del centro del aro de markRimTex
-  var SP_COL = null, SP_SZ = { '': 0.95, quick: 0.72, lane: 0.95, high: 1.25 };
+  var spOut = { x: 0.5, y: 0.5, tempo: '', ok: true, to: null, bx: 0, by: 0 }, spOk = 1, DR_TGT_R = 95 / 256, DR_RING_R = 100 / 256; // radio (m, escala 1) del filo blanco de aimSvTex y del centro del aro de markRimTex
+  var SP_COL = null, SP_SZ = { '': 1.05, quick: 1.1, lane: 1.1, high: 1.3 }; // (revisión C2: la rápida, 0,72, quedaba tapada por el colocador)
   function calmNow() { return ctx && ctx.reduceMotion != null ? !!ctx.reduceMotion : mqRM; } // U calcula ctx.reduceMotion (lessMotion + matchMedia)
   function buildPalettes() {
     var hx = function (h) { return new THREE.Color(h); }, ln = function (r, g, b) { return new THREE.Color().setRGB(r, g, b); };
@@ -1858,17 +1858,26 @@
             drillRing.position.x = drX; drillRing.position.z = -drY; drillRing.scale.set(drs, drs, 1); drillRing.material.opacity = 0.75 * drA;
           }
         }
-        // ---- E1: marcador de la colocación dirigida (Sim.setPreview: destino sin error de la colocación con el stick de ahora) ----
-        var spv = Sim.setPreview && !rpG && !g.demo && !g.autopilot && g.mastery ? Sim.setPreview(g, spOut) : null;
+        // ---- C2 (colocar por destino): marcador del destino de la colocación (Sim.setPreview: sin error, con la dirección de ahora) ----
+        // Desde que sale el pase hasta el toque (2v2 con maestría; 6v6 con el humano colocando). Color por tempo (rápida naranja, tensa
+        // verde, alta celeste); atenuado si el atacante no llega a su batida a tiempo (spv.ok, informativo). En 6v6, además, el aro de
+        // la batida del atacante elegido (reutiliza drillRing: fuera del gimnasio está libre; 0 dibujos nuevos)
+        var spv = Sim.setPreview && !rpG && !g.demo && !g.autopilot && (g.mastery || g.rot) ? Sim.setPreview(g, spOut) : null;
         if (spv && isFinite(spv.x) && isFinite(spv.y)) {
           var stp = SP_COL[spv.tempo] ? spv.tempo : '';
           if (spA < 0.02 || stp !== spT) { spT = stp; setMk.material.color.copy(SP_COL[stp]); }
           setMk.position.x = spv.x; setMk.position.z = -spv.y; spA = Math.min(1, spA + ddt * 8);
+          spOk += ((spv.ok ? 1 : 0.45) - spOk) * Math.min(1, ddt * 10);
         } else spA = Math.max(0, spA - ddt * 6);
         setMk.visible = spA > 0.01;
         if (setMk.visible) {
           var sps = SP_SZ[spT] * (calm ? 1 : 1 + 0.06 * Math.sin(ctx.time * 9));
-          setMk.scale.set(sps, sps, 1); setMk.material.opacity = 0.85 * spA;
+          setMk.scale.set(sps, sps, 1); setMk.material.opacity = 0.95 * spA * spOk;
+        }
+        if (!g.drill && g.rot) { // 6v6: batida del atacante elegido
+          var bOn = setMk.visible && spv && spv.to && isFinite(spv.bx);
+          drillRing.visible = !!bOn;
+          if (bOn) { drillRing.position.x = spv.bx; drillRing.position.z = -spv.by; drillRing.scale.set(0.55 / DR_RING_R, 0.55 / DR_RING_R, 1); drillRing.material.opacity = 0.6 * spA * spOk; }
         }
       }
       // ---- marcador de caída (secundario si el aro amarillo está activo) ----

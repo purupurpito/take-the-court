@@ -517,8 +517,10 @@
     st.setProperty('--k1', b[0]); st.setProperty('--k1d', b[1]); st.setProperty('--k1l', b[2]); st.setProperty('--k1rgb', b[3]);
     if (panel === 'tut' && tut.fig) tutGo(tut.i);                                  // figuras del tutorial con la equipación nueva
   }
+  var srcRevSeen = -1; // C2: VB.Input.srcRev (cambia al pasar de ratón a teclado o al revés: «Clic» / «Clic derecho» o la tecla)
   function G() {
-    var d = device();
+    var d = device(), I = VB.Input;
+    if (I && I.srcRev && I.srcRev() !== srcRevSeen) { srcRevSeen = I.srcRev(); rebuildGlyph(); }
     if (d === 'gamepad' && padFam() === 'ps') {
       if (!GLYPH_PS) GLYPH_PS = { serve: padIdxKey(padIx.hit, 'ps'), hit: padIdxKey(padIx.hit, 'ps'), jump: padIdxKey(padIx.jump, 'ps'), move: GLYPH.gamepad.move, aim: GLYPH.gamepad.aim,
         hitT: padIdxName(padIx.hit, 'ps'), jumpT: padIdxName(padIx.jump, 'ps'), sw: padIdxKey(padIx.sw, 'ps'), jset: padIdxKey(padIx.jset, 'ps'), jsetT: padIdxName(padIx.jset, 'ps') };
@@ -546,6 +548,9 @@
     kb.hit = kb.serve = ks(nm('hit')); kb.hitT = nm('hit').toUpperCase();
     kb.jump = ks(nm('jump')); kb.jumpT = nm('jump').toUpperCase();
     kb.jset = ks(nm('jset')); kb.jsetT = nm('jset').toUpperCase();
+    // C2: con teclado y ratón, si golpeas o colocas con el ratón los avisos dicen «Clic» / «Clic derecho» (el salto sigue en su tecla)
+    if (I.srcOf && I.srcOf('hit') === 'mouse') { kb.hit = kb.serve = ks('Clic'); kb.hitT = 'CLIC'; }
+    if (I.srcOf && I.srcOf('jset') === 'mouse') { kb.jset = ks('Clic derecho'); kb.jsetT = 'CLIC DER.'; }
     kb.sw = ks(nm('switch'));
     var lr = has('left', 'ArrowLeft') && has('right', 'ArrowRight');
     kb.move = lr ? '<span class="key">←</span><span class="key">→</span>' : ks(nm('left')) + ks(nm('right'));
@@ -1849,8 +1854,10 @@
     // (UI-18: el nombre del toque ya lo dice el contador de toques, justo encima: aquí solo el ordinal)
     var k = nt === 1 ? 'Primer toque' : nt === 2 ? 'Segundo toque' : 'Tercer toque';
     var shortT = device() === 'touch' && ctx.height <= 420; // móvil apaisado: tarjeta de una línea
+    // (2º toque, C2: con teclado o mando también COLOCAR, y el destino del suelo; en táctil COLOCAR solo sale en el aire)
+    var set2 = device() === 'touch' ? gl.hit : gl.hit + ' o ' + gl.jset, dest2 = g.mastery && g.aimSet !== false && g.size !== 6 ? ': colocas ' + setName(g) : '';
     var txt = shortT ? (nt === 1 ? 'Al círculo y ' + gl.hit : nt === 2 ? 'Bajo el balón y ' + gl.hit : gl.jump + ' y ' + gl.hit + ' arriba')
-      : nt === 1 ? 'Ve al círculo y pulsa ' + gl.hit : nt === 2 ? 'Ponte bajo el balón y pulsa ' + gl.hit : gl.jump + ' para saltar y ' + gl.hit + ' arriba';
+      : nt === 1 ? 'Ve al círculo y pulsa ' + gl.hit : nt === 2 ? 'Ponte bajo el balón y pulsa ' + set2 + dest2 : gl.jump + ' para saltar y ' + gl.hit + ' arriba';
     el.guideK.textContent = k.toUpperCase(); el.guideT.innerHTML = txt;
     el.guide.className = ''; void el.guide.offsetWidth; el.guide.className = 'show';
     guideT = 2.4;
@@ -1912,8 +1919,42 @@
   }
   /** Nombre del puesto de un jugador en minúscula («colocador», «líbero»). */
   function mateRole(q) { return (q && ROLE_NAME[q.role] || 'receptor').toLowerCase(); }
-  /** Carriles del colocador humano (D3: la dirección al golpear elige a quién): ← punta, ↑ rápida, → opuesto, ↓ pipe. */
-  var LANES6 = sepHTML(['← punta', '↑ rápida', '→ opuesto', '↓ pipe'], 'v');
+  /** C2 (colocar por destino): nombre del destino de la colocación del humano en 2v2, con lo que de verdad sale (VB.Sim.setPreview:
+   *  el tempo, que va por la distancia, y el sitio; revisión C2: antes era fijo por sector y a veces decía «tensa» de una rápida).
+   *  Tempo (rápida / tensa / alta) + sitio: delante (junto a la red y a < 0,7 m de su lateral), a la 4 / a la 2 (a más de 1,8 m del centro), al centro,
+   *  o atrás (a 2 m o más de la red; por la 4 / por la 2 a los lados). Lo mismo que el color del marcador del suelo. */
+  var SET_TEMPO = { quick: 'rápida', lane: 'tensa', high: 'alta' }, _spv = {};
+  function setName(g) {
+    var S = VB.Sim, v = null; try { v = S && S.setPreview ? S.setPreview(g, _spv) : null; } catch (e) { v = null; }
+    if (!v) return g.setDirA !== g.setDirA ? 'alta a la 4' : 'con dirección';
+    var cs = g.cs || 1, sd = S.side ? S.side(0) : 1, D = Math.abs(v.x) / cs, L = sd * v.y / cs, p = g.ctrl;
+    var near = p && D < 1.3 && Math.abs(L - sd * p.y / cs) < 0.7, tw = SET_TEMPO[v.tempo] || 'alta';
+    var where = D >= 2.0 ? (L < -1.5 ? 'atrás por la 4' : L > 1.5 ? 'atrás por la 2' : 'atrás') : near ? 'delante' : L < -1.8 ? 'a la 4' : L > 1.8 ? 'a la 2' : 'al centro';
+    return tw + ' ' + where;
+  }
+  /** Consejo del 2º toque con colocar por destino (2v2): con la ventana abierta, el destino que se ve en el suelo (una frase, guía de estilo). */
+  function setCoach(g, gl) {
+    var S = VB.Sim, on = S && S.setWin && S.setWin(g);
+    if (on && g.ctrl && g.ctrl.z > 0.05) return '2º toque · En el aire, ' + gl.jset + ' <b>coloca en salto</b> a tu compañero';
+    var dbl = g.beach ? ' a tiempo (a destiempo, <b>dobles</b>)' : '';   // (playa: dobles por timing, 12-nov)
+    return on ? '2º toque · Colocas <b>' + setName(g) + '</b> con ' + gl.hit + ' o ' + gl.jset + dbl + (!dbl && g.setDirA !== g.setDirA ? ', o elige otro destino con ' + gl.aim : '')
+      : '2º toque · <b>Colocación</b> bajo el balón con ' + gl.hit + ' o ' + gl.jset + dbl + '; sin dirección, alta a la 4';
+  }
+  /** Carriles del colocador humano (C2, colocar por destino: la dirección en la ventana elige a quién; sin dirección, alta a la 4). */
+  // (revisión C2: la corta, por debajo de 1000 px, dice lo mismo que la larga, agrupado: ← y sin dirección = 4 alta, ↖ = 4 tensa)
+  var LANES6L = sepHTML(['sin dirección o ←, 4 alta', '↖ 4 tensa', '↑ rápida', '↗ 2 tensa', '→ 2 alta', '↙ ↓ ↘ pipe'], 'v'), LANES6S = sepHTML(['←↖ 4', '↑ rápida', '↗→ 2', '↓ pipe'], 'v');
+  /** C2: 6v6, lo que tiene elegido ahora el colocador humano (VB.Sim.setPreview: atacante y tempo), «rápida al central», «pipe por
+   *  la 5»… o '' sin ventana. */
+  var ROLE6_TO = { OH: 'al receptor', OPP: 'al opuesto', MB: 'al central' };
+  function setName6(g) {
+    var S = VB.Sim, v = null; try { v = S && S.setPreview ? S.setPreview(g, _spv) : null; } catch (e) { v = null; }
+    if (!v || !v.to) return '';
+    var q = v.to;
+    if (!q.front) { var d8 = VB.AI6 && VB.AI6.dirOf8 ? VB.AI6.dirOf8(g, g.ctrl) : null, z = d8 && d8.lane === 'back' && d8.pref ? d8.pref : q.zone; return 'pipe por la ' + z; }
+    if (q.role === 'MB') return 'rápida al central';
+    return (SET_TEMPO[v.tempo] || 'alta') + ' ' + (q.role === 'OH' ? 'a la 4' : ROLE6_TO[q.role] || 'a tu compañero');
+  }
+  function lanes6() { return (window.innerWidth || 1280) < 1000 ? LANES6S : LANES6L; }   // (en 844×390 la larga no cabe)
   /** 6v6, consejo cuando el siguiente toque es de un compañero IA (nt: 1 recepción/defensa, 2 colocación, 3 ataque), por el puesto
    *  del humano y la fase de su sitio (ai6 spot().phase, D7; la marca del suelo —fx— le dice adónde ir, el texto solo qué hacer). */
   function coach6(g, p, nt, gl, touchDev) {
@@ -1924,7 +1965,7 @@
     if (nt === 3) return 'Ataca ' + mate6(q) + ': <b>cubre</b> el ataque';
     if (r === 'S') {   // el 2º toque es tuyo (nt 2 con un compañero: colocación de emergencia tras un pase horrible)
       if (nt === 2) return 'Coloca ' + mate6(q) + ' de emergencia: <b>cubre</b> el ataque';
-      return touchDev ? 'Coloca tú: al punto de colocación' : 'Coloca tú: ve al punto de colocación · ' + LANES6;   // (las flechas o el stick, al golpear)
+      return touchDev ? 'Coloca tú: al punto de colocación' : 'Coloca tú: ve al punto de colocación · ' + lanes6();   // (las flechas o el stick, al golpear)
     }
     // zaguero: pipe solo si puede pedirlo (ai6 canPipe: receptor u opuesto; el central que acaba de sacar, sin líbero aún, defiende)
     if (!p.front) return VB.AI6 && VB.AI6.canPipe && VB.AI6.canPipe(p) ? lead + '<b>pipe</b>' + (touchDev ? ' desde atrás' : ', pídela desde atrás con ' + gl.sw) : lead + '<b>defiende</b> en la marca';   // D5
@@ -2133,6 +2174,7 @@
         var jr = !!ar;
         // (táctil: los glifos ya son los nombres de los botones; «COLOCAR Colocar» repetía la palabra → «en salto»)
         if (jr && help) { pk = 'hit'; ptext = '<span>' + (Math.abs(g.ball.x) < 3.8 && g.ball.z > 2.53 ? 'Rematar' : 'Golpear') + '</span>' + gl.jset + '<span>' + (ar === 'roll' ? (touchDev ? 'colocado' : 'Colocado') : touchDev ? 'en salto' : 'Colocar') + '</span>'; pcls = reach ? 'hit go two' : 'hit two'; }
+        else if (reach && nt === 2 && p.z <= 0.05 && VB.Sim.setTurn && VB.Sim.setTurn(g)) { pk = 'hit'; ptext = touchDev ? '¡Coloca ahora!' : gl.jset + ' ¡Coloca ahora!'; pcls = 'hit go'; }   // (C2: COLOCAR en el suelo coloca; el glifo de GOLPEAR delante también vale)
         else if (reach) { pk = 'hit'; ptext = '¡Golpea ahora!'; pcls = 'hit go'; }
         else if (blkP && help) { pk = 'hit'; ptext = 'Al remate: ¡muro!'; pcls = 'hit'; }
         else if (p.z <= 0.01 && g.pr3) {
@@ -2144,14 +2186,15 @@
         if (tips && touchDev) { // táctil: una línea corta (el texto completo no cabe entre marcador y pausa)
           // (el contador de toques ya dice recepción/colocación/ataque)
           if (nt === 1) coach = 'Al círculo y ' + gl.hit;
-          else if (nt === 2) coach = g.size === 6 && p.role === 'S' ? 'Bajo el balón y ' + gl.hit + '; ' + gl.aim + ' elige a quién' : 'Bajo el balón y ' + gl.hit + ', o salta y ' + gl.jset;   // (6v6 D3: el colocador humano elige el carril)
+          else if (nt === 2) coach = g.size === 6 && p.role === 'S' ? (setName6(g) ? 'Colocas <b>' + setName6(g) + '</b>; ' + gl.aim + ' elige' : 'Bajo el balón y ' + gl.hit + '; ' + gl.aim + ' elige a quién') : g.mastery && g.aimSet !== false ? (VB.Sim.setWin && VB.Sim.setWin(g) && p.z <= 0.05 ? 'Colocas <b>' + setName(g) + '</b> con ' + gl.hit : 'Bajo el balón y ' + gl.hit + '; sin dirección, alta a la 4') : 'Bajo el balón y ' + gl.hit + ', o salta y ' + gl.jset;   // (6v6 D3: el colocador humano elige el carril)
           else if (nt === 3) coach = aim3(g, p) ? 'Apunta con ' + gl.aim : gl.jump + ' y ' + gl.hit + ' arriba';
           else if (g.touchTeam === 1 && g.touches === 2) coach = g.defRole === 'block' ? (g.size === 6 ? '<b>Bloquea</b>: salta en la marca y ' + gl.hit + ' al remate' : '<b>Bloqueo</b>: ' + gl.jump + ' y ' + gl.hit + ' al remate')
             : g.size === 6 ? (p.role === 'L' ? '<b>Defiende</b>: llevas al líbero' : p.front ? '<b>Retírate</b> a la marca' : '<b>Defiende</b> en la marca')
             : '<b>Defiende</b> el círculo' + (one ? '' : ' (' + gl.sw + ' bloqueas tú)');
         } else if (tips) {
           if (nt === 1) coach = '1r toque · <b>' + (tbLabel1 === 'DEFENSA' ? 'Defensa' : 'Recepción') + '</b>: ve al círculo y pulsa ' + gl.hit;
-          else if (nt === 2) coach = g.size === 6 && p.role === 'S' ? '2º toque · <b>Coloca</b> con ' + gl.hit + ' (o ' + gl.jset + ' en el aire); la dirección elige: ' + LANES6   // (6v6 D3: el carril lo manda el stick o las flechas)
+          else if (nt === 2) coach = g.size === 6 && p.role === 'S' ? (setName6(g) ? '2º toque · Colocas <b>' + setName6(g) + '</b> con ' + gl.hit + ' o ' + gl.jset + ' · ' : '2º toque · <b>Coloca</b> con ' + gl.hit + ' o ' + gl.jset + '; la dirección elige: ') + lanes6()   // (6v6 D3: el carril lo manda el stick o las flechas; revisión C2: y dice el elegido)
+            : g.mastery && g.aimSet !== false ? setCoach(g, gl)   // C2: el destino que se ve en el suelo (en la playa, con «a destiempo, dobles»)
             : g.beach ? '2º toque · <b>Colocación</b>: bajo el balón, ' + gl.hit + ' a tiempo (o salta y ' + gl.jset + '); a destiempo pitan <b>dobles</b>'   // (12-nov: dobles por timing en la playa)
             : '2º toque · <b>Colocación</b>: ponte debajo del balón y pulsa ' + gl.hit + '. Si saltas y pulsas ' + gl.jset + ', colocas en el aire';
           else if (nt === 3) coach = aim3(g, p) ? '3r toque · <b>Apunta con ' + gl.aim + '</b> y golpea con ' + gl.hit + ' en lo alto'
@@ -2167,10 +2210,11 @@
         var e1c = help && g.mastery && !g.drill ? e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) : '';
         if (e1c) coach = e1c;
         // modo uno: el siguiente toque es del compañero IA (no del humano): solo prepararse
-        if (tips && one && nt > 0 && g.jobs && g.jobs[0] && g.jobs[0] !== p) coach = g.size === 6 ? coach6(g, p, nt, gl, touchDev)
+        var myTurn = !!(VB.Sim.setTurn && VB.Sim.setTurn(g)), mateJob = one && nt > 0 && g.jobs && g.jobs[0] && g.jobs[0] !== p && !myTurn;
+        if (tips && mateJob) coach = g.size === 6 ? coach6(g, p, nt, gl, touchDev)
           : nt === 2 ? 'Coloca tu compañero: prepárate para atacar' : 'Juega tu compañero: colócate';
         if (bodyTipT > 0 && tips && !touchDev) coach = 'Pulsa ' + gl.hit + ' antes de que llegue el balón';
-        if (guideOn(g) && !(one && g.jobs && g.jobs[0] && g.jobs[0] !== p)) guideCheck(g, p, w, nt, gl);
+        if (guideOn(g) && !mateJob) guideCheck(g, p, w, nt, gl);
         // 6v6: si el balón pasa a un compañero (o es el rival quien ataca), la tarjeta guiada del humano se va ya
         if (g.size === 6 && guideT > 0.3 && el.guide.className === 'show' && !(g.jobs && g.jobs[0] === p)) guideHide();
       }
@@ -4319,24 +4363,29 @@
     // 6v6 (sprint 3): el mismo botón pide el balón al colocador («¡Pídela!»)
     // (y moverse: el personaje ya no va solo a su sitio; sin balón, su sitio es el aro celeste del suelo, fx posMark)
     // (lote A: la marca del suelo cambia con la fase —recibir, bloquear, colocar, atacar, defender—; el colocador coloca con GOLPEAR
-    //  en el suelo o COLOCAR en el aire, y la dirección que mantiene elige a quién: ← punta, ↑ rápida, → opuesto, ↓ pipe)
+    //  en el suelo o COLOCAR, y la dirección elige a quién —C2: sin dirección, alta a la 4; ↖ tensa a la 4, ↑ rápida, ↗ / → a la 2, ↓ pipe—)
     if (fmt6()) {
       R = R.map(function (r) { return r[1] === 'Cambiar jugador' ? [r[0], 'Pedir el balón <small>(antes de la colocación)</small>'] : r[1] === 'Moverse' ? [r[0], 'Moverse <small>(sin balón, a la marca del suelo)</small>'] : r; });
-      R.splice(2, 0, [R[1][0], 'Colocar <small>(colocador: la dirección elige a quién)</small>']);
+      R.splice(2, 0, [R[1][0], 'Colocar <small>(colocador: la dirección elige a quién; sin dirección, alta a la 4)</small>']);
     }
-    else if (oneMode()) R = R.filter(function (r) { return r[1] !== 'Cambiar jugador'; });
+    else {
+      if (oneMode()) R = R.filter(function (r) { return r[1] !== 'Cambiar jugador'; });
+      // C2: colocar por destino (2v2, «Colocación dirigida: Sí»)
+      if (ctx.settings.aimSet !== false) R.splice(4, 0, [dv === 'touch' ? S('Joystick') : dv === 'gamepad' ? S('Stick') : K('↑') + K('←') + K('↓') + K('→'), 'Al colocar: sin dirección, alta a la 4; ya bajo el balón, con dirección eliges el destino']);
+    }
     return R;
   }
   function ctlRowsAll(dv) {
     if (dv === 'gamepad') {
       var P = padSet();
-      return [[S('Stick') + S('Cruceta'), 'Moverse'], [padKey('a'), 'Golpear y sacar <small>(stick: diana del saque)</small>'], [padKey('b'), 'Saltar <small>(en el aire: dejada)</small>'], [padKey('x'), 'Colocar en salto <small>(en el 3r toque: golpe colocado)</small>'], [padKey('a') + '<small>y</small>' + padKey('b'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'],
+      return [[S('Stick') + S('Cruceta'), 'Moverse'], [padKey('a'), 'Golpear y sacar <small>(stick: diana del saque)</small>'], [padKey('b'), 'Saltar <small>(en el aire: dejada)</small>'], [padKey('x'), 'Colocar <small>(en el suelo, coloca si te toca; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [padKey('a') + '<small>y</small>' + padKey('b'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'],
         [padKey('y') + S(P.lb) + S(P.rb), 'Cambiar jugador'], [S(P.start), 'Pausa'], [S(P.select), 'Sonido'], [S(padFam() === 'ps' ? 'L2' : 'LT'), 'Challenge <small>(7 s tras el punto)</small>'], [padKey('a') + padKey('b'), 'Menús: aceptar y volver']];
     }
     if (dv === 'touch') return [[S('Joystick') + '<small>mitad izquierda</small>', 'Moverse'], [T('Golpear'), 'Golpear y sacar <small>(joystick: diana del saque)</small>'],
-      [T('Saltar', 1), 'Saltar <small>(en el aire: dejada)</small>'], [T('Colocar', 's'), 'Colocar en salto <small>(en el 3r toque: golpe colocado)</small>'], [T('Golpear') + '<small>→</small>' + T('Saltar', 1), 'Finta <small>(desliza de Golpear a Saltar antes del golpe)</small>'], [S('⇄'), 'Cambiar jugador'], [S('CHALLENGE'), 'Challenge <small>(7 s tras el punto)</small>'], [S('II'), 'Pausa']];
-    return [[K('W') + K('A') + K('S') + K('D') + '<small>o</small>' + K('↑') + K('←') + K('↓') + K('→'), 'Moverse'], [K('J') + K('X') + '<small>o</small>' + M('l'), 'Golpear y sacar <small>(flechas: diana)</small>'],
-      [K('Espacio') + '<small>o</small>' + M('r'), 'Saltar <small>(en el aire: dejada)</small>'], [K('K') + '<small>o</small>' + M('c'), 'Colocar en salto <small>(en el 3r toque: golpe colocado)</small>'], [K('J') + '<small>y</small>' + K('Espacio'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'], [K('C'), 'Cambiar jugador'], [K('V'), 'Challenge <small>(7 s tras el punto)</small>'], [K('P') + K('Esc'), 'Pausa'], [K('M'), 'Sonido']];
+      [T('Saltar', 1), 'Saltar <small>(en el aire: dejada)</small>'], [T('Colocar', 's'), 'Colocar <small>(en el aire, en salto; en el 3r toque, golpe colocado; en el suelo, tu colocación va con Golpear)</small>'], [T('Golpear') + '<small>→</small>' + T('Saltar', 1), 'Finta <small>(desliza de Golpear a Saltar antes del golpe)</small>'], [S('⇄'), 'Cambiar jugador'], [S('CHALLENGE'), 'Challenge <small>(7 s tras el punto)</small>'], [S('II'), 'Pausa']];
+    // C2 (15-nov-2026): con ratón, clic izquierdo golpea, clic derecho coloca y la rueda salta (J / X, K y Espacio siguen de alternativa)
+    return [[K('W') + K('A') + K('S') + K('D') + '<small>o</small>' + K('↑') + K('←') + K('↓') + K('→'), 'Moverse'], [M('l') + '<small>o</small>' + K('J') + K('X'), 'Golpear y sacar <small>(flechas: diana)</small>'],
+      [K('Espacio') + '<small>o</small>' + M('c'), 'Saltar <small>(en el aire: dejada)</small>'], [M('r') + '<small>o</small>' + K('K'), 'Colocar <small>(en el suelo, en tu 2º toque; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [M('l') + '<small>y</small>' + K('Espacio'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'], [K('C'), 'Cambiar jugador'], [K('V'), 'Challenge <small>(7 s tras el punto)</small>'], [K('P') + K('Esc'), 'Pausa'], [K('M'), 'Sonido']];
   }
   function renderCtl() {
     var cur = device();
@@ -4360,9 +4409,11 @@
     if (!capturing && el.ctlMsg && ctlMsgFor !== ctlView) ctlMsgSet('');
     renderOpts();
     var note = el.pnCtl.querySelector('.ctl-note');
+    // C2: colocar por destino (2v2 con «Colocación dirigida: Sí»)
+    var setT = !fmt6() && ctx.settings.aimSet !== false ? ' Al colocar, sin dirección va alta a la 4; ya bajo el balón, con dirección eliges el destino.' : '';
     if (note) note.innerHTML = fmt6() ? '<b>Arriba</b> es siempre hacia la red. En el 6 contra 6 llevas al <b>' + roleName().toLowerCase() + '</b> (n.º ' + sixNum() + ') y la IA al resto. Sin balón, la marca del suelo es tu sitio. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.'
-      : oneMode() ? '<b>Arriba</b> es siempre hacia la red. Llevas siempre al <b>n.º ' + oneNum() + '</b> y la IA a tu compañero. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.'
-      : '<b>Arriba</b> es siempre hacia la red. El control pasa solo a quien da el siguiente toque. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.';
+      : oneMode() ? '<b>Arriba</b> es siempre hacia la red. Llevas siempre al <b>n.º ' + oneNum() + '</b> y la IA a tu compañero. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
+      : '<b>Arriba</b> es siempre hacia la red. El control pasa solo a quien da el siguiente toque. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT;
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
   }
   function ctlStep(d, how) { if (ctlTabs) ctlTabs.step(d, how || 'key'); }
@@ -4370,7 +4421,7 @@
   var CTL_IDS = { keyboard: 1, gamepad: 1, touch: 1 };
   var KEY_ACTS = ['up', 'down', 'left', 'right', 'hit', 'jump', 'jset', 'switch', 'challenge', 'pause', 'mute'];
   function actLabel(a) {
-    return ({ up: 'Arriba', down: 'Abajo', left: 'Izquierda', right: 'Derecha', hit: 'Golpear y sacar', jump: 'Saltar', jset: 'Colocar en salto',
+    return ({ up: 'Arriba', down: 'Abajo', left: 'Izquierda', right: 'Derecha', hit: 'Golpear y sacar', jump: 'Saltar', jset: 'Colocar',
       'switch': fmt6() ? 'Pedir el balón' : 'Cambiar jugador', sw: fmt6() ? 'Pedir el balón' : 'Cambiar jugador', challenge: 'Challenge', chal: 'Challenge', pause: 'Pausa', mute: 'Sonido' })[a] || a;
   }
   var capturing = false, capCancel = null, ctlMsgFor = '';
@@ -4386,18 +4437,19 @@
   function ctlKeysHTML(I) {
     var B = I.bindings(), K = B.keys || {}, one = oneMode() && !fmt6(), h = '<div class="ctl kb">';
     KEY_ACTS.forEach(function (a) {
-      var k = K[a] || ['', ''], L = actLabel(a), sub = a === 'up' ? 'hacia la red' : a === 'switch' && one ? '(modo Un jugador)' : a === 'pause' ? 'y Esc' : '';
+      var k = K[a] || ['', ''], L = actLabel(a), sub = a === 'up' ? 'hacia la red' : a === 'switch' && one ? '(modo Un jugador)' : a === 'pause' ? 'y Esc' :
+        a === 'hit' ? 'o clic' : a === 'jset' ? 'o clic derecho' : a === 'jump' ? 'o rueda' : '';   // (C2: el ratón, fijo)
       h += '<div' + (a === 'switch' && one ? ' class="dim"' : '') + '><span class="kl">' + L + (sub ? '<small>' + sub + '</small>' : '') + '</span><span class="ks">' +
         slotHTML('key', a, 0, L, k[0] ? I.keyName(k[0]) : '', !k[0]) + slotHTML('key', a, 1, L, k[1] ? I.keyName(k[1]) : '', !k[1]) + '</span></div>';
     });
-    return h + '</div><p class="ctl-fixed"><b>Fijas:</b> Esc pausa y vuelve, Intro acepta, Q / E cambian de apartado. <b>Ratón:</b> clic izq. golpea, der. salta, central coloca.</p>' +
+    return h + '</div><p class="ctl-fixed"><b>Fijas:</b> Esc pausa y vuelve, Intro acepta, Q / E cambian de apartado. <b>Ratón:</b> clic izq. golpea, der. coloca, rueda salta.</p>' +
       '<button type="button" class="opt-reset" data-reset="keys">Restablecer teclas</button>';
   }
   function ctlPadHTML(I) {
     var B = I.bindings(), P = B.pad || {}, std = B.padStd !== false, fam = B.padFam === 'ps' ? 'ps' : 'xbox', ex = B.fixed && B.fixed.pad && B.fixed.pad.swExtra || [];
     var acts = B.padActs || ['hit', 'jump', 'jset', 'sw', 'chal'], h = '<div class="ctl kb">';
     acts.forEach(function (a) {
-      var i = P[a] ? P[a][0] : -1, L = actLabel(a), sub = a === 'sw' && ex.length ? 'y ' + ex.map(function (b) { return I.padName(b, fam); }).join(' / ') : a === 'jset' ? 'en el suelo, salta' : '';
+      var i = P[a] ? P[a][0] : -1, L = actLabel(a), sub = a === 'sw' && ex.length ? 'y ' + ex.map(function (b) { return I.padName(b, fam); }).join(' / ') : a === 'jset' ? 'en el suelo, coloca si te toca; si no, salta' : '';
       h += '<div><span class="kl">' + L + (sub ? '<small>' + escT(sub) + '</small>' : '') + '</span><span class="ks">' + slotHTML('pad', a, 0, L, i >= 0 ? I.padName(i, fam) : '', i < 0, !std) + '</span></div>';
     });
     h += '</div>';
@@ -5017,8 +5069,11 @@
       // modo «Control: Uno»: no hay cambio de jugador; el compañero (IA) coloca tus recepciones
       figOne: { players: [{ t: 0, x: 4.2, y: -2.4, you: 1, lbl: '1' }, { t: 0, x: 1.8, y: 1.2, lbl: '2' }, { t: 1, x: -5.5, y: -2 }, { t: 1, x: -5.5, y: 2 }] },
       text: function (g) {
-        if (oneMode()) return 'Llevas siempre al mismo jugador: tu compañero (la IA) hace la <b>colocación</b>, un balón alto junto a la red, y tú te preparas para rematar. Si el 1r toque lo da él, la colocación es tuya: ponte bajo el balón y pulsa ' + g.hit + ', o salta y pulsa ' + g.jset + ' en el aire (<b>colocación en salto</b>).';
-        return 'El control pasa solo a tu compañero (la cámara se desliza hacia él). Ponte bajo el balón y pulsa ' + g.hit + ': es la <b>colocación</b>, un balón alto junto a la red. Si saltas, en el aire ' + g.hit + ' remata y ' + g.jset + ' hace una <b>colocación en salto</b>: más rápida, con menos margen. Al colocar, la dirección elige la zona: ↑ rápida, ← → a un lado, ↓ alta.';
+        // C2 (colocar por destino): sin dirección, alta a la 4; con dirección, el destino (se ve en el suelo); timing y Colocación, la precisión
+        var aimT = ctx.settings.aimSet !== false ? ' Si no tocas la dirección, va <b>alta a la 4</b>, a la izquierda de la red. Ya bajo el balón, una dirección elige el destino y lo ves en el suelo (la que traías corriendo no cuenta): cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo precisa que sale.' : '';
+        var both = device() === 'touch' ? g.hit : g.hit + ' o ' + g.jset;   // (táctil: COLOCAR solo sale en el aire)
+        if (oneMode()) return 'Llevas siempre al mismo jugador: tu compañero (la IA) hace la <b>colocación</b>, un balón alto junto a la red, y tú te preparas para rematar. Si el 1r toque lo da él, la colocación es tuya: ponte bajo el balón y pulsa ' + both + '.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto.';
+        return 'El control pasa solo a tu compañero (la cámara se desliza hacia él). Ponte bajo el balón y pulsa ' + both + ': es la <b>colocación</b>.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto: más rápida, con menos margen.';
       },
       rule: 'Cada equipo tiene <b>3 toques</b>. Un jugador no puede tocar dos veces seguidas: eso son <b>dobles</b>.',
       ruleBeach: 'Cada equipo tiene <b>3 toques</b>. En la playa la <b>colocación de dedos</b> se pita más: a destiempo pueden pitarte <b>dobles</b>.' },
@@ -5577,7 +5632,7 @@
     var row = gymRow(id); el.idGoal.textContent = row ? row.help : '';
     var keys = id === 'serve' ? ik(gl.serve, 'flotante') + ik(gl.jump, 'en salto') + ik('', 'Apunta con ' + gl.aim)
       : id === 'recv' ? ik(gl.move, 'te mueves') + ik(gl.hit, 'recibes')
-      : id === 'set' ? ik(gl.hit, 'de dedos') + ik(gl.jump + gl.jset, 'en salto') + (g.mastery && g.aimSet !== false ? ik('', 'La dirección elige la zona') : '')
+      : id === 'set' ? (device() === 'touch' ? ik(gl.hit, 'de dedos') : ik(gl.hit + gl.jset, 'de dedos')) + ik(gl.jump + gl.jset, 'en salto') + (g.mastery && g.aimSet !== false ? ik('', 'Sin dirección: alta a la 4') : '')
       : id === 'atk' ? ik(gl.jump, 'saltas') + ik(gl.hit, 'rematas') + ik('', 'Apunta con ' + gl.aim)
       : id === 'block' ? ik(gl.jump, 'saltas') + ik(gl.hit, 'cierras al remate')
       : ik(gl.hit, 'golpeas') + ik(gl.jump, 'saltas') + ik(gl.jset, 'colocas');
@@ -5713,10 +5768,10 @@
   function e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) {
     if (e1.k === 'done') return '';
     var S = e1Seen(), k = '', txt = '';
-    var mine = !(one && g.jobs && g.jobs[0] && g.jobs[0] !== p);
+    var mine = !(one && g.jobs && g.jobs[0] && g.jobs[0] !== p) || !!(VB.Sim.setTurn && VB.Sim.setTurn(g));
     if (ar === 'roll') { k = 'air'; txt = 'En el aire, ' + gl.hit + ' remata, ' + gl.jump + ' deja caer y ' + gl.jset + ' coloca al fondo'; }
     else if (nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'feint'; txt = touchDev ? 'Desliza de GOLPEAR a SALTAR: ¡finta!' : 'Arma con ' + gl.hit + ' y cambia a ' + gl.jump + ' antes del golpe: ¡finta!'; }
-    else if (nt === 2 && mine && g.aimSet !== false && g.size !== 6) { k = 'aim'; txt = 'Al colocar, con ' + gl.aim + ' eliges: ↑ rápida, ← → a un lado, ↓ alta'; }
+    else if (nt === 2 && mine && g.aimSet !== false && g.size !== 6) { k = 'aim'; txt = 'Colocas <b>' + setName(g) + '</b>; con ' + gl.aim + ' eliges otro destino: cerca, rápida; lejos, alta'; }
     else if (nt === 3 && aim3(g, p)) { k = 'edge'; txt = 'Al filo: más difícil de defender, más fácil de fallar'; }
     if (!k || (S[k] | 0) >= 2 || (e1.k && e1.k !== k)) return '';
     if (!e1.k) {

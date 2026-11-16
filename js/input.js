@@ -14,8 +14,9 @@
  *   Sin auto‑repetición (e.repeat se ignora) y con prioridad a la última
  *   tecla pulsada si se aprietan dos opuestas (izq+der).
  * Ratón (solo en partido, sobre la pista): clic izquierdo golpear/sacar, clic
- *   derecho saltar (sin menú contextual en el canvas). Mantener pulsado = mantener
- *   la tecla. No cuenta si el clic cae en un botón/panel ni con el overlay táctil.
+ *   derecho colocar (sin menú contextual en el canvas), rueda (botón central) saltar.
+ *   Mantener pulsado = mantener la tecla. No cuenta si el clic cae en un botón/panel
+ *   ni con el overlay táctil. srcOf(a): último origen ('mouse' | 'key') de hit/jset/jump.
  * Mando (mapeo estándar): stick izq./cruceta mover, A golpear, B o X saltar,
  *   RB/LB/Y cambiar, LT (L2) challenge, Start pausa, Select sonido. Zona muerta radial (medida
  *   desde el reposo de cada mando: la deriva de un stick gastado no mueve ni
@@ -44,8 +45,9 @@
   // ---------------- Teclado ----------------
   // TECLAS REASIGNABLES (E3, sprint 5): dos teclas por acción (código físico e.code). ctx.settings.keys guarda SOLO las
   // diferencias con DEFAULT_KEYS ({} = de fábrica): { acción: [tecla1, tecla2] } de las acciones que cambian.
-  // K = COLOCAR (jset): en el aire, colocación en salto (y en el 3r toque golpe colocado / finta de E1); en el suelo salta
-  // como Espacio (poll lo manda también como jump). E1 no añade acciones nuevas: la finta es GOLPEAR y, antes del golpe,
+  // K = COLOCAR (jset, también clic derecho): en el aire, colocación en salto (y en el 3r toque golpe colocado / finta de E1); en el
+  // suelo coloca si es tu 2º toque y el balón se juega de pie (C2, sim groundSet) y si no salta como Espacio (poll lo manda también
+  // como jump). E1 no añade acciones nuevas: la finta es GOLPEAR y, antes del golpe,
   // SALTAR o COLOCAR; nada se mantiene pulsado (sin holdMode).
   var ACTS = ['up', 'down', 'left', 'right', 'hit', 'jump', 'jset', 'switch', 'challenge', 'pause', 'mute'];
   var DEFAULT_KEYS = { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
@@ -131,7 +133,7 @@
     var a = actionOf(e); if (!a) return;
     var id = e.code || e.key;
     if (!held[id]) { held[id] = a; down[a] = (down[a] || 0) + 1; stamp[a] = ++seq; if (!e.repeat) edge[a] = true; }
-    it.device = 'keyboard';
+    it.device = 'keyboard'; if (SRC[a] && SRC[a] !== 'key') { SRC[a] = 'key'; srcN++; }
     // que la página no se desplace con Espacio/flechas mientras se juega
     if (ctx && (ctx.state === 'playing') && (a === 'hit' || a === 'left' || a === 'right' || a === 'up' || a === 'down' || a === 'jump' || a === 'jset')) e.preventDefault();
   }
@@ -151,8 +153,17 @@
   }
 
   // ---------------- Ratón ----------------
-  // Clic izquierdo = golpear, derecho = saltar: entran en el mismo mapa que las teclas (ids 'Mouse0'/'Mouse2'), así que
-  // mantener pulsado da hitHeld/jumpHeld igual que una tecla. Se lee e.buttons (no e.button) en pointerdown/move/up: con un
+  // Último origen de GOLPEAR / COLOCAR / SALTAR con teclado+ratón ('mouse' | 'key'), para que la UI muestre «Clic» / «Clic derecho» o
+  // la tecla (srcOf; srcN cuenta los cambios para que la UI rehaga sus glifos sin mirar cada frame). Arranca en 'mouse' con un
+  // puntero fino y sin pantalla táctil; si no, en 'key'.
+  var SRC = { hit: 'key', jset: 'key', jump: 'key' }, srcN = 0;
+  try {
+    if (window.matchMedia && window.matchMedia('(pointer: fine)').matches && !('ontouchstart' in window) && !(navigator.maxTouchPoints > 0)) {
+      SRC.hit = SRC.jset = 'mouse';
+    }
+  } catch (_) { }
+  // Clic izquierdo = golpear, derecho = COLOCAR (C2, 15-nov-2026; antes saltaba), rueda = saltar: entran en el mismo mapa que las
+  // teclas (ids 'Mouse0'/'Mouse2'/'Mouse1'), así que mantener pulsado da hitHeld/jumpHeld igual que una tecla. Se lee e.buttons (no e.button) en pointerdown/move/up: con un
   // botón ya pulsado, el 2º solo llega como pointermove «acordado» (e.button !== -1). Solo pointerType 'mouse' (el dedo y
   // el lápiz van por el overlay táctil), solo en partido y nunca sobre un control de la UI, un panel o el overlay táctil.
   var MOUSE_UI = 'button,a,input,select,textarea,label,[role="button"],[data-ui],[data-opt],[data-nav],.screen,.sheet,#touch';
@@ -165,7 +176,7 @@
     if (on) {
       if (held[id] || !canPress || !mouseOk(e)) return;
       held[id] = a; down[a] = (down[a] || 0) + 1; stamp[a] = ++seq; edge[a] = true;
-      it.device = 'keyboard'; stats.mouse[a]++;
+      it.device = 'keyboard'; stats.mouse[a]++; if (SRC[a] !== 'mouse') { SRC[a] = 'mouse'; srcN++; }
       if (e.cancelable) e.preventDefault();          // sin selección de texto ni arrastres al hacer clic en la pista
     } else if (held[id]) {
       delete held[id]; down[a] = Math.max(0, (down[a] || 0) - 1);
@@ -175,13 +186,13 @@
     if (e.pointerType !== 'mouse') return;
     var b = e.buttons | 0, canPress = e.type === 'pointerdown' || (e.type === 'pointermove' && e.button >= 0);
     mouseBtn('Mouse0', 'hit', (b & 1) !== 0, e, canPress);
-    mouseBtn('Mouse2', 'jump', (b & 2) !== 0, e, canPress);
-    mouseBtn('Mouse1', 'jset', (b & 4) !== 0, e, canPress);   // botón central (rueda) = COLOCAR
+    mouseBtn('Mouse2', 'jset', (b & 2) !== 0, e, canPress);   // clic derecho = COLOCAR (poll lo manda también como SALTAR)
+    mouseBtn('Mouse1', 'jump', (b & 4) !== 0, e, canPress);   // botón central (rueda) = SALTAR
   }
   // la rueda pulsada no abre el desplazamiento automático (Windows) ni pega en Linux mientras se juega
   function onAux(e) { if (e.button === 1 && e.pointerType !== 'touch' && mouseOk(e) && e.cancelable) e.preventDefault(); }
   function onCtxMenu(e) {
-    // el clic derecho salta: sin menú contextual sobre la pista (sí en los menús y paneles)
+    // el clic derecho coloca: sin menú contextual sobre la pista (sí en los menús y paneles)
     var tg = e.target;
     if (tg && (tg === (ctx && ctx.canvas) || tg.tagName === 'CANVAS') && e.cancelable) e.preventDefault();
     else if (held.Mouse2 && e.cancelable) e.preventDefault();
@@ -360,9 +371,9 @@
   // glifos de texto por acción (los usa la UI en avisos y en el panel de controles); salen de las teclas y botones
   // efectivos (buildGlyphs, al cambiar keys/padKeys y al llegar el mapa de la distribución)
   var GLYPHS = { challenge: { keyboard: 'V', gamepad: 'LT', ps: 'L2', touch: 'CHALLENGE' },
-                 jset: { keyboard: 'K', mouse: 'clic central', gamepad: 'X', ps: '□', touch: 'COLOCAR' },
+                 jset: { keyboard: 'K', mouse: 'clic der.', gamepad: 'X', ps: '□', touch: 'COLOCAR' },
                  hit: { keyboard: 'J', mouse: 'clic izq.', gamepad: 'A', ps: '✕', touch: 'GOLPEAR' },
-                 jump: { keyboard: 'Espacio', mouse: 'clic der.', gamepad: 'B', ps: '○', touch: 'SALTAR' } };
+                 jump: { keyboard: 'Espacio', mouse: 'rueda', gamepad: 'B', ps: '○', touch: 'SALTAR' } };
   function buildGlyphs() {
     if (keysEff) {
       GLYPHS.challenge.keyboard = keyName(keysEff.challenge[0]); GLYPHS.jset.keyboard = keyName(keysEff.jset[0]);
@@ -945,6 +956,8 @@
     ke[act][slot] = code;
     if (!ke[act][0] && ke[act][1]) { ke[act][0] = ke[act][1]; ke[act][1] = ''; }
     res.keys = diffKeys(ke);
+    // (revisión C2: quien asigna una tecla a GOLPEAR / COLOCAR / SALTAR va a usarla: los avisos pasan a esa tecla en vez de «Clic»)
+    if (SRC[act] && SRC[act] !== 'key') { SRC[act] = 'key'; srcN++; }
     return res;
   }
   /** Zona muerta del stick (padDead 0,1-0,3; por defecto 0,18). */
@@ -1042,7 +1055,7 @@
       window.addEventListener('pointerdown', onMouse, { passive: false });
       window.addEventListener('pointermove', onMouse, { passive: false });
       window.addEventListener('pointerup', onMouse);
-      window.addEventListener('pointercancel', function (e) { if (e.pointerType === 'mouse') { mouseBtn('Mouse0', 'hit', false, e, false); mouseBtn('Mouse2', 'jump', false, e, false); mouseBtn('Mouse1', 'jset', false, e, false); } });
+      window.addEventListener('pointercancel', function (e) { if (e.pointerType === 'mouse') { mouseBtn('Mouse0', 'hit', false, e, false); mouseBtn('Mouse2', 'jset', false, e, false); mouseBtn('Mouse1', 'jump', false, e, false); } });
       window.addEventListener('mousedown', onAux, { passive: false });
       window.addEventListener('auxclick', onAux, { passive: false });
       window.addEventListener('contextmenu', onCtxMenu);
@@ -1082,6 +1095,10 @@
     /** OPCIONAL: tabla de glifos { acción: { keyboard, gamepad, ps, touch } } (para el panel de controles). Acciones: challenge,
      *  jset, hit, jump; salen de las teclas y botones efectivos (reasignables). */
     glyphs: function () { return GLYPHS; },
+    /** C2: último origen de la acción a ('hit' | 'jset' | 'jump') con teclado y ratón: 'mouse' o 'key'. srcRev(): cuántas veces ha
+     *  cambiado algún origen (la UI rehace sus glifos cuando cambia). */
+    srcOf: function (a) { return SRC[a] || 'key'; },
+    srcRev: function () { return srcN; },
     /** E3: ajustes de este módulo (k = clave cambiada; null/undefined = todos). keys/padKeys se sanean aquí (lo inválido o
      *  repetido vuelve a la tecla de fábrica de esa casilla). */
     onSettings: function (s, k) {
