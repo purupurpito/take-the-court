@@ -1161,7 +1161,7 @@ else {
     ok(n.status !== 'out' && n.whyCode === 'coach', 'titular con confianza 5: al banquillo, no fuera de la convocatoria (' + n.status + '/' + n.whyCode + ')');
   }
   // un set que empiezas en el banquillo (lineup con meOut) no cuenta como set jugado
-  // nota en directo en la pista con cambios: menos de NOTA_MIN_R puntos en pista → sin nota («s. c.», también en directo)
+  // nota en directo en la pista con cambios: menos de NOTA_MIN_SUB puntos en pista → sin nota («s. c.», también en directo)
   if (VB.Rating) { const c = fresh(5400, 'OH', 'Rotación'); toLeagueFixture(c); setAll(c, 20); c.coach = 50; reLine(c);
     const ms = C.matchSetup(c), me = { team: 0, id: 23, num: 9 }, t0 = [0, 1, 2, 3, 4, 5].map(i => ({ team: 0, id: i, num: ms.nums[0][i] }));
     const G = { career: ms.career, size: 6, teams: [t0, []], ctrl: me, ctrlBase: me, meR: 0, points: ms.points }, evs = [{ type: 'newMatch' }];
@@ -1170,12 +1170,28 @@ else {
     const l0 = C.liveRating(G);
     ok(ms.meOn === false && l0 && !l0.on && l0.v === 6 && l0.sc, 'en el banquillo: la nota se congela en 6,0 y sale «s. c.»');
     const e2 = [{ type: 'sub', team: 0, inP: me, outP: t0[1], why: 'coach', meIn: true, meOut: false }];
-    for (let i = 0; i < 5; i++) e2.push({ type: 'hit', team: 0, player: me, kind: 'spike', touch: 3, human: true, grade: 'good' }, { type: 'point', team: 0, how: 'kill' });
-    C.ingest(e2, G); G.meR = 5; G.rallyN = 35;
+    for (let i = 0; i < 4; i++) e2.push({ type: 'hit', team: 0, player: me, kind: 'spike', touch: 3, human: true, grade: 'good' }, { type: 'point', team: 0, how: 'kill' });
+    C.ingest(e2, G); G.meR = 4; G.rallyN = 34;
     const l1 = C.liveRating(G);
     ok(l1 && l1.on && l1.v > 6 && l1.sc && C._M().rt.E < VB.Rating.E({ hall: true, points: ms.points }), 'entras: la nota sube con tus remates (' + l1.v + '), K reescalado con los puntos que quedan, aún «s. c.»');
     const s = C.matchDone({ sets: [2, 0], setScores: [[25, 5], [10, 0]] }, null, G);
-    ok(s && s.nota === null && s.bench && !s.rt, 'menos de ' + H.NOTA_MIN_R + ' puntos en pista: sin nota (null) y sin sum.rt');
+    ok(s && s.nota === null && s.bench && !s.rt, 'menos de ' + H.NOTA_MIN_SUB + ' puntos en pista: sin nota (null) y sin sum.rt');
+  }
+  // nota del último partido en la elección del seis (16-nov-2026): muy mala de titular → banquillo; destacar desde el banquillo → de inicio
+  {
+    ok(H.NOTA_MIN_SUB === 5, 'con ' + H.NOTA_MIN_SUB + ' puntos en pista ya tienes nota');
+    ok(H.lastSel(null) === 0 && H.lastSel({ nota: 4.2 }) < -3 && H.lastSel({ nota: 5.5 }) < 0 && H.lastSel({ nota: 7 }) === 0 && H.lastSel({ nota: 8.4 }) > 0 &&
+      H.lastSel({ nota: 7.8, sub: 1 }) > H.lastSel({ nota: 8.4 }), 'peso de la última nota: ' + [4.2, 5.5, 7, 8.4].map(n => H.lastSel({ nota: n })).join(' ') + ' (suplente 7,8: ' + H.lastSel({ nota: 7.8, sub: 1 }) + ')');
+    let benched = 0, promoted = 0, N = 0;
+    for (let sd = 0; sd < 24; sd++) {
+      const c = fresh(7100 + sd, 'OH', 'Rotación'); toLeagueFixture(c); if (sd % 2) setAll(c, 30 + (sd % 6) * 4); c.fatigue = 0; c.coach = 55; c.ln6 = null; reLine(c);
+      const L0 = H.lineup(c), gap = Math.abs(L0.gap); if (gap > 4) continue; N++;
+      if (L0.stat === 'start') { c.ln6 = { nota: 4, sub: 0 }; reLine(c); if (H.lineup(c).stat !== 'start') benched++; }
+      else { c.ln6 = { nota: 8, sub: 1 }; reLine(c); if (H.lineup(c).stat === 'start') promoted++; }
+    }
+    ok(N >= 6 && benched > 0 && promoted > 0 && benched + promoted >= Math.ceil(N * 0.6), 'en peleas igualadas (≤ 4 de diferencia, ' + N + ' casos) la última nota cambia el seis: ' + benched + ' al banquillo por un 4, ' + promoted + ' de inicio por un 8 desde el banquillo');
+    const c = fresh(7300, 'OH', 'Rotación'); toLeagueFixture(c); c.ln6 = { nota: 3.5, sub: 0 }; c.fatigue = 0; c.coach = 55; reLine(c);
+    const L = H.lineup(c); ok(L.stat === 'start' || L.why === 'nota' || L.why === 'new', 'si te sienta la nota, el motivo lo dice (' + L.stat + '/' + L.why + ')');
   }
   { const c = fresh(5300, 'OH', 'Titular indiscutible'); toLeagueFixture(c); c.fatigue = 0; reLine(c);
     const ms = C.matchSetup(c), me = { team: 0, id: 3, num: 9 }, t0 = [0, 1, 2, 3, 4, 5].map(i => i === ms.meSlot ? me : { team: 0, id: i, num: ms.nums[0][i] });
@@ -2046,8 +2062,9 @@ else {
   C.setMode('beach'); C.abandon(); C._reset(); C.create({ name: 'Playa Mundo', num: 3, role: 'atk', seed: 9191, autoClub: true });
   const beachRaw = mem['voley3d.career'];
   delete mem['voley3d.career6']; C._reset();
-  // la misma Carrera de pista con y sin el mundo: lo demás, idéntico (el mundo no consume el azar de career.js)
-  const strip = c => { const o = JSON.parse(JSON.stringify(c)); delete o.world; o.inbox = (o.inbox || []).filter(m => m.k !== 'mentor'); o.inbox.forEach(m => { delete m.id; }); delete o.msgN; delete o.created; return JSON.stringify(o); };
+  // la misma Carrera de pista con y sin el mundo: lo demás, idéntico (el mundo no consume el azar de career.js). De la bandeja, solo
+  // los 15 últimos mensajes: guarda 40 y los de Faro echan antes a los viejos.
+  const strip = c => { const o = JSON.parse(JSON.stringify(c)); delete o.world; o.inbox = (o.inbox || []).filter(m => m.k !== 'mentor').slice(-15); o.inbox.forEach(m => { delete m.id; }); delete o.msgN; delete o.created; return JSON.stringify(o); };
   const run = () => {
     delete mem['voley3d.career6']; C._reset();
     const c = C.create({ mode: 'hall', name: 'Mundo Pista', num: 8, pos: 'OH', seed: 31337, now: 1 });

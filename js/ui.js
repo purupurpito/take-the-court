@@ -1997,7 +1997,7 @@
   // Píldora «NOTA 6,8» bajo el marcador (dentro de #sb: escala y se aparta con él) y un aviso por punto pegado a ella: «+0,3 Ace»,
   // «−0,2 Error de saque» o, si la cifra redondea a 0,0, «▲ Remate ganado». La nota la lleva VB.Career.liveRating(g) (js/rating.js,
   // puro): aquí solo se pinta. Sin rating.js, fuera de la Carrera, en la demo o en un ejercicio no se ve nada. En el banquillo o sin
-  // 12 puntos en pista, atenuada con «s. c.». Colores por franja (rt-bad … rt-top) y CSS en career-ui.js. Solo los avisos de set y
+  // 5 puntos en pista (NOTA_MIN_SUB), atenuada con «s. c.». Colores por franja (rt-bad … rt-top) y CSS en career-ui.js. Solo los avisos de set y
   // de partido van al lector de pantalla (#banner, polite); la píldora lleva su aria-label y no es live.
   var rtUI = { row: null, pill: null, v: null, sc: null, toast: null, sr: null, g: null, seen: 0, q: [], t: 0, key: '', vis: false };
   /** El estado de la nota en directo de este partido ({ v, on, sc, seq, log, trial }) o null. g._rtDbg: escenas de depuración (&rt=1). */

@@ -797,7 +797,7 @@
     if (s.bench && pt && pt.status !== 'out') {   // pista: en el banquillo sin entrar (o entrando muy poco): sin nota, algo de experiencia
       return '<div class="card' + (freshLast ? ' new' : '') + '"><h3>' + sp(esc(s.label).split(' · '), 'v') + ' <span class="tag r">Banquillo</span>' + (s.sim ? ' <span class="tag">Simulado</span>' : '') + '</h3>' +
         '<p style="font:800 20px var(--display);text-transform:uppercase;letter-spacing:.04em;margin:0"><span class="' + (s.win ? 'w' : 'l') + '">' + (s.win ? 'Victoria' : 'Derrota') + ' ' + s.sets[0] + '-' + s.sets[1] + '</span> contra ' + esc(rv ? rv.name : s.rivalName) + '</p>' +
-        '<p class="muted">' + sc + '</p><p>' + ptLine + '. Sin calificar: menos de ' + ((C().hall && C().hall.NOTA_MIN_R) || 12) + ' puntos en pista.</p>' +
+        '<p class="muted">' + sc + '</p><p>' + ptLine + '. Sin calificar: menos de ' + ((C().hall && C().hall.NOTA_MIN_SUB) || 5) + ' puntos en pista.</p>' +
         '<p><span class="tag y">+' + (s.xp | 0) + ' XP</span></p>' +
         (s.train && s.train.gains && s.train.gains.length ? '<p>' + s.train.gains.map(function (k) { var LB = VB.Prog && VB.Prog.LABEL || {}; return '<span class="tag g">Entreno: +1 ' + esc(LB[k] || k) + '</span>'; }).join('') + '</p>' : '') + '</div>';
     }
@@ -859,7 +859,7 @@
     var t = L.stat === 'start' ? (rv ? 'Sales de inicio: le sacas ' + num1(g) + ' puntos de valoración a ' + nm + ', tu suplente' : 'Sales de inicio')
       : L.stat === 'out' ? 'Fuera de la convocatoria' + (rv ? ': a ' + num1(g) + ' puntos de valoración de ' + nm : '')
         : rv ? 'Empiezas en el banquillo: a ' + num1(g) + ' puntos de valoración de ' + nm : 'Empiezas en el banquillo';
-    return '<p class="tr-fight"><b>Pelea por el puesto.</b> ' + sp([t, imp >= 0.05 ? 'los entrenos te suman +' + num1(imp) : 'aún no te has hecho notar en los entrenos', 'tu media vale +' + (L.edge != null ? L.edge : 12) + ' en la elección'], 'v') + '</p>';
+    return '<p class="tr-fight"><b>Pelea por el puesto.</b> ' + sp([t, imp >= 0.05 ? 'los entrenos te suman +' + num1(imp) : 'aún no te has hecho notar en los entrenos', 'tu media vale +' + (L.edge != null ? L.edge : 12) + ' en la elección'].concat(L.last ? ['tu nota del último partido (' + num1(L.lastNota) + ') ' + (L.last > 0 ? 'te suma +' + num1(L.last) : 'te resta ' + num1(-L.last))] : []), 'v') + '</p>';
   }
   /** Clave de la jornada para los cambios del plan (si cambia, se olvidan): la de las sesiones (inf.wk), que no cambia al hacer la
    *  1ª sesión (antes, c.ts.wk pasaba de null a la jornada y los cambios se perdían al jugar la 1ª). */

@@ -1335,7 +1335,7 @@
     if (!M || !M.rt || !g || M.g !== g) return null;
     LIVE.v = M.rt.v; LIVE.on = M.rt.on; LIVE.seq = M.rt.seq; LIVE.log = M.rt.log; LIVE.trial = !!(g.career && g.career.trial);
     // (titular en pista: con nota desde el primer punto; «s. c.» para quien sale del banquillo, o es cambiado, sin llegar a NOTA_MIN_R)
-    LIVE.sc = g.size === 6 && (M.subEv || typeof g.meR === 'number') && M.meR < NOTA_MIN_R && !(M.started && M.on);
+    LIVE.sc = g.size === 6 && (M.subEv || typeof g.meR === 'number') && M.meR < NOTA_MIN_SUB && !(M.started && M.on);
     return LIVE;
   }
 
@@ -1916,14 +1916,28 @@
   // en la jornada 4-10 (mediana 5; 7 de 8), sin entrenar 0-2 de 8; T3 (+8) en un club 12 por encima: 3-10 (mediana 5) contra 0-2 de 8;
   // novato (T1, +12) en un club 16 por encima: 3-9 (mediana 4,5). En un club de su nivel el veterano sale de inicio casi siempre.
   var SEL_IMP = 4;
+  // Nota del último partido en la elección del seis (16-nov-2026, Ferran: «si sacas muy mala nota no jugarás en el siguiente, y si
+  // tienes la oportunidad de jugar algunos puntos, tienes también la oportunidad de destacar y tener más oportunidades»). Se suma
+  // a la forma (media de las 3 últimas) solo en la jornada siguiente (c.ln6): muy mala nota de titular → casi seguro al banquillo;
+  // destacar saliendo del banquillo → casi seguro de inicio. NOTA_MIN_SUB: puntos en pista para tener nota (antes NOTA_MIN_R, 12).
+  var LAST_BAD = 5, LAST_BAD_SEL = -4, LAST_MEH = 6, LAST_MEH_SEL = -1.5, LAST_GOOD = 8, LAST_GOOD_SEL = 1.5, LAST_SUB = 7.5, LAST_SUB_SEL = 4, NOTA_MIN_SUB = 5;
+  /** Peso de la nota del último partido en la elección del seis (0 sin nota). */
+  function lastSel6(ln) {
+    if (!ln || typeof ln.nota !== 'number') return 0;
+    var n = ln.nota;
+    if (n < LAST_BAD) return LAST_BAD_SEL;
+    if (n < LAST_MEH) return LAST_MEH_SEL;
+    if (ln.sub && n >= LAST_SUB) return LAST_SUB_SEL;
+    return n >= LAST_GOOD ? LAST_GOOD_SEL : 0;
+  }
   /** Ventaja de tu media en la elección del seis según la temporada (por defecto la actual). */
   function meEdge6(c, season) { var s = season != null ? season : c && c.season || 1; return Math.max(ME_EDGE_MIN, ME_EDGE - ME_EDGE_STEP * Math.max(0, (s | 0) - 1)); }
   var OUT_COACH = 20, FAT_REST = 80, FAT_REST_TOP = 85, TIT_BONUS = 3, STARTS_PROMOTE = 3, TIT_BROKEN = 2;
   var TRAIN_COACH = 1, IMPACT_COACH = 2, PULL_COACH = 2, FIT_START = 2, FIT_DEEP = 2, NOTA_MIN_R = 12, BENCH_XP = 20;
   var WHY6 = { form: 'llega en mejor forma', ovr: 'tiene más nivel ahora mismo', conf: 'el entrenador se fía más de su juego', fatiga: 'vas con mucha fatiga',
-    'new': 'acabas de llegar y aún tienes que ganarte el sitio', coach: 'el entrenador no cuenta contigo', list: 'la convocatoria está llena' };
+    'new': 'acabas de llegar y aún tienes que ganarte el sitio', nota: 'tu nota del último partido fue muy baja', coach: 'el entrenador no cuenta contigo', list: 'la convocatoria está llena' };
   var ROLE_HINT6 = [
-    'Compites por el puesto: juega quien llegue mejor (media, forma, confianza y fatiga). Si sales de inicio ' + STARTS_PROMOTE + ' jornadas seguidas, pasas a titular.',
+    'Compites por el puesto: juega quien llegue mejor (media, forma, nota del último partido, confianza y fatiga). Si sales de inicio ' + STARTS_PROMOTE + ' jornadas seguidas, pasas a titular.',
     'El entrenador cuenta contigo de inicio salvo que estés muy por debajo o con mucha fatiga. Si te deja ' + TIT_BROKEN + ' jornadas en el banquillo, incumple la promesa y puedes irte sin pegas.',
     'Sales siempre de inicio (salvo con fatiga de ' + FAT_REST_TOP + ' o más) y no te cambian por jugar mal. La confianza del entrenador nunca baja de ' + ROLE_FLOOR[2] + '.'
   ];
@@ -2375,11 +2389,11 @@
     if (q.L && q.wk === key) return q.L;
     var noise = function (id) { return (rng(hash(c.seed, 'sel', wk, id))() - 0.5) * 2 * SEL_NOISE; };
     var ent = q.list.map(function (x) { return { id: x.id, pos: x.pos, ovr: x.ovr, form: x.form | 0, conf: x.conf, fat: x.fat | 0, keep: x.ls ? SEL_KEEP : 0, ls: x.ls }; });
-    var me = { id: 'me', pos: pos, ovr: playerOvr(c) + meEdge6(c), form: myForm6(c), conf: c.coach, fat: c.fatigue | 0, keep: !q.fresh && q.meLs ? SEL_KEEP : 0, me: true, imp: SEL_IMP * (c.ts ? c.ts.imp || 0 : 0) / 100 };
+    var me = { id: 'me', pos: pos, ovr: playerOvr(c) + meEdge6(c), form: myForm6(c), conf: c.coach, fat: c.fatigue | 0, keep: !q.fresh && q.meLs ? SEL_KEEP : 0, me: true, imp: SEL_IMP * (c.ts ? c.ts.imp || 0 : 0) / 100, last: lastSel6(c.ln6) };
     ent.push(me);
     ent.forEach(function (e) {
-      e.t = { ovr: e.ovr, form: SEL_FORM * e.form, conf: (e.conf - 50) / SEL_CONF, fat: -Math.max(0, e.fat - SEL_FAT0) / SEL_FATK, imp: e.imp || 0 };
-      e.sel = e.t.ovr + e.t.form + e.t.conf + e.t.fat + e.t.imp + e.keep + noise(e.id);
+      e.t = { ovr: e.ovr, form: SEL_FORM * e.form, conf: (e.conf - 50) / SEL_CONF, fat: -Math.max(0, e.fat - SEL_FAT0) / SEL_FATK, imp: e.imp || 0, last: e.last || 0 };
+      e.sel = e.t.ovr + e.t.form + e.t.conf + e.t.fat + e.t.imp + e.t.last + e.keep + noise(e.id);
     });
     if (rl === 1) me.sel += TIT_BONUS;
     // con confianza < OUT_COACH: la Rotación se queda fuera de la convocatoria, pero nunca dos jornadas seguidas (como benchFor en la
@@ -2416,12 +2430,13 @@
     var rv = stat === 'start' ? reserves[0] : starters[starters.length - 1];
     if (stat !== 'start' && !why) {
       if (q.fresh) why = 'new';
+      else if (me.t.last <= LAST_BAD_SEL) why = 'nota';   // la nota muy mala del último partido
       else if (rv) { var bw = 'ovr', bd = -1e9; ['ovr', 'form', 'conf'].forEach(function (t) { var d = rv.t[t] - me.t[t]; if (d > bd) { bd = d; bw = t; } }); why = bw; }
       else why = 'ovr';
     }
     var L = { stat: stat, why: stat === 'start' ? '' : why, slot: slot, start: start, bench: bench, out: out.map(function (e) { return e.id; }), lib: by.L[0] ? by.L[0].id : '',
       rival: rv ? rv.id : '', gap: rv ? round1(me.sel - rv.sel) : stat === 'start' ? 9 : -9, ahead: stat === 'start' ? [] : starters.map(function (e) { return e.id; }),
-      prevIn: '', ord: ord, imp: round1(me.t.imp), edge: meEdge6(c) };
+      prevIn: '', ord: ord, imp: round1(me.t.imp), last: round1(me.t.last), lastNota: c.ln6 ? c.ln6.nota : null, edge: meEdge6(c) };
     if (stat === 'start') { var was = ent.filter(function (e) { return e.pos === pos && e.ls && e !== me && start.indexOf(e.id) < 0; })[0]; L.prevIn = was ? was.id : L.rival; }
     // mensajes del entrenador, solo al cambiar de estado (la primera elección en un club la explica la bienvenida)
     var prev = q.stat, prevWhy = q.why;
@@ -2580,7 +2595,7 @@
   }
   function joinClub6(c, o, years) {
     var k = club(c, o.club), rl = Math.max(0, ROLE_LV.indexOf(o.role));
-    c.myClub = k.id; c.chem = 0;
+    c.myClub = k.id; c.chem = 0; c.ln6 = null;   // (la nota del último partido no viaja al club nuevo)
     years = clampI(years != null ? years : o.years || 1, 1, 3);
     c.contract = { club: k.id, years: years, left: years, role: ROLE_LV[rl], salary: o.salary || salary6(c, k, rl), since: c.season + (c.phase === 'off' ? 1 : 0) };
     c.coach = clamp(ROLE_COACH[rl] + cd(c).coach0 - (o.early ? EARLY_COACH : 0) - (o.negNo ? NEG_COACH : 0), 0, 100); c.listed = false; c.broken = 0;   // (+ coach0 de la dificultad)
@@ -2970,7 +2985,12 @@
     c.coach = clamp(Math.round(c.coach + dc), 0, 100);
     coachFloor(c); pay(c);
     if (coachText(c.coach) !== ct0) msg(c, 'coach', 'El entrenador: «' + coachText(c.coach) + '»', COACH_LINE[coachText(c.coach)] || '');
-    if (impact) msg(c, 'coach', 'Buen cambio', 'Saliste desde el banquillo y cambiaste el partido (nota ' + String(nota).replace('.', ',') + '). Así se gana el puesto.');
+    var nt = has ? String(nota).replace('.', ',') : '';
+    c.ln6 = has ? { nota: nota, sub: sub ? 1 : 0 } : null;   // la nota de hoy pesa en el seis del próximo partido (lastSel6)
+    if (impact && nota >= LAST_SUB) msg(c, 'coach', 'Así se gana el puesto', 'Saliste desde el banquillo y destacaste (nota ' + nt + '). El próximo partido tienes muchas opciones de salir de inicio.');
+    else if (impact) msg(c, 'coach', 'Buen cambio', 'Saliste desde el banquillo y cambiaste el partido (nota ' + nt + '). Sigue así y te ganarás el puesto.');
+    else if (has && !sub && nota < LAST_BAD && !sim && !pulledBad) msg(c, 'coach', 'Así no', 'Con un ' + nt + ' no me sirves. El próximo partido seguramente empiezas en el banquillo: si sales, aprovecha los puntos que juegues.');
+    else if (has && !sub && nota < LAST_MEH && !sim && !pulledBad) msg(c, 'coach', 'Partido flojo', 'Un ' + nt + ' es poco. Te juegas el puesto en el próximo partido.');
     if (pulledBad && (!has || nota < 6)) msg(c, 'coach', 'Te he cambiado', 'Hoy no era tu día y te senté en el ' + ordn(part.pulled) + ' set. La próxima, más concentración.');
     c.chem = clamp((c.chem | 0) + (played ? (sim ? 3 : 5) : 2), 0, 100);
     var au = sessAuto(c);   // entreno automático (antes del entreno semanal)
@@ -3037,7 +3057,7 @@
     var mine = { kills: me.kills | 0, aces: me.aces | 0, blocks: me.blocks | 0, assists: me.assists | 0, digs: me.digs | 0, errors: me.errors | 0, recvP: me.recvP | 0, perfect: me.perfect | 0, good: me.good | 0, poor: me.poor | 0 };
     // nota en directo (js/rating.js) o, sin ella, rating(); con menos de NOTA_MIN_R puntos en pista, sin nota («s. c.»)
     var rt = m === M && m.rt && !stats ? VB.Rating.close(m.rt, res) : null;
-    mine.nota = legacy || meR >= NOTA_MIN_R ? (rt ? rt.nota : rating(mine, { win: win, sets: res.sets }, legacy ? rallies : meR, RATE6[ctrlRole6(c)] || RATE6.OH)) : null;
+    mine.nota = legacy || meR >= NOTA_MIN_SUB ? (rt ? rt.nota : rating(mine, { win: win, sets: res.sets }, legacy ? rallies : meR, RATE6[ctrlRole6(c)] || RATE6.OH)) : null;
     var badges = [];
     try {
       var ix = g && g.teams && g.ctrl ? g.teams[0].indexOf(g.ctrl) : -1;
@@ -3089,7 +3109,7 @@
       }
     }
     var meR = Math.round(all * share);
-    if (sub && meR < NOTA_MIN_R) nota = null;
+    if (sub && meR < NOTA_MIN_SUB) nota = null;
     me.nota = nota;
     var part = { status: sub ? 'sub' : 'start', started: !sub, entered: entered, pulled: pulled, pullWhy: pullWhy, meR: meR, rallies: all, share: share, sets: sets };
     return closeMine6(c, f, { sets: q.sets, setScores: q.setScores }, me, true, { badges: meR > 0 ? simBadges6(c, win) : [], part: part });
@@ -3475,7 +3495,7 @@
     ROLE_HINT: ROLE_HINT6, benchWhy: whyText6, whyText: whyText6, WHY: WHY6, lineup: lineup6, squad: squad6, squadWeek: squadWeek6, depth: depth6, depthNow: depthNow6,
     capRole: capRole6, meRules: meRules6, SQ_SIZE: SQ_SIZE, SQ_BIG: SQ_BIG, SLOTS: SLOTS6, LIST: LIST6, ME_EDGE: ME_EDGE, ME_EDGE_STEP: ME_EDGE_STEP, ME_EDGE_MIN: ME_EDGE_MIN, meEdge: meEdge6, SEL_IMP: SEL_IMP, OUT_COACH: OUT_COACH, FAT_REST: FAT_REST, FAT_REST_TOP: FAT_REST_TOP,
     TIT_BONUS: TIT_BONUS, STARTS_PROMOTE: STARTS_PROMOTE, TIT_BROKEN: TIT_BROKEN, TRAIN_COACH: TRAIN_COACH, IMPACT_COACH: IMPACT_COACH, FIT_START: FIT_START, FIT_DEEP: FIT_DEEP,
-    NOTA_MIN_R: NOTA_MIN_R, BENCH_XP: BENCH_XP, XP_K: XP_K6,
+    NOTA_MIN_R: NOTA_MIN_R, NOTA_MIN_SUB: NOTA_MIN_SUB, lastSel: lastSel6, BENCH_XP: BENCH_XP, XP_K: XP_K6,
     // dificultad de la Carrera (15-nov-2026): mismas claves que la playa, con el guardado y la escala de la pista
     CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, GATE6: GATE6, TOP6: TOP6, top: top6,
     diffOf: function (c) { return diffOf(c || load6()); }, rivalAI: rivalAI6, attrOf: attrOf6, baseStep: baseStep6,

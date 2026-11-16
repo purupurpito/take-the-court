@@ -1685,7 +1685,7 @@
     function uiIngest(evs, g) { call('UI', 'ingest', evs, g); }
     /** Nota en directo de muestra para &rt=1 (la forma de VB.Career.liveRating: { v, on, sc, seq, log, trial }). Los eventos de la escena
      *  pasan por VB.Rating si está cargado; si no dejan ningún aviso, uno de muestra (&neg=1 uno que resta). &rtv=N fija la nota, &sc=1
-     *  «s. c.» (menos de 12 puntos en pista) y &off=1 en el banquillo. */
+     *  «s. c.» (menos de 5 puntos en pista) y &off=1 en el banquillo. */
     function rtDebug(g, evs) {
       var R = VB.Rating, six = g.size === 6, me = six ? g.ctrl : g.teams && g.teams[0][0];
       var o = { v: 6, on: Q.off !== '1', sc: Q.sc === '1', seq: 0, log: [], trial: !!(g.career && g.career.trial) };
