@@ -22,9 +22,12 @@ const fakeLS = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { 
 const ctx = { console, Math, Date, JSON, Set, localStorage: fakeLS }; ctx.globalThis = ctx; ctx.window = ctx;
 vm.createContext(ctx);
 const NOWORLD = !!process.env.NOWORLD;
-const FILES = ['js/sim.js', 'js/prog.js', 'js/badges.js', 'js/leagues.js', 'js/career.js', 'js/career-life.js', 'js/career-world.js'];
+// NORATING=1: sin js/rating.js (nota en directo): la nota de los partidos jugados es la de rating(), como antes
+const NORATING = !!process.env.NORATING;
+const FILES = ['js/sim.js', 'js/prog.js', 'js/badges.js', 'js/leagues.js', 'js/rating.js', 'js/career.js', 'js/career-life.js', 'js/career-world.js'];
 for (const f of FILES) {
   if (NOWORLD && f === 'js/career-world.js') continue;
+  if (NORATING && f === 'js/rating.js') continue;
   if (!fs.existsSync(path.join(ROOT, f))) { console.log('(sin ' + f + ')'); continue; }
   vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f });
 }
@@ -101,11 +104,7 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
     ok(ms.career.trial && ms.career.offer === i && ms.career.goals.length === 3 && ms.career.goals.every(g => g.txt && g.stat && (g.op === '>=' || g.op === '<=') && g.n > 0), '3 objetivos (' + ms.career.goals.map(g => g.txt).join('; ') + ')');
     ok(ms.attrs[0][1].jump === t.offers[i].mateP.st.jump && ms.attrs[1].length === 2, 'juegas con tu futura pareja contra una pareja del club');
     ok(hooks === 0 && t.player.xp === xp0 && t.week === wk0 && t.coach === co0 && t.inbox.length === nIn && t.phase === 'pick', 'trialSetup no llama a life() ni toca jornada, experiencia, entrenador ni bandeja');
-    ok(t.pick.trial && t.pick.trial.club === t.offers[i].club && t.pick.trial.offer === i && t.pick.trial.tries === 1, 'prueba pendiente en c.pick.trial');
-    // abandonar a medias (sin trialDone): la oferta y la prueba pendiente siguen (y reintentar suma un intento)
-    C._reset(); t = C.get();
-    ok(t.phase === 'pick' && t.offers[i] && t.offers[i].trial && t.pick.trial && t.pick.trial.club === t.offers[i].club, 'abandonar a medias: la oferta y c.pick.trial intactos tras cargar');
-    C.trialSetup(i); ok(t.pick.trial.tries === 2, 'reintentar la prueba: intento 2 (no la gasta)');
+    ok(t.pick.trial && t.pick.trial.club === t.offers[i].club && t.pick.trial.offer === i && t.pick.trial.tries === 1 && t.pick.trial.live === 1, 'prueba en curso en c.pick.trial (live)');
     const snap2 = mem['voley3d.career'];
     const p = [0, 1, 2, 3].map(j => ({ id: j, team: j >> 1, idx: j & 1, num: [7, 11, 3, 9][j] }));
     const game = () => ({ career: ms.career, teams: [[p[0], p[1]], [p[2], p[3]]], players: p, demo: false, autopilot: false });
@@ -113,12 +112,63 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
       { type: 'hit', team: 0, kind: 'set', touch: 2, player: p[1], grade: 'good' }, { type: 'hit', team: 0, kind: 'spike', touch: 3, player: p[0], grade: 'perfect', human: true }, { type: 'point', team: 0, how: 'kill', reason: 'in' });
     const evErr = E => E.push({ type: 'hit', team: 0, kind: 'spike', touch: 3, player: p[0], human: true }, { type: 'point', team: 1, how: 'error', reason: 'net', player: p[0] });
     const evBlock = E => E.push({ type: 'hit', team: 1, kind: 'spike', touch: 3, player: p[3] }, { type: 'block', team: 0, player: p[0], result: 'stuff' }, { type: 'point', team: 0, how: 'block', reason: 'in' });
+    // (el marcador se completa con puntos sin acciones tuyas: la nota en directo cuenta cada punto jugado)
     const play = (kills, errs, blocks, win) => {
-      const g = game(), E = [{ type: 'newMatch' }];
+      const g = game(), E = [{ type: 'newMatch' }], sc = win ? [15, 9] : [10, 15];
       for (let j = 0; j < kills; j++) evKill(E); for (let j = 0; j < errs; j++) evErr(E); for (let j = 0; j < blocks; j++) evBlock(E);
+      for (let j = kills + blocks; j < sc[0]; j++) E.push({ type: 'hit', team: 1, kind: 'spike', touch: 3, player: p[2] }, { type: 'point', team: 0, how: 'error', reason: 'out' });
+      for (let j = errs; j < sc[1]; j++) E.push({ type: 'hit', team: 1, kind: 'spike', touch: 3, player: p[3] }, { type: 'point', team: 1, how: 'kill', reason: 'in' });
       C.ingest(E, g);
-      return C.trialDone('beach', i, { sets: win ? [1, 0] : [0, 1], setScores: [win ? [15, 9] : [10, 15]], win: win }, g);
+      return C.trialDone('beach', i, { sets: win ? [1, 0] : [0, 1], setScores: [sc], win: win }, g);
     };
+    // reiniciar o abandonar la gasta (15-nov-2026, notes/nota-en-directo-spec.md §5): cerrar la pestaña a medias → al volver, trialStale
+    // la cuenta como suspendida ('left'): letra F, se quita la oferta, c.pick.res.forfeit y mensaje del agente
+    {
+      C._reset(); t = C.get();
+      const tc = t.offers[i].club, pend = C.trialPending(), nOff = t.offers.length;
+      ok(pend && pend.live && pend.club === tc && pend.offer === i, 'trialPending: la prueba en curso (live)');
+      const rs = C.trialStale(); t = C.get();
+      ok(rs && rs.forfeit === 'left' && rs.letter === 'F' && !rs.pass && rs.nota === null && t.offers.length === nOff - 1 && !t.offers.some(o => o.club === tc) && !t.pick.trial && t.pick.fail === tc, 'cerrar la pestaña a medias: suspendida (F, se quita la oferta)');
+      ok(t.pick.res && t.pick.res.forfeit === 'left' && t.pick.res.letter === 'F' && t.pick.res.goals.length === 3 && t.pick.res.goals.every(g => g.ok === null), 'c.pick.res con forfeit «left» y objetivos sin marca');
+      ok(t.inbox.some(m => m.t === 'Prueba no superada' && /Dejaste el partidillo a medias y .+ no te espera\. Aún tienes \d+ ofertas?/.test(m.x)), 'el agente lo cuenta: dejaste el partidillo a medias');
+      ok(C.trialStale() === null && C.trialPending() === null, 'ya no queda prueba en curso');
+      // trialSetup (o simular) con la prueba dejada a medias: ya está gastada
+      mem['voley3d.career'] = snap2; C._reset();
+      ok(C.trialSetup(i) === null && !C.get().offers.some(o => o.club === tc) && C.get().pick.res.forfeit === 'left', 'volver a empezar la prueba dejada a medias: ya está gastada');
+      mem['voley3d.career'] = snap2; C._reset();
+      ok(C.trialSim(i) === null && C.get().pick.res.forfeit === 'left', 'simular la prueba dejada a medias: tampoco (gastada)');
+      // aceptar otra oferta con una prueba dejada a medias: se gasta primero y se firma la oferta elegida (el índice se recoloca)
+      mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+      const j2 = t.offers.findIndex((o, k) => !o.trial && k > i), oc = j2 >= 0 ? t.offers[j2].club : -1;
+      if (j2 >= 0) { ok(C.acceptOffer(j2, 2) && C.get().myClub === oc && C.get().pick === undefined || C.get().myClub === oc, 'firmar otra oferta con la prueba a medias: se gasta y firmas la elegida'); }
+      // reiniciar y abandonar el partidillo (main.js: trialForfeit), con la nota en directo de ese momento
+      for (const why of ['restart', 'quit']) {
+        mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+        const g = game(), E = [{ type: 'newMatch' }]; evKill(E); evKill(E);
+        C.ingest(E, g);
+        const lr = C.liveRating(g);
+        ok(!VB.Rating || (lr && lr.trial && lr.v > VB.Rating.START), why + ': nota en directo durante el partidillo (' + (lr && lr.v) + ')');
+        ok(C.trialStale() === null, why + ': con el partidillo en marcha, trialStale no la gasta');
+        const rf = C.trialForfeit('beach', i, why); t = C.get();
+        ok(rf && rf.forfeit === why && rf.letter === 'F' && rf.trial && !rf.pass && (!VB.Rating || typeof rf.nota === 'number') && rf.left === t.offers.length && !t.offers.some(o => o.club === tc), why + ': suspendida (F, nota ' + (rf && rf.nota) + ', se quita la oferta)');
+        ok(t.pick.res.forfeit === why && !t.pick.trial && C.liveRating(g) === null, why + ': c.pick.res.forfeit y sin partido en marcha');
+        ok(C.trialForfeit('beach', 0, why) === null || !C.get().offers[0].trial, why + ': sin prueba en curso, trialForfeit no hace nada');
+      }
+      // la única oferta era la prueba: al gastarla llegan otras
+      mem['voley3d.career'] = snap2; C._reset();
+      { const raw = JSON.parse(mem['voley3d.career']); raw.offers = [raw.offers[i]]; raw.pick.trial.offer = 0; mem['voley3d.career'] = JSON.stringify(raw); C._reset(); }
+      const r0 = C.get().pick.round, rq = C.trialForfeit('beach', 0, 'quit'); t = C.get();
+      ok(rq && t.phase === 'pick' && t.offers.length >= 2 && t.pick.round === r0 + 1 && !t.offers.some(o => o.club === tc), 'sin más ofertas: al gastar la prueba llegan otras (' + t.offers.length + ')');
+      // guardado de la 1.2.0: prueba pendiente sin live → no se gasta; se puede jugar una vez más (y desde ahí queda en curso)
+      mem['voley3d.career'] = snap2; C._reset();
+      { const raw = JSON.parse(mem['voley3d.career']); delete raw.pick.trial.live; raw.pick.trial.tries = 2; mem['voley3d.career'] = JSON.stringify(raw); C._reset(); }
+      ok(C.trialPending() && !C.trialPending().live && C.trialStale() === null && C.get().pick.trial && C.get().offers.some(o => o.club === tc), 'guardado de la 1.2.0 (sin live): trialStale no la gasta');
+      ok(C.rejectAll() === true && C.get().pick.res == null, 'rechazar todas con una pendiente vieja: no cuenta como suspendida');
+      mem['voley3d.career'] = snap2; C._reset();
+      { const raw = JSON.parse(mem['voley3d.career']); delete raw.pick.trial.live; mem['voley3d.career'] = JSON.stringify(raw); C._reset(); }
+      ok(C.trialSetup(i) && C.get().pick.trial.live === 1 && C.get().pick.trial.tries === 1, 'se juega una vez más: trialSetup la marca en curso');
+      mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+    }
     // una A: te fichan
     const ra = play(10, 0, 1, true); t = C.get();
     ok(ra && (ra.letter === 'A+' || ra.letter === 'A') && ra.pass && ra.met === 3 && ra.goals.every(g => g.ok) && ra.left === 0, 'partidillo de A (' + (ra && ra.letter) + ', nota ' + (ra && ra.nota) + ', 3 objetivos): te fichan');
@@ -133,15 +183,23 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
     // una C: decide la tirada (o.chance + TRIAL_C_BONUS), siempre igual con la misma semilla
     mem['voley3d.career'] = snap2; C._reset(); t = C.get();
     const o = t.offers[i], exp = C._rng(C._hash(t.seed, 'trial', o.club, t.pick.round))() < o.chance + C.TRIAL_C_BONUS;
-    const rc = play(2, 0, 0, false);
+    let cK = -1, cE = 0, rc = null;   // (un partidillo perdido que dé C: remates y errores que lo consiguen)
+    for (let kk = 0; kk <= 8 && cK < 0; kk++) for (let ee = 0; ee <= 4 && cK < 0; ee++) {
+      mem['voley3d.career'] = snap2; C._reset(); const r = play(kk, ee, 0, false); if (r && r.letter === 'C') { cK = kk; cE = ee; rc = r; } }
     mem['voley3d.career'] = snap2; C._reset();
-    const rc2 = play(2, 0, 0, false);
-    ok(rc && rc.letter === 'C' && rc.luck && rc.pass === exp && rc2.pass === rc.pass, 'partidillo de C (nota ' + (rc && rc.nota) + '): decide la tirada, determinista (' + (rc && rc.pass ? 'te fichan' : 'no') + ')');
+    const rc2 = cK >= 0 ? play(cK, cE, 0, false) : null;
+    ok(rc && rc.letter === 'C' && rc.luck && rc.pass === exp && rc2.pass === rc.pass, 'partidillo de C (' + cK + ' remates, ' + cE + ' errores, nota ' + (rc && rc.nota) + '): decide la tirada, determinista (' + (rc && rc.pass ? 'te fichan' : 'no') + ')');
     // la nota: escalada a un set corto y + objetivos
     const gr = C.trialGrade(t, { kills: 4 }, { sets: [1, 0], setScores: [[15, 12]] }, 27, [{ id: 'kills', stat: 'kills', op: '>=', n: 2, txt: '' }]);
     ok(gr.met === 1 && Math.abs(gr.nota - (gr.base + C.TRIAL_GOAL)) < 0.051 && C.trialLetter(8) === 'A+' && C.trialLetter(6.5) === 'B' && C.trialLetter(6.49) === 'C' && C.trialLetter(4.9) === 'F', 'trialGrade: nota ' + gr.nota + ' = ' + gr.base + ' + ' + C.TRIAL_GOAL + ' por objetivo; cortes de letra');
     const txt = C.get().inbox.map(m => m.t + ' ' + m.x).join(' ') + ms.career.label + ms.career.goals.map(g => g.txt).join(' ');
     ok(!/·|1\.er|2\.º|3\.er|\/a\b/.test(txt), 'textos de la prueba sin «·», sin ordinales con punto y sin «/a»');
+    // con la nota en directo: la del partidillo es la que llevabas al final (+ objetivos) y la hoja final trae lo mejor y lo peor
+    if (VB.Rating) {
+      mem['voley3d.career'] = snap2; C._reset();
+      const rr = play(6, 1, 1, true);
+      ok(rr && rr.rt && rr.rt.nota === rr.nota && rr.rt.best.length > 0 && rr.rt.worst.length > 0 && rr.rt.best[0].d > 0 && rr.rt.worst[0].d < 0, 'partidillo con nota en directo: nota ' + (rr && rr.nota) + ' = la del cierre, con «Lo mejor» (' + (rr && rr.rt.best.map(b => b.n + ' × ' + b.txt).join(', ')) + ') y «A mejorar»');
+    }
     // guardado viejo en la fase pick (sin c.pick.trial ni c.pick.res) y prueba pendiente que ya no cuadra
     mem['voley3d.career'] = snap; C._reset();
     let raw = JSON.parse(mem['voley3d.career']); delete raw.pick.trial; delete raw.pick.res; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
@@ -245,6 +303,39 @@ section('Partido jugado: eventos → estadísticas → nota');
   ok(norm >= 6.5 && norm <= 8.5, 'nota de un partido normal ganado: ' + norm);
   ok(huge < 10 && huge > 9, 'techo suave: un partido descomunal ' + huge);
   console.log('  nota ' + sum.nota + ', +' + sum.xp + ' XP' + (sum.lvlUp ? ', sube a nivel ' + sum.lvl : ''));
+  // nota en directo (js/rating.js, 15-nov-2026): empieza en 6,0, el ace sube, el error de saque baja, un aviso por punto, y la nota
+  // del resumen es la del cierre (con «Lo mejor / A mejorar» en sum.rt, que va a c.last y no a c.notes). Sin rating.js (NORATING=1),
+  // la de rating() de siempre
+  if (VB.Rating) {
+    const R = VB.Rating, g2 = { career: { season: 1 }, teams: [[p[0], p[1]], [p[2], p[3]]], players: p, demo: false, autopilot: false };
+    ok(C.liveRating(g2) === null, 'liveRating: null fuera de partido');
+    C.ingest([{ type: 'newMatch' }], g2);
+    const lr = C.liveRating(g2);
+    ok(lr && lr.v === 6 && lr.seq === 0 && lr.on && !lr.sc && !lr.trial && lr.log.length === 0, 'la nota en directo empieza en 6,0');
+    C.ingest([{ type: 'hit', team: 0, kind: 'serve', touch: 0, player: p[0], grade: 'good', human: true }, { type: 'point', team: 0, how: 'ace', reason: 'in' }], g2);
+    const v1 = C.liveRating(g2).v, a1 = C.liveRating(g2).log[0];
+    ok(v1 > 6 && C.liveRating(g2).seq === 1 && a1 && a1.kind === 'play' && a1.id === 'ace' && a1.txt === 'Ace' && a1.d > 0 && a1.v === v1, 'el ace sube (' + v1 + ', aviso «' + R.fmt(a1.d) + ' ' + a1.txt + '»)');
+    C.ingest([{ type: 'hit', team: 0, kind: 'serve', touch: 0, player: p[0], grade: 'poor', human: true }, { type: 'point', team: 1, how: 'error', reason: 'out' }], g2);
+    const a2 = C.liveRating(g2).log[1];
+    ok(C.liveRating(g2).v < v1 && a2 && a2.id === 'srvErr' && a2.txt === 'Error de saque' && a2.d < 0, 'el error de saque baja (' + C.liveRating(g2).v + ', aviso «' + R.fmt(a2.d) + ' ' + a2.txt + '»)');
+    C.ingest([{ type: 'hit', team: 1, kind: 'serve', touch: 0, player: p[2] }, { type: 'hit', team: 0, kind: 'pass', touch: 1, player: p[1], grade: 'good' }, { type: 'point', team: 1, how: 'kill', reason: 'in' }], g2);
+    ok(C.liveRating(g2).seq === 2, 'un punto sin acciones tuyas: sin aviso');
+    const rt = C._M().rt, ref = R.close(JSON.parse(JSON.stringify(rt)), { sets: [2, 1], setScores: [[21, 18], [19, 21], [15, 12]] });
+    const s2 = C.matchDone({ sets: [2, 1], setScores: [[21, 18], [19, 21], [15, 12]], win: true }, null, g2);
+    ok(s2 && s2.nota === ref.nota && s2.rt && s2.rt.nota === s2.nota && s2.rt.best[0].id === 'ace' && s2.rt.worst[0].id === 'srvErr', 'resumen: nota = la del cierre (' + s2.nota + '), sum.rt con lo mejor (ace) y lo peor (error de saque)');
+    ok(C.get().last.rt && C.get().last.rt.nota === s2.nota && C.get().notes[C.get().notes.length - 1].rt === undefined, 'sum.rt va a c.last, no a c.notes');
+    ok(C.liveRating(g2) === null, 'liveRating: null al cerrar el partido');
+    // con estadísticas de fuera (matchDone(r, stats)), la de rating() de siempre
+    if (C.next(C.get())) { const st = { kills: 9, errors: 1 }, s3 = C.matchDone({ sets: [2, 0], setScores: [[21, 10], [21, 12]], win: true }, st, g2);
+      ok(s3 && s3.nota === C.rating(st, { win: true, sets: [2, 0] }, 64) && !s3.rt, 'con estadísticas de fuera: la nota de rating() (' + (s3 && s3.nota) + ')'); }
+    // utilidades de VB.Rating
+    ok(R.fmt(0.3) === '+0,3' && R.fmt(-0.2) === '\u22120,2' && R.fmt(0.04) === '' && R.soft(20) < 10 && R.soft(-20) >= 0, 'VB.Rating: fmt con coma y signo menos, soft 0-10');
+  } else {
+    const g2 = { career: { season: 1 }, teams: [[p[0], p[1]], [p[2], p[3]]], players: p, demo: false, autopilot: false };
+    C.ingest([{ type: 'newMatch' }, { type: 'hit', team: 0, kind: 'serve', touch: 0, player: p[0], grade: 'good', human: true }, { type: 'point', team: 0, how: 'ace', reason: 'in' }], g2);
+    const me = C._M().p[0], s2 = C.matchDone({ sets: [2, 0], setScores: [[21, 15], [21, 17]], win: true }, null, g2);
+    ok(C.liveRating(g2) === null && s2 && !s2.rt && s2.nota === C.rating(me, { win: true, sets: [2, 0] }, 1), 'sin rating.js (NORATING): la nota es la de rating() (' + (s2 && s2.nota) + ') y no hay nota en directo');
+  }
 }
 
 // ------------------------------------------------------------------ temporada entera simulada
@@ -726,6 +817,8 @@ section('Carrera de pista: prueba con partidillo (suplentes contra titulares, un
     const evs = [{ type: 'newMatch' }];
     for (let j = 0; j < kills; j++) evs.push({ type: 'hit', team: 0, player: me6, kind: 'spike', touch: 3, human: true, grade: 'good' }, { type: 'point', team: 0, how: 'kill' });
     for (let j = 0; j < errs; j++) evs.push({ type: 'hit', team: 0, player: me6, kind: 'spike', touch: 3, human: true }, { type: 'point', team: 1, how: 'error', player: me6 });
+    for (let j = kills; j < sc[0]; j++) evs.push({ type: 'point', team: 0, how: 'error' });   // (el resto del marcador, sin acciones tuyas)
+    for (let j = errs; j < sc[1]; j++) evs.push({ type: 'point', team: 1, how: 'kill' });
     C.ingest(evs, g);
     return C.trialDone('hall', i, { sets: win ? [1, 0] : [0, 1], setScores: [sc], win: win }, g);
   };
@@ -741,11 +834,10 @@ section('Carrera de pista: prueba con partidillo (suplentes contra titulares, un
   // una C (pista): decide la tirada con la clave 'trial6' (o.chance + TRIAL_C_BONUS), siempre igual con la misma semilla
   {
     mem['voley3d.career6'] = snap2; C._reset(); t = C.get();
-    let cK = -1, cE = 0;
-    for (let kk = 0; kk <= 8 && cK < 0; kk++) for (let ee = 0; ee <= 5 && cK < 0; ee++)
-      if (C.trialGrade(t, { kills: kk, errors: ee, good: kk }, { sets: [0, 1], setScores: [[12, 15]] }, 27, ms.career.goals).letter === 'C') { cK = kk; cE = ee; }
+    let cK = -1, cE = 0, rc = null;
     const o6 = t.offers[i], exp6 = C._rng(C._hash(t.seed, 'trial6', o6.club, t.pick.round))() < o6.chance + C.TRIAL_C_BONUS;
-    const rc = cK >= 0 ? play(cK, cE, false, [12, 15]) : null;
+    for (let kk = 0; kk <= 8 && cK < 0; kk++) for (let ee = 0; ee <= 5 && cK < 0; ee++) {
+      mem['voley3d.career6'] = snap2; C._reset(); const r = play(kk, ee, false, [12, 15]); if (r && r.letter === 'C') { cK = kk; cE = ee; rc = r; } }
     mem['voley3d.career6'] = snap2; C._reset();
     const rc2 = cK >= 0 ? play(cK, cE, false, [12, 15]) : null;
     ok(rc && rc.letter === 'C' && rc.luck && rc.pass === exp6 && rc2.pass === rc.pass, 'pista: partidillo de C (' + cK + ' remates, ' + cE + ' errores, nota ' + (rc && rc.nota) + '): decide la tirada \'trial6\', determinista (' + (rc && rc.pass ? 'te fichan' : 'no') + ')');
@@ -1069,6 +1161,22 @@ else {
     ok(n.status !== 'out' && n.whyCode === 'coach', 'titular con confianza 5: al banquillo, no fuera de la convocatoria (' + n.status + '/' + n.whyCode + ')');
   }
   // un set que empiezas en el banquillo (lineup con meOut) no cuenta como set jugado
+  // nota en directo en la pista con cambios: menos de NOTA_MIN_R puntos en pista → sin nota («s. c.», también en directo)
+  if (VB.Rating) { const c = fresh(5400, 'OH', 'Rotación'); toLeagueFixture(c); setAll(c, 20); c.coach = 50; reLine(c);
+    const ms = C.matchSetup(c), me = { team: 0, id: 23, num: 9 }, t0 = [0, 1, 2, 3, 4, 5].map(i => ({ team: 0, id: i, num: ms.nums[0][i] }));
+    const G = { career: ms.career, size: 6, teams: [t0, []], ctrl: me, ctrlBase: me, meR: 0, points: ms.points }, evs = [{ type: 'newMatch' }];
+    for (let i = 0; i < 30; i++) evs.push({ type: 'point', team: i % 2, how: 'error' });
+    C.ingest(evs, G);
+    const l0 = C.liveRating(G);
+    ok(ms.meOn === false && l0 && !l0.on && l0.v === 6 && l0.sc, 'en el banquillo: la nota se congela en 6,0 y sale «s. c.»');
+    const e2 = [{ type: 'sub', team: 0, inP: me, outP: t0[1], why: 'coach', meIn: true, meOut: false }];
+    for (let i = 0; i < 5; i++) e2.push({ type: 'hit', team: 0, player: me, kind: 'spike', touch: 3, human: true, grade: 'good' }, { type: 'point', team: 0, how: 'kill' });
+    C.ingest(e2, G); G.meR = 5; G.rallyN = 35;
+    const l1 = C.liveRating(G);
+    ok(l1 && l1.on && l1.v > 6 && l1.sc && C._M().rt.E < VB.Rating.E({ hall: true, points: ms.points }), 'entras: la nota sube con tus remates (' + l1.v + '), K reescalado con los puntos que quedan, aún «s. c.»');
+    const s = C.matchDone({ sets: [2, 0], setScores: [[25, 5], [10, 0]] }, null, G);
+    ok(s && s.nota === null && s.bench && !s.rt, 'menos de ' + H.NOTA_MIN_R + ' puntos en pista: sin nota (null) y sin sum.rt');
+  }
   { const c = fresh(5300, 'OH', 'Titular indiscutible'); toLeagueFixture(c); c.fatigue = 0; reLine(c);
     const ms = C.matchSetup(c), me = { team: 0, id: 3, num: 9 }, t0 = [0, 1, 2, 3, 4, 5].map(i => i === ms.meSlot ? me : { team: 0, id: i, num: ms.nums[0][i] });
     const G = { career: ms.career, size: 6, teams: [t0, []], ctrl: me, ctrlBase: me }, evs = [{ type: 'newMatch' }];

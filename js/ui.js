@@ -1684,12 +1684,94 @@
     txt(q('.p-team.t0'), true, a + ' '); txt(q('.p-team.t1'), false, ' ' + b);
     txt(q('.es-t.t0'), true, a + ' '); txt(q('.es-t.t1'), false, ' ' + b);
   }
+  // ---------- Nota en directo de la Carrera (notes/nota-en-directo-spec.md §6.3) ----------
+  // Píldora «NOTA 6,8» bajo el marcador (dentro de #sb: escala y se aparta con él) y un aviso por punto pegado a ella: «+0,3 Ace»,
+  // «−0,2 Error de saque» o, si la cifra redondea a 0,0, «▲ Remate ganado». La nota la lleva VB.Career.liveRating(g) (js/rating.js,
+  // puro): aquí solo se pinta. Sin rating.js, fuera de la Carrera, en la demo o en un ejercicio no se ve nada. En el banquillo o sin
+  // 12 puntos en pista, atenuada con «s. c.». Colores por franja (rt-bad … rt-top) y CSS en career-ui.js. Solo los avisos de set y
+  // de partido van al lector de pantalla (#banner, polite); la píldora lleva su aria-label y no es live.
+  var rtUI = { row: null, pill: null, v: null, sc: null, toast: null, sr: null, g: null, seen: 0, q: [], t: 0, key: '', vis: false };
+  /** El estado de la nota en directo de este partido ({ v, on, sc, seq, log, trial }) o null. g._rtDbg: escenas de depuración (&rt=1). */
+  function rtSrc(g) {
+    if (!g || g.demo || g.drill) return null;
+    if (g._rtDbg) return g._rtDbg;
+    if (!g.career) return null;
+    var K = VB.Career; if (!K || typeof K.liveRating !== 'function') return null;
+    try { return K.liveRating(g); } catch (e) { return null; }
+  }
+  function rtNum(v) { return (Math.round(v * 10) / 10).toFixed(1).replace('.', ','); }
+  /** «+0,3» / «−0,2» (signo menos de verdad) / '' con 0,0: el de rating.js si está. */
+  function rtFmt(d) {
+    var R = VB.Rating; if (R && typeof R.fmt === 'function') { try { return R.fmt(d); } catch (e) { } }
+    var r = Math.round(d * 10) / 10; return r ? (r > 0 ? '+' : '−') + rtNum(Math.abs(r)) : '';
+  }
+  /** Franja de color de la nota (§6.4): < 5 mala, 5-5,9 floja, 6-6,9 normal, 7-7,9 buena, ≥ 8 muy buena. */
+  function rtBand(v) { v = Math.round(v * 10) / 10; return v < 5 ? 'rt-bad' : v < 6 ? 'rt-low' : v < 7 ? 'rt-mid' : v < 8 ? 'rt-good' : 'rt-top'; }
+  /** ¿Resta? Con la cifra redondeada a 0,0, por el peso de la acción (o por el texto en set y partido). */
+  function rtNeg(e) {
+    if (e.d) return e.d < 0;
+    var A = VB.Rating && VB.Rating.ACTS, a = A && A[e.id];
+    if (a && typeof a.w === 'number') return a.w < 0;
+    return /perdido|Derrota|fallid|bloquean|Error/i.test(e.txt || '');
+  }
+  function rtLabel(e) { var f = rtFmt(e.d || 0); return f ? f + ' ' + (e.txt || '') : (rtNeg(e) ? '▼ ' : '▲ ') + (e.txt || ''); }
+  function rtBuild() {
+    if (rtUI.row) return true;
+    if (!el.sb) return false;
+    var r = document.createElement('div'); r.className = 'rt-row'; r.id = 'rtRow'; r.hidden = true;
+    r.innerHTML = '<div id="rtLive" class="rt-mid" role="img" aria-label="Nota 6,0"><span class="rt-k" aria-hidden="true">NOTA</span><b aria-hidden="true">6,0</b>' +
+      '<small aria-hidden="true" hidden>s. c.</small></div><div class="rt-toast" aria-hidden="true"></div>';
+    // (justo bajo el marcador: antes de la etiqueta «Punto de set», del contador de la jugada y del aviso corto)
+    var nx = el.sb.querySelector('.sb-tag'); el.sb.insertBefore(r, nx || null);
+    rtUI.row = r; rtUI.pill = r.firstChild; rtUI.v = rtUI.pill.querySelector('b'); rtUI.sc = rtUI.pill.querySelector('small'); rtUI.toast = r.lastChild;
+    if (el.banner) { var s = document.createElement('span'); s.className = 'sr'; el.banner.appendChild(s); rtUI.sr = s; }
+    return true;
+  }
+  function rtToastOff() { if (rtUI.toast) { rtUI.toast.className = 'rt-toast'; rtUI.toast.textContent = ''; } rtUI.t = 0; }
+  function rtTick(g, dt) {
+    var src = rtSrc(g);
+    if (!src) { if (rtUI.vis) { rtUI.vis = false; rtUI.row.hidden = true; rtToastOff(); } rtUI.g = null; return; }
+    if (!rtBuild()) return;
+    if (!rtUI.vis) { rtUI.vis = true; rtUI.row.hidden = false; }
+    // partido nuevo (también al reiniciar uno de Carrera: la nota vuelve a 6,0) o la cuenta hacia atrás: sin avisos viejos
+    var seq = src.seq | 0;
+    if (rtUI.g !== g || seq < rtUI.seen) { rtUI.g = g; rtUI.seen = 0; rtUI.q.length = 0; rtToastOff(); }
+    var v = +src.v || 0, dim = !src.on || !!src.sc, key = rtNum(v) + (dim ? '|d' : '') + (src.sc ? '|s' : '');
+    if (rtUI.key !== key) {   // (se reescribe solo si cambia; sin animación: la cifra salta)
+      rtUI.key = key; rtUI.v.textContent = rtNum(v);
+      rtUI.pill.className = rtBand(v) + (dim ? ' dim' : '');
+      rtUI.sc.hidden = !src.sc;   // (en el banquillo con nota ya ganada, solo atenuada: «s. c.» es para quien aún no la tiene)
+      rtUI.pill.setAttribute('aria-label', 'Nota ' + rtNum(v) + (rtUI.sc.hidden ? '' : ', sin calificar'));
+    }
+    if (seq > rtUI.seen) {
+      var log = src.log || [];
+      for (var i = 0; i < log.length; i++) {
+        var e = log[i]; if (!e || !(e.seq > rtUI.seen)) continue;
+        rtUI.q.push(e);
+        if ((e.kind === 'set' || e.kind === 'match') && rtUI.sr) rtUI.sr.textContent = 'Nota ' + rtNum(e.v != null ? e.v : v) + ': ' + rtLabel(e) + '.';
+      }
+      rtUI.seen = seq;
+      while (rtUI.q.length > 2) rtUI.q.shift();   // (cola de 2 como mucho: lo último manda)
+    }
+    // un aviso a la vez: 1,6 s (1 s con más en cola). Ni en la presentación ni con el juego parado (dt = 0: pausa, congelado);
+    // en las escenas de depuración congeladas, el aviso se queda a la vista para la captura
+    if (ctx.introLeft > 0) return;
+    if (rtUI.t > 0) { rtUI.t -= dt || 0; if (rtUI.t <= 0) rtToastOff(); else return; }
+    if (rtUI.q.length && (dt > 0 || ctx.debug)) {
+      var n = rtUI.q.shift(), tt = rtUI.toast;
+      tt.className = 'rt-toast'; void tt.offsetWidth;   // (dos avisos seguidos: que la entrada vuelva a empezar)
+      tt.textContent = rtLabel(n);
+      tt.className = 'rt-toast on ' + (rtNeg(n) ? 'neg' : 'pos') + (n.kind && n.kind !== 'play' ? ' big' : '') + (rm() ? ' still' : '');
+      rtUI.t = rtUI.q.length ? 1.0 : 1.6;
+    }
+  }
   function hud(g, dt) {
     var demo = g.demo;
     chalTick(g);
     var drOn = !!(g.drill && !demo); e1.on = false;
     if (last.drOn !== drOn) { last.drOn = drOn; el.app.classList.toggle('drill-on', drOn); }
     if (drOn) drillHud(g);
+    rtTick(g, dt);   // nota en directo de la Carrera (píldora y avisos bajo el marcador)
     // (partido a un solo set —partidillo de prueba de la Carrera—: «SET ÚNICO | A 15»)
     setHTML(el.sbSet, 'set', demo ? 'DEMO' : g.toWin === 1 ? sepHTML(['SET ÚNICO', 'A ' + g.points], 's') : sepHTML(['SET ' + g.setNo, g.setNo === 3 ? 'A 15' : ''], 's'));
     // partido de Carrera (g.career, main.js): abreviaturas de los dos clubes en vez de TÚ / CPU
@@ -2399,11 +2481,16 @@
     });
     return '<div class="end-bd">' + h + '</div>';
   }
-  var restartArm = 0, restartTo = 0;
+  // (partidillo de prueba de la Carrera: reiniciar o abandonar la gasta, así que los dos botones piden dos pulsaciones: quitArm)
+  var restartArm = 0, restartTo = 0, quitArm = 0;
   function disarmRestart() {
-    restartArm = 0; clearTimeout(restartTo);
-    if (el.btnRestart && el.btnRestart.classList.contains('arm')) { el.btnRestart.classList.remove('arm'); el.btnRestart.textContent = isDrill() ? 'Reiniciar ejercicio' : 'Reiniciar partido'; }
+    restartArm = 0; quitArm = 0; clearTimeout(restartTo);
+    if (el.btnRestart && el.btnRestart.classList.contains('arm')) { el.btnRestart.classList.remove('arm'); el.btnRestart.textContent = isDrill() ? 'Reiniciar ejercicio' : isTrial() ? 'Reiniciar prueba' : 'Reiniciar partido'; }
+    if (el.btnQuit && el.btnQuit.classList.contains('arm')) { el.btnQuit.classList.remove('arm'); el.btnQuit.textContent = isTrial() ? 'Abandonar la prueba' : 'Salir al menú'; }
   }
+  /** ¿Partido en curso = partidillo de prueba de la Carrera? (main.js: reiniciar o abandonar resuelve la prueba como suspendida) */
+  function isTrial() { var g = ctx && ctx.game; return !!(g && g.career && g.career.trial && !g.demo); }
+  function armTxt(what) { return (device() === 'touch' ? 'Toca otra vez' : 'Pulsa otra vez') + (isTrial() ? ': pierdes la prueba' : ' para ' + what); }
   /** Pausa (UI-18): el antetítulo da el contexto («Set 1 · 24-10 · Normal»; «Mando desconectado» si se fue el mando) y en medio
    *  solo los sets (el set y el tanteo ya están arriba: nada repetido). */
   var padGone = false;
@@ -2411,17 +2498,27 @@
     if (padGone) return 'Mando desconectado';
     if (g && g.drill && !g.demo) return gymKicker(g);   // E6: «Entrenamiento ◆ Saque 4/10 | 11 pts»
     var nm = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
-    // «Set 1 | 24-10 ◆ Normal»: el set y el tanteo van juntos con la barra fina (datos del HUD) y el nivel tras el rombo
-    return [{ h: 'Set ' + g.setNo + SEP_V + g.score[0] + '-' + g.score[1] }, nm || OPT.difficulty.labels[optIndex('difficulty')]];
+    // «Set 1 | 24-10 ◆ Normal»: el set y el tanteo van juntos con la barra fina (datos del HUD) y el nivel tras el rombo; en la
+    // Carrera, la nota en directo al final («◆ Nota 6,8»)
+    var rs = rtSrc(g);
+    return [{ h: 'Set ' + g.setNo + SEP_V + g.score[0] + '-' + g.score[1] }, nm || OPT.difficulty.labels[optIndex('difficulty')], rs && !rs.sc ? 'Nota ' + rtNum(+rs.v || 0) : ''];
   }
   var SEP_V = '<span class="sep sep-v"><span class="sr">, </span></span>'; // barra vertical fina suelta (entre trozos ya en HTML)
   function renderPause(g) {
     // E6: en un ejercicio no hay marcador; «Reiniciar ejercicio» y «Salir al entrenamiento»
     var dr = !!(g && g.drill && !g.demo);
     el.pause.classList.toggle('drill', dr);
-    el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : 'Reiniciar partido';
-    el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
+    var tr = !dr && isTrial();
+    el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : tr ? 'Reiniciar prueba' : 'Reiniciar partido';
+    el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : tr ? 'Abandonar la prueba' : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
     disarmRestart();
+    // partidillo de prueba: el aviso, en una línea pequeña sobre los botones (la ficha de la prueba ya lo decía al empezar)
+    if (!el.pWarn && tr) {
+      var vl = el.pause.querySelector('.vlist');
+      el.pWarn = document.createElement('p'); el.pWarn.className = 'p-warn'; el.pWarn.textContent = 'Si reinicias o abandonas, pierdes la prueba';
+      if (vl && vl.parentNode) vl.parentNode.insertBefore(el.pWarn, vl);
+    }
+    if (el.pWarn) el.pWarn.hidden = !tr;
     el.pS0.textContent = g.score[0]; el.pS1.textContent = g.score[1];
     el.pMid.innerHTML = 'SETS<b>' + g.sets[0] + '-' + g.sets[1] + '</b>';
     if (el.pKick) setSep(el.pKick, pauseKicker(g), 'd');
@@ -5144,12 +5241,20 @@
       // Reiniciar en dos pasos (un dedo que se escapa no tira el partido): 1r toque arma 2 s, el 2º reinicia. Sin confirm().
       on(el.btnRestart, function () {
         if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
-        restartArm = performance.now();
-        el.btnRestart.textContent = device() === 'touch' ? 'Toca otra vez para reiniciar' : 'Pulsa otra vez para reiniciar';
+        disarmRestart(); restartArm = performance.now();
+        el.btnRestart.textContent = armTxt('reiniciar');
         el.btnRestart.classList.add('arm');
-        clearTimeout(restartTo); restartTo = setTimeout(disarmRestart, 2000);
+        restartTo = setTimeout(disarmRestart, 2000);
       });
-      on(el.btnQuit, function () { if (isDrill()) goGymList(ctx.game.drill.kind); else goMenu(); });
+      // (en la prueba, «Abandonar la prueba» también en dos pasos: la 2ª pulsación la da por suspendida, main.js toMenu)
+      on(el.btnQuit, function () {
+        if (isDrill()) { goGymList(ctx.game.drill.kind); return; }
+        if (!isTrial() || (quitArm > 0 && performance.now() - quitArm < 2000)) { disarmRestart(); goMenu(); return; }
+        disarmRestart(); quitArm = performance.now();
+        el.btnQuit.textContent = armTxt('salir');
+        el.btnQuit.classList.add('arm');
+        restartTo = setTimeout(disarmRestart, 2000);
+      });
       el.btnAgain.addEventListener('click', function () { uiSound('start'); goMatch(); });
       el.btnMenu.addEventListener('click', function () { uiSound('back'); goMenu(); });
       if (el.btnEndOpts) el.btnEndOpts.addEventListener('click', function () { uiSound('click'); goOptions(); });

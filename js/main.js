@@ -450,11 +450,12 @@
     if (drill) { startDrill(drill, opts); return; }
     // Carrera: «Reiniciar partido» (pausa) repite el partido de Carrera; «Revancha» / Intro en la hoja final vuelven al hub
     // (ui.js llama a startMatch() sin opciones en los dos casos)
-    // (partidillo de prueba: «Reiniciar» lo vuelve a empezar con la misma oferta, sin gastar la prueba)
+    // (partidillo de prueba: reiniciar o abandonar gasta la prueba; «Reiniciar prueba» la da por suspendida y vuelve a las ofertas)
     if (!opts.career && !opts.autopilot && ctx.game && ctx.game.career && !ctx.game.demo) {
       if (ctx.state === 'over') { ctx.actions.toMenu(); return; }
       if (ctx.state === 'paused' || ctx.state === 'playing') {
-        if (ctx.game.career.trial) ctx.actions.startCareerTrial(ctx.game.career.offer); else ctx.actions.startCareerMatch();
+        if (ctx.game.career.trial) { if (!trialForfeit(ctx.game.career, 'restart')) ctx.actions.startCareerTrial(ctx.game.career.offer); else ctx.actions.toMenu(); }
+        else ctx.actions.startCareerMatch();
         return;
       }
     }
@@ -621,7 +622,8 @@
   /** Partidillo de prueba de la oferta i (fase de elegir club; VB.Career.trialSetup): un solo set a 15 con petos (kit.scrim: los dos
    *  equipos con la camiseta de entreno del club y peto naranja / lima, players.js), en la playa con tu pareja de prueba contra una
    *  pareja del club y en la pista con los suplentes contra los titulares. No toca la jornada (no la hay): al acabar, careerEvents
-   *  llama a VB.Career.trialDone en vez de matchDone. Abandonar o reiniciar no gasta la prueba. Sin prueba, vuelve a las ofertas. */
+   *  llama a VB.Career.trialDone en vez de matchDone. Reiniciar o abandonar gasta la prueba (trialForfeit: suspendida, se pierde la
+   *  oferta). Sin prueba, vuelve a las ofertas. */
   ctx.actions.startCareerTrial = function (i) {
     var K = VB.Career; if (!K || !K.trialSetup) return false;
     var m = null; try { m = K.trialSetup(i | 0); } catch (e) { reportError('Career.trialSetup', e); }
@@ -635,8 +637,22 @@
       nums: m.nums || [[cs.num | 0 || null, cs.mateNum | 0 || null], null] });
     return true;
   };
+  /** Prueba dejada a medias (notes/nota-en-directo-spec.md §5): why 'restart' («Reiniciar prueba») o 'quit' («Abandonar la
+   *  prueba»). VB.Career.trialForfeit la resuelve como suspendida (letra F, se pierde la oferta) con la nota en directo de ese momento,
+   *  y deja el resultado en careerEnd para que toMenu vuelva a las ofertas con la tarjeta «Prueba suspendida». Después, abortMatch.
+   *  false si career.js no sabe gastarla (versión vieja sin trialForfeit): entonces todo sigue como antes. */
+  function trialForfeit(cs, why) {
+    var K = VB.Career; if (!K || typeof K.trialForfeit !== 'function' || !cs) return false;
+    var r = null; try { r = K.trialForfeit(cs.mode, cs.offer, why); } catch (e) { reportError('Career.trialForfeit', e); }
+    careerEnd = Object.assign({ trial: true }, r || { none: true });
+    if (K.abortMatch) { try { K.abortMatch(); } catch (e) { } }
+    return true;
+  }
   function restoreEndButtons() {
+    if (endFitRO) { endFitRO.disconnect(); endFitRO = null; }   // (filas de la comparación ocultas por fitEnd: ui.js rehace #endStats)
+    var mv0 = document.getElementById('endMvp'); if (mv0) mv0.style.display = '';   // (y el MVP, oculto en la prueba)
     var tb = document.getElementById('endTrial'); if (tb && tb.parentNode) tb.parentNode.removeChild(tb);   // (hoja de la prueba)
+    var tr = document.getElementById('endTrialRt'); if (tr && tr.parentNode) tr.parentNode.removeChild(tr);   // (y su «Lo mejor / A mejorar»)
     var e = document.getElementById('end'); if (e) e.classList.remove('career', 'trial'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
     var a = document.getElementById('btnAgain'); if (a && a.getAttribute('data-cr')) { a.textContent = a.getAttribute('data-cr'); a.removeAttribute('data-cr'); }
     var m = document.getElementById('btnMenu'); if (m && m.getAttribute('data-cr')) { m.textContent = m.getAttribute('data-cr'); m.removeAttribute('data-cr'); }
@@ -676,8 +692,10 @@
     if (rec && s) {
       var d = document.createElement('div'); d.className = 'end-xp';
       // pista con banquillo (sum.part): sin nota con menos de 12 puntos en pista («s. c.», sin calificar)
-      var pt = s.part || null, sc = pt && s.nota == null;
-      var html = '<span>Nota: <b>' + (sc ? 's. c.' : fmt1(s.nota || 0)) + '</b>' + (sc ? ' <small>(menos de 12 puntos en pista)</small>' : '') + '</span><span>' + (cs.player ? escHtml(cs.player) + ': ' : '') + '<b>+' + (s.xp | 0) + ' XP</b>' + (s.lvlUp ? ' <span class="lv">¡NIVEL ' + s.lvl + '! +' + s.ptsGained + ' puntos</span>' : '') + '</span>';
+      var pt = s.part || null, sc = pt && s.nota == null, rt = !sc && s.nota != null && s.rt ? s.rt : null;
+      // nota en directo (sum.rt): la nota grande con su color y «Lo mejor / A mejorar» (rtBlock); la XP, en su línea
+      if (rt) { var rb0 = rtBlock(s.nota, rt, false); rec.appendChild(rb0); fitChips(rb0); }
+      var html = (rt ? '' : '<span>Nota: <b>' + (sc ? 's. c.' : fmt1(s.nota || 0)) + '</b>' + (sc ? ' <small>(menos de 12 puntos en pista)</small>' : '') + '</span>') + '<span>' + (cs.player ? escHtml(cs.player) + ': ' : '') + '<b>+' + (s.xp | 0) + ' XP</b>' + (s.lvlUp ? ' <span class="lv">¡NIVEL ' + s.lvl + '! +' + s.ptsGained + ' puntos</span>' : '') + '</span>';
       d.innerHTML = html; rec.appendChild(d);
       var pl = partLine(pt);
       if (pl) { var dp = document.createElement('div'); dp.className = 'end-xp end-part'; dp.innerHTML = '<span>' + pl + '</span>'; rec.appendChild(dp); }
@@ -698,6 +716,74 @@
         ld.innerHTML = '<span>' + (lch.ok ? '✓ Reto' : '✗ Reto') + ': <b>' + escHtml(lch.txt) + '</b> (' + escHtml(lch.prog) + ')</span>';
         rec.appendChild(ld);
       }
+      if (rt) fitEnd(en && en.querySelector('.sheet'));
+    }
+  }
+  /** Hoja final de Carrera con la nota en directo: el bloque de la nota es más alto que la línea «Nota: 7,4» de antes y, con 3 sets
+   *  (los parciales bajan de línea) y el reto de la jornada, «Volver a la Carrera» quedaba cortado a 1280×720. Si la hoja no cabe,
+   *  oculta las filas de la comparación de equipos desde abajo (Mejor racha, Errores del rival…), dejando «Puntos» y 2 filas más.
+   *  En la prueba (sin comparación; a 390×844 los objetivos van uno por línea) oculta el MVP del partidillo de petos.
+   *  ui.js rehace #endStats en cada hoja; se vuelve a medir con cada cambio de tamaño (la hoja se acopla mientras sale). */
+  var endFitRO = null;
+  function fitEnd(sh) {
+    if (endFitRO) { endFitRO.disconnect(); endFitRO = null; }
+    if (!sh) return;
+    if (typeof ResizeObserver === 'function') { endFitRO = new ResizeObserver(function () { fitEndNow(sh); }); endFitRO.observe(sh); }
+    fitEndNow(sh);
+  }
+  function fitEndNow(sh) {
+    var rows = sh.querySelectorAll('#endStats .st-r:not(.tot)'), j;
+    for (j = 0; j < rows.length; j++) rows[j].style.display = '';
+    if (!(sh.clientHeight > 0)) return;
+    for (j = rows.length - 1; j >= 2 && sh.scrollHeight > sh.clientHeight + 1; j--) rows[j].style.display = 'none';
+    var mv = document.getElementById('endMvp'), tr = document.getElementById('endTrialRt');
+    if (mv) mv.style.display = '';
+    if (mv && tr && sh.scrollHeight > sh.clientHeight + 1) mv.style.display = 'none';
+  }
+  /** Franja de color de la nota (notes/nota-en-directo-spec.md §6.4; la misma que la píldora de ui.js). */
+  function rtBand(v) { v = Math.round(v * 10) / 10; return v < 5 ? 'rt-bad' : v < 6 ? 'rt-low' : v < 7 ? 'rt-mid' : v < 8 ? 'rt-good' : 'rt-top'; }
+  function rtFmt(d) {
+    var R = VB.Rating; if (R && typeof R.fmt === 'function') { try { return R.fmt(d); } catch (e) { } }
+    var r = Math.round(d * 10) / 10; return r ? (r > 0 ? '+' : '−') + fmt1(Math.abs(r)) : '';
+  }
+  /** Pastillas «3 × Ace +0,3» (hasta 3) de una lista best / worst de VB.Rating.close, o '' sin nada. */
+  function rtChips(list) {
+    var a = (list || []).filter(function (x) { return x && x.txt; }).slice(0, 3).map(function (x) {
+      var f = rtFmt(+x.d || 0);
+      return { h: '<i>' + ((x.n | 0) > 1 ? (x.n | 0) + ' × ' : '') + escHtml(x.txt) + '</i>' + (f ? ' <b>' + f + '</b>' : '') };
+    });
+    if (!a.length) return '';
+    if (VB.UI && VB.UI.sep) { try { return VB.UI.sep(a, 'c'); } catch (e) { } }
+    return a.map(function (x) { return '<span class="chip">' + x.h + '</span>'; }).join(' ');
+  }
+  /** Bloque de la nota en directo de la hoja final (.end-rt; CSS en career-ui.js): a la izquierda la nota grande con el color de su
+   *  franja y «Empezaste en 6,0»; a la derecha «Lo mejor» y «A mejorar». compact (prueba): solo las dos filas, sin la nota grande. */
+  function rtBlock(nota, rt, compact) {
+    var d = document.createElement('div'); d.className = 'end-rt' + (compact ? ' cmp' : '');
+    var b = rtChips(rt.best), w = rtChips(rt.worst), st = VB.Rating && typeof VB.Rating.START === 'number' ? VB.Rating.START : 6;
+    var rows = (b ? '<div class="er-r up"><span class="er-h">Lo mejor</span><span class="er-c">' + b + '</span></div>' : '') +
+      (w ? '<div class="er-r dn"><span class="er-h">A mejorar</span><span class="er-c">' + w + '</span></div>' : '');
+    d.innerHTML = (compact ? '' : '<div class="er-n ' + rtBand(nota) + '" role="img" aria-label="Nota del partido ' + fmt1(nota) + ', empezaste en ' + fmt1(st) + '"><i aria-hidden="true"><small>NOTA</small><b>' + fmt1(nota) + '</b></i><span aria-hidden="true">Empezaste en ' + fmt1(st) + '</span></div>') +
+      (rows ? '<div class="er-l">' + rows + '</div>' : '');
+    return d;
+  }
+  /** Una fila por lista en .end-rt (sin que la hoja crezca y «Menú principal» se salga): quita las pastillas del final que no caben
+   *  a lo ancho (las oculta), dejando al menos 1. La hoja cambia de ancho mientras sale (celebración, hoja acoplada): se vuelve a
+   *  medir con cada cambio de tamaño (ResizeObserver; sin él, una vez al momento). */
+  function fitChips(box) {
+    if (typeof ResizeObserver === 'function') { new ResizeObserver(function () { fitChipsNow(box); }).observe(box); return; }
+    fitChipsNow(box);
+  }
+  function fitChipsNow(box) {
+    var cs = box.querySelectorAll('.er-c');
+    for (var i = 0; i < cs.length; i++) {
+      var c = cs[i], ch = c.querySelectorAll('.chip'), j;
+      c.classList.remove('fit1');
+      for (j = 0; j < ch.length; j++) ch[j].style.display = '';
+      if (!(c.clientWidth > 0)) continue;
+      for (j = ch.length - 1; j > 0 && c.scrollWidth > c.clientWidth + 1; j--) ch[j].style.display = 'none';
+      // ni la 1ª cabe entera (390 de ancho, «33 × Toque flojo −0,5»): el texto se corta con «…» y la cifra se queda
+      if (c.scrollWidth > c.clientWidth + 1) c.classList.add('fit1');
     }
   }
   /** Hoja final del partidillo de prueba (careerEndSheet con g.career.trial; s = VB.Career.trialDone): el veredicto de título
@@ -707,6 +793,7 @@
   function trialEndSheet(g, s, en, t, k, rec) {
     var cs = g.career || {}, club = (s && s.clubName) || cs.clubName || cs.rivalName || '';
     var old = document.getElementById('endTrial'); if (old && old.parentNode) old.parentNode.removeChild(old);
+    old = document.getElementById('endTrialRt'); if (old && old.parentNode) old.parentNode.removeChild(old);
     var mv = document.getElementById('endMvp'), box = document.createElement('div'); box.id = 'endTrial'; box.className = 'end-rec end-trialbox';
     if (mv && mv.parentNode) mv.parentNode.insertBefore(box, mv); else if (rec) rec.appendChild(box);
     rec = box;
@@ -717,20 +804,38 @@
       if (rec) { var dn = document.createElement('div'); dn.className = 'end-xp'; dn.innerHTML = '<span>La oferta de la prueba ya no está disponible.</span>'; rec.appendChild(dn); }
       return;
     }
-    var L = String(s.letter || 'F'), lc = L === 'A+' || L === 'A' ? 'a' : L === 'B' ? 'b' : L === 'C' ? 'c' : 'd', left = s.left | 0;
-    if (t) t.textContent = s.pass ? '¡Te fichan!' : 'Esta vez no';
+    var L = String(s.letter || 'F'), lc = L === 'A+' || L === 'A' ? 'a' : L === 'B' ? 'b' : L === 'C' ? 'c' : 'd', left = s.left | 0, fo = !!s.forfeit;
+    if (t) t.textContent = fo ? 'Prueba suspendida' : s.pass ? '¡Te fichan!' : 'Esta vez no';
     if (!rec) return;
-    var why = s.pass ? escHtml(club) + ' te ficha: 1 temporada de contrato.' : 'Te ' + (left === 1 ? 'queda 1 oferta' : 'quedan ' + left + ' ofertas') + '.';
-    if (s.luck) why += s.pass ? ' Con C decidía la suerte, y ha salido de cara.' : ' Con C decidía la suerte, y no ha salido.';
+    var lefts = 'Te ' + (left === 1 ? 'queda 1 oferta' : 'quedan ' + left + ' ofertas') + '.';
+    // (suspendida: dejaste el partidillo a medias, al reiniciar o abandonar; notes/nota-en-directo-spec.md §5)
+    var why = fo ? 'Dejaste el partidillo a medias: ' + escHtml(club || 'el club') + ' no te espera. ' + lefts : s.pass ? escHtml(club) + ' te ficha: 1 temporada de contrato.' : lefts;
+    if (s.luck && !fo) why += s.pass ? ' Con C decidía la suerte, y ha salido de cara.' : ' Con C decidía la suerte, y no ha salido.';
+    // de dónde sale la nota: la del partido (nota en directo) más lo que suman los objetivos («Nota del partido 6,4 + 0,5 de objetivos»)
+    if (s.rt && s.nota != null && !fo) {
+      var tg = (VB.Career && typeof VB.Career.TRIAL_GOAL === 'number' ? VB.Career.TRIAL_GOAL : 0.25) * (s.met != null ? s.met | 0 : (s.goals || []).filter(function (o) { return o && o.ok === true; }).length);
+      // (los objetivos van a 0,25 y la nota a 0,1: la base que se ve es nota − objetivos, a dos decimales si hace falta, para que la
+      // suma cuadre; con el tope de 10, sin desglose)
+      var f2 = function (v) { return (Math.round(v * 100) / 100).toFixed(2).replace(/0$/, '').replace('.', ','); };
+      if (tg < 0.04) why += ' Nota del partido ' + fmt1(s.nota) + '.';
+      else if ((s.base != null ? s.base : s.nota - tg) + tg <= 10.001) why += ' Nota del partido ' + f2(Math.max(0, s.nota - tg)) + ' + ' + f2(tg) + ' de objetivos.';
+      else why += ' Nota del partido con los objetivos: ' + fmt1(s.nota) + ' (el tope es 10).';
+    }
     // objetivos: ✓ / ✗ con lo que has hecho, en pastillas junto a la letra (a 844×390 la hoja cabe entera)
     var gl = (s.goals || []).filter(Boolean), gh = gl.length ? '<div class="et-goals">' + gl.map(function (o) {
       var ok = o.ok === true, no = o.ok === false;
       return '<span class="' + (ok ? 'ok' : no ? 'no' : '') + '"><i aria-hidden="true">' + (ok ? '✓' : no ? '✗' : '–') + '</i>' + escHtml(o.txt) + (o.v != null ? ' <small>(' + (o.v | 0) + ')</small>' : '') + '<span class="sr">' + (ok ? ', cumplido' : no ? ', no cumplido' : '') + '</span></span>';
     }).join('') + '</div>' : '';
     var d = document.createElement('div'); d.className = 'end-trial ' + (s.pass ? 'pass' : 'fail');
-    d.innerHTML = '<div class="et-l l-' + lc + '" aria-label="Nota ' + escHtml(L) + '"><b>' + escHtml(L) + '</b><small>' + (s.nota != null ? fmt1(s.nota) : 'NOTA') + '</small></div>' +
-      '<div class="et-t"><strong>' + (s.pass ? 'Superas la prueba' : 'No superas la prueba') + '</strong><span>' + why + '</span>' + gh + '</div>';
+    d.innerHTML = '<div class="et-l l-' + lc + '" aria-label="Nota ' + escHtml(L) + '"><b>' + escHtml(L) + '</b><small>' + (fo ? '—' : s.nota != null ? fmt1(s.nota) : 'NOTA') + '</small></div>' +
+      '<div class="et-t"><strong>' + (fo ? 'No superas la prueba' : s.pass ? 'Superas la prueba' : 'No superas la prueba') + '</strong><span>' + why + '</span>' + (fo ? '' : gh) + '</div>';
     rec.appendChild(d);
+    // nota en directo: «Lo mejor / A mejorar» en compacto, bajo los objetivos (hijo de la hoja, tras #endTrial: en los teléfonos
+    // apaisados va a la columna de la derecha, bajo el MVP, que en la prueba está casi vacía; CSS en career-ui.js)
+    if (s.rt && !fo) {
+      var rb = rtBlock(s.nota, s.rt, true); rb.id = 'endTrialRt';
+      if (rb.firstChild && box.parentNode) { box.parentNode.insertBefore(rb, box.nextSibling); fitChips(rb); fitEnd(en && en.querySelector('.sheet')); }
+    }
   }
   // ---------- Presentación del partido (UI-14) ----------
   // Tarjeta de INTRO_SEC s al empezar: la sim queda parada (sin serveReady ni silbato; los eventos iniciales salvo newMatch se
@@ -761,9 +866,11 @@
     var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
     // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
     var drillC = !!(ctx.game && ctx.game.careerDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerDrill : null;
-    // partidillo de prueba: aprobado, al hub de tu club nuevo; suspendido, a las ofertas con el resultado; abandonado a medias, a las
-    // ofertas sin gastar nada (la prueba sigue pendiente: c.pick.trial)
-    var trialC = fromCareer && ctx.game.career.trial ? ctx.game.career : null, trialE = trialC ? careerEnd : null;
+    // partidillo de prueba: aprobado, al hub de tu club nuevo; suspendido, a las ofertas con el resultado. Abandonarlo a medias
+    // también la gasta: «Abandonar la prueba» la resuelve aquí como suspendida (trialForfeit 'quit') y va a las ofertas igual
+    var trialC = fromCareer && ctx.game.career.trial ? ctx.game.career : null;
+    if (trialC && !careerEnd) trialForfeit(trialC, 'quit');
+    var trialE = trialC ? careerEnd : null;
     if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
     restoreEndButtons();
@@ -1326,6 +1433,24 @@
       return keep;
     }
     function uiIngest(evs, g) { call('UI', 'ingest', evs, g); }
+    /** Nota en directo de muestra para &rt=1 (la forma de VB.Career.liveRating: { v, on, sc, seq, log, trial }). Los eventos de la escena
+     *  pasan por VB.Rating si está cargado; si no dejan ningún aviso, uno de muestra (&neg=1 uno que resta). &rtv=N fija la nota, &sc=1
+     *  «s. c.» (menos de 12 puntos en pista) y &off=1 en el banquillo. */
+    function rtDebug(g, evs) {
+      var R = VB.Rating, six = g.size === 6, me = six ? g.ctrl : g.teams && g.teams[0][0];
+      var o = { v: 6, on: Q.off !== '1', sc: Q.sc === '1', seq: 0, log: [], trial: !!(g.career && g.career.trial) };
+      if (R && typeof R.create === 'function' && typeof R.feed === 'function') {
+        try {
+          var st = R.create({ hall: six, pos: six ? g.ctrlRole || 'OH' : 'atk', points: g.points, toWin: g.toWin, trial: o.trial, on: true });
+          var who = function (pl) { return !pl ? -1 : pl === me ? 0 : pl.team === 0 ? 1 : -1; };
+          for (var i = 0; i < evs.length; i++) R.feed(st, evs[i], who);
+          o.v = R.value(st); o.seq = st.seq | 0; o.log = (st.log || []).slice(-1);
+        } catch (e) { reportError('Rating (escena de depuración)', e); }
+      }
+      if (!o.log.length || Q.neg === '1') { o.seq++; o.log = [Q.neg === '1' ? { seq: o.seq, kind: 'play', id: 'srvErr', txt: 'Error de saque', d: -0.2, v: 6.4 } : { seq: o.seq, kind: 'play', id: 'ace', txt: 'Ace', d: 0.3, v: 6.8 }]; o.v = o.log[0].v; }
+      if (Q.rtv != null && Q.rtv !== '' && isFinite(+Q.rtv)) o.v = +Q.rtv;
+      return o;
+    }
     var g, keep = [], state = 'playing', live = Q.live === '1', dbgKit = null, trialDbg = null;   // (dbgKit: equipación de la escena; trialDbg: hoja de la prueba)
     switch (name) {
       case 'menu': case 'tutorial': case 'controls': case 'settings':
@@ -1447,7 +1572,17 @@
         break;
       case 'over': case 'end':
         g = mk(true);
-        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over'; break;
+        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
+        // &cr=1: la hoja final de un partido de Carrera con la nota en directo (datos de muestra, no toca ninguna Carrera guardada);
+        // &rtv=N la nota (color de su franja), &lv=1 con subida de nivel, &nort=1 sin la nota en directo (la línea «Nota: 7,4» de antes)
+        if (Q.cr === '1') {
+          var crv = isFinite(+Q.rtv) && Q.rtv !== '' && Q.rtv != null ? +Q.rtv : 7.4;
+          g.career = { _debug: true, me: 'TÚ', rival: 'VAL', rivalName: 'Voley Valencia', label: 'Circuito Regional · Jornada 3 de 14', player: 'Ari Lluch' };
+          trialDbg = { nota: crv, xp: 312, lvlUp: Q.lv === '1', lvl: 4, ptsGained: 3, rt: null };
+          if (Q.nort !== '1') trialDbg.rt = { nota: crv, best: [{ id: 'ace', txt: 'Ace', n: 3, d: 0.31 }, { id: 'kill', txt: 'Remate ganado', n: 9, d: 0.28 }, { id: 'block', txt: 'Bloqueo punto', n: 1, d: 0.1 }],
+            worst: [{ id: 'srvErr', txt: 'Error de saque', n: 2, d: -0.17 }, { id: 'atkErr', txt: 'Remate fuera', n: 1, d: -0.08 }, { id: 'net', txt: 'Toque de red', n: 1, d: -0.08 }] };
+        }
+        break;
       // E6: ejercicios del Entrenamiento con la IA jugando por ti (autopilot) y congelados en un momento que se lea en la captura:
       // drill_serve (3r saque, balón en el aire), drill_recv (2º saque de la CPU llegando), drill_set (2º balón, antes de colocar),
       // drill_atk (6ª repetición: ya con el bloqueador), drill_block (2º ataque, el remate rival armado), drill_end (hoja final).
@@ -1522,8 +1657,13 @@
         var tf = Q.fail === '1', tg = th ? [['kills', '2 remates ganados', 2, '>='], ['recvP', '2 recepciones perfectas', 2, '>='], ['errors', 'Como mucho 2 errores', 2, '<=']]
           : [['kills', '2 remates ganados', 2, '>='], ['blocks', '1 bloqueo punto', 1, '>='], ['errors', 'Como mucho 2 errores', 2, '<=']];
         var tv = tf ? [1, 0, 3] : [4, 1, 1];
-        trialDbg = { trial: true, letter: tf ? 'D' : 'B', nota: tf ? 5.3 : 6.9, pass: !tf, luck: false, left: tf ? 3 : 0, clubName: 'Voley Valencia', sim: false,
-          goals: tg.map(function (x, j) { return { id: x[0], stat: x[0], txt: x[1], n: x[2], op: x[3], v: tv[j], ok: x[3] === '<=' ? tv[j] <= x[2] : tv[j] >= x[2] }; }) };
+        // (rt: «Lo mejor / A mejorar» de la nota en directo, de muestra; &tf=2 la prueba suspendida por dejarla a medias)
+        trialDbg = { trial: true, letter: tf ? 'D' : 'B', nota: tf ? 5.3 : 6.9, pass: !tf, luck: false, left: tf ? 3 : 0, clubName: 'Voley Valencia', sim: false, met: tf ? 0 : 3, base: tf ? 5.3 : 6.1,
+          goals: tg.map(function (x, j) { return { id: x[0], stat: x[0], txt: x[1], n: x[2], op: x[3], v: tv[j], ok: x[3] === '<=' ? tv[j] <= x[2] : tv[j] >= x[2] }; }),
+          rt: tf ? { best: [{ id: 'kill', txt: 'Remate ganado', n: 1, d: 0.08 }], worst: [{ id: 'srvErr', txt: 'Error de saque', n: 2, d: -0.52 }, { id: 'atkErr', txt: 'Remate fuera', n: 1, d: -0.26 }] }
+            : { best: [{ id: 'kill', txt: 'Remate ganado', n: 4, d: 0.34 }, { id: 'block', txt: 'Bloqueo punto', n: 1, d: 0.31 }], worst: [{ id: 'srvErr', txt: 'Error de saque', n: 1, d: -0.26 }] } };
+        if (Q.tf === '2') trialDbg = { trial: true, forfeit: 'quit', letter: 'F', nota: 5.8, pass: false, luck: false, left: 2, clubName: 'Voley Valencia', sim: false, met: 0,
+          goals: tg.map(function (x) { return { id: x[0], stat: x[0], txt: x[1], n: x[2], op: x[3], ok: null }; }) };
         break;
       }
       case 'doll':   // maqueta del muñeco nuevo (js/doll.js): el pabellón con 4 muñecos y cámara fija; la sim queda congelada en el saque
@@ -1531,6 +1671,8 @@
       default:
         console.warn('[VB] escena de depuración desconocida:', name); ctx.actions.toMenu(); return;
     }
+    // &rt=1: la píldora de la nota en directo con un aviso (ui.js la pinta con g._rtDbg en vez de VB.Career.liveRating)
+    if (Q.rt === '1' && g) g._rtDbg = rtDebug(g, keep);
     // las escenas que ya han pasado los eventos por ingest no los vuelven a contar
     setGame(g, dbgKit);
     for (var i = 0; i < keep.length; i++) pendingEvents.push(keep[i]);

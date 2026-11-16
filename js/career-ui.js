@@ -501,7 +501,61 @@
     '#gymEnd .cdr-tags{display:flex;flex-wrap:wrap;gap:6px}',
     '#gymEnd .cdr-tags>span{padding:3px 9px;border-radius:999px;font:800 12px var(--display);letter-spacing:.1em;text-transform:uppercase;background:rgba(255,210,63,.18);box-shadow:inset 0 0 0 2px var(--gold,#ffd23f);color:#fff}',
     '@media (max-height:420px){#gymEnd .cdr-g{width:54px;height:54px;border-radius:14px}#gymEnd .cdr-g b{font-size:28px}#gymEnd .cdr-bar .bar{height:9px}}',
-    '@media (prefers-reduced-motion:reduce){#end .end-trial .et-l,#gymEnd .cdr-g,#gymEnd .cdr-bar .bar i.b1{animation:none!important}}'
+    '@media (prefers-reduced-motion:reduce){#end .end-trial .et-l,#gymEnd .cdr-g,#gymEnd .cdr-bar .bar i.b1{animation:none!important}}',
+    // Nota en directo (notes/nota-en-directo-spec.md §6.3-6.4). Colores por franja, los mismos en la píldora, el aviso y la hoja
+    // final: rojo de error (< 5), ámbar (5-5,9), blanco del marcador (6-6,9), verde de «ok» (7-7,9) y el dorado de las insignias
+    // (≥ 8). Todos ≥ 3:1 (cifra grande) sobre el morado del marcador; los textos pequeños de los avisos, con los tonos claros.
+    ':root{--rt-bad:#ff5a6e;--rt-low:#ffb238;--rt-mid:#f7f2ea;--rt-good:#4be0a0;--rt-top:#ffd23f}',
+    '.rt-bad{--rc:var(--rt-bad)}.rt-low{--rc:var(--rt-low)}.rt-mid{--rc:var(--rt-mid)}.rt-good{--rc:var(--rt-good)}.rt-top{--rc:var(--rt-top)}',
+    // píldora «NOTA 6,8» bajo el marcador (ui.js rtTick, dentro de #sb: escala con él; 28 px × 0,78 = 22 px de alto a 390 de alto)
+    '.rt-row{display:flex;align-items:center;gap:8px;margin-top:9px;pointer-events:none}',
+    '.rt-row[hidden]{display:none}',
+    '#rtLive{display:inline-flex;align-items:center;gap:7px;height:28px;box-sizing:border-box;padding:0 11px 0 8px;border-radius:9px;border-left:5px solid var(--rc,#f7f2ea);',
+    ' background:var(--cel,#2e2756);box-shadow:0 0 0 2px var(--tk,#1d1530),3px 4px 0 2px var(--tk,#1d1530);font-family:var(--display);color:#fff;transition:opacity .3s}',
+    '#rtLive .rt-k{font-weight:800;font-size:12px;letter-spacing:.2em;color:var(--muted,#b9b0e6)}',
+    '#rtLive b{font-weight:900;font-size:22px;line-height:1;color:var(--rc,#f7f2ea);font-variant-numeric:tabular-nums;text-shadow:var(--ring1),1.5px 1.5px 0 var(--tk,#1d1530)}',
+    '#rtLive small{font:800 11px var(--display);letter-spacing:.08em;color:var(--muted,#b9b0e6)}#rtLive small[hidden]{display:none}',
+    '#rtLive.dim{opacity:.62}#rtLive.dim b{color:#e8e3fb}',
+    // aviso pegado a la píldora: «+0,3 Ace» en verde, «−0,2 Error de saque» en rojo claro; set y partido, algo más grandes
+    '.rt-toast{display:none;align-items:center;height:24px;box-sizing:border-box;padding:0 10px 0 8px;border-radius:8px;border-left:4px solid currentColor;',
+    ' background:rgba(29,21,48,.94);box-shadow:0 0 0 2px var(--tk,#1d1530);font:800 15px/1 var(--display);letter-spacing:.03em;white-space:nowrap}',
+    '.rt-toast.on{display:inline-flex;animation:rtIn .3s cubic-bezier(.2,1.3,.4,1) both}',
+    '.rt-toast.pos{color:#5fe8ad}.rt-toast.neg{color:#ff8a98}.rt-toast.big{height:26px;font-size:16.5px}',
+    '.rt-toast.still{animation:none}',
+    '@keyframes rtIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}',
+    '@media (prefers-reduced-motion:reduce){.rt-toast.on{animation:none}#rtLive{transition:none}}',
+    // pausa del partidillo de prueba: el aviso en una línea pequeña y «Abandonar la prueba» armado como «Reiniciar»
+    '#pause .p-warn{margin:12px 0 -4px;font:700 13.5px/1.25 var(--ui);color:#ffc0a8;text-align:center}#pause .p-warn[hidden]{display:none}',
+    '#btnQuit.arm{background:rgba(255,90,44,.22);box-shadow:inset 0 0 0 2px #ff6a2e;color:#ffd9c4;letter-spacing:.04em}',
+    // hoja final (main.js rtBlock): la nota grande con su color y «Empezaste en 6,0»; a su lado «Lo mejor» y «A mejorar». Cabe en
+    // el sitio de la línea «Nota: 7,4» de antes más «Jugada más larga», que con la nota en directo se quita (como a ≤ 420 de alto):
+    // a 1280×720 y a 844×390 «Volver a la Carrera» y «Menú principal» siguen a la vista
+    '#end.career .end-rec:has(.end-rt)>span{display:none}',
+    '#end .end-rt{display:flex;align-items:center;gap:12px;width:100%;margin:4px 0 2px;text-align:left}',
+    '#end .end-rt .er-n{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:84px;height:50px;box-sizing:border-box;padding:0 8px;border-radius:13px;',
+    ' border-bottom:4px solid var(--rc);background:var(--cel,#2e2756);box-shadow:0 0 0 2.5px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530)}',
+    '#end .end-rt .er-n i{display:flex;align-items:baseline;gap:5px;font-style:normal}',
+    '#end .end-rt .er-n small{font:800 10px var(--display);letter-spacing:.18em;color:var(--muted,#b9b0e6)}',
+    '#end .end-rt .er-n b{font:900 29px/.9 var(--display);color:var(--rc);font-variant-numeric:tabular-nums;text-shadow:var(--ring2),2px 2px 0 var(--tk,#1d1530)}',
+    '#end .end-rt .er-n span{font:700 9.5px/1.1 var(--ui);color:var(--muted,#b9b0e6);margin-top:3px;white-space:nowrap}',
+    '#end .end-rt .er-l{min-width:0;display:flex;flex-direction:column;gap:5px}',
+    '#end .end-rt .er-r{display:flex;align-items:center;gap:6px;min-width:0}',
+    '#end .end-rt .er-h{flex:none;min-width:66px;font:800 11px var(--display);letter-spacing:.14em;text-transform:uppercase}',
+    '#end .end-rt .up .er-h{color:#5fe8ad}#end .end-rt .dn .er-h{color:#ff8a98}',
+    // (una fila por lista: main.js fitChips quita las pastillas del final que no caben, hasta dejar 1)
+    '#end .end-rt .er-c{display:flex;gap:4px;min-width:0;overflow:hidden}#end .end-rt .chip{flex:none}',
+    '#end .end-rt .chip{margin:0;padding:2px 8px;font:700 12px/1.25 var(--ui);text-transform:none;letter-spacing:0;white-space:nowrap;color:var(--fg2,#e8e3fb);background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 1.5px rgba(255,255,255,.18)}',
+    '#end .end-rt .up b{color:#5fe8ad}#end .end-rt .dn b{color:#ff8a98}#end .end-rt .chip b{margin-left:3px;font-weight:800}',
+    '#end .end-rt .chip i{font-style:normal}#end .end-rt .er-c.fit1 .chip:first-child{flex:0 1 auto;min-width:0;display:flex}',
+    '#end .end-rt .er-c.fit1 .chip:first-child i{min-width:0;overflow:hidden;text-overflow:ellipsis}#end .end-rt .er-c.fit1 .chip:first-child b{flex:none}',
+    '#end .end-rt.cmp{margin:0 0 12px}#end .end-rt.cmp .er-l{gap:4px;width:100%}',
+    // (prueba en teléfonos apaisados: en la columna de la derecha, bajo el MVP; la de la izquierda ya va llena con la letra y los objetivos)
+    '@media (max-height:560px) and (min-width:600px){#end.trial .sheet>.end-rt{grid-column:2;grid-row:3/span 4;align-self:start;margin:12px 0 0}}',
+    '@media (max-height:420px){#end .end-rt{margin:2px 0 1px;gap:10px}#end .end-rt .er-n{min-width:74px;height:44px;padding:0 6px}#end .end-rt .er-n b{font-size:25px}#end .end-rt .er-n span{font-size:9px;margin-top:2px}',
+    ' #end .end-rt .er-l{gap:3px}#end .end-rt .er-h{min-width:58px;font-size:10px}#end .end-rt .chip{padding:1px 7px;font-size:11px}',
+    '}',
+    // (667×375: si no cabe, se va «A mejorar» antes que la XP)
+    '@media (max-height:380px){#end.career:not(.trial) .end-rt .dn{display:none}}'
   ].join('\n');
 
   // =================================================================== construcción
@@ -935,11 +989,18 @@
       (canNeg ? '<button data-act="neg" data-i="' + i + '" title="Si no sale, el entrenador empieza con menos confianza">' + (o.role === 'Titular' ? 'Pedir ser indiscutible' : 'Pedir ser titular') + '</button>' : '') + '</div></div>';
     return h;
   }
-  /** Ficha de oferta con prueba: es un partidillo (P4) y la marca de prueba a medias (abandonada o reiniciada: no se gasta). */
+  /** Ficha de oferta con prueba: es un partidillo (P4); dejarlo a medias la gasta. La marca «A medias» solo sale con una prueba
+   *  empezada con la versión 1.2.0 (sin live: se puede jugar una vez más; notes/nota-en-directo-spec.md §5.1). */
   function trialLine(c, o) {
-    var pend = c.pick && c.pick.trial && c.pick.trial.club === o.club;
-    return '<p class="muted"><b>Partidillo de prueba:</b> hace falta nota B (con C decide la suerte). Un set a ' + (C().TRIAL_PTS || 15) + ' con petos y 3 objetivos del entrenador; también se puede simular, con menos probabilidad.' +
+    var pend = trialHalf(c, o);
+    return '<p class="muted"><b>Partidillo de prueba:</b> hace falta nota B (con C decide la suerte). Un set a ' + (C().TRIAL_PTS || 15) + ' con petos y 3 objetivos del entrenador; también se puede simular, con menos probabilidad. Si la dejas a medias, la pierdes.' +
       (pend ? ' <span class="tag y">A medias</span>' : '') + '</p>';
+  }
+  /** ¿Prueba de esta oferta a medias de un guardado viejo (VB.Career.trialPending sin live)? Sin trialPending (career.js viejo), la de antes. */
+  function trialHalf(c, o) {
+    var K = C(); if (!o) return false;
+    if (K && typeof K.trialPending === 'function') { var tp = null; try { tp = K.trialPending(); } catch (e) { tp = null; } return !!(tp && tp.club === o.club && !tp.live); }
+    return !!(c.pick && c.pick.trial && c.pick.trial.club === o.club);
   }
   /** «(entrenos +6 por semana en defensa)»: lo que suman los entrenamientos del club con ese estilo (VB.Career.STYLE_TRAIN). */
   function styleTrain(style) {
@@ -1468,7 +1529,7 @@
   function trialInfo(c, i) {
     var o = c.offers[i], k = C().club(c, o.club), hall = isHall(c);
     var f = hall ? C().clubInfo(c, k, o.lid, o.ovr) : C().clubInfo(c, k, o.lvl != null ? o.lvl : k.lvl, o.q);
-    var pr = C().trialSimChance ? C().trialSimChance(o) : o.chance * 0.7, pend = c.pick && c.pick.trial && c.pick.trial.club === o.club ? c.pick.trial.tries | 0 : 0;
+    var pr = C().trialSimChance ? C().trialSimChance(o) : o.chance * 0.7, pend = trialHalf(c, o) ? 1 : 0;
     return { i: i, hall: hall, name: k.name, kit: k.kit || {}, stars: f.stars, league: f.league, place: hall ? f.country : (f.beach || k.city), ovr: o.ovr != null ? o.ovr : f.ovr,
       goals: C().trialGoals ? C().trialGoals(c, o) : [], pct: Math.round(pr * 100), pts: C().TRIAL_PTS || 15, mate: !hall && o.mateP ? o.mateP.name : '',
       player: c.player.name, ovrMe: C().playerOvr(c), pend: pend, ai: hall ? '' : trialAI(c) };
@@ -1503,8 +1564,8 @@
       '<p class="muted">' + (t.hall ? 'Juegas en tu puesto con los suplentes del club contra sus titulares, en el pabellón.'
         : 'Juegas con tu pareja de prueba' + (t.mate ? ', ' + esc(t.mate) + ',' : '') + ' contra una pareja del club, en la arena' + (t.ai ? ' (' + t.ai + ')' : '') + '.') + '</p>' +
       '<h3 style="margin-top:10px">Objetivos del entrenador</h3><ol class="tp-goals">' + t.goals.map(function (g, j) { return '<li><i>' + (j + 1) + '</i>' + esc(g.txt) + '</li>'; }).join('') + '</ol>' +
-      '<p class="muted">Hace falta nota B: con A+, A o B te fichan; con C decide la suerte; con D o F no te quedas. Cada objetivo cumplido sube la nota. Si abandonas o reinicias, no pierdes la prueba' +
-      (t.pend ? ' (la tienes a medias: puedes volver a jugarla)' : '') + '.</p>' +
+      '<p class="muted">Hace falta nota B: con A+, A o B te fichan; con C decide la suerte; con D o F no te quedas. Cada objetivo cumplido sube la nota. Si reinicias o abandonas, pierdes la prueba' +
+      (t.pend ? ' (la tienes a medias de antes: puedes jugarla una vez más)' : '') + '.</p>' +
       '<div class="tp-acts"><button class="pri" data-act="trial-play" data-i="' + t.i + '">Saltar a la pista</button>' +
       '<button data-act="trial-sim" data-i="' + t.i + '">Simular<small>(prob. ' + t.pct + ' %)</small></button></div></div>';
     body.innerHTML = h;
@@ -1523,9 +1584,11 @@
     var why = r.pass ? (nm ? esc(nm) + ' te ficha: 1 temporada de contrato. ' : '') + (r.sim ? 'Informe del cuerpo técnico (prueba simulada).' : '')
       : (r.sim ? 'Informe del cuerpo técnico (prueba simulada). ' : '') + 'Te ' + (left === 1 ? 'queda 1 oferta' : 'quedan ' + left + ' ofertas') + '.';
     if (r.luck) why += r.pass ? ' Con C decidía la suerte, y ha salido de cara.' : ' Con C decidía la suerte, y no ha salido.';
+    // suspendida por dejarla a medias (reiniciar, abandonar o cerrar a mitad: r.forfeit, VB.Career.trialForfeit / trialStale)
+    if (r.forfeit) why = 'Prueba suspendida con ' + (nm ? esc(nm) : 'el club') + ': la dejaste a medias. Te ' + (left === 1 ? 'queda 1 oferta' : 'quedan ' + left + ' ofertas') + '.';
     var gl = (r.goals || []).filter(function (g) { return g && g.ok != null; });
     return '<div class="card tp-res new"><h3>' + sp(['Prueba', esc(nm)], 'd') + '</h3><div class="row"><div class="et-l l-' + lc + '" aria-label="Nota ' + esc(L) + '"><b>' + esc(L) + '</b><small>' +
-      (r.nota != null ? dec(r.nota) : 'INFORME') + '</small></div><div class="grow" style="min-width:0"><p class="bigname">' + (r.pass ? '¡Te fichan!' : 'Esta vez no') + '</p><p>' + why + '</p></div></div>' +
+      (r.forfeit ? '—' : r.nota != null ? dec(r.nota) : 'INFORME') + '</small></div><div class="grow" style="min-width:0"><p class="bigname">' + (r.pass && !r.forfeit ? '¡Te fichan!' : 'Esta vez no') + '</p><p>' + why + '</p></div></div>' +
       (gl.length ? '<div class="et-goals">' + gl.map(function (g) {
         return '<span class="' + (g.ok ? 'ok' : 'no') + '"><i aria-hidden="true">' + (g.ok ? '✓' : '✗') + '</i>' + esc(g.txt) + (g.v != null ? ' (' + (g.v | 0) + ')' : '') + '<span class="sr">' + (g.ok ? ', cumplido' : ', no cumplido') + '</span></span>';
       }).join('') + '</div>' : '') + '</div>';
@@ -1559,7 +1622,7 @@
     // resultado de la prueba: el que acaba de pasar (arriba del todo, con los objetivos) o, si no, el último guardado en corto
     var trc = takeTrialRes(c), prs = c.pick && c.pick.res;
     if (trc) h = trc + h;
-    else if (prs && prs.letter && C().club(c, prs.club)) h += '<p class="muted">' + sp(['Última prueba: ' + esc(C().club(c, prs.club).name), 'nota ' + esc(prs.letter) + (prs.sim ? ' (simulada)' : ''), prs.pass ? 'superada' : 'no superada'], 'v') + '</p>';
+    else if (prs && prs.letter && C().club(c, prs.club)) h += '<p class="muted">' + sp(['Última prueba: ' + esc(C().club(c, prs.club).name), 'nota ' + esc(prs.letter) + (prs.sim ? ' (simulada)' : ''), prs.pass ? 'superada' : prs.forfeit ? 'suspendida (la dejaste a medias)' : 'no superada'], 'v') + '</p>';
     h += '<p class="note" role="status" aria-live="polite">' + esc(note) + '</p>';
     note = '';
     // lo último que te ha dicho tu agente (en esta fase no hay bandeja: antes se leía después de firmar, cuando ya no servía)
@@ -1986,6 +2049,10 @@
   function backdrop(k) { try { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.menuBackdrop) VB.ctx.actions.menuBackdrop(k); } catch (e) { } }
   function show(v) {
     build();
+    // prueba empezada y sin acabar (se cerró o se recargó la pestaña a mitad del partidillo): VB.Career.trialStale la da por
+    // suspendida ('left') antes de pintar; si devuelve el resultado, su tarjeta arriba (notes/nota-en-directo-spec.md §5.1)
+    var ts = null; try { ts = C() && typeof C().trialStale === 'function' ? C().trialStale() : null; } catch (e) { ts = null; }
+    if (ts && ts.letter && !trialRes) { trialI = -1; trialRes = ts; sub.pick = 0; }
     var c = C() && C().get();
     view = v || (c ? 'hub' : 'create');
     if (view === 'hub' && !c) view = 'create';
@@ -2042,7 +2109,7 @@
     open: function (v, opts) {
       if (v === 'pick') v = 'hub';   // (fase de elegir club: el hub ya enseña las ofertas)
       if (opts && opts.fresh) { freshLast = true; tab = 'match'; }
-      // vuelta de una prueba (main.js): su resultado arriba (ofertas o, si te fichan, tu club nuevo); abandonada, sin nada
+      // vuelta de una prueba (main.js): su resultado arriba (ofertas o, si te fichan, tu club nuevo; si la dejaste a medias, «Prueba suspendida»)
       if (opts && 'trialRes' in opts) { trialI = -1; trialRes = opts.trialRes || null; if (trialRes && !trialRes.pass) sub.pick = 0; }
       // vuelta de un ejercicio de Carrera (main.js): a Partido, con el resultado en el bloque Entrenamiento
       if (opts && opts.train) { tab = 'match'; trainNote = opts.res ? trainResText(opts.res) : ''; trainFocus = true; }

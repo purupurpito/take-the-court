@@ -22,10 +22,12 @@
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.2.0', d: '2026-11-15', t: 'Pruebas y entrenos',
+      v: '1.2.0', d: '2026-11-15', t: 'Pruebas, entrenos y nota en directo',
       items: [
         'Las pruebas de club son un partidillo con petos: un set a 15 y tres objetivos.',
         'Saca nota B o mejor y te fichan. También puedes simularla, con menos opciones.',
+        'Ojo: si reinicias o abandonas la prueba, la pierdes.',
+        'Nota en directo en los partidos de Carrera: tus buenas acciones suman y las malas restan.',
         'Plan del entrenador: tres sesiones por jornada, jugadas, rápidas o de descanso.',
         'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
         'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
