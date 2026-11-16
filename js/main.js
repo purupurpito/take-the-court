@@ -1237,7 +1237,10 @@
     var bs = VB.CameraRig && VB.CameraRig.getBasis ? VB.CameraRig.getBasis() : null;
     var mx = it ? it.mx || 0 : 0, my = it ? it.my || 0 : 0;
     var g0 = ctx.game;
-    if (bs && g0 && g0.mode === 'serve' && !g0.demo) {
+    // (C2, colocar por destino: con la ventana de colocación abierta, Sim.setWin, también: así las 8 direcciones del teclado dan
+    // siempre los mismos destinos aunque la cámara esté girada; va dentro de move, así que la repetición lo graba igual)
+    var setW = !!(g0 && !g0.demo && g0.mode === 'rally' && VB.Sim && VB.Sim.setWin && VB.Sim.setWin(g0));
+    if (bs && g0 && (g0.mode === 'serve' || setW) && !g0.demo) {
       // saque: ejes de la pista, no de la cámara (que está algo girada). Así ↑ sola lleva la diana recta al fondo y ←/→ la mueven
       // solo a lo ancho (antes ↑ iba de (−7, 0) a (−9, 2)); y antes de lanzar, ←/→ desplazan al sacador sin deriva.
       var ax = Math.abs(bs.fx) >= Math.abs(bs.fy), fX = ax ? (bs.fx < 0 ? -1 : 1) : 0, fY = ax ? 0 : (bs.fy < 0 ? -1 : 1);

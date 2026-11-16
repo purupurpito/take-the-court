@@ -20,6 +20,7 @@
  *   SIMTEST_ONLY=matrix: solo la matriz. MATRIX_FILTER='novato vs easy|medio vs normal': solo esas casillas.
  *   SIMTEST_ONLY=e1: solo la sección «Maestría (E1)». SIMTEST_MASTERY=1: la matriz con createGame({mastery:true}) (la CPU lee la finta
  *   y usa golpe colocado / colocación a un lado); SIMTEST_MASTERY=2: además los bots usan finta, colocado, filo y colocación dirigida.
+ *   SIMTEST_ONLY=colocar: solo la sección «Colocar por destino (C2)» (SIMTEST_COL=b,c filtra las pruebas).
  *   SIMTEST_ONLY=gym: solo la sección «Gimnasio (E6)» (createGame({drill}): ejercicios y peloteo libre).
  *   SIMTEST_ONLY=replay: solo la sección «[repetición]» (S3-C1: copyGame, stateHash, resim idéntica; SIMTEST_RP_SECS = s por partido, 180).
  */
@@ -383,7 +384,8 @@ const BOT_MASTERY = {
 };
 // SIMTEST_BOTM=feint,set: solo esas jugadas (afinado; las demás a 0)
 if (process.env.SIMTEST_BOTM) { const on = process.env.SIMTEST_BOTM.split(","); for (const b in BOT_MASTERY) for (const k in BOT_MASTERY[b]) if (!on.includes(k)) BOT_MASTERY[b][k] = 0; }
-const SETDIRS = [[-1, 0], [1, 0], [0, 1], [0, -1]]; // colocación dirigida (mundo, equipo 0 en x > 0): ↑ rápida, ↓ alta, ← → a un lado
+// colocación por destino (C2): las 8 direcciones (mundo, equipo 0 en x > 0: ↑ = −x, → = +y); sin dirección (mSet null), alta a la 4
+const SETDIRS = [0, 45, 90, 135, 180, 225, 270, 315].map(a => [-Math.cos(a * Math.PI / 180), Math.sin(a * Math.PI / 180)]);
 function makeBot(bp, seed, opt) {
   const six = !!(opt && opt.six), role = six && opt.role || '';
   const pm = opt && opt.mastery || null; let mPlan = '', mEdge = false, mSet = null, mT = -9, mBtn = 'jump'; // E1: maestría del bot
@@ -436,7 +438,7 @@ function makeBot(bp, seed, opt) {
       naive = !bp.block && g.touchTeam === 1 && g.touches === 2 && rng() < (bp.netJump || 0); // "bloqueo" de novato
       if (bp.misSwitch && rng() < bp.misSwitch) out.switchPlayer = true;
       if (pm) { const r = rng(); mPlan = r < pm.feint ? 'feint' : r < pm.feint + pm.roll ? 'roll' : ''; mEdge = rng() < pm.edge;
-        mSet = rng() < pm.set ? SETDIRS[Math.floor(rng() * 4) % 4] : null; mBtn = rng() < 0.6 ? 'jump' : 'jset'; mT = -9; }
+        mSet = rng() < pm.set ? SETDIRS[Math.floor(rng() * 8) % 8] : null; mBtn = rng() < 0.6 ? 'jump' : 'jset'; mT = -9; }
     }
     const since = g.time - g.lastTouchT, job = g.jobs[0] === p;
     const set2 = role === 'S' && job && g.touchTeam === 0 && g.touches === 1; // colocador bot: el 2º toque es suyo
@@ -481,7 +483,8 @@ function makeBot(bp, seed, opt) {
         if (set2) { laneV = LANES[Math.floor(rng() * 4) % 4]; out.move = laneV; } // colocador: elige carril con el stick (laneOf)
         else if (useGap && p.z > 0.25) { gapAim(g, p, aimv); out.move = aimv; } // remate: busca el hueco
         else if (useAim) out.move = aimv;
-        if (mSet && p.z === 0 && g.touchTeam === 0 && g.touches === 1) out.move = mSet; // E1: colocación dirigida
+        // E1: colocación dirigida (revisión C2: como una persona, suelta la flecha de moverse al pulsar y elige el destino en el gesto, abajo)
+        if (mSet && p.z === 0 && g.touchTeam === 0 && g.touches === 1) out.move = [0, 0];
       }
     }
     if (mT > 0 && g.swingLive && g.time - mT >= 0.08) { out[mBtn] = true; mT = -9; } // E1: el cambio de botón de la finta
@@ -811,31 +814,35 @@ function e1Section() {
       kSp >= 1.25 && kSp <= 1.4 && E.out >= M.out + 0.08 && E.dig <= M.dig * 0.9 && lOn[1] >= 4.44 && lOff[1] <= 3.9 + 1e-9 && ap > 0.9,
       { dispersion: +kSp.toFixed(2), fuera: pct(E.out * 1000, 1000) + ' vs ' + pct(M.out * 1000, 1000), digOk: pct(E.dig * 1000, 1000) + ' vs ' + pct(M.dig * 1000, 1000), diana: [lOn, lOff], edgeOf: +ap.toFixed(2) }]);
   }
-  // (e) colocación dirigida: cada dirección da su tempo y su destino (±0,5 m con q = 1); neutra idéntica a hoy; con aimSet:false nunca
+  // (e) colocación dirigida (reescrita con C2, «Colocar por destino»: detalle en SIMTEST_ONLY=colocar): con la bandera el destino sale de
+  // g.setDirA (↑ rápida delante, ← tensa a la 4, ↓ alta atrás; neutra = alta a la 4, ya NO la de siempre); sin la bandera o con
+  // aimSet:false, la de siempre byte a byte (x 1,35 al compañero, cima 5,3, tempo ''); setPreview = destino real sin error
   if (want('e')) {
-    const setCase = (aim, len, ms, aimSet, seed) => {
+    const setCase = (dirA, ms, aimSet, seed) => {
       const g = S.createGame({ demo: false, seed: seed || 77, mastery: ms, aimSet }), h = g.teams[0][0], m = g.teams[0][1];
       e1Rally(g, { x: 2.0, y: 0.3, z: 2.2, vx: 0, vy: 0, vz: -1 }); g.touchTeam = 0; g.touches = 1; g.lastTeam = 0; g.lastPlayer = m; g.lastKind = 'pass';
-      g.ctrl = h; h.x = 2.0; h.y = 0.3; h.z = 0; m.x = 4.3; m.y = -1.5; g.swingLen = len;
-      S._hit(g, h, aim, 0, ''); const hv = S.drainEvents(g).find(e => e.type === 'hit');
+      g.ctrl = h; h.x = 2.0; h.y = 0.3; h.z = 0; m.x = 4.3; m.y = -1.5; g.setDirA = dirA == null ? NaN : dirA;
+      S._hit(g, h, null, 0, ''); const hv = S.drainEvents(g).find(e => e.type === 'hit');
       const pr = S.predict(g, 3, {}); return { hv, x: pr.x, y: pr.y, v: [g.ball.vx, g.ball.vy, g.ball.vz], g };
     };
-    const M = VB.MASTERY.set, o = {};
-    const q = setCase([-1, 0], 1, true), hi = setCase([1, 0], 1, true), l = setCase([0, 1], 1, true), r2 = setCase([0, -1], 1, true);
-    const neu0 = setCase(null, 0, false), neu1 = setCase(null, 0, true), dead = setCase([0, 1], 0.4, true), off = setCase([-1, 0], 1, true, false);
-    o.quick = [q.hv.tempo, +q.x.toFixed(2), +q.y.toFixed(2)]; o.high = [hi.hv.tempo, +hi.x.toFixed(2)]; o.lane = [l.hv.tempo, +l.y.toFixed(2), r2.hv.tempo, +r2.y.toFixed(2)];
-    const ok = q.hv.tempo === 'quick' && Math.abs(q.x - M.quickX) < 0.5 && Math.abs(q.y - (-1.5)) < 0.5 &&
-      hi.hv.tempo === 'high' && Math.abs(hi.x - M.highX) < 0.5 && l.hv.tempo === 'lane' && Math.abs(l.y - M.laneY) < 0.5 && r2.hv.tempo === 'lane' && Math.abs(r2.y + M.laneY) < 0.5 &&
-      neu1.hv.tempo === '' && neu0.v.every((v, i) => v === neu1.v[i]) && dead.hv.tempo === '' && off.hv.tempo === '' && q.g.lastTempo === 'quick';
-    o.neutra = neu0.v.every((v, i) => v === neu1.v[i]); o.zonaMuerta = dead.hv.tempo; o.aimSetOff = off.hv.tempo;
-    // vista previa (setPreview) = destino real sin error
+    const o = {};
+    const q = setCase(0, true), hi = setCase(180, true), l = setCase(270, true), neu1 = setCase(null, true);
+    const neu0 = setCase(null, false), neuF = setCase(0, false), off = setCase(0, true, false);
+    o.quick = [q.hv.tempo, +q.x.toFixed(2), +q.y.toFixed(2)]; o.high = [hi.hv.tempo, +hi.x.toFixed(2)]; o.lane = [l.hv.tempo, +l.y.toFixed(2)];
+    o.neutra = [neu1.hv.tempo, +neu1.x.toFixed(2), +neu1.y.toFixed(2)]; o.sinBandera = [neu0.hv.tempo, +neu0.x.toFixed(2), +neu0.y.toFixed(2)];
+    const ok = q.hv.tempo === 'quick' && Math.abs(q.x - 0.8) < 0.5 && Math.abs(q.y - 0.3) < 0.5 && hi.hv.tempo === 'high' && Math.abs(hi.x - 2.8) < 0.5 &&
+      l.hv.tempo === 'lane' && Math.abs(l.y + 3.5) < 0.5 && neu1.hv.tempo === 'high' && Math.abs(neu1.y + 2.75) < 0.5 &&
+      neu0.hv.tempo === '' && Math.abs(neu0.x - 1.35) < 0.5 && Math.abs(neu0.y + 1.5) < 0.5 && neuF.v.every((v, i) => v === neu0.v[i]) &&
+      off.hv.tempo === '' && off.v.every((v, i) => v === neu0.v[i]) && q.g.lastTempo === 'quick';
+    o.aimSetOff = off.hv.tempo;
+    // vista previa (setPreview) = destino real sin error: un paso sin dirección (abre la ventana) y otro con → (tensa a la 2)
     { const g = S.createGame({ demo: false, seed: 5, mastery: true }), h = g.teams[0][0], m = g.teams[0][1];
       e1Rally(g, { x: 2.6, y: 0.3, z: 3.2, vx: -0.5, vz: -1 }); g.touchTeam = 0; g.touches = 1; g.lastTeam = 0; g.lastPlayer = m; g.lastKind = 'pass'; g.lastTouchT = g.time;
       g.ctrl = h; h.x = 2.0; h.y = 0.3; m.x = 4.3; m.y = -1.5; g.ctrlMode = 'one';
-      S.step(g, DT, { move: [0, 1], hit: false, jump: false }); const sp = S.setPreview(g, {});
+      S.step(g, DT, { move: [0, 0], hit: false, jump: false }); S.step(g, DT, { move: [0, 1], hit: false, jump: false }); const sp = S.setPreview(g, {});
       o.vista = sp && [sp.tempo, +sp.x.toFixed(2), +sp.y.toFixed(2)];
-      if (!(sp && sp.tempo === 'lane' && Math.abs(sp.y - M.laneY) < 1e-9 && Math.abs(sp.x - 1.35) < 1e-9)) o.vistaMal = true; }
-    res.push(['(e) colocación dirigida: ↑ rápida, ↓ alta, ← → a un lado (destino ±0,5 m); neutra idéntica; zona muerta 0,6; aimSet:false sin tempo; setPreview', ok && !o.vistaMal, o]);
+      if (!(sp && sp.tempo === 'lane' && Math.abs(sp.y - 3.5) < 1e-9 && Math.abs(sp.x - 1.0) < 1e-9)) o.vistaMal = true; }
+    res.push(['(e) colocación dirigida (C2): ↑ rápida, ↓ alta, ← tensa a la 4, neutra alta a la 4; sin bandera / aimSet:false la de siempre byte a byte; setPreview', ok && !o.vistaMal, o]);
   }
   // (e2) la CPU coloca a un lado (zoneSet) con frecuencia ~ pr.zoneSet y siempre lejos del jugador del humano; su atacante remata
   if (want('e2')) {
@@ -912,6 +919,365 @@ function e1Section() {
   const bad = res.filter(r => !r[1]);
   if (bad.length) fail('maestría (E1): ' + bad.map(r => r[0] + ' ' + JSON.stringify(r[2])).join('; '));
   console.log('Maestría (E1): ' + res.length + ' pruebas, ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + (failures === f0 ? ' OK' : ''));
+}
+
+// ================= Colocar por destino (C2, 15-nov-2026) =================
+/* La colocación del humano sale de su dirección (g.setDirA: stick o flechas en la ventana de colocación) y del timing; sin dirección,
+ * alta a la 4. SIMTEST_ONLY=colocar node tools/simtest.js: solo esta sección (SIMTEST_COL=b,c filtra). Escenario fijo: el compañero
+ * acaba de pasar a (2,0 ; sL)·cs, el humano debajo y la entrada inyectada en step (o el toque con S._hit). Ver notes/sim.md «Colocar
+ * por destino (C2)». */
+const COL_DIRS = ['↑', '↗', '→', '↘', '↓', '↙', '←', '↖'];
+/** Dirección de ángulo deg (0 ↑ hacia la red, 90 →) en el mundo, equipo 0 (x > 0): ↑ = −x, → = +y. */
+function colVec(deg, len) { const a = deg * Math.PI / 180; len = len == null ? 1 : len; return [-Math.cos(a) * len, Math.sin(a) * len]; }
+/** Destino esperado (independiente de la sim, = la tabla de notes/sim.md): {D, L, apex, tempo} en metros de pabellón. */
+function colExpect(deg, sD, sL) {
+  let D, L; const neu = deg == null;
+  if (neu) { D = 1.0; L = -2.75; }
+  else {
+    // (revisión C2: ↖/↗ = corta a 1,5 m del colocador sin pasar del destino de ←/→; ←/→ nunca rápidas: tensa con cima >= 4,4)
+    const T = [[0.8, 's'], [0.9, 's+'], [1.0, 3.5, 1], [2.6, 2.8], [3.0, 0], [2.6, -2.8], [1.0, -3.5, 1], [0.9, 's-']];
+    const th = ((deg % 360) + 360) % 360, u = th / 45, n = Math.round(u);
+    let k, f; if (Math.abs(th - n * 45) <= 10) { k = n % 8; f = 0; } else { k = Math.floor(u) % 8; f = u - Math.floor(u); }
+    const Lof = (v) => v === 's' ? Math.max(-3.3, Math.min(3.3, sL)) : v === 's+' ? Math.min(3.9, Math.min(sL + 1.5, 3.5)) : v === 's-' ? Math.max(-3.9, Math.max(sL - 1.5, -3.5)) : v;
+    const a = T[k], b = T[(k + 1) % 8];
+    D = a[0] + (b[0] - a[0]) * f; L = Lof(a[1]) + (Lof(b[1]) - Lof(a[1])) * f; var lane = !!(f < 0.5 ? a : b)[2];
+  }
+  D = Math.max(0.6, Math.min(3.2, D)); L = Math.max(-3.9, Math.min(3.9, L));
+  const s = Math.hypot(D - sD, L - sL);
+  let apex = Math.max(3.9, Math.min(6.0, 3.3 + 0.45 * s + 1.2 * Math.max(0, D - 1.3)));
+  let tempo = neu ? 'high' : s <= 1.6 && D <= 1.2 ? 'quick' : apex >= 5.1 ? 'high' : 'lane';
+  if (!neu && lane && tempo === 'quick') { tempo = 'lane'; apex = Math.max(apex, 4.4); }
+  if (neu) apex = Math.max(apex, 5.8);
+  return { D, L, apex, tempo, s };
+}
+/** Montaje: 2º toque del equipo 0 por dar (el n.º 2 acaba de pasar), el humano (n.º 1) en (2,0 ; sL)·cs con el balón en sus manos. */
+function colStage(o) {
+  o = o || {};
+  const g = S.createGame(Object.assign({ demo: false, seed: o.seed || 77, mastery: o.mastery !== false, ctrl: 'one', stats: true },
+    o.aimSet === false ? { aimSet: false } : {}, o.beach ? { venue: 'beach' } : {}, o.attrs ? { attrs: o.attrs } : {}));
+  const h = g.teams[0][0], m = g.teams[0][1], cs = g.cs || 1, sL = o.sL || 0;
+  e1Rally(g, { x: 2.0 * cs, y: sL * cs, z: 2.25, vx: 0, vy: 0, vz: -1 });
+  g.touchTeam = 0; g.touches = 1; g.lastTeam = 0; g.lastPlayer = m; g.lastKind = 'pass'; g.lastTouchT = g.time; g.lastQ = 0.9;
+  g.ctrl = h; h.x = 2.0 * cs; h.y = sL * cs; h.z = 0; h.vz = 0; m.x = 4.6 * cs; m.y = (sL > 0 ? -1.5 : 1.5) * cs;
+  S._refreshPred(g); S.drainEvents(g);
+  return { g, h, m, cs, sL };
+}
+/** Pase de verdad desde from que cae en (tx, ty) a 2,25 m con cima ap. */
+function colPass(g, from, tx, ty, ap) {
+  const b = g.ball, G = C.G, z0 = 1.0, zt = 2.25; ap = ap || 4.6;
+  Object.assign(b, { x: from.x, y: from.y, z: z0, dip: 0, wobA: 0, spin: 0 });
+  const vz = Math.sqrt(2 * G * (ap - z0)), T = vz / G + Math.sqrt(2 * (ap - zt) / G);
+  b.vx = (tx - b.x) / T; b.vy = (ty - b.y) / T; b.vz = vz;
+  g.lastTouchT = g.time; S._refreshPred(g);
+}
+/** Toque del humano con S._hit en el montaje (dirección deg o neutra); destino real (balón a z = 3 bajando), cima y evento. */
+function colHit(st, deg, te) {
+  const { g, h } = st;
+  g.setDirA = deg == null ? NaN : deg;
+  S._hit(g, h, null, te || 0, '');
+  const hv = S.drainEvents(g).find(e => e.type === 'hit'), b = g.ball, pr = S.predict(g, 3, {});
+  return { hv, x: pr.x, y: pr.y, apex: b.z + b.vz * b.vz / (2 * C.G), lastQ: g.lastQ, g };
+}
+function colSection() {
+  const f0 = failures, res = [], t0 = Date.now();
+  const CF = process.env.SIMTEST_COL ? process.env.SIMTEST_COL.split(',') : null, want = k => !CF || CF.includes(k);
+  const push0 = res.push.bind(res); res.push = (r) => { console.log('  ' + r[0] + ' ' + JSON.stringify(r[2]) + (r[1] ? '' : '   <<< FALLA')); return push0(r); };
+  console.log('\nColocar por destino (C2)');
+  const SLS = [-2.5, 0, 2], r2 = v => +(+v).toFixed(2), N0 = { move: [0, 0], hit: false, jump: false, jset: false };
+  // (a) identidad: demo, autopilot, CPU contra CPU (6v6 demo) y mastery:false nunca abren la ventana ni cambian nada (puntos y llamadas
+  // a g.rng iguales con la bandera y sin ella); la huella 2v2 (fingerprint6.js, al final de simtest) sale idéntica
+  if (want('a')) {
+    const trace = (opts, bot, secs) => {
+      const g = S.createGame(Object.assign({ stats: true }, opts)); let n = 0, win = 0; const r0 = g.rng; g.rng = () => { n++; return r0(); };
+      const pts = []; const inp = bot ? makeBot(BOTS.medio, (opts.seed | 0) * 5 + 1) : null;
+      for (let i = 0; i < Math.round(secs / DT); i++) {
+        S.step(g, DT, inp ? inp(g) : null); if (S.setWin(g) || S.setPreview(g, {}) || g.setDirA === g.setDirA) win++;
+        for (const e of S.drainEvents(g)) if (e.type === 'point') pts.push(e.team + e.reason + e.how + e.score.join('-'));
+      }
+      return { pts: pts.join(' '), rng: n, win };
+    };
+    let same = 0, n = 0, wins = 0; const bad = [];
+    for (let s = 1; s <= 8; s++) {
+      const d = ['easy', 'normal', 'hard', 'expert'][s % 4];
+      const cases = [[{ seed: s, demo: true }, false], [{ seed: s, autopilot: true, difficulty: d }, false], [{ seed: s, difficulty: d }, true]];
+      if (s <= 3) cases.push([{ seed: s, format: '6v6', demo: true }, false]);
+      for (const [o, bot] of cases) {
+        const a = trace(o, bot, 120), b2 = trace(Object.assign({ mastery: !!(o.demo || o.autopilot || o.format) }, o), bot, 120);
+        n++; if (a.pts === b2.pts && a.rng === b2.rng) same++; else bad.push(JSON.stringify(o));
+        wins += a.win + b2.win;
+      }
+    }
+    res.push(['(a) identidad: demo / autopilot / 6v6 CPU / mastery:false = igual con y sin bandera (puntos y g.rng) y nunca abren la ventana', same === n && wins === 0, { iguales: same + '/' + n, ventana: wins, distintas: bad.slice(0, 3) }]);
+  }
+  // (b) neutro: alta a la 4 (destino ±0,3 m de (1,0 ; −2,75)·cs, 'high', cima >= 5,7), pabellón y playa, sL −2,5 / 0 / +2
+  if (want('b')) {
+    let ok = 0, n = 0; const o = {};
+    for (const beach of [false, true]) for (const sL of SLS) {
+      const st = colStage({ sL, beach }), r = colHit(st, null, 0), cs = st.cs;
+      const e = Math.hypot(r.x - 1.0 * cs, r.y + 2.75 * cs); n++;
+      if (e <= 0.3 && r.hv.tempo === 'high' && r.apex >= 5.7 && r.hv.quality > 0.99) ok++;
+      o[(beach ? 'playa ' : 'pab. ') + sL] = [r2(r.x), r2(r.y), r.hv.tempo, r2(r.apex)];
+    }
+    res.push(['(b) neutro = alta a la 4 (±0,3 m, high, cima >= 5,7) en pabellón y playa', ok === n, o]);
+  }
+  // (c) 8 direcciones por step (move unitario en ejes de la pista, tras un paso neutro: sin arrastre): destino ±0,3 m de la tabla, su
+  // tempo y la cima de la fórmula ±0,05 (q = 1)
+  if (want('c')) {
+    let ok = 0, n = 0; const bad = [], tab = {};
+    for (const beach of [false, true]) for (const sL of SLS) for (let k = 0; k < 8; k++) {
+      const st = colStage({ sL, beach }), { g, h, cs } = st;
+      S.step(g, DT, N0);
+      S.step(g, DT, { move: colVec(k * 45), hit: false, jump: false, jset: false });
+      const dirA = g.setDirA;
+      e1Rally(g, { x: 2.0 * cs, y: sL * cs, z: 2.25, vx: 0, vy: 0, vz: -1 }); h.x = 2.0 * cs; h.y = sL * cs; h.z = 0; h.vz = 0;
+      const r = colHit(st, dirA, 0), ex = colExpect(k * 45, 2.0, sL);
+      const e = Math.hypot(r.x - ex.D * cs, r.y - ex.L * cs); n++;
+      const da = ((dirA - k * 45) % 360 + 540) % 360 - 180;
+      if (Math.abs(da) < 1e-6 && e <= 0.3 && r.hv.tempo === ex.tempo && Math.abs(r.apex - ex.apex) <= 0.05) ok++;
+      else bad.push([beach ? 'playa' : 'pab', sL, COL_DIRS[k], r2(dirA), r2(e), r.hv.tempo, ex.tempo, r2(r.apex), r2(ex.apex)]);
+      if (!beach && sL === 0) tab[COL_DIRS[k]] = [r2(r.x), r2(r.y), r.hv.tempo, r2(r.apex)];
+    }
+    res.push(['(c) 8 direcciones: destino ±0,3 m de la tabla, tempo y cima de la fórmula (pabellón y playa, 3 sL)', ok === n, { ok: ok + '/' + n, sL0: tab, mal: bad.slice(0, 4) }]);
+  }
+  // (d) analógico: θ de 0 a 360 de 5 en 5 sin saltos (< 1,2 m entre vecinos), imán de ±10° al punto exacto; módulo 0,55 neutro, 0,65 dirección
+  if (want('d')) {
+    let jump = 0, snapBad = 0, prev = null, maxJ = 0; const o = {};
+    for (let a = 0; a <= 360; a += 5) {
+      const st = colStage({ sL: 0 }); st.g.setDirA = a; const sa = S.setAim(st.g, st.h, true, {}, st.h.x, st.h.y);
+      if (prev) { const d = Math.hypot(sa.x - prev.x, sa.y - prev.y); maxJ = Math.max(maxJ, d); if (d >= 1.2) jump++; }
+      prev = { x: sa.x, y: sa.y };
+      const n45 = Math.round(a / 45) * 45;
+      if (Math.abs(a - n45) <= 10) { st.g.setDirA = n45; const sb = S.setAim(st.g, st.h, true, {}, st.h.x, st.h.y); if (Math.abs(sb.x - sa.x) > 1e-12 || Math.abs(sb.y - sa.y) > 1e-12) snapBad++; }
+    }
+    const modT = (len) => { const st = colStage({ sL: 0 }); S.step(st.g, DT, N0); S.step(st.g, DT, { move: colVec(270, len) }); return st.g.setDirA; };
+    const m55 = modT(0.55), m65 = modT(0.65);
+    o.saltoMax = r2(maxJ); o.saltos = jump; o.iman = snapBad; o.mod055 = m55; o.mod065 = m65;
+    res.push(['(d) analógico: sin saltos (< 1,2 m cada 5°), imán ±10°, módulo 0,55 neutro y 0,65 dirección', jump === 0 && snapBad === 0 && m55 !== m55 && Math.abs(m65 - 270) < 1e-6, o]);
+  }
+  // (e) arrastre (revisión C2, «mover no es apuntar»): llegar a la ventana con ↑ pulsada = neutro; soltar y volver a pulsar ↑ = rápida;
+  // cambiar a ← sin soltar = tensa a la 4; ↖ sin soltar (sector vecino de la traída) = neutro; soltar durante el gesto conserva la
+  // dirección; retocar hacia el aro amarillo (a 0,4 m detrás de él, ↑) o volver tras pasarse (0,4 m delante, ↓) = neutro
+  if (want('e')) {
+    const o = {};
+    const run = (seq, dx) => { // el primer paso con la ventana cerrada; se abre en el segundo con la dirección que traía
+      const st = colStage({ sL: 0 }), { g, h } = st; g.touches = 0; g.lastPlayer = null; g.touchTeam = 1;
+      if (dx) h.x += dx * st.cs;
+      S.step(g, DT, { move: seq[0] }); g.touchTeam = 0; g.touches = 1; g.lastPlayer = st.m;
+      let any = false;
+      for (let i = 1; i < seq.length; i++) { S.step(g, DT, { move: seq[i] }); if (g.setDirA === g.setDirA) any = true; }
+      g.anyDir = any; return g; };
+    const up = colVec(0), lf = colVec(270), ul = colVec(315), dn = colVec(180), zz = [0, 0];
+    const g1 = run([up, up, up]), g2 = run([up, up, zz, up]), g3 = run([up, up, lf]), g5 = run([up, up, ul, ul]);
+    const rt = [zz, zz]; for (let i = 0; i < 10; i++) rt.push(up); const g6 = run(rt, 0.4);
+    const bk = [zz, zz]; for (let i = 0; i < 10; i++) bk.push(dn); const g7 = run(bk, -0.4);
+    o.arrastre = g1.setDirA; o.reSoltar = g2.setDirA; o.cambio = g3.setDirA; o.vecino = g5.setDirA; o.retoque = g6.anyDir; o.vuelta = g7.anyDir;
+    const st = colStage({ sL: 0 }), g4 = st.g; Object.assign(g4.ball, { z: 3.4, vz: 0 }); S._refreshPred(g4);
+    S.step(g4, DT, N0); S.step(g4, DT, { move: lf }); S.step(g4, DT, { move: lf, hit: true }); const live = g4.swingLive; S.step(g4, DT, N0); o.gesto = [live, g4.setDirA];
+    const sp = (g) => { const v = S.setPreview(g, {}); return v && v.tempo; };
+    o.tempos = [sp(g1), sp(g2), sp(g3)];
+    res.push(['(e) arrastre: ↑ traída = neutra; soltar y ↑ = rápida; ← sin soltar = tensa; ↖ vecina = neutra; gesto la conserva; retocar o volver al aro = neutra',
+      g1.setDirA !== g1.setDirA && Math.abs(g2.setDirA) < 1e-6 && Math.abs(g3.setDirA - 270) < 1e-6 && g5.setDirA !== g5.setDirA && live &&
+      Math.abs(g4.setDirA - 270) < 1e-6 && !g6.anyDir && !g7.anyDir && o.tempos[0] === 'high' && o.tempos[1] === 'quick' && o.tempos[2] === 'lane', o]);
+  }
+  // (f) calidad: te {0; 0,06; 0,15; 0,30} × Colocación {15, 50, 90} × 300 semillas, destino ← con sL 0: error del destino y |Δcima| bajan
+  // siempre al mejorar el timing y al subir la Colocación; perfecto con 90 < 0,15 m; malo con 15 > 0,8 m
+  if (want('f')) {
+    const TES = [0, 0.06, 0.15, 0.30], STS = [15, 50, 90], NS = 300, ex = colExpect(270, 2.0, 0), E = {}, A = {}, Ov = {};
+    for (const sv of STS) for (const te of TES) {
+      let se = 0, sa = 0, n = 0, ov = 0;
+      for (let s = 1; s <= NS; s++) {
+        const st = colStage({ sL: 0, seed: 9000 + s, attrs: [[{ set: sv }, null], [null, null]] }), r = colHit(st, 270, te);
+        if (r.x < 0.2) { ov++; continue; } // pasa la red sin querer (azar de siempre, q < 0,35)
+        se += Math.hypot(r.x - ex.D, r.y - ex.L); sa += Math.abs(r.apex - ex.apex); n++;
+      }
+      E[sv + '/' + te] = se / n; A[sv + '/' + te] = sa / n; Ov[sv + '/' + te] = ov;
+    }
+    let mono = true;
+    for (const sv of STS) for (let i = 1; i < TES.length; i++) if (!(E[sv + '/' + TES[i]] > E[sv + '/' + TES[i - 1]] && A[sv + '/' + TES[i]] >= A[sv + '/' + TES[i - 1]])) mono = false;
+    for (const te of TES) for (let i = 1; i < STS.length; i++) if (!(E[STS[i] + '/' + te] < E[STS[i - 1] + '/' + te] && A[STS[i] + '/' + te] <= A[STS[i - 1] + '/' + te])) mono = false;
+    const tab = {}; for (const sv of STS) tab['Col ' + sv] = TES.map(te => r2(E[sv + '/' + te]) + '/' + r2(A[sv + '/' + te])).join('  ');
+    res.push(['(f) calidad: error del destino / |Δcima| (m) por timing (te 0 / 0,06 / 0,15 / 0,30) y Colocación; monótono; 90 perfecto < 0,15, 15 malo > 0,8',
+      mono && E['90/0'] < 0.15 && E['15/0.3'] > 0.8, { tabla: tab, pasaLaRed: Ov['15/0.3'] + '/' + NS }]);
+  }
+  // (g) atacante: control 'one', compañero CPU; 9 entradas × 100 semillas por step con pulsación perfecta (q >= 0,78): remata >= 90 %
+  // (la rápida >= 85 %); antes del toque se acerca a la batida del destino. (h) se mide en las mismas jugadas
+  if (want('g') || want('h')) {
+    const NS = want('g') ? 100 : 12, kinds = [null, 0, 45, 90, 135, 180, 225, 270, 315], o = {}, pv = { all: 0, miss: 0, eq: 0, eqN: 0 };
+    let okAll = true, closer = 0, closerN = 0; const cfar = [];
+    for (const deg of kinds) {
+      let n = 0, spk = 0, notOk = 0;
+      for (let s = 1; s <= NS; s++) {
+        const sy = ((s % 5) - 2) * 0.6, st = colStage({ sL: sy, seed: 500 + s * 7 + (deg == null ? 0 : deg) }), { g, h, m } = st;
+        m.x = 4.6; m.y = sy + (s % 2 ? 1.6 : -1.6); for (const q of g.teams[1]) { q.x = -5; q.y = q.idx ? 2 : -2; }
+        colPass(g, m, 2.0, sy, 4.6); h.x = 2.0; h.y = sy;
+        g.touches = 0; g.touchTeam = 1; S.step(g, DT, N0); g.touchTeam = 0; g.touches = 1; g.lastPlayer = m; g.lastKind = 'pass';
+        const w = {}; let hv = null, m0 = null, last = null, pressed = false, done = null;
+        for (let i = 0; i < 120 * 6 && !done; i++) {
+          const inp = { move: [0, 0], hit: false, jump: false, jset: false };
+          if (!hv) {
+            const p = S.setPreview(g, {}); pv.all++; if (!p) pv.miss++;
+            if (p) {
+              if (!m0 || Math.hypot(p.bx - m0.bx, p.by - m0.by) > 0.5) m0 = { x: m.x, y: m.y, bx: p.bx, by: p.by }; // (desde que el destino cambia)
+              last = { bx: p.bx, by: p.by, mx: m.x, my: m.y };
+              const ww = S.hitWindow(g, h, {}); if (ww.reach && h.z <= 0.05) { const sa = S.setAim(g, h, true, {}, ww.x, ww.y); pv.eqN++; if (Math.abs(sa.x - p.x) < 1e-9 && Math.abs(sa.y - p.y) < 1e-9) pv.eq++; }
+              if (p.ok === false) notOk++;
+            }
+            S.hitWindow(g, h, w);
+            if (deg != null && w.t <= 0.6) inp.move = colVec(deg); // apunta al final (antes, quieto: no corre con la dirección)
+            if (!pressed && w.press <= 0) { inp.hit = true; pressed = true; }
+          }
+          S.step(g, DT, inp);
+          for (const e of S.drainEvents(g)) {
+            if (e.type === 'hit' && e.player === h && !hv) hv = e;
+            else if (e.type === 'hit' && hv && e.team === 0 && e.player === m) done = e;
+            else if (e.type === 'hit' && hv && e.team === 1) done = { kind: 'none' };
+            else if (e.type === 'point') done = { kind: 'none' };
+          }
+        }
+        if (!hv || hv.quality < 0.78) continue;
+        n++; if (done && (done.kind === 'spike' || done.shot === 'tip' || done.shot === 'roll')) spk++;
+        if (m0 && last) { // (ya en la batida, a < 0,6 m, también cuenta)
+          closerN++; const dd1 = Math.hypot(last.mx - last.bx, last.my - last.by), dd0 = Math.hypot(m0.x - last.bx, m0.y - last.by);
+          if (dd1 <= dd0 + 1e-6 || dd1 < 0.6) closer++; else if (cfar.length < 6) cfar.push([deg, r2(dd0), r2(dd1)]); }
+      }
+      const lab = deg == null ? 'neutro' : COL_DIRS[deg / 45];
+      o[lab] = pct(spk, n) + ' de ' + n + (notOk ? ' (no llega: ' + notOk + ' pasos)' : '');
+      if (want('g') && !(n >= NS * 0.8 && spk / n >= (deg === 0 ? 0.85 : 0.9))) okAll = false;
+    }
+    if (want('g')) res.push(['(g) atacante CPU: remata >= 90 % (rápida >= 85 %) con q >= 0,78, 9 entradas × ' + NS + ' semillas; se acerca a la batida antes del toque',
+      okAll && closer >= 0.95 * closerN, Object.assign(o, { acerca: pct(closer, closerN), lejos: cfar })]);
+    if (want('h')) {
+      // (h) vista previa: presente desde el pase hasta el toque; = setAim sin error (1e-9); null en demo, autopilot y aimSet:false; en el
+      // aire, el destino de la colocación en salto
+      const nul = [S.createGame({ demo: true, seed: 3, mastery: true }), S.createGame({ autopilot: true, seed: 3, mastery: true })].map(g => {
+        e1Rally(g, { x: 2, y: 0, z: 3, vz: -1 }); g.touchTeam = 0; g.touches = 1; g.lastPlayer = g.teams[0][1]; g.lastKind = 'pass'; return S.setPreview(g, {}); });
+      const off = colStage({ aimSet: false }); nul.push(S.setPreview(off.g, {}));
+      const air = colStage({ sL: 0.5 }), ga = air.g, ha = air.h; Object.assign(ga.ball, { x: 1.2, y: 0.5, z: 3.6, vz: 0 }); ha.x = 1.5; ha.y = 0.5; ha.z = 0.4; ha.vz = 2.5; air.m.y = -2;
+      S._refreshPred(ga); const pa = S.setPreview(ga, {});
+      const airOk = !!pa && S.jsetReady(ga) && pa.tempo === 'quick' && Math.abs(pa.x - VB.JSET.tx) < 1e-9 && Math.abs(pa.y + 2) < 1e-9;
+      res.push(['(h) vista previa: siempre desde el pase hasta el toque, = setAim (1e-9), null en demo / autopilot / aimSet:false, en el aire = colocación en salto',
+        pv.miss === 0 && pv.eq === pv.eqN && pv.eqN > 50 && nul.every(v => v === null) && airOk,
+        { pasos: pv.all, sinVista: pv.miss, iguales: pv.eq + '/' + pv.eqN, nulls: nul.map(v => v === null), aire: pa && [pa.tempo, r2(pa.x), r2(pa.y)] }]);
+    }
+  }
+  // (i) COLOCAR en el suelo: en el 2º toque con el balón a la altura de colocar = gesto '', hit 'set' y sin saltar; balón alto en la red,
+  // fuera del 2º toque y sin maestría = salta
+  if (want('i')) {
+    const go = (st, prep) => {
+      const { g, h } = st; if (prep) prep(g, h); S._refreshPred(g); const w = {}; let sw = null, hv = null, maxZ = 0, jumped = false, pressed = false;
+      for (let i = 0; i < 120 && !hv && !jumped; i++) {
+        S.hitWindow(g, h, w); const inp = { move: [0, 0], hit: false, jump: false, jset: false };
+        if (!pressed && w.press <= 0.02) { inp.jset = true; inp.jump = true; pressed = true; }
+        S.step(g, DT, inp); maxZ = Math.max(maxZ, h.z); if (h.z > 0 || h.vz > 0) jumped = true;
+        for (const e of S.drainEvents(g)) { if (e.type === 'swing' && e.player === h && !sw) sw = e; if (e.type === 'hit' && e.player === h) hv = e; }
+      }
+      return { sw, hv, jumped, maxZ }; };
+    const pass = (g) => { Object.assign(g.ball, { z: 3.2, vz: 0 }); };
+    const a = go(colStage({ sL: 0 }), pass);
+    const hi = go(colStage({ sL: 0 }), (g, h) => { h.x = 0.6; h.y = 0; Object.assign(g.ball, { x: 1.6, y: 0, z: 3.6, vx: -6, vy: 0, vz: 0 }); });
+    const t1 = go(colStage({ sL: 0 }), (g) => { pass(g); g.touches = 0; g.touchTeam = 1; g.lastPlayer = g.teams[1][0]; g.lastKind = 'spike'; });
+    const nm = go(colStage({ sL: 0, mastery: false }), pass);
+    res.push(['(i) COLOCAR en el suelo coloca en el 2º toque (gesto vacío, hit set, sin saltar); alto en la red / fuera del 2º toque / sin maestría salta',
+      !!(a.sw && a.sw.shot === '' && a.hv && a.hv.kind === 'set' && !a.jumped && a.maxZ === 0 && hi.jumped && t1.jumped && nm.jumped),
+      { suelo: [a.sw && a.sw.shot, a.hv && a.hv.kind, a.jumped], alto: hi.jumped, toque1: t1.jumped, sinMaestria: nm.jumped }]);
+  }
+  // (j) 6v6 con colocador humano: las 9 entradas dan el atacante y el tempo de la tabla; neutro = receptor delantero alta; la rápida fuera
+  // de sistema = alta a la 4; una sola llamada a g.rng por chooseSet; previewSet = el plan real
+  if (want('j')) {
+    const VB6 = VB.AI6, sd0 = S.side(0), o = {}; let ok = 0, n = 0, rngBad = 0, pvBad = 0; const bad = [];
+    // [puesto, tempo, cambio de cima (delanteros) o zona preferida (pipe)]
+    const WANT = { n: ['OH', 'high', 0], 0: ['MB', 'quick', 0], 45: ['OPP', 'shoot', 0], 90: ['OPP', 'shoot', 0.4], 135: ['OH', 'pipe', 1], 180: ['OH', 'pipe', 6], 225: ['OH', 'pipe', 5], 270: ['OH', 'high', 0], 315: ['OH', 'high', -0.6] };
+    for (const key of Object.keys(WANT)) for (let s = 0; s < 6; s++) {
+      const h = S.createGame({ format: '6v6', seed: 700 + s, ctrl: 'one', ctrlRole: 'S' }), hs = h.ctrl, wv = WANT[key], back = wv[1] === 'pipe';
+      if (back) { S.rotate(h, 0); S.rotate(h, 0); S.applyLibero(h); }
+      h._pq6 = [{ q: 0.9, t: h.time }, { q: 0, t: -9 }]; hs.x = sd0 * 0.9; hs.y = sd0 * 0.9;
+      h.setDirA = key === 'n' ? NaN : +key;
+      const pv = VB6.previewSet(h, hs, {});
+      let calls = 0; const r0 = h.rng; h.rng = () => { calls++; return r0(); };
+      const d8 = VB6.dirOf8(h, hs); VB6.chooseSet(h, hs, d8.lane, d8.pref, d8.apexD); h.rng = r0; const P = h.setPlan[0];
+      if (calls !== 1) rngBad++;
+      if (!(pv.to === P.to && pv.tempo === P.tempo && Math.abs(pv.apex - P.apex) < 1e-12 && Math.abs(pv.yl - P.yl) < 1e-12)) pvBad++;
+      n++;
+      const zOk = !back || (P.to && (P.to.zone === wv[2] || !h.teams[0].some(q => q.zone === wv[2] && VB6.canPipe(q))));
+      const apOk = Math.abs(P.apex - (VB6.FORM.set[P.tempo].apex + (back ? 0 : wv[2]))) < 1e-9;
+      // (revisión C2: el pipe va al carril de la zona pedida —↘ 1, ↓ 6, ↙ 5— aunque lo remate el mismo zaguero)
+      const ylOk = !back || Math.abs(P.yl - S.ZONE[wv[2]].yl * VB6.FORM.pipeY) < 1e-9;
+      if (P.to && P.to.role === wv[0] && P.tempo === wv[1] && zOk && apOk && ylOk) ok++; else bad.push([key, P.to && P.to.role, P.tempo, P.to && P.to.zone, r2(P.apex), r2(P.yl)]);
+      if (s === 0) o[key === 'n' ? 'neutro' : COL_DIRS[+key / 45]] = (P.to ? P.to.role : '-') + ' ' + P.tempo + (back && P.to ? ' z' + P.to.zone + ' yl ' + r2(P.yl) : '') + ' ' + r2(P.apex) + ' ' + pv.kind;
+    }
+    const h = S.createGame({ format: '6v6', seed: 701, ctrl: 'one', ctrlRole: 'S' }), hs = h.ctrl; h._pq6 = [{ q: 0.2, t: h.time }, { q: 0, t: -9 }]; hs.x = sd0 * 0.9; hs.y = sd0 * 0.9;
+    h.setDirA = 0; const d8 = VB6.dirOf8(h, hs); VB6.chooseSet(h, hs, d8.lane, d8.pref, d8.apexD); const Pq = h.setPlan[0];
+    o.rapidaFueraDeSistema = (Pq.to && Pq.to.role) + ' ' + Pq.tempo;
+    res.push(['(j) 6v6, colocador humano: 9 entradas → atacante, tempo y carril del pipe de la tabla; rápida fuera de sistema = alta a la 4; 1 g.rng por chooseSet; previewSet = plan',
+      ok === n && rngBad === 0 && pvBad === 0 && !!Pq.to && Pq.to.role === 'OH' && Pq.tempo === 'high', Object.assign(o, { ok: ok + '/' + n, rng: rngBad, vista: pvBad, mal: bad.slice(0, 4) })]);
+  }
+  // (k) plantado: en su sitio (en el centro del aro) con una dirección elegida a t <= 0,6 s no se mueve (< 0,05 m); también con la
+  // dirección de arrastre (neutra: no hace falta retocar); fuera de su sitio (a 1 m) la dirección le mueve (> 0,15 m) y no apunta
+  if (want('k')) {
+    const run = (carry, off) => {
+      const st = colStage({ sL: 0 }), { g, h, m } = st, b = g.ball, T = 0.5;
+      // el balón llega a sus manos (2,0 ; 0 ; 2,25) dentro de 0,5 s, cayendo
+      b.vx = -2; b.vy = 0; b.vz = -1; b.x = 2.0 - b.vx * T; b.y = 0; b.z = 2.25 - b.vz * T + 0.5 * C.G * T * T; S._refreshPred(g);
+      h.x = g.pr1.x; h.y = g.pr1.y + (off || 0); // en el centro del aro (el imán de la ventana), para medir solo el stick
+      // la ventana se abre (2º paso) con ← ya pulsada (arrastre) o sin dirección; luego ← pulsada (fuera de su sitio: → hacia el aro)
+      const mv = off ? colVec(90) : colVec(270);
+      g.touches = 0; g.touchTeam = 1; S.step(g, DT, N0); g.touchTeam = 0; g.touches = 1; g.lastPlayer = m; g.lastKind = 'pass';
+      S.step(g, DT, { move: carry ? mv : [0, 0] });
+      const x0 = h.x, y0 = h.y; let k = 0, dir = false;
+      for (let i = 0; i < 40 && g.touches === 1 && g.mode === 'rally'; i++) {
+        S.step(g, DT, { move: mv }); k++; if (g.setDirA === g.setDirA) dir = true;
+        if (off && Math.abs(h.y - g.pr1.y) < 0.6) break;
+      }
+      return { d: Math.hypot(h.x - x0, h.y - y0), steps: k, dir };
+    };
+    const a = run(false), c = run(true), f = run(false, -1.0);
+    res.push(['(k) plantado: en su sitio con dirección o con arrastre se queda (< 0,05 m); fuera de su sitio corre y no apunta',
+      a.d < 0.05 && a.dir && c.d < 0.05 && !c.dir && f.d > 0.15 && !f.dir,
+      { conDireccion: r2(a.d), arrastre: [r2(c.d), c.dir], lejos: [r2(f.d), f.dir], pasos: a.steps }]);
+  }
+  // (l) mover no es apuntar, con pases de verdad: el humano sale a 1,6 m del aro y va a él con las flechas (8 sectores) y pulsa
+  // GOLPEAR con timing perfecto. Sin querer apuntar, 4 maneras de moverse dan alta a la 4 (>= 98 %): sigue con la flecha pulsada hasta
+  // el toque, se para al llegar (0,25 m), retoca a golpecitos hasta 0,12 m, o se pasa 0,35 m y vuelve. Ya en su sitio, soltar y
+  // pulsar ← (t <= 0,6 s) elige ← (>= 95 %; su tempo sale de la distancia: tensa desde el centro o la izquierda, alta desde la derecha)
+  if (want('l')) {
+    const NS = 40, o = {}; let allOk = true;
+    const one = (mode, s) => {
+      const st = colStage({ sL: ((s % 5) - 2) * 0.8, seed: 300 + s * 13 }), { g, h, m, cs } = st;
+      const tx = 2.0 * cs, ty = h.y; m.x = 5.5 * cs; m.y = -ty * 0.5 + (s % 2 ? 1.5 : -1.5);
+      colPass(g, m, tx, ty); const a0 = (s * 2.39996) % (2 * Math.PI);
+      h.x = tx + Math.cos(a0) * 1.6 * cs; h.y = ty + Math.sin(a0) * 1.6 * cs; S._refreshPred(g); S.drainEvents(g);
+      let pressed = false, hv = null, last = [0, 0], over = mode === 'over' ? 0 : 2, ph = 0;
+      for (let i = 0; i < 120 * 4 && !hv; i++) {
+        const inp = { move: [0, 0], hit: false, jump: false, jset: false }, w = S.hitWindow(g, h, {});
+        let px = g.pr1.x, py = g.pr1.y;
+        if (over === 0) { // se pasa: apunta 0,35 m más allá del aro hasta llegar ahí, luego vuelve
+          const ux = px - h.x, uy = py - h.y, ul = Math.hypot(ux, uy) || 1;
+          if (g.overT == null) g.overT = [ux / ul, uy / ul];
+          px += g.overT[0] * 0.35; py += g.overT[1] * 0.35; if (Math.hypot(px - h.x, py - h.y) < 0.25) over = 1;
+        }
+        const dx = px - h.x, dy = py - h.y, d = Math.hypot(dx, dy);
+        const dir8 = () => { const an = Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) * Math.PI / 4; return [Math.cos(an), Math.sin(an)]; };
+        if (mode === 'side') { if (ph === 0) { if (d > 0.25) inp.move = dir8(); else if (w.t <= 0.6) ph = 1; } else inp.move = colVec(270); }
+        else if (mode === 'hold') { if (d > 0.25) last = dir8(); inp.move = last; }
+        else if (mode === 'stop' || mode === 'over') { if (d > 0.25) inp.move = dir8(); }
+        else if (mode === 'nudge') { if (d > 0.12) inp.move = dir8(); }
+        if (!pressed && w.press <= 0) { inp.hit = true; pressed = true; }
+        const dA = g.setDirA; S.step(g, DT, inp);
+        for (const e of S.drainEvents(g)) if (e.type === 'hit' && e.player === h) { hv = e; hv.dirA = dA; }
+      }
+      return hv;
+    };
+    for (const mode of ['hold', 'stop', 'nudge', 'over', 'side']) {
+      let n = 0, ok = 0;
+      for (let s = 1; s <= NS; s++) { const hv = one(mode, s); if (!hv || hv.kind !== 'set') continue; n++; if (mode === 'side' ? Math.abs(hv.dirA - 270) < 1e-6 : hv.tempo === 'high' && hv.dirA !== hv.dirA) ok++; }
+      const pc = n ? ok / n : 0; o[mode] = Math.round(pc * 100) + '% de ' + n;
+      if (n < NS * 0.9 || pc < (mode === 'side' ? 0.95 : 0.98)) allOk = false;
+    }
+    res.push(['(l) mover no es apuntar: con la flecha pulsada, parándose, a golpecitos o pasándose = alta a la 4; en su sitio ← = ←', allOk, o]);
+  }
+  const bad = res.filter(r => !r[1]);
+  if (bad.length) fail('colocar por destino (C2): ' + bad.map(r => r[0] + ' ' + JSON.stringify(r[2])).join('; '));
+  console.log('Colocar por destino (C2): ' + res.length + ' pruebas, ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + (failures === f0 ? ' OK' : ''));
 }
 
 // ================= Gimnasio (E6, sprint 5) =================
@@ -1260,6 +1626,7 @@ async function main() {
 if (ONLY === 'replay') { replaySection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // S3-C1: SIMTEST_ONLY=replay
 // E1: SIMTEST_ONLY=e1, solo la sección de maestría
 if (ONLY === 'gym') { gymSection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // E6: SIMTEST_ONLY=gym
+if (ONLY === 'colocar') { colSection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // C2: SIMTEST_ONLY=colocar
 if (ONLY === 'e1') { e1Section(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); }
 // ================= 1) CPU vs CPU =================
 if (ONLY !== 'matrix') {
@@ -3000,14 +3367,18 @@ if (ONLY !== 'matrix') {
           const h = S.createGame({ format: '6v6', seed, difficulty: 'normal', ctrl: 'one', ctrlRole: 'S', serveClock: false }), hs = h.ctrl;
           h.serving = 1; S._setupServe(h); S.drainEvents(h);
           const inp = { move: [LANE_V[lane][0] * sd0 * len, LANE_V[lane][1] * sd0 * len], hit: false, jump: false, jset: false, switchPlayer: false };
-          let passed = false;
+          let passed = false, nP = 0; const N6 = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
           for (let i = 0; i < 120 * 12; i++) {
             inp.jump = inp.jset = false;
+            if (passed) nP++;
             if (passed) {
               if (hs.z === 0 && hs.vz === 0) { hs.x = h.pr3.x; hs.y = h.pr3.y; if (h.pr3.t > 0 && h.pr3.t <= 0.46) inp.jump = true; }
               else if (hs.z > 0.2 && hs.actionT > 0.12) inp.jset = true;
             }
-            S.step(h, DT, passed ? inp : null);
+            // (C2: el primer paso de la ventana sin dirección: si no, es arrastre. Revisión C2: el bot salta en pr3, a ~1,3 m del aro amarillo,
+          //  así que la dirección del suelo es movimiento (arrastre); suelta al despegar y la vuelve a pulsar en el aire, donde ya apunta)
+          const jIn = inp.jump ? { move: [0, 0], hit: false, jump: true, jset: false, switchPlayer: false } : inp;
+          S.step(h, DT, passed ? (nP <= 1 && !inp.jump && !inp.jset ? N6 : jIn) : null);
             for (const e of S.drainEvents(h)) {
               if (e.type === 'point' || e.type === 'serveReady') return null;
               if (!passed && e.type === 'hit' && e.team === 0 && e.touch === 1) {
@@ -3027,12 +3398,13 @@ if (ONLY !== 'matrix') {
             if (r.e.human && r.e.jset && r.e.shot === 'jump' && P && P.tempo === TEMPO[lane] && P.to && P.to.role === ROLE_L[lane] && (lane === 'back' ? !P.to.front && P.d >= 3.3 : P.to.front)) jget[lane]++;
           }
         }
-        for (let n = 0; n < NJ; n++) { const r = jsetLane(700 + n, 'back', 0.3); if (!r) continue; jdead.n++; if (r.e.human && r.e.jset && r.P && r.P.tempo === 'pipe') jdead.pipe++; }
+        // (C2) stick a 0,3: zona muerta (0,6) = sin dirección = alta a la 4 (receptor delantero)
+        for (let n = 0; n < NJ; n++) { const r = jsetLane(700 + n, 'back', 0.3); if (!r) continue; jdead.n++; if (r.e.human && r.e.jset && r.P && r.P.tempo === 'high' && r.P.to && r.P.to.role === 'OH' && r.P.to.front) jdead.pipe++; }
       } catch (e) { exL = e && e.stack || String(e); }
-      const jOk = ['left', 'right', 'mid', 'back'].every(l => jn[l] >= 5 && jget[l] === jn[l]) && jdead.n >= 5 && jdead.pipe <= 0.5 * jdead.n;
-      res.push(['(j) colocador humano: >= 60 % de los 2.os toques de su equipo son suyos; laneOf y chooseSet(g, p, lane) eligen el carril pedido; colocación en salto con carril (jset) por la sim, zona muerta 0,4',
+      const jOk = ['left', 'right', 'mid', 'back'].every(l => jn[l] >= 5 && jget[l] === jn[l]) && jdead.n >= 5 && jdead.pipe === jdead.n;
+      res.push(['(j) colocador humano: >= 60 % de los 2.os toques de su equipo son suyos; laneOf y chooseSet(g, p, lane) eligen el carril pedido; colocación en salto con carril (jset) por la sim; stick a 0,3 = alta a la 4 (C2)',
         !ex && !exL && !nan && sec0 > 20 && secH / sec0 >= 0.6 && laneOk === laneN && ['left', 'right', 'mid', 'back'].every(l => got[l] >= 0.98 * NL) && jOk,
-        { segundosToques: sec0, suyos: pct(secH, sec0), puntos: pts, laneOf: laneOk + '/' + laneN, carril: got, jsetCarril: ['left', 'right', 'mid', 'back'].map(l => l + ' ' + jget[l] + '/' + jn[l]).join(', '), stick03atras: 'pipe ' + jdead.pipe + '/' + jdead.n, ex: ex || exL }]);
+        { segundosToques: sec0, suyos: pct(secH, sec0), puntos: pts, laneOf: laneOk + '/' + laneN, carril: got, jsetCarril: ['left', 'right', 'mid', 'back'].map(l => l + ' ' + jget[l] + '/' + jn[l]).join(', '), stick03atras: 'alta a la 4 ' + jdead.pipe + '/' + jdead.n, ex: ex || exL }]);
     }
     { // (k) 6 formaciones de recepción del 5-1 (D6): en cada rotación × 2 equipos, con el rival sacando (placeServe tras applyLibero, como
       // setupServe), 0 solapamientos en los dos equipos (overlapCount), los 3 receptores (L + los 2 OH) en línea a d >= 5 y el colocador
@@ -3275,6 +3647,9 @@ if (ONLY !== 'matrix') {
 
   // MAESTRÍA (E1, sprint 5): createGame({mastery:true})
   if (ONLY !== 'matrix') e1Section();
+
+  // COLOCAR POR DESTINO (C2, 15-nov-2026)
+  if (ONLY !== 'matrix') colSection();
 
   // GIMNASIO (E6, sprint 5): createGame({drill})
   if (ONLY !== 'matrix') gymSection();

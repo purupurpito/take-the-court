@@ -2,7 +2,7 @@
  * Ejercicio de COLOCACIÓN EN SALTO en el juego REAL con el dispositivo de cada herramienta: con el partido en peloteo,
  * prepara (solo estado de la sim, como las escenas de depuración) un 2.º toque propio: el compañero acaba de recibir y el
  * balón va alto hacia tu jugador (n.º 1), junto a la red. La herramienta pulsa SALTAR cuando toca y, ya en el aire, COLOCAR
- * con su dispositivo (tecla K / clic central / botón táctil COLOCAR / botón X del mando). Cuenta los eventos `hit` con
+ * con su dispositivo (tecla K / clic derecho / botón táctil COLOCAR / botón X del mando). Cuenta los eventos `hit` con
  * `jset` del humano y si el compañero remata después.
  * Uso: const drill = require('./jsetdrill.js');
  *      const r = await drill(evalJs, { jump: async () => …, set: async () => …, serve: async () => 'ok'|…, check?: async () => {…} }, { tries: 4 });

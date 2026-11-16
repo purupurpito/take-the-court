@@ -198,6 +198,7 @@
     return q && g.touchTeam === t && g.touches === 1 && q.aiPl === 'jset' && q.aiPlT === g.lastTouchT && q.z > 0.05 ? q : null;
   }
 
+  var _pv = { x: 0, y: 0, tempo: '', ok: true, to: null, bx: 0, by: 0 }; // (C2: vista previa de la colocación del humano)
   /** Posición objetivo de un jugador según la fase del rally. */
   function pos(g, p) {
     if (g.size !== 2 && VB.AI6 && VB.AI6.pos) return VB.AI6.pos(g, p); // 6v6 con su IA propia (sprint 2)
@@ -225,7 +226,12 @@
         return setTg(sd * 2, clamp(p.y, -1.5, 1.5)); // seré el colocador
       }
       if (g.touches === 0) return setTg(sd * 2, clamp(p.y, -1.5, 1.5)); // tras tocar nuestro bloqueo: colocador
-      if (g.touches === 1 && g.lastKind !== 'set') return setTg(sd * 4.3 * cs, clamp(p.y, -3 * cs, 3 * cs)); // seré el atacante (no tras mi colocación en salto)
+      if (g.touches === 1 && g.lastKind !== 'set') { // seré el atacante (no tras mi colocación en salto)
+        // C2 (colocar por destino, con g.mastery): el humano coloca y el marcador ya dice adónde; me voy a la batida de ese destino
+        // (S.setPreview, lectura pura y sin azar; cambia si el humano cambia de dirección). Con él en el aire, lo de siempre
+        if (g.mastery && t === 0 && mate === g.ctrl && mate.z <= 0.05 && S.setPreview(g, _pv)) return setTg(_pv.bx, _pv.by);
+        return setTg(sd * 4.3 * cs, clamp(p.y, -3 * cs, 3 * cs));
+      }
       return setTg(sd * 5.5 * cs, (idx ? 2 : -2) * cs);
     }
     var opp = 1 - t;
@@ -421,6 +427,10 @@
     var rx = b.x - p.x, ry = b.y - p.y, hd = Math.hypot(rx, ry);
     var exiting = (hd > C.REACH - 0.15 && rx * b.vx + ry * b.vy > 0) || (b.z - p.z < 0.3 && b.vz < 0) || (p.z > 0 && p.z < 0.3 && p.vz < 0);
     if (g.touchTeam === t && since < TEAM_GAP && !exiting) return; // el balón aún sale de las manos del compañero
+    // C2 (con g.mastery): la colocación del humano va a un sitio de ataque; el compañero no la juega de pie cuando le pasa cerca al salir
+    // (exiting): espera a rematarla en su batida (sin azar; solo lee el estado)
+    if (g.mastery && t === 0 && g.lastKind === 'set' && g.touches === 2 && g.lastPlayer === g.ctrl && p.z === 0 && g.pr3.t > 0.25 &&
+        Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5) return;
     if (!(w.t <= -p.aiTe || exiting || !w.reach)) return;
     if (beaten) { // llega pero no la controla: toque desviado (casi siempre injugable)
       if (p.z > 0.25) return;

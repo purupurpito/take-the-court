@@ -281,6 +281,7 @@ dirigida 2v2** (stick ↑ rápida, ←/→ carril, ↓ alta; zona muerta 0,6) y 
 cadena 3 y ≥ 2 toques humanos). Estado: `g.mastery, g.aimSet, g.atkMove ('' \| 'feint' \| 'roll' \| 'edge' \| 'quick'), g.atkEdge,
 g.lastTempo, g.feintT, g.chain, g.chainH, g.stats.mastery {feint, roll, edge, quick: [usos, puntos], tool, lane, high, cpu:{roll, lane}}`.
 Funciones: `VB.Sim.altReady(g)` → '' \| 'jset' \| 'roll' (qué hace COLOCAR ahora), `VB.Sim.setPreview(g, out)` → null \| `{x, y, tempo}`,
+`VB.Sim.setWin(g)` / `VB.Sim.setTurn(g)` (C2: ventana de colocación del humano; `setTurn` sin la opción `aimSet`, la que usa COLOCAR en el suelo),
 `VB.Sim.edgeOf`, `VB.Sim.hk`; `VB.MASTERY` (constantes); `aimPoint` añade `out.edge` y `kind 'roll'`. `VB.DIFF[k]` añade `feintRead,
 tipRead, roll, zoneSet, feintBeat`. Sin acciones de entrada nuevas. Si un lote cambia a propósito la maestría, regenerar
 `tools/fp-mastery.json` con `node tools/fingerprint6.js --variant mastery --write` y decirlo.
@@ -677,7 +678,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - `tools/console.sh <escena|all> [W] [H] [params]` — mensajes de consola de la página; sale 1 si hay excepción, `console.error`, `[VB][ERROR]` o error de WebGL.
 - Chrome: `tools/chrome.js` (node) y `tools/chrome-env.sh` (bash) eligen ejecutable y GPU (ANGLE d3d11 en Windows, metal en Mac, gl en Linux;
   `GL=swiftshader` para máquinas sin GPU, `CHROME=/ruta`). `tools/cdp.js` = cliente DevTools común (viewport exacto, errores, capturas).
-- `node tools/drive.js [W] [H] [seg] [query]` — juega de verdad con teclado vía DevTools (menú → Intro → saque → peloteo → colocación en salto con K y con clic central, `tools/jsetdrill.js` → pausa); touchplay.js y padplay.js hacen el mismo ejercicio con COLOCAR y con X.
+- `node tools/drive.js [W] [H] [seg] [query]` — juega de verdad con teclado vía DevTools (menú → Intro → saque → peloteo → colocación en salto con K y con rueda + clic derecho, `tools/jsetdrill.js` → pausa); touchplay.js y padplay.js hacen el mismo ejercicio con COLOCAR y con X.
 - `node tools/perf.js [WxH=844x390] [s=20] [niveles=auto,high,medium,low] [cpu=4] [dpr=2.75]` — móvil emulado (viewport, dpr, táctil, UA,
   freno de CPU) y partido real con autopilot: fps, p5, coste JS, GC, draw calls, triángulos, sombra, calidad adaptativa. `STRICT=1` (sale con 1 si no se cumplen los objetivos o si la medida no es válida), `ALLOC=1`, `PROFILE=1`, `DESKTOP=1`, `WARM=s`
   (10 por defecto; 45 con `ALLOC/RETAIN`: V8 optimiza por número de llamadas), `HOSTMAX=%` (80 por defecto: si la CPU del PC anfitrión pasa de ahí de media en un nivel,
@@ -760,7 +761,7 @@ Arte y nombres originales; marcas de las vallas ficticias (NÓRDIKA, VOLTA, ALBA
 
 ### Pulido 10-nov-2026 (controles PC, dorsales, Control, separadores, pantallas grandes, playa)
 - **Teclas (input.js; textos de ui.js salen de la tabla `GLYPH`):** moverse WASD/flechas; golpear y sacar **J** o **X** o **clic izquierdo**; saltar (en el
-  aire: dejada) **Espacio** o **clic derecho**; colocar en salto **K** o **clic central** (acción `jset`; en el suelo salta, ver «Colocación en salto»); C cambiar jugador; V challenge; P/Esc pausa; M sonido; Intro aceptar;
+  aire: dejada) **Espacio** o **rueda**; colocar **K** o **clic derecho** (acción `jset`; desde el 16-nov-2026, C2: en el suelo coloca en tu 2º toque y si no salta, ver notes/sim.md «Colocar por destino»); C cambiar jugador; V challenge; P/Esc pausa; M sonido; Intro aceptar;
   F pantalla completa. Espacio ya no golpea. El clic entra en el mismo mapa que las teclas (ids `Mouse0`/`Mouse2`: mantener = hitHeld/jumpHeld), solo con
   `pointerType 'mouse'`, solo en `playing`, nunca sobre `MOUSE_UI` (botones, paneles, overlay táctil) ni con los controles táctiles a la vista.
 - **Dorsales:** tu pareja lleva el **1** y el **2** (`createGame`: `mkPlayer(0, 1, 0)`, `mkPlayer(0, 2, 1)`; CPU 3 y 9). `prog.js` renumera escuadrones
@@ -810,7 +811,7 @@ contorno grueso DE COLOR, cara grande dibujada, uniforme de equipo con el «tajo
 ### Colocación en salto (10-nov-2026)
 - **Controles, el mismo concepto en todo**: en el aire, GOLPEAR = remate (o el toque que toque) y **COLOCAR = colocación en salto**; SALTAR otra
   vez sigue siendo la dejada. COLOCAR en el suelo (y en el saque) salta, así que pulsarlo dos veces = salta y coloca.
-  Teclado **K** (antes alias oculto de saltar) · ratón **clic central** (`Mouse1`, sin autodesplazamiento) · mando **X** (PS □; antes 2º botón de
+  Teclado **K** (antes alias oculto de saltar) · ratón **clic derecho** (`Mouse2`; desde C2, 16-nov-2026: la rueda, `Mouse1`, salta) · mando **X** (PS □; antes 2º botón de
   saltar, B sigue saltando) · táctil: botón contextual **COLOCAR** (verde, 64 px; 56/52 px en pantallas bajas) encima de SALTAR, solo en el aire con
   el balón jugable (`VB.Sim.jsetReady(g)`), se va al caer; deslizar de SALTAR a COLOCAR vale. `VB.Input.poll()` añade `jset` (flanco; con él
   `jump` también es true), `_debug().setOn`, `stats.press.set`, `stats.out.jset`, `stats.mouse.jset`; `glyphs().jset`. main.js pasa `simIn.jset`.
