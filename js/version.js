@@ -18,15 +18,22 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.3.2';
-  VB.VERSION_DATE = '2026-11-15';
+  VB.VERSION = '1.3.3';
+  VB.VERSION_DATE = '2026-11-16';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.3.2', d: '2026-11-15', t: 'Jueces de línea',
+      v: '1.3.3', d: '2026-11-16', t: 'Jueces de línea',
       items: [
         'Cuatro jueces de línea en las grandes competiciones y ninguno en las categorías de abajo.'
+      ]
+    },
+    {
+      v: '1.3.2', d: '2026-11-16', t: 'Reto del día al entrar',
+      items: [
+        'El reto del día te espera nada más abrir el juego (una vez al día).',
+        'Carrera: los partidos dan menos experiencia; con los entrenamientos se subía demasiado.'
       ]
     },
     {

@@ -4256,6 +4256,29 @@
       if (idle >= 1500 && performance.now() >= 2200) { clearInterval(aboutIv); aboutAuto = 'shown'; openAbout('news', 'menu'); }
     }, 250);
   }
+  // Reto del día al abrir el juego (15-nov-2026, Ferran: «los retos diarios deberían salir nada más abrir el juego»). La primera vez
+  // de cada día (voley3d.retoauto = AAAAMMDD, solo de este dispositivo) y si aún no tienes medalla de hoy, se abre Retos › Hoy en
+  // cuanto la portada está libre (1 s seguido y ≥ 1,6 s desde la carga), después de las Novedades si salen solas. Al jugador nuevo
+  // (primera carga) no: primero la portada. Nunca con ?debug, autopilot ni nonews; «‹ Volver» deja en Jugar con el foco en Retos.
+  var RETO_AUTO = 'voley3d.retoauto';
+  function retoAuto() {
+    var R = VB.Retos; if (!R || !R.today || !R.dayState || !el.mpRetos || !wasReturning) return;
+    if (ctx.debug || ctx.params.autopilot || ctx.params.nonews) return;
+    var k = String(safe(R.today) || ''); if (!k) return;
+    try { if (localStorage.getItem(RETO_AUTO) === k) return; } catch (e) { return; }
+    var ds = safe(R.dayState); if (ds && ds.m > 0) return;
+    var idle = 0, iv = setInterval(function () {
+      if (aboutAuto === 'waiting') { idle = 0; return; }   // primero las Novedades (se abren y se cierran solas en su intervalo)
+      var ok = VB.UI.menuIdle() && !document.hidden && !(VB.Install && VB.Install.isOpen && safe(VB.Install.isOpen)) &&
+        !(VB.Account && VB.Account.isOpen && safe(VB.Account.isOpen)) && !(VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen));
+      idle = ok ? idle + 250 : 0;
+      if (idle >= 1000 && performance.now() >= 1600) {
+        clearInterval(iv);
+        try { localStorage.setItem(RETO_AUTO, k); } catch (e) { }
+        VB.UI.openRetos('hoy');
+      }
+    }, 250);
+  }
   // Título de la pestaña (E7 §2.5): solo se escribe cuando cambia la clave numérica (estado, set y tanteo, Carrera abierta)
   var ttKey = -1;
   function tabTitle(g) {
@@ -6299,6 +6322,7 @@
       window.addEventListener('gamepadconnected', function () { last.navh = null; last.ctls = null; padFamF = -999; GLYPH_PS = null; if (ctx.state === 'menu') renderMenu(); if (panel === 'ctl') { ctlView = 'gamepad'; renderCtl(); } });
       this.onSettings(ctx.settings);
       newsAuto();   // E7: novedades una vez por versión (jugador que vuelve)
+      retoAuto();   // reto del día al abrir el juego (una vez al día, sin medalla de hoy)
       var pn = ctx.params.panel || (ctx.debug === 'tutorial' ? 'tut' : ctx.debug === 'controls' ? 'ctl' : ctx.debug === 'settings' ? 'set' : '');
       if (ctx.params.menu === 'play' || ctx.params.menu === 'quick') setTimeout(function () { mstack.push({ p: 'main', f: 'btnPlay' }); if (ctx.params.menu === 'quick') { mstack.push({ p: 'play', f: 'btnQuick' }); } setPage(ctx.params.menu); focusLayer(); }, 0);
       if (pn && PANELS[pn]) setTimeout(function () { if (pn === 'about') openAbout(ctx.params.tab === 'credits' ? 'credits' : 'news', 'menu'); else openPanel(pn, 'menu'); if (ctx.params.step) tutGo(+ctx.params.step - 1); }, 0);

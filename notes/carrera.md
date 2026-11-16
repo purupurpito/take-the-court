@@ -664,6 +664,14 @@ difficulty, points: 15})` y cuenta puntos; se puede rehacer con `VB.Career.genSt
 
 ## Progresión (más generosa que la de Partido rápido)
 
+- **XP_K (16-nov-2026, Ferran: «tras terminar un partido ganas demasiada EXP, teniendo en cuenta que tus stats pueden ir subiendo con
+  los entrenamientos también»):** la XP de cada partido (y de cada reto de jornada de career-life) se multiplica por `XP_K` = 0,6 en la
+  playa y `XP_K6` = 0,8 en la pista (`VB.Career.beach.XP_K`, `VB.Career.hall.XP_K`). Medido jugando (XP de jugado ≈ 2,2 × la del
+  simulado), con 3 sesiones rápidas de entreno por jornada, puntos en lo más barato y la mejor oferta, 4 semillas × 8 temporadas:
+  playa antes 43 → 51 → 59 → 64 → 69 → 73 → 76 → 79 (élite ~70 en la 4ª-5ª, unos 570 XP y 12
+  puntos por partido), ahora 40 → 46 → 52 → 57 → 62 → 65 → 68 → 70 (élite hacia la 7ª-8ª, lo que pedía esta sección); pista antes
+  51 → 54 → 57 → 61 → 64 → 66 → 69 → 71, ahora 50 → 54 → 57 → 60 → 62 → 64 → 67 → 69. Las fórmulas de abajo son sin `XP_K`.
+
 - XP del partido jugado = `(40 + 22 × nota + 40 si ganas + 6 × mín(tus puntos, 10)) × XP de la liga`; simulado, la mitad. (Tope de 10:
   con control «uno» rematas casi todo y la XP jugada se disparaba.) Medido en la Regional, temporada 1 (bots de simtest, 28 partidos):
   jugado 242 (novato) / 299 (medio) / 339 (bueno) XP por partido; simulado 123 (87-155): simular da un 36-51 % de jugar.

@@ -23,8 +23,8 @@ guardado `voley3d.gym`), `js/career-world.js` (`VB.CareerWorld`: Faro el mentor,
 `tools/fp-mastery.json` (huella de la maestría, `node tools/fingerprint6.js --variant mastery`) de **sim**. Guardados nuevos:
 `voley3d.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; va a `DOCS` desde que Ferran desplegó las reglas con `'gym'` el
 12-nov-2026: `GYM_SYNC = true` en account.js), `voley3d.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
-padDead`), `voley3d.seen` (`{v}`: última versión cuyas Novedades se vieron) y `voley3d.e1tips` (consejos de maestría vistos); estos tres
-NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
+padDead`), `voley3d.seen` (`{v}`: última versión cuyas Novedades se vieron), `voley3d.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
+al entrar; ui.js `retoAuto`, 16-nov-2026) y `voley3d.e1tips` (consejos de maestría vistos); estos NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
 `newsSeen`, `annals[≤40]`, `lead`, `tpl`; ≈ 13 KB a 12 temporadas) y `c.life.celeb` / `c.life.celebAnn`.
 
 **Vestuario (rama personaliza, 13-nov-2026).** `js/look.js` (`VB.Look`: catálogo, compatibilidades, saneado, resolución del aspecto,

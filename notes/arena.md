@@ -1310,7 +1310,7 @@ Detalle: `notes/s234/T5.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
     crema: palau 15 frente a 20 en teal y 27,5 en tinta, con la pelota justo detrás de las letras, `balltest LOGO=1`). Se sigue
     leyendo: son cuerdas tres veces más gruesas que las negras de la malla.
 
-## Jueces de línea según la competición (15-nov-2026, v1.3.2; petición de Ferran)
+## Jueces de línea según la competición (15-nov-2026, v1.3.3; petición de Ferran)
 - Antes: siempre 2 en esquinas diagonales, también en la Hiperliga 2 y abajo (y desde la cámara se veía uno solo).
 - Ahora: 4 (`judgesAll`), uno por esquina en la prolongación de su línea: los de lateral a 3 m detrás del fondo (lejos del
   sacador) y los de fondo a 2,8 m fuera de la lateral. `setJudges(on)` en el frame según `g.lineJudges` (sim: `false` solo si
