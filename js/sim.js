@@ -318,8 +318,7 @@
       recvRisk: 0,             // dificultad (0..1+) del último saque para el receptor (ver serveRisk)
       courtSwap3: false,       // ya se cambió de campo a mitad del set decisivo (a los 8 si va a 15)
       // puntos por set (Partido rápido: 11 | 15 | 21 | 25); el set decisivo va a min(15, points). Ver setTarget
-      // (playa: siempre 21, salvo el partido a un set de la prueba de la Carrera —bestOf 1—, que va a sus puntos: 17-nov-2026)
-      points: beach ? (opts.bestOf === 1 && SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 21) : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 25,
+      points: beach ? 21 : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 25,
       // pista de esta partida (ver C.BEACH): media longitud, media anchura y escala respecto a la de 18×9 (1 en el pabellón:
       // multiplicar por g.cs deja los números exactos y la huella 2v2 intacta)
       venue: beach ? 'beach' : 'hall', beach: beach,
@@ -417,8 +416,6 @@
     if (opts.online) initOnline(g, opts); // ONLINE: perfil y timing comunes, huecos humanos g.hum (antes de los atributos)
     if (dk) g.drill = mkDrill(dk);
     dblFields(g); dblFields(g.ball); dblFields(g.pr1); dblFields(g.pr3); dblFields(g.rally);
-    // partido a un set (17-nov-2026: la prueba jugada de la Carrera, VB.Career.trialSetup → bestOf 1); sin la opción, la clave no existe
-    if (opts.bestOf === 1) g.bo1 = true;
     if (six) { g.roster = [teams[0].concat([g.libero[0]]), teams[1].concat([g.libero[1]])]; if (g.stats) { g.stats.overlap = [0, 0]; g.stats.liberoSwaps = 0; } }
     if (six) subsInit(g, opts, diff);   // banquillo y cambios (solo con opts.bench: g.subsOn; sin él, solo campos apagados)
     refreshTeams(g);

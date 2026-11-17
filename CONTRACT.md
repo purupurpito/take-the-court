@@ -618,10 +618,6 @@ set/partido; `placeT3` coloca `#banner` fuera del marcador entero, `.hud-btns` y
   `STYLE_TRAIN`/`STYLE_PROG` (el estilo del club suma progreso de entreno a un grupo), `ROLE_COACH`, `NEG_COACH` (negociación rechazada → `oferta.negNo`);
   la fatiga vuelve a 0 en verano y Equilibrado no cansa; la petición de traspaso caduca con la temporada.
   Ofertas: `{club, lvl, ovr, mate, interest, role, years}` (`lvl`/`ovr`: liga y media de la temporada en la que jugarías).
-- Pruebas jugadas (17-nov-2026, notes/carrera.md §Pruebas jugadas): `VB.Career.trialSetup(i)` → opciones del mini partido (como `matchSetup`, con
-  `points: TRIAL_PTS`, `bestOf: 1` y `career.trial = {i, club}`), `trialSim(i)`, `trialDone(r, st, g)` (lo llama `matchDone` si `g.career.trial`) → `{pass, p,
-  nota, win, sim, club, clubName}`; `acceptOffer(i)` con una prueba = simularla. main.js `ctx.actions.startCareerTrial(i)`; sim `createGame({bestOf: 1})` = a un set
-  (`g.bo1`; en la playa a sus puntos). `c.trialLast`.
 - `VB.CareerUI` (js/career-ui.js): `open(view?, o?)`, `isOpen()`, `back()`, `nav(it, dt)` (mando; main.js la llama en lugar de `VB.UI.nav` mientras está abierta).
   Sus dos barras (apartados u ofertas, y sub-pestañas) son `VB.UI.tabs` (ids `#crTabs`, `#crSub`): Q/E y LB/RB (o Y) el primer nivel, RePág/AvPág y LT/RT el
   segundo, ←/→ con el foco en una pestaña, deslizar el dedo sobre `#crBody`. «‹ Jugar» vuelve a la página Jugar del menú.

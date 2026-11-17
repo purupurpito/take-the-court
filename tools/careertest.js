@@ -266,7 +266,7 @@ section('Progresión de varias temporadas (todo simulado, gasta puntos en lo má
     let spent = true; while (spent) { spent = false; const ks = C.KEYS.slice().sort((a, b) => c.player.st[a] - c.player.st[b]); for (const k of ks) if (C.bump(k)) { spent = true; break; } }
     const k = C.myClub(c);
     rows.push('T' + c.season + ' ' + C.league(k.lvl).short.padEnd(11) + ' pos ' + c.review.pos + ' media ' + C.playerOvr(c) + ' (nivel ' + c.player.lvl + ') nota ' + C.avgNota(c) + ' ofertas ' + c.offers.length);
-    if (!(c.offers.length && C.acceptOffer(0)) && C.load().phase === 'off') C.stay();   // (17-nov: si la única es una prueba y no sale, te quedas)
+    if (c.offers.length) C.acceptOffer(0); else C.stay();
   }
   rows.forEach(r => console.log('  ' + r));
   ok(C.playerOvr(c) > 50, 'la media sube con las temporadas (' + C.playerOvr(c) + ')');
@@ -1079,7 +1079,7 @@ else {
   { let seasons = 0, awards = 0, fame = [];
     for (let i = 0; i < 2000 && seasons < 13; i++) {
       c = C.load();
-      if (c.phase === 'off') { seasons++; awards = c.life.awards.length; fame.push(c.life.fame); if (!(c.offers.length && C.acceptOffer(0)) && C.load().phase === 'off') C.stay(); continue; }   // (17-nov: si la única es una prueba y no sale, te quedas)
+      if (c.phase === 'off') { seasons++; awards = c.life.awards.length; fame.push(c.life.fame); if (c.offers.length) C.acceptOffer(0); else C.stay(); continue; }
       c.player.pts = c.player.pts | 0; C.simulateNext();
     }
     c = C.load();
@@ -1660,7 +1660,7 @@ section('Dificultad de la Carrera: niveles, IA, atributos, XP, entrenador, ofert
         c = toOff();
         let spent = true; while (spent) { spent = false; const ks = C.KEYS.slice().sort((a, b) => c.player.st[a] - c.player.st[b]); for (const k of ks) if (C.bump(k)) { spent = true; break; } }
         row.push(C.league(C.myClub(c).lvl).short.slice(0, 3) + ' ' + ordnT(c.review.pos) + ' ' + C.playerOvr(c));
-        if (!(c.offers.length && C.acceptOffer(0)) && C.load().phase === 'off') C.stay();   // (17-nov: si la única es una prueba y no sale, te quedas)
+        if (c.offers.length) C.acceptOffer(0); else C.stay();
         c = C.load();
       }
       fin[d] = C.playerOvr(c); lvl[d] = C.myClub(c).lvl;
@@ -2282,59 +2282,6 @@ if (C.hall && C.hall.rivalAI) {
   C._reset(); ok(JSON.stringify(C.load().dUse) === JSON.stringify(cm.dUse), 'pista: migración idempotente');
   delete mem['voley3d.career6']; C._reset();
 } else console.log('(sin dificultad de pista)');
-
-section('Pruebas jugadas (17-nov-2026): mini partido a un set, nota + victoria, simular, invitaciones a mitad y fin de temporada, playa y pista');
-if (C.beach && C.beach.trialSetup && C.hall && C.hall.trialSetup) {
-  const fresh = () => { delete mem['voley3d.career']; delete mem['voley3d.career6']; C._reset(); };
-  // probabilidad: sube con la nota, ganar suma un poco, simular resta
-  const P = C.beach.trialP, o = { chance: 0.3 };
-  ok(P(o, 7, false, false) > P(o, 6, false, false) && P(o, 7, true, false) > P(o, 7, false, false) && P(o, 7, true, false) - P(o, 7, false, false) <= 0.1 && P(o, 7, false, true) < P(o, 7, false, false),
-    'trialP: más nota → más; ganar suma poco (' + P(o, 7, false, false) + ' → ' + P(o, 7, true, false) + '); simulada menos (' + P(o, 7, false, true) + ')');
-  for (const mode of ['beach', 'hall']) {
-    let st = null, seed = 0;
-    for (let sd = 1; sd <= 40 && !st; sd++) { fresh(); C.create({ mode, name: 'Prueba', num: 5, seed: 7000 + sd, pos: 'OH', role: 'uni', country: 'ES' }); const i = C.get().offers.findIndex(x => x.trial); if (i >= 0) { st = C.trialSetup(i); seed = 7000 + sd; st._i = i; } }
-    ok(!!st, mode + ': hay una oferta de prueba al empezar');
-    if (!st) continue;
-    const c0 = C.get(), me = C.playerOvr(c0), avg = a => a.reduce((t, x) => t + C.ovrOf(x), 0) / a.length;
-    ok(st.points === C.TRIAL_PTS && st.bestOf === 1 && st.career.trial && st.career.trial.club === c0.offers[st._i].club && st.career.mode === mode, mode + ': mini partido a un set de ' + C.TRIAL_PTS + ' marcado como prueba');
-    ok(st.rivalOvr >= me + C.TRIAL_UP && avg(st.attrs[1]) >= me + C.TRIAL_UP - 2, mode + ': rivales mejores que tú (' + st.rivalOvr + ' contra ' + me + ')');
-    const k = C.club(c0, c0.offers[st._i].club), base = mode === 'hall' ? C.hall.rivalAI(c0, k) : C.beach.rivalAI(c0, k);
-    const ord = ['easy', 'normal', 'hard', 'expert'];
-    ok(ord.indexOf(st.difficulty) > ord.indexOf(base.diff) || base.step === 4, mode + ': IA por encima del club (' + base.name + ' → ' + st.difficulty + ')');
-    ok(st.difficulty === (C.diffOf(c0) === 'easy' && base.step < 2 ? 'normal' : C.diffOf(c0) === 'normal' && base.step < 3 ? 'hard' : st.difficulty), mode + ': un nivel por encima de tu dificultad (' + C.diffOf(c0) + ' → ' + st.difficulty + ')');
-    if (mode === 'hall') ok(st.format === '6v6' && st.attrs[0].length === 6 && st.attrs[0][st.ctrlIdx] && st.nums[0][st.ctrlIdx] === c0.player.num, 'pista: 6v6 con tu jugador en su puesto');
-    // jugada: la fachada (matchDone con g.career.trial) la cierra con la nota
-    const g = { career: st.career, teams: [[{}, {}], [{}, {}]], size: mode === 'hall' ? 6 : 2 };
-    const n0 = c0.offers.length, r = C.matchDone({ sets: [1, 0], setScores: [[15, 11]], win: true }, { kills: 8, aces: 2, blocks: 1, digs: 4, errors: 1 }, g);
-    const c1 = C.get();
-    ok(r && r.trial && r.win && typeof r.nota === 'number' && r.p > 0 && (r.pass ? c1.phase === 'league' && c1.myClub === k.id : c1.phase === 'pick' && c1.offers.length === n0 - 1), mode + ': prueba jugada → ' + (r && (r.pass ? 'superada' : 'no superada')) + ' (nota ' + (r && r.nota) + ', p ' + (r && r.p) + ')');
-    // simulada (en otra carrera)
-    fresh(); C.create({ mode, name: 'Prueba', num: 5, seed, pos: 'OH', role: 'uni', country: 'ES' });
-    const i2 = C.get().offers.findIndex(x => x.trial), rs = C.trialSim(i2);
-    ok(rs && rs.sim && typeof rs.nota === 'number' && C.get().trialLast && C.get().trialLast.club === rs.club, mode + ': prueba simulada (' + (rs && (rs.pass ? 'superada' : 'no superada')) + ', p ' + (rs && rs.p) + ')');
-    // dejarla a medias la gasta: cerrar la pestaña (marcada y recarga) y salir (trialGiveUp de la fachada)
-    fresh(); C.create({ mode, name: 'Prueba', num: 5, seed, pos: 'OH', role: 'uni', country: 'ES' });
-    { const i3 = C.get().offers.findIndex(x => x.trial), club3 = C.get().offers[i3].club, n3 = C.get().offers.length; C.trialMark(i3); C._reset();
-      const c3 = C.get(); ok(!c3.offers.some(x => x.club === club3 && x.trial) && c3.trialLast && c3.trialLast.quit && !c3.trialLive && c3.offers.length >= n3 - 1, mode + ': cerrar la pestaña a medias gasta la prueba'); }
-    fresh(); C.create({ mode, name: 'Prueba', num: 5, seed, pos: 'OH', role: 'uni', country: 'ES' });
-    { const i4 = C.get().offers.findIndex(x => x.trial), club4 = C.get().offers[i4].club; C.trialMark(i4); const q4 = C.trialGiveUp(mode, club4);
-      ok(q4 && q4.quit && !q4.pass && !C.get().offers.some(x => x.club === club4 && x.trial), mode + ': salir o reiniciar a medias la gasta'); }
-    // invitaciones a prueba a mitad / fin de temporada: alguna en 30 temporadas de 6 carreras, siempre la última de la lista
-    let inv = 0, last = true;
-    for (let sd = 1; sd <= 6; sd++) {
-      fresh(); C.create({ mode, name: 'Inv', num: 5, seed: 7100 + sd, pos: 'OH', role: 'uni', country: 'ES', autoClub: true });
-      for (let it = 0; it < 900 && C.get() && C.get().season <= 5; it++) {
-        const c = C.get();
-        if (c.offers && c.offers.length && c.phase !== 'pick') { const t = c.offers.filter(x => x.trial).length; inv += t; if (t && !c.offers[c.offers.length - 1].trial) last = false; }
-        if (c.phase === 'off') { const nt = c.offers.findIndex(x => !x.trial); if (nt >= 0) C.acceptOffer(nt); else C.stay(); continue; }
-        const nx = C.next(); if (!nx) break; if (nx.bench) C.benchNext(); else C.simulateNext();
-        const pl = C.get(); if (pl && pl.player.pts) { const K = Object.keys(pl.player.st); for (let b = 0; b < 40 && C.bump(K[b % K.length]); b++); }
-      }
-    }
-    ok(inv > 0 && last, mode + ': invitaciones a prueba a mitad o fin de temporada (' + inv + '), siempre la última de la lista');
-  }
-  fresh();
-} else console.log('(sin pruebas jugadas)');
 
 console.log('\n' + passes + ' comprobaciones bien');
 console.log(fails ? '\n' + fails + ' FALLOS' : '\nTODO OK');
