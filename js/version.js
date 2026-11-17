@@ -19,11 +19,21 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.1';
-  VB.VERSION_DATE = '2026-11-16';
+  VB.VERSION = '1.5.2';
+  VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.2', d: '2026-11-17', t: 'Remates y planchas',
+      items: [
+        'En 6 contra 6 la CPU remata de verdad: se acabaron los ataques suaves que caían solos.',
+        'La plancha alcanza menos y el balón sale peor: salvar un balón tarde ya no es gratis.',
+        'Colocador: la rápida y el pipe que pides salen aunque la recepción no sea buena.',
+        'Colocador: tu timing se nota en el remate; la perfecta es más difícil de defender.',
+        'Colocador: la IA no te deja las recepciones y, si tocas tú primero, puedes pedir la bola.'
+      ]
+    },
     {
       v: '1.5.1', d: '2026-11-16', t: 'Lobby online',
       items: [

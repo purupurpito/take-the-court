@@ -1788,3 +1788,29 @@ Sustituye lo de arriba donde choca (arrastre, plantado, tabla de destinos, ρ, `
   65,0 / 53,0 / 33,4, medio 66,1 / 48,0 / 35,6 / 21,3, novato 44,4 / 31,4 / 20,4 / 11,0 (4 semillas, ruido ±3). `tools/fp-mastery.json`
   **regenerada otra vez** (cambio intencionado de la mecánica: mover no es apuntar, destinos y ρ); la huella 2v2 sigue idéntica sin tocar
   fp-2v2.json.
+
+## Ajustes de juego del 17-nov-2026 (Ferran: colocaciones, «rosquitas», plancha, colocador)
+
+Pedido: «las colocaciones parece que no vayan nunca donde tocan… con perfecto tampoco parece que mejore una locura»; «en Hiperliga 2 no hay
+apenas remates, todo son rosquitas»; «la plancha está muy OP»; «que la IA [no] deje balones para que reciba el colocador» y «que el colocador
+pueda pedir una colocación si el primer toque ha sido suyo». Sección de simtest «Ajustes de juego (17-nov)» (`SIMTEST_ONLY=juego17`).
+
+- **Remates de la CPU en 6v6 (`deepSpike`).** `launchDirect` frena el remate lo justo para pasar la red; con la diana de `openSpot` a 2,2 m de la
+  red y el contacto a ~1,6 m de ella, el 40 % de los remates CPU salía a < 8 m/s (también con medias de 85). Ahora, si la velocidad horizontal
+  queda por debajo de `DEEP_K` (0,8) de la pedida, la diana se alarga en la misma línea (pasos de `DEEP_STEP` 0,7 m, hasta `DEEP_MAX` 6,4 m de
+  la red). Medido (autopilot 6v6, 3 × 10 min): media 60 → 0 remates < 10 m/s (antes 116 de 237 < 10), media 85 → 14-18 m/s. Puntos: más
+  balones defendidos fuera (error/out 3 → 11 %, la defensa saca fuera los remates fuertes), menos bloqueos con media 60 (6 → 3 %), 6,9
+  toques por punto (antes 7,2). Solo 6v6 e IA: el 2v2 tiene el mismo patrón (~25 % < 8 m/s) y queda igual (pendiente de que Ferran lo pida).
+- **Colocación del humano en 6v6.** (1) Las rápidas (↑) y los pipes (↓ ↙ ↘) que pide el colocador humano se respetan también fuera de sistema
+  (`buildCand(g, p, want)`; antes caían sin avisar a la 4). (2) Tras su colocación, el remate del compañero CPU depende de la calidad (`SETQ`,
+  como en el 2v2: `hSet6`) y, con una perfecta (q >= `SET6_PERF.q` 0,78), la defensa rival ×`SET6_PERF.dig` (0,8). CPU contra CPU sigue igual.
+  (La precisión en sí ya era buena: 2v2 C2, timing perfecto 5 cm de error medio, bueno 30-50 cm, malo ~1,1 m.)
+- **Plancha** (2v2 y 6v6): `C.DIVE` 1,05 → 0,8 m; calidad `min(q, 0,45) × 0,7` (tope 0,32, siempre 'poor'; antes 0,53, 'good'); en el 1r
+  toque, `DIVE_FAIL` (0,35 × ek) de salir desviada. **Cambia la huella 2v2** (Ferran lo pidió para todo el juego): `fp-2v2.json` y
+  `fp-mastery.json` regeneradas; sin los cambios de la plancha las dos salían idénticas (comprobado antes de regenerar).
+- **Colocador humano en el 1r toque** (`humanOwns`): su celda de la formación ya no es suya (los compañeros no se apartan); solo lo que tiene
+  a < `HUM.area` o lo que pide con «¡mía!».
+- **«¡Pídela!» del colocador** (`askOk`): delantero, con el 1r toque suyo y antes de la colocación; el colocador de emergencia le acepta
+  (`buildCand`), tempo 'shoot' (por la derecha, su sitio), peso ×`HUM.atkW` × `HUM.ask` × `HUM.askS` (2): ~73 % de las veces (sin pedirla, 0).
+- `updateDefense` (2v2, ctrl 'both'): el reparto bloqueo/defensa con cambio de control espera si el balón va rápido y a < 0,6 s (como
+  `fastLate`): la plancha desviada lo hacía saltar en simtest.

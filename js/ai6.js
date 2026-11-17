@@ -82,7 +82,8 @@
   //        tocado el mando (stick o botón) en los últimos idleT s (no regala colocaciones al que está quieto o lejos);
   //  setDb: lo mismo para el humano zaguero candidato a pipe (su batida empieza a ~6 m: vale hasta setDb m de la red);
   //  own2: el 2º toque es del colocador humano si el punto de toque está a < own2 m de él (o en la zona de ataque, d < own2D)
-  var HUM = { area: 1.5, cede: 0.45, yield: 0.25, mine: 1.6, ask: 2.5, askT: 3, atkW: 1.3, setD: 4.6, setR: 4.2, idleT: 3.5, setDb: 7.0, own2: 3.0, own2D: 4.0 };
+  // askS: × extra del colocador humano que pide la bola tras su 1r toque (sin él, ~58 % de las veces; con 2, ~75 %)
+  var HUM = { askS: 2, area: 1.5, cede: 0.45, yield: 0.25, mine: 1.6, ask: 2.5, askT: 3, atkW: 1.3, setD: 4.6, setR: 4.2, idleT: 3.5, setDb: 7.0, own2: 3.0, own2D: 4.0 };
 
   // objetivo compartido (sin asignaciones por frame). phase: fase de la formación para las marcas del suelo (fx.js), la postura de
   // cobertura (players.js) y los consejos (ui.js): '' (va al balón) | 'recv' | 'serve' | 'set' | 'attack' | 'cover' | 'block' | 'net' | 'dig'
@@ -135,6 +136,9 @@
     if (Math.hypot(pr.x - hu.x, pr.y - hu.y) < HUM.area) return true;
     if (n === 1) return hu.role === 'S' && (Math.hypot(pr.x - hu.x, pr.y - hu.y) < HUM.own2 || pr.x * side(t) < HUM.own2D);
     if (n !== 0) return false;
+    // colocador humano (17-nov-2026, Ferran: «que la IA deje balones para que reciba el colocador» —que NO se los deje—): en el 1r toque
+    // solo es suyo lo que tiene encima (area) o lo que pide («¡mía!»); su celda de la formación la cubren los compañeros
+    if (hu.role === 'S') return false;
     var s = spot(g, hu), d0 = Math.hypot(pr.x - s.x, pr.y - s.y), tm = g.teams[t];
     for (var i = 0; i < tm.length; i++) {
       var q = tm[i]; if (q === hu || q === excl || q.bench) continue;
@@ -381,7 +385,7 @@
     return dOf(q) <= (q.front ? HUM.setD : HUM.setDb) && Math.hypot(q.x - x, q.y - y) <= HUM.setR && g.time - g.hAct <= HUM.idleT;
   }
   /** Tempo de la colocación al atacante q (y su carril para el stick del colocador humano, LANE). */
-  function tempoOf(q) { return !q.front ? 'pipe' : q.role === 'MB' ? 'quick' : q.role === 'OPP' ? 'shoot' : 'high'; }
+  function tempoOf(q) { return !q.front ? 'pipe' : q.role === 'MB' ? 'quick' : q.role === 'OPP' || q.role === 'S' ? 'shoot' : 'high'; }
   var LANE = { high: 'left', shoot: 'right', quick: 'mid', pipe: 'back' };
   /** Lateral LOCAL del destino de la colocación al atacante q con el tempo tp (colocador p): la rápida junto al colocador, el pipe
    *  en el carril de la zona del zaguero (6 → centro, 1 → derecha, 5 → izquierda; con bz, la zona que pide el colocador humano con
@@ -395,20 +399,24 @@
   /** Candidatos a atacar del colocador p (en _cand/_w, con su peso) y suma de pesos. Delanteros que pueden atacar (sin el líbero ni
    *  quien coloca); el central (rápida) y los zagueros de pipe (canPipe) solo en sistema: recepción buena y el colocador cerca de la
    *  red (_inSys). Peso del puesto (pipe bajo), menos si el bloqueo rival ya está enfrente. Pura (sin g.rng). */
-  function buildCand(g, p) {
+  function buildCand(g, p, want) {
     var t = p.team, tm = g.teams[t], opp = g.teams[1 - t], sd = side(t);
     var pq = g._pq6 && g._pq6[t], good = pq && g.time - pq.t < 3 && pq.q >= 0.45;
     var inSys = _inSys = !!(good && p.role === 'S' && dOf(p) < 3.0);
     _cand.length = 0; _w.length = 0;
     var sum = 0;
     for (var i = 0; i < tm.length; i++) {
-      var q = tm[i]; if (q === p || q.role === 'S' || !(canAttack(q) || canPipe(q))) continue;
+      var q = tm[i]; if (q === p || !(canAttack(q) || canPipe(q))) continue;
+      // el colocador no remata, salvo el humano que pidió la bola tras dar él el 1r toque (sim askOk, «¡Pídela!»)
+      if (q.role === 'S' && !(S.isHuman(g, q) && g.lastPlayer === q && g.touches === 1 && g.time - g.ask6 < HUM.askT)) continue;
       var tempo = tempoOf(q);
-      if ((tempo === 'quick' || tempo === 'pipe') && !inSys) continue;
+      // rápida y pipe solo en sistema; la que pide el colocador humano (want: carril de dirOf8) se respeta también fuera de sistema
+      // (17-nov-2026: antes se iba sin avisar a la 4 —«las colocaciones no van donde tocan»—; fuera de sistema sale más alta)
+      if ((tempo === 'quick' || tempo === 'pipe') && !inSys && !(want && LANE[tempo] === want)) continue;
       var T = FORM.set[tempo], ty = setY(g, p, q, tempo), Y = sd * ty, w = tempo === 'pipe' ? FORM.setW.pipe : FORM.setW[q.role] || 0.5;
       // humano (sprint 3): un atacante más, algo preferido; con «¡Pídela!» reciente, mucho más. Solo si está para atacar
       // (setReady: cerca de la red —o de su batida de zaguero— y del destino, y jugando): no se le regala el balón
-      if (S.isHuman(g, q)) { if (!setReady(g, q, sd * T.d, Y)) continue; w *= HUM.atkW * (g.time - g.ask6 < HUM.askT ? HUM.ask : 1); }
+      if (S.isHuman(g, q)) { if (!setReady(g, q, sd * T.d, Y)) continue; w *= HUM.atkW * (g.time - g.ask6 < HUM.askT ? HUM.ask : 1) * (q.role === 'S' ? HUM.askS : 1); }
       for (var k = 0; k < opp.length; k++) { var o = opp[k]; if (o.front && Math.abs(o.x) < 2 && Math.abs(o.y - Y) < 1.3) w *= 0.7; }
       _cand.push(q); _w.push(w); sum += w;
     }
@@ -451,7 +459,7 @@
    *  carril; si no hay, alta a la 4; si tampoco, al opuesto; si tampoco, el reparto de la IA), pero se sigue gastando la misma llamada a
    *  g.rng. Deja g.setPlan[t] = {to, tempo, d, yl, apex, t, sys} para computeJob y el bloqueo rival. */
   function chooseSet(g, p, lane, pref, apexD) {
-    var t = p.team, sum = buildCand(g, p), inSys = _inSys;
+    var t = p.team, sum = buildCand(g, p, lane), inSys = _inSys;
     var plan = g._sp6 || (g._sp6 = [{}, {}]), P = plan[t], to = null, aD = 0, r = g.rng() * sum;
     if (lane) { var hk = pickHuman(lane, pref, apexD); to = hk.to; aD = hk.aD; }
     if (!to) for (var j = 0; j < _cand.length; j++) { r -= _w[j]; if (r <= 0 || j === _cand.length - 1) { to = _cand[j]; break; } }
@@ -467,8 +475,9 @@
    *  reparto quedara en manos de la IA (nadie en los carriles de reserva), el candidato de más peso. Escribe en out {to, tempo (FORM),
    *  kind ('quick'|'lane'|'high'), d, yl, apex}. */
   function previewSet(g, p, out) {
-    buildCand(g, p);
-    var d8 = dirOf8(g, p), hk = pickHuman(d8.lane, d8.pref, d8.apexD), to = hk.to, aD = hk.aD, inSys = _inSys;
+    var d8 = dirOf8(g, p);
+    buildCand(g, p, d8.lane);
+    var hk = pickHuman(d8.lane, d8.pref, d8.apexD), to = hk.to, aD = hk.aD, inSys = _inSys;
     if (!to) { var bw = -1; for (var m = 0; m < _cand.length; m++) if (_w[m] > bw) { bw = _w[m]; to = _cand[m]; } }
     var tp = !to ? 'high' : tempoOf(to), TT = FORM.set[tp];
     out.to = to; out.tempo = tp; out.kind = kindOf(tp, aD); out.d = TT.d; out.yl = setY(g, p, to, tp, d8.lane === 'back' && tp === 'pipe' ? d8.pref : 0);
