@@ -3701,6 +3701,345 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{max-width:100%}
 }
 /* ==== fin SPLAT · PARTIDO RÁPIDO ==== */
+/* =====================================================================
+   SPLAT · PAUSA Y HOJA FINAL (#pause, #end con sus pestañas Resumen / Estadísticas / Jugadas, #gymEnd y la Estadística del partido
+   #panel .sheet.ms). Sin velo ni desenfoque: el partido (parado o celebrando) se ve detrás. Cabecera en pegatinas (antetítulo .sp-k,
+   título .sp-h, marcador en pegatina de tinta .sp-score con los sets en chapas crema), lo que se lee en UNA hoja .sp-panel, la acción
+   principal en parche cosido (.sp-patch: Seguir jugando, Revancha / Siguiente jornada / Otra vez, Repetir) y el resto en manchas
+   en fila (data-sp-row). Columna a la izquierda; móvil apaisado bajo: dos columnas (cabecera y botones | hoja); vertical: una columna.
+   ui.js spFix/spSheets vuelve a decorar los botones cuando main.js o ui.js les cambian el rótulo con textContent.
+   ===================================================================== */
+.sp-ov{--ov-pad:clamp(12px,3.4vh,44px);--ov-colw:clamp(330px,40vw,640px);--ov-gap:clamp(8px,1.6vh,16px)}
+/* sin velo, sin desenfoque y sin la hoja vieja (fondo, filo de color, zoom de fitSheet: aquí todo escala con vh) */
+:root:not(#_):not(#_):not(#_) .sp-ov{display:block;padding:0;background:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+:root:not(#_):not(#_):not(#_) .sp-ov>.sp-sheet{position:absolute;left:calc(var(--ov-pad) * 1.3 + var(--sl));top:0;bottom:0;right:auto;width:var(--ov-colw);max-width:calc(100% - var(--ov-pad) * 2.3 - var(--sl) - var(--sr));
+  max-height:none;min-height:0;margin:0;padding:calc(var(--ov-pad) + var(--st)) 0 calc(var(--ov-pad) + 14px + var(--sbm));box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;
+  gap:var(--ov-gap);background:none;border:0;border-radius:0;box-shadow:none;overflow:visible;zoom:1!important;font-family:var(--sp-ui);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) .sp-ov>.sp-sheet::before,:root:not(#_):not(#_):not(#_) .sp-ov>.sp-sheet::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) .sp-ov>.sp-sheet>*{grid-column:auto;grid-row:auto;margin:0}
+/* cabeceras: antetítulo (con sus rombos y barras) y título torcido */
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-hd,.end-hd,.ge-hd){display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-k{margin:0 0 2px;font-size:clamp(10px,1.75vh,14px);letter-spacing:.12em;max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.sp-ov .sp-k .sep-d{background:var(--sp-kit);box-shadow:0 0 0 1.5px var(--sp-ink)}
+.sp-ov .sp-k .sep-v{opacity:.7}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-h{--sp-hs:clamp(28px,7.4vh,68px);background:none;-webkit-background-clip:border-box;background-clip:border-box;max-width:100%;line-height:1.02;padding:2px .1em 4px}
+:root:not(#_):not(#_):not(#_) #end.win .sp-h{color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-h.long{white-space:normal;--sp-hs:clamp(22px,5vh,42px)}
+:root:not(#_):not(#_):not(#_) #gymEnd .sp-h{white-space:normal;--sp-hs:clamp(26px,6.6vh,60px)}
+
+/* ---- .sp-score: marcador en pegatina de tinta (pausa y hoja final; reutilizable con .p-score / .end-score) ---- */
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-score,.end-score){position:relative;display:inline-flex;align-items:center;align-self:flex-start;gap:clamp(8px,1.5vh,14px);margin:0;
+  padding:clamp(3px,.8vh,7px) clamp(12px,2vh,18px);background:var(--sp-ink);color:var(--sp-cream);border-radius:12px 16px 11px 17px/14px 11px 16px 12px;
+  box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.16),var(--sp-sh);transform:rotate(-1.5deg);font-family:var(--sp-pop)}
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t){display:flex;align-items:center;gap:clamp(5px,1vh,9px);font:400 clamp(12px,2.2vh,19px)/1 var(--sp-pop);letter-spacing:.05em;color:var(--sp-cream);text-transform:uppercase}
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t) b{font:400 clamp(24px,5vh,46px)/1 var(--sp-pop);color:var(--sp-cream);text-shadow:2px 3px 0 rgba(0,0,0,.45);font-variant-numeric:tabular-nums;-webkit-text-fill-color:currentColor}
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team.t0,.es-t.t0) b{color:var(--k0l,#ffb07a)}
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team.t1,.es-t.t1) b{color:var(--k1l,#8fc0ff)}
+:root:not(#_):not(#_):not(#_) .sp-ov .p-team i{width:clamp(9px,1.6vh,13px);height:clamp(9px,1.6vh,13px);border-radius:50%;box-shadow:0 0 0 2px var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) .sp-ov .p-mid{display:flex;flex-direction:column;align-items:center;gap:1px;font:800 clamp(9px,1.4vh,12px)/1 var(--sp-ui);letter-spacing:.14em;color:rgba(255,244,220,.7)}
+:root:not(#_):not(#_):not(#_) .sp-ov .p-mid b{display:block;font:400 clamp(14px,2.6vh,22px)/1 var(--sp-pop);letter-spacing:.04em;color:var(--sp-gold);text-shadow:none}
+:root:not(#_):not(#_):not(#_) .sp-ov .es-sep{font:400 clamp(18px,3.4vh,30px)/1 var(--sp-pop);color:rgba(255,244,220,.55);margin:0}
+
+/* ---- botones: parche + filas de manchas ---- */
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.vlist,.row-btn){display:flex;flex-direction:column;align-items:stretch;gap:calc(var(--ov-gap) + 4px);width:100%;margin:0;grid-template-columns:none}
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-row,.end-more,.ge-more){display:flex;align-items:stretch;gap:clamp(10px,1.6vh,16px);min-width:0;margin:0 calc(var(--ov-pad) * .2) 0 0}
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-row,.end-more,.ge-more)>.sp-btn{flex:1 1 0;min-width:0;width:auto;grid-column:auto}
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.p-row,.end-more,.ge-more,.end-ms) .sp-t{white-space:normal;text-align:center;line-height:1.05;overflow:visible;text-overflow:clip;transform-origin:50% 70%;padding:2px 0 1px}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-patch{grid-column:auto;width:100%;--sp-ph:clamp(54px,11.5vh,100px);container-type:inline-size}
+/* letra del parche: la mayor que quepa (ui.js spLen pone --sp-n = letras del rótulo; Bowlby ≈ 0,8 em por letra; cqw = caja de contenido del parche) */
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-patch .sp-t{font-size:min(calc(var(--sp-ph) * .4),calc(100cqw / (var(--sp-n,10) * .8)))}
+/* con una sola mancha en la fila, no se estira a lo ancho */
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.end-more,.ge-more):not(:has(>.sp-btn:not([hidden])~.sp-btn:not([hidden])))>.sp-btn{flex:0 1 auto;min-width:min(240px,62%);padding:0 28px}
+/* el marcador del HUD no se repite detrás de la pausa (ya lo dice la pegatina) */
+#app:has(#pause:not([hidden])) .sb{opacity:0!important;transition:opacity .2s}
+.sp-ov :is(.p-row,.end-more,.ge-more)>.sp-btn{--sp-h:clamp(46px,8.4vh,70px);--sp-fs:clamp(11.5px,2.15vh,18px)}
+.sp-ov .p-row>.sp-btn{--sp-fs:clamp(12.5px,2.4vh,20px)}
+.sp-ov .p-row .sp-ic{--sp-is:clamp(17px,3vh,26px)}
+#btnRestart{--sp-d:var(--sp-teal)}#btnPControls{--sp-d:var(--sp-alt)}#btnPSettings{--sp-d:var(--sp-teal)}#btnEndOpts{--sp-d:var(--sp-alt)}#btnMenu{--sp-d:var(--sp-kit)}
+/* dos pasos (Reiniciar / Abandonar la prueba): mancha roja que tiembla una vez */
+.sp-ov .sp-btn.arm{--sp-c:var(--sp-danger);--sp-cf:var(--sp-danger);--sp-tc:#fff6e4;--sp-tcf:#fff6e4;--sp-ts:2px 2px 0 var(--sp-ink);--sp-d:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-btn.arm{animation:spArm .38s var(--ease) both;background:none;box-shadow:none;color:var(--sp-tc)}
+@keyframes spArm{20%{transform:rotate(calc(var(--sp-tilt,0deg) - 3deg)) scale(1.04)}45%{transform:rotate(calc(var(--sp-tilt,0deg) + 3deg)) scale(1.04)}70%{transform:rotate(calc(var(--sp-tilt,0deg) - 1.5deg)) scale(1.02)}100%{transform:rotate(var(--sp-tilt,0deg)) scale(1.02)}}
+.rm .sp-ov .sp-btn.arm{animation:none!important}
+@media (prefers-reduced-motion:reduce){.sp-ov .sp-btn.arm{animation:none!important}}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-btn.arm .sp-t{font-size:.86em;letter-spacing:.01em}
+
+/* =========================== PAUSA =========================== */
+#pause .vlist>#btnPSubs{--sp-h:clamp(46px,8vh,64px);--sp-fs:clamp(12.5px,2.3vh,19px);margin-right:calc(var(--ov-pad) * .2)}
+:root:not(#_):not(#_):not(#_) #pause .p-warn{align-self:flex-start;margin:0;padding:4px 10px;border-radius:7px 10px 8px 11px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink);
+  font:700 clamp(11px,1.9vh,14px)/1.25 var(--sp-ui);text-align:left;transform:rotate(-1.5deg)}
+:root:not(#_):not(#_):not(#_) #pause .p-warn[hidden]{display:none}
+
+/* =========================== HOJA FINAL Y EJERCICIO =========================== */
+:root:not(#_):not(#_):not(#_) #end .end-sc{display:flex;align-items:center;flex-wrap:wrap;gap:clamp(8px,1.4vh,12px) clamp(10px,1.8vh,16px);margin-top:clamp(4px,1vh,10px)}
+/* reto del día: sello dorado (decorativo) junto al título con la medalla de hoy; si es nueva, entra estampado */
+:root:not(#_):not(#_):not(#_) #end .end-hd{position:relative}
+#end .end-hd.has-seal{--sp-stamp:clamp(58px,13.5vh,116px)}
+:root:not(#_):not(#_):not(#_) #end .end-hd.has-seal{padding-right:calc(var(--sp-stamp) * .9)}
+:root:not(#_):not(#_):not(#_) #end .end-seal{position:absolute;right:0;top:calc(var(--sp-stamp) * -.08);pointer-events:none;cursor:default;z-index:2}
+:root:not(#_):not(#_):not(#_) #end .end-seal[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #end .end-seal.sp-new{animation:spStampIn .55s .25s cubic-bezier(.2,1.6,.4,1) both}
+#end .end-seal .sp-sc{gap:1px}
+#end .end-seal .sp-sc .sc-med{width:46%;height:46%}
+@keyframes spStampIn{0%{transform:rotate(-30deg) scale(1.9);opacity:0}60%{opacity:1}100%{transform:rotate(-12deg) scale(1);opacity:1}}
+.rm #end .end-seal{animation:none!important}
+@media (prefers-reduced-motion:reduce){#end .end-seal{animation:none!important}}
+/* sets: chapas crema con el punto del color de quien lo ganó */
+:root:not(#_):not(#_):not(#_) #end .end-sets{display:flex;flex-wrap:wrap;gap:clamp(6px,1.1vh,10px);margin:0}
+:root:not(#_):not(#_):not(#_) #end .end-sets span{display:inline-flex;align-items:center;gap:5px;padding:clamp(2px,.6vh,5px) clamp(7px,1.3vh,11px);border:0;border-radius:7px 10px 8px 11px/9px 8px 10px 7px;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);font:400 clamp(12px,2.1vh,18px)/1.1 var(--sp-pop);letter-spacing:.02em;transform:rotate(var(--sp-tilt,-2deg))}
+#end .end-sets span:nth-child(2n){--sp-tilt:1.5deg}
+:root:not(#_):not(#_):not(#_) #end .end-sets span small{font:800 clamp(9px,1.4vh,11.5px)/1 var(--sp-ui);letter-spacing:.06em;color:rgba(21,16,42,.62)}
+:root:not(#_):not(#_):not(#_) #end .end-sets span::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--k0,#ff6a2e);box-shadow:0 0 0 1.5px var(--sp-ink);flex:none}
+:root:not(#_):not(#_):not(#_) #end .end-sets span.w1::before{background:var(--k1,#2f7bff)}
+/* la hoja de lectura: pestañas en trazo de pincel arriba y el panel que se desplaza solo */
+:root:not(#_):not(#_):not(#_) .sp-ov :is(.end-body,.ge-body){display:flex;flex-direction:column;flex:0 1 auto;min-height:0;max-height:none;width:auto;margin:0 calc(var(--ov-pad) * .2) 4px 0;
+  padding:clamp(8px,1.6vh,16px) clamp(10px,1.9vh,18px);grid-column:auto;grid-row:auto;align-self:stretch}
+:root:not(#_):not(#_):not(#_) #end .end-tabs{flex:none;margin:0 0 clamp(6px,1.2vh,12px);max-width:100%}
+:root:not(#_):not(#_):not(#_) #end .end-tabs[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #end .end-tabs .tb-row{flex:1;min-width:0;justify-content:flex-start;gap:clamp(6px,1.2vh,12px);padding:4px 4px 6px}
+:root:not(#_):not(#_):not(#_) #end .end-tabs .tab{flex:0 1 auto;--sp-tbh:clamp(44px,6.4vh,52px);--sp-tbs:clamp(11.5px,2.1vh,17px)}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-tabs .tb-k{display:inline-flex;align-items:center;justify-content:center;min-width:24px;height:24px;margin:0;padding:0 5px;border:0;border-radius:6px 8px 6px 7px;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);font:800 11px/1 var(--sp-ui);text-shadow:none;opacity:.9;flex:none;align-self:center}
+:root:not(#_):not(#_):not(#_) .sp-ov .sp-tabs.tb-touch .tb-k{display:none}
+:root:not(#_):not(#_):not(#_) #end .end-tabs{display:flex;align-items:center;gap:6px}
+:root:not(#_):not(#_):not(#_) #end .end-body>[role=tabpanel]{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0;padding:0 4px 2px 2px;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.4) transparent}
+:root:not(#_):not(#_):not(#_) #end .end-body>[hidden]{display:none}
+
+/* Resumen: titular, bloques con su etiqueta en pegatina dorada */
+:root:not(#_):not(#_):not(#_) #end .rc{gap:clamp(6px,1.2vh,11px)}
+:root:not(#_):not(#_):not(#_) #end .rc-hl{margin:0 0 2px;font:700 clamp(13px,2.2vh,18px)/1.3 var(--sp-ui);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #end .rc-b{grid-template-columns:clamp(92px,15vh,136px) minmax(0,1fr);column-gap:clamp(8px,1.4vh,14px)}
+:root:not(#_):not(#_):not(#_) #end .rc-b>.rc-h,:root:not(#_):not(#_):not(#_) #end .rc-h{clip-path:none;margin:1px 0 0;padding:2px 6px 1px;border-radius:6px 9px 7px 10px/8px 7px 9px 6px;background:var(--sp-gold);color:var(--sp-ink);
+  box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);font:400 clamp(9px,1.45vh,12px)/1.3 var(--sp-pop);letter-spacing:.02em;text-transform:uppercase;transform:rotate(-3deg);max-width:calc(100% - 6px)}
+#end .rc-b:nth-child(2n)>.rc-h{transform:rotate(-1.5deg)}
+:root:not(#_):not(#_):not(#_) #end .rc-c{font:500 clamp(12px,1.95vh,16px)/1.3 var(--sp-ui);color:rgba(255,244,220,.88)}
+:root:not(#_):not(#_):not(#_) #end :is(.rc-x,.rc-more){font-size:clamp(11px,1.7vh,14px);color:rgba(255,244,220,.62)}
+:root:not(#_):not(#_):not(#_) #end .rc-mv b{font:400 clamp(14px,2.4vh,20px)/1.15 var(--sp-pop);letter-spacing:.02em;color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #end .rc-mv small{font:500 clamp(11px,1.75vh,14px)/1.3 var(--sp-ui);color:rgba(255,244,220,.66)}
+:root:not(#_):not(#_):not(#_) #end .rc-nota{font:400 clamp(15px,2.6vh,22px)/1 var(--sp-pop);color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #end .rc-pt{width:clamp(34px,6vh,50px);height:clamp(34px,6vh,50px);border-radius:10px;box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #end .rc-xr b{font:400 clamp(13px,2.2vh,18px)/1.1 var(--sp-pop);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #end .rc-xr .lv{font:400 clamp(11px,1.8vh,14px)/1.1 var(--sp-pop);color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #end .rc-nm{color:rgba(255,244,220,.85)}
+:root:not(#_):not(#_):not(#_) #end .rc-bar{height:8px;border-radius:5px;background:rgba(255,244,220,.12);box-shadow:0 0 0 1.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #end .rc-bar>i{background:var(--sp-gold);border-radius:5px}
+:root:not(#_):not(#_):not(#_) #end .rc-tr{font:400 clamp(12px,2vh,16px)/1.35 var(--sp-pop);letter-spacing:.03em;color:rgba(255,244,220,.6)}
+:root:not(#_):not(#_):not(#_) #end .rc-tr.me{color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #end .rc-pill{font:600 clamp(12px,1.9vh,15px)/1.25 var(--sp-ui);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #end .ge-m{color:rgba(255,244,220,.6)}
+:root:not(#_):not(#_):not(#_) #end .ge-m.on{color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #end .rc-net{font-family:var(--sp-ui)!important;color:rgba(255,244,220,.8)!important}
+
+/* Estadísticas: «Estadística del partido» y el acta en pegatinas crema; MVP y barras con la letra del sistema */
+:root:not(#_):not(#_):not(#_) #end .end-ms{display:flex;flex-wrap:wrap;gap:clamp(8px,1.4vh,12px);margin:2px 4px clamp(8px,1.4vh,12px) 0}
+:root:not(#_):not(#_):not(#_) #end .end-ms>.sp-btn{flex:0 1 auto;width:auto;min-width:0;padding:0 18px 0 14px;--sp-fs:clamp(11.5px,2vh,16px)}
+:root:not(#_):not(#_):not(#_) #end .end-ms>.sp-btn[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #end .mvp-h{font:400 clamp(10px,1.6vh,13px)/1 var(--sp-pop);letter-spacing:.16em;color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #end .mvp-cols{font:800 clamp(9.5px,1.5vh,12px)/1 var(--sp-ui);letter-spacing:.06em;color:rgba(255,244,220,.6)}
+:root:not(#_):not(#_):not(#_) #end .mvp{border:0;border-radius:9px 12px 10px 13px;background:rgba(255,244,220,.07);box-shadow:inset 0 0 0 1.5px rgba(255,244,220,.1)}
+:root:not(#_):not(#_):not(#_) #end .mvp::before{background:var(--k0,#ff6a2e)}
+:root:not(#_):not(#_):not(#_) #end .mvp.t1::before{background:var(--k1,#2f7bff)}
+:root:not(#_):not(#_):not(#_) #end .mvp-n{background:var(--k0,#ff6a2e);box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);font:400 clamp(14px,2.4vh,19px)/1 var(--sp-pop);color:var(--sp-cream);text-shadow:1.5px 1.5px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #end .mvp.t1 .mvp-n{background:var(--k1,#2f7bff)}
+:root:not(#_):not(#_):not(#_) #end .mvp strong{font:400 clamp(18px,3.2vh,28px)/1 var(--sp-pop);color:var(--k0l,#ffb07a)}
+:root:not(#_):not(#_):not(#_) #end .mvp.t1 strong{color:var(--k1l,#8fc0ff)}
+:root:not(#_):not(#_):not(#_) #end .mvp>b{font:400 clamp(13px,2.2vh,18px)/1 var(--sp-pop);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #end .mvp>b.z{color:rgba(255,244,220,.35)}
+:root:not(#_):not(#_):not(#_) #end .stats{gap:clamp(6px,1.2vh,10px);margin:clamp(8px,1.4vh,12px) 0 4px}
+:root:not(#_):not(#_):not(#_) #end .st-r .mid{row-gap:4px}
+:root:not(#_):not(#_):not(#_) #end .st-r b{font:400 clamp(15px,2.8vh,24px)/1.15 var(--sp-pop);color:var(--k0l,#ffb07a)}
+:root:not(#_):not(#_):not(#_) #end .st-r b:last-child{color:var(--k1l,#8fc0ff)}
+:root:not(#_):not(#_):not(#_) #end .st-r .mid em{font:800 clamp(10px,1.6vh,13px)/1 var(--sp-ui);letter-spacing:.08em;color:rgba(255,244,220,.8)}
+:root:not(#_):not(#_):not(#_) #end .st-r .bar{background:rgba(255,244,220,.1);box-shadow:0 0 0 1px rgba(21,16,42,.6)}
+:root:not(#_):not(#_):not(#_) #end .st-r .bar.l i{background:var(--k0,#ff6a2e)}
+:root:not(#_):not(#_):not(#_) #end .st-r .bar.r i{background:var(--k1,#2f7bff)}
+:root:not(#_):not(#_):not(#_) .sp-ov .end-rec{margin:clamp(6px,1.2vh,10px) 0 2px;font:500 clamp(11.5px,1.85vh,15px)/1.35 var(--sp-ui);color:rgba(255,244,220,.72)}
+:root:not(#_):not(#_):not(#_) .sp-ov .end-rec b{color:var(--sp-cream);font-weight:700}
+:root:not(#_):not(#_):not(#_) .sp-ov .end-rec .new{color:var(--sp-gold);font-weight:700}
+
+/* Jugadas: filas con el número en Titan dorado y «Ver» en pegatina crema */
+:root:not(#_):not(#_):not(#_) #endPlays .pl-h{display:block;margin:0 0 6px;font:700 clamp(11.5px,1.8vh,14px)/1.3 var(--sp-ui);color:rgba(255,244,220,.7)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-list{gap:clamp(6px,1.1vh,10px)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-row{gap:clamp(8px,1.4vh,12px);padding:4px 6px 4px 0;border-radius:9px 12px 10px 13px;background:rgba(255,244,220,.07);box-shadow:inset 4px 0 0 var(--k0,#ff6a2e)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-row.t1{box-shadow:inset 4px 0 0 var(--k1,#2f7bff)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-n{width:30px;font:400 clamp(16px,2.8vh,24px)/1 var(--sp-pop);font-style:normal;color:var(--sp-gold);text-shadow:1.5px 2px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-tx b{font:700 clamp(12.5px,2.1vh,17px)/1.25 var(--sp-ui);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-tx small{font:500 clamp(11px,1.7vh,13.5px)/1.3 var(--sp-ui);color:rgba(255,244,220,.6)}
+:root:not(#_):not(#_):not(#_) #endPlays :is(.pl-go,.pl-all .sp-btn){min-height:44px;padding:0 14px 0 10px;--sp-fs:clamp(11px,1.9vh,15px);flex:none}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-go{margin:3px 4px}
+:root:not(#_):not(#_):not(#_) #endPlays .sp-ic{--sp-is:clamp(13px,2.2vh,17px)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-all{margin:clamp(8px,1.4vh,12px) 0 4px 2px}
+
+/* «Ver celebración» (pegatina pequeña arriba a la derecha de la hoja) y «Ver resultado» (con la hoja apartada) */
+:root:not(#_):not(#_):not(#_) #end .end-peek{display:none;position:absolute;right:0;top:calc(var(--ov-pad) + var(--st));z-index:3;grid-column:auto;grid-row:auto;margin:0}
+:root:not(#_):not(#_):not(#_) #end .end-peek .sp-btn{min-height:44px;padding:0 12px 0 9px;--sp-fs:clamp(10.5px,1.8vh,13px)}
+:root:not(#_):not(#_):not(#_) #end .end-peek .sp-ic{--sp-is:16px}
+:root:not(#_):not(#_):not(#_) #end .end-back{position:absolute;left:0;right:0;bottom:calc(16px + var(--sbm));width:max-content;margin:0 auto;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s,visibility 0s .2s}
+:root:not(#_):not(#_):not(#_) #end.peek .end-back{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .2s}
+:root:not(#_):not(#_):not(#_) #end .end-back .sp-ic{--sp-is:18px}
+:root:not(#_):not(#_):not(#_) #end .end-back .sp-ic svg{fill:none;stroke:currentColor;stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+
+/* ejercicio: total grande, medallas y barras de las repeticiones en la hoja */
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-top{margin:0 0 clamp(6px,1.2vh,12px);gap:clamp(8px,1.8vh,16px) clamp(14px,3vh,28px)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-total b{font:400 clamp(44px,10vh,92px)/.9 var(--sp-pop);color:var(--sp-cream);text-shadow:3px 0 0 var(--sp-ink),-3px 0 0 var(--sp-ink),0 3px 0 var(--sp-ink),0 -3px 0 var(--sp-ink),4px 6px 0 var(--sp-ink);transform:rotate(-3deg)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-total small{font:700 clamp(13px,2.3vh,19px)/1 var(--sp-ui);color:rgba(255,244,220,.7)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-m{font:700 clamp(11px,1.8vh,14px)/1 var(--sp-ui);color:rgba(255,244,220,.55)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-m.on{color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-m .mdl{width:clamp(30px,6vh,52px);height:clamp(30px,6vh,52px)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-reps{height:clamp(22px,5vh,44px);gap:clamp(4px,.8vh,7px);margin:0 0 clamp(4px,1vh,8px)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-reps i{border-radius:3px 4px 2px 4px;background:var(--sp-gold);box-shadow:0 0 0 1.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-reps i.p0{background:rgba(255,244,220,.25);box-shadow:none}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-reps i.p1{background:var(--sp-kit)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-reps i.p3{background:var(--sp-alt)}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-rec{margin:clamp(4px,1vh,8px) 0 0}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-btns{display:flex}
+:root:not(#_):not(#_):not(#_) #gymEnd .ge-btns>*[hidden]{display:none}
+
+/* ---- móvil apaisado bajo (≤ 430 px de alto): dos columnas (cabecera y botones | la hoja); la pausa, una columna compacta ---- */
+@media (max-height:430px) and (min-aspect-ratio:5/4){
+  .sp-ov{--ov-pad:10px;--ov-gap:8px}
+  :root:not(#_):not(#_):not(#_) .sp-ov .sp-h{--sp-hs:clamp(22px,7.6vh,30px)}
+  :root:not(#_):not(#_):not(#_) .sp-ov .sp-h.long{--sp-hs:19px}
+  :root:not(#_):not(#_):not(#_) .sp-ov .sp-k{font-size:10.5px;letter-spacing:.08em}
+  :root:not(#_):not(#_):not(#_) .sp-ov .sp-patch{--sp-ph:clamp(48px,14vh,56px)}
+  .sp-ov :is(.p-row,.end-more,.ge-more)>.sp-btn{--sp-h:44px;--sp-fs:clamp(10.5px,3.2vh,13px)}
+  .sp-ov .p-row>.sp-btn{--sp-fs:clamp(11px,3.4vh,14px)}
+  .sp-ov .p-row .sp-ic{--sp-is:16px}
+  /* pausa: cabecera en una fila (título y marcador) */
+  #pause{--ov-colw:min(400px,calc(100vw - 40px - var(--sl) - var(--sr)))}
+  :root:not(#_):not(#_):not(#_) #pause>.sp-sheet{display:grid;grid-template-columns:minmax(0,1fr) auto;align-content:center;column-gap:12px;row-gap:8px}
+  :root:not(#_):not(#_):not(#_) #pause .p-hd{grid-column:1;grid-row:1;align-self:end}
+  :root:not(#_):not(#_):not(#_) #pause .p-score{grid-column:2;grid-row:1;align-self:center}
+  :root:not(#_):not(#_):not(#_) #pause .p-warn{grid-column:1/-1}
+  :root:not(#_):not(#_):not(#_) #pause .vlist{grid-column:1/-1}
+  :root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t) b{font-size:clamp(20px,7vh,28px)}
+  :root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t){font-size:12px}
+  #pause .vlist>#btnPSubs{--sp-h:44px;--sp-fs:12px}
+  /* hoja final y ejercicio */
+  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd)>.sp-sheet{right:calc(var(--ov-pad) + var(--sr));width:auto;max-width:none;left:calc(var(--ov-pad) + var(--sl));display:grid;
+    grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);grid-template-rows:auto auto;align-content:center;column-gap:clamp(12px,2.4vw,24px);row-gap:8px}
+  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-hd,.ge-hd){grid-column:1;grid-row:1;align-self:end}
+  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd) .row-btn{grid-column:1;grid-row:2;align-self:start}
+  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-body,.ge-body){grid-column:2;grid-row:1/3;align-self:center;max-height:100%;margin:0 0 4px}
+  :root:not(#_):not(#_):not(#_) #end .end-sc{margin-top:2px;gap:6px 8px}
+  :root:not(#_):not(#_):not(#_) #end .end-score{padding:2px 10px}
+  :root:not(#_):not(#_):not(#_) #end .end-sets span{font-size:12px;padding:2px 6px}
+  :root:not(#_):not(#_):not(#_) #end .end-tabs .tab{--sp-tbh:44px;--sp-tbs:11px;padding:0 8px;letter-spacing:.01em}
+  :root:not(#_):not(#_):not(#_) #end .end-tabs .tb-row{gap:3px;padding:3px 2px 5px}
+  :root:not(#_):not(#_):not(#_) #pnMstats .ms-top{display:flex;align-items:center;gap:8px;padding-top:4px;padding-bottom:4px}
+  :root:not(#_):not(#_):not(#_) #pnMstats .ms-top .tabs{flex:none;margin:0;max-width:52%}
+  :root:not(#_):not(#_):not(#_) #pnMstats .ms-top .ms-sets{flex:1;min-width:0;padding:4px 4px 6px}
+  :root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button{min-width:60px;padding:3px 8px 4px;font-size:14px}
+  :root:not(#_):not(#_):not(#_) #pnMstats .tabs .tab{--sp-tbh:44px;--sp-tbs:11px;padding:0 9px}
+  :root:not(#_):not(#_):not(#_) .sp-ov :is(.end-body,.ge-body){padding:7px 9px}
+  :root:not(#_):not(#_):not(#_) #end .end-peek{position:static;display:flex;grid-column:1;grid-row:3;align-self:start;justify-self:start}
+  :root:not(#_):not(#_):not(#_) #end .end-peek[hidden]{display:none}
+  .is-touch #end .sp-sheet{grid-template-rows:auto auto auto}
+  :root:not(#_):not(#_):not(#_) #end .rc-b{grid-template-columns:92px minmax(0,1fr);column-gap:8px}
+  :root:not(#_):not(#_):not(#_) #end .rc-b>.rc-h{font-size:9px;padding:2px 5px 1px}
+  :root:not(#_):not(#_):not(#_) #gymEnd .ge-total b{font-size:clamp(36px,12vh,52px)}
+}
+@media (max-height:360px) and (min-aspect-ratio:5/4){
+  /* sin sitio para el rótulo: «Ver celebración» queda en un ojo (44 px) arriba a la derecha de la columna; el sello del reto se va */
+  :root:not(#_):not(#_):not(#_) #end .end-peek{display:flex;position:relative;grid-column:1;grid-row:1;justify-self:end;align-self:start;z-index:3}
+  :root:not(#_):not(#_):not(#_) #end .end-peek .sp-btn{width:48px;padding:0;justify-content:center}
+  :root:not(#_):not(#_):not(#_) #end .end-peek .sp-t{display:none}
+  :root:not(#_):not(#_):not(#_) #end .end-peek .sp-ic{--sp-is:20px}
+  :root:not(#_):not(#_):not(#_) #end .end-hd,:root:not(#_):not(#_):not(#_) #end .end-hd.has-seal{padding-right:54px}
+  :root:not(#_):not(#_):not(#_) #end .end-seal{display:none}
+  :root:not(#_):not(#_):not(#_) #end .end-hd .sp-k{display:none}
+}
+/* ---- vertical: cabecera arriba, la hoja en medio (se desplaza) y los botones abajo ---- */
+@media (max-aspect-ratio:5/4){
+  .sp-ov{--ov-pad:clamp(14px,4vw,28px);--ov-gap:10px}
+  :root:not(#_):not(#_):not(#_) .sp-ov>.sp-sheet{left:calc(var(--ov-pad) + var(--sl));right:calc(var(--ov-pad) + var(--sr));width:auto;max-width:none;padding:calc(var(--ov-pad) * 1.1 + var(--st)) 0 calc(var(--ov-pad) + var(--sbm))}
+  :root:not(#_):not(#_):not(#_) #pause>.sp-sheet{justify-content:space-between}
+  :root:not(#_):not(#_):not(#_) .sp-ov .sp-h{--sp-hs:clamp(28px,9.6vw,52px);white-space:normal}
+  :root:not(#_):not(#_):not(#_) .sp-ov .sp-k{white-space:normal}
+  :root:not(#_):not(#_):not(#_) .sp-ov .sp-patch{--sp-ph:clamp(58px,9.4vh,84px)}
+  .sp-ov :is(.p-row,.end-more,.ge-more)>.sp-btn{--sp-h:clamp(50px,7.6vh,64px);--sp-fs:clamp(11px,3.3vw,15px)}
+  .sp-ov .p-row>.sp-btn{--sp-fs:clamp(12px,3.6vw,17px)}
+  :root:not(#_):not(#_):not(#_) .sp-ov :is(.p-row,.end-more,.ge-more){gap:10px;margin-right:0}
+  :root:not(#_):not(#_):not(#_) .sp-ov :is(.end-body,.ge-body){margin-right:0}
+  :root:not(#_):not(#_):not(#_) #end .end-peek{display:block;position:static;order:-1;align-self:flex-end;margin:0 0 4px}
+  :root:not(#_):not(#_):not(#_) #end .end-hd{padding-right:0}
+  :root:not(#_):not(#_):not(#_) #end .end-tabs .tab{--sp-tbs:clamp(10.5px,3.1vw,14px);padding:0 clamp(7px,2.2vw,12px)}
+  :root:not(#_):not(#_):not(#_) #end .end-tabs .tb-row{gap:4px;padding:4px 2px 6px}
+  :root:not(#_):not(#_):not(#_) #end .rc-b{grid-template-columns:clamp(92px,25vw,110px) minmax(0,1fr);column-gap:8px}
+  :root:not(#_):not(#_):not(#_) #end .rc-b>.rc-h{font-size:clamp(9px,2.6vw,11px);padding:2px 5px 1px}
+}
+/* ---- pantallas grandes: la columna no pasa de ~620 px a 1080 (todo escala con vh) ---- */
+@media (min-height:900px) and (min-aspect-ratio:5/4){.sp-ov{--ov-colw:clamp(380px,36vw,700px)}}
+
+/* =========================== ESTADÍSTICA DEL PARTIDO (#panel .sheet.ms, js/matchstats.js) =========================== */
+/* hoja de lectura larga = .sp-panel (tinta 94 %, contorno, sombra dura): cabecera en pegatina, equipos en trazo de pincel, partido y
+   sets en chapas, cifras en pegatinas, tablas en Rubik. Solo dentro de .sheet.ms (el resto del panel general es de otra pantalla) */
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms{background:rgba(21,16,42,.95);border:0;border-radius:18px 24px 20px 26px/22px 18px 26px 20px;
+  box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.14),6px 8px 0 var(--sp-ink);font-family:var(--sp-ui);color:var(--sp-cream);scrollbar-color:rgba(255,244,220,.4) transparent}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms::before{display:none}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms.has-more::after{background:linear-gradient(180deg,rgba(21,16,42,0),rgba(21,16,42,.96) 62%) no-repeat}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms .pn-head h2{font:400 clamp(22px,5vh,40px)/1 var(--sp-pop);letter-spacing:.01em;text-transform:uppercase;font-style:normal;color:var(--sp-cream);
+  text-shadow:2.5px 0 0 var(--sp-ink),-2.5px 0 0 var(--sp-ink),0 2.5px 0 var(--sp-ink),0 -2.5px 0 var(--sp-ink),2px 2px 0 var(--sp-ink),-2px -2px 0 var(--sp-ink),3px 5px 0 #000;transform:rotate(-2deg);transform-origin:0 60%}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms .sh-k{font:800 clamp(10px,1.7vh,13px)/1.2 var(--sp-ui);letter-spacing:.12em;color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack{min-height:44px;padding:0 16px;border:0;border-radius:22px 30px 26px 18px/20px 18px 28px 24px;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 var(--sp-line) var(--sp-ink),var(--sp-sh);font:400 clamp(12px,2vh,15px)/1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;transform:rotate(1.5deg)}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack:is(.kf,:focus-visible){background:var(--sp-gold);box-shadow:0 0 0 var(--sp-line) var(--sp-ink),0 0 0 6px var(--sp-cream),var(--sp-sh);outline:none}
+#pnMstats{--card:rgba(255,244,220,.06);--card2:rgba(255,244,220,.11);--ln:rgba(255,244,220,.1)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-top{background:#1a1433;box-shadow:0 2px 0 var(--sp-ink),0 8px 12px -6px rgba(0,0,0,.6)}
+:root:not(#_):not(#_):not(#_) #pnMstats .tabs{margin:0 0 6px;display:flex;align-items:center;gap:6px}
+:root:not(#_):not(#_):not(#_) #pnMstats .tabs .tb-row{flex:1;min-width:0;justify-content:flex-start}
+:root:not(#_):not(#_):not(#_) #pnMstats .tabs .tab{flex:0 1 auto;--sp-tbh:clamp(44px,6.4vh,50px);--sp-tbs:clamp(11.5px,2vh,16px)}
+:root:not(#_):not(#_):not(#_) #pnMstats .tabs .tab .ms-dot{box-shadow:0 0 0 2px var(--sp-ink)}
+/* partido y sets: chapas crema torcidas; la elegida, dorada */
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets{gap:10px;padding:4px 6px 8px 4px}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button{min-width:72px;min-height:44px;padding:5px 12px 6px;border:0;border-radius:8px 12px 9px 13px/10px 9px 12px 8px;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:400 clamp(14px,2.4vh,19px)/1 var(--sp-pop);letter-spacing:.02em;transform:rotate(-2deg)}
+#pnMstats .ms-sets button:nth-child(2n){transform:rotate(1.5deg)!important}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button small{font:800 10px/1 var(--sp-ui);letter-spacing:.1em;color:rgba(21,16,42,.62)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button :is(.w0,.w1){color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button .w0::before,:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button .w1::before{content:"";display:inline-block;width:8px;height:8px;margin:0 5px 1px 0;border-radius:50%;background:var(--k0,#ff6a2e);box-shadow:0 0 0 1.5px var(--sp-ink);vertical-align:middle}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button .w1::before{background:var(--k1,#2f7bff)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button.on{background:var(--sp-gold);color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-cream),2px 3px 0 5.5px var(--sp-ink);transform:rotate(0) scale(1.06)}
+/* títulos de sección: pegatina dorada */
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-h{display:inline-flex;margin:0 0 10px 2px;padding:3px 10px 2px;border-radius:6px 9px 7px 10px/8px 7px 9px 6px;background:var(--sp-gold);color:var(--sp-ink);
+  box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:400 clamp(12px,2.1vh,16px)/1.2 var(--sp-pop);letter-spacing:.05em;transform:rotate(-2deg);transform-origin:0 50%}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-h::before{display:none}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-h:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-cream),2px 3px 0 5.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-k{font:400 clamp(12px,2vh,15px)/1 var(--sp-pop);letter-spacing:.05em;color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-k small{font:600 12px/1 var(--sp-ui);color:rgba(255,244,220,.6)}
+:root:not(#_):not(#_):not(#_) #pnMstats :is(.ms-note,.ms-mf,.ms-empty,.ms-foot){color:rgba(255,244,220,.62);font-family:var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-note b{color:var(--sp-cream)}
+/* cifras clave: pegatinas de tinta clara con la cifra en Titan */
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-figs{gap:12px}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-fig{border-radius:10px 14px 11px 15px/12px 10px 14px 11px;background:var(--sp-ink2);box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);padding:10px 12px 11px 16px}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-fig::before{width:5px;border-radius:10px 0 0 10px;background:rgba(255,244,220,.2)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-fig .k{font:800 clamp(10px,1.6vh,12px)/1.1 var(--sp-ui);letter-spacing:.08em;color:rgba(255,244,220,.7)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-fig .v{font:400 clamp(28px,5vh,42px)/1 var(--sp-pop);color:var(--sp-cream);text-shadow:2px 3px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-fig.us .v{color:var(--ac)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-fig .s{color:rgba(255,244,220,.65)}
+/* gráfica, tablas, mapas y barras: fondo de papel oscuro con contorno de tinta */
+:root:not(#_):not(#_):not(#_) #pnMstats :is(.ms-mom,.ms-tb){border-radius:10px 13px 11px 14px;box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.08)}
+:root:not(#_):not(#_):not(#_) #pnMstats :is(.ms-ml,.ms-mt){font-family:var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-mt{background:var(--sp-ink);box-shadow:0 0 0 1.5px rgba(255,244,220,.2)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-tb:is(.kf,:focus-visible){box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #pnMstats table.st{font-family:var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #pnMstats .st thead th{font:800 11px/1 var(--sp-ui);letter-spacing:.06em;color:rgba(255,244,220,.62);background:#231c40}
+:root:not(#_):not(#_):not(#_) #pnMstats .st thead tr.g th{color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #pnMstats .st :is(th.l,td.l){background:#231c40;box-shadow:inset -2px 0 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .st tbody th.l{font:600 14px/1.2 var(--sp-ui);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #pnMstats .st tr.tot>*{background:#2c2450;border-top:2px solid var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .st tr.tot th.l{background:#2c2450;font:400 13px/1 var(--sp-pop);letter-spacing:.06em}
+:root:not(#_):not(#_):not(#_) #pnMstats .st tr.me>*,:root:not(#_):not(#_):not(#_) #pnMstats .st tr.me th.l{background:#3b2f63}
+:root:not(#_):not(#_):not(#_) #pnMstats .st .num{font:400 13px/1 var(--sp-pop);box-shadow:0 0 0 2px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .st .cl em{font:400 10px/1 var(--sp-pop);background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 1.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .map{border-radius:10px 13px 11px 14px;box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .map .mc b{font:400 clamp(17px,2.8vh,22px)/1 var(--sp-pop);text-shadow:1.5px 2px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #pnMstats .map .mc .zn{font:800 11px/1 var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-bar b{font-family:var(--sp-pop);font-weight:400}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-bar .t{box-shadow:0 0 0 1.5px var(--sp-ink)}
+/* ==== fin SPLAT · PAUSA Y HOJA FINAL ==== */
 </style>
 
 <div id="app">
@@ -3924,42 +4263,54 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   </div>
 
   <!-- ================= PAUSA ================= -->
-  <div id="pause" class="screen dim" hidden>
-    <div class="sheet" role="dialog" aria-labelledby="pauseTitle">
-      <p class="sh-k" id="pauseKick">Set 1</p>
-      <h2 id="pauseTitle">Pausa</h2>
+  <!-- SPLAT (17-nov-2026, notes/splat.md; CSS «SPLAT · PAUSA Y HOJA FINAL»): sin velo; columna de pegatinas sobre el partido parado.
+       «Seguir jugando» = parche cosido; Controles y Ajustes, manchas de tinta en una fila; Reiniciar (contraste) y Salir (peligro) en otra -->
+  <div id="pause" class="screen dim sp-ov" hidden>
+    <div class="sheet sp-sheet" role="dialog" aria-labelledby="pauseTitle">
+      <div class="p-hd">
+        <p class="sh-k sp-k" id="pauseKick">Set 1</p>
+        <h2 class="sp-h" id="pauseTitle">Pausa</h2>
+      </div>
       <div class="p-score">
         <div class="p-team t0"><i></i>TÚ <b id="pS0">0</b></div>
         <div class="p-mid" id="pMid">SETS<b>0-0</b></div>
         <div class="p-team t1"><b id="pS1">0</b> CPU<i></i></div>
       </div>
       <div class="vlist" data-nav>
-        <button id="btnResume">Seguir jugando <span class="ic">▶</span></button>
-        <button class="ghost" id="btnPControls">Controles</button>
-        <button class="ghost" id="btnPSettings">Ajustes</button>
-        <button class="ghost" id="btnRestart">Reiniciar partido</button>
-        <button class="ghost" id="btnQuit">Salir al menú</button>
+        <button class="sp-patch" id="btnResume"><span class="sp-l"><span class="sp-t">Seguir jugando</span></span></button>
+        <div class="p-row" data-sp-row>
+          <button class="sp-btn sp-md sp-ink" id="btnPControls" data-shape="1"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.2 6.5h9.6c2.9 0 4.5 2.4 5.1 6.3.5 3.2-.4 5-2 5-1.3 0-2.2-1.2-3.3-2.6-.4-.5-.8-.7-1.4-.7H8.8c-.6 0-1 .2-1.4.7-1.1 1.4-2 2.6-3.3 2.6-1.6 0-2.5-1.8-2-5 .6-3.9 2.2-6.3 5.1-6.3zM7 9v1.6H5.4v1.8H7V14h1.8v-1.6h1.6v-1.8H8.8V9zm9.6.2a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2zm-1.9 2.1a1.1 1.1 0 1 0 0 2.2 1.1 1.1 0 0 0 0-2.2z"/></svg></span><span class="sp-t">Controles</span></button>
+          <button class="sp-btn sp-md sp-ink" id="btnPSettings" data-shape="2"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.3 2h3.4l.5 2.6c.6.2 1.2.5 1.7.9l2.5-.9 1.7 2.9-2 1.8c.1.6.1 1.2 0 1.8l2 1.8-1.7 2.9-2.5-.9c-.5.4-1.1.7-1.7.9l-.5 2.6h-3.4l-.5-2.6c-.6-.2-1.2-.5-1.7-.9l-2.5.9-1.7-2.9 2-1.8a6 6 0 0 1 0-1.8l-2-1.8 1.7-2.9 2.5.9c.5-.4 1.1-.7 1.7-.9zM12 8.6a3.4 3.4 0 1 0 0 6.8 3.4 3.4 0 0 0 0-6.8z" transform="translate(0 1.2) scale(1 .95)"/></svg></span><span class="sp-t">Ajustes</span></button>
+        </div>
+        <div class="p-row" data-sp-row>
+          <button class="sp-btn sp-md sp-alt" id="btnRestart" data-shape="0"><span class="sp-t">Reiniciar partido</span></button>
+          <button class="sp-btn sp-md sp-danger" id="btnQuit" data-shape="3"><span class="sp-t">Salir al menú</span></button>
+        </div>
       </div>
     </div>
   </div>
 
   <!-- ================= FINAL ================= -->
-  <div id="end" class="screen dim" hidden>
-    <div class="sheet" role="dialog" aria-labelledby="endTitle">
+  <!-- SPLAT: cabecera (antetítulo, título y marcador) en pegatinas sobre la celebración; lo que se lee, en UNA hoja .sp-panel con las
+       pestañas en trazo de pincel; «Revancha» = parche cosido y el resto, manchas en una fila (data-sp-row) -->
+  <div id="end" class="screen dim sp-ov" hidden>
+    <div class="sheet sp-sheet" role="dialog" aria-labelledby="endTitle">
       <div class="end-hd">
-        <p class="sh-k" id="endKicker">Palau del Mar</p>
-        <h2 class="end-title" id="endTitle">Victoria</h2>
-        <div class="end-score">
-          <div class="es-t t0">TÚ <b id="endS0">2</b></div><span class="es-sep">–</span><div class="es-t t1"><b id="endS1">1</b> CPU</div>
+        <p class="sh-k sp-k" id="endKicker">Palau del Mar</p>
+        <h2 class="end-title sp-h" id="endTitle">Victoria</h2>
+        <div class="end-sc">
+          <div class="end-score">
+            <div class="es-t t0">TÚ <b id="endS0">2</b></div><span class="es-sep">–</span><div class="es-t t1"><b id="endS1">1</b> CPU</div>
+          </div>
+          <div class="end-sets" id="endSets"></div>
         </div>
-        <div class="end-sets" id="endSets"></div>
       </div>
       <!-- B6: pestañas Resumen | Estadísticas | Jugadas (ui.js endRecap; «Jugadas» solo con jugadas, la rellena replay) -->
-      <div class="end-body">
-        <div class="end-tabs" id="endTabs"></div>
+      <div class="end-body sp-panel">
+        <div class="end-tabs sp-tabs" id="endTabs"></div>
         <div class="rc" id="endSum" role="tabpanel"></div>
         <div class="end-st" id="endStatsTab" role="tabpanel" hidden>
-          <div class="end-ms" data-nav><button class="ghost" id="btnMStats" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3.5v10zm6.25 0V4h3.5v16zm6.25 0v-7H20v7z"/></svg>Estadística del partido</button><button class="ghost" id="btnActa" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8.5 12v1.6h9V12zm0 3.4V17h9v-1.6zm0 3.4v1.6h6v-1.6z"/></svg><span>Acta del partido</span></button></div>
+          <div class="end-ms" data-nav data-sp-row><button class="sp-btn sp-sm sp-cream" id="btnMStats" data-shape="1" hidden><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3.5v10zm6.25 0V4h3.5v16zm6.25 0v-7H20v7z"/></svg></span><span class="sp-t">Estadística del partido</span></button><button class="sp-btn sp-sm sp-cream" id="btnActa" data-shape="2" hidden><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8.5 12v1.6h9V12zm0 3.4V17h9v-1.6zm0 3.4v1.6h6v-1.6z"/></svg></span><span class="sp-t">Acta del partido</span></button></div>
           <div class="end-mvp" id="endMvp"></div>
           <div class="stats" id="endStats"></div>
           <div class="end-rec" id="endRecord"></div>
@@ -3967,28 +4318,37 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
         <div class="end-pl" id="endPlays" role="tabpanel" hidden></div>
       </div>
       <div class="row-btn" data-nav>
-        <button id="btnAgain">Revancha</button>
-        <button class="ghost" id="btnAgainAlt" hidden>Revancha en Normal</button>
-        <button class="ghost" id="btnEndOpts" title="Dificultad, puntos, control y escenario">Cambiar opciones</button>
-        <button class="ghost" id="btnMenu">Menú principal</button>
+        <button class="sp-patch" id="btnAgain"><span class="sp-l"><span class="sp-t">Revancha</span></span></button>
+        <div class="end-more" data-sp-row>
+          <button class="sp-btn sp-sm sp-alt" id="btnAgainAlt" data-shape="2" hidden><span class="sp-t">Revancha en Normal</span></button>
+          <button class="sp-btn sp-sm sp-ink" id="btnEndOpts" data-shape="0" title="Dificultad, puntos, control y escenario"><span class="sp-t">Cambiar opciones</span></button>
+          <button class="sp-btn sp-sm sp-cream" id="btnMenu" data-shape="1"><span class="sp-t">Menú principal</span></button>
+        </div>
       </div>
-      <div class="end-peek" data-nav><button class="ghost" id="btnPeek"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C6.5 5 2.7 9.4 1.6 12c1.1 2.6 4.9 7 10.4 7s9.3-4.4 10.4-7C21.3 9.4 17.5 5 12 5zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-2.3a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z"/></svg>Ver celebración</button></div>
+      <div class="end-peek" data-nav><button class="sp-btn sp-sm sp-cream sp-quiet" id="btnPeek" data-shape="3" aria-label="Ver celebración"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5C6.5 5 2.7 9.4 1.6 12c1.1 2.6 4.9 7 10.4 7s9.3-4.4 10.4-7C21.3 9.4 17.5 5 12 5zm0 11.5a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9zm0-2.3a2.2 2.2 0 1 0 0-4.4 2.2 2.2 0 0 0 0 4.4z"/></svg></span><span class="sp-t">Ver celebración</span></button></div>
     </div>
-    <button class="end-back" id="btnEndBack"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg>Ver resultado</button>
+    <button class="end-back sp-btn sp-md sp-gold" id="btnEndBack" data-shape="2"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 15l7-7 7 7"/></svg></span><span class="sp-t">Ver resultado</span></button>
   </div>
 
   <!-- ================= FINAL DEL EJERCICIO (E6) ================= -->
-  <div id="gymEnd" class="screen dim" hidden>
-    <div class="sheet drill" role="dialog" aria-labelledby="geTitle">
-      <p class="sh-k" id="geKick">Entrenamiento</p>
-      <h2 class="ge-title" id="geTitle">Saque a diana</h2>
-      <div class="ge-top"><div class="ge-total"><b id="geTotal">0</b><small>de <span id="geMax">30</span></small></div><div class="ge-meds" id="geMeds"></div></div>
-      <div class="ge-reps" id="geReps" aria-hidden="true"></div>
-      <div class="end-rec ge-rec" id="geRec"></div>
+  <!-- SPLAT: como la hoja final: cabecera en pegatinas, el resultado en una hoja .sp-panel, «Repetir» = parche y el resto en una fila -->
+  <div id="gymEnd" class="screen dim sp-ov" hidden>
+    <div class="sheet drill sp-sheet" role="dialog" aria-labelledby="geTitle">
+      <div class="ge-hd">
+        <p class="sh-k sp-k" id="geKick">Entrenamiento</p>
+        <h2 class="ge-title sp-h" id="geTitle">Saque a diana</h2>
+      </div>
+      <div class="ge-body sp-panel">
+        <div class="ge-top"><div class="ge-total"><b id="geTotal">0</b><small>de <span id="geMax">30</span></small></div><div class="ge-meds" id="geMeds"></div></div>
+        <div class="ge-reps" id="geReps" aria-hidden="true"></div>
+        <div class="end-rec ge-rec" id="geRec"></div>
+      </div>
       <div class="row-btn ge-btns" data-nav>
-        <button id="btnGeAgain">Repetir</button>
-        <button class="ghost" id="btnGeNext">Siguiente ejercicio</button>
-        <button class="ghost" id="btnGeList">Entrenamiento</button>
+        <button class="sp-patch" id="btnGeAgain"><span class="sp-l"><span class="sp-t">Repetir</span></span></button>
+        <div class="ge-more" data-sp-row>
+          <button class="sp-btn sp-sm sp-kit" id="btnGeNext" data-shape="0"><span class="sp-t">Siguiente ejercicio</span></button>
+          <button class="sp-btn sp-sm sp-ink" id="btnGeList" data-shape="1"><span class="sp-t">Entrenamiento</span></button>
+        </div>
       </div>
     </div>
   </div>

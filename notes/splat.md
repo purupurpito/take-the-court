@@ -225,3 +225,16 @@ Bucle cómodo para la matriz completa (6 tamaños × páginas): un `for` sobre `
 ## 8. Estado (17-nov-2026, etapa 1)
 Hechas con el sistema: portada (`?menu=old` = la de antes), Jugar y Partido rápido. El resto de pantallas siguen con la dirección TV
 y se pasan en la etapa 2 (reparto por ficheros en el informe de la etapa 1 y en notes/ui_main.md «SPLAT»).
+
+**Pantallas hechas (etapa 2): pausa, hoja final, ejercicio y Estadística del partido** (bloque «SPLAT · PAUSA Y HOJA FINAL»). `#pause`,
+`#end` y `#gymEnd` llevan `.sp-ov` (sin velo ni desenfoque) y su `.sheet.sp-sheet` es una columna a la izquierda (vertical: una
+columna con la cabecera arriba y los botones abajo; apaisado de ≤ 430 px de alto: cabecera y botones | hoja). Cabecera en pegatinas
+(`.sp-k`, `.sp-h`; el título de la victoria en oro) con el marcador en pegatina de tinta (`.p-score` / `.end-score`) y los sets en chapas
+crema con el punto del color de quien lo ganó; lo que se lee va en UNA `.sp-panel` (`.end-body` con `#endTabs.sp-tabs`, `.ge-body`); la
+acción principal es el parche (`#btnResume`, `#btnAgain`, `#btnGeAgain`) y el resto, manchas en fila (`.p-row`, `.end-more`, `.ge-more`
+con `data-sp-row`). Nuevo para reutilizar: la letra del parche se ajusta al largo del rótulo (`--sp-n`, que pone ui.js `spLen`, con
+`container-type:inline-size` en el parche), `.sp-btn.arm` (mancha roja que tiembla: segundo paso de Reiniciar o Abandonar) y
+**`ui.js spFix/spSheets`**: si un rótulo se cambia con `textContent` (main.js, Carrera, «Pulsa otra vez…») se vuelve a envolver en `.sp-t`
+y a decorar solo (MutationObserver por hoja). La Estadística del partido (`#panel .sheet.ms`) se pinta como `.sp-panel` con los equipos en
+trazo de pincel (`#msTabs.sp-tabs`), partido y sets en chapas y las cifras en pegatinas. Escenas: `pause`, `over` (`&tab=stats|plays`),
+`recap&career=1`, `best&tab=plays`, `reto_end`, `drill_end`, `stats`.

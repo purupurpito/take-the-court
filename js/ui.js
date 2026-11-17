@@ -2917,6 +2917,48 @@
     return pk;
   }
   var SEP_V = '<span class="sep sep-v"><span class="sr">, </span></span>'; // barra vertical fina suelta (entre trozos ya en HTML)
+  /** SPLAT (17-nov-2026, notes/splat.md): en la pausa y en las hojas finales los rótulos de los botones se cambian con textContent
+   *  (aquí, en main.js y en la Carrera: «Revancha» → «Siguiente jornada», «Pulsa otra vez para reiniciar»…), lo que se lleva la mancha
+   *  o el parche de VB.Splat. spFix vuelve a envolver el texto (.sp-t; en el parche dentro de .sp-l) y a decorar; un MutationObserver
+   *  por hoja lo llama solo cuando cambia algo (nada por frame). «Cambios» del 6v6 (#btnPSubs, se crea aparte) sale en turquesa. */
+  function spFix(b) {
+    if (!b || !b.classList || !VB.Splat) return;
+    if (b.id === 'btnPSubs' && !b.classList.contains('sp-btn')) { b.classList.remove('ghost'); b.classList.add('sp-btn', 'sp-md', 'sp-teal'); b.setAttribute('data-shape', '2'); }
+    var patch = b.classList.contains('sp-patch');
+    if (!patch && !b.classList.contains('sp-btn')) return;
+    var deco = false, lab = null;
+    for (var n = b.firstElementChild; n; n = n.nextElementSibling) { if (n.classList.contains(patch ? 'sp-pp' : 'sp-blob')) deco = true; }
+    lab = b.querySelector('.sp-t');
+    if (deco && lab) { if (patch) spLen(b, lab.textContent); return; }
+    var ic = b.querySelector(':scope>.sp-ic'), t = lab ? lab.textContent : b.textContent;
+    b.classList.remove('sp-dec');
+    b.innerHTML = patch ? '<span class="sp-l"><span class="sp-t"></span></span>' : '<span class="sp-t"></span>';
+    if (ic) b.insertBefore(ic, b.firstChild);
+    t = String(t || '').replace(/\s+/g, ' ').trim();
+    b.querySelector('.sp-t').textContent = t;
+    if (patch) spLen(b, t);
+    VB.Splat.decorate(b);
+  }
+  /** Parche: letra según el largo del rótulo (--sp-n; el CSS la encoge con el ancho del parche: «Siguiente jornada» cabe entera). */
+  function spLen(b, t) { var n = String(Math.max(6, String(t || '').trim().length)); if (b.style.getPropertyValue('--sp-n') !== n) b.style.setProperty('--sp-n', n); }
+  function spSheets() {
+    if (!VB.Splat) return;
+    [el.pause, el.end, el.gymEnd].forEach(function (root) {
+      if (!root) return;
+      var L = root.querySelectorAll('button'); for (var i = 0; i < L.length; i++) spFix(L[i]);
+      if (typeof MutationObserver === 'undefined') return;
+      new MutationObserver(function (ms) {
+        for (var i = 0; i < ms.length; i++) {
+          var t = ms[i].target; if (t && t.nodeType !== 1) t = t.parentNode;
+          var b = t && t.closest ? t.closest('button') : null; if (b && root.contains(b)) spFix(b);
+          var ad = ms[i].addedNodes;
+          for (var j = 0; j < ad.length; j++) if (ad[j].nodeType === 1) { if (ad[j].tagName === 'BUTTON') spFix(ad[j]); else if (ad[j].querySelector && ad[j].querySelector('.sp-btn,.sp-patch')) VB.Splat.decorate(ad[j]); }
+        }
+      }).observe(root, { childList: true, subtree: true, characterData: true });
+    });
+    // (el desvanecido «hay más» de la hoja final se medía antes de llegar Rubik / Titan One y se quedaba puesto: se repasa al cambiar de alto)
+    if (typeof ResizeObserver === 'function') { var ro = new ResizeObserver(function () { endMore(); }); [el.endSum, el.endStatsTab, el.endPlays].forEach(function (p) { if (p) ro.observe(p); }); }
+  }
   function renderPause(g) {
     // E6: en un ejercicio no hay marcador; «Reiniciar ejercicio» y «Salir al entrenamiento»
     var dr = !!(g && g.drill && !g.demo);
@@ -3133,6 +3175,7 @@
       setSep(el.endKicker, ['Reto del día', venueName(), { h: 'Nivel ' + escT(dn || '') + SEP_V + 'Sets a ' + ((g && g.points) || 25) }], 'd');
     }
     el.endSum.innerHTML = watch ? '' : rcHTML(M, d);
+    endSeal(!watch && d.reto && retoEnd && retoEnd.day ? retoEnd.day : null);   // (SPLAT: reto del día → sello dorado junto al título)
     renderPlays(watch ? 0 : d.plays | 0);
     if (!watch) endButtons(M);
     if (ctx.net) { onlineEndButtons(); onlineEndRec(); }
@@ -3140,6 +3183,20 @@
     endPanes(tabs, q === 'stats' && tabs.indexOf('stats') >= 0 ? 'stats' : q === 'plays' && tabs.indexOf('plays') >= 0 ? 'plays' : tabs[0], watch, M.tabLabels);
     // sonidos de la entrada escalonada (a los 700 ms la flecha de la tabla, a los 800 ms el desbloqueo): al verse la hoja (syncScreens)
     endRcSnd = { rank: M.table && M.table.move ? M.table.move.d | 0 : 0, unl: !!M.unlocks };
+  }
+  /** SPLAT: hoja final del reto del día → sello dorado (.sp-stamp, decorativo) junto al título con la medalla de hoy (la mejor del
+   *  día); el detalle sigue en el bloque «Reto del día» del Resumen. Sin reto, escondido. */
+  function endSeal(day) {
+    var hd = el.end && el.end.querySelector('.end-hd'); if (!hd) return;
+    var s = hd.querySelector('.end-seal');
+    hd.classList.toggle('has-seal', !!day);
+    if (!day) { if (s) s.hidden = true; return; }
+    var m = Math.max(0, Math.min(3, Math.max(day.best | 0, day.medal | 0)));
+    if (!s) { s = document.createElement('span'); s.className = 'sp-stamp end-seal'; s.setAttribute('data-ring', 'RETO DEL DÍA ★ RETO DEL DÍA ★'); s.setAttribute('aria-hidden', 'true'); hd.appendChild(s); }
+    s.hidden = false; s.classList.toggle('sp-new', !!(day.newMedal && day.medal));
+    var inner = '<span class="sp-sc">' + (m ? '<i class="sc-med t' + m + '"></i>' : (VB.Splat ? VB.Splat.BALL : '')) + '<b>' + ['Hoy', 'Bronce', 'Plata', 'Oro'][m] + '</b></span>';
+    var sc = s.querySelector('.sp-sc'); if (sc) sc.outerHTML = inner; else s.insertAdjacentHTML('beforeend', inner);
+    if (VB.Splat) VB.Splat.decorate(s);
   }
   // =====================================================================
   //  S3-C1: repeticiones (VB.Replay, js/replay.js): capa de la repetición y pestaña «Jugadas (n)» (R10)
@@ -3204,11 +3261,12 @@
     var h = '<p class="pl-h">Las mejores jugadas del partido</p><ol class="pl-list" data-nav>';
     L.forEach(function (p) {
       h += '<li class="pl-row t' + (p.team === 1 ? 1 : 0) + '"><span class="pl-n" aria-hidden="true">' + (p.i + 1) + '</span><span class="pl-tx"><b>' + escT(p.phrase) + '</b><small>' +
-        sepHTML(String(p.sub || '').split(' | '), 'v') + '</small></span><button class="ghost pl-go" data-play="' + p.i + '" aria-label="Ver la jugada ' + (p.i + 1) + ': ' + escT(p.phrase) + '">' + RP_PLAY + 'Ver</button></li>';
+        sepHTML(String(p.sub || '').split(' | '), 'v') + '</small></span><button class="sp-btn sp-sm sp-cream sp-calm pl-go" data-shape="' + p.i + '" data-play="' + p.i + '" aria-label="Ver la jugada ' + (p.i + 1) + ': ' + escT(p.phrase) + '"><span class="sp-ic">' + RP_PLAY + '</span><span class="sp-t">Ver</span></button></li>';
     });
     h += '</ol>';
-    if (L.length > 1) h += '<div class="pl-all" data-nav><button class="ghost" data-play="all" aria-label="Ver las ' + L.length + ' jugadas seguidas">' + RP_PLAY + 'Verlas todas</button></div>';
+    if (L.length > 1) h += '<div class="pl-all" data-nav><button class="sp-btn sp-sm sp-gold" data-shape="2" data-play="all" aria-label="Ver las ' + L.length + ' jugadas seguidas"><span class="sp-ic">' + RP_PLAY + '</span><span class="sp-t">Verlas todas</span></button></div>';
     el.endPlays.innerHTML = h;
+    if (VB.Splat) VB.Splat.decorate(el.endPlays);   // (SPLAT: «Ver» en pegatina crema, «Verlas todas» en oro)
   }
   function playsClick(ev) {
     var b = ev.target && ev.target.closest ? ev.target.closest('[data-play]') : null; if (!b || !el.endPlays.contains(b)) return;
@@ -3232,7 +3290,7 @@
     if (ms.pn) return true;
     var host = el.panel && el.panel.querySelector('.sheet'); if (!host) return false;
     var pn = ms.pn = document.createElement('div'); pn.id = 'pnMstats'; pn.hidden = true;
-    pn.innerHTML = '<div class="ms-top"><div id="msTabs"></div><div class="ms-sets" data-nav id="msSets" role="group" aria-label="Qué parte del partido"></div></div>' +
+    pn.innerHTML = '<div class="ms-top"><div id="msTabs" class="sp-tabs"></div><div class="ms-sets" data-nav id="msSets" role="group" aria-label="Qué parte del partido"></div></div>' +
       '<div id="msBody" data-nav></div><p class="ms-foot">Estadística al estilo emPatData</p>';
     host.appendChild(pn);
     PANELS.mstats = ['pnMstats', '', 'Estadística del partido'];
@@ -3313,7 +3371,7 @@
   function actaVis() { if (el.btnActa && !actaOk) el.btnActa.hidden = true; }
   function actaLbl(t) {
     var b = el.btnActa; if (!b) return;
-    var sp = b.querySelector('span'); if (sp) sp.textContent = t || ACTA_LBL;
+    var sp = b.querySelector('.sp-t') || b.querySelector('span'); if (sp) sp.textContent = t || ACTA_LBL;   // (SPLAT: el rótulo, no el icono)
     clearTimeout(actaT); if (t) actaT = setTimeout(function () { actaLbl(''); }, 3500);
   }
   /** Datos del acta: en la Carrera, la competición (el rótulo de la jornada), quién juega en casa, capitanes y líberos (career.js). */
@@ -6727,6 +6785,7 @@
       if (el.btnActa) el.btnActa.addEventListener('click', function () { uiSound('click'); openActa(); });
       actaCheck(); if (VB.Account && VB.Account.onChange) VB.Account.onChange(actaCheck);
       el.btnPeek.addEventListener('click', function () { click(); setPeek(true); });
+      spSheets();   // SPLAT: pausa y hojas finales (rótulos que se cambian con textContent → se vuelven a decorar)
       el.btnEndBack.addEventListener('click', function () { click(); setPeek(false); });
       el.btnPanelBack.addEventListener('click', function () { uiSound('back'); closePanel(); });
       // sonido suave al pasar por encima de un botón de menú (solo ratón)
