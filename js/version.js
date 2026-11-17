@@ -23,17 +23,29 @@
  * 1.8.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
  * 1.8.2 (17-nov-2026): la cámara del 6v6 deja de seguir los balones muy rápidos (> 15 m/s), a petición de Ferran.
  * 1.10.0 (17-nov-2026): consignas del entrenador en directo en la Carrera (js/consignas.js), idea de Ferran.
+ * 1.11.0 (18-nov-2026): árbitros como en la vida real (FIVB 2025-2028, Guidelines) y bandera roja de vóley, a petición de Ferran.
  * 1.9.1 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.10.1';
-  VB.VERSION_DATE = '2026-11-17';
+  VB.VERSION = '1.11.0';
+  VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.11.0', d: '2026-11-18', t: 'Árbitros de verdad',
+      items: [
+        'Los jueces de línea llevan la bandera de vóley: roja entera.',
+        'La falta de posición la pita el 2º árbitro y señala a los dos jugadores.',
+        'Solo el equipo que recibe puede cometer falta de posición, como en el reglamento.',
+        'El 1r árbitro sigue el orden real: silbato, quién saca, la falta y el jugador.',
+        'Nuevas señas: saque a la red, cambio de campo, sustitución y 5 segundos en la playa.',
+        'Cada juez de línea señala solo su línea.'
+      ]
+    },
     {
       v: '1.10.1', d: '2026-11-17', t: 'Pases, bloqueo y defensa',
       items: [

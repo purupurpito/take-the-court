@@ -63,7 +63,7 @@
     calledIn: 'as', chain: 'as', clutch: 'as', demo: 'as', difficulty: 'as', dig: 'as', digs: 'as', dist: 'as', dive: 'as', edge: 'as',
     every: 'as', feint: 'as', grade: 'as', highlight: 'as', hold: 'as', how: 'as', human: 'as', inside: 'as', jset: 'as', jump: 'as',
     kind: 'as', last: 'as', lastKind: 'as', lastShot: 'as', matchWon: 'as', miss: 'as', move: 'as', n: 'as', of: 'as', on: 'as',
-    overturned: 'as', pause: 'as', pokey: 'as', power: 'as', pressed: 'as', quality: 'as', rallyHits: 'as', rallyTime: 'as',
+    overturned: 'as', pause: 'as', pokey: 'as', power: 'as', ofe: 'as', pressed: 'as', quality: 'as', rallyHits: 'as', rallyTime: 'as',
     reason: 'as', recv: 'as', result: 'as', savedSetPoint: 'as', setNo: 'as', setWon: 'as', shot: 'as', sideout: 'as', signal: 'as',
     speed: 'as', streak: 'as', t2: 'as', tape: 'as', tempo: 'as', timing: 'as', tool: 'as', touch: 'as', touchedOut: 'as',
     truthIn: 'as', venue: 'as', why: 'as', dur: 'as', wrong: 'as', used: 'as', auto: 'as', reset: 'as', mode: 'as'
