@@ -96,6 +96,8 @@
     function land() {
       if (el.menu) el.menu.classList.remove('lgwait', 'intro');
       b.hidden = true; b.classList.remove('flying', 'xfade');
+      // el remate parte el logotipo al aterrizar (index.html, VB_logoCut; seco con menos movimiento)
+      if (window.VB_logoCut) window.VB_logoCut(reduce);
     }
     if (reduce || !M || !L) {
       b.classList.add('xfade'); if (el.menu) el.menu.classList.remove('intro');
