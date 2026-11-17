@@ -73,8 +73,8 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
 - Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/account.js` → `js/sim.js` → `js/ai.js` →
   `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
-  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/ui.js` → `js/install.js` → `js/main.js` (main arranca).
-  recap.js, retos.js, profile.js y replay.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
+  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/install.js` → `js/main.js` (main arranca).
+  recap.js, retos.js, profile.js, replay.js y matchstats.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
 - **Versión:** cada publicación visible sube `VB.VERSION` (semver) y añade su entrada al principio de `VB.CHANGELOG` (js/version.js);
   `tools/build-pages.js` falla si `CHANGELOG[0].v !== VERSION`, si falta `pages/og.png` o si no hay exactamente un `rel="icon"`.
@@ -852,6 +852,9 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `replay` (`&rpt=s&match=1&auto=1&career=1`), `best` (`&tab=plays&play=1`), `menupf` y `prof` (`&tab=vestuario|insignias|entreno|carrera|
   retos|sedes|hitos`; `&pfseed=demo` = perfil de prueba en memoria, nada se guarda). En cualquier escena: `&boss=<estilo>`, `&mate=<estilo>`,
   `&retodate=AAAAMMDD`, `&uianim=0`, `&slow=0.5`, `&replay=1` (graba también con autopilot). Todas en `tools/shot.js ALL`.
+- **Estadística del partido (ui_main):** `js/matchstats.js` (`VB.MatchStats`: registro ligero por rally desde los eventos que ya recibe ui.js —onEvents,
+  ingest, netTally— y, solo al pulsar «Estadística del partido» en la pestaña Estadísticas de la hoja final, el cálculo y el HTML al estilo de
+  emPatData; nunca toca la sim ni g.rng). Prueba `node tools/statstest.js [partidos]`. Escena `debug=stats` (`&format=6v6&map=beach&career=1&set=n&team=1&sec=fig|mom|rot|map|err|pl`).
 
 - Capturas y logs en `tools/out/`.
 

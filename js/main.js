@@ -2077,6 +2077,18 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
         if (g.career) debugCareerEnd(g);
         break;
+      // Estadística del partido (js/matchstats.js): autopilot hasta el final y la pantalla abierta en cuanto se ve la hoja.
+      // &format=6v6 (pista 6 contra 6), &map=beach (playa), &points=n, &career=1 (nombres de clubes), &set=n y &team=1 (lo elegido), &sec=fig|mom|rot|map|err|pl (desplazada a esa sección)
+      case 'stats': {
+        var st6 = Q.format === '6v6';
+        if (st6) forceVenue('hall');
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, format: st6 ? '6v6' : undefined, venue: st6 ? undefined : venueNow(), points: +Q.points || undefined });
+        if (Q.career === '1') g.career = debugCareerCs(g);
+        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 5400, uiIngest); state = 'over';
+        if (g.career) debugCareerEnd(g);
+        call('UI', 'openMatchStats', { set: +Q.set || 0, team: Q.team === '1' ? 1 : 0, sec: Q.sec || '' });
+        break;
+      }
       // D1: reto del día terminado (autopilot hasta gameOver con g.reto de hoy o de &retodate=AAAAMMDD; Retos.endMatch en seco)
       case 'reto_end': {
         g = mk(true);

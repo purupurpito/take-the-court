@@ -784,6 +784,7 @@
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
       if (e.type === 'newMatch') { stats = newStats(); pstats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; unl0 = g.demo ? null : lkUnseen().slice(); }   // (B6: lo del Vestuario sin ver al empezar)
+      if (!netP) msIngest(e, g);   // Estadística del partido (js/matchstats.js): registro ligero de cada rally (online: netTally)
       if (e.type === 'newSet') lastSpKey = '';
       if (g.demo) continue;
       if (ovr && e.type === 'point') { if (netP) { s0 = stats; stats = pstats; untally(); stats = s0; } else untally(); e._ovr = true; }
@@ -2559,7 +2560,7 @@
   }
   function focusables(layer) {
     if (!layer) return [];
-    var all = layer.querySelectorAll('[data-nav] button, .pn-head button, .mp-head button'), out = [];
+    var all = layer.querySelectorAll('[data-nav] button, [data-nav] [data-focus], .pn-head button, .mp-head button'), out = [];
     // (las pestañas no elegidas y las pistas Q/E llevan data-skip: solo la pestaña activa entra en el recorrido ↑/↓)
     for (var i = 0; i < all.length; i++) if (!all[i].closest('[hidden]') && !all[i].closest('[inert]') && !all[i].disabled && !all[i].hasAttribute('data-skip')) out.push(all[i]);
     // en paneles y páginas del menú: primero el contenido y "Volver" al final
@@ -2900,6 +2901,7 @@
       if (!VB.Recap) { rec += '<div class="end-xp">' + xh + '</div>'; rec += endBadgesHTML(endBd); }   // (sin recap.js: como antes)
     }
     el.endRecord.innerHTML = rec;
+    if (el.btnMStats) el.btnMStats.hidden = !(VB.MatchStats && VB.MatchStats.ready && VB.MatchStats.ready());   // «Estadística del partido»
     // MVP de cada equipo (UI-11). UI-18: una tabla pequeña: un solo rótulo «MVP», la cabecera «Ataque · Bloqueo · Saque» una vez y en
     // cada fila el dorsal, los puntos (la cifra grande) y su desglose; el lector de pantalla oye la frase entera (aria-label).
     var mv = '', nMv = 0;
@@ -3083,6 +3085,102 @@
     rpFocus = k; rpKb = ev.detail === 0 || kbNow();
     click();
     if (!(ctx.actions.playBest && ctx.actions.playBest(k === 'all' ? undefined : +k))) rpFocus = '';
+  }
+  // =====================================================================
+  //  Estadística del partido (js/matchstats.js, al estilo de la pantalla Estadísticas de emPatData): el registro va en onEvents /
+  //  ingest / netTally (msIngest); el cálculo y la pantalla, SOLO al pulsar «Estadística del partido» en la pestaña «Estadísticas» de
+  //  la hoja final. Panel general (#panel con .sheet.ms): pestañas Equipo A / Equipo B (Q/E, LB/RB), «Partido | Set 1…» (←/→),
+  //  anclas de sección y la tabla por jugador enfocables con ↑/↓ (←/→ la desplazan), Volver / Esc / B a la hoja con el foco en el botón.
+  // =====================================================================
+  var ms = { pn: null, tabs: null, team: 0, set: 0, cache: {}, nm: null }, msReq = null;
+  function msIngest(e, g) {
+    var M = VB.MatchStats; if (!M || !M.ingest) return;
+    try { M.ingest(e, g); } catch (er) { if (!msIngest.bad) { msIngest.bad = true; console.error('[VB][ERROR] MatchStats.ingest: ' + er); } }
+  }
+  function msDom() {
+    if (ms.pn) return true;
+    var host = el.panel && el.panel.querySelector('.sheet'); if (!host) return false;
+    var pn = ms.pn = document.createElement('div'); pn.id = 'pnMstats'; pn.hidden = true;
+    pn.innerHTML = '<div class="ms-top"><div id="msTabs"></div><div class="ms-sets" data-nav id="msSets" role="group" aria-label="Qué parte del partido"></div></div>' +
+      '<div id="msBody" data-nav></div><p class="ms-foot">Estadística al estilo emPatData</p>';
+    host.appendChild(pn);
+    PANELS.mstats = ['pnMstats', '', 'Estadística del partido'];
+    $('msSets').addEventListener('click', function (ev) {
+      var b = ev.target && ev.target.closest ? ev.target.closest('button[data-set]') : null; if (!b) return;
+      msSet(+b.getAttribute('data-set'), ev.detail === 0 || kbNow());
+    });
+    return true;
+  }
+  /** Nombres de los equipos: [para títulos y pestañas], [dentro de una frase]. */
+  function msNames(g) {
+    var cr = g && !g.demo && (g.career || (g.watch0 && WATCH_CR) || g.netCr);
+    var pn = {};   // Carrera de 2v2: tu atleta y tu pareja con su nombre (la sim solo lleva el dorsal)
+    if (g && g.career && !g.demo) { var cs = g.career; if (cs.player && cs.num) pn['0:' + cs.num] = cs.player; if (cs.mate && cs.mateNum) pn['0:' + cs.mateNum] = cs.mate; }
+    if (cr && (cr.meName || cr.rivalName)) {
+      var a = cr === WATCH_CR ? ['Equipo local', 'Equipo visitante'] : [cr.meName || cr.me || 'Tu equipo', cr.rivalName || cr.rival || 'Rival'];
+      return { names: a, inl: cr === WATCH_CR ? ['el equipo local', 'el equipo visitante'] : a, pn: pn };
+    }
+    return { names: ['Tu equipo', 'CPU'], inl: ['tu equipo', 'la CPU'], pn: pn };
+  }
+  function msModel(set) { var M = VB.MatchStats; return ms.cache[set] || (ms.cache[set] = M.compute(M.data(), set)); }
+  function msSetsHTML() {
+    var M0 = msModel(0), sw = [0, 0];
+    M0.setScores.forEach(function (sc) { sw[sc[0] > sc[1] ? 0 : 1]++; });
+    var b = function (id, k, v, cls) {
+      var on = ms.set === id;
+      return '<button type="button" data-set="' + id + '" class="' + (on ? 'on' : '') + '" aria-pressed="' + on + '"><small>' + k + '</small><span class="' + cls + '">' + v + '</span></button>';
+    };
+    var h = b(0, 'Partido', sw[0] + '-' + sw[1], '');
+    M0.sets.forEach(function (s, i) { var sc = M0.setScores[i]; h += b(s, 'Set ' + s, sc[0] + '-' + sc[1], 'w' + (sc[0] > sc[1] ? 0 : 1)); });
+    return h;
+  }
+  function msRender() {
+    var M = VB.MatchStats; if (!M || !ms.pn) return;
+    ms.pn.setAttribute('data-team', String(ms.team));
+    $('msSets').innerHTML = msSetsHTML();
+    var html = '';
+    try { html = M.html(msModel(ms.set), ms.team, { names: ms.nm.names, inl: ms.nm.inl, pnames: ms.nm.pn, sep: sepHTML, you: 'Tú' }); }
+    catch (er) { console.error('[VB][ERROR] MatchStats.html: ' + er); html = '<p class="ms-empty">No se ha podido calcular la estadística.</p>'; }
+    $('msBody').innerHTML = html;
+  }
+  function msSet(s, kb) {
+    var M0 = msModel(0); if (s && M0.sets.indexOf(s) < 0) s = 0;
+    if (s === ms.set) return;
+    ms.set = s; uiK('tab', 'click');
+    msRender();
+    var nb = $('msSets').querySelector('[data-set="' + s + '"]'); if (nb) focusEl(nb, !!kb);
+    if (nb && nb.scrollIntoView) try { nb.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { }
+  }
+  /** ←/→ en el panel: sets vecinos (sin dar la vuelta) o desplazar la tabla. true = consumido. */
+  function msArrow(a, d) {
+    if (a.hasAttribute('data-set') && ms.pn && ms.pn.contains(a)) {
+      var L = [0].concat(msModel(0).sets), i = L.indexOf(+a.getAttribute('data-set')), j = i + (d > 0 ? 1 : -1);
+      if (j < 0 || j >= L.length) { uiSound2('arrowEdge', d); return true; }
+      msSet(L[j], true); return true;
+    }
+    if (a.classList && a.classList.contains('ms-tb')) { a.scrollLeft += (d > 0 ? 1 : -1) * Math.max(120, a.clientWidth * 0.6); return true; }
+    return false;
+  }
+  /** Abre la pantalla (botón de la hoja final o escena debug=stats; o = {set, team}). */
+  function openMStats(o) {
+    var M = VB.MatchStats; if (!M || !M.ready || !M.ready() || !msDom()) return false;
+    o = o || {};
+    ms.cache = {}; ms.nm = msNames(ctx.game);
+    ms.team = o.team === 1 ? 1 : 0;
+    var s = +o.set | 0; ms.set = s && msModel(0).sets.indexOf(s) >= 0 ? s : 0;
+    var items = [0, 1].map(function (t) { return { id: 't' + t, label: escT(ms.nm.names[t]), icon: '<i class="ms-dot" aria-hidden="true"></i>', cls: 'ms-t' + t }; });
+    var cur = 't' + ms.team;
+    if (!ms.tabs) ms.tabs = makeTabs($('msTabs'), items, { value: cur, label: 'Equipo', pane: $('msBody'), onChange: function (id) { ms.team = id === 't1' ? 1 : 0; msRender(); } });
+    else { ms.tabs.refresh(items); ms.tabs.set(cur, 'api'); }
+    msRender();
+    openPanel('mstats', { from: ctx.state });
+    ms.tabs.hint();
+    // antetítulo: el resultado («Tu equipo 2-1 CPU»), el título dice qué es
+    var M0 = msModel(0), sw = [0, 0]; M0.setScores.forEach(function (sc) { sw[sc[0] > sc[1] ? 0 : 1]++; });
+    el.pnKick.textContent = ms.nm.names[0] + ' ' + sw[0] + '-' + sw[1] + ' ' + ms.nm.names[1]; el.pnKick.hidden = false;
+    fitAllTabs();
+    if (o.sec) setTimeout(function () { var hh = $('msh-' + o.sec); if (hh && panel === 'mstats') hh.scrollIntoView({ block: 'start' }); }, 60);   // (escena debug=stats&sec=)
+    return true;
   }
   /** Pestañas de la hoja: ids de M.tabs; una sola (o sin recap.js) = sin barra. */
   function endPanes(tabs, cur, noBar, labels) {
@@ -4244,6 +4342,7 @@
     if (tb) { tb.hint(); if (ctx.params.tab && !openPanel._t) { openPanel._t = 1; tb.set(ctx.params.tab, 'api'); } }
     var psh = el.panel.querySelector('.sheet');
     psh.classList.toggle('first', name === 'first');
+    psh.classList.toggle('ms', name === 'mstats');
     psh.classList.remove('wide');
     psh.classList.toggle('tabbed', !!tb);
     psh.scrollTop = 0;
@@ -4263,10 +4362,12 @@
       return true;
     }
     var was = panel; panel = null; tutStop();
+    if (was === 'mstats') rpBack = true;   // (de vuelta a la hoja final: sin repetir la entrada ni la cuenta de las cifras)
     shown = ''; syncScreens(ctx.game);
     // en pausa, el foco vuelve al botón que abrió el panel (antes caía en «Seguir jugando»)
     focusLayer(ctx.state === 'menu' ? (was === 'squad' ? el.btnSquad : was === 'tut' ? el.btnTut : was === 'ctl' ? el.btnControls : was === 'first' ? el.btnGo : was === 'about' ? null : el.btnSettings)
-      : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : null) : null);
+      : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : null) : was === 'mstats' && el.btnMStats && !el.btnMStats.hidden ? el.btnMStats : null);
+    if (was === 'mstats' && el.btnMStats && kbNow()) setTimeout(function () { if (!panel && document.activeElement === el.btnMStats) focusEl(el.btnMStats, true); }, 45);
     return true;
   }
 
@@ -5846,6 +5947,7 @@
     if (a && a.classList && a.classList.contains('mp-back') && !panel && mpage === 'gym') { focusEl(gymRowEl(gymSel), true); hoverSound(); return true; }
     if (!panel && mpage === 'online' && el.mpOnline && a && el.mpOnline.contains(a) && VB.NetLobby && VB.NetLobby.side && VB.NetLobby.side(a, d)) return true;   // (online: filas de crear sala)
     if (!panel && mpage === 'prof' && a && a.hasAttribute && a.hasAttribute('data-aid') && el.pfGrid && el.pfGrid.contains(a)) { pfGridH(a, d); return true; }
+    if (panel === 'mstats' && a && a.getAttribute && msArrow(a, d)) return true;   // Estadística del partido: sets y tabla desplazable
     if (a && a.getAttribute && a.getAttribute('role') === 'tab') { var tb = activeTabs(); if (tb) { tb.step(d, 'key'); return true; } }
     // Vestuario: fila = valor anterior / siguiente; selector de jugador, escenario y pie = vecino
     if (!panel && mpage === 'look' && a && a.getAttribute && el.mpLook && el.mpLook.contains(a)) {
@@ -6385,6 +6487,8 @@
         if (ex) ctx.replaySkipReq = 'all'; else if (!ctx.replaySkipReq) ctx.replaySkipReq = true;
       }, { passive: true, capture: true });
       if (el.endPlays) el.endPlays.addEventListener('click', playsClick);
+      el.btnMStats = $('btnMStats');
+      if (el.btnMStats) el.btnMStats.addEventListener('click', function () { uiSound('click'); openMStats(); });
       el.btnPeek.addEventListener('click', function () { click(); setPeek(true); });
       el.btnEndBack.addEventListener('click', function () { click(); setPeek(false); });
       el.btnPanelBack.addEventListener('click', function () { uiSound('back'); closePanel(); });
@@ -6500,15 +6604,17 @@
       el.app.classList.toggle('drill-on', !!(g && g.drill && !g.demo)); last.drOn = !!(g && g.drill && !g.demo);
       kitTick();
     },
+    /** Estadística del partido (escena debug=stats): la abre en cuanto se ve la hoja final. o = {set: 0-3, team: 0|1}. */
+    openMatchStats: function (o) { msReq = o || {}; },
     /** Estadísticas sin banners (escenas de depuración que avanzan la sim sin pintar). */
-    ingest: function (events, g) { for (var i = 0; i < events.length; i++) { if (events[i].type === 'newMatch') stats = newStats(); else tally(events[i]); } },
+    ingest: function (events, g) { for (var i = 0; i < events.length; i++) { msIngest(events[i], g); if (events[i].type === 'newMatch') stats = newStats(); else tally(events[i]); } },
     /** ONLINE (fase 6): estadísticas de la hoja con los eventos CONFIRMADOS (main.js, ya girados para el invitado con NetView.mapEvents).
      *  null = vaciar. El punto anulado por challenge se descuenta como en onEvents. Sin banners. */
     netTally: function (events) {
-      if (!events) { stats = newStats(); return; }
+      if (!events) { stats = newStats(); if (VB.MatchStats && VB.MatchStats.reset) VB.MatchStats.reset(); return; }
       var ovr = false, i;
       for (i = 0; i < events.length; i++) if (events[i].type === 'challengeResult' && events[i].overturned) ovr = true;
-      for (i = 0; i < events.length; i++) { var e = events[i]; if (ovr && e.type === 'point') untally(); tally(e); }
+      for (i = 0; i < events.length; i++) { var e = events[i]; if (ovr && e.type === 'point') untally(); tally(e); msIngest(e, ctx.game); }
     },
     _netStats: function () { return stats; },
     /** Auditoría: main.js vuelve a una copia de la hoja tras una vuelta (resync) con la IA de por medio. */
@@ -6538,7 +6644,7 @@
       var td = it.navTab || 0; if (!td && it.switchPlayer) td = padTabDir();
       if (td) { var tp = activeTabs(); if (tp) tp.step(td, 'pad'); }
       if (mpage === 'look' && lk.on && ctx.state === 'menu' && !panel) lkPad(it, dt);   // X = al azar, stick derecho = girar
-      if (nOk) { var a = document.activeElement; if (a && a.tagName === 'BUTTON' && !a.closest('[hidden]')) a.click(); else focusLayer(); }
+      if (nOk) { var a = document.activeElement; if (a && a.tagName === 'BUTTON' && !a.closest('[hidden]')) a.click(); else if (!(a && a.hasAttribute && a.hasAttribute('data-focus') && activeLayer() && activeLayer().contains(a))) focusLayer(); }
       if (nBack) { if (!this.back() && ctx.state === 'paused') ctx.actions.resume(); } // volver: B/○ (fijo), no X/□ (COLOCAR)
       if (ctx.state === 'menu' && last.navDev !== 'gamepad') { last.navDev = 'gamepad'; last.navh = null; renderMenu(); }
     },
@@ -6549,6 +6655,7 @@
       if ((ctx.frame & 31) === 7) kitTick();   // por si players cambia la equipación de la CPU por su cuenta
       onEvents(g, events);
       syncScreens(g);
+      if (msReq && ctx.state === 'over' && !panel && !el.end.hidden && !isOut(el.end)) { var mq = msReq; msReq = null; openMStats(mq); }
       if (!gym.done) gymTick();
       if (bootStage < 2) tryReveal();
       if (ctx.state !== 'menu') hud(g, dt);
