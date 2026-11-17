@@ -22,17 +22,27 @@
  *   rivales mejores, invitaciones a mitad y fin de temporada), entrenos Jugar/Rápido/Descansar y nota en directo.
  * 1.8.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
  * 1.8.2 (17-nov-2026): la cámara del 6v6 deja de seguir los balones muy rápidos (> 15 m/s), a petición de Ferran.
+ * 1.10.0 (17-nov-2026): consignas del entrenador en directo en la Carrera (js/consignas.js), idea de Ferran.
  * 1.9.1 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.9.2';
+  VB.VERSION = '1.10.0';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.10.0', d: '2026-11-17', t: 'Consignas del entrenador',
+      items: [
+        'Carrera: en algunos puntos, el entrenador te pide algo antes del saque.',
+        'Saca a una zona, remata en diagonal, juega con el central, bloquea la línea…',
+        'Si cumples la consigna, tu nota del partido sube un poco.',
+        'Se pueden apagar en Ajustes › Juego › Consignas.'
+      ]
+    },
     {
       v: '1.9.2', d: '2026-11-17', t: 'Falta de posición con los pies',
       items: [
