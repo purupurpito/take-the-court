@@ -618,10 +618,12 @@ set/partido; `placeT3` coloca `#banner` fuera del marcador entero, `.hud-btns` y
   `STYLE_TRAIN`/`STYLE_PROG` (el estilo del club suma progreso de entreno a un grupo), `ROLE_COACH`, `NEG_COACH` (negociación rechazada → `oferta.negNo`);
   la fatiga vuelve a 0 en verano y Equilibrado no cansa; la petición de traspaso caduca con la temporada.
   Ofertas: `{club, lvl, ovr, mate, interest, role, years}` (`lvl`/`ovr`: liga y media de la temporada en la que jugarías).
-- Pruebas jugadas (17-nov-2026, notes/carrera.md §Pruebas jugadas): `VB.Career.trialSetup(i)` → opciones del mini partido (como `matchSetup`, con
-  `points: TRIAL_PTS`, `bestOf: 1` y `career.trial = {i, club}`), `trialSim(i)`, `trialDone(r, st, g)` (lo llama `matchDone` si `g.career.trial`) → `{pass, p,
-  nota, win, sim, club, clubName}`; `acceptOffer(i)` con una prueba = simularla. main.js `ctx.actions.startCareerTrial(i)`; sim `createGame({bestOf: 1})` = a un set
-  (`g.bo1`; en la playa a sus puntos). `c.trialLast`.
+- Pruebas, entrenos y nota en directo (1.8.0; notes/carrera.md §Pruebas, entrenos y nota en directo; specs notes/pruebas-entrenos-spec.md y
+  notes/nota-en-directo-spec.md): `VB.Career.trialSetup(i)` (opciones del partidillo: `sets: 1`, `points`, `scrim`, `career.trial`, `career.offer`,
+  `career.goals`), `trialDone(mode, i, res, g)`, `trialSim(i)`, `trialForfeit(mode, i, why)`, `trialStale()`, `trialPending()`, `trialGoals`,
+  `trialGrade`, `trialLetter(nota, hall)`, `trialAIOf(c, ai)`, constantes `TRIAL_*` (`TRIAL_CUT_D`, `TRIAL_UP`, `TRIAL_WIN`, `TRIAL_GAP`). La oferta de
+  prueba vale al elegir club (`c.pick.trial/res`) y a mitad o fin de temporada (`c.tst.trial/res`). sim: `createGame({sets: 1})` = a un set
+  (`g.toWin`; el online usa `g.bo1`). `VB.Rating` (js/rating.js): nota en directo (`create/feed/undo/bonus/close/value`); `VB.Career.liveRating(g)`.
 - `VB.CareerUI` (js/career-ui.js): `open(view?, o?)`, `isOpen()`, `back()`, `nav(it, dt)` (mando; main.js la llama en lugar de `VB.UI.nav` mientras está abierta).
   Sus dos barras (apartados u ofertas, y sub-pestañas) son `VB.UI.tabs` (ids `#crTabs`, `#crSub`): Q/E y LB/RB (o Y) el primer nivel, RePág/AvPág y LT/RT el
   segundo, ←/→ con el foco en una pestaña, deslizar el dedo sobre `#crBody`. «‹ Jugar» vuelve a la página Jugar del menú.
@@ -819,7 +821,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `TOUCH=1`, `CAM6=tv`, `SHOTS=dir`) juega en vivo y comprueba jugador y balón en cuadro, suavidad, límites y cortes. `perf.js` con `EXTRA=format=6v6` mide ahora la
   3ª persona (autopilot sin `g.watch`); players.js `screenLod` (6v6): fuera de cuadro = lejano siempre; en el punto solo los 4 atletas en cuadro más cercanos llevan
   malla media y trazo (y < 15 % del alto = lejano); en el punto y el saque solo dan sombra los 3 más cercanos (calidad media).
-- **Cámara que sigue al balón y zoom (17-nov-2026, v1.7.1, camera_input)**: camera.js `tp` retrocede y sube lo justo para ver tu jugador
+- **Cámara que sigue al balón y zoom (17-nov-2026, v1.8.1, camera_input)**: camera.js `tp` retrocede y sube lo justo para ver tu jugador
   y el balón (ahora, adelanto de 0,3 s suavizado y `g.pr1`; zona de recepción/defensa con el saque rival o el rival construyendo), gira
   hasta ±36° y el balón manda en el encuadre fino; `getDebug().tp.bf` (m de retroceso) y `.z` (zoom). `tv` mete también el balón alto.
   **Zoom**: `ctx.settings.camZoom` 0..4 (2 = el de siempre; sustituye a la fila Distancia: sin `camZoom`, `camDist` near → 1 / far → 3;

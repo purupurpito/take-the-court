@@ -188,7 +188,7 @@
   function colA(X, tc) { return X.cA >= 0 ? X.cA : tc.accent; }
   function colB(X, tc) { return X.cB >= 0 ? X.cB : tc.dark; }
   function colSock(X, tc) { return X.cSock >= 0 ? X.cSock : tc.accent; }
-  var TC_GEO = ['base', 'accent', 'dark', 'shorts', 'pad', 'sole'], TC_ATLAS = ['base', 'accent', 'dark', 'trim', 'shorts', 'pad', 'numFill', 'pattern', 'libero'];
+  var TC_GEO = ['base', 'accent', 'dark', 'shorts', 'pad', 'sole'], TC_ATLAS = ['base', 'accent', 'dark', 'trim', 'shorts', 'pad', 'numFill', 'pattern', 'libero', 'bib'];
   var TIES = { coleta: 1, mono: 1, trenzas: 1, dosmonos: 1, coletas: 1 };   // peinados con gomas de cA
   function armVc(a) { return ARMS[a] && a !== 'kinesio' && a !== 'manguitoOro' && a !== 'manguitoLlamas' && a !== 'manguitoMazo'; }   // manguito con la bola del codo de cA
   /** Firma de lo que cambia la MALLA (geometría y colores por vértice) de un muñeco con el aspecto L, la equipación tc y la sede.
@@ -406,22 +406,45 @@
   //  el líbero (tc.libero) va liso. Playa: camiseta de TIRANTES (hombros y sisas de piel, espalda nadadora, cuello redondo con ribete)
   //  con el tajo bajo el dorsal grande del pecho, y malla corta del color de la camiseta con panel del acento.
   //  Vestuario: con la licra de surf (playa) la piel de los hombros, las sisas, el escote y la espalda pasa a cB (tirantes y dorsal encima).
+  //  'peto' (partidillo y ejercicios de la Carrera, players.js scrimKits): sobre la camiseta de entreno (tc.base) un peto tc.bib con
+  //  paneles delante y detrás unidos por los hombros, los COSTADOS ABIERTOS (u ≈ 0,25 y 0,75: se ve la camiseta) y el bajo algo más
+  //  corto que la camiseta, todo con filo de tinta para que se lea en cartoon; escote redondo con ribete tc.dark y dorsal grande
+  //  (tc.numFill) delante y detrás. En la playa el peto va sobre la camiseta de tirantes (tirantes del peto, sisas y escote de piel).
+  //  El líbero lleva también el peto (players.js kitOf). Solo atlas: ni malla nueva ni dibujos.
   function paintBody(g, tc, L, numV, beach) {
-    var W = ATLAS, S = TR_SPLIT, sk = hexCss(beach && L.under === 'licra' ? colB(L, tc) : L.skin), pat = tc.libero ? 'liso' : (tc.pattern || 'diag');
+    var W = ATLAS, S = TR_SPLIT, sk = hexCss(beach && L.under === 'licra' ? colB(L, tc) : L.skin), pat = tc.pattern === 'peto' && tc.bib != null ? 'peto' : tc.libero ? 'liso' : (tc.pattern || 'diag');
+    var bibEd = pat === 'peto' ? mixHex(tc.bib, INK, 0.55) : 0;
     g.save(); g.beginPath(); g.rect(0, TR_R[0], W, TR_R[1] - TR_R[0] + 1); g.clip();
     g.fillStyle = hexCss(tc.base); g.fillRect(0, 0, W, S);
     function wrap(fn) { fn(0); fn(W); fn(-W); }
+    /** peto: todo el contorno en tc.bib desde la fila y0 hasta un poco antes del bajo, con filo de tinta abajo y los dos costados
+     *  abiertos desde yo (hueco de ±0,04 de u con la camiseta y filo en los bordes) */
+    function peto(y0, yo) {
+      var y1 = S - 16, gw = 0.04 * W;
+      g.fillStyle = hexCss(bibEd); g.fillRect(0, y0, W, y1 - y0 + 4);
+      g.fillStyle = hexCss(tc.bib); g.fillRect(0, y0, W, y1 - y0);
+      [0.25, 0.75].forEach(function (u) {
+        var cx = u * W;
+        function slot(hw) { g.beginPath(); g.moveTo(cx - hw, S + 2); g.lineTo(cx - hw, yo + hw); g.quadraticCurveTo(cx - hw, yo - hw * 0.2, cx, yo - hw * 0.2); g.quadraticCurveTo(cx + hw, yo - hw * 0.2, cx + hw, yo + hw); g.lineTo(cx + hw, S + 2); g.closePath(); g.fill(); }
+        g.fillStyle = hexCss(bibEd); slot(gw + 4);
+        g.fillStyle = hexCss(tc.base); slot(gw);
+      });
+    }
     if (beach) {
-      // tajo bajo el dorsal del pecho (del centro a la cadera derecha)
-      wrap(function (o) { tajoBand(g, o + 70, 72, o - 96, S + 10, 44, tajoFill(tc), tc.dark); });
+      // tajo bajo el dorsal del pecho (del centro a la cadera derecha); con peto, el peto entero (sisas y escote se recortan encima)
+      if (pat === 'peto') peto(0, 52);
+      else wrap(function (o) { tajoBand(g, o + 70, 72, o - 96, S + 10, 44, tajoFill(tc), tc.dark); });
       // hombros desnudos: las filas altas son piel salvo los dos tirantes (sobre los hombros, u ≈ 0,25 y 0,75)
       g.fillStyle = sk; g.fillRect(0, -2, W, 24);
       // sisas (piel) en los lados, más abiertas hacia la espalda (nadadora); escote delante y espalda baja
-      [0.25, 0.75].forEach(function (u) { var cx = u * W; g.fillStyle = hexCss(tc.accent); g.beginPath(); g.ellipse(cx + (u < 0.5 ? 1 : -1) * 0, 8, 50, 46, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(cx, 6, 44, 40, 0, 0, PI * 2); g.fill(); });
-      g.fillStyle = hexCss(tc.accent); g.beginPath(); g.ellipse(W / 2, 0, 50, 34, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(W / 2, -2, 44, 28, 0, 0, PI * 2); g.fill();   // espalda
-      wrap(function (o) { g.fillStyle = hexCss(tc.accent); g.beginPath(); g.ellipse(o, 0, 60, 30, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 53, 24, 0, 0, PI * 2); g.fill(); });   // escote
-      // tirantes del color de la camiseta sobre cada hombro (de la sisa al escote y a la espalda)
-      g.fillStyle = hexCss(tc.base); [0.25, 0.75].forEach(function (u) { var cx = u * W; g.fillRect(cx - 86, -2, 34, 40); g.fillRect(cx + 52, -2, 34, 40); });
+      var rib = hexCss(pat === 'peto' ? tc.dark : tc.accent);   // ribete de sisas y escote (con peto, oscuro: el filo del peto)
+      [0.25, 0.75].forEach(function (u) { var cx = u * W; g.fillStyle = rib; g.beginPath(); g.ellipse(cx + (u < 0.5 ? 1 : -1) * 0, 8, 50, 46, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(cx, 6, 44, 40, 0, 0, PI * 2); g.fill(); });
+      g.fillStyle = rib; g.beginPath(); g.ellipse(W / 2, 0, 50, 34, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(W / 2, -2, 44, 28, 0, 0, PI * 2); g.fill();   // espalda
+      wrap(function (o) { g.fillStyle = rib; g.beginPath(); g.ellipse(o, 0, 60, 30, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 53, 24, 0, 0, PI * 2); g.fill(); });   // escote
+      // tirantes del color de la camiseta sobre cada hombro (de la sisa al escote y a la espalda); con peto, los del peto
+      g.fillStyle = hexCss(pat === 'peto' ? tc.bib : tc.base); [0.25, 0.75].forEach(function (u) { var cx = u * W; g.fillRect(cx - 86, -2, 34, 40); g.fillRect(cx + 52, -2, 34, 40); });
+    } else if (pat === 'peto') {
+      peto(0, 30);
     } else if (pat === 'diag') {
       // tajo: del hombro izquierdo (u ≈ 0,18, arriba) a la cadera derecha (u ≈ -0,2, bajo de la camiseta), pasando por el pecho
       wrap(function (o) { tajoBand(g, o + 92, -10, o - 104, S + 10, 60, tajoFill(tc), tc.dark); });
@@ -432,20 +455,25 @@
     }
     if (!beach) {
       // cuello redondo (ribete) y hombros: canesú oscuro ligero en la espalda
-      g.fillStyle = hexCss(tc.dark); g.globalAlpha = 0.3; g.fillRect(170, 0, 172, 16); g.globalAlpha = 1;
-      wrap(function (o) { g.fillStyle = hexCss(tc.trim); g.beginPath(); g.ellipse(o, 0, 62, 20, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 54, 15, 0, 0, PI * 2); g.fill(); });
+      if (pat !== 'peto') { g.fillStyle = hexCss(tc.dark); g.globalAlpha = 0.3; g.fillRect(170, 0, 172, 16); g.globalAlpha = 1; }
+      wrap(function (o) { g.fillStyle = hexCss(pat === 'peto' ? tc.dark : tc.trim); g.beginPath(); g.ellipse(o, 0, 62, 20, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 54, 15, 0, 0, PI * 2); g.fill(); });
     }
     // dorsales: grande en la espalda (u 0,5), pequeño en el pecho dentro del tajo (oscuro); playa: grande también delante
     var s = String(numV == null ? 0 : numV);
     function num(cx, cy, h, sx, dark) {
       g.save(); g.translate(cx, cy); g.scale(sx, 1); g.font = 'italic 900 ' + h + 'px ' + NUM_FONT; g.textAlign = 'center'; g.textBaseline = 'middle'; g.lineJoin = 'round';
       if (dark) { g.fillStyle = hexCss(tc.dark); g.fillText(s, 0, 0); }
-      else { g.lineWidth = h * 0.12; g.strokeStyle = hexCss(tc.dark); g.strokeText(s, 0, 0); g.fillStyle = tc.numFill || '#ffffff'; g.fillText(s, 0, 0); }
+      else { g.lineWidth = h * 0.12; g.strokeStyle = hexCss(pat === 'peto' ? bibEd : tc.dark); g.strokeText(s, 0, 0); g.fillStyle = tc.numFill || '#ffffff'; g.fillText(s, 0, 0); }
       g.restore();
     }
-    num(W / 2, beach ? 70 : 62, beach ? 76 : 92, 1.0, false);
-    if (beach) wrap(function (o) { num(o, 52, 56, 1.2, false); });
-    else wrap(function (o) { num(o, 58, 44, 1.25, pat === 'diag'); });
+    if (pat === 'peto') {   // peto: dorsal grande detrás y mediano delante, los dos en el color del dorsal del peto
+      num(W / 2, beach ? 76 : 70, beach ? 84 : 100, 1.0, false);
+      wrap(function (o) { num(o, beach ? 68 : 66, beach ? 52 : 58, 1.2, false); });
+    } else {
+      num(W / 2, beach ? 70 : 62, beach ? 76 : 92, 1.0, false);
+      if (beach) wrap(function (o) { num(o, 52, 56, 1.2, false); });
+      else wrap(function (o) { num(o, 58, 44, 1.25, pat === 'diag'); });
+    }
     // bajo de la camiseta (ribete fino) y pantalón (playa: malla corta del color de la camiseta)
     g.fillStyle = hexCss(beach ? tc.base : tc.shorts); g.fillRect(0, S, W, TR_R[1] - S + 1);
     g.fillStyle = hexCss(tc.accent); g.fillRect(0, S, W, 5);                                   // cinturilla
@@ -1343,7 +1371,7 @@
    *  (equipo TEAMS[L.team], dorsal L.num, L.beach, atlas de 1024² y la malla alta). */
   function buildRig(L, idx, opt) {
     opt = opt || {};
-    var tc = opt.tc || TEAMS[L.team | 0] || TEAMS[0], root = new THREE.Group(); root.name = 'doll' + idx;
+    var tc = opt.tc || (DBG_TC && DBG_TC[L.team | 0]) || TEAMS[L.team | 0] || TEAMS[0], root = new THREE.Group(); root.name = 'doll' + idx;
     var bones = [];
     function bone(parent, x, y, z) { var b = new THREE.Bone(); b.position.set(x || 0, y || 0, z || 0); parent.add(b); bones.push(b); return b; }
     var body = bone(root);
@@ -1371,7 +1399,7 @@
     root.updateMatrixWorld(true);
     r.bones = bones; r.rest = [];
     for (k = 0; k < bones.length; k++) r.rest.push(bones[k].matrixWorld.clone());
-    r.beach = opt.beach != null ? !!opt.beach : !!L.beach; r.num = opt.num != null ? opt.num : L.num;
+    r.beach = opt.beach != null ? !!opt.beach : !!L.beach || DBG_BEACH; r.num = opt.num != null ? opt.num : L.num;
     var skin = new THREE.SkinnedMesh(rigGeometry(r, opt.lod != null ? opt.lod : LODR), dollMaterial(tc, L, r.num, r.beach, opt.px || 2));
     skin.castShadow = true; skin.receiveShadow = true; skin.name = 'dollSkin' + idx; skin.frustumCulled = false;
     root.add(skin); root.updateMatrixWorld(true);
@@ -1615,6 +1643,9 @@
   //  ESCENA DE DEPURACIÓN ?debug=doll
   // =====================================================================
   var rigs = [], group = null, on = false, view = 'fila', tAnim = 0, hidden = [], styleEl = null, camSet = null, lodNow = 2;
+  // ?debug=doll&scrim=1: la maqueta con los petos del partidillo (equipaciones de VB.Players con st.scrim; &shirt=RRGGBB = color del
+  // club, rojo si falta); &map=beach la viste de playa. DBG_TC / DBG_BEACH los lee buildRig cuando no le pasan opt.tc / opt.beach.
+  var DBG_TC = null, DBG_BEACH = false;
   var VIEWS = {
     // posiciones en coords de la SIM (x largo, y ancho), yaw de la sim (0 = mira a +x, hacia la cámara), cámara en Three.
     // Las alturas (y de cam/at) están pensadas para v1 (cabeza a 1,65, 1,86 de pie): applyCamera las escala con el cuerpo activo
@@ -1926,6 +1957,11 @@
     function base(bch) { return { skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: '' }; }
     function withSlot(L, slot, id) { var o = Object.assign({}, L); if (slot === 'style') o.style = id; else if (slot === 'head') o.acc = id; else o[slot] = id; return o; }
     if (hasCanvas) cv = canvas(ATLAS, ATLAS);
+    // 0) el peto (partidillo) se pinta en las dos sedes y entra en la firma del atlas (no en la de la malla)
+    var tcP = Object.assign({}, tc, { pattern: 'peto', bib: 0xff7a1a, numFill: '#1b1b1b' }), tcP2 = Object.assign({}, tcP, { bib: 0x9be52e }), LP = base(false);
+    if (hasCanvas) [false, true].forEach(function (bch) { try { paintAtlas(cv, tcP, LP, 7, bch); } catch (e) { fail('atlas peto ' + (bch ? 'playa' : 'pista') + ': ' + (e && e.message || e)); } });
+    if (atlasSig(LP, tcP, 7, false) === atlasSig(LP, tcP2, 7, false)) fail('atlasSig no ve el color del peto');
+    if (geoSig(LP, tcP, false) !== geoSig(LP, tcP2, false)) fail('el color del peto cambia la malla (debería ir solo en el atlas)');
     // 1) el catálogo de look.js no trae nada que el muñeco no sepa dibujar (ni con otra sede)
     var CAT = VB.Look && VB.Look.CATALOG;
     if (CAT && CAT.length) CAT.forEach(function (it) {
@@ -2299,6 +2335,13 @@
     start: function (c, g) {
       ctx = c; THREE = c.THREE; if (VB.C && VB.C.BR) BR = VB.C.BR; TMP = new THREE.Vector3();
       applyDims((ctx.params && ctx.params.body) || 'chibi');
+      var Qp = ctx.params || {};
+      DBG_BEACH = Qp.map === 'beach' || Qp.map === 'playa'; DBG_TC = null;
+      if (Qp.scrim && VB.Players && VB.Players.setKit) {
+        var csh = /^[0-9a-f]{6}$/i.test(Qp.shirt || '') ? parseInt(Qp.shirt, 16) : 0xd8262e;
+        VB.Players.setKit({ kitShirt: csh, kitAccent: 0xffffff, kitShorts: 0x1b2b5a, scrim: Qp.scrim === 'club' ? { bib0: csh, bib1: VB.Players.BIB.b } : {} });
+        DBG_TC = [VB.Players.kit(0), VB.Players.kit(1)];
+      }
       if (group) { ctx.scene.remove(group); }
       group = new THREE.Group(); group.name = 'dolls'; ctx.scene.add(group); rigs.length = 0;
       for (var i = 0; i < LOOKS.length; i++) { var r = buildRig(LOOKS[i], i); rigs.push(r); group.add(r.root); }

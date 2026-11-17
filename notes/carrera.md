@@ -958,26 +958,31 @@ Contrato: CONTRACT §1 y §4.4 «Sprint 2-4».
 - Abierto (recap.js): `cupLine` con «Open Regional · Final» da «Campeones de la Open Regional»; `teamName` da «El Sorra Brisamar Dunes
   no da opción» con clubes sin artículo (visto en una carrera real).
 
-## Pruebas jugadas (17-nov-2026; Ferran: «que tengas que hacer las pruebas FÍSICAMENTE… jugadores mejores que tú, con buenos stats y dificultad 1 por encima de la tuya»; «cuenta la nota, pero ganar el mini-partido te da algo más de probabilidades; se puede simular y se puede hacer en las 2»)
+## Pruebas, entrenos y nota en directo (1.8.0, 17-nov-2026: fusión de la rama pruebas-entrenos)
 
-- **Cuándo:** la prueba del inicio (como siempre: el peor club de la categoría de arriba) y, a mitad y a fin de temporada, una invitación del
-  club mejor (playa: liga de arriba o q + 0,15; pista: liga más fuerte o +3 de media) que te quiere casi lo justo: interés entre −`TRIAL_GAP`
-  (3) y 0, que antes no daba oferta. Una por ventana, siempre la última de la lista. `o.chance` = 0,45 + 0,1 × interés (0,15-0,45).
-- **El mini partido** (`trialSetup(i)` → main.js `ctx.actions.startCareerTrial(i)`): un set (`bestOf: 1`, sim `g.bo1`; en la playa a 15 también)
-  a `TRIAL_PTS` (15); rivales con media max(club, la tuya + `TRIAL_UP` 6); IA `trialStep`: un nivel por encima de tu dificultad (Fácil →
-  Normal, Normal → Difícil, Difícil/Experto → Experto) o del club, si ya está por encima; nunca «suave». Playa: con el compañero que te darían
-  (`o.mateP`); pista: con el seis del club (`squad6`), tú en tu puesto, sin banquillo. `g.career.trial = {i, club}`.
-- **Probabilidad** (`trialP`): `o.chance + TRIAL_K (0,2) × (nota − TRIAL_REF 6) + TRIAL_WIN (0,08)` si ganas; simulada × `TRIAL_SIM` (0,85); 5-95 %.
-  Novato (chance 0,3): simulada ~30 % de media (medido: 10 de 31 en playa, 8 de 28 en pista); jugada con un 7, 50 % (58 % ganándola).
-- **Cierre:** jugada → la fachada `VB.Career.matchDone` con `g.career.trial` llama a `trialDone` (nota con los eventos de `ingest`, como un
-  partido); simulada → `trialSim(i)` (quickSim y nota como al simular un partido). Superada: firmas (`trialSign`: al momento al inicio y a
-  mitad; en verano, la temporada que viene; contrato de 1 temporada); no superada: pierdes esa oferta. `c.trialLast` y mensaje del agente.
-  `acceptOffer(i)` con una prueba = simularla (la API de antes, que tiraba un dado con `o.chance`).
-- **UI:** la oferta de prueba explica el mini partido y tiene «Jugar la prueba» / «Simular la prueba». Al acabar el mini partido no hay hoja
-  de jornada: a los 1,6 s se vuelve al hub con el resultado (superada: tarjeta «Prueba» arriba de Partido; no superada: aviso en la lista de
-  ofertas). Dejarla a medias la GASTA (regla de Ferran del 16-nov): salir o reiniciar → `trialGiveUp`; cerrar la pestaña → `c.trialLive` (`trialMark`
-  al empezar) y la siguiente carga la da por abandonada (`trialCheckLive` en load/load6).
-- **OJO: hay otra implementación** en la rama `pruebas-entrenos` (worktree carpetas/make-the-cut-pruebas, 16-nov, versión 1.6.0 sin fusionar:
-  partidillo con petos, 3 objetivos, nota B ficha, nota en directo tipo EA FC, entrenos Rápido/Manual). Antes de fusionarla hay que decidir con
-  Ferran cuál se queda (o juntarlas): chocan en career.js (trialSetup/trialDone frente a su prueba), main.js y career-ui.js.
-- **Pruebas:** careertest «Pruebas jugadas (17-nov-2026)»; los bucles que aceptaban `offers[0]` se quedan si la única es una prueba fallida.
+La rama `pruebas-entrenos` (diseño aprobado por Ferran el 16-nov: notes/pruebas-entrenos-spec.md, notes/nota-en-directo-spec.md,
+mapa en notes/pruebas-entrenos-mapa.md) entró en main el 17-nov. Sustituye a las «pruebas jugadas» de la 1.5.8, que duplicaban la
+idea y se deshicieron antes de fusionar (commit «Deshace las pruebas jugadas de 1.5.8»). Lo que traía la rama: partidillo de prueba
+con petos (un set a 15, 3 objetivos según el puesto, nota con letra: A+/A/B te fichan, C decide la suerte con o.chance + 0,15, D/F
+no), simularla (o.chance × 0,7), reiniciar/abandonar/cerrar la pestaña la gasta (letra F); nota en directo tipo EA FC en todos los
+partidos de Carrera (js/rating.js); entrenos Jugar/Rápido/Descansar con plan del entrenador, «Simular jornada» y entreno automático;
+en la pista la nota del último partido decide el seis.
+
+**Ampliado al fusionar** (lo que Ferran pidió el 17-nov para las pruebas: «jugadores mejores que tú, con buenos stats y dificultad 1 por
+encima de la tuya»; «cuenta la nota, pero ganar el mini-partido te da algo más de probabilidades; se puede simular y se puede hacer en
+las 2»):
+- **IA un nivel por encima de tu dificultad** (`trialAIOf`: Fácil → Normal, Normal → Difícil, Difícil/Experto → Experto; si el club ya
+  juega por encima, uno más que el club; nunca «suave») y **rivales mejores que tú** (media max(club, la tuya + `TRIAL_UP` 4); en la
+  pista, los titulares).
+- **Ganar ayuda un poco:** la nota ya lleva el resultado (+0,9 ganando 1-0, −0,3 perdiendo) y, con C, ganar suma `TRIAL_WIN` (0,1) a la tirada.
+- **Invitaciones a prueba a mitad y a fin de temporada** (playa y pista): `genOffers` / `genOffers6` invitan al club mejor que te quiere
+  casi lo justo (interés entre −`TRIAL_GAP` 3 y 0; `o.chance` = `trialChanceIt` 0,15-0,45), una por ventana y la última de la lista.
+  Fuera de la fase pick el estado va en `c.tst = {trial, res}` (`tst(c)`; saneado con `trialSaneT`), la ronda de las tiradas es
+  temporada y ventana (`tRound`) y superarla ficha como `acceptOffer` (`trialSign`: al momento a mitad de temporada, la temporada que
+  viene en verano; contrato de 1 temporada). `acceptOffer` con una invitación = simularla. La previa de la prueba sale también desde
+  Club › Ofertas y avisa de cuándo fichas.
+- **Cortes de letra por modalidad** (`TRIAL_CUT_D`: playa −0,3 → B desde 6,2; pista +0,5 → B desde 7,0). Medido con los bots de simtest
+  jugando el partidillo de verdad (scratchpad trialcal.js, Normal): playa novato 17 %, medio 67 %, bueno 100 %; pista 22 %, 67 %, 100 %.
+  Con los cortes de la rama y la IA nueva salía playa 10/30/100 y pista 56/89/100.
+- ui.js / camera.js: el set único de la prueba (`g.toWin`) y el del online (`g.bo1`) se tratan igual (`oneSet`).
+- careertest «Prueba de la rama, ampliada el 17-nov-2026»; ratingtest graba la asistencia y deshace los puntos anulados por challenge.

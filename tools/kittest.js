@@ -3,6 +3,7 @@
 // Carga js/players.js en node (sin THREE ni DOM: setKit / liberoColor / kitColors no los usan) y comprueba:
 //  - Carrera de pista: color del líbero del club (usado / descartado si choca) y 2ª equipación del rival (kitAccent).
 //  - Fuera de la Carrera de pista (sin kitLibero): igual que antes (huella de 400 casos sacada del players.js anterior).
+//  - Petos (st.scrim): misma camiseta de entreno en los dos equipos, petos distintos, reserva BIB.alt y líbero con peto.
 // Sale con 1 si algo falla.
 'use strict';
 var vm = require('vm'), fs = require('fs'), path = require('path');
@@ -84,6 +85,40 @@ var R7 = [{ kitShirt: 0x1b3a8a, kitAccent: 0xffffff, kitShorts: 0x1b3a8a, kitLib
 var K7 = R7.map(function (st) { var q = P.rivalKit(st), k = kit(st); return q && (q.kind === '1a' ? k.t1.base === st.rival.kitShirt : q.kind === '2a' ? k.t1.base === q.shirt && k.t1.accent === q.accent && k.t1.shorts === q.shorts : k.t1.base === ref4.t1.base) ? q.kind : 'MAL'; });
 ok(K7.join(',') === '1a,2a,cpu', 'rivalKit: ' + K7.join(', ') + ' (esperado 1a, 2a, cpu)');
 ok(P.rivalKit({ kitShirt: 0xd8262e }) === null, 'rivalKit sin rival: null');
+
+console.log('8) Petos del partidillo (st.scrim): misma camiseta de entreno, petos distintos');
+var B = P.BIB, D = P.kitDist;
+// club azul marino: la camiseta de entreno (al 55 % con gris) no choca con los petos de serie -> naranja contra lima
+var sc8 = { kitShirt: 0x1b3a8a, kitAccent: 0xffffff, kitShorts: 0x1b2b5a, kitLibero: 0xffd23a, scrim: {} };
+ok(P.setKit(sc8) === true, 'setKit con petos cambia la equipación');
+var k0 = P.kit(0), k1 = P.kit(1);
+ok(k0.pattern === 'peto' && k1.pattern === 'peto', 'diseño peto en los dos equipos');
+ok(k0.base === k1.base && k0.base === P.scrimBase(0x1b3a8a), 'misma camiseta de entreno ' + hx(k0.base) + ' (club al 55 % con gris)');
+ok(k0.shorts === 0x1b2b5a && k1.shorts === 0x1b2b5a, 'mismo pantalón (el del club)');
+ok(k0.bib === B.a && k1.bib === B.b, 'petos de serie: ' + hx(k0.bib) + ' contra ' + hx(k1.bib));
+ok(D(k0.bib, k1.bib) >= 1.1, 'los petos se distinguen (kitDist ' + D(k0.bib, k1.bib).toFixed(2) + ')');
+ok(P.bibColor(0) === k0.bib && P.bibColor(1) === k1.bib, 'bibColor da los petos');
+ok(P.setKit(sc8) === false, 'la misma llamada no reconstruye (firma estable)');
+ok(P.kit(0, 'L').bib === k0.bib && P.kit(1, 'L').bib === k1.bib && P.liberoColor(0) === k0.base, 'el líbero lleva el peto de su equipo (sin liberoKit ni líbero del club)');
+var kf = P.kitFrom(sc8), kf1 = P.kitFrom(Object.assign({ team: 1 }, sc8));
+ok(kf.bib === k0.bib && kf1.bib === k1.bib && kf.base === k0.base, 'kitFrom deja pasar los petos');
+// club rojo: el naranja se funde con la camiseta de entreno -> reserva amarilla; el 2º peto, distinto de los dos
+var sc8b = { kitShirt: 0xd8262e, kitAccent: 0xffffff, kitShorts: 0x111111, scrim: {} };
+P.setKit(sc8b); k0 = P.kit(0); k1 = P.kit(1);
+ok(k0.bib === B.alt[0], 'naranja que choca con la camiseta -> reserva ' + hx(k0.bib));
+ok(D(k0.bib, k1.bib) >= 1.1 && D(k0.base, k1.bib) >= 1.1, '2º peto ' + hx(k1.bib) + ' distinto del 1º y de la camiseta');
+// base y petos dados (ejercicios: peto del club contra lima); un peto dado que choca con el otro se cambia
+P.setKit({ kitShirt: 0x1b3a8a, kitShorts: 0x1b2b5a, scrim: { base: 0x6a7080, shorts: 0x1b2b5a, bib0: 0x1b3a8a, bib1: B.b } });
+k0 = P.kit(0); k1 = P.kit(1);
+ok(k0.base === 0x6a7080 && k0.bib === 0x1b3a8a && k1.bib === B.b, 'petos dados: club ' + hx(k0.bib) + ' contra lima ' + hx(k1.bib));
+ok(k0.numFill === '#ffffff' && k1.numFill === B.num, 'dorsal claro en peto oscuro y oscuro en peto claro');
+P.setKit({ kitShirt: 0x1f9a4a, kitShorts: 0x111111, scrim: { bib0: 0x2fae3a, bib1: B.b } });
+k0 = P.kit(0); k1 = P.kit(1);
+ok(k0.bib === 0x2fae3a && k1.bib !== B.b && D(k0.bib, k1.bib) >= 1.1, 'peto del club verde contra lima -> el rival cambia a ' + hx(k1.bib));
+// sin petos, todo como antes (mismos colores que la sección 1)
+r = kit({ kitShirt: 0x1b3a8a, kitAccent: 0xffffff, kitShorts: 0x1b3a8a, kitPattern: 'liso', kitLibero: 0xffd23a,
+  rival: { kitShirt: 0x1f9a4a, kitAccent: 0xffffff, kitShorts: 0x111111, kitPattern: 'diag', kitLibero: 0xff3fa4 } });
+ok(r.l0 === 0xffd23a && r.t1.base === 0x1f9a4a && P.bibColor(0) === null && P.kit(0).pattern === 'liso', 'al quitar los petos vuelve la equipación del club');
 
 console.log(fails ? 'kittest: ' + fails + ' de ' + n + ' FALLAN' : 'kittest: ' + n + ' comprobaciones OK');
 process.exit(fails ? 1 : 0);

@@ -637,6 +637,13 @@
     '#mpOnline .osk-show{flex-wrap:wrap;row-gap:4px}#mpOnline .osk-tip{order:3;width:100%}#mpOnline .ol-osk{padding:8px 7px 10px}#mpOnline .osk-row{gap:4px}' +
     '#mpOnline .osk-k{height:40px;font-size:17px}#mpOnline .osk-k.fn{font-size:12.5px;letter-spacing:.04em}' +
     '#mpOnline .hp-box>div{display:block;padding:7px 12px}#mpOnline .hp-box dt{display:inline;margin-right:7px;font-size:12.5px}#mpOnline .hp-box dd{display:inline;font-size:13px;line-height:1.36}}' +
+    // pantallas bajas (móvil en horizontal, 17-nov-2026: gente atrapada en «Cómo funciona» sin ver «Entendido» ni «Volver»): la página
+    // nunca pasa del alto del menú; la cabecera (Volver) y la barra de abajo quedan siempre a la vista y lo que sobra se desplaza por
+    // dentro (la caja de «Cómo funciona» y, en las demás vistas, el cuerpo entero). (padding + margen negativo: que no se corte la sombra)
+    '#mpOnline{max-height:calc(100% / var(--vs,1));min-height:0}#mpOnline .mp-head{flex:none}' +
+    '#mpOnline .ol-body{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin;padding:0 7px 7px 0;margin:0 -7px -7px 0}' +
+    '#mpOnline .ol-help{flex:1 1 auto}#mpOnline dl.hp-box{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:thin}' +
+    '#mpOnline .hp-go,#mpOnline .ol-bh{flex:none}' +
     '#menu .m-onl .md-art{background:#3d5bd9}';
   function ensureCss() { if (document.getElementById('olCss')) return; var s = document.createElement('style'); s.id = 'olCss'; s.textContent = CSS; document.head.appendChild(s); }
   ensureCss();   // (ya al cargar: la tarjeta de Jugar usa .has-onl / .m-onl antes de abrir el lobby)

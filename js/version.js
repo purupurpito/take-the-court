@@ -17,23 +17,41 @@
  * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
  * 1.7.0 (17-nov-2026): Acta del partido (js/acta.js): los partidos 6v6 salen como acta de emPat (formato empat/acta). NO es público
  *   (Ferran, 17-nov-2026): el botón solo sale con su cuenta (ui.js ACTA_ALLOW) y las novedades no lo anuncian.
- * 1.7.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
+ * 1.8.0 (17-nov-2026): fusión de la rama pruebas-entrenos: pruebas con partidillo de petos (ampliadas: IA un nivel por encima,
+ *   rivales mejores, invitaciones a mitad y fin de temporada), entrenos Jugar/Rápido/Descansar y nota en directo.
+ * 1.8.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.7.1';
+  VB.VERSION = '1.8.1';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.7.1', d: '2026-11-17', t: 'Cámara',
+      v: '1.8.1', d: '2026-11-17', t: 'Cámara',
       items: [
         '6 contra 6: la cámara sigue mejor al balón y se aleja para no perderlo.',
         'Zoom de cámara: rueda del ratón, teclas + y -, stick derecho o la lupa en el móvil.',
         'Ajustes: elige el zoom de cámara, de 1 (cerca) a 5 (lejos).'
+      ]
+    },
+    {
+      v: '1.8.0', d: '2026-11-17', t: 'Pruebas, entrenos y nota en directo',
+      items: [
+        'Las pruebas de club son un partidillo con petos: un set a 15 y tres objetivos.',
+        'Con nota B o mejor te fichan; con C decide la suerte y ganar el partidillo ayuda.',
+        'Rivales mejores que tú y la IA un nivel por encima. Simularla da menos opciones.',
+        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.',
+        'Ojo: si reinicias o abandonas la prueba, la pierdes.',
+        'Nota en directo en los partidos de Carrera: tus buenas acciones suman y las malas restan.',
+        'Pista: con muy mala nota vas al banquillo; si destacas saliendo de él, juegas de inicio.',
+        'Plan del entrenador: tres sesiones por jornada, jugadas, rápidas o de descanso.',
+        'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
+        'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
+        'Entreno automático para quien solo quiere jugar los partidos.'
       ]
     },
     {

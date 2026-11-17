@@ -317,9 +317,9 @@
       defRole: '',             // rol del humano mientras ataca la CPU: '' | 'dig' (defiende) | 'block' (bloquea) — ver updateDefense
       recvRisk: 0,             // dificultad (0..1+) del último saque para el receptor (ver serveRisk)
       courtSwap3: false,       // ya se cambió de campo a mitad del set decisivo (a los 8 si va a 15)
-      // puntos por set (Partido rápido: 11 | 15 | 21 | 25); el set decisivo va a min(15, points). Ver setTarget
-      // (playa: siempre 21, salvo el partido a un set de la prueba de la Carrera —bestOf 1—, que va a sus puntos: 17-nov-2026)
-      points: beach ? (opts.bestOf === 1 && SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 21) : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 25,
+      // puntos por set (Partido rápido: 11 | 15 | 21 | 25); el set decisivo va a min(15, points). Ver setTarget.
+      // La playa siempre a 21, salvo el partido a un solo set (opts.sets === 1: la prueba de la Carrera), que también acepta 11 o 15
+      points: (beach && opts.sets !== 1) ? 21 : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : (beach ? 21 : 25),
       // pista de esta partida (ver C.BEACH): media longitud, media anchura y escala respecto a la de 18×9 (1 en el pabellón:
       // multiplicar por g.cs deja los números exactos y la huella 2v2 intacta)
       venue: beach ? 'beach' : 'hall', beach: beach,
@@ -414,11 +414,12 @@
     // demo, con autopilot ni en 6v6. Se decide aquí una vez; cada rama nueva solo mira g.mastery. aimSet: colocación dirigida (por defecto sí)
     g.mastery = !!opts.mastery && !g.demo && !g.autopilot && !g.rot;
     g.aimSet = opts.aimSet !== false;
+    // partido a un solo set (opts.sets === 1, la prueba de la Carrera): g.toWin = sets para ganar. Sin la opción el campo NO existe
+    // (al mejor de 3, `g.toWin || 2`), para que la huella 2v2 no cambie. Con un set nunca hay 3r set (setTarget y los 8 intactos)
+    if (opts.sets === 1) g.toWin = 1;
     if (opts.online) initOnline(g, opts); // ONLINE: perfil y timing comunes, huecos humanos g.hum (antes de los atributos)
     if (dk) g.drill = mkDrill(dk);
     dblFields(g); dblFields(g.ball); dblFields(g.pr1); dblFields(g.pr3); dblFields(g.rally);
-    // partido a un set (17-nov-2026: la prueba jugada de la Carrera, VB.Career.trialSetup → bestOf 1); sin la opción, la clave no existe
-    if (opts.bestOf === 1) g.bo1 = true;
     if (six) { g.roster = [teams[0].concat([g.libero[0]]), teams[1].concat([g.libero[1]])]; if (g.stats) { g.stats.overlap = [0, 0]; g.stats.liberoSwaps = 0; } }
     if (six) subsInit(g, opts, diff);   // banquillo y cambios (solo con opts.bench: g.subsOn; sin él, solo campos apagados)
     refreshTeams(g);
@@ -2128,7 +2129,7 @@
     }
     // ¿cierra el set / el partido? ¿cambio de campo a los 8 del set decisivo? (se decide aquí para que el evento lo lleve)
     var tgt = setTarget(g), a = g.score[0], bb = g.score[1], half = Math.ceil(tgt / 2);
-    var setWon = g.score[w] >= tgt && g.score[w] - g.score[1 - w] >= 2, matchWon = setWon && (g.sets[w] === 1 || !!g.bo1); // (g.bo1: online a un set)
+    var setWon = g.score[w] >= tgt && g.score[w] - g.score[1 - w] >= 2, matchWon = setWon && (g.sets[w] === (g.toWin || 2) - 1 || !!g.bo1); // (g.bo1: online a un set; g.toWin 1: la prueba de la Carrera)
     var eight = !g.beach && !setWon && g.setNo === 3 && !g.courtSwap3 && g.score[w] === half && g.score[1 - w] < half;
     // playa: cambio de campo cada BEACH.swap puntos jugados (cada BEACH.swap3 en el 3r set), sin parar el juego
     var bswap = g.beach && !setWon && (a + bb) % (g.setNo === 3 ? BEACH.swap3 : BEACH.swap) === 0;
@@ -2751,7 +2752,7 @@
     var tgt = setTarget(g);
     g.setPoint = -1; g.matchPoint = -1;
     for (var k = 0; k < 2; k++) {
-      if (g.score[k] >= tgt - 1 && g.score[k] - g.score[1 - k] >= 1) { g.setPoint = k; if (g.sets[k] === 1 || g.bo1) g.matchPoint = k; }
+      if (g.score[k] >= tgt - 1 && g.score[k] - g.score[1 - k] >= 1) { g.setPoint = k; if (g.sets[k] === (g.toWin || 2) - 1 || g.bo1) g.matchPoint = k; }
     }
     // CPU: ritual con botes y lanzamiento a hora fija (g.timer = g.cpuTossIn = s hasta el lanzamiento); humano: sin ritual
     var tossIn = ritualSetup(g, sv, !isHuman(g, sv));

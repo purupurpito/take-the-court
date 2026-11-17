@@ -1176,7 +1176,7 @@ Detalle: `notes/s234/T4.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
   al centro del aro (antes 0,15 m detrás). Con «Colocación dirigida: No», COLOCAR (clic derecho) en el suelo en tu 2º toque también coloca
   (`VB.Sim.setTurn`).
 
-## Cámara del 6v6 que sigue al balón y zoom de cámara (17-nov-2026, v1.7.1)
+## Cámara del 6v6 que sigue al balón y zoom de cámara (17-nov-2026, v1.8.1)
 Pedido de Ferran: «Deberías arreglar la cámara en el modo 6v6, hay veces que no ves lo que está pasando con el balón. En VBLegends (juego
 de Roblox) la cámara sigue un poco más al balón y además puedes hacer zoom in y zoom out». Después, sobre el móvil: nada de pellizco (dos
 dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pantalla, como pide la regla de Roblox de abajo.
