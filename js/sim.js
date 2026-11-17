@@ -300,9 +300,11 @@
       // el humano solo se mueve con el stick, como en el 2v2.)
       ctrlRole: six ? (CTRL_ROLES6.indexOf(opts.ctrlRole) >= 0 ? opts.ctrlRole : 'OH') : '',
       ctrlBase: null,          // 6v6: el atleta del humano de verdad (g.ctrl es el líbero mientras sustituye a su central; applyLibero)
-      // 6v6: falta de posición pitada al humano (Difícil/Experto): puede moverse durante el saque y, si al golpe de saque está en un par
-      // solapado de su equipo, punto para el rival ('position'). En Fácil/Normal se le coloca (placeServe) y no se mueve hasta el saque
-      posRule6: six && !opts.demo && (diff === 'hard' || diff === 'expert'),
+      // 6v6: falta de posición pitada al humano: puede moverse durante el saque (empieza en su sitio legal, placeServe) y, si al golpe de
+      // saque está en un par solapado de su equipo, punto para el rival ('position'). En todos los niveles desde el 17-nov-2026 (Ferran:
+      // «haz que se pueda mover»; antes solo Difícil/Experto); en Fácil/Normal fx.js le enseña su sitio legal durante el saque, en
+      // Difícil/Experto no
+      posRule6: six && !opts.demo,
       hAct: -9,                // 6v6: g.time de la última entrada del humano (stick o botón); el colocador no coloca al que está quieto
       ask6: -9,                // 6v6: g.time del último «¡Pídela!» del humano (CAMBIAR durante la jugada propia)
       // modo 'one': jugador del humano (0 = dorsal 1, 1 = dorsal 2); en 'both' siempre 0 (el control empieza en teams[0][0])

@@ -1814,3 +1814,14 @@ pueda pedir una colocación si el primer toque ha sido suyo». Sección de simte
   (`buildCand`), tempo 'shoot' (por la derecha, su sitio), peso ×`HUM.atkW` × `HUM.ask` × `HUM.askS` (2): ~73 % de las veces (sin pedirla, 0).
 - `updateDefense` (2v2, ctrl 'both'): el reparto bloqueo/defensa con cambio de control espera si el balón va rápido y a < 0,6 s (como
   `fastLate`): la plancha desviada lo hacía saltar en simtest.
+
+## Moverse en el saque y sin marcas del bote (17-nov-2026, Ferran)
+
+- «Haz que se pueda mover, pero en Fácil y Normal, tienes una pequeña ayuda visual de dónde deberías estar»: `g.posRule6` (6v6 sin demo) ya
+  no depende del nivel. El humano empieza cada saque en su sitio legal (`placeServe`), se mueve con el stick (también en el saque propio, si
+  no saca él) y, si al golpe de saque está en un par solapado (`overlapOf` > 0), «Falta de posición» (`reason 'position'`). La IA nunca se
+  solapa ni se le pita. Ayuda (fx.js `hintK`, fase recv/serve con el saque en curso): Fácil la de siempre; Normal tenue encima de su sitio
+  (0,5) y más fuerte al alejarse; Difícil/Experto sin marca. simtest (m): la falta se pita en Difícil y en Fácil.
+- «Quitar las marcas del balón en el suelo para que el challenge en un futuro tenga sentido»: fx.js ya no pinta la marca del bote (`markAt`) ni
+  el cráter de la playa (botes y rebotes); quedan la onda breve con el color de la llamada del juez y la arena que salta. La huella exacta del
+  balón solo sale en la revisión del challenge (B6).

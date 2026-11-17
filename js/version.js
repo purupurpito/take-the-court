@@ -20,11 +20,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.6';
+  VB.VERSION = '1.5.7';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.7', d: '2026-11-17', t: 'Moverte en el saque',
+      items: [
+        '6 contra 6: muévete en el saque en todos los niveles; si te solapas, falta de posición.',
+        'En Fácil y Normal, una marca en el suelo te enseña tu sitio legal mientras sacan.',
+        'Los botes ya no dejan marca en el suelo: lo que se discute se mira en el challenge.'
+      ]
+    },
     {
       v: '1.5.6', d: '2026-11-17', t: 'Beta abierta',
       items: [

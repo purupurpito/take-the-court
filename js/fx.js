@@ -41,15 +41,17 @@
     dig:    { c: [0.2, 0.45, 1],     ring: 1.2,  shape: '',     ss: 1,    a: 0.75, sa: 0 }     // defensa perímetro: aro azul
   };
   /** Opacidad (0-1) de la pista según el nivel (D8). pd = m hasta el sitio; sv = saque rival en curso (g.mode 'serve').
-   *  Fácil: siempre (atenuada encima); Normal: a > 0,8 m, y siempre en block/set/attack; Difícil: solo block/set, más tenues (y la
-   *  celda recv durante el saque rival, D4: puede moverse y que le piten, y su puesto base, serve, durante el saque propio: también ahí
-   *  se mueve y se le pita); Experto: solo esas dos durante el saque. */
+   *  Fácil: siempre (atenuada encima); Normal: a > 0,8 m, y siempre en block/set/attack; Difícil: solo block/set, más tenues; Experto:
+   *  nada. Sitio legal durante el saque (recv / serve con sv: el humano se mueve en todos los niveles y se le pita el solapamiento,
+   *  17-nov-2026, Ferran: «en Fácil y Normal, tienes una pequeña ayuda visual de dónde deberías estar»): Fácil como siempre, Normal
+   *  tenue encima (0,5) y más fuerte al alejarse, Difícil/Experto sin marca. */
   function hintK(diff, ph, pd, sv) {
     if (ph === '') return clampN((pd - 1.0) / 0.6, 0, 1); // sin fase: el umbral de hoy
     var near = 0.45 + 0.55 * clampN((pd - 0.6) / 0.5, 0, 1), key = ph === 'block' || ph === 'set', legal = (ph === 'recv' || ph === 'serve') && sv;
     if (diff === 'easy') return near;
-    if (diff === 'hard') return key || legal ? 0.65 * near : 0;
-    if (diff === 'expert') return legal ? 0.65 * near : 0;
+    if (legal) return diff === 'normal' ? 0.5 + 0.5 * clampN((pd - 0.6) / 0.5, 0, 1) : 0;
+    if (diff === 'hard') return key ? 0.65 * near : 0;
+    if (diff === 'expert') return 0;
     return key || ph === 'attack' ? near : clampN((pd - 0.8) / 0.5, 0, 1);
   }
   /** Cambia la pista a la fase ph (del atleta pc): color del aro y del chevrón, textura y giro de la forma extra (celda y barra a lo
@@ -2201,7 +2203,8 @@
           var sp2 = e.speed || 4;
           if (e.inside) rippleAt(e.x, e.y, 1.6 + sp2 * 0.12, 0.6, 1, 0.95, 0.85, 0.9);
           else rippleAt(e.x, e.y, 1.6 + sp2 * 0.12, 0.7, RIP_OUT.r, RIP_OUT.g, RIP_OUT.b, 0.95);
-          markAt(e.x, e.y, e.inside, sp2, g && g.ball ? g.ball.vx : 0, g && g.ball ? g.ball.vy : 0);
+          // (17-nov-2026, Ferran: «quitar las marcas del balón en el suelo para que el challenge tenga sentido»: sin la marca del bote; la
+          //  onda breve sigue con el color de la llamada del juez, y la huella exacta solo sale en la revisión del challenge, B6)
           if (!(tbSwap && sp2 > 8)) burstAt(e.x, e.y, 0.05, 10 + Math.min(14, sp2), 1.5 + sp2 * 0.15, 0.95, 0.9, 0.8, 1.2, 9);
           trailA = Math.min(trailA, 0.25);
           if (sp2 > 8) { if (!tbSwap) shockAt(e.x, e.y, 0.15, 1.6, 0.25, 1, 0.9, 0.8); puffsAt(e.x, e.y, 3, 0, 0, 0, 0.4); }
@@ -2210,19 +2213,14 @@
             var lk = clampN((ltot - 5) / 15, 0, 1); if (g && g.lastKind === 'spike') lk = Math.max(lk, 0.6);
             sandAt(e.x, e.y, 14 + Math.min(12, sp2), 0.45 + Math.min(0.5, sp2 * 0.03), lvx, lvy, 0.15);
             sandImpact(e.x, e.y, lk, lvx, lvy);
-            var cz = 0.6 + 1.1 * lk, cyaw = Math.atan2(lvy, lvx);
-            footAt(e.x, e.y, cyaw, 2, cz * 1.1, cz, 1);
-            if (lk > 0.5) for (var rI = 0; rI < 6; rI++) { // remate: lenguas de arena lanzadas alrededor del hoyo (celda del surco, hacia fuera)
-              var ra = cyaw + rI * 1.047 + 0.3 * Math.sin(rI * 2.3), rr = cz * (0.72 + 0.14 * (rI % 2));
-              footAt(e.x + Math.cos(ra) * rr, e.y + Math.sin(ra) * rr, ra, 1, cz * 0.7, cz * 0.32, 1);
-            }
+            // (17-nov-2026: sin el cráter que se quedaba en la arena, por el challenge; la explosión de arena sí)
           }
           break;
         }
         case 'bounce':
           if ((e.speed || 0) > 2.5) { rippleAt(e.x, e.y, 0.9, 0.45, 1, 1, 1, 0.4); if (onBeach()) sandAt(e.x, e.y, 6, 0.35, 0, 0, 0.1); }
           if (onBeach() && (e.speed || 0) > 1.5) { // playa: el balón muerto que rebota levanta un poco de arena y deja su hoyito
-            var bk = clampN((e.speed - 1.5) / 12, 0, 0.3); sandImpact(e.x, e.y, bk, 0, 0); footAt(e.x, e.y, 0, 2, 0.5, 0.5, 0.7);
+            var bk = clampN((e.speed - 1.5) / 12, 0, 0.3); sandImpact(e.x, e.y, bk, 0, 0); // (sin cráter: 17-nov-2026)
           }
           break;
         case 'landPlayer':
