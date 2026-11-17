@@ -300,9 +300,11 @@
       // el humano solo se mueve con el stick, como en el 2v2.)
       ctrlRole: six ? (CTRL_ROLES6.indexOf(opts.ctrlRole) >= 0 ? opts.ctrlRole : 'OH') : '',
       ctrlBase: null,          // 6v6: el atleta del humano de verdad (g.ctrl es el líbero mientras sustituye a su central; applyLibero)
-      // 6v6: falta de posición pitada al humano (Difícil/Experto): puede moverse durante el saque y, si al golpe de saque está en un par
-      // solapado de su equipo, punto para el rival ('position'). En Fácil/Normal se le coloca (placeServe) y no se mueve hasta el saque
-      posRule6: six && !opts.demo && (diff === 'hard' || diff === 'expert'),
+      // 6v6: falta de posición pitada al humano: puede moverse durante el saque (empieza en su sitio legal, placeServe) y, si al golpe de
+      // saque está en un par solapado de su equipo, punto para el rival ('position'). En todos los niveles desde el 17-nov-2026 (Ferran:
+      // «haz que se pueda mover»; antes solo Difícil/Experto); en Fácil/Normal fx.js le enseña su sitio legal durante el saque, en
+      // Difícil/Experto no
+      posRule6: six && !opts.demo,
       hAct: -9,                // 6v6: g.time de la última entrada del humano (stick o botón); el colocador no coloca al que está quieto
       ask6: -9,                // 6v6: g.time del último «¡Pídela!» del humano (CAMBIAR durante la jugada propia)
       // modo 'one': jugador del humano (0 = dorsal 1, 1 = dorsal 2); en 'both' siempre 0 (el control empieza en teams[0][0])
@@ -316,7 +318,8 @@
       recvRisk: 0,             // dificultad (0..1+) del último saque para el receptor (ver serveRisk)
       courtSwap3: false,       // ya se cambió de campo a mitad del set decisivo (a los 8 si va a 15)
       // puntos por set (Partido rápido: 11 | 15 | 21 | 25); el set decisivo va a min(15, points). Ver setTarget
-      points: beach ? 21 : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 25,
+      // (playa: siempre 21, salvo el partido a un set de la prueba de la Carrera —bestOf 1—, que va a sus puntos: 17-nov-2026)
+      points: beach ? (opts.bestOf === 1 && SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 21) : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : 25,
       // pista de esta partida (ver C.BEACH): media longitud, media anchura y escala respecto a la de 18×9 (1 en el pabellón:
       // multiplicar por g.cs deja los números exactos y la huella 2v2 intacta)
       venue: beach ? 'beach' : 'hall', beach: beach,
@@ -414,6 +417,8 @@
     if (opts.online) initOnline(g, opts); // ONLINE: perfil y timing comunes, huecos humanos g.hum (antes de los atributos)
     if (dk) g.drill = mkDrill(dk);
     dblFields(g); dblFields(g.ball); dblFields(g.pr1); dblFields(g.pr3); dblFields(g.rally);
+    // partido a un set (17-nov-2026: la prueba jugada de la Carrera, VB.Career.trialSetup → bestOf 1); sin la opción, la clave no existe
+    if (opts.bestOf === 1) g.bo1 = true;
     if (six) { g.roster = [teams[0].concat([g.libero[0]]), teams[1].concat([g.libero[1]])]; if (g.stats) { g.stats.overlap = [0, 0]; g.stats.liberoSwaps = 0; } }
     if (six) subsInit(g, opts, diff);   // banquillo y cambios (solo con opts.bench: g.subsOn; sin él, solo campos apagados)
     refreshTeams(g);

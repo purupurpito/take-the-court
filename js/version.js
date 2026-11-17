@@ -20,11 +20,33 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.5';
+  VB.VERSION = '1.5.8';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.8', d: '2026-11-17', t: 'Pruebas jugadas',
+      items: [
+        'Carrera: las pruebas se juegan: un set a 15 contra rivales mejores y la IA un nivel más.',
+        'Te fichan por tu nota; ganar el mini partido ayuda un poco. También puedes simularla.',
+        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.'
+      ]
+    },
+    {
+      v: '1.5.7', d: '2026-11-17', t: 'Moverte en el saque',
+      items: [
+        '6 contra 6: muévete en el saque en todos los niveles; si te solapas, falta de posición.',
+        'En Fácil y Normal, una marca en el suelo te enseña tu sitio legal mientras sacan.',
+        'Los botes ya no dejan marca en el suelo: lo que se discute se mira en el challenge.'
+      ]
+    },
+    {
+      v: '1.5.6', d: '2026-11-17', t: 'Beta abierta',
+      items: [
+        'Make the Cut entra en beta abierta: gracias por probarlo y contarnos qué falla.'
+      ]
+    },
     {
       v: '1.5.5', d: '2026-11-17', t: 'Arreglos del online',
       items: [
