@@ -25,7 +25,7 @@
   // capturas (SPLAT, 17-nov-2026): ?olmock=1 (solo file:// o localhost) = sesión y salas de mentira en memoria, sin red ni Firestore
   // (olmock=empty: sin salas; olmock=nortc: navegador sin WebRTC). VB.NetLobby._mock(o) pinta estados sueltos (avisos, conectando…).
   var MOCK = LOCAL && /^(1|empty|nortc)$/.test(Q.olmock || '') ? Q.olmock : '';
-  var NICK = 'make-the-cut.nick', PREFS = 'make-the-cut.netroom', HELPK = 'make-the-cut.nethelp';   // (nethelp = '1': ya vio «Cómo funciona»)
+  var NICK = 'make-the-cut.nick', PREFS = 'make-the-cut.netroom', HELPK = 'make-the-cut.nethelp2';   // (nethelp2 = '1': ya vio «Cómo funciona»; Online V2 lo vuelve a enseñar por «Conexión»)
   var CONNECT_MS = 30000, OFFER_MS = 10000, OFFER_MAX = 65000, PRE_MS = 12000, LIST_EVERY = 8000, ROOM_POLL = 2000, SIG_POLL = 1000;   // (lecturas de Firestore: ver notes/net.md «Cuotas»)
 
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } return null; }
@@ -33,7 +33,11 @@
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function NR() { return VB.NetRoom; }
   function ctx() { return VB.ctx || null; }
-  function ver() { return (VB.Net ? VB.Net.PROTO : 0) + '|' + (VB.VERSION || ''); }
+  /** Versión de la sala (room.v): PROTO|VB.VERSION|L<lobby>. Online V2: 'L2' = el lobby sabe de conexiones (sala con net, 'pre' con
+   *  model). Una sala de un cliente de antes (sin la marca) sale como «Otra versión» y al revés, aunque VB.VERSION no cambie: un 1.8.2
+   *  en caché no puede entrar en una sala Fluida creyéndola Precisa. (hay que subir VB.VERSION igualmente al publicar) */
+  var LOBBY = 2;
+  function ver() { return (VB.Net ? VB.Net.PROTO : 0) + '|' + (VB.VERSION || '') + '|L' + LOBBY; }
   function sound(k) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(k); } catch (e) { } }
 
   /* ---------------- cuenta y backend ---------------- */
@@ -152,12 +156,18 @@
   function venueName(r) { var n = r.map && VB.Venues && VB.Venues.name ? VB.Venues.name(r.map) : ''; return n || (r.venue === 'beach' ? 'Playa' : 'Pabellón'); }
   function cfgParts(r) {
     var kind = r.venue === 'beach' ? 'Playa' : 'Pabellón', vn = venueName(r);
-    return [kind].concat(vn && vn !== kind ? [vn] : [], chips(r));
+    return [kind].concat(vn && vn !== kind ? [vn] : [], chips(r, true));
   }
-  /** Chips del partido (lista, vista previa de «Crear sala» y sala de espera). (fase 6: puntos por set en Pabellón) */
-  function chips(r) {
+  /** Online V2: conexión de la sala ('fluida' solo si la sala lo dice; sin la clave, Precisa, la de siempre). */
+  function roomModel(r) { return r && r.net === 'fluida' ? 'fluida' : 'precisa'; }
+  /** Chips del partido (lista, vista previa de «Crear sala» y sala de espera). (fase 6: puntos por set en Pabellón)
+   *  Online V2: un tercer chip «Fluida» solo en las salas Fluida (aria: «conexión fluida»). */
+  function chips(r, aria) {
     var p = r.pts || 21;
-    return [r.bo === 3 ? 'Mejor de 3' + (p !== 21 ? ' a ' + p : '') : '1 set a ' + p, r.even ? 'Igualado' : 'Con sus atributos'];
+    var out = [r.bo === 3 ? 'Mejor de 3' + (p !== 21 ? ' a ' + p : '') : '1 set a ' + p, r.even ? 'Igualado' : 'Con sus atributos'];
+    // (el chip visible va PRIMERO: .fx-chips corta lo que no cabe y en un móvil en vertical el último no se ve; en el aria, al final)
+    if (roomModel(r) === 'fluida') { if (aria) out.push('conexión fluida'); else out.unshift('Fluida'); }
+    return out;
   }
   function chipsHTML(r) { return chips(r).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join(''); }
   function sep(parts) { return parts.map(esc).join('<i class="ol-sep" aria-hidden="true"></i>'); }
@@ -174,7 +184,8 @@
 
   function prefs() {
     var p = jls(PREFS) || {};
-    return { venue: p.venue === 'beach' ? 'beach' : 'hall', mapH: String(p.mapH || ''), mapB: String(p.mapB || ''), bo: +p.bo === 3 ? 3 : 1, even: !!p.even, pts: [11, 15, 21, 25].indexOf(+p.pts) >= 0 ? +p.pts : 21 };
+    return { venue: p.venue === 'beach' ? 'beach' : 'hall', mapH: String(p.mapH || ''), mapB: String(p.mapB || ''), bo: +p.bo === 3 ? 3 : 1, even: !!p.even, pts: [11, 15, 21, 25].indexOf(+p.pts) >= 0 ? +p.pts : 21,
+      model: p.model === 'fluida' ? 'fluida' : 'precisa' };   // (Online V2: conexión; Precisa si no se eligió nunca)
   }
   function savePrefs(c) { try { ls(PREFS, JSON.stringify(c)); } catch (e) { } }
   function maps(kind) { var V = VB.Venues; var l = V && V.list ? safe(function () { return V.list(kind); }) : null; return Array.isArray(l) && l.length ? l : ['']; }
@@ -221,7 +232,7 @@
     var c = L.cfg; savePrefs(c);
     var map = c.venue === 'beach' ? c.mapB : c.mapH;
     L.msg = ''; L.busy = true; render();
-    api().open({ name: myName(), venue: c.venue, map: map, bo: c.bo, even: c.even, pts: c.venue === 'beach' ? 21 : c.pts }).then(function (r) {
+    api().open({ name: myName(), venue: c.venue, map: map, bo: c.bo, even: c.even, pts: c.venue === 'beach' ? 21 : c.pts, net: c.model === 'fluida' ? 'fluida' : undefined }).then(function (r) {
       L.busy = false;
       if (!r) throw { code: 'error' };
       L.room = r; L.role = 'host'; L.rival = ''; L.fail = ''; L.started = false; L.status = 'wait';
@@ -231,7 +242,8 @@
     }).catch(function (e) {
       L.busy = false;
       if (e && e.code === 'off') { setView('off'); return; }
-      L.msg = errText(e, 'No se ha podido crear la sala.'); L.msgBad = true; render();
+      // (Online V2: con las reglas de antes, una sala Fluida da 403 aunque la lista funcione)
+      L.msg = e && e.code === 'denied' && c.model === 'fluida' ? 'La conexión Fluida aún no está activada.' : errText(e, 'No se ha podido crear la sala.'); L.msgBad = true; render();
     });
   }
   function hostBeat() {
@@ -279,9 +291,11 @@
     }).catch(function () { if (L.conn === conn) connFail(); });
     timers.connT = setTimeout(function () { if (L.conn === conn && !L.started && (!L.link || L.link.state !== 'open' || !conn.pre)) connFail(); }, CONNECT_MS);
   }
-  function connFail() {
+  function connFail(why) {
     var who = L.rival || 'tu rival';
-    L.fail = 'No se ha podido conectar directamente con ' + who + ': vuestras redes no lo permiten. Probad otra vez o desde otra red.';
+    // (why = 'mismatch': Online V2, el anfitrión juega con otra conexión que la que anuncia la sala; mismo texto que main.js)
+    L.fail = why === 'mismatch' ? (L.role === 'host' ? 'La versión del juego de ' + who + ' no usa la conexión de la sala: no hay partido.' : 'La sala no coincide con lo anunciado: no hay partido.')
+      : 'No se ha podido conectar directamente con ' + who + ': vuestras redes no lo permiten. Probad otra vez o desde otra red.';
     if (L.role === 'host') {
       abortConn(); L.rival = ''; L.status = 'wait';
       api().beat({ state: 'open', guest: '', gname: '' }).catch(function () { });
@@ -388,7 +402,7 @@
   function preStart() {
     var link = L.link; if (!link) return;
     var me = myName(), st = myStats();
-    if (L.role === 'guest') link.send('ctl', JSON.stringify({ k: 'pre', name: me, st: { attrs: st.attrs, badges: st.badges, aimSet: myAimSet() }, look: myLook() }));
+    if (L.role === 'guest') link.send('ctl', JSON.stringify({ k: 'pre', name: me, st: { attrs: st.attrs, badges: st.badges, aimSet: myAimSet() }, look: myLook(), model: roomModel(L.room) }));
     var t0 = Date.now();
     every('pre', 50, function () {
       if (!L.link || L.link !== link) { stop('pre'); return; }
@@ -408,6 +422,10 @@
     var C = ctx(); if (!C || !C.actions || !C.actions.startOnline) { connFail(); return; }
     var r = L.room, opts = null, rivalName = NR().cleanName(pre.name) || L.rival || 'Rival';
     L.rival = rivalName;
+    // Online V2: conexión de la sala. El invitado comprueba que el anfitrión juega con la que anuncia la sala (sin model = Precisa)
+    var model = roomModel(r);
+    // y el anfitrión, que el invitado juega con la de la sala (un cliente de antes no manda model = Precisa: fuera antes de startOnline)
+    if ((pre.model === 'fluida' ? 'fluida' : 'precisa') !== model) { connFail('mismatch'); return; }
     if (L.role === 'host') {
       var gst = pre.st || {}, even = !!r.even;
       var seed = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(1))[0] >>> 1 : Math.floor(Math.random() * 2147483647);
@@ -416,7 +434,9 @@
         // (auditoría: «Colocación dirigida» es un ajuste de cada jugador, no una ventaja: viaja también en «Igualado»)
         humans: [even ? { aimSet: myAimSet() } : { attrs: st.attrs || undefined, badges: st.badges || undefined, aimSet: myAimSet() },
           even ? { aimSet: gst.aimSet !== false } : { attrs: sanAttrs(gst.attrs) || undefined, badges: sanBadges(gst.badges) || undefined, aimSet: gst.aimSet !== false }] };
-      L.link.send('ctl', JSON.stringify({ k: 'pre', name: myName(), look: myLook() }));
+      // Online V2 (Fluida): sin errores arbitrales, sin ojo de halcón y sin tiempos muertos (notes/online-v2-spec.md §2.1)
+      if (model === 'fluida') { opts.net = 'fluida'; opts.ref = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 }; opts.timeouts = false; }
+      L.link.send('ctl', JSON.stringify({ k: 'pre', name: myName(), look: myLook(), model: model }));
       api().beat({ state: 'play' }).catch(function () { });
       api().delSig(r.id).catch(function () { });
     }
@@ -425,9 +445,9 @@
     var link = L.link;
     link.onclose = function () { matchClosed(link); };
     // (auditoría: el invitado comprueba que el anfitrión manda lo que anuncia la sala: «Igualado», sets, puntos y sede)
-    var expect = L.role === 'guest' ? { even: !!r.even, bestOf: r.bo === 3 ? 3 : 1, points: r.pts || 21, venue: r.venue === 'beach' ? 'beach' : 'hall' } : null;
+    var expect = L.role === 'guest' ? { even: !!r.even, bestOf: r.bo === 3 ? 3 : 1, points: r.pts || 21, venue: r.venue === 'beach' ? 'beach' : 'hall', net: r.net || undefined } : null;
     var ok = C.actions.startOnline({ slot: L.role === 'host' ? 0 : 1, link: link, opts: opts, name: myName(), rivalName: rivalName,
-      look: { mine: myLook(), theirs: saneLook(pre.look) }, expect: expect });
+      look: { mine: myLook(), theirs: saneLook(pre.look) }, expect: expect, model: model });
     if (!ok) { L.started = false; connFail(); return; }
     if (L.role === 'guest') guestListen(L.gen);   // (vigila ofertas nuevas: solo lee Firestore si la conexión cae o la sesión espera)
     render();
@@ -537,6 +557,8 @@
     '#mpOnline .ol-ghost{flex:none;display:flex;align-items:center;gap:6px;font:400 22px/1 var(--sp-pop);color:var(--sp-ink)}',
     '#mpOnline .ol-ghost i{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border:2.5px dashed rgba(21,16,42,.5);border-radius:50%;font-style:normal;color:rgba(21,16,42,.55)}',
     '#mpOnline .ol-ghost em{font:400 12px/1 var(--sp-pop);font-style:normal;padding:4px 5px 3px;border-radius:9px;background:var(--sp-ink);color:var(--sp-gold);transform:rotate(-6deg)}',
+    // (Online V2) «Precisa (v1)» / «Fluida (v2)»: la v en minúscula y más suave
+    '#mpOnline .mv-val .sl-ver{text-transform:none;font-style:normal;opacity:.7}',
     // escribir el nombre y el código: campo crema con contorno de tinta y aro dorado al enfocar
     '#mpOnline .ol-edit{display:flex;gap:14px;align-items:center;flex:none;padding:4px 8px 6px 4px}' + P + '#mpOnline .ol-edit .sp-btn{flex:none}',
     '#mpOnline .ol-edit input{flex:1;min-width:0;height:clamp(46px,8vh,56px);box-sizing:border-box;padding:0 16px;border:0;border-radius:12px 16px 12px 18px/16px 12px 18px 12px;background:var(--sp-cream);color:var(--sp-ink);',
@@ -654,6 +676,7 @@
     ['Tu jugador', 'Juegas con los atributos e insignias de tu jugador de la Carrera (sin Carrera, los de tu n.º 1 de Partido rápido). En una sala «Igualado», nadie lleva atributos ni insignias.'],
     ['Salas', 'Crea una sala y espera a que alguien entre desde la lista, o entra en una sala abierta. También puedes pasar el código de tu sala.'],
     ['Sin pausa', 'No se puede parar el partido. Entre sets hay 10 s de descanso: si tu rival y tú pulsáis «Continuar», se sigue antes.'],
+    ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis exactamente lo mismo, con algún tirón si hay mucho ping. Fluida (v2): tu equipo responde al instante y el rival se ve una pizca en diferido.'],
     ['Si se corta', 'El partido espera a tu rival y a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
     ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Online Beta Tester» para el Vestuario.'],
     ['Privacidad', 'El juego solo enseña tu nombre, nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
@@ -688,7 +711,7 @@
   function selRow(k, label, val, hint, n) {
     return '<button class="ol-sel sp-btn sp-ink sp-opt sp-calm" data-ol="' + k + '" data-shape="' + (n | 0) + '" aria-label="' + esc(label + ': ' + val + '. ' + hint) + '">' +
       '<span class="mi-l">' + esc(label) + '</span><span class="mi-v sp-select"><span class="arr" data-d="-1">' + ARR_L + '</span>' +
-      '<span class="mv-val"><b>' + esc(val) + '</b></span><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
+      '<span class="mv-val"><b>' + esc(val).replace(/ \((v\d)\)$/,' <i class="sl-ver">($1)</i>') + '</b></span><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
   }
   function helpHTML() {
     // (SPLAT) rótulo en trazo de tinta y una hoja (.sp-panel) con una fila por punto; la hoja se desplaza por dentro y «Entendido» queda fuera
@@ -819,7 +842,8 @@
       var cb = c.venue === 'beach', ck = cb ? 'Playa' : 'Pabellón', vn = cur && VB.Venues && VB.Venues.name ? VB.Venues.name(cur) || cur : ck;
       // (fase 6) El mismo lenguaje que la cartelera: UN rótulo con la franja de la sede (arena / madera), la vista previa de tu sala tal
       // y como saldrá en la lista (TÚ VS ?, con sus chips) y debajo los selectores compactos (↑↓ elige, ←→ cambia). Sin tarjetas sueltas.
-      var pr = { name: myName(), venue: c.venue, map: cur, bo: c.bo, pts: cb ? 21 : c.pts, even: c.even };
+      var fl = c.model === 'fluida';
+      var pr = { name: myName(), venue: c.venue, map: cur, bo: c.bo, pts: cb ? 21 : c.pts, even: c.even, net: fl ? 'fluida' : undefined };
       // (SPLAT) arriba, «Tu sala» y la vista previa tal y como saldrá en la lista (el brochazo de la cartelera); debajo, los selectores de
       // Partido rápido (pegatinas de tinta, se desplazan por dentro) y «Abrir sala» en parche cosido, siempre a la vista.
       h = note() + '<div class="ol-mk ' + (cb ? 'v-beach' : 'v-hall') + '">' +
@@ -830,8 +854,10 @@
         selRow('map', 'Sede', vn, 'Donde se juega', 2) +
         selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set', 1) +
         (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set', 3)) +
+        selRow('net', 'Conexión', fl ? 'Fluida (v2)' : 'Precisa (v1)', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo', 2) +
         selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador', 0) + '</div>' +
-        '<p class="mk-tip">' + (c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
+        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones ni ojo de halcón en esta versión.'
+          : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
         '<div class="ol-bar ol-bar2 mk-go" data-nav><button class="ol-act ol-new sp-patch" data-a="open"' + (L.busy ? ' disabled' : '') + '><span class="sp-l"><span class="sp-t">Abrir sala</span>' +
         '<small class="sp-s">' + esc(ck + (vn && vn !== ck ? ', ' + vn : '')) + '</small></span></button></div>';
     } else if (v === 'room' && L.room) {
@@ -914,6 +940,7 @@
     else if (k === 'bo') c.bo = c.bo === 3 ? 1 : 3;
     else if (k === 'pts') { var PV = [11, 15, 21, 25], pi = PV.indexOf(c.pts); c.pts = PV[((pi < 0 ? 2 : pi) + (d > 0 ? 1 : -1) + PV.length) % PV.length]; }
     else if (k === 'even') c.even = !c.even;
+    else if (k === 'net') c.model = c.model === 'fluida' ? 'precisa' : 'fluida';
     sound('optChange'); render();
   }
   function onClick(ev) {
@@ -1030,7 +1057,8 @@
     try {
       var C = ctx(), n = C && C.net, st = n && n.sess && n.sess.status;
       if (!L.started || L.role !== 'guest' || !n || n.slot !== 1 || !(st === 'playing' || st === 'waiting' || st === 'connecting' || st === 'starting')) return;
-      ss(BACK, JSON.stringify({ id: L.room.id, uid: api().uid() || '', gen: L.gen | 0, ep: n.epoch | 0, rival: L.rival || n.rival || '', look: n.look && n.look.theirs || null, t: Date.now() }));
+      ss(BACK, JSON.stringify({ id: L.room.id, uid: api().uid() || '', gen: L.gen | 0, ep: n.epoch | 0, rival: L.rival || n.rival || '', look: n.look && n.look.theirs || null,
+        model: n.model || roomModel(L.room), t: Date.now() }));
       return !!ss(BACK);   // (sessionStorage puede fallar: entonces se suelta el hueco como siempre)
     } catch (e) { }
     return false;
@@ -1053,13 +1081,15 @@
       }, function () { });
     }, 500);
   }
+  /** Online V2: conexión del partido al volver (la apuntada en BACK; si no, la de la sala). */
+  function backModel(r, b) { return b && (b.model === 'fluida' || b.model === 'precisa') ? b.model : roomModel(r); }
   function rejoin(r, b) {
     var C = ctx();
     try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }
     L.role = 'guest'; L.room = r; L.rival = NR().cleanName(b.rival) || r.name || 'Rival'; L.gen = b.gen | 0; L.started = true; L.status = 'play';
     var link = newLink();
     link.onclose = function () { matchClosed(link); };
-    var ok = C.actions.startOnline({ slot: 1, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) } });
+    var ok = C.actions.startOnline({ slot: 1, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) }, model: backModel(r, b) });
     if (!ok) { matchClosed(link); return; }
     // revancha n.º k: la sesión nueva tiene que hablar en la época del anfitrión
     var ep = Math.max(0, Math.min(1e6, b.ep | 0));
@@ -1077,7 +1107,7 @@
       var C = ctx(), n = C && C.net, s = n && n.sess, st = s && s.status;
       if (!L.started || !n || n.slot !== 0 || !L.room || !L.room.guest || !(st === 'playing' || st === 'waiting') || s.goneFlag) return false;
       ss(BACK, JSON.stringify({ role: 'host', id: L.room.id, uid: api().uid() || '', gen: L.gen | 0, ep: n.epoch | 0, rival: L.rival || n.rival || '',
-        look: n.look && n.look.theirs || null, guest: L.room.guest, t: Date.now() }));
+        look: n.look && n.look.theirs || null, guest: L.room.guest, model: n.model || roomModel(L.room), t: Date.now() }));
       return !!ss(BACK);   // (si sessionStorage falla, la sala se borra como siempre)
     } catch (e) { }
     return false;
@@ -1096,7 +1126,7 @@
     every('beat', NR().BEAT_MS, hostBeat); hostBeat();
     var link = newLink();
     link.onclose = function () { matchClosed(link); };
-    var ok = C.actions.startOnline({ slot: 0, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) } });
+    var ok = C.actions.startOnline({ slot: 0, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) }, model: backModel(r, b) });
     if (!ok) { matchClosed(link); return; }
     var ep = Math.max(0, Math.min(1e6, b.ep | 0)), n = C.net;
     if (n && n.sess) { if (ep) { n.epoch = ep; n.sess.epoch = ep; } n.sess.back = true; }
@@ -1125,7 +1155,7 @@
   VB.NetLobby = {
     menuOn: function () { return MENU_ON || Q.online === '1' || !!EMU; },
     open: open, leave: leave, back: back, side: side, focus: first,
-    myName: myName, myStats: myStats, myLook: myLook, saneLook: saneLook,
+    myName: myName, myStats: myStats, myLook: myLook, saneLook: saneLook, _ver: ver,   // (_ver: pruebas, la versión de sala que publica)
     _state: function () { return { view: L.view, role: L.role, rival: L.rival, status: L.status, started: L.started, rooms: L.rooms.map(function (r) { return { id: r.id, name: r.name, other: r.other }; }), room: L.room && { id: L.room.id, code: L.room.code, state: L.room.state }, link: L.link && L.link.state, linkInfo: L.link && L.link.info(), msg: L.msg, fail: L.fail, emu: EMU }; },
     _link: function () { return L.link; },
     // capturas con ?olmock: pinta un estado suelto (o = campos de L: msg, msgBad, listErr, status, rival, fail, view…; rival: '<nombre>'

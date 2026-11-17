@@ -14,6 +14,10 @@
  *    netlogs.html (pages/), con la sesión de la cuenta del mismo navegador.
  *  - Privacidad: NUNCA direcciones IP ni puertos (de getStats solo el TIPO de candidato y el protocolo), ni el correo. Sí el nombre
  *    de los dos (el mismo que ya enseña el lobby), navegador, sistema y tipo de red que da el navegador.
+ *  - Online V2 (modelo Fluida, js/netfluid.js): el informe dice el modelo (modelo: 'precisa' | 'fluida'); cada ventana lleva además
+ *    una foto de s.flStats (fl: los contadores son acumulados desde el inicio; interpMs, lateMaxMs, warpMax y drift, el valor del
+ *    momento), y el total, la del final. En Fluida no hay rollback ni ventaja de frames (stats.depth y s.adv no existen: rb/adv van
+ *    a null) y en vez de huellas hay un resumen del marcador: si ptBad o digestBad suben, suceso 'marcador_distinto'.
  *  - Solo con cuenta y enlace WebRTC de verdad (no en las pruebas por BroadcastChannel), salvo ?netlog=1 (depuración: además lo
  *    escribe en la consola).
  */
@@ -50,6 +54,14 @@
     try { var VS = VB.ctx && VB.ctx.settings; if (VS) o.q = VS.quality || ''; } catch (e) { }
     return o;
   }
+  // foto compacta de s.flStats (Fluida): solo los campos que se miran; los que falten no salen
+  var FL_KEYS = ['snapOut', 'snapIn', 'kbOut', 'kbIn', 'interpMs', 'extrapTicks', 'hand', 'forks', 'late', 'lateMaxMs', 'warpMax', 'snaps', 'drift', 'fqSent', 'fqOk', 'ptBad', 'sbFix', 'digestBad'];
+  function flSnap(f) {
+    if (!f || typeof f !== 'object') return null;
+    var o = {}, n = 0;
+    for (var i = 0; i < FL_KEYS.length; i++) { var v = f[FL_KEYS[i]]; if (typeof v === 'number' && isFinite(v)) { o[FL_KEYS[i]] = r1(v); n++; } }
+    return n ? o : null;
+  }
   function newWin(t) { return { t0: t, rtt: [], ice: [], frames: 0, worst: 0, slow: 0, waits: 0, waitMs: 0, dSum: 0, dN: 0, dMax: 0, unstMs: 0, hidMs: 0, advMin: 1e9, advMax: -1e9 }; }
   function ev(c, t, k, extra) {
     if (c.ev.length >= MAX_EV) { c.evDrop = (c.evDrop || 0) + 1; return; }
@@ -73,7 +85,7 @@
     cur = {
       net: net, sess: s, link: net.link, t0: t, wall: Date.now(), id: Date.now().toString(36) + Math.floor(Math.random() * 1679616).toString(36),
       win: newWin(t), wins: [], ev: [], lastSeq: s.rttSeq || 0, lastF: 0, lastIce: -1e9, st0: null, status: '', unst: false, solo: false,
-      cmpBad: -1, resyncs: 0, waitT: -1, lastSt: null, conn: null, busy: false, ended: false, env: env()
+      cmpBad: -1, ptBad: 0, digestBad: 0, resyncs: 0, waitT: -1, lastSt: null, conn: null, busy: false, ended: false, env: env()
     };
     ev(cur, t, 'inicio', { rol: net.slot === 0 ? 'anfitrion' : 'invitado', epoca: net.epoch | 0, delay: s.delay | 0 });
   }
@@ -91,6 +103,7 @@
       adv: w.advMax > -1e9 ? [r1(w.advMin), r1(w.advMax)] : null,
       unstMs: Math.round(w.unstMs), hidMs: Math.round(w.hidMs), st: s.status
     };
+    if (s.flStats) o.fl = flSnap(s.flStats);
     c.lastSt = { sent: st.sent || 0, recv: st.recv || 0, bytesOut: st.bytesOut || 0, steps: st.steps || 0, resyncs: st.resyncs || 0 };
     if (c.wins.length < MAX_WIN) c.wins.push(o); else c.winDrop = (c.winDrop || 0) + 1;
     if (FORCE && root.console) console.info('[netlog] ventana ' + JSON.stringify(o));
@@ -144,6 +157,11 @@
     if (!!r.solo !== c.solo) { c.solo = !!r.solo; ev(c, t, c.solo ? 'contra_ia' : 'vuelve_rival'); }
     if ((st.resyncs || 0) !== c.resyncs) { if (c.played) ev(c, t, 'resync', { n: st.resyncs || 0 }); c.resyncs = st.resyncs || 0; }
     if (typeof s.cmpBad === 'number' && s.cmpBad !== c.cmpBad) { if (s.cmpBad >= 0) ev(c, t, 'huella_distinta', { tic: s.cmpBad }); c.cmpBad = s.cmpBad; }
+    if (s.flStats) {   // Fluida: el marcador o su resumen no cuadran con el del rival
+      var pb = s.flStats.ptBad | 0, db = s.flStats.digestBad | 0;
+      if (pb > c.ptBad || db > c.digestBad) ev(c, t, 'marcador_distinto', { pt: pb, resumen: db });
+      c.ptBad = pb; c.digestBad = db;
+    }
     if (r.gone && !c.gone) { c.gone = true; ev(c, t, 'abandono'); }
     if (r.result && !c.res) { c.res = r.result; ev(c, t, 'resultado', { gana: !!r.result.win, why: r.result.why || '', noValido: !!r.result.unverified }); }
     // ventana de 10 s
@@ -153,11 +171,12 @@
   function report(c) {
     var s = c.sess, net = c.net, st = s.stats || {}, g = s.opts || {};
     return {
-      v: 1, ver: VB.VERSION || '', id: c.id, ini: new Date(c.wall).toISOString(), dur: r1((pnow() - c.t0) / 1000),
+      v: 1, ver: VB.VERSION || '', modelo: s.model || 'precisa', id: c.id, ini: new Date(c.wall).toISOString(), dur: r1((pnow() - c.t0) / 1000),
       yo: String(net.name || '').slice(0, 24), rival: String(s.rivalName || net.rival || '').slice(0, 24), rol: net.slot === 0 ? 'anfitrion' : 'invitado',
       epoca: net.epoch | 0, delay: s.delay | 0, opts: { fmt: g.format || '', venue: g.venue || '', pts: g.points || 0, bo: g.bestOf || g.bo || 0 },
       env: c.env, conn: c.conn || '', estado: s.status,
-      total: { frames: st.frames || 0, steps: st.steps || 0, maxDepth: st.maxDepth || 0, waits: st.waits || 0, resyncs: st.resyncs || 0, sent: st.sent || 0, recv: st.recv || 0, kbOut: r1((st.bytesOut || 0) / 1024) },
+      total: { frames: st.frames || 0, steps: st.steps || 0, maxDepth: typeof st.maxDepth === 'number' ? st.maxDepth : null, waits: st.waits || 0, resyncs: st.resyncs || 0, sent: st.sent || 0, recv: st.recv || 0, kbOut: r1((st.bytesOut || 0) / 1024) },
+      fl: s.flStats ? flSnap(s.flStats) : undefined,
       res: c.res ? { gana: !!c.res.win, why: c.res.why || '', noValido: !!c.res.unverified } : null,
       wins: c.wins, ev: c.ev, drop: (c.winDrop || c.evDrop) ? { wins: c.winDrop || 0, ev: c.evDrop || 0 } : undefined
     };

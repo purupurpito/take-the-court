@@ -290,6 +290,7 @@
     var Sm = S();
     if (!Sm || !Sm.copyGame || !Sm.stateHash || !Sm.createGame || !Sm.step) return 'sim';
     if (!g) return 'nogame';
+    if (o.fluida) return 'net';   // Online V2: la conexión Fluida no tiene repeticiones en la beta (cada máquina ve su propia partida)
     if (g.size !== 2) return '6v6';
     if (g.demo) return 'demo';
     if (g.drill) return 'drill';
@@ -302,7 +303,8 @@
   }
   /** Partido nuevo (startMatch/setGame): crea las 11 sombras (1 del saque, 5 fotos clave, 3 mejores jugadas, el corredor R y PR, la
    *  siguiente de la cola de mejores jugadas, que se prepara mientras acaba la anterior) con las
-   *  mismas opts que g (stats:false). o = {force (autopilot en pruebas), headless (node: sin Players/CameraRig), mobile, gameOpts}.
+   *  mismas opts que g (stats:false). o = {force (autopilot en pruebas), headless (node: sin Players/CameraRig), mobile, gameOpts, fluida (online Fluida:
+   *  nunca graba)}.
    *  → true si el partido graba. */
   function reset(g, o) {
     abort();

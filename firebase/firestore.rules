@@ -46,7 +46,7 @@ service cloud.firestore {
     function signed() { return request.auth != null; }
     function nameOk(n) { return n is string && n.size() >= 1 && n.size() <= 16; }
     function roomOk(d) {
-      return d.keys().hasOnly(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen'])
+      return d.keys().hasOnly(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen', 'net'])
         && d.keys().hasAll(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen'])
         && d.code is string && d.code.matches('[2-9A-HJKMNP-Z]{6}')
         && nameOk(d.name) && d.gname is string && d.gname.size() <= 16
@@ -54,7 +54,9 @@ service cloud.firestore {
         && d.fmt in ['2v2'] && d.venue in ['beach', 'hall'] && d.map is string && d.map.size() <= 40
         && d.even is bool && d.bo in [1, 3] && d.pts in [11, 15, 21, 25]
         && d.state in ['open', 'full', 'play'] && d.v is string && d.v.size() <= 40
-        && d.seen == request.time;
+        && d.seen == request.time
+        // Online V2: 'net' es opcional (sin la clave = conexión Precisa); si está, solo 'fluida'
+        && (!('net' in d) || d.net in ['fluida']);
     }
     function members(d) { return [d.host, d.guest]; }
     function live(d) { return d.seen > request.time - duration.value(90, 's'); }

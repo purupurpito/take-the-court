@@ -39,6 +39,7 @@
     _pendCall: 'special', _snap: 'special', _digWho: 'ref', blockBy: 'ref', events: 'as', drill: 'as', replay: 'as', stats: 'as',
     mastery: 'as', online: 'as', hT: 'as', bo1: 'as', hum: 'special', tmoPer: 'as', skipReq: 'swap', tmoReq: 'swap',
     tmoLeft: 'swap', tmo: 'special', _mates: 'swap', lastLand: 'pos', netSince: 'as', _rc: 'as', _lv: 'swap',
+    fl: 'as',                // Online V2 «Fluida» (VB.Sim.flInit): estado canónico en datos planos; la vista no lo lee
     // gesto del hueco activo (SLOT_S de sim.js y aim3/swingAim/aimIn): pasan a ser los del invitado
     aim3: 'special', swingAim: 'special', aimIn: 'special', aimOn: 'slot', aimLen: 'slot', swingLen: 'slot', aimSet: 'slot',
     hitBuf: 'slot', jsetQ: 'slot', swingLive: 'slot', swingShot: 'slot', swingLock: 'slot', swingHasAim: 'slot', setWinOn: 'slot',
@@ -156,8 +157,34 @@
   /** view ← g (copia) y, para el invitado, girada. */
   function mirror(view, g, slot) {
     VB.Sim.copyGame(view, g);
+    flRivalJob(view);
     if (slot === 1) flip(view);
     return view;
+  }
+  /* Online V2 «Fluida»: la sim local solo calcula g.jobs del equipo propio (el rival lo mueven sus fotos), pero players.js anima a los
+   * rivales con g.jobs[equipo] (postura del que va al balón, gesto del compañero, «¡Mía!», clasificación del salto…). Solo en la VISTA
+   * (antes de girar, con los índices canónicos) se calcula el job rival con las poses que se pintan; la memoria por trayectoria
+   * (jobMem/jobMemT/jobSwT/jobHop del rival) se guarda aquí entre frames, así no salta de uno a otro. La partida de la sim no se toca. */
+  var _rjMem = { id: -1, T: NaN, sw: -9, hop: NaN };
+  function flRivalJob(v) {
+    var F = v.fl, AI = VB.AI;
+    if (!F || !F.loc || (F.loc[0] && F.loc[1]) || !AI || !AI.computeJob || !v.jobs) return;
+    var rm = F.loc[0] ? 1 : 0, j = null, i, P = v.teams[rm];
+    if (v.mode === 'rally') {
+      if (v.jobMem && v.jobMemT && v.jobSwT) {
+        var mp = null;
+        if (_rjMem.id >= 0) for (i = 0; i < P.length; i++) if (P[i].id === _rjMem.id) mp = P[i];
+        v.jobMem[rm] = mp; v.jobMemT[rm] = mp ? _rjMem.T : NaN; v.jobSwT[rm] = _rjMem.sw;
+        if (v.jobHop) v.jobHop[rm] = _rjMem.hop;
+      }
+      try { j = AI.computeJob(v, rm); } catch (e) { j = null; }
+      if (v.jobMem && v.jobMemT && v.jobSwT) {
+        var m = v.jobMem[rm];
+        _rjMem.id = m ? m.id : -1; _rjMem.T = v.jobMemT[rm]; _rjMem.sw = v.jobSwT[rm];
+        if (v.jobHop) _rjMem.hop = v.jobHop[rm];
+      }
+    }
+    v.jobs[rm] = j;
   }
 
   function byId(view, p) {

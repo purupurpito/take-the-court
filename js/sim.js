@@ -965,6 +965,7 @@
     return v;
   }
   function canReach(g, p) {
+    if (g.fl && flNo(g, p, true)) return false; // fl
     var b = g.ball;
     if (g.mode === 'serve') return g.serveState === 'toss' && p === g.server && serveReach(g, p);
     if (b.held || g.mode !== 'rally' || p.down > 0) return false;
@@ -978,6 +979,7 @@
   }
   /** ¿Puede llegar lanzándose en plancha? (solo en el suelo, balón bajo) */
   function canDive(g, p) {
+    if (g.fl && flNo(g, p, true)) return false; // fl
     var b = g.ball;
     if (b.held || g.mode !== 'rally' || p.down > 0 || p.z > 0 || p.vz > 0) return false;
     if (g.lastKind === 'serve' && g.touchTeam === p.team) return false;
@@ -1130,6 +1132,7 @@
     p.pressEnd = -9;
     if (lead > PRESS_NET_T && Math.abs(p.x) <= PRESS_NET && Math.abs(p.y) < g.HW + 0.5 && g.rng() < (NET_PRESS[g.difficulty] || 0.85)) {
       emit(g, { type: 'netTouch', player: p, x: p.x, y: p.y, z: p.z + 2.2 });   // demasiado pronto: los brazos a la red antes de tiempo
+      if (g.fl && !g.fl.loc[g.fl.own]) flFq(g, p); else // fl
       fault(g, p.team, 'net', 'Toque de red', p);
     } else emit(g, { type: 'blockPress', player: p, team: p.team, ok: false });
     return true;
@@ -1193,6 +1196,7 @@
   var SET6_PERF = { q: 0.78, dig: 0.8 };
   var SETQ = VB.SETQ = { pass: 0.5, lo: 0.25, hi: 0.85, spd0: 0.85, er: 1.0, err: 1.0, safeQ: 0.45, safeP: 0.85, safeLo: 0.1, jsQ: 0.78, jsX: 2.4, jsMate: 0.75 };
   function hit(g, p, aim, te, shot, tgt) {
+    if (g.fl && flNo(g, p, false)) return; // fl
     var t = p.team, sd = side(t), b = g.ball, prof = profOf(g, p);
     var inKind = g.lastKind, inShot = g.lastShot, inPrev = g.prevKind; // lo que llega (para contar defensas de remate)
     var prevPlayer = g.lastPlayer;                                          // autor del toque anterior (colocador: asistencia, Manos de seda)
@@ -1506,6 +1510,7 @@
       g.stats.hits[kind]++; g.stats.grades[grade]++; if (human) g.stats.hgrades[grade]++;
       g.stats.shots[sub] = (g.stats.shots[sub] || 0) + 1;
     }
+    if (g.fl) flContact(g, sub === 'body' ? 'body' : 'hit'); // fl
     var hev = emit(g, { type: 'hit', kind: kind, player: p, team: t, touch: count, quality: q, grade: grade, timing: te,
       power: power, shot: sub, dive: shot === 'dive', aim: aim ? [aim[0], aim[1]] : null, target: at ? [at[0], at[1]] : null,
       x: b.x, y: b.y, z: b.z, speed: b.speed, human: human, dig: isDig, recv: count === 1 && inKind === 'serve', jset: jset,
@@ -1555,6 +1560,7 @@
     if (g.blockCD > 0 || Math.abs(b.x) > 0.6) return;
     for (var i = 0; i < g.players.length; i++) {
       var q = g.players[i], sq = side(q.team);
+      if (g.fl && !g.fl.loc[q.team]) continue; // fl
       if (q.z < 0.15 || Math.abs(q.x) > 1.1 || g.lastTeam === q.team || Math.sign(b.vx) !== sq) continue;
       if (!inBlockVol(q, b)) continue;
       g.blockCD = 0.5; g.blockBy = q;
@@ -1626,6 +1632,7 @@
       q.lastAction = 'block'; q.actionT = 0; q.shot = kindB; q.grade = gradeOf(qb);
       if (g.stats) { g.stats.blocks++; g.stats.blockKinds[kindB]++; }
       emit(g, { type: 'block', player: q, team: q.team, x: b.x, y: b.y, z: b.z, result: kindB, quality: qb, human: human, pressed: pressed });
+      if (g.fl) flContact(g, 'block'); // fl
       if (g.drill) drillOnBlock(g, kindB, q); // E6: el bloqueo cierra la repetición en Remate y Bloqueo
       return;
     }
@@ -1643,6 +1650,7 @@
     if (g.mode !== 'rally') return;
     for (var i = 0; i < g.players.length; i++) {
       var p = g.players[i], sd = side(p.team), dz = b.z - p.z;
+      if (g.fl && !g.fl.loc[p.team]) continue; // fl
       if (p === g.blockBy && g.time - g.lastTouchT < 0.35) continue;      // el que acaba de bloquear
       if (b.x * sd < 0.25 || dz < BODY_Z0 || dz > BODY_Z1 || p.down > 0) continue;
       var dx = b.x - p.x, dy = b.y - p.y;
@@ -1912,9 +1920,11 @@
     if (b.wobA) { // flotante: baila de lado sin girar
       // aceleración lateral de media nula: desvío máximo ~2A/F² (~0.5 m), sin deriva acumulada
       var ph = b.wobF * (g.time - g.lastTouchT);
+      if (g.fl) ph = b.wobF * g.fl.bAge; // fl
       b.vy += b.wobA * b.wobP * Math.cos(ph) * dt; b.vx += b.wobA * 0.25 * Math.sin(ph * 1.7) * dt;
     }
     b.vz -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    if (g.fl) g.fl.bAge += dt; // fl
     b.spin += dt * (b.wobA ? 0.5 : 9 + b.dip);
     if ((px > 0) !== (b.x > 0)) {
       var ay = Math.abs(b.y);
@@ -1936,6 +1946,7 @@
         }
         g.netSince = true;
         emit(g, { type: 'net', x: 0, y: b.y, z: b.z, tape: tape });
+        if (g.fl) flContact(g, tape ? 'tape' : 'net'); // fl
       }
       // ataque del saque completado: el balón cruza entero el plano de la red (también tras pasar por la cinta)
       if (g.atkServe && (px > 0) !== (b.x > 0)) { fault(g, g.atkServe.team, g.atkServe.reason || 'attackServe', g.atkServe.text || 'Ataque sobre el saque', g.atkServe.player); return; }
@@ -2094,12 +2105,14 @@
   /** Asigna punto. reason: 'in'|'out'|'antenna'|'under'|'double'|'four'|'net'|'serve'|'block'|'attackServe'.
    *  sig: señal del árbitro explícita (solo la falta de saque: 'delay8' | 'serveFault'). */
   function point(g, w, reason, text, p, sig) {
+    if (g.fl && !g.fl.app && !g.fl.loc[g.fl.own]) { g.fl.guard++; return; } // fl
     if (g.drill) return drillPoint(g, w, reason, text, p, sig); // E6: en el Entrenamiento el punto cierra la repetición (sin marcador)
     if (g.mode !== 'rally' && g.mode !== 'serve') { g._pendCall = null; return; }
     // B2: llamada de este punto (solo si acaba en bote) e instantánea del estado previo para poder anularlo
     g.call = g._pendCall; g._pendCall = null; g.cpuChal = null; g.digTight = false; if (g.online) { aimOff(g); g.skipReq[0] = g.skipReq[1] = false; } else g.aim3.on = false;
     if (g.call) { g.call.team = 1 - w; g.call.t = g.time; g.call.setNo = g.setNo; g._snap = snapOf(g); } else g._snap = null;
     g.score[w]++; g.mode = 'point'; g.ball.held = null; endSwingX(g);
+    if (g.fl && !g.fl.app) g.fl.pts.push({ r: g.fl.r, w: w, reason: reason, text: text, pid: p ? p.id : -1, sig: sig || null, T: g.fl.T, m: flMeta(g) }); // fl
     if (g.subsOn) { g._subU = g._snap ? subUndo(g) : null; subCount(g); }   // banquillo: puntos en pista (g.meR, p.onR), del partido (g.rallyN) y cansancio
     var sideout = w !== g.serving;
     if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.how = g.stats.how || {}; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.rallies.push(g.rally.t); }
@@ -2186,6 +2199,7 @@
       g.courtSwapAt = a + bb;
       courtChange(g, 'swap'); // playa (reglas de vóley playa 18.2): cada 7 / cada 5
     }
+    if (g.fl) { g.fl.r++; g.fl.seq = 0; g.fl.par = 0; g.fl.khAt = -1; g.fl.lf = -1; g.fl.fqK.length = 0; } // fl
   }
   /* ---------- Entrenamiento (E6, sprint 5): ejercicios con repeticiones cortas y peloteo libre ----------
    * createGame({drill}) crea g.drill (mkDrill) y, en lugar del primer saque, drillStage monta la situación. Cada repetición acaba por
@@ -2588,8 +2602,9 @@
     p.x = sd * clamp(p.x * sd, inAir ? 0.2 : 0.35, g.mode === 'serve' ? 12 : 11); p.y = clamp(p.y, -6, 6);
     if (inAir && g.mode === 'rally' && Math.abs(p.x) < C.NET_TOUCH && Math.abs(p.y) < g.HW + 0.5) {
       var b = g.ball;
-      if (Math.abs(b.x) < 4 && Math.abs(b.y - p.y) < 3) { // durante la acción de jugar el balón
+      if (Math.abs(b.x) < 4 && Math.abs(b.y - p.y) < 3/*fl*/ && !(g.fl && g.fl.fqK.indexOf(p.id) >= 0)/*lf*/) { // durante la acción de jugar el balón
         emit(g, { type: 'netTouch', player: p, x: p.x, y: p.y, z: p.z + 2.2 });
+        if (g.fl && !g.fl.loc[g.fl.own]) flFq(g, p); else // fl
         fault(g, p.team, 'net', 'Toque de red', p);
       }
     }
@@ -2599,6 +2614,7 @@
 
   /** Plancha: se lanza hacia el balón y toca (calidad limitada); queda en el suelo un momento. */
   function dive(g, p, aim, te) {
+    if (g.fl && flNo(g, p, false)) return; // fl
     var b = g.ball, dx = b.x - p.x, dy = b.y - p.y, dl = Math.hypot(dx, dy) || 1;
     var reachOut = Math.max(0, dl - C.REACH * 0.7);
     p.lvx = dx / dl * reachOut * 7; p.lvy = dy / dl * reachOut * 7; // desplaza ~reachOut en el gesto
@@ -2762,6 +2778,7 @@
     emit(g, { type: 'serveReady', team: t, player: sv, setPoint: g.setPoint, matchPoint: g.matchPoint });
     // el silbato de autorización llega un instante después (stepServe); desde él corren los 8 s
     g.serveAuth = false; g.whistleAt = g.demo ? RITUAL.demoWhistle : 0.7;
+    if (g.fl) { g.fl.own = g.server.team; g.fl.bAge = 0; g.fl.frozen = false; g.fl.wait = 0; g.fl.peer = false; g.fl.sr = true; g.fl.srvR = g.fl.r; g.fl.khAt = -1; } // fl
   }
 
   /** Lanza el balón para sacar. jumpServe: toss alto y adelantado + carrera y salto automáticos. */
@@ -2873,6 +2890,7 @@
       x: b.x, y: b.y, z: b.z, speed: b.speed, human: human, dig: false, recv: false , feint: false, tempo: '', edge: 0, chain: 0});
     if (g.drill) drillOnHit(g, sev);
     endSwing(g);
+    if (g.fl) flContact(g, 'serve'); // fl
     // 6v6: el humano solapado en el momento del golpe de saque (reglas 7.4-7.5): el saque sale, pero el árbitro pita en el acto
     if (posFault) fault(g, 0, 'position', 'Falta de posición', g.ctrl, SIGNAL.position);
   }
@@ -2944,7 +2962,7 @@
     var sv = g.server, b = g.ball, sd = side(sv.team), i, p;
     var hs = human && sv.team === (g.online ? g.hT : 0) && sv === g.ctrl; // saca el humano (modo 'one': solo si saca su jugador)
     g.serveT += dt;
-    if (!g.serveAuth && g.serveT >= g.whistleAt) { g.serveAuth = true; if (!g.drill) emit(g, { type: 'whistle', reason: 'serve' }); } // autorización del saque (E6: sin silbato en el Entrenamiento)
+    if (!g.serveAuth && g.serveT >= g.whistleAt/*fl*/ && (!g.fl || g.fl.peer || (g.fl.loc[0] && g.fl.loc[1]) || g.serveT >= g.whistleAt + 1.5)/*lf*/) { g.serveAuth = true; if (!g.drill) emit(g, { type: 'whistle', reason: 'serve' }); } // autorización del saque (E6: sin silbato en el Entrenamiento)
     if (g.serveState === 'ready') {
       if (hs) {
         // El sacador humano se desplaza a lo ancho de la zona de saque
@@ -2988,7 +3006,7 @@
     // la marca de recepción (fx.js, VB.AI6.spot) le enseña su sitio legal. En Fácil/Normal, y en 2v2, nadie más se mueve
     var hm = g.posRule6 && human && !hs && g.ctrl.team === 0 && g.mode === 'serve' ? g.ctrl : null;
     if (hm && (mx || my)) g.hAct = g.time;
-    for (i = 0; i < g.players.length; i++) { p = g.players[i]; if (p !== sv) stepPlayer(g, p, dt, p === hm ? mx : 0, p === hm ? my : 0); }
+    for (i = 0; i < g.players.length; i++) { p = g.players[i]; if (p !== sv/*fl*/ && (!g.fl || mine(g, p))/*lf*/) stepPlayer(g, p, dt, p === hm ? mx : 0, p === hm ? my : 0); }
     stepBall(g, dt);
   }
 
@@ -3042,7 +3060,7 @@
    *    SALTAR en el suelo = salto (remate/bloqueo); SALTAR en el aire = dejada.
    *    jset (COLOCAR): en el suelo = SALTAR; en el aire = colocación en salto (2º toque, o 1r con el balón alto en la red). */
   function step(g, dt, input) {
-    if (g.online) return stepOnline(g, dt, input); // ONLINE: input = [entrada del hueco 0, entrada del hueco 1]
+    if (g.online) return /*fl*/g.fl && !g.fl.loc[1 - g.fl.me] ? stepFluid(g, dt, input) : /*lf*/stepOnline(g, dt, input); // ONLINE: input = [entrada del hueco 0, entrada del hueco 1]
     input = input || NOIN;
     var AI = VB.AI, b = g.ball;
     g.time += dt; g.blockCD -= dt; g.hitBuf -= dt; g.swingLock -= dt; g.jsetQ -= dt;
@@ -3975,6 +3993,422 @@
     refreshPred(g);
     fin(g);
   }
+  /* ==== FLUIDA (Online V2) ==== */
+  /* Online V2 «Fluida» (notes/online-v2-spec.md §2). Todo lo de este bloque solo corre con g.fl, que crea flInit (nunca createGame ni
+   * mkPlayer): sin g.fl la sim, la huella 2v2 y el online Precisa no cambian (tools/fluidsimtest.js lo comprueba).
+   *
+   * API para la sesión (js/netfluid.js), en VB.Sim. Coordenadas CANÓNICAS (equipo 0 = anfitrión en x > 0); dh = medio paso (1/240 s);
+   * hs = índice absoluto de medio paso = 2·T + h (T = tic compartido, h ∈ {0, 1}); el balón del peloteo va en 2 medios pasos por tic.
+   *   flInit(g, me) → g.fl                 crea el estado Fluida (me = equipo local: 0 anfitrión, 1 invitado). Campos (todo datos planos):
+   *       me, loc[2] (equipo simulado aquí), own (dueño del balón y del peloteo), T (tic; lo escribe la sesión antes de cada step),
+   *       r (rally: +1 en cada punto aplicado), seq/par (cadena de contactos del rally), kh (medios pasos de vuelo tras el contacto
+   *       hasta el traspaso, -1 = no hay), khAt (hs absoluto del traspaso = hs del contacto + 1 + kh; -1 = ninguno), bAge (edad del
+   *       balón desde el último contacto, s), app (aplicando un punto ajeno), catch (recuperando el pasado: nadie toca), peer (ya
+   *       llegó el sr del rival en este rally), fq[] (peticiones de falta para el dueño: {r, reason:'net', pid, T}), pts[] (puntos
+   *       producidos aquí: {r, w, reason, text, pid, sig, T, m}; m = metadatos del peloteo en el punto), dh, hs (último medio paso
+   *       integrado; 2T-1 en la fase de jugadores), cT/cH (tic y h del último contacto; cH -1 = en la fase de jugadores), cFull (el
+   *       último contacto fue el saque: su primer vuelo es un paso entero, como en stepServe), lf/lfPar (hs y par del primer toque
+   *       local desde el último tc aplicado; lf -1 = ninguno: bifurcaciones), dirty ('' o el tipo del último contacto: la sesión
+   *       manda el tc con g.fl.tc y lo borra), tc (flBundle tomado EN el contacto), sr (setupServe hecho: la sesión manda sr y lo
+   *       borra), srvR (rally del último setupServe), wait (s esperando el sr del rival con el saque suyo), frozen (balón fantasma
+   *       en el suelo), hand (traspasos), forks (bifurcaciones perdidas), late (recuperaciones de más de FL.CATCH_MAX medios pasos),
+   *       guard (veces que saltó la guarda de point(): debe ser 0), fqK (ids con fq ya pedida en este rally).
+   *   flTake(g)                            en solitario (rival perdido / contra la IA): loc = [true, true], el hueco rival a la IA,
+   *       own = me; con el balón fantasma ya en el suelo, se vuelve a sacar sin punto. step() pasa a stepOnline (autoridad total).
+   *       Ojo: en solitario la entrada del hueco rival debe llevar ai: true (si no, netBits le devuelve el hueco al humano).
+   *   flFly(ball, age, nHalf, dt, out) → out   vuelo puro (sin reglas) de nHalf medios pasos de dt desde ball con edad age; out
+   *       recibe x, y, z, vx, vy, vz, spin, speed, dip, wobA, wobF, wobP y age (para en el suelo, como el fantasma). Bit a bit igual
+   *       que el vuelo de stepBall con g.fl.
+   *   flOwnerCheck(b, own, canMore) → equipo   comprobación pura de la zona de traspaso: 1-own si el balón va hacia el otro equipo
+   *       y |x| <= L (L = canMore ? clamp(0,12·|vx|, 0,25, 0,6) : 0,6), si no own (sin own: el equipo del que se aleja el balón).
+   *   flBundle(g) → {r, s, par, T, h, kind, kh, khAt, own, full, b:[x,y,z,vx,vy,vz,spin,speed,dip,wobA,wobF,wobP], hd (id del que
+   *       lo tiene en la mano o -1), bAge, mode, sv? (en el saque: serveState, serveJump, serveT, tossT, jumpAt, serveAuth, serveNo,
+   *       whistleAt), m (metadatos del peloteo, ver flMeta; tiempos como EDADES: ltAge, feintAge, lastLand.age)}. El de cada
+   *       contacto queda en g.fl.tc (el estado de después del paso ya no es el del contacto).
+   *   flApplyTc(g, m, nowT, rewind) → 'ok' | 'fork' (aplicado: gana el contacto rival, anterior al mío) | 'lose' (rechazado: mi
+   *       toque es anterior) | 'dup' | 'old' (m.r < r) | 'future' (m.r > r: la sesión lo guarda) | 'over' | 'bad'. Escribe balón y
+   *       metadatos, own/khAt/seq y recupera desde el medio paso 2·m.T + m.h + 1 hasta el actual (2·nowT + 1; nowT por defecto
+   *       g.fl.T) con flCatchUp. rewind(j, g), opcional: escribe la pose PASADA de mis jugadores en el tic floor(j/2) (anillo de la
+   *       sesión); la sim guarda y restaura la presente (x, y, z, vx, vy, vz, onGround, pressEnd).
+   *   flCatchUp(g, fromHs, nowT, rewind, full, cT) → medios pasos con reglas (o -n si pasaba de FL.CATCH_MAX y voló sin reglas:
+   *       g.fl.late++). Por cada j: flHand; con el balón mío stepBall con g.fl.catch (bloqueo y cuerpo se juzgan, nadie toca), si no
+   *       el fantasma; g.time = floor(j/2)·dt mientras dura. full: el primer vuelo es un paso entero (saque). cT: tic al que
+   *       corresponden blockCD y rally.t del estado (por defecto el de fromHs).
+   *   flApplyPt(g, m) → true (marcador igual a m.d) | false (distinto: la sesión lo cuenta y repara) | null (m.r ≠ r: guardarlo).
+   *       m = {r, w, reason, text, pid, sig, m, d}. Llama a point() con g.fl.app (mismos eventos, sin azar).
+   *   flServe(g, force) → bool             setupServe (y nextSet si toca) con el punto ya en 'point' y su reloj a 0 (o force); una
+   *       sola vez por rally.
+   *   flSkip(g, t)                         «Continuar» del equipo t (skipReq y su evento).
+   *   flPose(g, team, poses)               pose de los jugadores RIVALES (poses[i] = g.teams[team][i]): x, y, z, vx, vy, vz, jvx, jvy,
+   *       anim, lastAction, actionT, shot, grade, onGround, down, pressEnd, cool (los que vengan) y, en el del humano, swingLive y
+   *       swingShot en g.hum[team]. Lanza un error si el equipo se simula aquí.
+   *   flDigest(g) → [r, score0, score1, sets0, sets1, setNo, serving, serverIdx0, serverIdx1, pendingSet ? 1 : 0]
+   *   flMatch(g) → bloque del marcador; flMatch(g, blk) lo escribe (score, sets, setNo, setScores, serving, serverIdx, server (id),
+   *       pendingSet, finished, setPoint, matchPoint, streakTeam/N, courtSwap3/At, r). Nunca toca jugadores.
+   *   FL: constantes (zona, búsqueda de kh, tope de recuperación); mine(g, p). Internos para las pruebas: _flKh, _flGhost, _flHand,
+   *   _flContact, _stepFluid, _stepBall. */
+  var FL = { ZMIN: 0.25, ZMAX: 0.6, ZK: 0.12, KH_MAX: 960, CATCH_MAX: 72 };
+  var NOIN_AI = { move: [0, 0], hit: false, jump: false, switchPlayer: false, ai: true };
+  /** ¿Se simula aquí el jugador p? (sin g.fl, siempre) */
+  function mine(g, p) { return !g.fl || g.fl.loc[p.team]; }
+  /** ¿Le está vedado a p tocar el balón? (con los dos equipos aquí, en solitario, nunca; useCatch: también durante la recuperación) */
+  function flNo(g, p, useCatch) {
+    var F = g.fl;
+    if (useCatch && F.catch) return true;
+    if (F.loc[0] && F.loc[1]) return false;
+    return F.own !== p.team || !F.loc[p.team];
+  }
+  function flInit(g, me) {
+    me = me === 1 ? 1 : 0;
+    g.fl = { me: me, loc: [me === 0, me === 1], own: g.server ? g.server.team : 0,
+      T: 0, r: 0, seq: 0, par: 0, kh: -1, khAt: -1, bAge: 0,
+      app: false, catch: false, peer: false, fq: [], pts: [],
+      dh: 1 / 240, hs: -1, cT: 0, cH: -1, cFull: false, lf: -1, lfPar: 0, dirty: '', tc: null, sr: true, srvR: 0, wait: 0,
+      frozen: false, gv: [0, 0, 0], hand: 0, forks: 0, late: 0, guard: 0, fqK: [] };
+    return g.fl;
+  }
+  function flBy(g, id) { return id >= 0 ? cpPlayerById(g, id) : null; }
+  function flId(p) { return p ? p.id : -1; }
+  /** Equipo que sacará tras el punto en curso (point() ya cambió g.serving; nextSet lo recalcula al empezar set). */
+  function flNextServer(g) { return g.pendingSet ? g.setNo % 2 : g.serving; }
+  /** Vuelo de un medio paso: copia literal de la integración del peloteo de stepBall (con la edad del balón para el baile). */
+  function flStep(b, age, dt) {
+    var G = gEff(b);
+    if (b.wobA) {
+      var ph = b.wobF * age;
+      b.vy += b.wobA * b.wobP * Math.cos(ph) * dt; b.vx += b.wobA * 0.25 * Math.sin(ph * 1.7) * dt;
+    }
+    b.vz -= G * dt; b.x += b.vx * dt; b.y += b.vy * dt; b.z += b.vz * dt;
+    b.spin += dt * (b.wobA ? 0.5 : 9 + b.dip);
+  }
+  /** Balón fantasma (dueño remoto): vuelo puro, sin reglas ni eventos; en el suelo se queda quieto hasta el tc/pt del dueño.
+   *  F.gv guarda la velocidad de después del bote (la respuesta del suelo de stepBall: vz·0,45, vx/vy·0,5) para que, al llegar el pt,
+   *  el balón muerto bote y ruede como en la máquina del dueño (y offline) en vez de quedarse clavado donde cayó. */
+  function flGhost(g, dt) {
+    var F = g.fl, b = g.ball;
+    if (F.frozen) return;
+    flStep(b, F.bAge, dt); F.bAge += dt;
+    if (b.z <= C.BR) {
+      if (!F.gv) F.gv = [0, 0, 0];
+      F.gv[0] = b.vx * 0.5; F.gv[1] = b.vy * 0.5; F.gv[2] = Math.abs(b.vz) * 0.45;
+      b.z = C.BR; b.vx = b.vy = b.vz = 0; b.dip = 0; b.wobA = 0; F.frozen = true;
+    }
+  }
+  var FL_BK = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'spin', 'speed', 'dip', 'wobA', 'wobF', 'wobP'];
+  function flFly(ball, age, nHalf, dt, out) {
+    out = out || {};
+    if (out !== ball) for (var i = 0; i < FL_BK.length; i++) out[FL_BK[i]] = ball[FL_BK[i]] || 0;
+    for (var k = 0; k < nHalf; k++) {
+      if (out.z <= C.BR && !out.vx && !out.vy && !out.vz) break;
+      flStep(out, age, dt); age += dt;
+      if (out.z <= C.BR) { out.z = C.BR; out.vx = out.vy = out.vz = 0; break; }
+    }
+    out.age = age;
+    return out;
+  }
+  function flZoneL(vx, canMore) { return canMore ? clamp(FL.ZK * Math.abs(vx), FL.ZMIN, FL.ZMAX) : FL.ZMAX; }
+  function flInZone(b, so, canMore) { return (b.vx > 0 ? 1 : b.vx < 0 ? -1 : 0) === so && Math.abs(b.x) <= flZoneL(b.vx, canMore); }
+  function flOwnerCheck(b, own, canMore) {
+    if (own !== 0 && own !== 1) own = b.vx > 0 ? 1 : 0;
+    if (canMore === undefined) canMore = true;
+    return flInZone(b, side(1 - own), canMore) ? 1 - own : own;
+  }
+  /** kh del contacto recién hecho: medios pasos de vuelo hasta que el balón entra en la zona de traspaso del otro equipo (0 = ya está),
+   *  o -1 si cae antes (el dueño lo pita) o no llega en FL.KH_MAX. El saque vuela su primer paso entero (stepServe). */
+  var _flKb = {};
+  function flKh(g) {
+    var F = g.fl, own = F.own, so = side(1 - own), canMore = !(g.touchTeam === own && g.touches >= 3);
+    var s = flFly(g.ball, 0, 0, 0, _flKb), age = F.bAge, dh = F.dh, k = 0;
+    if (flInZone(s, so, canMore)) return 0;
+    if (F.cFull) {
+      flStep(s, age, 2 * dh); age += 2 * dh; k = 2;
+      if (s.z <= C.BR) return -1;
+      if (flInZone(s, so, canMore)) return k;
+    }
+    while (k < FL.KH_MAX) {
+      flStep(s, age, dh); age += dh; k++;
+      if (s.z <= C.BR) return -1;
+      if (flInZone(s, so, canMore)) return k;
+    }
+    return -1;
+  }
+  /** Cambio de dueño en el medio paso hs (igual en las dos máquinas: khAt viaja en el tc). */
+  function flHand(g, hs) {
+    var F = g.fl;
+    if (F.khAt >= 0 && hs >= F.khAt) { F.own = 1 - F.own; F.khAt = -1; F.hand++; }
+  }
+  /** Contacto (toque, saque, bloqueo, red/cinta, cuerpo) hecho aquí por el dueño: cadena, edad, kh/khAt y el tc para la sesión. */
+  function flContact(g, kind) {
+    var F = g.fl;
+    F.par = F.seq; F.seq++;
+    if (kind !== 'net' && kind !== 'tape') F.bAge = 0;
+    F.cT = F.T; F.cH = F.hs - 2 * F.T; F.cFull = kind === 'serve';
+    if (F.lf < 0) { F.lf = F.hs; F.lfPar = F.par; }
+    if (F.loc[0] && F.loc[1]) { F.kh = -1; F.khAt = -1; F.dirty = ''; return; } // en solitario no hay traspasos
+    F.kh = flKh(g);
+    F.khAt = F.kh < 0 ? -1 : F.hs + 1 + F.kh;
+    F.dirty = kind;
+    F.tc = flBundle(g);
+  }
+  /** Falta de red de un jugador mío con el balón del rival: petición al dueño (una por jugador y rally). */
+  function flFq(g, p) {
+    var F = g.fl;
+    if (F.fqK.indexOf(p.id) >= 0) return;
+    F.fqK.push(p.id);
+    F.fq.push({ r: F.r, reason: 'net', pid: p.id, T: F.T });
+  }
+  /** Metadatos del peloteo en datos planos (jugadores por id; tiempos como edades respecto a g.time). */
+  function flMeta(g) {
+    var a = g.atkServe, rc = g._rc, ll = g.lastLand, ls = g.lastShot, ah = g.antennaHit, lp = g.lastPlayer;
+    return {
+      touchTeam: g.touchTeam, touches: g.touches, lp: flId(lp), lpGrade: lp ? lp.grade : '', lastTeam: g.lastTeam,
+      lastKind: g.lastKind, lastShot: ls && typeof ls === 'object' ? JSON.parse(JSON.stringify(ls)) : ls, lastQ: g.lastQ,
+      ltAge: g.time - g.lastTouchT, prevKind: g.prevKind, netSince: g.netSince, bb: flId(g.blockBy), blockCD: g.blockCD,
+      atkServe: a ? { team: a.team, reason: a.reason, text: a.text, pid: flId(a.player) } : null,
+      antennaHit: ah ? { x: ah.x, y: ah.y, z: ah.z } : null, digOk: g.digOk, digMargin: g.digMargin, dw: flId(g._digWho),
+      hardIn: g.hardIn, digTight: g.digTight, recvRisk: g.recvRisk,
+      rc: rc ? { pace: rc.pace, wob: rc.wob, run: rc.run, move: rc.move, line: rc.line, ft: rc.ft, who: flId(rc.who) } : null,
+      blockOff: [g.blockOff[0], g.blockOff[1]], atkTeam: g.atkTeam, atkHow: g.atkHow, atkHits: g.atkHits, atkHuman: g.atkHuman,
+      atkGrade: g.atkGrade, as: flId(g.atkSet), atkMove: g.atkMove, atkEdge: g.atkEdge, feintAge: g.time - g.feintT,
+      lastTempo: g.lastTempo, chain: g.chain, chainH: g.chainH, rally: { t: g.rally.t, hits: g.rally.hits, digs: g.rally.digs },
+      lastLand: ll ? { x: ll.x, y: ll.y, inside: ll.inside, age: g.time - ll.t } : null
+    };
+  }
+  /** Escribe los metadatos (tNow = g.time de referencia de las edades). La nota del último toque solo en un jugador remoto. */
+  function flSetMeta(g, mm, tNow) {
+    if (!mm) return;
+    var a = mm.atkServe, rc = mm.rc, ll = mm.lastLand, ah = mm.antennaHit, lp = flBy(g, mm.lp);
+    g.touchTeam = mm.touchTeam; g.touches = mm.touches; g.lastPlayer = lp; g.lastTeam = mm.lastTeam; g.lastKind = mm.lastKind;
+    g.lastShot = mm.lastShot && typeof mm.lastShot === 'object' ? JSON.parse(JSON.stringify(mm.lastShot)) : mm.lastShot;
+    g.lastQ = mm.lastQ; g.lastTouchT = tNow - mm.ltAge; g.prevKind = mm.prevKind; g.netSince = mm.netSince;
+    g.blockBy = flBy(g, mm.bb); g.blockCD = mm.blockCD;
+    if (a) {
+      g.atkServe = { team: a.team, player: flBy(g, a.pid) };
+      if (a.reason !== undefined) g.atkServe.reason = a.reason;
+      if (a.text !== undefined) g.atkServe.text = a.text;
+    } else g.atkServe = null;
+    g.antennaHit = ah ? { x: ah.x, y: ah.y, z: ah.z } : null;
+    g.digOk = mm.digOk; g.digMargin = mm.digMargin; g._digWho = flBy(g, mm.dw); g.hardIn = mm.hardIn; g.digTight = mm.digTight;
+    g.recvRisk = mm.recvRisk;
+    if (rc) {
+      var o = g._rc || (g._rc = {});
+      o.pace = rc.pace; o.wob = rc.wob; o.run = rc.run; o.move = rc.move; o.line = rc.line; o.ft = rc.ft; o.who = flBy(g, rc.who);
+    }
+    g.blockOff[0] = mm.blockOff[0]; g.blockOff[1] = mm.blockOff[1];
+    g.atkTeam = mm.atkTeam; g.atkHow = mm.atkHow; g.atkHits = mm.atkHits; g.atkHuman = mm.atkHuman; g.atkGrade = mm.atkGrade;
+    g.atkSet = flBy(g, mm.as); g.atkMove = mm.atkMove; g.atkEdge = mm.atkEdge; g.feintT = tNow - mm.feintAge;
+    g.lastTempo = mm.lastTempo; g.chain = mm.chain; g.chainH = mm.chainH;
+    g.rally.t = mm.rally.t; g.rally.hits = mm.rally.hits; g.rally.digs = mm.rally.digs;
+    g.lastLand = ll ? { x: ll.x, y: ll.y, inside: ll.inside, t: tNow - ll.age } : null;
+    if (lp && !g.fl.loc[lp.team] && mm.lpGrade !== undefined) lp.grade = mm.lpGrade;
+  }
+  function flBundle(g) {
+    var F = g.fl, b = g.ball;
+    var o = { r: F.r, s: F.seq, par: F.par, T: F.cT, h: F.cH, kind: F.dirty || '', kh: F.kh, khAt: F.khAt, own: F.own, full: F.cFull ? 1 : 0,
+      b: [b.x, b.y, b.z, b.vx, b.vy, b.vz, b.spin, b.speed, b.dip, b.wobA, b.wobF, b.wobP], hd: flId(b.held), bAge: F.bAge,
+      mode: g.mode, m: flMeta(g) };
+    if (g.mode === 'serve') o.sv = { serveState: g.serveState, serveJump: g.serveJump, serveT: g.serveT, tossT: g.tossT, jumpAt: g.jumpAt,
+      serveAuth: g.serveAuth, serveNo: g.serveNo, whistleAt: g.whistleAt };
+    return o;
+  }
+  var FL_KIN = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'onGround', 'pressEnd'], _flSave = [];
+  function flCatchUp(g, fromHs, nowT, rewind, full, cT) {
+    var F = g.fl, dh = F.dh, dt = 2 * dh, me = F.me, P = g.players, i, k, j, t;
+    if (nowT === undefined || nowT === null) nowT = F.T;
+    var end = 2 * nowT + 1, n = end - fromHs + 1, late = n > FL.CATCH_MAX, tPrev = cT === undefined || cT === null ? fromHs >> 1 : cT;
+    if (n <= 0) return 0;
+    var t0 = g.time, T0 = F.T, hs0 = F.hs, ran = 0, rw = rewind && !late;
+    if (rw) for (i = 0, k = 0; i < P.length; i++) if (F.loc[P[i].team]) {
+      var sv = _flSave[k] || (_flSave[k] = []); for (j = 0; j < FL_KIN.length; j++) sv[j] = P[i][FL_KIN[j]]; k++;
+    }
+    F.catch = true;
+    try {
+      for (j = fromHs; j <= end && g.mode === 'rally'; j++) {
+        t = j >> 1;
+        if (t > tPrev) { g.blockCD -= dt * (t - tPrev); g.rally.t += dt * (t - tPrev); tPrev = t; }
+        g.time = t * dt; F.T = t;
+        if (rw) rewind(j, g);
+        var h2 = full && j === fromHs, d = h2 ? dt : dh;
+        if (h2) j++; else flHand(g, j);
+        F.hs = j;
+        if (!late && F.own === me) stepBall(g, d); else flGhost(g, d);
+        ran++;
+      }
+    } finally {
+      F.catch = false; g.time = t0; F.T = T0; F.hs = hs0;
+      if (rw) for (i = 0, k = 0; i < P.length; i++) if (F.loc[P[i].team]) {
+        var sr = _flSave[k]; for (j = 0; j < FL_KIN.length; j++) P[i][FL_KIN[j]] = sr[j]; k++;
+      }
+    }
+    if (nowT > tPrev && g.mode === 'rally') { g.blockCD -= dt * (nowT - tPrev); g.rally.t += dt * (nowT - tPrev); }
+    if (late) { F.late++; return -ran; }
+    return ran;
+  }
+  function flApplyTc(g, m, nowT, rewind) {
+    var F = g.fl, fork = false;
+    if (!F || !m || !m.m || !m.b) return 'bad';
+    if (m.r < F.r) return 'old';
+    if (m.r > F.r) return 'future';
+    if (m.par < F.seq) {
+      if (F.lf < 0 || m.par < F.lfPar) return 'dup';
+      var hm = 2 * m.T + m.h;                                   // bifurcación: gana el contacto anterior (empate: el del anfitrión)
+      if (hm > F.lf || (hm === F.lf && F.me === 0)) return 'lose';
+      fork = true;
+    }
+    if (g.mode === 'over') return 'over';
+    if (g.mode === 'point') flServe(g, true);                   // el tc del saque llegó antes que mi setupServe
+    if (g.mode === 'serve' && m.mode === 'rally') endRitual(g);
+    if (m.mode === 'rally' || m.mode === 'serve') g.mode = m.mode;
+    var b = g.ball, B = m.b, i, dt = 2 * F.dh;
+    for (i = 0; i < FL_BK.length; i++) b[FL_BK[i]] = B[i];
+    b.held = m.hd >= 0 ? flBy(g, m.hd) : null;
+    flSetMeta(g, m.m, m.T * dt);
+    if (m.sv) {
+      var s = m.sv;
+      g.serveState = s.serveState; g.serveJump = s.serveJump; g.serveT = s.serveT; g.tossT = s.tossT; g.jumpAt = s.jumpAt;
+      g.serveAuth = s.serveAuth; g.serveNo = s.serveNo; g.whistleAt = s.whistleAt;
+    }
+    F.bAge = m.bAge; F.seq = m.s; F.par = m.par; F.own = m.own; F.khAt = m.khAt; F.kh = m.kh; F.frozen = false; F.lf = -1;
+    if (fork) F.forks++;
+    flCatchUp(g, 2 * m.T + m.h + 1, nowT, rewind, !!m.full, m.T);
+    return fork ? 'fork' : 'ok';
+  }
+  function flApplyPt(g, m) {
+    var F = g.fl;
+    if (!F || !m || m.r !== F.r) return null;
+    flSetMeta(g, m.m, g.time);
+    if (g.mode !== 'rally' && g.mode !== 'serve') g.mode = 'rally';
+    F.app = true;
+    var gb = F.frozen && F.gv && g.mode === 'rally';   // el fantasma ya cayó: bota y rueda desde el suelo con la velocidad del bote
+    try { point(g, m.w, m.reason, m.text, flBy(g, m.pid), m.sig || undefined); } finally { F.app = false; }
+    if (gb && g.ball.held == null && g.ball.z <= C.BR) { g.ball.vx = F.gv[0]; g.ball.vy = F.gv[1]; g.ball.vz = F.gv[2]; F.frozen = false; }
+    if (!m.d) return true;
+    var d = flDigest(g);
+    for (var i = 0; i < d.length; i++) if (d[i] !== m.d[i]) return false;
+    return true;
+  }
+  function flServe(g, force) {
+    var F = g.fl;
+    if (!F || g.mode !== 'point' || F.srvR === F.r || (g.timer > 0 && !force)) return false;
+    if (g.pendingSet) nextSet(g);
+    setupServe(g);
+    return true;
+  }
+  function flSkip(g, t) { if (!g.skipReq[t]) { g.skipReq[t] = true; emit(g, { type: 'skipReq', team: t }); } }
+  var FL_POSE = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'jvx', 'jvy', 'anim', 'lastAction', 'actionT', 'shot', 'grade', 'onGround', 'down', 'pressEnd', 'cool'];
+  function flPose(g, team, poses) {
+    if (!g.fl || g.fl.loc[team]) throw new Error('flPose: el equipo ' + team + ' se simula aquí');
+    var T = g.teams[team], h = g.hum[team], i, k, q, pz;
+    for (i = 0; i < T.length && i < poses.length; i++) {
+      q = T[i]; pz = poses[i]; if (!pz) continue;
+      for (k = 0; k < FL_POSE.length; k++) if (pz[FL_POSE[k]] !== undefined) q[FL_POSE[k]] = pz[FL_POSE[k]];
+      if (h.p === q) {
+        if (pz.swingLive !== undefined) hset(g, team, 'swingLive', !!pz.swingLive);
+        if (pz.swingShot !== undefined) hset(g, team, 'swingShot', pz.swingShot);
+      }
+    }
+  }
+  function flDigest(g) {
+    return [g.fl ? g.fl.r : 0, g.score[0], g.score[1], g.sets[0], g.sets[1], g.setNo, g.serving, g.serverIdx[0], g.serverIdx[1], g.pendingSet ? 1 : 0];
+  }
+  function flMatch(g, blk) {
+    var F = g.fl, i;
+    if (!blk) {
+      var ss = []; for (i = 0; i < g.setScores.length; i++) ss.push(g.setScores[i].slice());
+      return { score: g.score.slice(), sets: g.sets.slice(), setNo: g.setNo, setScores: ss, serving: g.serving, serverIdx: g.serverIdx.slice(),
+        server: flId(g.server), pendingSet: g.pendingSet, finished: g.finished, setPoint: g.setPoint, matchPoint: g.matchPoint,
+        streakTeam: g.streakTeam, streakN: g.streakN, courtSwap3: g.courtSwap3, courtSwapAt: g.courtSwapAt, r: F ? F.r : 0 };
+    }
+    g.score[0] = blk.score[0]; g.score[1] = blk.score[1]; g.sets[0] = blk.sets[0]; g.sets[1] = blk.sets[1]; g.setNo = blk.setNo;
+    g.setScores.length = 0; for (i = 0; i < blk.setScores.length; i++) g.setScores.push(blk.setScores[i].slice());
+    g.serving = blk.serving; g.serverIdx[0] = blk.serverIdx[0]; g.serverIdx[1] = blk.serverIdx[1];
+    if (blk.server >= 0) g.server = flBy(g, blk.server) || g.server;
+    g.pendingSet = !!blk.pendingSet; g.finished = !!blk.finished; g.setPoint = blk.setPoint; g.matchPoint = blk.matchPoint;
+    g.streakTeam = blk.streakTeam; g.streakN = blk.streakN; g.courtSwap3 = !!blk.courtSwap3; g.courtSwapAt = blk.courtSwapAt;
+    if (F && typeof blk.r === 'number') F.r = blk.r;
+    return blk;
+  }
+  function flTake(g) {
+    var F = g.fl;
+    if (!F) return;
+    F.loc[0] = F.loc[1] = true; F.own = F.me; F.khAt = -1; F.catch = false;
+    if (!g.hum[1 - F.me].ai) slotAI(g, 1 - F.me, true);
+    if (g.mode === 'rally' && F.frozen) { F.frozen = false; setupServe(g); } // flReplay: el fantasma ya cayó sin punto: se vuelve a sacar
+  }
+  /** step() del online Fluida con el rival remoto: copia recortada de stepOnline solo para el equipo local. inputs = [in0, in1] con la
+   *  entrada local en su hueco (el otro, NOIN). Los jugadores rivales nunca pasan por stepPlayer/AI.update/humanStep: los pone flPose. */
+  function stepFluid(g, dt, inputs) {
+    var AI = VB.AI, H = g.hum, F = g.fl, me = F.me, rm = 1 - me, P = g.players, s, i, p, inp;
+    g.time = F.T * dt; g.blockCD -= dt; F.dh = dt / 2; F.hs = 2 * F.T - 1;
+    inp = (inputs && inputs[me]) || NOIN; _inS[me] = inp; _inS[rm] = H[rm].ai ? NOIN_AI : NOIN;
+    act(g, me);
+    g.hitBuf -= dt; g.swingLock -= dt; g.jsetQ -= dt;
+    var mv = inp.move || NOIN.move, ml = dirLen(mv), mx = mv[0], my = mv[1];
+    if (ml > 1) { mx /= ml; my /= ml; ml = 1; }
+    _mxS[me] = mx; _myS[me] = my; _mlS[me] = ml; _aimOk[me] = ml > 0.2;
+    if (_aimOk[me]) { _aimS[me][0] = mx / ml; _aimS[me][1] = my / ml; }
+    g.aimOn = _aimOk[me]; if (_aimOk[me]) { g.aimIn[0] = _aimS[me][0]; g.aimIn[1] = _aimS[me][1]; }
+    if (g.mastery) g.aimLen = ml;
+    _mxS[rm] = 0; _myS[rm] = 0; _mlS[rm] = 0; _aimOk[rm] = false;
+    act(g, 0);
+    netBits(g, _inS);
+    if (g.review) {
+      g.review.t += dt;
+      for (i = 0; i < P.length; i++) if (mine(g, P[i])) stepPlayer(g, P[i], dt, 0, 0);
+      if (g.mode === 'point' || g.mode === 'over') stepBall(g, dt);
+      if (g.review.t >= g.review.dur) endReview(g);
+      fin(g); return;
+    }
+    if (g.mode === 'point' || g.mode === 'over') {
+      if (skipBoth(g)) skipHold(g);
+      for (i = 0; i < P.length; i++) if (mine(g, P[i])) stepPlayer(g, P[i], dt, 0, 0);
+      stepBall(g, dt);
+      g.timer -= dt;
+      if (g.timer <= 0) {
+        if (g.mode === 'over') {
+          if (!(g.call && g.call.waived) && (canChallenge(g, 0) > 0 || canChallenge(g, 1) > 0 || g.cpuChal)) g.timer = 0;
+          else if (!g.finished) { g.finished = true; emit(g, { type: 'gameOver', team: g.sets[0] > g.sets[1] ? 0 : 1, sets: [g.sets[0], g.sets[1]], setScores: g.setScores.slice() }); }
+        } else if (F.loc[flNextServer(g)] || F.peer) {   // saco yo, o el rival ya preparó su saque (su sr: la sesión pone g.fl.peer)
+          if (g.pendingSet) nextSet(g);
+          setupServe(g);
+        } else { g.timer = 0; F.wait += dt; }     // saca el rival: esperamos su sr (o, a los 2 s, la sesión llama a flServe)
+      }
+      fin(g); return;
+    }
+    if (g.mode === 'serve') {
+      var ts = g.server.team;
+      if (F.loc[ts]) {
+        act(g, ts);
+        stepServe(g, dt, _inS[ts], _mxS[ts], _myS[ts], _aimOk[ts] ? _aimS[ts] : null, !H[ts].ai); if (g.mode !== 'serve') endRitual(g);
+      } else {
+        // saca el rival: sin stepServe, sin relojes ni faltas. Los míos como en el final de stepServe (en 2v2 nadie más se mueve)
+        g.serveT += dt;
+        for (i = 0; i < P.length; i++) if (mine(g, P[i])) stepPlayer(g, P[i], dt, 0, 0);
+        stepBall(g, dt);                          // en la mano: holdPos con la pose del sacador remoto; lanzado: vuelo puro
+      }
+      refreshPred(g);
+      fin(g); return;
+    }
+    // ---- Peloteo ----
+    g.rally.t += dt;
+    act(g, me); g.jobs[me] = AI.computeJob(g, me);   // (el job rival se queda como estaba)
+    if (H[me].ai) g.defRole = '';
+    else if (g.mode === 'rally') {
+      updateDefense(g);
+      humanStep(g, dt, _inS[me], _mxS[me], _myS[me], _aimOk[me] ? _aimS[me] : null, _mlS[me]);
+    }
+    for (i = 0; i < P.length; i++) {
+      p = P[i]; if (g.mode !== 'rally' || !mine(g, p) || humSlot(g, p) >= 0) continue;
+      act(g, p.team); AI.update(g, p, dt);
+    }
+    for (s = 0; s < 2 && g.mode === 'rally'; s++) {
+      F.hs = 2 * F.T + s; flHand(g, F.hs);         // traspaso en khAt (las dos máquinas)
+      if (F.own === me) stepBall(g, dt / 2); else flGhost(g, dt / 2);
+    }
+    refreshPred(g);
+    fin(g);
+  }
+  /* ==== fin FLUIDA ==== */
   /** Bloque del humano del peloteo (el del step de siempre en modo 'one', sin 6v6 ni Entrenamiento) para el hueco activo. */
   function humanStep(g, dt, input, mx, my, aim, ml) {
     var hp = g.ctrl, b = g.ball;
@@ -4112,6 +4546,10 @@
     copyGame: copyGame, stateHash: stateHash,
     // ONLINE (fase 0, notes/net.md): huecos humanos, bits de partido y foto serializable del estado
     ONLINE: ONLINE, useSlot: act, slotGet: hget, humOn: humOn, humSlot: humSlot, jsetHum: jsetHum, jsetHumSw: _jh, setSlotAI: slotAI,
+    // ONLINE V2 «Fluida» (bloque FLUIDA, notes/online-v2-spec.md §2): todo detrás de g.fl (flInit) // fl-api
+    flInit: flInit, flTake: flTake, flFly: flFly, flOwnerCheck: flOwnerCheck, flBundle: flBundle, flApplyTc: flApplyTc, // fl-api
+    flApplyPt: flApplyPt, flServe: flServe, flSkip: flSkip, flPose: flPose, flDigest: flDigest, flMatch: flMatch, flCatchUp: flCatchUp, // fl-api
+    FL: FL, mine: mine, _flKh: flKh, _flGhost: flGhost, _flHand: flHand, _flContact: flContact, _stepFluid: stepFluid, _stepBall: stepBall, // fl-api
     serialize: serialize, deserialize: deserialize, SER_V: SER_V
   };
 })();

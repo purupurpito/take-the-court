@@ -3,6 +3,8 @@
  * Informe de red de los partidos online (js/netlog.js) y reglas de netlogs/{id} (firebase/firestore.rules).
  *  1) Siempre: NetLog con una sesión y un enlace simulados: ventanas de 10 s, sucesos, que NO escribe nada durante el partido y
  *     escribe UNA vez al acabar, sin direcciones IP aunque getStats las tenga.
+ *     Online V2: una sesión Fluida simulada (model 'fluida', sin stats.depth ni s.adv, con flStats): modelo, foto de flStats en
+ *     cada ventana y en el total, rb/adv a null y el suceso 'marcador_distinto'. Y que el informe Precisa dice modelo 'precisa'.
  *  2) Con el emulador de Firestore (como tools/roomtest.js): las reglas. Se prueba una COPIA con el hash de un correo de prueba en
  *     vez del de Ferran (el correo de verdad no está en el repo).
  * Uso: node tools/netlogtest.js [--no-emu] [--port 8093]
@@ -68,6 +70,7 @@ async function unit() {
   check('PATCH a netlogs/uidA_<id>', wr && wr.o.method === 'PATCH' && /\/netlogs\/uidA_[0-9a-z]+$/.test(wr.url), wr && wr.url);
   check('campos uid, ver, t, j', body && Object.keys(body.fields).sort().join() === 'j,t,uid,ver', body && Object.keys(body.fields));
   const rep = body && JSON.parse(body.fields.j.stringValue);
+  check('el informe Precisa dice modelo precisa y no trae fl', rep && rep.modelo === 'precisa' && rep.fl === undefined && rep.wins.every(w => w.fl === undefined), rep && rep.modelo);
   check('el informe trae resultado y fin', rep && rep.res && rep.res.gana === true && rep.ev.some(e => e.k === 'fin'), rep && rep.res);
   check('sin IP en lo que se manda', !/\d+\.\d+\.\d+\.\d+/.test(wr.o.body));
   NL.end(net, 'otra vez');
@@ -77,6 +80,52 @@ async function unit() {
   const n2 = { sess: Object.assign({}, sess, { stats: Object.assign({}, sess.stats) }), link: {}, slot: 1, epoch: 0, name: 'X' };
   NL.frame(n2, r()); NL.end(n2, 'x'); await sleep(10);
   check('sin enlace WebRTC (pruebas por BroadcastChannel) no escribe', writes.length === 1, writes.length);
+  await fluida(NL, writes, () => T, v => { T = v; }, link);
+}
+
+/* ---------- 1b) sesión Fluida simulada (Online V2) ---------- */
+async function fluida(NL, writes, getT, setT, link) {
+  console.log('\nNetLog con una sesión Fluida simulada');
+  let T = getT();
+  const fl = { snapOut: 0, snapIn: 0, kbOut: 0, kbIn: 0, interpMs: 0, extrapTicks: 0, stale: 0, hand: 0, forks: 0, late: 0, lateMaxMs: 0, warpMax: 0, snaps: 0, drift: 0, fqSent: 0, fqOk: 0, ptBad: 0, sbFix: 0, digestBad: 0, khCheckBad: 0 };
+  const sess = { model: 'fluida', rttSeq: 0, rttLast: 0, stats: { frames: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0, rsIn: 0, depth: undefined, maxDepth: undefined },
+    flStats: fl, status: 'starting', delay: 0, adv: 0, cmpBad: -1, rivalName: 'Bea', opts: { venue: 'hall', points: 25, net: 'fluida' } };
+  delete sess.adv;   // (Fluida: sin ventaja de frames)
+  const net = { sess, link, slot: 1, epoch: 0, name: 'Ana', rival: 'Bea' };
+  const r = (o) => Object.assign({ status: sess.status, unstable: false, solo: false, gone: false, result: null }, o || {});
+  NL.frame(net, r());
+  sess.status = 'playing';
+  for (let f = 0; f < 25 * 60; f++) {
+    T += 1000 / 60; setT(T);
+    if (f % 60 === 0) { sess.rttSeq++; sess.rttLast = 90; }
+    if (f % 2 === 0) { fl.snapOut++; fl.snapIn++; fl.kbOut += 0.1; fl.kbIn += 0.1; fl.snaps++; }
+    fl.interpMs = 100 + (f % 10); fl.extrapTicks = f % 5;
+    if (f === 300) { fl.forks++; fl.late++; fl.lateMaxMs = 180.27; fl.warpMax = 3; }
+    if (f === 800) fl.ptBad = 1;
+    if (f === 801) fl.ptBad = 1;   // (no vuelve a avisar si no sube)
+    if (f === 1000) fl.digestBad = 1;
+    sess.stats.sent++; sess.stats.recv++; sess.stats.steps++;
+    NL.frame(net, r());
+  }
+  const cur = NL._report();
+  check('Fluida: modelo fluida', cur && cur.modelo === 'fluida', cur && cur.modelo);
+  check('Fluida: 2 ventanas cerradas', cur && cur.wins.length === 2, cur && cur.wins.length);
+  const w0 = cur.wins[0], w1 = cur.wins[1];
+  check('Fluida: sin rollback ni ventaja (rb/adv null)', w0.rb === null && w0.adv === null && w1.rb === null && w1.adv === null, [w0.rb, w0.adv]);
+  check('Fluida: total maxDepth null', cur.total.maxDepth === null, cur.total.maxDepth);
+  check('Fluida: foto de flStats en cada ventana', w0.fl && w1.fl && Math.abs(w0.fl.snapOut - 300) <= 2 && Math.abs(w1.fl.snapOut - 600) <= 2 && w0.fl.forks === 1 && w0.fl.lateMaxMs === 180.3, w0.fl);
+  check('Fluida: la foto solo trae los campos listados', w0.fl && !('stale' in w0.fl) && !('khCheckBad' in w0.fl) && 'digestBad' in w0.fl, w0.fl && Object.keys(w0.fl));
+  const md = cur.ev.filter(e => e.k === 'marcador_distinto');
+  check('Fluida: marcador_distinto dos veces (ptBad y digestBad)', md.length === 2 && md[0].pt === 1 && md[0].resumen === 0 && md[1].resumen === 1, md);
+  check('Fluida: no hay huella_distinta', !cur.ev.some(e => e.k === 'huella_distinta'));
+  sess.status = 'over';
+  NL.frame(net, r({ status: 'over', result: { win: false, why: 'over' } }));
+  NL.end(net, 'cierra');
+  await sleep(20);
+  check('Fluida: al acabar se escribe una vez', writes.length === 2, writes.length);
+  const rep = writes[1] && JSON.parse(JSON.parse(writes[1].o.body).fields.j.stringValue);
+  check('Fluida: el informe guardado trae modelo, fl final y rol', rep && rep.modelo === 'fluida' && rep.fl && rep.fl.digestBad === 1 && rep.fl.ptBad === 1 && rep.rol === 'invitado', rep && rep.fl);
+  check('Fluida: sin IP en lo que se manda', writes[1] && !/\d+\.\d+\.\d+\.\d+/.test(writes[1].o.body));
 }
 
 /* ---------- 2) reglas en el emulador ---------- */

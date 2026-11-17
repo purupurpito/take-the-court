@@ -128,7 +128,7 @@ check('pasa por saque, peloteo, punto, revisión, IA, tiempo muerto y final', st
 // todos los campos de FIELDS existen de verdad en g (lista sin restos)
 {
   const g = S.createGame({ online: true, seed: 1, venue: 'hall', humans: [{}, {}] });
-  const extra = Object.keys(NV.FIELDS).filter(k => !(k in g) && ['blockBy', 'atkServe', '_digWho', 'antennaHit', '_rc', '_lv', 'lastLand', 'netSince', 'review', 'tmo'].indexOf(k) < 0);
+  const extra = Object.keys(NV.FIELDS).filter(k => !(k in g) && ['blockBy', 'atkServe', '_digWho', 'antennaHit', '_rc', '_lv', 'lastLand', 'netSince', 'review', 'tmo', 'fl'].indexOf(k) < 0);   // (fl: Online V2 Fluida, solo con Sim.flInit)
   check('FIELDS sin campos que no existen', extra.length === 0, extra);
 }
 

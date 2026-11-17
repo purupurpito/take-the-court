@@ -1132,3 +1132,10 @@ guía con ejemplos y recetas de capturas en **notes/splat.md**. Clases `.sp-btn`
 `.sp-seg` `.sp-select` `.sp-slider` `.sp-toggle` `.sp-chip` `.sp-panel` `.sp-h` `.sp-k` `.sp-back` `.sp-hints` `.sp-page` (con `data-sp-full`
 y `data-sp-row`). Cada pantalla, su propio bloque «SPLAT · <PANTALLA>» al final del `<style>`. La portada sale con el sistema por defecto
 (`?menu=old` = la de antes); Jugar y Partido rápido también.
+
+**Online V2 «Fluida» (net, 17-nov-2026; notes/net.md «Online V2» y notes/online-v2-spec.md).** Fichero nuevo de `net`: `js/netfluid.js`
+→ `VB.NetFluid.{Session, PROTO 'F1', codec, C}`, cargado justo después de `js/net.js`; misma fachada que `VB.Net.Session` (main.js elige
+con `net.model`, que llega de la sala por `startOnline({model})`). En sim.js, bloque FLUIDA: `stepFluid` y `VB.Sim.flInit, flTake,
+flFly, flOwnerCheck, flBundle, flApplyTc, flApplyPt, flServe, flSkip, flPose, flDigest, flMatch, flCatchUp` (estado solo en `g.fl`,
+creado por `flInit`; toda línea nueva dentro de funciones viejas va tras `if (g.fl`; `tools/fluidsimtest.js` lo comprueba con SIM_BASE).
+netview.js: `fl: 'as'`. Salas: campo opcional `net` ('fluida') y versión `PROTO|VERSION|L2`.

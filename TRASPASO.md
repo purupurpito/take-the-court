@@ -208,6 +208,8 @@ Detalle por owner en `notes/<owner>.md` («Pulido ola 3» y el log «Aplicado �
   de > 33 ms en 20 s).
 
 ## Backlog por sprints (pedido por Ferran)
+- **Online V2 Fluida (17-nov-2026, hecho como beta):** afinar con ping real (retardo del rival D, aceleración del balón, zona de la red),
+  repeticiones y ojo de halcón en Fluida, récord aparte si Ferran lo quiere, y elegir el modelo por defecto según los informes de red.
 
 Desde el 9-nov-2026 el proyecto va por **sprints**, para controlar el gasto de tokens. Ferran abre un sprint
 («ponte a hacer los to-do») y se trabaja el backlog hasta donde se llegue. Dentro del sprint se pueden encadenar flujos largos.
