@@ -21,16 +21,25 @@
  *   rivales mejores, invitaciones a mitad y fin de temporada), entrenos Jugar/Rápido/Descansar y nota en directo.
  * 1.8.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
  * 1.8.2 (17-nov-2026): la cámara del 6v6 deja de seguir los balones muy rápidos (> 15 m/s), a petición de Ferran.
+ * 1.9.0 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.8.2';
+  VB.VERSION = '1.9.0';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.9.0', d: '2026-11-17', t: 'Menús nuevos',
+      items: [
+        'Menús rediseñados de arriba abajo: pintura, pegatinas y parches cosidos de vóley.',
+        'Los botones se tiñen con los colores de tu equipación (o de tu club en la Carrera).',
+        'Mejor en el móvil: todo cabe, se desplaza por dentro y se puede pulsar bien.'
+      ]
+    },
     {
       v: '1.8.2', d: '2026-11-17', t: 'Balones a toda velocidad',
       items: [
@@ -265,7 +274,9 @@
     'COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR ' +
     'OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.';
 
-  var OFL = 'Barlow y Barlow Condensed: Copyright 2017 The Barlow Project Authors (github.com/jpt/barlow).\n\n' +
+  var OFL = 'Barlow y Barlow Condensed: Copyright 2017 The Barlow Project Authors (github.com/jpt/barlow).\n' +
+    'Titan One: Copyright 2011 Rodrigo Fuenzalida. Bowlby One: Copyright 2011 Vernon Adams. ' +
+    'Rubik: Copyright 2015 The Rubik Project Authors.\n\n' +
     'Se distribuyen con la SIL Open Font License, versión 1.1. Se pueden usar, estudiar, modificar y redistribuir ' +
     'libremente, también dentro de otro software, siempre que no se vendan solas y que las versiones modificadas no usen ' +
     'el nombre reservado de la fuente.\n\n' +
@@ -279,7 +290,8 @@
       'Sonido y gráficos generados por código, sin grabaciones',
       'Guardado en la nube con Firebase'
     ],
-    fonts: 'Barlow y Barlow Condensed, de The Barlow Project Authors (SIL Open Font License 1.1). ' +
+    fonts: 'Titan One (Rodrigo Fuenzalida), Bowlby One (Vernon Adams), Rubik (The Rubik Project Authors) y Barlow (The Barlow ' +
+      'Project Authors), todas con la SIL Open Font License 1.1. ' +
       'El logotipo usa sus letras pasadas a trazos.',
     licenses: {
       three: MIT_THREE,   // año comprobado en la cabecera de three.min.js 0.149.0 (cdnjs): «Copyright 2010-2023 Three.js Authors»
