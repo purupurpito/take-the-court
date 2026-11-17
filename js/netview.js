@@ -20,7 +20,8 @@
 
   // Clases: 'as' = tal cual · 'team' = índice de equipo (0 ↔ 1, -1 igual) · 'swap' = pareja por equipo [a, b] → [b, a] ·
   // 'swapneg' = pareja intercambiada y negada · 'pairs' = lista de parejas, cada una intercambiada · 'pos' = objeto con x, y (y vx, vy)
-  // a negar · 'vec' = [x, y] a negar · 'ref' = referencia a un jugador (copyGame la empareja por id) · 'special' = lo hace flip a mano
+  // a negar · 'vec' = [x, y] a negar · 'ref' = referencia a un jugador (copyGame la empareja por id) · 'refs' = lista de jugadores
+  // (solo eventos) · 'special' = lo hace flip a mano
   var FIELDS = {
     opts: 'as', format: 'as', size: 'as', rot: 'as', lineup: 'as', libero: 'as', liberoFor: 'as', roster: 'as', setPlan: 'as',
     demo: 'as', autopilot: 'as', ctrlMode: 'as', ctrlRole: 'as', ctrlBase: 'as', posRule6: 'as', hAct: 'as', ask6: 'as',
@@ -58,6 +59,7 @@
     x: 'neg', y: 'neg', z: 'as', vx: 'neg', vy: 'neg', aim: 'vec', target: 'vec', dir: 'vec', antenna: 'vec3',
     score: 'swap', sets: 'swap', left: 'swap', challenges: 'swap', setScores: 'pairs',
     player: 'ref', assist: 'ref', server: 'ref', text: 'text', text1: 'text',
+    faultTeam: 'team', faultPlayer: 'ref', players: 'refs',   // (point: quién comete la falta; players = los solapados de la falta de posición)
     calledIn: 'as', chain: 'as', clutch: 'as', demo: 'as', difficulty: 'as', dig: 'as', digs: 'as', dist: 'as', dive: 'as', edge: 'as',
     every: 'as', feint: 'as', grade: 'as', highlight: 'as', hold: 'as', how: 'as', human: 'as', inside: 'as', jset: 'as', jump: 'as',
     kind: 'as', last: 'as', lastKind: 'as', lastShot: 'as', matchWon: 'as', miss: 'as', move: 'as', n: 'as', of: 'as', on: 'as',
@@ -198,6 +200,7 @@
     for (k in e) {
       v = e[k]; c = EVENT[k];
       if (c === 'ref' || (v && typeof v === 'object' && !Array.isArray(v) && v.id !== undefined && v.team !== undefined)) { o[k] = byId(view, v); continue; }
+      if (c === 'refs') { o[k] = Array.isArray(v) ? v.map(function (q) { return byId(view, q); }) : v; continue; }   // lista de jugadores
       if (!m) { o[k] = Array.isArray(v) ? v.slice() : v; continue; }
       switch (c) {
         case 'team': o[k] = tf(v); break;

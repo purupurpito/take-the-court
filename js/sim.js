@@ -883,6 +883,17 @@
     for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlLR(a, b, sd, i === 0 || i === 2)) n++; }
     return n;
   }
+  /** Compañero con el que está solapado el jugador p del equipo t (el del PRIMER par mal, en el orden de overlapOf: delante/detrás
+   *  y luego laterales), o null. Para que el 2º árbitro señale a los dos jugadores tras la seña de posición (Guidelines 2025, 7.7).
+   *  Solo lectura (como overlapOf: sin g.rng ni estado de la partida). */
+  function overlapMate(g, t, p) {
+    if (!g.rot || !p) return null;
+    var sd = side(t), sv = g.mode === 'serve' || g.lastKind === 'serve' ? g.server : null, i, a, b;
+    if (p === sv) return null;
+    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlFB(a, b, sd)) return a === p ? b : a; }
+    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlLR(a, b, sd, i === 0 || i === 2)) return a === p ? b : a; }
+    return null;
+  }
   /** Afinado del 6v6 (solo con g.rot; el 2v2 no lo lee). stuff: multiplicador de la prob. de bloqueo directo por contacto;
    *  dig: multiplicador de la prob. de defender un remate (digOk). */
   var SIX = VB.SIX = { stuff: 0.6, dig: 0.75 };
@@ -2085,13 +2096,15 @@
   function perSet(g) { return g.chalPerSet != null ? g.chalPerSet : CHAL.perSet; }
   /** [ganador, motivo, texto] del punto de un bote según lo que se cante (inside). */
   function landOutcome(g, inside, st) {
-    var netTxt = g.lastKind === 'serve' ? 'Saque a la red' : 'Balón a la red';
+    var netTxt = NET_TXT[g.lastKind === 'serve' ? 0 : 1];
     if (inside && st === g.lastTeam && g.netSince) return [1 - st, 'in', netTxt];
     if (inside) return [1 - st, 'in', st === 0 ? LAND_TXT[0] : LAND_TXT[1]];
     // da en la red y cae fuera en el propio campo: nunca cruzó, el árbitro canta "a la red", no "fuera"
     if (st === g.lastTeam && g.netSince) return [1 - g.lastTeam, 'out', netTxt];
     return [1 - g.lastTeam, 'out', outText(g)];
   }
+  /** Textos del balón a la red que no pasa (landOutcome): point reconoce el del saque para la seña 'netBall' (FIVB 19: el 1r señala el lado de la red). */
+  var NET_TXT = ['Saque a la red', 'Balón a la red'];
   /** ONLINE: los textos del punto que dependen del lado (landOutcome) vistos desde el otro equipo; el resto no cambia. */
   var LAND_TXT = ['El balón cae en tu campo', 'El balón cae en el campo rival'];
   function textMirror(t) { var i = LAND_TXT.indexOf(t); return i < 0 ? t : LAND_TXT[1 - i]; }
@@ -2121,7 +2134,7 @@
   /** Señal oficial del árbitro por motivo (reason 'out' y 'serve' se resuelven aparte, ver point()). */
   var SIGNAL = { in: 'in', out: 'out', four: 'four', double: 'double', net: 'net', under: 'under', antenna: 'antenna',
     attackServe: 'attackFault', block: 'attackFault', serve: 'serveFault', backAttack: 'attackFault', backBlock: 'attackFault',
-    position: 'attackFault' }; // falta de posición (6v6, humano): la seña del brazo alzado del lado del infractor, que arena.js ya pinta
+    position: 'attackFault' }; // falta de posición (6v6, humano que recibe): arena.js mira reason y pinta la seña 13 (círculos con el índice)
   /** Pausa del punto con g.present (partido humano): normal, punto grande (highlight >= HOLD.bigAt), set, partido;
    *  `eight` se suma por el cambio de campo a los 8 del set decisivo. */
   var HOLD = VB.HOLD = { routine: 1.9, big: 2.4, bigAt: 0.55, set: 4.0, match: 4.2, eight: 1.4, skipAfter: 0.8, skipTo: 0.3 };
@@ -2165,7 +2178,7 @@
   function clutchOf(s0, s1, tgt) { return Math.max(s0, s1) >= tgt - HL.clutchLast && Math.abs(s0 - s1) <= HL.clutchGap; }
 
   /** Asigna punto. reason: 'in'|'out'|'antenna'|'under'|'double'|'four'|'net'|'serve'|'block'|'attackServe'.
-   *  sig: señal del árbitro explícita (solo la falta de saque: 'delay8' | 'serveFault'). */
+   *  sig: señal del árbitro explícita (solo la falta de saque: 'delay8' | 'delay5' (playa) | 'serveFault'). */
   function point(g, w, reason, text, p, sig) {
     if (g.fl && !g.fl.app && !g.fl.loc[g.fl.own]) { g.fl.guard++; return; } // fl
     if (g.drill) return drillPoint(g, w, reason, text, p, sig); // E6: en el Entrenamiento el punto cierra la repetición (sin marcador)
@@ -2215,11 +2228,28 @@
     var perfectKill = how === 'kill' && g.atkHow === 'kill' && g.atkHuman && g.atkGrade === 'perfect';
     var hl = highlightOf({ how: how, rallyHits: g.rally.hits, digs: digs, perfectKill: perfectKill, setPoint: g.setPoint !== -1,
       matchPoint: g.matchPoint !== -1, clutch: clutch, saved: saved, streak: g.streakN, setWon: setWon, matchWon: matchWon });
-    // señal oficial (SIM-02). 'touched' (balón tocado y fuera): el último contacto fue del equipo que RECIBÍA el ataque o
-    // el saque rival (su bloqueo, o su primer toque: recepción/defensa, también desviada o de rebote en el cuerpo)
-    var touchedOut = reason === 'out' && (g.lastKind === 'block' || (g.lastKind === 'pass' && g.touches === 1 && g.touchTeam === g.lastTeam));
-    var signal = sig || (reason === 'out' ? (touchedOut ? 'touched' : 'out') : SIGNAL[reason] || reason);
     var ll = g.lastLand, landSide = (reason === 'in' || reason === 'out') && ll && ll.t === g.time ? (ll.x > 0 ? 0 : 1) : -1;
+    // señal oficial (SIM-02; Guidelines FIVB 2025, regla 28.11). 'touched' (balón tocado y fuera): sale FUERA en el campo del
+    // último que lo tocó, que no es el sacador: el ataque rival cruzó y lo tocó la defensa (su bloqueo o su primer toque) y se va
+    // fuera por detrás (28.11.2), o lo juega su equipo (1.º, 2.º o 3.er toque) y se le va fuera en su propio campo (28.11.3).
+    // Si el balón vuelve tras el bloqueo y cae fuera en el campo del ATACANTE, es «fuera» (28.11.1): ya no es tocado
+    var ownOut = reason === 'out' && landSide >= 0 && landSide === g.lastTeam && g.lastKind !== 'serve';
+    // remate (o balón de ataque) a la red que cae fuera en su campo sin tocar el bloqueo: «fuera» y señalar al atacante (28.11.4)
+    var netAtk = ownOut && g.netSince && (g.lastKind === 'spike' || g.lastKind === 'free');
+    var touchedOut = ownOut && !netAtk;
+    var signal = sig || (reason === 'out' ? (touchedOut ? 'touched' : 'out') : SIGNAL[reason] || reason);
+    // SAQUE a la red que no pasa (cae en el propio campo, dentro o fuera): seña FIVB 19 (D11: «served ball fails to pass»), el 1r
+    // señala el lado de la red. reason sigue siendo 'in'/'out' (lo leen las estadísticas, matchstats y rating). El resto de balones a la
+    // red: dentro en su campo = «dentro»; fuera = el remate «fuera» + atacante (netAtk) y el pase o la colocación «tocado»
+    var netBall = (reason === 'in' || reason === 'out') && g.lastKind === 'serve' && NET_TXT.indexOf(text) >= 0;
+    if (netBall && !sig) signal = 'netBall';
+    // quién comete la falta (para el árbitro): -1 = bote dentro/fuera normal, sin infractor; si no, el que pierde el punto. faultPlayer:
+    // el infractor que viaja (p) o, si no viaja (bajo la red, antena, tocado, a la red), el último que tocó si es de ese equipo.
+    // Falta de posición: players = [infractor, compañero del primer par solapado] (overlapMate). Solo lectura: sin g.rng ni estado
+    var faultTeam = (reason === 'in' || reason === 'out') && !netBall && !touchedOut && !netAtk ? -1 : 1 - w;
+    var faultPlayer = faultTeam < 0 ? null : p || (g.lastPlayer && g.lastPlayer.team === faultTeam ? g.lastPlayer : null);
+    var posPl = reason === 'position' && p ? [p, overlapMate(g, p.team, p)] : null;
+    if (posPl && !posPl[1]) posPl.length = 1;
     // pausa del punto (SIM-03): con g.present (partido humano) más larga para los momentos grandes; si no, la de siempre
     var hold;
     if (g.present) hold = matchWon ? HOLD.match : setWon ? HOLD.set : (hl >= HOLD.bigAt ? HOLD.big : HOLD.routine) + (eight ? HOLD.eight : 0) + (bswap ? BEACH.swapHold : 0);
@@ -2230,7 +2260,9 @@
       sideout: sideout, rallyTime: g.rally.t, rallyHits: g.rally.hits, setWon: setWon, matchWon: matchWon, player: p || null,
       lastKind: g.lastKind, lastShot: g.lastShot,
       highlight: hl, digs: digs, streak: g.streakN, savedSetPoint: saved, clutch: clutch,
-      signal: signal, touchedOut: touchedOut, landSide: landSide, hold: hold, assist: assist, tool: tool, move: move });
+      signal: signal, touchedOut: touchedOut, landSide: landSide, hold: hold, assist: assist, tool: tool, move: move,
+      faultTeam: faultTeam, faultPlayer: faultPlayer });
+    if (posPl) ev.players = posPl;
     if (g.online) ev.text1 = textMirror(text); // ONLINE: el mismo texto visto desde el equipo 1 (el invitado); text es el del anfitrión
     if (reason === 'antenna') ev.antenna = g.antennaHit ? [g.antennaHit.x, g.antennaHit.y, g.antennaHit.z] : null; // null = por fuera de la antena
     g.lastPoint = { team: w, reason: reason, text: text, how: how, highlight: hl, digs: digs, streak: g.streakN, savedSetPoint: saved, clutch: clutch,
@@ -2878,11 +2910,14 @@
     var sd = side(sv.team), b = g.ball, prof = profOf(g, sv), human = isHuman(g, sv);
     var posFault = false;
     if (g.rot) { // 6v6: falta de posición en el golpe de saque. La IA nunca la comete (formaciones de VB.AI6): solo se cuenta; al humano
-      // (Difícil/Experto, g.posRule6: ha podido moverse durante el saque) se le pita si él está en un par solapado (overlapOf), abajo
+      // (Difícil/Experto, g.posRule6: ha podido moverse durante el saque) se le pita si él está en un par solapado (overlapOf), abajo.
+      // Reglas FIVB 2025-2028 (7.4): el equipo que SACA puede colocarse donde quiera; solo el que RECIBE comete falta de posición (la
+      // pita el 2º árbitro, 24.3.2.2). Con el humano sacando (sv.team === 0) no se pita nunca; g.overlap y stats.overlap siguen
+      // contando los dos equipos (estadística)
       var ov0 = overlapCount(g, 0), ov1 = overlapCount(g, 1);
       g.overlap = [ov0, ov1];
       if (g.stats && g.stats.overlap) { g.stats.overlap[0] += ov0 ? 1 : 0; g.stats.overlap[1] += ov1 ? 1 : 0; }
-      posFault = ov0 > 0 && g.posRule6 && g.ctrlMode === 'one' && !g.demo && !g.autopilot && g.ctrl && g.ctrl.team === 0 && overlapOf(g, 0, g.ctrl) > 0;
+      posFault = ov0 > 0 && sv.team !== 0 && g.posRule6 && g.ctrlMode === 'one' && !g.demo && !g.autopilot && g.ctrl && g.ctrl.team === 0 && overlapOf(g, 0, g.ctrl) > 0;
     }
     b.held = null;
     te = te || 0;
@@ -3035,7 +3070,7 @@
         if (g.serveAuth) { if (input.jump || input.jset) toss(g, sv, true); else if (input.hit) toss(g, sv, false); }
         if (g.serveState === 'ready' && g.serveAuth && g.opts.serveClock !== false && !(g.drill && g.drill.kind !== 'free')) { // (E6: sin regla de los 8 s en los ejercicios)
           g.serveClock -= dt;
-          if (g.serveClock <= 0) { g.serveClock = 0; fault(g, sv.team, 'serve', g.beach ? 'Falta de saque: 5 segundos' : 'Falta de saque: 8 segundos', sv, 'delay8'); return; }
+          if (g.serveClock <= 0) { g.serveClock = 0; fault(g, sv.team, 'serve', g.beach ? 'Falta de saque: 5 segundos' : 'Falta de saque: 8 segundos', sv, g.beach ? 'delay5' : 'delay8'); return; } // playa: 5 s, cinco dedos (D9-11)
         }
       } else {
         stepPlayer(g, sv, dt, 0, 0);
