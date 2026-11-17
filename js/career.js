@@ -1231,8 +1231,10 @@
     var rt = VB.Rating && g && g.career ? VB.Rating.create({ hall: hall, pos: pos, rol: hall ? RATE6[pos] || RATE6.OH : 1, points: g.points, toWin: g.toWin,
       trial: !!g.career.trial, on: on }) : null;
     if (rt) rt.gl = {};   // objetivos de la prueba ya sumados (id → 1)
+    // co: consignas del entrenador en directo (js/consignas.js; g.career.calls = false las apaga: ajuste «Consignas»)
+    var co = rt && VB.Consignas && g.career.calls !== false ? VB.Consignas.create({ hall: hall, role: pos, seed: g.seed, trial: !!g.career.trial, on: on }) : null;
     return { g: g, p: [z(), z()], last0: -1, lastTeam: -1, server: -1, setter: -1, cand: -1, blocker: -1, prevKind: '', prevTeam: -1, rallies: 0,
-      on: on, meR: 0, setNo: 1, sets: on ? [1] : [], started: on, entered: 0, pulled: 0, pullWhy: '', subEv: false, rt: rt };
+      on: on, meR: 0, setNo: 1, sets: on ? [1] : [], started: on, entered: 0, pulled: 0, pullWhy: '', subEv: false, rt: rt, co: co, coU: null };
   }
   function slotOf(g, pl) {
     if (!pl || !g || !g.teams) return -1;
@@ -1311,6 +1313,13 @@
         if (e.type === 'sub' || e.type === 'lineup') VB.Rating.setOn(M.rt, M.on, M.rallies);
         if (e.type === 'point' && g.career.trial) trialGoalsLive(M, g.career.goals);
       }
+      // consignas del entrenador: después de la nota (el 'point' ya ha guardado su instantánea para el challenge)
+      if (M.co) {
+        M.co.on = M.on;
+        if (e.type === 'point') M.coU = VB.Consignas.snap(M.co);
+        var cr = VB.Consignas.feed(M.co, e, who, g);
+        if (cr && cr.ok && M.rt) { var cd = VB.Consignas.take(M.co); if (cd) VB.Rating.extra(M.rt, 'coach', cd, 'Consigna cumplida'); }
+      }
     }
   }
   /** Deshace el último 'point' contado (punto anulado por challenge): estadísticas, puntos y nota en directo. */
@@ -1318,6 +1327,7 @@
     var u = m.undo; m.undo = null;
     if (u) { m.p[0] = u.p[0]; m.p[1] = u.p[1]; m.rallies = u.rallies; m.meR = u.meR; }
     if (m.rt) VB.Rating.undo(m.rt);
+    if (m.co && m.coU) { VB.Consignas.restore(m.co, m.coU); m.coU = null; }
   }
   /** Objetivos «al menos» de la prueba cumplidos durante el partidillo: su TRIAL_GOAL entra ya en la nota en directo (con aviso). Los
    *  «como mucho» se suman al final (trialGrade). */
@@ -1331,10 +1341,11 @@
   /** Nota en directo del partido de Carrera g (ui.js, cada frame): { v, on, sc, seq, log, trial } (objeto reutilizado; log = el
    *  registro de avisos de VB.Rating, solo lectura) o null (sin rating.js, sin partido o de otra partida). sc: pista con cambios,
    *  menos de NOTA_MIN_R puntos en pista y sin ser titular en pista (aún sin nota: «s. c.»). */
-  var LIVE = { v: 6, on: true, sc: false, seq: 0, log: [], trial: false };
+  var LIVE = { v: 6, on: true, sc: false, seq: 0, log: [], trial: false, coach: null };
   function liveRating(g) {
     if (!M || !M.rt || !g || M.g !== g) return null;
     LIVE.v = M.rt.v; LIVE.on = M.rt.on; LIVE.seq = M.rt.seq; LIVE.log = M.rt.log; LIVE.trial = !!(g.career && g.career.trial);
+    LIVE.coach = M.co ? M.co.c : null;   // consigna del punto: { id, txt, state: 'on'|'ok'|'miss'|'gone', seq } (solo lectura)
     // (titular en pista: con nota desde el primer punto; «s. c.» para quien sale del banquillo, o es cambiado, sin llegar a NOTA_MIN_R)
     LIVE.sc = g.size === 6 && (M.subEv || typeof g.meR === 'number') && M.meR < NOTA_MIN_SUB && !(M.started && M.on);
     return LIVE;

@@ -76,7 +76,7 @@
   // un móvil no hereda los 30 fps ni el 50 % de resolución del PC. keys/padKeys guardan SOLO las diferencias con las teclas y
   // botones de fábrica (input.js las sanea). aimSet / msTiming: E1 (colocación dirigida; timing en ms en el sello, solo UI).
   function DEFAULTS() {
-    return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
+    return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, coachCalls: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
@@ -598,6 +598,7 @@
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
+    if (cs) cs.calls = ctx.settings.coachCalls !== false;   // consignas del entrenador en directo (career.js, js/consignas.js)
     // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
     if (opts.reto && !cs) { g.reto = opts.reto; g.retoOpts = Object.assign({}, opts); delete g.retoOpts.introKind; delete g.retoOpts.noIntro; }
     // R16: opciones del último partido humano de Partido rápido (restart las repite con la previa mini)
@@ -2180,6 +2181,9 @@
       }
       if (!o.log.length || Q.neg === '1') { o.seq++; o.log = [Q.neg === '1' ? { seq: o.seq, kind: 'play', id: 'srvErr', txt: 'Error de saque', d: -0.2, v: 6.4 } : { seq: o.seq, kind: 'play', id: 'ace', txt: 'Ace', d: 0.3, v: 6.8 }]; o.v = o.log[0].v; }
       if (Q.rtv != null && Q.rtv !== '' && isFinite(+Q.rtv)) o.v = +Q.rtv;
+      // &co=<id de VB.Consignas.C>: la consigna del entrenador en la línea de debajo (&cos=ok|miss: ya resuelta)
+      var CC = VB.Consignas && VB.Consignas.C;
+      if (Q.co && CC && CC[Q.co]) o.coach = { id: Q.co, txt: CC[Q.co].txt, state: Q.cos === 'ok' || Q.cos === 'miss' ? Q.cos : 'on', seq: 1 };
       return o;
     }
     var g, keep = [], state = 'playing', live = Q.live === '1', dbgKit = null, trialDbg = null;   // (dbgKit: equipación de la escena; trialDbg: hoja de la prueba)

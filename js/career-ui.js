@@ -614,6 +614,16 @@
     '.rt-toast.still{animation:none}',
     '@keyframes rtIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}',
     '@media (prefers-reduced-motion:reduce){.rt-toast.on{animation:none}#rtLive{transition:none}}',
+    // consigna del entrenador (ui.js coTick): línea fina bajo la nota; verde al cumplirla, rojo claro al fallarla
+    '.co-call{display:flex;align-items:center;gap:7px;width:max-content;max-width:100%;margin-top:6px;height:22px;box-sizing:border-box;padding:0 9px 0 7px;border-radius:7px;',
+    ' border-left:4px solid #ffd23f;background:rgba(29,21,48,.94);box-shadow:0 0 0 2px var(--tk,#1d1530);pointer-events:none;color:#f7f2ea;white-space:nowrap}',
+    '.co-call[hidden]{display:none}',
+    '.co-call .co-k{font:800 10px var(--display);letter-spacing:.16em;color:#ffd23f}',
+    '.co-call .co-tx{font:800 13px/1 var(--display);letter-spacing:.02em;overflow:hidden;text-overflow:ellipsis}',
+    '.co-call.ok{border-left-color:#5fe8ad}.co-call.ok .co-tx,.co-call.ok .co-k{color:#5fe8ad}',
+    '.co-call.miss{border-left-color:#ff8a98;opacity:.85}.co-call.miss .co-tx,.co-call.miss .co-k{color:#ff8a98}',
+    '.co-call.in{animation:rtIn .3s cubic-bezier(.2,1.3,.4,1) both}',
+    '@media (prefers-reduced-motion:reduce){.co-call.in{animation:none}}',
     // pausa del partidillo de prueba: el aviso en una línea pequeña y «Abandonar la prueba» armado como «Reiniciar»
     '#pause .p-warn{margin:12px 0 -4px;font:700 13.5px/1.25 var(--ui);color:#ffc0a8;text-align:center}#pause .p-warn[hidden]{display:none}',
     '#btnQuit.arm{background:rgba(255,90,44,.22);box-shadow:inset 0 0 0 2px #ff6a2e;color:#ffd9c4;letter-spacing:.04em}',

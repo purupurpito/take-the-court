@@ -2011,7 +2011,7 @@
   // puro): aquí solo se pinta. Sin rating.js, fuera de la Carrera, en la demo o en un ejercicio no se ve nada. En el banquillo o sin
   // 5 puntos en pista (NOTA_MIN_SUB), atenuada con «s. c.». Colores por franja (rt-bad … rt-top) y CSS en career-ui.js. Solo los avisos de set y
   // de partido van al lector de pantalla (#banner, polite); la píldora lleva su aria-label y no es live.
-  var rtUI = { row: null, pill: null, v: null, sc: null, toast: null, sr: null, g: null, seen: 0, q: [], t: 0, key: '', vis: false };
+  var rtUI = { row: null, pill: null, v: null, sc: null, toast: null, sr: null, g: null, seen: 0, q: [], t: 0, key: '', vis: false, co: null, coTx: null, coSeq: -1, coSt: '', coT: 0 };
   /** El estado de la nota en directo de este partido ({ v, on, sc, seq, log, trial }) o null. g._rtDbg: escenas de depuración (&rt=1). */
   function rtSrc(g) {
     if (!g || g.demo || g.drill) return null;
@@ -2045,15 +2045,40 @@
     // (justo bajo el marcador: antes de la etiqueta «Punto de set», del contador de la jugada y del aviso corto)
     var nx = el.sb.querySelector('.sb-tag'); el.sb.insertBefore(r, nx || null);
     rtUI.row = r; rtUI.pill = r.firstChild; rtUI.v = rtUI.pill.querySelector('b'); rtUI.sc = rtUI.pill.querySelector('small'); rtUI.toast = r.lastChild;
+    // consigna del entrenador del punto (js/consignas.js): una línea bajo la nota, «ENTRENADOR Saca a la zona 1»; ✓ / ✗ al resolverse
+    var co = document.createElement('div'); co.className = 'co-call'; co.id = 'coCall'; co.hidden = true; co.setAttribute('role', 'status');
+    co.innerHTML = '<span class="co-k">ENTRENADOR</span><span class="co-tx"></span>';
+    el.sb.insertBefore(co, r.nextSibling);
+    rtUI.co = co; rtUI.coTx = co.lastChild;
     if (el.banner) { var s = document.createElement('span'); s.className = 'sr'; el.banner.appendChild(s); rtUI.sr = s; }
     return true;
   }
   function rtToastOff() { if (rtUI.toast) { rtUI.toast.className = 'rt-toast'; rtUI.toast.textContent = ''; } rtUI.t = 0; }
+  function coOff() { if (rtUI.co) { rtUI.co.hidden = true; rtUI.co.className = 'co-call'; } rtUI.coSt = ''; rtUI.coT = 0; }
+  /** Consigna del entrenador: a la vista mientras está en juego; cumplida (verde, ✓) o fallada (rojo, ✗) un momento; caducada, fuera. */
+  function coTick(c, dt) {
+    if (!rtUI.co) return;
+    if (!c) { if (rtUI.coSt && rtUI.coSt !== 'ok' && rtUI.coSt !== 'miss') coOff(); else if (rtUI.coT > 0) { rtUI.coT -= dt || 0; if (rtUI.coT <= 0) coOff(); } return; }
+    var stt = c.state;
+    if (c.seq !== rtUI.coSeq || stt !== rtUI.coSt) {
+      var fresh = c.seq !== rtUI.coSeq;
+      rtUI.coSeq = c.seq; rtUI.coSt = stt;
+      if (stt === 'gone') { coOff(); rtUI.coSt = 'gone'; return; }
+      rtUI.coTx.textContent = (stt === 'ok' ? '✓ ' : stt === 'miss' ? '✗ ' : '') + c.txt;
+      rtUI.co.hidden = false;
+      rtUI.co.className = 'co-call' + (stt === 'ok' ? ' ok' : stt === 'miss' ? ' miss' : '') + (fresh && !rm() ? ' in' : '');
+      rtUI.coT = stt === 'ok' ? 2.2 : stt === 'miss' ? 1.6 : 0;
+      if (fresh && rtUI.sr) rtUI.sr.textContent = 'Entrenador: ' + c.txt + '.';
+      return;
+    }
+    if (rtUI.coT > 0 && dt > 0) { rtUI.coT -= dt; if (rtUI.coT <= 0) { rtUI.co.hidden = true; rtUI.co.className = 'co-call'; } }
+  }
   function rtTick(g, dt) {
     var src = rtSrc(g);
-    if (!src) { if (rtUI.vis) { rtUI.vis = false; rtUI.row.hidden = true; rtToastOff(); } rtUI.g = null; return; }
+    if (!src) { if (rtUI.vis) { rtUI.vis = false; rtUI.row.hidden = true; rtToastOff(); coOff(); } rtUI.g = null; return; }
     if (!rtBuild()) return;
     if (!rtUI.vis) { rtUI.vis = true; rtUI.row.hidden = false; }
+    coTick(src.coach, dt);
     // partido nuevo (también al reiniciar uno de Carrera: la nota vuelve a 6,0) o la cuenta hacia atrás: sin avisos viejos
     var seq = src.seq | 0;
     if (rtUI.g !== g || seq < rtUI.seen) { rtUI.g = g; rtUI.seen = 0; rtUI.q.length = 0; rtToastOff(); }
@@ -4945,6 +4970,7 @@
     // estrechas «jugadores» (.cv-x) se oculta por CSS y queda «Controlar ‹ a los dos ›»
     ctrlMode: { vals: ['both', 'one'], labels: ['A los dos<span class="cv-x"> jugadores</span>', 'Un jugador'], desc: ['Controlar a los dos jugadores', 'Controlar un jugador'] },
     coachTips: { vals: [true, false], labels: ['Sí', 'No'] },
+    coachCalls: { vals: [true, false], labels: ['Sí', 'No'] },
     // formato del Partido rápido (sprint 3 del 6v6; main.js ctx.settings.format): 2 contra 2 o 6 contra 6 (en el pabellón; el puesto, en Controlar: role6)
     format: { vals: ['2v2', '6v6'], labels: ['2 contra 2', '6 contra 6'] },
     // cámara del 6v6 (camera_input, camera.js; main.js ctx.settings.cam6): detrás de tu jugador (por defecto) o la de televisión. En Ajustes ·
@@ -5020,7 +5046,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'aimSet', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
+    game: ['showHelp', 'coachTips', 'coachCalls', 'aimSet', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
