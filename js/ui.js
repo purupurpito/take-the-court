@@ -3186,9 +3186,12 @@
     var sp = b.querySelector('span'); if (sp) sp.textContent = t || ACTA_LBL;
     clearTimeout(actaT); if (t) actaT = setTimeout(function () { actaLbl(''); }, 3500);
   }
+  /** Datos del acta: en la Carrera, la competición (el rótulo de la jornada), quién juega en casa, capitanes y líberos (career.js). */
   function actaMeta(g) {
-    var nm = msNames(g), mode = g && g.career ? 'Carrera' : g && g.online ? 'Online' : g && g.watch0 ? 'Partido de la jornada' : 'Partido rápido';
-    return { home: nm.names[0], away: nm.names[1], venue: venueName(), competition: 'Make the Cut · ' + mode, now: Date.now() };
+    var nm = msNames(g), cs = g && !g.demo && g.career, ca = (cs && cs.acta) || {};
+    var comp = cs && cs.label ? cs.label : g && g.online ? 'Online' : g && g.watch0 ? 'Partido de la jornada' : 'Partido rápido';
+    return { names: nm.names, atHome: cs && cs.atHome === false ? false : true, capt: ca.capt, lib: ca.lib, competition: comp,
+      venue: venueName(), seed: g ? g.seed | 0 : 0, now: Date.now() };
   }
   function openActa() {
     if (!actaOk) return;

@@ -2432,6 +2432,11 @@
       status: lu.stat, whyCode: lu.why, why: whyText6(c), gap: lu.gap, slot: lu.slot,
       rivalIn: rv ? { name: rv.name, pos: rv.pos, ovr: rv.ovr, form: rv.form | 0, num: rv.num } : null };
   }
+  /** Capitán (dorsal) de una plantilla para el acta: por media, sin líberos, el primero que esté entre los dorsales convocados. */
+  function capt6(list, nums) {
+    var c6 = list.filter(function (x) { return x && x.pos !== 'L' && nums.indexOf(x.num) >= 0; }).sort(function (a, b) { return (b.ovr | 0) - (a.ovr | 0) || (a.num | 0) - (b.num | 0); });
+    return c6.length ? c6[0].num | 0 : 0;
+  }
   function iq6(d) { return d === 'easy' ? 1 : d === 'normal' ? 2 : 3; }
   /** Reglas del entrenador de tu club hacia ti en el partido (sim/ai6, §B.3): cuándo te saca y cuándo te mete. */
   function meRules6(c, L) {
@@ -2466,6 +2471,11 @@
     ['S', 'OPP', 'OH', 'MB'].forEach(function (p) { byp[p].slice(SLOTS6[p], SLOTS6[p] + (p === 'OH' || p === 'MB' ? 2 : 1)).forEach(function (x) { b1.push({ role: p, st: stR(x, p), num: x.num, name: x.name, fat: 0, badges: null }); }); });
     b1 = b1.slice(0, 4).concat(b1.slice(4).sort(function (a, b) { return ovrOf(b.st) - ovrOf(a.st); }).slice(0, 1));
     var L = lg6(c, n.me.lid), k = n.me.kit, rk = n.rival.kit;
+    // acta del partido (js/acta.js): capitán de cada club (el de más media de la plantilla que no sea líbero; si hoy no está convocado,
+    // el de más media de los convocados) y nombre de su líbero
+    var meX = sqEntry6(c, q, 'me'), libOf = function (list, me) { if (me && me.pos === 'L') return me.name; for (var li = 0; li < list.length; li++) if (list[li].pos === 'L') return list[li].name; return ''; };
+    var acta = { capt: [capt6(q.list.concat(meX ? [meX] : []), nums0.concat(b0.map(function (x) { return x.num; }))), capt6(rs, nums1.concat(b1.map(function (x) { return x.num; })))],
+      lib: [libOf(q.list, meX), libOf(rs, null)] };
     var out = {
       format: '6v6', venue: 'hall', ctrlRole: role, ctrlIdx: idx, ctrl: 'one',
       attrs: [a0, a1], badges: bd ? [R.map(function (x, i) { return i === idx ? bd : null; }), null] : null, nums: [nums0, nums1],
@@ -2478,7 +2488,7 @@
       rivalKit: { kitShirt: rk.shirt, kitAccent: rk.accent, kitShorts: rk.shorts, kitPattern: rk.pattern, kitLibero: rk.libero },
       career: { mode: 'hall', season: c.season, phase: c.phase, week: n.week, round: n.round, label: n.label, me: n.me.short, rival: n.rival.short, venue: 'hall',
         meName: n.me.name, rivalName: n.rival.name, player: c.player.name, num: c.player.num, pos: role, posName: POS6[role].name, mate: '', mateNum: 0,
-        meOn: meOn, status: meOn ? 'start' : 'sub', cdiff: n.cdiff }
+        meOn: meOn, status: meOn ? 'start' : 'sub', cdiff: n.cdiff, atHome: !!n.atHome, acta: acta }
     };
     life(c, 'setup', out);   // material de la tienda y molestias (en tu hueco, ctrlIdx) y reto de la jornada (career-life.js)
     return out;
