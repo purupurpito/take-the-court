@@ -22,6 +22,8 @@
  *   rooms.join(id, gname)        → Promise<sala> (errores: full | gone | version | off | auth | net)
  *   rooms.leave(id)              → Promise   el invitado sale antes de empezar (la sala vuelve a 'open')
  *   rooms.close()                → Promise   el anfitrión borra su sala y su señalización
+ *   rooms.resume()               → Promise<sala|null> fase 6: el anfitrión que recargó retoma SU sala (rooms/{tu uid}) para latir y
+ *                                  reofrecer; null si ya no existe. Su pagehide en pleno partido no la borra (la vuelta la necesita).
  *   rooms.bye(role, id)          → (nada)    al cerrar la pestaña: close() o leave(id) con fetch keepalive, sin esperar
  *   rooms.putSig(id, 'offer'|'answer', {sdp, gen}) / rooms.getSig(id, kind) → {sdp, gen}|null / rooms.delSig(id)
  *   sala = {id, code, name, gname, host, guest, fmt, venue, map, even, bo, pts, state, v, seen (ms del servidor), age (ms), other (otra versión)}
@@ -227,6 +229,17 @@
           ka('PATCH', docUrl('rooms/' + id) + '?updateMask.fieldPaths=guest&updateMask.fieldPaths=gname&updateMask.fieldPaths=state&currentDocument.exists=true',
             { fields: { guest: { stringValue: '' }, gname: { stringValue: '' }, state: { stringValue: 'open' } } });
         }
+      },
+      /** Fase 6: el anfitrión vuelve tras recargar y retoma su sala (la que dejó en 'full'/'play'): latido y señalización como antes. */
+      resume: function () {
+        return Promise.resolve().then(function () { return auth(); }).catch(function (e) { throw err('auth', e && e.message); }).then(function (a) {
+          me = a;
+          return api.get(a.uid).then(function (r) {
+            if (!r || r.host !== a.uid) return null;
+            var d = {}; for (var i = 0; i < ROOM_KEYS.length; i++) if (r[ROOM_KEYS[i]] !== undefined) d[ROOM_KEYS[i]] = r[ROOM_KEYS[i]];
+            mine = d; return r;
+          });
+        });
       },
       /** El anfitrión cierra su sala (señalización y sala). */
       close: function () {

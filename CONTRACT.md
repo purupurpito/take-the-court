@@ -327,6 +327,8 @@ de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas 
   waitMs, unstable, canAI, startIn, solo, valid, result, rivalSolo, gone}`; `request('chal'|'skip'|'tmo')`, `setAway(bool)` (bit `ai`),
   `vsAI()` (el rival puede volver hasta 60 s después de perderse), `quit()` (tras el final no cambia el resultado),
   `confirmedGame()` (lo que deja huella sale de AHÍ), `predictedGame()`, `initEvents`, `rivalName` (nombre, nunca correo ni IP).
+  Fase 6: `stepInputs()` = las dos entradas del último paso confirmado (`[hueco 0, hueco 1]`, decodificadas, objeto reutilizado); solo
+  vale dentro de `onTick(tic, gc)` (opción de la sesión, tras cada `Sim.step` de gc que no sea la resimulación de una reparación).
   Entrada = `{move (mundo canónico), hit, jump, jset, chal, skip, tmo, ai}`, cuantizada (int16 + 1 byte) antes de usarla en local.
   Transportes `{send(ch, data), poll(now), close()}` (`'in'` no fiable, `'ctl'` fiable y en orden): `memPair({lag (RTT), jit, loss, seed,
   clock})` y `BcLink({room, slot, lag, jit, loss})` (BroadcastChannel). `bot(team, seed)`: bot de solo entrada para pruebas.
@@ -720,8 +722,15 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - **ui_main** — `VB.Recap.{ord, move, trait, introPlan, history, stake, headline, playPhrase, tableSlice, endModel, DUR:{mini:2.5,
   short:4.5, long:6}, END_CELEB:3, TRAITS, STAKES}` (más `h01`, `RULES`, `ordw`, `partParts`). Ordinales «1r» «2º»; «Punto de set».
 - **ui_main** — `VB.Replay.{reset(g, o), enabled, onStep(simIn, g), onEvents(g, evs), autoReady(g), start(kind, j, onEnd), playBest(i,
-  onEnd), tick(realDt, outP, outF), skip(all), abort, active, runner, info, list, bestCount, desync, prepMs}`, `K` (con `TAIL = 156`),
+  onEnd), tick(realDt, outP, outF), skip(all), abort, active, runner, info, list, bestCount, desync, prepMs, cut}`, `K` (con `TAIL = 156`),
   `PASS`, `TXT`. Solo 2v2 humano (no 6v6, ejercicios, demo ni espectador).
+  Online (fase 6): `reset(gc, {dual: true, slot})` graba la partida CONFIRMADA: `onStep(ins, gc)` con `ins = [hueco 0, hueco 1]` (las de
+  `Session.stepInputs()`, con los bits chal/skip/tmo/ai) y `onEvents(gc, r.confirmed)` (canónicos). La repetición resimula con las dos.
+  Con `slot: 1`, `runner()` devuelve una copia GIRADA de la sombra (`VB.NetView.mirror`) y los eventos de `tick` salen girados
+  (`NetView.mapEvent`); `list()` / `info()` dan el marcador y el equipo desde tu lado y la puntuación extra va a TU equipo. `cut()` = el
+  peloteo en curso no se repite (reparación con foto o vuelta). El modo offline (sin `dual`) no cambia de formato ni de resultado.
+- **ui_main** — `VB.UI.netTally(evs | null)` (fase 6): estadísticas de la hoja final online con los eventos CONFIRMADOS ya girados para
+  el invitado (main.js `netConfirmed`); null = vaciar. En el online, lo presentado (predicho) solo cuenta para los banners (`pstats`).
 - **ui_main** — `VB.Retos.{LIST, ingest(e, g), endMatch(g, info, dry), daily(k?), summary, clean, mergeRaw, profileXP, album, chainOk(e,
   n?)}` y `level`, `progress`, `count`, `unseen`, `markSeen`, `today`, `dayState`, `lookData`, `lost`, `readOnly`.
 - **ui_main** — `VB.Profile.{need, levelOf, level, xp, stats, noteMatch(o) (= addMatch), noteGym(id), check() → {lvlUp, hitos, grants},
@@ -1049,3 +1058,27 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
   nombre del rival) y `netMastery` (maestría de la hoja online, solo de los eventos confirmados de tu jugador). `ctx.net.recRes` =
   lo que devolvió `NetRec.end`.
 - `js/ui.js` (toques): pista «↑↓←→ elegir» en la página Online y aviso «No válido…» en el resumen de la hoja final online.
+
+**Online, fase 6 (net, 17-nov-2026; notes/net.md «Fase 6»): vuelta del ANFITRIÓN tras recargar.**
+- `js/net.js`: `new Session({slot: 0, opts: null})` = anfitrión que vuelve (`session.adopt`): saluda con `{k:'hello', back:1}`, toma
+  las opciones del invitado, mide el reloj y, tras su `ready`, ADOPTA la partida confirmada que le manda el invitado (`resync` del
+  invitado: la autoridad de la instantánea pasa al invitado solo en este caso). Plazo `ADOPT_MS` = 40 s sin noticias → `noShow`.
+  Invitado ya juzgado (`goneFlag`, más de 60 s) → contesta `bye 'gone'`. `session.back` (lo pone el lobby en las dos vueltas;
+  se borra al empezar o al aplicar el resync) y `session.hostBack` (invitado: el anfitrión ha vuelto). El mensaje `resync` lleva
+  además `se` (época de «seguir contra la IA» de quien lo manda). Invitado que siguió contra la IA y ve volver al anfitrión a
+  tiempo: vuelve a contar (`valid`), salvo `invalid` de reparaciones.
+- `js/netroom.js`: `rooms.resume()` → `Promise<sala|null>`: la página nueva del anfitrión retoma SU sala (latido y señalización).
+- `js/netlobby.js`: `pagehide` del anfitrión en partido (`playing`/`waiting`, con invitado) NO borra la sala y apunta la vuelta
+  (`voley3d.online.back` con `role:'host'`, `guest`); al volver en < 50 s: `rooms.resume`, latido, sesión adoptante y `relink()`
+  (oferta gen+1 al mismo invitado). Fuera de plazo: borra su sala. `ctx.net.base` se rellena con las opciones adoptadas (revancha).
+- `js/main.js` (una línea del HUD): «Volviendo al partido…» mientras `session.back` y la sesión se conecta.
+- `firebase/firestore.rules`: sin cambios.
+
+**Online, fase 6 (net, 17-nov-2026; notes/net.md «Fase 6 — lobby terminado»): «Crear sala», vertical y ayuda.** Solo `js/netlobby.js`.
+- `VB.NetLobby` no cambia de API. `voley3d.netroom` (última configuración de sala, por aparato) guarda además `pts` (11|15|21|25;
+  por defecto 21) y la sala se abre con ese `pts` en Pabellón (en la playa, siempre 21). Las reglas ya lo admitían: sin cambios.
+- Clases nuevas del lobby (CSS en la cadena del propio fichero): `.ol-mk` (rótulo de «Crear sala»), `.mk-prev` + `.ol-fx.fx-prev`
+  (vista previa, no enfocable), `.ol-sel` (selector compacto con `data-ol`; ←→ por `NetLobby.side`), `dl.hp-box` («Cómo funciona»).
+- (arreglos de la revisión) Sin cambios de API. `?net=bc` sin `&map=`: el anfitrión manda ya un `mapId` concreto (de
+  `VB.Venues.list(venue)` con la semilla). La lista `d.pl` que ui.js pasa a `VB.Recap.endModel` va con tu equipo primero (orden estable),
+  así un empate a puntos da el MVP a tu equipo también en el invitado.

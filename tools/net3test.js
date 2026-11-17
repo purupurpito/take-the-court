@@ -303,6 +303,54 @@ function load() {
     check('el invitado recarga y vuelve: resync con la foto del anfitrión, mismas opciones y huellas iguales después', t1 > 1000 && waited === 'waiting' && back && sB2.opts && sB2.opts.seed === 77 &&
       n > 10 && bad === 0 && sB2.valid && sA.stats.resyncs >= 1 && !sA.result && !sB2.result, { t1, waited, back, n, bad, st: [sA.status, sB2.status], res: sA.stats.resyncs });
   }
+  // g) (fase 6) el ANFITRIÓN recarga en pleno partido: sesión nueva de hueco 0 sin opciones; el invitado le manda SU partida (autoridad
+  //    del invitado en este caso) y después las huellas cuadran. g1 = el invitado solo espera; g2 = el invitado siguió contra la IA.
+  for (const vsAI of [false, true]) {
+    const { A, B, la, lb, c } = pair({ lag: 60, seed: 11 });
+    const sA = new A.Net.Session({ slot: 0, link: la, opts, name: 'Anfi', rivalName: 'Invi' }), sB = new B.Net.Session({ slot: 1, link: lb, opts: null, name: 'Invi', rivalName: 'Anfi' });
+    const botB = B.Net.bot(1, 2, 'bueno');
+    run(c, [[sA, 0, A.Net.bot(0, 1, 'bueno')], [sB, 1234.5, botB]], 15000);
+    const t1 = sB.gcTick, score0 = sB.gc.score.join('-');
+    run(c, [[sB, 1234.5, botB]], vsAI ? 20000 : 8000);      // la página del anfitrión se recarga (el invitado espera)
+    const waited = sB.status, ai = vsAI ? sB.vsAI() : false, inv0 = sB.valid;
+    if (vsAI) run(c, [[sB, 1234.5, botB]], 3000);
+    const A2 = load(), [la2, lb2] = A2.Net.memPair({ lag: 60, seed: 12, clock: () => c.T });
+    sB.link = lb2;                                          // (en el juego es el MISMO Link de WebRTC renegociado con gen+1)
+    const sA2 = new A2.Net.Session({ slot: 0, link: la2, opts: null, name: 'Anfi', rivalName: 'Invi', back: true });
+    const adopt0 = sA2.adopt, back0 = sA2.back;
+    const botA2 = A2.Net.bot(0, 1, 'bueno');
+    const back = run(c, [[sA2, 5555.5, botA2], [sB, 1234.5, botB]], 10000, () => sA2.status === 'playing' && sB.status === 'playing' && !sB.solo);
+    const tBack = sA2.gcTick;
+    const hA = [], hB = []; sA2.hashLog = hA; sB.hashLog = hB;
+    run(c, [[sA2, 5555.5, botA2], [sB, 1234.5, botB]], 20000);
+    const mB = new Map(hB.map(x => [x[0], x[1]])); let n = 0, bad = 0; for (const [t, h] of hA) if (mB.has(t)) { n++; if (mB.get(t) !== h) bad++; }
+    check('el anfitrión recarga y vuelve' + (vsAI ? ' (el invitado seguía contra la IA)' : '') + ': adopta la partida del invitado, mismas opciones y huellas iguales después',
+      t1 > 1000 && waited === 'waiting' && (!vsAI || (ai && !inv0)) && adopt0 && back0 && back && !sA2.adopt && !sA2.back && sA2.opts && sA2.opts.seed === 77 &&
+      tBack >= t1 && n > 10 && bad === 0 && sA2.valid && sB.valid && sB.stats.resyncs >= 1 && !sA2.result && !sB.result && sA2.mismatches === 0,
+      { t1, tBack, score0, waited, back, n, bad, st: [sA2.status, sB.status], v: [sA2.valid, sB.valid], mm: sA2.mismatches });
+  }
+  // h) (fase 6) el anfitrión vuelve FUERA de plazo (más de 60 s): el invitado ya lo dio por ido (no cuenta) y le contesta «gone»
+  {
+    const { A, B, la, lb, c } = pair({ lag: 60, seed: 13 });
+    const sA = new A.Net.Session({ slot: 0, link: la, opts, name: 'Anfi' }), sB = new B.Net.Session({ slot: 1, link: lb, opts: null, name: 'Invi' });
+    const botB = B.Net.bot(1, 2, 'bueno');
+    run(c, [[sA, 0, A.Net.bot(0, 1, 'bueno')], [sB, 321, botB]], 10000);
+    run(c, [[sB, 321, botB]], 62000);
+    const A2 = load(), [la2, lb2] = A2.Net.memPair({ lag: 60, seed: 14, clock: () => c.T });
+    sB.link = lb2;
+    const sA2 = new A2.Net.Session({ slot: 0, link: la2, opts: null, name: 'Anfi', back: true });
+    run(c, [[sA2, 0, null], [sB, 321, botB]], 5000, () => sA2.status === 'ended');
+    check('el anfitrión vuelve fuera de plazo: no hay vuelta (él noShow, el invitado «no cuenta»)', sA2.status === 'ended' && sA2.result.why === 'noShow' && !sA2.opts &&
+      sB.result && sB.result.why === 'hostGone' && !sB.valid, { st: sA2.status, r: [sA2.result, sB.result] });
+  }
+  // i) (fase 6) el anfitrión vuelve y nadie contesta: espera hasta 40 s (su relink reofrece) y luego noShow
+  {
+    const { A, la } = pair();
+    const sA2 = new A.Net.Session({ slot: 0, link: la, opts: null, name: 'Anfi', back: true }), c2 = { T: 0 };
+    run(c2, [[sA2, 0, null]], 30000); const mid = sA2.status;
+    run(c2, [[sA2, 0, null]], 11000);
+    check('el anfitrión vuelve sin invitado: «conectando» a los 30 s y noShow a los 40 s', mid === 'connecting' && sA2.status === 'ended' && sA2.result.why === 'noShow', { mid, st: sA2.status });
+  }
 })();
 
 console.log('\n' + oks + ' ok, ' + fails + ' fallos');

@@ -629,7 +629,9 @@
   };
   function netSession(opts, epoch) {
     var s = new VB.Net.Session({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch,
-      log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null });
+      log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null,
+      // fase 6: cada paso CONFIRMADO, con sus dos entradas, al grabador de repeticiones (VB.Replay en modo dual sobre gc)
+      onTick: function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } });
     net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
     net.want = false; net.rivalWants = false; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
     if (net.away0) { s.setAway(true); s.maxCatch = 150; }
@@ -704,6 +706,11 @@
       var kind = Q.map && isMapId(Q.map) ? VB.Venues.kindOf(Q.map) : (Q.venue === 'beach' || Q.venue === 'hall' ? Q.venue : venueNow());
       opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{}, {}], bestOf: Q.bo === '3' ? 3 : 1,
         points: +Q.points || 21, present: true, stats: true };
+      // (revisión) sin &map= el anfitrión elige ya la sede concreta, como hace el lobby; si no, cada página montaba un pabellón distinto
+      if (!opts.mapId && VB.Venues && VB.Venues.list) {
+        var vl = null; try { vl = VB.Venues.list(kind); } catch (e) { vl = null; }
+        if (vl && vl.length) { var mp = vl[(opts.seed >>> 0) % vl.length]; if (isMapId(mp)) opts.mapId = mp; }
+      }
     }
     var NL = VB.NetLobby, mine = NL && NL.myLook ? NL.myLook() : null, name = Q.name || (slot ? 'Invitado' : 'Anfitrión'), sent = -1e9, t0 = performance.now();
     // (pruebas: &netcap=1 = tu n.º 1 con la gorra «MTC»; &kitshirt=RRGGBB = otra camiseta; así las dos páginas, que comparten el
@@ -754,6 +761,18 @@
       if (e.tempo && e.tempo !== 'lane' && e.tempo !== 'high') m.quick[0]++;
     }
   }
+  /** Fase 6: lo confirmado de un frame → maestría, estadísticas de la hoja (VB.UI.netTally, con los eventos girados para el invitado)
+   *  y grabador de repeticiones (eventos canónicos; una reparación con foto o una vuelta cortan el peloteo en curso). */
+  function netConfirmed(s, list) {
+    if (!net || !net.view || s !== net.sess) return;
+    var RPL = VB.Replay, rec = !!(RPL && RPL.enabled && RPL.enabled()), cut = s.repaired + s.stats.resyncs;
+    if (rec && cut !== net.rpCut) { try { RPL.cut(); } catch (e) { reportError('Replay.cut', e); } }
+    net.rpCut = cut;
+    if (!list.length) return;
+    netMastery(list);
+    if (VB.UI && VB.UI.netTally) { var mp = []; try { VB.NetView.mapEvents(list, net.view, net.slot, mp); VB.UI.netTally(mp); } catch (e) { reportError('UI.netTally', e); } }
+    if (rec) { try { RPL.onEvents(s.confirmedGame(), list); } catch (e) { reportError('Replay.onEvents', e); } }
+  }
   function netBuildView() {
     var s = net.sess, o = s.opts;
     if (o.mapId && isMapId(o.mapId)) forceVenue(o.mapId); else forceVenue(o.venue === 'beach' ? 'beach' : 'hall');
@@ -768,7 +787,10 @@
     var hx = function (c) { return typeof c === 'number' ? '#' + ('00000' + (c >>> 0).toString(16)).slice(-6) : null; };
     net.cr.col = kit && kit.kit1 && hx(kit.kitShirt) && hx(kit.kit1.kitShirt) ? [hx(kit.kitShirt), hx(kit.kit1.kitShirt)] : null;
     var mf = net.look && net.look.mine && net.look.mine.fits;
+    rpPre = v;   // (fase 6: el grabador no graba la vista sino la partida confirmada, en modo dual)
     setGame(v, kit, mf && (mf[0] || mf[1]) ? { fits: mf } : {});
+    net.rpCut = s.repaired + s.stats.resyncs;
+    try { if (VB.Replay && VB.Replay.reset) VB.Replay.reset(s.confirmedGame(), { dual: true, slot: net.slot }); } catch (e) { reportError('Replay.reset', e); }
     VB.NetView.mapEvents(s.initEvents, v, net.slot, pendingEvents);   // (setGame vacía pendingEvents)
     setState('playing');
   }
@@ -793,7 +815,7 @@
     if (v) {
       VB.NetView.mirror(v, r.g, net.slot);
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
-      if (r.confirmed.length) netMastery(r.confirmed);
+      netConfirmed(s, r.confirmed);
       if (r.events.length) VB.NetView.mapEvents(r.events, v, net.slot, frameEvents);
       if (ctx.state === 'playing' && !net.over && frameEvents.some(isGameOver)) { net.over = true; netSettle(); setState('over'); }
     }
@@ -828,7 +850,7 @@
     var s = net.sess, r;
     try { r = s.advance(t, null); } catch (e) { reportError('Net.advance (oculta)', e); return; }
     net.r = r; net.bgTicks = (net.bgTicks | 0) + 1;
-    if (net.view && r.confirmed.length) netMastery(r.confirmed);
+    netConfirmed(s, r.confirmed);
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return; }
     netRecTick(r);
     // (el final del partido llega al volver: gameOver confirmado a la cola de eventos del siguiente frame)
@@ -848,7 +870,7 @@
     // (revisión F4: en los textos el nombre va como marca \u0001 y se pinta aparte; antes un replace() del nombre podía dar en el texto fijo, p. ej. «en» en «Siguiente»)
     var s = net.sess, name = s.rivalName || 'tu rival', who = '\u0001', msg = '', btn = '';
     // (revisión F3: antes de empezar siempre hay salida; salir aquí no cuenta para nadie, y a los 20 s sin noticias del rival la sesión lo deja)
-    if (!r || r.status === 'connecting') { msg = s.host ? 'Esperando a que entre tu rival…' : 'Conectando…'; btn = '<button data-n="quit">Salir</button>'; }
+    if (!r || r.status === 'connecting') { msg = s.back ? 'Volviendo al partido…' : s.host ? 'Esperando a que entre tu rival…' : 'Conectando…'; btn = '<button data-n="quit">Salir</button>'; }
     else if (r.status === 'starting') { msg = 'Contra ' + who + ' | empieza en ' + (r.startIn / 1000).toFixed(1).replace('.', ',') + ' s'; btn = '<button data-n="quit">Salir</button>'; }
     else if (r.status === 'ended') {
       var w = r.result && r.result.why;

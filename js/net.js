@@ -27,6 +27,12 @@
  *     Volver = resync del anfitrión (con su foto). Pasados 60 s cada lado juzga por su cuenta: el anfitrión gana (rivalGone) y el
  *     invitado se queda con «no cuenta» (hostGone, valid=false); los dos pueden seguir contra la IA sin que cambie. El invitado contra la IA
  *     no manda entradas: al oír de nuevo al anfitrión pide 'rejoin' y el anfitrión le manda el resync.
+ *   VUELTA DEL ANFITRIÓN (fase 6, notes/net.md «Fase 6»): una sesión de hueco 0 SIN opciones (opts null) es un anfitrión que recargó la
+ *     página y perdió su partida (adopt). Saluda como un invitado ({k:'hello', back:1}); el invitado, si sigue en partido y no lo ha
+ *     dado por ido, contesta con sus opciones; el anfitrión mide el reloj con pings y manda 'ready'; el INVITADO manda entonces el
+ *     resync con SU partida confirmada (la autoridad de la instantánea pasa al invitado solo en este caso) y el anfitrión la adopta.
+ *     Después todo sigue como siempre (huellas comparadas, reparaciones con la foto del anfitrión). .back (lo pone el lobby) = aviso
+ *     «Volviendo al partido…» mientras se conecta; se borra al empezar o al aplicar el resync.
  *     .confirmedGame() / .predictedGame()
  *   Entrada = {move:[x,y] (mundo canónico), hit, jump, jset, chal, skip, tmo, ai}. Se cuantiza ANTES de usarla también en local.
  *   memPair({lag (RTT ms), jit (± ms por sentido), loss (%), seed, clock}) → [linkA, linkB] (Node / pruebas)
@@ -50,6 +56,7 @@
   var REJOIN_MARGIN = 60;        // tics de IA que el anfitrión fija por delante al reconectar al invitado
   var WAIT_AI_MS = 10000, GONE_MS = 60000, UNSTABLE_MS = 1000, EV_PAST_TICKS = 18; // 150 ms
   var CONNECT_MS = 20000;        // revisión F3: sin oír al rival en 20 s mientras se conecta (antes del partido) → no hay partido ('noShow')
+  var ADOPT_MS = 40000;          // fase 6: el anfitrión que vuelve tras recargar espera hasta 40 s al invitado (su relink reofrece cada 10 s)
   var EDGE_TTL_MS = 150;         // un botón que no entra en un tic en 150 ms (partida congelada o cuenta atrás) se descarta: nada de golpes «fantasma»
   var B = { hit: 1, jump: 2, jset: 4, chal: 8, skip: 16, tmo: 32, ai: 64 };
   var EDGE = B.hit | B.jump | B.jset | B.chal | B.skip | B.tmo;
@@ -127,6 +134,9 @@
     this.edges = 0; this.edgesAt = -1; this.away = false; this.solo = false; this.valid = true; this.result = null;
     this.goneFlag = false; this.lostAt = -1; this.rivalSolo = false; this.soloEpoch = 0; this.rejoinEpoch = 0; this.rejoinAt = -1e9;
     this.lateAt = -1e9; this.repInvalid = false;
+    // fase 6: anfitrión que vuelve tras recargar (sin opciones: adopta la partida del invitado), aviso de vuelta (lo pone el lobby),
+    // invitado que ha oído a su anfitrión volver (contesta a su 'ready' con el resync) y «no válido» que avisó el rival
+    this.adopt = this.host && !o.opts; this.back = !!o.back; this.hostBack = false; this.rivInvalid = false;
     this.connAt = -1; this.heardAt = -1; this.rttFloor = -1e9;   // revisión F3: plazo de conexión (solo mensajes de esta época) y pongs de antes de un corte
     this.t0 = 0; this.off = 0; this.lastNow = 0; this.lastRecv = 0; this.started = false;
     this.helloAt = -1e9; this.gotHello = false; this.pings = []; this.pingAt = -1e9; this.pingId = 0; this.ready = false;
@@ -156,6 +166,9 @@
   };
   SP.confirmedGame = function () { return this.gc; };
   SP.predictedGame = function () { return this.gp; };
+  /** Fase 6 (repetición online): las dos entradas del último paso confirmado ([hueco 0, hueco 1], decodificadas; objeto reutilizado).
+   *  Solo vale dentro de onTick (justo después del Sim.step de gc). */
+  SP.stepInputs = function () { return this._ins; };
   SP.request = function (what) { if (B[what] & EDGE) { this.edges |= B[what]; if (this.edgesAt < 0) this.edgesAt = this.lastNow; } };
   SP.setAway = function (on) { this.away = !!on; };
   SP._ctl = function (m) { if (this.epoch) m.ep = this.epoch; try { this.link.send('ctl', JSON.stringify(m)); } catch (e) { } };
@@ -244,11 +257,21 @@
       case 'hello':
         if (!this.rivalName) this.rivalName = cleanName(c.name);
         if (c.v !== PROTO || c.ver !== (VB.VERSION || '')) { this._ctl({ k: 'bye', why: 'version' }); this.status = 'ended'; this.result = { why: 'version' }; return; }
-        if (this.host) {
+        if (this.host && this.adopt) {   // fase 6: el anfitrión vuelve; el invitado le da las opciones (y luego su partida)
+          if (!this.gotHello && c.back && c.cfg && c.cfg.opts && !this.opts) {
+            this.gotHello = true; this.delay = c.cfg.delay != null ? Math.max(0, Math.min(8, c.cfg.delay | 0)) : this.delay;
+            this._setOpts(c.cfg.opts); this.pings.length = 0; this.pingAt = -1e9;
+          }
+        } else if (this.host) {
           var live = this.status === 'playing' || this.status === 'waiting' || this.status === 'starting';
           if (this.status === 'over' || this.status === 'ended') return;
           if (live && this.goneFlag) { this._ctl({ k: 'bye', why: 'late' }); return; }
           this._ctl({ k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, cfg: { opts: this.opts, delay: this.delay }, live: live });
+        } else if (c.back) {   // fase 6: el anfitrión recargó y vuelve: si seguimos en partido, le damos las opciones
+          if (this.goneFlag) { this._ctl({ k: 'bye', why: 'gone' }); return; }
+          if (!this.opts || (this.status !== 'playing' && this.status !== 'waiting')) return;
+          this.hostBack = true;
+          this._ctl({ k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, cfg: { opts: this.opts, delay: this.delay }, live: true, back: 1 });
         } else if (!this.gotHello) {
           this.gotHello = true;
           if (!this.opts) { this.delay = c.cfg && c.cfg.delay != null ? c.cfg.delay | 0 : this.delay; this._setOpts(c.cfg.opts); }
@@ -260,10 +283,16 @@
         var rtt = now - c.t;
         if (this.rttN && c.t < this.rttFloor) break;   // (ping mandado antes de un corte: tras volver la red marcaba «673 ms» unos segundos)
         if (rtt < 3000 || !this.rttN) { this.rtt = this.rttN ? this.rtt * 0.8 + rtt * 0.2 : rtt; this.rttN++; }   // (un pong que llega tras un corte no es el ping: «4571 ms»)
-        if (!this.host && !this.ready && c.id < 1000) this.pings.push({ rtt: rtt, off: c.th - (c.t + now) / 2 });
+        if ((!this.host || this.adopt) && !this.ready && c.id < 1000) this.pings.push({ rtt: rtt, off: c.th - (c.t + now) / 2 });
         break;
       case 'ready':
-        if (!this.host) break;
+        if (!this.host) {   // fase 6: el anfitrión que volvió ya tiene reloj: le mandamos NUESTRA partida (autoridad del invitado)
+          if (this.hostBack && !this.goneFlag && (this.status === 'playing' || this.status === 'waiting')) {
+            this.hostBack = false; this.valid = !this.repInvalid && !this.rivInvalid;   // (seguir contra la IA no cuenta si vuelve)
+            this._resync(now); this._log('el anfitrión vuelve: le mando mi partida');
+          }
+          break;
+        }
         if (this.status === 'connecting') {
           this.t0 = now + START_MS; this.status = 'starting';
           this._ctl({ k: 'start', t0: this.t0 }); this._log('empieza en ' + START_MS + ' ms');
@@ -289,11 +318,11 @@
         for (var ht in this.theirHash) if (+ht > c.t) this._checkHash(+ht, now);
         break;
       case 'resync':
-        if (this.host) break;
+        if (this.host && !this.adopt) break;   // (fase 6: el anfitrión que volvió adopta la del invitado, una vez)
         if (this.goneFlag) { this._ctl({ k: 'bye', why: 'gone' }); break; }   // ya juzgado: no se vuelve
         this._applyResync(c, now); break;
       case 'solo': this.rivalSolo = true; break;   // el rival sigue contra la IA mientras espera: puede volver (rejoin / resync)
-      case 'invalid': this.valid = false; break;
+      case 'invalid': this.valid = false; this.rivInvalid = true; break;
       case 'bye':
         if (c.why === 'left' || c.why === 'quit' || c.why === 'gone' || c.why === 'late') this.rivalLeft = true;   // (la revancha ya no es posible)
         if (this.status === 'ended' || this.status === 'over') break;
@@ -359,7 +388,7 @@
     for (k = T; k < F; k++) { i = k & RM; fab.push(this.theirs.X[i], this.theirs.Y[i], this.theirs.B[i]); }
     this.solo = false; this.rivalSolo = false; this.lostAt = -1; this.waitStart = -1; this.stats.resyncs++; this.syncFloor = T; this.repairPending = false;
     this.theirHash = {}; this.cmpBad = -1;   // (las de antes y las de la partida del invitado contra la IA no valen)
-    this._ctl({ k: 'resync', T: T, F: F, d: S.serialize(this.gc), t0: this.t0, mine: mine, fab: fab, valid: this.valid });
+    this._ctl({ k: 'resync', T: T, F: F, d: S.serialize(this.gc), t0: this.t0, mine: mine, fab: fab, valid: this.valid, se: this.soloEpoch });
     this._log('resync: foto del tic ' + T + ', IA del rival hasta ' + F);
     void sv;
   };
@@ -380,6 +409,8 @@
     this.waitStart = -1; this.started = true; this.stats.resyncs++;
     this.presTick = Math.max(T, this._target(now)); this.muteBefore = this.presTick; this.presKeys = {}; this.presList.length = 0;   // lo de antes de volver no suena
     this.remoteAck = Math.max(this.remoteAck, F);
+    if (this.adopt) { this.adopt = false; this.rejoinEpoch = Math.max(this.rejoinEpoch, c.se | 0); }   // (fase 6: ya es un anfitrión normal)
+    this.back = false;
     this._log('resync aplicado: tic ' + T + ', mando desde ' + F);
   };
 
@@ -450,10 +481,10 @@
 
     // saludo, pings y reloj común
     if (this.connAt < 0) this.connAt = now;
-    if (this.status === 'connecting' && now - Math.max(this.connAt, this.heardAt) > CONNECT_MS) this._noShow('sin noticias del rival en ' + (CONNECT_MS / 1000) + ' s');
+    if (this.status === 'connecting' && now - Math.max(this.connAt, this.heardAt) > (this.adopt ? ADOPT_MS : CONNECT_MS)) this._noShow('sin noticias del rival en ' + (CONNECT_MS / 1000) + ' s');
     if (this.status === 'connecting') {
-      if (!this.host && !this.gotHello && now - this.helloAt > 500) { this.helloAt = now; this._ctl({ k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name }); }
-      if (!this.host && this.gotHello && !this.ready) {
+      if ((!this.host || this.adopt) && !this.gotHello && now - this.helloAt > 500) { this.helloAt = now; this._ctl(this.adopt ? { k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, back: 1 } : { k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name }); }
+      if ((!this.host || this.adopt) && this.gotHello && !this.ready) {
         if (this.pings.length < 8 && now - this.pingAt > 60) { this.pingAt = now; this._ctl({ k: 'ping', t: now, id: this.pingId++ }); }
         if (this.pings.length >= 8 || (this.pings.length >= 3 && this.pingId > 30)) {
           var best = this.pings.slice().sort(function (a, b) { return a.rtt - b.rtt; }).slice(0, 3);
@@ -463,7 +494,7 @@
         } else if (this.pingId > 30 && this.pings.length < 3) { this.pingId = 0; this.pings.length = 0; }   // reintento
       }
     }
-    if (this.status === 'starting' && now >= this.t0) { this.status = 'playing'; this.started = true; }
+    if (this.status === 'starting' && now >= this.t0) { this.status = 'playing'; this.started = true; this.back = false; }
     // botones: en la cuenta atrás no cuentan; si no entran en un tic en EDGE_TTL_MS (partida congelada) se descartan
     if (this.edges && this.edgesAt < 0) this.edgesAt = now;
     if (this.status === 'connecting' || this.status === 'starting' || (this.edges && now - this.edgesAt > EDGE_TTL_MS)) this.edges = 0;

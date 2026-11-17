@@ -20,11 +20,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.3';
+  VB.VERSION = '1.5.4';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.4', d: '2026-11-17', t: 'Repeticiones online',
+      items: [
+        'Online: repetición y «Mejores jugadas» en la hoja final, cada cual desde su lado.',
+        'Si quien creó la sala recarga en mitad del partido, vuelve a él y se sigue jugando.',
+        '«Crear sala» nueva: ves cómo saldrá tu sala en la lista y eliges los puntos en pabellón.'
+      ]
+    },
     {
       v: '1.5.3', d: '2026-11-17', t: 'Árbitros',
       items: [

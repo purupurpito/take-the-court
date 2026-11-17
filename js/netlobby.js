@@ -125,8 +125,14 @@
   function venueName(r) { var n = r.map && VB.Venues && VB.Venues.name ? VB.Venues.name(r.map) : ''; return n || (r.venue === 'beach' ? 'Playa' : 'Pabellón'); }
   function cfgParts(r) {
     var kind = r.venue === 'beach' ? 'Playa' : 'Pabellón', vn = venueName(r);
-    return [kind].concat(vn && vn !== kind ? [vn] : [], [r.bo === 3 ? 'Mejor de 3' : '1 set a ' + (r.pts || 21), r.even ? 'Igualado' : 'Con sus atributos']);
+    return [kind].concat(vn && vn !== kind ? [vn] : [], chips(r));
   }
+  /** Chips del partido (lista, vista previa de «Crear sala» y sala de espera). (fase 6: puntos por set en Pabellón) */
+  function chips(r) {
+    var p = r.pts || 21;
+    return [r.bo === 3 ? 'Mejor de 3' + (p !== 21 ? ' a ' + p : '') : '1 set a ' + p, r.even ? 'Igualado' : 'Con sus atributos'];
+  }
+  function chipsHTML(r) { return chips(r).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join(''); }
   function sep(parts) { return parts.map(esc).join('<i class="ol-sep" aria-hidden="true"></i>'); }
 
   /* ---------------- estado ---------------- */
@@ -141,7 +147,7 @@
 
   function prefs() {
     var p = jls(PREFS) || {};
-    return { venue: p.venue === 'beach' ? 'beach' : 'hall', mapH: String(p.mapH || ''), mapB: String(p.mapB || ''), bo: +p.bo === 3 ? 3 : 1, even: !!p.even };
+    return { venue: p.venue === 'beach' ? 'beach' : 'hall', mapH: String(p.mapH || ''), mapB: String(p.mapB || ''), bo: +p.bo === 3 ? 3 : 1, even: !!p.even, pts: [11, 15, 21, 25].indexOf(+p.pts) >= 0 ? +p.pts : 21 };
   }
   function savePrefs(c) { try { ls(PREFS, JSON.stringify(c)); } catch (e) { } }
   function maps(kind) { var V = VB.Venues; var l = V && V.list ? safe(function () { return V.list(kind); }) : null; return Array.isArray(l) && l.length ? l : ['']; }
@@ -187,7 +193,7 @@
     var c = L.cfg; savePrefs(c);
     var map = c.venue === 'beach' ? c.mapB : c.mapH;
     L.msg = ''; L.busy = true; render();
-    api().open({ name: myName(), venue: c.venue, map: map, bo: c.bo, even: c.even, pts: 21 }).then(function (r) {
+    api().open({ name: myName(), venue: c.venue, map: map, bo: c.bo, even: c.even, pts: c.venue === 'beach' ? 21 : c.pts }).then(function (r) {
       L.busy = false;
       if (!r) throw { code: 'error' };
       L.room = r; L.role = 'host'; L.rival = ''; L.fail = ''; L.started = false; L.status = 'wait';
@@ -569,6 +575,61 @@
     '#mpOnline .ol-card.ol-match{padding-bottom:8px}#mpOnline .ol-match .ol-st{margin-top:6px}' +
     '#mpOnline .ol-osk{gap:4px;padding:6px 8px 8px}#mpOnline .osk-show{padding:0 2px 2px}#mpOnline .osk-val{height:30px;font-size:19px}#mpOnline .osk-k{height:31px;font-size:16px}#mpOnline .osk-k.fn{font-size:13px}}' +
     '@media (prefers-reduced-motion:reduce){#mpOnline .ol-fx.fx-new,#mpOnline .mt-side.riv b{animation:none}#mpOnline .ol-live,#mpOnline .ol-dots i{animation:none}}' +
+    // ---- fase 6: «Crear sala» con el lenguaje del rótulo, «Cómo funciona» a juego y vertical (≤ 620 px de ancho) ----
+    '#mpOnline .ol-mk,#mpOnline .hp-box{overflow:hidden;border-radius:12px;background:rgba(22,16,40,.93);box-shadow:inset 0 0 0 2.5px var(--tk),4px 5px 0 var(--tk)}' +
+    '#mpOnline .mk-prev{padding:12px 22px 10px 16px}' +
+    '#mpOnline .ol-fx.fx-prev{pointer-events:none}#mpOnline .fx-prev .fx-in{background:rgba(44,34,82,.9)}' +
+    '#mpOnline .mk-sels{display:flex;flex-direction:column;margin:0 10px;padding:0 0 2px}' +
+    '#mpOnline .ol-sel{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;height:40px;padding:0 4px 0 14px;margin:0;border-radius:0;background:none;' +
+    'box-shadow:inset 0 1px 0 rgba(255,255,255,.1);text-align:left;text-transform:none;letter-spacing:0;color:#fff;text-shadow:none;outline:none;transition:background .14s}' +
+    '#mpOnline .ol-sel:hover,#mpOnline .ol-sel:active{filter:none;transform:none;background:rgba(255,255,255,.05)}' +
+    '#mpOnline .ol-sel:focus-visible,#mpOnline .ol-sel.kf{background:rgba(255,210,63,.11);box-shadow:inset 0 1px 0 rgba(255,255,255,.1),inset 5px 0 0 #ffd23f}' +
+    '#mpOnline .sl-k{flex:none;font:800 14px/1 var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}' +
+    '#mpOnline .sl-v{display:flex;align-items:center;min-width:0;height:100%}' +
+    '#mpOnline .sl-v b{min-width:150px;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font:900 20px/1 var(--display);font-style:italic;letter-spacing:.03em;' +
+    'text-transform:uppercase;color:#fff8ee;text-shadow:var(--ring1)}' +
+    '#mpOnline .sl-v .arr{display:flex;align-items:center;justify-content:center;width:34px;height:100%;cursor:pointer}' +
+    '#mpOnline .sl-v .arr svg{width:18px;height:18px;fill:none;stroke:rgba(255,255,255,.35);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .14s,transform .14s var(--ease)}' +
+    '#mpOnline .ol-sel:hover .arr svg{stroke:rgba(255,255,255,.7)}#mpOnline .sl-v .arr:hover svg{stroke:#fff}' +
+    '#mpOnline .ol-sel:focus-visible .sl-k,#mpOnline .ol-sel.kf .sl-k{color:#ffd23f}' +
+    '#mpOnline .ol-sel:focus-visible .sl-v b,#mpOnline .ol-sel.kf .sl-v b{color:#ffd23f}' +
+    '#mpOnline .ol-sel:focus-visible .arr svg,#mpOnline .ol-sel.kf .arr svg{stroke:#ffd23f}' +
+    '#mpOnline .sl-v .arr[data-d="-1"]:active svg{transform:translateX(-3px)}#mpOnline .sl-v .arr[data-d="1"]:active svg{transform:translateX(3px)}' +
+    '#mpOnline .mk-tip{margin:0;padding:8px 16px 10px;font:600 13px/1.35 var(--ui);color:var(--muted);box-shadow:inset 0 1px 0 rgba(255,255,255,.1)}' +
+    '#mpOnline .mk-go .ol-act{height:52px;font-size:20px}' +
+    '.is-touch #mpOnline .sl-v .arr{width:44px}' +
+    // «Cómo funciona»: rótulo inclinado y una sola caja con filas (como los selectores), sin tarjeta con antetítulo
+    '#mpOnline .ol-help{display:flex;flex-direction:column;gap:6px;min-height:0}' +
+    '#mpOnline dl.hp-box{display:block;margin:0}' +
+    '#mpOnline .hp-box>div{display:grid;grid-template-columns:118px minmax(0,1fr);gap:12px;align-items:baseline;padding:8px 16px 8px 14px;box-shadow:inset 0 -1px 0 rgba(255,255,255,.1)}' +
+    '#mpOnline .hp-box>div:last-child{box-shadow:none}' +
+    '#mpOnline .hp-box dt{font:900 14px/1.3 var(--display);font-style:italic;letter-spacing:.06em;text-transform:uppercase;color:#ffd23f}' +
+    '#mpOnline .hp-box dd{margin:0;font:600 14px/1.38 var(--ui);color:var(--soft)}' +
+    '#mpOnline .hp-go .ol-act{height:52px;font-size:20px}' +
+    '@media (max-height:420px){#mpOnline .mk-prev{padding:6px 18px 5px 14px}#mpOnline .ol-mk .mt-top{display:none}#mpOnline .ol-sel{height:30px}#mpOnline .sl-k{font-size:12px}' +
+    '#mpOnline .sl-v b{font-size:16px;min-width:120px}#mpOnline .mk-tip{display:none}#mpOnline .mk-go .ol-act,#mpOnline .hp-go .ol-act{height:40px;font-size:16px}' +
+    '#mpOnline .hp-box>div{display:block;padding:4px 12px}#mpOnline .hp-box dt{display:inline;margin-right:7px;font-size:11.5px}#mpOnline .hp-box dd{display:inline}#mpOnline .hp-box dd{font-size:12px;line-height:1.28}}' +
+    // vertical (teléfono de pie): la barra en dos filas, franjas más estrechas (estado bajo «Entrar»), teclado y ayuda compactos
+    '@media (max-width:620px){#mpOnline .ol-bar:not(.ol-bar2){flex-wrap:wrap}#mpOnline .ol-bar:not(.ol-bar2) .ol-new{flex:1 1 auto}' +
+    '#mpOnline .ol-act.ol-nm{flex:1 1 calc(100% - 108px)}' +
+    '#mpOnline .ol-rooms{max-height:calc(100vh - 330px)}' +
+    '#mpOnline .ol-fx{height:64px}#mpOnline .fx-in{grid-template-columns:62px minmax(0,1fr) auto}' +
+    '#mpOnline .fx-ven{padding:0 2px 0 15px}#mpOnline .fx-ven b{font-size:11.5px;letter-spacing:.02em}#mpOnline .fx-ven small{display:none}' +
+    '#mpOnline .fx-main{padding:0 4px 0 10px;gap:6px}#mpOnline .fx-line{gap:6px}#mpOnline .fx-name{font-size:21px}#mpOnline .fx-vs{font-size:13px}' +
+    '#mpOnline .fx-slot{min-width:26px;height:22px;font-size:14px}#mpOnline .fx-slot.in{max-width:66px;font-size:12px}' +
+    '#mpOnline .fx-chips{gap:4px}#mpOnline .fx-chips i{font-size:10.5px;padding:3px 5px}' +
+    '#mpOnline .fx-end{flex-direction:column;align-items:flex-end;justify-content:center;gap:6px;padding:0 14px 0 2px}' +
+    '#mpOnline .fx-st{font-size:10.5px;gap:5px}#mpOnline .fx-go{font-size:14px;padding:6px 9px 5px}' +
+    '#mpOnline .ol-empty{gap:12px;padding:12px 14px;font-size:13.5px}#mpOnline .ol-ghost{font-size:21px}' +
+    '#mpOnline .ol-bh{font-size:12.5px;letter-spacing:.12em;flex-wrap:wrap;row-gap:4px}' +
+    '#mpOnline .mt-top{flex-wrap:wrap;row-gap:4px}#mpOnline .mt-side b,#mpOnline .mt-side.wait b,#mpOnline .ol-match .mt-side.wait b .ol-q{font-size:29px}' +
+    '#mpOnline .ol-match .ol-vs{margin:12px 12px 8px;gap:6px}#mpOnline .ol-match .ol-mid{font-size:24px}' +
+    '#mpOnline .mk-prev{padding:8px 10px 6px 8px}#mpOnline .fx-prev .fx-go{display:none}#mpOnline .fx-prev .fx-ven{display:none}#mpOnline .fx-prev .fx-in{grid-template-columns:minmax(0,1fr) auto}#mpOnline .fx-prev .fx-main{padding-left:14px}' +
+    '#mpOnline .ol-sel{height:44px;padding-left:12px}#mpOnline .sl-k{font-size:12.5px;letter-spacing:.1em}' +
+    '#mpOnline .sl-v b{min-width:0;width:128px;font-size:17px}' +
+    '#mpOnline .osk-show{flex-wrap:wrap;row-gap:4px}#mpOnline .osk-tip{order:3;width:100%}#mpOnline .ol-osk{padding:8px 7px 10px}#mpOnline .osk-row{gap:4px}' +
+    '#mpOnline .osk-k{height:40px;font-size:17px}#mpOnline .osk-k.fn{font-size:12.5px;letter-spacing:.04em}' +
+    '#mpOnline .hp-box>div{display:block;padding:7px 12px}#mpOnline .hp-box dt{display:inline;margin-right:7px;font-size:12.5px}#mpOnline .hp-box dd{display:inline;font-size:13px;line-height:1.36}}' +
     '#menu .m-onl .md-art{background:#3d5bd9}';
   function ensureCss() { if (document.getElementById('olCss')) return; var s = document.createElement('style'); s.id = 'olCss'; s.textContent = CSS; document.head.appendChild(s); }
   ensureCss();   // (ya al cargar: la tarjeta de Jugar usa .has-onl / .m-onl antes de abrir el lobby)
@@ -579,10 +640,6 @@
       '<span class="mi-l">' + label + (help ? '<small class="mi-h">' + help + '</small>' : '') + '</span>' + (right ? '<span class="ol-r">' + right + '</span>' : '') + '</button>';
   }
   var ARR_L = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>', ARR_R = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg>';
-  function optRow(k, label, help, val) {
-    return '<button class="mi" data-ol="' + k + '" aria-label="' + esc(label + ': ' + val) + '"><span class="mi-l">' + esc(label) + '<small class="mi-h">' + esc(help) + '</small></span>' +
-      '<span class="mi-v"><span class="arr" data-d="-1">' + ARR_L + '</span><span class="mv-val"><b>' + esc(val) + '</b></span><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
-  }
   /* Fase 4: «Cómo funciona» (sale sola la primera vez que se entra en la lista; luego, desde la fila de la lista). Frases cortas,
    * género neutro (notes/ui_main.md «Textos: guía de estilo»). */
   var HELP = [
@@ -594,8 +651,31 @@
     ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Online Beta Tester» para el Vestuario.'],
     ['Privacidad', 'Tu rival solo ve tu nombre. Nunca tu correo ni tu dirección de red.']
   ];
+  /** Una franja de la cartelera (rótulo de TV). o.prev: vista previa de «Crear sala» (no es un botón ni se puede pulsar). */
+  function fxHTML(r, o) {
+    o = o || {};
+    var full = r.state === 'full', off = !o.prev && (r.other || full), beach = r.venue === 'beach', vn = venueName(r), kind = beach ? 'Playa' : 'Pabellón';
+    var tag = o.prev ? 'div' : 'button';
+    return '<' + tag + ' class="ol-fx ' + (beach ? 'v-beach' : 'v-hall') + (o.isNew ? ' fx-new' : '') + (off ? ' fx-off' : '') + (o.prev ? ' fx-prev' : '') + '"' +
+      (o.prev ? '' : ' data-a="join" data-id="' + esc(r.id) + '"' + (off || L.busy ? ' disabled' : '') +
+        ' aria-label="' + esc('Sala de ' + r.name + '. ' + cfgParts(r).join(', ') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : '. Una plaza libre')) + '"') +
+      (o.isNew ? ' style="animation-delay:' + (o.delay | 0) + 'ms"' : '') + '><span class="fx-in">' +
+      '<span class="fx-ven"><b>' + kind + '</b>' + (vn && vn !== kind ? '<small>' + esc(vn) + '</small>' : '') + '</span>' +
+      '<span class="fx-main"><span class="fx-line"><b class="fx-name">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
+      '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>' +
+      '<span class="fx-chips">' + chipsHTML(r) + '</span></span>' +
+      '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
+      (off ? '' : '<span class="fx-go">Entrar</span>') + '</span></span></' + tag + '>';
+  }
+  /** Selector compacto de «Crear sala»: nombre a la izquierda, ‹ valor › a la derecha (←→ o las flechas con ratón / táctil). */
+  function selRow(k, label, val, hint) {
+    return '<button class="ol-sel" data-ol="' + k + '" aria-label="' + esc(label + ': ' + val + '. ' + hint) + '"><span class="sl-k">' + esc(label) + '</span>' +
+      '<span class="sl-v"><span class="arr" data-d="-1">' + ARR_L + '</span><b>' + esc(val) + '</b><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
+  }
   function helpHTML() {
-    return '<div class="ol-card ol-help"><h3>Cómo funciona el online</h3><dl>' + HELP.map(function (x) { return '<dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd>'; }).join('') + '</dl></div>';
+    // (fase 6) rótulo inclinado como «Salas abiertas» y una sola caja con una fila por punto (el mismo lenguaje que la cartelera)
+    return '<div class="ol-help"><h3 class="ol-bh">Cómo funciona el online</h3><dl class="hp-box">' +
+      HELP.map(function (x) { return '<div><dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join('') + '</dl></div>';
   }
   function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>'; }
   var IC = {
@@ -678,7 +758,7 @@
     } else if (v === 'nortc') {
       h = '<div class="ol-card"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p></div>';
     } else if (v === 'help') {
-      h = helpHTML() + '<div class="qlist" data-nav>' + row('helpOk', 'Entendido', '', '', { primary: true }) + '</div>';
+      h = helpHTML() + '<div class="ol-bar ol-bar2 hp-go" data-nav><button class="ol-act ol-new" data-a="helpOk">Entendido</button></div>';
     } else if (v === 'list') {
       // (rediseño 1.5.x, petición de Ferran: que las salas no parezcan botones del menú) Arriba, una BARRA de acciones compacta
       // (un solo alto en ↑↓; ←→ recorre la barra). Debajo, la CARTELERA: una franja por sala como un rótulo de TV.
@@ -707,30 +787,30 @@
       // (animación de entrada: una sala es «nueva» durante 1 s desde que se ve por primera vez; así un repintado en ese segundo no la corta)
       var seen = L.seenAt || {}, now = {}, k = 0, tn = Date.now();
       L.rooms.forEach(function (r) {
-        var t1 = now[r.id] = seen[r.id] || tn, parts = cfgParts(r), isNew = tn - t1 < 1000, full = r.state === 'full', off = r.other || full;
-        var beach = r.venue === 'beach', vn = venueName(r), kind = beach ? 'Playa' : 'Pabellón';
-        h += '<button class="ol-fx ' + (beach ? 'v-beach' : 'v-hall') + (isNew ? ' fx-new' : '') + (off ? ' fx-off' : '') + '" data-a="join" data-id="' + esc(r.id) + '"' +
-          (off || L.busy ? ' disabled' : '') + (isNew ? ' style="animation-delay:' + (k++ * 70) + 'ms"' : '') +
-          ' aria-label="' + esc('Sala de ' + r.name + '. ' + parts.join(', ') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : '. Una plaza libre')) + '"><span class="fx-in">' +
-          '<span class="fx-ven"><b>' + kind + '</b>' + (vn && vn !== kind ? '<small>' + esc(vn) + '</small>' : '') + '</span>' +
-          '<span class="fx-main"><span class="fx-line"><b class="fx-name">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
-          '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>' +
-          '<span class="fx-chips"><i>' + (r.bo === 3 ? 'Mejor de 3' : '1 set a ' + (r.pts || 21)) + '</i><i>' + (r.even ? 'Igualado' : 'Con sus atributos') + '</i></span></span>' +
-          '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
-          (off ? '' : '<span class="fx-go">Entrar</span>') + '</span></span></button>';
+        var t1 = now[r.id] = seen[r.id] || tn, isNew = tn - t1 < 1000;
+        h += fxHTML(r, { isNew: isNew, delay: isNew ? k++ * 70 : 0 });
       });
       if (L.listAt) L.seenAt = now;
       h += '</div></div>';
     } else if (v === 'create') {
       var c = L.cfg, ms = maps(c.venue), cur = c.venue === 'beach' ? c.mapB : c.mapH;
       if (ms.indexOf(cur) < 0) { cur = ms[0]; if (c.venue === 'beach') c.mapB = cur; else c.mapH = cur; }
-      var vn = cur && VB.Venues && VB.Venues.name ? VB.Venues.name(cur) || cur : (c.venue === 'beach' ? 'Playa' : 'Pabellón');
-      h = note() + '<div class="qlist" data-nav>' +
-        optRow('venue', 'Escenario', c.venue === 'beach' ? '2 contra 2 en la arena' : '2 contra 2 en pista cubierta', c.venue === 'beach' ? 'Playa' : 'Pabellón') +
-        optRow('map', 'Sede', 'Donde se juega el partido', vn) +
-        optRow('bo', 'Partido', c.bo === 3 ? 'Sets a 21; el tercero, a 15' : 'Un set a 21 puntos', c.bo === 3 ? 'Mejor de 3' : '1 set') +
-        optRow('even', 'Atributos', c.even ? 'Todos neutros y sin insignias' : 'Cada uno con los de su jugador de la Carrera', c.even ? 'Igualado' : 'Los suyos') +
-        row('open', 'Abrir sala', 'Saldrá en la lista de Online', '', { primary: true, dis: L.busy }) + '</div>';
+      var cb = c.venue === 'beach', ck = cb ? 'Playa' : 'Pabellón', vn = cur && VB.Venues && VB.Venues.name ? VB.Venues.name(cur) || cur : ck;
+      // (fase 6) El mismo lenguaje que la cartelera: UN rótulo con la franja de la sede (arena / madera), la vista previa de tu sala tal
+      // y como saldrá en la lista (TÚ VS ?, con sus chips) y debajo los selectores compactos (↑↓ elige, ←→ cambia). Sin tarjetas sueltas.
+      var pr = { name: myName(), venue: c.venue, map: cur, bo: c.bo, pts: cb ? 21 : c.pts, even: c.even };
+      h = note() + '<div class="ol-mk ' + (cb ? 'v-beach' : 'v-hall') + '">' +
+        // (revisión) la franja ya no repite la sede (sale en la vista previa y en el selector «Sede»): solo su color y «Tu sala»
+        '<div class="mt-top"><span class="mt-ven"><b>Tu sala</b></span><span class="mt-who">Así sale en la lista</span></div>' +
+        '<div class="mk-prev" aria-hidden="true">' + fxHTML(pr, { prev: true }) + '</div>' +
+        '<div class="mk-sels" data-nav>' +
+        selRow('venue', 'Escenario', ck, cb ? 'En la arena' : 'En pista cubierta') +
+        selRow('map', 'Sede', vn, 'Donde se juega') +
+        selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set') +
+        (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set')) +
+        selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador') + '</div>' +
+        '<p class="mk-tip">' + (c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
+        '<div class="ol-bar ol-bar2 mk-go" data-nav><button class="ol-act ol-new" data-a="open"' + (L.busy ? ' disabled' : '') + '>' + IC.plus + '<span>Abrir sala</span></button></div>';
     } else if (v === 'room' && L.room) {
       var r2 = L.room, host = L.role === 'host', me = myName(), riv = L.rival;
       var st = '', bad = false;
@@ -751,7 +831,7 @@
         '<span class="mt-who">' + (host ? 'Tu sala' : 'Sala de ' + esc(r2.name)) + '</span>' +
         '<span class="ol-code" aria-label="Código ' + esc(r2.code.split('').join(' ')) + '">' + esc(r2.code) + '</span></div>' +
         '<div class="ol-vs">' + pl(left, host ? 'Tú' : 'Rival', !host, 'mt-a') + '<span class="ol-mid">VS</span>' + pl(right, host ? 'Rival' : 'Tú', host && !!riv, 'mt-b') + '</div>' +
-        '<div class="fx-chips mt-chips"><i>' + (r2.bo === 3 ? 'Mejor de 3' : '1 set a ' + (r2.pts || 21)) + '</i><i>' + (r2.even ? 'Igualado' : 'Con sus atributos') + '</i></div>' +
+        '<div class="fx-chips mt-chips">' + chipsHTML(r2) + '</div>' +
         '<p class="ol-st' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p>' +
         (L.started ? '' : '<p class="ol-tip">Llevas a tu n.º 1 y la IA a tu pareja. No hay pausa durante el juego: entre sets, 10 s de descanso. Abandonar cuenta como derrota.</p>') + '</div>' +
         '<div class="ol-bar ol-bar2" data-nav>' + (host ? '<button class="ol-act" data-a="copy">' + IC.copy + '<span>Copiar código</span></button>' : '') +
@@ -808,6 +888,7 @@
     if (k === 'venue') c.venue = c.venue === 'beach' ? 'hall' : 'beach';
     else if (k === 'map') { var ms = maps(c.venue), cur = c.venue === 'beach' ? c.mapB : c.mapH, i = ms.indexOf(cur); i = (i + (d > 0 ? 1 : -1) + ms.length) % ms.length; if (c.venue === 'beach') c.mapB = ms[i]; else c.mapH = ms[i]; }
     else if (k === 'bo') c.bo = c.bo === 3 ? 1 : 3;
+    else if (k === 'pts') { var PV = [11, 15, 21, 25], pi = PV.indexOf(c.pts); c.pts = PV[((pi < 0 ? 2 : pi) + (d > 0 ? 1 : -1) + PV.length) % PV.length]; }
     else if (k === 'even') c.even = !c.even;
     sound('optChange'); render();
   }
@@ -912,7 +993,7 @@
   });
 
   /* ---------------- VUELTA AL PARTIDO TRAS RECARGAR (net: robustez; notes/net.md «Robustez y privacidad») ----------------
-   * Solo el INVITADO (el anfitrión tiene la partida de verdad: si recarga él, el invitado espera y a los 60 s «no cuenta»).
+   * El INVITADO (aquí) y, desde la fase 6, también el ANFITRIÓN (ver hostBackSave / rejoinHost más abajo).
    * pagehide en pleno partido → sessionStorage BACK = {id sala, uid, gen, ep (época), rival, look, t}. Al cargar (misma pestaña,
    * misma cuenta, < BACK_MS): sala aún en 'full'/'play' con este uid de invitado → enlace nuevo, se contesta a la siguiente oferta
    * del anfitrión (su relink manda una con gen+1 cada 10 s durante ~60 s) y una sesión nueva sin opciones: el saludo trae las del
@@ -921,6 +1002,7 @@
   var BACK = 'voley3d.online.back', BACK_MS = 50000;
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { } return null; }
   function backSave() {
+    if (L.role === 'host') return hostBackSave();   // (fase 6: también el anfitrión)
     try {
       var C = ctx(), n = C && C.net, st = n && n.sess && n.sess.status;
       if (!L.started || L.role !== 'guest' || !n || n.slot !== 1 || !(st === 'playing' || st === 'waiting' || st === 'connecting' || st === 'starting')) return;
@@ -932,12 +1014,15 @@
   function backTry() {
     var b = null; try { b = JSON.parse(ss(BACK) || 'null'); } catch (e) { b = null; }
     ss(BACK, null);   // (un solo intento)
-    if (!b || typeof b.id !== 'string' || !b.uid || !(Date.now() - (+b.t || 0) < BACK_MS) || noRtc()) return;
+    if (!b || typeof b.id !== 'string' || !b.uid || noRtc()) return;
+    var late = !(Date.now() - (+b.t || 0) < BACK_MS);
+    if (late && b.role !== 'host') return;   // (fase 6: el anfitrión fuera de plazo aún borra su sala, abajo)
     var tries = 0, wait = setInterval(function () {
       var C = ctx(), U = VB.UI;
-      if (++tries > 40 || Date.now() - b.t > BACK_MS) { clearInterval(wait); return; }
+      if (++tries > 40 || (!late && Date.now() - b.t > BACK_MS)) { clearInterval(wait); return; }
       if (!signedIn() || !C || C.state !== 'menu' || !C.actions || !C.actions.startOnline || !U || !U.menuIdle || !U.menuIdle() || L.room) return;
       clearInterval(wait);
+      if (b.role === 'host') { hostBackTry(b, late); return; }
       api().get(b.id).then(function (r) {
         if (!r || api().uid() !== b.uid || r.guest !== b.uid || (r.state !== 'full' && r.state !== 'play') || r.age > NR().LIVE_MS || L.room) return;
         rejoin(r, b);
@@ -955,7 +1040,49 @@
     // revancha n.º k: la sesión nueva tiene que hablar en la época del anfitrión
     var ep = Math.max(0, Math.min(1e6, b.ep | 0));
     if (ep && C.net && C.net.sess) { C.net.epoch = ep; C.net.sess.epoch = ep; }
+    if (C.net && C.net.sess) C.net.sess.back = true;   // (fase 6: aviso «Volviendo al partido…» mientras se conecta)
     guestListen(L.gen);
+  }
+  /* Fase 6 (notes/net.md «Fase 6»): vuelta del ANFITRIÓN. Su pagehide en pleno partido no borra la sala y apunta la vuelta
+   * ({role 'host', id, uid, gen, ep, rival, look, guest, t}). Al volver en plazo: retoma su sala (rooms.resume: latido otra vez),
+   * sesión nueva de hueco 0 SIN opciones (adopta la partida del invitado, ver js/net.js «VUELTA DEL ANFITRIÓN») y relink(): oferta
+   * con gen+1 al mismo invitado cada 10 s; el invitado, que estaba en «Esperando a…», la ve (guestListen) y contesta. Fuera de
+   * plazo (o la sala ya no es la de ese partido) borra su sala: el invitado se queda en «no cuenta» a los 60 s, como antes. */
+  function hostBackSave() {
+    try {
+      var C = ctx(), n = C && C.net, s = n && n.sess, st = s && s.status;
+      if (!L.started || !n || n.slot !== 0 || !L.room || !L.room.guest || !(st === 'playing' || st === 'waiting') || s.goneFlag) return false;
+      ss(BACK, JSON.stringify({ role: 'host', id: L.room.id, uid: api().uid() || '', gen: L.gen | 0, ep: n.epoch | 0, rival: L.rival || n.rival || '',
+        look: n.look && n.look.theirs || null, guest: L.room.guest, t: Date.now() }));
+      return !!ss(BACK);   // (si sessionStorage falla, la sala se borra como siempre)
+    } catch (e) { }
+    return false;
+  }
+  function hostBackTry(b, late) {
+    api().resume().then(function (r) {
+      if (!r || api().uid() !== b.uid || r.id !== b.id || L.room) return;
+      if (late || Date.now() - b.t > BACK_MS || r.guest !== b.guest || (r.state !== 'full' && r.state !== 'play') || r.age > NR().LIVE_MS) { api().close(); return; }
+      rejoinHost(r, b);
+    }, function () { });
+  }
+  function rejoinHost(r, b) {
+    var C = ctx();
+    try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }
+    L.role = 'host'; L.room = r; L.rival = NR().cleanName(b.rival) || NR().cleanName(r.gname) || 'Rival'; L.gen = Math.max(L.gen, b.gen | 0); L.started = true; L.status = 'play';
+    every('beat', NR().BEAT_MS, hostBeat); hostBeat();
+    var link = newLink();
+    link.onclose = function () { matchClosed(link); };
+    var ok = C.actions.startOnline({ slot: 0, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) } });
+    if (!ok) { matchClosed(link); return; }
+    var ep = Math.max(0, Math.min(1e6, b.ep | 0)), n = C.net;
+    if (n && n.sess) { if (ep) { n.epoch = ep; n.sess.epoch = ep; } n.sess.back = true; }
+    // la revancha la siembra el anfitrión con net.base (sus opciones): se copian de la partida adoptada en cuanto llega
+    var bt = setInterval(function () {
+      var m = ctx() && ctx().net;
+      if (!m || m !== n || !m.sess || m.sess.status === 'ended') { clearInterval(bt); return; }
+      if (m.sess.opts && !m.sess.adopt) { if (!m.base) { var o = {}; for (var k in m.sess.opts) o[k] = m.sess.opts[k]; m.base = o; } clearInterval(bt); }
+    }, 500);
+    relink();
   }
   setTimeout(backTry, 300);
 

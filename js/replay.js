@@ -46,11 +46,15 @@
     feint: 1, dribble: 1, juggle: 1 };
   var DECISIVE = { ace: 1, kill: 1, tip: 1, block: 1 };
   var F_HIT = 1, F_JUMP = 2, F_JSET = 4, F_SW = 8, F_NULL = 16;
+  // ONLINE (fase 6, notes/net.md): modo «dual» = graba las DOS entradas de cada paso de la partida CONFIRMADA (Sim.step(gc, STEP, ins)
+  // con ins = [hueco 0, hueco 1]) con sus bits de red. Anillos y tramos aparte: el modo offline (mv/fl) no cambia de formato
+  var F_CHAL = 32, F_SKIP = 64, F_TMO = 128, F_AI = 256;
   var TXT = { set: 'Punto de set', match: 'Punto de partido', best: 'Mejores jugadas', end: 'Fin de la repetición' };
 
   var STEP = 1 / 120;
   var CAP = K.LOG_CAP;
   var mv = new Float64Array(CAP * 2), fl = new Uint8Array(CAP);
+  var mv2 = null, fl2 = null;   // dual: Float64Array(CAP * 4) [x0, y0, x1, y1] y Uint16Array(CAP * 2) (se crean en el primer partido online)
 
   function mkMeta() {
     return { team: 0, how: '', move: '', highlight: 0, savedSetPoint: false, digs: 0, rallyHits: 0, who: { num: 0, team: 0 },
@@ -64,7 +68,7 @@
   /** Clip: tramo repetible. own = entradas propias (mejores jugadas) o del anillo (el último punto). Pasos = cuenta absoluta de pasos
    *  en vivo desde reset (k0 = paso de la foto g; start = inicio visible; pt = paso del punto; hashStep = paso de hashPt; end = fin). */
   function mkClip(own) {
-    return { ok: false, own: own, g: null, mv: own ? new Float64Array(K.CLIP_CAP * 2) : null, fl: own ? new Uint8Array(K.CLIP_CAP) : null,
+    return { ok: false, own: own, g: null, mv: own ? new Float64Array(K.CLIP_CAP * 2) : null, fl: own ? new Uint8Array(K.CLIP_CAP) : null, mv2: null, fl2: null,
       k0: 0, start: 0, slowFrom: 0, slowTo: 0, pt: 0, hashStep: 0, hashPt: 0, end: 0, ptT: 0, score: 0, serial: 0, auto: false,
       fx: 0, fy: 0, fz: 0, meta: mkMeta() };
   }
@@ -79,9 +83,10 @@
     on: false, why: 'reset', g: null, force: false, headless: false, mobile: false,
     step: 0, tLast: -1, timerLast: 0,
     rec: false, tossStep: 0, nextKf: 0, kfI: 0, ptStep: -1, hashStep: -1, hashPt: 0, endStep: -1, ptT: 0,
-    hit0: 0, hitsN: 0, overturned: false, skipSeen: false, serial: 0, autoDone: -1, desync: 0, prepMs: 0
+    hit0: 0, hitsN: 0, overturned: false, skipSeen: false, serial: 0, autoDone: -1, desync: 0, prepMs: 0,
+    dual: false, me: 0, vs: 0   // online: dual = dos entradas por paso; me = tu equipo canónico (puntuación extra); vs = 1 → se pinta girado (invitado)
   };
-  var kfToss = null, kf = [], kfStep = new Float64Array(K.KF_N), R = null, PR = null;   // R = corredor; PR = la siguiente de la cola, preparándose
+  var kfToss = null, kf = [], kfStep = new Float64Array(K.KF_N), R = null, PR = null, RV = null;   // RV = vista girada de R (invitado online)   // R = corredor; PR = la siguiente de la cola, preparándose
   var hits = [];
   for (var hi = 0; hi < K.HITS_N; hi++) hits.push({ step: 0, team: 0, kind: '', num: 0, x: 0, y: 0, z: 0 });
   var meta = mkMeta();
@@ -99,6 +104,16 @@
   var CAM = { kind: 'set', slowFrom: -1, slowTo: -1, fx: 0, fy: 0, fz: 0 };     // CameraRig.replay(true, CAM)
   var INFO = { kind: '', i: 0, n: 0, title: '', pill: '', sub: '', phrase: '', aria: '', slow: false, t: 0, dur: 0, phase: '' };
   var IN = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
+  var IN2 = [mkIn2(), mkIn2()];
+  function mkIn2() { return { move: [0, 0], hit: false, jump: false, jset: false, chal: false, skip: false, tmo: false, ai: false, switchPlayer: false }; }
+  function bits2(q) {
+    return (q.hit ? F_HIT : 0) | (q.jump ? F_JUMP : 0) | (q.jset ? F_JSET : 0) | (q.switchPlayer ? F_SW : 0) | (q.chal ? F_CHAL : 0) |
+      (q.skip ? F_SKIP : 0) | (q.tmo ? F_TMO : 0) | (q.ai ? F_AI : 0);
+  }
+  function unbits2(f, q) {
+    q.hit = (f & F_HIT) !== 0; q.jump = (f & F_JUMP) !== 0; q.jset = (f & F_JSET) !== 0; q.switchPlayer = (f & F_SW) !== 0;
+    q.chal = (f & F_CHAL) !== 0; q.skip = (f & F_SKIP) !== 0; q.tmo = (f & F_TMO) !== 0; q.ai = (f & F_AI) !== 0;
+  }
   var EVT = [];
 
   function now() { return typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now(); }
@@ -138,7 +153,13 @@
     if (g !== RP.g) return;
     if (RP.tLast >= 0 && Math.abs(g.time - RP.tLast - STEP) > 1e-6 && RP.rec) breakRally();
     var i = RP.step % CAP;
-    if (simIn) {
+    if (RP.dual) {   // online: simIn = [entrada del hueco 0, entrada del hueco 1] (las de VB.Net, ya decodificadas)
+      for (var h = 0; h < 2; h++) {
+        var q = simIn && simIn[h], qm = q && q.move;
+        mv2[4 * i + 2 * h] = qm ? +qm[0] || 0 : 0; mv2[4 * i + 2 * h + 1] = qm ? +qm[1] || 0 : 0;
+        fl2[2 * i + h] = q ? bits2(q) : F_NULL;
+      }
+    } else if (simIn) {
       var m = simIn.move;
       mv[2 * i] = m ? +m[0] || 0 : 0; mv[2 * i + 1] = m ? +m[1] || 0 : 0;
       fl[i] = (simIn.hit ? F_HIT : 0) | (simIn.jump ? F_JUMP : 0) | (simIn.jset ? F_JSET : 0) | (simIn.switchPlayer ? F_SW : 0);
@@ -225,7 +246,7 @@
     if (dec) { c.fx = dec.x; c.fy = dec.y; c.fz = dec.z; } else { c.fx = 0; c.fy = 0; c.fz = 1; }
     copyMeta(c.meta, meta);
     if (dec && dec.team === w && dec.num) { c.meta.who.num = dec.num; c.meta.who.team = w; }
-    c.score = meta.highlight + (w === 0 ? K.ME_BONUS : 0);
+    c.score = meta.highlight + (w === RP.me ? K.ME_BONUS : 0);
     c.serial = ++RP.serial;
     c.auto = (meta.setWon || meta.matchWon) && (DECISIVE[meta.how] === 1 || meta.highlight >= K.AUTO_HL);
     c.ok = true;
@@ -243,7 +264,14 @@
     }
     if (PL.phase && PL.clip === slot) return;   // (no se pisa la que se está viendo)
     S().copyGame(slot.g, c.g);
-    for (var k = c.k0; k < c.end; k++) { var a = k % CAP, b = k - c.k0; slot.mv[2 * b] = mv[2 * a]; slot.mv[2 * b + 1] = mv[2 * a + 1]; slot.fl[b] = fl[a]; }
+    if (RP.dual) {
+      if (!slot.mv2) { slot.mv2 = new Float64Array(K.CLIP_CAP * 4); slot.fl2 = new Uint16Array(K.CLIP_CAP * 2); }
+      for (var k2 = c.k0; k2 < c.end; k2++) {
+        var a2 = k2 % CAP, b2 = k2 - c.k0;
+        for (var j2 = 0; j2 < 4; j2++) slot.mv2[4 * b2 + j2] = mv2[4 * a2 + j2];
+        slot.fl2[2 * b2] = fl2[2 * a2]; slot.fl2[2 * b2 + 1] = fl2[2 * a2 + 1];
+      }
+    } else for (var k = c.k0; k < c.end; k++) { var a = k % CAP, b = k - c.k0; slot.mv[2 * b] = mv[2 * a]; slot.mv[2 * b + 1] = mv[2 * a + 1]; slot.fl[b] = fl[a]; }
     copyClip(slot, c);
     sortBest();
   }
@@ -282,6 +310,8 @@
     RP.on = false; RP.g = g || null; RP.step = 0; RP.tLast = -1; RP.timerLast = 0; RP.rec = false; RP.ptStep = -1; RP.hashStep = -1;
     RP.endStep = -1; RP.kfI = 0; RP.hit0 = 0; RP.hitsN = 0; RP.overturned = false; RP.skipSeen = false; RP.serial = 0; RP.autoDone = -1;
     RP.desync = 0; RP.prepMs = 0;
+    RP.dual = !!o.dual; RP.me = RP.dual && o.slot === 1 ? 1 : 0; RP.vs = RP.me; RV = null;
+    if (RP.dual && !mv2) { mv2 = new Float64Array(CAP * 4); fl2 = new Uint16Array(CAP * 2); }
     last.ok = false; last.g = null;
     for (var i = 0; i < K.BEST_N; i++) best[i].ok = false;
     ordN = 0;
@@ -301,8 +331,9 @@
       for (i = 0; i < K.KF_N; i++) kf.push(mk());
       for (i = 0; i < K.BEST_N; i++) best[i].g = mk();
       R = mk(); PR = mk();
+      if (RP.vs === 1) { if (!(VB.NetView && VB.NetView.mirror)) throw new Error('falta VB.NetView'); RV = mk(); }
     } catch (e) {
-      RP.why = 'create'; kfToss = null; kf.length = 0; R = null; PR = null;
+      RP.why = 'create'; kfToss = null; kf.length = 0; R = null; PR = null; RV = null;
       if (typeof console !== 'undefined') console.error('[VB][ERROR] Replay.reset: ' + (e && e.stack || e));
       return false;
     }
@@ -341,13 +372,13 @@
     else cx.replay = null;
   }
   function describe(c, kind, i, n, out) {
-    var m = c.meta, sc = m.score[0] + '-' + m.score[1], ph = '';
+    var m = c.meta, v = RP.vs, sc = m.score[v] + '-' + m.score[1 - v], ph = '';   // (online: marcador desde tu lado)
     if (VB.Recap && VB.Recap.playPhrase) { try { ph = VB.Recap.playPhrase(m, RP.g) || ''; } catch (e) { ph = ''; } }
     if (!ph) ph = m.how === 'ace' ? 'Ace' : m.how === 'kill' ? 'Remate' : m.how === 'tip' ? 'Dejada' : m.how === 'block' ? 'Bloqueo' :
       'Peloteo de ' + Math.max(1, m.rallyHits) + (m.rallyHits === 1 ? ' toque' : ' toques');
     out.kind = kind; out.i = i; out.n = n; out.phrase = ph;
     if (kind === 'match') {
-      out.title = TXT.match; out.pill = ''; out.sub = m.sets[0] + '-' + m.sets[1] + ' | ' + sc; out.aria = 'Repetición: punto de partido';
+      out.title = TXT.match; out.pill = ''; out.sub = m.sets[v] + '-' + m.sets[1 - v] + ' | ' + sc; out.aria = 'Repetición: punto de partido';
     } else if (kind === 'set') {
       out.title = TXT.set; out.pill = ''; out.sub = ordTxt(m.setNo) + ' set | ' + sc; out.aria = 'Repetición: punto de set del ' + ordTxt(m.setNo) + ' set';
     } else {
@@ -359,6 +390,7 @@
 
   /** Avanza G un paso con la entrada grabada k del clip c (eventos a EVT). */
   function stepG(G, c, k) {
+    if (RP.dual) { stepG2(G, c, k); return; }
     var a, f, Ms = c.own ? c.mv : mv, Fs = c.own ? c.fl : fl;
     a = c.own ? k - c.k0 : k % CAP;
     f = Fs[a];
@@ -371,6 +403,27 @@
     var Sm = S();
     Sm.step(G, STEP, inp);
     EVT.length = 0; Sm.drainEvents(G, EVT);
+  }
+  /** Online: avanza G un paso con las DOS entradas grabadas (las mismas que tuvo la partida confirmada). */
+  function stepG2(G, c, k) {
+    var Ms = c.own ? c.mv2 : mv2, Fs = c.own ? c.fl2 : fl2, a = c.own ? k - c.k0 : k % CAP, null2 = true;
+    for (var h = 0; h < 2; h++) {
+      var f = Fs[2 * a + h], q = IN2[h];
+      if (!(f & F_NULL)) null2 = false;
+      q.move[0] = Ms[4 * a + 2 * h]; q.move[1] = Ms[4 * a + 2 * h + 1]; unbits2(f & ~F_NULL, q);
+    }
+    var Sm = S();
+    Sm.step(G, STEP, null2 ? null : IN2);
+    EVT.length = 0; Sm.drainEvents(G, EVT);
+  }
+  /** Online, invitado: la partida que se pinta es RV (copia girada de R, como su vista espejo: VB.NetView) y los eventos se giran. */
+  function viewSync(outP, outF) {
+    if (!RV) return;
+    var NV = VB.NetView;
+    NV.mirror(RV, R, 1); RV.replay = true;
+    var i;
+    if (outP) for (i = 0; i < outP.length; i++) outP[i] = NV.mapEvent(outP[i], RV, 1);
+    if (outF) for (i = 0; i < outF.length; i++) outF[i] = NV.mapEvent(outF[i], RV, 1);
   }
   /** Avanza R un paso (PL.k) en 'play'; out* = arrays de eventos a rellenar. → false si el hash del punto no cuadra. */
   function stepR(c, outP, outF) {
@@ -415,7 +468,7 @@
     // tiempos en R.time (tras la preparación R está en c.start)
     CAM.slowFrom = slow ? R.time + (c.slowFrom - PL.k) * STEP : -1;
     CAM.slowTo = slow ? R.time + (c.slowTo - PL.k) * STEP : -1;
-    CAM.fx = c.fx; CAM.fy = c.fy; CAM.fz = c.fz;
+    CAM.fx = RV ? -c.fx : c.fx; CAM.fy = RV ? -c.fy : c.fy; CAM.fz = c.fz;   // (invitado: punto de interés girado)
     return CAM;
   }
   function wipe(cb) {
@@ -426,7 +479,8 @@
     if (r === false) cb();
   }
   function bindAll(c, again) {
-    call('Players', 'bindReplay', R);
+    viewSync(null, null);
+    call('Players', 'bindReplay', RV || R);
     if (!again) { call('FX', 'replay', true); call('Audio', 'replay', true); }
     call('CameraRig', 'replay', true, camInfo(c));
     PL.bound = true;
@@ -544,6 +598,7 @@
       if (!ok) break;
     }
     if (n === K.MAX_STEPS || PL.acc < 0) PL.acc = 0;
+    if (RV && n) viewSync(outP, outF);
     if (!ok) { PL.exitAll = PL.kind !== 'best' || PL.exitAll; finishClip(); }
     return n * STEP;
   }
@@ -565,7 +620,7 @@
   }
   function active() { return !!PL.phase; }
   /** La partida que hay que pintar en lugar de la viva (R) mientras los módulos están enlazados a ella; null si no. */
-  function runner() { return PL.phase && PL.bound ? R : null; }
+  function runner() { return PL.phase && PL.bound ? (RV || R) : null; }
   function info() {
     if (!PL.phase) return null;
     var c = PL.clip;
@@ -580,12 +635,15 @@
     var out = [];
     for (var i = 0; i < ordN; i++) {
       var c = best[ord[i]], o = describe(c, 'best', i, ordN, {});
+      var v = RP.vs, tm = c.meta.team;
       out.push({ i: i, title: o.phrase, phrase: o.phrase, sub: o.sub, pill: o.pill, aria: o.aria, setNo: c.meta.setNo,
-        score: c.meta.score[0] + '-' + c.meta.score[1], how: c.meta.how, team: c.meta.team, highlight: c.meta.highlight, pts: c.score });
+        score: c.meta.score[v] + '-' + c.meta.score[1 - v], how: c.meta.how, team: v && (tm === 0 || tm === 1) ? 1 - tm : tm, highlight: c.meta.highlight, pts: c.score });
     }
     return out;
   }
   function bestCount() { return ordN; }
+  /** Online: la partida grabada cambió fuera de Sim.step (reparación con foto, vuelta del invitado): el peloteo en curso no se repite. */
+  function cut() { if (RP.on && RP.rec) breakRally(); }
   function desync() { return RP.desync; }
   function prepMs() { return RP.prepMs; }
 
@@ -593,10 +651,10 @@
     K: K, TXT: TXT, PASS: PASS,
     reset: reset, enabled: enabled, onStep: onStep, onEvents: onEvents, autoReady: autoReady, start: start, playBest: playBest,
     tick: tick, skip: skip, abort: abort, active: active, runner: runner, info: info, list: list, bestCount: bestCount,
-    desync: desync, prepMs: prepMs,
+    desync: desync, prepMs: prepMs, cut: cut,
     /** Pruebas (tools/replaytest.js): copia de lectura del estado interno. */
     _state: function () {
-      return { on: RP.on, why: RP.why, step: RP.step, rec: RP.rec, serial: RP.serial, phase: PL.phase, k: PL.k, rate: PL.rate,
+      return { on: RP.on, why: RP.why, step: RP.step, dual: RP.dual, vs: RP.vs, rec: RP.rec, serial: RP.serial, phase: PL.phase, k: PL.k, rate: PL.rate,
         last: last.ok ? { k0: last.k0, start: last.start, pt: last.pt, end: last.end, slowFrom: last.slowFrom, slowTo: last.slowTo, auto: last.auto, how: last.meta.how, score: last.score } : null,
         best: list().map(function (o) { return o.pts; }), clip: PL.clip ? { start: PL.clip.start, end: PL.clip.end, slowFrom: PL.clip.slowFrom, slowTo: PL.clip.slowTo, pt: PL.clip.pt, hashStep: PL.clip.hashStep } : null };
     },

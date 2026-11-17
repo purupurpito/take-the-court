@@ -870,7 +870,7 @@ línea (`backSave()`) en el `pagehide`. **`firebase/firestore.rules` NO cambia.*
   que hace falta para volver (comprobado en roomtest).
 - Récord: `NetRec.resume()` apunta la marca reciente de la página anterior y el `begin()` del partido recuperado la hereda (no crea
   otra). Si la vuelta no llega a jugarse, esa marca se queda sin latido y a los 90 s cuenta como abandono: recargar no sale gratis.
-- **Pendiente:** recarga del ANFITRIÓN (su `pagehide` borra la sala y él tiene la partida de verdad: el invitado espera y a los 60 s
+- **Pendiente (HECHO en la «Fase 6», con el aviso y netdrive):** recarga del ANFITRIÓN (su `pagehide` borra la sala y él tiene la partida de verdad: el invitado espera y a los 60 s
   «no cuenta»). Haría falta: no borrar la sala en `play`, que la página nueva pida la foto al invitado (el anfitrión pasaría a
   adoptarla) y reofrezca con gen+1. Tampoco hay aviso en pantalla («Volviendo al partido…»): se va directo a «Conectando…» (con
   «Salir»). Sin prueba en Chrome de la recarga (`netdrive --rtc` sin ese caso todavía).
@@ -932,3 +932,223 @@ Sigue pendiente (sin cambios): recarga del ANFITRIÓN, aviso «Volviendo al part
 estadísticas generales de la hoja desde la partida confirmada (hook en ui.js), repetición y «Mejores jugadas» online (replay.js),
 nombres de más de 16 letras cortados, vertical ≤ 620 px del lobby, «Crear sala» con el lenguaje del rótulo, y probar con un mando
 y un móvil de verdad.
+
+---
+
+## Fase 6 — el anfitrión también vuelve tras recargar (17-nov-2026)
+
+Ficheros: `js/net.js`, `js/netroom.js` (`rooms.resume`), `js/netlobby.js` (solo la zona «VUELTA AL PARTIDO»: `backSave` llama a
+`hostBackSave`, `backTry` reparte, `hostBackTry` y `rejoinHost` nuevos; el render no se toca) y UNA línea de `js/main.js` (texto del
+HUD). `js/netrtc.js` y `js/netrec.js` sin cambios (`NetRec.resume` ya valía para los dos). **`firebase/firestore.rules` NO cambia**
+(comprobado en el emulador: el anfitrión retoma su sala en 'play', late, reescribe la oferta y lee la respuesta). `sim.js` intacto.
+
+### Cómo va
+
+1. **pagehide del anfitrión** en pleno partido (sesión `playing`/`waiting`, con invitado, sin abandono juzgado): ya NO borra la sala.
+   Apunta en `sessionStorage['voley3d.online.back']` `{role:'host', id, uid, gen, ep, rival, look del rival, guest, t}` (sin SDP ni
+   direcciones). Si sessionStorage falla, la sala se borra como siempre.
+2. **El invitado** ve caer el enlace y se queda en «Esperando a X…» (su `guestListen` ya vigila ofertas nuevas). Sus 60 s corren.
+3. **Al volver** (< 50 s, misma pestaña y cuenta, menú libre): `rooms.resume()` retoma la sala (si sigue en 'full'/'play' con el
+   mismo invitado y con latido de < 90 s), latido otra vez, sesión nueva de hueco 0 SIN opciones y `relink()`: oferta gen+1 al mismo
+   invitado a los 0,6 s y cada 10 s. El invitado contesta y el enlace se reabre.
+4. **Autoridad de la instantánea:** el anfitrión perdió su partida, así que en ESTE caso manda el invitado. La sesión adoptante
+   (`adopt`) saluda con `{k:'hello', back:1}`; el invitado (si sigue en partido y no lo dio por ido) contesta con sus opciones; el
+   anfitrión mide el reloj con pings (como un invitado nuevo) y manda `ready`; el invitado llama a su `_resync` (IA en el hueco del
+   anfitrión 60 tics por delante, foto `Sim.serialize` de su confirmada, sus entradas) y el anfitrión lo aplica con el mismo
+   `_applyResync` de siempre (ya era simétrico: `mine`/`theirs`). Desde ahí `adopt = false`: vuelve a ser un anfitrión normal
+   (huellas cada segundo; las reparaciones vuelven a ir con SU foto, que ya es la misma partida). La huella cuadra después
+   (net3test g: 20 comparaciones, 0 distintas, 0 reparaciones; netdrive: huellas iguales tras las dos recargas).
+5. **Fuera de plazo:** si el invitado ya juzgó (más de 60 s: «no cuenta»), contesta `bye 'gone'` y el anfitrión queda en `noShow`
+   (no hay partido). Si nadie contesta, la sesión adoptante espera 40 s (`ADOPT_MS`) y `noShow`. Si la marca tiene más de 50 s o la
+   sala ya no es la de ese partido, la página nueva BORRA su sala (`rooms.close`) en lugar de volver.
+6. Si el invitado había pulsado «Seguir contra la IA» y el anfitrión vuelve a tiempo, el partido vuelve a contar para él (como en
+   la vuelta del invitado), salvo un `invalid` por reparaciones (`rivInvalid`).
+7. **Revancha** tras una vuelta: `ctx.net.base` (la siembra el anfitrión) se rellena desde el lobby con las opciones adoptadas.
+8. **Aviso «Volviendo al partido…»** en las DOS vueltas: el lobby pone `session.back = true`; el HUD de main.js lo enseña mientras
+   la sesión se conecta (antes: «Conectando…» o, peor, «Esperando a que entre tu rival…» en el anfitrión). Se borra solo al empezar
+   o al aplicar el resync.
+
+### Pruebas
+
+- `node tools/net3test.js` 55 ok (nuevas: g1 el anfitrión recarga y vuelve, g2 lo mismo con el invitado contra la IA, h vuelta
+  fuera de plazo → `noShow` / `hostGone`, i nadie contesta → 40 s y `noShow`).
+- `node tools/roomtest.js` 72 ok con el emulador (nuevas: retomar la sala y latir, oferta gen+1 y respuesta en 'play' con las
+  reglas desplegadas, un tercero no la lee ni la retoma, fuera de plazo la sala se borra).
+- `node tools/nettest.js` 61 ok. `node tools/simtest.js`: «huella 2v2 idéntica».
+- `node tools/netdrive.js --rtc` 25 ok (nuevas: el invitado recarga y vuelve; el anfitrión recarga y vuelve, con la sala aún en el
+  emulador; las dos con el aviso; huellas iguales después de las dos recargas: 13 comparaciones, 0 distintas; consola sin errores).
+  Capturas `tools/out/f6-volviendo-{inv,anf}.png` (aviso) y `tools/out/f6-vuelta-{inv,anf}.png` (partido ya de vuelta).
+
+### Pendiente (fase 6)
+
+- Recarga en la cuenta atrás (`starting`) o con la hoja final abierta: no se apunta vuelta (el anfitrión borra la sala como antes).
+- Página restaurada de la caché del navegador (bfcache) tras un pagehide del anfitrión: la sesión sigue viva y la marca de vuelta
+  se queda sin usar (caduca a los 50 s). No se ha visto en la práctica.
+- Si el anfitrión recarga dos veces seguidas antes de reconectar, la segunda no apunta vuelta (su sesión aún no estaba en partido):
+  la sala se borra y el invitado se queda en «no cuenta» a los 60 s.
+- Mientras sale «Volviendo al partido…» se ve el menú detrás (igual que pasaba con «Conectando…» en la vuelta del invitado):
+  la escena del partido la monta main.js al llegar las opciones. Se podría tapar con un fundido; no era de esta parte.
+- Sigue lo de antes: estadísticas de la hoja desde la confirmada (ui.js), repetición online (replay.js), vertical del lobby, mando y
+  móvil de verdad.
+
+---
+
+## Fase 6 — repetición, «Mejores jugadas» y estadísticas de la hoja online (17-nov-2026)
+
+Ficheros: `js/replay.js`, `js/ui.js` (solo el tally y su API), las ramas online de `js/main.js` (`netSession`, `netBuildView`,
+`netConfirmed` nuevo, `netFrame` y `netBgTick`), UNA función de `js/net.js` (`stepInputs`, getter) y `tools/netreplaytest.js` (nuevo).
+**`firebase/firestore.rules` NO cambia.** `sim.js` intacto: huella 2v2 idéntica.
+
+### Repetición y «Mejores jugadas»
+
+- **Qué se graba:** la partida CONFIRMADA (gc), no la vista ni la predicha. `netSession` pasa `onTick` a la sesión: tras cada paso
+  confirmado, `Replay.onStep(s.stepInputs(), gc)` con las DOS entradas (`[hueco 0, hueco 1]`, ya decodificadas, con los bits de red
+  chal/skip/tmo/ai). Cada frame, `Replay.onEvents(gc, r.confirmed)` (canónicos). `netBuildView` hace `Replay.reset(gc, {dual: true,
+  slot})` (con `rpPre = v` para que `setGame` no grabe la vista). Lo mismo con la pestaña oculta (`netBgTick`).
+- **`replay.js`, modo dual:** anillos aparte (`mv2` Float64 ×4 y `fl2` Uint16 ×2 por paso; se crean en el primer partido online) y
+  tramos propios en cada mejor jugada (`mv2`/`fl2`, al primer uso). La resimulación (`stepG2`) llama `Sim.step(sombra, STEP, [in0, in1])`
+  con las mismas entradas: el mismo resultado bit a bit que gc. El modo offline no toca nada de esto (mismos arrays, mismo formato).
+- **Invitado:** se pinta una copia girada de la sombra (`RV`, `NetView.mirror` tras cada frame de la repetición), los eventos que se
+  reparten salen girados (`NetView.mapEvent`) y el punto de interés de la cámara también. `list()` y los textos dan el marcador desde su
+  lado, y la puntuación extra de «tu equipo» va al suyo (por eso las dos listas pueden no ser iguales).
+- **Dónde se ve:** solo en la hoja final, pestaña «Jugadas (n)» (como en Partido rápido). Durante el partido no hay repetición
+  automática: el reloj es de los dos y no se puede parar.
+- Una reparación con foto o una vuelta (`repaired` / `resyncs` cambian) cortan el peloteo en curso (`Replay.cut()`); el salto de tiempo
+  de una vuelta ya lo cortaba la comprobación de continuidad.
+
+### Estadísticas de la hoja (puntos, remates, aces, bloqueos, jugadores, momentos)
+
+- `ui.js`: `stats` = lo CONFIRMADO; en el online lo rellena `VB.UI.netTally(evs)` desde `netConfirmed` (main.js) con `r.confirmed`
+  girados para el invitado (`NetView.mapEvents`), con el descuento del punto anulado por challenge como en `onEvents`. Lo presentado
+  va a `pstats`, que solo usan los banners del partido (`liveStats(g)`). Un toque predicho que el rollback anuló ya no cuenta.
+
+### Pruebas
+
+- `node tools/netreplaytest.js` 30 ok (dos partidos online con bots por memPair, RTT 80 y 160 ms con pérdida, sets a 11 en pabellón):
+  graban los dos lados; cada mejor jugada repetida desde lo grabado = la partida confirmada bit a bit (stateHash de la sombra = el de gc
+  en el mismo tic, ~1300 comparaciones por lado), desync 0; el invitado ve una copia girada (girarla otra vez da la sombra) con eventos
+  de su vista; la misma jugada sale con el marcador y el equipo girados en las dos listas; tally confirmado (código de ui.js extraído)
+  = tally de la partida offline equivalente (las mismas entradas paso a paso), girado para el invitado; puntos de la hoja = sets de gc.
+  Y el modo offline graba sin dual y repite con desync 0.
+- `node tools/simtest.js` huella 2v2 idéntica, TODO OK. `node tools/nettest.js` 61 ok. `node tools/viewtest.js` 11 ok.
+  `node tools/replaytest.js --node` TODO OK.
+- Chrome (dos páginas `?net=bc&bot=1&points=11`, un solo Chrome, script de la sesión): graban los dos lados, hoja con «Jugadas (3)»,
+  estadísticas confirmadas espejo (anfitrión 5-11, invitado 11-5), `playBest(0)` en los dos, invitado con `runner()` girado y su
+  equipo abajo, desync 0, consola sin errores. Capturas `tools/out/f6-hoja-{anf,inv}.png` y `tools/out/f6-repe-{anf,inv}-{1,2}.png`.
+
+### Pendiente (fase 6)
+
+- Recargar la página (invitado o anfitrión) empieza un grabador y unas estadísticas nuevos: las jugadas y los números de antes de
+  recargar se pierden (la partida sigue bien).
+- Si el rival cierra justo tras el punto de partido (menos de 1,3 s), ese último punto puede no llegar a «Jugadas» (la cola no se
+  confirma).
+- `Badges.ingest` (ui.js) sigue recibiendo lo presentado en el online; no se ha mirado si las insignias cuentan ahí.
+- `node tools/replaytest.js --cdp` (parte de Chrome de las repeticiones offline) no se ha pasado en esta tanda; la parte node sí.
+
+---
+
+## Fase 6 — lobby terminado: «Crear sala», vertical y «Cómo funciona» (17-nov-2026)
+
+Solo `js/netlobby.js` (vistas y la cadena `CSS`; la zona «VUELTA AL PARTIDO» no se ha tocado). Reglas sin cambios (`pts` ya admitía
+11/15/21/25); huella 2v2 idéntica y repetición offline igual (no se toca nada de la sim).
+
+- **«Crear sala» con el lenguaje de la cartelera.** Un solo rótulo (`.ol-mk`), sin filas de menú: arriba la franja de la sede
+  (arena con rayas / madera con tablas según lo elegido) con «Así sale en la lista»; debajo, la **vista previa** de tu sala tal cual
+  saldrá en la lista (`fxHTML(r, {prev: true})`: la misma franja de TV con TU nombre, «VS ?», los chips, «Abierta» y «Entrar»; es un
+  `div`, no se enfoca ni se pulsa); y los **selectores compactos** (`.ol-sel`, `selRow`): nombre a la izquierda en versalitas, «‹ VALOR
+  ›» a la derecha en condensada cursiva; con el foco, barra amarilla a la izquierda y el valor en amarillo. Escenario, Sede, Partido,
+  **Puntos** (solo en Pabellón: 11/15/21/25, como en Partido rápido; en la playa siempre 21) e Igualado (Sí/No). Una línea al pie dice
+  qué supone Igualado. «Abrir sala» es un botón naranja ancho (`.ol-act.ol-new`), no una fila de menú. ↑↓ recorre los selectores y
+  «Abrir sala», ←→ cambia (`side()` → `step()`), clic o toque en las flechas también; B / Esc vuelve a la lista como antes.
+- **Puntos por set:** `prefs()` guarda `pts` en `voley3d.netroom`; `createRoom` manda `pts` (21 en la playa). Los chips salen de un
+  solo sitio (`chips(r)` / `chipsHTML(r)`, también en `cfgParts`): «1 set a N» o «Mejor de 3» (+ « a N» si no es 21). La partida ya
+  usaba `r.pts` (`opts.points`).
+- **«Cómo funciona»:** rótulo inclinado («Cómo funciona el online», como «Salas abiertas») y una sola caja con una fila por punto
+  (`dl.hp-box`, etiqueta amarilla en cursiva y el texto al lado). En un teléfono apaisado y en vertical, la etiqueta va en la misma
+  línea que el texto (cabe sin pisar la cabecera). «Entendido» = el botón naranja ancho.
+- **Vertical (≤ 620 px de ancho).** Barra en dos filas (Crear sala + Código; tu nombre + actualizar + ?; antes «?» quedaba fuera y el
+  nombre no se veía). Franjas más estrechas: sede de 62 px sin el nombre de la sede, nombre a 21 px, el estado («Abierta», «Llena»)
+  encima de «Entrar». La cartelera usa el alto que hay (`100vh - 330px`). Teclado en pantalla: «A escribe. B cancela.» bajo el campo,
+  teclas de 40 px. Sala de espera: nombres a 29 px. «Cómo funciona» ya no pisa la cabecera (antes medía 769 px y subía por encima).
+- Teléfono apaisado (≤ 420 px de alto): en «Crear sala» se esconde la franja de arriba (la vista previa ya lleva la sede) y la línea
+  de Igualado; selectores de 30 px. Cabe todo en 844×390.
+
+Pruebas: `node tools/roomtest.js` 72 ok; `bash tools/console.sh all 844 390` sin errores JS; `node tools/netdrive.js --rtc` 22 ok;
+`node tools/simtest.js` «huella 2v2 idéntica» y «resim idéntica 100 %». Navegación (scratchpad, `NetRoom` simulado, mando falso): 32
+comprobaciones, las 23 de antes más 9 de «Crear sala» (foco inicial en Escenario, → cambia la sede de la franja y de la vista previa,
+Puntos solo en Pabellón, ↓ recorre hasta «Abrir sala», chips «1 set a 25» / «Mejor de 3 a 25», clic en la flecha de Igualado).
+Capturas: `tools/out/lob6-{lista0,lista1,lista4,crear,crear2,ayuda,teclado,teclado-codigo,sala-espera,sala-rival,sala-invitado}-
+{1280x720,844x390,390x844}.png` (390×844 con táctil), sin textos cortados salvo nombres muy largos con «…» (a propósito).
+
+### Pendiente (lobby)
+
+- El teclado en pantalla sigue sin aceptar teclas físicas a la vez.
+- En vertical, un nombre de rival largo en la sala de espera queda muy pegado al «VS» (se corta con «…», pero justo).
+- Probar con un móvil y un mando de verdad.
+
+## Fase 6 — revisión de las tres partes (17-nov-2026)
+
+Revisión independiente de lo de arriba (vuelta del anfitrión, repetición y hoja online, lobby). Sin cambios en el código del juego ni en
+`firebase/firestore.rules`.
+
+### Encaje
+- Las tres partes conviven sin pisarse. En `js/main.js` están la línea del aviso «Volviendo al partido…» (`netHud`) y `netConfirmed`
+  más el grabador dual (`netSession`, `netBuildView`), en sitios distintos. En `js/netlobby.js`, la zona «VUELTA AL PARTIDO» y el
+  render nuevo van aparte. Los seis ficheros tocados pasan `node --check`.
+- `rpPre = v` en `netBuildView` evita que `setGame` reinicie el grabador sobre la vista: graba la partida confirmada, como se pretendía.
+- `g.online` es una clave de la sim (la copia la vista), así que `pstats` funciona y lo predicho no cuenta dos veces en la hoja.
+- Las insignias y los retos siguen recibiendo lo presentado en el online, pero ninguno de los dos se cierra en el online
+  (`Badges.endMatch` y `Retos.endMatch` no se llaman con `online`). No cuentan nada.
+
+### Vuelta del anfitrión: el reloj
+- Tras la vuelta, el anfitrión tiene un desfase de reloj propio y el invitado conserva el de la página vieja del anfitrión
+  (`performance.now()` vuelve a 0 al recargar). He mirado si un resync posterior del anfitrión (reparación con foto o corte) deja
+  mal el `t0` del invitado. Prueba en el scratchpad (`hostclock.js`): relojes de la página nueva desplazados 0, +5,5 s y −60 s, con
+  una reparación forzada y con cortes de 3 s y 25 s. En todos los casos: huellas iguales, 0 distintas, sin esperas de más y gc a la
+  par. La corrección de deriva de `advance` (congelar o adelantar `t0`) lo absorbe. No hace falta cambiar nada.
+
+### Partido completo de extremo a extremo (Chrome headless, dos páginas, `?net=bc`, bots, 80 ms, 2 % de pérdida, set a 11)
+- Termina 13-11 (con igualada) en unos 7 minutos. Las dos páginas llegan a la hoja final con «Resumen», «Estadísticas» y «Jugadas (3)».
+- Estadísticas en espejo exacto. Anfitrión: puntos 11-13, de ataque 7-11, de bloqueo 0-0, aces 1-0, errores del rival 3-2,
+  mejor racha 3-4. El invitado ve lo mismo girado. Cuadran con el marcador (7+0+1+3 = 11; 11+0+0+2 = 13). MVP por jugador, también
+  en espejo.
+- Maestría: cada lado ve la suya («Rápidas 2» y «Rápida 1»).
+- «Mejores jugadas»: las mismas tres en los dos lados, con el marcador girado (10-8 frente a 8-10).
+- Repetición: «Ver» se abre en los dos lados con el mismo paso. En el invitado, la partida que se pinta es la copia girada: balón
+  (−2,88; 2,84) frente a (2,88; −2,84), y su equipo, abajo. 0 desincronizaciones. Al acabar se vuelve a la hoja.
+- Revancha: los dos pulsan y empieza la época 1. Las jugadas y las estadísticas vuelven a cero. Consola sin errores en las dos páginas.
+- Capturas en el scratchpad de la revisión (no en el repo).
+
+### Lobby nuevo (capturas a 390x844 táctil, 844x390 y 1280x720)
+- «Crear sala» se ve coherente con la cartelera: la vista previa es la misma franja, y los selectores son compactos y legibles.
+  No tiene el aspecto «de IA» (sin tarjetas en rejilla ni degradados). Cabe entero en 390x844, sin desplazamiento horizontal.
+- La sede sale tres veces seguidas: en la franja de arriba, en la vista previa y en el selector. Se puede quitar la de la franja.
+- En 390x844 tu propio nombre sale cortado en la vista previa («JUGADOR…»). Es lo mismo que en la lista, pero en la vista previa extraña.
+- «Cómo funciona» cabe en 390x844 (de 193 a 659 px).
+
+### Pruebas (de una en una)
+- `node tools/simtest.js`: «huella 2v2 idéntica» (150 partidas), «resim idéntica 100 %» y TODO OK.
+- `node tools/nettest.js`: 61 ok. `node tools/net3test.js`: 55 ok. `node tools/roomtest.js`: 72 ok (emulador).
+- `node tools/netdrive.js --rtc`: 25 ok.
+
+### Pendiente (revisión)
+- En la hoja del invitado que gana, el bloque MVP puede salir solo como «MVP rival» si hay empate a puntos con el mejor de su equipo
+  (aquí, 7 y 7). Es cosmético; no he mirado si en offline pasa igual.
+- La prueba `?net=bc` sin `&map=` monta un pabellón distinto en cada página. Solo pasa en la prueba: el lobby siempre manda la sede.
+- Sigue sin pasar `node tools/replaytest.js --cdp` y sin captura de la hoja offline tras el cambio `stats`/`pstats`.
+
+## Fase 6 — arreglos de la revisión (17-nov-2026)
+- **MVP del Resumen con empate.** `VB.Recap.endModel` se queda con el primero de `d.pl` si hay empate a puntos. En offline tu equipo
+  ya iba primero; en el online del invitado los ids del anfitrión iban antes y el empate se lo llevaba el rival. `endData` (ui.js) ordena
+  ahora `pl` con tu equipo primero, en orden estable. En offline no cambia nada. La pestaña «Estadísticas» ya enseñaba los dos MVP.
+- **«Crear sala».** La franja de arriba ya no repite la sede: dice «Tu sala · Así sale en la lista» y solo conserva el color de la
+  sede. En vertical (≤ 620 px) la vista previa esconde la columna de la sede y «Entrar» (la sede ya está en el selector), así que tu
+  nombre cabe: «JUGADORA LARGA» entra entero en 390x844.
+- **Prueba `?net=bc` sin `&map=`.** El anfitrión elige ya la sede concreta (`VB.Venues.list(tipo)` con la semilla), como hace el lobby.
+  Las dos páginas montan el mismo pabellón. Las huellas no cambian.
+- `node tools/replaytest.js --cdp` pasa (TODO OK). Ya no queda pendiente.
+
+### Pendiente
+- En la captura del invitado que pierde, el rótulo grande «GANA EL RIVAL» se ve como «GANAL RIVAL» a mitad de animación. No lo he
+  mirado más (puede ser el barrido del rótulo); conviene revisarlo con una captura en offline («GANA LA CPU»).
+- Sigue sin captura de la hoja offline tras el cambio `stats`/`pstats` (replaytest --cdp, que sí pasa, abre la hoja offline sin errores).

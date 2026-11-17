@@ -220,6 +220,27 @@ async function emuTests(base) {
     const C2 = mk('uidC'); const peek = await C2.getSig('uidL', 'offer');
     check('… y un tercero no puede leer la oferta nueva', peek === null);
     await H.close(); }
+  // (fase 6) vuelta del ANFITRIÓN tras recargar: su pagehide en pleno partido no borra la sala; la página nueva (cliente nuevo,
+  // misma cuenta) la retoma (resume), late y reofrece con gen+1 al mismo invitado; fuera de plazo la borra. Sin cambiar las reglas.
+  { const H = mk('uidP'), G = mk('uidQ'); await H.open({ name: 'Pau' }); await G.join('uidP', 'Quim'); await H.beat({ state: 'play' });
+    await H.putSig('uidP', 'offer', { sdp: 'o1', gen: 20, to: 'uidQ' }); await G.putSig('uidP', 'answer', { sdp: 'a1', gen: 20 }); await H.delSig('uidP');
+    await sleep(1200);   // (recarga: sin bye del anfitrión)
+    const H2 = mk('uidP');
+    const nob = await H2.beat();   // (sin resume, la página nueva no sabe que tiene sala: no late)
+    const r1 = await H2.resume();
+    const b1 = await H2.beat();
+    const okOffer = await H2.putSig('uidP', 'offer', { sdp: 'o2', gen: 21, to: 'uidQ' }).then(() => true, e => e.code);
+    const o2 = await G.getSig('uidP', 'offer');
+    const okAns = await G.putSig('uidP', 'answer', { sdp: 'a2', gen: 21 }).then(() => true, e => e.code);
+    const a2 = await H2.getSig('uidP', 'answer');
+    check('recarga del anfitrión en pleno partido: retoma su sala (sigue en juego con el invitado), late y la oferta gen+1 y la respuesta caben en las reglas',
+      nob === null && r1 && r1.state === 'play' && r1.guest === 'uidQ' && b1 && b1.age < 3000 && b1.state === 'play' && b1.guest === 'uidQ' && okOffer === true && o2 && o2.gen === 21 && o2.sdp === 'o2' && okAns === true && a2 && a2.gen === 21 && a2.uid === 'uidQ',
+      { r1: r1 && r1.state, b1: b1 && b1.age, okOffer, okAns });
+    const C3 = mk('uidC'); const peek = await C3.getSig('uidP', 'offer'), rc = await C3.resume();
+    check('… un tercero no lee la oferta nueva ni retoma la sala (resume solo da la tuya)', peek === null && rc === null);
+    const H3 = mk('uidP'); const r3 = await H3.resume(); await H3.close();
+    const gone = await G.get('uidP'), o3 = await G.getSig('uidP', 'offer');
+    check('anfitrión que vuelve fuera de plazo: retoma y borra su sala; el invitado ya no ve sala ni oferta', r3 && r3.id === 'uidP' && gone === null && o3 === null && (await mk('uidP').resume()) === null); }
   check('C no puede borrar la sala de otro con latido vivo', await (async () => { const r = await mk('uidG').open({ name: 'Gal' }); const d = await raw('DELETE', '/rooms/uidG', null, fakeToken('uidC')); await mk('uidG').close(); return r && d.status === 403; })());
 }
 

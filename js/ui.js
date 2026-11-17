@@ -346,6 +346,10 @@
       spSaved: [0, 0], spSet: [0, 0], spM: [false, false], def: [0, 0], sets: [0, 0], setNo: 1, moments: [], rallyM: null, streakM: null, close: null };
   }
   var stats = newStats();
+  // ONLINE (fase 6, notes/net.md): `stats` = lo CONFIRMADO (VB.UI.netTally, lo llama main.js con los eventos confirmados ya girados) y
+  // pstats = lo presentado (predicho): solo para los banners del partido. La hoja final lee `stats`
+  var pstats = newStats();
+  function liveStats(g) { return ctx.net && g && g.online && !g.demo ? pstats : stats; }
 
   function loadRecord() { try { var r = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); if (r && typeof r.played === 'number') for (var k in record) if (typeof r[k] === typeof record[k]) record[k] = r[k]; } catch (e) { } record.byD = cleanByD(record.byD); }
   /** record.byD saneado: solo claves de dificultad (VB.DIFF) con un par de enteros ≥ 0; lo demás fuera ({} si no hay nada). */
@@ -774,16 +778,16 @@
     // punto anulado por challenge (sim, endReview): en el MISMO paso vuelve a pitar el punto ('point') y luego 'challengeResult'
     // con overturned. Ese 'point' no lleva pestaña («REMATE» junto al marcador contradecía el cartel anterior): lo cuenta el
     // banner IN/OUT del challenge; y las estadísticas descuentan el punto anulado.
-    var ovr = false;
+    var ovr = false, netP = liveStats(g) === pstats, s0 = null;
     for (var oi = 0; oi < events.length; oi++) if (events[oi].type === 'challengeResult' && events[oi].overturned) ovr = true;
     if (g.subsOn && !g.demo && events.length) subsEvents(g, events);   // banquillo: rótulo de los cambios y avisos de entrar / salir
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.type === 'newMatch') { stats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; unl0 = g.demo ? null : lkUnseen().slice(); }   // (B6: lo del Vestuario sin ver al empezar)
+      if (e.type === 'newMatch') { stats = newStats(); pstats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; unl0 = g.demo ? null : lkUnseen().slice(); }   // (B6: lo del Vestuario sin ver al empezar)
       if (e.type === 'newSet') lastSpKey = '';
       if (g.demo) continue;
-      if (ovr && e.type === 'point') { untally(); e._ovr = true; }
-      tally(e);
+      if (ovr && e.type === 'point') { if (netP) { s0 = stats; stats = pstats; untally(); stats = s0; } else untally(); e._ovr = true; }
+      if (netP) { s0 = stats; stats = pstats; tally(e); stats = s0; } else tally(e);   // (online: lo presentado no cuenta en la hoja)
       if (VB.Badges && !g.drill) VB.Badges.ingest(e, g); // insignias: cuenta remates, aces, recepciones… del equipo 0 (js/badges.js; los ejercicios no cuentan)
       // S4-D1: retos de maestría y del día (js/retos.js; O(1) por evento, sin asignar; nunca los ejercicios ni la repetición)
       if (VB.Retos && VB.Retos.ingest && !g.drill && !e.replay) { try { VB.Retos.ingest(e, g); } catch (er) { console.error('[VB][ERROR] Retos.ingest: ' + er); } }
@@ -894,7 +898,7 @@
             t3: '', cls: (e.team === 0 ? 'win' : 'lose') + ' t3', dur: BAN.set, kind: 'set', gate: 'cut' });
           break;
         case 'match':
-          queuePres({ t1: e.team === 0 ? '¡Ganas el partido!' : 'Gana la CPU', t2: 'Sets ' + e.sets[0] + '-' + e.sets[1], t3: '', cls: (e.team === 0 ? 'ace' : 'lose') + ' t3', dur: BAN.match, kind: 'match', gate: 'cut' });
+          queuePres({ t1: e.team === 0 ? '¡Ganas el partido!' : (ctx && ctx.game && ctx.game.netCr && ctx.game.netCr.rivalName ? 'Gana ' + ctx.game.netCr.rivalName : 'Gana la CPU'), t2: 'Sets ' + e.sets[0] + '-' + e.sets[1], t3: '', cls: (e.team === 0 ? 'ace' : 'lose') + ' t3', dur: BAN.match, kind: 'match', gate: 'cut' });
           break;
         case 'courtChange':
           // reglas 18.2.1 / 18.2.2: cuando la cámara pasa al plano 'court' (grúa); se va antes de que la grúa acabe (ccU = 1)
@@ -1554,7 +1558,8 @@
     // C4: tu ace o tu bloqueo directo (el golpe lo has dado tú) sale siempre en la cinta cinética, sin BIG_GAP ni «la misma dos
     // veces»; el de tu compañero IA sigue el ritmo de siempre (si baja a la pestaña, sin cinética)
     var kin = me && (k === 'ace' || k === 'blockPt') && kinOn(g);
-    if (kin && (k === 'ace' ? stats.lastHuman[0] : stats.blockHuman)) tier = 2;
+    var lsx = liveStats(g);
+    if (kin && (k === 'ace' ? lsx.lastHuman[0] : lsx.blockHuman)) tier = 2;
     kin = kin && tier === 2;
     bigGap = tier === 2 ? 0 : bigGap + 1;
     lastBig = tier === 2 ? { team: e.team, k: k } : null;
@@ -2948,6 +2953,9 @@
   function endData(e, g, sum, x) {
     var pl = [], id, cs = g && g.career && !g.demo ? g.career : null;
     for (id in stats.p) pl.push(stats.p[id]);
+    // (tu equipo primero, en orden estable: con empate a puntos, el MVP del Resumen es el tuyo, como en offline. En el online del
+    //  invitado los ids del anfitrión van antes y, sin esto, el empate se lo llevaba el rival)
+    pl = pl.map(function (q, i) { return { q: q, i: i }; }).sort(function (a, b) { return ((a.q.team | 0) - (b.q.team | 0)) || (a.i - b.i); }).map(function (o) { return o.q; });
     var mo = stats.moments.slice(); if (stats.rallyM) mo.push(stats.rallyM); if (stats.streakM) mo.push(stats.streakM);
     var d = { seed: (g && g.seed) >>> 0, win: e.team === 0, sets: [e.sets[0] | 0, e.sets[1] | 0], setScores: (e.setScores || (g && g.setScores) || []).map(function (s) { return [s[0] | 0, s[1] | 0]; }),
       to: (g && g.points) || 25, size: (g && g.size) || 2, career: cs, cpu: g && g.netCr ? 'el rival' : 'la CPU', pl: pl, spSaved: stats.spSaved.slice(), moments: mo, close: stats.close,
@@ -6494,6 +6502,15 @@
     },
     /** Estadísticas sin banners (escenas de depuración que avanzan la sim sin pintar). */
     ingest: function (events, g) { for (var i = 0; i < events.length; i++) { if (events[i].type === 'newMatch') stats = newStats(); else tally(events[i]); } },
+    /** ONLINE (fase 6): estadísticas de la hoja con los eventos CONFIRMADOS (main.js, ya girados para el invitado con NetView.mapEvents).
+     *  null = vaciar. El punto anulado por challenge se descuenta como en onEvents. Sin banners. */
+    netTally: function (events) {
+      if (!events) { stats = newStats(); return; }
+      var ovr = false, i;
+      for (i = 0; i < events.length; i++) if (events[i].type === 'challengeResult' && events[i].overturned) ovr = true;
+      for (i = 0; i < events.length; i++) { var e = events[i]; if (ovr && e.type === 'point') untally(); tally(e); }
+    },
+    _netStats: function () { return stats; },
     /** Cierra el panel abierto. true si se ha consumido (Esc / B / Start). */
     back: function () {
       if (panel) { uiSound('back'); return closePanel(); }
