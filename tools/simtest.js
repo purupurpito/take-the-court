@@ -849,7 +849,7 @@ function e1Section() {
     const o = {};
     for (const d of ['normal', 'expert']) {
       let sets = 0, lane = 0, away = 0, spk = 0, pend = null;
-      for (let s = 1; s <= 8; s++) {
+      for (let s = 1; s <= 20; s++) { // (20 semillas, antes 8: con 8 la frecuencia de Normal iba al borde de la tolerancia por puro azar)
         const g = S.createGame({ seed: 4000 + s, difficulty: d, mastery: true }), inp = makeBot(BOTS.medio, s * 11 + 5);
         for (let i = 0; i < Math.round(240 / DT); i++) {
           const hy = g.ctrl.y; S.step(g, DT, inp(g));
@@ -925,7 +925,8 @@ function e1Section() {
 /* (a) plancha: calidad siempre 'poor' (tope 0,45 × 0,7) y alcance REACH + DIVE (0,8); (b) remates de la CPU en 6v6: ninguno a menos de
  * 9 m/s de velocidad horizontal (antes ~40 % < 8 m/s: «rosquitas»); (c) colocador humano: la IA no le deja los balones de su celda en
  * el 1r toque (humanOwns solo por cercanía); (d) «¡Pídela!» del colocador delantero tras dar él el 1r toque (askOk) y el colocador de
- * emergencia le coloca (buildCand le acepta; tempo 'shoot'); (e) colocación del humano en 6v6: la calidad pesa en el remate del compañero. */
+ * emergencia le coloca (buildCand le acepta; tempo 'shoot'); (e) colocación del humano en 6v6: la calidad pesa en el remate del compañero; (g) estirón: el 1r toque del humano lejos del cuerpo (> 0,55 del alcance)
+ * pierde calidad y precisión aunque clave el timing (STRETCH); la IA no. */
 function j17Section() {
   const f0 = failures, res = [];
   const push0 = res.push.bind(res); res.push = (r) => { console.log('  ' + r[0] + ' ' + JSON.stringify(r[2]) + (r[1] ? '' : '   <<< FALLA')); return push0(r); };
@@ -976,6 +977,63 @@ function j17Section() {
     const at = (dx, v) => { z6.x = sd * (2 + dx); z6.vx = -sd * v; return S.overlapCount(g, 0); };
     const still = [at(0.1, 0), at(0, 0)], run = [at(0.3, 5), at(0.2, 5)], ai = (() => { let o = 0; for (let k = 1; k <= 2; k++) { const d = S.createGame({ format: '6v6', demo: true, seed: k, stats: true }); for (let i = 0; i < 60 * 300; i++) S.step(d, DT, null); S.drainEvents(d); o += d.stats.overlap[0] + d.stats.overlap[1]; } return o; })();
     res.push(['(f) falta de posición con los pies: quieto a 10 cm no y a la altura sí; corriendo a la red a 20 cm ya sí (zancada); la IA nunca', still[0] === 0 && still[1] === 1 && run[0] === 0 && run[1] === 1 && ai === 0, { quieto: still, corriendo: run, ia: ai }]); }
+  // (g) estirón del 1r toque del humano (STRETCH): con te = 0, el balón a 0,4 del alcance sale igual que siempre (calidad 1) y a 0,85 ya
+  // no es «perfect» y se dispersa mucho más; la IA en la misma escena, sin estirón (calidad = la fórmula de distancia de siempre, 0,8)
+  { const pass = (fmt, fr, ai, k) => { const g = S.createGame({ format: fmt, seed: 300 + k, difficulty: 'normal', ctrl: 'one', autopilot: ai }), p = g.ctrl, sd = S.side(0);
+      p.x = sd * 5.5; p.y = 0; p.z = 0; p.vz = 0; p.down = 0; p.cool = 0;
+      e1Rally(g, { x: p.x, y: (k % 2 ? 1 : -1) * fr * C.REACH, z: 0.95, vx: sd * 11.3, vz: -4.2 });
+      g.touchTeam = 1; g.touches = 1; g.lastTeam = 1; g.lastKind = 'serve'; g.lastPlayer = g.teams[1][0]; g.lastTouchT = g.time - 0.8; g.digTight = false;
+      const o = { x: g.ball.x, y: g.ball.y, z: g.ball.z }; S._hit(g, p, null, 0, '', null);
+      const hv = S.drainEvents(g).find(e => e.type === 'hit'), b = g.ball, ap = o.z + b.vz * b.vz / (2 * C.G), T = b.vz / C.G + Math.sqrt(2 * Math.max(0, ap - 1.9) / C.G);
+      return { q: hv ? hv.quality : NaN, x: o.x + b.vx * T, y: o.y + b.vy * T }; };
+    const cell = (fmt, fr, ai) => { const r = []; for (let k = 0; k < 60; k++) r.push(pass(fmt, fr, ai, k));
+      const mx = r.reduce((s, a) => s + a.x, 0) / r.length, my = r.reduce((s, a) => s + a.y, 0) / r.length;
+      return { q: Math.max(...r.map(a => a.q)), qMin: Math.min(...r.map(a => a.q)), spr: r.reduce((s, a) => s + Math.hypot(a.x - mx, a.y - my), 0) / r.length }; };
+    const out = {}; let ok = true;
+    for (const fmt of ['2v2', '6v6']) { const n = cell(fmt, 0.4, false), f = cell(fmt, 0.85, false), a = cell(fmt, 0.85, true);
+      out[fmt] = { cerca: [+n.qMin.toFixed(3), +n.spr.toFixed(2)], lejos: [+f.q.toFixed(3), +f.spr.toFixed(2)], ia: +a.q.toFixed(3) };
+      ok = ok && n.qMin > 0.999 && f.q < 0.78 && f.spr > 3.5 * n.spr && Math.abs(a.q - 0.8) < 0.002 && Math.abs(a.qMin - 0.8) < 0.002; }
+    res.push(['(g) estirón del 1r toque (humano): a 0,4 del alcance como siempre; a 0,85 sin «perfect» y > 3,5× más disperso; la IA sin estirón', ok, out]); }
+  // (h) pase más cerca de la red (6v6, 17-nov-2026): el destino del 1r toque depende de la calidad (passTarget puro) y en partido los
+  // pases perfectos bajan por 3 m de alto a ~1,3 m de la red sin colarse nunca bajo ella ni pasar al rival sin 2º toque
+  { const A = VB.AI6, g0 = S.createGame({ format: '6v6', seed: 3, ctrl: 'one' }), p0 = g0.teams[0][1]; let n0 = 0; const r0 = g0.rng; g0.rng = () => { n0++; return r0(); };
+    const dP = A.passTarget(g0, p0, false, 0.95).d, dM = A.passTarget(g0, p0, false, 0.3).d, hP = A.passTarget(g0, p0, true, 0.95).d, hM = A.passTarget(g0, p0, true, 0.3).d;
+    const perf = [], poor = []; let under = 0, ctrl = 0;
+    for (let sd = 1; sd <= 6; sd++) {
+      const g = S.createGame({ format: '6v6', demo: true, seed: 2400 + sd }); let tr = null;
+      for (let i = 0; i < 60 * 200; i++) {
+        const z0 = g.ball.z; S.step(g, DT, null);
+        if (tr && !tr.done && z0 > 3 && g.ball.z <= 3 && g.ball.vz < 0) { (tr.q >= 0.78 ? perf : tr.q < 0.45 ? poor : []).push(g.ball.x * S.side(tr.t)); tr.done = true; }
+        for (const e of S.drainEvents(g)) {
+          if (e.type === 'hit') { tr = e.kind === 'pass' && e.touch === 1 && e.shot !== 'shank' && e.shot !== 'body' && !e.dive ? { t: e.team, q: e.quality, done: false } : null; if (tr) ctrl++; }
+          else if (e.type === 'point') { if (tr && e.reason === 'under') under++; tr = null; }
+        }
+      }
+    }
+    const med = a => { const b = a.slice().sort((x, y) => x - y); return b.length ? b[b.length >> 1] : NaN; };
+    res.push(['(h) pase más cerca de la red: destino por calidad (perfecta 0,8 / mala 1,5; defensa 1,4 / 2,2) sin gastar azar; en partido, perfectos a ≤ 1,7 m de la red a 3 m de alto (≥ 0,5 m más cerca que los malos) y ninguno bajo la red',
+      Math.abs(dP - 0.8) < 0.06 && dM === 1.5 && Math.abs(hP - 1.4) < 0.06 && hM === 2.2 && n0 === 0 && med(perf) >= 0.9 && med(perf) <= 1.7 && med(perf) <= med(poor) - 0.5 && under === 0 && ctrl > 60,
+      { recepcion: [+dP.toFixed(2), dM], defensa: [+hP.toFixed(2), hM], rng: n0, perfectos3m: +med(perf).toFixed(2), malos3m: +med(poor).toFixed(2), bajoRed: under, pases: ctrl }]); }
+  // (i) bloqueo ofensivo (17-nov-2026): GOLPEAR en el aire en la red ante un balón rival que cruza sin atacar (overpass) es un BLOQUEO
+  // (pulsado, ofe) y nunca, además, un remate del mismo jugador en el mismo salto
+  { let blk = 0, pressed = 0, ofe = 0, spk = 0, stuff = 0, n = 0;
+    for (let sd = 0; sd < 60; sd++) {
+      const g = S.createGame({ seed: 900 + sd, ctrl: 'one', ctrlIdx: 0, stats: true }), p = g.teams[0][0], rr = S._makeRng(sd + 7), r = () => rr();
+      e1Rally(g, { x: -1.0 - 0.4 * r(), y: (r() - 0.5) * 0.6, z: 3.1 + 0.3 * r(), vx: 3.5 + r(), vz: 0.5 });
+      g.touchTeam = 1; g.lastTeam = 1; g.touches = 1; g.lastKind = 'pass'; g.lastPlayer = g.teams[1][0]; g.lastTouchT = g.time;
+      g.teams[1][0].x = -3; g.teams[1][1].x = -5; g.teams[0][1].x = 6; p.x = 0.45; p.y = g.ball.y; p.z = 0; p.vz = 0; S._refreshPred(g); S.drainEvents(g);
+      S._jump(g, p, 0, 0); let pushed = false, done = false; n++;
+      for (let i = 0; i < 60 * 6 && !done; i++) {
+        const inp = !pushed && p.z > 0.25 ? { move: [0, 0], hit: true, jump: false, jset: false } : null; if (inp) pushed = true;
+        S.step(g, DT, inp);
+        for (const e of S.drainEvents(g)) {
+          if (e.type === 'block' && e.player === p) { blk++; if (e.pressed) pressed++; if (e.ofe) ofe++; if (e.result === 'stuff') stuff++; }
+          if (e.type === 'hit' && e.player === p && e.kind === 'spike') spk++;
+          if (e.type === 'point') done = true;
+        }
+      }
+    }
+    res.push(['(i) bloqueo ofensivo: GOLPEAR ante un overpass en la red = bloqueo pulsado (ofe), nunca remate del mismo salto; hay directos', blk >= n * 0.9 && pressed === blk && ofe === blk && spk === 0 && stuff >= n * 0.2, { escenas: n, bloqueos: blk, pulsados: pressed, ofe, remates: spk, directos: stuff }]); }
   const bad = res.filter(r => !r[1]);
   if (bad.length) fail('ajustes 17-nov: ' + bad.map(r => r[0]).join('; '));
   console.log('Ajustes de juego (17-nov): ' + res.length + ' pruebas' + (failures === f0 ? ' OK' : ''));

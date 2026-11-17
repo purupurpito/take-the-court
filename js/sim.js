@@ -955,6 +955,8 @@
     var vz = Math.sqrt(2 * G * (apex - p.z)), T = vz / G + Math.sqrt(2 * (apex - tz) / G);
     return [(tx - p.x) / T, (ty - p.y) / T, vz];
   }
+  /** x del balón lanzado desde p con v cuando BAJA a la altura z (sin red ni rebotes). */
+  function dropX(p, v, z) { var t = (v[2] + Math.sqrt(Math.max(0, v[2] * v[2] + 2 * C.G * (p.z - z)))) / C.G; return p.x + v[0] * t; }
   function clearsNet(p, v, G) {
     G = G || C.G;
     if (!v[0]) return true; var tn = -p.x / v[0]; if (tn <= 0) return true;
@@ -1110,6 +1112,17 @@
   var BLK_ZONE = 1.1, BLK_AIRQ = 0.6;
   /** Plancha en el 1r toque: prob. de que el balón salga desviado (×ek), 17-nov-2026. */
   var DIVE_FAIL = 0.35;
+  /** ESTIRÓN del 1r toque del HUMANO (17-nov-2026, Ferran: «Hay que "nerfear" la defensa. Si el balón va muy lejos de tu cuerpo, por
+   *  mucho que hagas buen timing la pelota no va donde tú quieres exactamente»). s = (d / alcance − d0) / (1 − d0), entre 0 y 1, al
+   *  cuadrado (casi nada a media distancia, todo al límite). Calidad ×(1 − q·s) (además del −30 % lineal de siempre) y dispersión del
+   *  destino +er·s ×(1 + sp·dureza del balón que llega, 11 → 19 m/s), que el timing NO quita (los atributos sí, ×ek). Solo el humano:
+   *  la IA ya juega sus 1.os toques con su error de perfil (prof.err). Ni la plancha (ya capada, DIVE_FAIL) ni el rebote en el cuerpo. */
+  var STRETCH = { d0: 0.55, q: 0.2, er: 0.45, sp: 0.6 };
+  function stretchOf(g, p, d) { var s = clamp((d / reachOf(g, p) - STRETCH.d0) / (1 - STRETCH.d0), 0, 1); return s * s; }
+  // 6v6, 1r toque (17-nov-2026, pase más cerca de la red): el pase controlado baja a 1 m de alto (g.pr1, lo que lee la IA para ir
+  // al balón) al menos PASS_KEEP m antes de la red. Si no, ai6.computeJob lo da por perdido (pr1 al otro lado) y se cuela por
+  // debajo de la red sin que nadie lo toque. PASS_MIN: el destino (a 1,9 m de alto) nunca más cerca de la red que esto
+  var PASS_KEEP = 0.4, PASS_MIN = 0.75;
   /** BLOQUEO ACTIVO (11-nov-2026, pedido de Ferran: «al presionar golpear, lo que haga el bloqueo sea bajar… si lo aprietas demasiado
    *  rápido puedes tocar la red y que sea falta; si no lo aprietas, el rebote es suave»). En el aire en la red (|x| <= BLK_ZONE) con el
    *  balón del rival, GOLPEAR ya no es un golpe: es «bajar» el bloqueo (manos por encima de la red empujando hacia abajo).
@@ -1287,6 +1300,8 @@
     var q = timingQ(te);
     q *= 1 - 0.3 * clamp((d / C.REACH - 0.55) / 0.45, 0, 1);
     if (hardIn) q *= 1 - 0.25 * clamp((inSp - 11) / 8, 0, 1);
+    // estirón (STRETCH): el humano que llega al balón lejos del cuerpo en el 1r toque no lo controla del todo aunque clave el timing
+    var strK = human && count === 1 && !atkC0 && !jset && shot !== 'dive' && shot !== 'body' ? stretchOf(g, p, d) : 0;
     // plancha (17-nov-2026, Ferran: «hay que hacer que sea más difícil salvar esas y que vayan bastante peor»): tope 0,45 × 0,7 = 0,32
     // (siempre 'poor'; antes 0,62 × 0,85 = 0,53, 'good') y, en el 1r toque, DIVE_FAIL de que salga desviada (abajo)
     if (shot === 'dive') q = Math.min(q, 0.45) * 0.7;
@@ -1306,6 +1321,7 @@
       q = ek > 1 ? q * (1 - AK.errQ[0] * (ek - 1)) : q + (1 - q) * (1 - ek) * AK.errQ[1];
       grade = gradeOf(q);
     }
+    if (strK > 0) { q *= 1 - STRETCH.q * strK; grade = gradeOf(q); } // estirón: después de los atributos (no lo deshacen del todo)
     // playa: la colocación de dedos se pita más (dobles). Solo en la playa: el pabellón no pasa por aquí.
     //  - HUMANO: colocación de dedos (2º toque con el balón alto, o colocación en salto en cualquier toque) con mal timing: falta
     //    con prob. dblSetP (crece con el desfase |te|, más en salto; nunca con 'perfect'/'good'). Azar hash01 (no g.rng): la
@@ -1449,7 +1465,7 @@
       kind = 'free'; sub = sub || (b.z - p.z > 1.6 ? 'overhead' : 'forearm');
       g.hardIn = false; g.digOk = true;
     } else if (count === 1) {
-      er = (0.18 + 1.45 * (1 - q) + (hardIn ? 0.45 * (1 - q) : 0)) * mul;
+      er = (0.18 + 1.45 * (1 - q) + (hardIn ? 0.45 * (1 - q) : 0) + STRETCH.er * strK * (1 + STRETCH.sp * clamp((inSp - 11) / 8, 0, 1))) * mul; // (+ estirón)
       if (shot === 'shank') { // la IA llega pero no la controla: el balón sale disparado (casi siempre injugable)
         // sale tenso y bajo, casi siempre hacia fuera (el compañero rara vez llega)
         var spk = g.lastKind === 'spike';
@@ -1462,7 +1478,10 @@
         v = launchApex(o, sd * (2.5 + g.rng() * 6), wy, 0, 2.6 + g.rng() * 2); sub = 'shank';
       } else if (g.rot && VB.AI6) { // 6v6: al punto de colocación (VB.AI6.passTarget), el error en profundidad sin pasar la red
         var pt = VB.AI6.passTarget(g, p, hardIn, q);
-        v = launchApex(o, sd * Math.max(0.5, pt.d + rnd(g, er * 1.0)), clamp(sd * pt.yl + rnd(g, er * 1.3), -4.2, 4.2), 1.9, pt.apex);
+        var pd = Math.max(PASS_MIN, pt.d + rnd(g, er * 1.0)), py = clamp(sd * pt.yl + rnd(g, er * 1.3), -4.2, 4.2);
+        v = launchApex(o, sd * pd, py, 1.9, pt.apex);
+        // pase tenso desde el fondo: se aleja de 10 en 10 cm hasta que cae a 1 m en el propio campo (PASS_KEEP; sin g.rng)
+        for (var pk = 0; pk < 15 && sd * dropX(o, v, 1) < PASS_KEEP; pk++) v = launchApex(o, sd * (pd += 0.1), py, 1.9, pt.apex);
       } else {
         v = launchApex(o, sd * (2 + rnd(g, er * 1.1)), clamp(mate.y, -2.5, 2.5) + rnd(g, er * 1.3), 1.9, hardIn ? 4.1 : 4.4);
       }
@@ -1582,6 +1601,14 @@
     return Math.abs(b.y - q.y) <= (b.z > q.z + blkHands(q) ? blockHalfW(qb) * (q.ak ? q.ak.hands : 1) : BLK_BODY);
   }
 
+  /** Bloqueo ofensivo (ver checkBlock): directo = k·(a + b·cq), tope c (k = oficio del bloqueador, cq = calidad del contacto). Un balón que
+   *  cruza sin atacar llega lento y alto: con buen contacto, el directo manda (como el remate del overpass que sustituye). */
+  var OFE_STUFF = [0.2, 0.6, 0.75];
+  /** ¿Tiene q (humano) un gesto de GOLPEAR en curso? (no la dejada ni la colocación en salto; online: el de su hueco) */
+  function humSwing(g, q) {
+    if (g.online) { var s = humSlot(g, q); return s >= 0 && !!hget(g, s, 'swingLive') && hget(g, s, 'swingShot') === ''; }
+    return q === g.ctrl && !!g.swingLive && g.swingShot === '';
+  }
   function checkBlock(g) {
     var b = g.ball;
     if (g.blockCD > 0 || Math.abs(b.x) > 0.6) return;
@@ -1596,7 +1623,15 @@
       if (g.atkServe) { fault(g, g.atkServe.team, g.atkServe.reason || 'attackServe', g.atkServe.text || 'Ataque sobre el saque', g.atkServe.player); return; } // lo toca el rival: ataque completado
       var human = isHuman(g, q), prof = profOf(g, q), kindB;
       var pressed = human && g.time <= q.pressEnd;   // bloqueo activo: GOLPEAR a tiempo = bajar el bloqueo (blockPress)
-      if (human) q.pressEnd = -9;
+      // BLOQUEO OFENSIVO (17-nov-2026, Ferran: «si haces un "bloqueo ofensivo" el juego lo cuenta como remate»): ante un balón rival que
+      // cruza sin ser atacado (overpass, colocación que se pasa, balón libre), GOLPEAR en el aire es un golpe normal (blockPressCase), pero
+      // si las manos lo encuentran por encima de la red decide checkBlock: con el gesto en curso es un bloqueo pulsado (bajar las manos,
+      // OFE_STUFF), y el gesto se gasta aquí. Antes el bloqueo salía siempre suave y el mismo gesto lo volvía a golpear desde el propio
+      // campo como un remate (evento hit 'spike', remate en las estadísticas y punto 'kill'): un bloqueo contado como remate
+      // (la dejada o el balón libre del rival ya tienen su pulsación, blockPress: con el gesto en curso cuentan como pulsados, sin OFE_STUFF)
+      var swB = human && !pressed && g.lastKind !== 'spike' && humSwing(g, q), ofe = swB && g.lastKind !== 'free';
+      if (swB) pressed = true;
+      if (human) { q.pressEnd = -9; endSwingX(g); }   // (un gesto, un contacto: lo que quede del gesto no vuelve a golpear el balón bloqueado)
       var qb = blockQ(q), hands = b.z > q.z + blkHands(q), hw = hands ? blockHalfW(qb) * (q.ak ? q.ak.hands : 1) : BLK_BODY;
       var pw = clamp((b.speed - 11) / 8, 0, 1), spike = g.lastKind === 'spike';
       var cen = 1 - clamp(Math.abs(b.y - q.y) / hw, 0, 1);              // 1 = balón en el centro de las manos
@@ -1607,7 +1642,7 @@
       // resultado (probabilidades condicionadas, en este orden): directo, amortiguado, block-out, toque que sigue
       var pStuff = spike ? clamp(k * (0.15 + 0.6 * cq) - 0.15 * pw, 0.03, 0.65) : 0.12 * k * cq;
       // humano (bloqueo activo): sin pulsar nunca es directo; pulsado a tiempo, el directo manda (sigue dependiendo del contacto cq)
-      if (human) pStuff = !pressed ? 0 : spike ? clamp(k * (0.25 + 0.7 * cq) - 0.1 * pw, 0.08, 0.85) : clamp(0.05 + 0.3 * k * cq, 0, 0.6);
+      if (human) pStuff = !pressed ? 0 : spike ? clamp(k * (0.25 + 0.7 * cq) - 0.1 * pw, 0.08, 0.85) : ofe ? clamp(k * (OFE_STUFF[0] + OFE_STUFF[1] * cq), 0, OFE_STUFF[2]) : clamp(0.05 + 0.3 * k * cq, 0, 0.6);
       if (g.rot) pStuff *= SIX.stuff; // 6v6: con doble bloqueo hay más manos; el directo, menos probable por contacto
       // Salto del atacante (con atributos): el que remata desde abajo pega contra las manos (más directos); el que salta mucho
       // pega por encima de los dedos (menos). 15 → ×1,32; 90 → ×0,80; 50 o sin atributos, ×1
@@ -1658,7 +1693,7 @@
       }
       q.lastAction = 'block'; q.actionT = 0; q.shot = kindB; q.grade = gradeOf(qb);
       if (g.stats) { g.stats.blocks++; g.stats.blockKinds[kindB]++; }
-      emit(g, { type: 'block', player: q, team: q.team, x: b.x, y: b.y, z: b.z, result: kindB, quality: qb, human: human, pressed: pressed });
+      emit(g, { type: 'block', player: q, team: q.team, x: b.x, y: b.y, z: b.z, result: kindB, quality: qb, human: human, pressed: pressed, ofe: ofe });
       if (g.fl) flContact(g, 'block'); // fl
       if (g.drill) drillOnBlock(g, kindB, q); // E6: el bloqueo cierra la repetición en Remate y Bloqueo
       return;
@@ -2687,6 +2722,9 @@
       g.swingShot = shot || ''; return false;
     }
     if (g.swingLock > 0) return false;
+    // en el mismo salto del bloqueo no hay otro golpe (17-nov-2026): el bloqueador no remata el balón que acaba de bloquear antes de caer
+    // (antes, machacar GOLPEAR en el bloqueo sacaba un bloqueo y, detrás, un remate del mismo jugador desde su campo)
+    if (p.z > 0 && p.lastAction === 'block' && g.mode === 'rally') return false;
     g.hitBuf = g.tm.swing; g.swingLive = true; g.swingShot = shot || ''; g.swingT0 = g.time;
     g.swingShot0 = g.swingShot; g.swingSwapT = -9;
     if (p.anim <= 0) { p.anim = 0.18; }

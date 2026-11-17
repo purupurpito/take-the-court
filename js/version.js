@@ -29,11 +29,20 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.10.0';
+  VB.VERSION = '1.10.1';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.10.1', d: '2026-11-17', t: 'Pases, bloqueo y defensa',
+      items: [
+        '6 contra 6: las recepciones y defensas buenas quedan más cerca de la red.',
+        'El colocador de delante ya puede atacar de segunda tras un buen pase.',
+        'Bloquear un balón que cruza la red cuenta como bloqueo, nunca como remate.',
+        'Defender con el balón lejos del cuerpo sale menos preciso, aunque aciertes el momento.'
+      ]
+    },
     {
       v: '1.10.0', d: '2026-11-17', t: 'Consignas del entrenador',
       items: [

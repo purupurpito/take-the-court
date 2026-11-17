@@ -1837,3 +1837,25 @@ moviéndose cuenta la zancada (un zaguero que corre hacia la red comete la falta
 Sin azar: la huella 2v2 y la referencia de subtest no cambian; la IA sigue con 0 solapamientos. simtest «Ajustes de juego (17-nov)» (f).
 Comprobado en el navegador (Normal, saque rival): retroceder por detrás del zaguero → «Falta de posición» al golpe de saque. Con el saque
 propio, el par del sacador (2-1 si saca la zona 1) no cuenta: retroceder siendo zona 2 no es falta (correcto por reglamento).
+
+## Pase más cerca de la red, bloqueo ofensivo y estirón en defensa (17-nov-2026 por la tarde; Ferran, con ultracode)
+
+Investigado y medido por un flujo de 3 agentes con revisión adversaria (scripts en el scratchpad de la sesión: wf-pase, wf-bloqofe,
+wf-nerf-defensa y sus revisiones). Huellas fp-2v2 y fp-mastery regeneradas (el bloqueo y el estirón cambian partidas con el bot humano;
+CPU contra CPU idéntica) y referencia de subtest (1) rehecha (el pase cambia los partidos 6v6).
+- **Pase más cerca de la red** («las recepciones/defensas buenísimas van bastante lejos de la red; un colocador delantero no puede
+  aprovecharlo para rematar»). 6v6: `VB.AI6.passTarget` acerca el destino con la calidad (`FORM.passTo.near` 0,7 y `digTo.near` 0,8, rampa
+  `passNearQ` 0,45-0,9): perfecta a ~1,3 m de la red a 3 m de alto (antes ~1,9) y «atacable de segunda» el 48 % de las recepciones
+  perfectas (antes 0 %); las malas igual. Red de seguridad `PASS_KEEP`/`PASS_MIN` + `dropX`: si el balón no baja a 1 m de alto en su
+  campo (lo que lee la IA con g.pr1), el destino se aleja de 10 en 10 cm (sin esto se colaban bajo la red ~1,5 %). 2v2 sin tocar.
+- **Bloqueo ofensivo** («si haces un bloqueo ofensivo el juego lo cuenta como remate»). Era el overpass / colocación que cruza: GOLPEAR
+  abría un gesto normal, checkBlock lo bloqueaba sin pulsar y el MISMO gesto lo volvía a golpear como remate (doble cuenta: bloqueo +
+  'spike', stats.spikes, punto 'kill'). Ahora, sin botón nuevo: con un gesto de GOLPEAR abierto, el bloqueo cuenta como pulsado (`ofe:true`
+  en el evento 'block'; directos con `OFE_STUFF`), checkBlock gasta el gesto (un gesto, un contacto) y en el mismo salto del bloqueo no se
+  abre otro (startSwing con p.z > 0 y lastAction 'block'). Si las manos no encuentran el balón y entra en tu campo, ese GOLPEAR lo remata.
+  Contra un remate rival (blockPress, «¡Muro!») nada cambia.
+- **Estirón en defensa** («si el balón va muy lejos de tu cuerpo, por mucho que hagas buen timing la pelota no va donde tú quieres»). Solo
+  el humano, 1r toque (no colocación en salto, plancha ni rebote en el cuerpo): s = clamp((d / reachOf − 0,55) / 0,45)²; calidad
+  ×(1 − 0,2·s) tras los atributos y dispersión + 0,45·s·(1 + 0,6·dureza del balón). A 0,85 del alcance deja de ser «perfect» y el error
+  pasa de 0,44 a 0,74 m (saque) o de 0,84 a 1,22 m (remate fuerte); por debajo de 0,55 del alcance, igual. Mandos: `STRETCH.er/q/sp`.
+- simtest «Ajustes de juego (17-nov)» (g), (h), (i).
