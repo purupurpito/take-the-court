@@ -970,6 +970,12 @@ function j17Section() {
       S._hit(g, at, null, 0, '', [-sd * 6, 0]); return Math.hypot(g.ball.vx, g.ball.vy, g.ball.vz); };
     const lo = spd(0.25), hi = spd(1);
     res.push(['(e) 6v6: tras una colocación mala del humano el remate del compañero CPU sale más lento que tras una perfecta', lo < hi * 0.95, { mala: +lo.toFixed(2), perfecta: +hi.toFixed(2) }]); }
+  // (f) falta de posición con los pies (regla 7.4.3): quietos = como los centros; con zancada hacia la red, el pie de delante cuenta antes
+  { const g = S.createGame({ format: '6v6', seed: 5, ctrl: 'one', ctrlRole: 'OH' }), sd = S.side(0), z6 = S.onCourt(g, 0, 6), z3 = S.onCourt(g, 0, 3);
+    z3.x = sd * 2; z3.y = 0; z3.vx = 0; z3.vy = 0; z6.y = 0; z6.vy = 0;
+    const at = (dx, v) => { z6.x = sd * (2 + dx); z6.vx = -sd * v; return S.overlapCount(g, 0); };
+    const still = [at(0.1, 0), at(0, 0)], run = [at(0.3, 5), at(0.2, 5)], ai = (() => { let o = 0; for (let k = 1; k <= 2; k++) { const d = S.createGame({ format: '6v6', demo: true, seed: k, stats: true }); for (let i = 0; i < 60 * 300; i++) S.step(d, DT, null); S.drainEvents(d); o += d.stats.overlap[0] + d.stats.overlap[1]; } return o; })();
+    res.push(['(f) falta de posición con los pies: quieto a 10 cm no y a la altura sí; corriendo a la red a 20 cm ya sí (zancada); la IA nunca', still[0] === 0 && still[1] === 1 && run[0] === 0 && run[1] === 1 && ai === 0, { quieto: still, corriendo: run, ia: ai }]); }
   const bad = res.filter(r => !r[1]);
   if (bad.length) fail('ajustes 17-nov: ' + bad.map(r => r[0]).join('; '));
   console.log('Ajustes de juego (17-nov): ' + res.length + ' pruebas' + (failures === f0 ? ' OK' : ''));

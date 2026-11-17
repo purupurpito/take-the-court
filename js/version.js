@@ -28,11 +28,18 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.9.1';
+  VB.VERSION = '1.9.2';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.9.2', d: '2026-11-17', t: 'Falta de posición con los pies',
+      items: [
+        '6 contra 6: la falta de posición se mira con los pies, como en el reglamento.',
+        'Si corres al moverte en el saque, el pie que adelantas también cuenta.'
+      ]
+    },
     {
       v: '1.9.1', d: '2026-11-17', t: 'Menús nuevos',
       items: [

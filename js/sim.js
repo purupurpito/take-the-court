@@ -836,14 +836,41 @@
     if (ch) refreshTeams(g);
   }
   /** Falta de posición (reglas 7.4-7.5) en el momento del saque: pares delante/detrás (2-1, 3-6, 4-5: el zaguero más lejos de
-   *  la red) y derecha/izquierda en cada fila (4-3-2 y 5-6-1, lateral LOCAL creciente). El sacador no cuenta. Devuelve cuántos
-   *  pares están mal (0 = legal). Con los centros de los jugadores (sin la regla del pie). */
+   *  la red) y derecha/izquierda en cada fila (4-3-2 y 5-6-1, lateral LOCAL creciente). El sacador no cuenta (7.4.1). Devuelve cuántos
+   *  pares están mal (0 = legal).
+   *  CON LOS PIES (17-nov-2026, Ferran: «lo que debería de contar son los pies»; regla 7.4.3): cada jugador tiene dos pies (feet6):
+   *  a ±FOOT_W m a lo ancho de su centro y, si se mueve, con la zancada abierta FOOT_STRIDE × (velocidad / FOOT_V) en la dirección de
+   *  la marcha (un pie delante, otro detrás); cada pie es un disco de radio FOOT_R. 7.4.3.1: el delantero tiene que tener al menos parte
+   *  de un pie más cerca de la red que LOS DOS pies de su zaguero; 7.4.3.2: el del lado, parte de un pie más cerca de su línea lateral
+   *  que los dos pies del central de su fila. Quietos (pies simétricos) da lo mismo que comparar centros; moviéndose, cuenta la zancada.
+   *  Sin g.rng ni memoria por llamada (pies en _ft). */
   var OVL_FB = [[2, 1], [3, 6], [4, 5]], OVL_LR = [[4, 3], [3, 2], [5, 6], [6, 1]];
+  var FOOT_W = 0.17, FOOT_R = 0.12, FOOT_STRIDE = 0.45, FOOT_V = 5;
+  var _ftA = { d0: 0, d1: 0, l0: 0, l1: 0 }, _ftB = { d0: 0, d1: 0, l0: 0, l1: 0 };
+  /** Pies del jugador p del equipo de lado sd en coordenadas LOCALES: d (distancia a la red) y l (lateral local): extremos de los dos
+   *  pies con su radio. out = {d0: lo más cerca de la red, d1: lo más lejos, l0: lo más a la izquierda (l menor), l1: lo más a la derecha}. */
+  function feet6(p, sd, out) {
+    var d = p.x * sd, l = p.y * sd, vd = (p.vx || 0) * sd, vl = (p.vy || 0) * sd, sp = Math.sqrt(vd * vd + vl * vl);
+    var k = sp > 0.05 ? FOOT_STRIDE * 0.5 * Math.min(1, sp / FOOT_V) / sp : 0, sx = vd * k, sy = vl * k;   // media zancada en la marcha
+    // pie izquierdo (l − FOOT_W) adelantado en la marcha y el derecho atrasado (el orden da igual: se miran los extremos de los dos)
+    var aD = d + sx, aL = l - FOOT_W + sy, bD = d - sx, bL = l + FOOT_W - sy;
+    out.d0 = Math.min(aD, bD) - FOOT_R; out.d1 = Math.max(aD, bD) + FOOT_R;
+    out.l0 = Math.min(aL, bL) - FOOT_R; out.l1 = Math.max(aL, bL) + FOOT_R;
+    return out;
+  }
+  /** ¿El par delante/detrás (front, back) está mal? 7.4.3.1: el delantero, parte de un pie más cerca de la red que los dos del zaguero. */
+  function ovlFB(front, back, sd) { feet6(front, sd, _ftA); feet6(back, sd, _ftB); return !(_ftA.d0 < _ftB.d0); }
+  /** ¿El par lateral (izquierda a, derecha b; uno de los dos es el central, OVL_LR) está mal? 7.4.3.2: el jugador del lado, parte de un pie
+   *  más cerca de SU línea lateral que los dos pies del central. [4,3] y [5,6]: el del lado es a (izquierda); [3,2] y [6,1]: es b (derecha). */
+  function ovlLR(a, b, sd, outerLeft) {
+    feet6(a, sd, _ftA); feet6(b, sd, _ftB);
+    return outerLeft ? !(_ftA.l0 < _ftB.l0) : !(_ftB.l1 > _ftA.l1);
+  }
   function overlapCount(g, t) {
     if (!g.rot) return 0;
     var sd = side(t), sv = g.mode === 'serve' || g.lastKind === 'serve' ? g.server : null, n = 0, i, a, b;
-    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if (a !== sv && b !== sv && a.x * sd >= b.x * sd) n++; }
-    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if (a !== sv && b !== sv && a.y * sd >= b.y * sd) n++; }
+    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if (a !== sv && b !== sv && ovlFB(a, b, sd)) n++; }
+    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if (a !== sv && b !== sv && ovlLR(a, b, sd, i === 0 || i === 2)) n++; }
     return n;
   }
   /** Pares solapados (como overlapCount) en los que está el jugador p del equipo t: 0 = p está bien colocado (la falta, si la hay,
@@ -852,8 +879,8 @@
     if (!g.rot || !p) return 0;
     var sd = side(t), sv = g.mode === 'serve' || g.lastKind === 'serve' ? g.server : null, n = 0, i, a, b;
     if (p === sv) return 0;
-    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && a.x * sd >= b.x * sd) n++; }
-    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && a.y * sd >= b.y * sd) n++; }
+    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlFB(a, b, sd)) n++; }
+    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlLR(a, b, sd, i === 0 || i === 2)) n++; }
     return n;
   }
   /** Afinado del 6v6 (solo con g.rot; el 2v2 no lo lee). stuff: multiplicador de la prob. de bloqueo directo por contacto;
@@ -4513,7 +4540,7 @@
     mates: mates, nearestMate: nearestMate, mateBadge: mateBadge, zoneOf: zoneOf, zonePos: zonePos, isFront: isFront, ZONE: ZONE,
     rotate: rotate, serverOf: serverOf, refreshTeams: refreshTeams,
     // 6v6 (sprint 2): líbero, falta de posición, jugador en pista por zona, puestos de la alineación 5-1
-    applyLibero: applyLibero, overlapCount: overlapCount, overlapOf: overlapOf, onCourt: onCourt, ROLES6: ROLES6,
+    applyLibero: applyLibero, overlapCount: overlapCount, overlapOf: overlapOf, feet6: feet6, FOOT: { W: FOOT_W, R: FOOT_R, STRIDE: FOOT_STRIDE, V: FOOT_V }, onCourt: onCourt, ROLES6: ROLES6,
     // 6v6 con humano: puestos jugables (fila Controlar) y cambio de puesto
     CTRL_ROLES6: CTRL_ROLES6, setCtrlRole: setCtrlRole,
     // añadidos (opcionales)

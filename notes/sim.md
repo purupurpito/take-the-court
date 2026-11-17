@@ -1825,3 +1825,15 @@ pueda pedir una colocación si el primer toque ha sido suyo». Sección de simte
 - «Quitar las marcas del balón en el suelo para que el challenge en un futuro tenga sentido»: fx.js ya no pinta la marca del bote (`markAt`) ni
   el cráter de la playa (botes y rebotes); quedan la onda breve con el color de la llamada del juez y la arena que salta. La huella exacta del
   balón solo sale en la revisión del challenge (B6).
+
+## Falta de posición con los pies (17-nov-2026, Ferran: «lo que debería de contar son los pies»)
+
+`overlapCount` / `overlapOf` ya no comparan centros: cada jugador tiene dos pies en la sim (`feet6`, exportado como `VB.Sim.feet6`): a
+±`FOOT_W` (0,17 m) a lo ancho de su centro y, si se mueve, con la zancada abierta `FOOT_STRIDE` (0,45 m) × velocidad / `FOOT_V` (5 m/s)
+en la dirección de la marcha; cada pie es un disco de `FOOT_R` (0,12 m). Regla 7.4.3.1: el delantero tiene que tener al menos parte de
+un pie más cerca de la red que LOS DOS pies de su zaguero; 7.4.3.2: el jugador del lado, parte de un pie más cerca de su línea lateral
+que los dos pies del central de su fila. El sacador no cuenta (7.4.1). Quietos (pies simétricos) da lo mismo que comparar centros;
+moviéndose cuenta la zancada (un zaguero que corre hacia la red comete la falta ~20 cm antes de llegar a la altura de su delantero).
+Sin azar: la huella 2v2 y la referencia de subtest no cambian; la IA sigue con 0 solapamientos. simtest «Ajustes de juego (17-nov)» (f).
+Comprobado en el navegador (Normal, saque rival): retroceder por detrás del zaguero → «Falta de posición» al golpe de saque. Con el saque
+propio, el par del sacador (2-1 si saca la zona 1) no cuenta: retroceder siendo zona 2 no es falta (correcto por reglamento).
