@@ -1249,3 +1249,10 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
 - **Pendiente**: con el zoom 1 (el más cercano) un balón libre que sube a 9-10 m aún se escapa por arriba un momento (98 % en autopilot,
   97 % con el colocador en táctil); el balón que sale despedido hacia la grada de detrás, con la cámara ya en la pared (x 14,4), se ve
   al borde. No hay plano de reacción nuevo ni seguimiento del remate (CAM-08) en 6v6.
+
+### Balones muy rápidos: la cámara no los persigue (17-nov-2026, v1.8.2; Ferran)
+- Ferran: «si va súper rápido para algún lado no hay problema porque la cámara no lo siga; da la sensación de que se ha ido tan rápido».
+- `tpShot`: `TP.fz` = 1 con el balón a > 15 m/s (remates de Normal hacia arriba, saques en salto fuertes, rebotes del bloqueo) y vuelve a 0
+  por debajo de 11 m/s (histéresis); también en el modo `point` (el balón que se va a la grada). Con `fast`: el balón y su adelanto no
+  entran en BF* (ni retroceso, ni giro, ni lente por él), el rumbo no tira hacia su lado y el ancla vertical del balón (`aBall`) no cuenta.
+- cam6ball (autopilot 1280 s11 y colocador s3) igual que antes: 100 % y 98,9 % con el balón en el cuadro seguro.

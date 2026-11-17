@@ -2549,8 +2549,8 @@
    * más cercanos al eje cámara-jugador; si tapan al jugador, la cámara se aparta de lado (hasta 2,2 m) y sube (hasta 0,9 m).
    * Solo con g.size === 6 y sin g.watch (pickShot): el 2v2 y el espectador no pasan por aquí. */
   var TP = { ph: '', back: 7.5, h: 5.5, side: 0.5, occ: 0.5, up: 0.5, fg: 0.5, ex: 0.5, ly: 0.5, fov: 50.5, v: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], nB: -0.5, nX: 0.5, nY: 0.5, sox: 0.5, soy: 0.5,
-             bf: 0.5, bfT: 0.5, bfH: 0.5, bfW: 0.5, cf: 0.5, ys: 0.5, laOn: 0.5 };
-  (function () { TP.side = TP.occ = TP.up = TP.fg = TP.ex = TP.ly = TP.sox = TP.soy = TP.bf = TP.bfT = TP.bfH = TP.bfW = TP.cf = TP.ys = TP.laOn = 0; for (var i = 0; i < TP.v.length; i++) TP.v[i] = 0; })();
+             bf: 0.5, bfT: 0.5, bfH: 0.5, bfW: 0.5, cf: 0.5, ys: 0.5, laOn: 0.5, fz: 0.5 };
+  (function () { TP.side = TP.occ = TP.up = TP.fg = TP.ex = TP.ly = TP.sox = TP.soy = TP.bf = TP.bfT = TP.bfH = TP.bfW = TP.cf = TP.ys = TP.laOn = TP.fz = 0; for (var i = 0; i < TP.v.length; i++) TP.v[i] = 0; })();
   /* SEGUIR AL BALÓN (17-nov-2026, pedido de Ferran: «hay veces que no ves lo que está pasando con el balón»; como VB Legends). Medido
    * antes (tools/cam6ball.js): el balón salía casi siempre POR ABAJO, cuando se juega entre tu jugador y la cámara (recepción o defensa
    * de un compañero de atrás mientras tú esperas en la red, rebote del bloqueo, remate rival al fondo) y por arriba en algún balón libre
@@ -2622,6 +2622,13 @@
     var H0 = TP.h + over * 0.3;
     // SEGUIR AL BALÓN (ver bfFits): puntos del balón que hay que ver y retroceso de la cámara (búsqueda del menor que vale)
     var Gb = (VB.C && VB.C.G) || 9.81, bfN = 0, eT = 0;
+    // BALÓN MUY RÁPIDO (17-nov-2026, Ferran: «si va súper rápido para algún lado no hay problema porque la cámara no lo siga; da la
+    // sensación de que se ha ido tan rápido que no da tiempo a saber qué ha pasado»): a partir de ~15 m/s (remates, balones que salen
+    // despedidos del bloqueo) la cámara deja de perseguirlo —ni gira, ni retrocede, ni abre la lente por él— y se queda donde estaba;
+    // lo vuelve a seguir cuando frena por debajo de ~11 m/s o alguien lo toca y sale lento. TP.fz: 0 = lo sigue, 1 = no (con histéresis)
+    var bsp = Math.sqrt(b.vx * b.vx + b.vy * b.vy + b.vz * b.vz);
+    if (g.mode !== 'rally' && g.mode !== 'point') TP.fz = 0; else if (bsp > 15) TP.fz = 1; else if (bsp < 11) TP.fz = 0;   // (también tras el punto: el balón que se va a la grada)
+    var fast = TP.fz > 0;
     if (!srvL && (g.mode === 'rally' || (ph === 'rsrv' && sv))) {
       if (g.mode === 'rally') {
         // ADELANTO: el balón dentro de 0,3 s y, si va a caer en nuestro campo, cada vez más el cruce previsto a 1 m (g.pr1: de 1,2 a 0,8 s
@@ -2634,8 +2641,8 @@
         if (dt > 0 && TP.laOn > 0) { K.sdT = 0.15; K.sdMax = 60; sdv(LA, LAT, LAV); } else { LA.x = LTx; LA.y = LTy; LA.z = LTz; LAV.x = LAV.y = LAV.z = 0; }
         TP.laOn = 1;
         // (solo lo que se juega: un balón que ya se va a la grada por detrás o por un lado no arrastra la cámara)
-        if (b.x < 10.5 && Math.abs(b.y) < 7.5) { BFX[bfN] = b.x; BFY[bfN] = b.y; BFZ[bfN] = mx(0.11, b.z); bfN++; }
-        if (LA.x < 10.5 && Math.abs(LA.y) < 7.5) { BFX[bfN] = LA.x; BFY[bfN] = LA.y; BFZ[bfN] = mx(0.11, LA.z); bfN++; }
+        if (!fast && b.x < 10.5 && Math.abs(b.y) < 7.5) { BFX[bfN] = b.x; BFY[bfN] = b.y; BFZ[bfN] = mx(0.11, b.z); bfN++; }
+        if (!fast && LA.x < 10.5 && Math.abs(LA.y) < 7.5) { BFX[bfN] = LA.x; BFY[bfN] = LA.y; BFZ[bfN] = mx(0.11, LA.z); bfN++; }
       } else TP.laOn = 0;
       BFS.nb = bfN;   // (los de arriba son balón de verdad; la zona de defensa/recepción solo cuenta para el retroceso)
       // (solo si tu jugador está delante, a < 4,5 m de la red: el que juega atrás ya tiene la recepción y la defensa delante)
@@ -2711,7 +2718,7 @@
     // RUMBO: hacia la red, con algo del lado del balón (o del sacador rival); ±20° de «hacia la red» (los mandos van con la cámara)
     // (el balón pesa más que antes —0,5 de su sitio dentro de 0,3 s, antes 0,4 del de ahora—: la cámara va con él, como en VB Legends)
     var byF = clamp(b.y + b.vy * 0.3, -5, 5);
-    var lyT = srvL ? sy * 0.2 : ph === 'rsrv' && sv ? sy * 0.25 + clamp(sv.y, -5, 5) * 0.45 : ph === 'atk' ? sy * 0.75 + by * 0.25 : sy * 0.28 + (ballAhead ? byF * 0.5 : 0);
+    var lyT = srvL ? sy * 0.2 : ph === 'rsrv' && sv ? sy * 0.25 + clamp(sv.y, -5, 5) * 0.45 : ph === 'atk' ? sy * 0.75 + (fast ? TP.ly - sy * 0.75 : by * 0.25) : sy * 0.28 + (ballAhead && !fast ? byF * 0.5 : 0);
     TP.ly = dt > 0 ? sd1(TP.ly, lyT, TP.v, 5, 0.5, dt) : lyT; if (!(dt > 0)) TP.v[5] = 0;
     var aimX = srvL ? -5 : ph === 'rsrv' ? -6 : ph === 'atk' ? -2.5 : -4.5;
     var yaw = PI + clamp(wrap(at2(TP.ly - D.y, aimX - D.x) - PI), -20 * DEG, 20 * DEG);
@@ -2755,7 +2762,7 @@
       var Gc = (VB.C && VB.C.G) || 9.81, tUp = mn(1.0, b.vz / Gc), apz = b.z + b.vz * tUp * 0.5;
       if (apz > bz) { bz = apz; bx = b.x + b.vx * tUp * 0.6; byy = b.y + b.vy * tUp * 0.6; }
     }
-    var aBall = (g.mode === 'rally' || g.mode === 'point' || (srvP && !b.held)) ? tpEl(bx, byy, bz + 0.2) : NaN;
+    var aBall = (((g.mode === 'rally' || g.mode === 'point') && !fast) || (srvP && !b.held)) ? tpEl(bx, byy, bz + 0.2) : NaN;
     if (aBall === aBall && aBall - aB > 0.02) { f = fit2(aBall, nBall, aB, nB); tNeed = mx(tNeed, f.t); }
     // EL BALÓN TAMBIÉN ABAJO: entre la cámara y el jugador (un compañero de atrás que defiende o recibe), el balón no sale por el borde de
     // abajo (>= -0,84 NDC). Segundo ancla inferior, solo si está a > 2 m delante y no más de 20° por debajo de los pies
