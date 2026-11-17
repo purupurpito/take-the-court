@@ -81,9 +81,13 @@ const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, SELECT: 8, START: 9, UP: 12,
     await stick(0, -0.95, 110);
     await press('A'); await sleep(450);
     check(await evalJs("VB.UI.menuPage()==='play'") && (await focused()) === 'btnQuick', 'A en JUGAR abre los modos con el foco en Partido rápido (' + (await focused()) + ')');
+    // SPLAT (17-nov-2026): Jugar va por filas: → en Partido rápido = el sello de Retos (misma fila) y ↓ = la entrada de la Carrera
     await stick(0.95, 0, 110);
+    const fr = await focused();
+    check(fr === 'btnRetos', 'stick → pasa al sello de RETOS (' + fr + ')');
+    await stick(0, 0.95, 110);
     const fc = await focused();
-    check(fc === 'btnCareer', 'stick → pasa a la tarjeta CARRERA (' + fc + ')');
+    check(fc === 'btnCareer', 'stick abajo → pasa a la entrada de la CARRERA (' + fc + ')');
     // Carrera con el mando: A la abre (crear jugador o hub), B vuelve a JUGAR con el foco en CARRERA
     await press('A'); await sleep(450);
     check(await evalJs("!!(VB.CareerUI&&VB.CareerUI.isOpen())"), 'A en CARRERA abre la pantalla de Carrera');
@@ -111,7 +115,10 @@ const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, SELECT: 8, START: 9, UP: 12,
     // Ajustes con A, pestañas con LB/RB y vuelta con B
     await press('B'); await sleep(400); await press('B'); await sleep(400);
     let fs_ = await focused();
-    for (let i = 0; i < 8 && fs_ !== 'btnSettings'; i++) { await stick(0, 0.95, 110); fs_ = await focused(); }
+    // (SPLAT: la portada va por filas; ↓ hasta la fila de ayuda (Cómo se juega) y → hasta Ajustes)
+    for (let i = 0; i < 8 && fs_ !== 'btnTut' && fs_ !== 'btnSettings'; i++) { await stick(0, 0.95, 110); fs_ = await focused(); }
+    for (let i = 0; i < 3 && fs_ !== 'btnSettings'; i++) { await stick(0.95, 0, 110); fs_ = await focused(); }
+    check(fs_ === 'btnSettings', 'stick abajo y → llegan a AJUSTES (' + fs_ + ')');
     await press('A'); await sleep(350);
     check(await evalJs("VB.UI.isPanelOpen()&&!document.getElementById('pnSet').hidden"), 'A en AJUSTES abre el panel');
     const tb0 = await evalJs("(document.querySelector('#setTabs .tab.on')||{}).getAttribute('data-tab')");

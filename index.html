@@ -42,7 +42,7 @@
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10.6' fill='%23fffaf0' stroke='%231d1530' stroke-width='1.6'/%3E%3Cpath d='M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z' fill='%231cc4b4'/%3E%3Cpath d='M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z' fill='%230b8a86' transform='rotate(120 12 12)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=Bowlby+One&family=Titan+One&family=Rubik:wght@500;600;700;800&display=swap">
 <style>
 /* =====================================================================
    MAKE THE CUT — estilos (owner: ui_main). Juego de un solo aspecto oscuro.
@@ -3224,221 +3224,483 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   #menu[data-page="look"] .menu-foot{display:none}
 }
 /* =====================================================================
-   MENÚ «TU JUGADOR» (prototipo, solo con ?menu=jugador: js/menu-jugador.js pone #menu.mj y mueve los mismos botones)
-   El partido de demo, de fondo y sin velos. JUGAR es un parche cosido con el sello del reto; el resto son manchas de pintura con
-   goterones (Jugadores, Vestuario, ayuda y Carrera), pegatinas que rebotan y salpican. Tinta #15102a, crema #fff4dc, turquesa del
-   balón, oro, el color de TU equipación (--mj-kit) y uno de contraste (--mj-alt), los dos del JS. Bowlby One (JUGAR), Titan One
-   (manchas) y Rubik (texto y cifras tabulares).
+   SPLAT: SISTEMA DE DISEÑO «materiales del vóley + toque Splatoon» (17-nov-2026, Ferran: «Me gusta. Diseña todos así»).
+   Guía completa con ejemplos: notes/splat.md. Dibujo (manchas, parche, sello, salpicón, color de la equipación): js/splat.js (VB.Splat).
+   Tinta #15102a, crema #fff4dc, oro, turquesa del balón, el color de TU equipación (--sp-kit, lo pone splat.js en :root) y uno de
+   contraste (--sp-alt). Bowlby One (acción principal), Titan One (pegatinas y títulos) y Rubik (texto y cifras).
+   REFUERZO: las reglas de estructura van con el prefijo «:root:not(#_):not(#_):not(#_)» (especificidad de 3 ids) para que una clase
+   .sp-* añadida a un botón viejo (.mi, .mode, .opt…) gane a sus reglas antiguas sin tocarlas. Los retoques por pantalla se hacen con
+   las VARIABLES (--sp-h, --sp-fs, --sp-px, --sp-tilt, --sp-c, --sp-ph…) desde cualquier selector, sin refuerzo.
+   Sin velos: el partido de demo se ve detrás; el único contenedor con fondo es .sp-panel (páginas de lectura larga, con mesura).
    ===================================================================== */
-#menu.mj{--mj-ink:#15102a;--mj-ink3:#2f2560;--mj-cream:#fff4dc;--mj-teal:#1bb5a5;--mj-teal-d:#0c7d75;--mj-gold:#ffcb3d;
-  --mj-kit:#ff5a2c;--mj-kit-d:#a33a26;--mj-kit-ink:#fff6e4;
-  --mj-pad:clamp(12px,3.4vh,44px);--mj-colw:clamp(320px,40vw,560px);--mj-gap:clamp(8px,1.7vh,16px);
-  --mj-play:clamp(56px,14vh,124px);--mj-tape:clamp(46px,9.4vh,82px);--mj-strip:clamp(44px,7.2vh,60px);--mj-stamp:clamp(60px,16vh,132px);
-  --mj-lip:clamp(5px,1vh,9px);
-  --mj-disp:"Bowlby One","Arial Black",Impact,system-ui,sans-serif;--mj-ui:"Rubik",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  background:none;padding:0;display:block;font-family:var(--mj-ui)}
+:root{--sp-ink:#15102a;--sp-ink2:#2f2560;--sp-cream:#fff4dc;--sp-cream2:#fffaf0;--sp-gold:#ffcb3d;--sp-teal:#1bb5a5;--sp-teal-d:#0c7d75;--sp-danger:#ff4a5c;
+  --sp-kit:#ff5a2c;--sp-kit-d:#a33a26;--sp-kit-ink:#fff6e4;--sp-kit-ts:2px 2px 0 #15102a;--sp-alt:#a6ea2c;
+  --sp-line:3px;--sp-sh:3px 4px 0 var(--sp-ink);--sp-r:clamp(10px,1.8vh,16px);
+  --sp-h-lg:clamp(54px,10vh,84px);--sp-h-md:clamp(46px,8vh,66px);--sp-h-sm:44px;
+  --sp-disp:"Bowlby One","Arial Black",Impact,system-ui,sans-serif;--sp-pop:"Titan One","Bowlby One","Arial Black",system-ui,sans-serif;
+  --sp-ui:"Rubik",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --sp-brush:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 40' preserveAspectRatio='none'%3E%3Cpath d='M3 9C20 4 45 7 70 4C84 3 94 5 98 8C99 16 96 24 99 32C80 37 55 33 30 36C18 37 8 37 2 33C4 25 1 17 3 9Z'/%3E%3C/svg%3E")}
+
+/* ---- variables por componente (sin refuerzo; los colores van después y mandan) ---- */
+.sp-btn,.sp-back{--sp-c:var(--sp-ink);--sp-tc:var(--sp-cream);--sp-d:var(--sp-kit);--sp-icc:var(--sp-gold);--sp-ts:none;--sp-cf:var(--sp-gold);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+.sp-ticket{--sp-c:var(--sp-teal);--sp-tc:var(--sp-ink);--sp-d:var(--sp-teal);--sp-icc:var(--sp-ink);--sp-ts:none;--sp-cf:var(--sp-teal);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink);--sp-h:clamp(48px,10.5vh,92px)}
+.sp-chip{--sp-c:var(--sp-gold);--sp-tc:var(--sp-ink)}
+.sp-lg{--sp-h:var(--sp-h-lg);--sp-fs:clamp(16px,3.1vh,26px)}
+.sp-md{--sp-h:var(--sp-h-md);--sp-fs:clamp(13px,2.5vh,20px)}
+.sp-sm{--sp-h:var(--sp-h-sm);--sp-fs:clamp(11px,2vh,15px);--sp-px:clamp(8px,1.6vh,14px)}
+.sp-back{--sp-h:var(--sp-h-sm);--sp-fs:clamp(12px,2vh,15px);--sp-px:12px}
+/* colores: relleno --sp-c, texto --sp-tc, gotas --sp-d, icono --sp-icc; y al enfocar --sp-cf / --sp-tcf / --sp-icf */
+.sp-ink{--sp-c:var(--sp-ink);--sp-tc:var(--sp-cream);--sp-d:var(--sp-kit);--sp-icc:var(--sp-gold);--sp-ts:none;--sp-cf:var(--sp-gold);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+.sp-kit{--sp-c:var(--sp-kit);--sp-tc:var(--sp-kit-ink);--sp-d:var(--sp-kit);--sp-icc:var(--sp-kit-ink);--sp-ts:var(--sp-kit-ts);--sp-cf:var(--sp-kit);--sp-tcf:var(--sp-kit-ink);--sp-icf:var(--sp-kit-ink)}
+.sp-alt{--sp-c:var(--sp-alt);--sp-tc:var(--sp-ink);--sp-d:var(--sp-alt);--sp-icc:var(--sp-ink);--sp-ts:none;--sp-cf:var(--sp-alt);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+.sp-gold{--sp-c:var(--sp-gold);--sp-tc:var(--sp-ink);--sp-d:var(--sp-gold);--sp-icc:var(--sp-ink);--sp-ts:none;--sp-cf:var(--sp-gold);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+.sp-teal{--sp-c:var(--sp-teal);--sp-tc:var(--sp-ink);--sp-d:var(--sp-teal);--sp-icc:var(--sp-ink);--sp-ts:none;--sp-cf:var(--sp-teal);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+.sp-danger{--sp-c:var(--sp-danger);--sp-tc:#fff6e4;--sp-d:var(--sp-danger);--sp-icc:#fff6e4;--sp-ts:2px 2px 0 var(--sp-ink);--sp-cf:var(--sp-danger);--sp-tcf:#fff6e4;--sp-icf:#fff6e4}
+.sp-cream{--sp-c:var(--sp-cream);--sp-tc:var(--sp-ink);--sp-d:var(--sp-kit);--sp-icc:var(--sp-ink);--sp-ts:none;--sp-cf:var(--sp-cream2);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+:is(.sp-btn,.sp-ticket,.sp-back):is(.kf,:focus-visible){--sp-c:var(--sp-cf);--sp-tc:var(--sp-tcf);--sp-icc:var(--sp-icf)}
+/* inclinación por semilla (splat.js pone data-sp-s 0..5; --sp-tilt en cualquier selector la cambia) */
+[data-sp-s="0"]{--sp-tilt:-1.4deg}[data-sp-s="1"]{--sp-tilt:1.2deg}[data-sp-s="2"]{--sp-tilt:-.7deg}[data-sp-s="3"]{--sp-tilt:1.7deg}[data-sp-s="4"]{--sp-tilt:-2deg}[data-sp-s="5"]{--sp-tilt:.6deg}
+
+/* ---- .sp-btn (pegatina de pintura), .sp-ticket (brochazo) y .sp-back (volver): estructura común ---- */
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back){position:relative;display:inline-flex;flex-direction:row;align-items:center;justify-content:center;gap:clamp(5px,1vh,9px);box-sizing:border-box;
+  min-width:44px;min-height:var(--sp-h,var(--sp-h-md));height:auto;width:auto;margin:0;padding:var(--sp-py,3px) var(--sp-px,clamp(10px,2vh,18px));border:0;border-radius:0;
+  background:none;box-shadow:none;outline:none;filter:none;color:var(--sp-tc);text-shadow:var(--sp-ts);text-align:left;white-space:nowrap;
+  font:400 var(--sp-fs,clamp(13px,2.4vh,19px))/1.05 var(--sp-pop);letter-spacing:.02em;text-transform:uppercase;overflow:visible;cursor:pointer;
+  -webkit-backdrop-filter:none;backdrop-filter:none;-webkit-tap-highlight-color:transparent;transform:rotate(var(--sp-tilt,0deg));transform-origin:50% 70%;
+  transition:transform .14s var(--ease),color .12s;animation:none}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back)::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back)[hidden]{display:none}
+/* brillo de pegatina arriba a la izquierda (.sp-noshine lo quita) */
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket)::before{content:"";display:block;position:absolute;left:11%;top:10%;width:clamp(12px,8%,36px);height:14%;margin:0;padding:0;border-radius:50%;
+  background:rgba(255,255,255,.36);box-shadow:none;transform:rotate(-8deg);z-index:1;pointer-events:none;opacity:1}
+:root:not(#_):not(#_):not(#_) :is(.sp-ink,.sp-back,.sp-noshine,.sp-sm)::before{display:none}
+/* antes de decorar (sin JS o en el primer frame): pastilla irregular del mismo color; con la mancha, nada de fondo */
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back):not(.sp-dec){background:var(--sp-c);border-radius:22px 30px 26px 18px/20px 18px 28px 24px;box-shadow:0 0 0 var(--sp-line) var(--sp-ink),var(--sp-sh)}
+:root:not(#_):not(#_):not(#_) .sp-blob{position:absolute;left:-5px;top:-6px;right:auto;bottom:auto;width:calc(100% + 12px);height:calc(100% + 15px);margin:0;padding:0;overflow:visible;z-index:0;pointer-events:none;fill:none;stroke:none;transform:none;opacity:1;display:block}
+.sp-blob{filter:drop-shadow(var(--sp-sh));transition:filter .12s}
+.sp-blob .sp-f{fill:var(--sp-c);stroke:var(--sp-ink);stroke-width:var(--sp-line);stroke-linejoin:round;transition:fill .12s}
+.sp-blob .sp-f>*{vector-effect:non-scaling-stroke}
+.sp-blob .sp-f circle{fill:var(--sp-d,var(--sp-c))}
+:is(.sp-btn,.sp-ticket,.sp-back).sp-dec>:not(.sp-blob){position:relative;z-index:1}
+/* contenido: rótulo .sp-t (Titan One un poco torcido), línea pequeña .sp-s (Rubik), icono .sp-ic (SVG en currentColor = --sp-icc) */
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back) .sp-t{display:block;min-width:0;margin:0;font:inherit;line-height:1.15;color:inherit;letter-spacing:inherit;text-transform:uppercase;text-shadow:inherit;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:rotate(-2.5deg);transform-origin:0 70%;padding:2px 2px 1px}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back,.sp-patch) .sp-s{display:block;min-width:0;margin:0;font:700 var(--sp-ss,clamp(10px,1.6vh,13px))/1.15 var(--sp-ui);color:inherit;letter-spacing:0;
+  text-transform:none;text-shadow:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.85}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back) .sp-l{display:flex;flex-direction:column;justify-content:center;gap:1px;min-width:0;text-align:left}
+.sp-ic{flex:none;display:block;width:var(--sp-is,1.25em);height:var(--sp-is,1.25em);color:var(--sp-icc)}
+.sp-ic svg{width:100%;height:100%;display:block;fill:currentColor;transition:transform .35s var(--ease)}
+/* punto de «nuevo» (rojo con aro de tinta) arriba a la derecha */
+.sp-dot::after{content:"";position:absolute;right:-2px;top:-2px;width:12px;height:12px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink);z-index:3}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket).sp-dot::after{content:"";display:block}
+/* hover (ratón), foco (teclado/mando: rebote squash & stretch y aro dorado), pulsado (se aplasta) y desactivado (gris y apagado) */
+@keyframes spSquish{0%{transform:rotate(var(--sp-tilt,0deg)) scale(1)}30%{transform:rotate(calc(var(--sp-tilt,0deg) - 2deg)) scale(1.1,.88)}55%{transform:rotate(calc(var(--sp-tilt,0deg) + 1deg)) scale(.95,1.08)}
+  78%{transform:rotate(calc(var(--sp-tilt,0deg) - 1deg)) scale(1.04,.97)}100%{transform:rotate(calc(var(--sp-tilt,0deg) - 1.5deg)) scale(1.05)}}
+@keyframes spPop{0%{transform:rotate(var(--sp-tilt,0deg)) scale(1)}45%{transform:rotate(var(--sp-tilt,0deg)) scale(1.035,.965)}100%{transform:rotate(var(--sp-tilt,0deg)) scale(1.02)}}
+@keyframes spSplat{0%{transform:rotate(var(--sp-tilt,0deg)) scale(1.05)}40%{transform:rotate(var(--sp-tilt,0deg)) scale(1.12,.82) translateY(3px)}100%{transform:rotate(var(--sp-tilt,0deg)) scale(1)}}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back):hover:not(.kf):not(:disabled){transform:rotate(calc(var(--sp-tilt,0deg) - 1deg)) scale(1.02)}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back):is(.kf,:focus-visible){outline:none;animation:spSquish .42s var(--ease) both}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket).sp-calm:is(.kf,:focus-visible){animation:spPop .3s var(--ease) both}
+:is(.sp-btn,.sp-ticket,.sp-back):is(.kf,:focus-visible)>.sp-blob{filter:drop-shadow(3px 0 0 var(--sp-gold)) drop-shadow(-3px 0 0 var(--sp-gold)) drop-shadow(0 -3px 0 var(--sp-gold)) drop-shadow(0 3px 0 var(--sp-gold)) drop-shadow(3px 5px 0 var(--sp-ink))}
+:is(.sp-gold,.sp-btn.sp-gold):is(.kf,:focus-visible)>.sp-blob{filter:drop-shadow(3px 0 0 var(--sp-cream)) drop-shadow(-3px 0 0 var(--sp-cream)) drop-shadow(0 -3px 0 var(--sp-cream)) drop-shadow(0 3px 0 var(--sp-cream)) drop-shadow(3px 5px 0 var(--sp-ink))}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back):is(:active,.sp-press):not(:disabled){animation:spSplat .26s var(--ease) both}
+:is(.sp-btn,.sp-ticket,.sp-back):is(:active,.sp-press)>.sp-blob{filter:drop-shadow(1px 1px 0 var(--sp-ink))}
+:root:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-back):disabled{cursor:default;animation:none;transform:rotate(var(--sp-tilt,0deg))}
+:is(.sp-btn,.sp-ticket,.sp-back):disabled>.sp-blob{filter:grayscale(.9) brightness(.72) drop-shadow(var(--sp-sh))}
+:is(.sp-btn,.sp-ticket,.sp-back):disabled>:not(.sp-blob){opacity:.55}
+/* salpicón al pulsar (splat.js .splash: nodo fijo que se borra solo) */
+.sp-splash{position:fixed;width:0;height:0;z-index:60;pointer-events:none}
+.sp-splash svg{position:absolute;left:-60px;top:-60px;width:120px;height:120px;overflow:visible}
+.sp-splash circle{fill:var(--c,var(--sp-kit));stroke:var(--sp-ink);stroke-width:2;transform-origin:0 0;animation:spDrop .5s cubic-bezier(.2,.9,.3,1) both}
+@keyframes spDrop{0%{transform:rotate(var(--a)) translateX(4px) scale(.4);opacity:1}60%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d)) scale(.15);opacity:0}}
+
+/* ---- .sp-patch: parche crema cosido (acción principal: JUGAR, «Partido rápido», «¡A jugar!», «Jugar partido», «Empezar»).
+   Gajo del color de la equipación con el triángulo de jugar, costura discontinua, costuras de balón en relieve y labio de tinta ---- */
+.sp-patch{--sp-ph:clamp(54px,12vh,104px);--sp-lip:clamp(5px,1vh,9px)}
+:root:not(#_):not(#_):not(#_) .sp-patch{position:relative;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:0;box-sizing:border-box;width:100%;min-width:0;height:var(--sp-ph);min-height:0;margin:0;
+  padding:0 var(--sp-pr,calc(var(--sp-ph) * .36)) 0 calc(var(--sp-ph) * 1.12);border:0;border-radius:var(--sp-r);background:var(--sp-cream);color:var(--sp-ink);text-align:left;
+  box-shadow:inset 0 0 0 var(--sp-line) var(--sp-ink),inset 0 calc(var(--sp-ph) * -.1) 0 rgba(170,130,60,.17),0 var(--sp-lip) 0 var(--sp-ink);
+  outline:2px dashed rgba(21,16,42,.28);outline-offset:calc(var(--sp-ph) * -.09);overflow:hidden;filter:none;transform:none;text-shadow:none;letter-spacing:0;text-transform:none;
+  font:400 16px/1 var(--sp-ui);cursor:pointer;animation:none;-webkit-tap-highlight-color:transparent;-webkit-backdrop-filter:none;backdrop-filter:none;
+  transition:transform .12s var(--ease),box-shadow .12s var(--ease),background .15s}
+:root:not(#_):not(#_):not(#_) .sp-patch::before,:root:not(#_):not(#_):not(#_) .sp-patch::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) .sp-patch[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) .sp-patch .go{display:none}
+.sp-patch .sp-pp{position:absolute;left:0;top:0;height:100%;width:calc(var(--sp-ph) * 1.05)}
+.sp-patch .sp-pp .f{fill:var(--sp-kit)}
+.sp-patch .sp-pp .s{fill:none;stroke:var(--sp-kit-ink);stroke-width:1.6;stroke-dasharray:4 4;opacity:.6;vector-effect:non-scaling-stroke}
+.sp-patch .sp-pp .e{fill:none;stroke:var(--sp-ink);stroke-width:3;vector-effect:non-scaling-stroke}
+.sp-patch .sp-tri{position:absolute;left:calc(var(--sp-ph) * .19);top:50%;width:calc(var(--sp-ph) * .42);height:calc(var(--sp-ph) * .42);transform:translateY(-50%);transition:transform .15s var(--spring)}
+.sp-patch .sp-tri svg{width:100%;height:100%;display:block;fill:var(--sp-kit-ink);stroke:var(--sp-ink);stroke-width:2.2;stroke-linejoin:round;paint-order:stroke fill;overflow:visible}
+.sp-patch .sp-emb{position:absolute;right:calc(var(--sp-ph) * -.5);top:50%;width:calc(var(--sp-ph) * 2.1);height:calc(var(--sp-ph) * 2.1);transform:translateY(-50%) rotate(-18deg);
+  fill:none;stroke:rgba(150,110,50,.2);stroke-width:.55;pointer-events:none}
+:root:not(#_):not(#_):not(#_) .sp-patch .sp-l{position:relative;display:flex;flex-direction:column;justify-content:center;gap:clamp(1px,.5vh,5px);min-width:0;z-index:1}
+:root:not(#_):not(#_):not(#_) .sp-patch .sp-t{display:block;margin:0;font:400 var(--sp-pt,calc(var(--sp-ph) * .44))/1.12 var(--sp-disp);letter-spacing:.02em;text-transform:uppercase;color:var(--sp-ink);text-shadow:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-bottom:.04em}
+:root:not(#_):not(#_):not(#_) .sp-patch .sp-s{color:rgba(21,16,42,.68);opacity:1;font-size:var(--sp-ss,clamp(10px,1.85vh,15px))}
+:root:not(#_):not(#_):not(#_) .sp-patch:hover{background:var(--sp-cream2)}
+.sp-patch:hover .sp-tri{transform:translateY(-50%) translateX(3px)}
+:root:not(#_):not(#_):not(#_) .sp-patch:is(.kf,:focus-visible){transform:translateY(-2px);background:var(--sp-cream2);outline:2px dashed rgba(21,16,42,.28);
+  box-shadow:inset 0 0 0 var(--sp-line) var(--sp-ink),inset 0 calc(var(--sp-ph) * -.1) 0 rgba(170,130,60,.17),0 calc(var(--sp-lip) + 2px) 0 var(--sp-ink),0 0 0 4px var(--sp-gold),0 calc(var(--sp-lip) + 2px) 0 4px var(--sp-gold)}
+.sp-patch:is(.kf,:focus-visible) .sp-tri{animation:spNudge 1.1s ease-in-out infinite}
+@keyframes spNudge{50%{transform:translateY(-50%) translateX(4px)}}
+:root:not(#_):not(#_):not(#_) .sp-patch:is(:active,.sp-press){transform:translateY(calc(var(--sp-lip) - 1px));box-shadow:inset 0 0 0 var(--sp-line) var(--sp-ink),inset 0 calc(var(--sp-ph) * -.05) 0 rgba(170,130,60,.17),0 1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-patch:disabled{cursor:default;transform:none;filter:grayscale(.85) brightness(.85);box-shadow:inset 0 0 0 var(--sp-line) var(--sp-ink)}
+/* parche + sello en la esquina (.sp-pair: JUGAR con el Reto del día, Partido rápido con Retos) y gotas del color de la equipación */
+.sp-pair{position:relative;display:flex;align-items:center;--sp-stamp:clamp(60px,16vh,132px);--sp-ph:clamp(54px,12vh,104px)}
+.sp-pair>.sp-patch{flex:1;--sp-ph:inherit;--sp-pr:calc(var(--sp-stamp) * .66)}
+:root:not(#_):not(#_):not(#_) .sp-pair .sp-stamp{position:absolute;right:calc(var(--sp-stamp) * -.2);top:50%;margin:calc(var(--sp-stamp) * -.5) 0 0}
+.sp-drops{position:absolute;left:calc(var(--sp-ph,60px) * -.2);bottom:calc(var(--sp-ph,60px) * -.26);width:calc(var(--sp-ph,60px) * .48);height:calc(var(--sp-ph,60px) * .48);z-index:3;overflow:visible;pointer-events:none}
+.sp-drops circle{fill:var(--sp-kit);stroke:var(--sp-ink);stroke-width:2.2}
+
+/* ---- .sp-stamp: sello dorado redondo (Reto del día, Retos, medallas, «nuevo»). data-ring = texto del aro; dentro, .sp-sc ---- */
+.sp-stamp{--sp-stamp:clamp(60px,16vh,132px)}
+:root:not(#_):not(#_):not(#_) .sp-stamp{position:relative;display:block;flex:none;width:var(--sp-stamp);height:var(--sp-stamp);min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;
+  background:none;box-shadow:none;outline:none;color:var(--sp-gold);cursor:pointer;transform:rotate(-12deg);transition:transform .16s var(--spring),filter .12s;z-index:2;
+  -webkit-tap-highlight-color:transparent;filter:drop-shadow(0 4px 0 var(--sp-ink));animation:none;text-shadow:none;font:800 12px/1 var(--sp-ui);letter-spacing:0;text-transform:none}
+:root:not(#_):not(#_):not(#_) .sp-stamp::before,:root:not(#_):not(#_):not(#_) .sp-stamp::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) .sp-stamp[hidden]{display:none}
+.sp-stamp>.sp-st{position:absolute;inset:0;width:100%;height:100%;display:block;overflow:visible}
+.sp-st .st0{fill:var(--sp-gold);stroke:var(--sp-ink);stroke-width:4}
+.sp-st .st1{fill:none;stroke:var(--sp-ink);stroke-width:1.4;stroke-dasharray:2.6 2.6;opacity:.5}
+.sp-st .st2{font:800 11px var(--sp-ui);fill:var(--sp-ink)}
+.sp-st .st3{fill:var(--sp-ink)}
+.sp-sc{position:absolute;left:25%;top:25%;width:50%;height:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--sp-gold);pointer-events:none;z-index:1}
+.sp-sc b{font:800 max(8px,calc(var(--sp-stamp) * .1))/1 var(--sp-ui);letter-spacing:.08em;text-transform:uppercase}
+.sp-sc .sp-ball,.sp-sc svg{width:50%;height:50%;display:block}
+.sp-sc .sc-med{display:block;width:44%;height:44%;border-radius:50%;box-shadow:0 0 0 2px var(--sp-ink),inset 0 -3px 0 rgba(0,0,0,.2);background:#d98a4a}.sp-sc .sc-med.t2{background:#d6e2ee}.sp-sc .sc-med.t3{background:#ffd23f}
+.sp-ball .b0{fill:var(--sp-cream)}.sp-ball .b1{fill:var(--sp-teal)}.sp-ball .b2{fill:var(--sp-teal-d)}.sp-ball .bs{fill:none;stroke:var(--sp-ink);stroke-width:1.1}.sp-ball .b3{fill:none;stroke:var(--sp-ink);stroke-width:1.4}
+.sp-stamp.sp-dot::after,:root:not(#_):not(#_):not(#_) .sp-stamp.sp-dot::after{content:"";display:block;position:absolute;right:6%;top:6%;width:18%;height:18%;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-stamp:hover{transform:rotate(-4deg) scale(1.05)}
+:root:not(#_):not(#_):not(#_) .sp-stamp:is(.kf,:focus-visible){transform:rotate(0) scale(1.1);filter:drop-shadow(0 4px 0 var(--sp-ink)) drop-shadow(3px 0 0 var(--sp-cream)) drop-shadow(-3px 0 0 var(--sp-cream)) drop-shadow(0 -3px 0 var(--sp-cream)) drop-shadow(0 3px 0 var(--sp-cream))}
+:root:not(#_):not(#_):not(#_) .sp-stamp:is(:active,.sp-press){transform:rotate(-14deg) scale(.92) translateY(3px);filter:drop-shadow(0 1px 0 var(--sp-ink))}
+
+/* ---- .sp-ticket: brochazo turquesa (entrada de partido, Carrera): talón con escudos .sp-crest, cuerpo .sp-tk-main y flecha .sp-go ---- */
+:root:not(#_):not(#_):not(#_) .sp-ticket{justify-content:flex-start;gap:0;width:100%;padding:0;text-transform:none;letter-spacing:0;font-family:var(--sp-ui)}
+.sp-ticket>.sp-tk{flex:1;min-width:0;display:flex;align-items:center;min-height:inherit}
+.sp-tk-stub{flex:none;display:flex;align-items:center;gap:2px;padding:0 4px 0 clamp(10px,2vh,18px);transform:rotate(-4deg)}
+.sp-crest{flex:none;display:flex;align-items:center;justify-content:center;width:var(--sp-cs,clamp(28px,5.6vh,48px));height:var(--sp-cs,clamp(28px,5.6vh,48px));padding:3px;border-radius:50%;box-sizing:border-box;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+.sp-crest svg{width:100%!important;height:100%!important;display:block}
+.sp-vs{font:400 clamp(9px,1.6vh,13px)/1 var(--sp-pop);font-style:normal;text-transform:uppercase;margin:0 2px}
+.sp-tk-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px clamp(6px,1.4vh,12px)}
+:root:not(#_):not(#_):not(#_) .sp-ticket .sp-k{display:block;margin:0;font:800 clamp(9px,1.6vh,13px)/1.1 var(--sp-ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(21,16,42,.75);text-shadow:none}
+:root:not(#_):not(#_):not(#_) .sp-ticket .sp-t{font:400 clamp(15px,3.2vh,27px)/1.05 var(--sp-pop);transform:rotate(-1.5deg);transform-origin:0 50%}
+:root:not(#_):not(#_):not(#_) .sp-ticket .sp-s{color:rgba(21,16,42,.82);opacity:1;font-variant-numeric:tabular-nums}
+.sp-go{flex:none;display:flex;align-items:center;padding-right:clamp(12px,2.4vh,22px)}
+.sp-go svg{width:clamp(16px,3vh,24px);height:clamp(16px,3vh,24px);fill:var(--sp-cream);stroke:var(--sp-ink);stroke-width:2.4;paint-order:stroke fill;overflow:visible}
+
+/* ---- .sp-back: «Volver» en mancha de tinta pequeña con flecha (≥ 44 px) ---- */
+:root:not(#_):not(#_):not(#_) .sp-back{flex:none;gap:4px;padding:0 14px 0 8px}
+:root:not(#_):not(#_):not(#_) .sp-back svg:not(.sp-blob){position:relative;z-index:1;width:clamp(16px,2.8vh,20px);height:clamp(16px,2.8vh,20px);fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) .sp-back span{font:inherit;color:inherit;letter-spacing:.03em}
+
+/* ---- .sp-chip: etiqueta pequeña (Beta, Nuevo, Nv 3, «2v2»…). Mismos colores: .sp-chip.sp-kit, .sp-ink… ---- */
+:root:not(#_):not(#_):not(#_) .sp-chip{display:inline-flex;align-items:center;gap:4px;box-sizing:border-box;margin:0;padding:3px 8px 3px;border:0;border-radius:7px 11px 8px 12px/9px 8px 11px 7px;
+  background:var(--sp-c);color:var(--sp-tc);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);font:400 var(--sp-chs,clamp(10px,1.6vh,12.5px))/1.1 var(--sp-pop);letter-spacing:.04em;
+  text-transform:uppercase;text-shadow:none;white-space:nowrap;transform:rotate(var(--sp-tilt,-3deg));vertical-align:middle}
+:root:not(#_):not(#_):not(#_) .sp-chip::before,:root:not(#_):not(#_):not(#_) .sp-chip::after{content:none;display:none}
+
+/* ---- .sp-h (título de pantalla) y .sp-k (antetítulo) ---- */
+:root:not(#_):not(#_):not(#_) .sp-h{margin:0;padding:0 .1em;font:400 var(--sp-hs,clamp(26px,6.2vh,56px))/1 var(--sp-pop);font-style:normal;letter-spacing:.01em;text-transform:uppercase;color:var(--sp-cream);
+  text-shadow:3px 0 0 var(--sp-ink),-3px 0 0 var(--sp-ink),0 3px 0 var(--sp-ink),0 -3px 0 var(--sp-ink),2px 2px 0 var(--sp-ink),-2px -2px 0 var(--sp-ink),2px -2px 0 var(--sp-ink),-2px 2px 0 var(--sp-ink),4px 6px 0 var(--sp-ink);
+  transform:rotate(-3deg);transform-origin:0 60%;white-space:nowrap}
+:root:not(#_):not(#_):not(#_) .sp-k{display:block;margin:0 0 2px;font:800 clamp(10px,1.7vh,13px)/1.1 var(--sp-ui);letter-spacing:.14em;text-transform:uppercase;color:var(--sp-gold);
+  text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-k::before{content:none;display:none}
+
+/* ---- .sp-tab / .sp-tabs (VB.UI.tabs con la clase en el anfitrión) / .sp-seg (segmentado de Ajustes): trazos de pincel.
+   Sin elegir: tinta translúcida y letra crema con sombra; elegida (.on, aria-selected, aria-checked): trazo dorado con contorno ---- */
+:root:not(#_):not(#_):not(#_) :is(.sp-tabs,.sp-seg){background:none;box-shadow:none;border:0;border-radius:0}
+:root:not(#_):not(#_):not(#_) .sp-tabs .tb-row{background:none;box-shadow:none;gap:clamp(4px,1vh,8px);padding:4px 6px}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab,.sp-seg>span){position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:5px;box-sizing:border-box;min-height:var(--sp-tbh,44px);
+  margin:0;padding:0 clamp(12px,2vh,18px);border:0;border-radius:0;background:none;box-shadow:none;outline:none;filter:none;color:var(--sp-cream);
+  font:400 var(--sp-tbs,clamp(12px,2.1vh,16px))/1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;text-shadow:2px 2px 0 var(--sp-ink);transform:none;cursor:pointer;opacity:1}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab,.sp-seg>span)::before{content:"";display:block;position:absolute;inset:3px -3px;z-index:-1;margin:0;border-radius:0;background:var(--sp-ink);opacity:.74;box-shadow:none;
+  -webkit-mask:var(--sp-brush) center/100% 100% no-repeat;mask:var(--sp-brush) center/100% 100% no-repeat;transform:none;transition:background .12s}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab,.sp-seg>span)::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab,.sp-seg>span):is(.on,[aria-selected="true"],[aria-checked="true"]){color:var(--sp-ink);text-shadow:none;transform:rotate(-1.5deg);
+  filter:drop-shadow(2px 0 0 var(--sp-ink)) drop-shadow(-2px 0 0 var(--sp-ink)) drop-shadow(0 2px 0 var(--sp-ink)) drop-shadow(0 -2px 0 var(--sp-ink)) drop-shadow(2px 3px 0 var(--sp-ink))}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab,.sp-seg>span):is(.on,[aria-selected="true"],[aria-checked="true"])::before{background:var(--sp-gold);opacity:1}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab):hover::before{opacity:.9}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab):is(.kf,:focus-visible){outline:none;transform:rotate(-1.5deg) scale(1.06);
+  filter:drop-shadow(2px 0 0 var(--sp-ink)) drop-shadow(-2px 0 0 var(--sp-ink)) drop-shadow(0 2px 0 var(--sp-ink)) drop-shadow(0 -2px 0 var(--sp-ink)) drop-shadow(3px 0 0 var(--sp-cream)) drop-shadow(-3px 0 0 var(--sp-cream)) drop-shadow(0 3px 0 var(--sp-cream)) drop-shadow(0 -3px 0 var(--sp-cream))}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab):is(.kf,:focus-visible)::before{background:var(--sp-gold);opacity:1}
+:root:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab):is(.kf,:focus-visible){color:var(--sp-ink);text-shadow:none}
+:root:not(#_):not(#_):not(#_) .sp-seg{display:inline-flex;gap:4px;padding:0}
+:root:not(#_):not(#_):not(#_) .sp-seg>span{--sp-tbh:34px;--sp-tbs:clamp(11px,1.9vh,14px);padding:0 10px}
+
+/* ---- .sp-select: valor con flechas (‹ valor ›): flechas en pegatina crema redonda (≥ 44 px de toque) y el valor en trazo dorado ---- */
+:root:not(#_):not(#_):not(#_) .sp-select{display:inline-flex;align-items:center;gap:4px;background:none;box-shadow:none}
+:root:not(#_):not(#_):not(#_) .sp-select .arr{position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;margin:0;padding:0;border:0;border-radius:50%;
+  background:none;box-shadow:none;color:var(--sp-ink);opacity:1;cursor:pointer;transform:none;align-self:center;transition:transform .12s var(--spring)}
+:root:not(#_):not(#_):not(#_) .sp-select .arr::before{content:"";position:absolute;left:50%;top:50%;width:var(--sp-aw,30px);height:var(--sp-aw,30px);margin:calc(var(--sp-aw,30px) * -.5) 0 0 calc(var(--sp-aw,30px) * -.5);border-radius:50%;
+  background:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);display:block}
+:root:not(#_):not(#_):not(#_) .sp-select .arr::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) .sp-select .arr svg{position:relative;z-index:1;width:calc(var(--sp-aw,30px) * .62);height:calc(var(--sp-aw,30px) * .62);fill:none;stroke:var(--sp-ink);stroke-width:3.6;stroke-linecap:round;stroke-linejoin:round;opacity:1;transform:none}
+:root:not(#_):not(#_):not(#_) .sp-select .arr.end{opacity:.38;cursor:default}
+:root:not(#_):not(#_):not(#_) .sp-select .arr:not(.end):hover{transform:scale(1.1)}
+:root:not(#_):not(#_):not(#_) .sp-select .arr:not(.end):active{transform:scale(.88)}
+:root:not(#_):not(#_):not(#_) .sp-select .arr.hit{animation:spArrHit .2s var(--ease)}
+@keyframes spArrHit{45%{transform:scale(.86)}}
+:root:not(#_):not(#_):not(#_) .sp-select .mv-val{position:relative;isolation:isolate;display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:0;padding:4px 12px;color:var(--sp-ink);text-shadow:none}
+:root:not(#_):not(#_):not(#_) .sp-select .mv-val::before{content:"";position:absolute;inset:0 -2px;z-index:-1;background:var(--sp-gold);-webkit-mask:var(--sp-brush) center/100% 100% no-repeat;mask:var(--sp-brush) center/100% 100% no-repeat}
+:root:not(#_):not(#_):not(#_) .sp-select .mv-val b{font:400 var(--sp-vs,clamp(13px,2.4vh,19px))/1.05 var(--sp-pop);letter-spacing:.02em;text-transform:uppercase;color:var(--sp-ink);text-shadow:none;white-space:nowrap}
+
+/* ---- .sp-slider (deslizador: .trk > i relleno + b mando) y .sp-toggle (interruptor con aria-checked / .on) ---- */
+:root:not(#_):not(#_):not(#_) .sp-slider .trk{height:12px;border-radius:7px;background:rgba(21,16,42,.85);box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.25)}
+:root:not(#_):not(#_):not(#_) .sp-slider .trk i{height:100%;border-radius:7px 3px 3px 7px;background:var(--sp-kit);box-shadow:none}
+:root:not(#_):not(#_):not(#_) .sp-slider .trk b{width:24px;height:24px;margin:-12px 0 0 -12px;top:50%;border-radius:50%;background:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-slider .v{font:400 clamp(12px,2vh,15px)/1 var(--sp-pop);color:var(--sp-cream);text-shadow:1.5px 1.5px 0 var(--sp-ink);font-variant-numeric:tabular-nums}
+:root:not(#_):not(#_):not(#_) .sp-toggle{position:relative;display:inline-block;flex:none;width:56px;height:32px;min-width:0;margin:0;padding:0;border:0;border-radius:18px;background:rgba(21,16,42,.85);
+  box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.25);transition:background .15s;cursor:pointer}
+:root:not(#_):not(#_):not(#_) .sp-toggle::before{content:"";display:block;position:absolute;left:4px;top:4px;width:24px;height:24px;border-radius:50%;background:var(--sp-cream);box-shadow:0 0 0 2px var(--sp-ink);transition:transform .18s var(--spring)}
+:root:not(#_):not(#_):not(#_) .sp-toggle:is(.on,[aria-checked="true"]){background:var(--sp-kit)}
+:root:not(#_):not(#_):not(#_) .sp-toggle:is(.on,[aria-checked="true"])::before{transform:translateX(24px)}
+
+/* ---- .sp-panel: hoja de pegatina para contenido largo (Ajustes, Cómo se juega…). Con mesura: nunca a pantalla completa ni como velo ---- */
+:root:not(#_):not(#_):not(#_) .sp-panel{position:relative;box-sizing:border-box;border:0;background:rgba(21,16,42,.94);color:var(--sp-cream);border-radius:18px 24px 20px 26px/22px 18px 26px 20px;
+  box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.14),6px 8px 0 var(--sp-ink);-webkit-backdrop-filter:none;backdrop-filter:none;font-family:var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) .sp-panel.sp-paper{background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 2px rgba(21,16,42,.12),6px 8px 0 var(--sp-ink)}
+
+/* ---- .sp-hints: barra de pistas de teclas/mando (teclas como teclas crema con tinta) ---- */
+:root:not(#_):not(#_):not(#_) .sp-hints{font:600 12px/1.2 var(--sp-ui);color:rgba(255,244,220,.82);text-shadow:0 1px 2px rgba(21,16,42,.9),1px 1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-hints .key{min-width:1.7em;height:1.7em;padding:0 .45em;border:0;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);font:800 .8em/1 var(--sp-ui);letter-spacing:.02em;text-shadow:none;margin:0 2px}
+
+/* ---- .sp-page: página del menú con el sistema (columna a la izquierda, el partido a la vista; ui.js pone #menu.sp-full con data-sp-full) ---- */
+#menu{--sp-pad:clamp(12px,3.4vh,44px);--sp-colw:clamp(320px,42vw,720px);--sp-gap:clamp(8px,1.7vh,16px)}
+#menu.sp-full{background:none;padding:0;display:block}
+#menu.sp-full .sp-page{position:absolute;left:calc(var(--sp-pad) * 1.3 + var(--sl));top:0;bottom:0;width:var(--sp-colw);max-width:calc(100% - var(--sp-pad) * 2.3 - var(--sl) - var(--sr));margin:0;zoom:1;
+  display:flex;flex-direction:column;justify-content:center;gap:clamp(10px,2.6vh,30px);padding:calc(var(--sp-pad) + var(--st)) 0 calc(var(--sp-pad) + 24px + var(--sbm));box-sizing:border-box}
+#menu.sp-full .sp-page[hidden]{display:none}
+#menu.sp-full .sp-head{display:flex;align-items:center;gap:clamp(10px,2.2vh,20px);margin:0;min-width:0}
+#menu.sp-full .sp-head .mp-tt{min-width:0}
+#menu.sp-full .live{zoom:1;right:calc(var(--sp-pad) + var(--sr));top:calc(var(--sp-pad) * .8 + var(--st));padding:4px 10px 4px 9px;border:0;border-radius:3px;background:var(--sp-ink);color:var(--sp-cream);
+  box-shadow:0 0 0 2px var(--sp-cream),3px 3px 0 2px var(--sp-ink);font:800 clamp(9px,1.6vh,12px)/1.2 var(--sp-ui);letter-spacing:.22em;transform:rotate(2deg)}
+#menu.sp-full .fs-btn{zoom:1;top:calc(var(--sp-pad) * .8 + var(--st));right:calc(var(--sp-pad) + 110px + var(--sr))}
+#menu.sp-full .fs-btn span{display:none}
+.is-touch #menu.sp-full .fs-btn{height:44px;width:44px;padding:0;justify-content:center;top:calc(var(--sp-pad) * .5 + var(--st))}
+#menu.sp-full .menu-foot{zoom:1;left:calc(var(--sp-pad) * 1.3 + var(--sl));right:calc(var(--sp-pad) + var(--sr));bottom:calc(var(--sp-pad) * .55 + var(--sbm));font:600 12px var(--sp-ui);color:rgba(255,244,220,.78);text-shadow:0 1px 2px rgba(21,16,42,.9)}
+#menu.sp-full .menu-foot .ver{font-family:var(--sp-ui);font-variant-numeric:tabular-nums}
+#menu.sp-full .rec,#menu.sp-full .rec b{font-family:var(--sp-ui);font-variant-numeric:tabular-nums}
+@media (max-height:430px) and (min-aspect-ratio:5/4){
+  #menu{--sp-colw:clamp(320px,62vw,460px);--sp-gap:8px;--sp-h-md:46px;--sp-h-lg:52px}
+  #menu.sp-full .sp-page{gap:8px;padding-top:calc(8px + var(--st));padding-bottom:calc(8px + var(--sbm))}
+  #menu.sp-full .menu-foot .navhint,#menu.sp-full .menu-foot .rec{display:none}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-h{--sp-hs:clamp(22px,8vh,30px)}
+}
+@media (max-aspect-ratio:5/4){
+  #menu{--sp-pad:clamp(14px,4vw,28px);--sp-h-md:clamp(50px,7.6vh,64px);--sp-gap:11px}
+  #menu.sp-full .sp-page{left:calc(var(--sp-pad) + var(--sl));right:calc(var(--sp-pad) + var(--sr));width:auto;max-width:none;justify-content:space-between;padding:calc(var(--sp-pad) * 1.2 + 34px + var(--st)) 0 calc(var(--sp-pad) + 22px + var(--sbm))}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-h{--sp-hs:clamp(24px,8.4vw,42px);white-space:normal}
+  #menu.sp-full .menu-foot{bottom:calc(8px + var(--sbm))}
+}
+/* menos movimiento (ajuste del juego: #app.rm; o el del sistema): sin rebotes, salpicones ni empujones; el foco se queda grande y quieto */
+.rm :is(.sp-btn,.sp-ticket,.sp-back),.rm .sp-patch .sp-tri,.rm .sp-splash{animation:none!important}
+.rm :is(.sp-btn,.sp-ticket,.sp-back):is(.kf,:focus-visible){transform:rotate(var(--sp-tilt,0deg)) scale(1.05)!important}
+@media (prefers-reduced-motion:reduce){
+  :is(.sp-btn,.sp-ticket,.sp-back),.sp-patch .sp-tri,.sp-splash{animation:none!important}
+  :is(.sp-btn,.sp-ticket,.sp-back):is(.kf,:focus-visible){transform:rotate(var(--sp-tilt,0deg)) scale(1.05)!important}
+}
+/* ==== fin SPLAT: sistema de diseño ==== */
+
+/* =====================================================================
+   SPLAT · PORTADA (#menu.mj: js/menu-jugador.js pone .mj, mueve los MISMOS botones a filas y les da las clases del sistema;
+   ?menu=old = la portada de antes). JUGAR = .sp-patch con el sello del Reto del día (.sp-pair); Jugadores y Vestuario = .sp-btn.sp-wide
+   (equipación y contraste) con tu camiseta y tu cabeza; ayuda = tres .sp-btn.sp-sm de tinta; Carrera = .sp-ticket con escudos.
+   ===================================================================== */
+#menu.mj{--mj-play:clamp(56px,14vh,124px);--mj-tape:clamp(46px,9.4vh,82px);--mj-strip:clamp(44px,7.2vh,60px);--mj-stamp:clamp(60px,16vh,132px);font-family:var(--sp-ui)}
 #menu.mj .menu-col{position:absolute;inset:0;width:auto;display:block;zoom:1;gap:0;pointer-events:none}
 #menu.mj .menu-col[hidden]{display:none}
 #menu.mj .menu-col>*,#menu.mj .menu-col.pg-in,#menu.mj .menu-col.pg-back{animation:none}
-/* ---- columna: logotipo y botones, a la izquierda; el partido a la vista a la derecha ---- */
-#menu.mj .mj-side{position:absolute;left:calc(var(--mj-pad) * 1.3 + var(--sl));top:0;bottom:0;width:var(--mj-colw);display:flex;flex-direction:column;justify-content:center;gap:clamp(10px,3vh,34px);
-  padding:calc(var(--mj-pad) + var(--st)) 0 calc(var(--mj-pad) + 24px + var(--sbm));box-sizing:border-box;pointer-events:auto}
+#menu.mj .mj-side{position:absolute;left:calc(var(--sp-pad) * 1.3 + var(--sl));top:0;bottom:0;width:var(--sp-colw);display:flex;flex-direction:column;justify-content:center;gap:clamp(10px,3vh,34px);
+  padding:calc(var(--sp-pad) + var(--st)) 0 calc(var(--sp-pad) + 24px + var(--sbm));box-sizing:border-box;pointer-events:auto}
 #menu.mj .brand{position:relative;margin-left:-4px}
 #menu.mj .brand .kicker,#menu.mj .brand .tagline{display:none}
 #menu.mj .logo{font-size:clamp(20px,8.4vh,96px)}
 #menu.mj .logo .lg{filter:drop-shadow(.5vh .7vh 0 rgba(21,16,42,.6))}
-#app #menu.mj .mlist{display:flex;flex-direction:column;gap:var(--mj-gap)}
+#app #menu.mj .mlist{display:flex;flex-direction:column;gap:var(--sp-gap)}
 #menu.mj .mlist>*{animation:mjIn .5s var(--ease) both}
 #menu.mj .mlist>:nth-child(2){animation-delay:.06s}#menu.mj .mlist>:nth-child(3){animation-delay:.12s}#menu.mj .mlist>:nth-child(4){animation-delay:.18s}
 @keyframes mjIn{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
-/* reinicio de los .mi de siempre (sin cristal, sin degradado, sin barra lateral) */
-#menu.mj .mlist .mi{position:relative;display:flex;align-items:center;text-align:left;margin:0;padding:0;border:0;border-radius:0;height:auto;background:none;box-shadow:none;text-shadow:none;
-  font-family:var(--mj-ui);letter-spacing:0;text-transform:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible;cursor:pointer;color:var(--mj-cream);opacity:1;
-  -webkit-tap-highlight-color:transparent;transition:transform .12s var(--ease),box-shadow .12s var(--ease),background .15s,color .15s,filter .12s;animation:none}
-#menu.mj .mlist .mi::before{display:none}
-#menu.mj .mlist .mi[hidden]{display:none}
-#menu.mj .mlist .mi:focus{outline:none}
-/* desactivado (común): sin labio, rayado y apagado */
-#menu.mj .mlist .mi:disabled{cursor:default;filter:grayscale(.85) brightness(.8);transform:none!important;box-shadow:inset 0 0 0 2.5px var(--mj-ink)!important;
-  background-image:repeating-linear-gradient(-45deg,rgba(21,16,42,.18) 0 6px,transparent 6px 12px)}
-
-/* ---- JUGAR: parche crema cosido, gajo del color de tu equipación y labio de tinta que se hunde ---- */
-#menu.mj .mj-go{position:relative;display:flex;align-items:center}
-#menu.mj #btnPlay{flex:1;min-width:0;height:var(--mj-play);padding:0 calc(var(--mj-stamp) * .66) 0 calc(var(--mj-play) * 1.12);background:var(--mj-cream);color:var(--mj-ink);border-radius:clamp(10px,1.8vh,16px);
-  box-shadow:inset 0 0 0 3px var(--mj-ink),inset 0 calc(var(--mj-play) * -.1) 0 rgba(170,130,60,.17),0 var(--mj-lip) 0 var(--mj-ink);overflow:hidden;
-  outline:2px dashed rgba(21,16,42,.28);outline-offset:calc(var(--mj-play) * -.09)}
-#menu.mj #btnPlay:focus{outline:2px dashed rgba(21,16,42,.28)}
-#menu.mj #btnPlay .mj-pp{position:absolute;left:0;top:0;height:100%;width:calc(var(--mj-play) * 1.05)}
-#menu.mj #btnPlay .mj-pp .f{fill:var(--mj-kit)}
-#menu.mj #btnPlay .mj-pp .s{fill:none;stroke:var(--mj-kit-ink);stroke-width:1.6;stroke-dasharray:4 4;opacity:.6;vector-effect:non-scaling-stroke}
-#menu.mj #btnPlay .mj-pp .e{fill:none;stroke:var(--mj-ink);stroke-width:3;vector-effect:non-scaling-stroke}
-#menu.mj #btnPlay .mj-tri{position:absolute;left:calc(var(--mj-play) * .19);top:50%;width:calc(var(--mj-play) * .42);height:calc(var(--mj-play) * .42);transform:translateY(-50%);transition:transform .15s var(--spring)}
-#menu.mj #btnPlay .mj-tri svg{width:100%;height:100%;display:block;fill:var(--mj-kit-ink);stroke:var(--mj-ink);stroke-width:2.2;stroke-linejoin:round;paint-order:stroke fill;overflow:visible}
-/* costuras de balón en relieve sobre el crema (a la derecha, cortadas por el borde) */
-#menu.mj #btnPlay .mj-emb{position:absolute;right:calc(var(--mj-play) * -.5);top:50%;width:calc(var(--mj-play) * 2.1);height:calc(var(--mj-play) * 2.1);transform:translateY(-50%) rotate(-18deg);
-  fill:none;stroke:rgba(150,110,50,.2);stroke-width:.55;pointer-events:none}
-#menu.mj #btnPlay .pl-tx{display:flex;flex-direction:column;justify-content:center;gap:clamp(1px,.5vh,5px);min-width:0;position:relative}
-#menu.mj #btnPlay .pl-tx>span:first-child{font:400 calc(var(--mj-play) * .44)/.92 var(--mj-disp);letter-spacing:.02em;text-transform:uppercase}
-#menu.mj #btnPlay #playMainSub{display:block;font:700 clamp(10px,1.85vh,15px)/1.15 var(--mj-ui);color:rgba(21,16,42,.66);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.01em;text-shadow:none}
-#menu.mj #btnPlay .go{display:none}
-#menu.mj #btnPlay:hover{background:#fffaf0}
-#menu.mj #btnPlay:hover .mj-tri{transform:translateY(-50%) translateX(3px)}
-#menu.mj #btnPlay.kf,#menu.mj #btnPlay:focus-visible{transform:translateY(-2px);background:#fffaf0;
-  box-shadow:inset 0 0 0 3px var(--mj-ink),inset 0 calc(var(--mj-play) * -.1) 0 rgba(170,130,60,.17),0 calc(var(--mj-lip) + 2px) 0 var(--mj-ink),0 0 0 4px var(--mj-gold),0 calc(var(--mj-lip) + 2px) 0 4px var(--mj-gold)}
-#menu.mj #btnPlay.kf .mj-tri,#menu.mj #btnPlay:focus-visible .mj-tri{animation:mjNudge 1.1s ease-in-out infinite}
-@keyframes mjNudge{50%{transform:translateY(-50%) translateX(4px)}}
-#menu.mj #btnPlay:active,#menu.mj #btnPlay.mj-press{transform:translateY(calc(var(--mj-lip) - 1px));box-shadow:inset 0 0 0 3px var(--mj-ink),inset 0 calc(var(--mj-play) * -.05) 0 rgba(170,130,60,.17),0 1px 0 var(--mj-ink)}
-
-/* ---- sello del Reto del día: pegado sobre la esquina de JUGAR ---- */
-#menu.mj .mj-stamp{position:absolute;right:calc(var(--mj-stamp) * -.2);top:50%;width:var(--mj-stamp);height:var(--mj-stamp);margin:calc(var(--mj-stamp) * -.5) 0 0;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;
-  transform:rotate(-12deg);transition:transform .16s var(--spring),filter .12s;z-index:2;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 4px 0 var(--mj-ink))}
-#menu.mj .mj-stamp[hidden]{display:none}
-#menu.mj .mj-stamp:focus{outline:none}
-#menu.mj .mj-stamp>svg{width:100%;height:100%;display:block;overflow:visible}
-#menu.mj .mj-stamp .st0{fill:var(--mj-gold);stroke:var(--mj-ink);stroke-width:4}
-#menu.mj .mj-stamp .st1{fill:none;stroke:var(--mj-ink);stroke-width:1.4;stroke-dasharray:2.6 2.6;opacity:.5}
-#menu.mj .mj-stamp .st2{font:800 11px var(--mj-ui);fill:var(--mj-ink)}
-#menu.mj .mj-stamp .st3{fill:var(--mj-ink)}
-#menu.mj .mj-sc{position:absolute;left:25%;top:25%;width:50%;height:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--mj-gold);pointer-events:none}
-#menu.mj .mj-sc b{font:800 max(8px,calc(var(--mj-stamp) * .1))/1 var(--mj-ui);letter-spacing:.08em;text-transform:uppercase}
-#menu.mj .mj-sc .sc-ball{width:50%;height:50%;display:block}
-#menu.mj .mj-sc .sc-ball svg,#menu.mj .tk-ball svg{width:100%;height:100%;display:block}
-#menu.mj .mj-sc .b0,#menu.mj .tk-ball .b0{fill:var(--mj-cream)}#menu.mj .mj-sc .b1,#menu.mj .tk-ball .b1{fill:var(--mj-teal)}#menu.mj .mj-sc .b2,#menu.mj .tk-ball .b2{fill:var(--mj-teal-d)}
-#menu.mj .mj-sc .bs,#menu.mj .tk-ball .bs{fill:none;stroke:var(--mj-ink);stroke-width:1.1}#menu.mj .mj-sc .b3,#menu.mj .tk-ball .b3{fill:none;stroke:var(--mj-ink);stroke-width:1.4}
-#menu.mj .mj-sc .sc-med{width:44%;height:44%;border-radius:50%;box-shadow:0 0 0 2px var(--mj-ink),inset 0 -3px 0 rgba(0,0,0,.2);background:#d98a4a}
-#menu.mj .mj-sc .sc-med.t2{background:#d6e2ee}#menu.mj .mj-sc .sc-med.t3{background:#ffd23f}
-#menu.mj .mj-stamp.has-new::after{content:"";position:absolute;right:6%;top:6%;width:18%;height:18%;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--mj-ink)}
-#menu.mj .mj-stamp:hover{transform:rotate(-4deg) scale(1.05)}
-#menu.mj .mj-stamp.kf,#menu.mj .mj-stamp:focus-visible{transform:rotate(0) scale(1.1);filter:drop-shadow(0 4px 0 var(--mj-ink)) drop-shadow(3px 0 0 var(--mj-cream)) drop-shadow(-3px 0 0 var(--mj-cream)) drop-shadow(0 -3px 0 var(--mj-cream)) drop-shadow(0 3px 0 var(--mj-cream))}
-#menu.mj .mj-stamp:active,#menu.mj .mj-stamp.mj-press{transform:rotate(-14deg) scale(.92) translateY(3px);filter:drop-shadow(0 1px 0 var(--mj-ink))}
-
-/* ---- manchas de pintura (Jugadores, Vestuario, ayuda y Carrera): pegatinas con contorno de tinta gordo, sombra dura desplazada,
-   goterón y gotas sueltas; rótulo redondo y gordo (Titan One) un poco torcido; al enfocar, rebote de squash & stretch; al pulsar, se
-   aplasta y salpica (js: .mj-splash) ---- */
-#menu.mj{--mj-alt:#a6ea2c;--mj-pop:"Titan One","Bowlby One","Arial Black",system-ui,sans-serif}
-#menu.mj .mj-blob{position:absolute;left:-5px;right:-7px;top:-6px;bottom:-9px;width:calc(100% + 12px);height:calc(100% + 15px);overflow:visible;z-index:0;pointer-events:none;
-  filter:drop-shadow(3px 4px 0 var(--mj-ink));transition:filter .12s}
-#menu.mj .mj-blob .bl-sh,#menu.mj .mj-blob .bl-hi{display:none}
-#menu.mj .mj-blob .bl-f{fill:var(--bf,var(--bc));stroke:var(--mj-ink);stroke-width:3;stroke-linejoin:round}
-#menu.mj .mj-blob .bl-f>*{vector-effect:non-scaling-stroke}
-#menu.mj .mj-blob .bl-f circle{fill:var(--bd,var(--bf,var(--bc)))}
-#menu.mj .mj-sq>*:not(.mj-blob){position:relative;z-index:1}
-/* brillo de pegatina (arriba a la izquierda) */
-#menu.mj .mj-sq::before{content:"";display:block!important;position:absolute;left:12%;top:9%;width:18%;height:14%;border-radius:50%;background:rgba(255,255,255,.38);transform:rotate(-8deg);z-index:1;pointer-events:none;width:clamp(14px,8%,40px)}
-#menu.mj .mlist .mj-sq{background:none;box-shadow:none;transform-origin:50% 70%}
-@keyframes mjSquish{0%{transform:scale(1)}30%{transform:scale(1.1,.88) rotate(-2deg)}55%{transform:scale(.95,1.08) rotate(1deg)}78%{transform:scale(1.04,.97) rotate(-1deg)}100%{transform:scale(1.05) rotate(-1.5deg)}}
-@keyframes mjSplat{0%{transform:scale(1.05) rotate(-1.5deg)}40%{transform:scale(1.12,.82) rotate(-1deg) translateY(3px)}100%{transform:scale(1)}}
-#menu.mj .mlist .mj-sq.kf,#menu.mj .mlist .mj-sq:focus-visible{animation:mjSquish .42s var(--ease) both}
-#menu.mj .mlist .mj-sq.kf .mj-blob,#menu.mj .mlist .mj-sq:focus-visible .mj-blob{filter:drop-shadow(3px 0 0 var(--mj-gold)) drop-shadow(-3px 0 0 var(--mj-gold)) drop-shadow(0 -3px 0 var(--mj-gold)) drop-shadow(0 3px 0 var(--mj-gold)) drop-shadow(3px 5px 0 var(--mj-ink))}
-#menu.mj .mlist .mj-sq:hover:not(.kf){transform:rotate(-1deg) scale(1.02)}
-#menu.mj .mlist .mj-sq:active,#menu.mj .mlist .mj-sq.mj-press{animation:mjSplat .26s var(--ease) both}
-#menu.mj .mlist .mj-sq:active .mj-blob,#menu.mj .mlist .mj-sq.mj-press .mj-blob{filter:drop-shadow(1px 1px 0 var(--mj-ink))}
-/* salpicón al pulsar */
-#menu.mj .mj-splash{position:absolute;width:0;height:0;z-index:30;pointer-events:none}
-#menu.mj .mj-splash svg{position:absolute;left:-60px;top:-60px;width:120px;height:120px;overflow:visible}
-#menu.mj .mj-splash circle{fill:var(--c,var(--mj-kit));stroke:var(--mj-ink);stroke-width:2;transform-origin:0 0;animation:mjDrop .5s cubic-bezier(.2,.9,.3,1) both}
-@keyframes mjDrop{0%{transform:rotate(var(--a)) translateX(4px) scale(.4);opacity:1}60%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d)) scale(.15);opacity:0}}
-
-/* Jugadores (mancha del color de tu equipación, con tu camiseta) y Vestuario (mancha de contraste, asoma tu jugador) */
+/* JUGAR y su sello */
+#menu.mj .mj-go{--sp-stamp:var(--mj-stamp)}
+#menu.mj .mj-go{--sp-ph:var(--mj-play)}
+/* Jugadores (equipación, con tu camiseta y el dorsal) y Vestuario (contraste, asoma tu jugador) */
 #menu.mj .mj-tape{display:flex;gap:clamp(12px,2vh,18px);padding-right:calc(var(--mj-stamp) * .1);margin-top:2px}
-#menu.mj #btnSquad,#menu.mj #btnLook{flex:1;min-width:0;height:var(--mj-tape);display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;column-gap:clamp(6px,1.2vh,10px);row-gap:1px;
-  padding:0 clamp(10px,2vh,18px) 0 clamp(10px,1.8vh,16px)}
-#menu.mj #btnSquad{--bc:var(--mj-kit);color:var(--mj-kit-ink)}
-#menu.mj #btnLook{--bc:var(--mj-alt);color:var(--mj-ink)}
-#menu.mj #btnSquad>.mj-ic,#menu.mj #btnLook>.mj-ic{grid-row:1/3;align-self:center}
-#menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s),#menu.mj #btnLook>span:not(.mj-ic):not(.mi-s){align-self:end;font:400 clamp(14px,2.9vh,23px)/1 var(--mj-pop);letter-spacing:.01em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
-  transform:rotate(-3deg);transform-origin:0 100%;padding:2px 2px 1px}
-#menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s){text-shadow:2px 2px 0 var(--mj-ink)}
-#menu.mj #btnSquad .mi-s,#menu.mj #btnLook .mi-s{align-self:start;font:700 clamp(10px,1.6vh,13px)/1.15 var(--mj-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0;text-shadow:none;opacity:.85;transform:rotate(-3deg);transform-origin:0 0;color:inherit}
-#menu.mj #btnSquad .mi-s .dn{font-style:normal}
+:root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook){flex:1;min-width:0;height:var(--mj-tape);min-height:0;display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;
+  justify-content:stretch;column-gap:clamp(6px,1.2vh,10px);row-gap:1px;padding:0 clamp(10px,2vh,18px) 0 clamp(10px,1.8vh,16px)}
+#menu.mj :is(#btnSquad,#btnLook)>.mj-ic{grid-row:1/3;align-self:center}
+:root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{align-self:end;font-size:clamp(14px,2.9vh,23px);transform:rotate(-3deg);transform-origin:0 100%}
+:root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-s{align-self:start;transform:rotate(-3deg);transform-origin:0 0}
+#menu.mj #btnSquad .sp-s .dn{font-style:normal}
 #menu.mj .mj-jyw{position:relative;width:calc(var(--mj-tape) * .78);height:calc(var(--mj-tape) * .74);margin:calc(var(--mj-tape) * -.12) 0 0 calc(var(--mj-tape) * -.12);transform:rotate(-10deg)}
-#menu.mj .mj-jy{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(2px 3px 0 var(--mj-ink));transition:transform .2s var(--spring)}
-#menu.mj .mj-jy .j0{fill:var(--mj-cream);stroke:var(--mj-ink);stroke-width:3.6;stroke-linejoin:round}
-#menu.mj .mj-jy .j1{fill:none;stroke:var(--mj-kit);stroke-width:3}
-#menu.mj .mj-jy .j2{font:400 27px var(--mj-pop);fill:var(--mj-kit);stroke:var(--mj-ink);stroke-width:2.6;paint-order:stroke fill}
+#menu.mj .mj-jy{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(2px 3px 0 var(--sp-ink));transition:transform .2s var(--spring)}
+#menu.mj .mj-jy .j0{fill:var(--sp-cream);stroke:var(--sp-ink);stroke-width:3.6;stroke-linejoin:round}
+#menu.mj .mj-jy .j1{fill:none;stroke:var(--sp-kit);stroke-width:3}
+#menu.mj .mj-jy .j2{font:400 27px var(--sp-pop);fill:var(--sp-kit);stroke:var(--sp-ink);stroke-width:2.6;paint-order:stroke fill}
 #menu.mj .mj-head{position:relative;width:calc(var(--mj-tape) * .8);height:var(--mj-tape);align-self:stretch!important}
 #menu.mj .mj-head img{position:absolute;left:46%;bottom:calc(var(--mj-tape) * -.36);width:calc(var(--mj-tape) * 1.7);height:calc(var(--mj-tape) * 1.7);clip-path:inset(-10% -10% 21% -10%);transform:translateX(-50%) rotate(-6deg);transform-origin:50% 80%;
-  filter:drop-shadow(2px 0 0 var(--mj-ink)) drop-shadow(-2px 0 0 var(--mj-ink)) drop-shadow(0 -2px 0 var(--mj-ink)) drop-shadow(2px 3px 0 rgba(21,16,42,.6));transition:transform .2s var(--spring);pointer-events:none}
+  filter:drop-shadow(2px 0 0 var(--sp-ink)) drop-shadow(-2px 0 0 var(--sp-ink)) drop-shadow(0 -2px 0 var(--sp-ink)) drop-shadow(2px 3px 0 rgba(21,16,42,.6));transition:transform .2s var(--spring);pointer-events:none}
 #menu.mj .mj-head img[hidden]{display:none}
-#menu.mj #btnLook.kf .mj-head img,#menu.mj #btnLook:focus-visible .mj-head img,#menu.mj #btnLook:hover .mj-head img{transform:translateX(-50%) translateY(-5px) rotate(4deg) scale(1.06)}
-#menu.mj #btnSquad.kf .mj-jy,#menu.mj #btnSquad:focus-visible .mj-jy,#menu.mj #btnSquad:hover .mj-jy{transform:rotate(-8deg) scale(1.1)}
-#menu.mj #btnSquad.has-pts .mj-jyw::after,#menu.mj #btnLook.has-new .mj-head::after{content:"";position:absolute;right:-2px;top:0;width:12px;height:12px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--mj-ink);z-index:2}
-
-/* ayuda: tres gotas de tinta (contorno crema fino por dentro), cada una con su forma y un poco torcida; enfocada, se vuelve dorada */
+#menu.mj #btnLook:is(.kf,:focus-visible,:hover) .mj-head img{transform:translateX(-50%) translateY(-5px) rotate(4deg) scale(1.06)}
+#menu.mj #btnSquad:is(.kf,:focus-visible,:hover) .mj-jy{transform:rotate(-8deg) scale(1.1)}
+#menu.mj #btnSquad.has-pts .mj-jyw::after,#menu.mj #btnLook.has-new .mj-head::after{content:"";position:absolute;right:-2px;top:0;width:12px;height:12px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink);z-index:2}
+/* ayuda: tres gotas de tinta con icono dorado; las gotas sueltas, de tres colores */
 #menu.mj .mj-strip{display:flex;gap:clamp(10px,1.8vh,16px);margin-top:4px}
-#menu.mj #btnTut,#menu.mj #btnControls,#menu.mj #btnSettings{--bf:var(--mj-ink);--bd:var(--mj-kit);--bc:var(--mj-gold);flex:1 1 auto;justify-content:center;gap:clamp(5px,1vh,8px);height:var(--mj-strip);
-  padding:0 clamp(8px,1.6vh,14px);color:var(--mj-cream);font:400 clamp(11px,2.1vh,16px)/1 var(--mj-pop);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
-#menu.mj #btnTut{transform:rotate(-2deg)}#menu.mj #btnControls{transform:rotate(1.5deg)}#menu.mj #btnSettings{transform:rotate(-1deg)}
-#menu.mj #btnControls{--bd:var(--mj-alt)}#menu.mj #btnSettings{--bd:var(--mj-teal)}
-#menu.mj #btnTut .mi-s,#menu.mj #btnControls .mi-s,#menu.mj #btnSettings .mi-s{display:none}
-#menu.mj .mj-strip .mj-sq::before{display:none!important}
-#menu.mj .mj-ti{flex:none;width:clamp(15px,2.7vh,22px);height:clamp(15px,2.7vh,22px)}
-#menu.mj .mj-ti svg{width:100%;height:100%;display:block;fill:var(--mj-gold);transition:transform .4s var(--ease)}
-#menu.mj #btnTut.kf,#menu.mj #btnControls.kf,#menu.mj #btnSettings.kf,#menu.mj #btnTut:focus-visible,#menu.mj #btnControls:focus-visible,#menu.mj #btnSettings:focus-visible{--bf:var(--mj-gold);color:var(--mj-ink)}
-#menu.mj .mj-strip .mj-sq.kf .mj-ti svg,#menu.mj .mj-strip .mj-sq:focus-visible .mj-ti svg{fill:var(--mj-ink)}
-#menu.mj #btnSettings:hover .mj-ti svg,#menu.mj #btnSettings.kf .mj-ti svg{transform:rotate(60deg)}
-
-/* Carrera: brochazo turquesa con goterón; escudos en pegatinas redondas crema */
-#menu.mj #btnCont{--bc:var(--mj-teal);height:auto;min-height:clamp(48px,10.5vh,92px);padding:0;color:var(--mj-ink);margin:0 calc(var(--mj-stamp) * .1) 4px 0;filter:none}
-#menu.mj #btnCont>.ct-pt,#menu.mj #btnCont>.ct-tx,#menu.mj #btnCont>.ct-cr,#menu.mj #btnCont>.go{display:none}
-#menu.mj #btnCont .mj-tk{flex:1;min-width:0;display:flex;align-items:center;min-height:inherit;background:none}
-#menu.mj #btnCont{width:auto;max-width:100%;box-sizing:border-box}
-#menu.mj .tk-stub{flex:none;display:flex;align-items:center;gap:2px;padding:0 4px 0 clamp(10px,2vh,18px);transform:rotate(-4deg)}
-#menu.mj .tk-cr{display:block;width:clamp(28px,5.6vh,48px);height:clamp(28px,5.6vh,48px);padding:3px;border-radius:50%;background:var(--mj-cream);box-shadow:0 0 0 2.5px var(--mj-ink),2px 3px 0 2.5px var(--mj-ink);box-sizing:border-box}
-#menu.mj .tk-cr svg{width:100%!important;height:100%!important;display:block}
-#menu.mj .tk-vs{font:400 clamp(9px,1.6vh,13px)/1 var(--mj-pop);font-style:normal;text-transform:uppercase;margin:0 2px}
-#menu.mj .tk-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px clamp(6px,1.4vh,12px)}
-#menu.mj .tk-k{font:800 clamp(9px,1.6vh,13px)/1.1 var(--mj-ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(21,16,42,.75)}
-#menu.mj .tk-t{font:400 clamp(15px,3.2vh,27px)/1.05 var(--mj-pop);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:rotate(-1.5deg);transform-origin:0 50%}
-#menu.mj .tk-s{font:700 clamp(9px,1.6vh,13px)/1.15 var(--mj-ui);color:rgba(21,16,42,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
-#menu.mj .tk-go{flex:none;display:flex;align-items:center;padding-right:clamp(12px,2.4vh,22px)}
-#menu.mj .tk-go svg{width:clamp(16px,3vh,24px);height:clamp(16px,3vh,24px);fill:var(--mj-cream);stroke:var(--mj-ink);stroke-width:2.4;paint-order:stroke fill;overflow:visible}
-/* JUGAR: gotas del color de tu equipación en la esquina (mismo lenguaje que las manchas) */
-#menu.mj .mj-gdots{position:absolute;left:calc(var(--mj-play) * -.2);bottom:calc(var(--mj-play) * -.26);width:calc(var(--mj-play) * .48);height:calc(var(--mj-play) * .48);z-index:3;overflow:visible;pointer-events:none}
-#menu.mj .mj-gdots circle{fill:var(--mj-kit);stroke:var(--mj-ink);stroke-width:2.2}
-
-/* ---- esquinas: directo y pie ---- */
-#menu.mj .live{zoom:1;right:calc(var(--mj-pad) + var(--sr));top:calc(var(--mj-pad) * .8 + var(--st));padding:4px 10px 4px 9px;border:0;border-radius:3px;background:var(--mj-ink);color:var(--mj-cream);
-  box-shadow:0 0 0 2px var(--mj-cream),3px 3px 0 2px var(--mj-ink);font:800 clamp(9px,1.6vh,12px)/1.2 var(--mj-ui);letter-spacing:.22em;transform:rotate(2deg)}
-#menu.mj .fs-btn{zoom:1;top:calc(var(--mj-pad) * .8 + var(--st));right:calc(var(--mj-pad) + 110px + var(--sr))}
-#menu.mj .fs-btn span{display:none}
-.is-touch #menu.mj .fs-btn{height:44px;width:44px;padding:0;justify-content:center;top:calc(var(--mj-pad) * .5 + var(--st))}
-#menu.mj .menu-foot{zoom:1;left:calc(var(--mj-pad) * 1.3 + var(--sl));right:calc(var(--mj-pad) + var(--sr));bottom:calc(var(--mj-pad) * .55 + var(--sbm));font:600 12px var(--mj-ui);color:rgba(255,244,220,.75);text-shadow:0 1px 2px rgba(21,16,42,.9)}
-#menu.mj .menu-foot .ver{font-family:var(--mj-ui);font-variant-numeric:tabular-nums}
-#menu.mj .rec{font-family:var(--mj-ui)}
-#menu.mj .rec b{font-family:var(--mj-ui);font-variant-numeric:tabular-nums}
-
-/* ---- móvil apaisado con muy poco alto ---- */
+:root:not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn{flex:1 1 auto;height:var(--mj-strip);min-height:0}
+#menu.mj #btnControls{--sp-d:var(--sp-alt)}#menu.mj #btnSettings{--sp-d:var(--sp-teal)}
+:root:not(#_):not(#_):not(#_) #menu.mj .mj-strip .mi-s{display:none}
+#menu.mj .mj-strip .sp-ic{--sp-is:clamp(15px,2.7vh,22px)}
+#menu.mj #btnSettings:is(:hover,.kf) .sp-ic svg{transform:rotate(60deg)}
+/* Carrera: brochazo turquesa (los hijos de career-ui.js, ocultos; menu-jugador.js pinta .sp-tk) */
+#menu.mj #btnCont{margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu.mj #btnCont>:is(.ct-pt,.ct-tx,.ct-cr,.go){display:none}
+/* móvil apaisado con muy poco alto */
 @media (max-height:430px) and (min-aspect-ratio:5/4){
-  #menu.mj{--mj-colw:clamp(320px,58vw,410px);--mj-gap:8px;--mj-stamp:clamp(58px,16vh,66px);--mj-play:clamp(54px,15vh,62px);--mj-tape:46px;--mj-strip:44px}
+  #menu.mj{--mj-stamp:clamp(58px,16vh,66px);--mj-play:clamp(54px,15vh,62px);--mj-tape:46px;--mj-strip:44px}
   #menu.mj .mj-side{gap:10px;padding-top:calc(10px + var(--st));padding-bottom:calc(10px + var(--sbm))}
   #menu.mj .logo{font-size:clamp(20px,7.4vh,28px)}
-  #menu.mj #btnSquad .mi-s,#menu.mj #btnLook .mi-s{display:none}
-  #menu.mj #btnSquad,#menu.mj #btnLook{padding:0 8px 0 10px;column-gap:5px}
-  #menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s),#menu.mj #btnLook>span:not(.mj-ic):not(.mi-s){grid-row:1/3;align-self:center;font-size:15px;transform-origin:0 50%}
+  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-s{display:none}
+  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook){padding:0 8px 0 10px;column-gap:5px}
+  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{grid-row:1/3;align-self:center;font-size:15px;transform-origin:0 50%}
   #menu.mj .mj-head{width:calc(var(--mj-tape) * .74)}
-  #menu.mj #btnTut,#menu.mj #btnControls,#menu.mj #btnSettings{padding:0 8px;letter-spacing:.02em;font-size:11.5px}
+  :root:not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn{padding:0 8px;letter-spacing:.02em;--sp-fs:11.5px}
   #menu.mj .mj-strip,#menu.mj .mj-tape{gap:11px}
-  #menu.mj .menu-foot .navhint,#menu.mj .menu-foot .rec{display:none}
 }
 @media (max-height:370px) and (min-aspect-ratio:5/4){#menu.mj.has-cont-mj .brand{display:none}}
-@media (max-height:340px) and (min-aspect-ratio:5/4){
-  #menu.mj .mj-strip .mj-ti{display:none}
-}
-/* ---- vertical: logotipo arriba, el partido en medio y los botones abajo ---- */
+@media (max-height:340px) and (min-aspect-ratio:5/4){#menu.mj .mj-strip .sp-ic{display:none}}
+/* vertical: logotipo arriba, el partido en medio y los botones abajo */
 @media (max-aspect-ratio:5/4){
-  #menu.mj{--mj-pad:clamp(14px,4vw,28px);--mj-play:clamp(62px,10.5vh,92px);--mj-tape:clamp(52px,8vh,70px);--mj-strip:48px;--mj-stamp:clamp(64px,11vh,104px);--mj-gap:11px}
-  #menu.mj .mj-side{left:calc(var(--mj-pad) + var(--sl));right:calc(var(--mj-pad) + var(--sr));width:auto;justify-content:space-between;padding:calc(var(--mj-pad) * 1.2 + var(--st)) 0 calc(var(--mj-pad) + 22px + var(--sbm))}
+  #menu.mj{--mj-play:clamp(62px,10.5vh,92px);--mj-tape:clamp(52px,8vh,70px);--mj-strip:48px;--mj-stamp:clamp(64px,11vh,104px)}
+  #menu.mj .mj-side{left:calc(var(--sp-pad) + var(--sl));right:calc(var(--sp-pad) + var(--sr));width:auto;justify-content:space-between;padding:calc(var(--sp-pad) * 1.2 + var(--st)) 0 calc(var(--sp-pad) + 22px + var(--sbm))}
   #menu.mj .logo{font-size:clamp(22px,9vw,60px)}
-  #menu.mj #btnSquad .mi-s,#menu.mj #btnLook .mi-s{display:none}
-  #menu.mj #btnSquad,#menu.mj #btnLook{padding:0 8px 0 10px;column-gap:5px}
-  #menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s),#menu.mj #btnLook>span:not(.mj-ic):not(.mi-s){grid-row:1/3;align-self:center;font-size:clamp(13px,4vw,17px);letter-spacing:0;transform-origin:0 50%}
-  #menu.mj .mj-jyw{width:calc(var(--mj-tape) * .7)}
-  #menu.mj .mj-head{width:calc(var(--mj-tape) * .7)}
-  #menu.mj #btnTut,#menu.mj #btnControls,#menu.mj #btnSettings{font-size:clamp(10px,3.1vw,13px);letter-spacing:.02em;padding:0 6px;flex-direction:column;gap:3px;height:60px}
-  #menu.mj .menu-foot{bottom:calc(8px + var(--sbm))}
+  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-s{display:none}
+  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook){padding:0 8px 0 10px;column-gap:5px}
+  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{grid-row:1/3;align-self:center;font-size:clamp(13px,4vw,17px);letter-spacing:0;transform-origin:0 50%}
+  #menu.mj .mj-jyw,#menu.mj .mj-head{width:calc(var(--mj-tape) * .7)}
+  :root:not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn{--sp-fs:clamp(10px,3.1vw,13px);letter-spacing:.02em;padding:0 6px;flex-direction:column;gap:3px;height:60px}
 }
-@media (prefers-reduced-motion:reduce){#menu.mj .mlist>*{animation:none}#menu.mj #btnPlay.kf .mj-tri{animation:none}}
+@media (prefers-reduced-motion:reduce){#menu.mj .mlist>*{animation:none}}
+.rm #menu.mj .mlist>*{animation:none}
+/* ==== fin SPLAT · PORTADA ==== */
+
+/* =====================================================================
+   SPLAT · JUGAR (#mpPlay): cada modo con su material, no una rejilla de tarjetas iguales. Partido rápido = parche cosido con el sello
+   de Retos en la esquina; Carrera = brochazo turquesa con la copa en pegatina; 6 contra 6, Entrenamiento y Online = manchas de la
+   equipación, del contraste y de tinta con su pegatina (6v6, cono, 1v1). ←/→ dentro de cada fila; ↑/↓ de fila en fila (ui.js)
+   ===================================================================== */
+#menu.sp-full .sp-modes{display:flex;flex-direction:column;gap:clamp(12px,2.6vh,24px);grid-template-columns:none;width:100%}
+#menu.sp-full #mpPlay .sp-pair{--sp-stamp:clamp(64px,15vh,124px);margin-right:calc(var(--sp-stamp) * .2)}
+#menu.sp-full #mpPlay .rt-wrap{display:contents;position:static;margin:0;width:auto}
+#menu.sp-full #mpPlay .sp-pair{--sp-ph:clamp(56px,13vh,112px)}
+#menu.sp-full #btnQuick{--sp-pt:calc(var(--sp-ph) * .34)}
+#menu.sp-full #btnRetos .sp-sc{gap:0}
+#menu.sp-full #btnRetos .sp-ball{width:58%;height:58%}
+#menu.sp-full #btnRetos .rt-meds{position:absolute;inset:14%;display:flex;align-items:center;justify-content:center}
+#menu.sp-full #btnRetos .rt-meds .mdl{width:100%;height:100%}
+#menu.sp-full #btnRetos .rt-meds .mdl.m0{display:none}
+#menu.sp-full #btnRetos .rt-meds .mdl.off{opacity:1;filter:none}
+#menu.sp-full #btnRetos .rt-new{top:-6%;right:-14%}
+#menu.sp-full #btnCareer{--sp-h:clamp(50px,11vh,96px);--sp-cs:clamp(32px,6.6vh,58px);margin-right:calc(var(--sp-pad) * .5)}
+#menu.sp-full #btnCareer .sp-crest svg{fill:var(--sp-gold);stroke:var(--sp-ink);stroke-width:3.4;stroke-linejoin:round;paint-order:stroke fill;overflow:visible;padding:2px;box-sizing:border-box}
+:root:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-s .chip{display:inline-flex;margin:0 6px 0 0;padding:1px 6px;border-radius:5px;background:var(--sp-ink);color:var(--sp-cream);font:800 .92em/1.3 var(--sp-ui);box-shadow:none}
+/* fila de manchas: 6 contra 6 (equipación), Entrenamiento (contraste) y Online (tinta): pegatina con su dibujo arriba y el rótulo debajo */
+#menu.sp-full .sp-row{display:flex;align-items:stretch;gap:clamp(12px,2.2vh,20px)}
+:root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{flex:1 1 0;min-width:0;flex-direction:column;justify-content:center;align-items:center;text-align:center;gap:clamp(3px,.8vh,8px);
+  --sp-h:clamp(62px,15vh,124px);padding:4px 6px 6px}
+#menu.sp-full .sp-row .sp-crest{--sp-cs:clamp(28px,6.6vh,56px);transform:rotate(-8deg)}
+#menu.sp-full .sp-row .sp-crest.sp-num{font:400 calc(var(--sp-cs) * .34)/1 var(--sp-pop);letter-spacing:-.02em;color:var(--sp-ink);text-shadow:none}
+#menu.sp-full .sp-row .sp-crest.sp-num i{font-style:normal;font-size:.72em;margin:0 .04em}
+#menu.sp-full .sp-row .sp-crest svg{fill:var(--sp-ink)}
+#menu.sp-full #btnGym .sp-crest svg circle{fill:var(--sp-kit);stroke:var(--sp-ink);stroke-width:3}
+:root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-l{flex:none;align-items:center;text-align:center;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-t{font-size:clamp(11px,2.15vh,18px);letter-spacing:0;transform-origin:50% 70%;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-s{display:none}
+#menu.sp-full #btnOnline .sp-chip{position:absolute;right:-6px;top:-10px;z-index:3;--sp-tilt:8deg}
+@media (max-height:430px) and (min-aspect-ratio:5/4){
+  #menu.sp-full #mpPlay{--sp-colw:clamp(340px,66vw,480px)}
+  #menu.sp-full #mpPlay .sp-pair{--sp-stamp:clamp(56px,17vh,64px);--sp-ph:clamp(50px,15vh,58px)}
+  #menu.sp-full #btnCareer{--sp-h:50px;--sp-cs:32px}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-k{display:none}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{--sp-h:clamp(58px,19vh,72px);padding:3px 4px 5px}
+  #menu.sp-full .sp-row .sp-crest{--sp-cs:clamp(24px,8vh,30px)}
+  #menu.sp-full .sp-modes{gap:10px}
+}
+@media (max-height:340px) and (min-aspect-ratio:5/4){
+  :root:not(#_):not(#_):not(#_) #menu.sp-full #btnQuick .sp-s{display:none}
+}
+@media (max-aspect-ratio:5/4){
+  #menu.sp-full #mpPlay .sp-pair{--sp-stamp:clamp(64px,11vh,96px);--sp-ph:clamp(62px,10vh,90px);margin-right:0}
+  #menu.sp-full #mpPlay .sp-pair>.sp-patch{--sp-pr:calc(var(--sp-ph) * .3)}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair .sp-stamp{top:auto;bottom:calc(100% - var(--sp-stamp) * .14);right:4px;margin:0}
+  #menu.sp-full #btnQuick{--sp-pt:clamp(18px,5.6vw,30px)}
+  #menu.sp-full .sp-row{gap:10px}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{--sp-h:clamp(86px,13vh,110px)}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-t{font-size:clamp(10.5px,3.05vw,16px)}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{padding:4px 3px 6px}
+}
+/* ==== fin SPLAT · JUGAR ==== */
+
+/* =====================================================================
+   SPLAT · PARTIDO RÁPIDO (#mpQuick): cada opción es una pegatina de tinta con su rótulo dorado y el valor en trazo dorado entre dos
+   flechas en pegatina; Dificultad ocupa la fila entera; «¡A jugar!» es el parche cosido. Las mismas filas, ids y flechas de ui.js
+   ===================================================================== */
+#menu.sp-full #mpQuick{--sp-colw:clamp(340px,46vw,760px)}
+#menu.sp-full .sp-opts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-gap) clamp(12px,1.6vw,20px);width:100%}
+#menu.sp-full .sp-opts>[hidden]{display:none}
+#menu.sp-full #optDiff,#menu.sp-full #btnGo{grid-column:1/-1}
+#menu.sp-full #btnGo{--sp-ph:clamp(54px,12vh,100px);margin-top:4px}
+:root:not(#_):not(#_):not(#_) #menu #playSub{display:none}
+.sp-opt{--sp-cf:var(--sp-ink2);--sp-tcf:var(--sp-cream);--sp-icf:var(--sp-gold);--sp-aw:clamp(26px,4.6vh,34px)}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt{display:grid;grid-template-columns:44px minmax(0,1fr) 44px;grid-template-rows:auto auto;grid-template-areas:"a l b" "a v b";align-items:center;justify-items:center;
+  width:100%;height:auto;min-height:var(--sp-oh,clamp(56px,11.5vh,92px));padding:2px 4px;gap:0 2px;text-align:center;white-space:normal}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-v{display:contents}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .arr[data-d="-1"]{grid-area:a}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .arr[data-d="1"]{grid-area:b}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{grid-area:l;display:flex;flex-direction:column;align-items:center;min-width:0;max-width:100%;margin:0;padding:0;font:400 clamp(10px,1.8vh,14px)/1.1 var(--sp-pop);letter-spacing:.06em;
+  text-transform:uppercase;color:var(--sp-gold);text-shadow:none;transform:rotate(-2deg)}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{display:block;max-width:100%;margin:2px 0 0;font:600 clamp(10px,1.55vh,12.5px)/1.15 var(--sp-ui);letter-spacing:0;text-transform:none;color:rgba(255,244,220,.78);text-shadow:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:rotate(1deg)}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt.lock .mi-h{color:#ffe08a}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val{grid-area:v;margin-top:2px;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val b{overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .cv-x{display:none}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .lvl{display:inline-flex;gap:3px;margin:0}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .lvl em{width:7px;height:13px;margin:0;border-radius:3px 4px 3px 4px;background:rgba(21,16,42,.25);box-shadow:none;transform:skewX(-12deg)}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt .lvl em.on{background:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .sp-opt.lock .arr{opacity:.38}
+@media (min-height:561px) and (min-aspect-ratio:5/4){
+  /* con alto: Dificultad, en su fila entera, lleva el rótulo a la izquierda y el valor a la derecha */
+  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b";padding:2px 6px}
+  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mi-l{align-items:flex-start;justify-self:start;padding-left:6px}
+}
+@media (max-height:560px) and (min-aspect-ratio:5/4){
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{display:none}
+  .sp-opt{--sp-oh:50px}
+}
+@media (max-height:430px) and (min-aspect-ratio:5/4){
+  #menu.sp-full #mpQuick{--sp-colw:min(560px,calc(100vw - 40px - var(--sl) - var(--sr)))}
+  #menu.sp-full #mpQuick .sp-opts{gap:8px 12px}
+  .sp-opt{--sp-oh:48px;--sp-aw:26px}
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt{padding:1px 2px}
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{font-size:10.5px;white-space:nowrap}
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val{margin:1px 0 0;padding:2px 9px;--sp-vs:13px}
+  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b"}
+  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mi-l{align-items:flex-start;justify-self:start;padding-left:4px}
+  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mv-val{margin:0}
+  #menu.sp-full #btnGo{--sp-ph:clamp(48px,14vh,56px);margin-top:2px}
+}
+@media (max-aspect-ratio:5/4){
+  #menu.sp-full .sp-opts{grid-template-columns:minmax(0,1fr);gap:9px}
+  #menu.sp-full #btnGo{--sp-ph:clamp(58px,9.5vh,84px)}
+  .sp-opt{--sp-oh:clamp(54px,8.4vh,70px)}
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b";padding:2px 4px}
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{align-items:flex-start;padding-left:4px;text-align:left;justify-self:start}
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{max-width:100%}
+}
+/* ==== fin SPLAT · PARTIDO RÁPIDO ==== */
 </style>
 
 <div id="app">
@@ -3537,38 +3799,46 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
         <button class="mi" id="btnSettings"><span>Ajustes</span><span class="mi-s">Audio, imagen y equipación</span></button>
       </nav>
     </div>
-    <!-- JUGAR: modos de juego en tarjetas (6 contra 6, sprint 3: abre la preparación del Partido rápido con la fila Formato en 6 contra 6) -->
-    <div class="mpage" id="mpPlay" data-page="play" hidden>
-      <div class="mp-head">
-        <button class="mp-back" id="btnPlayBack" aria-label="Volver al menú principal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><h2 class="mp-t">Jugar</h2></div>
+    <!-- JUGAR (sistema SPLAT, 17-nov-2026; notes/splat.md): cada modo con su material. Partido rápido = parche cosido (.sp-patch) con el sello
+         de Retos en la esquina (.sp-stamp); Carrera = brochazo turquesa (.sp-ticket) con la copa en pegatina; 6 contra 6, Entrenamiento y Online =
+         manchas (.sp-btn) de la equipación, del contraste y de tinta. Mismos ids y manejadores (ui.js, career-ui.js syncMenu, netlobby). ←/→ dentro
+         de cada fila (data-sp-row) y ↑/↓ de fila en fila (ui.js navMove). 6 contra 6 abre la preparación con la fila Formato en 6 contra 6 -->
+    <div class="mpage sp-page" id="mpPlay" data-page="play" data-sp-full hidden>
+      <div class="mp-head sp-head">
+        <button class="mp-back sp-back" id="btnPlayBack" aria-label="Volver al menú principal" data-shape="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><h2 class="mp-t sp-h">Jugar</h2></div>
       </div>
-      <!-- D1: franja de Retos (reto del día y maestría) encima de las tarjetas; ui.js renderMenu pinta #retoSub y #retoMeds -->
-      <div class="rt-wrap" data-nav><button class="mi rt-strip" id="btnRetos" aria-label="Retos"><span class="rt-l"><b class="rt-t">Retos</b><span class="mi-s" id="retoSub">Reto del día y retos de maestría</span></span><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></button></div>
-      <nav class="modes" data-nav aria-label="Modos de juego">
-        <button class="mode m-quick" id="btnQuick"><span class="md-art" aria-hidden="true"><span class="md-num">2<i>v</i>2</span></span><span class="md-tx"><b>Partido rápido</b><small>Un partido contra la CPU, a tu medida</small></span></button>
-        <button class="mode m-career" id="btnCareer"><span class="md-art" aria-hidden="true"><svg class="md-trophy" viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span><span class="md-tx"><b>Carrera</b><small class="md-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span></button>
-        <button class="mode m-6v6" id="btn6v6"><span class="md-art" aria-hidden="true"><span class="md-num">6<i>v</i>6</span></span><span class="md-tx"><b>6 contra 6</b><small>Equipos completos: elige tu puesto</small></span></button>
-        <button class="mode m-gym" id="btnGym"><span class="md-art" aria-hidden="true"><svg class="md-flat" viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/><path class="md-gseam" d="M50 8c-3 3-4 7-3 11M59 16c-4-1.5-8-1-11 1.5M44 24c3-2 6-2.6 9.5-2"/></svg></span><span class="md-tx"><b>Entrenamiento</b><small class="md-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
-        <!-- ONLINE (especialista net, js/netlobby.js): 1 contra 1 con otra persona; oculta hasta que VB.NetLobby.menuOn() (o ?online=1) -->
-        <button class="mode m-onl" id="btnOnline" hidden><span class="md-art" aria-hidden="true"><span class="md-num">1<i>v</i>1</span><i class="md-soon">Beta</i></span><span class="md-tx"><b>Online</b><small>Contra otra persona, con tu jugador</small></span></button>
+      <nav class="modes sp-modes" data-nav aria-label="Modos de juego">
+        <div class="sp-pair" data-sp-row>
+          <button class="mode m-quick sp-patch" id="btnQuick"><span class="sp-l"><span class="sp-t">Partido rápido</span><small class="sp-s">Un partido contra la CPU, a tu medida</small></span></button>
+          <!-- D1: Retos (reto del día y maestría) en sello; ui.js renderRetoStrip pinta la medalla de hoy en #retoMeds y el texto en #retoSub (para el lector) -->
+          <span class="rt-wrap"><button class="sp-stamp" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETO DEL DÍA ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
+        </div>
+        <button class="mode m-career sp-ticket" id="btnCareer"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span></span><span class="sp-tk-main"><small class="sp-k">Tu jugador, tu club</small><b class="sp-t">Carrera</b><small class="sp-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></span></button>
+        <div class="sp-row" data-sp-row>
+          <button class="mode m-6v6 sp-btn sp-kit" id="btn6v6" data-shape="0"><span class="sp-crest sp-num" aria-hidden="true">6<i>v</i>6</span><span class="sp-l"><span class="sp-t">6 contra 6</span><small class="sp-s">Equipos completos: elige tu puesto</small></span></button>
+          <button class="mode m-gym sp-btn sp-alt" id="btnGym" data-shape="1"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/></svg></span><span class="sp-l"><span class="sp-t">Entrenamiento</span><small class="sp-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
+          <!-- ONLINE (especialista net, js/netlobby.js): 1 contra 1 con otra persona; oculta hasta que VB.NetLobby.menuOn() (o ?online=1) -->
+          <button class="mode m-onl sp-btn sp-ink" id="btnOnline" data-shape="2" hidden><span class="sp-crest sp-num" aria-hidden="true">1<i>v</i>1</span><span class="sp-l"><span class="sp-t">Online</span><small class="sp-s">Contra otra persona, con tu jugador</small></span><i class="sp-chip" aria-hidden="true">Beta</i></button>
+        </div>
       </nav>
     </div>
-    <!-- PARTIDO RÁPIDO: preparación (formato, escenario, dificultad, puntos y control) y ¡A JUGAR! (en 6 contra 6, Controlar queda fijo: .lock; y en
-         el sitio de Escenario, siempre el pabellón en 6 contra 6, sale Cámara: 3ª persona o Televisión, el ajuste cam6) -->
-    <div class="mpage" id="mpQuick" data-page="quick" hidden>
-      <div class="mp-head">
-        <button class="mp-back" id="btnQuickBack" aria-label="Volver a los modos de juego"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><p class="kicker">Jugar</p><h2 class="mp-t">Partido rápido</h2></div>
+    <!-- PARTIDO RÁPIDO (sistema SPLAT): preparación (formato, escenario, dificultad, puntos y control) en pegatinas de tinta con el valor en trazo
+         dorado entre flechas (.sp-opt + .sp-select) y ¡A JUGAR! en parche cosido. En 6 contra 6, Controlar queda fijo (.lock) y en el sitio de
+         Escenario (siempre el pabellón en 6 contra 6) sale Cámara: 3ª persona o Televisión, el ajuste cam6 -->
+    <div class="mpage sp-page" id="mpQuick" data-page="quick" data-sp-full hidden>
+      <div class="mp-head sp-head">
+        <button class="mp-back sp-back" id="btnQuickBack" aria-label="Volver a los modos de juego" data-shape="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Partido rápido</h2></div>
       </div>
-      <div class="qlist" data-nav aria-label="Opciones del partido">
-        <button class="mi" id="optFmt" data-opt="format" aria-label="Formato: 2 contra 2"><span class="mi-l">Formato<small class="mi-h" id="fmtHelp">Tú y tu compañero contra la CPU</small></span><span class="mi-v"><span class="arr" data-d="-1" aria-label="2 contra 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="fmtVal">2 contra 2</b></span><span class="arr" data-d="1" aria-label="6 contra 6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi" id="optVenue" data-opt="arena" aria-label="Escenario: Pabellón"><span class="mi-l">Escenario<small class="mi-h" id="venueHelp">Palau del Mar, pista cubierta de 18 × 9</small></span><span class="mi-v"><span class="arr" data-d="-1" aria-label="Pabellón"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="venueVal">Pabellón</b></span><span class="arr" data-d="1" aria-label="Playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi" id="optCam6" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi" id="optDiff" data-opt="difficulty"><span class="mi-l">Dificultad<small class="mi-h" id="diffHelp">Nivel de la CPU</small></span><span class="mi-v"><span class="arr" data-d="-1" aria-label="Más fácil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="diffVal">Normal</b><span class="lvl" id="diffLvl"><em></em><em></em><em></em><em></em></span></span><span class="arr" data-d="1" aria-label="Más difícil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi" id="optPts" data-opt="setPoints"><span class="mi-l">Puntos por set<small class="mi-h" id="ptsHelp">Al mejor de 3; el 3r set, a 15</small></span><span class="mi-v"><span class="arr" data-d="-1" aria-label="Menos puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ptsVal">25</b></span><span class="arr" data-d="1" aria-label="Más puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi" id="optCtrl" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi primary" id="btnGo"><span>¡A jugar!<br><span class="mi-s" id="playSub"><span class="chip">Partido rápido</span></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
+      <div class="qlist sp-opts" data-nav aria-label="Opciones del partido">
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optFmt" data-shape="0" data-opt="format" aria-label="Formato: 2 contra 2"><span class="mi-l">Formato<small class="mi-h" id="fmtHelp">Tú y tu compañero contra la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="2 contra 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="fmtVal">2 contra 2</b></span><span class="arr" data-d="1" aria-label="6 contra 6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optVenue" data-shape="2" data-opt="arena" aria-label="Escenario: Pabellón"><span class="mi-l">Escenario<small class="mi-h" id="venueHelp">Palau del Mar, pista cubierta de 18 × 9</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Pabellón"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="venueVal">Pabellón</b></span><span class="arr" data-d="1" aria-label="Playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCam6" data-shape="2" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optDiff" data-shape="1" data-opt="difficulty"><span class="mi-l">Dificultad<small class="mi-h" id="diffHelp">Nivel de la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más fácil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="diffVal">Normal</b><span class="lvl" id="diffLvl"><em></em><em></em><em></em><em></em></span></span><span class="arr" data-d="1" aria-label="Más difícil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optPts" data-shape="3" data-opt="setPoints"><span class="mi-l">Puntos por set<small class="mi-h" id="ptsHelp">Al mejor de 3; el 3r set, a 15</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Menos puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ptsVal">25</b></span><span class="arr" data-d="1" aria-label="Más puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCtrl" data-shape="0" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi primary sp-patch" id="btnGo"><span class="sp-l"><span class="sp-t">¡A jugar!</span><span class="mi-s sp-s" id="playSub"><span class="chip">Partido rápido</span></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
       </div>
     </div>
     <!-- ONLINE (especialista net): lobby con la lista de salas, crear sala y sala de espera (js/netlobby.js pinta .ol-body; ui.js la abre) -->
@@ -3917,18 +4187,19 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
     setTimeout(ok, Math.max(0, 2500 - (window.performance ? performance.now() : 0)));
     // window.__vbFontFaces = caras de Google que de verdad se han cargado. Ojo: document.fonts.check() devuelve true cuando
     // NINGUNA cara coincide, no sirve de prueba.
-    Promise.all([F.load('900 italic 64px "Barlow Condensed"'), F.load('700 13px "Barlow Condensed"'), F.load('800 24px "Barlow Condensed"'), F.load('600 13px "Barlow"')])
+    Promise.all([F.load('900 italic 64px "Barlow Condensed"'), F.load('700 13px "Barlow Condensed"'), F.load('800 24px "Barlow Condensed"'), F.load('600 13px "Barlow"'), F.load('400 24px "Titan One"'), F.load('400 24px "Bowlby One"'), F.load('700 13px "Rubik"')])
       .then(function (r) { var n = 0; for (var i = 0; i < r.length; i++) n += r[i].length; window.__vbFontFaces = n; ok(); }, function () { window.__vbFontFaces = 0; ok(); });
     // El resto de caras que usa la UI, sin esperarlas (no retrasan el arranque): Chrome baja cada cara de Google la primera vez
     // que un texto la pide y, al llegar, vuelve a maquetar TODO el documento. Sin esto, el primer aviso de los 8 s (#coach, Barlow
     // 500/700) costaba un frame de ~70 ms en el móvil a mitad de partido; así llegan bajo el telón.
     ['800 italic 24px "Barlow Condensed"', '700 italic 24px "Barlow Condensed"', '600 13px "Barlow Condensed"', '500 13px "Barlow Condensed"',
-     '900 24px "Barlow Condensed"', '400 13px "Barlow"', '500 13px "Barlow"', '700 13px "Barlow"'].forEach(function (d) { try { F.load(d).catch(function () { }); } catch (e) { } });
+     '900 24px "Barlow Condensed"', '400 13px "Barlow"', '500 13px "Barlow"', '700 13px "Barlow"', '600 13px "Rubik"', '800 13px "Rubik"'].forEach(function (d) { try { F.load(d).catch(function () { }); } catch (e) { } });
   } catch (e) { ok(); }
 })();
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
 <script src="js/version.js"></script>
+<script src="js/splat.js"></script>
 <script src="js/account.js"></script>
 <script src="js/sim.js"></script>
 <script src="js/ai.js"></script>

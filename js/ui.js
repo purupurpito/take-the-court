@@ -2680,10 +2680,27 @@
       focusEl(f, false);
     }, 30);
   }
+  // SPLAT (17-nov-2026, notes/splat.md): botones en filas (contenedor con data-sp-row: portada, Jugar). ↑/↓ saltan de fila en fila
+  // (en la fila de destino, la misma columna o la última) y ←/→ se mueven dentro de la fila (spRowStep, desde adjustFocused)
+  function spRow(b) { var p = b && b.parentNode; return p && p.closest ? p.closest('[data-sp-row]') : null; }
+  function spRowList(r, list) { return list.filter(function (x) { return spRow(x) === r; }); }
+  function spNavIdx(list, i, d) {
+    var n = list.length, r = spRow(list[i]), col = r ? spRowList(r, list).indexOf(list[i]) : 0, j = i;
+    do { j = (j + d + n) % n; } while (r && j !== i && spRow(list[j]) === r);
+    var r2 = spRow(list[j]); if (!r2 || r2 === r) return j;
+    var L2 = spRowList(r2, list); return list.indexOf(L2[r ? Math.min(col, L2.length - 1) : 0]);
+  }
+  /** ←/→ en una fila data-sp-row: la vecina activa; en el borde, el rebote. */
+  function spRowStep(r, a, d) {
+    var L = Array.prototype.filter.call(r.querySelectorAll('button'), function (b) { return !b.disabled && !b.closest('[hidden]') && !b.hasAttribute('data-skip'); });
+    var i = L.indexOf(a), j = i + (d > 0 ? 1 : -1);
+    if (i < 0 || j < 0 || j >= L.length) { uiSound2('arrowEdge', d); return; }
+    focusEl(L[j], true); hoverSound();
+  }
   function navMove(d) {
     var L = activeLayer(), list = focusables(L); if (!list.length) return;
     var i = list.indexOf(document.activeElement);
-    i = i < 0 ? 0 : (i + d + list.length) % list.length;
+    i = i < 0 ? 0 : spNavIdx(list, i, d);
     focusEl(list[i], true); if (list[i].classList && list[i].classList.contains('opt')) uiSound2('optHover'); else hoverSound();
   }
 
@@ -2726,6 +2743,7 @@
   function renderMenu() {
     var d = device();
     if (heroDirty) syncHero();
+    if (VB.Splat) VB.Splat.sync();   // SPLAT: colores de la equipación en :root (firma: no hace nada si no cambian)
     // D4: las bajadas de la cuenta solo se aplican en el menú (account.js las deja pendientes hasta aquí)
     if (VB.Account && VB.Account.menuReady) { try { VB.Account.menuReady(); } catch (e) { } }
     // grupos tecla + acción (.kh) con raya fina entre ellos (CSS), sin «·»
@@ -3768,6 +3786,8 @@
     if (p === 'look' && was !== 'look') lkOpen();
     el.menu.setAttribute('data-page', p);
     var n = pageEl(p);
+    // SPLAT: página con el sistema (data-sp-full) = #menu sin velo ni relleno, columna propia (index.html «SPLAT: sistema de diseño»)
+    var spf = !!(n && n.hasAttribute('data-sp-full')); if (el.menu.classList.contains('sp-full') !== spf) el.menu.classList.toggle('sp-full', spf);
     if (anim && n) { n.classList.remove('pg-in', 'pg-back'); void n.offsetWidth; n.classList.add(anim === 'back' ? 'pg-back' : 'pg-in'); }
     if (p === 'quick') renderOpts();
     if (ctx && ctx.state === 'menu') renderMenu();   // pistas de teclado/mando de esta página
@@ -6127,8 +6147,10 @@
   // =====================================================================
   function adjustFocused(d) {
     var a = document.activeElement;
-    // tarjetas de modos en fila: ←/→ = vecina activa, sin salirse (antes → en Carrera saltaba la 6v6 deshabilitada y caía en
-    // «Volver», y ← se quedaba allí); desde «Volver» de Jugar, ←/→ vuelven a una tarjeta
+    // SPLAT: filas de botones (data-sp-row; portada y Jugar): ←/→ = vecina activa de la fila, sin salirse
+    var spr = spRow(a), lay = activeLayer();
+    if (spr && lay && lay.contains(spr)) { spRowStep(spr, a, d); return true; }
+    // tarjetas de modos sueltas (fuera de una fila): ←/→ se quedan con el rebote; desde «Volver» de Jugar, ←/→ vuelven a una tarjeta
     if (a && a.classList && a.classList.contains('mode') && !panel) { modeStep(a, d); return true; }
     if (a && a.classList && a.classList.contains('mp-back') && !panel && mpage === 'play') { focusEl(el.btnQuick, true); hoverSound(); return true; }
     if (a && a.classList && a.classList.contains('mp-back') && !panel && mpage === 'gym') { focusEl(gymRowEl(gymSel), true); hoverSound(); return true; }
@@ -6152,13 +6174,8 @@
     if (a && a.classList && a.classList.contains('kslot')) { navMove(d > 0 ? 1 : -1); return true; }                        // E3: ←/→ entre las teclas de Controles
     return false;
   }
-  /** ←/→ entre las tarjetas de Jugar: la vecina activa (las deshabilitadas se saltan); en el borde, se queda. */
-  function modeStep(a, d) {
-    var L = Array.prototype.filter.call(el.mpPlay ? el.mpPlay.querySelectorAll('.mode') : [], function (m) { return !m.disabled && !m.closest('[hidden]'); });
-    var i = L.indexOf(a), j = Math.max(0, Math.min(L.length - 1, i + (d > 0 ? 1 : -1)));
-    if (i < 0 || j === i) { uiSound2('arrowEdge', d); return; }
-    focusEl(L[j], true); hoverSound();
-  }
+  /** ←/→ en una tarjeta de Jugar fuera de fila (Carrera, sola en la suya): se queda con el rebote (las filas las lleva spRowStep). */
+  function modeStep(a, d) { uiSound2('arrowEdge', d); }
   function onKey(e) {
     ctx.lastKeyT = ctx.time;
     if (capturing || (VB.Input && VB.Input.capturing && safe(VB.Input.capturing))) return;   // E3: reasignando una tecla

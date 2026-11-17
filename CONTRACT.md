@@ -6,7 +6,7 @@ Proyecto personal. Este documento es la ley para los 7 especialistas (el 7.º, `
 ## 1. Propiedad de ficheros (exacta)
 
 ```json
-{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js and js/look.js (wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
+{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js, js/look.js, js/splat.js and js/menu-jugador.js (SPLAT design system and home menu, notes/splat.md; wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
 ```
 
 `js/prog.js` (estadísticas y progresión de tus jugadores: `VB.Prog`, guardado en `make-the-cut.squad`) también es de **ui_main**; sim lo recibe ya convertido en `createGame({attrs: [[st7, st11], [st3, st9]]})` (atributos 1-99 con las claves `VB.ATTR_KEYS`; 50 = neutro; sin `attrs` la sim no cambia), que deja `p.st`, `p.prof` (perfil de IA, `Sim.statProf`) y `p.ak` (multiplicadores del humano, `Sim.attrK`; constantes en `VB.ATTR_K`). Integración (10-nov-2026): `p.ak` añade `eRecv/eDig/eSet/eAtk` (precisión del toque: dispersión ×1,5-0,6 y calidad del pase/colocación) y `rRecv/rDig` (alcance del 1r toque ×0,94-1,05); con Velocidad < 50 frenar y girar es al momento (la rampa `accT` solo al arrancar).
@@ -70,10 +70,10 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
 ## 2. Restricciones técnicas
 
 - Scripts clásicos (`<script src>`), SIN módulos ES, sin import/export, sin bundler. Un único espacio global `window.VB`.
-- Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/account.js` → `js/sim.js` → `js/ai.js` →
+- Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/splat.js` (SPLAT, 17-nov-2026) → `js/account.js` → `js/sim.js` → `js/ai.js` →
   `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
-  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/install.js` → `js/main.js` (main arranca).
+  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/menu-jugador.js` (portada SPLAT) → `js/install.js` → `js/main.js` (main arranca).
   recap.js, retos.js, profile.js, replay.js y matchstats.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
 - **Versión:** cada publicación visible sube `VB.VERSION` (semver) y añade su entrada al principio de `VB.CHANGELOG` (js/version.js);
@@ -1124,3 +1124,11 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
 (→ `netlogs.html` en Pages). Ganchos de solo lectura: `Session.rttLast/rttSeq` y `stats.depth` (js/net.js), `RtcLink.info()` con
 `rtype/proto/relayProto` (js/netrtc.js, nunca direcciones). Prueba: `node tools/netlogtest.js`; `NDLOG=1 node tools/netdrive.js 45 80
 "quality=low&netlog=1"` enseña el informe de una partida de prueba.
+
+### Sistema de diseño SPLAT (17-nov-2026, ui_main)
+Todo menú o pantalla se diseña con el sistema SPLAT («materiales del vóley + toque Splatoon»; pedido de Ferran: «Diseña todos así»):
+tokens y componentes en el bloque «SPLAT: SISTEMA DE DISEÑO» de index.html, dibujo en `js/splat.js` (`VB.Splat.decorate / watch / sync`) y
+guía con ejemplos y recetas de capturas en **notes/splat.md**. Clases `.sp-btn` `.sp-patch` `.sp-stamp` `.sp-ticket` `.sp-tab`/`.sp-tabs`
+`.sp-seg` `.sp-select` `.sp-slider` `.sp-toggle` `.sp-chip` `.sp-panel` `.sp-h` `.sp-k` `.sp-back` `.sp-hints` `.sp-page` (con `data-sp-full`
+y `data-sp-row`). Cada pantalla, su propio bloque «SPLAT · <PANTALLA>» al final del `<style>`. La portada sale con el sistema por defecto
+(`?menu=old` = la de antes); Jugar y Partido rápido también.

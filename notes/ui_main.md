@@ -1796,3 +1796,19 @@ colocación, deberías poner por ejemplo el clic para atacar y algo como el clic
     tapada por el cuerpo del colocador y el aro amarillo).
   - input.js `rebind`: asignar una tecla a GOLPEAR / COLOCAR / SALTAR en Controles pasa su origen a 'key' (los avisos dicen esa tecla en
     vez de «Clic»; con Chrome de puntero fino `srcOf` arranca en 'mouse' y settest k) esperaba la tecla).
+
+## SPLAT: sistema de diseño y portada por defecto (17-nov-2026, etapa 1; Ferran: «Me gusta. Diseña todos así»)
+Guía completa: **notes/splat.md**. Resumen de lo que cambia en ui_main:
+- **index.html**: Google Fonts añade Bowlby One, Titan One y Rubik (el telón espera Titan One, Bowlby One y Rubik 700); el bloque del
+  prototipo «MENÚ TU JUGADOR» se sustituye por «SPLAT: SISTEMA DE DISEÑO» (tokens en `:root` y componentes `.sp-*` con refuerzo de
+  especificidad `:root:not(#_):not(#_):not(#_)`), «SPLAT · PORTADA», «SPLAT · JUGAR» y «SPLAT · PARTIDO RÁPIDO». Marcado nuevo de
+  `#mpPlay` (parche Partido rápido + sello Retos en `.sp-pair`, Carrera en `.sp-ticket`, fila de manchas 6 contra 6 / Entrenamiento /
+  Online) y clases en `#mpQuick` (filas `.sp-btn.sp-ink.sp-opt.sp-calm` con `.mi-v.sp-select`, «¡A jugar!» en `.sp-patch`). Mismos ids.
+  `#btnRetos` pasa de franja a sello (`#retoMeds` = medalla de hoy sobre el balón; `#retoSub` queda para el lector de pantalla).
+- **js/splat.js** (nuevo, tras version.js): `VB.Splat` (decorate, watch, sync/setKit, reduced, press/splash, ICONS, BALL).
+- **js/menu-jugador.js**: ya no va con `?menu=jugador`; es la portada por defecto (`?menu=old` = la de antes). Usa el sistema; su
+  teclado y su envoltorio de `VB.UI.nav` se quitan (ahora lo hace ui.js con `data-sp-row`). `&mjfocus=<id>` enfoca cualquier botón.
+- **js/ui.js**: `navMove` salta de fila en fila en los contenedores `data-sp-row` (misma columna o la última) y `adjustFocused` mueve
+  ←/→ dentro de la fila (`spRow`, `spNavIdx`, `spRowStep`); `modeStep` queda en rebote (Carrera, sola en su fila); `setPage` pone
+  `#menu.sp-full` cuando la página lleva `data-sp-full`; `renderMenu` llama a `VB.Splat.sync()` (colores de la equipación en `:root`).
+- **tools/padplay.js**: en Jugar, → desde Partido rápido va al sello de Retos y ↓ a la Carrera (antes → iba a la Carrera).
