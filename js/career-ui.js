@@ -1603,7 +1603,7 @@
     head.innerHTML = '<button data-act="' + (c ? 'hub' : 'close') + '" aria-label="Volver">‹ Volver</button><div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>';
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
     var has = C().has('hall');
-    var h = '<div class="cf">' + modeSeg() + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (voley3d.career6.bak).</p></div>' : '') +
+    var h = '<div class="cf">' + modeSeg() + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
       '<div class="card"><p>Vóley de pista, 6 contra 6, en el pabellón. Empiezas con una media de ' + H6.START_OVR + ' en un club modesto de tu país' + (co.divs > 1 ? ' (2ª división, o una prueba en la 1ª)' : '') + '. Liga por jornadas, copa nacional y, si tu club se clasifica, copas internacionales. Ascensos y descensos. Si destacas, los ojeadores de las ligas fuertes (también de fuera) te ficharán. Controlas solo a tu jugador, en su puesto.' +
       (VB.Leagues && VB.Leagues.provisional ? ' <span class="tag y">Ligas provisionales</span>' : '') + '</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
@@ -1759,7 +1759,7 @@
     var R = B.ROLES, st = B.genSt(B.START_OVR, form.role, null), P = VB.Prog;
     head.innerHTML = '<button data-act="' + (c ? 'hub' : 'close') + '" aria-label="Volver">‹ Volver</button><div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>';
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
-    var h = '<div class="cf">' + modeSeg() + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (voley3d.career.bak).</p></div>' : '') +
+    var h = '<div class="cf">' + modeSeg() + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
       '<div class="card"><p>Empiezas con media ' + B.START_OVR + ' y sin club. Los clubes del <b>' + esc(B.league(0).name) + '</b> te harán ofertas: cada uno te da un compañero distinto.</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
       '<div><label>Dorsal</label><div class="stp"><button data-act="num" data-d="-1" aria-label="Dorsal anterior">−</button><b aria-live="polite">' + form.num + '</b><button data-act="num" data-d="1" aria-label="Dorsal siguiente">+</button></div></div>' +

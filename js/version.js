@@ -15,23 +15,26 @@
  *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
  * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
  * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
- * 1.6.0 (17-nov-2026): pruebas con partidillo de petos, entrenos de Carrera Rápido/Manual y nota en directo (notes/pruebas-entrenos-spec.md,
- *   notes/nota-en-directo-spec.md).
+ * 1.7.0 (17-nov-2026): Acta del partido (js/acta.js): los partidos 6v6 salen como acta de emPat (formato empat/acta).
+ * 1.8.0 (17-nov-2026): fusión de la rama pruebas-entrenos: pruebas con partidillo de petos (ampliadas: IA un nivel por encima,
+ *   rivales mejores, invitaciones a mitad y fin de temporada), entrenos Jugar/Rápido/Descansar y nota en directo.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.6.0';
+  VB.VERSION = '1.8.0';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.6.0', d: '2026-11-17', t: 'Pruebas, entrenos y nota en directo',
+      v: '1.8.0', d: '2026-11-17', t: 'Pruebas, entrenos y nota en directo',
       items: [
         'Las pruebas de club son un partidillo con petos: un set a 15 y tres objetivos.',
-        'Saca nota B o mejor y te fichan. También puedes simularla, con menos opciones.',
+        'Con nota B o mejor te fichan; con C decide la suerte y ganar el partidillo ayuda.',
+        'Rivales mejores que tú y la IA un nivel por encima. Simularla da menos opciones.',
+        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.',
         'Ojo: si reinicias o abandonas la prueba, la pierdes.',
         'Nota en directo en los partidos de Carrera: tus buenas acciones suman y las malas restan.',
         'Pista: con muy mala nota vas al banquillo; si destacas saliendo de él, juegas de inicio.',
@@ -39,6 +42,30 @@
         'El Rápido te da tu récord jugando, sin llegar al oro. Jugar siempre rinde más.',
         'Nota de cada ejercicio con letra, récord y la barra del atributo subiendo.',
         'Entreno automático para quien solo quiere jugar los partidos.'
+      ]
+    },
+    {
+      v: '1.7.0', d: '2026-11-17', t: 'Acta del partido',
+      items: [
+        'Los partidos 6 contra 6 tienen acta: pulsa «Acta del partido» en la pestaña Estadísticas.',
+        'Se abre en emPat, el acta electrónica: alineaciones, puntos, cambios, líbero y resultado.',
+        'Desde allí la ves como acta oficial impresa, lista para imprimir o guardar en PDF.'
+      ]
+    },
+    {
+      v: '1.6.0', d: '2026-11-17', t: 'Estadística del partido',
+      items: [
+        'Al acabar un partido, pulsa «Estadística del partido»: los números de los dos equipos.',
+        'Side-out, break point, quién iba por delante, mapas de saque y ataque y dónde se falla.',
+        'Tabla por jugador con saque, recepción, ataque, bloqueo y defensa, de todo o set a set.'
+      ]
+    },
+    {
+      v: '1.5.8', d: '2026-11-17', t: 'Pruebas jugadas',
+      items: [
+        'Carrera: las pruebas se juegan: un set a 15 contra rivales mejores y la IA un nivel más.',
+        'Te fichan por tu nota; ganar el mini partido ayuda un poco. También puedes simularla.',
+        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.'
       ]
     },
     {

@@ -1,4 +1,4 @@
-/* VOLEY 3D — js/venues.js (owner: arena)
+/* MAKE THE CUT — js/venues.js (owner: arena)
  * Registro de SEDES (mapas): datos puros, sin THREE. Lo leen arena.js (qué montar), ui.js (nombres y selector de
  * Ajustes · Imagen), main.js (validar los ajustes `mapHall` / `mapBeach` y ?map=) y career.js si quiere el nombre.
  *

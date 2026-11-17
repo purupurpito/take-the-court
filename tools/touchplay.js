@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/touchplay.js (owner: ui_main)
+/* MAKE THE CUT — tools/touchplay.js (owner: ui_main)
  * Juega un partido REAL con el dedo: Input.dispatchTouchEvent (DevTools) sobre el overlay táctil de verdad
  * (joystick arrastrando en la mitad izquierda, botones GOLPEAR/SACAR, SALTAR, ⇄ y pausa), en móvil emulado.
  * Comprueba, por cada tamaño:

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/shot.js (owner: ui_main)
+/* MAKE THE CUT — tools/shot.js (owner: ui_main)
  * Capturas y errores de consola con el VIEWPORT EXACTO (DevTools: Emulation.setDeviceMetricsOverride) y la GPU real.
  * Uso: node tools/shot.js <escena[,escena...]> [W=1280] [H=720] [salida] [params extra]
- *   (intro = previa B5: &kind=mini|short|long &career=1 &boss= &t=; recap = hoja B6: &career=1 &move=±n &unl=n &tab=sum|stats &boss=1 &chem=1 &cup=semi|final; retos = página de Retos: &tab=hoy|maestria; reto_end = hoja del reto del día; &retodate=AAAAMMDD; replay = repetición del 1r punto de set (&rpt=s la congela, &match=1 la del partido, &auto=1 automática, &career=1); best = hoja final con «Jugadas» (&tab=plays, &play=1 las ve); menupf = portada con el chip del perfil y prof = página Perfil (&tab=vestuario|insignias|entreno|carrera|retos|sedes|hitos; &pfseed=demo, perfil de prueba en memoria); 6v6, espectador: serve6, rally6, point6; 6v6 con humano: serve6h, rally6h; look = Vestuario (&tab &venue &item &pick) = ?debug=…; ver debugScene en js/main.js)
+ *   (intro = previa B5: &kind=mini|short|long &career=1 &boss= &t=; recap = hoja B6: &career=1 &move=±n &unl=n &tab=sum|stats &boss=1 &chem=1 &cup=semi|final; retos = página de Retos: &tab=hoy|maestria; reto_end = hoja del reto del día; &retodate=AAAAMMDD; replay = repetición del 1r punto de set (&rpt=s la congela, &match=1 la del partido, &auto=1 automática, &career=1); best = hoja final con «Jugadas» (&tab=plays, &play=1 las ve); stats = Estadística del partido abierta (&format=6v6 &map=beach &career=1 &set=n &team=1); menupf = portada con el chip del perfil y prof = página Perfil (&tab=vestuario|insignias|entreno|carrera|retos|sedes|hitos; &pfseed=demo, perfil de prueba en memoria); 6v6, espectador: serve6, rally6, point6; 6v6 con humano: serve6h, rally6h; look = Vestuario (&tab &venue &item &pick) = ?debug=…; ver debugScene en js/main.js)
  *   - una escena: salida = fichero .png (por defecto tools/out/<escena>-WxH.png)
  *   - varias escenas (separadas por comas, o "all"): salida = carpeta (por defecto tools/out/shots-WxH/)
  *   - escena "-" o "none": solo consola, sin captura
@@ -13,7 +13,7 @@
 'use strict';
 const path = require('path'), fs = require('fs');
 const CDP = require('./cdp.js');
-const ALL = 'menu,serve,hud,rally,spike,block,point,ace,setpoint,switch,over,mobile,pause,tutorial,controls,settings,toss,jumpserve,dive,serve6,rally6,point6,serve6h,rally6h,doll,look,drill_serve,drill_recv,drill_set,drill_atk,drill_block,drill_free,drill_end,intro,recap,retos,reto_end,replay,best,menupf,prof';
+const ALL = 'menu,serve,hud,rally,spike,block,point,ace,setpoint,switch,over,mobile,pause,tutorial,controls,settings,toss,jumpserve,dive,serve6,rally6,point6,serve6h,rally6h,doll,look,drill_serve,drill_recv,drill_set,drill_atk,drill_block,drill_free,drill_end,intro,recap,retos,reto_end,replay,best,stats,menupf,prof';
 let scenes = (process.argv[2] || 'menu'); if (scenes === 'all') scenes = ALL;
 scenes = scenes.split(',').filter(Boolean);
 const W = +(process.argv[3] || 1280), H = +(process.argv[4] || 720);

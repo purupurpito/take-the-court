@@ -241,7 +241,7 @@ Funciones:
 8. ¿Se quita del todo la rejilla «Enfoque de la semana» de Jugador › Entreno (propuesta) o se deja duplicada a propósito?
 9. La sim con `sets:1` es el único cambio en sim.js. Si alguna huella cambia, se para y se revisa antes de seguir.
 
-Ficheros afectados (repo C:/Users/Puru/FCVBARB/carpetas/voley-3d-pruebas):
+Ficheros afectados (repo C:/Users/Puru/FCVBARB/carpetas/make-the-cut-pruebas):
 - js/sim.js
 - js/players.js
 - js/doll.js

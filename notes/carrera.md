@@ -3,17 +3,17 @@
 Ficheros: `js/career.js` (VB.Career, datos y reglas, sin DOM; se carga en node), `js/career-ui.js` (VB.CareerUI, pantallas; crea su
 DOM `#career` y su `<style id="careerCss">`), `js/leagues.js` (VB.Leagues, datos de las ligas de pista), `js/main.js` (arranque de
 los partidos de Carrera), `index.html` (fila «02 Carrera» del menú y los `<script>`), `tools/careertest.js` (prueba en node).
-Guardados: `localStorage['voley3d.career']` (playa, igual que siempre), `['voley3d.career6']` (pista) y `['voley3d.career.mode']`
+Guardados: `localStorage['make-the-cut.career']` (playa, igual que siempre), `['make-the-cut.career6']` (pista) y `['make-the-cut.career.mode']`
 (cuál de las dos está activa).
 
 ## Carrera de pista 6v6 (lote C, 11-nov-2026)
 
 ### Diseño
 - **Dos Carreras a la vez, guardadas aparte.** Al crear se elige «Playa (2v2)» o «Pista (6v6)» (`modeSeg`). La de playa no cambia:
-  ni su guardado (`voley3d.career`, v3), ni su migración, ni su API. La pista va en `voley3d.career6` (v1, `mode: 'hall'`). La
-  activa se guarda en `voley3d.career.mode`; sin ese dato, o si la elegida no existe y la otra sí, manda la que exista (por defecto
+  ni su guardado (`make-the-cut.career`, v3), ni su migración, ni su API. La pista va en `make-the-cut.career6` (v1, `mode: 'hall'`). La
+  activa se guarda en `make-the-cut.career.mode`; sin ese dato, o si la elegida no existe y la otra sí, manda la que exista (por defecto
   la playa). Palmarés › Opciones lleva a la otra Carrera (o a crearla). Un guardado de pista dañado se copia en
-  `voley3d.career6.bak` y la activa vuelve a la playa, que no se toca.
+  `make-the-cut.career6.bak` y la activa vuelve a la playa, que no se toca.
 - **Fachada (`VB.Career`, final de career.js).** `BEACH` y `HALL` son dos motores con las mismas claves; `VB.Career.<clave>` va
   al activo (getter) y, si el activo no la tiene, a la playa (constantes comunes). `VB.Career.beach` y `VB.Career.hall` dan acceso
   directo. `create({mode})` elige; `matchDone(r, st, g)` va al de `g.career.mode` aunque la activa hubiera cambiado.
@@ -330,7 +330,7 @@ M4, una temporada entera JUGADA en el Circuito Mundial con tu media fija (club m
 ### Dificultad en la Carrera de pista (15-nov-2026; Ferran: «metele la dificultad»)
 
 Las mismas palancas y la misma tabla `CDIFF` que la playa (IA rival, atributos, XP, entreno, entrenador, objetivo y ofertas), con
-el guardado de pista (`voley3d.career6`, sin subir `VER6`). **Normal es exactamente la Carrera de pista de antes**: comprobado contra el
+el guardado de pista (`make-the-cut.career6`, sin subir `VER6`). **Normal es exactamente la Carrera de pista de antes**: comprobado contra el
 `career.js` anterior (5 semillas × 4 temporadas simuladas: guardado y `next()`/`matchSetup()` de cada jornada idénticos, quitando los
 campos nuevos) y con careertest (sección «Dificultad de la Carrera de pista»).
 
@@ -389,7 +389,7 @@ endSeason 'season', newSeason 'newSeason') más un sumando en `offerScore`; si c
 - **Legado**: puntuación por títulos (más en categorías altas), premios, fama, victorias y logros; escalones Jugador de club,
   Referente (60), Ídolo del circuito (150), Leyenda (300), Mito del vóley (500). Desde los 32 años baja el físico cada verano;
   desde los 30 te puedes retirar (doble pulsación): la carrera pasa al **Salón de la Fama** del dispositivo
-  (`localStorage['voley3d.legends']`, 20 mejores) y se cierra; la siguiente carrera empieza con 150 seguidores por escalón de legado
+  (`localStorage['make-the-cut.legends']`, 20 mejores) y se cierra; la siguiente carrera empieza con 150 seguidores por escalón de legado
   de la mejor leyenda.
 - **UI**: pestaña «Fama» (Fama · Tienda · Logros · Legado) entre Club y Liga, con punto si hay ofertas de patrocinio; en Partido,
   la decisión pendiente y la tarjeta del reto (o del duelo); en el último partido, reto cumplido o no, seguidores, dinero, duelo y
@@ -731,7 +731,7 @@ de fuerza ± 0,6 por el resultado ± 0,8 de azar (3-9,5).
 `sane()` repasa todo el guardado (`saneDeep`): clubes (8 por liga, ids, q), compañero, calendario (5 × 14 × 4 con ids de su liga; si
 no vale, calendario nuevo desde la jornada 1), resultados, listas, entrenador, objetivo, fase y jornada (`week` > 14 → copa; copa
 rota → se rehace; fin de temporada sin resumen → uno mínimo). Lo irreparable (clubes, `myClub` inexistente, JSON roto) no se carga: se
-guarda una copia en `voley3d.career.bak`, `VB.Career.lost()` da true y la pantalla de crear lo avisa (y el menú dice «Guardado dañado»).
+guarda una copia en `make-the-cut.career.bak`, `VB.Career.lost()` da true y la pantalla de crear lo avisa (y el menú dice «Guardado dañado»).
 Si aun así algo falla al pintar, `career-ui.js` enseña una tarjeta «No se puede abrir la carrera» con «Borrar la carrera dañada» (doble
 pulsación). Probado en careertest y en Chrome (sin `sched`, sin `res`, `week: 99`, `myClub` inexistente, JSON roto).
 
@@ -896,7 +896,7 @@ pelín. Así, un jugador que acaba de unirse a un equipo mejor, puede llegar a s
 - **Jugar:** career-ui «Jugar» → `VB.ctx.actions.startCareerDrill(id)` (main.js) → `drillSetup` (tus atributos con la resta de la fatiga,
   tus insignias, tu compañero de playa o uno de tu club en la pista, la equipación del club) → el ejercicio normal. En `drillEnd`, main.js
   apunta la sesión (`VB.Career.drillDone(mode, id, total)`), la hoja final enseña progreso, fatiga e impresión y «Volver a la Carrera»
-  abre el hub en Partido › Entrenamiento con el resultado. No toca `voley3d.gym` (ni récords ni la XP del escuadrón de Partido rápido).
+  abre el hub en Partido › Entrenamiento con el resultado. No toca `make-the-cut.gym` (ni récords ni la XP del escuadrón de Partido rápido).
   Abandonar o reiniciar el ejercicio a medias no gasta la sesión.
 - **Rápido:** `sessQuick`, determinista (`hash(seed, 'sess', temporada, jornada, n.º de sesión, ejercicio)`, nunca `g.rng` ni
   `Math.random`): fracción del umbral de oro = 0,3 + (atributo − 35) / 100, entre 0,3 y 0,85, ± 0,08, menos 2 × la resta de fatiga. Nunca
@@ -957,3 +957,32 @@ Contrato: CONTRACT §1 y §4.4 «Sprint 2-4».
 - careertest: 2012 comprobaciones, progresión Normal 39/45/50/54/57/61 sin cambios (también con `NOWORLD=1`).
 - Abierto (recap.js): `cupLine` con «Open Regional · Final» da «Campeones de la Open Regional»; `teamName` da «El Sorra Brisamar Dunes
   no da opción» con clubes sin artículo (visto en una carrera real).
+
+## Pruebas, entrenos y nota en directo (1.8.0, 17-nov-2026: fusión de la rama pruebas-entrenos)
+
+La rama `pruebas-entrenos` (diseño aprobado por Ferran el 16-nov: notes/pruebas-entrenos-spec.md, notes/nota-en-directo-spec.md,
+mapa en notes/pruebas-entrenos-mapa.md) entró en main el 17-nov. Sustituye a las «pruebas jugadas» de la 1.5.8, que duplicaban la
+idea y se deshicieron antes de fusionar (commit «Deshace las pruebas jugadas de 1.5.8»). Lo que traía la rama: partidillo de prueba
+con petos (un set a 15, 3 objetivos según el puesto, nota con letra: A+/A/B te fichan, C decide la suerte con o.chance + 0,15, D/F
+no), simularla (o.chance × 0,7), reiniciar/abandonar/cerrar la pestaña la gasta (letra F); nota en directo tipo EA FC en todos los
+partidos de Carrera (js/rating.js); entrenos Jugar/Rápido/Descansar con plan del entrenador, «Simular jornada» y entreno automático;
+en la pista la nota del último partido decide el seis.
+
+**Ampliado al fusionar** (lo que Ferran pidió el 17-nov para las pruebas: «jugadores mejores que tú, con buenos stats y dificultad 1 por
+encima de la tuya»; «cuenta la nota, pero ganar el mini-partido te da algo más de probabilidades; se puede simular y se puede hacer en
+las 2»):
+- **IA un nivel por encima de tu dificultad** (`trialAIOf`: Fácil → Normal, Normal → Difícil, Difícil/Experto → Experto; si el club ya
+  juega por encima, uno más que el club; nunca «suave») y **rivales mejores que tú** (media max(club, la tuya + `TRIAL_UP` 4); en la
+  pista, los titulares).
+- **Ganar ayuda un poco:** la nota ya lleva el resultado (+0,9 ganando 1-0, −0,3 perdiendo) y, con C, ganar suma `TRIAL_WIN` (0,1) a la tirada.
+- **Invitaciones a prueba a mitad y a fin de temporada** (playa y pista): `genOffers` / `genOffers6` invitan al club mejor que te quiere
+  casi lo justo (interés entre −`TRIAL_GAP` 3 y 0; `o.chance` = `trialChanceIt` 0,15-0,45), una por ventana y la última de la lista.
+  Fuera de la fase pick el estado va en `c.tst = {trial, res}` (`tst(c)`; saneado con `trialSaneT`), la ronda de las tiradas es
+  temporada y ventana (`tRound`) y superarla ficha como `acceptOffer` (`trialSign`: al momento a mitad de temporada, la temporada que
+  viene en verano; contrato de 1 temporada). `acceptOffer` con una invitación = simularla. La previa de la prueba sale también desde
+  Club › Ofertas y avisa de cuándo fichas.
+- **Cortes de letra por modalidad** (`TRIAL_CUT_D`: playa −0,3 → B desde 6,2; pista +0,5 → B desde 7,0). Medido con los bots de simtest
+  jugando el partidillo de verdad (scratchpad trialcal.js, Normal): playa novato 17 %, medio 67 %, bueno 100 %; pista 22 %, 67 %, 100 %.
+  Con los cortes de la rama y la IA nueva salía playa 10/30/100 y pista 56/89/100.
+- ui.js / camera.js: el set único de la prueba (`g.toWin`) y el del online (`g.bo1`) se tratan igual (`oneSet`).
+- careertest «Prueba de la rama, ampliada el 17-nov-2026»; ratingtest graba la asistencia y deshace los puntos anulados por challenge.

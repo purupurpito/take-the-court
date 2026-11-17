@@ -11,7 +11,7 @@ en https://claude.ai/artifact/EtrD29LcXsg9PgrYUuteGp), que funciona y se queda t
 
 ## Cómo se está construyendo
 
-Un flujo multiagente (guion en `tools/workflow/voley-3d.workflow.js`) con estas fases:
+Un flujo multiagente (guion en `tools/workflow/make-the-cut.workflow.js`) con estas fases:
 
 1. **Foundation** ✅ — arquitectura, port de la simulación del prototipo, 3D mínimo jugable,
    arnés de pruebas. Resultado: `CONTRACT.md` (la ley: propiedad de ficheros, interfaces, eventos,
@@ -86,7 +86,7 @@ El Final QA 2 no encontró nada roto y no cambió código. Logs y capturas en `t
   punto, final y tutorial. Todas miradas: escena 3D completa, HUD, controles táctiles, guía de toques y textos en castellano bien.
   En baja el público y las vallas se simplifican, pero se ve bien.
 - **Restricciones de Artifact**:
-  - En estático: `index.html` empieza por `<title>Voley 3D</title>`, sin doctype/html/head/body ni `type="module"`. Lleva 10 scripts
+  - En estático: `index.html` empieza por `<title>Make the Cut</title>`, sin doctype/html/head/body ni `type="module"`. Lleva 10 scripts
     clásicos más three.js 0.149.0 de cdnjs, y Google Fonts. Sin alert/confirm/prompt/print/fetch/XHR, sin import/export.
     `localStorage` solo dentro de try/catch (6 sitios). `node --check` de todos los `js/*.js` y `tools/*.js` sin errores.
     `sim.js`/`ai.js` sin DOM ni THREE.
@@ -615,7 +615,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   autopilot (la IA rival sale de la media del club: Fácil en toda la Regional, Normal, Difícil, Experto ≥ 80) y en los arreglos finales
   con los bots de simtest: nota (antes casi siempre 10 con control «uno»; ahora novato 6,1 / medio 7,8 / bueno 9,1, techo suave), XP
   jugada 242-339 por partido frente a 123 simulada, ofertas con la media real de la temporada siguiente, guardado dañado reparado o
-  apartado (`voley3d.career.bak`) sin romper la pantalla, foco seguro con teclado y mando (doble Intro en «Simular» ya no arranca un
+  apartado (`make-the-cut.career.bak`) sin romper la pantalla, foco seguro con teclado y mando (doble Intro en «Simular» ya no arranca un
   partido ni rechaza las ofertas). Detalle en `notes/carrera.md`; prueba `tools/careertest.js`.
 - **Insignias** (sprint Carrera): 12 insignias con bronce, plata y oro (nombres inventados: Cañón, Ojo de halcón, Rompemanos, Manos de
   seda, Bombardero, Hoja seca, Muro, Ancla, Red de seguridad, Motor, Sangre fría, Líder) que se desbloquean haciendo cosas en los
@@ -694,7 +694,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 1. `git clone https://github.com/purupurpito/make-the-cut.git && cd make-the-cut`
 2. Abrir Claude Code en esa carpeta y decir: "sigue con el TRASPASO.md".
 3. Claude debe relanzar desde la fase pendiente. La reanudación automática del flujo no sirve entre
-   PCs, así que: copiar `tools/workflow/voley-3d.workflow.js`, quitar las fases ya hechas (Foundation
+   PCs, así que: copiar `tools/workflow/make-the-cut.workflow.js`, quitar las fases ya hechas (Foundation
    y, si el commit dice Build completo, Build) dejando que `integrate('build', ...)` reciba como
    informes el contenido de `notes/*.md`, y lanzarlo con la herramienta Workflow.
 4. Ajustar en el guion la constante `DIR` a la ruta de casa.
@@ -723,7 +723,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 
 ## Restricciones (se publicará como Artifact de claude.ai)
 
-- `index.html` sin `<!doctype>`, `<html>`, `<head>` ni `<body>`; empieza por `<title>Voley 3D</title>`.
+- `index.html` sin `<!doctype>`, `<html>`, `<head>` ni `<body>`; empieza por `<title>Make the Cut</title>`.
 - Scripts clásicos con `window.VB`, sin módulos ES. Three.js r149 de cdnjs, versión fijada.
 - Sin red en ejecución salvo Three.js y Google Fonts; texturas procedurales.
 - Sin `alert/confirm/prompt/print`; `localStorage` solo con try/catch; audio tras gesto del usuario.

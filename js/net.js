@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/net.js   (owner: net)
+ * MAKE THE CUT — js/net.js   (owner: net)
  * Modo online, fase 1 (notes/net.md): sesión con rollback entre dos pares, códec de entradas y transportes de prueba.
  * SIN DOM y SIN THREE: funciona igual en el navegador y en Node (tools/nettest.js lo carga con vm junto a sim.js).
  *

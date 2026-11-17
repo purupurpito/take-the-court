@@ -41,11 +41,11 @@ console.log('Migración');
   const v1 = { v: 1, a: [
     { num: 7, role: 'Atacante', lvl: 6, xp: 33, pts: 4, matches: 12, st: { jump: 51, speed: 40, react: 40, recv: 36, dig: 38, set: 34, spike: 60, ctl: 41, block: 42, serve: 38 } },
     { num: 11, role: 'Universal', lvl: 3, xp: 10, pts: 0, matches: 12, st: { jump: 38, speed: 42, react: 42, recv: 55, dig: 42, set: 44, spike: 35, ctl: 38, block: 34, serve: 40 } }] };
-  const st = fakeStorage({ 'voley3d.squad': JSON.stringify(v1) });
+  const st = fakeStorage({ 'make-the-cut.squad': JSON.stringify(v1) });
   const VB = load(st), P = VB.Prog, sq = P.squad();
   ok('conserva nivel, XP, puntos y partidos; atributos +10 (escuadrón a media 50, v3)', sq[0].lvl === 6 && sq[0].xp === 33 && sq[0].pts === 4 && sq[0].matches === 12 && sq[0].st.spike === 70 && sq[1].st.recv === 65 && sq[1].lvl === 3);
   ok('añade bp/bd/beq vacíos', JSON.stringify([sq[0].bp, sq[0].bd, sq[0].beq]) === '[{},{},[]]');
-  const saved = JSON.parse(st.getItem('voley3d.squad'));
+  const saved = JSON.parse(st.getItem('make-the-cut.squad'));
   ok('reescribe el guardado como v3 sin perder nada', saved.v === 3 && saved.a[0].lvl === 6 && saved.a[0].st.spike === 70 && Array.isArray(saved.a[1].beq));
   const VBr = load(st);   // recargar el ya migrado: no vuelve a sumar
   ok('migrar dos veces no suma dos veces', VBr.Prog.squad()[0].st.spike === 70);
@@ -53,10 +53,10 @@ console.log('Migración');
   ok('attrs() da [[1, 2], cpu]: media 51,5 → CPU con 51 en todo', P.attrs()[0][0].spike === 70 && P.attrs()[1] && P.attrs()[1][0].spike === 51 && P.attrs()[1][1].recv === 51);
   ok('CPU sin atributos con media ≤ 50 y 50 + 0,6·(m − 50) por encima', P.cpuSt(50) === null && P.cpuSt(40) === null && P.cpuSt(90).jump === 74 && P.cpuSt(99).serve === 79);
   // guardado roto / basura
-  const VB2 = load(fakeStorage({ 'voley3d.squad': '{"v":2,"a":[{"lvl":"x","bd":{"canon":9,"zz":2},"beq":["canon","canon","mira",5]}]}' }));
+  const VB2 = load(fakeStorage({ 'make-the-cut.squad': '{"v":2,"a":[{"lvl":"x","bd":{"canon":9,"zz":2},"beq":["canon","canon","mira",5]}]}' }));
   const a0 = VB2.Prog.squad()[0];
   ok('guardado raro: nivel 1, insignia a nivel 3 máx., equipadas solo desbloqueadas y sin repetir', a0.lvl === 1 && a0.bd.canon === 3 && JSON.stringify(a0.beq) === '["canon"]');
-  const VB3 = load(fakeStorage({ 'voley3d.squad': 'no es json' }));
+  const VB3 = load(fakeStorage({ 'make-the-cut.squad': 'no es json' }));
   ok('guardado ilegible → escuadrón nuevo', VB3.Prog.squad()[0].lvl === 1 && VB3.Prog.squad()[1].num === 2);
 }
 
@@ -140,7 +140,7 @@ console.log('Contar eventos y desbloquear');
     nw.map(u => u.num + ':' + u.id + u.lvl).join(' '));
   ok('textos de la hoja final', B.label(nw.find(u => u.id === 'canon')) === '¡Insignia nueva: Cañón (bronce)!');
   ok('motor y líder cuentan 1 partido y 1 victoria', sq[0].bp.motor === 1 && sq[0].bp.lider === 1 && sq[1].bp.motor === 1);
-  ok('se guardan en voley3d.squad', JSON.parse(st.getItem('voley3d.squad')).a[1].bd.canon === 1);
+  ok('se guardan en make-the-cut.squad', JSON.parse(st.getItem('make-the-cut.squad')).a[1].bd.canon === 1);
   ok('nuevas con hueco libre: equipadas solas (2 huecos a nivel 1)', JSON.stringify(sq[1].beq) === '["canon","mira"]' && nw.filter(u => u.slot === 1 && u.eq).length === 2, sq[1].beq.join(','));
   ok('endMatch dos veces para el mismo partido no repite', B.endMatch(g, true).length === 0 && sq[0].bp.motor === 1);
   ok('forPlayer = equipadas con su nivel', JSON.stringify(B.forPlayer(sq[1])) === '{"canon":1,"mira":1}');

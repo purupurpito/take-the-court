@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/simtest.js  (owner: sim)
+/* MAKE THE CUT — tools/simtest.js  (owner: sim)
  * Test headless de la simulación: carga js/sim.js y js/ai.js en un contexto vm
  * (sin DOM ni THREE) y ejecuta:
  *   1) CPU vs CPU (demo) -> estadísticas de rally, toques, motivos, calidad

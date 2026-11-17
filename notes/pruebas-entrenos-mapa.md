@@ -1,4 +1,4 @@
-MAPA TÉCNICO: prueba con partidillo y petos + entrenos rápido/manual (solo lectura, repo C:/Users/Puru/FCVBARB/carpetas/voley-3d-pruebas)
+MAPA TÉCNICO: prueba con partidillo y petos + entrenos rápido/manual (solo lectura, repo C:/Users/Puru/FCVBARB/carpetas/make-the-cut-pruebas)
 
 Contexto que ya está en el repo:
 - TRASPASO.md:241-246 ya apuntaba la idea «entrenamientos de la Carrera al estilo NBA 2K». Ferran pidió no duplicar el entreno automático actual, sino sustituirlo o mejorarlo.
@@ -138,7 +138,7 @@ Ejercicio de Carrera (ya existe)
   - careerDrillDone (:556-560) se ejecuta una sola vez y guarda `d.res = VB.Career.drillDone(d.mode, d.id, g.drill.total)`.
   - restart (:720) repite el ejercicio de Carrera sin gastar sesión.
 - ui.js:
-  - gymEndShow (:4561-4599): con careerDrill no graba voley3d.gym. careerDrillRec (:4602-4610) da progreso, fatiga e impresión. Quita «Repetir» y «Siguiente», y el botón pasa a «Volver a la Carrera».
+  - gymEndShow (:4561-4599): con careerDrill no graba make-the-cut.gym. careerDrillRec (:4602-4610) da progreso, fatiga e impresión. Quita «Repetir» y «Siguiente», y el botón pasa a «Volver a la Carrera».
   - :2413: el botón «Salir» de la pausa dice «Volver a la Carrera».
 - career.js, bloque de sesiones (:579-717):
   - Constantes (:603-604): `TRAIN_SESS=3, SESS_NEED=100, SESS_MAX=15, SESS_EFF=[1,.85,.7], SESS_FAT=[3,4,6], SESS_FAT_MAX=80, SESS_QUICK=[.3,.85], SESS_IMP_A=.15, SESS_IMP_DECAY=.75, SESS_COACH=1`.
@@ -267,7 +267,7 @@ Para dibujar PETOS sin draw calls nuevas (todo en el atlas)
   - Siempre 2v2.
 - js/gym.js:
   - DRILLS (nombres), IDS y MEDALS (reserva igual que la sim).
-  - XP [30,50,80] y record() → voley3d.gym más XP del escuadrón. La Carrera no lo usa.
+  - XP [30,50,80] y record() → make-the-cut.gym más XP del escuadrón. La Carrera no lo usa.
   - medalsOf / medalOf.
 - Ejercicios por puesto en la Carrera (SESS_BY, career.js:614):
   - OH: recv, atk, serve, block.

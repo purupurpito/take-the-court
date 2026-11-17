@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/subtest.js  (owner: sim)
+/* MAKE THE CUT — tools/subtest.js  (owner: sim)
  * Banquillo y cambios del 6v6 (notes/titularidad-y-cambios.md §B, §I y §T2.6). Carga js/sim.js + js/ai.js + js/ai6.js con vm (como
  * tools/fingerprint6.js) y comprueba:
  *  (1) sin banquillo: ni g.subsOn ni eventos 'sub'; mismos puntos, marcador y llamadas a g.rng que antes de existir los cambios
@@ -55,13 +55,15 @@ function mkBench(t, seed, strongServe) {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// (1) Sin banquillo: idéntico a antes de los cambios (referencia del 13-nov-2026, código previo, 6 min de juego por partida)
+// (1) Sin banquillo: idéntico a la referencia (6 min de juego por partida). Referencia rehecha el 17-nov-2026: los ajustes de juego de la
+// 1.5.2 (remates de la CPU en 6v6, plancha) y la 1.5.7 (moverse en el saque) cambian los partidos 6v6, a petición de Ferran; la del
+// 13-nov era la del código previo al banquillo
 {
   const REF = [
-    { o: { format: '6v6', demo: true, seed: 900, stats: true }, pts: 30, rng: 28339, h: 1047865859 },
-    { o: { format: '6v6', demo: true, seed: 901 }, pts: 28, rng: 29700, h: 1097313074 },
-    { o: { format: '6v6', autopilot: true, seed: 902, ctrl: 'one', ctrlRole: 'OH', present: true }, pts: 25, rng: 25178, h: 1574410926 },
-    { o: { format: '6v6', seed: 903, ctrl: 'one', ctrlRole: 'MB', difficulty: 'hard' }, pts: 33, rng: 18264, h: 666264380 }
+    { o: { format: '6v6', demo: true, seed: 900, stats: true }, pts: 31, rng: 27774, h: 3936927032 },
+    { o: { format: '6v6', demo: true, seed: 901 }, pts: 28, rng: 29772, h: 888127854 },
+    { o: { format: '6v6', autopilot: true, seed: 902, ctrl: 'one', ctrlRole: 'OH', present: true }, pts: 22, rng: 27862, h: 4027722013 },
+    { o: { format: '6v6', seed: 903, ctrl: 'one', ctrlRole: 'MB', difficulty: 'hard' }, pts: 30, rng: 20293, h: 3931329953 }
   ];
   const got = [], mal = [];
   let subs = 0, on = 0;
@@ -304,12 +306,14 @@ function career(seed, me, o) {
   const opp = g.rot[0].find(p => p.role === 'OPP'), bMB = S.benchOf(g, 0).find(p => p.role === 'MB'), bOH = S.benchOf(g, 0).find(p => p.role === 'OH');
   const rRole = S.canSub(g, 0, opp, bMB), rOk = S.canSub(g, 0, opp, bOH), rReq = S.requestSub(g, 0, opp, bMB), rC = S._canSubC(g, 0, opp, bMB);
   // challenge anulado: el punto se vuelve a contar sin duplicar puntos en pista (Σ onR = 12 por punto)
-  const ov = (() => {
-    const g2 = S.createGame({ format: '6v6', demo: true, seed: 309, points: 25, bench: [S.defaultBench(0), S.defaultBench(1)], coach: [{ auto: true, iq: 3 }, { auto: true, iq: 3 }] });
+  // (17-nov-2026: con los ajustes de juego de la 1.5.2 la semilla 309 ya no tiene ningún challenge anulado: se busca la primera que lo tenga)
+  const ov1 = (sd) => {
+    const g2 = S.createGame({ format: '6v6', demo: true, seed: sd, points: 25, bench: [S.defaultBench(0), S.defaultBench(1)], coach: [{ auto: true, iq: 3 }, { auto: true, iq: 3 }] });
     let o = 0; run(g2, 30 * 60, e => { if (e.type === 'challengeResult' && e.overturned) o++; }, e => e.type === 'gameOver');
     let sum = 0; for (const t of [0, 1]) for (const p of g2.roster[t]) sum += p.onR;
-    return { anulados: o, ratio: sum / g2.rallyN };
-  })();
+    return { anulados: o, ratio: sum / g2.rallyN, seed: sd };
+  };
+  let ov = null; for (let sd = 309; sd < 329 && !(ov && ov.anulados > 0); sd++) ov = ov1(sd);
   // tu estado cambia al empezar un set sin cambio de alineación → 'lineup' con meIn / meOut igual; los sets a 15 sin partido roto en el 1r set
   let lineupMe = 0, desync = 0, garb1 = 0, dblN = [], stuck = 0;
   for (let s = 0; s < 12; s++) {

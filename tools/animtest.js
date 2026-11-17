@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/animtest.js (owner: players)
+/* MAKE THE CUT — tools/animtest.js (owner: players)
  * E2 (sprint 5): variedad de la animación medida en partidos autopilot reales (por DevTools, tools/cdp.js).
  * Juega partidos de N s (pabellón y playa, varias semillas) llamando a VB.Players.update con los eventos de la sim y muestrea
  * VB.Players._anim en cada frame. Comprueba (spec E2 §6.2):

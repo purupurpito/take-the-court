@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/main.js   (owner: ui_main)
+ * MAKE THE CUT — js/main.js   (owner: ui_main)
  * Arranque, renderer, bucle con simulación de paso fijo a 120 Hz,
  * reparto de eventos a los módulos, calidad adaptativa (con histéresis)
  * y escenas de depuración deterministas:
@@ -38,7 +38,7 @@
   try { isMobile = isTouch && Math.min(screen.width || 9999, screen.height || 9999) < 900; } catch (e) { }
   if (Q.debug === 'mobile') { isTouch = true; isMobile = true; }
 
-  // E3: ajustes que solo valen para este dispositivo (voley3d.device; ver DEFAULTS)
+  // E3: ajustes que solo valen para este dispositivo (make-the-cut.device; ver DEFAULTS)
   var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'];
   var ctx = VB.ctx = {
     THREE: THREE,
@@ -72,7 +72,7 @@
   try { if (mqReduce) { var onRM = function () { ctx.reduceMotion = calcReduce(); }; if (mqReduce.addEventListener) mqReduce.addEventListener('change', onRM); else if (mqReduce.addListener) mqReduce.addListener(onRM); } } catch (e) { }
 
   // E3 (sprint 5): valores por defecto de TODOS los ajustes (loadSettings y ctx.actions.resetSettings). Las claves de
-  // DEVICE_KEYS se guardan aparte, en voley3d.device (solo este dispositivo: account.js no la sube), y no en voley3d.settings:
+  // DEVICE_KEYS se guardan aparte, en make-the-cut.device (solo este dispositivo: account.js no la sube), y no en make-the-cut.settings:
   // un móvil no hereda los 30 fps ni el 50 % de resolución del PC. keys/padKeys guardan SOLO las diferencias con las teclas y
   // botones de fábrica (input.js las sanea). aimSet / msTiming: E1 (colocación dirigida; timing en ms en el sello, solo UI).
   function DEFAULTS() {
@@ -117,13 +117,13 @@
     // siguen en el pabellón para que las capturas y las pruebas sean comparables.
     var saved = false;
     var o = null;
-    try { var raw = localStorage.getItem('voley3d.settings'); if (raw) { saved = true; o = JSON.parse(raw); if (!o || typeof o !== 'object') o = null; for (var k in o) if (k in s && DEVICE_KEYS.indexOf(k) < 0 && typeof o[k] === typeof s[k]) s[k] = o[k]; } } catch (e) { o = null; }
-    // ajustes de ESTE dispositivo (E3): voley3d.device
-    try { var dv = JSON.parse(localStorage.getItem('voley3d.device') || 'null'); if (dv && typeof dv === 'object') for (var dk = 0; dk < DEVICE_KEYS.length; dk++) { var kk = DEVICE_KEYS[dk]; if (kk in dv && typeof dv[kk] === typeof s[kk]) s[kk] = dv[kk]; } } catch (e) { }
+    try { var raw = localStorage.getItem('make-the-cut.settings'); if (raw) { saved = true; o = JSON.parse(raw); if (!o || typeof o !== 'object') o = null; for (var k in o) if (k in s && DEVICE_KEYS.indexOf(k) < 0 && typeof o[k] === typeof s[k]) s[k] = o[k]; } } catch (e) { o = null; }
+    // ajustes de ESTE dispositivo (E3): make-the-cut.device
+    try { var dv = JSON.parse(localStorage.getItem('make-the-cut.device') || 'null'); if (dv && typeof dv === 'object') for (var dk = 0; dk < DEVICE_KEYS.length; dk++) { var kk = DEVICE_KEYS[dk]; if (kk in dv && typeof dv[kk] === typeof s[kk]) s[kk] = dv[kk]; } } catch (e) { }
     // Jugador nuevo (sin ajustes guardados ni partidos jugados): empieza en Fácil. Normal contra un novato
     // es un muro (simtest: un bot novato gana ~30 % de los puntos en Normal y ~54 % en Fácil).
     // Las escenas de depuración siguen en Normal para que las capturas sean comparables.
-    var rec = null; try { rec = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); } catch (e) { }
+    var rec = null; try { rec = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); } catch (e) { }
     if (!saved && !Q.debug) {
       if (!rec || !(rec.played > 0)) s.difficulty = 'easy';
     }
@@ -171,12 +171,12 @@
     if (Q.diff && DIFFS.indexOf(Q.diff) >= 0) s.difficulty = Q.diff;
     return s;
   }
-  /** Guarda los ajustes: los de DEVICE_KEYS en voley3d.device (solo aquí) y el resto en voley3d.settings (account.js lo sincroniza). */
+  /** Guarda los ajustes: los de DEVICE_KEYS en make-the-cut.device (solo aquí) y el resto en make-the-cut.settings (account.js lo sincroniza). */
   function saveSettings() {
     var st = ctx.settings, a = {}, d = {};
     for (var k in st) { if (!Object.prototype.hasOwnProperty.call(st, k)) continue; if (DEVICE_KEYS.indexOf(k) >= 0) d[k] = st[k]; else a[k] = st[k]; }
-    try { localStorage.setItem('voley3d.settings', JSON.stringify(a)); } catch (e) { }
-    try { localStorage.setItem('voley3d.device', JSON.stringify(d)); } catch (e) { }
+    try { localStorage.setItem('make-the-cut.settings', JSON.stringify(a)); } catch (e) { }
+    try { localStorage.setItem('make-the-cut.device', JSON.stringify(d)); } catch (e) { }
   }
 
   // ---------- Calidad ----------
@@ -405,7 +405,7 @@
     try { return !!R.playBest(i == null ? undefined : i | 0, function () { call('UI', 'replayDone'); }); } catch (e) { reportError('Replay.playBest', e); return false; }
   };
   // primer partido (sin récord guardado): la CPU saca más suave (notes/sim.md, createGame({rookie}))
-  function isRookie() { try { var r = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); return !(r && r.played > 0); } catch (e) { return false; } }
+  function isRookie() { try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); return !(r && r.played > 0); } catch (e) { return false; } }
   function seed() { return Q.seed ? (+Q.seed | 0) : ((Date.now() ^ (Math.random() * 1e9)) & 0x7fffffff); }
   /** Escenario del partido que se crea ('hall' | 'beach'): el que tiene arena montado (ajuste `arena` o ?map=). En la playa la sim
    *  juega con reglas de vóley playa (createGame({venue:'beach'}): pista 16×8, sets a 21/15, cambio de campo cada 7). */
@@ -2260,7 +2260,7 @@
       // E6: ejercicios del Entrenamiento con la IA jugando por ti (autopilot) y congelados en un momento que se lea en la captura:
       // drill_serve (3r saque, balón en el aire), drill_recv (2º saque de la CPU llegando), drill_set (2º balón, antes de colocar),
       // drill_atk (6ª repetición: ya con el bloqueador), drill_block (2º ataque, el remate rival armado), drill_end (hoja final).
-      // &n=N la repetición (1-10), &t=s tras su montaje. drill_end no apunta nada en voley3d.gym (depuración)
+      // &n=N la repetición (1-10), &t=s tras su montaje. drill_end no apunta nada en make-the-cut.gym (depuración)
       case 'drill_serve': case 'drill_recv': case 'drill_set': case 'drill_atk': case 'drill_block': case 'drill_free': case 'drill_end': {
         var dk = name === 'drill_end' ? (drillId(Q.drill) || 'serve') : name.slice(6);
         g = Sim.createGame({ demo: false, autopilot: true, seed: sd, drill: dk, venue: venueNow(), difficulty: dk === 'free' ? diff : 'normal' });
@@ -2353,6 +2353,18 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
         if (g.career) debugCareerEnd(g);
         break;
+      // Estadística del partido (js/matchstats.js): autopilot hasta el final y la pantalla abierta en cuanto se ve la hoja.
+      // &format=6v6 (pista 6 contra 6), &map=beach (playa), &points=n, &career=1 (nombres de clubes), &set=n y &team=1 (lo elegido), &sec=fig|mom|rot|map|err|pl (desplazada a esa sección)
+      case 'stats': {
+        var st6 = Q.format === '6v6';
+        if (st6) forceVenue('hall');
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, format: st6 ? '6v6' : undefined, venue: st6 ? undefined : venueNow(), points: +Q.points || undefined });
+        if (Q.career === '1') g.career = debugCareerCs(g);
+        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 5400, uiIngest); state = 'over';
+        if (g.career) debugCareerEnd(g);
+        call('UI', 'openMatchStats', { set: +Q.set || 0, team: Q.team === '1' ? 1 : 0, sec: Q.sec || '' });
+        break;
+      }
       // D1: reto del día terminado (autopilot hasta gameOver con g.reto de hoy o de &retodate=AAAAMMDD; Retos.endMatch en seco)
       case 'reto_end': {
         g = mk(true);
@@ -2482,7 +2494,7 @@
     for (i = 0; i < BL.length; i++) if (i % 3 !== 2) bd[BL[i].id] = 1 + (i % 4 === 0 ? 2 : i % 4 === 1 ? 1 : 0);
     var o = { v: 1, base: { xp: 900, m: 212, w: 131 }, dev: {}, px: 0, ven: ven, ach: ach, hit: { debut: day - 60, m25: day - 50, m100: day - 20, w10: day - 45, w100: day - 5, gira: day - 30, bd1: day - 55 },
       bd: bd, car: {}, ann: 1, pin: [], pt: 0, seen: {} };
-    var mem = { 'voley3d.profile': JSON.stringify(o), 'voley3d.look': null, 'voley3d.devid': 'demo1' };
+    var mem = { 'make-the-cut.profile': JSON.stringify(o), 'make-the-cut.look': null, 'make-the-cut.devid': 'demo1' };
     try {
       var SP = Storage.prototype, gi = SP.getItem, si = SP.setItem, ri = SP.removeItem, LS = window.localStorage;
       SP.getItem = function (k) { return this === LS && Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : gi.apply(this, arguments); };

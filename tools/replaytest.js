@@ -425,7 +425,7 @@ async function cdpPart() {
 
     // ---------------------------------------------------------------- (d)
     console.log('(d) ajustes y «Menos movimiento»');
-    const withSettings = async (st, q) => { await E(`(function(){ try { localStorage.setItem('voley3d.settings', ${JSON.stringify(JSON.stringify(st))}); } catch (e) {} return 1; })()`); await go(q); };
+    const withSettings = async (st, q) => { await E(`(function(){ try { localStorage.setItem('make-the-cut.settings', ${JSON.stringify(JSON.stringify(st))}); } catch (e) {} return 1; })()`); await go(q); };
     await withSettings({}, 'debug=replay&auto=1');
     ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set'`, 8000), '(d) por defecto (Automáticas): repetición automática del punto de set');
     await withSettings({ lessMotion: 'on' }, 'debug=replay&auto=1');
@@ -446,7 +446,7 @@ async function cdpPart() {
     ok(optRow && optRow[0] === 'game' && /Repeticiones/.test(optRow[1]), '(d) fila «Repeticiones» en Ajustes · Juego', optRow);
     await withSettings({ replays: 'basura' }, 'nonews=1');
     ok(await E(`VB.ctx.settings.replays === 'auto'`), '(d) valor corrupto → «Automáticas»');
-    await E(`localStorage.removeItem('voley3d.settings'), 1`);
+    await E(`localStorage.removeItem('make-the-cut.settings'), 1`);
 
     // ---------------------------------------------------------------- (e)(f)
     console.log('(e)(f) 6v6 y ejercicio');

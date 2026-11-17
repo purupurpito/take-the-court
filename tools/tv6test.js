@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/tv6test.js  (owner: camera_input)
+/* MAKE THE CUT — tools/tv6test.js  (owner: camera_input)
  * Cámara de televisión del 6v6 (espectador, sprint 2; camera.js 'tv'): abre ?format=6v6, empieza el partido (CPU contra CPU con el
  * HUD de partido) y durante N s, cada 100 ms con el plano 'tv' (pasados 4 s: la transición desde el menú es larga), proyecta los pies
  * y la cabeza de todos los jugadores en pista y el balón. Comprueba:

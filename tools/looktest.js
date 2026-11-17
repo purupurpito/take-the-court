@@ -25,12 +25,12 @@ const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 setTimeout(() => { console.error('TIEMPO AGOTADO'); process.exit(2); }, 10 * 60e3).unref();
 
 const SRC = fs.readFileSync(path.join(ROOT, 'js', 'look.js'), 'utf8');
-/** look.js en un contexto nuevo con su propio localStorage falso (writes = escrituras de 'voley3d.look'). */
+/** look.js en un contexto nuevo con su propio localStorage falso (writes = escrituras de 'make-the-cut.look'). */
 function sandbox(extra) {
   const store = {}, io = { writes: 0 };
   const localStorage = {
     getItem: k => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
-    setItem: (k, v) => { store[k] = String(v); if (k === 'voley3d.look') io.writes++; },
+    setItem: (k, v) => { store[k] = String(v); if (k === 'make-the-cut.look') io.writes++; },
     removeItem: k => { delete store[k]; }
   };
   const VB = Object.assign({}, extra || {});
@@ -247,11 +247,11 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
 
 // --- guardado: grant, unseen, wearable, checkGlobal
 {
-  check(io.writes === 0 && !('voley3d.look' in store), 'leer (load, fit, owned, matchLooks) no escribe nada');
+  check(io.writes === 0 && !('make-the-cut.look' in store), 'leer (load, fit, owned, matchLooks) no escribe nada');
   check(L.owned('') && L.owned('tupe') && L.owned('gorra') && L.owned('rojo') && L.owned('auto') && L.owned(0x3a2416) && !L.owned('pescador') && !L.owned('dorado') && !L.owned('tAzul'), 'owned: lo de inicio sí, lo que se gana no');
   check(L.grant('tupe', 'tienda') === false && L.grant('noexiste', 'tienda') === false && io.writes === 0, 'grant de algo de inicio o inexistente: false y sin escribir');
   check(L.grant('pescador', 'tienda') === true && L.grant('pescador', 'tienda') === false && L.owned('pescador') && io.writes === 1, 'grant: true la primera vez, false la segunda; una escritura');
-  const st = JSON.parse(store['voley3d.look']);
+  const st = JSON.parse(store['make-the-cut.look']);
   check(st.v === 1 && st.own.pescador.s === 'tienda' && st.own.pescador.t > 0 && Array.isArray(st.fits) && st.fits.length === 2, 'guardado con v, fits y own {s, t}');
   check(eq(L.unseen(), ['pescador']), 'unseen: lo nuevo');
   L.grant('tAzul', 'carrera'); L.grant('dorado', 'carrera');
@@ -268,23 +268,23 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   const got = L.checkGlobal({ gym: { serve: 1, recv: 0, set: 0, atk: 0, block: 3 }, gymN: 5, rec: { wins: 10, played: 1, streak: 5 } });
   check(['bandana', 'cresta', 'cintaRizo', 'kinesio', 'manguitoRayos', 'dedos', 'tMorado', 'desparejados'].every(id => got.includes(id)) && !got.includes('manguitoLlamas') && !got.includes('reloj') && !got.includes('corona'), 'checkGlobal concede lo del Entrenamiento y del récord: ' + got.join(', '));
   check(eq(L.checkGlobal({ gym: { serve: 3 }, gymN: 5, rec: { wins: 10, played: 1, streak: 5 } }), ['manguitoLlamas']) && eq(L.checkGlobal({ gym: { serve: 3 }, gymN: 5, rec: { wins: 10, played: 1, streak: 5 } }), []), 'checkGlobal: solo lo nuevo, y nada la segunda vez');
-  const so = JSON.parse(store['voley3d.look']).own;
+  const so = JSON.parse(store['make-the-cut.look']).own;
   check(so.kinesio.s === 'record' && so.manguitoRayos.s === 'gym', 'checkGlobal: origen record / gym');
-  // sin datos: lee VB.Gym y 'voley3d.record'
+  // sin datos: lee VB.Gym y 'make-the-cut.record'
   const sb = sandbox({ Gym: { get: id => (id === 'recv' ? { m: 1 } : null), count: () => 1 } });
-  sb.store['voley3d.record'] = JSON.stringify({ played: 120, wins: 26, bestStreak: 2 });
+  sb.store['make-the-cut.record'] = JSON.stringify({ played: 120, wins: 26, bestStreak: 2 });
   const g2 = sb.L.checkGlobal();
-  check(['deporte', 'rayasEq', 'bajadas', 'tirita', 'kinesio', 'cintaRizo'].every(id => g2.includes(id)) && !g2.includes('reloj') && !g2.includes('desparejados'), 'checkGlobal() sin datos lee VB.Gym y voley3d.record: ' + g2.join(', '));
+  check(['deporte', 'rayasEq', 'bajadas', 'tirita', 'kinesio', 'cintaRizo'].every(id => g2.includes(id)) && !g2.includes('reloj') && !g2.includes('desparejados'), 'checkGlobal() sin datos lee VB.Gym y make-the-cut.record: ' + g2.join(', '));
   check(eq(sandbox().L.checkGlobal(), []), 'checkGlobal() sin Entrenamiento ni récord: nada');
   // tamaño
   const big = sandbox();
   big.L.CATALOG.forEach(x => big.L.grant(x.id, 'carrera')); big.L.markSeen(big.L.CATALOG.map(x => x.id));
   big.L.setFit(0, big.L.random(77, false)); big.L.setFit(1, big.L.random(78, false));
-  const len = big.store['voley3d.look'].length;
+  const len = big.store['make-the-cut.look'].length;
   check(len < 8192, 'el guardado con todo ganado ocupa ' + len + ' B (< 8 KB)');
   // guardado roto
-  const br = sandbox(); br.store['voley3d.look'] = '{roto'; check(eq(br.L.fit(0), br.L.defaults(0)) && br.L.unseen().length === 0, 'guardado roto: valores por defecto sin romper');
-  br.store['voley3d.look'] = JSON.stringify({ v: 7, fits: ['x', { style: 'afro', hall: { head: 'gorra' } }], own: { pescador: { s: 'robado', t: 'ayer' }, tupe: { s: 'tienda', t: 1 }, nada: {} }, seen: { nada: 1 } });
+  const br = sandbox(); br.store['make-the-cut.look'] = '{roto'; check(eq(br.L.fit(0), br.L.defaults(0)) && br.L.unseen().length === 0, 'guardado roto: valores por defecto sin romper');
+  br.store['make-the-cut.look'] = JSON.stringify({ v: 7, fits: ['x', { style: 'afro', hall: { head: 'gorra' } }], own: { pescador: { s: 'robado', t: 'ayer' }, tupe: { s: 'tienda', t: 1 }, nada: {} }, seen: { nada: 1 } });
   const b1 = br.L.load();
   check(eq(b1.fits[0], br.L.defaults(0)) && b1.fits[1].style === 'afro' && b1.fits[1].hall.head === 'cinta' && eq(Object.keys(b1.own), ['pescador']) && b1.own.pescador.s === 'carrera' && eq(b1.seen, {}), 'guardado dañado: sane campo a campo (lo irreparable a los valores por defecto)');
   // sin localStorage
@@ -417,11 +417,11 @@ console.log('== sprint 2-4 (T9) ==');
   const G = sandbox();
   const g1 = G.L.checkGlobal({ lvl: 8, boss: { saque: true }, chem: 3 });
   check(eq(g1.slice().sort(), ['conchas', 'mallaLarga', 'manguitoRayas', 'tiraNasal']), 'checkGlobal({lvl:8}) da los premios hasta el Nv 8: ' + g1.join(', '));
-  const so = JSON.parse(G.store['voley3d.look']).own;
+  const so = JSON.parse(G.store['make-the-cut.look']).own;
   check(Object.keys(so).every(id => so[id].s === 'hito') && !G.L.owned('munhCanon') && !G.L.owned('rayasEq'), 'origen hito; jefe y química no se dan fuera de la Carrera');
   check(eq(G.L.checkGlobal({ lvl: 8 }), []) && eq(G.L.checkGlobal({ lvl: 28 }).sort(), ['licra', 'mitones', 'neon', 'tAzul']), 'checkGlobal por nivel: nada la segunda vez; luego lo que falta hasta el Nv 28');
   const g2 = G.L.checkGlobal({ reto: { r_aces: 2, r_recv: 1, r_streak: 3 }, retoN: 30, dias: 7 });
-  const so2 = JSON.parse(G.store['voley3d.look']).own;
+  const so2 = JSON.parse(G.store['make-the-cut.look']).own;
   check(eq(g2.slice().sort(), ['bandana', 'estrella', 'tTurquesa', 'tVerde']) && g2.every(id => so2[id].s === 'retos'), 'checkGlobal con retos (origen retos): ' + g2.join(', '));
   // sin datos: lee VB.Profile.level() y VB.Retos.lookData()
   const GP = sandbox({ Profile: { level: () => ({ lvl: 4 }) }, Retos: { lookData: () => ({ reto: { r_recv: 2 }, retoN: 3, dias: 7, semana: 0 }) } });
@@ -431,26 +431,26 @@ console.log('== sprint 2-4 (T9) ==');
   check(eq(GR.L.checkGlobal({ retos: { total: 30, daysGold: 0 } }), ['tTurquesa']), 'checkGlobal con retos: summary() (total) y módulos que fallan no rompen');
   // grant con los orígenes nuevos
   const GG = sandbox();
-  check(GG.L.grant('munhCanon', 'boss') && GG.L.grant('rayasEq', 'carrera') && GG.L.grant('tAzul', 'hito') && JSON.parse(GG.store['voley3d.look']).own.munhCanon.s === 'boss' && GG.L.load().own.tAzul.s === 'hito', 'grant con origen boss / hito se guarda tal cual');
+  check(GG.L.grant('munhCanon', 'boss') && GG.L.grant('rayasEq', 'carrera') && GG.L.grant('tAzul', 'hito') && JSON.parse(GG.store['make-the-cut.look']).own.munhCanon.s === 'boss' && GG.L.load().own.tAzul.s === 'hito', 'grant con origen boss / hito se guarda tal cual');
   const mOld = JSON.parse(GG.L.mergeRaw(JSON.stringify({ v: 1, own: { tAzul: { s: 'hito', t: 5 } } }), JSON.stringify({ v: 1, own: { munhCanon: { s: 'boss', t: 7 } } })));
   check(mOld.own.tAzul.s === 'hito' && mOld.own.munhCanon.s === 'boss', 'mergeRaw conserva los orígenes nuevos');
 
   // contrato D4: dañado → .bak + lost(); versión más nueva → solo lectura
   ['{roto', '[1,2]', '"texto"', '7'].forEach(bad => {
-    const B = sandbox(); B.store['voley3d.look'] = bad;
+    const B = sandbox(); B.store['make-the-cut.look'] = bad;
     const f0 = B.L.fit(0);
-    check(eq(f0, B.L.defaults(0)) && B.store['voley3d.look.bak'] === bad && !('voley3d.look' in B.store) && B.L.lost() === true && B.L.readOnly() === false, 'dañado ' + JSON.stringify(bad) + ': copia en voley3d.look.bak, se borra y lost()');
-    check(B.L.grant('pescador', 'tienda') === true && JSON.parse(B.store['voley3d.look']).own.pescador && B.store['voley3d.look.bak'] === bad && B.L.lost() === true, 'tras un dañado se vuelve a guardar y la copia se queda');
+    check(eq(f0, B.L.defaults(0)) && B.store['make-the-cut.look.bak'] === bad && !('make-the-cut.look' in B.store) && B.L.lost() === true && B.L.readOnly() === false, 'dañado ' + JSON.stringify(bad) + ': copia en make-the-cut.look.bak, se borra y lost()');
+    check(B.L.grant('pescador', 'tienda') === true && JSON.parse(B.store['make-the-cut.look']).own.pescador && B.store['make-the-cut.look.bak'] === bad && B.L.lost() === true, 'tras un dañado se vuelve a guardar y la copia se queda');
   });
-  const N = sandbox(); N.store['voley3d.look'] = JSON.stringify({ v: 1, own: {} });
-  check(N.L.lost() === false && N.L.readOnly() === false && !('voley3d.look.bak' in N.store), 'guardado sano: ni lost() ni solo lectura ni .bak');
+  const N = sandbox(); N.store['make-the-cut.look'] = JSON.stringify({ v: 1, own: {} });
+  check(N.L.lost() === false && N.L.readOnly() === false && !('make-the-cut.look.bak' in N.store), 'guardado sano: ni lost() ni solo lectura ni .bak');
   const RO = sandbox(); const v2 = JSON.stringify({ v: 2, fits: [{ style: 'afro' }], own: { pescador: { s: 'tienda', t: 9 } }, extra: { nuevo: 1 } });
-  RO.store['voley3d.look'] = v2; RO.io.writes = 0;
+  RO.store['make-the-cut.look'] = v2; RO.io.writes = 0;
   check(RO.L.readOnly() === true && RO.L.lost() === false && RO.L.owned('pescador') && RO.L.fit(0).style === 'afro', 'v:2: solo lectura, se lee saneado en memoria');
-  check(RO.L.grant('corona', 'carrera') === false && (RO.L.setFit(0, RO.L.defaults(0)), true) && RO.L.markSeen(['pescador']) === true && RO.io.writes === 0 && RO.store['voley3d.look'] === v2, 'v:2: grant, setFit y markSeen no escriben nada');
+  check(RO.L.grant('corona', 'carrera') === false && (RO.L.setFit(0, RO.L.defaults(0)), true) && RO.L.markSeen(['pescador']) === true && RO.io.writes === 0 && RO.store['make-the-cut.look'] === v2, 'v:2: grant, setFit y markSeen no escriben nada');
   const v1 = JSON.stringify({ v: 1, ft: 999, own: { tAzul: { s: 'tienda', t: 3 } } });
   check(RO.L.mergeRaw(v1, v2) === v2 && RO.L.mergeRaw(v2, v1) === v2 && RO.L.mergeRaw(null, v2) === v2 && RO.L.mergeRaw(v2, JSON.stringify({ v: 3 })) === JSON.stringify({ v: 3 }), 'mergeRaw: gana entera la de mayor v y nunca la rebaja');
-  RO.store['voley3d.look'] = v1;
+  RO.store['make-the-cut.look'] = v1;
   check(RO.L.readOnly() === false && RO.L.grant('corona', 'carrera') === true, 'si vuelve un guardado v1, se puede escribir otra vez');
   check(Object.keys(S.VB).join() === 'Look', 'look.js sigue publicando solo VB.Look');
 }
@@ -460,7 +460,7 @@ async function browser() {
   const CDP = require('./cdp.js');
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const waitFor = async (pg, expr, ms) => { const t = Date.now(); while (Date.now() - t < ms) { try { if (await pg.evalJs(expr)) return true; } catch (e) { } await sleep(150); } return false; };
-  const NOINTRO = `(function(){try{localStorage.setItem('voley3d.guided','{"done":true}');localStorage.setItem('voley3d.install','1')}catch(e){}})();`;
+  const NOINTRO = `(function(){try{localStorage.setItem('make-the-cut.guided','{"done":true}');localStorage.setItem('make-the-cut.install','1')}catch(e){}})();`;
   const strict = process.env.STRICT === '1';
   const soft = m => { if (strict) check(false, m); else { warn++; console.log('AVISO: ' + m); } };
   let pg;

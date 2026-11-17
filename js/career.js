@@ -1,7 +1,7 @@
 /* MAKE THE CUT — js/career.js (owner: ui_main)
  * Modo Carrera 2v2 de VÓLEY PLAYA: datos y lógica, sin DOM ni Three (se carga también en node: tools/careertest.js).
  *
- * Tu jugador es un atleta de VB.Prog (st, lvl, xp, pts, bp/bd/beq de VB.Badges) con su propio guardado ('voley3d.career').
+ * Tu jugador es un atleta de VB.Prog (st, lvl, xp, pts, bp/bd/beq de VB.Badges) con su propio guardado ('make-the-cut.career').
  * Empiezas en un club modesto del circuito más bajo; el club te pone pareja. 5 circuitos de 8 clubes de vóley playa (inventados),
  * temporada = liga a doble vuelta (14 jornadas) + open de los 4 primeros (semifinales 1-4 y 2-3, final). Cada jornada juegas tu
  * partido de verdad en la arena (main.js lo arranca con matchSetup: reglas de playa, sets a 21 y el 3r a 15, pista 16×8) o lo
@@ -45,7 +45,7 @@
   function ordn(n) { return n + (n === 1 || n === 3 ? 'r' : 'º'); }
   var root = typeof window !== 'undefined' ? window : globalThis;
   var VB = root.VB = root.VB || {};
-  var KEY = 'voley3d.career', VER = 3;   // v1 → v2: gestión (inicio sin club, contrato, entrenamiento, plantilla, bandeja); v2 → v3: playa; migrate()
+  var KEY = 'make-the-cut.career', VER = 3;   // v1 → v2: gestión (inicio sin club, contrato, entrenamiento, plantilla, bandeja); v2 → v3: playa; migrate()
   var KEYS = ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'];
   var WEEKS = 14, MID_WEEK = 7, CLUBS_PER = 8;
   // vóley playa: todos los partidos de la Carrera (jugados y simulados) se juegan en la arena con sus reglas (sim: createGame({venue}))
@@ -1869,13 +1869,13 @@
   function owns(g) { return !!(g && g.career && !g.demo); }
 
   // =====================================================================================================================
-  // CARRERA DE PISTA (6v6), lote C (11-nov-2026). Guardado aparte ('voley3d.career6'): la de playa no cambia (ni su guardado, ni su
+  // CARRERA DE PISTA (6v6), lote C (11-nov-2026). Guardado aparte ('make-the-cut.career6'): la de playa no cambia (ni su guardado, ni su
   // migración, ni su API por defecto). Ligas por país y división con los datos de js/leagues.js (VB.Leagues; el guardado lleva una
   // copia de los clubes, así que cambiar los datos no rompe una carrera empezada), copa nacional, copas internacionales de la región,
   // ascensos y descensos, ojeadores y ofertas de clubes de ligas mejores, también extranjeras. Reutiliza de la playa: atleta y
   // progresión (addXP, bump, insignias), entrenamiento y fatiga (trainWeek), contrato, rol prometido y banquillo (benchFor, pay,
   // earlyExit), bandeja (msg), nota del partido (ingest, rating) y quickSim. Diseño en notes/carrera.md «Carrera de pista».
-  var KEY6 = 'voley3d.career6', VER6 = 1, MODE_KEY = 'voley3d.career.mode';
+  var KEY6 = 'make-the-cut.career6', VER6 = 1, MODE_KEY = 'make-the-cut.career.mode';
   var START6 = 45;          // media inicial (los clubes reales de pista van de 50, en Filipinas o Perú, a 95 en la élite)
   // Datos reales (js/leagues.js): 28 países, 37 ligas de 8 a 12 clubes, 390 clubes. Hasta 8 clubes, liga a doble vuelta (14 jornadas:
   // Países Bajos, Austria, Eslovenia y Catar); con 9-10, a una vuelta (9 jornadas); con 11-12, a una vuelta (11 jornadas)

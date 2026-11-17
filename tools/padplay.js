@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/padplay.js (owner: ui_main)
+/* MAKE THE CUT — tools/padplay.js (owner: ui_main)
  * Juega con un MANDO falso de mapeo estándar (W3C "standard"): se sustituye navigator.getGamepads con
  * Page.addScriptToEvaluateOnNewDocument (antes que el juego) y se mueven ejes y botones a lo largo del tiempo.
  * Comprueba: conexión (gamepadconnected) · menú con stick (elegir) y A/B (aceptar/volver), stick ←/→ cambia el nivel ·

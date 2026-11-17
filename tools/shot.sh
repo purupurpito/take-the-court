@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# VOLEY 3D — captura de pantalla headless (owner: ui_main)
+# MAKE THE CUT — captura de pantalla headless (owner: ui_main)
 # Uso: tools/shot.sh <escena> [W=1280] [H=720] [out.png] [params extra, p.ej. "seed=3&live=1"]
 # Escenas: ver CONTRACT.md §6 (o "all" + carpeta de salida para todas).
 # Delegado en tools/shot.js: viewport EXACTO vía DevTools y GPU real (GL=swiftshader para software).

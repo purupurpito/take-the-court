@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/contacttest.js (owner: players)
+/* MAKE THE CUT — tools/contacttest.js (owner: players)
  * S3-C1 §1.1: holgura mano/antebrazo-balón en cada contacto (hit y block) de partidos autopilot reales (DevTools, tools/cdp.js).
  * Porta la sonda c1probe/contact.js: la página avanza la sim a mano UN paso por frame (1/120 s, como ?slow=0.5 en el juego) y llama
  * a VB.Players.update en cada paso. En cada frame guarda, por jugador, la distancia del centro de la manopla (muñeca + 0,115·escala

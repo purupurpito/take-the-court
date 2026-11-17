@@ -4,7 +4,7 @@ Ficheros: `index.html` (CSS inline), `js/ui.js`, `js/main.js`, `tools/shot.sh`, 
 Las interfaces de CONTRACT.md §4 siguen intactas. Todo lo de abajo son AÑADIDOS opcionales.
 
 ## Añadidos en `VB.ctx` (main.js)
-- `ctx.settings` tiene campos nuevos (persistidos en `localStorage['voley3d.settings']`, validados al cargar):
+- `ctx.settings` tiene campos nuevos (persistidos en `localStorage['make-the-cut.settings']`, validados al cargar):
   - `difficulty`: `'easy' | 'normal' | 'hard'` (en la UI: Fácil / Normal / Difícil). Se pasa a `Sim.createGame({difficulty})`.
   - `camSens`: 0,5..1,5 (pasos de 0,1). camera.js ya lo lee (ver notes/camera_input.md).
   - `sfxVol`, `musicVol`: 0..1 (pasos de 0,1). audio.js los lee en `onSettings` (petición de notes/audio.md, hecha).
@@ -317,7 +317,7 @@ draw calls, pixelRatio y sombra son la parte de GPU del objetivo.
   | 667x375 | baja | 100,3 | 82 | 12,2 | 34 | 82 | 1 | 512 |
 
   «objetivos cumplidos» en las dos. La primera pasada de 844x390 dio 85-93 fps con más carga en el PC; un A/B inmediato contra la instantánea de la
-  ronda 1 (`voley-3d-snapshots/verify1-before`) dio lo mismo (media 95 / 95 fps): sin regresión del código.
+  ronda 1 (`make-the-cut-snapshots/verify1-before`) dio lo mismo (media 95 / 95 fps): sin regresión del código.
 
 ## Petición de sim (pulido ola 1, SIM-03): pausa de presentación y saltarla (2026-11-07)
 sim.js ya expone (ver notes/sim.md §P1): `createGame({present:true})` (o `g.present = true`), `point.hold`, `VB.Sim.skipHold(g)`,
@@ -977,7 +977,7 @@ Pruebas y capturas en `tools/out/w3/` (no se suben). Interfaces de CONTRACT inta
 ### UI-18 · textos
 - Ace / antenas / «Un punto para ganar el 1r set» / «Un punto para ganar el partido» / «¡Ganas el partido!» / «Balón libre · [SALTAR] para
   rematar» / «3r toque · Ataque: ponte bajo el balón, salta con K y golpea con ESPACIO arriba» / «Primer partido» / «Al mejor de 3 sets» /
-  «Voley 3D se juega en horizontal». Antetítulos con contexto: pausa «Set 1 · 24-10 · Normal» («Mando desconectado» si se va el mando; en medio
+  «Make the Cut se juega en horizontal». Antetítulos con contexto: pausa «Set 1 · 24-10 · Normal» («Mando desconectado» si se va el mando; en medio
   solo los sets), final «Palau del Mar · Nivel Normal · 3 sets», paneles «Botones y gestos» / «Se guardan en este navegador». Tarjeta guiada:
   solo el ordinal («SEGUNDO TOQUE»; el nombre ya está en el contador). `#sbTag` oculto mientras la cinta «Punto de set/partido» está a la vista.
 - Hoja final: sin la cabecera «TÚ · CPU» de las estadísticas (cifras en el color del equipo); MVP en tabla: un solo rótulo vertical «MVP», cabecera
@@ -1151,7 +1151,7 @@ Pruebas: simtest TODO OK; console.sh all sin errores JS; perf «objetivos cumpli
 ## Dorsales 1 y 2 y «Control» de dos valores (nov-2026)
 - Tu equipo lleva el **n.º 1 y el n.º 2** (antes 7 y 11): `sim.js createGame` (`mkPlayer(0, 1, 0)`, `mkPlayer(0, 2, 1)`; la CPU
   sigue con 3 y 9), `prog.js BASE` (1 «Atacante», 2 «Universal»), `ui.js teamNums()` y el `#offNum` de index.html. Migración del
-  guardado `voley3d.squad`: `sane()` fuerza `num` desde BASE y, si el guardado traía otro dorsal (7/11), `load()` lo reescribe
+  guardado `make-the-cut.squad`: `sane()` fuerza `num` desde BASE y, si el guardado traía otro dorsal (7/11), `load()` lo reescribe
   (nivel, XP, atributos e insignias intactos; badgetest lo comprueba).
 - Fila «Control»: `OPT.ctrlMode = {vals: ['both', 'one'], labels: ['Los dos', 'Uno'], desc: [...]}` (fuera `ctrlSel` y los
   valores virtuales). La ayuda («Controlar a los dos jugadores» / «Controlar un jugador (el n.º 1; la IA lleva al n.º 2)») va en
@@ -1498,13 +1498,13 @@ con la columna de ataque.
   `VB.CREDITS {by:'Ferran', tools[], fonts, licenses:{three (MIT completo), threeLine, ofl}, note}`. El año de three.js es
   **2010-2023** (cabecera real de three.min.js 0.149.0 en cdnjs; la spec decía 2022). La línea «Claude Code» NO está: TODO de Ferran.
   **Regla:** cada publicación con un cambio visible sube VERSION y añade su entrada arriba; build-pages falla si no cuadra.
-- **js/gym.js (nuevo, `VB.Gym`, sin DOM, sobre `voley3d.gym` v1):** `DRILLS [{id,name,short,help}]`, `IDS`, `MEDALS`, `XP [30,50,80]`,
+- **js/gym.js (nuevo, `VB.Gym`, sin DOM, sobre `make-the-cut.gym` v1):** `DRILLS [{id,name,short,help}]`, `IDS`, `MEDALS`, `XP [30,50,80]`,
   `MAX 30`, `MEDAL_NAMES`, `load/save/clean/get/drill/medalOf/record/recordRally/count/nextOf/bestRally/reset`. `record` paga la XP
   (VB.Prog.addXP a los dos jugadores) una vez por nivel no cobrado (`xp[id]` en el guardado) y devuelve `{best, prev, isBest, medal,
   newMedal, xp, n}`. `load` valida (topes b 0-40, m 0-3, rally 999; claves desconocidas fuera; JSON roto → vacío).
 - **js/account.js:** `mergeGym` (unión por máximo de récord/medalla/intentos/xp cobrado y peloteo) escrita y conectada en `merge`,
-  pero `voley3d.gym` NO entraba en `DOCS` hasta `GYM_SYNC = true` (ya lo es desde el 12-nov-2026: reglas desplegadas). `VB.Account._mergeGym`,
-  `_gymSync` para pruebas. `voley3d.seen` y `voley3d.device` nunca van a DOCS.
+  pero `make-the-cut.gym` NO entraba en `DOCS` hasta `GYM_SYNC = true` (ya lo es desde el 12-nov-2026: reglas desplegadas). `VB.Account._mergeGym`,
+  `_gymSync` para pruebas. `make-the-cut.seen` y `make-the-cut.device` nunca van a DOCS.
 - **firebase/firestore.rules:** `'gym'` en la lista de `key` (sin desplegar).
 - **tools/build-pages.js:** versión por vm, guardas (semver, CHANGELOG[0].v, pages/og.png, un solo rel="icon"), metadatos
   description/OG/Twitter/canonical/application-name, `window.__vbBuild = {v, sha (GITHUB_SHA, 7), date}` sin llamar a git, quita el
@@ -1513,7 +1513,7 @@ con la columna de ataque.
   «VÓLEY 2 CONTRA 2 ◆ CARRERA». Se regenera a mano si cambia el logotipo.
 - **tools/abouttest.js:** parte sin navegador (version.js + build-pages en carpeta temporal + guardas en una copia mínima) y parte
   cdp (a-e de E7 §6.2), que se salta con aviso mientras ui.js no tenga `VB.UI.openAbout/_about` (STRICT=1 → fallo). NOCDP=1 la salta.
-- **tools/gymtest.js:** parte sin navegador (gym.js en vm) y parte cdp (5 ejercicios con gymauto, hoja .drill, voley3d.gym, XP exacta
+- **tools/gymtest.js:** parte sin navegador (gym.js en vm) y parte cdp (5 ejercicios con gymauto, hoja .drill, make-the-cut.gym, XP exacta
   sin cobro doble con 2ª pasada de serve, peloteo libre, `_mergeGym`, navegación con teclado/táctil/mando). Se salta con aviso
   mientras main.js no cree `g.drill` con `?drill=`.
 
@@ -1521,7 +1521,7 @@ con la columna de ataque.
 - **main.js:** `DEFAULTS()` (todos los ajustes; loadSettings y reset), claves nuevas validadas `volume, crowdVol, resScale (0 auto |
   1 | .85 | .7 | .5), fpsCap (0 | 30), showFps, camDist, camCuts, lessMotion, cbColors, ballStyle, keys, padKeys (objeto plano ≤ 12
   acciones; si no, {}), padDead (0,1-0,3; si no, 0,18), touchSize, aimSet, msTiming`. `DEVICE_KEYS = resScale, fpsCap, showFps,
-  touchSize, padDead` → **`voley3d.device`** (no se sincroniza) y fuera de `voley3d.settings`. Migración única: sin `crowdVol`
+  touchSize, padDead` → **`make-the-cut.device`** (no se sincroniza) y fuera de `make-the-cut.settings`. Migración única: sin `crowdVol`
   guardado → `0,85 × sfxVol`. `applyQuality`: resolución fija = pixelRatio × resScale y la adaptativa ya no escala (`aq.noScale`).
   Tope de 30 fps en `frame()` antes del poll (paso fijo `capNext`, sin deriva a 144 Hz) y `adaptQuality` con umbrales de 30 (baja si
   < 26, nunca sube). `#fps` con «60 fps | Media» (Ver FPS; `?fps=1` sigue con la línea de depuración). **`ctx.reduceMotion`** (bool,
@@ -1547,7 +1547,7 @@ con la columna de ataque.
   - Sliders con `step` (padDead de 5 en 5); volumen movido = quita el silencio y suena su muestra (`VB.Audio.preview('crowd'|
     'master')`, con guarda). Ayuda de Resolución dinámica. `data-need` esconde las filas que su módulo no soporta (OPTS).
   - E7: `renderAbout` (Novedades desde VB.CHANGELOG, Créditos desde VB.CREDITS; licencias tras un botón), `#btnVer` con punto si la
-    versión no se ha visto, novedades solas una vez por versión (`voley3d.seen`, solo a quien vuelve), `tabTitle` (menú, Carrera,
+    versión no se ha visto, novedades solas una vez por versión (`make-the-cut.seen`, solo a quien vuelve), `tabTitle` (menú, Carrera,
     «Set 2 | 12-10», «¡A jugar!», pausa, «¡Victoria! 2-1» / «Derrota 1-2», «Entrenamiento» con g.drill).
   - E1: «Timing exacto» → el sello dice «23 ms pronto/tarde».
   - Arreglo: con un panel abierto desde el arranque (`?panel=`, Novedades) el telón ya se releva (antes la navegación con mando
@@ -1588,15 +1588,15 @@ con la columna de ataque.
   Sello «¡Jugada perfecta!» con «Recepción | Colocación | Remate» (o «Colocación en salto | Remate») en el remate perfecto con
   `hit.chain >= 3`. Aviso «Rematar | Colocado» con `VB.Sim.altReady` (táctil: «colocado»). Un consejo de maestría por partido como
   mucho (`e1Tip`: golpe colocado en el aire, finta antes de saltar, colocación dirigida en el 2º toque, al filo con la mira), cada uno
-  2 veces en total (`voley3d.e1tips`, solo este dispositivo); sale aunque los consejos de partido estén apagados, no sin las ayudas.
+  2 veces en total (`make-the-cut.e1tips`, solo este dispositivo); sale aunque los consejos de partido estén apagados, no sin las ayudas.
   Hoja final: «Fintas 3 | Colocados 5 | Al filo 4 | Rápidas 2» (usos, solo si hay alguno). Controles: «Colocar en salto (en el 3r
   toque: golpe colocado)» y la fila «Finta». Tutorial pasos 3 y 4: colocación dirigida, finta, golpe colocado y al filo.
 - **E2 (main.js `animHooks`):** en cada partido humano `VB.Players.setSignature(VB.CareerLife.signatureNow())` (también en el
   Partido rápido) y `setRival(m.career.rivalNum | -1)`; en el duelo de la Carrera `nums[1] = [rivalNum, null]`. Todo con guardas.
-- **Almacenamiento nuevo:** `voley3d.e1tips` ({air, feint, aim, edge}: veces vistas). Nunca en DOCS.
+- **Almacenamiento nuevo:** `make-the-cut.e1tips` ({air, feint, aim, edge}: veces vistas). Nunca en DOCS.
 - **API nueva:** `VB.UI.menuGo('gym')`, `menuPage()` puede dar 'gym'.
 - **tools/gymtest.js:** el «Jugar» del recorrido táctil busca solo `button,.mode` (el `[data-nav]` del menú también empieza por
-  «Jugar» y tocar su centro abría «Cómo se juega») y el arranque marca `voley3d.install` = '1' (el aviso de instalar del móvil
+  «Jugar» y tocar su centro abría «Cómo se juega») y el arranque marca `make-the-cut.install` = '1' (el aviso de instalar del móvil
   podía abrirse justo antes del toque: la navegación táctil fallaba 1 de cada 2 pasadas completas).
 - **Fuera:** `gameSpeed` (fase B). Las escenas `drill_*` no están en `ALL` de tools/shot.js (petición).
 
@@ -1647,8 +1647,8 @@ index.html), career (career-life.js, career-life-ui.js, career-ui.js) y main (es
   es de **players** y consta ya en el JSON de dueños; la sección del muñeco y del Vestuario de doll.js se documenta en notes/players.md.
 - **Orden de carga** (CONTRACT §2): `js/badges.js` → `js/look.js` → `js/venues.js`. look.js es puro (sin THREE ni DOM; `localStorage` en
   try/catch), así que también se carga con vm en careertest, badgetest y looktest.
-- **Guardado nuevo `voley3d.look`** (perfil global, < 8 KB): `{v:1, fits:[fitN1, fitN2], own:{id:{s, t}}, seen:{id:1}}`. Sin guardado,
-  `VB.Look.defaults()` (= `MY_LOOKS` de hoy). El de la Carrera va en `c.life.look` (sube con `voley3d.career` en la playa; la pista sigue sin
+- **Guardado nuevo `make-the-cut.look`** (perfil global, < 8 KB): `{v:1, fits:[fitN1, fitN2], own:{id:{s, t}}, seen:{id:1}}`. Sin guardado,
+  `VB.Look.defaults()` (= `MY_LOOKS` de hoy). El de la Carrera va en `c.life.look` (sube con `make-the-cut.career` en la playa; la pista sigue sin
   nube). Inventario global: lo ganado en una Carrera vale también en el Partido rápido.
 - **main.js**:
   - `ctx.noteHitch()`: `aq.skip = 1` (la ventana de fps en curso no cuenta para la calidad adaptativa). Interfaz nueva de este sprint.
@@ -1670,10 +1670,10 @@ index.html), career (career-life.js, career-life-ui.js, career-ui.js) y main (es
   - `?debug=look&tab=…&venue=hall|beach&item=<id>&pick=1|2|career`: escena nueva; abre el menú (`toMenu`) y llama a
     `VB.UI.openLook({tab, venue, item, pick})`. `tab` en minúscula; `venue` acepta también pista/playa; `item` solo si tiene el formato de
     id del catálogo; `pick` llega como el número 1 o 2 (el N.º, no el índice) o `'career'`. Sin `VB.UI.openLook`, aviso en consola y el menú.
-- **account.js**: `LOOK_SYNC = true` desde el 15-nov-2026 (con él, `DOCS['voley3d.look'] = 'look'`). `merge()` tiene la rama `mergeLook(L, R, remoteNewer)`:
+- **account.js**: `LOOK_SYNC = true` desde el 15-nov-2026 (con él, `DOCS['make-the-cut.look'] = 'look'`). `merge()` tiene la rama `mergeLook(L, R, remoteNewer)`:
   own y seen con `VB.Look.mergeRaw` (unión, gana la `t` mínima), fits del lado más reciente por la hora de meta (en la primera entrada en el
   dispositivo, la cuenta), lo dé como lo dé mergeRaw; sin look.js gana entero el más reciente. Aunque no suba, el envoltorio de `setItem`
-  ya apunta la hora de cada escritura de `voley3d.look` en `voley3d.account.meta` (`TRACK`), así la primera fusión sabe qué looks son más
+  ya apunta la hora de cada escritura de `make-the-cut.look` en `make-the-cut.account.meta` (`TRACK`), así la primera fusión sabe qué looks son más
   nuevos. Pruebas: `VB.Account._mergeLook`, `_lookSync`.
 - **firebase/firestore.rules**: `'look'` en la lista de `key`. **SIN DESPLEGAR.** Orden obligatorio (como con el gym): 1) Ferran despliega
   (`firebase deploy --only firestore:rules`), 2) `LOOK_SYNC = true` en account.js.

@@ -74,27 +74,27 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
   // acaba en firmar o en quitar la oferta (semillas distintas), y aprueba menos que la tirada de antes (jugarla compensa)
   let passN = 0, failN = 0, oldN = 0, simOk = true;
   for (let s = 1; s <= 30; s++) {
-    const keep = mem['voley3d.career'];
+    const keep = mem['make-the-cut.career'];
     const t = C.create({ name: 'Prueba', seed: 5000 + s }); const i = t.offers.findIndex(o => o.trial);
-    if (i < 0) { mem['voley3d.career'] = keep; C._reset(); continue; }
+    if (i < 0) { mem['make-the-cut.career'] = keep; C._reset(); continue; }
     const o = t.offers[i], draw = C._rng(C._hash(t.seed, 'trial', o.club, t.pick.round))();
     if (draw < o.chance) oldN++;
     const n0 = t.offers.length, r = C.acceptOffer(i);
     if (r !== (draw < o.chance * C.TRIAL_SIM)) simOk = false;
     if (r) { passN++; ok(C.myClub(t).lvl === 1 && t.phase === 'league', 'prueba superada: al Circuito Nacional'); }
     else { failN++; ok(t.phase === 'pick' && t.offers.length === n0 - 1 && t.pick.fail >= 0 && t.pick.res && t.pick.res.letter === 'D' && t.pick.res.sim, 'prueba fallida: se quita la oferta, sigues eligiendo y el informe dice D'); }
-    mem['voley3d.career'] = keep; C._reset();
+    mem['make-the-cut.career'] = keep; C._reset();
   }
   c = C.get();
   ok(simOk, 'simular la prueba: la tirada determinista de siempre con la probabilidad × ' + C.TRIAL_SIM);
   ok(passN > 0 && failN > passN && passN <= oldN, 'pruebas simuladas: ' + passN + ' superadas, ' + failN + ' no (con la tirada de antes, ' + oldN + ')');
   // la prueba jugada: partidillo a un set a 15 con petos, 3 objetivos, nota con letra (eventos falsos como en «Partido jugado»)
   {
-    const keep = mem['voley3d.career'];
+    const keep = mem['make-the-cut.career'];
     let seed = 6000, t = null, i = -1;
     while (seed < 6100) { C._reset(); t = C.create({ name: 'Partidillo', seed: seed++ }); i = t.offers.findIndex(o => o.trial); if (i >= 0) break; }
     ok(i >= 0, 'una carrera con prueba (semilla ' + (seed - 1) + ')');
-    const snap = mem['voley3d.career'];
+    const snap = mem['make-the-cut.career'];
     // trialSetup: sin life(), sin tocar la jornada, la experiencia ni el entrenador
     let hooks = 0; const hk = [VB.CareerLife, VB.CareerWorld].filter(L => L && L.hook), h0 = hk.map(L => L.hook);
     hk.forEach(L => { const f = L.hook; L.hook = function () { hooks++; return f.apply(this, arguments); }; });
@@ -105,7 +105,7 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
     ok(ms.attrs[0][1].jump === t.offers[i].mateP.st.jump && ms.attrs[1].length === 2, 'juegas con tu futura pareja contra una pareja del club');
     ok(hooks === 0 && t.player.xp === xp0 && t.week === wk0 && t.coach === co0 && t.inbox.length === nIn && t.phase === 'pick', 'trialSetup no llama a life() ni toca jornada, experiencia, entrenador ni bandeja');
     ok(t.pick.trial && t.pick.trial.club === t.offers[i].club && t.pick.trial.offer === i && t.pick.trial.tries === 1 && t.pick.trial.live === 1, 'prueba en curso en c.pick.trial (live)');
-    const snap2 = mem['voley3d.career'];
+    const snap2 = mem['make-the-cut.career'];
     const p = [0, 1, 2, 3].map(j => ({ id: j, team: j >> 1, idx: j & 1, num: [7, 11, 3, 9][j] }));
     const game = () => ({ career: ms.career, teams: [[p[0], p[1]], [p[2], p[3]]], players: p, demo: false, autopilot: false });
     const evKill = E => E.push({ type: 'hit', team: 1, kind: 'serve', touch: 0, player: p[2] }, { type: 'hit', team: 0, kind: 'pass', touch: 1, player: p[0], grade: 'perfect', human: true },
@@ -133,17 +133,17 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
       ok(t.inbox.some(m => m.t === 'Prueba no superada' && /Dejaste el partidillo a medias y .+ no te espera\. Aún tienes \d+ ofertas?/.test(m.x)), 'el agente lo cuenta: dejaste el partidillo a medias');
       ok(C.trialStale() === null && C.trialPending() === null, 'ya no queda prueba en curso');
       // trialSetup (o simular) con la prueba dejada a medias: ya está gastada
-      mem['voley3d.career'] = snap2; C._reset();
+      mem['make-the-cut.career'] = snap2; C._reset();
       ok(C.trialSetup(i) === null && !C.get().offers.some(o => o.club === tc) && C.get().pick.res.forfeit === 'left', 'volver a empezar la prueba dejada a medias: ya está gastada');
-      mem['voley3d.career'] = snap2; C._reset();
+      mem['make-the-cut.career'] = snap2; C._reset();
       ok(C.trialSim(i) === null && C.get().pick.res.forfeit === 'left', 'simular la prueba dejada a medias: tampoco (gastada)');
       // aceptar otra oferta con una prueba dejada a medias: se gasta primero y se firma la oferta elegida (el índice se recoloca)
-      mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+      mem['make-the-cut.career'] = snap2; C._reset(); t = C.get();
       const j2 = t.offers.findIndex((o, k) => !o.trial && k > i), oc = j2 >= 0 ? t.offers[j2].club : -1;
       if (j2 >= 0) { ok(C.acceptOffer(j2, 2) && C.get().myClub === oc && C.get().pick === undefined || C.get().myClub === oc, 'firmar otra oferta con la prueba a medias: se gasta y firmas la elegida'); }
       // reiniciar y abandonar el partidillo (main.js: trialForfeit), con la nota en directo de ese momento
       for (const why of ['restart', 'quit']) {
-        mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+        mem['make-the-cut.career'] = snap2; C._reset(); t = C.get();
         const g = game(), E = [{ type: 'newMatch' }]; evKill(E); evKill(E);
         C.ingest(E, g);
         const lr = C.liveRating(g);
@@ -155,19 +155,19 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
         ok(C.trialForfeit('beach', 0, why) === null || !C.get().offers[0].trial, why + ': sin prueba en curso, trialForfeit no hace nada');
       }
       // la única oferta era la prueba: al gastarla llegan otras
-      mem['voley3d.career'] = snap2; C._reset();
-      { const raw = JSON.parse(mem['voley3d.career']); raw.offers = [raw.offers[i]]; raw.pick.trial.offer = 0; mem['voley3d.career'] = JSON.stringify(raw); C._reset(); }
+      mem['make-the-cut.career'] = snap2; C._reset();
+      { const raw = JSON.parse(mem['make-the-cut.career']); raw.offers = [raw.offers[i]]; raw.pick.trial.offer = 0; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset(); }
       const r0 = C.get().pick.round, rq = C.trialForfeit('beach', 0, 'quit'); t = C.get();
       ok(rq && t.phase === 'pick' && t.offers.length >= 2 && t.pick.round === r0 + 1 && !t.offers.some(o => o.club === tc), 'sin más ofertas: al gastar la prueba llegan otras (' + t.offers.length + ')');
       // guardado de la 1.2.0: prueba pendiente sin live → no se gasta; se puede jugar una vez más (y desde ahí queda en curso)
-      mem['voley3d.career'] = snap2; C._reset();
-      { const raw = JSON.parse(mem['voley3d.career']); delete raw.pick.trial.live; raw.pick.trial.tries = 2; mem['voley3d.career'] = JSON.stringify(raw); C._reset(); }
+      mem['make-the-cut.career'] = snap2; C._reset();
+      { const raw = JSON.parse(mem['make-the-cut.career']); delete raw.pick.trial.live; raw.pick.trial.tries = 2; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset(); }
       ok(C.trialPending() && !C.trialPending().live && C.trialStale() === null && C.get().pick.trial && C.get().offers.some(o => o.club === tc), 'guardado de la 1.2.0 (sin live): trialStale no la gasta');
       ok(C.rejectAll() === true && C.get().pick.res == null, 'rechazar todas con una pendiente vieja: no cuenta como suspendida');
-      mem['voley3d.career'] = snap2; C._reset();
-      { const raw = JSON.parse(mem['voley3d.career']); delete raw.pick.trial.live; mem['voley3d.career'] = JSON.stringify(raw); C._reset(); }
+      mem['make-the-cut.career'] = snap2; C._reset();
+      { const raw = JSON.parse(mem['make-the-cut.career']); delete raw.pick.trial.live; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset(); }
       ok(C.trialSetup(i) && C.get().pick.trial.live === 1 && C.get().pick.trial.tries === 1, 'se juega una vez más: trialSetup la marca en curso');
-      mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+      mem['make-the-cut.career'] = snap2; C._reset(); t = C.get();
     }
     // una A: te fichan
     const ra = play(10, 0, 1, true); t = C.get();
@@ -175,18 +175,18 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
     ok(t.phase === 'league' && C.myClub(t).lvl === 1 && t.player.xp === xp0, 'al Circuito Nacional, sin experiencia por el partidillo');
     ok(t.inbox.some(m => m.t === '¡Prueba superada!' && /nota A/.test(m.x)), 'el agente lo cuenta con la nota');
     // una F: fuera la oferta
-    mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+    mem['make-the-cut.career'] = snap2; C._reset(); t = C.get();
     const n0 = t.offers.length, rf = play(0, 5, 0, false); t = C.get();
     ok(rf && rf.letter === 'F' && !rf.pass && rf.left === n0 - 1 && t.phase === 'pick' && t.offers.length === n0 - 1 && t.pick.fail >= 0 && !t.pick.trial, 'partidillo de F (nota ' + (rf && rf.nota) + '): se quita la oferta y sigues eligiendo');
     ok(t.pick.res && t.pick.res.letter === 'F' && t.pick.res.pass === false && t.pick.res.goals.length === 3 && !t.pick.res.sim, 'c.pick.res guarda el último resultado para la UI');
     C._reset(); ok(C.get().pick.res && C.get().pick.res.letter === 'F', 'c.pick.res se guarda');
     // una C: decide la tirada (o.chance + TRIAL_C_BONUS), siempre igual con la misma semilla
-    mem['voley3d.career'] = snap2; C._reset(); t = C.get();
+    mem['make-the-cut.career'] = snap2; C._reset(); t = C.get();
     const o = t.offers[i], exp = C._rng(C._hash(t.seed, 'trial', o.club, t.pick.round))() < o.chance + C.TRIAL_C_BONUS;
     let cK = -1, cE = 0, rc = null;   // (un partidillo perdido que dé C: remates y errores que lo consiguen)
     for (let kk = 0; kk <= 8 && cK < 0; kk++) for (let ee = 0; ee <= 4 && cK < 0; ee++) {
-      mem['voley3d.career'] = snap2; C._reset(); const r = play(kk, ee, 0, false); if (r && r.letter === 'C') { cK = kk; cE = ee; rc = r; } }
-    mem['voley3d.career'] = snap2; C._reset();
+      mem['make-the-cut.career'] = snap2; C._reset(); const r = play(kk, ee, 0, false); if (r && r.letter === 'C') { cK = kk; cE = ee; rc = r; } }
+    mem['make-the-cut.career'] = snap2; C._reset();
     const rc2 = cK >= 0 ? play(cK, cE, 0, false) : null;
     ok(rc && rc.letter === 'C' && rc.luck && rc.pass === exp && rc2.pass === rc.pass, 'partidillo de C (' + cK + ' remates, ' + cE + ' errores, nota ' + (rc && rc.nota) + '): decide la tirada, determinista (' + (rc && rc.pass ? 'te fichan' : 'no') + ')');
     // la nota: escalada a un set corto y + objetivos
@@ -196,18 +196,18 @@ section('Inicio sin club: ofertas, rechazar, más tiempo, prueba y firmar');
     ok(!/·|1\.er|2\.º|3\.er|\/a\b/.test(txt), 'textos de la prueba sin «·», sin ordinales con punto y sin «/a»');
     // con la nota en directo: la del partidillo es la que llevabas al final (+ objetivos) y la hoja final trae lo mejor y lo peor
     if (VB.Rating) {
-      mem['voley3d.career'] = snap2; C._reset();
+      mem['make-the-cut.career'] = snap2; C._reset();
       const rr = play(6, 1, 1, true);
       ok(rr && rr.rt && rr.rt.nota === rr.nota && rr.rt.best.length > 0 && rr.rt.worst.length > 0 && rr.rt.best[0].d > 0 && rr.rt.worst[0].d < 0, 'partidillo con nota en directo: nota ' + (rr && rr.nota) + ' = la del cierre, con «Lo mejor» (' + (rr && rr.rt.best.map(b => b.n + ' × ' + b.txt).join(', ')) + ') y «A mejorar»');
     }
     // guardado viejo en la fase pick (sin c.pick.trial ni c.pick.res) y prueba pendiente que ya no cuadra
-    mem['voley3d.career'] = snap; C._reset();
-    let raw = JSON.parse(mem['voley3d.career']); delete raw.pick.trial; delete raw.pick.res; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    mem['make-the-cut.career'] = snap; C._reset();
+    let raw = JSON.parse(mem['make-the-cut.career']); delete raw.pick.trial; delete raw.pick.res; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset();
     ok(C.get() && C.get().phase === 'pick' && !C.get().pick.trial && C.trialSetup(i) && C.get().pick.trial, 'guardado de antes del partidillo en plena elección: sin prueba pendiente y se puede jugar');
-    raw = JSON.parse(mem['voley3d.career']); raw.pick.trial = { club: -5, offer: 9, goals: 'x' }; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    raw = JSON.parse(mem['make-the-cut.career']); raw.pick.trial = { club: -5, offer: 9, goals: 'x' }; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset();
     ok(C.get().pick.trial === null, 'prueba pendiente que no cuadra con su oferta: se olvida');
     ok(C.trialSetup(0) === null || C.get().offers[0].trial, 'trialSetup solo con una oferta de prueba');
-    mem['voley3d.career'] = keep; C._reset();
+    mem['make-the-cut.career'] = keep; C._reset();
   }
   c = C.get();
   // firmar
@@ -227,9 +227,9 @@ ok(Math.abs(C.playerOvr(c) - 35) <= 1, 'media inicial ~35 (' + C.playerOvr(c) + 
 ok(c.player.st.set > c.player.st.spike, 'colocador-receptor: más colocación que potencia');
 ok(c.player.name === 'Ferran Prueba' && c.player.num === 14, 'nombre y dorsal');
 ok(c.mate.num === 2, 'el compañero lleva el 2 (' + c.mate.num + ')');
-{ const keep = mem['voley3d.career']; // dos carreras de prueba y se vuelve a la de arriba
+{ const keep = mem['make-the-cut.career']; // dos carreras de prueba y se vuelve a la de arriba
   ok(C.create({ name: 'Dos', num: 2, seed: 7, autoClub: true }).mate.num !== 2 && C.create({ name: 'Uno', seed: 7, autoClub: true }).player.num === 1, 'dorsal por defecto 1; si eliges el 2, el compañero otro');
-  mem['voley3d.career'] = keep; C._reset(); c = C.get(); }
+  mem['make-the-cut.career'] = keep; C._reset(); c = C.get(); }
 ok(c.mate && C.mateOvr(c) > 0, 'compañero del club (' + (c.mate && c.mate.name) + ', media ' + C.mateOvr(c) + ')');
 ok(c.mate.roleKey === 'atk', 'compañero complementario (colocador-receptor → atacante)');
 const names = new Set(c.clubs.map(k => k.name)), shorts = new Set(c.clubs.map(k => k.short));
@@ -260,8 +260,8 @@ ok(ms.ref && ms.ref.chal === 0, 'Circuito Regional sin challenge (datos de error
 
 // ------------------------------------------------------------------ guardar / cargar
 section('Guardar y cargar');
-const saved = mem['voley3d.career'];
-ok(saved && saved.length > 1000, 'guardado en voley3d.career (' + (saved ? saved.length : 0) + ' B)');
+const saved = mem['make-the-cut.career'];
+ok(saved && saved.length > 1000, 'guardado en make-the-cut.career (' + (saved ? saved.length : 0) + ' B)');
 C._reset();
 const c2 = C.get();
 ok(c2 && c2.seed === c.seed && c2.player.name === c.player.name && c2.clubs.length === 40, 'carga igual');
@@ -420,7 +420,7 @@ section('Ofertas y cambio de club');
 section('Progresión de varias temporadas (todo simulado, gasta puntos en lo más barato y acepta la mejor oferta)');
 {
   C.abandon();
-  ok(!C.exists() && !mem['voley3d.career'], 'abandonar borra el guardado');
+  ok(!C.exists() && !mem['make-the-cut.career'], 'abandonar borra el guardado');
   c = C.create({ name: 'Curva', num: 9, role: 'atk', seed: 999, autoClub: true });
   const rows = [];
   for (let s = 0; s < SEASONS; s++) {
@@ -462,15 +462,15 @@ section('Dificultad, ofertas y guardados dañados');
   }
   // guardados dañados: se reparan o se guardan aparte, sin romper
   const good = JSON.stringify(c);
-  const tryLoad = (mut) => { const o = JSON.parse(good); mut(o); mem['voley3d.career'] = JSON.stringify(o); C._reset(); return C.get(); };
+  const tryLoad = (mut) => { const o = JSON.parse(good); mut(o); mem['make-the-cut.career'] = JSON.stringify(o); C._reset(); return C.get(); };
   let r = tryLoad(o => { o.sched = null; }); ok(r === null || (r && C.next(r)), 'sin sched: ' + (r ? 'reparado, con partido' : 'descartado'));
   r = tryLoad(o => { o.sched = [[1, 2]]; }); ok(r && C.next(r) && r.sched.length === 5, 'sched roto: calendario nuevo');
   r = tryLoad(o => { delete o.res; }); ok(r && Array.isArray(r.res) && r.res.length === 5 && C.table(r, 0).length === 8, 'sin res: tablas vacías');
   r = tryLoad(o => { o.week = 99; }); ok(r && (C.next(r) || r.phase === 'off'), 'week 99: no se queda atascado (fase ' + (r && r.phase) + ')');
   r = tryLoad(o => { o.mate = null; o.coach = 'x'; o.notes = 5; }); ok(r && r.mate && r.mate.st && r.coach === 50 && Array.isArray(r.notes), 'compañero, entrenador y notas reparados');
-  r = tryLoad(o => { o.myClub = 999; }); ok(r === null && C.lost() && mem['voley3d.career.bak'] && !mem['voley3d.career'], 'myClub inexistente: descartada, con copia en .bak');
-  mem['voley3d.career'] = '{roto'; C._reset(); C.abandon(); C._reset();
-  mem['voley3d.career'] = '{roto'; ok(C.get() === null && C.lost() && mem['voley3d.career.bak'] === '{roto', 'JSON roto: copia en .bak y aviso (lost)');
+  r = tryLoad(o => { o.myClub = 999; }); ok(r === null && C.lost() && mem['make-the-cut.career.bak'] && !mem['make-the-cut.career'], 'myClub inexistente: descartada, con copia en .bak');
+  mem['make-the-cut.career'] = '{roto'; C._reset(); C.abandon(); C._reset();
+  mem['make-the-cut.career'] = '{roto'; ok(C.get() === null && C.lost() && mem['make-the-cut.career.bak'] === '{roto', 'JSON roto: copia en .bak y aviso (lost)');
   C.create({ name: 'Nueva', seed: 1 }); ok(!C.lost(), 'crear otra carrera quita el aviso');
 }
 
@@ -533,7 +533,7 @@ section('Gestión: entrenamiento, fatiga, química, compañero, traspaso, negoci
   // renovar: con el contrato acabado, «Seguir» renueva por los años que elijas
   c.contract.left = 1; c.offers = [];
   const keep = JSON.stringify(c); c = JSON.parse(keep);   // (copia por si acaso: se trabaja sobre el cargado)
-  mem['voley3d.career'] = keep; C._reset(); c = C.get();
+  mem['make-the-cut.career'] = keep; C._reset(); c = C.get();
   c.review.renew = c.review.renew || { role: 'Titular', salary: 900, years: 2 };
   const myId = c.myClub;
   ok(C.stay(3) && c.myClub === myId && c.contract.years === 3 && c.contract.left === 3, 'renovar 3 temporadas al seguir (' + JSON.stringify(c.contract) + ')');
@@ -600,7 +600,7 @@ section('Migración de un guardado v1 (con club, «Los dos», sin gestión)');
   ['inbox', 'msgN', 'train', 'tp', 'fatigue', 'listed', 'squad', 'contract', 'pick'].forEach(k => delete v1[k]);
   delete v1.mate.chem; delete v1.mate.style;
   v1.offers.forEach(o => { delete o.mateP; delete o.salary; });
-  const raw = JSON.stringify(v1); mem['voley3d.career'] = raw; C._reset();
+  const raw = JSON.stringify(v1); mem['make-the-cut.career'] = raw; C._reset();
   const m = C.get();
   ok(m && m.v === 3, 'guardado v1 cargado y pasado a v3');
   ok(m.ctrl === 'one', '«Los dos» migra a «uno»');
@@ -630,7 +630,7 @@ section('Migración de un guardado v2 (pabellón, sets a 15, clubes de pabellón
   v2.trophies.forEach(t => { const k = v2.clubs.find(x => x.name === t.club) || v2.clubs.find(x => x.id === v2.myClub); t.club = oldName[k.id]; });
   v2.trophies.push({ season: 1, kind: 'copa', name: 'Copa Regional', club: oldName[v2.myClub] }, { season: 1, kind: 'ascenso', name: 'Ascenso a Liga Nacional', club: oldName[v2.myClub] }, { season: 1, kind: 'liga', name: 'Liga Regional', club: oldName[v2.myClub] });
   v2.player.role = 'Atacante'; v2.mate.role = 'Colocador-receptor'; delete v2.mate.form; v2.squad.forEach(m => { delete m.form; });
-  const raw = JSON.stringify(v2); mem['voley3d.career'] = raw; C._reset();
+  const raw = JSON.stringify(v2); mem['make-the-cut.career'] = raw; C._reset();
   const m = C.get();
   ok(m && m.v === 3 && m.points === 21, 'guardado v2 cargado y pasado a v3 (puntos ' + m.points + ')');
   ok(m.clubs.every((k, i) => k.id === v2.clubs[i].id && k.lvl === v2.clubs[i].lvl && k.q === v2.clubs[i].q && JSON.stringify(k.kit) === JSON.stringify(v2.clubs[i].kit)), 'clubes: id, nivel, q y equipación intactos');
@@ -770,7 +770,7 @@ const REAL_LEAGUES = VB.Leagues && VB.Leagues.regions, REAL_PROV = VB.Leagues &&
 if (VB.Leagues) { VB.Leagues.regions = require('./leagues-fixture.js')(); VB.Leagues.provisional = true; }
 section('Carrera de pista (6v6): crear, guardado aparte, modo activo');
 {
-  const H = C.hall, beachRaw = mem['voley3d.career'];
+  const H = C.hall, beachRaw = mem['make-the-cut.career'];
   ok(VB.Leagues && H && H.available(), 'datos de ligas (ligas de prueba) y Carrera de pista disponible');
   ok(C.mode() === 'beach', 'sin pista, la Carrera activa es la de playa');
   const cs = H.countries();
@@ -784,7 +784,7 @@ section('Carrera de pista (6v6): crear, guardado aparte, modo activo');
   ok(regs.every(rg => rg.countries.every(co => co.divisions.every(d => d.strength >= 0 && d.strength <= 100 && d.short && d.real))), 'divisiones con fuerza 0-100, abreviatura y «real»');
   let c6 = C.create({ mode: 'hall', name: 'Pista Prueba', num: 9, pos: 'OH', seed: 777, points: 15 });
   ok(c6 && c6.mode === 'hall' && C.mode() === 'hall', 'crear la de pista la deja activa');
-  ok(mem['voley3d.career'] === beachRaw && mem['voley3d.career6'], 'guardado aparte (voley3d.career6); el de playa no se toca');
+  ok(mem['make-the-cut.career'] === beachRaw && mem['make-the-cut.career6'], 'guardado aparte (make-the-cut.career6); el de playa no se toca');
   ok(c6.cc === 'ES' && c6.points === 15 && c6.player.roleKey === 'OH' && c6.player.role === 'Receptor' && C.ovrOf(c6.player.st) === H.START_OVR, 'por defecto España, sets a 15, receptor, media ' + H.START_OVR);
   ok(c6.phase === 'pick' && c6.offers.length >= 3 && c6.offers.filter(o => !o.trial).every(o => o.lid === 'ES2'), 'ofertas de inicio de clubes modestos de la 2ª (' + c6.offers.map(o => C.club(c6, o.club).short + (o.trial ? '*' : '')).join(' ') + ')');
   ok(c6.offers.filter(o => o.trial).every(o => o.lid === 'ES1'), 'la prueba (si la hay) es en la 1ª');
@@ -796,11 +796,11 @@ section('Carrera de pista (6v6): crear, guardado aparte, modo activo');
 }
 section('Carrera de pista: prueba con partidillo (suplentes contra titulares, un set a 15, petos, objetivos, nota)');
 {
-  const keep = mem['voley3d.career6'], H = C.hall;
+  const keep = mem['make-the-cut.career6'], H = C.hall;
   let t = null, i = -1, seed = 900;
   while (seed < 1000) { C._reset(); t = C.create({ mode: 'hall', name: 'Pista Partidillo', num: 9, pos: 'OH', seed: seed++ }); i = t.offers.findIndex(o => o.trial); if (i >= 0) break; }
   ok(i >= 0 && t.offers[i].lid === 'ES1', 'carrera de pista con prueba en la 1ª (semilla ' + (seed - 1) + ')');
-  const snap = mem['voley3d.career6'], xp0 = t.player.xp, nIn = t.inbox.length;
+  const snap = mem['make-the-cut.career6'], xp0 = t.player.xp, nIn = t.inbox.length;
   const ms = C.trialSetup(i);
   ok(ms && ms.format === '6v6' && ms.venue === 'hall' && ms.sets === 1 && ms.points === 15 && ms.scrim && ms.ref.chal === 0 && ms.career.trial && ms.career.mode === 'hall', 'trialSetup (pista): 6v6 en el pabellón, un set a 15, petos, sin challenge');
   ok(ms.attrs[0].length === 6 && ms.attrs[1].length === 6 && ms.ctrlRole === 'OH' && ms.attrs[0][ms.ctrlIdx].jump === t.player.st.jump && ms.nums[0][ms.ctrlIdx] === 9, 'tú en tu hueco (' + ms.ctrlIdx + ', receptor) con tus atributos y tu dorsal');
@@ -810,7 +810,7 @@ section('Carrera de pista: prueba con partidillo (suplentes contra titulares, un
   ok(ms.career.goals.length === 3 && ms.career.goals.map(g => g.stat).join() === 'kills,recvP,errors', 'objetivos del receptor: ' + ms.career.goals.map(g => g.txt).join('; '));
   ok(t.player.xp === xp0 && t.inbox.length === nIn && t.phase === 'pick' && t.pick.trial && t.pick.trial.club === k.id, 'sin experiencia ni mensajes; prueba pendiente');
   C._reset(); t = C.get(); ok(t.pick.trial && t.offers[i] && t.offers[i].trial, 'abandonar a medias: la prueba sigue pendiente tras cargar');
-  const snap2 = mem['voley3d.career6'];
+  const snap2 = mem['make-the-cut.career6'];
   const play = (kills, errs, win, sc) => {
     const team0 = [0, 1, 2, 3, 4, 5].map(j => ({ team: 0, id: j, num: ms.nums[0][j] })), me6 = team0[ms.ctrlIdx];
     const g = { career: ms.career, size: 6, teams: [team0, [0, 1, 2, 3, 4, 5].map(j => ({ team: 1, id: 16 + j }))], ctrl: me6, rallyN: sc[0] + sc[1] };
@@ -826,28 +826,28 @@ section('Carrera de pista: prueba con partidillo (suplentes contra titulares, un
   ok(ra && ra.nota != null && ra.pass && TRIAL_OK(ra.letter) && ra.met === 2, 'partidillo bueno (4 remates, nota ' + (ra && ra.nota) + ', ' + (ra && ra.letter) + '): te fichan');
   function TRIAL_OK(l) { return ['A+', 'A', 'B'].indexOf(l) >= 0; }
   ok(t.phase === 'league' && C.myClub(t).lid === 'ES1' && t.player.xp === xp0, 'a la 1ª, sin experiencia por el partidillo');
-  mem['voley3d.career6'] = snap2; C._reset(); t = C.get();
+  mem['make-the-cut.career6'] = snap2; C._reset(); t = C.get();
   const n0 = t.offers.length, rf = play(0, 4, false, [8, 15]); t = C.get();
   ok(rf && rf.nota != null && rf.letter === 'F' && !rf.pass && t.phase === 'pick' && t.offers.length === n0 - 1 && t.pick.fail >= 0 && t.pick.res.letter === 'F', 'partidillo malo (4 errores, nota ' + (rf && rf.nota) + '): se quita la oferta');
   const txt6 = t.inbox.map(m => m.t + ' ' + m.x).join(' ') + ms.career.label + ms.career.goals.map(g => g.txt).join(' ');
   ok(!/·|1\.er|2\.º|3\.er|\/a\b/.test(txt6), 'pista: textos de la prueba sin «·», sin ordinales con punto y sin «/a»');
   // una C (pista): decide la tirada con la clave 'trial6' (o.chance + TRIAL_C_BONUS), siempre igual con la misma semilla
   {
-    mem['voley3d.career6'] = snap2; C._reset(); t = C.get();
+    mem['make-the-cut.career6'] = snap2; C._reset(); t = C.get();
     let cK = -1, cE = 0, rc = null;
     const o6 = t.offers[i], exp6 = C._rng(C._hash(t.seed, 'trial6', o6.club, t.pick.round))() < o6.chance + C.TRIAL_C_BONUS;
     for (let kk = 0; kk <= 8 && cK < 0; kk++) for (let ee = 0; ee <= 5 && cK < 0; ee++) {
-      mem['voley3d.career6'] = snap2; C._reset(); const r = play(kk, ee, false, [12, 15]); if (r && r.letter === 'C') { cK = kk; cE = ee; rc = r; } }
-    mem['voley3d.career6'] = snap2; C._reset();
+      mem['make-the-cut.career6'] = snap2; C._reset(); const r = play(kk, ee, false, [12, 15]); if (r && r.letter === 'C') { cK = kk; cE = ee; rc = r; } }
+    mem['make-the-cut.career6'] = snap2; C._reset();
     const rc2 = cK >= 0 ? play(cK, cE, false, [12, 15]) : null;
     ok(rc && rc.letter === 'C' && rc.luck && rc.pass === exp6 && rc2.pass === rc.pass, 'pista: partidillo de C (' + cK + ' remates, ' + cE + ' errores, nota ' + (rc && rc.nota) + '): decide la tirada \'trial6\', determinista (' + (rc && rc.pass ? 'te fichan' : 'no') + ')');
   }
   // nota nunca null con 15 puntos o más (aunque NOTA_MIN_R sea 12) y simular con la clave 'trial6'
   ok(C.trialGrade(t, {}, { sets: [0, 1], setScores: [[13, 15]] }, 28).nota != null, 'la nota del partidillo nunca es null');
-  mem['voley3d.career6'] = snap; C._reset(); t = C.get();
+  mem['make-the-cut.career6'] = snap; C._reset(); t = C.get();
   const o = t.offers[i], exp = C._rng(C._hash(t.seed, 'trial6', o.club, t.pick.round))() < o.chance * C.TRIAL_SIM;
   ok(C.acceptOffer(i) === exp && (exp ? C.get().phase === 'league' : C.get().pick.res.sim && C.get().pick.res.letter === 'D'), 'acceptOffer con la prueba de pista = simularla (tirada \'trial6\' × ' + C.TRIAL_SIM + ': ' + (exp ? 'superada, informe C' : 'no, informe D') + ')');
-  mem['voley3d.career6'] = keep; C._reset();
+  mem['make-the-cut.career6'] = keep; C._reset();
 }
 section('Carrera de pista: partido 6v6, nota, calendario impar, temporada, copas');
 {
@@ -945,21 +945,21 @@ section('Carrera de pista: puestos que crecen solos, guardado dañado y migraci�
   ok(C.ctrlRole(c6) === 'OH', 'sin el puesto en sim.js, juegas de receptor (tu perfil se queda)');
   C._reset(); c6 = C.get(); ok(c6 && c6.player.roleKey === 'S', 'se guarda el puesto');
   // guardado de pista dañado: se aparta, la playa sigue
-  const good6 = mem['voley3d.career6'];
-  mem['voley3d.career6'] = '{"v":1,"player":{},"leagues":[],"clubs":[]}'; C._reset();
-  ok(!C.hall.exists() && C.hall.lost() && mem['voley3d.career6.bak'] && C.mode() === 'beach' && C.get().v === 3, 'pista dañada: copia .bak, aviso, y la Carrera activa vuelve a la playa (intacta)');
-  mem['voley3d.career6'] = good6; delete mem['voley3d.career6.bak']; C._reset(); C.setMode('hall');
+  const good6 = mem['make-the-cut.career6'];
+  mem['make-the-cut.career6'] = '{"v":1,"player":{},"leagues":[],"clubs":[]}'; C._reset();
+  ok(!C.hall.exists() && C.hall.lost() && mem['make-the-cut.career6.bak'] && C.mode() === 'beach' && C.get().v === 3, 'pista dañada: copia .bak, aviso, y la Carrera activa vuelve a la playa (intacta)');
+  mem['make-the-cut.career6'] = good6; delete mem['make-the-cut.career6.bak']; C._reset(); C.setMode('hall');
   const raw = JSON.parse(good6); delete raw.tab; delete raw.myRes; delete raw.scouts; raw.chem = 'x'; delete raw.kos; raw.phase = raw.phase === 'off' ? 'off' : 'league';
-  mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+  mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset();
   const rc = C.get(); ok(rc && rc.mode === 'hall' && rc.tab && rc.myRes && rc.chem === 0 && Array.isArray(rc.kos), 'guardado de pista a medias: se repara');
   let g = 0; while (rc.phase !== 'off' && g++ < 80) if (!C.simulateNext()) break;
   ok(rc.phase === 'off', 'y se puede seguir jugando hasta el fin de temporada');
   // la migración de un guardado de playa viejo no se ve afectada por tener una de pista
-  const v2 = JSON.parse(mem['voley3d.career']); v2.v = 2; v2.points = 15; v2.trophies = [{ season: 1, kind: 'liga', name: 'Liga Regional', club: 'X' }];
-  mem['voley3d.career'] = JSON.stringify(v2); C._reset(); C.setMode('beach');
+  const v2 = JSON.parse(mem['make-the-cut.career']); v2.v = 2; v2.points = 15; v2.trophies = [{ season: 1, kind: 'liga', name: 'Liga Regional', club: 'X' }];
+  mem['make-the-cut.career'] = JSON.stringify(v2); C._reset(); C.setMode('beach');
   const mb = C.get(); ok(mb && mb.v === 3 && mb.points === 21 && mb.trophies[0].name === 'Circuito Regional' && C.hall.exists(), 'un guardado de playa v2 migra igual con una Carrera de pista guardada al lado');
   ok(C.matchSetup(mb) === null || C.matchSetup(mb).venue === 'beach', 'la playa sigue en la playa');
-  delete mem['voley3d.career6']; C._reset(); mem['voley3d.career.mode'] = 'hall';
+  delete mem['make-the-cut.career6']; C._reset(); mem['make-the-cut.career.mode'] = 'hall';
   ok(C.mode() === 'beach', 'modo pista sin guardado de pista: la activa es la playa');
 }
 
@@ -967,11 +967,11 @@ section('Carrera de pista: puestos que crecen solos, guardado dañado y migraci�
 section('Carrera de pista: titularidad (plantilla, seis de la jornada, rol, ofertas, partido con cambios y minutos)');
 if (!C.hall || !C.hall.available()) console.log('  (sin ligas de pista)');
 else {
-  const H = C.hall, keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], roles: VB.Sim.CTRL_ROLES6 };
+  const H = C.hall, keep = { c6: mem['make-the-cut.career6'], md: mem['make-the-cut.career.mode'], roles: VB.Sim.CTRL_ROLES6 };
   VB.Sim.CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB'];
   const R6 = VB.Sim.ROLES6 || ['S', 'OH', 'MB', 'OPP', 'OH', 'MB'];
   const fresh = (seed, pos, role) => {
-    delete mem['voley3d.career6']; C._reset();
+    delete mem['make-the-cut.career6']; C._reset();
     const c = C.create({ mode: 'hall', name: 'Titu Prueba', num: 9, pos: pos || 'OH', seed });
     const i = c.offers.findIndex(o => !o.trial); if (role) c.offers[i].role = role;
     C.acceptOffer(i, 2); return C.get();
@@ -998,7 +998,7 @@ else {
     ok(C.ROLE_HINT === H.ROLE_HINT && /^Compites por el puesto/.test(C.ROLE_HINT[0]) && /2 jornadas/.test(C.ROLE_HINT[1]) && /85/.test(C.ROLE_HINT[2]) && C.beach.ROLE_HINT !== H.ROLE_HINT, 'textos de rol de la pista (la playa conserva los suyos)');
   }
   // club muy superior: J1 en el banquillo, la bienvenida lo dice; luego un mensaje por cada cambio de estado
-  { delete mem['voley3d.career6']; C._reset(); let c = C.create({ mode: 'hall', name: 'Titu Prueba', num: 9, pos: 'OH', seed: 4200 });
+  { delete mem['make-the-cut.career6']; C._reset(); let c = C.create({ mode: 'hall', name: 'Titu Prueba', num: 9, pos: 'OH', seed: 4200 });
     const i = c.offers.findIndex(o => !o.trial), kk = C.club(c, c.offers[i].club); kk.ovr = Math.min(H.SQ_BIG - 1, kk.ovr + 15); c.offers[i].role = 'Rotación';   // (+15, sin llegar a la plantilla de 14)
     C.acceptOffer(i, 2); c = C.get(); toLeagueFixture(c);
     const n = C.next(c), wl = c.inbox.filter(m => /^Bienvenido a /.test(m.t)).slice(-1)[0];
@@ -1050,7 +1050,7 @@ else {
   { const c = fresh(4600); let all = [];
     for (let s = 0; s < 6; s++) { c.season = 1 + s; setAll(c, 50 + s * 6); c.notes = [{ nota: 7.4 }, { nota: 7.6 }, { nota: 7.2 }]; c.coach = 70; c.scouts = {}; all = all.concat(H._genOffers(c, false)); }
     c.season = 1;
-    const st = [4600, 4601, 4602, 4603, 4604, 4605].reduce((a, s) => { delete mem['voley3d.career6']; C._reset(); return a.concat(C.create({ mode: 'hall', name: 'O', num: 4, pos: 'OH', seed: s }).offers.filter(o => !o.trial)); }, []);
+    const st = [4600, 4601, 4602, 4603, 4604, 4605].reduce((a, s) => { delete mem['make-the-cut.career6']; C._reset(); return a.concat(C.create({ mode: 'hall', name: 'O', num: 4, pos: 'OH', seed: s }).offers.filter(o => !o.trial)); }, []);
     const bad = all.concat(st).filter(o => !o.depth || !o.dm || (!o.dm.start && o.dm.gap < -3 && o.role !== 'Rotación') || (o.role === 'Titular indiscutible' && !(o.dm.start && o.dm.gap >= 3)) || (!o.dm.start && o.role === 'Titular indiscutible'));
     ok(all.length >= 5 && st.length >= 10 && !bad.length, 'ofertas (' + all.length + ' de clubes, ' + st.length + ' de inicio): el rol respeta la profundidad (' + all.concat(st).slice(0, 5).map(o => o.role + ' ' + (o.dm.start ? 'tit' : o.dm.rank + 'º') + ' ' + o.dm.gap).join(', ') + ')');
     ok(all.concat(st).every(o => Array.isArray(o.depth.ahead) && o.depth.rank === o.depth.ahead.length + 1 && o.depth.slots >= 1 && o.depth.rl === ['Rotación', 'Titular', 'Titular indiscutible'].indexOf(o.role)), 'cada oferta lleva su depth con su rol (quién va por delante y tu sitio)');
@@ -1059,7 +1059,7 @@ else {
   // «Tu sitio» de la oferta = lo que pasa en tu primera jornada en el club (revisión: 10 de 12 titulares decían «serías 3º» y salían)
   { let same = 0, tot = 0; const bad = [];
     for (let s = 0; s < 40; s++) {
-      delete mem['voley3d.career6']; C._reset();
+      delete mem['make-the-cut.career6']; C._reset();
       let c = C.create({ mode: 'hall', name: 'Sitio Prueba', num: 9, pos: 'OH', seed: 6100 + s });
       const i = c.offers.findIndex(o => !o.trial), o = c.offers[i], d = o.depth;
       C.acceptOffer(i, 2); c = C.get(); toLeagueFixture(c);
@@ -1124,8 +1124,8 @@ else {
   }
   // simular siendo suplente: determinista, y entras a veces
   { let c = fresh(4900, 'OH', 'Rotación'); toLeagueFixture(c); setAll(c, 40); c.coach = 50; reLine(c);
-    const snap = mem['voley3d.career6'] = JSON.stringify(c); C._reset(); c = C.get(); reLine(c);
-    const n = C.next(c); const a = C.simulateNext(c); mem['voley3d.career6'] = snap; C._reset(); c = C.get(); reLine(c); const b = C.simulateNext(c);
+    const snap = mem['make-the-cut.career6'] = JSON.stringify(c); C._reset(); c = C.get(); reLine(c);
+    const n = C.next(c); const a = C.simulateNext(c); mem['make-the-cut.career6'] = snap; C._reset(); c = C.get(); reLine(c); const b = C.simulateNext(c);
     ok(n.status === 'sub' && a && b && JSON.stringify([a.nota, a.part, a.sets, a.xp]) === JSON.stringify([b.nota, b.part, b.sets, b.xp]), 'simular de suplente: misma semilla, mismo resultado (' + JSON.stringify(a.part) + ')');
     let subs = 0, ins = 0;
     for (let s = 0; s < 40; s++) {
@@ -1136,21 +1136,21 @@ else {
     ok(subs >= 20 && ins >= subs * 0.15 && ins <= subs * 0.7, 'en ' + subs + ' semillas de suplente entras en ' + ins + ' (15-70 %; calibrado con partidos jugados: ~45 %)');
   }
   // guardado sin c.sq6: migra al cargar
-  { const c = fresh(5100); const raw = JSON.parse(mem['voley3d.career6']); delete raw.sq6; mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+  { const c = fresh(5100); const raw = JSON.parse(mem['make-the-cut.career6']); delete raw.sq6; mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset();
     const r = C.get(); let err = ''; try { C.next(r); C.simulateNext(); } catch (e) { err = e.message; }
     ok(r && r.v === 1 && r.sq6 && r.sq6.club === r.myClub && r.sq6.list.length >= 11 && !err, 'guardado de pista sin c.sq6 (VER6 igual): se crea al cargar y se sigue jugando' + (err ? ' — ' + err : ''));
-    const raw2 = JSON.parse(mem['voley3d.career6']); raw2.sq6.list = 'x'; mem['voley3d.career6'] = JSON.stringify(raw2); C._reset();
+    const raw2 = JSON.parse(mem['make-the-cut.career6']); raw2.sq6.list = 'x'; mem['make-the-cut.career6'] = JSON.stringify(raw2); C._reset();
     ok(C.get() && Array.isArray(C.get().sq6.list) && C.get().sq6.list.length >= 11, 'c.sq6 dañada: se rehace');
   }
   // migrar no es fichar: tras varias jornadas en el club, un guardado sin c.sq6 no te trata de recién llegado
   { let c = fresh(5150, 'OH', 'Titular'); setAll(c, 80); let g = 0;
     while (g++ < 6) { if (!toLeagueFixture(c)) break; c.fatigue = 0; C.simulateNext(); c = C.get(); }
     toLeagueFixture(c); const before = C.next(c);
-    const raw = JSON.parse(mem['voley3d.career6']); delete raw.sq6; mem['voley3d.career6'] = JSON.stringify(raw); C._reset(); c = C.get();
+    const raw = JSON.parse(mem['make-the-cut.career6']); delete raw.sq6; mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset(); c = C.get();
     const after = C.next(c);
     ok(c.sq6.fresh === 0 && after.whyCode !== 'new' && !/acabas de llegar/.test(after.why || ''), 'guardado viejo sin c.sq6 tras ' + (g - 1) + ' jornadas: fresh 0 y sin «acabas de llegar» (' + before.status + '/' + before.whyCode + ' → ' + after.status + '/' + after.whyCode + ')');
     ok(c.sq6.meLs === (c.last && c.last.part && c.last.part.status === 'start' ? 1 : 0), 'y conserva si saliste de inicio la última jornada (meLs ' + c.sq6.meLs + ')');
-    fresh(5160); const raw2 = JSON.parse(mem['voley3d.career6']); delete raw2.sq6; mem['voley3d.career6'] = JSON.stringify(raw2); C._reset();
+    fresh(5160); const raw2 = JSON.parse(mem['make-the-cut.career6']); delete raw2.sq6; mem['make-the-cut.career6'] = JSON.stringify(raw2); C._reset();
     ok(C.get().sq6.fresh === 1, 'recién fichado (sin jugar aún): sigue siendo recién llegado');
   }
   // confianza por los suelos: la Rotación nunca queda fuera por el entrenador dos jornadas seguidas; el Titular nunca queda fuera por eso
@@ -1204,8 +1204,8 @@ else {
     ok(s.part.sets.join() === '1' && s.part.pulled === 2, 'lineup con meOut al empezar el 2º set: sets jugados = 1 (' + s.part.sets.join() + ')');
   }
   C.abandon(); C._reset();
-  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6; else delete mem['voley3d.career6'];
-  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
+  if (keep.c6 != null) mem['make-the-cut.career6'] = keep.c6; else delete mem['make-the-cut.career6'];
+  if (keep.md != null) mem['make-the-cut.career.mode'] = keep.md; else delete mem['make-the-cut.career.mode'];
   if (keep.roles) VB.Sim.CTRL_ROLES6 = keep.roles; else delete VB.Sim.CTRL_ROLES6;
   C._reset();
 }
@@ -1215,8 +1215,8 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
   const regs = REAL_LEAGUES;
   if (!regs || REAL_PROV) console.log('  (js/leagues.js sin datos reales: se salta)');
   else {
-    const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'] }, fix = VB.Leagues.regions;
-    VB.Leagues.regions = regs; VB.Leagues.provisional = false; delete mem['voley3d.career6']; C._reset();
+    const keep = { c6: mem['make-the-cut.career6'], md: mem['make-the-cut.career.mode'] }, fix = VB.Leagues.regions;
+    VB.Leagues.regions = regs; VB.Leagues.provisional = false; delete mem['make-the-cut.career6']; C._reset();
     const H = C.hall, cos = H.countries(), t0 = Date.now();
     const ordn = n => n + (n === 1 || n === 3 ? 'r' : 'º');
     const divs = [], clubs = [];
@@ -1267,18 +1267,18 @@ section('Carrera de pista con los datos reales (js/leagues.js, generado de notes
     ok(c6.season === 3 && c6.history.length === 2, '2 temporadas simuladas en ' + (Date.now() - t0) + ' ms (' + c6.history.map(h => h.lgShort + ' ' + ordn(h.pos)).join(', ') + ')');
     ok(c6.history.every(h => h.cup), 'la copa nacional se juega cada temporada');
     ok(c6.leagues.every(L => C.leagueClubs(c6, L.id).length === divs.find(([co, d]) => co.code + d.lvl === L.id)[1].clubs.length), 'ascensos y descensos conservan el tamaño de cada liga');
-    ok(mem['voley3d.career6'].length < 400000, 'guardado de ' + Math.round(mem['voley3d.career6'].length / 1024) + ' KB');
+    ok(mem['make-the-cut.career6'].length < 400000, 'guardado de ' + Math.round(mem['make-the-cut.career6'].length / 1024) + ' KB');
     // empezar en cada país: ofertas de su 2ª (o de su 1ª si no tiene)
     const bad = [];
     cos.forEach(x => {
-      delete mem['voley3d.career6']; C._reset();
+      delete mem['make-the-cut.career6']; C._reset();
       const c = C.create({ mode: 'hall', name: 'P', num: 5, pos: 'OH', seed: 99, country: x.code }), low = x.divs === 2 ? x.code + '2' : x.code + '1';
       if (!c || c.cc !== x.code || c.offers.length < 2 || !c.offers.filter(o => !o.trial).every(o => o.lid === low)) bad.push(x.code);
     });
     ok(!bad.length, 'crear en cualquiera de los 28 países: ofertas de su división más baja' + (bad.length ? ' (fallan ' + bad.join(' ') + ')' : ''));
     VB.Leagues.regions = fix; VB.Leagues.provisional = true;
-    if (keep.c6 != null) mem['voley3d.career6'] = keep.c6; else delete mem['voley3d.career6'];
-    if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
+    if (keep.c6 != null) mem['make-the-cut.career6'] = keep.c6; else delete mem['make-the-cut.career6'];
+    if (keep.md != null) mem['make-the-cut.career.mode'] = keep.md; else delete mem['make-the-cut.career.mode'];
     C._reset();
   }
 }
@@ -1377,12 +1377,12 @@ else {
   C.abandon(); C._reset();
   // con la Carrera de pista activa (desde el 12-nov-2026 la pista también tiene vida: ver «Vida en la Carrera de pista» abajo)
   if (C.hall && C.hall.available()) {
-    const keep6 = mem['voley3d.career6']; delete mem['voley3d.career6']; C._reset();
+    const keep6 = mem['make-the-cut.career6']; delete mem['make-the-cut.career6']; C._reset();
     const h = C.create({ mode: 'hall', name: 'Vida Pista', num: 4, pos: 'OH', seed: 99 }); C.acceptOffer(0, 2);
     let ch = null, err = '';
     try { ch = Lf.challengeAt(C.get(), C.get().season, 'league', { week: 1 }, -1); Lf.challenge(C.get()); } catch (e) { err = e.message; }
     ok(h && h.mode === 'hall' && ch && isFinite(ch.fans) && isFinite(ch.xp) && isFinite(ch.money) && !err, 'pista: el reto se calcula sin romper (league() de la pista busca por id)' + (err ? ' — ' + err : ''));
-    C.abandon(); if (keep6 != null) mem['voley3d.career6'] = keep6; C.setMode('beach'); C._reset();
+    C.abandon(); if (keep6 != null) mem['make-the-cut.career6'] = keep6; C.setMode('beach'); C._reset();
   }
 }
 
@@ -1652,7 +1652,7 @@ else {
   // 4) migración: carrera de 2 temporadas sin c.world
   {
     const old = run(false, 2, 555), B2 = boot(true);
-    B2.mem['voley3d.career'] = old.mem['voley3d.career'];
+    B2.mem['make-the-cut.career'] = old.mem['make-the-cut.career'];
     const c2 = B2.VB.Career.load(); ok(!c2.world, 'guardado viejo sin c.world');
     const w2 = B2.VB.CareerWorld.ensure(c2), sn = w2.mentor.seen;
     ok(w2.since === c2.season, 'migración: since = temporada actual (' + w2.since + ' = ' + c2.season + ')');
@@ -1667,7 +1667,7 @@ else {
 // ------------------------------------------------------------------ dificultad de la Carrera (12-nov-2026; notes/carrera.md §Dificultad)
 section('Dificultad de la Carrera: niveles, IA, atributos, XP, entrenador, ofertas, sellos y migración');
 {
-  const DK = C.CDIFF_KEYS, CD = C.CDIFF, KEY = 'voley3d.career';
+  const DK = C.CDIFF_KEYS, CD = C.CDIFF, KEY = 'make-the-cut.career';
   const G = () => ({ career: { season: 1 }, teams: [[{}, {}], [{}, {}]], demo: false, autopilot: false });
   const fresh = o => { C.abandon(); C._reset(); return C.create(Object.assign({ name: 'Dif', num: 7, role: 'atk', seed: 4242, autoClub: true }, o || {})); };
   const snap = () => mem[KEY];
@@ -1930,15 +1930,15 @@ if (!VB.CareerLife || !C.hall || !C.hall.available()) console.log('  (sin js/car
 else {
   verbose = true;
   const Lf = VB.CareerLife, H = C.hall;
-  const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], roles: VB.Sim.CTRL_ROLES6 };
+  const keep = { c6: mem['make-the-cut.career6'], md: mem['make-the-cut.career.mode'], roles: VB.Sim.CTRL_ROLES6 };
   VB.Sim.CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB'];   // (los cuatro puestos que deja llevar sim.js)
   // una Carrera de playa al lado: no debe cambiar nada mientras se juega la de pista
   C.setMode('beach'); C.abandon(); C._reset(); C.create({ name: 'Playa Al Lado', num: 3, role: 'atk', seed: 4321, autoClub: true });
-  const beachRaw = mem['voley3d.career'];
-  delete mem['voley3d.career6']; C._reset();
+  const beachRaw = mem['make-the-cut.career'];
+  delete mem['make-the-cut.career6']; C._reset();
   let c = C.create({ mode: 'hall', name: 'Vida Pista', num: 10, pos: 'OH', seed: 2024 });
   const inh = Lf.legends().length ? Lf.legacyTier(Lf.legends()[0].score).i * 150 : 0;   // (la retirada de arriba dejó una leyenda: fama heredada)
-  ok(c && c.mode === 'hall' && c.life && c.life.fame === inh && JSON.parse(mem['voley3d.career6']).life, 'crear: c.life dentro de voley3d.career6 (fama heredada ' + inh + ')');
+  ok(c && c.mode === 'hall' && c.life && c.life.fame === inh && JSON.parse(mem['make-the-cut.career6']).life, 'crear: c.life dentro de make-the-cut.career6 (fama heredada ' + inh + ')');
   ok(C.acceptOffer(c.offers.findIndex(o => !o.trial), 2) && c.phase === 'league', 'firma por un club de la 2ª');
   // titular indiscutible con el entrenador contento: que juegue todas (sin banquillo)
   const starter = () => { c = C.get(); c.contract.role = 'Titular indiscutible'; c.coach = 90; C.save(c); };
@@ -2024,7 +2024,7 @@ else {
     ok(got.some(n => /^Mejor colocador /.test(n)) && !got.some(n => /^Máximo anotador/.test(n)), 'premios de pabellón por puesto: ' + got.join(', '));
     c.player.roleKey = 'OH'; C._reset(); }
   // guardado de pista viejo, sin c.life: se crea solo al cargar
-  { const raw = JSON.parse(mem['voley3d.career6']); delete raw.life; mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+  { const raw = JSON.parse(mem['make-the-cut.career6']); delete raw.life; mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset();
     c = C.get(); ok(c && c.mode === 'hall' && c.life && c.life.fame === 0 && Array.isArray(c.life.awards) && Lf.fameInfo(c).fans === 0, 'guardado de pista sin c.life: se crea al cargar (fama 0)');
     let err = ''; try { Lf.challenge(c); Lf.achList(c); C.simulateNext(); } catch (e) { err = e.message; } ok(!err && C.get().life, 'y la Carrera sigue sin errores' + (err ? ' — ' + err : '')); }
   // textos de pabellón también en lo que se guarda: historial de decisiones y logros de la tarjeta del partido; jornadas de patrocinio
@@ -2038,14 +2038,14 @@ else {
     const odd = [3, 5, 7, 9, 11].every(n => { const ww = n <= 8 ? 2 * n : n; return ww - ww / n === (n <= 8 ? 2 * (n - 1) : n - 1); });
     ok(odd, 'con un nº impar de clubes se quitan los descansos (1 por vuelta)'); }
   // y la playa, igual
-  ok(mem['voley3d.career'] === beachRaw, 'la Carrera de playa guardada al lado no ha cambiado');
+  ok(mem['make-the-cut.career'] === beachRaw, 'la Carrera de playa guardada al lado no ha cambiado');
   { C.setMode('beach'); C._reset(); const cb = C.get(), ch = Lf.challenge(cb);
     ok(cb && cb.mode !== 'hall' && ch && (ch.id === 'win' || ch.id === 'clean' || Lf.CH[ch.id].n[cb.myClub >= 0 ? C.myClub(cb).lvl : 0] === ch.n), 'playa: el reto sigue con sus umbrales (' + (ch && ch.txt) + ')');
     ok(Lf.fameInfo(cb).name === 'Desconocido' && Lf.achList(cb).some(a => a.name === 'Veterano de la arena') && !Lf.achList(cb).some(a => a.name === 'Director de orquesta'), 'playa: sus textos y logros'); }
   // dejar todo como estaba
   C.abandon(); C._reset();
-  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6; else delete mem['voley3d.career6'];
-  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
+  if (keep.c6 != null) mem['make-the-cut.career6'] = keep.c6; else delete mem['make-the-cut.career6'];
+  if (keep.md != null) mem['make-the-cut.career.mode'] = keep.md; else delete mem['make-the-cut.career.mode'];
   if (keep.roles) VB.Sim.CTRL_ROLES6 = keep.roles; else delete VB.Sim.CTRL_ROLES6;
   C._reset(); verbose = false;
 }
@@ -2057,16 +2057,16 @@ else if (!C.hall || !C.hall.available()) console.log('  (sin ligas de pista)');
 else {
   verbose = true;
   const Wd = VB.CareerWorld, H = C.hall;
-  const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], b: mem['voley3d.career'] };
+  const keep = { c6: mem['make-the-cut.career6'], md: mem['make-the-cut.career.mode'], b: mem['make-the-cut.career'] };
   const BAD = /arena|playa|circuito|\bopen\b|pareja|chiringuito/i, JUNK = /\{|undefined|NaN|null|\(\)/;
   C.setMode('beach'); C.abandon(); C._reset(); C.create({ name: 'Playa Mundo', num: 3, role: 'atk', seed: 9191, autoClub: true });
-  const beachRaw = mem['voley3d.career'];
-  delete mem['voley3d.career6']; C._reset();
+  const beachRaw = mem['make-the-cut.career'];
+  delete mem['make-the-cut.career6']; C._reset();
   // la misma Carrera de pista con y sin el mundo: lo demás, idéntico (el mundo no consume el azar de career.js). De la bandeja, solo
   // los 15 últimos mensajes: guarda 40 y los de Faro echan antes a los viejos.
   const strip = c => { const o = JSON.parse(JSON.stringify(c)); delete o.world; o.inbox = (o.inbox || []).filter(m => m.k !== 'mentor').slice(-15); o.inbox.forEach(m => { delete m.id; }); delete o.msgN; delete o.created; return JSON.stringify(o); };
   const run = () => {
-    delete mem['voley3d.career6']; C._reset();
+    delete mem['make-the-cut.career6']; C._reset();
     const c = C.create({ mode: 'hall', name: 'Mundo Pista', num: 8, pos: 'OH', seed: 31337, now: 1 });
     const hola = c.world && c.world.mentor.q.map(q => q.l.join(' ')).join(' ');
     C.acceptOffer(c.offers.findIndex(o => !o.trial), 2);
@@ -2115,7 +2115,7 @@ else {
     Wd.hook(t, 'newSeason'); const q = t.world.mentor.q.find(x => x.id === 'top');
     ok(q && /^IperLega: una de las grandes ligas/.test(q.l[0]), 'escena «En la élite» de pista: «' + (q && q.l[0]) + '»'); }
   // guardado de pista viejo sin c.world: se crea al vuelo, y Faro no se presenta a mitad
-  { const raw = JSON.parse(mem['voley3d.career6']); delete raw.world; mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+  { const raw = JSON.parse(mem['make-the-cut.career6']); delete raw.world; mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset();
     let err = ''; try { C.simulateNext(); } catch (e) { err = e.message; }
     const r = C.get(); ok(!err && r.world && r.world.mentor.seen.hola && !r.world.mentor.q.some(q => q.id === 'hola'), 'guardado de pista sin c.world: se crea al jugar, sin la presentación' + (err ? ' — ' + err : '')); }
   // career-life en la pista tras el merge: celebraciones (E2) y dorsal del rival en el duelo (setup → m.career.rivalNum)
@@ -2129,16 +2129,16 @@ else {
       ok(!ms || (ms.career.duel && ms.career.rivalNum === (C.get().life.rival.num | 0) && Array.isArray(ms.nums)), 'pista: en el duelo, matchSetup lleva rivalNum ' + (ms ? ms.career.rivalNum : '(sin duelo a mano)') + ' (main.js usa m.nums de la pista)');
     }
   }
-  ok(mem['voley3d.career'] === beachRaw, 'la Carrera de playa guardada al lado no ha cambiado');
+  ok(mem['make-the-cut.career'] === beachRaw, 'la Carrera de playa guardada al lado no ha cambiado');
   C.abandon(); C._reset();
-  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6; else delete mem['voley3d.career6'];
-  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
-  if (keep.b != null) mem['voley3d.career'] = keep.b; else delete mem['voley3d.career'];
+  if (keep.c6 != null) mem['make-the-cut.career6'] = keep.c6; else delete mem['make-the-cut.career6'];
+  if (keep.md != null) mem['make-the-cut.career.mode'] = keep.md; else delete mem['make-the-cut.career.mode'];
+  if (keep.b != null) mem['make-the-cut.career'] = keep.b; else delete mem['make-the-cut.career'];
   C._reset(); verbose = false;
 }
 
 // ------------------------------------------------------------------ Vestuario en la Carrera (sprint «personaliza», spec §7 y §9)
-// Cada prueba en su propio contexto (localStorage propio): el inventario de VB.Look es global (voley3d.look) y no debe mezclarse con
+// Cada prueba en su propio contexto (localStorage propio): el inventario de VB.Look es global (make-the-cut.look) y no debe mezclarse con
 // lo de arriba. Sin js/look.js, las guardas; con él, initLook, lookCheck, la tienda, setLook/lookNow y el guardado antiguo de pista.
 // LOOKJS=ruta: prueba con otro look.js (por defecto js/look.js).
 section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tienda (spentLook), setLook y guardados antiguos');
@@ -2168,7 +2168,7 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
       ok(c0.life.look === null && c0.life.lookAnn === 1, 'sin look.js: carrera nueva con l.look = null');
       ok(Array.isArray(L.lookCheck(K.load())) && L.lookCheck(K.load()).length === 0, 'sin look.js: lookCheck no hace nada');
       ok(L.lookShop(K.load()).length === 0 && L.buyLook('tiraNasal') === '' && L.setLook({ v: 1 }) === false && L.lookNow() === null, 'sin look.js: tienda vacía, buyLook «», setLook false, lookNow null');
-      const m0 = K.load().money; played(K); ok(K.load().money >= m0 && !('voley3d.look' in B.mem), 'sin look.js: se juega igual y no se escribe voley3d.look');
+      const m0 = K.load().money; played(K); ok(K.load().money >= m0 && !('make-the-cut.look' in B.mem), 'sin look.js: se juega igual y no se escribe make-the-cut.look');
     } catch (e) { err = e.message; }
     ok(!err, 'sin look.js: las guardas no rompen nada' + (err ? ' — ' + err : ''));
     ok(L.achName('m50', true) === 'Veterano del parqué' && L.achName('m50', false) === 'Veterano de la arena' && L.achName('m1') === 'Debut' && L.achName('nada') === '', 'achName: nh en la pista, name en la playa, «» si no existe');
@@ -2234,7 +2234,7 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
     if (hasHall) {
       const B3 = bootL(true), K3 = B3.VB.Career, L3 = B3.VB.CareerLife;
       let h = K3.create({ mode: 'hall', name: 'Pista Look', num: 6, pos: 'OH', seed: 64 });
-      ok(h && h.life.look && h.life.lookAnn === 1 && JSON.parse(B3.mem['voley3d.career6']).life.look, 'pista: carrera nueva con aspecto (en voley3d.career6)');
+      ok(h && h.life.look && h.life.lookAnn === 1 && JSON.parse(B3.mem['make-the-cut.career6']).life.look, 'pista: carrera nueva con aspecto (en make-the-cut.career6)');
       h = K3.load(); delete h.life.look; delete h.life.lookAnn; K3.save(h); K3._reset();
       h = K3.load();
       ok(h.life.look === null && L3.lookNow() === null, 'pista: guardado antiguo sigue con l.look === null tras ensure (cara de siempre)');
@@ -2255,17 +2255,17 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
 
 section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia pequeña, fatiga, rápido determinista, impresión, ME_EDGE, guardados)');
 {
-  const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], b: mem['voley3d.career'], roles: VB.Sim.CTRL_ROLES6 };
+  const keep = { c6: mem['make-the-cut.career6'], md: mem['make-the-cut.career.mode'], b: mem['make-the-cut.career'], roles: VB.Sim.CTRL_ROLES6 };
   VB.Sim.CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB']; verbose = true;
   const B = C.beach, H = C.hall;
   const hallNew = (seed, role, clubOvr) => {
-    delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+    delete mem['make-the-cut.career6']; delete mem['make-the-cut.career']; C._reset();
     let c = C.create({ mode: 'hall', name: 'Sesi Prueba', num: 9, pos: 'OH', seed });
     const i = c.offers.findIndex(o => !o.trial); if (role) c.offers[i].role = role; if (clubOvr) C.club(c, c.offers[i].club).ovr = clubOvr;
     C.acceptOffer(i, 2); C.setTrainAuto(false); c = C.get(); let g = 0; while (c.phase === 'league' && !C.next(c) && g++ < 5) C.simulateNext(); return C.get();
   };
   const beachNew = (seed, role) => {
-    delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+    delete mem['make-the-cut.career6']; delete mem['make-the-cut.career']; C._reset();
     let c = C.create({ mode: 'beach', name: 'Sesi Playa', num: 7, role: role || 'atk', seed });
     C.acceptOffer(c.offers.findIndex(o => !o.trial), 2); C.setTrainAuto(false); return C.get();
   };
@@ -2275,10 +2275,10 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
   { let c = hallNew(8100, 'Rotación');
     const inf = C.trainInfo(c);
     ok(inf && inf.max === 3 && C.TRAIN_SESS === 3 && inf.left === 3 && inf.can && inf.drills.map(d => d.id).join() === 'recv,atk,serve,block' && inf.drills.every(d => d.attr && d.medals.length === 3 && d.medals[2] > d.medals[0]), 'pista, receptor: 3 sesiones y los ejercicios de su puesto (' + inf.drills.map(d => d.id + '→' + d.attr).join(', ') + ')');
-    const snap = mem['voley3d.career6'];
+    const snap = mem['make-the-cut.career6'];
     const mr = Math.random; let threw = ''; Math.random = () => { throw new Error('Math.random'); };
     let a; try { a = C.trainSession('atk', 'quick'); } catch (e) { threw = e.message; } Math.random = mr;
-    mem['voley3d.career6'] = snap; C._reset(); c = C.get();
+    mem['make-the-cut.career6'] = snap; C._reset(); c = C.get();
     const b = C.trainSession('atk', 'quick');
     ok(!threw && a.ok && b.ok && a.total === b.total && a.gain === b.gain && a.imp === b.imp, 'rápido determinista (misma semilla, temporada, jornada y sesión → ' + a.total + ' puntos, +' + a.gain + '), sin Math.random' + (threw ? ' — ' + threw : ''));
     const r2 = C.trainSession('recv', 'quick'), r3 = C.trainSession('serve', 'quick'), r4 = C.trainSession('block', 'quick');
@@ -2381,12 +2381,12 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
     c.offers = [o]; c.window = 'mid'; C.acceptOffer(0, 1); ok(C.get().ts.imp === 0, 'fichar por otro club: la impresión en los entrenos vuelve a 0'); }
   // guardados viejos sin c.ts (pista y playa) y c.ts dañado
   { hallNew(8900); C.trainSession('recv', 'quick');
-    let raw = JSON.parse(mem['voley3d.career6']); delete raw.ts; mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+    let raw = JSON.parse(mem['make-the-cut.career6']); delete raw.ts; mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset();
     let r = C.get(), err = ''; try { C.trainInfo(r); C.trainSession('recv', 'quick'); C.simulateNext(); } catch (e) { err = e.message; }
     ok(r && r.v === H.VER && r.ts && r.ts.imp >= 0 && !err, 'guardado de pista sin c.ts (VER6 igual): se crea al cargar y se entrena' + (err ? ' — ' + err : ''));
-    raw = JSON.parse(mem['voley3d.career6']); raw.ts = { n: 'x', imp: 1e9, p: 'z', last: { id: 'nada' } }; mem['voley3d.career6'] = JSON.stringify(raw); C._reset(); r = C.get();
+    raw = JSON.parse(mem['make-the-cut.career6']); raw.ts = { n: 'x', imp: 1e9, p: 'z', last: { id: 'nada' } }; mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset(); r = C.get();
     ok(r && r.ts.n === 0 && r.ts.imp === 100 && r.ts.p.spike === 0 && r.ts.last === null, 'c.ts dañado: se sanea (imp ≤ 100, progreso a 0)');
-    beachNew(8950); raw = JSON.parse(mem['voley3d.career']); delete raw.ts; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    beachNew(8950); raw = JSON.parse(mem['make-the-cut.career']); delete raw.ts; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset();
     r = C.get(); err = ''; try { C.trainSession('recv', 'quick'); C.simulateNext(); } catch (e) { err = e.message; }
     ok(r && r.v === B.VER && r.ts && C.trainInfo(C.get()).left === 3 && !err, 'guardado de playa sin c.ts (VER igual): carga y se entrena' + (err ? ' — ' + err : ''));
   }
@@ -2432,7 +2432,7 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
     ok(ds && ds.venue === 'beach' && ds.scrim && ds.scrim.bib0 === C.myClub(c).kit.shirt && typeof ds.scrim.base === 'number' && ds.scrim.bib1 !== ds.scrim.bib0, 'drillSetup: en la playa y con peto del color del club');
   }
   // entreno automático: por defecto sí, nunca pasa de la fatiga libre, no actúa en jornadas de descanso, se apaga
-  { let c = beachNew(9200, 'cr'); const raw0 = JSON.parse(mem['voley3d.career']); delete raw0.ts.auto; mem['voley3d.career'] = JSON.stringify(raw0); C._reset(); c = C.get();
+  { let c = beachNew(9200, 'cr'); const raw0 = JSON.parse(mem['make-the-cut.career']); delete raw0.ts.auto; mem['make-the-cut.career'] = JSON.stringify(raw0); C._reset(); c = C.get();
     ok(c.ts.auto === true && C.trainInfo(c).auto, 'entreno automático activado por defecto (también en guardados viejos)');
     let maxF = 0, autoN = 0, g = 0, msgs = 0; const in0 = c.inbox.filter(m => m.t === 'Entreno automático').length, sp0 = C.KEYS.reduce((s, k) => s + c.player.st[k], 0);
     while (c.phase === 'league' && g++ < 10) { c.train = 'bal'; const s = C.simulateNext(c); c = C.get(); if (s && s.auto) autoN += s.auto.done.length; maxF = Math.max(maxF, c.fatigue); }
@@ -2454,8 +2454,8 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
   }
   // el automático nunca descansa por ti: con el enfoque Descanso, la misma fatiga con él que sin él (antes, 3 descansos callados)
   { let c = beachNew(9250, 'cr'); C.setTraining('rest'); c = C.get(); c.fatigue = 60; C.setTrainAuto(true);
-    const snap = mem['voley3d.career']; C.simulateNext(C.get()); const on = C.get(), fOn = on.fatigue, nOn = on.ts.tot;
-    mem['voley3d.career'] = snap; C._reset(); C.setTrainAuto(false); C.simulateNext(C.get()); const fOff = C.get().fatigue;
+    const snap = mem['make-the-cut.career']; C.simulateNext(C.get()); const on = C.get(), fOn = on.fatigue, nOn = on.ts.tot;
+    mem['make-the-cut.career'] = snap; C._reset(); C.setTrainAuto(false); C.simulateNext(C.get()); const fOff = C.get().fatigue;
     ok(fOn === fOff && nOn === 0, 'automático con el enfoque Descanso: no descansa por ti (fatiga ' + fOn + ' con él, ' + fOff + ' sin él)');
   }
   // pista: descansar recalcula el seis de la jornada (por debajo de FAT_REST ya no te sientan por fatiga)
@@ -2468,15 +2468,15 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
   }
   // guardados viejos sin best, seen, auto ni wkLog; dañados
   { beachNew(9400); C.trainSession('recv', 'play', 20);
-    let raw = JSON.parse(mem['voley3d.career']); delete raw.ts.best; delete raw.ts.seen; delete raw.ts.auto; delete raw.ts.wkLog; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    let raw = JSON.parse(mem['make-the-cut.career']); delete raw.ts.best; delete raw.ts.seen; delete raw.ts.auto; delete raw.ts.wkLog; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset();
     let r = C.get(); ok(r.ts.best && !Object.keys(r.ts.best).length && r.ts.seen && r.ts.auto === true && Array.isArray(r.ts.wkLog) && C.trainInfo(r).drills.every(d => d.best === null && d.first), 'guardado sin récords: se sanean (sin récord, primera vez pendiente, automático activado)');
-    raw = JSON.parse(mem['voley3d.career']); raw.ts.best = { recv: 99, nada: 3, atk: 'x' }; raw.ts.seen = [1]; raw.ts.auto = 'si'; raw.ts.wkLog = 'z'; mem['voley3d.career'] = JSON.stringify(raw); C._reset();
+    raw = JSON.parse(mem['make-the-cut.career']); raw.ts.best = { recv: 99, nada: 3, atk: 'x' }; raw.ts.seen = [1]; raw.ts.auto = 'si'; raw.ts.wkLog = 'z'; mem['make-the-cut.career'] = JSON.stringify(raw); C._reset();
     r = C.get(); ok(r.ts.best.recv === 30 && !('nada' in r.ts.best) && !('atk' in r.ts.best) && r.ts.auto === true && Array.isArray(r.ts.wkLog) && !Array.isArray(r.ts.seen), 'récords dañados: se recortan y se limpian');
   }
-  delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
-  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6;
-  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
-  if (keep.b != null) mem['voley3d.career'] = keep.b;
+  delete mem['make-the-cut.career6']; delete mem['make-the-cut.career']; C._reset();
+  if (keep.c6 != null) mem['make-the-cut.career6'] = keep.c6;
+  if (keep.md != null) mem['make-the-cut.career.mode'] = keep.md; else delete mem['make-the-cut.career.mode'];
+  if (keep.b != null) mem['make-the-cut.career'] = keep.b;
   if (keep.roles) VB.Sim.CTRL_ROLES6 = keep.roles; else delete VB.Sim.CTRL_ROLES6;
   C._reset();
 }
@@ -2484,7 +2484,7 @@ section('Sesiones de entrenamiento entre jornadas (límite, reinicio, ganancia p
 // ------------------------------------------------------------------ S2 B2/B3, S3 C3/C5 y B6 §6.2 en la interfaz (T16)
 section('Interfaz de la Carrera: «Continuar carrera» (heroData), escudo o kitSw, química con nombre, «Jefe» y tableSlice');
 {
-  const keep = { c6: mem['voley3d.career6'], md: mem['voley3d.career.mode'], b: mem['voley3d.career'] };
+  const keep = { c6: mem['make-the-cut.career6'], md: mem['make-the-cut.career.mode'], b: mem['make-the-cut.career'] };
   // career-ui.js (y career-world-ui.js) en un contexto aparte con un document mínimo; comparten VB con el de arriba
   const fakeEl = () => ({ style: {}, hidden: true, setAttribute() { }, getAttribute() { return null; }, appendChild() { }, addEventListener() { }, querySelector() { return null; }, querySelectorAll() { return []; }, classList: { add() { }, remove() { }, toggle() { }, contains() { return false; } } });
   const doc = { readyState: 'complete', getElementById: () => null, createElement: fakeEl, head: fakeEl(), body: fakeEl(), addEventListener() { } };
@@ -2499,7 +2499,7 @@ section('Interfaz de la Carrera: «Continuar carrera» (heroData), escudo o kitS
     const all = [];
     const hd = (c) => { const d = CU.heroData(c); if (d) all.push(d.kind, d.title, d.chip, d.line, d.aria); return d; };
     ok(CU.heroData(null) === null, 'heroData sin carrera: null (la portada se queda como hoy)');
-    delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
+    delete mem['make-the-cut.career6']; delete mem['make-the-cut.career']; C._reset();
     let c = C.create({ mode: 'beach', name: 'Héroe Prueba', num: 7, role: 'atk', seed: 9100 });
     let d = hd(c);
     ok(d && d.kind === 'Playa' && d.title === 'Elige club' && d.chip === c.offers.length + ' ofertas' && d.line === 'Tu primer club' && d.club === null, 'elegir club: «Elige club» + «' + (d && d.chip) + '» + «Tu primer club»');
@@ -2544,7 +2544,7 @@ section('Interfaz de la Carrera: «Continuar carrera» (heroData), escudo o kitS
         ok(sl.pos === p1 && sl.move.d === mv.d && sl.move.txt === mv.txt && sl.rows.some(r => r.me) && sl.rows.length === 3, lbl + ': posOf ' + p0 + ' → ' + p1 + ' = tableSlice (' + (sl.move.txt || '=') + ', ' + sl.rows.map(r => r.posT + ' ' + r.short).join(' | ') + ')');
       };
       chk('playa', cc => C.myClub(cc).lvl);
-      delete mem['voley3d.career6']; C._reset();
+      delete mem['make-the-cut.career6']; C._reset();
       let h = C.create({ mode: 'hall', name: 'Héroe Pista', num: 9, pos: 'OH', seed: 9200 }); C.acceptOffer(h.offers.findIndex(o => !o.trial), 2); h = C.get();
       let g = 0; while (h.phase === 'league' && !C.next(h) && g++ < 5) { C.simulateNext(); h = C.get(); }
       d = hd(h); const n6 = C.next(h);
@@ -2556,17 +2556,17 @@ section('Interfaz de la Carrera: «Continuar carrera» (heroData), escudo o kitS
     }
     ok(all.every(t => typeof t === 'string' && !/\.er\b|1\.º/.test(t) && t.indexOf('undefined') < 0 && t.indexOf('·') < 0), 'textos de la portada sin «.er», sin «·» y sin «undefined» (' + all.length + ')');
   }
-  delete mem['voley3d.career6']; delete mem['voley3d.career']; C._reset();
-  if (keep.c6 != null) mem['voley3d.career6'] = keep.c6;
-  if (keep.md != null) mem['voley3d.career.mode'] = keep.md; else delete mem['voley3d.career.mode'];
-  if (keep.b != null) mem['voley3d.career'] = keep.b;
+  delete mem['make-the-cut.career6']; delete mem['make-the-cut.career']; C._reset();
+  if (keep.c6 != null) mem['make-the-cut.career6'] = keep.c6;
+  if (keep.md != null) mem['make-the-cut.career.mode'] = keep.md; else delete mem['make-the-cut.career.mode'];
+  if (keep.b != null) mem['make-the-cut.career'] = keep.b;
   C._reset();
 }
 
 section('Dificultad de la Carrera de pista: niveles, IA, atributos del rival, cambio entre partidos, sellos y migración');
 if (C.hall && C.hall.rivalAI) {
   const H = C.hall;
-  const mk = (d, seed) => { delete mem['voley3d.career6']; C._reset(); const o = { mode: 'hall', name: 'Dif Pista', num: 8, pos: 'OH', seed: seed || 9100, autoClub: true }; if (d) o.diff = d; return C.create(o); };
+  const mk = (d, seed) => { delete mem['make-the-cut.career6']; C._reset(); const o = { mode: 'hall', name: 'Dif Pista', num: 8, pos: 'OH', seed: seed || 9100, autoClub: true }; if (d) o.diff = d; return C.create(o); };
   // misma semilla, misma carrera en cualquier nivel (create no gasta tiradas)
   const strip = x => { const o = JSON.parse(JSON.stringify(x)); ['diff', 'dUse', 'coachD', 'coach', 'created', 'inbox', 'msgN', 'world'].forEach(k => delete o[k]); if (o.objective) { delete o.objective.d; delete o.objective.text; delete o.objective.pos; } return JSON.stringify(o.clubs) + JSON.stringify(o.leagues) + o.myClub; };
   const cE = mk('easy'), sE = strip(cE), cX = mk('expert'), sX = strip(cX), cN = mk();
@@ -2594,10 +2594,10 @@ if (C.hall && C.hall.rivalAI) {
   mk('normal'); const msN = C.matchSetup();
   ok(msN && avg(ms.attrs[1]) > avg(msN.attrs[1]), 'pista: en Experto el seis rival tiene más media que en Normal (' + avg(ms.attrs[1]).toFixed(1) + ' > ' + avg(msN.attrs[1]).toFixed(1) + ')');
   // cambiar entre partidos
-  mk('normal'); const bSave0 = mem['voley3d.career'];
+  mk('normal'); const bSave0 = mem['make-the-cut.career'];
   ok(C.setDifficulty('hard') === 'ok' && C.load().diff === 'hard' && C.setDifficulty('hard') === 'same' && C.setDifficulty('xx') === 'bad', 'pista: setDifficulty ok/same/bad');
   ok(C.load().objective.d === 'hard' && C.load().inbox.some(m => /Dificultad: Difícil/.test(m.t)), 'pista: sin partidos aún, el objetivo se rehace con el nivel nuevo y llega el mensaje');
-  ok(mem['voley3d.career'] === bSave0, 'pista: setDifficulty no toca la Carrera de playa');
+  ok(mem['make-the-cut.career'] === bSave0, 'pista: setDifficulty no toca la Carrera de playa');
   for (let i = 0; i < 3; i++) { const nn = C.next(); if (nn && nn.bench) C.benchNext(); else C.simulateNext(); }
   const u = C.load().dUse;
   ok(u.hard === 3 && u.normal === 0, 'pista: dUse cuenta los partidos en su nivel (' + JSON.stringify(u) + ')');
@@ -2611,17 +2611,17 @@ if (C.hall && C.hall.rivalAI) {
   ok(cs.dUse.easy + cs.dUse.normal + cs.dUse.hard + cs.dUse.expert === 0 && cs.objective.d === 'expert' && cs.coachD == null, 'pista: temporada nueva con dUse a ceros, objetivo en el nivel actual y sin coachD');
   // migración: un guardado de pista de antes (sin campos de dificultad) carga en Normal
   mk(null, 9200); for (let i = 0; i < 2; i++) C.simulateNext();
-  const raw = JSON.parse(mem['voley3d.career6']); ['diff', 'dUse', 'coachD'].forEach(k => delete raw[k]); delete raw.objective.d;
-  mem['voley3d.career6'] = JSON.stringify(raw); C._reset();
+  const raw = JSON.parse(mem['make-the-cut.career6']); ['diff', 'dUse', 'coachD'].forEach(k => delete raw[k]); delete raw.objective.d;
+  mem['make-the-cut.career6'] = JSON.stringify(raw); C._reset();
   const cm = C.load();
   ok(cm && cm.diff === 'normal' && cm.dUse.normal === cm.stats.played + (cm.stats.bench | 0) && cm.objective.d === 'normal', 'pista: guardado antiguo → Normal, dUse.normal = lo jugado, objetivo sellado');
   C._reset(); ok(JSON.stringify(C.load().dUse) === JSON.stringify(cm.dUse), 'pista: migración idempotente');
-  delete mem['voley3d.career6']; C._reset();
+  delete mem['make-the-cut.career6']; C._reset();
 } else console.log('(sin dificultad de pista)');
 
 section('Prueba de la rama, ampliada el 17-nov-2026: IA un nivel por encima, rivales mejores, bonus por ganar e invitaciones a mitad y fin de temporada');
 if (C.beach && C.beach.trialAIOf && C.hall && C.hall.trialSetup) {
-  const fresh = () => { delete mem['voley3d.career']; delete mem['voley3d.career6']; C._reset(); };
+  const fresh = () => { delete mem['make-the-cut.career']; delete mem['make-the-cut.career6']; C._reset(); };
   const ord = ['easy', 'normal', 'hard', 'expert'];
   for (const mode of ['beach', 'hall']) {
     // al elegir club: IA un nivel por encima de tu dificultad (Normal → Difícil) y rivales ≥ tu media + TRIAL_UP

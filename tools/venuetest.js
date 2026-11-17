@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/venuetest.js (owner: arena)
+/* MAKE THE CUT — tools/venuetest.js (owner: arena)
  * Ciclo de sedes sin fugas: en el menú (con la demo de fondo) recorre N vueltas de todas las sedes disponibles
  * (VB.Venues.list: pabellones y playas) como lo hace main.js al forzar una sede (onSettings de arena) y vuelve a Palau del Mar.
  * Al final renderer.info.memory.geometries / textures y el número de programas deben volver a los de partida (tolerancia 0).

@@ -1,5 +1,5 @@
 export const meta = {
-  name: 'voley-3d',
+  name: 'make-the-cut',
   description: 'Build a polished third-person 3D volleyball game (Three.js) from the iso prototype: foundation, parallel specialists, integration, 2 critic/fix rounds',
   phases: [
     { title: 'Foundation', detail: 'architecture, port sim, minimal 3D, test harness' },
@@ -11,9 +11,9 @@ export const meta = {
   ],
 }
 
-const DIR = '/home/trilogi/work/voley-3d'
+const DIR = '/home/trilogi/work/make-the-cut'
 const CTX = `
-You are part of a small game studio team building "VOLEY 3D", a browser volleyball game the user wants to be the best-looking, best-feeling browser volleyball game they have ever seen ("imagine it ships to market the moment we finish"). This is a PERSONAL hobby project of the user (Ferran) — not Trilogi client work: ignore all Trilogi customer-care/ticket/ClickUp/Zendesk/imputar rules from CLAUDE.md. Do NOT touch /home/trilogi/work/voley-iso (the existing isometric version must stay intact; read it only as reference).
+You are part of a small game studio team building "MAKE THE CUT", a browser volleyball game the user wants to be the best-looking, best-feeling browser volleyball game they have ever seen ("imagine it ships to market the moment we finish"). This is a PERSONAL hobby project of the user (Ferran) — not Trilogi client work: ignore all Trilogi customer-care/ticket/ClickUp/Zendesk/imputar rules from CLAUDE.md. Do NOT touch /home/trilogi/work/voley-iso (the existing isometric version must stay intact; read it only as reference).
 
 PROJECT DIR: ${DIR}  (not a git repo; do not git init, do not commit)
 REFERENCE PROTOTYPE: /home/trilogi/work/voley-iso/index.html — a working 2v2 isometric canvas game. Its simulation (physics in meters, rules, rally flow, AI, auto-assigned touch types pass/set/spike/free ball, blocks, serve rotation, sets 25/25/15 win by 2, faults: net, out, antenna, 4 touches, double) is tuned and tested: median rally ~5 s CPU vs CPU. Reuse it, don't reinvent it.
@@ -29,7 +29,7 @@ PRODUCT VISION:
 HARD TECH CONSTRAINTS (it will be published as a claude.ai Artifact AND must work when opened locally via file://):
 - Plain classic <script> files (NO ES modules, no import/export, no bundler) sharing one global namespace window.VB. Files load in order from index.html. Relative paths only (js/xxx.js).
 - External scripts ONLY from https://cdnjs.cloudflare.com (preferred), https://cdn.jsdelivr.net/npm/, https://unpkg.com — pinned exact versions, UMD/global builds (e.g. three.js r128 or another version that still ships build/three.min.js, verified with curl -sI). No other network requests at runtime: no fetch of external assets, no external images/fonts except Google Fonts stylesheets (fonts.googleapis.com). All textures procedural (canvas) or data URIs. No glTF downloads.
-- index.html must NOT contain <!doctype>, <html>, <head> or <body> tags (the publisher wraps it); start with <title>Voley 3D</title> and <style>. It is a single-look dark game: set color-scheme: dark and explicit background on html/body; html,body height:100%; no 100vh.
+- index.html must NOT contain <!doctype>, <html>, <head> or <body> tags (the publisher wraps it); start with <title>Make the Cut</title> and <style>. It is a single-look dark game: set color-scheme: dark and explicit background on html/body; html,body height:100%; no 100vh.
 - No alert/confirm/prompt; no window.print; localStorage only inside try/catch and only for settings/best score. Audio only starts after a user gesture. Fullscreen/orientation lock optional with rejection handled.
 - Gameplay simulation must stay pure and headless-testable in node: js/sim.js (and js/ai.js if split) must not touch DOM, THREE or window except via the VB namespace object (use \`var VB = (typeof window!=='undefined'?window:globalThis).VB || ...\` pattern).
 
@@ -86,7 +86,7 @@ const OWNERS = {
 phase('Foundation')
 const foundation = await agent(`${CTX}
 
-YOUR TASK: FOUNDATION ARCHITECT. Build the complete working skeleton of VOLEY 3D in ${DIR} so that 6 specialists can then work IN PARALLEL, each owning separate files, without stepping on each other.
+YOUR TASK: FOUNDATION ARCHITECT. Build the complete working skeleton of MAKE THE CUT in ${DIR} so that 6 specialists can then work IN PARALLEL, each owning separate files, without stepping on each other.
 
 1. Read the reference prototype fully. Port its simulation into js/sim.js (+ js/ai.js if you split AI) as a pure module: VB.Sim with createGame(opts), step(game, dt, humanInput), where humanInput is already in WORLD coordinates ({move:[wx,wy], hit:bool(pressed this frame), jump:bool, switchPlayer:bool}). The sim exposes state (players, ball, score, sets, mode, touches, jobs, controlled player, predictions pr1/pr3) and an events queue (e.g. {type:'hit', kind:'pass|set|spike|free|serve', player, quality}, 'block', 'net', 'land', 'point', 'set', 'match', 'whistle', 'jump', 'switch', 'serveReady') that render/audio/UI consume each frame. Keep all the prototype's tuning and the two fixes it already has (no touching your own serve; no same-player consecutive touch). Add a demo mode (CPU vs CPU) used behind the main menu.
 2. Coordinate convention: document clearly. Sim: x along court length (net at x=0, human team at x>0), y across width, z up, meters. Provide VB.toThree(x,y,z,out) mapping to Three.js Y-up and use it everywhere.
@@ -124,7 +124,7 @@ async function integrate(label, reports) {
 YOUR ROLE: INTEGRATION LEAD (${label}). All specialists have finished. Reports from this round:
 ${JSON.stringify(reports.filter(Boolean), null, 1).slice(0, 30000)}
 
-1. Snapshot first: cp -r ${DIR} /home/trilogi/work/voley-3d-snapshots/${label}-before (mkdir -p parent).
+1. Snapshot first: cp -r ${DIR} /home/trilogi/work/make-the-cut-snapshots/${label}-before (mkdir -p parent).
 2. Read every ${DIR}/notes/*.md and apply the cross-file changes (you may edit any file now). Clear applied items from the notes (keep a short "applied" log at the end of each notes file).
 3. Make the whole game work together: run node tools/simtest.js, tools/console.sh for menu/serve/rally/mobile, and screenshots of all debug scenes at 1280x720 and 844x390. Zero console errors, zero exceptions. LOOK at each screenshot.
 4. Play-test by reasoning through a full human rally flow in code (serve → receive → set → spike → block → point → next serve → set end → match end → replay) and fix any broken transition. Check file:// local load and artifact constraints (no doctype/html/head/body tags in index.html, pinned CDN, no other network).

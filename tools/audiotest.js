@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/audiotest.js   (owner: audio)
+/* MAKE THE CUT — tools/audiotest.js   (owner: audio)
  *
  * Nobody can listen during the build, so the audio is MEASURED.
  *
