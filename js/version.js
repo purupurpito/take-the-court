@@ -20,11 +20,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.7';
+  VB.VERSION = '1.5.8';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.8', d: '2026-11-17', t: 'Pruebas jugadas',
+      items: [
+        'Carrera: las pruebas se juegan: un set a 15 contra rivales mejores y la IA un nivel más.',
+        'Te fichan por tu nota; ganar el mini partido ayuda un poco. También puedes simularla.',
+        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.'
+      ]
+    },
     {
       v: '1.5.7', d: '2026-11-17', t: 'Moverte en el saque',
       items: [

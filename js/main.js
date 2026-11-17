@@ -569,7 +569,7 @@
       b6 = [Sim.defaultBench(0), Sim.defaultBench(1)];
       c6 = [{ auto: ctx.settings.subs6 !== 'manual', iq: 2 }, { auto: true, iq: IQ6[Sim.normDiff ? Sim.normDiff(dq) : dq] || 2 }];
     }
-    var g = Sim.createGame({ demo: false, seed: seed(), difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : isRookie(), present: !opts.autopilot,
+    var g = Sim.createGame({ demo: false, seed: seed(), difficulty: dq, autopilot: auto, bestOf: opts.bestOf === 1 ? 1 : undefined, // (prueba de la Carrera: a un set) rookie: cs ? !!opts.rookie : isRookie(), present: !opts.autopilot,
       bench: b6 || undefined, coach: c6 || undefined, meSlot: cs && b6 ? opts.meSlot : undefined, meBench: cs && b6 ? opts.meBench : undefined, names: fmt && cs ? opts.names : undefined,
       points: opts.points || +Q.points || ctx.settings.setPoints, ctrl: fmt ? 'one' : (opts.ctrl || Q.ctrl || ctx.settings.ctrlMode), ctrlRole: fmt ? (cs && opts.ctrlRole) || 'OH' : undefined, // (6v6: siempre 'one'; el receptor, o tu puesto en la Carrera de pista; espectador sin eventos switch)
       ctrlIdx: ctrlIdxOf(opts),
@@ -1107,6 +1107,20 @@
     // (si el rival lleva el 9, el 2º CPU, que es el 9 por defecto, pasa al 3: si no, los dos harían de rival en players.js)
     return true;
   };
+  // Prueba jugada de la Carrera (17-nov-2026; VB.Career.trialSetup / trialDone, notes/carrera.md §Pruebas jugadas): mini partido a un set
+  // contra rivales mejores; al acabar, la fachada (matchDone con g.career.trial) decide si te fichan y se vuelve solo al hub con el resultado.
+  ctx.actions.startCareerTrial = function (i) {
+    var K = VB.Career; if (!K || !K.trialSetup) return false;
+    var m = null; try { m = K.trialSetup(i); } catch (e) { reportError('Career.trialSetup', e); }
+    if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
+    if (K.abortMatch) K.abortMatch();
+    careerSes = null;
+    ctx.actions.startMatch({ career: m.career, attrs: m.attrs, badges: m.badges, points: m.points, bestOf: 1, difficulty: m.difficulty, rookie: false, ctrl: 'one', ctrlIdx: 0, ref: m.ref,
+      venue: m.venue || 'beach', format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, names: m.names || undefined,
+      kit: m.kit ? Object.assign({}, m.kit, { rival: m.rivalKit || null }) : null,
+      nums: m.nums || (m.career ? [[m.career.num | 0 || null, m.career.mateNum | 0 || null], null] : undefined), introKind: 'mini' });
+    return true;
+  };
   function restoreEndButtons() {
     var e = document.getElementById('end'); if (e) e.classList.remove('career'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
     var a = document.getElementById('btnAgain'); if (a && a.getAttribute('data-cr')) { a.textContent = a.getAttribute('data-cr'); a.removeAttribute('data-cr'); }
@@ -1168,10 +1182,10 @@
   ctx.actions.toMenu = function () {
     netStop(true);   // (online: salir al menú es abandonar)
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
-    var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
+    var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug), trialG = fromCareer && !!ctx.game.career.trial;
     // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
     var drillC = !!(ctx.game && ctx.game.careerDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerDrill : null;
-    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
+    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // (prueba abandonada: la oferta sigue) // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
     restoreEndButtons();
     unforceVenue();   // Carrera en la playa: de vuelta al escenario del ajuste
@@ -1179,7 +1193,7 @@
     setState('menu');
     if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
     // (B6: «Siguiente jornada» y los abandonos vuelven al hub en Partido con el foco en «Jugar partido»; R15)
-    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd, focus: 'play' }); } catch (e) { reportError('CareerUI.open', e); } }
+    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', careerEnd && careerEnd.trial ? { trial: careerEnd } : trialG ? { trial: { quit: true } } : { fresh: !!careerEnd, focus: 'play' }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
   };
@@ -1213,6 +1227,7 @@
     if (live && g.careerDrill && !g.careerDrill.done && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, !!g.autopilot); return; }
     if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
     if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
+    if (live && g.career && g.career.trial && !careerEnd) { if (!ctx.actions.startCareerTrial(g.career.trial.i)) ctx.actions.toMenu(); return; }
     if (live && g.career) { ctx.actions.startMatch(); return; }
     ctx.actions.startMatch(Object.assign({}, live && lastOpts || {}, { introKind: 'mini' }));
   };
@@ -1656,7 +1671,12 @@
     }
     if (g && g.career && !g.demo) {
       // B6: la hoja final de Carrera = el Resumen de la jornada de ui.js (VB.UI.endCareer, que sustituye a careerEndSheet), tras showEnd
-      if (careerEnd && !endTweaked && ctx.state === 'over') { endTweaked = true; call('UI', 'endCareer', careerEnd, g, careerEndXv); }
+      if (careerEnd && !endTweaked && ctx.state === 'over') {
+        endTweaked = true;
+        // prueba jugada: sin hoja de jornada; a los 1,6 s, al hub con el resultado (CareerUI.open({trial}))
+        if (careerEnd.trial) setTimeout(function () { if (ctx.game === g && ctx.state === 'over') ctx.actions.toMenu(); }, 1600);
+        else call('UI', 'endCareer', careerEnd, g, careerEndXv);
+      }
       // (marcador con las abreviaturas de los clubes: lo pinta ui.js con g.career.me / g.career.rival)
     }
 
@@ -1737,7 +1757,7 @@
       if (e.type !== 'gameOver' || careerEnd) continue;
       try { careerEnd = K.matchDone({ sets: [e.sets[0], e.sets[1]], setScores: e.setScores || g.setScores, win: e.team === 0 }, null, g) || { nota: 0, xp: 0 }; }
       catch (er) { reportError('Career.matchDone', er); careerEnd = { nota: 0, xp: 0 }; }
-      careerEndXv = careerEndX(K, careerSes);   // B6: tabla, puesto, lo siguiente, barra y sesiones (solo lectura)
+      careerEndXv = careerEnd && careerEnd.trial ? null : careerEndX(K, careerSes);   // B6: tabla, puesto, lo siguiente, barra y sesiones (solo lectura; la prueba no)
     }
   }
   function safePoll(dt) { try { return VB.Input.poll(dt); } catch (e) { reportError('Input.poll', e); return null; } }

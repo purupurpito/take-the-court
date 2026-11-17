@@ -1358,7 +1358,7 @@
     // al final de la temporada las ofertas se miden con la liga y el nivel (q) de la temporada SIGUIENTE (antes un club que
     // descendía ofrecía «Liga Nacional» y fichabas por él en la Regional, y la media anunciada no era la real)
     var pq = !mid && c.pendingQ ? c.pendingQ : null;
-    var lv = function (k) { return mid ? k.lvl : nextLvl(c, k); }, qOf = function (k) { return pq && pq[k.id] != null ? pq[k.id] : k.q; }, myL = lv(me);
+    var lv = function (k) { return mid ? k.lvl : nextLvl(c, k); }, qOf = function (k) { return pq && pq[k.id] != null ? pq[k.id] : k.q; }, myL = lv(me), tc = null;
     c.clubs.forEach(function (k) {
       var kl = lv(k), L = league(kl), q = qOf(k);
       if (k.id === me.id || kl < myL || kl > myL + 1) return;
@@ -1369,14 +1369,18 @@
       if (it > 0) { var rl = it > ROLE_NEED[2] ? 2 : it > ROLE_NEED[1] ? 1 : 0;
         cand.push({ club: k.id, lvl: kl, ovr: Math.round(o), q: q, interest: round1(it), mate: Math.round(o),
           role: ROLE_LV[rl], years: 1 + Math.floor(r() * 3), salary: salaryOf(kl, q, rl) }); }
+      // (pruebas jugadas, 17-nov-2026: el club mejor —liga de arriba o claramente más fuerte— que te quiere casi lo justo invita a prueba)
+      else if (it > -TRIAL_GAP && (kl > myL || q > qOf(me) + 0.15) && (!tc || it > tc.it)) tc = { k: k, kl: kl, q: q, o: o, it: it };
     });
     // las 3 mejores, con preferencia por los clubes de la liga de arriba; se muestran de mejor a peor club
     cand.sort(function (a, b) { return (b.interest + 4 * (b.lvl - myL)) - (a.interest + 4 * (a.lvl - myL)); });
     cand = cand.slice(0, 3);
+    if (tc) cand.push({ club: tc.k.id, lvl: tc.kl, ovr: Math.round(tc.o), q: tc.q, interest: round1(tc.it), mate: Math.round(tc.o), role: ROLE_LV[0], years: 1,
+      salary: salaryOf(tc.kl, tc.q, 0), trial: true, chance: trialChanceIt(tc.it) });   // prueba (una por ventana)
     // ficha completa: el compañero que tendrías (el mismo que te dan al firmar; media = la del club de la temporada que viene +
     // su desvío propio, mateOff) y el objetivo aproximado. Un club con buen compañero es un argumento para fichar
     cand.forEach(function (x) { var rm = rng(hash(c.seed, 'offmate', c.season, mid ? 'mid' : 'end', x.club)), mt = newMate(c, club(c, x.club), rm, clamp(x.ovr + mateOff(rm), 22, 92)); x.mateP = mt; x.mate = ovrOf(mt.st); });
-    cand.sort(function (a, b) { return b.lvl - a.lvl || b.ovr - a.ovr; });
+    cand.sort(function (a, b) { return (a.trial ? 1 : 0) - (b.trial ? 1 : 0) || b.lvl - a.lvl || b.ovr - a.ovr; });   // (la prueba, la última)
     return cand;
   }
   function midWindow(c) {
@@ -1476,19 +1480,8 @@
   function acceptOffer(i, years) {
     var c = load(); if (!c || !c.offers || !c.offers[i]) return false;
     var o = c.offers[i];
-    if (c.phase === 'pick') {
-      if (o.trial) {
-        var pass = rng(hash(c.seed, 'trial', o.club, c.pick.round))() < o.chance;
-        if (!pass) {
-          c.offers.splice(i, 1); c.pick.fail = o.club;
-          msg(c, 'agent', 'Prueba no superada', club(c, o.club).name + ' te ha visto en la prueba y prefiere esperar. Aún tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + ' d' + lname(league(0)) + '.');
-          if (!c.offers.length) c.offers = genStartOffers(c, ++c.pick.round);
-          save(c); return false;
-        }
-        msg(c, 'agent', '¡Prueba superada!', club(c, o.club).name + ' te ficha tras la prueba. Empiezas en ' + lname(league(o.lvl)) + ', una categoría por encima.');
-      }
-      joinClub(c, o, years); save(c); return true;
-    }
+    if (o.trial) return !!(trialSimC(c, i, false) || {}).pass;   // prueba: simularla (17-nov-2026; jugarla: trialSetup + trialDone)
+    if (c.phase === 'pick') { joinClub(c, o, years); save(c); return true; }
     // salir con contrato en vigor (te quedan más temporadas que esta) sin haberte declarado transferible: el club anterior pone
     // pegas y llegas con menos confianza del entrenador (EARLY_COACH). Los años del contrato ya cuentan para algo.
     o.early = earlyExit(c);
@@ -2698,7 +2691,7 @@
     var me = myClub(c), sc = offerScore(c), r = rng(hash(c.seed, 'off6', c.season, mid ? 'mid' : 'end')), an = avgNota(c) || 0, cand = [];
     if (mid && an < midNota(c)) return [];   // (dificultad: midNota suma su desvío; el umbral de interés, offer)
     var po = !mid && c.pendingOvr ? c.pendingOvr : null, ovr = function (k) { return po && po[k.id] != null ? po[k.id] : k.ovr; };
-    var lidOf = function (k) { return mid ? k.lid : nextLid6(c, k); }, myL = lg6(c, lidOf(me)), myO = ovr(me);
+    var lidOf = function (k) { return mid ? k.lid : nextLid6(c, k); }, myL = lg6(c, lidOf(me)), myO = ovr(me), tc = null;
     c.clubs.forEach(function (k) {
       if (k.id === me.id) return;
       var L = lg6(c, lidOf(k)), o = ovr(k), foreign = L.cc !== me.cc, sct = !!(c.scouts && c.scouts[k.id]);
@@ -2715,6 +2708,8 @@
           var of = { club: k.id, lid: L.id, cc: L.cc, ovr: o, q: q, interest: round1(it), role: ROLE_LV[rl], years: yy, salary: salary6(c, k, rl, L.id), foreign: foreign, scout: sct, dm: d, dSeason: mid ? c.season : c.season + 1 };
           offerDepth6(c, of); cand.push(of);
         }
+        // (pruebas jugadas, 17-nov-2026: el club mejor —liga más fuerte o +3 de media— que te quiere casi lo justo invita a prueba)
+        else if (it > -TRIAL_GAP && (L.strength > myL.strength || o > myO + 3) && (!tc || it > tc.it)) tc = { k: k, L: L, o: o, it: it, d: d, foreign: foreign, sct: sct };
       }
     });
     // de los clubes que te quieren, los 3 más atractivos: pesa sobre todo la liga y el club (con los datos reales hay 28 países y muchos
@@ -2723,8 +2718,10 @@
     var appeal = function (x) { return Math.min(5, x.interest) + 0.5 * (lg6(c, x.lid).strength - myL.strength) + 0.25 * (x.ovr - myO); };
     cand.sort(function (a, b) { return appeal(b) - appeal(a); });
     cand = cand.slice(0, 3);
+    if (tc) { var tof = { club: tc.k.id, lid: tc.L.id, cc: tc.L.cc, ovr: tc.o, q: qOf6(c, tc.k, tc.L.id), interest: round1(tc.it), role: ROLE_LV[0], years: 1, salary: salary6(c, tc.k, 0, tc.L.id),
+      foreign: tc.foreign, scout: tc.sct, dm: tc.d, dSeason: mid ? c.season : c.season + 1, trial: true, chance: trialChanceIt(tc.it) }; offerDepth6(c, tof); cand.push(tof); }   // prueba (una por ventana)
     cand.forEach(function (x) { var k = club(c, x.club), o0 = k.ovr; k.ovr = x.ovr; x.objective = objectiveFor6(c, k, x.lid).text; k.ovr = o0; });
-    cand.sort(function (a, b) { return lg6(c, b.lid).strength - lg6(c, a.lid).strength || b.ovr - a.ovr; });
+    cand.sort(function (a, b) { return (a.trial ? 1 : 0) - (b.trial ? 1 : 0) || lg6(c, b.lid).strength - lg6(c, a.lid).strength || b.ovr - a.ovr; });   // (la prueba, la última)
     return cand;
   }
   function midWindow6(c) {
@@ -2920,19 +2917,8 @@
   function acceptOffer6(i, years) {
     var c = load6(); if (!c || !c.offers || !c.offers[i]) return false;
     var o = c.offers[i];
-    if (c.phase === 'pick') {
-      if (o.trial) {
-        var pass = rng(hash(c.seed, 'trial6', o.club, c.pick.round))() < o.chance;
-        if (!pass) {
-          c.offers.splice(i, 1); c.pick.fail = o.club;
-          msg(c, 'agent', 'Prueba no superada', club(c, o.club).name + ' te ha visto en la prueba y prefiere esperar. Aún tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + '.');
-          if (!c.offers.length) c.offers = genStartOffers6(c, ++c.pick.round);
-          save6(c); return false;
-        }
-        msg(c, 'agent', '¡Prueba superada!', club(c, o.club).name + ' te ficha tras la prueba. Empiezas en la ' + lg6(c, o.lid).name + ', una categoría por encima.');
-      }
-      joinClub6(c, o, years); save6(c); return true;
-    }
+    if (o.trial) return !!(trialSimC(c, i, true) || {}).pass;   // prueba: simularla (17-nov-2026; jugarla: trialSetup + trialDone)
+    if (c.phase === 'pick') { joinClub6(c, o, years); save6(c); return true; }
     o.early = earlyExit(c);
     if (o.early) msg(c, 'agent', 'Salida con contrato', club(c, c.myClub).name + ' no quería dejarte ir: aún te quedaban ' + plural((c.contract.left | 0) - (c.phase === 'off' ? 1 : 0), 'temporada', 'temporadas') + ' de contrato. Llegas a ' + club(c, o.club).name + ' con algo menos de confianza del entrenador.');
     if (o.foreign) { var L = lg6(c, o.lid); msg(c, 'agent', 'Fichaje internacional', 'Te vas a ' + L.country + ': ' + club(c, o.club).name + ', de la ' + L.name + '. Nueva liga, nuevo idioma y rivales más fuertes.'); }
@@ -3019,6 +3005,132 @@
   var readMsg6 = withC6(function (c, id) { var ok = false; c.inbox.forEach(function (m) { if (m.id === id && !m.r) { m.r = 1; ok = true; } }); return ok; });
   var readAll6 = withC6(function (c) { var n = 0; c.inbox.forEach(function (m) { if (!m.r) { m.r = 1; n++; } }); return n; });
 
+  // =================================================================================================================================
+  // PRUEBAS JUGADAS (17-nov-2026, Ferran: «que tengas que hacer las pruebas FÍSICAMENTE (un mini partido) para que te fichen en un
+  // mejor equipo… jugadores mejores que tú, con buenos stats y dificultad 1 por encima de la tuya»; «cuenta la nota, pero ganar el
+  // mini-partido te da algo más de probabilidades; se puede simular y se puede hacer en las 2»). Playa y pista.
+  //  - Ofertas de prueba (o.trial, o.chance): la del inicio (como siempre) y, a mitad y a fin de temporada, la de un club mejor que te
+  //    quiere casi lo justo (interés entre −TRIAL_GAP y 0: no llega a ofertarte; genOffers / genOffers6, una por ventana).
+  //  - Mini partido (trialSetup → main.js startCareerTrial): un set a TRIAL_PTS; rivales con media max(club, la tuya + TRIAL_UP); la IA un
+  //    peldaño por encima de tu dificultad (o del club, si ya está por encima; trialStep, sin «suave»). En la playa con el compañero que te
+  //    darían; en la pista con el seis del club, tú en tu puesto.
+  //  - Probabilidad (trialP): o.chance + TRIAL_K × (nota − TRIAL_REF) + TRIAL_WIN si ganas el mini partido; simulada × TRIAL_SIM; 5-95 %.
+  //    Con la media inicial (o.chance 0,3): simulada ~25 %; jugada con un 7, ~50 % (58 % ganándola); con un 8, ~70 %.
+  //  - trialDone(r, st, g) (jugada; la fachada la llama desde matchDone con g.career.trial) / trialSim(i) (simulada) → {pass, p, nota,
+  //    win, sim, club, clubName}. Superada: firmas (como acceptOffer: al momento al inicio y a mitad, la temporada que viene en verano);
+  //    no superada: pierdes esa oferta. acceptOffer(i) con una prueba = simularla (API de antes). c.trialLast = el último resultado.
+  var TRIAL_PTS = 15, TRIAL_UP = 6, TRIAL_K = 0.2, TRIAL_REF = 6, TRIAL_WIN = 0.08, TRIAL_SIM = 0.85, TRIAL_GAP = 3;
+  function trialP(o, nota, win, sim) {
+    var p = (+o.chance || 0.3) + TRIAL_K * ((nota == null ? 5 : nota) - TRIAL_REF) + (win ? TRIAL_WIN : 0);
+    if (sim) p *= TRIAL_SIM;
+    return Math.round(clamp(p, 0.05, 0.95) * 100) / 100;
+  }
+  /** Probabilidad de partida de una invitación a prueba a mitad o fin de temporada (interés it entre −TRIAL_GAP y 0). */
+  function trialChanceIt(it) { return round1(clamp(0.45 + 0.1 * it, 0.15, 0.45)); }
+  /** Perfil de IA de la prueba: un peldaño por encima de tu dificultad (Fácil → Normal, Normal → Difícil, Difícil y Experto → Experto) o
+   *  del de ese club si ya está por encima (sin «suave»). */
+  var TRIAL_BASE = { easy: 0, normal: 2, hard: 3, expert: 4 };
+  function trialStep(ai, c) { var s = Math.min(STEPS.length - 1, Math.max(ai.step, TRIAL_BASE[diffOf(c)] | 0) + 1); if (STEPS[s].soft) s = Math.min(STEPS.length - 1, s + 1); return STEPS[s]; }
+  function kitOpt(k, lib) { var o = { kitShirt: k.shirt, kitAccent: k.accent, kitShorts: k.shorts, kitPattern: k.pattern }; if (lib) o.kitLibero = k.libero; return o; }
+  function trialIdx(c, T) { var L = c && c.offers || []; for (var j = 0; j < L.length; j++) if (L[j] && L[j].trial && L[j].club === T.club) return j; return -1; }
+  function diffName0(d) { return (VB.DIFF && VB.DIFF[d] && VB.DIFF[d].name) || d; }
+  /** Playa: opciones del mini partido de la prueba de la oferta i. */
+  function trialSetupB(i) {
+    var c = load(), o = c && c.offers && c.offers[i]; if (!o || !o.trial) return null;
+    var k = club(c, o.club), lvl = o.lvl != null ? o.lvl : k.lvl, r = rng(hash(c.seed, 'trialM', o.club, c.season));
+    var rov = clampI(Math.max(o.ovr != null ? o.ovr : clubOvr(k), playerOvr(c) + TRIAL_UP), 1, 97), st = trialStep(rivalAI(c, k), c);
+    var stMe = copy(c.player.st), fm = fatigueMalus(c); KEYS.forEach(function (key) { stMe[key] = clampI(stMe[key] - fm, 1, 99); });
+    var mt = o.mateP || newMate(c, k, r), riv = clubsOf(c, lvl).filter(function (x) { return x.id !== k.id; }).sort(function (a, b) { return clubOvr(b) - clubOvr(a); })[0] || k;
+    var bd = B() && B().forPlayer ? B().forPlayer(c.player) : null; if (bd && !Object.keys(bd).length) bd = null;
+    return { attrs: [[stMe, copy(mt.st)], [genSt(clampI(rov + 1, 1, 99), 'atk', r), genSt(clampI(rov - 1, 1, 99), 'cr', r)]], badges: bd ? [[bd, null], null] : null,
+      points: TRIAL_PTS, bestOf: 1, venue: VENUE, difficulty: st.d, rookie: false, diffName: diffName0(st.d), ctrl: 'one', ctrlIdx: 0, rivalOvr: rov,
+      ref: copy(REF[league(lvl).ref]), kit: kitOpt(k.kit), rivalKit: kitOpt(riv.kit),
+      career: { mode: 'beach', trial: { i: i, club: o.club }, season: c.season, phase: c.phase, label: 'Prueba · ' + k.name, me: k.short, rival: riv.short, venue: VENUE,
+        meName: k.name, rivalName: riv.name, player: c.player.name, num: c.player.num, mate: mt.name, mateNum: mt.num, cdiff: diffOf(c) } };
+  }
+  /** Pista: opciones del mini partido de la prueba de la oferta i (6v6, tú en tu puesto con el seis del club). */
+  function trialSetupH(i) {
+    var c = load6(), o = c && c.offers && c.offers[i]; if (!o || !o.trial) return null;
+    var k = club(c, o.club), lid = o.lid || k.lid, L = lg6(c, lid), R = simRoles6(), role = ctrlRole6(c), idx = R.indexOf(role);
+    if (idx < 0) idx = 1;
+    var kov = o.ovr != null ? o.ovr : k.ovr, rov = clampI(Math.max(kov, playerOvr(c) + TRIAL_UP), 1, 97), r = rng(hash(c.seed, 'trialM6', o.club, c.season));
+    var st = trialStep(rivalAI6(c, k), c), stMe = copy(c.player.st), fm = fatigueMalus(c);
+    KEYS.forEach(function (key) { stMe[key] = clampI(stMe[key] - fm, 1, 99); });
+    var riv = lgClubs6(c, lid).filter(function (x) { return x.id !== k.id; }).sort(function (a, b) { return b.ovr - a.ovr; })[0] || k;
+    var side6 = function (kk, ov, me) {
+      var q = squad6(c, kk, c.season, ''), byp = {}, cnt = {}, a = [], nu = [], na = [], used = {};
+      SQ_POS.forEach(function (p) { byp[p] = q.filter(function (x) { return x.pos === p; }).sort(function (x, y) { return y.ovr - x.ovr; }); });
+      if (me) used[c.player.num] = 1;
+      R.forEach(function (p, j) {
+        if (me && j === idx) { a.push(stMe); nu.push(c.player.num); na.push(c.player.name); return; }
+        var u = cnt[p] = (cnt[p] || 0); cnt[p]++; var x = byp[p] && (byp[p][u] || byp[p][0]), n = x ? x.num | 0 : 0;
+        while (!n || used[n]) n = (n % 98) + 1; used[n] = 1;
+        a.push(genSt(clampI(ov + (j % 2 ? 1 : -1), 1, 99), p, r)); nu.push(n); na.push(x ? x.name : '');
+      });
+      return { a: a, n: nu, na: na };
+    };
+    var mine = side6(k, kov, true), them = side6(riv, rov, false);
+    var bd = B() && B().forPlayer ? B().forPlayer(c.player) : null; if (bd && !Object.keys(bd).length) bd = null;
+    return { format: '6v6', venue: 'hall', ctrlRole: role, ctrlIdx: idx, ctrl: 'one', attrs: [mine.a, them.a], nums: [mine.n, them.n], names: [mine.na, them.na],
+      badges: bd ? [R.map(function (x, j) { return j === idx ? bd : null; }), null] : null, meOn: true, meSlot: idx, meBench: -1, rivalOvr: rov,
+      points: TRIAL_PTS, bestOf: 1, difficulty: st.d, rookie: false, diffName: diffName0(st.d), ref: copy(REF[ref6(L ? L.strength : 60)]),
+      kit: kitOpt(k.kit, true), rivalKit: kitOpt(riv.kit, true),
+      career: { mode: 'hall', trial: { i: i, club: o.club }, season: c.season, phase: c.phase, label: 'Prueba · ' + k.name, me: k.short, rival: riv.short, venue: 'hall',
+        meName: k.name, rivalName: riv.name, player: c.player.name, num: c.player.num, pos: role, posName: POS6[role].name, mate: '', mateNum: 0, meOn: true, status: 'start', cdiff: diffOf(c) } };
+  }
+  /** Firma tras superar la prueba (la parte de acceptOffer sin la prueba). */
+  function trialSign(c, o, hall) {
+    o.years = 1;
+    if (c.phase === 'pick') { if (hall) joinClub6(c, o, 1); else joinClub(c, o, 1); return; }
+    o.early = earlyExit(c);
+    if (o.early) msg(c, 'agent', 'Salida con contrato', club(c, c.myClub).name + ' no quería dejarte ir: aún te quedaban ' + plural((c.contract.left | 0) - (c.phase === 'off' ? 1 : 0), 'temporada', 'temporadas') + ' de contrato. Llegas a ' + club(c, o.club).name + ' con algo menos de confianza del entrenador.');
+    if (c.window === 'end' && c.phase === 'off') { if (hall) newSeason6(c, o, 1); else newSeason(c, o, 1); return; }
+    if (hall) joinClub6(c, o, 1); else joinClub(c, o, 1);
+    c.last = null;
+  }
+  /** Cierra la prueba de la oferta i con la nota y el resultado del mini partido (jugado o simulado). Guarda. */
+  function trialResolve(c, i, nota, win, sim, hall) {
+    var o = c.offers[i], k = club(c, o.club), p = trialP(o, nota, win, sim);
+    var pass = rng(hash(c.seed, 'trialP', o.club, c.season, sim ? 1 : 0, Math.round((nota || 0) * 10), win ? 1 : 0))() < p;
+    var res = { pass: pass, p: p, nota: nota, win: !!win, sim: !!sim, club: o.club, clubName: k.name, chance: o.chance };
+    c.trialLast = res;
+    var nt = nota == null ? 'sin nota' : 'nota ' + String(nota).replace('.', ','), how = (sim ? 'simulada, ' : '') + nt + (win ? ', ganaste el mini partido' : ', perdiste el mini partido');
+    if (!pass) {
+      c.offers.splice(i, 1);
+      msg(c, 'agent', 'Prueba no superada', k.name + ' te ha visto en la prueba (' + how + ') y prefiere esperar.' + (c.offers.length ? ' Aún tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + '.' : ''));
+      if (c.phase === 'pick') { c.pick.fail = o.club; if (!c.offers.length) c.offers = hall ? genStartOffers6(c, ++c.pick.round) : genStartOffers(c, ++c.pick.round); }
+      else if (c.window === 'mid' && !c.offers.length) c.window = '';
+    } else {
+      msg(c, 'agent', '¡Prueba superada!', k.name + ' te ficha tras la prueba (' + how + '). Contrato de 1 temporada: demuestra que no se han equivocado.');
+      trialSign(c, o, hall);
+    }
+    if (hall) save6(c); else save(c);
+    return res;
+  }
+  /** Simula la prueba de la oferta i (sin jugarla): fuerza de tu lado contra la de los rivales, nota como en simular un partido. */
+  function trialSimC(c, i, hall) {
+    var o = c && c.offers && c.offers[i]; if (!o || !o.trial) return null;
+    var k = club(c, o.club), kov = o.ovr != null ? o.ovr : hall ? k.ovr : clubOvr(k), me = playerOvr(c), rov = Math.max(kov, me + TRIAL_UP);
+    var mt = !hall && o.mateP ? ovrOf(o.mateP.st) : kov, mine = hall ? (5 * kov + me) / 6 : (me + mt) / 2, r = rng(hash(c.seed, 'trialS', o.club, c.season));
+    var q = quickSim(mine + (r() - 0.5) * 4, rov + (r() - 0.5) * 4, r, TRIAL_PTS), win = q.setScores[0][0] > q.setScores[0][1];
+    var nota = round1(clamp(6.1 + (mine - rov) * 0.04 + (win ? 0.6 : -0.6) + (r() - 0.5) * 1.6, 3, 9.5));
+    return trialResolve(c, i, nota, win, true, hall);
+  }
+  /** Cierra la prueba JUGADA (main.js → fachada matchDone con g.career.trial): nota del mini partido con los eventos de ingest. */
+  function trialDone(r, stats, g) {
+    var T = g && g.career && g.career.trial, hall = !!(g && g.career && g.career.mode === 'hall'), c = hall ? load6() : load();
+    if (!c || !T || !r || !r.sets) { M = null; return null; }
+    var i = trialIdx(c, T); if (i < 0) { M = null; return null; }
+    var m = M && (!g || M.g === g) ? M : newM(g), me = stats || m.p[0];
+    var rallies = m.rallies || (r.setScores || []).reduce(function (s0, x) { return s0 + (x[0] | 0) + (x[1] | 0); }, 0), sets = [r.sets[0] | 0, r.sets[1] | 0], win = sets[0] > sets[1];
+    var mine = { kills: me.kills | 0, aces: me.aces | 0, blocks: me.blocks | 0, assists: me.assists | 0, digs: me.digs | 0, errors: me.errors | 0, recvP: me.recvP | 0, perfect: me.perfect | 0, good: me.good | 0, poor: me.poor | 0 };
+    var nota = hall ? rating(mine, { win: win, sets: sets }, rallies, RATE6[ctrlRole6(c)] || RATE6.OH) : rating(mine, { win: win, sets: sets }, rallies);
+    M = null;
+    var res = trialResolve(c, i, nota, win, false, hall);
+    res.trial = true; res.me = mine; res.sets = sets;
+    return res;
+  }
+
   var HALL = {
     MODE: 'hall', VER: VER6, STORE: KEY6, START_OVR: START6, POS: POS6, POINTS: POINTS6, WEEKS: 99, DIFF_AT: DIFF6_AT, SOFT: SOFT6, RATE6: RATE6, DOUBLE_MAX: DOUBLE_MAX, SCOUT_BONUS: SCOUT_BONUS,
     exists: function () { return !!load6(); }, get: function () { return load6(); }, load: load6, lost: function () { return lost6; }, save: save6, create: create6, abandon: abandon6,
@@ -3036,6 +3148,8 @@
     capRole: capRole6, meRules: meRules6, SQ_SIZE: SQ_SIZE, SQ_BIG: SQ_BIG, SLOTS: SLOTS6, LIST: LIST6, ME_EDGE: ME_EDGE, ME_EDGE_STEP: ME_EDGE_STEP, ME_EDGE_MIN: ME_EDGE_MIN, meEdge: meEdge6, SEL_IMP: SEL_IMP, OUT_COACH: OUT_COACH, FAT_REST: FAT_REST, FAT_REST_TOP: FAT_REST_TOP,
     TIT_BONUS: TIT_BONUS, STARTS_PROMOTE: STARTS_PROMOTE, TIT_BROKEN: TIT_BROKEN, TRAIN_COACH: TRAIN_COACH, IMPACT_COACH: IMPACT_COACH, FIT_START: FIT_START, FIT_DEEP: FIT_DEEP,
     NOTA_MIN_R: NOTA_MIN_R, BENCH_XP: BENCH_XP, XP_K: XP_K6,
+    // pruebas jugadas (17-nov-2026)
+    trialSetup: trialSetupH, trialSim: function (i) { return trialSimC(load6(), i, true); },
     // dificultad de la Carrera (15-nov-2026): mismas claves que la playa, con el guardado y la escala de la pista
     CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, GATE6: GATE6, TOP6: TOP6, top: top6,
     diffOf: function (c) { return diffOf(c || load6()); }, rivalAI: rivalAI6, attrOf: attrOf6, baseStep: baseStep6,
@@ -3067,6 +3181,9 @@
     BROKEN_BONUS: BROKEN_BONUS, PAY_WEEK: PAY_WEEK, PHYSIO_FAT: PHYSIO_FAT, benchNext: benchNext, benchWhy: benchWhy, BENCH_REST: BENCH_REST, physio: physio, physioCost: physioCost, roleIdx: roleIdx, _beachTrophies: beachTrophies,
     // vida de la Carrera (career-life.js)
     _msg: msg, _addXP: addXP, _wkKey: wkKey, XP_K: XP_K,
+    // pruebas jugadas (17-nov-2026)
+    TRIAL_PTS: TRIAL_PTS, TRIAL_UP: TRIAL_UP, TRIAL_K: TRIAL_K, TRIAL_REF: TRIAL_REF, TRIAL_WIN: TRIAL_WIN, TRIAL_SIM: TRIAL_SIM, TRIAL_GAP: TRIAL_GAP, trialP: trialP, trialStep: trialStep,
+    trialSetup: trialSetupB, trialSim: function (i) { return trialSimC(load(), i, false); },
     // jefes de la Carrera (career-life.js bossSt)
     _genSt: genSt,
     // dificultad de la Carrera (12-nov-2026)
@@ -3104,7 +3221,8 @@
       return c;
     },
     /** Al cerrar un partido: el de la Carrera a la que pertenece (g.career.mode), aunque la activa hubiera cambiado. */
-    matchDone: function (r, st, g) { return (g && g.career && g.career.mode === 'hall' ? HALL : g && g.career ? BEACH : eng()).matchDone(r, st, g); },
+    matchDone: function (r, st, g) { if (g && g.career && g.career.trial) return trialDone(r, st, g); return (g && g.career && g.career.mode === 'hall' ? HALL : g && g.career ? BEACH : eng()).matchDone(r, st, g); },
+    trialDone: trialDone,
     ingest: ingest, abortMatch: abortMatch, owns: owns,
     /** Fin de un ejercicio de Carrera jugado (main.js): a la Carrera del ejercicio (g.careerDrill.mode), aunque la activa hubiera cambiado. */
     drillDone: function (mode, id, total) { return (mode === 'hall' ? HALL : BEACH).trainSession(id, 'play', total); },

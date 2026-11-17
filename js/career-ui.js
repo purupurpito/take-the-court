@@ -26,6 +26,7 @@
   var root = null, body = null, head = null, tabsEl = null, subEl = null, styleEl = null;
   var view = 'hub', tab = 'match', open = false, lastFocus = null, from = 'play', focusReq = '', ptDone = false, tblLvl = -1, armT = 0, armTo = 0, confirmStep = 0, freshLast = false;
   // (sin «Controlar»: en la Carrera solo se controla a tu jugador)
+  var trialNote = '';   // (pruebas jugadas: resultado de la última, se pinta una vez arriba del hub)
   var form = { name: '', num: 1, role: 'atk', mode: '', country: 'ES', pos: 'OH', pts6: 15, diff: 'normal' }, badgeMsg = '', note = '', dnote = '', yrs = {};   // (playa: sin puntos por set, siempre a 21; pista: 15/21/25)
   var tblLid = '';   // Carrera de pista: liga que se ve en Clasificación ('' = la tuya)
   // Pestañas (móvil primero): 6 apartados y, dentro, sub-pestañas. Las dos barras son el componente común de ui.js
@@ -589,6 +590,7 @@
       : sub.league === 'clubs' && CW ? WUI().clubsHTML(c, tblLvl >= 0 ? tblLvl : k.lvl, HLP) : renderTable(c);
     else if (tab === 'life') h = LUI() ? LUI().render(c, sub.life, HLP) : '';
     else h = renderHonors(c);
+    if (trialNote) { h = '<div class="card new" role="status"><h3>Prueba</h3><p>' + esc(trialNote) + '</p></div>' + h; trialNote = ''; }
     body.innerHTML = h;
   }
   /** Barra de pestañas con el componente común (VB.UI.tabs). which = 'tab' (primer nivel: apartados del hub, u ofertas al elegir
@@ -825,6 +827,26 @@
       return same ? 'la IA rival juega en ' + esc(lo) : 'la IA rival va de ' + esc(lo) + ' (los más flojos) a ' + esc(hi) + ' (los mejores)';
     } catch (e) { return old; }
   }
+  /** Pruebas jugadas (17-nov-2026): explicación de la oferta de prueba y sus dos botones (jugar o simular). */
+  function trialHTML(c, o) {
+    var K = C(), pts = K.TRIAL_PTS || 15, sim = Math.round(((K.TRIAL_SIM || 0.75)) * 100), now = c.phase === 'off' ? ' Si la superas, fichas para la temporada que viene.' : c.phase === 'pick' ? '' : ' Si la superas, fichas al momento.';
+    return '<p class="muted">Es una <b>prueba</b>: un mini partido a un set de ' + pts + ' contra jugadores mejores que tú, con la IA un nivel por encima de lo normal. Te fichan según tu <b>nota</b> (ganarlo ayuda un poco): de partida, ~' + Math.round(o.chance * 100) +
+      ' % con una nota de ' + String(K.TRIAL_REF || 6).replace('.', ',') + '. Simulada cuenta menos (×' + (sim / 100).toFixed(2).replace('.', ',') + '). Si no la superas, pierdes esta oferta. Contrato de 1 temporada.' + now + '</p>';
+  }
+  function trialBtns(i) { return '<button class="pri" data-act="trialplay" data-i="' + i + '">Jugar la prueba</button><button data-act="trialsim" data-i="' + i + '">Simular la prueba</button>'; }
+  /** Texto del resultado de una prueba (CareerUI.open({trial})). */
+  function trialText(r) {
+    if (!r || r.quit) return 'Has dejado la prueba a medias: la oferta sigue ahí.';
+    var nt = r.nota == null ? 'sin nota' : 'nota ' + dec(r.nota);
+    return (r.pass ? '¡Superada! ' + r.clubName + ' te ficha' : 'No superada: ' + r.clubName + ' prefiere esperar') + ' (' + (r.sim ? 'simulada, ' : '') + nt + (r.win ? ', ganaste el mini partido' : ', perdiste el mini partido') + '; probabilidad ' + Math.round(r.p * 100) + ' %).';
+  }
+  /** Enseña el resultado de una prueba donde vas a aterrizar: superada, arriba de Partido; no superada, en la lista de ofertas (al elegir club o en Club › Ofertas). */
+  function showTrial(res) {
+    var cc = C() && C().get(), t = trialText(res);
+    if (res && res.pass) { trialNote = t; tab = 'match'; return; }
+    if (cc && cc.phase !== 'pick' && !(res && res.quit)) { tab = 'club'; sub.club = 'offers'; }
+    if (cc && cc.phase === 'pick' || tab === 'club') note = t; else trialNote = t;
+  }
   function offerCard(c, o, i, full) {
     if (isHall(c)) return offerCard6(c, o, i, full);
     var k = C().club(c, o.club), f = C().clubInfo(c, k, o.lvl != null ? o.lvl : k.lvl, o.q), mp = o.mateP, y = yrs[o.club] || o.years || 1;
@@ -842,7 +864,7 @@
     if (!o.trial && C().ROLE_HINT) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
     if (o.negNo) h += '<p class="muted">Negociación rechazada: si firmas, el entrenador empieza con ' + C().NEG_COACH + ' menos de confianza.</p>';
-    if (o.trial) h += '<p class="muted">Es una <b>prueba</b>: te fichan si la superas (probabilidad ~' + Math.round(o.chance * 100) + ' %). Si no, pierdes esta oferta y sigues con las demás. Contrato de 1 temporada. Ojo: ' + esc(C().lname(C().league(1))) + ' es una categoría por encima: ' + trialAI(c) + '.</p>';
+    if (o.trial) h += trialHTML(c, o);
     else h += '<p class="muted" style="margin-top:6px">Duración del contrato:</p>' + yearsSeg(o.club, y);
     var canNeg = !o.trial && !o.firm && o.role !== 'Titular indiscutible';
     if (offArm === i && c.window === 'mid') {   // fichar a mitad de temporada: confirmación con lo que cambia
@@ -852,7 +874,7 @@
         (early ? 'Sales con contrato en vigor: el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza. ' : '') + 'No se puede deshacer.</p>' +
         '<div class="acts"><button class="pri" data-act="offer" data-i="' + i + '">Sí, fichar</button><button data-act="offno">Cancelar</button></div></div></div>';
     }
-    h += '<div class="acts"><button class="pri" data-act="offer" data-i="' + i + '">' + (o.trial ? 'Hacer la prueba' : 'Firmar') + '</button>' +
+    h += '<div class="acts">' + (o.trial ? trialBtns(i) : '<button class="pri" data-act="offer" data-i="' + i + '">Firmar</button>') +
       (canNeg ? '<button data-act="neg" data-i="' + i + '" title="Si no sale, el entrenador empieza con menos confianza">' + (o.role === 'Titular' ? 'Pedir ser indiscutible' : 'Pedir ser titular') + '</button>' : '') + '</div></div>';
     return h;
   }
@@ -1331,7 +1353,7 @@
     if (!o.trial) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
     if (o.negNo) h += '<p class="muted">Negociación rechazada: si firmas, el entrenador empieza con ' + C().NEG_COACH + ' menos de confianza.</p>';
-    if (o.trial) h += '<p class="muted">Es una <b>prueba</b>: te fichan si la superas (probabilidad ~' + Math.round(o.chance * 100) + ' %). Si no, pierdes esta oferta y sigues con las demás. Contrato de 1 temporada, una categoría por encima: rivales más fuertes.</p>';
+    if (o.trial) h += trialHTML(c, o);
     else h += '<p class="muted" style="margin-top:6px">Duración del contrato:</p>' + yearsSeg(o.club, y);
     var canNeg = !o.trial && !o.firm && o.role !== 'Titular indiscutible';
     if (offArm === i && c.window === 'mid') {
@@ -1340,7 +1362,7 @@
         (early ? 'Sales con contrato en vigor: el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza. ' : '') + 'No se puede deshacer.</p>' +
         '<div class="acts"><button class="pri" data-act="offer" data-i="' + i + '">Sí, fichar</button><button data-act="offno">Cancelar</button></div></div></div>';
     }
-    h += '<div class="acts"><button class="pri" data-act="offer" data-i="' + i + '">' + (o.trial ? 'Hacer la prueba' : 'Firmar') + '</button>' +
+    h += '<div class="acts">' + (o.trial ? trialBtns(i) : '<button class="pri" data-act="offer" data-i="' + i + '">Firmar</button>') +
       (canNeg ? '<button data-act="neg" data-i="' + i + '" title="Si no sale, el entrenador empieza con menos confianza">Pedir más rol</button>' : '') + '</div></div>';
     return h;
   }
@@ -1575,6 +1597,17 @@
         if (okf) { yrs = {}; note = ''; snd('start'); tab = 'match'; render(); focusFirst(); syncMenu(); return; }
         if (wasPick && of.trial) { note = 'No has superado la prueba de ' + C().club(c, of.club).name + '. Te quedan las otras ofertas.'; sub.pick = 0; snd('back'); render(); focusTab(); syncMenu(); }
         return;
+      }
+      case 'trialplay': {   // pruebas jugadas: el mini partido de verdad (main.js startCareerTrial)
+        var ti = +b.getAttribute('data-i'); snd('start');
+        if (!(VB.ctx && VB.ctx.actions && VB.ctx.actions.startCareerTrial && VB.ctx.actions.startCareerTrial(ti))) { note = 'No se ha podido empezar la prueba.'; render(); }
+        return;
+      }
+      case 'trialsim': {
+        var ts = +b.getAttribute('data-i'), tr = C().trialSim ? C().trialSim(ts) : null;
+        if (!tr) return;
+        yrs = {}; sub.pick = 0; showTrial(tr);
+        snd(tr.pass ? 'start' : 'back'); render(); focusFirst(); syncMenu(); return;
       }
       case 'offno': { var ai = offArm; offArm = -1; snd('back'); render(); focusSel('[data-act="offer"][data-i="' + ai + '"]'); return; }
       case 'lvl': tblLvl = +b.getAttribute('data-l'); snd('select'); keepFocus(b, render); return;
@@ -1921,6 +1954,7 @@
       var back0 = opts.fresh || opts.train || opts.focus === 'train';
       if (opts.from === 'main' || opts.from === 'play') from = opts.from; else if (!back0) from = 'play';
       if (opts.fresh) { freshLast = true; tab = 'match'; }
+      if (opts.trial) showTrial(opts.trial);
       if (opts.train || opts.focus === 'train') { tab = 'match'; trainNote = opts.res ? trainResText(opts.res) : ''; trainFocus = true; }
       else if (opts.focus === 'play' || opts.focus === 'bench') { tab = 'match'; focusReq = opts.focus; }
       show(v);
