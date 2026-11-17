@@ -62,7 +62,7 @@
       roster: {}, rallies: [], r: null, me: -1, meSet: false,
       // (6v6, para el acta de js/acta.js) plantilla completa, alineación y primer saque de cada set, y lo que pasa a balón muerto:
       // ac = [{i: rally antes del que pasa, k: 'sub'|'lib'|'tmo', s: set, t: equipo, o/n: dorsal que sale / entra}]
-      sq: null, lu: {}, ac: [], bo1: !!(g && g.bo1) };
+      sq: null, lu: {}, ac: [], bo1: !!(g && g.bo1), seed: (g && g.seed) | 0 };
   }
   /** 6v6: plantilla de cada equipo (con banquillo y líbero) y alineación del set. Nada en 2v2. */
   function squadOf(g) {

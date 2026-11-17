@@ -56,6 +56,9 @@ async function loadEmpat() {
     { k: '6v6 a 15 con banquillo', o: { format: '6v6', points: 15, bench: [BENCH(0), BENCH(1)] } },
     { k: '6v6 a 25 con banquillo', o: { format: '6v6', bench: [BENCH(0), BENCH(1)] }, n: 1 },
     { k: '6v6 a un set', o: { format: '6v6', points: 15, bestOf: 1 }, n: 1 },
+    // Carrera: fuera de casa, capitán suplente (capitán en juego desde el principio) y capitán central (el líbero entra por él)
+    { k: '6v6 fuera con capitán suplente', o: { format: '6v6', points: 15, bench: [BENCH(0), BENCH(1)] }, n: 2, meta: { atHome: false, capt: [21, 7], lib: ['Nora Líbero', ''] } },
+    { k: '6v6 capitán central', o: { format: '6v6', points: 15 }, n: 2, meta: { capt: [3, 9] } },
   ];
   let totSubs = 0, totLibs = 0;
   for (const F of FORMATS) {
@@ -67,7 +70,8 @@ async function loadEmpat() {
       ok(label + ': el partido acaba', !!over); if (!over) continue;
       const d = VB.MatchStats.data();
       ok(label + ': hay acta', VB.Acta.available(d));
-      const meta = { home: 'Voley Local', away: 'Voley Visitante', venue: 'Pabellón de prueba', now: Date.UTC(2026, 10, 17, 18, 0, 0), id: 'prueba' };
+      const meta = Object.assign({ names: ['Voley Mío', 'Voley Rival'], venue: 'Pabellón de prueba', competition: 'Hiperliga · Jornada 3 de 22',
+        now: Date.UTC(2026, 10, 17, 18, 0, 0), id: 'prueba' }, F.meta || {});
       const A = VB.Acta.build(d, meta);
       if (!A) { ok(label + ': build devuelve acta', false); continue; }
       ok(label + ': formato', A.format === 'empat/acta' && A.version === 1 && Array.isArray(A.plays));
@@ -77,6 +81,23 @@ async function loadEmpat() {
       const pts = g.setScores.reduce((a, s) => a + s[0] + s[1], 0);
       ok(label + ': un rally por punto', K('rally') === pts, K('rally') + ' frente a ' + pts);
       ok(label + ': dos plantillas', K('roster') === 2);
+      const away = F.meta && F.meta.atHome === false;
+      ok(label + ': local y visitante', A.info.homeName === (away ? 'Voley Rival' : 'Voley Mío') && A.info.awayName === (away ? 'Voley Mío' : 'Voley Rival'),
+        A.info.homeName + ' / ' + A.info.awayName);
+      ok(label + ': competición de la Carrera', A.info.competition === 'Hiperliga · Jornada 3 de 22');
+      ok(label + ': tres árbitros distintos de la lista', [A.info.referee1, A.info.referee2, A.info.scorer].every((x) => VB.Acta.ARBITROS.indexOf(x) >= 0) &&
+        new Set([A.info.referee1, A.info.referee2, A.info.scorer]).size === 3);
+      for (const r of A.plays.filter((p) => p.kind === 'roster')) {
+        ok(label + ' ' + r.side + ': todos con nombre', r.players.every((p) => p.name && p.name.indexOf(' ') > 0), r.players.map((p) => p.name).join(','));
+        ok(label + ' ' + r.side + ': nombres sin repetir', new Set(r.players.map((p) => p.name)).size === r.players.length);
+        ok(label + ' ' + r.side + ': un capitán y no es líbero', r.players.filter((p) => p.captain).length === 1 && !r.players.some((p) => p.captain && p.libero));
+      }
+      if (F.meta && F.meta.capt) {
+        const mine = A.plays.find((p) => p.kind === 'roster' && p.side === (away ? 'away' : 'home'));
+        ok(label + ': el capitán es el del club', mine.players.some((p) => p.captain && p.shirt === String(F.meta.capt[0])));
+        ok(label + ': hay capitán en juego', K('actingCaptain') > 0);
+      }
+      if (F.meta && F.meta.lib && F.meta.lib[0]) ok(label + ': nombre del líbero', A.plays.some((p) => p.kind === 'roster' && p.players.some((x) => x.libero && x.name === F.meta.lib[0])));
       ok(label + ': un inicio por set', K('startPeriod') === g.setScores.length, K('startPeriod') + ' / ' + g.setScores.length);
       if (!R) continue;
       // motor de emPat: jugada a jugada, cada una tiene que ser legal
@@ -90,9 +111,10 @@ async function loadEmpat() {
       const M = R.replay(A.settings, A.info, A.plays);
       ok(label + ': emPat da el partido por acabado', M.phase === 'over', M.phase);
       const sum = R.summarize(M);
-      ok(label + ': sets ganados', sum.totals.home.won === g.sets[0] && sum.totals.away.won === g.sets[1],
-        sum.totals.home.won + '-' + sum.totals.away.won + ' frente a ' + g.sets.join('-'));
-      const rows = sum.rows.map((r) => r.home.points + '-' + r.away.points).join(' '), want = g.setScores.map((s) => s.join('-')).join(' ');
+      const H = away ? 1 : 0;   // equipo de la sim que es el local en el acta
+      ok(label + ': sets ganados', sum.totals.home.won === g.sets[H] && sum.totals.away.won === g.sets[1 - H],
+        sum.totals.home.won + '-' + sum.totals.away.won + ' frente a ' + g.sets[H] + '-' + g.sets[1 - H]);
+      const rows = sum.rows.map((r) => r.home.points + '-' + r.away.points).join(' '), want = g.setScores.map((s) => s[H] + '-' + s[1 - H]).join(' ');
       ok(label + ': puntos de cada set', rows === want, rows + ' frente a ' + want);
       ok(label + ': cambios contados', sum.totals.home.substitutions + sum.totals.away.substitutions === K('substitution'));
     }

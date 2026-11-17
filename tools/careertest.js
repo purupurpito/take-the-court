@@ -1077,6 +1077,10 @@ else {
     ok(ms.meOn === true && R6[ms.meSlot] === 'OH' && ms.ctrlIdx === ms.meSlot && ms.meBench === -1 && ms.nums[0][ms.meSlot] === 9 && ms.names[0][ms.meSlot] === c.player.name && ms.career.meOn === true && ms.career.status === 'start', 'meOn, meSlot (' + ms.meSlot + '), ctrlIdx y tu dorsal en tu hueco');
     ok(ms.coach[0].auto && ms.coach[1].auto && [1, 2, 3].indexOf(ms.coach[0].iq) >= 0 && ms.coach[1].iq === ({ easy: 1, normal: 2, hard: 3, expert: 3 })[ms.difficulty] && ms.coach[0].me.pullAt === 99 && ms.coach[0].me.enterBad === true && ms.coach[0].me.garbage === true, 'entrenadores: iq por dificultad y reglas hacia ti (pullAt 99 con indiscutible)');
     ok(new Set(ms.nums[0].concat(ms.bench[0].map(b => b.num))).size === 11, 'dorsales de tu equipo distintos (6 + 5)');
+    { const A = ms.career.acta, conv = (t) => ms.nums[t].concat(ms.bench[t].map(b => b.num));
+      ok(A && A.capt[0] > 0 && conv(0).indexOf(A.capt[0]) >= 0 && A.capt[1] > 0 && conv(1).indexOf(A.capt[1]) >= 0 && typeof ms.career.atHome === 'boolean' &&
+        A.lib.length === 2 && A.lib.every(n => typeof n === 'string' && n), 'acta: capitán convocado de cada club, líberos con nombre y local (' + JSON.stringify(A) + ', atHome ' + ms.career.atHome + ')');
+      const ms2 = C.matchSetup(c); ok(JSON.stringify(ms2.career.acta) === JSON.stringify(A), 'acta: el capitán es fijo (mismo partido, mismo capitán)'); }
     c.contract.role = 'Rotación'; c.coach = 40; setAll(c, 20); reLine(c);
     ms = C.matchSetup(c);
     ok(ms.meOn === false && ms.meSlot === -1 && ms.ctrlIdx === -1 && ms.meBench >= 0 && ms.meBench < 5 && ms.bench[0][ms.meBench].num === 9 && ms.bench[0][ms.meBench].name === c.player.name && ms.nums[0].indexOf(9) < 0 && ms.career.meOn === false && ms.career.status === 'sub', 'desde el banquillo: meOn false, meSlot −1, tú en bench[0][' + ms.meBench + ']');

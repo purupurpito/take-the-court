@@ -864,7 +864,10 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - **Acta del partido (ui_main, 1.7.0):** `js/acta.js` (`VB.Acta.available(data)` / `build(data, meta)`, puro) convierte el registro de
   `VB.MatchStats` de un 6v6 (que además guarda plantilla `sq`, alineación y primer saque por set `lu` y cambios / líbero / tiempos muertos
   `ac`) en un acta de emPat (`"format": "empat/acta"`, v1: roster, toss, lineup, startPeriod, rally, substitution, liberoIn/liberoOut,
-  timeout). Equipo 0 = local. Botón «Acta del partido» (#btnActa, junto a «Estadística del partido»): en purupurpito.github.io la guarda
+  actingCaptain, timeout). Local: en la Carrera `career.atHome` (si no, el equipo 0); competición = `career.label`; capitán = `career.acta.capt`
+  (career.js capt6: el de más media del club, sin líberos, entre los convocados; sin él, el colocador) y capitán en juego (el colocador en
+  pista) cuando no está; `career.acta.lib` = nombres de los líberos; el resto sin nombre, inventado por semilla. Árbitros: 1r, 2º y
+  anotador designados por semilla de `VB.Acta.ARBITROS`. Botón «Acta del partido» (#btnActa, junto a «Estadística del partido»): en purupurpito.github.io la guarda
   en el almacén de emPat (mismo origen: clave `empat/acta/<id>`) y abre `/emPat/?acta=<id>`; fuera de Pages descarga el .json para
   importarlo en la portada de emPat. Prueba `node tools/actatest.js [partidos]` (con `../acta-electronica` o `EMPAT_DIR` comprueba cada
   jugada contra el motor de emPat y que sets y puntos coinciden).
