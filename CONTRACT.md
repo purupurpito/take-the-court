@@ -1116,3 +1116,11 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
 - (arreglos de la revisión) Sin cambios de API. `?net=bc` sin `&map=`: el anfitrión manda ya un `mapId` concreto (de
   `VB.Venues.list(venue)` con la semilla). La lista `d.pl` que ui.js pasa a `VB.Recap.endModel` va con tu equipo primero (orden estable),
   así un empate a puntos da el MVP a tu equipo también en el invitado.
+
+**Informe de red (net, 17-nov-2026; detalle en notes/net.md «Informe de red»).** Fichero nuevo de `net`: `js/netlog.js` → `VB.NetLog`
+(`begin(net)`, `frame(net, r)`, `end(net, why)`), cargado tras `js/netlobby.js`. main.js lo llama en `netSession` (cierra el anterior),
+`netFrame` (tras `advance`) y `netStop`. Solo lee la sesión y el enlace; guarda UNA vez al acabar en Firestore `netlogs/{uid}_{id}`
+(reglas: crear/actualizar el propio, leer solo la cuenta de Ferran por el SHA-256 del correo). Visor `pages/netlogs.html`
+(→ `netlogs.html` en Pages). Ganchos de solo lectura: `Session.rttLast/rttSeq` y `stats.depth` (js/net.js), `RtcLink.info()` con
+`rtype/proto/relayProto` (js/netrtc.js, nunca direcciones). Prueba: `node tools/netlogtest.js`; `NDLOG=1 node tools/netdrive.js 45 80
+"quality=low&netlog=1"` enseña el informe de una partida de prueba.

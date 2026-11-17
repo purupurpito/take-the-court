@@ -104,9 +104,15 @@
   LP._stats = function () {
     var self = this, pc = this.pc; if (!pc || !pc.getStats) return;
     pc.getStats().then(function (rep) {
-      var pair = null, loc = {};
-      rep.forEach(function (r) { if (r.type === 'candidate-pair' && (r.nominated || r.selected) && r.state === 'succeeded') pair = r; if (r.type === 'local-candidate') loc[r.id] = r; });
-      if (pair) { var lc = loc[pair.localCandidateId]; self._type = lc ? String(lc.candidateType || '') : ''; self._rtt = pair.currentRoundTripTime ? Math.round(pair.currentRoundTripTime * 1000) : 0; }
+      var pair = null, loc = {}, rem = {};
+      rep.forEach(function (r) { if (r.type === 'candidate-pair' && (r.nominated || r.selected) && r.state === 'succeeded') pair = r; if (r.type === 'local-candidate') loc[r.id] = r; if (r.type === 'remote-candidate') rem[r.id] = r; });
+      if (pair) {
+        var lc = loc[pair.localCandidateId], rc = rem[pair.remoteCandidateId];
+        self._type = lc ? String(lc.candidateType || '') : ''; self._rtt = pair.currentRoundTripTime ? Math.round(pair.currentRoundTripTime * 1000) : 0;
+        // informe de red (js/netlog.js): tipos y protocolo, NUNCA direcciones ni puertos
+        self._rtype = rc ? String(rc.candidateType || '') : ''; self._proto = lc ? String(lc.protocol || '') : '';
+        self._relayProto = lc && lc.relayProtocol ? String(lc.relayProtocol) : '';
+      }
     }).catch(function () { });
   };
   function gather(pc, ms) {
@@ -141,7 +147,7 @@
     if (this.pend.length < CTL_MAX) this.pend.push(data);
   };
   LP.poll = function () { if (!this.q.length) return []; var o = this.q; this.q = []; return o; };
-  LP.info = function () { if (this.state === 'open') this._stats(); return { type: this._type, rtt: this._rtt, opens: this.opens }; };
+  LP.info = function () { if (this.state === 'open') this._stats(); return { type: this._type, rtt: this._rtt, opens: this.opens, rtype: this._rtype || '', proto: this._proto || '', relayProto: this._relayProto || '' }; };
   LP.close = function () {
     if (this.state === 'closed') return;
     clearInterval(this._tick);

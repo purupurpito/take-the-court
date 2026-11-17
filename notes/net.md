@@ -1232,3 +1232,27 @@ Arreglos de una auditoría con verificador independiente (24 hallazgos confirmad
 - RTT ≥ 350 ms: retraso de entrada adaptativo (ver «Límite práctico»).
 - Una foto (`snap`/`resync`) con basura sigue tirando la sesión del invitado; se podría descartar con try/catch y quedarse con la
   última buena.
+
+## Informe de red (17-nov-2026)
+Ferran: «hay gente probando el online; pon logs para comprobar cómo van las partidas, si hay mucho lag» (un probador: «70 estables
+con subidas a 150»), y «lo primordial es el mejor ping; no me preocupan las trampas, pon cosas client-based».
+
+- **Durante el partido no sale nada nuevo por la red.** `js/netlog.js` junta el informe en memoria y lo guarda UNA vez al acabar (o al
+  cerrar la pestaña, con keepalive) en `netlogs/{uid}_{id}` = `{uid, ver, t, j}` (j = JSON). El partido ya era P2P (WebRTC con STUN,
+  sin servidor en medio; Firestore solo en el lobby y la señalización).
+- **Ventanas de 10 s:** ping de la app (pings de control por el canal fiable, procesados en frames: suma un frame de espera de cada lado,
+  los tirones de las dos máquinas y las retransmisiones) y ping de la red (WebRTC `currentRoundTripTime`), [mín, media, p95, máx]; fps,
+  peor frame y frames > 50 ms; esperas al rival (veces y ms); rollback (media y máximo en tics); ventaja de frames; paquetes y KB;
+  ms con «conexión inestable» y con la pestaña oculta. **Sucesos:** inicio, juega, espera (> 250 ms), inestable/estable, resync,
+  huella_distinta, contra_ia/vuelve_rival, abandono, resultado, ruta (cambio de tipo de candidato), fin. Entorno: navegador, sistema,
+  móvil, pantalla, núcleos, memoria y `navigator.connection`. Nunca IP ni puertos (de getStats solo tipos y protocolo) ni correo.
+- **HUD:** el ping que se enseña pasa a ser el de la RED (WebRTC, leído como mucho cada 2 s); el de control, con sus picos de frame,
+  queda solo en el informe. Sin WebRTC (BroadcastChannel) o en los primeros segundos, el de siempre.
+- **Reglas** (desplegadas el 17-nov-2026): crear/actualizar solo el propio (id `uid_xxx`, 4 campos, j ≤ 250 000); leer y listar solo
+  la cuenta de Ferran (`hashing.sha256` del correo = el hash del acta en js/ui.js); nadie borra desde el cliente.
+- **Visor:** https://purupurpito.github.io/make-the-cut/netlogs.html con la cuenta de Ferran abierta en ese navegador (usa la sesión del
+  juego, mismo origen). Resumen, una fila por informe y detalle por ventanas al pulsar; «Copiar todo (JSON)» para pasárselo a Claude.
+- En una prueba local (dos páginas en el mismo Chrome, PC cargado) ya se vio un caso típico: el invitado con frames de 1-3 s (compilando)
+  y el anfitrión esperándole 0,5-0,7 s. `netdrive` «cero congelaciones» falla también en origin/main con el PC cargado (no es el informe).
+- Pendiente, según lo que digan los informes: retraso de entrada adaptativo al ping, precalentar los sombreadores antes del saque
+  inicial si las esperas vienen de ahí, TURN solo si hay rutas que no conectan.

@@ -304,6 +304,7 @@
         var rtt = now - c.t;
         if (this.rttN && c.t < this.rttFloor) break;   // (ping mandado antes de un corte: tras volver la red marcaba «673 ms» unos segundos)
         if (rtt < 3000 || !this.rttN) { this.rtt = this.rttN ? this.rtt * 0.8 + rtt * 0.2 : rtt; this.rttN++; }   // (un pong que llega tras un corte no es el ping: «4571 ms»)
+        if (rtt < 3000) { this.rttLast = rtt; this.rttSeq = (this.rttSeq || 0) + 1; }   // (crudo, para el informe de red: js/netlog.js)
         if ((!this.host || this.adopt) && !this.ready && c.id < 1000) this.pings.push({ rtt: rtt, off: c.th - (c.t + now) / 2 });
         break;
       case 'ready':
@@ -613,6 +614,7 @@
     S.copyGame(gp, this.gc);
     var depth = this.localTick - this.gcTick;
     if (depth > this.stats.maxDepth) this.stats.maxDepth = depth;
+    this.stats.depth = depth;   // (rollback de este frame, para el informe de red: js/netlog.js)
     if (depth <= 0) return;
     // predicción del rival: su última entrada conocida, con los flancos a falso (el bit ai se mantiene)
     var lk = this.rHave - 1;

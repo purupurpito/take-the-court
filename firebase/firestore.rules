@@ -102,5 +102,23 @@ service cloud.firestore {
           || (resource != null && resource.data.get('uid', '') == request.auth.uid));
       }
     }
+    // Informes de red de los partidos online (js/netlog.js, 17-nov-2026): uno por partido y jugador, escrito UNA vez al acabar con su
+    // cuenta. Crear/actualizar: solo el propio (id = uid_xxx, campo uid), 4 campos, j ≤ 250 000 caracteres. Leer: solo la cuenta de
+    // Ferran (SHA-256 del correo, el mismo que js/ui.js usa para el acta: el correo no va en el repo, que es público). Nadie borra
+    // desde el cliente.
+    match /netlogs/{id} {
+      function admin() {
+        return request.auth != null && request.auth.token.email is string
+          && hashing.sha256(request.auth.token.email.lower()).toHexString().lower() == 'c0592685221ed4a093808f6d3f8a863be6f6d4a1894b00b91e90b07719048deb';
+      }
+      function logOk(d) {
+        return d.keys().hasOnly(['uid', 'ver', 't', 'j']) && d.keys().hasAll(['uid', 'ver', 't', 'j'])
+          && d.uid == request.auth.uid && d.ver is string && d.ver.size() <= 20 && d.t is timestamp
+          && d.j is string && d.j.size() <= 250000;
+      }
+      allow get, list: if admin();
+      allow create: if request.auth != null && id.matches(request.auth.uid + '_[0-9a-z]{4,24}') && logOk(request.resource.data);
+      allow update: if request.auth != null && resource.data.uid == request.auth.uid && logOk(request.resource.data);
+    }
   }
 }

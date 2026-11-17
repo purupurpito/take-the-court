@@ -644,6 +644,7 @@
       log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null,
       // fase 6: cada paso CONFIRMADO, con sus dos entradas, al grabador de repeticiones (VB.Replay en modo dual sobre gc)
       onTick: function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } });
+    if (VB.NetLog && net.sess) { try { VB.NetLog.end(net, 'revancha'); } catch (e) { } }
     net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
     net.want = false; net.rivalWants = false; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
     net.stSnap = null; net.stRs = 0; net.hx = 0;   // (auditoría: copia de la hoja para rehacerla tras una vuelta; cruceta del HUD)
@@ -711,6 +712,7 @@
     if (!net) return;
     netTicker(false);
     try { if (quit) { net.sess.quit(); netSettle(); } } catch (e) { }
+    if (VB.NetLog) { try { VB.NetLog.end(net, quit ? 'sale' : 'cierra'); } catch (e) { } }
     try { if (net.link && net.link.close) net.link.close(); } catch (e) { }
     net = ctx.net = null; ctx.netBot = null;
     var h = document.getElementById('netHud'); if (h) h.hidden = true;
@@ -858,6 +860,7 @@
     var r;
     try { r = s.advance(performance.now(), raw); } catch (e) { reportError('Net.advance', e); netStop(false); return 0; }
     net.r = r;
+    if (VB.NetLog) { try { VB.NetLog.frame(net, r); } catch (e) { } }   // informe de red (solo lee; se guarda al acabar)
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return 0; }   // (revancha: sesión nueva; la vista llega con sus opciones)
     netRecTick(r);
     if (!v && s.opts && r.status !== 'ended') { netBuildView(); v = net.view; }
@@ -940,9 +943,15 @@
         btn = '<button data-n="ai">Seguir contra la IA</button><button data-n="quit">Abandonar (cuenta como derrota)</button>';
       }
     } else {
-      var pc = r.ping > 150 ? 'var(--amber,#ffb238)' : 'inherit', v = net.view;
+      // ping de la RED (WebRTC, candidate-pair; 17-nov-2026): el de los pings de control (r.ping) se procesa en frames y suma los
+      // tirones de las dos máquinas y las retransmisiones del canal fiable (70 ms estables con picos de 150 en las pruebas). Se lee
+      // como mucho cada 2 s (getStats) y, si no hay (BroadcastChannel, primeros segundos), el de siempre.
+      var nowP = performance.now();
+      if (net.link && net.link.info && (!net.iceAt || nowP - net.iceAt > 2000)) { net.iceAt = nowP; try { var inf = net.link.info(); net.iceRtt = inf && inf.rtt > 0 ? inf.rtt : 0; } catch (e) { net.iceRtt = 0; } }
+      var shownPing = net.iceRtt > 0 ? net.iceRtt : r.ping;
+      var pc = shownPing > 150 ? 'var(--amber,#ffb238)' : 'inherit', v = net.view;
       // (fase 4, guía de estilo de textos: datos del HUD separados con la barra fina, lo secundario entre paréntesis)
-      msg = 'Contra ' + who + ' | <span style="color:' + pc + '">' + r.ping + ' ms</span>' + (r.unstable ? ' | Conexión inestable' : '') + (r.solo ? (r.gone ? (r.valid ? ' | No ha vuelto: ganas tú (contra la IA)' : ' | Contra la IA (no cuenta)') : ' | Contra la IA (puede volver en ' + Math.ceil((r.goneIn || 0) / 1000) + ' s)') : '');
+      msg = 'Contra ' + who + ' | <span style="color:' + pc + '">' + shownPing + ' ms</span>' + (r.unstable ? ' | Conexión inestable' : '') + (r.solo ? (r.gone ? (r.valid ? ' | No ha vuelto: ganas tú (contra la IA)' : ' | Contra la IA (no cuenta)') : ' | Contra la IA (puede volver en ' + Math.ceil((r.goneIn || 0) / 1000) + ' s)') : '');
       // fase 3: pausa de 10 s entre sets (decisión 5): cuenta atrás y «Continuar»; se salta cuando los dos lo han pulsado
       if (v && v.pendingSet && v.mode === 'point' && ctx.state === 'playing') {
         var sk = v.skipReq || [false, false], left = Math.max(0, Math.ceil(v.timer || 0));

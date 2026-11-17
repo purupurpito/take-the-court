@@ -73,6 +73,7 @@ if (!RTC && !GUION) (async () => {
   list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page');
   if (list.length < 2) throw new Error('no hay dos páginas');
   const P = [page(list[0].webSocketDebuggerUrl, 'anfitrión'), page(list[1].webSocketDebuggerUrl, 'invitado')];
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if (/\[netlog\]/.test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
   const room = 'nd' + Date.now().toString(36);
   for (let k = 0; k < 2; k++) {
     const p = P[k]; await p.ready;
@@ -188,6 +189,7 @@ if (RTC) (async () => {
   await sleep(400);
   list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page');
   const P = [page(list[0].webSocketDebuggerUrl, 'anfitrión'), page(list[1].webSocketDebuggerUrl, 'invitado')];
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if (/\[netlog\]/.test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
   const NAMES = ['Anfi Prueba', 'Invi Prueba'];
   for (let k = 0; k < 2; k++) {
     const p = P[k]; await p.ready;
@@ -395,6 +397,7 @@ if (GUION) (async () => {
   await sleep(400);
   list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page');
   const P = [page(list[0].webSocketDebuggerUrl, 'anfitrión'), page(list[1].webSocketDebuggerUrl, 'invitado')];
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if (/\[netlog\]/.test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
   P[0].tid = list[0].id; P[1].tid = list[1].id;
   const room = 'g3' + Date.now().toString(36);
   const ev = async (p, x) => { try { return await p.evalJs(x); } catch (e) { return null; } };
