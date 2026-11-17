@@ -7,18 +7,21 @@
  *
  * Teclado: flechas / WASD (por código físico: vale en AZERTY/QWERTZ),
  *   Espacio saltar (pulgar), J o X golpear/sacar (J: mano derecha con WASD; X: mano
- *   izquierda con las flechas), K colocar, C cambiar, V challenge, P/Esc pausa, M sonido.
+ *   izquierda con las flechas), K colocar, C cambiar, V challenge, P/Esc pausa, M sonido, + / - zoom de cámara
+ *   (17-nov-2026; también Num + / Num -).
  *   REASIGNABLES (E3, sprint 5): dos teclas por acción (ctx.settings.keys = diferencias con DEFAULT_KEYS) y un
  *   botón por acción en el mando estándar (ctx.settings.padKeys); Esc, Intro y los botones de menú (A/B/LB/RB) fijos.
  *   API: OPTS, bindings, rebind, captureNext, keyName, padName; poll() añade navOk/navBack/navTab.
  *   Sin auto‑repetición (e.repeat se ignora) y con prioridad a la última
  *   tecla pulsada si se aprietan dos opuestas (izq+der).
  * Ratón (solo en partido, sobre la pista): clic izquierdo golpear/sacar, clic
- *   derecho colocar (sin menú contextual en el canvas), rueda (botón central) saltar.
+ *   derecho colocar (sin menú contextual en el canvas), rueda (botón central) saltar y
+ *   rueda girada zoom de cámara (poll: it.zoom, +1 acercar / -1 alejar).
  *   Mantener pulsado = mantener la tecla. No cuenta si el clic cae en un botón/panel
  *   ni con el overlay táctil. srcOf(a): último origen ('mouse' | 'key') de hit/jset/jump.
  * Mando (mapeo estándar): stick izq./cruceta mover, A golpear, B o X saltar,
- *   RB/LB/Y cambiar, LT (L2) challenge, Start pausa, Select sonido. Zona muerta radial (medida
+ *   RB/LB/Y cambiar, LT (L2) challenge, Start pausa, Select sonido, stick derecho arriba / abajo
+ *   zoom de cámara. Zona muerta radial (medida
  *   desde el reposo de cada mando: la deriva de un stick gastado no mueve ni
  *   roba el control al dedo/teclado) con reescalado y respuesta suave.
  *   Vibración en los toques propios. Mapeo no
@@ -31,7 +34,8 @@
  *   un aro se cierra sobre él hasta el instante ideal de pulsar y brilla desde
  *   ~0,24 s antes (a tiempo para reaccionar). Multitáctil con un gestor único
  *   de punteros: joystick + botones a la vez, deslizar de SALTAR a GOLPEAR,
- *   dedos perdidos / cancelados, giro de pantalla con el dedo puesto.
+ *   dedos perdidos / cancelados, giro de pantalla con el dedo puesto. Botón pequeño de la lupa
+ *   arriba a la derecha (junto a la pausa): zoom de cámara, cada toque un nivel (sin gestos).
  * El overlay vive en #touch y trae su propio <style> (prefijo .vt-).
  * ===================================================================== */
 (function () {
@@ -40,7 +44,7 @@
   var ctx = null;
   var it = { mx: 0, my: 0, hit: false, jump: false, jset: false, switchPlayer: false, pause: false, mute: false, challenge: false, any: false,
              confirm: false, device: 'keyboard', hitHeld: false, jumpHeld: false, padEvent: '',
-             navOk: false, navBack: false, navTab: 0 };   // (E3: menús con mando, botones fijos A / B / LB-RB)
+             navOk: false, navBack: false, navTab: 0, zoom: 0, zoomCycle: false };   // (E3: menús con mando, botones fijos A / B / LB-RB; zoom: pasos de zoom de cámara del frame, +1 acercar / -1 alejar; zoomCycle: botón táctil de la lupa)
 
   // ---------------- Teclado ----------------
   // TECLAS REASIGNABLES (E3, sprint 5): dos teclas por acción (código físico e.code). ctx.settings.keys guarda SOLO las
@@ -49,10 +53,12 @@
   // suelo coloca si es tu 2º toque y el balón se juega de pie (C2, sim groundSet) y si no salta como Espacio (poll lo manda también
   // como jump). E1 no añade acciones nuevas: la finta es GOLPEAR y, antes del golpe,
   // SALTAR o COLOCAR; nada se mantiene pulsado (sin holdMode).
-  var ACTS = ['up', 'down', 'left', 'right', 'hit', 'jump', 'jset', 'switch', 'challenge', 'pause', 'mute'];
+  // ZOOM DE CÁMARA (17-nov-2026): zoomIn / zoomOut, las teclas + y - (de la distribución española: BracketRight y Slash; y las del
+  // teclado numérico). Además, fijos: rueda del ratón girada, stick derecho arriba / abajo y el botón táctil de la lupa (ver ZM).
+  var ACTS = ['up', 'down', 'left', 'right', 'hit', 'jump', 'jset', 'switch', 'challenge', 'pause', 'mute', 'zoomIn', 'zoomOut'];
   var DEFAULT_KEYS = { up: ['KeyW', 'ArrowUp'], down: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
                        hit: ['KeyJ', 'KeyX'], jump: ['Space', ''], jset: ['KeyK', ''], 'switch': ['KeyC', ''], challenge: ['KeyV', ''],
-                       pause: ['KeyP', ''], mute: ['KeyM', ''] };
+                       pause: ['KeyP', ''], mute: ['KeyM', ''], zoomIn: ['BracketRight', 'NumpadAdd'], zoomOut: ['Slash', 'NumpadSubtract'] };
   // fijas (no se pueden quitar ni asignar): Esc pausa / vuelve, Intro acepta
   var FIXED_CODE = { Escape: 'pause', Enter: 'confirm', NumpadEnter: 'confirm' };
   var FIXED_KEY = { escape: 'pause', esc: 'pause', enter: 'confirm' };
@@ -188,6 +194,16 @@
     mouseBtn('Mouse0', 'hit', (b & 1) !== 0, e, canPress);
     mouseBtn('Mouse2', 'jset', (b & 2) !== 0, e, canPress);   // clic derecho = COLOCAR (poll lo manda también como SALTAR)
     mouseBtn('Mouse1', 'jump', (b & 4) !== 0, e, canPress);   // botón central (rueda) = SALTAR
+  }
+  // ZOOM: pasos pendientes de la rueda (girada), que poll entrega en it.zoom; acumulado de la rueda (un paso por
+  // ~1 muesca, 90 px: el panel táctil del portátil no salta de golpe; se olvida tras 0,5 s quieto) y repetición del stick derecho
+  var ZM = { wheel: 0, acc: 0, wT: -9, padDir: 0, padT: 0, n: 0, lv: -1 };
+  function onWheel(e) {
+    if (e.ctrlKey || !mouseOk(e)) return;
+    var dy = (+e.deltaY || 0) * (e.deltaMode === 1 ? 33 : e.deltaMode === 2 ? 400 : 1), t = nowS();
+    if (t - ZM.wT > 0.5 || (dy > 0) !== (ZM.acc > 0)) ZM.acc = 0;
+    ZM.wT = t; ZM.acc += dy;
+    if (ZM.acc <= -90) { ZM.wheel++; ZM.acc = 0; } else if (ZM.acc >= 90) { ZM.wheel--; ZM.acc = 0; }   // (rueda hacia delante = acercar)
   }
   // la rueda pulsada no abre el desplazamiento automático (Windows) ni pega en Linux mientras se juega
   function onAux(e) { if (e.button === 1 && e.pointerType !== 'touch' && mouseOk(e) && e.cancelable) e.preventDefault(); }
@@ -398,20 +414,20 @@
   }
 
   // ---------------- Táctil ----------------
-  var T = { lastTouch: 0, idle: false, see: [false, false, false], rects: null, rectAt: -1, joy: null, ox: 0, oy: 0, jx: 0, jy: 0, R: 58, hit: false, jump: false, set: false, setOn: false, pause: false, sw: false, chal: false,
+  var T = { lastTouch: 0, idle: false, see: [false, false, false], rects: null, rectAt: -1, joy: null, ox: 0, oy: 0, jx: 0, jy: 0, R: 58, hit: false, jump: false, set: false, setOn: false, pause: false, sw: false, chal: false, zoom: false,
             hitDown: false, jumpDown: false, used: false, shown: false, lastLabel: '', lastReady: null, lastServe: null,
             touchN: 0, touchEvT: 0, lastW: 0, lastH: 0, lastRing: -2, lastCue: false, dead: false, setRoll: false, swHide: false, sw6: false };
   var el = {};
   // estadística/diagnóstico (VB.Input._debug(): pruebas táctiles y de mando con eventos reales vía DevTools)
-  var stats = { press: { hit: 0, jump: 0, sw: 0, pause: 0, set: 0 }, out: { hit: 0, jump: 0, sw: 0, pause: 0, confirm: 0, chal: 0, jset: 0, mute: 0, navOk: 0, navBack: 0, navTab: 0 }, mouse: { hit: 0, jump: 0, jset: 0 }, slide: 0, lost: 0, adopt: 0,
+  var stats = { press: { hit: 0, jump: 0, sw: 0, pause: 0, set: 0, zoom: 0 }, out: { hit: 0, jump: 0, sw: 0, pause: 0, confirm: 0, chal: 0, jset: 0, mute: 0, navOk: 0, navBack: 0, navTab: 0, zoom: 0 }, mouse: { hit: 0, jump: 0, jset: 0 }, slide: 0, lost: 0, adopt: 0,
                 promote: 0, resets: 0, padLost: 0, padPause: 0 };
-  // punteros táctiles activos: pointerId -> { role:'joy'|'hit'|'jump'|'sw'|'pause'|'set'|'none', x, y, touch }
-  var ptrs = {}, nPtr = 0, cnt = { hit: 0, jump: 0, sw: 0, pause: 0, set: 0 };
+  // punteros táctiles activos: pointerId -> { role:'joy'|'hit'|'jump'|'sw'|'pause'|'set'|'zoom'|'none', x, y, touch, t0, x0, y0 }
+  var ptrs = {}, nPtr = 0, cnt = { hit: 0, jump: 0, sw: 0, pause: 0, set: 0, zoom: 0 };
   // geometría de los botones relativa al overlay (círculos) y zonas seguras (notch) en px
-  var GEO = { hit: { cx: 0, cy: 0, r: 0 }, jump: { cx: 0, cy: 0, r: 0 }, sw: { cx: 0, cy: 0, r: 0 }, pause: { cx: 0, cy: 0, r: 0 }, set: { cx: 0, cy: 0, r: 0 }, ok: false, at: -99, w: 0, h: 0, rl: 0, rt: 0, rw: 0, rh: 0 };
+  var GEO = { hit: { cx: 0, cy: 0, r: 0 }, jump: { cx: 0, cy: 0, r: 0 }, sw: { cx: 0, cy: 0, r: 0 }, pause: { cx: 0, cy: 0, r: 0 }, set: { cx: 0, cy: 0, r: 0 }, zoom: { cx: 0, cy: 0, r: 0 }, ok: false, at: -99, w: 0, h: 0, rl: 0, rt: 0, rw: 0, rh: 0 };
   var SA = { t: 0, r: 0, b: 0, l: 0 };
   // 'set' = COLOCAR: contextual, solo se ve (y solo se puede pulsar) en el aire con el balón jugable (sim jsetReady)
-  var ROLES = ['hit', 'jump', 'sw', 'pause', 'set'];
+  var ROLES = ['hit', 'jump', 'sw', 'pause', 'set', 'zoom'];
   var CSS = '' +
     '#touch{position:absolute;inset:0;pointer-events:none;z-index:5;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:opacity .15s ease-out}' +
     // BALÓN MUERTO (entre el punto y el saque siguiente): todo el overlay baja al 25 % y deja ver el plano de reacción;
@@ -485,17 +501,26 @@
     '.vt-pause{width:46px;height:46px;right:calc(14px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top));' +
       'background:rgba(8,13,22,.66);border-color:rgba(255,255,255,.3)}' +
     '.vt-pause svg{width:40%}' +
+    // ZOOM DE CÁMARA (17-nov-2026): lupa pequeña a la izquierda de la pausa, arriba a la derecha (lejos del joystick y de los botones de
+    // acción); cada toque, un nivel más lejos (del 5 vuelve al 1); el número es el nivel. Sin gesto de pellizco (Ferran: dos dedos a la vez
+    // —mover y colocar— no deben cambiar la cámara)
+    '.vt-zoom{width:40px;height:40px;right:calc(72px + env(safe-area-inset-right));top:calc(17px + env(safe-area-inset-top));gap:0;' +
+      'background:rgba(8,13,22,.66);border-color:rgba(255,255,255,.3)}' +
+    '.vt-zoom svg{width:50%}.vt-zoom b{position:absolute;right:-3px;bottom:-3px;min-width:15px;height:15px;border-radius:8px;background:#ffd23f;color:#1d1530;' +
+      'font:800 11px/15px "Barlow Condensed",system-ui,sans-serif;letter-spacing:0;text-align:center;text-shadow:none;pointer-events:none}' +
+    '#touch.idle .vt-btn.vt-zoom:not(.dn),#touch .vt-btn.vt-zoom.see:not(.dn){opacity:.8;transform:none}' +
     '@media (max-height:420px){.vt-hit{width:calc(90px*var(--vts,1));height:calc(90px*var(--vts,1));bottom:calc(16px + env(safe-area-inset-bottom))}' +
       '.vt-jump{width:calc(68px*var(--vts,1));height:calc(68px*var(--vts,1));right:calc(134px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(8px + env(safe-area-inset-bottom))}' +
       '.vt-sw{width:44px;height:44px;right:calc(14px + env(safe-area-inset-right));bottom:calc(128px*var(--vts,1) + env(safe-area-inset-bottom))}' +
       '.vt-set{width:calc(56px*var(--vts,1));height:calc(56px*var(--vts,1));right:calc(140px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(92px*var(--vts,1) + env(safe-area-inset-bottom))}' +
-      '.vt-pause{width:44px;height:44px}}' +
+      '.vt-pause{width:44px;height:44px}.vt-zoom{right:calc(68px + env(safe-area-inset-right));top:calc(16px + env(safe-area-inset-top))}}' +
     '@media (max-height:340px){.vt-hit{width:calc(78px*var(--vts,1));height:calc(78px*var(--vts,1))}.vt-jump{width:calc(60px*var(--vts,1));height:calc(60px*var(--vts,1));right:calc(120px*var(--vts,1) + env(safe-area-inset-right))}' +
       '.vt-sw{right:calc(12px + env(safe-area-inset-right));bottom:calc(118px*var(--vts,1) + env(safe-area-inset-bottom))}' +
       '.vt-set{width:calc(52px*var(--vts,1));height:calc(52px*var(--vts,1));right:calc(124px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(84px*var(--vts,1) + env(safe-area-inset-bottom))}}';
 
   var ICON_HIT = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><g><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></svg>';
   var ICON_JUMP = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13l6-6 6 6M6 19l6-6 6 6"/></svg>';
+  var ICON_ZOOM = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg>';
   var ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="#fff"><rect x="5" y="4" width="5" height="16" rx="1.5"/><rect x="14" y="4" width="5" height="16" rx="1.5"/></svg>';
   var ICON_SET = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M4 18c1.5-8 11-11 16-6"/><path d="M15.5 8.5l4.5 3.5-4 3"/></svg>';
   // 6v6 (⇄ = «¡Pídela!»): una mano levantada en vez de las flechas de cambiar jugador
@@ -514,11 +539,13 @@
       '<div class="vt-btn vt-jump" role="button" aria-label="Saltar">' + ICON_JUMP + '<span>SALTAR</span></div>' +
       '<div class="vt-btn vt-hit" role="button" aria-label="Golpear">' + ICON_HIT + '<span>GOLPEAR</span><i class="vt-ring"></i></div>' +
       '<div class="vt-btn vt-set" role="button" aria-label="Colocar en salto" aria-hidden="true">' + ICON_SET + '<span>COLOCAR</span></div>' +
-      '<div class="vt-btn vt-pause" role="button" aria-label="Pausa">' + ICON_PAUSE + '</div><div class="vt-safe"></div>';
+      '<div class="vt-btn vt-pause" role="button" aria-label="Pausa">' + ICON_PAUSE + '</div>' +
+      '<div class="vt-btn vt-zoom" role="button" aria-label="Zoom de cámara">' + ICON_ZOOM + '<b>3</b></div><div class="vt-safe"></div>';
     el.root = rootEl; el.zone = rootEl.querySelector('.vt-zone'); el.joy = rootEl.querySelector('.vt-joy');
     el.base = rootEl.querySelector('.vt-base'); el.knob = rootEl.querySelector('.vt-knob');
     el.hit = rootEl.querySelector('.vt-hit'); el.hitLabel = el.hit.querySelector('span'); el.ring = el.hit.querySelector('.vt-ring');
     el.jump = rootEl.querySelector('.vt-jump'); el.pause = rootEl.querySelector('.vt-pause'); el.sw = rootEl.querySelector('.vt-sw');
+    el.zoom = rootEl.querySelector('.vt-zoom'); el.zoomN = el.zoom.querySelector('b'); zoomLabel();
     el.safe = rootEl.querySelector('.vt-safe'); el.set = rootEl.querySelector('.vt-set'); el.setLabel = el.set.querySelector('span');
     applyTouchSize();
 
@@ -611,9 +638,9 @@
     T.used = true; it.device = 'touch'; T.lastTouch = nowS();
     var id = e.pointerId, q = localXY(e), x = q.x, y = q.y;
     if (ptrs[id]) endPtr(id);                       // (id reutilizado sin pointerup: se cierra el anterior)
-    var role = hitTest(x, y);
+    var role = hitTest(x, y), t0 = nowS();
     if (!role) role = (x < q.w * 0.5 && T.joy === null) ? 'joy' : 'none';
-    ptrs[id] = { role: role, x: x, y: y, touch: e.pointerType === 'touch' }; nPtr++;
+    ptrs[id] = { role: role, x: x, y: y, touch: e.pointerType === 'touch', t0: t0, x0: x, y0: y }; nPtr++;
     if (role === 'joy') joyStart(id, x, y); else if (role !== 'none') press(role);
     try { el.root.setPointerCapture(id); } catch (_) { }
   }
@@ -634,7 +661,7 @@
       if (!T.shown || e.pointerType !== 'touch' || T.joy !== null || !(e.buttons & 1)) return;
       var q0 = localXY(e);
       if (q0.x >= q0.w * 0.5 || hitTest(q0.x, q0.y)) return;
-      ptrs[id] = { role: 'joy', x: q0.x, y: q0.y, touch: true }; nPtr++; stats.adopt++;
+      ptrs[id] = { role: 'joy', x: q0.x, y: q0.y, touch: true, t0: -9, x0: q0.x, y0: q0.y }; nPtr++; stats.adopt++;
       joyStart(id, q0.x, q0.y);
       try { el.root.setPointerCapture(id); } catch (_) { }
       return;
@@ -663,6 +690,12 @@
       }
       placeJoy();
     } else if (p.role !== 'none') release(p.role);
+  }
+  /** Número del botón de la lupa = nivel de zoom (1-5) de ctx.settings.camZoom. */
+  function zoomLabel() {
+    if (!el.zoomN || !ctx || !ctx.settings) return;
+    var z = +ctx.settings.camZoom; z = z >= 0 && z <= 4 ? z : 2;
+    if (z !== ZM.lv) { ZM.lv = z; el.zoomN.textContent = String(z + 1); el.zoom.setAttribute('aria-label', 'Zoom de cámara, nivel ' + (z + 1) + ' de 5'); }
   }
   /** Lee las zonas seguras (env(safe-area-inset-*)) de la sonda. */
   function readSafe() {
@@ -1056,6 +1089,7 @@
       window.addEventListener('pointermove', onMouse, { passive: false });
       window.addEventListener('pointerup', onMouse);
       window.addEventListener('pointercancel', function (e) { if (e.pointerType === 'mouse') { mouseBtn('Mouse0', 'hit', false, e, false); mouseBtn('Mouse2', 'jset', false, e, false); mouseBtn('Mouse1', 'jump', false, e, false); } });
+      window.addEventListener('wheel', onWheel, { passive: true });   // (zoom de cámara; la página no se desplaza: nada que impedir)
       window.addEventListener('mousedown', onAux, { passive: false });
       window.addEventListener('auxclick', onAux, { passive: false });
       window.addEventListener('contextmenu', onCtxMenu);
@@ -1083,7 +1117,7 @@
       buildTouch();
     },
     /** Limpia pulsaciones al cambiar de estado (p. ej. el Intro/Espacio que pulsa "Jugar" no saca ni salta). */
-    onState: function () { for (var ek in edge) edge[ek] = false; T.hit = T.jump = T.set = T.pause = T.sw = false; T.chal = false; },
+    onState: function () { for (var ek in edge) edge[ek] = false; T.hit = T.jump = T.set = T.pause = T.sw = T.zoom = false; T.chal = false; },
     /** OPCIONAL (B4/B7): glifo de texto de una acción para el dispositivo dado ('keyboard'|'gamepad'|'touch'; por defecto el
      *  activo). fam = 'ps' para mandos PlayStation. Hoy solo 'challenge': «V» / «LT» (PS: «L2») / «CHALLENGE». '' si no hay. */
     glyph: function (action, dev, fam) {
@@ -1107,6 +1141,7 @@
       if (k == null || k === 'padKeys') buildPad();
       if (k == null || k === 'padDead') applyPadDead();
       if (k == null || k === 'touchSize') applyTouchSize();
+      if (k == null || k === 'camZoom') zoomLabel();
     },
     /** E3: teclas y botones efectivos (copias): { keys: {acción: [c1, c2]}, pad: {acción: [botón]}, padStd (false = mando
      *  conectado sin mapeo estándar: botones de solo lectura), padFam ('xbox'|'ps'), acts, padActs, fixed }. */
@@ -1158,7 +1193,7 @@
                device: it.device, mx: it.mx, my: it.my, safe: { t: SA.t, r: SA.r, b: SA.b, l: SA.l },
                pad: { idx: pad.idx, known: pad.known, id: pad.id, mapping: pad.mapping,
                       rest: pad.idx >= 0 && pad.rest[pad.idx] ? { x: pad.rest[pad.idx].x, y: pad.rest[pad.idx].y } : null },
-               geo: JSON.parse(JSON.stringify({ hit: GEO.hit, jump: GEO.jump, sw: GEO.sw, pause: GEO.pause, set: GEO.set })), stats: JSON.parse(JSON.stringify(stats)), setOn: T.setOn,
+               geo: JSON.parse(JSON.stringify({ hit: GEO.hit, jump: GEO.jump, sw: GEO.sw, pause: GEO.pause, set: GEO.set, zoom: GEO.zoom })), stats: JSON.parse(JSON.stringify(stats)), setOn: T.setOn,
                sigs: sigLog.slice(), dead: T.dead, dz: DZ, padSoft: PAD_SOFT, cap: CAP.on, hush: CAP.hush, touchK: touchK, setRoll: T.setRoll,
                code: JSON.parse(JSON.stringify(CODE)), pb: JSON.parse(JSON.stringify(PB)) };
     },
@@ -1170,6 +1205,8 @@
       var hit = !!edge.hit, jump = !!edge.jump, jset = !!edge.jset, sw = !!edge['switch'], pause = !!edge.pause, mute = !!edge.mute, confirm = !!edge.confirm;
       var navOk = false, navBack = false, navTab = 0;
       var chal = !!edge.challenge || T.chal; T.chal = false;
+      var zoom = (edge.zoomIn ? 1 : 0) - (edge.zoomOut ? 1 : 0) + ZM.wheel; ZM.wheel = 0;
+      var zoomCyc = T.zoom; T.zoom = false;   // (botón táctil de la lupa: da la vuelta a los 5 niveles)
       var hitHeld = isDown('hit'), jumpHeld = isDown('jump') || isDown('jset');
       for (var ek in edge) edge[ek] = false; // sin asignar un objeto nuevo por frame
       // --- táctil (y de pantalla hacia abajo => my negativo)
@@ -1184,7 +1221,7 @@
       }
       hit = hit || T.hit; jump = jump || T.jump; jset = jset || T.set; pause = pause || T.pause; sw = sw || T.sw;
       hitHeld = hitHeld || T.hitDown; jumpHeld = jumpHeld || T.jumpDown;
-      T.hit = T.jump = T.set = T.pause = T.sw = false;
+      T.hit = T.jump = T.set = T.pause = T.sw = T.zoom = false;
       // --- mando
       var p = pollPad();
       if (p) {
@@ -1229,6 +1266,14 @@
           if (navOk || (padNow.pause && !pv[3])) confirm = true;
         } else { hit = jump = sw = pause = mute = chal = jset = confirm = false; }
         if (padNow.hit || padNow.jump || padNow.jset || padNow.sw || padNow.pause || padNow.mute || padNow.chal || nOk || nBk) used = true;
+        // ZOOM con el stick derecho (solo mapeo estándar: eje 3), arriba = acercar: un paso al pasar de 0,6 y, mantenido, otro cada 0,35 s
+        // (el primero tras 0,5 s); se suelta por debajo de 0,35. Mientras se reasigna un botón, nada
+        var ry = std && p.axes && p.axes.length > 3 ? +p.axes[3] || 0 : 0, zd = ry < -0.6 ? 1 : ry > 0.6 ? -1 : 0;
+        if (hushNow) zd = 0;
+        if (zd !== 0) {
+          if (ZM.padDir !== zd) { ZM.padDir = zd; ZM.padT = 0.5; zoom += zd; used = true; }
+          else { ZM.padT -= dt || 0; if (ZM.padT <= 0) { ZM.padT = 0.35; zoom += zd; } }
+        } else if (Math.abs(ry) < 0.35) ZM.padDir = 0;
         hitHeld = hitHeld || padNow.hit; jumpHeld = jumpHeld || padNow.jump || padNow.jset;
         pv[0] = padNow.hit; pv[1] = padNow.jump; pv[2] = padNow.sw; pv[3] = padNow.pause; pv[4] = padNow.mute; pv[5] = padNow.chal; pv[6] = padNow.jset;
         pv[7] = nOk; pv[8] = nBk; pv[9] = nL; pv[10] = nR;
@@ -1243,6 +1288,7 @@
       it.mx = mx; it.my = my; it.hit = hit; it.jump = jump; it.switchPlayer = sw; it.pause = pause; it.mute = mute;
       it.confirm = confirm; it.hitHeld = hitHeld; it.jumpHeld = jumpHeld; it.challenge = chal;
       it.navOk = navOk; it.navBack = navBack; it.navTab = navTab;
+      it.zoom = zoom > 2 ? 2 : zoom < -2 ? -2 : zoom; it.zoomCycle = zoomCyc; if (zoom || zoomCyc) { ZM.n++; stats.out.zoom++; }
       it.padEvent = pad.event; pad.event = '';
       it.any = hit || jump || sw || pause || mute || confirm || chal || navOk || navBack || navTab !== 0 || mx !== 0 || my !== 0;
       if (hit) stats.out.hit++; if (jump) stats.out.jump++; if (sw) stats.out.sw++; if (pause) stats.out.pause++; if (confirm) stats.out.confirm++; if (chal) stats.out.chal++;

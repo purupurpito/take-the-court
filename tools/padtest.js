@@ -63,6 +63,13 @@ window.__ax = function (i, a, v) { window.__pads[i].axes[a] = v; return 1; };
     await E(`__btn(0, 6, 1)`); await wait(); await wait();
     d = await dbg(); check('LT = challenge (un flanco aunque se mantenga)', d.stats.out.chal === s0.out.chal + 1, d.stats.out);
     await E(`__btn(0, 6, 0)`); await wait();
+    // ZOOM DE CÁMARA (17-nov-2026): stick derecho (eje 3) arriba acerca y abajo aleja; un paso por empujón (el stick izquierdo no cuenta)
+    await E(`VB.ctx.actions.setSetting('camZoom', 2), 1`); await wait();
+    await E(`__ax(0, 3, -0.9)`); await wait(); await wait(); await E(`__ax(0, 3, 0)`); await wait();
+    check('stick derecho arriba: acerca un nivel (camZoom 2 → 1)', (await E('VB.ctx.settings.camZoom')) === 1, await E('VB.ctx.settings.camZoom'));
+    await E(`__ax(0, 3, 0.9)`); await wait(); await E(`__ax(0, 3, 0.2)`); await wait(); await E(`__ax(0, 3, 0.9)`); await wait(); await E(`__ax(0, 3, 0)`); await wait();
+    check('stick derecho abajo dos veces: aleja dos niveles (camZoom 3): soltar (< 0,35) y volver a empujar da otro paso', (await E('VB.ctx.settings.camZoom')) === 3, await E('VB.ctx.settings.camZoom'));
+    await E(`VB.ctx.actions.setSetting('camZoom', 2), 1`); await wait();
     await E(`__btn(0, 12, 1)`); await wait();
     d = await dbg(); check('cruceta arriba = my 1', d.my === 1 && d.mx === 0, { mx: d.mx, my: d.my });
     await E(`__btn(0, 12, 0)`); await wait();

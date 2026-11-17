@@ -80,11 +80,11 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto' };   // S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2 };   // S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
     // El tipo (`arena`) sigue siendo lo único que va a la sim; la sede solo cambia el escenario. Lo desconocido vuelve a la de serie.
   }
-  /** keys / padKeys: objeto plano de como mucho 12 acciones; teclado = arrays de ≤ 2 cadenas de ≤ 24 caracteres, mando = arrays
+  /** keys / padKeys: objeto plano de como mucho 16 acciones (13 de teclado desde el zoom, 17-nov-2026); teclado = arrays de ≤ 2 cadenas de ≤ 24 caracteres, mando = arrays
    *  de ≤ 1 entero 0-11. Cualquier otra cosa → {} (de fábrica). Lo semántico (tecla reservada, repetida…) lo sanea input.js. */
   function cleanBinds(m, pad) {
     if (!m || typeof m !== 'object' || Array.isArray(m)) return {};
@@ -92,7 +92,7 @@
     for (var a in m) {
       if (!Object.prototype.hasOwnProperty.call(m, a)) continue;
       var v = m[a];
-      if (++n > 12 || a.length > 16 || !Array.isArray(v) || v.length > (pad ? 1 : 2)) return {};
+      if (++n > 16 || a.length > 16 || !Array.isArray(v) || v.length > (pad ? 1 : 2)) return {};
       for (var i = 0; i < v.length; i++) {
         if (pad ? !(typeof v[i] === 'number' && v[i] === (v[i] | 0) && v[i] >= 0 && v[i] <= 11) : !(typeof v[i] === 'string' && v[i].length <= 24)) return {};
       }
@@ -162,6 +162,10 @@
     if ([0, 1, 0.85, 0.7, 0.5].indexOf(s.resScale) < 0) s.resScale = 0;
     if (s.fpsCap !== 30) s.fpsCap = 0;
     if (['near', 'normal', 'far'].indexOf(s.camDist) < 0) s.camDist = 'normal';
+    // zoom de cámara (17-nov-2026): 0 cerca … 4 lejos, 2 = el de siempre. Sustituye a la Distancia (camDist se sigue guardando para
+    // las versiones de antes): sin camZoom guardado, Cerca → 1 y Lejos → 3 (los mismos ×0,86 / ×1,18 del 2v2)
+    if (o && !('camZoom' in o)) s.camZoom = s.camDist === 'near' ? 1 : s.camDist === 'far' ? 3 : 2;
+    s.camZoom = [0, 1, 2, 3, 4].indexOf(s.camZoom) >= 0 ? s.camZoom : 2;
     if (s.camCuts !== 'less') s.camCuts = 'all';
     if (['auto', 'on', 'off'].indexOf(s.lessMotion) < 0) s.lessMotion = 'auto';
     if (s.ballStyle !== 'contraste') s.ballStyle = 'clasico';
@@ -1442,6 +1446,15 @@
         else if (!call('UI', 'back') && (ctx.state === 'playing' || ctx.state === 'paused')) ctx.actions.togglePause();
       }
       if (it.mute) ctx.actions.toggleMute();
+      // ZOOM DE CÁMARA (17-nov-2026): rueda, + / -, stick derecho (input.js it.zoom: +1 acercar = nivel más bajo) o la lupa táctil
+      // (it.zoomCycle: un nivel más lejos y del 5 vuelve al 1). Solo jugando (ni en pausa, ni en la presentación, ni en la repetición); se
+      // guarda en Ajustes (camZoom) y la cámara lo lee sola. Aviso corto «Zoom 3/5» en el HUD
+      if ((it.zoom || it.zoomCycle) && ctx.state === 'playing' && !(intro.left > 0) && !rpA && ctx.game && !ctx.game.demo) {
+        var zNow = +ctx.settings.camZoom; zNow = zNow >= 0 && zNow <= 4 ? zNow : 2;
+        var zNew = it.zoomCycle ? (zNow >= 4 ? 0 : zNow + 1) : Math.max(0, Math.min(4, zNow - (it.zoom > 0 ? 1 : -1)));
+        if (zNew !== zNow) ctx.actions.setSetting('camZoom', zNew);
+        call('UI', 'zoomHint', zNew, zNew !== zNow);
+      }
       if (it.challenge && ctx.state === 'playing' && !(intro.left > 0)) ctx.actions.challenge(); // B4: V / LT
       if (it.any) call('Audio', 'unlock');
       if (ctx.state !== 'playing') {

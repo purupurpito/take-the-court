@@ -1175,3 +1175,77 @@ Detalle: `notes/s234/T4.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
   amarillo, o empujando hacia él, es movimiento; ya en el aro, una dirección nueva es el destino. En la ventana el imán de `assistMove` lleva
   al centro del aro (antes 0,15 m detrás). Con «Colocación dirigida: No», COLOCAR (clic derecho) en el suelo en tu 2º toque también coloca
   (`VB.Sim.setTurn`).
+
+## Cámara del 6v6 que sigue al balón y zoom de cámara (17-nov-2026, v1.5.4)
+Pedido de Ferran: «Deberías arreglar la cámara en el modo 6v6, hay veces que no ves lo que está pasando con el balón. En VBLegends (juego
+de Roblox) la cámara sigue un poco más al balón y además puedes hacer zoom in y zoom out». Después, sobre el móvil: nada de pellizco (dos
+dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pantalla, como pide la regla de Roblox de abajo.
+- **Medida nueva `tools/cam6ball.js`** `[WxH] [s] [semilla]` (`BOT=auto|bot`, `ROLE=OH|S|OPP|MB`, `ZOOM=0-4`, `TOUCH=1`, `SAFE=0.85`,
+  `SHOTS=dir`, `CAPT=t1,t2` fotos a esos segundos de juego, `LOG=1`, `JSON=f`): frame a frame del plano `tp` (peloteo y lanzamiento del
+  saque), balón dentro del **cuadro seguro** (|NDC| <= 0,85), al borde, fuera, detrás de la cámara, tapado por un atleta y su tamaño en
+  px, por fase (último toque y de quién) y por dónde se va (arriba / abajo / lado); y tu jugador en cuadro. `BOT=bot` juega un partido
+  HUMANO de verdad con un jugador sencillo en la página (stick al balón si es suyo, a su sitio si no; golpea en la ventana).
+- **Diagnóstico (antes, v1.5.3)**: el balón se iba casi siempre **por abajo**: se juega entre tu jugador y la cámara (recepción o
+  defensa de un compañero de atrás mientras tú esperas en la red, rebote de tu bloqueo, remate rival al fondo) y la cámara, detrás de ti
+  y mirando a la red, no lo ve; y **por arriba** en el balón libre alto (sube hasta 10 m). El peor caso es el colocador (en la red): en la
+  recepción de su equipo el balón estaba fuera del cuadro seguro el 19-20 % del tiempo y 6 % detrás de la cámara.
+  | Prueba (cuadro seguro ±0,85) | antes | después |
+  |---|---|---|
+  | autopilot 1280×720 s11 | 96,5-96,6 % (libre-n 56 %, recep-n 95 %) | **100 %** |
+  | autopilot 844×390 táctil s11 | 95,3 % (libre-n 45 %) | **99,1-100 %** |
+  | humano OH 1280×720 s11 | 98,0 % | **99,7 %** |
+  | humano OH 844×390 táctil s5 | 99,9 % | **99,9 %** |
+  | humano colocador 1280×720 s3 | 95,0-95,3 % (recep-n 80 %, 6 % detrás) | **98,8-98,9 %** (recep-n ~92 %) |
+  | humano opuesto 1280×720 s9 | 98,6 % | **100 %** |
+  | humano colocador 844×390 táctil s3 | 93,8 % | **98,1 %** |
+  | humano central 844×390 táctil s7 | 97,7 % | **99,9 %** |
+  | zoom 1 / zoom 5 (autopilot 1280 s11) | — | 98,1 % / 100 % |
+  | zoom 1 / zoom 5 (colocador 844 táctil s3) | — | 97,0 % / 98,7 % |
+  Tu jugador en cuadro: 100 % antes y después en todas (cam6test JUG 0,00 %). Tamaño del balón (p5 en px) igual (±0,2).
+- **Qué cambia en `tpShot`** (solo 6v6 en 3ª persona; el 2v2 no pasa por aquí):
+  1. **Puntos del balón**: el de ahora y un ADELANTO (balística a 0,3 s con la gravedad de la sim; si va a caer en nuestro campo, cada vez
+     más el cruce previsto a 1 m, `g.pr1`, de 1,2 a 0,8 s antes) con su muelle de 0,15 s (en cada toque el adelanto salta metros). Nada de
+     `g.rng`; solo lectura de `g.ball`/`g.pr1`. Un balón ya camino de la grada (x > 10,5 o |y| > 7,5) no arrastra la cámara.
+  2. **Retroceso** (`bfFits`, `TP.bf`): si con la cámara de ahora no caben tu jugador (pies >= -0,9, cabeza <= 0,9) y esos puntos
+     (<= 0,8 arriba, 0,64 en táctil; >= -0,8 abajo; ninguno a más de 50° por debajo) con la lente que puede haber pronto (la de ahora + 6°,
+     como mucho 66°), se busca el menor retroceso que vale (0; 1,2; … 6 m; sube 0,32 m por metro y lo que pase de x 14,4 se convierte en
+     altura, como mucho 7,8 m, la de la tele). Muelle críticamente amortiguado (sube en 0,4 s, baja en 1 s; confort 0,55 / 1,4) y baja
+     solo tras 0,5 s seguidos pidiendo menos. Con el saque rival o el rival construyendo (1 o 2 toques suyos) cuenta además la zona de
+     recepción (6,3 m) / defensa (5,2 m), solo con tu jugador a < 4,5 m de la red: la cámara ya está atrás cuando llega el balón, sin
+     tirón (el de atrás ya tiene la recepción delante; con la zona también para él, perf 6v6 en media llegó a 357 k triángulos).
+  3. **Encuadre fino**: el balón más bajo de esos puntos es el ancla de abajo (-0,78; antes el de 0,15 s a -0,84 y nada si estaba a < 2 m
+     de la cámara o > 20° bajo los pies: justo el caso perdido); si no cabe todo, se suelta antes el fondo rival, los pies pueden bajar al
+     borde (-0,97) y el balón manda; tu jugador nunca fuera (pies <= -0,99 NDC). Con el balón muy bajo la cámara puede mirar hasta 54°
+     abajo (antes 46°). Lente: abre a 20°/s (antes 14) solo si en el frame anterior no cabía todo.
+  4. **Rumbo**: el balón pesa más (0,5 de su sitio a 0,3 s; antes 0,4 del de ahora) y los puntos del balón se mantienen dentro de ±0,78 NDC
+     a lo ancho girando hasta ±36° (antes ±30° y solo el de ahora), con su muelle de 0,2 s (0,32 en confort). Los mandos siguen con
+     la base limitada a ±26° de «hacia la red».
+  Suavidad (cam6test 1280×720, 100 s, s11): p99 7,3 m/s, giro 44°/s (antes 34), lente 13,5°/s (antes 11,4): sigue al balón, así que gira
+  más, siempre dentro de los topes de siempre (cabeceo 40°/s, giro 70°/s). 844×390 táctil: 7,3 m/s, 40°/s, 14,2°/s.
+- **Tele del 6v6 (`tvShot`, también la de las repeticiones)**: la elevación del balón (o la de su cumbre prevista si sube) con su muelle
+  de 0,25 s, a <= 0,8 NDC; lo que pida de más la lente lo abre a ~11°/s (vuelve a ~5°/s) y mientras tanto el suelo cercano (1,2 m por
+  delante de los jugadores) baja de -0,84 al borde. tv6test daba BALON 5,0 % fuera ya en f90e165 (un balón libre que sube a 10 m); ahora
+  1,1-1,7 % (TODO OK). cam6test con `CAM6=tv`: balón fuera 2,75 % → 0,7-1 %, lente p99 14,2 → 15,5°/s (tope 16).
+- **Zoom de cámara**: `ctx.settings.camZoom` 0..4 (2 = el de siempre), en Ajustes · Cámara «Zoom de cámara» (1-5) en el sitio de la
+  Distancia (sin `camZoom` guardado se migra: Cerca → 1, Lejos → 3, que dan los mismos ×0,86 / ×1,18 del 2v2). 2v2: `distK` = 0,76 / 0,86 /
+  1 / 1,18 / 1,34 (rally, defend, attack, como antes). 6v6: distancia ×0,68-1,36 y altura ×0,76-1,26 detrás del jugador (en tu saque y el
+  de un compañero, a medias); con zoom 1-2 el fondo rival puede quedar más arriba (si no, la lente se abría y no acercaba). El seguimiento
+  del balón vale a cualquier zoom; techo y paredes: x <= 14,4, z <= 7,8 en el 6v6 y `clampInside` (pabellón) en los dos.
+  - **Teclado**: + y - (acciones reasignables `zoomIn` / `zoomOut`, `BracketRight` / `Slash` de la distribución española, y Num + /
+    Num -). **Ratón**: rueda girada (un nivel por muesca, 90 px acumulados; el clic de rueda sigue siendo SALTAR). **Mando**: stick
+    derecho arriba acerca, abajo aleja (eje 3, solo mapeo estándar; repite cada 0,35 s mantenido). **Táctil**: botón de la LUPA arriba a
+    la derecha, junto a la pausa (40 px, con el nivel en una pastilla); cada toque, un nivel más lejos y del 5 vuelve al 1. Sin pellizco.
+  - main.js lo aplica solo jugando (ni pausa, ni presentación, ni repetición) y ui.js enseña «Zoom | n/5» abajo en el centro 1,1 s.
+  - **Roblox** (por qué la lupa): en la cámara táctil de Roblox el joystick va a la izquierda, la cámara se arrastra en la mitad derecha
+    y el zoom es el pellizco; los toques que empiezan sobre un control (joystick, botones, interfaz) nunca mueven la cámara. Aquí la mitad
+    derecha ya es de GOLPEAR / SALTAR / COLOCAR (con deslizar entre ellos) y jugar pide dos pulgares a la vez, así que un pellizco se
+    dispararía solo; se copia la regla (nada que nazca en un control toca la cámara) y el zoom va a un control explícito fuera del
+    recorrido de los pulgares.
+- **Pruebas tocadas**: keytest (+6: zoom con + / - / Num, rueda y roce de rueda), padtest (+2: stick derecho), touchtest (+4: lupa, vuelta
+  del 5 al 1, dos dedos sin zoom), settest (fila `camZoom` en vez de `camDist`, migración, 13 acciones con 2 teclas).
+- **Otras medidas**: cam6test 3ª persona TODO OK (1280: balón fuera 2,75 % → 0,00 %; 844 táctil: 4,20 % → 0,16 %; JUG 0 %). perf 844×390
+  dpr 2,75 CPU ×4: 2v2 baja «objetivos cumplidos»; `EXTRA=format=6v6` baja y media cumplidos (media 264-342 k triángulos según la sede
+  al azar). replaytest: la (d) «repetición automática del punto de set» falla igual en f90e165 (no es de este cambio).
+- **Pendiente**: con el zoom 1 (el más cercano) un balón libre que sube a 9-10 m aún se escapa por arriba un momento (98 % en autopilot,
+  97 % con el colocador en táctil); el balón que sale despedido hacia la grada de detrás, con la cámara ya en la pared (x 14,4), se ve
+  al borde. No hay plano de reacción nuevo ni seguimiento del remate (CAM-08) en 6v6.

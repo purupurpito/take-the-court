@@ -443,6 +443,8 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
 .rl.end{color:#1c1300;background:linear-gradient(90deg,#ffd23f,#ffb238);border-color:#ffe28a;box-shadow:0 6px 22px rgba(255,200,60,.4)}
 .rl.end b{color:#1c1300}
 .rl.end i{opacity:.55}
+/* Zoom de cámara (17-nov-2026): aviso corto abajo en el centro al cambiarlo en partido («Zoom | 3/5»), con el estilo del chip de la jugada */
+.rl.zm{position:absolute;left:0;right:0;bottom:calc(16px + var(--sbm));width:max-content;margin:0 auto;z-index:24;pointer-events:none}
 /* la cuenta ya está dicha en la cinta, o llega el rótulo de set/partido: se funde (animación: la de entrada fija la opacidad) */
 .rl.on.fade{animation:rlFade .25s ease-in both}
 @keyframes rlFade{to{opacity:0;transform:translateY(-4px)}}
@@ -3084,6 +3086,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 
   <!-- ================= HUD ================= -->
   <div id="hud" hidden>
+    <div class="rl zm" id="zmHint" aria-hidden="true"><span class="rl-k">Zoom</span><span class="sep sep-v" aria-hidden="true"></span><b id="zmN">3/5</b></div>
     <div class="sb" id="sb">
       <div id="drillBar"><i class="db-ic" aria-hidden="true"></i><span id="drillTxt">Saque</span></div>
       <div class="sb-top">
@@ -3430,7 +3433,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
           <div class="opt-g" data-tab="cam">
             <p class="opt-h">Cámara</p>
             <button class="opt" data-opt="camSens"><span>Seguimiento<small>Rapidez con la que sigue a tu jugador</small></span><span class="slider" data-sl="camSens"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></button>
-            <button class="opt" data-opt="camDist" data-need="CameraRig"><span>Distancia<small>Más cerca o más lejos de tu jugador</small></span><span class="seg" data-seg="camDist"></span></button>
+            <button class="opt" data-opt="camZoom" data-need="CameraRig"><span>Zoom de cámara<small>De 1, cerca, a 5, lejos. También en partido: mira Controles</small></span><span class="seg" data-seg="camZoom"></span></button>
             <button class="opt" data-opt="camCuts" data-need="CameraRig"><span>Planos de tele<small>Plano del sacador rival y del punto</small></span><span class="seg" data-seg="camCuts"></span></button>
             <button class="opt" data-opt="cam6"><span>Cámara en 6 contra 6<small>Detrás de tu jugador o alta, como en la tele</small></span><span class="seg" data-seg="cam6"></span></button>
             <button type="button" class="opt-reset" data-reset="cam">Restablecer este apartado</button>

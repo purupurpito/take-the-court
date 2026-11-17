@@ -15,16 +15,25 @@
  *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
  * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
  * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
+ * 1.5.4 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.3';
+  VB.VERSION = '1.5.4';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.4', d: '2026-11-17', t: 'Cámara',
+      items: [
+        '6 contra 6: la cámara sigue mejor al balón y se aleja para no perderlo.',
+        'Zoom de cámara: rueda del ratón, teclas + y -, stick derecho o la lupa en el móvil.',
+        'Ajustes: elige el zoom de cámara, de 1 (cerca) a 5 (lejos).'
+      ]
+    },
     {
       v: '1.5.3', d: '2026-11-17', t: 'Árbitros',
       items: [

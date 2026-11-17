@@ -4421,13 +4421,13 @@
     if (dv === 'gamepad') {
       var P = padSet();
       return [[S('Stick') + S('Cruceta'), 'Moverse'], [padKey('a'), 'Golpear y sacar <small>(stick: diana del saque)</small>'], [padKey('b'), 'Saltar <small>(en el aire: dejada)</small>'], [padKey('x'), 'Colocar <small>(en el suelo, coloca si te toca; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [padKey('a') + '<small>y</small>' + padKey('b'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'],
-        [padKey('y') + S(P.lb) + S(P.rb), 'Cambiar jugador'], [S(P.start), 'Pausa'], [S(P.select), 'Sonido'], [S(padFam() === 'ps' ? 'L2' : 'LT'), 'Challenge <small>(7 s tras el punto)</small>'], [padKey('a') + padKey('b'), 'Menús: aceptar y volver']];
+        [padKey('y') + S(P.lb) + S(P.rb), 'Cambiar jugador'], [S(P.start), 'Pausa'], [S(P.select), 'Sonido'], [S(padFam() === 'ps' ? 'L2' : 'LT'), 'Challenge <small>(7 s tras el punto)</small>'], [S('Stick der.'), 'Zoom de cámara <small>(arriba acerca, abajo aleja)</small>'], [padKey('a') + padKey('b'), 'Menús: aceptar y volver']];
     }
     if (dv === 'touch') return [[S('Joystick') + '<small>mitad izquierda</small>', 'Moverse'], [T('Golpear'), 'Golpear y sacar <small>(joystick: diana del saque)</small>'],
-      [T('Saltar', 1), 'Saltar <small>(en el aire: dejada)</small>'], [T('Colocar', 's'), 'Colocar <small>(en el aire, en salto; en el 3r toque, golpe colocado; en el suelo, tu colocación va con Golpear)</small>'], [T('Golpear') + '<small>→</small>' + T('Saltar', 1), 'Finta <small>(desliza de Golpear a Saltar antes del golpe)</small>'], [S('⇄'), 'Cambiar jugador'], [S('CHALLENGE'), 'Challenge <small>(7 s tras el punto)</small>'], [S('II'), 'Pausa']];
+      [T('Saltar', 1), 'Saltar <small>(en el aire: dejada)</small>'], [T('Colocar', 's'), 'Colocar <small>(en el aire, en salto; en el 3r toque, golpe colocado; en el suelo, tu colocación va con Golpear)</small>'], [T('Golpear') + '<small>→</small>' + T('Saltar', 1), 'Finta <small>(desliza de Golpear a Saltar antes del golpe)</small>'], [S('⇄'), 'Cambiar jugador'], [S('CHALLENGE'), 'Challenge <small>(7 s tras el punto)</small>'], [S('II'), 'Pausa'], [S('Lupa'), 'Zoom de cámara <small>(cada toque, un nivel más lejos; del 5 vuelve al 1)</small>']];
     // C2 (15-nov-2026): con ratón, clic izquierdo golpea, clic derecho coloca y la rueda salta (J / X, K y Espacio siguen de alternativa)
     return [[K('W') + K('A') + K('S') + K('D') + '<small>o</small>' + K('↑') + K('←') + K('↓') + K('→'), 'Moverse'], [M('l') + '<small>o</small>' + K('J') + K('X'), 'Golpear y sacar <small>(flechas: diana)</small>'],
-      [K('Espacio') + '<small>o</small>' + M('c'), 'Saltar <small>(en el aire: dejada)</small>'], [M('r') + '<small>o</small>' + K('K'), 'Colocar <small>(en el suelo, en tu 2º toque; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [M('l') + '<small>y</small>' + K('Espacio'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'], [K('C'), 'Cambiar jugador'], [K('V'), 'Challenge <small>(7 s tras el punto)</small>'], [K('P') + K('Esc'), 'Pausa'], [K('M'), 'Sonido']];
+      [K('Espacio') + '<small>o</small>' + M('c'), 'Saltar <small>(en el aire: dejada)</small>'], [M('r') + '<small>o</small>' + K('K'), 'Colocar <small>(en el suelo, en tu 2º toque; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [M('l') + '<small>y</small>' + K('Espacio'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'], [K('C'), 'Cambiar jugador'], [K('V'), 'Challenge <small>(7 s tras el punto)</small>'], [K('P') + K('Esc'), 'Pausa'], [K('M'), 'Sonido'], [K('+') + K('-') + '<small>o</small>' + M('c'), 'Zoom de cámara <small>(rueda girada)</small>']];
   }
   function renderCtl() {
     var cur = device();
@@ -4461,10 +4461,10 @@
   function ctlStep(d, how) { if (ctlTabs) ctlTabs.step(d, how || 'key'); }
   // ---------- E3: teclas y botones reasignables (VB.Input: bindings, rebind, captureNext, keyName, padName) ----------
   var CTL_IDS = { keyboard: 1, gamepad: 1, touch: 1 };
-  var KEY_ACTS = ['up', 'down', 'left', 'right', 'hit', 'jump', 'jset', 'switch', 'challenge', 'pause', 'mute'];
+  var KEY_ACTS = ['up', 'down', 'left', 'right', 'hit', 'jump', 'jset', 'switch', 'challenge', 'pause', 'mute', 'zoomIn', 'zoomOut'];
   function actLabel(a) {
     return ({ up: 'Arriba', down: 'Abajo', left: 'Izquierda', right: 'Derecha', hit: 'Golpear y sacar', jump: 'Saltar', jset: 'Colocar',
-      'switch': fmt6() ? 'Pedir el balón' : 'Cambiar jugador', sw: fmt6() ? 'Pedir el balón' : 'Cambiar jugador', challenge: 'Challenge', chal: 'Challenge', pause: 'Pausa', mute: 'Sonido' })[a] || a;
+      'switch': fmt6() ? 'Pedir el balón' : 'Cambiar jugador', sw: fmt6() ? 'Pedir el balón' : 'Cambiar jugador', challenge: 'Challenge', chal: 'Challenge', pause: 'Pausa', mute: 'Sonido', zoomIn: 'Acercar la cámara', zoomOut: 'Alejar la cámara' })[a] || a;
   }
   var capturing = false, capCancel = null, ctlMsgFor = '';
   function ctlMsgSet(h, bad) {
@@ -4480,11 +4480,11 @@
     var B = I.bindings(), K = B.keys || {}, one = oneMode() && !fmt6(), h = '<div class="ctl kb">';
     KEY_ACTS.forEach(function (a) {
       var k = K[a] || ['', ''], L = actLabel(a), sub = a === 'up' ? 'hacia la red' : a === 'switch' && one ? '(modo Un jugador)' : a === 'pause' ? 'y Esc' :
-        a === 'hit' ? 'o clic' : a === 'jset' ? 'o clic derecho' : a === 'jump' ? 'o rueda' : '';   // (C2: el ratón, fijo)
+        a === 'hit' ? 'o clic' : a === 'jset' ? 'o clic derecho' : a === 'jump' ? 'o clic de rueda' : a === 'zoomIn' ? 'o rueda adelante' : a === 'zoomOut' ? 'o rueda atrás' : '';   // (C2: el ratón, fijo)
       h += '<div' + (a === 'switch' && one ? ' class="dim"' : '') + '><span class="kl">' + L + (sub ? '<small>' + sub + '</small>' : '') + '</span><span class="ks">' +
         slotHTML('key', a, 0, L, k[0] ? I.keyName(k[0]) : '', !k[0]) + slotHTML('key', a, 1, L, k[1] ? I.keyName(k[1]) : '', !k[1]) + '</span></div>';
     });
-    return h + '</div><p class="ctl-fixed"><b>Fijas:</b> Esc pausa y vuelve, Intro acepta, Q / E cambian de apartado. <b>Ratón:</b> clic izq. golpea, der. coloca, rueda salta.</p>' +
+    return h + '</div><p class="ctl-fixed"><b>Fijas:</b> Esc pausa y vuelve, Intro acepta, Q / E cambian de apartado. <b>Ratón:</b> clic izq. golpea, der. coloca, clic de rueda salta y la rueda acerca o aleja la cámara.</p>' +
       '<button type="button" class="opt-reset" data-reset="keys">Restablecer teclas</button>';
   }
   function ctlPadHTML(I) {
@@ -4498,7 +4498,7 @@
     if (!std) h += '<p class="ctl-fixed">Este mando no usa la distribución estándar: botones fijos.</p>';
     h += '<div class="opt-g"><button class="opt" data-opt="padDead" data-need="Input"><span>Zona muerta<small>Para mandos con el stick que se mueve solo</small></span><span class="slider" data-sl="padDead"><span class="trk"><i></i><b></b></span><span class="v">18%</span></span></button>' +
       '<button class="opt" data-opt="rumble"><span>Vibración<small>Del mando y del móvil en los golpes</small></span><span class="seg" data-seg="rumble"></span></button></div>';
-    h += '<p class="ctl-fixed">' + (fam === 'ps' ? 'En los menús, ✕ acepta, ○ vuelve y L1 / R1 cambian de apartado.' : 'En los menús, A acepta, B vuelve y LB / RB cambian de apartado.') + '</p>';
+    h += '<p class="ctl-fixed">' + (std ? '<b>Stick derecho:</b> arriba acerca la cámara y abajo la aleja. ' : '') + (fam === 'ps' ? 'En los menús, ✕ acepta, ○ vuelve y L1 / R1 cambian de apartado.' : 'En los menús, A acepta, B vuelve y LB / RB cambian de apartado.') + '</p>';
     return h + (std ? '<button type="button" class="opt-reset" data-reset="pad">Restablecer botones</button>' : '');
   }
   /** Reasignar: Intro / clic / toque / A sobre una tecla → la siguiente tecla (o botón) pulsada. Mientras dura, ni nav() ni
@@ -4602,6 +4602,8 @@
     showFps: { vals: [true, false], labels: ['Sí', 'No'] },
     // Cámara (camera.js: VB.CameraRig.OPTS)
     camDist: { vals: ['near', 'normal', 'far'], labels: ['Cerca', 'Normal', 'Lejos'] },
+    // zoom de cámara (17-nov-2026; sustituye a la fila Distancia): 1 cerca … 5 lejos, 3 el de siempre. En partido: rueda, + / -, stick derecho o la lupa táctil
+    camZoom: { vals: [0, 1, 2, 3, 4], labels: ['1', '2', '3', '4', '5'] },
     camCuts: { vals: ['all', 'less'], labels: ['Todos', 'Menos'] },
     // Accesibilidad: menos movimiento (main.js → ctx.reduceMotion), colores para daltonismo y balón de contraste (fx.js: VB.FX.OPTS)
     lessMotion: { vals: ['auto', 'on', 'off'], labels: ['Auto', 'Sí', 'No'] },
@@ -4649,7 +4651,7 @@
     return mod === 'Audio';
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
-  var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camDist', 'camCuts', 'cam6'],
+  var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
     game: ['showHelp', 'coachTips', 'aimSet', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
@@ -6127,7 +6129,24 @@
     subsPauseBtn(g);
   }
 
+  // ZOOM DE CÁMARA (17-nov-2026): main.js avisa en cada paso (rueda, + / -, stick derecho o la lupa táctil) y sale «Zoom | 3/5» abajo en el
+  // centro 1,1 s (estilo del chip de la jugada; el número late si cambió; en el tope, sin latido)
+  var zm = { t: 0, el: null, n: null };
+  function zoomHint(n, changed) {
+    if (!zm.el) { zm.el = document.getElementById('zmHint'); zm.n = document.getElementById('zmN'); }
+    if (!zm.el || !zm.n) return;
+    zm.n.textContent = ((n | 0) + 1) + '/5';
+    if (!zm.el.classList.contains('on')) zm.el.classList.add('on');
+    if (changed) restartAnim(zm.n, 'bump');
+    zm.t = 1.1;
+  }
+  function zoomTick(rdt) {
+    if (!(zm.t > 0) || !zm.el) return;
+    zm.t = ctx.state === 'playing' ? zm.t - rdt : 0;
+    if (zm.t <= 0) { zm.t = 0; zm.el.classList.remove('on'); }
+  }
   VB.UI = {
+    zoomHint: zoomHint,
     banner: banner,
     callout: callout,
     sep: sepHTML,          // separadores con diseño (career-ui.js también): sep(trozos, 'd'|'v'|'s'|'c', html)
@@ -6526,6 +6545,7 @@
     /** dt = tiempo de juego (0 en pausa/congelado: los banners se quedan). */
     update: function (g, dt, events) {
       if (ctx.net && ctx.state === 'over') onlineEndSync();   // (online: rótulo de la revancha)
+      if (zm.t > 0) zoomTick(ctx.realDt || 1 / 60);   // (aviso del zoom de cámara: tiempo real)
       if (!g) return;
       if ((ctx.frame & 31) === 7) kitTick();   // por si players cambia la equipación de la CPU por su cuenta
       onEvents(g, events);

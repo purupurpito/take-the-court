@@ -344,6 +344,10 @@
   // cutsLess = Planos de tele 'less' (sin plano del sacador rival ni plano de reacción/héroe del punto: la cámara de juego se
   // queda en la pausa; presentación, cierre de set/partido y grúa del cambio de campo, como siempre).
   var distK = 1, cutsLess = false, rmMQ = null;
+  // zoom (camZoom 0 cerca … 4 lejos): 2v2 = distK de rally/defend/attack (0,86 y 1,18 eran Cerca y Lejos); 6v6 en 3ª persona = distancia
+  // (ZB6) y altura (ZH6) detrás del jugador: de casi al hombro a casi de televisión
+  var ZK2 = [0.76, 0.86, 1, 1.18, 1.34], ZB6 = [0.68, 0.84, 1, 1.18, 1.36], ZH6 = [0.76, 0.88, 1, 1.12, 1.26];
+  var zoomI = 2, zoomB6 = 1, zoomH6 = 1;
   function hasK(o, k) { return !!o && Object.prototype.hasOwnProperty.call(o, k); }
   function readComfort() {
     var st = ctx && ctx.settings;
@@ -357,8 +361,11 @@
       reduceMotion = lm === 'on' ? true : lm === 'off' ? false : !!(rmMQ && rmMQ.matches);
     }
     calmNow = reduceMotion || stableNow;
-    var cd = hasK(st, 'camDist') ? st.camDist : 'normal';
-    distK = cd === 'near' ? 0.86 : cd === 'far' ? 1.18 : 1;
+    // ZOOM DE CÁMARA (17-nov-2026): camZoom 0..4 (2 = el de siempre; rueda, + / -, stick derecho, lupa táctil o Ajustes). Sustituye a la
+    // Distancia: sin camZoom se lee la Distancia de antes (Cerca = 1, Lejos = 3: mismos ×0,86 / ×1,18 del 2v2)
+    var zi = hasK(st, 'camZoom') ? +st.camZoom : NaN;
+    if (!(zi >= 0 && zi <= 4)) { var cd = hasK(st, 'camDist') ? st.camDist : 'normal'; zi = cd === 'near' ? 1 : cd === 'far' ? 3 : 2; }
+    zoomI = Math.round(zi); distK = ZK2[zoomI]; zoomB6 = ZB6[zoomI]; zoomH6 = ZH6[zoomI];
     cutsLess = hasK(st, 'camCuts') && st.camCuts === 'less';
     // 6v6: cámara en 3ª persona ('3p', por defecto) o de televisión ('tv'); ?cam6=tv|3p manda (pruebas)
     cam6Tv = Q6 ? Q6 === 'tv' : !!(st && Object.prototype.hasOwnProperty.call(st, 'cam6') && st.cam6 === 'tv');
@@ -2462,7 +2469,7 @@
    *  alta y detrás del fondo del equipo 0 (x > 0), mirando a lo largo de la pista. Encuadra las dos pistas enteras con los 12
    *  jugadores: el fondo cercano (o el sacador cercano) abajo y las cabezas del fondo lejano (o su sacador) arriba, por debajo
    *  del marcador. Solo acompaña un poco el balón a lo ancho; la lente se ajusta al aspecto para que quepan los laterales. */
-  var TVS = { y: 0.5, ay: 0.5, near: 9.5, far: -9.5, v: [0.5, 0.5, 0.5, 0.5], mode: '', cut: false }; TVS.v[0] = TVS.v[1] = TVS.v[2] = TVS.v[3] = 0;
+  var TVS = { y: 0.5, ay: 0.5, near: 9.5, far: -9.5, v: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5], mode: '', cut: false, bt: 0.5, tb: 0.5 }; TVS.v[0] = TVS.v[1] = TVS.v[2] = TVS.v[3] = TVS.v[4] = TVS.v[5] = 0; TVS.bt = -1; TVS.tb = 0;
   function tvShot(g) {
     var dt = K.dt, b = g.ball, sv = g.mode === 'serve' ? g.server : null;
     // del punto al saque siguiente (los jugadores aparecen en su sitio de golpe): corte, como la realización de la tele (ver update)
@@ -2484,6 +2491,21 @@
     // vertical: cabezas del fondo lejano (z 2,1) a +0,6 NDC (el marcador y la guía de toques quedan encima) y el suelo del fondo cercano a -0,84
     var aT = at2(2.1 - H, X - TVS.far), aB = at2(-H, mx(1, X - TVS.near));
     var f = fit2(aT, 0.6, aB, -0.84), p = f.p, t = f.t;
+    // (17-nov-2026) EL BALÓN ALTO TAMBIÉN: un balón libre puede subir a 10 m y se iba por arriba (tv6test, 5 % de los frames). La
+    // elevación del balón (o la de su cumbre si sube), con su muelle (0,25 s: sin saltos en los toques), a <= 0,8 NDC
+    var btT = -1;
+    if (g.mode === 'rally') {
+      // (si sube, su CUMBRE prevista: la lente empieza a abrir en el toque y llega a tiempo con su ritmo limitado)
+      var Gt = (VB.C && VB.C.G) || 9.81, tq = b.vz > 0.5 ? mn(1.2, b.vz / Gt) : 0, bzq = mx(b.z, b.z + b.vz * tq - 0.5 * Gt * tq * tq) + 0.25;
+      btT = at2(bzq - H, mx(1.5, X - mx(b.x, b.x + b.vx * tq)));
+    }
+    if (dt > 0 && TVS.bt > -0.99) TVS.bt = sd1(TVS.bt, btT, TVS.v, 4, 0.25, dt); else { TVS.bt = btT; TVS.v[4] = 0; }
+    // (la lente abre lo que pida el balón como mucho a ~11°/s y vuelve a ~5°/s; mientras tanto el suelo cercano —1,2 m por delante de los
+    // jugadores— baja de -0,84 a -1 NDC, el borde: los pies siguen dentro y cabe más arriba sin abrir tanto)
+    var tbT = 0;
+    if (TVS.bt > -0.99 && TVS.bt - aB > 0.02) { f = fit2(TVS.bt, 0.8, aB, -1.0); if (f.t > t) tbT = f.t - t; }
+    if (dt > 0) { var tbN = sd1(TVS.tb, tbT, TVS.v, 5, 0.25, dt), tbR = (tbT > TVS.tb ? 0.15 : 0.06) * dt; TVS.tb = clamp(tbN, TVS.tb - tbR, TVS.tb + tbR); } else { TVS.tb = tbT; TVS.v[5] = 0; }
+    if (TVS.tb > 0.0005) { t += TVS.tb; p = aB + Math.atan((0.84 + 0.16 * smooth01(TVS.tb / 0.04)) * t); }
     // horizontal: los laterales (± 5 m: con el margen de la zona libre) en el fondo cercano, dentro de ± 0,92 NDC
     var depth = (X - TVS.near) * Math.cos(p) - H * Math.sin(p), lat = 5 + Math.abs(TVS.y);
     var tW = lat / mx(1, depth) / 0.92, asp = aspect();
@@ -2526,11 +2548,42 @@
    * del hombro), srv (tu saque, sobre tu hombro derecho), tsrv (saca un compañero), rsrv (saque rival). Oclusión: de los compañeros, los 2
    * más cercanos al eje cámara-jugador; si tapan al jugador, la cámara se aparta de lado (hasta 2,2 m) y sube (hasta 0,9 m).
    * Solo con g.size === 6 y sin g.watch (pickShot): el 2v2 y el espectador no pasan por aquí. */
-  var TP = { ph: '', back: 7.5, h: 5.5, side: 0.5, occ: 0.5, up: 0.5, fg: 0.5, ex: 0.5, ly: 0.5, fov: 50.5, v: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], nB: -0.5, nX: 0.5, nY: 0.5, sox: 0.5, soy: 0.5 };
-  (function () { TP.side = TP.occ = TP.up = TP.fg = TP.ex = TP.ly = TP.sox = TP.soy = 0; for (var i = 0; i < TP.v.length; i++) TP.v[i] = 0; })();
+  var TP = { ph: '', back: 7.5, h: 5.5, side: 0.5, occ: 0.5, up: 0.5, fg: 0.5, ex: 0.5, ly: 0.5, fov: 50.5, v: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5], nB: -0.5, nX: 0.5, nY: 0.5, sox: 0.5, soy: 0.5,
+             bf: 0.5, bfT: 0.5, bfH: 0.5, bfW: 0.5, cf: 0.5, ys: 0.5, laOn: 0.5 };
+  (function () { TP.side = TP.occ = TP.up = TP.fg = TP.ex = TP.ly = TP.sox = TP.soy = TP.bf = TP.bfT = TP.bfH = TP.bfW = TP.cf = TP.ys = TP.laOn = 0; for (var i = 0; i < TP.v.length; i++) TP.v[i] = 0; })();
+  /* SEGUIR AL BALÓN (17-nov-2026, pedido de Ferran: «hay veces que no ves lo que está pasando con el balón»; como VB Legends). Medido
+   * antes (tools/cam6ball.js): el balón salía casi siempre POR ABAJO, cuando se juega entre tu jugador y la cámara (recepción o defensa
+   * de un compañero de atrás mientras tú esperas en la red, rebote del bloqueo, remate rival al fondo) y por arriba en algún balón libre
+   * alto. Ahora: (1) puntos del balón que hay que ver: el de ahora, el de dentro de 0,3 s (balística con la gravedad de la sim, sin
+   * g.rng) y el cruce previsto a 1 m (g.pr1) si cae en nuestro campo antes de 1 s; con el saque rival o el rival construyendo, además
+   * la zona de recepción/defensa (para estar ya abiertos cuando llega); (2) si con la cámara de ahora no caben a la vez tu jugador
+   * (pies a >= -0,95 NDC, cabeza a <= 0,9) y esos puntos (|NDC| <= 0,8) con la lente más abierta, la cámara RETROCEDE y sube lo justo
+   * (búsqueda en 6 pasos de 0 a 6 m, el menor que vale; muelle críticamente amortiguado, sube en 0,4 s y baja en 1 s, y solo baja tras
+   * 0,5 s seguidos pidiendo menos: sin bombeo); (3) en el encuadre fino el balón manda sobre el fondo rival y sobre los pies (que pueden
+   * bajar hasta el borde), y gira hasta ±36° para no perderlo de lado. */
+  var BFA = [0.5, 0.5, 0.5, 0.5, 0.5], BFX = [0.5, 0.5, 0.5, 0.5, 0.5], BFY = [0.5, 0.5, 0.5, 0.5, 0.5], BFZ = [0.5, 0.5, 0.5, 0.5, 0.5], BFE = [0, 1.2, 2.4, 3.6, 4.8, 6];
+  var BFS = { n: 0, nb: 0, tMax: 0.5, nT: 0.8 };   // (nT: tope de arriba del balón, el mismo que el encuadre fino: 0,64 en táctil, bajo el HUD)
+  var LA = { x: 0.5, y: 0.5, z: 0.5 }, LAV = { x: 0.5, y: 0.5, z: 0.5 }, LAT = { x: 0.5, y: 0.5, z: 0.5 };   // (adelanto del balón suavizado, su velocidad y su objetivo)
+  /** ¿Caben tu jugador (pies aFt, cabeza) y los puntos del balón BF* con la cámara en (x, y, z) y el rumbo de TPC, sin pasar de BFS.tMax? */
+  function bfFits(x, y, z, sx, sy, sz) {
+    TPC.x = x; TPC.y = y; TPC.z = z;
+    var aF = tpEl(sx, sy, sz), aH = tpEl(sx, sy, sz + 1.85);
+    if (!(aF === aF) || !(aH === aH)) return false;
+    var tq = 0, i, j, a, f;
+    // (y ninguno a más de 50° por debajo: mirar casi al suelo bajo la cámara va tarde —el giro tiene tope— y marea; mejor retroceder)
+    for (i = 0; i < BFS.n; i++) { a = tpEl(BFX[i], BFY[i], BFZ[i]); if (!(a === a) || a < -0.87) return false; BFA[i] = a; }
+    for (i = 0; i < BFS.n; i++) {
+      a = BFA[i];
+      // (balón arriba y pies abajo; cabeza arriba y balón abajo; balón contra balón)
+      if (a - aF > 0.02) { f = fit2(a, BFS.nT, aF, -0.9); tq = mx(tq, f.t); }
+      if (aH - a > 0.02) { f = fit2(aH, 0.9, a, -0.8); tq = mx(tq, f.t); }
+      for (j = 0; j < BFS.n; j++) if (a - BFA[j] > 0.02) { f = fit2(a, BFS.nT, BFA[j], -0.8); tq = mx(tq, f.t); }
+    }
+    return tq <= BFS.tMax;
+  }
   // por fase: [back (m detrás del sujeto), h (altura), nB (NDC de los pies), side (m por encima del hombro, hacia el centro de la pista)]
   var TPK = { def: [7.4, 5.5, -0.6, 0], bld: [6.8, 5.5, -0.62, 0.4], atk: [5.8, 4.9, -0.56, 1.0], srv: [4.0, 5.0, -0.9, 1.1], tsrv: [4.6, 5.1, -0.9, 1.1], rsrv: [7.2, 5.3, -0.6, 0] };
-  var TPD = { ph: '', occ: 0, up: 0, fov: 0, t: 0, nb: 0 };
+  var TPD = { ph: '', occ: 0, up: 0, fov: 0, t: 0, nb: 0, fg: 0, bf: 0.5, z: 2 };   // (bf: retroceso por el balón, m; z: zoom 0-4)
   var TPC = { x: 0.5, y: 0.5, z: 0.5, c: 1.5, s: 0.5 };   // (pose de la cámara para tpEl: sin cierres ni dobles en caja por llamada)
   /** Elevación (rad) de un punto visto desde TPC con el rumbo de TPC (NaN si está detrás o encima de la cámara). */
   function tpEl(x, y, z) { var fd = (x - TPC.x) * TPC.c + (y - TPC.y) * TPC.s; return fd > 0.6 ? at2(z - TPC.z, fd) : NaN; }
@@ -2552,7 +2605,9 @@
     var tsv = ph === 'tsrv' && sv, srvL = ph === 'srv' || !!tsv, soxT = tsv ? sv.x - p.x : 0, soyT = tsv ? sv.y - p.y : 0;
     if (dt > 0) { TP.sox = sd1(TP.sox, soxT, TP.v, 7, 0.6, dt); TP.soy = sd1(TP.soy, soyT, TP.v, 8, 0.6, dt); } else { TP.sox = soxT; TP.soy = soyT; TP.v[7] = TP.v[8] = 0; }
     var sx = p.x + TP.sox, sy = p.y + TP.soy, sz = tsv ? 0 : mx(0, p.z);
-    var bT = kp[0] * (small ? 0.95 : 1), hT = kp[1] + (small ? (srvL ? 0.15 : 0.25) : 0);
+    // (zoom: distancia y altura; en el saque propio y el de un compañero, a medias: su composición es la del ajuste fino)
+    var zkB = srvL ? 1 + (zoomB6 - 1) * 0.5 : zoomB6, zkH = srvL ? 1 + (zoomH6 - 1) * 0.5 : zoomH6;
+    var bT = kp[0] * (small ? 0.95 : 1) * zkB, hT = (kp[1] + (small ? (srvL ? 0.15 : 0.25) : 0)) * zkH;
     // hombro: hacia el centro de la pista (en tu saque, el derecho: +y); con el jugador centrado se queda el lado que había
     var sg = srvL ? 1 : sy > 0.4 ? -1 : sy < -0.4 ? 1 : (TP.side >= 0 ? 1 : -1), sideT = kp[3] * sg * (calm ? 0.6 : 1);
     if (dt > 0) { TP.back = sd1(TP.back, bT, TP.v, 0, 0.6, dt); TP.h = sd1(TP.h, hT, TP.v, 1, 0.6, dt); TP.side = sd1(TP.side, sideT, TP.v, 2, 0.7, dt); }
@@ -2565,6 +2620,50 @@
     var by = clamp(b.y, -4.5, 4.5), ballAhead = b.x < cx - 1.5;
     var cy = sy * (srvL ? 1 : 0.72) + (srvL || !ballAhead ? 0 : by * 0.12) + TP.side;
     var H0 = TP.h + over * 0.3;
+    // SEGUIR AL BALÓN (ver bfFits): puntos del balón que hay que ver y retroceso de la cámara (búsqueda del menor que vale)
+    var Gb = (VB.C && VB.C.G) || 9.81, bfN = 0, eT = 0;
+    if (!srvL && (g.mode === 'rally' || (ph === 'rsrv' && sv))) {
+      if (g.mode === 'rally') {
+        // ADELANTO: el balón dentro de 0,3 s y, si va a caer en nuestro campo, cada vez más el cruce previsto a 1 m (g.pr1: de 1,2 a 0,8 s
+        // antes); con su muelle (0,15 s): en cada toque el adelanto salta varios metros y la cámara no debe dar el tirón
+        var tl = 0.3, LTx = b.x + b.vx * tl, LTy = b.y + b.vy * tl, LTz = mx(0.11, b.z + b.vz * tl - 0.5 * Gb * tl * tl), pr = g.pr1;
+        if (pr && pr.t > 0.05 && pr.t < 1.2 && pr.x > -0.5 && pr.x < 10 && Math.abs(pr.y) < 7) {
+          var wp = smooth01((1.2 - pr.t) / 0.4); LTx += (pr.x - LTx) * wp; LTy += (pr.y - LTy) * wp; LTz += (1 - LTz) * wp;
+        }
+        LAT.x = LTx; LAT.y = LTy; LAT.z = LTz;
+        if (dt > 0 && TP.laOn > 0) { K.sdT = 0.15; K.sdMax = 60; sdv(LA, LAT, LAV); } else { LA.x = LTx; LA.y = LTy; LA.z = LTz; LAV.x = LAV.y = LAV.z = 0; }
+        TP.laOn = 1;
+        // (solo lo que se juega: un balón que ya se va a la grada por detrás o por un lado no arrastra la cámara)
+        if (b.x < 10.5 && Math.abs(b.y) < 7.5) { BFX[bfN] = b.x; BFY[bfN] = b.y; BFZ[bfN] = mx(0.11, b.z); bfN++; }
+        if (LA.x < 10.5 && Math.abs(LA.y) < 7.5) { BFX[bfN] = LA.x; BFY[bfN] = LA.y; BFZ[bfN] = mx(0.11, LA.z); bfN++; }
+      } else TP.laOn = 0;
+      BFS.nb = bfN;   // (los de arriba son balón de verdad; la zona de defensa/recepción solo cuenta para el retroceso)
+      // (solo si tu jugador está delante, a < 4,5 m de la red: el que juega atrás ya tiene la recepción y la defensa delante)
+      if (sx > 4.5) { /* nada */ }
+      else if (g.mode === 'rally' && g.touchTeam === 1 && g.touches >= 1 && g.touches <= 2 && b.x < 0) { BFX[bfN] = 5.2; BFY[bfN] = clamp(b.y * 0.5, -3, 3); BFZ[bfN] = 0.9; bfN++; }
+      else if (g.mode === 'serve') { BFX[bfN] = 6.3; BFY[bfN] = clamp(sv.y * 0.3, -3, 3); BFZ[bfN] = 0.9; bfN++; }
+      BFS.n = bfN;
+      if (bfN > 0) {
+        // (con la lente que puede haber pronto: la de ahora + 6°, no la más abierta; la lente abre a ritmo limitado y va tarde)
+        BFS.tMax = Math.tan(mn(mn(66, 2 * Math.atan(Math.tan(50 * DEG) / asp) / DEG), (dt > 0 ? TP.fov : 50) + 6) * DEG / 2) * 0.97; BFS.nT = tch ? 0.64 : small ? 0.7 : 0.8;
+        if (!(dt > 0)) { TPC.c = -1; TPC.s = 0; }   // (rumbo: el del frame anterior; en un corte, hacia la red)
+        eT = BFE[BFE.length - 1];
+        for (var ei = 0; ei < BFE.length; ei++) {
+          var xe = cx + BFE[ei], oe = 0; if (xe > 14.4) { oe = xe - 14.4; xe = 14.4; }
+          if (bfFits(xe, cy, mn(mx(H0, 7.8), H0 + BFE[ei] * 0.32 + oe * 0.45), sx, sy, sz)) { eT = BFE[ei]; break; }
+        }
+      }
+    } else { BFS.n = 0; BFS.nb = 0; }
+    // (sube enseguida; baja solo tras 0,5 s seguidos pidiendo menos, y entonces a lo más alto que se pidió en ese rato)
+    if (dt > 0) {
+      if (eT >= TP.bfT) { TP.bfT = eT; TP.bfH = 0; TP.bfW = 0; }
+      else { TP.bfW = TP.bfH > 0 ? mx(TP.bfW, eT) : eT; TP.bfH += dt; if (TP.bfH > 0.5) { TP.bfT = TP.bfW; TP.bfH = 0; } }
+      TP.bf = sd1(TP.bf, TP.bfT, TP.v, 9, TP.bfT > TP.bf ? (calm ? 0.55 : 0.4) : (calm ? 1.4 : 1.0), dt);
+    } else { TP.bfT = TP.bf = eT; TP.bfH = TP.bfW = 0; TP.v[9] = 0; }
+    if (TP.bf > 0.001) {
+      var xb = cx + TP.bf, ob = 0; if (xb > 14.4) { ob = xb - 14.4; xb = 14.4; }
+      H0 = mn(mx(H0, 7.8), H0 + TP.bf * 0.32 + ob * 0.45); cx = xb; ballAhead = b.x < cx - 1.5;
+    }
     // OCLUSIÓN: los 2 compañeros más cercanos al eje cámara-jugador (en planta). Tapa si está a < 0,8 m del eje y su cuerpo cubre en
     // vertical > 20 % del del jugador (desde 5 m de altura, uno que está cerca de la cámara queda por debajo del cuadro y no tapa).
     var lx = sx - cx, ly = sy - cy, ll = hyp(lx, ly), occT = 0, upT = 0;
@@ -2608,25 +2707,36 @@
       }
       TP.fg = clamp(TP.fg + (fgW ? 0.9 : -0.3) * dt, 0, 0.8);
     }
-    D.x = cx + TP.nX * TP.occ; D.y = clamp(cy + TP.nY * TP.occ, -8.5, 8.5); D.z = H0 + TP.up + TP.fg + sz * 0.3;
+    D.x = cx + TP.nX * TP.occ; D.y = clamp(cy + TP.nY * TP.occ, -8.5, 8.5); D.z = mn(H0 + TP.up + TP.fg + sz * 0.3, mx(H0, 7.8));   // (17-nov: como mucho a 7,8 m, la altura de la cámara de televisión, salvo que ya fuera más alta)
     // RUMBO: hacia la red, con algo del lado del balón (o del sacador rival); ±20° de «hacia la red» (los mandos van con la cámara)
-    var lyT = srvL ? sy * 0.2 : ph === 'rsrv' && sv ? sy * 0.25 + clamp(sv.y, -5, 5) * 0.45 : ph === 'atk' ? sy * 0.75 + by * 0.25 : sy * 0.3 + (ballAhead ? by * 0.4 : 0);
+    // (el balón pesa más que antes —0,5 de su sitio dentro de 0,3 s, antes 0,4 del de ahora—: la cámara va con él, como en VB Legends)
+    var byF = clamp(b.y + b.vy * 0.3, -5, 5);
+    var lyT = srvL ? sy * 0.2 : ph === 'rsrv' && sv ? sy * 0.25 + clamp(sv.y, -5, 5) * 0.45 : ph === 'atk' ? sy * 0.75 + by * 0.25 : sy * 0.28 + (ballAhead ? byF * 0.5 : 0);
     TP.ly = dt > 0 ? sd1(TP.ly, lyT, TP.v, 5, 0.5, dt) : lyT; if (!(dt > 0)) TP.v[5] = 0;
     var aimX = srvL ? -5 : ph === 'rsrv' ? -6 : ph === 'atk' ? -2.5 : -4.5;
     var yaw = PI + clamp(wrap(at2(TP.ly - D.y, aimX - D.x) - PI), -20 * DEG, 20 * DEG);
     // el balón dentro de ±0,8 NDC a lo ancho (lo que falte, girando: como mucho hasta ±30°)
     var tanC = Math.tan((dt > 0 ? K.fovCur : TP.fov) * DEG / 2), tanW = tanC * asp;
-    if (ballAhead && g.mode !== 'serve') {
-      var rel = wrap(at2(b.y - D.y, b.x - D.x) - yaw), lim = Math.atan(0.8 * tanW);
-      if (rel > lim) yaw += rel - lim; else if (rel < -lim) yaw += rel + lim;
-      yaw = PI + clamp(wrap(yaw - PI), -30 * DEG, 30 * DEG);
+    // (los puntos del balón de verdad —ahora, a 0,3 s y la caída—, hasta ±36°; si no caben todos, centrados)
+    var ysT = 0;
+    if (g.mode === 'rally' && BFS.nb > 0) {
+      var lim = Math.atan(0.78 * tanW), rMx = -9, rMn = 9, cyw = Math.cos(yaw), syw = Math.sin(yaw);
+      for (var ri = 0; ri < BFS.nb; ri++) {
+        var rdx = BFX[ri] - D.x, rdy = BFY[ri] - D.y; if (rdx * cyw + rdy * syw < 1) continue;
+        var rel = wrap(at2(rdy, rdx) - yaw); rMx = mx(rMx, rel); rMn = mn(rMn, rel);
+      }
+      if (rMx > -8) { if (rMx - rMn > 2 * lim) ysT = (rMx + rMn) * 0.5; else if (rMx > lim) ysT = rMx - lim; else if (rMn < -lim) ysT = rMn + lim; }
     }
+    // (el giro que pide el balón, con su muelle: 0,2 s; sin tirones cuando un punto entra o sale de la lista)
+    if (dt > 0) TP.ys = sd1(TP.ys, ysT, TP.v, 10, calm ? 0.32 : 0.2, dt); else { TP.ys = ysT; TP.v[10] = 0; }
+    if (TP.ys !== 0) yaw = PI + clamp(wrap(yaw + TP.ys - PI), -36 * DEG, 36 * DEG);
     TPC.x = D.x; TPC.y = D.y; TPC.z = D.z; TPC.c = Math.cos(yaw); TPC.s = Math.sin(yaw);
     // VERTICAL: pies del sujeto a nB; arriba la línea de fondo rival, el balón y (saque rival) el sacador con su lanzamiento
     // (tu saque: sacador entero y grande abajo —pies a -0,88— con el fondo rival, el objetivo, por encima de tus compañeros, y el
     // lanzamiento previsto, 3,9 m, encuadrado desde el principio: la lente no respira)
     var srvP = srvL, zB = 0;
     var nB = srvP ? (tch ? -0.84 : -0.88) : kp[2] + (tch ? -0.14 : small ? -0.1 : 0), nTop = srvP ? (small ? 0.62 : 0.46) : small ? 0.48 : 0.3;
+    if (zoomI < 2 && !srvP) nTop = mn(0.92, nTop + (2 - zoomI) * 0.22);   // (zoom cerca: el fondo rival puede quedar más arriba; si no, la lente se abría y no acercaba)
     var nBall = srvP ? 0.93 : tch ? 0.64 : small ? 0.7 : 0.8;
     TP.nB = nB;
     // (pies adelantados si corre hacia la cámara: la cámara va ~0,3 s por detrás y los pies se salían por abajo)
@@ -2649,8 +2759,10 @@
     if (aBall === aBall && aBall - aB > 0.02) { f = fit2(aBall, nBall, aB, nB); tNeed = mx(tNeed, f.t); }
     // EL BALÓN TAMBIÉN ABAJO: entre la cámara y el jugador (un compañero de atrás que defiende o recibe), el balón no sale por el borde de
     // abajo (>= -0,84 NDC). Segundo ancla inferior, solo si está a > 2 m delante y no más de 20° por debajo de los pies
-    var aBl = g.mode === 'rally' ? tpEl(b.x + b.vx * 0.15, b.y + b.vy * 0.15, b.z + b.vz * 0.15 - 0.3) : NaN, nBl = -0.84;
-    if (aBl === aBl && ((b.x - D.x) * TPC.c + (b.y - D.y) * TPC.s < 2 || aBl < aB - 0.35)) aBl = NaN;
+    // (17-nov: el más bajo de los puntos del balón —ahora, a 0,3 s y la caída— a -0,78 NDC; antes solo el de 0,15 s a -0,84 y nada si
+    // estaba a < 2 m de la cámara o > 20° por debajo de los pies: justo la recepción o la defensa de detrás, que se perdía por abajo)
+    var aBl = NaN, nBl = -0.78;
+    if (g.mode === 'rally') for (var li = 0; li < BFS.nb; li++) { var al = tpEl(BFX[li], BFY[li], BFZ[li] - 0.12); if (al === al && !(al >= aBl)) aBl = al; }
     // (saca un compañero: el punto del golpe de saque dentro del cuadro desde el principio; el balón ya no entra por el borde de abajo)
     if (aBl === aBl && aBl < aB + 0.1) {
       aT = tpEl(-9.6, clamp(TP.ly, -4, 4), 0); if (aT === aT && aT - aBl > 0.02) { f = fit2(aT, nTop, aBl, nBl); tNeed = mx(tNeed, f.t); }
@@ -2662,23 +2774,35 @@
     var fdP = (sx - D.x) * TPC.c + (sy - D.y) * TPC.s;
     if (fdP > 1) tNeed = mx(tNeed, Math.abs((sx - D.x) * TPC.s - (sy - D.y) * TPC.c) / fdP / 0.7 / asp);
     if (tsv) { var fdC = (p.x - D.x) * TPC.c + (p.y - D.y) * TPC.s; if (fdC > 1) tNeed = mx(tNeed, Math.abs((p.x - D.x) * TPC.s - (p.y - D.y) * TPC.c) / fdC / 0.85 / asp); }
+    // (y el balón a lo ancho dentro de ±0,8 si girar no ha bastado)
+    if (g.mode === 'rally') for (var hi2 = 0; hi2 < BFS.nb; hi2++) { var fdB = (BFX[hi2] - D.x) * TPC.c + (BFY[hi2] - D.y) * TPC.s; if (fdB > 1.2) tNeed = mx(tNeed, Math.abs((BFX[hi2] - D.x) * TPC.s - (BFY[hi2] - D.y) * TPC.c) / fdB / 0.8 / asp); }
     var fMax = mn(66, 2 * Math.atan(Math.tan(50 * DEG) / asp) / DEG), fMin = mn(srvP ? 28 : 40, fMax);
     var fWant = clamp(2 * Math.atan(tNeed) / DEG, fMin, fMax);
-    if (dt > 0) TP.fov = mn(mx(fWant, TP.fov - (calm ? 3 : 4) * dt), TP.fov + (calm ? 9 : 14) * dt); else TP.fov = fWant;
+    // (si en el frame anterior el balón y tu jugador no cabían, la lente abre más deprisa: 20°/s en vez de 14)
+    if (dt > 0) TP.fov = mn(mx(fWant, TP.fov - (calm ? 3 : 4) * dt), TP.fov + (calm ? 9 : TP.cf > 0 ? 20 : 14) * dt); else TP.fov = fWant;
     K.fovWant = TP.fov;
     // cabeceo con la lente que hay AHORA: pies por encima de nB (cabeceo máximo) y lo de arriba por debajo de su límite (mínimo)
-    var t = Math.tan((dt > 0 ? K.fovCur : TP.fov) * DEG / 2), pBot = aB + Math.atan(-nB * t), pTop = -9;
-    if (aBl === aBl) pBot = mn(pBot, aBl + Math.atan(-nBl * t));
+    var t = Math.tan((dt > 0 ? K.fovCur : TP.fov) * DEG / 2), pBotF = aB + Math.atan(-nB * t), pBot = pBotF, pTop = -9, pTopB = -9, pBotB = 9;
+    if (aBl === aBl) { pBotB = aBl + Math.atan(-nBl * t); pBot = mn(pBot, pBotB); }
     aT = tpEl(-9.6, clamp(TP.ly, -4, 4), 0); if (aT === aT) pTop = mx(pTop, aT - Math.atan(nTop * t));
-    if (aBall === aBall) pTop = mx(pTop, aBall - Math.atan(nBall * t));
+    if (aBall === aBall) { pTopB = aBall - Math.atan(nBall * t); pTop = mx(pTop, pTopB); }
     if (ph === 'rsrv' && sv) { aT = tpEl(sv.x + 0.9, sv.y, (sv.z || 0) + 4.75); if (aT === aT) pTop = mx(pTop, aT - Math.atan(nBall * t)); }
     else if (srvP) { aT = tpEl(sx - 0.7, sy, 3.9); if (aT === aT) pTop = mx(pTop, aT - Math.atan(nBall * t)); }
     // (con lente de sobra, a medias; en tu saque, arriba manda el campo rival: el sacador sube en el cuadro)
     var pitch = pTop <= pBot ? (pTop < -8 ? pBot : pBot - (srvP ? 1 : 0.5) * (pBot - pTop)) : mn(pTop, pBot + Math.atan(0.18 * t));
-    pitch = clamp(pitch, -0.8, 0.3);
+    // (no cabe todo: se suelta antes el fondo rival y los pies pueden bajar hasta el borde, -0,97; el balón manda. Saques, como siempre)
+    TP.cf = 0;
+    if (pTop > pBot && !srvL) {
+      var hiB = mn(pBotB, aB + Math.atan(0.97 * t));
+      if (pTopB <= hiB) pitch = clamp(pitch, pTopB, hiB);
+      else { pitch = pBotB < 8 && pTopB > -8 ? (pTopB + pBotB) * 0.5 : pTopB > -8 ? pTopB : hiB; TP.cf = 1; }
+    }
+    // (tu jugador nunca fuera: los pies, como mucho en el borde de abajo; con el balón muy bajo, la cámara puede mirar más abajo, 54°)
+    if (!srvL) pitch = mn(pitch, aB + Math.atan(0.99 * t));
+    pitch = clamp(pitch, aBl === aBl && !srvL ? -0.95 : -0.8, 0.3);
     var cpt = Math.cos(pitch);
     A.x = D.x + TPC.c * cpt * 10; A.y = D.y + TPC.s * cpt * 10; A.z = D.z + Math.sin(pitch) * 10;
-    TPD.ph = ph; TPD.occ = TP.occ; TPD.up = TP.up; TPD.fg = TP.fg; TPD.fov = TP.fov; TPD.nb = nB; dbg.tp = TPD;
+    TPD.ph = ph; TPD.occ = TP.occ; TPD.up = TP.up; TPD.fg = TP.fg; TPD.fov = TP.fov; TPD.nb = nB; TPD.bf = TP.bf; TPD.z = zoomI; dbg.tp = TPD;
   }
 
   /* 6v6 en 3ª persona — PLANO DE REACCIÓN tras el punto (y de CIERRE DE SET): la cámara de juego sigue ~0,55 s (se ve el bote) y CORTA a
@@ -3593,7 +3717,7 @@
 
   VB.CameraRig = {
     /** E3: claves de ctx.settings que la cámara ya soporta (ui.js esconde las filas ★ que falten). */
-    OPTS: ['camDist', 'camCuts', 'lessMotion'],
+    OPTS: ['camDist', 'camZoom', 'camCuts', 'lessMotion'],
     init: function (c) {
       ctx = c; THREE = c.THREE; cam = c.camera; tgt3 = new THREE.Vector3();
       cam.near = 0.12; cam.far = 220; cam.fov = K.fovCur; cam.updateProjectionMatrix();

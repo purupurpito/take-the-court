@@ -11,7 +11,8 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
 // e.code → {key, vk} para Input.dispatchKeyEvent
 const KEYS = {
   KeyJ: ['j', 74], KeyL: ['l', 76], KeyK: ['k', 75], KeyX: ['x', 88], KeyW: ['w', 87], KeyV: ['v', 86], Space: [' ', 32], Tab: ['Tab', 9],
-  Backspace: ['Backspace', 8], Escape: ['Escape', 27], ArrowDown: ['ArrowDown', 40], ArrowUp: ['ArrowUp', 38], Enter: ['Enter', 13]
+  Backspace: ['Backspace', 8], Escape: ['Escape', 27], ArrowDown: ['ArrowDown', 40], ArrowUp: ['ArrowUp', 38], Enter: ['Enter', 13],
+  BracketRight: ['+', 187], Slash: ['-', 189], NumpadAdd: ['+', 107], NumpadSubtract: ['-', 109]
 };
 (async () => {
   const page = await CDP.open({ size: '1280x720' });
@@ -157,6 +158,25 @@ const KEYS = {
     const names = await E(`['Space','ArrowUp','Numpad4','ShiftLeft','ShiftRight','KeyQ','Digit7','Semicolon',''].map(VB.Input.keyName)`);
     check('keyName: Espacio, ↑, Num 4, Mayús, Mayús der., Q, 7, Ñ (o la del sistema), — (vacía)',
       names[0] === 'Espacio' && names[1] === '↑' && names[2] === 'Num 4' && names[3] === 'Mayús' && names[4] === 'Mayús der.' && names[5] === 'Q' && names[6] === '7' && names[7].length === 1 && names[8] === '—', names);
+    // ZOOM DE CÁMARA (17-nov-2026): + / - (y las del teclado numérico) y la rueda girada, en partido; tope 0..4; aviso «Zoom n/5»
+    console.log('6) zoom de cámara en partido');
+    await page.navigate('debug=serve&live=1&autoplay=0&seed=7');
+    await wait(3000);
+    await setKeys({});
+    k = await binds();
+    check('zoom de fábrica: + y Num + acercan, - y Num - alejan', k.zoomIn.join() === 'BracketRight,NumpadAdd' && k.zoomOut.join() === 'Slash,NumpadSubtract', [k.zoomIn, k.zoomOut]);
+    await E(`(VB.ctx.actions.setSetting('camZoom', 2), 1)`);
+    await tap('Slash'); await wait(100);
+    check('- aleja un nivel (camZoom 2 → 3) y sale el aviso «Zoom 4/5»', (await E('VB.ctx.settings.camZoom')) === 3 && (await E(`document.getElementById('zmHint').classList.contains('on') && document.getElementById('zmN').textContent`)) === '4/5');
+    await tap('NumpadAdd'); await tap('BracketRight'); await tap('BracketRight'); await tap('BracketRight');
+    check('+ y Num + acercan hasta el tope (camZoom 0)', (await E('VB.ctx.settings.camZoom')) === 0);
+    for (const dy of [120, 120]) { await page.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 640, y: 360, deltaX: 0, deltaY: dy }); await wait(120); }
+    check('rueda hacia atrás: dos muescas alejan dos niveles (camZoom 2)', (await E('VB.ctx.settings.camZoom')) === 2, await E('VB.ctx.settings.camZoom'));
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 640, y: 360, deltaX: 0, deltaY: -30 }); await wait(120);
+    check('un roce de la rueda (30 px) no cambia el zoom', (await E('VB.ctx.settings.camZoom')) === 2);
+    await page.send('Input.dispatchMouseEvent', { type: 'mouseWheel', x: 640, y: 360, deltaX: 0, deltaY: -100 }); await wait(120);
+    check('rueda hacia delante acerca (camZoom 1)', (await E('VB.ctx.settings.camZoom')) === 1);
+    await E(`(VB.ctx.actions.setSetting('camZoom', 2), 1)`);
     await setKeys({ hit: ['KeyL', 'KeyX'] });
     await setKeys({});
     k = await binds();

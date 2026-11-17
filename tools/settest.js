@@ -55,7 +55,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await fresh('debug=settings&panel=set&nonews=1');
       const tabs = await J(`[].map.call(document.querySelectorAll('#setTabs .tab'), function (b) { return b.getAttribute('data-tab'); })`);
       check('7 pestañas en orden (audio, image, cam, game, a11y, kit, info)', tabs.join() === 'audio,image,cam,game,a11y,kit,info', tabs);
-      const rows = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight'], cam: ['camSens', 'camDist', 'camCuts', 'cam6'],
+      const rows = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
         game: ['showHelp', 'coachTips', 'aimSet', 'msTiming'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'], kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'] };
       for (const t of Object.keys(rows)) {
         await tab(t);
@@ -69,10 +69,10 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await tab('cam');
       await E(`window.__o = VB.CameraRig.OPTS; VB.CameraRig.OPTS = []; window.__f = VB.FX.OPTS; VB.FX.OPTS = ['cbColors']; VB.ctx.actions.setSetting('camSens', 1.1); 1`);
       await sleep(200);
-      const hid = await J(`[document.querySelector('[data-opt="camDist"]').hidden, document.querySelector('[data-opt="camCuts"]').hidden, document.querySelector('[data-opt="ballStyle"]').hidden, document.querySelector('[data-opt="cbColors"]').hidden]`);
-      check('sin OPTS de cámara: Distancia y Planos ocultas; FX sin ballStyle: Balón oculta y Daltonismo visible', hid.join() === 'true,true,true,false', hid);
+      const hid = await J(`[document.querySelector('[data-opt="camZoom"]').hidden, document.querySelector('[data-opt="camCuts"]').hidden, document.querySelector('[data-opt="ballStyle"]').hidden, document.querySelector('[data-opt="cbColors"]').hidden]`);
+      check('sin OPTS de cámara: Zoom de cámara y Planos ocultas; FX sin ballStyle: Balón oculta y Daltonismo visible', hid.join() === 'true,true,true,false', hid);
       await E(`VB.CameraRig.OPTS = window.__o; VB.FX.OPTS = window.__f; VB.ctx.actions.setSetting('camSens', 1); 1`); await sleep(200);
-      check('con OPTS de vuelta, las filas reaparecen', !(await E(`document.querySelector('[data-opt="camDist"]').hidden`)));
+      check('con OPTS de vuelta, las filas reaparecen', !(await E(`document.querySelector('[data-opt="camZoom"]').hidden`)));
     }
 
     if (want('b')) {
@@ -104,10 +104,10 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       // toque / ratón: segmento y pista
       await page.navigate('debug=settings&panel=set&nonews=1'); await ready(); await sleep(1200);
       await tab('cam');
-      const seg = await J(`(function(){ var s = document.querySelector('[data-seg="camDist"] [data-i="2"]').getBoundingClientRect(); return [s.left + s.width / 2, s.top + s.height / 2]; })()`);
+      const seg = await J(`(function(){ var s = document.querySelector('[data-seg="camZoom"] [data-i="4"]').getBoundingClientRect(); return [s.left + s.width / 2, s.top + s.height / 2]; })()`);
       for (const t of ['mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x: seg[0], y: seg[1], button: 'left', clickCount: 1 });
       await sleep(300);
-      check('clic en el segmento «Lejos»', (await S()).camDist === 'far');
+      check('clic en el segmento «5» del zoom de cámara', (await S()).camZoom === 4);
       await tab('audio');
       const trk = await J(`(function(){ var r = document.querySelector('[data-sl="crowdVol"] .trk').getBoundingClientRect(); return [r.left + r.width * 0.4, r.top + r.height / 2]; })()`);
       for (const t of ['mousePressed', 'mouseReleased']) await page.send('Input.dispatchMouseEvent', { type: t, x: trk[0], y: trk[1], button: 'left', clickCount: 1 });
@@ -120,14 +120,14 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       console.log('c) persistencia y guardado por dispositivo');
       await fresh('nonews=1');
       await E(`(function(){ var A = VB.ctx.actions; A.setSetting('resScale', 0.85); A.setSetting('fpsCap', 30); A.setSetting('showFps', true); A.setSetting('touchSize', 1.15); A.setSetting('padDead', 0.25);
-        A.setSetting('camDist', 'near'); A.setSetting('crowdVol', 0.4); A.setSetting('volume', 0.7); A.setSetting('keys', {hit:['KeyL','KeyX']}); A.setSetting('lessMotion', 'on'); return 1; })()`);
+        A.setSetting('camZoom', 1); A.setSetting('crowdVol', 0.4); A.setSetting('volume', 0.7); A.setSetting('keys', {hit:['KeyL','KeyX']}); A.setSetting('lessMotion', 'on'); return 1; })()`);
       await page.navigate('nonews=1'); await ready(); await sleep(1000);
       const s = await S();
       check('tras recargar: resScale, fpsCap, showFps, touchSize, padDead', s.resScale === 0.85 && s.fpsCap === 30 && s.showFps === true && s.touchSize === 1.15 && s.padDead === 0.25, s);
-      check('tras recargar: camDist, crowdVol, volume, keys, lessMotion', s.camDist === 'near' && s.crowdVol === 0.4 && s.volume === 0.7 && s.keys.hit && s.keys.hit[0] === 'KeyL' && s.lessMotion === 'on', s);
+      check('tras recargar: camZoom, crowdVol, volume, keys, lessMotion', s.camZoom === 1 && s.crowdVol === 0.4 && s.volume === 0.7 && s.keys.hit && s.keys.hit[0] === 'KeyL' && s.lessMotion === 'on', s);
       const st = await LS('voley3d.settings'), dv = await LS('voley3d.device');
       check('voley3d.device = {resScale, fpsCap, showFps, touchSize, padDead}', dv && dv.resScale === 0.85 && dv.fpsCap === 30 && dv.showFps === true && dv.touchSize === 1.15 && dv.padDead === 0.25, dv);
-      check('voley3d.settings sin las claves del dispositivo', st && !['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'].some(k => k in st) && st.camDist === 'near', st && Object.keys(st));
+      check('voley3d.settings sin las claves del dispositivo', st && !['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'].some(k => k in st) && st.camZoom === 1, st && Object.keys(st));
       check('ctx.reduceMotion = true con «Menos movimiento: Sí»', (await E('VB.ctx.reduceMotion')) === true && (await E('Object.prototype.hasOwnProperty.call(VB.ctx, "reduceMotion")')));
       await E(`VB.ctx.actions.setSetting('lessMotion', 'off'), 1`);
       check('ctx.reduceMotion = false con «No»', (await E('VB.ctx.reduceMotion')) === false);
@@ -136,11 +136,14 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
     if (want('d')) {
       console.log('d) valores corruptos');
       const before = errs.length;
-      await fresh('nonews=1', { 'voley3d.settings': { resScale: 3, keys: 'x', padKeys: { hit: [99] }, volume: 'alto', crowdVol: -5, camDist: 'lejisimos', lessMotion: 7, ballStyle: null, cbColors: 'si', sfxVol: 0.5 }, 'voley3d.device': { padDead: -1, fpsCap: 45, touchSize: 2, showFps: 'si', resScale: 3 } });
+      await fresh('nonews=1', { 'voley3d.settings': { resScale: 3, keys: 'x', padKeys: { hit: [99] }, volume: 'alto', crowdVol: -5, camDist: 'lejisimos', camZoom: 9, lessMotion: 7, ballStyle: null, cbColors: 'si', sfxVol: 0.5 }, 'voley3d.device': { padDead: -1, fpsCap: 45, touchSize: 2, showFps: 'si', resScale: 3 } });
       let s = await S();
       check('resScale 3 → 0; keys "x" → {}; padKeys {hit:[99]} → {}', s.resScale === 0 && JSON.stringify(s.keys) === '{}' && JSON.stringify(s.padKeys) === '{}', s);
       check('padDead -1 → 0,18; fpsCap 45 → 0; touchSize 2 → 1; showFps "si" → false', s.padDead === 0.18 && s.fpsCap === 0 && s.touchSize === 1 && s.showFps === false, s);
-      check('volume "alto" → 1; crowdVol -5 → 0; camDist → normal; lessMotion → auto; ballStyle → clasico; cbColors → false', s.volume === 1 && s.crowdVol === 0 && s.camDist === 'normal' && s.lessMotion === 'auto' && s.ballStyle === 'clasico' && s.cbColors === false, s);
+      check('volume "alto" → 1; crowdVol -5 → 0; camDist → normal; camZoom 9 → 2; lessMotion → auto; ballStyle → clasico; cbColors → false', s.volume === 1 && s.crowdVol === 0 && s.camDist === 'normal' && s.camZoom === 2 && s.lessMotion === 'auto' && s.ballStyle === 'clasico' && s.cbColors === false, s);
+      await fresh('nonews=1', { 'voley3d.settings': { camDist: 'far' } });
+      s = await S();
+      check('migración: Distancia «Lejos» de antes (sin camZoom) → zoom 4 de 5 (camZoom 3)', s.camZoom === 3, s.camZoom);
       await fresh('nonews=1', { 'voley3d.settings': { keys: { hit: [123] } } });
       s = await S();
       check('keys {hit:[123]} → {}', JSON.stringify(s.keys) === '{}', s.keys);
@@ -203,7 +206,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
     if (want('i')) {
       console.log('i) restablecer el apartado');
       await fresh('debug=settings&panel=set&nonews=1');
-      await E(`(function(){ var A = VB.ctx.actions; A.setSetting('cbColors', true); A.setSetting('hudScale', 1.3); A.setSetting('lessMotion', 'on'); A.setSetting('camDist', 'far'); return 1; })()`);
+      await E(`(function(){ var A = VB.ctx.actions; A.setSetting('cbColors', true); A.setSetting('hudScale', 1.3); A.setSetting('lessMotion', 'on'); A.setSetting('camZoom', 3); return 1; })()`);
       await tab('a11y');
       await E(`document.querySelector('.opt-g[data-tab="a11y"] .opt-reset').click(), 1`); await sleep(200);
       const armed = await J(`[document.querySelector('.opt-g[data-tab="a11y"] .opt-reset').textContent, VB.ctx.settings.cbColors]`);
@@ -211,7 +214,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await E(`document.querySelector('.opt-g[data-tab="a11y"] .opt-reset').click(), 1`); await sleep(300);
       const s = await S();
       check('2ª pulsación: Accesibilidad a sus valores por defecto', s.cbColors === false && s.hudScale === 1 && s.lessMotion === 'auto', s);
-      check('los demás apartados no cambian (camDist sigue en «far»)', s.camDist === 'far');
+      check('los demás apartados no cambian (camZoom sigue en 3)', s.camZoom === 3);
       await E(`(function(){ var b = document.querySelector('.opt-g[data-tab="a11y"] .opt-reset'); b.click(); return 1; })()`); await sleep(3300);
       check('sin la 2ª pulsación, a los 3 s vuelve el texto', /^Restablecer este apartado$/.test(await E(`document.querySelector('.opt-g[data-tab="a11y"] .opt-reset').textContent`)));
     }
@@ -243,7 +246,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await fresh('debug=controls&panel=ctl&nonews=1');
       const edit = await E(`!!document.querySelector('#ctlGrid .kslot[data-kind="key"][data-act="hit"][data-slot="0"]')`);
       if (!check('teclado editable (VB.Input.captureNext)', edit)) throw new Error('sin kslot');
-      check('11 acciones con 2 teclas', (await E(`document.querySelectorAll('#ctlGrid .kslot[data-kind="key"]').length`)) === 22);
+      check('13 acciones con 2 teclas (con el zoom de cámara, 17-nov-2026)', (await E(`document.querySelectorAll('#ctlGrid .kslot[data-kind="key"]').length`)) === 26);
       await E(`document.querySelector('.kslot[data-act="hit"][data-slot="0"]').focus(), 1`);
       await tap('Enter'); await sleep(150);
       const cap = await J(`[VB.UI._settings().capturing, document.querySelector('.kslot.cap') ? document.querySelector('.kslot.cap').textContent : '', document.getElementById('ctlMsg').textContent]`);

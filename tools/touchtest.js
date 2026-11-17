@@ -152,6 +152,25 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
     if (saOk) { const g2 = (await dbg()).geo; check('botones respetan el inset derecho (CSS env)', g2.hit.cx + g2.hit.r <= W - 44 - 10, g2.hit); }
     else console.log('  (botones con env(): no comprobable sin el override)');
 
+    // 12b) ZOOM DE CÁMARA (17-nov-2026): la lupa de arriba a la derecha da un nivel por toque (del 5 al 1) y no hay gesto: dos dedos que
+    // se separan o se juntan (joystick + otro dedo fuera de los botones, como mover y colocar a la vez) no cambian el zoom
+    console.log('12b) zoom de cámara: botón de la lupa, sin pellizco');
+    { const g4 = (await dbg()).geo, zb = [g4.zoom.cx, g4.zoom.cy];
+      check('lupa visible arriba a la derecha, lejos del joystick y de GOLPEAR/SALTAR', g4.zoom.r > 12 && zb[1] < H * 0.3 && zb[0] > W * 0.7 && Math.hypot(zb[0] - g4.hit.cx, zb[1] - g4.hit.cy) > g4.hit.r + 60, g4.zoom);
+      await page.evalJs(`VB.ctx.actions.setSetting('camZoom', 3), 1`); await wait();
+      const z0 = await page.evalJs('VB.ctx.settings.camZoom');
+      await touch('touchStart', [[zb[0], zb[1], 21]]); await touch('touchEnd', []); await wait(80);
+      const z1 = await page.evalJs('VB.ctx.settings.camZoom');
+      await touch('touchStart', [[zb[0], zb[1], 22]]); await touch('touchEnd', []); await wait(80);
+      const z2 = await page.evalJs('VB.ctx.settings.camZoom');
+      check('un toque, un nivel más lejos; del 5 vuelve al 1 (3 → 4 → 0)', z0 === 3 && z1 === 4 && z2 === 0, [z0, z1, z2]);
+      check('el número de la lupa dice el nivel (1)', (await page.evalJs(`document.querySelector('.vt-zoom b').textContent`)) === '1');
+      await touch('touchStart', [[150, H - 120, 23]]); await touch('touchStart', [[150, H - 120, 23], [260, H - 150, 24]]);
+      for (let k = 1; k <= 6; k++) await touch('touchMove', [[150 - 8 * k, H - 120 + 4 * k, 23], [260 + 25 * k, H - 150 - 10 * k, 24]]);
+      await touch('touchEnd', []); await wait(80);
+      check('dos dedos que se separan fuera de los botones: el zoom no cambia', (await page.evalJs('VB.ctx.settings.camZoom')) === 0);
+      await page.evalJs(`VB.ctx.actions.setSetting('camZoom', 2), 1`); }
+
     // 13) pausa (al final: oculta el overlay)
     console.log('13) pausa');
     { const g3 = (await dbg()).geo; pz[0] = g3.pause.cx; pz[1] = g3.pause.cy; }
