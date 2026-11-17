@@ -1317,3 +1317,35 @@ Detalle: `notes/s234/T5.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
   `opts.ref.judges === false`, es decir, REF 'low'/'mid' de la Carrera; partido rápido y Entrenamiento, con jueces). Los que
   no salen se encogen a 1e-4 en la misma malla (0 dibujos). `judges` = los que están en pista (judgeSignal, camera.js).
 - camera.js: OFFI con 8 huecos y `OFFN` = los que están en uso.
+
+## Árbitros: señas oficiales y 2º árbitro en movimiento (17-nov-2026, v1.5.2; petición de Ferran)
+Fuentes: Reglas Oficiales FIVB, regla 22.2.3 (orden de las señas) y regla 28 / «Official hand signals»; guía FIVB de arbitraje
+(Refereeing Guidelines and Instructions), regla 28 puntos 2, 3, 8 y 9. Herramienta: `node tools/refposes.js [carpeta] [señales]
+[vistas=near,hand,front,tv,game,r2,r2wide] [WxH] [query]` (escena `debug=serve` congelada con `ctx.frozen`, cámara propia,
+`POSES='[{…},{…}]'` prueba variantes de POSE sin recargar, `CLIP=x,y,w,h,escala` recorta). Gancho de depuración en `_dbg()`:
+`R1, R2, R2S, refSignal(e, g), refAuthorize(team), refChallenge(), refChallengeResult(win, truthIn, x)`.
+- **Orden** (22.2.3.1): pita el 1r → silbato (0,32 s) → brazo hacia el equipo que saca (1,0 s) → naturaleza de la falta (`SIG_D`
+  1,3 s) → con `setWon`/`matchWon`, antebrazos cruzados (`POSE.endSet`, 1,4 s). El 2º no señala: queda quieto `R2_WAIT` (1 s,
+  contacto visual) y se va al lado del que recibe. Pita el 2º (`r2Calls`: `net`, `under` y la falta de posición del equipo que
+  RECIBE, `reason 'position'` sin `sideout`; regla 24.3.2): él da silbato + naturaleza en el lado del infractor + pausa + repite
+  el «equipo que saca»; el 1r solo enseña el equipo que saca (y el fin de set). Una seña con una mano va con la del lado del
+  infractor (`armFor`: el 2º mira a −y, su derecha es x < 0).
+- **Señas cambiadas**: 4 / 2 / 8 dedos con la mano a la altura de la cabeza (antes al hombro y de canto) y dedos de seña más
+  gordos y en abanico (`FX` 1,3, `F_FAN`; en `fingersTo`, solo cuando la extensión pasa de 1); 8 dedos = 5 + 3 (`F_HAND` +
+  `F_THREE`; antes 4 + 4). Balón tocado: la mano que roza va POR ENCIMA de la vertical (antes se confundía con «fuera»). Fin
+  de set/partido nuevo. Falta de posición: el índice dibuja círculos (vaivén 10; antes salía la de ataque). Bloqueo de zaguero o
+  del líbero: falta de bloqueo (antes, la de ataque). Autorización del saque: brazo hacia el sacador y barrido hacia la pista
+  (`beckon` → `beckon2`). Balón no lanzado: brazo más alto y abierto. Challenge resuelto: equipo que saca + dentro/fuera del bote.
+  Sin cambios (ya eran FIVB): dentro, fuera, antena (= fuera; la antena la marca el juez), red, bajo la red, ataque, bloqueo del saque.
+- **2º árbitro** (`r2Step`, antes de `refStep` en `updateOfficials`): `R2S` (Float64Array, sin basura) = velocidad, fase del paso,
+  bote aplicado, lado, espera, lado del que recibe. Objetivo x = ±`R2_X` (0,8 m de la línea del poste; y la de siempre, junto al
+  poste, así que pasa por detrás del acolchado sin tocarlo; en la playa, `placeOfficials` lo acerca `R2_BEACH_DY` = 0,17 m al
+  poste para que pase por debajo de los vientos que van del poste a los sacos de arena). Saque: lado del que recibe. Peloteo: lado contrario
+  al balón (x + vx·0,2 con histéresis 0,35 m) = el que defiende/bloquea; cambia al cruzar la red. Punto: quieto y luego al lado del
+  que recibe (si pita él, se mueve mientras silba y se queda quieto mientras señala). `over` y pausa: quieto. Velocidad hasta
+  2,3 m/s con aceleración suave; un saltito de la raíz por paso (3,5 cm) y el tronco inclinado hacia donde va (`S.tl`, que
+  `breathe` suma a la z del tronco; nace double en `offState`). Usa dt de juego (con `ctx.frozen`, el real: escenas de
+  depuración). Con un partido nuevo (`g` distinto) aparece ya en su sitio (sin cruzar la pista en el primer saque, que la cámara
+  planea leyendo su posición). camera.js (`readOfficials`) sigue leyendo `R2.sim` (el bote no entra en `sim.z`); `placeOfficials` igual.
+- Repeticiones: Arena recibe `EMPTY` y el `g` vivo (en 'point'), así que los árbitros no repiten señas y el 2º sigue su camino.
+- 0 dibujos y 0 geometría nueva (solo poses, escalas y giros de huesos que ya existían). La sim no cambia (huellas idénticas).

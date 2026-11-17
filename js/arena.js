@@ -1187,7 +1187,8 @@
     var hr = P.head.rotation, ur = P.upper.rotation;
     P.st = { hx: _v.x, hy: _v.y, hz: _v.z, ry: P.root.rotation.y, yaw: hr.y, pitch: hr.x, ux: ur.x, uz: ur.z,
       ar: new Float64Array([P.restR.x, P.restR.z, P.restR.y, P.restR.e, P.restR.t]), al: new Float64Array([P.restL.x, P.restL.z, P.restL.y, P.restL.e, P.restL.t]), uy: 0,
-      fr: new Float64Array([0.55, 0.55, 0.55, 0.7]), fl: new Float64Array([0.55, 0.55, 0.55, 0.7]), dirty: 1 };
+      fr: new Float64Array([0.55, 0.55, 0.55, 0.7]), fl: new Float64Array([0.55, 0.55, 0.55, 0.7]), dirty: 1, tl: 0.5 };
+    P.st.tl = 0; // tl = inclinación lateral extra del tronco (paso lateral del 2º árbitro); nace double
     return P.st;
   }
   /** Respiración y balanceo del peso (tiempo real: también en pausa/congelado se ven vivos). */
@@ -1202,7 +1203,7 @@
     var t = ctx.time + P.ph, u = P.upper, e = u.rotation;
     u.scale.y = 1 + tsin(t * 1.6) * 0.007;
     P.leanS += (P.lean - P.leanS) * OFK[3] * 0.5; // cambios de postura suaves
-    S.uz = tsin(t * 0.37) * 0.018; S.ux = P.leanS + 0.02 + tsin(t * 0.23) * 0.01;
+    S.uz = tsin(t * 0.37) * 0.018 + S.tl; S.ux = P.leanS + 0.02 + tsin(t * 0.23) * 0.01;
     e._x = S.ux; e._z = S.uz; e._y = S.uy; u.quaternion.setFromEuler(e, false);
   }
   /* ---------------------------------------------------------------------
@@ -1212,23 +1213,30 @@
    * anular+meñique, pulgar] (1 = extendido, 0 = plegado). El 1r árbitro mira a +y: su DERECHA es el campo x > 0
    * (equipo 0), así que el brazo «del lado» de un equipo es el derecho para el 0 y el izquierdo para el 1.
    * --------------------------------------------------------------------- */
-  var F_OPEN = [1, 1, 1, 1], F_FOUR = [1, 1, 1, 0], F_TWO = [1, 1, 0, 0], F_POINT = [1, 0, 0, 0], F_FIST = [0, 0, 0, 0], F_REL = [0.55, 0.55, 0.55, 0.7];
+  // Señas de DEDOS (contar): extensión 1,3 = dedos un 25 % más gordos y abiertos en abanico (F_FAN, rad por unidad de más),
+  // para que se lean desde la cámara; F_THREE = índice, corazón y pulgar (con F_HAND en la otra mano, los 8 dedos: 5 + 3)
+  var FX = 1.3, F_FAN = [-0.9, 0, 0.9];
+  var F_HAND = [FX, FX, FX, FX], F_FOUR = [FX, FX, FX, 0], F_THREE = [FX, FX, 0, FX], F_TWO = [FX, FX, 0, 0];
+  var F_OPEN = [1, 1, 1, 1], F_POINT = [1, 0, 0, 0], F_FIST = [0, 0, 0, 0], F_REL = [0.55, 0.55, 0.55, 0.7];
   var POSE = {
     rest:    [0.06, -0.1, 0, 0.12, 0],
     whistle: [-0.9, 0.3, 0, 2.5, -0.9],     // mano derecha a la boca (silbato)
     side:    [-0.12, -1.5, 0, 0.06, -1.2],    // brazo extendido hacia el lado (equipo que saca), palma al frente
     inSide:  [-0.42, -0.72, 0, 0.0, -0.6],    // brazo y dedos hacia el suelo del lado donde botó
     outFa:   [-1.12, 0.14, 0, 2.0, 1.45],     // antebrazo vertical delante, palma hacia el cuerpo (los dos brazos)
-    touchUp: [-1.0, 0.1, 0, 2.15, -1.5],      // mano vertical (dedos arriba) que recibe el roce
-    touchBr: [-1.32, 0.42, 0, 1.55, 1.4],     // la otra palma roza las puntas de los dedos (con vaivén)
-    fingers: [-0.3, -0.95, -1.57, 1.75, 0],    // antebrazo vertical junto a la cabeza, palma al frente (4 / 2 / 8 dedos)
+    touchUp: [-1.0, 0.2, 0, 2.15, 0],         // mano vertical (dedos arriba, palma de lado) que recibe el roce
+    touchBr: [-1.9, 0.6, 1.2, 1.4, 0],        // la otra palma, por ENCIMA, roza las puntas de los dedos (con vaivén): no se confunde con «fuera»
+    fingers: [-1.6, -0.7, 0, 1.45, 0],        // mano a la altura de la cabeza, antebrazo vertical, palma al frente (4 / 2 / 8 dedos)
     netSide: [-1.38, -0.42, 0, 0.3, -1.4],    // la mano señala el lado de la red del infractor
     under:   [-0.78, -0.2, 0, 0.06, -0.3],    // el índice señala la línea central
     atkHi:   [-0.95, -0.42, 0, 1.95, -0.2],   // falta de ataque: antebrazo arriba…
     atkLo:   [-0.95, -0.42, 0, 0.35, -0.2],   // …y movimiento hacia abajo con la mano abierta
     blockUp: [-2.95, -0.18, 0, 0.05, -1.5],   // falta de bloqueo: los dos brazos en vertical, palmas al frente
-    srvUp:   [-1.78, -0.25, 0, 0.04, 1.6],    // balón no lanzado/soltado: brazo extendido que sube, palma hacia arriba
-    beckon:  [-0.38, -1.22, 0, 0.25, -1.3],   // autorización del saque: la mano indica la dirección del saque
+    srvUp:   [-2.25, -0.7, 0, 0.05, 1.6],      // balón no lanzado/soltado: brazo extendido que sube, palma hacia arriba
+    beckon:  [-0.38, -1.22, 0, 0.25, -1.3],   // autorización del saque: brazo hacia el sacador…
+    beckon2: [-1.2, -0.45, 0, 0.35, -1.3],    // …y la mano barre hacia la pista: «indica la dirección del saque»
+    endSet:  [-0.9, 0.15, 0.9, 1.9, 0],       // fin de set/partido: antebrazos cruzados (en X) delante del pecho, manos abiertas
+    rotate:  [-1.3, -0.5, 0, 1.5, 0],          // falta de posición/rotación: el índice dibuja círculos (vaivén 10)
     chal:    [-1.2, -0.28, 0, 1.3, -1.4],     // challenge aceptado: los dos índices delante de la cara dibujan la pantalla (vaivén 9)
     // jueces de línea (brazo derecho = bandera)
     flagDn:  [-0.72, -0.18, 0, 0.0, 0],       // dentro: bandera hacia el suelo
@@ -1245,23 +1253,33 @@
   function step(d, rate, R, L, fR, fL, osc) { return { d: d, rate: rate, R: R, L: L, fR: fR || F_REL, fL: fL || F_REL, osc: osc || 0 }; }
   /** Pose con el brazo del lado `side` (0 = derecho, 1 = izquierdo) y el otro en reposo. */
   function sideStep(d, rate, pose, side, f, osc) { return side === 1 ? step(d, rate, null, pose, F_REL, f, osc) : step(d, rate, pose, null, f, F_REL, osc); }
-  /** Señal oficial del 1r árbitro para point.signal (SIM-02). side = lado relevante (0 = campo x > 0, a su derecha). */
+  /** Señal oficial para point.signal (SIM-02). side = BRAZO (0 = derecho, 1 = izquierdo): el del lado del equipo que comete
+   *  la falta (regla 28.1: una seña con una mano se hace con la del lado del infractor). d = cuánto se mantiene. */
+  var SIG_D = 1.3;
   function refSignalStep(sig, side, e) {
+    var rs = e && e.reason, d = SIG_D;
     switch (sig) {
-      case 'in': return sideStep(1.25, 10, POSE.inSide, side, F_OPEN);
-      case 'out': return step(1.25, 10, POSE.outFa, POSE.outFa, F_OPEN, F_OPEN);
-      case 'touched': return step(1.3, 11, POSE.touchBr, POSE.touchUp, F_OPEN, F_OPEN, 1);
-      case 'four': return sideStep(1.25, 10, POSE.fingers, side, F_FOUR);
-      case 'double': return sideStep(1.25, 10, POSE.fingers, side, F_TWO);
-      case 'net': return sideStep(1.25, 10, POSE.netSide, side, F_OPEN);
-      case 'under': return sideStep(1.25, 10, POSE.under, side, F_POINT);
-      case 'antenna': return step(1.25, 10, POSE.outFa, POSE.outFa, F_OPEN, F_OPEN); // FIVB: el 1r árbitro marca «balón fuera»; señalar la antena es cosa del juez de línea
-      case 'attackFault': return e && e.reason === 'block' ? step(1.2, 9, POSE.blockUp, POSE.blockUp, F_OPEN, F_OPEN) : sideStep(1.25, 14, POSE.atkHi, side, F_OPEN, 2);
-      case 'delay8': return step(1.3, 10, POSE.fingers, POSE.fingers, F_FOUR, F_FOUR);
-      case 'serveFault': return sideStep(1.2, 9, POSE.srvUp, side, F_OPEN);
+      case 'in': return sideStep(d, 10, POSE.inSide, side, F_OPEN);
+      case 'out': return step(d, 10, POSE.outFa, POSE.outFa, F_OPEN, F_OPEN);
+      case 'touched': return step(d, 11, POSE.touchBr, POSE.touchUp, F_OPEN, F_OPEN, 1);
+      case 'four': return sideStep(d, 10, POSE.fingers, side, F_FOUR);
+      case 'double': return sideStep(d, 10, POSE.fingers, side, F_TWO);
+      case 'net': return sideStep(d, 10, POSE.netSide, side, F_OPEN);
+      case 'under': return sideStep(d, 10, POSE.under, side, F_POINT);
+      case 'antenna': return step(d, 10, POSE.outFa, POSE.outFa, F_OPEN, F_OPEN); // FIVB: el 1r árbitro marca «balón fuera»; señalar la antena es cosa del juez de línea
+      case 'attackFault':
+        // bloqueo del saque o bloqueo de zaguero/líbero: falta de bloqueo (los dos brazos arriba, palmas al frente);
+        // falta de posición (6v6): el índice dibuja círculos; ataque sobre el saque / de zaguero: antebrazo que baja
+        if (rs === 'block' || rs === 'backBlock') return step(d, 9, POSE.blockUp, POSE.blockUp, F_OPEN, F_OPEN);
+        if (rs === 'position') return sideStep(d, 12, POSE.rotate, side, F_POINT, 10);
+        return sideStep(d, 14, POSE.atkHi, side, F_OPEN, 2);
+      case 'delay8': return step(d, 10, POSE.fingers, POSE.fingers, F_HAND, F_THREE);   // 8 dedos: 5 + 3
+      case 'serveFault': return sideStep(d, 9, POSE.srvUp, side, F_OPEN);
     }
     return null;
   }
+  /** ¿Pita la falta el 2º árbitro? (regla 24.3.2: red, invasión bajo la red y falta de posición del equipo que RECIBE). */
+  function r2Calls(sig, e) { return sig === 'net' || sig === 'under' || (e.reason === 'position' && !e.sideout); }
   /** Lado relevante de cada señal: dónde botó (in), el infractor (red, debajo, 4 toques, dobles…) o el que sacó. */
   function signalSide(sig, e, g) {
     var fault = 1 - (e.team === 1 ? 1 : 0); // equipo que comete la falta / pierde el punto
@@ -1270,26 +1288,53 @@
     if (sig === 'antenna') return e.antenna ? (e.antenna[0] > 0 ? 0 : 1) : (g.ball.x > 0 ? 0 : 1);
     return fault;
   }
-  var SIG_FROM_REASON = { 'in': 'in', out: 'out', antenna: 'antenna', 'double': 'double', four: 'four', net: 'net', under: 'under', block: 'attackFault', attackServe: 'attackFault' };
-  /** Secuencia del punto: silbato a la boca → brazo hacia el equipo que saca → señal de la falta (1,2-1,3 s) → reposo. */
+  var SIG_FROM_REASON = { 'in': 'in', out: 'out', antenna: 'antenna', 'double': 'double', four: 'four', net: 'net', under: 'under', block: 'attackFault',
+    attackServe: 'attackFault', backAttack: 'attackFault', backBlock: 'attackFault', position: 'attackFault' };
+  /** Brazo de un árbitro para el lado de pista `side` (0 = x > 0): el 1r mira a +y (su derecha es x > 0), el 2º a -y (al revés). */
+  function armFor(P, side) { return P === R2 ? 1 - side : side; }
+  function setSeq(P, seq, sig) { P.seq = seq; P.seqT = 0; P.seqI = 0; P.sig = sig || ''; }
+  /** Secuencia del punto (reglas 22.2.3 y guía FIVB de arbitraje, regla 28). Cada seña se mantiene ~1-1,3 s.
+   *  - Pita el 1r árbitro: silbato → brazo hacia el equipo que saca → naturaleza de la falta [→ fin de set: antebrazos
+   *    cruzados]. El 2º no señala nada: espera un momento (contacto visual) y se va al lado del equipo que recibe.
+   *  - Pita el 2º (red, bajo la red, posición del receptor): él da el silbato y la naturaleza de la falta en el lado del
+   *    infractor y, tras una pausa, repite el «equipo que saca» del 1r, que solo enseña eso. */
   function refSignal(e, g) {
     if (!R1) return;
-    var sig = e.signal || (e.reason === 'serve' ? (/8/.test(e.text || '') ? 'delay8' : 'serveFault') : SIG_FROM_REASON[e.reason]);
-    var team = e.team === 1 ? 1 : 0, seq = [step(0.32, 26, POSE.whistle, null, F_FIST, F_REL), sideStep(0.75, 12, POSE.side, team, F_OPEN)];
-    var s = refSignalStep(sig, signalSide(sig, e, g), e);
+    var sig = e.signal || (e.reason === 'serve' ? (/[85]/.test(e.text || '') ? 'delay8' : 'serveFault') : SIG_FROM_REASON[e.reason]);
+    var team = e.team === 1 ? 1 : 0, side = signalSide(sig, e, g), end = e.setWon || e.matchWon;
+    var whistle = step(0.32, 26, POSE.whistle, null, F_FIST, F_REL);
+    R2S[6] = team === 0 ? -1 : 1;   // el 2º acaba en el lado del que recibe (el que pierde el punto)
+    if (R2 && r2Calls(sig, e)) {
+      var s2 = refSignalStep(sig, armFor(R2, side), e);
+      setSeq(R2, [step(0.12, 9, null, null), whistle, s2 || step(SIG_D, 9, null, null), step(0.25, 9, null, null), sideStep(1.0, 12, POSE.side, armFor(R2, team), F_OPEN)], sig);
+      var q1 = [step(1.75, 9, null, null), sideStep(1.2, 12, POSE.side, team, F_OPEN)];
+      if (end) q1.push(step(1.4, 10, POSE.endSet, POSE.endSet, F_OPEN, F_OPEN));
+      setSeq(R1, q1, 'team'); R2S[4] = 0;
+      return;
+    }
+    var seq = [whistle, sideStep(1.0, 12, POSE.side, team, F_OPEN)];
+    var s = refSignalStep(sig, side, e);
     if (s) seq.push(s);
-    R1.seq = seq; R1.seqT = 0; R1.seqI = 0; R1.sig = sig || '';
+    if (end) seq.push(step(1.4, 10, POSE.endSet, POSE.endSet, F_OPEN, F_OPEN));
+    setSeq(R1, seq, sig);
+    R2S[4] = R2_WAIT;
   }
   /** B6: challenge aceptado. Silbato y la señal de revisión por vídeo (dibuja la pantalla con los dos índices) mientras dura. */
   function refChallenge() {
     if (!R1) return;
-    R1.seq = [step(0.3, 26, POSE.whistle, null, F_FIST, F_REL), step(2.6, 10, POSE.chal, POSE.chal, F_POINT, F_POINT, 9)];
-    R1.seqT = 0; R1.seqI = 0; R1.sig = 'challenge';
+    setSeq(R1, [step(0.3, 26, POSE.whistle, null, F_FIST, F_REL), step(2.6, 10, POSE.chal, POSE.chal, F_POINT, F_POINT, 9)], 'challenge');
   }
-  /** Autorización del saque: silbato + la mano indica la dirección del saque (gesto propio, no el del punto). */
+  /** Resultado del challenge: equipo que saca (el que gana el punto) y la decisión final (balón dentro / fuera del lado del bote). */
+  function refChallengeResult(win, truthIn, x) {
+    if (!R1) return;
+    var ls = x > 0 ? 0 : 1;
+    setSeq(R1, [sideStep(1.1, 12, POSE.side, win, F_OPEN), truthIn ? sideStep(SIG_D, 10, POSE.inSide, ls, F_OPEN) : step(SIG_D, 10, POSE.outFa, POSE.outFa, F_OPEN, F_OPEN)], 'challengeResult');
+  }
+  /** Autorización del saque (seña 1 FIVB): silbato, brazo hacia el sacador y la mano barre hacia la pista indicando la
+   *  dirección del saque. */
   function refAuthorize(team) {
     if (!R1) return;
-    R1.seq = [step(0.3, 26, POSE.whistle, null, F_FIST, F_REL), sideStep(0.9, 11, POSE.beckon, team, F_OPEN, 3)]; R1.seqT = 0; R1.seqI = 0; R1.sig = 'serve';
+    setSeq(R1, [step(0.3, 26, POSE.whistle, null, F_FIST, F_REL), sideStep(0.4, 12, POSE.beckon, team, F_OPEN), sideStep(0.7, 6, POSE.beckon2, team, F_OPEN)], 'serve');
   }
   /** Juez de línea: dentro (bandera abajo), fuera (arriba), tocado (arriba + palma sobre la bandera), antena (agita la
    *  bandera por encima de la cabeza y señala la antena con la otra mano). */
@@ -1305,7 +1350,8 @@
   }
   /** Objetivos del frame a partir de la secuencia (o reposo). Vaivenes: 1 = roce de la palma, 2 = falta de ataque (dos
    *  golpes hacia abajo), 3 = la mano que indica el saque, 4 = bandera agitada, 5 = roce sobre la bandera,
-   *  9 = los dos índices dibujan un rectángulo (señal de revisión por vídeo / challenge). */
+   *  9 = los dos índices dibujan un rectángulo (señal de revisión por vídeo / challenge), 10 = el índice dibuja círculos
+   *  (falta de posición/rotación). */
   var _tR = new Float64Array(5), _tL = new Float64Array(5);
   function seqTargets(P, dt) {
     var R = P.restR, L = P.restL, st = null;
@@ -1335,6 +1381,10 @@
       _tR[1] -= w * 0.26; _tL[1] += w * 0.26; _tR[0] += w2 * 0.16; _tL[0] += w2 * 0.16;
     }
     else if (st.osc === 8) { w = tsin(u * 6 + P.ph); _tR[1] += w * 0.22; _tL[1] += w * 0.22; _tR[3] += (0.5 + 0.5 * tsin(u * 11)) * 0.4; }
+    else if (st.osc === 10) { // falta de posición: la mano (índice arriba) dibuja círculos delante del hombro
+      w = tsin(u * 8.5) * 0.17; var w3 = tsin(u * 8.5 + 1.571) * 0.17;
+      if (st.R) { _tR[0] += w; _tR[1] += w3; } else { _tL[0] += w; _tL[1] -= w3; }
+    }
     return st;
   }
   /** Brazos y dedos: amortigua hacia el objetivo; escribe en three solo si algo se mueve. */
@@ -1349,7 +1399,11 @@
     if (!Fb) return;
     for (var i = 0; i < 4; i++) {
       var d = T[i] - Fs[i];
-      if (d > OFF_EPS || d < -OFF_EPS) { Fs[i] += d * kf; var s = 0.18 + 0.82 * Fs[i]; Fb[i].scale.set(s, s, s); }
+      if (d > OFF_EPS || d < -OFF_EPS) {
+        Fs[i] += d * kf; var s = 0.18 + 0.82 * Fs[i]; Fb[i].scale.set(s, s, s);
+        // extensión > 1 (señas de dedos): dedos más gordos y abiertos en abanico (índice hacia delante, anular hacia atrás)
+        if (i < 3) { var r = Fb[i].rotation; r._x = Fs[i] > 1 ? (Fs[i] - 1) * F_FAN[i] : 0; Fb[i].quaternion.setFromEuler(r, false); }
+      }
     }
   }
   function limbsTo(P, S, dt) {
@@ -1390,6 +1444,7 @@
     var b = g.ball, k = rdt > 0 ? rdt : 0;
     OFK[0] = b.x; OFK[1] = b.z; OFK[2] = -b.y; // VB.toThree en línea
     OFK[3] = 1 - Math.exp(-6 * k); OFK[4] = 1 - Math.exp(-7 * k); OFK[5] = 1 - Math.exp(-9 * k); OFK[6] = 1 - Math.exp(-10 * k); OFK[7] = dt; OFK[8] = k;
+    if (R2) r2Step(g, dt > 0 ? dt : ctx.frozen ? k : 0);
     for (var i = 0; i < refs.length; i++) refStep(refs[i]);
     for (var j = 0; j < judges.length; j++) judgeStep(judges[j]);
     // entorno de pista (ARN-14): media cadencia (cada frame anima la mitad, alternando) con dt doble: la mitad de coste y,
@@ -1400,13 +1455,48 @@
       for (var cw = par; cw < crew.length; cw += 2) crewStep(crew[cw]);
       OFK[3] = s3; OFK[4] = s4; OFK[7] = s7; OFK[8] = s8;
     }
-    // 2º árbitro: se coloca hacia el lado del equipo receptor durante el saque
-    if (R2 && g.mode === 'serve') {
-      var recv = 1 - (g.serving === 1 ? 1 : 0), want = (recv === 0 ? 1 : -1) * 0.7, dxr = (want - R2.sim.x) * (1 - Math.exp(-2 * k));
-      if (dxr > OFF_EPS || dxr < -OFF_EPS) {
-        R2.sim.x += dxr; R2.root.position.x = R2.sim.x; // toThree: x -> x (y, z de R2 no cambian)
-        if (R2.st) R2.st.hx += dxr;                    // la cabeza se desplaza con él (la rotación del cuerpo no cambia)
-      }
+  }
+  /* 2º ÁRBITRO EN MOVIMIENTO (17-nov-2026). De pie junto al poste opuesto a la silla (y > 0, mirando a -y), se pone del lado del
+   * equipo que DEFIENDE (el que va a bloquear el ataque que viene) y cambia de lado cada vez que el balón cruza la red; en el
+   * saque, del lado del que recibe. Al acabar el peloteo se queda quieto un momento (si pita el 1r, contacto visual) y luego se va
+   * al lado del equipo que recibe el saque siguiente (guía FIVB de arbitraje, regla 28.2); si pita él, da un paso al lado del
+   * infractor mientras silba y se queda quieto mientras señala. Los oficiales no tienen huesos de pierna: el paso lateral se
+   * finge con un saltito de la raíz (un bote por paso) y una leve inclinación del tronco hacia donde va (S.tl).
+   * Estado plano sin basura: R2S = [0 velocidad (m/s, sim x) · 1 fase del paso · 2 bote aplicado · 3 lado (+1 x > 0 / -1)
+   * · 4 espera (s) · 5 — · 6 lado del que recibe el próximo saque]. Solo lee g (nada de g.rng): la sim no cambia. */
+  var R2S = new Float64Array([0, 0, 0, 1, 0, 0, 1]), r2G = null;
+  var R2_BEACH_DY = 0.17, R2_X = 0.8, R2_VMAX = 2.3, R2_ACC = 7, R2_GAIN = 3.4, R2_STEP = 0.55, R2_BOB = 0.035, R2_TILT = 0.07, R2_WAIT = 1.0, R2_HYST = 0.35;
+  function r2Step(g, t) {
+    var P = R2, S = offState(P), b = g.ball, x = P.sim.x, m = g.mode, go = 1, sx = R2S[3];
+    if (m === 'serve') sx = g.serving === 1 ? 1 : -1;                     // del lado del que recibe
+    else if (m === 'rally') {                                               // del lado del que defiende: el contrario al balón
+      var bx = b.x + b.vx * 0.2;
+      if (bx > R2_HYST) sx = -1; else if (bx < -R2_HYST) sx = 1;
+    } else if (m === 'point') {
+      sx = R2S[6];
+      if (R2S[4] > 0) { R2S[4] -= t; go = 0; }                              // pita el 1r: quieto un momento
+      if (P.seq && P.seqI >= 2) go = 0;                                     // pita él: quieto mientras señala
+    } else go = 0;
+    R2S[3] = sx;
+    // partido nuevo: ya está en su sitio (sin cruzar la pista en el primer saque; la cámara lee R2.sim al planear ese saque)
+    if (g !== r2G) { r2G = g; R2S[0] = 0; R2S[4] = 0; var tx = sx * R2_X; S.hx += tx - x; x = tx; P.sim.x = x; P.root.position.x = x; }
+    var d = sx * R2_X - x, vt = go ? d * R2_GAIN : 0, v = R2S[0];
+    vt = vt > R2_VMAX ? R2_VMAX : vt < -R2_VMAX ? -R2_VMAX : vt;
+    v += (vt - v) * (1 - Math.exp(-R2_ACC * t));
+    if (!go && v < 0.02 && v > -0.02) v = 0;
+    var dx = v * t; if (dx > 0 ? dx > d && d > 0 : dx < d && d < 0) { dx = d; v = 0; }
+    R2S[0] = v;
+    var sp = v < 0 ? -v : v, s01 = sp / R2_VMAX; s01 = s01 > 1 ? 1 : s01;
+    if (sp > 0.05) R2S[1] += sp * t / R2_STEP * Math.PI;
+    else if (R2S[2] > 1e-4) R2S[1] += t * 6;                               // acaba el bote en curso (vuelve al suelo)
+    var ph = tsin(R2S[1]), bob = (ph < 0 ? -ph : ph) * R2_BOB * (sp > 0.05 ? (s01 * 2 > 1 ? 1 : s01 * 2) : R2S[2] / R2_BOB);
+    if (sp <= 0.05 && bob < 1e-4) bob = 0;
+    // inclinación hacia donde va (mira a -y: su derecha es x < 0; z local > 0 inclina el tronco a su derecha) + vaivén del peso
+    S.tl = (-v / R2_VMAX) * R2_TILT + tsin(R2S[1] * 0.5) * 0.03 * s01;
+    var db = bob - R2S[2];
+    if (dx > OFF_EPS || dx < -OFF_EPS || db > OFF_EPS || db < -OFF_EPS) {
+      P.sim.x = x + dx; P.root.position.x = P.sim.x; P.root.position.y = P.sim.z + bob;   // toThree: x -> x, z -> y (y de R2 no cambia)
+      S.hx += dx; S.hy += db; R2S[2] = bob;                                 // la cabeza se desplaza con él
     }
   }
 
@@ -3472,7 +3562,7 @@
           screenMsg(chH, e.overturned ? 'PUNTO PARA ' + teamFor(chW, g) : 'SE MANTIENE', TEAMC[chW], 3.2);
           ledMessage(e.overturned ? 'PUNTO PARA ' + teamFor(chW, g) : chH, TEAMC[chW], 3);
           if (e.overturned) { startCheer(chW, 2.6); RT.cheerMax[chW] = 1; crewReact(chW, true, 'point'); }
-          if (R1) { R1.seq = [sideStep(1.2, 12, POSE.side, chW, F_OPEN)]; R1.seqT = 0; R1.seqI = 0; R1.sig = 'challengeResult'; }
+          refChallengeResult(chW, !!e.truthIn, e.x != null ? +e.x : g.ball.x);
           break;
         }
         case 'whistle': // autorización del saque: silbato + brazo hacia el equipo que saca
@@ -4560,6 +4650,8 @@
       if (!P || !P.sim || !P.root) return;
       if (!P.home) P.home = { x: P.sim.x, y: P.sim.y, z: P.sim.z };
       var h = P.home, x = P === R2 ? P.sim.x : h.x + (judge ? (h.x > 0 ? 1 : -1) * dL : 0), y = h.y + (h.y > 0 ? 1 : -1) * dW;
+      // playa: el 2º árbitro, 17 cm más cerca del poste, para pasar POR DEBAJO de los vientos del poste (de lado a lado del poste)
+      if (P === R2 && BEACH.on) y -= R2_BEACH_DY;
       P.sim.x = x; P.sim.y = y; VB.toThree(x, y, h.z, P.root.position);
       // la cabeza (a la que apunta la mirada) se mueve con él
       if (P.st) { P.root.updateMatrixWorld(true); P.head.getWorldPosition(_v); P.st.hx = _v.x; P.st.hy = _v.y; P.st.hz = _v.z; }
@@ -5207,6 +5299,8 @@
     /** Solo depuración (tools/eval.js): uniformes del público, oficiales, etc. */
     _dbg: function () { return { crowdU: crowdU, crowdMeshes: crowdMeshes, refs: refs, judges: judges, judgesAll: judgesAll, led: led, RT: RT, LT: LT, imp: imp,
       lights: { key: keyLight, hemi: hemi, fill: fillLight, rim: rimLight }, floorMat: floorMat, post: post, mood: MOOD, screens: screens,
-      crew: crew, crewReact: crewReact, POSE: POSE }; }
+      crew: crew, crewReact: crewReact, POSE: POSE,
+      // señales de los árbitros (tools/refposes.js): R1/R2, estado del paso del 2º y las secuencias con un evento falso
+      R1: R1, R2: R2, R2S: R2S, refSignal: refSignal, refAuthorize: refAuthorize, refChallenge: refChallenge, refChallengeResult: refChallengeResult }; }
   };
 })();

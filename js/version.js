@@ -14,16 +14,24 @@
  * 1.3.0 (15-nov-2026): sprint 2-4 «Tu carrera», «Partidos que se recuerdan» y «Volver mañana» (retratos y escudos, portada con la
  *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
  * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
+ * 1.5.2 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.1';
-  VB.VERSION_DATE = '2026-11-16';
+  VB.VERSION = '1.5.2';
+  VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.2', d: '2026-11-17', t: 'Árbitros',
+      items: [
+        'Los árbitros hacen las señas oficiales, en el orden del reglamento y a la vista.',
+        'El 2º árbitro se mueve al lado del equipo que defiende, como en un partido de verdad.'
+      ]
+    },
     {
       v: '1.5.1', d: '2026-11-16', t: 'Lobby online',
       items: [
