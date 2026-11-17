@@ -38,6 +38,8 @@ let send;
 async function evalJs(expr) { const r = await send('Runtime.evaluate', { expression: expr, returnByValue: true }); return r.result && r.result.value; }
 const KEYS = { ' ': ['Space', 32], Enter: ['Enter', 13], ArrowUp: ['ArrowUp', 38], ArrowDown: ['ArrowDown', 40], ArrowLeft: ['ArrowLeft', 37], ArrowRight: ['ArrowRight', 39], p: ['KeyP', 80], j: ['KeyJ', 74], c: ['KeyC', 67], Escape: ['Escape', 27] };
 async function key(type, k) { const [code, kc] = KEYS[k]; await send('Input.dispatchKeyEvent', { type, key: k, code, windowsVirtualKeyCode: kc, text: type === 'keyDown' && k.length === 1 ? k : undefined }); }
+/** (menús SPLAT, 17-nov-2026: rejillas por filas) pulsa las teclas de `seq` por turnos hasta que el foco esté en #id (máx. n pulsaciones) */
+async function goTo(id, seq, n) { for (let i = 0; i < (n || 8) && !(await evalJs("document.activeElement.id==='" + id + "'")); i++) { await press(seq[i % seq.length]); await sleep(130); } }
 async function press(k, ms) { await key('keyDown', k); await sleep(ms || 60); await key('keyUp', k); }
 // en partido: con TOUCH=1, dedos de verdad sobre el overlay: joystick (arrastre en la mitad izquierda) y botones GOLPEAR/SACAR,
 // SALTAR, ⇄ (varios dedos a la vez, como tools/touchplay.js); sin TOUCH, el teclado (flechas mantenidas)
@@ -119,19 +121,21 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
     // JUGAR → tarjetas; → → hasta «6 contra 6»; Intro → preparación con Formato en 6 contra 6
     await press('Enter'); await sleep(450);
     check(await evalJs("VB.UI.menuPage()==='play'&&document.activeElement.id==='btnQuick'"), 'JUGAR abre los modos');
-    await press('ArrowRight'); await sleep(150); await press('ArrowRight'); await sleep(200);
-    check(await evalJs("document.activeElement.id==='btn6v6'&&!document.getElementById('btn6v6').disabled"), 'la tarjeta 6 contra 6 está activa y se llega con →');
+    await goTo('btn6v6', ['ArrowDown'], 4); await goTo('btn6v6', ['ArrowLeft'], 3);   // (SPLAT: 6 contra 6 está en la fila de abajo, la 1.ª)
+    check(await evalJs("document.activeElement.id==='btn6v6'&&!document.getElementById('btn6v6').disabled"), 'la tarjeta 6 contra 6 está activa y se llega con las flechas');
     await press('Enter'); await sleep(500);
     check(await evalJs("VB.UI.menuPage()==='quick'&&VB.ctx.settings.format==='6v6'&&document.getElementById('fmtVal').textContent==='6 contra 6'"), 'la tarjeta abre la preparación con Formato «6 contra 6»');
     check(await evalJs("document.getElementById('optVenue').classList.contains('lock')&&document.getElementById('venueVal').textContent==='Pabellón'&&document.getElementById('ctrlVal').textContent==='Receptor'"), '6v6: Escenario fijo en Pabellón y Controlar en Receptor (por defecto)');
     // ←/→ en la fila Formato (↑ desde ¡A JUGAR! hasta la primera fila)
-    for (let i = 0; i < 5; i++) { await press('ArrowUp'); await sleep(110); }
+    await goTo('optFmt', ['ArrowUp'], 6); await goTo('optFmt', ['ArrowLeft', 'ArrowUp'], 4);
     check(await evalJs("document.activeElement.id==='optFmt'"), '↑ llega a la fila Formato (la primera)');
     await press('ArrowLeft'); await sleep(250);
     check(await evalJs("VB.ctx.settings.format==='2v2'&&!document.getElementById('optVenue').classList.contains('lock')&&document.getElementById('fmtVal').textContent==='2 contra 2'"), '← en Formato pasa a 2 contra 2 (Escenario se desbloquea)');
     await press('ArrowRight'); await sleep(250);
     check(await evalJs("VB.ctx.settings.format==='6v6'"), '→ vuelve a 6 contra 6');
-    await press('ArrowDown'); await sleep(110); await press('ArrowLeft'); await sleep(250);
+    // (SPLAT: la fila Cámara puede estar a la derecha de Formato o debajo; se busca con → y ↓)
+    await goTo('optCam6', ['ArrowDown'], 4);
+    await press('ArrowLeft'); await sleep(250);
     // (en 6v6 la fila Escenario —fija en Pabellón— se oculta y en su sitio sale Cámara: 3ª persona / Televisión, ajuste cam6)
     check(await evalJs("document.getElementById('optVenue').hidden&&!document.getElementById('optCam6').hidden&&document.activeElement.id==='optCam6'&&VB.ctx.settings.cam6==='tv'&&document.getElementById('cam6Val').textContent==='Televisión'&&document.getElementById('venueVal').textContent==='Pabellón'"), '6v6: Escenario oculto y en su sitio la fila Cámara (← de 3ª persona da la vuelta a Televisión)');
     await press('ArrowRight'); await sleep(250);
