@@ -225,3 +225,16 @@ Bucle cómodo para la matriz completa (6 tamaños × páginas): un `for` sobre `
 ## 8. Estado (17-nov-2026, etapa 1)
 Hechas con el sistema: portada (`?menu=old` = la de antes), Jugar y Partido rápido. El resto de pantallas siguen con la dirección TV
 y se pasan en la etapa 2 (reparto por ficheros en el informe de la etapa 1 y en notes/ui_main.md «SPLAT»).
+
+**Carrera (etapa 2d, 17-nov-2026).** Cada fichero de la Carrera lleva su bloque «SPLAT» en su propio `<style>` (career-ui.js `SPLAT_CSS`,
+career-life-ui.js `SPLAT_L`, career-world-ui.js `SPLAT_W`) con el prefijo `Q = ':root:not(#_):not(#_):not(#_) #career'` (4 ids: gana a
+las reglas viejas de index.html y a las de estructura del sistema). El HTML sigue siendo el de siempre: tras cada pintado,
+`career-ui.js splatify()` pone las clases (la primera `.pri` que no esté en una fila → `.sp-patch`, una por pantalla; `.acts`/
+`.pick-acts`/`.pl-acts` → `.sp-btn` con colores repartidos —claros en las hojas de tinta, tinta sobre el escenario o el papel—; las
+decisiones de Fama → `.sp-btn.sp-wrap` en colores que contrastan; botones de fila → `.sp-sm`) y `VB.Splat.watch(#career)` las decora.
+Piezas propias: `.cr-tk` (el próximo partido en `.sp-ticket` que no se pulsa, con los dos escudos en `.sp-crest`), `.cr-ovr` y `.cr-pos`
+(tu media y el puesto final en `.sp-stamp` que no se pulsa), `.card` = hoja de tinta con la silueta de `.sp-panel` y su `h3` como
+rótulo-pegatina torcido (oro, turquesa, crema o contraste según su puesto), segmentados y filtros (`.seg`, `.lg-sw`, `.cw-opt`) en trazos
+de pincel, Faro en papel crema, noticias como recortes de papel, la vitrina y los premios en sellos dorados (`.tc-st`, `.lf-st`). La
+sub-pestaña elegida y tu fila de la tabla van del color de tu club (`--sp-kit`, que `splatify` sincroniza con `VB.Splat.sync()`).
+Captura de una pestaña: `SHOT=out/tabla.png node tools/eval.js "mjseed=1" "VB.CareerUI.open('hub',{from:'main'});VB.CareerUI._tab('league','table')" 4000 1280x720`.
