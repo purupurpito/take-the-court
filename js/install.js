@@ -2,7 +2,7 @@
  * Tutorial de «instalar» el juego (añadirlo a la pantalla de inicio) para jugar a pantalla completa en el móvil, sin la barra de
  * direcciones. Pasos dibujados según dónde se abre: iPhone/iPad (Safari), Android (Chrome; botón «Instalar» directo si el
  * navegador lo ofrece) y navegadores de dentro de otras apps (WhatsApp, Instagram…), donde lo primero es abrirlo en el navegador.
- *  - Sale UNA vez, sola, la primera vez que se entra desde un móvil sin tenerlo instalado (clave 'voley3d.install').
+ *  - Sale UNA vez, sola, la primera vez que se entra desde un móvil sin tenerlo instalado (clave 'make-the-cut.install').
  *  - Se cierra al momento: «Ahora no», la ✕, tocando fuera o con Esc. No vuelve a salir sola.
  *  - Se vuelve a abrir con VB.Install.open() (el botón «Pantalla completa» del menú en iPhone y en navegadores de apps).
  * Sin dependencias: crea su propio DOM y su CSS (usa los colores de index.html).
@@ -10,7 +10,7 @@
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
-  var KEY = 'voley3d.install';
+  var KEY = 'make-the-cut.install';
   var ua = navigator.userAgent || '';
   var isIOS = /iP(hone|od|ad)/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
   var isAndroid = /Android/i.test(ua);

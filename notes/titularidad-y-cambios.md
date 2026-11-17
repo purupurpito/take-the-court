@@ -43,7 +43,7 @@ haya: «entra cualquiera que no esté en pista, sin contar»).
 
 ### A.1 Plantilla con profundidad (`c.sq6`)
 
-Sustituye a `roster6` (que inventaba 7 nombres al vuelo cada vez). Se guarda en el guardado de pista (`voley3d.career6`, sin subir
+Sustituye a `roster6` (que inventaba 7 nombres al vuelo cada vez). Se guarda en el guardado de pista (`make-the-cut.career6`, sin subir
 `VER6`; un guardado sin `c.sq6` lo crea al cargar en `sane6`, como `c.life`).
 
 ```js

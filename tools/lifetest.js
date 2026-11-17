@@ -221,7 +221,7 @@ if (!BOSS_ONLY) {
     advanceTo(Y.C, cc => (Y.Lf.boss(cc) || {}).club, 80); const bz2 = Y.Lf.boss(Y.C.get()), l0 = bz2.l, bt0 = bz2.beat; const s4 = playNext(Y.C, false), bz3 = Y.Lf.bossOf(Y.C.get(), bz2.k);
     ok(s4.life.boss && !s4.life.boss.win && bz3.l === l0 + 1 && bz3.beat === bt0, 'derrota jugada: suma una derrota (' + bz3.w + '-' + bz3.l + ')');
     // guardado antiguo sin l.boss
-    const raw = JSON.parse(Y.mem['voley3d.career']); delete raw.life.boss; delete raw.life.bossW; delete raw.life.rival.style; Y.mem['voley3d.career'] = JSON.stringify(raw); Y.C._reset();
+    const raw = JSON.parse(Y.mem['make-the-cut.career']); delete raw.life.boss; delete raw.life.bossW; delete raw.life.rival.style; Y.mem['make-the-cut.career'] = JSON.stringify(raw); Y.C._reset();
     cy = Y.C.get(); Y.Lf.ensure(cy);
     ok(cy.life.boss && typeof cy.life.boss === 'object' && cy.life.bossW === 0 && Y.Lf.BOSS_STYLES[cy.life.rival.style], 'guardado sin l.boss: ensure crea {} y bossW 0 (y el estilo del rival)');
     Y.C.simulateNext(); cy = Y.C.get();

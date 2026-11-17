@@ -3,7 +3,7 @@
  * Pruebas de los AJUSTES DE PC (E3, sprint 5) y de la parte de Ajustes de E7, con Chrome (tools/cdp.js):
  *   a) las 7 pestañas y sus filas; las filas ★ (data-need) se esconden si su módulo no las soporta (OPTS borrados a mano)
  *   b) teclado (↓ hasta la fila, → cambia el valor), mando falso (stick y A/B, el de padplay) y toque (segmento y pista)
- *   c) persistencia: sobreviven a una recarga; las claves del dispositivo van en voley3d.device y NO en voley3d.settings
+ *   c) persistencia: sobreviven a una recarga; las claves del dispositivo van en make-the-cut.device y NO en make-the-cut.settings
  *   d) valores corruptos → por defecto, sin errores
  *   e) migración {sfxVol:0.6} → crowdVol 0,51 (y el bus del público de audio.js a 0,51)
  *   f) resScale 0.7 → pixelRatio = min(dpr, tope) × 0,7, y la ayuda «Fija: W × H píxeles»
@@ -125,9 +125,9 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       const s = await S();
       check('tras recargar: resScale, fpsCap, showFps, touchSize, padDead', s.resScale === 0.85 && s.fpsCap === 30 && s.showFps === true && s.touchSize === 1.15 && s.padDead === 0.25, s);
       check('tras recargar: camZoom, crowdVol, volume, keys, lessMotion', s.camZoom === 1 && s.crowdVol === 0.4 && s.volume === 0.7 && s.keys.hit && s.keys.hit[0] === 'KeyL' && s.lessMotion === 'on', s);
-      const st = await LS('voley3d.settings'), dv = await LS('voley3d.device');
-      check('voley3d.device = {resScale, fpsCap, showFps, touchSize, padDead}', dv && dv.resScale === 0.85 && dv.fpsCap === 30 && dv.showFps === true && dv.touchSize === 1.15 && dv.padDead === 0.25, dv);
-      check('voley3d.settings sin las claves del dispositivo', st && !['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'].some(k => k in st) && st.camZoom === 1, st && Object.keys(st));
+      const st = await LS('make-the-cut.settings'), dv = await LS('make-the-cut.device');
+      check('make-the-cut.device = {resScale, fpsCap, showFps, touchSize, padDead}', dv && dv.resScale === 0.85 && dv.fpsCap === 30 && dv.showFps === true && dv.touchSize === 1.15 && dv.padDead === 0.25, dv);
+      check('make-the-cut.settings sin las claves del dispositivo', st && !['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'].some(k => k in st) && st.camZoom === 1, st && Object.keys(st));
       check('ctx.reduceMotion = true con «Menos movimiento: Sí»', (await E('VB.ctx.reduceMotion')) === true && (await E('Object.prototype.hasOwnProperty.call(VB.ctx, "reduceMotion")')));
       await E(`VB.ctx.actions.setSetting('lessMotion', 'off'), 1`);
       check('ctx.reduceMotion = false con «No»', (await E('VB.ctx.reduceMotion')) === false);
@@ -136,18 +136,18 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
     if (want('d')) {
       console.log('d) valores corruptos');
       const before = errs.length;
-      await fresh('nonews=1', { 'voley3d.settings': { resScale: 3, keys: 'x', padKeys: { hit: [99] }, volume: 'alto', crowdVol: -5, camDist: 'lejisimos', camZoom: 9, lessMotion: 7, ballStyle: null, cbColors: 'si', sfxVol: 0.5 }, 'voley3d.device': { padDead: -1, fpsCap: 45, touchSize: 2, showFps: 'si', resScale: 3 } });
+      await fresh('nonews=1', { 'make-the-cut.settings': { resScale: 3, keys: 'x', padKeys: { hit: [99] }, volume: 'alto', crowdVol: -5, camDist: 'lejisimos', camZoom: 9, lessMotion: 7, ballStyle: null, cbColors: 'si', sfxVol: 0.5 }, 'make-the-cut.device': { padDead: -1, fpsCap: 45, touchSize: 2, showFps: 'si', resScale: 3 } });
       let s = await S();
       check('resScale 3 → 0; keys "x" → {}; padKeys {hit:[99]} → {}', s.resScale === 0 && JSON.stringify(s.keys) === '{}' && JSON.stringify(s.padKeys) === '{}', s);
       check('padDead -1 → 0,18; fpsCap 45 → 0; touchSize 2 → 1; showFps "si" → false', s.padDead === 0.18 && s.fpsCap === 0 && s.touchSize === 1 && s.showFps === false, s);
       check('volume "alto" → 1; crowdVol -5 → 0; camDist → normal; camZoom 9 → 2; lessMotion → auto; ballStyle → clasico; cbColors → false', s.volume === 1 && s.crowdVol === 0 && s.camDist === 'normal' && s.camZoom === 2 && s.lessMotion === 'auto' && s.ballStyle === 'clasico' && s.cbColors === false, s);
-      await fresh('nonews=1', { 'voley3d.settings': { camDist: 'far' } });
+      await fresh('nonews=1', { 'make-the-cut.settings': { camDist: 'far' } });
       s = await S();
       check('migración: Distancia «Lejos» de antes (sin camZoom) → zoom 4 de 5 (camZoom 3)', s.camZoom === 3, s.camZoom);
-      await fresh('nonews=1', { 'voley3d.settings': { keys: { hit: [123] } } });
+      await fresh('nonews=1', { 'make-the-cut.settings': { keys: { hit: [123] } } });
       s = await S();
       check('keys {hit:[123]} → {}', JSON.stringify(s.keys) === '{}', s.keys);
-      await fresh('nonews=1', { 'voley3d.settings': 'null', 'voley3d.device': '{rota' });
+      await fresh('nonews=1', { 'make-the-cut.settings': 'null', 'make-the-cut.device': '{rota' });
       s = await S();
       check('ajustes "null" y dispositivo roto → por defecto', s.resScale === 0 && s.crowdVol === 0.85 && s.volume === 1, s);
       check('sin errores JS con valores corruptos', page.errors.length === before, page.errors.slice(before));
@@ -155,11 +155,11 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
 
     if (want('e')) {
       console.log('e) migración del volumen del público');
-      await fresh('nonews=1', { 'voley3d.settings': { sfxVol: 0.6 } });
+      await fresh('nonews=1', { 'make-the-cut.settings': { sfxVol: 0.6 } });
       const s = await S(), au = await E(`VB.Audio && VB.Audio.getVolume ? VB.Audio.getVolume('crowd') : null`);
       check('{sfxVol: 0.6} → crowdVol 0,51', s.crowdVol === 0.51, s.crowdVol);
       check('VB.Audio.getVolume("crowd") = 0,51', Math.abs(au - 0.51) < 1e-6, au);
-      await fresh('nonews=1', { 'voley3d.settings': { sfxVol: 0.6, crowdVol: 0.3 } });
+      await fresh('nonews=1', { 'make-the-cut.settings': { sfxVol: 0.6, crowdVol: 0.3 } });
       check('con crowdVol guardado no se migra', (await S()).crowdVol === 0.3);
     }
 
@@ -180,7 +180,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
 
     if (want('g')) {
       console.log('g) tope de 30 fps');
-      await fresh('debug=rally&live=1&aq=1&aqwarm=0&nonews=1', { 'voley3d.device': { fpsCap: 30 } });
+      await fresh('debug=rally&live=1&aq=1&aqwarm=0&nonews=1', { 'make-the-cut.device': { fpsCap: 30 } });
       await sleep(2500);
       const fps = [];
       for (let i = 0; i < 6; i++) { await sleep(1000); fps.push(Math.round(await E('VB.ctx.fps'))); }
@@ -281,7 +281,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
     if (want('l')) {
       console.log('l) pestañas compactas a 667×375 con el HUD al 130 %');
       await page.setSize('667x375', false);
-      await fresh('debug=settings&panel=set&nonews=1', { 'voley3d.settings': { hudScale: 1.3 } });
+      await fresh('debug=settings&panel=set&nonews=1', { 'make-the-cut.settings': { hudScale: 1.3 } });
       for (const t of ['audio', 'a11y', 'info']) {
         await tab(t);
         const r = await J(`(function(){ var row = document.querySelector('#setTabs .tb-row'), on = document.querySelector('#setTabs .tab.on .tb-t'); return { compact: VB.UI._settings().compact, fit: row.scrollWidth <= row.clientWidth + 2, label: on ? getComputedStyle(on).display !== 'none' : false, sw: document.scrollingElement.scrollWidth, w: innerWidth }; })()`);

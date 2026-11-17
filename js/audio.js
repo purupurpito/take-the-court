@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/audio.js   (owner: audio)
+ * MAKE THE CUT — js/audio.js   (owner: audio)
  *
  * Sonido 100 % procedural con WebAudio. Sin ficheros, sin red.
  *  - Todos los efectos se sintetizan UNA vez en JS (Float32Array) y se

@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/netroom.js   (owner: net)
+ * MAKE THE CUT — js/netroom.js   (owner: net)
  * Modo online, fase 2 (notes/net.md «Fase 2»): salas del lobby y señalización de WebRTC en Firestore por REST, con el token de la
  * cuenta (js/account.js). SIN DOM y SIN THREE: funciona igual en el navegador y en Node (tools/roomtest.js lo prueba contra el
  * emulador de Firestore o con un fetch simulado).
@@ -22,6 +22,8 @@
  *   rooms.join(id, gname)        → Promise<sala> (errores: full | gone | version | off | auth | net)
  *   rooms.leave(id)              → Promise   el invitado sale antes de empezar (la sala vuelve a 'open')
  *   rooms.close()                → Promise   el anfitrión borra su sala y su señalización
+ *   rooms.resume()               → Promise<sala|null> fase 6: el anfitrión que recargó retoma SU sala (rooms/{tu uid}) para latir y
+ *                                  reofrecer; null si ya no existe. Su pagehide en pleno partido no la borra (la vuelta la necesita).
  *   rooms.bye(role, id)          → (nada)    al cerrar la pestaña: close() o leave(id) con fetch keepalive, sin esperar
  *   rooms.putSig(id, 'offer'|'answer', {sdp, gen}) / rooms.getSig(id, kind) → {sdp, gen}|null / rooms.delSig(id)
  *   sala = {id, code, name, gname, host, guest, fmt, venue, map, even, bo, pts, state, v, seen (ms del servidor), age (ms), other (otra versión)}
@@ -38,7 +40,7 @@
   var STALE_MS = 300000;    // a los 5 min cualquiera con sesión puede borrarla (limpieza)
   var BEAT_MS = 20000;      // latido del anfitrión (3 por minuto). Con la pestaña en segundo plano más de 5 min, Chrome deja los
                             // temporizadores en 1 por minuto: por eso LIVE_MS deja margen para un latido de cada 60 s.
-  var LIST_MAX = 40;
+  var LIST_MAX = 50;   // (auditoría: las reglas dejan listar hasta 50; ahora por latido, también cuentan las llenas y las que juegan)
 
   function err(code, msg) { var e = new Error(msg || code); e.code = code; return e; }
   function newCode(rnd) { var s = ''; for (var i = 0; i < 6; i++) s += ALPHA[Math.floor((rnd || Math.random)() * ALPHA.length) % ALPHA.length]; return s; }
@@ -124,8 +126,11 @@
       if (exists != null) w.currentDocument = { exists: !!exists };
       return call('POST', base + ':commit', { writes: [w] });
     }
-    function query(where, limit) {
-      return call('POST', base + ':runQuery', { structuredQuery: { from: [{ collectionId: 'rooms' }], where: where, limit: limit } }).then(function (rows) {
+    function query(where, limit, order) {
+      var q = { from: [{ collectionId: 'rooms' }], limit: limit };
+      if (where) q.where = where;
+      if (order) q.orderBy = order;
+      return call('POST', base + ':runQuery', { structuredQuery: q }).then(function (rows) {
         var out = [];
         (Array.isArray(rows) ? rows : []).forEach(function (x) { var r = x && x.document ? room(x.document, x.readTime) : null; if (r) out.push(r); });
         return out;
@@ -137,8 +142,11 @@
       LIVE_MS: LIVE_MS, STALE_MS: STALE_MS, BEAT_MS: BEAT_MS,
       uid: function () { return me && me.uid; },
       /** Salas abiertas y vivas, la más nueva primero. 403 aquí = reglas sin desplegar ('off'). */
+      // (auditoría: por latido, la más reciente primero, y el estado se filtra aquí: antes state=='open' sin orden devolvía las 40 de uid
+      //  más bajo, y 40 salas abiertas que no servían, caducadas o de otra versión, escondían las nuevas. Un solo campo: índice automático)
       list: function () {
-        return query(eq('state', 'open'), LIST_MAX).then(function (L) {
+        return query(null, LIST_MAX, [{ field: { fieldPath: 'seen' }, direction: 'DESCENDING' }]).then(function (L) {
+          L = L.filter(function (r) { return r.state === 'open'; });
           var dead = L.filter(function (r) { return r.age > STALE_MS + 30000 && r.host !== (me && me.uid); }).slice(0, 3);
           dead.forEach(function (r) { api._sweep(r.id).catch(function () { }); });
           var mineId = me && me.uid;
@@ -164,8 +172,16 @@
           var d = { code: codeOk(cfg.code) ? cfg.code : newCode(), name: cleanName(cfg.name) || 'Jugador', gname: '', host: a.uid, guest: '', fmt: '2v2',
             venue: cfg.venue === 'beach' ? 'beach' : 'hall', map: String(cfg.map || '').slice(0, 40), even: !!cfg.even, bo: +cfg.bo === 3 ? 3 : 1,
             pts: [11, 15, 21, 25].indexOf(+cfg.pts) >= 0 ? +cfg.pts : 21, state: 'open', v: ver.slice(0, 40) };
+          // (auditoría: un código nuevo que ya usa otra sala viva se cambia; el de tu sala de antes, cfg.code, se respeta)
+          var fresh = !codeOk(cfg.code), tries = 0;
+          var pick = function () {
+            if (!fresh || tries++ >= 3) return Promise.resolve();
+            return query(eq('code', d.code), 2).then(function (L) {
+              if (L.some(function (r) { return r.host !== a.uid && r.age < STALE_MS; })) { d.code = newCode(); return pick(); }
+            }, function () { });
+          };
           // (antes de abrir: fuera la señalización de una sesión anterior que no se cerró, p. ej. una recarga a mitad de conexión)
-          return api.delSig(a.uid).then(function () { return commitRoom(a.uid, d, null, null); }).then(function () { mine = d; return api.get(a.uid); }, function (e) {
+          return pick().then(function () { return api.delSig(a.uid); }).then(function () { return commitRoom(a.uid, d, null, null); }).then(function () { mine = d; return api.get(a.uid); }, function (e) {
             if (e.code !== 'denied') throw e;
             // 403 al crear: 'off' solo si tampoco se puede listar (reglas sin desplegar); si no, es un dato que las reglas no aceptan
             return query(eq('state', 'open'), 1).then(function () { throw err('denied', e.message); }, function (e2) { throw err(e2.code === 'denied' ? 'off' : e2.code, e.message); });
@@ -189,7 +205,13 @@
       get: function (id) { return call('GET', docUrl('rooms/' + id), null, true).then(function (j) { return j ? room(j) : null; }); },
       byCode: function (code) {
         code = normCode(code); if (!codeOk(code)) return Promise.resolve(null);
-        return query({ compositeFilter: { op: 'AND', filters: [eq('code', code), eq('state', 'open')] } }, 1).then(function (L) { return L[0] || null; },
+        // (auditoría: las reglas no exigen código único y otra cuenta puede copiar el de una sala ajena: con más de una sala viva con ese
+        //  código no se elige ninguna, 'dup', en vez de entrar en la de uid más bajo)
+        return query({ compositeFilter: { op: 'AND', filters: [eq('code', code), eq('state', 'open')] } }, 5).then(function (L) {
+          var live = L.filter(function (r) { return r.age < LIVE_MS; });
+          if (live.length > 1) throw err('dup', 'código repetido');
+          return live[0] || L[0] || null;
+        },
           function (e) { if (e.code === 'denied') throw err('off', e.message); throw e; });
       },
       /** Entrar en una sala: solo guest/gname/state; las reglas impiden entrar si ya está llena o si no hay latido. */
@@ -227,6 +249,17 @@
           ka('PATCH', docUrl('rooms/' + id) + '?updateMask.fieldPaths=guest&updateMask.fieldPaths=gname&updateMask.fieldPaths=state&currentDocument.exists=true',
             { fields: { guest: { stringValue: '' }, gname: { stringValue: '' }, state: { stringValue: 'open' } } });
         }
+      },
+      /** Fase 6: el anfitrión vuelve tras recargar y retoma su sala (la que dejó en 'full'/'play'): latido y señalización como antes. */
+      resume: function () {
+        return Promise.resolve().then(function () { return auth(); }).catch(function (e) { throw err('auth', e && e.message); }).then(function (a) {
+          me = a;
+          return api.get(a.uid).then(function (r) {
+            if (!r || r.host !== a.uid) return null;
+            var d = {}; for (var i = 0; i < ROOM_KEYS.length; i++) if (r[ROOM_KEYS[i]] !== undefined) d[ROOM_KEYS[i]] = r[ROOM_KEYS[i]];
+            mine = d; return r;
+          });
+        });
       },
       /** El anfitrión cierra su sala (señalización y sala). */
       close: function () {

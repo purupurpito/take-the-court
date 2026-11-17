@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/touchplay.js (owner: ui_main)
+/* MAKE THE CUT — tools/touchplay.js (owner: ui_main)
  * Juega un partido REAL con el dedo: Input.dispatchTouchEvent (DevTools) sobre el overlay táctil de verdad
  * (joystick arrastrando en la mitad izquierda, botones GOLPEAR/SACAR, SALTAR, ⇄ y pausa), en móvil emulado.
  * Comprueba, por cada tamaño:
@@ -223,7 +223,7 @@ async function runSize(size) {
     // ================= COLOCACIÓN EN SALTO: SALTAR y, en el aire, el botón contextual COLOCAR =================
     {
       const drill = require('./jsetdrill.js');
-      const offBefore = !(await rectOf('#touch .vt-set') || {}).vis;
+      const offBefore = !(await rectOf('#touch .vt-set') || {}).vis || (await evalJs('(function(){var g=VB.ctx.game,c=g&&g.ctrl;return !!(c&&c.z>0.05)})()'));   // (en el aire puede salir: solo cuenta en el suelo)
       let geo = null;
       const dj = await drill(evalJs, { jump: () => tap('.vt-jump', BTN, 50), serve: serveTouch,
         set: async () => { if (!(await tap('#touch .vt-set', BTN, 50))) await sleep(30); },
@@ -233,7 +233,7 @@ async function runSize(size) {
           const d = path.join(__dirname, 'out', 'colocar'); fs.mkdirSync(d, { recursive: true }); await page.shot(path.join(d, 'touchplay-' + size + '.png'));
         } }, { tries: 5, stopAfter: 2 });
       await sleep(1200);
-      const offAfter = !(await rectOf('#touch .vt-set') || {}).vis;
+      const offAfter = !(await rectOf('#touch .vt-set') || {}).vis || (await evalJs('(function(){var g=VB.ctx.game,c=g&&g.ctrl;return !!(c&&c.z>0.05)})()'));
       console.log('  colocación en salto (táctil):', JSON.stringify(dj), geo && geo.set ? 'COLOCAR ' + Math.round(geo.set.l) + ',' + Math.round(geo.set.t) + ' ' + Math.round(geo.set.w) + 'x' + Math.round(geo.set.h) : '');
       const gap = (a, b) => Math.max(a.l - b.r, b.l - a.r, a.t - b.b, b.t - a.b);
       check(offBefore && offAfter, 'COLOCAR no se ve en el suelo (antes y después del salto)');

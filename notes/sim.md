@@ -1349,7 +1349,7 @@ llamadas a `g.rng`). El 6v6 CPU contra CPU cambia (formaciones nuevas y pipe) y 
 - **Puestos jugables (sim.js)**: `CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB']` (`VB.Sim.CTRL_ROLES6`, orden de la fila Controlar: Receptor,
   Colocador, Opuesto, Central; el líbero no se elige). `createGame({ctrlRole})` y `VB.Sim.setCtrlRole(g, role)` → `g.ctrl` = el primer
   jugador del equipo 0 con ese puesto (OH n.º 2, S n.º 1, OPP n.º 4, MB n.º 3); `g.ctrlBase` = su atleta. main.js sigue pasando 'OH':
-  ui.js guarda la elección en `localStorage 'voley3d.role6'` y la aplica con `setCtrlRole` nada más empezar (petición a main.js:
+  ui.js guarda la elección en `localStorage 'make-the-cut.role6'` y la aplica con `setCtrlRole` nada más empezar (petición a main.js:
   `ctrlRole6` en `loadSettings` y `ctrlRole: ctx.settings.ctrlRole6` en `startMatch`).
 - **Central y líbero**: cuando el líbero entra por el central del humano (`g.liberoFor[0] === g.ctrlBase`, en `applyLibero`), el humano
   pasa a llevar al líbero (`g.ctrl = g.libero[0]`; recibe y defiende con las reglas del líbero) y recupera a su central cuando vuelve.
@@ -1814,3 +1814,14 @@ pueda pedir una colocación si el primer toque ha sido suyo». Sección de simte
   (`buildCand`), tempo 'shoot' (por la derecha, su sitio), peso ×`HUM.atkW` × `HUM.ask` × `HUM.askS` (2): ~73 % de las veces (sin pedirla, 0).
 - `updateDefense` (2v2, ctrl 'both'): el reparto bloqueo/defensa con cambio de control espera si el balón va rápido y a < 0,6 s (como
   `fastLate`): la plancha desviada lo hacía saltar en simtest.
+
+## Moverse en el saque y sin marcas del bote (17-nov-2026, Ferran)
+
+- «Haz que se pueda mover, pero en Fácil y Normal, tienes una pequeña ayuda visual de dónde deberías estar»: `g.posRule6` (6v6 sin demo) ya
+  no depende del nivel. El humano empieza cada saque en su sitio legal (`placeServe`), se mueve con el stick (también en el saque propio, si
+  no saca él) y, si al golpe de saque está en un par solapado (`overlapOf` > 0), «Falta de posición» (`reason 'position'`). La IA nunca se
+  solapa ni se le pita. Ayuda (fx.js `hintK`, fase recv/serve con el saque en curso): Fácil la de siempre; Normal tenue encima de su sitio
+  (0,5) y más fuerte al alejarse; Difícil/Experto sin marca. simtest (m): la falta se pita en Difícil y en Fácil.
+- «Quitar las marcas del balón en el suelo para que el challenge en un futuro tenga sentido»: fx.js ya no pinta la marca del bote (`markAt`) ni
+  el cráter de la playa (botes y rebotes); quedan la onda breve con el color de la llamada del juez y la arena que salta. La huella exacta del
+  balón solo sale en la revisión del challenge (B6).

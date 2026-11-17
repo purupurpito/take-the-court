@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/main.js   (owner: ui_main)
+ * MAKE THE CUT — js/main.js   (owner: ui_main)
  * Arranque, renderer, bucle con simulación de paso fijo a 120 Hz,
  * reparto de eventos a los módulos, calidad adaptativa (con histéresis)
  * y escenas de depuración deterministas:
@@ -38,7 +38,7 @@
   try { isMobile = isTouch && Math.min(screen.width || 9999, screen.height || 9999) < 900; } catch (e) { }
   if (Q.debug === 'mobile') { isTouch = true; isMobile = true; }
 
-  // E3: ajustes que solo valen para este dispositivo (voley3d.device; ver DEFAULTS)
+  // E3: ajustes que solo valen para este dispositivo (make-the-cut.device; ver DEFAULTS)
   var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'];
   var ctx = VB.ctx = {
     THREE: THREE,
@@ -72,7 +72,7 @@
   try { if (mqReduce) { var onRM = function () { ctx.reduceMotion = calcReduce(); }; if (mqReduce.addEventListener) mqReduce.addEventListener('change', onRM); else if (mqReduce.addListener) mqReduce.addListener(onRM); } } catch (e) { }
 
   // E3 (sprint 5): valores por defecto de TODOS los ajustes (loadSettings y ctx.actions.resetSettings). Las claves de
-  // DEVICE_KEYS se guardan aparte, en voley3d.device (solo este dispositivo: account.js no la sube), y no en voley3d.settings:
+  // DEVICE_KEYS se guardan aparte, en make-the-cut.device (solo este dispositivo: account.js no la sube), y no en make-the-cut.settings:
   // un móvil no hereda los 30 fps ni el 50 % de resolución del PC. keys/padKeys guardan SOLO las diferencias con las teclas y
   // botones de fábrica (input.js las sanea). aimSet / msTiming: E1 (colocación dirigida; timing en ms en el sello, solo UI).
   function DEFAULTS() {
@@ -117,13 +117,13 @@
     // siguen en el pabellón para que las capturas y las pruebas sean comparables.
     var saved = false;
     var o = null;
-    try { var raw = localStorage.getItem('voley3d.settings'); if (raw) { saved = true; o = JSON.parse(raw); if (!o || typeof o !== 'object') o = null; for (var k in o) if (k in s && DEVICE_KEYS.indexOf(k) < 0 && typeof o[k] === typeof s[k]) s[k] = o[k]; } } catch (e) { o = null; }
-    // ajustes de ESTE dispositivo (E3): voley3d.device
-    try { var dv = JSON.parse(localStorage.getItem('voley3d.device') || 'null'); if (dv && typeof dv === 'object') for (var dk = 0; dk < DEVICE_KEYS.length; dk++) { var kk = DEVICE_KEYS[dk]; if (kk in dv && typeof dv[kk] === typeof s[kk]) s[kk] = dv[kk]; } } catch (e) { }
+    try { var raw = localStorage.getItem('make-the-cut.settings'); if (raw) { saved = true; o = JSON.parse(raw); if (!o || typeof o !== 'object') o = null; for (var k in o) if (k in s && DEVICE_KEYS.indexOf(k) < 0 && typeof o[k] === typeof s[k]) s[k] = o[k]; } } catch (e) { o = null; }
+    // ajustes de ESTE dispositivo (E3): make-the-cut.device
+    try { var dv = JSON.parse(localStorage.getItem('make-the-cut.device') || 'null'); if (dv && typeof dv === 'object') for (var dk = 0; dk < DEVICE_KEYS.length; dk++) { var kk = DEVICE_KEYS[dk]; if (kk in dv && typeof dv[kk] === typeof s[kk]) s[kk] = dv[kk]; } } catch (e) { }
     // Jugador nuevo (sin ajustes guardados ni partidos jugados): empieza en Fácil. Normal contra un novato
     // es un muro (simtest: un bot novato gana ~30 % de los puntos en Normal y ~54 % en Fácil).
     // Las escenas de depuración siguen en Normal para que las capturas sean comparables.
-    var rec = null; try { rec = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); } catch (e) { }
+    var rec = null; try { rec = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); } catch (e) { }
     if (!saved && !Q.debug) {
       if (!rec || !(rec.played > 0)) s.difficulty = 'easy';
     }
@@ -175,12 +175,12 @@
     if (Q.diff && DIFFS.indexOf(Q.diff) >= 0) s.difficulty = Q.diff;
     return s;
   }
-  /** Guarda los ajustes: los de DEVICE_KEYS en voley3d.device (solo aquí) y el resto en voley3d.settings (account.js lo sincroniza). */
+  /** Guarda los ajustes: los de DEVICE_KEYS en make-the-cut.device (solo aquí) y el resto en make-the-cut.settings (account.js lo sincroniza). */
   function saveSettings() {
     var st = ctx.settings, a = {}, d = {};
     for (var k in st) { if (!Object.prototype.hasOwnProperty.call(st, k)) continue; if (DEVICE_KEYS.indexOf(k) >= 0) d[k] = st[k]; else a[k] = st[k]; }
-    try { localStorage.setItem('voley3d.settings', JSON.stringify(a)); } catch (e) { }
-    try { localStorage.setItem('voley3d.device', JSON.stringify(d)); } catch (e) { }
+    try { localStorage.setItem('make-the-cut.settings', JSON.stringify(a)); } catch (e) { }
+    try { localStorage.setItem('make-the-cut.device', JSON.stringify(d)); } catch (e) { }
   }
 
   // ---------- Calidad ----------
@@ -409,7 +409,7 @@
     try { return !!R.playBest(i == null ? undefined : i | 0, function () { call('UI', 'replayDone'); }); } catch (e) { reportError('Replay.playBest', e); return false; }
   };
   // primer partido (sin récord guardado): la CPU saca más suave (notes/sim.md, createGame({rookie}))
-  function isRookie() { try { var r = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); return !(r && r.played > 0); } catch (e) { return false; } }
+  function isRookie() { try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); return !(r && r.played > 0); } catch (e) { return false; } }
   function seed() { return Q.seed ? (+Q.seed | 0) : ((Date.now() ^ (Math.random() * 1e9)) & 0x7fffffff); }
   /** Escenario del partido que se crea ('hall' | 'beach'): el que tiene arena montado (ajuste `arena` o ?map=). En la playa la sim
    *  juega con reglas de vóley playa (createGame({venue:'beach'}): pista 16×8, sets a 21/15, cambio de campo cada 7). */
@@ -573,7 +573,7 @@
       b6 = [Sim.defaultBench(0), Sim.defaultBench(1)];
       c6 = [{ auto: ctx.settings.subs6 !== 'manual', iq: 2 }, { auto: true, iq: IQ6[Sim.normDiff ? Sim.normDiff(dq) : dq] || 2 }];
     }
-    var g = Sim.createGame({ demo: false, seed: seed(), difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : isRookie(), present: !opts.autopilot,
+    var g = Sim.createGame({ demo: false, seed: seed(), difficulty: dq, autopilot: auto, bestOf: opts.bestOf === 1 ? 1 : undefined, // (prueba de la Carrera: a un set) rookie: cs ? !!opts.rookie : isRookie(), present: !opts.autopilot,
       bench: b6 || undefined, coach: c6 || undefined, meSlot: cs && b6 ? opts.meSlot : undefined, meBench: cs && b6 ? opts.meBench : undefined, names: fmt && cs ? opts.names : undefined,
       points: opts.points || +Q.points || ctx.settings.setPoints, ctrl: fmt ? 'one' : (opts.ctrl || Q.ctrl || ctx.settings.ctrlMode), ctrlRole: fmt ? (cs && opts.ctrlRole) || 'OH' : undefined, // (6v6: siempre 'one'; el receptor, o tu puesto en la Carrera de pista; espectador sin eventos switch)
       ctrlIdx: ctrlIdxOf(opts),
@@ -625,22 +625,34 @@
     netStop(false);
     call('Audio', 'unlock');
     net = ctx.net = { sess: null, slot: o.slot === 1 ? 1 : 0, view: null, over: false, menu: false, r: null, name: o.name || '', rival: o.rivalName || '',
-      look: o.look || null, base: o.opts || null, link: o.link, delay: o.delay, epoch: 0, away0: !!document.hidden };
+      look: o.look || null, base: o.opts || null, link: o.link, delay: o.delay, epoch: 0, away0: !!document.hidden,
+      expect: o.expect || null };   // (auditoría: invitado: lo que anuncia la sala; la sesión lo compara con las opciones del anfitrión)
     netSession(o.opts || null, 0);
     if (net.away0) netAway(true);
     netHud(null);
     return true;
   };
   function netSession(opts, epoch) {
-    var s = new VB.Net.Session({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch,
-      log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null });
+    var s = new VB.Net.Session({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch, expect: net.expect,
+      log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null,
+      // fase 6: cada paso CONFIRMADO, con sus dos entradas, al grabador de repeticiones (VB.Replay en modo dual sobre gc)
+      onTick: function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } });
     net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
     net.want = false; net.rivalWants = false; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
+    net.stSnap = null; net.stRs = 0; net.hx = 0;   // (auditoría: copia de la hoja para rehacerla tras una vuelta; cruceta del HUD)
     if (net.away0) { s.setAway(true); s.maxCatch = 150; }
     return s;
   }
   ctx.actions.netVsAI = function () { if (net && net.sess.vsAI()) call('Audio', 'ui', 'click'); };
-  ctx.actions.netQuit = function () { if (net) { net.sess.quit(); netSettle(); } ctx.actions.toMenu(); };
+  // (auditoría: abandonar en pleno partido no salta al menú sin más: el HUD enseña «Has abandonado [Volver al menú]», como al rival;
+  //  ese botón vuelve aquí con la sesión ya 'ended' y entonces sí va al menú)
+  ctx.actions.netQuit = function () {
+    if (net) {
+      var st0 = net.sess.status; net.sess.quit(); netSettle();
+      if (net.view && ctx.state === 'playing' && (st0 === 'playing' || st0 === 'waiting') && net.sess.status === 'ended') { call('Audio', 'ui', 'click'); return; }
+    }
+    ctx.actions.toMenu();
+  };
   /** «Continuar» en la pausa del punto y en la de entre sets (se salta solo cuando los DOS lo han pulsado). */
   ctx.actions.netSkip = function () { if (net && net.view) { net.sess.request('skip'); call('Audio', 'ui', 'click'); } };
   /** Revancha (hoja final): se pide al rival; cuando los dos la quieren, quien creó la sala manda la semilla nueva y los dos empiezan
@@ -706,8 +718,13 @@
     var opts = null;
     if (slot === 0) {
       var kind = Q.map && isMapId(Q.map) ? VB.Venues.kindOf(Q.map) : (Q.venue === 'beach' || Q.venue === 'hall' ? Q.venue : venueNow());
-      opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{}, {}], bestOf: Q.bo === '3' ? 3 : 1,
+      opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{ aimSet: ctx.settings.aimSet !== false }, { aimSet: Q.aimset1 !== '0' }], bestOf: Q.bo === '3' ? 3 : 1,
         points: +Q.points || 21, present: true, stats: true };
+      // (revisión) sin &map= el anfitrión elige ya la sede concreta, como hace el lobby; si no, cada página montaba un pabellón distinto
+      if (!opts.mapId && VB.Venues && VB.Venues.list) {
+        var vl = null; try { vl = VB.Venues.list(kind); } catch (e) { vl = null; }
+        if (vl && vl.length) { var mp = vl[(opts.seed >>> 0) % vl.length]; if (isMapId(mp)) opts.mapId = mp; }
+      }
     }
     var NL = VB.NetLobby, mine = NL && NL.myLook ? NL.myLook() : null, name = Q.name || (slot ? 'Invitado' : 'Anfitrión'), sent = -1e9, t0 = performance.now();
     // (pruebas: &netcap=1 = tu n.º 1 con la gorra «MTC»; &kitshirt=RRGGBB = otra camiseta; así las dos páginas, que comparten el
@@ -758,6 +775,46 @@
       if (e.tempo && e.tempo !== 'lane' && e.tempo !== 'high') m.quick[0]++;
     }
   }
+  /** Fase 6: lo confirmado de un frame → maestría, estadísticas de la hoja (VB.UI.netTally, con los eventos girados para el invitado)
+   *  y grabador de repeticiones (eventos canónicos; una reparación con foto o una vuelta cortan el peloteo en curso). */
+  function netConfirmed(s, list) {
+    if (!net || !net.view || s !== net.sess) return;
+    var RPL = VB.Replay, rec = !!(RPL && RPL.enabled && RPL.enabled()), cut = s.repaired + s.stats.resyncs;
+    if (rec && cut !== net.rpCut) { try { RPL.cut(); } catch (e) { reportError('Replay.cut', e); } }
+    net.rpCut = cut;
+    if (s.stats.rsIn !== net.stRs) { net.stRs = s.stats.rsIn; try { netStatsResync(s, list); } catch (e) { reportError('netStatsResync', e); } }
+    if (!list.length) return;
+    netMastery(list);
+    if (VB.UI && VB.UI.netTally) { var mp = []; try { VB.NetView.mapEvents(list, net.view, net.slot, mp); VB.UI.netTally(mp); } catch (e) { reportError('UI.netTally', e); } }
+    if (rec) { try { RPL.onEvents(s.confirmedGame(), list); } catch (e) { reportError('Replay.onEvents', e); } }
+    // (auditoría: copia de la hoja tras cada punto jugado con el rival presente: si luego hay que saltar a la foto del otro, se vuelve a ella)
+    if (!s.solo && !s.rivalSolo && VB.UI && VB.UI._netStats) for (var i = 0; i < list.length; i++) if (list[i].type === 'point') { net.stSnap = { t: s.gcTick, st: netStClone(VB.UI._netStats()) }; break; }
+  }
+  function netStClone(o) {
+    var c = {}, k, v;
+    for (k in o) { v = o[k]; c[k] = k === 'lastHitter' ? v.slice() : k === 'blocker' || k === 'undo' ? null : v && typeof v === 'object' ? JSON.parse(JSON.stringify(v)) : v; }
+    return c;
+  }
+  /** Auditoría: esta máquina acaba de SALTAR a la partida del otro (resync aplicado). Lo que contó contra la IA no vale (se vuelve a la
+   *  copia del último punto con el rival presente) y lo que jugó el otro mientras tanto no lo vio: los puntos que falten se reponen
+   *  con el marcador de la foto (sin el detalle de remates y aces de ese tramo). Los eventos de `list` (ya de después) se suman luego. */
+  function netStatsResync(s, list) {
+    var U = VB.UI; if (!U || !U._netStats || !U.netStatsSet) return;
+    var sn = net.stSnap, T = s.rsT;
+    if (sn && sn.t <= T) U.netStatsSet(netStClone(sn.st));
+    var st = U._netStats(), gc = s.confirmedGame(); if (!st || !st.t || !gc) return;
+    var tot = [0, 0], inL = [0, 0], setsL = [0, 0], i, t;
+    for (i = 0; i < (gc.setScores || []).length; i++) { tot[0] += gc.setScores[i][0] | 0; tot[1] += gc.setScores[i][1] | 0; }
+    if (!gc.pendingSet && gc.mode !== 'over') { tot[0] += gc.score[0] | 0; tot[1] += gc.score[1] | 0; }
+    for (i = 0; i < list.length; i++) if (list[i].type === 'point' && (list[i].team === 0 || list[i].team === 1)) { inL[list[i].team]++; if (list[i].setWon) setsL[list[i].team]++; }
+    for (t = 0; t < 2; t++) {
+      var vt = net.slot === 1 ? 1 - t : t, d = tot[t] - inL[t] - (st.t[vt].points | 0);
+      if (d > 0) st.t[vt].points += d;
+      if (st.sets) st.sets[vt] = Math.max(0, (gc.sets[t] | 0) - setsL[t]);
+    }
+    if (st.sets) st.setNo = st.sets[0] + st.sets[1] + 1;
+    st.undo = null;
+  }
   function netBuildView() {
     var s = net.sess, o = s.opts;
     if (o.mapId && isMapId(o.mapId)) forceVenue(o.mapId); else forceVenue(o.venue === 'beach' ? 'beach' : 'hall');
@@ -772,7 +829,10 @@
     var hx = function (c) { return typeof c === 'number' ? '#' + ('00000' + (c >>> 0).toString(16)).slice(-6) : null; };
     net.cr.col = kit && kit.kit1 && hx(kit.kitShirt) && hx(kit.kit1.kitShirt) ? [hx(kit.kitShirt), hx(kit.kit1.kitShirt)] : null;
     var mf = net.look && net.look.mine && net.look.mine.fits;
+    rpPre = v;   // (fase 6: el grabador no graba la vista sino la partida confirmada, en modo dual)
     setGame(v, kit, mf && (mf[0] || mf[1]) ? { fits: mf } : {});
+    net.rpCut = s.repaired + s.stats.resyncs;
+    try { if (VB.Replay && VB.Replay.reset) VB.Replay.reset(s.confirmedGame(), { dual: true, slot: net.slot }); } catch (e) { reportError('Replay.reset', e); }
     VB.NetView.mapEvents(s.initEvents, v, net.slot, pendingEvents);   // (setGame vacía pendingEvents)
     setState('playing');
   }
@@ -797,7 +857,7 @@
     if (v) {
       VB.NetView.mirror(v, r.g, net.slot);
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
-      if (r.confirmed.length) netMastery(r.confirmed);
+      netConfirmed(s, r.confirmed);
       if (r.events.length) VB.NetView.mapEvents(r.events, v, net.slot, frameEvents);
       if (ctx.state === 'playing' && !net.over && frameEvents.some(isGameOver)) { net.over = true; netSettle(); setState('over'); }
     }
@@ -832,7 +892,7 @@
     var s = net.sess, r;
     try { r = s.advance(t, null); } catch (e) { reportError('Net.advance (oculta)', e); return; }
     net.r = r; net.bgTicks = (net.bgTicks | 0) + 1;
-    if (net.view && r.confirmed.length) netMastery(r.confirmed);
+    netConfirmed(s, r.confirmed);
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return; }
     netRecTick(r);
     // (el final del partido llega al volver: gameOver confirmado a la cola de eventos del siguiente frame)
@@ -847,18 +907,21 @@
     var h = netEl('netHud', 'position:absolute;top:calc(110px + var(--st,0px));left:calc(14px + var(--sl,0px));z-index:30;display:flex;gap:8px;align-items:center;' +
       'padding:5px 12px;border-radius:16px;background:var(--glass,rgba(9,14,26,.8));color:var(--fg,#f7f2ea);font:600 13px/1.35 var(--ui,system-ui);pointer-events:auto;' +
       'flex-wrap:wrap;max-width:calc(100vw - 28px - var(--sl,0px) - var(--sr,0px));box-sizing:border-box');   // (fase 4: en un teléfono el aviso largo con dos botones baja de línea)
-    if (!net || (ctx.state === 'over' && net.view)) { h.hidden = true; if (net) netTag(r); return; }   // (la hoja final ya dice lo suyo)
+    if (!h.hasAttribute('data-ui')) h.setAttribute('data-ui', '');   // (auditoría: un clic en el aviso no es un golpe, input.js MOUSE_UI)
+    // (auditoría: con «Gira el móvil» delante no se enseña; vuelve solo al girar)
+    if (!net || ctx.portraitBlock || (ctx.state === 'over' && net.view)) { h.hidden = true; if (net) netTag(r); return; }   // (la hoja final ya dice lo suyo)
     h.hidden = false;
     // (revisión F4: en los textos el nombre va como marca \u0001 y se pinta aparte; antes un replace() del nombre podía dar en el texto fijo, p. ej. «en» en «Siguiente»)
     var s = net.sess, name = s.rivalName || 'tu rival', who = '\u0001', msg = '', btn = '';
     // (revisión F3: antes de empezar siempre hay salida; salir aquí no cuenta para nadie, y a los 20 s sin noticias del rival la sesión lo deja)
-    if (!r || r.status === 'connecting') { msg = s.host ? 'Esperando a que entre tu rival…' : 'Conectando…'; btn = '<button data-n="quit">Salir</button>'; }
+    if (!r || r.status === 'connecting') { msg = s.back ? 'Volviendo al partido…' : net.epoch > 0 ? 'Empezando la revancha…' : s.host ? 'Esperando a que entre tu rival…' : 'Conectando…'; btn = '<button data-n="quit">Salir</button>'; }
     else if (r.status === 'starting') { msg = 'Contra ' + who + ' | empieza en ' + (r.startIn / 1000).toFixed(1).replace('.', ',') + ' s'; btn = '<button data-n="quit">Salir</button>'; }
     else if (r.status === 'ended') {
       var w = r.result && r.result.why;
       msg = w === 'rivalQuit' ? who + ' ha abandonado: ganas tú' : w === 'quit' ? 'Has abandonado' : w === 'version' ? 'Tu rival tiene otra versión del juego: recargad los dos' :
         w === 'rivalGone' ? who + ' no ha vuelto: ganas tú' : w === 'hostGone' ? who + ' no ha vuelto: el partido no cuenta' :
         w === 'late' ? 'Has tardado demasiado en volver: cuenta como abandono' :
+        w === 'mismatch' ? 'La sala no coincide con lo anunciado: no hay partido' :
         w === 'noShow' ? (s.rivalName ? who + ' se ha ido: no hay partido' : 'Tu rival no ha llegado: no hay partido') : 'Partido terminado';
       btn = '<button data-n="menu">Volver al menú</button>';
     } else if (r.status === 'waiting') {
@@ -882,17 +945,23 @@
       if (net.menu) btn = r.gone ? '<button data-n="quit">Salir</button>' : '<button data-n="quit">Abandonar (cuenta como derrota)</button>';
     }
     if (r && r.status === 'ended' && net.recRes && net.recRes.cap) msg += '. Nuevo en tu vestuario: Online Beta Tester';
-    var key = msg + btn + who + name;
+    var key = msg + who + name;
     netHudPlace(h);
-    if (h._k !== key) {
-      h._k = key; h.innerHTML = '<span></span>' + btn;
-      h.firstChild.innerHTML = msg.split(who).join('<b class="nn"></b>');
-      var nn = h.querySelectorAll('.nn'); for (var j = 0; j < nn.length; j++) nn[j].textContent = name;   // (el nombre del rival nunca se pinta como HTML)
+    // (auditoría: los botones solo se rehacen si cambian; la cuenta atrás del texto no les quita el foco del mando o del teclado)
+    if (h._b !== btn || !h.firstChild) {
+      h._b = btn; h._k = null; h.innerHTML = '<span></span>' + btn;
       var bs = h.querySelectorAll('button');
       for (var i = 0; i < bs.length; i++) {
         bs[i].style.cssText = 'font:700 12px var(--ui,system-ui);padding:3px 10px;border-radius:999px;border:0;background:var(--hot,#ff5a2c);color:#fff;cursor:pointer';
         bs[i].onclick = function (ev) { var n = ev.currentTarget.getAttribute('data-n'); if (n === 'ai') ctx.actions.netVsAI(); else if (n === 'skip') ctx.actions.netSkip(); else ctx.actions.netQuit(); };
+        bs[i].onfocus = function (ev) { ev.currentTarget.style.boxShadow = '0 0 0 2px #fff'; };
+        bs[i].onblur = function (ev) { ev.currentTarget.style.boxShadow = ''; };
       }
+    }
+    if (h._k !== key) {
+      h._k = key;
+      h.firstChild.innerHTML = msg.split(who).join('<b class="nn"></b>');
+      var nn = h.querySelectorAll('.nn'); for (var j = 0; j < nn.length; j++) nn[j].textContent = name;   // (el nombre del rival nunca se pinta como HTML)
     }
     netTag(r);
   }
@@ -904,6 +973,26 @@
     if (!sb || !sb.offsetParent) return;   // (sin marcador a la vista: se queda donde estaba)
     var r = sb.getBoundingClientRect(), a = app.getBoundingClientRect();
     if (r.height > 0) { h.style.top = Math.round(r.bottom - a.top + 8) + 'px'; h.style.left = Math.round(r.left - a.left) + 'px'; }
+  }
+  /** Auditoría: mando y teclado en el HUD online (antes solo ratón o dedo, o Tab + Intro). Partido online terminado ('ended': abandono,
+   *  rival que no vuelve…): Esc / Start / Intro / A / B → «Volver al menú». Con botones a la vista: LB / RB (y la cruceta si el partido
+   *  no corre: conectando, cuenta atrás o esperando) eligen botón y A lo pulsa. En pleno partido nunca se pulsa nada sin elegirlo antes:
+   *  A sigue siendo golpear. true = el frame de entrada ya se ha usado (no golpea ni pausa). */
+  function netHudKeys(it) {
+    var r = net.r, h = document.getElementById('netHud');
+    if (r && r.status === 'ended') {
+      if (it.pause || it.confirm || it.navOk || it.navBack) { ctx.actions.netQuit(); return true; }
+      return false;
+    }
+    if (!h || h.hidden) return false;
+    var bs = h.querySelectorAll('button'); if (!bs.length) { net.hx = 0; return false; }
+    var free = !r || r.status !== 'playing', a = document.activeElement, cur = -1, i, d = it.navTab || 0;
+    for (i = 0; i < bs.length; i++) if (bs[i] === a) cur = i;
+    if (!d && free) { var x = it.mx || 0, sg = x > 0.6 ? 1 : x < -0.6 ? -1 : 0; if (sg && sg !== net.hx) d = sg; net.hx = sg; }
+    if (d) { bs[cur < 0 ? (d > 0 ? 0 : bs.length - 1) : (cur + d + bs.length) % bs.length].focus(); return true; }
+    if (cur >= 0 && it.device === 'gamepad' && (it.navOk || it.confirm)) { bs[cur].click(); return true; }   // (con el teclado, Intro ya pulsa el botón enfocado él solo)
+    if (cur < 0 && free && it.device === 'gamepad' && it.navOk) { bs[0].focus(); return true; }
+    return false;
   }
   /** Flechita con el NOMBRE del rival encima de su jugador (nunca la IP ni el correo). z-index 2: por debajo del marcador (#hud, 3). */
   var _tagV = null;
@@ -1022,6 +1111,21 @@
     // (si el rival lleva el 9, el 2º CPU, que es el 9 por defecto, pasa al 3: si no, los dos harían de rival en players.js)
     return true;
   };
+  // Prueba jugada de la Carrera (17-nov-2026; VB.Career.trialSetup / trialDone, notes/carrera.md §Pruebas jugadas): mini partido a un set
+  // contra rivales mejores; al acabar, la fachada (matchDone con g.career.trial) decide si te fichan y se vuelve solo al hub con el resultado.
+  ctx.actions.startCareerTrial = function (i) {
+    var K = VB.Career; if (!K || !K.trialSetup) return false;
+    var m = null; try { m = K.trialSetup(i); } catch (e) { reportError('Career.trialSetup', e); }
+    if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
+    if (K.abortMatch) K.abortMatch();
+    careerSes = null;
+    if (K.trialMark) K.trialMark(i);   // desde aquí, dejarla a medias la gasta (también cerrando la pestaña)
+    ctx.actions.startMatch({ career: m.career, attrs: m.attrs, badges: m.badges, points: m.points, bestOf: 1, difficulty: m.difficulty, rookie: false, ctrl: 'one', ctrlIdx: 0, ref: m.ref,
+      venue: m.venue || 'beach', format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, names: m.names || undefined,
+      kit: m.kit ? Object.assign({}, m.kit, { rival: m.rivalKit || null }) : null,
+      nums: m.nums || (m.career ? [[m.career.num | 0 || null, m.career.mateNum | 0 || null], null] : undefined), introKind: 'mini' });
+    return true;
+  };
   function restoreEndButtons() {
     var e = document.getElementById('end'); if (e) e.classList.remove('career'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
     var a = document.getElementById('btnAgain'); if (a && a.getAttribute('data-cr')) { a.textContent = a.getAttribute('data-cr'); a.removeAttribute('data-cr'); }
@@ -1083,10 +1187,12 @@
   ctx.actions.toMenu = function () {
     netStop(true);   // (online: salir al menú es abandonar)
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
-    var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
+    var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug), trialG = fromCareer && !!ctx.game.career.trial;
     // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
     var drillC = !!(ctx.game && ctx.game.careerDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerDrill : null;
-    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
+    var trialQuit = null;
+    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch();
+    if (trialG && !careerEnd && VB.Career && VB.Career.trialGiveUp) { try { trialQuit = VB.Career.trialGiveUp(ctx.game.career.mode, ctx.game.career.trial.club); } catch (e) { reportError('Career.trialGiveUp', e); } }   // prueba a medias: gastada // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
     restoreEndButtons();
     unforceVenue();   // Carrera en la playa: de vuelta al escenario del ajuste
@@ -1094,7 +1200,7 @@
     setState('menu');
     if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
     // (B6: «Siguiente jornada» y los abandonos vuelven al hub en Partido con el foco en «Jugar partido»; R15)
-    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: !!careerEnd, focus: 'play' }); } catch (e) { reportError('CareerUI.open', e); } }
+    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', careerEnd && careerEnd.trial ? { trial: careerEnd } : trialG ? { trial: trialQuit || { quit: true } } : { fresh: !!careerEnd, focus: 'play' }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
   };
@@ -1111,7 +1217,10 @@
     setGame(Sim.createGame({ demo: true, seed: seed(), difficulty: 'normal', format: k === 'hall' ? '6v6' : undefined, venue: k === 'hall' ? undefined : 'beach' }));
   };
   ctx.actions.pause = function () {
-    if (net) { if (net.view && ctx.state === 'playing') net.menu = !net.menu; return; }   // online: no hay pausa (Esc enseña «Abandonar»)
+    if (net) {   // online: no hay pausa (Esc enseña «Abandonar»); con el partido ya terminado (abandono, rival que no vuelve…), Esc sale (auditoría)
+      if (net.view && ctx.state === 'playing' && net.r && net.r.status === 'ended') { ctx.actions.netQuit(); return; }
+      if (net.view && ctx.state === 'playing') net.menu = !net.menu; return;
+    }
     if (ctx.state === 'playing') setState('paused');
   };
   ctx.actions.resume = function () { if (ctx.state === 'paused') setState('playing'); };
@@ -1125,6 +1234,7 @@
     if (live && g.careerDrill && !g.careerDrill.done && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, !!g.autopilot); return; }
     if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
     if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
+    if (live && g.career && g.career.trial && !careerEnd) { ctx.actions.toMenu(); return; }   // (reiniciar una prueba = abandonarla: se gasta)
     if (live && g.career) { ctx.actions.startMatch(); return; }
     ctx.actions.startMatch(Object.assign({}, live && lastOpts || {}, { introKind: 'mini' }));
   };
@@ -1440,6 +1550,7 @@
     if (it) {
       if (it.device) ctx.inputDevice = it.device;
       if (it.padEvent) call('UI', 'padEvent', it.padEvent); // 'connected' | 'disconnected' (antes de la pausa que provoca)
+      if (net && ctx.state === 'playing' && netHudKeys(it)) { it.hit = it.jump = it.jset = it.switchPlayer = it.pause = it.confirm = it.navOk = it.navBack = false; it.navTab = 0; }   // (auditoría: HUD online con mando / teclado)
       if (it.pause) {
         // Esc/Start/P: primero cierra un panel abierto; si no, pausa/reanuda
         if (ctx.state === 'menu' && VB.CareerUI && VB.CareerUI.isOpen && VB.CareerUI.isOpen()) call('CareerUI', 'back');
@@ -1576,7 +1687,12 @@
     }
     if (g && g.career && !g.demo) {
       // B6: la hoja final de Carrera = el Resumen de la jornada de ui.js (VB.UI.endCareer, que sustituye a careerEndSheet), tras showEnd
-      if (careerEnd && !endTweaked && ctx.state === 'over') { endTweaked = true; call('UI', 'endCareer', careerEnd, g, careerEndXv); }
+      if (careerEnd && !endTweaked && ctx.state === 'over') {
+        endTweaked = true;
+        // prueba jugada: sin hoja de jornada; a los 1,6 s, al hub con el resultado (CareerUI.open({trial}))
+        if (careerEnd.trial) setTimeout(function () { if (ctx.game === g && ctx.state === 'over') ctx.actions.toMenu(); }, 1600);
+        else call('UI', 'endCareer', careerEnd, g, careerEndXv);
+      }
       // (marcador con las abreviaturas de los clubes: lo pinta ui.js con g.career.me / g.career.rival)
     }
 
@@ -1657,7 +1773,7 @@
       if (e.type !== 'gameOver' || careerEnd) continue;
       try { careerEnd = K.matchDone({ sets: [e.sets[0], e.sets[1]], setScores: e.setScores || g.setScores, win: e.team === 0 }, null, g) || { nota: 0, xp: 0 }; }
       catch (er) { reportError('Career.matchDone', er); careerEnd = { nota: 0, xp: 0 }; }
-      careerEndXv = careerEndX(K, careerSes);   // B6: tabla, puesto, lo siguiente, barra y sesiones (solo lectura)
+      careerEndXv = careerEnd && careerEnd.trial ? null : careerEndX(K, careerSes);   // B6: tabla, puesto, lo siguiente, barra y sesiones (solo lectura; la prueba no)
     }
   }
   function safePoll(dt) { try { return VB.Input.poll(dt); } catch (e) { reportError('Input.poll', e); return null; } }
@@ -1950,7 +2066,7 @@
       // E6: ejercicios del Entrenamiento con la IA jugando por ti (autopilot) y congelados en un momento que se lea en la captura:
       // drill_serve (3r saque, balón en el aire), drill_recv (2º saque de la CPU llegando), drill_set (2º balón, antes de colocar),
       // drill_atk (6ª repetición: ya con el bloqueador), drill_block (2º ataque, el remate rival armado), drill_end (hoja final).
-      // &n=N la repetición (1-10), &t=s tras su montaje. drill_end no apunta nada en voley3d.gym (depuración)
+      // &n=N la repetición (1-10), &t=s tras su montaje. drill_end no apunta nada en make-the-cut.gym (depuración)
       case 'drill_serve': case 'drill_recv': case 'drill_set': case 'drill_atk': case 'drill_block': case 'drill_free': case 'drill_end': {
         var dk = name === 'drill_end' ? (drillId(Q.drill) || 'serve') : name.slice(6);
         g = Sim.createGame({ demo: false, autopilot: true, seed: sd, drill: dk, venue: venueNow(), difficulty: dk === 'free' ? diff : 'normal' });
@@ -1997,6 +2113,18 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
         if (g.career) debugCareerEnd(g);
         break;
+      // Estadística del partido (js/matchstats.js): autopilot hasta el final y la pantalla abierta en cuanto se ve la hoja.
+      // &format=6v6 (pista 6 contra 6), &map=beach (playa), &points=n, &career=1 (nombres de clubes), &set=n y &team=1 (lo elegido), &sec=fig|mom|rot|map|err|pl (desplazada a esa sección)
+      case 'stats': {
+        var st6 = Q.format === '6v6';
+        if (st6) forceVenue('hall');
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, format: st6 ? '6v6' : undefined, venue: st6 ? undefined : venueNow(), points: +Q.points || undefined });
+        if (Q.career === '1') g.career = debugCareerCs(g);
+        keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 5400, uiIngest); state = 'over';
+        if (g.career) debugCareerEnd(g);
+        call('UI', 'openMatchStats', { set: +Q.set || 0, team: Q.team === '1' ? 1 : 0, sec: Q.sec || '' });
+        break;
+      }
       // D1: reto del día terminado (autopilot hasta gameOver con g.reto de hoy o de &retodate=AAAAMMDD; Retos.endMatch en seco)
       case 'reto_end': {
         g = mk(true);
@@ -2123,7 +2251,7 @@
     for (i = 0; i < BL.length; i++) if (i % 3 !== 2) bd[BL[i].id] = 1 + (i % 4 === 0 ? 2 : i % 4 === 1 ? 1 : 0);
     var o = { v: 1, base: { xp: 900, m: 212, w: 131 }, dev: {}, px: 0, ven: ven, ach: ach, hit: { debut: day - 60, m25: day - 50, m100: day - 20, w10: day - 45, w100: day - 5, gira: day - 30, bd1: day - 55 },
       bd: bd, car: {}, ann: 1, pin: [], pt: 0, seen: {} };
-    var mem = { 'voley3d.profile': JSON.stringify(o), 'voley3d.look': null, 'voley3d.devid': 'demo1' };
+    var mem = { 'make-the-cut.profile': JSON.stringify(o), 'make-the-cut.look': null, 'make-the-cut.devid': 'demo1' };
     try {
       var SP = Storage.prototype, gi = SP.getItem, si = SP.setItem, ri = SP.removeItem, LS = window.localStorage;
       SP.getItem = function (k) { return this === LS && Object.prototype.hasOwnProperty.call(mem, k) ? mem[k] : gi.apply(this, arguments); };

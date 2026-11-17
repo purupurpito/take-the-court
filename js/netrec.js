@@ -1,17 +1,17 @@
 /* =====================================================================
- * VOLEY 3D — js/netrec.js   (owner: net)
+ * MAKE THE CUT — js/netrec.js   (owner: net)
  * Modo online, fase 3 (notes/net.md «Fase 3»): el RÉCORD ONLINE (aparte del de Partido rápido) y la única recompensa del online, la
  * gorra «Online Beta Tester» (decisión 4 de Ferran: sin experiencia, insignias ni retos por el online). SIN DOM y SIN THREE: se
  * prueba en Node con vm (tools/netrectest.js). localStorage siempre dentro de try/catch.
  *
- * Guardado 'voley3d.online' (JSON, v1): { v:1, played, wins, losses, quits, nc, streak, best, last:[{n, w, s, t}] (10 como mucho) }
+ * Guardado 'make-the-cut.online' (JSON, v1): { v:1, played, wins, losses, quits, nc, streak, best, last:[{n, w, s, t}] (10 como mucho) }
  *   played = partidos que cuentan (ganados + perdidos); quits = cuántas de las derrotas fueron por abandonar (o tardar en volver);
  *   nc = partidos que no cuentan (se cayó quien creó la sala, otra versión, partido no válido por reparaciones o final con huellas
  *   que no cuadraban: result.unverified → «no válido»).
  *   last: n = NOMBRE del rival (lo único que se sabe de él; nunca IP ni correo), w = 1 ganado / 0 perdido / -1 no cuenta,
  *   s = '2-1' (sets) o 'abandono' / 'abandonó' / 'no volvió' / 'no cuenta', t = ms.
  * Abandonar = derrota (D11): quit() o tardar más de 60 s en volver. Cerrar la pestaña en pleno partido también: al empezar se deja
- * una marca 'voley3d.online.pend' y, si al cargar la página sigue ahí, cuenta como abandono (begin / end / boot).
+ * una marca 'make-the-cut.online.pend' y, si al cargar la página sigue ahí, cuenta como abandono (begin / end / boot).
  *
  * API (VB.NetRec):
  *   outcome(result, valid) → {w: 1|0|-1, kind}  (result = r.result de VB.Net.Session; valid = r.valid)
@@ -26,7 +26,7 @@
   'use strict';
   var root = (typeof window !== 'undefined') ? window : globalThis;
   var VB = root.VB = root.VB || {};
-  var KEY = 'voley3d.online', PEND = 'voley3d.online.pend', CAP = 'gorraMTC', MAX_LAST = 10, STALE_MS = 90000;
+  var KEY = 'make-the-cut.online', PEND = 'make-the-cut.online.pend', CAP = 'gorraMTC', MAX_LAST = 10, STALE_MS = 90000;
 
   function LS() { try { return root.localStorage || null; } catch (e) { return null; } }
   function rd(k) { var l = LS(); try { return l ? l.getItem(k) : null; } catch (e) { return null; } }

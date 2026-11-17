@@ -4,13 +4,13 @@
  * .drill) es de ui.js. index.html lo carga después de prog.js. En el código el modo se llama «drill» / VB.Gym; en pantalla,
  * «Entrenamiento» (el prefijo gym* de ui.js es otra cosa: el ensayo de estilos del telón).
  *
- * Guardado: localStorage 'voley3d.gym' (JSON, v1):
+ * Guardado: localStorage 'make-the-cut.gym' (JSON, v1):
  *   { v:1, d:{ serve:{b,m,n,t}, recv:{…}, set:{…}, atk:{…}, block:{…} }, free:{rally}, xp:{ serve:2, … } }
  *   b = récord (0-40), m = medalla 0-3, n = intentos, t = fecha del récord (ms), rally = peloteo más largo (toques),
  *   xp = nivel de medalla ya cobrado (evita cobrar dos veces, también tras unir con la cuenta).
  * Cuentas: SÍ se sincroniza con la cuenta (users/{uid}/saves/gym, fusión por máximo mergeGym): js/account.js tiene GYM_SYNC = true
  *   desde el 12-nov-2026, con las reglas de Firestore ya desplegadas. (CONTRACT §1 decía «GYM_SYNC = false»: errata; manda el código.)
- * Contrato D4 (S4, T13): texto ilegible o que no es un objeto → copia en 'voley3d.gym.bak' y lost() = true (se sigue en blanco);
+ * Contrato D4 (S4, T13): texto ilegible o que no es un objeto → copia en 'make-the-cut.gym.bak' y lost() = true (se sigue en blanco);
  *   versión más nueva (v > VER, llegada por la nube) → readOnly() = true: se lee la copia saneada, save() no escribe y record() no paga
  *   XP (no se rebaja el guardado de la cuenta). '.bak' nunca va a la nube.
  *
@@ -28,7 +28,7 @@
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
-  var KEY = 'voley3d.gym', VER = 1;
+  var KEY = 'make-the-cut.gym', VER = 1;
 
   var DRILLS = [
     { id: 'serve', name: 'Saque a diana', short: 'Saque', help: '10 saques a la diana que se mueve' },

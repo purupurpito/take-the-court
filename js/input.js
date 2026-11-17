@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/input.js   (owner: camera_input)
+ * MAKE THE CUT — js/input.js   (owner: camera_input)
  * Entrada cruda: teclado, mando (Gamepad API) y controles táctiles.
  * Devuelve INTENCIONES en espacio de PANTALLA/cámara:
  *   mx: derecha +, my: hacia la red (arriba) +, |(mx,my)| <= 1

@@ -17,7 +17,7 @@
  * Sin DOM (se carga en node: tools/careertest.js, tools/lifetest.js). Guarda en c.life dentro de la carrera (sin cambiar su versión: todo tiene valor
  * por defecto y se crea al vuelo con ensure()). career.js llama a hook(c, tipo, …) en sus puntos clave; si este fichero no está,
  * la Carrera funciona igual que antes.
- * Vale para las DOS Carreras (12-nov-2026): playa (voley3d.career) y pista (voley3d.career6, c.mode 'hall'). En la pista: textos de
+ * Vale para las DOS Carreras (12-nov-2026): playa (make-the-cut.career) y pista (make-the-cut.career6, c.mode 'hall'). En la pista: textos de
  * pabellón (escalones, legado, logros, eventos, patrocinadores), retos por puesto medidos en partidos 6v6 reales (CH6), premio de mejor
  * colocador y la química del equipo (c.chem) en lugar de la de la pareja.
  */
@@ -631,7 +631,7 @@
   function achNameOf(id, h) { var a = ACH.filter(function (x) { return x.id === id; })[0]; return a ? (h && a.nh ? a.nh : a.name) : ''; }
 
   // ------------------------------------------------------------------ legado y retirada
-  var LEG_KEY = 'voley3d.legends';
+  var LEG_KEY = 'make-the-cut.legends';
   var LEG_TIERS = [[0, 'Jugador de club'], [60, 'Referente'], [150, 'Ídolo del circuito', 'Ídolo del pabellón'], [300, 'Leyenda'], [500, 'Mito del vóley']];
   /** Nivel 0-4 de la competición de un título. Playa: por el nombre del circuito. Pista: por la fuerza de la liga que nombra (o, si es
    *  la copa de un país, la de su 1ª); las internacionales valen fijo. */
@@ -687,7 +687,7 @@
   }
 
   // ------------------------------------------------------------------ Vestuario (cosméticos; spec §7)
-  // Todo con guarda: sin VB.Look (js/look.js) nada cambia. El inventario es GLOBAL (voley3d.look.own, de look.js): lo que ganas o
+  // Todo con guarda: sin VB.Look (js/look.js) nada cambia. El inventario es GLOBAL (make-the-cut.look.own, de look.js): lo que ganas o
   // compras aquí vale también en Partido rápido y en la otra Carrera. Nada de esto entra en GEAR, gearBonus, attrs ni la sim.
   function LK() { var X = VB.Look; return X && Array.isArray(X.CATALOG) && X.grant && X.owned ? X : null; }
   function unlocksOf(x) { var u = x && x.unlock; return Array.isArray(u) ? u : u && typeof u === 'object' ? [u] : []; }

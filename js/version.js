@@ -15,23 +15,78 @@
  *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
  * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
  * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
- * 1.5.4 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
+ * 1.7.0 (17-nov-2026): Acta del partido (js/acta.js): los partidos 6v6 salen como acta de emPat (formato empat/acta). NO es público
+ *   (Ferran, 17-nov-2026): el botón solo sale con su cuenta (ui.js ACTA_ALLOW) y las novedades no lo anuncian.
+ * 1.7.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.4';
+  VB.VERSION = '1.7.1';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.5.4', d: '2026-11-17', t: 'Cámara',
+      v: '1.7.1', d: '2026-11-17', t: 'Cámara',
       items: [
         '6 contra 6: la cámara sigue mejor al balón y se aleja para no perderlo.',
         'Zoom de cámara: rueda del ratón, teclas + y -, stick derecho o la lupa en el móvil.',
         'Ajustes: elige el zoom de cámara, de 1 (cerca) a 5 (lejos).'
+      ]
+    },
+    {
+      v: '1.7.0', d: '2026-11-17', t: 'Más datos en la estadística',
+      items: [
+        'La estadística del 6 contra 6 guarda también alineaciones, cambios y tiempos muertos.'
+      ]
+    },
+    {
+      v: '1.6.0', d: '2026-11-17', t: 'Estadística del partido',
+      items: [
+        'Al acabar un partido, pulsa «Estadística del partido»: los números de los dos equipos.',
+        'Side-out, break point, quién iba por delante, mapas de saque y ataque y dónde se falla.',
+        'Tabla por jugador con saque, recepción, ataque, bloqueo y defensa, de todo o set a set.'
+      ]
+    },
+    {
+      v: '1.5.8', d: '2026-11-17', t: 'Pruebas jugadas',
+      items: [
+        'Carrera: las pruebas se juegan: un set a 15 contra rivales mejores y la IA un nivel más.',
+        'Te fichan por tu nota; ganar el mini partido ayuda un poco. También puedes simularla.',
+        'Clubes mejores te invitan a prueba a mitad y a final de temporada, en playa y en pista.'
+      ]
+    },
+    {
+      v: '1.5.7', d: '2026-11-17', t: 'Moverte en el saque',
+      items: [
+        '6 contra 6: muévete en el saque en todos los niveles; si te solapas, falta de posición.',
+        'En Fácil y Normal, una marca en el suelo te enseña tu sitio legal mientras sacan.',
+        'Los botes ya no dejan marca en el suelo: lo que se discute se mira en el challenge.'
+      ]
+    },
+    {
+      v: '1.5.6', d: '2026-11-17', t: 'Beta abierta',
+      items: [
+        'Make the Cut entra en beta abierta: gracias por probarlo y contarnos qué falla.'
+      ]
+    },
+    {
+      v: '1.5.5', d: '2026-11-17', t: 'Arreglos del online',
+      items: [
+        'Arreglado: con mando no había forma de salir del final de un partido online.',
+        'Arreglado: si los dos recargabais a la vez, el partido se quedaba en «Volviendo…».',
+        'Arreglado: la hoja final online no cuadraba tras un corte jugado contra la IA.',
+        '«Colocación dirigida» de Ajustes también vale en el online.'
+      ]
+    },
+    {
+      v: '1.5.4', d: '2026-11-17', t: 'Repeticiones online',
+      items: [
+        'Online: repetición y «Mejores jugadas» en la hoja final, cada cual desde su lado.',
+        'Si quien creó la sala recarga en mitad del partido, vuelve a él y se sigue jugando.',
+        '«Crear sala» nueva: ves cómo saldrá tu sala en la lista y eliges los puntos en pabellón.'
       ]
     },
     {

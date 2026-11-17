@@ -8,7 +8,7 @@ rules_version = '2';
 //   profile, career6, cmode, legends, retos → S4_SYNC (S4, perfil y sincronización).       DESPLEGADAS el 16-nov-2026.
 // Orden obligatorio: 1) Ferran despliega estas reglas (npx firebase-tools deploy --only firestore:rules, desde firebase/) y espera unos
 // minutos; 2) en una publicación mínima, S4_SYNC = true (LOOK_SYNC ya está a true). Al revés, cada subida daría 403.
-// '<clave>.bak', 'voley3d.career(6).prev', 'voley3d.devid' y 'voley3d.retostab' son del aparato: nunca llegan aquí.
+// '<clave>.bak', 'make-the-cut.career(6).prev', 'make-the-cut.devid' y 'make-the-cut.retostab' son del aparato: nunca llegan aquí.
 // tools/synctest.js comprueba que cada clave de DOCS (con todos los interruptores encendidos) está en la lista de abajo.
 service cloud.firestore {
   match /databases/{database}/documents {

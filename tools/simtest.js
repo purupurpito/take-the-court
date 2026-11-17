@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/simtest.js  (owner: sim)
+/* MAKE THE CUT — tools/simtest.js  (owner: sim)
  * Test headless de la simulación: carga js/sim.js y js/ai.js en un contexto vm
  * (sin DOM ni THREE) y ejecuta:
  *   1) CPU vs CPU (demo) -> estadísticas de rally, toques, motivos, calidad
@@ -3488,8 +3488,8 @@ if (ONLY !== 'matrix') {
     }
     { // (m) falta de posición del humano (D4): en Difícil el humano que no saca puede moverse durante el saque rival; el receptor zaguero
       // empujado hacia la red (equipo 0 juega en x > 0: delante = x menor) hasta pasar a su delantero → al golpe de saque, punto para el
-      // rival con reason 'position' («Falta de posición», señal ya existente). En Fácil el mismo stick no le mueve (placeServe le deja
-      // en su sitio legal) y no se pita. La IA sigue con 0 solapamientos en los dos partidos. Se le da al sacador rival 3 s de ritual
+      // rival con reason 'position' («Falta de posición», señal ya existente). Desde el 17-nov-2026 también en Fácil (posRule6 en todos
+      // los niveles): el mismo stick le mueve y se pita. La IA sigue con 0 solapamientos en los dos partidos. Se le da al sacador rival 3 s de ritual
       // para que el humano llegue (hasta 5 m si su delantero está en la red)
       const FB6 = { 1: 2, 6: 3, 5: 4 }, PUSH = { move: [-1, 0], hit: false, jump: false, switchPlayer: false }, out = {};
       for (const df of ['hard', 'easy']) {
@@ -3512,9 +3512,9 @@ if (ONLY !== 'matrix') {
         out[df] = o;
       }
       const H = out.hard, E = out.easy;
-      res.push(['(m) falta de posición: en Difícil el receptor zaguero movido delante de su delantero → punto rival por position; en Fácil no se mueve ni se pita; IA 0 solapamientos',
-        H.encontrado && H.movido > 0.3 && H.solapados > 0 && H.motivo === 'position' && H.equipo === 1 && H.texto === 'Falta de posición' && H.iaSolapada === 0 && !H.ex &&
-        E.encontrado && E.movido < 0.05 && E.solapados === 0 && E.motivo !== 'position' && E.iaSolapada === 0 && !E.ex, out]);
+      const ok1 = o => o.encontrado && o.movido > 0.3 && o.solapados > 0 && o.motivo === 'position' && o.equipo === 1 && o.texto === 'Falta de posición' && o.iaSolapada === 0 && !o.ex;
+      res.push(['(m) falta de posición: el receptor zaguero movido delante de su delantero → punto rival por position, en Difícil y en Fácil (17-nov); IA 0 solapamientos',
+        ok1(H) && ok1(E), out]);
     }
     { // (n) bloqueo activo y overpass (revisión del 12-nov): el humano en la red (colocador) que pulsa GOLPEAR en el aire ante un pase
       // rival que se pasa de campo, aún a 0,8 m en el campo rival, hace un golpe normal (swing), nunca toque de red ni pulsación de bloqueo.

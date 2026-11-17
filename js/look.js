@@ -12,10 +12,10 @@
  * «L» resuelto (lo que recibe doll.js, congelado): { skin, hair, style, acc (= gorro), eyes … shoes, cA, cB, cSock, cShoe, cGlass }
  *   con los colores en hex o -1 (= auto, el de hoy). Nunca lleva h: la altura la pone players.js.
  *
- * Guardado: localStorage 'voley3d.look' (JSON, v1, < 8 KB):
+ * Guardado: localStorage 'make-the-cut.look' (JSON, v1, < 8 KB):
  *   { v:1, fits:[fit n.º 1, fit n.º 2], ft: ms de la última edición de fits (para unir con la cuenta),
  *     own:{ id:{ s:'carrera'|'tienda'|'gym'|'record'|'retos'|'hito'|'boss'|'online', t:ms } }, seen:{ id:1 } }
- *   Dañado → copia en 'voley3d.look.bak' y lost(); v > 1 (versión más nueva) → solo lectura (readOnly) y mergeRaw no lo rebaja.
+ *   Dañado → copia en 'make-the-cut.look.bak' y lost(); v > 1 (versión más nueva) → solo lectura (readOnly) y mergeRaw no lo rebaja.
  *   No se escribe hasta la primera edición (setFit) o el primer desbloqueo (grant). Lo de inicio no se guarda en own.
  *   La Carrera guarda su propio fit en c.life.look (career-life.js); el inventario (own) es global para todo el juego.
  *
@@ -32,7 +32,7 @@
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
-  var KEY = 'voley3d.look', V = 1, MAX_BYTES = 8192;
+  var KEY = 'make-the-cut.look', V = 1, MAX_BYTES = 8192;
 
   var SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
     'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes'];
@@ -731,7 +731,7 @@
     }
     return null;
   }
-  // datos globales que no pasen: del Entrenamiento (VB.Gym) y del récord de Partido rápido ('voley3d.record')
+  // datos globales que no pasen: del Entrenamiento (VB.Gym) y del récord de Partido rápido ('make-the-cut.record')
   function globalData(d) {
     d = isObj(d) ? d : {};
     var out = { gym: isObj(d.gym) ? d.gym : null, gymN: typeof d.gymN === 'number' ? d.gymN : null, rec: isObj(d.rec) ? d.rec : null };
@@ -741,7 +741,7 @@
     }
     if (out.gymN == null && VB.Gym && typeof VB.Gym.count === 'function') { try { out.gymN = VB.Gym.count() | 0; } catch (er) { } }
     if (!out.rec) {
-      var r = null; try { r = JSON.parse(window.localStorage.getItem('voley3d.record') || 'null'); } catch (er) { r = null; }
+      var r = null; try { r = JSON.parse(window.localStorage.getItem('make-the-cut.record') || 'null'); } catch (er) { r = null; }
       if (isObj(r)) out.rec = { wins: +r.wins || 0, played: +r.played || 0, streak: +(r.streak != null ? r.streak : r.bestStreak) || 0 };
     }
     // nivel de perfil (VB.Profile, S4-D2) y retos (VB.Retos, S4-D1)
@@ -766,7 +766,7 @@
   }
   /** Concede lo que se gana fuera de la Carrera (Entrenamiento, récord, retos y nivel de perfil). d = {gym:{serve,recv,set,atk,block:
    *  medalla 0-3}, gymN, rec:{wins, played, streak}, lvl, reto:{id: nivel}, retoN, dias, semana, retos: VB.Retos.summary()}; lo que
-   *  falte se lee de VB.Gym, 'voley3d.record', VB.Profile.level() y VB.Retos.lookData(). Origen: gym, record, hito (nivel) o retos.
+   *  falte se lee de VB.Gym, 'make-the-cut.record', VB.Profile.level() y VB.Retos.lookData(). Origen: gym, record, hito (nivel) o retos.
    *  Lo de jefe y química es de la Carrera (career-life.js lo concede). Devuelve los ids nuevos. */
   function checkGlobal(d) {
     var g = globalData(d), out = [];
@@ -826,7 +826,7 @@
     return [st.fits[0], o.six ? null : st.fits[1]];
   }
 
-  /** Une dos guardados de 'voley3d.look' (texto JSON): own y seen por unión (gana la t mínima), fits del más reciente (ft, o
+  /** Une dos guardados de 'make-the-cut.look' (texto JSON): own y seen por unión (gana la t mínima), fits del más reciente (ft, o
    *  remoteNewer si se pasa). Devuelve texto JSON (el local tal cual si no cambia nada). Si un lado trae v > V, ese lado entero. */
   function mergeRaw(Lraw, Rraw, remoteNewer) {
     function p(r) { try { var o = JSON.parse(r); return isObj(o) ? o : null; } catch (e) { return null; } }

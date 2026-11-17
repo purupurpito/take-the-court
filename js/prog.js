@@ -12,17 +12,17 @@
  *
  * Las funciones athlete* trabajan sobre un atleta cualquiera y NO guardan (las usa la Carrera con su propio jugador y su propio
  * guardado). Las de siempre (addXP(i), award, bump(i), attrs) trabajan sobre el escuadrón de Partido rápido (los atletas n.º 1 y
- * n.º 2) y guardan en localStorage ('voley3d.squad'); si no hay almacenamiento, funciona en memoria.
+ * n.º 2) y guardan en localStorage ('make-the-cut.squad'); si no hay almacenamiento, funciona en memoria.
  * Guardado v1 (sin insignias) → v2: se migra solo, sin perder nada.
- * Contrato D4 (S4, T13): texto ilegible o sin la lista de atletas → copia en 'voley3d.squad.bak', lost() = true y escuadrón nuevo;
- * antes de migrar (v < VER) → 'voley3d.squad.bak' = {from: v, raw}; versión más nueva (v > VER, normalmente llegada por la nube) →
+ * Contrato D4 (S4, T13): texto ilegible o sin la lista de atletas → copia en 'make-the-cut.squad.bak', lost() = true y escuadrón nuevo;
+ * antes de migrar (v < VER) → 'make-the-cut.squad.bak' = {from: v, raw}; versión más nueva (v > VER, normalmente llegada por la nube) →
  * readOnly() = true: se juega con la copia saneada en memoria y save() no escribe (no se «rebaja» el guardado de la cuenta).
  * Sin DOM ni Three: lo usan main.js (atributos al crear el partido), ui.js (panel «Jugadores» y experiencia al acabar) y badges.js.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
-  var KEY = 'voley3d.squad', VER = 3;   // v3 (10-nov-2026): escuadrón inicial a media 50 (+10 a los guardados v1/v2, una vez)
+  var KEY = 'make-the-cut.squad', VER = 3;   // v3 (10-nov-2026): escuadrón inicial a media 50 (+10 a los guardados v1/v2, una vez)
   var KEYS = ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'];
   var LABEL = { jump: 'Salto', speed: 'Velocidad', react: 'Reacción', recv: 'Recepción', dig: 'Defensa', set: 'Colocación',
     spike: 'Potencia', ctl: 'Control', block: 'Bloqueo', serve: 'Saque' };

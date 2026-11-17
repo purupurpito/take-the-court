@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/netdrive.js  (owner: net)
+/* MAKE THE CUT — tools/netdrive.js  (owner: net)
  * Fase 1c del online (notes/net.md): UN Chrome headless con DOS páginas del juego real (?net=bc: BroadcastChannel con latencia
  * simulada), una de anfitrión (hueco 0) y otra de invitado (hueco 1), cada una con un bot (&bot=1 → ctx.netBot) durante SECS s.
  * Comprueba: las dos conectan y juegan, huellas de la partida confirmada iguales en los dos lados (stateHash en los mismos tics),
@@ -311,10 +311,42 @@ if (RTC) (async () => {
   check('rótulo con el nombre del rival encima de su jugador', /Invi Prueba/.test(A.tag) && /Anfi Prueba/.test(B.tag), [A.tag, B.tag]);
   const ipRe = /\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b|[0-9a-f-]{36}\.local|candidate:/i;
   check('nunca se ve una IP, un .local ni un candidato ICE en pantalla', !ipRe.test(A.body + B.body + A.hud + B.hud), [A.hud, B.hud]);
+  // (fase 6) volver al partido tras RECARGAR la página: primero el invitado, luego el anfitrión (su sala no se borra; adopta la
+  // partida del invitado). Las dos veces sale «Volviendo al partido…» y después las huellas siguen cuadrando.
+  {
+    const HUD = "((document.getElementById('netHud')||{}).textContent||'')";
+    const playing = "!!(VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.status==='playing'&&VB.NetLobby._state().link==='open')";
+    for (const k of [1, 0]) {
+      const who = k ? 'invitado' : 'anfitrión', res0 = await ev(P[1 - k], 'VB.ctx.net.sess.stats.resyncs');
+      await P[k].send('Page.reload', {});
+      console.log('  el ' + who + ' recarga la página');
+      await sleep(800);
+      const msg = await waitFor(P[k], "/Volviendo al partido/.test(" + HUD + ")", 20000);
+      if (msg) console.log('  captura', await P[k].shot(path.join(OUT, 'f6-volviendo-' + (k ? 'inv' : 'anf') + '.png')));
+      const ok = await waitFor(P[k], playing, 60000) && await waitFor(P[1 - k], playing, 20000);
+      const info = JSON.parse(await ev(P[k], "JSON.stringify((function(){var s=VB.ctx.net&&VB.ctx.net.sess;return s&&{slot:s.slot,adopt:s.adopt,back:s.back,seed:s.opts&&s.opts.seed,valid:s.valid,res:s.stats.resyncs}})())") || 'null');
+      const res1 = await ev(P[1 - k], 'VB.ctx.net.sess.stats.resyncs');
+      check('fase 6: el ' + who + ' recarga y vuelve al partido (aviso «Volviendo al partido…», ' + (k ? 'resync del anfitrión' : 'el anfitrión adopta la partida del invitado') + ')',
+        msg && ok && info && info.slot === k && !info.adopt && !info.back && info.valid && (k ? res1 > res0 : res1 > res0) && (await emuGet('rooms/uidAnfi')) === 200, { msg, ok, info, res: [res0, res1] });
+      await ev(P[k], "VB.ctx.netBot=VB.Net.bot(" + k + "," + (k + 1) + ",'bueno')");
+      if (ok) await sleep(3000);
+    }
+    for (let k = 0; k < 2; k++) await ev(P[k], "(function(){var s=VB.ctx.net.sess,H=window.__ndH2={};var o=s._hashTick;s._hashTick=function(){o.call(this);H[this.gcTick]=this.myHash[this.gcTick];};})()");
+    await sleep(12000);
+    const h0 = JSON.parse(await ev(P[0], 'JSON.stringify(window.__ndH2)') || '{}'), h1 = JSON.parse(await ev(P[1], 'JSON.stringify(window.__ndH2)') || '{}');
+    let n2 = 0, bad2 = 0; for (const t in h0) if (h1[t] !== undefined) { n2++; if (h0[t] !== h1[t]) bad2++; }
+    check('fase 6: tras las dos recargas las huellas siguen iguales', n2 >= 5 && bad2 === 0, { n2, bad2 });
+    for (let k = 0; k < 2; k++) console.log('  captura', await P[k].shot(path.join(OUT, 'f6-vuelta-' + (k ? 'inv' : 'anf') + '.png')));
+  }
   // abandono del anfitrión: el invitado gana; la sala se borra
   await ev(P[0], 'VB.ctx.actions.netQuit()');
   const rq = await waitFor(P[1], "!!(VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.status==='ended'&&VB.ctx.net.r.result&&VB.ctx.net.r.result.why==='rivalQuit')", 15000);
   check('el anfitrión abandona: el invitado gana al momento (rivalQuit)', rq, await ev(P[1], 'JSON.stringify(VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.result)'));
+  // (auditoría) quien abandona ve «Has abandonado [Volver al menú]» (antes saltaba al menú sin decir nada); el botón (aquí Esc) sale y borra la sala
+  const hq = await waitFor(P[0], "(function(){var h=document.getElementById('netHud');return !!(h&&!h.hidden&&/Has abandonado/.test(h.textContent)&&h.querySelector('button[data-n=menu]'))})()", 5000);
+  check('quien abandona ve «Has abandonado [Volver al menú]»', hq, await ev(P[0], "(function(){var h=document.getElementById('netHud');return h?h.textContent:''})()"));
+  await ev(P[0], 'VB.ctx.actions.pause()');
+  check('… y Esc (o el botón) sale al menú', await waitFor(P[0], "VB.ctx.state==='menu'&&!VB.ctx.net", 5000), await ev(P[0], 'VB.ctx.state'));
   await sleep(1500);
   check('la sala del anfitrión se borra al salir', (await emuGet('rooms/uidAnfi')) === 404);
   console.log('  captura', await P[1].shot(path.join(OUT, 'netrtc-invitado-fin.png')));

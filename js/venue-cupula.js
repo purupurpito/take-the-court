@@ -1,4 +1,4 @@
-/* VOLEY 3D — js/venue-cupula.js (owner: arena)
+/* MAKE THE CUT — js/venue-cupula.js (owner: arena)
  * Sede de pabellón «Cúpula del Far» (12-nov-2026): la arena de espectáculo DE NOCHE de las finales. Sala en penumbra, pista
  * dorada bajo los focos, aro LED cian alrededor del cuenco y, colgado en el centro, un «faro»: linterna-marcador de 8 caras con
  * lentes cuyos haces barren la grada (guiño mediterráneo al Palau del Mar). En la Carrera de pista, finales y clubes de élite.

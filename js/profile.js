@@ -5,18 +5,18 @@
  * guarda. No usa g.rng ni toca la sim (la huella 2v2 no cambia).
  *
  * XP total = max(px, base.xp + Σ dev[d].xp + derivada). Así nada cuenta dos veces aunque se juegue en dos dispositivos:
- *  - dev[devId]: contador por dispositivo (partidos humanos acabados); devId vive en 'voley3d.devid' y NUNCA sube a la nube.
+ *  - dev[devId]: contador por dispositivo (partidos humanos acabados); devId vive en 'make-the-cut.devid' y NUNCA sube a la nube.
  *  - derivada: medallas del Entrenamiento (VB.Gym), mejor nivel de cada insignia (bd), logros de Carrera de por vida (ach), títulos
  *    (car), sedes (ven), hitos (hit) y VB.Retos.profileXP().
  *  - base: relleno inicial (récord + Carreras actuales + Salón de la Fama), una vez, por máximo.
  *  - px: pico visto (por máximo): el nivel nunca baja.
  * Curva: need(l) = 60 + 20·l (Nv 2 = 80 XP, Nv 10 = 1 440, Nv 30 = 10 440, Nv 50 = 27 440; máximo 99). Sin moneda.
  *
- * Guardado 'voley3d.profile' v1 (< 4 KB con 24 dispositivos y 40 Carreras; por eso dev y car van en listas y las fechas en días):
+ * Guardado 'make-the-cut.profile' v1 (< 4 KB con 24 dispositivos y 40 Carreras; por eso dev y car van en listas y las fechas en días):
  *   { v:1, base:{xp,m,w}, dev:{"<devId>":[xp,m,w,m2,m6,mc,gy]}, px, ven:{sede:día}, ach:{logro:día}, hit:{hito:día},
  *     bd:{insignia:1..3}, car:{"b:<seed>"|"h:<seed>":[p,w,tit,aw]} (≤ 40), ann, pin:[aid ≤ 3], pt (ms), seen:{aid:1} }
  *   día = floor(ms / 86 400 000) (el álbum solo enseña la fecha). clean() acepta también la forma con objetos y horas en ms.
- * Contrato D4: texto dañado → 'voley3d.profile.bak' + lost(); v < V → .bak {from, raw} y se migra; v > V → solo lectura
+ * Contrato D4: texto dañado → 'make-the-cut.profile.bak' + lost(); v < V → .bak {from, raw} y se migra; v > V → solo lectura
  * (readOnly(), save no escribe) y mergeRaw devuelve el lado de mayor v sin tocarlo.
  *
  * API (VB.Profile): V, KEY, DEV_KEY, HITOS, LVL_XP, need, levelOf, level, xp, stats, noteMatch (= addMatch), noteGym, check, album,
@@ -25,7 +25,7 @@
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
-  var KEY = 'voley3d.profile', DEV_KEY = 'voley3d.devid', V = 1;
+  var KEY = 'make-the-cut.profile', DEV_KEY = 'make-the-cut.devid', V = 1;
   var LVL_XP = { easy: 0.8, normal: 1, hard: 1.2, expert: 1.4 };
   var MAX_LVL = 99, MAX_CAR = 40, MAX_PIN = 3;
   var GYM_XP = [20, 30, 50], BD_XP = [15, 25, 40], ACH_XP = 30, TIT_XP = 50, VEN_XP = 20;
@@ -190,7 +190,7 @@
     o.seen = sorted(rs);
     return o;
   }
-  /** Une dos textos de 'voley3d.profile'. Devuelve texto (el local tal cual si no cambia nada). Si un lado trae v > V, gana entero el
+  /** Une dos textos de 'make-the-cut.profile'. Devuelve texto (el local tal cual si no cambia nada). Si un lado trae v > V, gana entero el
    *  de mayor v (no se rebaja). Un lado ilegible no cuenta. */
   function mergeRaw(Lraw, Rraw) {
     var Lp = Lraw == null ? null : pj(Lraw), Rp = Rraw == null ? null : pj(Rraw);
@@ -232,7 +232,7 @@
   function legendsList() {
     var CL = VB.CareerLife, a = null;
     if (CL && typeof CL.legends === 'function') { try { a = CL.legends(); } catch (e) { a = null; } }
-    if (!Array.isArray(a)) { a = pj(rd('voley3d.legends') || 'null'); }
+    if (!Array.isArray(a)) { a = pj(rd('make-the-cut.legends') || 'null'); }
     return Array.isArray(a) ? a : [];
   }
   function retosXP() {
@@ -252,7 +252,7 @@
   // ---------------------------------------------------------------- estado
   var cur = null, curRaw, lostF = false, ro = false, stamp = 0, devMem = null, stash = [];
   function backfill() {
-    var r = pj(rd('voley3d.record') || 'null'), played = 0, wins = 0, cp = 0, cw = 0, lp = 0;
+    var r = pj(rd('make-the-cut.record') || 'null'), played = 0, wins = 0, cp = 0, cw = 0, lp = 0;
     if (isObj(r)) { played = n0(r.played, 1e7); wins = n0(r.wins, 1e7); }
     careers().forEach(function (x) { var k = isObj(x.c.career) ? x.c.career : {}; cp += n0(k.played, 1e6); cw += n0(k.won, 1e6); });
     legendsList().forEach(function (l) { if (isObj(l)) lp += n0(l.played, 1e6); });
@@ -313,7 +313,7 @@
   var lvCache = { k: null, v: null };
   /** {lvl, into, next, total}, cacheado por el texto del perfil, del Entrenamiento y de los Retos (barato para renderMenu). */
   function level() {
-    var s = state(), k = stamp + '|' + (rd('voley3d.gym') || '') + '|' + (rd('voley3d.retos') || '');
+    var s = state(), k = stamp + '|' + (rd('make-the-cut.gym') || '') + '|' + (rd('make-the-cut.retos') || '');
     if (lvCache.k !== k || !lvCache.v) { lvCache.k = k; lvCache.v = levelOf(totalOf(s)); }
     var v = lvCache.v;
     return { lvl: v.lvl, into: v.into, next: v.next, total: v.total };

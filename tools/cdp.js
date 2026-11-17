@@ -1,4 +1,4 @@
-/* VOLEY 3D — tools/cdp.js (owner: ui_main)
+/* MAKE THE CUT — tools/cdp.js (owner: ui_main)
  * Cliente mínimo del DevTools Protocol para las herramientas (sin dependencias: WebSocket nativo de node >= 22).
  * - open({ size:'1280x720', touch:false }) lanza Chrome headless (GPU real; GL=swiftshader para software),
  *   se conecta a la pestaña y fija el VIEWPORT EXACTO con Emulation.setDeviceMetricsOverride

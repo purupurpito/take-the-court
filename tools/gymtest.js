@@ -1,11 +1,11 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/gymtest.js (owner: ui_main)
+/* MAKE THE CUT — tools/gymtest.js (owner: ui_main)
  * Pruebas del Entrenamiento (E6). Tres partes:
  *  1) SIN navegador (siempre): js/gym.js en vm con un localStorage falso y un VB.Prog falso: DRILLS/MEDALS/XP, medalOf en los
  *     umbrales, record (récord, intentos, medalla nueva, XP una sola vez por nivel y a los dos jugadores, y nunca dos veces),
  *     recordRally, count (de 15), nextOf, validación de load (JSON roto, claves desconocidas, topes).
  *  2) CON navegador (tools/cdp.js; NOCDP=1 la salta): para cada ejercicio, ?drill=<id>&gymauto=1&seed=7 hasta drillEnd → hoja
- *     .drill visible con total y botones, voley3d.gym actualizado (intentos +1) y la experiencia del escuadrón sube EXACTAMENTE lo
+ *     .drill visible con total y botones, make-the-cut.gym actualizado (intentos +1) y la experiencia del escuadrón sube EXACTAMENTE lo
  *     de las medallas nuevas (ni XP de partido ni cobro doble; 'serve' se juega dos veces). Peloteo libre: 25 s sin final y con el
  *     marcador a 0. VB.Account._mergeGym une por máximo. Sin errores JS.
  *  3) Navegación real (teclado, TOUCH=1 a 844×390 y mando falso): menú › Jugar › Entrenamiento › fila › ejercicio › pausa ›
@@ -52,12 +52,12 @@ function sandbox() {
   G.record('block', 12); check(G.count() === 5, 'count: 5 tras plata en bloqueo');
   check(G.recordRally(9).isBest && !G.recordRally(4).isBest && G.bestRally() === 9, 'recordRally: mejor peloteo');
   check(G.nextOf('serve') === 'recv' && G.nextOf('block') === 'serve' && G.nextOf('free') === null, 'nextOf');
-  const s = JSON.parse(store['voley3d.gym']);
+  const s = JSON.parse(store['make-the-cut.gym']);
   check(s.v === 1 && s.xp.serve === 3 && s.d.serve.b === 25 && s.free.rally === 9, 'formato guardado v1 {v, d, free, xp}');
   // validación
-  store['voley3d.gym'] = '{roto';
+  store['make-the-cut.gym'] = '{roto';
   check(G.load().d && !Object.keys(G.load().d).length, 'JSON roto → vacío');
-  store['voley3d.gym'] = JSON.stringify({ v: 1, d: { serve: { b: 99, m: 7, n: -3, t: 'x' }, hack: { b: 1 } }, free: { rally: 1e9 }, xp: { serve: 9, zzz: 1 }, extra: 1 });
+  store['make-the-cut.gym'] = JSON.stringify({ v: 1, d: { serve: { b: 99, m: 7, n: -3, t: 'x' }, hack: { b: 1 } }, free: { rally: 1e9 }, xp: { serve: 9, zzz: 1 }, extra: 1 });
   const L = G.load();
   check(L.d.serve.b === 40 && L.d.serve.m === 3 && L.d.serve.n === 0 && L.d.serve.t === 0 && !L.d.hack && L.free.rally === 999 && L.xp.serve === 3 && !L.xp.zzz && !L.extra, 'load: topes y claves desconocidas fuera');
   const xs = xp[0]; G.record('serve', 30);
@@ -79,8 +79,8 @@ async function browser() {
   const ready = pg => waitFor(pg, 'window.VB&&VB.ctx&&VB.ctx.state', 20000);
   // experiencia acumulada de un atleta (niveles pasados + xp del nivel), para comparar sin depender de subidas de nivel
   const XPJS = `(function(){var n=VB.Prog.need,q=VB.Prog.squad();return q.slice(0,2).map(function(a){var s=a.xp;for(var l=0;l<a.lvl;l++)s+=n(l);return s;});})()`;
-  const GYMJS = `(function(){try{return JSON.parse(localStorage.getItem('voley3d.gym')||'null')}catch(e){return null}})()`;
-  const NOINTRO = `(function(){try{localStorage.setItem('voley3d.guided','{"done":true}');localStorage.setItem('voley3d.install','1')}catch(e){}})();`;   // (install: sin el aviso de instalar del móvil, que a veces se abría justo antes del toque en «Jugar»)
+  const GYMJS = `(function(){try{return JSON.parse(localStorage.getItem('make-the-cut.gym')||'null')}catch(e){return null}})()`;
+  const NOINTRO = `(function(){try{localStorage.setItem('make-the-cut.guided','{"done":true}');localStorage.setItem('make-the-cut.install','1')}catch(e){}})();`;   // (install: sin el aviso de instalar del móvil, que a veces se abría justo antes del toque en «Jugar»)
   let pg;
   try {
     pg = await CDP.open({ size: '1280x720', init: [NOINTRO] });
@@ -115,7 +115,7 @@ async function browser() {
       check(sheet && sheet.vis && sheet.btns >= 3 && sheet.txt.indexOf(String(total)) >= 0, id + ': hoja .drill visible con el total ' + total + ' y ' + (sheet ? sheet.btns : 0) + ' botones');
       const g1 = (await pg.evalJs(GYMJS)) || { d: {}, xp: {} }, x1 = await pg.evalJs(XPJS);
       const n0 = (g0.d[id] || {}).n || 0, n1 = (g1.d[id] || {}).n || 0;
-      check(n1 === n0 + 1 && ((g1.d[id] || {}).b || 0) >= total, id + ': voley3d.gym apunta el intento (' + n0 + ' → ' + n1 + ') y el récord');
+      check(n1 === n0 + 1 && ((g1.d[id] || {}).b || 0) >= total, id + ': make-the-cut.gym apunta el intento (' + n0 + ' → ' + n1 + ') y el récord');
       let exp = 0; for (let lv = ((g0.xp || {})[id] || 0) + 1; lv <= ((g1.xp || {})[id] || 0); lv++) exp += [30, 50, 80][lv - 1];
       check(x1[0] - x0[0] === exp && x1[1] - x0[1] === exp, id + ': experiencia +' + (x1[0] - x0[0]) + '/+' + (x1[1] - x0[1]) + ' (esperada +' + exp + ' por medallas nuevas, nada más)');
       check(!pg.errors.length, id + ': sin errores JS' + (pg.errors.length ? ': ' + pg.errors.slice(0, 2).join(' | ') : ''));
