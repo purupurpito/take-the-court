@@ -2902,7 +2902,7 @@
     }
     el.endRecord.innerHTML = rec;
     if (el.btnMStats) el.btnMStats.hidden = !(VB.MatchStats && VB.MatchStats.ready && VB.MatchStats.ready());   // «Estadística del partido»
-    if (el.btnActa) { el.btnActa.hidden = !(VB.Acta && VB.MatchStats && VB.Acta.available(VB.MatchStats.data())); actaLbl(''); }   // «Acta del partido» (6v6)
+    if (el.btnActa) { el.btnActa.hidden = !(actaOk && VB.Acta && VB.MatchStats && VB.Acta.available(VB.MatchStats.data())); actaLbl(''); }   // «Acta del partido» (6v6)
     // MVP de cada equipo (UI-11). UI-18: una tabla pequeña: un solo rótulo «MVP», la cabecera «Ataque · Bloqueo · Saque» una vez y en
     // cada fila el dorsal, los puntos (la cifra grande) y su desglose; el lector de pantalla oye la frase entera (aria-label).
     var mv = '', nMv = 0;
@@ -3168,6 +3168,19 @@
   //  ?acta=<id>; fuera de Pages (o si el navegador no deja), se descarga el .json para importarlo desde la portada de emPat.
   // =====================================================================
   var ACTA_LBL = 'Acta del partido', actaT = 0;
+  // De momento NO es público (Ferran, 17-nov-2026): el botón solo sale con la cuenta de Ferran. En el código va el SHA-256 del correo
+  // (el repo es público: el correo no se escribe), comparado con VB.Account.user() (correo en minúsculas en las cuentas de correo y
+  // Google). actaOk se recalcula al entrar o salir de la cuenta.
+  var ACTA_ALLOW = ['c0592685221ed4a093808f6d3f8a863be6f6d4a1894b00b91e90b07719048deb'], actaOk = false;
+  function actaCheck() {
+    var A = VB.Account, u = A && A.user ? String(A.user() || '').trim().toLowerCase() : '';
+    if (!u || u.indexOf('@') < 0 || !(window.crypto && crypto.subtle && window.TextEncoder)) { actaOk = false; actaVis(); return; }
+    crypto.subtle.digest('SHA-256', new TextEncoder().encode(u)).then(function (b) {
+      var h = Array.prototype.map.call(new Uint8Array(b), function (x) { return (x < 16 ? '0' : '') + x.toString(16); }).join('');
+      actaOk = ACTA_ALLOW.indexOf(h) >= 0; actaVis();
+    }, function () { actaOk = false; actaVis(); });
+  }
+  function actaVis() { if (el.btnActa && !actaOk) el.btnActa.hidden = true; }
   function actaLbl(t) {
     var b = el.btnActa; if (!b) return;
     var sp = b.querySelector('span'); if (sp) sp.textContent = t || ACTA_LBL;
@@ -3178,6 +3191,7 @@
     return { home: nm.names[0], away: nm.names[1], venue: venueName(), competition: 'Make the Cut · ' + mode, now: Date.now() };
   }
   function openActa() {
+    if (!actaOk) return;
     var A = null;
     try { A = VB.Acta.build(VB.MatchStats.data(), actaMeta(ctx.game)); } catch (er) { console.error('[VB][ERROR] Acta.build: ' + er); }
     if (!A) { actaLbl('No se ha podido hacer el acta'); return; }
@@ -6527,6 +6541,7 @@
       if (el.btnMStats) el.btnMStats.addEventListener('click', function () { uiSound('click'); openMStats(); });
       el.btnActa = $('btnActa');
       if (el.btnActa) el.btnActa.addEventListener('click', function () { uiSound('click'); openActa(); });
+      actaCheck(); if (VB.Account && VB.Account.onChange) VB.Account.onChange(actaCheck);
       el.btnPeek.addEventListener('click', function () { click(); setPeek(true); });
       el.btnEndBack.addEventListener('click', function () { click(); setPeek(false); });
       el.btnPanelBack.addEventListener('click', function () { uiSound('back'); closePanel(); });
