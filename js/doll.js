@@ -2238,7 +2238,7 @@
       req = req || {};
       if (!THREE) THREE = window.THREE;
       var tc = ptKit(req), L = ptLook(req, tc), bch = !!req.beach;
-      return geoSig(L, tc, bch) + '|' + atlasSig(L, tc, ptNum(req), bch) + '|' + ptPose(req) + '|' + ptFace(req) + '|' + ptYaw(req).toFixed(3) + '|' + ptBg(req).toString(16) + '|' + ptSize(req) + (req.zoom != null ? '|z' + ptZoom(req).toFixed(2) : '');
+      return geoSig(L, tc, bch) + '|' + atlasSig(L, tc, ptNum(req), bch) + '|' + ptPose(req) + '|' + ptFace(req) + '|' + ptYaw(req).toFixed(3) + '|' + ptBg(req).toString(16) + '|' + ptSize(req) + (req.zoom != null ? '|z' + ptZoom(req).toFixed(2) : '') + (req.matte ? '|m' : '');   // (req.matte: recorte con fondo transparente, main.js ptMatte)
     },
     /** Pinta el retrato en out2d (canvas 2D; se escala a su tamaño). c = VB.ctx. Devuelve los ms, o -1 si no puede (sin renderer, sin
      *  lienzo, error). Guarda y restaura viewport, tijera y render target; no toca autoClear. */

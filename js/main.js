@@ -1563,6 +1563,7 @@
     if (P2D.width !== sz || P2D.height !== sz) { P2D.width = sz; P2D.height = sz; }
     var t0 = performance.now(), ms = -1;
     try { ms = P.draw(ctx, q.req, P2D); } catch (e) { reportError('Doll.portrait.draw', e); ms = -1; }
+    if (ms >= 0 && q.req.matte) { try { ms = ptMatte(P, q.req, P2D); } catch (e) { reportError('Doll.portrait.matte', e); ms = -1; } }
     // (por si draw saliera a medias: el render del juego de este frame necesita el viewport entero y sin tijera)
     if (r.getScissorTest && r.getScissorTest()) { r.setScissorTest(false); r.setViewport(0, 0, ctx.width, ctx.height); }
     var dt = performance.now() - t0;
@@ -1579,6 +1580,21 @@
     if (P2D.toBlob) { try { P2D.toBlob(function (b) { done(b ? URL.createObjectURL(b) : ''); }, 'image/png'); return; } catch (e) { } }
     var url = ''; try { url = P2D.toDataURL('image/png'); } catch (e) { }
     setTimeout(function () { done(url); }, 0);
+  }
+  /** req.matte (menú «Tu jugador», ?menu=jugador): recorte con fondo transparente. El 1.er pase ya está en cv con fondo negro (req.bg 0);
+   *  se pinta otra vez con fondo blanco y de la diferencia salen el alfa exacto (también en los bordes suavizados) y el color. */
+  function ptMatte(P, req, cv) {
+    var g = cv.getContext('2d'), w = cv.width, h = cv.height, A = g.getImageData(0, 0, w, h);
+    if (!(P.draw(ctx, Object.assign({}, req, { bg: 0xffffff }), cv) >= 0)) return -1;
+    var B = g.getImageData(0, 0, w, h), a = A.data, b = B.data;
+    for (var i = 0; i < a.length; i += 4) {
+      var al = 255 - ((b[i] - a[i]) + (b[i + 1] - a[i + 1]) + (b[i + 2] - a[i + 2])) / 3;
+      if (al < 3) { a[i] = a[i + 1] = a[i + 2] = a[i + 3] = 0; continue; }
+      if (al > 255) al = 255;
+      var k = 255 / al; a[i] = Math.min(255, a[i] * k); a[i + 1] = Math.min(255, a[i + 1] * k); a[i + 2] = Math.min(255, a[i + 2] * k); a[i + 3] = al;
+    }
+    g.putImageData(A, 0, 0);
+    return 1;
   }
   function portraitFree() {
     pt.freed = true; pt.idleT = 0;

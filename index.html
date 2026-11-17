@@ -3223,6 +3223,222 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   #menu[data-page="look"] #lkNote{left:50%;top:calc(68px + var(--st));bottom:auto;max-width:calc(100% - 32px)}
   #menu[data-page="look"] .menu-foot{display:none}
 }
+/* =====================================================================
+   MENÚ «TU JUGADOR» (prototipo, solo con ?menu=jugador: js/menu-jugador.js pone #menu.mj y mueve los mismos botones)
+   El partido de demo, de fondo y sin velos. JUGAR es un parche cosido con el sello del reto; el resto son manchas de pintura con
+   goterones (Jugadores, Vestuario, ayuda y Carrera), pegatinas que rebotan y salpican. Tinta #15102a, crema #fff4dc, turquesa del
+   balón, oro, el color de TU equipación (--mj-kit) y uno de contraste (--mj-alt), los dos del JS. Bowlby One (JUGAR), Titan One
+   (manchas) y Rubik (texto y cifras tabulares).
+   ===================================================================== */
+#menu.mj{--mj-ink:#15102a;--mj-ink3:#2f2560;--mj-cream:#fff4dc;--mj-teal:#1bb5a5;--mj-teal-d:#0c7d75;--mj-gold:#ffcb3d;
+  --mj-kit:#ff5a2c;--mj-kit-d:#a33a26;--mj-kit-ink:#fff6e4;
+  --mj-pad:clamp(12px,3.4vh,44px);--mj-colw:clamp(320px,40vw,560px);--mj-gap:clamp(8px,1.7vh,16px);
+  --mj-play:clamp(56px,14vh,124px);--mj-tape:clamp(46px,9.4vh,82px);--mj-strip:clamp(44px,7.2vh,60px);--mj-stamp:clamp(60px,16vh,132px);
+  --mj-lip:clamp(5px,1vh,9px);
+  --mj-disp:"Bowlby One","Arial Black",Impact,system-ui,sans-serif;--mj-ui:"Rubik",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background:none;padding:0;display:block;font-family:var(--mj-ui)}
+#menu.mj .menu-col{position:absolute;inset:0;width:auto;display:block;zoom:1;gap:0;pointer-events:none}
+#menu.mj .menu-col[hidden]{display:none}
+#menu.mj .menu-col>*,#menu.mj .menu-col.pg-in,#menu.mj .menu-col.pg-back{animation:none}
+/* ---- columna: logotipo y botones, a la izquierda; el partido a la vista a la derecha ---- */
+#menu.mj .mj-side{position:absolute;left:calc(var(--mj-pad) * 1.3 + var(--sl));top:0;bottom:0;width:var(--mj-colw);display:flex;flex-direction:column;justify-content:center;gap:clamp(10px,3vh,34px);
+  padding:calc(var(--mj-pad) + var(--st)) 0 calc(var(--mj-pad) + 24px + var(--sbm));box-sizing:border-box;pointer-events:auto}
+#menu.mj .brand{position:relative;margin-left:-4px}
+#menu.mj .brand .kicker,#menu.mj .brand .tagline{display:none}
+#menu.mj .logo{font-size:clamp(20px,8.4vh,96px)}
+#menu.mj .logo .lg{filter:drop-shadow(.5vh .7vh 0 rgba(21,16,42,.6))}
+#app #menu.mj .mlist{display:flex;flex-direction:column;gap:var(--mj-gap)}
+#menu.mj .mlist>*{animation:mjIn .5s var(--ease) both}
+#menu.mj .mlist>:nth-child(2){animation-delay:.06s}#menu.mj .mlist>:nth-child(3){animation-delay:.12s}#menu.mj .mlist>:nth-child(4){animation-delay:.18s}
+@keyframes mjIn{from{opacity:0;transform:translateX(-36px)}to{opacity:1;transform:none}}
+/* reinicio de los .mi de siempre (sin cristal, sin degradado, sin barra lateral) */
+#menu.mj .mlist .mi{position:relative;display:flex;align-items:center;text-align:left;margin:0;padding:0;border:0;border-radius:0;height:auto;background:none;box-shadow:none;text-shadow:none;
+  font-family:var(--mj-ui);letter-spacing:0;text-transform:none;-webkit-backdrop-filter:none;backdrop-filter:none;overflow:visible;cursor:pointer;color:var(--mj-cream);opacity:1;
+  -webkit-tap-highlight-color:transparent;transition:transform .12s var(--ease),box-shadow .12s var(--ease),background .15s,color .15s,filter .12s;animation:none}
+#menu.mj .mlist .mi::before{display:none}
+#menu.mj .mlist .mi[hidden]{display:none}
+#menu.mj .mlist .mi:focus{outline:none}
+/* desactivado (común): sin labio, rayado y apagado */
+#menu.mj .mlist .mi:disabled{cursor:default;filter:grayscale(.85) brightness(.8);transform:none!important;box-shadow:inset 0 0 0 2.5px var(--mj-ink)!important;
+  background-image:repeating-linear-gradient(-45deg,rgba(21,16,42,.18) 0 6px,transparent 6px 12px)}
+
+/* ---- JUGAR: parche crema cosido, gajo del color de tu equipación y labio de tinta que se hunde ---- */
+#menu.mj .mj-go{position:relative;display:flex;align-items:center}
+#menu.mj #btnPlay{flex:1;min-width:0;height:var(--mj-play);padding:0 calc(var(--mj-stamp) * .66) 0 calc(var(--mj-play) * 1.12);background:var(--mj-cream);color:var(--mj-ink);border-radius:clamp(10px,1.8vh,16px);
+  box-shadow:inset 0 0 0 3px var(--mj-ink),inset 0 calc(var(--mj-play) * -.1) 0 rgba(170,130,60,.17),0 var(--mj-lip) 0 var(--mj-ink);overflow:hidden;
+  outline:2px dashed rgba(21,16,42,.28);outline-offset:calc(var(--mj-play) * -.09)}
+#menu.mj #btnPlay:focus{outline:2px dashed rgba(21,16,42,.28)}
+#menu.mj #btnPlay .mj-pp{position:absolute;left:0;top:0;height:100%;width:calc(var(--mj-play) * 1.05)}
+#menu.mj #btnPlay .mj-pp .f{fill:var(--mj-kit)}
+#menu.mj #btnPlay .mj-pp .s{fill:none;stroke:var(--mj-kit-ink);stroke-width:1.6;stroke-dasharray:4 4;opacity:.6;vector-effect:non-scaling-stroke}
+#menu.mj #btnPlay .mj-pp .e{fill:none;stroke:var(--mj-ink);stroke-width:3;vector-effect:non-scaling-stroke}
+#menu.mj #btnPlay .mj-tri{position:absolute;left:calc(var(--mj-play) * .19);top:50%;width:calc(var(--mj-play) * .42);height:calc(var(--mj-play) * .42);transform:translateY(-50%);transition:transform .15s var(--spring)}
+#menu.mj #btnPlay .mj-tri svg{width:100%;height:100%;display:block;fill:var(--mj-kit-ink);stroke:var(--mj-ink);stroke-width:2.2;stroke-linejoin:round;paint-order:stroke fill;overflow:visible}
+/* costuras de balón en relieve sobre el crema (a la derecha, cortadas por el borde) */
+#menu.mj #btnPlay .mj-emb{position:absolute;right:calc(var(--mj-play) * -.5);top:50%;width:calc(var(--mj-play) * 2.1);height:calc(var(--mj-play) * 2.1);transform:translateY(-50%) rotate(-18deg);
+  fill:none;stroke:rgba(150,110,50,.2);stroke-width:.55;pointer-events:none}
+#menu.mj #btnPlay .pl-tx{display:flex;flex-direction:column;justify-content:center;gap:clamp(1px,.5vh,5px);min-width:0;position:relative}
+#menu.mj #btnPlay .pl-tx>span:first-child{font:400 calc(var(--mj-play) * .44)/.92 var(--mj-disp);letter-spacing:.02em;text-transform:uppercase}
+#menu.mj #btnPlay #playMainSub{display:block;font:700 clamp(10px,1.85vh,15px)/1.15 var(--mj-ui);color:rgba(21,16,42,.66);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.01em;text-shadow:none}
+#menu.mj #btnPlay .go{display:none}
+#menu.mj #btnPlay:hover{background:#fffaf0}
+#menu.mj #btnPlay:hover .mj-tri{transform:translateY(-50%) translateX(3px)}
+#menu.mj #btnPlay.kf,#menu.mj #btnPlay:focus-visible{transform:translateY(-2px);background:#fffaf0;
+  box-shadow:inset 0 0 0 3px var(--mj-ink),inset 0 calc(var(--mj-play) * -.1) 0 rgba(170,130,60,.17),0 calc(var(--mj-lip) + 2px) 0 var(--mj-ink),0 0 0 4px var(--mj-gold),0 calc(var(--mj-lip) + 2px) 0 4px var(--mj-gold)}
+#menu.mj #btnPlay.kf .mj-tri,#menu.mj #btnPlay:focus-visible .mj-tri{animation:mjNudge 1.1s ease-in-out infinite}
+@keyframes mjNudge{50%{transform:translateY(-50%) translateX(4px)}}
+#menu.mj #btnPlay:active,#menu.mj #btnPlay.mj-press{transform:translateY(calc(var(--mj-lip) - 1px));box-shadow:inset 0 0 0 3px var(--mj-ink),inset 0 calc(var(--mj-play) * -.05) 0 rgba(170,130,60,.17),0 1px 0 var(--mj-ink)}
+
+/* ---- sello del Reto del día: pegado sobre la esquina de JUGAR ---- */
+#menu.mj .mj-stamp{position:absolute;right:calc(var(--mj-stamp) * -.2);top:50%;width:var(--mj-stamp);height:var(--mj-stamp);margin:calc(var(--mj-stamp) * -.5) 0 0;padding:0;border:0;border-radius:50%;background:none;cursor:pointer;
+  transform:rotate(-12deg);transition:transform .16s var(--spring),filter .12s;z-index:2;-webkit-tap-highlight-color:transparent;filter:drop-shadow(0 4px 0 var(--mj-ink))}
+#menu.mj .mj-stamp[hidden]{display:none}
+#menu.mj .mj-stamp:focus{outline:none}
+#menu.mj .mj-stamp>svg{width:100%;height:100%;display:block;overflow:visible}
+#menu.mj .mj-stamp .st0{fill:var(--mj-gold);stroke:var(--mj-ink);stroke-width:4}
+#menu.mj .mj-stamp .st1{fill:none;stroke:var(--mj-ink);stroke-width:1.4;stroke-dasharray:2.6 2.6;opacity:.5}
+#menu.mj .mj-stamp .st2{font:800 11px var(--mj-ui);fill:var(--mj-ink)}
+#menu.mj .mj-stamp .st3{fill:var(--mj-ink)}
+#menu.mj .mj-sc{position:absolute;left:25%;top:25%;width:50%;height:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--mj-gold);pointer-events:none}
+#menu.mj .mj-sc b{font:800 max(8px,calc(var(--mj-stamp) * .1))/1 var(--mj-ui);letter-spacing:.08em;text-transform:uppercase}
+#menu.mj .mj-sc .sc-ball{width:50%;height:50%;display:block}
+#menu.mj .mj-sc .sc-ball svg,#menu.mj .tk-ball svg{width:100%;height:100%;display:block}
+#menu.mj .mj-sc .b0,#menu.mj .tk-ball .b0{fill:var(--mj-cream)}#menu.mj .mj-sc .b1,#menu.mj .tk-ball .b1{fill:var(--mj-teal)}#menu.mj .mj-sc .b2,#menu.mj .tk-ball .b2{fill:var(--mj-teal-d)}
+#menu.mj .mj-sc .bs,#menu.mj .tk-ball .bs{fill:none;stroke:var(--mj-ink);stroke-width:1.1}#menu.mj .mj-sc .b3,#menu.mj .tk-ball .b3{fill:none;stroke:var(--mj-ink);stroke-width:1.4}
+#menu.mj .mj-sc .sc-med{width:44%;height:44%;border-radius:50%;box-shadow:0 0 0 2px var(--mj-ink),inset 0 -3px 0 rgba(0,0,0,.2);background:#d98a4a}
+#menu.mj .mj-sc .sc-med.t2{background:#d6e2ee}#menu.mj .mj-sc .sc-med.t3{background:#ffd23f}
+#menu.mj .mj-stamp.has-new::after{content:"";position:absolute;right:6%;top:6%;width:18%;height:18%;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--mj-ink)}
+#menu.mj .mj-stamp:hover{transform:rotate(-4deg) scale(1.05)}
+#menu.mj .mj-stamp.kf,#menu.mj .mj-stamp:focus-visible{transform:rotate(0) scale(1.1);filter:drop-shadow(0 4px 0 var(--mj-ink)) drop-shadow(3px 0 0 var(--mj-cream)) drop-shadow(-3px 0 0 var(--mj-cream)) drop-shadow(0 -3px 0 var(--mj-cream)) drop-shadow(0 3px 0 var(--mj-cream))}
+#menu.mj .mj-stamp:active,#menu.mj .mj-stamp.mj-press{transform:rotate(-14deg) scale(.92) translateY(3px);filter:drop-shadow(0 1px 0 var(--mj-ink))}
+
+/* ---- manchas de pintura (Jugadores, Vestuario, ayuda y Carrera): pegatinas con contorno de tinta gordo, sombra dura desplazada,
+   goterón y gotas sueltas; rótulo redondo y gordo (Titan One) un poco torcido; al enfocar, rebote de squash & stretch; al pulsar, se
+   aplasta y salpica (js: .mj-splash) ---- */
+#menu.mj{--mj-alt:#a6ea2c;--mj-pop:"Titan One","Bowlby One","Arial Black",system-ui,sans-serif}
+#menu.mj .mj-blob{position:absolute;left:-5px;right:-7px;top:-6px;bottom:-9px;width:calc(100% + 12px);height:calc(100% + 15px);overflow:visible;z-index:0;pointer-events:none;
+  filter:drop-shadow(3px 4px 0 var(--mj-ink));transition:filter .12s}
+#menu.mj .mj-blob .bl-sh,#menu.mj .mj-blob .bl-hi{display:none}
+#menu.mj .mj-blob .bl-f{fill:var(--bf,var(--bc));stroke:var(--mj-ink);stroke-width:3;stroke-linejoin:round}
+#menu.mj .mj-blob .bl-f>*{vector-effect:non-scaling-stroke}
+#menu.mj .mj-blob .bl-f circle{fill:var(--bd,var(--bf,var(--bc)))}
+#menu.mj .mj-sq>*:not(.mj-blob){position:relative;z-index:1}
+/* brillo de pegatina (arriba a la izquierda) */
+#menu.mj .mj-sq::before{content:"";display:block!important;position:absolute;left:12%;top:9%;width:18%;height:14%;border-radius:50%;background:rgba(255,255,255,.38);transform:rotate(-8deg);z-index:1;pointer-events:none;width:clamp(14px,8%,40px)}
+#menu.mj .mlist .mj-sq{background:none;box-shadow:none;transform-origin:50% 70%}
+@keyframes mjSquish{0%{transform:scale(1)}30%{transform:scale(1.1,.88) rotate(-2deg)}55%{transform:scale(.95,1.08) rotate(1deg)}78%{transform:scale(1.04,.97) rotate(-1deg)}100%{transform:scale(1.05) rotate(-1.5deg)}}
+@keyframes mjSplat{0%{transform:scale(1.05) rotate(-1.5deg)}40%{transform:scale(1.12,.82) rotate(-1deg) translateY(3px)}100%{transform:scale(1)}}
+#menu.mj .mlist .mj-sq.kf,#menu.mj .mlist .mj-sq:focus-visible{animation:mjSquish .42s var(--ease) both}
+#menu.mj .mlist .mj-sq.kf .mj-blob,#menu.mj .mlist .mj-sq:focus-visible .mj-blob{filter:drop-shadow(3px 0 0 var(--mj-gold)) drop-shadow(-3px 0 0 var(--mj-gold)) drop-shadow(0 -3px 0 var(--mj-gold)) drop-shadow(0 3px 0 var(--mj-gold)) drop-shadow(3px 5px 0 var(--mj-ink))}
+#menu.mj .mlist .mj-sq:hover:not(.kf){transform:rotate(-1deg) scale(1.02)}
+#menu.mj .mlist .mj-sq:active,#menu.mj .mlist .mj-sq.mj-press{animation:mjSplat .26s var(--ease) both}
+#menu.mj .mlist .mj-sq:active .mj-blob,#menu.mj .mlist .mj-sq.mj-press .mj-blob{filter:drop-shadow(1px 1px 0 var(--mj-ink))}
+/* salpicón al pulsar */
+#menu.mj .mj-splash{position:absolute;width:0;height:0;z-index:30;pointer-events:none}
+#menu.mj .mj-splash svg{position:absolute;left:-60px;top:-60px;width:120px;height:120px;overflow:visible}
+#menu.mj .mj-splash circle{fill:var(--c,var(--mj-kit));stroke:var(--mj-ink);stroke-width:2;transform-origin:0 0;animation:mjDrop .5s cubic-bezier(.2,.9,.3,1) both}
+@keyframes mjDrop{0%{transform:rotate(var(--a)) translateX(4px) scale(.4);opacity:1}60%{opacity:1}100%{transform:rotate(var(--a)) translateX(var(--d)) scale(.15);opacity:0}}
+
+/* Jugadores (mancha del color de tu equipación, con tu camiseta) y Vestuario (mancha de contraste, asoma tu jugador) */
+#menu.mj .mj-tape{display:flex;gap:clamp(12px,2vh,18px);padding-right:calc(var(--mj-stamp) * .1);margin-top:2px}
+#menu.mj #btnSquad,#menu.mj #btnLook{flex:1;min-width:0;height:var(--mj-tape);display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto;align-content:center;column-gap:clamp(6px,1.2vh,10px);row-gap:1px;
+  padding:0 clamp(10px,2vh,18px) 0 clamp(10px,1.8vh,16px)}
+#menu.mj #btnSquad{--bc:var(--mj-kit);color:var(--mj-kit-ink)}
+#menu.mj #btnLook{--bc:var(--mj-alt);color:var(--mj-ink)}
+#menu.mj #btnSquad>.mj-ic,#menu.mj #btnLook>.mj-ic{grid-row:1/3;align-self:center}
+#menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s),#menu.mj #btnLook>span:not(.mj-ic):not(.mi-s){align-self:end;font:400 clamp(14px,2.9vh,23px)/1 var(--mj-pop);letter-spacing:.01em;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transform:rotate(-3deg);transform-origin:0 100%;padding:2px 2px 1px}
+#menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s){text-shadow:2px 2px 0 var(--mj-ink)}
+#menu.mj #btnSquad .mi-s,#menu.mj #btnLook .mi-s{align-self:start;font:700 clamp(10px,1.6vh,13px)/1.15 var(--mj-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:0;text-shadow:none;opacity:.85;transform:rotate(-3deg);transform-origin:0 0;color:inherit}
+#menu.mj #btnSquad .mi-s .dn{font-style:normal}
+#menu.mj .mj-jyw{position:relative;width:calc(var(--mj-tape) * .78);height:calc(var(--mj-tape) * .74);margin:calc(var(--mj-tape) * -.12) 0 0 calc(var(--mj-tape) * -.12);transform:rotate(-10deg)}
+#menu.mj .mj-jy{width:100%;height:100%;display:block;overflow:visible;filter:drop-shadow(2px 3px 0 var(--mj-ink));transition:transform .2s var(--spring)}
+#menu.mj .mj-jy .j0{fill:var(--mj-cream);stroke:var(--mj-ink);stroke-width:3.6;stroke-linejoin:round}
+#menu.mj .mj-jy .j1{fill:none;stroke:var(--mj-kit);stroke-width:3}
+#menu.mj .mj-jy .j2{font:400 27px var(--mj-pop);fill:var(--mj-kit);stroke:var(--mj-ink);stroke-width:2.6;paint-order:stroke fill}
+#menu.mj .mj-head{position:relative;width:calc(var(--mj-tape) * .8);height:var(--mj-tape);align-self:stretch!important}
+#menu.mj .mj-head img{position:absolute;left:46%;bottom:calc(var(--mj-tape) * -.36);width:calc(var(--mj-tape) * 1.7);height:calc(var(--mj-tape) * 1.7);clip-path:inset(-10% -10% 21% -10%);transform:translateX(-50%) rotate(-6deg);transform-origin:50% 80%;
+  filter:drop-shadow(2px 0 0 var(--mj-ink)) drop-shadow(-2px 0 0 var(--mj-ink)) drop-shadow(0 -2px 0 var(--mj-ink)) drop-shadow(2px 3px 0 rgba(21,16,42,.6));transition:transform .2s var(--spring);pointer-events:none}
+#menu.mj .mj-head img[hidden]{display:none}
+#menu.mj #btnLook.kf .mj-head img,#menu.mj #btnLook:focus-visible .mj-head img,#menu.mj #btnLook:hover .mj-head img{transform:translateX(-50%) translateY(-5px) rotate(4deg) scale(1.06)}
+#menu.mj #btnSquad.kf .mj-jy,#menu.mj #btnSquad:focus-visible .mj-jy,#menu.mj #btnSquad:hover .mj-jy{transform:rotate(-8deg) scale(1.1)}
+#menu.mj #btnSquad.has-pts .mj-jyw::after,#menu.mj #btnLook.has-new .mj-head::after{content:"";position:absolute;right:-2px;top:0;width:12px;height:12px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--mj-ink);z-index:2}
+
+/* ayuda: tres gotas de tinta (contorno crema fino por dentro), cada una con su forma y un poco torcida; enfocada, se vuelve dorada */
+#menu.mj .mj-strip{display:flex;gap:clamp(10px,1.8vh,16px);margin-top:4px}
+#menu.mj #btnTut,#menu.mj #btnControls,#menu.mj #btnSettings{--bf:var(--mj-ink);--bd:var(--mj-kit);--bc:var(--mj-gold);flex:1 1 auto;justify-content:center;gap:clamp(5px,1vh,8px);height:var(--mj-strip);
+  padding:0 clamp(8px,1.6vh,14px);color:var(--mj-cream);font:400 clamp(11px,2.1vh,16px)/1 var(--mj-pop);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+#menu.mj #btnTut{transform:rotate(-2deg)}#menu.mj #btnControls{transform:rotate(1.5deg)}#menu.mj #btnSettings{transform:rotate(-1deg)}
+#menu.mj #btnControls{--bd:var(--mj-alt)}#menu.mj #btnSettings{--bd:var(--mj-teal)}
+#menu.mj #btnTut .mi-s,#menu.mj #btnControls .mi-s,#menu.mj #btnSettings .mi-s{display:none}
+#menu.mj .mj-strip .mj-sq::before{display:none!important}
+#menu.mj .mj-ti{flex:none;width:clamp(15px,2.7vh,22px);height:clamp(15px,2.7vh,22px)}
+#menu.mj .mj-ti svg{width:100%;height:100%;display:block;fill:var(--mj-gold);transition:transform .4s var(--ease)}
+#menu.mj #btnTut.kf,#menu.mj #btnControls.kf,#menu.mj #btnSettings.kf,#menu.mj #btnTut:focus-visible,#menu.mj #btnControls:focus-visible,#menu.mj #btnSettings:focus-visible{--bf:var(--mj-gold);color:var(--mj-ink)}
+#menu.mj .mj-strip .mj-sq.kf .mj-ti svg,#menu.mj .mj-strip .mj-sq:focus-visible .mj-ti svg{fill:var(--mj-ink)}
+#menu.mj #btnSettings:hover .mj-ti svg,#menu.mj #btnSettings.kf .mj-ti svg{transform:rotate(60deg)}
+
+/* Carrera: brochazo turquesa con goterón; escudos en pegatinas redondas crema */
+#menu.mj #btnCont{--bc:var(--mj-teal);height:auto;min-height:clamp(48px,10.5vh,92px);padding:0;color:var(--mj-ink);margin:0 calc(var(--mj-stamp) * .1) 4px 0;filter:none}
+#menu.mj #btnCont>.ct-pt,#menu.mj #btnCont>.ct-tx,#menu.mj #btnCont>.ct-cr,#menu.mj #btnCont>.go{display:none}
+#menu.mj #btnCont .mj-tk{flex:1;min-width:0;display:flex;align-items:center;min-height:inherit;background:none}
+#menu.mj #btnCont{width:auto;max-width:100%;box-sizing:border-box}
+#menu.mj .tk-stub{flex:none;display:flex;align-items:center;gap:2px;padding:0 4px 0 clamp(10px,2vh,18px);transform:rotate(-4deg)}
+#menu.mj .tk-cr{display:block;width:clamp(28px,5.6vh,48px);height:clamp(28px,5.6vh,48px);padding:3px;border-radius:50%;background:var(--mj-cream);box-shadow:0 0 0 2.5px var(--mj-ink),2px 3px 0 2.5px var(--mj-ink);box-sizing:border-box}
+#menu.mj .tk-cr svg{width:100%!important;height:100%!important;display:block}
+#menu.mj .tk-vs{font:400 clamp(9px,1.6vh,13px)/1 var(--mj-pop);font-style:normal;text-transform:uppercase;margin:0 2px}
+#menu.mj .tk-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px clamp(6px,1.4vh,12px)}
+#menu.mj .tk-k{font:800 clamp(9px,1.6vh,13px)/1.1 var(--mj-ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(21,16,42,.75)}
+#menu.mj .tk-t{font:400 clamp(15px,3.2vh,27px)/1.05 var(--mj-pop);text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:rotate(-1.5deg);transform-origin:0 50%}
+#menu.mj .tk-s{font:700 clamp(9px,1.6vh,13px)/1.15 var(--mj-ui);color:rgba(21,16,42,.8);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+#menu.mj .tk-go{flex:none;display:flex;align-items:center;padding-right:clamp(12px,2.4vh,22px)}
+#menu.mj .tk-go svg{width:clamp(16px,3vh,24px);height:clamp(16px,3vh,24px);fill:var(--mj-cream);stroke:var(--mj-ink);stroke-width:2.4;paint-order:stroke fill;overflow:visible}
+/* JUGAR: gotas del color de tu equipación en la esquina (mismo lenguaje que las manchas) */
+#menu.mj .mj-gdots{position:absolute;left:calc(var(--mj-play) * -.2);bottom:calc(var(--mj-play) * -.26);width:calc(var(--mj-play) * .48);height:calc(var(--mj-play) * .48);z-index:3;overflow:visible;pointer-events:none}
+#menu.mj .mj-gdots circle{fill:var(--mj-kit);stroke:var(--mj-ink);stroke-width:2.2}
+
+/* ---- esquinas: directo y pie ---- */
+#menu.mj .live{zoom:1;right:calc(var(--mj-pad) + var(--sr));top:calc(var(--mj-pad) * .8 + var(--st));padding:4px 10px 4px 9px;border:0;border-radius:3px;background:var(--mj-ink);color:var(--mj-cream);
+  box-shadow:0 0 0 2px var(--mj-cream),3px 3px 0 2px var(--mj-ink);font:800 clamp(9px,1.6vh,12px)/1.2 var(--mj-ui);letter-spacing:.22em;transform:rotate(2deg)}
+#menu.mj .fs-btn{zoom:1;top:calc(var(--mj-pad) * .8 + var(--st));right:calc(var(--mj-pad) + 110px + var(--sr))}
+#menu.mj .fs-btn span{display:none}
+.is-touch #menu.mj .fs-btn{height:44px;width:44px;padding:0;justify-content:center;top:calc(var(--mj-pad) * .5 + var(--st))}
+#menu.mj .menu-foot{zoom:1;left:calc(var(--mj-pad) * 1.3 + var(--sl));right:calc(var(--mj-pad) + var(--sr));bottom:calc(var(--mj-pad) * .55 + var(--sbm));font:600 12px var(--mj-ui);color:rgba(255,244,220,.75);text-shadow:0 1px 2px rgba(21,16,42,.9)}
+#menu.mj .menu-foot .ver{font-family:var(--mj-ui);font-variant-numeric:tabular-nums}
+#menu.mj .rec{font-family:var(--mj-ui)}
+#menu.mj .rec b{font-family:var(--mj-ui);font-variant-numeric:tabular-nums}
+
+/* ---- móvil apaisado con muy poco alto ---- */
+@media (max-height:430px) and (min-aspect-ratio:5/4){
+  #menu.mj{--mj-colw:clamp(320px,58vw,410px);--mj-gap:8px;--mj-stamp:clamp(58px,16vh,66px);--mj-play:clamp(54px,15vh,62px);--mj-tape:46px;--mj-strip:44px}
+  #menu.mj .mj-side{gap:10px;padding-top:calc(10px + var(--st));padding-bottom:calc(10px + var(--sbm))}
+  #menu.mj .logo{font-size:clamp(20px,7.4vh,28px)}
+  #menu.mj #btnSquad .mi-s,#menu.mj #btnLook .mi-s{display:none}
+  #menu.mj #btnSquad,#menu.mj #btnLook{padding:0 8px 0 10px;column-gap:5px}
+  #menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s),#menu.mj #btnLook>span:not(.mj-ic):not(.mi-s){grid-row:1/3;align-self:center;font-size:15px;transform-origin:0 50%}
+  #menu.mj .mj-head{width:calc(var(--mj-tape) * .74)}
+  #menu.mj #btnTut,#menu.mj #btnControls,#menu.mj #btnSettings{padding:0 8px;letter-spacing:.02em;font-size:11.5px}
+  #menu.mj .mj-strip,#menu.mj .mj-tape{gap:11px}
+  #menu.mj .menu-foot .navhint,#menu.mj .menu-foot .rec{display:none}
+}
+@media (max-height:370px) and (min-aspect-ratio:5/4){#menu.mj.has-cont-mj .brand{display:none}}
+@media (max-height:340px) and (min-aspect-ratio:5/4){
+  #menu.mj .mj-strip .mj-ti{display:none}
+}
+/* ---- vertical: logotipo arriba, el partido en medio y los botones abajo ---- */
+@media (max-aspect-ratio:5/4){
+  #menu.mj{--mj-pad:clamp(14px,4vw,28px);--mj-play:clamp(62px,10.5vh,92px);--mj-tape:clamp(52px,8vh,70px);--mj-strip:48px;--mj-stamp:clamp(64px,11vh,104px);--mj-gap:11px}
+  #menu.mj .mj-side{left:calc(var(--mj-pad) + var(--sl));right:calc(var(--mj-pad) + var(--sr));width:auto;justify-content:space-between;padding:calc(var(--mj-pad) * 1.2 + var(--st)) 0 calc(var(--mj-pad) + 22px + var(--sbm))}
+  #menu.mj .logo{font-size:clamp(22px,9vw,60px)}
+  #menu.mj #btnSquad .mi-s,#menu.mj #btnLook .mi-s{display:none}
+  #menu.mj #btnSquad,#menu.mj #btnLook{padding:0 8px 0 10px;column-gap:5px}
+  #menu.mj #btnSquad>span:not(.mj-ic):not(.mi-s),#menu.mj #btnLook>span:not(.mj-ic):not(.mi-s){grid-row:1/3;align-self:center;font-size:clamp(13px,4vw,17px);letter-spacing:0;transform-origin:0 50%}
+  #menu.mj .mj-jyw{width:calc(var(--mj-tape) * .7)}
+  #menu.mj .mj-head{width:calc(var(--mj-tape) * .7)}
+  #menu.mj #btnTut,#menu.mj #btnControls,#menu.mj #btnSettings{font-size:clamp(10px,3.1vw,13px);letter-spacing:.02em;padding:0 6px;flex-direction:column;gap:3px;height:60px}
+  #menu.mj .menu-foot{bottom:calc(8px + var(--sbm))}
+}
+@media (prefers-reduced-motion:reduce){#menu.mj .mlist>*{animation:none}#menu.mj #btnPlay.kf .mj-tri{animation:none}}
 </style>
 
 <div id="app">
@@ -3760,5 +3976,6 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 <script src="js/matchstats.js"></script>
 <script src="js/acta.js"></script>
 <script src="js/ui.js"></script>
+<script src="js/menu-jugador.js"></script>
 <script src="js/install.js"></script>
 <script src="js/main.js"></script>
