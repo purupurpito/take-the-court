@@ -655,10 +655,10 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
    medias queries; la trayectoria del balón lleva el guion animado que antes tenía el arco */
 .logo .lg{display:block;width:4.3em;height:auto;overflow:visible;filter:drop-shadow(8px 10px 16px rgba(0,0,0,.45))}
 /* «Beta» (17-nov-2026, Ferran: más gente probando): pegatina amarilla con tinta, como el rayo del logotipo, arriba a la derecha (hueco libre
-   encima del balón). En em del .logo: escala con él en todas las medidas y vuela con el telón (va dentro de .bt-logo también) */
-.logo .lg-beta{position:absolute;right:.02em;top:.2em;padding:.1em .42em .12em;font:900 max(.25em,11px)/1 var(--display);font-style:italic;letter-spacing:.08em;
+   encima del balón). Desde el 17-nov (Ferran) pisa la esquina de arriba de «THE», casi tapándola. En em del .logo: escala con él en todas las medidas y vuela con el telón (va dentro de .bt-logo también) */
+.logo .lg-beta{position:absolute;right:1.05em;top:.62em;z-index:1;padding:.1em .42em .12em;font:900 max(.25em,11px)/1 var(--display);font-style:italic;letter-spacing:.08em;
   text-transform:uppercase;color:#1d1530;background:#ffd23f;border:.09em solid #1d1530;border-radius:.14em;box-shadow:.13em .13em 0 #1d1530;transform:rotate(-7deg)}
-@media (max-height:420px),(max-width:620px){.logo .lg-beta{right:-2.4em;top:.5em}}   /* logotipo pequeño: el mínimo de 11 px la haría pisar «THE» */
+@media (max-height:420px),(max-width:620px){.logo .lg-beta{right:-.85em;top:1.05em}}   /* logotipo pequeño: el mínimo de 11 px la haría pisar «THE» */
 .lg .trail{animation:dash 2.6s linear infinite}
 @keyframes dash{to{stroke-dashoffset:-60}}
 .tagline{margin:14px 0 0;color:var(--fg2);font-size:clamp(15px,1.5vw,18px);line-height:1.45;max-width:30em}
