@@ -20,11 +20,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.8';
+  VB.VERSION = '1.6.0';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.6.0', d: '2026-11-17', t: 'Estadística del partido',
+      items: [
+        'Al acabar un partido, pulsa «Estadística del partido» y mira los números de los dos equipos.',
+        'Side-out, break point, quién iba por delante, mapas de saque y ataque y dónde se falla.',
+        'Tabla por jugador con saque, recepción, ataque, bloqueo y defensa, de todo o set a set.'
+      ]
+    },
     {
       v: '1.5.8', d: '2026-11-17', t: 'Pruebas jugadas',
       items: [
