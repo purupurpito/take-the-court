@@ -4481,6 +4481,354 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root:not(#_):not(#_):not(#_) #menu #lkList{flex:0 1 auto;max-height:30vh}
 }
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
+   SPLAT · PANELES (#panel.sp-pn: Ajustes, Controles, Cómo se juega, Jugadores, Acerca de y Primer partido; y el aviso #rotate).
+   ui.js openPanel pone .sp-pn y data-pn="<panel>" (Estadística y Cambios siguen con su estilo). Sin velo ni desenfoque: la hoja es
+   una columna a la izquierda y el partido se ve a la derecha; arriba Volver (.sp-back) y el título (.sp-h), debajo las pestañas en
+   trazo de pincel (.sp-tabs) y el contenido en UNA hoja de tinta (.sp-panel.sp-scroll) que se desplaza por dentro (Volver y las
+   pestañas nunca se van). Filas de ajustes = tiras de tinta con el rótulo en Titan One y la ayuda en Rubik; elegida = aro dorado.
+   Componente nuevo reutilizable: .sp-pill (pastilla de pintura SOLO CSS, para botones cuyo texto cambia el código con textContent,
+   p. ej. «Restablecer» → «Pulsa otra vez»: la mancha SVG de .sp-btn se perdería). Colores con las mismas clases (.sp-danger…).
+   Prefijo «P» = :root:not(#_):not(#_):not(#_) #panel.sp-pn (4 ids: gana a todas las reglas viejas de los paneles sin tocarlas).
+   ===================================================================== */
+/* ---- .sp-pill: pastilla de pintura solo CSS (contorno de tinta, sombra dura, rótulo Titan One) ---- */
+:where(.sp-pill){--sp-c:var(--sp-ink2);--sp-tc:var(--sp-cream);--sp-cf:var(--sp-gold);--sp-tcf:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-pill{position:relative;display:inline-flex;align-items:center;justify-content:center;gap:6px;box-sizing:border-box;width:auto;min-width:44px;min-height:var(--sp-h,40px);height:auto;margin:0;
+  padding:4px 16px;border:0;border-radius:22px 30px 26px 18px/20px 18px 28px 24px;background:var(--sp-c);color:var(--sp-tc);box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);
+  font:400 var(--sp-fs,clamp(11px,1.9vh,14px))/1.1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;text-shadow:none;white-space:normal;text-align:center;outline:none;filter:none;
+  transform:rotate(var(--sp-tilt,-1deg));transition:transform .14s var(--ease),background .12s,color .12s;cursor:pointer;animation:none;-webkit-tap-highlight-color:transparent}
+:root:not(#_):not(#_):not(#_) .sp-pill::before,:root:not(#_):not(#_):not(#_) .sp-pill::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) .sp-pill[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) .sp-pill:hover{transform:rotate(calc(var(--sp-tilt,-1deg) - 1deg)) scale(1.03)}
+:root:not(#_):not(#_):not(#_) .sp-pill:is(.kf,:focus-visible){background:var(--sp-cf);color:var(--sp-tcf);outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-cream),3px 4px 0 5px var(--sp-ink);animation:spSquish .42s var(--ease) both}
+:root:not(#_):not(#_):not(#_) .sp-pill:active{transform:rotate(var(--sp-tilt,-1deg)) scale(.95) translateY(2px);box-shadow:0 0 0 2.5px var(--sp-ink),1px 1px 0 2.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-pill.arm{--sp-c:var(--sp-danger);--sp-cf:var(--sp-danger);--sp-tc:#fff6e4;--sp-tcf:#fff6e4}
+.is-touch .sp-pill{--sp-h:44px}
+.rm .sp-pill{animation:none!important}
+@media (prefers-reduced-motion:reduce){.sp-pill{animation:none!important}}
+
+/* ---- capa y columna: sin velo, la hoja a la izquierda; el partido a la vista ---- */
+#panel{--pn-pad:clamp(10px,2.8vh,40px);--pn-w:clamp(340px,62vw,1120px);--pn-gap:clamp(6px,1.3vh,14px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn{display:flex;align-items:center;justify-content:flex-start;background:none;-webkit-backdrop-filter:none;backdrop-filter:none;
+  padding:calc(var(--pn-pad) + var(--st)) calc(var(--pn-pad) + var(--sr)) calc(var(--pn-pad) + var(--sbm)) calc(var(--pn-pad) * 1.3 + var(--sl))}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn>.sheet{display:flex;flex-direction:column;gap:var(--pn-gap);width:var(--pn-w);max-width:100%;max-height:100%;height:auto;margin:0;padding:0;overflow:visible;border:0;border-radius:0;
+  background:none;box-shadow:none;scrollbar-width:auto}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn>.sheet::before,:root:not(#_):not(#_):not(#_) #panel.sp-pn>.sheet::after,:root:not(#_):not(#_):not(#_) #panel.sp-pn>.sheet.has-more::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn>.sheet>[id^="pn"]:not([hidden]){display:flex;flex-direction:column;gap:var(--pn-gap);flex:0 1 auto;min-height:0;margin:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"]>.sheet{width:clamp(300px,42vw,620px)}
+/* cabecera: Volver (mancha de tinta) y el título torcido */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head{flex:none;display:flex;flex-direction:row;align-items:center;justify-content:flex-start;gap:clamp(10px,2vh,20px);margin:0;padding:2px 0 0;min-width:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-tt{min-width:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-h{--sp-hs:clamp(24px,6.4vh,58px);margin:0;overflow:visible}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-k:empty,:root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-k[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-close{flex:none;min-width:44px;min-height:44px}
+
+/* ---- pestañas en trazo de pincel (.sp-tabs) con Q / E como teclas crema ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs{flex:none;margin:0;gap:6px;min-width:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-row{padding:6px 8px;gap:clamp(3px,.6vh,8px);background:none;box-shadow:none;border-radius:0;overflow-x:auto;scrollbar-width:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab{flex:1 0 auto;min-width:44px;--sp-tbh:clamp(40px,6.6vh,52px);--sp-tbs:clamp(12px,1.95vh,17px);padding:0 clamp(8px,1vw,16px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab svg{width:1.15em;height:1.15em;fill:currentColor;flex:none}
+/* Ajustes (7 pestañas), con alto: etiquetas sin iconos (caben enteras a 1280×720); si no caben, modo compacto (ui.js fitTabs) */
+@media (min-height:561px){:root:not(#_):not(#_):not(#_) #panel.sp-pn #setTabs:not(.tabs-ic) .tab svg{display:none}}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab .tb-b{margin-left:2px;padding:2px 6px;border-radius:5px 7px 5px 6px;background:var(--sp-teal);color:var(--sp-ink);box-shadow:0 0 0 1.5px var(--sp-ink);font:400 .72em/1.1 var(--sp-pop);letter-spacing:.04em;text-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab.on .tb-b{background:var(--sp-ink);color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-k{flex:none;min-width:30px;height:30px;padding:0 7px;border:0;border-radius:7px 9px 7px 8px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink);
+  font:800 13px/1 var(--sp-ui);letter-spacing:.02em;text-shadow:none;transform:rotate(-3deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-k.tb-r{transform:rotate(3deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-k:empty,:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.tb-touch .tb-k{display:none}
+:root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .sp-tabs .tab{--sp-tbh:44px}
+
+/* ---- la hoja de contenido: tinta translúcida, desplazable por dentro; si queda más abajo (.sp-more, ui.js spMore) se desvanece el borde ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll{--sp-pdy:clamp(8px,1.6vh,16px);--sp-g:0px;flex:0 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;margin:0 6px 8px 0;padding:var(--sp-pdy) clamp(10px,1.6vw,20px);
+  background:rgba(21,16,42,.94);
+  scrollbar-width:thin;scrollbar-color:var(--sp-gold) rgba(255,244,220,.08);-webkit-overflow-scrolling:touch}
+/* «queda más»: franja pegada abajo (sticky) que funde con la tinta y una flecha dorada; --sp-g = separación del contenedor */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll::after{content:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll.sp-more::after{content:"";display:block;position:sticky;bottom:calc(var(--sp-pdy) * -1);z-index:4;flex:none;grid-column:1/-1;height:34px;margin:calc(-34px - var(--sp-g)) calc(var(--sp-pdy) * -1) calc(var(--sp-pdy) * -1);pointer-events:none;
+  background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 8.5l7 7 7-7' fill='none' stroke='%2315102a' stroke-width='6' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M5 8.5l7 7 7-7' fill='none' stroke='%23ffcb3d' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 50% 85%/22px 22px no-repeat,
+    linear-gradient(rgba(21,16,42,0),rgba(21,16,42,.97) 70%)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-sheet,:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sheet{--sp-g:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn #abBody{--sp-g:10px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{--sp-g:clamp(12px,2.2vw,26px);--sp-pdy:clamp(10px,2vh,20px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll::-webkit-scrollbar{width:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll::-webkit-scrollbar-thumb{background:var(--sp-gold);border-radius:6px;box-shadow:inset 0 0 0 2px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll::-webkit-scrollbar-track{background:rgba(255,244,220,.06);border-radius:6px}
+/* pistas de teclado bajo la hoja */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-foot{flex:none;display:flex;flex-wrap:wrap;gap:4px 14px;margin:0;padding:0 4px}
+:root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .opt-foot{display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-foot .sep,:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-foot .kh+.kh::before{display:none}
+/* teclas: Barlow (las flechas ← → de Rubik salen como un guion a este tamaño) */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn :is(.key,kbd){font-family:var(--ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-foot .key{font-size:13px;font-weight:700}
+
+/* ---- AJUSTES: filas de tinta (rótulo Titan One + ayuda Rubik | control) ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opts{display:flex;flex-direction:column;gap:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-g{display:flex;flex-direction:column;gap:clamp(3px,.6vh,6px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt{--sp-tilt:-.25deg;position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:6px 14px;width:100%;min-height:clamp(46px,7.6vh,62px);height:auto;margin:0;
+  padding:5px 10px 5px 14px;border:0;border-radius:10px 14px 11px 15px/12px 10px 14px 11px;background:rgba(255,244,220,.05);box-shadow:none;outline:none;filter:none;transform:none;
+  color:var(--sp-cream);text-align:left;text-shadow:none;font:400 clamp(13px,2.1vh,18px)/1.1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;cursor:pointer;animation:none;transition:background .12s}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt::before,:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child{min-width:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt small{display:block;margin-top:3px;font:600 clamp(11px,1.65vh,13.5px)/1.25 var(--sp-ui);letter-spacing:0;text-transform:none;color:rgba(255,244,220,.72);text-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt:hover{background:rgba(255,244,220,.09)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt:is(.kf,:focus-visible){background:var(--sp-ink2);color:var(--sp-gold);outline:none;box-shadow:inset 0 0 0 2.5px var(--sp-gold),3px 3px 0 var(--sp-ink);animation:spPop .3s var(--ease) both}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt:is(.kf,:focus-visible) small{color:rgba(255,244,220,.9)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt.info{cursor:default;min-height:44px;background:none;box-shadow:inset 0 -2px 0 rgba(255,244,220,.08)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt.info .iv{font:700 clamp(12px,1.8vh,15px)/1.2 var(--sp-ui);color:var(--sp-gold);letter-spacing:0;text-transform:none}
+/* segmentado en trazo de pincel (sp-seg del sistema) y muestras de la equipación */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg{flex-wrap:wrap;justify-content:flex-end;gap:3px;background:none;box-shadow:none;padding:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg>span{--sp-tbh:clamp(32px,5vh,40px);--sp-tbs:clamp(11px,1.75vh,14.5px);padding:0 clamp(8px,1.2vw,12px);white-space:nowrap}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt:is(.kf,:focus-visible) .seg.sp-seg>span:not(.on){color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt:is(.kf,:focus-visible) .seg.sp-seg>span:not(.on)::before{opacity:.95;background:#0d0a1d}
+:root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .seg.sp-seg>span::after{content:"";display:block;position:absolute;inset:-6px -1px;background:none;mask:none;-webkit-mask:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px;padding:0;background:none;box-shadow:none;border-radius:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit>span{position:relative;display:flex;align-items:center;justify-content:center;width:34px;height:34px;padding:0;border-radius:50%;background:none;box-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit .sw{width:22px;height:22px;border-radius:50% 46% 52% 48%;box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 1px rgba(255,255,255,.35);transition:transform .15s var(--spring)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit>span.on{background:none;box-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit>span.on .sw{transform:scale(1.25) rotate(-8deg);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-gold),2px 3px 0 5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .seg.kit>span{width:40px;height:40px}
+:root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .seg.kit>span::after{content:"";position:absolute;inset:-2px}
+/* deslizadores y silencio */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .slider.sp-slider{display:flex;align-items:center;gap:12px;font:inherit;color:inherit}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .slider.sp-slider .trk{width:clamp(96px,15vw,200px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .slider.sp-slider .v{min-width:3.1em;text-align:right;color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .snd{display:flex;align-items:center;gap:12px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute{position:relative;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:50%;background:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);transform:rotate(-6deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute svg{width:20px;height:20px;stroke:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute .sp{fill:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute .x{stroke:var(--sp-danger);stroke-width:3}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute::after{content:"";position:absolute;inset:-4px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-snd.muted .snd .mute{background:var(--sp-danger)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-snd.muted .snd .mute .sp{fill:#fff6e4}:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-snd.muted .snd .mute .x{stroke:#fff6e4}
+/* fila que abre otro panel: flecha en pegatina crema */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-go .go-ic{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);margin-right:4px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-go .go-ic svg{width:18px;height:18px;stroke:var(--sp-ink);stroke-width:3.2}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-go:is(.kf,:focus-visible) .go-ic{background:var(--sp-gold)}
+/* «Restablecer este apartado» y «Borrar Carrera…»: pastillas */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-reset.sp-pill{align-self:flex-start;margin:8px 0 4px 6px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-wipe-n{margin:4px 6px 0;font:600 13px var(--sp-ui);color:var(--sp-gold)}
+
+/* ---- CONTROLES: teclas crema reasignables ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-sheet{display:flex;flex-direction:column;gap:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-pane{display:flex;flex-direction:column;gap:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 18px;margin:0;padding:0;border:0;border-radius:0;background:none;box-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl>div{display:flex;justify-content:space-between;align-items:center;gap:10px;min-height:46px;padding:3px 6px 3px 10px;border:0;border-radius:10px 14px 11px 15px/12px 10px 14px 11px;background:rgba(255,244,220,.05);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl>div+div{border-top:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl>div.dim{opacity:.55}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl .kl,:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dt,:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dd{min-width:0;font:400 clamp(12px,1.9vh,16px)/1.15 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dd{font:600 clamp(12px,1.75vh,14.5px)/1.3 var(--sp-ui);text-transform:none;letter-spacing:0;color:rgba(255,244,220,.88)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl .kl small,:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dd small,:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dt small{display:block;margin-top:2px;font:600 clamp(10.5px,1.55vh,12.5px)/1.25 var(--sp-ui);letter-spacing:0;text-transform:none;color:rgba(255,244,220,.68)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dd small{display:inline}
+/* filas de solo lectura (Táctil, o sin reasignar): una columna, los mandos a la izquierda y lo que hacen a la derecha */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn dl.ctl:not(.kb){grid-template-columns:minmax(0,1fr)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn dl.ctl:not(.kb)>div{display:grid;grid-template-columns:minmax(120px,36%) minmax(0,1fr);justify-content:stretch;gap:12px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn dl.ctl:not(.kb) dt{display:flex;flex-wrap:wrap;align-items:center;gap:2px;font:600 12px/1.2 var(--sp-ui);text-transform:none;letter-spacing:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn dl.ctl:not(.kb) dd{text-align:left}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dt small{display:inline;margin:0 3px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl .ks{display:flex;gap:8px;flex:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl :is(.key,kbd){display:inline-flex;align-items:center;justify-content:center;min-width:1.9em;height:1.9em;padding:0 .45em;border:0;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);font:800 12.5px/1 var(--sp-ui);letter-spacing:.02em;text-shadow:none;text-transform:none;margin:2px 3px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot{position:relative;display:inline-flex;align-items:center;justify-content:center;min-width:58px;height:40px;margin:0;padding:0 11px;border:0;border-radius:8px 11px 9px 10px/10px 8px 11px 9px;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);outline:none;filter:none;text-shadow:none;
+  font:400 clamp(12.5px,1.9vh,15px)/1 var(--sp-pop);letter-spacing:.02em;text-transform:none;white-space:nowrap;transform:rotate(-1.5deg);transition:transform .12s var(--spring),background .12s;animation:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot:nth-child(2){transform:rotate(1.2deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot::before,:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot:hover:not(:disabled):not(.cap){background:var(--sp-cream2);transform:rotate(-1deg) scale(1.05)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot.empty{background:transparent;color:rgba(255,244,220,.55);box-shadow:inset 0 0 0 2px rgba(255,244,220,.32)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot:is(.kf,:focus-visible){background:var(--sp-gold);color:var(--sp-ink);outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-cream),2px 3px 0 5px var(--sp-ink);animation:spPop .3s var(--ease) both}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot.empty:is(.kf,:focus-visible){color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot.cap{background:var(--sp-gold);color:var(--sp-ink);font:700 13px/1 var(--sp-ui);animation:spKcap 1s ease-in-out infinite}
+@keyframes spKcap{0%,100%{box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink),0 0 0 2.5px rgba(255,203,61,.6)}50%{box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink),0 0 0 9px rgba(255,203,61,0)}}
+.rm #panel .kslot.cap{animation:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot.fixed,:root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot:disabled{opacity:.5;cursor:default}
+:root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .kslot{height:44px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-fixed{margin:0;padding:8px 12px;border-radius:9px 12px 10px 13px;background:rgba(255,244,220,.06);color:rgba(255,244,220,.78);font:500 clamp(11.5px,1.7vh,13.5px)/1.4 var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-fixed b,:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-note b{color:var(--sp-gold);font-weight:700}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-msg{margin:0;font:700 13.5px var(--sp-ui);color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-msg:not(:empty){position:sticky;bottom:-2px;z-index:3;margin:0;padding:8px 12px;border-radius:9px;background:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-gold),0 -8px 16px rgba(21,16,42,.7)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-msg.bad{color:#ffb0a4;box-shadow:0 0 0 2px var(--sp-danger),0 -8px 16px rgba(21,16,42,.7)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-note{margin:0;font:500 clamp(11.5px,1.7vh,13.5px)/1.45 var(--sp-ui);color:rgba(255,244,220,.72)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-pane .opt-reset.sp-pill{margin:2px 0 4px 6px}
+
+/* ---- JUGADORES: atletas en pegatina (elegido dorado), resumen y atributos con «+» de pintura ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top{flex:none;display:flex;align-items:center;gap:clamp(10px,1.6vw,18px);margin:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top .sq-pick{flex:1 1 auto;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:clamp(10px,1.6vw,18px);min-width:0;margin:0;padding:4px 6px 8px 4px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{width:100%;min-height:clamp(48px,8vh,64px);justify-content:flex-start;gap:10px;padding:2px 14px 2px 10px;text-transform:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-num{flex:none;display:grid;place-items:center;width:clamp(32px,5.4vh,42px);height:clamp(32px,5.4vh,42px);border-radius:50%;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:400 clamp(16px,2.8vh,22px)/1 var(--sp-pop);text-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{min-width:0;font:400 clamp(14px,2.4vh,20px)/1.05 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;color:inherit;transform:rotate(-2deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn small{display:block;margin-top:3px;font:600 clamp(10.5px,1.6vh,13px)/1.2 var(--sp-ui);letter-spacing:0;text-transform:none;color:inherit;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pp{margin-left:auto;padding:3px 7px;border-radius:6px 8px 6px 7px;background:var(--sp-kit);color:var(--sp-kit-ink);box-shadow:0 0 0 2px var(--sp-ink);font:400 13px/1 var(--sp-pop);transform:rotate(4deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-lk{flex:none;display:flex;padding:4px 6px 8px 0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook{min-height:clamp(48px,8vh,64px);padding:2px 16px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook svg.sp-ic{width:1.3em;height:1.3em;fill:currentColor}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sheet{display:flex;flex-direction:column;gap:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq{display:flex;flex-direction:column;gap:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:6px 12px;border-radius:12px 16px 13px 17px/14px 12px 16px 13px;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);transform:rotate(-.6deg);margin:2px 4px 6px 2px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-ovr{font:400 clamp(24px,4.4vh,36px)/1 var(--sp-pop);color:var(--sp-ink);text-shadow:none;text-align:center}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-ovr small{font:800 10px/1.2 var(--sp-ui);letter-spacing:.16em;color:rgba(21,16,42,.65)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-xp{color:rgba(21,16,42,.75);font:700 12.5px var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-xl{font:400 clamp(12px,1.9vh,15px)/1 var(--sp-pop);color:var(--sp-ink);letter-spacing:.03em;text-transform:uppercase}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-xp .trk{height:11px;border-radius:7px;background:rgba(21,16,42,.18);box-shadow:0 0 0 2px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-xp .trk i{background:var(--sp-teal)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-pts{color:rgba(21,16,42,.7);font:800 10.5px/1 var(--sp-ui);letter-spacing:.14em}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-pts b{font:400 clamp(20px,3.4vh,28px)/1 var(--sp-pop);color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sum .sq-pts.has b{color:var(--sp-kit-d)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs{display:flex;flex-direction:column;gap:clamp(3px,.6vh,6px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r{grid-template-columns:minmax(0,1.5fr) minmax(60px,1fr) 2.2em 52px;gap:10px;min-height:clamp(46px,7.6vh,60px);padding:4px 8px 4px 14px;border-radius:10px 14px 11px 15px/12px 10px 14px 11px;background:rgba(255,244,220,.05);box-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child{font:400 clamp(13px,2.1vh,17px)/1.1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;color:var(--sp-cream);white-space:normal}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child small{margin-top:3px;font:600 clamp(10.5px,1.6vh,13px)/1.25 var(--sp-ui);letter-spacing:0;text-transform:none;color:rgba(255,244,220,.7);white-space:normal;overflow:visible}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r .bar{height:12px;border-radius:7px;background:rgba(255,244,220,.1);box-shadow:0 0 0 2px var(--sp-ink),inset 0 0 0 1px rgba(255,244,220,.2)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r .bar i{background:var(--sp-kit);border-radius:7px 3px 3px 7px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r b{font:400 clamp(15px,2.4vh,19px)/1 var(--sp-pop);color:var(--sp-gold);text-shadow:1.5px 1.5px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button{position:relative;display:flex;align-items:center;justify-content:center;width:100%;height:40px;margin:0;padding:0;border:0;border-radius:50% 46% 52% 44%/48% 52% 46% 50%;background:var(--sp-kit);color:var(--sp-kit-ink);
+  box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);outline:none;filter:none;font:400 15px/1 var(--sp-pop);letter-spacing:0;text-shadow:var(--sp-kit-ts);transform:rotate(-4deg);transition:transform .14s var(--spring);animation:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button::before,:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button::after{content:none;display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button:hover:not(:disabled){transform:rotate(-6deg) scale(1.08)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-gold),2px 3px 0 5px var(--sp-ink);animation:spPop .3s var(--ease) both}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button:disabled{opacity:1;background:rgba(255,244,220,.08);color:rgba(255,244,220,.45);text-shadow:none;box-shadow:inset 0 0 0 2px rgba(255,244,220,.2);transform:none;filter:none}
+:root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .sq-r button{height:44px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-note{margin:0;font:500 clamp(11.5px,1.65vh,13px)/1.4 var(--sp-ui);color:rgba(255,244,220,.68)}
+/* insignias: pegatinas con medalla (bronce, plata, oro); la equipada, con aro dorado y su chapa */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-h{margin:4px 0 4px;font:400 clamp(12px,1.9vh,15px) var(--sp-pop);letter-spacing:.04em;color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-h span{font:600 12px var(--sp-ui);color:rgba(255,244,220,.7)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-grid{gap:10px;padding:2px 4px 6px 2px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t{min-height:56px;border:0;border-radius:11px 15px 12px 16px/13px 11px 15px 12px;background:rgba(255,244,220,.06);box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink);color:var(--sp-cream);text-shadow:none;outline:none;filter:none;animation:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t:not(.l0){background:rgba(255,244,220,.1)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-ic{background:var(--sp-ink);box-shadow:0 0 0 2.5px var(--bt),0 0 0 4.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-tx b{font:400 clamp(12px,1.8vh,14.5px)/1.05 var(--sp-pop);letter-spacing:.02em}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-tx small{font:600 11.5px/1.2 var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-pb{background:rgba(255,244,220,.12);box-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t.eq{background:rgba(255,203,61,.16);box-shadow:0 0 0 2px var(--sp-ink),0 0 0 4.5px var(--sp-gold),3px 4px 0 4.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-on{border-radius:5px 7px 5px 6px;background:var(--sp-gold);color:var(--sp-ink);font:400 10.5px/1.4 var(--sp-pop);box-shadow:0 0 0 1.5px var(--sp-ink);transform:rotate(4deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2px var(--sp-ink),0 0 0 4.5px var(--sp-cream),3px 4px 0 4.5px var(--sp-ink);animation:spPop .3s var(--ease) both}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-info{margin:4px 2px 0;font:500 clamp(11.5px,1.65vh,13px)/1.4 var(--sp-ui);color:rgba(255,244,220,.82)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .bd-info b{color:var(--sp-gold)}
+
+/* ---- ACERCA DE: la versión de hoy en papel crema; las anteriores y los créditos en tiras de tinta ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab{display:flex;flex-direction:column;gap:10px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k{align-self:flex-start;margin:2px 0 0 4px;padding:3px 9px;border-radius:7px 11px 8px 12px/9px 8px 11px 7px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);
+  font:400 clamp(10.5px,1.6vh,12.5px)/1.2 var(--sp-pop);letter-spacing:.04em;transform:rotate(-2deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k .sep{color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card{padding:10px 14px;border:0;border-radius:11px 15px 12px 16px/13px 11px 15px 12px;background:rgba(255,244,220,.06);box-shadow:none;color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card h3{margin:0 0 6px;font:400 clamp(14px,2.3vh,19px)/1.15 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;color:var(--sp-gold);text-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card h3 small{margin-left:8px;font:600 12.5px var(--sp-ui);color:rgba(255,244,220,.7)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card :is(ul,p){color:rgba(255,244,220,.9);font:500 clamp(12.5px,1.85vh,15px)/1.45 var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card li+li{margin-top:3px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card li::marker{color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k+.card{margin:2px 4px 6px 2px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);transform:rotate(-.5deg)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k+.card h3{color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k+.card h3 small{color:rgba(21,16,42,.65)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k+.card h3 small .sep{color:var(--sp-kit-d)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k+.card :is(ul,p){color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k+.card li::marker{color:var(--sp-kit)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-tg.sp-pill{align-self:flex-start;margin:4px 0 4px 4px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-lics{gap:10px;margin-top:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .lic{margin:6px 0 2px;padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.25);color:rgba(255,244,220,.75)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-note{color:rgba(255,244,220,.7);font:500 12.5px/1.4 var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-build{color:rgba(255,244,220,.5)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .ab-foot{flex:none;display:flex;justify-content:flex-end;margin:0;padding:0 10px 6px 0}
+
+/* ---- CÓMO SE JUEGA: el dibujo en una pegatina de papel, el texto en la hoja; Anterior, puntos de pintura y el parche ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:clamp(12px,2.2vw,26px);align-items:center;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;
+  margin:0 6px 4px 0;padding:var(--sp-pdy) clamp(12px,1.8vw,22px);scrollbar-width:thin;scrollbar-color:var(--sp-gold) rgba(255,244,220,.08);flex:0 1 auto;min-height:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-fig{border:0;border-radius:10px 14px 11px 15px/12px 10px 14px 11px;background:#fff4dc;box-shadow:0 0 0 5px var(--sp-cream),0 0 0 8px var(--sp-ink),6px 8px 0 8px var(--sp-ink);transform:rotate(-1.5deg);margin:10px 12px 14px 10px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-step{font:800 clamp(10px,1.7vh,13px)/1.1 var(--sp-ui);letter-spacing:.14em;color:var(--sp-gold);text-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-title{margin:4px 0 8px;font:400 clamp(20px,4.4vh,40px)/1 var(--sp-pop);letter-spacing:.01em;text-transform:uppercase;color:var(--sp-cream);transform:rotate(-2deg);transform-origin:0 60%;
+  text-shadow:2.5px 0 0 var(--sp-ink),-2.5px 0 0 var(--sp-ink),0 2.5px 0 var(--sp-ink),0 -2.5px 0 var(--sp-ink),3px 4px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-text{font:500 clamp(12.5px,2.05vh,16px)/1.5 var(--sp-ui);color:rgba(255,244,220,.92)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-text b{color:var(--sp-gold);font-weight:700}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-text .key,:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-rule .key,:root:not(#_):not(#_):not(#_) #panel.sp-pn .faults .key{background:var(--sp-cream);color:var(--sp-ink);border-radius:5px 7px 5px 6px;box-shadow:0 0 0 1.5px var(--sp-ink),1px 2px 0 1.5px var(--sp-ink);font-family:var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-rule{margin-top:10px;padding:8px 12px;border:0;border-radius:9px 12px 10px 13px;background:rgba(255,203,61,.13);box-shadow:none;outline:2px dashed rgba(255,203,61,.55);outline-offset:-5px;color:#fff1c4;
+  font:500 clamp(11.5px,1.75vh,14px)/1.45 var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-rule b{color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .faults li{border:0;border-radius:9px 12px 10px 13px;background:rgba(255,244,220,.07);color:rgba(255,244,220,.85);font-family:var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .faults li b{font:400 clamp(12px,1.9vh,15px)/1.1 var(--sp-pop);color:var(--sp-gold);letter-spacing:.03em}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav{position:static;flex:none;display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0;padding:0 6px 6px 0;background:none;border-radius:0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutNext{--sp-ph:clamp(48px,9vh,76px);width:auto;min-width:clamp(190px,24vw,320px);max-width:50%;flex:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .dots{display:flex;gap:7px;align-items:center}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .dots i{width:12px;height:12px;border-radius:50% 44% 52% 48%;background:rgba(21,16,42,.85);box-shadow:0 0 0 2px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.25);transition:transform .2s var(--spring),background .2s}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .dots i.seen{background:var(--sp-teal)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .dots i.on{width:12px;background:var(--sp-gold);transform:scale(1.45) rotate(-12deg);box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink)}
+
+/* ---- PRIMER PARTIDO: sin hoja; el parche cosido para ver cómo se juega y «Jugar ya» en mancha de tinta ---- */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"] #pnFirst{gap:clamp(10px,2.2vh,20px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .first-lead{margin:2px 0 0;padding-left:6px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts{display:flex;flex-direction:column;align-items:stretch;gap:clamp(12px,2.6vh,24px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{--sp-ph:clamp(58px,13vh,108px);--sp-pt:clamp(18px,4.6vh,40px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn #btnFirstPlay{align-self:flex-start;min-width:62%;justify-content:flex-start;padding-left:18px;padding-right:22px}
+
+/* ---- móvil apaisado (alto ≤ 430): todo más prieto, Volver y pestañas siempre a la vista ---- */
+@media (max-height:430px) and (min-aspect-ratio:5/4){
+  #panel{--pn-pad:8px;--pn-gap:5px;--pn-w:min(720px,calc(100vw - 30px - var(--sl) - var(--sr)))}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-h{--sp-hs:clamp(20px,7.4vh,28px)}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-row{padding:4px 6px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab{--sp-tbh:38px;--sp-tbs:12px}
+  :root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .sp-tabs .tab{--sp-tbh:44px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll{--sp-pdy:6px;padding:6px 10px;margin-bottom:6px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt{min-height:44px;padding:3px 8px 3px 12px;font-size:13px;gap:4px 10px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt small{font-size:11px;margin-top:1px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg>span{--sp-tbh:30px;--sp-tbs:11px;padding:0 7px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-foot{display:none}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 10px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl>div{min-height:44px;padding:2px 4px 2px 8px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot{height:34px;min-width:46px;padding:0 8px;font-size:12.5px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top .sq-pick{gap:10px;padding:3px 4px 6px 3px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{min-height:44px;padding:0 10px 0 6px;gap:7px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook{min-height:44px;padding:0 12px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-num{width:30px;height:30px;font-size:16px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{font-size:13.5px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r{min-height:44px;padding:2px 6px 2px 10px;grid-template-columns:minmax(0,1.6fr) minmax(48px,1fr) 2em 48px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-note{display:none}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum{display:none}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:12px;padding:8px 12px;--sp-g:12px;--sp-pdy:8px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-fig{margin:6px 8px 10px 6px;box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),4px 5px 0 5.5px var(--sp-ink)}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-title{font-size:20px;margin:2px 0 4px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-text{font-size:12px;line-height:1.38}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-rule{font-size:11px;line-height:1.3;margin-top:6px;padding:5px 9px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutNext{--sp-ph:46px;min-width:170px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{--sp-ph:58px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"]>.sheet{width:min(460px,calc(100vw - 40px))}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card{padding:7px 11px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ab-foot{padding-bottom:2px}
+}
+/* vertical (360×640): la hoja ocupa el ancho; cabecera arriba */
+@media (max-aspect-ratio:5/4){
+  #panel{--pn-pad:clamp(10px,3.4vw,24px);--pn-w:100%}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn{align-items:flex-start;padding-left:calc(var(--pn-pad) + var(--sl))}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-h{--sp-hs:clamp(24px,8vw,40px);white-space:normal}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl{grid-template-columns:minmax(0,1fr)}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{grid-template-columns:minmax(0,1fr)}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-fig{max-height:30vh;justify-self:center;width:auto;aspect-ratio:16/11}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top{flex-wrap:wrap}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav{flex-wrap:wrap;row-gap:10px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav .dots{order:-1;flex:1 0 100%;justify-content:center}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutNext{min-width:0;max-width:none;flex:1;--sp-ph:clamp(54px,9vh,70px);--sp-pt:clamp(16px,5.2vw,22px)}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev{padding:0 12px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev .sp-t{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{--sp-pt:clamp(17px,5.8vw,26px)}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut .sp-t{white-space:normal;line-height:1.08;padding-top:.1em}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r{grid-template-columns:minmax(0,1fr) 2.2em 48px;grid-template-areas:"l v b" "r v b";row-gap:4px;padding:6px 8px 8px 12px}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child{grid-area:l}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>.bar{grid-area:r}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>b{grid-area:v}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>button{grid-area:b}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt{grid-template-columns:minmax(0,1fr)}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt>:last-child:not(:first-child){justify-self:end}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-go{grid-template-columns:minmax(0,1fr) auto}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"]>.sheet{width:100%}
+  :root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"]{align-items:center}
+}
+
+/* ---- «Gira el móvil»: tinta con el teléfono en pegatina crema y el título del sistema (bloquea el partido: aquí sí ocupa todo) ---- */
+:root:not(#_):not(#_):not(#_) #rotate{background:radial-gradient(70% 55% at 50% 42%,rgba(47,37,96,.92),rgba(21,16,42,.97));gap:14px;padding:24px}
+:root:not(#_):not(#_):not(#_) #rotate .ph{width:58px;height:96px;margin-bottom:16px;border:0;border-radius:14px 16px 14px 15px;background:var(--sp-cream);box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 6px var(--sp-cream),inset 0 0 0 9px var(--sp-ink),5px 6px 0 3px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #rotate .ph::after{bottom:4px;width:14px;height:3px;margin-left:-7px;background:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #rotate .ph::before{content:"";position:absolute;left:-26px;top:-14px;width:16px;height:16px;border-radius:50%;background:var(--sp-kit);box-shadow:0 0 0 2.5px var(--sp-ink),70px 104px 0 -3px var(--sp-gold),70px 104px 0 -.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #rotate b.sp-h{--sp-hs:clamp(28px,8.5vw,46px);white-space:normal;text-align:center}
+:root:not(#_):not(#_):not(#_) #rotate p.sp-chip{--sp-chs:clamp(11px,3.4vw,14px);white-space:normal;text-align:center;max-width:min(80vw,300px);line-height:1.25;padding:5px 12px}
+/* ==== fin SPLAT · PANELES ==== */
 </style>
 
 <div id="app">
@@ -4801,132 +5149,137 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   <!-- ================= PANELES ================= -->
   <div id="panel" class="screen dim" hidden>
     <div class="sheet" role="dialog" aria-labelledby="pnTitle">
-      <div class="pn-head">
-        <div><p class="sh-k" id="pnKick">Tutorial</p><h2 id="pnTitle">Cómo se juega</h2></div>
-        <button class="ghost pn-close" id="btnPanelBack">Volver</button>
+      <!-- SPLAT (paneles): Volver en mancha de tinta a la izquierda y el título en Titan One torcido (focusables pone Volver el último) -->
+      <div class="pn-head sp-head">
+        <button class="ghost pn-close sp-back" id="btnPanelBack" data-shape="3" aria-label="Volver"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="pn-tt"><p class="sh-k sp-k" id="pnKick">Tutorial</p><h2 id="pnTitle" class="sp-h">Cómo se juega</h2></div>
       </div>
       <div id="pnTut" hidden>
-        <div class="tut" id="tutBody">
+        <div class="tut sp-panel sp-scroll" id="tutBody">
           <div class="tut-fig" id="tutFig"></div>
           <div><div class="tut-step" id="tutStep"></div><div class="tut-title" id="tutTitle"></div><div id="tutText"></div></div>
         </div>
         <div class="tut-nav" data-nav>
-          <button class="ghost" id="btnTutPrev">‹ Anterior</button>
+          <button class="ghost sp-btn sp-sm sp-ink" id="btnTutPrev" data-shape="1"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 6.5 12l8.5 7.5z"/></svg></span><span class="sp-t">Anterior</span></button>
           <div class="dots" id="tutDots"></div>
-          <button id="btnTutNext">Siguiente ›</button>
+          <button class="sp-patch" id="btnTutNext"><span class="sp-l"><span class="sp-t">Siguiente</span></span></button>
         </div>
       </div>
       <div id="pnFirst" hidden>
-        <p class="first-lead">6 pasos, 1 minuto.</p>
+        <p class="first-lead"><i class="sp-chip">6 pasos, 1 minuto</i></p>
         <div class="first-opts" data-nav>
-          <button id="btnFirstTut"><span>Ver cómo se juega<small>6 pasos y al partido</small></span><span class="ic">▶</span></button>
-          <button class="ghost" id="btnFirstPlay"><span>Jugar ya<small id="firstDiff">Nivel Fácil</small></span><span class="ic">›</span></button>
+          <button class="sp-patch" id="btnFirstTut"><span class="sp-l"><span class="sp-t">Ver cómo se juega</span><small class="sp-s">6 pasos y al partido</small></span></button>
+          <button class="ghost sp-btn sp-md sp-ink sp-wide" id="btnFirstPlay" data-shape="2"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4.5v15l12.5-7.5z"/></svg></span><span class="sp-l"><span class="sp-t">Jugar ya</span><small class="sp-s" id="firstDiff">Nivel Fácil</small></span></button>
         </div>
       </div>
       <div id="pnCtl" hidden>
         <!-- pestañas Teclado · Mando · Táctil (componente VB.UI.tabs de ui.js; «en uso» marca el dispositivo activo) -->
-        <div id="ctlTabs" aria-label="Dispositivo"></div>
+        <div id="ctlTabs" class="sp-tabs" aria-label="Dispositivo"></div>
         <!-- E3: con VB.Input.captureNext, Teclado y Mando son filas con botones de tecla (button.kslot) que se pueden reasignar -->
+        <div class="sp-panel sp-scroll ctl-sheet">
         <div class="ctl-pane tab-pane" id="ctlGrid" role="tabpanel" data-nav></div>
         <p class="ctl-msg" id="ctlMsg" aria-live="polite"></p>
         <p class="ctl-note"><b>Arriba</b> es siempre hacia la red. El control pasa solo a quien da el siguiente toque. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.</p>
+        </div>
       </div>
       <div id="pnSquad" hidden>
         <!-- Estadísticas de tus jugadores (js/prog.js): nivel, experiencia, puntos de mejora y los 10 atributos con «+» -->
         <div class="sq-top">
           <div class="sq-pick" id="sqPick" data-nav role="radiogroup" aria-label="Atleta"></div>
           <!-- Vestuario: el aspecto del atleta elegido (cierra el panel y abre la página del menú con el mismo n.º) -->
-          <div class="sq-lk" data-nav><button type="button" class="ghost" id="btnSqLook" aria-label="Aspecto del atleta en el vestuario"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3 3 6l2 5 2.2-1V21h9.6V10l2.2 1 2-5-5.5-3c-.5 1.6-1.8 2.6-3.5 2.6S9 4.6 8.5 3z"/></svg><span>Aspecto</span></button></div>
+          <div class="sq-lk" data-nav><button type="button" class="ghost sp-btn sp-sm sp-alt sp-sq" id="btnSqLook" data-shape="1" aria-label="Aspecto del atleta en el vestuario"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3 3 6l2 5 2.2-1V21h9.6V10l2.2 1 2-5-5.5-3c-.5 1.6-1.8 2.6-3.5 2.6S9 4.6 8.5 3z"/></svg><span class="sp-t">Aspecto</span></button></div>
         </div>
-        <div id="sqTabs" aria-label="Apartado"></div>
+        <div id="sqTabs" class="sp-tabs" aria-label="Apartado"></div>
+        <div class="sp-panel sp-scroll sq-sheet">
         <div class="sq tab-pane" id="sqBody" data-nav role="tabpanel"></div>
         <p class="sq-note">Ganas experiencia en cada partido (más si ganas, si puntúas y cuanto más alto es el nivel). Cada nivel da 3 puntos de mejora. Las mejoras son definitivas.</p>
+        </div>
       </div>
       <div id="pnSet" hidden>
         <!-- UI-21: grupos Audio · Imagen · Juego · Accesibilidad; dos columnas en cuanto hay anchura (móvil apaisado incluido) y, si aun
              así no cabe, desvanecido abajo (.has-more). Menús v2: un grupo por pestaña (VB.UI.tabs); dificultad, puntos, control y escenario
              están en la preparación del Partido rápido (una sola fila de cada en todo el juego). -->
-        <div id="setTabs" aria-label="Apartado de ajustes"></div>
-        <div class="opts tab-pane" data-nav id="optList" role="tabpanel">
+        <div id="setTabs" class="sp-tabs" aria-label="Apartado de ajustes"></div>
+        <div class="opts tab-pane sp-panel sp-scroll" data-nav id="optList" role="tabpanel">
           <div class="opt-g" data-tab="audio">
             <p class="opt-h">Audio</p>
-            <button class="opt opt-snd" data-opt="volume" data-need="Audio"><span>General<small>Volumen de todo el juego</small></span><span class="snd"><span class="mute" data-mute role="switch" aria-label="Silenciar"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="sp" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wv" d="M16 8.5a5 5 0 0 1 0 7"/><path class="x" d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg></span><span class="slider" data-sl="volume"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></span></button>
-            <button class="opt" data-opt="sfxVol"><span>Efectos<small>Golpes, silbato y botes</small></span><span class="slider" data-sl="sfxVol"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></button>
-            <button class="opt" data-opt="crowdVol" data-need="Audio"><span>Público<small>Grada, ánimos y reacciones</small></span><span class="slider" data-sl="crowdVol"><span class="trk"><i></i><b></b></span><span class="v">85%</span></span></button>
-            <button class="opt" data-opt="musicVol"><span>Música<small>Sintonías y sonidos del menú</small></span><span class="slider" data-sl="musicVol"><span class="trk"><i></i><b></b></span><span class="v">75%</span></span></button>
-            <button type="button" class="opt-reset" data-reset="audio">Restablecer este apartado</button>
+            <button class="opt opt-snd" data-opt="volume" data-need="Audio"><span>General<small>Volumen de todo el juego</small></span><span class="snd"><span class="mute" data-mute role="switch" aria-label="Silenciar"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="sp" d="M4 9h4l5-4v14l-5-4H4z"/><path class="wv" d="M16 8.5a5 5 0 0 1 0 7"/><path class="x" d="M16.5 9.5l5 5M21.5 9.5l-5 5"/></svg></span><span class="slider sp-slider" data-sl="volume"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></span></button>
+            <button class="opt" data-opt="sfxVol"><span>Efectos<small>Golpes, silbato y botes</small></span><span class="slider sp-slider" data-sl="sfxVol"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></button>
+            <button class="opt" data-opt="crowdVol" data-need="Audio"><span>Público<small>Grada, ánimos y reacciones</small></span><span class="slider sp-slider" data-sl="crowdVol"><span class="trk"><i></i><b></b></span><span class="v">85%</span></span></button>
+            <button class="opt" data-opt="musicVol"><span>Música<small>Sintonías y sonidos del menú</small></span><span class="slider sp-slider" data-sl="musicVol"><span class="trk"><i></i><b></b></span><span class="v">75%</span></span></button>
+            <button type="button" class="opt-reset sp-pill" data-reset="audio">Restablecer este apartado</button>
           </div>
           <div class="opt-g" data-tab="image">
             <p class="opt-h">Imagen</p>
-            <button class="opt" data-opt="quality"><span>Calidad<small id="qualNote">Auto la ajusta sola</small></span><span class="seg" data-seg="quality"></span></button>
-            <button class="opt" data-opt="resScale"><span>Resolución<small id="resNote">Auto: la baja sola si va lento</small></span><span class="seg" data-seg="resScale"></span></button>
-            <button class="opt" data-opt="fpsCap"><span>Fotogramas<small>Con 30 ahorras batería</small></span><span class="seg" data-seg="fpsCap"></span></button>
-            <button class="opt" data-opt="showFps"><span>Ver FPS<small>Contador en una esquina</small></span><span class="seg" data-seg="showFps"></span></button>
-            <button class="opt" data-opt="mapHall"><span>Pabellón<small>Dónde se juega en pista cubierta</small></span><span class="seg" data-seg="mapHall"></span></button>
-            <button class="opt" data-opt="mapBeach"><span>Sede de playa<small>Dónde se juega en la arena</small></span><span class="seg" data-seg="mapBeach"></span></button>
-            <button class="opt" data-opt="beachLight"><span>Luz de playa<small>Al mediodía o de tarde, con el sol bajo</small></span><span class="seg" data-seg="beachLight"></span></button>
-            <button type="button" class="opt-reset" data-reset="image">Restablecer este apartado</button>
+            <button class="opt" data-opt="quality"><span>Calidad<small id="qualNote">Auto la ajusta sola</small></span><span class="seg sp-seg" data-seg="quality"></span></button>
+            <button class="opt" data-opt="resScale"><span>Resolución<small id="resNote">Auto: la baja sola si va lento</small></span><span class="seg sp-seg" data-seg="resScale"></span></button>
+            <button class="opt" data-opt="fpsCap"><span>Fotogramas<small>Con 30 ahorras batería</small></span><span class="seg sp-seg" data-seg="fpsCap"></span></button>
+            <button class="opt" data-opt="showFps"><span>Ver FPS<small>Contador en una esquina</small></span><span class="seg sp-seg" data-seg="showFps"></span></button>
+            <button class="opt" data-opt="mapHall"><span>Pabellón<small>Dónde se juega en pista cubierta</small></span><span class="seg sp-seg" data-seg="mapHall"></span></button>
+            <button class="opt" data-opt="mapBeach"><span>Sede de playa<small>Dónde se juega en la arena</small></span><span class="seg sp-seg" data-seg="mapBeach"></span></button>
+            <button class="opt" data-opt="beachLight"><span>Luz de playa<small>Al mediodía o de tarde, con el sol bajo</small></span><span class="seg sp-seg" data-seg="beachLight"></span></button>
+            <button type="button" class="opt-reset sp-pill" data-reset="image">Restablecer este apartado</button>
           </div>
           <div class="opt-g" data-tab="cam">
             <p class="opt-h">Cámara</p>
-            <button class="opt" data-opt="camSens"><span>Seguimiento<small>Rapidez con la que sigue a tu jugador</small></span><span class="slider" data-sl="camSens"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></button>
-            <button class="opt" data-opt="camZoom" data-need="CameraRig"><span>Zoom de cámara<small>De 1, cerca, a 5, lejos. También en partido: mira Controles</small></span><span class="seg" data-seg="camZoom"></span></button>
-            <button class="opt" data-opt="camCuts" data-need="CameraRig"><span>Planos de tele<small>Plano del sacador rival y del punto</small></span><span class="seg" data-seg="camCuts"></span></button>
-            <button class="opt" data-opt="cam6"><span>Cámara en 6 contra 6<small>Detrás de tu jugador o alta, como en la tele</small></span><span class="seg" data-seg="cam6"></span></button>
-            <button type="button" class="opt-reset" data-reset="cam">Restablecer este apartado</button>
+            <button class="opt" data-opt="camSens"><span>Seguimiento<small>Rapidez con la que sigue a tu jugador</small></span><span class="slider sp-slider" data-sl="camSens"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></button>
+            <button class="opt" data-opt="camZoom" data-need="CameraRig"><span>Zoom de cámara<small>De 1, cerca, a 5, lejos. También en partido: mira Controles</small></span><span class="seg sp-seg" data-seg="camZoom"></span></button>
+            <button class="opt" data-opt="camCuts" data-need="CameraRig"><span>Planos de tele<small>Plano del sacador rival y del punto</small></span><span class="seg sp-seg" data-seg="camCuts"></span></button>
+            <button class="opt" data-opt="cam6"><span>Cámara en 6 contra 6<small>Detrás de tu jugador o alta, como en la tele</small></span><span class="seg sp-seg" data-seg="cam6"></span></button>
+            <button type="button" class="opt-reset sp-pill" data-reset="cam">Restablecer este apartado</button>
           </div>
           <div class="opt-g" data-tab="game">
             <p class="opt-h">Juego</p>
-            <button class="opt" data-opt="showHelp"><span>Ayudas en pantalla<small>Avisos del momento de golpear y saltar</small></span><span class="seg" data-seg="showHelp"></span></button>
-            <button class="opt" data-opt="coachTips"><span>Consejos<small>Qué hacer en cada toque. Se apagan al ganar tu primer partido</small></span><span class="seg" data-seg="coachTips"></span></button>
-            <button class="opt" data-opt="aimSet" data-need="Sim"><span>Colocación dirigida<small>Sí: eliges el destino con la dirección (sin dirección, alta a la 4). No: siempre a tu compañero</small></span><span class="seg" data-seg="aimSet"></span></button>
-            <button class="opt" data-opt="msTiming"><span>Golpe al milisegundo<small>El sello dice cuántos ms llegas pronto o tarde</small></span><span class="seg" data-seg="msTiming"></span></button>
-            <button class="opt" data-opt="replays"><span>Repeticiones<small>Automáticas: los puntos de set y de partido. Al final: solo en Jugadas</small></span><span class="seg" data-seg="replays"></span></button>
+            <button class="opt" data-opt="showHelp"><span>Ayudas en pantalla<small>Avisos del momento de golpear y saltar</small></span><span class="seg sp-seg" data-seg="showHelp"></span></button>
+            <button class="opt" data-opt="coachTips"><span>Consejos<small>Qué hacer en cada toque. Se apagan al ganar tu primer partido</small></span><span class="seg sp-seg" data-seg="coachTips"></span></button>
+            <button class="opt" data-opt="aimSet" data-need="Sim"><span>Colocación dirigida<small>Sí: eliges el destino con la dirección (sin dirección, alta a la 4). No: siempre a tu compañero</small></span><span class="seg sp-seg" data-seg="aimSet"></span></button>
+            <button class="opt" data-opt="msTiming"><span>Golpe al milisegundo<small>El sello dice cuántos ms llegas pronto o tarde</small></span><span class="seg sp-seg" data-seg="msTiming"></span></button>
+            <button class="opt" data-opt="replays"><span>Repeticiones<small>Automáticas: los puntos de set y de partido. Al final: solo en Jugadas</small></span><span class="seg sp-seg" data-seg="replays"></span></button>
             <button class="opt opt-go" data-go="ctl"><span>Controles<small>Ver y cambiar teclas y botones</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
-            <button type="button" class="opt-reset" data-reset="game">Restablecer este apartado</button>
+            <button type="button" class="opt-reset sp-pill" data-reset="game">Restablecer este apartado</button>
           </div>
           <div class="opt-g" id="optA11y" data-tab="a11y">
             <p class="opt-h">Accesibilidad</p>
-            <button class="opt" data-opt="camStable"><span>Cámara estable<small>Sin temblores ni sacudidas en los golpes</small></span><span class="seg" data-seg="camStable"></span></button>
-            <button class="opt" data-opt="rumble"><span>Vibración<small>Del mando y del móvil en los golpes</small></span><span class="seg" data-seg="rumble"></span></button>
-            <button class="opt" data-opt="hudScale"><span>Tamaño del HUD<small>Marcador, avisos y menús</small></span><span class="seg" data-seg="hudScale"></span></button>
-            <button class="opt" data-opt="softFlash"><span>Destellos suaves<small>Menos destellos en los puntos y las celebraciones</small></span><span class="seg" data-seg="softFlash"></span></button>
-            <button class="opt" data-opt="lessMotion"><span>Menos movimiento<small>Cortinillas y animaciones cortas. En Auto, lo que pida el sistema</small></span><span class="seg" data-seg="lessMotion"></span></button>
-            <button class="opt" data-opt="cbColors" data-need="FX"><span>Colores para daltonismo<small>Diana y llamadas de línea sin rojo ni verde</small></span><span class="seg" data-seg="cbColors"></span></button>
-            <button class="opt" data-opt="ballStyle" data-need="FX"><span>Balón<small>El de alto contraste es amarillo y azul oscuro</small></span><span class="seg" data-seg="ballStyle"></span></button>
-            <button type="button" class="opt-reset" data-reset="a11y">Restablecer este apartado</button>
+            <button class="opt" data-opt="camStable"><span>Cámara estable<small>Sin temblores ni sacudidas en los golpes</small></span><span class="seg sp-seg" data-seg="camStable"></span></button>
+            <button class="opt" data-opt="rumble"><span>Vibración<small>Del mando y del móvil en los golpes</small></span><span class="seg sp-seg" data-seg="rumble"></span></button>
+            <button class="opt" data-opt="hudScale"><span>Tamaño del HUD<small>Marcador, avisos y menús</small></span><span class="seg sp-seg" data-seg="hudScale"></span></button>
+            <button class="opt" data-opt="softFlash"><span>Destellos suaves<small>Menos destellos en los puntos y las celebraciones</small></span><span class="seg sp-seg" data-seg="softFlash"></span></button>
+            <button class="opt" data-opt="lessMotion"><span>Menos movimiento<small>Cortinillas y animaciones cortas. En Auto, lo que pida el sistema</small></span><span class="seg sp-seg" data-seg="lessMotion"></span></button>
+            <button class="opt" data-opt="cbColors" data-need="FX"><span>Colores para daltonismo<small>Diana y llamadas de línea sin rojo ni verde</small></span><span class="seg sp-seg" data-seg="cbColors"></span></button>
+            <button class="opt" data-opt="ballStyle" data-need="FX"><span>Balón<small>El de alto contraste es amarillo y azul oscuro</small></span><span class="seg sp-seg" data-seg="ballStyle"></span></button>
+            <button type="button" class="opt-reset sp-pill" data-reset="a11y">Restablecer este apartado</button>
           </div>
           <div class="opt-g" id="optKit" data-tab="kit">
             <p class="opt-h">Equipación</p>
             <button class="opt opt-kit" data-opt="kitShirt"><span>Camiseta<small>Color de tu equipo</small></span><span class="seg kit" data-seg="kitShirt"></span></button>
             <button class="opt opt-kit" data-opt="kitAccent"><span>Detalles<small>Franjas, ribetes y zapatillas</small></span><span class="seg kit" data-seg="kitAccent"></span></button>
             <button class="opt opt-kit" data-opt="kitShorts"><span>Pantalón</span><span class="seg kit" data-seg="kitShorts"></span></button>
-            <button class="opt" data-opt="kitPattern"><span>Diseño<small>Si la CPU se parece, cambia de equipación</small></span><span class="seg" data-seg="kitPattern"></span></button>
-            <button type="button" class="opt-reset" data-reset="kit">Restablecer este apartado</button>
+            <button class="opt" data-opt="kitPattern"><span>Diseño<small>Si la CPU se parece, cambia de equipación</small></span><span class="seg sp-seg" data-seg="kitPattern"></span></button>
+            <button type="button" class="opt-reset sp-pill" data-reset="kit">Restablecer este apartado</button>
           </div>
           <div class="opt-g" data-tab="info">
             <p class="opt-h">Info</p>
             <div class="opt info"><span>Versión</span><span class="iv" id="optVer">—</span></div>
             <div class="opt info"><span>Progreso</span><span class="iv" id="optSave">Guardado en este dispositivo</span></div>
-            <button type="button" class="opt-reset opt-wipe" data-wipe="beach" hidden>Borrar Carrera de playa</button>
-            <button type="button" class="opt-reset opt-wipe" data-wipe="hall" hidden>Borrar Carrera de pista</button>
+            <button type="button" class="opt-reset opt-wipe sp-pill sp-danger" data-wipe="beach" hidden>Borrar Carrera de playa</button>
+            <button type="button" class="opt-reset opt-wipe sp-pill sp-danger" data-wipe="hall" hidden>Borrar Carrera de pista</button>
             <p class="opt-wipe-n" id="optWipeN" role="status" aria-live="polite" hidden></p>
             <button class="opt opt-go" data-go="news"><span>Novedades<small>Qué ha cambiado en esta versión</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button class="opt opt-go" data-go="credits"><span>Créditos<small>Quién lo ha hecho y con qué</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
           </div>
         </div>
-        <p class="opt-foot" id="optFoot"><span class="kh"><span class="key">←</span><span class="key">→</span> cambia el valor</span><span class="kh"><span class="key">Intro</span> pasa al siguiente</span><span class="kh"><span class="key">Q</span><span class="key">E</span> apartado</span></p>
+        <p class="opt-foot sp-hints" id="optFoot"><span class="kh"><span class="key">←</span><span class="key">→</span> cambia el valor</span><span class="kh"><span class="key">Intro</span> pasa al siguiente</span><span class="kh"><span class="key">Q</span><span class="key">E</span> apartado</span></p>
       </div>
       <div id="pnAbout" hidden>
         <!-- E7: Acerca de, pestañas Novedades y Créditos (datos en js/version.js; ui.js renderAbout los pinta al abrir) -->
-        <div id="abTabs" aria-label="Acerca de"></div>
-        <div class="ab tab-pane" id="abBody" data-nav role="tabpanel"></div>
-        <div class="ab-foot" data-nav><button type="button" id="btnAbOk">Entendido</button></div>
+        <div id="abTabs" class="sp-tabs" aria-label="Acerca de"></div>
+        <div class="ab tab-pane sp-panel sp-scroll" id="abBody" data-nav role="tabpanel"></div>
+        <div class="ab-foot" data-nav><button type="button" class="sp-btn sp-md sp-kit" id="btnAbOk" data-shape="2"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 16.2 4.8 11.5 2.7 13.6l6.8 6.8L21.3 8.6l-2.1-2.1z"/></svg></span><span class="sp-t">Entendido</span></button></div>
       </div>
     </div>
   </div>
 
-  <div id="rotate" hidden><div class="ph"></div><b>Gira el móvil</b><p>Make the Cut se juega en horizontal</p></div>
+  <div id="rotate" hidden><div class="ph"></div><b class="sp-h">Gira el móvil</b><p class="sp-chip">Make the Cut se juega en horizontal</p></div>
   <!-- Logotipo «Make the Cut» (nov-2026): el remate en diagonal (un cut) parte el rótulo en dos. Definido una vez aquí y usado
        con <use href="#mtcLogo"> en el menú y en el telón. Letras de Barlow Condensed Black Italic pasadas a trazados (OFL);
        balón con los colores del balón del partido. Fuente: carpetas/logo-make-the-cut/gen.py + symbol.py (fuera del repo). -->

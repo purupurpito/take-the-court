@@ -270,3 +270,14 @@ rótulo-pegatina torcido (oro, turquesa, crema o contraste según su puesto), se
 de pincel, Faro en papel crema, noticias como recortes de papel, la vitrina y los premios en sellos dorados (`.tc-st`, `.lf-st`). La
 sub-pestaña elegida y tu fila de la tabla van del color de tu club (`--sp-kit`, que `splatify` sincroniza con `VB.Splat.sync()`).
 Captura de una pestaña: `SHOT=out/tabla.png node tools/eval.js "mjseed=1" "VB.CareerUI.open('hub',{from:'main'});VB.CareerUI._tab('league','table')" 4000 1280x720`.
+**Pantallas hechas: paneles (17-nov-2026, etapa 2).** Ajustes, Controles, Cómo se juega, Jugadores, Acerca de (Novedades, también la
+que sale sola, y Créditos), Primer partido y el aviso «Gira el móvil», en el bloque **«SPLAT · PANELES»** de index.html. `ui.js openPanel`
+pone `#panel.sp-pn` y `data-pn="<panel>"` (Estadística y Cambios no lo llevan y siguen con su estilo; la cabecera Volver + título sí es
+común). Sin velo ni desenfoque: columna a la izquierda (`--pn-w`), Volver (`.sp-back`) y título (`.sp-h`) arriba, pestañas `.sp-tabs`
+y el contenido en UNA hoja `.sp-panel.sp-scroll` que se desplaza por dentro (Volver y pestañas nunca se van); `ui.js spMore()` pone
+`.sp-more` cuando queda algo abajo (franja pegada con flecha dorada). Filas de Ajustes = tiras de tinta (rótulo Titan One, ayuda
+Rubik, foco con aro dorado), segmentados `.sp-seg`, deslizadores `.sp-slider`, muestras de equipación como gotas; teclas de Controles
+= teclas crema (`.kslot`); atletas de Jugadores = `.sp-btn.sp-wide` (elegido `.sp-gold`); «Siguiente/¡A jugar!» del tutorial y «Ver
+cómo se juega» = `.sp-patch`. Componente nuevo: **`.sp-pill`**, pastilla de pintura solo CSS para botones cuyo texto reescribe el
+código con `textContent` («Restablecer» → «Pulsa otra vez», «Versiones anteriores», licencias): la mancha SVG de `.sp-btn` se perdería.
+Capturas de estados (foco, desplazado, cada pestaña): guion `states.js` del informe de la etapa 2 (abre `?debug=menu&panel=…&tab=…&step=…`).
