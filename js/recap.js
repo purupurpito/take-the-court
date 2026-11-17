@@ -128,7 +128,7 @@
           var t = 'Cara a cara: ' + (h[1] | 0) + '-' + (h[2] | 0);
           if (cs.last && cs.last.length === 2) t += ' | el último, ' + (cs.last[0] | 0) + '-' + (cs.last[1] | 0);
           out.push(t);
-        } else if (cs.rivalName) out.push(contract('Primera vez contra ' + cs.rivalName));
+        } else if (cs.rivalName && !cs.trial) out.push(contract('Primera vez contra ' + cs.rivalName));   // (partidillo de prueba: es el club que te prueba, sin cara a cara)
       }
       if (cs.goal) out.push('Reto: ' + low1(cs.goal));
     } else {

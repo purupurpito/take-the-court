@@ -1827,7 +1827,7 @@
       t = mn(mx(t, 0), 1);
       if (hyp(b.x + vx * t - q.x, b.y + vy * t - q.y) < reach + run * pl.t * mx(t, 0.35) + 0.25) { CLW.why = 8; return; }
     }
-    CL.on = true; CL.phase = 'track'; CL.t = 0; CL.tg = 0; CL.team = winner; CL.match = g.sets[winner] === 1;
+    CL.on = true; CL.phase = 'track'; CL.t = 0; CL.tg = 0; CL.team = winner; CL.match = g.sets[winner] === (g.toWin || (g.bo1 ? 1 : 2)) - 1;   // (un set: la prueba, g.toWin 1, o el online, g.bo1)
     CL.lx = pl.x; CL.ly = pl.y; CL.tLand = pl.t; CL.landed = false; CL.sinceLand = 0; CL.pointed = false; CL.cutNow = true; CL.abortCut = false; CL.planned = false;
     CL.subj = clinchSubject(g, pl.x, pl.y); CL.sw = 0;
     clinchTrackPose(g);

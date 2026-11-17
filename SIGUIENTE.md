@@ -172,6 +172,18 @@ Ferran lo revise. Usa búsqueda web.
   con ⚠; color del líbero del club y 2ª equipación en los choques (petición al lote A, abajo); colocador, opuesto y central (lote A);
   editor local de clubes (opcional, sin empezar); escudos propios (la ficha enseña los tres colores).
 
+**Pruebas con partidillo y entrenos Rápido/Manual (15-nov-2026, 1.2.0):** petición de Ferran «las pruebas de un equipo deberían ser
+un pequeño partido con petos» y «entrenos con modo rápido o manual, inspirados en FIFA/EA FC y NBA 2K». Especificación y decisiones
+por defecto en notes/pruebas-entrenos-spec.md (petos naranja/lima en la prueba y del club en los ejercicios; reiniciar no gasta la prueba;
+automático activado; P7 al backlog). sim.js: `opts.sets === 1` → `g.toWin = 1` (huellas idénticas). Petos en players.js (setKit
+`st.scrim`) y doll.js (diseño 'peto', 0 draw calls). Pruebas: careertest (sesiones y prueba), kittest §8, simtest «Partido a un solo set».
+Preguntas a Ferran: corte de la nota (B ≥ 6,5) y si el automático debe venir activado.
+16-nov-2026 (Ferran): reiniciar o abandonar la prueba la GASTA (también cerrar la pestaña: forfeit 'left'); y NOTA EN DIRECTO tipo EA FC en
+todos los partidos de Carrera (js/rating.js, VB.Rating puro; empieza en 6,0; avisos por punto; la final sustituye a rating() en los
+partidos jugados; los simulados siguen con rating()). Especificación en notes/nota-en-directo-spec.md; prueba tools/ratingtest.js
+(RATINGTEST_CAL=1 recalibra con bots). Abiertas (§7 de la spec): pesos por puesto en pista, prueba de pista algo generosa (ace ~+0,96),
+nivel de la nota de los simulados.
+
 **Sesiones de entrenamiento en la Carrera (13-nov-2026, hecho y probado, SIN COMMIT; notes/carrera.md §Sesiones):** petición de Ferran
 «añadir los entrenamientos como parte del modo carrera… un límite de 3 antes de la siguiente jornada… que no suban mucho». Playa y pista:
 hasta 3 sesiones por jornada (bloque «Entrenamiento» de Partido), ejercicio de VB.Gym de tu puesto jugado de verdad (vuelve al hub con el
