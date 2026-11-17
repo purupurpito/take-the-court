@@ -225,3 +225,12 @@ Bucle cómodo para la matriz completa (6 tamaños × páginas): un `for` sobre `
 ## 8. Estado (17-nov-2026, etapa 1)
 Hechas con el sistema: portada (`?menu=old` = la de antes), Jugar y Partido rápido. El resto de pantallas siguen con la dirección TV
 y se pasan en la etapa 2 (reparto por ficheros en el informe de la etapa 1 y en notes/ui_main.md «SPLAT»).
+
+**Etapa 2 · Retos, Entrenamiento, Vestuario y Perfil** (bloque «SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL», 17-nov-2026): las
+cuatro páginas llevan `data-sp-full`. Piezas nuevas para lo que venga: `.sp-medal` (medalla de `medalSVG` en pegatina redonda crema;
+`.t3` dorada) y `.sp-bar` (barra de pintura con goterón: `<i class="sp-bar"><i style="--w:40%"></i></i>`, ui.js `spBar(fr)`; en
+pegatinas de color el relleno pasa a crema). Una tarjeta que no se pulsa puede ser `.sp-ticket` en un `<div>` (brochazo con
+`pointer-events:none`, como «Reto del día» y el nivel del Perfil); si su contenido se repinta con innerHTML, quitar `.sp-dec` y volver
+a `decorate()`. Filas de lista: `.sp-btn.sp-wide.sp-calm` con la inclinación reducida en el bloque; lo bloqueado = cinta gris (rayas
+`repeating-linear-gradient` y contorno apagado). Capturas con datos de muestra: guiones de `?debug=retos|prof|look` y `menu=play` + clic
+en `#btnGym` (ver el informe de la etapa 2).

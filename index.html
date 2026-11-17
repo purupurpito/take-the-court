@@ -3701,6 +3701,319 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{max-width:100%}
 }
 /* ==== fin SPLAT · PARTIDO RÁPIDO ==== */
+/* =====================================================================
+   SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL (#mpRetos, #mpGym, #mpLook, #mpProf, chip #btnProf y avisos #pfNote/#lkNote).
+   Las cuatro páginas con data-sp-full (columna a la izquierda, el partido o el muñeco a la vista). Piezas nuevas de este bloque:
+   .sp-medal (medalla en pegatina redonda crema) y .sp-bar (barra de pintura hasta la siguiente medalla); fichas del álbum en CSS.
+   Retos: Hoy = brochazo turquesa con el sello dorado, medallas en pegatina y parche; Maestría = pegatinas de tinta (doradas con el oro).
+   Entrenamiento: una pegatina de un color por ejercicio y el peloteo libre en parche. Vestuario: filas de tinta con las flechas en
+   pegatina crema; lo bloqueado lleva cinta gris. Perfil: nivel en sello dorado sobre brochazo crema, vitrina y álbum en fichas.
+   ===================================================================== */
+/* ---- piezas comunes ---- */
+.sp-medal{--sp-md:clamp(34px,6.6vh,52px);position:relative;flex:none;display:grid;place-items:center;width:var(--sp-md);height:var(--sp-md);border-radius:50%;
+  background:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);transform:rotate(-9deg)}
+:root:not(#_):not(#_):not(#_) .sp-medal .mdl{width:80%;height:80%;margin:0;opacity:1;filter:none}
+.sp-medal .mdl .dk{stroke:var(--sp-ink);stroke-width:1.6}
+.sp-medal .mdl.m0 .dk{fill:none;stroke:rgba(21,16,42,.45);stroke-width:2.2;stroke-dasharray:3.2 3}
+.sp-medal.t3{background:var(--sp-gold)}
+.sp-bar{position:relative;display:block;width:min(240px,100%);height:clamp(7px,1.3vh,10px);margin:4px 0 2px;border-radius:6px 3px 5px 3px;background:var(--sp-bart,rgba(255,244,220,.2));
+  box-shadow:0 0 0 2px var(--sp-ink);transform:rotate(-1.2deg)}
+.sp-bar>i{position:relative;display:block;height:100%;width:var(--w,0%);min-width:0;border-radius:inherit;background:var(--sp-barf,var(--sp-kit))}
+.sp-bar>i::after{content:"";position:absolute;right:2px;top:60%;width:5px;height:7px;border-radius:2px 2px 5px 5px;background:inherit;box-shadow:0 0 0 1.5px var(--sp-ink)}
+.sp-bar>i[style*="--w:0%"]::after{display:none}
+:is(.sp-kit,.sp-teal,.sp-alt,.sp-gold) .sp-bar{--sp-bart:rgba(21,16,42,.3);--sp-barf:var(--sp-cream)}
+.sp-btn.sp-ink:is(.kf,:focus-visible) .sp-bar{--sp-bart:rgba(21,16,42,.25)}
+
+/* ---- las cuatro páginas: columna, cabecera y pestañas ---- */
+#menu.sp-full :is(#mpRetos,#mpGym,#mpProf){max-height:none;min-height:0;justify-content:center}
+#menu.sp-full #mpRetos{--sp-colw:clamp(330px,44vw,640px)}
+#menu.sp-full #mpGym{--sp-colw:clamp(330px,44vw,640px)}
+#menu.sp-full #mpProf{--sp-colw:clamp(340px,64vw,1000px)}
+#menu.sp-full :is(#mpRetos,#mpGym,#mpProf,#mpLook) .sp-head{flex:none}
+:root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs).sp-tabs{flex:none;margin:0;gap:6px}
+:root:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs{flex:0 1 var(--lkw);min-width:0}
+:root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs).sp-tabs .tb-row{padding:5px 8px 7px;gap:clamp(4px,1vh,8px)}
+:root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs) .tb-k{min-width:28px;height:28px;padding:0 6px;border:0;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);font:800 12px/1 var(--sp-ui);text-shadow:none;transform:rotate(-4deg)}
+:root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs) .tb-k:empty,:root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs).tb-touch .tb-k{display:none}
+:root:not(#_):not(#_):not(#_) #menu #rtTabs .tab{flex:1 1 0;--sp-tbh:clamp(44px,7vh,54px);--sp-tbs:clamp(13px,2.4vh,18px)}
+:root:not(#_):not(#_):not(#_) #menu #pfTabs .tab{flex:0 0 auto;gap:6px}
+:root:not(#_):not(#_):not(#_) #menu .sp-tabs .tb-b{margin:0;padding:2px 5px 1px;border-radius:5px 7px 5px 6px;background:rgba(255,244,220,.18);color:var(--sp-cream);font:700 .78em/1.1 var(--sp-ui);letter-spacing:0;
+  text-shadow:none;font-variant-numeric:tabular-nums}
+:root:not(#_):not(#_):not(#_) #menu .sp-tabs .tab:is(.on,.kf,:focus-visible) .tb-b{background:var(--sp-ink);color:var(--sp-gold)}
+/* listas que se desplazan dentro de la columna: hueco para el contorno, las gotas, la sombra y el foco */
+:root:not(#_):not(#_):not(#_) #menu :is(#rtBody,#gymList,#lkList){flex:0 1 auto;min-height:0;display:flex;flex-direction:column;gap:clamp(10px,1.9vh,16px);overflow-y:auto;overflow-x:hidden;
+  margin:-6px -14px -6px -10px;padding:10px 18px 20px 12px;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.5) transparent;overscroll-behavior:contain}
+:root:not(#_):not(#_):not(#_) #menu :is(#rtBody,#gymList,#lkList)>*{flex:none}
+/* las pegatinas de lista se tuercen poco (filas largas) */
+:is(#rtBody,#gymList,#lkList) .sp-btn[data-sp-s="0"]{--sp-tilt:-.6deg}:is(#rtBody,#gymList,#lkList) .sp-btn[data-sp-s="1"]{--sp-tilt:.5deg}
+:is(#rtBody,#gymList,#lkList) .sp-btn[data-sp-s="2"]{--sp-tilt:-.3deg}:is(#rtBody,#gymList,#lkList) .sp-btn[data-sp-s="3"]{--sp-tilt:.7deg}
+:is(#rtBody,#gymList,#lkList) .sp-btn[data-sp-s="4"]{--sp-tilt:-.8deg}:is(#rtBody,#gymList,#lkList) .sp-btn[data-sp-s="5"]{--sp-tilt:.3deg}
+/* pie de las páginas (medallas conseguidas): Rubik crema con tinta, cifras doradas */
+:root:not(#_):not(#_):not(#_) #menu :is(#gymFoot,#rtFoot){flex:none;margin:0;font:600 clamp(11px,1.8vh,13.5px)/1.3 var(--sp-ui);color:var(--sp-cream);
+  text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu :is(#gymFoot,#rtFoot) b{color:var(--sp-gold);font-weight:800}
+:root:not(#_):not(#_):not(#_) #menu :is(#gymFoot,#rtFoot):empty{display:none}
+
+/* ---- ENTRENAMIENTO y RETOS (Maestría): pegatina ancha «medalla | rótulo, ayuda y barra | récord» ---- */
+:root:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r).sp-btn{display:flex;justify-content:flex-start;width:100%;min-height:clamp(54px,9.4vh,72px);padding:4px clamp(14px,2.6vh,22px) 6px clamp(10px,2vh,16px);
+  gap:clamp(8px,1.6vh,14px);white-space:normal;--sp-fs:clamp(14px,2.7vh,21px)}
+:root:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r) .sp-l{flex:1 1 auto;min-width:0}
+:root:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r) .sp-s{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu .gy-rec{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px;margin:0;text-align:right;color:inherit;font:inherit;text-transform:none}
+:root:not(#_):not(#_):not(#_) #menu .gy-rec b{font:400 clamp(13px,2.3vh,18px)/1.05 var(--sp-pop);letter-spacing:.02em;color:inherit;text-transform:uppercase;font-variant-numeric:tabular-nums;transform:rotate(-2deg)}
+:root:not(#_):not(#_):not(#_) #menu .gy-rec small{font:700 clamp(10px,1.6vh,12.5px)/1.1 var(--sp-ui);color:inherit;opacity:.82;white-space:nowrap}
+#gymList .sp-ink:not(.kf):not(:focus-visible) .gy-rec b{color:var(--sp-gold)}
+/* peloteo libre: el parche cosido de la página (abajo, tras los ejercicios) */
+#menu.sp-full #gymList .gy-free{--sp-ph:clamp(54px,11vh,90px);--sp-pt:calc(var(--sp-ph) * .36);margin-top:4px}
+/* Retos: grupo = pegatina pequeña; la ayuda de cada reto solo con el foco */
+:root:not(#_):not(#_):not(#_) #menu .rt-grp{margin:4px 0 -4px 2px;padding:0;font:inherit;color:inherit}
+:root:not(#_):not(#_):not(#_) #menu .rt-grp:first-child{margin-top:0}
+:root:not(#_):not(#_):not(#_) #menu .rt-grp .sp-chip{--sp-chs:clamp(11px,1.9vh,14px);padding:4px 10px 3px}
+:root:not(#_):not(#_):not(#_) #menu .rt-r .rt-help{display:none;margin:2px 0 0;font:600 clamp(10px,1.6vh,12.5px)/1.25 var(--sp-ui);color:inherit;opacity:.85;white-space:normal;text-transform:none;letter-spacing:0;text-shadow:none}
+:root:not(#_):not(#_):not(#_) #menu .rt-r:is(.kf,:focus-visible) .rt-help{display:block}
+:root:not(#_):not(#_):not(#_) #menu .rt-r.sp-dot::after{right:8px;top:2px}
+#rtBody .rt-none{margin:8px 2px;font:600 14px/1.3 var(--sp-ui);color:var(--sp-cream);text-shadow:1px 1px 0 var(--sp-ink)}
+
+/* ---- RETOS · Hoy: brochazo turquesa (sin pulsar) con el sello dorado, medallas en pegatina y el parche ---- */
+:root:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket{display:flex;align-items:center;gap:clamp(8px,2vh,18px);width:100%;min-height:0;padding:clamp(10px,2.2vh,20px) clamp(16px,3vh,28px) clamp(14px,2.6vh,24px) clamp(12px,2.4vh,22px);
+  white-space:normal;cursor:default;pointer-events:none;animation:none;transform:rotate(-.8deg);color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .rt-day .sp-stamp{--sp-stamp:clamp(64px,15vh,120px);cursor:default;transform:rotate(-12deg)}
+#menu .rt-day .sp-sc .sp-ball{width:56%;height:56%}
+#menu .rt-day .sp-sc .mdl{width:60%;height:60%}
+.rt-dm{flex:1;min-width:0;display:flex;flex-direction:column;gap:clamp(2px,.6vh,6px)}
+:root:not(#_):not(#_):not(#_) #menu .rt-day .rt-k{margin:0;font:800 clamp(10px,1.7vh,13px)/1.1 var(--sp-ui);letter-spacing:.14em;text-transform:uppercase;color:rgba(21,16,42,.8)}
+:root:not(#_):not(#_):not(#_) #menu .rt-day .rt-map{margin:0;font:400 clamp(17px,3.6vh,32px)/1.05 var(--sp-pop);color:var(--sp-ink);text-transform:uppercase;transform:rotate(-1.5deg);transform-origin:0 50%;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .rt-day .rt-bits{display:flex;flex-wrap:wrap;gap:6px 7px;margin:3px 0 0;padding:0 2px}
+:root:not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .sp-chip{--sp-chs:clamp(10px,1.6vh,12.5px);--sp-tilt:-2deg}
+:root:not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .sp-chip:nth-child(2n){--sp-tilt:2deg}
+.rt-tiers{display:flex;gap:clamp(8px,1.6vh,14px)}
+:root:not(#_):not(#_):not(#_) #menu .rt-tier{flex:1 1 0;min-width:0;display:flex;align-items:center;gap:6px;margin:0;padding:4px 10px 4px 4px;border-radius:22px 12px 16px 24px/18px 22px 14px 20px;background:var(--sp-cream);
+  color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:700 clamp(10.5px,1.75vh,13.5px)/1.15 var(--sp-ui);letter-spacing:0;text-transform:none;transform:rotate(-1.5deg)}
+:root:not(#_):not(#_):not(#_) #menu .rt-tier:nth-child(2){transform:rotate(1.2deg)}
+:root:not(#_):not(#_):not(#_) #menu .rt-tier:nth-child(3){transform:rotate(-.6deg)}
+:root:not(#_):not(#_):not(#_) #menu .rt-tier .mdl{width:clamp(26px,4.8vh,36px);height:clamp(26px,4.8vh,36px);flex:none;opacity:1;filter:none}
+.rt-tier>span{min-width:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+/* medalla por ganar: cinta gris (papel apagado a rayas) */
+:root:not(#_):not(#_):not(#_) #menu .rt-tier:not(.on){background:repeating-linear-gradient(-45deg,#cfc9bd 0 7px,#c4bdb0 7px 14px);color:rgba(21,16,42,.72);box-shadow:0 0 0 2px rgba(21,16,42,.7),2px 3px 0 2px rgba(21,16,42,.55)}
+.rt-tier:not(.on) .mdl.m0 .dk{stroke:rgba(21,16,42,.45)}
+:root:not(#_):not(#_):not(#_) #menu .rt-tier.on.t3{background:var(--sp-gold)}
+#menu.sp-full #rtBody .rt-go{--sp-ph:clamp(54px,12vh,96px);--sp-pt:calc(var(--sp-ph) * .4)}
+
+/* ---- PERFIL: nivel (sello dorado + barra de pintura) sobre brochazo crema, vitrina en pegatinas redondas, álbum en fichas ---- */
+#menu.sp-full #mpProf{gap:clamp(8px,1.8vh,18px)}
+:root:not(#_):not(#_):not(#_) #menu .pf-top{flex:none;display:flex;align-items:center;gap:clamp(10px,2vh,22px);margin:0}
+:root:not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket{flex:1 1 0;display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:2px;min-width:0;min-height:0;width:auto;
+  padding:clamp(8px,1.6vh,14px) clamp(16px,3vh,26px) clamp(12px,2.2vh,20px) clamp(12px,2.2vh,20px);white-space:normal;cursor:default;pointer-events:none;animation:none;transform:rotate(-.6deg);color:var(--sp-ink);text-align:left}
+.pf-card.sp-ticket{--sp-c:var(--sp-cream);--sp-d:var(--sp-kit)}
+/* sello del nivel a la izquierda (alto entero) y, a su lado, barra, XP, siguiente premio y cifras */
+:root:not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:clamp(10px,2vh,18px);row-gap:2px;align-content:center}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-lv{display:contents}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-lv>*{position:relative;z-index:1}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-n{grid-column:1;grid-row:1/4;align-self:center}
+:root:not(#_):not(#_):not(#_) #menu .pf-card :is(.pf-bx,.pf-nx,.pf-st){grid-column:2}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-n{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;width:clamp(46px,9vh,72px);height:clamp(46px,9vh,72px);border-radius:50%;
+  background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 4px var(--sp-gold),inset 0 0 0 5.5px rgba(21,16,42,.35),2px 4px 0 3px var(--sp-ink);
+  font:400 clamp(18px,3.8vh,30px)/.9 var(--sp-pop);letter-spacing:0;text-shadow:none;transform:rotate(-10deg)}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-n small{margin:0 0 1px;font:800 clamp(8px,1.3vh,10px)/1 var(--sp-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-bx{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-bar{height:clamp(10px,1.8vh,14px);border-radius:7px 3px 6px 4px;background:rgba(21,16,42,.16);box-shadow:0 0 0 2.5px var(--sp-ink);overflow:visible;transform:rotate(-.5deg)}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-bar i{position:relative;border-radius:inherit;background:var(--sp-kit)}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-bar i::after{content:"";position:absolute;right:3px;top:65%;width:6px;height:9px;border-radius:2px 2px 6px 6px;background:var(--sp-kit);box-shadow:0 0 0 2px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-xp{font:800 clamp(11px,1.8vh,13.5px)/1 var(--sp-ui);color:var(--sp-ink);font-variant-numeric:tabular-nums}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-nx{margin:4px 0 0;font:400 clamp(12px,2.2vh,16px)/1.15 var(--sp-pop);letter-spacing:.01em;color:var(--sp-ink);text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .pf-card .pf-st{margin:2px 0 0;font:700 clamp(10.5px,1.7vh,13px)/1.2 var(--sp-ui);color:rgba(21,16,42,.78);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* vitrina: «Vitrina» en pegatina y los 3 huecos en pegatinas redondas (vacío = cinta gris «Libre») */
+:root:not(#_):not(#_):not(#_) #menu .pf-vit{flex:0 1 auto;display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0;padding:0;background:none;box-shadow:none;border-radius:0}
+:root:not(#_):not(#_):not(#_) #menu .pf-vk{display:inline-flex;align-items:center;margin:0 0 0 4px;padding:3px 9px 2px;border-radius:7px 11px 8px 12px/9px 8px 11px 7px;background:var(--sp-gold);color:var(--sp-ink);
+  box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);font:400 clamp(10px,1.7vh,13px)/1.1 var(--sp-pop);letter-spacing:.04em;text-transform:uppercase;transform:rotate(-3deg)}
+:root:not(#_):not(#_):not(#_) #menu .pf-vk small{display:none}
+:root:not(#_):not(#_):not(#_) #menu .pf-vs{display:flex;gap:clamp(8px,1.6vh,14px);padding:2px 4px 4px}
+:root:not(#_):not(#_):not(#_) #menu .pf-v{position:relative;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;width:clamp(54px,10.5vh,86px);height:clamp(54px,10.5vh,86px);padding:4px;border-radius:50%;
+  box-sizing:border-box;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 4px 0 2.5px var(--sp-ink);font:700 clamp(8.5px,1.4vh,11px)/1.05 var(--sp-ui);text-align:center;transform:rotate(-6deg)}
+:root:not(#_):not(#_):not(#_) #menu .pf-v:nth-child(2){transform:rotate(5deg)}
+:root:not(#_):not(#_):not(#_) #menu .pf-v:nth-child(3){transform:rotate(-2deg)}
+:root:not(#_):not(#_):not(#_) #menu .pf-v .pf-si{width:46%;height:46%;color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .pf-v.t1{background:#f0b27a}:root:not(#_):not(#_):not(#_) #menu .pf-v.t2{background:#e3ebf3}:root:not(#_):not(#_):not(#_) #menu .pf-v.t3{background:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .pf-v.free{background:repeating-linear-gradient(-45deg,rgba(207,201,189,.82) 0 7px,rgba(196,189,176,.82) 7px 14px);color:rgba(21,16,42,.7);
+  box-shadow:0 0 0 2px rgba(21,16,42,.7),2px 3px 0 2px rgba(21,16,42,.5);font:400 clamp(10px,1.7vh,13px)/1 var(--sp-pop);text-transform:uppercase;letter-spacing:.03em}
+/* álbum: fichas de pegatina (contorno de tinta, sombra dura, cada una con su silueta e inclinación); por conseguir = cinta gris */
+:root:not(#_):not(#_):not(#_) #menu .pf-grid{flex:0 1 auto;min-height:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(68px,11.6vh,90px),1fr));grid-auto-rows:clamp(64px,11vh,84px);
+  gap:clamp(10px,1.8vh,16px);overflow-y:auto;overflow-x:hidden;margin:-6px -14px -6px -8px;padding:8px 16px 14px 10px;align-content:start;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.5) transparent;overscroll-behavior:contain}
+:root:not(#_):not(#_):not(#_) #menu .pf-s{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;height:auto;min-width:0;margin:0;padding:6px 5px 5px;border:0;
+  border-radius:18px 12px 16px 10px/12px 18px 10px 16px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);outline:none;filter:none;
+  font:700 clamp(9.5px,1.55vh,12px)/1.1 var(--sp-ui);letter-spacing:0;text-transform:none;text-shadow:none;text-align:center;cursor:pointer;transform:rotate(var(--pf-t,-1.5deg));transition:transform .14s var(--ease)}
+#menu .pf-s:nth-child(4n+2){--pf-t:1.4deg}
+#menu .pf-s:nth-child(4n+3){--pf-t:-.6deg}
+#menu .pf-s:nth-child(4n){--pf-t:2deg}
+:root:not(#_):not(#_):not(#_) #menu .pf-s:nth-child(4n+2){border-radius:12px 18px 10px 16px/16px 10px 18px 12px}
+:root:not(#_):not(#_):not(#_) #menu .pf-s:nth-child(4n+3){border-radius:16px 10px 18px 12px/10px 16px 12px 18px}
+:root:not(#_):not(#_):not(#_) #menu .pf-s:nth-child(4n){border-radius:10px 16px 12px 18px/18px 12px 16px 10px}
+:root:not(#_):not(#_):not(#_) #menu .pf-s .pf-si{width:44%;height:44%;max-width:40px;max-height:40px;color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .pf-s.on.t1{background:#f0b27a}:root:not(#_):not(#_):not(#_) #menu .pf-s.on.t2{background:#e3ebf3}:root:not(#_):not(#_):not(#_) #menu .pf-s.on.t3{background:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .pf-s.on .pf-si{color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-s.off{background:repeating-linear-gradient(-45deg,rgba(190,184,172,.86) 0 7px,rgba(176,169,157,.86) 7px 14px);color:rgba(21,16,42,.72);
+  box-shadow:0 0 0 2px rgba(21,16,42,.75),2px 3px 0 2px rgba(21,16,42,.5);outline:none}
+:root:not(#_):not(#_):not(#_) #menu .pf-s.off .pf-si{width:30%;height:30%;color:rgba(21,16,42,.6);opacity:1}
+:root:not(#_):not(#_):not(#_) #menu .pf-s.new::after{content:"";position:absolute;top:-4px;right:-4px;width:12px;height:12px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-s.pin::before{content:"";position:absolute;top:-6px;left:-5px;width:16px;height:16px;border-radius:50%;background:var(--sp-gold);box-shadow:0 0 0 2.5px var(--sp-ink);transform:none}
+:root:not(#_):not(#_):not(#_) #menu .pf-s:hover{transform:rotate(var(--pf-t,-1.5deg)) scale(1.04)}
+:root:not(#_):not(#_):not(#_) #menu .pf-s:is(.kf,:focus-visible){transform:rotate(0deg) scale(1.08);z-index:1;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 6px var(--sp-gold),3px 5px 0 6px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-s:active{transform:rotate(var(--pf-t,-1.5deg)) scale(.95)}
+/* pie: de dónde sale el hueco (Rubik crema con tinta) y «Fijar en la vitrina» en pegatina dorada pequeña */
+:root:not(#_):not(#_):not(#_) #menu .pf-foot{flex:none;display:flex;align-items:center;gap:12px;min-height:44px;margin:0}
+:root:not(#_):not(#_):not(#_) #menu #pfFoot{font:600 clamp(11px,1.9vh,14px)/1.25 var(--sp-ui);color:var(--sp-cream);text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-pin.sp-btn{flex:none;height:auto;--sp-px:14px}
+:root:not(#_):not(#_):not(#_) #menu .pf-pin.sp-btn[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #menu .pf-pin .pf-pinc{flex-direction:row;align-items:center;gap:6px}
+:root:not(#_):not(#_):not(#_) #menu .pf-pin .key{min-width:1.6em;height:1.6em;padding:0 .4em;border:0;border-radius:5px 7px 5px 6px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);
+  font:800 .8em/1 var(--sp-ui);text-shadow:none}
+:root:not(#_):not(#_):not(#_) #menu .pf-ro{flex:none;margin:0;font:700 13px/1.3 var(--sp-ui);color:var(--sp-gold);text-shadow:1px 1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .pf-ro[hidden]{display:none}
+/* avisos del perfil y del Vestuario: pegatina de tinta con filo crema */
+:root:not(#_):not(#_):not(#_) :is(#pfNote,#lkNote){padding:9px 16px 8px;border-radius:12px 18px 14px 20px/16px 12px 18px 14px;background:var(--sp-ink);color:var(--sp-cream);
+  box-shadow:0 0 0 2.5px var(--sp-cream),0 0 0 5px var(--sp-ink),4px 6px 0 5px var(--sp-ink);font:400 clamp(13px,2.2vh,17px)/1.2 var(--sp-pop);letter-spacing:.01em}
+#pfNote.on{transform:translate(-50%,0) rotate(-1.5deg)}
+/* chip del perfil (pie de la portada): pegatina de tinta con el aro dorado del nivel */
+:root:not(#_):not(#_):not(#_) #btnProf.pf-chip{height:40px;padding:0 14px 0 4px;border-radius:22px 16px 20px 14px/18px 22px 14px 20px;background:var(--sp-ink);color:var(--sp-cream);
+  box-shadow:0 0 0 2.5px var(--sp-cream),0 0 0 4.5px var(--sp-ink),3px 4px 0 4.5px var(--sp-ink);font:400 13px/1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;transform:rotate(-2deg)}
+:root:not(#_):not(#_):not(#_) #btnProf.pf-chip[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #btnProf.pf-chip:is(.kf,:focus-visible){background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-cream),3px 4px 0 5.5px var(--sp-ink);transform:rotate(0) scale(1.06)}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-ring{width:32px;height:32px}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-ring .tr{stroke:rgba(255,244,220,.22)}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-ring b{font:400 13px/1 var(--sp-pop);color:inherit}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-ring small{color:inherit;opacity:.75}
+:root:not(#_):not(#_):not(#_) #btnProf:is(.kf,:focus-visible) .pf-ring .ar{stroke:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-ic{width:22px;height:22px;border-radius:50%;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 1.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-ic.t1{background:#f0b27a}:root:not(#_):not(#_):not(#_) #btnProf .pf-ic.t2{background:#e3ebf3}:root:not(#_):not(#_):not(#_) #btnProf .pf-ic.t3{background:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-ic svg{width:14px;height:14px}
+:root:not(#_):not(#_):not(#_) #btnProf .pf-dot{top:-3px;right:-2px;width:12px;height:12px;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
+
+/* ---- VESTUARIO: columna a la izquierda (el muñeco y #lkSpin a la derecha); lo vacío de la página deja pasar el dedo al giro ---- */
+#menu.sp-full #mpLook{--lkw:clamp(320px,38vw,480px);--sp-colw:var(--lkw);justify-content:flex-start;gap:clamp(8px,1.6vh,14px);pointer-events:none;height:auto}
+#menu.sp-full #mpLook>*{pointer-events:auto}
+:root:not(#_):not(#_):not(#_) #menu .lk-top{flex:none;display:flex;align-items:center;gap:clamp(8px,1.6vh,14px);margin:0}
+:root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven){gap:4px;padding:0;background:none;box-shadow:none;border-radius:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-ven[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbh:44px;--sp-tbs:clamp(12px,2vh,15px);height:auto;padding:0 12px}
+:root:not(#_):not(#_):not(#_) #menu .lk-bar{flex:none;gap:clamp(6px,1.4vh,12px);margin:0}
+:root:not(#_):not(#_):not(#_) #menu #lkTabs .tab{--sp-tbh:44px;min-width:44px;padding:0 10px;gap:5px}
+:root:not(#_):not(#_):not(#_) #menu #lkTabs .tb-row{justify-content:flex-start}
+:root:not(#_):not(#_):not(#_) #menu #lkTabs .tab svg{width:18px;height:18px;filter:drop-shadow(1.5px 1.5px 0 var(--sp-ink))}
+:root:not(#_):not(#_):not(#_) #menu #lkTabs .tab:is(.on,.kf,:focus-visible) svg{filter:none}
+:root:not(#_):not(#_):not(#_) #menu #lkTabs .tab.lk-new::after{content:"";display:block;position:static;width:8px;height:8px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2px var(--sp-ink);flex:none;opacity:1}
+:root:not(#_):not(#_):not(#_) #menu .lk-foot{gap:clamp(6px,1.2vh,10px);padding:4px 6px 8px}
+:root:not(#_):not(#_):not(#_) #menu .lk-foot .sp-btn,:root:not(#_):not(#_):not(#_) #lkSpin .lk-rot .sp-btn{width:46px;height:46px;min-height:0;padding:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-foot .sp-btn>svg:not(.sp-blob){position:relative;z-index:1;width:22px;height:22px;fill:currentColor;stroke:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-foot .sp-btn>svg.st,:root:not(#_):not(#_):not(#_) #lkSpin .lk-rot .sp-btn>svg:not(.sp-blob){position:relative;z-index:1;width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) #menu .lk-foot .sp-btn[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #lkSpin .lk-rot{gap:14px}
+:root:not(#_):not(#_):not(#_) #menu .lk-help{flex:none;margin:0;font:700 clamp(11px,1.8vh,13.5px)/1.25 var(--sp-ui);color:var(--sp-gold);text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .lk-help[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #menu #lkList{flex:1 1 auto;gap:clamp(9px,1.6vh,14px)}
+#menu.sp-full #lkList.has-more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 34px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 34px),transparent)}
+/* fila: rótulo dorado, valor (muestra, nombre y estrellas) y ayuda; flechas en pegatina crema a la derecha */
+.lk-r.sp-btn{--sp-cf:var(--sp-ink2);--sp-tcf:var(--sp-cream);--sp-icf:var(--sp-gold);--sp-aw:clamp(28px,4.8vh,34px)}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.sp-btn{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;justify-content:stretch;width:100%;min-height:clamp(54px,9.6vh,72px);
+  padding:3px 6px 5px clamp(12px,2.2vh,18px);gap:4px;white-space:normal;text-transform:none;letter-spacing:0;font:inherit}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.sp-btn:is(.kf,:focus-visible){animation:none;transform:rotate(var(--sp-tilt,0deg)) scale(1.02)}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .mi-l{display:flex;flex-direction:column;align-items:flex-start;gap:1px;min-width:0;margin:0;padding:0;font:inherit;color:inherit;text-transform:none;letter-spacing:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .lk-k{font:400 clamp(10px,1.7vh,13px)/1.1 var(--sp-pop);letter-spacing:.06em;text-transform:uppercase;color:var(--sp-gold);transform:rotate(-2deg);transform-origin:0 50%}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .lk-v{font:700 clamp(13.5px,2.4vh,18px)/1.15 var(--sp-ui);color:var(--sp-cream);gap:1px 7px}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .lk-st{color:var(--sp-gold);font-size:.78em}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .lk-sw{width:clamp(22px,3.8vh,28px);height:clamp(22px,3.8vh,28px);box-shadow:0 0 0 2.5px var(--sp-cream),0 0 0 4px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .mi-h{margin:1px 0 0;font:600 clamp(10px,1.65vh,12.5px)/1.2 var(--sp-ui);color:rgba(255,244,220,.78);text-transform:none;letter-spacing:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .mi-v{display:flex;align-items:center;align-self:center;gap:2px;margin:0;font:inherit}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .mi-v .arr{width:44px;height:44px;align-self:center;margin:0;border-radius:50%;background:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-r .mi-v .arr svg{stroke:var(--sp-ink)}
+/* bloqueado: la pegatina se apaga y lleva una tira de cinta gris (se puede probar, no se guarda) */
+.lk-r.lock.sp-btn{--sp-c:#4a4560;--sp-cf:#5b5576}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.lock .lk-n{color:rgba(255,244,220,.75)}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.lock .lk-lk{display:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.lock .mi-h{color:#ffe08a}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.lock::before{content:"";display:block;position:absolute;right:58px;top:-7px;left:auto;width:54px;height:15px;border-radius:2px;z-index:2;opacity:1;
+  background:repeating-linear-gradient(90deg,rgba(214,208,196,.95) 0 6px,rgba(198,191,178,.95) 6px 12px);box-shadow:0 1px 0 rgba(21,16,42,.35);transform:rotate(7deg);pointer-events:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.sp-dot::after{right:6px;top:-2px}
+#menu.sp-full #mpLook .lk-empty{margin:4px 2px;font:600 14px/1.3 var(--sp-ui);color:var(--sp-cream);text-shadow:1px 1px 0 var(--sp-ink)}
+
+/* ---- teléfono apaisado (alto ≤ 430 px) ---- */
+@media (max-height:430px) and (min-aspect-ratio:5/4){
+  #menu.sp-full :is(#mpRetos,#mpGym){--sp-colw:min(560px,calc(100vw - 40px - var(--sl) - var(--sr)))}
+  #menu.sp-full #mpProf{--sp-colw:calc(100vw - 32px - var(--sl) - var(--sr))}
+  #menu.sp-full :is(#mpRetos,#mpGym,#mpProf){gap:6px}
+  #menu.sp-full #mpProf{padding-bottom:calc(14px + var(--sbm))}
+  :root:not(#_):not(#_):not(#_) #menu .pf-foot{padding-right:44px}
+  :root:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r).sp-btn{min-height:46px;padding:1px 24px 3px 8px;gap:8px;--sp-fs:14px}
+  :root:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r) .sp-s{display:none}
+  :root:not(#_):not(#_):not(#_) #menu .gy-d .sp-bar{display:none}
+  :root:not(#_):not(#_):not(#_) #menu .gy-rec b{font-size:13px}
+  :root:not(#_):not(#_):not(#_) #menu .gy-rec small{font-size:10.5px}
+  .sp-medal{--sp-md:32px}
+  .sp-bar{height:7px;margin:3px 0 1px}
+  :root:not(#_):not(#_):not(#_) #menu :is(#rtBody,#gymList,#lkList){gap:9px;padding:8px 18px 16px 12px}
+  #menu.sp-full #gymList .gy-free{--sp-ph:48px;--sp-pt:19px}
+  :root:not(#_):not(#_):not(#_) #menu #rtTabs .tab{--sp-tbh:44px;--sp-tbs:13px}
+  :root:not(#_):not(#_):not(#_) #menu :is(#gymFoot,#rtFoot){display:none}
+  :root:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket{padding:6px 18px 10px 10px;gap:10px}
+  :root:not(#_):not(#_):not(#_) #menu .rt-day .sp-stamp{--sp-stamp:58px}
+  :root:not(#_):not(#_):not(#_) #menu .rt-day .rt-map{font-size:18px}
+  :root:not(#_):not(#_):not(#_) #menu .rt-tier{padding:2px 8px 2px 3px;font-size:10.5px}
+  :root:not(#_):not(#_):not(#_) #menu .rt-tier .mdl{width:24px;height:24px}
+  #menu.sp-full #rtBody .rt-go{--sp-ph:48px;--sp-pt:19px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket{padding:4px 16px 8px 10px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-card .pf-n{width:38px;height:38px;font-size:16px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-card .pf-st{display:none}
+  :root:not(#_):not(#_):not(#_) #menu .pf-v{width:44px;height:44px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{display:none}
+  :root:not(#_):not(#_):not(#_) #menu .pf-v.free{font-size:9px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-vk{display:none}
+  :root:not(#_):not(#_):not(#_) #menu #pfTabs .tab{--sp-tbh:44px;--sp-tbs:12px;padding:0 9px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));grid-auto-rows:58px;gap:10px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-s .pf-si{width:24px;height:24px}
+  #menu.sp-full #mpLook{--lkw:min(330px,48vw);gap:6px}
+  :root:not(#_):not(#_):not(#_) #menu .lk-r.sp-btn{min-height:48px;padding:2px 4px 3px 10px}
+  :root:not(#_):not(#_):not(#_) #menu .lk-r .mi-h{display:none}
+  :root:not(#_):not(#_):not(#_) #menu .lk-r .lk-v{font-size:14px}
+  .lk-r.sp-btn{--sp-aw:26px}
+  :root:not(#_):not(#_):not(#_) #menu #lkTabs .tab{padding:0 8px}
+  /* el pie en iconos sube a la línea del título (a la derecha de «Vestuario»): la barra queda entera para las 7 pestañas de 44 px */
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{position:static}
+  :root:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs{flex:1 1 auto}
+  :root:not(#_):not(#_):not(#_) #menu .lk-foot{position:absolute;top:calc(6px + var(--st));left:calc(var(--lkw) - 34px);padding:0}
+  :root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{padding:0 9px;--sp-tbs:12px}
+}
+/* ---- vertical: cabecera arriba, el partido (o el muñeco) en medio y lo demás abajo ---- */
+@media (max-aspect-ratio:5/4){
+  #menu.sp-full :is(#mpRetos,#mpGym){justify-content:flex-start}
+  #menu.sp-full :is(#mpRetos,#mpGym) .sp-head{margin-bottom:auto}
+  #menu.sp-full #mpProf{justify-content:flex-start}
+  /* «Entrenamiento» no cabe junto a «Volver» a 360 px: Volver queda en flecha (44 px) */
+  :root:not(#_):not(#_):not(#_) #menu #mpGym .sp-back span{display:none}
+  :root:not(#_):not(#_):not(#_) #menu #mpGym .sp-back{padding:0 12px 0 10px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-top{flex-direction:column;align-items:stretch}
+  :root:not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket{flex:none}
+  :root:not(#_):not(#_):not(#_) #menu .rt-tiers{flex-direction:column;gap:8px}
+  :root:not(#_):not(#_):not(#_) #menu .rt-tier{flex:none}
+  :root:not(#_):not(#_):not(#_) #menu .rt-day .rt-map{white-space:normal}
+  :root:not(#_):not(#_):not(#_) #menu .pf-vit{flex-direction:row;align-items:center}
+  :root:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{display:none}
+  :root:not(#_):not(#_):not(#_) #menu .pf-v{width:52px;height:52px}
+  :root:not(#_):not(#_):not(#_) #menu .pf-grid{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));grid-auto-rows:70px}
+  #menu.sp-full #mpLook{max-height:none;--lkw:auto;left:calc(var(--sp-pad) + var(--sl));right:calc(var(--sp-pad) + var(--sr));width:auto;max-width:none;justify-content:flex-start;padding-top:calc(var(--sp-pad) + var(--st))}
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .lk-top{margin-top:auto}
+  :root:not(#_):not(#_):not(#_) #menu .lk-bar{width:100%;max-width:none;flex-wrap:nowrap}
+  :root:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs{flex:1 1 auto}
+  :root:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs .tb-row{gap:2px;padding:4px 2px 6px}
+  :root:not(#_):not(#_):not(#_) #menu #lkTabs.tabs-ic .tab.on .tb-t{display:none}
+  :root:not(#_):not(#_):not(#_) #menu #lkTabs.tabs-ic .tab.on svg{display:block!important;width:20px;height:20px}
+  /* el pie en iconos, en columna a la derecha sobre el hueco del muñeco (una fila menos abajo) */
+  :root:not(#_):not(#_):not(#_) #menu .lk-foot{position:absolute;right:-4px;bottom:calc(100% + 66px);flex-direction:column;padding:0}
+  :root:not(#_):not(#_):not(#_) #menu #lkList{flex:0 1 auto;max-height:30vh}
+}
+/* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 </style>
 
 <div id="app">
@@ -3849,46 +4162,49 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
       </div>
       <div class="ol-body"></div>
     </div>
-    <!-- ENTRENAMIENTO (E6, sprint 5): 5 ejercicios con medallas y el peloteo libre (filas de js/gym.js; ui.js renderGym) -->
-    <div class="mpage" id="mpGym" data-page="gym" hidden>
-      <div class="mp-head">
-        <button class="mp-back" id="btnGymBack" aria-label="Volver a los modos de juego"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><p class="kicker">Jugar</p><h2 class="mp-t">Entrenamiento</h2></div>
+    <!-- ENTRENAMIENTO (E6, sprint 5; SPLAT 17-nov-2026): 5 ejercicios con medallas en pegatinas de colores (medalla en pegatina redonda,
+         récord y barra de pintura hasta la siguiente medalla) y el peloteo libre en parche cosido (filas de js/gym.js; ui.js renderGym) -->
+    <div class="mpage sp-page" id="mpGym" data-page="gym" data-sp-full hidden>
+      <div class="mp-head sp-head">
+        <button class="mp-back sp-back" id="btnGymBack" aria-label="Volver a los modos de juego" data-shape="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Entrenamiento</h2></div>
       </div>
       <div class="qlist gy-list" id="gymList" data-nav aria-label="Ejercicios"></div>
       <p class="gy-foot" id="gymFoot"></p>
     </div>
-    <!-- RETOS (D1): pestañas Hoy | Maestría (ui.js renderRetos; datos de js/retos.js) -->
-    <div class="mpage" id="mpRetos" data-page="retos" hidden>
-      <div class="mp-head">
-        <button class="mp-back" id="btnRetosBack" aria-label="Volver a los modos de juego"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><p class="kicker">Jugar</p><h2 class="mp-t">Retos</h2></div>
+    <!-- RETOS (D1; SPLAT 17-nov-2026): pestañas Hoy | Maestría en trazos de pincel (ui.js renderRetos; datos de js/retos.js). Hoy = brochazo
+         turquesa con el sello dorado de la medalla de hoy, las tres medallas en pegatina y «¡A jugar!» en parche; Maestría = pegatinas del color del grupo
+         (doradas con el oro) con la medalla en pegatina redonda y la barra de pintura hasta la siguiente -->
+    <div class="mpage sp-page" id="mpRetos" data-page="retos" data-sp-full hidden>
+      <div class="mp-head sp-head">
+        <button class="mp-back sp-back" id="btnRetosBack" aria-label="Volver a los modos de juego" data-shape="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Retos</h2></div>
       </div>
-      <div class="rt-tabs" id="rtTabs"></div>
+      <div class="rt-tabs sp-tabs" id="rtTabs"></div>
       <div class="qlist rt-list" id="rtBody" data-nav aria-label="Retos"></div>
       <p class="gy-foot rt-foot" id="rtFoot"></p>
     </div>
     <!-- VESTUARIO (1.1.0, look-spec §6): aspecto de los n.º 1 y 2 y del jugador de la Carrera. Mitad izquierda: selector, escenario,
          pestañas con el pie en iconos y filas con flechas (ui.js lkRender). Mitad derecha: el muñeco de muestra (main.js lo pinta en la
          escena del menú) y #lkSpin para girarlo. Se guarda al salir. -->
-    <div class="mpage" id="mpLook" data-page="look" hidden>
-      <div class="mp-head">
-        <button class="mp-back" id="btnLookBack" aria-label="Volver y guardar el aspecto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><p class="kicker">Jugadores</p><h2 class="mp-t">Vestuario</h2></div>
+    <div class="mpage sp-page" id="mpLook" data-page="look" data-sp-full hidden>
+      <div class="mp-head sp-head">
+        <button class="mp-back sp-back" id="btnLookBack" aria-label="Volver y guardar el aspecto" data-shape="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker sp-k">Jugadores</p><h2 class="mp-t sp-h">Vestuario</h2></div>
       </div>
       <div class="lk-top">
         <div class="lk-pick" id="lkPick" data-nav role="radiogroup" aria-label="Jugador"></div>
         <div class="lk-ven" id="lkVen" data-nav role="radiogroup" aria-label="Escenario">
-          <button type="button" role="radio" data-ven="hall" aria-checked="true">En pista</button><button type="button" role="radio" data-ven="beach" aria-checked="false">En playa</button>
+          <button type="button" class="sp-tab" role="radio" data-ven="hall" aria-checked="true">En pista</button><button type="button" class="sp-tab" role="radio" data-ven="beach" aria-checked="false">En playa</button>
         </div>
       </div>
       <div class="lk-bar">
-        <div id="lkTabs" aria-label="Apartado del vestuario"></div>
+        <div id="lkTabs" class="sp-tabs" aria-label="Apartado del vestuario"></div>
         <div class="lk-foot" id="lkFoot" data-nav role="toolbar" aria-label="Acciones">
-          <button type="button" data-lkf="try" aria-label="Probar" title="Probar (pose y cara)"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM10 7.8v8.4l6.4-4.2z"/></svg></button>
-          <button type="button" data-lkf="rand" aria-label="Al azar" title="Al azar"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 3.2a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z"/></svg></button>
-          <button type="button" data-lkf="reset" aria-label="Restablecer este apartado" title="Restablecer este apartado"><svg viewBox="0 0 24 24" aria-hidden="true" class="st"><path d="M5 9.5h10a5 5 0 0 1 0 10H8.5"/><path d="M9 5 4.5 9.5 9 14"/></svg></button>
-          <button type="button" data-lkf="copy" aria-label="Copiar a playa" title="Copiar a playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h9.5A1.5 1.5 0 0 1 20 3.5V17h-2.4V4.4H9z"/><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h9A1.5 1.5 0 0 1 16 7.5v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 20.5z"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-kit sp-noshine" data-shape="0" data-lkf="try" aria-label="Probar" title="Probar (pose y cara)"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM10 7.8v8.4l6.4-4.2z"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-alt sp-noshine" data-shape="1" data-lkf="rand" aria-label="Al azar" title="Al azar"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 3.2a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="2" data-lkf="reset" aria-label="Restablecer este apartado" title="Restablecer este apartado"><svg viewBox="0 0 24 24" aria-hidden="true" class="st"><path d="M5 9.5h10a5 5 0 0 1 0 10H8.5"/><path d="M9 5 4.5 9.5 9 14"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-teal sp-noshine" data-shape="0" data-lkf="copy" aria-label="Copiar a playa" title="Copiar a playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h9.5A1.5 1.5 0 0 1 20 3.5V17h-2.4V4.4H9z"/><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h9A1.5 1.5 0 0 1 16 7.5v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 20.5z"/></svg></button>
         </div>
       </div>
       <p class="lk-help" id="lkHelp" hidden></p>
@@ -3896,22 +4212,22 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
     </div>
     <!-- Vestuario: mitad derecha (arrastrar gira el muñeco; botones de 44 px para el dedo) -->
     <div id="lkSpin" hidden>
-      <div class="lk-rot"><button type="button" data-rot="-1" aria-label="Girar a la izquierda" title="Girar (Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5A8 8 0 1 1 4.6 14"/><path d="M3.5 4.5 8 6.5l-1.6 4.6"/></svg></button><button type="button" data-rot="1" aria-label="Girar a la derecha" title="Girar (X)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6.5A8 8 0 1 0 19.4 14"/><path d="M20.5 4.5 16 6.5l1.6 4.6"/></svg></button></div>
+      <div class="lk-rot"><button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="1" data-rot="-1" aria-label="Girar a la izquierda" title="Girar (Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5A8 8 0 1 1 4.6 14"/><path d="M3.5 4.5 8 6.5l-1.6 4.6"/></svg></button><button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="2" data-rot="1" aria-label="Girar a la derecha" title="Girar (X)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6.5A8 8 0 1 0 19.4 14"/><path d="M20.5 4.5 16 6.5l1.6 4.6"/></svg></button></div>
     </div>
     <!-- PERFIL (S4 D2): nivel de perfil, vitrina y álbum (ui.js pfRender; datos de js/profile.js). Se abre con el chip #btnProf -->
-    <div class="mpage" id="mpProf" data-page="prof" hidden>
-      <div class="mp-head">
-        <button class="mp-back" id="btnProfBack" aria-label="Volver al menú principal"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><p class="kicker" id="pfKick" hidden></p><h2 class="mp-t">Perfil</h2></div>
+    <div class="mpage sp-page" id="mpProf" data-page="prof" data-sp-full hidden>
+      <div class="mp-head sp-head">
+        <button class="mp-back sp-back" id="btnProfBack" aria-label="Volver al menú principal" data-shape="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker sp-k" id="pfKick" hidden></p><h2 class="mp-t sp-h">Perfil</h2></div>
       </div>
       <div class="pf-top">
-        <div class="pf-card" id="pfCard"></div>
+        <div class="pf-card sp-ticket sp-noshine" id="pfCard" data-shape="1"></div>
         <div class="pf-vit" id="pfVit"></div>
       </div>
       <p class="pf-ro" id="pfRo" hidden>Este perfil viene de una versión más nueva del juego. Recarga para actualizar.</p>
-      <div id="pfTabs"></div>
+      <div id="pfTabs" class="sp-tabs"></div>
       <div class="pf-grid" id="pfGrid" data-nav role="tabpanel" aria-label="Álbum"></div>
-      <div class="pf-foot" data-nav><p id="pfFoot" aria-live="polite"></p><button type="button" class="pf-pin" id="pfPin" hidden></button></div>
+      <div class="pf-foot" data-nav><p id="pfFoot" aria-live="polite"></p><button type="button" class="pf-pin sp-btn sp-sm sp-gold sp-calm" id="pfPin" data-shape="1" hidden><span class="sp-l pf-pinc"></span></button></div>
     </div>
     <p id="lkNote" role="status" aria-live="off"></p>
     <p id="pfNote" role="status"></p>
