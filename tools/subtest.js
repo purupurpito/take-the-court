@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/subtest.js  (owner: sim)
+/* MAKE THE CUT — tools/subtest.js  (owner: sim)
  * Banquillo y cambios del 6v6 (notes/titularidad-y-cambios.md §B, §I y §T2.6). Carga js/sim.js + js/ai.js + js/ai6.js con vm (como
  * tools/fingerprint6.js) y comprueba:
  *  (1) sin banquillo: ni g.subsOn ni eventos 'sub'; mismos puntos, marcador y llamadas a g.rng que antes de existir los cambios

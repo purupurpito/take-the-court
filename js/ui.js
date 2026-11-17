@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/ui.js   (owner: ui_main)
+ * MAKE THE CUT — js/ui.js   (owner: ui_main)
  * Interfaz en DOM sobre el lienzo, en castellano:
  *   - Marcador de retransmisión (sets, puntos, saque, punto de set/partido,
  *     historial de sets), contador de toques del equipo (recepción/defensa,
@@ -351,7 +351,7 @@
   var pstats = newStats();
   function liveStats(g) { return ctx.net && g && g.online && !g.demo ? pstats : stats; }
 
-  function loadRecord() { try { var r = JSON.parse(localStorage.getItem('voley3d.record') || 'null'); if (r && typeof r.played === 'number') for (var k in record) if (typeof r[k] === typeof record[k]) record[k] = r[k]; } catch (e) { } record.byD = cleanByD(record.byD); }
+  function loadRecord() { try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); if (r && typeof r.played === 'number') for (var k in record) if (typeof r[k] === typeof record[k]) record[k] = r[k]; } catch (e) { } record.byD = cleanByD(record.byD); }
   /** record.byD saneado: solo claves de dificultad (VB.DIFF) con un par de enteros ≥ 0; lo demás fuera ({} si no hay nada). */
   function cleanByD(o) {
     var out = {}, ks = VB.DIFF_ORDER || ['easy', 'normal', 'hard', 'expert'];
@@ -363,7 +363,7 @@
     }
     return out;
   }
-  function saveRecord() { try { localStorage.setItem('voley3d.record', JSON.stringify(record)); } catch (e) { } }
+  function saveRecord() { try { localStorage.setItem('make-the-cut.record', JSON.stringify(record)); } catch (e) { } }
   function click() { sndT = performance.now(); if (VB.Audio && VB.Audio.click) try { VB.Audio.click(); } catch (e) { } }
   function uiSound(kind) { sndT = performance.now(); try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(kind); else click(); } catch (e) { } }
   // B4: un sonido por tipo de acción. uiK(tipo, reserva, a, b): VB.Audio.ui(tipo) si audio.js lo tiene (VB.Audio.UI_KINDS); si no, la
@@ -1835,14 +1835,14 @@
   // La primera recepción, la primera colocación y el primer remate del jugador nuevo llegan a cámara lenta
   // con una tarjeta grande que dice exactamente qué pulsar. Una sola vez por tipo.
   // SOLO EN FÁCIL O EN LOS PRIMEROS PARTIDOS (11-nov-2026, pedido de Ferran: «hace el juego demasiado fácil»). El récord
-  // (voley3d.record) no cuenta el 6v6 ni la Carrera (showEnd), así que quien solo juega esos modos era «novato» para siempre
+  // (make-the-cut.record) no cuenta el 6v6 ni la Carrera (showEnd), así que quien solo juega esos modos era «novato» para siempre
   // y veía la cámara lenta en TODOS los partidos, también en Normal. Ahora el novato sigue siendo el que no tiene partidos en
-  // el récord, pero a partir de Normal la guía dura como mucho GUIDE_MAX partidos (contador local voley3d.guided: partidos en
+  // el récord, pero a partir de Normal la guía dura como mucho GUIDE_MAX partidos (contador local make-the-cut.guided: partidos en
   // los que ha salido alguna tarjeta; solo en este dispositivo, no se sincroniza). En Fácil, como antes. La cámara lenta pasa
   // por CameraRig.slowmo(…, 'novice'), que a partir de Normal solo la deja entrar con esa certificación (camera.js aidOk).
   var guideT = 0, guideDone = {}, GUIDE_MAX = 3, guidedN = -1;
-  function guidedLoad() { if (guidedN < 0) { guidedN = 0; try { guidedN = Math.max(0, +localStorage.getItem('voley3d.guided') | 0); } catch (e) { } } return guidedN; }
-  function guidedBump() { guidedLoad(); guidedN++; try { localStorage.setItem('voley3d.guided', String(guidedN)); } catch (e) { } }
+  function guidedLoad() { if (guidedN < 0) { guidedN = 0; try { guidedN = Math.max(0, +localStorage.getItem('make-the-cut.guided') | 0); } catch (e) { } } return guidedN; }
+  function guidedBump() { guidedLoad(); guidedN++; try { localStorage.setItem('make-the-cut.guided', String(guidedN)); } catch (e) { } }
   function guideOn(g) {
     if (g.drill) return false;                                 // E6: los ejercicios ya dicen qué hacer (tarjeta y consejo del fallo)
     if (g.demo || (g.autopilot && ctx.params.guide !== '1') || ctx.settings.showHelp === false) return false;
@@ -4421,18 +4421,18 @@
     abLic = '';
     openPanel('about', { tab: tab, from: from || (panel ? panelFrom : ctx.state) });
   }
-  // Novedades que salen solas, una vez por versión (voley3d.seen = {v}; solo de este dispositivo: account.js no la sube).
+  // Novedades que salen solas, una vez por versión (make-the-cut.seen = {v}; solo de este dispositivo: account.js no la sube).
   // Jugador nuevo: se marca la versión sin enseñar nada. Jugador que vuelve: en la portada libre 1,5 s seguidos y ≥ 2,2 s
   // desde la carga, sin el aviso de instalar, la cuenta ni la Carrera abiertos; nunca con ?debug, autopilot ni nonews.
-  function seenGet() { try { var o = JSON.parse(localStorage.getItem('voley3d.seen') || 'null'); return o && typeof o.v === 'string' ? o.v : ''; } catch (e) { return ''; } }
-  function seenSet(v) { try { localStorage.setItem('voley3d.seen', JSON.stringify({ v: v })); } catch (e) { } }
+  function seenGet() { try { var o = JSON.parse(localStorage.getItem('make-the-cut.seen') || 'null'); return o && typeof o.v === 'string' ? o.v : ''; } catch (e) { return ''; } }
+  function seenSet(v) { try { localStorage.setItem('make-the-cut.seen', JSON.stringify({ v: v })); } catch (e) { } }
   /** ¿Jugador que vuelve? (ajustes guardados, partidos jugados, una Carrera o el escuadrón). Se mira al cargar ui.js, antes de que
    *  nada escriba en el almacenamiento. */
   function isReturning() {
     try {
       var ls = localStorage;
-      if (ls.getItem('voley3d.settings') !== null || ls.getItem('voley3d.career') || ls.getItem('voley3d.squad')) return true;
-      var r = JSON.parse(ls.getItem('voley3d.record') || 'null'); return !!(r && r.played > 0);
+      if (ls.getItem('make-the-cut.settings') !== null || ls.getItem('make-the-cut.career') || ls.getItem('make-the-cut.squad')) return true;
+      var r = JSON.parse(ls.getItem('make-the-cut.record') || 'null'); return !!(r && r.played > 0);
     } catch (e) { return false; }
   }
   var wasReturning = isReturning(), aboutAuto = 'off', aboutIv = 0;
@@ -4452,10 +4452,10 @@
     }, 250);
   }
   // Reto del día al abrir el juego (15-nov-2026, Ferran: «los retos diarios deberían salir nada más abrir el juego»). La primera vez
-  // de cada día (voley3d.retoauto = AAAAMMDD, solo de este dispositivo) y si aún no tienes medalla de hoy, se abre Retos › Hoy en
+  // de cada día (make-the-cut.retoauto = AAAAMMDD, solo de este dispositivo) y si aún no tienes medalla de hoy, se abre Retos › Hoy en
   // cuanto la portada está libre (1 s seguido y ≥ 1,6 s desde la carga), después de las Novedades si salen solas. Al jugador nuevo
   // (primera carga) no: primero la portada. Nunca con ?debug, autopilot ni nonews; «‹ Volver» deja en Jugar con el foco en Retos.
-  var RETO_AUTO = 'voley3d.retoauto';
+  var RETO_AUTO = 'make-the-cut.retoauto';
   function retoAuto() {
     var R = VB.Retos; if (!R || !R.today || !R.dayState || !el.mpRetos || !wasReturning) return;
     if (ctx.debug || ctx.params.autopilot || ctx.params.nonews) return;
@@ -4872,10 +4872,10 @@
   /** Puestos jugables (sim CTRL_ROLES6, en el orden de la fila: Receptor, Colocador, Opuesto, Central). Con una sim sin
    *  setCtrlRole solo el receptor: la fila nunca ofrece un puesto que el partido no pueda aplicar. */
   function roles6() { var S = VB.Sim; return S && S.CTRL_ROLES6 && S.CTRL_ROLES6.length && S.setCtrlRole ? S.CTRL_ROLES6 : ['OH']; }
-  // puesto elegido (localStorage 'voley3d.role6'; main.js no lo conoce: loadSettings descarta las claves que no son suyas)
+  // puesto elegido (localStorage 'make-the-cut.role6'; main.js no lo conoce: loadSettings descarta las claves que no son suyas)
   var role6 = 'OH', role6Pend = false;
-  function role6Load() { try { var v = localStorage.getItem('voley3d.role6'); if (v && roles6().indexOf(v) >= 0) role6 = v; } catch (e) { } }
-  function role6Set(r) { role6 = r; try { localStorage.setItem('voley3d.role6', r); } catch (e) { } }
+  function role6Load() { try { var v = localStorage.getItem('make-the-cut.role6'); if (v && roles6().indexOf(v) >= 0) role6 = v; } catch (e) { } }
+  function role6Set(r) { role6 = r; try { localStorage.setItem('make-the-cut.role6', r); } catch (e) { } }
   /** Al empezar un partido 6v6 de Partido rápido (no demo, espectador ni Carrera): la sim pone el control en el puesto elegido. */
   function applyRole6() {
     var g = ctx && ctx.game, S = VB.Sim;
@@ -5367,7 +5367,7 @@
   // =====================================================================
   // Datos y guardado en js/gym.js (VB.Gym: DRILLS, MEDALS, record, recordRally…); la mecánica y los puntos son de la sim (g.drill,
   // eventos drillStage / drillRep / drillEnd; sin point / whistle / gameOver). main.js: startMatch({drill}), drillEnd → 'over',
-  // restart repite el ejercicio. Aquí no se reparte XP de partido ni se toca voley3d.record (showEnd no llega), y las insignias
+  // restart repite el ejercicio. Aquí no se reparte XP de partido ni se toca make-the-cut.record (showEnd no llega), y las insignias
   // (Badges.ingest) quedan fuera con g.drill. La XP de las medallas la da VB.Gym.record (una sola vez por nivel).
   var GYM_TIPS = {
     early: 'Un pelín pronto: espera a que baje',
@@ -5451,10 +5451,10 @@
   // Datos de js/retos.js (VB.Retos: daily, dayState, progress, summary, unseen…); aquí solo el pintado. El torneo de la semana está
   // cortado (plan §4): la pestaña Hoy lleva el reto del día. «¡A jugar!» = goReto (cortinilla + startMatch(daily().opts)); la hoja
   // final del reto ofrece «Otra vez» (el reto de HOY, previa mini) y «Retos» (goRetosList). La pestaña se recuerda en
-  // localStorage 'voley3d.retostab' (comodidad del aparato; nunca a la cuenta).
+  // localStorage 'make-the-cut.retostab' (comodidad del aparato; nunca a la cuenta).
   var rtTab = '', rtTabsApi = null, rtStrip = '';
-  function rtTabLoad() { try { return localStorage.getItem('voley3d.retostab') === 'maestria' ? 'maestria' : 'hoy'; } catch (e) { return 'hoy'; } }
-  function rtTabSave(v) { try { localStorage.setItem('voley3d.retostab', v); } catch (e) { } }
+  function rtTabLoad() { try { return localStorage.getItem('make-the-cut.retostab') === 'maestria' ? 'maestria' : 'hoy'; } catch (e) { return 'hoy'; } }
+  function rtTabSave(v) { try { localStorage.setItem('make-the-cut.retostab', v); } catch (e) { } }
   function rtDaily() { try { return VB.Retos && VB.Retos.daily ? VB.Retos.daily() : null; } catch (e) { return null; } }
   function rtFocusEl() { return el.rtBody ? el.rtBody.querySelector('[data-reto="day"]') || el.rtBody.querySelector('button') || el.btnRetosBack : null; }
   /** Franja de Jugar: «Reto del día: Cala dels Fanals» + pastilla «Sin jugar» / «Hoy: plata», la medalla de hoy y el punto de nuevo. */
@@ -5842,7 +5842,7 @@
   /** drillEnd: apunta el total (VB.Gym.record, que da la XP de las medallas nuevas) y prepara la hoja final; se abre tras el sello. */
   function gymEndShow(e, g) {
     var Gm = VB.Gym, id = e.kind, total = e.total | 0, res = null, M = gymMedals(id) || [99, 99, 99], cdr = g && g.careerDrill ? g.careerDrill : null;
-    // (sesión de la Carrera: no toca voley3d.gym ni da experiencia al escuadrón de Partido rápido; cuenta en la Carrera, main.js)
+    // (sesión de la Carrera: no toca make-the-cut.gym ni da experiencia al escuadrón de Partido rápido; cuenta en la Carrera, main.js)
     if (Gm && Gm.record && !ctx.debug && !cdr) { try { res = Gm.record(id, total); } catch (er) { res = null; } }
     // D2: sesión del Entrenamiento para el perfil (hito «modos»; la XP de las medallas es derivada de VB.Gym)
     if (!ctx.debug && g && !g.autopilot && VB.Profile && VB.Profile.noteGym) { try { VB.Profile.noteGym(id); } catch (er) { console.error('[VB][ERROR] Profile.noteGym: ' + er); } }
@@ -5911,11 +5911,11 @@
     return out.length ? sepHTML(out, 'v', true) : '';
   }
   // E1: consejos de maestría en la franja de arriba, uno por partido como mucho (≤ 3,5 s de juego) y cada uno 2 veces en total
-  // (voley3d.e1tips, solo este dispositivo). Salen aunque los consejos de partido estén apagados (se apagan solos al ganar el 1r
+  // (make-the-cut.e1tips, solo este dispositivo). Salen aunque los consejos de partido estén apagados (se apagan solos al ganar el 1r
   // partido, y la maestría es justo para quien ya gana), pero no sin las ayudas (Ajustes ◆ Juego ◆ Ayudas).
   var e1 = { k: '', t: 0, on: false, seen: null };
   var E1_KEYS = ['air', 'feint', 'aim', 'edge'];
-  function e1Seen() { if (!e1.seen) { e1.seen = {}; try { var o = JSON.parse(localStorage.getItem('voley3d.e1tips') || 'null'); if (o && typeof o === 'object') E1_KEYS.forEach(function (k) { e1.seen[k] = Math.max(0, Math.min(9, +o[k] | 0)); }); } catch (er) { } } return e1.seen; }
+  function e1Seen() { if (!e1.seen) { e1.seen = {}; try { var o = JSON.parse(localStorage.getItem('make-the-cut.e1tips') || 'null'); if (o && typeof o === 'object') E1_KEYS.forEach(function (k) { e1.seen[k] = Math.max(0, Math.min(9, +o[k] | 0)); }); } catch (er) { } } return e1.seen; }
   function e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) {
     if (e1.k === 'done') return '';
     var S = e1Seen(), k = '', txt = '';
@@ -5927,7 +5927,7 @@
     if (!k || (S[k] | 0) >= 2 || (e1.k && e1.k !== k)) return '';
     if (!e1.k) {
       // el consejo de este partido: el primero cuyo momento llega (y que no se haya visto ya 2 veces)
-      e1.k = k; S[k] = (S[k] | 0) + 1; try { localStorage.setItem('voley3d.e1tips', JSON.stringify(S)); } catch (er) { }
+      e1.k = k; S[k] = (S[k] | 0) + 1; try { localStorage.setItem('make-the-cut.e1tips', JSON.stringify(S)); } catch (er) { }
     }
     e1.t += dt || 0;
     if (e1.t > 3.5) { e1.k = 'done'; return ''; }
@@ -6343,7 +6343,7 @@
       }
     },
     init: function (c) {
-      ctx = c; loadRecord(); role6Load();   // (6v6: puesto elegido en Controlar, voley3d.role6)
+      ctx = c; loadRecord(); role6Load();   // (6v6: puesto elegido en Controlar, make-the-cut.role6)
       cacheEls(); if (ctx.isTouch) el.app.classList.add('is-touch');
       if (ctx.debug) el.menu.classList.remove('intro'); // en depuración no hay relevo desde el telón
 

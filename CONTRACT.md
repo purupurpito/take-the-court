@@ -1,4 +1,4 @@
-# VOLEY 3D — Contrato de arquitectura
+# MAKE THE CUT — Contrato de arquitectura
 
 Juego de voley 2 contra 2 en 3D (Three.js r149), navegador, escritorio + móvil.
 Proyecto personal. Este documento es la ley para los 7 especialistas (el 7.º, `net`, desde el online) que trabajan en paralelo.
@@ -9,28 +9,28 @@ Proyecto personal. Este documento es la ley para los 7 especialistas (el 7.º, `
 {"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js and js/look.js (wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
 ```
 
-`js/prog.js` (estadísticas y progresión de tus jugadores: `VB.Prog`, guardado en `voley3d.squad`) también es de **ui_main**; sim lo recibe ya convertido en `createGame({attrs: [[st7, st11], [st3, st9]]})` (atributos 1-99 con las claves `VB.ATTR_KEYS`; 50 = neutro; sin `attrs` la sim no cambia), que deja `p.st`, `p.prof` (perfil de IA, `Sim.statProf`) y `p.ak` (multiplicadores del humano, `Sim.attrK`; constantes en `VB.ATTR_K`). Integración (10-nov-2026): `p.ak` añade `eRecv/eDig/eSet/eAtk` (precisión del toque: dispersión ×1,5-0,6 y calidad del pase/colocación) y `rRecv/rDig` (alcance del 1r toque ×0,94-1,05); con Velocidad < 50 frenar y girar es al momento (la rampa `accT` solo al arrancar).
+`js/prog.js` (estadísticas y progresión de tus jugadores: `VB.Prog`, guardado en `make-the-cut.squad`) también es de **ui_main**; sim lo recibe ya convertido en `createGame({attrs: [[st7, st11], [st3, st9]]})` (atributos 1-99 con las claves `VB.ATTR_KEYS`; 50 = neutro; sin `attrs` la sim no cambia), que deja `p.st`, `p.prof` (perfil de IA, `Sim.statProf`) y `p.ak` (multiplicadores del humano, `Sim.attrK`; constantes en `VB.ATTR_K`). Integración (10-nov-2026): `p.ak` añade `eRecv/eDig/eSet/eAtk` (precisión del toque: dispersión ×1,5-0,6 y calidad del pase/colocación) y `rRecv/rDig` (alcance del 1r toque ×0,94-1,05); con Velocidad < 50 frenar y girar es al momento (la rampa `accT` solo al arrancar).
 `tools/drive.js`, `tools/eval.js`, `tools/shot.js`, `tools/cdp.js`, `tools/chrome.js`, `tools/chrome-env.sh`, `tools/perf.js`, `tools/touchplay.js` y `tools/padplay.js` también son de **ui_main**.
 `tools/kittest.js` (equipaciones: líbero de club y 2ª equipación del rival en la Carrera de pista; node puro) es de **players**. Equipaciones de club (12-nov-2026): `Players.setKit(st)` acepta `st.kitLibero` y `st.rival.kitLibero` (color del líbero del club; se usa si se distingue de las dos camisetas) y, con `kitLibero` en `st.rival` (solo la Carrera de pista), viste al rival con su 2ª (camiseta = `kitAccent`) cuando su 1ª se parece a la tuya. `Players.rivalKit(st)` (sin aplicar nada) dice qué vestirá: `{kind:'1a'|'2a'|'cpu', …}`; el hub de pista enseña con él la 2ª.
 Vida en la pista (12-nov-2026): los textos de decisiones guardados en `c.life.log` y los logros de `sum.life.ach` salen con el nombre de pabellón; el reto «tidy» de la playa (L0, n = 1) dice ahora «Gana con un error como mucho» (antes «Gana con 1 errores o menos»), único texto de playa que cambia; el objetivo de patrocinio de pista cuenta las jornadas que juegas (sin descansos de una liga impar).
 `tools/audiotest.js` es de **audio**; `tools/touchtest.js`, `tools/padtest.js` y `tools/courttest.js` son de **camera_input**.
-`js/badges.js` (`VB.Badges`, insignias), `js/career.js` (`VB.Career`, datos y lógica de la Carrera, sin DOM), `js/career-ui.js` (`VB.CareerUI`, pantallas de la Carrera: crea su propio DOM `#career` y su `<style>` desde JS), `js/career-life.js` (`VB.CareerLife`, «vida» de la Carrera: retos, fama, patrocinios, decisiones, rival, tienda, premios, logros y legado; sin DOM) y `js/career-life-ui.js` (`VB.CareerLifeUI`, pestaña «Fama») son de **ui_main**, igual que `js/leagues.js` (`VB.Leagues`, datos de las ligas de pista; GENERADO por `tools/build-leagues.js` desde `notes/clubes/*.json`, no se edita a mano), `tools/build-leagues.js`, `tools/leagues-fixture.js`, `tools/badgetest.js` y `tools/careertest.js`. Guardados: `voley3d.squad` (v3: escuadrón inicial a media 50; los v1/v2 suben +10 cada atributo una vez), `voley3d.career` (playa, con `c.life`), `voley3d.career6` (pista, también con `c.life` desde el 12-nov-2026; un guardado sin él lo crea al cargar), `voley3d.career.mode` (cuál está activa) y `voley3d.legends` (Salón de la Fama).
+`js/badges.js` (`VB.Badges`, insignias), `js/career.js` (`VB.Career`, datos y lógica de la Carrera, sin DOM), `js/career-ui.js` (`VB.CareerUI`, pantallas de la Carrera: crea su propio DOM `#career` y su `<style>` desde JS), `js/career-life.js` (`VB.CareerLife`, «vida» de la Carrera: retos, fama, patrocinios, decisiones, rival, tienda, premios, logros y legado; sin DOM) y `js/career-life-ui.js` (`VB.CareerLifeUI`, pestaña «Fama») son de **ui_main**, igual que `js/leagues.js` (`VB.Leagues`, datos de las ligas de pista; GENERADO por `tools/build-leagues.js` desde `notes/clubes/*.json`, no se edita a mano), `tools/build-leagues.js`, `tools/leagues-fixture.js`, `tools/badgetest.js` y `tools/careertest.js`. Guardados: `make-the-cut.squad` (v3: escuadrón inicial a media 50; los v1/v2 suben +10 cada atributo una vez), `make-the-cut.career` (playa, con `c.life`), `make-the-cut.career6` (pista, también con `c.life` desde el 12-nov-2026; un guardado sin él lo crea al cargar), `make-the-cut.career.mode` (cuál está activa) y `make-the-cut.legends` (Salón de la Fama).
 
 **Sprint 5 (12-nov-2026).** Nuevos de **ui_main**: `js/version.js` (`VB.VERSION/VERSION_DATE/CHANGELOG/CREDITS`), `js/gym.js` (`VB.Gym`,
-guardado `voley3d.gym`), `js/career-world.js` (`VB.CareerWorld`: Faro el mentor, noticias de la liga, anales y fichas de club; sin DOM) y
+guardado `make-the-cut.gym`), `js/career-world.js` (`VB.CareerWorld`: Faro el mentor, noticias de la liga, anales y fichas de club; sin DOM) y
 `js/career-world-ui.js` (`VB.CareerWorldUI`), y las herramientas `tools/og-image.js` (→ `pages/og.png`), `tools/abouttest.js`,
 `tools/gymtest.js` y `tools/settest.js`. `tools/keytest.js` es de **camera_input**; `tools/animtest.js` de **players**;
 `tools/fp-mastery.json` (huella de la maestría, `node tools/fingerprint6.js --variant mastery`) de **sim**. Guardados nuevos:
-`voley3d.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; va a `DOCS` desde que Ferran desplegó las reglas con `'gym'` el
-12-nov-2026: `GYM_SYNC = true` en account.js), `voley3d.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
-padDead`), `voley3d.seen` (`{v}`: última versión cuyas Novedades se vieron), `voley3d.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
-al entrar; ui.js `retoAuto`, 16-nov-2026) y `voley3d.e1tips` (consejos de maestría vistos); estos NUNCA van a `DOCS`. Dentro de `voley3d.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
+`make-the-cut.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; va a `DOCS` desde que Ferran desplegó las reglas con `'gym'` el
+12-nov-2026: `GYM_SYNC = true` en account.js), `make-the-cut.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
+padDead`), `make-the-cut.seen` (`{v}`: última versión cuyas Novedades se vieron), `make-the-cut.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
+al entrar; ui.js `retoAuto`, 16-nov-2026) y `make-the-cut.e1tips` (consejos de maestría vistos); estos NUNCA van a `DOCS`. Dentro de `make-the-cut.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
 `newsSeen`, `annals[≤40]`, `lead`, `tpl`; ≈ 13 KB a 12 temporadas) y `c.life.celeb` / `c.life.celebAnn`.
 
 **Vestuario (rama personaliza, 13-nov-2026).** `js/look.js` (`VB.Look`: catálogo, compatibilidades, saneado, resolución del aspecto,
 inventario y guardado; puro, sin THREE ni DOM) es de **ui_main**, igual que `tools/looktest.js`. `js/doll.js` (el muñeco: geometría,
 atlas, ranuras del Vestuario y `VB.Doll.preview`) es de **players** (ya lo era en la práctica; ahora consta en el JSON). Guardado nuevo
-`voley3d.look` (perfil global, < 8 KB): `{v:1, fits:[fitN1, fitN2], own:{id:{s:'carrera'|'tienda'|'gym'|'record', t:ms}}, seen:{id:1}}`;
+`make-the-cut.look` (perfil global, < 8 KB): `{v:1, fits:[fitN1, fitN2], own:{id:{s:'carrera'|'tienda'|'gym'|'record', t:ms}}, seen:{id:1}}`;
 no se escribe hasta la primera edición o el primer desbloqueo. Va a `DOCS` (`LOOK_SYNC = true` en account.js;
 reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 (sin subir VER): `c.life.look` (fit de tu jugador o `null` en los guardados de antes: cara de siempre hasta guardar), `c.life.lookAnn` y
@@ -42,11 +42,11 @@ reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 `js/replay.js` (`VB.Replay`: repeticiones por resimulación, sin guardado) y las pruebas `tools/recaptest.js`, `tools/retotest.js`,
 `tools/proftest.js`, `tools/synctest.js`, `tools/replaytest.js`, `tools/lifetest.js` y `tools/worldtest.js`. De **players**:
 `tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **desplegadas el 16-nov-2026** (comprobado: lo publicado en make-the-cut-vb es igual que el fichero).
-Guardados nuevos: `voley3d.retos` (v1) y `voley3d.profile` (v1) sincronizan solo con `S4_SYNC = true` en account.js. Hoy es `false`: ellos,
-`voley3d.career6`, `voley3d.career.mode` (`cmode`) y `voley3d.legends` van a `TRACK` (hora sin subir). `voley3d.retostab` (pestaña de Retos),
-`voley3d.devid` (contador del perfil por aparato), `<clave>.bak` (copia de un guardado dañado) y `voley3d.career(6).prev` (la Carrera local
+Guardados nuevos: `make-the-cut.retos` (v1) y `make-the-cut.profile` (v1) sincronizan solo con `S4_SYNC = true` en account.js. Hoy es `false`: ellos,
+`make-the-cut.career6`, `make-the-cut.career.mode` (`cmode`) y `make-the-cut.legends` van a `TRACK` (hora sin subir). `make-the-cut.retostab` (pestaña de Retos),
+`make-the-cut.devid` (contador del perfil por aparato), `<clave>.bak` (copia de un guardado dañado) y `make-the-cut.career(6).prev` (la Carrera local
 que pierde ante la de la cuenta) NUNCA van a `DOCS` ni a `TRACK`. `record.byD` (`{easy|normal|hard|expert:[g,p]}`) va dentro de
-`voley3d.record` y `settings.replays` ('auto'|'end'|'off', por defecto 'auto') dentro de `voley3d.settings`. Dentro de las Carreras (sin
+`make-the-cut.record` y `settings.replays` ('auto'|'end'|'off', por defecto 'auto') dentro de `make-the-cut.settings`. Dentro de las Carreras (sin
 subir VER): `c.life.boss` (`{b0..b4: {k, name, nick, style, num, club, w, l, beat, seen}}`), `c.life.bossW`, `c.life.rival.style`, `chemLv`
 (en `c.mate`/`c.squad[i]` en la playa y `c` en la pista: último nivel de química avisado), `l.jN`, `l.rareJ`, `l.rareN`, `l.chemEv`, `l.sign`
 y `c.ts.md`. Interruptores de account.js: `GYM_SYNC = true` (12-nov-2026; donde una nota diga `false`, es errata), `LOOK_SYNC = true` (15-nov-2026) y
@@ -155,7 +155,7 @@ Novedades automáticas), escenas `debug=drill_serve|drill_recv|drill_set|drill_a
 por debajo de 26 fps y no sube), `showFps`, `camDist` ('near' \| 'normal' \| 'far'), `camCuts` ('all' \| 'less'), `lessMotion` ('auto' \|
 'on' \| 'off'), `cbColors`, `ballStyle` ('clasico' \| 'contraste'), `keys` / `padKeys` (objeto plano con solo las diferencias; ≤ 12
 acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3), `aimSet` (true: colocación dirigida de E1), `msTiming`
-(false: sello en ms). `DEVICE_KEYS` van a `voley3d.device`, no a `voley3d.settings`.
+(false: sello en ms). `DEVICE_KEYS` van a `make-the-cut.device`, no a `make-the-cut.settings`.
 
 **Vestuario en `VB.ctx`** (main.js, 13-nov-2026): `noteHitch()` (la ventana de fps en curso no cuenta para la calidad adaptativa:
 `aq.skip = 1`), `actions.showroom(on, L, o)` (vista previa del Vestuario en el menú; ver «Vestuario» al final) y `actions.looksChanged()`
@@ -352,7 +352,7 @@ de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas 
   memPair/BcLink más `offer()/answer(sdp)/accept(sdp)`, `state`, `onstate`, `onclose`, `info()` (solo el TIPO de par, nunca la IP).
 - `js/netlobby.js` → `VB.NetLobby`: la página Online (`open(host)`, `leave()`, `back()`, `side(el, d)`, `focus()`, `menuOn()`), la
   conexión (señalización, «pre» con nombre y atributos del invitado, `ctx.actions.startOnline`) y la renegociación si la conexión se cae
-  en pleno partido; en `pagehide` suelta la sala o el hueco. Guardados por aparato (nunca a `DOCS`): `voley3d.nick` (tu nombre en el online) y `voley3d.netroom` (última
+  en pleno partido; en `pagehide` suelta la sala o el hueco. Guardados por aparato (nunca a `DOCS`): `make-the-cut.nick` (tu nombre en el online) y `make-the-cut.netroom` (última
   configuración de sala). `MENU_ON` (`true` desde la fase 4: la tarjeta Online de Jugar sale para todo el mundo; con `false` solo con `?online=1`).
 - Toques en ficheros de **ui_main** hechos por esta fase (pedidos por el orquestador; mínimos): `index.html` (scripts nuevos, tarjeta
   `#btnOnline` oculta en Jugar, página `#mpOnline` con `.ol-body`), `js/ui.js` (página `'online'` en `pageEl/pageFocus/setPage/menuGo`,
@@ -370,9 +370,9 @@ de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas 
   Revisión: `Session({rivalName})` (manda sobre el saludo; `VB.Net.cleanName`), `CONNECT_MS` (20 s sin el rival antes de empezar →
   `result {why:'noShow'}`; también su adiós de la época anterior), `quit()` antes de empezar → `{why:'cancel'}`, `r.goneIn` (ms que le
   quedan al rival para volver) y los pongs de antes de un corte no cuentan en el ping.
-- `js/netrec.js` → `VB.NetRec`: récord online aparte en `voley3d.online` (`{played, wins, losses, quits, nc, streak, best, last[10]}`;
+- `js/netrec.js` → `VB.NetRec`: récord online aparte en `make-the-cut.online` (`{played, wins, losses, quits, nc, streak, best, last[10]}`;
   abandonar o tardar más de 60 s en volver = derrota; caída del anfitrión, otra versión o partido no válido = «no cuenta»), marca
-  `voley3d.online.pend` (lista, una marca por página; cerrar la pestaña en pleno partido = abandono al barrer: al cargar o al empezar,
+  `make-the-cut.online.pend` (lista, una marca por página; cerrar la pestaña en pleno partido = abandono al barrer: al cargar o al empezar,
   latir o acabar otro partido, cuando la marca lleva 90 s sin latido),
   `begin/beat/end/boot/get/line/outcome`. `end` concede la gorra `gorraMTC` (`VB.Look.grant(id, 'online')`) si terminaste el partido.
 - `js/look.js` (ui_main; toque de esta fase): objeto `gorraMTC` «Online Beta Tester» (cabeza, pista y playa, rareza 2, desbloqueo
@@ -395,7 +395,7 @@ de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas 
   (`data-act 'rematch'`, rótulo al día en `onlineEndSync`) y «Volver al menú», y «Tu récord online» al pie del resumen (`onlineEndRec`).
 
 **Online, fase 4 (net, 16-nov-2026; detalle en notes/net.md «Fase 4» y «Para Ferran»).** Publicación. `js/netlobby.js`: `MENU_ON = true`, Revisión: el lobby solo reacciona a la cuenta cuando cambia el uid (`accKey`), no en cada sincronización; vista `nortc` sin «Volver a probar» y `noRtc()` antes de abrir u ocupar sala; `netHud` pinta el nombre del rival desde una marca `\u0001`, nunca con replace().
-vista `'help'` («Cómo funciona el online»: sale sola la primera vez que se entra con sesión, guardado por aparato `voley3d.nethelp`; luego
+vista `'help'` («Cómo funciona el online»: sale sola la primera vez que se entra con sesión, guardado por aparato `make-the-cut.nethelp`; luego
 desde la fila «Cómo funciona» bajo «Actualizar»; Esc/B o «Entendido» vuelven a la lista), consejo corto en la sala de espera, en teléfono
 apaisado la página toma el ancho de las demás (560) y las filas de sala enseñan sede y partido; una sala sin sede no repite «Playa | Playa».
 `index.html` (toque): pastilla «Beta» (`.md-soon`) en la tarjeta `#btnOnline`. `js/main.js` (rama online): el HUD online separa los datos
@@ -609,9 +609,9 @@ set/partido; `placeT3` coloca `#banner` fuera del marcador entero, `.hud-btns` y
 - `VB.Prog` (js/prog.js) añade funciones sobre un atleta cualquiera (no guardan): `newAthlete(o)`, `saneAthlete(a)`, `athleteAddXP(a, xp)`, `athleteBump(a, k)`, `athleteAttrs(a)`, `squad()`.
   `attrs()` → `[[n.º 1, n.º 2], cpu]`: la CPU de Partido rápido juega sin atributos (`null`) mientras la media del escuadrón sea ≤ 50 y, por encima, con
   `cpuSt(m)` = 50 + `CPU_K` (0,6) × (m − 50) en todo (integración 10-nov-2026: con 90 ya no se gana el 75 % al Experto).
-- `VB.Career` (js/career.js, sin DOM; guardado `voley3d.career`): `exists/get/create/abandon/save`, `next(c)`, `matchSetup(c)` → `{attrs, badges, points, difficulty, ctrl,
+- `VB.Career` (js/career.js, sin DOM; guardado `make-the-cut.career`): `exists/get/create/abandon/save`, `next(c)`, `matchSetup(c)` → `{attrs, badges, points, difficulty, ctrl,
   ctrlIdx, ref, kit, rivalKit, career}`, `ingest(evs, g)`, `matchDone(r, st, g)` → resumen `{nota, xp, lvlUp, lvl, ptsGained, badges}`, `simulateNext(c)`, `abortMatch()`,
-  `table(c, lvl)`, `bump(k)`, `toggleBadge(id)`, `acceptOffer(i, años)`, `stay(años)`, `lost()` (había un guardado que no se pudo reparar; copia en `voley3d.career.bak`).
+  `table(c, lvl)`, `bump(k)`, `toggleBadge(id)`, `acceptOffer(i, años)`, `stay(años)`, `lost()` (había un guardado que no se pudo reparar; copia en `make-the-cut.career.bak`).
   Gestión (v2, notes/carrera.md §Gestión): fase `'pick'` sin club al crear (`rejectAll()`, `moreTime()`), `negotiate(i)`, `setTraining(k)`, `requestTransfer(on)`,
   `changeMate(i)`, `clubInfo(c, k)`, `unread/readMsg/readAll`; `matchSetup().ctrl` siempre `'one'` (la Carrera no ofrece «Los dos»).
   Integración (10-nov-2026): `earlyExit(c)` (fichar ahora sería salir con contrato en vigor: el entrenador nuevo empieza con `EARLY_COACH` menos),
@@ -635,7 +635,7 @@ set/partido; `placeT3` coloca `#banner` fuera del marcador entero, `.hud-btns` y
   base girada: ↑ lleva la diana recta al fondo y ←/→ solo a lo ancho.
 - ai.js: la IA deja botar el saque rival que se va fuera (`leaveServe`, una decisión por saque y equipo en `g._lv`).
 - ui.js: en un partido de Carrera los textos con «CPU» (cintas, avisos, consejo, lector de pantalla, rótulo del challenge) pasan por
-  `cpuTxt` («Remate del rival», «Tú 3, PUE 1»), y el partido no cuenta para el récord de Partido rápido (`voley3d.record`).
+  `cpuTxt` («Remate del rival», «Tú 3, PUE 1»), y el partido no cuenta para el récord de Partido rápido (`make-the-cut.record`).
 
 **Cámara (convención)**: los cambios de jugador SIEMPRE deslizan (nunca corte). El plano de reacción del punto (camera.js `planPoint`) usa
 cortes deliberados de retransmisión (a ~0,45 s del bote y de vuelta al saque si cruza la red o está a > 11 m); no son cambios de control.
@@ -960,7 +960,7 @@ contorno grueso DE COLOR, cara grande dibujada, uniforme de equipo con el «tajo
   todos los módulos, sin tocar `ctx.settings`) y `unforceVenue()` (en `toMenu`) vuelve al del ajuste (si se cambió en la pausa, manda el ajuste).
   La **Carrera** (`startMatch` con `opts.career`) fuerza `'beach'`; el **6v6** (`?format=6v6`: partido, demo del menú y escenas serve6/rally6/
   point6) fuerza `'hall'`, porque la sim juega en su pista 18×9.
-- **Carrera de vóley playa** (`voley3d.career` v3; v1/v2 migran sin perder nada): `matchSetup()` → `venue: 'beach'`, `points: 21` (3r a 15),
+- **Carrera de vóley playa** (`make-the-cut.career` v3; v1/v2 migran sin perder nada): `matchSetup()` → `venue: 'beach'`, `points: 21` (3r a 15),
   clubes de playa con `club.beach` (sede), circuitos Regional / Nacional / Superliga de Playa / Continental / Mundial y el Open. `quickSim` también
   a 21/15. Detalle en notes/carrera.md «Sprint playa».
 - **Compañeros**: media = media del club + desvío propio (`VB.Career.MATE_OFF` −9..+5, media −2), rol complementario, `mateProfile(m)`, forma
@@ -974,8 +974,8 @@ contorno grueso DE COLOR, cara grande dibujada, uniforme de equipo con el «tajo
 ### Carrera de pista 6v6 y ligas reales (lote C, 11-nov-2026)
 - **Dos Carreras guardadas aparte.** `VB.Career` es una fachada sobre dos motores con las mismas claves (`VB.Career.beach`, `VB.Career.hall`):
   `create({mode:'beach'|'hall', name, num, pos, country, points, seed})`, `mode()`, `setMode(m)`, `has(m)`; el resto de claves van a la activa.
-  `matchDone(r, st, g)` va al motor de `g.career.mode`. La de playa no cambia (guardado, migración y API). Pista: `voley3d.career6` (v1,
-  `mode:'hall'`); dañado → `voley3d.career6.bak` y la activa vuelve a la playa.
+  `matchDone(r, st, g)` va al motor de `g.career.mode`. La de playa no cambia (guardado, migración y API). Pista: `make-the-cut.career6` (v1,
+  `mode:'hall'`); dañado → `make-the-cut.career6.bak` y la activa vuelve a la playa.
 - **`matchSetup()` de pista** → `{format:'6v6', venue:'hall', ctrlRole, ctrlIdx, nums, attrs, difficulty, ref, kit, rivalKit, career}`; `kit` y
   `rivalKit` llevan `kitLibero` (color del líbero del club, que usa `Players.setKit`). main.js `startCareerMatch`
   pasa `format`, `ctrlRole` y `nums`, y el escenario sale de `m.venue`.
@@ -989,7 +989,7 @@ contorno grueso DE COLOR, cara grande dibujada, uniforme de equipo con el «tajo
 - **Dificultad de la Carrera de pista** (15-nov-2026): mismas claves que la playa en `VB.Career.hall` (`CDIFF, CDIFF_KEYS, STEPS, DIFF_MSG,
   diffOf, rivalAI, attrOf, baseStep, seasonDiff, midNota, setDifficulty`) y `GATE6`, `TOP6` (87), `top(c, k)`. `create({mode:'hall', diff})`;
   `next()` añade `ovrClub`, `ovrSim`, `cdiff`; `matchSetup()` añade `cdiff` (también en `career.cdiff`) y sube los atributos del seis y del
-  banquillo rival con `attr`. Guardado `voley3d.career6` sin subir VER6 (`saneDiff6`: lo que falta es Normal). Detalle en notes/carrera.md.
+  banquillo rival con `attr`. Guardado `make-the-cut.career6` sin subir VER6 (`saneDiff6`: lo que falta es Normal). Detalle en notes/carrera.md.
 - Regla de datos: para cambiar un club o una competición se corrige el JSON de `notes/clubes/` y se ejecuta `node tools/build-leagues.js`
   (comprueba unicidad, colores, patrocinadores conocidos y «masculino/femenino» antes de escribir). `tools/careertest.js` falla si js/leagues.js
   no está al día con los JSON.
@@ -1026,9 +1026,9 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
   `?debug=look`, `{tab, venue, item, pick}`). Guarda con `VB.Look.setFit` o `VB.CareerLife.setLook` y llama a `ctx.actions.looksChanged()`.
 - **Carrera** (career-life.js): `initLook(c), lookCheck(c, quiet), lookShop(c), buyLook(id) → 'ok'|'money'|'owned'|'', setLook(fit),
   lookNow(), achName(id, hall)`. La tienda del Vestuario no toca `GEAR`, `gearBonus`, `attrs`, `l.spent` ni el logro `gear`.
-- **account.js**: `LOOK_SYNC = true` (15-nov-2026): `DOCS['voley3d.look'] = 'look'` y `merge()` une con `mergeLook` (own y seen con
+- **account.js**: `LOOK_SYNC = true` (15-nov-2026): `DOCS['make-the-cut.look'] = 'look'` y `merge()` une con `mergeLook` (own y seen con
   `VB.Look.mergeRaw`; fits del lado más reciente por la hora de meta; sin look.js gana entero el más reciente). Ya apunta la hora de cada
-  escritura de `voley3d.look` aunque no suba. `VB.Account._mergeLook` y `_lookSync` (pruebas).
+  escritura de `make-the-cut.look` aunque no suba. `VB.Account._mergeLook` y `_lookSync` (pruebas).
 - **Depuración**: `?debug=look&tab=pelo|cabeza|cara|cuerpo|brazos|piernas|colores&venue=hall|beach&item=<id>&pick=1|2|career` (main.js
   abre el menú y llama a `VB.UI.openLook({tab, venue, item, pick})`; `pick` llega como 1, 2 o `'career'`, `venue` también acepta
   pista/playa); `&looktest=1` para `node tools/looktest.js --gl`.
@@ -1043,9 +1043,9 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
 - **main.js:** `ctx.actions.startCareerDrill(id, auto)` (career-ui «Jugar») → `startMatch({drill, careerDrill: drillSetup})`: el ejercicio con tu
   jugador de Carrera y la equipación del club, `g.careerDrill = {id, mode, n, max, attrName, done, res}`; en `drillEnd`, `careerDrillDone(g)` apunta
   la sesión una vez; `toMenu()` vuelve al hub (`CareerUI.open('hub', {train:true, res})`). Abandonar o reiniciar a medias no gasta la sesión.
-- **ui.js:** con `g.careerDrill` la hoja final no llama a `VB.Gym.record` (ni `voley3d.gym` ni XP del escuadrón), enseña progreso, fatiga e
+- **ui.js:** con `g.careerDrill` la hoja final no llama a `VB.Gym.record` (ni `make-the-cut.gym` ni XP del escuadrón), enseña progreso, fatiga e
   impresión, oculta «Repetir» y «Siguiente» y «Entrenamiento» pasa a «Volver a la Carrera» (también en la pausa).
-- **Guardado:** `c.ts = {n, wk, imp, cf, tot, p:{serve, recv, set, spike, block}, last}` en `voley3d.career` y `voley3d.career6` (sin subir VER ni
+- **Guardado:** `c.ts = {n, wk, imp, cf, tot, p:{serve, recv, set, spike, block}, last}` en `make-the-cut.career` y `make-the-cut.career6` (sin subir VER ni
   VER6; un guardado sin él o dañado se sanea al cargar con `sessSane`).
 - **Sprint 2-4 (fusión 15-nov-2026):** `c.ts.md = [sin, bronce, plata, oro]` (sesiones por medalla, `sessSane` lo crea; logros `ses10` y
   `sesg5` de career-life.js) y gancho de vida `life(c, 'sess', res)` en la PRIMERA sesión de la carrera (`c.ts.tot === 1`): career-world.js
@@ -1059,7 +1059,7 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
 - `js/net.js`: `session.result.unverified = true` cuando al final ninguna huella cuadró o hay una distinta sin reparar.
 - `js/netrec.js`: `outcome` → `{kind:'unverified'}` («no válido», no suma ni a ganados ni a perdidos); `VB.NetRec.resume()` hereda
   la marca de partido de la página anterior (vuelta tras recargar). `end()` devuelve `{rec, entry, cap, outcome}`.
-- `js/netlobby.js`: vuelta del INVITADO tras recargar (`sessionStorage` `voley3d.online.back`, < 50 s, misma cuenta, sala en
+- `js/netlobby.js`: vuelta del INVITADO tras recargar (`sessionStorage` `make-the-cut.online.back`, < 50 s, misma cuenta, sala en
   'full'/'play' con ese invitado; sin direcciones de red); si se apunta la vuelta, `pagehide` no suelta el hueco. Lobby rediseñado
   (barra de acciones + cartelera) y teclado en pantalla con mando.
 - `js/main.js`: `view.netCr.col` (colores de camiseta de los dos lados para el marcador colgado de `js/arena.js`, que pone «TÚ» y el
@@ -1082,13 +1082,13 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
   tiempo: vuelve a contar (`valid`), salvo `invalid` de reparaciones.
 - `js/netroom.js`: `rooms.resume()` → `Promise<sala|null>`: la página nueva del anfitrión retoma SU sala (latido y señalización).
 - `js/netlobby.js`: `pagehide` del anfitrión en partido (`playing`/`waiting`, con invitado) NO borra la sala y apunta la vuelta
-  (`voley3d.online.back` con `role:'host'`, `guest`); al volver en < 50 s: `rooms.resume`, latido, sesión adoptante y `relink()`
+  (`make-the-cut.online.back` con `role:'host'`, `guest`); al volver en < 50 s: `rooms.resume`, latido, sesión adoptante y `relink()`
   (oferta gen+1 al mismo invitado). Fuera de plazo: borra su sala. `ctx.net.base` se rellena con las opciones adoptadas (revancha).
 - `js/main.js` (una línea del HUD): «Volviendo al partido…» mientras `session.back` y la sesión se conecta.
 - `firebase/firestore.rules`: sin cambios.
 
 **Online, fase 6 (net, 17-nov-2026; notes/net.md «Fase 6 — lobby terminado»): «Crear sala», vertical y ayuda.** Solo `js/netlobby.js`.
-- `VB.NetLobby` no cambia de API. `voley3d.netroom` (última configuración de sala, por aparato) guarda además `pts` (11|15|21|25;
+- `VB.NetLobby` no cambia de API. `make-the-cut.netroom` (última configuración de sala, por aparato) guarda además `pts` (11|15|21|25;
   por defecto 21) y la sala se abre con ese `pts` en Pabellón (en la playa, siempre 21). Las reglas ya lo admitían: sin cambios.
 - Clases nuevas del lobby (CSS en la cadena del propio fichero): `.ol-mk` (rótulo de «Crear sala»), `.mk-prev` + `.ol-fx.fx-prev`
   (vista previa, no enfocable), `.ol-sel` (selector compacto con `data-ol`; ←→ por `NetLobby.side`), `dl.hp-box` («Cómo funciona»).

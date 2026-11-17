@@ -1,4 +1,4 @@
-/* VOLEY 3D — js/venue-fanals.js (owner: arena)
+/* MAKE THE CUT — js/venue-fanals.js (owner: arena)
  * Sede de playa «Cala dels Fanals» (12-nov-2026): vóley playa de NOCHE en una cala cerrada entre promontorios (la D5
  * «playa nocturna» del backlog; la sede de las grandes citas de la Carrera de playa). Guiño: «fanals» = faroles, y la
  * pesca de luz con barcas de lámpara.

@@ -8,6 +8,10 @@ Contexto general: CONTRACT.md (propiedad de ficheros y API), TRASPASO.md (backlo
 por sistema) y notes/ui_main.md (guía de estilo de textos).
 
 ## Reglas que valen para todos los lotes
+- **Nombres (17-nov-2026)**: ya no queda «voley-3d» en el código. Las claves de guardado son `make-the-cut.*` (antes
+  `voley3d.*`; el primer `<script>` de index.html las pasa una vez a las nuevas), las cabeceras de los ficheros dicen
+  `MAKE THE CUT —` y el guion del flujo es `tools/workflow/make-the-cut.workflow.js`. Una rama vieja que se fusione con main
+  tiene que pasar sus `voley3d.` a `make-the-cut.` (`sed -i 's/voley3d\./make-the-cut./g'`) o volverán a salir las claves viejas.
 - **Git**
   - Commit y push como purupurpito: `export GH_TOKEN=$(gh auth token -u purupurpito)`. Al final de cada mensaje de commit,
     `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
@@ -108,7 +112,7 @@ Controlar, roleName), tools/simtest.js (sección 6v6), tools/drive6.js, notes/si
 las primeras partidas. Hace el juego demasiado fácil».
 1. Haz inventario de todas las cámaras lentas e hit-stops que pasan ANTES de que el humano golpee: `VB.CameraRig.slowmo` y
    `ctx.timeScale` en camera.js (27 apariciones) y en ui.js.
-2. Que solo actúen en Fácil o en los primeros partidos del jugador (récord en `voley3d.record`; mira cómo se calcula el
+2. Que solo actúen en Fácil o en los primeros partidos del jugador (récord en `make-the-cut.record`; mira cómo se calcula el
    novato). A partir de Normal, nada.
 3. Lo que pasa DESPUÉS de la jugada se puede quedar: cámara lenta del punto de set o de partido, repeticiones, hit-stop del
    remate ya golpeado. Justifica cada uno.
@@ -175,7 +179,7 @@ Ferran lo revise. Usa búsqueda web.
 **Sesiones de entrenamiento en la Carrera (13-nov-2026, hecho y probado, SIN COMMIT; notes/carrera.md §Sesiones):** petición de Ferran
 «añadir los entrenamientos como parte del modo carrera… un límite de 3 antes de la siguiente jornada… que no suban mucho». Playa y pista:
 hasta 3 sesiones por jornada (bloque «Entrenamiento» de Partido), ejercicio de VB.Gym de tu puesto jugado de verdad (vuelve al hub con el
-resultado; no toca `voley3d.gym`) o «rápido» (determinista, sin oro). Sube un pelín el atributo del ejercicio (+4/+5 por temporada con 3 oros
+resultado; no toca `make-the-cut.gym`) o «rápido» (determinista, sin oro). Sube un pelín el atributo del ejercicio (+4/+5 por temporada con 3 oros
 por jornada), cansa (+3, +4, +6) y da «impresión en los entrenos» (pista: hasta +4 en la elección del seis; playa: confianza +1 por jornada
 de oros). `ME_EDGE` baja con las temporadas (12 → 4). Pendiente: que Ferran pruebe el ritmo jugando (¿3 oros por jornada es demasiado
 trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
@@ -229,9 +233,9 @@ trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
   `c.last = sum`, final de endSeason y de newSeason) + un sumando en `offerScore` + exports `_msg/_addXP/_wkKey`; en career-ui.js la pestaña
   `life` y los ganchos `LUI()`. Al rebasar, consérvalos también en `renderMatch6`/`lastCard` de la pista. Ver notes/carrera.md §Vida.
 - **Vida de la Carrera → ui.js (HUD)**, opcional: enseñar `g.career.goal` (reto de la jornada) en la tarjeta de presentación o en el marcador.
-- **Lote B → js/ui.js `showEnd` (ui_main, fuera del bloque de la guía)**, opcional: el récord `voley3d.record` no cuenta el 6v6 ni la
+- **Lote B → js/ui.js `showEnd` (ui_main, fuera del bloque de la guía)**, opcional: el récord `make-the-cut.record` no cuenta el 6v6 ni la
   Carrera, así que quien solo juega esos modos es «novato» (`record.played === 0`) para siempre. El lote B lo tapa con un contador
-  local `voley3d.guided` (partidos con guía, tope 3 a partir de Normal). Mejor de raíz: un campo nuevo `record.anyPlayed` que suba en
+  local `make-the-cut.guided` (partidos con guía, tope 3 a partir de Normal). Mejor de raíz: un campo nuevo `record.anyPlayed` que suba en
   TODOS los partidos humanos (2v2, 6v6, Carrera) sin tocar `played/wins` (que siguen siendo del 2v2), y que `guideOn` e `isRookie`
   (main.js) miren `anyPlayed`. account.js ya sincroniza el documento entero (`recPlayed` compara `played`: revisar).
 - **Bloqueo activo (sim.js, 11-nov-2026, pedido de Ferran; ver notes/sim.md «Bloqueo activo») → js/players.js (lote A)**: pose sobre
@@ -245,7 +249,7 @@ trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
 - **Lote A → js/main.js (ui_main)**: `loadSettings`: añadir `ctrlRole6: 'OH'` al ajuste por defecto y validarlo
   (`VB.Sim.CTRL_ROLES6.indexOf(s.ctrlRole6) >= 0`, si no 'OH'); `startMatch` (createGame, ~línea 361):
   `ctrlRole: fmt ? (opts.ctrlRole || ctx.settings.ctrlRole6 || 'OH') : undefined` en vez de `ctrlRole: fmt ? 'OH' : undefined`.
-  Hoy ui.js guarda la elección en `localStorage 'voley3d.role6'` y la aplica con `VB.Sim.setCtrlRole(ctx.game, role)` justo después
+  Hoy ui.js guarda la elección en `localStorage 'make-the-cut.role6'` y la aplica con `VB.Sim.setCtrlRole(ctx.game, role)` justo después
   de `startMatch` (puente que puede quedarse); con el cambio, la Carrera de pista (lote C) podrá pasar `opts.ctrlRole`.
 - **Lote A → CONTRACT.md §4.3 (lead)**, texto a añadir tras «6v6 con humano (sprint 3…)»: «**Lote A (11-nov-2026)**:
   `VB.Sim.CTRL_ROLES6 = ['OH','S','OPP','MB']`; `createGame({ctrlRole})` y `VB.Sim.setCtrlRole(g, role)` → `g.ctrl` (primer jugador del
@@ -255,7 +259,7 @@ trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
   no líbero. Falta de posición: en Difícil/Experto (`g.posRule6`) el humano se mueve durante el saque y, solapado al golpe (`overlapOf`),
   `point` con `reason 'position'` («Falta de posición», `SIGNAL.position = 'attackFault'`). `VB.AI6`: `FORM.RECV[1..6]`, tempo `'pipe'`
   (`canPipe`), `spot(g, p).phase`. fx.js: pistas por fase (`posMark`, `posMark2`, `posArrow`; 0 dibujos) con densidad por nivel.
-  players.js: postura de cobertura. ui.js: fila Controlar con 4 puestos, `localStorage 'voley3d.role6'`.»
+  players.js: postura de cobertura. ui.js: fila Controlar con 4 puestos, `localStorage 'make-the-cut.role6'`.»
 - **Lote A → js/sim.js `blockPressCase` en 2v2 (dueño de «Bloqueo activo»; cambia la huella 2v2, regenerar con `--write`)**: revisión del
   12-nov. Un overpass o un balón que cruza sin atacar (`!spiked && toward`) con el balón aún a más de 0,6 m en el campo rival hace que
   GOLPEAR en el aire sea pulsación de bloqueo con `lead = ∞`, y eso acaba en toque de red (prob. NET_PRESS) en vez de golpe. En 6v6 ya va

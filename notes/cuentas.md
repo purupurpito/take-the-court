@@ -5,9 +5,9 @@ para que vea todas las escrituras de los guardados.
 
 ## Cómo funciona el código
 - **Detección de cambios:** envuelve `Storage.prototype.setItem` y `removeItem`. Cuando el juego escribe una de las cuatro claves
-  (`voley3d.squad`, `voley3d.career`, `voley3d.settings`, `voley3d.record`), apunta la hora en `voley3d.account.meta` y, con sesión,
+  (`make-the-cut.squad`, `make-the-cut.career`, `make-the-cut.settings`, `make-the-cut.record`), apunta la hora en `make-the-cut.account.meta` y, con sesión,
   sube ese documento a los ~1,5 s. El resto del juego no sabe nada de las cuentas.
-- **Cuándo se sube:** también al ocultar la pestaña (`keepalive`) y al volver la red. En `voley3d.account.meta.up` queda lo que ya
+- **Cuándo se sube:** también al ocultar la pestaña (`keepalive`) y al volver la red. En `make-the-cut.account.meta.up` queda lo que ya
   está subido.
 - **Al entrar en la cuenta** se une lo de este dispositivo con lo de la cuenta, documento a documento:
   - si solo hay en uno de los dos lados, se copia al otro;
@@ -53,11 +53,11 @@ para que vea todas las escrituras de los guardados.
   Comprobado contra el Firebase real:
   - escribir y leer lo propio da 200;
   - una clave rara, otro usuario o una petición sin token dan 403.
-- En el dispositivo, la sesión va en `voley3d.account` con `{user, uid, rt, it, ie}`. Nunca se guarda la contraseña.
+- En el dispositivo, la sesión va en `make-the-cut.account` con `{user, uid, rt, it, ie}`. Nunca se guarda la contraseña.
 
 ## Comportamiento previsto
 - **Panel «Cuenta» en el menú:** entrar, crear cuenta, cerrar sesión y borrar cuenta (borra los datos y luego la cuenta).
-- **Sin cuenta o sin red**, todo sigue en local como ahora (`voley3d.squad`, `voley3d.career`, ajustes).
+- **Sin cuenta o sin red**, todo sigue en local como ahora (`make-the-cut.squad`, `make-the-cut.career`, ajustes).
 - **Al entrar:**
   - se une lo local con lo de la cuenta, documento a documento, y gana el `updatedAt` más reciente;
   - si los dos existen y son distintos, se pregunta cuál quedarse (sobre todo la Carrera).

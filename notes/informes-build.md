@@ -4,7 +4,7 @@
 
 ### summary
 
-Built the full working base for VOLEY 3D in /home/trilogi/work/voley-3d. The game plays from start to finish in real 3D using Three.js r149, loaded as plain scripts from cdnjs. Everything shares one global, window.VB, and runs from file:// as well as being publishable as an Artifact.
+Built the full working base for MAKE THE CUT in /home/trilogi/work/make-the-cut. The game plays from start to finish in real 3D using Three.js r149, loaded as plain scripts from cdnjs. Everything shares one global, window.VB, and runs from file:// as well as being publishable as an Artifact.
 
 - **Simulation** (js/sim.js + js/ai.js): a pure port of the prototype that touches no page, Three.js or window objects. It keeps all of the prototype's tuning and both of its fixes (no touching your own serve, and the same player can't touch twice in a row). It adds a fixed 120 Hz step, a seeded random generator, a demo mode, an autopilot mode, VB.toThree / VB.fromThree, and a rich event queue: hit, block, net, land, point, set, match, gameOver, whistle, sideout, switch, serveReady with set point and match point, and others. Players carry lastAction and actionT for animation.
 - **Arena** (js/arena.js): procedural parquet floor with correct lines, including the dashed attack-line extension; a net with antennas, posts and a referee chair; warm key light with soft shadows plus fill light; stands with an instanced crowd that jumps on points; LED boards with fictional brands.
@@ -20,7 +20,7 @@ CONTRACT.md has the exact ownership JSON, coordinate conventions, the VB.ctx fie
 
 ### files_changed
 
-/home/trilogi/work/voley-3d/index.html, /home/trilogi/work/voley-3d/js/sim.js, /home/trilogi/work/voley-3d/js/ai.js, /home/trilogi/work/voley-3d/js/arena.js, /home/trilogi/work/voley-3d/js/fx.js, /home/trilogi/work/voley-3d/js/players.js, /home/trilogi/work/voley-3d/js/camera.js, /home/trilogi/work/voley-3d/js/input.js, /home/trilogi/work/voley-3d/js/audio.js, /home/trilogi/work/voley-3d/js/ui.js, /home/trilogi/work/voley-3d/js/main.js, /home/trilogi/work/voley-3d/CONTRACT.md, /home/trilogi/work/voley-3d/notes/README.md, /home/trilogi/work/voley-3d/tools/simtest.js, /home/trilogi/work/voley-3d/tools/shot.sh, /home/trilogi/work/voley-3d/tools/console.sh, /home/trilogi/work/voley-3d/tools/drive.js, /home/trilogi/work/voley-3d/tools/eval.js
+/home/trilogi/work/make-the-cut/index.html, /home/trilogi/work/make-the-cut/js/sim.js, /home/trilogi/work/make-the-cut/js/ai.js, /home/trilogi/work/make-the-cut/js/arena.js, /home/trilogi/work/make-the-cut/js/fx.js, /home/trilogi/work/make-the-cut/js/players.js, /home/trilogi/work/make-the-cut/js/camera.js, /home/trilogi/work/make-the-cut/js/input.js, /home/trilogi/work/make-the-cut/js/audio.js, /home/trilogi/work/make-the-cut/js/ui.js, /home/trilogi/work/make-the-cut/js/main.js, /home/trilogi/work/make-the-cut/CONTRACT.md, /home/trilogi/work/make-the-cut/notes/README.md, /home/trilogi/work/make-the-cut/tools/simtest.js, /home/trilogi/work/make-the-cut/tools/shot.sh, /home/trilogi/work/make-the-cut/tools/console.sh, /home/trilogi/work/make-the-cut/tools/drive.js, /home/trilogi/work/make-the-cut/tools/eval.js
 
 ### verified
 
@@ -65,7 +65,7 @@ None yet; notes/ only holds a README so far. Things specialists should know:
 
 ### summary
 
-Rewrote js/audio.js as a full procedural WebAudio engine for VOLEY 3D. Every sound is synthesised once in JS and played back as an AudioBuffer, so each hit costs 1 source plus 1-3 nodes. The catalogue has 38 sounds:
+Rewrote js/audio.js as a full procedural WebAudio engine for MAKE THE CUT. Every sound is synthesised once in JS and played back as an AudioBuffer, so each hit costs 1 source plus 1-3 nodes. The catalogue has 38 sounds:
 - Touches: forearm pass "thump", soft fingertip set, free ball, float serve slap, jump serve crack, spike CRACK with air whistle (scaled by power), tip, shank, and stuffed / soft / tool blocks.
 - Ball and court: net rattle with cable vibration (plus a tape "thwack"), floor bounce, spike floor slam, dead-ball bounces, sneaker squeaks on sharp turns and stops (smoothed velocity per player), take-off scuff, feet landing, dive slide, swing whoosh, and a toss swish with approach steps on jump serves.
 - Referee whistle: two-tone with pea trill and breath, in short (serve), medium (point) and long (end of set or match) versions.
@@ -80,11 +80,11 @@ The module loads in node without window or AudioContext, and handle() is safe wi
 
 ### files_changed
 
-/home/trilogi/work/voley-3d/js/audio.js, /home/trilogi/work/voley-3d/notes/audio.md
+/home/trilogi/work/make-the-cut/js/audio.js, /home/trilogi/work/make-the-cut/notes/audio.md
 
 ### verified
 
-1) Node harness (/home/trilogi/work/voley-3d/tools/out/audiotest.js, log in tools/out/audiotest.log), result TODO OK, exit 0:
+1) Node harness (/home/trilogi/work/make-the-cut/tools/out/audiotest.js, log in tools/out/audiotest.log), result TODO OK, exit 0:
 - Load without AudioContext plus the full API and handle() with every event type, null, {}, unknown types and missing fields: no errors, no sound.
 - All 38 sounds synthesised: no NaN, peak at most 1, no clicks at the edges (except the loop beds and the IR, which are not meant to start at zero). WAVs written to tools/out/audio/*.wav for listening.
 - Mock AudioContext plus a full CPU-vs-CPU autopilot match driven by real sim events at 60 fps: every event type reachable, about 153 sounds/min, at most 9 simultaneous voices, at most 6 new sounds in one frame, 0 dropped, exactly 1 match sting.
@@ -160,7 +160,7 @@ CPU vs CPU median rally is 5.0 s, close to the prototype.
 
 ### files_changed
 
-/home/trilogi/work/voley-3d/js/sim.js, /home/trilogi/work/voley-3d/js/ai.js, /home/trilogi/work/voley-3d/tools/simtest.js, /home/trilogi/work/voley-3d/notes/sim.md
+/home/trilogi/work/make-the-cut/js/sim.js, /home/trilogi/work/make-the-cut/js/ai.js, /home/trilogi/work/make-the-cut/tools/simtest.js, /home/trilogi/work/make-the-cut/notes/sim.md
 
 ### verified
 
@@ -188,7 +188,7 @@ The machine was heavily loaded by other agents' headless Chrome (load average ab
 
 ### notes_for_integration
 
-Everything is in /home/trilogi/work/voley-3d/notes/sim.md. Key points:
+Everything is in /home/trilogi/work/make-the-cut/notes/sim.md. Key points:
 
 **players.js**
 - Animate the new `lastAction` values `'toss'` (serve toss; the ball is not held while `g.serveState === 'toss'`) and `'dive'` (lunge, then lying on the floor while `p.down > 0`, direction in `p.lvx/p.lvy` or `dive.dir`).
@@ -220,7 +220,7 @@ Difficulty strings `'easy' | 'normal' | 'hard'` (as main.js already passes) work
 
 ## integrate:build (6-nov-2026, PC de casa, RTX 3060 Ti)
 
-- Instantánea previa: `../voley-3d-snapshots/build-before`.
+- Instantánea previa: `../make-the-cut-snapshots/build-before`.
 - Herramientas: nuevo `tools/cdp.js` (cliente DevTools con viewport EXACTO vía `Emulation.setDeviceMetricsOverride`: con
   `--window-size` la página medía 1264×569 / 828×239) y `tools/shot.js` (capturas + consola, varias escenas en un Chrome, `TOUCH=1`).
   `shot.sh`/`console.sh` delegan en él; `eval.js` (con `SHOT=` = evalshot) y `drive.js` usan `cdp.js`. GPU real (ANGLE d3d11) ~160 fps.
@@ -239,7 +239,7 @@ Difficulty strings `'easy' | 'normal' | 'hard'` (as main.js already passes) work
   (parece más bloqueo que armado de remate en la escena `jumpserve`); rendimiento en móvil real no medido.
 
 ## Integración tras Review 1 (6-nov-2026, PC de casa, RTX 3060 Ti)
-- Instantánea previa: `../voley-3d-snapshots/round1-before`.
+- Instantánea previa: `../make-the-cut-snapshots/round1-before`.
 - Aplicado de notes/*.md: aro de caída con `C.IN_TOL` (fx.js), `g.lastLand` (sim.js, para camera.js), `rookie` en el primer
   partido (main.js), `debug=jumpserve` a 145 pasos (main.js), tutorial del remate con el apuntado (ui.js), "ATAQUE DEL SAQUE"
   en el videomarcador (arena.js), CONTRACT §4.2/§4.3/§4.4 al día.
@@ -251,7 +251,7 @@ Difficulty strings `'easy' | 'normal' | 'hard'` (as main.js already passes) work
   "Golpea cuando el balón baje a tu mano" del saque en salto queda sobre el marcador colgado (texto algo apagado).
 
 ## Integración tras Review 2 (6-nov-2026, PC de casa, RTX 3060 Ti)
-- Instantánea previa: `../voley-3d-snapshots/round2-before` (copia completa, incluido tools/out).
+- Instantánea previa: `../make-the-cut-snapshots/round2-before` (copia completa, incluido tools/out).
 - Aplicado de notes/*.md: sim §5 entero (4 niveles en menú/ajustes/main, banner + videomarcador + silbato de CAMBIO DE CAMPO
   encadenados tras SET/PUNTO, `block.result 'touch'`, avisos y consejos según `g.defRole`, DEFENSA tras bloqueo propio,
   `shot:'body'` en UI/FX/audio/players, deslizamiento largo con `switch.reason 'defense'`, tutorial del bloqueo y reglas

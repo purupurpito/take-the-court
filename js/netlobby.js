@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/netlobby.js   (owner: net)
+ * MAKE THE CUT — js/netlobby.js   (owner: net)
  * Modo online, fase 2 (notes/net.md «Fase 2»): la página «Online» del menú (#mpOnline, la monta ui.js) y la conexión entre los dos
  * jugadores. Decisiones de Ferran que se cumplen aquí:
  *   1. Al entrar ves la LISTA de salas abiertas (nombre de quien la creó, formato, sede, partido, Igualado o no, 1/2) y puedes crear
@@ -22,7 +22,7 @@
   var Q = {}; try { new URLSearchParams(location.search).forEach(function (v, k) { Q[k] = v; }); } catch (e) { }
   var LOCAL = location.protocol === 'file:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
   var EMU = LOCAL && /^\d{2,5}$/.test(Q.netemu || '') ? +Q.netemu : 0;   // pruebas: emulador de Firestore, sin cuenta de verdad
-  var NICK = 'voley3d.nick', PREFS = 'voley3d.netroom', HELPK = 'voley3d.nethelp';   // (nethelp = '1': ya vio «Cómo funciona»)
+  var NICK = 'make-the-cut.nick', PREFS = 'make-the-cut.netroom', HELPK = 'make-the-cut.nethelp';   // (nethelp = '1': ya vio «Cómo funciona»)
   var CONNECT_MS = 30000, OFFER_MS = 10000, OFFER_MAX = 65000, PRE_MS = 12000, LIST_EVERY = 8000, ROOM_POLL = 2000, SIG_POLL = 1000;   // (lecturas de Firestore: ver notes/net.md «Cuotas»)
 
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } return null; }
@@ -1006,7 +1006,7 @@
    * del anfitrión (su relink manda una con gen+1 cada 10 s durante ~60 s) y una sesión nueva sin opciones: el saludo trae las del
    * anfitrión y su 'ready' provoca el resync con la foto (Sim.serialize). Cabe en las reglas ya desplegadas (respuesta del invitado
    * con la sala en 'full'/'play'). La marca de partido (NetRec.resume) se hereda: si no se llega a jugar, cuenta como abandono. */
-  var BACK = 'voley3d.online.back', BACK_MS = 50000;
+  var BACK = 'make-the-cut.online.back', BACK_MS = 50000;
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { } return null; }
   function backSave() {
     if (L.role === 'host') return hostBackSave();   // (fase 6: también el anfitrión)

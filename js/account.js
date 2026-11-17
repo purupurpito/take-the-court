@@ -4,17 +4,17 @@
  *    <usuario>@cuentas.make-the-cut.invalid, las cuentas de antes) y Google. Correo y usuario van por REST, sin librerías; Google carga
  *    el SDK de Firebase Auth (gstatic) SOLO al pulsar el botón, saca el uid y el refresh token y la sesión sigue por REST como las demás.
  *    Requisitos de Google (consola de Firebase, los pone Ferran): proveedor Google activado y purupurpito.github.io en dominios autorizados.
- *  - Se sincronizan cuatro guardados del navegador: escuadrón ('voley3d.squad'), Carrera ('voley3d.career'), ajustes
- *    ('voley3d.settings') y récord ('voley3d.record'). Cada uno es un documento users/{uid}/saves/{squad|career|settings|record}
+ *  - Se sincronizan cuatro guardados del navegador: escuadrón ('make-the-cut.squad'), Carrera ('make-the-cut.career'), ajustes
+ *    ('make-the-cut.settings') y récord ('make-the-cut.record'). Cada uno es un documento users/{uid}/saves/{squad|career|settings|record}
  *    = {data: JSON en texto, updatedAt: ms, v: 1}. Sin cifrar (lo eligió Ferran); las reglas solo dejan leer y escribir al dueño.
  *  - No toca el resto del juego: escucha las escrituras de esas claves en localStorage (envuelve Storage.setItem/removeItem),
  *    apunta la hora y sube el cambio a los ~1,5 s (y al ocultar la pestaña). Sin cuenta o sin red, todo sigue en local.
  *  - Al entrar se une lo del dispositivo con lo de la cuenta: gana lo más reciente; si las dos Carreras son distintas, se pregunta.
  *    Si llega algo de la cuenta, la página se recarga para que el juego lo lea.
- *  - 'voley3d.gym' (Entrenamiento) se une por máximo (mergeGym); se sincroniza desde el 12-nov-2026 (GYM_SYNC = true).
- *  - 'voley3d.look' (Vestuario, js/look.js) tiene su fusión escrita (mergeLook: une lo ganado y lo visto con VB.Look.mergeRaw y toma
+ *  - 'make-the-cut.gym' (Entrenamiento) se une por máximo (mergeGym); se sincroniza desde el 12-nov-2026 (GYM_SYNC = true).
+ *  - 'make-the-cut.look' (Vestuario, js/look.js) tiene su fusión escrita (mergeLook: une lo ganado y lo visto con VB.Look.mergeRaw y toma
  *    los looks del lado más reciente); se sincroniza desde el 15-nov-2026 (LOOK_SYNC = true).
- *  - S4 (T13): 'voley3d.profile', 'voley3d.career6', 'voley3d.career.mode', 'voley3d.legends' y 'voley3d.retos' tienen su fusión
+ *  - S4 (T13): 'make-the-cut.profile', 'make-the-cut.career6', 'make-the-cut.career.mode', 'make-the-cut.legends' y 'make-the-cut.retos' tienen su fusión
  *    (MERGE: perfil y retos con su mergeRaw, Salón de la Fama por unión; Carrera de pista y modo, gana lo más reciente) pero NO se
  *    sincronizan hasta S4_SYNC = true (antes, Ferran despliega firebase/firestore.rules). Hasta entonces, TRACK (solo la hora).
  *  - Conflictos en cola (Carrera y Carrera de pista, la primera vez); antes de pisar una Carrera local, copia en '<clave>.prev'.
@@ -29,28 +29,28 @@
   var FB = { key: 'AIzaSyC59o9QtpUvjWT4g3ouOXinghASTuXZSes', project: 'make-the-cut-vb', mail: '@cuentas.make-the-cut.invalid',
     authDomain: 'make-the-cut-vb.firebaseapp.com', sdk: 'https://www.gstatic.com/firebasejs/10.12.5/' };
   var FS = 'https://firestore.googleapis.com/v1/projects/' + FB.project + '/databases/(default)/documents/';
-  var SES = 'voley3d.account', META = 'voley3d.account.meta';
-  var DOCS = { 'voley3d.squad': 'squad', 'voley3d.career': 'career', 'voley3d.settings': 'settings', 'voley3d.record': 'record' };
-  // Entrenamiento (E6, js/gym.js): 'voley3d.gym' se sincronizará como users/{uid}/saves/gym, uniendo por máximo (mergeGym).
+  var SES = 'make-the-cut.account', META = 'make-the-cut.account.meta';
+  var DOCS = { 'make-the-cut.squad': 'squad', 'make-the-cut.career': 'career', 'make-the-cut.settings': 'settings', 'make-the-cut.record': 'record' };
+  // Entrenamiento (E6, js/gym.js): 'make-the-cut.gym' se sincronizará como users/{uid}/saves/gym, uniendo por máximo (mergeGym).
   // APAGADO hasta que Ferran despliegue firebase/firestore.rules con 'gym' en la lista de key: antes, cada subida daría 403.
-  // Orden obligatorio: 1) desplegar reglas, 2) GYM_SYNC = true. 'voley3d.seen' y 'voley3d.device' NUNCA van a DOCS (son del dispositivo).
+  // Orden obligatorio: 1) desplegar reglas, 2) GYM_SYNC = true. 'make-the-cut.seen' y 'make-the-cut.device' NUNCA van a DOCS (son del dispositivo).
   var GYM_SYNC = true;   // reglas con 'gym' desplegadas el 12-nov-2026 (firebase deploy --only firestore:rules)
-  if (GYM_SYNC) DOCS['voley3d.gym'] = 'gym';
-  // Vestuario (js/look.js): 'voley3d.look' va a users/{uid}/saves/look con la fusión mergeLook. Con LOOK_SYNC = false volvería a TRACK
+  if (GYM_SYNC) DOCS['make-the-cut.gym'] = 'gym';
+  // Vestuario (js/look.js): 'make-the-cut.look' va a users/{uid}/saves/look con la fusión mergeLook. Con LOOK_SYNC = false volvería a TRACK
   // (solo se apunta la hora de cada escritura, para que la primera fusión sepa qué looks son los más nuevos).
   var LOOK_SYNC = true;   // reglas con 'look' desplegadas el 15-nov-2026 (firebase deploy --only firestore:rules)
-  if (LOOK_SYNC) DOCS['voley3d.look'] = 'look';
-  var TRACK = { 'voley3d.look': 1 };
-  if (LOOK_SYNC) delete TRACK['voley3d.look'];
+  if (LOOK_SYNC) DOCS['make-the-cut.look'] = 'look';
+  var TRACK = { 'make-the-cut.look': 1 };
+  if (LOOK_SYNC) delete TRACK['make-the-cut.look'];
   // S4 (D2/D4, T13): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos. APAGADO hasta que Ferran despliegue
   // firebase/firestore.rules (ya tiene las 11 claves). Orden obligatorio: 1) desplegar reglas, 2) S4_SYNC = true (y LOOK_SYNC).
   // Mientras tanto van a TRACK: se apunta la hora de cada escritura sin subir, para que la primera fusión sepa qué es más nuevo.
-  // NUNCA van a DOCS ni a TRACK: '<clave>.bak', 'voley3d.career.prev', 'voley3d.career6.prev', 'voley3d.devid', 'voley3d.retostab'.
+  // NUNCA van a DOCS ni a TRACK: '<clave>.bak', 'make-the-cut.career.prev', 'make-the-cut.career6.prev', 'make-the-cut.devid', 'make-the-cut.retostab'.
   var S4_SYNC = false;
-  var S4_DOCS = { 'voley3d.profile': 'profile', 'voley3d.career6': 'career6', 'voley3d.career.mode': 'cmode', 'voley3d.legends': 'legends', 'voley3d.retos': 'retos' };
+  var S4_DOCS = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6', 'make-the-cut.career.mode': 'cmode', 'make-the-cut.legends': 'legends', 'make-the-cut.retos': 'retos' };
   Object.keys(S4_DOCS).forEach(function (k) { if (S4_SYNC) DOCS[k] = S4_DOCS[k]; else TRACK[k] = 1; });
   // Carreras: la primera vez en un dispositivo, si la local y la de la cuenta son distintas, se pregunta (en cola, una tras otra).
-  var CONFLICT = { 'voley3d.career': 'Carrera', 'voley3d.career6': 'Carrera de pista' };
+  var CONFLICT = { 'make-the-cut.career': 'Carrera', 'make-the-cut.career6': 'Carrera de pista' };
   var MAX_RAW = 390000;   // tope de subida (las reglas admiten 400 000 caracteres)
   var LS = null; try { LS = window.localStorage; } catch (e) { }
   var rawSet = Storage.prototype.setItem, rawRemove = Storage.prototype.removeItem;
@@ -181,8 +181,8 @@
       try { var o = M.mergeRaw(L, R, rn); return typeof o === 'string' ? o : (rn ? R : L); } catch (e) { return rn ? R : L; }
     };
   }
-  var MERGE = { 'voley3d.gym': mergeGym, 'voley3d.look': mergeLook, 'voley3d.legends': mergeLegends,
-    'voley3d.profile': modMerge('Profile'), 'voley3d.retos': modMerge('Retos') };
+  var MERGE = { 'make-the-cut.gym': mergeGym, 'make-the-cut.look': mergeLook, 'make-the-cut.legends': mergeLegends,
+    'make-the-cut.profile': modMerge('Profile'), 'make-the-cut.retos': modMerge('Retos') };
   /** Une lo local con lo remoto. first: primera entrada en este dispositivo (sin fechas fiables). Devuelve {changed, keys (claves
    *  cambiadas en local), conflicts:[{k, remote, local, at}], conflict (el primero o null)}. Los conflictos también quedan en la
    *  cola del módulo (los resuelve act('keepRemote'|'keepLocal') uno a uno). */
@@ -205,14 +205,14 @@
         if (Mx !== Rd) dirty[k] = 1;
         return;
       }
-      var remoteWins = first ? (k === 'voley3d.squad' ? score(Rd) >= score(L) : k !== 'voley3d.record' || recPlayed(Rd) >= recPlayed(L)) : R.at > Lt;
+      var remoteWins = first ? (k === 'make-the-cut.squad' ? score(Rd) >= score(L) : k !== 'make-the-cut.record' || recPlayed(Rd) >= recPlayed(L)) : R.at > Lt;
       if (remoteWins) { put(Rd); meta[k] = R.at; synced[k] = R.at; } else dirty[k] = 1;
     });
     jset(META, meta); jset(META + '.up', synced);
     found.forEach(function (c) { conflicts = conflicts.filter(function (x) { return x.k !== c.k; }); conflicts.push(c); });
     return { changed: changed, keys: keys, conflicts: found, conflict: found[0] || null };
   }
-  /** Une dos Salones de la Fama ('voley3d.legends', [rec ≤ 20]) por la clave name|num|date; orden por score de mayor a menor, las
+  /** Une dos Salones de la Fama ('make-the-cut.legends', [rec ≤ 20]) por la clave name|num|date; orden por score de mayor a menor, las
    *  20 primeras. Devuelve el local tal cual si no cambia nada. */
   function mergeLegends(Lraw, Rraw) {
     function p(r) { try { var a = JSON.parse(r); return Array.isArray(a) ? a.filter(function (x) { return x && typeof x === 'object'; }) : null; } catch (e) { return null; } }
@@ -231,7 +231,7 @@
     var txt = JSON.stringify(out);
     return txt === JSON.stringify(A) ? Lraw : txt;
   }
-  /** Une dos guardados de 'voley3d.gym' (texto JSON) por máximo: por ejercicio b (récord, con su fecha t), m (medalla),
+  /** Une dos guardados de 'make-the-cut.gym' (texto JSON) por máximo: por ejercicio b (récord, con su fecha t), m (medalla),
    *  n (intentos) y xp (nivel ya cobrado); free.rally. Devuelve texto JSON (el local tal cual si no cambia nada). */
   function mergeGym(Lraw, Rraw) {
     function p(r) { try { var o = JSON.parse(r); return o && typeof o === 'object' ? o : {}; } catch (e) { return {}; } }
@@ -252,7 +252,7 @@
     var txt = JSON.stringify(out);
     return Lraw != null && txt === JSON.stringify(p(Lraw)) ? Lraw : txt;
   }
-  /** Une dos guardados de 'voley3d.look' (texto JSON {v, fits, own, seen}). own y seen: unión con VB.Look.mergeRaw (gana la t mínima);
+  /** Une dos guardados de 'make-the-cut.look' (texto JSON {v, fits, own, seen}). own y seen: unión con VB.Look.mergeRaw (gana la t mínima);
    *  fits: los del lado más reciente por la hora de meta (remoteNewer), los dé como los dé mergeRaw. Sin js/look.js (o con un mergeRaw
    *  que falla) gana entero el más reciente. Devuelve texto JSON (el local tal cual si no cambia nada). look.js sanea al cargar. */
   function mergeLook(Lraw, Rraw, remoteNewer) {
@@ -270,7 +270,7 @@
   }
   function recPlayed(raw) { try { return +(JSON.parse(raw).played) || 0; } catch (e) { return 0; } }
   function reloadSoon(msg) {
-    try { sessionStorage.setItem('voley3d.account.toast', msg); } catch (e) { }
+    try { sessionStorage.setItem('make-the-cut.account.toast', msg); } catch (e) { }
     setTimeout(function () { location.reload(); }, 350);
   }
   function inMenu() { var c = VB.ctx; return !c || !c.state || c.state === 'menu'; }
@@ -290,22 +290,22 @@
   }
   // Ganchos de las claves con caché en memoria (tras la primera recarga de la pestaña se llaman en vez de recargar otra vez).
   var HOOKS = {
-    'voley3d.squad': function () { if (VB.Prog && VB.Prog._reload) VB.Prog._reload(); },
-    'voley3d.career': function () { var b = VB.Career && VB.Career.beach; if (b && b._reset) b._reset(); },
-    'voley3d.career6': function () { var h = VB.Career && VB.Career.hall; if (h && h._reset) h._reset(); }
+    'make-the-cut.squad': function () { if (VB.Prog && VB.Prog._reload) VB.Prog._reload(); },
+    'make-the-cut.career': function () { var b = VB.Career && VB.Career.beach; if (b && b._reset) b._reset(); },
+    'make-the-cut.career6': function () { var h = VB.Career && VB.Career.hall; if (h && h._reset) h._reset(); }
     // gym, look, profile y retos leen el texto cada vez (o cachean por el texto): no necesitan gancho
   };
   function afterDown(keys) {
     keys = keys || [];
     if (!reloadedOnce()) { reloadSoon('Progreso actualizado desde tu cuenta'); return 'reload'; }
-    if (keys.indexOf('voley3d.settings') >= 0 && reloadCount() < 3) { reloadSoon('Ajustes actualizados desde tu cuenta'); return 'reload'; }
+    if (keys.indexOf('make-the-cut.settings') >= 0 && reloadCount() < 3) { reloadSoon('Ajustes actualizados desde tu cuenta'); return 'reload'; }
     keys.forEach(function (k) { if (HOOKS[k]) { try { HOOKS[k](); } catch (e) { } } });
     try { if (VB.UI && VB.UI.refreshMenu) VB.UI.refreshMenu(); } catch (e) { }
     return 'hooks';
   }
-  function reloadedOnce() { try { if (sessionStorage.getItem('voley3d.account.rl')) return true; sessionStorage.setItem('voley3d.account.rl', '1'); } catch (e) { } return false; }
+  function reloadedOnce() { try { if (sessionStorage.getItem('make-the-cut.account.rl')) return true; sessionStorage.setItem('make-the-cut.account.rl', '1'); } catch (e) { } return false; }
   function reloadCount() {   // recargas por ajustes en esta pestaña (tope, para que nunca haya bucle)
-    var n = 0; try { n = +sessionStorage.getItem('voley3d.account.rls') || 0; sessionStorage.setItem('voley3d.account.rls', String(n + 1)); } catch (e) { n = 9; }
+    var n = 0; try { n = +sessionStorage.getItem('make-the-cut.account.rls') || 0; sessionStorage.setItem('make-the-cut.account.rls', String(n + 1)); } catch (e) { n = 9; }
     return n;
   }
   /** Lo llama ui.js al entrar en el menú: lanza la bajada que quedó pendiente durante un partido. */
@@ -341,7 +341,7 @@
     return idt('accounts:sendOobCode', { requestType: 'PASSWORD_RESET', email: mail });
   }
   // ---- Google: SDK de Firebase Auth (compat) cargado a demanda; ventana emergente y, si el navegador la bloquea, redirección
-  var GREDIR = 'voley3d.account.gredir', sdkP = null;
+  var GREDIR = 'make-the-cut.account.gredir', sdkP = null;
   function loadSdk() {
     if (sdkP) return sdkP;
     function add(f) { return new Promise(function (ok, ko) { var sc = document.createElement('script'); sc.src = FB.sdk + f; sc.async = false; sc.onload = ok; sc.onerror = function () { ko(err('unavailable')); }; document.head.appendChild(sc); }); }
@@ -601,7 +601,7 @@
     pending = null; view = 'in'; if (root) render();
     var er = pendRes.enter, rem = pendRes.remote; pendRes = { remote: false, enter: null };
     if (rem || (er && er.changed)) { reloadSoon(rem ? 'Carrera cargada desde tu cuenta' : 'Has entrado: progreso cargado desde tu cuenta'); return 'reload'; }
-    toast(p2.k === 'voley3d.career6' ? 'Te quedas con la Carrera de pista de este dispositivo' : 'Te quedas con la Carrera de este dispositivo');
+    toast(p2.k === 'make-the-cut.career6' ? 'Te quedas con la Carrera de pista de este dispositivo' : 'Te quedas con la Carrera de este dispositivo');
     return 'done';
   }
   function focusFirst() { try { var i = root.querySelector('#acUser') || root.querySelector('[data-ac=close]'); if (i) i.focus({ preventScroll: true }); } catch (e) { } }
@@ -645,7 +645,7 @@
 
   function boot() {
     build(); initBtn();
-    try { var t = sessionStorage.getItem('voley3d.account.toast'); if (t) { sessionStorage.removeItem('voley3d.account.toast'); setTimeout(function () { toast(t); }, 900); } } catch (e) { }
+    try { var t = sessionStorage.getItem('make-the-cut.account.toast'); if (t) { sessionStorage.removeItem('make-the-cut.account.toast'); setTimeout(function () { toast(t); }, 900); } } catch (e) { }
     if (acc) syncDown(true); else gBack();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();

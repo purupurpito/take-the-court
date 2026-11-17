@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/drive6.js  (owner: sim desde el 11-nov-2026; antes ui_main)
+/* MAKE THE CUT — tools/drive6.js  (owner: sim desde el 11-nov-2026; antes ui_main)
  * 6 contra 6 con HUMANO (sprint 3) en el juego REAL (Chrome headless vía DevTools, como tools/drive.js), con teclado:
  * menú → JUGAR → tarjeta «6 contra 6» → preparación (fila Formato en 6 contra 6, Escenario y Controlar fijos; ←/→ en Formato
  * cambia a 2 contra 2 y vuelve) → ¡A JUGAR! → partido 6v6 en el pabellón llevando al receptor (n.º 2) → juega con el teclado
@@ -142,7 +142,7 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
       // (al menos una pulsación: con ROLE=OH la fila ya dice Receptor y, sin pulsar, nada se guarda en localStorage; da la vuelta a los 4)
       for (let i = 0; i < 5 && (i === 0 || (await evalJs("document.getElementById('ctrlVal').textContent")) !== ROLE_NAME[ROLE]); i++) { await press('ArrowRight'); await sleep(250); }
       check((await evalJs("document.getElementById('ctrlVal').textContent")) === ROLE_NAME[ROLE], '→ en Controlar llega a «' + ROLE_NAME[ROLE] + '»');
-      check(await evalJs("(function(){try{return (localStorage.getItem('voley3d.role6')||'').indexOf('" + ROLE + "')>=0}catch(e){return false}})()"), 'el puesto se guarda en localStorage voley3d.role6');
+      check(await evalJs("(function(){try{return (localStorage.getItem('make-the-cut.role6')||'').indexOf('" + ROLE + "')>=0}catch(e){return false}})()"), 'el puesto se guarda en localStorage make-the-cut.role6');
     }
     await shot('menu');
     for (let i = 0; i < 8 && !(await evalJs("document.activeElement.id==='btnGo'")); i++) { await press('ArrowDown'); await sleep(110); }

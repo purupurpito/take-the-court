@@ -1,4 +1,4 @@
-/* VOLEY 3D — tools/jsetdrill.js (owner: ui_main; lo usan drive.js, touchplay.js y padplay.js)
+/* MAKE THE CUT — tools/jsetdrill.js (owner: ui_main; lo usan drive.js, touchplay.js y padplay.js)
  * Ejercicio de COLOCACIÓN EN SALTO en el juego REAL con el dispositivo de cada herramienta: con el partido en peloteo,
  * prepara (solo estado de la sim, como las escenas de depuración) un 2.º toque propio: el compañero acaba de recibir y el
  * balón va alto hacia tu jugador (n.º 1), junto a la red. La herramienta pulsa SALTAR cuando toca y, ya en el aire, COLOCAR

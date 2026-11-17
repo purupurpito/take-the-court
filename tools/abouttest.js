@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/abouttest.js (owner: ui_main)
+/* MAKE THE CUT — tools/abouttest.js (owner: ui_main)
  * Pruebas de E7 (escaparate: versión, novedades, créditos, metadatos de Pages). Dos partes:
  *  1) SIN navegador (siempre): js/version.js en vm (semver, CHANGELOG ordenado y con [0].v === VERSION, fechas válidas, items de
  *     90 caracteres como mucho, nada de «1.er» «2.º» «3.er», «·», «navegador» ni arrobas en todo el fichero, CREDITS.by === 'Ferran',
@@ -115,7 +115,7 @@ async function browser() {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const V = VB.VERSION;
   const returning = `(function(){try{if(sessionStorage.getItem('vbAboutInit'))return;sessionStorage.setItem('vbAboutInit','1');
-    localStorage.setItem('voley3d.record',JSON.stringify({played:3,won:1}));localStorage.setItem('voley3d.seen',JSON.stringify({v:'0.0.1'}));}catch(e){}})();`;
+    localStorage.setItem('make-the-cut.record',JSON.stringify({played:3,won:1}));localStorage.setItem('make-the-cut.seen',JSON.stringify({v:'0.0.1'}));}catch(e){}})();`;
   const vis = sel => `(function(){var e=document.querySelector(${JSON.stringify(sel)});if(!e||e.hidden)return false;var r=e.getBoundingClientRect(),s=getComputedStyle(e);return r.width>0&&r.height>0&&s.visibility!=='hidden'&&s.display!=='none';})()`;
   const waitFor = async (pg, expr, ms) => { const t = Date.now(); while (Date.now() - t < ms) { try { if (await pg.evalJs(expr)) return true; } catch (e) { } await sleep(100); } return false; };
   const ready = pg => waitFor(pg, 'window.VB&&VB.ctx&&VB.ctx.state&&VB.UI', 20000);
@@ -130,16 +130,16 @@ async function browser() {
       return;
     }
     await sleep(4200);
-    const a = await pg.evalJs('JSON.stringify({ab:VB.UI._about(),seen:localStorage.getItem("voley3d.seen")})');
+    const a = await pg.evalJs('JSON.stringify({ab:VB.UI._about(),seen:localStorage.getItem("make-the-cut.seen")})');
     const A = JSON.parse(a); let seen = null; try { seen = JSON.parse(A.seen); } catch (e) { }
-    check(A.ab.auto !== 'shown' && seen && seen.v === V, '(a) perfil limpio: sin novedades y voley3d.seen = ' + V + ' (' + a + ')');
+    check(A.ab.auto !== 'shown' && seen && seen.v === V, '(a) perfil limpio: sin novedades y make-the-cut.seen = ' + V + ' (' + a + ')');
     pg.close();
     // (b) jugador que vuelve
     pg = await CDP.open({ size: '1280x720', init: [returning] });
     await pg.navigate(''); await ready(pg);
     const shown = await waitFor(pg, 'VB.UI.isPanelOpen&&VB.UI.isPanelOpen()&&' + vis('#pnAbout'), 7000);
     check(shown, '(b) jugador que vuelve: Novedades se abre sola (#pnAbout)');
-    const s2 = await pg.evalJs('localStorage.getItem("voley3d.seen")');
+    const s2 = await pg.evalJs('localStorage.getItem("make-the-cut.seen")');
     check(/"v":"/.test(s2 || '') && JSON.parse(s2).v === V, '(b) seen marcado al abrir: ' + s2);
     await pg.navigate(''); await ready(pg); await sleep(4500);
     check(!(await pg.evalJs(vis('#pnAbout'))), '(b) tras recargar ya no sale');

@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/netrtc.js   (owner: net)
+ * MAKE THE CUT — js/netrtc.js   (owner: net)
  * Modo online, fase 2 (notes/net.md «Fase 2»): transporte real por WebRTC DataChannel entre dos navegadores.
  *   - Dos canales «negociados» (los crean los dos lados con el mismo id, sin esperar a ondatachannel):
  *       'in'  id 1, {ordered:false, maxRetransmits:0}  → entradas (no fiable: la redundancia la pone la sesión)

@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/fx.js   (owner: arena)
+ * MAKE THE CUT — js/fx.js   (owner: arena)
  * Balón (esfera-cubo con 6 grupos de 3 paneles, como un balón real, con
  * efecto según el toque: liftado en el remate, casi sin giro en el saque
  * flotante), sombra de contacto, aro de caída que se cierra según el

@@ -1,5 +1,5 @@
 /* =====================================================================
- * VOLEY 3D — js/arena.js   (owner: arena)
+ * MAKE THE CUT — js/arena.js   (owner: arena)
  * Pabellón "PALAU DEL MAR": suelo deportivo procedural (tarima pintada,
  * líneas reglamentarias FIVB), red con malla real y onda al tocarla,
  * antenas, postes acolchados, silla del 1r árbitro, 2º árbitro, jueces

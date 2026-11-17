@@ -64,7 +64,7 @@ function crestChecks(c, label, leagueKey) {
 }
 let cb;
 {
-  B.mem['voley3d.career'] = undefined; delete B.mem['voley3d.career'];
+  B.mem['make-the-cut.career'] = undefined; delete B.mem['make-the-cut.career'];
   cb = C.create({ name: 'Escudo Prueba', num: 7, role: 'cr', seed: 4242, autoClub: true });
   const a0 = crestChecks(cb, 'playa (40)', k => 'L' + k.lvl);
   // otra semilla: las ciudades son las mismas por id, los colores no

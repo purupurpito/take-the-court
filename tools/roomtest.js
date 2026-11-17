@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/roomtest.js  (owner: net)
+/* MAKE THE CUT — tools/roomtest.js  (owner: net)
  * Fase 2 del online (notes/net.md): salas del lobby y señalización (js/netroom.js) contra las reglas de firebase/firestore.rules.
  *  1) Con Java y el emulador de Firestore (cloud-firestore-emulator-*.jar en ~/.cache/firebase/emulators; con Java 17 vale el
  *     v1.19.x: `npx firebase-tools@13.29.1 setup:emulators:firestore`): arranca el emulador con las reglas del proyecto y prueba

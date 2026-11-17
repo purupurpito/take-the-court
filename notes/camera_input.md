@@ -1095,11 +1095,11 @@ partidas. Hace el juego demasiado fácil». Vale para el 2v2 y el 6v6. Solo pres
   | camera.js `hitStop` remate humano (60/35 ms), saque en salto perfecto (35), bloqueo directo (70), defensa perfecta de un remate (40) | congelación de impacto | No: todas suenan en el evento `hit`/`block` del humano, el golpe ya está dado (la de la defensa, 40 ms + 80 de vuelta, es el sello del toque, no ayuda al siguiente) | Se quedan (CAM-04 «feel»; confort las quita) |
   | camera.js `onGameStart`/`onState('menu')`/aborto del cierre | `timeScale = 1` | — | Son vueltas a 1 |
   La única cámara lenta previa al golpe era la **guía del novato**. Y su disparador (`record.played === 0`) tenía un agujero: el récord
-  `voley3d.record` no cuenta el 6v6 ni la Carrera (ui.js `showEnd`), así que quien solo juega esos modos era «novato» para siempre y
+  `make-the-cut.record` no cuenta el 6v6 ni la Carrera (ui.js `showEnd`), así que quien solo juega esos modos era «novato» para siempre y
   veía la cámara lenta en TODOS los partidos, también en Normal, Difícil y Experto. Eso es lo que Ferran veía en el 6v6.
 - **Regla nueva** (ui.js `guideOn`, bloque «Primeros toques guiados»): novato = sin partidos en el récord (como antes). En **Fácil**, la
   guía sigue como antes (mientras el récord esté a 0). **A partir de Normal**, la guía solo sale en los **`GUIDE_MAX` = 3 primeros
-  partidos con guía** de este dispositivo (contador local `voley3d.guided`: partidos en los que ha salido alguna tarjeta; `account.js` no
+  partidos con guía** de este dispositivo (contador local `make-the-cut.guided`: partidos en los que ha salido alguna tarjeta; `account.js` no
   lo sincroniza, es de presentación). `&guide=1` la fuerza siempre y no cuenta (pruebas y capturas). `ctx.debug` y la demo, nunca.
 - **Gate en camera.js**: `slowmo(scale, realSeconds, easeOut, aid)` — con `aid` la cámara lenta es una ayuda ANTES del golpe y solo entra
   si `aidOk(aid === 'novice')`: Fácil siempre; Normal o más, solo con la certificación `'novice'` del que llama. Devuelve `true/false`.

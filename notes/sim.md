@@ -1349,7 +1349,7 @@ llamadas a `g.rng`). El 6v6 CPU contra CPU cambia (formaciones nuevas y pipe) y 
 - **Puestos jugables (sim.js)**: `CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB']` (`VB.Sim.CTRL_ROLES6`, orden de la fila Controlar: Receptor,
   Colocador, Opuesto, Central; el líbero no se elige). `createGame({ctrlRole})` y `VB.Sim.setCtrlRole(g, role)` → `g.ctrl` = el primer
   jugador del equipo 0 con ese puesto (OH n.º 2, S n.º 1, OPP n.º 4, MB n.º 3); `g.ctrlBase` = su atleta. main.js sigue pasando 'OH':
-  ui.js guarda la elección en `localStorage 'voley3d.role6'` y la aplica con `setCtrlRole` nada más empezar (petición a main.js:
+  ui.js guarda la elección en `localStorage 'make-the-cut.role6'` y la aplica con `setCtrlRole` nada más empezar (petición a main.js:
   `ctrlRole6` en `loadSettings` y `ctrlRole: ctx.settings.ctrlRole6` en `startMatch`).
 - **Central y líbero**: cuando el líbero entra por el central del humano (`g.liberoFor[0] === g.ctrlBase`, en `applyLibero`), el humano
   pasa a llevar al líbero (`g.ctrl = g.libero[0]`; recibe y defiende con las reglas del líbero) y recupera a su central cuando vuelve.

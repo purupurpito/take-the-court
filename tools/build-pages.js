@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* VOLEY 3D — tools/build-pages.js (owner: ui_main)
+/* MAKE THE CUT — tools/build-pages.js (owner: ui_main)
  * Genera la versión para GitHub Pages en _site/ a partir de index.html (formato Artifact, sin doctype/html/head/body):
  * envuelve el contenido en un documento HTML5 completo (modo estándar, lang="es", charset) y copia js/.
  * Lo usa .github/workflows/pages.yml en cada push a main. Uso local: node tools/build-pages.js [salida=_site]

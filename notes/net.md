@@ -36,8 +36,8 @@ VB.Sim.step(g, 1 / 120, [entradaHueco0, entradaHueco1]);
 - **Atributos por hueco:** `humans[s].attrs` / `.badges` van al jugador `idx` del equipo `s` (internamente `opts.attrs` /
   `opts.badges` de siempre). Los compañeros IA, neutros. `even: true` (Igualado) los ignora todos.
   - **De dónde salen (para las fases de interfaz):** por defecto, los atributos e insignias del jugador de la Carrera activa
-    (`voley3d.career` o `voley3d.career6`, según `voley3d.career.mode`); si no hay Carrera, los del escuadrón de Partido rápido
-    (`VB.Prog`, `voley3d.squad`); si tampoco, neutros (sin `attrs`). Cada uno manda los suyos en el apretón; la sim solo los recibe.
+    (`make-the-cut.career` o `make-the-cut.career6`, según `make-the-cut.career.mode`); si no hay Carrera, los del escuadrón de Partido rápido
+    (`VB.Prog`, `make-the-cut.squad`); si tampoco, neutros (sin `attrs`). Cada uno manda los suyos en el apretón; la sim solo los recibe.
 - **Saque:** cada equipo empieza sacando con su jugador humano (con `idx 1` en el equipo 1 el orden de saque se refleja, como `ctrlIdx`
   en el equipo 0).
 
@@ -295,13 +295,13 @@ Las huellas de siempre no cambian (no se toca `sim.js` ni `net.js`).
   «Playa | Platja Llarga | 1 set a 21 | Con sus atributos» (o «Igualado»), y «1/2» (o «Otra versión», sin poder entrar). Se refresca
   cada 8 s y con «Actualizar». Vacía: «No hay salas abiertas ahora mismo. Crea una y aparecerá aquí para los demás.»
 - **Crear sala:** Escenario (Playa / Pabellón), Sede (las de `VB.Venues.list(tipo)`), Partido (1 set a 21 / Mejor de 3: 21, 21 y 15),
-  Atributos («Los suyos» / «Igualado») y «Abrir sala». Se recuerda en `voley3d.netroom` (aparato).
+  Atributos («Los suyos» / «Igualado») y «Abrir sala». Se recuerda en `make-the-cut.netroom` (aparato).
 - **Sala de espera:** «Tu sala» + código de 6 («Copiar código»), los dos nombres con «—» en medio (el del rival con su flechita ▼),
   la configuración y el estado: «Esperando rival. Tu sala sale en la lista de Online.» → «Conectando con <nombre>…» → «Conectados.
   Empieza el partido…». Si no conectan en 30 s: «No se ha podido conectar directamente con <nombre>: vuestras redes no lo permiten.
   Probad otra vez o desde otra red.» (el anfitrión reabre su sala; el invitado vuelve a la lista). «Salir de la sala» / Esc la cierran.
   Enlace directo: `?sala=CÓDIGO` abre Online y entra en esa sala.
-- **Nombre** (decisión 6): `voley3d.nick` si lo has cambiado («Tu nombre», 2-16, sin controles ni `<`, `>`, comillas; nunca con @); si
+- **Nombre** (decisión 6): `make-the-cut.nick` si lo has cambiado («Tu nombre», 2-16, sin controles ni `<`, `>`, comillas; nunca con @); si
   no, el nombre de tu jugador de la Carrera activa; si no, el usuario de una cuenta «usuario y contraseña»; si no, «Jugador 1234» (del
   uid). Nunca el correo (`netInfo()` no lo da). Es lo único que el rival ve de ti: en la lista, en la sala, en el HUD y en la flechita.
 - **Atributos** (decisión 3): cada uno juega con los de SU jugador de la Carrera activa (`VB.Career.mode()` → `player.st` e
@@ -467,7 +467,7 @@ en la lista), rama online de `js/main.js`, y toques pedidos por el orquestador e
 - **Revancha:** «Revancha» se pide al rival (tu botón pasa a «Esperando a Ana…»; al otro le sale «¡Revancha! (Ana quiere)»). Cuando los
   dos la quieren, quien creó la sala manda `{t:'go', e}` con la época siguiente y los dos abren una sesión nueva sobre el MISMO enlace:
   semilla nueva, mismas opciones, nombres y looks. Si el rival ya volvió al menú: «Ana se ha ido» (botón desactivado).
-- **Récord online** (aparte del de Partido rápido; no da experiencia, insignias ni retos): `voley3d.online`, ver abajo. En la lista de
+- **Récord online** (aparte del de Partido rápido; no da experiencia, insignias ni retos): `make-the-cut.online`, ver abajo. En la lista de
   salas sale «Tu récord online: …».
 - **Gorra «Online Beta Tester»** (decisión 4): objeto `gorraMTC` del Vestuario (cabeza, vale en pista y en playa, rareza 2). Se desbloquea
   al TERMINAR tu primer partido online: final normal, el rival abandona o no vuelve, o «no cuenta» por caída del anfitrión o por
@@ -478,12 +478,12 @@ en la lista), rama online de `js/main.js`, y toques pedidos por el orquestador e
 
 ### Récord online (`js/netrec.js`)
 
-- `voley3d.online` = `{v:1, played, wins, losses, quits, nc, streak, best, last:[{n, w, s, t}]}` (10 últimos; `n` = NOMBRE del rival
+- `make-the-cut.online` = `{v:1, played, wins, losses, quits, nc, streak, best, last:[{n, w, s, t}]}` (10 últimos; `n` = NOMBRE del rival
   saneado, nunca con @; `w` 1 / 0 / −1; `s` = «2-1», «abandono», «abandonó», «no volvió», «no cuenta»). Por aparato, como el récord de
   Partido rápido (no se sube a la cuenta).
 - Cómo cuenta (`outcome`): `over` → gana / pierde; `rivalQuit`, `rivalGone` → victoria; `quit`, `late` → derrota y `quits++`;
   `hostGone`, `version`, `valid = false` → `nc` (no cuenta).
-- **Cerrar la pestaña en pleno partido = abandono:** al empezar se escribe `voley3d.online.pend` (con latido cada 10 s); al acabar se
+- **Cerrar la pestaña en pleno partido = abandono:** al empezar se escribe `make-the-cut.online.pend` (con latido cada 10 s); al acabar se
   borra. Si al cargar el juego sigue ahí y su latido tiene más de 90 s, `boot()` lo apunta como abandono (con latido reciente es que otra
   pestaña está jugando y no se toca). Desde la revisión es una lista, una marca por página (ver «Revisión de la fase 3»).
 - main.js: `netRecTick` (marca al pasar a `playing`, latido, y `netSettle` cuando el resultado ya no cambia: confirmado `over`,
@@ -512,7 +512,7 @@ en la lista), rama online de `js/main.js`, y toques pedidos por el orquestador e
   `quit()` antes de empezar manda `bye left` y deja `{why:'cancel'}`: no es abandono para nadie. HUD: botón «Salir» en «Conectando…»,
   «Esperando a que entre tu rival…» y en la cuenta atrás; al acabar, «X se ha ido: no hay partido» / «Tu rival no ha llegado: no hay
   partido». `NetRec.outcome` cuenta `noShow`/`cancel` como «no cuenta» (y main.js ni lo apunta: la marca solo empieza al jugar).
-- **Marca de partido a medias = lista.** `voley3d.online.pend` es ahora `[{id, n, t}]` (una por página; el formato viejo de un objeto se
+- **Marca de partido a medias = lista.** `make-the-cut.online.pend` es ahora `[{id, n, t}]` (una por página; el formato viejo de un objeto se
   sigue leyendo). Cada página solo toca la suya; las de otras páginas sin latido en 90 s cuentan como abandono al barrer (`boot`, `begin`,
   `beat`, `end`). Antes, reabrir antes de 90 s y empezar otro partido borraba la marca vieja y el abandono no contaba.
 - **Nombre del rival limpio.** `Session({rivalName})` (main.js pasa el del lobby/«pre») manda; el del saludo solo se usa si no había y
@@ -576,7 +576,7 @@ Decisión 7 de Ferran: la entrada «Online» se ve en el menú y él pondrá gen
   «Contra otra persona, con tu jugador») con la pastilla amarilla **«Beta»** (la `.md-soon` de siempre). En 1280×720 y 844×390 caben las
   cinco tarjetas en una fila; en vertical (≤ 620 px de ancho) van en lista como las demás.
 - **«Cómo funciona el online»** (vista `'help'` del lobby): sale sola la PRIMERA vez que se entra en Online con sesión (también al entrar
-  en la cuenta desde el aviso), antes de la lista; «Entendido» (o Esc / B) lleva a la lista y no vuelve a salir (`voley3d.nethelp`, por
+  en la cuenta desde el aviso), antes de la lista; «Entendido» (o Esc / B) lleva a la lista y no vuelve a salir (`make-the-cut.nethelp`, por
   aparato). Luego, desde la fila «Cómo funciona» debajo de «Actualizar». Siete líneas cortas: 1 contra 1 (tu n.º 1 y la IA a tu pareja),
   tu jugador (Carrera, si no Partido rápido; «Igualado»), salas (lista o código), sin pausa (10 s entre sets, se salta si pulsáis los dos
   «Continuar»), si se corta (espera, a los 10 s la IA, 60 s para volver), récord (abandonar = derrota, sin experiencia ni insignias, la
@@ -737,7 +737,7 @@ rules_version = '2';
 //   profile, career6, cmode, legends, retos → S4_SYNC (S4, perfil y sincronización).       DESPLEGADAS el 16-nov-2026.
 // Orden obligatorio: 1) Ferran despliega estas reglas (npx firebase-tools deploy --only firestore:rules, desde firebase/) y espera unos
 // minutos; 2) en una publicación mínima, S4_SYNC = true (LOOK_SYNC ya está a true). Al revés, cada subida daría 403.
-// '<clave>.bak', 'voley3d.career(6).prev', 'voley3d.devid' y 'voley3d.retostab' son del aparato: nunca llegan aquí.
+// '<clave>.bak', 'make-the-cut.career(6).prev', 'make-the-cut.devid' y 'make-the-cut.retostab' son del aparato: nunca llegan aquí.
 // tools/synctest.js comprueba que cada clave de DOCS (con todos los interruptores encendidos) está en la lista de abajo.
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -870,7 +870,7 @@ línea (`backSave()`) en el `pagehide`. **`firebase/firestore.rules` NO cambia.*
 
 ### 1. Volver al partido tras recargar (solo el INVITADO)
 
-- `pagehide` del invitado en pleno partido → `sessionStorage['voley3d.online.back']` = `{id sala, uid, gen, ep (época), rival, look
+- `pagehide` del invitado en pleno partido → `sessionStorage['make-the-cut.online.back']` = `{id sala, uid, gen, ep (época), rival, look
   del rival ya saneado, t}`. Nada de SDP ni direcciones de red. sessionStorage: misma pestaña (recargar), no otra pestaña ni otro aparato.
 - Al cargar (`backTry`, un solo intento, la marca se borra al leerla): si han pasado menos de 50 s, hay sesión, el menú está libre
   y la sala sigue en `full`/`play` con este uid de invitado → `rejoin`: `NetRec.resume()`, enlace nuevo, `startOnline` con
@@ -958,7 +958,7 @@ HUD). `js/netrtc.js` y `js/netrec.js` sin cambios (`NetRec.resume` ya valía par
 ### Cómo va
 
 1. **pagehide del anfitrión** en pleno partido (sesión `playing`/`waiting`, con invitado, sin abandono juzgado): ya NO borra la sala.
-   Apunta en `sessionStorage['voley3d.online.back']` `{role:'host', id, uid, gen, ep, rival, look del rival, guest, t}` (sin SDP ni
+   Apunta en `sessionStorage['make-the-cut.online.back']` `{role:'host', id, uid, gen, ep, rival, look del rival, guest, t}` (sin SDP ni
    direcciones). Si sessionStorage falla, la sala se borra como siempre.
 2. **El invitado** ve caer el enlace y se queda en «Esperando a X…» (su `guestListen` ya vigila ofertas nuevas). Sus 60 s corren.
 3. **Al volver** (< 50 s, misma pestaña y cuenta, menú libre): `rooms.resume()` retoma la sala (si sigue en 'full'/'play' con el
@@ -1073,7 +1073,7 @@ Solo `js/netlobby.js` (vistas y la cadena `CSS`; la zona «VUELTA AL PARTIDO» n
   **Puntos** (solo en Pabellón: 11/15/21/25, como en Partido rápido; en la playa siempre 21) e Igualado (Sí/No). Una línea al pie dice
   qué supone Igualado. «Abrir sala» es un botón naranja ancho (`.ol-act.ol-new`), no una fila de menú. ↑↓ recorre los selectores y
   «Abrir sala», ←→ cambia (`side()` → `step()`), clic o toque en las flechas también; B / Esc vuelve a la lista como antes.
-- **Puntos por set:** `prefs()` guarda `pts` en `voley3d.netroom`; `createRoom` manda `pts` (21 en la playa). Los chips salen de un
+- **Puntos por set:** `prefs()` guarda `pts` en `make-the-cut.netroom`; `createRoom` manda `pts` (21 en la playa). Los chips salen de un
   solo sitio (`chips(r)` / `chipsHTML(r)`, también en `cfgParts`): «1 set a N» o «Mejor de 3» (+ « a N» si no es 21). La partida ya
   usaba `r.pts` (`opts.points`).
 - **«Cómo funciona»:** rótulo inclinado («Cómo funciona el online», como «Salas abiertas») y una sola caja con una fila por punto

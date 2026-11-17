@@ -123,7 +123,7 @@ console.log('1) Catálogo y medidas');
 
   // XP una sola vez por nivel aunque el nivel venga de otro aparato (mergeRaw con xp cobrada)
   const st2 = fakeStorage(), VB2 = load(st2), R2 = VB2.Retos;
-  st2.setItem('voley3d.retos', J({ v: 1, m: { r_aces: { l: 2, v: 4 } }, xp: { r_aces: 2 } }));
+  st2.setItem('make-the-cut.retos', J({ v: 1, m: { r_aces: { l: 2, v: 4 } }, xp: { r_aces: 2 } }));
   const x0 = VB2.Prog.squad()[0].xp + VB2.Prog.squad()[0].lvl * 1000;
   const g2 = mkGame(), F2 = feeder(R2, g2); F2.start(); for (let i = 0; i < 6; i++) { F2.serve(P.a, 0); F2.pt(0, 'ace'); }
   const r2 = R2.endMatch(g2, { win: false });
@@ -135,7 +135,7 @@ console.log('1) Catálogo y medidas');
   const st3 = fakeStorage(), VB3 = load(st3), R3 = VB3.Retos;
   const g3 = mkGame(), F3 = feeder(R3, g3); F3.start(); for (let i = 0; i < 4; i++) { F3.serve(P.a, 0); F3.pt(0, 'ace'); }
   const r3 = R3.endMatch(g3, { win: true, map: 'palau' }, true);
-  ok('dry: devuelve novedades pero no guarda ni da XP', r3.dry && r3.up.some(u => u.id === 'r_aces' && u.lvl === 2) && st3.getItem('voley3d.retos') === null && VB3.Prog.squad()[0].xp === 0);
+  ok('dry: devuelve novedades pero no guarda ni da XP', r3.dry && r3.up.some(u => u.id === 'r_aces' && u.lvl === 2) && st3.getItem('make-the-cut.retos') === null && VB3.Prog.squad()[0].xp === 0);
 
   // exclusiones
   const ex = (o, setup) => { const s = fakeStorage(), V = load(s), Rx = V.Retos; if (setup) setup(V); const gx = mkGame(o); Rx.ingest({ type: 'newMatch' }, gx); return [Rx, gx, V]; };
@@ -209,7 +209,7 @@ console.log('2) Fechas y semillas');
   for (let i = 0, tt = Date.UTC(2026, 10, 13, 12); i < 120; i++, tt += 864e5) { const dt = new Date(tt), k = dt.getUTCFullYear() * 10000 + (dt.getUTCMonth() + 1) * 100 + dt.getUTCDate(); const x = R.daily(k, true); if (x.opts.difficulty !== 'normal' || x.difficulty !== 'normal') rk = false; }
   ok('novato: nunca Difícil ni Experto en opts', rk);
   ok('novato por defecto con record.wins < 3', R.daily(20261113).rookie === true);
-  const st4 = fakeStorage({ 'voley3d.record': J({ played: 9, wins: 5 }) }), R4 = load(st4).Retos;
+  const st4 = fakeStorage({ 'make-the-cut.record': J({ played: 9, wins: 5 }) }), R4 = load(st4).Retos;
   ok('con 5 victorias no hay tope', R4.daily(20261113).rookie === false && R4.daily(20261113).difficulty === 'hard');
   // isoWeek y today
   ok('isoWeek: 28-dic-2026 → 202653, 3-ene-2027 → 202653, 4-ene-2027 → 202701', R.isoWeek(20261228) === 202653 && R.isoWeek(20270103) === 202653 && R.isoWeek(20270104) === 202701);
@@ -223,7 +223,7 @@ console.log('2) Fechas y semillas');
   delete VB.ctx;
 
   // reto del día: medallas, mejor medalla, XP por nivel nuevo del día, día nuevo
-  const st5 = fakeStorage({ 'voley3d.record': J({ played: 9, wins: 5 }) }), V5 = load(st5), R5 = V5.Retos;
+  const st5 = fakeStorage({ 'make-the-cut.record': J({ played: 9, wins: 5 }) }), V5 = load(st5), R5 = V5.Retos;
   V5.ctx = { params: { retodate: '20261117' } };   // «hoy» = 17-nov (un d.k mayor que hoy se trataría como reloj atrasado)
   const dd = R5.daily(20261117);   // blocks 3 a 21
   const play = (win, setsW, blocks, key) => {
@@ -257,8 +257,8 @@ console.log('2) Fechas y semillas');
 // ------------------------------------------------------------------ 3) clean y mergeRaw
 console.log('3) clean y mergeRaw');
 {
-  const st = fakeStorage({ 'voley3d.retos': '{roto' }), VB = load(st), R = VB.Retos;
-  ok('JSON roto → vacío, copia en .bak y lost()', R.count() === 0 && R.lost() && st.getItem('voley3d.retos.bak') === '{roto');
+  const st = fakeStorage({ 'make-the-cut.retos': '{roto' }), VB = load(st), R = VB.Retos;
+  ok('JSON roto → vacío, copia en .bak y lost()', R.count() === 0 && R.lost() && st.getItem('make-the-cut.retos.bak') === '{roto');
   const c = R.clean({ v: 1, zz: 1, m: { r_aces: { l: 9, v: -3, q: 1 }, nope: { l: 2 }, r_venues: { l: 1, s: ['fanals', 'x', 'palau', 'palau'] }, r_iron: { l: 1, v: null } },
     xp: { r_aces: 7, x: 1 }, d: { k: 20261399, m: 2 }, days: { 20261113: 9, abc: 1 }, seen: { r_aces: 2 } });
   ok('clean: claves extrañas fuera, topes y validación', c.m.r_aces.l === 3 && c.m.r_aces.v === 0 && !c.m.nope && !('zz' in c) && J(c.m.r_venues.s) === '["palau","fanals"]' &&
@@ -293,16 +293,16 @@ console.log('3) clean y mergeRaw');
   // versión más nueva: solo lectura y sin rebajar
   const N = J({ v: 2, m: { r_aces: { l: 3, v: 9 } }, extra: 1 });
   ok('mergeRaw: un lado con v mayor gana entero', R.mergeRaw(N, J(A)) === N && R.mergeRaw(J(A), N) === N);
-  const st2 = fakeStorage({ 'voley3d.retos': N }), R2 = load(st2).Retos;
+  const st2 = fakeStorage({ 'make-the-cut.retos': N }), R2 = load(st2).Retos;
   const gN = mkGame(), FN = feeder(R2, gN); FN.start(); FN.serve(P.a, 0); FN.pt(0, 'ace');
   R2.endMatch(gN, { win: true, map: 'palau' });
-  ok('guardado v2: se lee, readOnly() y no se reescribe', R2.readOnly() && R2.level('r_aces') === 3 && st2.getItem('voley3d.retos') === N);
+  ok('guardado v2: se lee, readOnly() y no se reescribe', R2.readOnly() && R2.level('r_aces') === 3 && st2.getItem('make-the-cut.retos') === N);
   // summary, profileXP, album
-  const st3 = fakeStorage({ 'voley3d.retos': Ls }), R3 = load(st3).Retos;
+  const st3 = fakeStorage({ 'make-the-cut.retos': Ls }), R3 = load(st3).Retos;
   const sm = R3.summary(), px = R3.profileXP();
   ok('summary sobre el guardado fusionado', sm.b === 5 && sm.p === 2 && sm.o === 0 && sm.total === 7 && R3.count() === 7 && sm.days === 3 && sm.daysGold === 1, J(sm));
   const px2 = JSON.parse(R3.mergeRaw(Ls, J({ v: 1, m: { r_kills: { l: 1, v: 9 } }, days: { 20261120: 0 } })));
-  st3.setItem('voley3d.retos', J(px2));
+  st3.setItem('make-the-cut.retos', J(px2));
   ok('profileXP derivada y monótona tras fusionar', px > 0 && R3.profileXP() === px + 15, px + ' → ' + R3.profileXP());
   const al = R3.album();
   ok('album: pestaña «Retos» con 18 huecos y forma de D2', al.id === 'retos' && al.label === 'Retos' && al.total === 18 && al.have === 6 && al.items.length === 18 &&
