@@ -4097,11 +4097,12 @@
     var help = locked ? LK_LOCK + escT(lt || 'Aún no lo tienes') : slot === 'style' && lkCapHides() ? 'Con gorra no se ve el peinado entero' : escT(lkHint(o));
     var aria = label + ': ' + o.name + ', ' + (i >= 0 ? i + 1 : 1) + ' de ' + n + (o.rar != null ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') +
       (locked ? '. Bloqueado' + (lt ? ': ' + lt : '') + '. Se puede probar, pero no se guarda' : '') + (help && !locked ? '. ' + help : '') + (isNew ? '. Hay algo nuevo' : '');
-    return '<button type="button" class="mi lk-r' + (locked ? ' lock' : '') + (isNew ? ' new' : '') + (col ? ' col' : '') + '" data-look="' + slot + '" aria-label="' + escT(aria) + '"' + (locked ? ' aria-disabled="true"' : '') + '>' +
+    // SPLAT: pegatina de tinta (la silueta cambia con su puesto en la lista); bloqueado = cinta gris; nuevo = punto rojo
+    return '<button type="button" class="mi lk-r sp-btn sp-ink sp-calm' + (locked ? ' lock' : '') + (isNew ? ' new sp-dot' : '') + (col ? ' col' : '') + '" data-look="' + slot + '" aria-label="' + escT(aria) + '"' + (locked ? ' aria-disabled="true"' : '') + '>' +
       '<span class="mi-l"><span class="lk-k">' + escT(label) + '</span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' +
       (o.rar != null ? '<span class="lk-st" aria-hidden="true">' + lkStars(o.rar) + '</span>' : '') + (locked ? '<em class="lk-lk">(bloqueado)</em>' : '') + '</span>' +
       (help ? '<small class="mi-h">' + help + '</small>' : '') + '</span>' +
-      '<span class="mi-v"><span class="arr" data-d="-1" aria-hidden="true">' + LK_ARR_L + '</span><span class="arr" data-d="1" aria-hidden="true">' + LK_ARR_R + '</span></span></button>';
+      '<span class="mi-v sp-select"><span class="arr" data-d="-1" aria-hidden="true">' + LK_ARR_L + '</span><span class="arr" data-d="1" aria-hidden="true">' + LK_ARR_R + '</span></span></button>';
   }
   /** Filas con algo sin ver (punto) y marca como visto lo que ya enseña su fila. */
   function lkSeen(U) {
@@ -4118,7 +4119,7 @@
     var ph = '';
     picks.forEach(function (p) {
       var on = p[0] === lk.who;
-      ph += '<button type="button" class="lk-pk' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-lkpick="' + p[0] + '"' + (on ? '' : ' tabindex="-1" data-skip') +
+      ph += '<button type="button" class="lk-pk sp-tab' + (on ? ' on' : '') + '" role="radio" aria-checked="' + on + '" data-lkpick="' + p[0] + '"' + (on ? '' : ' tabindex="-1" data-skip') +
         (p[0] === 'career' ? ' title="Tu jugador de la Carrera"' : '') + '>' + p[1] + '</button>';
     });
     var ae = document.activeElement, kb = !!(ae && ae.classList && ae.classList.contains('kf'));
@@ -4160,7 +4161,7 @@
     var h = ''; (LK_ROWS[lk.tab] || []).forEach(function (s) { h += lkRowHTML(s, U); });
     if (!h) h = '<p class="lk-empty">Nada que cambiar aquí ' + (lk.venue === 'beach' ? 'en la playa' : 'en la pista') + '</p>';
     if (el.lkList._h !== h) {
-      el.lkList._h = h; el.lkList.innerHTML = h;
+      el.lkList._h = h; el.lkList.innerHTML = h; if (VB.Splat) VB.Splat.decorate(el.lkList);
       if (fs) { var nb = el.lkList.querySelector('[data-look="' + fs + '"]'); if (nb) focusEl(nb, kb || focusSlot != null && kbNow()); }
     }
     lkSeen(U);
@@ -5646,24 +5647,34 @@
       '<circle class="dk" cx="16" cy="20.5" r="9"/><path class="st" d="M16 15.2l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z"/></svg>';
   }
   function gymRowEl(id) { return el.gymList ? (el.gymList.querySelector('[data-drill="' + id + '"]') || el.gymList.querySelector('[data-drill]')) : null; }
-  /** Página Entrenamiento: una fila por ejercicio con su medalla y su récord; pie con las medallas conseguidas. */
+  /** Barra de pintura (SPLAT, .sp-bar): fr 0..1 hasta la siguiente medalla (Entrenamiento y Retos). */
+  function spBar(fr) { return '<i class="sp-bar" aria-hidden="true"><i style="--w:' + Math.round(100 * Math.max(0, Math.min(1, fr || 0))) + '%"></i></i>'; }
+  // SPLAT: color de la pegatina de cada ejercicio (equipación, tinta, contraste, tinta, turquesa): cinco pegatinas que no se repiten
+  var GY_COL = { serve: 'sp-kit', recv: 'sp-ink', set: 'sp-alt', atk: 'sp-ink', block: 'sp-teal' };
+  /** Página Entrenamiento: una pegatina por ejercicio con su medalla, su récord y la barra hasta la siguiente medalla; el peloteo
+   *  libre en parche cosido; pie con las medallas conseguidas. */
   function renderGym() {
     var Gm = VB.Gym; if (!el.gymList) return;
-    var h = '';
+    var h = '', k = 0;
     (Gm ? Gm.DRILLS : []).forEach(function (d) {
-      var right, aria = d.name;
+      var aria = d.name;
       if (d.id === 'free') {
         var br = gymBestOf('free');
-        right = '<span class="gy-rec"><b>' + (br ? br + (br === 1 ? ' toque' : ' toques') : '—') + '</b><small>Mejor peloteo</small></span>';
         aria += br ? ', mejor peloteo ' + br + ' toques' : '';
-      } else {
-        var r = Gm.get(d.id), m = r ? r.m | 0 : 0;
-        right = medalSVG(m) + '<span class="gy-rec"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m ? MEDAL_N[m] : r && r.n ? 'Sin medalla' : 'Sin jugar') + '</small></span>';
-        aria += r && r.n ? ', récord ' + r.b + (m ? ', medalla de ' + MEDAL_N[m].toLowerCase() : '') : ', sin jugar';
+        h += '<button class="mi sp-patch gy-free" data-drill="free" aria-label="' + escT(aria + '. ' + d.help) + '"><span class="sp-l"><span class="sp-t">' + escT(d.name) + '</span><small class="sp-s">' +
+          (br ? 'Mejor peloteo: ' + br + (br === 1 ? ' toque' : ' toques') : escT(d.help)) + '</small></span></button>';
+        return;
       }
-      h += '<button class="mi" data-drill="' + d.id + '" aria-label="' + escT(aria + '. ' + d.help) + '"><span class="mi-l">' + escT(d.name) + '<small class="mi-h">' + escT(d.help) + '</small></span><span class="gy-r">' + right + '</span></button>';
+      var r = Gm.get(d.id), m = r ? r.m | 0 : 0, b = r ? r.b | 0 : 0, th = Gm.medalsOf ? safe(function () { return Gm.medalsOf(d.id); }) : Gm.MEDALS && Gm.MEDALS[d.id];
+      var lo = m && th ? th[m - 1] : 0, fr = m >= 3 || !th ? 1 : (b - lo) / Math.max(1, th[m] - lo);
+      var nx = m >= 3 ? '¡Oro!' : th ? MEDAL_N[m + 1] + ' con ' + th[m] : '';
+      aria += r && r.n ? ', récord ' + r.b + (m ? ', medalla de ' + MEDAL_N[m].toLowerCase() : '') : ', sin jugar';
+      if (nx && m < 3) aria += '. ' + nx;
+      h += '<button class="mi gy-d sp-btn sp-wide sp-calm ' + (GY_COL[d.id] || 'sp-ink') + '" data-shape="' + (k++) + '" data-drill="' + d.id + '" aria-label="' + escT(aria + '. ' + d.help) + '">' +
+        '<span class="sp-medal t' + m + '">' + medalSVG(m) + '</span><span class="sp-l"><span class="sp-t">' + escT(d.name) + '</span><small class="sp-s">' + escT(d.help) + '</small>' + (r && r.n && m < 3 ? spBar(fr) : '') + '</span>' +
+        '<span class="gy-rec"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? '¡Oro!' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
     });
-    if (el.gymList._h !== h) { el.gymList._h = h; el.gymList.innerHTML = h; gymHov = null; }
+    if (el.gymList._h !== h) { el.gymList._h = h; el.gymList.innerHTML = h; gymHov = null; if (VB.Splat) VB.Splat.decorate(el.gymList); }
     if (el.gymFoot && Gm) setSep(el.gymFoot, [{ h: 'Medallas: <b>' + Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15) + '</b>' }, 'Cada medalla nueva da experiencia a tus jugadores'], 'v');
   }
   /** Fila → ejercicio, bajo la cortinilla de pantalla. */
@@ -5734,14 +5745,17 @@
     else if (rtTab === 'maestria') {
       var U = {}; try { R.unseen().forEach(function (id) { U[id] = 1; }); } catch (e) { }
       h = '';
-      (R.GROUPS || []).forEach(function (G) {
-        h += '<p class="rt-grp">' + escT(G.name) + '</p>';
+      // SPLAT: grupo = pegatina pequeña de tinta; reto = pegatina del color de su grupo (dorada con el oro) con la medalla en pegatina
+      // redonda, el progreso en texto y la barra de pintura hasta la siguiente medalla
+      var k = 0, GC = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-cream', 'sp-ink'];
+      (R.GROUPS || []).forEach(function (G, gi) {
+        h += '<p class="rt-grp"><i class="sp-chip sp-ink">' + escT(G.name) + '</i></p>';
         R.LIST.forEach(function (b) {
           if (b.grp !== G.id) return;
-          var pg = R.progress(b.id) || { lvl: 0, txt: '' }, lvl = pg.lvl | 0;
-          h += '<button class="mi rt-r' + (U[b.id] ? ' new' : '') + '" data-rt="' + b.id + '" aria-label="' + escT(b.name + ': ' + (lvl ? RC_MED[lvl] : 'sin medalla') + '. ' + pg.txt + (b.help ? '. ' + b.help : '')) + '">' +
-            '<span class="rt-md">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="mi-l">' + escT(b.name) + '<small class="mi-h">' + escT(pg.txt) + '</small>' +
-            (b.help ? '<small class="rt-help">' + escT(b.help) + '</small>' : '') + '</span></button>';
+          var pg = R.progress(b.id) || { lvl: 0, txt: '', frac: 0 }, lvl = pg.lvl | 0;
+          h += '<button class="mi rt-r sp-btn sp-wide sp-calm ' + (lvl >= 3 ? 'sp-gold' : GC[gi % GC.length]) + (U[b.id] ? ' new sp-dot' : '') + '" data-shape="' + (k++) + '" data-rt="' + b.id + '" aria-label="' + escT(b.name + ': ' + (lvl ? RC_MED[lvl] : 'sin medalla') + '. ' + pg.txt + (b.help ? '. ' + b.help : '')) + '">' +
+            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s">' + escT(pg.txt) + '</small>' +
+            (lvl < 3 && (lvl || pg.frac > 0) ? spBar(pg.frac) : '') + (b.help ? '<small class="rt-help">' + escT(b.help) + '</small>' : '') + '</span></button>';
         });
       });
       var n = 0; try { n = R.count() | 0; } catch (e) { }
@@ -5750,16 +5764,23 @@
       var dd = rtDaily(), ds = R.dayState(), m = ds.m | 0;
       if (!dd) h = '<p class="rt-none">El reto del día no está disponible.</p>';
       else {
-        var bits = sepHTML(dd.bits, 'v') + (dd.modName ? ' <span class="chip">' + escT(dd.modName) + '</span>' : ''), th = '';
-        dd.tiers.forEach(function (t, i) { th += '<span class="ge-m' + (m > i ? ' on' : '') + '">' + medalSVG(m > i ? i + 1 : 0, m > i ? '' : 'off') + escT(t) + '</span>'; });
-        h = '<div class="rt-day"><p class="rt-k">' + sepHTML(['Reto del día', R.dateLabel(dd.key)], 'd') + '</p><p class="rt-bits">' + bits + '</p><div class="rt-tiers">' + th + '</div>' +
-          '<p class="rt-med">' + (m ? 'Hoy: ' + RC_MED[m] : 'Hoy: sin medalla') + (ds.n ? ' (' + ds.n + (ds.n === 1 ? ' intento' : ' intentos') + ')' : '') + '</p></div>' +
-          '<button class="mi primary rt-go" data-reto="day"><span>' + (m >= 3 ? 'Jugar otra vez' : '¡A jugar!') + '</span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>';
+        // SPLAT: brochazo turquesa (sin pulsar) con el sello dorado de hoy (la medalla de hoy o el balón), el escenario y los datos en
+        // pegatinas; debajo, las tres medallas en pegatina (las ganadas, a color; las otras, en cinta gris) y «¡A jugar!» en parche cosido
+        var dl = R.dateLabel(dd.key), bits = '', th = '';
+        dd.bits.forEach(function (b) { if (b && b !== dd.mapName) bits += '<i class="sp-chip sp-ink">' + escT(b) + '</i>'; });
+        if (dd.modName) bits += '<i class="sp-chip">' + escT(dd.modName) + '</i>';
+        dd.tiers.forEach(function (t, i) { th += '<span class="rt-tier t' + (i + 1) + (m > i ? ' on' : '') + '">' + medalSVG(m > i ? i + 1 : 0, m > i ? '' : 'off') + '<span>' + escT(t) + '</span></span>'; });
+        var med = (m ? 'Hoy: ' + RC_MED[m] : 'Hoy: sin medalla') + (ds.n ? ', ' + ds.n + (ds.n === 1 ? ' intento' : ' intentos') : '');
+        h = '<div class="rt-day sp-ticket sp-noshine" data-shape="1"><span class="sp-stamp rt-stamp" aria-hidden="true" data-ring="RETO DEL DÍA ★ RETO DEL DÍA ★"><span class="sp-sc">' +
+          (m ? medalSVG(m) : VB.Splat ? VB.Splat.BALL : '') + '<b>Hoy</b></span></span>' +
+          '<div class="rt-dm"><p class="rt-k">' + sepHTML(['Reto del día', dl], 'd') + '</p><p class="rt-map">' + escT(dd.mapName || '') + '</p><p class="rt-bits">' + bits + '</p></div></div>' +
+          '<div class="rt-tiers">' + th + '</div>' +
+          '<button class="mi primary rt-go sp-patch" data-reto="day"><span class="sp-l"><span class="sp-t">' + (m >= 3 ? 'Jugar otra vez' : '¡A jugar!') + '</span><small class="sp-s rt-med">' + escT(med) + '</small></span></button>';
       }
       var sm = null; try { sm = R.summary(); } catch (e) { }
       foot = sm ? sepHTML([{ h: 'Días con medalla: <b>' + (sm.days | 0) + '</b>' }, { h: 'Medallas de maestría: <b>' + (sm.total | 0) + ' de ' + (sm.of | 0) + '</b>' }], 'v') : '';
     }
-    if (el.rtBody._h !== h) { el.rtBody._h = h; el.rtBody.innerHTML = h; }
+    if (el.rtBody._h !== h) { el.rtBody._h = h; el.rtBody.innerHTML = h; if (VB.Splat) VB.Splat.decorate(el.rtBody); }
     if (el.rtFoot) el.rtFoot.innerHTML = foot;
     // Maestría a la vista: lo nuevo queda visto (el punto sale esta vez y la siguiente ya no; la franja se rehace)
     if (R && rtTab === 'maestria' && R.markSeen) { try { if (R.unseen().length) { R.markSeen(R.unseen()); rtStrip = ''; } } catch (e) { } }
@@ -5909,7 +5930,10 @@
     var ch = '<div class="pf-lv"><b class="pf-n"><small>Nv</small>' + lv.lvl + '</b><div class="pf-bx"><i class="pf-bar" aria-hidden="true"><i style="--w:' + pc + '%"></i></i>' +
       '<span class="pf-xp">' + (lv.next ? lv.into + ' / ' + lv.next + ' XP' : lv.total + ' XP') + '</span></div></div>' +
       '<p class="pf-nx">' + escT(nx) + '</p><p class="pf-st">' + sepHTML([m + (m === 1 ? ' partido' : ' partidos'), w + (w === 1 ? ' victoria' : ' victorias'), (st.ven | 0) + ' de ' + (st.venAll | 0) + ' sedes'], 'v') + '</p>';
-    if (el.pfCard._h !== ch) { el.pfCard._h = ch; el.pfCard.innerHTML = ch; el.pfCard.setAttribute('aria-label', 'Perfil nivel ' + lv.lvl + '. ' + nx); }
+    if (el.pfCard._h !== ch) {
+      el.pfCard._h = ch; el.pfCard.innerHTML = ch; el.pfCard.setAttribute('aria-label', 'Perfil nivel ' + lv.lvl + '. ' + nx);
+      if (VB.Splat) { el.pfCard.classList.remove('sp-dec'); VB.Splat.decorate(el.pfCard); }   // (SPLAT: el brochazo crema se rehace tras innerHTML)
+    }
     // vitrina (3 huecos; vacío = «Libre»)
     var vit = []; try { vit = (P.vitrina() || []).map(function (x) { return pf.map[x]; }).filter(Boolean); } catch (e) { }
     var vh = '<p class="pf-vk">Vitrina<small>Fija tus 3 favoritos desde el álbum</small></p><div class="pf-vs">';
@@ -5952,7 +5976,8 @@
     if (can) {
       var d = device(), k = d === 'gamepad' ? padKey('x') : d === 'touch' ? '' : '<span class="key">F</span>';
       var h = k + '<span>' + (pinned ? 'Quitar de la vitrina' : 'Fijar en la vitrina') + '</span>';
-      if (el.pfPin._h !== h) { el.pfPin._h = h; el.pfPin.innerHTML = h; }
+      var pc = el.pfPin.querySelector('.pf-pinc') || el.pfPin;   // (SPLAT: la mancha es el 1.er hijo del botón; el texto va en su span)
+      if (el.pfPin._h !== h) { el.pfPin._h = h; pc.innerHTML = h; }
     }
   }
   function pfSelect(aid) { if (pf.sel === aid) return; pf.sel = aid || ''; pfFootSync(); }
