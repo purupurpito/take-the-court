@@ -14,6 +14,7 @@
  * 1.3.0 (15-nov-2026): sprint 2-4 «Tu carrera», «Partidos que se recuerdan» y «Volver mañana» (retratos y escudos, portada con la
  *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
  * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
+ * 1.9.0 (17-nov-2026): Online V2, conexión Fluida (js/netfluid.js, notes/net.md «Online V2»).
  * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
  * 1.7.0 (17-nov-2026): Acta del partido (js/acta.js): los partidos 6v6 salen como acta de emPat (formato empat/acta). NO es público
  *   (Ferran, 17-nov-2026): el botón solo sale con su cuenta (ui.js ACTA_ALLOW) y las novedades no lo anuncian.
@@ -26,11 +27,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.8.2';
+  VB.VERSION = '1.9.0';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.9.0', d: '2026-11-17', t: 'Online V2',
+      items: [
+        'Al crear una sala online eliges la conexión: Precisa o Fluida.',
+        'Fluida: tu equipo responde al instante y el rival se ve una pizca en diferido.',
+        'Precisa: los dos veis exactamente lo mismo, como hasta ahora.'
+      ]
+    },
     {
       v: '1.8.2', d: '2026-11-17', t: 'Balones a toda velocidad',
       items: [

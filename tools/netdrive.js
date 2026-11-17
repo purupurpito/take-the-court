@@ -6,6 +6,10 @@
  * cero congelaciones con 80 ms, el invitado se ve a sí mismo en x > 0 (vista espejo), marcador espejo, rótulo del rival con su
  * nombre, coste de frame y consola sin errores. Capturas de las dos vistas en tools/out/netdrive-*.png.
  * Uso: node tools/netdrive.js [segundos=120] [lag=80] [query extra, p. ej. "quality=low"]
+ * Online V2 (notes/online-v2-spec.md): con «model=fluida» en la query extra las dos páginas juegan con la conexión Fluida
+ *   (VB.NetFluid, ?net=bc&model=fluida). En vez de las huellas por tic (Fluida no las tiene) compara la secuencia de marcadores
+ *   de la partida de cada lado (una debe ser prefijo de la otra y, al final, iguales salvo el punto en vuelo) y comprueba que
+ *   el grabador de repeticiones está bloqueado ('net'). Ej.: node tools/netdrive.js 60 120 "quality=low&model=fluida"
  * Fase 2 (--rtc): node tools/netdrive.js --rtc [segundos=60] — las dos páginas pasan por el LOBBY de verdad (js/netlobby.js) contra el
  *   emulador de Firestore (Java + jar, ver tools/roomtest.js; ?netemu=PUERTO&netuid=…, solo desde file:// o localhost) y conectan por
  *   WebRTC local (RtcLink, sin STUN: ?netice=none). Comprueba: lista con la sala del anfitrión, entrar, sala de espera con el nombre del
@@ -23,6 +27,7 @@ const CH = require('./chrome.js'), CDP = require('./cdp.js');
 const ROOT = path.join(__dirname, '..'), OUT = path.join(__dirname, 'out');
 const RTC = process.argv.includes('--rtc'), GUION = process.argv.includes('--guion'), ARGV = process.argv.filter(a => a !== '--rtc' && a !== '--guion');
 const SECS = +(ARGV[2] || (RTC ? 60 : 120)), LAG = +(ARGV[3] || 80), EXTRA = ARGV[4] != null ? ARGV[4] : 'quality=low';
+const FLUIDA = /(^|&)model=fluida(&|$)/.test(EXTRA);   // (Online V2: la query extra llega a las dos páginas)
 // (fase 4) NDW / NDH / NDTOUCH=1: tamaño y pantalla táctil del modo básico (p. ej. NDW=844 NDH=390 NDTOUCH=1: teléfono apaisado)
 const W = +(process.env.NDW || 800), H = +(process.env.NDH || 450), TOUCH = process.env.NDTOUCH === '1';
 fs.mkdirSync(OUT, { recursive: true });
@@ -93,14 +98,17 @@ if (!RTC && !GUION) (async () => {
     both = a && b && a.ns === 'playing' && b.ns === 'playing';
     if (i % 10 === 9) console.log('  esperando…', JSON.stringify(a), JSON.stringify(b));
   }
-  check('las dos páginas conectan por BroadcastChannel y juegan', both);
+  check('las dos páginas conectan por BroadcastChannel y juegan' + (FLUIDA ? ' (Fluida)' : ''), both);
   if (!both) { for (const p of P) console.log(p.tag, p.errors.slice(0, 5), p.logs.slice(-8)); cleanup(); process.exit(1); }
   // NDPROF=1: perfil de CPU del invitado durante el partido → tools/out/netdrive-invitado.cpuprofile (para buscar parones)
   if (process.env.NDPROF) { await P[1].send('Profiler.enable'); await P[1].send('Profiler.setSamplingInterval', { interval: 500 }); await P[1].send('Profiler.start'); }
   // contadores en página: congelaciones, huellas de la confirmada por tic, coste de frame
-  const HOOK = "(function(){var n=VB.ctx.net;if(!n||window.__nd)return;var s=n.sess,H=window.__ndH={},W=window.__nd={wait:0,frames:0,ms:0,maxMs:0,unst:0};" +
-    "var o=s._hashTick;s._hashTick=function(){o.call(this);H[this.gcTick]=this.myHash[this.gcTick];};" +
-    "var a=s.advance;s.advance=function(now,inp){var t=performance.now(),r=a.call(this,now,inp),d=performance.now()-t;W.frames++;W.ms+=d;if(d>W.maxMs)W.maxMs=d;if(r.status==='waiting')W.wait++;if(r.unstable)W.unst++;return r;};})()";
+  // (Fluida: sin huellas por tic; cada cambio del marcador de la partida de esta máquina, sets|juegos|puntos, a window.__ndS)
+  const HOOK = "(function(){var n=VB.ctx.net;if(!n||window.__nd)return;var s=n.sess,H=window.__ndH={},S=window.__ndS=[],W=window.__nd={wait:0,frames:0,ms:0,maxMs:0,unst:0};" +
+    "var o=s._hashTick;if(o)s._hashTick=function(){o.call(this);H[this.gcTick]=this.myHash[this.gcTick];};" +
+    "var mk=function(g){return g?(g.sets||[]).join('-')+'|'+JSON.stringify(g.setScores||[])+'|'+(g.score||[]).join('-'):'';};" +
+    "var a=s.advance;s.advance=function(now,inp){var t=performance.now(),r=a.call(this,now,inp),d=performance.now()-t;W.frames++;W.ms+=d;if(d>W.maxMs)W.maxMs=d;if(r.status==='waiting')W.wait++;if(r.unstable)W.unst++;" +
+    "var k=mk(this.confirmedGame());if(k&&S[S.length-1]!==k)S.push(k);return r;};})()";
   for (const p of P) await p.evalJs(HOOK);
   const t1 = Date.now();
   let shots = 0;
@@ -128,14 +136,24 @@ if (!RTC && !GUION) (async () => {
   // resultados
   const R = [];
   for (const p of P) R.push(JSON.parse(await p.evalJs("JSON.stringify((function(){var n=VB.ctx.net,s=n&&n.sess,v=n&&n.view,W=window.__nd||{};" +
-    "return{h:window.__ndH,wait:W.wait,frames:W.frames,ms:W.frames?W.ms/W.frames:0,maxMs:W.maxMs,unst:W.unst,depth:s&&s.stats.maxDepth,mism:s&&s.mismatches,rep:s&&s.repaired," +
-    "fps:VB.ctx.fps,frameMs:VB.ctx.frameMs,score:v&&v.score,cscore:s&&s.gc.score,ctrlTeam:v&&v.ctrl&&v.ctrl.team,ctrlX:v&&v.ctrl&&v.ctrl.x,ctrlId:v&&v.ctrl&&v.ctrl.id," +
-    "hum:s&&[s.gc.hum[0].p.id,s.gc.hum[1].p.id],tag:(function(){var e=document.getElementById('netTag');return e&&!e.hidden?e.textContent:''})()," +
+    "var gc=s&&(s.gc||s.confirmedGame());" +
+    "return{h:window.__ndH,seq:window.__ndS,model:s&&(s.model||'precisa'),rpWhy:VB.Replay&&VB.Replay._state?VB.Replay._state().why:'?',wait:W.wait,frames:W.frames,ms:W.frames?W.ms/W.frames:0,maxMs:W.maxMs,unst:W.unst,depth:s&&s.stats.maxDepth,mism:s&&s.mismatches,rep:s&&s.repaired," +
+    "fps:VB.ctx.fps,frameMs:VB.ctx.frameMs,score:v&&v.score,cscore:gc&&gc.score,ctrlTeam:v&&v.ctrl&&v.ctrl.team,ctrlX:v&&v.ctrl&&v.ctrl.x,ctrlId:v&&v.ctrl&&v.ctrl.id," +
+    "hum:gc&&[gc.hum[0].p.id,gc.hum[1].p.id],tag:(function(){var e=document.getElementById('netTag');return e&&!e.hidden?e.textContent:''})()," +
     "hud:(function(){var e=document.getElementById('netHud');return e&&!e.hidden?e.textContent:''})(),q:VB.ctx.quality&&VB.ctx.quality.level}})())")));
   const [A, B] = R;
-  let n = 0, bad = 0;
-  for (const t in A.h) if (B.h[t] !== undefined) { n++; if (A.h[t] !== B.h[t]) bad++; }
-  check('huellas de la confirmada iguales en los dos lados', n > 20 && bad === 0, { controles: n, distintas: bad, reparaciones: [A.rep, B.rep] });
+  if (!FLUIDA) {
+    let n = 0, bad = 0;
+    for (const t in A.h) if (B.h[t] !== undefined) { n++; if (A.h[t] !== B.h[t]) bad++; }
+    check('huellas de la confirmada iguales en los dos lados', n > 20 && bad === 0, { controles: n, distintas: bad, reparaciones: [A.rep, B.rep] });
+  } else {
+    // Fluida: cada máquina aplica los puntos cuando le llegan (una va como mucho un punto por delante); los marcadores por los que
+    // pasan deben ser los mismos y en el mismo orden
+    const sa = A.seq || [], sb = B.seq || [], m = Math.min(sa.length, sb.length);
+    let pre = true; for (let i = 0; i < m; i++) if (sa[i] !== sb[i]) { pre = false; break; }
+    check('Fluida: las dos sesiones son Fluida y sin repeticiones (grabador bloqueado)', A.model === 'fluida' && B.model === 'fluida' && A.rpWhy === 'net' && B.rpWhy === 'net', { modelo: [A.model, B.model], replay: [A.rpWhy, B.rpWhy] });
+    check('Fluida: los dos marcadores pasan por los mismos resultados', pre && m >= 3 && Math.abs(sa.length - sb.length) <= 1, { anf: sa.length, inv: sb.length, ultimo: [sa[sa.length - 1], sb[sb.length - 1]] });
+  }
   if (preW) { A.wait = preW[0]; B.wait = preW[1]; }
   check('cero congelaciones con ' + LAG + ' ms', A.wait === 0 && B.wait === 0, { anfitrion: A.wait, invitado: B.wait, inestable: [A.unst, B.unst] });
   check('el invitado se ve a sí mismo como equipo 0 (vista espejo) y lleva al jugador del equipo 1 de la canónica', B.ctrlTeam === 0 && B.ctrlId === B.hum[1] && A.ctrlId === A.hum[0], { inv: [B.ctrlTeam, B.ctrlId, B.hum], anf: [A.ctrlId] });
@@ -223,7 +241,7 @@ if (RTC) (async () => {
   // espera 35 s ni le dicen que «vuestras redes no lo permiten»: a los 10 s sin oferta y con el latido atrasado, «… no responde» y vuelta
   // a la lista; el hueco queda libre.
   {
-    const v = await ev(P[1], "(VB.Net?VB.Net.PROTO:0)+'|'+(VB.VERSION||'')"), S = x => ({ stringValue: x });
+    const v = await ev(P[1], "VB.NetLobby._ver ? VB.NetLobby._ver() : (VB.Net?VB.Net.PROTO:0)+'|'+(VB.VERSION||'')"), S = x => ({ stringValue: x });
     await emuReq('PATCH', 'rooms/uidFant', { fields: { code: S('FANT22'), name: S('Sala Fantasma'), gname: S(''), host: S('uidFant'), guest: S(''), fmt: S('2v2'), venue: S('hall'), map: S(''),
       even: { booleanValue: false }, bo: { integerValue: '1' }, pts: { integerValue: '21' }, state: S('open'), v: S(v), seen: { timestampValue: new Date(Date.now() - 40000).toISOString() } } });
     await ev(P[1], "document.querySelector('#mpOnline [data-a=refresh]').click()");

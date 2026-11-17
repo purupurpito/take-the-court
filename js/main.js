@@ -619,7 +619,8 @@
   // Partido 1 contra 1 dentro del 2v2 entre dos máquinas (VB.Net.Session: rollback simétrico). ctx.game es la VISTA (net.view): una
   // copia de la partida predicha, girada para el invitado (VB.NetView.mirror), así cámara, interfaz, efectos y sonido no cambian.
   // Sin pausa, sin cámara lenta, sin repetición automática ni intro: manda el reloj de la sesión (no timeScale ni MAX_STEPS).
-  // Prueba en este PC: ?net=bc&slot=0|1&lag=80&jit=15&loss=3 (&room=, &name=, &bot=1 = juega un bot, &bo=3, &points=, &map=).
+  // Prueba en este PC: ?net=bc&slot=0|1&lag=80&jit=15&loss=3 (&room=, &name=, &bot=1 = juega un bot, &bo=3, &points=, &map=,
+  // &model=fluida = Online V2, conexión Fluida con VB.NetFluid; en las dos páginas).
   var net = null;   // {sess, slot, view, over, menu, r, name, rival, look, base, epoch, want, rivalWants, rec*, away0, …}
   ctx.net = null;
   ctx.netBot = null;   // depuración (tools/netdrive.js): function(gCanónica) → entrada en coordenadas del mundo canónico
@@ -633,7 +634,8 @@
     call('Audio', 'unlock');
     net = ctx.net = { sess: null, slot: o.slot === 1 ? 1 : 0, view: null, over: false, menu: false, r: null, name: o.name || '', rival: o.rivalName || '',
       look: o.look || null, base: o.opts || null, link: o.link, delay: o.delay, epoch: 0, away0: !!document.hidden,
-      expect: o.expect || null };   // (auditoría: invitado: lo que anuncia la sala; la sesión lo compara con las opciones del anfitrión)
+      expect: o.expect || null,   // (auditoría: invitado: lo que anuncia la sala; la sesión lo compara con las opciones del anfitrión)
+      model: o.model === 'fluida' && VB.NetFluid ? 'fluida' : 'precisa' };   // Online V2: conexión de la sala (la revancha la repite)
     netSession(o.opts || null, 0);
     // latido de la sesión en un Worker durante TODO el partido (antes solo con la pestaña oculta): si el navegador deja de dar frames a
     // la página > 100 ms (ventana tapada por otra, tirón del compositor), la sesión sigue recibiendo y mandando las entradas y el rival
@@ -644,13 +646,15 @@
     return true;
   };
   function netSession(opts, epoch) {
-    var s = new VB.Net.Session({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch, expect: net.expect,
+    // Online V2 (notes/online-v2-spec.md §9): Fluida = VB.NetFluid.Session, misma fachada; sin onTick (no hay grabador de repeticiones)
+    var fl = net.model === 'fluida', Ses = fl ? VB.NetFluid.Session : VB.Net.Session;
+    var s = new Ses({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch, expect: net.expect,
       // 17-nov-2026: «listo» (invitado) y arranque (anfitrión) esperan a que esta máquina compile los gráficos del partido (netBuildView):
       // un parón de compilado a mitad de partido para a los dos (el otro espera). Programas en paralelo y luego el primer dibujo de todo.
       warm: function () { if (!net || net.sess !== s || !net.view) return false; if (progWarm.pending && progsPending()) return false; if (net.wd) { net.wd = false; warmDraw(); } return true; },
       log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null,
       // fase 6: cada paso CONFIRMADO, con sus dos entradas, al grabador de repeticiones (VB.Replay en modo dual sobre gc)
-      onTick: function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } });
+      onTick: fl ? null : function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } });
     if (VB.NetLog && net.sess) { try { VB.NetLog.end(net, 'revancha'); } catch (e) { } }
     net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
     net.want = false; net.rivalWants = false; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
@@ -681,7 +685,7 @@
   function netRematchGo() {
     if (!net || !net.want || !net.rivalWants || net.slot !== 0 || !net.base) return;
     var o = {}, k; for (k in net.base) o[k] = net.base[k];
-    o.seed = netSeed(); net.base = o;
+    o.seed = netSeed(); net.base = o;   // (las opciones de la sala, Fluida incluida: opts.net; la sesión nueva sale de net.model)
     var e = net.epoch + 1;
     net.sess.sendApp({ t: 'go', e: e });
     netSession(o, e);
@@ -695,7 +699,7 @@
     for (var i = 0; i < list.length; i++) {
       var m = list[i]; if (!m || typeof m !== 'object') continue;
       if (m.t === 'again') { net.rivalWants = true; netRematchGo(); }
-      else if (m.t === 'go' && net.slot === 1 && net.want && (m.e | 0) === net.epoch + 1) { netSession(null, net.epoch + 1); return; }
+      else if (m.t === 'go' && net.slot === 1 && net.want && (m.e | 0) === net.epoch + 1) { netSession(null, net.epoch + 1); return; }   // (misma conexión: net.model)
     }
   }
   /** Récord online (VB.NetRec): marca al empezar (cerrar la pestaña = abandono) y, una vez por partido, el resultado cuando ya no
@@ -731,11 +735,13 @@
     var slot = Q.slot === '1' ? 1 : 0, link;
     try { link = new VB.Net.BcLink({ room: Q.room || 'prueba', slot: slot, lag: +Q.lag || 0, jit: +Q.jit || 0, loss: +Q.loss || 0 }); }
     catch (e) { showFatal('Este navegador no permite la prueba online entre pestañas (BroadcastChannel).', true); return; }
-    var opts = null;
+    var opts = null, model = Q.model === 'fluida' ? 'fluida' : 'precisa';   // Online V2: &model=fluida (las dos páginas)
     if (slot === 0) {
       var kind = Q.map && isMapId(Q.map) ? VB.Venues.kindOf(Q.map) : (Q.venue === 'beach' || Q.venue === 'hall' ? Q.venue : venueNow());
       opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{ aimSet: ctx.settings.aimSet !== false }, { aimSet: Q.aimset1 !== '0' }], bestOf: Q.bo === '3' ? 3 : 1,
         points: +Q.points || 21, present: true, stats: true };
+      // (como el lobby, netlobby begin(): Fluida sin árbitro que falle, sin challenges y sin tiempos muertos en la beta)
+      if (model === 'fluida') { opts.net = 'fluida'; opts.ref = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 }; opts.timeouts = false; }
       // (revisión) sin &map= el anfitrión elige ya la sede concreta, como hace el lobby; si no, cada página montaba un pabellón distinto
       if (!opts.mapId && VB.Venues && VB.Venues.list) {
         var vl = null; try { vl = VB.Venues.list(kind); } catch (e) { vl = null; }
@@ -750,11 +756,13 @@
     var tm = setInterval(function () {
       var msgs = link.poll(performance.now()), got = null;
       for (var i = 0; i < msgs.length; i++) { var c = null; if (msgs[i].ch === 'ctl') { try { c = JSON.parse(msgs[i].data); } catch (e) { } } if (c && c.k === 'pre' && !got) got = c; }
-      if (!got && performance.now() - sent > 300 && performance.now() - t0 < 60000) { sent = performance.now(); link.send('ctl', JSON.stringify({ k: 'pre', name: name, look: mine })); }
+      if (!got && performance.now() - sent > 300 && performance.now() - t0 < 60000) { sent = performance.now(); link.send('ctl', JSON.stringify({ k: 'pre', name: name, look: mine, model: model })); }
       if (!got) return;
       clearInterval(tm);
-      link.send('ctl', JSON.stringify({ k: 'pre', name: name, look: mine }));   // (por si el otro aún no tenía el nuestro; la sesión ignora los «pre» que sobren)
-      ctx.actions.startOnline({ slot: slot, link: link, opts: opts, name: name, rivalName: String(got.name || ''), look: { mine: mine, theirs: NL && NL.saneLook ? NL.saneLook(got.look) : null } });
+      link.send('ctl', JSON.stringify({ k: 'pre', name: name, look: mine, model: model }));   // (por si el otro aún no tenía el nuestro; la sesión ignora los «pre» que sobren)
+      // (prueba: si las dos páginas piden conexiones distintas, se avisa; la sesión acabará con bye 'version')
+      if ((got.model === 'fluida' ? 'fluida' : 'precisa') !== model) console.warn('[VB] ?net=bc: el rival pide la conexión ' + (got.model || 'precisa') + ' y esta página ' + model);
+      ctx.actions.startOnline({ slot: slot, link: link, opts: opts, name: name, rivalName: String(got.name || ''), look: { mine: mine, theirs: NL && NL.saneLook ? NL.saneLook(got.look) : null }, model: model });
       if (Q.bot === '1') ctx.netBot = VB.Net.bot(slot, +Q.botseed || (slot + 1), Q.botprof === 'flojo' ? 'flojo' : 'bueno');
     }, 50);
   }
@@ -802,7 +810,7 @@
     if (!list.length) return;
     netMastery(list);
     if (VB.UI && VB.UI.netTally) { var mp = []; try { VB.NetView.mapEvents(list, net.view, net.slot, mp); VB.UI.netTally(mp); } catch (e) { reportError('UI.netTally', e); } }
-    if (rec) { try { RPL.onEvents(s.confirmedGame(), list); } catch (e) { reportError('Replay.onEvents', e); } }
+    if (rec && net.model !== 'fluida') { try { RPL.onEvents(s.confirmedGame(), list); } catch (e) { reportError('Replay.onEvents', e); } }   // (Fluida: sin grabador)
     // (auditoría: copia de la hoja tras cada punto jugado con el rival presente: si luego hay que saltar a la foto del otro, se vuelve a ella)
     if (!s.solo && !s.rivalSolo && VB.UI && VB.UI._netStats) for (var i = 0; i < list.length; i++) if (list[i].type === 'point') { net.stSnap = { t: s.gcTick, st: netStClone(VB.UI._netStats()) }; break; }
   }
@@ -848,7 +856,8 @@
     rpPre = v;   // (fase 6: el grabador no graba la vista sino la partida confirmada, en modo dual)
     setGame(v, kit, mf && (mf[0] || mf[1]) ? { fits: mf } : {});
     net.rpCut = s.repaired + s.stats.resyncs;
-    try { if (VB.Replay && VB.Replay.reset) VB.Replay.reset(s.confirmedGame(), { dual: true, slot: net.slot }); } catch (e) { reportError('Replay.reset', e); }
+    // (Online V2: en Fluida no hay repeticiones en la beta; el reset con {fluida} deja el grabador bloqueado ('net') y sin «Jugadas»)
+    try { if (VB.Replay && VB.Replay.reset) { if (net.model === 'fluida') VB.Replay.reset(v, { fluida: true }); else VB.Replay.reset(s.confirmedGame(), { dual: true, slot: net.slot }); } } catch (e) { reportError('Replay.reset', e); }
     VB.NetView.mapEvents(s.initEvents, v, net.slot, pendingEvents);   // (setGame vacía pendingEvents)
     setState('playing');
     // como al empezar un partido normal: texturas y programas del pabellón, los jugadores y los efectos ANTES del saque (antes no se
@@ -965,7 +974,7 @@
       var shownPing = net.iceRtt > 0 ? net.iceRtt : r.ping;
       var pc = shownPing > 150 ? 'var(--amber,#ffb238)' : 'inherit', v = net.view;
       // (fase 4, guía de estilo de textos: datos del HUD separados con la barra fina, lo secundario entre paréntesis)
-      msg = 'Contra ' + who + ' | <span style="color:' + pc + '">' + shownPing + ' ms</span>' + (r.unstable ? ' | Conexión inestable' : '') + (r.solo ? (r.gone ? (r.valid ? ' | No ha vuelto: ganas tú (contra la IA)' : ' | Contra la IA (no cuenta)') : ' | Contra la IA (puede volver en ' + Math.ceil((r.goneIn || 0) / 1000) + ' s)') : '');
+      msg = 'Contra ' + who + ' | <span style="color:' + pc + '">' + shownPing + ' ms</span>' + (net.model === 'fluida' ? ' <span style="opacity:.7;font-weight:500">(Fluida)</span>' : '') + (r.unstable ? ' | Conexión inestable' : '') + (r.solo ? (r.gone ? (r.valid ? ' | No ha vuelto: ganas tú (contra la IA)' : ' | Contra la IA (no cuenta)') : ' | Contra la IA (puede volver en ' + Math.ceil((r.goneIn || 0) / 1000) + ' s)') : '');
       // fase 3: pausa de 10 s entre sets (decisión 5): cuenta atrás y «Continuar»; se salta cuando los dos lo han pulsado
       if (v && v.pendingSet && v.mode === 'point' && ctx.state === 'playing') {
         var sk = v.skipReq || [false, false], left = Math.max(0, Math.ceil(v.timer || 0));
@@ -1468,7 +1477,7 @@
   };
   // Challenge (B7): pide revisión de la última llamada de línea para el humano (equipo 0). true si sim la acepta
   ctx.actions.challenge = function () {
-    if (net) { if (net.view && ctx.state === 'playing') { net.sess.request('chal'); return true; } return false; }   // online: viaja en la entrada
+    if (net) { if (net.model !== 'fluida' && net.view && ctx.state === 'playing') { net.sess.request('chal'); return true; } return false; }   // online: viaja en la entrada (Fluida: sin ojo de halcón en la beta)
     if (ctx.state !== 'playing' || !ctx.game || !Sim.challenge) return false;
     var ok = false; try { ok = !!Sim.challenge(ctx.game, 0); } catch (e) { reportError('Sim.challenge', e); }
     if (ok) call('UI', 'onChallenge', ctx.game, 0);

@@ -50,6 +50,32 @@ async function mockTests() {
   check('sin red = net', await code(r.list()) === 'net');
   r = NR.create({ base: 'http://x/v1/projects/p/databases/(default)/documents', auth, fetch: mk(503, { error: { message: 'x' } }) });
   check('503 = net (reintentar)', await code(r.list()) === 'net');
+  // Online V2: open() solo escribe net = 'fluida' en las salas Fluida (en las Precisa la clave no va)
+  {
+    const sent = [];
+    const rr = NR.create({ base: 'http://x/v1/projects/p/databases/(default)/documents', auth, ver: '1|x', fetch: async (url, o) => {
+      if (/:commit$/.test(url)) sent.push(JSON.parse(o.body).writes[0].update.fields);
+      return { ok: true, status: url.indexOf('/sig/') >= 0 ? 404 : 200, text: async () => (/:runQuery$/.test(url) ? '[]' : '{}') };
+    } });
+    await rr.open({ name: 'Ana', net: 'fluida' }); await rr.open({ name: 'Ana' }); await rr.open({ name: 'Ana', net: 'rara' }); await rr.open({ name: 'Ana', net: 'precisa' });
+    check('open(): net = fluida solo en salas Fluida; Precisa, rara o sin net → sin la clave', sent.length === 4 && sent[0].net && sent[0].net.stringValue === 'fluida'
+      && !('net' in sent[1]) && !('net' in sent[2]) && !('net' in sent[3]), sent.map(f => f.net || null));
+  }
+  // Online V2 (revisión): el lobby (js/netlobby.js, con DOM: aquí se mira el código) separa las salas de los clientes de antes de
+  // Online V2 por room.v, el anfitrión también comprueba el model del 'pre' del invitado y el chip «Fluida» va primero (no se corta)
+  {
+    const lob = fs.readFileSync(path.join(ROOT, 'js/netlobby.js'), 'utf8');
+    check('lobby: room.v lleva la marca del lobby de Online V2 (un cliente de antes ve la sala como «Otra versión»)',
+      /function ver\(\) \{[^\n]*'\|L' \+ LOBBY/.test(lob) && /var LOBBY = ([2-9]|\d\d+);/.test(lob));
+    const beg = lob.slice(lob.indexOf('function begin('), lob.indexOf("if (L.role === 'host') {", lob.indexOf('function begin(')));
+    check('lobby: begin() compara pre.model con la sala en los dos papeles (no solo el invitado)',
+      /\n\s*if \(\(pre\.model === 'fluida' \? 'fluida' : 'precisa'\) !== model\) \{ connFail\('mismatch'\); return; \}/.test(beg) && !/L\.role === 'guest' && \(pre\.model/.test(beg));
+    const chipsSrc = lob.slice(lob.indexOf('function chips('), lob.indexOf('function chipsHTML('));
+    const chipsFn = new Function('roomModel', chipsSrc + '; return chips;')(r => r && r.net === 'fluida' ? 'fluida' : 'precisa');
+    const cv = chipsFn({ bo: 3, pts: 15, even: false, net: 'fluida' }), ca = chipsFn({ bo: 3, pts: 15, even: false, net: 'fluida' }, true), cp = chipsFn({ bo: 1, pts: 21, even: true });
+    check('lobby: chip «Fluida» primero en la lista (el que se corta en vertical es el de atributos); aria al final; Precisa sin él',
+      cv[0] === 'Fluida' && cv.length === 3 && ca[2] === 'conexión fluida' && cp.length === 2 && cp.indexOf('Fluida') < 0, [cv, ca, cp]);
+  }
   // lista: filtra caducadas, la tuya y ordena por latido
   const now = Date.now(), ts = ms => new Date(ms).toISOString();
   const doc = (id, seenAgo, extra) => ({ document: { name: 'projects/p/databases/(default)/documents/rooms/' + id, fields: Object.assign({
@@ -241,6 +267,31 @@ async function emuTests(base) {
     const H3 = mk('uidP'); const r3 = await H3.resume(); await H3.close();
     const gone = await G.get('uidP'), o3 = await G.getSig('uidP', 'offer');
     check('anfitrión que vuelve fuera de plazo: retoma y borra su sala; el invitado ya no ve sala ni oferta', r3 && r3.id === 'uidP' && gone === null && o3 === null && (await mk('uidP').resume()) === null); }
+  // Online V2: campo opcional net de la sala (conexión Fluida). Sin él = Precisa (como siempre); si está, solo 'fluida'.
+  {
+    check('sala con net = fluida aceptada', (await fx('uidC', Object.assign({}, good, { net: { stringValue: 'fluida' } }))).status === 200);
+    check('sala con net = precisa (o cualquier otro valor) rechazada', (await fx('uidC', Object.assign({}, good, { net: { stringValue: 'precisa' } }))).status === 403
+      && (await fx('uidC', Object.assign({}, good, { net: { stringValue: 'x'.repeat(30) } }))).status === 403
+      && (await fx('uidC', Object.assign({}, good, { net: { booleanValue: true } }))).status === 403);
+    check('sala sin net aceptada (Precisa, como siempre)', (await fx('uidC', good)).status === 200);
+    await raw('DELETE', '/rooms/uidC', null, fakeToken('uidC'));
+    const H = mk('uidN'), G = mk('uidO');
+    const rn = await H.open({ name: 'Nur', net: 'fluida' });
+    check('el cliente crea una sala Fluida (net = fluida) y la lista la enseña', rn && rn.net === 'fluida' && (await G.list()).some(r => r.id === 'uidN' && r.net === 'fluida'), rn && rn.net);
+    const jn = await G.join('uidN', 'Oli');
+    const b0 = await H.beat(), b1 = await H.beat({ state: 'play' });
+    check('net se mantiene al entrar y en los latidos (con y sin cambios)', jn && jn.net === 'fluida' && b0 && b0.net === 'fluida' && b1 && b1.net === 'fluida' && b1.state === 'play');
+    check('el invitado no puede cambiar net (solo guest/gname/state)', (await raw('PATCH', '/rooms/uidN?updateMask.fieldPaths=net', { fields: { net: { stringValue: 'fluida' } } }, fakeToken('uidO'))).status === 403
+      && (await raw('PATCH', '/rooms/uidN?updateMask.fieldPaths=net', { fields: {} }, fakeToken('uidO'))).status === 403);
+    const H2 = mk('uidN'); const rr = await H2.resume(); const b2 = await H2.beat(), b3 = await H2.beat({ state: 'full' });
+    check('el anfitrión que recarga retoma la sala Fluida y net sigue tras los latidos', rr && rr.net === 'fluida' && b2 && b2.net === 'fluida' && b3 && b3.net === 'fluida' && b3.state === 'full');
+    const hostNet = v => raw('POST', ':commit', { writes: [{ update: { name: base.slice(base.indexOf('projects/')) + '/rooms/uidN', fields: { net: v } }, updateMask: { fieldPaths: ['net'] },
+      updateTransforms: [{ fieldPath: 'seen', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: true } }] }, fakeToken('uidN'));
+    check('el anfitrión puede reescribir net = fluida, pero no un net raro', (await hostNet({ stringValue: 'fluida' })).status === 200 && (await hostNet({ stringValue: 'turbo' })).status === 403);
+    const rp = await mk('uidN').open({ name: 'Nur' });
+    check('reabrir como Precisa quita net (la sala se rehace entera)', rp && rp.net === undefined, rp && rp.net);
+    await H2.close();
+  }
   check('C no puede borrar la sala de otro con latido vivo', await (async () => { const r = await mk('uidG').open({ name: 'Gal' }); const d = await raw('DELETE', '/rooms/uidG', null, fakeToken('uidC')); await mk('uidG').close(); return r && d.status === 403; })());
   // (auditoría) código copiado por otra cuenta: byCode no elige ninguna ('dup'); y al abrir con código nuevo no se repite uno vivo
   {
@@ -304,6 +355,30 @@ async function emuTests(base) {
       check('las reglas de antes siguen dejando guardar el progreso propio', (await fetch(base2 + '/users/uidA/saves/squad', { method: 'PATCH', headers: { Authorization: 'Bearer ' + fakeToken('uidA'), 'Content-Type': 'application/json' }, body: JSON.stringify({ fields: { data: { stringValue: '{}' }, updatedAt: { integerValue: '1' } } }) })).status === 200);
     }
     killTree(j2);
+    // 4) Online V2: las reglas ONLINE de antes de 'net' (las desplegadas hasta que Ferran despliegue las nuevas): una sala Fluida da
+    //    'denied' (el lobby dice «La conexión Fluida aún no está activada.») y las Precisa siguen funcionando
+    console.log('\nReglas ONLINE sin el campo net (antes de desplegar Online V2)');
+    const noNet = cur.replace(", 'seen', 'net'])", ", 'seen'])").replace(/\r?\n\s*\/\/ Online V2:[^\n]*\r?\n\s*&& \(!\('net' in d\)[^\n]*;/, ';');
+    if (noNet === cur || noNet.indexOf("'net'") >= 0) check('reglas sin net derivadas de las actuales', false);
+    else {
+      const prevRules = path.join(os.tmpdir(), 'mtc-rules-sin-net.rules');
+      fs.writeFileSync(prevRules, noNet);
+      const P3 = PORT + 2;
+      const j3 = spawn('java', ['-Xmx384m', '-jar', jar, '--host', '127.0.0.1', '--port', String(P3), '--rules', prevRules, '--project_id', PROJECT], { stdio: 'ignore', windowsHide: true });
+      process.on('exit', () => killTree(j3));
+      let up3 = false;
+      for (let i = 0; i < 120 && !up3; i++) { await sleep(500); try { up3 = (await fetch('http://127.0.0.1:' + P3 + '/')).status < 500; } catch (e) { } }
+      if (!up3) check('el emulador arranca con las reglas sin net', false);
+      else {
+        const base3 = 'http://127.0.0.1:' + P3 + '/v1/projects/' + PROJECT + '/databases/(default)/documents';
+        const O = NR.create({ base: base3, ver: '1|t', auth: async () => ({ uid: 'uidA', token: fakeToken('uidA') }) });
+        check('sin net en las reglas: crear sala Fluida → denied (no off)', await code(O.open({ name: 'Ana', net: 'fluida' })) === 'denied');
+        const rp = await O.open({ name: 'Ana' }).catch(e => e.code);
+        check('sin net en las reglas: las salas Precisa se crean como siempre', rp && rp.id === 'uidA' && rp.net === undefined, rp && rp.id ? rp.id : rp);
+        await O.close();
+      }
+      killTree(j3);
+    }
   }
   console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)');
   process.exit(fails ? 1 : 0);

@@ -5,7 +5,8 @@
  * emulador de Firestore o con un fetch simulado).
  *
  * Modelo de datos (reglas en firebase/firestore.rules, bloque ONLINE):
- *   rooms/{uidAnfitrión} = {code, name, gname, host, guest, fmt, venue, map, even, bo, pts, state: open|full|play, v, seen}
+ *   rooms/{uidAnfitrión} = {code, name, gname, host, guest, fmt, venue, map, even, bo, pts, state: open|full|play, v, seen, net?}
+ *     (net = 'fluida' solo en las salas de conexión Fluida, Online V2; sin la clave = Precisa)
  *     (seen = hora del SERVIDOR: transformación REQUEST_TIME en cada escritura del anfitrión; el latido la renueva)
  *   rooms/{uid}/sig/offer = {sdp, gen, to} (anfitrión; to = uid del invitado) · rooms/{uid}/sig/answer = {sdp, gen, uid} (invitado)
  *   Nunca hay correos: del rival solo viaja su nombre visible (name/gname). Cada SDP (con direcciones de red) solo la lee su
@@ -16,7 +17,7 @@
  *   auth  = () → Promise<{uid, token}>   (VB.Account.netAuth en el juego)
  *   ver   = cadena de versión (PROTO|VB.VERSION): una sala de otra versión sale en la lista como «otra versión» y no deja entrar
  *   rooms.list()                 → Promise<[sala]> abiertas y vivas (la más nueva primero); de paso borra hasta 3 caducadas
- *   rooms.open(cfg)              → Promise<sala> crea (o rehace) TU sala: cfg = {name, venue, map, even, bo, pts}
+ *   rooms.open(cfg)              → Promise<sala> crea (o rehace) TU sala: cfg = {name, venue, map, even, bo, pts, net?}
  *   rooms.beat(patch)            → Promise<sala> latido del anfitrión (y cambios: {state, guest, gname}); null si ya no existe
  *   rooms.get(id) / rooms.byCode(code) → Promise<sala|null>
  *   rooms.join(id, gname)        → Promise<sala> (errores: full | gone | version | off | auth | net)
@@ -77,7 +78,7 @@
     }
     return o;
   }
-  var ROOM_KEYS = ['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v'];
+  var ROOM_KEYS = ['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'net'];
 
   function create(o) {
     o = o || {};
@@ -172,6 +173,8 @@
           var d = { code: codeOk(cfg.code) ? cfg.code : newCode(), name: cleanName(cfg.name) || 'Jugador', gname: '', host: a.uid, guest: '', fmt: '2v2',
             venue: cfg.venue === 'beach' ? 'beach' : 'hall', map: String(cfg.map || '').slice(0, 40), even: !!cfg.even, bo: +cfg.bo === 3 ? 3 : 1,
             pts: [11, 15, 21, 25].indexOf(+cfg.pts) >= 0 ? +cfg.pts : 21, state: 'open', v: ver.slice(0, 40) };
+          // Online V2: la conexión Fluida va en la sala (net = 'fluida'); en las Precisa la clave no existe (salas como siempre)
+          if (cfg.net === 'fluida') d.net = 'fluida';
           // (auditoría: un código nuevo que ya usa otra sala viva se cambia; el de tu sala de antes, cfg.code, se respeta)
           var fresh = !codeOk(cfg.code), tries = 0;
           var pick = function () {

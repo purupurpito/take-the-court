@@ -1278,3 +1278,28 @@ Ferran pidió «el 1 y el 2»: precompilar antes del saque y mandar las entradas
   `tools/out/netdrive-invitado.cpuprofile`) en netdrive.
 - `tools/netreplaytest.js` falla por `msIngest is not defined` en el trozo de ui.js que extrae (viene del commit 9df2e53 de
   «Estadística del partido»; el juego no está roto). Pendiente de quien lleve ui.js.
+
+## Online V2: conexión Fluida (17-nov-2026)
+Ferran: «Haz una versión 2 del Online; en las normas de partida se puede escoger qué modelo usar». No hay servidor (Pages + Firestore),
+así que los dos modelos son P2P: en «Crear sala», fila **Conexión**: **Precisa** (el rollback de siempre, por defecto) o **Fluida**
+(nuevo, tipo Roblox). Especificación completa: `notes/online-v2-spec.md` (hecha con un panel de 3 diseños y 3 jueces).
+
+- **Quién manda (Fluida):** cada máquina, siempre, en sus dos jugadores (nunca se le corrigen); el balón y la jugada, el campo donde
+  está. El traspaso lo fija quien toca, en el contacto: `khAt` = medio paso común en que cambia el dueño (viaja en el `tc`), con una
+  zona junto a la red que crece con la velocidad (`L = clamp(0.12·|vx|, 0.25, 0.6)`; 0,6 sin toques), así los bloqueos los juzga el
+  bloqueador con su pose real. Cada punto lo decide UNA máquina (`pt`) y la otra lo aplica (`flApplyPt`); marcador comprobado con un
+  resumen en cada punto (`pa`), el anfitrión repara (`sb`). Faltas de red del que no tiene el balón: `fq` al dueño.
+- **Rival:** fotos binarias (`S`, 30 Hz en juego, 10 Hz parado, ~2 KB/s), pintado 50-150 ms en el pasado e interpolado; el balón que
+  llega se acelera (máx. ×2) para alcanzarte en el presente; deriva de cálculo entre navegadores corregida a 3 cm.
+- **Código:** `js/netfluid.js` (VB.NetFluid.Session, misma fachada que VB.Net.Session; main.js elige por `net.model`), `stepFluid` y
+  la API `VB.Sim.fl*` en el bloque FLUIDA de sim.js (todo lo de dentro de funciones viejas va tras `if (g.fl`; huellas offline y
+  Precisa idénticas), fila y chip en netlobby.js, campo opcional `net: 'fluida'` en las salas (reglas: solo ese valor o ausente), la
+  versión de sala lleva `|L2` (un cliente viejo ve «Otra versión»). La revancha, la vuelta tras recargar y «Seguir contra la IA» van.
+- **Beta, sin:** «Mejores jugadas», ojo de halcón, errores del árbitro y tiempos muertos en salas Fluidas (`opts.ref` a cero).
+- **Pruebas:** `tools/fluidsimtest.js` (vuelo idéntico, khAt, catch-up, puntos aplicados, autocontrol de que cada línea nueva lleva
+  `g.fl`), `tools/fluidtest.js --quick|--full|--scen` (dos sesiones por memPair con ping, jitter, pérdida, cortes, recargas, IA,
+  revancha, Precisa contra Fluida), `node tools/netdrive.js 300 120 "quality=low&model=fluida&points=11"` en Chrome.
+- **Revisión adversaria** (5 enfoques, 2 escépticos por hallazgo): 18 fallos confirmados y arreglados (recarga del invitado, dueño tras
+  resync, validez tras adopt, balón clavado al caer, saque contra la IA, parón largo del anfitrión, versión de sala, chip en vertical…).
+- **Pendiente:** afinar D/warp/zona con ping real (Ferran y amigos), repeticiones y challenges en Fluida (fase 2), récord aparte si se
+  quiere (`m:'f'`), y ver con los informes de red cuál se siente mejor.

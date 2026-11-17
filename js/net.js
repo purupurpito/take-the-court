@@ -123,7 +123,7 @@
   /** Auditoría: ¿las opciones que manda el anfitrión son las que anunciaba la sala? (el invitado lo comprueba al saludar) */
   function sameRoom(co, e) {
     return !!co.even === !!e.even && (+co.bestOf === 3 ? 3 : 1) === (+e.bestOf === 3 ? 3 : 1) && (co.points | 0) === (e.points | 0) &&
-      (co.venue === 'beach' ? 'beach' : 'hall') === (e.venue === 'beach' ? 'beach' : 'hall');
+      (co.venue === 'beach' ? 'beach' : 'hall') === (e.venue === 'beach' ? 'beach' : 'hall') && (co.net || '') === (e.net || '');   // (Online V2: el modelo de conexión también)
   }
   function Session(o) {
     o = o || {};

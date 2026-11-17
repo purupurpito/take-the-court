@@ -1124,3 +1124,10 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
 (→ `netlogs.html` en Pages). Ganchos de solo lectura: `Session.rttLast/rttSeq` y `stats.depth` (js/net.js), `RtcLink.info()` con
 `rtype/proto/relayProto` (js/netrtc.js, nunca direcciones). Prueba: `node tools/netlogtest.js`; `NDLOG=1 node tools/netdrive.js 45 80
 "quality=low&netlog=1"` enseña el informe de una partida de prueba.
+
+**Online V2 «Fluida» (net, 17-nov-2026; notes/net.md «Online V2» y notes/online-v2-spec.md).** Fichero nuevo de `net`: `js/netfluid.js`
+→ `VB.NetFluid.{Session, PROTO 'F1', codec, C}`, cargado justo después de `js/net.js`; misma fachada que `VB.Net.Session` (main.js elige
+con `net.model`, que llega de la sala por `startOnline({model})`). En sim.js, bloque FLUIDA: `stepFluid` y `VB.Sim.flInit, flTake,
+flFly, flOwnerCheck, flBundle, flApplyTc, flApplyPt, flServe, flSkip, flPose, flDigest, flMatch, flCatchUp` (estado solo en `g.fl`,
+creado por `flInit`; toda línea nueva dentro de funciones viejas va tras `if (g.fl`; `tools/fluidsimtest.js` lo comprueba con SIM_BASE).
+netview.js: `fl: 'as'`. Salas: campo opcional `net` ('fluida') y versión `PROTO|VERSION|L2`.
