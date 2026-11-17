@@ -14,22 +14,32 @@
  * 1.3.0 (15-nov-2026): sprint 2-4 «Tu carrera», «Partidos que se recuerdan» y «Volver mañana» (retratos y escudos, portada con la
  *   Carrera, previa y resumen de jornada, repeticiones, jefes y química, retos y perfil). Los entrenos con el club ya venían de main.
  * 1.5.0 (16-nov-2026): Online beta (js/net*.js, notes/net.md): lobby con salas en Firestore, WebRTC, gorra Online Beta Tester.
- * 1.5.2 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
+ * 1.5.3 (17-nov-2026): árbitros con las señas oficiales y el 2º árbitro que se mueve con el juego (js/arena.js).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.2';
+  VB.VERSION = '1.5.3';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.5.2', d: '2026-11-17', t: 'Árbitros',
+      v: '1.5.3', d: '2026-11-17', t: 'Árbitros',
       items: [
         'Los árbitros hacen las señas oficiales, en el orden del reglamento y a la vista.',
         'El 2º árbitro se mueve al lado del equipo que defiende, como en un partido de verdad.'
+      ]
+    },
+    {
+      v: '1.5.2', d: '2026-11-17', t: 'Remates y planchas',
+      items: [
+        'En 6 contra 6 la CPU remata de verdad: se acabaron los ataques suaves que caían solos.',
+        'La plancha alcanza menos y el balón sale peor: salvar un balón tarde ya no es gratis.',
+        'Colocador: la rápida y el pipe que pides salen aunque la recepción no sea buena.',
+        'Colocador: tu timing se nota en el remate; la perfecta es más difícil de defender.',
+        'Colocador: la IA no te deja las recepciones y, si tocas tú primero, puedes pedir la bola.'
       ]
     },
     {

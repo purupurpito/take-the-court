@@ -921,6 +921,60 @@ function e1Section() {
   console.log('Maestría (E1): ' + res.length + ' pruebas, ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + (failures === f0 ? ' OK' : ''));
 }
 
+// ================= Ajustes de juego (17-nov-2026, Ferran) =================
+/* (a) plancha: calidad siempre 'poor' (tope 0,45 × 0,7) y alcance REACH + DIVE (0,8); (b) remates de la CPU en 6v6: ninguno a menos de
+ * 9 m/s de velocidad horizontal (antes ~40 % < 8 m/s: «rosquitas»); (c) colocador humano: la IA no le deja los balones de su celda en
+ * el 1r toque (humanOwns solo por cercanía); (d) «¡Pídela!» del colocador delantero tras dar él el 1r toque (askOk) y el colocador de
+ * emergencia le coloca (buildCand le acepta; tempo 'shoot'); (e) colocación del humano en 6v6: la calidad pesa en el remate del compañero. */
+function j17Section() {
+  const f0 = failures, res = [];
+  const push0 = res.push.bind(res); res.push = (r) => { console.log('  ' + r[0] + ' ' + JSON.stringify(r[2]) + (r[1] ? '' : '   <<< FALLA')); return push0(r); };
+  console.log('\nAjustes de juego (17-nov-2026)');
+  // (a) plancha
+  { let worst = 0, n = 0; const g = S.createGame({ autopilot: true, seed: 5 }), p = g.teams[0][0];
+    for (let k = 0; k < 20; k++) { e1Rally(g, { x: 5, y: 1.9, z: 0.5, vz: -1 }); g.touchTeam = 1; g.touches = 3; g.lastTeam = 1; g.lastKind = 'spike'; g.lastPlayer = g.teams[1][0];
+      p.x = 5; p.y = 0; p.z = 0; p.vz = 0; p.down = 0; S._hit(g, p, null, 0, 'dive'); const hv = S.drainEvents(g).find(e => e.type === 'hit'); n++; if (hv) worst = Math.max(worst, hv.quality); }
+    res.push(['(a) plancha: calidad <= 0,32 (siempre «poor») y alcance REACH + DIVE = 2,15', worst <= 0.316 && Math.abs(C.REACH + C.DIVE - 2.15) < 1e-9, { maxQ: +worst.toFixed(3), alcance: C.REACH + C.DIVE }]); }
+  // (b) remates de la CPU en 6v6
+  { let slow = 0, n = 0; const K = VB.ATTR_KEYS, st = v => { const o = {}; K.forEach(k => { o[k] = v; }); return o; };
+    for (const [ov, d] of [[60, 'normal'], [85, 'hard']]) for (let sd = 1; sd <= 2; sd++) {
+      const g = S.createGame({ format: '6v6', autopilot: true, seed: sd, difficulty: d, mastery: true, attrs: [[0, 1, 2, 3, 4, 5].map(() => st(ov)), [0, 1, 2, 3, 4, 5].map(() => st(ov))] });
+      for (let i = 0; i < 60 * 240; i++) { S.step(g, DT, null); for (const e of S.drainEvents(g)) if (e.type === 'hit' && e.kind === 'spike' && e.shot !== 'roll') { n++; if (Math.hypot(g.ball.vx, g.ball.vy) < 9) slow++; } }
+    }
+    res.push(['(b) 6v6: remates de la CPU a >= 9 m/s (sin rosquitas), medias 60 y 85', n > 50 && slow / n < 0.03, { remates: n, lentos: slow }]); }
+  // (c) colocador humano: su celda en el 1r toque no es suya; a menos de HUM.area sí
+  { const g = S.createGame({ format: '6v6', seed: 9, ctrl: 'one', ctrlRole: 'S' }), hu = g.ctrl, A = VB.AI6, sp = A.spot(g, hu);
+    const far = A.humanOwns(g, 0, hu, { x: sp.x, y: sp.y, t: 1 }, 0, null) === false || Math.hypot(sp.x - hu.x, sp.y - hu.y) < 1.5;
+    const near = A.humanOwns(g, 0, hu, { x: hu.x + 0.5, y: hu.y, t: 1 }, 0, null) === true;
+    const g2 = S.createGame({ format: '6v6', seed: 9, ctrl: 'one', ctrlRole: 'OH' }), h2 = g2.ctrl, sp2 = A.spot(g2, h2);
+    const ohCell = A.humanOwns(g2, 0, h2, { x: sp2.x, y: sp2.y, t: 1 }, 0, null) === true;
+    res.push(['(c) colocador humano: su celda del 1r toque la cubren los compañeros (a < 1,5 m sigue siendo suya); el receptor, como antes', far && near && ohCell, { far, near, ohCell }]); }
+  // (d) «¡Pídela!» del colocador tras su 1r toque
+  { const g = S.createGame({ format: '6v6', seed: 11, ctrl: 'one', ctrlRole: 'S' }), hu = g.ctrl, A = VB.AI6, sd = S.side(0);
+    let front = g.ctrl.front, tries = 0;
+    while (!g.ctrl.front && tries++ < 6) { S.rotate ? S.rotate(g, 0) : null; front = g.ctrl.front; }
+    e1Rally(g, { x: sd * 3, y: 0, z: 2.2, vz: -1 }); g.touchTeam = 0; g.touches = 1; g.lastTeam = 0; g.lastPlayer = hu; g.lastKind = 'pass'; g.lastTouchT = g.time;
+    const okFront = front ? S.askOk(g) : null;
+    g.touches = 0; g.lastPlayer = g.teams[1][0]; g.touchTeam = 1; const noFirst = front ? !S.askOk(g) : null;
+    g.touchTeam = 0; g.touches = 1; g.lastPlayer = hu; g.ask6 = g.time; g.hAct = g.time;
+    hu.x = sd * 1.5; hu.y = sd * 2.5;   // listo para atacar por la derecha (shoot: yl +3,4)
+    const em = g.teams[0].find(q => q !== hu && q.role === 'OPP') || g.teams[0].find(q => q !== hu && q.role !== 'S');
+    const pl = A.chooseSet(g, em, null, 0, 0), P = g.setPlan[0];
+    let picks = 0; for (let k = 0; k < 40; k++) { g.ask6 = g.time; A.chooseSet(g, em, null, 0, 0); if (g.setPlan[0].to === hu) picks++; }
+    res.push(['(d) colocador delantero: «¡Pídela!» vale tras su 1r toque (no sin él) y el colocador de emergencia le elige casi siempre (tempo shoot)', front === false || (okFront && noFirst && picks >= 20), { delantero: front, askOk: okFront, sinPrimerToque: noFirst, elegido: P.to === hu ? 'colocador' : P.to && P.to.role, tempo: P.tempo, eligeDe40: picks }]); }
+  // (e) colocación del humano en 6v6: con mala calidad el remate del compañero CPU es más lento que con una perfecta
+  { const spd = (q) => { const g = S.createGame({ format: '6v6', seed: 21, ctrl: 'one', ctrlRole: 'S' }), hu = g.ctrl, sd = S.side(0);
+      const at = g.teams[0].find(p => p !== hu && p.front && p.role !== 'S' && p.role !== 'L');
+      e1Rally(g, { x: sd * 0.9, y: at.y, z: 3.2, vz: -0.5 }); at.x = sd * 1.2; at.z = 0.9; at.vz = 1;
+      g.touchTeam = 0; g.touches = 2; g.lastTeam = 0; g.lastPlayer = hu; g.lastKind = 'set'; g.lastQ = q; g.lastTouchT = g.time;
+      S._hit(g, at, null, 0, '', [-sd * 6, 0]); return Math.hypot(g.ball.vx, g.ball.vy, g.ball.vz); };
+    const lo = spd(0.25), hi = spd(1);
+    res.push(['(e) 6v6: tras una colocación mala del humano el remate del compañero CPU sale más lento que tras una perfecta', lo < hi * 0.95, { mala: +lo.toFixed(2), perfecta: +hi.toFixed(2) }]); }
+  const bad = res.filter(r => !r[1]);
+  if (bad.length) fail('ajustes 17-nov: ' + bad.map(r => r[0]).join('; '));
+  console.log('Ajustes de juego (17-nov): ' + res.length + ' pruebas' + (failures === f0 ? ' OK' : ''));
+}
+
 // ================= Colocar por destino (C2, 15-nov-2026) =================
 /* La colocación del humano sale de su dirección (g.setDirA: stick o flechas en la ventana de colocación) y del timing; sin dirección,
  * alta a la 4. SIMTEST_ONLY=colocar node tools/simtest.js: solo esta sección (SIMTEST_COL=b,c filtra). Escenario fijo: el compañero
@@ -1208,8 +1262,8 @@ function colSection() {
     const h = S.createGame({ format: '6v6', seed: 701, ctrl: 'one', ctrlRole: 'S' }), hs = h.ctrl; h._pq6 = [{ q: 0.2, t: h.time }, { q: 0, t: -9 }]; hs.x = sd0 * 0.9; hs.y = sd0 * 0.9;
     h.setDirA = 0; const d8 = VB6.dirOf8(h, hs); VB6.chooseSet(h, hs, d8.lane, d8.pref, d8.apexD); const Pq = h.setPlan[0];
     o.rapidaFueraDeSistema = (Pq.to && Pq.to.role) + ' ' + Pq.tempo;
-    res.push(['(j) 6v6, colocador humano: 9 entradas → atacante, tempo y carril del pipe de la tabla; rápida fuera de sistema = alta a la 4; 1 g.rng por chooseSet; previewSet = plan',
-      ok === n && rngBad === 0 && pvBad === 0 && !!Pq.to && Pq.to.role === 'OH' && Pq.tempo === 'high', Object.assign(o, { ok: ok + '/' + n, rng: rngBad, vista: pvBad, mal: bad.slice(0, 4) })]);
+    res.push(['(j) 6v6, colocador humano: 9 entradas → atacante, tempo y carril del pipe de la tabla; rápida fuera de sistema = rápida (la pedida, 17-nov-2026); 1 g.rng por chooseSet; previewSet = plan',
+      ok === n && rngBad === 0 && pvBad === 0 && !!Pq.to && Pq.to.role === 'MB' && Pq.tempo === 'quick' && Math.abs(Pq.apex - (VB6.FORM.set.quick.apex)) < 1e-9, Object.assign(o, { ok: ok + '/' + n, rng: rngBad, vista: pvBad, mal: bad.slice(0, 4) })]);
   }
   // (k) plantado: en su sitio (en el centro del aro) con una dirección elegida a t <= 0,6 s no se mueve (< 0,05 m); también con la
   // dirección de arrastre (neutra: no hace falta retocar); fuera de su sitio (a 1 m) la dirección le mueve (> 0,15 m) y no apunta
@@ -1626,6 +1680,7 @@ async function main() {
 if (ONLY === 'replay') { replaySection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // S3-C1: SIMTEST_ONLY=replay
 // E1: SIMTEST_ONLY=e1, solo la sección de maestría
 if (ONLY === 'gym') { gymSection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // E6: SIMTEST_ONLY=gym
+if (ONLY === 'juego17') { j17Section(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // 17-nov: SIMTEST_ONLY=juego17
 if (ONLY === 'colocar') { colSection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // C2: SIMTEST_ONLY=colocar
 if (ONLY === 'e1') { e1Section(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); }
 // ================= 1) CPU vs CPU =================
@@ -2910,7 +2965,7 @@ if (ONLY !== 'matrix') {
       rallyAt(g, { x: 5, y: 1.45, z: 1.0, vz: -1 }); g.touchTeam = 1; g.touches = 3; g.lastTeam = 1; g.lastKind = 'spike'; g.lastPlayer = g.teams[1][0];
       p.x = 5; p.y = 0; q.x = 8; q.y = -3;
       const cr = S.canReach(g, p); p.badges = null; const cr0 = S.canReach(g, p); p.badges = { red: 3 };
-      g.ball.y = 2.6; g.ball.z = 0.6; const cd = S.canDive(g, p); p.badges = null; const cd0 = S.canDive(g, p);
+      g.ball.y = 2.35; g.ball.z = 0.6; const cd = S.canDive(g, p); p.badges = null; const cd0 = S.canDive(g, p);   // (17-nov-2026: DIVE 0,8 → (1,35 + 0,8) = 2,15 sin la insignia, ×1,15 = 2,47 con ella)
       const gh = S.createGame({ demo: false, seed: 67, badges: [[{ red: 3 }, null], null] }), h = gh.teams[0][0];
       rallyAt(gh, { x: 5, y: 0, z: 0.8, vx: 8, vz: -3 }); gh.touchTeam = 1; gh.touches = 3; gh.lastTeam = 1; gh.lastKind = 'spike'; gh.lastPlayer = gh.teams[1][0];
       gh.ctrl = h; h.x = 5.2; h.y = 0; S._hit(gh, h, null, 0.046, ''); const hv = S.drainEvents(gh).find(e => e.type === 'hit');
@@ -3295,7 +3350,7 @@ if (ONLY !== 'matrix') {
             if (i % 120 === 0) for (const p of g.players) if (!Number.isFinite(p.x + p.y + p.z)) nan++;
           }
           perRole[r] = { dorsal: base.num, cambia: okSw && okBack, puntos: pts, toques: ht, switch: sw, nan };
-          okRoles = okRoles && ok0 && okSw && okBack && pts >= 8 && ht > 0 && sw === 0 && nan === 0;
+          okRoles = okRoles && ok0 && okSw && okBack && pts >= 6 && ht > 0 && sw === 0 && nan === 0;   // (17-nov-2026: con remates de verdad en 6v6 y la plancha más floja, el central hace 7 en 3 min)
         }
       } catch (e) { ex = e && e.stack || String(e); }
       res.push(['(h) 4 puestos jugables (OH, S, OPP, MB; dorsales 2/1/4/3; setCtrlRole cambia): 3 min de bot por puesto sin excepciones, NaN ni switch', okRoles && !ex, { puestos: ROLES, porPuesto: perRole, ex }]);
@@ -3603,6 +3658,8 @@ if (ONLY !== 'matrix') {
 
   // COLOCAR POR DESTINO (C2, 15-nov-2026)
   if (ONLY !== 'matrix') colSection();
+  // AJUSTES DE JUEGO (17-nov-2026: plancha, remates de la CPU en 6v6, colocador humano)
+  if (ONLY !== 'matrix') j17Section();
 
   // GIMNASIO (E6, sprint 5): createGame({drill})
   if (ONLY !== 'matrix') gymSection();

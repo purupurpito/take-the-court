@@ -42,7 +42,7 @@
     SPEED: 5.6,      // velocidad de carrera
     JUMP_V: 4.4,     // velocidad inicial de salto
     REACH: 1.35,     // alcance horizontal para tocar
-    DIVE: 1.05,      // alcance extra lanzándose en plancha
+    DIVE: 0.8,       // alcance extra lanzándose en plancha (17-nov-2026, Ferran: «la plancha está muy OP»; antes 1,05)
     SIM_HZ: 120,     // paso fijo recomendado (main.js)
     // --- timing ---
     IN_TOL: 0.21,    // "dentro" (regla FIVB 8.3: el balón toca el suelo con CUALQUIER parte de él, líneas incluidas): el centro del
@@ -944,6 +944,20 @@
     return v;
   }
 
+  /** 6v6, remate de la IA (17-nov-2026, Ferran: «en Hiperliga 2 no hay apenas remates, todo son rosquitas»): launchDirect frena el
+   *  balón lo justo para pasar la red, y con la diana cerca de la red (openSpot a 2,2 m) y el contacto a ~1,6 m de ella el remate salía
+   *  a < 8 m/s en el 40 % de los casos, también en la élite. Si se queda por debajo de DEEP_K de la velocidad pedida, la diana se alarga
+   *  en la misma línea (pasos de DEEP_STEP m, hasta DEEP_MAX m de la red): un remate fuerte va al fondo. Sin azar. */
+  var DEEP_K = 0.8, DEEP_STEP = 0.7, DEEP_MAX = 6.4;
+  function deepSpike(o, tx, ty, spd, G, cs) {
+    var v = launchDirect(o, tx, ty, 0, spd, G), dx = tx - o.x, dy = ty - o.y, L = Math.hypot(dx, dy) || 1, lim = DEEP_MAX * (cs || 1);
+    for (var k = 0; k < 8 && Math.hypot(v[0], v[1]) < spd * DEEP_K; k++) {
+      var f = (L + DEEP_STEP * (k + 1)) / L, nx = o.x + dx * f;
+      if (Math.abs(nx) > lim) break;
+      v = launchDirect(o, nx, o.y + dy * f, 0, spd, G);
+    }
+    return v;
+  }
   function canReach(g, p) {
     var b = g.ball;
     if (g.mode === 'serve') return g.serveState === 'toss' && p === g.server && serveReach(g, p);
@@ -1059,6 +1073,8 @@
   /** Defensa contra el remate rival desde el aire (ver hit): BLK_ZONE = |x| máximo de la zona de bloqueo (checkBlock), BLK_AIRQ =
    *  factor de calidad del toque en el aire más atrás. */
   var BLK_ZONE = 1.1, BLK_AIRQ = 0.6;
+  /** Plancha en el 1r toque: prob. de que el balón salga desviado (×ek), 17-nov-2026. */
+  var DIVE_FAIL = 0.35;
   /** BLOQUEO ACTIVO (11-nov-2026, pedido de Ferran: «al presionar golpear, lo que haga el bloqueo sea bajar… si lo aprietas demasiado
    *  rápido puedes tocar la red y que sea falta; si no lo aprietas, el rebote es suave»). En el aire en la red (|x| <= BLK_ZONE) con el
    *  balón del rival, GOLPEAR ya no es un golpe: es «bajar» el bloqueo (manos por encima de la red empujando hacia abajo).
@@ -1166,6 +1182,9 @@
     }
     return out;
   }
+  /** 6v6 (17-nov-2026, Ferran: «con perfecto tampoco parece que mejore una locura»): tras una colocación perfecta (q >= q) del colocador
+   *  humano, la defensa rival del remate ×dig. */
+  var SET6_PERF = { q: 0.78, dig: 0.8 };
   var SETQ = VB.SETQ = { pass: 0.5, lo: 0.25, hi: 0.85, spd0: 0.85, er: 1.0, err: 1.0, safeQ: 0.45, safeP: 0.85, safeLo: 0.1, jsQ: 0.78, jsX: 2.4, jsMate: 0.75 };
   function hit(g, p, aim, te, shot, tgt) {
     var t = p.team, sd = side(t), b = g.ball, prof = profOf(g, p);
@@ -1231,7 +1250,9 @@
     var q = timingQ(te);
     q *= 1 - 0.3 * clamp((d / C.REACH - 0.55) / 0.45, 0, 1);
     if (hardIn) q *= 1 - 0.25 * clamp((inSp - 11) / 8, 0, 1);
-    if (shot === 'dive') q = Math.min(q, 0.62) * 0.85;
+    // plancha (17-nov-2026, Ferran: «hay que hacer que sea más difícil salvar esas y que vayan bastante peor»): tope 0,45 × 0,7 = 0,32
+    // (siempre 'poor'; antes 0,62 × 0,85 = 0,53, 'good') y, en el 1r toque, DIVE_FAIL de que salga desviada (abajo)
+    if (shot === 'dive') q = Math.min(q, 0.45) * 0.7;
     if (vsAtk) q *= BLK_AIRQ; // defensa en el aire de un remate: casi nunca sale limpia
     q = clamp(q, 0, 1);
     if (feint) q *= MASTERY.feint.q;
@@ -1332,7 +1353,9 @@
       } else { // remate
         // 2v2: el remate de la IA depende de la colocación que le llega (SETQ): con una colocación mala sale más lento, más
         // disperso y con más error no forzado; con una buena (>= SETQ.hi), como siempre. Sin azar nuevo
-        var sk = !g.rot && !human && setIn && prevQ < SETQ.hi ? clamp((prevQ - SETQ.lo) / (SETQ.hi - SETQ.lo), 0, 1) : 1;
+        // (6v6, 17-nov-2026: también tras la colocación del humano —colocador—, para que el timing se note en el remate; CPU-CPU igual)
+        var hSet6 = g.rot && setIn && prevPlayer && prevPlayer !== p && isHuman(g, prevPlayer);
+        var sk = (!g.rot || hSet6) && !human && setIn && prevQ < SETQ.hi ? clamp((prevQ - SETQ.lo) / (SETQ.hi - SETQ.lo), 0, 1) : 1;
         var free3 = human && !tgt && g.aim3.on && g.aim3.kind !== 'serve'; // A1: mira libre del humano
         at = tgt || (free3 ? [g.aim3.x, g.aim3.y] : attackTarget(p, aim, 6, g.cs));
         var spd = human ? 13.5 + 5.5 * q + (p.ak ? p.ak.spike : 0) : prof.spike * (0.82 + 0.18 * q) * (SETQ.spd0 + (1 - SETQ.spd0) * sk);
@@ -1348,7 +1371,7 @@
           var sr = spikeSpread(q) * (p.ak ? p.ak.spread : 1) * BADGE.mira[bl(p, 'mira')] * Math.sqrt(g.rng()), sa = g.rng() * 6.2832;
           if (edge > 0) sr *= 1 + MASTERY.edge.spr * edge;
           v = launchDirect(o, at[0] + sr * Math.cos(sa), at[1] + sr * Math.sin(sa), C.BR, spd, C.G + dip); // bota justo en la diana
-        } else v = launchDirect(o, at[0] + rnd(g, er), at[1] + rnd(g, er), 0, spd, C.G + dip);
+        } else { var tx0 = at[0] + rnd(g, er), ty0 = at[1] + rnd(g, er); v = g.rot && !human ? deepSpike(o, tx0, ty0, spd, C.G + dip, g.cs) : launchDirect(o, tx0, ty0, 0, spd, C.G + dip); }
         if (q < 0.45 && g.rng() < (0.48 - q) * 0.75 * ek) v[2] -= 1.4 + g.rng(); // a la red (×ek: Control)
         else if (!human && g.rng() < prof.atkErr * BADGE.miraAI[bl(p, 'mira')] * BADGE.sedaAI[sedaL] * (1 + SETQ.err * (1 - sk))) aiError(g, o, v, spd, sd, C.G + dip); // error no forzado de la IA
         kind = 'spike'; sub = 'power';
@@ -1368,6 +1391,7 @@
         // más que rematarlo uno mismo
         if (setIn && count === 3 && inShot === 'jump' && prevPlayer && prevPlayer.grade !== 'poor') tightK *= JSET.dig;
         if (g.rot) tightK *= SIX.dig * (VB.AI6 ? VB.AI6.digK(g, t) : 1); // 6v6: con 3 zagueros el margen de defensa sale alto; en sistema, más
+        if (hSet6 && prevQ >= SET6_PERF.q) tightK *= SET6_PERF.dig; // 6v6: colocación perfecta del humano: el remate es más difícil de defender
         if (g.mastery) { // E1: golpe colocado (MASTERY.roll.digK) y al filo (-MASTERY.edge.dig·e)
           if (sub === 'roll') tightK *= MASTERY.roll.digK;
           if (edge > 0) tightK *= 1 - MASTERY.edge.dig * edge;
@@ -1396,7 +1420,7 @@
         var shA = spk ? 1.1 + g.rng() * 1.3 : 1.1 + g.rng() * 1.5;
         v = launchApex(o, sd * (far ? 8.5 + g.rng() * 6 : 3 + g.rng() * 4), sy * (far ? 5.6 + g.rng() * 3.5 : 3 + g.rng() * 2), 0, Math.max(b.z + 0.3, shA));
         q = Math.min(q, 0.2); grade = 'poor';
-      } else if (q < 0.3 && g.rng() < 0.55 * (0.3 - q) / 0.3 * ek) { // recepción fallida: sale desviada (×ek: Recepción/Defensa)
+      } else if ((shot === 'dive' && g.rng() < DIVE_FAIL * ek) || (q < 0.3 && g.rng() < 0.55 * (0.3 - q) / 0.3 * ek)) { // recepción fallida (o plancha): sale desviada (×ek: Recepción/Defensa)
         var wy = (g.rng() < 0.5 ? -1 : 1) * (3.5 + g.rng() * 2.5);
         v = launchApex(o, sd * (2.5 + g.rng() * 6), wy, 0, 2.6 + g.rng() * 2); sub = 'shank';
       } else if (g.rot && VB.AI6) { // 6v6: al punto de colocación (VB.AI6.passTarget), el error en profundidad sin pasar la red
@@ -3222,7 +3246,7 @@
         if (g.defRole === 'dig' && ((hx < 1.3 && hx < mx1 + 0.3) || hx < mx1 - 0.8 || (hc1.z > 0 && hx < 2))) g.defRole = 'block';
         else if (g.defRole === 'block' && hc1.z <= 0 && hx > 3.2 && hx > mx1 - 0.5) g.defRole = 'dig';
       }
-    } else if (setPhase && !g.defRole) {
+    } else if (setPhase && !g.defRole && !(Math.hypot(g.ball.vx, g.ball.vy, g.ball.vz) > 12 && g.pr1.t < 0.6)) { // (balón rápido a < 0,6 s: se decide después, como fastLate)
       g.defRole = 'dig';
       var c = g.ctrl, m = other(g, c);
       if (Math.abs(c.x) < Math.abs(m.x)) { // el humano está más cerca de la red: defiende el otro, bloquea la IA
@@ -3339,7 +3363,10 @@
    *  pulsación no hace nada. */
   function askOk(g) {
     var p = g.ctrl, A6 = VB.AI6;
-    if (!(g.rot && p && g.mode === 'rally' && p.role !== 'L' && !p.bench && p.role !== 'S')) return false;
+    if (!(g.rot && p && g.mode === 'rally' && p.role !== 'L' && !p.bench)) return false;
+    // colocador humano (17-nov-2026, Ferran: «que el colocador pueda pedir una colocación si el primer toque ha sido suyo»): solo
+    // delantero, con el 1r toque suyo y antes de la colocación (la da el colocador de emergencia: VB.AI6.buildCand le acepta)
+    if (p.role === 'S') return p.front && g.touchTeam === 0 && g.touches === 1 && g.lastPlayer === p && !atkPhase(g, 0);
     if (!(p.front || (A6 && A6.canPipe && A6.canPipe(p)))) return false;
     return !(g.touchTeam === 0 && g.touches >= 2) && !atkPhase(g, 0);
   }

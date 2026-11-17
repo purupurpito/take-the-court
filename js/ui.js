@@ -1478,7 +1478,7 @@
     ctx.camera.updateMatrixWorld();
     // (D5: el zaguero que no es líbero sí puede pedir el pipe; si la sim aún no lo admite, el motivo es el fondo. El colocador nunca pide:
     //  el 2º toque es suyo, D3)
-    var hint = e.ok ? '' : g.mode === 'serve' ? 'tras el saque' : p.role === 'L' ? 'el líbero no remata' : p.role === 'S' ? 'tú colocas' : (g.touchTeam === 0 && g.touches >= 2) || (VB.Sim.atkPhase && VB.Sim.atkPhase(g, 0)) ? 'ya han colocado' : !p.front ? 'en el fondo no rematas' : 'ya han colocado';
+    var hint = e.ok ? '' : g.mode === 'serve' ? 'tras el saque' : p.role === 'L' ? 'el líbero no remata' : p.role === 'S' ? (!p.front ? 'en el fondo no rematas' : g.touchTeam === 0 && g.touches === 1 && g.lastPlayer === p ? 'ya han colocado' : 'tú colocas') : (g.touchTeam === 0 && g.touches >= 2) || (VB.Sim.atkPhase && VB.Sim.atkPhase(g, 0)) ? 'ya han colocado' : !p.front ? 'en el fondo no rematas' : 'ya han colocado';
     stp.pl = p; stp.ox = 0; stp.oy = 0; stp.wx = p.x; stp.wy = p.y; stp.wz = (p.z || 0) + 2.5; stp.t = e.ok ? 0.62 : 0.8; stp.born = performance.now(); stp.cost = 0; stp.dir = 0;
     el.stampT.textContent = e.ok ? '¡Aquí!' : 'Ahora no';
     el.stampS.textContent = hint; el.stampS.hidden = !hint;

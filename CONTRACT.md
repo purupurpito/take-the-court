@@ -462,7 +462,8 @@ Todos llevan `type` y `t` (tiempo de juego). `player` es la referencia al objeto
   main.js: `?format=6v6` = espectador (como en el sprint 2); `?format=6v6&human=1` o `ctx.settings.format === '6v6'` o
   `startMatch({format:'6v6'})` = humano (`{format:'2v2'}` fuerza el 2v2 sin mirar el ajuste). Escenas `?debug=serve6h|rally6h`. input.js: el
   botón ⇄ se queda en 6v6 («¡Pídela!», con icono de mano). `VB.Sim.askOk(g)`: ¿vale ahora «¡Pídela!»? (peloteo, humano delantero, antes de
-  la colocación de su equipo); `g.ask6` solo se guarda si vale. Evento nuevo `{type:'ask', player, ok}` en cada pulsación de CAMBIAR en
+  la colocación de su equipo; el colocador humano solo delantero y tras dar él el 1r toque —17-nov-2026—, y entonces el colocador de emergencia
+  le acepta como atacante en `chooseSet`, tempo 'shoot', ×`HUM.askS`); `g.ask6` solo se guarda si vale. Evento nuevo `{type:'ask', player, ok}` en cada pulsación de CAMBIAR en
   6v6 (ui.js: sello «¡Aquí!» / «Ahora no»; audio.js). fx.js: en 6v6 el aro amarillo solo sale con el balón del humano. El 6v6 humano no
   cuenta en el récord del Partido rápido.
 

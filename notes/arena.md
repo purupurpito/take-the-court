@@ -1318,7 +1318,7 @@ Detalle: `notes/s234/T5.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
   no salen se encogen a 1e-4 en la misma malla (0 dibujos). `judges` = los que están en pista (judgeSignal, camera.js).
 - camera.js: OFFI con 8 huecos y `OFFN` = los que están en uso.
 
-## Árbitros: señas oficiales y 2º árbitro en movimiento (17-nov-2026, v1.5.2; petición de Ferran)
+## Árbitros: señas oficiales y 2º árbitro en movimiento (17-nov-2026, v1.5.3; petición de Ferran)
 Fuentes: Reglas Oficiales FIVB, regla 22.2.3 (orden de las señas) y regla 28 / «Official hand signals»; guía FIVB de arbitraje
 (Refereeing Guidelines and Instructions), regla 28 puntos 2, 3, 8 y 9. Herramienta: `node tools/refposes.js [carpeta] [señales]
 [vistas=near,hand,front,tv,game,r2,r2wide] [WxH] [query]` (escena `debug=serve` congelada con `ctx.frozen`, cámara propia,
