@@ -44,7 +44,11 @@ function cut(src, from, to) {
 const TALLY_SRC = cut(UI_SRC, '  function newStats() {', '  var stats = newStats();') +
   cut(UI_SRC, '  function tally(e) {', '  /** Puntos del set decisivo') +
   'var stats = newStats();\nvar API = {\n' + cut(UI_SRC, '    netTally: function (events) {', '    _netStats:') +
-  '  stats: function () { return stats; },\n  feed: function (evs) { for (var i = 0; i < evs.length; i++) tally(evs[i]); }\n};\n';
+  '  stats: function () { return stats; },\n  _netStats: function () { return stats; },\n  netStatsSet: function (o) { if (o && o.t) stats = o; },\n  feed: function (evs) { for (var i = 0; i < evs.length; i++) tally(evs[i]); }\n};\n';
+// (auditoría) netStClone y netStatsResync de js/main.js tal cual: la hoja del lado que salta a la foto del otro tras una vuelta con la IA
+const MAIN_SRC = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
+const FIX_SRC = cut(MAIN_SRC, '  function netStClone(o) {', '  function netBuildView() {') + 'this.clone = netStClone; this.fix = netStatsResync;';
+function mkFix(slot, UI) { const c = { net: { slot, stSnap: null }, VB: { UI }, JSON }; vm.createContext(c); vm.runInContext(FIX_SRC, c, { filename: 'main.js (hoja tras una vuelta)' }); return c; }
 function mkTally() { const c = {}; vm.createContext(c); vm.runInContext(TALLY_SRC, c, { filename: 'ui.js (tally)' }); return c.API; }
 /** Lo que enseña la hoja (sin referencias a jugadores: lastHitter / blocker / undo / last*). */
 function sheet(st) {
@@ -59,7 +63,9 @@ function run(cfg) {
   let T = 0;
   const [la, lb] = M[0].Net.memPair({ lag: cfg.rtt, jit: cfg.jit, loss: cfg.loss, seed: cfg.seed, clock: () => T });
   const opts = { online: true, seed: 900 + cfg.seed, venue: cfg.venue || 'beach', bestOf: 1, points: cfg.points || 11, humans: [{}, {}], present: true, stats: true };
-  const side = [0, 1].map(k => ({ VB: M[k], hashes: [], built: false, tally: mkTally(), view: null, confirmed: [], rpCut: 0 }));
+  const side = [0, 1].map(k => ({ VB: M[k], hashes: [], built: false, tally: mkTally(), view: null, confirmed: [], rpCut: 0, rsIn: 0 }));
+  side.forEach((sd, k) => { sd.fix = mkFix(k, sd.tally); });
+  let cutOn = false, aiOn = false;
   const sess = [0, 1].map(k => {
     const sd = side[k], VB = M[k];
     const s = new VB.Net.Session({ slot: k, link: k ? lb : la, opts: k ? null : opts, name: k ? 'Invitado' : 'Anfitrión', record: k === 0,
@@ -76,6 +82,8 @@ function run(cfg) {
     const k = next[0] <= next[1] ? 0 : 1;
     T = next[k]; next[k] += 16.667 + (fr() * 2 - 1) * 1.5;
     const s = sess[k], sd = side[k], VB = M[k];
+    if (cfg.cut && !cutOn && T >= cfg.cut.at) { cutOn = true; la.down(cfg.cut.ms); }
+    if (cfg.cut && cutOn && !aiOn && T >= cfg.cut.at + 11000 && k === cfg.cut.ai) aiOn = s.vsAI();
     let r;
     try {
       r = s.advance(T + off[k], s.gp ? bots[k](s.gp) : null);
@@ -89,10 +97,12 @@ function run(cfg) {
       if (sd.built) {   // como netConfirmed
         VB.NetView.mirror(sd.view, r.g, k);
         const c = s.repaired + s.stats.resyncs; if (c !== sd.rpCut) VB.Replay.cut(); sd.rpCut = c;
+        if (s.stats.rsIn !== sd.rsIn) { sd.rsIn = s.stats.rsIn; sd.fix.fix(s, r.confirmed); }
         if (r.confirmed.length) {
           const mp = VB.NetView.mapEvents(r.confirmed, sd.view, k, []);
           sd.tally.netTally(mp);
           VB.Replay.onEvents(s.gc, r.confirmed);
+          if (!s.solo && !s.rivalSolo && r.confirmed.some(e => e.type === 'point')) sd.fix.net.stSnap = { t: s.gcTick, st: sd.fix.clone(sd.tally._netStats()) };
         }
       }
     } catch (e) { err = e; break; }
@@ -185,6 +195,21 @@ for (const cfg of [{ rtt: 80, jit: 15, loss: 3, secs: 900, seed: 21, venue: 'hal
   const gc = R.sess[0].gc;
   const tot = [0, 1].map(t => (gc.setScores || []).reduce((a, s) => a + (s[t] | 0), 0));
   check(tag + 'puntos de la hoja = puntos de los sets de la partida confirmada', ta[0].points === tot[0] && ta[1].points === tot[1], { hoja: ta.map(x => x.points), sets: gc.setScores, score: gc.score });
+}
+
+// (5) (auditoría) corte de 25 s con «Seguir contra la IA» (lo pulsa el anfitrión o el invitado): la hoja de los dos lados suma los puntos
+//     del marcador final (antes al invitado le faltaban los que jugó el anfitrión contra la IA, o le sobraban los suyos contra la IA)
+for (const ai of [0, 1]) {
+  const cfg = { rtt: 80, jit: 10, loss: 2, secs: 600, seed: 45 + ai, venue: 'hall', points: 11, cut: { at: 30000, ms: 25000, ai } };
+  const tag = 'corte de 25 s, la IA la pide el ' + (ai ? 'invitado' : 'anfitrión') + ': ';
+  console.log('== ' + tag + '==');
+  const R = run(cfg);
+  check(tag + 'sin excepciones', !R.err, R.err ? String(R.err.stack).split('\n').slice(0, 4).join(' | ') : undefined);
+  if (R.err) continue;
+  const gc = R.sess[0].gc, tot = [0, 1].map(t => (gc.setScores || []).reduce((a, x) => a + (x[t] | 0), 0));
+  const ta = R.side[0].tally.stats().t, tb = R.side[1].tally.stats().t;
+  check(tag + 'partido acabado, con vuelta, y la hoja de los dos = marcador final', R.overAt > 0 && R.sess[1].stats.rsIn >= 1 && ta[0].points === tot[0] && ta[1].points === tot[1] && tb[1].points === tot[0] && tb[0].points === tot[1],
+    { sets: gc.setScores, anf: ta.map(x => x.points), inv: tb.map(x => x.points), rsIn: R.sess[1].stats.rsIn });
 }
 
 // (1b) el modo offline no cambia: un partido offline graba como siempre (sin dual) y repite sin desincronizarse

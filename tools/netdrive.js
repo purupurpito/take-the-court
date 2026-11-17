@@ -342,6 +342,11 @@ if (RTC) (async () => {
   await ev(P[0], 'VB.ctx.actions.netQuit()');
   const rq = await waitFor(P[1], "!!(VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.status==='ended'&&VB.ctx.net.r.result&&VB.ctx.net.r.result.why==='rivalQuit')", 15000);
   check('el anfitrión abandona: el invitado gana al momento (rivalQuit)', rq, await ev(P[1], 'JSON.stringify(VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.result)'));
+  // (auditoría) quien abandona ve «Has abandonado [Volver al menú]» (antes saltaba al menú sin decir nada); el botón (aquí Esc) sale y borra la sala
+  const hq = await waitFor(P[0], "(function(){var h=document.getElementById('netHud');return !!(h&&!h.hidden&&/Has abandonado/.test(h.textContent)&&h.querySelector('button[data-n=menu]'))})()", 5000);
+  check('quien abandona ve «Has abandonado [Volver al menú]»', hq, await ev(P[0], "(function(){var h=document.getElementById('netHud');return h?h.textContent:''})()"));
+  await ev(P[0], 'VB.ctx.actions.pause()');
+  check('… y Esc (o el botón) sale al menú', await waitFor(P[0], "VB.ctx.state==='menu'&&!VB.ctx.net", 5000), await ev(P[0], 'VB.ctx.state'));
   await sleep(1500);
   check('la sala del anfitrión se borra al salir', (await emuGet('rooms/uidAnfi')) === 404);
   console.log('  captura', await P[1].shot(path.join(OUT, 'netrtc-invitado-fin.png')));

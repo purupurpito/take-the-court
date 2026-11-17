@@ -351,6 +351,71 @@ function load() {
     run(c2, [[sA2, 0, null]], 11000);
     check('el anfitrión vuelve sin invitado: «conectando» a los 30 s y noShow a los 40 s', mid === 'connecting' && sA2.status === 'ended' && sA2.result.why === 'noShow', { mid, st: sA2.status });
   }
+  // j) (auditoría) los DOS recargan a la vez (0 s y 1 s entre una y otra): nadie tiene la partida → los dos en noShow enseguida
+  for (const gap of [0, 1000]) {
+    const { A, B, la, lb, c } = pair({ lag: 80, seed: 15 });
+    const sA = new A.Net.Session({ slot: 0, link: la, opts, name: 'Anfi', rivalName: 'Invi' }), sB = new B.Net.Session({ slot: 1, link: lb, opts: null, name: 'Invi', rivalName: 'Anfi' });
+    run(c, [[sA, 0, A.Net.bot(0, 1, 'bueno')], [sB, 333, B.Net.bot(1, 2, 'bueno')]], 12000);
+    const A2 = load(), B2 = load(), [la2, lb2] = A2.Net.memPair({ lag: 80, seed: 16, clock: () => c.T });
+    const sA2 = new A2.Net.Session({ slot: 0, link: la2, opts: null, name: 'Anfi', rivalName: 'Invi', back: true });
+    const sB2 = new B2.Net.Session({ slot: 1, link: lb2, opts: null, name: 'Invi', rivalName: 'Anfi' }); sB2.back = true;
+    if (gap) run(c, [[sA2, 0, null]], gap);
+    const t0 = c.T;
+    run(c, [[sA2, 0, null], [sB2, 333, null]], 20000, () => sA2.status === 'ended' && sB2.status === 'ended');
+    const dt = Math.round(c.T - t0);
+    check('los dos recargan (' + gap / 1000 + ' s entre una y otra): los dos en «no hay partido» en menos de 2 s', dt < 2000 && sA2.result && sA2.result.why === 'noShow' && sB2.result && sB2.result.why === 'noShow',
+      { dt, st: [sA2.status, sB2.status], r: [sA2.result, sB2.result] });
+  }
+  // k) (auditoría) el resync del anfitrión se pierde en un segundo corte (lo del canal fiable viejo no llega tras renegociar): se repite
+  //    hasta el 'rsok' y no hace falta reparar con foto
+  {
+    const { A, B, la, lb, c } = pair({ lag: 80, seed: 17 });
+    const sA = new A.Net.Session({ slot: 0, link: la, opts, name: 'Anfi', rivalName: 'Invi' }), sB = new B.Net.Session({ slot: 1, link: lb, opts: null, name: 'Invi', rivalName: 'Anfi' });
+    const botA = A.Net.bot(0, 1, 'bueno'), botB = B.Net.bot(1, 2, 'bueno'), L = [[sA, 0, botA], [sB, 444.5, botB]];
+    run(c, L, 15000);
+    la.down(15000); run(c, L, 11000);
+    const ai = sA.vsAI();
+    let dropped = 0; const send0 = la.send.bind(la);
+    la.send = function (ch, d) { if (!dropped && ch === 'ctl' && /"k":"resync"/.test(d)) { dropped = 1; la.down(2000); return; } return send0(ch, d); };
+    let waitMs = 0, w0 = -1;
+    run(c, L, 12000, () => { if (sA.status === 'waiting' && w0 < 0) w0 = c.T; if (sA.status !== 'waiting' && w0 >= 0) { waitMs = Math.max(waitMs, c.T - w0); w0 = -1; } return false; });
+    const hA = [], hB = []; sA.hashLog = hA; sB.hashLog = hB;
+    run(c, L, 10000);
+    const mB = new Map(hB.map(x => [x[0], x[1]])); let n = 0, bad = 0; for (const [t, h] of hA) if (mB.has(t)) { n++; if (mB.get(t) !== h) bad++; }
+    check('resync perdido en un segundo corte: se repite, sin reparación con foto, espera corta y huellas iguales', ai && dropped && sB.stats.rsIn >= 1 && sA.mismatches === 0 &&
+      sA.status === 'playing' && sB.status === 'playing' && n > 5 && bad === 0 && waitMs < 3500 && !sA.rsPend, { dropped, rsIn: sB.stats.rsIn, mm: sA.mismatches, n, bad, waitMs: Math.round(waitMs), st: [sA.status, sB.status] });
+  }
+  // l) (auditoría) «Conexión inestable» no parpadea al empezar (en la cuenta atrás no viaja nada)
+  {
+    const { A, B, la, lb, c } = pair({ lag: 300, seed: 18, loss: 0 });
+    const sA = new A.Net.Session({ slot: 0, link: la, opts, name: 'Anfi' }), sB = new B.Net.Session({ slot: 1, link: lb, opts: null, name: 'Invi' });
+    let flick = 0;
+    for (let i = 0; i < 400; i++) { c.T += 16.7; for (const [s, off] of [[sA, 0], [sB, 77]]) { const r = s.advance(c.T + off, null); if (r.unstable) flick++; } }
+    check('al empezar (RTT 300, sin pérdida) nunca sale «Conexión inestable»', sA.status === 'playing' && sB.status === 'playing' && flick === 0, { flick, st: [sA.status, sB.status] });
+  }
+  // m) (auditoría) mensajes de un rival malicioso: acotados (huellas fuera de rango, snapok sin reparación, resync y retraso absurdos)
+  {
+    const { A, B, la, lb, c } = pair({ lag: 40, seed: 19 });
+    const sA = new A.Net.Session({ slot: 0, link: la, opts, name: 'Anfi' }), sB = new B.Net.Session({ slot: 1, link: lb, opts: null, name: 'Invi' });
+    run(c, [[sA, 0, null], [sB, 5, null]], 4000);
+    const ep = sA.epoch;
+    for (let i = 0; i < 5000; i++) sA._onCtl({ k: 'hash', t: 1e9 + i * 120, h: 1, ep }, c.T);
+    sA._onCtl({ k: 'hash', t: 121, h: 1, ep }, c.T);
+    const keys = Object.keys(sA.theirHash).length;
+    const t0 = Date.now(); for (let i = 0; i < 2000; i++) sA._onCtl({ k: 'snapok', t: 0, ep }, c.T); const snapMs = Date.now() - t0;
+    const gc0 = sB.gcTick, ok0 = sB._applyResync({ k: 'resync', T: 0, F: 10, d: B.Sim.serialize(sB.gc), t0: 0, mine: { length: 1e15 }, fab: [] }, c.T);
+    const C = load(), [lc, ld] = C.Net.memPair({ lag: 0, seed: 20, clock: () => c.T });
+    const sG = new C.Net.Session({ slot: 1, link: ld, opts: null, name: 'Invi' });
+    const tD = Date.now(); sG._onCtl({ k: 'hello', v: C.Net.PROTO, ver: C.VERSION || '', name: 'x', cfg: { opts, delay: 2147483647 } }, 0); const dMs = Date.now() - tD;
+    const sE = new C.Net.Session({ slot: 1, link: ld, opts: null, name: 'Invi', expect: { even: true, bestOf: 1, points: 11, venue: 'hall' } });
+    sE._onCtl({ k: 'hello', v: C.Net.PROTO, ver: C.VERSION || '', name: 'x', cfg: { opts: Object.assign({}, opts, { even: false }), delay: 2 } }, 0);
+    const sOk = new C.Net.Session({ slot: 1, link: ld, opts: null, name: 'Invi', expect: { even: false, bestOf: 1, points: 11, venue: 'hall' } });
+    sOk._onCtl({ k: 'hello', v: C.Net.PROTO, ver: C.VERSION || '', name: 'x', cfg: { opts, delay: 2 } }, 0);
+    check('rival malicioso: huellas fuera de rango no se guardan, snapok sin reparación no recorre nada, resync con mine.length enorme se descarta, retraso acotado a 8',
+      keys <= 2 && snapMs < 200 && ok0 === false && sB.gcTick === gc0 && sG.delay === 8 && dMs < 200, { keys, snapMs, ok0, delay: sG.delay, dMs });
+    check('«Igualado» (y sets, puntos, sede): si el anfitrión manda otra cosa que la sala, el invitado no juega (mismatch); si coincide, sí',
+      sE.status === 'ended' && sE.result.why === 'mismatch' && !sE.opts && sOk.opts && sOk.status === 'connecting', { e: [sE.status, sE.result], ok: sOk.status });
+  }
 })();
 
 console.log('\n' + oks + ' ok, ' + fails + ' fallos');

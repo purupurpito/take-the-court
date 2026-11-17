@@ -39,6 +39,9 @@
  *   BcLink({room, slot, lag, jit, loss}) → enlace por BroadcastChannel (dos pestañas o dos páginas del mismo Chrome)
  *   Enlace = {send(ch, data), poll(now) → [{ch, data}], close()}; ch 'in' = no fiable (entradas), 'ctl' = fiable y en orden.
  *   bot(team, seed, prof) → function(g) → entrada (bot de solo entrada para pruebas; lee con useSlot y deja el hueco 0)
+ *   AUDITORÍA (17-nov-2026, notes/net.md «Auditoría»): o.expect (invitado: opciones que anuncia la sala; si no cuadran → 'mismatch'),
+ *     resync con id repetido hasta el 'rsok' (lo del canal fiable viejo se pierde al renegociar), los dos recargan → noShow, mensajes
+ *     del rival acotados (hash, snapok, resync, delay), tope de 60 s en 'connecting'.
  * ===================================================================== */
 (function () {
   'use strict';
@@ -56,6 +59,8 @@
   var REJOIN_MARGIN = 60;        // tics de IA que el anfitrión fija por delante al reconectar al invitado
   var WAIT_AI_MS = 10000, GONE_MS = 60000, UNSTABLE_MS = 1000, EV_PAST_TICKS = 18; // 150 ms
   var CONNECT_MS = 20000;        // revisión F3: sin oír al rival en 20 s mientras se conecta (antes del partido) → no hay partido ('noShow')
+  var CONNECT_CAP_MS = 60000;   // auditoría: tope absoluto de 'connecting' desde que empezó (aunque lleguen saludos que no sirven)
+  var RS_EVERY_MS = 1500, RS_TRIES = 8;   // auditoría: el resync se repite hasta que el otro lo confirma ('rsok'); lo del canal fiable viejo se pierde al renegociar
   var ADOPT_MS = 40000;          // fase 6: el anfitrión que vuelve tras recargar espera hasta 40 s al invitado (su relink reofrece cada 10 s)
   var EDGE_TTL_MS = 150;         // un botón que no entra en un tic en 150 ms (partida congelada o cuenta atrás) se descarta: nada de golpes «fantasma»
   var B = { hit: 1, jump: 2, jset: 4, chal: 8, skip: 16, tmo: 32, ai: 64 };
@@ -114,6 +119,11 @@
   }
 
   /* ---------- Sesión ---------- */
+  /** Auditoría: ¿las opciones que manda el anfitrión son las que anunciaba la sala? (el invitado lo comprueba al saludar) */
+  function sameRoom(co, e) {
+    return !!co.even === !!e.even && (+co.bestOf === 3 ? 3 : 1) === (+e.bestOf === 3 ? 3 : 1) && (co.points | 0) === (e.points | 0) &&
+      (co.venue === 'beach' ? 'beach' : 'hall') === (e.venue === 'beach' ? 'beach' : 'hall');
+  }
   function Session(o) {
     o = o || {};
     this.slot = o.slot === 1 ? 1 : 0; this.host = this.slot === 0;
@@ -125,6 +135,8 @@
     this.record = !!o.record; this.rec = this.record ? [] : null;
     this.hashLog = Array.isArray(o.hashLog) ? o.hashLog : null;   // pruebas: [[tic, huella]] de todas las huellas propias
     this.onTick = typeof o.onTick === 'function' ? o.onTick : null; // pruebas: (tic, gc) tras cada paso confirmado
+    this.rsPend = null; this.rsId = 0; this.rsIn = 0;   // auditoría: resync pendiente de confirmar, id del último mandado y del último aplicado
+    this.expect = o.expect && typeof o.expect === 'object' ? o.expect : null;   // auditoría: invitado: lo que anuncia la sala (even, bestOf, points, venue)
     this.muteBefore = 0; this.syncFloor = -1;   // tras un resync: huellas y fotos de antes no cuentan
     this.log = typeof o.log === 'function' ? o.log : null;
     this.status = 'connecting';   // connecting | starting | playing | waiting | over | ended
@@ -145,7 +157,7 @@
     this.repairPending = false; this.repairs = []; this.mismatches = 0; this.repaired = 0;
     this.cmpOk = 0; this.cmpBad = -1;   // anti-trampas ligero: huellas que cuadraron y tic de la última que no (sin reparar aún)
     this.presTick = 0; this.presKeys = {}; this.presList = []; this.overSeen = false;
-    this.stats = { frames: 0, maxDepth: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0 };
+    this.stats = { frames: 0, maxDepth: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0, rsIn: 0 }; this.rsT = -1;
     this.initEvents = []; this._cand = []; this._conf = [];
     this._ins = [{ move: [0, 0] }, { move: [0, 0] }]; this._pred = { move: [0, 0] };
     this._out = { g: null, events: [], confirmed: [], app: [], status: '', tick: 0, gcTick: 0, ping: 0, waitMs: 0, unstable: false, canAI: false, info: null };
@@ -269,12 +281,21 @@
           this._ctl({ k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, cfg: { opts: this.opts, delay: this.delay }, live: live });
         } else if (c.back) {   // fase 6: el anfitrión recargó y vuelve: si seguimos en partido, le damos las opciones
           if (this.goneFlag) { this._ctl({ k: 'bye', why: 'gone' }); return; }
+          // auditoría: el invitado también recargó (sin opciones): nadie tiene la partida → los dos acaban ya en «no hay partido»
+          if (!this.opts) { this._ctl({ k: 'bye', why: 'gone' }); this._noShow('los dos recargaron'); return; }
+          this.rsIn = 0;   // (el anfitrión que vuelve es una sesión nueva: sus resync empiezan otra vez en 1)
           if (!this.opts || (this.status !== 'playing' && this.status !== 'waiting')) return;
           this.hostBack = true;
           this._ctl({ k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, cfg: { opts: this.opts, delay: this.delay }, live: true, back: 1 });
         } else if (!this.gotHello) {
           this.gotHello = true;
-          if (!this.opts) { this.delay = c.cfg && c.cfg.delay != null ? c.cfg.delay | 0 : this.delay; this._setOpts(c.cfg.opts); }
+          if (!this.opts) {
+            var co = c.cfg && c.cfg.opts;
+            if (!co || typeof co !== 'object' || (this.expect && !sameRoom(co, this.expect))) {   // auditoría: la sala anunciaba otra cosa («Igualado», sets, puntos, sede)
+              this._ctl({ k: 'bye', why: 'mismatch' }); this.status = 'ended'; this.result = { why: 'mismatch', win: false }; this._log('la sala no coincide con lo anunciado'); return;
+            }
+            this.delay = c.cfg.delay != null ? Math.max(0, Math.min(8, c.cfg.delay | 0)) : this.delay; this._setOpts(co);
+          }
           this.pings.length = 0; this.pingAt = -1e9;
         }
         break;
@@ -308,19 +329,25 @@
         if (this.host || !this.ready) break;
         this.t0 = c.t0 - this.off; this.status = 'starting';
         break;
-      case 'hash':
-        this.theirHash[c.t] = c.h >>> 0; this._checkHash(c.t, now);
+      case 'hash':   // (auditoría: solo tics plausibles, múltiplos de HASH_EVERY y cerca del nuestro; si no, un rival podía llenar theirHash sin fin)
+        var hk = c.t;
+        if (typeof hk !== 'number' || (hk | 0) !== hk || hk % HASH_EVERY || hk <= this.gcTick - HASH_EVERY * 20 || hk > this.gcTick + RING / 2) break;
+        this.theirHash[hk] = c.h >>> 0; this._checkHash(hk, now);
         break;
       case 'snap': if (!this.host) this._applySnap(c, now); break;
       case 'snapok':
-        if (!this.host) break;
+        if (!this.host || !this.repairPending) break;   // (auditoría: solo si hay una reparación en curso)
         this.repairPending = false; if (this.cmpBad <= (c.t | 0)) this.cmpBad = -1;
         for (var ht in this.theirHash) if (+ht > c.t) this._checkHash(+ht, now);
         break;
       case 'resync':
+        var rid = c.id | 0;
+        if (rid && rid <= this.rsIn) { this._ctl({ k: 'rsok', id: rid }); break; }   // (auditoría: repetido: ya aplicado; se confirma otra vez)
         if (this.host && !this.adopt) break;   // (fase 6: el anfitrión que volvió adopta la del invitado, una vez)
         if (this.goneFlag) { this._ctl({ k: 'bye', why: 'gone' }); break; }   // ya juzgado: no se vuelve
-        this._applyResync(c, now); break;
+        if (this._applyResync(c, now) && rid) { this.rsIn = rid; this._ctl({ k: 'rsok', id: rid }); }
+        break;
+      case 'rsok': if (this.rsPend && (c.id | 0) === this.rsPend.m.id) this.rsPend = null; break;
       case 'solo': this.rivalSolo = true; break;   // el rival sigue contra la IA mientras espera: puede volver (rejoin / resync)
       case 'invalid': this.valid = false; this.rivInvalid = true; break;
       case 'bye':
@@ -388,13 +415,16 @@
     for (k = T; k < F; k++) { i = k & RM; fab.push(this.theirs.X[i], this.theirs.Y[i], this.theirs.B[i]); }
     this.solo = false; this.rivalSolo = false; this.lostAt = -1; this.waitStart = -1; this.stats.resyncs++; this.syncFloor = T; this.repairPending = false;
     this.theirHash = {}; this.cmpBad = -1;   // (las de antes y las de la partida del invitado contra la IA no valen)
-    this._ctl({ k: 'resync', T: T, F: F, d: S.serialize(this.gc), t0: this.t0, mine: mine, fab: fab, valid: this.valid, se: this.soloEpoch });
+    var rm = { k: 'resync', T: T, F: F, d: S.serialize(this.gc), t0: this.t0, mine: mine, fab: fab, valid: this.valid, se: this.soloEpoch, id: ++this.rsId };
+    this._ctl(rm); this.rsPend = { m: rm, at: now, n: 0 };   // (auditoría: se repite hasta el 'rsok')
     this._log('resync: foto del tic ' + T + ', IA del rival hasta ' + F);
     void sv;
   };
   SP._applyResync = function (c, now) {
     var S = Sim(), T = c.T | 0, F = c.F | 0, k, j;
-    if (!this.opts || !S.deserialize(c.d, this.gc)) return;
+    // auditoría: un mensaje mal formado (o malicioso) no puede colgar la pestaña: arrays de verdad y de tamaño acotado
+    if (!Array.isArray(c.mine) || !Array.isArray(c.fab) || c.mine.length > 3 * RING || c.fab.length > 3 * RING || F < T || F - T > RING) return false;
+    if (!this.opts || !S.deserialize(c.d, this.gc)) return false;
     this.gcTick = T;
     this.mine.clearFrom(T); this.theirs.clearFrom(T);   // lo de la partida contra la IA (o de antes de cortarse) ya no vale
     for (k = T, j = 0; j < c.mine.length; k++, j += 3) this.theirs.put(k, c.mine[j], c.mine[j + 1], c.mine[j + 2]);
@@ -406,12 +436,13 @@
     this.edges = 0; this.edgesAt = -1;
     this.myHash = {}; this.theirHash = {}; this.syncFloor = T; this.cmpBad = -1;
     if (this.status !== 'over') this.status = 'playing';
-    this.waitStart = -1; this.started = true; this.stats.resyncs++;
+    this.waitStart = -1; this.started = true; this.stats.resyncs++; this.stats.rsIn++; this.rsT = T;   // (rsIn / rsT: main.js rehace la hoja del lado que salta, auditoría)
     this.presTick = Math.max(T, this._target(now)); this.muteBefore = this.presTick; this.presKeys = {}; this.presList.length = 0;   // lo de antes de volver no suena
     this.remoteAck = Math.max(this.remoteAck, F);
     if (this.adopt) { this.adopt = false; this.rejoinEpoch = Math.max(this.rejoinEpoch, c.se | 0); }   // (fase 6: ya es un anfitrión normal)
     this.back = false;
     this._log('resync aplicado: tic ' + T + ', mando desde ' + F);
+    return true;
   };
 
   /* ---- avance confirmado: gc mientras haya las dos entradas (hasta el tic `upTo`) ---- */
@@ -482,6 +513,11 @@
     // saludo, pings y reloj común
     if (this.connAt < 0) this.connAt = now;
     if (this.status === 'connecting' && now - Math.max(this.connAt, this.heardAt) > (this.adopt ? ADOPT_MS : CONNECT_MS)) this._noShow('sin noticias del rival en ' + (CONNECT_MS / 1000) + ' s');
+    else if (this.status === 'connecting' && now - this.connAt > CONNECT_CAP_MS) this._noShow('no se ha podido empezar en ' + (CONNECT_CAP_MS / 1000) + ' s');
+    if (this.rsPend) {   // auditoría: resync sin confirmar (se perdió con la conexión vieja): otra vez, hasta RS_TRIES
+      if (this.goneFlag || this.status === 'ended' || this.status === 'over' || this.rsPend.n >= RS_TRIES) this.rsPend = null;
+      else if (now - this.rsPend.at > RS_EVERY_MS) { this.rsPend.at = now; this.rsPend.n++; this._ctl(this.rsPend.m); this._log('resync sin confirmar: lo repito'); }
+    }
     if (this.status === 'connecting') {
       if ((!this.host || this.adopt) && !this.gotHello && now - this.helloAt > 500) { this.helloAt = now; this._ctl(this.adopt ? { k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, back: 1 } : { k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name }); }
       if ((!this.host || this.adopt) && this.gotHello && !this.ready) {
@@ -494,7 +530,7 @@
         } else if (this.pingId > 30 && this.pings.length < 3) { this.pingId = 0; this.pings.length = 0; }   // reintento
       }
     }
-    if (this.status === 'starting' && now >= this.t0) { this.status = 'playing'; this.started = true; this.back = false; }
+    if (this.status === 'starting' && now >= this.t0) { this.status = 'playing'; this.started = true; this.back = false; this.lastRecv = now; }   // (auditoría: en la cuenta atrás no viaja nada: sin esto «Conexión inestable» parpadeaba al empezar)
     // botones: en la cuenta atrás no cuentan; si no entran en un tic en EDGE_TTL_MS (partida congelada) se descartan
     if (this.edges && this.edgesAt < 0) this.edgesAt = now;
     if (this.status === 'connecting' || this.status === 'starting' || (this.edges && now - this.edgesAt > EDGE_TTL_MS)) this.edges = 0;

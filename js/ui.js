@@ -585,7 +585,7 @@
   function cpuTxt(s) {
     var g = ctx && ctx.game, cr = g && !g.demo && (g.career || (g.watch0 && WATCH_CR) || g.netCr);   // (online: g.netCr, el nombre del rival)
     if (!cr || typeof s !== 'string' || s.indexOf('CPU') < 0) return s;
-    return s.replace(/de la CPU/g, 'del rival').replace(/a la CPU/g, 'al rival').replace(/la CPU/g, 'el rival').replace(/La CPU/g, 'El rival')
+    return s.replace(/\bde la CPU/g, 'del rival').replace(/\ba la CPU/g, 'al rival').replace(/\bla CPU/g, 'el rival').replace(/La CPU/g, 'El rival')
       .replace(/\bCPU\b/g, cr.rival || 'RIVAL');
   }
   function chalTick(g) {
@@ -798,7 +798,7 @@
         case 'drillEnd': gymEndShow(e, g); break;
         case 'newMatch':
           if (ctx.introLeft > 0 || introUI.on) break;           // la tarjeta de presentación ya lo dice (UI-14)
-          banner('Set 1', 'Al mejor de 3 sets a ' + (g.points || 25) + (g.serving === 0 ? ', sacas tú' : ', saca la CPU'), '', 'neutral', BAN.info, 'newSet');
+          banner('Set 1', (g.bo1 ? 'Un set a ' : 'Al mejor de 3 sets a ') + (g.points || 25) + (g.serving === 0 ? ', sacas tú' : ', saca la CPU'), '', 'neutral', BAN.info, 'newSet');
           break;
         case 'point': {
           var me = e.team === 0, k = e._uiKind;
@@ -1139,7 +1139,7 @@
     el.introDiff.textContent = 'Nivel ' + (nm || OPT.difficulty.labels[di]);
     var six = !!(g && g.size === 6);
     el.introSrv.textContent = cpuTxt(g && g.serving === 1 ? 'Saca la CPU' : six ? 'Saca tu equipo' : 'Sacas tú');
-    if (el.introFmt) el.introFmt.textContent = 'Al mejor de 3 sets a ' + ((g && g.points) || 25) + '';
+    if (el.introFmt) el.introFmt.textContent = (g && g.bo1 ? 'Un set a ' : 'Al mejor de 3 sets a ') + ((g && g.points) || 25) + '';   // (online: g.bo1 = sala de 1 set, auditoría)
     // antetítulo «Palau del Mar ◆ 2 contra 2» (texto fijo del HTML): el formato del partido (6v6, sprint 3)
     var ik = el.intro.querySelector('.in-k > span'), it = ik && ik.lastChild;
     var dr = !!(g && g.drill && !g.demo); introUI.drill = dr;
@@ -2848,7 +2848,7 @@
     // «Palau del Mar ◆ Nivel Normal | Sets a 25»: la sede tras el rombo del antetítulo; nivel y puntos por set, datos con la barra fina
     setSep(el.endKicker, [venueName(), { h: 'Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')]) + SEP_V + 'Sets a ' + endPts }], 'd');
     var gNet = ctx.game && ctx.game.netCr;   // (online: el nombre del rival y «Online» en vez del nivel)
-    if (gNet) setSep(el.endKicker, [venueName(), { h: 'Online' + SEP_V + 'Sets a ' + endPts }], 'd');
+    if (gNet) setSep(el.endKicker, [venueName(), { h: 'Online' + SEP_V + (ctx.game && ctx.game.bo1 ? 'Un set a ' : 'Sets a ') + endPts }], 'd');
     el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : gNet ? 'Gana ' + gNet.rivalName : 'Gana la CPU'; el.endTitle.classList.toggle('long', !!gNet && !win && gNet.rivalName.length > 11);
     el.endS0.textContent = e.sets[0]; el.endS1.textContent = e.sets[1];
     el.endSets.innerHTML = (e.setScores || []).map(function (s, i) {
@@ -6511,6 +6511,8 @@
       for (i = 0; i < events.length; i++) { var e = events[i]; if (ovr && e.type === 'point') untally(); tally(e); }
     },
     _netStats: function () { return stats; },
+    /** Auditoría: main.js vuelve a una copia de la hoja tras una vuelta (resync) con la IA de por medio. */
+    netStatsSet: function (o) { if (o && o.t) stats = o; },
     /** Cierra el panel abierto. true si se ha consumido (Esc / B / Start). */
     back: function () {
       if (panel) { uiSound('back'); return closePanel(); }

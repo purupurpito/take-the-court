@@ -20,11 +20,20 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.4';
+  VB.VERSION = '1.5.5';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.5', d: '2026-11-17', t: 'Arreglos del online',
+      items: [
+        'Arreglado: con mando no había forma de salir del final de un partido online.',
+        'Arreglado: si los dos recargabais a la vez, el partido se quedaba en «Volviendo…».',
+        'Arreglado: la hoja final online no cuadraba tras un corte jugado contra la IA.',
+        '«Colocación dirigida» de Ajustes también vale en el online.'
+      ]
+    },
     {
       v: '1.5.4', d: '2026-11-17', t: 'Repeticiones online',
       items: [

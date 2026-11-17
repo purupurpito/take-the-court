@@ -731,6 +731,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   peloteo en curso no se repite (reparación con foto o vuelta). El modo offline (sin `dual`) no cambia de formato ni de resultado.
 - **ui_main** — `VB.UI.netTally(evs | null)` (fase 6): estadísticas de la hoja final online con los eventos CONFIRMADOS ya girados para
   el invitado (main.js `netConfirmed`); null = vaciar. En el online, lo presentado (predicho) solo cuenta para los banners (`pstats`).
+  Auditoría (17-nov-2026): `VB.UI.netStatsSet(stats)` (main.js vuelve a una copia de la hoja tras un resync con la IA de por medio).
 - **ui_main** — `VB.Retos.{LIST, ingest(e, g), endMatch(g, info, dry), daily(k?), summary, clean, mergeRaw, profileXP, album, chainOk(e,
   n?)}` y `level`, `progress`, `count`, `unseen`, `markSeen`, `today`, `dayState`, `lookData`, `lost`, `readOnly`.
 - **ui_main** — `VB.Profile.{need, levelOf, level, xp, stats, noteMatch(o) (= addMatch), noteGym(id), check() → {lvlUp, hitos, grants},
@@ -1058,6 +1059,11 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
   nombre del rival) y `netMastery` (maestría de la hoja online, solo de los eventos confirmados de tu jugador). `ctx.net.recRes` =
   lo que devolvió `NetRec.end`.
 - `js/ui.js` (toques): pista «↑↓←→ elegir» en la página Online y aviso «No válido…» en el resumen de la hoja final online.
+
+- Auditoría (17-nov-2026), `js/net.js`: `Session({expect: {even, bestOf, points, venue}})` (invitado: si el saludo trae otras opciones →
+  `result.why = 'mismatch'`); `resync` con `id`, repetido cada 1,5 s hasta el `rsok` del otro; `stats.rsIn` / `rsT` (resync aplicado y su
+  tic); `CONNECT_CAP_MS` = 60 s de tope en 'connecting'. `js/netroom.js`: `list()` por latido (`orderBy seen`), `byCode` rechaza con
+  `.code 'dup'` si hay más de una sala viva con ese código.
 
 **Online, fase 6 (net, 17-nov-2026; notes/net.md «Fase 6»): vuelta del ANFITRIÓN tras recargar.**
 - `js/net.js`: `new Session({slot: 0, opts: null})` = anfitrión que vuelve (`session.adopt`): saluda con `{k:'hello', back:1}`, toma

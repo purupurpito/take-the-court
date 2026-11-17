@@ -160,6 +160,7 @@
     if (c === 'full') return 'Esa sala ya está llena.';
     if (c === 'gone') return 'Esa sala ya no existe.';
     if (c === 'version') return 'Esa sala es de otra versión del juego: recargad la página los dos.';
+    if (c === 'dup') return 'Hay más de una sala con ese código: entra desde la lista o pide el enlace a quien la creó.';
     return what || 'Algo ha fallado. Vuelve a probar.';
   }
 
@@ -360,7 +361,7 @@
   function preStart() {
     var link = L.link; if (!link) return;
     var me = myName(), st = myStats();
-    if (L.role === 'guest') link.send('ctl', JSON.stringify({ k: 'pre', name: me, st: { attrs: st.attrs, badges: st.badges }, look: myLook() }));
+    if (L.role === 'guest') link.send('ctl', JSON.stringify({ k: 'pre', name: me, st: { attrs: st.attrs, badges: st.badges, aimSet: myAimSet() }, look: myLook() }));
     var t0 = Date.now();
     every('pre', 50, function () {
       if (!L.link || L.link !== link) { stop('pre'); return; }
@@ -375,6 +376,7 @@
       link.q = rest.concat(link.q);
     });
   }
+  function myAimSet() { var C = ctx(); return !(C && C.settings && C.settings.aimSet === false); }
   function begin(pre, st) {
     var C = ctx(); if (!C || !C.actions || !C.actions.startOnline) { connFail(); return; }
     var r = L.room, opts = null, rivalName = NR().cleanName(pre.name) || L.rival || 'Rival';
@@ -384,7 +386,9 @@
       var seed = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(1))[0] >>> 1 : Math.floor(Math.random() * 2147483647);
       opts = { online: true, seed: seed, venue: r.venue === 'beach' ? 'beach' : 'hall', mapId: r.map || '', bestOf: r.bo === 3 ? 3 : 1, points: r.pts || 21, even: even,
         present: true, stats: true,
-        humans: [even ? {} : { attrs: st.attrs || undefined, badges: st.badges || undefined }, even ? {} : { attrs: sanAttrs(gst.attrs) || undefined, badges: sanBadges(gst.badges) || undefined }] };
+        // (auditoría: «Colocación dirigida» es un ajuste de cada jugador, no una ventaja: viaja también en «Igualado»)
+        humans: [even ? { aimSet: myAimSet() } : { attrs: st.attrs || undefined, badges: st.badges || undefined, aimSet: myAimSet() },
+          even ? { aimSet: gst.aimSet !== false } : { attrs: sanAttrs(gst.attrs) || undefined, badges: sanBadges(gst.badges) || undefined, aimSet: gst.aimSet !== false }] };
       L.link.send('ctl', JSON.stringify({ k: 'pre', name: myName(), look: myLook() }));
       api().beat({ state: 'play' }).catch(function () { });
       api().delSig(r.id).catch(function () { });
@@ -393,8 +397,10 @@
     L.started = true; L.status = 'play';
     var link = L.link;
     link.onclose = function () { matchClosed(link); };
+    // (auditoría: el invitado comprueba que el anfitrión manda lo que anuncia la sala: «Igualado», sets, puntos y sede)
+    var expect = L.role === 'guest' ? { even: !!r.even, bestOf: r.bo === 3 ? 3 : 1, points: r.pts || 21, venue: r.venue === 'beach' ? 'beach' : 'hall' } : null;
     var ok = C.actions.startOnline({ slot: L.role === 'host' ? 0 : 1, link: link, opts: opts, name: myName(), rivalName: rivalName,
-      look: { mine: myLook(), theirs: saneLook(pre.look) } });
+      look: { mine: myLook(), theirs: saneLook(pre.look) }, expect: expect });
     if (!ok) { L.started = false; connFail(); return; }
     if (L.role === 'guest') guestListen(L.gen);   // (vigila ofertas nuevas: solo lee Firestore si la conexión cae o la sesión espera)
     render();
@@ -607,7 +613,7 @@
     '#mpOnline .hp-box dd{margin:0;font:600 14px/1.38 var(--ui);color:var(--soft)}' +
     '#mpOnline .hp-go .ol-act{height:52px;font-size:20px}' +
     '@media (max-height:420px){#mpOnline .mk-prev{padding:6px 18px 5px 14px}#mpOnline .ol-mk .mt-top{display:none}#mpOnline .ol-sel{height:30px}#mpOnline .sl-k{font-size:12px}' +
-    '#mpOnline .sl-v b{font-size:16px;min-width:120px}#mpOnline .mk-tip{display:none}#mpOnline .mk-go .ol-act,#mpOnline .hp-go .ol-act{height:40px;font-size:16px}' +
+    '#mpOnline .sl-v b{font-size:16px;min-width:120px}#mpOnline .mk-tip{display:none}#mpOnline .fx-prev .fx-go{display:none}#mpOnline .mk-go .ol-act,#mpOnline .hp-go .ol-act{height:40px;font-size:16px}' +
     '#mpOnline .hp-box>div{display:block;padding:4px 12px}#mpOnline .hp-box dt{display:inline;margin-right:7px;font-size:11.5px}#mpOnline .hp-box dd{display:inline}#mpOnline .hp-box dd{font-size:12px;line-height:1.28}}' +
     // vertical (teléfono de pie): la barra en dos filas, franjas más estrechas (estado bajo «Entrar»), teclado y ayuda compactos
     '@media (max-width:620px){#mpOnline .ol-bar:not(.ol-bar2){flex-wrap:wrap}#mpOnline .ol-bar:not(.ol-bar2) .ol-new{flex:1 1 auto}' +
@@ -622,7 +628,8 @@
     '#mpOnline .fx-st{font-size:10.5px;gap:5px}#mpOnline .fx-go{font-size:14px;padding:6px 9px 5px}' +
     '#mpOnline .ol-empty{gap:12px;padding:12px 14px;font-size:13.5px}#mpOnline .ol-ghost{font-size:21px}' +
     '#mpOnline .ol-bh{font-size:12.5px;letter-spacing:.12em;flex-wrap:wrap;row-gap:4px}' +
-    '#mpOnline .mt-top{flex-wrap:wrap;row-gap:4px}#mpOnline .mt-side b,#mpOnline .mt-side.wait b,#mpOnline .ol-match .mt-side.wait b .ol-q{font-size:29px}' +
+    '#mpOnline .mt-top{flex-wrap:wrap;row-gap:4px}#mpOnline .mt-side b,#mpOnline .mt-side.wait b,#mpOnline .ol-match .mt-side.wait b .ol-q{font-size:24px}' +
+    '#mpOnline .ol-match .mt-side:not(.wait) b{white-space:normal;overflow-wrap:anywhere;text-overflow:clip;line-height:1.02}' +   // (auditoría: «ANFI PRUE…» con sitio libre)
     '#mpOnline .ol-match .ol-vs{margin:12px 12px 8px;gap:6px}#mpOnline .ol-match .ol-mid{font-size:24px}' +
     '#mpOnline .mk-prev{padding:8px 10px 6px 8px}#mpOnline .fx-prev .fx-go{display:none}#mpOnline .fx-prev .fx-ven{display:none}#mpOnline .fx-prev .fx-in{grid-template-columns:minmax(0,1fr) auto}#mpOnline .fx-prev .fx-main{padding-left:14px}' +
     '#mpOnline .ol-sel{height:44px;padding-left:12px}#mpOnline .sl-k{font-size:12.5px;letter-spacing:.1em}' +
@@ -647,9 +654,9 @@
     ['Tu jugador', 'Juegas con los atributos e insignias de tu jugador de la Carrera (sin Carrera, los de tu n.º 1 de Partido rápido). En una sala «Igualado», nadie lleva atributos ni insignias.'],
     ['Salas', 'Crea una sala y espera a que alguien entre desde la lista, o entra en una sala abierta. También puedes pasar el código de tu sala.'],
     ['Sin pausa', 'No se puede parar el partido. Entre sets hay 10 s de descanso: si tu rival y tú pulsáis «Continuar», se sigue antes.'],
-    ['Si se corta', 'El partido espera a tu rival y a los 10 s puedes seguir contra la IA. Tiene 60 s para volver.'],
+    ['Si se corta', 'El partido espera a tu rival y a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
     ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Online Beta Tester» para el Vestuario.'],
-    ['Privacidad', 'Tu rival solo ve tu nombre. Nunca tu correo ni tu dirección de red.']
+    ['Privacidad', 'El juego solo enseña tu nombre, nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
   ];
   /** Una franja de la cartelera (rótulo de TV). o.prev: vista previa de «Crear sala» (no es un botón ni se puede pulsar). */
   function fxHTML(r, o) {
@@ -661,7 +668,7 @@
         ' aria-label="' + esc('Sala de ' + r.name + '. ' + cfgParts(r).join(', ') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : '. Una plaza libre')) + '"') +
       (o.isNew ? ' style="animation-delay:' + (o.delay | 0) + 'ms"' : '') + '><span class="fx-in">' +
       '<span class="fx-ven"><b>' + kind + '</b>' + (vn && vn !== kind ? '<small>' + esc(vn) + '</small>' : '') + '</span>' +
-      '<span class="fx-main"><span class="fx-line"><b class="fx-name">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
+      '<span class="fx-main"><span class="fx-line"><b class="fx-name" title="' + esc(r.name) + '">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
       '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>' +
       '<span class="fx-chips">' + chipsHTML(r) + '</span></span>' +
       '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +

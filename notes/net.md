@@ -152,6 +152,12 @@ s.request('chal' | 'skip' | 'tmo'); s.setAway(true); s.vsAI(); s.quit();
   reloj se congela con ella (al volver no hay ráfaga). `unstable` = más de 1 s sin recibir nada. `canAI` a los 10 s de espera → la
   interfaz ofrece «Seguir contra la IA» (`vsAI()`, solo en `'waiting'` y pasados 10 s: el hueco del rival lo lleva la IA en todos los
   tics que hagan falta **hasta que vuelva**) o «Abandonar». Ver «Desconexión y reconexión».
+  **Límite práctico (auditoría, 17-nov-2026):** con un RTT de unos 350-400 ms (o unos 300 ms con mucha variación) el rival va unos
+  22 tics por detrás, casi en el tope de 24: la variación y las pérdidas lo cruzan sin parar y la partida da tirones (unas 3 esperas
+  cortas por segundo, ninguna de más de 100 ms, así que el HUD no dice nada) y va un ~10 % más lenta que el reloj. No se corrompe nada
+  (huellas iguales, sin reparaciones). Arreglo barato si un día molesta: que el anfitrión suba el retraso de entrada según el ping de los
+  pings del reloj (p. ej. `clamp(round(rtt/2/STEP_MS) − 16, 2, 8)` en `cfg.delay`, que ya admite hasta 8); o subir MAXPRED a 32-36
+  (rollbacks más hondos). `nettest` llega hasta RTT 250.
 - **Huella y reparación:** cada 120 tics confirmados (1 s) los dos se mandan `Sim.stateHash(gc)`; el anfitrión guarda además
   `Sim.serialize(gc)` de las 6 últimas. Si una huella no cuadra, el anfitrión manda la foto de ese tic; el invitado hace
   `Sim.deserialize(foto, gc)`, resimula hasta donde estaba con las entradas que ya tenía (sin presentar eventos), reenvía sus huellas
@@ -307,6 +313,11 @@ Las huellas de siempre no cambian (no se toca `sim.js` ni `net.js`).
   insignias al máximo fuera de «Igualado», y el rival no lo ve. Lo acepta el diseño (partidas entre conocidos, sin clasificación ni
   premios más allá de la gorra); quien quiera ir a la par, «Igualado». Si un día hay clasificación, hará falta otra cosa (p. ej. que
   el anfitrión lea el guardado del rival en el servidor, o un árbitro).
+  **El anfitrión manda (auditoría, 17-nov-2026):** «Igualado» protege de un INVITADO modificado, no de un anfitrión modificado. El
+  invitado ya comprueba que las opciones del saludo son las que anuncia la sala (`expect`: Igualado, sets, puntos y sede; si no,
+  `result.why = 'mismatch'`, «La sala no coincide con lo anunciado: no hay partido»), así que un anfitrión ingenuo no cuela un partido
+  con atributos. Pero por `snap` y `resync` un anfitrión modificado puede imponer cualquier estado (también los atributos del rival):
+  arreglarlo del todo exige validar las fotos o un árbitro, es decir, un servidor. Fuera de la beta.
 - **Sin progreso** (decisión 4): un partido online no suma récord de Partido rápido, XP, perfil, insignias, retos ni objetos del
   Vestuario (`online` en ui.js `showEnd` y en el `gameOver` de los retos). La gorra «Online Beta Tester» es de la fase 3.
 
@@ -380,7 +391,7 @@ que desplegar nada para el online mientras no cambie el fichero; si cambia: `npx
 
 El bloque ONLINE está al final de `firebase/firestore.rules` (dentro del mismo `match /databases/{database}/documents`; no cambia nada
 de `users/{uid}/saves`). Desplegar desde `firebase/`: `npx firebase-tools deploy --only firestore:rules`. No hace falta índice
-compuesto (la lista filtra solo por `state`; la búsqueda por código usa dos igualdades) ni TTL. La tarjeta del menú ya está encendida
+compuesto (la lista ordena solo por `seen`, auditoría; la búsqueda por código usa dos igualdades) ni TTL. La tarjeta del menú ya está encendida
 (`MENU_ON = true`, fase 4).
 
 ### Pruebas
@@ -569,7 +580,9 @@ Decisión 7 de Ferran: la entrada «Online» se ve en el menú y él pondrá gen
   aparato). Luego, desde la fila «Cómo funciona» debajo de «Actualizar». Siete líneas cortas: 1 contra 1 (tu n.º 1 y la IA a tu pareja),
   tu jugador (Carrera, si no Partido rápido; «Igualado»), salas (lista o código), sin pausa (10 s entre sets, se salta si pulsáis los dos
   «Continuar»), si se corta (espera, a los 10 s la IA, 60 s para volver), récord (abandonar = derrota, sin experiencia ni insignias, la
-  gorra «Online Beta Tester» al terminar el primero) y privacidad (solo tu nombre; nunca el correo ni la dirección de red).
+  gorra «Online Beta Tester» al terminar el primero) y privacidad (solo se enseña tu nombre, nunca el correo; la conexión es directa,
+  así que el aparato del rival conoce tu dirección de red, como en cualquier juego en línea entre jugadores: texto cambiado en la
+  auditoría, antes prometía «nunca tu dirección de red», y sin TURN eso no se cumple).
 - **Sala de espera:** debajo del estado, «Llevas a tu n.º 1 y la IA a tu pareja. No hay pausa durante el juego: entre sets, 10 s de
   descanso. Abandonar cuenta como derrota.» (en un teléfono apaisado no sale porque no cabe; está en «Cómo funciona»).
 - **Teléfono apaisado (≤ 420 px de alto):** la página toma el ancho de las demás (560: el botón «Pantalla completa» ya no tapa el nombre)
@@ -1149,6 +1162,73 @@ Revisión independiente de lo de arriba (vuelta del anfitrión, repetición y ho
 - `node tools/replaytest.js --cdp` pasa (TODO OK). Ya no queda pendiente.
 
 ### Pendiente
-- En la captura del invitado que pierde, el rótulo grande «GANA EL RIVAL» se ve como «GANAL RIVAL» a mitad de animación. No lo he
+- (RESUELTO en la «Auditoría»: era cpuTxt, «Gan**a la CPU**» → «GANAL RIVAL».) En la captura del invitado que pierde, el rótulo grande «GANA EL RIVAL» se ve como «GANAL RIVAL» a mitad de animación. No lo he
   mirado más (puede ser el barrido del rótulo); conviene revisarlo con una captura en offline («GANA LA CPU»).
 - Sigue sin captura de la hoja offline tras el cambio `stats`/`pstats` (replaytest --cdp, que sí pasa, abre la hoja offline sin errores).
+
+## Auditoría (17-nov-2026)
+Arreglos de una auditoría con verificador independiente (24 hallazgos confirmados). Por gravedad:
+- **Los dos recargan a la vez** (o con menos de ~1 s de diferencia): se quedaban para siempre en «Volviendo al partido…» o los dos en
+  «no hay partido» a los 40-80 s. Ahora el invitado SIN opciones que oye el saludo `back` del anfitrión contesta `bye 'gone'` y los
+  dos quedan en noShow al momento (el que adopta ya acababa así con `bye 'gone'`). Además, tope absoluto de 60 s en `'connecting'`
+  (`CONNECT_CAP_MS`) aunque lleguen saludos que no sirven. La marca de NetRec sigue contando como abandono («recargar no sale gratis»).
+- **Mando y teclado en el HUD online.** Antes los botones de `#netHud` solo iban con ratón/dedo o Tab + Intro: con mando, tras un
+  abandono del rival te quedabas atrapado. Ahora (`netHudKeys` en main.js): partido online terminado (`'ended'`) → Esc / Start /
+  Intro / A / B = «Volver al menú» (también `ctx.actions.pause`); con botones a la vista, LB/RB (y la cruceta si el partido no corre)
+  eligen botón y A lo pulsa. En pleno partido nunca se pulsa nada sin elegirlo antes (A sigue siendo golpear). Los botones del HUD ya no
+  se rehacen cada segundo (la cuenta atrás les quitaba el foco) y se marcan con un aro blanco al enfocarlos.
+- **Hoja del invitado tras una vuelta con la IA de por medio.** Le sobraban puntos (los suyos contra la IA) o le faltaban (los del
+  anfitrión contra la IA). main.js guarda una copia de la hoja tras cada punto jugado con el rival presente; al aplicar un resync
+  (`stats.rsIn`, `rsT` en la sesión) vuelve a esa copia y repone con el marcador de la foto los puntos que falten (sin el detalle de
+  remates y aces de ese tramo). Vale también para el anfitrión que adopta (antes perdía la hoja entera; ahora al menos los puntos).
+- **Rival malicioso por el DataChannel.** Invitado: inundación de `hash` (claves sin poda) + `snapok` (recorrido N×M) colgaba al
+  anfitrión. Ahora `hash` solo se guarda si el tic es múltiplo de 120 y está cerca del nuestro (≤ ~55 claves) y `snapok` solo cuenta
+  con una reparación en curso. Anfitrión: `resync` con `mine.length` enorme colgaba al invitado y `cfg.delay` sin tope lo congelaba;
+  ahora `_applyResync` exige arrays de tamaño acotado (`≤ 3·RING`, `F − T ≤ RING`) y el retraso se limita a 0-8 también en el
+  invitado. Una foto con basura (`snap` con `d.o[0] = {}`) sigue tirando la sesión (equivale a que el anfitrión se vaya).
+- **Resync perdido en un segundo corte.** Lo que iba por el canal fiable de la conexión vieja se pierde al renegociar; el anfitrión se
+  quedaba ~4,5 s congelado hasta una reparación con foto. Ahora cada `resync` lleva `id` y se repite cada 1,5 s (hasta 8 veces) hasta
+  que el otro contesta `rsok`; el repetido se reconoce por el id y no se aplica dos veces (el invitado pone a cero su contador cuando
+  vuelve un anfitrión que recargó). Lo mismo en el sentido inverso (fase 6). Otros mensajes de control en vuelo siguen pudiéndose
+  perder en ese hueco; cada uno tiene su red (plazos, `repairPending`, huellas).
+- **Código de sala copiado** (las reglas no exigen código único): `byCode` pide 5 y, si hay más de una sala viva con ese código, no
+  entra en ninguna (`'dup'`: «Hay más de una sala con ese código: entra desde la lista o pide el enlace a quien la creó»). Al abrir una
+  sala con código nuevo se comprueba que no lo use otra (se cambia). **Arreglo completo pendiente (cambia las reglas):** reservar el
+  código en `codes/{code} = {uid}` (crear solo si no existe) y exigir en rooms `getAfter(codes/$(d.code)).data.uid == request.auth.uid`.
+- **Lista del lobby saturable:** `list()` ya no filtra `state == 'open'` sin orden (salían las 40 de uid más bajo y 40 salas abiertas
+  inútiles escondían las nuevas): pide las 50 de latido más reciente (`orderBy seen DESC`, índice automático de un campo, sin reloj del
+  cliente) y filtra el estado aquí. **Límites conocidos de la beta:** las llenas y las que juegan también ocupan esos 50 huecos (con más
+  de ~50 partidas a la vez la lista se queda corta; entonces, índice compuesto `(state, seen)`); alguien con muchas cuentas gratis y
+  salas con latido aún puede tapar la lista (queda el código); y una misma cuenta puede entrar de invitada en varias salas a la vez (las
+  reglas no lo impiden sin un documento por invitado). Las reglas no han cambiado.
+- **Privacidad:** «Cómo funciona» prometía «nunca tu dirección de red»; sin TURN el rival la recibe en la negociación. Texto nuevo: «El
+  juego solo enseña tu nombre, nunca tu correo. La conexión es directa entre los dos aparatos: … el aparato de tu rival conoce tu
+  dirección de red».
+- **«Igualado» y el anfitrión:** ver el párrafo «El anfitrión manda» de la fase 2 (el invitado comprueba las opciones contra la sala).
+- **«Colocación dirigida: No» no llegaba al online:** el invitado manda su ajuste en el «pre» (`st.aimSet`) y el anfitrión lo pone en
+  los dos huecos (`humans[t].aimSet`, también en «Igualado»: es una preferencia, no una ventaja). `?net=bc`: el hueco 0 con tu
+  ajuste, el 1 con `&aimset1=0`.
+- **Textos:** «sacal rival» / «SACAL RIVAL» / «GANAL RIVAL» (cpuTxt: `/a la CPU/` encajaba dentro de «sac**a la CPU**»; ahora con
+  `\b`; también Carrera y 6v6 espectador). Sala de 1 set: el cartel y la presentación decían «Al mejor de 3 sets», la hoja «Sets a 11»
+  (ahora «Un set a 11»). Revancha: «Empezando la revancha…» en vez de «Esperando a que entre tu rival…». Ayuda: «Tu rival tiene 60 s
+  para volver». Abandonar en pleno partido ya no salta al menú en silencio: el HUD dice «Has abandonado [Volver al menú]».
+- **Detalles de pantalla:** «Conexión inestable» parpadeaba al empezar cada partido (en la cuenta atrás no viaja nada: `lastRecv` se
+  pone al día al pasar a `'playing'`). Con «Gira el móvil» delante ya no sale el aviso de red encima. Un clic en el texto del HUD ya no
+  es un golpe (`data-ui`). «Crear sala» en un teléfono apaisado ya no enseña «Entrar» en la vista previa. En vertical, el nombre de la
+  sala de espera pasa a dos líneas con letra de 24 px en vez de cortarse («ANFI PRUE…»); en la lista, `title` con el nombre entero.
+- **Solo documentado:** RTT de 350-400 ms (párrafo «Límite práctico» de la fase 1).
+
+### Pruebas nuevas
+- `net3test`: (j) los dos recargan con 0 s y 1 s de diferencia → los dos noShow en < 2 s; (k) resync perdido en un segundo corte →
+  se repite, sin reparación, espera < 3,5 s, huellas iguales; (l) RTT 300 sin pérdida → nunca «Conexión inestable» al empezar; (m) rival
+  malicioso (huellas fuera de rango, snapok sin reparación, resync con `mine.length` enorme, retraso 2^31) y `mismatch` de la sala. Con el
+  net.js de antes, (j), (k) y (l) fallan y (m) se cuelga.
+- `netreplaytest` (5): corte de 25 s con la IA (la pide el anfitrión / el invitado) → la hoja de los dos = marcador final (usa
+  `netStClone` / `netStatsResync` de main.js tal cual). Sin el arreglo, el caso del anfitrión falla (invitado 9-10 con 9-11).
+
+### Pendiente (auditoría)
+- Reglas: reserva de código (`codes/{code}`) y, si hace falta, `email_verified` para crear/entrar en salas; un documento por invitado
+  para que una cuenta no ocupe varias salas.
+- RTT ≥ 350 ms: retraso de entrada adaptativo (ver «Límite práctico»).
+- Una foto (`snap`/`resync`) con basura sigue tirando la sesión del invitado; se podría descartar con try/catch y quedarse con la
+  última buena.

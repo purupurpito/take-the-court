@@ -242,6 +242,24 @@ async function emuTests(base) {
     const gone = await G.get('uidP'), o3 = await G.getSig('uidP', 'offer');
     check('anfitrión que vuelve fuera de plazo: retoma y borra su sala; el invitado ya no ve sala ni oferta', r3 && r3.id === 'uidP' && gone === null && o3 === null && (await mk('uidP').resume()) === null); }
   check('C no puede borrar la sala de otro con latido vivo', await (async () => { const r = await mk('uidG').open({ name: 'Gal' }); const d = await raw('DELETE', '/rooms/uidG', null, fakeToken('uidC')); await mk('uidG').close(); return r && d.status === 403; })());
+  // (auditoría) código copiado por otra cuenta: byCode no elige ninguna ('dup'); y al abrir con código nuevo no se repite uno vivo
+  {
+    const V = mk('zzVictim'), E = mk('aaEvil'), F = mk('uidFriend');
+    const rv = await V.open({ name: 'Vic' });
+    const fe = {}; for (const k in good) fe[k] = good[k];
+    fe.code = { stringValue: rv.code }; fe.host = { stringValue: 'aaEvil' }; fe.name = { stringValue: 'Trampa' }; fe.v = { stringValue: ver };
+    const ce = await fetch(base + ':commit', { method: 'POST', headers: { Authorization: 'Bearer ' + fakeToken('aaEvil'), 'Content-Type': 'application/json' },
+      body: JSON.stringify({ writes: [{ update: { name: base.slice(base.indexOf('projects/')) + '/rooms/aaEvil', fields: fe }, updateTransforms: [{ fieldPath: 'seen', setToServerValue: 'REQUEST_TIME' }] }] }) });
+    check('código copiado (las reglas lo dejan): «Entrar con código» no entra en ninguna (dup)', ce.status === 200 && await code(F.byCode(rv.code)) === 'dup', ce.status);
+    await raw('DELETE', '/rooms/aaEvil');
+    check('… y sin la copia, el código vuelve a llevar a la sala de verdad', (await F.byCode(rv.code)).id === 'zzVictim');
+    // lista saturada: 45 salas «abiertas» sin latido (2 min: aún no se barren) con uid bajo no esconden la sala viva de uid alto
+    for (let i = 0; i < 45; i++) await raw('PATCH', '/rooms/a0' + String(i).padStart(2, '0'), { fields: Object.assign({}, good, { host: { stringValue: 'a0' + String(i).padStart(2, '0') }, code: { stringValue: 'QQQQQ' + 'ABCDEFGHJKMNPQRSTUVWXYZ'[i % 23] }, seen: { timestampValue: new Date(Date.now() - 120000).toISOString() } }) });
+    const Lsat = await F.list();
+    check('lista con 45 salas abiertas caducadas de uid bajo: la sala viva sigue saliendo (por latido)', Lsat.some(r => r.id === 'zzVictim'), Lsat.map(r => r.id));
+    for (let i = 0; i < 45; i++) await raw('DELETE', '/rooms/a0' + String(i).padStart(2, '0'));
+    await V.close();
+  }
 }
 
 (async () => {
