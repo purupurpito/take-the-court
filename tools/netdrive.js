@@ -73,7 +73,7 @@ if (!RTC && !GUION) (async () => {
   list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page');
   if (list.length < 2) throw new Error('no hay dos páginas');
   const P = [page(list[0].webSocketDebuggerUrl, 'anfitrión'), page(list[1].webSocketDebuggerUrl, 'invitado')];
-  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if (/\[netlog\]/.test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if ((process.env.NDLOG === '2' ? /\[netlog\]|\[VB\]/ : /\[netlog\]/).test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
   const room = 'nd' + Date.now().toString(36);
   for (let k = 0; k < 2; k++) {
     const p = P[k]; await p.ready;
@@ -95,6 +95,8 @@ if (!RTC && !GUION) (async () => {
   }
   check('las dos páginas conectan por BroadcastChannel y juegan', both);
   if (!both) { for (const p of P) console.log(p.tag, p.errors.slice(0, 5), p.logs.slice(-8)); cleanup(); process.exit(1); }
+  // NDPROF=1: perfil de CPU del invitado durante el partido → tools/out/netdrive-invitado.cpuprofile (para buscar parones)
+  if (process.env.NDPROF) { await P[1].send('Profiler.enable'); await P[1].send('Profiler.setSamplingInterval', { interval: 500 }); await P[1].send('Profiler.start'); }
   // contadores en página: congelaciones, huellas de la confirmada por tic, coste de frame
   const HOOK = "(function(){var n=VB.ctx.net;if(!n||window.__nd)return;var s=n.sess,H=window.__ndH={},W=window.__nd={wait:0,frames:0,ms:0,maxMs:0,unst:0};" +
     "var o=s._hashTick;s._hashTick=function(){o.call(this);H[this.gcTick]=this.myHash[this.gcTick];};" +
@@ -141,6 +143,7 @@ if (!RTC && !GUION) (async () => {
   check('rótulo del rival con su nombre (nunca la IP)', /Invi/.test(A.tag) && /Anfi/.test(B.tag) && !/\d+\.\d+\.\d+\.\d+/.test(A.tag + B.tag + A.hud + B.hud), { anf: A.tag, inv: B.tag });
   check('HUD con el ping', /ms/.test(A.hud) && /ms/.test(B.hud), { anf: A.hud, inv: B.hud });
   check('consola sin errores', !P[0].errors.length && !P[1].errors.length, [P[0].errors.slice(0, 3), P[1].errors.slice(0, 3)]);
+  if (process.env.NDPROF) { try { const pr = await P[1].send('Profiler.stop'); fs.mkdirSync(path.join(ROOT, 'tools', 'out'), { recursive: true }); fs.writeFileSync(path.join(ROOT, 'tools', 'out', 'netdrive-invitado.cpuprofile'), JSON.stringify(pr.profile)); console.log('  perfil: tools/out/netdrive-invitado.cpuprofile'); } catch (e) { console.log('  perfil: ' + e.message); } }
   console.log('  sesión por frame: anfitrión ' + A.ms.toFixed(3) + ' ms (máx ' + A.maxMs.toFixed(1) + '), invitado ' + B.ms.toFixed(3) + ' ms (máx ' + B.maxMs.toFixed(1) + ') · rollback máx ' + A.depth + '/' + B.depth +
     ' tics · fps ' + A.fps + '/' + B.fps + ' · frame JS ' + (+A.frameMs || 0).toFixed(1) + '/' + (+B.frameMs || 0).toFixed(1) + ' ms · calidad ' + A.q + '/' + B.q);
   console.log('  invitado: x de su jugador en la vista ' + (+B.ctrlX).toFixed(2) + ' (x > 0 = su campo de la vista)');
@@ -189,7 +192,7 @@ if (RTC) (async () => {
   await sleep(400);
   list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page');
   const P = [page(list[0].webSocketDebuggerUrl, 'anfitrión'), page(list[1].webSocketDebuggerUrl, 'invitado')];
-  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if (/\[netlog\]/.test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if ((process.env.NDLOG === '2' ? /\[netlog\]|\[VB\]/ : /\[netlog\]/).test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
   const NAMES = ['Anfi Prueba', 'Invi Prueba'];
   for (let k = 0; k < 2; k++) {
     const p = P[k]; await p.ready;
@@ -397,7 +400,7 @@ if (GUION) (async () => {
   await sleep(400);
   list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page');
   const P = [page(list[0].webSocketDebuggerUrl, 'anfitrión'), page(list[1].webSocketDebuggerUrl, 'invitado')];
-  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if (/\[netlog\]/.test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if ((process.env.NDLOG === '2' ? /\[netlog\]|\[VB\]/ : /\[netlog\]/).test(l)) console.log(p.tag + ' ' + l.slice(0, 400)); });   // (NDLOG=1: el informe de red, js/netlog.js con &netlog=1)
   P[0].tid = list[0].id; P[1].tid = list[1].id;
   const room = 'g3' + Date.now().toString(36);
   const ev = async (p, x) => { try { return await p.evalJs(x); } catch (e) { return null; } };

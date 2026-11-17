@@ -1256,3 +1256,25 @@ con subidas a 150»), y «lo primordial es el mejor ping; no me preocupan las tr
   y el anfitrión esperándole 0,5-0,7 s. `netdrive` «cero congelaciones» falla también en origin/main con el PC cargado (no es el informe).
 - Pendiente, según lo que digan los informes: retraso de entrada adaptativo al ping, precalentar los sombreadores antes del saque
   inicial si las esperas vienen de ahí, TURN solo si hay rutas que no conectan.
+
+## Menos parones en el online (17-nov-2026)
+Ferran pidió «el 1 y el 2»: precompilar antes del saque y mandar las entradas antes. Lo medido con el informe de red y netdrive:
+
+- **Precompilado del partido online.** `netBuildView` no precalentaba nada, a diferencia de `startMatch` y de los entrenos: el
+  pabellón de la sala, los jugadores y los efectos (primer remate, onda, confeti) se compilaban en pleno partido y el rival esperaba.
+  Ahora hace `prewarm('t')` + `prewarmPrograms(false)`. Además `Session` acepta `o.warm()`: el invitado no manda `ready` y el
+  anfitrión no fija el arranque (`_begin`, `startPend`) hasta que SU máquina acaba de compilar (y hace `warmDraw`), con un tope de 5 s
+  (`WARM_CAP_MS`). Sin `o.warm` (pruebas de Node) nada cambia.
+- **Entradas antes.** Salen justo después de generar los tics del frame, antes de confirmar, predecir y presentar. Gana < 1 ms (la
+  sesión entera cuesta ~0,35 ms por frame). Mandarlas entre frames no sirve si la entrada se lee por frame: haría falta leer el mando y
+  el teclado por eventos (no hecho: mucho riesgo para unos ms).
+- **Latido todo el partido (lo que más arregló).** El perfil de CPU del invitado en netdrive (`NDPROF=1`) mostró que sus «frames de
+  1 s» eran el navegador sin darle frames, con el hilo libre: la sesión solo avanzaba en `requestAnimationFrame`, así que en ese
+  segundo no mandaba nada y el anfitrión esperaba ~0,7 s. El Worker de `netTicker`, que antes solo iba con la pestaña oculta, ahora va
+  todo el partido: si no hay frame en 100 ms, avanza la sesión (y con la pestaña visible sigue con el último movimiento del stick, sin
+  golpes ni saltos). Pasa en la vida real con una ventana tapada por otra. netdrive «cero congelaciones»: antes fallaba ~4 de 6 veces
+  (también en origin/main), ahora 3 de 3 sin una espera.
+- Herramientas: `NDLOG=1|2` (informe de red y, con 2, los `[VB]` del precompilado) y `NDPROF=1` (perfil del invitado en
+  `tools/out/netdrive-invitado.cpuprofile`) en netdrive.
+- `tools/netreplaytest.js` falla por `msIngest is not defined` en el trozo de ui.js que extrae (viene del commit 9df2e53 de
+  «Estadística del partido»; el juego no está roto). Pendiente de quien lleve ui.js.

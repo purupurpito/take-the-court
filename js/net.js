@@ -56,6 +56,7 @@
   var MAXSEND = 120;             // entradas por paquete como máximo (redundancia: todo lo que el otro aún no ha confirmado)
   var HASH_EVERY = 120;          // huella cada segundo de partido confirmado
   var START_MS = 1500;           // el tic 0 empieza 1,5 s después del «listo»
+  var WARM_CAP_MS = 5000;        // 17-nov-2026: «listo» / arranque esperan a que ESTA máquina compile los gráficos del partido (o.warm), 5 s como mucho
   var REJOIN_MARGIN = 60;        // tics de IA que el anfitrión fija por delante al reconectar al invitado
   var WAIT_AI_MS = 10000, GONE_MS = 60000, UNSTABLE_MS = 1000, EV_PAST_TICKS = 18; // 150 ms
   var CONNECT_MS = 20000;        // revisión F3: sin oír al rival en 20 s mientras se conecta (antes del partido) → no hay partido ('noShow')
@@ -149,6 +150,7 @@
     // fase 6: anfitrión que vuelve tras recargar (sin opciones: adopta la partida del invitado), aviso de vuelta (lo pone el lobby),
     // invitado que ha oído a su anfitrión volver (contesta a su 'ready' con el resync) y «no válido» que avisó el rival
     this.adopt = this.host && !o.opts; this.back = !!o.back; this.hostBack = false; this.rivInvalid = false;
+    this.warmFn = typeof o.warm === 'function' ? o.warm : null; this.warmSince = -1; this.startPend = false;
     this.connAt = -1; this.heardAt = -1; this.rttFloor = -1e9;   // revisión F3: plazo de conexión (solo mensajes de esta época) y pongs de antes de un corte
     this.t0 = 0; this.off = 0; this.lastNow = 0; this.lastRecv = 0; this.started = false;
     this.helloAt = -1e9; this.gotHello = false; this.pings = []; this.pingAt = -1e9; this.pingId = 0; this.ready = false;
@@ -316,8 +318,8 @@
           break;
         }
         if (this.status === 'connecting') {
-          this.t0 = now + START_MS; this.status = 'starting';
-          this._ctl({ k: 'start', t0: this.t0 }); this._log('empieza en ' + START_MS + ' ms');
+          if (!this._warmOk(now)) { this.startPend = true; break; }   // (aún compilando: arranca en advance cuando acabe)
+          this._begin(now);
         } else if (this.status === 'starting') this._ctl({ k: 'start', t0: this.t0 });
         else if (this.status === 'playing' || this.status === 'waiting') { if (this.goneFlag) this._late(now); else this._resync(now); }
         break;
@@ -523,7 +525,7 @@
       if ((!this.host || this.adopt) && !this.gotHello && now - this.helloAt > 500) { this.helloAt = now; this._ctl(this.adopt ? { k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, back: 1 } : { k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name }); }
       if ((!this.host || this.adopt) && this.gotHello && !this.ready) {
         if (this.pings.length < 8 && now - this.pingAt > 60) { this.pingAt = now; this._ctl({ k: 'ping', t: now, id: this.pingId++ }); }
-        if (this.pings.length >= 8 || (this.pings.length >= 3 && this.pingId > 30)) {
+        if ((this.pings.length >= 8 || (this.pings.length >= 3 && this.pingId > 30)) && this._warmOk(now)) {
           var best = this.pings.slice().sort(function (a, b) { return a.rtt - b.rtt; }).slice(0, 3);
           var offs = best.map(function (p) { return p.off; }).sort(function (a, b) { return a - b; });
           this.off = offs[offs.length >> 1]; this.ready = true; this._ctl({ k: 'ready' });
@@ -531,6 +533,7 @@
         } else if (this.pingId > 30 && this.pings.length < 3) { this.pingId = 0; this.pings.length = 0; }   // reintento
       }
     }
+    if (this.startPend && this.status === 'connecting' && this._warmOk(now)) { this.startPend = false; this._begin(now); }
     if (this.status === 'starting' && now >= this.t0) { this.status = 'playing'; this.started = true; this.back = false; this.lastRecv = now; }   // (auditoría: en la cuenta atrás no viaja nada: sin esto «Conexión inestable» parpadeaba al empezar)
     // botones: en la cuenta atrás no cuentan; si no entran en un tic en EDGE_TTL_MS (partida congelada) se descartan
     if (this.edges && this.edgesAt < 0) this.edgesAt = now;
@@ -564,6 +567,16 @@
       var lostFor = this.solo ? (this.lostAt >= 0 ? now - this.lostAt : 0) : this.waitMs;
       if (lostFor > GONE_MS && !this.goneFlag && this.status !== 'over') this._gone();
       this.goneIn = lostFor > 0 && !this.goneFlag && this.status !== 'over' ? Math.max(0, GONE_MS - lostFor) : 0;   // (HUD: «si no vuelve en N s»)
+      // entradas al rival: todo lo que aún no ha confirmado (redundancia contra la pérdida). Salen en cuanto se generan los tics de
+      // este frame, ANTES de confirmar/predecir/presentar (17-nov-2026: antes iban al final del frame; < 1 ms, pero gratis)
+      var have = this.localTick + this.delay, from = Math.max(this.remoteAck, have - MAXSEND * 8);
+      if (this.solo && !this.host) { /* invitado contra la IA: no manda entradas (al volver pide 'rejoin') */ }
+      else if (this.link && have > from) {
+        for (var a = from, np = 0; a < have && np < 4; a += 255, np++) {
+          var n = Math.min(255, have - a), pk = packInputs(this.mine, a, n, this.rHave, this.localTick, this.epoch);
+          this.link.send('in', pk); this.stats.sent++; this.stats.bytesOut += pk.length;
+        }
+      } else if (this.link) { var pk0 = packInputs(this.mine, have, 0, this.rHave, this.localTick, this.epoch); this.link.send('in', pk0); }
       // ventaja de frames (GGPO): si vamos por delante del rival más de 1,5 tics de media, cedemos poco a poco
       if (this.rttN && this.remoteTickAt && !this.solo && !stalled) {
         var est = this.remoteTick + (now - this.remoteTickAt + this.rtt / 2) / STEP_MS, adv = this.localTick - est;
@@ -589,15 +602,6 @@
       this._predict();
       this._present(out.events);
       this.presTick = Math.max(this.presTick, this.localTick);
-      // entradas al rival: todo lo que aún no ha confirmado (redundancia contra la pérdida)
-      var have = this.localTick + this.delay, from = Math.max(this.remoteAck, have - MAXSEND * 8);
-      if (this.solo && !this.host) { /* invitado contra la IA: no manda entradas (al volver pide 'rejoin') */ }
-      else if (this.link && have > from) {
-        for (var a = from, np = 0; a < have && np < 4; a += 255, np++) {
-          var n = Math.min(255, have - a), pk = packInputs(this.mine, a, n, this.rHave, this.localTick, this.epoch);
-          this.link.send('in', pk); this.stats.sent++; this.stats.bytesOut += pk.length;
-        }
-      } else if (this.link) { var pk0 = packInputs(this.mine, have, 0, this.rHave, this.localTick, this.epoch); this.link.send('in', pk0); }
     }
     out.g = this.gp; out.status = this.status; out.tick = this.localTick; out.gcTick = this.gcTick;
     out.ping = Math.round(this.rtt); out.waitMs = this.waitMs;
@@ -608,6 +612,20 @@
     out.solo = this.solo; out.valid = this.valid; out.result = this.result; out.rivalSolo = this.rivalSolo; out.gone = this.goneFlag; out.rivalLeft = this.rivalLeft;
     void dtF;
     return out;
+  };
+  /** Anfitrión: el tic 0 dentro de START_MS (los dos ya han compilado los gráficos del partido o se acabó WARM_CAP_MS). */
+  SP._begin = function (now) {
+    this.t0 = now + START_MS; this.status = 'starting';
+    this._ctl({ k: 'start', t0: this.t0 }); this._log('empieza en ' + START_MS + ' ms');
+  };
+  /** ¿Ha acabado esta máquina de preparar el partido (programas compilados y primer dibujo)? Sin o.warm, siempre; con tope. */
+  SP._warmOk = function (now) {
+    if (!this.warmFn) return true;
+    if (this.warmSince < 0) this.warmSince = now;
+    var ok = true; try { ok = !!this.warmFn(); } catch (e) { ok = true; }
+    if (!ok && now - this.warmSince > WARM_CAP_MS) { ok = true; this._log('sigo sin acabar de compilar en ' + WARM_CAP_MS + ' ms: empiezo igual'); }
+    if (ok) this.warmFn = null;
+    return ok;
   };
   SP._predict = function () {
     var S = Sim(), gp = this.gp, ins = this._ins, me = this.slot, ot = 1 - me, P = this._pred;

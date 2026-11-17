@@ -635,12 +635,19 @@
       look: o.look || null, base: o.opts || null, link: o.link, delay: o.delay, epoch: 0, away0: !!document.hidden,
       expect: o.expect || null };   // (auditoría: invitado: lo que anuncia la sala; la sesión lo compara con las opciones del anfitrión)
     netSession(o.opts || null, 0);
+    // latido de la sesión en un Worker durante TODO el partido (antes solo con la pestaña oculta): si el navegador deja de dar frames a
+    // la página > 100 ms (ventana tapada por otra, tirón del compositor), la sesión sigue recibiendo y mandando las entradas y el rival
+    // no se queda «Esperando…» (medido en netdrive: frames de 1 s con el hilo libre → el otro esperaba 0,7 s). Con frames, no hace nada.
+    netTicker(true);
     if (net.away0) netAway(true);
     netHud(null);
     return true;
   };
   function netSession(opts, epoch) {
     var s = new VB.Net.Session({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch, expect: net.expect,
+      // 17-nov-2026: «listo» (invitado) y arranque (anfitrión) esperan a que esta máquina compile los gráficos del partido (netBuildView):
+      // un parón de compilado a mitad de partido para a los dos (el otro espera). Programas en paralelo y luego el primer dibujo de todo.
+      warm: function () { if (!net || net.sess !== s || !net.view) return false; if (progWarm.pending && progsPending()) return false; if (net.wd) { net.wd = false; warmDraw(); } return true; },
       log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null,
       // fase 6: cada paso CONFIRMADO, con sus dos entradas, al grabador de repeticiones (VB.Replay en modo dual sobre gc)
       onTick: function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } });
@@ -844,6 +851,10 @@
     try { if (VB.Replay && VB.Replay.reset) VB.Replay.reset(s.confirmedGame(), { dual: true, slot: net.slot }); } catch (e) { reportError('Replay.reset', e); }
     VB.NetView.mapEvents(s.initEvents, v, net.slot, pendingEvents);   // (setGame vacía pendingEvents)
     setState('playing');
+    // como al empezar un partido normal: texturas y programas del pabellón, los jugadores y los efectos ANTES del saque (antes no se
+    // hacía en el online: el primer remate, la primera onda o el pabellón de la sala se compilaban en pleno partido y el rival esperaba).
+    // El primer dibujo de todo (warmDraw) lo hace la sesión al acabar de compilar, antes del «listo» (o.warm).
+    if (Q.prewarm !== '0') { prewarm('t'); prewarmPrograms(false); net.wd = Q.warmdraw !== '0'; }
   }
   /** Un frame online: entrada (de la vista al mundo canónico), sesión, espejo y eventos. Devuelve el dt de juego para los módulos. */
   function netFrame(it, realDt) {
@@ -857,6 +868,7 @@
       else raw = VB.NetView.inputToWorld({ move: simIn.move, hit: edge.hit, jump: edge.jump, jset: edge.jset }, net.slot);
       edge.hit = edge.jump = edge.jset = edge.switchPlayer = false;
     }
+    net.lastMove = raw && raw.move ? raw.move : null;   // (el latido sigue con este movimiento si el navegador se salta frames)
     var r;
     try { r = s.advance(performance.now(), raw); } catch (e) { reportError('Net.advance', e); netStop(false); return 0; }
     net.r = r;
@@ -883,7 +895,7 @@
     if (!net) return;
     net.away0 = !!hidden;
     try { net.sess.setAway(!!hidden); net.sess.maxCatch = hidden ? 150 : 0; } catch (e) { }
-    netTicker(!!hidden);
+    netTicker(true);   // (encendido todo el partido desde el 17-nov-2026: ver startOnline)
   }
   function netTicker(on) {
     if (!on) { if (netTk) { try { if (netTk.w) netTk.w.terminate(); else clearInterval(netTk.i); } catch (e) { } netTk = null; } return; }
@@ -900,7 +912,9 @@
     var t = performance.now();
     if (net.frameAt && t - net.frameAt < 100) return;   // (la página aún pinta: ya avanza netFrame)
     var s = net.sess, r;
-    try { r = s.advance(t, null); } catch (e) { reportError('Net.advance (oculta)', e); return; }
+    // pestaña visible pero sin frames: el último movimiento del stick (sin golpes ni saltos); oculta: nada (como siempre)
+    var inp = !document.hidden && net.lastMove && ctx.state === 'playing' ? { move: net.lastMove } : null;
+    try { r = s.advance(t, inp); } catch (e) { reportError('Net.advance (oculta)', e); return; }
     net.r = r; net.bgTicks = (net.bgTicks | 0) + 1;
     netConfirmed(s, r.confirmed);
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return; }
