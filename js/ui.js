@@ -2592,6 +2592,16 @@
     if (had) sh.classList.remove('has-more');
     var more = sh.scrollHeight - sh.clientHeight > 20 && sh.scrollTop + sh.clientHeight < sh.scrollHeight - 20;
     if (more) sh.classList.add('has-more');
+    if (node === el.panel) spMore();
+  }
+  /** SPLAT · PANELES: las hojas .sp-scroll se desplazan por dentro (la hoja del panel ya no): .sp-more = queda algo por debajo
+   *  (el CSS desvanece el borde de abajo). Al abrir y repintar (checkMore), al desplazar y cada 16 frames con el panel abierto. */
+  function spMore() {
+    var L = el.panel.querySelectorAll('.sp-scroll');
+    for (var i = 0; i < L.length; i++) {
+      var s = L[i], m = s.clientHeight > 0 && s.scrollHeight - s.clientHeight > 8 && s.scrollTop + s.clientHeight < s.scrollHeight - 8;
+      if (s.classList.contains('sp-more') !== m) s.classList.toggle('sp-more', m);
+    }
   }
   /** B4: las hojas y paneles también SALEN animados (.out: corte diagonal de 160 ms, fundido de 80 con «Menos movimiento», solo
    *  opacidad en calidad baja; CSS «TV B4»). Mientras sale lleva `inert` y no cuenta como capa activa ni para el foco; si se vuelve a
@@ -2808,12 +2818,12 @@
     var ph = '';
     d.a.forEach(function (a, i) {
       var on = i === sqSel;
-      ph += '<button class="sq-pk' + (on ? ' on' : '') + (a.pts ? ' has-pts' : '') + '" role="radio" aria-checked="' + on + '" data-pick="' + i + '"' + (on ? '' : ' tabindex="-1"') + '>' +
+      ph += '<button class="sq-pk sp-btn sp-wide sp-calm sp-quiet ' + (on ? 'sp-gold on' : 'sp-ink') + (a.pts ? ' has-pts' : '') + '" data-shape="' + (i * 2 + 1) + '" role="radio" aria-checked="' + on + '" data-pick="' + i + '"' + (on ? '' : ' tabindex="-1"') + '>' +
         '<span class="sq-num">' + a.num + '</span><span class="sq-pn">N.º ' + a.num + '<small>' + escT(a.role || '') + ' (Nv ' + a.lvl + ')<span class="sq-pm"><span class="sep sep-v"><span class="sr">, </span></span>Media ' + P.ovr(a.st) + '</span></small></span>' +
         (a.pts ? '<em class="sq-pp" aria-label="' + a.pts + ' puntos de mejora">+' + a.pts + '</em>' : '') + '</button>';
     });
     var ae0 = document.activeElement, pickF = ae0 && el.sqPick && el.sqPick.contains(ae0), pickKb = pickF && ae0.classList.contains('kf');
-    if (el.sqPick && el.sqPick._h !== ph) { el.sqPick._h = ph; el.sqPick.innerHTML = ph; if (pickF) { var pb = el.sqPick.querySelector('.sq-pk.on'); if (pb) focusEl(pb, pickKb); } }
+    if (el.sqPick && el.sqPick._h !== ph) { el.sqPick._h = ph; el.sqPick.innerHTML = ph; if (VB.Splat) VB.Splat.decorate(el.sqPick); if (pickF) { var pb = el.sqPick.querySelector('.sq-pk.on'); if (pb) focusEl(pb, pickKb); } }
     // insignias: «equipadas/huecos» en su pestaña
     if (sqTabs) {
       var items = sqItems(), a0 = d.a[sqSel];
@@ -4454,6 +4464,7 @@
   // Ajustes › Info › Créditos) apila el de delante; «Volver» / Esc / B / «Entendido» vuelven a él, en la misma pestaña y con el
   // foco en la fila que lo abrió. openPanel(name, 'menu' | 'paused') (forma antigua) empieza una pila nueva.
   var pstack = [];
+  var SP_PN = /^(tut|ctl|set|first|squad|about)$/;   // paneles con el sistema SPLAT (bloque «SPLAT · PANELES» de index.html)
   var firstAsked = false;
   /** JUGAR desde el menú: la primera vez (sin partidos ni tutorial) ofrece ver el tutorial o jugar ya. */
   function play() {
@@ -4530,7 +4541,11 @@
     psh.classList.toggle('ms', name === 'mstats');
     psh.classList.remove('wide');
     psh.classList.toggle('tabbed', !!tb);
+    // SPLAT · PANELES (notes/splat.md): Cómo se juega, Controles, Ajustes, Primer partido, Jugadores y Acerca de con el sistema
+    // (#panel.sp-pn: sin velo, columna a la izquierda y el contenido en una hoja .sp-panel con su propio desplazamiento)
+    el.panel.classList.toggle('sp-pn', SP_PN.test(name)); el.panel.setAttribute('data-pn', name);
     psh.scrollTop = 0;
+    var sc = el.panel.querySelectorAll('.sp-scroll'); for (var si = 0; si < sc.length; si++) sc[si].scrollTop = 0;
     shown = '';
     syncScreens(ctx.game);
     fitSheet(el.panel); fitAllTabs(); checkMore(el.panel);
@@ -4572,7 +4587,7 @@
     if (!L.length) return h + '<div class="card"><p>Sin novedades.</p></div>';
     h += verCard(L[0], true);
     if (L.length > 1) {
-      h += '<button type="button" class="opt-reset ab-tg" data-ab="old" aria-expanded="' + abOld + '">' + (abOld ? 'Ocultar versiones anteriores' : 'Versiones anteriores') + '</button>';
+      h += '<button type="button" class="opt-reset ab-tg sp-pill" data-ab="old" aria-expanded="' + abOld + '">' + (abOld ? 'Ocultar versiones anteriores' : 'Versiones anteriores') + '</button>';
       if (abOld) for (var i = 1; i < L.length; i++) h += verCard(L[i], false);
     }
     return h;
@@ -4585,7 +4600,7 @@
     var lic = function (id, label, txt) {
       if (!txt) return '';
       var on = abLic === id;
-      return '<button type="button" class="opt-reset ab-tg" data-ab="' + id + '" aria-expanded="' + on + '">' + label + '</button>' + (on ? '<pre class="lic">' + escT(txt) + '</pre>' : '');
+      return '<button type="button" class="opt-reset ab-tg sp-pill" data-ab="' + id + '" aria-expanded="' + on + '">' + label + '</button>' + (on ? '<pre class="lic">' + escT(txt) + '</pre>' : '');
     };
     h += '<div class="card"><h3>Licencias</h3>' + (Lc.threeLine ? '<p>' + escT(Lc.threeLine) + '</p>' : '') + '<div class="ab-lics" data-nav>' + lic('three', 'Licencia de three.js', Lc.three) + lic('ofl', 'Licencia de las fuentes', Lc.ofl) + '</div></div>';
     if (C.note) h += '<p class="ab-note">' + escT(C.note) + '</p>';
@@ -4736,7 +4751,7 @@
     else if (edit && ctlView === 'gamepad') h = ctlPadHTML(I);
     else {
       var R = ctlRows(ctlView);
-      if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg" data-seg="touchSize"></span></button></div>';
+      if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button></div>';
       h += '<dl class="ctl">';
       for (var j = 0; j < R.length; j++) h += '<div><dt>' + R[j][0] + '</dt><dd>' + R[j][1] + '</dd></div>';
       h += '</dl>';
@@ -4779,7 +4794,7 @@
         slotHTML('key', a, 0, L, k[0] ? I.keyName(k[0]) : '', !k[0]) + slotHTML('key', a, 1, L, k[1] ? I.keyName(k[1]) : '', !k[1]) + '</span></div>';
     });
     return h + '</div><p class="ctl-fixed"><b>Fijas:</b> Esc pausa y vuelve, Intro acepta, Q / E cambian de apartado. <b>Ratón:</b> clic izq. golpea, der. coloca, clic de rueda salta y la rueda acerca o aleja la cámara.</p>' +
-      '<button type="button" class="opt-reset" data-reset="keys">Restablecer teclas</button>';
+      '<button type="button" class="opt-reset sp-pill" data-reset="keys">Restablecer teclas</button>';
   }
   function ctlPadHTML(I) {
     var B = I.bindings(), P = B.pad || {}, std = B.padStd !== false, fam = B.padFam === 'ps' ? 'ps' : 'xbox', ex = B.fixed && B.fixed.pad && B.fixed.pad.swExtra || [];
@@ -4790,10 +4805,10 @@
     });
     h += '</div>';
     if (!std) h += '<p class="ctl-fixed">Este mando no usa la distribución estándar: botones fijos.</p>';
-    h += '<div class="opt-g"><button class="opt" data-opt="padDead" data-need="Input"><span>Zona muerta<small>Para mandos con el stick que se mueve solo</small></span><span class="slider" data-sl="padDead"><span class="trk"><i></i><b></b></span><span class="v">18%</span></span></button>' +
-      '<button class="opt" data-opt="rumble"><span>Vibración<small>Del mando y del móvil en los golpes</small></span><span class="seg" data-seg="rumble"></span></button></div>';
+    h += '<div class="opt-g"><button class="opt" data-opt="padDead" data-need="Input"><span>Zona muerta<small>Para mandos con el stick que se mueve solo</small></span><span class="slider sp-slider" data-sl="padDead"><span class="trk"><i></i><b></b></span><span class="v">18%</span></span></button>' +
+      '<button class="opt" data-opt="rumble"><span>Vibración<small>Del mando y del móvil en los golpes</small></span><span class="seg sp-seg" data-seg="rumble"></span></button></div>';
     h += '<p class="ctl-fixed">' + (std ? '<b>Stick derecho:</b> arriba acerca la cámara y abajo la aleja. ' : '') + (fam === 'ps' ? 'En los menús, ✕ acepta, ○ vuelve y L1 / R1 cambian de apartado.' : 'En los menús, A acepta, B vuelve y LB / RB cambian de apartado.') + '</p>';
-    return h + (std ? '<button type="button" class="opt-reset" data-reset="pad">Restablecer botones</button>' : '');
+    return h + (std ? '<button type="button" class="opt-reset sp-pill" data-reset="pad">Restablecer botones</button>' : '');
   }
   /** Reasignar: Intro / clic / toque / A sobre una tecla → la siguiente tecla (o botón) pulsada. Mientras dura, ni nav() ni
    *  onKey hacen nada (input.js además se traga esa pulsación). Esc cancela, Retroceso borra la 2ª tecla, 6 s → sin cambios. */
@@ -5156,6 +5171,7 @@
   var lastCam6I = -1;
   var lastDiffI = -1;
   function renderOpts() {
+    if (VB.Splat) VB.Splat.sync();   // SPLAT: la equipación nueva tiñe los paneles al momento (firma: nada si no cambia)
     var segs = document.querySelectorAll('[data-seg]');
     for (var i = 0; i < segs.length; i++) {
       var k = segs[i].getAttribute('data-seg'), o = OPT[k], cur = optIndex(k), h = '';
@@ -5475,7 +5491,8 @@
     var dots = ''; for (var k = 0; k < TUT.length; k++) dots += '<i class="' + (k === i ? 'on' : tut.seen[k] ? 'seen' : '') + '"></i>';
     el.tutDots.innerHTML = dots;
     el.btnTutPrev.disabled = i === 0; el.btnTutPrev.style.visibility = i === 0 ? 'hidden' : '';
-    el.btnTutNext.textContent = i === TUT.length - 1 ? (panelFrom === 'menu' ? '¡A jugar!' : 'Volver al partido') : 'Siguiente ›';
+    var ntx = i === TUT.length - 1 ? (panelFrom === 'menu' ? '¡A jugar!' : 'Volver al partido') : 'Siguiente', nt = el.btnTutNext.querySelector('.sp-t');   // (parche SPLAT: solo el rótulo)
+    if (nt) nt.textContent = ntx; else el.btnTutNext.textContent = ntx;
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
     tutStop();
     if (!S.faults) { var F0 = oneMode() && S.figOne ? Object.assign({}, S.fig, S.figOne) : S.fig; buildFig(tutBeach() ? beachFig(F0) : F0); }
@@ -6766,6 +6783,7 @@
       window.addEventListener('keydown', onKey);
       window.addEventListener('vb-portrait', onPortrait);   // B2: retratos que llegan de la cola de main.js
       [el.pause, el.end, el.panel, el.gymEnd].forEach(function (n) { var sh = n && n.querySelector('.sheet'); if (sh) sh.addEventListener('scroll', function () { checkMore(n); }, { passive: true }); });
+      if (el.panel) [].forEach.call(el.panel.querySelectorAll('.sp-scroll'), function (s) { s.addEventListener('scroll', spMore, { passive: true }); });   // SPLAT · PANELES
       [el.endSum, el.endStatsTab, el.endPlays].forEach(function (n) { if (n) n.addEventListener('scroll', endMore, { passive: true }); });   // B6: desvanecido del panel
       window.addEventListener('pointerdown', function () { var p = document.querySelectorAll('.kf'); for (var i = 0; i < p.length; i++) p[i].classList.remove('kf'); }, { passive: true });
       document.addEventListener('focusout', function (e) { if (e.target && e.target.classList) e.target.classList.remove('kf'); });
