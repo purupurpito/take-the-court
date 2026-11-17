@@ -614,6 +614,7 @@
     '#mpOnline .sl-v{display:flex;align-items:center;min-width:0;height:100%}' +
     '#mpOnline .sl-v b{min-width:150px;max-width:230px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:center;font:900 20px/1 var(--display);font-style:italic;letter-spacing:.03em;' +
     'text-transform:uppercase;color:#fff8ee;text-shadow:var(--ring1)}' +
+    '#mpOnline .sl-v .sl-ver{text-transform:none;font-style:italic;opacity:.75}' +   // («Precisa (v1)» / «Fluida (v2)»: la v en minúscula)
     '#mpOnline .sl-v .arr{display:flex;align-items:center;justify-content:center;width:34px;height:100%;cursor:pointer}' +
     '#mpOnline .sl-v .arr svg{width:18px;height:18px;fill:none;stroke:rgba(255,255,255,.35);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round;transition:stroke .14s,transform .14s var(--ease)}' +
     '#mpOnline .ol-sel:hover .arr svg{stroke:rgba(255,255,255,.7)}#mpOnline .sl-v .arr:hover svg{stroke:#fff}' +
@@ -683,7 +684,7 @@
     ['Tu jugador', 'Juegas con los atributos e insignias de tu jugador de la Carrera (sin Carrera, los de tu n.º 1 de Partido rápido). En una sala «Igualado», nadie lleva atributos ni insignias.'],
     ['Salas', 'Crea una sala y espera a que alguien entre desde la lista, o entra en una sala abierta. También puedes pasar el código de tu sala.'],
     ['Sin pausa', 'No se puede parar el partido. Entre sets hay 10 s de descanso: si tu rival y tú pulsáis «Continuar», se sigue antes.'],
-    ['Conexión', 'Quien crea la sala elige. Precisa: los dos veis exactamente lo mismo, con algún tirón si hay mucho ping. Fluida: tu equipo responde al instante y el rival se ve una pizca en diferido.'],
+    ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis exactamente lo mismo, con algún tirón si hay mucho ping. Fluida (v2): tu equipo responde al instante y el rival se ve una pizca en diferido.'],
     ['Si se corta', 'El partido espera a tu rival y a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
     ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Online Beta Tester» para el Vestuario.'],
     ['Privacidad', 'El juego solo enseña tu nombre, nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
@@ -707,7 +708,7 @@
   /** Selector compacto de «Crear sala»: nombre a la izquierda, ‹ valor › a la derecha (←→ o las flechas con ratón / táctil). */
   function selRow(k, label, val, hint) {
     return '<button class="ol-sel" data-ol="' + k + '" aria-label="' + esc(label + ': ' + val + '. ' + hint) + '"><span class="sl-k">' + esc(label) + '</span>' +
-      '<span class="sl-v"><span class="arr" data-d="-1">' + ARR_L + '</span><b>' + esc(val) + '</b><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
+      '<span class="sl-v"><span class="arr" data-d="-1">' + ARR_L + '</span><b>' + esc(val).replace(/ \((v\d)\)$/, ' <i class="sl-ver">($1)</i>') + '</b><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
   }
   function helpHTML() {
     // (fase 6) rótulo inclinado como «Salas abiertas» y una sola caja con una fila por punto (el mismo lenguaje que la cartelera)
@@ -846,7 +847,7 @@
         selRow('map', 'Sede', vn, 'Donde se juega') +
         selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set') +
         (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set')) +
-        selRow('net', 'Conexión', fl ? 'Fluida' : 'Precisa', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo') +
+        selRow('net', 'Conexión', fl ? 'Fluida (v2)' : 'Precisa (v1)', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo') +
         selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador') + '</div>' +
         '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones ni ojo de halcón en esta versión.'
           : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
