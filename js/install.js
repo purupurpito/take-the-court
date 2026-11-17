@@ -106,28 +106,50 @@
   }
 
   // ---------------------------------------------------------------- panel
-  var CSS = '#install{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:calc(10px + var(--st,0px)) calc(10px + var(--sr,0px)) calc(10px + var(--sbm,0px)) calc(10px + var(--sl,0px));background:rgba(12,8,24,.72);font-family:var(--ui,system-ui,sans-serif)}' +
-    '#install[hidden]{display:none}' +
-    '#install .ix-sheet{position:relative;width:min(760px,100%);max-height:100%;overflow:auto;padding:16px 18px 14px;border-radius:18px;background:var(--tp,#2b2547);color:var(--fg,#f7f2ea);box-shadow:inset 0 0 0 2.5px var(--tk,#1d1530),5px 6px 0 var(--tk,#1d1530)}' +
-    '#install h2{margin:0 40px 4px 0;text-align:left;font:900 26px/1 var(--display,sans-serif);letter-spacing:.03em;text-transform:uppercase}' +
-    '#install .ix-k{margin:0 0 4px;text-align:left;font:800 11px var(--display,sans-serif);letter-spacing:.3em;text-transform:uppercase;color:var(--gold,#ffd23f)}' +
-    '#install .ix-intro{margin:0 0 12px;text-align:left;font-size:14px;line-height:1.4;color:var(--fg2,#dfe6ef)}' +
-    '#install .ix-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:0;padding:0;list-style:none}' +
-    '#install .ix-steps li{display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 8px 10px;border-radius:14px;background:rgba(0,0,0,.18);box-shadow:inset 0 0 0 2px rgba(255,255,255,.06)}' +
-    '#install .ix-steps svg{width:100%;max-width:120px;height:auto;max-height:34vh}' +
-    '#install .ix-n{display:grid;place-items:center;width:26px;height:26px;margin-top:-2px;border-radius:50%;background:var(--gold,#ffd23f);color:var(--tk,#1d1530);font:900 15px var(--display,sans-serif);box-shadow:0 0 0 2px var(--tk,#1d1530)}' +
-    '#install .ix-steps p{margin:0;font-size:13px;line-height:1.35;text-align:center}' +
-    '#install .ix-steps b{color:var(--gold,#ffd23f)}' +
-    '#install .ix-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:12px}' +
-    '#install .ix-acts button{min-height:44px;padding:0 18px;border:0;border-radius:12px;font:800 16px var(--display,sans-serif);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:#fff;background:var(--tp2,#352d5c);box-shadow:inset 0 0 0 2px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530)}' +
-    '#install .ix-acts .pri{background:linear-gradient(180deg,#ff8040 0 50%,#f65d1d 50% 100%)}' +
-    '#install .ix-x{position:absolute;top:10px;right:10px;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--fg,#fff);font-size:26px;line-height:1;cursor:pointer}' +
-    '#install .ix-pulse{transform-box:fill-box;transform-origin:center;animation:inPulse 1.4s ease-in-out infinite}' +
-    '#install .ix-tap{animation:inTap 1.4s ease-in-out infinite}' +
-    '@keyframes inPulse{50%{transform:scale(1.18);opacity:.55}}' +
-    '@keyframes inTap{50%{transform:translateY(4px)}}' +
-    '@media (max-height:460px){#install .ix-sheet{padding:10px 14px}#install h2{font-size:21px}#install .ix-intro{font-size:12.5px;margin-bottom:8px}#install .ix-steps svg{max-height:40vh}#install .ix-steps p{font-size:12px}#install .ix-acts{margin-top:8px}}' +
-    '@media (prefers-reduced-motion:reduce){#install .ix-pulse,#install .ix-tap{animation:none}}';
+  // SPLAT (17-nov-2026, notes/splat.md «Instalar»): hoja de pegatina (.sp-panel) sobre el partido con un tinte leve (sin velo oscuro);
+  // cada paso, una pegatina de papel crema con su número en sello dorado; «Ahora no» y «Entendido / Instalar» = manchas de pintura.
+  // La ✕ va fuera de la hoja y la fila de botones se queda pegada abajo: con poco alto la hoja se desplaza sin que se vayan.
+  var P = ':root:not(#_):not(#_):not(#_) ';
+  var CSS = [
+    '#install{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:calc(14px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(14px + var(--sbm,0px)) calc(14px + var(--sl,0px));',
+    'background:rgba(21,16,42,.34);font-family:var(--sp-ui,system-ui,sans-serif)}',
+    '#install[hidden]{display:none}',
+    '#install .ix-wrap{position:relative;display:flex;width:min(780px,100%);max-height:100%;min-height:0}',
+    '#install .ix-sheet{flex:1 1 auto;min-width:0;max-height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 22px 16px;text-align:left;',
+    'scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.5) transparent}',
+    P + '#install .ix-sheet{border-radius:18px 24px 20px 26px/22px 18px 26px 20px;background:#1b1534}',
+    P + '#install .ix-k{margin:0 0 4px}',
+    P + '#install h2.sp-h{--sp-hs:clamp(22px,5vh,34px);margin:0 54px 10px 0;white-space:normal;line-height:1.02}',
+    '#install .ix-intro{margin:0 0 14px;font:500 14px/1.45 var(--sp-ui);color:rgba(255,244,220,.9)}',
+    '#install .ix-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:16px 14px;margin:0;padding:4px 6px 6px 2px;list-style:none}',
+    '#install .ix-steps li{position:relative;display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 10px 12px;border-radius:14px 18px 12px 16px/16px 12px 18px 14px;',
+    'background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px #000,4px 5px 0 3px #000}',
+    '#install .ix-steps li:nth-child(odd){transform:rotate(-.8deg)}#install .ix-steps li:nth-child(even){transform:rotate(.7deg)}',
+    '#install .ix-steps svg{width:100%;max-width:112px;height:auto;max-height:32vh}',
+    '#install .ix-n{position:absolute;left:-8px;top:-10px;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--sp-gold);color:var(--sp-ink);',
+    'font:400 16px/1 var(--sp-pop);box-shadow:0 0 0 3px var(--sp-ink),2px 3px 0 3px var(--sp-ink);transform:rotate(-10deg)}',
+    '#install .ix-steps p{margin:0;font:600 13px/1.38 var(--sp-ui);text-align:center;color:var(--sp-ink)}',
+    '#install .ix-steps b{color:var(--sp-ink);background:linear-gradient(transparent 55%,rgba(255,203,61,.75) 55%)}',
+    '#install .ix-acts{position:sticky;bottom:-16px;z-index:2;display:flex;flex-wrap:wrap;gap:12px 14px;justify-content:flex-end;align-items:center;margin:10px -22px -16px;padding:12px 22px 16px;',
+    'background:linear-gradient(rgba(27,21,52,0),#1b1534 26%)}',
+    P + '#install .ix-acts .sp-btn{--sp-h:48px;--sp-fs:clamp(12px,2.2vh,15px)}',
+    P + '#install .ix-x{position:absolute;top:-12px;right:-12px;z-index:3;--sp-h:46px;--sp-px:0;width:46px}',
+    '#install .ix-x svg:not(.sp-blob){width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3.6;stroke-linecap:round}',
+    '#install .ix-pulse{transform-box:fill-box;transform-origin:center;animation:inPulse 1.4s ease-in-out infinite}',
+    '#install .ix-tap{animation:inTap 1.4s ease-in-out infinite}',
+    '@keyframes inPulse{50%{transform:scale(1.18);opacity:.55}}',
+    '@keyframes inTap{50%{transform:translateY(4px)}}',
+    '@media (max-height:460px){#install .ix-sheet{padding:12px 16px 12px}' + P + '#install h2.sp-h{--sp-hs:22px;margin-bottom:6px}',
+    '#install .ix-intro{font-size:12.5px;line-height:1.38;margin-bottom:10px}#install .ix-steps{gap:12px 12px}#install .ix-steps li{padding:9px 8px 9px;gap:5px}',
+    '#install .ix-steps svg{max-height:34vh;max-width:92px}#install .ix-steps p{font-size:12px;line-height:1.3}#install .ix-n{width:28px;height:28px;font-size:14px}',
+    '#install .ix-acts{margin:8px -16px -12px;padding:8px 16px 12px;bottom:-12px}' + P + '#install .ix-acts .sp-btn{--sp-h:44px}}',
+    '@media (max-height:460px) and (min-aspect-ratio:5/4){#install .ix-steps{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}}',
+    '@media (max-height:360px) and (min-aspect-ratio:5/4){#install .ix-steps svg{max-height:21vh}' + P + '#install h2.sp-h{--sp-hs:20px}#install .ix-intro{font-size:12px;margin-bottom:8px}',
+    '#install .ix-steps p{font-size:11.5px}#install .ix-steps li{padding:7px 7px 8px}}',
+    '@media (max-width:460px){#install .ix-steps{grid-template-columns:repeat(2,minmax(0,1fr))}' + P + '#install h2.sp-h{--sp-hs:clamp(22px,7.4vw,30px)}#install .ix-steps svg{max-width:80px}}',
+    '.rm #install .ix-pulse,.rm #install .ix-tap{animation:none}',
+    '@media (prefers-reduced-motion:reduce){#install .ix-pulse,#install .ix-tap{animation:none}}'
+  ].join('');
   var root = null, lastFocus = null;
   function build() {
     if (root) return root;
@@ -141,12 +163,16 @@
   }
   function render() {
     var d = steps();
-    root.innerHTML = '<div class="ix-sheet"><button class="ix-x" data-in="close" aria-label="Cerrar">✕</button>' +
-      '<p class="ix-k">Para jugar mejor</p><h2 id="inTitle">Juega a pantalla completa</h2><p class="ix-intro">' + d.intro + '</p>' +
+    // (SPLAT) hoja .sp-panel; la ✕ (pegatina crema) fuera de la hoja; botones = manchas de pintura (js/splat.js las dibuja con decorate)
+    root.innerHTML = '<div class="ix-wrap"><div class="ix-sheet sp-panel">' +
+      '<p class="ix-k sp-k">Para jugar mejor</p><h2 class="sp-h" id="inTitle">Juega a pantalla completa</h2><p class="ix-intro">' + d.intro + '</p>' +
       '<ol class="ix-steps">' + d.s.map(function (s, i) {
         return '<li><span class="ix-n">' + (i + 1) + '</span>' + DRAW[s[0]] + '<p>' + s[1] + '</p></li>';
       }).join('') + '</ol>' +
-      '<div class="ix-acts"><button data-in="later">Ahora no</button><button class="pri" data-in="ok" id="inOk">Entendido</button></div></div>';
+      '<div class="ix-acts"><button class="sp-btn sp-cream sp-sm" data-shape="2" data-in="later"><span class="sp-t">Ahora no</span></button>' +
+      '<button class="sp-btn sp-kit pri" data-shape="3" data-in="ok" id="inOk"><span class="sp-t">Entendido</span></button></div></div>' +
+      '<button class="ix-x sp-btn sp-cream sp-sq" data-shape="1" data-in="close" aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
+    if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(root); } catch (e) { } }
     root.querySelectorAll('[data-in]').forEach(function (b) {
       b.addEventListener('click', function (e) {
         e.stopPropagation();
@@ -160,7 +186,7 @@
   // con el aviso nativo de Chrome disponible, «Entendido» pasa a «Instalar» (un toque y listo)
   function refreshBtn() {
     var b = root && root.querySelector('#inOk'); if (!b) return;
-    if (deferred && !inApp) { b.textContent = 'Instalar'; b.setAttribute('data-in', 'install'); }
+    if (deferred && !inApp) { var t = b.querySelector('.sp-t') || b; t.textContent = 'Instalar'; b.setAttribute('data-in', 'install'); }
   }
   function open() {
     build(); render();

@@ -225,3 +225,16 @@ Bucle cómodo para la matriz completa (6 tamaños × páginas): un `for` sobre `
 ## 8. Estado (17-nov-2026, etapa 1)
 Hechas con el sistema: portada (`?menu=old` = la de antes), Jugar y Partido rápido. El resto de pantallas siguen con la dirección TV
 y se pasan en la etapa 2 (reparto por ficheros en el informe de la etapa 1 y en notes/ui_main.md «SPLAT»).
+
+**Etapa 2 · Online, Cuenta, Instalar y varios (17-nov-2026).** `#mpOnline` es una `.sp-page` (cabecera fija con Volver); su CSS va en
+js/netlobby.js (`CSS`, con `P` = refuerzo de 3 ids): salas = `.sp-ticket` (turquesa en pista, `.sp-gold` en la playa; llena u otra versión
+= `disabled`), barra = manchas (`.ol-act.sp-btn`, una sola parada de ↑↓ con `data-skip` y ←→ propio de netlobby, NO `data-sp-row`),
+crear sala = selectores `.sp-opt` de Partido rápido + «Abrir sala» en `.sp-patch`, ayuda / sala de espera / avisos / teclado del mando =
+`.sp-panel`. Regla del lobby (bug del 17-nov): cada vista tiene UN bloque que se desplaza (`.ol-scroll`: cartelera, selectores, ayuda,
+tarjeta) y la barra de abajo (Entendido, Abrir sala, Salir) queda fuera, siempre a la vista. Capturas sin red: `?olmock=1` (o `empty`,
+`nortc`; solo file:// o localhost) y `VB.NetLobby._mock({view|msg|msgBad|status|rival…})`. Cuenta (js/account.js) e Instalar
+(js/install.js): una hoja `.sp-panel` opaca sobre un tinte leve, la ✕ en pegatina crema fuera de la hoja y la fila de botones pegada
+abajo (`position:sticky`); en apaisado bajo la Cuenta va a dos columnas. Capturas: `VB.Account._preview('enter'|'in'|'del', {tab, msg})`,
+`VB.Account._showConflicts([...])`, `VB.Install._as('ios'|'android'|'app')`. Previa (`#intro`), repetición (`#rpBug/#rpCap/#rpSkip`),
+telón (`#boot`) y el foco del campo de la Cuenta: bloque «SPLAT · CUENTA Y VARIOS» de index.html (rotaciones con la propiedad `rotate`
+para no pisar las entradas animadas de TV, que usan `transform`).

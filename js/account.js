@@ -442,42 +442,85 @@
   }
 
   // ---------------------------------------------------------------- panel y botón
-  var CSS = '#account{position:fixed;inset:0;z-index:190;display:flex;align-items:center;justify-content:center;padding:calc(10px + var(--st,0px)) calc(10px + var(--sr,0px)) calc(10px + var(--sbm,0px)) calc(10px + var(--sl,0px));background:rgba(12,8,24,.72);font-family:var(--ui,system-ui,sans-serif)}' +
-    '#account[hidden],#accToast[hidden]{display:none}' +
-    '#account .ac-sheet{position:relative;width:min(440px,100%);max-height:100%;overflow:auto;padding:18px 20px 16px;border-radius:18px;background:var(--tp,#2b2547);color:var(--fg,#f7f2ea);box-shadow:inset 0 0 0 2.5px var(--tk,#1d1530),5px 6px 0 var(--tk,#1d1530);text-align:left}' +
-    '#account h2{margin:0 44px 6px 0;font:900 28px/1 var(--display,sans-serif);letter-spacing:.03em;text-transform:uppercase}' +
-    '#account .ac-k{margin:0 0 4px;font:800 11px var(--display,sans-serif);letter-spacing:.3em;text-transform:uppercase;color:var(--gold,#ffd23f)}' +
-    '#account p{margin:0 0 10px;font-size:14px;line-height:1.4;color:var(--fg2,#dfe6ef)}' +
-    '#account .ac-tabs{display:flex;gap:6px;margin:4px 0 12px;padding:4px;border-radius:12px;background:rgba(0,0,0,.22)}' +
-    '#account .ac-tabs button{flex:1;min-height:40px;border:0;border-radius:9px;background:transparent;color:var(--fg2,#dfe6ef);font:800 15px var(--display,sans-serif);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}' +
-    '#account .ac-tabs button[aria-selected=true]{background:var(--gold,#ffd23f);color:var(--tk,#1d1530);box-shadow:0 0 0 2px var(--tk,#1d1530)}' +
-    '#account label{display:block;margin:0 0 4px;font:800 11px var(--display,sans-serif);letter-spacing:.24em;text-transform:uppercase;color:var(--gold,#ffd23f)}' +
-    '#account input{width:100%;box-sizing:border-box;height:46px;margin:0 0 10px;padding:0 12px;border:0;border-radius:11px;background:rgba(0,0,0,.3);color:#fff;font:600 17px var(--ui,system-ui,sans-serif);box-shadow:inset 0 0 0 2px rgba(255,255,255,.12)}' +
-    '#account input:focus{outline:none;box-shadow:inset 0 0 0 2.5px var(--gold,#ffd23f)}' +
-    '#account .ac-warn{padding:8px 10px;border-radius:10px;background:rgba(255,178,56,.12);box-shadow:inset 0 0 0 1.5px rgba(255,178,56,.4);font-size:13px}' +
-    '#account .ac-err{color:#ff9b8a;font-weight:700;min-height:1em}' +
-    '#account .ac-g{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:46px;margin:2px 0 8px;border:0;border-radius:12px;background:#fff;color:#1f1f1f;font:700 16px var(--ui,system-ui,sans-serif);cursor:pointer;box-shadow:inset 0 0 0 2px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530)}' +
-    '#account .ac-g:disabled{opacity:.6}' +
-    '#account .ac-or{display:flex;align-items:center;gap:10px;margin:4px 0 10px;font:800 11px var(--display,sans-serif);letter-spacing:.24em;text-transform:uppercase;color:var(--muted,#93a4b9)}' +
-    '#account .ac-or:before,#account .ac-or:after{content:"";flex:1;height:1.5px;background:rgba(255,255,255,.14)}' +
-    '#account .ac-link{display:block;margin:-4px 0 6px auto;padding:6px 2px;border:0;background:none;color:var(--gold,#ffd23f);font:700 13px var(--ui,system-ui,sans-serif);text-decoration:underline;cursor:pointer}' +
-    '#account .ac-acts{display:flex;flex-wrap:wrap;gap:10px;justify-content:flex-end;margin-top:6px}' +
-    '#account .ac-acts button,#account .ac-row button{min-height:44px;padding:0 16px;border:0;border-radius:12px;font:800 16px var(--display,sans-serif);letter-spacing:.06em;text-transform:uppercase;cursor:pointer;color:#fff;background:var(--tp2,#352d5c);box-shadow:inset 0 0 0 2px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530)}' +
-    '#account .pri{background:var(--pri,linear-gradient(180deg,#ff8040 0 50%,#f65d1d 50% 100%))!important}' +
-    '#account .dan{background:var(--bad-d,#a8283a)!important}' +
-    '#account .ac-x{position:absolute;top:10px;right:10px;width:44px;height:44px;border:0;border-radius:12px;background:transparent;color:var(--fg,#fff);font-size:26px;line-height:1;cursor:pointer}' +
-    '#account .ac-user{display:flex;align-items:center;gap:12px;margin:6px 0 12px;padding:10px 12px;border-radius:14px;background:rgba(0,0,0,.2)}' +
-    '#account .ac-av{display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:#1cc4b4;color:var(--tk,#1d1530);font:900 24px var(--display,sans-serif);box-shadow:0 0 0 2.5px var(--tk,#1d1530)}' +
-    '#account .ac-user b{display:block;font:900 20px var(--display,sans-serif);letter-spacing:.04em}' +
-    '#account .ac-user small{color:var(--muted,#93a4b9);font-size:13px}' +
-    '#account .ac-row{display:flex;flex-wrap:wrap;gap:10px;margin:8px 0}' +
-    '#account .ac-choice{display:grid;gap:10px;margin:8px 0}' +
-    '#account .ac-choice button{text-align:left;min-height:56px;padding:8px 14px;border:0;border-radius:12px;color:#fff;background:var(--tp2,#352d5c);box-shadow:inset 0 0 0 2px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530);font:600 14px var(--ui,system-ui,sans-serif);cursor:pointer}' +
-    '#account .ac-choice b{display:block;font:900 17px var(--display,sans-serif);letter-spacing:.05em;text-transform:uppercase;color:var(--gold,#ffd23f)}' +
-    '#btnAcc .ac-dot{width:9px;height:9px;border-radius:50%;background:var(--muted,#93a4b9);box-shadow:0 0 0 1.5px var(--tk,#1d1530)}' +
-    '#btnAcc.on .ac-dot{background:#1cc4b4}#btnAcc.busy .ac-dot{background:var(--gold,#ffd23f)}#btnAcc.err .ac-dot{background:#ff6a5a}#btnAcc:not(.on):not(.busy):not(.err) .ac-dot{display:none}' +
-    '@media (max-height:460px){#account .ac-sheet{padding:10px 16px 12px}#account h2{font-size:22px}#account .ac-intro{display:none}#account .ac-tabs{margin:2px 0 8px}#account .ac-tabs button{min-height:36px}#account input{height:40px;margin-bottom:6px}#account .ac-warn{font-size:12px;padding:6px 8px;margin-bottom:4px}}' +
-    '#accToast{position:fixed;left:50%;bottom:calc(18px + var(--sbm,0px));transform:translateX(-50%);z-index:195;max-width:calc(100% - 32px);padding:10px 16px;border-radius:12px;background:var(--tp,#2b2547);color:var(--fg,#fff);font:700 14px var(--ui,system-ui,sans-serif);box-shadow:inset 0 0 0 2px var(--tk,#1d1530),4px 5px 0 var(--tk,#1d1530);pointer-events:none}';
+  // SPLAT (17-nov-2026, notes/splat.md «Cuenta»): una hoja de pegatina (.sp-panel) sobre el partido, sin velo oscuro (un tinte leve para
+  // que se note que es un diálogo). Campos crema con contorno de tinta y aro dorado; pestañas en trazo de pincel; botones = manchas de
+  // pintura (.sp-btn); la ✕ es una pegatina fuera de la hoja y la fila de abajo (Entrar / Hecho) se queda pegada al borde: con poco alto
+  // la hoja se desplaza por dentro sin que se vayan. Teléfono apaisado bajo: dos columnas (título y Google | formulario).
+  var P = ':root:not(#_):not(#_):not(#_) ';
+  var CSS = [
+    '#account{position:fixed;inset:0;z-index:190;display:flex;align-items:center;justify-content:center;padding:calc(14px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(14px + var(--sbm,0px)) calc(14px + var(--sl,0px));',
+    'background:rgba(21,16,42,.34);font-family:var(--sp-ui,system-ui,sans-serif)}',
+    '#account[hidden],#accToast[hidden]{display:none}',
+    '#account .ac-wrap{position:relative;display:flex;width:min(460px,100%);max-height:100%;min-height:0}',
+    '#account .ac-sheet{flex:1 1 auto;min-width:0;max-height:100%;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:18px 22px 16px;text-align:left;',
+    'scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.5) transparent}',
+    P + '#account .ac-sheet{border-radius:18px 24px 20px 26px/22px 18px 26px 20px;background:#1b1534}',
+    '#account .ac-c1,#account .ac-c2{min-width:0}',
+    P + '#account .ac-k{margin:0 0 4px}',
+    P + '#account .ac-h{--sp-hs:clamp(24px,5.4vh,36px);margin:0 54px 12px 0;white-space:normal;line-height:1.02}',
+    '#account p{margin:0 0 12px;font:500 14px/1.45 var(--sp-ui);color:rgba(255,244,220,.9)}',
+    // pestañas Entrar | Crear cuenta (trazos de pincel)
+    '#account .ac-tabs{display:flex;gap:10px;margin:2px 0 14px}',
+    P + '#account .ac-tabs .sp-tab{flex:1 1 0;--sp-tbh:44px;--sp-tbs:clamp(12px,2.2vh,15px);white-space:nowrap;padding:0 8px}',
+    // campos
+    '#account label{display:block;margin:0 0 6px 2px;font:400 12px/1.1 var(--sp-pop);letter-spacing:.05em;text-transform:uppercase;color:var(--sp-gold)}',
+    '#account input{display:block;width:100%;box-sizing:border-box;height:48px;margin:0 0 14px;padding:0 14px;border:0;border-radius:11px 14px 11px 15px/14px 11px 15px 11px;background:var(--sp-cream);color:var(--sp-ink);',
+    'box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px #000;font:600 17px var(--sp-ui);outline:none;transition:box-shadow .12s}',
+    'body #account .ac-sheet input:focus{outline:none;box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5px var(--sp-gold),4px 6px 0 6.5px #000}',
+    '#account .ac-warn{padding:9px 12px;border-radius:10px 13px 10px 12px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px #000,inset 6px 0 0 var(--sp-gold);font:600 13px/1.4 var(--sp-ui)}',
+    '#account .ac-err{min-height:1em;margin:0 0 6px;color:#ffa3ad;font-weight:700}#account .ac-err:empty{margin:0}',
+    // Google: botón blanco (marca de Google) con el contorno y la sombra de pegatina
+    '#account .ac-g{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;min-height:48px;margin:0 0 12px;padding:0 14px;border:0;border-radius:12px 16px 12px 15px/15px 12px 16px 12px;',
+    'background:#fff;color:#1f1f1f;box-shadow:0 0 0 3px var(--sp-ink),4px 5px 0 3px #000;font:700 16px var(--sp-ui);letter-spacing:0;text-transform:none;cursor:pointer;transition:transform .12s var(--ease)}',
+    '#account .ac-g:hover{transform:translateY(-1px)}#account .ac-g:active{transform:translate(2px,3px);box-shadow:0 0 0 3px var(--sp-ink),1px 1px 0 3px #000}',
+    'body #account .ac-g:focus-visible{outline:none;box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5px var(--sp-gold),4px 6px 0 6.5px #000}',
+    '#account .ac-g:disabled{opacity:.6;cursor:default}',
+    '#account .ac-or{display:flex;align-items:center;gap:10px;margin:2px 0 12px;font:400 11px/1 var(--sp-pop);letter-spacing:.08em;text-transform:uppercase;color:rgba(255,244,220,.7)}',
+    '#account .ac-or:before,#account .ac-or:after{content:"";flex:1;border-top:2px dashed rgba(255,244,220,.22)}',
+    '#account .ac-link{display:block;min-height:44px;margin:-8px 0 0 auto;padding:0 2px;border:0;background:none;color:var(--sp-gold);font:700 13px var(--sp-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}',
+    'body #account .ac-link:focus-visible{outline:2.5px solid var(--sp-gold);outline-offset:2px;border-radius:6px}',
+    // acciones: manchas de pintura; la fila de abajo, pegada al borde de la hoja
+    '#account .ac-acts,#account .ac-row{display:flex;flex-wrap:wrap;gap:12px 14px;align-items:center}',
+    '#account .ac-acts{justify-content:flex-end;position:sticky;bottom:-16px;z-index:2;margin:8px -22px -16px;padding:12px 22px 16px;',
+    'background:linear-gradient(rgba(27,21,52,0),#1b1534 26%)}',
+    '#account .ac-row{margin:4px 0 6px}',
+    P + '#account .ac-sheet .sp-btn{--sp-h:48px;--sp-fs:clamp(12px,2.2vh,15px)}',
+    // ✕: pegatina redonda en la esquina, fuera de la hoja (no se va al desplazar)
+    P + '#account .ac-x{position:absolute;top:-12px;right:-12px;z-index:3;--sp-h:46px;--sp-px:0;width:46px}',
+    '#account .ac-x svg:not(.sp-blob){width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3.6;stroke-linecap:round}',
+    // tu cuenta: tarjeta crema con la inicial en pegatina de la equipación
+    '#account .ac-user{display:flex;align-items:center;gap:12px;margin:2px 4px 14px 0;padding:10px 14px;border-radius:14px 18px 12px 16px/16px 12px 18px 14px;background:var(--sp-cream);color:var(--sp-ink);',
+    'box-shadow:0 0 0 3px #000,4px 5px 0 3px #000;transform:rotate(-.6deg)}',
+    '#account .ac-av{flex:none;display:grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--sp-kit);color:var(--sp-kit-ink);text-shadow:var(--sp-kit-ts);',
+    'font:400 24px var(--sp-pop);box-shadow:0 0 0 3px var(--sp-ink),2px 3px 0 3px var(--sp-ink);transform:rotate(-6deg)}',
+    '#account .ac-user b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;max-width:100%;overflow:hidden;overflow-wrap:anywhere;font:400 clamp(15px,2.8vh,19px)/1.15 var(--sp-pop);letter-spacing:.01em;color:var(--sp-ink)}',
+    '#account .ac-user small{display:block;margin-top:2px;color:rgba(21,16,42,.72);font:600 13px/1.3 var(--sp-ui)}',
+    '#account .ac-user>span:last-child{min-width:0}',
+    // conflicto de Carreras: dos manchas grandes
+    '#account .ac-choice{display:flex;flex-direction:column;gap:14px;margin:6px 12px 10px 0}',
+    P + '#account .ac-choice .sp-btn{width:100%;justify-content:flex-start;white-space:normal;--sp-h:62px;padding:6px 18px}',
+    P + '#account .ac-choice .sp-s{white-space:normal}',
+    // aviso de abajo
+    '#accToast{position:fixed;left:50%;bottom:calc(18px + var(--sbm,0px));transform:translateX(-50%) rotate(-1deg);z-index:195;max-width:calc(100% - 32px);box-sizing:border-box;padding:10px 16px;',
+    'border-radius:12px 16px 11px 15px/15px 11px 16px 12px;background:var(--sp-cream,#fff4dc);color:var(--sp-ink,#15102a);font:700 14px/1.35 var(--sp-ui,system-ui,sans-serif);',
+    'box-shadow:0 0 0 3px var(--sp-ink,#15102a),4px 5px 0 3px var(--sp-ink,#15102a);pointer-events:none}',
+    '#btnAcc .ac-dot{width:9px;height:9px;border-radius:50%;background:var(--muted,#93a4b9);box-shadow:0 0 0 1.5px var(--tk,#1d1530)}',
+    '#btnAcc.on .ac-dot{background:#1cc4b4}#btnAcc.busy .ac-dot{background:var(--gold,#ffd23f)}#btnAcc.err .ac-dot{background:#ff6a5a}#btnAcc:not(.on):not(.busy):not(.err) .ac-dot{display:none}',
+    // poco alto: sin la frase de entrada, todo más prieto; y apaisado, dos columnas
+    '@media (max-height:520px){#account .ac-intro{display:none}#account .ac-sheet{padding:14px 18px 14px}#account .ac-acts{margin:6px -18px -14px;padding:10px 18px 14px;bottom:-14px}',
+    P + '#account .ac-h{--sp-hs:26px;margin-bottom:10px}#account .ac-tabs{margin-bottom:10px}#account input{height:44px;margin-bottom:10px}#account .ac-g{min-height:44px;margin-bottom:10px}',
+    '#account .ac-warn{font-size:12px;padding:6px 10px;margin-bottom:6px}' + P + '#account .ac-sheet .sp-btn{--sp-h:44px}}',
+    '@media (max-height:520px) and (min-aspect-ratio:5/4){#account .ac-wrap{width:min(760px,100%)}',
+    '#account .ac-sheet{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);column-gap:24px;align-items:start}',
+    '#account .ac-c2{grid-column:2;grid-row:1/span 2}#account .ac-acts{grid-column:1/-1}#account .ac-c2 .ac-acts{grid-column:auto}',
+    '#account .ac-sheet>.ac-acts{grid-column:1/-1}#account .ac-choice{margin-top:0}#account .ac-or{margin-bottom:6px}',
+    // (el formulario: «¿Has olvidado…?» a la izquierda de «Entrar» y el error encima; «Ahora no» sobra, la ✕ está siempre a la vista)
+    '#account .ac-c2 form{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}#account .ac-c2 form>*{grid-column:1/-1}',
+    '#account .ac-c2 form>.ac-link{grid-column:1;order:3;margin:0;text-align:left;line-height:1.25}#account .ac-c2 form>.ac-err{order:2}',
+    '#account .ac-c2 form>.ac-acts{grid-column:2;order:3;margin:4px -18px -14px 0;padding:8px 18px 14px 0}' + P + '#account .ac-c2 form [data-ac=close]{display:none}}',
+    '@media (max-height:360px) and (min-aspect-ratio:5/4){#account .ac-or{display:none}#account .ac-warn{font-size:11.5px;line-height:1.3;padding:5px 9px}#account input{height:42px}}',
+    '@media (prefers-reduced-motion:reduce){#account .ac-g,#account .ac-user{transition:none}}'
+  ].join('');
   var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null;
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   function build() {
@@ -509,38 +552,44 @@
       return bits.join(', ') || 'Carrera guardada';
     } catch (e) { return 'Carrera guardada'; }
   }
+  // SPLAT: piezas de los botones (mancha de pintura del sistema; js/splat.js les pone el dibujo con decorate)
+  function spb(a, label, cls, n, extra) {
+    return '<button type="' + (a === 'submit' ? 'submit' : 'button') + '" class="sp-btn ' + (cls || 'sp-ink') + '" data-shape="' + (n | 0) + '"' + (a === 'submit' ? '' : ' data-ac="' + a + '"') + (extra || '') + '><span class="sp-t">' + label + '</span></button>';
+  }
+  var XIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   function render() {
-    var h = '<div class="ac-sheet"><button class="ac-x" data-ac="close" aria-label="Cerrar"' + (busy || view === 'conflict' ? ' hidden' : '') + '>✕</button>';
+    var h = '<div class="ac-wrap"><div class="ac-sheet sp-panel">';
     if (view === 'conflict' && pending) {
       var cn = CONFLICT[pending.k] || 'Carrera';
-      h += '<p class="ac-k">Tu cuenta</p><h2 id="acTitle">¿Qué ' + esc(cn) + ' te quedas?</h2>' +
-        '<p>Tienes una ' + esc(cn) + ' en este dispositivo y otra distinta en tu cuenta. Elige con cuál seguir: la otra se perderá.</p>' +
-        '<div class="ac-choice"><button data-ac="keepRemote"><b>La de la cuenta</b>' + esc(careerInfo(pending.remote)) + '</button>' +
-        '<button data-ac="keepLocal"><b>La de este dispositivo</b>' + esc(careerInfo(pending.local)) + '</button></div>';
+      h += '<div class="ac-c1"><p class="ac-k sp-k">Tu cuenta</p><h2 class="ac-h sp-h" id="acTitle">¿Qué ' + esc(cn) + ' te quedas?</h2>' +
+        '<p>Tienes una ' + esc(cn) + ' en este dispositivo y otra distinta en tu cuenta. Elige con cuál seguir: la otra se perderá.</p></div>' +
+        '<div class="ac-c2"><div class="ac-choice"><button class="sp-btn sp-teal sp-wide" data-shape="0" data-ac="keepRemote"><span class="sp-l"><span class="sp-t">La de la cuenta</span><small class="sp-s">' + esc(careerInfo(pending.remote)) + '</small></span></button>' +
+        '<button class="sp-btn sp-alt sp-wide" data-shape="1" data-ac="keepLocal"><span class="sp-l"><span class="sp-t">La de este dispositivo</span><small class="sp-s">' + esc(careerInfo(pending.local)) + '</small></span></button></div></div>';
     } else if (acc) {
       var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Guardado en la nube ' + ago(lastSync);
-      h += '<p class="ac-k">Tu cuenta</p><h2 id="acTitle">Cuenta</h2>' +
-        '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small>' + esc(st) + '</small></span></div>' +
-        '<p>Tu progreso (jugadores, Carreras, perfil, Vestuario, récord y ajustes) se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
-        '<div class="ac-row"><button data-ac="sync">Sincronizar ahora</button><button data-ac="out">Cerrar sesión</button></div>' +
-        (view === 'del' ? '<p class="ac-warn">¿Seguro? Se borra la cuenta y lo guardado en ella, y no se puede deshacer. Lo de este dispositivo se queda.</p><div class="ac-acts"><button data-ac="cancel">No, volver</button><button class="dan" data-ac="delYes">Sí, borrar la cuenta</button></div>'
-          : '<div class="ac-acts"><button class="dan" data-ac="del">Borrar la cuenta</button><button class="pri" data-ac="close">Hecho</button></div>');
+      h += '<div class="ac-c1"><p class="ac-k sp-k">Tu cuenta</p><h2 class="ac-h sp-h" id="acTitle">Cuenta</h2>' +
+        '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small>' + esc(st) + '</small></span></div></div>' +
+        '<div class="ac-c2"><p>Tu progreso (jugadores, Carreras, perfil, Vestuario, récord y ajustes) se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
+        '<div class="ac-row">' + spb('sync', 'Sincronizar ahora', 'sp-teal', 0) + spb('out', 'Cerrar sesión', 'sp-cream', 1) + '</div>' +
+        (view === 'del' ? '<p class="ac-warn">¿Seguro? Se borra la cuenta y lo guardado en ella, y no se puede deshacer. Lo de este dispositivo se queda.</p><div class="ac-acts">' + spb('cancel', 'No, volver', 'sp-cream sp-sm', 2) + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger', 3) + '</div>'
+          : '<div class="ac-acts">' + spb('del', 'Borrar la cuenta', 'sp-danger sp-sm', 2) + spb('close', 'Hecho', 'sp-kit', 3) + '</div>') + '</div>';
     } else {
       var create = tab === 'new';
-      h += '<p class="ac-k">Guarda tu progreso</p><h2 id="acTitle">Cuenta</h2>' +
+      h += '<div class="ac-c1"><p class="ac-k sp-k">Guarda tu progreso</p><h2 class="ac-h sp-h" id="acTitle">Cuenta</h2>' +
         '<p class="ac-intro">Con una cuenta, tus jugadores, tu Carrera y tus ajustes se guardan en la nube y los tienes en cualquier dispositivo.</p>' +
-        '<div class="ac-tabs" role="tablist"><button role="tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
+        '<div class="ac-tabs" role="tablist"><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
         '<button type="button" class="ac-g" data-ac="google"' + (busy ? ' disabled' : '') + '><svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>' + (create ? 'Crear con Google' : 'Entrar con Google') + '</button>' +
-        '<p class="ac-or"><span>o con tu correo</span></p>' +
+        '</div><div class="ac-c2"><p class="ac-or"><span>o con tu correo</span></p>' +
         '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
         '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" required>' +
         (create ? '<p class="ac-warn">Con tu correo podrás recuperar la contraseña si la olvidas. Con un usuario (sin @) no: apúntala bien.</p>' : '<button type="button" class="ac-link" data-ac="forgot">¿Has olvidado la contraseña?</button>') +
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
-        '<div class="ac-acts"><button type="button" data-ac="close">Ahora no</button><button class="pri" type="submit"' + (busy ? ' disabled' : '') + '>' + (busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar') + '</button></div></form>';
+        '<div class="ac-acts">' + spb('close', 'Ahora no', 'sp-cream sp-sm', 2) + spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
     }
-    h += '</div>';
+    h += '</div><button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy || view === 'conflict' ? ' hidden' : '') + '>' + XIC + '</button></div>';
     var u = root.querySelector('#acUser'), keepU = u ? u.value : '', keepP = root.querySelector('#acPass') ? root.querySelector('#acPass').value : '';
     root.innerHTML = h;
+    if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(root); } catch (e) { } }
     if (root.querySelector('#acUser')) { root.querySelector('#acUser').value = keepU; root.querySelector('#acPass').value = keepP; }
     root.querySelectorAll('[data-ac]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); act(b.getAttribute('data-ac')); }); });
     var f = root.querySelector('#acForm');
@@ -667,6 +716,12 @@
     _pendingDown: function () { return pendingDown; }, _afterDown: afterDown, _MAX_RAW: MAX_RAW,
     _careerInfo: careerInfo, _lastErr: function () { return lastErr; },
     // capturas (tools/eval.js): pinta la cola de conflictos dada [{k, remote, local, at}] sin tocar la nube
+    _preview: function (v, o) {   // capturas: pinta una vista del panel (enter | in | del) con una cuenta de mentira, sin tocar la nube
+      o = o || {}; build(); var save = acc;
+      if (v === 'in' || v === 'del') acc = { user: o.user || 'ferran.sarmiento@correo.es', kind: o.kind || 'mail', uid: 'preview', rt: 'preview' };
+      view = v === 'del' ? 'del' : v === 'in' ? 'in' : 'enter'; tab = o.tab || 'in'; msg = o.msg || ''; busy = !!o.busy; lastSync = Date.now() - 120000;
+      render(); acc = save; busy = false; lastFocus = document.activeElement; root.hidden = false; return true;
+    },
     _showConflicts: function (list) { conflicts = (list || []).slice(); if (!conflicts.length) return false; build(); pending = conflicts[0]; pendRes = { remote: false, enter: null }; view = 'conflict'; render(); lastFocus = document.activeElement; root.hidden = false; return true; }
   };
 })();

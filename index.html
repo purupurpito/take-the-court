@@ -3701,6 +3701,136 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{max-width:100%}
 }
 /* ==== fin SPLAT · PARTIDO RÁPIDO ==== */
+/* =====================================================================
+   SPLAT · CUENTA Y VARIOS (etapa 2, 17-nov-2026; notes/splat.md «Cuenta y varios»). El lobby online (js/netlobby.js), la Cuenta
+   (js/account.js) y el aviso de instalar (js/install.js) llevan su CSS dentro de su módulo; aquí va lo que vive en index.html:
+   la previa del partido (#intro, encima de «TV B5»), los rótulos de la repetición (#rpBug/#rpCap/#rpSkip, encima de «TV C1»), el
+   telón de carga (#boot: solo lo visual, el mismo comportamiento) y el foco del campo de la Cuenta. Sin velos: el partido se ve.
+   Las rotaciones van con la propiedad «rotate» (no transform) para no pisar las entradas animadas de TV D5/B5, que usan transform.
+   ===================================================================== */
+/* ---- Cuenta: el foco del campo lo pone account.js (aro dorado); esto anula el ámbar de TV D7 por si el orden de carga cambia ---- */
+body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5px var(--sp-gold),4px 6px 0 6.5px #000}
+
+/* ---- Previa (#intro): rótulo de sede en trazo de tinta, cada equipo una pegatina de su color con contorno de tinta y sombra dura
+   (torcidas al revés), «VS» en sello dorado, la línea de datos en papel crema y la barra de tiempo en tinta con relleno dorado.
+   Beat B (rótulo inferior) y C (lo que está en juego) como pegatinas que entran con un salto corto ---- */
+#intro{background:none}
+#intro .in-card{width:min(760px,calc(100% - 40px));margin-top:-4vh;padding:0 6px}
+#intro .in-k{position:relative;isolation:isolate;gap:8px;width:max-content;max-width:100%;margin:0 auto 12px;padding:7px 20px 6px;border-radius:0;background:none;color:var(--sp-cream);
+  font:400 13px/1.1 var(--sp-pop);letter-spacing:.06em;text-transform:uppercase;text-shadow:none;rotate:-1.5deg}
+#intro .in-k::before{content:"";position:absolute;inset:0 -4px;z-index:-1;background:var(--sp-ink);-webkit-mask:var(--sp-brush) center/100% 100% no-repeat;mask:var(--sp-brush) center/100% 100% no-repeat}
+#intro .in-k svg{color:var(--sp-gold)}
+#intro .in-k>span{color:rgba(255,244,220,.82);letter-spacing:.06em}
+#intro .in-k>span::before{background:var(--sp-gold)}
+#intro .in-vs{gap:22px;margin:0 4px}
+#intro .in-t{min-height:112px;padding:14px 26px 16px;border-radius:18px 26px 16px 24px/22px 16px 26px 18px;clip-path:none;text-shadow:none}
+#intro .in-t.t0{background:var(--k0,#ff6a2e);box-shadow:0 0 0 4px var(--sp-ink),6px 8px 0 4px var(--sp-ink);rotate:-2deg}
+#intro .in-t.t1{margin-left:0;padding-left:26px;background:var(--k1,#2f7bff);box-shadow:0 0 0 4px var(--sp-ink),6px 8px 0 4px var(--sp-ink);rotate:1.6deg}
+#intro .in-t b{font:400 clamp(36px,7.2vh,62px)/1.02 var(--sp-pop);font-style:normal;letter-spacing:.01em;text-transform:uppercase;color:var(--sp-cream);
+  text-shadow:3px 0 0 var(--sp-ink),-3px 0 0 var(--sp-ink),0 3px 0 var(--sp-ink),0 -3px 0 var(--sp-ink),2px 2px 0 var(--sp-ink),-2px -2px 0 var(--sp-ink),2px -2px 0 var(--sp-ink),-2px 2px 0 var(--sp-ink),4px 5px 0 var(--sp-ink)}
+#intro .in-t.long .in-nm{font-size:clamp(22px,4vh,36px);line-height:1.05}
+#intro .in-t small{font:700 14px/1.25 var(--sp-ui);color:var(--sp-cream);text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+#intro .in-pt .pt,#intro .in-pt .fb{box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);border-radius:12px 15px 11px 14px}
+#intro .in-tr{padding:3px 8px;border-radius:7px 10px 7px 9px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:700 12px/1.25 var(--sp-ui);text-shadow:none;rotate:-2deg}
+#intro .in-tr.boss{background:var(--sp-gold)}
+#intro .in-pos{background:var(--sp-ink);color:var(--sp-gold);border-radius:6px 8px 6px 7px;font:400 12px/1.2 var(--sp-pop);letter-spacing:.04em}
+#intro .in-x{width:64px;height:64px;border-radius:50%;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 4px var(--sp-ink),4px 5px 0 4px var(--sp-ink);
+  font:400 26px/1 var(--sp-pop);display:flex;align-items:center;justify-content:center;text-shadow:none;letter-spacing:0;rotate:-10deg}
+#intro .in-meta{width:max-content;max-width:100%;box-sizing:border-box;margin:18px auto 0;padding:8px 16px 8px;border-radius:12px 16px 11px 15px/15px 11px 16px 12px;background:var(--sp-cream);color:var(--sp-ink);
+  box-shadow:0 0 0 3px var(--sp-ink),4px 5px 0 3px var(--sp-ink);font:700 15px/1.25 var(--sp-ui);text-shadow:none;rotate:-.6deg}
+#intro .in-chip{padding:3px 9px 3px;border-radius:7px 10px 7px 9px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:400 13px/1.1 var(--sp-pop);letter-spacing:.04em;rotate:-2deg}
+#intro .in-srv{color:#b8400f}
+#intro .in-skip{margin:12px 0 0;padding:0;background:none;color:var(--sp-cream);font:700 12.5px var(--sp-ui);text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+#intro .in-skip .key{border:0;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);text-shadow:none}
+#intro .in-bar{position:relative;left:auto;right:auto;bottom:auto;display:block;width:min(300px,60%);height:10px;margin:9px auto 4px;border-radius:6px;background:var(--sp-ink);
+  box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.25);overflow:hidden}
+#intro .in-bar b{background:var(--sp-gold);border-radius:6px}
+#intro .in-lt{padding:12px 0 0;background:none}
+#intro .in-lt>span{padding:5px 16px 5px;border-radius:10px 14px 9px 13px/13px 9px 14px 10px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);
+  font:700 14px/1.3 var(--sp-ui);clip-path:none;opacity:0;rotate:-1deg}
+#intro.b2 .in-lt>span{clip-path:none;opacity:1;animation:spLtIn .34s var(--ease) both}
+#intro .in-stake{margin-bottom:14px;padding:8px 26px 8px;border-radius:14px 20px 13px 18px/18px 13px 20px 14px;background:var(--sp-gold);color:var(--sp-ink);
+  box-shadow:0 0 0 4px var(--sp-ink),5px 6px 0 4px var(--sp-ink);clip-path:none;opacity:0;rotate:-2deg}
+#intro .in-stake b{font:400 28px/1.05 var(--sp-pop);font-style:normal;letter-spacing:.01em}
+#intro .in-stake small{font:700 14px/1.3 var(--sp-ui)}
+#intro .in-stake i{font:600 12px/1.3 var(--sp-ui)}
+#intro.b3 .in-stake{clip-path:none;opacity:1;animation:spStakeIn .4s var(--spring) both}
+@keyframes spLtIn{from{opacity:0;transform:translateX(-22px)}to{opacity:1;transform:none}}
+@keyframes spStakeIn{from{opacity:0;transform:translateX(-50%) scale(.6)}to{opacity:1;transform:translateX(-50%)}}
+#intro.show .in-x{animation:spVs .34s .42s var(--spring) both}
+@keyframes spVs{from{opacity:0;transform:translate(-50%,-50%) scale(1.8)}to{opacity:1;transform:translate(-50%,-50%)}}
+#intro.show .in-k,#intro.show .in-meta{animation:fadeUp .34s .32s var(--ease) both}
+.rm #intro.b2 .in-lt>span,.rm #intro.b3 .in-stake,.rm #intro.show .in-x,.rm #intro.show .in-k,.rm #intro.show .in-meta{animation:tvFade .15s linear both}
+/* Entrenamiento (#intro.drill): el ejercicio en una hoja de tinta */
+#intro.drill .in-drill{margin:0 auto;padding:14px 22px 14px;max-width:560px;box-sizing:border-box;border-radius:18px 24px 20px 26px/22px 18px 26px 20px;background:rgba(21,16,42,.94);
+  box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.14),6px 8px 0 var(--sp-ink)}
+#intro .in-drill h3{font:400 clamp(28px,6vh,44px)/1 var(--sp-pop);font-style:normal;color:var(--sp-cream);rotate:-2deg;
+  text-shadow:3px 0 0 var(--sp-ink),-3px 0 0 var(--sp-ink),0 3px 0 var(--sp-ink),0 -3px 0 var(--sp-ink),4px 5px 0 var(--sp-ink)}
+#intro .id-ses{font:400 12px var(--sp-pop);letter-spacing:.08em;color:var(--sp-gold)}
+#intro .id-goal{font-family:var(--sp-ui);color:rgba(255,244,220,.92)}
+#intro .id-keys{font-family:var(--sp-ui);color:rgba(255,244,220,.85)}
+#intro .id-med{font:400 14px/1 var(--sp-pop);letter-spacing:.03em;color:var(--sp-cream)}
+@media (max-height:420px){
+  #intro .in-card{margin-top:-2vh}
+  #intro .in-k{font-size:11px;padding:5px 14px 4px;margin-bottom:8px}
+  #intro .in-vs{gap:18px}
+  #intro .in-t{min-height:78px;padding:8px 20px 10px}
+  #intro .in-t.t1{padding-left:20px}
+  #intro .in-t b{font-size:clamp(28px,9vh,38px)}
+  #intro .in-t.long .in-nm{font-size:22px}
+  #intro .in-t small{font-size:12px}
+  #intro .in-x{width:46px;height:46px;font-size:19px}
+  #intro .in-meta{margin-top:12px;padding:5px 12px;font-size:13px}
+  #intro .in-chip{font-size:11.5px}
+  #intro .in-skip{margin-top:8px;font-size:11.5px}
+  #intro .in-bar{height:8px;margin-top:6px}
+  #intro .in-lt{padding-top:8px}#intro .in-lt>span{font-size:12px;padding:3px 12px}
+  #intro .in-stake{margin-bottom:10px;padding:5px 18px}#intro .in-stake b{font-size:20px}
+}
+@media (max-aspect-ratio:5/4){
+  #intro .in-vs{grid-template-columns:1fr;gap:42px}
+  #intro .in-t.t0,#intro .in-t.t1{padding:12px 18px 14px}
+  #intro .in-meta{flex-wrap:wrap;justify-content:center;width:auto}
+}
+
+/* ---- Repetición: mosca «REPETICIÓN» en pegatina dorada, rótulo inferior en trazo de tinta + papel crema, pista de saltar en
+   pegatina crema y «Salir» en mancha de tinta (44 px) ---- */
+#rpBug{padding:7px 12px 6px;border-radius:8px 11px 8px 10px/10px 8px 11px 8px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);
+  font:400 14px/1 var(--sp-pop);letter-spacing:.08em;rotate:-3deg}
+#rpCap .rp-hd{position:relative;isolation:isolate;margin:0 0 6px 2px;padding:6px 16px 5px 12px;background:none;color:var(--sp-cream);font:400 14px/1.15 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;rotate:-1.5deg}
+#rpCap .rp-hd::before{content:"";position:absolute;inset:0 -4px;z-index:-1;background:var(--sp-ink);-webkit-mask:var(--sp-brush) center/100% 100% no-repeat;mask:var(--sp-brush) center/100% 100% no-repeat}
+#rpCap .rp-pill{padding:2px 7px 2px;border-radius:6px 8px 6px 7px;background:var(--sp-gold);color:var(--sp-ink);font:400 11px/1.2 var(--sp-pop);letter-spacing:.03em}
+#rpCap .rp-ph{padding:8px 16px 2px 14px;border-radius:12px 16px 0 0;background:var(--sp-cream);color:var(--sp-ink);font:800 18px/1.25 var(--sp-ui);
+  box-shadow:3px 0 0 var(--sp-ink),-3px 0 0 var(--sp-ink),0 -3px 0 var(--sp-ink),3px -3px 0 var(--sp-ink),-3px -3px 0 var(--sp-ink)}
+#rpCap .rp-sub{padding:2px 16px 8px 14px;border-radius:0 0 14px 11px;background:var(--sp-cream);color:rgba(21,16,42,.72);font:700 13px/1.3 var(--sp-ui);
+  box-shadow:3px 0 0 var(--sp-ink),-3px 0 0 var(--sp-ink),0 3px 0 var(--sp-ink),3px 3px 0 var(--sp-ink),-3px 3px 0 var(--sp-ink),6px 7px 0 var(--sp-ink)}
+#rpCap .rp-ph:empty+.rp-sub{padding-top:7px;border-radius:12px 16px 14px 11px;box-shadow:0 0 0 3px var(--sp-ink),4px 5px 0 3px var(--sp-ink)}
+#rpCap.in .rp-hd,#rpCap.in .rp-ph,#rpCap.in .rp-sub{animation:spLtIn .34s var(--ease) both}
+#rpCap.in .rp-ph,#rpCap.in .rp-sub{animation-delay:.08s}
+.rm #rpCap.in .rp-hd,.rm #rpCap.in .rp-ph,.rm #rpCap.in .rp-sub{animation:tvFade .15s linear both}
+#rpSkipT{padding:8px 14px 7px;border:0;border-radius:12px 16px 11px 15px/15px 11px 16px 12px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);
+  font:400 13px/1 var(--sp-pop);letter-spacing:.05em}
+#rpSkipT .key{border:0;border-radius:6px 8px 6px 7px;background:var(--sp-ink);color:var(--sp-cream);box-shadow:none;text-shadow:none}
+#app #rpExit{min-height:44px;min-width:80px;padding:0 18px;border:0;border-radius:14px 20px 13px 18px/18px 13px 20px 14px;background:var(--sp-ink);color:var(--sp-cream);
+  box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),4px 6px 0 5.5px var(--sp-ink);font:400 14px/1 var(--sp-pop);letter-spacing:.06em;text-shadow:none;rotate:-2deg}
+#app #rpExit:is(:focus-visible,.kf){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
+#app #rpExit:active{translate:2px 3px}
+@media (max-height:420px){
+  #rpBug{font-size:12px;padding:5px 9px 4px}
+  #rpCap .rp-hd{font-size:12px;padding:4px 12px 3px 10px;margin-bottom:4px}
+  #rpCap .rp-ph{font-size:14.5px;padding:5px 12px 1px 11px}
+  #rpCap .rp-sub{font-size:11.5px;padding:1px 12px 5px 11px}
+  #rpSkipT{font-size:11.5px;padding:6px 11px 5px}
+}
+
+/* ---- Telón de carga (#boot): mismo comportamiento (logotipo que vuela al menú); fondo de tinta, barra de pegatina con filo crema y
+   relleno dorado a rayas, y el rótulo en Titan One con contorno ---- */
+#boot .bt-bg,.bt-bg.under{background:radial-gradient(120% 90% at 50% 40%,#3a2c78 0%,var(--sp-ink) 72%)}
+#boot .bt-bar{width:200px;height:14px;border-radius:9px;background:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-cream),0 0 0 6px var(--sp-ink),4px 6px 0 6px var(--sp-ink);rotate:-1.5deg}
+#boot .bt-bar i{width:42%;border-radius:9px;background:repeating-linear-gradient(-45deg,var(--sp-gold) 0 7px,#ffad1f 7px 14px)}
+#boot p{font:400 14px/1.1 var(--sp-pop);letter-spacing:.14em;color:var(--sp-cream);
+  text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),3px 3px 0 var(--sp-ink)}
+/* ==== fin SPLAT · CUENTA Y VARIOS ==== */
 </style>
 
 <div id="app">
@@ -3841,11 +3971,12 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
         <button class="mi primary sp-patch" id="btnGo"><span class="sp-l"><span class="sp-t">¡A jugar!</span><span class="mi-s sp-s" id="playSub"><span class="chip">Partido rápido</span></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
       </div>
     </div>
-    <!-- ONLINE (especialista net): lobby con la lista de salas, crear sala y sala de espera (js/netlobby.js pinta .ol-body; ui.js la abre) -->
-    <div class="mpage" id="mpOnline" data-page="online" hidden>
-      <div class="mp-head">
-        <button class="mp-back" id="btnOnlineBack" aria-label="Volver a los modos de juego"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><p class="kicker">Jugar</p><h2 class="mp-t">Online</h2></div>
+    <!-- ONLINE (especialista net): lobby con la lista de salas, crear sala y sala de espera (js/netlobby.js pinta .ol-body y su CSS; ui.js la abre).
+         Sistema SPLAT (notes/splat.md «Online»): cabecera fija con Volver y lo de dentro se desplaza solo, sin velo -->
+    <div class="mpage sp-page" id="mpOnline" data-page="online" data-sp-full hidden>
+      <div class="mp-head sp-head">
+        <button class="mp-back sp-back" id="btnOnlineBack" aria-label="Volver a los modos de juego" data-shape="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
+        <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Online</h2></div>
       </div>
       <div class="ol-body"></div>
     </div>
