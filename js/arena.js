@@ -831,10 +831,11 @@
     // UNA sola SkinnedMesh para TODOS los oficiales (ver finalizeOfficials): 1 dibujo y 1 textura de huesos por
     // frame. La bandera del juez de línea va en la piel, pegada al hueso del ANTEBRAZO derecho (la sujeta la manopla).
     if (o.flag) {
-      var FGB = new Builder(), dark = col('#2a2f38'), fy = col('#ffd23f'), fr = col('#e0262f'), hy = CH.hand - 0.305;
+      // bandera de VÓLEY: roja entera, cuadrada (regla 27: 40 × 40 cm; aquí a la escala del muñeco). Nada de cuadros rojos y
+      // amarillos, que es la del juez de línea de fútbol (Ferran, 17-nov-2026)
+      var FGB = new Builder(), dark = col('#2a2f38'), fr = col('#e0262f'), hy = CH.hand - 0.305;
       FGB.geo(new THREE.CylinderGeometry(0.011, 0.011, 0.5, 6), 0, -0.49 - hy, 0.02, dark);   // palo (mano -> abajo)
-      for (var fi2 = 0; fi2 < 4; fi2++) for (var fj = 0; fj < 4; fj++)                       // paño a cuadros, hacia fuera del cuerpo
-        FGB.box(0.085, 0.085, 0.006, -0.34 + (fi2 + 0.5) * 0.085, -0.42 - hy - (fj + 0.5) * 0.085, 0.02, (fi2 + fj) % 2 ? fy : fr);
+      FGB.box(0.34, 0.34, 0.006, -0.17, -0.42 - hy - 0.17, 0.02, fr);                         // paño rojo, hacia fuera del cuerpo
       parts.push({ g: FGB.build(), b: AR.ei });
       P.flag = true;
     }
