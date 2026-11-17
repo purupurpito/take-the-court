@@ -20,11 +20,17 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.5.5';
+  VB.VERSION = '1.5.6';
   VB.VERSION_DATE = '2026-11-17';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.5.6', d: '2026-11-17', t: 'Beta abierta',
+      items: [
+        'Make the Cut entra en beta abierta: gracias por probarlo y contarnos qué falla.'
+      ]
+    },
     {
       v: '1.5.5', d: '2026-11-17', t: 'Arreglos del online',
       items: [
