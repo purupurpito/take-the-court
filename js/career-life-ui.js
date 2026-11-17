@@ -22,6 +22,57 @@
   /** Pista: el nombre del puesto que llevas (Receptor, Colocador…), para el reto; '' en la playa. */
   function posName(c) { var H = C() && C().hall; if (!isHall(c) || !H || !H.ctrlRole || !H.POS) return ''; var p = H.POS[H.ctrlRole(c)]; return p ? p.name : ''; }
   function bar(p, col) { return '<span class="bar"><i style="width:' + Math.round(100 * Math.max(0, Math.min(1, p))) + '%' + (col ? ';background:' + col : '') + '"></i></span>'; }
+  // SPLAT (etapa 2, 17-nov-2026; notes/splat.md): el reto de la jornada en papel dorado (el duelo, con el rótulo rojo); las
+  // decisiones, manchas de colores que contrastan (career-ui splatify); cifras grandes en Titan One con contorno; logros en
+  // pegatinas con su sello dorado al conseguirlos; premios individuales, sellos dorados. Prefijo Q (3 ids de :root más #career).
+  var Q = ':root:not(#_):not(#_):not(#_) #career', KO = '1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)';
+  var STK = '0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink)';
+  var SPLAT_L = [
+    Q + ' .lf-big{font:400 clamp(28px,6vh,44px)/1 var(--sp-pop);color:var(--sp-gold);text-shadow:2.5px 0 0 var(--sp-ink),-2.5px 0 0 var(--sp-ink),0 2.5px 0 var(--sp-ink),0 -2.5px 0 var(--sp-ink),3px 4px 0 var(--sp-ink);transform:rotate(-2deg);transform-origin:0 60%;display:inline-block}',
+    Q + ' .lf-tier{font:800 12px var(--sp-ui);letter-spacing:.14em;color:rgba(255,244,220,.72)}',
+    Q + ' .lf-fm .bar,' + Q + ' .lf-a .bar,' + Q + ' .pbar .bar{background:rgba(8,5,20,.7);box-shadow:0 0 0 2px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.2)}',
+    Q + ' .lf-fm .bar i{background:linear-gradient(90deg,var(--sp-kit),var(--sp-gold))}',
+    // reto: papel dorado con tinta; el rótulo, pegatina de tinta
+    Q + ' .card.lf-ch{background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 2px rgba(255,255,255,.35),5px 7px 0 var(--sp-ink)}',
+    Q + ' .card.lf-ch>h3:first-child{background:var(--sp-ink);color:var(--sp-gold)}',
+    Q + ' .card.lf-ch.lf-duel>h3:first-child{background:var(--sp-danger);color:#fff6e4}',
+    Q + ' .card.lf-ch.lf-duel{background:linear-gradient(100deg,var(--sp-gold) 0 70%,#ffb43d 70%)}',
+    Q + ' .lf-ch p,' + Q + ' .lf-ch .muted,' + Q + ' .lf-ch .lf-bh{color:var(--sp-ink)}',
+    Q + ' .lf-ch .muted{opacity:.78}',
+    Q + ' .lf-ch b.goal{font:400 clamp(18px,3.4vh,24px)/1.1 var(--sp-pop);color:var(--sp-ink);letter-spacing:.01em}',
+    Q + ' .lf-ch .tag.y{background:var(--sp-cream)}',
+    // decisiones: la pregunta legible y las manchas con su efecto (▲ ▼) en la línea pequeña
+    Q + ' .lf-ev p.q{font:600 clamp(14px,2.2vh,16px)/1.35 var(--sp-ui);color:var(--sp-cream)}',
+    Q + ' .lf-ev .sp-btn .lf-up,' + Q + ' .lf-ev .sp-btn .lf-dn{color:inherit}',
+    Q + ' .lf-up{color:#8fe36e}',
+    Q + ' .lf-dn{color:#ff8a98}',
+    // filas (patrocinio, material, servicios, vestuario, celebración): separadas con trazo discontinuo
+    Q + ' .lf-item{border-top:2px dashed rgba(255,244,220,.14);padding:9px 0}',
+    Q + ' .lf-item b{font:400 15px/1.15 var(--sp-pop);letter-spacing:.01em}',
+    Q + ' .lf-item small{color:rgba(255,244,220,.72);font:600 12.5px/1.3 var(--sp-ui)}',
+    Q + ' .lf-item .sp-btn{min-width:120px}',
+    Q + ' .lf-pips i{background:rgba(255,244,220,.18);box-shadow:0 0 0 2px var(--sp-ink)}',
+    Q + ' .lf-pips i.on{background:var(--sp-gold)}',
+    Q + ' .lf-stars{color:var(--sp-gold)}',
+    Q + ' .lf-bh{color:rgba(255,244,220,.9)}',
+    // logros: pegatinas de formas distintas; conseguidos, con filo dorado y su sello
+    Q + ' .lf-ach{gap:10px}',
+    Q + ' .lf-a{position:relative;background:rgba(255,244,220,.07);border-radius:12px 16px 13px 18px/16px 12px 18px 13px;padding:9px 12px}',
+    Q + ' .lf-a:nth-child(3n+2){border-radius:16px 12px 18px 13px/12px 16px 13px 18px;background:rgba(255,244,220,.1)}',
+    Q + ' .lf-a.done{background:rgba(255,203,61,.13);box-shadow:inset 0 0 0 2.5px var(--sp-gold);padding-right:48px}',
+    Q + ' .lf-a b{font:400 14px/1.15 var(--sp-pop);letter-spacing:.01em}',
+    Q + ' .lf-a small{color:rgba(255,244,220,.75)}',
+    Q + ' .lf-a em{color:var(--sp-gold)}',
+    Q + ' .lf-a .bar i{background:var(--sp-gold)}',
+    Q + ' .lf-st{position:absolute;right:8px;top:8px;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--sp-gold);color:var(--sp-ink);font:400 16px/1 var(--sp-pop);font-style:normal;box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 3px var(--sp-gold),inset 0 0 0 4.5px rgba(21,16,42,.4),2px 3px 0 2.5px var(--sp-ink);transform:rotate(-12deg)}',
+    // premios individuales: sellos dorados en fila
+    Q + ' .lf-aws{display:flex;flex-wrap:wrap;gap:12px 18px;margin:6px 0 2px}',
+    Q + ' .lf-aw{display:flex;align-items:center;gap:10px;min-width:0}',
+    Q + ' .lf-aw .lf-st{position:relative;right:auto;top:auto;flex:none;width:46px;height:46px;font-size:20px}',
+    Q + ' .lf-aw:nth-child(even) .lf-st{transform:rotate(9deg)}',
+    Q + ' .lf-aw b{display:block;font:400 15px/1.1 var(--sp-pop);color:var(--sp-cream)}',
+    Q + ' .lf-aw small{display:block;font:600 12px var(--sp-ui);color:rgba(255,244,220,.72)}'
+  ];
   var CSS = [
     '#career .lf-big{font:900 30px var(--display);letter-spacing:.02em;margin:0;line-height:1.05;color:#ffd23f;text-shadow:var(--ring1)}',
     '#career .lf-tier{font:800 13px var(--display);letter-spacing:.14em;text-transform:uppercase;color:#b9b0e6}',
@@ -48,7 +99,7 @@
     // jefe del circuito (S3 C3): tarjeta normal; la pista en frase plana (var(--ui), minúscula de frase)
     '#career .lf-bh{font:600 14px var(--ui);margin:6px 0 4px;color:#e9e4ff}',
     '#career .lf-stars{margin-left:6px;font:700 13px var(--ui);letter-spacing:.06em;color:#ffd23f;white-space:nowrap}#career .lf-stars .off{color:rgba(255,255,255,.22)}'
-  ].join('\n');
+  ].concat(SPLAT_L).join('\n');
   function css() { if (document.getElementById('careerLifeCss')) return; var s = document.createElement('style'); s.id = 'careerLifeCss'; s.textContent = CSS; document.head.appendChild(s); }
   function arrow(h) { return h.map(function (x) { return '<span class="' + (x[1] ? 'lf-up' : 'lf-dn') + '">' + esc(x[0]) + ' ' + (x[1] ? '▲' : '▼') + '</span>'; }).join(' '); }
 
@@ -207,7 +258,7 @@
     return '<div class="card"><h3>' + sp(['Logros', done + ' de ' + a.length], 'd') + '</h3><p class="muted">Cada logro da su premio una sola vez: puntos de mejora, seguidores o dinero.</p><div class="lf-ach">' +
       a.map(function (x) {
         var v = x.dec ? String(x.v).replace('.', ',') : num(x.v);
-        return '<div class="lf-a' + (x.done ? ' done' : '') + '"><b>' + (x.done ? '✓ ' : '') + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' + (x.done ? '' : bar(x.v / x.n) + '<small style="margin:3px 0 0">' + (x.pt ? esc(x.pt) : v + ' de ' + (x.dec ? String(x.n).replace('.', ',') : num(x.n))) + '</small>') + '<em>' + esc(x.reward) + '</em></div>';
+        return '<div class="lf-a' + (x.done ? ' done' : '') + '">' + (x.done ? '<i class="lf-st" role="img" aria-label="Conseguido">✓</i>' : '') + '<b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' + (x.done ? '' : bar(x.v / x.n) + '<small style="margin:3px 0 0">' + (x.pt ? esc(x.pt) : v + ' de ' + (x.dec ? String(x.n).replace('.', ',') : num(x.n))) + '</small>') + '<em>' + esc(x.reward) + '</em></div>';
       }).join('') + '</div></div>';
   }
   function legacy(c) {
@@ -215,7 +266,7 @@
     h += '<div class="card lf-fm"><h3>Legado</h3><p class="lf-big">' + sc + '</p><p class="lf-tier">' + esc(t.name) + '</p>' +
       (t.next ? bar((sc) / t.next[0]) + '<p class="muted" style="margin:0">' + sp(['Siguiente: ' + esc(t.next[1]), 'a ' + t.next[0] + ' puntos'], 'v') + '</p>' : '') +
       '<p class="muted">Suman los títulos (más cuanto más alta la categoría), los premios individuales, la fama, las victorias y los logros.</p></div>';
-    h += '<div class="card"><h3>Premios individuales</h3>' + (l.awards.length ? l.awards.slice().reverse().map(function (a) { return '<p><span class="tag y">' + esc(a.name) + '</span> ' + sp(['T' + a.season, esc(a.club)], 'v') + '</p>'; }).join('')
+    h += '<div class="card"><h3>Premios individuales</h3>' + (l.awards.length ? '<div class="lf-aws">' + l.awards.slice().reverse().map(function (a) { return '<div class="lf-aw"><i class="lf-st" aria-hidden="true">★</i><span><b>' + esc(a.name) + '</b><small>' + sp(['T' + a.season, esc(a.club)], 'v') + '</small></span></div>'; }).join('') + '</div>'
       : '<p class="muted">Aún ninguno. Al final de cada temporada se entregan: MVP, máximo anotador, mejor sacador, muro del año, mejor defensa' + (isHall(c) ? ', mejor colocador' : '') + ' y revelación. Hay que jugar los partidos: simulando no te ve nadie.</p>') + '</div>';
     h += '<div class="card"><h3>' + sp(['Retirada', age + ' años'], 'd') + '</h3>';
     if (Lf().canRetire(c)) {

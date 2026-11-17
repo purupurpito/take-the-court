@@ -648,6 +648,307 @@
     '@media (max-height:380px){#end.career:not(.trial) .end-rt .dn{display:none}}'
   ].join('\n');
 
+  // =================================================================== SPLAT · CARRERA (etapa 2, 17-nov-2026; notes/splat.md)
+  // Sin velo: el escenario de la Carrera (playa o pabellón) se ve detrás. Las listas y textos largos, en hojas de tinta (.card con
+  // la silueta de .sp-panel, cada una con su esquina distinta y su rótulo-pegatina torcido de un color); el próximo partido, en
+  // brochazo turquesa con los escudos en pegatina (.sp-ticket); «Jugar partido» y las acciones principales, en parche cosido; el
+  // resto, en manchas de pintura (splatify); pestañas en trazos de pincel (la sub-pestaña elegida, del color de tu club); tu media
+  // y el puesto final, en sellos dorados. REFUERZO: prefijo Q (3 ids de :root más #career) = gana a las reglas viejas de index.html
+  // (#app #career …, 2 ids) y a las de estructura del sistema (3 ids) cuando hace falta retocarlas aquí.
+  var Q = ':root:not(#_):not(#_):not(#_) #career', QT = ':root:not(#_):not(#_):not(#_) .is-touch #career';
+  var KO = '1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)';   // contorno fino de tinta
+  var HO = '2.5px 0 0 var(--sp-ink),-2.5px 0 0 var(--sp-ink),0 2.5px 0 var(--sp-ink),0 -2.5px 0 var(--sp-ink),2px 2px 0 var(--sp-ink),-2px -2px 0 var(--sp-ink),2px -2px 0 var(--sp-ink),-2px 2px 0 var(--sp-ink),3px 4px 0 var(--sp-ink)';
+  var STK = '0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink)', FOC = '0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold),3px 4px 0 5.5px var(--sp-ink)';
+  var BR = '-webkit-mask:var(--sp-brush) center/100% 100% no-repeat;mask:var(--sp-brush) center/100% 100% no-repeat';
+  var NB = ':where(:not(.sp-btn,.sp-patch,.sp-back,.tab,.tb-k,.cw-tl-b))';   // botones que no son del sistema (especificidad 0)
+  var SPLAT_CSS = [
+    // contenedor sin velo; el contenido deja sitio arriba a los rótulos-pegatina y a las sombras duras
+    Q + '{background:none;font-family:var(--sp-ui);color:var(--sp-cream)}',
+    Q + ' .cr-body{padding:16px 12px 30px 6px}',
+    Q + ' p{color:rgba(255,244,220,.92)}',
+    Q + ' .muted{color:rgba(255,244,220,.72);font-family:var(--sp-ui)}',
+    // cabecera: Volver (mancha de tinta), retrato en pegatina, nombre en Titan One con contorno, escudo en pegatina redonda y tu media en sello
+    Q + ' .cr-head{gap:clamp(8px,1.6vh,14px);padding:2px 2px 0}',
+    Q + ' .cr-head .pt.cr-pt{width:clamp(40px,7vh,52px);height:clamp(40px,7vh,52px);border-radius:14px 11px 15px 12px;transform:rotate(-5deg);box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),3px 4px 0 5.5px var(--sp-ink)}',
+    Q + ' .cr-title small{font:800 clamp(10px,1.7vh,13px)/1.2 var(--sp-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--sp-gold);text-shadow:' + KO + '}',
+    Q + ' .cr-title b{font:400 clamp(19px,4.4vh,34px)/1.12 var(--sp-pop);letter-spacing:.01em;color:var(--sp-cream);text-shadow:' + HO + ';transform:rotate(-1.6deg);transform-origin:0 60%;padding:2px 6px 5px 3px}',
+    Q + ' .cr-title b .sep{color:var(--sp-gold)}',
+    Q + ' .cr-hcr{--sp-cs:clamp(40px,7.6vh,58px);transform:rotate(7deg);padding:4px}',
+    Q + ' .cr-ovr{--sp-stamp:clamp(56px,10.6vh,84px);cursor:default;transform:rotate(-10deg);margin:2px 4px 4px 2px}',
+    Q + ' .cr-ovr:hover{transform:rotate(-6deg) scale(1.04)}',
+    Q + ' .cr-ovr .sp-sc b{font:400 calc(var(--sp-stamp) * .3)/1 var(--sp-pop);letter-spacing:0;color:var(--sp-gold)}',
+    // pestañas: trazos de pincel (VB.UI.tabs con .sp-tabs); la sub-pestaña elegida, del color de tu club
+    Q + ' .cr-tabs{padding:4px 2px 6px}',
+    Q + ' #crTabs .tab{--sp-tbh:clamp(40px,7.2vh,54px);--sp-tbs:clamp(12px,2.2vh,17px);flex:1 0 auto}',
+    Q + ' #crSub .tab{--sp-tbh:38px;--sp-tbs:clamp(11px,1.9vh,14px);flex:0 0 auto;min-width:0}',
+    QT + ' #crSub .tab{--sp-tbh:44px}',
+    Q + ' #crSub .tb-row{background:none;box-shadow:none;padding:2px 4px}',
+    Q + ' #crSub .tab:not(.on):not(.kf):not(:focus-visible)::before{opacity:.5}',
+    Q + ' #crSub .tab:is(.on,[aria-selected="true"]){color:var(--sp-kit-ink);text-shadow:var(--sp-kit-ts)}',
+    Q + ' #crSub .tab:is(.on,[aria-selected="true"])::before{background:var(--sp-kit)}',
+    Q + ' .tabs .tb-k{min-height:0;height:30px;min-width:32px;padding:0 7px;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);font:800 12px/1 var(--sp-ui);text-shadow:none}',
+    Q + ' .tabs .tb-k:empty,' + Q + ' .tabs.tb-touch .tb-k{display:none}',
+    Q + ' .tabs .dot{background:#ff3b5c;box-shadow:0 0 0 2px var(--sp-ink);width:10px;height:10px}',
+    // hojas de tinta (la silueta de .sp-panel) con su rótulo-pegatina torcido; cada una con su esquina y su color de rótulo
+    Q + ' .card{position:relative;background:rgba(21,16,42,.93);color:var(--sp-cream);border-radius:18px 24px 20px 26px/22px 18px 26px 20px;box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.13),5px 7px 0 var(--sp-ink);padding:14px 16px 12px;margin:0 0 22px}',
+    Q + ' .card:nth-child(3n+2){border-radius:24px 16px 26px 18px/18px 26px 20px 24px}',
+    Q + ' .card:nth-child(3n){border-radius:16px 26px 18px 22px/26px 20px 24px 18px}',
+    Q + ' .card>h3:first-child{display:inline-flex;align-items:center;flex-wrap:wrap;gap:4px 6px;max-width:100%;margin:-25px 0 8px -8px;padding:4px 10px 5px;border-radius:7px 11px 8px 12px/9px 8px 11px 7px;background:var(--sp-gold);color:var(--sp-ink);' +
+      'box-shadow:0 0 0 2.5px var(--sp-ink),3px 3px 0 2.5px var(--sp-ink);font:400 clamp(12px,2vh,15px)/1.15 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;text-shadow:none;transform:rotate(-2deg);transform-origin:0 100%}',
+    Q + ' .card:nth-child(4n+2)>h3:first-child{background:var(--sp-teal);transform:rotate(1.4deg)}',
+    Q + ' .card:nth-child(4n+3)>h3:first-child{background:var(--sp-cream);transform:rotate(-1deg)}',
+    Q + ' .card:nth-child(4n)>h3:first-child{background:var(--sp-alt);transform:rotate(1.8deg)}',
+    Q + ' .card>h3:first-child .muted{color:inherit;opacity:.72;font:inherit}',
+    Q + ' .card>h3:first-child .tag{transform:none;margin:0}',
+    Q + ' h3{font:400 clamp(12px,2vh,15px)/1.15 var(--sp-pop);letter-spacing:.04em;color:var(--sp-gold);text-shadow:none}',
+    Q + ' .card.confirm,' + Q + ' .confirm{background:rgba(70,14,32,.94);box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 2.5px var(--sp-danger),5px 7px 0 var(--sp-ink);border-radius:14px 20px 16px 18px}',
+    Q + ' .confirm{padding:10px 12px}',
+    // próximo partido: brochazo (no se pulsa), parche + Simular y la hoja de detalles
+    Q + ' .cr-next{margin:4px 0 24px}',
+    Q + ' .cr-tk{--sp-h:clamp(66px,15vh,116px);--sp-cs:clamp(34px,7.2vh,60px);--sp-tilt:-.8deg;cursor:default;margin:0 0 14px}',
+    Q + ' .cr-tk:hover{transform:rotate(var(--sp-tilt))}',
+    Q + ' .cr-tk .sp-tk-stub{gap:4px;padding-left:calc(3.5% + 12px)}',
+    Q + ' .cr-tk .sp-tk-main{padding:6px 22px 10px 10px;gap:2px}',
+    Q + ' .cr-tk .sp-k{display:flex;align-items:center;flex-wrap:wrap;gap:2px 6px}',
+    Q + ' .cr-tk .sp-k .sp-chip{font-size:11px;padding:1px 7px}',
+    Q + ' .cr-tk .sp-t{font-size:clamp(16px,3.6vh,30px)}',
+    Q + ' .cr-tk .sp-s{font-size:clamp(11px,1.75vh,14px)}',
+    Q + ' .cr-tk .sp-s+.sp-s{opacity:.72}',
+    Q + ' .cr-go{display:flex;align-items:center;gap:clamp(10px,2vh,16px);margin:0 0 16px;flex-wrap:nowrap}',
+    Q + ' .cr-go .sp-patch{flex:1.7 1 0;--sp-ph:clamp(52px,11vh,86px)}',
+    Q + ' .cr-go .sp-btn{flex:1 1 0;min-width:0}',
+    Q + ' .cr-nd{padding:10px 14px 8px;margin-bottom:0}',
+    Q + ' .cr-nd p{margin:3px 0}',
+    Q + ' .bench{margin:0 0 12px;padding:8px 12px;border-radius:12px 18px 14px 16px/16px 12px 18px 14px;background:var(--sp-cream);box-shadow:0 0 0 3px var(--sp-ink),4px 5px 0 var(--sp-ink);transform:rotate(.4deg)}',
+    Q + ' .bench p{color:var(--sp-ink)}',
+    Q + ' .cr-st6{margin:0 0 4px;font:700 clamp(13px,2vh,15px)/1.3 var(--sp-ui);color:var(--sp-cream)}',
+    // acciones: parche (una por pantalla) y manchas; filas de acciones con aire para las gotas
+    Q + ' .acts{gap:clamp(10px,1.8vh,14px);margin-top:14px}',
+    Q + ' .acts>.sp-patch{flex:1 1 260px;width:auto;max-width:560px;--sp-ph:clamp(52px,10vh,80px)}',
+    Q + ' .acts>.sp-btn,' + Q + ' .pick-acts>.sp-btn,' + Q + ' .pl-acts>.sp-btn{flex:1 1 170px;max-width:420px}',
+    Q + ' .sp-btn.sp-wrap{white-space:normal;text-align:left;--sp-py:8px}',
+    Q + ' .sp-btn.sp-wrap .sp-t{white-space:normal;overflow:visible;line-height:1.08}',
+    Q + ' .sp-btn.sp-wrap .sp-s{white-space:normal}',
+    Q + ' .sp-btn.sp-off>.sp-blob{filter:grayscale(.7) brightness(.8) drop-shadow(var(--sp-sh))}',
+    // segmentados y filtros (duración, puesto, dificultad, circuito, país…): trazos de pincel; el elegido, dorado
+    Q + ' :is(.seg,.lg-sw,.cw-opt){gap:6px 4px}',
+    Q + ' #crBody>.card>.lg-sw{background:none;padding:0;width:auto;margin-bottom:8px}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button{position:relative;isolation:isolate;min-height:44px;min-width:0;padding:0 14px;border:0;border-radius:0;background:none;box-shadow:none;color:var(--sp-cream);transform:none;' +
+      'font:400 clamp(12px,2vh,15px)/1.05 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;text-shadow:2px 2px 0 var(--sp-ink)}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button::before{content:"";position:absolute;inset:4px -2px;z-index:-1;background:rgba(255,244,220,.17);' + BR + ';transition:background .12s}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button:hover::before{background:rgba(255,244,220,.28)}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button[aria-pressed="true"]{color:var(--sp-ink);text-shadow:none;transform:rotate(-1.5deg);filter:drop-shadow(2px 0 0 var(--sp-ink)) drop-shadow(-2px 0 0 var(--sp-ink)) drop-shadow(0 2px 0 var(--sp-ink)) drop-shadow(0 -2px 0 var(--sp-ink)) drop-shadow(2px 3px 0 var(--sp-ink))}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button[aria-pressed="true"]::before{background:var(--sp-gold)}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button:is(.kf,:focus-visible){outline:none;box-shadow:none;transform:rotate(-1.5deg) scale(1.05);filter:drop-shadow(3px 0 0 var(--sp-gold)) drop-shadow(-3px 0 0 var(--sp-gold)) drop-shadow(0 3px 0 var(--sp-gold)) drop-shadow(0 -3px 0 var(--sp-gold))}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button:is(.kf,:focus-visible)::before{background:rgba(255,244,220,.32)}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button[aria-pressed="true"]:is(.kf,:focus-visible)::before{background:var(--sp-gold)}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button:disabled{opacity:.45}',
+    Q + ' :is(.seg,.lg-sw,.cw-opt) button small{font:600 11px var(--sp-ui)!important;text-transform:none;letter-spacing:0}',
+    // botones que no son de acción (rótulos-pegatina sueltos): tinta clara con contorno y sombra dura; foco con aro dorado
+    Q + ' button' + NB + '{background:var(--sp-ink2);color:var(--sp-cream);border-radius:12px 16px 13px 15px/14px 12px 16px 13px;box-shadow:' + STK + ';text-shadow:none;' +
+      'font:400 clamp(13px,2vh,16px)/1.1 var(--sp-pop);letter-spacing:.02em;transform:none}',
+    Q + ' button' + NB + ':hover{background:#3a2f72}',
+    Q + ' button' + NB + ':is(.kf,:focus-visible){outline:none;box-shadow:' + FOC + ';transform:scale(1.02)}',
+    Q + ' button' + NB + ':disabled{opacity:.5}',
+    // elecciones con texto (rol, puesto, dificultad al crear; enfoque del plan; ejercicios): pegatinas; la elegida, dorada y torcida
+    Q + ' :is(.roles,.tgrid,.pl-focus) button{background:rgba(255,244,220,.1);border-radius:14px 20px 16px 22px/18px 14px 22px 16px}',
+    Q + ' :is(.roles,.tgrid,.pl-focus) button:nth-child(even){border-radius:20px 14px 22px 16px/14px 20px 16px 22px}',
+    Q + ' :is(.roles,.tgrid,.pl-focus) button[aria-pressed="true"]{background:var(--sp-gold);color:var(--sp-ink);transform:rotate(-1deg)}',
+    Q + ' :is(.roles,.tgrid,.pl-focus) button[aria-pressed="true"]:is(.kf,:focus-visible){transform:rotate(-1deg) scale(1.02)}',
+    Q + ' :is(.roles,.tgrid) button small{font:600 12.5px/1.25 var(--sp-ui);text-transform:none;letter-spacing:0;opacity:.85}',
+    Q + ' .pl-focus button small{font:800 9.5px var(--sp-ui);letter-spacing:.06em;color:var(--sp-gold);text-shadow:none}',
+    Q + ' .pl-focus button[aria-pressed="true"] small{color:var(--sp-ink)}',
+    // insignias: pegatinas; la equipada, dorada con su sello «equipada»
+    Q + ' .bdg{gap:10px}',
+    Q + ' .bd{background:rgba(255,244,220,.08);text-transform:none;font:600 13px/1.25 var(--sp-ui)}',
+    Q + ' .bd:nth-child(3n+1){border-radius:16px 22px 14px 20px/20px 14px 22px 16px}',
+    Q + ' .bd .ic{background:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-cream),0 0 0 4px var(--sp-ink)}',
+    Q + ' .bd strong{font:400 15px var(--sp-pop);letter-spacing:.02em}',
+    Q + ' .bd[aria-pressed="true"]{background:var(--sp-gold);color:var(--sp-ink);text-shadow:none;transform:rotate(-.8deg)}',
+    Q + ' .bd[aria-pressed="true"] span{color:var(--sp-ink)!important}',
+    Q + ' .bd[aria-pressed="true"] strong::after{background:var(--sp-ink);color:var(--sp-gold);box-shadow:none;border-radius:6px 9px 7px 8px}',
+    Q + ' .bd .pg{background:rgba(21,16,42,.6);box-shadow:0 0 0 1.5px rgba(255,244,220,.2)}',
+    // etiquetas: pegatinas pequeñas (crema, oro, verde, peligro), un poco torcidas
+    Q + ' .tag{display:inline-flex;align-items:center;margin:3px 7px 3px 0;padding:3px 8px;border-radius:7px 11px 8px 12px/9px 8px 11px 7px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);' +
+      'font:700 12px/1.2 var(--sp-ui);letter-spacing:0;text-transform:none;text-shadow:none;transform:rotate(-1.5deg)}',
+    Q + ' .tag:nth-child(even){transform:rotate(1.2deg)}',
+    Q + ' .tag.y{background:var(--sp-gold);color:var(--sp-ink)}',
+    Q + ' .tag.g{background:#8fe36e;color:var(--sp-ink)}',
+    Q + ' .tag.r{background:var(--sp-danger);color:#fff6e4}',
+    Q + ' .chip{background:rgba(255,244,220,.12);color:var(--sp-cream);box-shadow:inset 0 0 0 1.5px rgba(255,244,220,.22);font-family:var(--sp-ui)}',
+    Q + ' .chip.dv.g{background:#2f8f5a;color:#fff}',
+    Q + ' .chip.dv.r{background:#b8324a;color:#fff}',
+    Q + ' .stars{color:var(--sp-gold);text-shadow:none}',
+    // tablas (clasificación, temporadas, comparar ofertas, salón de la fama): filas-pegatina; la tuya, del color de tu club
+    Q + ' table{border-collapse:separate;border-spacing:0 4px;font:600 clamp(13px,1.9vh,15px) var(--sp-ui)}',
+    Q + ' th{font:800 10.5px var(--sp-ui);letter-spacing:.12em;color:rgba(255,244,220,.62);padding:2px 6px}',
+    Q + ' td{border-top:0;padding:6px;background:rgba(255,244,220,.06)}',
+    Q + ' tbody tr:nth-child(even) td{background:rgba(255,244,220,.1)}',
+    Q + ' td:first-child{border-radius:9px 0 0 10px}',
+    Q + ' td:last-child{border-radius:0 10px 9px 0}',
+    Q + ' tr.up td:first-child{box-shadow:inset 5px 0 0 #8fe36e}',
+    Q + ' tr.cup td:first-child{box-shadow:inset 5px 0 0 var(--sp-gold)}',
+    Q + ' tr.down td:first-child{box-shadow:inset 5px 0 0 var(--sp-danger)}',
+    Q + ' tr.me td{background:var(--sp-kit);color:var(--sp-kit-ink);text-shadow:var(--sp-kit-ts);box-shadow:inset 0 2.5px 0 var(--sp-ink),inset 0 -2.5px 0 var(--sp-ink)}',
+    Q + ' tr.me td:first-child{box-shadow:inset 0 2.5px 0 var(--sp-ink),inset 0 -2.5px 0 var(--sp-ink),inset 2.5px 0 0 var(--sp-ink)}',
+    Q + ' tr.me td:last-child{box-shadow:inset 0 2.5px 0 var(--sp-ink),inset 0 -2.5px 0 var(--sp-ink),inset -2.5px 0 0 var(--sp-ink)}',
+    Q + ' tr.me .muted{color:inherit;opacity:.85}',
+    Q + ' td.pts{font:400 16px var(--sp-pop);color:var(--sp-gold)}',
+    // nombre del club en la tabla (abre su ficha): texto, no pegatina; el escudo en la misma línea
+    Q + ' button.cw-tl-b{display:inline;min-height:0;padding:0 2px;border-radius:6px;background:none;box-shadow:none;color:inherit;font:inherit;letter-spacing:0;text-transform:none;text-shadow:inherit;transform:none;line-height:32px}',
+    Q + ' button.cw-tl-b:hover{background:none;text-decoration:underline}',
+    QT + ' button.cw-tl-b{line-height:44px}',
+    Q + ' button.cw-tl-b:is(.kf,:focus-visible){box-shadow:0 0 0 2.5px var(--sp-gold);background:rgba(21,16,42,.5)}',
+    Q + ' tr:has(.cw-tl-b) td.club{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    Q + ' tr.me td.pts{color:var(--sp-kit-ink)}',
+    // calendario, mensajes y datos: filas con forma (tinta clara); lo próximo y lo no leído, destacados
+    Q + ' .cal{gap:7px}',
+    Q + ' .cal-r{border-radius:10px 14px 11px 13px/13px 10px 14px 11px;background:rgba(255,244,220,.07)}',
+    Q + ' .cal-r:nth-child(even){border-radius:14px 10px 13px 11px/10px 14px 11px 13px;background:rgba(255,244,220,.11)}',
+    Q + ' .cal-r b{font:400 14px var(--sp-pop);color:var(--sp-gold)}',
+    Q + ' .cal-r.next{background:var(--sp-kit);color:var(--sp-kit-ink);box-shadow:' + STK + ';transform:rotate(-.5deg)}',
+    Q + ' .cal-r.next b,' + Q + ' .cal-r.next .muted{color:inherit}',
+    Q + ' .cal-r .res{font:400 14px var(--sp-pop)}',
+    Q + ' span.w{color:#8fe36e}',
+    Q + ' span.l{color:#ff8a98}',
+    Q + ' .msg{border-radius:10px 14px 12px 15px/14px 10px 15px 12px;background:rgba(255,244,220,.08);padding:9px 12px;margin:0 0 9px}',
+    Q + ' .msg.unread{background:var(--sp-cream);box-shadow:inset 6px 0 0 var(--sp-kit),' + STK + '}',
+    Q + ' .msg.unread b,' + Q + ' .msg.unread p{color:var(--sp-ink)}',
+    Q + ' .msg.unread small{color:rgba(21,16,42,.62)}',
+    Q + ' .msg b{font:400 15px var(--sp-pop);letter-spacing:.02em}',
+    Q + ' .fact{gap:8px}',
+    Q + ' .fact div{background:rgba(255,244,220,.08);border-radius:10px 14px 11px 13px/13px 10px 14px 11px}',
+    Q + ' .fact div:nth-child(even){border-radius:14px 10px 13px 11px/10px 14px 11px 13px}',
+    Q + ' .fact small{font:800 10px var(--sp-ui);letter-spacing:.12em;color:var(--sp-gold)}',
+    Q + ' .bigname{font:400 clamp(19px,3.4vh,26px)/1.1 var(--sp-pop);letter-spacing:.01em;color:var(--sp-cream);text-shadow:2px 2px 0 var(--sp-ink)}',
+    Q + ' .offer-x{border-top:2px dashed rgba(255,244,220,.16)!important}',
+    Q + ' .mate{border-top:2px dashed rgba(255,244,220,.14)}',
+    // barras (atributos, experiencia, medidores): pista de tinta con filo crema; relleno con su color
+    Q + ' :is(.attr .bar,.xp,.meter,.pbar .bar){background:rgba(8,5,20,.7);box-shadow:0 0 0 2px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.2);border-radius:7px}',
+    Q + ' .xp i{background:linear-gradient(90deg,var(--sp-gold),var(--sp-kit))}',
+    Q + ' .attr b{font:400 18px var(--sp-pop)}',
+    Q + ' .attr button{min-width:48px;padding:0 8px;border-radius:50% 46% 52% 48%/48% 52% 46% 50%;background:var(--sp-cream);color:var(--sp-ink);font:400 16px/1 var(--sp-pop)}',
+    // nota del último partido (círculo con contorno de tinta) y letras de nota
+    Q + ' .nota{font:400 26px var(--sp-pop);box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 5px rgba(255,255,255,.18),3px 4px 0 3px var(--sp-ink);transform:rotate(-6deg);color:#fff;text-shadow:' + KO + '}',
+    Q + ' .nota small{font:800 10px var(--sp-ui);letter-spacing:.12em}',
+    Q + ' .gr{font:400 19px/1 var(--sp-pop);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);border-radius:10px 13px 11px 12px;text-shadow:' + KO + '}',
+    Q + ' .gr.sm{font-size:13px;box-shadow:0 0 0 2px var(--sp-ink)}',
+    // plan del entrenador: casillas con forma; la de ahora, con filo dorado
+    Q + ' .pl-s{background:rgba(255,244,220,.07);border-radius:14px 18px 15px 20px/18px 14px 20px 15px;box-shadow:inset 0 0 0 1.5px rgba(255,244,220,.1)}',
+    Q + ' .pl-s:nth-child(2){border-radius:20px 14px 18px 15px/15px 20px 14px 18px}',
+    Q + ' .pl-s.cur{background:rgba(255,203,61,.12);box-shadow:0 0 0 3px var(--sp-gold),4px 5px 0 3px var(--sp-ink)}',
+    Q + ' .pl-k{font:800 11px var(--sp-ui);letter-spacing:.14em;color:rgba(255,244,220,.62)}',
+    Q + ' .pl-n b{font:400 17px/1.08 var(--sp-pop);letter-spacing:.01em}',
+    Q + ' .pl-b{gap:8px}',
+    Q + ' .pl-b .sp-btn{width:100%;--sp-px:6px}',
+    Q + ' .tr-dots i{box-shadow:inset 0 0 0 2px var(--sp-gold)}',
+    Q + ' .tr-dots i.on{background:var(--sp-gold);box-shadow:0 0 0 1.5px var(--sp-ink)}',
+    Q + ' .pl-acts{gap:12px;margin-top:12px}',
+    // crear: cada columna en su hoja; nombre en etiqueta crema; dorsal entre dos pegatinas redondas
+    Q + ' .cf{gap:22px 18px}',
+    Q + ' .cf-col{grid-template-columns:minmax(0,1fr)}',
+    Q + ' .cf-col{background:rgba(21,16,42,.93);border-radius:20px 26px 18px 24px/24px 18px 26px 20px;box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.13),5px 7px 0 var(--sp-ink);padding:14px 16px}',
+    Q + ' .cf label{font:800 12px/1.2 var(--sp-ui);letter-spacing:.14em;color:var(--sp-gold);text-shadow:none;margin-bottom:7px}',
+    Q + ' .cf input{min-height:50px;border-radius:10px 14px 11px 13px/13px 10px 14px 11px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);font:400 21px var(--sp-pop);letter-spacing:.02em}',
+    Q + ' .cf input::placeholder{color:rgba(21,16,42,.45)}',
+    Q + ' .cf input:focus-visible{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6px var(--sp-gold),3px 4px 0 6px var(--sp-ink)}',
+    Q + ' .stp b{font:400 34px var(--sp-pop);color:var(--sp-gold);text-shadow:' + HO + '}',
+    Q + ' .stp button{width:50px;height:50px;padding:0;border-radius:50%;background:var(--sp-cream);color:var(--sp-ink);font:400 26px/1 var(--sp-pop)}',
+    Q + ' .prev{gap:5px 10px}',
+    Q + ' .prev span{padding:3px 8px;border-radius:8px 11px 9px 10px;background:rgba(255,244,220,.08);color:rgba(255,244,220,.82)}',
+    Q + ' .prev b{color:var(--sp-gold);font:400 14px var(--sp-pop)}',
+    Q + ' .card.prev-box{background:none;box-shadow:none;padding:4px 0 0;margin:10px 0 0}',
+    Q + ' .card.prev-box>h3:first-child{margin:0 0 8px;transform:rotate(-1deg)}',
+    Q + ' .cc-reg{color:var(--sp-gold)}',
+    // fin de temporada: el puesto en un sello dorado
+    Q + ' .cr-end{padding-right:calc(clamp(64px,13vh,100px) + 18px)}',
+    Q + ' .cr-pos{position:absolute;right:8px;top:-16px;--sp-stamp:clamp(64px,13vh,100px);cursor:default;pointer-events:none}',
+    Q + ' .cr-pos .sp-sc b{font:400 calc(var(--sp-stamp) * .27)/1 var(--sp-pop);letter-spacing:0;text-transform:none}',
+    // previa de la prueba: cabecera del club con su color, objetivos en tiras de papel con su número en pegatina
+    Q + ' .tp-hero{border-radius:16px 22px 0 0}',
+    Q + ' .tp-hero b{font:400 clamp(24px,6vw,36px)/1.05 var(--sp-pop);text-shadow:' + HO + '}',
+    Q + ' .tp-hero small{font:800 11px var(--sp-ui);letter-spacing:.16em;color:var(--sp-gold);text-shadow:' + KO + '}',
+    Q + ' .tp-fmt{font:400 18px var(--sp-pop)}',
+    Q + ' .tp-goals li{background:var(--sp-cream);color:var(--sp-ink);border-radius:8px 12px 9px 13px/12px 8px 13px 9px;box-shadow:' + STK + ';font:400 15px/1.15 var(--sp-pop);transform:rotate(-.4deg)}',
+    Q + ' .tp-goals li:nth-child(even){transform:rotate(.4deg)}',
+    Q + ' .tp-goals li i{background:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-ink);font:400 13px var(--sp-pop)}',
+    Q + ' .tp-acts{gap:14px}',
+    Q + ' .tp-acts .sp-patch{--sp-ph:clamp(54px,10vh,80px)}',
+    Q + ' .et-l{border-radius:20px 16px 22px 14px;box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);transform:rotate(-5deg)}',
+    Q + ' .et-l b{font:400 34px/.9 var(--sp-pop);text-shadow:' + HO + '}',
+    Q + ' .note,' + Q + ' .bd-msg{color:var(--sp-gold);text-shadow:' + KO + '}',
+    // teléfono apaisado: cabecera y apartados en una fila (como antes), sellos y entrada más bajos
+    '@media (max-height:520px){',
+    ' ' + Q + ' .card>h3:first-child{margin-top:-22px}',
+    ' ' + Q + ' .cr-body{padding-top:14px}',
+    ' ' + Q + ' .card{margin-bottom:20px}',
+    '}',
+    '@media (max-height:420px){',
+    ' ' + Q + ' .cr-head{gap:8px}',
+    ' ' + Q + ' .cr-head .pt.cr-pt{width:34px;height:34px;box-shadow:0 0 0 2.5px var(--sp-cream),0 0 0 4.5px var(--sp-ink),2px 3px 0 4.5px var(--sp-ink)}',
+    ' ' + Q + ' .cr-ovr{--sp-stamp:46px;margin:0 2px}',
+    ' ' + Q + ' .cr-ovr .sp-st .st2{display:none}',
+    ' ' + Q + ' #crTabs .tab{--sp-tbh:44px;--sp-tbs:13px;padding:0 10px}',
+    ' ' + Q + ' .cr-body{padding-top:10px}',
+    ' ' + Q + ' .card{margin-bottom:16px;padding:10px 12px}',
+    ' ' + Q + ' .card>h3:first-child{margin-top:-20px}',
+    ' ' + Q + ' .cr-next{margin:0 0 16px}',
+    ' ' + Q + ' .cr-tk{--sp-h:54px;--sp-cs:32px;margin-bottom:8px}',
+    ' ' + Q + ' .cr-tk .sp-t{font-size:17px}',
+    ' ' + Q + ' .cr-tk .sp-s+.sp-s{display:none}',
+    ' ' + Q + ' .cr-go{margin-bottom:10px}',
+    ' ' + Q + ' .cr-go .sp-patch,' + Q + ' .acts>.sp-patch{--sp-ph:50px}',
+    ' ' + Q + ' .cr-pos{--sp-stamp:60px;top:-12px}',
+    ' ' + Q + ' .cr-end{padding-right:80px}',
+    '}',
+    // filtros de Clasificación y Clubes en una sola fila que se desliza (antes, 2 filas de circuitos a 568×320)
+    '@media (max-width:900px){',
+    ' ' + Q + ' #crBody>.card>.lg-sw{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;padding:2px 28px 4px 2px;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}',
+    ' ' + Q + ' #crBody>.card>.lg-sw::-webkit-scrollbar{display:none}',
+    ' ' + Q + ' #crBody>.card>.lg-sw button{flex:0 0 auto;padding:0 11px}',
+    '}',
+    '@media (max-width:560px){',
+    ' ' + Q + ' .cr-go{flex-wrap:wrap}',
+    ' ' + Q + ' .cr-go .sp-patch,' + Q + ' .cr-go .sp-btn{flex:1 1 100%}',
+    // teléfono en vertical: Volver, retrato, escudo y sello en la primera fila; el título debajo, a lo ancho (hasta 2 líneas)
+    ' ' + Q + ' tr:has(.cw-tl-b) td.club{white-space:normal;max-width:none;width:auto;line-height:1.2}',
+    ' ' + Q + ' tr:has(.cw-tl-b) td.club button.cw-tl-b{line-height:1.25}',
+    ' ' + Q + ' .cr-head{flex-wrap:wrap;row-gap:4px}',
+    ' ' + Q + ' .cr-head .cr-title{order:5;flex:1 1 100%;min-width:0;position:relative;z-index:1;margin-top:4px}',
+    ' ' + Q + ' .cr-head .cr-hcr{margin-left:auto}',
+    ' ' + Q + ' .cr-head>.sp-back+.cr-title{order:0;flex:1 1 0}',
+    ' ' + Q + ' .cr-title b{font-size:clamp(17px,5.2vw,22px)}',
+    ' ' + Q + ' .cr-ovr{--sp-stamp:52px}',
+    ' ' + Q + ' .cr-tk{--sp-cs:30px;--sp-h:auto}',
+    ' ' + Q + ' .cr-tk .sp-tk-stub{padding-left:16px}',
+    ' ' + Q + ' .cr-tk .sp-t{font-size:18px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
+    ' ' + Q + ' .cr-tk .sp-s{white-space:normal}',
+    ' ' + Q + ' .cr-tk .sp-s+.sp-s{display:none}',
+    ' ' + Q + ' .cr-tk{margin-bottom:8px}',
+    ' ' + Q + ' .cr-body{padding-top:10px}',
+    ' ' + Q + ' .card{margin-bottom:16px}',
+    ' ' + Q + ' .card>h3:first-child{margin-top:-22px}',
+    ' ' + Q + ' .cr-next{margin-bottom:16px}',
+    ' ' + Q + ' .cr-tabs{padding:2px 2px 4px}',
+    ' ' + Q + ' .cr-go .sp-patch,' + Q + ' .acts>.sp-patch{--sp-ph:58px;--sp-pt:23px}',
+    '}',
+    '.rm #career .card.new{animation:none}',
+    // hojas del final de un partido de la Carrera (#end.career, prueba #end.trial, sesión #gymEnd): cifras en Titan One con contorno,
+    // letras en pegatina torcida con sombra dura (el resto de la hoja es de ui.js y de su bloque SPLAT)
+    '#end .end-trial .et-l,#gymEnd .cdr-g{border-radius:22px 16px 24px 15px;box-shadow:0 0 0 3px var(--sp-ink),4px 5px 0 3px var(--sp-ink)}',
+    '#end .end-trial .et-l b,#gymEnd .cdr-g b{font:400 40px/.9 var(--sp-pop);text-shadow:' + HO + '}',
+    '#end .end-trial .et-t strong{font:400 21px/1.1 var(--sp-pop);letter-spacing:.01em}',
+    '#end .et-goals>span{border-radius:8px 12px 9px 13px;font-family:var(--sp-ui)}',
+    '#end .end-rt .er-n{border-radius:14px 18px 13px 17px;border-bottom:0;box-shadow:inset 0 -5px 0 var(--rc),0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink);background:var(--sp-ink)}',
+    '#end .end-rt .er-n b{font:400 28px/.95 var(--sp-pop);text-shadow:' + KO + '}',
+    '#end .end-rt .er-n small,#end .end-rt .er-h{font-family:var(--sp-ui);font-weight:800}',
+    '#end .end-rt .chip{border-radius:7px 10px 8px 11px;font-family:var(--sp-ui)}',
+    '#gymEnd .cdr-bar .bar{box-shadow:0 0 0 2px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.2)}',
+    '#gymEnd .cdr-bar>span:first-child,#gymEnd .cdr-bar b{font-family:var(--sp-pop);font-weight:400}',
+    '#gymEnd .cdr-tags>span{border-radius:7px 11px 8px 12px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);font:700 12px var(--sp-ui);letter-spacing:0;text-transform:none}',
+    '#rtLive b{font-family:var(--sp-pop);font-weight:400}'
+  ].join('\n');
+
   // =================================================================== construcción
   function build() {
     if (root) return;
@@ -658,6 +959,9 @@
       '<div class="cr-sub" id="crSub" role="tablist" aria-label="Apartados" hidden></div><div class="cr-body" id="crBody"></div></div>';
     (document.getElementById('app') || document.body).appendChild(root);
     head = root.querySelector('.cr-head'); tabsEl = root.querySelector('.cr-tabs'); subEl = root.querySelector('.cr-sub'); body = root.querySelector('.cr-body');
+    // SPLAT (etapa 2): pestañas en trazos de pincel y el dibujo de manchas, parche y sellos en lo que se repinta (VB.Splat.watch)
+    tabsEl.classList.add('sp-tabs'); subEl.classList.add('sp-tabs'); root.classList.add('sp-car');
+    if (VB.Splat && VB.Splat.watch) { try { VB.Splat.watch(root); } catch (e) { } }
     root.addEventListener('click', onClick);
     root.addEventListener('input', function (e) { if (e.target && e.target.id === 'crName') form.name = e.target.value; });
     root.addEventListener('pointerdown', function () { var k = root.querySelectorAll('.kf'); for (var i = 0; i < k.length; i++) k[i].classList.remove('kf'); }, { passive: true });
@@ -687,6 +991,46 @@
       try { if (window.console) console.error('CareerUI.render', e); } catch (e2) { }
       renderBroken();
     }
+    try { splatify(); } catch (e) { }
+  }
+  // =================================================================== SPLAT (etapa 2, 17-nov-2026; notes/splat.md)
+  // El HTML de siempre (aquí, career-life-ui.js y career-world-ui.js) recibe las clases del sistema tras cada pintado, en el mismo
+  // frame (antes de que VB.Splat.watch decore): la acción principal de la pantalla, en parche cosido (.sp-patch, solo una); el resto
+  // de botones de acción, en manchas de pintura (.sp-btn) con los colores repartidos; las decisiones, en manchas de colores que
+  // contrastan; los botones pequeños de las filas, en manchas .sp-sm. Ids, data-act y manejadores, intactos.
+  // colores: en las hojas de tinta, manchas claras (crema, turquesa, contraste); sobre el escenario o el papel, tinta
+  var SPC = ['sp-cream', 'sp-teal', 'sp-alt', 'sp-cream'], SPD = ['sp-kit', 'sp-alt', 'sp-teal', 'sp-gold'];
+  /** Rótulo del sistema: el texto en .sp-t y el <small> (si lo hay) en .sp-s, dentro de .sp-l. */
+  function spLabel(b) {
+    if (b.querySelector('.sp-l,.sp-t,svg')) return;
+    var sm = null, n; for (n = b.firstElementChild; n; n = n.nextElementSibling) if (n.tagName === 'SMALL') { sm = n; break; }
+    var sh = '';
+    if (sm) { sm.removeAttribute('style'); sm.className = 'sp-s'; sh = sm.outerHTML; b.removeChild(sm); }
+    b.innerHTML = '<span class="sp-l"><span class="sp-t">' + b.innerHTML.trim() + '</span>' + sh + '</span>';
+  }
+  function spBtn(b, col, size) {
+    var k = b.classList;
+    if (k.contains('sp-btn') || k.contains('sp-patch') || k.contains('sp-back')) return;
+    spLabel(b);
+    k.add('sp-btn', size || 'sp-md', k.contains('warn') ? 'sp-danger' : b.getAttribute('aria-pressed') === 'true' ? 'sp-gold' : col);
+    if (b.getAttribute('aria-disabled') === 'true') k.add('sp-off');
+  }
+  function splatify() {
+    if (!root || !body) return;
+    var q = function (sel) { return Array.prototype.slice.call(body.querySelectorAll(sel)); }, pat = false, gi = 0;
+    q('button.pri').forEach(function (b) {
+      if (pat || b.closest('.offer-x,.lf-item,.pl-s,td,.tr-row')) return;
+      spLabel(b); b.classList.add('sp-patch'); pat = true;
+    });
+    q('.lf-ev .acts button').forEach(function (b, i) { spBtn(b, SPD[i % SPD.length], 'sp-md'); b.classList.add('sp-wrap'); });
+    q('.cr-go>button,.cw-mentor .acts>button').forEach(function (b, i) { spBtn(b, i && b.closest('.cw-mentor') ? 'sp-teal' : 'sp-ink', 'sp-md'); });
+    q('.acts>button,.pick-acts>button,.tp-acts>button,.pl-acts>button').forEach(function (b) {
+      spBtn(b, b.classList.contains('pri') ? 'sp-kit' : SPC[gi++ % SPC.length], 'sp-md');
+    });
+    q('.lf-item button,.pl-b button,button.lnk,button.cw-back,td button:not(.cw-tl-b),.mate button,.card>button.warn').forEach(function (b) {
+      spBtn(b, b.classList.contains('pri') ? 'sp-kit' : b.getAttribute('data-act') === 'tr-rest' ? 'sp-teal' : 'sp-cream', 'sp-sm');
+    });
+    try { if (VB.Splat && VB.Splat.sync) VB.Splat.sync(); } catch (e) { }
   }
   function renderBroken() {
     head.innerHTML = backBtn() + '<div class="cr-title"><small>Carrera</small><b>Guardado dañado</b></div>';
@@ -707,7 +1051,7 @@
     // B2: retrato (44; 36 a ≤ 420 de alto) delante del título y escudo del club (40, oculto a ≤ 420) antes de «TU MEDIA»
     head.innerHTML = backBtn() + ptHTML(c, 'me', 44, 'cr-pt', 'Retrato de ' + c.player.name) +
       '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada ' + c.season, esc(L.name)], 'd') + '</small><b>' + sp([esc(c.player.name), esc(k.name)], 's') + '</b></div>' +
-      '<span class="cr-hcr">' + crest(k, 40, c) + '</span><div class="cr-ovr">' + C().playerOvr(c) + '<small>TU MEDIA</small></div>';
+      '<span class="cr-hcr sp-crest">' + crest(k, 40, c) + '</span>' + ovrStamp(C().playerOvr(c));
     // bandeja: lo no leído se marca como leído ANTES de pintar (el contador ya no sigue en la pestaña mientras la miras); el
     // resaltado de lo nuevo se conserva en este pintado (freshIds)
     var freshIds = {};
@@ -781,9 +1125,6 @@
   function eur(v) { return String(Math.round(v)).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + ' €'; }
   function money(v) { return eur(v) + ' al mes'; }
   function fact(label, val) { return '<div><small>' + esc(label) + '</small><b>' + val + '</b></div>'; }
-  function teamBlock(c, club, right, extra) {
-    return '<div class="team' + (right ? ' r' : '') + '">' + crest(club, 56, c) + '<span style="min-width:0"><b>' + esc(club.name) + '</b><small>' + extra + '</small></span></div>';
-  }
   /** Pista (titularidad): «De inicio | 40 de 52 puntos en pista | Te cambiaron en el 2º set» / «Entraste en el 2º set | …» / «No llegaste a entrar». */
   function partLine6(pt) {
     if (pt.status === 'out') return '';
@@ -968,6 +1309,13 @@
       (ups.length ? '¡+1 en ' + ups.map(function (k) { return lab(k); }).join(', ') + '! ' : '') + 'Fatiga ' + fat0 + ' → ' + fat + '.';
   }
 
+  /** SPLAT: entrada del próximo partido (brochazo turquesa .sp-ticket, no se pulsa: «Jugar partido» va debajo) con tu escudo y el
+   *  del rival en pegatinas redondas. kick y title ya escapados; lines = líneas pequeñas (HTML); aria = texto plano. */
+  function ticketHTML(c, me, rv, kick, title, lines, aria) {
+    return '<div class="sp-ticket cr-tk" role="group" aria-label="' + esc('Próximo partido: ' + aria) + '"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest">' + crest(me, 40, c) + '</span><i class="sp-vs">vs</i>' +
+      '<span class="sp-crest">' + crest(rv, 40, c) + '</span></span><span class="sp-tk-main"><small class="sp-k">' + kick + '</small><b class="sp-t">' + title + '</b>' +
+      lines.map(function (l) { return l ? '<small class="sp-s">' + l + '</small>' : ''; }).join('') + '</span></span></div>';
+  }
   function renderMatch(c) {
     // Faro (career-world-ui.js): la escena va arriba del todo, también en el resumen de fin de temporada (ascenso, título…)
     var h = takeTrialRes(c) + (WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '');   // (prueba superada: su resultado, arriba)
@@ -977,24 +1325,26 @@
       // posiciones solo con la liga empezada (en la jornada 1 la tabla vacía daba «6º» contra «3r»)
       var pm = C().posOf(c, n.me.id), pr = C().posOf(c, n.rival.id), lg = c.phase === 'league' && c.week > 0;
       var bf = null; try { bf = LIFE() && LIFE().bossFor ? LIFE().bossFor(c, n.rival.id) : null; } catch (e) { bf = null; }   // S3 C3: el jefe del circuito juega en su club
-      h += '<div class="card"><h3>' + sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + (bf ? ' <span class="tag r">Jefe</span>' : '') + '</h3><div class="vs">' +
-        // («Pareja»: la fuerza de los dos —teamOvr— y la del rival; la media de la cabecera es solo la tuya)
-        teamBlock(c, n.me, false, sp([lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'c')) +
-        '<div class="vs-mid">VS</div>' +
-        teamBlock(c, n.rival, true, sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'c')) + '</div>' +
+      // SPLAT: entrada en brochazo turquesa (los dos escudos en pegatina), el parche «Jugar partido» y, en una hoja, los detalles
+      var kick = sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + (bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '');
+      h += '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(n.rival.name),
+        [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
+        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name) +
+        (n.bench
+          // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
+          ? '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>' +
+            '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button></div>'
+          : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div>') +
+        '<div class="card cr-nd">' +
         // (la pareja, en pastillas: antes era una lista metida en un paréntesis)
-        '<p class="muted" style="margin-top:4px">' + (function () {
+        '<p class="muted">' + (function () {
           var mo = C().mateOvr(c), dd = mo - C().clubOvr(n.me), tg = dd >= 3 ? 'g' : dd <= -3 ? 'r' : '';
           return sp(['Compañero: ' + esc(c.mate.name), esc(c.mate.role), 'Media ' + mo, { h: esc(vsClub(dd)), c: tg ? 'dv ' + tg : 'dv' }, 'Forma: ' + esc(C().formText(c.mate.form | 0)).toLowerCase()], 'c');
         })() + '</p>' +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
           esc(chemTxt(c, c.mate.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
-        (n.bench
-          // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
-          ? '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>' +
-            '<div class="acts"><button class="pri" data-act="bench">Ver la jornada</button></div></div>'
-          : '<div class="acts"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div></div>');
+        '</div></div>';
     }
     h += trainCard(c);   // sesiones de entrenamiento antes del partido
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada y decisión pendiente
@@ -1013,7 +1363,9 @@
     var cupTags = hall ? (r.cups || []).filter(function (x) { return x.mine; }).map(function (x) {
       return '<span class="tag ' + (x.champion === k.id ? 'y' : '') + '">' + esc(x.champion === k.id ? 'Campeón de la ' + x.name : x.name + ': ' + x.reach) + '</span>';
     }).join('') : '';
-    var h = '<div class="card new"><h3>Fin de la temporada ' + r.season + '</h3>' +
+    var h = '<div class="card new cr-end"><h3>Fin de la temporada ' + r.season + '</h3>' +
+      // SPLAT: el puesto final en un sello dorado (con «Campeón» en el aro si has ganado la liga)
+      '<span class="sp-stamp cr-pos" aria-hidden="true" data-ring="' + (r.champion ? 'CAMPEÓN ★ CAMPEÓN ★ CAMPEÓN ★ ' : 'TEMPORADA ' + r.season + ' ★ TEMPORADA ' + r.season + ' ★ ') + '"><span class="sp-sc"><b>' + ordn(r.pos) + '</b></span></span>' +
       '<p style="font:900 24px var(--display);text-transform:uppercase;letter-spacing:.04em;margin:0">' + ordn(r.pos) + ' ' + esc(deL(L)) + '</p>' + (hall ? '<p class="muted" style="margin:0">' + esc(L.country) + '</p>' : '') + '<p>' +
       (r.champion ? '<span class="tag y">Campeón ' + esc(deL(L)) + '</span>' : '') + (!hall && r.cup ? '<span class="tag y">Campeón del ' + esc(L.cup) + '</span>' : '') + cupTags +
       (r.move > 0 ? '<span class="tag g">Ascenso</span>' : r.move < 0 ? '<span class="tag r">Descenso</span>' : '') +
@@ -1402,18 +1754,22 @@
       var mk = n.me.kit, rvk = n.rival.kit, alt = VB.Players && VB.Players.rivalKit ? VB.Players.rivalKit({ kitShirt: mk.shirt, kitShorts: mk.shorts,
         rival: { kitShirt: rvk.shirt, kitAccent: rvk.accent, kitShorts: rvk.shorts, kitPattern: rvk.pattern, kitLibero: rvk.libero } }) : null;
       var rvShow = alt && alt.kind === '2a' ? Object.assign({}, n.rival, { kit: { shirt: alt.shirt, accent: alt.accent, shorts: alt.shorts, pattern: alt.pattern } }) : n.rival;
-      h += '<div class="card"><h3>' + sp(esc(n.label).split(' · '), 'v') + '</h3><div class="vs">' +
-        teamBlock(c, n.me, false, sp([lg ? ordn(C().posOf(c, n.me.id)) : '', 'Equipo ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'c')) +
-        '<div class="vs-mid">VS</div>' +
-        teamBlock(c, rvShow, true, sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
-          alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'c')) + '</div>' +
-        '<p class="muted" style="margin-top:8px">6 contra 6 en el pabellón: al mejor de 3 sets a ' + c.points + (c.points > 15 ? ', el tercero a 15' : '') + '. Tú llevas a ' + esc(c.player.name) + ' (dorsal ' + c.player.num + ', ' + esc(posName(role).toLowerCase()) + ') y al resto del equipo la IA.</p>' +
+      // SPLAT: entrada en brochazo (tu escudo y el del rival con la equipación que vestirá), estado y botones, y los detalles en una hoja
+      var st6 = statusHTML6(c, n);
+      h += '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v'), (n.atHome ? 'vs ' : 'en ') + esc(n.rival.name),
+        [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
+          alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'v'),
+         sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(C().posOf(c, n.me.id)) : '', 'Equipo ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
+        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name) +
+        // («Sales de inicio…» va en la hoja de detalles; el banquillo, en su nota, encima de los botones)
+        (/^<p class="cr-st6"/.test(st6.pre) ? '' : st6.pre) + st6.acts +
+        '<div class="card cr-nd">' + (/^<p class="cr-st6"/.test(st6.pre) ? st6.pre : '') +
+        '<p class="muted">6 contra 6 en el pabellón: al mejor de 3 sets a ' + c.points + (c.points > 15 ? ', el tercero a 15' : '') + '. Tú llevas a ' + esc(c.player.name) + ' (dorsal ' + c.player.num + ', ' + esc(posName(role).toLowerCase()) + ') y al resto del equipo la IA.</p>' +
         (role !== c.player.roleKey ? '<p class="muted">Tu puesto (' + esc(posName(c.player.roleKey).toLowerCase()) + ') aún no se puede llevar en el 6 contra 6: juegas de ' + esc(posName(role).toLowerCase()) + '.</p>' : '') +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
           esc(chemTxt(c, c.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
-        statusHTML6(c, n);
-
+        '</div></div>';
     }
     h += trainCard(c);   // sesiones de entrenamiento antes del partido (y la pelea por el puesto)
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada (por puesto) y decisión pendiente, como en la playa
@@ -1432,19 +1788,19 @@
     var SIM = '<button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button>';
     var st = n.status || (n.bench ? 'out' : 'start'), rv = n.rivalIn, H6 = C().hall || {};
     if (st === 'out') {
-      return '<div class="bench"><p><b>Fuera de la convocatoria.</b> ' + esc(n.why || '') + ' Descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>' +
-        '<div class="acts"><button class="pri" data-act="bench">Ver la jornada</button></div></div>';
+      return { pre: '<div class="bench"><p><b>Fuera de la convocatoria.</b> ' + esc(n.why || '') + ' Descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>',
+        acts: '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button></div>' };
     }
     if (st === 'sub') {
       var L = H6.lineup ? H6.lineup(c) : null, me = L && H6.meRules ? H6.meRules(c, L) : null, f0 = C().form(c);
       var meF = f0 == null ? 'sin partidos' : 'forma ' + formTxt6(Math.round(Math.max(-3, Math.min(3, (f0 - 6.5) * 2))));
-      return '<div class="bench"><p><b>Empiezas en el banquillo.</b> ' + (rv ? 'Sale de inicio ' + esc(rv.name) + ' (' + esc(posName(rv.pos).toLowerCase()) + ', media ' + rv.ovr + ', forma ' + esc(formTxt6(rv.form)) + '). ' : '') +
-        'Tú: media ' + C().playerOvr(c) + ', ' + esc(meF) + '. ' + (me && me.enterLostSet ? 'El entrenador te meterá si el equipo pierde un set o si ' + (rv ? esc(rv.name.split(' ')[0]) : 'el titular') + ' no está fino.' : 'Si el partido lo pide, entrarás.') + '</p></div>' +
-        '<div class="acts"><button class="pri" data-act="play">Jugar desde el banquillo</button>' + SIM + '</div></div>';
+      return { pre: '<div class="bench"><p><b>Empiezas en el banquillo.</b> ' + (rv ? 'Sale de inicio ' + esc(rv.name) + ' (' + esc(posName(rv.pos).toLowerCase()) + ', media ' + rv.ovr + ', forma ' + esc(formTxt6(rv.form)) + '). ' : '') +
+        'Tú: media ' + C().playerOvr(c) + ', ' + esc(meF) + '. ' + (me && me.enterLostSet ? 'El entrenador te meterá si el equipo pierde un set o si ' + (rv ? esc(rv.name.split(' ')[0]) : 'el titular') + ' no está fino.' : 'Si el partido lo pide, entrarás.') + '</p></div>',
+        acts: '<div class="acts cr-go"><button class="pri" data-act="play">Jugar desde el banquillo</button>' + SIM + '</div>' };
     }
     var back = c.sq6 && c.last && c.last.part && c.last.part.status !== 'start';
-    return '<p class="muted">' + (back ? 'Vuelves al seis inicial.' : 'Sales de inicio.') + (rv ? ' Te aprieta ' + esc(rv.name) + ' (media ' + rv.ovr + ').' : '') + '</p>' +
-      '<div class="acts"><button class="pri" data-act="play">Jugar partido</button>' + SIM + '</div></div>';
+    return { pre: '<p class="cr-st6">' + (back ? 'Vuelves al seis inicial.' : 'Sales de inicio.') + (rv ? ' Te aprieta ' + esc(rv.name) + ' (media ' + rv.ovr + ').' : '') + '</p>',
+      acts: '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button>' + SIM + '</div>' };
   }
   /** Selector de liga de la pista (país y división), compartido por Clasificación y Liga › Clubes (tblLid). */
   function lgSw6(c, lid) {
@@ -1600,7 +1956,7 @@
     if (!cos.some(function (x) { return x.code === form.country; })) form.country = cos.some(function (x) { return x.code === 'ES'; }) ? 'ES' : (cos[0] && cos[0].code);
     if (ps.indexOf(form.pos) < 0) form.pos = ps[0];
     var st = C().genSt(H6.START_OVR, form.pos, null), P = VB.Prog, co = cos.filter(function (x) { return x.code === form.country; })[0] || {}, P6 = C().POS6;
-    head.innerHTML = '<button data-act="' + (c ? 'hub' : 'close') + '" aria-label="Volver">‹ Volver</button><div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>';
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>';
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
     var has = C().has('hall');
     var h = '<div class="cf">' + modeSeg() + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
@@ -1656,9 +2012,9 @@
     return '<i class="tp-bib" style="background:linear-gradient(90deg,' + bs + ' 0 16%,' + bc + ' 16% 84%,' + bs + ' 84%)" aria-hidden="true"></i>';
   }
   function renderTrialPre(t) {
-    head.innerHTML = '<button data-act="trial-back" aria-label="Volver a las ofertas">‹ Ofertas</button>' +
+    head.innerHTML = backB('trial-back', 'Ofertas', 'Volver a las ofertas') +
       '<div class="cr-title"><small>' + sp(['Carrera', 'Prueba'], 'd') + '</small><b>' + sp([esc(t.player), esc(t.name)], 's') + '</b></div>' +
-      '<div class="cr-ovr">' + t.ovrMe + '<small>TU MEDIA</small></div>';
+      ovrStamp(t.ovrMe);
     tabsEl.hidden = true; subEl.hidden = true;
     var bb = trialBibs(t.kit), tpc = typeof t.kit.shirt === 'number' ? hex(t.kit.shirt) : '#3a3168';
     var h = '<div class="card tp new"><div class="tp-hero" style="--tpc:' + tpc + '">' + kitSw(t.kit, true) +
@@ -1709,7 +2065,7 @@
     if (sub.pick !== 'cmp' && !(+sub.pick >= 0 && +sub.pick < offs.length)) sub.pick = 0;
     head.innerHTML = backBtn() + ptHTML(c, 'me', 44, 'cr-pt', 'Retrato de ' + c.player.name) +
       '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada 1', 'Ofertas'], 'd') + '</small><b>' + sp([esc(c.player.name), 'Elige club'], 's') + '</b></div>' +
-      '<div class="cr-ovr">' + C().playerOvr(c) + '<small>TU MEDIA</small></div>';
+      ovrStamp(C().playerOvr(c));
     tabsEl.hidden = false;
     // una pestaña por oferta con el nombre del club (antes tres letras: «SAL · PRUEBA», «ARE»…) y «Comparar»
     drawBar('tab', offs.map(function (o, i) { var k = C().club(c, o.club); return [i, esc(k.name) + (o.trial ? ' (prueba)' : ''), false]; }).concat([['cmp', 'Comparar', false]]), sub.pick);
@@ -1757,7 +2113,7 @@
     if (form.mode === 'hall' && C().hall) { renderCreate6(c); return; }
     var B = C().beach || C();   // la ficha es de playa aunque la Carrera activa sea la de pista (la fachada mandaría league(0), START_OVR y WEEKS a la pista)
     var R = B.ROLES, st = B.genSt(B.START_OVR, form.role, null), P = VB.Prog;
-    head.innerHTML = '<button data-act="' + (c ? 'hub' : 'close') + '" aria-label="Volver">‹ Volver</button><div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>';
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>';
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
     var h = '<div class="cf">' + modeSeg() + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
       '<div class="card"><p>Empiezas con media ' + B.START_OVR + ' y sin club. Los clubes del <b>' + esc(B.league(0).name) + '</b> te harán ofertas: cada uno te da un compañero distinto.</p></div>' +
@@ -2155,7 +2511,13 @@
 
   // =================================================================== abrir / cerrar
   /** Botón de volver de la cabecera: «‹ Menú» si se abrió desde la portada (B3), «‹ Jugar» si no. */
-  function backBtn() { return from === 'main' ? '<button data-act="close" aria-label="Volver al menú">‹ Menú</button>' : '<button data-act="close" aria-label="Volver a Jugar">‹ Jugar</button>'; }
+  function backBtn() { return from === 'main' ? backB('close', 'Menú', 'Volver al menú') : backB('close', 'Jugar', 'Volver a Jugar'); }
+  /** SPLAT: «Volver» en mancha de tinta (.sp-back) con flecha; act = data-act, label = rótulo, aria = aria-label. */
+  function backB(act, label, aria) {
+    return '<button class="sp-back" data-shape="3" data-act="' + act + '" aria-label="' + aria + '"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>' + label + '</span></button>';
+  }
+  /** SPLAT: tu media en un sello dorado (no se pulsa; el aro dice «TU MEDIA»). */
+  function ovrStamp(v) { return '<div class="cr-ovr sp-stamp" role="img" aria-label="Tu media: ' + v + '" data-ring="TU MEDIA ★ TU MEDIA ★ TU MEDIA ★ "><span class="sp-sc"><b>' + v + '</b></span></div>'; }
   /** Fondo del menú: el escenario de la Carrera abierta (main.js ctx.actions.menuBackdrop). */
   function backdrop(k) { try { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.menuBackdrop) VB.ctx.actions.menuBackdrop(k); } catch (e) { } }
   function show(v) {
@@ -2266,7 +2628,7 @@
   /** El <style> de la Carrera, una vez (al cargar: también lleva la hoja final del partido de Carrera, #end.career). */
   function ensureCss() {
     if (styleEl) return;
-    styleEl = document.createElement('style'); styleEl.id = 'careerCss'; styleEl.textContent = CSS;
+    styleEl = document.createElement('style'); styleEl.id = 'careerCss'; styleEl.textContent = [CSS, SPLAT_CSS].join('\n');
     document.head ? document.head.appendChild(styleEl) : document.body.appendChild(styleEl);
   }
   function init() {

@@ -33,6 +33,75 @@
     '<path d="M23 39c3 2.5 7 2.5 10 0" fill="none" stroke="#1d1530" stroke-width="2" stroke-linecap="round"/>' +
     '<path d="M20 46l8 4 8-4" fill="none" stroke="#ffd23f" stroke-width="2"/><rect x="25" y="48" width="7" height="5" rx="1.5" fill="#ffd23f" stroke="var(--tk,#1d1530)" stroke-width="1.5"/>' +
     '</svg>';
+  // SPLAT (etapa 2, 17-nov-2026; notes/splat.md): Faro habla en un bocadillo de papel crema; las noticias son recortes de papel
+  // (la tuya con la franja del color de tu club, la de tu rival en rojo); los clubes, filas-pegatina; la vitrina, sellos dorados
+  // (los huecos por ganar, de trazo discontinuo). Prefijo Q (3 ids de :root más #career): gana a las reglas de arriba y a las de index.html.
+  var Q = ':root:not(#_):not(#_):not(#_) #career', STK = '0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink)', FOC = '0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold),3px 4px 0 5.5px var(--sp-ink)';
+  var SPLAT_W = [
+    Q + ' .card.cw-mentor{background:var(--sp-cream);color:var(--sp-ink);border-radius:22px 26px 24px 8px/24px 20px 26px 10px;box-shadow:0 0 0 3px var(--sp-ink),5px 7px 0 var(--sp-ink);padding:12px 14px}',
+    Q + ' .cw-mentor .cw-face{width:62px;height:62px;filter:drop-shadow(2px 3px 0 var(--sp-ink));transform:rotate(-6deg)}',
+    Q + ' .cw-mentor .cw-who{color:var(--sp-teal-d);font:800 11px var(--sp-ui);letter-spacing:.14em}',
+    Q + ' .cw-mentor h3{color:var(--sp-ink);font:400 clamp(14px,2.4vh,18px)/1.1 var(--sp-pop);letter-spacing:.02em;margin:2px 0 3px}',
+    Q + ' .cw-mentor .cw-n{color:rgba(21,16,42,.6);font:700 12px var(--sp-ui)}',
+    Q + ' .cw-mentor .cw-line{color:var(--sp-ink);font:600 clamp(14px,2.2vh,16px)/1.35 var(--sp-ui)}',
+    Q + ' .cw-mentor .acts{justify-content:flex-end;margin-top:8px}',
+    Q + ' .cw-mentor .acts>.sp-btn{flex:0 0 auto;min-width:120px}',
+    // recortes de noticias (papel crema, cada uno un poco torcido) y filas de clubes (pegatinas de tinta clara)
+    Q + ' .cw-list{gap:9px}',
+    Q + ' :is(button,div).cw-nb{background:var(--sp-cream);color:var(--sp-ink);border-radius:6px 10px 7px 12px/10px 6px 12px 7px;box-shadow:' + STK + ';padding:8px 12px 9px;transform:rotate(-.35deg)}',
+    Q + ' :is(button,div).cw-nb:nth-child(even){transform:rotate(.3deg);border-radius:10px 6px 12px 7px/6px 10px 7px 12px}',
+    Q + ' button.cw-nb:hover{background:var(--sp-cream2)}',
+    Q + ' .cw-nb small{color:rgba(21,16,42,.62);font:800 10.5px var(--sp-ui);letter-spacing:.1em}',
+    Q + ' .cw-nb b{color:var(--sp-ink);font:600 clamp(14px,2.1vh,15.5px)/1.3 var(--sp-ui)}',
+    Q + ' .cw-nb.me{box-shadow:inset 7px 0 0 var(--sp-kit),' + STK + ';padding-left:16px}',
+    Q + ' .cw-nb.rv{box-shadow:inset 7px 0 0 var(--sp-danger),' + STK + ';padding-left:16px}',
+    Q + ' button.cw-nb:is(.kf,:focus-visible){box-shadow:' + FOC + ';transform:none}',
+    Q + ' button.cw-nb.me:is(.kf,:focus-visible){box-shadow:inset 7px 0 0 var(--sp-kit),' + FOC + '}',
+    Q + ' .cw-mk{border-radius:5px 8px 6px 7px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 1.5px var(--sp-ink);font:700 11.5px/1.2 var(--sp-ui)}',
+    Q + ' .cw-mk.rv,' + Q + ' .cw-nb small .cw-mk{background:var(--sp-danger);color:#fff6e4}',
+    Q + ' button.cw-row{background:rgba(255,244,220,.08);color:var(--sp-cream);border-radius:12px 16px 13px 17px/16px 12px 17px 13px;box-shadow:' + STK + ';padding:7px 12px;font:600 14.5px/1.3 var(--sp-ui);text-transform:none}',
+    Q + ' button.cw-row:nth-child(even){border-radius:16px 12px 17px 13px/12px 16px 13px 17px;background:rgba(255,244,220,.12)}',
+    Q + ' button.cw-row.me{box-shadow:inset 7px 0 0 var(--sp-kit),' + STK + '}',
+    Q + ' button.cw-row.rv{box-shadow:inset 7px 0 0 var(--sp-danger),' + STK + '}',
+    Q + ' button.cw-row:is(.kf,:focus-visible){box-shadow:' + FOC + '}',
+    Q + ' .cw-rn b{font:400 15px var(--sp-pop);letter-spacing:.01em}',
+    Q + ' .cw-go{font:400 22px var(--sp-pop);color:var(--sp-gold)}',
+    Q + ' .cw-crest{filter:drop-shadow(1.5px 2px 0 var(--sp-ink))}',
+    Q + ' .cw-card .row>.cw-crest{transform:rotate(-5deg)}',
+    Q + ' .cw-kick{color:var(--sp-gold);font:800 11px var(--sp-ui);letter-spacing:.12em}',
+    Q + ' .cw-big{font:400 22px var(--sp-pop);color:var(--sp-gold)}',
+    Q + ' .cw-form i{box-shadow:0 0 0 2px var(--sp-ink)}',
+    Q + ' .cw-tl li{font:600 14.5px var(--sp-ui)}',
+    // vitrina: sellos dorados con contorno y aro discontinuo; los huecos por ganar, círculo de trazo discontinuo
+    Q + ' .tc-grid{gap:10px}',
+    Q + ' .tc .tc-g{font:400 12px var(--sp-pop);letter-spacing:.04em;color:var(--sp-gold)}',
+    Q + ' .tc-slot,' + Q + ' .tc-slot.got,' + Q + ' .tc-slot.empty{background:none;box-shadow:none;border:0;padding:6px 4px;gap:5px}',
+    Q + ' .tc-st{position:relative;display:grid;place-items:center;width:clamp(48px,8.6vh,62px);height:clamp(48px,8.6vh,62px);border-radius:50%;flex:none;box-sizing:border-box}',
+    Q + ' .tc-slot.got .tc-st{background:var(--sp-gold);box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 4px var(--sp-gold),inset 0 0 0 5.5px rgba(21,16,42,.45),3px 4px 0 3px var(--sp-ink);transform:rotate(-10deg)}',
+    Q + ' .tc-slot.got:nth-child(even) .tc-st{transform:rotate(8deg)}',
+    Q + ' .tc-slot.empty .tc-st{border:2.5px dashed rgba(255,244,220,.35)}',
+    Q + ' .tc-st svg{width:58%;height:58%}',
+    Q + ' .tc-slot.got .tc-st svg{fill:var(--sp-cream)}',
+    Q + ' .tc-x{position:absolute;right:-8px;top:-6px;padding:1px 5px;border-radius:7px 9px 6px 8px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2px var(--sp-ink);font:400 11px/1.2 var(--sp-pop);font-style:normal;transform:rotate(8deg)}',
+    Q + ' .tc-n{font:600 12.5px/1.2 var(--sp-ui)}',
+    Q + ' .tc-slot.got .tc-n{color:var(--sp-cream)}',
+    // teléfono en vertical: retrato más pequeño, la frase en 4 líneas como mucho y los botones en una fila
+    '@media (max-width:560px){',
+    ' ' + Q + ' .cw-mentor .cw-face{width:44px;height:44px}',
+    ' ' + Q + ' .cw-mentor .cw-line{font-size:14px;line-height:1.28;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}',
+    ' ' + Q + ' .cw-mentor .acts{margin-top:2px}',
+    ' ' + Q + ' .card.cw-mentor{padding:10px 12px}',
+    ' ' + Q + ' .cw-mentor .acts>.sp-btn{min-width:96px;--sp-h:44px}',
+    '}',
+    '@media (max-height:420px){',
+    ' ' + Q + ' .card.cw-mentor{padding:6px 10px}',
+    ' ' + Q + ' .cw-mentor .cw-face{width:42px;height:42px}',
+    ' ' + Q + ' .cw-mentor h3{font-size:14px;margin:0}',
+    ' ' + Q + ' .cw-mentor .cw-line{font-size:13.5px;line-height:1.25}',
+    ' ' + Q + ' .cw-mentor .acts{margin:0}',
+    ' ' + Q + ' .cw-mentor .acts>.sp-btn{min-width:92px}',
+    '}'
+  ];
   var CSS = [
     '#career .cw-mentor{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:start}',
     // TV D1 (plano): la tarjeta plana de la Carrera con una franja turquesa a la izquierda (rótulo de TV); el cómic queda para «Jugar partido».
@@ -107,7 +176,7 @@
     '#career .tc-n{font:700 12.5px/1.2 var(--ui);color:#fff;letter-spacing:0;text-transform:none;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}',
     '#career .tc-slot small{display:block;font:600 11.5px/1.2 var(--ui);color:var(--muted);letter-spacing:0;text-transform:none}',
     '#career .tc-slot.got small{color:#ffe28a}#career .tc-slot small.tc-ul{color:#7fe6dc}'
-  ].join('\n');
+  ].concat(SPLAT_W).join('\n');
   function css() { if (typeof document === 'undefined' || document.getElementById('careerWorldCss')) return; var s = document.createElement('style'); s.id = 'careerWorldCss'; s.textContent = CSS; document.head.appendChild(s); }
 
   // ---------------------------------------------------------------- Partido: escena de Faro
@@ -309,7 +378,8 @@
     var line = got ? sp([n > 1 ? '×' + n : '', ts, du ? esc(du(s.won)) : ''], 'v') : '<small>' + esc(s.need) + '</small>';
     var ul = !got && s.unlock ? '<small class="tc-ul">Desbloquea: ' + esc(s.unlock.name) + '</small>' : '';
     var al = s.name + ': ' + (got ? 'ganado ' + (n === 1 ? '1 vez, temporada ' : n + ' veces, temporadas ') + seasonsTxt(s.won) : 'sin ganar' + (s.need ? '. ' + s.need : '')) + (ul ? '. Desbloquea: ' + s.unlock.name : '');
-    return '<div class="tc-slot ' + (got ? 'got' : 'empty') + '" role="img" aria-label="' + esc(al) + '">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' +
+    // SPLAT: el trofeo en un sello dorado (ganado) o en su hueco de trazo discontinuo (por ganar)
+    return '<div class="tc-slot ' + (got ? 'got' : 'empty') + '" role="img" aria-label="' + esc(al) + '"><span class="tc-st">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' + (n > 1 ? '<i class="tc-x">×' + n + '</i>' : '') + '</span>' +
       '<b class="tc-n">' + esc(s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</div>';
   }
   /** Palmarés › Palmarés: «Vitrina (4 de 20)» con un bloque por grupo (playa: un circuito por bloque y Premios; pista: Liga, Copa,
