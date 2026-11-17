@@ -2285,7 +2285,7 @@ if (C.hall && C.hall.rivalAI) {
 
 section('Pruebas jugadas (17-nov-2026): mini partido a un set, nota + victoria, simular, invitaciones a mitad y fin de temporada, playa y pista');
 if (C.beach && C.beach.trialSetup && C.hall && C.hall.trialSetup) {
-  const fresh = () => { delete mem['voley3d.career']; delete mem['voley3d.career6']; C._reset(); };
+  const fresh = () => { delete mem['make-the-cut.career']; delete mem['make-the-cut.career6']; C._reset(); };
   // probabilidad: sube con la nota, ganar suma un poco, simular resta
   const P = C.beach.trialP, o = { chance: 0.3 };
   ok(P(o, 7, false, false) > P(o, 6, false, false) && P(o, 7, true, false) > P(o, 7, false, false) && P(o, 7, true, false) - P(o, 7, false, false) <= 0.1 && P(o, 7, false, true) < P(o, 7, false, false),
