@@ -221,6 +221,7 @@
       lost = true;
       try { if (s) { s.setItem(KEY + '.bak', raw); s.removeItem(KEY); } } catch (e) { }
     }
+    if (cur) trialCheckLive(cur, false);   // prueba que quedó a medias en otra visita (pestaña cerrada): gastada
     return cur;
   }
   function sane(o) {
@@ -1866,6 +1867,7 @@
     try { s = store(); raw = s ? s.getItem(KEY6) : null; o = raw ? JSON.parse(raw) : null; } catch (e) { o = null; }
     try { cur6 = sane6(o); } catch (e) { cur6 = null; }
     if (!cur6 && raw) { lost6 = true; try { if (s) { s.setItem(KEY6 + '.bak', raw); s.removeItem(KEY6); } } catch (e) { } }
+    if (cur6) trialCheckLive(cur6, true);
     return cur6;
   }
   function abandon6() { cur6 = null; M = null; lost6 = false; try { var s = store(); if (s) s.removeItem(KEY6); } catch (e) { } return true; }
@@ -3088,8 +3090,31 @@
     if (hall) joinClub6(c, o, 1); else joinClub(c, o, 1);
     c.last = null;
   }
+  // La prueba se GASTA si la dejas a medias (Ferran, 16-nov-2026: «reiniciar, abandonar o cerrar la pestaña la gasta»): trialMark al
+  // empezarla (c.trialLive = {club}); salir o reiniciar → trialGiveUp; si se cierra la pestaña, la siguiente carga (load/load6) la da
+  // por abandonada (trialLiveHere = la empezada en ESTA página).
+  var trialLiveHere = null;
+  function trialMarkC(c, i, hall) {
+    var o = c && c.offers && c.offers[i]; if (!o || !o.trial) return false;
+    c.trialLive = { club: o.club }; trialLiveHere = o.club; if (hall) save6(c); else save(c); return true;
+  }
+  function trialGiveUpC(c, clubId, hall) {
+    if (!c) return null;
+    var i = trialIdx(c, { club: clubId }); delete c.trialLive; if (trialLiveHere === clubId) trialLiveHere = null;
+    if (i < 0) { if (hall) save6(c); else save(c); return null; }
+    var o = c.offers[i], k = club(c, o.club);
+    c.offers.splice(i, 1);
+    msg(c, 'agent', 'Prueba abandonada', k.name + ' da la prueba por perdida: dejarla a medias cuenta como no superada.' + (c.offers.length ? ' Aún tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + '.' : ''));
+    if (c.phase === 'pick') { c.pick.fail = o.club; if (!c.offers.length) c.offers = hall ? genStartOffers6(c, ++c.pick.round) : genStartOffers(c, ++c.pick.round); }
+    else if (c.window === 'mid' && !c.offers.length) c.window = '';
+    c.trialLast = { pass: false, quit: true, club: o.club, clubName: k.name };
+    if (hall) save6(c); else save(c);
+    return c.trialLast;
+  }
+  function trialCheckLive(c, hall) { if (c && c.trialLive && c.trialLive.club !== trialLiveHere) trialGiveUpC(c, c.trialLive.club, hall); }
   /** Cierra la prueba de la oferta i con la nota y el resultado del mini partido (jugado o simulado). Guarda. */
   function trialResolve(c, i, nota, win, sim, hall) {
+    delete c.trialLive; trialLiveHere = null;
     var o = c.offers[i], k = club(c, o.club), p = trialP(o, nota, win, sim);
     var pass = rng(hash(c.seed, 'trialP', o.club, c.season, sim ? 1 : 0, Math.round((nota || 0) * 10), win ? 1 : 0))() < p;
     var res = { pass: pass, p: p, nota: nota, win: !!win, sim: !!sim, club: o.club, clubName: k.name, chance: o.chance };
@@ -3150,6 +3175,7 @@
     NOTA_MIN_R: NOTA_MIN_R, BENCH_XP: BENCH_XP, XP_K: XP_K6,
     // pruebas jugadas (17-nov-2026)
     trialSetup: trialSetupH, trialSim: function (i) { return trialSimC(load6(), i, true); },
+    trialMark: function (i) { return trialMarkC(load6(), i, true); }, trialGiveUp: function (clubId) { return trialGiveUpC(load6(), clubId, true); },
     // dificultad de la Carrera (15-nov-2026): mismas claves que la playa, con el guardado y la escala de la pista
     CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, GATE6: GATE6, TOP6: TOP6, top: top6,
     diffOf: function (c) { return diffOf(c || load6()); }, rivalAI: rivalAI6, attrOf: attrOf6, baseStep: baseStep6,
@@ -3184,6 +3210,7 @@
     // pruebas jugadas (17-nov-2026)
     TRIAL_PTS: TRIAL_PTS, TRIAL_UP: TRIAL_UP, TRIAL_K: TRIAL_K, TRIAL_REF: TRIAL_REF, TRIAL_WIN: TRIAL_WIN, TRIAL_SIM: TRIAL_SIM, TRIAL_GAP: TRIAL_GAP, trialP: trialP, trialStep: trialStep,
     trialSetup: trialSetupB, trialSim: function (i) { return trialSimC(load(), i, false); },
+    trialMark: function (i) { return trialMarkC(load(), i, false); }, trialGiveUp: function (clubId) { return trialGiveUpC(load(), clubId, false); },
     // jefes de la Carrera (career-life.js bossSt)
     _genSt: genSt,
     // dificultad de la Carrera (12-nov-2026)
@@ -3223,10 +3250,12 @@
     /** Al cerrar un partido: el de la Carrera a la que pertenece (g.career.mode), aunque la activa hubiera cambiado. */
     matchDone: function (r, st, g) { if (g && g.career && g.career.trial) return trialDone(r, st, g); return (g && g.career && g.career.mode === 'hall' ? HALL : g && g.career ? BEACH : eng()).matchDone(r, st, g); },
     trialDone: trialDone,
+    /** Prueba dejada a medias (main.js: salir o reiniciar): gastada, en la Carrera de esa prueba (g.career.mode). */
+    trialGiveUp: function (mode, clubId) { return mode === 'hall' ? trialGiveUpC(load6(), clubId, true) : trialGiveUpC(load(), clubId, false); },
     ingest: ingest, abortMatch: abortMatch, owns: owns,
     /** Fin de un ejercicio de Carrera jugado (main.js): a la Carrera del ejercicio (g.careerDrill.mode), aunque la activa hubiera cambiado. */
     drillDone: function (mode, id, total) { return (mode === 'hall' ? HALL : BEACH).trainSession(id, 'play', total); },
-    _reset: function () { cur = null; cur6 = null; M = null; }
+    _reset: function () { cur = null; cur6 = null; M = null; trialLiveHere = null; }   // (como recargar la página: también la prueba «de esta página»)
   };
   var C = {};
   Object.keys(BEACH).concat(Object.keys(HALL)).forEach(function (k) {

@@ -975,5 +975,9 @@ Contrato: CONTRACT §1 y §4.4 «Sprint 2-4».
   `acceptOffer(i)` con una prueba = simularla (la API de antes, que tiraba un dado con `o.chance`).
 - **UI:** la oferta de prueba explica el mini partido y tiene «Jugar la prueba» / «Simular la prueba». Al acabar el mini partido no hay hoja
   de jornada: a los 1,6 s se vuelve al hub con el resultado (superada: tarjeta «Prueba» arriba de Partido; no superada: aviso en la lista de
-  ofertas). Reiniciar a medias repite la misma prueba; salir a medias deja la oferta.
+  ofertas). Dejarla a medias la GASTA (regla de Ferran del 16-nov): salir o reiniciar → `trialGiveUp`; cerrar la pestaña → `c.trialLive` (`trialMark`
+  al empezar) y la siguiente carga la da por abandonada (`trialCheckLive` en load/load6).
+- **OJO: hay otra implementación** en la rama `pruebas-entrenos` (worktree carpetas/voley-3d-pruebas, 16-nov, versión 1.6.0 sin fusionar:
+  partidillo con petos, 3 objetivos, nota B ficha, nota en directo tipo EA FC, entrenos Rápido/Manual). Antes de fusionarla hay que decidir con
+  Ferran cuál se queda (o juntarlas): chocan en career.js (trialSetup/trialDone frente a su prueba), main.js y career-ui.js.
 - **Pruebas:** careertest «Pruebas jugadas (17-nov-2026)»; los bucles que aceptaban `offers[0]` se quedan si la única es una prueba fallida.

@@ -831,12 +831,12 @@
   function trialHTML(c, o) {
     var K = C(), pts = K.TRIAL_PTS || 15, sim = Math.round(((K.TRIAL_SIM || 0.75)) * 100), now = c.phase === 'off' ? ' Si la superas, fichas para la temporada que viene.' : c.phase === 'pick' ? '' : ' Si la superas, fichas al momento.';
     return '<p class="muted">Es una <b>prueba</b>: un mini partido a un set de ' + pts + ' contra jugadores mejores que tú, con la IA un nivel por encima de lo normal. Te fichan según tu <b>nota</b> (ganarlo ayuda un poco): de partida, ~' + Math.round(o.chance * 100) +
-      ' % con una nota de ' + String(K.TRIAL_REF || 6).replace('.', ',') + '. Simulada cuenta menos (×' + (sim / 100).toFixed(2).replace('.', ',') + '). Si no la superas, pierdes esta oferta. Contrato de 1 temporada.' + now + '</p>';
+      ' % con una nota de ' + String(K.TRIAL_REF || 6).replace('.', ',') + '. Simulada cuenta menos (×' + (sim / 100).toFixed(2).replace('.', ',') + '). Si no la superas, o la dejas a medias (salir, reiniciar o cerrar el juego), pierdes esta oferta. Contrato de 1 temporada.' + now + '</p>';
   }
   function trialBtns(i) { return '<button class="pri" data-act="trialplay" data-i="' + i + '">Jugar la prueba</button><button data-act="trialsim" data-i="' + i + '">Simular la prueba</button>'; }
   /** Texto del resultado de una prueba (CareerUI.open({trial})). */
   function trialText(r) {
-    if (!r || r.quit) return 'Has dejado la prueba a medias: la oferta sigue ahí.';
+    if (!r || r.quit) return 'Has dejado la prueba a medias' + (r && r.clubName ? ' y ' + r.clubName + ' la da por perdida' : ': cuenta como no superada') + '.';
     var nt = r.nota == null ? 'sin nota' : 'nota ' + dec(r.nota);
     return (r.pass ? '¡Superada! ' + r.clubName + ' te ficha' : 'No superada: ' + r.clubName + ' prefiere esperar') + ' (' + (r.sim ? 'simulada, ' : '') + nt + (r.win ? ', ganaste el mini partido' : ', perdiste el mini partido') + '; probabilidad ' + Math.round(r.p * 100) + ' %).';
   }
@@ -844,7 +844,7 @@
   function showTrial(res) {
     var cc = C() && C().get(), t = trialText(res);
     if (res && res.pass) { trialNote = t; tab = 'match'; return; }
-    if (cc && cc.phase !== 'pick' && !(res && res.quit)) { tab = 'club'; sub.club = 'offers'; }
+    if (cc && cc.phase !== 'pick') { tab = 'club'; sub.club = 'offers'; }
     if (cc && cc.phase === 'pick' || tab === 'club') note = t; else trialNote = t;
   }
   function offerCard(c, o, i, full) {

@@ -1115,6 +1115,7 @@
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
     if (K.abortMatch) K.abortMatch();
     careerSes = null;
+    if (K.trialMark) K.trialMark(i);   // desde aquí, dejarla a medias la gasta (también cerrando la pestaña)
     ctx.actions.startMatch({ career: m.career, attrs: m.attrs, badges: m.badges, points: m.points, bestOf: 1, difficulty: m.difficulty, rookie: false, ctrl: 'one', ctrlIdx: 0, ref: m.ref,
       venue: m.venue || 'beach', format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, names: m.names || undefined,
       kit: m.kit ? Object.assign({}, m.kit, { rival: m.rivalKit || null }) : null,
@@ -1185,7 +1186,9 @@
     var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug), trialG = fromCareer && !!ctx.game.career.trial;
     // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
     var drillC = !!(ctx.game && ctx.game.careerDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerDrill : null;
-    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // (prueba abandonada: la oferta sigue) // partido abandonado: la jornada sigue pendiente
+    var trialQuit = null;
+    if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch();
+    if (trialG && !careerEnd && VB.Career && VB.Career.trialGiveUp) { try { trialQuit = VB.Career.trialGiveUp(ctx.game.career.mode, ctx.game.career.trial.club); } catch (e) { reportError('Career.trialGiveUp', e); } }   // prueba a medias: gastada // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
     restoreEndButtons();
     unforceVenue();   // Carrera en la playa: de vuelta al escenario del ajuste
@@ -1193,7 +1196,7 @@
     setState('menu');
     if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
     // (B6: «Siguiente jornada» y los abandonos vuelven al hub en Partido con el foco en «Jugar partido»; R15)
-    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', careerEnd && careerEnd.trial ? { trial: careerEnd } : trialG ? { trial: { quit: true } } : { fresh: !!careerEnd, focus: 'play' }); } catch (e) { reportError('CareerUI.open', e); } }
+    else if (fromCareer && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', careerEnd && careerEnd.trial ? { trial: careerEnd } : trialG ? { trial: trialQuit || { quit: true } } : { fresh: !!careerEnd, focus: 'play' }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (fromCareer && VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } }
     careerEnd = null; menuOnly = false;
   };
@@ -1227,7 +1230,7 @@
     if (live && g.careerDrill && !g.careerDrill.done && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, !!g.autopilot); return; }
     if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
     if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
-    if (live && g.career && g.career.trial && !careerEnd) { if (!ctx.actions.startCareerTrial(g.career.trial.i)) ctx.actions.toMenu(); return; }
+    if (live && g.career && g.career.trial && !careerEnd) { ctx.actions.toMenu(); return; }   // (reiniciar una prueba = abandonarla: se gasta)
     if (live && g.career) { ctx.actions.startMatch(); return; }
     ctx.actions.startMatch(Object.assign({}, live && lastOpts || {}, { introKind: 'mini' }));
   };

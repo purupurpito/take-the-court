@@ -2312,6 +2312,13 @@ if (C.beach && C.beach.trialSetup && C.hall && C.hall.trialSetup) {
     fresh(); C.create({ mode, name: 'Prueba', num: 5, seed, pos: 'OH', role: 'uni', country: 'ES' });
     const i2 = C.get().offers.findIndex(x => x.trial), rs = C.trialSim(i2);
     ok(rs && rs.sim && typeof rs.nota === 'number' && C.get().trialLast && C.get().trialLast.club === rs.club, mode + ': prueba simulada (' + (rs && (rs.pass ? 'superada' : 'no superada')) + ', p ' + (rs && rs.p) + ')');
+    // dejarla a medias la gasta: cerrar la pestaña (marcada y recarga) y salir (trialGiveUp de la fachada)
+    fresh(); C.create({ mode, name: 'Prueba', num: 5, seed, pos: 'OH', role: 'uni', country: 'ES' });
+    { const i3 = C.get().offers.findIndex(x => x.trial), club3 = C.get().offers[i3].club, n3 = C.get().offers.length; C.trialMark(i3); C._reset();
+      const c3 = C.get(); ok(!c3.offers.some(x => x.club === club3 && x.trial) && c3.trialLast && c3.trialLast.quit && !c3.trialLive && c3.offers.length >= n3 - 1, mode + ': cerrar la pestaña a medias gasta la prueba'); }
+    fresh(); C.create({ mode, name: 'Prueba', num: 5, seed, pos: 'OH', role: 'uni', country: 'ES' });
+    { const i4 = C.get().offers.findIndex(x => x.trial), club4 = C.get().offers[i4].club; C.trialMark(i4); const q4 = C.trialGiveUp(mode, club4);
+      ok(q4 && q4.quit && !q4.pass && !C.get().offers.some(x => x.club === club4 && x.trial), mode + ': salir o reiniciar a medias la gasta'); }
     // invitaciones a prueba a mitad / fin de temporada: alguna en 30 temporadas de 6 carreras, siempre la última de la lista
     let inv = 0, last = true;
     for (let sd = 1; sd <= 6; sd++) {
