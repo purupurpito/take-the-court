@@ -2902,6 +2902,7 @@
     }
     el.endRecord.innerHTML = rec;
     if (el.btnMStats) el.btnMStats.hidden = !(VB.MatchStats && VB.MatchStats.ready && VB.MatchStats.ready());   // «Estadística del partido»
+    if (el.btnActa) { el.btnActa.hidden = !(VB.Acta && VB.MatchStats && VB.Acta.available(VB.MatchStats.data())); actaLbl(''); }   // «Acta del partido» (6v6)
     // MVP de cada equipo (UI-11). UI-18: una tabla pequeña: un solo rótulo «MVP», la cabecera «Ataque · Bloqueo · Saque» una vez y en
     // cada fila el dorsal, los puntos (la cifra grande) y su desglose; el lector de pantalla oye la frase entera (aria-label).
     var mv = '', nMv = 0;
@@ -3160,6 +3161,41 @@
     }
     if (a.classList && a.classList.contains('ms-tb')) { a.scrollLeft += (d > 0 ? 1 : -1) * Math.max(120, a.clientWidth * 0.6); return true; }
     return false;
+  }
+  // =====================================================================
+  //  Acta del partido (js/acta.js, solo 6v6): el acta en el formato de emPat. En GitHub Pages el juego y emPat comparten origen
+  //  (purupurpito.github.io), así que se guarda directamente en el almacén de emPat (clave empat/acta/<id>) y se abre emPat con
+  //  ?acta=<id>; fuera de Pages (o si el navegador no deja), se descarga el .json para importarlo desde la portada de emPat.
+  // =====================================================================
+  var ACTA_LBL = 'Acta del partido', actaT = 0;
+  function actaLbl(t) {
+    var b = el.btnActa; if (!b) return;
+    var sp = b.querySelector('span'); if (sp) sp.textContent = t || ACTA_LBL;
+    clearTimeout(actaT); if (t) actaT = setTimeout(function () { actaLbl(''); }, 3500);
+  }
+  function actaMeta(g) {
+    var nm = msNames(g), mode = g && g.career ? 'Carrera' : g && g.online ? 'Online' : g && g.watch0 ? 'Partido de la jornada' : 'Partido rápido';
+    return { home: nm.names[0], away: nm.names[1], venue: venueName(), competition: 'Make the Cut · ' + mode, now: Date.now() };
+  }
+  function openActa() {
+    var A = null;
+    try { A = VB.Acta.build(VB.MatchStats.data(), actaMeta(ctx.game)); } catch (er) { console.error('[VB][ERROR] Acta.build: ' + er); }
+    if (!A) { actaLbl('No se ha podido hacer el acta'); return; }
+    var json = JSON.stringify(A);
+    if (location.hostname === 'purupurpito.github.io') {
+      try {
+        localStorage.setItem('empat/acta/' + A.id, json);
+        var w = window.open('/emPat/?acta=' + encodeURIComponent(A.id), '_blank');
+        if (w) { actaLbl('Acta abierta en emPat'); srSay('Acta abierta en emPat, en otra pestaña'); return; }
+        actaLbl('Acta guardada: está en la portada de emPat'); srSay('Acta guardada en emPat'); return;
+      } catch (e) { }
+    }
+    try {
+      var a = document.createElement('a'), u = URL.createObjectURL(new Blob([JSON.stringify(A, null, 1)], { type: 'application/json' }));
+      a.href = u; a.download = 'acta-' + A.info.date + '-' + A.info.time.replace(':', '') + '.json';
+      document.body.appendChild(a); a.click(); a.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000);
+      actaLbl('Acta descargada: impórtala en emPat'); srSay('Acta descargada');
+    } catch (e2) { actaLbl('No se ha podido guardar el acta'); }
   }
   /** Abre la pantalla (botón de la hoja final o escena debug=stats; o = {set, team}). */
   function openMStats(o) {
@@ -6489,6 +6525,8 @@
       if (el.endPlays) el.endPlays.addEventListener('click', playsClick);
       el.btnMStats = $('btnMStats');
       if (el.btnMStats) el.btnMStats.addEventListener('click', function () { uiSound('click'); openMStats(); });
+      el.btnActa = $('btnActa');
+      if (el.btnActa) el.btnActa.addEventListener('click', function () { uiSound('click'); openActa(); });
       el.btnPeek.addEventListener('click', function () { click(); setPeek(true); });
       el.btnEndBack.addEventListener('click', function () { click(); setPeek(false); });
       el.btnPanelBack.addEventListener('click', function () { uiSound('back'); closePanel(); });

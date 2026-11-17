@@ -1824,8 +1824,8 @@ kbd.ms{height:auto;padding:2px 6px 1px}
 /* ---- Estadística del partido (js/matchstats.js + ui.js openMStats): al estilo de la pantalla Estadísticas de emPatData con la piel
    del juego (planos morados, tinta --tk, acento = color de la equipación --k0 / --k1), en el panel general (#panel .sheet.ms).
    Móvil primero; tabla con desplazamiento lateral y la primera columna fija ---- */
-.end-ms{margin:2px 0 4px}
-.end-ms button{width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:10px 16px}
+.end-ms{margin:2px 0 4px;display:flex;flex-wrap:wrap;gap:8px}
+.end-ms button{flex:1 1 200px;width:100%;display:flex;align-items:center;justify-content:center;gap:9px;padding:10px 16px}
 .end-ms button svg{width:18px;height:18px;fill:currentColor;flex:none}
 #end.dock .end-ms button{padding:9px 14px}
 #panel .sheet.ms{max-width:1140px;padding:20px 24px 18px}
@@ -3470,7 +3470,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
         <div class="end-tabs" id="endTabs"></div>
         <div class="rc" id="endSum" role="tabpanel"></div>
         <div class="end-st" id="endStatsTab" role="tabpanel" hidden>
-          <div class="end-ms" data-nav><button class="ghost" id="btnMStats" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3.5v10zm6.25 0V4h3.5v16zm6.25 0v-7H20v7z"/></svg>Estadística del partido</button></div>
+          <div class="end-ms" data-nav><button class="ghost" id="btnMStats" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3.5v10zm6.25 0V4h3.5v16zm6.25 0v-7H20v7z"/></svg>Estadística del partido</button><button class="ghost" id="btnActa" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8.5 12v1.6h9V12zm0 3.4V17h9v-1.6zm0 3.4v1.6h6v-1.6z"/></svg><span>Acta del partido</span></button></div>
           <div class="end-mvp" id="endMvp"></div>
           <div class="stats" id="endStats"></div>
           <div class="end-rec" id="endRecord"></div>
@@ -3718,6 +3718,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 <script src="js/recap.js"></script>
 <script src="js/replay.js"></script>
 <script src="js/matchstats.js"></script>
+<script src="js/acta.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/install.js"></script>
 <script src="js/main.js"></script>

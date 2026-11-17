@@ -59,8 +59,27 @@
   function r1(v) { return Math.round((+v || 0) * 10) / 10; }
   function newLog(g) {
     return { size: (g && g.size) || 2, beach: !!(g && g.beach), HL: (g && g.HL) || 9, HW: (g && g.HW) || 4.5, points: (g && g.points) || 25,
-      roster: {}, rallies: [], r: null, me: -1, meSet: false };
+      roster: {}, rallies: [], r: null, me: -1, meSet: false,
+      // (6v6, para el acta de js/acta.js) plantilla completa, alineación y primer saque de cada set, y lo que pasa a balón muerto:
+      // ac = [{i: rally antes del que pasa, k: 'sub'|'lib'|'tmo', s: set, t: equipo, o/n: dorsal que sale / entra}]
+      sq: null, lu: {}, ac: [], bo1: !!(g && g.bo1) };
   }
+  /** 6v6: plantilla de cada equipo (con banquillo y líbero) y alineación del set. Nada en 2v2. */
+  function squadOf(g) {
+    if (!g || g.size !== 6 || !g.teams) return null;
+    var out = [[], []];
+    for (var t = 0; t < 2; t++) {
+      var L = (g.roster && g.roster[t]) || g.teams[t].concat(g.libero && g.libero[t] ? [g.libero[t]] : []);
+      for (var i = 0; i < L.length; i++) if (L[i]) out[t].push({ n: L[i].num | 0, nm: typeof L[i].name === 'string' ? L[i].name : '', ro: L[i].role || '' });
+    }
+    return out;
+  }
+  function lineupOf(g, setNo) {
+    if (!g || !g.lineup || !g.lineup[0] || !g.lineup[1]) return;
+    cur.lu[setNo] = { r: [g.lineup[0].map(function (q) { return q.num | 0; }), g.lineup[1].map(function (q) { return q.num | 0; })], sv: g.serving | 0 };
+  }
+  /** Índice del rally antes del que pasa lo de balón muerto (el siguiente; o el abierto, si aún no se ha jugado nada en él). */
+  function nextIdx() { var r = cur.r, n = cur.rallies.length; return r && r.w < 0 && !r.c.length ? n - 1 : n; }
   function pid(p) {
     if (!p || p.id == null) return -1;
     var R = cur.roster, k = p.id;
@@ -99,7 +118,15 @@
   function ingest(e, g) {
     if (!e || e.replay || (g && (g.demo || g.drill || g.replay))) return;
     var ty = e.type;
-    if (ty === 'newMatch') { cur = newLog(g); return; }
+    if (ty === 'newMatch') { cur = newLog(g); cur.sq = squadOf(g); lineupOf(g, 1); return; }
+    if (ty === 'newSet' || ty === 'sub' || ty === 'libero' || ty === 'timeout') {
+      if (!cur || !g || g.size !== 6) return;
+      if (ty === 'newSet') { lineupOf(g, e.setNo | 0); return; }
+      var a = { i: nextIdx(), k: ty === 'sub' ? 'sub' : ty === 'libero' ? 'lib' : 'tmo', s: g.setNo | 0, t: e.team | 0 };
+      if (ty !== 'timeout') { a.o = e.outP ? e.outP.num | 0 : 0; a.n = e.inP ? e.inP.num | 0 : 0; }
+      cur.ac.push(a);
+      return;
+    }
     if (ty !== 'serveReady' && ty !== 'hit' && ty !== 'block' && ty !== 'land' && ty !== 'point') return;
     if (!cur) cur = newLog(g);
     var r = cur.r;

@@ -859,6 +859,13 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - **Estadística del partido (ui_main):** `js/matchstats.js` (`VB.MatchStats`: registro ligero por rally desde los eventos que ya recibe ui.js —onEvents,
   ingest, netTally— y, solo al pulsar «Estadística del partido» en la pestaña Estadísticas de la hoja final, el cálculo y el HTML al estilo de
   emPatData; nunca toca la sim ni g.rng). Prueba `node tools/statstest.js [partidos]`. Escena `debug=stats` (`&format=6v6&map=beach&career=1&set=n&team=1&sec=fig|mom|rot|map|err|pl`).
+- **Acta del partido (ui_main, 1.7.0):** `js/acta.js` (`VB.Acta.available(data)` / `build(data, meta)`, puro) convierte el registro de
+  `VB.MatchStats` de un 6v6 (que además guarda plantilla `sq`, alineación y primer saque por set `lu` y cambios / líbero / tiempos muertos
+  `ac`) en un acta de emPat (`"format": "empat/acta"`, v1: roster, toss, lineup, startPeriod, rally, substitution, liberoIn/liberoOut,
+  timeout). Equipo 0 = local. Botón «Acta del partido» (#btnActa, junto a «Estadística del partido»): en purupurpito.github.io la guarda
+  en el almacén de emPat (mismo origen: clave `empat/acta/<id>`) y abre `/emPat/?acta=<id>`; fuera de Pages descarga el .json para
+  importarlo en la portada de emPat. Prueba `node tools/actatest.js [partidos]` (con `../acta-electronica` o `EMPAT_DIR` comprueba cada
+  jugada contra el motor de emPat y que sets y puntos coinciden).
 
 - Capturas y logs en `tools/out/`.
 
