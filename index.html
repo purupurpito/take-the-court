@@ -38,6 +38,15 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<script>
+/* SPLAT · móvil (notes/splat.md «Móvil»): html.ph = móvil apaisado (alto ≤ 500 y apaisado; sin exigir táctil), .ph-s = alto ≤ 345,
+   .ph-w = ancho ≥ 800. Antes del primer pintado (sin parpadeo). ?ph=1 / ?ph=0 lo fuerzan. js/splat.js lo repite al girar o cambiar
+   de tamaño (window.__phTier) y avisa con el evento «vb:ph» en document. */
+(function(){try{var q=/[?&]ph=([01])/.exec(location.search),R=document.documentElement.classList;
+ function t(){var on=q?q[1]==='1':matchMedia('(max-height:500px) and (min-aspect-ratio:5/4)').matches,h=innerHeight,w=innerWidth;
+  R.toggle('ph',on);R.toggle('ph-s',on&&h<=345);R.toggle('ph-w',on&&w>=800);return on;}
+ t();window.__phTier=t;}catch(e){}})();
+</script>
 <meta name="theme-color" content="#070b14">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='12' cy='12' r='10.6' fill='%23fffaf0' stroke='%231d1530' stroke-width='1.6'/%3E%3Cpath d='M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z' fill='%231cc4b4'/%3E%3Cpath d='M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z' fill='%230b8a86' transform='rotate(120 12 12)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1986,6 +1995,7 @@ kbd.ms{height:auto;padding:2px 6px 1px}
   .bd-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 .sq-pm{display:none}
+.sq-pl{display:none}
 /* teléfono apaisado: el récord («Estreno / Primer partido») pisaba la tarjeta 6 contra 6 y el borde de ¡A jugar!: solo en el principal */
 @media (max-height:420px){#menu[data-page="play"] #menuRecord,#menu[data-page="quick"] #menuRecord{display:none}}
 /* móvil apaisado (alto <= 420), preparación del Partido rápido: el botón de pantalla completa se queda en el icono (38 × 38),
@@ -3484,12 +3494,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 #menu.sp-full .menu-foot{zoom:1;left:calc(var(--sp-pad) * 1.3 + var(--sl));right:calc(var(--sp-pad) + var(--sr));bottom:calc(var(--sp-pad) * .55 + var(--sbm));font:600 12px var(--sp-ui);color:rgba(255,244,220,.78);text-shadow:0 1px 2px rgba(21,16,42,.9)}
 #menu.sp-full .menu-foot .ver{font-family:var(--sp-ui);font-variant-numeric:tabular-nums}
 #menu.sp-full .rec,#menu.sp-full .rec b{font-family:var(--sp-ui);font-variant-numeric:tabular-nums}
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  #menu{--sp-colw:clamp(320px,62vw,460px);--sp-gap:8px;--sp-h-md:46px;--sp-h-lg:52px}
-  #menu.sp-full .sp-page{gap:8px;padding-top:calc(8px + var(--st));padding-bottom:calc(8px + var(--sbm))}
-  #menu.sp-full .menu-foot .navhint,#menu.sp-full .menu-foot .rec{display:none}
-  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-h{--sp-hs:clamp(22px,8vh,30px)}
-}
+/* (el antiguo «@media (max-height:430px) and (min-aspect-ratio:5/4)» de este bloque pasó a «— móvil (.ph) —», más abajo) */
 @media (max-aspect-ratio:5/4){
   #menu{--sp-pad:clamp(14px,4vw,28px);--sp-h-md:clamp(50px,7.6vh,64px);--sp-gap:11px}
   #menu.sp-full .sp-page{left:calc(var(--sp-pad) + var(--sl));right:calc(var(--sp-pad) + var(--sr));width:auto;max-width:none;justify-content:space-between;padding:calc(var(--sp-pad) * 1.2 + 34px + var(--st)) 0 calc(var(--sp-pad) + 22px + var(--sbm))}
@@ -3503,6 +3508,241 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   :is(.sp-btn,.sp-ticket,.sp-back),.sp-patch .sp-tri,.sp-splash{animation:none!important}
   :is(.sp-btn,.sp-ticket,.sp-back):is(.kf,:focus-visible){transform:rotate(var(--sp-tilt,0deg)) scale(1.05)!important}
 }
+
+/* ---- piezas nuevas que valen en TODOS los tamaños (solo salen si una pantalla las usa): hoja de abajo, tinte de aviso, avisos cortos,
+   ✕ en pegatina, «?» / «i», cifras (.sp-heros, .sp-kv) y utilidades. JS: VB.Splat.sheet / modal / toast / info (js/splat.js) ---- */
+#spSheets{position:absolute;inset:0;z-index:200;pointer-events:none}
+#spSheets[hidden]{display:none}
+.sp-catch{position:absolute;inset:0;background:rgba(21,16,42,.2);pointer-events:auto}
+.sp-catch.sp-catch-m{position:fixed}
+:root:not(#_):not(#_):not(#_) #spSheets .sp-sheet{position:absolute;left:50%;top:50%;translate:-50% -50%;width:min(520px,calc(100vw - 32px));max-height:calc(100% - 32px);margin:0;
+  display:flex;flex-direction:column;box-sizing:border-box;padding:12px 14px 12px 16px;pointer-events:auto;animation:spSheetIn .16s var(--ease) both}
+@keyframes spSheetIn{from{transform:translateY(28px);opacity:0}to{transform:none;opacity:1}}
+#spSheets.sp-rm .sp-sheet,.rm #spSheets .sp-sheet{animation:none}
+@media (prefers-reduced-motion:reduce){#spSheets .sp-sheet{animation:none!important}}
+#spSheets .sp-sh-h{flex:none;display:flex;align-items:center;gap:12px;min-height:44px;margin:0 0 6px}
+#spSheets .sp-sh-t{flex:1;min-width:0;margin:0;font:400 var(--ph-head,20px)/1.15 var(--sp-pop);letter-spacing:.01em;color:var(--sp-gold);text-transform:none;text-shadow:2px 2px 0 var(--sp-ink)}
+#spSheets .sp-paper .sp-sh-t{color:var(--sp-ink);text-shadow:none}
+#spSheets .sp-sh-b{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;font:500 var(--ph-body,15px)/1.4 var(--sp-ui);padding:2px 2px 8px}
+#spSheets .sp-sh-b p{margin:0 0 .6em}
+#spSheets .sp-sh-b.sp-more{-webkit-mask:linear-gradient(#000 calc(100% - 24px),transparent);mask:linear-gradient(#000 calc(100% - 24px),transparent)}
+#spSheets .sp-dock{flex:none;display:flex;justify-content:flex-end;align-items:center;gap:10px;margin-top:8px}
+#spSheets .sp-dock.sp-dock-one{justify-content:flex-start}
+#spSheets .sp-sh-danger{box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 3px var(--sp-danger),4px 5px 0 var(--sp-ink)}
+#spSheets .sp-sheet-wide{width:min(760px,calc(100vw - 32px))}
+.sp-tbl-full{overflow-x:auto;overscroll-behavior:contain}
+.sp-tbl-full table{border-collapse:collapse;font-variant-numeric:tabular-nums}
+.sp-tbl-full :is(th,td){padding:6px 8px;white-space:nowrap}
+.sp-tbl-full :is(th,td):first-child{position:sticky;left:0;background:var(--sp-ink)}
+/* ✕ en pegatina crema (44×44 de toque, 36 dibujada) */
+:root:not(#_):not(#_):not(#_) .sp-x{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;margin:0;padding:0;border:0;border-radius:50%;background:none;box-shadow:none;cursor:pointer;color:var(--sp-ink);-webkit-tap-highlight-color:transparent}
+:root:not(#_):not(#_):not(#_) .sp-x::before{content:"";position:absolute;left:4px;top:4px;width:36px;height:36px;border-radius:50%;background:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-x svg{position:relative;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:3.6;stroke-linecap:round}
+:root:not(#_):not(#_):not(#_) .sp-x:is(.kf,:focus-visible){outline:none}
+:root:not(#_):not(#_):not(#_) .sp-x:is(.kf,:focus-visible)::before{background:var(--sp-gold);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 6px var(--sp-cream)}
+/* avisos cortos: carril arriba a la derecha (bajo DIRECTO) */
+#spToasts{position:absolute;top:calc(max(8px,var(--st)) + 40px);right:max(16px,var(--sr));z-index:205;display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:min(340px,44vw);pointer-events:none}
+.sp-toast{pointer-events:auto;box-sizing:border-box;max-width:100%;padding:9px 14px;border-radius:12px 16px 12px 18px/14px 12px 18px 12px;background:var(--sp-ink);color:var(--sp-cream);
+  box-shadow:0 0 0 2.5px var(--sp-cream),3px 4px 0 2.5px var(--sp-ink);font:600 var(--ph-body,15px)/1.3 var(--sp-ui);transform:rotate(-1deg);cursor:pointer;animation:spToastIn .18s var(--ease) both}
+.sp-toast b{color:var(--sp-gold)}
+@keyframes spToastIn{from{transform:translateX(24px) rotate(-1deg);opacity:0}}
+.sp-toast.sp-rm,.rm .sp-toast{animation:none}
+/* «?» (explicación en una hoja) e «i» (la explicación de la fila, en la fila) */
+:root:not(#_):not(#_):not(#_) .sp-q{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;margin:0;padding:0;border:0;border-radius:50%;background:var(--sp-ink);
+  color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);font:400 var(--ph-row,17px)/1 var(--sp-pop);cursor:pointer;-webkit-tap-highlight-color:transparent}
+:root:not(#_):not(#_):not(#_) .sp-q:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) .sp-info{display:none}
+/* cifras: varias en UNA pegatina (no tarjetas sueltas) y lista clave/valor */
+.sp-heros{display:flex;align-items:stretch;box-sizing:border-box;margin:4px 3px 10px;padding:6px 2px;background:var(--sp-ink);color:var(--sp-cream);border-radius:14px 18px 14px 20px/16px 14px 20px 14px;
+  box-shadow:0 0 0 3px var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.14),3px 4px 0 3px var(--sp-ink);transform:rotate(-1deg)}
+.sp-heros>*{flex:1 1 0;min-width:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:4px 10px;text-align:center}
+.sp-heros>*+*{border-left:2px solid rgba(255,244,220,.22)}
+.sp-heros .sp-hn{font:400 var(--ph-hero,34px)/1 var(--sp-pop);color:var(--sp-gold);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sp-heros.sp-sm .sp-hn{font-size:var(--ph-num,22px)}
+.sp-heros .sp-hl{margin-top:4px;font:700 var(--ph-cap,12.5px)/1.15 var(--sp-ui);opacity:.9}
+.sp-heros.sp-paper{background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink)}
+.sp-heros.sp-paper .sp-hn{color:var(--sp-ink)}
+.sp-heros.sp-paper>*+*{border-left-color:rgba(21,16,42,.2)}
+.sp-kv{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:14px;row-gap:6px;margin:0;align-items:baseline}
+.sp-kv dt{margin:0;font:700 var(--ph-cap,12.5px)/1.2 var(--sp-ui);color:var(--sp-gold);letter-spacing:0;text-transform:none}
+.sp-kv dd{margin:0;font:600 var(--ph-row,16px)/1.25 var(--sp-ui);min-width:0}
+/* utilidades: proxy de fitSeg (el original queda oculto), solo en el móvil / fuera del móvil, dos líneas sin elipsis */
+.ph-hid{display:none!important}
+:root:not(.ph) .ph-only{display:none!important}
+:root.ph .ph-hide{display:none!important}
+.ph-2l{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;text-overflow:clip}
+html.sp-kb [data-kb-hide]{display:none!important}
+.kb-pin{top:var(--ph-gt,8px)!important;bottom:auto!important;max-height:calc(var(--vvh,100vh) - 16px)!important;translate:none!important}
+.sp-inrow{display:flex!important;flex-direction:row!important;align-items:center!important;gap:8px!important}
+.sp-inrow>input{flex:1 1 auto;min-width:0}
+
+/* =====================================================================
+   — móvil (.ph) — fundación (18-nov-2026; notes/splat.md «Móvil»). html.ph = móvil apaisado (alto ≤ 500 y apaisado; <script> del
+   principio de la página), .ph-s = alto ≤ 345 (solo quita adornos, NUNCA baja la letra), .ph-w = ancho ≥ 800. Prefijo de TODA regla del móvil:
+   «:root.ph:not(#_):not(#_):not(#_)» (3 ids + 2 clases: gana a la estructura «:root:not(#_)×3» y a las viejas @media de 430 px; si la
+   regla vieja lleva además un #id, pon el mismo #id detrás del prefijo). Letra por ANCHO (568 → 915 px), nunca con vh.
+   Sin .ph no cambia nada: PC y tableta siguen igual.
+   ===================================================================== */
+:root.ph{
+  --ph-cap:clamp(12px,10.4px + .29vw,13px);--ph-label:clamp(13px,10.5px + .43vw,14.5px);--ph-body:clamp(14px,10.7px + .58vw,16px);
+  --ph-row:clamp(15px,11.7px + .58vw,17px);--ph-btn:clamp(15px,10.1px + .86vw,18px);--ph-num:clamp(17px,8.8px + 1.44vw,22px);
+  --ph-head:clamp(18px,11.5px + 1.15vw,22px);--ph-title:clamp(26px,9.6px + 2.88vw,36px);--ph-patch:clamp(22px,8.9px + 2.3vw,30px);
+  --ph-hero:clamp(30px,6px + 4.2vw,44px);
+  --sp-h-sm:44px;--sp-h-md:48px;--sp-h-lg:56px;--sp-r:12px;--sp-sh:2px 3px 0 var(--sp-ink);
+  --ph-s1:4px;--ph-s2:8px;--ph-s3:12px;--ph-s4:16px;--ph-s5:24px;
+  --ph-g:max(16px,var(--sl),var(--sr));--ph-gt:max(8px,var(--st));--ph-gb:max(8px,var(--sbm));
+  --ph-hh:48px;--ph-vt:clamp(112px,15vw,140px);
+  --ph-fw:min(calc(100vw - 2 * var(--ph-g)),max(62vw,520px));--ph-ffw:calc(100vw - 2 * var(--ph-g));--ph-colw:clamp(340px,58vw,560px);
+  --ph-hit-gap:10px;
+  /* entre pestañas: la elegida va inclinada (-1,5°), y en una columna de ~140 px de ancho sube y baja ~2 px; así el hueco sigue ≥ 10 px */
+  --ph-tab-gap:calc(var(--ph-hit-gap) + 2px);
+  /* en una tira (.sp-tabs-strip), 44 px de alto: la inclinación ensancha ~0,6 px por lado */
+  --ph-strip-gap:calc(var(--ph-hit-gap) + 1px)}
+/* variables de los componentes (todas las pantallas crecen solas) */
+:root.ph:not(#_):not(#_):not(#_) .sp-btn{--sp-fs:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) .sp-lg{--sp-fs:calc(var(--ph-btn) + 2px)}
+:root.ph:not(#_):not(#_):not(#_) .sp-md{--sp-fs:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) .sp-sm{--sp-fs:var(--ph-row);--sp-px:12px}
+:root.ph:not(#_):not(#_):not(#_) .sp-back{--sp-fs:var(--ph-label);--sp-h:44px}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-ticket,.sp-patch){--sp-ss:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) .sp-chip{--sp-chs:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-tab,.sp-tabs .tab){--sp-tbh:44px;--sp-tbs:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) .sp-seg>span{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-width:52px}
+:root.ph:not(#_):not(#_):not(#_) .sp-seg>span::before{inset:2px -3px}
+:root.ph:not(#_):not(#_):not(#_) .sp-select{--sp-aw:34px;--sp-vs:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) .sp-h{--sp-hs:var(--ph-title)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-patch,.sp-pair){--sp-ph:clamp(56px,40px + 2.9vw,68px);--sp-pt:var(--ph-patch)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-stamp,.sp-pair){--sp-stamp:clamp(64px,7vw + 24px,92px)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ticket{--sp-h:clamp(56px,4vw + 33px,72px);--sp-cs:clamp(32px,2.6vw + 17px,42px)}
+/* suelos (por si una pantalla pone sus variables con un #id delante): toque ≥ 44 px, rótulos ≥ 15 px (Volver ≥ 13) */
+:root.ph:not(#_):not(#_):not(#_) .sp-btn{min-height:max(44px,var(--sp-h,var(--sp-h-md)));font-size:max(15px,var(--sp-fs,var(--ph-btn)))}
+:root.ph:not(#_):not(#_):not(#_) .sp-back{min-height:44px;font-size:max(13px,var(--sp-fs,var(--ph-label)))}
+/* rótulos: hasta 2 líneas, nunca puntos suspensivos; inclinación más suave */
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-btn,.sp-back) .sp-t{white-space:normal;text-overflow:clip;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:normal;transform:rotate(-1.5deg)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ticket .sp-t{font-size:var(--ph-head);white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+:root.ph:not(#_):not(#_):not(#_) .sp-ticket .sp-k{font-size:var(--ph-cap);letter-spacing:.04em}
+:root.ph:not(#_):not(#_):not(#_) .sp-k{font-size:var(--ph-label);letter-spacing:.04em}
+:root.ph:not(#_):not(#_):not(#_) .sp-vs{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) .sp-sc b{font-size:max(12px,calc(var(--sp-stamp) * .1));letter-spacing:.02em}
+:root.ph:not(#_):not(#_):not(#_) .sp-chip{box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) [data-sp-s="3"]{--sp-tilt:1.4deg}
+:root.ph:not(#_):not(#_):not(#_) [data-sp-s="4"]{--sp-tilt:-1.4deg}
+:root.ph:not(#_):not(#_):not(#_) .sp-wide.sp-calm{--sp-tilt:.5deg}
+:root.ph:not(#_):not(#_):not(#_) .sp-wide.sp-calm:is([data-sp-s="0"],[data-sp-s="2"],[data-sp-s="4"]){--sp-tilt:-.5deg}
+:root.ph:not(#_):not(#_):not(#_) .sp-wide.sp-calm .sp-t{transform:rotate(-1deg)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-wide.sp-calm,.sp-lrow) .sp-blob .sp-f circle{display:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-h{text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),1.5px 1.5px 0 var(--sp-ink),-1.5px -1.5px 0 var(--sp-ink),1.5px -1.5px 0 var(--sp-ink),-1.5px 1.5px 0 var(--sp-ink),3px 4px 0 var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-panel{border-radius:14px 16px 14px 18px/16px 14px 18px 14px;box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.14),4px 5px 0 var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-panel.sp-paper{box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 2px rgba(21,16,42,.12),4px 5px 0 var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-hints{display:none}
+/* deslizador (pista de 12 px en una franja de 44 de toque, mando de 28) e interruptor (56×32 dibujado, 44 de toque) */
+:root.ph:not(#_):not(#_):not(#_) .sp-slider{min-height:44px}
+:root.ph:not(#_):not(#_):not(#_) .sp-slider .trk::before{top:-16px;bottom:-16px}
+:root.ph:not(#_):not(#_):not(#_) .sp-slider .trk b{width:28px;height:28px;margin:-14px 0 0 -14px}
+:root.ph:not(#_):not(#_):not(#_) .sp-slider .v{font-size:var(--ph-num)}
+:root.ph:not(#_):not(#_):not(#_) .sp-toggle::after{content:"";display:block;position:absolute;inset:-6px;background:none;box-shadow:none}
+/* páginas del menú (.sp-page): columna del móvil, márgenes de seguridad iguales a los dos lados (antes: @media 430 px) */
+:root.ph #menu{--sp-colw:var(--ph-colw);--sp-gap:var(--ph-s3);--sp-pad:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-page{left:var(--ph-g);max-width:calc(100% - 2 * var(--ph-g));gap:var(--ph-s3);padding-top:var(--ph-gt);padding-bottom:var(--ph-gb)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .menu-foot .navhint,:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .menu-foot .rec{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .menu-foot{font-size:var(--ph-cap);left:var(--ph-g);right:var(--ph-g);bottom:var(--ph-gb)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .live{font-size:var(--ph-cap);letter-spacing:.08em;right:var(--ph-g);top:var(--ph-gt)}
+
+/* ---- marco de pantalla: cabecera (.sp-fh) | columna de pestañas (.sp-vtabs, opcional) + UNA zona que se desplaza (.sp-scroll / .sp-body)
+   | barra de acciones (.sp-dock: la principal, la ÚLTIMA, abajo a la derecha). data-ph-frame="side" (por defecto) | "full" ---- */
+:root.ph:not(#_):not(#_):not(#_) .sp-frame{position:absolute;top:var(--ph-gt);bottom:var(--ph-gb);left:var(--ph-g);right:auto;width:var(--ph-fw);max-width:var(--ph-ffw);height:auto;max-height:none;min-height:0;margin:0;padding:0;
+  box-sizing:border-box;display:grid;grid-template:"fh fh" auto "vt strip" auto "vt body" minmax(0,1fr) "vt dock" auto / auto minmax(0,1fr);gap:0;zoom:1;transform:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-frame[data-ph-frame="full"]{width:var(--ph-ffw)}
+:root.ph:not(#_):not(#_):not(#_) .sp-frame>.sp-fh{grid-area:fh}
+:root.ph:not(#_):not(#_):not(#_) .sp-frame>.sp-vtabs{grid-area:vt;margin:0 var(--ph-s3) 0 0}
+:root.ph:not(#_):not(#_):not(#_) .sp-frame>.sp-tabs-strip{grid-area:strip;margin:0 0 var(--ph-s2)}
+:root.ph:not(#_):not(#_):not(#_) .sp-frame>:is(.sp-scroll,.sp-body){grid-area:body;min-height:0;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-frame>.sp-dock{grid-area:dock}
+:root.ph:not(#_):not(#_):not(#_) .sp-fh{display:flex;align-items:center;gap:var(--ph-s3);min-width:0;min-height:var(--ph-hh);margin:0 0 var(--ph-s2);padding:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-fh .sp-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-fh .sp-h{flex:0 1 auto;min-width:0;white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) .sp-fh>.sp-fr{margin-left:auto;display:flex;align-items:center;gap:var(--ph-hit-gap);flex:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-scroll{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scroll-padding:12px;min-height:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-frame>.sp-scroll{overflow-x:hidden;padding-bottom:12px}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-frame>.sp-scroll,.sp-vtabs .tb-row).sp-more{-webkit-mask:linear-gradient(#000 calc(100% - 24px),transparent);mask:linear-gradient(#000 calc(100% - 24px),transparent)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-frame>.sp-scroll,.sp-vtabs .tb-row).sp-less{-webkit-mask:linear-gradient(transparent,#000 16px);mask:linear-gradient(transparent,#000 16px)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-frame>.sp-scroll,.sp-vtabs .tb-row).sp-more.sp-less{-webkit-mask:linear-gradient(transparent,#000 16px,#000 calc(100% - 24px),transparent);mask:linear-gradient(transparent,#000 16px,#000 calc(100% - 24px),transparent)}
+:root.ph:not(#_):not(#_):not(#_) .sp-dock{display:flex;justify-content:flex-end;align-items:flex-end;gap:var(--ph-hit-gap);flex-wrap:nowrap;min-width:0;margin:var(--ph-s2) 0 0;padding:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-dock>.sp-dock-l{margin-right:auto}
+:root.ph:not(#_):not(#_):not(#_) .sp-dock>.sp-dock-l+.sp-dock-l{margin-right:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-dock>.sp-patch{flex:0 1 auto;width:auto;min-width:min(160px,100%)}
+
+/* ---- pestañas: .sp-vtabs (columna a la izquierda) y .sp-tabs-strip (tira de ≤ 5). ui.js fitTabs las pone con data-ph-tabs ---- */
+:root.ph:not(#_):not(#_):not(#_) .sp-vtabs{display:flex;flex-direction:column;align-items:stretch;width:var(--ph-vt);min-width:0;min-height:0;margin:0;padding:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-vtabs .tb-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-vtabs .tb-row{flex:1 1 auto;display:flex;flex-direction:column;align-items:stretch;gap:var(--ph-tab-gap);min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;padding:4px 6px 10px 3px;scrollbar-width:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-vtabs :is(.tab,.sp-tab){flex:none;width:100%;min-height:44px;height:auto;justify-content:flex-start;gap:8px;padding:6px 10px 6px 12px;white-space:normal;text-align:left;line-height:1.08}
+:root.ph:not(#_):not(#_):not(#_) .sp-vtabs :is(.tab,.sp-tab) svg{flex:none;width:21px;height:21px}
+:root.ph:not(#_):not(#_):not(#_) .sp-vtabs .tab .tb-t{display:block!important;min-width:0;text-transform:none;letter-spacing:.01em;overflow-wrap:break-word}
+:root.ph:not(#_):not(#_):not(#_) .sp-vtabs .tb-b{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-vtabs,.sp-tabs-strip) :is(.tab,.sp-tab):not(.on):not([aria-selected="true"])::before{background:var(--sp-ink2);opacity:1}
+:root.ph:not(#_):not(#_):not(#_) .sp-tabs-strip{display:flex;align-items:center;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-tabs-strip .tb-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-tabs-strip .tb-row{flex:1 1 auto;display:flex;gap:var(--ph-strip-gap);min-width:0;overflow-x:auto;overflow-y:hidden;overscroll-behavior:contain;scrollbar-width:none;padding:3px 4px 5px}
+:root.ph:not(#_):not(#_):not(#_) .sp-tabs-strip .tb-row::-webkit-scrollbar{display:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-tabs-strip :is(.tab,.sp-tab){flex:1 1 auto;min-height:44px;white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) .sp-tabs-strip .tab .tb-t{display:inline!important}
+:root.ph:not(#_):not(#_):not(#_) .sp-tabs-strip .tb-row.sp-more-x{-webkit-mask:linear-gradient(to right,#000 calc(100% - 28px),transparent);mask:linear-gradient(to right,#000 calc(100% - 28px),transparent)}
+
+/* ---- filas: .sp-lrow (una elección: .sp-btn.sp-wide.sp-calm con .sp-rl | .sp-rm (.sp-t + .sp-s) | .sp-rt) y .sp-li (fila de datos,
+   solo CSS: sin mancha SVG; --li-c = color de su estado). .sp-me = la tuya. .sp-sec = cabecera de sección pegada arriba.
+   (.sp-lrow y no .sp-row: .sp-row ya es la fila de manchas de modos de la portada, #menu.sp-full .sp-modes>.sp-row) ---- */
+:root.ph:not(#_):not(#_):not(#_) .sp-lrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:0;width:100%;min-height:56px;padding:6px 14px;white-space:normal;text-align:left}
+:root.ph:not(#_):not(#_):not(#_) .sp-lrow>.sp-rl{grid-column:1;display:flex;align-items:center;justify-content:center;width:36px;min-height:36px;margin-right:12px}
+:root.ph:not(#_):not(#_):not(#_) .sp-lrow>.sp-rm{grid-column:2;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:2px}
+:root.ph:not(#_):not(#_):not(#_) .sp-lrow>.sp-rt{grid-column:3;display:flex;align-items:center;gap:8px;margin-left:12px;font:700 var(--ph-num)/1 var(--sp-ui);font-variant-numeric:tabular-nums;letter-spacing:0;text-transform:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-lrow .sp-t{font-size:var(--ph-row);transform:rotate(-1deg)}
+:root.ph:not(#_):not(#_):not(#_) .sp-lrow .sp-s{font-size:var(--ph-label);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.85}
+:root.ph:not(#_):not(#_):not(#_) .sp-lrow.sp-me{--sp-c:var(--sp-kit);--sp-tc:var(--sp-kit-ink);--sp-icc:var(--sp-kit-ink);--sp-ts:var(--sp-kit-ts)}
+:root.ph:not(#_):not(#_):not(#_) .sp-li{position:relative;display:flex;align-items:center;gap:12px;box-sizing:border-box;min-height:44px;margin:3px 3px 9px;padding:6px 12px 6px 18px;border:0;
+  border-radius:10px 13px 10px 14px/12px 10px 14px 10px;background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 3px var(--sp-ink),2px 3px 0 3px var(--sp-ink);
+  font:500 var(--ph-body)/1.3 var(--sp-ui);text-align:left;transform:rotate(.3deg)}
+:root.ph:not(#_):not(#_):not(#_) .sp-li:nth-child(even){transform:rotate(-.3deg)}
+:root.ph:not(#_):not(#_):not(#_) .sp-li::before{content:"";position:absolute;left:6px;top:9px;bottom:9px;width:4px;border-radius:3px;background:var(--li-c,var(--sp-gold))}
+:root.ph:not(#_):not(#_):not(#_) .sp-li.sp-me{background:var(--sp-kit);color:var(--sp-kit-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-li:is(button,[role=button],[aria-expanded]){cursor:pointer;min-height:48px}
+:root.ph:not(#_):not(#_):not(#_) .sp-sec{position:sticky;top:0;z-index:2;isolation:isolate;display:block;width:max-content;max-width:100%;box-sizing:border-box;margin:6px 0 8px;padding:5px 14px 6px;
+  font:400 var(--ph-label)/1.15 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;color:var(--sp-gold);text-shadow:none}
+:root.ph:not(#_):not(#_):not(#_) .sp-sec::before{content:"";position:absolute;inset:0 -4px;z-index:-1;background:var(--sp-ink);-webkit-mask:var(--sp-brush) center/100% 100% no-repeat;mask:var(--sp-brush) center/100% 100% no-repeat}
+:root.ph:not(#_):not(#_):not(#_) .sp-rows-2{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,max(254px,calc(50% - 6px))),1fr));column-gap:12px;align-items:start}
+/* explicaciones: en el móvil, detrás de «?» o «i» (la línea de ayuda de la fila se queda) */
+:root.ph:not(#_):not(#_):not(#_) .sp-info{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;margin:-6px 0;padding:0;border:0;background:none;box-shadow:none;cursor:pointer;color:var(--sp-ink);font:700 15px/1 var(--sp-ui)}
+:root.ph:not(#_):not(#_):not(#_) .sp-info::before{content:"";position:absolute;left:9px;top:9px;width:26px;height:26px;border-radius:50%;background:var(--sp-cream);box-shadow:0 0 0 2px var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-info>*{position:relative}
+:root.ph:not(#_):not(#_):not(#_) .sp-info[aria-expanded="true"]::before{background:var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) .sp-help-full{display:none}
+:root.ph:not(#_):not(#_):not(#_) [aria-expanded="true"] .sp-help-full,:root.ph:not(#_):not(#_):not(#_) [aria-expanded="true"]+.sp-help-full{display:block;font:500 var(--ph-body)/1.4 var(--sp-ui);white-space:normal;text-transform:none;letter-spacing:0}
+
+/* ---- tablas (.sp-tbl + VB.Splat.tbl: columnas data-ph-cols, «Ver tabla completa» en una hoja) y fichas (.sp-tiles: álbum, insignias,
+   trofeos; desplazamiento VERTICAL, tocar = hoja) ---- */
+:root.ph:not(#_):not(#_):not(#_) .sp-tbl table{width:100%;border-collapse:separate;border-spacing:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-tbl :is(th,td){height:40px;padding:4px 8px;box-sizing:border-box;font:700 var(--ph-row)/1.1 var(--sp-ui);font-variant-numeric:tabular-nums;white-space:nowrap;letter-spacing:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-tbl th{position:sticky;top:0;z-index:1;height:34px;background:var(--sp-ink);color:var(--sp-gold);font:700 var(--ph-cap)/1.1 var(--sp-ui);text-transform:none;letter-spacing:0}
+:root.ph:not(#_):not(#_):not(#_) .sp-tbl :is(.num,[data-num]){font-size:var(--ph-num)}
+:root.ph:not(#_):not(#_):not(#_) .sp-tbl tr.sp-me td{background:var(--sp-kit);color:var(--sp-kit-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-tbl>.sp-tbl-all{margin:10px 0 4px}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:12px;padding:6px 4px 12px}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles>*{position:relative;box-sizing:border-box;min-width:84px;min-height:84px;aspect-ratio:1;margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;
+  padding:8px 6px;border:0;border-radius:12px 16px 12px 18px/14px 12px 18px 12px;background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 3px var(--sp-ink),2px 3px 0 3px var(--sp-ink);
+  text-align:center;transform:rotate(var(--tl,-1.2deg));font:700 var(--ph-cap)/1.15 var(--sp-ui);text-transform:none;letter-spacing:0;cursor:pointer}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles>:nth-child(3n+2){--tl:1.8deg;background:var(--sp-cream);color:var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles>:nth-child(3n){--tl:-2.6deg;background:var(--sp-ink2)}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles>:nth-child(4n){--tl:2.8deg}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles>:is(.won,.sp-won){background:var(--sp-gold);color:var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles>* :is(svg,img){flex:none;width:30px;height:30px}
+:root.ph:not(#_):not(#_):not(#_) .sp-tiles .sp-tl{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:normal;word-break:normal;hyphens:auto;max-width:100%}
+
+/* ---- hoja de abajo y avisos en el móvil: abajo a la derecha, dentro de los márgenes ---- */
+:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-sheet{left:auto;top:auto;right:var(--ph-g);bottom:var(--ph-gb);translate:none;width:min(560px,66vw);max-height:calc(100% - var(--ph-gt) - var(--ph-gb) - 8px)}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-sheet-wide{width:var(--ph-ffw)}
+@media (max-width:639.98px){:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-sheet{width:var(--ph-ffw)}}
+:root.ph:not(#_):not(#_):not(#_) #spToasts{top:calc(var(--ph-gt) + 40px);right:var(--ph-g)}
+:root.ph:not(#_):not(#_):not(#_).sp-sh-on #spToasts{top:calc(var(--ph-gt) + 64px)}
 /* ==== fin SPLAT: sistema de diseño ==== */
 
 /* =====================================================================
@@ -3557,20 +3797,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 /* Carrera: brochazo turquesa (los hijos de career-ui.js, ocultos; menu-jugador.js pinta .sp-tk) */
 #menu.mj #btnCont{margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
 :root:not(#_):not(#_):not(#_) #menu.mj #btnCont>:is(.ct-pt,.ct-tx,.ct-cr,.go){display:none}
-/* móvil apaisado con muy poco alto */
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  #menu.mj{--mj-stamp:clamp(58px,16vh,66px);--mj-play:clamp(54px,15vh,62px);--mj-tape:46px;--mj-strip:44px}
-  #menu.mj .mj-side{gap:10px;padding-top:calc(10px + var(--st));padding-bottom:calc(10px + var(--sbm))}
-  #menu.mj .logo{font-size:clamp(20px,7.4vh,28px)}
-  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-s{display:none}
-  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook){padding:0 8px 0 10px;column-gap:5px}
-  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{grid-row:1/3;align-self:center;font-size:15px;transform-origin:0 50%}
-  #menu.mj .mj-head{width:calc(var(--mj-tape) * .74)}
-  :root:not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn{padding:0 8px;letter-spacing:.02em;--sp-fs:11.5px}
-  #menu.mj .mj-strip,#menu.mj .mj-tape{gap:11px}
-}
-@media (max-height:370px) and (min-aspect-ratio:5/4){#menu.mj.has-cont-mj .brand{display:none}}
-@media (max-height:340px) and (min-aspect-ratio:5/4){#menu.mj .mj-strip .sp-ic{display:none}}
+/* (los antiguos «@media (max-height:430/370/340px) and (min-aspect-ratio:5/4)» de este bloque pasaron a «— móvil (.ph) —», al final) */
 /* vertical: logotipo arriba, el partido en medio y los botones abajo */
 @media (max-aspect-ratio:5/4){
   #menu.mj{--mj-play:clamp(62px,10.5vh,92px);--mj-tape:clamp(52px,8vh,70px);--mj-strip:48px;--mj-stamp:clamp(64px,11vh,104px)}
@@ -3584,6 +3811,75 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 }
 @media (prefers-reduced-motion:reduce){#menu.mj .mlist>*{animation:none}}
 .rm #menu.mj .mlist>*{animation:none}
+
+/* — móvil (.ph) — (portada, 18-nov-2026; notes/ui_main.md «Móvil (v-next)»). Columna --ph-colw (el partido siempre ≥ 38 %), pegatinas
+   con alto de los tokens (a 844/915 crecen, no sobra hueco). Ayuda: con ancho (≥ 800, .ph-w) tres manchas con icono y rótulo; si no,
+   tres iconos redondos de 48 px con su rótulo debajo (nunca se corta la palabra). Perfil y versión abajo a la derecha (44 px de toque;
+   la versión solo en la portada). Con alto ≤ 345 (.ph-s) y Carrera, sin logotipo. */
+:root.ph #menu.mj{--mj-tape:clamp(48px,30px + 3vw,58px);--mj-strip:48px}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-side{left:var(--ph-g);gap:var(--ph-s3);padding:var(--ph-gt) 0 var(--ph-gb)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .logo{font-size:clamp(24px,10px + 3.4vw,42px)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .logo .lg-beta{font-size:var(--ph-cap);right:-.9em;top:1.1em}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(.mj-tape,.mj-strip){gap:var(--ph-hit-gap);margin-top:0}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-tape{padding-right:calc(var(--sp-stamp) * .1)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook){height:var(--mj-tape);padding:0 12px 0 10px;column-gap:8px}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{grid-row:1/3;align-self:center;font-size:var(--ph-btn);transform-origin:0 50%}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-s{display:none}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{grid-row:1;align-self:end}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-s{display:block;align-self:start;font-size:var(--ph-cap);white-space:nowrap}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.mj #btnSquad .sp-s :is(.chip,.dn){font-size:max(12px,1em)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-head{width:calc(var(--mj-tape) * .76)}
+/* ayuda con ancho: tres manchas de tinta, icono + rótulo a --ph-row */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn{flex:1 1 auto;min-width:0;height:var(--mj-strip);padding:0 10px;gap:6px;--sp-fs:min(var(--ph-row),16px);letter-spacing:.01em}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-ic{display:block;--sp-is:20px}
+/* ayuda sin ancho: iconos redondos de tinta (48) con el rótulo debajo, crema con contorno de tinta */
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip{justify-content:flex-start;gap:14px;padding-left:2px}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn{flex:0 0 auto;width:auto;min-width:64px;height:auto;min-height:0;flex-direction:column;justify-content:flex-start;gap:5px;padding:0 2px;transform:none}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn>.sp-blob{display:none}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-ic{position:relative;z-index:1;width:48px;height:48px;padding:13px;box-sizing:border-box;border-radius:50% 46% 52% 48%/48% 52% 46% 50%;background:var(--sp-ink);color:var(--sp-gold);
+  box-shadow:0 0 0 2.5px var(--sp-cream),0 0 0 5px var(--sp-ink),3px 4px 0 5px var(--sp-ink);transform:rotate(-6deg)}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj #btnControls .sp-ic{transform:rotate(5deg);border-radius:46% 52% 48% 50%/52% 46% 50% 48%}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj #btnSettings .sp-ic{transform:rotate(-2deg)}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn .sp-t{position:relative;z-index:1;display:block;font:400 var(--ph-label)/1.05 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;white-space:nowrap;color:var(--sp-cream);
+  -webkit-line-clamp:none;overflow:visible;transform:rotate(-2deg);text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),1.5px 1.5px 0 var(--sp-ink),-1.5px -1.5px 0 var(--sp-ink),1.5px -1.5px 0 var(--sp-ink),-1.5px 1.5px 0 var(--sp-ink),2px 3px 0 var(--sp-ink)}
+/* MET-8: los rótulos bajo los discos, ≥ 15 px (suelo de botones; antes 13 a 568–740) y en una línea */
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip :is(#btnTut,#btnControls,#btnSettings) .sp-t{font-size:max(15px,var(--ph-label));white-space:nowrap}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn:is(.kf,:focus-visible) .sp-ic{background:var(--sp-gold);color:var(--sp-ink)}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn:is(.kf,:focus-visible) .sp-t{color:var(--sp-gold)}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn:active .sp-ic{transform:scale(.92) rotate(-6deg)}
+/* con Carrera: sin logotipo (el billete va arriba; con el logotipo no cabe a 360–412 de alto). Si algo no cabe, se corta abajo, nunca arriba */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj .brand{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-side{justify-content:safe center}
+/* 568×320 con Carrera (billete + parche + cinta + iconos): más prieto, sin «Próximo partido» (lo dicen los escudos) */
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj{--mj-tape:46px}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj #playMainSub{display:none}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj .mj-side{gap:8px;padding-top:6px;padding-bottom:4px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj #btnCont .sp-k{display:none}
+:root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-cont-mj .mj-strip .sp-ic{width:42px;height:42px;padding:11px}
+:root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-cont-mj .mj-strip .sp-btn{gap:3px}
+/* DIRECTO solo en la portada y en Jugar (en las demás páginas la columna llega a su sitio) */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full:not([data-page="main"]):not([data-page="play"]) .live{display:none}
+/* pie: perfil y versión abajo a la derecha; la versión, solo en la portada */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.sp-full .menu-foot{left:auto;right:var(--ph-g);bottom:var(--ph-gb);gap:var(--ph-hit-gap);align-items:center}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full[data-page]:not([data-page="main"]) .menu-foot #btnVer{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .menu-foot .ver{display:inline-flex;align-items:center;justify-content:center;min-width:44px;min-height:44px;margin:0;padding:0 8px;font-size:var(--ph-cap);color:var(--sp-cream);
+  text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #btnProf.pf-chip{height:44px;padding:0 14px 0 5px;font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #btnProf .pf-ring{width:36px;height:36px}
+:root.ph:not(#_):not(#_):not(#_) #btnProf .pf-ring b{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #btnProf .pf-ring small{font-size:max(12px,var(--ph-cap))}
+/* V-STAMP: el sello redondo solo responde en su disco (no en su caja cuadrada, que pisa Vestuario, el billete de la Carrera y, en Jugar,
+   Carrera): la caja deja pasar el toque y lo recogen el círculo dorado del SVG y la marca de «nuevo»; el clic sube al botón. */
+#btnMjReto,#btnRetos{pointer-events:none}
+#btnMjReto>.sp-st,#btnRetos>.sp-st{pointer-events:none}
+#btnMjReto>.sp-st .st0,#btnRetos>.sp-st .st0{pointer-events:visiblePainted}
+#btnRetos .rt-new{pointer-events:auto}
+/* V-TABLET: tableta (4:3, alta; sin .ph): la letra de las pegatinas va por el alto (vh), así que la columna se ensancha con él
+   (≈ 614 px a 1024×768; el partido de fondo sigue a la derecha). 16:9 de PC no entra en la consulta. */
+@media (max-aspect-ratio:3/2) and (min-height:600px){
+  :root:not(.ph) #menu{--sp-colw:clamp(320px,60vw,720px)}
+  :root:not(.ph) #menu.sp-full #mpQuick{--sp-colw:clamp(340px,64vw,760px)}
+}
 /* ==== fin SPLAT · PORTADA ==== */
 
 /* =====================================================================
@@ -3619,18 +3915,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-t{font-size:clamp(11px,2.15vh,18px);letter-spacing:0;transform-origin:50% 70%;max-width:100%}
 :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-s{display:none}
 #menu.sp-full #btnOnline .sp-chip{position:absolute;right:-6px;top:-10px;z-index:3;--sp-tilt:8deg}
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  #menu.sp-full #mpPlay{--sp-colw:clamp(340px,66vw,480px)}
-  #menu.sp-full #mpPlay .sp-pair{--sp-stamp:clamp(56px,17vh,64px);--sp-ph:clamp(50px,15vh,58px)}
-  #menu.sp-full #btnCareer{--sp-h:50px;--sp-cs:32px}
-  :root:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-k{display:none}
-  :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{--sp-h:clamp(58px,19vh,72px);padding:3px 4px 5px}
-  #menu.sp-full .sp-row .sp-crest{--sp-cs:clamp(24px,8vh,30px)}
-  #menu.sp-full .sp-modes{gap:10px}
-}
-@media (max-height:340px) and (min-aspect-ratio:5/4){
-  :root:not(#_):not(#_):not(#_) #menu.sp-full #btnQuick .sp-s{display:none}
-}
+/* (los antiguos «@media (max-height:430/340px) and (min-aspect-ratio:5/4)» de este bloque pasaron a «— móvil (.ph) —», al final) */
 @media (max-aspect-ratio:5/4){
   #menu.sp-full #mpPlay .sp-pair{--sp-stamp:clamp(64px,11vh,96px);--sp-ph:clamp(62px,10vh,90px);margin-right:0}
   #menu.sp-full #mpPlay .sp-pair>.sp-patch{--sp-pr:calc(var(--sp-ph) * .3)}
@@ -3641,6 +3926,22 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-t{font-size:clamp(10.5px,3.05vw,16px)}
   :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{padding:4px 3px 6px}
 }
+/* — móvil (.ph) — (portada, 18-nov-2026). Parche, billete y fila de manchas con el alto de los tokens; la fila de manchas .sp-row NO es la
+   fila de lista .sp-lrow del sistema. «6v6» y «1v1» en una palabra; rótulos a --ph-btn («Entreno» en el móvil). */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes{gap:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair{margin-right:calc(var(--sp-stamp) * .2)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer{margin-right:calc(var(--sp-stamp) * .1)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-s{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:clip;line-height:1.2}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row{gap:var(--ph-hit-gap);width:100%}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row>.sp-btn{flex:1 1 auto;--sp-h:clamp(72px,52px + 3.4vw,84px);min-height:var(--sp-h);padding:4px 10px 6px;gap:4px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row .sp-crest{--sp-cs:clamp(30px,20px + 2vw,38px)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row .sp-crest.sp-num{font-size:var(--ph-label);letter-spacing:0}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row .sp-crest.sp-num i{font-size:1em;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row .sp-t{font-size:var(--ph-btn);transform:rotate(-1.5deg)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row .sp-s{display:none}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.sp-full #btnQuick .sp-s{display:none}   /* V-SUBS: en el móvil pequeño, el parche sin subtítulo cortado */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnOnline .sp-chip{right:-8px;top:-12px}
 /* ==== fin SPLAT · JUGAR ==== */
 
 /* =====================================================================
@@ -3650,6 +3951,9 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 #menu.sp-full #mpQuick{--sp-colw:clamp(340px,46vw,760px)}
 #menu.sp-full .sp-opts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-gap) clamp(12px,1.6vw,20px);width:100%}
 #menu.sp-full .sp-opts>[hidden]{display:none}
+/* (Cámara y Controlar: la fila y su «?» del móvil, botones hermanos; el «?» va encima del borde derecho de la fila) */
+#menu .sp-qrow{position:relative;min-width:0}
+#menu .sp-qrow:has(>.sp-opt[hidden]){display:none}
 #menu.sp-full #optDiff,#menu.sp-full #btnGo{grid-column:1/-1}
 #menu.sp-full #btnGo{--sp-ph:clamp(54px,12vh,100px);margin-top:4px}
 :root:not(#_):not(#_):not(#_) #menu #playSub{display:none}
@@ -3680,18 +3984,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{display:none}
   .sp-opt{--sp-oh:50px}
 }
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  #menu.sp-full #mpQuick{--sp-colw:min(560px,calc(100vw - 40px - var(--sl) - var(--sr)))}
-  #menu.sp-full #mpQuick .sp-opts{gap:8px 12px}
-  .sp-opt{--sp-oh:48px;--sp-aw:26px}
-  :root:not(#_):not(#_):not(#_) #menu .sp-opt{padding:1px 2px}
-  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{font-size:10.5px;white-space:nowrap}
-  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val{margin:1px 0 0;padding:2px 9px;--sp-vs:13px}
-  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b"}
-  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mi-l{align-items:flex-start;justify-self:start;padding-left:4px}
-  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mv-val{margin:0}
-  #menu.sp-full #btnGo{--sp-ph:clamp(48px,14vh,56px);margin-top:2px}
-}
+/* (el antiguo «@media (max-height:430px) and (min-aspect-ratio:5/4)» de este bloque pasó a «— móvil (.ph) —», al final) */
 @media (max-aspect-ratio:5/4){
   #menu.sp-full .sp-opts{grid-template-columns:minmax(0,1fr);gap:9px}
   #menu.sp-full #btnGo{--sp-ph:clamp(58px,9.5vh,84px)}
@@ -3700,6 +3993,42 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{align-items:flex-start;padding-left:4px;text-align:left;justify-self:start}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{max-width:100%}
 }
+/* — móvil (.ph) — (portada, 18-nov-2026). La misma rejilla: filas de 52 con 10 de hueco, rótulo dorado a --ph-label y valor a --ph-btn
+   entre flechas de 44 (tocar el valor = el siguiente, ui.js). Columna de 520 como mucho (a 568 la lectura manda; desde 844 el partido
+   se ve ≥ 38 %). La ayuda (.mi-h) solo vuelve con «i» en Controlar y Cámara (es lo que cambia de verdad el partido). */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick{--sp-colw:min(var(--ph-ffw),max(var(--ph-colw),520px))}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick .sp-opts{gap:var(--ph-hit-gap) 12px}
+:root.ph .sp-opt{--sp-oh:52px;--sp-aw:32px}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-opt{padding:2px 0;gap:0}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{font-size:var(--ph-label);letter-spacing:.04em;white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val{margin:2px 0 0;padding:2px 10px;--sp-vs:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val b{letter-spacing:.01em}
+:root.ph:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b"}
+:root.ph:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mi-l{align-items:flex-start;justify-self:start;padding-left:8px}
+:root.ph:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mv-val{margin:0}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .lvl em{width:8px;height:15px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnGo{margin-top:0}
+/* V-QHELP: el «?» va en su propia celda de 44 px a la derecha de la fila (nunca encima): disco de 32, toque de 44×44 */
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow{display:grid;grid-template-columns:minmax(0,1fr) 46px;align-items:center;gap:var(--ph-s1,4px)}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow:has(>.sp-opt[hidden]){display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow>.sp-opt{min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow>.sp-q{position:relative;z-index:0;justify-self:center;width:46px;height:46px;min-width:46px;background:none;box-shadow:none;font-size:17px}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow>.sp-q::before{content:"";position:absolute;left:7px;top:7px;width:32px;height:32px;z-index:-1;border-radius:50%;background:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:rotate(6deg)}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow>.sp-q:is(.kf,:focus-visible){background:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow>.sp-q:is(.kf,:focus-visible)::before{background:var(--sp-gold)}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick .sp-opts{gap:8px 12px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick{gap:8px}
+/* MET-3: las pegatinas de opción casi rectas en el móvil (±0,4°; Dificultad, a lo ancho, recta): con la inclinación de la semilla
+   (hasta 1,4°) la fila de 255 crecía ~6 px y la de 521 ~12 px y se comían el hueco (las manchas y las ‹ se tocaban). A .ph-s el alto
+   sale de la fila (48) y no del hueco; ≥ 10 px entre Puntos/Controlar y «¡A jugar!» */
+:root.ph:not(#_):not(#_):not(#_) #menu #mpQuick .sp-opts .sp-opt{--sp-tilt:.4deg}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpQuick .sp-opts :is(.sp-opt[data-sp-s="0"],.sp-opt[data-sp-s="2"],.sp-opt[data-sp-s="4"]){--sp-tilt:-.4deg}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpQuick .sp-opts #optDiff.sp-opt{--sp-tilt:0deg}
+:root.ph.ph-s .sp-opt{--sp-oh:48px}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpQuick .sp-qrow{gap:9px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick .sp-opts{gap:10px 12px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick #btnGo{margin-top:2px}
 /* ==== fin SPLAT · PARTIDO RÁPIDO ==== */
 /* =====================================================================
    SPLAT · CUENTA Y VARIOS (etapa 2, 17-nov-2026; notes/splat.md «Cuenta y varios»). El lobby online (js/netlobby.js), la Cuenta
@@ -3830,7 +4159,20 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 #boot .bt-bar i{width:42%;border-radius:9px;background:repeating-linear-gradient(-45deg,var(--sp-gold) 0 7px,#ffad1f 7px 14px)}
 #boot p{font:400 14px/1.1 var(--sp-pop);letter-spacing:.14em;color:var(--sp-cream);
   text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),3px 3px 0 var(--sp-ink)}
+/* — móvil (.ph) — (18-nov-2026, spec «Online»). El aviso del online en pleno partido (#netHud y #netTag: los crea js/main.js, rama de net,
+   con estilo en línea; de ahí los !important): pegatina de tinta con letra a --ph-body y botones de 44 px en mancha (Abandonar, Seguir
+   contra la IA, Continuar). La lista de salas, Crear sala, la sala de espera, la Cuenta y el aviso de instalar llevan su parte del móvil
+   dentro de su módulo (js/netlobby.js, js/account.js, js/install.js). */
+:root.ph:not(#_):not(#_):not(#_) #netHud{gap:8px 10px!important;padding:6px 8px 6px 14px!important;border-radius:12px 16px 12px 18px/14px 12px 18px 12px!important;background:var(--sp-ink)!important;color:var(--sp-cream)!important;
+  box-shadow:0 0 0 2.5px var(--sp-cream),3px 4px 0 2.5px var(--sp-ink);font:600 var(--ph-body)/1.3 var(--sp-ui)!important;max-width:min(640px,calc(100vw - 2 * var(--ph-g)))!important}
+:root.ph:not(#_):not(#_):not(#_) #netHud .nn{color:var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #netHud button{min-height:44px!important;padding:0 16px!important;border-radius:12px 16px 11px 15px/14px 11px 16px 12px!important;background:var(--sp-kit,#ff5a2c)!important;color:var(--sp-kit-ink,#fff)!important;
+  box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:400 var(--ph-btn)/1.1 var(--sp-pop)!important;letter-spacing:.02em;text-transform:uppercase;text-shadow:var(--sp-kit-ts,none)}
+:root.ph:not(#_):not(#_):not(#_) #netHud button[data-n="quit"]{background:var(--sp-danger,#ff4d6d)!important;color:#fff!important;text-shadow:none}
+:root.ph:not(#_):not(#_):not(#_) #netHud button:focus{outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 6px var(--sp-gold)!important}
+:root.ph:not(#_):not(#_):not(#_) #netTag{font-size:var(--ph-label)!important}
 /* ==== fin SPLAT · CUENTA Y VARIOS ==== */
+/* =====================================================================
    SPLAT · PAUSA Y HOJA FINAL (#pause, #end con sus pestañas Resumen / Estadísticas / Jugadas, #gymEnd y la Estadística del partido
    #panel .sheet.ms). Sin velo ni desenfoque: el partido (parado o celebrando) se ve detrás. Cabecera en pegatinas (antetítulo .sp-k,
    título .sp-h, marcador en pegatina de tinta .sp-score con los sets en chapas crema), lo que se lee en UNA hoja .sp-panel, la acción
@@ -3879,8 +4221,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) .sp-ov .sp-patch .sp-t{font-size:min(calc(var(--sp-ph) * .4),calc(100cqw / (var(--sp-n,10) * .8)))}
 /* con una sola mancha en la fila, no se estira a lo ancho */
 :root:not(#_):not(#_):not(#_) .sp-ov :is(.end-more,.ge-more):not(:has(>.sp-btn:not([hidden])~.sp-btn:not([hidden])))>.sp-btn{flex:0 1 auto;min-width:min(240px,62%);padding:0 28px}
-/* el marcador del HUD no se repite detrás de la pausa (ya lo dice la pegatina) */
-#app:has(#pause:not([hidden])) .sb{opacity:0!important;transition:opacity .2s}
+/* (el marcador del HUD detrás de la pausa: ahora #app.hud-off, bloque «SPLAT · CAMBIOS Y BANQUILLO») */
 .sp-ov :is(.p-row,.end-more,.ge-more)>.sp-btn{--sp-h:clamp(46px,8.4vh,70px);--sp-fs:clamp(11.5px,2.15vh,18px)}
 .sp-ov .p-row>.sp-btn{--sp-fs:clamp(12.5px,2.4vh,20px)}
 .sp-ov .p-row .sp-ic{--sp-is:clamp(17px,3vh,26px)}
@@ -4025,60 +4366,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #gymEnd .ge-btns{display:flex}
 :root:not(#_):not(#_):not(#_) #gymEnd .ge-btns>*[hidden]{display:none}
 
-/* ---- móvil apaisado bajo (≤ 430 px de alto): dos columnas (cabecera y botones | la hoja); la pausa, una columna compacta ---- */
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  .sp-ov{--ov-pad:10px;--ov-gap:8px}
-  :root:not(#_):not(#_):not(#_) .sp-ov .sp-h{--sp-hs:clamp(22px,7.6vh,30px)}
-  :root:not(#_):not(#_):not(#_) .sp-ov .sp-h.long{--sp-hs:19px}
-  :root:not(#_):not(#_):not(#_) .sp-ov .sp-k{font-size:10.5px;letter-spacing:.08em}
-  :root:not(#_):not(#_):not(#_) .sp-ov .sp-patch{--sp-ph:clamp(48px,14vh,56px)}
-  .sp-ov :is(.p-row,.end-more,.ge-more)>.sp-btn{--sp-h:44px;--sp-fs:clamp(10.5px,3.2vh,13px)}
-  .sp-ov .p-row>.sp-btn{--sp-fs:clamp(11px,3.4vh,14px)}
-  .sp-ov .p-row .sp-ic{--sp-is:16px}
-  /* pausa: cabecera en una fila (título y marcador) */
-  #pause{--ov-colw:min(400px,calc(100vw - 40px - var(--sl) - var(--sr)))}
-  :root:not(#_):not(#_):not(#_) #pause>.sp-sheet{display:grid;grid-template-columns:minmax(0,1fr) auto;align-content:center;column-gap:12px;row-gap:8px}
-  :root:not(#_):not(#_):not(#_) #pause .p-hd{grid-column:1;grid-row:1;align-self:end}
-  :root:not(#_):not(#_):not(#_) #pause .p-score{grid-column:2;grid-row:1;align-self:center}
-  :root:not(#_):not(#_):not(#_) #pause .p-warn{grid-column:1/-1}
-  :root:not(#_):not(#_):not(#_) #pause .vlist{grid-column:1/-1}
-  :root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t) b{font-size:clamp(20px,7vh,28px)}
-  :root:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t){font-size:12px}
-  #pause .vlist>#btnPSubs{--sp-h:44px;--sp-fs:12px}
-  /* hoja final y ejercicio */
-  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd)>.sp-sheet{right:calc(var(--ov-pad) + var(--sr));width:auto;max-width:none;left:calc(var(--ov-pad) + var(--sl));display:grid;
-    grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);grid-template-rows:auto auto;align-content:center;column-gap:clamp(12px,2.4vw,24px);row-gap:8px}
-  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-hd,.ge-hd){grid-column:1;grid-row:1;align-self:end}
-  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd) .row-btn{grid-column:1;grid-row:2;align-self:start}
-  :root:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-body,.ge-body){grid-column:2;grid-row:1/3;align-self:center;max-height:100%;margin:0 0 4px}
-  :root:not(#_):not(#_):not(#_) #end .end-sc{margin-top:2px;gap:6px 8px}
-  :root:not(#_):not(#_):not(#_) #end .end-score{padding:2px 10px}
-  :root:not(#_):not(#_):not(#_) #end .end-sets span{font-size:12px;padding:2px 6px}
-  :root:not(#_):not(#_):not(#_) #end .end-tabs .tab{--sp-tbh:44px;--sp-tbs:11px;padding:0 8px;letter-spacing:.01em}
-  :root:not(#_):not(#_):not(#_) #end .end-tabs .tb-row{gap:3px;padding:3px 2px 5px}
-  :root:not(#_):not(#_):not(#_) #pnMstats .ms-top{display:flex;align-items:center;gap:8px;padding-top:4px;padding-bottom:4px}
-  :root:not(#_):not(#_):not(#_) #pnMstats .ms-top .tabs{flex:none;margin:0;max-width:52%}
-  :root:not(#_):not(#_):not(#_) #pnMstats .ms-top .ms-sets{flex:1;min-width:0;padding:4px 4px 6px}
-  :root:not(#_):not(#_):not(#_) #pnMstats .ms-sets button{min-width:60px;padding:3px 8px 4px;font-size:14px}
-  :root:not(#_):not(#_):not(#_) #pnMstats .tabs .tab{--sp-tbh:44px;--sp-tbs:11px;padding:0 9px}
-  :root:not(#_):not(#_):not(#_) .sp-ov :is(.end-body,.ge-body){padding:7px 9px}
-  :root:not(#_):not(#_):not(#_) #end .end-peek{position:static;display:flex;grid-column:1;grid-row:3;align-self:start;justify-self:start}
-  :root:not(#_):not(#_):not(#_) #end .end-peek[hidden]{display:none}
-  .is-touch #end .sp-sheet{grid-template-rows:auto auto auto}
-  :root:not(#_):not(#_):not(#_) #end .rc-b{grid-template-columns:92px minmax(0,1fr);column-gap:8px}
-  :root:not(#_):not(#_):not(#_) #end .rc-b>.rc-h{font-size:9px;padding:2px 5px 1px}
-  :root:not(#_):not(#_):not(#_) #gymEnd .ge-total b{font-size:clamp(36px,12vh,52px)}
-}
-@media (max-height:360px) and (min-aspect-ratio:5/4){
-  /* sin sitio para el rótulo: «Ver celebración» queda en un ojo (44 px) arriba a la derecha de la columna; el sello del reto se va */
-  :root:not(#_):not(#_):not(#_) #end .end-peek{display:flex;position:relative;grid-column:1;grid-row:1;justify-self:end;align-self:start;z-index:3}
-  :root:not(#_):not(#_):not(#_) #end .end-peek .sp-btn{width:48px;padding:0;justify-content:center}
-  :root:not(#_):not(#_):not(#_) #end .end-peek .sp-t{display:none}
-  :root:not(#_):not(#_):not(#_) #end .end-peek .sp-ic{--sp-is:20px}
-  :root:not(#_):not(#_):not(#_) #end .end-hd,:root:not(#_):not(#_):not(#_) #end .end-hd.has-seal{padding-right:54px}
-  :root:not(#_):not(#_):not(#_) #end .end-seal{display:none}
-  :root:not(#_):not(#_):not(#_) #end .end-hd .sp-k{display:none}
-}
+/* (los antiguos «@media (max-height:430px)» y «(max-height:360px) and (min-aspect-ratio:5/4)» de este bloque pasaron a «— móvil (.ph) —», al final del bloque) */
 /* ---- vertical: cabecera arriba, la hoja en medio (se desplaza) y los botones abajo ---- */
 @media (max-aspect-ratio:5/4){
   .sp-ov{--ov-pad:clamp(14px,4vw,28px);--ov-gap:10px}
@@ -4168,7 +4456,427 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #pnMstats .map .mc .zn{font:800 11px/1 var(--sp-ui)}
 :root:not(#_):not(#_):not(#_) #pnMstats .ms-bar b{font-family:var(--sp-pop);font-weight:400}
 :root:not(#_):not(#_):not(#_) #pnMstats .ms-bar .t{box-shadow:0 0 0 1.5px var(--sp-ink)}
+/* la cabecera (Volver y título) ya no se desplaza con la hoja: se desplaza #pnMstats (TODOS los tamaños; antes Volver se iba a
+   y = −673 al bajar y quedaba como una caja vacía). La franja de equipos y sets sigue pegada arriba, ahora dentro de #pnMstats */
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms{display:flex;flex-direction:column;overflow:hidden;padding:20px 0 0}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms>.pn-head{flex:none;padding:0 24px}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms>#pnMstats{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:0 24px 18px;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.4) transparent}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms>#pnMstats[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #pnMstats .ms-top{top:0}
+/* Volver: pegatina crema (la mancha de tinta de .sp-dec tapaba el rótulo de tinta: «caja vacía») */
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack>.sp-blob{display:none}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack{display:inline-flex;align-items:center;gap:6px}
+:root:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack svg:not(.sp-blob){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+
+/* =====================================================================
+   — móvil (.ph) — (18-nov-2026, «durante y después del partido»; notes/ui_main.md «Móvil (v-next)»). Letra por ANCHO (--ph-*),
+   márgenes --ph-g / --ph-gt / --ph-gb; la acción principal (parche) siempre abajo a la derecha y fuera de lo que se desplaza; nada
+   encoge: lo largo se desplaza dentro de la hoja.
+   · Pausa: «Pausa» y el marcador arriba a la izquierda; a la derecha 2×2 pegatinas y «Seguir jugando» debajo; «Cambios n/6» (6v6)
+     abajo a la izquierda. (.vlist y .p-row pasan a display:contents: el orden del DOM y data-sp-row no cambian.)
+   · Hoja final y ejercicio: cabecera arriba a la izquierda y las manchas abajo a la izquierda; la hoja a la derecha y el parche debajo.
+   ===================================================================== */
+:root.ph .sp-ov{--ov-pad:var(--ph-s2);--ov-gap:var(--ph-s2)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov>.sp-sheet{left:var(--ph-g);right:var(--ph-g);top:var(--ph-gt);bottom:var(--ph-gb);width:auto;max-width:none;padding:0;display:grid;column-gap:var(--ph-s3);row-gap:var(--ph-s2);align-content:stretch;justify-content:stretch}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .sp-k{font-size:var(--ph-cap);letter-spacing:.04em;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .sp-h{--sp-hs:clamp(30px,14px + 2.9vw,40px);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .sp-h.long{--sp-hs:clamp(22px,12px + 1.8vw,28px);white-space:normal}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .sp-h{--sp-hs:clamp(24px,12px + 2.1vw,32px);white-space:normal}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .sp-patch{--sp-ph:clamp(56px,44px + 2.2vw,64px)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov :is(.p-row,.end-more,.ge-more)>.sp-btn,:root.ph:not(#_):not(#_):not(#_) #pause .vlist>#btnPSubs{--sp-h:48px;--sp-fs:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .p-row .sp-ic{--sp-is:20px}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .sp-btn.arm .sp-t{font-size:1em}
+/* (la mancha SVG sobresale del botón a propósito: sin «…» en el botón; el rótulo del parche, de una línea, no se recorta por arriba) */
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .sp-btn{text-overflow:clip}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .sp-patch .sp-t{overflow:visible}
+/* marcador en pegatina (pausa y hoja final) */
+:root.ph:not(#_):not(#_):not(#_) .sp-ov :is(.p-score,.end-score){padding:4px 14px 5px;gap:10px}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t){font-size:var(--ph-label);gap:7px}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov :is(.p-team,.es-t) b{font-size:clamp(28px,14px + 2.4vw,36px)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .p-mid{font-size:var(--ph-cap);letter-spacing:.06em}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .p-mid b{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .es-sep{font-size:var(--ph-num)}
+
+/* ---- pausa ---- */
+:root.ph:not(#_):not(#_):not(#_) #pause>.sp-sheet{grid-template-columns:minmax(0,1fr) minmax(0,.8fr) minmax(0,.8fr);grid-template-rows:auto minmax(0,1fr) auto auto auto}
+:root.ph:not(#_):not(#_):not(#_) #pause :is(.vlist,.p-row){display:contents}
+:root.ph:not(#_):not(#_):not(#_) #pause .p-hd{grid-column:1;grid-row:1;align-self:start}
+:root.ph:not(#_):not(#_):not(#_) #pause .p-score{grid-column:1;grid-row:2;align-self:start;margin:6px 0 0 3px}
+:root.ph:not(#_):not(#_):not(#_) #pause .p-warn{grid-column:1;grid-row:3/5;align-self:end;justify-self:start;font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #pause .sp-btn{width:auto;min-width:0;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #pause #btnPControls{grid-column:2;grid-row:3}
+:root.ph:not(#_):not(#_):not(#_) #pause #btnPSettings{grid-column:3;grid-row:3}
+:root.ph:not(#_):not(#_):not(#_) #pause #btnRestart{grid-column:2;grid-row:4}
+:root.ph:not(#_):not(#_):not(#_) #pause #btnQuit{grid-column:3;grid-row:4}
+:root.ph:not(#_):not(#_):not(#_) #pause #btnResume{grid-column:2/4;grid-row:5;align-self:end;width:auto;margin:2px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #pause .vlist>#btnPSubs{grid-column:1;grid-row:5;align-self:end;justify-self:start;margin:0;min-width:min(100%,170px)}
+
+/* ---- hoja final y ejercicio: «hd | hoja» / «Ver celebración | hoja» / «manchas | hoja» / «manchas | parche» ---- */
+:root.ph:not(#_):not(#_):not(#_) :is(#end,#gymEnd)>.sp-sheet{grid-template-columns:minmax(0,42fr) minmax(0,58fr);grid-template-rows:auto minmax(0,1fr) auto auto;
+  grid-template-areas:"hd body" "lm body" "more body" "more patch";row-gap:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) #pause>.sp-sheet{row-gap:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) :is(#end,#gymEnd) .row-btn{display:contents}
+:root.ph:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-hd,.ge-hd){grid-area:hd;align-self:start;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-body,.ge-body){grid-area:body;align-self:start;max-height:100%;min-height:0;margin:0;padding:10px 12px 8px;box-sizing:border-box}
+:root.ph:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(#btnAgain,#btnGeAgain){grid-area:patch;align-self:end;width:100%;margin:0}
+:root.ph:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-more,.ge-more){grid-area:more;align-self:end;display:flex;flex-wrap:wrap;gap:16px var(--ph-s3);margin:0}
+:root.ph:not(#_):not(#_):not(#_) :is(#end,#gymEnd) :is(.end-more,.ge-more)>.sp-btn{flex:1 1 calc(50% - 7px);width:auto;min-width:0;padding:0 10px}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more{flex-direction:column;align-items:stretch}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn{flex:none}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek{grid-area:lm;position:static;display:flex;align-self:end;justify-self:start;margin:0 0 2px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek[hidden]{display:none}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek .sp-btn{min-height:44px;padding:0 14px 0 10px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek .sp-ic{--sp-is:18px}
+/* (MV-4) «Ver celebración» = píldora crema de 44 en la fila de pestañas (arriba a la derecha de la hoja); con el icono solo, salvo en
+   844/915 (.ph-w) con dos pestañas, donde cabe el rótulo. Las pestañas le guardan el hueco. En 568×320 (.ph-s) no caben tres cosas
+   junto a las pestañas: con «Jugadas» (3 pestañas) vuelve a la columna izquierda, encima de las pegatinas (allí ya solo hay dos), y
+   en Estadísticas con el icono de «Estadística del partido» se esconde (está en las otras pestañas) */
+:root.ph:not(#_):not(#_):not(#_) #end{--pk-w:50px}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #end:not(:has(#endTabs-plays:not([hidden]))){--pk-w:auto}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek{grid-area:body;align-self:start;justify-self:end;position:relative;z-index:4;margin:4px 12px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek .sp-btn{width:var(--pk-w);min-width:var(--pk-w);height:44px;min-height:44px;padding:0 14px 0 10px;--sp-fs:var(--ph-label);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek .sp-t{display:block;white-space:nowrap;overflow:visible;-webkit-line-clamp:unset}
+:root.ph:not(#_):not(#_):not(#_) :is(:root:not(.ph-w) #end,#end:has(#endTabs-plays:not([hidden]))) .end-peek .sp-btn{padding:0;justify-content:center;transform:rotate(-4deg)}
+:root.ph:not(#_):not(#_):not(#_) :is(:root:not(.ph-w) #end,#end:has(#endTabs-plays:not([hidden]))) .end-peek .sp-t{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) :is(:root:not(.ph-w) #end,#end:has(#endTabs-plays:not([hidden]))) .end-peek .sp-ic{--sp-is:22px;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #end .end-peek .sp-ic svg{width:var(--sp-is,18px);height:var(--sp-is,18px)}
+:root.ph:not(#_):not(#_):not(#_) #end:has(.end-peek:not([hidden])) #endTabs{margin-right:64px}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #end:has(.end-peek:not([hidden])):not(:has(#endTabs-plays:not([hidden]))) #endTabs{margin-right:204px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body:has(>#endStatsTab:not([hidden])):has(>.end-ms-ph>#btnMStats:not([hidden]))~.end-peek{display:none}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body:has(>#endStatsTab:not([hidden])):has(>.end-ms-ph>#btnMStats:not([hidden])) #endTabs{margin-right:58px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek{grid-area:lm;align-self:end;justify-self:start;margin:0 0 2px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) #endTabs{margin-right:0}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-btn{width:auto;min-width:0;padding:0 14px 0 10px;transform:none}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-t{position:static;width:auto;height:auto;margin:0;padding:2px 2px 1px;overflow:visible;clip:auto}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-ic{--sp-is:18px}
+/* (MV-4) abajo a la izquierda, dos pegatinas como mucho y en una línea: «Menú» y la acción del caso (Más difícil / Retos…). Con
+   «Revancha en…» y «Cambiar opciones» a la vez, esta pasa a la píldora crema del final del Resumen (ui.js endOptsPill, .rc-optrow) */
+:root.ph:not(#_):not(#_):not(#_) #end:has(.rc-optrow) .end-more:has(>#btnAgainAlt:not([hidden]))>#btnEndOpts{display:none}
+:root.ph:not(#_):not(#_):not(#_) #end .end-more{flex-wrap:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #end .end-more>.sp-btn{flex:1 1 0;padding:0 8px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-more>.sp-btn .sp-t{display:block;white-space:nowrap;overflow:visible;-webkit-line-clamp:unset}
+:root.ph:not(#_):not(#_):not(#_) #end .end-more>:is(.sp-btn[data-short]:not([data-short=""]),#btnMenu)>.sp-t{display:none}
+:root.ph:not(#_):not(#_):not(#_) #end .end-more>:is(.sp-btn[data-short]:not([data-short=""]),#btnMenu)::after{
+  content:attr(data-short);display:block;position:relative;z-index:1;line-height:1.15;white-space:nowrap;text-transform:uppercase;transform:rotate(-1.5deg);padding:2px 2px 1px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-more>#btnMenu::after{content:"Menú"}
+#end .rc-optrow{display:none}
+:root.ph:not(#_):not(#_):not(#_) #end:has(#btnAgainAlt:not([hidden])):has(#btnEndOpts:not([hidden])) .rc-optrow{display:flex;justify-content:flex-start;margin:2px 0 4px}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-optrow>.sp-btn{min-height:44px;--sp-h:44px;--sp-fs:var(--ph-btn);padding:0 16px 0 12px}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-optrow .sp-ic{--sp-is:18px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-sc{margin-top:4px;gap:8px 10px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-sets span{font-size:var(--ph-label);padding:3px 8px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-sets span small{font-size:var(--ph-cap);letter-spacing:.02em}
+:root.ph:not(#_):not(#_):not(#_) #end .end-hd.has-seal{padding-right:calc(var(--sp-stamp) * .9)}
+/* 844/915 (.ph-w): el sello del reto, de 84 px como mucho, dentro de la pantalla y a la derecha del antetítulo (no encima) */
+:root.ph.ph-w:not(#_):not(#_):not(#_) #end .end-hd.has-seal{--sp-stamp:min(84px,22vh);padding-right:0}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #end .end-hd.has-seal .sp-k{margin-right:calc(var(--sp-stamp) + 8px)}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #end .end-seal{--sp-stamp:inherit;top:max(calc(var(--ph-gt) - 8px),4px)}
+@media (max-height:389.98px){
+  /* el sello del reto solo con ≥ 390 px de alto */
+  :root.ph:not(#_):not(#_):not(#_) #end .end-seal{display:none}
+  :root.ph:not(#_):not(#_):not(#_) #end .end-hd.has-seal{padding-right:0}
+}
+/* 568×320 y parecidos (.ph-s): el antetítulo vuelve (MV-4: «Ver celebración» ya no está en esta columna), en una línea */
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-hd .sp-k{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-hd{padding-top:6px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-tabs{margin:0 0 8px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-tabs .tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);padding:0 12px;letter-spacing:.01em}
+:root.ph:not(#_):not(#_):not(#_) #end .end-tabs .tb-row{gap:10px;padding:3px 2px 5px}
+/* Resumen: cada etiqueta en su pegatina dorada ENCIMA de su bloque (sin la columna de 92 px); nada con puntos suspensivos */
+:root.ph:not(#_):not(#_):not(#_) #end .rc{gap:12px}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-b{grid-template-columns:minmax(0,1fr);row-gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-b>.rc-h,:root.ph:not(#_):not(#_):not(#_) #end .rc-h{justify-self:start;font-size:var(--ph-label);padding:3px 8px 2px;letter-spacing:.03em}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-hl{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-c{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #end :is(.rc-x,.rc-more){font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-mv b{font-size:var(--ph-head)}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-mv small{font-size:var(--ph-label);white-space:normal;overflow:visible;text-overflow:clip}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-nota{font-size:var(--ph-num)}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-xr b{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-xr .lv{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-tr{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #end .rc-pill{font-size:var(--ph-label)}
+/* Estadísticas */
+:root.ph:not(#_):not(#_):not(#_) #end .end-ms{margin:2px 4px 10px 0}
+:root.ph:not(#_):not(#_):not(#_) #end .end-ms>.sp-btn{--sp-fs:var(--ph-btn);min-height:44px}
+/* (carrera, 18-nov-2026) 568×320 (.ph-s): «Estadística del partido» = pegatina con el icono a la derecha de RESUMEN / ESTADÍSTICAS
+   (la píldora a lo ancho se comía 50 px de un panel de 158: ahora caben 2 filas de jugadores) */
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-ms:not(:has(>.sp-btn:not([hidden]))){display:none}
+#end .end-body>.end-ms-ph{display:contents}  /* (su [data-nav] para teclado/mando; sin caja propia) */
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body>.end-ms-ph>#btnMStats{position:absolute;top:13px;right:12px;z-index:3;width:50px;min-width:50px;height:44px;min-height:44px;padding:0;justify-content:center;transform:rotate(4deg)}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body>.end-ms-ph>#btnMStats[hidden],:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body:has(>#endStatsTab[hidden])>.end-ms-ph>#btnMStats{display:none}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body>.end-ms-ph>#btnMStats .sp-t{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body>.end-ms-ph>#btnMStats :is(.sp-ic,.sp-ic svg){width:22px;height:22px;margin:0}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-body:has(>#endStatsTab:not([hidden])):has(>.end-ms-ph>#btnMStats:not([hidden])) #endTabs{margin-right:58px}
+:root.ph:not(#_):not(#_):not(#_) #end .mvp-h{font-size:var(--ph-cap);letter-spacing:.06em}
+:root.ph:not(#_):not(#_):not(#_) #end .mvp-cols{font-size:var(--ph-cap);letter-spacing:0;text-transform:none}
+:root.ph:not(#_):not(#_):not(#_) #end .st-r .mid em{font-size:var(--ph-label);letter-spacing:.02em}
+:root.ph:not(#_):not(#_):not(#_) #end .st-r b{font-size:var(--ph-num)}
+:root.ph:not(#_):not(#_):not(#_) .sp-ov .end-rec{font-size:var(--ph-body)}
+/* Jugadas */
+:root.ph:not(#_):not(#_):not(#_) #endPlays .pl-h{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #endPlays .pl-row{min-height:52px}
+:root.ph:not(#_):not(#_):not(#_) #endPlays .pl-tx b{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #endPlays .pl-tx small{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #endPlays .sp-ic{--sp-is:18px}
+/* ejercicio */
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-top{margin:0 0 8px;gap:8px 16px}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-total b{font-size:clamp(40px,22px + 3.3vw,54px)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-total small{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-m{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-reps{height:clamp(22px,8px + 2.6vw,34px)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-rec{font-size:var(--ph-label)}
+
+/* ---- Estadística del partido: hoja a todo el ancho con márgenes, cabecera fija (Volver + título), equipos y sets arriba del
+   desplazamiento (no pegados: en el móvil no sobra alto) ---- */
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet.ms{position:absolute;left:var(--ph-g);right:var(--ph-g);top:var(--ph-gt);bottom:var(--ph-gb);width:auto;max-width:none;max-height:none;margin:0;padding:6px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet.ms>.pn-head{justify-content:flex-start;align-items:center;gap:12px;min-height:48px;margin:0 0 4px;padding:0 12px}
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet.ms .pn-head .sh-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet.ms .pn-head h2{font-size:var(--ph-title);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack{font-size:max(13px,var(--ph-label))}
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet.ms>#pnMstats{padding:0 12px 12px}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-top{position:static;margin:0 -12px 4px;padding:2px 12px 6px;display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;box-shadow:none;background:none}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-top .tabs{flex:none;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-top .ms-sets{flex:1 1 auto;min-width:0;padding:4px 4px 6px}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .tabs .tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);padding:0 12px}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-sets button{min-width:64px;min-height:44px;padding:4px 10px 5px;font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-sets button small{font-size:var(--ph-cap);letter-spacing:.04em}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-h{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-k{font-size:var(--ph-label);letter-spacing:.03em}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-k small{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-mf{font-size:var(--ph-cap);color:rgba(255,244,220,.85)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-foot{font-size:var(--ph-body);color:rgba(255,244,220,.85)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .st .cl small{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .tabs .tb-row{gap:10px}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-note{font-size:var(--ph-body);line-height:1.4;color:rgba(255,244,220,.85)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .st .nn{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-empty{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-fig .k{font-size:var(--ph-cap);letter-spacing:.03em}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-fig .s{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-fig .v{font-size:var(--ph-hero)}
+/* «Cifras clave» en el móvil: una pegatina de tinta con las seis cifras en 3 × 2 (matchstats.js .ms-heros) y la «i» junto al título,
+   que despliega el detalle (.ms-figd) debajo */
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-figsec>.ms-h{vertical-align:middle}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-figsec>.sp-info{vertical-align:middle;margin:-8px 0 2px 2px;color:var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-heros{flex-wrap:wrap;margin:6px 4px 12px;padding:4px 2px;transform:rotate(-.6deg)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-heros>*{flex:1 1 33%;max-width:33.334%;box-sizing:border-box;padding:8px 8px 9px}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-heros>:nth-child(3n+1){border-left:0}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-heros>:nth-child(n+4){border-top:2px solid rgba(255,244,220,.22)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-heros .sp-hl{font-size:var(--ph-label);opacity:.92}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-heros .us .sp-hn{color:var(--ac)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-heros .them .sp-hn{color:#ff8a96}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats [aria-expanded="true"]>.ms-figd{display:grid;margin:0 6px 14px;row-gap:8px;color:var(--sp-cream)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .ms-figd dd{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .st thead th{font-size:var(--ph-cap);letter-spacing:0}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .st :is(td,th){font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .st tbody th.l{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .st .num{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .st .cl em{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats .map .mc .zn{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #pnMstats :is(.ms-ml,.ms-mt){font-size:var(--ph-cap)}
+/* — PC / tableta en horizontal (sin .ph): la hoja final aprovecha la columna. Márgenes de arriba y abajo más cortos y menos hueco
+   entre bloques (la hoja cabe entera hasta los botones), y en «Jugadas» la lista se desplaza y «Verlas todas» queda fija debajo */
+@media (min-aspect-ratio:5/4){
+  /* la columna de la hoja final vuelve a su ancho de antes (~655 px a 1280): con 40vw (512 px) el ajustador de chips escondía
+     «Bloqueo punto», «Remate fuera»… y la línea del MVP partía en dos (MET-1) */
+  :root:not(.ph):not(#_):not(#_):not(#_) #end{--ov-colw:clamp(330px,51vw,700px)}
+  /* y si aun así no caben, las pastillas bajan a otra línea en vez de desaparecer (main.js fitChips solo quita si hay desborde) */
+  :root:not(.ph):not(#_):not(#_):not(#_) #end .end-rt .er-c{flex-wrap:wrap;row-gap:4px}
+  :root:not(.ph):not(#_):not(#_):not(#_) #end>.sp-sheet{gap:clamp(6px,1.1vh,12px);padding-top:calc(clamp(8px,1.8vh,22px) + var(--st));padding-bottom:calc(clamp(10px,2vh,24px) + var(--sbm))}
+  :root:not(.ph):not(#_):not(#_):not(#_) #end .end-body>#endPlays:not([hidden]){display:flex;flex-direction:column;overflow:hidden}
+  :root:not(.ph):not(#_):not(#_):not(#_) #endPlays>:is(.pl-h,.pl-all){flex:none}
+  :root:not(.ph):not(#_):not(#_):not(#_) #end .end-hd.has-seal .sp-k{white-space:normal;overflow:visible;text-overflow:clip}
+  /* sello del reto: el mismo tamaño que el hueco que le guarda la cabecera, y más pequeño si la columna es estrecha (1024×768: no tapa el título) */
+  :root:not(.ph):not(#_):not(#_):not(#_) #end .end-hd.has-seal{--sp-stamp:clamp(64px,min(13.5vh,9vw),116px)}
+  :root:not(.ph):not(#_):not(#_):not(#_) #end .end-seal{--sp-stamp:inherit;top:0}
+  :root:not(.ph):not(#_):not(#_):not(#_) #end .end-seal .sp-sc b{font-size:max(10.5px,calc(var(--sp-stamp) * .1))}
+  :root:not(.ph):not(#_):not(#_):not(#_) #endPlays>.pl-list{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:2px 4px 4px 0;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.4) transparent}
+}
 /* ==== fin SPLAT · PAUSA Y HOJA FINAL ==== */
+/* =====================================================================
+   SPLAT · CAMBIOS Y BANQUILLO (18-nov-2026, móvil · partido; antes CSS en cadenas de ui.js SUB_CSS). 6v6 con banquillo: rótulo de TV de
+   cada cambio (#subTv), barra «En el banquillo» (#benchBar), velo «Simulando…» (#ffVeil), «Cambios n/6» de la pausa y su panel
+   (#pnSubs dentro de #panel .sheet). Además, el estado #app.hud-off (ui.js syncScreens) y el HUD del partido en el móvil (.ph):
+   consejo (#coach), contador de toques, aviso junto al jugador y rótulos de los mandos táctiles de input.js (solo tamaño de letra y
+   de la lupa; los mandos no se mueven).
+   ===================================================================== */
+/* #app.hud-off: pausa, panel abierto en el partido, hoja final o del ejercicio → el HUD no asoma detrás */
+#app.hud-off :is(.sb,.hud-btns,#touch,#touchbar,#coach,#prompt,#zmHint,#guide){opacity:0!important;pointer-events:none!important;transition:opacity .2s}
+/* previa: los mandos táctiles no asoman bajo la tarjeta (siguen recibiendo el toque que la salta) */
+#app.intro-on #touch{opacity:0}
+
+/* ---- rótulo de TV del cambio: pegatina de tinta, «CAMBIO» en dorado, ▲ entra / ▼ sale en Titan ---- */
+#subTv{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(16px + 9vh);z-index:31;pointer-events:none;display:none;min-width:220px;max-width:min(520px,92vw);box-sizing:border-box;
+  padding:8px 16px 9px;border-radius:14px 18px 14px 20px/16px 14px 20px 14px;background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 3px var(--sp-cream),3px 4px 0 3px var(--sp-ink);
+  font:400 calc(18px*var(--vs,1))/1.15 var(--sp-pop);transform:rotate(-1.5deg)}
+#subTv.show{display:block;animation:stIn .35s var(--ease,ease) both}#subTv.out{animation:stOut .3s ease both}
+#subTv .sbt-h{display:inline-block;margin:0 0 4px;padding:2px 10px 1px;border-radius:6px 9px 7px 10px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:400 14px/1.2 var(--sp-pop);letter-spacing:.06em;text-transform:uppercase}
+#subTv.t1 .sbt-h{background:var(--k1l,#8fc0ff)}
+#subTv .sbt-b{display:block}
+#subTv .sbt-row{display:flex;gap:18px;align-items:baseline;white-space:nowrap;padding:2px 0}#subTv .sbt-row+.sbt-row{border-top:2px solid rgba(255,244,220,.14)}
+#subTv .sbt-in::before{content:"▲ ";color:#4fe08a}#subTv .sbt-out{color:rgba(255,244,220,.82)}#subTv .sbt-out::before{content:"▼ ";color:#ff7b7b}
+#subTv .sbt-nm{font-family:var(--sp-pop)}
+#subTv .sbt-n{margin-top:4px;font:600 14px/1.2 var(--sp-ui);color:rgba(255,244,220,.85)}
+@keyframes stIn{from{opacity:0;transform:translateY(14px) rotate(-1.5deg)}to{opacity:1;transform:rotate(-1.5deg)}}@keyframes stOut{to{opacity:0;transform:translateY(10px) rotate(-1.5deg)}}
+.rm #subTv.show,.rm #subTv.out{animation:none}
+#app.sb-bar #subTv{bottom:calc(96px + var(--sbm))}
+
+/* ---- banquillo: una pila abajo a la derecha (rótulo, ×3 redondo y los dos saltos); la pausa del HUD se queda arriba a la derecha ---- */
+#benchBar{position:absolute;right:max(16px,var(--sr));bottom:max(12px,var(--sbm));left:auto;z-index:32;display:grid;grid-template-columns:auto auto;grid-template-areas:"t t" "f in" ". end";
+  justify-items:end;align-items:center;gap:10px;margin:0;padding:0;background:none;border:0;font-family:var(--sp-ui);color:var(--sp-cream)}
+#benchBar[hidden],#ffVeil[hidden]{display:none}
+#benchBar .bb-t{grid-area:t;padding:4px 12px 3px;border-radius:8px 12px 9px 13px;background:var(--sp-ink);color:var(--sp-gold);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);
+  font:400 15px/1.15 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;transform:rotate(-1.5deg)}
+#benchBar button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:48px;margin:0;padding:0 18px;border:0;border-radius:22px 28px 24px 18px/20px 18px 26px 22px;cursor:pointer;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 var(--sp-line,3px) var(--sp-ink),3px 4px 0 var(--sp-ink);font:400 16px/1.1 var(--sp-pop);letter-spacing:.02em;text-transform:uppercase;text-shadow:none}
+#benchBar #bbIn{grid-area:in;min-height:52px;background:var(--sp-kit,#ff6a2e);color:var(--sp-kit-ink,#160a02);transform:rotate(-1deg)}
+#benchBar #bbEnd{grid-area:end;transform:rotate(1deg)}
+#benchBar #bbFast{grid-area:f;width:52px;min-width:52px;height:52px;padding:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-gold);box-shadow:0 0 0 3px var(--sp-cream),2px 3px 0 3px var(--sp-ink)}
+#benchBar #bbFast.on{background:var(--sp-gold);color:var(--sp-ink)}
+#benchBar button:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 3px var(--sp-ink),0 0 0 7px var(--sp-cream),3px 4px 0 7px var(--sp-ink)}
+#benchBar .key{font:800 12px/1 var(--sp-ui)}
+.is-touch #benchBar .key{display:none}
+/* táctil: con los mandos ocultos (estás en el banquillo) la pausa del HUD sale arriba a la derecha (antes no había salida) */
+#app.is-touch.sb-bar .hud-btns{display:flex}
+#app.sb-bar .hud-btns button{width:48px;height:48px}
+
+/* ---- simulando: pegatina sobre el partido con tinte suave (sin desenfoque) ---- */
+#ffVeil{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(21,16,42,.2);-webkit-backdrop-filter:none;backdrop-filter:none;color:var(--sp-cream);text-align:center}
+#ffVeil>div{padding:14px 26px 16px;border-radius:16px 20px 16px 22px/18px 16px 22px 16px;background:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-cream),4px 5px 0 3px var(--sp-ink);transform:rotate(-1.5deg)}
+#ffVeil b{display:block;font:400 30px/1.1 var(--sp-pop);letter-spacing:.02em;text-transform:uppercase;color:var(--sp-gold);text-shadow:2px 3px 0 #000}
+#ffVeil span{display:block;margin-top:8px;font:400 22px/1.2 var(--sp-pop);color:var(--sp-cream);font-variant-numeric:tabular-nums}
+
+/* ---- panel «Cambios» (#panel .sheet con #pnSubs): hoja de tinta del sistema; cabecera fija, dos columnas que se desplazan por dentro ---- */
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])){display:flex;flex-direction:column;overflow:hidden;max-width:880px;padding:16px 18px 14px;background:rgba(21,16,42,.95);border:0;
+  border-radius:18px 24px 20px 26px/22px 18px 26px 20px;box-shadow:0 0 0 var(--sp-line) var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.14),6px 8px 0 var(--sp-ink);font-family:var(--sp-ui);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden]))::before,:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden]))::after{display:none}
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden]))>.pn-head{flex:none;justify-content:flex-start;align-items:center;gap:16px;margin:0 0 10px}
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])) .pn-head h2{font:400 clamp(24px,5vh,40px)/1 var(--sp-pop);letter-spacing:.01em;text-transform:uppercase;font-style:normal;color:var(--sp-cream);
+  text-shadow:2.5px 0 0 var(--sp-ink),-2.5px 0 0 var(--sp-ink),0 2.5px 0 var(--sp-ink),0 -2.5px 0 var(--sp-ink),2px 2px 0 var(--sp-ink),-2px -2px 0 var(--sp-ink),3px 5px 0 #000;transform:rotate(-2deg);transform-origin:0 60%}
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])) .pn-head .sh-k{display:none}
+/* Volver en pegatina crema (la mancha de tinta no se ve sobre la hoja de tinta y su cola tapaba el aviso) */
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])) #btnPanelBack{display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:0 16px;border:0;border-radius:22px 30px 26px 18px/20px 18px 28px 24px;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 var(--sp-line) var(--sp-ink),var(--sp-sh);font:400 15px/1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;transform:rotate(1.5deg)}
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])) #btnPanelBack>.sp-blob{display:none}
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])) #btnPanelBack svg:not(.sp-blob){width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])) #btnPanelBack:is(.kf,:focus-visible){background:var(--sp-gold);outline:none;box-shadow:0 0 0 var(--sp-line) var(--sp-ink),0 0 0 6px var(--sp-cream),var(--sp-sh)}
+#pnSubs .sb-p{text-transform:none;letter-spacing:0;text-shadow:none}
+:root:not(#_):not(#_):not(#_) #pnSubs:not([hidden]){flex:1 1 auto;min-height:0;display:flex;flex-direction:column}
+#pnSubs .sb-head{flex:none;display:flex;gap:12px;align-items:center;justify-content:space-between;margin:0 0 10px}
+#pnSubs .sb-msg{min-height:1.3em;margin:0;font:600 15px/1.3 var(--sp-ui);color:var(--sp-gold)}
+#pnSubs .sb-foot{display:flex;gap:10px;flex:none}
+#pnSubs .sb-foot button{min-height:44px;padding:0 16px;border:0;border-radius:20px 26px 22px 16px/18px 16px 24px 20px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);
+  font:400 15px/1 var(--sp-pop);letter-spacing:.02em;text-transform:uppercase;text-shadow:1.5px 1.5px 0 var(--sp-ink);cursor:pointer}
+#pnSubs .sb-foot button[hidden]{display:none}
+#pnSubs .sb-cols{flex:1 1 auto;min-height:0;display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#pnSubs .sb-cols>div{display:flex;flex-direction:column;min-height:0;min-width:0}
+#pnSubs h3{flex:none;align-self:flex-start;margin:0 0 8px 2px;padding:3px 10px 2px;border-radius:6px 9px 7px 10px/8px 7px 9px 6px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);
+  font:400 14px/1.2 var(--sp-pop);letter-spacing:.04em;text-transform:uppercase;transform:rotate(-2deg)}
+#pnSubs .sb-list{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:4px 8px 10px 4px;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.4) transparent}
+/* fila = pegatina de 52 px: dorsal en disco del color del equipo, puesto en chapa, cansancio en tres trazos y «Tú» en dorado */
+#pnSubs .sb-p{position:relative;flex:none;display:grid;grid-template-columns:auto 32px minmax(0,1fr) auto auto;grid-template-rows:auto auto;column-gap:10px;row-gap:3px;align-items:center;text-align:left;min-height:52px;margin:0;padding:6px 12px;box-sizing:border-box;
+  border:0;border-radius:10px 13px 10px 14px/12px 10px 14px 10px;background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 3px var(--sp-ink),2px 3px 0 3px var(--sp-ink);font:600 15px/1.15 var(--sp-ui);cursor:pointer;transform:rotate(.3deg);transition:transform .12s}
+#pnSubs .sb-p:nth-child(even){transform:rotate(-.3deg)}
+#pnSubs .sb-p>*{grid-row:1}
+#pnSubs .sb-p>span:empty:not(.sb-z){display:none}
+#pnSubs .sb-z{grid-column:1;grid-row:1/3;font:800 13px/1 var(--sp-ui);color:rgba(255,244,220,.7);min-width:1.6em}
+#pnSubs .sb-z:empty{min-width:0}
+#pnSubs .sb-nm{grid-column:3;font:400 16px/1.1 var(--sp-pop);letter-spacing:.01em;color:var(--sp-cream);min-width:0;overflow-wrap:anywhere}
+#pnSubs .sb-r{grid-column:4}
+#pnSubs .sb-p b{position:relative}
+#pnSubs .sb-st{grid-column:3;grid-row:2}
+#pnSubs .sb-p:not(:has(.sb-nm)) .sb-st{grid-row:1}
+#pnSubs .sb-p b{grid-column:2;grid-row:1/3;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--k0,#ff6a2e);color:var(--sp-cream);box-shadow:0 0 0 2px var(--sp-ink);font:400 16px/1 var(--sp-pop);text-shadow:1.5px 1.5px 0 var(--sp-ink)}
+#pnSubs .sb-r{padding:2px 7px 1px;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 1.5px var(--sp-ink);font:800 12px/1.1 var(--sp-ui);letter-spacing:.02em;justify-self:start}
+#pnSubs .sb-st{font:600 13px/1.2 var(--sp-ui);color:rgba(255,244,220,.85);white-space:nowrap;min-width:0}
+/* «Tú»: chapa dorada sobre la esquina del disco del dorsal (no ocupa sitio en la fila) */
+#pnSubs .sb-p em{position:absolute;top:-12px;right:-7px;z-index:1;font-style:normal;padding:2px 5px 1px;text-shadow:none;transform:rotate(8deg);border-radius:6px 9px 7px 10px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:400 13px/1.1 var(--sp-pop);letter-spacing:.02em}
+#pnSubs .sb-f{grid-column:4/6;grid-row:2;min-width:48px;height:8px;border-radius:4px;background:rgba(255,244,220,.14);box-shadow:0 0 0 1.5px var(--sp-ink);overflow:hidden}
+#pnSubs .sb-f u{display:block;height:100%;background:linear-gradient(90deg,#4fe08a,#ffd36a 60%,#ff6b6b)}
+#pnSubs .sb-p.sel{background:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-gold),0 0 0 6px var(--sp-ink),2px 3px 0 6px var(--sp-ink);transform:scale(1.03)}
+#pnSubs .sb-p.q{box-shadow:0 0 0 3px #4fe08a,0 0 0 6px var(--sp-ink),2px 3px 0 6px var(--sp-ink)}
+#pnSubs .sb-p[disabled]{cursor:default;background:#3a3550;color:rgba(255,244,220,.6);filter:saturate(.3)}
+#pnSubs .sb-p[disabled] b{background:#6a6478}
+#pnSubs .sb-p:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6px var(--sp-cream),2px 3px 0 6px var(--sp-ink)}
+.rm #pnSubs .sb-p{transition:none}
+#btnPSubs[hidden]{display:none}
+
+/* =====================================================================
+   — móvil (.ph) — HUD del partido, banquillo y «Cambios»
+   ===================================================================== */
+/* consejo: pegatina de tinta bajo el contador de toques; hasta 2 líneas, nunca puntos suspensivos (la versión translúcida .thru no cambia) */
+:root.ph:not(#_):not(#_):not(#_) #coach{max-width:min(62vw,520px,calc(100% - 2 * var(--ph-g) - 240px));min-width:0;white-space:normal;overflow:visible;text-overflow:clip;padding:5px 14px 6px;
+  font:600 14px/1.3 var(--sp-ui);text-align:center;rotate:-1.5deg;border-radius:10px 14px 10px 15px/12px 10px 15px 10px}
+:root.ph:not(#_):not(#_):not(#_) #coach:not(.thru):not(.thrup){background:var(--sp-ink);border-color:transparent;box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #coach b{color:var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #coach .key{font-size:12px}
+:root.ph:not(#_):not(#_):not(#_) #coach .tchip{font-size:12px}
+/* contador de toques: fichas de 30 px y letra de 14 */
+:root.ph:not(#_):not(#_):not(#_) .tb-seg{height:30px;font-size:14px}
+/* aviso junto al jugador: 36 px de alto y letra de 17 */
+:root.ph:not(#_):not(#_):not(#_) #app.is-touch #prompt.anch:not(.two) .pr-in{height:36px;font-size:17px;padding:0 13px 0 5px;gap:7px}
+/* aviso de dos opciones (SACAR FLOTANTE / SALTAR POTENTE): dos filas de ~30 px, que se vean las dos */
+:root.ph:not(#_):not(#_):not(#_) #app.is-touch #prompt.anch.two .pr-in{height:auto;font-size:var(--ph-label);padding:4px 12px 4px 4px;row-gap:4px;border-radius:14px}
+:root.ph:not(#_):not(#_):not(#_) #app.is-touch #prompt.anch .key{font-size:13px}
+/* mandos táctiles (input.js): «MOVER» legible y la lupa de 44 × 44 con su número de 12 (misma altura que la pausa, 10 px entre las dos) */
+:root.ph:not(#_):not(#_):not(#_) #touch .vt-tip{font-size:12px;letter-spacing:.08em;color:rgba(255,255,255,.85)}
+:root.ph:not(#_):not(#_):not(#_) #touch .vt-zoom{width:44px;height:44px;right:calc(68px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top))}
+:root.ph:not(#_):not(#_):not(#_) #touch .vt-zoom b{min-width:18px;height:18px;border-radius:9px;font-size:12px;line-height:18px;right:-4px;bottom:-4px}
+/* rótulo del cambio: más abajo, sobre el arco de los mandos */
+:root.ph:not(#_):not(#_):not(#_) #subTv{bottom:calc(96px + var(--ph-gb));font-size:17px;min-width:0;padding:7px 14px 8px}
+:root.ph:not(#_):not(#_):not(#_) #subTv .sbt-h{font-size:13px}
+:root.ph:not(#_):not(#_):not(#_) #subTv .sbt-n{font-size:13px}
+:root.ph:not(#_):not(#_):not(#_) #subTv .sbt-nm{display:inline}
+:root.ph:not(#_):not(#_):not(#_) #app.sb-bar #subTv{left:var(--ph-g);right:auto;margin:0;bottom:var(--ph-gb)}
+/* banquillo */
+:root.ph:not(#_):not(#_):not(#_) #benchBar{right:var(--ph-g);bottom:var(--ph-gb);gap:var(--ph-hit-gap)}
+:root.ph:not(#_):not(#_):not(#_) #benchBar .bb-t{font-size:14px}
+:root.ph:not(#_):not(#_):not(#_) #benchBar button{font-size:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) #app.sb-bar .hud-btns{right:var(--ph-g);top:var(--ph-gt)}
+/* simulando */
+:root.ph:not(#_):not(#_):not(#_) #ffVeil b{font-size:var(--ph-title)}
+:root.ph:not(#_):not(#_):not(#_) #ffVeil span{font-size:var(--ph-num)}
+/* «Cambios»: hoja con márgenes; Volver en su fila con el título (nunca encima del texto); filas de 52 px */
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])){position:absolute;left:var(--ph-g);right:var(--ph-g);top:var(--ph-gt);bottom:var(--ph-gb);width:auto;max-width:none;max-height:none;margin:0;padding:6px 12px 8px}
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden]))>.pn-head{min-height:48px;margin:0 0 6px;gap:14px}
+:root.ph:not(#_):not(#_):not(#_) #panel .sheet:has(>#pnSubs:not([hidden])) .pn-head h2{font-size:var(--ph-title)}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-head{margin:0 0 6px}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-msg{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-foot button{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-cols{gap:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs h3{font-size:var(--ph-label);margin-bottom:6px}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-p{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-st{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-r{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #pnSubs .sb-p em{font-size:var(--ph-cap)}
+/* previa (#intro; su SPLAT vive en «CUENTA Y VARIOS»): sede, nivel y «Toca para empezar» legibles; el nombre del equipo sin recorte de la línea */
+:root.ph:not(#_):not(#_):not(#_) #intro .in-k{font-size:var(--ph-label);letter-spacing:.06em}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-chip{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-meta{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-skip{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-t small{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-nm{line-height:1.2;padding-bottom:1px}
+/* (MV-5) los dos bloques igual de anchos (con nowrap, el de la pareja larga se comía el disco «VS»); cada uno guarda por dentro medio
+   disco (46 px + aro de 4) + 8 px; la línea de la pareja en 2 líneas como mucho, sin «…», un nombre por línea (ui.js introFill .in-y) */
+:root.ph:not(#_):not(#_):not(#_) #intro{--inx:54px}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-vs{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-t{min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-t.t0{padding-right:calc(var(--inx) / 2 + 8px)}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-t.t1{padding-left:calc(var(--inx) / 2 + 8px)}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-t small{font-size:max(13px,min(14px,var(--ph-label)));line-height:1.2;white-space:normal;overflow:hidden;text-overflow:clip;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-align:center;overflow-wrap:normal}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-t small .in-y{display:block}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-lt>span{font-size:var(--ph-label)}
+/* repetición: rótulos a tamaño de lectura; «Salir» en pegatina crema de 44 */
+:root.ph:not(#_):not(#_):not(#_) #rpCap .rp-hd{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #rpCap .rp-pill{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #rpCap .rp-sub{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #rpSkipT{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #rpSkipT .key{font-size:12px}
+:root.ph:not(#_):not(#_):not(#_) #rpSkip{right:var(--ph-g);bottom:var(--ph-gb)}
+:root.ph:not(#_):not(#_):not(#_) #rpExit{min-height:44px;min-width:64px;font-size:15px}
+/* ==== fin SPLAT · CAMBIOS Y BANQUILLO ==== */
+/* =====================================================================
    SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL (#mpRetos, #mpGym, #mpLook, #mpProf, chip #btnProf y avisos #pfNote/#lkNote).
    Las cuatro páginas con data-sp-full (columna a la izquierda, el partido o el muñeco a la vista). Piezas nuevas de este bloque:
    .sp-medal (medalla en pegatina redonda crema) y .sp-bar (barra de pintura hasta la siguiente medalla); fichas del álbum en CSS.
@@ -4406,52 +5114,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #menu .lk-r.sp-dot::after{right:6px;top:-2px}
 #menu.sp-full #mpLook .lk-empty{margin:4px 2px;font:600 14px/1.3 var(--sp-ui);color:var(--sp-cream);text-shadow:1px 1px 0 var(--sp-ink)}
 
-/* ---- teléfono apaisado (alto ≤ 430 px) ---- */
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  #menu.sp-full :is(#mpRetos,#mpGym){--sp-colw:min(560px,calc(100vw - 40px - var(--sl) - var(--sr)))}
-  #menu.sp-full #mpProf{--sp-colw:calc(100vw - 32px - var(--sl) - var(--sr))}
-  #menu.sp-full :is(#mpRetos,#mpGym,#mpProf){gap:6px}
-  #menu.sp-full #mpProf{padding-bottom:calc(14px + var(--sbm))}
-  :root:not(#_):not(#_):not(#_) #menu .pf-foot{padding-right:44px}
-  :root:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r).sp-btn{min-height:46px;padding:1px 24px 3px 8px;gap:8px;--sp-fs:14px}
-  :root:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r) .sp-s{display:none}
-  :root:not(#_):not(#_):not(#_) #menu .gy-d .sp-bar{display:none}
-  :root:not(#_):not(#_):not(#_) #menu .gy-rec b{font-size:13px}
-  :root:not(#_):not(#_):not(#_) #menu .gy-rec small{font-size:10.5px}
-  .sp-medal{--sp-md:32px}
-  .sp-bar{height:7px;margin:3px 0 1px}
-  :root:not(#_):not(#_):not(#_) #menu :is(#rtBody,#gymList,#lkList){gap:9px;padding:8px 18px 16px 12px}
-  #menu.sp-full #gymList .gy-free{--sp-ph:48px;--sp-pt:19px}
-  :root:not(#_):not(#_):not(#_) #menu #rtTabs .tab{--sp-tbh:44px;--sp-tbs:13px}
-  :root:not(#_):not(#_):not(#_) #menu :is(#gymFoot,#rtFoot){display:none}
-  :root:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket{padding:6px 18px 10px 10px;gap:10px}
-  :root:not(#_):not(#_):not(#_) #menu .rt-day .sp-stamp{--sp-stamp:58px}
-  :root:not(#_):not(#_):not(#_) #menu .rt-day .rt-map{font-size:18px}
-  :root:not(#_):not(#_):not(#_) #menu .rt-tier{padding:2px 8px 2px 3px;font-size:10.5px}
-  :root:not(#_):not(#_):not(#_) #menu .rt-tier .mdl{width:24px;height:24px}
-  #menu.sp-full #rtBody .rt-go{--sp-ph:48px;--sp-pt:19px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket{padding:4px 16px 8px 10px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-card .pf-n{width:38px;height:38px;font-size:16px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-card .pf-st{display:none}
-  :root:not(#_):not(#_):not(#_) #menu .pf-v{width:44px;height:44px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{display:none}
-  :root:not(#_):not(#_):not(#_) #menu .pf-v.free{font-size:9px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-vk{display:none}
-  :root:not(#_):not(#_):not(#_) #menu #pfTabs .tab{--sp-tbh:44px;--sp-tbs:12px;padding:0 9px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));grid-auto-rows:58px;gap:10px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-s .pf-si{width:24px;height:24px}
-  #menu.sp-full #mpLook{--lkw:min(330px,48vw);gap:6px}
-  :root:not(#_):not(#_):not(#_) #menu .lk-r.sp-btn{min-height:48px;padding:2px 4px 3px 10px}
-  :root:not(#_):not(#_):not(#_) #menu .lk-r .mi-h{display:none}
-  :root:not(#_):not(#_):not(#_) #menu .lk-r .lk-v{font-size:14px}
-  .lk-r.sp-btn{--sp-aw:26px}
-  :root:not(#_):not(#_):not(#_) #menu #lkTabs .tab{padding:0 8px}
-  /* el pie en iconos sube a la línea del título (a la derecha de «Vestuario»): la barra queda entera para las 7 pestañas de 44 px */
-  :root:not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{position:static}
-  :root:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs{flex:1 1 auto}
-  :root:not(#_):not(#_):not(#_) #menu .lk-foot{position:absolute;top:calc(6px + var(--st));left:calc(var(--lkw) - 34px);padding:0}
-  :root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{padding:0 9px;--sp-tbs:12px}
-}
+/* (el antiguo «@media (max-height:430px) and (min-aspect-ratio:5/4)» de este bloque pasó a «— móvil (.ph) —», al final) */
 /* ---- vertical: cabecera arriba, el partido (o el muñeco) en medio y lo demás abajo ---- */
 @media (max-aspect-ratio:5/4){
   #menu.sp-full :is(#mpRetos,#mpGym){justify-content:flex-start}
@@ -4480,7 +5143,144 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root:not(#_):not(#_):not(#_) #menu .lk-foot{position:absolute;right:-4px;bottom:calc(100% + 66px);flex-direction:column;padding:0}
   :root:not(#_):not(#_):not(#_) #menu #lkList{flex:0 1 auto;max-height:30vh}
 }
+/* — móvil (.ph) — (portada, 18-nov-2026; notes/ui_main.md «Móvil (v-next)»). Entrenamiento y Retos: marco a la izquierda (cabecera
+   sin kicker, lista que se desplaza, el parche pegado abajo dentro de la lista: siempre a la vista). Perfil: marco entero (cabecera con
+   nivel y vitrina, pestañas en columna, fichas). Vestuario: cabecera con «Probar» y «⋯» (hoja con el resto), columna de iconos de los
+   apartados a la izquierda y filas de 56; ⟲ ⟳ al borde derecho (no tapan los pies). Avisos de Perfil y Vestuario: VB.Splat.toast. */
+:root.ph .sp-medal{--sp-md:36px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full :is(#mpGym,#mpRetos,#mpProf,#mpLook,#mpQuick) .mp-head .sp-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full :is(#mpGym,#mpRetos,#mpProf,#mpLook) .mp-head{min-height:var(--ph-hh)}
+/* V-SUBS: «ENTRENAMIENTO» (largo y torcido) asomaba por arriba del borde (y < 0 a 844/915) */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full :is(#mpGym,#mpRetos) .mp-head{padding-top:5px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full :is(#mpRetos,#mpGym){--sp-colw:min(var(--ph-ffw),max(var(--ph-colw),520px));justify-content:flex-start;gap:var(--ph-s2)}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(#rtBody,#gymList){flex:1 1 auto;gap:var(--ph-hit-gap);padding:8px 18px 10px 12px}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(#gymFoot,#rtFoot){display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpGym .gy-chip{margin-left:auto;--sp-chs:var(--ph-label);--sp-tilt:3deg}
+/* filas de Entrenamiento y Maestría: 56 px; medalla 36, nombre a --ph-row, ayuda de una línea, récord a --ph-num */
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r).sp-btn{min-height:56px;padding:4px 16px 5px 10px;gap:12px;--sp-fs:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r) .sp-t{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r) .sp-s{font-size:var(--ph-label);line-height:1.15}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.gy-d,.rt-r) .sp-bar{height:6px;margin:3px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #menu .gy-rec b{font-size:var(--ph-num)}
+:root.ph:not(#_):not(#_):not(#_) #menu .gy-rec small{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #gymList .gy-free{position:sticky;bottom:0;z-index:3;margin-top:2px}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-r .rt-help{font-size:var(--ph-label)}
+/* Retos: pestañas en tira; Hoy = billete a la izquierda, las 3 medallas apiladas a la derecha y el parche abajo (pegado) */
+:root.ph:not(#_):not(#_):not(#_) #menu #rtTabs.sp-tabs-strip .tab{flex:1 1 0;--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px}
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody:has(>.rt-day){display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,40%);grid-template-areas:"day tiers" "go go";align-items:center;align-content:start;gap:12px 14px}
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody>.rt-day{grid-area:day}
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody>.rt-tiers{grid-area:tiers;flex-direction:column;gap:8px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #rtBody>.rt-go{grid-area:go;position:sticky;bottom:0;z-index:3}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket{flex-wrap:wrap;padding:10px 18px 12px 10px;gap:8px 10px}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day .sp-stamp{--sp-stamp:64px}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-k{font-size:var(--ph-cap);letter-spacing:.04em}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-map{font-size:var(--ph-head);white-space:normal;overflow:visible}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .sp-chip{--sp-chs:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-tier{flex:none;padding:3px 10px 3px 4px;font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-tier .mdl{width:28px;height:28px}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-tier>span{display:block;-webkit-line-clamp:unset;overflow:visible}
+/* MV-6: en el móvil, las medallas sin ganar en crema maciza con tinta (la cinta gris sobre crema translúcida no se leía); la pegatina
+   crece con su texto (≥ 40) y deja ≥ 10 px sobre el parche. Con 380 de alto o menos el oro va en corto (.rt-ts, ui.js rtGoalShort) */
+:root:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier>.rt-ts{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier{box-sizing:border-box;height:auto;min-height:40px;color:var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier:not(.on){background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink)}
+/* (el hueco de la rejilla, 12, ya separa las medallas del parche: sin margen extra para que todo quepa sin desplazar) */
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier:nth-child(n){transform:rotate(var(--rt-tt,.5deg))}
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier:nth-child(2){--rt-tt:-.5deg}
+@media (max-height:380px){
+  :root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier .rt-tl{display:none}
+  :root.ph:not(#_):not(#_):not(#_) #menu #rtBody .rt-tier .rt-ts{display:block;white-space:nowrap}
+}
+/* (.ph-s: con 3 medallas de 40 no caben billete + medallas + parche a lo ancho en 320 de alto; las medallas ocupan la columna derecha
+   entera y el parche va bajo el billete, todo a la vista sin desplazar) */
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu #rtBody:has(>.rt-day){grid-template-areas:"day tiers" "go tiers";gap:8px 14px;align-items:start}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu #rtBody>.rt-tiers{align-self:center;margin-bottom:0;gap:8px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket{padding:8px 16px 10px 10px}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-grp{position:sticky;top:-8px;z-index:2;margin:2px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-grp .sp-chip{--sp-chs:var(--ph-label)}
+/* PERFIL: marco entero = cabecera (Volver + título | nivel y vitrina) | pestañas en columna | fichas | pie */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpProf{--sp-colw:var(--ph-ffw);display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto;
+  grid-template-areas:"head top" "ro ro" "rail grid" "rail foot";gap:var(--ph-s2) var(--ph-s3);justify-content:stretch;align-content:stretch}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpProf .mp-head{grid-area:head}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpProf .pf-top{grid-area:top;min-width:0;gap:12px;justify-content:flex-end}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpProf .pf-ro{grid-area:ro}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpProf .pf-grid{grid-area:grid}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpProf .pf-foot{grid-area:foot}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket{flex:1 1 auto;max-width:360px;min-height:56px;padding:4px 18px 8px 8px;column-gap:10px;row-gap:3px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-card .pf-n{width:48px;height:48px;font-size:20px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-card .pf-n small{font-size:12px;letter-spacing:.04em}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-card .pf-bx{gap:4px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-card .pf-xp{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-card :is(.pf-nx,.pf-st){display:none}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu .pf-card .pf-nx{display:block;margin:0;font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-vk{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-vs{gap:10px;padding:2px 4px 4px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-v{width:44px;height:44px;padding:3px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-v .pf-si{width:58%;height:58%}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-v.free{font-size:12px;letter-spacing:0}
+:root.ph:not(#_):not(#_):not(#_) #menu #pfTabs.sp-vtabs{grid-area:rail}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(#pfTabs,#lkTabs).sp-vtabs{display:flex;flex-direction:column;width:var(--ph-vt);min-height:0;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(#pfTabs,#lkTabs).sp-vtabs .tb-row{flex:1 1 auto;flex-direction:column;align-items:stretch;justify-content:flex-start;gap:var(--ph-tab-gap);min-height:0;overflow-x:hidden;overflow-y:auto;padding:4px 6px 10px 3px}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(#pfTabs,#lkTabs).sp-vtabs .tab{flex:none;width:100%;min-width:0;--sp-tbh:44px;--sp-tbs:var(--ph-label);height:auto;min-height:44px;padding:5px 8px 5px 11px;justify-content:flex-start;flex-wrap:wrap;gap:2px 6px;white-space:normal;text-align:left;line-height:1.08}
+:root.ph:not(#_):not(#_):not(#_) #menu #pfTabs.sp-vtabs .tab .tb-t{overflow-wrap:normal;word-break:keep-all}
+/* V-PFRAIL: el contador siempre en su propia línea (todas las pestañas igual) y la columna se ajusta a pestañas enteras */
+:root.ph:not(#_):not(#_):not(#_) #menu #pfTabs.sp-vtabs .tab .tb-t{flex:1 0 100%}
+:root.ph:not(#_):not(#_):not(#_) #menu #pfTabs.sp-vtabs .tab .tb-b{margin-top:2px}
+:root.ph:not(#_):not(#_):not(#_) :is(#menu #pfTabs,#menu #lkTabs,#panel.sp-pn .sp-tabs).sp-vtabs .tb-row{scroll-snap-type:y proximity;scroll-padding-top:4px}
+:root.ph:not(#_):not(#_):not(#_) :is(#menu #pfTabs,#menu #lkTabs,#panel.sp-pn .sp-tabs).sp-vtabs .tab{scroll-snap-align:start}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(#pfTabs,#lkTabs) .tab .tb-b{font-size:max(13px,var(--ph-cap))}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-grid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));grid-auto-rows:auto;gap:12px;margin:-6px -12px -6px -6px;padding:8px 14px 28px 8px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-s{aspect-ratio:auto;height:auto;min-height:88px;padding:8px 6px;gap:5px;font-size:var(--ph-cap);line-height:1.12}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-s .pf-si{width:30px;height:30px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-s.off .pf-si{width:22px;height:22px}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:normal;word-break:normal;hyphens:auto}
+/* (bloqueadas: tinta opaca y crema al 80 %, no gris translúcido sobre la pista) */
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-s.off{background:var(--sp-ink);color:rgba(255,244,220,.8)}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-s.off .pf-si{color:rgba(255,244,220,.7)}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-foot{min-height:44px;gap:12px;padding:0}
+:root.ph:not(#_):not(#_):not(#_) #menu #pfFoot{flex:0 1 auto;font-size:var(--ph-body);line-height:1.25;background:var(--sp-ink);padding:4px 10px;border-radius:8px;text-shadow:none}
+/* avisos (VB.Splat.toast) en el móvil: de uno en uno (el más nuevo), 44 px de toque, y en Perfil abajo a la derecha (no tapan
+   la vitrina ni la primera fila de huecos) */
+:root.ph:not(#_):not(#_):not(#_) #spToasts>.sp-toast:not(:last-child){display:none}
+:root.ph:not(#_):not(#_):not(#_) #spToasts>.sp-toast:last-child{min-height:44px;display:flex;align-items:center}
+/* V-PFTOAST: en Perfil el aviso va en el carril del pie (en el sitio de «Elige un hueco…», que se esconde mientras está) y no
+   recoge toques: nunca tapa ni roba la casilla de la rejilla */
+:root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts{top:auto;bottom:var(--ph-gb);right:var(--ph-g);left:auto;transform:none;max-width:min(420px,60vw);pointer-events:none}
+:root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts>.sp-toast{pointer-events:none}
+:root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])):has(#spToasts>.sp-toast) #pfFoot{visibility:hidden}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-pin.sp-btn{margin-left:auto}
+:root.ph:not(#_):not(#_):not(#_) #menu .pf-ro{font-size:var(--ph-body)}
+/* VESTUARIO: cabecera, fila de jugador y sede, columna de iconos y la lista */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpLook{--lkw:min(370px,calc(var(--ph-ffw) * .6));--sp-colw:var(--lkw);display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);
+  grid-template-areas:"head head" "top top" "rail help" "rail list";gap:var(--ph-s2) var(--ph-s3);justify-content:stretch;align-content:stretch}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .mp-head{grid-area:head;padding-right:112px}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-top{grid-area:top;gap:var(--ph-hit-gap);flex-wrap:wrap}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{display:contents}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkTabs{grid-area:rail}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkHelp{grid-area:help;font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkList{grid-area:list;flex:none;max-height:none;gap:var(--ph-hit-gap);margin:-6px -14px -6px -6px;padding:8px 16px 12px 8px}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs{width:58px}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab{justify-content:center;width:48px;padding:0}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab .tb-t{display:none!important}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab svg{display:block;width:22px;height:22px}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 12px}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot{position:absolute;top:var(--ph-gt);right:0;padding:2px 0 0;gap:var(--ph-hit-gap)}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .sp-btn{width:44px;height:44px}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .sp-btn:is([data-lkf="rand"],[data-lkf="reset"],[data-lkf="copy"]){display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .lk-more>svg:not(.sp-blob){position:relative;z-index:1;width:22px;height:22px;fill:currentColor}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r.sp-btn{min-height:56px;padding:4px 4px 5px 12px}
+:root.ph .lk-r.sp-btn{--sp-aw:32px}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r .lk-k{font-size:var(--ph-label);letter-spacing:.04em}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r .lk-v{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r .lk-st{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r .mi-h{display:none}
+:root.ph:not(#_):not(#_):not(#_) #lkSpin .lk-rot{left:auto;right:var(--ph-g);top:auto;bottom:var(--ph-gb);flex-direction:column;gap:var(--ph-hit-gap);transform:none}
+:root.ph:not(#_):not(#_):not(#_) #lkSpin .lk-rot .sp-btn{width:44px;height:44px}
+:root.ph:not(#_):not(#_):not(#_) :is(#pfNote,#lkNote){font-size:var(--ph-body)}
+#spSheets .lk-acts{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:6px 6px 8px 4px}
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
+/* =====================================================================
    SPLAT · PANELES (#panel.sp-pn: Ajustes, Controles, Cómo se juega, Jugadores, Acerca de y Primer partido; y el aviso #rotate).
    ui.js openPanel pone .sp-pn y data-pn="<panel>" (Estadística y Cambios siguen con su estilo). Sin velo ni desenfoque: la hoja es
    una columna a la izquierda y el partido se ve a la derecha; arriba Volver (.sp-back) y el título (.sp-h), debajo las pestañas en
@@ -4529,7 +5329,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab svg{width:1.15em;height:1.15em;fill:currentColor;flex:none}
 /* Ajustes (7 pestañas), con alto: etiquetas sin iconos (caben enteras a 1280×720); si no caben, modo compacto (ui.js fitTabs) */
 @media (min-height:561px){:root:not(#_):not(#_):not(#_) #panel.sp-pn #setTabs:not(.tabs-ic) .tab svg{display:none}}
-:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab .tb-b{margin-left:2px;padding:2px 6px;border-radius:5px 7px 5px 6px;background:var(--sp-teal);color:var(--sp-ink);box-shadow:0 0 0 1.5px var(--sp-ink);font:400 .72em/1.1 var(--sp-pop);letter-spacing:.04em;text-shadow:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab .tb-b{margin-left:2px;padding:2px 6px;border-radius:5px 7px 5px 6px;background:var(--sp-teal);color:var(--sp-ink);box-shadow:0 0 0 1.5px var(--sp-ink);font:400 max(12px,.72em)/1.1 var(--sp-pop);letter-spacing:.04em;text-shadow:none}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab.on .tb-b{background:var(--sp-ink);color:var(--sp-gold)}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-k{flex:none;min-width:30px;height:30px;padding:0 7px;border:0;border-radius:7px 9px 7px 8px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink);
   font:800 13px/1 var(--sp-ui);letter-spacing:.02em;text-shadow:none;transform:rotate(-3deg)}
@@ -4759,40 +5559,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{--sp-ph:clamp(58px,13vh,108px);--sp-pt:clamp(18px,4.6vh,40px)}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn #btnFirstPlay{align-self:flex-start;min-width:62%;justify-content:flex-start;padding-left:18px;padding-right:22px}
 
-/* ---- móvil apaisado (alto ≤ 430): todo más prieto, Volver y pestañas siempre a la vista ---- */
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  #panel{--pn-pad:8px;--pn-gap:5px;--pn-w:min(720px,calc(100vw - 30px - var(--sl) - var(--sr)))}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-h{--sp-hs:clamp(20px,7.4vh,28px)}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-row{padding:4px 6px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab{--sp-tbh:38px;--sp-tbs:12px}
-  :root:not(#_):not(#_):not(#_) #app.is-touch #panel.sp-pn .sp-tabs .tab{--sp-tbh:44px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll{--sp-pdy:6px;padding:6px 10px;margin-bottom:6px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt{min-height:44px;padding:3px 8px 3px 12px;font-size:13px;gap:4px 10px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt small{font-size:11px;margin-top:1px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg>span{--sp-tbh:30px;--sp-tbs:11px;padding:0 7px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .opt-foot{display:none}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:3px 10px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ctl>div{min-height:44px;padding:2px 4px 2px 8px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .kslot{height:34px;min-width:46px;padding:0 8px;font-size:12.5px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top .sq-pick{gap:10px;padding:3px 4px 6px 3px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{min-height:44px;padding:0 10px 0 6px;gap:7px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook{min-height:44px;padding:0 12px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-num{width:30px;height:30px;font-size:16px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{font-size:13.5px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r{min-height:44px;padding:2px 6px 2px 10px;grid-template-columns:minmax(0,1.6fr) minmax(48px,1fr) 2em 48px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-note{display:none}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum{display:none}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:12px;padding:8px 12px;--sp-g:12px;--sp-pdy:8px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-fig{margin:6px 8px 10px 6px;box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),4px 5px 0 5.5px var(--sp-ink)}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-title{font-size:20px;margin:2px 0 4px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-text{font-size:12px;line-height:1.38}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-rule{font-size:11px;line-height:1.3;margin-top:6px;padding:5px 9px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutNext{--sp-ph:46px;min-width:170px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{--sp-ph:58px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"]>.sheet{width:min(460px,calc(100vw - 40px))}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card{padding:7px 11px}
-  :root:not(#_):not(#_):not(#_) #panel.sp-pn .ab-foot{padding-bottom:2px}
-}
+/* (el antiguo «@media (max-height:430px) and (min-aspect-ratio:5/4)» de este bloque pasó a «— móvil (.ph) —», al final del bloque) */
 /* vertical (360×640): la hoja ocupa el ancho; cabecera arriba */
 @media (max-aspect-ratio:5/4){
   #panel{--pn-pad:clamp(10px,3.4vw,24px);--pn-w:100%}
@@ -4827,7 +5594,179 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #rotate .ph::after{bottom:4px;width:14px;height:3px;margin-left:-7px;background:var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) #rotate .ph::before{content:"";position:absolute;left:-26px;top:-14px;width:16px;height:16px;border-radius:50%;background:var(--sp-kit);box-shadow:0 0 0 2.5px var(--sp-ink),70px 104px 0 -3px var(--sp-gold),70px 104px 0 -.5px var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) #rotate b.sp-h{--sp-hs:clamp(28px,8.5vw,46px);white-space:normal;text-align:center}
-:root:not(#_):not(#_):not(#_) #rotate p.sp-chip{--sp-chs:clamp(11px,3.4vw,14px);white-space:normal;text-align:center;max-width:min(80vw,300px);line-height:1.25;padding:5px 12px}
+:root:not(#_):not(#_):not(#_) #rotate p.sp-chip{--sp-chs:clamp(15px,4.2vw,17px);white-space:normal;text-align:center;max-width:min(84vw,320px);line-height:1.25;padding:6px 14px}
+
+/* — móvil (.ph) — (portada, 18-nov-2026; notes/ui_main.md «Móvil (v-next)»). Cada panel es un marco a la izquierda (el partido a la
+   derecha): cabecera (Volver + título) | pestañas en columna (Ajustes) o en tira | UNA hoja que se desplaza | acciones abajo a la
+   derecha. .sheet = columna (cabecera + #pnX); #pnX = rejilla «vt strip / vt body / vt dock». Prefijo «PH #panel.sp-pn»
+   (4 ids + .ph: gana a la estructura «P»). Filas de Ajustes: rótulo y ayuda de UNA línea (data-ph-ell) con «i» si no cabe
+   (VB.Splat.helpFit) y el control en su columna del 44 %; segmentados según el número de opciones (VB.Splat.fitSeg). */
+:root.ph #panel{--pn-pad:0px;--pn-gap:0px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn{display:block;padding:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn>.sheet{position:absolute;top:var(--ph-gt);bottom:var(--ph-gb);left:var(--ph-g);right:auto;width:var(--ph-fw);max-width:var(--ph-ffw);height:auto;max-height:none;margin:0;padding:0;
+  box-sizing:border-box;display:flex;flex-direction:column;gap:0;overflow:visible}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="squad"],[data-pn="ctl"])>.sheet{width:var(--ph-ffw)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"]>.sheet{width:min(var(--ph-ffw),max(68vw,560px))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"]>.sheet{width:min(500px,var(--ph-ffw))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn>.sheet>[id^="pn"]:not([hidden]){flex:1 1 auto;min-height:0;display:grid;grid-template:"vt strip" auto "vt body" minmax(0,1fr) "vt dock" auto / auto minmax(0,1fr);gap:0;margin:0}
+/* cabecera: Volver (44) y el título en una línea; sin kicker */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head{flex:none;min-height:var(--ph-hh);margin:0 0 var(--ph-s2);padding:4px 0 0;gap:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-title .tchip{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head>.pn-tt{margin-left:var(--ph-s3)}   /* V-BACKBLOB: la mancha de Volver no toca el título */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .sp-h{--sp-hs:var(--ph-title);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-foot{display:none}
+/* pestañas: columna (Ajustes) o tira (Controles, Jugadores, Acerca de) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tb-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-vtabs{grid-area:vt;display:flex;flex-direction:column;width:var(--ph-vt);min-height:0;margin:0 var(--ph-s3) 0 0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-vtabs .tb-row{flex:1 1 auto;flex-direction:column;align-items:stretch;gap:var(--ph-tab-gap);min-height:0;overflow-x:hidden;overflow-y:auto;padding:4px 6px 10px 3px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-vtabs .tab{flex:none;width:100%;min-width:0;--sp-tbh:44px;--sp-tbs:var(--ph-label);height:auto;min-height:44px;padding:6px 8px 6px 11px;justify-content:flex-start;gap:8px;white-space:normal;text-align:left;line-height:1.08}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-vtabs .tab svg{display:block;width:21px;height:21px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-vtabs .tab .tb-t{overflow-wrap:normal;word-break:keep-all;hyphens:manual}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #setTabs.sp-vtabs{width:150px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs.sp-tabs-strip .tab svg{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-tabs-strip{grid-area:strip;margin:0 0 var(--ph-s2)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-tabs-strip .tb-row{gap:var(--ph-strip-gap);padding:3px 4px 5px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs.sp-tabs-strip .tab{flex:1 1 auto;--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-tabs .tab .tb-b{font-size:max(13px,var(--ph-cap))}
+/* la hoja que se desplaza (la única) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll{grid-area:body;--sp-pdy:10px;min-height:0;margin:0;padding:10px 12px;overflow-x:hidden;overflow-y:auto}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(.tut-nav,.ab-foot){grid-area:dock;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--ph-hit-gap);margin:var(--ph-s2) 0 0;padding:0 2px 0 0}
+/* AJUSTES: filas de 56 px; rótulo Titan, ayuda de una línea («i» la abre entera), control en la columna del 44 % */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-g{gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt{grid-template-columns:minmax(0,1fr) auto;min-height:56px;padding:6px 8px 6px 12px;gap:4px 10px;font-size:var(--ph-row);letter-spacing:.02em;line-height:1.1}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt:is(.opt-snd,.opt-go,.info){grid-template-columns:minmax(0,1fr) auto}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt:has(.slider){grid-template-columns:minmax(0,1fr) minmax(150px,44%)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-snd:has(.slider){grid-template-columns:minmax(0,1fr) minmax(190px,50%)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt:has(.seg:not(.sp-toggle)){grid-template-columns:minmax(0,1fr) max-content}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child>small{grid-column:1;grid-row:2;margin-top:2px;font-size:var(--ph-label);white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25;color:rgba(255,244,220,.8)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child>.sp-info{grid-column:2;grid-row:1/3;margin:-6px -4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt[aria-expanded="true"]>span:first-child>small{white-space:normal;display:block;-webkit-line-clamp:none;overflow:visible;font-size:var(--ph-body);line-height:1.35;color:var(--sp-cream)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>:last-child:not(:first-child){justify-self:end;max-width:100%;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.info .iv{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-reset.sp-pill{--sp-fs:var(--ph-label);min-height:44px;margin:10px 0 4px 6px;padding:4px 18px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-wipe-n{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg{gap:4px;flex-wrap:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg>span{--sp-tbh:40px;--sp-tbs:var(--ph-label);min-width:52px;padding:0 10px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ph-proxy.sp-select{display:flex;width:100%;justify-content:space-between;gap:2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ph-proxy.sp-select .arr{margin:0 -4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ph-proxy.sp-select .mv-val{flex:1 1 auto;min-width:0;padding:4px 6px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ph-proxy.sp-select .mv-val b{font-size:var(--ph-row);white-space:normal;text-align:center;line-height:1.02;overflow-wrap:normal}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ph-proxy.sp-toggle{margin-right:4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .slider.sp-slider{gap:18px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .slider.sp-slider .trk{width:clamp(96px,17vw,170px)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .slider.sp-slider .v{min-width:2.9em}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-snd .slider.sp-slider .trk{width:clamp(72px,11vw,120px)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .snd{gap:10px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute{width:40px;height:40px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute::after{inset:-2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-go .go-ic{width:36px;height:36px;margin:0 4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit{gap:10px;padding:4px 2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit>span{width:40px;height:40px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit>span::after{content:"";position:absolute;inset:-2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.kit .sw{width:26px;height:26px}
+/* V-MUTE: el altavoz nunca encoge (44×44); cede la pista. V-KIT: Equipación = rótulo arriba (con su ayuda en la misma línea) y la tira de
+   muestras debajo, a todo el ancho, desplazable de lado (VB.Splat.more → desvanecido .sp-more-x); nunca columnas auto/max-content. */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .snd{min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute{flex:0 0 44px;width:44px;height:44px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .snd .mute::after{inset:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-snd .slider.sp-slider{flex:1 1 auto;min-width:0;gap:22px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt-snd .slider.sp-slider .trk{flex:1 1 auto;min-width:56px;width:auto}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit:has(.seg.kit){grid-template-columns:minmax(0,1fr);grid-template-areas:"l" "c";row-gap:4px;padding-right:12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit>span:first-child{grid-area:l;display:flex;flex-wrap:wrap;align-items:baseline;column-gap:10px;row-gap:2px;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit>span:first-child>small{flex:1 1 0;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:clip;display:block;-webkit-line-clamp:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit>span:first-child>.sp-info{margin:-12px -6px -12px 0;align-self:center}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit[aria-expanded="true"]>span:first-child>small{flex-basis:100%;white-space:normal}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit>.seg.kit{grid-area:c;justify-self:stretch;justify-content:flex-start;flex-wrap:nowrap;gap:6px;min-width:0;max-width:none;overflow-x:auto;overflow-y:hidden;padding:7px 6px 9px;margin:0 -6px;scrollbar-width:none;-webkit-mask:none;mask:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit>.seg.kit::-webkit-scrollbar{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit>.seg.kit>span{flex:0 0 40px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.opt-kit>.seg.kit.sp-more-x{-webkit-mask:linear-gradient(to right,#000 calc(100% - 36px),transparent);mask:linear-gradient(to right,#000 calc(100% - 36px),transparent)}
+/* CONTROLES: una columna de filas de 52; teclas de 44 */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl{grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:6px 12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl>div{min-height:52px;padding:4px 8px 4px 12px;gap:10px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(.ctl .kl,.ctl dt){font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl dd{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(.ctl .kl small,.ctl dd small,.ctl dt small){font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn dl.ctl:not(.kb)>div{grid-template-columns:minmax(118px,38%) minmax(0,1fr);padding:6px 10px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn dl.ctl:not(.kb) dt{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl :is(.key,kbd){font-size:max(12px,var(--ph-cap));min-height:28px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .kslot{height:44px;min-width:52px;padding:0 10px;font-size:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(.ctl-note,.ctl-fixed){font-size:var(--ph-body);line-height:1.45}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl-msg{font-size:var(--ph-body)}
+/* V-TOUCHCTL: Táctil = filas como Teclado/Mando (ui.js renderCtl .ctl-t): rótulo + una ayuda (2 líneas, «i» si no cabe) | botones */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t{grid-template-columns:minmax(0,1fr)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t .kl{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t .kl>small{grid-column:1;grid-row:2;font-size:var(--ph-label);white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t .kl>.sp-info{grid-column:2;grid-row:1/3;margin:-6px -4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div[aria-expanded="true"] .kl>small{display:block;-webkit-line-clamp:none;overflow:visible;font-size:var(--ph-body);line-height:1.35}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t .ks{flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:2px;max-width:58vw}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t .ks :is(.key,kbd){font-size:max(14px,var(--ph-cap));min-height:34px;padding:0 .6em}
+/* V-TUTKEY: las fichas de tecla de Cómo se juega, al cuerpo del texto (no 12,5 px fijos) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(.tut-text,.tut-rule,.faults) .key{font-size:max(14px,.9em)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t .ks small{font:700 var(--ph-label)/1 var(--sp-ui);color:rgba(255,244,220,.75);margin:0 2px}
+/* JUGADORES: los dos atletas en columna a la izquierda (con Aspecto debajo); a la derecha, la tira y las filas */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top{grid-area:vt;flex-direction:column;align-items:stretch;justify-content:flex-start;width:clamp(150px,24vw,210px);margin:0 var(--ph-s3) 0 0;gap:8px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top .sq-pick{flex:none;grid-template-columns:minmax(0,1fr);gap:12px;padding:4px 6px 6px 3px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{min-height:60px;padding:5px 10px 5px 8px;gap:8px;align-items:center}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-num{width:36px;height:36px;font-size:20px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn small{font-size:var(--ph-cap);white-space:normal;overflow:visible;line-height:1.2}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pp{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pm{display:block;white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pm .sep{display:none}
+/* (rol en una línea y «Nv 1 · Media 50» en otra: 3 líneas como mucho por tarjeta) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-lv{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pl{display:inline}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-lk{padding:0 6px 6px 3px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook{width:100%;min-height:48px;padding:0 14px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs{gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r{grid-template-columns:minmax(0,1fr) minmax(52px,24%) 2.1em 48px;min-height:56px;padding:4px 6px 4px 12px;gap:8px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:2px;font-size:var(--ph-row);letter-spacing:.02em;white-space:normal;overflow:visible;text-overflow:clip}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sheet{padding-top:12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child small{grid-column:1;grid-row:2;font-size:var(--ph-label);white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child>.sp-info{grid-column:2;grid-row:1/3;margin:-6px -4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r[aria-expanded="true"]>span:first-child small{white-space:normal;display:block;-webkit-line-clamp:none;overflow:visible;font-size:var(--ph-body);line-height:1.35}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r .bar{height:14px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r b{font-size:var(--ph-num)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button{height:44px;font-size:var(--ph-btn)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-note{margin:8px 2px 4px;font-size:var(--ph-body);line-height:1.4}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .bd-h{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .bd-h span{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .bd-grid{grid-template-columns:repeat(auto-fill,minmax(min(100%,230px),1fr))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-tx b{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-tx small{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .bd-t .bd-on{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .bd-info{font-size:var(--ph-body)}
+/* CÓMO SE JUEGA: el dibujo fijo a la izquierda (pegado arriba al desplazar), el texto a la derecha; Anterior abajo a la izquierda */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:16px;align-items:start;padding:10px 14px;--sp-g:16px;--sp-pdy:10px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-fig{position:sticky;top:4px;margin:6px 8px 10px 6px;box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),4px 5px 0 5.5px var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-step{display:inline-block;padding:3px 9px 2px;border-radius:6px 9px 7px 8px;background:var(--sp-gold);color:var(--sp-ink);font:400 var(--ph-cap)/1.15 var(--sp-pop);letter-spacing:.04em;transform:rotate(-2deg)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-title{margin:6px 0 6px;font-size:calc(var(--ph-head) + 4px)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-text{font-size:var(--ph-body);line-height:1.45}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-rule{margin-top:10px;padding:8px 12px;font-size:var(--ph-body);line-height:1.4}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .faults{grid-template-columns:minmax(0,1fr);gap:8px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .faults li{padding:6px 12px 7px;font-size:var(--ph-body);line-height:1.35}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .faults li b{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav .dots{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev{margin-right:auto;min-height:48px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutNext{--sp-ph:clamp(56px,40px + 2.9vw,64px);min-width:clamp(190px,30vw,280px);max-width:60%}
+/* ACERCA DE: lectura a 14–16 px; «Versiones anteriores» a lo ancho; «Entendido» abajo a la derecha */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab{gap:12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-k{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card{padding:10px 14px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card h3{font-size:var(--ph-head)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card h3 small{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab .card :is(ul,p){font-size:var(--ph-body);line-height:1.45}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab .ab-tg.sp-pill{align-self:stretch;min-height:44px;margin:4px 2px;--sp-fs:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab :is(.ab-note,.lic){font-size:var(--ph-label);line-height:1.4}
+/* PRIMER PARTIDO: la píldora en la fila de las pestañas (no tapa Volver); el parche abajo, «Jugar ya» encima */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .first-lead{grid-area:strip;margin:0 0 var(--ph-s3);padding-left:4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts{grid-area:body;align-self:end;flex-direction:column-reverse;gap:16px;padding:0 4px 4px 0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{--sp-ph:clamp(56px,40px + 2.9vw,68px);--sp-pt:var(--ph-patch)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #btnFirstPlay{min-width:0;align-self:flex-start;padding-left:16px;padding-right:22px}
 /* ==== fin SPLAT · PANELES ==== */
 /* ====================================================================================================================
    SPLAT · AVISO COLOCADOR (salto con impulso, v1.12.0; ui.js setterNote, notes/ui_main.md «Salto con impulso»).
@@ -4851,15 +5790,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 #setNote .sn-row{display:flex;gap:10px;flex-wrap:wrap}
 :root:not(#_):not(#_):not(#_) #setNote .sn-row .sp-btn{flex:1 1 auto;min-height:44px;--sp-h:44px;white-space:nowrap}
 #setNote .sn-row .sp-btn.sp-cream{--sp-tilt:1.5deg}
-@media (max-height:430px) and (min-aspect-ratio:5/4){
-  :root:not(#_):not(#_):not(#_) #setNote .sn-sheet{width:min(620px,100%);display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,.62fr);gap:4px 16px;align-items:center;padding:12px 16px 14px 18px}
-  :root:not(#_):not(#_):not(#_) #setNote .sp-h{--sp-hs:clamp(20px,7vh,28px);margin:2px 0 6px}
-  #setNote .sn-t{font-size:clamp(12px,3.8vh,14px);line-height:1.36;margin-bottom:4px}
-  #setNote .sn-s{margin:0}
-  #setNote .sn-acts{gap:8px}
-  #setNote .sn-acts .sp-patch{--sp-ph:50px}
-  #setNote .sn-row{flex-direction:column;gap:8px}
-}
+/* (el antiguo «@media (max-height:430px) and (min-aspect-ratio:5/4)» de este bloque pasó a «— móvil (.ph) —», al final) */
 @media (max-aspect-ratio:5/4){
   #setNote{align-items:flex-end;justify-content:center}
   :root:not(#_):not(#_):not(#_) #setNote .sn-sheet{width:100%;rotate:-.4deg}
@@ -4872,6 +5803,24 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   background:var(--sp-gold);color:var(--sp-ink);font:400 clamp(13px,2.4vh,16px)/1.2 var(--sp-pop);box-shadow:0 0 0 var(--sp-line) var(--sp-ink),3px 4px 0 var(--sp-ink);
   transform:translate(-50%,12px) rotate(-1.5deg);opacity:0;pointer-events:none;transition:opacity .18s,transform .22s}
 #snToast.on{opacity:1;transform:translate(-50%,0) rotate(-1.5deg)}
+/* — móvil (.ph) — (portada, 18-nov-2026). Texto a la izquierda (se desplaza él solo si no cabe) y las acciones a la derecha, abajo:
+   «Activar» (parche) y debajo «Ahora no» y «No volver a mostrar» a --ph-row en manchas de 44. Tinte del 20 % detrás (VB.Splat.modal). */
+:root.ph:not(#_):not(#_):not(#_) #setNote{padding:var(--ph-gt) var(--ph-g) var(--ph-gb)}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-sheet{width:min(700px,100%);max-height:100%;display:grid;grid-template-columns:minmax(0,1fr) max-content;gap:6px 18px;align-items:end;padding:12px 16px 14px 18px;overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-txt{align-self:stretch;min-height:0;max-height:calc(100vh - var(--ph-gt) - var(--ph-gb) - 28px);overflow-y:auto;overscroll-behavior:contain}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sp-k{font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sp-h{--sp-hs:clamp(22px,8px + 2.6vw,30px);margin:2px 0 6px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-t{margin:0 0 4px;font-size:var(--ph-body);line-height:1.4}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-s{margin:4px 0 0;font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts{gap:12px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-row{flex-direction:column;gap:10px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-row .sp-btn{--sp-fs:var(--ph-row);min-height:44px;white-space:nowrap;text-align:center;justify-content:center}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts .sp-patch{min-width:max-content}
+/* (con el aviso o la Cuenta abiertos, la portada se aparta: queda solo el partido de fondo, no dos maquetas solapadas) */
+:root.ph:has(#setNote:not([hidden])) #menu .menu-col,
+:root.ph:has(#setNote:not([hidden])) #career .cr-in,
+:root.ph:has(#account:not([hidden])) #menu .menu-col{opacity:0;pointer-events:none;transition:opacity .15s}
+:root.ph #account .ac-sync:not(.err){white-space:nowrap}
 /* ==== fin SPLAT · AVISO COLOCADOR ==== */
 </style>
 
@@ -4989,7 +5938,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <button class="mode m-career sp-ticket" id="btnCareer"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span></span><span class="sp-tk-main"><small class="sp-k">Tu jugador, tu club</small><b class="sp-t">Carrera</b><small class="sp-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></span></button>
         <div class="sp-row" data-sp-row>
           <button class="mode m-6v6 sp-btn sp-kit" id="btn6v6" data-shape="0"><span class="sp-crest sp-num" aria-hidden="true">6<i>v</i>6</span><span class="sp-l"><span class="sp-t">6 contra 6</span><small class="sp-s">Equipos completos: elige tu puesto</small></span></button>
-          <button class="mode m-gym sp-btn sp-alt" id="btnGym" data-shape="1"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/></svg></span><span class="sp-l"><span class="sp-t">Entrenamiento</span><small class="sp-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
+          <button class="mode m-gym sp-btn sp-alt" id="btnGym" data-shape="1"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M24 12h8l3.1 11H20.9zM19.8 27h16.4l2.5 9H17.3zM16.2 40h23.6l2.2 8H14zM8 50h40v5H8z"/><circle cx="50" cy="17" r="9"/></svg></span><span class="sp-l"><span class="sp-t" data-ph-short="Entreno">Entrenamiento</span><small class="sp-s" id="gymSub">Ejercicios con medallas y peloteo libre</small></span></button>
           <!-- ONLINE (especialista net, js/netlobby.js): 1 contra 1 con otra persona; oculta hasta que VB.NetLobby.menuOn() (o ?online=1) -->
           <button class="mode m-onl sp-btn sp-ink" id="btnOnline" data-shape="2" hidden><span class="sp-crest sp-num" aria-hidden="true">1<i>v</i>1</span><span class="sp-l"><span class="sp-t">Online</span><small class="sp-s">Contra otra persona, con tu jugador</small></span><i class="sp-chip" aria-hidden="true">Beta</i></button>
         </div>
@@ -5006,10 +5955,10 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       <div class="qlist sp-opts" data-nav aria-label="Opciones del partido">
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optFmt" data-shape="0" data-opt="format" aria-label="Formato: 2 contra 2"><span class="mi-l">Formato<small class="mi-h" id="fmtHelp">Tú y tu compañero contra la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="2 contra 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="fmtVal">2 contra 2</b></span><span class="arr" data-d="1" aria-label="6 contra 6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optVenue" data-shape="2" data-opt="arena" aria-label="Escenario: Pabellón"><span class="mi-l">Escenario<small class="mi-h" id="venueHelp">Palau del Mar, pista cubierta de 18 × 9</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Pabellón"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="venueVal">Pabellón</b></span><span class="arr" data-d="1" aria-label="Playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCam6" data-shape="2" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCam6" data-shape="2" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es la cámara" data-q-title="Cámara en 6 contra 6" data-q-src="#cam6Help">?</button></div>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optDiff" data-shape="1" data-opt="difficulty"><span class="mi-l">Dificultad<small class="mi-h" id="diffHelp">Nivel de la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más fácil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="diffVal">Normal</b><span class="lvl" id="diffLvl"><em></em><em></em><em></em><em></em></span></span><span class="arr" data-d="1" aria-label="Más difícil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optPts" data-shape="3" data-opt="setPoints"><span class="mi-l">Puntos por set<small class="mi-h" id="ptsHelp">Al mejor de 3; el 3r set, a 15</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Menos puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ptsVal">25</b></span><span class="arr" data-d="1" aria-label="Más puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
-        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCtrl" data-shape="0" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCtrl" data-shape="0" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es Controlar" data-q-title="Controlar" data-q-src="#ctrlHelp">?</button></div>
         <button class="mi primary sp-patch" id="btnGo"><span class="sp-l"><span class="sp-t">¡A jugar!</span><span class="mi-s sp-s" id="playSub"><span class="chip">Partido rápido</span></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
       </div>
     </div>
@@ -5028,6 +5977,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       <div class="mp-head sp-head">
         <button class="mp-back sp-back" id="btnGymBack" aria-label="Volver a los modos de juego" data-shape="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
         <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Entrenamiento</h2></div>
+        <i class="sp-chip ph-only gy-chip" id="gymChip" hidden></i>
       </div>
       <div class="qlist gy-list" id="gymList" data-nav aria-label="Ejercicios"></div>
       <p class="gy-foot" id="gymFoot"></p>
@@ -5040,7 +5990,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <button class="mp-back sp-back" id="btnRetosBack" aria-label="Volver a los modos de juego" data-shape="0"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
         <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Retos</h2></div>
       </div>
-      <div class="rt-tabs sp-tabs" id="rtTabs"></div>
+      <div class="rt-tabs sp-tabs" id="rtTabs" data-ph-tabs="strip"></div>
       <div class="qlist rt-list" id="rtBody" data-nav aria-label="Retos"></div>
       <p class="gy-foot rt-foot" id="rtFoot"></p>
     </div>
@@ -5059,7 +6009,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         </div>
       </div>
       <div class="lk-bar">
-        <div id="lkTabs" class="sp-tabs" aria-label="Apartado del vestuario"></div>
+        <div id="lkTabs" class="sp-tabs" data-ph-tabs="rail" aria-label="Apartado del vestuario"></div>
         <div class="lk-foot" id="lkFoot" data-nav role="toolbar" aria-label="Acciones">
           <button type="button" class="sp-btn sp-sq sp-sm sp-kit sp-noshine" data-shape="0" data-lkf="try" aria-label="Probar" title="Probar (pose y cara)"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM10 7.8v8.4l6.4-4.2z"/></svg></button>
           <button type="button" class="sp-btn sp-sq sp-sm sp-alt sp-noshine" data-shape="1" data-lkf="rand" aria-label="Al azar" title="Al azar"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 3.2a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z"/></svg></button>
@@ -5085,7 +6035,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <div class="pf-vit" id="pfVit"></div>
       </div>
       <p class="pf-ro" id="pfRo" hidden>Este perfil viene de una versión más nueva del juego. Recarga para actualizar.</p>
-      <div id="pfTabs" class="sp-tabs"></div>
+      <div id="pfTabs" class="sp-tabs" data-ph-tabs="rail"></div>
       <div class="pf-grid" id="pfGrid" data-nav role="tabpanel" aria-label="Álbum"></div>
       <div class="pf-foot" data-nav><p id="pfFoot" aria-live="polite"></p><button type="button" class="pf-pin sp-btn sp-sm sp-gold sp-calm" id="pfPin" data-shape="1" hidden><span class="sp-l pf-pinc"></span></button></div>
     </div>
@@ -5144,7 +6094,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       </div>
       <!-- B6: pestañas Resumen | Estadísticas | Jugadas (ui.js endRecap; «Jugadas» solo con jugadas, la rellena replay) -->
       <div class="end-body sp-panel">
-        <div class="end-tabs sp-tabs" id="endTabs"></div>
+        <div class="end-tabs sp-tabs" id="endTabs" data-ph-tabs="strip"></div>
         <div class="rc" id="endSum" role="tabpanel"></div>
         <div class="end-st" id="endStatsTab" role="tabpanel" hidden>
           <div class="end-ms" data-nav data-sp-row><button class="sp-btn sp-sm sp-cream" id="btnMStats" data-shape="1" hidden><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10h3.5v10zm6.25 0V4h3.5v16zm6.25 0v-7H20v7z"/></svg></span><span class="sp-t">Estadística del partido</span></button><button class="sp-btn sp-sm sp-cream" id="btnActa" data-shape="2" hidden><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 2h9l5 5v15H6zm8 1.5V8h4.5zM8.5 12v1.6h9V12zm0 3.4V17h9v-1.6zm0 3.4v1.6h6v-1.6z"/></svg></span><span class="sp-t">Acta del partido</span></button></div>
@@ -5218,7 +6168,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       </div>
       <div id="pnCtl" hidden>
         <!-- pestañas Teclado · Mando · Táctil (componente VB.UI.tabs de ui.js; «en uso» marca el dispositivo activo) -->
-        <div id="ctlTabs" class="sp-tabs" aria-label="Dispositivo"></div>
+        <div id="ctlTabs" class="sp-tabs" data-ph-tabs="strip" aria-label="Dispositivo"></div>
         <!-- E3: con VB.Input.captureNext, Teclado y Mando son filas con botones de tecla (button.kslot) que se pueden reasignar -->
         <div class="sp-panel sp-scroll ctl-sheet">
         <div class="ctl-pane tab-pane" id="ctlGrid" role="tabpanel" data-nav></div>
@@ -5233,7 +6183,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
           <!-- Vestuario: el aspecto del atleta elegido (cierra el panel y abre la página del menú con el mismo n.º) -->
           <div class="sq-lk" data-nav><button type="button" class="ghost sp-btn sp-sm sp-alt sp-sq" id="btnSqLook" data-shape="1" aria-label="Aspecto del atleta en el vestuario"><svg class="sp-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 3 3 6l2 5 2.2-1V21h9.6V10l2.2 1 2-5-5.5-3c-.5 1.6-1.8 2.6-3.5 2.6S9 4.6 8.5 3z"/></svg><span class="sp-t">Aspecto</span></button></div>
         </div>
-        <div id="sqTabs" class="sp-tabs" aria-label="Apartado"></div>
+        <div id="sqTabs" class="sp-tabs" data-ph-tabs="strip" aria-label="Apartado"></div>
         <div class="sp-panel sp-scroll sq-sheet">
         <div class="sq tab-pane" id="sqBody" data-nav role="tabpanel"></div>
         <p class="sq-note">Ganas experiencia en cada partido (más si ganas, si puntúas y cuanto más alto es el nivel). Cada nivel da 3 puntos de mejora. Las mejoras son definitivas.</p>
@@ -5243,7 +6193,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <!-- UI-21: grupos Audio · Imagen · Juego · Accesibilidad; dos columnas en cuanto hay anchura (móvil apaisado incluido) y, si aun
              así no cabe, desvanecido abajo (.has-more). Menús v2: un grupo por pestaña (VB.UI.tabs); dificultad, puntos, control y escenario
              están en la preparación del Partido rápido (una sola fila de cada en todo el juego). -->
-        <div id="setTabs" class="sp-tabs" aria-label="Apartado de ajustes"></div>
+        <div id="setTabs" class="sp-tabs" data-ph-tabs="rail" aria-label="Apartado de ajustes"></div>
         <div class="opts tab-pane sp-panel sp-scroll" data-nav id="optList" role="tabpanel">
           <div class="opt-g" data-tab="audio">
             <p class="opt-h">Audio</p>
@@ -5297,9 +6247,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
           </div>
           <div class="opt-g" id="optKit" data-tab="kit">
             <p class="opt-h">Equipación</p>
-            <button class="opt opt-kit" data-opt="kitShirt"><span>Camiseta<small>Color de tu equipo</small></span><span class="seg kit" data-seg="kitShirt"></span></button>
-            <button class="opt opt-kit" data-opt="kitAccent"><span>Detalles<small>Franjas, ribetes y zapatillas</small></span><span class="seg kit" data-seg="kitAccent"></span></button>
-            <button class="opt opt-kit" data-opt="kitShorts"><span>Pantalón</span><span class="seg kit" data-seg="kitShorts"></span></button>
+            <button class="opt opt-kit" data-opt="kitShirt"><span>Camiseta<small>Color de tu equipo</small></span><span class="seg kit" data-seg="kitShirt" data-ph-ctl="seg"></span></button>
+            <button class="opt opt-kit" data-opt="kitAccent"><span>Detalles<small>Franjas, ribetes y zapatillas</small></span><span class="seg kit" data-seg="kitAccent" data-ph-ctl="seg"></span></button>
+            <button class="opt opt-kit" data-opt="kitShorts"><span>Pantalón</span><span class="seg kit" data-seg="kitShorts" data-ph-ctl="seg"></span></button>
             <button class="opt" data-opt="kitPattern"><span>Diseño<small>Si la CPU se parece, cambia de equipación</small></span><span class="seg sp-seg" data-seg="kitPattern"></span></button>
             <button type="button" class="opt-reset sp-pill" data-reset="kit">Restablecer este apartado</button>
           </div>
@@ -5318,7 +6268,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       </div>
       <div id="pnAbout" hidden>
         <!-- E7: Acerca de, pestañas Novedades y Créditos (datos en js/version.js; ui.js renderAbout los pinta al abrir) -->
-        <div id="abTabs" class="sp-tabs" aria-label="Acerca de"></div>
+        <div id="abTabs" class="sp-tabs" data-ph-tabs="strip" aria-label="Acerca de"></div>
         <div class="ab tab-pane sp-panel sp-scroll" id="abBody" data-nav role="tabpanel"></div>
         <div class="ab-foot" data-nav><button type="button" class="sp-btn sp-md sp-kit" id="btnAbOk" data-shape="2"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 16.2 4.8 11.5 2.7 13.6l6.8 6.8L21.3 8.6l-2.1-2.1z"/></svg></span><span class="sp-t">Entendido</span></button></div>
       </div>

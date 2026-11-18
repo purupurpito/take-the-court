@@ -1296,3 +1296,8 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
 - **Flojo**: el giro medio sube algo sobre el de antes cuando hay contención (6v6 +0,3-1,4°/s; es el giro que mete el balón); en el 6v6
   1280 s11 queda un balón libre a 8 m que asoma por arriba un instante (main lo tenía dentro siguiendo siempre). Muestra de jugadas «detrás
   tras bloqueo» pequeña (autopilot): 1-3 por partida.
+
+## Aviso de ui_main (móvil v-next, 18-nov-2026): rótulos de los mandos táctiles
+- En el móvil (`html.ph`) index.html «SPLAT · CAMBIOS Y BANQUILLO» pisa, sin tocar input.js: `.vt-tip` («MOVER») a 12 px, `.08em`, 85 %;
+  la lupa `.vt-zoom` a 44×44 (misma altura que la pausa: `top:14px`, `right:68px`, 10 px de hueco) y su número `b` en 18 px / 12 px.
+  Si cambiáis la geometría de la pausa o de la lupa en input.js, revisad esas reglas. Los mandos no se movieron.

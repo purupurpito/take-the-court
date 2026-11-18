@@ -16,6 +16,7 @@
   var H = null, retArm = 0, note = '';
   function esc(s) { return H.esc(s); }
   function sp(a, k) { return H.sp(a, k); }
+  function qph() { return !!(H && H.q && H.ph && H.ph()); }   // móvil: explicaciones detrás de «?» (career-ui qBtn)
   function eur(v) { return Lf().eur(v); }
   function num(v) { return Lf().num(v); }
   function isHall(c) { return !!(c && c.mode === 'hall'); }
@@ -27,6 +28,32 @@
   // pegatinas con su sello dorado al conseguirlos; premios individuales, sellos dorados. Prefijo Q (3 ids de :root más #career).
   var Q = ':root:not(#_):not(#_):not(#_) #career', KO = '1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)';
   var STK = '0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink)';
+  // Móvil (html.ph, 18-nov-2026; notes/splat.md §9): letra con los tokens del sistema (nada < 12 px, lectura ≥ 14, filas 15-17) y
+  // objetivos de 44. Prefijo PQ = gana a Q. Sin .ph no cambia nada.
+  var PQ = Q.replace(':root', ':root.ph');
+  var PH_L = [
+    PQ + ' .lf-big{font-size:var(--ph-hero)}',
+    PQ + ' .lf-tier{font-size:var(--ph-label);letter-spacing:.04em}',
+    PQ + ' .lf-ch b.goal{font-size:var(--ph-head)}',
+    PQ + ' .lf-ev p.q{font-size:var(--ph-body)}',
+    PQ + ' .lf-ev .acts button small{font-size:var(--ph-cap)}',
+    PQ + ' .lf-item{gap:8px 12px;padding:12px 0;min-height:56px}',
+    PQ + ' .lf-item b{font-size:var(--ph-row)}',
+    PQ + ' .lf-item small{font-size:var(--ph-label)}',
+    PQ + ' .lf-item button small{font-size:max(13px,var(--ph-cap))}',
+    PQ + ' .lf-item .sp-btn{min-width:110px}',
+    PQ + ' .lf-pips i{width:12px;height:12px}',
+    PQ + ' .lf-stars{font-size:var(--ph-label)}',
+    PQ + ' .lf-ach{grid-template-columns:repeat(auto-fill,minmax(min(100%,240px),1fr));gap:12px}',
+    PQ + ' .lf-a{padding:10px 12px}',
+    PQ + ' .lf-a b{font-size:var(--ph-row)}',
+    PQ + ' .lf-a small{font-size:var(--ph-label)}',
+    PQ + ' .lf-a em{font-size:var(--ph-cap)}',
+    PQ + ' .lf-a .bar{height:10px}',
+    PQ + ' .lf-aw b{font-size:var(--ph-row)}',
+    PQ + ' .lf-aw small{font-size:var(--ph-label)}',
+    PQ + ' .lf-bh{font-size:var(--ph-body)}'
+  ];
   var SPLAT_L = [
     Q + ' .lf-big{font:400 clamp(28px,6vh,44px)/1 var(--sp-pop);color:var(--sp-gold);text-shadow:2.5px 0 0 var(--sp-ink),-2.5px 0 0 var(--sp-ink),0 2.5px 0 var(--sp-ink),0 -2.5px 0 var(--sp-ink),3px 4px 0 var(--sp-ink);transform:rotate(-2deg);transform-origin:0 60%;display:inline-block}',
     Q + ' .lf-tier{font:800 12px var(--sp-ui);letter-spacing:.14em;color:rgba(255,244,220,.72)}',
@@ -50,6 +77,9 @@
     Q + ' .lf-item{border-top:2px dashed rgba(255,244,220,.14);padding:9px 0}',
     Q + ' .lf-item b{font:400 15px/1.15 var(--sp-pop);letter-spacing:.01em}',
     Q + ' .lf-item small{color:rgba(255,244,220,.72);font:600 12.5px/1.3 var(--sp-ui)}',
+    // el precio va dentro del botón (crema): tinta, no crema sobre crema; en gris si no llega el dinero
+    Q + ' .lf-item button small,' + Q + ' .lf-item .sp-btn small{color:var(--sp-ink);opacity:1;text-shadow:none;display:block;font:600 12.5px/1.15 var(--sp-ui);text-transform:none;letter-spacing:0}',
+    Q + ' .lf-item button[aria-disabled=true] small{opacity:.75}',
     Q + ' .lf-item .sp-btn{min-width:120px}',
     Q + ' .lf-pips i{background:rgba(255,244,220,.18);box-shadow:0 0 0 2px var(--sp-ink)}',
     Q + ' .lf-pips i.on{background:var(--sp-gold)}',
@@ -99,7 +129,7 @@
     // jefe del circuito (S3 C3): tarjeta normal; la pista en frase plana (var(--ui), minúscula de frase)
     '#career .lf-bh{font:600 14px var(--ui);margin:6px 0 4px;color:#e9e4ff}',
     '#career .lf-stars{margin-left:6px;font:700 13px var(--ui);letter-spacing:.06em;color:#ffd23f;white-space:nowrap}#career .lf-stars .off{color:rgba(255,255,255,.22)}'
-  ].concat(SPLAT_L).join('\n');
+  ].concat(SPLAT_L, PH_L).join('\n');
   function css() { if (document.getElementById('careerLifeCss')) return; var s = document.createElement('style'); s.id = 'careerLifeCss'; s.textContent = CSS; document.head.appendChild(s); }
   function arrow(h) { return h.map(function (x) { return '<span class="' + (x[1] ? 'lf-up' : 'lf-dn') + '">' + esc(x[0]) + ' ' + (x[1] ? '▲' : '▼') + '</span>'; }).join(' '); }
 
@@ -153,7 +183,10 @@
     h += '<div class="card lf-fm"><h3>Seguidores</h3><p class="lf-big">' + num(f.fans) + '</p><p class="lf-tier">' + esc(f.name) + '</p>' +
       (f.next ? bar(f.p) + '<p class="muted" style="margin:0">' + sp(['Siguiente: ' + esc(f.next), 'faltan ' + num(f.to - f.fans)], 'v') + '</p>' : '<p class="muted">Lo máximo. Tu nombre ya es historia del vóley.</p>') +
       '<p class="muted">' + sp([l.streak >= 2 ? 'Racha de ' + l.streak + ' victorias (más seguidores por partido)' : '', 'Mejor racha: ' + (l.best | 0), l.bestNota ? 'Mejor nota: ' + String(l.bestNota).replace('.', ',') : ''], 'v') + '</p>' +
-      '<p class="muted">Ganas seguidores con buenas notas, victorias, retos, títulos y premios. La fama trae patrocinadores y hace que los clubes te miren más (+' + String(Lf().offerBonus(c)).replace('.', ',') + ' de interés).</p></div>';
+      (function () {
+        var fx = 'Ganas seguidores con buenas notas, victorias, retos, títulos y premios. La fama trae patrocinadores y hace que los clubes te miren más (+' + String(Lf().offerBonus(c)).replace('.', ',') + ' de interés).';
+        return qph() ? H.q('Seguidores', fx) : '<p class="muted">' + esc(fx) + '</p>';
+      })() + '</div>';
     h += celebCard(c);
     // patrocinio
     h += '<div class="card"><h3>Patrocinio</h3>';
@@ -214,12 +247,14 @@
   }
   function shop(c) {
     var l = c.life, money = +c.money || 0, h = '';
-    h += '<div class="card"><h3>' + sp(['Ahorros', eur(money)], 'd') + '</h3><p class="muted">Cobras el sueldo, el patrocinio y los premios de los retos cada jornada. El material suma en tus partidos (como la química) y los servicios se pagan por jornada.</p></div>';
+    var sx = 'Cobras el sueldo, el patrocinio y los premios de los retos cada jornada. El material suma en tus partidos (como la química) y los servicios se pagan por jornada.';
+    // (móvil: la explicación, detrás de «?» en la pegatina del título; el desplazamiento empieza con el material)
+    h += '<div class="card"><h3>' + sp(['Ahorros', eur(money)], 'd') + '</h3>' + (qph() ? H.q('Ahorros', sx) : '<p class="muted">' + esc(sx) + '</p>') + '</div>';
     h += '<div class="card"><h3>Material</h3>' + Lf().GEAR_KEYS.map(function (id) {
       var G = Lf().GEAR[id], lv = l.gear[id] | 0, pr = Lf().gearPrice(c, id), pips = '';
       for (var i = 0; i < Lf().GEAR_MAX; i++) pips += '<i class="' + (i < lv ? 'on' : '') + '"></i>';
       return '<div class="lf-item"><div><b>' + esc(Lf().gearName(c, id)) + '<span class="lf-pips" aria-label="Nivel ' + lv + ' de 3">' + pips + '</span></b><small>' + esc(G.hint) + (lv ? ': +' + lv + ' en el partido' : '') + '</small></div>' +
-        (lv >= Lf().GEAR_MAX ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (money < pr ? ' aria-disabled="true"' : '') + '>' + (lv ? 'Mejorar' : 'Comprar') + ' <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">' + eur(pr) + '</small></button>') + '</div>';
+        (lv >= Lf().GEAR_MAX ? '<span class="tag g">Al máximo</span>' : '<button data-act="lf-buy" data-id="' + id + '"' + (money < pr ? ' aria-disabled="true"' : '') + '>' + (lv ? 'Mejorar' : 'Comprar') + ' <small>' + eur(pr) + '</small></button>') + '</div>';
     }).join('') + '</div>';
     h += '<div class="card"><h3>Servicios</h3>' + Lf().SVC_KEYS.map(function (id) {
       var S = Lf().SVC[id], on = !!l.svc[id], cost = Lf().svcCost(c, id);
@@ -249,7 +284,7 @@
       list.map(function (x) {
         var other = x.venue === 'Y' && hallC ? 'solo en playa' : x.venue === 'P' && !hallC ? 'solo en pista' : '';
         return '<div class="lf-item"><div><b>' + esc(x.name) + starsHTML(x.rarity) + '</b><small>' + sp([esc(SLOT_N[x.slot] || ''), other ? esc(other) + ' (para Partido rápido)' : ''], 'v') + '</small></div>' +
-          (x.owned ? '<span class="tag g">En tu vestuario</span>' : '<button data-act="lf-look" data-id="' + esc(x.id) + '"' + (money < x.price ? ' aria-disabled="true"' : '') + '>Comprar <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">' + eur(x.price) + '</small></button>') + '</div>';
+          (x.owned ? '<span class="tag g">En tu vestuario</span>' : '<button data-act="lf-look" data-id="' + esc(x.id) + '"' + (money < x.price ? ' aria-disabled="true"' : '') + '>Comprar <small>' + eur(x.price) + '</small></button>') + '</div>';
       }).join('') + (sl ? '<p class="muted">Gastado en el vestuario: ' + eur(sl) + '</p>' : '') + '</div>';
   }
   function goals(c) {

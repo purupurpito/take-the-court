@@ -115,7 +115,11 @@ async function runSize(size) {
     await tap('#setTabs .tab[data-tab="kit"]'); await sleep(350);
     const tk = await evalJs("document.querySelector('#setTabs .tab.on').getAttribute('data-tab')+'/'+document.querySelector('#optKit').hidden");
     check(tk === 'kit/false', 'tocar la pestaña Equipación la abre (' + tk + ')');
-    { const r = await rectOf('#optList'); await down(8, r.x + 90, r.y); for (let k = 1; k <= 6; k++) { await move(8, r.x + 90 - k * 30, r.y + k); await sleep(16); } await up(8); await sleep(400); }
+    // (móvil, 1.13.0: en Equipación las muestras van en una tira que se desplaza de lado; deslizar sobre ella la mueve a ella, como
+    //  los deslizadores, así que el dedo empieza en un punto del contenido que no sea tira, deslizador ni campo)
+    { const r = await rectOf('#optList');
+      const p0 = await evalJs(`(function(){var L=document.getElementById('optList'),b=L.getBoundingClientRect();for(var y=b.top+b.height/2;y<b.bottom-8;y+=6)for(var x=b.left+b.width/2+90;x>b.left+190;x-=20){var e=document.elementFromPoint(x,y);if(e&&L.contains(e)&&!e.closest('.trk,.slider,.seg,input,textarea'))return {x:x,y:y};}for(var y2=b.top+8;y2<b.top+b.height/2;y2+=6){var e2=document.elementFromPoint(b.left+b.width/2,y2);if(e2&&L.contains(e2)&&!e2.closest('.trk,.slider,.seg,input,textarea'))return {x:b.left+b.width/2,y:y2};}return null})()`) || { x: r.x + 90, y: r.y };
+      await down(8, p0.x, p0.y); for (let k = 1; k <= 6; k++) { await move(8, p0.x - k * 30, p0.y + k); await sleep(16); } await up(8); await sleep(400); }
     const ts = await evalJs("document.querySelector('#setTabs .tab.on').getAttribute('data-tab')");
     check(ts === 'info', 'deslizar a la izquierda pasa a la pestaña siguiente (' + ts + ')');
     await shot('ajustes');

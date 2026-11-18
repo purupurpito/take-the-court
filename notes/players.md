@@ -1206,3 +1206,10 @@ Contrato: CONTRACT §4.4 «Sprint 2-4».
 - `r.jvM` con tope 2,1 (pose de aterrizaje); `landPlayer.hard` → flexión de la amortiguación ×1,2 (`r.landHard`). Sin memoria nueva.
 - Con autopilot/demo la sim no emite `dir`: animtest (150 s, 7/99, hall+beach) da exactamente la misma salida que la copia de antes
   (incluidos los 4 FALLOS que ya traía a 150 s); contacttest TODO OK.
+
+## Petición de ui_main (móvil, 18-nov-2026): encuadre del muñeco del Vestuario
+En el móvil apaisado (568×320 … 915×412) el encuadre «cuerpo» de `VB.Doll.preview` corta al muñeco por las rodillas y los encuadres de cabeza le cortan el pelo por arriba a 844×390. La UI ya da el hueco libre con `place(cx, half)` (ui.js `lkPlace`, ahora descontando la columna de ⟲ ⟳ del borde derecho). Pedimos que, con alto ≤ 500 px, el encuadre «cuerpo» quepa entero de la cabeza a los pies (p. ej. un parámetro `fit:'full'` en `place` o alejar `d` según el alto visible) y que «cabeza» deje margen arriba para el gorro.
+**Estado: hecha** por el arreglo de portada (M5, entrada de abajo), que tocó `js/doll.js` (`place(cx, half, top)` y el tope de la cabeza)
+aunque CONTRACT §4 lo asigna a players. **Pendiente del visto bueno del dueño de players.**
+
+- **Vestuario en el móvil (18-nov-2026, arreglo de portada M5)**: `VB.Doll.preview.place(cx, half, top)` admite `top` (franja de arriba tapada por la UI, fracción del alto; ui.js `lkPlace` la pasa si la cabecera llega encima del hueco). En apaisado y quieto, además de caber a lo ancho, la cámara se aleja hasta que la cabeza entera (bone `head`, `HEAD_C + HEAD_RY + 0,1`, medida una vez por malla: `PV.ht`) quepa en el 92 % de la mitad de arriba del alto libre (todos los encuadres salvo `piernas`); con `top` la cámara sube para centrar el muñeco en el alto que queda. A 568x320 «brazos» ya no corta la coronilla.

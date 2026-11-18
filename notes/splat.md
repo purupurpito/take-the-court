@@ -281,3 +281,136 @@ Rubik, foco con aro dorado), segmentados `.sp-seg`, deslizadores `.sp-slider`, m
 cómo se juega» = `.sp-patch`. Componente nuevo: **`.sp-pill`**, pastilla de pintura solo CSS para botones cuyo texto reescribe el
 código con `textContent` («Restablecer» → «Pulsa otra vez», «Versiones anteriores», licencias): la mancha SVG de `.sp-btn` se perdería.
 Capturas de estados (foco, desplazado, cada pestaña): guion `states.js` del informe de la etapa 2 (abre `?debug=menu&panel=…&tab=…&step=…`).
+
+## 9. Móvil (18-nov-2026: «se ve todo muy cramped»; fundación)
+
+El dispositivo principal es el **móvil en apaisado**. Todo lo de esta sección vive en el bloque «SPLAT: SISTEMA DE DISEÑO» de
+index.html (sub-bloques «piezas nuevas que valen en TODOS los tamaños» y «— móvil (.ph) —») y en `js/splat.js`. Sin `.ph` no cambia
+nada: PC y tableta siguen igual. Cada área añade aquí debajo, como mucho, una sub-sección corta con lo suyo.
+
+### 9.1 Tiers
+| Clase en `<html>` | Cuándo | Para qué |
+|---|---|---|
+| `ph` | `(max-height:500px) and (min-aspect-ratio:5/4)` o `?ph=1` (`?ph=0` lo quita) | todo el móvil apaisado (también una ventana de PC muy baja) |
+| `ph-s` | `ph` y alto ≤ 345 (568×320, o con las barras del navegador) | quitar adornos (sello, vista previa, marca). **Nunca baja la letra.** |
+| `ph-w` | `ph` y ancho ≥ 800 (844, 915) | dos zonas, acciones en columna a la derecha |
+
+Lo pone un `<script>` en el `<head>` (tras el viewport) antes del primer pintado; `js/splat.js` lo repite al girar o cambiar de tamaño
+(`window.__phTier()`) y lanza en `document` dos eventos con `{detail:{ph, s, w, flip}}`: **`vb:tier`** cuando cambia cualquiera de
+`ph` / `ph-s` / `ph-w` (a 667×375 la barra del navegador cruza 345 de alto; ahí se rehace lo que el JS monta distinto en `.ph-s`, barato y
+sin repintar pantallas enteras), y **`vb:ph`** solo cuando entra o sale `ph` (`flip`; las pantallas que se repintan enteras escuchan este,
+para no borrar lo que se está escribiendo cuando sube o baja la barra). `VB.Splat.phone()` = boolean,
+`VB.Splat.PHONE_MQ` = la consulta. Táctil sigue siendo `#app.is-touch` (solo para lo que es de dedo). El vertical (`#rotate`) no cambia.
+
+### 9.2 Prefijo de las reglas del móvil
+`:root.ph:not(#_):not(#_):not(#_)` (3 ids + 2 clases) en TODA regla del móvil: gana a la estructura (`:root:not(#_)×3`, 3 ids + 1 clase) y
+a las `@media (max-height:430px)` viejas, sin importar el orden. **Ojo:** una regla vieja con un `#id` DETRÁS del prefijo
+(`:root:not(#_)×3 #panel.sp-pn .sp-scroll`) vale 4 ids y gana; pon el mismo `#id` detrás del prefijo del móvil. En la Carrera:
+`var PQ = Q.replace(':root', ':root.ph')`; en netlobby, account e install: `var PP = ':root.ph' + P.slice(5)`.
+**Reglas viejas de móvil:** cada bloque pasa sus `(max-height:430px) and (min-aspect-ratio:5/4)` a su sección `/* — móvil (.ph) — */`
+(al final del bloque, encima de su `/* ==== fin … ==== */`) con los valores nuevos y BORRA la vieja (si no, un `display:none` o un
+`font-size:10px` viejo sigue debajo). El bloque del sistema ya lo ha hecho. Las reglas de vertical no se tocan.
+
+### 9.3 Tokens (en `:root.ph`; la letra crece con el ANCHO de 568 a 915 px, nunca con vh)
+| Token | 568 → 915 px | Uso |
+|---|---|---|
+| `--ph-cap` | 12 → 13 | chips, meta, contadores, «Nv», textos de sello |
+| `--ph-label` | 13 → 14,5 | rótulos dorados sobre un valor, `th`, pestañas, la línea de ayuda de una fila |
+| `--ph-body` | 14 → 16 | texto de lectura (Rubik 500, interlineado 1,4) |
+| `--ph-row` | 15 → 17 | texto principal de una fila, rótulos de opciones (Titan) |
+| `--ph-btn` | 15 → 18 | rótulos de `.sp-btn`, valor de `.sp-select` |
+| `--ph-num` | 17 → 22 | cifras en filas y tablas (Rubik 700 tabular) |
+| `--ph-head` | 18 → 22 | títulos de hoja o tarjeta, título del brochazo, cabeceras de sección (es LETRA) |
+| `--ph-title` | 26 → 36 | `.sp-h` (título de pantalla) |
+| `--ph-patch` | 22 → 30 | `.sp-patch .sp-t` |
+| `--ph-hero` | 30 → 44 | marcador, nota, «23 de 30», cifras grandes |
+| `--ph-s1…s5` | 4 · 8 · 12 · 16 · 24 | separaciones |
+| `--ph-g` / `--ph-gt` / `--ph-gb` | `max(16px, zona segura)` a los dos lados (IGUALES), `max(8px, …)` arriba y abajo | márgenes seguros (con `max()`, nunca sumando) |
+| `--ph-hh` | 48px | alto de la cabecera del marco (`.sp-fh`) |
+| `--ph-vt` | `clamp(112px,15vw,140px)` | ancho de la columna de pestañas |
+| `--ph-fw` / `--ph-ffw` / `--ph-colw` | panel lateral (el partido a la derecha) / ancho entero / columna del menú (≥ 38 % de partido) | anchos |
+| `--ph-hit-gap` | 10px | hueco mínimo entre pegatinas que se tocan |
+| `--ph-strip-gap` | 11px | entre pestañas de una tira `.sp-tabs-strip` (la elegida inclinada ensancha ~0,6 px por lado) |
+| `--ph-tab-gap` | 12px | entre pestañas de una columna `.sp-vtabs`: la elegida va a -1,5° y sube/baja ~2 px |
+
+Además, en `.ph`: `--sp-h-sm/md/lg` = 44 / 48 / 56, `--sp-r` 12px, `--sp-sh` `2px 3px 0`. Variables de componente reasignadas (todas las
+pantallas crecen solas): `.sp-btn`/`.sp-md` → `--ph-btn`, `.sp-lg` → `--ph-btn` + 2, `.sp-sm` → `--ph-row`, `.sp-back` → `--ph-label` (44 px),
+`.sp-s` → `--ph-cap`, `.sp-chip` → `--ph-cap`, pestañas de 44 a `--ph-label`, `.sp-seg>span` de 44 (trazo de 40) a `--ph-label` y ≥ 52 de
+ancho, `.sp-select` con flechas de 34 en 44 y valor a `--ph-btn`, `.sp-h` → `--ph-title`, parche 56→68 con `--ph-patch`, sello 64→92,
+brochazo 56→72 con escudos 32→42. Suelos: `.sp-btn` ≥ 44 de alto y ≥ 15 px de letra aunque una pantalla ponga sus variables con un `#id`
+delante; `.sp-back` ≥ 13 px. Rótulos de `.sp-btn` y `.sp-back` y título del brochazo: **hasta 2 líneas, sin puntos suspensivos** (una
+palabra que no cabe se corta: acórtala o da más ancho). `.sp-k` a `--ph-label` con `.04em`; `.sp-hints` oculto; `.sp-panel` con sombra
+`4px 5px` y radio 14; inclinaciones ±1,4° (filas `.sp-wide.sp-calm` ±0,5° y sin gotas sueltas); `.sp-h` con contorno de 2 px; deslizador con
+mando de 28 y franja de toque de 44; interruptor 56×32 con 44 de toque; DIRECTO y el pie del menú a `--ph-cap`.
+
+### 9.4 Piezas (añade las clases a los elementos que YA existen: ids, manejadores, `data-nav`, `data-sp-row` y `data-skip` se quedan)
+Solo en `.ph` (fuera del móvil no hacen nada): `.sp-frame`, `.sp-fh`, `.sp-fr`, `.sp-vtabs`, `.sp-tabs-strip`, `.sp-scroll` (comportamiento),
+`.sp-body`, `.sp-dock`, `.sp-dock-l`, `.sp-lrow`, `.sp-li`, `.sp-sec`, `.sp-rows-2`, `.sp-tbl`, `.sp-tiles`, `.sp-info`/`.sp-help-full`, `.ph-hide`.
+En todos los tamaños (son nuevas; solo salen si una pantalla las usa): la hoja de abajo (`#spSheets .sp-sheet`), `.sp-catch`, `#spToasts`,
+`.sp-x`, `.sp-q`, `.sp-heros`, `.sp-kv`, `.ph-hid`, `.ph-only` (solo en el móvil), `.ph-2l`, `.kb-pin`,
+`.sp-inrow`, `[data-kb-hide]`.
+
+- **Marco** `.sp-frame[data-ph-frame="side"|"full"]` (rejilla en `position:absolute` dentro de los márgenes; hijos DIRECTOS): `.sp-fh`
+  cabecera (Volver `.sp-back` a la izquierda, `.sp-h` en una línea, chips; a la derecha `.sp-fr` con «?», «⋯», contadores o ✕; el
+  antetítulo `.sp-k` se oculta: si lleva información, que sea un `.sp-chip` tras el título) · `.sp-vtabs` (opcional, a la izquierda) ·
+  `.sp-tabs-strip` (opcional, encima del cuerpo) · UNA zona que se desplaza (`.sp-scroll` o `.sp-body`) · `.sp-dock` (acciones; la
+  principal es el ÚLTIMO hijo → abajo a la derecha; como mucho 2 secundarias; lo destructivo o Restablecer con `.sp-dock-l` va a la
+  izquierda; un `.sp-patch` dentro toma su ancho, ≥ 160). Presupuesto a 568×320: 192 px de cuerpo con barra, 248 sin ella. Nunca una
+  acción principal al final de un desplazamiento. Otro hijo sin una de esas clases cae en una celda cualquiera: dale clase o envuélvelo.
+- **Pestañas**: el anfitrión de `VB.UI.tabs` lleva `data-ph-tabs="rail"` (columna, `.sp-vtabs`) o `"strip"` (tira, `.sp-tabs-strip`);
+  `ui.js fitTabs` pone o quita la clase con el tier (al abrir, al repintar, al cambiar de pestaña y con `vb:ph`). En la tira, si no cabe,
+  cambia a los rótulos cortos (`VB.UI.tabs(host, [{id, label, short, icon, badge}])`: `short` → `data-ph-short`) y si aún no cabe, desliza
+  con desvanecido (`.sp-more-x`). La columna nunca va en solo-icono (`.tabs-ic`), sus rótulos van sin mayúsculas y pueden partir en 2
+  líneas; las sin elegir, tinta clara opaca. La Carrera, que pinta sus pestañas a mano, usa las mismas clases.
+- **Filas** `.sp-lrow` (en un `.sp-btn.sp-wide.sp-calm`): `.sp-rl` (escudo, medalla, dorsal; 36 px) | `.sp-rm` (`.sp-t` a `--ph-row`, 1-2
+  líneas, y `.sp-s` a `--ph-label`, UNA línea: la única elipsis permitida) | `.sp-rt` (cifra a `--ph-num`, chip, control o «›»). ≥ 56 px.
+  `.sp-li` = fila de datos SIN mancha SVG (tinta clara, contorno de 3, marca de 4 px a la izquierda del color `--li-c`; si se pulsa, ≥ 48).
+  `.sp-me` = la tuya (equipación; llévala a la vista con `reveal`). `.sp-sec` = cabecera de sección pegada arriba del desplazamiento.
+  `.sp-rows-2` (en la lista) = dos columnas cuando la lista mide ≥ 520 px.
+- **Explicaciones**: en el móvil, los párrafos de explicación no se ven de entrada ni se borran: van detrás de **`.sp-q`** («?» redondo de
+  44 px en la cabecera; `data-q-title` + `data-q-html` o `data-q-src="#id"`; el original puede llevar `.ph-hide`) o de **`.sp-info`** («i»
+  de 44 dentro de la fila: despliega la `.sp-help-full` de la fila con `aria-expanded`). `VB.Splat.info(root)` pone un escuchador por raíz.
+  La «i» es un `<span role=button>` dentro del `<button>` de la fila (sin foco propio): con teclado («I») o mando (X) sobre la fila
+  enfocada, ui.js `infoKey()` llama a `VB.Splat.infoToggle(fila)`, que hace lo mismo que el toque.
+  La línea de ayuda de cada fila se queda.
+- **Cifras**: `.sp-heros` (2-4 cifras en UNA pegatina inclinada, separadas por filetes: `.sp-hn` cifra a `--ph-hero`, `.sp-hl` rótulo;
+  variantes `.sp-paper` y `.sp-sm`) en lugar de rejillas de tarjetas; `.sp-kv` (`<dl>` con `dt` dorado y `dd`).
+- **Tablas** `<div class="sp-tbl" data-ph-cols="0,1,4,6" data-ph-title="Clasificación"><table>…</table></div>` + `VB.Splat.tbl(div)`
+  tras pintarla: en el móvil solo esas columnas y la pastilla «Ver tabla completa» (hoja con la tabla entera y desplazamiento lateral
+  dentro). Celdas de 40 px a `--ph-row`, cifras con `.num` a `--ph-num`, `th` pegado arriba de SU desplazamiento, `tr.sp-me`. Nunca un
+  desplazamiento lateral dentro del vertical.
+- **Fichas** `.sp-tiles` (álbum, insignias, trofeos): rejilla de ≥ 84 px que se desplaza en VERTICAL, colores e inclinación alternos,
+  `.won` dorada, rótulo `.sp-tl` en 2 líneas; tocar = hoja (nada de detalles al pasar el ratón).
+- **Textos cortos**: `data-ph-short="…"` en un elemento solo de texto (lo aplican `decorate()` y el cambio de tier; las pestañas, solo si
+  no caben). Para rótulos que el código reescribe con `textContent`, mejor una rama con `VB.Splat.phone()`. Utilidad `.ph-2l`.
+
+### 9.5 API nueva de `VB.Splat`
+| Llamada | Qué hace |
+|---|---|
+| `phone()` · `PHONE_MQ` · evento `vb:ph` | tier del móvil |
+| `more(el)` | `.sp-more` (queda abajo) / `.sp-less` (desplazado) / `.sp-more-x` (queda a la derecha); se mide sola (scroll pasivo, ResizeObserver, MutationObserver). Idempotente. ui.js `spMore()` la usa en los paneles. En `.sp-frame>.sp-scroll` y la columna de pestañas pinta un desvanecido. |
+| `reveal(el, {block:'center'\|'start'\|'nearest', inline, smooth})` | lleva el elemento a la vista DENTRO de su contenedor (no mueve la página) |
+| `fitSeg(root)` | cada `.seg` de root en el móvil: sí/no → `.sp-toggle`; 2-3 que caben → se queda; 4+ o no cabe → `.sp-select` (flechas de 44; tocar el valor = la siguiente). Proxy de `<span>` (no `<button>`: no añade paradas de ↑↓) al lado; el original (`.ph-hid`) sigue mandando, recibe los toques y el proxy lo vigila. `data-ph-ctl="seg\|select\|toggle"` lo fuerza. Se rehace con `vb:ph`. |
+| `sheet({title, html\|node, tone:'ink'\|'paper'\|'danger', cls, actions:[{label, cls, fn(api), primary, keep, id}], onClose})` → `{el, body, close}` | hoja abajo a la derecha (centrada en PC), tinte del 20 %, ✕ crema, principal a la derecha (sin acciones: «Cerrar» crema a la izquierda); una a la vez; Esc / Retroceso / tinte / ✕ / B del mando la cierran; el foco entra y vuelve; `fn` que devuelve `false` (o `keep`) no la cierra |
+| `sheetOpen()` · `sheetEl()` · `closeTop()` | estado, nodo y cerrar. ui.js: `activeLayer()` devuelve la hoja (↑↓ y A dentro) y `VB.UI.back()` la cierra primero. |
+| `modal(el)` → `release()` | tinte del 20 % justo debajo de un aviso (`#setNote`, aviso de colocador de la Carrera) |
+| `info(root)` · `tbl(div)` · `shorten(root)` | «?» e «i», tablas, textos cortos (arriba) |
+| `toast(html, {ms=3500, cls, key})` → `{el, close}` | aviso corto en el carril de arriba a la derecha (`#spToasts`, bajo DIRECTO; baja si hay una hoja abierta); tocar cierra; la misma `key` sustituye |
+| `kbd()` (se instala sola) | teclado del móvil: `html.sp-kb`, `--kb-h`, `--vvh`; la hoja o panel del campo (`[data-kb-pin]`, `.sp-sheet`, `.sp-panel`) → `.kb-pin` arriba; `[data-kb-hide]` se oculta; `[data-kb-row]` → `.sp-inrow` (campo y botón en fila). Pruebas: `VB.Splat._kb(true, 160)` / `_kb(false)` |
+
+### 9.6 Mapa del pulgar y números
+Abajo a la derecha la principal; abajo a la izquierda lo secundario o reversible; borde izquierdo la columna de pestañas; arriba a la
+izquierda Volver; arriba a la derecha ✕, «?», «⋯», pausa y avisos; arriba en el centro solo títulos y estado. Lo destructivo nunca junto a
+lo común (24 px o un nivel más abajo). Letra: nada < 12 px, lectura ≥ 14, filas y botones ≥ 15, títulos 26-36, cifras grandes 30-44.
+Toques ≥ 44×44, filas 48-56, parche 56-68, hueco 10. Una salida por pantalla; como mucho 5-6 decisiones a 568×320 (sin Volver ni
+pestañas). Nunca: dos dedos, detalles solo al pasar el ratón, desplazamiento lateral de la página, salidas que se van con el contenido,
+velos con desenfoque (el único tinte, el 20 % de la hoja o del aviso, y solo mientras está abierto).
+
+### 9.7 Comprobar
+`node tools/csscheck.js` (y `--cssom`): comentarios de los `<style>` y de las cadenas de CSS de js/, y que el navegador tiene `.sp-medal`,
+`.sp-ov` y `.sp-pill` (el 18-nov faltaba el `/*` de tres cabeceras y se perdía la primera regla de cada bloque: medalla gigante en
+Entrenamiento y Maestría, pastillas tinta sobre tinta). Cada cabecera de bloque empieza con `/*`. `node tools/mobaudit.js [--area …]
+[--only …]` en 568×320, 667×375, 740×360, 844×390 y 915×412, y `--desktop`: además de lo de siempre, columnas `tier` (html.ph donde toca),
+`despl` (con cada zona llevada al final, la salida y la principal siguen dentro y pulsables), `elip` (elipsis que cortan, salvo
+`.sp-lrow .sp-s` y `[data-ph-ell]`), `pest` (pestañas que no caben sin desvanecido) y aviso de desplazamiento lateral; en metrics.json,
+`fonts.read14 / btn15 / tab13` y `reach`. El diseño del móvil en PC: `?ph=1`.

@@ -109,7 +109,8 @@
   // SPLAT (17-nov-2026, notes/splat.md «Instalar»): hoja de pegatina (.sp-panel) sobre el partido con un tinte leve (sin velo oscuro);
   // cada paso, una pegatina de papel crema con su número en sello dorado; «Ahora no» y «Entendido / Instalar» = manchas de pintura.
   // La ✕ va fuera de la hoja y la fila de botones se queda pegada abajo: con poco alto la hoja se desplaza sin que se vayan.
-  var P = ':root:not(#_):not(#_):not(#_) ';
+  var P = ':root:not(#_):not(#_):not(#_) ', PP = ':root.ph' + P.slice(5);   // (PP: móvil, html.ph)
+  function isPh() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
   var CSS = [
     '#install{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:calc(14px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(14px + var(--sbm,0px)) calc(14px + var(--sl,0px));',
     'background:rgba(21,16,42,.34);font-family:var(--sp-ui,system-ui,sans-serif)}',
@@ -139,18 +140,44 @@
     '#install .ix-tap{animation:inTap 1.4s ease-in-out infinite}',
     '@keyframes inPulse{50%{transform:scale(1.18);opacity:.55}}',
     '@keyframes inTap{50%{transform:translateY(4px)}}',
-    '@media (max-height:460px){#install .ix-sheet{padding:12px 16px 12px}' + P + '#install h2.sp-h{--sp-hs:22px;margin-bottom:6px}',
-    '#install .ix-intro{font-size:12.5px;line-height:1.38;margin-bottom:10px}#install .ix-steps{gap:12px 12px}#install .ix-steps li{padding:9px 8px 9px;gap:5px}',
-    '#install .ix-steps svg{max-height:34vh;max-width:92px}#install .ix-steps p{font-size:12px;line-height:1.3}#install .ix-n{width:28px;height:28px;font-size:14px}',
-    '#install .ix-acts{margin:8px -16px -12px;padding:8px 16px 12px;bottom:-12px}' + P + '#install .ix-acts .sp-btn{--sp-h:44px}}',
-    '@media (max-height:460px) and (min-aspect-ratio:5/4){#install .ix-steps{grid-template-columns:repeat(auto-fit,minmax(110px,1fr))}}',
-    '@media (max-height:360px) and (min-aspect-ratio:5/4){#install .ix-steps svg{max-height:21vh}' + P + '#install h2.sp-h{--sp-hs:20px}#install .ix-intro{font-size:12px;margin-bottom:8px}',
-    '#install .ix-steps p{font-size:11.5px}#install .ix-steps li{padding:7px 7px 8px}}',
+    // poco alto sin ser el móvil apaisado (ventana baja de PC): lo de antes, solo con :root:not(.ph)
+    '@media (max-height:460px){:root:not(.ph) #install .ix-sheet{padding:12px 16px 12px}' + P + '#install h2.sp-h{--sp-hs:22px;margin-bottom:6px}',
+    ':root:not(.ph) #install .ix-intro{font-size:12.5px;line-height:1.38;margin-bottom:10px}:root:not(.ph) #install .ix-steps{gap:12px 12px}:root:not(.ph) #install .ix-steps li{padding:9px 8px 9px;gap:5px}',
+    ':root:not(.ph) #install .ix-steps svg{max-height:34vh;max-width:92px}:root:not(.ph) #install .ix-steps p{font-size:12px;line-height:1.3}:root:not(.ph) #install .ix-n{width:28px;height:28px;font-size:14px}',
+    ':root:not(.ph) #install .ix-acts{margin:8px -16px -12px;padding:8px 16px 12px;bottom:-12px}' + P + '#install .ix-acts .sp-btn{--sp-h:44px}}',
+    // — móvil (.ph) — (18-nov-2026, spec «Instalar»): un paso cada vez. Dibujo a la izquierda (40 %, ≤ 180 px de alto), número en sello de
+    // 40 px y la instrucción a 17-18 px (palabras clave en dorado); puntitos y «Siguiente ›» abajo a la derecha (en el último, «Entendido»);
+    // también se pasa de paso deslizando un dedo. Título «Pantalla completa», sin rótulo ni «Ahora no». Tinte del 20 %.
+    PP + '#install{padding:var(--ph-gt) var(--ph-g) var(--ph-gb);background:rgba(21,16,42,.2)}',
+    PP + '#install .ix-wrap{width:min(640px,100%);height:auto;max-height:calc(100vh - var(--ph-gt) - var(--ph-gb))}' + PP + '#install .ix-sheet{max-height:calc(100vh - var(--ph-gt) - var(--ph-gb))}',
+    PP + '#install .ix-sheet{display:flex;flex-direction:column;padding:12px 18px 0;overflow-y:auto}',
+    PP + '#install .ix-k{display:none}',
+    PP + '#install h2.sp-h{--sp-hs:var(--ph-title);margin:0 48px 4px 0;padding:0;line-height:1.05;white-space:nowrap}' + PP + '#install .ix-sheet{padding-top:16px}',
+    PP + '#install .ix-intro{margin:0 40px 8px 0;font-size:var(--ph-body);line-height:1.4}',
+    PP + '#install .ix-steps{display:block;flex:1 1 auto;min-height:0;padding:6px 4px 4px 6px;touch-action:pan-y}',
+    PP + '#install .ix-steps li{display:none;flex-direction:row;align-items:center;gap:16px;min-height:0;padding:12px 16px 12px 12px;transform:rotate(-.6deg)}',
+    PP + '#install .ix-steps li.on{display:flex}',
+    PP + '#install .ix-steps svg{flex:none;width:auto;max-width:40%;height:180px;max-height:min(180px,calc(100vh - 200px))}',
+    PP + '#install.ix-p1 .ix-steps svg{max-height:min(180px,calc(100vh - 256px))}',
+    PP + '#install .ix-n{position:static;flex:none;width:40px;height:40px;font-size:20px}',
+    PP + '#install .ix-tx{display:flex;flex-direction:column;align-items:flex-start;gap:10px;min-width:0}',
+    PP + '#install .ix-steps p{font:600 clamp(17px,15.4px + .29vw,18px)/1.35 var(--sp-ui);text-align:left;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}',
+    PP + '#install .ix-steps b{background:none;color:#b8400f}',
+    PP + '#install .ix-acts{position:static;flex:none;flex-wrap:nowrap;align-items:center;margin:8px -18px 0;padding:6px 18px 12px;background:none}',
+    PP + '#install .ix-acts .sp-btn{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:24px}',
+    PP + '#install .ix-acts [data-in="later"]{display:none}',
+    PP + '#install .ix-dots{display:flex;align-items:center;gap:8px;margin-right:auto}',
+    PP + '#install .ix-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,244,220,.4);box-shadow:0 0 0 2px var(--sp-ink)}',
+    PP + '#install .ix-dots i.on{width:24px;border-radius:6px;background:var(--sp-gold)}',
+    PP + '#install .ix-x{top:-4px;right:-6px}',
+    P + '#install .ix-dots,' + P + '#install [data-in="next"]{display:none}',
+    PP + '#install .ix-dots{display:flex}',
+    PP + '#install.ix-more [data-in="next"]{display:inline-flex}' + PP + '#install.ix-more #inOk{display:none}',
     '@media (max-width:460px){#install .ix-steps{grid-template-columns:repeat(2,minmax(0,1fr))}' + P + '#install h2.sp-h{--sp-hs:clamp(22px,7.4vw,30px)}#install .ix-steps svg{max-width:80px}}',
     '.rm #install .ix-pulse,.rm #install .ix-tap{animation:none}',
     '@media (prefers-reduced-motion:reduce){#install .ix-pulse,#install .ix-tap{animation:none}}'
   ].join('');
-  var root = null, lastFocus = null;
+  var root = null, lastFocus = null, step = 0;
   function build() {
     if (root) return root;
     var st = document.createElement('style'); st.textContent = CSS; document.head.appendChild(st);
@@ -158,6 +185,13 @@
     root.setAttribute('role', 'dialog'); root.setAttribute('aria-modal', 'true'); root.setAttribute('aria-labelledby', 'inTitle');
     root.addEventListener('click', function (e) { if (e.target === root) close(); e.stopPropagation(); });
     root.addEventListener('keydown', function (e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } });
+    // (móvil) un dedo deslizando de lado pasa de paso (nunca dos dedos)
+    var sx = null, sy = 0;
+    root.addEventListener('touchstart', function (e) { if (e.touches.length === 1 && isPh()) { sx = e.touches[0].clientX; sy = e.touches[0].clientY; } else sx = null; }, { passive: true });
+    root.addEventListener('touchend', function (e) {
+      if (sx == null) return; var t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; sx = null;
+      if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) go(step + (dx < 0 ? 1 : -1));
+    }, { passive: true });
     document.body.appendChild(root);
     return root;
   }
@@ -169,7 +203,9 @@
       '<ol class="ix-steps">' + d.s.map(function (s, i) {
         return '<li><span class="ix-n">' + (i + 1) + '</span>' + DRAW[s[0]] + '<p>' + s[1] + '</p></li>';
       }).join('') + '</ol>' +
-      '<div class="ix-acts"><button class="sp-btn sp-cream sp-sm" data-shape="2" data-in="later"><span class="sp-t">Ahora no</span></button>' +
+      '<div class="ix-acts"><span class="ix-dots" aria-hidden="true">' + d.s.map(function () { return '<i></i>'; }).join('') + '</span>' +
+      '<button class="sp-btn sp-cream sp-sm" data-shape="2" data-in="later"><span class="sp-t">Ahora no</span></button>' +
+      '<button class="sp-btn sp-kit pri" data-shape="1" data-in="next"><span class="sp-t">Siguiente ›</span></button>' +
       '<button class="sp-btn sp-kit pri" data-shape="3" data-in="ok" id="inOk"><span class="sp-t">Entendido</span></button></div></div>' +
       '<button class="ix-x sp-btn sp-cream sp-sq" data-shape="1" data-in="close" aria-label="Cerrar"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>';
     if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(root); } catch (e) { } }
@@ -177,11 +213,31 @@
       b.addEventListener('click', function (e) {
         e.stopPropagation();
         var a = b.getAttribute('data-in');
+        if (a === 'next') { go(step + 1); return; }
         if (a === 'install' && deferred) { var p = deferred; deferred = null; p.prompt(); p.userChoice.then(function () { close(); }, close); return; }
         close();
       });
     });
+    // (móvil: título corto; el número y el texto, juntos a la derecha del dibujo)
+    if (isPh()) {
+      var h2 = root.querySelector('#inTitle'); if (h2) h2.textContent = 'Pantalla completa';
+      Array.prototype.forEach.call(root.querySelectorAll('.ix-steps li'), function (li) { var n = li.querySelector('.ix-n'), p = li.querySelector('p'), w = document.createElement('div'); w.className = 'ix-tx'; li.appendChild(w); w.appendChild(n); w.appendChild(p); });
+    }
+    go(step);
     refreshBtn();
+  }
+  /** Móvil: enseña el paso i (puntitos, «Siguiente ›» o, en el último, «Entendido» / «Instalar»; la frase de entrada solo en el primero). */
+  function go(i) {
+    if (!root) return;
+    var L = root.querySelectorAll('.ix-steps li'), D = root.querySelectorAll('.ix-dots i'), n = L.length; if (!n) return;
+    var prev = step; step = Math.max(0, Math.min(n - 1, i | 0));
+    for (var k = 0; k < n; k++) { L[k].classList.toggle('on', k === step); if (D[k]) D[k].classList.toggle('on', k === step); }
+    root.classList.toggle('ix-more', step < n - 1); root.classList.toggle('ix-p1', step === 0);
+    var it = root.querySelector('.ix-intro'); if (it) it.hidden = isPh() && step > 0;
+    if (isPh() && prev !== step) {
+      var f = root.querySelector(step < n - 1 ? '[data-in="next"]' : '#inOk'), a = document.activeElement;
+      if (f && a && root.contains(a) && a.getAttribute('data-in') !== 'close') { try { f.focus({ preventScroll: true }); } catch (e) { } }
+    }
   }
   // con el aviso nativo de Chrome disponible, «Entendido» pasa a «Instalar» (un toque y listo)
   function refreshBtn() {
@@ -189,10 +245,10 @@
     if (deferred && !inApp) { var t = b.querySelector('.sp-t') || b; t.textContent = 'Instalar'; b.setAttribute('data-in', 'install'); }
   }
   function open() {
-    build(); render();
+    build(); step = 0; render();
     lastFocus = document.activeElement;
     root.hidden = false; seen();
-    try { root.querySelector('#inOk').focus({ preventScroll: true }); } catch (e) { }
+    try { root.querySelector(isPh() && root.classList.contains('ix-more') ? '[data-in="next"]' : '#inOk').focus({ preventScroll: true }); } catch (e) { }
   }
   function close() {
     if (!root || root.hidden) return;
@@ -226,6 +282,7 @@
     }, 250);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', auto); else auto();
+  document.addEventListener('vb:ph', function () { if (isOpen()) render(); });   // (girar / cambiar de tamaño con el aviso abierto)
 
   /** Pruebas: fuerza la variante ('ios' | 'android' | 'app') y abre. */
   function _as(k) { isIOS = k === 'ios'; isAndroid = k === 'android'; inApp = k === 'app'; open(); }

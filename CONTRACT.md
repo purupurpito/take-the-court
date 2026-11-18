@@ -899,7 +899,13 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   en el almacén de emPat (mismo origen: clave `empat/acta/<id>`) y abre `/emPat/?acta=<id>`; fuera de Pages descarga el .json para
   importarlo en la portada de emPat. Prueba `node tools/actatest.js [partidos]` (con `../acta-electronica` o `EMPAT_DIR` comprueba cada
   jugada contra el motor de emPat y que sets y puntos coinciden).
-
+- **Auditoría de móvil (ui_main, 18-nov-2026):** `node tools/mobaudit.js [--out dir=tools/out/mobaudit] [--only regex] [--area portada|carrera|online|partido] [--sizes 568x320,…] [--desktop] [--list]`
+  abre el juego real (un Chrome; táctil + UA Android; `DPR=2`, `TOUCH=0`, `SIZES`, `DESKTOP=1`) y recorre ~145 pantallas (tabla `SCREENS`: id, área, query, `open` en JS con
+  los ayudantes de `tools/mobaudit-page.js` `window.__MA`) en 568x320, 667x375, 740x360, 844x390 y 915x412 (+1280x720, 1920x1080, 1024x768 sin táctil con `--desktop`):
+  `<out>/<WxH>/<id>.png`, `metrics.json` (letra en px efectivos, < 12 listadas y < 14 contadas; toques < 44 px, a < 8 px, solapados, tapados o > 35 % de pantalla;
+  elipsis / line-clamp / overflow; fuera del viewport; Volver y acción principal dentro y pulsables; scroll; caracteres y objetivos) y `summary.txt`. Carga con
+  `&ma_clean=1` (localStorage vacío) y crea en la página la Carrera de muestra. `node tools/mobcompare.js <antes> [después] [--out x.html]` = hoja de contactos HTML lado a lado con
+  las diferencias + resumen `.md` (`SHOT=x.png` la captura).
 - Capturas y logs en `tools/out/`.
 
 ## 7. Terminología (castellano, árbitro FCVB)

@@ -1853,3 +1853,56 @@ net*.js, version.js).
   y hoja final «Con impulso n | Pipes n» (`g.stats.dj`, también en 6v6).
 - **Capturas**: scratchpad `salto/u` (aviso a 568×320, 640×360, 844×390, 360×640 táctil y 1280×720; Ajustes ◆ Juego; hub de la Carrera
   de pista con el aviso). Botones ≥ 44 px y pulsables (elementFromPoint).
+
+## Móvil (v-next): Online, Cuenta e Instalar (18-nov-2026, rama movil; spec «Online», notes/splat.md «Móvil»)
+- Todo detrás de `html.ph` (prefijo `PP = ':root.ph' + P.slice(5)` dentro de cada módulo; en PC y tableta no cambia nada: mobaudit
+  `--desktop` da las mismas cifras que antes). Las viejas `@media` de 430/340 px (netlobby) se borraron; las de 520/460 px (account,
+  install) quedan solo para ventanas bajas de PC (`:root:not(.ph)`).
+- **Online** (`js/netlobby.js`, `viewPH()` / `headHTML()`, mismos `data-a` / `data-ol` que en PC): cabecera de 48 con Volver, «Online» y
+  tu nombre en una chapa crema («Juegas como …», toca para cambiarlo) o el paso («Nueva sala», «Cómo funciona», «Sala de espera») en
+  `.ol-hr`; una sola zona que se desplaza (`.ol-scroll` + `VB.Splat.more`) y la barra de abajo `.ol-dock` con la principal la última.
+  Lista: «?», «Código» y «Crear sala» abajo (≥ 800 px: columna a la derecha), sin «Actualizar» (se refresca sola, «Buscando…» si no
+  hay salas), salas de 68 px con «Entrar ›» en pegatina dorada de 44. Crear sala: filas de 54 px (rótulo a la izquierda, ‹ valor › a la
+  derecha, la explicación bajo la fila tocada), orden Escenario, Sede, Partido, Puntos, Igualado, Conexión; ≥ 720 px a la derecha tu
+  sala, la explicación y el parche. «Cómo funciona»: textos de móvil (`HELP_PH`, «Sin pausa» segundo) en páginas de 2 (3 con ≥ 800 px),
+  puntitos y «Siguiente ›» / «Entendido». Sala de espera: código en pegatina que se copia al tocarlo, nombres a `--ph-title` en 2
+  líneas, tres reglas en chips, «Salir de la sala» a la izquierda y «Compartir» (`navigator.share`, si no copia el enlace `?sala=`).
+  Avisos en hoja centrada; sin servidor se reintenta solo cada 30 s (también en PC). `L.msg` va al carril de avisos (`VB.Splat.toast`).
+  Escribir nombre o código: hoja pegada arriba (campo de 52 px, botón al lado, ✕), sube por encima de la cabecera con el teclado.
+- **Cuenta** (`js/account.js`, `phHTML()`): sin sesión UNA columna (pestañas como título, Google, campos de 52 px; con alto ≤ 345 correo y
+  contraseña lado a lado), «¿Olvidaste la contraseña?» + la principal abajo; el aviso de recuperar solo si lo escrito no lleva @.
+  Con sesión: tarjeta + «Cerrar sesión» + «Borrar la cuenta» discreto a la izquierda, frase y «Sincronizar ahora» a la derecha, sin
+  «Hecho»; borrar = hoja de borde rojo con «No, volver» / «Sí, borrar la cuenta». Tinte del 20 %. Avisos al carril de arriba.
+  `_preview` usa una cuenta de mentira genérica.
+- **Instalar** (`js/install.js`): un paso cada vez (dibujo, sello de 40 px, texto a 17-18 px), puntitos y «Siguiente ›», deslizar con un
+  dedo; título «Pantalla completa», sin «Ahora no».
+- **HUD online** (`#netHud`, lo crea main.js con estilo en línea): en el bloque «SPLAT · CUENTA Y VARIOS», pegatina de tinta y botones
+  de 44 px (con `!important`).
+
+## Móvil (v-next): durante y después del partido (18-nov-2026, rama movil; spec §4.4, notes/splat.md «Móvil»)
+- **Dónde**: index.html «SPLAT · PAUSA Y HOJA FINAL» (sección `— móvil (.ph) —` al final; las viejas `@media (max-height:430px)` y
+  `(max-height:360px)` del bloque se borraron) y el bloque NUEVO «SPLAT · CAMBIOS Y BANQUILLO» (justo después): ahí vive el CSS que antes
+  era la cadena `SUB_CSS` de ui.js (rótulo `#subTv`, `#benchBar`, `#ffVeil`, panel `#pnSubs`), el estado `#app.hud-off` y el HUD en el móvil.
+- **`#app.hud-off`** (ui.js `syncScreens`, solo al cambiar de pantalla): pausa, panel abierto en el partido, hoja final (sin la
+  celebración ni la repetición) o del ejercicio → `.sb`, `.hud-btns`, `#touch`, contador, consejo, aviso y zoom a opacidad 0 sin toque.
+  Arregla el marcador que asomaba tras Pausa › Controles / Ajustes y la barra del ejercicio tras su hoja. Sustituye al `:has(#pause)` del marcador.
+- **Pausa (.ph)**: «Pausa» y el marcador arriba a la izquierda; 2×2 pegatinas (Controles, Ajustes / Reiniciar, Salir) y «Seguir jugando»
+  debajo, a la derecha; «Cambios n/6» (6v6) abajo a la izquierda. `.vlist` y `.p-row` en `display:contents` (el DOM, el foco y
+  `data-sp-row` no cambian).
+- **Hoja final y del ejercicio (.ph)**: rejilla «cabecera | hoja» / «Ver celebración | hoja» / «manchas | hoja» / «manchas | parche»: el
+  parche (Revancha, Siguiente jornada, Otra vez, Repetir) abajo a la derecha fuera del desplazamiento; Resumen con la etiqueta dorada
+  ENCIMA de cada bloque (sin la columna de 92 px) y sin puntos suspensivos; el antetítulo sin «Sets a 25» (`.ph-off` en ui.js showEnd).
+  El sello del reto solo con ≥ 390 px de alto.
+- **Estadística del partido** (todas las medidas): `#panel .sheet.ms` en columna; la cabecera (Volver + título) no se desplaza, se desplaza
+  `#pnMstats`; Volver en pegatina crema (la mancha de tinta tapaba el rótulo: la «caja vacía»). En el móvil la hoja va de margen a margen.
+- **Cambios** (`#pnSubs`): hoja de tinta SPLAT, Volver crema en su fila, dos columnas que se desplazan por dentro, filas de 52 px
+  (dorsal en disco, apellido corto `subShort` si hay nombre, puesto en chapa, cansancio de 8 px, «Tú» dorado; elegida con aro dorado).
+- **Banquillo**: pila abajo a la derecha (rótulo, ×3 redondo, «Saltar hasta que entres» en color del equipo y «Saltar al final»); en
+  táctil, con los mandos ocultos, sale la pausa del HUD (`#app.is-touch.sb-bar .hud-btns`): antes no había salida. `#ffVeil` sin desenfoque.
+- **HUD (.ph)**: consejo en pegatina de tinta de hasta 2 líneas (sin elipsis; `.thru` igual que antes), contador 30 px/14 px, aviso
+  junto al jugador 36 px/17 px, «MOVER» 12 px y la lupa 44×44 (reglas en el bloque nuevo; input.js no se tocó: aviso en camera_input.md).
+- **Pendiente**: mapa `tipShort` de consejos cortos, «Ver desde aquí» en `#ffVeil` (no hay camino de parada limpio sin tocar main.js),
+  Jugadas con la fila entera como objetivo, «Cifras clave» como `.sp-heros` y tablas `.sp-tbl` en la Estadística.
+
+## Móvil (v-next) — portada y menús principales (18-nov-2026)
+Con `html.ph` (móvil apaisado; notes/splat.md «Móvil») cada bloque de la portada tiene su sección `/* — móvil (.ph) — */` al final y ya no queda ningún `@media (max-height:430px)` viejo. **Portada**: columna `--ph-colw`; ayuda en tres iconos redondos de 48 px con el rótulo debajo (con ancho, `.ph-w`, tres manchas con icono y rótulo); con Carrera, sin logotipo; perfil y versión abajo a la derecha (44 px; la versión solo en la portada); DIRECTO solo en portada y Jugar. **Jugar**: «6v6»/«1v1» en una palabra, «Entreno» (`data-ph-short`) en la fila de manchas (`.sp-row`, que NO es la fila de lista `.sp-lrow`). **Partido rápido**: la misma rejilla (filas de 52, rótulo `--ph-label`, valor `--ph-btn`), columna ≤ 520; «?» en Controlar y Cámara abre su ayuda en una hoja (`VB.Splat.info(#mpQuick)`, menu-jugador.js). **Paneles** (`#panel.sp-pn`): `.sheet` = cabecera + `#pnX` en rejilla «vt strip / vt body / vt dock»; Ajustes con pestañas en columna (`data-ph-tabs="rail"`, 150 px), filas de 56 con la ayuda en una línea y «i» si no cabe (`VB.Splat.helpFit`, splat.js «(móvil · portada)»; ui.js `phPanel()`), segmentados por número de opciones (`VB.Splat.fitSeg`; las muestras de equipación con `data-ph-ctl="seg"`); Controles/Jugadores/Acerca de con tira; con pantalla táctil Táctil es la primera pestaña; Cómo se juega con el dibujo pegado arriba y Anterior abajo a la izquierda. **Entrenamiento / Retos**: el parche pegado abajo dentro de la lista (`position:sticky`), recuento en la pegatina `#gymChip`; Retos › Hoy = billete | medallas apiladas. **Vestuario**: columna de iconos (`#lkTabs` rail sin rótulos), «Probar» + «⋯» (hoja con Al azar / Restablecer / Copiar, menu-jugador.js), ⟲ ⟳ en columna abajo a la derecha (ui.js `lkPlace` centra el muñeco entre la columna y esos botones). **Perfil**: marco entero (cabecera con nivel y vitrina, pestañas en columna, fichas ≥ 84 px con el nombre entero). `#pfNote` / `#lkNote` van a `VB.Splat.toast` en el móvil. **Aviso colocador**: texto | acciones, tinte del 20 % (`VB.Splat.modal`, solo móvil). En PC no cambia nada (mobaudit `--desktop` igual que antes). settest l) acepta la columna `.sp-vtabs` como «compacta» a 667×375.

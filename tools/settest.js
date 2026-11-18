@@ -284,8 +284,9 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await fresh('debug=settings&panel=set&nonews=1', { 'make-the-cut.settings': { hudScale: 1.3 } });
       for (const t of ['audio', 'a11y', 'info']) {
         await tab(t);
-        const r = await J(`(function(){ var row = document.querySelector('#setTabs .tb-row'), on = document.querySelector('#setTabs .tab.on .tb-t'); return { compact: VB.UI._settings().compact, fit: row.scrollWidth <= row.clientWidth + 2, label: on ? getComputedStyle(on).display !== 'none' : false, sw: document.scrollingElement.scrollWidth, w: innerWidth }; })()`);
-        check('667×375 HUD 130 % pestaña ' + t + ': compacta, cabe, con etiqueta y sin desplazamiento horizontal', r.compact && r.fit && r.label && r.sw <= r.w, r);
+        const r = await J(`(function(){ var row = document.querySelector('#setTabs .tb-row'), on = document.querySelector('#setTabs .tab.on .tb-t'); return { compact: VB.UI._settings().compact, rail: document.querySelector('#setTabs').classList.contains('sp-vtabs'), fit: row.scrollWidth <= row.clientWidth + 2, label: on ? getComputedStyle(on).display !== 'none' : false, sw: document.scrollingElement.scrollWidth, w: innerWidth }; })()`);
+        // (móvil, 18-nov-2026: a 667×375 html.ph pone las pestañas de Ajustes en columna, .sp-vtabs, con todas las etiquetas: vale como «compacta»)
+        check('667×375 HUD 130 % pestaña ' + t + ': compacta (o en columna en el móvil), cabe, con etiqueta y sin desplazamiento horizontal', (r.compact || r.rail) && r.fit && r.label && r.sw <= r.w, r);
       }
       await page.setSize('1280x720', false);
       await page.navigate('debug=settings&panel=set&nonews=1'); await ready(); await sleep(1200);

@@ -1842,9 +1842,10 @@
     /** Centro del muñeco en pantalla, en fracción del ancho (apaisado): la UI lo pone en el hueco libre a la derecha de su columna.
      *  half (opcional): la mitad de ese hueco, en fracción del ancho; si el muñeco no cabe en él, la cámara se aleja (a 667×375 el
      *  pie de iconos le tapaba el hombro). */
-    place: function (cx, half) {
+    place: function (cx, half, top) {
       if (!PV) return 0; cx = +cx; PV.cx = cx > 0.5 && cx < 0.95 ? cx : 0.68;
       half = +half; PV.half = half > 0.02 && half <= 0.5 ? half : 0;   // hueco libre a cada lado del muñeco (fracción del ancho; 0 = hasta el borde)
+      top = +top; PV.top = top > 0 && top < 0.5 ? top : 0;            // franja de arriba tapada por la UI sobre el muñeco (fracción del alto)
       return PV.cx;
     },
     /** Encuadre: 'cuerpo' | 'cabeza' | 'brazos' | 'piernas' (la cámara va hasta él con suavidad). */
@@ -1870,7 +1871,16 @@
         ty = (E.lo + E.hi) * 0.5 * sc;
         if (asp >= 1) d = Math.max(d, hv / tq, hl / (pvHalf() * 2 * tq * asp));   // a lo ancho, en el hueco libre (place)
         else d = Math.max(d * 2.3, hv / (tq * 0.45), hl / (tq * asp)) / 2.3;                       // vertical: mitad de arriba
-      } else if (asp >= 1 && PV_LAT[fn]) d = Math.max(d, PV_LAT[fn]() * sc / (pvHalf() * 2 * Math.tan(PV_FOV * PI / 360) * asp));   // quieto: que quepa a lo ancho
+      } else if (asp >= 1 && PV_LAT[fn]) {
+        d = Math.max(d, PV_LAT[fn]() * sc / (pvHalf() * 2 * Math.tan(PV_FOV * PI / 360) * asp));   // quieto: que quepa a lo ancho
+        // y a lo alto: la cabeza entera (con peinado o gorro) dentro del 92 % de la mitad de arriba del hueco libre. En el móvil
+        // apaisado (alto corto) 'brazos' sacaba la coronilla por arriba
+        if (fn !== 'piernas') {
+          if (PV.htR !== r) { TMP.set(0, HEAD_C + HEAD_RY + 0.1, 0); r.root.updateMatrixWorld(true); r.head.localToWorld(TMP); r.root.worldToLocal(TMP); PV.ht = TMP.y; PV.htR = r; }
+          var up = (PV.ht - f[0]) * sc;
+          if (up > 0) d = Math.max(d, up / (0.92 * Math.tan(PV_FOV * PI / 360) * (1 - (PV.top || 0))));
+        }
+      }
       if (asp < 1) d *= 2.3;   // en vertical el muñeco entero (o la cabeza) cabe en la mitad de arriba (la de abajo es del menú)
       var k = PV.snap ? 1 : 1 - Math.exp(-dt * 7); PV.snap = false;
       PV.cy += (ty - PV.cy) * k; PV.cd += (d - PV.cd) * k;
@@ -1883,7 +1893,10 @@
       // la cámara se DESPLAZA de lado (no gira): girada, el muñeco quedaba en el borde del cono y más cerca en profundidad, y salía
       // un 15-20 % más grande y estirado que en el centro (a 844×390 se cortaba)
       var ox, oy, oz;
-      if (asp >= 1) { var sh = cd * tv * asp * 2 * (PV.cx - 0.5); ox = -e[0] * sh; oy = -e[1] * sh; oz = -e[2] * sh; }   // el muñeco en x = cx del ancho (0,68; place())
+      if (asp >= 1) {   // el muñeco en x = cx del ancho (0,68; place()) y, si arriba hay UI (place top), centrado en el alto que queda
+        var sh = cd * tv * asp * 2 * (PV.cx - 0.5), su = cd * tv * (PV.top || 0);
+        ox = -e[0] * sh + e[4] * su; oy = -e[1] * sh + e[5] * su; oz = -e[2] * sh + e[6] * su;
+      }
       else { var sv = cd * tv * 0.55; ox = -e[4] * sv; oy = -e[5] * sv; oz = -e[6] * sv; }                              // vertical: en la mitad alta
       cam.position.set(px + cd + ox, cy + cd * (f[2] != null ? f[2] : 0.1) + oy, pz + oz); cam.lookAt(px + ox, cy + oy, pz + oz);
       r.root.rotation.y = Math.atan2(cd, oz) + PV.yaw;   // de frente a la cámara desplazada (0 de giro = mirando a cámara)

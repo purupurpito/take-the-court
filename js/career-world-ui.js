@@ -37,6 +37,46 @@
   // (la tuya con la franja del color de tu club, la de tu rival en rojo); los clubes, filas-pegatina; la vitrina, sellos dorados
   // (los huecos por ganar, de trazo discontinuo). Prefijo Q (3 ids de :root más #career): gana a las reglas de arriba y a las de index.html.
   var Q = ':root:not(#_):not(#_):not(#_) #career', STK = '0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink)', FOC = '0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold),3px 4px 0 5.5px var(--sp-ink)';
+  // Móvil (html.ph, 18-nov-2026; notes/splat.md §9): letra con los tokens (nada < 12 px, lectura ≥ 14), filas de 48 y la vitrina en
+  // fichas de 84. Prefijo PQ = gana a Q. Sin .ph no cambia nada.
+  var PQ = Q.replace(':root', ':root.ph');
+  var PH_W = [
+    PQ + ' .cw-mentor .cw-who{font-size:var(--ph-cap);letter-spacing:.04em}',
+    PQ + ' .cw-mentor h3{font-size:var(--ph-head)}',
+    PQ + ' .cw-mentor .cw-n{font-size:var(--ph-cap)}',
+    PQ + ' .cw-mentor .cw-line{font-size:var(--ph-body)}',
+    PQ + ' .cw-who{font-size:var(--ph-cap);letter-spacing:.04em}',
+    PQ + ' .cw-n{font-size:var(--ph-cap)}',
+    PQ + ' .cw-kick{font-size:var(--ph-cap);letter-spacing:.04em}',
+    PQ + ' .cw-line{font-size:var(--ph-body)}',
+    PQ + ' .cw-opt b{font-size:var(--ph-row)}',
+    PQ + ' .cw-nb{min-height:48px;padding:8px 12px}',
+    PQ + ' .cw-nb small{font-size:var(--ph-cap);letter-spacing:.03em}',
+    PQ + ' .cw-nb b{font-size:var(--ph-row)}',
+    PQ + ' .cw-mk{font-size:var(--ph-cap)}',
+    PQ + ' button.cw-row{min-height:48px;font-size:var(--ph-row)}',
+    PQ + ' .cw-rn b{font-size:var(--ph-row)}',
+    PQ + ' .cw-row small{font-size:var(--ph-label)}',
+    PQ + ' .cw-nick{font-size:var(--ph-body)}',
+    PQ + ' .cw-big{font-size:var(--ph-head)}',
+    PQ + ' .cw-form small{font-size:var(--ph-label)}',
+    PQ + ' .cw-tl li{font-size:var(--ph-body)}',
+    PQ + ' .tc-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:12px}',
+    PQ + ' .tc-slot{min-height:84px;padding:10px 6px}',
+    PQ + ' .tc-slot:nth-child(odd){transform:rotate(-1.5deg)}',
+    PQ + ' .tc-slot:nth-child(3n){transform:rotate(1.8deg)}',
+    PQ + ' .tc-n{font-size:var(--ph-cap);-webkit-line-clamp:unset;display:block}',
+    PQ + ' .tc-slot small{font-size:var(--ph-cap)}',
+    // móvil: cada hueco = el trofeo y su nombre (2 líneas); lo que pide y lo que desbloquea, en una hoja al tocarlo (cw-tc)
+    PQ + ' .tc-slot small{display:none}',
+    PQ + ' .tc-n{font:700 var(--ph-cap)/1.15 var(--sp-ui);display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:normal;hyphens:auto}',
+    PQ + ' button.tc-slot{-webkit-appearance:none;appearance:none;width:100%;min-height:84px;margin:0;background:none;box-shadow:none;border:0;color:inherit;font:inherit;letter-spacing:0;text-transform:none;text-shadow:none;cursor:pointer;justify-content:flex-start;filter:none}',
+    PQ + ' button.tc-slot:hover{background:none;filter:none}',
+    PQ + ' button.tc-slot:active .tc-st{transform:scale(.94)}',
+    PQ + ' button.tc-slot:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold);border-radius:12px}',
+    '.sp-sheet.cr-tcs .tc-sh p{margin:0 0 8px;font:600 var(--ph-body,15px)/1.35 var(--sp-ui)}',
+    '.sp-sheet.cr-tcs .tc-sh p.ul{color:#7fe6dc}'
+  ];
   var SPLAT_W = [
     Q + ' .card.cw-mentor{background:var(--sp-cream);color:var(--sp-ink);border-radius:22px 26px 24px 8px/24px 20px 26px 10px;box-shadow:0 0 0 3px var(--sp-ink),5px 7px 0 var(--sp-ink);padding:12px 14px}',
     Q + ' .cw-mentor .cw-face{width:62px;height:62px;filter:drop-shadow(2px 3px 0 var(--sp-ink));transform:rotate(-6deg)}',
@@ -176,7 +216,7 @@
     '#career .tc-n{font:700 12.5px/1.2 var(--ui);color:#fff;letter-spacing:0;text-transform:none;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}',
     '#career .tc-slot small{display:block;font:600 11.5px/1.2 var(--ui);color:var(--muted);letter-spacing:0;text-transform:none}',
     '#career .tc-slot.got small{color:#ffe28a}#career .tc-slot small.tc-ul{color:#7fe6dc}'
-  ].concat(SPLAT_W).join('\n');
+  ].concat(SPLAT_W, PH_W).join('\n');
   function css() { if (typeof document === 'undefined' || document.getElementById('careerWorldCss')) return; var s = document.createElement('style'); s.id = 'careerWorldCss'; s.textContent = CSS; document.head.appendChild(s); }
 
   // ---------------------------------------------------------------- Partido: escena de Faro
@@ -373,14 +413,17 @@
     };
   }
   function seasonsTxt(won) { var a = won.map(function (x) { return x.season; }); return W() && W()._andList ? W()._andList(a.map(String)) : a.join(', '); }
+  var tcSlots = [];   // (móvil: los huecos pintados, para la hoja de cw-tc)
   function slotHTML(s, du) {
     var got = s.won.length > 0, n = s.won.length, ts = s.won.map(function (x) { return 'T' + x.season; }).join(', ');
     var line = got ? sp([n > 1 ? '×' + n : '', ts, du ? esc(du(s.won)) : ''], 'v') : '<small>' + esc(s.need) + '</small>';
     var ul = !got && s.unlock ? '<small class="tc-ul">Desbloquea: ' + esc(s.unlock.name) + '</small>' : '';
     var al = s.name + ': ' + (got ? 'ganado ' + (n === 1 ? '1 vez, temporada ' : n + ' veces, temporadas ') + seasonsTxt(s.won) : 'sin ganar' + (s.need ? '. ' + s.need : '')) + (ul ? '. Desbloquea: ' + s.unlock.name : '');
     // SPLAT: el trofeo en un sello dorado (ganado) o en su hueco de trazo discontinuo (por ganar)
-    return '<div class="tc-slot ' + (got ? 'got' : 'empty') + '" role="img" aria-label="' + esc(al) + '"><span class="tc-st">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' + (n > 1 ? '<i class="tc-x">×' + n + '</i>' : '') + '</span>' +
-      '<b class="tc-n">' + esc(s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</div>';
+    var ph = typeof document !== 'undefined' && document.documentElement.classList.contains('ph'), tag = ph ? 'button' : 'div';
+    if (ph) tcSlots.push({ s: s, du: du });
+    return '<' + tag + ' class="tc-slot ' + (got ? 'got' : 'empty') + '"' + (ph ? ' type="button" data-act="cw-tc" data-id="' + (tcSlots.length - 1) + '"' : ' role="img"') + ' aria-label="' + esc(al) + '"><span class="tc-st">' + TC_SVG + (TC_ICON[s.kind] || TC_ICON.premio) + '</svg>' + (n > 1 ? '<i class="tc-x">×' + n + '</i>' : '') + '</span>' +
+      '<b class="tc-n">' + esc(s.name) + '</b>' + (got ? '<small>' + line + '</small>' : line) + ul + '</' + tag + '>';
   }
   /** Palmarés › Palmarés: «Vitrina (4 de 20)» con un bloque por grupo (playa: un circuito por bloque y Premios; pista: Liga, Copa,
    *  Internacional, Ascenso y Premios) y «Otros títulos» si algo no casa. Bloques .tc-grid de 3 huecos dentro de .tc-gs, que se reparten el
@@ -389,7 +432,7 @@
     if (h0) H = h0; css();
     var w = W(); if (!w || !w.trophyCase || !c || !H) return '';
     var tc = w.trophyCase(c); if (!tc) return '';
-    var du = tcDiff(c), groups = [], by = {};
+    var du = tcDiff(c), groups = [], by = {}; tcSlots = [];
     tc.slots.concat(tc.other || []).forEach(function (s) { if (!by[s.group]) { by[s.group] = []; groups.push(s.group); } by[s.group].push(s); });
     // bloques de 3 huecos (los grupos cortos seguidos comparten bloque, greedy y en orden)
     var parts = [], blocks = [];
@@ -429,6 +472,16 @@
         var id = b ? +b.getAttribute('data-id') : NaN, cc = C().get();
         if (!(id >= 0) || !cc || !C().club(cc, id)) return null;
         sel = id; return { render: true, tab: 'league', s: 'clubs', focus: '[data-act="cw-list"]' };
+      }
+      case 'cw-tc': {   // móvil: un hueco de la Vitrina → hoja con lo que pide (o cuándo se ganó) y lo que desbloquea
+        var tz = tcSlots[b ? +b.getAttribute('data-id') : -1]; if (!tz || !(VB.Splat && VB.Splat.sheet)) return null;
+        var z = tz.s, zn = z.won.length, zh = '<div class="tc-sh">';
+        if (zn) zh += '<p>' + (zn === 1 ? 'Ganado en la temporada ' : 'Ganado ' + zn + ' veces: temporadas ') + esc(seasonsTxt(z.won)) + (tz.du && tz.du(z.won) ? ' (' + esc(tz.du(z.won)) + ')' : '') + '</p>';
+        else if (z.need) zh += '<p>' + esc(z.need) + '</p>';
+        if (!zn && z.unlock) zh += '<p class="ul">Desbloquea: ' + esc(z.unlock.name) + '</p>';
+        VB.Splat.sheet({ title: z.name, html: zh + '</div>', cls: 'cr-tcs' });
+        try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('click'); } catch (e) { }
+        return { render: false };
       }
       case 'cw-list': { var was = sel; sel = null; return { render: true, focus: was != null ? '[data-act="cw-club"][data-id="' + was + '"]' : '' }; }
     }

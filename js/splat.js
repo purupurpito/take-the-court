@@ -15,6 +15,9 @@
  * API: VB.Splat.decorate(rootOrSelector?) · .watch(el) (MutationObserver para contenedores que se repintan con innerHTML) ·
  *      .setKit(0xRRGGBB) · .sync() (equipación de Ajustes o del club de la Carrera activa) · .kit() · .reduced() · .splash(el, ev?) ·
  *      .press(el) · .ICONS (SVG de iconos de la casa) · .BALL (SVG del balón).
+ * Móvil (18-nov-2026, notes/splat.md «Móvil»): .PHONE_MQ · .phone() (html.ph) · evento «vb:ph» · .more(el) · .reveal(el, o) ·
+ *      .fitSeg(root) · .sheet(o) / .closeTop() / .sheetOpen() / .sheetEl() · .modal(el) · .info(root) · .tbl(el) · .shorten(root) ·
+ *      .toast(html, o) · .kbd() (solo, al cargar).
  */
 (function () {
   'use strict';
@@ -118,6 +121,7 @@
     if (r.matches && r.matches(SEL)) { if (!r.classList.contains('sp-dec')) { decorateOne(r); n++; } }
     var L = r.querySelectorAll ? r.querySelectorAll(SEL) : [];
     for (var i = 0; i < L.length; i++) if (!L[i].classList.contains('sp-dec')) { decorateOne(L[i]); n++; }
+    if (r.querySelectorAll) shorten(r);   // (móvil: textos cortos [data-ph-short])
     return n;
   }
   /** Para contenedores que se repintan con innerHTML (Carrera, listas): decora lo que entra. Un observador por contenedor. */
@@ -195,13 +199,455 @@
   }
   function sync() { try { return setKit(kitOf()); } catch (e) { return false; } }
 
+  // ================================================================ MÓVIL (fundación, 18-nov-2026; notes/splat.md «Móvil»)
+  // html.ph = móvil apaisado (lo pone el <script> del <head> antes del primer pintado; aquí se repite al girar o cambiar de tamaño).
+  // Nada por frame: escuchas de scroll pasivas, ResizeObserver / MutationObserver y teclas solo con una hoja abierta.
+  var PHONE_MQ = '(max-height:500px) and (min-aspect-ratio:5/4)';
+  var RT = doc.documentElement;
+  if (typeof window.__phTier !== 'function') {   // (sin el <script> del <head>: páginas sueltas, pruebas)
+    window.__phTier = function () {
+      var q = /[?&]ph=([01])/.exec(location.search), on = q ? q[1] === '1' : !!(window.matchMedia && matchMedia(PHONE_MQ).matches);
+      RT.classList.toggle('ph', on); RT.classList.toggle('ph-s', on && innerHeight <= 345); RT.classList.toggle('ph-w', on && innerWidth >= 800);
+      return on;
+    };
+  }
+  function phone() { return RT.classList.contains('ph'); }
+  var phPrev = null, phRaf = 0;
+  // Dos avisos en document, ambos con detail {ph, s, w, flip}:
+  //  · «vb:tier» cuando cambia CUALQUIERA de las tres clases (ph, ph-s, ph-w). A 667×375 la barra del navegador sube y baja innerHeight
+  //    por encima y por debajo de 345: las variantes .ph-s que monta el JS (endRecap, Controles…) se rehacen con este. Barato e idempotente.
+  //  · «vb:ph» solo cuando entra o sale el tier (ph). Lo escuchan pantallas que se repintan enteras (cuenta, sala online, Carrera): si
+  //    saltara con ph-s, la barra del navegador les borraría lo que estás escribiendo.
+  function tierKey() { var c = RT.classList; return (c.contains('ph') ? 'p' : '') + (c.contains('ph-s') ? 's' : '') + (c.contains('ph-w') ? 'w' : ''); }
+  function tier() {
+    phRaf = 0;
+    try { window.__phTier(); } catch (e) { }
+    var k = tierKey();
+    if (phPrev === null) { phPrev = k; return; }
+    if (k === phPrev) return;
+    var flip = (phPrev.charAt(0) === 'p') !== (k.charAt(0) === 'p'), c = RT.classList;
+    phPrev = k;
+    var d = { ph: c.contains('ph'), s: c.contains('ph-s'), w: c.contains('ph-w'), flip: flip };
+    try { doc.dispatchEvent(new CustomEvent('vb:tier', { detail: d })); } catch (e) { }
+    if (flip) try { doc.dispatchEvent(new CustomEvent('vb:ph', { detail: d })); } catch (e) { }
+  }
+  function tierSoon() { if (!phRaf) phRaf = (window.requestAnimationFrame || setTimeout)(tier); }
+  try { var mqPh = matchMedia(PHONE_MQ); if (mqPh.addEventListener) mqPh.addEventListener('change', tierSoon); else if (mqPh.addListener) mqPh.addListener(tierSoon); } catch (e) { }
+  window.addEventListener('resize', tierSoon);
+  window.addEventListener('orientationchange', tierSoon);
+  tier();
+  /** Lo que se rehace al cambiar de tier (fitSeg, tbl, shorten): una función por raíz, idempotente. */
+  var phHooks = [];
+  doc.addEventListener('vb:ph', function () { for (var i = 0; i < phHooks.length; i++) { try { phHooks[i](); } catch (e) { } } });
+  function onTier(key, fn) { for (var i = 0; i < phHooks.length; i++) if (phHooks[i]._k === key) return; fn._k = key; phHooks.push(fn); }
+  function tog(e, c, on) { if (e.classList.contains(c) !== !!on) e.classList.toggle(c, !!on); }
+  function $el(x) { return typeof x === 'string' ? doc.querySelector(x) : x; }
+  function mk(tag, cls, html) { var e = doc.createElement(tag); if (cls) e.className = cls; if (html != null) e.innerHTML = html; return e; }
+  function raf(fn) { return (window.requestAnimationFrame || setTimeout)(fn); }
+
+  /** Señales de «hay más»: .sp-more (queda algo abajo), .sp-less (desplazado: desvanecido arriba), .sp-more-x (queda algo a la derecha).
+   *  Escucha pasiva de scroll + ResizeObserver + MutationObserver (contenido repintado). Idempotente: otra llamada solo vuelve a medir. */
+  function more(el) {
+    el = $el(el); if (!el || !el.classList) return el;
+    if (el._spM) { el._spM(); return el; }
+    var q = 0;
+    var f = function () {
+      var sh = el.scrollHeight, ch = el.clientHeight, sw = el.scrollWidth, cw = el.clientWidth, y = ch > 0 && sh - ch > 8, x = cw > 0 && sw - cw > 8;
+      tog(el, 'sp-more', y && el.scrollTop + ch < sh - 8);
+      tog(el, 'sp-less', y && el.scrollTop > 8);
+      tog(el, 'sp-more-x', x && el.scrollLeft + cw < sw - 8);
+    };
+    var soon = function () { if (!q) q = raf(function () { q = 0; f(); }); };
+    el._spM = f;
+    el.addEventListener('scroll', soon, { passive: true });
+    try { if (typeof ResizeObserver !== 'undefined') new ResizeObserver(soon).observe(el); } catch (e) { }
+    try { if (typeof MutationObserver !== 'undefined') new MutationObserver(soon).observe(el, { childList: true, subtree: true }); } catch (e) { }
+    f();
+    return el;
+  }
+  function scrollParent(el, axis) {
+    for (var p = el.parentElement; p && p !== doc.body; p = p.parentElement) {
+      var cs = getComputedStyle(p), o = axis === 'x' ? cs.overflowX : cs.overflowY;
+      if (/(auto|scroll)/.test(o) && (axis === 'x' ? p.scrollWidth > p.clientWidth + 1 : p.scrollHeight > p.clientHeight + 1)) return p;
+    }
+    return null;
+  }
+  /** Lleva «tu» elemento a la vista DENTRO de su contenedor desplazable (nunca mueve la página): o = {block:'center'|'start'|'nearest',
+   *  inline:'center'|'nearest', smooth}. Al abrir una pantalla: tu fila de la tabla, el próximo partido, la opción elegida, la pestaña. */
+  function reveal(el, o) {
+    el = $el(el); if (!el || !el.getBoundingClientRect) return false;
+    o = o || {};
+    var b = o.block || 'center', moved = false, beh = o.smooth && !reduced() ? 'smooth' : 'auto';
+    var py = scrollParent(el, 'y');
+    if (py) {
+      var pr = py.getBoundingClientRect(), r = el.getBoundingClientRect(), top = r.top - pr.top + py.scrollTop, t;
+      if (b === 'start') t = top - 12;
+      else if (b === 'nearest') t = r.top < pr.top ? top - 12 : r.bottom > pr.bottom ? top + r.height - py.clientHeight + 12 : py.scrollTop;
+      else t = top - (py.clientHeight - r.height) / 2;
+      t = Math.max(0, Math.min(py.scrollHeight - py.clientHeight, t));
+      if (Math.abs(t - py.scrollTop) > 1) { try { py.scrollTo({ top: t, behavior: beh }); } catch (e) { py.scrollTop = t; } moved = true; }
+    }
+    var px = scrollParent(el, 'x');
+    if (px) {
+      var qr = px.getBoundingClientRect(), s = el.getBoundingClientRect(), left = s.left - qr.left + px.scrollLeft, u;
+      u = (o.inline || 'center') === 'nearest' ? (s.left < qr.left ? left - 8 : s.right > qr.right ? left + s.width - px.clientWidth + 8 : px.scrollLeft) : left - (px.clientWidth - s.width) / 2;
+      u = Math.max(0, Math.min(px.scrollWidth - px.clientWidth, u));
+      if (Math.abs(u - px.scrollLeft) > 1) { try { px.scrollTo({ left: u, behavior: beh }); } catch (e) { px.scrollLeft = u; } moved = true; }
+    }
+    return moved;
+  }
+
+  // ---------------------------------------------------------------- fitSeg: segmentado → interruptor o selector según el número de opciones
+  var YESNO = /^(sí|si|no|on|off|activado|desactivado)$/i, YES = /^(sí|si|on|activado)$/i;
+  var ARR = { l: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>', r: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg>' };
+  function segSpans(s) { return Array.prototype.filter.call(s.children, function (c) { return c.tagName === 'SPAN'; }); }
+  function segMode(s, L) {
+    var f = s.getAttribute('data-ph-ctl');
+    if (f === 'seg' || f === 'select' || f === 'toggle') return f;
+    if (L.length === 2 && YESNO.test(L[0].textContent.trim()) && YESNO.test(L[1].textContent.trim())) return 'toggle';
+    if (L.length >= 4) return 'select';
+    // 2-3 opciones con texto: segmentado si cabe en su sitio (el ancho del padre, sin desbordar)
+    var p = s.parentElement;
+    if (p && s.offsetWidth && (s.scrollWidth > s.clientWidth + 1 || s.getBoundingClientRect().right > p.getBoundingClientRect().right + 1)) return 'select';
+    return 'seg';
+  }
+  function segOn(L) { for (var i = 0; i < L.length; i++) if (L[i].classList.contains('on') || L[i].getAttribute('aria-checked') === 'true') return i; return 0; }
+  function segPaint(s) {
+    var x = s._phx; if (!x) return;
+    var L = segSpans(s), i = segOn(L), n = L.length;
+    if (x._m === 'toggle') {
+      var yi = 1; for (var k = 0; k < n; k++) if (YES.test(L[k].textContent.trim())) { yi = k; break; }
+      var on = i === yi; tog(x, 'on', on); x.setAttribute('aria-checked', on ? 'true' : 'false');
+      x.setAttribute('aria-label', (L[i] && L[i].textContent.trim()) || '');
+    } else {
+      var b = x.querySelector('.mv-val b'), t = L[i] ? L[i].textContent.trim() : '';
+      if (b && b.textContent !== t) b.textContent = t;
+      tog(x.querySelector('[data-d="-1"]'), 'end', i <= 0);
+      tog(x.querySelector('[data-d="1"]'), 'end', i >= n - 1);
+    }
+  }
+  function segGo(s, how, e) {
+    if (e) { e.stopPropagation(); e.preventDefault(); }
+    var L = segSpans(s), i = segOn(L), n = L.length, j = i;
+    if (how === 'toggle') j = n === 2 ? 1 - i : (i + 1) % n;
+    else if (how === -1) j = Math.max(0, i - 1);
+    else if (how === 1) j = Math.min(n - 1, i + 1);
+    else j = (i + 1) % n;   // tocar el valor: la siguiente (con vuelta)
+    if (j !== i && L[j]) L[j].click();
+  }
+  function segUnfit(s) {
+    if (s._phx) { if (s._phx.parentNode) s._phx.parentNode.removeChild(s._phx); s._phx = null; }
+    if (s._phMo) { s._phMo.disconnect(); s._phMo = null; }
+    s.classList.remove('ph-hid');
+  }
+  /** En html.ph, cada `.seg` de root: 2 opciones sí/no → .sp-toggle; 2-3 con texto que caben → se queda el segmentado; 4+ (o no cabe)
+   *  → .sp-select (flechas de 44 px; tocar el valor = la siguiente). El original queda oculto (.ph-hid) y sigue mandando: el proxy
+   *  reenvía los toques a sus <span> y lo vigila (MutationObserver). data-ph-ctl="seg|select|toggle" fuerza el control. Sin .ph, quita
+   *  los proxies. Idempotente; se rehace solo al cambiar de tier. */
+  function fitSeg(root) {
+    root = $el(root) || doc;
+    var key = root === doc ? 'doc' : (root.id || root);
+    if (typeof key === 'string') onTier('seg:' + key, function () { fitSeg(root); });
+    else if (!root._phSegT) { root._phSegT = 1; phHooks.push(function () { fitSeg(root); }); }
+    var S = root.querySelectorAll ? root.querySelectorAll('.seg') : [];
+    for (var i = 0; i < S.length; i++) {
+      var s = S[i];
+      if (s.classList.contains('ph-proxy')) continue;
+      if (!phone()) { segUnfit(s); continue; }
+      var L = segSpans(s); if (!L.length) continue;
+      var was = s._phx ? s._phx._m : null;
+      if (s._phx) s.classList.remove('ph-hid');   // medir el original a la vista
+      var m = s.getAttribute('data-ph-ctl') || was || segMode(s, L);
+      if (m === 'seg') { segUnfit(s); continue; }
+      if (!s._phx || s._phx._m !== m) {
+        segUnfit(s);
+        var x;
+        if (m === 'toggle') {
+          x = mk('span', 'sp-toggle ph-proxy'); x.setAttribute('role', 'switch');
+          x.addEventListener('click', segGo.bind(null, s, 'toggle'));
+        } else {
+          x = mk('span', 'sp-select ph-proxy', '<span class="arr" data-d="-1" role="button" aria-label="Anterior">' + ARR.l + '</span><span class="mv-val" role="button"><b></b></span><span class="arr" data-d="1" role="button" aria-label="Siguiente">' + ARR.r + '</span>');
+          x.addEventListener('click', function (s0) {
+            return function (e) { var a = e.target.closest ? e.target.closest('[data-d]') : null; segGo(s0, a ? +a.getAttribute('data-d') : 0, e); if (a && !a.classList.contains('end')) press(a); };
+          }(s));
+        }
+        x._m = m;
+        s.parentNode.insertBefore(x, s.nextSibling);
+        s._phx = x;
+        if (typeof MutationObserver !== 'undefined') { s._phMo = new MutationObserver(segPaint.bind(null, s)); s._phMo.observe(s, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked'] }); }
+      }
+      s.classList.add('ph-hid');
+      segPaint(s);
+    }
+    return S.length;
+  }
+
+  // ---------------------------------------------------------------- hojas de abajo (bottom sheets) y avisos modales
+  var shCur = null, shN = 0;
+  function layerHost() { return doc.getElementById('app') || doc.body; }
+  function sheetHost() {
+    var h = doc.getElementById('spSheets');
+    if (!h) { h = mk('div'); h.id = 'spSheets'; h.hidden = true; layerHost().appendChild(h); }
+    return h;
+  }
+  var XSVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>';
+  /** Hoja de abajo a la derecha (en el centro en PC): o = {title, html | node, tone:'ink'|'paper'|'danger', cls,
+   *  actions:[{label, cls:'sp-kit'|'sp-gold'|'sp-cream'|'sp-danger', fn(api), primary, keep, id}], onClose}. Una a la vez (abrir otra
+   *  cierra la anterior); tinte del 20 % detrás (nunca desenfoque); se cierra con el tinte, ✕, Esc / Retroceso o B del mando
+   *  (ui.js). El foco entra y vuelve al que la abrió. Devuelve {el, body, close}. */
+  function sheet(o) {
+    o = o || {};
+    if (shCur) shCur.close(true);
+    var h = sheetHost(), opener = doc.activeElement, id = 'spSh' + (++shN);
+    h.innerHTML = '';
+    var cat = mk('div', 'sp-catch'), p = mk('div', 'sp-panel sp-sheet' + (o.tone === 'paper' ? ' sp-paper' : o.tone === 'danger' ? ' sp-sh-danger' : '') + (o.cls ? ' ' + o.cls : ''));
+    p.setAttribute('role', 'dialog'); p.setAttribute('aria-modal', 'true'); p.setAttribute('data-nav', '');
+    var hd = mk('div', 'sp-sh-h');
+    if (o.title) { var t = mk('h3', 'sp-sh-t'); t.id = id + 't'; t.textContent = o.title; hd.appendChild(t); p.setAttribute('aria-labelledby', t.id); }
+    var x = mk('button', 'sp-x', XSVG); x.type = 'button'; x.setAttribute('aria-label', 'Cerrar');
+    hd.appendChild(x); p.appendChild(hd);
+    var body = mk('div', 'sp-scroll sp-sh-b');
+    if (o.node) body.appendChild(o.node); else if (o.html != null) body.innerHTML = o.html;
+    p.appendChild(body);
+    var acts = (o.actions || []).slice(), dock = mk('div', 'sp-dock');
+    if (!acts.length) acts = [{ label: 'Cerrar', cls: 'sp-cream' }];
+    acts.sort(function (a, b) { return (a.primary ? 1 : 0) - (b.primary ? 1 : 0); });   // la principal, la última (abajo a la derecha)
+    var first = null;
+    acts.forEach(function (a, i) {
+      var b = mk('button', 'sp-btn sp-md ' + (a.cls || (a.primary ? 'sp-kit' : 'sp-cream')), '<span class="sp-t"></span>');
+      b.type = 'button'; b.firstChild.textContent = a.label || ''; if (a.id) b.id = a.id; b.setAttribute('data-shape', String(i + 1));
+      b.addEventListener('click', function () { var r = a.fn ? a.fn(api) : undefined; if (!a.keep && r !== false) api.close(); });
+      dock.appendChild(b); if (a.primary || !first) first = b;
+    });
+    if (acts.length === 1 && !acts[0].primary) dock.classList.add('sp-dock-one');
+    p.appendChild(dock);
+    h.appendChild(cat); h.appendChild(p);
+    h.classList.toggle('sp-rm', reduced());
+    h.hidden = false; RT.classList.add('sp-sh-on');   // (los avisos cortos bajan para no tapar la ✕)
+    decorate(p); more(body);
+    var api = {
+      el: p, body: body, open: true,
+      close: function (silent) {
+        if (!api.open) return; api.open = false;
+        if (shCur === api) shCur = null;
+        h.hidden = true; h.innerHTML = ''; RT.classList.remove('sp-sh-on');
+        if (o.onClose) { try { o.onClose(silent); } catch (e) { } }
+        if (opener && opener.focus && doc.contains(opener) && !opener.closest('[hidden]')) { try { opener.focus({ preventScroll: true }); } catch (e) { } }
+      }
+    };
+    cat.addEventListener('click', function () { api.close(); });
+    x.addEventListener('click', function () { api.close(); });
+    shCur = api;
+    var kb = !!(opener && opener.classList && opener.classList.contains('kf'));
+    setTimeout(function () { if (shCur !== api || !first) return; try { first.focus({ preventScroll: true }); } catch (e) { } if (kb) first.classList.add('kf'); }, 30);
+    return api;
+  }
+  function sheetOpen() { return !!shCur; }
+  function sheetEl() { return shCur ? shCur.el : null; }
+  function closeTop() { if (!shCur) return false; shCur.close(); return true; }
+  // Esc / Retroceso cierran la hoja (fase de captura en window: antes que ui.js, la Carrera o el lobby; no en un campo de texto)
+  window.addEventListener('keydown', function (e) {
+    if (!shCur) return;
+    var k = e.key, a = doc.activeElement, typing = a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA' || a.isContentEditable);
+    if (k === 'Escape' || (k === 'Backspace' && !typing)) { e.preventDefault(); e.stopImmediatePropagation(); e.stopPropagation(); if (!e.repeat) closeTop(); }
+  }, true);
+  /** Aviso modal: pone un .sp-catch (tinte del 20 %, se traga los toques) justo debajo de el, sin mover nada. Devuelve release(). */
+  function modal(el) {
+    el = $el(el); if (!el || !el.parentNode) return function () { };
+    var z = parseInt(getComputedStyle(el).zIndex, 10), c = mk('div', 'sp-catch sp-catch-m');
+    c.style.zIndex = String(isFinite(z) ? z - 1 : 0);
+    el.parentNode.insertBefore(c, el);
+    return function () { if (c.parentNode) c.parentNode.removeChild(c); };
+  }
+
+  // ---------------------------------------------------------------- explicaciones de segundo nivel: .sp-q («?» → hoja) y .sp-info («i» → en la fila)
+  /** Un escuchador por raíz: .sp-q (data-q-title + data-q-html o data-q-src="#id") abre una hoja con el texto; .sp-info despliega la
+   *  .sp-help-full de su fila (aria-expanded en la fila: la .sp-lrow / .sp-li / [data-info-row] más cercana, o su padre). */
+  function info(root) {
+    root = $el(root) || doc;
+    if (root._spI) return;
+    root._spI = function (e) {
+      var t = e.target && e.target.closest ? e.target : null; if (!t) return;
+      var q = t.closest('.sp-q');
+      if (q && root.contains(q)) {
+        e.preventDefault(); e.stopPropagation();
+        var src = q.getAttribute('data-q-src'), html = q.getAttribute('data-q-html'), n = src ? doc.querySelector(src) : null;
+        sheet({ title: q.getAttribute('data-q-title') || q.getAttribute('aria-label') || '', html: n ? n.innerHTML : html || '' });
+        return;
+      }
+      var i = t.closest('.sp-info');
+      if (i && root.contains(i)) { e.preventDefault(); e.stopPropagation(); infoFlip(i); }
+    };
+    root.addEventListener('click', root._spI, true);
+  }
+  function infoFlip(i) {
+    var row = i.closest('.sp-lrow,.sp-li,[data-info-row]') || i.parentElement, on = row.getAttribute('aria-expanded') !== 'true';
+    row.setAttribute('aria-expanded', on ? 'true' : 'false'); i.setAttribute('aria-expanded', on ? 'true' : 'false');
+    return on;
+  }
+  /** infoToggle(el): teclado y mando (la «i» es un <span> dentro del <button> de la fila, sin foco propio): si la fila enfocada `el`
+   *  tiene una .sp-info visible, la despliega o la recoge como el toque. Devuelve true si había «i». */
+  function infoToggle(el) {
+    if (!el || !el.querySelector) return false;
+    var i = el.querySelector('.sp-info');
+    // (la «i» puede ser hermana del foco: h3#msh-fig y su .sp-info van sueltos dentro de section[data-info-row], matchstats.js)
+    if (!i && el.closest) { var row = el.closest('[data-info-row]'); i = row && row.querySelector(':scope>.sp-info'); }
+    if (!i || i.hidden) return false;
+    infoFlip(i);
+    return true;
+  }
+
+  // ---------------------------------------------------------------- tablas: columnas del móvil y «Ver tabla completa»
+  function cellCol(td) {
+    var c = 0; for (var n = td.parentNode.firstElementChild; n && n !== td; n = n.nextElementSibling) c += n.colSpan || 1;
+    return c;
+  }
+  /** <div class="sp-tbl" data-ph-cols="0,1,4,6,9"><table>…</table></div>: en html.ph oculta (.ph-hide) las columnas no listadas y añade
+   *  la pastilla «Ver tabla completa» (hoja con la tabla entera y desplazamiento lateral dentro). Sin .ph, todo como estaba.
+   *  Llamar tras pintar la tabla (y otra vez si se repinta). */
+  function tbl(w) {
+    w = $el(w); if (!w) return;
+    if (!w._spT) { w._spT = 1; phHooks.push(function () { if (doc.contains(w)) tbl(w); }); }
+    var t = w.querySelector('table'); if (!t) return;
+    var cols = (w.getAttribute('data-ph-cols') || '').split(',').filter(function (s) { return s !== ''; }).map(Number), ph = phone() && cols.length > 0;
+    var C = t.querySelectorAll('th,td');
+    for (var i = 0; i < C.length; i++) tog(C[i], 'ph-hide', ph && cols.indexOf(cellCol(C[i])) < 0);
+    var all = w.querySelector(':scope > .sp-tbl-all');
+    if (ph && !all) {
+      all = mk('button', 'sp-btn sp-sm sp-cream sp-tbl-all', '<span class="sp-t">Ver tabla completa</span>'); all.type = 'button';
+      all.addEventListener('click', function () {
+        var full = mk('div', 'sp-tbl-full'), c = t.cloneNode(true), H = c.querySelectorAll('.ph-hide');
+        for (var k = 0; k < H.length; k++) H[k].classList.remove('ph-hide');
+        full.appendChild(c);
+        sheet({ title: w.getAttribute('data-ph-title') || 'Tabla', node: full, cls: 'sp-sheet-wide' });
+      });
+      w.appendChild(all); decorate(all);
+    }
+    if (all) all.hidden = !ph;
+    var me = t.querySelector('tr.sp-me'); if (ph && me) reveal(me);
+  }
+
+  // ---------------------------------------------------------------- textos cortos del móvil
+  /** [data-ph-short="…"] (elemento solo con texto): en html.ph pone el texto corto (el largo queda en data-ph-long y en aria-label); sin
+   *  .ph, vuelve el largo. Lo llaman decorate() y el cambio de tier. Para rótulos que el código reescribe, mejor una rama con phone(). */
+  function shorten(root, tabs) {
+    root = $el(root) || doc;
+    var L = root.querySelectorAll ? root.querySelectorAll('[data-ph-short]') : [], ph = phone();
+    for (var i = 0; i < L.length; i++) {
+      var e = L[i], s = e.getAttribute('data-ph-short'), lg = e.getAttribute('data-ph-long');
+      if (!tabs && ph && e.closest('[data-ph-tabs]')) continue;   // (las pestañas las acorta ui.js fitTabs solo si no caben)
+      if (ph) {
+        if (lg == null) { lg = e.textContent; e.setAttribute('data-ph-long', lg); if (!e.hasAttribute('aria-label')) { e.setAttribute('aria-label', lg.trim()); e.setAttribute('data-ph-al', ''); } }
+        if (e.textContent !== s) e.textContent = s;
+      } else if (lg != null) {
+        if (e.textContent !== lg) e.textContent = lg;
+        e.removeAttribute('data-ph-long'); if (e.hasAttribute('data-ph-al')) { e.removeAttribute('aria-label'); e.removeAttribute('data-ph-al'); }
+      }
+    }
+  }
+  onTier('shorten', function () { shorten(doc); });
+
+  // ---------------------------------------------------------------- avisos cortos (toasts): carril arriba a la derecha
+  var toastKeys = {};
+  /** Aviso corto en el carril de arriba a la derecha (#spToasts, bajo DIRECTO; nunca abajo en el centro): o = {ms=3500, cls, key}.
+   *  Tocar lo cierra; la misma key sustituye al anterior. Devuelve {el, close}. */
+  function toast(html, o) {
+    o = o || {};
+    var lane = doc.getElementById('spToasts');
+    if (!lane) { lane = mk('div'); lane.id = 'spToasts'; lane.setAttribute('aria-live', 'polite'); lane.setAttribute('role', 'status'); layerHost().appendChild(lane); }
+    if (o.key && toastKeys[o.key]) toastKeys[o.key].close(true);
+    var t = mk('div', 'sp-toast' + (o.cls ? ' ' + o.cls : '') + (reduced() ? ' sp-rm' : ''), html);
+    lane.appendChild(t);
+    var tm = 0, api = {
+      el: t,
+      close: function () { clearTimeout(tm); if (t.parentNode) t.parentNode.removeChild(t); if (o.key && toastKeys[o.key] === api) delete toastKeys[o.key]; }
+    };
+    t.addEventListener('click', function () { api.close(); });
+    if (o.key) toastKeys[o.key] = api;
+    var ms = o.ms == null ? 3500 : +o.ms; if (ms > 0) tm = setTimeout(api.close, ms);
+    return api;
+  }
+
+  // ---------------------------------------------------------------- teclado del móvil
+  // visualViewport: si el teclado tapa > 120 px con un campo enfocado → html.sp-kb (+ --kb-h, --vvh), la hoja o panel del campo
+  // (.sp-panel, .sp-sheet o [data-kb-pin]) se pega arriba (.kb-pin), [data-kb-hide] se oculta, el [data-kb-row] del campo pasa a una
+  // fila (.sp-inrow) y el campo sube al principio de su contenedor. Al cerrar el teclado o salir del campo, todo vuelve.
+  var kbOn = false, kbPin = null, kbRow = null;
+  function kbApply(on, hgt) {
+    var a = doc.activeElement, isF = !!(a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'));
+    on = !!on && isF;
+    var vv = window.visualViewport, vh = vv ? vv.height : innerHeight;
+    RT.style.setProperty('--vvh', Math.round(hgt != null ? innerHeight - hgt : vh) + 'px');
+    RT.style.setProperty('--kb-h', on ? Math.round(hgt != null ? hgt : innerHeight - vh) + 'px' : '0px');
+    if (on === kbOn && (!on || (kbPin && kbPin.contains(a)))) return;
+    if (kbPin) { kbPin.classList.remove('kb-pin'); kbPin = null; }
+    if (kbRow) { kbRow.classList.remove('sp-inrow'); kbRow = null; }
+    kbOn = on; tog(RT, 'sp-kb', on);
+    if (!on) return;
+    kbPin = a.closest('[data-kb-pin],.sp-sheet,.sp-panel'); if (kbPin) kbPin.classList.add('kb-pin');
+    kbRow = a.closest('[data-kb-row]'); if (kbRow) kbRow.classList.add('sp-inrow');
+    raf(function () { reveal(a, { block: 'start' }); });
+  }
+  var kbInst = false;
+  function kbd() {
+    if (kbInst) return; kbInst = true;
+    var vv = window.visualViewport;
+    var chk = function () { var v = window.visualViewport, d = v ? innerHeight - v.height : 0; kbApply(d > 120); };
+    if (vv) { vv.addEventListener('resize', chk); vv.addEventListener('scroll', chk); }
+    doc.addEventListener('focusout', function () { setTimeout(function () { if (kbOn) chk(); }, 60); });
+    doc.addEventListener('focusin', function () { if (vv) chk(); });
+  }
+
   VB.Splat = {
     decorate: decorate, watch: watch, setKit: setKit, sync: sync, kit: function () { return kitNow < 0 ? kitOf() : kitNow; },
-    reduced: reduced, splash: splash, press: press, ICONS: ICONS, BALL: BALL, SHAPES: SH
+    reduced: reduced, splash: splash, press: press, ICONS: ICONS, BALL: BALL, SHAPES: SH,
+    // móvil (notes/splat.md «Móvil»)
+    PHONE_MQ: PHONE_MQ, phone: phone, more: more, reveal: reveal, fitSeg: fitSeg, sheet: sheet, sheetOpen: sheetOpen, sheetEl: sheetEl,
+    closeTop: closeTop, modal: modal, info: info, infoToggle: infoToggle, tbl: tbl, shorten: shorten, toast: toast, kbd: kbd,
+    /** Pruebas: simula el teclado del móvil (on, alto en px) sin visualViewport. */
+    _kb: function (on, hgt) { kbApply(on, on ? (hgt || 160) : 0); return kbOn; }
   };
 
   // al cargar: tokens con el color por defecto (antes de leer los ajustes, que llegan con main.js) y lo que ya está en el DOM
   setKit(0xff5a2c);
+  kbd();
   function boot() { decorate(doc); sync(); }
   if (doc.readyState === 'loading') doc.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+
+// ---------------------------------------------------------------- (móvil · portada) filas con la ayuda en UNA línea y su «i»
+(function () {
+  'use strict';
+  var S = window.VB && window.VB.Splat; if (!S) return;
+  var roots = [], tm = 0;
+  /** helpFit(root, sel): en html.ph, cada fila `sel` (por defecto los .opt de Ajustes; su primer hijo = «Rótulo<small>ayuda</small>») deja la
+   *  ayuda en dos líneas como mucho (data-ph-ell; line-clamp en el CSS) y, si no cabe, le pone una «i» (.sp-info, 44 px de toque) que la abre entera en la fila
+   *  (aria-expanded; VB.Splat.info). La ayuda sigue en el MISMO <small> (el código puede reescribir su texto). Sin .ph, quita las «i».
+   *  Se rehace al cambiar de tier y al cambiar el tamaño; llamar también al abrir o cambiar de pestaña (las filas ocultas no se miden). */
+  function helpFit(root, sel) {
+    root = typeof root === 'string' ? document.querySelector(root) : root; if (!root) return;
+    var k = 0; for (; k < roots.length; k++) if (roots[k][0] === root && roots[k][1] === (sel || '')) break;
+    if (k === roots.length) roots.push([root, sel || '']);
+    S.info(root);
+    var ph = S.phone(), R = root.querySelectorAll(sel || '.opt');
+    for (var i = 0; i < R.length; i++) {
+      var row = R[i], lab = row.firstElementChild, sm = lab && lab.querySelector(':scope>small'), ib = lab && lab.querySelector(':scope>.sp-info');
+      if (!sm) continue;
+      if (!ph) { if (ib) ib.parentNode.removeChild(ib); row.removeAttribute('aria-expanded'); continue; }
+      if (!row.offsetParent) continue;
+      sm.setAttribute('data-ph-ell', ''); row.setAttribute('data-info-row', '');
+      if (row.getAttribute('aria-expanded') === 'true') continue;
+      if (ib) ib.hidden = true;
+      var cut = sm.scrollWidth > sm.clientWidth + 1 || sm.scrollHeight > sm.clientHeight + 1;   // (ayuda a 2 líneas con line-clamp)
+      if (cut && !ib) {
+        ib = document.createElement('span'); ib.className = 'sp-info'; ib.setAttribute('role', 'button'); ib.setAttribute('aria-label', 'Ver la ayuda entera'); ib.setAttribute('aria-keyshortcuts', 'I');
+        ib.innerHTML = '<b aria-hidden="true">i</b>'; lab.appendChild(ib);
+      }
+      if (ib) ib.hidden = !cut;
+    }
+  }
+  function again() { clearTimeout(tm); tm = setTimeout(function () { for (var i = 0; i < roots.length; i++) if (document.contains(roots[i][0])) helpFit(roots[i][0], roots[i][1]); }, 120); }
+  document.addEventListener('vb:ph', again);
+  window.addEventListener('resize', again);
+  S.helpFit = helpFit;
 })();

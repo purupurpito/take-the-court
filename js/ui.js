@@ -1117,7 +1117,12 @@
       var nm = cpuTxt(String(d.nm || '')), n1 = B.querySelector('.in-nm'), n2 = B.querySelector('.in-sm'), n3 = B.querySelector('.in-tr'), n4 = B.querySelector('.in-pos'), n0 = B.querySelector('.in-pt');
       if (n1) n1.textContent = nm;
       B.classList.toggle('long', nm.length > 11);
-      if (n2) { n2.textContent = cpuTxt(String(d.sm || '')); n2.hidden = !n2.textContent; }
+      if (n2) {
+        var smt = cpuTxt(String(d.sm || '')), yi = smt.length > 16 ? smt.indexOf(' y ') : -1;
+        // (pareja larga, «Ares Belmonte y Iker Sanz»: el segundo nombre en su span; en el móvil .in-y va en su propia línea)
+        if (yi > 0) n2.innerHTML = escT(smt.slice(0, yi)) + ' <span class="in-y">' + escT(smt.slice(yi + 1)) + '</span>'; else n2.textContent = smt;
+        n2.hidden = !smt;
+      }
       if (n3) { n3.textContent = d.tr && d.tr.t ? d.tr.t : ''; n3.hidden = !n3.textContent; n3.classList.toggle('boss', !!(d.tr && d.tr.k === 'boss')); }
       if (n4) { n4.textContent = d.pos || ''; n4.hidden = !d.pos; }
       if (n0) n0.innerHTML = i === 0 ? introPortraits(g) : '';
@@ -2627,6 +2632,8 @@
    *  (el CSS desvanece el borde de abajo). Al abrir y repintar (checkMore), al desplazar y cada 16 frames con el panel abierto. */
   function spMore() {
     var L = el.panel.querySelectorAll('.sp-scroll');
+    // (móvil, 18-nov-2026: VB.Splat.more mide igual y además pone .sp-less / .sp-more-x y se vuelve a medir sola al desplazar)
+    if (VB.Splat && VB.Splat.more) { for (var k = 0; k < L.length; k++) VB.Splat.more(L[k]); return; }
     for (var i = 0; i < L.length; i++) {
       var s = L[i], m = s.clientHeight > 0 && s.scrollHeight - s.clientHeight > 8 && s.scrollTop + s.clientHeight < s.scrollHeight - 8;
       if (s.classList.contains('sp-more') !== m) s.classList.toggle('sp-more', m);
@@ -2668,10 +2675,13 @@
     // E6: hoja final del ejercicio (sin gameOver: g.drill.done), tras el sello de la última repetición y la cortinilla
     var geOn = s === 'over' && !!(g.drill && g.drill.done && !g.demo) && !panel && !geGate;
     if (el.gymEnd) showNode(el.gymEnd, geOn);
-    if (endOn && el.end.hidden) { el.end.classList.toggle('dock', endDocked()); if (!rpBack) { countUp(el.end); endRcSounds(); } rpBack = false; setTimeout(endMore, 60); }
+    if (endOn && el.end.hidden) { el.end.classList.toggle('dock', endDocked()); if (!rpBack) { countUp(el.end); endRcSounds(); } rpBack = false; setTimeout(endMore, 60); if (endTabsApi) setTimeout(function () { fitTabs(endTabsApi); }, 70); }
     if (!endOn && ctx.replay && s === 'over' && !el.end.hidden) rpBack = true;   // (al volver de las jugadas, sin la entrada otra vez)
     showNode(el.end, endOn);
     el.app.classList.toggle('end-on', s === 'over' && !!g.finished);
+    // (móvil · partido, 18-nov-2026) #app.hud-off: con la pausa, un panel abierto en el partido (Controles, Ajustes, Cambios,
+    // Estadística), la hoja final o la del ejercicio, el marcador, los botones del HUD y los mandos táctiles no asoman detrás (CSS «SPLAT · CAMBIOS Y BANQUILLO»)
+    el.app.classList.toggle('hud-off', s === 'paused' || geOn || (s === 'over' && !!g.finished && !ctx.replay) || (!!panel && s !== 'menu'));
     showNode(el.panel, !!panel);
     // En el menú el HUD no se oculta con display:none sino casi transparente (.warm): mostrarlo por primera vez
     // al empezar el partido costaba un frame de 100-120 ms (rasterizado del marcador; medido en Chrome/ANGLE).
@@ -2686,6 +2696,8 @@
     tabTitle(g);
   }
   function activeLayer() {
+    // móvil: una hoja de abajo (VB.Splat.sheet) abierta es la capa activa (el foco y ↑/↓ se quedan dentro; B / Esc la cierran)
+    var shL = VB.Splat && VB.Splat.sheetEl ? VB.Splat.sheetEl() : null; if (shL) return shL;
     if (panel) return el.panel;
     if (ctx.state === 'menu') return el.menu;
     if (ctx.state === 'paused') return el.pause;
@@ -2697,7 +2709,8 @@
     if (!layer) return [];
     var all = layer.querySelectorAll('[data-nav] button, [data-nav] [data-focus], .pn-head button, .mp-head button'), out = [];
     // (las pestañas no elegidas y las pistas Q/E llevan data-skip: solo la pestaña activa entra en el recorrido ↑/↓)
-    for (var i = 0; i < all.length; i++) if (!all[i].closest('[hidden]') && !all[i].closest('[inert]') && !all[i].disabled && !all[i].hasAttribute('data-skip')) out.push(all[i]);
+    // (y los que no se pintan, p. ej. el «?» .ph-only de Partido rápido en PC: display:none no se puede enfocar)
+    for (var i = 0; i < all.length; i++) if (!all[i].closest('[hidden]') && !all[i].closest('[inert]') && !all[i].disabled && !all[i].hasAttribute('data-skip') && all[i].getClientRects().length) out.push(all[i]);
     // en paneles y páginas del menú: primero el contenido y "Volver" al final
     var isBack = function (b) { return b.id === 'btnPanelBack' || b.classList.contains('mp-back') ? 1 : 0; };
     out.sort(function (a, b) { return isBack(a) - isBack(b); });
@@ -2848,7 +2861,7 @@
     d.a.forEach(function (a, i) {
       var on = i === sqSel;
       ph += '<button class="sq-pk sp-btn sp-wide sp-calm sp-quiet ' + (on ? 'sp-gold on' : 'sp-ink') + (a.pts ? ' has-pts' : '') + '" data-shape="' + (i * 2 + 1) + '" role="radio" aria-checked="' + on + '" data-pick="' + i + '"' + (on ? '' : ' tabindex="-1"') + '>' +
-        '<span class="sq-num">' + a.num + '</span><span class="sq-pn">N.º ' + a.num + '<small>' + escT(a.role || '') + ' (Nv ' + a.lvl + ')<span class="sq-pm"><span class="sep sep-v"><span class="sr">, </span></span>Media ' + P.ovr(a.st) + '</span></small></span>' +
+        '<span class="sq-num">' + a.num + '</span><span class="sq-pn">N.º ' + a.num + '<small>' + escT(a.role || '') + '<span class="sq-lv"> (Nv&nbsp;' + a.lvl + ')</span><span class="sq-pm"><span class="sep sep-v"><span class="sr">, </span></span><span class="sq-pl">Nv&nbsp;' + a.lvl + ' · </span>Media ' + P.ovr(a.st) + '</span></small></span>' +
         (a.pts ? '<em class="sq-pp" aria-label="' + a.pts + ' puntos de mejora">+' + a.pts + '</em>' : '') + '</button>';
     });
     var ae0 = document.activeElement, pickF = ae0 && el.sqPick && el.sqPick.contains(ae0), pickKb = pickF && ae0.classList.contains('kf');
@@ -3058,9 +3071,10 @@
     // (UI-18) antetítulo con contexto, sin repetir el título: «Palau del Mar · Nivel Normal · 3 sets»
     var endPts = (ctx.game && ctx.game.points) || 25, dn = VB.DIFF && ctx.game && VB.DIFF[ctx.game.difficulty] && VB.DIFF[ctx.game.difficulty].name;
     // «Palau del Mar ◆ Nivel Normal | Sets a 25»: la sede tras el rombo del antetítulo; nivel y puntos por set, datos con la barra fina
-    setSep(el.endKicker, [venueName(), { h: 'Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')]) + SEP_V + (oneSet(ctx.game) ? 'Un set a ' : 'Sets a ') + endPts }], 'd');
+    // (móvil: «Sets a 25» en .ph-hide, el antetítulo cabe en una línea)
+    setSep(el.endKicker, [venueName(), { h: 'Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')]) + '<span class="ph-hide">' + SEP_V + (oneSet(ctx.game) ? 'Un set a ' : 'Sets a ') + endPts + '</span>' }], 'd');
     var gNet = ctx.game && ctx.game.netCr;   // (online: el nombre del rival y «Online» en vez del nivel)
-    if (gNet) setSep(el.endKicker, [venueName(), { h: 'Online' + SEP_V + (ctx.game && ctx.game.bo1 ? 'Un set a ' : 'Sets a ') + endPts }], 'd');
+    if (gNet) setSep(el.endKicker, [venueName(), { h: 'Online' + '<span class="ph-hide">' + SEP_V + (ctx.game && ctx.game.bo1 ? 'Un set a ' : 'Sets a ') + endPts + '</span>' }], 'd');
     el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : gNet ? 'Gana ' + gNet.rivalName : 'Gana la CPU'; el.endTitle.classList.toggle('long', !!gNet && !win && gNet.rivalName.length > 11);
     el.endS0.textContent = e.sets[0]; el.endS1.textContent = e.sets[1];
     el.endSets.innerHTML = (e.setScores || []).map(function (s, i) {
@@ -3090,6 +3104,7 @@
     if (!win && alt >= 0 && !career && !online) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
     el.btnAgainAlt.hidden = alt < 0;
     if (alt >= 0) { el.btnAgainAlt.textContent = 'Revancha en ' + OPT.difficulty.labels[alt]; el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); endAltName = OPT.difficulty.labels[alt]; }
+    el.btnAgainAlt.setAttribute('data-short', alt >= 0 ? (alt > di ? 'Más difícil' : 'Más fácil') : '');   // (móvil: rótulo corto, CSS «SPLAT · PAUSA Y HOJA FINAL»)
     // (botones de siempre; el Resumen de B6 los vuelve a rotular según el caso: Carrera, reto, Partido rápido)
     el.btnAgain.textContent = 'Revancha'; el.btnAgain.setAttribute('data-act', 'again');
     if (el.btnEndOpts) { el.btnEndOpts.textContent = 'Cambiar opciones'; el.btnEndOpts.setAttribute('data-act', 'opts'); }
@@ -3114,6 +3129,7 @@
     el.endRecord.innerHTML = rec;
     if (el.btnMStats) el.btnMStats.hidden = !(VB.MatchStats && VB.MatchStats.ready && VB.MatchStats.ready());   // «Estadística del partido»
     if (el.btnActa) { el.btnActa.hidden = !(actaOk && VB.Acta && VB.MatchStats && VB.Acta.available(VB.MatchStats.data())); actaLbl(''); }   // «Acta del partido» (6v6)
+    placeMStats();
     // MVP de cada equipo (UI-11). UI-18: una tabla pequeña: un solo rótulo «MVP», la cabecera «Ataque · Bloqueo · Saque» una vez y en
     // cada fila el dorsal, los puntos (la cifra grande) y su desglose; el lector de pantalla oye la frase entera (aria-label).
     var mv = '', nMv = 0;
@@ -3198,6 +3214,18 @@
     return a.join(' | ');
   }
   /** Pinta la hoja con el modelo de B6 (Partido rápido, reto, Carrera; el espectador 6v6 se queda con las estadísticas). */
+  // 568×320 (.ph-s): «Estadística del partido», pegatina con el icono en la fila de las pestañas (fuera del panel que se desplaza:
+  // su desvanecido la recortaba); en el resto, otra vez en su sitio, delante del acta. CSS: index.html «(carrera, 18-nov-2026)».
+  // Lo llaman el final del partido y «vb:tier» (la barra del navegador cruza 345 de alto con el final abierto).
+  function placeMStats() {
+    if (!el.btnMStats) return;
+    var msHome = $('endStatsTab') && $('endStatsTab').querySelector('.end-ms'), msBody = el.end && el.end.querySelector('.end-body');
+    // (en .end-body dentro de su propio [data-nav] (display:contents): si no, el teclado y el mando no llegaban a él)
+    var msPh = msBody && msBody.querySelector('.end-ms-ph');
+    if (msBody && !msPh) { msPh = document.createElement('span'); msPh.className = 'end-ms-ph'; msPh.setAttribute('data-nav', ''); msPh.setAttribute('data-sp-row', ''); msBody.appendChild(msPh); }
+    var msTo = document.documentElement.classList.contains('ph-s') ? msPh : msHome;
+    if (msTo && el.btnMStats.parentNode !== msTo) msTo.insertBefore(el.btnMStats, msTo === msHome ? msHome.firstChild : null);
+  }
   function endRecap(e, g, sum, x) {
     recapM = null; recapD = null; endRcSnd = null;
     var R = VB.Recap, watch = !!(g && g.watch0 && !g.demo);
@@ -3211,7 +3239,7 @@
     if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
     else if (d.reto) {
       var dn = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
-      setSep(el.endKicker, ['Reto del día', venueName(), { h: 'Nivel ' + escT(dn || '') + SEP_V + 'Sets a ' + ((g && g.points) || 25) }], 'd');
+      setSep(el.endKicker, ['Reto del día', venueName(), { h: 'Nivel ' + escT(dn || '') + '<span class="ph-hide">' + SEP_V + 'Sets a ' + ((g && g.points) || 25) + '</span>' }], 'd');
     }
     el.endSum.innerHTML = watch ? '' : rcHTML(M, d);
     endSeal(!watch && d.reto && retoEnd && retoEnd.day ? retoEnd.day : null);   // (SPLAT: reto del día → sello dorado junto al título)
@@ -3370,6 +3398,7 @@
     try { html = M.html(msModel(ms.set), ms.team, { names: ms.nm.names, inl: ms.nm.inl, pnames: ms.nm.pn, sep: sepHTML, you: 'Tú' }); }
     catch (er) { console.error('[VB][ERROR] MatchStats.html: ' + er); html = '<p class="ms-empty">No se ha podido calcular la estadística.</p>'; }
     $('msBody').innerHTML = html;
+    if (VB.Splat && VB.Splat.info) VB.Splat.info($('msBody'));   // «i» de «Cifras clave» en el móvil (un escuchador por raíz)
   }
   function msSet(s, kb) {
     var M0 = msModel(0); if (s && M0.sets.indexOf(s) < 0) s = 0;
@@ -3464,7 +3493,8 @@
   }
   /** Pestañas de la hoja: ids de M.tabs; una sola (o sin recap.js) = sin barra. */
   function endPanes(tabs, cur, noBar, labels) {
-    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas') }; });
+    // (móvil: si la tira no cabe, fitTabs pone los rótulos cortos; «Jugadas (3)» → «Jugadas»)
+    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas'), short: t === 'stats' ? 'Cifras' : t === 'plays' ? 'Jugadas' : '' }; });
     var bar = !noBar && items.length > 1;
     if (el.endTabs) {
       el.endTabs.hidden = !bar;
@@ -3503,6 +3533,27 @@
     if (el.btnEndOpts) { el.btnEndOpts.hidden = !o; if (o) { el.btnEndOpts.textContent = o.label; el.btnEndOpts.setAttribute('data-act', o.id); } }
     el.btnMenu.hidden = !has.menu; if (has.menu) el.btnMenu.textContent = has.menu.label;
     el.btnAgain.parentNode.setAttribute('data-n', String((has.againAlt ? 1 : 0) + (o ? 1 : 0) + (has.menu ? 1 : 0)));
+    el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : '');
+    endOptsPill(has.againAlt && o && o.id === 'opts' ? o.label : '');
+  }
+  /** Móvil (MV-4): rótulo corto de «Revancha en <nivel>» (CSS lo pone con ::after en :root.ph): «Más difícil» / «Más fácil». */
+  function altShort(lb) {
+    var L = OPT.difficulty.labels, di = optIndex('difficulty'), ai = -1; lb = String(lb || '');
+    for (var i = 0; i < L.length; i++) if (lb.length >= L[i].length && lb.slice(-L[i].length) === L[i]) ai = i;
+    return ai < 0 || ai === di ? '' : ai > di ? 'Más difícil' : 'Más fácil';
+  }
+  /** Móvil (MV-4): con «Revancha en…» y «Cambiar opciones» a la vez, abajo a la izquierda solo caben dos pegatinas (Menú y la revancha):
+   *  «Cambiar opciones» pasa a una píldora crema al final del Resumen (.rc-optrow; solo se ve en :root.ph, y entonces el CSS esconde
+   *  #btnEndOpts). Pulsarla es pulsar #btnEndOpts. lb = '' la quita. */
+  function endOptsPill(lb) {
+    var sum = el.endSum; if (!sum) return;
+    var old = sum.querySelector('.rc-optrow'); if (old) old.parentNode.removeChild(old);
+    if (!lb) return;
+    var d = document.createElement('div'); d.className = 'rc-optrow';
+    d.innerHTML = '<button type="button" class="sp-btn sp-sm sp-cream rc-opts" data-shape="2"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h11v2H3zm15 0h3v2h-3zm-3-2h2v6h-2zM3 16h4v2H3zm7 0h11v2H10zM7 14h2v6H7z"/></svg></span><span class="sp-t">' + escT(lb) + '</span></button>';
+    d.firstChild.addEventListener('click', function () { if (el.btnEndOpts && !el.btnEndOpts.hidden) el.btnEndOpts.click(); });
+    sum.appendChild(d);
+    if (VB.Splat && VB.Splat.decorate) VB.Splat.decorate(d);
   }
   /** Online (main.js ctx.net; notes/net.md «Fase 3»): la hoja final ofrece «Revancha» (se pide al rival: cuando los dos la quieren,
    *  empieza otro partido con la misma sala) y «Volver al menú» (nada de un partido offline contra la CPU). Salir tras el final no es
@@ -3571,14 +3622,15 @@
       switch (k) {
         case 'mvp':
           if (M.mvp) {
-            var mv = M.mvp, parts = [mv.ptsT].concat(mv.parts || []);
+            // (cada dato entero en su línea: «7 aces» no se parte; nbsp dentro de cada uno)
+            var mv = M.mvp, parts = [mv.ptsT].concat(mv.parts || []).map(function (p) { return typeof p === 'string' ? p.replace(/ /g, '\u00a0') : p; });
             blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
           } else blk('rc-mvp rv', H.mvp, '<span class="rc-l">' + escT(M.mvpRival.t) + '</span>' + (cs && M.nota ? '<em class="rc-nota">Nota ' + escT(M.nota) + '</em>' : ''));
           break;
         case 'xp':
           var xh = '';
           M.xp.forEach(function (r) {
-            xh += '<span class="rc-xr"><span class="rc-nm">' + escT(r.name) + '</span><b>+<i data-cu="' + r.xp + '">' + r.xp + '</i> XP</b>' +
+            xh += '<span class="rc-xr"><span class="rc-nm">' + escT(document.documentElement.classList.contains('ph') ? String(r.name || '').split(' ')[0] : r.name) + '</span><b>+<i data-cu="' + r.xp + '">' + r.xp + '</i> XP</b>' +
               (r.bar != null ? '<i class="rc-bar" aria-hidden="true"><i style="--w:' + Math.round(r.bar * 100) + '%"></i></i>' : '') + (r.lvlUp ? '<span class="lv">' + escT(r.lvlT) + '</span>' : '') + '</span>';
           });
           blk('rc-xp', H.xp, xh + (M.badges.length ? rcBadges(M.badges) : ''));
@@ -3753,13 +3805,14 @@
       api.items.forEach(function (it) {
         var on = it.id === api.cur;
         h += '<button type="button" class="tab' + (on ? ' on' : '') + (it.cls ? ' ' + it.cls : '') + '" role="tab" id="' + hid + '-' + it.id + '" data-tab="' + it.id + '" aria-selected="' + on + '"' +
-          (on ? '' : ' tabindex="-1" data-skip') + (o.pane && o.pane.id ? ' aria-controls="' + o.pane.id + '"' : '') + '>' + (it.icon || '') + '<span class="tb-t">' + it.label + '</span>' +
+          (on ? '' : ' tabindex="-1" data-skip') + (o.pane && o.pane.id ? ' aria-controls="' + o.pane.id + '"' : '') + '>' + (it.icon || '') + '<span class="tb-t"' + (it.short ? ' data-ph-short="' + it.short + '"' : '') + '>' + it.label + '</span>' +
           (it.badge ? '<em class="tb-b">' + it.badge + '</em>' : '') + '</button>';
       });
       host.innerHTML = h + '</div><button type="button" class="tb-k tb-r" tabindex="-1" data-skip data-step="1" aria-hidden="true"></button>';
       if (o.pane) o.pane.setAttribute('aria-labelledby', hid + '-' + api.cur);
       api.hint();
       showOn();   // innerHTML deja la fila en scrollLeft 0: la pestaña elegida, a la vista (667x375: Perfil con 7 pestañas)
+      if (host.hasAttribute('data-ph-tabs')) fitTabs(api);   // (móvil: columna o tira de pestañas)
       if (hadF) api.focus(kb);
     }
     function showOn() {
@@ -3789,12 +3842,14 @@
         if (on) { bs[k].removeAttribute('tabindex'); bs[k].removeAttribute('data-skip'); } else { bs[k].setAttribute('tabindex', '-1'); bs[k].setAttribute('data-skip', ''); }
       }
       var nb = host.querySelector('.tab.on');
-      if (nb && nb.scrollIntoView) try { nb.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { }
+      // (V-PFRAIL: dentro de su fila, sin mover la página y con margen: en la columna de pestañas del móvil nunca queda media pestaña arriba)
+      if (nb && VB.Splat && VB.Splat.reveal) VB.Splat.reveal(nb, { block: nb.closest && nb.closest('.sp-vtabs') ? 'center' : 'nearest', inline: 'nearest' });   // MV-9: en la columna, al centro (nunca bajo el desvanecido)
+      else if (nb && nb.scrollIntoView) try { nb.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { }
       if (onTab && nb) focusEl(nb, kb || how === 'key' || how === 'pad');
       if (o.pane) { o.pane.setAttribute('aria-labelledby', hid + '-' + id); restartAnim(o.pane, i > j ? 'tp-n' : 'tp-p'); }
       if (o.sound !== false && how !== 'api') uiK('tab', 'click');   // B4: sonido propio de pestaña (el clic si audio no lo tiene)
       if (o.onChange) o.onChange(id, i > j ? 1 : -1, how || 'api');
-      if (host.classList.contains('tabs-ic')) fitTabs(api);
+      if (host.classList.contains('tabs-ic') || host.hasAttribute('data-ph-tabs')) fitTabs(api);
       return true;
     };
     api.step = function (d, how) {
@@ -3804,6 +3859,41 @@
       return api.set(api.items[j].id, how || 'api');
     };
     api.refresh = function (list) { if (list) api.items = list.slice(); if (idx(api.cur) < 0) api.cur = api.items[0] && api.items[0].id; draw(); };
+    // (móvil: columna .sp-vtabs) el teclado y el mando la recorren en vertical: ↑/↓ = pestaña anterior / siguiente, → = al contenido
+    // (su primer elemento), ← en la columna = rebote. a = lo enfocado, list = lo que recorre ↑/↓ en esa capa. post = true (← que nadie
+    // quiso): desde la primera columna del contenido (nada pulsable a su izquierda en su fila) vuelve a la pestaña elegida.
+    // Fuera de la columna (sin .sp-vtabs: PC, tablet, tira) devuelve false y todo sigue como siempre. ui.js vtNav; career-ui crVt.
+    api.vnav = function (a, dx, dy, how, list, post) {
+      if (!a || !host.classList.contains('sp-vtabs') || !host.getClientRects().length) return false;
+      if (host.contains(a)) {
+        if (post || a.getAttribute('role') !== 'tab') return false;
+        if (dy) { api.step(dy, how || 'key'); return true; }
+        var b = dx > 0 ? vtBody(list)[0] : null;
+        if (!b) { uiSound2('arrowEdge', dx); return true; }
+        focusEl(b, true); hoverSound(); return true;
+      }
+      if (!post || dy || dx >= 0) return false;
+      var B = vtBody(list); if (B.indexOf(a) < 0) return false;
+      var r = a.getBoundingClientRect();
+      for (var i = 0; i < B.length; i++) {
+        if (B[i] === a) continue;
+        var q = B[i].getBoundingClientRect();
+        if (q.width && q.right <= r.left + 2 && q.bottom > r.top + 4 && q.top < r.bottom - 4) return false;
+      }
+      api.focus(true); hoverSound(); return true;
+    };
+    /** Lo pulsable del contenido de la columna: dentro del pane (o, sin él, lo que va después de la barra), sin cabecera ni Volver. */
+    function vtBody(list) {
+      var pick = function (inPane) {
+        return (list || []).filter(function (x) {
+          if (host.contains(x) || !x.getClientRects().length || x.id === 'btnPanelBack' || x.classList.contains('mp-back') || x.classList.contains('sp-back')) return false;
+          if (x.closest('.sp-fh,.pn-head,.mp-head,.cr-head')) return false;
+          return inPane ? o.pane.contains(x) : !!(host.compareDocumentPosition(x) & 4);
+        });
+      };
+      var P = o.pane ? pick(true) : [];
+      return P.length ? P : pick(false);
+    }
     host.addEventListener('click', function (ev) {
       var t = ev.target && ev.target.closest ? ev.target.closest('button') : null; if (!t || !host.contains(t)) return;
       if (t.hasAttribute('data-step')) { api.step(+t.getAttribute('data-step'), 'click'); return; }
@@ -3832,13 +3922,52 @@
   /** E3: modo compacto de una barra de pestañas (.tabs-ic: solo el icono, salvo la elegida, que lleva su etiqueta) cuando no caben
    *  enteras. Se mide al abrir el panel, al cambiar de pestaña y al cambiar el tamaño (nunca por frame). */
   function fitTabs(api) {
-    if (!api || !api.el || api.el.offsetParent === null) return;
+    if (!api || !api.el) return;
+    // móvil (notes/splat.md «Móvil»): data-ph-tabs="rail" → .sp-vtabs (columna a la izquierda) y "strip" → .sp-tabs-strip, solo con
+    // html.ph; sin .ph se quitan y vuelve la barra de siempre. Nunca el modo solo-icono (.tabs-ic) en el móvil.
+    var phm = api.el.getAttribute('data-ph-tabs'), ph = !!phm && document.documentElement.classList.contains('ph');
+    var S = VB.Splat;
+    if (api.el.classList.contains('sp-vtabs') !== (ph && phm === 'rail')) api.el.classList.toggle('sp-vtabs', ph && phm === 'rail');
+    if (api.el.classList.contains('sp-tabs-strip') !== (ph && phm === 'strip')) api.el.classList.toggle('sp-tabs-strip', ph && phm === 'strip');
+    if (phm && !ph && S && S.shorten) S.shorten(api.el, true);   // (vuelven los rótulos largos)
+    if (api.el.offsetParent === null) return;
     var row = api.el.querySelector('.tb-row'); if (!row) return;
     api.el.classList.remove('tabs-ic');
-    if (row.scrollWidth > row.clientWidth + 2) api.el.classList.add('tabs-ic');
+    if (ph) {
+      var on = row.querySelector('.tab.on');
+      if (phm === 'strip' && S && S.shorten) {
+        // primero los rótulos largos; si no caben, los cortos (data-ph-short, item.short); si aún no caben, desliza con desvanecido
+        var ls = row.querySelectorAll('[data-ph-long]');
+        for (var q = 0; q < ls.length; q++) { ls[q].textContent = ls[q].getAttribute('data-ph-long'); ls[q].removeAttribute('data-ph-long'); if (ls[q].hasAttribute('data-ph-al')) { ls[q].removeAttribute('aria-label'); ls[q].removeAttribute('data-ph-al'); } }
+        if (row.scrollWidth > row.clientWidth + 2) S.shorten(api.el, true);
+      }
+      if (S && S.more) S.more(row);
+      if (on && S && S.reveal) S.reveal(on, { block: on.closest && on.closest('.sp-vtabs') ? 'center' : 'nearest', inline: 'nearest' });   // (MV-9)
+      return;
+    }
+    // (solo-icono solo si las pestañas TIENEN icono: Perfil no, y sin él quedaban contadores sueltos «5/46»; sin icono, desliza)
+    if (row.scrollWidth > row.clientWidth + 2 && row.querySelector('.tab svg, .tab .tb-ic')) api.el.classList.add('tabs-ic');
     var nb = row.querySelector('.tab.on'); if (nb && nb.scrollIntoView && row.scrollWidth > row.clientWidth + 2) try { nb.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { }
   }
   function fitAllTabs() { for (var i = 0; i < tabReg.length; i++) fitTabs(tabReg[i]); }
+  /** (móvil) flechas / stick con una columna de pestañas .sp-vtabs visible en la capa activa (api.vnav); true si se lo quedó. */
+  function vtNav(dx, dy, how, post) {
+    var L = activeLayer(), a = document.activeElement; if (!L || !a || !L.contains(a)) return false;
+    var list = null;
+    for (var i = 0; i < tabReg.length; i++) {
+      var t = tabReg[i]; if (!t.vnav || !t.el.classList.contains('sp-vtabs') || !L.contains(t.el) || t.el.closest('[hidden]')) continue;
+      if (t.vnav(a, dx, dy, how, list || (list = focusables(L)), post)) return true;
+    }
+    return false;
+  }
+  document.addEventListener('vb:ph', function () { fitAllTabs(); });   // (móvil: al entrar o salir del tier, columna / tira / barra)
+  // (vb:tier: también al cruzar 345 de alto (.ph-s) o 800 de ancho (.ph-w); p. ej. la barra del navegador a 667×375. Solo lo que monta
+  // el JS distinto en .ph-s, sin repintar pantallas enteras)
+  document.addEventListener('vb:tier', function () {
+    try { if (el.end && !el.end.hidden) placeMStats(); } catch (e) { }
+    try { if (el.gymEnd && !el.gymEnd.hidden) geKickSet(); } catch (e) { }
+    try { if (panel === 'ctl' && !capturing) renderCtl(); } catch (e) { }
+  });
   /** Barra de pestañas visible en la capa activa de ui.js (panel abierto), o null. */
   function activeTabs() {
     var L = activeLayer(); if (!L) return null;
@@ -4105,7 +4234,10 @@
   function lkNoteNext() {
     var t = lkNq.shift();
     if (!t) { el.lkNote.classList.remove('on'); lkNT = 0; return; }
-    el.lkNote.textContent = t; restartAnim(el.lkNote, 'on'); lkNT = t.length > 40 ? 3.4 : 2.6;
+    lkNT = t.length > 40 ? 3.4 : 2.6;
+    // móvil: al carril de avisos de arriba a la derecha (VB.Splat.toast)
+    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.lkNote.classList.remove('on'); el.lkNote.textContent = t; VB.Splat.toast(escT(t), { key: 'lknote', ms: lkNT * 1000 }); return; }
+    el.lkNote.textContent = t; restartAnim(el.lkNote, 'on');
   }
   /** Lo ganado fuera de la Carrera (récord y Entrenamiento): VB.Look.checkGlobal y aviso «Nuevo en tu vestuario». */
   //  (B6: la concesión es lookGrantNow, que la hoja final llama antes; aquí queda el aviso de lo que aún no se haya enseñado. Los retos
@@ -4210,17 +4342,24 @@
    *  x = 0,68 le tapaba la cabeza). Lo usan doll.js (preview.place) y el CSS (--lkcx: botones ⟲ ⟳ y avisos). En vertical no se toca. */
   function lkPlace() {
     if (!lk.on || !el.mpLook || !el.menu) return;
-    var W = window.innerWidth || 1, H = window.innerHeight || 1, cx = 0.68, half = 0;
+    var W = window.innerWidth || 1, H = window.innerHeight || 1, cx = 0.68, half = 0, top = 0;
     if (W > H) {
       var r = el.mpLook.getBoundingClientRect().right, f = el.lkFoot && el.lkFoot.getBoundingClientRect();
       if (f && f.width) r = Math.max(r, f.right);
       // a 667×375 el hueco es de ~120 px: con el tope de 0,84 el icono «Copiar» tapaba el hombro. Ahora el centro va hasta 0,9 y
       // doll.js aleja la cámara si el muñeco no cabe en ese medio hueco (half)
-      cx = Math.max(0.62, Math.min(0.9, (r + W) / 2 / W));
-      half = Math.max(0.04, Math.min(cx - r / W, 1 - cx));
+      // móvil: ⟲ ⟳ van en columna al borde derecho (index.html «Vestuario», .ph): el muñeco se centra en el hueco que queda entre
+      // la columna y esos botones (y se aleja si no cabe), así no los pisa
+      var rl = W, rot = VB.Splat && VB.Splat.phone && VB.Splat.phone() && el.lkSpin ? el.lkSpin.querySelector('.lk-rot') : null, rb = rot && rot.getBoundingClientRect();
+      if (rb && rb.width && rb.left > r + 80) rl = rb.left - 6;
+      cx = Math.max(0.62, Math.min(0.9, (r + rl) / 2 / W));
+      half = Math.max(0.04, Math.min(cx - r / W, rl / W - cx));
+      // franja de arriba tapada: la cabecera, solo si llega encima del hueco del muñeco (doll.js lo centra en el alto que queda)
+      var hd = el.mpLook.querySelector('.mp-head'), hr = hd && hd.getBoundingClientRect();
+      if (hr && hr.width && hr.right > (cx - half) * W && hr.left < (cx + half) * W) top = Math.min(0.45, hr.bottom / H);
     }
     el.menu.style.setProperty('--lkcx', cx.toFixed(3));
-    var P = lkPV(); if (P && P.place) try { P.place(cx, half); } catch (e) { }
+    var P = lkPV(); if (P && P.place) try { P.place(cx, half, top); } catch (e) { }
   }
   /** Desvanecido abajo mientras queden filas por debajo del borde de la lista. */
   function lkMore() {
@@ -4232,8 +4371,10 @@
     return (el.lkList && el.lkList.querySelector('[data-look]')) || (el.lkTabs && el.lkTabs.querySelector('.tab.on')) || el.btnLookBack;
   }
   /** Pie: data-skip en los iconos no elegidos (↑/↓ pasa por el pie una sola vez; ←/→ elige icono). */
+  /** Botones del pie que se ven (V-LKFOOT: en móvil Al azar / Restablecer / Copiar van ocultos por CSS y entra el «⋯», data-lkf="more"). */
+  function lkFootBtns() { return Array.prototype.filter.call(el.lkFoot.querySelectorAll('[data-lkf]'), function (b) { return !b.hidden && b.getClientRects().length; }); }
   function lkFootSync(focusIt) {
-    var bs = Array.prototype.filter.call(el.lkFoot.querySelectorAll('[data-lkf]'), function (b) { return !b.hidden; });
+    var bs = lkFootBtns();
     if (!bs.length) return;
     if (lk.footI >= bs.length) lk.footI = bs.length - 1;
     var all = el.lkFoot.querySelectorAll('[data-lkf]');
@@ -4241,7 +4382,7 @@
     if (focusIt) focusEl(bs[lk.footI], true);
   }
   function lkFootStep(d) {
-    var bs = Array.prototype.filter.call(el.lkFoot.querySelectorAll('[data-lkf]'), function (b) { return !b.hidden; });
+    var bs = lkFootBtns();
     var j = lk.footI + (d > 0 ? 1 : -1);
     if (j < 0 || j >= bs.length) { uiSound2('arrowEdge', d); return; }
     lk.footI = j; lkFootSync(true); hoverSound();
@@ -4496,7 +4637,7 @@
     el.lkVen.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-ven]') : null; if (b) lkVenue(b.getAttribute('data-ven'), false); });
     el.lkFoot.addEventListener('click', function (ev) {
       var b = ev.target && ev.target.closest ? ev.target.closest('[data-lkf]') : null; if (!b) return;
-      var bs = Array.prototype.filter.call(el.lkFoot.querySelectorAll('[data-lkf]'), function (x) { return !x.hidden; });
+      var bs = lkFootBtns();
       lk.footI = Math.max(0, bs.indexOf(b)); lkFootSync(false);
       lkFoot(b.getAttribute('data-lkf'));
     });
@@ -4636,7 +4777,7 @@
     var sc = el.panel.querySelectorAll('.sp-scroll'); for (var si = 0; si < sc.length; si++) sc[si].scrollTop = 0;
     shown = '';
     syncScreens(ctx.game);
-    fitSheet(el.panel); fitAllTabs(); checkMore(el.panel);
+    fitSheet(el.panel); fitAllTabs(); checkMore(el.panel); phPanel();
     var pf = o && o.focus ? el.panel.querySelector(o.focus) : null;
     focusLayer(pf || (name === 'tut' ? el.btnTutNext : name === 'first' ? el.btnFirstTut : name === 'about' ? el.btnAbOk : null));
     if (pf && o.kb) setTimeout(function () { if (panel === name && !pf.closest('[hidden]')) focusEl(pf, true); }, 45);
@@ -4838,7 +4979,7 @@
     var cur = device();
     if (ctlTabs) {
       // «en uso» en la pestaña del dispositivo activo; la elegida es ctlView
-      var items = CTL_TABS.map(function (t) { return { id: t[0], label: t[1], icon: TAB_IC[t[0]], badge: t[0] === cur ? 'en uso' : '', cls: t[0] === cur ? 'cur' : '' }; });
+      var items = ctlOrder().map(function (t) { return { id: t[0], label: t[1], icon: TAB_IC[t[0]], badge: t[0] === cur ? 'en uso' : '', cls: t[0] === cur ? 'cur' : '' }; });
       var key = cur + '|' + ctlView;
       if (ctlTabs._k !== key) { ctlTabs._k = key; ctlTabs.cur = ctlView; ctlTabs.refresh(items); }
     }
@@ -4848,9 +4989,23 @@
     else {
       var R = ctlRows(ctlView);
       if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button></div>';
-      h += '<dl class="ctl">';
-      for (var j = 0; j < R.length; j++) h += '<div><dt>' + R[j][0] + '</dt><dd>' + R[j][1] + '</dd></div>';
-      h += '</dl>';
+      if (ctlView === 'touch' && VB.Splat && VB.Splat.phone && VB.Splat.phone()) {
+        // V-TOUCHCTL (móvil): Táctil con las mismas filas que Teclado / Mando: rótulo dorado + UNA línea de ayuda a la izquierda
+        // (primera frase del paréntesis; «i» con helpFit si no cabe) y los botones a la derecha. En PC sigue la <dl>.
+        h += '<div class="ctl ctl-t">';
+        for (var j = 0; j < R.length; j++) {
+          var keys = R[j][0], d = R[j][1], si = d.indexOf('<small>'), tt = si < 0 ? d : d.slice(0, si), help = '';
+          if (si >= 0) help = d.slice(si).replace(/<\/?small>/g, '').replace(/^\s*\(|\)\s*$/g, '').split(';')[0].trim();
+          if (keys.indexOf('<small>mitad izquierda</small>') >= 0) { keys = keys.replace('<small>mitad izquierda</small>', ''); help = 'Joystick: mitad izquierda' + (help ? '; ' + help : ''); }
+          if (help) help = help.charAt(0).toUpperCase() + help.slice(1);
+          h += '<div><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
+        }
+        h += '</div>';
+      } else {
+        h += '<dl class="ctl">';
+        for (var j2 = 0; j2 < R.length; j2++) h += '<div><dt>' + R[j2][0] + '</dt><dd>' + R[j2][1] + '</dd></div>';
+        h += '</dl>';
+      }
     }
     el.ctlGrid.innerHTML = h;
     if (!capturing && el.ctlMsg && ctlMsgFor !== ctlView) ctlMsgSet('');
@@ -4863,7 +5018,7 @@
     if (note) note.innerHTML = fmt6() ? '<b>Arriba</b> es siempre hacia la red. En el 6 contra 6 llevas al <b>' + roleName().toLowerCase() + '</b> (n.º ' + sixNum() + ') y la IA al resto. Sin balón, la marca del suelo es tu sitio. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
       : oneMode() ? '<b>Arriba</b> es siempre hacia la red. Llevas siempre al <b>n.º ' + oneNum() + '</b> y la IA a tu compañero. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
       : '<b>Arriba</b> es siempre hacia la red. El control pasa solo a quien da el siguiente toque. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT;
-    if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
+    if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); if (panel === 'ctl') phPanel(); }
   }
   function ctlStep(d, how) { if (ctlTabs) ctlTabs.step(d, how || 'key'); }
   // ---------- E3: teclas y botones reasignables (VB.Input: bindings, rebind, captureNext, keyName, padName) ----------
@@ -4948,24 +5103,50 @@
     capCancel = typeof cancel === 'function' ? cancel : null;
   }
   var CTL_TABS = [['keyboard', 'Teclado'], ['gamepad', 'Mando'], ['touch', 'Táctil']];
+  /** Orden de las pestañas de Controles: con pantalla táctil, Táctil la primera (buildTabs y renderCtl, que las rehace al abrir). */
+  function ctlOrder() { return ctx && ctx.isTouch ? [CTL_TABS[2], CTL_TABS[0], CTL_TABS[1]] : CTL_TABS; }
   var ctlTabs = null, sqTabs = null, setTabs = null, abTabs = null;
   var SET_TABS = [['audio', 'Audio'], ['image', 'Imagen'], ['cam', 'Cámara'], ['game', 'Juego'], ['a11y', 'Accesibilidad'], ['kit', 'Equipación'], ['info', 'Info']];
   /** Ajustes: solo se ve el grupo de la pestaña elegida (Audio · Imagen · Cámara · Juego · Accesibilidad · Equipación · Info). */
   function setTab(id) {
     var gs = el.optList ? el.optList.querySelectorAll('.opt-g[data-tab]') : [];
     for (var i = 0; i < gs.length; i++) gs[i].hidden = gs[i].getAttribute('data-tab') !== id;
-    if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
+    if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); phPanel(); }
+  }
+  /** Móvil (notes/ui_main.md «Móvil (v-next)»): en Ajustes, segmentados según el número de opciones (VB.Splat.fitSeg: interruptor,
+   *  segmentado o selector) y ayudas de una línea con «i» (VB.Splat.helpFit); en Jugadores, las ayudas de los atributos. Sin html.ph
+   *  no cambia nada (fitSeg quita sus controles). */
+  function phPanel() {
+    var S = VB.Splat; if (!S || !S.fitSeg || !S.phone || !S.phone() || el.panel.hidden) return;   // (fitSeg y helpFit se deshacen solos con vb:ph)
+    if (panel === 'set') {
+      S.fitSeg(el.optList); if (S.helpFit) S.helpFit(el.optList, '.opt');
+      // V-KIT: tira de muestras desplazable de lado (desvanecido si queda algo a la derecha) y la elegida a la vista
+      var ks = el.optList.querySelectorAll('.opt-kit .seg.kit');
+      for (var k = 0; k < ks.length; k++) {
+        var sk = ks[k]; if (!sk.offsetParent) continue;
+        if (S.more) S.more(sk);
+        var on = sk.querySelector('span.on');
+        if (on && sk.scrollWidth > sk.clientWidth + 1) {
+          var a = sk.getBoundingClientRect(), b = on.getBoundingClientRect();
+          if (b.left < a.left || b.right > a.right) sk.scrollLeft += b.left - a.left - (a.width - b.width) / 2;
+        }
+      }
+    }
+    if (panel === 'squad' && S.helpFit) S.helpFit(el.sqBody, '.sq-r');
+    if (panel === 'ctl' && S.helpFit && el.ctlGrid.querySelector('.ctl-t')) S.helpFit(el.ctlGrid, '.ctl-t>div');   // V-TOUCHCTL
   }
   /** Crea las barras de pestañas de los paneles (una vez, en init). */
   function buildTabs() {
-    ctlTabs = makeTabs(el.ctlTabs, CTL_TABS.map(function (t) { return { id: t[0], label: t[1], icon: TAB_IC[t[0]] }; }),
+    // (móvil: con pantalla táctil, Táctil es la primera pestaña; ctlView ya abre en el dispositivo en uso)
+    var ctlT = ctlOrder();
+    ctlTabs = makeTabs(el.ctlTabs, ctlT.map(function (t) { return { id: t[0], label: t[1], icon: TAB_IC[t[0]] }; }),
       { value: 'keyboard', label: 'Dispositivo', pane: el.ctlGrid, swipe: el.pnCtl, onChange: function (id) { if (capCancel) capCancel(); ctlView = id; renderCtl(); } });
     // E3/E7: 7 pestañas (Info siempre la última); si no caben, modo compacto (fitTabs)
     setTabs = makeTabs(el.setTabs, SET_TABS.map(function (t) { return { id: t[0], label: t[1], icon: TAB_IC[t[0]] }; }),
       { value: 'audio', label: 'Apartado de ajustes', pane: el.optList, onChange: function (id) { setTab(id); } });
     if (el.abTabs) abTabs = makeTabs(el.abTabs, [{ id: 'news', label: 'Novedades', icon: TAB_IC.news }, { id: 'credits', label: 'Créditos', icon: TAB_IC.credits }],
       { value: 'news', label: 'Acerca de', pane: el.abBody, onChange: function () { renderAbout(); } });
-    sqTabs = makeTabs(el.sqTabs, sqItems(), { value: 'g0', label: 'Apartado', pane: el.sqBody, onChange: function () { renderSquad(); } });
+    sqTabs = makeTabs(el.sqTabs, sqItems(), { value: 'g0', label: 'Apartado', pane: el.sqBody, onChange: function () { renderSquad(); phPanel(); } });
   }
 
   // ---------- Opciones ----------
@@ -5716,6 +5897,8 @@
   var GY_COL = { serve: 'sp-kit', recv: 'sp-ink', set: 'sp-alt', atk: 'sp-ink', block: 'sp-teal' };
   /** Página Entrenamiento: una pegatina por ejercicio con su medalla, su récord y la barra hasta la siguiente medalla; el peloteo
    *  libre en parche cosido; pie con las medallas conseguidas. */
+  /** V-SUBS: ayudas de Entrenamiento más cortas en móvil (data-ph-short; VB.Splat.shorten desde decorate). */
+  var GY_SHORT = { recv: '10 saques de la CPU: déjala al colocador' };
   function renderGym() {
     var Gm = VB.Gym; if (!el.gymList) return;
     var h = '', k = 0;
@@ -5734,11 +5917,14 @@
       aria += r && r.n ? ', récord ' + r.b + (m ? ', medalla de ' + MEDAL_N[m].toLowerCase() : '') : ', sin jugar';
       if (nx && m < 3) aria += '. ' + nx;
       h += '<button class="mi gy-d sp-btn sp-wide sp-calm ' + (GY_COL[d.id] || 'sp-ink') + '" data-shape="' + (k++) + '" data-drill="' + d.id + '" aria-label="' + escT(aria + '. ' + d.help) + '">' +
-        '<span class="sp-medal t' + m + '">' + medalSVG(m) + '</span><span class="sp-l"><span class="sp-t">' + escT(d.name) + '</span><small class="sp-s">' + escT(d.help) + '</small>' + (r && r.n && m < 3 ? spBar(fr) : '') + '</span>' +
+        '<span class="sp-medal t' + m + '">' + medalSVG(m) + '</span><span class="sp-l"><span class="sp-t">' + escT(d.name) + '</span><small class="sp-s" data-ph-ell' + (GY_SHORT[d.id] ? ' data-ph-short="' + escT(GY_SHORT[d.id]) + '"' : '') + '>' + escT(d.help) + '</small>' + (r && r.n && m < 3 ? spBar(fr) : '') + '</span>' +
         '<span class="gy-rec"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? '¡Oro!' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
     });
     if (el.gymList._h !== h) { el.gymList._h = h; el.gymList.innerHTML = h; gymHov = null; if (VB.Splat) VB.Splat.decorate(el.gymList); }
     if (el.gymFoot && Gm) setSep(el.gymFoot, [{ h: 'Medallas: <b>' + Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15) + '</b>' }, 'Cada medalla nueva da experiencia a tus jugadores'], 'v');
+    // móvil: el recuento va en una pegatina de la cabecera (el pie se oculta)
+    var gch = document.getElementById('gymChip');
+    if (gch && Gm) { var gtx = Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15); if (gch.textContent !== gtx) gch.textContent = gtx; gch.hidden = false; gch.setAttribute('aria-label', 'Medallas: ' + gtx); }
   }
   /** Fila → ejercicio, bajo la cortinilla de pantalla. */
   function goGym(id) {
@@ -5775,6 +5961,24 @@
   function rtTabLoad() { try { return localStorage.getItem('make-the-cut.retostab') === 'maestria' ? 'maestria' : 'hoy'; } catch (e) { return 'hoy'; } }
   function rtTabSave(v) { try { localStorage.setItem('make-the-cut.retostab', v); } catch (e) { } }
   function rtDaily() { try { return VB.Retos && VB.Retos.daily ? VB.Retos.daily() : null; } catch (e) { return null; } }
+  /** MV-6: el objetivo del oro en corto (móvil con 380 de alto o menos), desde {id, n} de VB.Retos.daily().goal; '' = sin versión corta */
+  function rtGoalShort(g) {
+    if (!g) return '';
+    var n = g.n | 0;
+    switch (g.id) {
+      case 'aces': return n === 1 ? '1 ace' : '≥' + n + ' aces';
+      case 'kills': return '≥' + n + (n === 1 ? ' remate' : ' remates');
+      case 'blocks': return '≥' + n + (n === 1 ? ' bloqueo' : ' bloqueos');
+      case 'digs': return '≥' + n + (n === 1 ? ' defensa' : ' defensas');
+      case 'streak': return 'racha de ' + n;
+      case 'clean': return 'sin ceder set';
+      case 'tidy': return n === 0 ? 'sin errores' : '≤' + n + (n === 1 ? ' error' : ' errores');
+      case 'comeback': return 'remonta ' + n;
+      case 'rally': return 'jugada de ' + n + ' toques';
+      case 'mastery': return '≥' + n + ' fintas o colocados';
+    }
+    return '';
+  }
   function rtFocusEl() { return el.rtBody ? el.rtBody.querySelector('[data-reto="day"]') || el.rtBody.querySelector('button') || el.btnRetosBack : null; }
   /** Franja de Jugar: «Reto del día: Cala dels Fanals» + pastilla «Sin jugar» / «Hoy: plata», la medalla de hoy y el punto de nuevo. */
   function renderRetoStrip() {
@@ -5817,7 +6021,7 @@
           if (b.grp !== G.id) return;
           var pg = R.progress(b.id) || { lvl: 0, txt: '', frac: 0 }, lvl = pg.lvl | 0;
           h += '<button class="mi rt-r sp-btn sp-wide sp-calm ' + (lvl >= 3 ? 'sp-gold' : GC[gi % GC.length]) + (U[b.id] ? ' new sp-dot' : '') + '" data-shape="' + (k++) + '" data-rt="' + b.id + '" aria-label="' + escT(b.name + ': ' + (lvl ? RC_MED[lvl] : 'sin medalla') + '. ' + pg.txt + (b.help ? '. ' + b.help : '')) + '">' +
-            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s">' + escT(pg.txt) + '</small>' +
+            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s" data-ph-ell>' + escT(pg.txt) + '</small>' +
             (lvl < 3 && (lvl || pg.frac > 0) ? spBar(pg.frac) : '') + (b.help ? '<small class="rt-help">' + escT(b.help) + '</small>' : '') + '</span></button>';
         });
       });
@@ -5832,7 +6036,12 @@
         var dl = R.dateLabel(dd.key), bits = '', th = '';
         dd.bits.forEach(function (b) { if (b && b !== dd.mapName) bits += '<i class="sp-chip sp-ink">' + escT(b) + '</i>'; });
         if (dd.modName) bits += '<i class="sp-chip">' + escT(dd.modName) + '</i>';
-        dd.tiers.forEach(function (t, i) { th += '<span class="rt-tier t' + (i + 1) + (m > i ? ' on' : '') + '">' + medalSVG(m > i ? i + 1 : 0, m > i ? '' : 'off') + '<span>' + escT(t) + '</span></span>'; });
+        // MV-6: el oro lleva también un texto corto (solo se ve en el móvil con 380 de alto o menos; CSS «SPLAT · RETOS…»)
+        dd.tiers.forEach(function (t, i) {
+          var sh = i === 2 ? rtGoalShort(dd.goal) : '';
+          th += '<span class="rt-tier t' + (i + 1) + (m > i ? ' on' : '') + '">' + medalSVG(m > i ? i + 1 : 0, m > i ? '' : 'off') +
+            (sh ? '<span class="rt-tl">' + escT(t) + '</span><span class="rt-ts">Oro: ' + escT(sh) + '</span>' : '<span>' + escT(t) + '</span>') + '</span>';
+        });
         var med = (m ? 'Hoy: ' + RC_MED[m] : 'Hoy: sin medalla') + (ds.n ? ', ' + ds.n + (ds.n === 1 ? ' intento' : ' intentos') : '');
         h = '<div class="rt-day sp-ticket sp-noshine" data-shape="1"><span class="sp-stamp rt-stamp" aria-hidden="true" data-ring="RETO DEL DÍA ★ RETO DEL DÍA ★"><span class="sp-sc">' +
           (m ? medalSVG(m) : VB.Splat ? VB.Splat.BALL : '') + '<b>Hoy</b></span></span>' +
@@ -5924,7 +6133,10 @@
   function pfNoteNext() {
     var t = pf.q.shift();
     if (!t) { el.pfNote.classList.remove('on'); pf.noteT = 0; return; }
-    el.pfNote.textContent = t; restartAnim(el.pfNote, 'on'); pf.noteT = t.length > 34 ? 3.4 : 2.6;
+    pf.noteT = t.length > 34 ? 3.4 : 2.6;
+    // móvil: al carril de avisos de arriba a la derecha (VB.Splat.toast); #pfNote se queda con el texto para el lector
+    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.pfNote.classList.remove('on'); el.pfNote.textContent = t; VB.Splat.toast(escT(t), { key: 'pfnote', ms: pf.noteT * 1000 }); return; }
+    el.pfNote.textContent = t; restartAnim(el.pfNote, 'on');
   }
   /** Al entrar en el menú: VB.Profile.check() (insignias, logros, hitos, nivel y premios de nivel) y sus avisos. Los hitos que sellan
    *  noteMatch/noteGym llegan aquí una vez; el nivel y el premio del partido ya los enseña la hoja final. */
@@ -6075,6 +6287,7 @@
   }
   /** ←/→ en la rejilla: hueco vecino (en el borde, se queda). */
   function pfGridH(a, d) {
+    if (d < 0 && vtNav(-1, 0, 'key', true)) return;   // (móvil: 1ª columna de la rejilla → pestaña elegida de la columna #pfTabs)
     var L = el.pfGrid.querySelectorAll('[data-aid]'), i = Array.prototype.indexOf.call(L, a), j = i + (d > 0 ? 1 : -1);
     if (j < 0 || j >= L.length) { uiSound2('arrowEdge', d); return; }
     focusEl(L[j], true); pfCur(); hoverSound();
@@ -6173,6 +6386,9 @@
     return '';
   }
   /** drillEnd: apunta el total (VB.Gym.record, que da la XP de las medallas nuevas) y prepara la hoja final; se abre tras el sello. */
+  // antetítulo del final del Entrenamiento (568×320, .ph-s: sin la sede, que partía la línea). La Carrera pone el suyo (geKickCr).
+  var geKickCr = false;
+  function geKickSet() { if (el.geKick && !geKickCr) setSep(el.geKick, document.documentElement.classList.contains('ph-s') ? ['Entrenamiento'] : ['Entrenamiento', venueName()], 'd'); }
   function gymEndShow(e, g) {
     var Gm = VB.Gym, id = e.kind, total = e.total | 0, res = null, M = gymMedals(id) || [99, 99, 99], cdr = g && g.careerDrill ? g.careerDrill : null;
     // (sesión de la Carrera: no toca make-the-cut.gym ni da experiencia al escuadrón de Partido rápido; cuenta en la Carrera, main.js)
@@ -6185,7 +6401,7 @@
       res = { best: Math.max(pv ? pv.b : 0, total), prev: pv ? pv.b : 0, isBest: !pv || total > pv.b, medal: mm, newMedal: mm > pm, xp: xp };
     }
     var best = Math.max(res.best | 0, total); gymBestV = best;
-    setSep(el.geKick, ['Entrenamiento', venueName()], 'd');
+    geKickCr = !!cdr; geKickSet();
     el.geTitle.textContent = drillName(id);
     el.geTotal.textContent = total; el.geTotal.setAttribute('data-cu', total);
     el.geMax.textContent = (Gm && Gm.MAX) || 30;
@@ -6215,7 +6431,12 @@
     else if (cdr && cdr.next) el.btnGeNext.textContent = 'Siguiente sesión: ' + drillName(cdr.next, true);   // (el ejercicio que toca en el plan, main.js careerDrillDone)
     // sesión de la Carrera: sin «Repetir» (gastaría otra sesión); «Siguiente sesión» si quedan y la fatiga deja; «Entrenamiento»
     // pasa a «Volver a la Carrera»
-    el.btnGeAgain.hidden = !!cdr;
+    // («Siguiente sesión» va en el parche de abajo a la derecha, el sitio de «Repetir»; «Volver a la Carrera», la secundaria)
+    var geT = el.btnGeAgain.querySelector('.sp-t') || el.btnGeAgain, geN = !!(cdr && cdr.next);
+    if (!el.btnGeAgain.getAttribute('data-t0')) el.btnGeAgain.setAttribute('data-t0', geT.textContent);
+    el.btnGeAgain.hidden = !!cdr && !geN;
+    if (geN) { el.btnGeNext.hidden = true; geT.textContent = 'Siguiente: ' + drillName(cdr.next, true); el.btnGeAgain.setAttribute('data-cdr', '1'); el.btnGeAgain.setAttribute('aria-label', 'Siguiente sesión: ' + drillName(cdr.next, true)); }
+    else { geT.textContent = el.btnGeAgain.getAttribute('data-t0'); el.btnGeAgain.removeAttribute('data-cdr'); el.btnGeAgain.removeAttribute('aria-label'); }
     if (cdr) { if (!el.btnGeList.getAttribute('data-cr')) el.btnGeList.setAttribute('data-cr', el.btnGeList.textContent); el.btnGeList.textContent = 'Volver a la Carrera'; setSep(el.geKick, ['Carrera', 'Sesión ' + cdr.n + ' de ' + cdr.max], 'd'); }
     else if (el.btnGeList.getAttribute('data-cr')) { el.btnGeList.textContent = el.btnGeList.getAttribute('data-cr'); el.btnGeList.removeAttribute('data-cr'); }
     srSay(drillName(id) + ': ' + total + ' puntos' + (cdr && cdr.res && cdr.res.grade ? ', nota ' + cdr.res.grade : '') + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + (total > 0 && res.isBest && !cdr ? ', nuevo récord' : ''));
@@ -6342,14 +6563,15 @@
     if (ctx.state === 'playing' && !panel) return;
     var k = e.key;
     if (k === 'ArrowDown' || k === 'ArrowUp' || ((k === 'Tab') && activeLayer())) {
-      e.preventDefault(); if (k !== 'Tab' && mpage === 'prof' && ctx.state === 'menu' && !panel && pfGridV(k === 'ArrowUp' ? -1 : 1)) return; navMove(k === 'ArrowUp' || (k === 'Tab' && e.shiftKey) ? -1 : 1); return;
+      e.preventDefault(); if (k !== 'Tab' && vtNav(0, k === 'ArrowUp' ? -1 : 1, 'key')) return; if (k !== 'Tab' && mpage === 'prof' && ctx.state === 'menu' && !panel && pfGridV(k === 'ArrowUp' ? -1 : 1)) return; navMove(k === 'ArrowUp' || (k === 'Tab' && e.shiftKey) ? -1 : 1); return;
     }
-    if (k === 'ArrowLeft' || k === 'ArrowRight') { if (adjustFocused(k === 'ArrowRight' ? 1 : -1)) e.preventDefault(); return; }
+    if (k === 'ArrowLeft' || k === 'ArrowRight') { var dk = k === 'ArrowRight' ? 1 : -1; if (vtNav(dk, 0, 'key') || adjustFocused(dk) || vtNav(dk, 0, 'key', true)) e.preventDefault(); return; }
     // Vestuario: Z / X giran el muñeco mientras se mantienen
-    if ((k === 'z' || k === 'Z' || k === 'x' || k === 'X') && mpage === 'look' && lk.on && ctx.state === 'menu' && !panel && !e.ctrlKey && !e.metaKey && !e.altKey) {
+    if ((k === 'z' || k === 'Z' || k === 'x' || k === 'X') && mpage === 'look' && lk.on && ctx.state === 'menu' && !panel && noSheet() && !e.ctrlKey && !e.metaKey && !e.altKey) {
       e.preventDefault(); if (!e.repeat) { lk.keySpin = k === 'z' || k === 'Z' ? -1 : 1; lkSpinBy(lk.keySpin * 0.25); lk.idle = 0; } return;
     }
-    if ((k === 'f' || k === 'F') && mpage === 'prof' && ctx.state === 'menu' && !panel && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); pfPinToggle(); return; }
+    if ((k === 'f' || k === 'F') && mpage === 'prof' && ctx.state === 'menu' && !panel && noSheet() && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); pfPinToggle(); return; }
+    if ((k === 'i' || k === 'I') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey && infoKey()) { e.preventDefault(); return; }   // «i» de la fila (móvil)
     if ((k === 'q' || k === 'Q' || k === 'e' || k === 'E' || k === 'PageUp' || k === 'PageDown') && !e.repeat && !e.ctrlKey && !e.metaKey && !e.altKey) {
       var tq = activeTabs(); if (tq) { e.preventDefault(); tq.step(k === 'q' || k === 'Q' || k === 'PageUp' ? -1 : 1, 'key'); } return;
     }
@@ -6364,6 +6586,19 @@
       else if (ctx.state === 'over' && endPeek) setPeek(false);
       else if (ctx.state === 'over' && ctx.game && ctx.game.finished && !el.end.hidden) endPrimary();
     }
+  }
+  /** Teclado («i») y mando (X): la «i» de VB.Splat.helpFit es un <span> dentro del <button> de la fila (sin foco propio); si la fila
+   *  enfocada la tiene, la despliega o la recoge como el toque. */
+  /** V-LKSHEET: con una hoja de VB.Splat abierta (p. ej. el «⋯» del Vestuario) no corren los atajos de la página de detrás. */
+  function noSheet() { return !(VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen()); }
+  function infoKey() {
+    var a = document.activeElement, L = activeLayer();
+    if (!a || !L || !L.contains(a) || !VB.Splat || !VB.Splat.infoToggle) return false;
+    // V-QFOCUS: en Partido rápido el «?» (.sp-q, fuera del recorrido ↑/↓) se abre con X / «i» desde su fila enfocada
+    var qb = a.parentElement && a.parentElement.classList.contains('sp-qrow') ? a.parentElement.querySelector(':scope>.sp-q') : null;
+    if (qb && qb !== a && qb.getClientRects().length) { qb.click(); uiSound('click'); return true; }
+    if (!VB.Splat.infoToggle(a)) return false;
+    uiSound('click'); return true;
   }
   var navRep = { y: 0, x: 0, ty: 0, tx: 0 };
   function axisRepeat(v, key, tkey, dt) {
@@ -6388,44 +6623,12 @@
     back: 'Ya volvió a pista en este set', libero: 'Ahora está el líbero: espera a que salga', me: 'Eres tú', bench: 'No está en pista', off: 'Este partido no tiene banquillo', role: 'Tiene que ser del mismo puesto' };
   var ROLE_AB = { S: 'Col', OPP: 'Opu', OH: 'Rec', MB: 'Cen', L: 'Líb' };
   var subUI = { tq: [], tv: null, tvT: 0, bar: null, veil: null, pn: null, pick: null, msg: '', msgT: 0, stat: {}, key: '', vkey: '', pkey: '' };
-  var SUB_CSS =
-    '#subTv{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:calc(16px + 9vh);z-index:31;pointer-events:none;display:none;min-width:260px;max-width:min(560px,92vw);' +
-    'font:700 calc(16px*var(--vs,1))/1.15 var(--display,sans-serif);color:#fff;filter:drop-shadow(0 6px 18px rgba(0,0,0,.45))}' +
-    '#subTv.show{display:block;animation:stIn .35s var(--ease,ease) both}#subTv.out{animation:stOut .3s ease both}' +
-    '#subTv .sbt-h{display:inline-block;padding:4px 14px 3px;font-size:.8em;letter-spacing:.14em;text-transform:uppercase;background:var(--k0,#ff6a2e);color:#160a02;transform:skewX(-12deg)}' +
-    '#subTv.t1 .sbt-h{background:var(--k1,#2a6dff);color:#fff}' +
-    '#subTv .sbt-b{background:rgba(10,16,30,.94);border:1px solid rgba(255,255,255,.14);border-left:5px solid var(--k0,#ff6a2e);padding:6px 12px 6px}' +
-    '#subTv.t1 .sbt-b{border-left-color:var(--k1,#2a6dff)}' +
-    '#subTv .sbt-row{display:flex;gap:16px;align-items:baseline;white-space:nowrap;padding:2px 0}#subTv .sbt-row+.sbt-row{border-top:1px solid rgba(255,255,255,.1)}' +
-    '#subTv .sbt-in::before{content:"▲ ";color:#4fe08a}#subTv .sbt-out{color:#c9d2e3}#subTv .sbt-out::before{content:"▼ ";color:#ff6b6b}' +
-    '#subTv .sbt-in,#subTv .sbt-out{overflow:hidden;text-overflow:ellipsis}#subTv .sbt-n{font:600 .66em/1.2 var(--ui,sans-serif);letter-spacing:.04em;color:#9fb0cc;margin-top:3px}' +
-    '@keyframes stIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}@keyframes stOut{to{opacity:0;transform:translateY(10px)}}' +
-    '@media (max-width:700px),(max-height:430px){#subTv{bottom:calc(8px + 4vh);min-width:0;font-size:14px}#subTv .sbt-nm{display:none}}' +
-    // con la barra del banquillo a la vista, el rótulo sube por encima de ella (si no, a 844×390 solo asomaba «Cambio»)
-    '.sb-bar #subTv{bottom:calc(80px + env(safe-area-inset-bottom))}@media (max-width:700px),(max-height:430px){.sb-bar #subTv{bottom:calc(66px + env(safe-area-inset-bottom))}}@media (max-width:560px){.sb-bar #subTv{bottom:calc(98px + env(safe-area-inset-bottom))}}' +
-    '#benchBar{position:absolute;left:0;right:0;margin:0 auto;width:max-content;bottom:max(14px,env(safe-area-inset-bottom));z-index:32;display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:center;' +
-    'padding:8px 10px;background:rgba(10,16,30,.9);border:1px solid rgba(255,255,255,.14);border-radius:12px;max-width:calc(100vw - 32px);font:600 15px/1.1 var(--ui,sans-serif);color:#fff}' +
-    '#benchBar[hidden],#ffVeil[hidden]{display:none}#benchBar .bb-t{font:700 15px/1 var(--display,sans-serif);letter-spacing:.1em;text-transform:uppercase;color:#ffe7a0;padding:0 6px}' +
-    '#benchBar button{min-height:40px;padding:6px 14px;border-radius:9px;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.08);color:#fff;font:600 15px/1 var(--ui,sans-serif);cursor:pointer;display:inline-flex;gap:6px;align-items:center}' +
-    '#benchBar button.on{background:#ffd36a;color:#1a1300;border-color:#ffd36a;text-shadow:none}#benchBar button:focus-visible,#benchBar button.kf{outline:3px solid #ffd36a;outline-offset:2px}#benchBar .key{font-size:12px}' +
-    '@media (max-width:700px),(max-height:430px){#benchBar{gap:6px;padding:6px;bottom:max(8px,env(safe-area-inset-bottom))}#benchBar .bb-t{font-size:13px}#benchBar button{font-size:13px;padding:6px 10px;min-height:38px}#benchBar .key{display:none}}' +
-    '@media (max-width:560px){#benchBar .bb-t{flex-basis:100%;text-align:center}}' +
-    '#ffVeil{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(6,10,20,.82);backdrop-filter:blur(6px);color:#fff;text-align:center}' +
-    '#ffVeil b{display:block;font:700 28px/1.1 var(--display,sans-serif);letter-spacing:.08em;text-transform:uppercase}#ffVeil span{display:block;margin-top:8px;font:600 18px/1.2 var(--ui,sans-serif);color:#c9d2e3}' +
-    '#pnSubs .sb-msg{min-height:1.3em;margin:0 0 8px;font:600 14px/1.3 var(--ui,sans-serif);color:#ffe7a0}#pnSubs .sb-cols{display:grid;grid-template-columns:1fr 1fr;gap:12px}' +
-    '#pnSubs h3{margin:0 0 6px;font:700 13px/1 var(--display,sans-serif);letter-spacing:.12em;text-transform:uppercase;color:#9fb0cc}' +
-    '#pnSubs .sb-list{display:flex;flex-direction:column;gap:5px}#pnSubs .sb-p{display:grid;grid-template-columns:2.2em 2.2em 2.6em 1fr auto;gap:6px;align-items:center;text-align:left;min-height:38px;padding:5px 9px;' +
-    'border-radius:8px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.05);color:#fff;font:600 14px/1.1 var(--ui,sans-serif);cursor:pointer}' +
-    '#pnSubs .sb-p b{font:700 17px/1 var(--display,sans-serif)}#pnSubs .sb-z,#pnSubs .sb-r{color:#9fb0cc;font-size:12px}#pnSubs .sb-st{font-size:12px;color:#c9d2e3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '#pnSubs .sb-f{grid-column:1/-1;height:4px;border-radius:2px;background:rgba(255,255,255,.12);overflow:hidden}#pnSubs .sb-f u{display:block;height:100%;background:linear-gradient(90deg,#4fe08a,#ffd36a 60%,#ff6b6b)}' +
-    '#pnSubs .sb-p.sel{border-color:#ffd36a;background:rgba(255,211,106,.16)}#pnSubs .sb-p.q{border-color:#4fe08a}#pnSubs .sb-p[disabled]{opacity:.45;cursor:default}' +
-    '#pnSubs .sb-p em{font-style:normal;font-size:11px;padding:2px 6px;border-radius:6px;background:var(--k0,#ff6a2e);color:#160a02}#pnSubs .sb-head{display:flex;gap:10px;align-items:center;justify-content:space-between;margin:0 0 8px}#pnSubs .sb-head .sb-msg{margin:0}#pnSubs .sb-foot{display:flex;gap:8px;flex:none}#pnSubs .sb-foot button{min-height:34px;padding:4px 12px}' +
-    '#pnSubs .sb-p:focus-visible,#pnSubs .sb-p.kf{outline:3px solid #ffd36a;outline-offset:1px}' +
-    '@media (max-width:700px),(max-height:430px){#pnSubs .sb-cols{gap:8px}#pnSubs .sb-p{grid-template-columns:2em 2em 2.4em 1fr;min-height:32px;padding:3px 6px;font-size:12px}#pnSubs .sb-st{display:none}#pnSubs .sb-p em{grid-column:4;justify-self:start}}' +
-    '#btnPSubs[hidden]{display:none}';
+  // (18-nov-2026, móvil · partido: el CSS de todo esto —antes la cadena SUB_CSS que se inyectaba aquí— vive en index.html, bloque
+  //  «SPLAT · CAMBIOS Y BANQUILLO», con el sistema SPLAT)
+  /** Apellido corto para las filas de «Cambios» (la última palabra, hasta 10 letras sin cortar con puntos). */
+  function subShort(nm) { var w = String(nm || '').trim().split(/\s+/); var s = w[w.length - 1] || ''; return s.length > 10 ? w[0].slice(0, 10) : s; }
   function subsDom() {
     if (subUI.tv || !el.app) return;
-    var css = document.createElement('style'); css.id = 'subsCss'; css.textContent = SUB_CSS; document.head.appendChild(css);
     subUI.tv = document.createElement('div'); subUI.tv.id = 'subTv'; subUI.tv.setAttribute('aria-hidden', 'true'); el.app.appendChild(subUI.tv);
     var bb = subUI.bar = document.createElement('div'); bb.id = 'benchBar'; bb.hidden = true; bb.setAttribute('role', 'group'); bb.setAttribute('aria-label', 'En el banquillo');
     bb.innerHTML = '<span class="bb-t">En el banquillo</span><button type="button" id="bbFast" aria-pressed="false"></button><button type="button" id="bbIn"></button><button type="button" id="bbEnd"></button>';
@@ -6580,8 +6783,8 @@
       var cls = 'sb-p' + (subUI.pick === p ? ' sel' : '') + (q && (q.out === p || q.inn === p) ? ' q' : '');
       var lab = (onC ? 'Zona ' + zone + ', ' : '') + 'dorsal ' + p.num + (p.name ? ' ' + p.name : '') + ', ' + (ROLE_AB[p.role] || '') + (me ? ', tú' : '');
       return '<button type="button" class="' + cls + '" data-pid="' + p.id + '" data-on="' + (onC ? 1 : 0) + '"' + (can ? '' : ' disabled') + ' aria-label="' + escT(lab) + '">' +
-        '<span class="sb-z">' + (onC ? 'Z' + zone : '') + '</span><b>' + p.num + '</b><span class="sb-r">' + (ROLE_AB[p.role] || '') + '</span>' +
-        '<span class="sb-st">' + ((P && P.pts) | 0) + ' pts | ' + (st.err | 0) + ' err' + (inf.state === 'out' ? ' | fuera' : inf.state === 'in' ? ' | entró' : '') + '</span>' + (me ? '<em>Tú</em>' : '<span></span>') +
+        '<span class="sb-z">' + (onC ? 'Z' + zone : '') + '</span><b>' + p.num + (me ? '<em>Tú</em>' : '') + '</b>' + (p.name ? '<span class="sb-nm">' + escT(subShort(p.name)) + '</span>' : '') + '<span class="sb-r">' + (ROLE_AB[p.role] || '') + '</span>' +
+        '<span class="sb-st">' + ((P && P.pts) | 0) + ' pts | ' + (st.err | 0) + ' err' + (inf.state === 'out' ? ' | fuera' : inf.state === 'in' ? ' | entró' : '') + '</span><span></span>' +
         '<i class="sb-f"><u style="width:' + Math.round(100 * Math.min(1, p.tired || 0)) + '%"></u></i></button>';
     };
     for (z = 1; z <= 6; z++) { p = S.onCourt(g, 0, z); hon += row(p, true, z); }
@@ -6643,7 +6846,7 @@
       '<p class="sn-t" id="snT"></p><small class="sn-s">Lo cambias cuando quieras en Ajustes, Juego.</small></div>' +
       '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="on"><span class="sp-l"><span class="sp-t">Activar</span></span></button>' +
       '<div class="sn-row"><button type="button" class="sp-btn sp-sm sp-teal" data-shape="2" data-sn="later"><span class="sp-t">Ahora no</span></button>' +
-      '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="5" data-sn="never"><span class="sp-t">No volver a mostrar</span></button></div></div></div>';
+      '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="5" data-sn="never" aria-label="No volver a mostrar"><span class="sp-t"><span class="ph-hide">No volver a mostrar</span><span class="ph-only">No mostrar más</span></span></button></div></div></div>';
     r.addEventListener('click', function (e) {
       e.stopPropagation();
       var b = e.target && e.target.closest ? e.target.closest('[data-sn]') : null;
@@ -6673,6 +6876,9 @@
     var gl = GLYPH[device()] || GLYPH.keyboard;
     sn.root.querySelector('.sn-t').innerHTML = 'En la colocación en salto puedes llevar la diana, como en el remate: muévela con ' + gl.aim + ' y la colocación va al atacante que tenga más cerca; el marcador de color dice adónde. Si no la tocas, todo sigue como ahora.';
     sn.root.hidden = false; sn.root.classList.remove('in');
+    // móvil: tinte del 20 % detrás mientras está abierto (VB.Splat.modal); en PC, como siempre
+    if (sn.rel) { sn.rel(); sn.rel = null; }
+    if (VB.Splat && VB.Splat.modal && VB.Splat.phone && VB.Splat.phone()) sn.rel = VB.Splat.modal(sn.root);
     requestAnimationFrame(function () { if (sn.root && sn.open) sn.root.classList.add('in'); });
     snFocus(sn.root.querySelector('[data-sn="on"]'), device() !== 'touch');
     uiSound('open');
@@ -6681,6 +6887,7 @@
   function snClose(choice) {
     if (!sn.open) return;
     sn.open = false; sn.root.hidden = true; sn.root.classList.remove('in');
+    if (sn.rel) { sn.rel(); sn.rel = null; }
     if (choice === 'on') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetAim', true); snToast('Colocación con diana activada'); uiSound('click'); }
     else if (choice === 'never') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetNote', false); uiSound('back'); }
     else uiSound('back');
@@ -6854,7 +7061,10 @@
       if (el.btnGym) el.btnGym.addEventListener('click', function () { menuGo('gym'); });
       if (el.gymList) el.gymList.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b) { uiSound('start'); goGym(b.getAttribute('data-drill')); } });
       if (el.gymList) el.gymList.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b && b !== gymHov) { gymHov = b; hoverSound(); } });
-      if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () { uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind); });
+      if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () {
+        if (el.btnGeAgain.getAttribute('data-cdr')) { el.btnGeNext.click(); return; }   // sesión de la Carrera: el parche es «Siguiente sesión»
+        uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind);
+      });
       if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () {
         var g = ctx.game;
         // sesión de la Carrera: la siguiente del plan (otra sesión; main.js startCareerDrill vuelve al hub si ya no se puede)
@@ -7125,6 +7335,7 @@
     netStatsSet: function (o) { if (o && o.t) stats = o; },
     /** Cierra el panel abierto. true si se ha consumido (Esc / B / Start). */
     back: function () {
+      if (VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen()) { uiSound('back'); return VB.Splat.closeTop(); }   // (móvil: primero la hoja de abajo)
       if (sn.open) { snClose('later'); return true; }   // (aviso de colocador: Esc / B = «Ahora no»)
       if (panel) { uiSound('back'); return closePanel(); }
       // E6: B / Esc en la hoja final del ejercicio = «Entrenamiento» (vuelve a la lista)
@@ -7143,12 +7354,13 @@
       if (!it || it.device !== 'gamepad') { navRep.y = navRep.x = 0; return; }
       if (!activeLayer()) return;
       var dy = axisRepeat(it.my || 0, 'y', 'ty', dt), dx = axisRepeat(it.mx || 0, 'x', 'tx', dt);
-      if (dy && !(mpage === 'prof' && ctx.state === 'menu' && !panel && pfGridV(-dy))) navMove(-dy);
-      if (dx) adjustFocused(dx);
-      if (it.jset && mpage === 'prof' && ctx.state === 'menu' && !panel) pfPinToggle();   // D2: X = fijar en la vitrina
+      if (dy && !vtNav(0, -dy, 'pad') && !(mpage === 'prof' && ctx.state === 'menu' && !panel && pfGridV(-dy))) navMove(-dy);
+      if (dx && !vtNav(dx, 0, 'pad') && !adjustFocused(dx)) vtNav(dx, 0, 'pad', true);   // (móvil: columna de pestañas, api.vnav)
+      if (it.jset && mpage === 'prof' && ctx.state === 'menu' && !panel) { if (noSheet()) pfPinToggle(); }   // D2: X = fijar en la vitrina
+      else if (it.jset && !(mpage === 'look' && ctx.state === 'menu' && !panel)) infoKey();   // X = abrir / cerrar la «i» de la fila (móvil)
       var td = it.navTab || 0; if (!td && it.switchPlayer) td = padTabDir();
       if (td) { var tp = activeTabs(); if (tp) tp.step(td, 'pad'); }
-      if (mpage === 'look' && lk.on && ctx.state === 'menu' && !panel) lkPad(it, dt);   // X = al azar, stick derecho = girar
+      if (mpage === 'look' && lk.on && ctx.state === 'menu' && !panel && noSheet()) lkPad(it, dt);   // X = al azar, stick derecho = girar
       if (nOk) { var a = document.activeElement; if (a && a.tagName === 'BUTTON' && !a.closest('[hidden]')) a.click(); else if (!(a && a.hasAttribute && a.hasAttribute('data-focus') && activeLayer() && activeLayer().contains(a))) focusLayer(); }
       if (nBack) { if (!this.back() && ctx.state === 'paused') ctx.actions.resume(); } // volver: B/○ (fijo), no X/□ (COLOCAR)
       if (ctx.state === 'menu' && last.navDev !== 'gamepad') { last.navDev = 'gamepad'; last.navh = null; renderMenu(); }

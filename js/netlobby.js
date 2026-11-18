@@ -221,8 +221,14 @@
   }
   function setView(v) {
     L.view = v; L.edit = ''; L.osk = null;
-    stop('list');
+    stop('list'); stop('retry');
     if (v === 'list') { every('list', LIST_EVERY, function () { if (document.visibilityState !== 'hidden') refreshList(false); }); }
+    // (sin servidor: se vuelve a probar solo cada 30 s; el móvil lo dice en la hoja)
+    if (v === 'off') every('retry', 30000, function () {
+      if (!L.on || L.view !== 'off' || document.visibilityState === 'hidden' || noRtc()) return;
+      // (se prueba sin cambiar de vista: si el servidor sigue apagado no pasa nada; el foco no salta cada 30 s)
+      api().list().then(function (rs) { if (L.on && L.view === 'off') { L.rooms = rs; L.listAt = Date.now(); L.listErr = ''; setView('list'); } }, function () { });
+    });
     render(true);
   }
 
@@ -498,6 +504,8 @@
   // Abrir sala, Salir) NUNCA se van; lo que sobra se desplaza por dentro (lista de salas, selectores, ayuda, tarjeta). Ver el bug del
   // 17-nov-2026 (gente atrapada en «Cómo funciona» en un móvil apaisado bajo). P = refuerzo de 3 ids del sistema (estructura).
   var P = ':root:not(#_):not(#_):not(#_) ';
+  var PP = ':root.ph' + P.slice(5), PW = ':root.ph.ph-w' + P.slice(5);   // (móvil: html.ph; ancho ≥ 800: html.ph-w)
+  function ph() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
   var CSS = [
     '#menu.sp-full #mpOnline{--sp-colw:clamp(360px,54vw,780px);padding-bottom:calc(var(--sp-pad) + 36px + var(--sbm))}',
     '#mpOnline .ol-body{display:flex;flex-direction:column;gap:var(--sp-gap,12px);flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;',
@@ -564,6 +572,8 @@
     '#mpOnline .ol-ghost em{font:400 12px/1 var(--sp-pop);font-style:normal;padding:4px 5px 3px;border-radius:9px;background:var(--sp-ink);color:var(--sp-gold);transform:rotate(-6deg)}',
     // (Online V2) «Precisa (v1)» / «Fluida (v2)»: la v en minúscula y más suave
     '#mpOnline .mv-val .sl-ver{text-transform:none;font-style:normal;opacity:.7}',
+    '#mpOnline .ol-hint{display:none}',
+    '#spToasts .sp-toast.ol-tbad{padding-left:20px;box-shadow:0 0 0 2.5px var(--sp-cream),inset 7px 0 0 var(--sp-danger),3px 4px 0 2.5px var(--sp-ink)}',   // (móvil: la explicación de la fila elegida, debajo de su rótulo)
     // escribir el nombre y el código: campo crema con contorno de tinta y aro dorado al enfocar
     '#mpOnline .ol-edit{display:flex;gap:14px;align-items:center;flex:none;padding:4px 8px 6px 4px}' + P + '#mpOnline .ol-edit .sp-btn{flex:none}',
     '#mpOnline .ol-edit input{flex:1;min-width:0;height:clamp(46px,8vh,56px);box-sizing:border-box;padding:0 16px;border:0;border-radius:12px 16px 12px 18px/16px 12px 18px 12px;background:var(--sp-cream);color:var(--sp-ink);',
@@ -630,26 +640,188 @@
     '#mpOnline .mt-chips{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin:0 14px}#mpOnline .mt-chips i{background:rgba(255,244,220,.13);color:var(--sp-cream)}',
     '#mpOnline .ol-st{margin:10px 16px 0;text-align:center;font:700 clamp(13px,2.2vh,15px)/1.4 var(--sp-ui);color:var(--sp-gold)}#mpOnline .ol-st.bad{color:#ffa3ad}',
     '#mpOnline .ol-tip{margin:6px 16px 0;text-align:center;font:500 clamp(11.5px,1.9vh,13px)/1.4 var(--sp-ui);color:rgba(255,244,220,.75)}',
-    // teléfono apaisado bajo: todo más prieto (el alto es lo que manda)
-    '@media (max-height:430px) and (min-aspect-ratio:5/4){',
-    '#menu.sp-full #mpOnline{--sp-colw:min(600px,calc(100vw - 40px - var(--sl) - var(--sr)));padding-bottom:calc(16px + var(--sbm))}',
-    P + '#mpOnline .ol-fx .fx-k{display:none}#mpOnline .fx-chips .fx-vchip{display:block}#mpOnline .ol-fx .sp-tk-main{padding:6px 6px 4px}',
-    '#mpOnline .ol-body{gap:8px}#mpOnline .ol-bar{gap:8px 10px}#mpOnline .ol-act{--sp-h:44px;--sp-fs:13px}',
-    '#mpOnline .ol-bh{padding:5px 14px 5px 11px;font-size:12px}#mpOnline .ol-board{gap:7px}',
-    '#mpOnline .ol-rooms{gap:8px}#mpOnline .ol-fx{--sp-h:50px;--sp-cs:30px}#mpOnline .fx-name{font-size:16px}#mpOnline .ol-fx .sp-k{font-size:9.5px}',
-    '#mpOnline .fx-chips i{font-size:10px;padding:2px 6px}#mpOnline .fx-go{font-size:12px;padding:5px 8px 4px 10px}#mpOnline .fx-end{gap:3px}',
-    '#mpOnline .ol-empty{padding:9px 14px;font-size:13px}#mpOnline .ol-ghost i{width:28px;height:28px}',
-    '#mpOnline .mk-prev,#mpOnline .mk-top,#mpOnline .mk-tip{display:none}#mpOnline .mk-sels{gap:8px 12px}#mpOnline .ol-sel{--sp-oh:46px;--sp-aw:26px}',
-    P + '#menu #mpOnline .ol-sel .mi-l{font-size:10.5px}' + P + '#menu #mpOnline .ol-sel .mv-val{margin:1px 0 0;padding:2px 9px;--sp-vs:13px}',
-    '#mpOnline .ol-bar2 .sp-patch{--sp-ph:48px}#mpOnline .ol-bar2{gap:10px}',
-    '#mpOnline .hp-box>div{display:block;padding:5px 10px}#mpOnline .hp-box dt{display:inline;margin-right:8px;font-size:11px}#mpOnline .hp-box dd{display:inline;font-size:12px;line-height:1.35}',
-    '#mpOnline .mt-top{padding:6px 12px}#mpOnline .ol-vs{margin:8px 14px 6px}#mpOnline .ol-p b{font-size:21px}#mpOnline .ol-mid{width:36px;height:36px;font-size:14px}',
-    '#mpOnline .ol-st{margin-top:6px;font-size:12.5px}#mpOnline .ol-tip{display:none}#mpOnline .ol-match{padding-bottom:8px}',
-    '#mpOnline .ol-card{padding:10px 14px 12px}#mpOnline .ol-card h3{font-size:17px;margin-bottom:5px}#mpOnline .ol-card p{font-size:12.5px;line-height:1.38}',
-    '#mpOnline .ol-osk{gap:4px;padding:7px 9px 9px}#mpOnline .osk-show{padding-bottom:2px}#mpOnline .osk-val{height:30px;font-size:17px}',
-    P + '#mpOnline .osk-k{height:31px;font-size:15px}' + P + '#mpOnline .osk-k.fn{font-size:11.5px}',
-    '#mpOnline .ol-edit input{height:44px;font-size:17px}#mpOnline .osk-tip{display:none}}',
-    '@media (max-height:340px) and (min-aspect-ratio:5/4){' + P + '#mpOnline .osk-k{height:28px}#mpOnline .osk-val{height:28px}#mpOnline .ol-osk{gap:4px}}',
+    // — móvil (.ph) — (18-nov-2026, spec «Online»; notes/splat.md «Móvil»). Sustituye a las viejas @media de 430/340 px de alto.
+    // PP = prefijo del móvil (:root.ph + 3 ids: gana a P + #mpOnline). La página: cabecera de 48 (Volver, título y tu nombre), UNA zona
+    // que se desplaza y la barra de abajo (.ol-dock: la principal, la última, abajo a la derecha). Letra por ancho (--ph-*), nunca vh.
+    PP + '#menu.sp-full #mpOnline{left:var(--ph-g);right:auto;width:min(var(--ph-ffw),860px);max-width:none;top:0;bottom:0;padding:var(--ph-gt) 0 var(--ph-gb);gap:0;justify-content:flex-start}',
+    PP + '#menu.sp-full #mpOnline>.mp-head{flex:none;min-height:var(--ph-hh);margin:0 0 var(--ph-s2);gap:var(--ph-s3);padding-right:4px;box-sizing:border-box}',
+    PP + '#mpOnline .mp-head .sp-k{display:none}' + PP + '#mpOnline .mp-head .mp-tt{flex:none}' + PP + '#mpOnline .mp-head .sp-h{white-space:nowrap}',
+    '#mpOnline .ol-hr{display:none}',
+    PP + '#mpOnline .ol-hr{display:flex;align-items:center;gap:var(--ph-hit-gap);min-width:0;flex:1 1 auto}',
+    // (R2-13) lista: tras «Online», el rótulo vivo «● 4 salas abiertas» (brochazo de tinta); a la derecha tu nombre y el «?» redondo de 44
+    PP + '#mpOnline .ol-hsal{position:relative;isolation:isolate;flex:none;display:inline-flex;align-items:center;gap:7px;padding:7px 14px 7px 11px;white-space:nowrap;overflow:hidden;',
+    'font:400 var(--ph-label)/1.1 var(--sp-pop);letter-spacing:.04em;text-transform:uppercase;color:var(--sp-cream);transform:rotate(-1.5deg)}',
+    PP + '#mpOnline .ol-hsal::before{content:"";position:absolute;inset:0;z-index:-1;background:var(--sp-ink);-webkit-mask:var(--sp-brush) center/100% 100% no-repeat;mask:var(--sp-brush) center/100% 100% no-repeat}',
+    PP + '#mpOnline .ol-hsal .ol-live{flex:none}' + PP + '#mpOnline .ol-hsal b{font-weight:400;color:var(--sp-gold)}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-hx{display:none}',
+    PP + '#mpOnline .ol-hsal+.ol-who{margin-left:auto}',
+    PP + '#mpOnline .ol-hq{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-width:44px;margin:0 0 0 4px;padding:0 0 2px;box-sizing:border-box;border:0;border-radius:50%;',
+    'background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:400 24px/1 var(--sp-pop);text-shadow:none;cursor:pointer;rotate:-6deg;-webkit-tap-highlight-color:transparent}',
+    PP + '#mpOnline .ol-hq:is(.kf,:focus-visible){outline:none;background:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 6px var(--sp-gold),2px 3px 0 6px var(--sp-ink)}',
+    PP + '#mpOnline .ol-hq:active{translate:1px 2px}',
+    ':root.ph:has(#mpOnline:not([hidden]) .ol-hsal)' + P.slice(5) + '#spToasts{top:calc(var(--ph-gt) + 58px)}',   // (los avisos, bajo tu nombre y el «?», sin taparlos)
+    PP + '#mpOnline .ol-recl{display:block;flex:none;margin:2px 4px 0 10px;font:700 var(--ph-cap)/1.3 var(--sp-ui);color:rgba(255,244,220,.85);text-shadow:0 1px 2px rgba(21,16,42,.9),1px 1px 0 var(--sp-ink)}',
+    PP + '#mpOnline .ol-who{display:inline-flex;align-items:center;gap:8px;min-width:0;max-width:100%;min-height:44px;margin:0;padding:4px 12px 4px 10px;box-sizing:border-box;border:0;border-radius:12px 16px 12px 18px/14px 12px 18px 12px;',
+    'background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);text-align:left;text-transform:none;letter-spacing:0;text-shadow:none;cursor:pointer;rotate:-1.2deg;-webkit-tap-highlight-color:transparent}',
+    PP + '#mpOnline .ol-who .ow-t{display:flex;flex-direction:column;min-width:0}',
+    PP + '#mpOnline .ol-who small{font:700 var(--ph-cap)/1.1 var(--sp-ui);color:rgba(21,16,42,.66)}',
+    PP + '#mpOnline .ol-who b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere;font:800 var(--ph-row)/1.12 var(--sp-ui)}',
+    PP + '#mpOnline .ol-who svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    PP + '#mpOnline .ol-who:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 6px var(--sp-cream),2px 3px 0 6px var(--sp-ink)}',
+    PP + '#mpOnline .ol-who:active{translate:1px 2px}',
+    PP + '#mpOnline .ol-hchip{flex:none;--sp-chs:var(--ph-label)}',
+    // el cuerpo: sin desplazamiento propio (lo hace la zona .ol-scroll de cada vista) y la barra de abajo
+    PP + '#mpOnline .ol-body{flex:1 1 auto;min-height:0;margin:0;padding:0;overflow:visible;display:flex;flex-direction:column;gap:var(--ph-s2);position:relative}',
+    PP + '#mpOnline .ol-scroll{scroll-padding:12px}',
+    PP + '#mpOnline .ol-scroll.sp-more{-webkit-mask:linear-gradient(#000 calc(100% - 24px),transparent);mask:linear-gradient(#000 calc(100% - 24px),transparent)}',
+    PP + '#mpOnline .ol-scroll.sp-less{-webkit-mask:linear-gradient(transparent,#000 16px);mask:linear-gradient(transparent,#000 16px)}',
+    PP + '#mpOnline .ol-scroll.sp-more.sp-less{-webkit-mask:linear-gradient(transparent,#000 16px,#000 calc(100% - 24px),transparent);mask:linear-gradient(transparent,#000 16px,#000 calc(100% - 24px),transparent)}',
+    PP + '#mpOnline .ol-dock{flex:none;display:flex;flex-wrap:nowrap;justify-content:flex-end;align-items:center;gap:var(--ph-hit-gap);min-width:0;margin:0;padding:2px 4px 2px 2px}',
+    PP + '#mpOnline .ol-dock .ol-act{--sp-h:48px;--sp-fs:var(--ph-btn);--sp-px:16px;flex:0 1 auto;min-width:0}',
+    PP + '#mpOnline .ol-dock .ol-act.ol-new{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:22px}',
+    PP + '#mpOnline .ol-dock .ol-act.ol-ico{--sp-px:0;width:48px;flex:none}',
+    PP + '#mpOnline .ol-dock>.sp-dock-l{margin-right:auto}',
+    PP + '#mpOnline .ol-dock .ol-act .sp-t{overflow:visible}',
+    PP + '#mpOnline .ol-note{margin:0 4px;font-size:var(--ph-body);line-height:1.35}',
+    // lista: la cartelera ocupa el alto y se desplaza; «Salas abiertas · 4» pegado arriba; ancho ≥ 800: barra a la derecha (en columna)
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-rooms{flex:1 1 auto;min-height:0;gap:12px;padding:4px 12px 20px 4px;margin:0 -12px 0 -4px}',
+    PP + '#mpOnline .ol-rooms>.ol-bh{flex:none;margin:2px 0 0 12px;align-self:flex-start}',
+    PP + '#mpOnline .ol-bh .ol-live{display:inline-block;vertical-align:middle;margin:-2px 8px 0 0}' + PP + '#mpOnline .ol-bh .ol-n{color:var(--sp-gold)}' + PP + '#mpOnline .ol-bh .ol-rec{font-size:var(--ph-cap);margin-left:4px}',
+    PP + '#mpOnline .ol-bh .ol-srch{display:inline-flex;align-items:center;gap:6px;font:700 var(--ph-cap)/1 var(--sp-ui);letter-spacing:0;text-transform:none;color:rgba(255,244,220,.85)}',
+    PW + '#mpOnline .ol-body[data-v="list"]{display:grid;grid-template-columns:minmax(0,1fr) clamp(212px,26vw,240px);grid-template-rows:minmax(0,1fr);column-gap:var(--ph-s4)}',
+    PW + '#mpOnline .ol-body[data-v="list"] .ol-rooms{grid-column:1;grid-row:1}',
+    PW + '#mpOnline .ol-body[data-v="list"] .ol-dock{grid-column:2;grid-row:1;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:16px;padding:4px 6px 4px 2px}',
+    PW + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act{width:100%;flex:none;--sp-px:14px}',
+    PW + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act.ol-ico{width:48px;align-self:flex-end}',
+    // las salas (brochazos): ≥ 60 px, nombre a --ph-head, una línea de chips, estado con punto y «Entrar» en pegatina dorada de 44
+    PP + '#mpOnline .ol-fx{--sp-h:68px;--sp-cs:clamp(32px,2.6vw + 17px,40px);flex:none}',
+    PP + '#mpOnline .ol-fx .fx-k{display:none}',
+    PP + '#mpOnline .ol-fx .sp-tk-main{gap:5px;padding:6px 8px 6px 6px}',
+    PP + '#mpOnline .fx-line{gap:8px}',
+    PP + '#mpOnline .fx-name{font-size:var(--ph-head);line-height:1.06;white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow-wrap:normal}',
+    PP + '#mpOnline .mk-prev .fx-name{font-size:var(--ph-row);display:block;white-space:nowrap}' + PP + '#mpOnline .mk-prev .fx-line{flex-wrap:wrap;row-gap:4px}' + PP + '#mpOnline .mk-prev .fx-chips .fx-vchip{display:none}' + PP + '#mpOnline .mk-prev .fx-chips{flex-wrap:wrap;row-gap:4px}',
+    // (la sede ya sale en el subtítulo del parche; el billete de muestra crece con su contenido: nada recortado arriba)
+    PP + '#mpOnline .mk-prev .ol-fx{--sp-h:auto}' + PP + '#mpOnline .mk-prev .ol-fx .sp-tk-main{padding-top:14px;padding-bottom:10px}',
+    PP + '#mpOnline .mk-prev .fx-end{display:none}' + PP + '#mpOnline .mk-prev .fx-line{flex-wrap:nowrap}' + PP + '#mpOnline .mk-prev .fx-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}',
+    PP + '#mpOnline .fx-vs{font-size:var(--ph-cap);padding:4px 6px 3px}',
+    PP + '#mpOnline .fx-slot{height:28px;min-width:34px;font-size:var(--ph-row)}',
+    PP + '#mpOnline .fx-slot.in{max-width:none;flex:0 1 auto;min-width:0;text-overflow:clip;font-size:var(--ph-cap);padding:0 9px}',
+    PP + '#mpOnline .fx-chips{gap:6px;flex-wrap:nowrap}',
+    PP + '#mpOnline .fx-chips i{font-size:var(--ph-cap);line-height:1.1;padding:3px 8px}',
+    PP + '#mpOnline .fx-chips .fx-vchip{display:block;flex:0 1 auto;min-width:0;max-width:15em;overflow:hidden;text-overflow:ellipsis}',
+    PP + '#mpOnline .fx-end{gap:4px;padding:0 12px 0 6px}',
+    PP + '#mpOnline .fx-end .fx-st:not(:only-child){display:none}' + PP + '#mpOnline .fx-st{font-size:var(--ph-cap);letter-spacing:0;text-transform:none;font-weight:700}',
+    PP + '#mpOnline .fx-go{min-height:44px;box-sizing:border-box;padding:0 14px 0 16px;border-radius:12px 16px 11px 15px/14px 11px 16px 12px;background:var(--sp-gold);color:var(--sp-ink);',
+    'box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font-size:var(--ph-btn);letter-spacing:.02em;transform:rotate(-2deg)}',
+    PP + '#mpOnline .fx-go svg{fill:var(--sp-ink)}',
+    PP + '#mpOnline .ol-fx:is(.kf,:focus-visible) .fx-go{background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}',
+    PP + '#mpOnline .ol-fx:is(.kf,:focus-visible) .fx-go svg{fill:var(--sp-ink)}',
+    PP + '#mpOnline .ol-empty{margin:4px 10px 6px 6px;padding:14px 18px;font-size:var(--ph-body)}',
+    // escribir tu nombre o el código: hoja pegada arriba (con el teclado del móvil, VB.Splat.kbd la sube), campo de 52 y «Guardar» al lado
+    PP + '#mpOnline .ol-edit{position:absolute;left:2px;right:6px;top:0;z-index:6;display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"l x" "f f";gap:4px 10px;align-items:center;padding:8px 10px 14px 16px;margin:0}',
+    PP + '#mpOnline .ol-edit.kb-pin{top:calc(-1 * var(--ph-hh) - var(--ph-s2))!important}',   // (teclado abierto: sube por encima de la cabecera)
+    PP + '#mpOnline .ol-edit .oe-l{grid-area:l;font:400 var(--ph-label)/1.1 var(--sp-pop);letter-spacing:.04em;text-transform:uppercase;color:var(--sp-gold)}',
+    PP + '#mpOnline .ol-edit .sp-x{grid-area:x}',
+    PP + '#mpOnline .ol-edit .oe-f{grid-area:f;display:flex;align-items:center;gap:12px;min-width:0}',
+    PP + '#mpOnline .ol-edit input{flex:1 1 auto;min-width:0;height:52px;font-size:20px}',
+    PP + '#mpOnline .ol-edit .sp-btn{--sp-h:52px;--sp-fs:var(--ph-btn);flex:none}',
+    // teclado en pantalla (mando)
+    PP + '#mpOnline .ol-osk{flex:1 1 auto;min-height:0;gap:5px;padding:8px 10px 10px;margin:0 4px 0 2px}',
+    PP + '#mpOnline .osk-val{height:36px;font-size:20px}' + PP + '#mpOnline .osk-lbl{font-size:var(--ph-label)}' + PP + '#mpOnline .osk-tip{display:none}',
+    PP + '#mpOnline .osk-k{height:34px;font-size:18px}' + PP + '#mpOnline .osk-k.fn{font-size:13px;letter-spacing:.02em}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .osk-k{height:30px}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .osk-val{height:30px}',
+    // «Cómo funciona»: páginas de dos puntos (titular a --ph-head, texto a --ph-body), puntitos y «Siguiente ›» / «Entendido» abajo
+    PP + '#mpOnline .hp-go{margin-top:auto}' + PP + '#mpOnline .ol-hpp{flex:0 1 auto;min-height:0;display:block;margin:0 4px 0 2px;padding:4px 18px}',
+    PP + '#mpOnline .hp-pt{padding:10px 0 11px;border-bottom:2px dashed rgba(255,244,220,.16)}' + PP + '#mpOnline .hp-pt:last-child{border-bottom:0}',
+    PP + '#mpOnline .hp-pt h4{margin:0 0 4px;font:400 var(--ph-head)/1.1 var(--sp-pop);letter-spacing:.01em;text-transform:none;color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink);transform:rotate(-1deg);transform-origin:0 50%}',
+    PP + '#mpOnline .hp-pt p{margin:0;font:500 var(--ph-body)/1.4 var(--sp-ui);color:rgba(255,244,220,.94)}',
+    PP + '#mpOnline .hp-dots{display:flex;align-items:center;gap:8px;margin-right:auto;padding:0 0 0 8px}',
+    PP + '#mpOnline .hp-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,244,220,.4);box-shadow:0 0 0 2px var(--sp-ink)}',
+    PP + '#mpOnline .hp-dots i.on{width:24px;border-radius:6px;background:var(--sp-gold)}',
+    // crear sala: filas de opciones (rótulo a la izquierda, ‹ valor › a la derecha) que se desplazan, y «Abrir sala» abajo a la derecha.
+    // ≥ 720 px de ancho: filas a la izquierda (58 %) y a la derecha tu sala tal y como sale en la lista, la explicación y el parche
+    PP + '#mpOnline .ol-body[data-v="create"]{display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto;row-gap:var(--ph-s2);--ol-vw:clamp(150px,28vw,230px)}',
+    PP + '#mpOnline .ol-body[data-v="create"] .ol-mk{display:contents}',
+    PP + '#mpOnline .ol-body[data-v="create"] :is(.mk-top,.mk-prev,.mk-tip){display:none}',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-sels{grid-column:1;grid-row:1;display:flex;flex-direction:column;gap:10px;min-height:0;padding:4px 12px 12px 4px;margin:0 -12px 0 -4px}',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-go{grid-column:1;grid-row:2}',
+    PP + '#mpOnline .mk-go .sp-patch{flex:0 1 auto;width:auto;min-width:min(240px,100%)}',
+    PP + '#mpOnline .mk-go .sp-patch .sp-s{font-size:var(--ph-cap)}',
+    '@media (min-width:720px){',
+    PP + '#mpOnline .ol-body[data-v="create"]{grid-template-columns:minmax(0,58fr) minmax(0,42fr);grid-template-rows:auto auto minmax(0,1fr) auto;column-gap:var(--ph-s4);--ol-vw:clamp(132px,19vw,178px)}',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-sels{grid-row:1/-1}',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-top{display:flex;grid-column:2;grid-row:1;margin:2px 0 0}',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-prev{display:block;grid-column:2;grid-row:2;padding:6px 6px 2px 2px}',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-tip{display:block;grid-column:2;grid-row:3;align-self:start;margin-top:8px}',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-go{grid-column:2;grid-row:4}',
+    PP + '#mpOnline .mk-go .sp-patch{width:100%}}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="create"] .mk-prev{display:none}',
+    PP + '#mpOnline .mk-top small{font-size:var(--ph-cap)}',
+    PP + '#mpOnline .mk-tip{margin:4px 2px 0;padding:8px 12px;border-radius:12px 16px 11px 15px/14px 11px 16px 12px;background:rgba(21,16,42,.84);box-shadow:0 0 0 2px rgba(255,244,220,.12);',
+    'font:500 var(--ph-body)/1.38 var(--sp-ui);color:rgba(255,244,220,.94);text-shadow:none}',
+    PP + '#menu #mpOnline .ol-sel{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto;grid-template-areas:"l v";align-items:center;justify-items:stretch;width:100%;height:auto;min-height:54px;',
+    'padding:4px 4px 4px 16px;gap:0 8px;text-align:left;white-space:normal;--sp-aw:34px;flex:none}',
+    PP + '#menu #mpOnline .ol-sel .mi-l{grid-area:l;display:flex;flex-direction:column;align-items:flex-start;justify-self:start;min-width:0;max-width:100%;margin:0;padding:0;',
+    'font:400 var(--ph-label)/1.12 var(--sp-pop);letter-spacing:.04em;text-transform:uppercase;color:var(--sp-gold);text-align:left;transform:rotate(-1deg)}',
+    PP + '#menu #mpOnline .ol-sel{--sp-tilt:.25deg;margin:0}' + PP + '#menu #mpOnline .ol-sel:nth-child(odd){--sp-tilt:-.25deg}' + PP + '#mpOnline .ol-fx{--sp-tilt:-.3deg}' + PP + '#mpOnline .ol-fx:nth-child(odd){--sp-tilt:.3deg}',
+    PP + '#menu #mpOnline .ol-sel .mi-v{grid-area:v;display:flex;align-items:center;gap:0}',
+    PP + '#menu #mpOnline .ol-sel .arr{grid-area:auto}',
+    PP + '#menu #mpOnline .ol-sel .mv-val{width:var(--ol-vw);max-width:none;min-width:0;box-sizing:border-box;margin:0;padding:5px 10px;transform:rotate(-1.4deg)}',
+    PP + '#menu #mpOnline .ol-sel:nth-child(even) .mv-val{transform:rotate(1.1deg)}',
+    PP + '#menu #mpOnline .ol-sel:nth-child(3n+2) .mv-val::before{background:#8ee8d9}',
+    PP + '#menu #mpOnline .ol-sel:nth-child(3n) .mv-val::before{background:var(--sp-cream)}',
+    PP + '#menu #mpOnline .ol-sel .mv-val b{white-space:normal;overflow:visible;text-overflow:clip;text-align:center;line-height:1.05;overflow-wrap:break-word}',
+    PP + '#menu #mpOnline .ol-sel .ol-hint{display:none;margin:3px 0 0;font:600 var(--ph-label)/1.22 var(--sp-ui);letter-spacing:0;text-transform:none;color:rgba(255,244,220,.84);white-space:normal}',
+    PP + '#menu #mpOnline .ol-sel:is(:focus,.kf,.ol-on) .ol-hint{display:block}',
+    // MV-8: en el móvil, sin brochazo (se deshilachaba y el rótulo quedaba encima de la pista): pegatina de tinta maciza como .sp-li
+    // (relleno, perfil de tinta y sombra dura), de 460 como mucho, rótulo y ‹ valor › juntos (12 px)
+    PP + '#menu #mpOnline .ol-sel{width:min(100%,460px);gap:0 12px;padding:4px 6px 4px 16px;background:var(--sp-ink2);border-radius:12px 16px 11px 15px/14px 11px 16px 12px;',
+    'box-shadow:0 0 0 3px var(--sp-ink),3px 4px 0 3px var(--sp-ink)}',
+    PP + '#menu #mpOnline .ol-sel>.sp-blob{display:none}',
+    PP + '#menu #mpOnline .ol-sel:is(.kf,:focus-visible){box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6px var(--sp-gold),3px 5px 0 6px var(--sp-ink)}',
+    PP + '#menu #mpOnline .ol-sel:is(:active,.sp-press):not(:disabled){box-shadow:0 0 0 3px var(--sp-ink),1px 1px 0 3px var(--sp-ink)}',
+    PP + '#menu #mpOnline .ol-sel:disabled{filter:grayscale(.9) brightness(.72)}',
+    // sala de espera: cartel a todo lo ancho (sede, código que se copia al tocarlo, TÚ VS RIVAL en grande, chips, estado y las 3 reglas)
+    PP + '#mpOnline .ol-body[data-v="room"] .ol-match{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;overflow-y:auto;margin:0 4px 0 2px;padding:0 0 12px}',
+    PP + '#mpOnline .mt-top{flex:none;min-height:56px;box-sizing:border-box;gap:10px;padding:6px 8px 6px 12px}',
+    PP + '#mpOnline .mt-ven{flex:1 1 auto;min-width:0}',
+    PP + '#mpOnline .mt-ven b{font:700 var(--ph-body)/1.2 var(--sp-ui);letter-spacing:0;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PP + '#mpOnline .mt-who{font-size:var(--ph-label);margin-left:0}',
+    PP + '#mpOnline .ol-code{--sp-chs:var(--ph-head);display:inline-flex;align-items:center;gap:8px;min-height:44px;box-sizing:border-box;margin:0 4px 0 0;padding:0 12px 0 14px;border:0;letter-spacing:.16em;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    PP + '#mpOnline .ol-code svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    PP + '#mpOnline .ol-code:is(.kf,:focus-visible){outline:none;background:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 6px var(--sp-gold)}',
+    PP + '#mpOnline .ol-code:active{translate:1px 2px}',
+    PP + '#mpOnline .ol-vs{margin:12px 12px 6px;gap:10px}',
+    PP + '#mpOnline .ol-p{gap:4px}' + PP + '#mpOnline .ol-p small{font-size:var(--ph-label);letter-spacing:.04em}' + PP + '#mpOnline .ol-p .ar{font-size:var(--ph-cap)}',
+    PP + '#mpOnline .ol-p b{font-size:var(--ph-title);line-height:1.02;white-space:normal;text-overflow:clip;overflow-wrap:anywhere;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}',
+    PP + '#mpOnline .ol-p.wait b{display:flex}' + PP + '#mpOnline .ol-p.wait .ol-q{width:44px;height:44px;font-size:22px}',
+    PP + '#mpOnline .ol-mid{width:48px;height:48px;font-size:20px}',
+    PP + '#mpOnline .mt-chips{margin:0 12px}' + PP + '#mpOnline .mt-chips i{font-size:var(--ph-cap);padding:3px 8px}',
+    PP + '#mpOnline .ol-st{margin:8px 12px 0;font-size:var(--ph-row);line-height:1.3}',
+    // MV-7: el estado fijo (sobre la pista) va en una pegatina de tinta, como el «Lo intentamos otra vez» de los avisos
+    PP + '#mpOnline .ol-st-pin{flex:none;align-self:center;box-sizing:border-box;max-width:calc(100% - 16px);margin:0 8px;padding:6px 14px;opacity:1;white-space:normal;text-wrap:balance;text-align:center;',
+    'border-radius:8px 11px 8px 10px;background:var(--sp-ink);box-shadow:0 0 0 2px rgba(255,244,220,.14),2px 3px 0 2px var(--sp-ink);text-shadow:none}',
+    // 568×320 (.ph-s): el VS en una línea por nombre para que quepan los chips y las reglas (y la pegatina del estado, más justa)
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-st-pin{margin-top:-4px;padding:3px 12px;line-height:1.2}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-vs{margin:2px 12px 0}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-p{gap:2px}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-p b{display:block;font-size:var(--ph-head);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:none}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-p.wait b{display:flex}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-mid{width:40px;height:40px;font-size:17px}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-p.wait .ol-q{box-sizing:border-box;width:34px;height:34px;font-size:17px}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .mt-top{min-height:46px;padding-top:1px;padding-bottom:1px}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-p.wait b{line-height:1;min-height:0;padding:0}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="room"] .ol-match{padding-bottom:4px}' + PP + '#mpOnline .ol-match>*{flex-shrink:0}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-rules{margin-top:4px}',
+    PP + '#mpOnline .ol-tip{display:none}',
+    '#mpOnline .ol-rules{display:none}',
+    PP + '#mpOnline .ol-rules{display:flex;justify-content:center;flex-wrap:wrap;gap:8px;margin:10px 12px 0}',
+    PP + '#mpOnline .ol-rules i{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:8px 11px 8px 10px;background:rgba(255,244,220,.12);color:var(--sp-cream);font:700 var(--ph-cap)/1.1 var(--sp-ui);font-style:normal}',
+    PP + '#mpOnline .ol-rules svg{flex:none;width:15px;height:15px;fill:none;stroke:var(--sp-gold);stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    // avisos (sin cuenta, sin servidor, sin WebRTC): una hoja centrada, titular a --ph-head, texto a --ph-body, el botón abajo a la derecha
+    PP + '#mpOnline .ol-body:is([data-v="noacc"],[data-v="off"],[data-v="nortc"]){justify-content:center;align-items:center;padding-bottom:var(--ph-s5)}',
+    PP + '#mpOnline .ol-card{flex:none;width:min(100%,600px);box-sizing:border-box;margin:0;padding:16px 20px 18px;overflow:visible}',
+    PP + '#mpOnline .ol-card h3{margin:0 0 6px;font-size:var(--ph-head)}',
+    PP + '#mpOnline .ol-card p{font-size:var(--ph-body);line-height:1.4}',
+    PP + '#mpOnline .ol-retry{display:inline-flex;align-items:center;gap:8px;margin:12px 0 0;padding:5px 12px;border-radius:8px 11px 8px 10px;background:rgba(255,244,220,.12);color:var(--sp-cream);font:700 var(--ph-cap)/1.15 var(--sp-ui)}',
+    PP + '#mpOnline .ol-retry::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--sp-gold);animation:olLive 1.8s ease-out infinite}',
+    PP + '#mpOnline .ol-ctas{width:min(100%,600px);justify-content:flex-end;margin:var(--ph-s3) 0 0;padding:0}',
+    PP + '#mpOnline .ol-ctas .sp-btn{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:24px;width:auto;flex:none}',
+    PP + '#mpOnline .ol-ctas .sp-s{display:none}',
     // vertical (teléfono de pie): columna a todo lo ancho, cabecera arriba y el lobby abajo; barra en dos filas
     '@media (max-aspect-ratio:5/4){',
     '#mpOnline .ol-act{--sp-h:48px;--sp-fs:14px}',
@@ -662,7 +834,7 @@
     '#mpOnline .ol-bar2{flex-wrap:wrap}' + P + '#mpOnline .ol-bar2 .sp-btn{flex:1 1 auto}}',
     '@media (max-width:400px) and (max-aspect-ratio:5/4){#mpOnline .ol-fx .sp-tk-stub{display:none}#mpOnline .fx-main{padding-left:14px}}',
     // menos movimiento (ajuste del juego o del sistema)
-    '.rm #mpOnline .ol-fx.fx-new,.rm #mpOnline .ol-p.riv b,.rm #mpOnline .ol-live,.rm #mpOnline .ol-dots i,.rm #mpOnline .ol-act.spin .ol-ic svg{animation:none!important}',
+    '.rm #mpOnline .ol-fx.fx-new,.rm #mpOnline .ol-p.riv b,.rm #mpOnline .ol-live,.rm #mpOnline .ol-dots i,.rm #mpOnline .ol-act.spin .ol-ic svg,.rm #mpOnline .ol-retry::before{animation:none!important}',
     '@media (prefers-reduced-motion:reduce){#mpOnline .ol-fx.fx-new,#mpOnline .ol-p.riv b,#mpOnline .ol-live,#mpOnline .ol-dots i{animation:none!important}}'
   ].join('');
   function ensureCss() { if (document.getElementById('olCss')) return; var s = document.createElement('style'); s.id = 'olCss'; s.textContent = CSS; document.head.appendChild(s); }
@@ -707,18 +879,38 @@
       '<span class="sp-tk-main fx-main"><small class="sp-k fx-k">' + kind + (vn && vn !== kind ? '<i class="ol-sep" aria-hidden="true"></i>' + esc(vn) : '') + '</small>' +
       '<span class="fx-line"><b class="fx-name" title="' + esc(r.name) + '">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
       '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>' +
-      '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" aria-hidden="true">' + esc(vn) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
+      '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" data-ph-ell aria-hidden="true">' + esc(vn) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
       '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
       (off || o.prev ? '' : '<span class="fx-go">Entrar' + GO_IC + '</span>') + '</span></span></' + tag + '>';
   }
   /** Selector de «Crear sala»: la pegatina de tinta de Partido rápido (.sp-opt: rótulo dorado y ‹ valor › en trazo dorado entre flechas
    *  crema de 44 px). ↑↓ elige, ←→ o las flechas cambian (netlobby side / onClick con .arr). */
   function selRow(k, label, val, hint, n) {
-    return '<button class="ol-sel sp-btn sp-ink sp-opt sp-calm" data-ol="' + k + '" data-shape="' + (n | 0) + '" aria-label="' + esc(label + ': ' + val + '. ' + hint) + '">' +
-      '<span class="mi-l">' + esc(label) + '</span><span class="mi-v sp-select"><span class="arr" data-d="-1">' + ARR_L + '</span>' +
+    return '<button class="ol-sel sp-btn sp-ink sp-wide sp-opt sp-calm' + (L.lastSel === k ? ' ol-on' : '') + '" data-ol="' + k + '" data-shape="' + (n | 0) + '" aria-label="' + esc(label + ': ' + val + '. ' + hint) + '">' +
+      '<span class="mi-l">' + esc(label) + '<small class="ol-hint" aria-hidden="true">' + esc(hint) + '</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1">' + ARR_L + '</span>' +
       '<span class="mv-val"><b>' + esc(val).replace(/ \((v\d)\)$/,' <i class="sl-ver">($1)</i>') + '</b></span><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
   }
+  /* Móvil (spec «Online»): los mismos puntos en frases de 2 líneas como mucho, «Sin pausa» el segundo, y en páginas de dos (puntitos y
+   * «Siguiente ›» abajo; en la última, «Entendido»). El texto largo de PC (HELP) no cambia. */
+  var HELP_PH = [
+    ['1 contra 1', 'Cada persona lleva a su n.º 1 y la IA a su pareja: 2 contra 2, en la playa o en pista.'],
+    ['Sin pausa', 'El partido no se para. Entre sets hay 10 s de descanso (si los dos pulsáis «Continuar», se sigue antes).'],
+    ['Tu jugador', 'Juegas con los atributos e insignias de tu jugador de la Carrera (o de tu n.º 1). En «Igualado», nadie los lleva.'],
+    ['Salas', 'Crea una sala y espera a que alguien entre, o entra en una de la lista. También puedes pasar tu código.'],
+    ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis lo mismo. Fluida (v2): tu equipo responde al instante.'],
+    ['Si se corta', 'El partido espera a tu rival; a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
+    ['Récord', 'Abandonar cuenta como derrota. Sin experiencia ni insignias; tu primer partido da la gorra «Online Beta Tester».'],
+    ['Privacidad', 'Solo se ve tu nombre, nunca tu correo. La conexión es directa: el aparato de tu rival conoce tu dirección de red.']
+  ];
+  var HP_PER = 2;   // (3 con ancho ≥ 800: html.ph-w)
+  function hpPer() { return document.documentElement.classList.contains('ph-w') ? 3 : HP_PER; }
+  function hpPages() { return Math.ceil(HELP_PH.length / hpPer()); }
   function helpHTML() {
+    if (ph()) {
+      var pg = Math.max(0, Math.min(hpPages() - 1, L.hpPage | 0));
+      return '<div class="ol-hpp sp-panel ol-scroll" role="group" aria-label="Cómo funciona el online, ' + (pg + 1) + ' de ' + hpPages() + '">' +
+        HELP_PH.slice(pg * hpPer(), pg * hpPer() + hpPer()).map(function (x) { return '<div class="hp-pt"><h4>' + esc(x[0]) + '</h4><p>' + esc(x[1]) + '</p></div>'; }).join('') + '</div>';
+    }
     // (SPLAT) rótulo en trazo de tinta y una hoja (.sp-panel) con una fila por punto; la hoja se desplaza por dentro y «Entendido» queda fuera
     return '<div class="ol-help"><h3 class="ol-bh">Cómo funciona el online</h3><dl class="hp-box sp-panel ol-scroll">' +
       HELP.map(function (x) { return '<div><dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd></div>'; }).join('') + '</dl></div>';
@@ -726,7 +918,10 @@
   function svg(d) { return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="' + d + '"/></svg>'; }
   var IC = {
     plus: svg('M12 5v14M5 12h14'), hash: svg('M9 4 7 20M17 4l-2 16M4.5 9h16M3.5 15h16'), pen: svg('M4 20l1-4L16 5l3 3L8 19zM14 7l3 3'),
-    ref: svg('M19 12a7 7 0 1 1-2.05-4.95M19 4v4h-4'), copy: svg('M8 8h11v11H8zM5 16V5h11'), out: svg('M14 5h5v14h-5M10 8l-4 4 4 4M6 12h10')
+    ref: svg('M19 12a7 7 0 1 1-2.05-4.95M19 4v4h-4'), copy: svg('M8 8h11v11H8zM5 16V5h11'), out: svg('M14 5h5v14h-5M10 8l-4 4 4 4M6 12h10'),
+    // (móvil) compartir, siguiente / anterior, ✕ y las tres reglas de la sala de espera
+    share: svg('M12 15V3.5M7.5 8 12 3.5 16.5 8M5 12.5V20h14v-7.5'), next: svg('M9.5 5.5 16 12l-6.5 6.5'), prev: svg('M14.5 5.5 8 12l6.5 6.5'), x: svg('M6.5 6.5l11 11M17.5 6.5l-11 11'),
+    nopause: svg('M8 5v14M16 5v14M4 4l16 16'), clock: svg('M12 4a8 8 0 1 0 .01 0zM12 8v4.5l3 2'), flag: svg('M6 21V4M6 4h11l-2.5 4L17 12H6')
   };
   function ic(k) { return '<span class="sp-ic ol-ic">' + IC[k] + '</span>'; }
   /* ---------------- escribir el nombre y el código ----------------
@@ -747,6 +942,11 @@
   function oskIdx(len, col) { return len >= OSK_W ? Math.min(col, len - 1) : Math.round(col * (len - 1) / (OSK_W - 1)); }
   function editHTML(nm) {
     var code = L.edit === 'code';
+    // (móvil: hoja pegada arriba, rótulo y ✕, y el campo de 52 px con su botón al lado; con el teclado del móvil, VB.Splat.kbd la sube)
+    if (!L.osk && ph()) return '<div class="ol-edit sp-panel" data-nav data-kb-pin><span class="oe-l">' + (code ? 'Código de la sala' : 'Tu nombre en el online') + '</span>' +
+      '<button class="sp-x" type="button" data-a="editX" aria-label="Cancelar">' + IC.x + '</button><div class="oe-f" data-kb-row>' +
+      (code ? '<input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="codeOk"><span class="sp-t">Entrar</span></button>'
+        : '<input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button>') + '</div></div>';
     if (!L.osk) {
       if (code) return '<div class="ol-edit"><input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="codeOk"><span class="sp-t">Entrar</span></button></div>';
       return '<div class="ol-edit"><input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button></div>';
@@ -793,7 +993,109 @@
     nb.classList.add('kf'); sound('optHover');
     return true;
   }
-  function note() { return L.msg ? '<p class="ol-note' + (L.msgBad ? ' bad' : '') + '" role="status">' + esc(L.msg) + '</p>' : ''; }
+  function note() { if (ph()) return '';   // (móvil: el aviso va al carril de avisos de arriba, VB.Splat.toast: ver render)
+    return L.msg ? '<p class="ol-note' + (L.msgBad ? ' bad' : '') + '" role="status">' + esc(L.msg) + '</p>' : ''; }
+  /* ---------------- móvil (html.ph; spec «Online», notes/splat.md «Móvil») ----------------
+   * La misma página con otra disposición: en la cabecera, tras «Online», tu nombre en una chapa crema (lista) o en qué paso estás; una
+   * sola zona que se desplaza (la cartelera, las filas de Crear sala, la ayuda, el cartel de la sala) y la barra de abajo con la acción
+   * principal la última (abajo a la derecha). Los avisos (L.msg) van al carril de arriba (VB.Splat.toast). Mismos data-a y data-ol que
+   * en PC: onClick, back(), side() y las pruebas no cambian. */
+  function headHTML() {
+    var v = L.view;
+    if (v === 'list' && !L.osk) {
+      // (R2-13: «Salas abiertas · 4» y el «?» suben a la cabecera; la cartelera gana la fila del rótulo)
+      var nm = myName(), n0 = L.rooms.length, srch0 = (L.loading && !L.listAt) || (L.listAt && !n0);
+      return '<span class="ol-hsal" role="status"><span class="ol-live" aria-hidden="true"></span>' +
+        (L.listAt && n0 ? '<b class="ol-n">' + n0 + '</b> ' + (n0 === 1 ? 'sala' : 'salas') + '<span class="ol-hx"> ' + (n0 === 1 ? 'abierta' : 'abiertas') + '</span>'
+          : srch0 ? 'Buscando…' : 'Salas') + '</span>' +
+        '<button class="ol-who" type="button" data-a="name" aria-label="' + esc('Tu nombre: ' + nm + '. Cambiar') + '"><span class="ow-t"><small>Juegas como</small><b>' + esc(nm) + '</b></span>' + IC.pen + '</button>' +
+        '<button class="ol-hq" type="button" data-a="help" aria-label="Cómo funciona">?</button>';
+    }
+    var t = v === 'help' ? 'Cómo funciona' : v === 'create' ? 'Nueva sala' : v === 'room' && L.room ? 'Sala de espera' : '';
+    return t ? '<i class="sp-chip ol-hchip">' + t + '</i>' : '';
+  }
+  function viewPH() {
+    var v = L.view, h = '';
+    if (v === 'noacc') {
+      h = '<div class="ol-card sp-panel"><h3>Necesitas una cuenta para jugar online</h3><p>Entra con tu cuenta (o créala, es gratis) y vuelve aquí. Tu rival solo verá tu nombre.</p></div>' +
+        '<div class="ol-ctas" data-nav>' + row('acc', 'Ir a Cuenta', '', '', { color: 'sp-kit', shape: 0 }) + '</div>';
+    } else if (v === 'off') {
+      h = '<div class="ol-card sp-panel"><h3>El online aún no está activado</h3><p>Todavía no se puede jugar online desde el servidor. Vuelve a probar dentro de un rato.</p>' +
+        '<span class="ol-retry" role="status">Lo intentamos otra vez en 30 s</span></div>' +
+        '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div>';
+    } else if (v === 'nortc') {
+      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Ábrelo en Chrome o Safari actualizados (en el iPhone, sin el modo Aislamiento).</p></div>';
+    } else if (v === 'help') {
+      var pg = Math.max(0, Math.min(hpPages() - 1, L.hpPage | 0)), last = pg >= hpPages() - 1, dots = '';
+      for (var d = 0; d < hpPages(); d++) dots += '<i' + (d === pg ? ' class="on"' : '') + '></i>';
+      h = helpHTML() + '<div class="ol-bar ol-bar2 ol-dock hp-go" data-nav><span class="hp-dots" aria-hidden="true">' + dots + '</span>' +
+        (pg > 0 ? '<button class="ol-act ol-ico sp-btn sp-ink sp-sq" data-shape="1" data-a="helpPrev" aria-label="Anterior">' + ic('prev') + '</button>' : '') +
+        (last ? '<button class="ol-act ol-new sp-btn sp-gold" data-shape="2" data-a="helpOk"><span class="sp-t">Entendido</span></button>'
+          : '<button class="ol-act ol-new sp-btn sp-gold" data-shape="2" data-a="helpNext"><span class="sp-t">Siguiente</span>' + ic('next') + '</button>') + '</div>';
+    } else if (v === 'list') {
+      if (L.osk) return editHTML(myName());   // (teclado en pantalla del mando: ocupa la página entera)
+      var rl = VB.NetRec ? safe(function () { return VB.NetRec.line(); }) : '';
+      var n = L.rooms.length;
+      h = '<div class="ol-rooms ol-scroll" data-nav>';   // (el rótulo «Salas abiertas · n» va en la cabecera: headHTML)
+      if (L.listErr) h += '<p class="ol-note bad">' + esc(L.listErr) + '</p>';
+      if (!n && L.listAt) h += '<div class="ol-empty"><span class="ol-ghost" aria-hidden="true"><i>?</i><em>VS</em><i>?</i></span><span>Aún no hay salas. Crea una y avisa a alguien.</span></div>';
+      var seen = L.seenAt || {}, now = {}, k = 0, tn = Date.now();
+      L.rooms.forEach(function (r) {
+        var t1 = now[r.id] = seen[r.id] || tn, isNew = tn - t1 < 1000;
+        h += fxHTML(r, { isNew: isNew, delay: isNew ? k++ * 70 : 0, idx: L.rooms.indexOf(r) });
+      });
+      if (L.listAt) L.seenAt = now;
+      if (rl) h += '<p class="ol-rec ol-recl">Tu récord online: <b>' + esc(rl) + '</b></p>';   // (al final de la cartelera: no quita sitio a las salas)
+      h += '</div><div class="ol-bar ol-bar2 ol-dock" data-nav>' +
+        '<button class="ol-act sp-btn sp-alt" data-shape="1" data-a="code" aria-label="Entrar con código">' + ic('hash') + '<span class="sp-t">Código</span></button>' +
+        '<button class="ol-act ol-new sp-btn sp-kit" data-shape="0" data-a="new"' + (L.busy ? ' disabled' : '') + '>' + ic('plus') + '<span class="sp-t">Crear sala</span></button></div>';
+      if (L.edit === 'name' || L.edit === 'code') h += editHTML(myName());
+    } else if (v === 'create') {
+      var c = L.cfg, ms = maps(c.venue), cur = c.venue === 'beach' ? c.mapB : c.mapH;
+      if (ms.indexOf(cur) < 0) { cur = ms[0]; if (c.venue === 'beach') c.mapB = cur; else c.mapH = cur; }
+      var cb = c.venue === 'beach', ck = cb ? 'Playa' : 'Pabellón', vn = cur && VB.Venues && VB.Venues.name ? VB.Venues.name(cur) || cur : ck, fl = c.model === 'fluida';
+      var pr = { name: myName(), venue: c.venue, map: cur, bo: c.bo, pts: cb ? 21 : c.pts, even: c.even, net: fl ? 'fluida' : undefined };
+      // (orden del móvil: Escenario, Sede, Partido, Puntos, Igualado, Conexión)
+      h = '<div class="ol-mk ' + (cb ? 'v-beach' : 'v-hall') + '">' +
+        '<div class="mk-top"><i class="sp-chip">Tu sala</i><small>Así sale en la lista</small></div>' +
+        '<div class="mk-prev" aria-hidden="true">' + fxHTML(pr, { prev: true, idx: 1 }) + '</div>' +
+        '<div class="mk-sels ol-scroll" data-nav>' +
+        selRow('venue', 'Escenario', ck, cb ? 'En la arena' : 'En pista cubierta', 0) +
+        selRow('map', 'Sede', vn, 'Donde se juega', 2) +
+        selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set', 1) +
+        (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set', 3)) +
+        selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador', 0) +
+        selRow('net', 'Conexión', fl ? 'Fluida (v2)' : 'Precisa (v1)', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo', 2) + '</div>' +
+        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones ni ojo de halcón en esta versión.'
+          : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
+        '<div class="ol-bar ol-bar2 ol-dock mk-go" data-nav><button class="ol-act ol-new sp-patch" data-a="open"' + (L.busy ? ' disabled' : '') + '><span class="sp-l"><span class="sp-t">Abrir sala</span>' +
+        '<small class="sp-s">' + esc(ck + (vn && vn !== ck ? ', ' + vn : '')) + '</small></span></button></div>';
+    } else if (v === 'room' && L.room) {
+      var r2 = L.room, host = L.role === 'host', me = myName(), riv = L.rival, st = '';
+      if (L.started) st = 'Empieza el partido…';
+      else if (L.status === 'wait') st = L.fail || 'Esperando rival. Tu sala sale en la lista de Online.';
+      else if (L.status === 'connecting') st = 'Conectando con ' + riv + '…';
+      else if (L.status === 'linked') st = 'Conectados. Empieza el partido…';
+      var bad = !!L.fail && L.status === 'wait', left = host ? me : riv, right = host ? (riv || '') : me;
+      var pl = function (nn, who, isRival, side) {
+        if (!nn) return '<div class="ol-p mt-side ' + side + ' wait"><small>' + who + '</small><b><span class="ol-q">?</span><span class="ol-dots" role="img" aria-label="Esperando"><i></i><i></i><i></i></span></b></div>';
+        return '<div class="ol-p mt-side ' + side + (isRival ? ' riv' : '') + '"><small>' + who + (isRival ? ' <span class="ar" aria-hidden="true">▼</span>' : '') + '</small><b>' + esc(nn) + '</b></div>';
+      };
+      var b2 = r2.venue === 'beach', vn2 = venueName(r2), k2 = b2 ? 'Playa' : 'Pabellón';
+      h = '<div class="ol-match sp-panel ol-scroll ' + (b2 ? 'v-beach' : 'v-hall') + (riv ? ' has-riv' : '') + '">' +
+        '<div class="mt-top" data-nav><span class="sp-crest" aria-hidden="true">' + VEN_IC[b2 ? 'beach' : 'hall'] + '</span><span class="mt-ven"><b data-ph-ell>' + k2 + (vn2 && vn2 !== k2 ? ' · ' + esc(vn2) : '') + '</b>' +
+        (host ? '' : '<small class="mt-who">Sala de ' + esc(r2.name) + '</small>') + '</span>' +
+        '<button class="ol-code sp-chip" type="button" data-a="copy" aria-label="' + esc('Código ' + r2.code.split('').join(' ') + '. Copiar') + '">' + esc(r2.code) + IC.copy + '</button></div>' +
+        '<div class="ol-vs">' + pl(left, host ? 'Tú' : 'Rival', !host, 'mt-a') + '<span class="ol-mid">VS</span>' + pl(right, host ? 'Rival' : 'Tú', host && !!riv, 'mt-b') + '</div>' +
+        '<div class="fx-chips mt-chips">' + chipsHTML(r2) + '</div>' +
+        (L.started ? '' : '<div class="ol-rules"><i>' + IC.nopause + 'Sin pausa</i><i>' + IC.clock + '10 s entre sets</i><i>' + IC.flag + 'Abandonar = derrota</i></div>') + '</div>' +
+        // (móvil: el estado va fuera del desplazamiento, justo encima de la barra, siempre a la vista y opaco)
+        '<p class="ol-st ol-st-pin' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p>' +
+        '<div class="ol-bar ol-bar2 ol-dock" data-nav><button class="ol-act ol-out sp-btn sp-danger sp-dock-l" data-shape="1" data-a="leave">' + ic('out') + '<span class="sp-t">Salir de la sala</span></button>' +
+        (host ? '<button class="ol-act ol-new sp-btn sp-kit" data-shape="0" data-a="share">' + ic('share') + '<span class="sp-t">Compartir</span></button>' : '') + '</div>';
+    }
+    return h;
+  }
   function viewHTML() {
     var v = L.view, h = '';
     if (v === 'noacc') {
@@ -897,14 +1199,20 @@
   function render(force) {
     if (!L.host || !L.on) return;
     var body = L.host.querySelector('.ol-body'); if (!body) return;
-    var h = viewHTML();
-    if (!force && h === lastH) return;
-    var a = document.activeElement, key = a && body.contains(a) ? keyOf(a) : null, kf = a && a.classList && a.classList.contains('kf');
-    lastH = h; body.innerHTML = h;
-    if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(body); } catch (e) { } }   // (SPLAT: manchas, brochazos y parche)
+    var PH = ph(), hr = L.host.querySelector('.ol-hr'), h = PH ? viewPH() : viewHTML(), hh = PH ? headHTML() : '', all = h + '\u0002' + hh;
+    // (móvil: el aviso, una vez, al carril de arriba; la misma frase no se repite hasta que se borra)
+    if (PH && L.msg && L.msg !== L.toasted && VB.Splat && VB.Splat.toast) { try { L.toastApi = VB.Splat.toast(esc(L.msg), { key: 'ol', ms: 6500, cls: L.msgBad ? 'ol-tbad' : '' }); } catch (e) { } }
+    if (!L.msg && L.toastApi) { L.toastApi.close(); L.toastApi = null; }   // (aviso resuelto o vista nueva: fuera)
+    L.toasted = L.msg;
+    if (!force && all === lastH) return;
+    var a = document.activeElement, inH = a && (body.contains(a) || (hr && hr.contains(a))), key = inH ? keyOf(a) : null, kf = a && a.classList && a.classList.contains('kf');
+    lastH = all; body.innerHTML = h; body.setAttribute('data-v', L.view);
+    if (hr && hr.innerHTML !== hh) hr.innerHTML = hh;
+    if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(body); if (hr) VB.Splat.decorate(hr); } catch (e) { } }   // (SPLAT: manchas, brochazos y parche)
+    if (PH && VB.Splat && VB.Splat.more) { var sc = body.querySelectorAll('.ol-scroll'); for (var i = 0; i < sc.length; i++) { try { VB.Splat.more(sc[i]); } catch (e) { } } }
     var inp = body.querySelector('#olIn');
     if (inp) { bindInput(inp); setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { } }, 20); return; }
-    if (key) { var b = findKey(body, key) || first(); if (b) { try { b.focus({ preventScroll: !kf }); } catch (e) { } if (kf) b.classList.add('kf'); } }
+    if (key) { var b = findKey(L.host, key) || first(); if (b) { try { b.focus({ preventScroll: !kf }); } catch (e) { } if (kf) b.classList.add('kf'); } }
   }
   function keyOf(b) { if (b.getAttribute('data-a') === 'osk') return 'oskp|' + b.getAttribute('data-r') + '|' + b.getAttribute('data-i'); return b.getAttribute('data-a') ? b.getAttribute('data-a') + '|' + (b.getAttribute('data-id') || '') : b.getAttribute('data-ol') ? 'ol|' + b.getAttribute('data-ol') : null; }
   function findKey(body, k) {
@@ -946,6 +1254,7 @@
     else if (k === 'pts') { var PV = [11, 15, 21, 25], pi = PV.indexOf(c.pts); c.pts = PV[((pi < 0 ? 2 : pi) + (d > 0 ? 1 : -1) + PV.length) % PV.length]; }
     else if (k === 'even') c.even = !c.even;
     else if (k === 'net') c.model = c.model === 'fluida' ? 'precisa' : 'fluida';
+    L.lastSel = k;   // (móvil: la fila tocada la última enseña su explicación)
     sound('optChange'); render();
   }
   function onClick(ev) {
@@ -958,9 +1267,12 @@
     sound('click');
     if (a === 'acc') { if (VB.Account && VB.Account.open) VB.Account.open(); }
     else if (a === 'retry') { if (noRtc()) { setView('nortc'); return; } setView('list'); refreshList(true); }
-    else if (a === 'help') { L.msg = ''; setView('help'); setTimeout(function () { var f = first(); if (f) f.focus(); }, 30); }
+    else if (a === 'help') { L.msg = ''; L.hpPage = 0; setView('help'); setTimeout(function () { var f = first(); if (f) f.focus(); }, 30); }
+    else if (a === 'helpNext' || a === 'helpPrev') { L.hpPage = Math.max(0, Math.min(hpPages() - 1, (L.hpPage | 0) + (a === 'helpNext' ? 1 : -1))); render(true); focusA(L.hpPage >= hpPages() - 1 ? 'helpOk' : L.hpPage ? a : 'helpNext'); }
+    else if (a === 'editX') { var ek = L.edit; L.edit = ''; L.osk = null; render(true); focusA(ek); }
+    else if (a === 'share') shareRoom();
     else if (a === 'helpOk') { ls(HELPK, '1'); setView('list'); refreshList(false); focusA(L.helpFrom || 'help'); L.helpFrom = ''; }
-    else if (a === 'new') { L.cfg = prefs(); L.msg = ''; setView('create'); setTimeout(function () { var f = first(); if (f) f.focus(); }, 30); }
+    else if (a === 'new') { L.cfg = prefs(); L.msg = ''; L.lastSel = ''; setView('create'); setTimeout(function () { var f = first(); if (f) f.focus(); }, 30); }
     else if (a === 'open') createRoom();
     else if (a === 'name' || a === 'code') {
       L.edit = a; L.msg = '';
@@ -977,8 +1289,21 @@
   }
   function copyCode() {
     var c = L.room && L.room.code; if (!c) return;
-    var done = function () { L.fail = ''; var s = L.host.querySelector('.ol-st'); if (s) s.textContent = 'Código copiado: ' + c; };
+    var done = function () {
+      L.fail = '';
+      if (ph() && VB.Splat && VB.Splat.toast) { VB.Splat.toast('Código copiado: <b>' + esc(c) + '</b>', { key: 'olc' }); return; }   // (móvil: aviso de arriba)
+      var s = L.host.querySelector('.ol-st'); if (s) s.textContent = 'Código copiado: ' + c;
+    };
     try { navigator.clipboard.writeText(c).then(done, done); } catch (e) { done(); }
+  }
+  /** Móvil: «Compartir» de la sala de espera (la hoja de compartir del sistema con el enlace ?sala=CÓDIGO; sin ella, se copia el enlace). */
+  function shareRoom() {
+    var c = L.room && L.room.code; if (!c) return;
+    var url = location.origin + location.pathname + '?sala=' + c, txt = 'Juega conmigo a Make the Cut: sala ' + c;
+    var copied = function () { if (VB.Splat && VB.Splat.toast) VB.Splat.toast('Enlace copiado. Código <b>' + esc(c) + '</b>', { key: 'olc' }); };
+    var copy = function () { try { navigator.clipboard.writeText(txt + ' ' + url).then(copied, copied); } catch (e) { copied(); } };
+    if (navigator.share) { try { navigator.share({ title: 'Make the Cut', text: txt, url: url }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); }); return; } catch (e) { } }
+    copy();
   }
 
   /* ---------------- API para ui.js ---------------- */
@@ -1003,6 +1328,8 @@
       });
     }
     if (!host.querySelector('.ol-body')) { var d = document.createElement('div'); d.className = 'ol-body'; host.appendChild(d); }
+    // (móvil: hueco a la derecha del título para tu nombre o el paso; en PC queda vacío y oculto)
+    var hd = host.querySelector('.mp-head'); if (hd && !hd.querySelector('.ol-hr')) { var hr0 = document.createElement('div'); hr0.className = 'ol-hr'; hd.appendChild(hr0); }
     L.on = true; lastH = ''; L.accKey = accKey();
     if (L.started) return;
     if (noRtc()) { L.msg = ''; setView('nortc'); return; }
@@ -1018,6 +1345,7 @@
   function leave() {
     if (!L.on) return;
     L.on = false;
+    if (L.toastApi) { L.toastApi.close(); L.toastApi = null; L.toasted = ''; }
     if (!L.started) { leaveRoom(); stopAll(); L.view = 'list'; L.msg = ''; }
   }
   /** Esc / B dentro del lobby: primero se cierra lo abierto (edición, crear sala, la sala) y solo luego se sale de la página. */
@@ -1038,6 +1366,7 @@
   // Cerrar o recargar la pestaña: la sala (anfitrión) o el hueco (invitado) se liberan al momento, sin esperar a que caduquen.
   // (pagehide también salta al ir a otra página; 'persisted' = la página queda en la caché del navegador y puede volver: entonces
   // también se suelta, y al volver se está en la lista.)
+  document.addEventListener('vb:ph', function () { if (L.on) render(true); });   // (girar / cambiar de tamaño: otra disposición)
   window.addEventListener('pagehide', function () {
     if (!rooms || !L.room || !L.role) return;
     // (vuelta al partido tras recargar: ver «VUELTA AL PARTIDO» abajo. Si se ha apuntado la vuelta, el invitado NO suelta su

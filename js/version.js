@@ -28,16 +28,28 @@
  * 1.12.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
  * 1.12.1 (18-nov-2026): vuelve la cámara de juego de antes de 1.8.1 (Ferran: «la nueva es horrible») con la regla de no perder el
  *   balón (js/camera.js ctUpdate: solo corrige cuando el balón se va del cuadro). El zoom de cámara se queda.
+ * 1.13.0 (18-nov-2026): menús pensados para el móvil apaisado (Ferran: «se ve todo muy cramped»): escala de letra y piezas .ph
+ *   de js/splat.js, cada pantalla con su versión de móvil (notes/splat.md §9, notes/ui_main.md «Móvil (v-next)»).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.12.1';
+  VB.VERSION = '1.13.0';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.13.0', d: '2026-11-18', t: 'Menús para el móvil',
+      items: [
+        'Menús rehechos para el móvil: letra más grande y menos cosas en cada pantalla.',
+        'Botones grandes para el pulgar: Volver arriba a la izquierda y la acción principal abajo.',
+        'Las listas largas se desplazan por dentro y los botones de salir siempre se ven.',
+        'La Carrera, el Online y la hoja final del partido, con su versión para el móvil.',
+        'Las explicaciones largas se abren con la «i», sin llenar la pantalla de texto.'
+      ]
+    },
     {
       v: '1.12.1', d: '2026-11-18', t: 'Cámara',
       items: [

@@ -424,7 +424,20 @@
       fig('', 'Break point', pctS(t.brW, t.brT), t.brW + ' de ' + t.brT + ' con saque propio') +
       fig('', 'Side-out recibiendo', pctS(t.rcW, t.rcT), t.rcT ? sep([t.rcW + ' de ' + t.rcT + ' con recepción', t.svErr ? 'sin ' + t.svErr + (t.svErr === 1 ? ' error' : ' errores') + ' de saque rival' : ''], 'v') : 'Sin recepciones') +
       fig('', 'Al primer ataque', pctS(t.fbW, t.rcT), t.rcT ? t.fbW + ' de ' + t.rcT + ' recepciones acaban en punto en el K1' : 'Sin recepciones');
-    h += sec('fig', 'Cifras clave', '<div class="ms-figs">' + figs + '</div>');
+    // Móvil (.ph): las seis cifras en UNA pegatina (.sp-heros, 3 × 2) y el detalle de cada una detrás de la «i» (VB.Splat.info, la
+    // enciende ui.js msRender); en PC siguen las tarjetas. Las dos versiones van en el HTML y el CSS enseña una (.ph-only / .ph-hide).
+    var FD = [['us', 'Puntos ganados', won, sep([t.ours + (t.ours === 1 ? ' propio' : ' propios'), t.rivalErr + ' por error del rival'], 'v')],
+      ['them', 'Puntos regalados', t.ourErr, lost ? pctS(t.ourErr, lost) + ' de los ' + lost + ' perdidos' : 'Ningún punto perdido'],
+      ['', 'Side-out', pctS(t.soW, t.soT), t.soW + ' de ' + t.soT + ' con saque del rival'],
+      ['', 'Break point', pctS(t.brW, t.brT), t.brW + ' de ' + t.brT + ' con saque propio'],
+      ['', 'Side-out recibiendo', pctS(t.rcW, t.rcT), t.rcT ? t.rcW + ' de ' + t.rcT + ' con recepción' : 'Sin recepciones'],
+      ['', 'Al primer ataque', pctS(t.fbW, t.rcT), t.rcT ? t.fbW + ' de ' + t.rcT + ' recepciones' : 'Sin recepciones']];
+    var heros = '<div class="sp-heros ms-heros ph-only">' + FD.map(function (f) {
+      return '<div' + (f[0] ? ' class="' + f[0] + '"' : '') + '><span class="sp-hn">' + f[2] + '</span><span class="sp-hl">' + f[1] + '</span></div>';
+    }).join('') + '</div><dl class="sp-kv sp-help-full ms-figd ph-only">' + FD.map(function (f) { return '<dt>' + f[1] + '</dt><dd>' + f[3] + '</dd>'; }).join('') + '</dl>';
+    h += '<section class="ms-sec ms-figsec" data-info-row aria-labelledby="msh-fig"><h3 class="ms-h" id="msh-fig" tabindex="-1" data-focus>Cifras clave</h3>' +
+      '<span class="sp-info" role="button" aria-label="Ver el detalle de las cifras"><b aria-hidden="true">i</b></span>' +
+      '<div class="ms-figs ph-hide">' + figs + '</div>' + heros + '</section>';
     var mom = momentumSVG(M, team, names);
     if (mom) h += sec('mom', 'Quién iba por delante, punto a punto', mom + '<p class="ms-note">Por encima de la línea central iba ganando ' + escD(inl[team]) + '. Cada set empieza de cero.</p>');
     h += sec('rot', M.size === 6 ? 'Rotaciones y fases' : 'Ataque por fase', M.size === 6 ? '<div class="ms-two">' + rotHTML(TT, true) + '</div>' : rotHTML(TT, false));

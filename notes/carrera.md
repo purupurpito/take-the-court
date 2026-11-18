@@ -986,3 +986,21 @@ las 2»):
   Con los cortes de la rama y la IA nueva salía playa 10/30/100 y pista 56/89/100.
 - ui.js / camera.js: el set único de la prueba (`g.toWin`) y el del online (`g.bo1`) se tratan igual (`oneSet`).
 - careertest «Prueba de la rama, ampliada el 17-nov-2026»; ratingtest graba la asistencia y deshace los puntos anulados por challenge.
+
+## Móvil (v-next, 18-nov-2026: «se ve todo muy cramped»)
+Solo con `html.ph` (móvil apaisado; notes/splat.md §9). Sin `.ph`, la Carrera de PC y tableta no cambia. Todo en `PH_CSS` de
+career-ui.js (prefijo `PQ = ':root.ph' + Q`), `PH_L` de career-life-ui.js y `PH_W` de career-world-ui.js; las reglas viejas de
+`@media (max-height:420px)` del hub, de la previa de la prueba y del bloque SPLAT pasan a `and (max-aspect-ratio:5/4)` (ya no tocan el móvil apaisado).
+- **Marco del hub**: `.cr-in` en rejilla; a la izquierda «‹ Menú» y la columna de **6 apartados** (`#crTabs[data-ph-tabs=rail]`, icono
+  encima del rótulo, 44 px; a 320 de alto se desliza con desvanecido): Partido · Jugador · Club · Mensajes (contador en pastilla) · Liga ·
+  **Vida** (= Fama + Palmarés). Arriba a la derecha, la tira de sub-pestañas (`#crSub[data-ph-tabs=strip]`, opacas, la elegida del color
+  del club) o, sin sub-pestañas, el título «Jugador / Club corto»; el sello de tu media en la esquina. El contenido (`#crBody`) es lo
+  único que se desplaza: 254 px de alto a 568×320. `tab`/`sub` siguen siendo los de siempre; Vida reparte: Fama (con Legado debajo) ·
+  Tienda · Logros → `life`; Vitrina (Palmarés y Temporadas) · Opciones → `honors` (`phSub`). Jugador › Entreno no sale en la tira (el
+  plan está en Partido; si se abre por API, sale). `vb:ph` repinta.
+- **Letra**: tokens del sistema (lectura `--ph-body`, filas `--ph-row`, rótulos dorados `--ph-label`, chips `--ph-cap`, cifras `--ph-num`).
+- **Partido**: el brochazo y «Jugar partido» primero (Faro y el resultado de la prueba, debajo: `#crBody[data-cv^=match]` en columna con `order`).
+- **Jugador › Físico/Defensa/Ataque**: ficha en una línea (nombre · dorsal · Nv · XP y los puntos en pastilla dorada) + barra; todos los «+1» a la vista a 568×320; a ≥ 520 px de ancho, dos columnas.
+- **Liga**: `lgPick` «‹ Liga ›» (flechas de 44; el nombre abre una hoja `VB.Splat.sheet` con todas, por país en la pista) en Tabla y Clubes; `shortClub()` (las 2 últimas palabras con chicha: «Voley Sanroqueño») en tabla, calendario, tira de ofertas y título; tu fila (`tr.me`) o la próxima jornada, a la vista al cambiar de pestaña (`phReveal`).
+- **Crear**: «Crear y ver ofertas» fijo abajo a la derecha (fila propia en la rejilla), el texto largo al final; **Elegir club**: tira de ofertas con nombre corto que se desliza, «Firmar» bajo el nombre.
+- Pendiente (no hecho): selector de país con hoja al crear, Insignias/Vitrina en fichas con hoja, Mensajes en acordeón, «i» de detalles del partido, pestaña «Más» de la hoja final.

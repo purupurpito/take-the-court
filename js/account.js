@@ -436,6 +436,7 @@
   function setStatus(s, e) { status = acc ? s : 'off'; lastErr = e ? errText(e) : ''; listeners.forEach(function (f) { try { f(status); } catch (x) { } }); refreshBtn(); if (root && !root.hidden && view === 'in') render(); }
   var toastT = 0;
   function toast(msg) {
+    if (phone() && VB.Splat && VB.Splat.toast) { try { VB.Splat.toast(esc(msg), { key: 'acc' }); return; } catch (e) { } }
     var t = document.getElementById('accToast');
     if (!t) { t = document.createElement('div'); t.id = 'accToast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
     t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3500);
@@ -446,7 +447,8 @@
   // que se note que es un diálogo). Campos crema con contorno de tinta y aro dorado; pestañas en trazo de pincel; botones = manchas de
   // pintura (.sp-btn); la ✕ es una pegatina fuera de la hoja y la fila de abajo (Entrar / Hecho) se queda pegada al borde: con poco alto
   // la hoja se desplaza por dentro sin que se vayan. Teléfono apaisado bajo: dos columnas (título y Google | formulario).
-  var P = ':root:not(#_):not(#_):not(#_) ';
+  var P = ':root:not(#_):not(#_):not(#_) ', PP = ':root.ph' + P.slice(5);   // (PP: móvil, html.ph)
+  function phone() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
   var CSS = [
     '#account{position:fixed;inset:0;z-index:190;display:flex;align-items:center;justify-content:center;padding:calc(14px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(14px + var(--sbm,0px)) calc(14px + var(--sl,0px));',
     'background:rgba(21,16,42,.34);font-family:var(--sp-ui,system-ui,sans-serif)}',
@@ -507,18 +509,58 @@
     '#btnAcc .ac-dot{width:9px;height:9px;border-radius:50%;background:var(--muted,#93a4b9);box-shadow:0 0 0 1.5px var(--tk,#1d1530)}',
     '#btnAcc.on .ac-dot{background:#1cc4b4}#btnAcc.busy .ac-dot{background:var(--gold,#ffd23f)}#btnAcc.err .ac-dot{background:#ff6a5a}#btnAcc:not(.on):not(.busy):not(.err) .ac-dot{display:none}',
     // poco alto: sin la frase de entrada, todo más prieto; y apaisado, dos columnas
-    '@media (max-height:520px){#account .ac-intro{display:none}#account .ac-sheet{padding:14px 18px 14px}#account .ac-acts{margin:6px -18px -14px;padding:10px 18px 14px;bottom:-14px}',
-    P + '#account .ac-h{--sp-hs:26px;margin-bottom:10px}#account .ac-tabs{margin-bottom:10px}#account input{height:44px;margin-bottom:10px}#account .ac-g{min-height:44px;margin-bottom:10px}',
-    '#account .ac-warn{font-size:12px;padding:6px 10px;margin-bottom:6px}' + P + '#account .ac-sheet .sp-btn{--sp-h:44px}}',
-    '@media (max-height:520px) and (min-aspect-ratio:5/4){#account .ac-wrap{width:min(760px,100%)}',
-    '#account .ac-sheet{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);column-gap:24px;align-items:start}',
-    '#account .ac-c2{grid-column:2;grid-row:1/span 2}#account .ac-acts{grid-column:1/-1}#account .ac-c2 .ac-acts{grid-column:auto}',
-    '#account .ac-sheet>.ac-acts{grid-column:1/-1}#account .ac-choice{margin-top:0}#account .ac-or{margin-bottom:6px}',
-    // (el formulario: «¿Has olvidado…?» a la izquierda de «Entrar» y el error encima; «Ahora no» sobra, la ✕ está siempre a la vista)
-    '#account .ac-c2 form{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:12px;align-items:center}#account .ac-c2 form>*{grid-column:1/-1}',
-    '#account .ac-c2 form>.ac-link{grid-column:1;order:3;margin:0;text-align:left;line-height:1.25}#account .ac-c2 form>.ac-err{order:2}',
-    '#account .ac-c2 form>.ac-acts{grid-column:2;order:3;margin:4px -18px -14px 0;padding:8px 18px 14px 0}' + P + '#account .ac-c2 form [data-ac=close]{display:none}}',
-    '@media (max-height:360px) and (min-aspect-ratio:5/4){#account .ac-or{display:none}#account .ac-warn{font-size:11.5px;line-height:1.3;padding:5px 9px}#account input{height:42px}}',
+    // poco alto sin ser el móvil apaisado (ventana baja de PC): lo de antes, solo con :root:not(.ph)
+    '@media (max-height:520px){:root:not(.ph) #account .ac-intro{display:none}:root:not(.ph) #account .ac-sheet{padding:14px 18px 14px}:root:not(.ph) #account .ac-acts{margin:6px -18px -14px;padding:10px 18px 14px;bottom:-14px}',
+    P + '#account .ac-h{--sp-hs:26px;margin-bottom:10px}:root:not(.ph) #account .ac-tabs{margin-bottom:10px}:root:not(.ph) #account input{height:44px;margin-bottom:10px}:root:not(.ph) #account .ac-g{min-height:44px;margin-bottom:10px}',
+    ':root:not(.ph) #account .ac-warn{font-size:12px;padding:6px 10px;margin-bottom:6px}' + P + '#account .ac-sheet .sp-btn{--sp-h:44px}}',
+    // — móvil (.ph) — (18-nov-2026, spec «Cuenta»): tinte del 20 %, la hoja pegada arriba. Sin sesión: UNA columna (las pestañas hacen de
+    // título, Google, campos de 52 px y abajo «¿Olvidaste…?» y la principal). Con sesión: tu tarjeta a la izquierda, la frase y
+    // «Sincronizar ahora» a la derecha. La ✕ fuera de la hoja, siempre dentro de la pantalla. Letra --ph-*.
+    PP + '#account{align-items:flex-start;padding:var(--ph-gt) var(--ph-g) var(--ph-gb);background:rgba(21,16,42,.2)}',
+    PP + '#account .ac-wrap{width:min(620px,100%);max-height:100%}',
+    PP + '#account .ac-wrap.ac-two{width:min(780px,100%)}',
+    PP + '#account .ac-sheet{padding:12px 16px 0;display:block}',
+    PP + '#account .ac-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+    PP + '#account .ac-x{top:-4px;right:-6px}',
+    PP + '#account p{font-size:var(--ph-body);line-height:1.4}',
+    PP + '#account .ac-tabs{margin:0 44px 10px 0;gap:10px}',
+    PP + '#account .ac-tabs .sp-tab{--sp-tbh:48px;--sp-tbs:var(--ph-btn)}',
+    PP + '#account .ac-g{min-height:52px;margin:0 0 8px;font-size:var(--ph-btn)}',
+    PP + '#account .ac-or{margin:0 0 8px;font:700 var(--ph-cap)/1 var(--sp-ui);letter-spacing:0;text-transform:none}',
+    PP + '#account label{margin:0 0 5px 2px;font-size:var(--ph-label);letter-spacing:.04em}',
+    PP + '#account input{height:52px;margin:0 0 12px;font-size:18px}',
+    PP + '#account .ac-hint{margin:-6px 0 12px 2px;font:600 var(--ph-label)/1.3 var(--sp-ui);color:#ffe08a}',
+    PP + '#account .ac-err{font-size:var(--ph-body)}',
+    PP + '#account .ac-acts{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:12px;margin:4px -16px 0;padding:10px 16px 12px;bottom:0}',
+    PP + '#account .ac-acts .ac-link{flex:1 1 auto;min-width:0;margin:0 auto 0 0;padding:0 2px;text-align:left;font-size:var(--ph-label);white-space:nowrap}',
+    PP + '#account .ac-sheet .sp-btn{--sp-h:48px;--sp-fs:var(--ph-btn)}',
+    PP + '#account .ac-sheet .sp-btn.pri{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:24px;flex:none}',
+    // con sesión (y borrar): dos columnas
+    PP + '#account .ac-two .ac-sheet{display:grid;grid-template-columns:minmax(0,.95fr) minmax(0,1.05fr);column-gap:22px;align-items:start;padding:14px 18px 0}',
+    PP + '#account .ac-two .ac-c1{display:flex;flex-direction:column;align-items:flex-start;gap:12px;padding-bottom:14px}',
+    PP + '#account .ac-two .ac-c2{display:flex;flex-direction:column;min-height:100%;padding-right:40px;box-sizing:border-box}',
+    PP + '#account .ac-two .ac-c2 .ac-acts{margin-top:auto;padding-right:0;margin-right:-40px;background:none;position:static}',
+    PP + '#account .ac-user{width:100%;box-sizing:border-box;margin:2px 0 0;padding:10px 14px}',
+    PP + '#account .ac-av{width:52px;height:52px;font-size:26px}',
+    PP + '#account .ac-user b{font-size:var(--ph-head)}',
+    PP + '#account .ac-sync{display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:3px 9px;border-radius:7px 10px 7px 9px;background:rgba(21,16,42,.1);color:var(--sp-ink);font:700 var(--ph-cap)/1.15 var(--sp-ui)}',
+    PP + '#account .ac-sync::before{content:"";width:8px;height:8px;border-radius:50%;background:#1cc4b4;box-shadow:0 0 0 1.5px var(--sp-ink)}',
+    PP + '#account .ac-sync.busy::before{background:var(--sp-gold)}' + PP + '#account .ac-sync.err::before{background:#ff6a5a}',
+    PP + '#account .ac-quiet{min-height:44px;margin:12px 0 0;padding:0 4px;border:0;background:none;color:#ffa3ad;font:700 var(--ph-label)/1.2 var(--sp-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}',
+    'body #account .ac-quiet:focus-visible{outline:2.5px solid var(--sp-gold);outline-offset:2px;border-radius:6px}',
+    PP + '#account .ac-del{margin:0 0 4px;padding:12px 14px;border-radius:12px 16px 11px 15px/14px 11px 16px 12px;background:#2a1530;box-shadow:0 0 0 3px var(--sp-danger),3px 4px 0 3px var(--sp-ink)}',
+    PP + '#account .ac-del h3{margin:0 0 6px;font:400 var(--ph-head)/1.1 var(--sp-pop);color:#ffb3bc;text-shadow:2px 2px 0 var(--sp-ink)}',
+    PP + '#account .ac-del p{margin:0}',
+    PP + '#account .ac-acts .ac-l{margin-right:auto}',
+    PP + '#account .ac-choice{margin:0}',
+    PP + '#account .ac-two .ac-sheet>.ac-dacts{grid-column:1/-1;position:static;margin:4px -18px 0;padding:6px 18px 14px;background:none}',
+    PP + '#account .ac-user>span:last-child{flex:1 1 auto}',
+    // alto ≤ 345 (iPhone SE): correo y contraseña lado a lado, para que todo quepa sin desplazar
+    ':root.ph.ph-s' + P.slice(5) + '#account #acForm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}',
+    ':root.ph.ph-s' + P.slice(5) + '#account #acForm>*{grid-column:1/-1}',
+    ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acUser]{grid-column:1;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acUser{grid-column:1;grid-row:2}',
+    ':root.ph.ph-s' + P.slice(5) + '#account #acForm>label[for=acPass]{grid-column:2;grid-row:1}' + ':root.ph.ph-s' + P.slice(5) + '#account #acForm>#acPass{grid-column:2;grid-row:2}',
+    ':root.ph.ph-s' + P.slice(5) + '#account .ac-or{margin-bottom:6px}',
     '@media (prefers-reduced-motion:reduce){#account .ac-g,#account .ac-user{transition:none}}'
   ].join('');
   var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null;
@@ -557,9 +599,43 @@
     return '<button type="' + (a === 'submit' ? 'submit' : 'button') + '" class="sp-btn ' + (cls || 'sp-ink') + '" data-shape="' + (n | 0) + '"' + (a === 'submit' ? '' : ' data-ac="' + a + '"') + (extra || '') + '><span class="sp-t">' + label + '</span></button>';
   }
   var XIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
+  var GSVG = '<svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+  /** Móvil (html.ph; spec «Cuenta»): otra disposición con los mismos data-ac (act() no cambia). null = sin rama de móvil (conflicto). */
+  function phHTML() {
+    if (view === 'conflict') return null;
+    var h = '';
+    if (acc) {
+      var cls = status === 'busy' ? ' busy' : status === 'error' ? ' err' : '';
+      var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Nube · ' + ago(lastSync);   // (móvil: corto y en una línea)
+      h ='<div class="ac-wrap ac-two"><div class="ac-sheet sp-panel"><div class="ac-c1"><h2 class="ac-sr" id="acTitle">Tu cuenta</h2>' +
+        '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small class="ac-sync' + cls + '">' + esc(st) + '</small></span></div>' +
+        (view === 'del' ? '' : spb('out', 'Cerrar sesión', 'sp-cream', 1) + '<button type="button" class="ac-quiet" data-ac="del">Borrar la cuenta</button>') + '</div><div class="ac-c2">' +
+        (view === 'del'
+          ? '<div class="ac-del" role="alert"><h3>¿Borrar la cuenta?</h3><p>Se borran la cuenta y todo lo guardado en ella (jugadores, Carreras, perfil, Vestuario, récord y ajustes). No se puede deshacer. Lo de este dispositivo se queda.</p></div>' +
+''
+          : '<p>Tu progreso se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
+            '<div class="ac-acts">' + spb('sync', 'Sincronizar ahora', 'sp-kit pri', 0) + '</div>') + '</div>' +
+        (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('cancel', 'No, volver', 'sp-cream ac-l', 2) + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger pri', 3) + '</div>' : '') + '</div>';
+    } else {
+      var create = tab === 'new';
+      h = '<div class="ac-wrap"><div class="ac-sheet sp-panel"><h2 class="ac-sr" id="acTitle">Cuenta: ' + (create ? 'crear cuenta' : 'entrar') + '</h2>' +
+        '<div class="ac-tabs" role="tablist" data-kb-hide><button role="tab" class="sp-tab" data-ac="tabIn" aria-selected="' + !create + '">Entrar</button><button role="tab" class="sp-tab" data-ac="tabNew" aria-selected="' + create + '">Crear cuenta</button></div>' +
+        '<button type="button" class="ac-g" data-ac="google" data-kb-hide' + (busy ? ' disabled' : '') + '>' + GSVG + (create ? 'Crear con Google' : 'Entrar con Google') + '</button>' +
+        '<div class="ac-or" data-kb-hide><span>o con tu correo</span></div>' +
+        '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
+        (create ? '<p class="ac-hint" id="acHint" hidden>Sin @ es un usuario: si olvidas la contraseña, no se puede recuperar. Apúntala bien.</p>' : '') +
+        '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" required>' +
+        '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
+        '<div class="ac-acts">' + (create ? '' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
+        spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
+    }
+    return h + '<button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy ? ' hidden' : '') + '>' + XIC + '</button></div>';
+  }
   function render() {
+    var hp = phone() ? phHTML() : null;
     var h = '<div class="ac-wrap"><div class="ac-sheet sp-panel">';
-    if (view === 'conflict' && pending) {
+    if (hp) h = '';
+    else if (view === 'conflict' && pending) {
       var cn = CONFLICT[pending.k] || 'Carrera';
       h += '<div class="ac-c1"><p class="ac-k sp-k">Tu cuenta</p><h2 class="ac-h sp-h" id="acTitle">¿Qué ' + esc(cn) + ' te quedas?</h2>' +
         '<p>Tienes una ' + esc(cn) + ' en este dispositivo y otra distinta en tu cuenta. Elige con cuál seguir: la otra se perderá.</p></div>' +
@@ -586,7 +662,8 @@
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
         '<div class="ac-acts">' + spb('close', 'Ahora no', 'sp-cream sp-sm', 2) + spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
     }
-    h += '</div><button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy || view === 'conflict' ? ' hidden' : '') + '>' + XIC + '</button></div>';
+    if (hp) h = hp;
+    else h += '</div><button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy || view === 'conflict' ? ' hidden' : '') + '>' + XIC + '</button></div>';
     var u = root.querySelector('#acUser'), keepU = u ? u.value : '', keepP = root.querySelector('#acPass') ? root.querySelector('#acPass').value : '';
     root.innerHTML = h;
     if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(root); } catch (e) { } }
@@ -594,6 +671,9 @@
     root.querySelectorAll('[data-ac]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); act(b.getAttribute('data-ac')); }); });
     var f = root.querySelector('#acForm');
     if (f) f.addEventListener('submit', function (e) { e.preventDefault(); e.stopPropagation(); act('submit'); });
+    // (móvil, Crear cuenta: el aviso de recuperar la contraseña solo sale si lo escrito no lleva @)
+    var hn = root.querySelector('#acHint'), ui = root.querySelector('#acUser');
+    if (hn && ui) { var chk = function () { hn.hidden = !ui.value || ui.value.indexOf('@') >= 0; }; ui.addEventListener('input', chk); chk(); }
   }
   function act(a) {
     if (busy && a !== 'close') return;
@@ -692,6 +772,7 @@
     refreshBtn(); placeBtn(); setInterval(placeBtn, 700);
   }
 
+  document.addEventListener('vb:ph', function () { if (root && !root.hidden) render(); });
   function boot() {
     build(); initBtn();
     try { var t = sessionStorage.getItem('make-the-cut.account.toast'); if (t) { sessionStorage.removeItem('make-the-cut.account.toast'); setTimeout(function () { toast(t); }, 900); } } catch (e) { }
@@ -718,7 +799,7 @@
     // capturas (tools/eval.js): pinta la cola de conflictos dada [{k, remote, local, at}] sin tocar la nube
     _preview: function (v, o) {   // capturas: pinta una vista del panel (enter | in | del) con una cuenta de mentira, sin tocar la nube
       o = o || {}; build(); var save = acc;
-      if (v === 'in' || v === 'del') acc = { user: o.user || 'ferran.sarmiento@correo.es', kind: o.kind || 'mail', uid: 'preview', rt: 'preview' };
+      if (v === 'in' || v === 'del') acc = { user: o.user || 'jugadora7@correo.es', kind: o.kind || 'mail', uid: 'preview', rt: 'preview' };
       view = v === 'del' ? 'del' : v === 'in' ? 'in' : 'enter'; tab = o.tab || 'in'; msg = o.msg || ''; busy = !!o.busy; lastSync = Date.now() - 120000;
       render(); acc = save; busy = false; lastFocus = document.activeElement; root.hidden = false; return true;
     },
