@@ -90,7 +90,7 @@
       'Que {otro} deje de pedir la bola si luego la manda a la grada. Lo digo y me quedo a gusto.',
       '{otro} no me ha cubierto ni una vez en todo el partido. Ni una. Las he contado.',
       'Si {otro} vuelve a poner su música en el vestuario antes del partido, tiro el altavoz por la ventana.'],
-    o: [op(['Mediar', 'Hablarlo en grupo', 'Calmar las aguas'], { chem: 3, fatigue: 2 }, 'Mediaste en el vestuario'), op(['No meterte', 'Que lo arreglen', 'Pasar del tema'], { mood: 1, chem: -2 }, 'No te metiste en el lío')], c: CL.peer };
+    o: [op(['Quitarle hierro', 'Calmar las aguas', 'Escuchar'], { chem: 3, fatigue: 2 }, 'Calmaste las aguas'), op(['No meterte', 'Que lo arreglen', 'Pasar del tema'], { mood: 1, chem: -2 }, 'No te metiste en el lío')], c: CL.peer };
   T.qTrain = { k: 'peer', t: ['El entreno de hoy', 'Vaya sesión', 'No siento las piernas'],
     x: ['El entreno de hoy ha sido un castigo. Cien saltos y luego arena hasta las rodillas. ¿Se lo decimos a {coach}?',
       'Tres horas al sol y ni una pausa para beber. Una cosa es entrenar y otra sobrevivir.',
@@ -102,28 +102,29 @@
       '{coach} nos tiene a doble sesión toda la semana. Así llegamos al sábado sin piernas.',
       'He soñado con la escalera de coordinación. No era un sueño bonito.'],
     o: [op(['Pedir descanso', 'Hablar con {coach}', 'Bajar la carga'], { coach: -1, fatigue: -5 }, 'Pediste bajar la carga'), op(['Aguantar juntos', 'Sudar y callar', 'Es lo que toca'], { chem: 3, train: 10 }, 'Aguantasteis la sesión')], c: CL.peer };
-  T.qMatch = { k: 'peer', t: ['Lo de hoy', 'Hay que hablar del partido', 'Así no'],
-    x: ['Hoy hemos jugado fatal y nadie lo dice. Empiezo yo. ¿Lo hablamos o lo enterramos?',
+  T.qMatch = { k: 'peer', t: ['Lo de hoy', 'Desahogo', 'Así no'],
+    x: ['Hoy hemos jugado fatal y nadie lo dice. Empiezo yo: mi recepción daba pena.',
       'Contra {rival} no ha salido nada. Ni saque, ni defensa, ni ganas. ¿Qué nos pasa?',
       'Me voy a casa con mal cuerpo. No por perder: por cómo hemos perdido.',
-      'Llevo toda la noche pensando en el partido. Necesito que lo hablemos antes del próximo.'],
-    xh: ['Hoy hemos jugado fatal y en el vestuario todo el mundo mirando el móvil. ¿Lo hablamos o lo enterramos?',
+      'Llevo toda la noche pensando en el partido. Necesitaba soltarlo con alguien.'],
+    xh: ['Hoy hemos jugado fatal y en el vestuario todo el mundo mirando el móvil. Alguien tenía que decirlo.',
       'Contra {rival} no ha salido nada. Ni saque, ni bloqueo, ni ganas. Esto no es un equipo, es un grupo de gente.',
       'Me voy a casa con mal cuerpo. No por perder: por cómo hemos perdido.',
       'Quien diga que hoy hemos dado el máximo, miente. Y lo sabemos.',
       'Hay gente que se ha rendido en el tercer set. No digo nombres, pero no digo nombres.'],
-    o: [op(['Reunión del equipo', 'Hablarlo todo', 'Cartas sobre la mesa'], { chem: 4, mood: -2 }, 'Reunión tras la derrota'), op(['Pasar página', 'Mirar adelante', 'Olvidarlo'], { mood: 2 }, 'Pasaste página')], c: CL.peer };
-  T.qRef = { k: 'peer', t: ['El árbitro', 'Nos han robado', 'Esa bola era dentro'],
-    x: ['Esa bola del final era dentro. DENTRO. La he visto en la repetición tres veces. ¿Qué tiene en los ojos el árbitro?',
-      'El primer árbitro ha pitado dobles a todo lo que tocábamos. A {rival}, nada. Curioso.',
-      'Si el juez de línea de hoy vuelve a pitarnos, le regalo unas gafas.',
-      'Hemos perdido contra {rival} y contra el árbitro. Dos rivales son muchos.'],
-    xh: ['Esa bola del final era dentro. DENTRO. La he visto en la repetición tres veces. ¿Qué tiene en los ojos el árbitro?',
-      'Nos ha pitado tres retenciones en un set. Tres. A {rival} le dejaba hacer malabares.',
-      'El segundo árbitro no ha visto la invasión de {rival} ni con la red temblando. Increíble.',
-      'Hemos perdido contra {rival} y contra el árbitro. Dos rivales son muchos.',
-      'Me han sacado tarjeta por preguntar. ¡Por preguntar! Ya no se puede ni hablar.'],
-    o: [op(['Calmar', 'Los árbitros también fallan', 'Mirar lo nuestro'], { coach: 2 }, 'Calmaste lo del árbitro'), op(['Darle la razón', 'Ha sido un robo', 'Desahogarse juntos'], { chem: 3, coach: -1 }, 'Os desahogasteis con el arbitraje')], c: CL.peer };
+    // (sin capitanía no convocas nada: escuchas o te lo comes y a entrenar)
+    o: [op(['Escuchar', 'Dejar que se desahogue', 'Darle la razón en privado'], { chem: 3, mood: -2 }, 'Escuchaste el desahogo'), op(['Comértelo y a entrenar', 'Tragar y a currar', 'Callar y entrenar'], { train: 10, mood: -1 }, 'Te comiste la queja')], c: CL.peer };
+  T.qRef = { k: 'peer', t: ['El árbitro', 'Esa bola', 'Lo de la línea'],
+    x: ['Esa bola del final era dentro. DENTRO. Lo he visto clarísimo desde donde estaba.',
+      'Para mí el saque de {rival} del segundo set se fue fuera. Y el árbitro, tan tranquilo.',
+      'Me han pitado dobles en una colocación que era limpísima. Limpísima.',
+      'Hemos perdido contra {rival} y contra un par de bolas de la línea. Eso pesa.'],
+    xh: ['Esa bola del final era dentro. DENTRO. Lo he visto clarísimo desde el banquillo.',
+      'Para mí el remate de {rival} del tercer set se fue fuera por un palmo. Y nadie dice nada.',
+      'Me han pitado red en un bloqueo en el que ni la rocé. Ni la rocé.',
+      'Hemos perdido contra {rival} y contra un par de bolas de la línea. Eso pesa.',
+      'Nos han cantado dobles en una colocación que era limpia. Y en la siguiente jugada, a {rival}, nada.'],
+    o: [op(['Calmar', 'Los árbitros también fallan', 'Mirar lo nuestro'], { coach: 2 }, 'Calmaste lo del árbitro'), op(['Darle la razón', 'Desahogarse juntos', 'Yo también la vi'], { chem: 3, coach: -1 }, 'Os desahogasteis con el arbitraje')], c: CL.peer };
   T.qPlan = { k: 'peer', only: 'hall', t: ['El plan de {coach}', '¿Tú lo entiendes?', 'La pizarra'],
     x: ['No entiendo el plan de {coach}. ¿Tú lo entiendes?'],
     xh: ['No entiendo por qué {coach} nos pone a recibir a cuatro contra un saque flotante. ¿Tú lo entiendes?',
@@ -809,25 +810,109 @@
     }
     return h + '</div>';
   }
-  /** Bandeja: el feed (todos los sistemas) mezclado con c.inbox al pintar. Arriba lo que espera respuesta. msgHTML(m, fresh) es el
-   *  de career-ui (si falta, un .msg mínimo). fresh: ids de c.inbox recién leídos (y 'st<id>' para el feed). */
+  // ================================================================== Bandeja como CHAT de teléfono (1.13.2)
+  // Conversaciones agrupadas por quien escribe (en pista, cada persona del vestuario por su nombre; la prensa, por medio; los avisos
+  // de c.inbox, en «Club»). Dentro: burbujas suyas a la izquierda, tus respuestas a la derecha, y abajo las respuestas rápidas si
+  // espera respuesta. Estado de la vista (no se guarda): chatK = conversación abierta ('' = lista); unseen = lo no leído al entrar
+  // (la pestaña marca todo leído al abrirse; aquí se recuerda hasta que abres esa conversación).
+  var chatK = '', unseen = {};
+  var AV = { coach: '#ff9f1c', agent: '#7b61ff', mate: '#1fb5a8', peer: '#1fb5a8', fam: '#ff6b8b', barrio: '#f4a261', fan: '#f4a261', press: '#3a86ff',
+    rival: '#e63946', sponsor: '#e9b400', physio: '#2ec4b6', rumor: '#8d99ae', hater: '#8d99ae', club: '#5c677d' };
+  function convKey(c, x) {
+    var k = x.k || 'club';
+    if (k === 'peer' && !isH(c)) return 'mate';   // (en playa quien se queja es tu pareja: la misma conversación)
+    if (k === 'peer' || k === 'press') return k + '|' + senderOf(c, x)[0];
+    return k;
+  }
+  function initials(n) { var w = String(n || '?').replace(/^@/, '').split(/\s+/).filter(Boolean); return ((w[0] || '?').charAt(0) + (w[1] ? w[1].charAt(0) : '')).toUpperCase(); }
+  function avatar(esc, k, name) { return '<span class="st-av" style="background:' + (AV[k] || '#5c677d') + '" aria-hidden="true">' + esc(initials(name)) + '</span>'; }
+  function whenOf(x) { return 'T' + (x.s | 0) + ((x.ph === 'league' || x.ph == null) && (x.w | 0) > 0 ? ' J' + (x.w | 0) : ''); }
+  /** Todas las conversaciones: [{key, k, name, role, items:[{t:'f'|'m', x|m, s, w, n, i}], open, last}] (más reciente primero). */
+  function convs(c) {
+    var s = St(c), map = {}, out = [];
+    function add(key, k, name, role, it) {
+      var v = map[key]; if (!v) { v = map[key] = { key: key, k: k, name: name, role: role, items: [], open: 0, un: 0 }; out.push(v); }
+      v.items.push(it);
+    }
+    s.feed.forEach(function (x) {
+      if (!obj(x)) return;
+      var who = senderOf(c, x), it = { t: 'f', x: x, s: x.s | 0, w: x.w | 0, n: 1, i: x.id | 0 };
+      add(convKey(c, x), x.k || 'club', who[0], who[1], it);
+      var v = map[convKey(c, x)];
+      if (x.o && x.ans === -1 && s.mN <= x.exp) v.open++;
+      if (unseen['st' + x.id]) v.un++;
+    });
+    (Array.isArray(c.inbox) ? c.inbox : []).forEach(function (m, i) {
+      if (!obj(m)) return;
+      add('club', 'club', 'Club', 'Avisos y ofertas', { t: 'm', m: m, s: m.s | 0, w: m.w | 0, n: 0, i: i });
+      if (unseen['m' + m.id]) map.club.un++;
+    });
+    out.forEach(function (v) { v.items.sort(function (a, b) { return a.s - b.s || a.w - b.w || a.n - b.n || a.i - b.i; }); v.last = v.items[v.items.length - 1]; });
+    out.sort(function (a, b) { return (b.open > 0) - (a.open > 0) || b.last.s - a.last.s || b.last.w - a.last.w || b.last.n - a.last.n || b.last.i - a.last.i; });
+    return out;
+  }
+  function preview(c, it) { if (it.t === 'm') return it.m.t || it.m.x || ''; var tx = S.text(c, it.x); return tx.x || tx.t || ''; }
+  function phone(inner, bar) {
+    return '<div class="st-phone"><div class="st-pbar" aria-hidden="true"><span>9:41</span><i></i><span>▮▮▮ ▰</span></div>' + inner + '</div>';
+  }
+  function chatList(c, H) {
+    var esc = escF(H), L = convs(c);
+    var h = '<div class="st-ctop"><b>Mensajes</b>' + (L.some(function (v) { return v.open; }) ? '<small>' + L.filter(function (v) { return v.open; }).length + ' esperan respuesta</small>' : '') + '</div>';
+    if (!L.length) return phone(h + '<p class="st-empty">Aún no te ha escrito nadie.</p>');
+    h += '<div class="st-clist" data-nav>' + L.map(function (v) {
+      var badge = v.open ? '<span class="st-badge st-q" title="Espera respuesta">!</span>' : v.un ? '<span class="st-badge">' + v.un + '</span>' : '';
+      return '<button class="st-conv' + (v.open || v.un ? ' st-new' : '') + '" data-act="st-msgs-chat" data-v="' + esc(v.key) + '">' + avatar(esc, v.k, v.name) +
+        '<span class="st-cmid"><b>' + esc(v.name) + '</b><small>' + esc(preview(c, v.last)) + '</small></span><span class="st-cend"><small>' + esc(whenOf(v.last)) + '</small>' + badge + '</span></button>';
+    }).join('') + '</div>';
+    return phone(h);
+  }
+  function chatThread(c, H, v) {
+    var esc = escF(H), s = St(c), open = null, h = '';
+    h += '<div class="st-chead" data-nav><button class="st-back" data-act="st-msgs-back" aria-label="Volver a las conversaciones">‹</button>' + avatar(esc, v.k, v.name) +
+      '<span class="st-cmid"><b>' + esc(v.name) + '</b><small>' + esc(v.role || '') + '</small></span></div>';
+    var log = '', lastW = '';
+    v.items.forEach(function (it) {
+      var w = whenOf(it.t === 'm' ? it.m : it.x);
+      if (w !== lastW) { log += '<p class="st-day">' + esc(w.replace(/^T(\d+)/, 'Temporada $1').replace(/ J(\d+)$/, ', jornada $1')) + '</p>'; lastW = w; }
+      if (it.t === 'm') { log += '<div class="st-bub st-bin"><b>' + esc(it.m.t) + '</b>' + esc(it.m.x) + '</div>'; return; }
+      var x = it.x, tx = S.text(c, x);
+      log += '<div class="st-bub st-bin"><b>' + esc(tx.t) + '</b>' + esc(tx.x) + '</div>';
+      if (x.o && x.ans >= 0) {
+        var t2 = S.text(c, { id: x.id, b: x.b, vars: x.vars, o: 1, ans: -1 });
+        log += '<div class="st-bub st-bout">' + esc(t2.o[x.ans] ? t2.o[x.ans].t : '') + '<small>✓✓</small></div>';
+      } else if (x.o && (x.ans === -2 || s.mN > x.exp)) {
+        var t3 = S.text(c, { id: x.id, b: x.b, vars: x.vars, o: 1, ans: -2 }).c;
+        log += '<p class="st-day st-gone">' + esc(t3 || 'Se quedó sin respuesta') + '</p>';
+      } else if (x.o && x.ans === -1) open = x;
+    });
+    h += '<div class="st-scroll"><div class="st-log">' + log + '<h3 class="st-sr">Conversación con ' + esc(v.name) + '</h3></div></div>';
+    if (open) {
+      var tp = T[open.b] || S.tpl(open.b) || {}, tx = S.text(c, open), left = open.exp - s.mN + 1;
+      h += '<div class="st-replies" data-nav>' + (tp.o || []).map(function (o, i) {
+        var hi = hintOf(c, o.e);
+        return '<button data-act="st-ans-' + open.id + '-' + i + '">' + esc(tx.o[i] ? tx.o[i].t : '') + (hi.length ? '<small>' + arrow(esc, hi) + '</small>' : '') + '</button>';
+      }).join('') + '<small class="st-exp">' + (left <= 1 ? 'Caduca tras el próximo partido' : 'Caduca en ' + left + ' jornadas') + '</small></div>';
+    } else h += '<div class="st-replies st-ro"><small>' + (v.k === 'club' || !v.items.some(function (it) { return it.t === 'f' && it.x.o; }) ? 'Solo lectura' : 'Nada pendiente') + '</small></div>';
+    return phone(h);
+  }
+  /** Bandeja (ui.inbox): el chat. msgHTML no se usa (se mantiene la firma). fresh: ids recién leídos de c.inbox y 'st<id>' del feed. */
   function inbox(c, H, msgHTML, fresh) {
-    var esc = escF(H), s = St(c), box = Array.isArray(c.inbox) ? c.inbox : [];
-    var open = s.feed.filter(function (x) { return x.o && x.ans === -1 && s.mN <= x.exp; }), rest = [];
-    s.feed.forEach(function (x) { if (open.indexOf(x) < 0) rest.push({ s: x.s | 0, w: x.w | 0, n: 1, i: x.id, f: x }); });
-    box.forEach(function (m, i) { if (m && typeof m === 'object') rest.push({ s: m.s | 0, w: m.w | 0, n: 0, i: i, m: m }); });
-    rest.sort(function (a, b) { return b.s - a.s || b.w - a.w || b.n - a.n || b.i - a.i; });
-    var n = open.length + rest.length;
-    var h = '<div class="card st-inbox"><h3>Mensajes <span class="muted">(' + n + ')</span></h3>';
-    if (open.length) h += '<p class="st-sec">Esperan tu respuesta</p>' + open.slice().reverse().map(function (x) { return feedHTML(c, x, H, fresh); }).join('');
-    if (open.length && rest.length) h += '<p class="st-sec">Todo lo demás</p>';
-    h += rest.map(function (r) {
-      if (r.f) return feedHTML(c, r.f, H, fresh);
-      if (typeof msgHTML === 'function') return msgHTML(r.m, fresh);
-      return '<div class="msg' + (r.m.r ? '' : ' unread') + '"><b>' + esc(r.m.t) + '</b><p>' + esc(r.m.x) + '</p></div>';
-    }).join('');
-    if (!n) h += '<p class="muted">Sin mensajes.</p>';
-    return h + '</div>';
+    var s = St(c);
+    if (fresh) for (var f in fresh) if (fresh[f]) unseen[/^st/.test(f) ? f : 'm' + f] = 1;
+    var L = convs(c), v = null;
+    for (var i = 0; i < L.length; i++) if (L[i].key === chatK) v = L[i];
+    if (!v) chatK = '';
+    if (v) v.items.forEach(function (it) { delete unseen[it.t === 'm' ? 'm' + it.m.id : 'st' + it.x.id]; });
+    return '<div class="card st-inbox st-chat">' + (v ? chatThread(c, H, v) : chatList(c, H)) + '</div>';
+  }
+  function onAct(c, a, b) {
+    if (a === 'st-msgs-back') { var k0 = chatK; chatK = ''; return { render: true, focus: k0 ? '.st-conv[data-v="' + k0.replace(/["\\]/g, '') + '"]' : '.st-conv' }; }
+    if (a === 'st-msgs-chat') {
+      chatK = b && b.getAttribute ? String(b.getAttribute('data-v') || '') : '';
+      var v = null, L = convs(c); for (var i = 0; i < L.length; i++) if (L[i].key === chatK) v = L[i];
+      return { render: true, focus: v && v.open ? '.st-replies button' : '.st-back' };
+    }
+    return null;
   }
 
   function ago(s, w) { var d = s.mN - w.mN; return d <= 0 ? 'esta jornada' : d === 1 ? 'hace 1 jornada' : 'hace ' + d + ' jornadas'; }
@@ -857,15 +942,65 @@
   function css() {
     return '.st-bar{display:block;height:6px;margin:4px 0 2px;border-radius:3px;background:rgba(127,127,127,.25);overflow:hidden}.st-bar>i{display:block;height:100%;border-radius:3px;background:currentColor}' +
       '.st-acts{display:flex;flex-direction:column;gap:6px;margin-top:6px}.st-acts>button{min-height:44px;text-align:left}.st-acts>button small{display:block}' +
-      '.st-sec{margin:8px 0 2px;font-weight:700;opacity:.8}.st-exp{display:block;margin-top:4px}.st-ans{margin:4px 0 0}';
+      '.st-sec{margin:8px 0 2px;font-weight:700;opacity:.8}.st-exp{display:block;margin-top:4px}.st-ans{margin:4px 0 0}' + CHAT_CSS;
   }
+
+  // chat: en el móvil, la app a todo el ancho; en PC (ancha y alta), dentro de un teléfono dibujado (marco, isla y barra de estado)
+  var QC = ':root:not(#_):not(#_):not(#_):not(#_) #career';
+  var CHAT_CSS = [
+    QC + ' .st-chat{padding:6px;background:transparent;box-shadow:none;border:0}',
+    QC + ' .st-phone{position:relative;display:flex;flex-direction:column;width:100%;height:max(240px,calc(100dvh - 290px));max-height:640px;margin:0 auto;border-radius:18px;overflow:hidden;background:#f3ecdf;color:#1d1530;box-shadow:0 0 0 2.5px #1d1530,3px 4px 0 2.5px #1d1530}',
+    QC + ' .st-pbar{display:none}',
+    QC + ' .st-ctop{display:flex;align-items:baseline;gap:8px;padding:10px 14px 8px;background:#1fb5a8;color:#fff}',
+    QC + ' .st-ctop b{font-size:18px;letter-spacing:.02em}' + QC + ' .st-ctop small{opacity:.9}',
+    QC + ' .st-clist{flex:1;overflow-y:auto;overscroll-behavior:contain}',
+    QC + ' .st-conv{display:flex;align-items:center;gap:10px;width:100%;min-height:58px;margin:0;padding:8px 12px;border:0;border-radius:0;background:transparent;color:#1d1530;text-align:left;box-shadow:inset 0 -1px 0 rgba(29,21,48,.12);text-shadow:none;transform:none;font:inherit}',
+    QC + ' .st-conv:hover,' + QC + ' .st-conv:focus-visible,' + QC + ' .st-conv.kf{background:rgba(31,181,168,.14);outline:none}',
+    QC + ' .st-av{flex:none;display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:#fff;font-weight:800;font-size:14px;box-shadow:0 0 0 2px #1d1530}',
+    QC + ' .st-cmid{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}',
+    QC + ' .st-cmid b{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    QC + ' .st-cmid small{font-size:13px;opacity:.72;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    QC + ' .st-new .st-cmid small{opacity:1;font-weight:700}',
+    QC + ' .st-cend{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:4px}' + QC + ' .st-cend small{font-size:11px;opacity:.6}',
+    QC + ' .st-badge{min-width:20px;height:20px;padding:0 6px;border-radius:10px;background:#1fb5a8;color:#fff;font-size:12px;font-weight:800;line-height:20px;text-align:center}',
+    QC + ' .st-badge.st-q{background:#ff3b5c}',
+    QC + ' .st-chead{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#1fb5a8;color:#fff}',
+    QC + ' .st-chead .st-cmid small{opacity:.9}',
+    QC + ' .st-back{flex:none;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;background:transparent;color:#fff;font-size:30px;line-height:1;box-shadow:none;text-shadow:none;transform:none}',
+    QC + ' .st-back:focus-visible,' + QC + ' .st-back.kf{outline:3px solid #fff;outline-offset:-3px}',
+    // (column-reverse con un solo hijo: el desplazamiento arranca abajo, en lo último, sin JS)
+    QC + ' .st-scroll{flex:1;min-height:0;display:flex;flex-direction:column-reverse;overflow-y:auto;overscroll-behavior:contain;background:#efe6d6 radial-gradient(rgba(29,21,48,.06) 1px,transparent 1.5px) 0 0/14px 14px}',
+    QC + ' .st-log{display:flex;flex-direction:column;gap:6px;padding:10px 10px 6px}',
+    QC + ' .st-day{align-self:center;margin:6px 0 2px;padding:2px 10px;border-radius:10px;background:rgba(29,21,48,.1);font-size:12px;color:#1d1530}',
+    QC + ' .st-gone{font-style:italic;max-width:90%;text-align:center}',
+    QC + ' .st-bub{position:relative;max-width:84%;padding:7px 10px 8px;border-radius:14px;font-size:14.5px;line-height:1.3;box-shadow:0 0 0 1.5px #1d1530,1.5px 2px 0 1.5px #1d1530}',
+    QC + ' .st-bub b{display:block;margin-bottom:2px;font-size:12.5px;opacity:.75}',
+    QC + ' .st-bin{align-self:flex-start;background:#fff;border-bottom-left-radius:4px}',
+    QC + ' .st-bout{align-self:flex-end;background:#c9f2dc;border-bottom-right-radius:4px}',
+    QC + ' .st-bout small{margin-left:8px;font-size:11px;color:#1fb5a8;font-weight:800}',
+    QC + ' .st-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0}',
+    QC + ' .st-chat .st-fx{align-self:stretch;margin:4px 0;padding:6px 10px;border-radius:10px;background:#fff7d6;color:#1d1530;font-size:13px}',
+    QC + ' .st-replies{flex:none;display:flex;flex-direction:column;gap:6px;padding:8px 10px 10px;background:#f3ecdf;box-shadow:inset 0 1.5px 0 rgba(29,21,48,.15)}',
+    QC + ' .st-replies>button{min-height:44px;margin:0;padding:6px 12px;border:0;border-radius:18px;background:#1fb5a8;color:#fff;text-align:left;font:700 14.5px/1.2 inherit;text-shadow:none;transform:none;box-shadow:0 0 0 2px #1d1530,2px 3px 0 2px #1d1530}',
+    QC + ' .st-replies>button:focus-visible,' + QC + ' .st-replies>button.kf{outline:3px solid #ffd23f;outline-offset:2px}',
+    QC + ' .st-replies>button small{display:block;margin-top:2px;font-weight:600;font-size:12px}',
+    QC + ' .st-replies .lf-up{color:#fff}' + QC + ' .st-replies .lf-dn{color:#ffe0e5}',
+    QC + ' .st-replies .st-exp,' + QC + ' .st-ro small{font-size:12px;opacity:.65;text-align:center}',
+    QC + ' .st-empty{padding:20px;text-align:center;opacity:.7}',
+    // PC: un teléfono de verdad (marco negro, esquinas grandes, isla y barra de estado)
+    '@media (min-width:900px) and (min-height:600px){' +
+      QC + ' .st-phone{width:380px;height:max(400px,min(680px,calc(100vh - 290px)));max-height:none;border-radius:44px;box-shadow:0 0 0 11px #1d1530,0 0 0 13px #4a3f66,6px 10px 0 13px rgba(29,21,48,.55)}' +
+      QC + ' .st-pbar{display:flex;align-items:center;justify-content:space-between;flex:none;height:30px;padding:0 26px;background:#1fb5a8;color:#fff;font-size:12px;font-weight:800}' +
+      QC + ' .st-pbar i{width:92px;height:22px;border-radius:12px;background:#1d1530}' +
+      QC + ' .st-chat{padding:14px 0 20px}}'
+  ].join('');
 
   // ================================================================== registro
   S.use({
     id: 'msgs', tpl: T,
     ensure: function (s) { ensureS(s); },
     fx: { seat: function (c, v, why) { var s = St(c), a = s.rel.seat | 0; s.rel.seat = clamp(Math.round(a + v), 0, 100); if (s.rel.seat !== a) S.why(c, 'seat', s.rel.seat - a, why); return 'Pique por el puesto ' + sgn(Math.round(v)); } },
-    onSetup: onSetup, onMatch: onMatch, onSeason: onSeason, onNewSeason: onNewSeason, onJoin: onJoin, onAnswer: onAnswer, onReply: onReply,
+    onSetup: onSetup, onMatch: onMatch, onSeason: onSeason, onNewSeason: onNewSeason, onJoin: onJoin, onAnswer: onAnswer, onReply: onReply, onAct: onAct,
     chips: chips,
     ui: { inbox: inbox, people: people, css: css, feedHTML: feedHTML },
     // (para las pruebas y la interfaz)

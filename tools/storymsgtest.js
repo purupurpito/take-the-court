@@ -226,11 +226,18 @@ section('8. Quien te disputa el puesto (pista) e interfaz: no cambian c');
   const c = drive(B, { mode: 'beach', seasons: 1, seed: 125 });
   c.life.ev = null; S.ensure(c).freq = 2;
   const e = S.post(c, { b: 'famVisit', o: 1, vars: {} });
-  const h = M.ui.inbox(c, null, (m) => '<div class="msg box-' + m.id + '"></div>', {});
-  const nMsg = (h.match(/class="msg/g) || []).length;
-  ok(nMsg === c.story.feed.length + c.inbox.length, 'la bandeja mezcla ' + c.story.feed.length + ' del feed y ' + c.inbox.length + ' de c.inbox (' + nMsg + ' tarjetas)');
-  ok(h.indexOf('Esperan tu respuesta') >= 0 && h.indexOf('data-act="st-ans-' + e.id + '-0"') >= 0 && h.indexOf('data-act="st-ans-' + e.id + '-1"') >= 0, 'lo que espera respuesta va arriba con sus 2 botones st-ans');
-  ok(/data-nav/.test(h) && /▲/.test(h), 'botones dentro de [data-nav] y con su efecto (▲/▼)');
+  // (1.13.2) la Bandeja es un chat: lista de conversaciones (la que espera respuesta, arriba con «!») y, dentro, burbujas y respuestas
+  const h = M.ui.inbox(c, null, null, {});
+  const keys = (h.match(/class="st-conv[^"]*" data-act="st-msgs-chat" data-v="[^"]*"/g) || []).map(x => x.replace(/.*data-v="/, '').replace(/"$/, ''));
+  ok(keys[0] === 'fam' && /st-badge st-q/.test(h) && keys.indexOf('club') >= 0 && /data-nav/.test(h), 'chat: conversaciones ' + JSON.stringify(keys) + ' (la de tu gente, con respuesta pendiente, arriba; «Club» con c.inbox)');
+  const r0 = M.onAct(c, 'st-msgs-chat', { getAttribute: () => 'fam' });
+  const h2 = M.ui.inbox(c, null, null, {});
+  const nFam = c.story.feed.filter(x => x.k === 'fam').length, nBub = (h2.match(/st-bub st-bin/g) || []).length;
+  ok(r0 && r0.render && r0.focus === '.st-replies button' && nBub === nFam, 'abrir la conversación: ' + nBub + ' burbujas de ' + nFam + ' mensajes y el foco en las respuestas');
+  ok(h2.indexOf('data-act="st-ans-' + e.id + '-0"') >= 0 && h2.indexOf('data-act="st-ans-' + e.id + '-1"') >= 0 && /st-replies" data-nav/.test(h2) && /▲/.test(h2), 'respuestas rápidas: los 2 botones st-ans dentro de [data-nav] y con su efecto (▲/▼)');
+  let tot = 0; keys.forEach(k => { M.onAct(c, 'st-msgs-chat', { getAttribute: () => k }); const hh = M.ui.inbox(c, null, null, {}); tot += (hh.match(/st-bub st-bin/g) || []).length; });
+  ok(tot === c.story.feed.length + c.inbox.length, 'entre todas las conversaciones están los ' + c.story.feed.length + ' del feed y los ' + c.inbox.length + ' de c.inbox (' + tot + ')');
+  ok(M.onAct(c, 'st-msgs-back', null).render && /st-clist/.test(M.ui.inbox(c, null, null, {})), 'volver a la lista');
   ok(M.chips(c).some(x => x.tab === 'inbox' && /responder|mensajes/.test(x.t)), 'aviso de Partido: ' + JSON.stringify(M.chips(c).map(x => x.t)));
 }
 

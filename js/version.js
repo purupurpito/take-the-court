@@ -33,11 +33,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.13.1';
+  VB.VERSION = '1.13.2';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.13.2', d: '2026-11-18', t: 'Mensajes en el móvil',
+      items: [
+        'Los mensajes de la Carrera, ahora como un chat de móvil: una conversación por persona.',
+        'En el ordenador salen dentro de un teléfono; en el móvil, a pantalla completa.',
+        'Respondes con burbujas de respuesta rápida, como en cualquier chat.'
+      ]
+    },
     {
       v: '1.13.1', d: '2026-11-18', t: 'Quejas del vestuario',
       items: [
