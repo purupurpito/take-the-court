@@ -421,7 +421,7 @@ career.js llama a story el último en `life()` (`[CareerLife, CareerWorld, Caree
   titles, title, bgs, bg`).
 - **Azar: claves `st-*`** con `VB.CareerStory.rng(c, 'st-…', …)` (hash de `c.seed`, como `rngOf` de career-life). Sin `Math.random`,
   sin consumir los generadores de career.js ni el `'ev'` de career-life, y **nada en 'create'**. Claves en uso: `st-msg`, `st-msgf`, `st-press`,
-  `st-pressq`, `st-eco` (msgs); `st-week`, `st-wkv`, `st-pact` (week); `st-wall`, `st-wlk`, `st-wpub`, `st-wline`, `st-tv` (wall); `st-fj`,
+  `st-pressq`, `st-eco`, `st-q`, `st-peer` (msgs; las dos últimas, quejas del vestuario 1.13.1: tirada por queja y quién se queja, en pista alguien de c.sq6.list en solo lectura, en playa tu pareja); `st-week`, `st-wkv`, `st-pact` (week); `st-wall`, `st-wlk`, `st-wpub`, `st-wline`, `st-tv` (wall); `st-fj`,
   `st-fm` (season); `st-coachN` (reparto del núcleo). Las variantes de texto del núcleo salen de `hash(seed,'st-v',…)`, sin tirar.
 - **Tope por jornada** (`budget`): 1, 3 o 4 cosas que piden respuesta según «Cuánta vida», menos 1 si hay decisión de career-life;
   el muro y la carta de la semana no cuentan. Lo que no se contesta caduca a las 2 jornadas sin efecto.

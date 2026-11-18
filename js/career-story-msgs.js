@@ -53,14 +53,94 @@
     press: ['La rueda de prensa acaba sin tu respuesta. Titular del día: «Silencio».', 'Te escapas por la puerta de atrás. La prensa tendrá que inventarse la frase.', 'Sin respuesta. Los micrófonos se apagan solos.'],
     rival: ['{rp} se queda sin respuesta. Quizá sea lo mejor.', 'No contestas a {rp}. El pique se enfría un poco.'],
     sponsor: ['{sponsor}: «Lo dejamos para la próxima campaña.»', '{sponsor}: «Sin problema, otra vez será.»'],
-    physio: ['El fisio suspira y apunta tu nombre en la libreta.', 'El fisio: «Tú verás. Luego no vengas a llorar.»']
+    physio: ['El fisio suspira y apunta tu nombre en la libreta.', 'El fisio: «Tú verás. Luego no vengas a llorar.»'],
+    peer: ['{who}: «Vale, ya veo que estás a lo tuyo.»', '{who}: «Nada, olvídalo. Ya se me pasará.»', '{who}: «Bueno, lo hablamos en el vestuario.»', '{who}: «Ok. Me lo guardo para mí.»']
   };
-  var WHO = { agent: 'Agente', coach: 'Cuerpo técnico', fam: 'Familia', barrio: 'Afición', press: 'Prensa', rival: 'Rival', sponsor: 'Patrocinio', physio: 'Cuerpo técnico', rumor: 'Redes', hater: 'Redes', fan: 'Afición' };
+  var WHO = { agent: 'Agente', coach: 'Cuerpo técnico', fam: 'Familia', barrio: 'Afición', press: 'Prensa', rival: 'Rival', sponsor: 'Patrocinio', physio: 'Cuerpo técnico', peer: 'Vestuario', rumor: 'Redes', hater: 'Redes', fan: 'Afición' };
 
   // ================================================================== plantillas (tpl). {rival} {nota} {m} {n} {seat} van en vars
   // (cada entrada guarda sus vars al publicarse; el texto se regenera al pintar). Opciones: e = efectos (solo al contestar).
   var T = {};
   function op(t, e, why) { return { t: t, e: e, why: why }; }
+
+
+  // ------------------------------------------------------------------ quejas del vestuario (Ferran, 18-nov-2026: «compañeros quejándose
+  // por mensaje: de jugar poco, de compañeros, del entrenamiento, del partido, del árbitro...»). Remitente 'peer': en pista, alguien
+  // de tu plantilla con nombre (c.sq6.list, solo lectura; {who}, y {otro} para quien recibe la crítica); en playa, tu pareja. Los
+  // efectos, como todo, solo al contestar.
+  T.qMinutes = { k: 'peer', only: 'hall', t: ['No juego nada', 'Minutos', 'Desde el banquillo'],
+    x: ['Otra jornada calentando banquillo. Entreno como nadie y {coach} ni me mira. ¿Tú lo ves normal?'],
+    xh: ['Otra jornada calentando banquillo. Entreno como nadie y {coach} ni me mira. ¿Tú lo ves normal?',
+      'Llevo tres partidos sin pisar la pista. Si no cuentan conmigo, que me lo digan a la cara.',
+      'Me han dicho que «paciencia». Paciencia tengo, lo que no tengo son minutos. ¿Me echas un cable?',
+      'Hoy ni en el cambio de la rotación. Empiezo a pensar que soy parte del mobiliario del pabellón.',
+      '¿Sabes cuántos puntos he jugado este mes? Yo tampoco, porque no llegan a una mano.',
+      'Estoy por pedir que me pongan un cojín en el banquillo. Total, voy a vivir ahí.'],
+    o: [op(['Animar', 'Tu momento llegará', 'Entrenar juntos'], { chem: 3, mood: -1 }, 'Animaste a quien no juega'), op(['Que se lo gane', 'Es cosa del banquillo', 'No meterte'], { coach: 1, chem: -2 }, 'No te metiste en lo de los minutos')], c: CL.peer };
+  T.qMate = { k: 'peer', t: ['Una cosa entre nosotros', 'Tengo que decírtelo', 'Sin rodeos'],
+    x: ['Hoy me has dejado todas las cortas a mí. No pasa nada, pero la red es de las dos personas, ¿eh?',
+      'Te lo digo con cariño: cuando pido la bola, es que la quiero. Hoy me has robado tres.',
+      'En el segundo set no sabía si ibas a bloquear o a defender. Yo tampoco, así que hemos hecho las dos cosas mal.',
+      'Necesito que me hables más en la pista. Hoy parecíamos dos desconocidos compartiendo arena.',
+      'Esa última bola era tuya y lo sabes. Nos ha costado el set. Ya está, ya lo he dicho.',
+      'Me haces señas de bloqueo y luego no saltas. Me tienes en un sinvivir.'],
+    xh: ['{otro} no pasa una en recepción y aquí nadie dice nada. ¿Soy la única persona que lo ve?',
+      'No puedo más con {otro}. Llega tarde a todos los entrenos y luego juega de inicio. Explícamelo.',
+      '{otro} se pasa el partido protestando a todo el mundo. Así no hay quien se concentre.',
+      'Que {otro} deje de pedir la bola si luego la manda a la grada. Lo digo y me quedo a gusto.',
+      '{otro} no me ha cubierto ni una vez en todo el partido. Ni una. Las he contado.',
+      'Si {otro} vuelve a poner su música en el vestuario antes del partido, tiro el altavoz por la ventana.'],
+    o: [op(['Mediar', 'Hablarlo en grupo', 'Calmar las aguas'], { chem: 3, fatigue: 2 }, 'Mediaste en el vestuario'), op(['No meterte', 'Que lo arreglen', 'Pasar del tema'], { mood: 1, chem: -2 }, 'No te metiste en el lío')], c: CL.peer };
+  T.qTrain = { k: 'peer', t: ['El entreno de hoy', 'Vaya sesión', 'No siento las piernas'],
+    x: ['El entreno de hoy ha sido un castigo. Cien saltos y luego arena hasta las rodillas. ¿Se lo decimos a {coach}?',
+      'Tres horas al sol y ni una pausa para beber. Una cosa es entrenar y otra sobrevivir.',
+      'Si mañana repetimos los sprints en la arena blanda, me quedo a vivir en la ducha.',
+      'He contado los ejercicios: catorce. He contado mis fuerzas: ninguna. ¿Hablamos con el banquillo?'],
+    xh: ['El entreno de hoy ha sido un castigo. Doscientos bloqueos y luego físico. ¿Se lo decimos a {coach}?',
+      'Media plantilla está cojeando y mañana toca otra vez pesas. Alguien tiene que decir algo.',
+      'Hemos hecho el mismo ejercicio de recepción hora y media. Hasta el balón estaba aburrido.',
+      '{coach} nos tiene a doble sesión toda la semana. Así llegamos al sábado sin piernas.',
+      'He soñado con la escalera de coordinación. No era un sueño bonito.'],
+    o: [op(['Pedir descanso', 'Hablar con {coach}', 'Bajar la carga'], { coach: -1, fatigue: -5 }, 'Pediste bajar la carga'), op(['Aguantar juntos', 'Sudar y callar', 'Es lo que toca'], { chem: 3, train: 10 }, 'Aguantasteis la sesión')], c: CL.peer };
+  T.qMatch = { k: 'peer', t: ['Lo de hoy', 'Hay que hablar del partido', 'Así no'],
+    x: ['Hoy hemos jugado fatal y nadie lo dice. Empiezo yo. ¿Lo hablamos o lo enterramos?',
+      'Contra {rival} no ha salido nada. Ni saque, ni defensa, ni ganas. ¿Qué nos pasa?',
+      'Me voy a casa con mal cuerpo. No por perder: por cómo hemos perdido.',
+      'Llevo toda la noche pensando en el partido. Necesito que lo hablemos antes del próximo.'],
+    xh: ['Hoy hemos jugado fatal y en el vestuario todo el mundo mirando el móvil. ¿Lo hablamos o lo enterramos?',
+      'Contra {rival} no ha salido nada. Ni saque, ni bloqueo, ni ganas. Esto no es un equipo, es un grupo de gente.',
+      'Me voy a casa con mal cuerpo. No por perder: por cómo hemos perdido.',
+      'Quien diga que hoy hemos dado el máximo, miente. Y lo sabemos.',
+      'Hay gente que se ha rendido en el tercer set. No digo nombres, pero no digo nombres.'],
+    o: [op(['Reunión del equipo', 'Hablarlo todo', 'Cartas sobre la mesa'], { chem: 4, mood: -2 }, 'Reunión tras la derrota'), op(['Pasar página', 'Mirar adelante', 'Olvidarlo'], { mood: 2 }, 'Pasaste página')], c: CL.peer };
+  T.qRef = { k: 'peer', t: ['El árbitro', 'Nos han robado', 'Esa bola era dentro'],
+    x: ['Esa bola del final era dentro. DENTRO. La he visto en la repetición tres veces. ¿Qué tiene en los ojos el árbitro?',
+      'El primer árbitro ha pitado dobles a todo lo que tocábamos. A {rival}, nada. Curioso.',
+      'Si el juez de línea de hoy vuelve a pitarnos, le regalo unas gafas.',
+      'Hemos perdido contra {rival} y contra el árbitro. Dos rivales son muchos.'],
+    xh: ['Esa bola del final era dentro. DENTRO. La he visto en la repetición tres veces. ¿Qué tiene en los ojos el árbitro?',
+      'Nos ha pitado tres retenciones en un set. Tres. A {rival} le dejaba hacer malabares.',
+      'El segundo árbitro no ha visto la invasión de {rival} ni con la red temblando. Increíble.',
+      'Hemos perdido contra {rival} y contra el árbitro. Dos rivales son muchos.',
+      'Me han sacado tarjeta por preguntar. ¡Por preguntar! Ya no se puede ni hablar.'],
+    o: [op(['Calmar', 'Los árbitros también fallan', 'Mirar lo nuestro'], { coach: 2 }, 'Calmaste lo del árbitro'), op(['Darle la razón', 'Ha sido un robo', 'Desahogarse juntos'], { chem: 3, coach: -1 }, 'Os desahogasteis con el arbitraje')], c: CL.peer };
+  T.qPlan = { k: 'peer', only: 'hall', t: ['El plan de {coach}', '¿Tú lo entiendes?', 'La pizarra'],
+    x: ['No entiendo el plan de {coach}. ¿Tú lo entiendes?'],
+    xh: ['No entiendo por qué {coach} nos pone a recibir a cuatro contra un saque flotante. ¿Tú lo entiendes?',
+      'Otra vez el mismo sistema que no nos funciona. Llevamos tres partidos igual. Alguien tiene que decírselo a {coach}.',
+      '{coach} ha cambiado la rotación a mitad de set sin explicarnos nada. Media pista no sabía dónde ponerse.',
+      'En el tiempo muerto {coach} nos ha dicho «jugad mejor». Gracias, eso no se nos había ocurrido.',
+      'El vídeo táctico de hoy ha durado más que el partido. Y no me he enterado de nada.'],
+    o: [op(['Defender a {coach}', 'Confiar en el plan', 'Hay que creer'], { coach: 2, chem: -2 }, 'Defendiste el plan del cuerpo técnico'), op(['Darle la razón', 'Algo hay que cambiar', 'Hablarlo con {coach}'], { chem: 2, coach: -2 }, 'Cuestionaste el plan')], c: CL.peer };
+  T.qTravel = { k: 'peer', t: ['El viaje', 'Vaya hotel', 'Quejas varias'],
+    x: ['El hotel de la última jornada tenía una cama que parecía una tabla de surf. Y no en el buen sentido.',
+      'Seis horas de furgoneta para jugar dos sets. La próxima vez voy en bici, que llego antes.',
+      'Nos han dado bocadillos de nada para comer. De nada. Pan con pan.',
+      'El aire acondicionado del coche no funcionaba. He llegado al partido como una sopa. Literalmente.'],
+    xh: ['El autobús de la última jornada no tenía calefacción. Hemos llegado al pabellón con los dedos azules.',
+      'El hotel tenía un gimnasio con una bici y una pesa. Una. La de dos kilos.',
+      'Seis horas de autobús para jugar a las nueve de la mañana. ¿Quién hace estos calendarios?',
+      'La cena del hotel: pasta sin sal y una pera. Así no se gana una liga.'] };
 
   // ------------------------------------------------------------------ eco y cadenas (prioridad 4)
   T.cParty = { k: 'agent', t: ['Una foto tuya circula por ahí', 'Tenemos una foto', 'Lo del chiringuito'], th: ['Una foto tuya circula por ahí', 'Tenemos una foto', 'Lo de la cena'],
@@ -436,6 +516,14 @@
     { id: 'agGig', pri: 2, when: function (c, sum, X, s) { return s.rel.ag >= 70; } },
     { id: 'famCall', pri: 2, when: function (c, sum, X, s) { return s.rel.fam <= 30; } },
     { id: 'contract', pri: 2, when: function (c, sum, X) { return !!(c.contract && (c.contract.left | 0) <= 1 && X.kind === 'league' && X.week >= 9); } },
+    // quejas del vestuario (2, con tirada 'st-q' por queja: no salen todas las jornadas)
+    { id: 'qMinutes', pri: 2, only: 'hall', when: function (c, sum, X) { return X.played && !!peerOf(c, X, 'bench') && qRoll(c, X, 'min') < 0.35; }, v: function (c, sum, X) { return { who: peerOf(c, X, 'bench') }; } },
+    { id: 'qMate', pri: 2, when: function (c, sum, X) { return X.real && (X.H ? !!peerOf(c, X, 'x') : !sum.win) && qRoll(c, X, 'mate') < (X.H ? 0.25 : 0.3); }, v: function (c, sum, X) { return { who: peerOf(c, X, 'any'), otro: X.H ? peerOf(c, X, 'x') : '' }; } },
+    { id: 'qTrain', pri: 2, when: function (c, sum, X) { return !X.end && qRoll(c, X, 'train') < ((c.fatigue | 0) >= 50 ? 0.4 : 0.15); }, v: function (c, sum, X) { return { who: peerOf(c, X, 'any') }; } },
+    { id: 'qMatch', pri: 2, when: function (c, sum, X) { return X.real && !sum.win && qRoll(c, X, 'match') < 0.4; }, v: function (c, sum, X) { return { who: peerOf(c, X, 'any') }; } },
+    { id: 'qRef', pri: 2, when: function (c, sum, X) { return X.played && !sum.win && !!sum.sets && sum.sets[0] >= 1 && qRoll(c, X, 'ref') < 0.45; }, v: function (c, sum, X) { return { who: peerOf(c, X, 'any') }; } },
+    { id: 'qPlan', pri: 2, only: 'hall', when: function (c, sum, X) { return X.played && !sum.win && qRoll(c, X, 'plan') < 0.25; }, v: function (c, sum, X) { return { who: peerOf(c, X, 'any') }; } },
+    { id: 'qTravel', pri: 1, when: function (c, sum, X) { return X.played; }, v: function (c, sum, X) { return { who: peerOf(c, X, 'any') }; } },
     // relleno (1): con tirada y como mucho uno por jornada
     { id: 'agCheck', pri: 1, when: function () { return true; } },
     { id: 'famPhoto', pri: 1, when: function () { return true; } },
@@ -510,6 +598,20 @@
     var me = 0; try { var K = S.K(c); me = K && K.playerOvr ? K.playerOvr(c) : 0; } catch (er) { me = 0; }
     return { name: e.name, ovr: e.ovr | 0, form: e.form | 0, me: me | 0, stat: L.stat || '', gap: num(L.gap) ? L.gap : 0 };
   }
+
+  /** Quien se queja (pista: alguien de tu plantilla, c.sq6.list en SOLO LECTURA; playa: tu pareja). want: 'bench' (ls 0: no salió
+   *  de inicio la última vez), 'any' o 'x' (otra persona distinta de la de 'any', para {otro}). Elección por hash, sin gastar azar. */
+  function peerOf(c, X, want) {
+    if (!X.H) return want === 'x' ? '' : (c.mate && c.mate.name) || 'Tu pareja';
+    var q = c.sq6, L = q && Array.isArray(q.list) ? q.list.filter(function (x) { return x && typeof x.name === 'string'; }) : [];
+    if (!L.length) return want === 'any' ? 'Alguien del vestuario' : '';
+    var pool = want === 'bench' ? L.filter(function (x) { return !x.ls; }) : L;
+    if (!pool.length) return '';
+    var i = Math.floor(S.rng(c, 'st-peer', X.season, X.mN, want === 'bench' ? 'b' : 'a')() * pool.length) % pool.length;
+    if (want === 'x') { if (pool.length < 2) return ''; i = (i + 1 + Math.floor(S.rng(c, 'st-peer', X.season, X.mN, 'x')() * (pool.length - 1))) % pool.length; }
+    return pool[i].name;
+  }
+  function qRoll(c, X, k) { return S.rng(c, 'st-q', X.season, X.mN, k)(); }
 
   // ================================================================== publicar
   function modeOk(b, c) { var o = b.only || (T[b.id] && T[b.id].only); return !o || (o === 'hall') === isH(c); }
@@ -665,6 +767,7 @@
     if (k === 'rival') return [l.rival && l.rival.name || 'Tu rival', WHO.rival];
     if (k === 'sponsor') return [l.sponsor && l.sponsor.name || 'Tu patrocinador', WHO.sponsor];
     if (k === 'physio') return ['El fisio', WHO.physio];
+    if (k === 'peer') return [x.vars && x.vars.who || (isH(c) ? 'Alguien del vestuario' : c.mate && c.mate.name || 'Tu pareja'), isH(c) ? WHO.peer : 'Pareja'];
     if (k === 'rumor') return [cs.acc.rumor, WHO.rumor];
     if (k === 'hater') return [cs.acc.hater, WHO.hater];
     if (k === 'fan') return [cs.acc.pena, WHO.fan];

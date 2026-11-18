@@ -33,11 +33,19 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.13.0';
+  VB.VERSION = '1.13.1';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.13.1', d: '2026-11-18', t: 'Quejas del vestuario',
+      items: [
+        'Tu vestuario se queja por mensaje: de jugar poco, de otros compañeros o del entreno.',
+        'También del partido, del árbitro, del plan del entrenador y hasta del hotel.',
+        'Tú decides qué contestas: mediar, animar, dar la razón o no meterte.'
+      ]
+    },
     {
       v: '1.13.0', d: '2026-11-18', t: 'Carrera con vida',
       items: [

@@ -172,7 +172,7 @@ for (const mode of ['beach', 'hall']) {
 
 // ------------------------------------------------------------------ 7. textos
 section('7. Textos de todas las plantillas (todas las variantes) en playa y pista');
-const DEMO = { rival: 'Voley Cádiz', nota: '7,8', n: '4', m: 'Diario La Red', seat: 'Gael Arnedo' };
+const DEMO = { who: 'Alex Prueba', otro: 'Sam Ensayo', rival: 'Voley Cádiz', nota: '7,8', n: '4', m: 'Diario La Red', seat: 'Gael Arnedo' };
 for (const mode of ['beach', 'hall']) {
   const B = H.boot({}), S = B.S, M = S.sys('msgs');
   const c = drive(B, { mode, seasons: 1, seed: 88 });
