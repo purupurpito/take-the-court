@@ -41,11 +41,21 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.15.1';
+  VB.VERSION = '1.16.0';
   VB.VERSION_DATE = '2026-11-19';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.16.0', d: '2026-11-19', t: 'Ambiente de Carrera',
+      items: [
+        'La grada vive el partido: anima, pita al rival, canta y calla en los puntos de set.',
+        'Discusiones con el árbitro: a veces eliges entre Protestar o Dejarlo.',
+        'Tarjetas de reglamento: la amarilla avisa y la roja da punto y saque al rival.',
+        'Pique entre equipos y frases del banquillo, el rival, el árbitro y la megafonía.',
+        'Nuevo ajuste en Ajustes › Juego: Ambiente de Carrera completo, tranquilo o apagado.'
+      ]
+    },
     {
       v: '1.15.1', d: '2026-11-19', t: 'Aviso de versión nueva',
       items: [

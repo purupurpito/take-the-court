@@ -266,7 +266,7 @@ function synthReport(file, writeWav) {
   }
   return rows;
 }
-const LOOPS = ['murmur', 'excite'];
+const LOOPS = ['murmur', 'excite', 'whistleStorm'];
 /** Sounds whose short transients are the sound itself (net cord/tape rattle grains): innerClicks not enforced. */
 const CLICK_GRAINS = ['net', 'netTape'];
 /** Loop seam: jump across the wrap (last→first sample) relative to the typical sample-to-sample step. */
@@ -402,7 +402,10 @@ const PLAN = {
   // sprints 2-4 (T6, S2-B4/B5/B6): new interface sounds
   uiTab: { target: -26, desc: 'tab change / panel open-close (near the click: -28..-24)' },
   uiBeat: { target: -20, desc: 'TV-style intro beat (B, C)' },
-  uiRank: { target: -19, desc: 'table arrow / unlock in the summary (under the -16 stings)' }
+  uiRank: { target: -19, desc: 'table arrow / unlock in the summary (under the -16 stings)' },
+  // ambiente de Carrera (P2, 18-nov-2026): silbidos al saque rival (bucle hasta el golpe), campanita de megafonía
+  ambWhistles: { target: -23, desc: 'whistles at the away server (loop until the serve: above the -26 bed, under the -20 reactions)' },
+  pa: { target: -24, desc: 'PA chime before the speaker (like a menu confirmation)' }
 };
 /** The end-sheet count-up of ui.js (UI-11: 600 ms, cubic ease-out, one rAF per frame) with AUD-08 wired as notes/ui_main.md asks:
  *  ui('count', u) on every frame where a displayed number changes, and on the last frame (u = 1). Returns [[t, u], ...] (s from
@@ -520,7 +523,17 @@ const SCEN = [
   { id: 's234: desbloqueo', cat: 'uiRank', only: ['optSel', 'perfect'], api: A => A.ui('unlock') },
   { id: 's234: medalla de oro (hoja)', cat: 'sting', only: ['setWin'], api: A => A.ui('medal', 3), info: true },
   { id: 's234: medalla de plata (hoja)', cat: 'mvp', only: ['mvpWin'], api: A => A.ui('medal', 2), info: true },
-  { id: 's234: medalla de bronce (hoja)', cat: 'uiLock', only: ['cntLock'], api: A => A.ui('medal', 1), info: true }
+  { id: 's234: medalla de bronce (hoja)', cat: 'uiLock', only: ['cntLock'], api: A => A.ui('medal', 1), info: true },
+  // ambiente de Carrera (P2): eventos amb:* (sin amb:start: calor 0, local = equipo 0)
+  { id: 'ambiente: pitada', cat: 'react', only: ['boo'], ev: [{ type: 'amb:boo', amb: true, target: 'ref', by: 0, k: 0.6, dur: 2.5 }] },
+  { id: 'ambiente: silbidos al saque rival', cat: 'ambWhistles', only: ['whistleStorm'], ev: [{ type: 'amb:whistles', amb: true, team: 1, k: 0.7 }] },
+  { id: 'ambiente: cántico «¡Va-mos!»', cat: 'chant', only: ['chantVamos'], ev: [{ type: 'amb:chant', amb: true, team: 0, kind: 'vamos', k: 0.8, dur: 2.4 }] },
+  { id: 'ambiente: cántico «¡O-é!»', cat: 'chant', only: ['chantOe'], ev: [{ type: 'amb:chant', amb: true, team: 0, kind: 'oe', k: 0.8, dur: 2.4 }] },
+  { id: 'ambiente: cántico «¡De-fen-sa!»', cat: 'chant', only: ['chantDefensa'], ev: [{ type: 'amb:chant', amb: true, team: 0, kind: 'defensa', k: 0.8, dur: 2.4 }] },
+  { id: 'ambiente: palmas 3+2', cat: 'chant', only: ['palmas32'], ev: [{ type: 'amb:chant', amb: true, team: 0, kind: 'palmas', k: 0.8, dur: 2.1 }] },
+  { id: 'ambiente: campanita de megafonía', cat: 'pa', only: ['paChime'], ev: [{ type: 'amb:say', amb: true, who: 'speaker', name: 'Megafonía', team: -1, pid: -1, text: '¡Arriba!', dur: 2, pri: 1 }] },
+  { id: 'ambiente: pitido de tarjeta', cat: 'whistle', only: ['cardWhistle'], ev: [{ type: 'amb:card', amb: true, team: 1, pid: -1, color: 'yellow', reason: 'protesta' }] },
+  { id: 'ambiente: punto del local fuera de casa (grada rival)', cat: 'react', only: ['roar'], ev: [{ type: 'amb:start', amb: true, home: 1, heat: 0.4, fans: [0.15, 0.55] }, { type: 'point', team: 1, reason: 'in', how: 'kill', rallyHits: 4, lastKind: 'spike', highlight: 0.35 }], info: true }
 ];
 function seeded(seed) { let s = seed >>> 0 || 1; return function () { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
 
@@ -532,7 +545,7 @@ async function mixReport(file) {
   root.setTimeout = setTimeout; root.clearTimeout = clearTimeout;
   const vctx = { camera: { position: { x: CAM.x, y: 4, z: -CAM.y } }, state: 'playing', timeScale: 1, settings: {} };
   const realRandom = Math.random;
-  A.init(vctx); A.onGameStart({ demo: false }); A.onState('playing');
+  A.init(vctx); if (A.ambPrep) A.ambPrep(); A.onGameStart({ demo: false }); A.onState('playing');   // (ambiente: sus sonidos también)
   A.unlock();
   for (let i = 0; i < 20000 && (A.ready() < 1); i++) await new Promise(r => setImmediate(r));
   const ctx = mock.started.length ? mock.started[0].src.context : null;
@@ -627,7 +640,7 @@ async function mockEngine(file) {
   root.requestIdleCallback = fn => setImmediate(() => fn({ timeRemaining: () => 50, didTimeout: false }));
   root.setTimeout = setTimeout; root.clearTimeout = clearTimeout;
   const vctx = { camera: { position: { x: CAM.x, y: 4, z: -CAM.y } }, state: 'playing', timeScale: 1, settings: {} };
-  A.init(vctx); A.onGameStart({ demo: false }); A.onState('playing'); A.unlock();
+  A.init(vctx); if (A.ambPrep) A.ambPrep(); A.onGameStart({ demo: false }); A.onState('playing'); A.unlock();
   for (let i = 0; i < 20000 && (A.ready() < 1); i++) await new Promise(r => setImmediate(r));
   const C = mock.started[0].src.context; // the iOS unlock buffer started inside unlock()
   return { A, C, mock, vctx };
@@ -1861,7 +1874,7 @@ async function coldIdentical(file) {
     do { await CDP.sleep(200); r = await page.evalJs('({b:VB.Audio.stats.built,t:VB.Audio.stats.total})'); } while (r.b < r.t && Date.now() - t0 < 20000);
     const builtMs = Date.now() - t0;
     const cmp = await page.evalJs(`(function(){var A=VB.Audio,bad=[],n=0,sr=48000;
-      for(var i=0;i<A.SOUNDS.length;i++){var nm=A.SOUNDS[i];if(nm==='ir')continue;var list=A._bank(nm)||[];var V=A.VARIANTS[nm],ref=[];
+      for(var i=0;i<A.SOUNDS.length;i++){var nm=A.SOUNDS[i];if(nm==='ir'||(A.AMB_SOUNDS&&A.AMB_SOUNDS.indexOf(nm)>=0))continue;var list=A._bank(nm)||[];var V=A.VARIANTS[nm],ref=[];
         for(var v=0;v<V;v++)ref.push(A.synth(nm,v,sr));
         if(list.length!==V){bad.push(nm+':count '+list.length+'/'+V);continue;}
         for(var k=0;k<list.length;k++){var b=list[k],hit=false;

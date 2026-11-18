@@ -149,5 +149,22 @@ console.log('[challenge]');
   ok('campo propio sin zona', MS._zoneOf(5, 0, 1, D) === -1);
 }
 
+console.log('[castigo]');   // Ambiente de Carrera: amb:card + point{penalty} (sin acciones; una falta del sancionado)
+{
+  const MS = VBm.MatchStats, g = { setNo: 1, size: 2, HL: 9, HW: 4.5, serving: 0, points: 15, score: [0, 0] };
+  const P0 = { id: 0, team: 0, num: 1 }, P2 = { id: 2, team: 1, num: 3 };
+  MS.ingest({ type: 'newMatch' }, g);
+  MS.ingest({ type: 'serveReady', team: 0, player: P0 }, g);
+  MS.ingest({ type: 'hit', kind: 'serve', team: 0, player: P0, grade: 'good', quality: 0.6, x: 9, y: 0 }, g);
+  MS.ingest({ type: 'land', x: -9.1, y: 1, inside: false }, g);
+  MS.ingest({ type: 'point', team: 1, how: 'error', reason: 'out', score: [0, 1] }, g);
+  MS.ingest({ type: 'amb:card', amb: true, team: 1, pid: 2, num: 3, who: 'player', color: 'red', reason: 'protesta', score: [0, 1], penalty: true }, g);
+  MS.ingest({ type: 'point', team: 0, how: 'penalty', reason: 'penalty', penalty: true, sideout: true, faultPlayer: P2, score: [1, 1] }, g);
+  const d = MS.data(), M = MS.compute(d, 0);
+  ok('castigo: dos rallies (el punto anterior no se sustituye)', d.rallies.length === 2 && d.rallies[0].w === 1 && d.rallies[1].w === 0 && d.rallies[1].pen === 1);
+  ok('castigo: sanción registrada antes del rally del punto', d.san.length === 1 && d.san[0].i === 1 && d.san[0].lv === 'penalty');
+  ok('castigo: punto para el equipo 0 como falta del rival', M.teams[0].pts === 1 && M.teams[1].T.X.t === 1, JSON.stringify([M.teams[0].pts, M.teams[1].T.X]));
+}
+
 console.log(fails ? '\n' + fails + ' FALLOS (' + oks + ' ok)' : '\nTODO OK (' + oks + ' comprobaciones)');
 process.exit(fails ? 1 : 0);

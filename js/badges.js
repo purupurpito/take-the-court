@@ -156,6 +156,7 @@
         cur.prevKind = 'block'; cur.prevTeam = e.team;
         break;
       case 'point': {
+        if (e.penalty) break;   // punto de castigo (ambiente de Carrera, Sim.penalty): no lo gana nadie jugando (ni «Sangre fría»)
         // punto anulado por challenge: sim vuelve a pitar el punto y ui.js marca el nuevo con _ovr → se descuenta el anterior
         if (e._ovr && cur.lastPt) cur.lastPt.forEach(function (d) { var c = cur.c[d[0]]; c[d[1]] = Math.max(0, (c[d[1]] || 0) - d[2]); });
         var D = [];

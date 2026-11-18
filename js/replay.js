@@ -200,6 +200,7 @@
       } else if (ty === 'hit') { if (RP.rec && RP.ptStep < 0) pushHit(g, e, e.kind || 'hit'); }
       else if (ty === 'block') { if (RP.rec && RP.ptStep < 0) pushHit(g, e, e.result === 'stuff' ? 'stuff' : 'block'); }
       else if (ty === 'point') {
+        if (e.penalty) continue;   // Ambiente de Carrera: el punto de castigo no es una jugada (sin repetición ni mejor jugada)
         if (!RP.rec || RP.ptStep >= 0) continue;
         var s = e.score || g.score;
         meta.team = e.team | 0; meta.how = e.how || ''; meta.move = e.move || ''; meta.highlight = +e.highlight || 0;
@@ -361,6 +362,9 @@
     // en Mejores jugadas). Antes solo esperaba y, en el punto de partido, salía tras el gameOver (la hoja llegaba ~16 s después).
     var Sm = S();
     if (g.review || g.cpuChal || (Sm.canChallenge && (Sm.canChallenge(g, 0) > 0 || Sm.canChallenge(g, 1) > 0))) { RP.autoDone = last.serial; return false; }
+    // Ambiente de Carrera: con protesta, tarjeta o castigo en marcha no hay repetición automática de ese punto (sigue en Mejores jugadas)
+    if (g.amb && (g.holdLock > g.time || (g.lastPoint && g.lastPoint.penalty))) { RP.autoDone = last.serial; return false; }
+    var U = VB.UI; if (U && ((U.ambChoiceRect && U.ambChoiceRect()) || (U.cardRect && U.cardRect()))) { RP.autoDone = last.serial; return false; }
     if (g.time - last.ptT < K.AUTO_AFTER) return false;
     if (RP.step - last.k0 > CAP) return false;
     return true;

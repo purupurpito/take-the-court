@@ -2088,3 +2088,32 @@ humano ha movido la diana.
   sale algo más porque tras la revisión la asistencia regula la carrera y el impulso es más fácil de conseguir, que era el problema).
   El bot que corre SIN la sim nueva juega peor que la base (perfecto-Experto −3,6): la carrera sin salto con dirección no compensa; la
   sim nueva lo devuelve a la base o un poco por encima. **Pendiente de Ferran** aceptar este equilibrio (sobre todo bueno-Difícil).
+
+## Ambiente de Carrera (P3, 18-nov-2026, sim) — contrato en notes/ambiente.md §4.4-4.5
+- **3 puertas de la sim**, todas no-op sin `g.amb` y sin tocar `g.rng`: `createGame({amb:true})` → `g.amb` (nunca con demo, online
+  ni Entrenamiento) y `g.holdLock` (en el literal de g). `Sim.holdFor(g, s, lock)` (solo en `'point'`: `g.timer = max(g.timer, s)`,
+  `g.hold` crece lo mismo; `lock` → `skipHold` devuelve false hasta `g.time + s`). `Sim.canPenalty(g, team?)` (balón muerto, sin
+  revisión, set pendiente, partido acabado ni cambios en marcha; con `team` = sancionado, además el punto no puede cerrar el set).
+  `Sim.penalty(g, team, {card:'red'|'delayR', pid})`: **team = equipo SANCIONADO**, el punto es para `1 - team`; cierra la ventana de
+  challenge (`g.call`, `g.cpuChal`, `g._snap` a null), suma el punto, racha, cambio de saque con rotación (6v6) / sacador (2v2),
+  cambio de campo a los 8 del 3r set y cada 7/5 en playa; emite `whistle{reason:'penalty', team}`, `point{reason:'penalty',
+  how:'penalty', signal:'penalty', penalty:true, card, pid, player:null, faultTeam:team, faultPlayer, rallyHits:0, highlight:0.2,
+  setWon:false, matchWon:false, …}` y `sideout`/`rotation`; pausa nueva (`HOLD.routine` + cambio de campo), `g.holdLock = 0`.
+  `g.lastPoint.penalty = true`. `g.stats.why['Punto de castigo']` y `g.stats.how.penalty`.
+- **js/arbitro.js** (`VB.Arbitro`, puro, sin g.rng: azar `hash01(semilla, nº de decisión, sal)`): disputas por punto (bote a ≤ 0,10 m
+  o mal pitado, tocado, red, antena, invasión, dobles/cuatro, posición, challenge perdido; nunca falta de saque ni saque a la red),
+  protesta automática ANTES de la elección (si salta alguien de tu equipo no se te pregunta), oferta al jugador (≤ 2 por partido,
+  separadas 8 puntos, fuerza ≥ 0,45, sin challenge, solo «Completo»), respuesta del 1r con la escala FIVB 21.3 (una amarilla por
+  equipo; luego roja), retraso (dos protestas del mismo equipo en el mismo punto), `canRed` false si el castigo cerraría el set.
+  **Expulsión y descalificación: nunca** en este sprint (obligan a un cambio que la sim no hace; el acta de emPat la rechazaría):
+  con roja previa de la misma persona, el 1r se queda en calma o verbal. `RATES` calibradas con `tools/arbitrotest.js`.
+- Pruebas: simtest bloque «Castigo» (no-op sin g.amb, holdFor/lock, marcador, saque, rotación 6v6, cambios de campo, sin cerrar set,
+  0 llamadas a g.rng, partido completo con castigos); huella 2v2 idéntica (150 partidas, 1638 puntos, 565616 llamadas).
+  `node tools/arbitrotest.js [partidos=120] [semilla]` (node, ~2,5 min): escala, retraso, disputas, ofertas, determinismo y frecuencias
+  con partidos reales (mitad playa, mitad 6v6, error arbitral de cada competición).
+- Otros consumidores del castigo (P3): rating.js (`point.penalty` sin acciones ni equipo; `VB.Rating.sanction(st, color, txt)` −0,15 /
+  −0,35 que el challenge no deshace), replay.js (ignora `point.penalty`; sin repetición automática con tarjeta/fichas en pantalla o tras
+  un castigo), matchstats.js (`amb:card` → `d.san` y, en 6v6, `d.ac` con `k:'san'`; el castigo = rally propio `pen:1` sin acciones, una
+  falta X del sancionado), acta.js (jugada `sanction` de emPat: warning/penalty/delayWarning/delayPenalty; el rally del castigo no se
+  apunta porque el motor de emPat ya da el punto con la sanción), players.js (sin celebración en el castigo), ui.js (cinta «Punto de
+  castigo» sin pestaña de jugada).

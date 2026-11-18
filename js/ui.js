@@ -453,6 +453,9 @@
     el.menuCol = document.querySelector('#menu .menu-col');
     el.pnCtl = $('pnCtl'); el.pKick = document.querySelector('#pause .sh-k');
     el.stamp = $('stamp'); el.stampIn = el.stamp.firstChild; el.stampT = $('stampT'); el.stampS = $('stampS'); el.sr = $('srLive');
+    el.ambCh = $('ambChoice'); el.ambChS = $('ambChoiceS'); el.ambChR = $('ambChoiceR'); el.ambChBar = $('ambChoiceBar');
+    el.ambCard = $('ambCard'); el.ambCard1 = $('ambCard1'); el.ambCard2 = $('ambCard2');
+    if (el.ambChR) el.ambChR.addEventListener('pointerdown', ambTap);
     el.chal = $('chal'); el.chalK = el.chal ? el.chal.firstChild : null; el.chalKey = $('chalKey'); el.chalN = $('chalN'); el.chalBar = $('chalBar'); el.sbChal = $('sbChal');
     try { subsDom(); } catch (e) { console.error('[VB][ERROR] UI.subsDom: ' + e); }   // banquillo y cambios (6v6)
   }
@@ -702,6 +705,141 @@
   }
 
   // =====================================================================
+  //  AMBIENTE DE CARRERA (P3, notes/ambiente.md): fichas «Protestar / Dejarlo» (amb:choice), rótulo de TV de las tarjetas
+  //  (amb:card), cuadraditos en el marcador, cinta «PUNTO DE CASTIGO» (point.penalty), lector de pantalla (amb:say) y apartado
+  //  «Sanciones» de la hoja final. Solo consume eventos amb:* (los genera VB.Ambiente; main.js los mete en el array del frame).
+  //  Sin amb:* no se ve nada (partido rápido, Entrenamiento, online, demo). Nada en la franja inferior.
+  // =====================================================================
+  var AMB_COL = { yellow: 'Tarjeta amarilla', red: 'Tarjeta roja', expel: 'Expulsión', dq: 'Descalificación', delayY: 'Advertencia por retraso', delayR: 'Castigo por retraso' };
+  var AMB_WHY = { protesta: 'Protesta', conducta: 'Conducta', provocacion: 'Provocación', retraso: 'Retraso' };
+  var amb = { ch: null, chT: 0, chEnd: 0, cardT: 0, cardOut: false, cards: [], lastSay: '', sb: ['', ''], cdEl: [null, null], rectC: null, rectK: null };
+  function ambRed(c) { return c === 'red' || c === 'delayR' || c === 'expel' || c === 'dq'; }
+  function ambTeamName(g, t) {
+    var cr = g && g.career; if (!cr) return t === 0 ? 'Tu equipo' : 'Rival';
+    return (t === 0 ? cr.meName || cr.me : cr.rivalName || cr.rival) || (t === 0 ? 'Tu equipo' : 'Rival');
+  }
+  function ambWho(g, c) {
+    if (c.who === 'team') return ambTeamName(g, c.team);
+    if (c.who === 'coach') return 'Entrenador · ' + ambTeamName(g, c.team);
+    var nm = c.name && !/^(Rival|Compañer[oa]|Equipo|Entrenador)/.test(c.name) ? c.name : '';   // (sin nombre propio: el club)
+    return (c.num ? 'N.º ' + c.num + ' ' : '') + (nm || ambTeamName(g, c.team));
+  }
+  function ambChoiceShow(e) {
+    if (!el.ambCh) return;
+    var o = e.opts || [{ k: 'protest', label: 'Protestar' }, { k: 'drop', label: 'Dejarlo' }], dv = device(), gl = G(), h = '';
+    for (var i = 0; i < o.length && i < 3; i++) {
+      var k = o[i].k === 'protest' ? 'protest' : 'drop', key = dv === 'touch' ? '' : (k === 'protest' ? gl.sw : gl.hit);
+      h += '<button type="button" tabindex="-1" class="amc-b ' + (k === 'protest' ? 'p' : 'd') + '" data-k="' + k + '">' + key + escT(o[i].label || (k === 'protest' ? 'Protestar' : 'Dejarlo')) + '</button>';
+    }
+    el.ambChR.innerHTML = h;
+    el.ambChS.textContent = cpuTxt(e.sub || '¿Protestas la decisión?');
+    el.ambChS.hidden = !!e.sub && e.sub === amb.lastSay;   // (el compañero ya lo dice en su bocadillo: sin repetirlo)
+    amb.ch = { id: e.id, dur: e.dur > 0 ? e.dur : 2.4, def: e.def || 'drop' }; amb.chT = 0; amb.chEnd = 0;
+    el.ambChBar.style.transform = 'scaleX(1)';
+    el.ambCh.className = ''; void el.ambCh.offsetWidth; el.ambCh.className = 'show';
+    srSay((e.sub ? e.sub + '. ' : '') + 'Protestar o dejarlo.');
+    amb.rectC = null;
+  }
+  function ambChoiceHide(pick) {
+    if (!amb.ch) return;
+    if (el.ambCh) el.ambCh.style.visibility = '';
+    if (pick && el.ambChR) {   // la elegida se ilumina 0,3 s; la otra se apaga
+      var b = el.ambChR.children; for (var i = 0; i < b.length; i++) b[i].classList.add(b[i].getAttribute('data-k') === pick ? 'pk' : 'no');
+      amb.chEnd = 0.3;
+    } else { amb.ch = null; if (el.ambCh) el.ambCh.className = ''; }
+    amb.rectC = null;
+  }
+  function ambTap(ev) {
+    var t = ev.target && ev.target.closest ? ev.target.closest('.amc-b') : null;
+    if (!t || !amb.ch || amb.chEnd > 0) return;
+    ev.preventDefault(); ev.stopPropagation();
+    var k = t.getAttribute('data-k');
+    if (ctx.actions && typeof ctx.actions.ambChoose === 'function') { try { ctx.actions.ambChoose(k); } catch (er) { console.error('[VB][ERROR] UI.ambChoose: ' + er); } }
+  }
+  function ambSbTick() {
+    for (var t = 0; t < 2; t++) {
+      var row = $('sbName' + t); if (!row) continue;
+      var h = '', n = 0;
+      for (var i = 0; i < amb.cards.length && n < 4; i++) { var c = amb.cards[i]; if (c.team !== t) continue; h += '<i class="' + (ambRed(c.color) ? 'r' : 'y') + '"></i>'; n++; }
+      if (h === amb.sb[t] && amb.cdEl[t] && amb.cdEl[t].parentNode) continue;
+      amb.sb[t] = h;
+      if (!amb.cdEl[t] || !amb.cdEl[t].parentNode) { amb.cdEl[t] = document.createElement('span'); amb.cdEl[t].className = 'sb-cds'; amb.cdEl[t].setAttribute('aria-hidden', 'true'); row.insertAdjacentElement('afterend', amb.cdEl[t]); }
+      amb.cdEl[t].innerHTML = h;
+    }
+  }
+  function ambCardShow(e, g) {
+    var c = { team: e.team === 1 ? 1 : 0, pid: e.pid == null ? -1 : e.pid, num: e.num | 0, name: e.name || '', who: e.who || 'player', color: AMB_COL[e.color] ? e.color : 'yellow',
+      reason: e.reason || 'protesta', set: e.set || (g ? g.setNo : 1), score: e.score ? [e.score[0] | 0, e.score[1] | 0] : (g ? [g.score[0], g.score[1]] : [0, 0]), penalty: !!e.penalty, penWait: !!e.penalty };
+    if (c.penalty) c.penalty = false;   // (la hoja dice «punto de castigo» solo cuando llega de verdad el punto: ambPenOk; si se pierde, no)
+    amb.cards.push(c);
+    ambSbTick();
+    if (!el.ambCard) return;
+    var t1 = AMB_COL[c.color], t2 = ambWho(g, c) + ' · ' + (AMB_WHY[c.reason] || c.reason);
+    el.ambCard1.textContent = t1; el.ambCard2.textContent = cpuTxt(t2);
+    el.ambCard.className = ''; void el.ambCard.offsetWidth;
+    el.ambCard.className = 'show' + (c.color === 'expel' || c.color === 'dq' ? ' e' : ambRed(c.color) ? ' r' : '') + (c.color === 'delayY' || c.color === 'delayR' ? ' w' : '');
+    amb.cardT = e.dur > 0 ? e.dur : 3; amb.cardOut = false; amb.rectK = null;
+    srSay(t1 + ': ' + t2 + '.' + (c.penWait ? ' Punto para ' + (c.team === 0 ? 'el rival' : 'ti') + '.' : ''));
+  }
+  /** Ha llegado el punto de castigo: la última tarjeta del equipo sancionado que lo esperaba ya lo lleva (hoja, lector). */
+  function ambPenOk(e) {
+    for (var i = amb.cards.length - 1; i >= 0; i--) { var c = amb.cards[i]; if (c.penWait && c.team === e.faultTeam) { c.penWait = false; c.penalty = true; return; } }
+  }
+  function ambEvent(e, g) {
+    if (e.replay || ctx.replay) return;
+    switch (e.type) {
+      case 'amb:choice': if (e.kind == null || e.kind === 'protest') ambChoiceShow(e); break;
+      case 'amb:choiceEnd': if (amb.ch && (e.id == null || e.id === amb.ch.id)) ambChoiceHide(e.by === 'timeout' && !e.pick ? '' : e.pick); break;
+      case 'amb:card': ambCardShow(e, g); break;
+      case 'amb:say': amb.lastSay = e.text || ''; if ((e.pri | 0) >= 1 && e.text) srSay((e.name ? e.name + ': ' : '') + e.text); break;
+      case 'amb:start': amb.cards.length = 0; ambSbTick(); break;
+    }
+  }
+  function ambTick(g, dt) {
+    var live = ctx.state === 'playing' && !ctx.replay && !(ctx.introLeft > 0);
+    if (amb.ch) {
+      // pausa (o la previa): las fichas se OCULTAN pero siguen ahí, como la elección del director (su reloj es g.time, parado en la
+      // pausa); al volver salen otra vez con el tiempo que les quedaba (antes desaparecían y CAMBIAR protestaba sin verlas)
+      var held = ctx.state === 'paused' || (ctx.state === 'playing' && ctx.introLeft > 0);
+      if (!g || ctx.replay || (g.mode !== 'point' && g.mode !== 'over') || (!live && !held)) ambChoiceHide('');
+      else if (held) el.ambCh.style.visibility = 'hidden';
+      else if (amb.chEnd > 0) { amb.chEnd -= dt; if (amb.chEnd <= 0) { amb.ch = null; el.ambCh.className = ''; amb.rectC = null; } }
+      else {
+        el.ambCh.style.visibility = '';
+        amb.chT += dt;
+        var f = Math.max(0, 1 - amb.chT / amb.ch.dur); el.ambChBar.style.transform = 'scaleX(' + (Math.round(f * 100) / 100) + ')';
+        if (amb.chT > amb.ch.dur + 0.8) ambChoiceHide('');   // por si main.js no cierra la elección
+      }
+    }
+    if (amb.cardT > 0) {
+      el.ambCard.style.visibility = ctx.state === 'paused' ? 'hidden' : '';
+      amb.cardT -= dt;
+      if (amb.cardT < 0.3 && !amb.cardOut) { amb.cardOut = true; el.ambCard.classList.add('out'); }
+      if (amb.cardT <= 0 || ctx.replay || ctx.state === 'menu') { amb.cardT = 0; el.ambCard.className = ''; amb.rectK = null; }
+    }
+  }
+  function ambRect(n, on) {
+    if (!on || !n) return null;
+    var q = n.getBoundingClientRect(); if (!q.width) return null;
+    return { left: q.left, top: q.top, right: q.right, bottom: q.bottom, width: q.width, height: q.height, x: q.left, y: q.top };
+  }
+  /** Rectángulo (px CSS) de las fichas de elección visibles, o null (para que AmbienteUI no ponga bocadillos encima). */
+  function ambChoiceRect() { if (!amb.ch) return null; return amb.rectC || (amb.rectC = ambRect(el.ambCh, true)); }
+  /** Rectángulo (px CSS) del rótulo de tarjeta visible, o null. */
+  function cardRect() { if (!(amb.cardT > 0)) return null; return amb.rectK || (amb.rectK = ambRect(el.ambCard, true)); }
+  /** Apartado «Sanciones» de la hoja final (HTML) o ''. */
+  function ambEndHTML(g) {
+    if (!amb.cards.length) return '';
+    var h = '';
+    for (var i = 0; i < amb.cards.length && i < 6; i++) {
+      var c = amb.cards[i];
+      h += '<span class="amb-sn"><i class="sb-cds" aria-hidden="true"><i class="' + (ambRed(c.color) ? 'r' : 'y') + '"></i></i> ' + escT(AMB_COL[c.color]) + ': <b>' + escT(cpuTxt(ambWho(g, c))) + '</b> (' +
+        escT(AMB_WHY[c.reason] || c.reason) + ', ' + (SET_ORD[c.set - 1] || c.set + 'º') + ' set ' + c.score[0] + '-' + c.score[1] + (c.penalty ? ', punto de castigo' : '') + ')</span>';
+    }
+    return '<span class="amb-sh">Sanciones</span>' + h;
+  }
+
+  // =====================================================================
   //  EVENTOS -> estadísticas y banners
   // =====================================================================
   function tally(e) {
@@ -785,10 +923,12 @@
     if (g.subsOn && !g.demo && events.length) subsEvents(g, events);   // banquillo: rótulo de los cambios y avisos de entrar / salir
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
-      if (e.type === 'newMatch') { stats = newStats(); pstats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; unl0 = g.demo ? null : lkUnseen().slice(); }   // (B6: lo del Vestuario sin ver al empezar)
+      if (e.type === 'newMatch') { amb.cards.length = 0; ambChoiceHide(''); stats = newStats(); pstats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null; unl0 = g.demo ? null : lkUnseen().slice(); }   // (B6: lo del Vestuario sin ver al empezar)
       if (!netP) msIngest(e, g);   // Estadística del partido (js/matchstats.js): registro ligero de cada rally (online: netTally)
       if (e.type === 'newSet') lastSpKey = '';
       if (g.demo) continue;
+      if (e.amb) { ambEvent(e, g); continue; }   // Ambiente de Carrera (amb:*): ni estadísticas, ni insignias, ni retos
+      if (e.type === 'point' && e.penalty) ambPenOk(e);   // (punto de castigo que sí llegó: su tarjeta lo dice en la hoja)
       if (ovr && e.type === 'point') { if (netP) { s0 = stats; stats = pstats; untally(); stats = s0; } else untally(); e._ovr = true; }
       if (netP) { s0 = stats; stats = pstats; tally(e); stats = s0; } else tally(e);   // (online: lo presentado no cuenta en la hoja)
       if (VB.Badges && !g.drill) VB.Badges.ingest(e, g); // insignias: cuenta remates, aces, recepciones… del equipo 0 (js/badges.js; los ejercicios no cuentan)
@@ -1561,6 +1701,11 @@
   }
   function presentPoint(e, me, k, g) {
     var spNow = atSP; atSP = false;                          // ¿se jugó con punto de set/partido? (serveReady de esta jugada)
+    if (e.penalty) {                                         // Ambiente: punto de castigo (roja) → la pestaña de jugada (la cinta grande tapaba el marcador justo al subir el punto)
+      lastBig = null; bigGap += 1;
+      showBug(e.team, 'Punto de castigo', me ? 'Roja al rival: punto y saque para ti' : 'Roja a tu equipo: punto y saque del rival', e.sideout ? '⇄ Saque' : '', 2.4);
+      return;
+    }
     if (e.matchWon || e.setWon) { hideBug(false); lastBig = null; bigGap = 9; return; } // lo anuncian 'set' / 'match' (nivel 3)
     var ref = !!REF_REASONS[e.reason] || /^(Saque|Balón) a la red$/.test(e.text || ''), txt = e.text || '';
     var sub = '';
@@ -3090,6 +3235,7 @@
     });
     el.endStats.innerHTML = html;
     var rec = '<span>Jugada más larga: <b>' + stats.longest + ' toques</b></span>';
+    if (career) rec += ambEndHTML(ctx.game);   // Ambiente de Carrera: tarjetas del partido
     // E1: lo que has usado de la maestría (usos), en una línea y solo si hay algo que contar
     var e1l = masteryLine(ctx.game); if (e1l && !watch) rec += '<span class="e1">' + e1l + '</span>';
     // (online, anti-trampas: las huellas de los dos lados no cuadraron al final → el récord lo apunta como «no válido»; aquí se dice por qué)
@@ -3618,6 +3764,13 @@
     function blk(cls, head, body) { h += '<div class="rc-b ' + cls + '" style="--i:' + (i++) + '">' + '<span class="rc-h">' + escT(head || '') + '</span><div class="rc-c">' + body + '</div></div>'; }
     if (M.headline) h += '<p class="rc-hl" style="--i:' + (i++) + '">' + escT(M.headline) + '</p>';
     if (d.reto && re && re.day) blk('rc-day', 'Reto del día', rcDayHTML(re.day));
+    if (cs && amb.cards.length) {   // Ambiente de Carrera: tarjetas del partido (como en el acta)
+      var sh = '';
+      for (var si = 0; si < amb.cards.length && si < 4; si++) { var sc = amb.cards[si];
+        sh += '<span class="rc-l amb-sn"><i class="sb-cds" aria-hidden="true"><i class="' + (ambRed(sc.color) ? 'r' : 'y') + '"></i></i> ' + escT(cpuTxt(ambWho(ctx.game, sc))) + ' · ' +
+          escT(AMB_COL[sc.color]) + ' (' + (SET_ORD[sc.set - 1] || sc.set + 'º') + ' set ' + sc.score[0] + '-' + sc.score[1] + ')</span>'; }
+      blk('rc-san', 'Sanciones', sh);
+    }
     M.blocks.forEach(function (k) {
       switch (k) {
         case 'mvp':
@@ -5166,6 +5319,7 @@
     ctrlMode: { vals: ['both', 'one'], labels: ['A los dos<span class="cv-x"> jugadores</span>', 'Un jugador'], desc: ['Controlar a los dos jugadores', 'Controlar un jugador'] },
     coachTips: { vals: [true, false], labels: ['Sí', 'No'] },
     coachCalls: { vals: [true, false], labels: ['Sí', 'No'] },
+    ambient: { vals: ['full', 'calm', 'off'], labels: ['Completo', 'Tranquilo', 'Apagado'] },   // Ambiente de Carrera (P3; DEFAULTS en main.js)
     // formato del Partido rápido (sprint 3 del 6v6; main.js ctx.settings.format): 2 contra 2 o 6 contra 6 (en el pabellón; el puesto, en Controlar: role6)
     format: { vals: ['2v2', '6v6'], labels: ['2 contra 2', '6 contra 6'] },
     // cámara del 6v6 (camera_input, camera.js; main.js ctx.settings.cam6): detrás de tu jugador (por defecto) o la de televisión. En Ajustes ·
@@ -5244,7 +5398,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'coachCalls', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
+    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -6940,6 +7094,10 @@
     _boot: function () { return { stage: bootStage, ready: Math.round(bootT0), fly: Math.round(bootFly - 760), gymEnd: Math.round(gym.t1 || 0), fonts: fontsReady }; },
     /** Rectángulo (px CSS) del banner visible o null (UI-04; para el encuadre del plano del punto, CAM-18). */
     bannerRect: bannerRect,
+    /** Ambiente de Carrera (P3): zonas ocupadas por las fichas de elección y el rótulo de tarjeta (px CSS) o null; lector de pantalla;
+     *  tarjetas del partido en curso (copia) para la hoja / el recap. */
+    ambChoiceRect: ambChoiceRect, cardRect: cardRect, srSay: function (t) { srSay(String(t == null ? '' : t)); },
+    ambCards: function () { return amb.cards.map(function (c) { return { team: c.team, pid: c.pid, num: c.num, name: c.name, who: c.who, color: c.color, reason: c.reason, set: c.set, score: c.score.slice(), penalty: c.penalty }; }); },
     /** main.js: el jugador recorta la pausa del punto (SIM-03, quedan 0,3 s): lo del punto se funde ya (120 ms). */
     onHoldSkip: function () {
       if (banT > 0 && (banKind === 'point' || banKind === 'set' || banKind === 'court')) fadeBanner(0.12);
@@ -7377,6 +7535,8 @@
       if (!gym.done) gymTick();
       if (bootStage < 2) tryReveal();
       if (ctx.state !== 'menu') hud(g, dt);
+      if (amb.ch || amb.cardT > 0) ambTick(g, dt);
+      if ((ctx.frame & 15) === 3 && (amb.cards.length || amb.sb[0] || amb.sb[1])) ambSbTick();
       subsTick(g, dt);
       sbLiveTick(g);
       rpTick();

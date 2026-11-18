@@ -3161,6 +3161,66 @@ if (ONLY !== 'matrix') {
     if (failures === f0) console.log('Carrera: opts.ref y opts.nums OK');
   }
 
+  // ---- Castigo (Ambiente de Carrera, P3, notes/ambiente.md §4.5): Sim.holdFor / canPenalty / penalty ----
+  {
+    const f0 = failures, info = {};
+    const wrapRng = g => { const r0 = g.rng, w = Object.assign(function () { w.n++; return r0(); }, { get: r0.get, set: r0.set, n: 0 }); g.rng = w; return w; };
+    // avanza (autopilot) hasta el siguiente punto que no cierre set; devuelve los eventos vistos
+    const toPoint = (g, maxS) => { const ev = []; for (let i = 0; i < (maxS || 240) * 120; i++) { S.step(g, DT, null); const k = ev.length; S.drainEvents(g, ev);
+      for (let j = k; j < ev.length; j++) if (ev[j].type === 'point' && !ev[j].setWon && !ev[j].matchWon) return ev; } return null; };
+    const seq = o => { const g = S.createGame(Object.assign({ seed: 777, autopilot: true }, o)), out = [], ev = [];
+      for (let i = 0; i < 240 * 120 && !g.finished; i++) { S.step(g, DT, null); ev.length = 0; S.drainEvents(g, ev); for (const e of ev) if (e.type === 'point') out.push(e.team + e.reason); }
+      return out.join(','); };
+    // (a) amb sin usar las puertas = sim idéntica; sin g.amb las puertas no hacen nada
+    if (seq({ amb: true }) !== seq({})) fail('Castigo: createGame({amb}) sin puertas cambia la sim');
+    { const g = S.createGame({ seed: 5, autopilot: true }); toPoint(g); const h0 = S.stateHash(g), t0 = g.timer;
+      if (g.amb || S.holdFor(g, 3, true) || S.canPenalty(g) || S.penalty(g, 0, { card: 'red' }) || S.stateHash(g) !== h0 || g.timer !== t0) fail('Castigo: sin g.amb las puertas deben ser no-op');
+      if (S.createGame({ amb: true, demo: true }).amb || S.createGame({ amb: true, drill: 'serve' }).amb) fail('Castigo: amb en demo / Entrenamiento'); }
+    // (b) holdFor: alarga, g.hold crece lo mismo, lock bloquea skipHold durante s
+    { const g = S.createGame({ seed: 6, autopilot: true, present: true, amb: true }); toPoint(g); const t0 = g.timer, h0 = g.hold;
+      if (!S.holdFor(g, 3.4, false) || Math.abs(g.timer - Math.max(t0, 3.4)) > 1e-9 || Math.abs((g.hold - g.timer) - (h0 - t0)) > 1e-9) fail('Castigo: holdFor no alarga bien ' + [t0, h0, g.timer, g.hold]);
+      S.holdFor(g, 2.6, true); for (let i = 0; i < 120; i++) S.step(g, DT, null); // 1 s (pasado skipAfter)
+      if (S.skipHold(g)) fail('Castigo: skipHold recorta con la pausa bloqueada');
+      for (let i = 0; i < 2 * 120; i++) S.step(g, DT, null);
+      if (g.mode === 'point' && !S.skipHold(g)) fail('Castigo: skipHold sigue bloqueado tras el lock'); }
+    // (c) el castigo: marcador, saque, rotación del sacador, eventos, ventana de challenge cerrada, 0 llamadas a g.rng
+    { const g = S.createGame({ seed: 7, autopilot: true, present: true, amb: true, ref: { p1: 0.5, p2: 0.5, p3: 0.5, chal: 2 } }); toPoint(g); S.drainEvents(g);
+      const team = g.serving, w = 1 - team, sc = g.score.slice(), si = g.serverIdx[w], R = wrapRng(g);
+      if (!S.canPenalty(g) || !S.canPenalty(g, team)) fail('Castigo: canPenalty false con balón muerto');
+      const pe = S.penalty(g, team, { card: 'red', pid: g.teams[team][0].id }), ev = []; S.drainEvents(g, ev);
+      const ty = ev.map(e => e.type + (e.reason ? ':' + e.reason : '')).join(',');
+      if (!pe || pe.team !== w || !pe.penalty || pe.reason !== 'penalty' || pe.how !== 'penalty' || pe.signal !== 'penalty' || pe.faultTeam !== team ||
+          pe.faultPlayer !== g.teams[team][0] || pe.player !== null || pe.card !== 'red' || pe.rallyHits !== 0 || pe.setWon || pe.matchWon) fail('Castigo: evento point ' + JSON.stringify(pe && { team: pe.team, r: pe.reason }));
+      if (g.score[w] !== sc[w] + 1 || g.score[team] !== sc[team] || g.serving !== w || g.serverIdx[w] !== (si + 1) % 2) fail('Castigo: marcador / saque ' + JSON.stringify([sc, g.score, g.serving]));
+      if (!/^whistle:penalty,point:penalty,sideout/.test(ty)) fail('Castigo: orden de eventos ' + ty);
+      if (g.call || g.cpuChal || S.canChallenge(g, 0) || S.canChallenge(g, 1) || g.mode !== 'point' || !(g.timer > 1)) fail('Castigo: challenge abierto o sin pausa');
+      if (R.n !== 0) fail('Castigo: llamadas a g.rng ' + R.n);
+      info.rng = R.n;
+      // sin cambio de saque: sanciona al que recibe → el sacador sigue
+      const s2 = g.serving, i2 = g.serverIdx[s2]; S.penalty(g, 1 - s2, { card: 'delayR', pid: -1 }); const ev2 = []; S.drainEvents(g, ev2);
+      if (g.serving !== s2 || g.serverIdx[s2] !== i2 || ev2.some(e => e.type === 'sideout') || ev2[1].card !== 'delayR' || ev2[1].faultPlayer !== null) fail('Castigo: sin cambio de saque');
+      // el partido sigue y acaba con normalidad
+      let n = 0; for (let i = 0; i < 3000 * 120 && !g.finished; i++) { S.step(g, DT, null); S.drainEvents(g); n++; if (i % 600 === 0) checkInvariants(g, 'castigo'); }
+      if (!g.finished) fail('Castigo: el partido no acaba tras los castigos'); }
+    // (d) nunca cierra el set: 24-20 y roja al que pierde → no
+    { const g = S.createGame({ seed: 8, autopilot: true, amb: true }); toPoint(g); g.score = [24, 20];
+      if (S.canPenalty(g, 1) || S.penalty(g, 1, { card: 'red' }) || g.score[0] !== 24) fail('Castigo: cierra el set');
+      if (!S.canPenalty(g, 0)) fail('Castigo: 21-24 sí se puede'); g.pendingSet = true; if (S.canPenalty(g)) fail('Castigo: con set pendiente'); g.pendingSet = false;
+      g.review = {}; if (S.canPenalty(g)) fail('Castigo: con revisión'); g.review = null;
+      g.mode = 'serve'; if (S.canPenalty(g) || S.holdFor(g, 3)) fail('Castigo: fuera de la pausa del punto'); }
+    // (e) 6v6: rota el equipo; playa: cambio de campo cada 7; pista: 8 del 3r set
+    { const g = S.createGame({ seed: 9, autopilot: true, amb: true, format: '6v6' }); toPoint(g); S.drainEvents(g);
+      const t = g.serving, w = 1 - t, z1 = g.rot[w][1]; S.penalty(g, t, { card: 'red', pid: -1 }); const ev = []; S.drainEvents(g, ev);
+      if (g.rot[w][0] !== z1 || !ev.some(e => e.type === 'rotation')) fail('Castigo 6v6: no rota'); }
+    { const g = S.createGame({ seed: 10, autopilot: true, amb: true, venue: 'beach' }); toPoint(g); S.drainEvents(g); g.score = [3, 3];
+      S.penalty(g, 1, { card: 'red' }); const ev = []; S.drainEvents(g, ev);
+      if (!ev.some(e => e.type === 'courtChange' && e.why === 'swap') || g.courtSwapAt !== 7) fail('Castigo playa: sin cambio de campo a los 7'); }
+    { const g = S.createGame({ seed: 11, autopilot: true, amb: true }); toPoint(g); S.drainEvents(g); g.setNo = 3; g.score = [7, 5];
+      S.penalty(g, 1, { card: 'red' }); const ev = []; S.drainEvents(g, ev);
+      if (!g.courtSwap3 || !ev.some(e => e.type === 'courtChange' && e.why === 'eight')) fail('Castigo: sin cambio de campo a los 8 del 3r set'); }
+    if (failures === f0) console.log('Castigo (Ambiente de Carrera): no-op sin g.amb, holdFor/lock, marcador, saque, rotación, cambios de campo, sin cerrar set, 0 llamadas a g.rng OK');
+  }
+
   // ---- Colocación en salto (input.jset = COLOCAR en el aire; solo el humano) ----
   {
     const f0 = failures, res = [];

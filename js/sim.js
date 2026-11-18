@@ -392,6 +392,9 @@
       // presentación (SIM-03): g.present = true (main.js, partidos humanos) alarga la pausa de los puntos grandes;
       // hold = duración (s) de la pausa del punto en curso (point.hold), para skipHold
       present: !!opts.present && !dkp, hold: 0,
+      // Ambiente de Carrera (P3, notes/ambiente.md §4.5): amb = opts.amb (solo partidos jugados de Carrera; nunca demo, online ni
+      // Entrenamiento); holdLock = g.time hasta el que skipHold no recorta (tarjeta en pantalla). Sin amb: Sim.holdFor/penalty no hacen nada
+      amb: !!opts.amb && !opts.demo && !opts.online && !dk, holdLock: 0,
       streakTeam: -1, streakN: 0, // racha de puntos seguidos en el set (SIM-01)
       atkHuman: false, atkGrade: '', // quién/cómo fue el último ataque o saque (para 'kill perfecto del humano')
       // remate apuntado (A1-A3): mira libre del humano en el aire en el 3r toque; defensa más justa tras remate perfecto
@@ -2915,11 +2918,71 @@
    *  ni con el partido ya terminado (gameOver emitido). Solo toca g.timer (y, en 'over', renuncia al challenge pendiente). */
   function skipHold(g) {
     if (g.review) return false;
+    if (g.amb && g.holdLock > g.time) return false; // Ambiente: tarjeta o castigo en pantalla (Sim.holdFor con lock)
     if ((g.mode !== 'point' && g.mode !== 'over') || g.finished || !(g.timer > 0)) return false;
     if (g.hold - g.timer < HOLD.skipAfter) return false;
     if (g.timer > HOLD.skipTo) g.timer = HOLD.skipTo;
     if (g.mode === 'over' && g.call) g.call.waived = true; // saltar el final del partido renuncia al challenge pendiente
     return true;
+  }
+  /* ---------- Ambiente de Carrera (P3, notes/ambiente.md §4.5): 3 puertas, todas no-op sin g.amb y sin g.rng ----------
+   * La sim no sabe nada de protestas ni tarjetas: el director (VB.Ambiente, main.js) le pide alargar la pausa del punto
+   * (holdFor) y, con una roja, el punto de castigo (penalty), siempre con balón muerto (g.mode === 'point'). */
+  /** Alarga la pausa del punto en curso a s segundos como mínimo (g.hold crece lo mismo: skipHold sigue midiendo desde el
+   *  principio). lock: skipHold no recorta durante s. Devuelve true si se ha aplicado. */
+  function holdFor(g, s, lock) {
+    if (!g.amb || g.mode !== 'point' || g.finished || !(s > 0)) return false;
+    if (g.timer < s) { g.hold += s - g.timer; g.timer = s; }
+    if (lock) g.holdLock = Math.max(g.holdLock, g.time + s);
+    return true;
+  }
+  /** ¿Se puede pitar un punto de castigo ahora? Balón muerto, sin revisión, sin set por empezar, sin cambios en marcha.
+   *  team (opcional) = equipo sancionado: además, el punto no puede cerrar el set (§1: nunca se cierra un set con un castigo). */
+  function canPenalty(g, team) {
+    if (!g.amb || g.mode !== 'point' || g.review || g.pendingSet || g.finished || g.subWait) return false;
+    if (team === 0 || team === 1) { var w = 1 - team, tgt = setTarget(g); if (g.score[w] + 1 >= tgt && g.score[w] + 1 - g.score[team] >= 2) return false; }
+    return true;
+  }
+  /** Punto de castigo (tarjeta roja / castigo por retraso): team = equipo SANCIONADO, el punto es para 1 - team.
+   *  o = { card: 'red'|'delayR', pid: id del sancionado (-1 entrenador o equipo) }. Cierra la ventana de challenge del punto
+   *  anterior, suma el punto, cambia el saque (rotación en 6v6), racha y cambio de campo (8 del 3r set de pista / cada 7-5 en
+   *  playa); emite whistle{reason:'penalty'} y point{reason:'penalty', penalty:true, ...}; pausa nueva. Devuelve el evento o null. */
+  function penalty(g, team, o) {
+    if ((team !== 0 && team !== 1) || !canPenalty(g, team)) return null;
+    o = o || {};
+    var w = 1 - team, card = o.card === 'delayR' ? 'delayR' : 'red', pid = o.pid == null ? -1 : o.pid, fp = null, i;
+    if (pid >= 0) {
+      for (i = 0; i < g.players.length && !fp; i++) if (g.players[i].id === pid) fp = g.players[i];
+      if (!fp && g.roster) for (var rt = 0; rt < 2 && !fp; rt++) for (i = 0; i < g.roster[rt].length; i++) if (g.roster[rt][i].id === pid) { fp = g.roster[rt][i]; break; }
+    }
+    g.call = null; g._pendCall = null; g.cpuChal = null; g._snap = null; // el punto anterior ya no se puede revisar
+    var text = 'Punto de castigo', sideout = w !== g.serving;
+    g.score[w]++;
+    if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.how = g.stats.how || {}; g.stats.how.penalty = (g.stats.how.penalty || 0) + 1; }
+    emit(g, { type: 'whistle', reason: 'penalty', team: team });
+    var tgt = setTarget(g), a = g.score[0], bb = g.score[1], half = Math.ceil(tgt / 2);
+    var eight = !g.beach && g.setNo === 3 && !g.courtSwap3 && g.score[w] === half && g.score[1 - w] < half;
+    var bswap = g.beach && (a + bb) % (g.setNo === 3 ? BEACH.swap3 : BEACH.swap) === 0;
+    if (g.streakTeam === w) g.streakN++; else { g.streakTeam = w; g.streakN = 1; }
+    var saved = g.setPoint === team;
+    var hold = (g.present ? HOLD.routine : HOLD_LEGACY.routine) + (eight ? (g.present ? HOLD.eight : HOLD_LEGACY.eight) : 0) + (bswap ? BEACH.swapHold : 0);
+    if (g.timer > hold) hold = g.timer;   // (lo que quede de la pausa larga del punto anterior, p. ej. un cambio de campo, no se recorta)
+    g.timer = hold; g.hold = hold; g.holdLock = 0;
+    var ev = emit(g, { type: 'point', team: w, reason: 'penalty', text: text, how: 'penalty', score: [g.score[0], g.score[1]],
+      sideout: sideout, rallyTime: 0, rallyHits: 0, setWon: false, matchWon: false, player: null, lastKind: '', lastShot: '',
+      highlight: 0.2, digs: 0, streak: g.streakN, savedSetPoint: saved, clutch: false, signal: 'penalty', touchedOut: false, landSide: -1,
+      hold: hold, assist: null, tool: false, move: '', faultTeam: team, faultPlayer: fp, penalty: true, card: card, pid: pid });
+    g.lastPoint = { team: w, reason: 'penalty', text: text, how: 'penalty', highlight: 0.2, digs: 0, streak: g.streakN, savedSetPoint: saved, clutch: false,
+      signal: 'penalty', touchedOut: false, landSide: -1, hold: hold, setWon: false, matchWon: false, assist: null, tool: false, move: '', penalty: true };
+    if (sideout) {
+      g.serving = w;
+      if (g.rot) rotate(g, w); else g.serverIdx[w] = (g.serverIdx[w] + 1) % g.teams[w].length;
+      emit(g, { type: 'sideout', team: w });
+      if (g.rot) emit(g, { type: 'rotation', team: w, rot: g.rot[w].map(function (q) { return q.num; }), server: g.rot[w][0] });
+    }
+    if (eight) { g.courtSwap3 = true; courtChange(g, 'eight'); }
+    else if (bswap) { g.courtSwapAt = a + bb; courtChange(g, 'swap'); }
+    return ev;
   }
   /* ---------- Challenge (B2/B3, notes/challenge-fivb.md) ----------
    * 2 por set (g.challenges), solo dentro/fuera de un bote; ventana de CHAL.window s desde el punto y hasta que se saca la
@@ -5177,6 +5240,8 @@
     _inBlockVol: inBlockVol, _serveRisk: serveRisk, _recvFail: recvFail, _refreshPred: refreshPred,
     // presentación del punto (SIM-01/03)
     skipHold: skipHold, highlightOf: highlightOf, clutchOf: clutchOf,
+    // Ambiente de Carrera (P3): no-op sin g.amb
+    holdFor: holdFor, canPenalty: canPenalty, penalty: penalty,
     // ritual del sacador CPU (SIM-04)
     ritualAt: ritualAt,
     // remate apuntado (A2) y challenge (B2)

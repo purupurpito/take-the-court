@@ -960,6 +960,98 @@
     }
   };
 
+  /* ---------- Ambiente de Carrera (P2, 18-nov-2026; notes/ambiente.md §2A) ----------
+   * Pitada, silbidos al saque rival, cánticos con «letra» (formantes de multitud al unísono con la envolvente de sus sílabas),
+   * palmas 3 + 2, campanita de megafonía y el pitido seco de la tarjeta. Solo suenan en partidos de Carrera con ambiente: se
+   * sintetizan DESPUÉS (AMB_LAZY, VB.Audio.ambPrep() al llegar amb:start), así el banco de siempre no tarda ni un ms más.
+   * Ritmo de los cánticos = AMB_RHYTHM de arena.js (la grada da la palmada a la vez que suena). */
+  /** Palmadas de toda una afición a la vez (n palmadas con ±12 ms de dispersión) en cada instante de `times` (s). */
+  function* addUnisonClaps(L, R, times, rng, sr, amp, n) {
+    var ks = clapKernels(sr), len = L.length;
+    for (var h = 0; h < times.length; h++) {
+      for (var c = 0; c < (n || 55); c++) {
+        var k = ks[(rng() * ks.length) | 0], off = times[h] + 0.012 + (rng() + rng() + rng() - 1.5) * 0.012, st = Math.max(0, off * sr) | 0, pan = rng(), a = amp * (0.3 + rng() * 0.7);
+        for (var i = 0; i < k.length && st + i < len; i++) { L[st + i] += k[i] * a * (1 - pan); R[st + i] += k[i] * a * pan; }
+        if ((c & 15) === 15) yield 0;
+      }
+    }
+  }
+  /** Cántico: o = {dur, voices, f1, f2, pitch, syl: [[t0, t1, f1k, f2k], ...] (sílabas con su vocal), claps: [t...], peak}.
+   *  Las voces cantan juntas (envolvente común de sílabas); la vocal de cada sílaba mueve los formantes (sweep). */
+  function* chantPlan(o, rng, sr) {
+    var n = Math.ceil(o.dur * sr), L = new Float32Array(n), R = new Float32Array(n), S = o.syl, i;
+    var vs = function (t, out) { var a = 1, b = 1; for (var k = 0; k < S.length; k++) if (t >= S[k][0] - 0.03) { a = S[k][2]; b = S[k][3]; } out[0] = a; out[1] = b; };
+    var ly = { voices: o.voices, f1: o.f1, f2: o.f2, q: 2.0, syll: 0, depth: 0, pitched: 0.62, pitch: o.pitch, stagger: 0, sweep: vs };
+    for (var v = 0; v < o.voices; v++) yield* crowdVoice(ly, rng, sr, L, R);
+    // un poco de «aire» de multitud bajo las voces (mismas sílabas)
+    yield* crowdVoice({ voices: 1, f1: [300, 600], f2: [1400, 2400], q: 0.6, syll: 0, depth: 0, pitched: 0, pitch: [100, 100] }, rng, sr, L, R);
+    for (var i0 = 0; i0 < n; i0 += 8192) {
+      var i1 = i0 + 8192 < n ? i0 + 8192 : n;
+      for (i = i0; i < i1; i++) {
+        var t = i / sr, e = 0;
+        for (var k = 0; k < S.length; k++) {
+          var a0 = S[k][0], a1 = S[k][1];
+          if (t < a0 || t > a1 + 0.12) continue;
+          var w = t < a0 + 0.035 ? (t - a0) / 0.035 : t <= a1 ? 1 : 1 - (t - a1) / 0.12;
+          if (w > e) e = w;
+        }
+        e = e * e * (3 - 2 * e);
+        L[i] *= e; R[i] *= e;
+      }
+      yield 0;
+    }
+    if (o.claps) yield* addUnisonClaps(L, R, o.claps, rng, sr, o.clapAmp || 0.32, 50);
+    var chs = [L, R];
+    yield* balanceLRG(chs);
+    yield* normalizeG(chs, o.peak || 0.85);
+    return edges(chs, sr, 0.004, 0.08);
+  }
+  var AMBS = {
+    // pitada: «uuuh» grave y largo de toda la grada con silbidos de dedos en la boca
+    boo: function (rng, sr) {
+      return crowdPlan({ dur: 2.6, peak: 0.85, fade: 0.3, layers: [
+        { voices: 16, f1: [270, 380], f2: [560, 820], q: 2.2, syll: 0, depth: 0, pitched: 0.55, pitch: [95, 230], pglide: -0.05, stagger: 0.18,
+          sweep: function (t, o) { var k = Math.min(1, t / 1.8); o[0] = 1 - 0.12 * k; o[1] = 1 - 0.1 * k; } },
+        { voices: 3, f1: [250, 500], f2: [900, 1600], q: 0.7, syll: 0, depth: 0, pitched: 0, pitch: [100, 100] }],
+        env: function (t, o) { o[0] = Math.min(1, t / 0.25) * (t < 1.6 ? 1 : Math.exp(-(t - 1.6) / 0.45)); },
+        extras: function* (L, R, rng, sr) { yield* addFanWhistles(L, R, 7, 0.1, 1.9, rng, sr, 0.2); } }, rng, sr);
+    },
+    // silbidos al saque rival (bucle corto: suena hasta el golpe de saque)
+    whistleStorm: function (rng, sr) {
+      return crowdPlan({ dur: 3, loop: 0.6, peak: 0.75, layers: [
+        { voices: 4, f1: [300, 700], f2: [900, 1900], q: 1.2, syll: 1.5, depth: 0.4, pitched: 0.25, pitch: [110, 260] }],
+        extras: function* (L, R, rng, sr) { yield* addFanWhistles(L, R, 24, 0, 3.3, rng, sr, 0.24); } }, rng, sr);
+    },
+    // «¡Va-mos!» (a → o) y tres palmadas; ciclo de 2,4 s
+    chantVamos: function (rng, sr) {
+      return chantPlan({ dur: 2.4, voices: 14, f1: [700, 820], f2: [1150, 1350], pitch: [140, 330],
+        syl: [[0, 0.3, 1, 1], [0.45, 0.85, 0.68, 0.72]], claps: [1.2, 1.5, 1.8] }, rng, sr);
+    },
+    // «¡O-é, o-ééé!» (o → e); ciclo de 2,4 s
+    chantOe: function (rng, sr) {
+      return chantPlan({ dur: 2.4, voices: 14, f1: [480, 560], f2: [860, 980], pitch: [150, 340],
+        syl: [[0, 0.28, 1, 1], [0.35, 0.78, 0.92, 2.0], [0.9, 1.18, 1, 1], [1.25, 2.05, 0.92, 2.0]] }, rng, sr);
+    },
+    // «¡De-fen-sa!» (e, e, a) y dos palmadas; ciclo de 2,4 s
+    chantDefensa: function (rng, sr) {
+      return chantPlan({ dur: 2.4, voices: 14, f1: [430, 500], f2: [1700, 1950], pitch: [115, 260],
+        syl: [[0, 0.22, 1, 1], [0.3, 0.52, 1, 1], [0.6, 1.0, 1.62, 0.68]], claps: [1.2, 1.5] }, rng, sr);
+    },
+    // palmas 3 + 2 de una afición (un compás de 2,1 s: «pa-pa-pa · pa-pa»)
+    palmas32: function* (rng, sr) {
+      var n = Math.ceil(2.1 * sr), L = new Float32Array(n), R = new Float32Array(n);
+      yield* addUnisonClaps(L, R, [0, 0.3, 0.6, 1.2, 1.5], rng, sr, 0.5, 70);
+      return edges(normalize(balanceLR([L, R]), 0.8), sr, 0.0005, 0.05);
+    },
+    // campanita de megafonía (tres notas que suben) antes de que hable el speaker
+    paChime: function* (rng, sr) {
+      var n = Math.ceil(2.0 * sr), L = new Float32Array(n), R = new Float32Array(n);
+      yield* bell(L, R, sr, 523.25, 0, 0.5, 0.5); yield* bell(L, R, sr, 659.25, 0.2, 0.45, 0.5); yield* bell(L, R, sr, 783.99, 0.4, 0.42, 0.5);
+      dcBlock(L, sr); dcBlock(R, sr);
+      return edges(normalize([L, R], 0.7), sr, 0.002, 0.25);
+    }
+  };
+
   /** Impulso de reverberación de pabellón (~1.8 s), estéreo. */
   function* genIR(rng, sr) {
     var dur = 1.8, n = Math.ceil(dur * sr), L = new Float32Array(n), R = new Float32Array(n), pre = (0.018 * sr) | 0;
@@ -1197,6 +1289,10 @@
   ['murmur', 'excite', 'groan', 'ooh', 'applause', 'palmas'].forEach(function (k) { reg(k, 1, 'low', CROWD[k]); });
   reg('roar', 2, 'low', CROWD.roar);
   reg('introSwell', 1, 'low', CROWD.introSwell);
+  // ambiente de Carrera (P2): fuera de la primera pasada (AMB_LAZY: se encolan con ambPrep)
+  ['boo', 'whistleStorm', 'chantVamos', 'chantOe', 'chantDefensa', 'palmas32'].forEach(function (k) { reg(k, 1, 'low', AMBS[k]); });
+  reg('paChime', 1, 'full', AMBS.paChime);
+  reg('cardWhistle', 1, 'full', function (rng, sr) { return genWhistle(0.16, rng, sr); });
   Object.keys(SCORES).forEach(function (k) { reg(k, 1, 'mid', function (rng, sr) { return musicPlan(SCORES[k], rng, sr); }); });
   reg('ir', 1, 'ctx', genIR);
   /** Orden de generación: primero lo que suena antes (interfaz, silbato, toques), luego grada y música. */
@@ -1229,7 +1325,9 @@
     spikeHero: 2.8, blockHero: 3.3, sub: 0, slamSub: 0, tick: 8.6, slap: 9.8, fist: 10.4,
     handclap: 11.2, chest: 4.9, dribble: 1.4, wipe: -1.6, introSwell: -2.4, introSting: -0.3,
     cntTick: -1.8, cntLock: 0, arwHover: 7.9, optHover: 8.5, stepUp: -3.5, stepDown: -3.4, arwEdge: 3, tglOn: -2.6, tglOff: 0.7, optSel: -0.5, mvpWin: 1.6, mvpLose: 1.8, horn: -1.8,
-    toonPop: 3.4, toonWhack: 2, toonZip: -5.9, boing: 2.6, pamSting: 2.1
+    toonPop: 3.4, toonWhack: 2, toonZip: -5.9, boing: 2.6, pamSting: 2.1,
+    // ambiente de Carrera (P2): reacciones -20 (pitada), palmas/cánticos -22, silbidos al saque -26, campanita -24, tarjeta -16
+    boo: -1.4, whistleStorm: -5.9, chantVamos: -5.5, chantOe: -5.5, chantDefensa: -5.9, palmas32: 1.6, paChime: -6.2, cardWhistle: -0.7
   });
 
 
@@ -1333,10 +1431,24 @@
    * ~160 ms de escritorio: la ovación llega algo más tarde (tolera 2,5 s) o, en un móvil saturado, se pierde ella y
    * no los toques. Con el Worker vivo esta cola casi no trabaja y da igual. */
   var coreLeft = 0, coreWait = Object.create(null), genRally = false, genGap = false; // primera pasada aún sin acabar (sin Worker: la cola corre más, ver schedule)
+  /* Ambiente de Carrera (P2): sus sonidos no van en el banco de siempre; ambPrep() (amb:start o VB.Ambiente.crowdOf ≠ null) los
+   * encola detrás de todo y, si el hilo de síntesis ya se cerró, lo vuelve a abrir. */
+  var AMB_LAZY = { boo: 1, whistleStorm: 1, chantVamos: 1, chantOe: 1, chantDefensa: 1, palmas32: 1, paChime: 1, cardWhistle: 1 }, ambQueued = false;
+  function ambPrep() {
+    if (ambQueued) return false;
+    ambQueued = true;
+    if (!genStarted) return true;                 // queueAll ya los incluirá
+    for (var k in AMB_LAZY) { var c = CATALOG[k]; if (!c) continue; for (var v = 0; v < c.variants; v++) jobs.push({ name: k, v: v, it: null, sr: 0 }); total += c.variants; }
+    stats.total = total; stats.bankDoneAt = -1; stats.synthDoneAt = -1;
+    if (!wk && wkState === -1 && stats.worker === 'on') wkState = 0;   // el Worker se cerró al acabar el banco: otro
+    schedule(0);
+    return true;
+  }
   function queueAll() {
     var seen = Object.create(null), p, v, c;
     for (p = 0; p < CORE.length; p++) if (CATALOG[CORE[p]]) { jobs.push({ name: CORE[p], v: 0, it: null, sr: 0 }); seen[CORE[p]] = 1; coreWait[CORE[p]] = 1; coreLeft++; }
     for (p = 0; p < PRIORITY.length; p++) {
+      if (AMB_LAZY[PRIORITY[p]] && !ambQueued) continue;
       c = CATALOG[PRIORITY[p]];
       for (v = seen[PRIORITY[p]] ? 1 : 0; v < c.variants; v++) jobs.push({ name: PRIORITY[p], v: v, it: null, sr: 0 });
     }
@@ -1715,7 +1827,8 @@
                 setWin: 1.5, setLose: 1.5, matchWin: 2.5, matchLose: 2.5, start: 0.3, click: 0.2,
                 introSting: 0.6, introSwell: 1.2, wipe: 0.1,
                 // AUD-08: confirmaciones de menú (tarde, no valen: 0,15 s), el clac final de la cuenta y la revelación del MVP
-                stepUp: 0.15, stepDown: 0.15, tglOn: 0.15, tglOff: 0.15, optSel: 0.15, arwEdge: 0.15, cntLock: 0.05, mvpWin: 0.4, mvpLose: 0.4, pamSting: 0.15 }; // presentación tarde: sin firma pasado 0,6 s; cortinilla: o en su corte o nada
+                stepUp: 0.15, stepDown: 0.15, tglOn: 0.15, tglOff: 0.15, optSel: 0.15, arwEdge: 0.15, cntLock: 0.05, mvpWin: 0.4, mvpLose: 0.4, pamSting: 0.15,
+                cardWhistle: 0.4, boo: 1.0 }; // ambiente (P2): el pitido de la tarjeta y la pitada, si aún no están, llegan algo tarde o nada // presentación tarde: sin firma pasado 0,6 s; cortinilla: o en su corte o nada
   var deferred = [], urgent = false;
   function deferPlay(name, gain, px, py, rate, send, delay, bus, wh) {
     if (!AC || !genStarted || !Object.prototype.hasOwnProperty.call(DEFER, name)) return false;
@@ -2024,7 +2137,9 @@
    * rival también se aplaude) y "uuuh" de admiración con digs ≥ 2; si el rival salva un punto de set, el lamento es mayor. */
   var CHANT_P = 0.42, chantT0 = 0, chantN = 0, chantUntil = 0, rallyDigs = 0;
   var react = { h: -1, team: -1, layers: 0, chant: 0, t: 0 }; // última reacción (pruebas: VB.Audio._debug().react)
+  var reactK = 1;   // ambiente (P2): escala de la reacción en curso (campo neutral, calor); 1 = como siempre
   function rplay(name, gain, delay, rate) {
+    gain *= reactK;
     if (!(gain > 0.04)) return;
     if (play(name, gain, null, null, (rate || 1) * jit(0.06), 0, delay, 'crowd')) react.layers++;
   }
@@ -2043,7 +2158,17 @@
   }
   function ramp01(h, a, b) { return clamp((h - a) / (b - a), 0, 1); }
   function crowdReact(e, g) {
-    var h = hlOf(e), home = e.team === 0, how = typeof e.how === 'string' ? e.how : '';
+    // ambiente (P2): la grada es la del equipo LOCAL (fuera de casa anima al rival; tu grupito celebra lo tuyo); campo neutral:
+    // las dos aficiones a medias. Sin ambiente: el equipo 0, como siempre
+    var ht = ambHome(), neu = amb.on && amb.home < 0;
+    reactK = amb.on ? (neu ? 0.75 : 1) * (0.9 + 0.25 * amb.heat) : 1;
+    try { crowdReact0(e, g, neu || e.team === ht); } finally { reactK = 1; }
+    if (amb.on && !neu && e.team !== ht && !demo && !e.matchWon) {   // fuera de casa: tu afición (pocos) celebra tu punto
+      var hh = hlOf(e); rplay('roar', 0.2 + 0.3 * hh, 0.15, 1.12); if (hh > 0.6) rplay('applause', 0.22, 0.6, 1.06);
+    }
+  }
+  function crowdReact0(e, g, home) {
+    var h = hlOf(e), how = typeof e.how === 'string' ? e.how : '';
     var error = how ? how === 'error' : e.reason !== 'in';
     var digs = e.digs | 0, streak = e.streak | 0, saved = !!e.savedSetPoint;
     var hold = isFinite(e.hold) && e.hold > 0 ? +e.hold : 1.9;
@@ -2088,7 +2213,7 @@
     rplay('ooh', 0.26, 0.55, 0.96);
   }
   function onChallengeResult(e) {
-    var team = e.team | 0, over = !!e.overturned, home = over ? team === 0 : team !== 0, big = over;
+    var team = e.team | 0, ht = ambHome(), over = !!e.overturned, home = over ? team === ht : team !== ht, big = over;
     rev.on = false; rev.until = 0; rev.res++;
     rev.last = { team: team, overturned: over, home: home, t: now() };
     if (frame.big) return; // el punto corregido cierra el set o el partido: manda su reacción (ovación de set/partido)
@@ -2424,7 +2549,7 @@
   }
   function handleOne(e, g, longWhistle) {
     switch (e.type) {
-      case 'hit': onHit(e, g); break;
+      case 'hit': onHit(e, g); if (e.kind === 'serve') ambServe(true); break;
       case 'block': { // result: 'stuff' (directo) | 'soft' (toque de bloqueo) | 'tool' (block-out)
         var res = e.result || 'stuff', stuff = res === 'stuff';
         if (stuff && e.human) { // bloqueo directo del humano: mismo tratamiento que el remate perfecto
@@ -2435,7 +2560,7 @@
         // muelle del balón que rebota en las manos del bloqueo (sutil; en el directo más grave y más bajo: manda el golpe)
         toon('boing', stuff ? 0.35 : res === 'tool' ? 0.5 : 0.6, evx(e), evy(e), jit(0.05) * (stuff ? 0.85 : res === 'tool' ? 0.95 : 1.06), 0.02);
         if (!demo) {
-          if (stuff && e.team === 0) play('roar', 0.6, null, null, jit(0.06), 0, 0.08, 'crowd');
+          if (stuff && e.team === ambHome()) play('roar', 0.6, null, null, jit(0.06), 0, 0.08, 'crowd');
           else if (stuff || res === 'tool') playGap('ooh', 1, 0.5, null, null, jit(0.06), 0, 0.05, 'crowd');
           exciteBoost = Math.max(exciteBoost, stuff ? 0.4 : 0.2);
         }
@@ -2445,6 +2570,7 @@
         play('whoosh', e.jump ? 0.3 : 0.22, evx(e), evy(e), jit(0.08) * 1.35, 0.05);
         if (e.jump) for (var st2 = 0; st2 < 3; st2++) play('feet', 0.2 + st2 * 0.06, evx(e), evy(e), jit(0.1) * 1.2, 0.05, 0.42 + st2 * 0.24);
         if (!demo) tossHush = 1.2;
+        ambServe(false); // ambiente: los cánticos callan al lanzar (los silbidos y el silencio, en el golpe)
         clapBeat = 99; // la grada deja de dar palmas en cuanto el sacador lanza
         tension = 0;   // y el latido del punto de set/partido para: el gesto resuelve la tensión
         cancelTick();  // un "toc" del reloj ya programado que aún no ha sonado no debe sonar tras el lanzamiento
@@ -2479,12 +2605,15 @@
         playGap('bounce', 0.05, clamp(b * 0.09, 0.08, 0.5), e.x, e.y, jit(0.1) * (1 + Math.max(0, 4 - b) * 0.04), 0.15); break;
       }
       case 'whistle': // el silbato llena el pabellón: mucho envío a la reverb
-        if (e.reason === 'point') whistle(longWhistle ? 'whistleEnd' : 'whistleLong', demo ? 0.35 : 0.55, 0);
+        if (e.reason === 'point' || e.reason === 'penalty') whistle(longWhistle ? 'whistleEnd' : 'whistleLong', demo ? 0.35 : 0.55, 0);   // (ambiente: punto de castigo)
         else { whistle('whistle', demo ? 0.3 : 0.5, 0); if (intro.on) introEnd('whistle'); } // el 1r pitido suelta la presentación
         break;
       case 'point': // un punto corregido por el challenge (mismo frame o < 0,5 s tras el resultado) ya tiene su reacción
         if (!e.setWon && !e.matchWon && (frame.cr || (rev.last && now() - rev.last.t < 0.5))) break;
-        crowdReact(e, g); break;
+        crowdReact(e, g);
+        // ambiente: punto de castigo contra el local = pitada de su afición; se corta lo que quedara del punto anterior
+        if (e.penalty && amb.on && !demo && 1 - (e.team | 0) === ambHome() && amb.home >= 0) play('boo', 0.45 + 0.35 * amb.heat, null, null, 1, 0, 0.25, 'crowd');
+        stormStop(); break;
       case 'challenge': onChallenge(e); break;
       case 'challengeResult': onChallengeResult(e); break;
       case 'courtChange': // cambio de campo (18.2.1 / 18.2.2): silbato corto tras el del punto
@@ -2494,7 +2623,7 @@
       case 'serveReady':
         serveWait = 0; serveTeam = e.team; clapBeat = 0; clapNext = 0; rallyDigs = 0;
         // racha local (AUD-07): las palmas de la grada no se paran, siguen la rejilla del cántico tras la ovación
-        if (e.team === 0 && !demo && chantN > 0 && now() < chantUntil) {
+        if (e.team === ambHome() && !demo && chantN > 0 && now() < chantUntil) {
           var tn = now(); clapBeat = chantN; clapNext = chantT0 + chantN * CHANT_P;
           while (clapNext < tn + 0.03 && clapBeat < 24) { clapNext += CHANT_P; clapBeat++; }
           serveWait = 1;
@@ -2566,6 +2695,99 @@
       // 6v6 «¡Pídela!» (sim evento 'ask'): aceptado, el mismo toque del cambio de jugador, más agudo; «Ahora no», grave y flojo
       case 'ask': if (!demo) play('hover', e.ok ? 0.3 : 0.16, null, null, e.ok ? 1.45 : 0.8, 0); break;
       // 'sideout': ya lo cuentan el silbato y la grada; sin sonido propio
+      default: if (e.amb || e.type.indexOf('amb:') === 0) ambEvent(e, g);
+    }
+  }
+
+  /* ------------------------------------------------------------------
+   * Ambiente de Carrera (P2, notes/ambiente.md §2A y §4.1). Solo hay eventos amb:* (y VB.Ambiente.crowdOf(g) ≠ null) en los
+   * partidos JUGADOS de Carrera con el ambiente encendido: sin ellos amb.on es false y todo suena exactamente como siempre.
+   * amb.home = equipo local (0/1; -1 = campo neutral): la grada «grande» es la suya. heat 0..1 = calor del partido.
+   * ------------------------------------------------------------------ */
+  var amb = { on: false, home: 0, heat: 0, hush: 0, hushOn: false, storm: null, stormG: null, srcs: [], chime: -9 };
+  /** Equipo de la grada local (0 sin ambiente o en campo neutral). */
+  function ambHome() { return amb.on && amb.home === 1 ? 1 : 0; }
+  /** Ritmo de los cánticos: [ciclo (s), sonido]. EL MISMO ciclo que AMB_RHYTHM de arena.js. */
+  var AMB_CHANT = { palmas: [2.1, 'palmas32'], vamos: [2.4, 'chantVamos'], oe: [2.4, 'chantOe'], defensa: [2.4, 'chantDefensa'], nombre: [2.4, 'chantVamos'] };
+  function ambReset() { stormStop(); ambFade(0.05); amb.on = false; amb.home = 0; amb.heat = 0; amb.hush = 0; amb.hushOn = false; }
+  function ambKeep(src) { if (!src || !lastGain) return; for (var k = amb.srcs.length - 1; k >= 0; k--) if (amb.srcs[k].end < now()) amb.srcs.splice(k, 1); if (amb.srcs.length < 12) amb.srcs.push({ src: src, g: lastGain, end: now() + src.buffer.duration / (src.playbackRate.value || 1) + 3 }); }
+  /** Apaga (fundido de ~tc·3 s) los cánticos programados o sonando. */
+  function ambFade(tc) {
+    if (!AC) { amb.srcs.length = 0; return; }
+    var t = AC.currentTime;
+    for (var k = 0; k < amb.srcs.length; k++) { var a = amb.srcs[k]; try { var p = a.g.gain; if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t); else p.cancelScheduledValues(t); p.setTargetAtTime(0, t, tc || 0.08); a.src.stop(t + (tc || 0.08) * 6); } catch (e) { } }
+    amb.srcs.length = 0;
+  }
+  /** Silbidos al saque rival (bucle) hasta el golpe de saque. */
+  function stormStart(k) {
+    if (!live() || evRpl || demo) return;
+    if (!(bank.whistleStorm && bank.whistleStorm.length)) { bumpSoft('whistleStorm'); return; }
+    var gv = clamp(0.35 + 0.55 * k, 0, 1) * LEVEL_LIN.whistleStorm, t = AC.currentTime;
+    try {
+      if (!amb.storm) {
+        var s = AC.createBufferSource(); s.buffer = bank.whistleStorm[0]; s.loop = true; s.playbackRate.value = slowRate;
+        var g = AC.createGain(); g.gain.value = 0; s.connect(g); g.connect(N.crowd); s.start(t + 0.01, Math.random() * 2);
+        amb.storm = s; amb.stormG = g; stats.played.whistleStorm = (stats.played.whistleStorm | 0) + 1;
+      }
+      var p = amb.stormG.gain; p.cancelScheduledValues(t); p.setTargetAtTime(gv, t, 0.25);
+    } catch (e) { }
+  }
+  function stormStop() {
+    if (!amb.storm) return;
+    try { var t = AC.currentTime, p = amb.stormG.gain; p.cancelScheduledValues(t); p.setTargetAtTime(0, t, 0.07); amb.storm.stop(t + 0.5); } catch (e) { }
+    amb.storm = null; amb.stormG = null;
+  }
+  /** Saque: al lanzar callan los cánticos; en el golpe, también los silbidos y el silencio tenso. */
+  function ambServe(hit) { ambFade(0.09); if (hit) { stormStop(); amb.hushOn = false; } }
+  function ambChant(e) {
+    var C = AMB_CHANT[e.kind] || AMB_CHANT.palmas, k = clamp(isFinite(e.k) ? +e.k : 0.8, 0, 1), mine = (e.team | 0) === ambHome() || amb.home < 0;
+    var n = clamp(Math.round((+e.dur || 4) / C[0]), 1, 3), gv = (0.55 + 0.4 * k) * (mine ? 1 : 0.55);
+    ambFade(0.05);
+    for (var i = 0; i < n; i++) {
+      var d = 0.05 + i * C[0];
+      ambKeep(play(C[1], gv, null, null, 1, 0.12, d, 'crowd'));   // sin jitter de velocidad: el ritmo lo comparte la grada de arena.js
+      if (amb.heat > 0.45 && mine) { ambKeep(play('bombo', 0.32 + 0.25 * amb.heat, null, null, 1, 0.25, d, 'crowd')); ambKeep(play('bombo', 0.26 + 0.2 * amb.heat, null, null, 1, 0.25, d + C[0] / 2, 'crowd')); }
+    }
+  }
+  function ambEvent(e, g) {
+    if (e.replay) return;
+    ambPrep();
+    var k = isFinite(e.k) ? clamp(+e.k, 0, 1) : 0.7, ht = ambHome(), t;
+    switch (e.type) {
+      case 'amb:start': amb.on = true; amb.home = e.home === 1 ? 1 : e.home === -1 ? -1 : 0; amb.heat = isFinite(e.heat) ? clamp(+e.heat, 0, 1) : 0.3; break;
+      case 'amb:hush': amb.hush = k; amb.hushOn = true; break;
+      case 'amb:whistles': stormStart(k); break;
+      case 'amb:chant': if (!demo) ambChant(e); break;
+      case 'amb:wave': if (!demo) { rplay('introSwell', 0.5, 0.05); rplay('applause', 0.3, 2.4); } break;
+      case 'amb:boo': if (!demo) play('boo', 0.4 + 0.5 * k, null, null, jit(0.04), 0, 0.05, 'crowd'); break;
+      case 'amb:roar': if (!demo) { rplay('roar', 0.3 + 0.5 * k, 0.05); if (k > 0.6) rplay('bombo', 0.3, 0.25); } break;
+      case 'amb:card': {
+        whistle('cardWhistle', demo ? 0.3 : 0.5, 0);
+        if (demo) break;
+        var red = e.color !== 'yellow' && e.color !== 'delayY', mine2 = (e.team | 0) === ht && amb.home >= 0;
+        rplay('ooh', red ? 0.4 : 0.3, 0.3, 0.92);
+        if (mine2) play('boo', (0.35 + 0.4 * amb.heat) * (red ? 1.15 : 1), null, null, jit(0.04), 0, 0.5, 'crowd');   // a los de casa: pitada al árbitro
+        else { rplay('applause', 0.26 + (red ? 0.1 : 0), 0.55); if (red) rplay('roar', 0.28, 0.5, 1.04); }
+        break;
+      }
+      case 'amb:protest': {
+        if (demo) break;
+        rplay('ooh', 0.16 + 0.14 * k, 0.12, 0.95);
+        if (amb.heat > 0.5 && amb.home >= 0 && (e.team | 0) !== ht) play('boo', 0.22 + 0.3 * amb.heat, null, null, jit(0.04), 0, 0.35, 'crowd');
+        break;
+      }
+      case 'amb:taunt': {
+        if (demo) break;
+        var tt = e.team | 0;
+        if (tt === ht || amb.home < 0) rplay('roar', e.kind === 'shh' ? 0.2 : 0.3, 0.05, 1.03);
+        else if (amb.heat > 0.4 || e.kind === 'shh') play('boo', 0.25 + 0.35 * amb.heat, null, null, jit(0.04), 0, 0.1, 'crowd');
+        break;
+      }
+      case 'amb:say':
+        // megafonía: la campanita antes de hablar (como mucho una cada 6 s)
+        if (e.who === 'speaker' && !demo && (t = now()) - amb.chime > 6) { amb.chime = t; play('paChime', 0.5, null, null, 1, 0.3, 0); }
+        break;
+      case 'amb:handshake': if (!demo) rplay('applause', 0.55, 0.1); break;
     }
   }
 
@@ -2589,7 +2811,7 @@
     /** Variantes que se generan de cada sonido (tests). */
     VARIANTS: (function () { var o = {}; for (var k in CATALOG) o[k] = CATALOG[k].variants; return o; })(),
     /** Sonidos que suenan en bucle (sin rampa en los extremos: el corte es continuo). */
-    LOOPS: ['murmur', 'excite'],
+    LOOPS: ['murmur', 'excite', 'whistleStorm'],
     /** Plan de mezcla: nivel (dB) aplicado a cada sonido del catálogo (ver LEVEL). Solo lectura. */
     LEVELS: LEVEL,
     /** synth(name, variant, ctxSampleRate) -> [Float32Array...]: genera sin WebAudio. */
@@ -2629,6 +2851,14 @@
     introInfo: function () { return { active: intro.on, t: intro.t0 > 0 ? now() - intro.t0 : -1 }; },
     /** OPCIONAL: voces sonando ahora (ranuras ocupadas; los lechos en bucle no cuentan). */
     voices: function () { return AC ? voicesNow() : 0; },
+    /** Ambiente de Carrera (P2): encola la síntesis de sus sonidos (pitada, silbidos, cánticos, palmas 3+2, campanita, tarjeta).
+     *  Lo hace solo al llegar amb:start o con VB.Ambiente.crowdOf(g) ≠ null; llamarlo antes (p. ej. al entrar en la Carrera) adelanta
+     *  el banco. Devuelve true la primera vez. */
+    ambPrep: function () { return ambPrep(); },
+    /** Sonidos que solo se sintetizan con ambPrep (pruebas: el banco de siempre no los lleva). */
+    AMB_SOUNDS: Object.keys(AMB_LAZY),
+    /** Estado continuo del ambiente (pruebas): {on, home, heat, hush, hushOn, storm, chants, queued}. */
+    ambState: function () { return { on: amb.on, home: amb.home, heat: amb.heat, hush: amb.hush, hushOn: amb.hushOn, storm: !!amb.storm, chants: amb.srcs.length, queued: ambQueued }; },
     /** Estado del contexto: 'none' | 'suspended' | 'running' | 'interrupted' | 'closed'. */
     contextState: function () { return AC ? AC.state : 'none'; },
 
@@ -2725,6 +2955,7 @@
       if (demo && intro.on) introEnd('menu');
       serveTeam = -1; tension = 0; clapNext = 0; tickNext = 0; cancelTick(); lowT = 0; rev.on = false; rev.until = 0;
       rotT.ace = rotT.muro = rotT.sp = rotT.mp = -9; rpl.on = false; evRpl = false;
+      ambReset();   // ambiente (P2): lo enciende amb:start (o crowdOf) del partido nuevo
       for (var i = 0; i < 8; i++) { pvx[i] = pvy[i] = 0; scd[i] = 0.5; }
       applyVolumes(false);
     },
@@ -2821,8 +3052,21 @@
       if (intro.on && t > intro.until) introEnd('timeout');
       var ducked = intro.on && t < intro.t0 + INTRO_DUCK, half = intro.on && !ducked && t < intro.t0 + intro.half;
       var bd = ducked ? INTRO_BED : half ? INTRO_HALF : 1, btc = ducked ? 0.3 : half ? 0.6 : t < intro.relUntil ? 0.45 : 0;
-      setParam(N.murG.gain, 'mur', Math.round((0.32 + 0.1 * (1 - excite)) * (tossHush > 0 ? 0.6 : 1) * bd * (rv >= 0 ? REV_MUR + REV_MUR_UP * rv : 1) * LEVEL_LIN.murmur * 400) / 400, rv >= 0 ? 0.35 : btc || (tossHush > 0 ? 0.25 : 0.2));
-      setParam(N.excG.gain, 'exc', Math.round(Math.max(0, excite - 0.12) * 0.75 * bd * LEVEL_LIN.excite * 400) / 400, btc || 0.15);
+      // ambiente (P2): VB.Ambiente.crowdOf(g) (local, calor, silencio tenso) y el silencio tenso de amb:hush hasta el golpe de saque:
+      // el murmullo baja hasta ~-8 dB y el ánimo casi se apaga. Sin ambiente hk = 1 (como siempre).
+      if (g && g.career && !demo && VB.Ambiente && VB.Ambiente.crowdOf) {
+        var cr = null; try { cr = VB.Ambiente.crowdOf(g); } catch (e) { cr = null; }
+        if (cr && cr.on !== false) {
+          if (!amb.on) { amb.on = true; ambPrep(); }
+          if (cr.home === 0 || cr.home === 1 || cr.home === -1) amb.home = cr.home;
+          if (isFinite(cr.heat)) amb.heat = clamp(+cr.heat, 0, 1);
+          amb.hush = Math.max(amb.hushOn ? amb.hush : 0, isFinite(cr.hush) ? clamp(+cr.hush, 0, 1) : 0);
+          if (cr.hush > 0) amb.hushOn = true;
+        }
+      }
+      var hk = amb.on && amb.hushOn && g && g.mode !== 'rally' ? 1 - 0.6 * amb.hush : 1;
+      setParam(N.murG.gain, 'mur', Math.round((0.32 + 0.1 * (1 - excite)) * (tossHush > 0 ? 0.6 : 1) * bd * hk * (rv >= 0 ? REV_MUR + REV_MUR_UP * rv : 1) * LEVEL_LIN.murmur * 400) / 400, rv >= 0 ? 0.35 : btc || (hk < 1 ? 0.5 : tossHush > 0 ? 0.25 : 0.2));
+      setParam(N.excG.gain, 'exc', Math.round(Math.max(0, excite - 0.12) * 0.75 * bd * (hk < 1 ? hk * 0.5 : 1) * LEVEL_LIN.excite * 400) / 400, btc || (hk < 1 ? 0.5 : 0.15));
       var vn = voicesNow(); if (vn > stats.voicesMax) stats.voicesMax = vn;
       setParam(N.crowdTone.frequency, 'bright', Math.round(1500 + excite * 5000), 0.2);
       // saque en punto de partido / de set (antes del lanzamiento): la grada se adelgaza un poco (paso alto 220 / 170 Hz)
@@ -2857,12 +3101,12 @@
       // --- espera del saque local: palmas al unísono con bombo · punto de partido: latido
       if (g.mode === 'serve' && !demo && st === 'playing') {
         serveWait += dt;
-        if (serveTeam === 0 && serveWait > 0.9 && bank.palmas) {
+        if (serveTeam === ambHome() && serveWait > 0.9 && bank.palmas) {
           if (!clapNext || clapNext < t) clapNext = t + 0.05;
           while (clapNext < t + 0.12 && clapBeat < 24) {
             var beat = clapBeat % 4, d = clapNext - t, ramp = Math.min(1, 0.4 + clapBeat * 0.08);
             if (beat !== 3) play('palmas', 0.55 * ramp, null, null, jit(0.04), 0, d, 'crowd');
-            if (beat === 0 || (beat === 2 && (clapBeat >> 2) % 2 === 1)) play('bombo', 0.42 * ramp, null, null, jit(0.02), 0.25, d, 'crowd');
+            if (beat === 0 || (beat === 2 && ((clapBeat >> 2) % 2 === 1 || amb.heat > 0.6))) play('bombo', 0.42 * ramp, null, null, jit(0.02), 0.25, d, 'crowd');   // con calor, bombo en cada compás
             clapNext += 0.42; clapBeat++;
           }
         }

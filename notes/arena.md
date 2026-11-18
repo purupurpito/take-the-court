@@ -1373,3 +1373,28 @@ Fuentes: Reglas Oficiales FIVB, regla 22.2.3 (orden de las señas) y regla 28 / 
 - Remate: la diana parte de `AIM_MOM` (#ffa514; cbColors #ffe14d) en vez de AIM_OR con impulso. `hit.mom`: destello ×(1 + 0,35·mom) (pasa
   por softK) y estela dorada más larga y ancha. `jump` con jv ≥ 1,2: 6 chispas de polvo bajas hacia atrás (arena en la playa).
 - `aimTarget` devuelve 0 con `aim3.kind 'jset'`; el marcador de colocación también con `g.jsetAim`.
+
+## Ambiente de Carrera — paquete 2 (18-nov-2026; diseño en notes/ambiente.md)
+Solo con eventos `amb:*` (partidos JUGADOS de Carrera con ambiente) o `VB.Ambiente.crowdOf(g)` ≠ null; sin ellos todo queda como
+siempre (uniformes a 0 = la grada de siempre bit a bit; la huella 2v2 no se entera: arena no toca la sim).
+- **Grada** (`AMB_GLSL`, en el público 3D, impostores, banderas y gradas de las sedes generadas: mismo `crowdU`): `vbSide()` decide
+  la afición de cada espectador: el bloque local (`aAnim.z` 0) anima a `uSwap` (0 en casa, 1 fuera), el visitante al otro, y de los
+  neutrales una parte `uSplit` (hash propio) se suma a cada uno. `uBoo` (pitada: brazos fuera, antebrazos que se agitan, de pie y la
+  cabeza que niega), `uClap` + `uClapK` (palmas por encima de la cabeza con el pulso común, `chantPulse` con `AMB_RHYTHM`), `uHeat`
+  (más balanceo) y `uHush` (quietos). «Menos movimiento»: pitada y palmas a media amplitud, sin ola. `ambFrame()` mezcla lo que piden
+  los eventos (con su tiempo) y `crowdOf(g)`, suaviza y escribe; en peloteo (`g.mode === 'rally'`) todo a 0 y el golpe de saque corta
+  silbidos, silencio y palmas. Claves de programa `vb-crowd-9`, `vb-flag-4`.
+- **Rótulos**: `teamFor/teamOf`, el «GANA …» del final y el marcador colgado (`scoreFromGame`) con los nombres cortos de `amb:start.short`
+  (o `names`); `amb:led` → vallas; `REASON.penalty` y LED «PUNTO DE CASTIGO» en el `point{penalty}`; `amb:card` → videomarcador
+  «TARJETA AMARILLA · Nº 7 NOMBRE».
+- **1r árbitro**: poses `card`, `cardWr`/`cardWrL` (retraso, seña 25), `calm` (vaivén 13), `plead` (entrenador); vaivén 14 (tarjeta).
+  `refCard(color, team, pid)`: silbato, mira al sancionado (o al banquillo si pid -1), brazo del lado del equipo con la cartulina 1,8 s;
+  expulsión = roja y amarilla juntas en esa mano; descalificación = una en cada mano, los dos brazos arriba. Cartulina = 4 quads de 2
+  triángulos (geometría compartida, MeshBasicMaterial) pegados al hueso del antebrazo de cada mano, ocultos fuera del paso (`step.card`,
+  `cardStep()` en `updateOfficials`); se crean en `finalizeOfficials` (entran en `prewarmList`). `refTalk(level, team, pid)`: 'explain'
+  repite la última seña, 'calm' palmas abajo, 'verbal' llama al capitán (beckon); no pisa una tarjeta. Punto de castigo: silbato y
+  equipo que saca, sin seña de falta, detrás de la tarjeta si aún la enseña (`fitSeq`). `amb:protest` de un jugador: el 1r le mira;
+  del entrenador: `crewReact(team, big, 'protest')` (brazos abiertos) y el 2º le mira. `crewReact(team, big, 'card')`: su banquillo se
+  lamenta. Públicas: `VB.Arena.refCard`, `refTalk`, `ambState()`; `_dbg()` añade `refCard`, `refTalk`, `cardM`, `AMB`.
+- Pruebas: `node tools/refposes.js <dir> cardY,cardR,cardExpel,cardDQ,delayY,delayR,talkCalm,talkVerbal,talkExplain,penalty,coachProtest near,game`;
+  escena viva de P1 `?debug=amb&k=yellow|red|boo|chant|derby` (`&format=6v6`, `&away=1`). `perf.js 844x390 STRICT=1` pasa.
