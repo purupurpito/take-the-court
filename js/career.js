@@ -1290,7 +1290,10 @@
         M.setNo = e.setNo > 0 ? e.setNo | 0 : M.setNo + 1;
         if (M.on && M.sets.indexOf(M.setNo) < 0) M.sets.push(M.setNo);
       } else if (e.type === 'point') {
-        M.undo = { p: [Object.assign({}, M.p[0]), Object.assign({}, M.p[1])], rallies: M.rallies, meR: M.meR };
+        // (y quién tocó qué en el peloteo: un challenge que da la vuelta a un remate «fuera» lo vuelve a pitar como punto en el mismo
+        // paso, y sin esto el remate ya no tenía dueño —last0 = -1— y no contaba; VB.Rating sí lo restaura. 18-nov-2026)
+        M.undo = { p: [Object.assign({}, M.p[0]), Object.assign({}, M.p[1])], rallies: M.rallies, meR: M.meR,
+          tr: [M.last0, M.lastTeam, M.server, M.setter, M.cand, M.blocker, M.prevKind, M.prevTeam] };
         M.rallies++;
         if (M.on) M.meR++;
         if (e.team === 0) {
@@ -1325,7 +1328,10 @@
   /** Deshace el último 'point' contado (punto anulado por challenge): estadísticas, puntos y nota en directo. */
   function unpoint(m) {
     var u = m.undo; m.undo = null;
-    if (u) { m.p[0] = u.p[0]; m.p[1] = u.p[1]; m.rallies = u.rallies; m.meR = u.meR; }
+    if (u) {
+      m.p[0] = u.p[0]; m.p[1] = u.p[1]; m.rallies = u.rallies; m.meR = u.meR;
+      if (u.tr) { m.last0 = u.tr[0]; m.lastTeam = u.tr[1]; m.server = u.tr[2]; m.setter = u.tr[3]; m.cand = u.tr[4]; m.blocker = u.tr[5]; m.prevKind = u.tr[6]; m.prevTeam = u.tr[7]; }
+    }
     if (m.rt) VB.Rating.undo(m.rt);
     if (m.co && m.coU) { VB.Consignas.restore(m.co, m.coU); m.coU = null; }
   }

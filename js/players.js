@@ -2474,16 +2474,21 @@
     if (!g.demo && !g.autopilot && t0 === 0 && p === g.ctrl) return -1;   // el humano decide cuándo: imprevisible
     if (g.lastKind === 'serve' && g.touchTeam === t0) return -1;
     if (g.touchTeam === t0 && g.lastPlayer === p) return -1;
-    var pr = g.prof && g.prof[t0], react = pr ? pr.react : 0.15, beaten = !g.digOk, G = C.G + (b.dip || 0), sd = side(t0);
+    // (reacción efectiva del modelo de esfuerzo, como ai.js: sin Líder ni finta)
+    var pr = p.prof || (g.prof && g.prof[t0]), react = pr && VB.Sim.aiReactEff ? VB.Sim.aiReactEff(g, p, pr.react) : 0.15, G = C.G + (b.dip || 0), sd = side(t0);
+    var E = VB.EFFORT, dR = C.REACH + (VB.Sim.diveROf ? VB.Sim.diveROf(g, p) : C.DIVE); // (la plancha de la IA según su Velocidad)
     for (var t = 0; t <= 0.2; t += 1 / 120) {
       var z = b.z + b.vz * t - 0.5 * G * t * t;
       if (z < 0.08) return -1;
-      if (b.vz - G * t >= 0 || g.time + t - g.lastTouchT <= react) continue;
+      var since = g.time + t - g.lastTouchT, vz = b.vz - G * t;
+      if (vz >= 0 || since <= (E ? Math.min(react, E.missReact) : react)) continue;
       var x = b.x + b.vx * t, y = b.y + b.vy * t, dx = x - p.x - p.vx * t, dy = y - p.y - p.vy * t, d = Math.sqrt(dx * dx + dy * dy);
       if (x * sd <= 0.2 || z > 1.3) continue;
       if (d <= C.REACH) return -1;                                   // la alcanza de pie: toque normal
-      if (d > C.REACH + C.DIVE) continue;
-      if (beaten ? (z < 0.55 && p.aiDv < 0.75) : z < 0.95) { PDB.x = x; PDB.y = y; PDB.z = z; return t; }
+      // plancha (z < 0,95, tras su reacción) o, si no llega ni en plancha por poco, plancha fallida (EFFORT: missR, missZ, missReact,
+      // missIn; sim.js canDiveMiss y ai.js: también antes de acabar la reacción, y solo si el balón bota dentro)
+      var tl = (vz + Math.sqrt(vz * vz + 2 * G * z)) / G;
+      if (d <= dR ? z < 0.95 && since > react : (E && d <= dR + VB.Sim.missROf(g) && z <= E.missZ && Math.abs(x + b.vx * tl) <= g.HL + E.missIn && Math.abs(y + b.vy * tl) <= g.HW + E.missIn)) { PDB.x = x; PDB.y = y; PDB.z = z; return t; }
     }
     return -1;
   }

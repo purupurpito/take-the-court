@@ -28,8 +28,11 @@
 'use strict';
 const CDP = require('./cdp.js');
 const [SECS = '240', SEEDS = '7,99', MAPS = 'hall,beach', DIFF = 'hard'] = process.argv.slice(2);
-// huella neutra (S3): la de players.js antes de T17 (sprint 234, 15-nov-2026), partidos a 11, semillas 7 y 99, pabellón, 'hard'
-const NEUTRAL_FP = 'a0837b709e6d3e5b';
+// huella neutra (S3): la de players.js antes de T17 (sprint 234, 15-nov-2026), partidos a 11, semillas 7 y 99, pabellón, 'hard'.
+// Regenerada el 18-nov-2026 con el modelo de esfuerzo de la IA (VB.EFFORT: cambia la sim y la plancha fallida; antes a0837b709e6d3e5b)
+// y otra vez el mismo día con su calibración (antes 1f0995598d782f62), con su revisión (antes 5d840ae097fa9356) y con su afinado
+// (lectura variable, preR; antes 99f20e9aee7b2f44) y con la revisión del afinado (rkHi, preT, humAcc; antes 5f0e0e1ea959bba9)
+const NEUTRAL_FP = 'f4e460a33457818a';
 
 function page(SECS, SEED, DIFF, VENUE, SIG, RIVAL) {
   var ctx = VB.ctx, S = VB.Sim, P = VB.Players, orig = P.__orig || P.update; P.__orig = orig;
@@ -216,7 +219,7 @@ function s3Page(SEED, DIFF, MODE) {
   const pg = await CDP.open({ size: '640x360' });
   let bad = 0;
   const fail = (m) => { bad++; console.log('  FALLO ' + m); };
-  const tot = { cel: {}, idle: {}, side: 0, celRep: 0 };
+  const tot = { cel: {}, idle: {}, side: 0, celRep: 0, firma: 0, sigN: 0 };
   const runs = [];
   for (const map of MAPS.split(',')) for (const sd of SEEDS.split(',')) runs.push({ map, sd: +sd });
   let i = 0;
@@ -243,7 +246,7 @@ function s3Page(SEED, DIFF, MODE) {
     if (r.map === 'beach') { if (o.dustBad) fail(`polvo: ${o.dustBad} caídas con más de una llamada a FX.dust (de ${o.lands})`); else console.log(`  ok polvo <= 1 por caída (${o.lands} caídas)`); }
     if (o.idleBad.length) fail('idle fuera de la espera: ' + JSON.stringify(o.idleBad));
     if (o.leaveBad) fail(`leave sin decisión de la IA: ${o.leaveBad} frames (de ${o.leaveN})`); else console.log(`  ok leave ${o.leaveN} frames, siempre con la IA dejándola (IA ${o.lvOnN})`);
-    if (sig && !o.firma) fail('la firma no salió'); else if (sig) console.log(`  ok firma ${o.firma}`);
+    if (sig) { tot.sigN++; tot.firma += o.firma; console.log(`  firma ${o.firma}`); } // (se comprueba en el total: abajo)
     if (riv && !(o.pique + o.rabia)) fail('el rival personal no hizo pique ni rabia'); else if (riv) console.log(`  ok rival: pique ${o.pique} · rabia ${o.rabia}`);
     for (const k in o.cel) tot.cel[k] = (tot.cel[k] || 0) + o.cel[k];
     for (const k in o.idle) { tot.idle[k] = tot.idle[k] || {}; Object.assign(tot.idle[k], o.idle[k]); }
@@ -252,6 +255,9 @@ function s3Page(SEED, DIFF, MODE) {
   const celN = Object.keys(tot.cel).length;
   console.log('[total] celebraciones ' + celN + ' distintas: ' + JSON.stringify(tot.cel));
   if (celN < 14) fail(`solo ${celN} celebraciones distintas (>= 14)`);
+  // firma: en el total de los partidos con setSignature (uno por mapa). Sale al ganar el punto el jugador con un 25 % por hash o en
+  // punto grande: en un partido de 240 s puede no salir (18-nov-2026, modelo de esfuerzo: pabellón semilla 7, 0 de 16 puntos)
+  if (tot.sigN && !tot.firma) fail('la firma no salió'); else if (tot.sigN) console.log(`  ok firma ${tot.firma} en ${tot.sigN} partidos`);
   if (tot.celRep) fail(`${tot.celRep} celebraciones repetidas seguidas`); else console.log('  ok 0 repetidas seguidas');
   if (!tot.side) fail('ninguna plancha lateral'); else console.log(`  ok planchas laterales ${tot.side}`);
   const idleS = Object.keys(tot.idle).map(k => k + ':' + Object.keys(tot.idle[k]).length);
@@ -281,7 +287,8 @@ function s3Page(SEED, DIFF, MODE) {
     if (!napi) fail('S3: faltan setMate / setBoss / setPairChem');
     // ganchos: compañero y jefe (varias semillas: hace falta un cierre ganado por cada lado)
     const won = {}; let mateSig = 0, bossSig = 0, grito = 0, mano = 0, rep = 0;
-    for (const sd of [7, 99, 5, 11]) {
+    for (const sd of [7, 99, 5, 11, 23, 31, 41, 57, 63, 77]) { // (23, 31: 18-nov-2026, con el modelo de esfuerzo tu equipo perdía los cuatro primeros; gana ~47 % de los puntos;
+      // 41-77: el mismo día, con la revisión del afinado perdía las seis primeras)
       if (won[0] && won[1] && sd !== 99 && sd !== 7) break;
       const o = await s3(sd, 'hooks'); if (!o) continue;
       if (o.err) fail('S3 ganchos: ' + o.err);

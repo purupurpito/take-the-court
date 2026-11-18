@@ -48,6 +48,7 @@ function mulberry(seed) {
 const KIN = ['x', 'y', 'z', 'vx', 'vy', 'vz'];
 function kinHash(g, team) { let s = ''; for (const p of g.teams[team]) for (const k of KIN) s += p[k] + ','; return s; }
 const pct = (a, q) => { if (!a.length) return 0; const b = a.slice().sort((x, y) => x - y); return b[Math.min(b.length - 1, Math.floor(b.length * q))]; };
+const pctNR = (a, q) => { if (!a.length) return 0; const b = a.slice().sort((x, y) => x - y); return b[Math.max(0, Math.ceil(b.length * q) - 1)]; }; // (percentil por rango más cercano)
 const r2 = v => Math.round(v * 100) / 100;
 
 /** Un partido. cfg: {rtt, jit, loss, seed, venue, points, bestOf, secs, cut: {at, ms, ai: 'host'|'guest'}, hidden} */
@@ -239,7 +240,9 @@ function summary(R) {
     jumpP99cm: [r2(pct(st.jumpP[0], 0.99) * 100), r2(pct(st.jumpP[1], 0.99) * 100)], jumpPmaxcm: [r2(pct(st.jumpP[0], 1) * 100), r2(pct(st.jumpP[1], 1) * 100)],
     jumpB99cm: [r2(pct(st.jumpB[0], 0.99) * 100), r2(pct(st.jumpB[1], 0.99) * 100)],
     warpP95: [r2(pct(sA.warpL.filter(FREEW).map(w => w.sp), 0.95)), r2(pct(sB.warpL.filter(FREEW).map(w => w.sp), 0.95))],
-    warpP95Both: r2(pct(sA.warpL.filter(FREEW).concat(sB.warpL.filter(FREEW)).map(w => w.sp), 0.95)),   // (umbral: las dos máquinas juntas, ~24 muestras; con ~12 por lado la p95 era la peor)
+    warpP95Both: r2(pctNR(sA.warpL.filter(FREEW).concat(sB.warpL.filter(FREEW)).map(w => w.sp), 0.95)),   // (umbral: las dos máquinas juntas, ~24 muestras; con ~12 por lado la p95 era la peor)
+    // (18-nov-2026: p95 por rango más cercano, pctNR: con pct, floor(n·0,95) es el índice del MÁXIMO para n <= 20; con rallies algo más
+    //  largos —defensa de la IA, VB.EFFORT— el escenario 3 bajó a 20 muestras y un solo balón libre de 23 tics, 1,9, decidía la puerta)
     warpAllP95: [r2(pct(sA.warpL.map(w => w.sp), 0.95)), r2(pct(sB.warpL.map(w => w.sp), 0.95))],
     warpBy: (() => { const o = {}; for (const w of sA.warpL.concat(sB.warpL)) { const k = w.k + '/' + w.sh; (o[k] || (o[k] = [])).push(w.sp); } for (const k in o) o[k] = [o[k].length, r2(pct(o[k], 0.95))]; return o; })(),
     kbps: [r2(R.traf[0].bytes / 1024 / R.secs), r2(R.traf[1].bytes / 1024 / R.secs)], inKbps: [r2(R.traf[0].inB / 1024 / R.secs), r2(R.traf[1].inB / 1024 / R.secs)],

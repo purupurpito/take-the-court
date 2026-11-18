@@ -58,13 +58,16 @@ function mkBench(t, seed, strongServe) {
 // (1) Sin banquillo: idéntico a la referencia (6 min de juego por partida). Referencia rehecha el 17-nov-2026: los ajustes de juego de la
 // 1.5.2 (remates de la CPU en 6v6, plancha), la 1.5.7 (moverse en el saque) y los ajustes del 17-nov por la tarde (pase más cerca de la
 // red, bloqueo ofensivo, estirón en defensa) cambian los partidos 6v6, a petición de Ferran; la del
-// 13-nov era la del código previo al banquillo
+// 13-nov era la del código previo al banquillo. Rehecha otra vez el 18-nov-2026: modelo de esfuerzo de la IA (VB.EFFORT, sin el dado
+// previo de la defensa), su calibración (antes 37/26199, 30/28617, 19/29716, 29/20540) y su revisión (antes 38/22381, 33/23779,
+// 26/22480, 28/20322), su afinado del mismo día (lectura variable, reactSd; antes 34/24260, 34/25358, 28/22835, 26/20341) y la revisión
+// del afinado (cola lenta recortada, preR con gesto, humAcc; antes 29/26497, 32/24527, 24/23528, 27/20061)
 {
   const REF = [
-    { o: { format: '6v6', demo: true, seed: 900, stats: true }, pts: 37, rng: 26199, h: 3788557739 },
-    { o: { format: '6v6', demo: true, seed: 901 }, pts: 30, rng: 28617, h: 719594562 },
-    { o: { format: '6v6', autopilot: true, seed: 902, ctrl: 'one', ctrlRole: 'OH', present: true }, pts: 19, rng: 29716, h: 584024558 },
-    { o: { format: '6v6', seed: 903, ctrl: 'one', ctrlRole: 'MB', difficulty: 'hard' }, pts: 29, rng: 20540, h: 3108207203 }
+    { o: { format: '6v6', demo: true, seed: 900, stats: true }, pts: 28, rng: 27187, h: 146958180 },
+    { o: { format: '6v6', demo: true, seed: 901 }, pts: 34, rng: 24295, h: 1023722745 },
+    { o: { format: '6v6', autopilot: true, seed: 902, ctrl: 'one', ctrlRole: 'OH', present: true }, pts: 27, rng: 23142, h: 2859451673 },
+    { o: { format: '6v6', seed: 903, ctrl: 'one', ctrlRole: 'MB', difficulty: 'hard' }, pts: 29, rng: 18288, h: 2061126720 }
   ];
   const got = [], mal = [];
   let subs = 0, on = 0;

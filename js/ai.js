@@ -88,9 +88,15 @@
       px += p.jvx * tl; py += p.jvy * tl; tl += 0.08; // amortigua la caída
     }
     if (p.down > 0) tl = Math.max(tl, p.down + 0.05);
-    var d = Math.max(0, Math.hypot(px - x, py - y) - 0.45);
-    // con Velocidad < 50 (p.ak.accT > 0) arranca desde parado: pierde accT/2 s respecto a la carrera instantánea
-    return tl + d / (C.SPEED * (p.prof || g.prof[p.team]).speed) + (p.ak && p.ak.accT > 0 && d > 0 ? p.ak.accT * 0.5 : 0);
+    var d = Math.max(0, Math.hypot(px - x, py - y) - 0.45), vm = C.SPEED * (p.prof || g.prof[p.team]).speed;
+    // IA (EFFORT): arranca desde parado con aceleración constante vm/aT (sim.js stepPlayer): tramo corto sqrt(2·d·aT/vm), largo
+    // d/vm + aT/2. Así digMargin y quién va al balón ven la misma carrera que luego hace
+    if (!S.isHuman(g, p)) {
+      var aT = S.accTOf(g, p);
+      return tl + (aT > 0 && d < vm * aT * 0.5 ? Math.sqrt(2 * d * aT / vm) : d / vm + aT * 0.5);
+    }
+    // humano con Velocidad < 50 (p.ak.accT > 0) arranca desde parado: pierde accT/2 s respecto a la carrera instantánea
+    return tl + d / vm + (p.ak && p.ak.accT > 0 && d > 0 ? p.ak.accT * 0.5 : 0);
   }
   function airLand(g, p) { // s hasta que aterriza (0 en el suelo)
     return (p.z > 0 || p.vz > 0) ? (p.vz + Math.sqrt(p.vz * p.vz + 2 * C.G * Math.max(0, p.z))) / C.G : 0;
@@ -288,7 +294,6 @@
   }
 
   var SHANK_SURPRISE = 0.4; // s que tarda en reaccionar al balón desviado por su compañero
-  var BEAT6 = { react: 0.4, speed: 0.3 }; // 6v6: el defensor «perdido» (dado digOk en contra) lee tarde y va lento (ver aiUpdate)
   var TEAM_GAP = 0.2;       // s mínimos entre el toque de un compañero y el siguiente toque de la IA (salvo balón que se va)
   var DODGE_R = 0.9;        // m: el que acaba de tocar se aparta de la caída de su propio balón (evita dobles de cuerpo)
   /** El jugador que acaba de tocar no puede volver a tocar (dobles): si su balón le va a caer encima (cruce a 1 m de
@@ -357,12 +362,27 @@
     return !!(L && L.on && L.t === g.lastTouchT);
   }
 
+  /** ¿Juega p (IA, no es el que va al balón) un balón que va al suelo a su lado? Solo cuando el elegido (g.jobs, IA) ya no llega ni
+   *  en plancha y p sí (de pie o en plancha), ya ha leído la jugada (react) y el balón baja en su campo. EFFORT (18-nov-2026): antes,
+   *  en 6v6, el compañero que tenía el balón al alcance lo dejaba caer por no ser el elegido (AI6.computeJob elige por pr1 y no cambia
+   *  en las últimas décimas): el «dejan que caiga» de Ferran. Pura (no gasta g.rng). */
+  function rescue(g, p, react, since) {
+    var t = p.team, J = g.jobs[t], b = g.ball;
+    if (!J || J === p || S.isHuman(g, J) || since <= react || b.vz >= 0 || b.z > 1.3 || b.x * side(t) <= 0.2) return false;
+    if (g.touchTeam === t && (g.touches >= 3 || g.lastPlayer === p)) return false;
+    // solo defensa: balón del rival, rebote del bloqueo o desviada del compañero (nunca le roba al atacante su colocación)
+    if (g.touchTeam === t && g.lastKind !== 'block' && g.lastShot !== 'shank' && g.lastShot !== 'body') return false;
+    if (g.lastKind === 'serve' && leaving(g, t)) return false; // (el saque que el equipo deja botar porque se va fuera, E2)
+    if (S.canReach(g, J) || S.canDive(g, J)) return false;
+    return S.canReach(g, p) || (b.z < 0.95 && S.canDive(g, p));
+  }
+
   /** Un paso de IA para el jugador p (mueve, salta, golpea). */
   function update(g, p, dt) {
     if (g.drill && g.drill.cpu === 'block' && p.team === 1) { blockOnly(g, p, dt); return; } // E6 (Remate desde la 6ª)
     var t = p.team, sd = side(t), pr = p.prof || g.prof[t], mx = 0, my = 0, b = g.ball;
     // insignias (Líder del compañero, Sangre fría): reacción y timing efectivos; sin insignias = los del perfil
-    var react = S.aiReact(g, p, pr), timing = S.aiTiming(g, p, pr);
+    var react = S.aiReactEff(g, p, S.aiReact(g, p, pr)), timing = S.aiTiming(g, p, pr); // (reacción efectiva del modelo de esfuerzo, EFFORT)
     // E1 (maestría, solo con g.mastery): la CPU lee tarde la finta del humano (feintRead) y, en Difícil/Experto, antes la dejada a la
     // vista (tipRead). Sin azar: solo mueve el retardo de reacción
     // El que estaba en el aire al llegar la finta (el bloqueador que saltó contra el remate armado) sigue engañado feintRead s DESPUÉS
@@ -371,20 +391,21 @@
       if (g.feintT === g.lastTouchT) {
         if (p.e1T !== g.lastTouchT) { p.e1T = g.lastTouchT; p.e1Until = g.time + (pr.feintRead || 0) + (p.z > 0 ? (p.vz + Math.sqrt(p.vz * p.vz + 2 * C.G * p.z)) / C.G : 0); }
         react = Math.max(react + (pr.feintRead || 0), p.e1Until - g.lastTouchT);
+        if (g.feintFool) react += VB.EFFORT.feintReact; // la finta que engaña (hk, sim.js): lee aún más tarde, pero corre a tope
       } else if (g.lastKind === 'free' && g.lastShot === 'tip') react = Math.max(0, react - (pr.tipRead || 0));
     }
-    // balón que esta IA "no va a sacar" (dado de defensa/recepción en contra): lee tarde y va lenta.
-    // Se ve el fallo (llega tarde, se tira y no llega, o la toca y sale desviada); nunca se queda quieta.
-    // (g.digOk solo es false tras un remate/saque/toque de bloqueo que el dado de defensa/recepción da por perdido)
-    var beaten = !g.digOk && g.jobs[t] === p;
-    // 6v6 (g.rot): con 3 zagueros el «perdido» llegaba casi siempre y la mandaba a la grada (26 % de puntos en «Defensa fuera»,
-    // revisión juego6 M2): lee aún más tarde y va más lenta, así más remates caen sin tocar. En 2v2 (g.rot null), como siempre.
-    var bt6 = beaten && g.rot ? BEAT6 : null;
-    // reacción: tras cada toque, durante pr.react sigue con el objetivo anterior
+    // MODELO DE ESFUERZO (EFFORT, sim.js, 18-nov-2026): ya no hay defensor «perdido» (antes, con el dado g.digOk en contra, leía
+    // tarde y corría al 60 %, 30 % en 6v6). Siempre va a tope de sus stats; si no llega es por su reacción, su arrancada, su
+    // velocidad y su alcance, y si llega, el dado de controlarla se tira en el contacto (sim.js effortFail)
+    // reacción: tras cada toque, durante react (la efectiva, con spikeRead ante un remate) sigue con el objetivo anterior
+    // EFFORT: la lectura de cada balón rival varía (como la reacción del humano): a veces lo lee pronto y llega cómodo, a veces tarde y
+    // no llega aunque corra a tope. Solo con un balón rival por leer (S.preLate: remate, dejada o balón libre, bloqueo, o el que roza su
+    // bloqueo; no el saque ni el juego propio). aiRk se muestrea con aiTe (abajo) en el primer paso del toque; hasta entonces, sin variación
+    if (p.aiTeT === g.lastTouchT && S.preLate(g, p)) react *= p.aiRk || 1;
     var tx, ty, attack, block, since = g.time - g.lastTouchT;
     // recepción/defensa del compañero que sale desviada: sorpresa, tarda en leerla (no la intercepta al vuelo)
     var shankT = (g.lastShot === 'shank' || g.lastShot === 'body') && g.touchTeam === t ? SHANK_SURPRISE : 0;
-    if (since < react + (beaten ? (bt6 ? bt6.react : 0.12) : 0) + shankT) {
+    if (since < react + shankT) {
       if (p.tgTime != null && p.tgTime <= g.lastTouchT && g.lastTouchT - p.tgTime < 0.3) {
         tx = p.tgx; ty = p.tgy; attack = p.tgA; block = p.tgB; // sigue con lo que hacía
       } else { tx = p.x; ty = p.y; attack = block = false; }   // aún no ha leído la jugada
@@ -395,7 +416,7 @@
     }
     if (p.z === 0) {
       var dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy);
-      if (dl > 0.05) { var f = Math.min(1, dl / 0.35) * pr.speed * (beaten ? (bt6 ? bt6.speed : 0.6) : 1); mx = dx / dl * f; my = dy / dl * f; }
+      if (dl > 0.05) { var f = Math.min(1, dl / 0.35) * pr.speed; mx = dx / dl * f; my = dy / dl * f; }
     }
     S._stepPlayer(g, p, dt, mx, my);
     if (g.mode !== 'rally') return;
@@ -404,7 +425,14 @@
       p.aiTeT = g.lastTouchT;
       p.aiTe = clamp(S._gauss(g) * timing, -0.25, 0.25);
       p.aiJt = clamp(S._gauss(g) * timing * 0.8, -0.15, 0.15);
-      p.aiDv = g.rng();
+      // EFFORT (lectura): ×lognormal(reactSd), recortado a ±2σ y como mucho ×rkHi (solo cuenta con el balón rival por leer, ver arriba). Con S.hk (hash del
+      // estado y del jugador), no con g.rng: así la secuencia de g.rng no cambia y el resto del juego (saques, recepción...) sigue igual
+      var EF = VB.EFFORT;
+      if (EF.reactSd > 0) {
+        var hs = 0xEF0 + p.id * 8 + (g.lastKind === 'block' ? 4 : 0); // (el bloqueo no suma g.rally.hits: otra sal para no repetir la del remate)
+        var hz = (S.hk(g, hs) + S.hk(g, hs + 1) + S.hk(g, hs + 2) + S.hk(g, hs + 3) - 2) * 1.732; // ~N(0,1)
+        p.aiRk = Math.min(EF.rkHi, Math.exp(clamp(hz, -2, 2) * EF.reactSd)); // (revisión 2: cola lenta recortada a ×rkHi)
+      } else p.aiRk = 1;
     }
     if (p.z === 0 && p.vz === 0 && p.down <= 0) {
       if (attack && g.pr3.t < 0.47 * (p.ak ? p.ak.jump : 1) + p.aiJt && Math.hypot(g.pr3.x + sd * 0.35 - p.x, g.pr3.y - p.y) < 1) aiJump(g, p);
@@ -415,22 +443,40 @@
         else p.bd = 0;
       }
     }
-    if (g.jobs[t] !== p || p.cool > 0 || since < shankT) return;
+    if ((g.jobs[t] !== p && !rescue(g, p, react, since)) || p.cool > 0 || since < shankT) return;
     // no se ataca el saque rival por encima de la red (regla 13.3.4): en el aire, deja pasar el saque
     if (g.lastKind === 'serve' && p.z > 0.25 && b.z > C.NET_H) return;
     // saque rival que se va fuera: se deja botar (si no, apuntar a las líneas no tenía ningún riesgo)
     if (g.lastKind === 'serve' && g.touchTeam !== t && leaveServe(g, p, pr)) return;
     if (!S.canReach(g, p)) {
       // plancha: el balón se va al suelo fuera del alcance normal
-      if (g.time - g.lastTouchT > react && S.canDive(g, p) && b.vz < 0 && b.z < 0.95) {
+      if (since > react && b.vz < 0 && b.z < 0.95 && S.canDive(g, p)) {
         var wd = S.hitWindow(g, p, _w);
-        if (beaten) { if (b.z < 0.55 && p.aiDv < 0.75) S._diveMiss(g, p); } // se lanza tarde y no llega
-        else if (!wd.reach || b.z < 0.5) S._dive(g, p, null, -wd.t + p.aiTe * 0.5);
+        if (!wd.reach || b.z < 0.5) S._dive(g, p, null, -wd.t + p.aiTe * 0.5);
+      } else if (since > Math.min(react, VB.EFFORT.missReact) && b.vz < 0 && !S.canDive(g, p) && S.canDiveMiss(g, p)) {
+        // EFFORT: no llega ni en plancha, por poco: se tira igual (lo intenta). Es un reflejo (missReact): también si el balón le pasa
+        // al lado antes de acabar su reacción (sin esto, en 6v6 y en la playa, con remates de ~0,4 s, se quedaba quieto mirándolo)
+        S._diveMiss(g, p);
+      }
+      return;
+    }
+    var rx = b.x - p.x, ry = b.y - p.y, hd = Math.hypot(rx, ry);
+    // EFFORT (preR): antes de leer el balón rival (since < react) solo saca de reflejo lo que le llega cerca del cuerpo (preR × su
+    // alcance); lo que pasa más lejos le pilla sin reaccionar: se estira tarde (plancha fallida, el mismo gesto que diveMiss) y cae.
+    // Sin esto el defensor quieto que aún no había leído el remate lo sacaba igual si le pasaba al alcance (6v6: casi todo)
+    var pR = S.preROf(g);
+    // REVISIÓN 2 (18-nov): nunca deja botar sin gesto un balón que le pasa al alcance. Antes el estirón solo salía con el balón por
+    // debajo de missZ + 0,4 m, y en los remates rápidos de 6v6 (~0,3 s de vuelo) casi nunca a tiempo: 15 % de los que caían sin tocar
+    // botaban al alcance de un defensor quieto. Ahora, pasado el reflejo (missReact), si el balón va a botar antes de que acabe de
+    // leerlo y en menos de preT s, se tira (plancha fallida: lo intenta y no llega por su reacción)
+    if (pR > 0 && since < react && hd > pR * S.reachOf(g, p) && S.preLate(g, p)) {
+      if (since > VB.EFFORT.missReact && b.vz < 0 && S.missLands(g)) {
+        var lt = S.landT(g);
+        if (lt < VB.EFFORT.preT && lt < react - since) S._diveMiss(g, p);
       }
       return;
     }
     var w = S.hitWindow(g, p, _w);
-    var rx = b.x - p.x, ry = b.y - p.y, hd = Math.hypot(rx, ry);
     var exiting = (hd > C.REACH - 0.15 && rx * b.vx + ry * b.vy > 0) || (b.z - p.z < 0.3 && b.vz < 0) || (p.z > 0 && p.z < 0.3 && p.vz < 0);
     if (g.touchTeam === t && since < TEAM_GAP && !exiting) return; // el balón aún sale de las manos del compañero
     // C2 (con g.mastery): la colocación del humano va a un sitio de ataque; el compañero no la juega de pie cuando le pasa cerca al salir
@@ -438,11 +484,6 @@
     if (g.mastery && (g.online ? S.humOn(g, t) : t === 0) && g.lastKind === 'set' && g.touches === 2 && g.lastPlayer === g.ctrl && p.z === 0 && g.pr3.t > 0.25 &&
         Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5) return;
     if (!(w.t <= -p.aiTe || exiting || !w.reach)) return;
-    if (beaten) { // llega pero no la controla: toque desviado (casi siempre injugable)
-      if (p.z > 0.25) return;
-      S._hit(g, p, null, (p.aiTe < 0 ? -1 : 1) * (0.16 + g.rng() * 0.08), 'shank', null);
-      return;
-    }
     // ¿qué hace con el balón?
     var shot = '', tgt = null, count = g.touchTeam === t ? g.touches + 1 : 1;
     if (p.z > 0.25 && Math.abs(b.x) < 3.8 && b.z > C.NET_H + 0.1 && count === 2 && p.aiPl === 'jset' && p.aiPlT === g.lastTouchT) {

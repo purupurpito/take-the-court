@@ -195,7 +195,8 @@
    *  que no esté en la lista (la sim puede añadir más) viaja en un objeto al final. Los valores van tal cual (doubles exactos). */
   var M_KEYS = ['touchTeam', 'touches', 'lp', 'lpGrade', 'lastTeam', 'lastKind', 'lastShot', 'lastQ', 'ltAge', 'prevKind', 'netSince', 'bb', 'blockCD',
     'atkServe', 'antennaHit', 'digOk', 'digMargin', 'dw', 'hardIn', 'digTight', 'recvRisk', 'rc', 'blockOff', 'atkTeam', 'atkHow', 'atkHits',
-    'atkHuman', 'atkGrade', 'as', 'atkMove', 'atkEdge', 'feintAge', 'lastTempo', 'chain', 'chainH', 'rally', 'lastLand'];
+    'atkHuman', 'atkGrade', 'as', 'atkMove', 'atkEdge', 'feintAge', 'lastTempo', 'chain', 'chainH', 'rally', 'lastLand',
+    'digK', 'feintFool']; // (digK, feintFool: modelo de esfuerzo de la IA, VB.EFFORT, 18-nov-2026)
   var M_IX = {}; M_KEYS.forEach(function (k, i) { M_IX[k] = i; });
   function encM(m) {
     if (!m || typeof m !== 'object') return m;

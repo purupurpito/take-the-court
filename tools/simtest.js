@@ -828,7 +828,8 @@ function e1Section() {
     res.push(['(c2) la CPU coloca con frecuencia ~ pr.roll (±30 % o ±2,5σ) con el bloqueo arriba; 0 en la demo', near(o.normal) && near(o.expert) && demoRoll === 0, Object.assign({ demo: demoRoll }, o)]);
   }
   // (d) al filo: diana a y = HW − 0,1 frente a y = 2 con la misma calidad: dispersión ×1,25-1,4, más fuera (>= 8 puntos), defensa de la CPU
-  // (digOk) >= 10 % más baja. Y la diana llega a la línea solo con mastery
+  // (g.digK, dificultad del balón para el dado de contacto del modelo de esfuerzo; antes el dado g.digOk) >= 10 % más baja. Y la diana
+  // llega a la línea solo con mastery
   if (want('d')) {
     const shoot = (ty, N) => {
       let sp = 0, out = 0, dig = 0, n = 0;
@@ -839,7 +840,7 @@ function e1Section() {
         for (const q of g.teams[1]) { q.x = -6; q.y = q.idx ? 2 : -2; }
         const tx = -(3.5 + (k % 4)); g.aim3.on = true; g.aim3.kind = 'spike'; g.aim3.x = tx; g.aim3.y = ty;
         S._hit(g, h, null, 0.06, ''); const hv = S.drainEvents(g).find(e => e.type === 'hit'); if (!hv || hv.kind !== 'spike') continue;
-        const ld = S.predictLanding(g, {}); n++; sp += Math.hypot(ld.x - tx, ld.y - ty); if (Math.abs(ld.y) > g.HW + C.IN_TOL || Math.abs(ld.x) > g.HL + C.IN_TOL) out++; if (g.digOk) dig++;
+        const ld = S.predictLanding(g, {}); n++; sp += Math.hypot(ld.x - tx, ld.y - ty); if (Math.abs(ld.y) > g.HW + C.IN_TOL || Math.abs(ld.x) > g.HL + C.IN_TOL) out++; dig += g.digK;
       }
       return { sp: sp / n, out: out / n, dig: dig / n, n };
     };
@@ -849,9 +850,9 @@ function e1Section() {
       g.ctrl = h; h.x = 1.5; h.y = 0.5; h.z = 0.3; h.vz = 2.5; m.x = 6; S.step(g, DT, null); g.aim3.x = -12; g.aim3.y = 9; S.step(g, DT, { move: [-0.6, 0.8], hit: false, jump: false });
       return [+g.aim3.x.toFixed(2), +g.aim3.y.toFixed(2)]; };
     const lOn = lim(true), lOff = lim(false), ap = (() => { const g = S.createGame({ demo: false, seed: 9, mastery: true }); return S.edgeOf(g, -5, 4.45); })();
-    res.push(['(d) al filo: dispersión ×1,25-1,4, >= 8 puntos más fuera, digOk de la CPU >= 10 % más bajo; la diana llega a 0,05 m de la línea solo con mastery',
+    res.push(['(d) al filo: dispersión ×1,25-1,4, >= 8 puntos más fuera, digK de la CPU >= 10 % más bajo; la diana llega a 0,05 m de la línea solo con mastery',
       kSp >= 1.25 && kSp <= 1.4 && E.out >= M.out + 0.08 && E.dig <= M.dig * 0.9 && lOn[1] >= 4.44 && lOff[1] <= 3.9 + 1e-9 && ap > 0.9,
-      { dispersion: +kSp.toFixed(2), fuera: pct(E.out * 1000, 1000) + ' vs ' + pct(M.out * 1000, 1000), digOk: pct(E.dig * 1000, 1000) + ' vs ' + pct(M.dig * 1000, 1000), diana: [lOn, lOff], edgeOf: +ap.toFixed(2) }]);
+      { dispersion: +kSp.toFixed(2), fuera: pct(E.out * 1000, 1000) + ' vs ' + pct(M.out * 1000, 1000), digK: E.dig.toFixed(3) + ' vs ' + M.dig.toFixed(3), diana: [lOn, lOff], edgeOf: +ap.toFixed(2) }]);
   }
   // (e) colocación dirigida (reescrita con C2, «Colocar por destino»: detalle en SIMTEST_ONLY=colocar): con la bandera el destino sale de
   // g.setDirA (↑ rápida delante, ← tensa a la 4, ↓ alta atrás; neutra = alta a la 4, ya NO la de siempre); sin la bandera o con
@@ -1017,15 +1018,16 @@ function j17Section() {
     const still = [at(0.1, 0), at(0, 0)], run = [at(0.3, 5), at(0.2, 5)], ai = (() => { let o = 0; for (let k = 1; k <= 2; k++) { const d = S.createGame({ format: '6v6', demo: true, seed: k, stats: true }); for (let i = 0; i < 60 * 300; i++) S.step(d, DT, null); S.drainEvents(d); o += d.stats.overlap[0] + d.stats.overlap[1]; } return o; })();
     res.push(['(f) falta de posición con los pies: quieto a 10 cm no y a la altura sí; corriendo a la red a 20 cm ya sí (zancada); la IA nunca', still[0] === 0 && still[1] === 1 && run[0] === 0 && run[1] === 1 && ai === 0, { quieto: still, corriendo: run, ia: ai }]); }
   // (g) estirón del 1r toque del humano (STRETCH): con te = 0, el balón a 0,4 del alcance sale igual que siempre (calidad 1) y a 0,85 ya
-  // no es «perfect» y se dispersa mucho más; la IA en la misma escena, sin estirón (calidad = la fórmula de distancia de siempre, 0,8)
+  // no es «perfect» y se dispersa mucho más; la IA en la misma escena, sin estirón (calidad = la fórmula de distancia de siempre, 0,8, en los
+  // toques que controla: el modelo de esfuerzo, EFFORT, le da en el contacto una prob. de sacarla desviada, 'shank', que aquí no cuenta)
   { const pass = (fmt, fr, ai, k) => { const g = S.createGame({ format: fmt, seed: 300 + k, difficulty: 'normal', ctrl: 'one', autopilot: ai }), p = g.ctrl, sd = S.side(0);
       p.x = sd * 5.5; p.y = 0; p.z = 0; p.vz = 0; p.down = 0; p.cool = 0;
       e1Rally(g, { x: p.x, y: (k % 2 ? 1 : -1) * fr * C.REACH, z: 0.95, vx: sd * 11.3, vz: -4.2 });
       g.touchTeam = 1; g.touches = 1; g.lastTeam = 1; g.lastKind = 'serve'; g.lastPlayer = g.teams[1][0]; g.lastTouchT = g.time - 0.8; g.digTight = false;
       const o = { x: g.ball.x, y: g.ball.y, z: g.ball.z }; S._hit(g, p, null, 0, '', null);
       const hv = S.drainEvents(g).find(e => e.type === 'hit'), b = g.ball, ap = o.z + b.vz * b.vz / (2 * C.G), T = b.vz / C.G + Math.sqrt(2 * Math.max(0, ap - 1.9) / C.G);
-      return { q: hv ? hv.quality : NaN, x: o.x + b.vx * T, y: o.y + b.vy * T }; };
-    const cell = (fmt, fr, ai) => { const r = []; for (let k = 0; k < 60; k++) r.push(pass(fmt, fr, ai, k));
+      return { q: hv ? hv.quality : NaN, x: o.x + b.vx * T, y: o.y + b.vy * T, sh: !!(hv && hv.shot === 'shank') }; };
+    const cell = (fmt, fr, ai) => { const r = []; for (let k = 0; k < 60; k++) { const x = pass(fmt, fr, ai, k); if (!(ai && x.sh)) r.push(x); }
       const mx = r.reduce((s, a) => s + a.x, 0) / r.length, my = r.reduce((s, a) => s + a.y, 0) / r.length;
       return { q: Math.max(...r.map(a => a.q)), qMin: Math.min(...r.map(a => a.q)), spr: r.reduce((s, a) => s + Math.hypot(a.x - mx, a.y - my), 0) / r.length }; };
     const out = {}; let ok = true;
@@ -1038,7 +1040,9 @@ function j17Section() {
   { const A = VB.AI6, g0 = S.createGame({ format: '6v6', seed: 3, ctrl: 'one' }), p0 = g0.teams[0][1]; let n0 = 0; const r0 = g0.rng; g0.rng = () => { n0++; return r0(); };
     const dP = A.passTarget(g0, p0, false, 0.95).d, dM = A.passTarget(g0, p0, false, 0.3).d, hP = A.passTarget(g0, p0, true, 0.95).d, hM = A.passTarget(g0, p0, true, 0.3).d;
     const perf = [], poor = []; let under = 0, ctrl = 0;
-    for (let sd = 1; sd <= 6; sd++) {
+    // (los pases malos controlados, q < 0,45, son raros: 0-2 por partida. Con 6 semillas la mediana de los malos salía de 1-2 pases y
+    // cualquier cambio de la defensa la dejaba sin muestra; 18-nov-2026: sigue con más semillas, hasta 16, hasta tener al menos 3)
+    for (let sd = 1; sd <= 6 || (poor.length < 3 && sd <= 16); sd++) {
       const g = S.createGame({ format: '6v6', demo: true, seed: 2400 + sd }); let tr = null;
       for (let i = 0; i < 60 * 200; i++) {
         const z0 = g.ball.z; S.step(g, DT, null);
@@ -1601,7 +1605,13 @@ function gymSection() {
   const tot = (k, b) => runs[k][b].map(r => r.end ? r.end.total : -1), info5 = {}, bad5 = [];
   const hist = (k, b) => { const h = {}; for (const r of runs[k][b]) for (const e of r.reps) h[e.res] = (h[e.res] || 0) + 1; return Object.entries(h).map(([a, n]) => a + ':' + n).join(' '); };
   for (const k of GYM_KINDS) info5[k] = { perfecto: tot(k, 'perfecto').join('/') + ' (' + hist(k, 'perfecto') + ')', bueno: tot(k, 'bueno').join('/'), novato: tot(k, 'novato').join('/') + ' (' + hist(k, 'novato') + ')' };
-  for (const k of ['serve', 'atk']) if (!tot(k, 'perfecto').every(t => gymMedal(k, t) === 3)) bad5.push(k + ' perfecto sin oro');
+  // (el perfecto: oro en todas las semillas en Saque; en Remate, el total MEDIO de las 3 en oro y ninguna por debajo de plata. En Remate
+  // saca 22-27 con el oro en 23 y lo que mueve el total es el bloqueo de la CPU, que gasta g.rng: el 18-nov-2026, al quitar el dado
+  // previo de la defensa (modelo de esfuerzo, EFFORT) salió 22/24/24 con las mismas 21 dianas, y con un g.rng() de relleno donde
+  // estaba el dado, 25/21/21; la base, 25/23/27. El techo es el oro de media; una semilla puede perder un punto por el bloqueo)
+  { const m = VB.DRILL.kinds.atk.medals, ta = tot('atk', 'perfecto');
+    if (!tot('serve', 'perfecto').every(t => gymMedal('serve', t) === 3)) bad5.push('serve perfecto sin oro');
+    if (ta.reduce((a, t) => a + t, 0) / ta.length < m[2] || !ta.every(t => gymMedal('atk', t) >= 2)) bad5.push('atk perfecto sin oro de media'); }
   for (const k of GYM_KINDS) if (tot(k, 'novato').filter(t => gymMedal(k, t) <= 1).length < 2) bad5.push(k + ' novato por encima de bronce');
   res.push(['(5) techo de las medallas (umbrales VB.DRILL.kinds[k].medals)', !bad5.length, Object.assign({ mal: bad5 }, info5)]);
   // (6) peloteo libre: 3 min de bot -> peloteos con toques, best = máximo, sin marcador ni eventos de partido
@@ -3052,16 +3062,17 @@ if (ONLY !== 'matrix') {
     { const a = blockRun(null, 400), b = blockRun([[{ muro: 3 }, null], null], 400);
       let mono = true, sa = 0, sb = 0; for (let i = 0; i < a.length; i++) { const x = a[i] && a[i].r === 'stuff', y = b[i] && b[i].r === 'stuff'; if (x) sa++; if (y) sb++; if (x && !y) mono = false; }
       res.push(['Muro: más bloqueos directos', mono && sb > sa * 1.08, [sa, sb]]); }
-    // (b7) Ancla (IA): el receptor previsto falla menos (mismo dado: nunca peor) y el humano tiene la ventana x1,18
+    // (b7) Ancla (IA): el receptor previsto falla menos (nunca peor) y el humano tiene la ventana x1,18. Con el modelo de esfuerzo
+    // (EFFORT) el dado de recepción se tira en el contacto: se compara su prob. de controlarla cómoda (1 − S.effortFail a 0 m)
     { let okA = 0, okB = 0, mono = true;
       const r = (s, badges) => { const g = S.createGame({ seed: 3000 + s, autopilot: true, difficulty: 'normal', badges });
-        for (let i = 0; i < 120 * 8; i++) { S.step(g, DT, null); const h = S.drainEvents(g).find(e => e.type === 'hit' && e.kind === 'serve'); if (h) return h.team === 0 && g.recvRisk > 0.3 ? g.digOk : null; } return null; };
-      for (let s = 1; s <= 300; s++) { const a = r(s, null), b = r(s, [[null, null], [{ ancla: 3 }, { ancla: 3 }]]); if (a == null || b == null) continue; if (a) okA++; if (b) okB++; if (a && !b) mono = false; }
+        for (let i = 0; i < 120 * 8; i++) { S.step(g, DT, null); const h = S.drainEvents(g).find(e => e.type === 'hit' && e.kind === 'serve'); if (h) return h.team === 0 && g.recvRisk > 0.3 && g._rc && g._rc.who ? 1 - S.effortFail(g, g._rc.who, 0, false) : null; } return null; };
+      for (let s = 1; s <= 300; s++) { const a = r(s, null), b = r(s, [[null, null], [{ ancla: 3 }, { ancla: 3 }]]); if (a == null || b == null) continue; okA += a; okB += b; if (b < a - 1e-12) mono = false; }
       const hq = (te, badges) => { const g = S.createGame({ demo: false, seed: 66, badges }), h = g.teams[0][0];
         rallyAt(g, { x: 6, y: 0, z: 0.9, vx: 9, vz: -2 }); g.touchTeam = 1; g.touches = 3; g.lastTeam = 1; g.lastKind = 'serve'; g.lastPlayer = g.teams[1][0];
         g.ctrl = h; h.x = 6.2; h.y = 0; S._hit(g, h, null, te, ''); return S.drainEvents(g).find(e => e.type === 'hit'); };
       const h0 = hq(0.06, null), h1 = hq(0.06, [[{ ancla: 3 }, null], null]);
-      res.push(['Ancla: recepción', mono && okB > okA && h1 && Math.abs(h1.timing - 0.06 / 1.18) < 1e-9 && h1.quality > h0.quality && h1.recv && !h1.dig, [okA, okB, h0 && h0.quality.toFixed(3), h1 && h1.quality.toFixed(3)]]); }
+      res.push(['Ancla: recepción', mono && okB > okA && h1 && Math.abs(h1.timing - 0.06 / 1.18) < 1e-9 && h1.quality > h0.quality && h1.recv && !h1.dig, [okA.toFixed(2), okB.toFixed(2), h0 && h0.quality.toFixed(3), h1 && h1.quality.toFixed(3)]]); }
     // (b8) Ojo de halcón: el error del remate con mira (timing tardío) x0,68 (mismo dado); aimPoint lo dibuja igual
     { const err = badges => { let s0 = 0, ap = null; for (let k = 0; k < 24; k++) {
           const g = S.createGame({ demo: false, seed: 100 + k, badges }), h = g.teams[0][0], m = g.teams[0][1];
@@ -3551,7 +3562,7 @@ if (ONLY !== 'matrix') {
               if (!passed && e.type === 'hit' && e.team === 0 && e.touch === 1) {
                 passed = true; const b = h.ball, T = 1.1, zt = 3.1;
                 b.vx = (sd0 * 0.9 - b.x) / T; b.vy = (sd0 * 0.9 - b.y) / T; b.vz = (zt - b.z + 0.5 * C.G * T * T) / T; b.dip = 0; b.spin = 0; b.wobA = 0;
-                h._pq6[0].q = 0.9; h._pq6[0].t = h.time;
+                const pq6 = h._pq6 || (h._pq6 = [{ q: 0, t: -9 }, { q: 0, t: -9 }]); pq6[0].q = 0.9; pq6[0].t = h.time; // (EFFORT: si el pase salió desviado, passTarget no lo creó)
               } else if (passed && e.type === 'hit' && e.team === 0 && e.touch === 2) return { e, P: h.setPlan[0] };
             }
           }

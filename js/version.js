@@ -24,6 +24,7 @@
  * 1.8.2 (17-nov-2026): la cámara del 6v6 deja de seguir los balones muy rápidos (> 15 m/s), a petición de Ferran.
  * 1.10.0 (17-nov-2026): consignas del entrenador en directo en la Carrera (js/consignas.js), idea de Ferran.
  * 1.11.0 (18-nov-2026): árbitros como en la vida real (FIVB 2025-2028, Guidelines) y bandera roja de vóley, a petición de Ferran.
+ * 1.15.0 (19-nov-2026): IA con esfuerzo real (VB.EFFORT en sim.js): sin dado previo ni defensor «perdido» lento, a petición de Ferran.
  * 1.9.1 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
  * 1.12.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
  * 1.12.1 (18-nov-2026): vuelve la cámara de juego de antes de 1.8.1 (Ferran: «la nueva es horrible») con la regla de no perder el
@@ -38,11 +39,20 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.14.1';
-  VB.VERSION_DATE = '2026-11-18';
+  VB.VERSION = '1.15.0';
+  VB.VERSION_DATE = '2026-11-19';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.15.0', d: '2026-11-19', t: 'La IA lo intenta todo',
+      items: [
+        'La IA siempre va a por el balón: si no llega, es por su reacción, velocidad y alcance.',
+        'Cuando no llega por poco, se tira en plancha igualmente y se ve cómo lo intenta.',
+        'Los jugadores arrancan y reaccionan como en el vóley real, sin salir disparados.',
+        'Velocidad, Reacción, Defensa y Recepción pesan más: un buen defensor llega a mucho más.'
+      ]
+    },
     {
       v: '1.14.1', d: '2026-11-18', t: 'Challenge en la Fluida',
       items: [

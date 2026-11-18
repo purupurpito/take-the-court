@@ -101,7 +101,7 @@
   var E1DIFF = { //        feintRead tipRead roll  zoneSet feintBeat
     easy:   [0.16, 0,    0.02, 0,    0.32],
     normal: [0.12, 0,    0.06, 0.15, 0.25],
-    hard:   [0.08, 0.05, 0.10, 0.30, 0.17],
+    hard:   [0.08, 0.05, 0.10, 0.30, 0.25], // (feintBeat 0,17 → 0,20 el 18-nov-2026: sin el dado previo, la finta que no engaña ya no daba ningún punto; 0,20 → 0,25 en el afinado de EFFORT, 2ª ronda: con la lectura variable la finta que no engaña da aún menos, simtest E1 b2 quedaba en +9,5)
     expert: [0.05, 0.08, 0.14, 0.45, 0.11],
     demo:   [0,    0,    0,    0,    0],
     mate:   [0,    0,    0.08, 0,    0]
@@ -110,7 +110,7 @@
   /** E1: constantes de la maestría (finta, golpe colocado, al filo / manos fuera, colocación dirigida). Ver notes/sim.md «E1 (sprint 5)». */
   var MASTERY = VB.MASTERY = {
     feint: { minT: 0.03, q: 0.92 }, // minT: s mínimos entre pulsar GOLPEAR y el cambio (con pulsación perfecta, ventana de 0,03 a 0,07 s)
-    roll:  { spread: 0.6, clear: 1.85, digK: 1.0 },
+    roll:  { spread: 0.6, clear: 1.85, digK: 0.95 }, // (digK 1 → 1,3 el 18-nov-2026, calibración de EFFORT: el colocado es blando y con el contacto lineal rendía 1,1-1,35× el remate perfecto; simtest E1 (c) pide 0,6-0,9×. 1,3 → 1,55 en la revisión: con el contacto más empinado, fC 1,4, rendía 0,95×. 1,55 → 1 en el afinado (2ª ronda): con fC 2,4 el colocado asequible casi nunca fallaba, 0,17×; con 0,95, ~0,7-0,8× (con 0,9 rozaba el 0,9×; con 1, el 0,6×))
     edge:  { d: 0.9, lim: 0.05, spr: 0.35, spd: 0.8, dig: 0.2, tool: 0.2, tag: 0.5 },
     // colocación por destino (C2, 15-nov-2026; notes/sim.md «Colocar por destino»): dirs = destino [D, L] de cada sector (0 ↑ … 7 ↖;
     // D = distancia a la red, L = lateral, + a la derecha del colocador; 's' = el lateral del colocador, 's±' = corta: ±corta m de él sin
@@ -209,7 +209,8 @@
       down: 0,        // >0 = en el suelo tras una plancha (s): no se puede mover
       shot: '',       // subtipo del último toque ('tip', 'dive', 'jump', 'float', ...)
       grade: '',      // calidad del último toque ('perfect'|'good'|'poor')
-      aiTe: 0, aiTeT: -1, aiJt: 0, aiDv: 0, // desfases de la IA (muestreados por toque)
+      aiTe: 0, aiTeT: -1, aiJt: 0, aiDv: 0, // desfases de la IA (muestreados por toque; aiDv ya no se usa desde EFFORT, queda por compatibilidad)
+      aiRk: 1,        // EFFORT: lectura del balón rival de este toque (×reacción; ai.js, muestreado con aiTe)
       e1T: -9, e1Until: -9, // E1 (g.mastery, ai.js): toque de la finta ya leído por este jugador y hasta cuándo sigue engañado (g.time)
       lastAction: '', // 'pass'|'set'|'spike'|'free'|'serve'|'block'|'swing'|'jump'|'toss'|'dive'
       pressEnd: -9,   // bloqueo activo: hasta cuándo (g.time) vale la pulsación de GOLPEAR en el aire contra el ataque rival (blockPress)
@@ -373,6 +374,7 @@
       setWinOn: false, setCarry: -1, setCarryK: 0, setDirA: NaN,
       lastGrade: '',           // calidad del último toque humano
       pendingSet: false, digOk: true, hardIn: false, finished: false,
+      digK: 0, feintFool: false, // EFFORT: dificultad del balón para el dado de contacto de la IA; finta que engaña (lectura tardía)
       swingT0: 0,              // g.time de la pulsación que abrió el gesto humano en curso
       // E1 (maestría, solo con g.mastery): golpe con el que se abrió el gesto ('' = GOLPEAR), g.time del cambio de botón dentro del
       // gesto (finta), g.time del último toque que fue finta, etiqueta del último ataque ('' | 'feint' | 'roll' | 'edge' | 'quick'),
@@ -1065,8 +1067,8 @@
     if (b.held || g.mode !== 'rally' || p.down > 0 || p.z > 0 || p.vz > 0) return false;
     if (g.lastKind === 'serve' && g.touchTeam === p.team) return false;
     if (g.touchTeam === p.team && g.lastPlayer === p) return false;
-    var d = Math.hypot(b.x - p.x, b.y - p.y), rl = bl(p, 'red');
-    if (d > (rl ? (C.REACH + C.DIVE) * BADGE.redR[rl] : C.REACH + C.DIVE) || b.z < 0.08 || b.z > 1.3) return false;
+    var d = Math.hypot(b.x - p.x, b.y - p.y), rl = bl(p, 'red'), dr = C.REACH + diveROf(g, p); // (IA: plancha según su Velocidad, EFFORT)
+    if (d > (rl ? dr * BADGE.redR[rl] : dr) || b.z < 0.08 || b.z > 1.3) return false;
     return b.x * side(p.team) > 0.2;
   }
   function serveReach(g, p) {
@@ -1164,8 +1166,224 @@
   /** Defensa contra el remate rival desde el aire (ver hit): BLK_ZONE = |x| máximo de la zona de bloqueo (checkBlock), BLK_AIRQ =
    *  factor de calidad del toque en el aire más atrás. */
   var BLK_ZONE = 1.1, BLK_AIRQ = 0.6;
-  /** Plancha en el 1r toque: prob. de que el balón salga desviado (×ek), 17-nov-2026. */
+  /** Plancha en el 1r toque: prob. de que el balón salga desviado (×ek), 17-nov-2026. La plancha de la IA contra un remate, saque o
+   *  bloqueo pasa por el dado de contacto de EFFORT (effortFail, con la plancha como estirón diveS); contra un balón libre, una dejada
+   *  o un pase (g.digK 0, sin dado de contacto) sigue con DIVE_FAIL, como el humano. */
   var DIVE_FAIL = 0.35;
+  /** MODELO DE ESFUERZO de la IA (18-nov-2026, Ferran: «Siento que los jugadores son super rapidos y llegan a todos los balones
+   *  siempre que quieren ir, si no llegan son porque la IA "dejan que caiga". Preferiría sentir que la IA lo intente y si no llegan
+   *  es por sus stats»). Antes un dado (g.digOk) en el momento del remate/saque decidía si la defensa IA «la sacaba» y, si no,
+   *  el defensor iba tarde y lento a propósito (beaten; 6v6 BEAT6). Ahora:
+   *   - La IA SIEMPRE va a por el balón al 100 % de sus stats: arranca tras su reacción (react efectiva = reactMin + reactK·react,
+   *     + spikeRead ante un remate rival), acelera en accT s hasta su velocidad máxima (×(1/ak.speed)^accPow: Velocidad alta arranca
+   *     antes) y se tira en plancha si el balón queda al límite (alcance de la plancha según su Velocidad, diveROf). Si ni así llega,
+   *     se tira igual (plancha fallida, «lo intenta») cuando el balón cae a menos de missR m más allá de su plancha y por debajo de
+   *     missZ m de altura. Que llegue o no lo decide solo la física.
+   *   - El azar va EN EL CONTACTO (effortFail, 1r toque de la IA contra un remate, saque o bloqueo): prob. de que no la controle
+   *     = f0·(1 − fC·base)^fPow cómoda (sale disparada: a la grada o rebota al suelo, shankFar) + fS·s·(1 − fSk·base) estirada (s =
+   *     estirón 0..1 de stretchOf; plancha = diveS; sale desviada cerca), hasta fMax. base = Defensa del perfil DEL QUE LA TOCA ×
+   *     g.digK (dificultad del balón: potencia, colocación, 6v6, maestría; la calcula el que golpea). Saque: la parte cómoda es
+   *     recvK·recvFail(g.recvRisk) con la Recepción del que la toca (y el estirón ×recvS); bloqueo directo: 1 − g.digK (prob. de
+   *     salvarla, stuffK·(1 − calidad del bloqueo)).
+   *   - La finta (E1) que engaña (hk 0xE11 < feintBeat, g.feintFool) es LECTURA tardía: +feintReact s de reacción y digK ×feintK.
+   *  g.digOk queda siempre true (compatibilidad: online, herramientas).
+   *  CALIBRADO (18-nov-2026) con tools/effortstat.js contra el código de antes (61ac1f9, tools/out/effort-base.json): side-out, toques
+   *  por rally y % de remates que acaban en punto cerca de la base en 2v2, 6v6 y playa, CPU y bot; «Defensa fuera» no por encima de
+   *  la base; y los atributos que se notan (equipo a 30 frente a 80 en Velocidad, Reacción, Defensa y Recepción: en 2v2 le hacen
+   *  punto en ~76 % frente a ~27 % de los remates; en 6v6, ~47 % frente a ~36 %; antes 77/44 y 44/34). Las razones de cada número,
+   *  a su lado; las tablas, en notes/sim.md («IA (lo que se ve)»).
+   *  REVISIÓN (18-nov-2026): plancha fallida de reflejo (missReact) y solo a balones que botan dentro (missIn); rescate del compañero
+   *  que tiene el balón al alcance (ai.js rescue); Velocidad sin contar tres veces (accPow, divePow, diveMax) y Defensa/Recepción con
+   *  más peso (digAttr); contacto menos desviado (f0, fC); 6v6 y playa recalibrados; DIVE_FAIL de la IA en balones sin dado de contacto;
+   *  dado de contacto también en el 2º toque de playa tras el bloqueo propio.
+   *  AFINADO (18-nov-2026, 2ª ronda): la revisión llegaba a casi todo y el punto salía de la desviada. Ahora la lectura de cada balón rival
+   *  varía (reactSd, defMin/defK/defQ; ai.js p.aiRk): unas veces llega cómoda y la defiende bien, otras no llega aunque corra a tope; la
+   *  cobertura del toque de bloqueo propio arranca y lee como contra un remate (blkTouchIn); contacto que desvía menos lo asequible (f0, fC,
+   *  diveS) y plancha que a veces sale buena (diveQ); 6v6 sin sacar de reflejo lo que pasa lejos antes de leerlo (preR). Ver notes/sim.md.
+   *  REVISIÓN 2 del afinado (18-nov-2026): sin la cola lenta de la lectura (rkHi), nunca deja botar sin gesto un balón que le pasa al
+   *  alcance antes de leerlo (preT, ai.js), contra el remate del humano arranca peor en vez de leer más tarde (humAcc) y más planchas
+   *  fallidas visibles en 6v6 y playa (missR). */
+  var EFFORT = VB.EFFORT = {
+    accT: 0.12, accPow: 1,        // s de 0 a la velocidad máxima de la IA con Velocidad 50 (antes instantáneo); Velocidad 90 → ×0,87, 15 → ×1,18 (+ p.ak.accT)
+                                  // (accPow 2 → 1 en la revisión: la Velocidad ya cuenta en la velocidad punta y en la plancha)
+    reactMin: 0.1, reactK: 0.65,  // reacción efectiva: Fácil 0,30 · Normal 0,22 · Difícil 0,18 · Experto 0,14 s (antes 0,30/0,18/0,13/0,06; con
+                                  // 0,06 + 0,8·react Experto llegaba a casi todo; revisión: con 0,08 + 0,7·react Experto y Difícil llegaban a casi
+                                  // todos los remates del humano en 2v2 y playa, y el punto solo salía del dado de contacto). Desde el afinado, solo
+                                  // fuera de la defensa (recepción, juego propio, colocarse): la defensa va con defMin/defK/defQ
+    defMin: 0.08, defK: 0.6,      // AFINADO (18-nov, 2ª ronda): lectura de un balón rival en defensa (preLate), mediana defMin + defK·react + defQ·react²
+    defQ: 1.2,                    // → Fácil 0,37 · Normal 0,23 · Difícil 0,18 · Experto 0,12 s (ronda anterior 0,30/0,22/0,18/0,14; ninguna más
+                                  // rápida de media, con reactSd). defQ: el lento lee mucho peor; sin él Fácil sacaba demasiado (el bot medio le
+                                  // hacía punto en el 64 % de sus remates, antes 75)
+    reactSd: 0.4,                 // AFINADO (18-nov, 2ª ronda): la lectura de cada balón rival varía, como la reacción del humano (ai.js: ×lognormal
+                                  // de σ reactSd por toque; media ×1,08). Con una reacción fija casi todo llegaba «justo» (en plancha o estirado: defensa
+                                  // mala o desviada) y no había ni defensas cómodas ni balones que pasaban; con la variación unas veces lo lee pronto y
+                                  // la defiende bien y otras tarde y no llega aunque corra a tope (2v2 CPU: defensas buenas 8 % → 14 %, base 12-16)
+    rkHi: 1.45,                   // REVISIÓN 2 (18-nov): tope de la lectura lenta (aiRk ≤ ×rkHi; antes ×2,2 a +2σ): la cola lenta dejaba al defensor
+                                  // quieto casi todo el vuelo (azar, no stats; Experto contra el bot: quieto en 15-28 % de los que caían sin tocar,
+                                  // base ~0). Media ×1,02 (antes ×1,08)
+    f0: 0.9, fC: 2.4, fPow: 1,    // fallo llegando cómoda: f0·(1 − fC·base)^fPow (∝ base: el remate bueno del humano, de digK bajo, falla mucho más
+                                  // que el de la CPU, y la Defensa se nota). Afinado: con 0,8 / 1,4 el buen defensor desviaba balones asequibles
+                                  // (CPU contra CPU: desviadas 13 % de los remates, base 6-9); con 0,6 Fácil controlaba demasiado
+    fS: 0.4, fSk: 0.5,            // + estirada al límite: fS·s·(1 − fSk·base)
+    diveS: 0.55,                  // la plancha cuenta como un estirón de diveS (0,8 en la ronda anterior: casi la mitad de las planchas que llegaban
+                                  // salían desviadas; con 1,25 más aún)
+    diveQ: 0.8,                   // plancha de la IA contra remate o bloqueo: tope de calidad 0,45 + diveQ × base (diveCapAI; 0 = siempre 'poor',
+                                  // como el humano). Afinado: la plancha al límite es un toque difícil pero a veces bueno (con buen timing y un
+                                  // balón asequible para su Defensa); en la playa, ~1/3 de las defensas buenas de la CPU son en plancha
+    diveK: [1, 0.3], divePow: 2,  // alcance extra de la plancha de la IA: C.DIVE × diveK (2v2, 6v6) × min(diveMax, (p.ak.speed)^divePow)
+    diveMax: 1.2,                 // (Velocidad 30 → ×0,83, 80 → ×1,2 tope). 6v6: con la plancha entera (2,15 m de alcance al instante) seis
+                                  // defensores lo tocaban todo. Revisión: con ^4 y sin tope la Velocidad contaba tres veces (velocidad,
+                                  // arrancada y plancha: Velocidad 100 → 1,55 m de plancha, el doble que el humano, que tiene C.DIVE fijo)
+                                  // y la Defensa casi no se notaba
+    fMax: 0.85,
+    touchK: 0.5,                  // digK tras un toque de bloqueo (antes un dado de 0,08 + Defensa: ~25 % de desviadas). Afinado: 0,7 → 0,5, ahora
+                                  // que la cobertura del toque de bloqueo arranca y lee como contra un remate (blkTouchIn); con 0,7 y fC 2,4 el
+                                  // toque de bloqueo del humano casi nunca acababa en punto (Experto: 6 de 70, antes 24)
+    stuffRead: 0.2,               // s de más para leer el rebote de un bloqueo directo (sorpresa: baja a 6-9 m/s pegado a la red)
+    stuffK: 0.3,                  // bloqueo directo: prob. de que la cobertura la controle si llega, ×(1 − calidad del bloqueo) (antes
+                                  // un dado previo de 0,2·(1 − calidad) la daba por salvada; simtest: >= 60 % de directos son punto)
+    recvS: 0.5,                   // saque: el estirón pesa la mitad (con el estirón entero los aces del flotante subían ~40 %)
+    recvK: 1,                     // saque: ×recvFail (con 0,6 había ~1/3 menos de aces y recepciones malas que antes)
+    feintReact: 0.8, feintK: 0.3, // finta que engaña: reacción + s (la dejada tarda ~1 s: con menos no valía, simtest E1 b2), digK ×
+    feintFail: 0.6,               // ...y si llega, prob. mínima de no controlarla (cómoda)
+    shankFar: [0.35, 0.35],       // desviada por el balón (shank): prob. de que salga a la grada (contra remate, resto); si no, rebota y cae
+                                  // en su campo (con 0,9 «Defensa fuera» pasaba al 11-17 % de los puntos en 2v2; ahora por debajo de la base)
+    missR: [1.4, 1.5], missZ: 0.3,// plancha fallida: hasta missR m más allá de su plancha (2v2, 6v6; playa: beach.missR), con el balón por debajo
+                                  // de missZ m. Revisión: en 6v6 (plancha recortada, diveK) y en la playa (pista grande) casi todos los remates que
+                                  // no tocaba caían a 1,5-2,5 m de él en ~0,3 s y no hacía ningún gesto. Afinado: 2v2 0,6 → 1,4 (no cambia ningún
+                                  // resultado; de los remates del bot medio que caen sin tocar, con intento —plancha o carrera de 1 m— 52 → 75 %)
+                                  // Revisión 2: 6v6 1,0 → 1,5 y playa 1,2 → 1,7 (tampoco cambia resultados): defensor quieto en 6v6 de ~40 a ~25 %
+                                  // de los que caen sin tocar
+    preR: [0, 0.65],              // antes de leer un balón rival (since < reacción) solo saca de reflejo lo que le llega a preR × su alcance (2v2,
+                                  // 6v6; playa: beach.preR; 0 = todo); lo de más lejos le pilla sin reaccionar (plancha fallida tardía). Afinado, 6v6:
+                                  // el zaguero quieto que aún no había leído el remate lo sacaba igual si le pasaba al alcance (estirado: desviada)
+    preT: 0.22,                   // REVISIÓN 2: ...y si el balón le pasa al alcance antes de leerlo, se estira cuando le falten < preT s para botar
+                                  // (ai.js: nunca lo deja botar al alcance sin gesto)
+    missReact: 0.18,              // ...es un reflejo: se tira tras min(reacción, missReact) s (revisión: en 6v6 y playa la reacción se comía el
+                                  // vuelo del remate y el defensor se quedaba quieto viéndolo pasar a 1 m)
+    missIn: 0.1,                  // ...y solo si el balón bota dentro de la pista + missIn m (antes se tiraba a por remates que se iban fuera)
+    spikeRead: [0, 0.06],         // s de más para leer un REMATE rival (2v2, 6v6). 2v2: 0 (la pista es grande, ya cuesta llegar). 6v6: 0,06
+                                  // (con 0,2, reacción + lectura se comían casi todo el vuelo de 0,5 s y el defensor parecía quieto; 0,04 en la revisión)
+    perfK: 0.7,                   // 2v2 y playa: digK ×perfK del remate perfecto del humano (además del ×0,8 de siempre). Revisión: sin esto el
+                                  // buen rematador apenas sacaba ventaja al medio contra Experto (antes el dado se la daba)
+    digAttr: 3.5,                 // los atributos Defensa y Recepción pesan ×(1 + digAttr) en el contacto (sobre la diferencia con el perfil:
+                                  // Defensa 20 → 80 mueve la base ±0,4 y no ±0,09). Revisión: la Velocidad lo decidía casi todo y la Defensa de
+                                  // 20 a 80 solo movía ~4 puntos de cada 100 remates (antes ~9-16); con 1,5, ~6
+    humRead: [0.02, 0.08],        // + s ante cualquier remate del humano (2v2 y playa, 6v6), además de perfRead si es perfecto. Afinado: con la lectura
+                                  // variable y el contacto nuevo, sin esto la CPU le sacaba al bot medio ~6 puntos de cada 100 remates más que antes
+    humAcc: [0.3, 0],             // + s de arrancada (accTOf) ante un remate del humano (2v2, 6v6; playa: beach.humAcc). Revisión 2: en 2v2 y playa la mayor
+                                  // parte de humRead/perfRead pasa aquí (0,06/0,08 → 0,02/0,04): arranca antes y se le ve ir, pero acelera peor
+    perfRead: [0.04, 0.1],        // + s si es un remate PERFECTO del humano (2v2 y playa, 6v6): el buen golpe se lee tarde (antes iba en el
+                                  // dado). Ronda anterior 0,05 en 2v2 y playa (el escenario 6 de tools/fluidtest iba justo en el suavizado del balón)
+    // 6v6 (g.rot): con 6 en el campo el zaguero está a ~2 m del bote (en 2v2, ~3,5-4,5) y casi todo se alcanzaba: arranca peor (accTK,
+    // igual para todos: no es un «perdido»), la plancha alcanza menos (diveK) y el contacto depende más de la Defensa (fC: si no, con
+    // casi todo tocado los atributos apenas cambiaban nada; failK: escala)
+    // Revisión (18-nov): con 2,1 el zaguero no arrancaba antes de que botara el remate (~0,4 s; quieto en ~64 % de los que no tocaba):
+    // 1,0, con failK 1,9. Afinado (2ª ronda): con failK 1,9 desviaba el 24-35 % de los remates (base 10-18): «llega a todo y la desvía».
+    // Ahora failK 0,9, arranca algo peor (accTK 1,4) y no saca lo que le pasa lejos antes de leerlo (preR): desviadas 13-14 % (CPU)
+    six: { accTK: 1.4, failK: 0.9, fC: 2, shankFar: [0.45, 0.35] },
+    // playa (g.beach): pista de 16 × 8 (los dos defensores cubren más) y arena: arranca peor (accTK) y lee el remate más tarde (read s).
+    // Muy sensible: los partidos online a 21 de tools/fluidtest (bots de entrada con compañeros IA, tope de 900 s) van al límite de tiempo y
+    // de tráfico también con el código de antes, y cualquier cambio que alargue los peloteos los mueve.
+    // Revisión (18-nov): 1,35 / 0,06. Afinado (2ª ronda): con la lectura variable (reactSd) llega antes cómoda más veces: 1,2 / 0,035
+    // (revisión 2: read 0,05 con defMin 0,08 y la cola lenta recortada; humAcc: arrancada de más contra el remate del humano, ver humAcc)
+    // (defensas buenas de la CPU 9 % → ~22 %, base 24-32; con 1,0 / 0 subían al 25 % pero los peloteos se alargaban: 8,3 toques por punto)
+    beach: { accTK: 1.2, read: 0.05, failK: 0.75, missR: 1.7, humAcc: 0.4 }
+  };
+  /** s que tarda p en ponerse a su velocidad máxima: Velocidad < 50 (p.ak.accT, humano e IA) + la arrancada de la IA (EFFORT) cuando
+   *  el balón es del rival (defensa y recepción: arranca desde parado al leer el golpe; en el juego propio —colocar, batida, cobertura—
+   *  se mueve anticipando, como antes; si ya va lanzado conserva su velocidad, ver stepPlayer). */
+  function accTOf(g, p) {
+    var a = p.ak && p.ak.accT > 0 ? p.ak.accT : 0;
+    if (!isHuman(g, p) && (g.touchTeam !== p.team || blkTouchIn(g, p))) {
+      a += EFFORT.accT * Math.pow(1 / (p.ak ? p.ak.speed : 1), EFFORT.accPow) * (g.rot ? EFFORT.six.accTK : g.beach ? EFFORT.beach.accTK : 1);
+      // revisión 2: contra el remate del humano arranca más despacio (humAcc) en vez de leerlo más tarde: se le ve correr desde el
+      // principio y no llega por poco (antes humRead + perfRead le retrasaban el primer paso y casi no corría)
+      if (g.lastKind === 'spike' && g.atkHuman && g.touchTeam !== p.team) a += g.beach ? EFFORT.beach.humAcc : EFFORT.humAcc[g.rot ? 1 : 0];
+    }
+    return a;
+  }
+  /** ¿Le llega a p un remate rival que acaba de rozar el bloqueo de su propio equipo (toque de bloqueo, 'touch')? El balón ya es «suyo»
+   *  (g.touchTeam), pero lo defiende como un remate: con la arrancada y la lectura variable (ai.js) de un balón
+   *  rival. Antes de esto, tras el toque de bloqueo la cobertura reaccionaba sin lectura ni arrancada y lo sacaba casi todo. */
+  function blkTouchIn(g, p) { return g.lastKind === 'block' && g.lastShot === 'touch' && g.touchTeam === p.team; }
+  /** Reacción efectiva de la IA p (EFFORT) a partir de la del perfil (ya con Líder), con la lectura del remate rival (spikeRead) o del
+   *  rebote de un bloqueo directo (stuffRead). */
+  function aiReactEff(g, p, react) {
+    var rd = g.touchTeam === p.team ? 0 : g.lastKind === 'spike' ? EFFORT.spikeRead[g.rot ? 1 : 0] + (g.beach ? EFFORT.beach.read : 0) +
+      (g.atkHuman ? EFFORT.humRead[g.rot ? 1 : 0] + (g.atkGrade === 'perfect' ? EFFORT.perfRead[g.rot ? 1 : 0] : 0) : 0) :
+      g.lastKind === 'block' && g.lastShot === 'stuff' ? EFFORT.stuffRead : 0;
+    // (defensa de un balón rival por leer —remate, dejada o balón libre, bloqueo, o el que roza su bloqueo—: defMin/defK/defQ; el resto
+    // —recepción, juego propio, colocarse— con la de la ronda anterior, reactMin/reactK)
+    return (preLate(g, p) ? EFFORT.defMin + EFFORT.defK * react + EFFORT.defQ * react * react : EFFORT.reactMin + EFFORT.reactK * react) + rd;
+  }
+  /** Prob. de que la IA p no controle el 1r toque que va a dar a d m de su cuerpo (dive: en plancha; fool: viene de una finta que
+   *  la engañó). Pura (no gasta g.rng). 0 si
+   *  lo que llega no es un remate, saque o bloqueo (g.digK 0: balón libre, dejada, pase). */
+  var effP0 = 0; // (effortFail: la parte «cómoda» de la última prob., ya escalada; el resto es por el estirón)
+  function effortFail(g, p, d, dive, fool) {
+    var pr = profOf(g, p), p0, sk; effP0 = 0;
+    if (g.lastKind === 'serve') {
+      var rp = pr, al = bl(p, 'ancla');
+      if (al) rp = { recv: Math.min(0.99, pr.recv + BADGE.anclaAI[al]) }; // Ancla (IA)
+      if (pr.recv !== g.prof[p.team].recv) rp = { recv: clamp(rp.recv + EFFORT.digAttr * (pr.recv - g.prof[p.team].recv), 0.4, 0.99) }; // (atributo Recepción, ×(1 + digAttr))
+      p0 = EFFORT.recvK * recvFail(g.recvRisk || 0, rp); sk = rp.recv;
+    } else if (g.lastKind === 'block' && g.lastShot === 'stuff') {
+      p0 = 1 - clamp(g.digK, 0, 1); sk = 0;                          // directo: g.digK es directamente la prob. de salvarla
+    } else {
+      if (!(g.digK > 0)) return 0;
+      sk = clamp((pr.dig + EFFORT.digAttr * (pr.dig - g.prof[p.team].dig)) * g.digK, 0, 1); p0 = EFFORT.f0 * Math.pow(clamp(1 - (g.rot ? EFFORT.six.fC : EFFORT.fC) * sk, 0, 1), EFFORT.fPow);
+      if (fool) p0 = Math.max(p0, EFFORT.feintFail);                 // finta que engaña (g.feintFool del toque que llega)
+    }
+    var s = (dive ? EFFORT.diveS : stretchOf(g, p, d)) * (g.lastKind === 'serve' ? EFFORT.recvS : 1), k6 = g.lastKind === 'serve' ? 1 : g.rot ? EFFORT.six.failK : g.beach ? EFFORT.beach.failK : 1; // (la recepción, sin failK)
+    effP0 = Math.min(p0 * k6, EFFORT.fMax);
+    return clamp((p0 + EFFORT.fS * s * (1 - EFFORT.fSk * sk)) * k6, 0, EFFORT.fMax);
+  }
+  /** Tope de calidad (antes del ×0,7) de la plancha de la IA p contra un remate o un bloqueo (EFFORT.diveQ): 0,45 (siempre 'poor', como
+   *  el humano) + diveQ × base, con base = su Defensa × g.digK como en effortFail. Así la plancha al límite es un toque difícil pero a
+   *  veces bueno (balón asequible y buen defensor), no siempre una defensa mala. Saque y balón libre (g.digK 0): 0,45. Pura. */
+  function diveCapAI(g, p) {
+    if (!(EFFORT.diveQ > 0) || !(g.digK > 0) || g.lastKind === 'serve') return 0.45;
+    var pr = profOf(g, p), sk = clamp((pr.dig + EFFORT.digAttr * (pr.dig - g.prof[p.team].dig)) * g.digK, 0, 1);
+    return 0.45 + EFFORT.diveQ * sk;
+  }
+  /** m que la plancha alarga el alcance de p: el humano C.DIVE; la IA (EFFORT) C.DIVE × diveK (2v2, 6v6) × (multiplicador de su
+   *  atributo Velocidad, p.ak.speed)^divePow: el contacto en plancha es instantáneo, así que su alcance decide si llega. Solo el
+   *  atributo, no la dificultad (la dificultad ya va en la reacción, la velocidad y la Defensa del perfil). */
+  function diveROf(g, p) {
+    return isHuman(g, p) ? C.DIVE : C.DIVE * EFFORT.diveK[g.rot ? 1 : 0] * (p.ak ? Math.min(EFFORT.diveMax, Math.pow(p.ak.speed, EFFORT.divePow)) : 1);
+  }
+  /** ¿Plancha fallida «honesta»? Como canDive, pero con el balón entre su plancha y missR m más allá (no llega por poco). */
+  function r3(v) { return Math.round(v * 1000) / 1000; } // (g.digK, g.digMargin, g.recvRisk: viajan online en flMeta; con 3 decimales el paquete es más corto)
+  function missROf(g) { return g.beach ? EFFORT.beach.missR : EFFORT.missR[g.rot ? 1 : 0]; }
+  /** EFFORT.preR del formato (0: sin límite antes de leer). */
+  function preROf(g) { return g.beach ? EFFORT.beach.preR || 0 : EFFORT.preR[g.rot ? 1 : 0]; }
+  /** ¿El balón que tiene p al alcance es un balón rival por leer (remate, bloqueo, dejada/balón libre, o el que acaba de rozar su
+   *  bloqueo)? Solo entonces cuenta el límite de antes de reaccionar (preR); el saque y el juego propio, no. */
+  function preLate(g, p) {
+    return blkTouchIn(g, p) || (g.touchTeam !== p.team && (g.lastKind === 'spike' || g.lastKind === 'block' || g.lastKind === 'free'));
+  }
+  /** s que le faltan al balón para botar (parábola, sin rozamiento). Pura. */
+  function ballLandT(g) { var b = g.ball, ge = gEff(b); return (b.vz + Math.sqrt(b.vz * b.vz + 2 * ge * Math.max(0, b.z))) / ge; }
+  /** ¿El balón bota dentro de la pista (+ missIn)? Bote previsto por la parábola, como en canDiveMiss. */
+  function missLands(g) {
+    var b = g.ball, tl = ballLandT(g);
+    return Math.abs(b.x + b.vx * tl) <= g.HL + EFFORT.missIn && Math.abs(b.y + b.vy * tl) <= g.HW + EFFORT.missIn;
+  }
+  function canDiveMiss(g, p) {
+    if (g.fl && flNo(g, p, true)) return false; // fl
+    var b = g.ball;
+    if (b.held || g.mode !== 'rally' || p.down > 0 || p.z > 0 || p.vz > 0) return false;
+    if (g.lastKind === 'serve' && g.touchTeam === p.team) return false;
+    if (g.touchTeam === p.team && g.lastPlayer === p) return false;
+    var d = Math.hypot(b.x - p.x, b.y - p.y), rl = bl(p, 'red'), dr = (C.REACH + diveROf(g, p)) * (rl ? BADGE.redR[rl] : 1);
+    if (d <= dr || d > dr + missROf(g) || b.z < 0.08 || b.z > EFFORT.missZ) return false;
+    if (b.x * side(p.team) <= 0.2) return false;
+    // el balón que va a botar fuera no se persigue en plancha (antes se tiraba a por remates que acababan «fuera»): bote previsto por
+    // la parábola (sin rozamiento: cae en < 0,25 s), dentro de la pista + missIn m
+    var ge = gEff(b), tl = (b.vz + Math.sqrt(b.vz * b.vz + 2 * ge * b.z)) / ge;
+    return Math.abs(b.x + b.vx * tl) <= g.HL + EFFORT.missIn && Math.abs(b.y + b.vy * tl) <= g.HW + EFFORT.missIn;
+  }
   /** ESTIRÓN del 1r toque del HUMANO (17-nov-2026, Ferran: «Hay que "nerfear" la defensa. Si el balón va muy lejos de tu cuerpo, por
    *  mucho que hagas buen timing la pelota no va donde tú quieres exactamente»). s = (d / alcance − d0) / (1 − d0), entre 0 y 1, al
    *  cuadrado (casi nada a media distancia, todo al límite). Calidad ×(1 − q·s) (además del −30 % lineal de siempre) y dispersión del
@@ -1293,6 +1511,7 @@
     if (g.fl && flNo(g, p, false)) return; // fl
     var t = p.team, sd = side(t), b = g.ball, prof = profOf(g, p);
     var inKind = g.lastKind, inShot = g.lastShot, inPrev = g.prevKind; // lo que llega (para contar defensas de remate)
+    var inFool = g.feintFool; g.feintFool = false;                          // (EFFORT: solo vale durante el vuelo del toque que la puso)
     var prevPlayer = g.lastPlayer;                                          // autor del toque anterior (colocador: asistencia, Manos de seda)
     var prevQ = g.touchTeam === t ? g.lastQ : 1;                            // calidad del toque anterior del propio equipo (SETQ)
     if (g.touchTeam === t && g.lastPlayer === p) { fault(g, t, 'double', 'Dobles: el mismo jugador toca dos veces', p); return; }
@@ -1361,7 +1580,8 @@
     var strK = human && count === 1 && !atkC0 && !jset && shot !== 'dive' && shot !== 'body' ? stretchOf(g, p, d) : 0;
     // plancha (17-nov-2026, Ferran: «hay que hacer que sea más difícil salvar esas y que vayan bastante peor»): tope 0,45 × 0,7 = 0,32
     // (siempre 'poor'; antes 0,62 × 0,85 = 0,53, 'good') y, en el 1r toque, DIVE_FAIL de que salga desviada (abajo)
-    if (shot === 'dive') q = Math.min(q, 0.45) * 0.7;
+    // (IA, EFFORT.diveQ: la plancha al límite contra un balón asequible para su Defensa puede salir buena; ver diveCapAI)
+    if (shot === 'dive') q = Math.min(q, human ? 0.45 : diveCapAI(g, p)) * 0.7;
     if (vsAtk) q *= BLK_AIRQ; // defensa en el aire de un remate: casi nunca sale limpia
     q = clamp(q, 0, 1);
     if (feint) q *= MASTERY.feint.q;
@@ -1413,6 +1633,14 @@
     var o = { x: b.x, y: b.y, z: b.z };
     var v, kind, at, er, power = 0, dip = 0, sub = shot, edge = 0, tempo = '', lq = NaN, laneB = false, hSet = false, backB = false; // (lq: calidad que se arrastra, C2)
     var momQ = 0, jaim = false; // salto con impulso: bonus del remate (0..1, hit.mom) y colocación en salto a la diana (hit.jaim)
+    // EFFORT, playa: tras un toque de bloqueo propio el toque siguiente es el 2º (el bloqueo cuenta), pero sigue siendo la defensa de un
+    // remate: también pasa por el dado de contacto (antes solo se tiraba con count 1 y la desviada del propio bloqueo salía siempre
+    // limpia). Si falla, sale como la desviada del 1r toque (rama de abajo); si no, el 2º toque normal
+    var effB = false, effBX = false;
+    if (g.beach && !human && count === 2 && inKind === 'block' && inShot === 'touch' && !atkC0 && !jset && shot !== 'body' && shot !== 'shank') {
+      var effPB = effortFail(g, p, d, shot === 'dive', false);
+      if (effPB > 0) { var effRB = g.rng(); if (effRB < effPB) { effB = true; effBX = shot === 'dive' || effRB >= effP0; } }
+    }
     if (shot === 'body') {
       // el balón da en el cuerpo sin gesto de golpeo (regla: cualquier parte del cuerpo vale como toque).
       // Rebota amortiguado hacia atrás y hacia arriba, con un desvío lateral: casi nunca controlado.
@@ -1531,10 +1759,11 @@
       g.hardIn = kind === 'spike';
       var dp = g.prof[1 - t]; // (con atributos, abajo: el perfil del defensor previsto)
       if (kind === 'spike') {
-        g.digMargin = digMargin(g, 1 - t, o, v, C.G + dip);
+        g.digMargin = r3(digMargin(g, 1 - t, o, v, C.G + dip)); // (r3: viaja online en flMeta)
         if (g._digWho && g._digWho.prof) dp = g._digWho.prof;
         // A3: remate perfecto del humano -> la IA rival defiende peor (x0,8); remate perfecto contra el humano -> g.digTight
         var tightK = human && grade === 'perfect' ? 0.8 : 1;
+        if (human && grade === 'perfect' && !g.rot) tightK *= EFFORT.perfK; // EFFORT (2v2, playa): el remate perfecto del humano, aún más difícil de controlar
         // remate tras una colocación en salto buena o perfecta en el 2º toque: el tempo rápido pilla a la defensa rival a
         // medio colocar. No tras la del 1r toque: ahí ya sale sola (balón regalado en la red) y con el ×dig colocar ganaba
         // más que rematarlo uno mismo
@@ -1546,12 +1775,17 @@
           if (edge > 0) tightK *= 1 - MASTERY.edge.dig * edge;
           if (perfChain) tightK = Math.min(tightK, Math.max(MASTERY.chain.minTight, tightK * MASTERY.chain.dig));
         }
-        g.digOk = g.rng() < dp.dig * tightK * clamp(1.55 - 0.9 * power, 0.3, 1.25) * clamp(1.21 + 1.3 * g.digMargin, 0.35, 1.7);
+        // EFFORT: ya no se tira aquí un dado de «la saca / no la saca» (antes con el margen de tiempo, digMargin, y el defensor
+        // perdido iba lento a propósito). Solo la dificultad del balón para el dado de CONTACTO (effortFail, con la Defensa del que
+        // la toque); que llegue o no lo decide su carrera. (dp, digMargin y _digWho quedan para quien los lee: online, pruebas)
+        g.digK = r3(tightK * clamp(1.55 - 0.9 * power, 0.3, 1.25)); g.digOk = true; // (r3: viaja online en flMeta; con 3 decimales, ~14 B menos por paquete)
         g.digTight = grade === 'perfect' && (g.online ? humOn(g, 1 - t) : 1 - t === 0) && !g.demo && !g.autopilot;
-      } else { g.digOk = true; g.digTight = false; }
+      } else { g.digOk = true; g.digTight = false; g.digK = 0; }
       // E1 (finta con el bloqueo rival en el aire: el bloqueador ya saltó contra el remate armado): la defensa CPU queda engañada con
-      // prob. feintBeat del perfil rival (dado hk, sin g.rng): lee tarde, va lenta y, si llega, no la controla (ai.js, como un remate perdido)
-      if (feint && blkAir(g, 1 - t)) g.digOk = g.digOk && hk(g, 0xE11) >= (g.prof[1 - t].feintBeat || 0);
+      // prob. feintBeat del perfil rival (dado hk, sin g.rng): LEE TARDE (+EFFORT.feintReact s, ai.js) y, si llega, la controla peor
+      // (digK ×feintK). Corre igual a por ella: el engaño se ve en la arrancada, no en un defensor lento
+      g.feintFool = !!(feint && blkAir(g, 1 - t) && hk(g, 0xE11) < (g.prof[1 - t].feintBeat || 0));
+      if (g.feintFool) g.digK = r3((g.digK || 1) * EFFORT.feintK);
     } else if (count === 3) {
       at = tgt || attackTarget(p, aim, 6.5, g.cs);
       er = (0.35 + 1.4 * (1 - q)) * mul;
@@ -1560,16 +1794,31 @@
       else v = launchSafe(o, at[0] + rnd(g, er), at[1] + rnd(g, er), 0, ap);
       kind = 'free'; sub = sub || (b.z - p.z > 1.6 ? 'overhead' : 'forearm');
       g.hardIn = false; g.digOk = true;
-    } else if (count === 1) {
+    } else if (count === 1 || effB) {
       er = (0.18 + 1.45 * (1 - q) + (hardIn ? 0.45 * (1 - q) : 0) + STRETCH.er * strK * (1 + STRETCH.sp * clamp((inSp - 11) / 8, 0, 1))) * mul; // (+ estirón)
+      // EFFORT: la IA que llega a un remate/saque/bloqueo puede no controlarlo; se decide AQUÍ, en el contacto, según cómo llega
+      // (cómoda, estirada, en plancha), el balón (g.digK / g.recvRisk) y su Defensa/Recepción. Si falla por el balón (la parte
+      // «cómoda» del dado) sale disparada (shank); si falla por llegar estirada o en plancha, desviada cerca (a veces jugable)
+      var effX = false, effP = 0;
+      if (effB) { if (effBX) effX = true; else { shot = 'shank'; sub = 'shank'; } } // (playa tras el bloqueo: dado ya tirado arriba)
+      else if (!human && shot !== 'shank' && shot !== 'body') {
+        effP = effortFail(g, p, d, shot === 'dive', inFool); var effR = effP > 0 ? g.rng() : 1;
+        if (effR < effP) { if (shot === 'dive' || effR >= effP0) effX = true; else { shot = 'shank'; sub = 'shank'; } }
+      }
       if (shot === 'shank') { // la IA llega pero no la controla: el balón sale disparado (casi siempre injugable)
-        // sale tenso y bajo, casi siempre hacia fuera (el compañero rara vez llega)
+        // sale tenso y bajo: a la grada (prob. EFFORT.shankFar) o REBOTA en los brazos y cae al suelo cerca de ella, dentro de su
+        // campo (calibración EFFORT, 18-nov-2026: con todo a la grada, «Defensa fuera» pasaba del 11-17 % de los puntos)
         var spk = g.lastKind === 'spike';
-        var sy = (g.rng() < 0.5 ? -1 : 1), far = g.rng() < (spk ? 0.9 : 0.85);
-        var shA = spk ? 1.1 + g.rng() * 1.3 : 1.1 + g.rng() * 1.5;
-        v = launchApex(o, sd * (far ? 8.5 + g.rng() * 6 : 3 + g.rng() * 4), sy * (far ? 5.6 + g.rng() * 3.5 : 3 + g.rng() * 2), 0, Math.max(b.z + 0.3, shA));
+        var sy = (g.rng() < 0.5 ? -1 : 1), far = g.rng() < (g.rot ? EFFORT.six.shankFar : EFFORT.shankFar)[spk ? 0 : 1];
+        var shA = spk ? 1.1 + g.rng() * 1.3 : 1.1 + g.rng() * 1.5, shU = g.rng(), shV = g.rng();
+        if (far) v = launchApex(o, sd * (8.5 + shU * 6), sy * (5.6 + shV * 3.5), 0, Math.max(b.z + 0.3, shA));
+        else v = launchApex(o, sd * clamp(sd * b.x - 1.2 + shU * 3, 1.2, g.HL - 0.5), clamp(b.y + sy * (0.6 + shV * 2), 0.4 - g.HW, g.HW - 0.4), 0, Math.max(b.z + 0.2, shA * 0.7));
         q = Math.min(q, 0.2); grade = 'poor';
-      } else if ((shot === 'dive' && g.rng() < DIVE_FAIL * ek) || (q < 0.3 && g.rng() < 0.55 * (0.3 - q) / 0.3 * ek)) { // recepción fallida (o plancha): sale desviada (×ek: Recepción/Defensa)
+      } else if (effX) { // IA (EFFORT) que llega estirada o en plancha y no la controla: desviada cerca, a veces jugable (más dentro del
+        // campo que la de abajo: si no, media «Defensa fuera» salía de aquí)
+        var ey = (g.rng() < 0.5 ? -1 : 1) * (1.5 + g.rng() * 2.6);
+        v = launchApex(o, sd * (2.5 + g.rng() * 6), clamp(b.y * 0.5 + ey, -g.HW - 0.8, g.HW + 0.8), 0, 2.6 + g.rng() * 2); sub = 'shank';
+      } else if ((shot === 'dive' && !(effP > 0) && g.rng() < DIVE_FAIL * ek) || (q < 0.3 && g.rng() < 0.55 * (0.3 - q) / 0.3 * ek)) { // recepción fallida (o plancha): sale desviada (×ek: Recepción/Defensa; la plancha de la IA, solo si no pasó por el dado de contacto: balón libre, dejada, pase)
         var wy = (g.rng() < 0.5 ? -1 : 1) * (3.5 + g.rng() * 2.5);
         v = launchApex(o, sd * (2.5 + g.rng() * 6), wy, 0, 2.6 + g.rng() * 2); sub = 'shank';
       } else if (g.rot && VB.AI6) { // 6v6: al punto de colocación (VB.AI6.passTarget), el error en profundidad sin pasar la red
@@ -1616,7 +1865,7 @@
       g.hardIn = false; g.digOk = true;
     }
     b.vx = v[0]; b.vy = v[1]; b.vz = v[2]; b.dip = dip; b.wobA = 0;
-    if (kind !== 'spike') g.digTight = false;
+    if (kind !== 'spike') { g.digTight = false; if (!g.feintFool) g.digK = 0; } // (EFFORT: la dejada que engaña conserva su digK)
     if (g.online) aimOff(g); else g.aim3.on = false;
     g.prevKind = g.lastKind;
     g.lastKind = kind; g.lastShot = sub; g.lastQ = lq === lq ? lq : q; g.lastTouchT = g.time; g.netSince = false;
@@ -1788,13 +2037,14 @@
       // El toque de bloqueo no cuenta como uno de los 3 toques del equipo; en la PLAYA sí (quedan 2, y el bloqueador puede
       // dar el siguiente: lastPlayer null)
       g.touchTeam = q.team; g.touches = g.beach ? 1 : 0; g.lastPlayer = null; g.lastTeam = q.team; q.anim = 0.3; g.prevKind = g.lastKind; g.lastKind = 'block'; g.digTight = false;
-      g.lastShot = kindB; g.lastTouchT = g.time; g.hardIn = false; g.digOk = true; g.netSince = false;
-      if (kindB === 'stuff') { // el atacante casi nunca la salva
-        g.hardIn = true; g.digOk = g.rng() < 0.2 * (1 - qb);
+      g.lastShot = kindB; g.lastTouchT = g.time; g.hardIn = false; g.digOk = true; g.netSince = false; g.digK = 0; g.feintFool = false;
+      // EFFORT: tras el bloqueo tampoco hay dado previo; la dificultad del balón para el dado de contacto (con la Defensa del que lo
+      // toque, no la del bloqueador como antes)
+      if (kindB === 'stuff') { // el atacante casi nunca la salva (balón hacia abajo y pegado a la red)
+        g.hardIn = true; g.digK = r3(EFFORT.stuffK * (1 - qb));
         g.atkTeam = q.team; g.atkHow = 'block'; g.atkHits = g.rally.hits; g.atkHuman = human; g.atkGrade = gradeOf(qb);
       } else if (kindB === 'touch') { // el remate sigue vivo pero frenado: la defensa IA lo saca más que un remate limpio
-        var dpb = profOf(g, q);
-        g.hardIn = true; g.digOk = g.rng() < clamp(0.08 + dpb.dig * 1.0, 0, 0.85);
+        g.hardIn = true; g.digK = EFFORT.touchK;
       }
       q.lastAction = 'block'; q.actionT = 0; q.shot = kindB; q.grade = gradeOf(qb);
       if (g.stats) { g.stats.blocks++; g.stats.blockKinds[kindB]++; }
@@ -1838,7 +2088,7 @@
       if (!isHuman(g, p) && g.touchTeam === p.team &&
           (g.lastPlayer === p || g.touches >= 3 || g.time - g.lastTouchT < 0.3)) continue;
       if (isHuman(g, p)) { if (g.online ? hget(g, p.team, 'swingLive') : g.swingLive) continue; }                    // gesto en curso: lo resuelve processSwing
-      else if (g.jobs[p.team] === p && g.digOk) continue;                 // la IA que va a jugarlo lo juega (salvo 'batida')
+      else if (g.jobs[p.team] === p) continue;                            // la IA que va a jugarlo lo juega con un gesto (EFFORT: ya no hay «batida»)
       hit(g, p, null, 0.25, 'body', null);
       return;
     }
@@ -2495,7 +2745,7 @@
     endRitual(g);
     g.mode = 'rally'; g.serveState = 'ready'; g.serveJump = false; g.timer = 0;
     g.lastLand = null; g.antennaHit = null; g.atkServe = null; g.call = null; g._pendCall = null; g.cpuChal = null;
-    g.hardIn = false; g.digOk = true; g.prevKind = ''; g.atkTeam = -1; g.atkHow = ''; g.atkHuman = false; g.atkGrade = ''; g.atkSet = null;
+    g.hardIn = false; g.digOk = true; g.digK = 0; g.feintFool = false; g.prevKind = ''; g.atkTeam = -1; g.atkHow = ''; g.atkHuman = false; g.atkGrade = ''; g.atkSet = null;
     g.rally.t = 0; g.rally.hits = 0; g.rally.digs = 0; g.jobs[0] = g.jobs[1] = null;
     endSwing(g); g.swingLock = 0; g.jsetQ = 0; g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; g.blockCD = 0; g.netSince = false; g.digTight = false; g.aim3.on = false; g.aim3.kind = ''; g.aimCarry = 0;
     g.atkMove = ''; g.atkEdge = 0; g.lastTempo = ''; g.feintT = -9; g.chain = 0; g.chainH = 0; g.defRole = '';
@@ -2790,18 +3040,23 @@
     else {
       var spk = p.ak && isHuman(g, p) ? p.ak.speed : 1;
       if (p.badges && g.mode === 'rally') spk *= BADGE.motor[bl(p, 'motor')]; // Motor (humano e IA)
-      if (p.ak && p.ak.accT > 0) { // Velocidad < 50: acelera en accT s hasta su máxima; ≥ 50, instantáneo
+      var hum = isHuman(g, p), aT = hum ? (p.ak && p.ak.accT > 0 ? p.ak.accT : 0) : accTOf(g, p);
+      if (aT > 0) { // humano: Velocidad < 50 acelera en accT s hasta su máxima (≥ 50, instantáneo); IA: siempre arrancada (EFFORT.accT)
         // frenar y girar es al momento (integración, 10-nov-2026: con la rampa también al frenar se pasaba 0,74 m en un giro con
         // Velocidad 15 y se notaba como retraso del mando): solo cuenta la velocidad que ya lleva en la dirección que se pide, y
         // la rampa es solo para arrancar
         var tvx = mx * C.SPEED * spk, tvy = my * C.SPEED * spk, tl = Math.hypot(tvx, tvy);
         if (tl < 1e-6) p.rvx = p.rvy = 0;
         else {
-          var ux = tvx / tl, uy = tvy / tl, al = Math.min(tl, Math.max(0, p.rvx * ux + p.rvy * uy) + C.SPEED * p.ak.speed / p.ak.accT * dt);
+          var vMax = hum ? C.SPEED * p.ak.speed : C.SPEED * profOf(g, p).speed * spk; // (la IA: su máxima con el perfil)
+          var ux = tvx / tl, uy = tvy / tl, al = Math.min(tl, Math.max(0, p.rvx * ux + p.rvy * uy) + vMax / aT * dt);
           p.rvx = ux * al; p.rvy = uy * al;
         }
         p.x += p.rvx * dt; p.y += p.rvy * dt;
-      } else { p.x += mx * C.SPEED * spk * dt; p.y += my * C.SPEED * spk * dt; }
+      } else {
+        p.x += mx * C.SPEED * spk * dt; p.y += my * C.SPEED * spk * dt;
+        p.rvx = mx * C.SPEED * spk; p.rvy = my * C.SPEED * spk; // (la velocidad que lleva: si entra en la rampa de EFFORT, parte de aquí)
+      }
     }
     if (p.lvx || p.lvy) { // impulso de la plancha
       p.x += p.lvx * dt; p.y += p.lvy * dt; var k = Math.max(0, 1 - 7 * dt); p.lvx *= k; p.lvy *= k;
@@ -3023,7 +3278,7 @@
     g.serveAuth = false; g.whistleAt = g.demo ? RITUAL.demoWhistle : 0.7; // (también abajo, tras el serveReady: el ritual lo necesita ya)
     b.held = sv; b.vx = b.vy = b.vz = 0; b.dip = 0; b.wobA = 0;
     g.touchTeam = -1; g.touches = 0; g.lastPlayer = null; g.lastTeam = t; g.jobs[0] = g.jobs[1] = null; g.lastKind = ''; g.lastShot = '';
-    g.hardIn = false; g.digOk = true; g.prevKind = ''; g.atkTeam = -1; g.atkHow = '';
+    g.hardIn = false; g.digOk = true; g.digK = 0; g.feintFool = false; g.prevKind = ''; g.atkTeam = -1; g.atkHow = '';
     var prevCtrl = g.ctrl;
     if (g.ctrlMode !== 'one') g.ctrl = t === 0 ? sv : g.teams[0][0]; // modo 'one': el humano sigue con su jugador (si saca el compañero, saca la IA)
     if (g.online) resetSlots(g); else { endSwing(g); g.swingLock = 0; g.defRole = ''; g.aimCarry = 0; }
@@ -3145,12 +3400,10 @@
     // ¿Recibirá bien la IA? Función CONTINUA de la dificultad del saque (velocidad, baile del flotante, zona y
     // carrera del receptor), escalada por la recepción del perfil. (Antes era un corte duro a 13 m/s: un
     // flotante sin apuntar nunca podía ser ace y su baile no contaba.)
-    var rp = g.prof[1 - sv.team];
-    g.recvRisk = serveRisk(g, 1 - sv.team);
-    if (g.recvRisk > 0 && g._rc && g._rc.who && g._rc.who.prof) rp = g._rc.who.prof; // con atributos: la recepción del receptor previsto
-    // Ancla (IA): el receptor previsto (el que llega antes al bote) recibe con recv + 0,02/0,04/0,06
-    if (g.recvRisk > 0 && g._rc && g._rc.who) { var al = bl(g._rc.who, 'ancla'); if (al) rp = { recv: Math.min(0.99, rp.recv + BADGE.anclaAI[al]) }; }
-    g.digOk = g.rng() >= recvFail(g.recvRisk, rp);
+    g.recvRisk = r3(serveRisk(g, 1 - sv.team)); // (r3: viaja online en flMeta; 3 decimales bastan y el paquete es más corto)
+    // EFFORT: sin dado previo. recvFail(g.recvRisk) se tira en el CONTACTO con la Recepción (y el Ancla) del que la toca de verdad
+    // (effortFail), no con la del receptor previsto
+    g.digOk = true; g.digK = 0; g.feintFool = false;
     if (human) g.lastGrade = grade;
     if (g.stats) { g.stats.serves[sv.team]++; g.stats.hits.serve++; g.stats.grades[grade]++; if (human) g.stats.hgrades[grade]++; g.stats.shots[sv.shot] = (g.stats.shots[sv.shot] || 0) + 1; }
     var sev = emit(g, { type: 'hit', kind: 'serve', player: sv, team: sv.team, touch: 0, quality: q, grade: grade, timing: te,
@@ -4532,7 +4785,7 @@
       ltAge: g.time - g.lastTouchT, prevKind: g.prevKind, netSince: g.netSince, bb: flId(g.blockBy), blockCD: g.blockCD,
       atkServe: a ? { team: a.team, reason: a.reason, text: a.text, pid: flId(a.player) } : null,
       antennaHit: ah ? { x: ah.x, y: ah.y, z: ah.z } : null, digOk: g.digOk, digMargin: g.digMargin, dw: flId(g._digWho),
-      hardIn: g.hardIn, digTight: g.digTight, recvRisk: g.recvRisk,
+      hardIn: g.hardIn, digTight: g.digTight, recvRisk: g.recvRisk, digK: g.digK, feintFool: g.feintFool ? 1 : 0, // (feintFool 0/1: un byte en vez de «false»)
       rc: rc ? { pace: rc.pace, wob: rc.wob, run: rc.run, move: rc.move, line: rc.line, ft: rc.ft, who: flId(rc.who) } : null,
       blockOff: [g.blockOff[0], g.blockOff[1]], atkTeam: g.atkTeam, atkHow: g.atkHow, atkHits: g.atkHits, atkHuman: g.atkHuman,
       atkGrade: g.atkGrade, as: flId(g.atkSet), atkMove: g.atkMove, atkEdge: g.atkEdge, feintAge: g.time - g.feintT,
@@ -4555,7 +4808,7 @@
     } else g.atkServe = null;
     g.antennaHit = ah ? { x: ah.x, y: ah.y, z: ah.z } : null;
     g.digOk = mm.digOk; g.digMargin = mm.digMargin; g._digWho = flBy(g, mm.dw); g.hardIn = mm.hardIn; g.digTight = mm.digTight;
-    g.recvRisk = mm.recvRisk;
+    g.recvRisk = mm.recvRisk; g.digK = mm.digK || 0; g.feintFool = !!mm.feintFool;
     if (rc) {
       var o = g._rc || (g._rc = {});
       o.pace = rc.pace; o.wob = rc.wob; o.run = rc.run; o.move = rc.move; o.line = rc.line; o.ft = rc.ft; o.who = flBy(g, rc.who);
@@ -4911,7 +5164,7 @@
     // 6v6 con humano: puestos jugables (fila Controlar) y cambio de puesto
     CTRL_ROLES6: CTRL_ROLES6, setCtrlRole: setCtrlRole,
     // añadidos (opcionales)
-    hitWindow: hitWindow, aimPoint: aimPoint, predictKind: predictKind, canDive: canDive, timingQ: timingQ, gradeOf: gradeOf,
+    hitWindow: hitWindow, aimPoint: aimPoint, predictKind: predictKind, canDive: canDive, canDiveMiss: canDiveMiss, missROf: missROf, diveROf: diveROf, accTOf: accTOf, aiReactEff: aiReactEff, blkTouchIn: blkTouchIn, preROf: preROf, preLate: preLate, missLands: missLands, landT: ballLandT, effortFail: effortFail, timingQ: timingQ, gradeOf: gradeOf,
     normDiff: normDiff, DIFF: DIFF, TIMING: TIMING,
     atkPhase: atkPhase, blockPressCase: blockPressCase, canJset: canJset, jsetReady: jsetReady, jsetVoid: jsetVoid, JSET: JSET, // colocación en salto
     // E1 (maestría, sprint 5): botón COLOCAR contextual, vista previa de la colocación dirigida, filo, azar sin g.rng, constantes

@@ -453,6 +453,14 @@ Todos llevan `type` y `t` (tiempo de juego). `player` es la referencia al objeto
   tras ai.js): `computeJob, pos, placeServe, passTarget, chooseSet, blockPlan, digK, canAttack, setterOf, FORM`.
 - Revisión del sprint 2 (10-nov-2026, solo 6v6, detrás de `g.rot`): el defensor «perdido» (dado `g.digOk` en contra) lee 0,4 s tarde y va
   al 30 % (`BEAT6` en ai.js; en 2v2 0,12 s y 60 %, como siempre); el central zaguero cubre la colocación en el sitio del líbero.
+  **Sustituido el 18-nov-2026 por el modelo de esfuerzo (`VB.EFFORT`, sim.js):** ya no hay «perdido» ni `BEAT6`; `g.digOk` queda siempre
+  `true` (se sigue enviando online). Estado nuevo: `g.digK` (dificultad del balón para el dado de contacto, la pone el que golpea) y
+  `g.feintFool` (finta que engaña: lectura tardía); los dos viajan en `flMeta`. `VB.Sim`: `accTOf, aiReactEff, effortFail, canDiveMiss, missROf, diveROf`
+  (alcance de la plancha: el humano `C.DIVE`, la IA según su Velocidad; calibrado con `tools/effortstat.js`, ver notes/sim.md). Revisión del
+  mismo día: en `VB.AI` el compañero IA que tiene al alcance un balón al que el elegido (`g.jobs`) no llega lo juega él (rescate, solo en defensa).
+  Afinado (18-nov-2026, 2ª ronda): `VB.Sim` también `blkTouchIn, preROf, preLate, missLands`; jugador nuevo `p.aiRk` (lectura del balón rival
+  de este toque, ×reacción; la IA lo muestrea con `S.hk`, sin `g.rng`; va en el mapa de netview). Ver notes/sim.md («Afinado»).
+  Revisión 2 del afinado (18-nov-2026): `VB.Sim` también `landT` (s que le faltan al balón para botar; pura). Ver notes/sim.md.
   Pendiente (sprint 3): humano en 6v6 (control Uno por rol, «¡Pídela!», `AI6.decide`), sin eventos `switch` en 6v6, faltas de posición pitadas.
 - **6v6 con humano (sprint 3, 11-nov-2026; solo con `g.rot`, el 2v2 no cambia: huella idéntica)**: `g.ctrl` = el primer jugador del puesto
   `g.ctrlRole` ('OH': el receptor n.º 2, siempre en pista), control fijo sin eventos `switch`. Estado nuevo: `g.ctrlRole`, `g.assist6` (Fácil/Normal:

@@ -89,6 +89,15 @@ for (const cfg of CFGS) {
     { sbFix: [fa.sbFix, fb.sbFix], ptBad: [fa.ptBad, fb.ptBad], guard: [gA.fl.guard, gB.fl.guard] });
   tot.out += fa.chOut + fb.chOut; tot.ok += fa.chOk + fb.chOk; tot.no += fa.chNo + fb.chNo; tot.over += st.res[0].filter(x => x[1] === 'A').length;
 }
+// un challenge que anula el punto pide un bote a < 0,4 m de la línea tras cruzar la red y que el árbitro lo cante mal: es raro y caótico
+// (con la IA de esfuerzo real de 1.15.0 las semillas 41-54 no dieron ninguno y las 100-111 dieron 4). Si las de siempre no dan
+// ninguno, se siguen jugando partidos extra (semillas 100+, hasta 8) solo para ver la anulación sincronizada en las dos máquinas
+for (let x = 0; tot.over === 0 && x < 8; x++) {
+  const cfg = { seed: 100 + x, venue: x % 2 ? 'beach' : 'hall', rtt: [40, 120, 200][x % 3], loss: 0, points: 11 }, R = run(cfg), st = R.st;
+  if (st.err) { check('sin excepciones (extra, semilla ' + cfg.seed + ')', false, String(st.err && st.err.stack || st.err).split('\n').slice(0, 4)); break; }
+  check('extra semilla ' + cfg.seed + ': mismos challenges y resultados en las dos máquinas', JSON.stringify(st.ch[0]) === JSON.stringify(st.ch[1]) && JSON.stringify(st.res[0]) === JSON.stringify(st.res[1]) && JSON.stringify(st.pts[0]) === JSON.stringify(st.pts[1]));
+  tot.over += st.res[0].filter(r => r[1] === 'A').length;
+}
 console.log('== en total: ' + JSON.stringify(tot));
 check('hay challenges aceptados, alguno rechazado por tarde y alguno que anula el punto', tot.ok > 0 && tot.no > 0 && tot.over > 0, tot);
 console.log('\n' + oks + ' ok, ' + fails + ' fallos');

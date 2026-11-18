@@ -32,7 +32,7 @@
     serveJump: 'as', serveClock: 'as', serveClockMax: 'as', serveT: 'as', tossT: 'as', jumpAt: 'as', aiServeTe: 'as', serveAuth: 'as',
     whistleAt: 'as', touchTeam: 'team', touches: 'as', lastPlayer: 'ref', lastTeam: 'team', lastKind: 'as', lastShot: 'as', lastQ: 'as',
     lastTouchT: 'as', ctrl: 'special', jobs: 'swap', pr1: 'pos', pr3: 'pos', blockOff: 'swapneg', timer: 'as', blockCD: 'as',
-    pendingSet: 'as', digOk: 'as', hardIn: 'as', finished: 'as', feintT: 'as', atkMove: 'as', atkEdge: 'as', lastTempo: 'as',
+    pendingSet: 'as', digOk: 'as', digK: 'as', feintFool: 'as', hardIn: 'as', finished: 'as', feintT: 'as', atkMove: 'as', atkEdge: 'as', lastTempo: 'as',
     chain: 'as', chainH: 'as', prevKind: 'as', atkTeam: 'team', atkHow: 'as', atkHits: 'as', atkSet: 'ref', jobMem: 'swap',
     jobMemT: 'swap', jobSwT: 'swap', jobHop: 'swap', digMargin: 'as', lastPoint: 'special', setPoint: 'team', matchPoint: 'team',
     rally: 'as', present: 'as', hold: 'as', streakTeam: 'team', streakN: 'as', atkHuman: 'as', atkGrade: 'as', digTight: 'as',
@@ -54,7 +54,7 @@
     id: 'as', team: 'team', idx: 'as', num: 'as', role: 'as', zone: 'as', front: 'as', x: 'neg', y: 'neg', z: 'as', vx: 'neg', vy: 'neg',
     vz: 'as', anim: 'as', cool: 'as', st: 'as', prof: 'as', ak: 'as', badges: 'as', bd: 'as', bdT: 'as', jvx: 'neg', jvy: 'neg',
     lvx: 'neg', lvy: 'neg', rvx: 'neg', rvy: 'neg', down: 'as', shot: 'as', grade: 'as', aiTe: 'as', aiTeT: 'as', aiJt: 'as',
-    aiDv: 'as', e1T: 'as', e1Until: 'as', lastAction: 'as', pressEnd: 'as', actionT: 'as', onGround: 'as', tgx: 'neg', tgy: 'neg',
+    aiDv: 'as', aiRk: 'as', e1T: 'as', e1Until: 'as', lastAction: 'as', pressEnd: 'as', actionT: 'as', onGround: 'as', tgx: 'neg', tgy: 'neg',
     tgA: 'as', tgB: 'as', tgTime: 'as', aiPlT: 'as', aiPl: 'as',
     avx: 'neg', avy: 'neg', tkX: 'neg', tkY: 'neg', dj: 'as', jF: 'as', landT: 'as'   // (salto con impulso: carrera media, despegue; jF ya es «hacia la red»)
   };
@@ -71,7 +71,8 @@
     reason: 'as', recv: 'as', result: 'as', savedSetPoint: 'as', setNo: 'as', setWon: 'as', shot: 'as', sideout: 'as', signal: 'as',
     speed: 'as', streak: 'as', t2: 'as', tape: 'as', tempo: 'as', timing: 'as', tool: 'as', touch: 'as', touchedOut: 'as',
     truthIn: 'as', venue: 'as', why: 'as', dur: 'as', wrong: 'as', used: 'as', auto: 'as', reset: 'as', mode: 'as',
-    jv: 'as', mom: 'as', pipe: 'as', hard: 'as', jaim: 'as'   // (salto con impulso; jump.dir ya es 'vec')
+    jv: 'as', mom: 'as', pipe: 'as', hard: 'as', jaim: 'as',  // (salto con impulso; jump.dir ya es 'vec')
+    ok: 'as'   // (blockPress: pulsación del bloqueo activo a tiempo o no; faltaba, viewtest lo vio el 18-nov-2026 al cambiar los partidos de bots)
   };
   // claves conocidas de los objetos anidados que flip toca o deja (viewtest falla si aparece otra: habría que clasificarla)
   var NESTED = {

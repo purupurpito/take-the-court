@@ -528,8 +528,139 @@ cualquier parte del cuerpo = toque** (nuevo), **cambio de campo** (nuevo).
 
 ### IA (lo que se ve)
 - Quién va al balón: por tiempo hasta el balón; histéresis del cambio de jugador (0,3 s de ventaja, máx. uno cada 0,5 s).
-- Defensa/recepción que la CPU "no va a sacar" (`g.digOk === false`, también en saques): lee tarde, llega tarde, se tira
-  y no llega (`dive {miss:true}`) o la toca desviada (`shank`) / le da en el cuerpo (`body`). Nunca se queda quieta.
+- Modelo de esfuerzo (`VB.EFFORT`, 18-nov-2026; sustituye al dado previo `g.digOk` y al defensor «perdido»): la IA siempre va a tope
+  de sus stats (reacción efectiva, arrancada `accT`, velocidad, alcance y plancha). Si no llega es por la física; si no llega ni en
+  plancha por poco (`missR`), se tira igual (`dive {miss:true}`). Llegando, el dado de controlarla se tira en el contacto
+  (`effortFail`: cómoda / estirada / plancha × Defensa o Recepción del que la toca × `g.digK`); si falla, `shank`.
+  Calibrado el 18-nov-2026 con `tools/effortstat.js` (24 casillas: 2v2, 6v6 y playa, CPU contra CPU y bot medio contra la CPU en
+  cada dificultad, más equipos con atributos a 30 y a 80) contra el código anterior (61ac1f9, `tools/out/effort-base.json`), media
+  de las semillas 4242 y 777, 7200 s por casilla. Lo que cambió en la calibración y por qué:
+  - Reacción `0,08 + 0,7·react` (Fácil 0,29 · Normal 0,21 · Difícil 0,17 · Experto 0,12 s), arrancada `accT` 0,12 s (×2,1 en 6v6,
+    ×1,5 en playa), lectura del remate `spikeRead` 0 en 2v2 y 0,08 s en 6v6 (con 0,2 el defensor de 6v6 parecía quieto: corría
+    0,2 m), + 0,075 s en playa, + `perfRead` 0,07 s en 6v6 contra el remate perfecto del humano.
+  - Plancha de la IA con alcance según el atributo Velocidad (`diveROf`: `C.DIVE × diveK × ak.speed^4`; 6v6 `diveK` 0,3): con la
+    plancha entera, seis defensores lo tocaban todo y los atributos no cambiaban nada en 6v6.
+  - Contacto cómodo `0,9·(1 − 1,2·base)` (6v6: `1 − 2·base`), lineal como el dado de antes: el remate bueno del humano (digK bajo)
+    falla mucho más que el de la CPU y la Defensa se nota. Plancha = estirón 0,8 (con 1,25 casi no quedaban defensas buenas).
+  - La desviada por el balón sale a la grada solo el 35 % (`shankFar`); el resto rebota y cae en su campo. La desviada por estirón
+    o plancha sale más dentro. Con todo a la grada, «Defensa fuera» subía al 11-17 % de los puntos en 2v2.
+  - `touchK` 0,7 (tras tocar el bloqueo, ~50 % de defensas buenas como antes), `recvK` 1 (aces y recepciones malas como antes).
+  - Maestría: `MASTERY.roll.digK` 1,3 (el colocado rendía 1,1-1,35× el remate perfecto; simtest E1 (c) pide 0,6-0,9×) y `feintBeat`
+    de Difícil 0,17 → 0,20 (sin el dado previo, la finta que no engaña ya no daba ningún punto; simtest E1 (b2)).
+  - `g.digK`, `g.digMargin` y `g.recvRisk` con 3 decimales y `feintFool` como 0/1 en `flMeta`: el partido online de playa de
+    tools/fluidtest iba justo de tráfico (2,48 KB/s con el código de antes, límite 2,5).
+  Resultado (base → ahora): en 6v6, todo a ±3; en 2v2 y playa, side-out y % de remates que acaban en punto a ±4 salvo CPU contra
+  Experto (side-out 42,6 → 49,4 en 2v2 y 33,9 → 45,8 en playa: la defensa del Experto contra remates de la CPU ya no es casi
+  perfecta; el bot medio contra Experto sí queda como antes), CPU contra Fácil y bot contra Fácil/Difícil en 2v2 (side-out +4 a +5) y
+  playa CPU contra Normal (punto 35,8 → 40) y bot contra Normal (side-out 57 → 52); toques por rally ±0,5 (playa CPU, −0,8 a −1,2);
+  «Defensa fuera» por debajo de la base en todas (6v6 ~6-10 % frente a 13-16 %); remates que caen sin tocar con el defensor dentro de
+  su alcance: ~0 (antes hasta 8,5 % en 6v6). Atributos 30 frente a 80: en 2v2, punto en el 76 % frente al 27 % de los remates (antes
+  77/44); en 6v6, 47 frente a 36 (antes 44/34).
+  **Revisión (18-nov-2026, revisión adversaria del modelo):** lo que se arregló y por qué (los números, en `VB.EFFORT` con su motivo):
+  - 6v6: el compañero que tenía el balón al alcance lo dejaba caer por no ser el elegido (`g.jobs`; 12,7 % de los remates que caían
+    sin tocar). Ahora `ai.js rescue`: si el elegido (IA) no llega ni en plancha y otro compañero sí, lo juega él (solo en defensa:
+    balón rival, rebote del bloqueo o desviada; nunca le quita la colocación al atacante). Remates que caen al alcance de otro: 0.
+  - Defensor quieto: en 6v6 y playa la reacción y la arrancada se comían el vuelo del remate (~0,4 s). Plancha fallida de reflejo
+    (`missReact` 0,18 s, aunque no haya acabado su reacción), `missR` 1 m en 6v6 y 0,9 en playa (0,6 en 2v2), arrancada de 6v6
+    `accTK` 2,1 → 1,0 y `spikeRead` 0,08 → 0,04. Remates sin tocar con el defensor quieto (< 0,5 m y sin plancha), seed 11, 3600 s:
+    6v6 CPU Normal 64 % → 39 %; 6v6 bot 51 % → 44 %; playa bot 50 % → 32 % (antes del modelo, 68 / 68 / 38 %).
+  - La plancha fallida ya no se tira a por balones que botan fuera (`missIn`, bote previsto dentro de la pista + 0,1 m).
+  - Plancha de la IA contra balón libre, dejada o pase (sin dado de contacto, `g.digK` 0): vuelve `DIVE_FAIL` (antes del modelo valía
+    para todos; con la primera versión, solo para el humano y la IA nunca la desviaba).
+  - Playa: el 2º toque tras un toque de bloqueo propio (el bloqueo cuenta) también pasa por el dado de contacto (antes salía limpio).
+  - Atributos: la Velocidad contaba tres veces (velocidad punta, arrancada `accPow` 2 y plancha `ak.speed^4` sin tope: Velocidad 100
+    planchaba 1,55 m, el doble que el humano). Ahora `accPow` 1, plancha `ak.speed^2` con tope ×1,2 (`diveMax`) y la Defensa y la
+    Recepción pesan ×4,5 en el contacto (`digAttr` 3,5). Diferencia de 20 a 80 en % de remates rivales que acaban en punto (attrstat,
+    seed 31, 5400 s; base → primera versión → ahora): Velocidad 2v2 23 → 49 → 28, playa 34 → 52 → 31; Defensa 2v2 10 → 4 → ~8,
+    6v6 7 → 1 → 14, playa 14 → 7 → ~7-14 (ruidoso).
+  - Contacto: `f0` 0,9 → 0,8 y `fC` 1,2 → 1,4 (la CPU que llegaba desviaba el doble que antes); 6v6 `failK` 1,9 y `shankFar` 0,45/0,35
+    (llega a más, el rescate salva desviadas); playa `failK` 0,75, `accTK` 1,35 y lectura 0,06 (con 1,2 / 0,045 los peloteos se
+    alargaban y el partido online de playa de tools/fluidtest no acababa en 900 s).
+  - Contra el humano: reacción `0,1 + 0,65·react` (Experto 0,14 s; con 0,12 Experto llegaba al 95 % de los remates del bot medio),
+    `perfRead` 0,05 en 2v2 y playa (0,1 en 6v6) y `perfK` 0,7 (digK del remate perfecto del humano en 2v2 y playa).
+  - Maestría: `MASTERY.roll.digK` 1,3 → 1,55 (con el contacto más empinado el colocado rendía 0,95-0,99× el remate perfecto; simtest
+    E1 (c) pide 0,6-0,9×; ahora ~0,82 / 0,71). simtest gimnasio (5): el perfecto en Remate, oro de media en las 3 semillas y nunca por
+    debajo de plata (antes «oro en 2 de 3», que con 22/24/24 frente al oro en 23 dependía de la suerte del bloqueo).
+  Resultado (tools/out/effort.json frente a effort-base.json, seed 4242, 7200 s): side-out, toques y % de remates que acaban en punto
+  cerca de la base en 6v6 y en el bot contra la CPU; remates del bot medio en 2v2 que caen sin tocar 27/11/11/6 % de Fácil a Experto
+  (base 34/14/13/12; primera versión 20/10/9/5); desviadas de la CPU en 2v2 13 % (base 8, primera versión 17). Lo que queda: menos
+  defensas buenas que antes en 2v2 y playa (2v2 CPU ~8 % frente a 12-16; playa CPU ~8 % frente a 24-31): sin el defensor «perdido»
+  la IA llega más justa y en plancha más a menudo; el Experto CPU sigue defendiendo peor que antes contra la CPU (side-out del partido
+  Normal–Experto 2v2 42,6 → 49,7, playa 32,6 → 41,1); y en 6v6 hay más desviadas (24-35 % de los remates, antes 10-18) a cambio de
+  menos defensores quietos.
+  **Afinado (18-nov-2026, 2ª ronda; Ferran: «Preferiría sentir que la IA lo intente y si no llegan es por sus stats»).** La revisión se
+  pasó al otro lado: contra el humano la IA llegaba a casi todo y el punto salía de que lo desviaba (2v2 bot: desviadas 25 % de los remates,
+  base 16; 6v6 26-29 %, base 12-14), con pocas defensas buenas (playa CPU 9 %, base 28). Con una reacción fija casi todo llegaba «justo»
+  (estirado o en plancha). Lo que cambió (números y motivos al lado de cada valor en `VB.EFFORT`):
+  - **Lectura variable** (`reactSd` 0,4; ai.js `p.aiRk`, ×lognormal por toque con `S.hk`, sin gastar `g.rng`): unas veces lee pronto y
+    defiende cómodo, otras tarde y no llega aunque corra a tope. Solo ante un balón rival por leer (remate, dejada/balón libre, bloqueo o el
+    que roza su propio bloqueo, `preLate`), con su propia fórmula `defMin + defK·react + defQ·react²` (mediana Fácil 0,38 · Normal 0,24 ·
+    Difícil 0,19 · Experto 0,13 s; media ×1,08; ronda anterior 0,30/0,22/0,18/0,14). El resto (recepción, juego propio) sigue con
+    `reactMin`/`reactK` de la revisión. Contra el humano, + `humRead` 0,06 s (y `perfRead` 0,08 si es perfecto).
+  - **Toque de bloqueo propio** (`blkTouchIn`): la cobertura arranca (`accT`) y lee (variable) como contra un remate; antes lo sacaba casi
+    todo sin arrancada ni lectura. `touchK` 0,7 → 0,5.
+  - **Contacto**: `f0`/`fC` 0,8/1,4 → 0,9/2,4 (el buen defensor ya no desvía balones asequibles; el remate difícil y la Defensa baja fallan
+    igual), `diveS` 0,8 → 0,55 y `diveQ` 0,8 (`diveCapAI`: la plancha al límite a veces sale buena; antes siempre 'poor').
+  - **6v6**: `failK` 1,9 → 0,9, `accTK` 1,0 → 1,4, `spikeRead` 0,04 → 0,06 y `preR` 0,65 (antes de leer el remate solo saca de reflejo lo que
+    le llega cerca del cuerpo; lo de más lejos le pilla sin reaccionar: plancha fallida tardía). **Playa**: `accTK` 1,35 → 1,2, `read` 0,06
+    → 0,035. **2v2**: `missR` 0,6 → 1,4 (más planchas fallidas visibles; no cambia ningún resultado).
+  - Maestría: `MASTERY.roll.digK` 1,55 → 0,95 (con fC 2,4 el colocado casi nunca fallaba: 0,17× el remate perfecto; ahora 0,82/0,73×) y
+    `feintBeat` de Difícil 0,20 → 0,25 (simtest E1 b2 quedaba en +9,5 puntos).
+  Resultado (`tools/effortstat.js`, media de las semillas 4242 y 777, 7200 s por casilla; base = código de fa4577d en
+  `tools/out/effort-base*.json`, ronda anterior en `effort-ronda1*.json`, ahora en `effort.json`/`effort-777.json`; medias por grupo
+  base → revisión → afinado):
+
+  | grupo | remate→punto % | sin tocar % | (con intento %) | desviada/cuerpo % | defensa buena % |
+  |---|---|---|---|---|---|
+  | 2v2 CPU | 48,8 → 50,6 → 51,4 | 41,8 → 43,8 → 46,4 | 56 → 82 → 75 | 7,5 → 12,2 → 5,8 | 14,0 → 8,4 → 13,3 |
+  | 2v2 bot medio | 45,2 → 42,8 → 42,4 | 18,0 → 14,0 → 19,1 | 32 → 50 → 72 | 15,9 → 25,1 → 16,0 | 13,4 → 12,7 → 15,8 |
+  | 6v6 CPU | 35,3 → 38,4 → 37,6 | 24,7 → 21,2 → 27,0 | 25 → 56 → 54 | 12,1 → 26,0 → 13,8 | 25,1 → 18,0 → 22,3 |
+  | 6v6 bot medio | 36,7 → 37,3 → 36,2 | 24,2 → 15,8 → 23,3 | 24 → 56 → 55 | 13,5 → 29,3 → 15,4 | 19,1 → 15,5 → 17,9 |
+  | playa CPU | 34,8 → 37,7 → 36,1 | 28,9 → 32,9 → 31,7 | 69 → 76 → 76 | 7,0 → 12,0 → 4,7 | 28,2 → 9,1 → 22,1 |
+  | playa bot medio | 30,6 → 27,9 → 29,3 | 12,1 → 10,1 → 11,1 | 40 → 56 → 65 | 11,6 → 13,3 → 8,4 | 17,3 → 13,4 → 16,4 |
+
+  Por casilla, el % de remates que acaban en punto queda a ±4 de la base salvo CPU contra Experto 2v2 (+5,6), bot medio contra Normal 2v2
+  (−5,3; con la semilla 31, −4,4). Ojo: el ruido entre semillas es de ±2-4 puntos por casilla. Atributos 30
+  frente a 80 (le hacen punto en el % de remates): 2v2 82 frente a 33 (base 77/44), 6v6 49 frente a 30 (base 44/34). Lo que queda: las
+  defensas buenas de la CPU en la playa (22 %) siguen algo por debajo de la base (28 %); con más (arrancada 1,0 y sin lectura, ~25 %) los
+  peloteos se alargaban (8,3 toques por punto) y el partido online de playa de tools/fluidtest no cabía en 900 s. El escenario 5 de
+  tools/fluidtest (playa) va justo: 809 s y 2,49 KB/s.
+  **Revisión 2 del afinado (18-nov-2026).** La verificación encontró dos fuentes de «la deja caer» que no venían de las stats:
+  - **6v6, `preR`**: el defensor que aún no había leído el remate dejaba botar sin gesto balones que le pasaban al alcance (el estirón solo
+    salía con el balón por debajo de missZ + 0,4 m, casi nunca a tiempo en remates de ~0,3 s). Ahora (ai.js), pasado el reflejo
+    (`missReact`), si el balón va a botar dentro antes de que acabe de leerlo y en menos de `preT` 0,22 s, se tira (plancha fallida).
+    `S.landT(g)`: s que le faltan al balón para botar. Además `missR` de 6v6 1,0 → 1,5 y de la playa 1,2 → 1,7 (solo se ven más
+    planchas fallidas; no cambia ningún resultado).
+  - **Cola lenta de la lectura** (`reactSd`): con ×2,2 a +2σ el defensor se quedaba mirando medio vuelo (azar, no stats). Ahora tope
+    `rkHi` ×1,45 (media ×1,02, antes ×1,08) y `defMin` 0,09 → 0,08 (mediana Fácil 0,37 · Normal 0,23 · Difícil 0,18 · Experto 0,12 s).
+  - **Contra el humano**: la mayor parte de `humRead`/`perfRead` (2v2 y playa 0,06/0,08 → 0,02/0,04) pasa a la arrancada (`humAcc` 0,3 s
+    en 2v2, `beach.humAcc` 0,4 en la playa): arranca antes, acelera peor. 6v6: `humRead` 0,06 → 0,08. Playa: `read` 0,035 → 0,05.
+  Resultado (`tools/effortstat.js`, media de las semillas 2468, 4242 y 777, 7200 s por casilla; base = código de fa4577d con la misma
+  herramienta; salidas en `tools/out/effort-base2-*.json` y `effort-rev2-*.json`; «quieto» = de los que caen sin tocar, % con el
+  defensor a < 0,5 m y sin plancha; «corre» = m que corre el que iba en los que caen sin tocar), base → ahora:
+
+  | grupo | remate→punto % | sin tocar % | desviada/cuerpo % | defensa buena % | sin tocar con intento % | quieto % | corre m |
+  |---|---|---|---|---|---|---|---|
+  | 2v2 CPU | 48,6 → 48,5 | 41,6 → 43,7 | 7,6 → 5,4 | 13,8 → 14,7 | 55,9 → 80,1 | 15,9 → 11,2 | 1,1 → 1,4 |
+  | 2v2 bot medio | 45,0 → 44,8 | 17,8 → 20,3 | 15,5 → 16,6 | 13,4 → 13,9 | 31,8 → 74,1 | 36,9 → 23,8 | 0,7 → 0,4 |
+  | 6v6 CPU | 35,7 → 36,2 | 25,1 → 24,7 | 12,3 → 13,9 | 24,7 → 23,0 | 25,2 → 72,3 | 69,3 → 24,5 | 0,1 → 0,3 |
+  | 6v6 bot medio | 36,5 → 35,2 | 23,9 → 22,5 | 13,8 → 15,9 | 19,8 → 19,2 | 25,8 → 71,6 | 71,7 → 24,7 | 0,1 → 0,3 |
+  | playa CPU | 35,1 → 33,9 | 28,9 → 30,3 | 6,9 → 5,5 | 28,0 → 22,9 | 67,8 → 93,9 | 11,4 → 5,5 | 1,1 → 1,2 |
+  | playa bot medio | 30,6 → 30,7 | 11,5 → 13,8 | 11,7 → 7,6 | 16,7 → 16,3 | 41,2 → 85,2 | 18,7 → 12,4 | 0,9 → 0,3 |
+
+  Por casilla (media de las 3 semillas), remate→punto a ±4 de la base en las 20 de dificultad (las de stats se separan a propósito: 2v2 a 80, 43,3 → 29,0); la más alejada, CPU contra Experto 2v2, +4,0 (por
+  semilla +7,0/+3,7/+1,4). Quieto contra el humano en Difícil/Experto: 2v2 22/7 % (base 18/3), playa Experto 7 % (base 0). Botan al
+  alcance de alguien sin ningún gesto: ≤ 2,1 % en todas (base 6v6 hasta 6 %). Lo que queda: contra el remate del humano en 2v2 y playa el
+  que iba corre menos que con el código de antes (0,2-0,6 m frente a 0,2-1,1): sus remates vuelan ~0,47 s sobre ~3,3 m y con la reacción
+  de ahora no da tiempo a correr; el intento que se ve es la plancha (74-94 % de los que caen sin tocar). En 2v2 Fácil contra el humano
+  sigue desviando más que la base (36 % de los remates, base 28).
+  Pruebas tocadas en la revisión 2 (además de las huellas regeneradas a propósito: fp-2v2/fp-mastery/fp-salto, SIM_BASE 485ef786,
+  NEUTRAL_FP f4e460a33457818a, referencia (1) de subtest): simtest «ajustes 17-nov (h)» sigue con más semillas (hasta 16) hasta tener
+  3 pases malos (con 6 salía sin muestra); netview clasifica el campo `ok` del evento `blockPress` (faltaba; viewtest lo vio al cambiar
+  los partidos); fluidtest calcula la puerta de aceleración del balón (warpP95Both) por rango más cercano (con 20 muestras el índice
+  floor(n·0,95) era el máximo y un solo balón libre, 1,9, decidía el escenario 3; ahora 1,46); animtest prueba más semillas (41-77)
+  para encontrar un cierre ganado por tu equipo (con 'hard' perdía las seis primeras; gana la 57). fluidtest: playa 818/825 s (tope
+  900) y 2,45 KB/s (tope 2,5).
 - El bloqueador IA rival se coloca con un error lateral que depende del nivel (peor bloqueador = manos más lejos del balón).
 
 ### Dificultad: 4 niveles
@@ -1060,6 +1191,7 @@ huella `tools/fp-2v2.json` (generada con el código de antes del sprint 1): «15
   contra) llegaba casi siempre y mandaba el balón a la grada (rama `shank`). En ai.js `update`, con `g.rot`: `BEAT6 = {react 0.4, speed 0.3}`
   (el 2v2 sigue con 0,12 s y 60 %; sin azar nuevo). Sonda de 6 semillas × 10 min (demo): «Defensa fuera» 26 % antes →
   18 % con 0,3/0,35 → 12 % con 0,5/0,2 (pero la mediana del rally de simtest bajaba a 5,16 s, límite 5) → 16 % con 0,4/0,3 (elegido).
+  (18-nov-2026: `BEAT6` ya no existe; ver «Modelo de esfuerzo» en `VB.EFFORT`, con su `six` y `spikeRead` para el 6v6.)
 - **M3, receptor zaguero y central zaguero en el mismo sitio** al cubrir la colocación (`offPos`, los dos con `lv 0` cuando saca el
   central y el líbero aún no ha entrado): el central zaguero cubre ahora en el sitio del líbero (`lv -1`).
 - **M4 (con main.js / players.js / fx.js)**: el partido espectador va con `ctrl:'one'` (sin eventos `switch`).
