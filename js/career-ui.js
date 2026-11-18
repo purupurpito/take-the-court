@@ -34,22 +34,29 @@
   // «Fama» (career-life-ui.js): seguidores, patrocinio, rival, tienda, logros y legado
   var TABS = [['match', 'Partido'], ['inbox', 'Mensajes'], ['player', 'Jugador'], ['club', 'Club'], ['life', 'Fama'], ['league', 'Liga'], ['honors', 'Palmarés']];
   var SUBS = {   // (Jugador: el mismo orden que Jugadores del menú, Físico · Defensa · Ataque, que sale de VB.Prog.GROUPS)
-    player: [['phys', 'Físico'], ['def', 'Defensa'], ['atk', 'Ataque'], ['badges', 'Insignias'], ['train', 'Entreno'], ['look', 'Vestuario']],   // (Vestuario: solo con js/look.js)
-    club: [['info', 'Ficha'], ['mate', 'Compañero'], ['contract', 'Contrato'], ['offers', 'Ofertas']],
+    player: [['phys', 'Físico'], ['def', 'Defensa'], ['atk', 'Ataque'], ['badges', 'Insignias'], ['train', 'Estado'], ['look', 'Vestuario']],   // (Vestuario: solo con js/look.js; «Estado» = Entreno + ánimo y forma de career-story; sin él, «Entreno»)
+    club: [['info', 'Ficha'], ['mate', 'Compañero'], ['people', 'Gente'], ['contract', 'Contrato'], ['offers', 'Ofertas']],
     league: [['table', 'Clasificación'], ['cal', 'Calendario'], ['news', 'Noticias'], ['clubs', 'Clubes']],   // (Noticias y Clubes: career-world-ui.js; sin él no salen)
-    honors: [['titles', 'Palmarés'], ['seasons', 'Temporadas'], ['opts', 'Opciones']],
-    life: [['fame', 'Fama'], ['shop', 'Tienda'], ['goals', 'Logros'], ['legacy', 'Legado']]
+    honors: [['titles', 'Palmarés'], ['stats', 'Estadísticas'], ['seasons', 'Temporadas'], ['opts', 'Opciones']],
+    life: [['fame', 'Fama'], ['pass', 'Camino'], ['shop', 'Tienda'], ['goals', 'Logros'], ['legacy', 'Legado']],
+    // «Carrera con vida» (career-story-ui.js): Bandeja (el feed mezclado con los mensajes) y Redes. Sin career-story, sin barra
+    inbox: [['box', 'Bandeja'], ['wall', 'Redes']]
   };
   // Carrera de pista (6v6, lote C): Club › Equipo en vez de Compañero y Liga › Copas (nacional e internacionales); Noticias y Clubes
   // como en la playa (career-world-ui.js; sin él no salen)
   var SUBS6 = {
-    club: [['info', 'Ficha'], ['team', 'Equipo'], ['contract', 'Contrato'], ['offers', 'Ofertas']],
+    club: [['info', 'Ficha'], ['team', 'Equipo'], ['people', 'Gente'], ['contract', 'Contrato'], ['offers', 'Ofertas']],
     league: [['table', 'Clasificación'], ['cal', 'Calendario'], ['cups', 'Copas'], ['news', 'Noticias'], ['clubs', 'Clubes']]
   };
   function isHall(c) { return !!(c && c.mode === 'hall'); }
   function subsOf(t) { var c = C() && C().get(); return (isHall(c) && SUBS6[t]) || SUBS[t]; }
-  var sub = { player: 'phys', club: 'info', league: 'table', honors: 'titles', life: 'fame', pick: 0 };
+  var sub = { player: 'phys', club: 'info', league: 'table', honors: 'titles', life: 'fame', inbox: 'box', pick: 0 };
   function LUI() { return VB.CareerLife && VB.CareerLifeUI || null; }
+  /** «Carrera con vida» (career-story.js + career-story-ui.js, notes/carrera-vida.md): avisos, Bandeja con respuestas, Redes, Gente,
+   *  Camino, Estadísticas y «Cuánta vida». Sin los dos ficheros, null y todo como antes. */
+  function SUI() { return VB.CareerStory && VB.CareerStoryUI || null; }
+  /** Sub-pestañas que solo salen si algún sistema de career-story las pinta. */
+  var STORY_SUBS = { wall: 1, people: 1, pass: 1, stats: 1 };
   /** Mundo de la Carrera (career-world-ui.js, sprint 5): Faro; noticias y clubes en C2. Sin los dos ficheros, null. */
   function WUI() { return VB.CareerWorld && VB.CareerWorldUI || null; }
   /** Vestuario (js/look.js, VB.Look): sin él no hay sub-pestaña, ni punto, ni fila «Aspecto». */
@@ -1066,7 +1073,9 @@
     // resaltado de lo nuevo se conserva en este pintado (freshIds)
     var freshIds = {};
     if (tab === 'inbox' && C().readAll) { (c.inbox || []).forEach(function (m) { if (!m.r) freshIds[m.id] = 1; }); if (C().unread(c)) C().readAll(); }
-    var un = C().unread ? C().unread(c) : 0, offN = c.offers && c.offers.length;
+    // career-story: lo del feed que no pide respuesta, igual (fresh['st' + id]); lo que pregunta sigue contando hasta contestar
+    if (tab === 'inbox' && SUI() && !(sub.inbox === 'wall' && SUI().has('wall'))) SUI().seen(c, freshIds);
+    var un = (C().unread ? C().unread(c) : 0) + (SUI() ? SUI().pending(c) : 0), offN = c.offers && c.offers.length;
     // noticias de la liga (career-world.js): se marcan como vistas al abrir Liga › Noticias; las nuevas se resaltan en ese pintado
     var CW = WUI() && VB.CareerWorld, newsSeen0 = c.world ? c.world.newsSeen | 0 : 0;
     if (CW && tab === 'league' && sub.league === 'news' && CW.newsUnseen(c)) CW.markNewsSeen();
@@ -1074,12 +1083,15 @@
     tabsEl.hidden = false;
     drawBar('tab', TABS.filter(function (t) { return t[0] !== 'life' || !!LUI(); }).map(function (t) {
       var dot = (t[0] === 'player' && (c.player.pts > 0 || lookNew())) || (t[0] === 'club' && (c.window === 'mid' || c.phase === 'off') && offN) || (t[0] === 'match' && c.phase === 'off') ||
-        (t[0] === 'life' && !!(c.life && c.life.spOffers && c.life.spOffers.length)) || (t[0] === 'league' && newsN > 0);
+        (t[0] === 'life' && !!(c.life && c.life.spOffers && c.life.spOffers.length)) || (t[0] === 'league' && newsN > 0) ||
+        (t[0] === 'match' && !!SUI() && SUI().chips(c).length > 0);   // (career-story: hay avisos en Partido)
       return [t[0], t[1] + (t[0] === 'inbox' && un ? ' (' + un + ')' : ''), dot];
     }), tab);
     // Noticias y Clubes (career-world-ui.js), en las dos Carreras; sin career-world no salen
     var sl = subsOf(tab);
-    if (sl) sl = sl.filter(function (s) { return (CW || (s[0] !== 'news' && s[0] !== 'clubs')) && (s[0] !== 'look' || !!LOOK()); });
+    if (sl) sl = sl.filter(function (s) { return (CW || (s[0] !== 'news' && s[0] !== 'clubs')) && (s[0] !== 'look' || !!LOOK()) && (!STORY_SUBS[s[0]] || !!(SUI() && SUI().has(s[0]))); });
+    if (sl && tab === 'inbox' && sl.length < 2) sl = null;   // (Mensajes sin Redes: sin barra, como siempre)
+    if (sl && tab === 'player' && !(SUI() && SUI().has('state'))) sl = sl.map(function (s) { return s[0] === 'train' ? ['train', 'Entreno'] : s; });
     if (sl && !sl.some(function (s) { return s[0] === sub[tab]; })) sub[tab] = sl[0][0];   // (p. ej. «Compañero» al pasar a la pista, o Noticias sin career-world)
     if (sl) {
       subEl.hidden = false;
@@ -1090,7 +1102,7 @@
     } else { subEl.hidden = true; }
     var h = '', hall = isHall(c);
     if (tab === 'match') h = hall ? renderMatch6(c) : renderMatch(c);
-    else if (tab === 'inbox') h = renderInbox(c, freshIds);
+    else if (tab === 'inbox') h = sl && sub.inbox === 'wall' ? SUI().wall(c, HLP) : (SUI() && SUI().inbox(c, HLP, msgHTML, freshIds)) || renderInbox(c, freshIds);
     else if (tab === 'player') h = renderPlayer(c);
     else if (tab === 'club') h = renderClub(c);
     else if (tab === 'league') h = hall ? (sub.league === 'cal' ? renderCal6(c) : sub.league === 'cups' ? renderCups6(c)
@@ -1098,8 +1110,8 @@
       : sub.league === 'clubs' && CW ? (function () { var lid = tblLid && C().league(tblLid) ? tblLid : k.lid; return WUI().clubsHTML(c, lid, HLP, lgSw6(c, lid)); })() : renderTable6(c))
       : sub.league === 'cal' ? renderCal(c) : sub.league === 'news' && CW ? WUI().newsHTML(c, HLP, newsSeen0)
       : sub.league === 'clubs' && CW ? WUI().clubsHTML(c, tblLvl >= 0 ? tblLvl : k.lvl, HLP) : renderTable(c);
-    else if (tab === 'life') h = LUI() ? LUI().render(c, sub.life, HLP) : '';
-    else h = renderHonors(c);
+    else if (tab === 'life') h = sub.life === 'pass' && SUI() ? SUI().pass(c, HLP) : LUI() ? LUI().render(c, sub.life, HLP) : '';
+    else h = sub.honors === 'stats' && SUI() ? SUI().stats(c, HLP) : renderHonors(c);
     body.innerHTML = h;
   }
   /** Barra de pestañas con el componente común (VB.UI.tabs). which = 'tab' (primer nivel: apartados del hub, u ofertas al elegir
@@ -1319,10 +1331,33 @@
       (ups.length ? '¡+1 en ' + ups.map(function (k) { return lab(k); }).join(', ') + '! ' : '') + 'Fatiga ' + fat0 + ' → ' + fat + '.';
   }
 
+  // ---- «Carrera con vida» en Partido (career-story-ui.js; sin él, lo de siempre)
+  /** Columna de avisos: chips (hasta 4), «Tu semana» y el chip del plan del entrenador. '' sin career-story. */
+  function storySide(c) {
+    var U = SUI(); if (!U) return '';
+    var inf = trainInf(c);
+    return '<div class="st-side">' + U.chipsHTML(c, HLP) + U.weekCard(c, HLP) + (inf ? U.planChip(c, inf, U.planOpen(c, inf, trainFocus)) : '') + '</div>';
+  }
+  function trainInf(c) { var K = C(); if (!K.trainInfo) return null; var inf = K.trainInfo(c); return inf && inf.why !== 'none' ? inf : null; }
+  /** Plan del entrenador: plegado si career-story lo dice (lo elegido en la jornada; desplegado con sesiones pendientes y sin
+   *  entreno automático, y siempre al volver de un ejercicio o con «Ir al plan del entrenador»). */
+  function storyTrain(c) {
+    var U = SUI(), inf = U ? trainInf(c) : null;
+    return inf && !U.planOpen(c, inf, trainFocus) ? '' : trainCard(c);
+  }
+  /** Último partido y titulares: con career-story, tras una fila plegable con el resultado. */
+  function storyLast(c) {
+    var lc = lastCard(c), hl = WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '', s = c.last;
+    if (!SUI() || !s || !lc || !Array.isArray(s.sets)) return lc + hl;
+    var op = SUI().lastOpen(c, freshLast), rv = C().club(c, s.rival);
+    return '<button class="st-fbtn" data-act="st-fold-last" data-v="' + (op ? 1 : 0) + '" aria-expanded="' + op + '">' + 'Último partido: <b>' + (s.win ? 'Victoria' : 'Derrota') + ' ' + s.sets[0] + '-' + s.sets[1] + '</b> contra ' +
+      esc(rv ? rv.name : s.rivalName) + (hl && !op ? ' y titulares' : '') + '<i aria-hidden="true">' + (op ? '▴' : '▾') + '</i></button>' + (op ? lc + hl : '');
+  }
   /** SPLAT: entrada del próximo partido (brochazo turquesa .sp-ticket, no se pulsa: «Jugar partido» va debajo) con tu escudo y el
    *  del rival en pegatinas redondas. kick y title ya escapados; lines = líneas pequeñas (HTML); aria = texto plano. */
-  function ticketHTML(c, me, rv, kick, title, lines, aria) {
-    return '<div class="sp-ticket cr-tk" role="group" aria-label="' + esc('Próximo partido: ' + aria) + '"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest">' + crest(me, 40, c) + '</span><i class="sp-vs">vs</i>' +
+  function ticketHTML(c, me, rv, kick, title, lines, aria, tag) {
+    // career-story (P3): sello del partido (Derbi, Revancha, Televisado…) en una esquina, sin que el ticket crezca
+    return '<div class="sp-ticket cr-tk' + (tag ? ' st-tagged' : '') + '" role="group" aria-label="' + esc('Próximo partido: ' + aria + (tag ? ', ' + tag : '')) + '">' + (tag ? '<i class="sp-chip st-tk-tag" aria-hidden="true">' + esc(tag) + '</i>' : '') + '<span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest">' + crest(me, 40, c) + '</span><i class="sp-vs">vs</i>' +
       '<span class="sp-crest">' + crest(rv, 40, c) + '</span></span><span class="sp-tk-main"><small class="sp-k">' + kick + '</small><b class="sp-t">' + title + '</b>' +
       lines.map(function (l) { return l ? '<small class="sp-s">' + l + '</small>' : ''; }).join('') + '</span></span></div>';
   }
@@ -1337,15 +1372,16 @@
       var bf = null; try { bf = LIFE() && LIFE().bossFor ? LIFE().bossFor(c, n.rival.id) : null; } catch (e) { bf = null; }   // S3 C3: el jefe del circuito juega en su club
       // SPLAT: entrada en brochazo turquesa (los dos escudos en pegatina), el parche «Jugar partido» y, en una hoja, los detalles
       var kick = sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + (bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '');
-      h += '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(n.rival.name),
+      var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (en .cr-two: dos columnas en el móvil apaisado)
+      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(n.rival.name),
         [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
-        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name) +
+        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
         (n.bench
           // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
           ? '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>' +
             '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button></div>'
           : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div>') +
-        '<div class="card cr-nd">' +
+        (side ? '</div>' + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' +
         // (la pareja, en pastillas: antes era una lista metida en un paréntesis)
         '<p class="muted">' + (function () {
           var mo = C().mateOvr(c), dd = mo - C().clubOvr(n.me), tg = dd >= 3 ? 'g' : dd <= -3 ? 'r' : '';
@@ -1354,15 +1390,14 @@
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
           esc(chemTxt(c, c.mate.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
-        '</div></div>';
-    }
-    h += trainCard(c);   // sesiones de entrenamiento antes del partido
+        '</div></div>' + (side ? '</div>' : '');
+    } else h += storySide(c);
+    h += storyTrain(c);   // sesiones de entrenamiento antes del partido (con career-story, plegables: chip «Plan» de los avisos)
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada y decisión pendiente
     var lastUn = (c.inbox || []).filter(function (m) { return !m.r; }).slice(-1)[0];
     if (lastUn) h += '<div class="card"><h3>Mensajes <span class="muted">(' + plural(C().unread(c), 'sin leer', 'sin leer') + ')</span></h3>' + msgHTML(lastUn) + '<div class="acts"><button data-tab="inbox">Ver mensajes</button></div></div>';
     if (c.window === 'mid' && c.offers && c.offers.length) h += '<div class="card new"><h3>Ventana de fichajes</h3><p>' + plural(c.offers.length, 'club quiere', 'clubes quieren') + ' ficharte ya. Las ofertas caducan al jugar o simular el siguiente partido.</p><div class="acts"><button data-tab="club" data-s="offers">Ver ofertas</button></div></div>';
-    h += lastCard(c);
-    if (WUI() && WUI().headlines) h += WUI().headlines(c, HLP);   // «Titulares» de la liga (solo con noticias sin ver)
+    h += storyLast(c);   // último partido y «Titulares» de la liga (solo con noticias sin ver); con career-story, plegables
     if (!c.last) h += '<div class="card"><h3>Objetivo del club</h3><p>' + esc(c.objective.text) + '</p><p class="muted">El entrenador valora tus notas y los resultados. Al final de la temporada llegan ofertas de clubes mejores si juegas bien.</p></div>';
     freshLast = false;
     return h;
@@ -1482,14 +1517,19 @@
       ' Puntos: 3 por ganar 2-0, 2 por ganar 2-1 y 1 por perder 1-2.</p></div>';
     return h;
   }
+  /** Calendario: el sello de career-story (Derbi, Revancha…) delante de «Próximo» / «Pendiente» (f = el partido, o null). */
+  function calTag(c, f, out) {
+    var tg = f && SUI() ? SUI().tagFor(c, f) : '';
+    return tg ? '<span><i class="sp-chip st-cal-tag">' + esc(tg) + '</i> ' + out + '</span>' : out;
+  }
   function renderCal(c) {
-    var k = C().myClub(c), s = c.sched[k.lvl], h = '<div class="card"><h3>' + sp(['Calendario', esc(C().league(k.lvl).name)], 'd') + '</h3><div class="cal">';
+    var k = C().myClub(c), s = c.sched[k.lvl], h = '<div class="card"><h3>' + sp(['Calendario', esc(C().league(k.lvl).name)], 'd') + '</h3><div class="cal">', up = 0;
     s.forEach(function (wk, w) {
       var m = null, i; for (i = 0; i < wk.length; i++) if (wk[i][0] === k.id || wk[i][1] === k.id) { m = wk[i]; break; }
       if (!m) return;
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = c.res[k.lvl][w] && c.res[k.lvl][w][i], res = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; res = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
-      else res = '<span class="muted">' + (c.phase === 'league' && w === c.week ? 'Próximo' : 'Pendiente') + '</span>';
+      else res = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lvl } : null, '<span class="muted">' + (c.phase === 'league' && w === c.week ? 'Próximo' : 'Pendiente') + '</span>');
       h += '<div class="cal-r' + (c.phase === 'league' && w === c.week ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(rv.name) + '</span>' + res + '</div>';
     });
     h += '</div>';
@@ -1503,7 +1543,7 @@
   function renderPlayer(c) {
     var s = sub.player;
     if (s === 'badges') return renderBadges(c);
-    if (s === 'train') return renderTrain(c);
+    if (s === 'train') return (SUI() ? SUI().state(c, HLP) : '') + renderTrain(c);   // (career-story: ánimo y forma encima)
     if (s === 'look') return renderLook(c);
     var a = c.player, P = VB.Prog, need = C().need(a.lvl), h = '<div class="card"><div class="row"><span class="cr-ptw">' + ptHTML(c, 'me', 88, 'cr-pt88', 'Retrato de ' + a.name) + '<span class="cr-ptc">' + crest(C().myClub(c), 28, c) + '</span></span>' +
       '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp([esc(a.name), 'n.º ' + a.num], 's') + '</p><p class="muted" style="margin:0">' + sp([esc(a.role), a.age + ' años', 'Nivel ' + a.lvl, plural(a.matches | 0, 'partido', 'partidos')], 'c') + '</p></div></div>' +
@@ -1623,6 +1663,7 @@
     if (isHall(c) && s === 'team') return renderTeam6(c);
     if (isHall(c) && s === 'info') return renderClubInfo6(c);
     if (s === 'mate') return renderMate(c);
+    if (s === 'people' && SUI()) return SUI().people(c, HLP);   // career-story: Club › Gente
     if (s === 'contract') return renderContract(c);
     if (s === 'offers') {
       return '<div class="card"><h3>' + (c.window === 'mid' ? 'Ventana de fichajes' : 'Ofertas') + '</h3>' +
@@ -1715,6 +1756,7 @@
         '<p class="note" role="status" aria-live="polite">' + esc(dnote) + '</p></div>';
       dnote = '';
     }
+    if (SUI()) h += SUI().optsHTML(c, HLP);   // career-story: «Cuánta vida» (Poca / Normal / Mucha)
     // abandonar (doble confirmación, sin confirm())
     h += optsModeHTML(c);
     h += '<div class="card"><h3>Opciones</h3>';
@@ -1766,28 +1808,28 @@
       var rvShow = alt && alt.kind === '2a' ? Object.assign({}, n.rival, { kit: { shirt: alt.shirt, accent: alt.accent, shorts: alt.shorts, pattern: alt.pattern } }) : n.rival;
       // SPLAT: entrada en brochazo (tu escudo y el del rival con la equipación que vestirá), estado y botones, y los detalles en una hoja
       var st6 = statusHTML6(c, n);
-      h += '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v'), (n.atHome ? 'vs ' : 'en ') + esc(n.rival.name),
+      var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (como en la playa)
+      h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v'), (n.atHome ? 'vs ' : 'en ') + esc(n.rival.name),
         [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
           alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'v'),
          sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(C().posOf(c, n.me.id)) : '', 'Equipo ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
-        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name) +
+        n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
         // («Sales de inicio…» va en la hoja de detalles; el banquillo, en su nota, encima de los botones)
         (/^<p class="cr-st6"/.test(st6.pre) ? '' : st6.pre) + st6.acts +
-        '<div class="card cr-nd">' + (/^<p class="cr-st6"/.test(st6.pre) ? st6.pre : '') +
+        (side ? '</div>' + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' + (/^<p class="cr-st6"/.test(st6.pre) ? st6.pre : '') +
         '<p class="muted">6 contra 6 en el pabellón: al mejor de 3 sets a ' + c.points + (c.points > 15 ? ', el tercero a 15' : '') + '. Tú llevas a ' + esc(c.player.name) + ' (dorsal ' + c.player.num + ', ' + esc(posName(role).toLowerCase()) + ') y al resto del equipo la IA.</p>' +
         (role !== c.player.roleKey ? '<p class="muted">Tu puesto (' + esc(posName(c.player.roleKey).toLowerCase()) + ') aún no se puede llevar en el 6 contra 6: juegas de ' + esc(posName(role).toLowerCase()) + '.</p>' : '') +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
           esc(chemTxt(c, c.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
-        '</div></div>';
-    }
-    h += trainCard(c);   // sesiones de entrenamiento antes del partido (y la pelea por el puesto)
+        '</div></div>' + (side ? '</div>' : '');
+    } else h += storySide(c);
+    h += storyTrain(c);   // sesiones de entrenamiento antes del partido (y la pelea por el puesto)
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada (por puesto) y decisión pendiente, como en la playa
     var lastUn = (c.inbox || []).filter(function (m) { return !m.r; }).slice(-1)[0];
     if (lastUn) h += '<div class="card"><h3>Mensajes <span class="muted">(' + plural(C().unread(c), 'sin leer', 'sin leer') + ')</span></h3>' + msgHTML(lastUn) + '<div class="acts"><button data-tab="inbox">Ver mensajes</button></div></div>';
     if (c.window === 'mid' && c.offers && c.offers.length) h += '<div class="card new"><h3>Ventana de fichajes</h3><p>' + plural(c.offers.length, 'club quiere', 'clubes quieren') + ' ficharte ya' + (c.offers.some(function (o) { return o.foreign; }) ? ', también de fuera' : '') + '. Las ofertas caducan al jugar o simular el siguiente partido.</p><div class="acts"><button data-tab="club" data-s="offers">Ver ofertas</button></div></div>';
-    h += lastCard(c);
-    if (WUI() && WUI().headlines) h += WUI().headlines(c, HLP);   // «Titulares» de la liga (solo con noticias sin ver)
+    h += storyLast(c);   // último partido y «Titulares» de la liga (solo con noticias sin ver); con career-story, plegables
     if (!c.last) h += '<div class="card"><h3>Objetivo del club</h3><p>' + esc(c.objective.text) + '</p><p class="muted">El entrenador valora tus notas y los resultados. Juega bien y vendrán ojeadores de ligas mejores, también de otros países.</p></div>';
     freshLast = false;
     return h;
@@ -1850,7 +1892,7 @@
     return h;
   }
   function renderCal6(c) {
-    var k = C().myClub(c), L = C().league(k.lid), s = C().sched(c, k.lid), res = c.myRes && c.myRes.lid === k.lid ? c.myRes.w : [];
+    var k = C().myClub(c), L = C().league(k.lid), s = C().sched(c, k.lid), res = c.myRes && c.myRes.lid === k.lid ? c.myRes.w : [], up = 0;
     var h = '<div class="card"><h3>' + sp(['Calendario', esc(L.name)], 'd') + '</h3><div class="cal">';
     s.forEach(function (wk, w) {
       var m = null, i; for (i = 0; i < wk.length; i++) if (wk[i][0] === k.id || wk[i][1] === k.id) { m = wk[i]; break; }
@@ -1858,7 +1900,7 @@
       if (!m) { h += '<div class="cal-r"><b>J' + (w + 1) + '</b><span class="muted">Descansas</span><span></span></div>'; return; }
       var home = m[0] === k.id, rv = C().club(c, home ? m[1] : m[0]), r = res[w] && res[w][i], out = '';
       if (r) { var mine = r.a === k.id ? r.s : [r.s[1], r.s[0]], win = mine[0] > mine[1]; out = '<span class="res ' + (win ? 'w' : 'l') + '">' + (win ? 'G ' : 'P ') + mine[0] + '-' + mine[1] + '</span>'; }
-      else out = '<span class="muted">' + (nx ? 'Próximo' : w < c.week || c.phase !== 'league' ? '—' : 'Pendiente') + '</span>';
+      else out = calTag(c, c.phase === 'league' && w >= c.week && up++ < 3 ? { rival: rv, me: k, atHome: home, kind: 'league', week: w, lid: k.lid } : null, '<span class="muted">' + (nx ? 'Próximo' : w < c.week || c.phase !== 'league' ? '—' : 'Pendiente') + '</span>');
       h += '<div class="cal-r' + (nx ? ' next' : '') + '"><b>J' + (w + 1) + '</b><span style="min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + crest(rv, 22, c) + (home ? 'vs ' : 'en ') + esc(rv.name) + '</span>' + out + '</div>';
     });
     return h + '</div><p class="muted" style="margin-top:8px">Al acabar la liga: copas (Liga › Copas).</p></div>';
@@ -2168,6 +2210,20 @@
       }
       return;
     }
+    if (act && act.indexOf('st-') === 0 && SUI()) {   // «Carrera con vida» (career-story-ui.js): responder, plegables, avisos, Cuánta vida…
+      var sr = SUI().act(act, b);
+      if (sr && sr.tab) { snd('click'); setTab(sr.tab, sr.s); var st0 = sr.focus ? root.querySelector(sr.focus) : null; if (st0) focusEl(st0, kbNav); syncMenu(); return; }
+      if (sr && sr.render) {
+        snd('click');
+        if (sr.focus) { render(); var sf = root.querySelector(sr.focus); if (sf) focusEl(sf, kbNav); else focusFirst(); } else keepFocus(b, render);
+        syncMenu(); return;
+      }
+      if (sr && sr.focus) {   // (st-jump: salta a una tarjeta de la pantalla, sin repintar)
+        var sj = root.querySelector(sr.focus) || (sr.scroll ? root.querySelector(sr.scroll) : null);
+        if (sj) { snd('click'); focusEl(sj, kbNav); try { sj.scrollIntoView({ block: 'center', inline: 'nearest' }); } catch (e2) { } }
+      }
+      return;
+    }
     switch (act) {
       case 'close': snd('back'); close(); return;
       case 'hub': snd('back'); view = 'hub'; render(); focusFirst(); return;
@@ -2433,8 +2489,11 @@
   }
   function move(d) {
     var L = focusables(); if (!L.length) return;
-    var i = L.indexOf(document.activeElement);
-    i = i < 0 ? 0 : (i + d + L.length) % L.length;
+    var a = document.activeElement, i = L.indexOf(a);
+    if (i < 0 && a && a !== document.body && root.contains(a)) {   // foco en algo que no es botón (aviso .st-fx de career-story): sigue desde ahí
+      var j = 0; while (j < L.length && !(a.compareDocumentPosition(L[j]) & 4)) j++;
+      i = ((d > 0 ? j - 1 : j) + d + L.length) % L.length;
+    } else i = i < 0 ? 0 : (i + d + L.length) % L.length;
     kbNav = true; focusEl(L[i], true);
     try { if (VB.Audio && VB.Audio.hover) VB.Audio.hover(); } catch (e) { }
   }

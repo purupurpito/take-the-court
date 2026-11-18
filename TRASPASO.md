@@ -721,6 +721,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 - `tools/console.sh` — errores de consola.
 - Sedes: `node tools/venuetest.js [vueltas=3]` (recorre todas las sedes disponibles y vuelve a Palau: geometrías, texturas y programas
   iguales que al empezar) y cada sede con `EXTRA=map=<id>` en `console.sh all` y `perf.js` (p. ej. `EXTRA=map=fanals`; console.sh lee `EXTRA` del entorno o como 4.º argumento: `bash tools/console.sh all 1280 720 map=fanals`).
+- Carrera con vida (1.13.0): `node tools/storytest.js`, `storymsgtest.js`, `storyweektest.js`, `storywalltest.js`, `storyseasontest.js` y
+  `storyuitest.js`, de una en una. Regla de oro, `c.story` y claves de azar `st-*` en notes/carrera.md §«Carrera con vida».
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

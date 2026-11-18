@@ -24,7 +24,8 @@ vm.createContext(ctx);
 const NOWORLD = !!process.env.NOWORLD;
 // NORATING=1: sin js/rating.js (nota en directo): la nota de los partidos jugados es la de rating(), como antes
 const NORATING = !!process.env.NORATING;
-const FILES = ['js/sim.js', 'js/prog.js', 'js/badges.js', 'js/leagues.js', 'js/rating.js', 'js/career.js', 'js/career-life.js', 'js/career-world.js'];
+const FILES = ['js/sim.js', 'js/prog.js', 'js/badges.js', 'js/leagues.js', 'js/rating.js', 'js/career.js', 'js/career-life.js', 'js/career-world.js',
+  'js/career-story.js', 'js/career-story-msgs.js', 'js/career-story-week.js', 'js/career-story-wall.js', 'js/career-story-season.js'];   // («Carrera con vida», notes/carrera-vida.md)
 for (const f of FILES) {
   if (NOWORLD && f === 'js/career-world.js') continue;
   if (NORATING && f === 'js/rating.js') continue;
@@ -1465,7 +1466,7 @@ else {
     }
     return { VB: B.VB, K, c: K.load(), mem: B.mem };
   };
-  const strip = x => { const o = JSON.parse(JSON.stringify(x)); delete o.world; delete o.created; delete o.inbox; delete o.msgN; return JSON.stringify(o); };
+  const strip = x => { const o = JSON.parse(JSON.stringify(x)); delete o.world; delete o.story; delete o.created; delete o.inbox; delete o.msgN; return JSON.stringify(o); };
   // 1) determinismo
   let same = 0;
   for (const sd of [97, 1234, 50001]) if (strip(run(false, 6, sd).c) === strip(run(true, 6, sd).c)) same++;
@@ -2068,7 +2069,7 @@ else {
   delete mem['make-the-cut.career6']; C._reset();
   // la misma Carrera de pista con y sin el mundo: lo demás, idéntico (el mundo no consume el azar de career.js). De la bandeja, solo
   // los 15 últimos mensajes: guarda 40 y los de Faro echan antes a los viejos.
-  const strip = c => { const o = JSON.parse(JSON.stringify(c)); delete o.world; o.inbox = (o.inbox || []).filter(m => m.k !== 'mentor').slice(-15); o.inbox.forEach(m => { delete m.id; }); delete o.msgN; delete o.created; return JSON.stringify(o); };
+  const strip = c => { const o = JSON.parse(JSON.stringify(c)); delete o.world; delete o.story; o.inbox = (o.inbox || []).filter(m => m.k !== 'mentor').slice(-15); o.inbox.forEach(m => { delete m.id; }); delete o.msgN; delete o.created; return JSON.stringify(o); };
   const run = () => {
     delete mem['make-the-cut.career6']; C._reset();
     const c = C.create({ mode: 'hall', name: 'Mundo Pista', num: 8, pos: 'OH', seed: 31337, now: 1 });
@@ -2249,7 +2250,7 @@ section('Vestuario en la Carrera: guardas sin look.js, initLook, lookCheck, tien
     }
     // determinismo: el vestuario no cambia la carrera (fuera de inbox/msgN/created/life.look/lookAnn/spentLook)
     {
-      const strip = x => { const o = JSON.parse(JSON.stringify(x)); delete o.inbox; delete o.msgN; delete o.created; delete o.world; if (o.life) { delete o.life.look; delete o.life.lookAnn; } return JSON.stringify(o); };
+      const strip = x => { const o = JSON.parse(JSON.stringify(x)); delete o.inbox; delete o.msgN; delete o.created; delete o.world; delete o.story; if (o.life) { delete o.life.look; delete o.life.lookAnn; } return JSON.stringify(o); };
       const runS = withLook => { const Bx = bootL(withLook), Kx = Bx.VB.Career; Kx.create({ name: 'Det', num: 5, seed: 65, autoClub: true }); for (let i = 0; i < 30 && Kx.load().phase !== 'off'; i++) { if (i % 3 === 0) played(Kx); else Kx.simulateNext(); } return Kx.load(); };
       ok(strip(runS(true)) === strip(runS(false)), 'misma carrera con y sin look.js (una temporada)');
     }
@@ -2494,7 +2495,7 @@ section('Interfaz de la Carrera: «Continuar carrera» (heroData), escudo o kitS
   const doc = { readyState: 'complete', getElementById: () => null, createElement: fakeEl, head: fakeEl(), body: fakeEl(), addEventListener() { } };
   const ux = { console, Math, Date, JSON, VB, document: doc, setTimeout: () => 0, clearTimeout() { }, requestAnimationFrame: () => 0, performance: { now: () => 0 }, addEventListener() { } };
   ux.globalThis = ux; ux.window = ux; vm.createContext(ux);
-  const uiFiles = (NOWORLD ? [] : ['js/career-world-ui.js']).concat(['js/career-ui.js']);
+  const uiFiles = (NOWORLD ? [] : ['js/career-world-ui.js']).concat(['js/career-story-ui.js', 'js/career-ui.js']);
   let loadErr = '';
   for (const f of uiFiles) { try { vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ux, { filename: f }); } catch (e) { loadErr += f + ': ' + e.message + ' '; } }
   const CU = VB.CareerUI;

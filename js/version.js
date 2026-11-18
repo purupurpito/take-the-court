@@ -33,11 +33,23 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.12.1';
+  VB.VERSION = '1.13.0';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.13.0', d: '2026-11-18', t: 'Carrera con vida',
+      items: [
+        'Carrera con vida: te escriben agente, entrenador, tu gente, la prensa y el rival.',
+        'Muchos mensajes piden respuesta, y ves el efecto antes de elegir.',
+        'Redes: la gente comenta tus partidos y puedes publicar una vez por jornada.',
+        'Tu semana: elige qué haces en el día libre. Y pactos con el entrenador.',
+        'Ruedas de prensa, partidos marcados (Derbi, Revancha, Televisado...) y Figura del mes.',
+        'Pestañas nuevas: Gente, Estado, Camino de temporada y Estadísticas.',
+        'En Palmarés › Opciones eliges cuánta vida quieres: Poca, Normal o Mucha.'
+      ]
+    },
     {
       v: '1.12.1', d: '2026-11-18', t: 'Cámara',
       items: [

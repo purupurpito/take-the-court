@@ -398,6 +398,45 @@ endSeason 'season', newSeason 'newSeason') más un sumando en `offerScore`; si c
 **Sin hacer (ideas para otro sprint)**: enseñar el reto durante el partido (HUD de ui.js, que no es de este lote; el dato ya
 está en `g.career.goal`); objetivos de patrocinio para la pista 6v6; selección nacional y torneos de verano.
 
+## Carrera con vida (sprint 1.13.0, 18-nov-2026; plan entero en notes/carrera-vida.md)
+
+Ficheros: `js/career-story.js` (núcleo `VB.CareerStory`), `js/career-story-msgs.js` (Bandeja, Gente y Prensa), `js/career-story-week.js`
+(Tu semana, Ánimo, Forma y Pacto), `js/career-story-wall.js` (Redes y partidos marcados), `js/career-story-season.js` (Figuras,
+Estadísticas y Camino) y `js/career-story-ui.js` (`VB.CareerStoryUI`: avisos de Partido, plegables, bandeja mezclada, «Cuánta vida»,
+CSS). index.html los carga tras career-world-ui.js y antes de career-ui.js; el orden fija el de `use()`: msgs, week, wall, season.
+career.js llama a story el último en `life()` (`[CareerLife, CareerWorld, CareerStory]`) y career-life.js `answer()` llama al gancho
+`'answer'`. **Sin los 6 ficheros, la Carrera es exactamente la de antes** (careertest, `NOWORLD=1` y storytest (1) lo vigilan).
+
+- **Regla de oro.** Solo una ELECCIÓN del jugador (contestar un mensaje o la prensa, elegir la carta de la semana, aceptar un pacto,
+  publicar en Redes) toca el núcleo: `c.coach`, la química, `c.fatigue`, `c.money`, el entreno (`c.tp`) y la fama
+  (`c.life.fame`), siempre por `VB.CareerStory.fx` → `VB.CareerLife.applyEff`. Lo pasivo (ánimo, relaciones, calor del rival,
+  estrellas, figuras, muro, sellos) vive solo en `c.story`. Nunca se tocan `m.attrs`, `c.player`, las ofertas ni `c.trophies`.
+  El autopiloto de careertest no elige nada en story, así que la carrera sale idéntica con y sin los ficheros.
+- **Guardado: `c.story`** (opcional; `VB.CareerStory.ensure(c)` lo crea o repara y es idempotente; no se sube VER ni VER6; migrate y
+  saneDeep lo conservan). Núcleo: `{v:1, n, mN (jornadas cerradas, para caducar), nk (clave de la próxima jornada, K(c)._wkKey), freq
+  (0 Poca / 1 Normal / 2 Mucha), feed:[{id,k,b,vars,o,ans,exp,mN,s,w,ph,r}] (tope 30, aparte de los 40 de c.inbox; el texto se regenera
+  con b y vars), flags:{k:{mN,v}} (caducan a las 6 jornadas), rel:{ag,fam,heat,arch,seat,why}, mood, moodLog, starQ}`. Cada sistema
+  añade lo suyo en su `ensure`: msgs (`seenB, pressQ, pressNext, pressLast, chn, coach0, chem0`), week (`wk, pact, pactOff, pactK,
+  pactLog`), wall (`wall:{p, prev}, wallSeen, wallIn, post, mk:{k,tag}`), season (`fj, fjH, mt, mo, mvpN, rec, ns, pass, pathHist,
+  titles, title, bgs, bg`).
+- **Azar: claves `st-*`** con `VB.CareerStory.rng(c, 'st-…', …)` (hash de `c.seed`, como `rngOf` de career-life). Sin `Math.random`,
+  sin consumir los generadores de career.js ni el `'ev'` de career-life, y **nada en 'create'**. Claves en uso: `st-msg`, `st-msgf`, `st-press`,
+  `st-pressq`, `st-eco` (msgs); `st-week`, `st-wkv`, `st-pact` (week); `st-wall`, `st-wlk`, `st-wpub`, `st-wline`, `st-tv` (wall); `st-fj`,
+  `st-fm` (season); `st-coachN` (reparto del núcleo). Las variantes de texto del núcleo salen de `hash(seed,'st-v',…)`, sin tirar.
+- **Tope por jornada** (`budget`): 1, 3 o 4 cosas que piden respuesta según «Cuánta vida», menos 1 si hay decisión de career-life;
+  el muro y la carta de la semana no cuentan. Lo que no se contesta caduca a las 2 jornadas sin efecto.
+- **Acciones de la UI** `st-…` (career-ui.js las manda a `VB.CareerStoryUI.act` → `VB.CareerStory.act`, que guarda): `st-ans-<id>-<i>`,
+  `st-freq-<n>`, `st-wk-<n>`, `st-pact-<n>`, `st-wall-pub-<n>`, `st-season-title|bg|view-…`; de la UI: `st-plan`, `st-fold-last`, `st-jump`.
+- **Gancho 'season'**: corre dentro de closeMine ANTES del 'match' del último partido; el núcleo no mueve `s.nk` en él para que ese
+  'match' aún vea la etiqueta del partido jugado (`ctx.played.tag`, p. ej. la final).
+- **Pruebas** (de una en una): `node tools/storytest.js` (núcleo: contrato con y sin story, determinismo, sin Math.random, crear sin
+  tiradas, guardados viejos, story roto, career-ui con y sin story, API), `storymsgtest`, `storyweektest`, `storywalltest`,
+  `storyseasontest`, `storyuitest` (ayudas comunes en `tools/storyhelp.js`: `boot` y `autopilot`).
+
+**Pendiente**: revisión de tono de @NoMeConvence y del rival por Ferran; equilibrio de estrellas en playa (~5 por temporada con el
+autopiloto) y de las cifras de los pactos; fondo de ticket (`sys('season').ticketBg`) y título de perfil (`titleOf`) aún sin pintar en
+career-ui; celebraciones como premio del Camino (no hay API en career-life); versión 1.13.0 y novedad en version.js al publicar.
+
 ## Escalón, rol y sueldo, cierre del muñeco (11-nov-2026)
 
 Sin cambiar el formato del guardado (v3; los campos nuevos tienen valor por defecto: `money` 0, `stats.bench` 0).
