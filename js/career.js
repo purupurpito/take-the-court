@@ -1002,9 +1002,9 @@
       ' (' + c.mate.role.toLowerCase() + ', ' + c.mate.style.toLowerCase() + ', media ' + mateOvr(c) + (d >= 3 ? ', por encima del nivel del club' : d <= -3 ? ', por debajo del nivel del club: tendrás que tirar tú del equipo' : '') + '). Objetivo del club: ' + c.objective.text.toLowerCase() + '. Cuanto más juguéis juntos, mejor os entenderéis.');
   }
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
-  /** «Vida» de la Carrera (js/career-life.js: retos, fama, patrocinios, decisiones, rival, tienda, premios, logros, legado). Sin el
-   *  fichero, nada cambia. */
-  function life(c, kind, a, b) { [VB.CareerLife, VB.CareerWorld].forEach(function (Lf) { if (!Lf || !Lf.hook) return; try { Lf.hook(c, kind, a, b); } catch (e) { try { console.error('Career hook ' + kind, e); } catch (e2) { } } }); }
+  /** «Vida» de la Carrera (js/career-life.js: retos, fama, patrocinios, decisiones, rival, tienda, premios, logros, legado), mundo
+   *  (career-world.js) y «Carrera con vida» (career-story.js, el último: lee sum.life). Sin los ficheros, nada cambia. */
+  function life(c, kind, a, b) { [VB.CareerLife, VB.CareerWorld, VB.CareerStory].forEach(function (Lf) { if (!Lf || !Lf.hook) return; try { Lf.hook(c, kind, a, b); } catch (e) { try { console.error('Career hook ' + kind, e); } catch (e2) { } } }); }
   /** Inicio: rechazar todas → nuevas ofertas, peores (de los clubes más flojos de la Regional y sin prueba). */
   function rejectAll() {
     var c = load(); if (!c || c.phase !== 'pick') return false;

@@ -129,6 +129,19 @@ p = R.introPlan({ career: Object.assign({}, cs0, { week: 0, first: true }), agai
 ok(p.kind === 'mini' && p.c === null, 'again manda sobre la larga');
 p = R.introPlan({ kind: 'long', career: Object.assign({}, cs0, { week: 0, first: true }) });
 ok(p.kind === 'long', 'kind forzado');
+// «Carrera con vida» (P3): partido marcado → su línea de previa como t1 (con la clave y el t2 de siempre); sin story, como antes
+{
+  const ln = 'Revancha: la última vez Voley Cádiz os ganó 2-0. Mira que no ha dormido bien desde entonces.';
+  const st0 = R.stake({ career: cs0 }), stD = R.stake({ career: duelCs });
+  const sA = R.stake({ career: Object.assign({}, cs0, { story: { tag: 'rev', name: 'Revancha', line: ln } }) });
+  ok(sA && sA.t1 === ln && sA.k === 'story' && sA.t2 === '', 'stake: career.story.tag → su línea como t1 (' + JSON.stringify(sA) + ')');
+  const sD = R.stake({ career: Object.assign({}, duelCs, { story: { tag: 'duel', line: 'Duelo: hoy toca contestar.' } }) });
+  ok(sD && sD.k === 'duel' && sD.t1 === 'Duelo: hoy toca contestar.' && sD.t2 === stD.t2, 'stake: con duelo, la línea de story y el t2 del duelo');
+  ok(JSON.stringify(R.stake({ career: Object.assign({}, cs0, { story: { tag: '', line: 'x' } }) })) === JSON.stringify(st0) &&
+    JSON.stringify(R.stake({ career: Object.assign({}, duelCs, { story: null }) })) === JSON.stringify(stD), 'stake: sin etiqueta (o sin story) queda como antes');
+  p = R.introPlan({ career: Object.assign({}, cs0, { story: { tag: 'tv', line: 'Televisado: hoy hay cámaras.' } }) });
+  ok(p.kind === 'long' && p.c && p.c.t1 === 'Televisado: hoy hay cámaras.', 'introPlan: partido marcado → previa larga con su línea');
+}
 for (let s = 0; s < 200; s++) {
   const pp = R.introPlan({ again: s % 7 === 0, career: s % 2 ? Object.assign({}, cs0, { week: s % 5, first: s % 5 === 0, duel: s % 3 === 0, rivalInfo: { name: 'X Y', w: 1, l: 1 } }) : null });
   if (!(pp.dur <= 6)) { ok(false, 'dur > 6 en el caso ' + s); break; }

@@ -49,7 +49,8 @@ const LK_TABS = ['pelo', 'cabeza', 'cara', 'cuerpo', 'brazos', 'piernas', 'color
 const PF_TABS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos'];
 const CR_TABS = [['match'], ['inbox'], ['player', 'phys'], ['player', 'def'], ['player', 'atk'], ['player', 'badges'], ['player', 'train'], ['player', 'look'],
   ['club', 'info'], ['club', 'mate|team'], ['club', 'contract'], ['club', 'offers'], ['life', 'fame'], ['life', 'shop'], ['life', 'goals'], ['life', 'legacy'],
-  ['league', 'table'], ['league', 'cal'], ['league', 'cups'], ['league', 'news'], ['league', 'clubs'], ['honors', 'titles'], ['honors', 'seasons'], ['honors', 'opts']];
+  ['league', 'table'], ['league', 'cal'], ['league', 'cups'], ['league', 'news'], ['league', 'clubs'], ['honors', 'titles'], ['honors', 'seasons'], ['honors', 'opts'],
+  ['inbox', 'wall'], ['club', 'people'], ['life', 'pass'], ['honors', 'stats']];   // (Carrera con vida, 1.13.x)
 const PAUSE_EXIT = '#btnResume';
 const HUD_EXIT = '#btnHudPause, #touch .vt-pause';   // (táctil: la pausa es la del overlay)
 

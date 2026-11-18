@@ -500,6 +500,7 @@
     var res = applyEff(c, o.e);
     var cu = chemCheck(c); if (cu && cu.up) res.push('¡Nivel de química: ' + cu.name + '!');
     l.log.push({ s: c.season, t: evTitle(c, E), o: evText(c, optT(c, o)) }); if (l.log.length > 30) l.log = l.log.slice(-30);
+    if (VB.CareerStory && VB.CareerStory.hook) try { VB.CareerStory.hook(c, 'answer', l.ev.key, i); } catch (e) { }   // (career-story.js: cadenas; solo escribe en c.story)
     l.ev = null;
     check(c); K(c).save(c);
     return res;
@@ -1112,6 +1113,7 @@
     GEAR: GEAR, GEAR_KEYS: GEAR_KEYS, GEAR_MAX: GEAR_MAX, gearName: gearName, gearPrice: gearPrice, buyGear: buyGear, gearBonus: gearBonus,
     SVC: SVC, SVC_KEYS: SVC_KEYS, svcCost: svcCost, toggleSvc: toggleSvc,
     rivalOvr: rivalOvr, pendingEvent: pendingEvent, answer: answer, EVENTS: EVENTS,
+    applyEff: applyEff, effHint: effHint,   // (career-story.js: efectos de las elecciones y lo que enseña cada botón)
     achList: achList, check: check, AWARDS: AWARDS,
     legacyScore: legacyScore, legacyTier: legacyTier, canRetire: canRetire, retire: retire, legends: legends, RETIRE_AGE: RETIRE_AGE, DECLINE_AGE: DECLINE_AGE,
     eur: eur, num: num,

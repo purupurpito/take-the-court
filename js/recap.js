@@ -139,8 +139,13 @@
     }
     return out.slice(0, 2);
   }
-  /** Beat C: {k, t1, t2} | null. t2 puede llevar « | » (ui.js lo parte con setSep). */
+  /** Beat C: {k, t1, t2} | null. t2 puede llevar « | » (ui.js lo parte con setSep). Con partido marcado («Carrera con vida»,
+   *  career.story = {tag, line}), su línea va de t1 (y la clave y el t2 de siempre, si los hay). */
   function stake(info) {
+    var r = stake0(info), sl = info && info.career && info.career.story && info.career.story.tag ? String(info.career.story.line || '') : '';
+    return sl ? { k: r ? r.k : 'story', t1: sl, t2: r ? r.t2 : '' } : r;
+  }
+  function stake0(info) {
     var cs = info && info.career; if (!cs) return null;
     var st = stageOf(cs), rv = rivalInfo(cs);
     for (var i = 0; i < STAKE_ORDER.length; i++) {

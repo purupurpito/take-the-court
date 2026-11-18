@@ -28,26 +28,54 @@
  * 1.12.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
  * 1.12.1 (18-nov-2026): vuelve la cámara de juego de antes de 1.8.1 (Ferran: «la nueva es horrible») con la regla de no perder el
  *   balón (js/camera.js ctUpdate: solo corrige cuando el balón se va del cuadro). El zoom de cámara se queda.
- * 1.13.0 (18-nov-2026): menús pensados para el móvil apaisado (Ferran: «se ve todo muy cramped»): escala de letra y piezas .ph
+ * 1.14.0 (18-nov-2026): menús pensados para el móvil apaisado (Ferran: «se ve todo muy cramped»): escala de letra y piezas .ph
  *   de js/splat.js, cada pantalla con su versión de móvil (notes/splat.md §9, notes/ui_main.md «Móvil (v-next)»).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.13.0';
+  VB.VERSION = '1.14.0';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.13.0', d: '2026-11-18', t: 'Menús para el móvil',
+      v: '1.14.0', d: '2026-11-18', t: 'Menús para el móvil',
       items: [
         'Menús rehechos para el móvil: letra más grande y menos cosas en cada pantalla.',
         'Botones grandes para el pulgar: Volver arriba a la izquierda y la acción principal abajo.',
         'Las listas largas se desplazan por dentro y los botones de salir siempre se ven.',
         'La Carrera, el Online y la hoja final del partido, con su versión para el móvil.',
         'Las explicaciones largas se abren con la «i», sin llenar la pantalla de texto.'
+      ]
+    },
+    {
+      v: '1.13.2', d: '2026-11-18', t: 'Mensajes en el móvil',
+      items: [
+        'Los mensajes de la Carrera, ahora como un chat de móvil: una conversación por persona.',
+        'En el ordenador salen dentro de un teléfono; en el móvil, a pantalla completa.',
+        'Respondes con burbujas de respuesta rápida, como en cualquier chat.'
+      ]
+    },
+    {
+      v: '1.13.1', d: '2026-11-18', t: 'Quejas del vestuario',
+      items: [
+        'Tu vestuario se queja por mensaje: de jugar poco, de otros compañeros o del entreno.',
+        'También del partido, del árbitro, del plan del entrenador y hasta del hotel.',
+        'Tú decides qué contestas: mediar, animar, dar la razón o no meterte.'
+      ]
+    },
+    {
+      v: '1.13.0', d: '2026-11-18', t: 'Carrera con vida',
+      items: [
+        'Carrera con vida: te escriben agente, entrenador, tu gente, la prensa y el rival.',
+        'Muchos mensajes piden respuesta, y ves el efecto antes de elegir.',
+        'Redes: la gente comenta tus partidos y puedes publicar una vez por jornada.',
+        'Tu semana: elige qué haces en el día libre. Y pactos con el entrenador.',
+        'Ruedas de prensa, partidos marcados (Derbi, Revancha, Televisado...) y Figura del mes.',
+        'Pestañas nuevas: Gente, Estado, Camino de temporada y Estadísticas.',
+        'En Palmarés › Opciones eliges cuánta vida quieres: Poca, Normal o Mucha.'
       ]
     },
     {
