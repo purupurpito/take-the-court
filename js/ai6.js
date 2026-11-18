@@ -412,7 +412,8 @@
       var tempo = tempoOf(q);
       // rápida y pipe solo en sistema; la que pide el colocador humano (want: carril de dirOf8) se respeta también fuera de sistema
       // (17-nov-2026: antes se iba sin avisar a la 4 —«las colocaciones no van donde tocan»—; fuera de sistema sale más alta)
-      if ((tempo === 'quick' || tempo === 'pipe') && !inSys && !(want && LANE[tempo] === want)) continue;
+      // (want '*': todos los carriles, para la diana de la colocación en salto, dianaPlan)
+      if ((tempo === 'quick' || tempo === 'pipe') && !inSys && !(want && (want === '*' || LANE[tempo] === want))) continue;
       var T = FORM.set[tempo], ty = setY(g, p, q, tempo), Y = sd * ty, w = tempo === 'pipe' ? FORM.setW.pipe : FORM.setW[q.role] || 0.5;
       // humano (sprint 3): un atacante más, algo preferido; con «¡Pídela!» reciente, mucho más. Solo si está para atacar
       // (setReady: cerca de la red —o de su batida de zaguero— y del destino, y jugando): no se le regala el balón
@@ -483,6 +484,44 @@
     out.to = to; out.tempo = tp; out.kind = kindOf(tp, aD); out.d = TT.d; out.yl = setY(g, p, to, tp, d8.lane === 'back' && tp === 'pipe' ? d8.pref : 0);
     out.apex = TT.apex + aD + (inSys || tp === 'quick' ? 0 : 0.4);
     return out;
+  }
+
+  /** Salto con impulso, colocación en salto con diana (g.jsetAim), colocador humano en 6v6: la diana (ax, ay: mundo) va al atacante
+   *  cuya caja de destino le queda más cerca (caja = destino de FORM.set ±JD.box6D en profundidad y ±JD.box6L a lo ancho; el pipe nunca
+   *  por delante de FORM.set.pipe.d, 3,4 m: si no, el zaguero no despega detrás de la línea de 3 m). out = {lane, pref (pipe: la zona
+   *  del zaguero), apexD (cima ±0,18 m por metro de toque más allá de 3 m, ±0,6) para chooseSet; to; d, yl (destino real, local:
+   *  la diana metida en esa caja)}. Sin candidatos: alta a la 4. Pura (sin g.rng ni g.setPlan). */
+  var _dl = { lane: '', pref: 0, apexD: 0, to: null, d: 0, yl: 0 };
+  function dianaPlan(g, p, ax, ay, out) {
+    out = out || _dl;
+    var sd = side(p.team), b = g.ball, D = sd * ax, YL = sd * ay, s = Math.hypot(ax - b.x, ay - b.y), JD = VB.JD, best = -1, bd = 1e9;
+    buildCand(g, p, '*');
+    for (var m = 0; m < _cand.length; m++) {
+      var q = _cand[m], tp = tempoOf(q), bx = dianaBox(tp, FORM.set[tp].d, setY(g, p, q, tp), D, YL, JD);
+      var dd = Math.hypot(D - _db.d, YL - _db.yl);
+      if (dd < bd - 1e-9) { bd = dd; best = m; out.d = _db.d; out.yl = _db.yl; }
+    }
+    var to = best >= 0 ? _cand[best] : null, tp2 = to ? tempoOf(to) : 'high';
+    if (!to) { dianaBox('high', FORM.set.high.d, FORM.set.high.yl, D, YL, JD); out.d = _db.d; out.yl = _db.yl; }
+    out.to = to; out.lane = LANE[tp2]; out.pref = tp2 === 'pipe' && to ? to.zone : 0;
+    out.apexD = clamp(0.18 * (s - 3), -0.6, 0.6);
+    return out;
+  }
+  /** Caja de destino de la diana alrededor de (d, yl) para el tempo tp: deja en _db el punto (D, YL) metido en ella. */
+  var _db = { d: 0, yl: 0 };
+  function dianaBox(tp, d, yl, D, YL, JD) {
+    var lo = d - JD.box6D; if (tp === 'pipe') lo = Math.max(lo, FORM.set.pipe.d);
+    _db.d = clamp(D, lo, Math.max(lo, d + JD.box6D)); _db.yl = clamp(YL, yl - JD.box6L, yl + JD.box6L);
+    return _db;
+  }
+  /** Carril de la diana (compatibilidad): dianaPlan sin el destino. */
+  function dianaLane(g, p, ax, ay) { return dianaPlan(g, p, ax, ay); }
+  /** Reorienta el plan de colocación en curso del equipo t (g.setPlan[t], el de este toque) al destino d (m de la red), yl (lateral
+   *  local) y cima apex (la del balón): la colocación a la diana va ahí, no al destino de la tabla, y el atacante la espera a esa altura. */
+  function planAt(g, t, d, yl, apex) {
+    var P = g.setPlan && g.setPlan[t];
+    if (!P || P.t !== g.time) return;
+    P.d = d; P.yl = yl; if (apex > 0) P.apex = apex;
   }
 
   /** Multiplicador de la defensa rival (digOk) para el remate del equipo t: ataque en sistema (recepción buena, colocador en su
@@ -659,7 +698,7 @@
     return res.length ? res : null;
   }
 
-  VB.AI6 = { computeJob: computeJob, pos: pos, spot: spot, humanOwns: humanOwns, setReady: setReady, placeServe: placeServe, passTarget: passTarget, chooseSet: chooseSet, dirOf8: dirOf8, previewSet: previewSet,
+  VB.AI6 = { computeJob: computeJob, pos: pos, spot: spot, humanOwns: humanOwns, setReady: setReady, placeServe: placeServe, passTarget: passTarget, chooseSet: chooseSet, dirOf8: dirOf8, previewSet: previewSet, dianaLane: dianaLane, dianaPlan: dianaPlan, planAt: planAt,
     blockPlan: blockPlan, digK: digK, canAttack: canAttack, canPipe: canPipe, laneOf: laneOf, legalFixes: legalFixes, setterOf: setterOf, FORM: FORM, HUM: HUM,
     // entrenador CPU (cambios, solo con banquillo)
     coachPlan: coachPlan, lineupPlan: lineupPlan, COACH: COACH };

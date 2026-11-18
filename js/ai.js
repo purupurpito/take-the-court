@@ -199,6 +199,7 @@
   }
 
   var _pv = { x: 0, y: 0, tempo: '', ok: true, to: null, bx: 0, by: 0 }; // (C2: vista previa de la colocación del humano)
+  var _ja = { on: false, x: 0, y: 0, ax: 0, ay: 0, tempo: '', apex: 0, moved: false, bx: 0, by: 0, ok: true }; // (salto con impulso: diana de la colocación en salto)
   /** Posición objetivo de un jugador según la fase del rally. */
   function pos(g, p) {
     if (g.size !== 2 && VB.AI6 && VB.AI6.pos) return VB.AI6.pos(g, p); // 6v6 con su IA propia (sprint 2)
@@ -230,6 +231,8 @@
         // C2 (colocar por destino, con g.mastery): el humano coloca y el marcador ya dice adónde; me voy a la batida de ese destino
         // (S.setPreview, lectura pura y sin azar; cambia si el humano cambia de dirección). Con él en el aire, lo de siempre
         if (g.mastery && (g.online ? S.humOn(g, t) : t === 0) && mate === g.ctrl && mate.z <= 0.05 && S.setPreview(g, _pv)) return setTg(_pv.bx, _pv.by);
+        // salto con impulso (g.jsetAim): el humano en el aire ha movido la diana de su colocación en salto: a la batida de ese destino
+        if (g.jsetAim && mate === g.ctrl && mate.z > 0.05 && S.jsetAimInfo && S.jsetAimInfo(g, _ja) && _ja.moved) return setTg(_ja.bx, _ja.by);
         return setTg(sd * 4.3 * cs, clamp(p.y, -3 * cs, 3 * cs));
       }
       return setTg(sd * 5.5 * cs, (idx ? 2 : -2) * cs);

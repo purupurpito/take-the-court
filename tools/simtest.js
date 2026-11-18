@@ -22,6 +22,10 @@
  *   y usa golpe colocado / colocación a un lado); SIMTEST_MASTERY=2: además los bots usan finta, colocado, filo y colocación dirigida.
  *   SIMTEST_ONLY=colocar: solo la sección «Colocar por destino (C2)» (SIMTEST_COL=b,c filtra las pruebas).
  *   SIMTEST_ONLY=gym: solo la sección «Gimnasio (E6)» (createGame({drill}): ejercicios y peloteo libre).
+ *   SIMTEST_DJUMP=1: la matriz de los bots con createGame({djump:true}) (salto con impulso, v1.10.0): los bots corren hacia la red y
+ *   saltan sin soltar la dirección en una parte de sus ataques (BOT_DJ) y la tabla añade toques de red cada 100 puntos y % de remates
+ *   con impulso (hit.mom >= 0,5). SIMTEST_JSETAIM=1: además createGame({jsetAim:true}) (la diana sin mover: nada cambia).
+ *   SIMTEST_DJBOT=1: el mismo bot de BOT_DJ con la sim SIN djump (A/B de la sim con la misma entrada).
  *   SIMTEST_ONLY=replay: solo la sección «[repetición]» (S3-C1: copyGame, stateHash, resim idéntica; SIMTEST_RP_SECS = s por partido, 180).
  */
 'use strict';
@@ -35,6 +39,10 @@ const NSEED = Math.max(1, +(process.argv[5] || 4)); // semillas por casilla de l
 // SIMTEST_ROOKIE=off: ninguno. Por defecto solo el primero, como el juego real (main.js isRookie).
 const ROOKIE_MODE = process.env.SIMTEST_ROOKIE || 'first';
 const MASTERY_MODE = +(process.env.SIMTEST_MASTERY || 0); // E1: 1 = matriz con mastery (la CPU), 2 = y los bots la usan
+const DJUMP_MODE = process.env.SIMTEST_DJUMP === '1', JSETAIM_MODE = process.env.SIMTEST_JSETAIM === '1'; // salto con impulso (v1.10.0)
+// SIMTEST_DJBOT=1: el bot que corre hacia la red (BOT_DJ) también SIN djump en la sim: A/B con el mismo bot y la misma entrada, para
+// separar el efecto de la sim (SIMTEST_DJBOT=1 frente a SIMTEST_DJUMP=1) del de la forma de jugar del bot
+const DJBOT_MODE = DJUMP_MODE || process.env.SIMTEST_DJBOT === '1';
 const ONLY = process.env.SIMTEST_ONLY || '', MFILTER = process.env.MATRIX_FILTER ? new RegExp(process.env.MATRIX_FILTER) : null;
 
 function load() {
@@ -45,6 +53,7 @@ function load() {
   return ctx.VB;
 }
 const VB = load();
+if (process.env.SIMTEST_MOMSPD) VB.MOM.spd = +process.env.SIMTEST_MOMSPD; // (afinado del salto con impulso: bonus del remate, m/s)
 const S = VB.Sim, C = VB.C;
 const DT = 1 / C.SIM_HZ;
 let failures = 0;
@@ -199,6 +208,7 @@ function run(label, opts, seconds, inputFn, quiet) {
   const ev = newCounters(), evs = [], serveTakeoff = [];
   let steps = Math.round(seconds / DT), lastSamePlayer = null, sameTouch = 0, matches = 0, setsSeen = 0, matchWins = [0, 0];
   let ghost = 0, stalePr = 0, lateSw = 0, blkSwitch = 0, spikeCtl = null; const fresh = {};
+  const dj = { hs: 0, mom: 0, net: 0, djJ: 0 }; // salto con impulso: remates del humano, con impulso (mom >= 0,5), toques de red, saltos con dirección
   const aiFaults = []; // dobles / 4 toques cometidos por la IA (equipo CPU o compañero IA del humano): deben ser 0
   const hls = [], sigs = {}, pf = { streakT: -1, streakN: 0, setPoint: -1, matchPoint: -1, issues: 0, digs: 0, maxDigs: 0 };
   const rit = ritualChecker(label);
@@ -227,6 +237,9 @@ function run(label, opts, seconds, inputFn, quiet) {
           hls.push(e.highlight); sigs[e.signal] = (sigs[e.signal] || 0) + 1; pf.digs += e.digs; if (e.digs > pf.maxDigs) pf.maxDigs = e.digs;
         }
         if (!(e.type in ev)) fail('evento desconocido ' + e.type); else ev[e.type]++;
+        if (e.type === 'hit' && e.human && e.kind === 'spike') { dj.hs++; if (e.mom >= 0.5) dj.mom++; }
+        if (e.type === 'netTouch') dj.net++;
+        if (e.type === 'jump' && e.dir) dj.djJ++;
         if (!Number.isFinite(e.t)) fail('evento sin t ' + e.type);
         if (e.type === 'hit') {
           if (!(e.quality >= 0 && e.quality <= 1) || !e.grade) fail('hit sin calidad válida');
@@ -295,7 +308,7 @@ function run(label, opts, seconds, inputFn, quiet) {
   if (blkSwitch) fail(label + ` el control salta del bloqueador al defensor ${blkSwitch} veces durante el ataque de la CPU`);
   const hlMean = hls.length ? hls.reduce((a, b) => a + b, 0) / hls.length : 0;
   if (rit.serves > 2 && !rit.cpu && !(opts.demo === false && !opts.autopilot && inputFn)) fail(label + ' ritual: ningún saque de la CPU');
-  return { g, st, ev, med, mean, matches, setsSeen, matchWins, hlMean, hls, rit };
+  return { g, st, ev, med, mean, matches, setsSeen, matchWins, hlMean, hls, rit, dj };
 }
 
 // ---------- Probabilidad de partido a partir de la de punto (sets 25/25/15, dif. 2) ----------
@@ -384,11 +397,15 @@ const BOT_MASTERY = {
 };
 // SIMTEST_BOTM=feint,set: solo esas jugadas (afinado; las demás a 0)
 if (process.env.SIMTEST_BOTM) { const on = process.env.SIMTEST_BOTM.split(","); for (const b in BOT_MASTERY) for (const k in BOT_MASTERY[b]) if (!on.includes(k)) BOT_MASTERY[b][k] = 0; }
+/** Salto con impulso (SIMTEST_DJUMP=1): prob. por ataque de que el bot espere más atrás (DJ_BACK m tras la batida), arranque hacia la
+ *  red DJ_RUN s antes del despegue y salte sin soltar la dirección (luego la suelta un paso para que la diana vuelva a moverse). */
+const BOT_DJ = { perfecto: 0.75, bueno: 0.45, medio: 0.45, novato: 0.2 }, DJ_BACK = 2.8, DJ_RUN = 0.36;
 // colocación por destino (C2): las 8 direcciones (mundo, equipo 0 en x > 0: ↑ = −x, → = +y); sin dirección (mSet null), alta a la 4
 const SETDIRS = [0, 45, 90, 135, 180, 225, 270, 315].map(a => [-Math.cos(a * Math.PI / 180), Math.sin(a * Math.PI / 180)]);
 function makeBot(bp, seed, opt) {
   const six = !!(opt && opt.six), role = six && opt.role || '';
   const pm = opt && opt.mastery || null; let mPlan = '', mEdge = false, mSet = null, mT = -9, mBtn = 'jump'; // E1: maestría del bot
+  const pdj = opt && opt.dj || 0, rngD = S._makeRng((seed ^ 0x5a17) >>> 0); let djPlan = false, stampD = -9; const ZERO = [0, 0]; // salto con impulso (azar propio)
   const LANES = [[1, 0], [-1, 0], [0, 1], [0, -1]]; let laneV = null; // stick del colocador bot en su 2º toque (mundo; laneOf lo pasa a local)
   const rng = S._makeRng(seed), gauss = () => (rng() + rng() + rng() + rng() - 2) * 1.732;
   const mv = [0, 0], want = [0, 0], aimv = [0, 0], out = { move: mv, hit: false, jump: false, jset: false, switchPlayer: false };
@@ -440,6 +457,7 @@ function makeBot(bp, seed, opt) {
       if (pm) { const r = rng(); mPlan = r < pm.feint ? 'feint' : r < pm.feint + pm.roll ? 'roll' : ''; mEdge = rng() < pm.edge;
         mSet = rng() < pm.set ? SETDIRS[Math.floor(rng() * 8) % 8] : null; mBtn = rng() < 0.6 ? 'jump' : 'jset'; mT = -9; }
     }
+    if (stampD !== g.lastTouchT) { stampD = g.lastTouchT; djPlan = pdj > 0 && rngD() < pdj; }
     const since = g.time - g.lastTouchT, job = g.jobs[0] === p;
     const set2 = role === 'S' && job && g.touchTeam === 0 && g.touches === 1; // colocador bot: el 2º toque es suyo
     const sp6 = six && (!job || set2) ? VB.AI6.spot(g, p) : null, sp6x = sp6 ? sp6.x : 0, sp6y = sp6 ? sp6.y : 0, sp6b = !!(sp6 && sp6.block);
@@ -453,7 +471,7 @@ function makeBot(bp, seed, opt) {
       tx += eu * bp.posErr * 0.15; ty += ev * bp.posErr * 0.15;
     } else if (job) {
       const pr = attack ? g.pr3 : g.pr1;
-      if (attack) { tx = pr.x + 0.35 * sd; ty = pr.y; } else { tx = pr.x + 0.15; ty = pr.y; }
+      if (attack) { tx = pr.x + (djPlan ? DJ_BACK : 0.35) * sd; ty = pr.y; } else { tx = pr.x + 0.15; ty = pr.y; }
       // error de lectura: crece con el vuelo que queda y la distancia; en profundidad (eje de la cámara) es mayor
       const dist = Math.hypot(pr.x - p.x, pr.y - p.y), tr = Math.max(0, pr.t);
       const s = bp.posErr * (0.22 + 0.55 * Math.min(1.6, tr / 1.1) + 0.06 * Math.min(8, dist));
@@ -472,7 +490,11 @@ function makeBot(bp, seed, opt) {
       if (dl <= k) { mv[0] = want[0]; mv[1] = want[1]; } else { mv[0] += ddx / dl * k; mv[1] += ddy / dl * k; } }
     if (job && since >= react * 0.6) {
       S.hitWindow(g, p, w);
-      if (attack && jumpOk && p.z === 0 && w.attack && w.jumpT <= jlead && Math.hypot(g.pr3.x + 0.35 - p.x, g.pr3.y - p.y) < 1.3) out.jump = true;
+      if (attack && djPlan && jumpOk && p.z === 0 && w.attack && w.jumpT <= jlead + DJ_RUN) { // carrera hacia la red
+        const cx = g.pr3.x + 0.35 - p.x, cy = g.pr3.y - p.y, cl = Math.hypot(cx, cy);
+        if (cl > 0.05 && cx < 0) { mv[0] = want[0] = cx / cl; mv[1] = want[1] = cy / cl; }
+      }
+      if (attack && jumpOk && p.z === 0 && w.attack && w.jumpT <= jlead && Math.hypot(g.pr3.x + 0.35 - p.x, g.pr3.y - p.y) < (djPlan ? 2.2 : 1.3)) out.jump = true;
       const near = Math.hypot(b.x - p.x, b.y - p.y) < 2.6;
       // E1: con el bloqueo rival arriba, finta (arma antes) o golpe colocado (COLOCAR en vez de GOLPEAR)
       const blkUp = pm && mPlan && p.z > 0.25 && g.touchTeam === 0 && g.touches === 2 && g.teams[1].some(q => q.z > 0.15 && Math.abs(q.x) < 1.2);
@@ -507,6 +529,7 @@ function makeBot(bp, seed, opt) {
         aimSt[0] = dx * f; aimSt[1] = dy * f; out.move = aimSt;
       } else { aimSt[0] = aimSt[1] = 0; out.move = aimSt; }
     }
+    if (pdj && p.z > 0 && p.lastAction === 'jump' && p.actionT < 0.02) out.move = ZERO; // salto con impulso: suelta la dirección del despegue
     // cámara recién deslizada a otro jugador: el stick va girado yawE (se corrige en 0,5 s)
     if (yawE && out.move === mv) {
       const k = 1 - (g.time - yawT) / 0.5;
@@ -600,10 +623,14 @@ function runJob(j) {
   // E1: SIMTEST_MASTERY=1 juega los partidos de los bots con createGame({mastery:true}) (la CPU lee y usa lo suyo; el bot no usa nada
   // nuevo); SIMTEST_MASTERY=2, además el bot usa finta / golpe colocado / al filo / colocación dirigida (BOT_MASTERY)
   if (j.kind === 'bot' && MASTERY_MODE) opts.mastery = true;
-  const r = run(j.label, opts, j.seconds, j.kind === 'bot' ? makeBot(BOTS[j.bot], j.seed * 7 + 3, MASTERY_MODE === 2 ? { mastery: BOT_MASTERY[j.bot] } : undefined) : null, true);
+  if (j.kind === 'bot' && DJUMP_MODE) opts.djump = true;     // salto con impulso: la sim y el bot (BOT_DJ)
+  if (j.kind === 'bot' && JSETAIM_MODE) opts.jsetAim = true;
+  const bopt = MASTERY_MODE === 2 ? { mastery: BOT_MASTERY[j.bot] } : DJBOT_MODE ? {} : undefined;
+  if (bopt && DJBOT_MODE) bopt.dj = BOT_DJ[j.bot];
+  const r = run(j.label, opts, j.seconds, j.kind === 'bot' ? makeBot(BOTS[j.bot], j.seed * 7 + 3, bopt) : null, true);
   return { label: j.label, kind: j.kind, bot: j.bot, diff: j.diff, won0: r.st.won[0], points: r.st.points, med: r.med,
     hits: r.st.hits, how: r.st.how, blocks: r.st.blocks, dives: r.st.dives, misses: r.st.misses, hgrades: r.st.hgrades, why: r.st.why,
-    matchWins: r.matchWins, failures };
+    matchWins: r.matchWins, dj: r.dj, failures };
 }
 function runMatrix(jobs) {
   const n = Math.max(1, Math.min(jobs.length, (os.cpus().length || 2) - 1, 15)), out = new Array(jobs.length);
@@ -1790,9 +1817,9 @@ if (ONLY !== 'matrix') {
     for (const r of raw) {
       if (!r) continue;
       const k = r.kind + ':' + (r.bot || '') + ':' + r.diff, c = cells.get(k);
-      if (!c) { cells.set(k, Object.assign({}, r, { hits: Object.assign({}, r.hits), how: Object.assign({}, r.how), hgrades: Object.assign({}, r.hgrades), why: Object.assign({}, r.why), matchWins: r.matchWins.slice(), meds: [r.med] })); continue; }
+      if (!c) { cells.set(k, Object.assign({}, r, { hits: Object.assign({}, r.hits), how: Object.assign({}, r.how), hgrades: Object.assign({}, r.hgrades), why: Object.assign({}, r.why), matchWins: r.matchWins.slice(), meds: [r.med], dj: r.dj ? Object.assign({}, r.dj) : r.dj })); continue; }
       c.won0 += r.won0; c.points += r.points; c.blocks += r.blocks; c.dives += r.dives; c.misses += r.misses; c.meds.push(r.med);
-      addObj(c.hits, r.hits); addObj(c.how, r.how); addObj(c.hgrades, r.hgrades); addObj(c.why, r.why);
+      addObj(c.hits, r.hits); addObj(c.how, r.how); addObj(c.hgrades, r.hgrades); addObj(c.why, r.why); if (c.dj && r.dj) addObj(c.dj, r.dj); // (dj: todas las semillas)
       c.matchWins[0] += r.matchWins[0]; c.matchWins[1] += r.matchWins[1];
     }
     const res = [...cells.values()];
@@ -1811,7 +1838,8 @@ if (ONLY !== 'matrix') {
       botRes[r.bot + ':' + r.diff] = p;
       console.log(`  ${r.bot.padEnd(9)} vs ${VB.DIFF[r.diff].name.padEnd(8)} puntos ${pct(r.won0, r.points).padStart(6)} (${r.points})  P(partido)≈${(matchWinProb(p) * 100).toFixed(0).padStart(3)}%  ` +
         `toques P/B/M ${pct(hg.perfect, ht)}/${pct(hg.good, ht)}/${pct(hg.poor, ht)}  fallos ${r.misses}  rally ${r.med.toFixed(1)} s  ` +
-        `partidos ${r.matchWins.join('-')}  ${JSON.stringify(topWhy(r.why))}`);
+        `partidos ${r.matchWins.join('-')}  ${JSON.stringify(topWhy(r.why))}` +
+        (r.dj ? `  red/100 ${(100 * r.dj.net / Math.max(1, r.points)).toFixed(2)}` + (DJBOT_MODE ? `  impulso ${pct(r.dj.mom, r.dj.hs)} de ${r.dj.hs} remates (saltos con dirección ${r.dj.djJ})` : '') : ''));
     }
     if (BOTMIN >= 20 && !MFILTER) { // objetivos de diseño (márgenes amplios: son estimaciones estadísticas)
       // curva de 4 niveles (revisión 2): quien acaba de superar Fácil no pierde casi todos los partidos en Normal

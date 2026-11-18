@@ -44,14 +44,18 @@
     aim3: 'special', swingAim: 'special', aimIn: 'special', aimOn: 'slot', aimLen: 'slot', swingLen: 'slot', aimSet: 'slot',
     hitBuf: 'slot', jsetQ: 'slot', swingLive: 'slot', swingShot: 'slot', swingLock: 'slot', swingHasAim: 'slot', setWinOn: 'slot',
     setCarry: 'slot', setCarryK: 'slot', setDirA: 'slot', lastGrade: 'slot', swingT0: 'slot', swingShot0: 'slot', swingSwapT: 'slot',
-    defRole: 'slot'
+    defRole: 'slot',
+    // salto con impulso (v1.10.0): las puertas y la atribución del último remate tal cual; búfer de dirección (ejes del EQUIPO: F hacia
+    // la red, S = sd·y, no cambian con el espejo), arrastre de la diana y diana de colocación, por hueco
+    djump: 'as', djLast: 'as', jdF: 'slot', jdS: 'slot', jdM: 'slot', jdT: 'slot', aimCarry: 'slot', jsMv: 'slot', jsAimD: 'slot', jsetAim: 'slot'
   };
   var PLAYER = {
     id: 'as', team: 'team', idx: 'as', num: 'as', role: 'as', zone: 'as', front: 'as', x: 'neg', y: 'neg', z: 'as', vx: 'neg', vy: 'neg',
     vz: 'as', anim: 'as', cool: 'as', st: 'as', prof: 'as', ak: 'as', badges: 'as', bd: 'as', bdT: 'as', jvx: 'neg', jvy: 'neg',
     lvx: 'neg', lvy: 'neg', rvx: 'neg', rvy: 'neg', down: 'as', shot: 'as', grade: 'as', aiTe: 'as', aiTeT: 'as', aiJt: 'as',
     aiDv: 'as', e1T: 'as', e1Until: 'as', lastAction: 'as', pressEnd: 'as', actionT: 'as', onGround: 'as', tgx: 'neg', tgy: 'neg',
-    tgA: 'as', tgB: 'as', tgTime: 'as', aiPlT: 'as', aiPl: 'as'
+    tgA: 'as', tgB: 'as', tgTime: 'as', aiPlT: 'as', aiPl: 'as',
+    avx: 'neg', avy: 'neg', tkX: 'neg', tkY: 'neg', dj: 'as', jF: 'as', landT: 'as'   // (salto con impulso: carrera media, despegue; jF ya es «hacia la red»)
   };
   var EVENT = {
     type: 'as', t: 'as', _tick: 'as', _conf: 'as', team: 'team', landSide: 'team', setPoint: 'team', matchPoint: 'team', serving: 'team',
@@ -64,7 +68,8 @@
     overturned: 'as', pause: 'as', pokey: 'as', power: 'as', pressed: 'as', quality: 'as', rallyHits: 'as', rallyTime: 'as',
     reason: 'as', recv: 'as', result: 'as', savedSetPoint: 'as', setNo: 'as', setWon: 'as', shot: 'as', sideout: 'as', signal: 'as',
     speed: 'as', streak: 'as', t2: 'as', tape: 'as', tempo: 'as', timing: 'as', tool: 'as', touch: 'as', touchedOut: 'as',
-    truthIn: 'as', venue: 'as', why: 'as', dur: 'as', wrong: 'as', used: 'as', auto: 'as', reset: 'as', mode: 'as'
+    truthIn: 'as', venue: 'as', why: 'as', dur: 'as', wrong: 'as', used: 'as', auto: 'as', reset: 'as', mode: 'as',
+    jv: 'as', mom: 'as', pipe: 'as', hard: 'as', jaim: 'as'   // (salto con impulso; jump.dir ya es 'vec')
   };
   // claves conocidas de los objetos anidados que flip toca o deja (viewtest falla si aparece otra: habría que clasificarla)
   var NESTED = {
@@ -75,7 +80,7 @@
     _rc: 'pace,wob,run,move,line,ft,who',
     lastPoint: 'team,reason,text,how,highlight,digs,streak,savedSetPoint,clutch,signal,touchedOut,landSide,hold,setWon,matchWon,assist,tool,move',
     _snap: 'score,sets,setNo,serving,serverIdx,setScores,streakTeam,streakN,courtSwap3,pendingSet,setPoint,matchPoint,challenges,lastPoint',
-    hum: 'team,p,ai,aiBack,aim3,swingAim,aimIn,hitBuf,jsetQ,swingLive,swingShot,swingLock,swingHasAim,setWinOn,setCarry,setCarryK,setDirA,lastGrade,swingT0,swingShot0,swingSwapT,defRole,aimOn,aimLen,swingLen,aimSet'
+    hum: 'team,p,ai,aiBack,aim3,swingAim,aimIn,hitBuf,jsetQ,swingLive,swingShot,swingLock,swingHasAim,setWinOn,setCarry,setCarryK,setDirA,lastGrade,swingT0,swingShot0,swingSwapT,defRole,aimOn,aimLen,swingLen,aimSet,jdF,jdS,jdM,jdT,aimCarry,jsMv,jsAimD,jsetAim'
   };
   var NOSLOT = { team: 1, p: 1, ai: 1, aiBack: 1, aim3: 1, swingAim: 1, aimIn: 1 };
   // textos del árbitro que dependen de quién mira (sim.js LAND_TXT): el invitado ve el otro

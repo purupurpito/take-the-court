@@ -1303,3 +1303,11 @@ así que los dos modelos son P2P: en «Crear sala», fila **Conexión**: **Preci
   resync, validez tras adopt, balón clavado al caer, saque contra la IA, parón largo del anfitrión, versión de sala, chip en vertical…).
 - **Pendiente:** afinar D/warp/zona con ping real (Ferran y amigos), repeticiones y challenges en Fluida (fase 2), récord aparte si se
   quiere (`m:'f'`), y ver con los informes de red cuál se siente mejor.
+
+## Salto con impulso en el online (v1.10.0, 18-nov-2026)
+- netlobby.js: `djump:true` en las opciones del anfitrión; `humans[i].jsetAim` (colocación en salto con diana, ajuste de cada jugador;
+  el invitado lo manda en `'pre'` como `st.jsetAim`, también en «Igualado»). Sin `PROTO` nuevo: la versión del juego ya separa salas.
+- sim.js: `SLOT_S` lleva el búfer de dirección, el arrastre de la diana y la diana de colocación (`jdF, jdS, jdM, jdT, aimCarry, jsMv,
+  jsAimD, jsetAim`). `p.dj` no viaja en Fluida (no está en `FL_POSE`: `_simPose` de netfluid.js no lo manda; es solo la inclinación
+  del rival y su sombra de caída, que en Fluida no salen). netview.js los clasifica (viewtest en verde). `tools/fluidsimtest.js`: `SIM_BASE` actualizada
+  con `--rehash` tras comprobar que la huella 2v2 sigue idéntica (el bloque FLUIDA no cambia).

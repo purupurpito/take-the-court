@@ -2291,7 +2291,7 @@
       case 'country': form.country = b.getAttribute('data-cc'); snd('select'); keepFocus(b, render); return;
       case 'pos': form.pos = b.getAttribute('data-p'); snd('select'); keepFocus(b, render); return;
       case 'pts6': form.pts6 = +b.getAttribute('data-v'); snd('select'); keepFocus(b, render); return;
-      case 'setpos': if (C().setPosition && C().setPosition(b.getAttribute('data-p'))) snd('toggle'); else snd('back'); keepFocus(b, render); return;
+      case 'setpos': if (C().setPosition && C().setPosition(b.getAttribute('data-p'))) { snd('toggle'); if (b.getAttribute('data-p') === 'S') setterNoteSoon(); } else snd('back'); keepFocus(b, render); return;   // (colocador: el aviso de la diana)
       case 'openmode': C().setMode(b.getAttribute('data-m')); view = 'hub'; tab = 'match'; tblLid = ''; tblLvl = -1; snd('start'); render(); focusFirst(); syncMenu(); return;
       case 'switch': {   // Opciones: a la otra Carrera (si no existe, a crearla)
         var om = b.getAttribute('data-m');
@@ -2538,6 +2538,28 @@
     root.hidden = false; root.classList.remove('in');
     requestAnimationFrame(function () { if (root) root.classList.add('in'); });
     focusFirst();
+    if (view === 'hub' && c && !dbgTrial) setterNoteSoon();
+  }
+  /** Salto con impulso (v1.10.0): en la Carrera de pista, si juegas de colocador, el aviso de la colocación con diana (VB.UI.setterNote;
+   *  él decide si toca: una vez por sesión, con la diana apagada y sin «No volver a mostrar»). Tras el foco del hub (focusFirst). Nunca
+   *  encima de otra capa: con la escena de Faro (.cw-mentor), la confirmación de borrar, la hoja de instalar u otro aviso abiertos,
+   *  espera (cada 0,5 s mientras sigas en el hub; si te vas, sale la próxima vez que vuelvas). */
+  var snT = 0;
+  function setterNoteSoon() {
+    clearTimeout(snT);
+    var tries = 0;
+    (function tryNote() {
+      snT = setTimeout(function () {
+        if (!open || view !== 'hub') return;
+        var c = null; try { c = C() && C().get(); } catch (e) { c = null; }
+        if (!c || !isHall(c) || !C().ctrlRole || C().ctrlRole(c) !== 'S') return;
+        var busy = !!(root && root.querySelector('.cw-mentor')) || confirmStep > 0 || document.hidden ||
+          !!(VB.Install && VB.Install.isOpen && (function () { try { return VB.Install.isOpen(); } catch (e) { return false; } })()) ||
+          !!(VB.UI && VB.UI.noteOpen && VB.UI.noteOpen());
+        if (busy) { if (++tries < 600) tryNote(); return; }
+        if (VB.UI && VB.UI.setterNote) { try { VB.UI.setterNote({ from: 'career' }); } catch (e) { } }
+      }, tries ? 500 : 160);
+    })();
   }
   function close(toPlay) {
     if (!root || !open) return;

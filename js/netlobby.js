@@ -402,7 +402,7 @@
   function preStart() {
     var link = L.link; if (!link) return;
     var me = myName(), st = myStats();
-    if (L.role === 'guest') link.send('ctl', JSON.stringify({ k: 'pre', name: me, st: { attrs: st.attrs, badges: st.badges, aimSet: myAimSet() }, look: myLook(), model: roomModel(L.room) }));
+    if (L.role === 'guest') link.send('ctl', JSON.stringify({ k: 'pre', name: me, st: { attrs: st.attrs, badges: st.badges, aimSet: myAimSet(), jsetAim: myJsetAim() }, look: myLook(), model: roomModel(L.room) }));
     var t0 = Date.now();
     every('pre', 50, function () {
       if (!L.link || L.link !== link) { stop('pre'); return; }
@@ -418,6 +418,9 @@
     });
   }
   function myAimSet() { var C = ctx(); return !(C && C.settings && C.settings.aimSet === false); }
+  /** Salto con impulso (v1.10.0): «Colocación en salto con diana» (Ajustes, Juego), por defecto no. Como aimSet, es un ajuste de cada
+   *  jugador (viaja también en «Igualado»); un invitado de antes no lo manda y juega sin ella. */
+  function myJsetAim() { var C = ctx(); return !!(C && C.settings && C.settings.jsetAim === true); }
   function begin(pre, st) {
     var C = ctx(); if (!C || !C.actions || !C.actions.startOnline) { connFail(); return; }
     var r = L.room, opts = null, rivalName = NR().cleanName(pre.name) || L.rival || 'Rival';
@@ -432,8 +435,10 @@
       opts = { online: true, seed: seed, venue: r.venue === 'beach' ? 'beach' : 'hall', mapId: r.map || '', bestOf: r.bo === 3 ? 3 : 1, points: r.pts || 21, even: even,
         present: true, stats: true,
         // (auditoría: «Colocación dirigida» es un ajuste de cada jugador, no una ventaja: viaja también en «Igualado»)
-        humans: [even ? { aimSet: myAimSet() } : { attrs: st.attrs || undefined, badges: st.badges || undefined, aimSet: myAimSet() },
-          even ? { aimSet: gst.aimSet !== false } : { attrs: sanAttrs(gst.attrs) || undefined, badges: sanBadges(gst.badges) || undefined, aimSet: gst.aimSet !== false }] };
+        // (salto con impulso: djump = salto con dirección de los dos humanos; jsetAim = la diana de colocación de cada uno)
+        djump: true,
+        humans: [even ? { aimSet: myAimSet(), jsetAim: myJsetAim() } : { attrs: st.attrs || undefined, badges: st.badges || undefined, aimSet: myAimSet(), jsetAim: myJsetAim() },
+          even ? { aimSet: gst.aimSet !== false, jsetAim: gst.jsetAim === true } : { attrs: sanAttrs(gst.attrs) || undefined, badges: sanBadges(gst.badges) || undefined, aimSet: gst.aimSet !== false, jsetAim: gst.jsetAim === true }] };
       // Online V2 (Fluida): sin errores arbitrales, sin ojo de halcón y sin tiempos muertos (notes/online-v2-spec.md §2.1)
       if (model === 'fluida') { opts.net = 'fluida'; opts.ref = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 }; opts.timeouts = false; }
       L.link.send('ctl', JSON.stringify({ k: 'pre', name: myName(), look: myLook(), model: model }));

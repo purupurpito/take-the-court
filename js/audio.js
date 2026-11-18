@@ -1971,6 +1971,8 @@
           var gp = hg * (0.82 + 0.25 * pw);
           play('spikeHero', punchCap('spikeHero', gp, x, y, PUNCH_CEIL), x, y, jit(0.06) * (0.96 + 0.08 * pw) * 0.97, 0.32 + 0.1 * pw, 0, 'punch');
         } else play('spike', hg * (0.82 + 0.25 * pw), x, y, jit(0.06) * (0.96 + 0.08 * pw), 0.32 + 0.1 * pw);
+        // remate con impulso (e.mom 0..1): capa grave «boom» (el sub del perfecto, por el bus de refuerzo con su techo); el perfecto ya lo lleva
+        if (!perf && !demo && e.mom > 0.05) { var mg = 0.45 * Math.min(1, e.mom); play('sub', punchCap('sub', SUB_G * mg / 0.5, null, null, SUB_CEIL * mg / 0.45), null, null, jit(0.03), 0, SUB_DELAY, 'punch'); }
         if (!demo) exciteBoost = Math.max(exciteBoost, 0.15 + 0.15 * pw);
         lastSpikeT = isFinite(e.t) ? e.t : 0; lastSpikeTeam = e.team; break;
       case 'free':
@@ -2523,10 +2525,15 @@
       // playa (12-nov-2026): el sacador de la CPU no bota en la arena; da toquecitos al balón con la mano: palmada suave, sin bote de parqué
       case 'juggle': playPooled('set', (demo ? 0.12 : 0.24) * (e.last ? 1 : 0.8), isFinite(e.x) ? e.x : evx(e), isFinite(e.y) ? e.y : evy(e), jit(0.06) * 0.85, 0.06, 0); break;
       case 'swing': playGap('whoosh', 0.15, 0.4, evx(e), evy(e), jit(0.15), 0); break;
-      case 'jump': playGap('scuff', 0.08, demo ? 0.15 : 0.32, evx(e), evy(e), jit(0.15), 0.05); break;
+      case 'jump': { // salto con impulso (e.jv): roce más fuerte y algo más grave
+        var jk = e.jv > 0 ? Math.min(1, e.jv / 1.8) : 0;
+        playGap('scuff', 0.08, (demo ? 0.15 : 0.32) * (1 + 0.6 * jk), evx(e), evy(e), jit(0.15) * (1 - 0.1 * jk), 0.05);
+        break;
+      }
       case 'landPlayer': {
         var la = e.player && (e.player.lastAction === 'spike' || e.player.lastAction === 'block') ? 0.55 : 0.35;
         playGap('feet', 0.06, demo ? la * 0.4 : la, evx(e), evy(e), jit(0.12), 0.1);
+        if (e.hard && !demo) play('free', 0.32, evx(e), evy(e), jit(0.08) * 0.55, 0.06); // caída dura del salto con impulso: golpe seco y grave
         if (Math.random() < 0.35) playGap('squeak', 0.12, 0.18, evx(e), evy(e), jit(0.1), 0.1, 0.03);
         break;
       }

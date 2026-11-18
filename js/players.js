@@ -733,7 +733,7 @@
       hbA: 0, fault: false, missT: -99,   // MUÑECO: rebote de la cabeza (retraso del aplastamiento), falta propia en el punto, fallo de golpe
       // E2 (sprint 5): personalidad y variantes (cadenas constantes, se fijan en los eventos; '' = la de siempre)
       persona: personaOf(p), cvar: '', dvar: '', lvar: '', idle: '', evG: '', blkRes: '', forceCel: '', forceIdle: '', hitTempo: '', hitFeint: false,
-      acF: 0, vfP: 0, spP: 0, accT: -99, lagOn: false, jvM: 0, cvarT: -99, spkYaw: 0, evT: -99, evX: 0, evY: 0, blkResT: -99,
+      acF: 0, vfP: 0, spP: 0, accT: -99, lagOn: false, jvM: 0, djL: 0, djX: 0, djY: 0, landHard: false, cvarT: -99, spkYaw: 0, evT: -99, evX: 0, evY: 0, blkResT: -99,
       dvSide: 0, dvYaw0: 0, dvExtra: 0, dvFxT: -99, lvX: 0, lvY: 0, lvD: 0, lvGiven: 0, idleT: -99, idleNext: 0, idleN: 0, leaveW: 0, leaveT: -99,
       yawAtk: 0, yawAtkT: -99, fist0: 0, fist1: 0, celFxT: -99, celFx2: -99, rivalOn: false, sigOn: meSlot(p) === 0, digT: -99, atkT: -99,
       mateOn: false, bossOn: false,   // S3-C2: tu compañero con setMate / el jefe con setBoss (resetRig)
@@ -1330,6 +1330,19 @@
     P.ra = 16; P.rb = 12;
   }
 
+  /** Salto con impulso (v1.10.0): evento jump con dir/jv. El tronco se inclina hacia la deriva (r.djX/djY, mundo) hasta DJ_LEAN
+   *  (+10° a 1,8 m/s), solo la parte que va hacia el frente del cuerpo (r.yaw), y se deshace antes del latigazo del remate; en el
+   *  despegue la brazada sale de más atrás (brazos en estela). Sin memoria nueva. */
+  var DJ_LEAN = 0.1745;
+  function djLean(r, P, tj) {
+    var fw = r.djX * Math.cos(r.yaw) + r.djY * Math.sin(r.yaw);   // componente de la deriva hacia el frente (-1..1)
+    var k = r.djL / DJ_LEAN, w = 1 - sstep(0.22, 0.42, tj);
+    if (w > 0 && fw > 0) { var l = r.djL * fw * w; P.s[PP] += 0.6 * l; P.s[CP] += 0.4 * l; }
+    if (tj < 0.16) { // brazada: las manos vienen de más atrás y abajo en el despegue
+      var a = (1 - tj / 0.16) * k;
+      P.v[HL].z -= 0.16 * a; P.v[HR].z -= 0.16 * a; P.v[HL].y -= 0.08 * a; P.v[HR].y -= 0.08 * a;
+    }
+  }
   /** Bajada: las piernas se estiran y se separan para recibir el suelo (todas las poses aéreas). */
   function landPrep(P, z, vz) {
     if (vz >= 0) return;
@@ -1894,18 +1907,19 @@
       // E2: retardo de despegue de los saltos SIN carrera (bloqueo, salto parado, colocación en salto): el cuerpo visual sale con
       // las rodillas aún dobladas y alcanza a la sim en 70 ms (≤ 10 cm, antes de cualquier contacto)
       if (r.lagOn && tj < 0.07) { var lg = 1 - tj / 0.07; T2.s[HOP] -= Math.min(p.z / r.scale, 0.10) * lg; T2.s[DROP] += 0.1 * lg; T2.rb = Math.max(T2.rb, 40); }
+      if (r.djL > 0) djLean(r, T2, tj);   // salto con impulso: tronco hacia la deriva y brazada más amplia
       landPrep(T2, p.z, p.vz);
       blendP(P, T2, 1);
     }
-    if (air) { var jv = Math.sqrt(p.jvx * p.jvx + p.jvy * p.jvy) || 0; if (jv > r.jvM) { r.jvM = jv; r.lvX = p.jvx; r.lvY = p.jvy; } }
+    if (air) { var jv = Math.min(2.1, Math.sqrt(p.jvx * p.jvx + p.jvy * p.jvy) || 0); if (jv > r.jvM) { r.jvM = jv; r.lvX = p.jvx; r.lvY = p.jvy; } }
     // aterrizaje: amortiguación (E2: en la playa la arena hunde los pies 3 cm y la recuperación es 1,4 veces más lenta)
     var tl = tm - r.landT, landW = 0, tlb = r.beach ? tl / 1.4 : tl;
     if (!air && tl >= 0 && tlb < 0.6 && (r.jumpKind === 'attack' || r.jumpKind === 'block' || tlb < 0.35)) {
       // amortiguación: sigue la flexión que traía del aire, pico ~0,08 s tras apoyar y vuelta con un pequeño rebote
-      var big = r.jumpKind === 'attack' || r.jumpKind === 'block' ? 1 : 0.6;
+      var big = r.jumpKind === 'attack' || r.jumpKind === 'block' ? 1 : 0.6, lhk = r.landHard ? 1.2 : 1;   // salto con impulso: caída dura, flexión ×1,2
       var w = tlb < 0.07 ? lerp(0.55, 1, tlb / 0.07) : 1 - sstep(0.07, 0.48, tlb);
       landW = w * big;
-      P.s[DROP] += LAND_K * big * w; P.s[PP] += 0.2 * big * w; P.s[CP] += 0.14 * big * w;
+      P.s[DROP] += LAND_K * big * w * lhk; P.s[PP] += 0.2 * big * w * lhk; P.s[CP] += 0.14 * big * w * lhk;
       P.v[HL].y -= 0.22 * w; P.v[HR].y -= 0.22 * w;
       if (tlb < 0.12) { P.rb = Math.max(P.rb, 26); P.ra = Math.max(P.ra, 20); }
       if (sp < 1) P.s[HOP] += 0.018 * big * Math.sin(clamp((tlb - 0.3) / 0.2, 0, 1) * PI);   // rebote de recuperación
@@ -4137,7 +4151,7 @@
     r.bkT = -99; r.bkArmT = -99; r.bkOx = r.bkOy = r.bkOz = 0; r.bkOne = 0; r.pbM = 0; r.pbG = 0; r.pbTc = -99; r.pbSeen = -99;
     // E2
     r.cvar = r.dvar = r.lvar = r.idle = r.evG = r.blkRes = r.celV = ''; r.dvSide = 0; r.dvExtra = 0; r.lvD = 0; r.lvGiven = 0; r.leaveW = 0; r.leaveT = -99;
-    r.evT = r.blkResT = r.cvarT = r.digT = r.atkT = -99; r.idleNext = 0; r.acF = 0; r.lagOn = false; r.jvM = 0; r.hitFeint = false; r.hitTempo = ''; r.forceCel = ''; r.forceIdle = '';
+    r.evT = r.blkResT = r.cvarT = r.digT = r.atkT = -99; r.idleNext = 0; r.acF = 0; r.lagOn = false; r.jvM = 0; r.djL = 0; r.landHard = false; r.hitFeint = false; r.hitTempo = ''; r.forceCel = ''; r.forceIdle = '';
     r.sigOn = meSlot(r.p) === 0;   // firma: tu n.º 1 del 2v2 y tu atleta del 6v6 (también en la Carrera de pista)
     r.rivalOn = RIVAL_NUM >= 0 && r.p.team === 1 && !r.p.role && r.p.num === RIVAL_NUM;
     animRoles(r);
@@ -4446,11 +4460,14 @@
       case 'jump':
         if (!r) return;
         r.jumpT = tm; r.jumpKind = classifyJump(g, r.p);
-        r.lagOn = !r.apOn && g.mode !== 'serve'; r.jvM = 0;   // E2: salto sin carrera → retardo de despegue
+        // E2: salto sin carrera → retardo de despegue (el salto con dirección no es «sin carrera»: e.dir, salto con impulso)
+        r.lagOn = !e.dir && !r.apOn && g.mode !== 'serve'; r.jvM = 0;
+        r.djL = e.dir && e.jv > 0 ? DJ_LEAN * Math.min(1, e.jv / 1.8) : 0;
+        if (r.djL > 0) { r.djX = e.dir[0]; r.djY = e.dir[1]; }
         break;
       case 'landPlayer':
         if (!r) return;
-        r.landT = tm;
+        r.landT = tm; r.landHard = !!e.hard; r.djL = 0;
         landVar(g, r, tm);
         break;
       case 'toss': if (r) { r.tossT = tm; r.tossJump = !!e.jump; } break;

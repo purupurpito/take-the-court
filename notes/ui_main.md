@@ -1812,3 +1812,44 @@ Guía completa: **notes/splat.md**. Resumen de lo que cambia en ui_main:
   ←/→ dentro de la fila (`spRow`, `spNavIdx`, `spRowStep`); `modeStep` queda en rebote (Carrera, sola en su fila); `setPage` pone
   `#menu.sp-full` cuando la página lleva `data-sp-full`; `renderMenu` llama a `VB.Splat.sync()` (colores de la equipación en `:root`).
 - **tools/padplay.js**: en Jugar, → desde Partido rápido va al sello de Retos y ↓ a la Carrera (antes → iba a la Carrera).
+
+## Salto con impulso: UI, ajustes, aviso de colocador y online (v1.10.0, 18-nov-2026)
+Pedido de Ferran: salto con dirección, remate más fuerte con impulso (pipes) y colocación en salto con diana activable en Ajustes, con
+aviso si juegas de colocador. La sim es de notes/sim.md «Salto con impulso»; aquí, lo de ui_main (main.js, ui.js, index.html, career-ui.js,
+net*.js, version.js).
+- **Ajustes** (main.js `DEFAULTS`/`loadSettings`): `jsetAim:false` («Colocación en salto con diana», Ajustes ◆ Juego, fila justo debajo
+  de «Colocación dirigida»; `OPT.jsetAim` Sí/No) y `jsetNote:true` (si sale el aviso de colocador; sin fila: «Restablecer este apartado»
+  de Juego lo vuelve a encender, por eso está en `TAB_KEYS.game`). Se validan a booleano (`=== true` / `!== false`).
+- **Partidos** (main.js): `djump: !auto, jsetAim: settings.jsetAim === true` en `startMatch` y `startDrill`; la sim los ignora en demo y
+  autopilot. Prueba online entre pestañas (`?net=bc`): `djump:true`, hueco 0 con el ajuste y hueco 1 con `&jsetaim1=1`.
+- **Online** (netlobby.js): el invitado manda `st.jsetAim` en `'pre'` (`myJsetAim()`); el anfitrión pone `djump:true` y
+  `humans[i].jsetAim` (también en «Igualado», como aimSet: es un ajuste de cada uno, no una ventaja; un invitado de antes no lo manda
+  y juega sin diana). `PROTO` no cambia: `VB.VERSION` (1.10.0) ya separa las salas. netview.js clasifica lo nuevo (g: `djump`,
+  `djLast` 'as' y el resto en hueco; jugador: `avx/avy/tkX/tkY` 'neg', `dj/jF/landT` 'as'; eventos `jv/mom/pipe/hard/jaim` 'as').
+- **Aviso de colocador** (ui.js `setterNote(o, cb)`, `noteOpen`, `noteNav`, `noteBack`; CSS «SPLAT · AVISO COLOCADOR» al final del
+  `<style>`): hoja `.sp-panel` pequeña sin velo (a la izquierda; en apaisado bajo, dos columnas texto | botones; en vertical, abajo a lo
+  ancho), «Eres colocador» / «Coloca con la diana», parche «Activar» (pone `jsetAim`, guarda y saca el aviso corto «Colocación con diana
+  activada», 2,5 s, `#snToast`), mancha turquesa «Ahora no» (solo esta sesión; la tinta no se veía sobre la hoja de tinta) y crema «No
+  volver a mostrar» (`jsetNote:false`). Sale UNA vez por sesión, si la diana está apagada y el aviso sin quitar: al abrir el hub de la
+  Carrera de pista siendo colocador o al cambiar el puesto a colocador (career-ui.js `setterNoteSoon`, 160 ms después del foco del hub;
+  **nunca encima de otra capa**: con la escena de Faro `.cw-mentor`, la confirmación de borrar, la hoja de instalar u otro aviso abiertos
+  espera, mirando cada 0,5 s mientras sigas en el hub; si te vas, sale la próxima vez) y en `startMatch` con `format '6v6'` y `ctrlRole
+  'S'` FUERA de la Carrera (hoy no hay ese camino: el Partido rápido 6v6 es siempre OH; en la Carrera salía encima de la página Jugar del
+  menú, fuera de contexto; el partido espera y arranca con lo elegido; nunca con autopilot, online, ejercicios ni «Reiniciar», main.js
+  `restarting`). `VB.UI.menuIdle()` da false con el aviso abierto: el aviso de instalar, Novedades, el Reto del día y `?sala` no se le
+  abren encima. Foco inicial en «Activar»; los primeros 400 ms no cuentan; teclado con una
+  escucha en captura en `window` registrada al cargar ui.js (antes que career-ui.js e input.js: las teclas no llegan al hub ni al
+  juego): flechas/Tab, Intro/Espacio, Esc = «Ahora no»; mando: main.js manda las intenciones a `noteNav` en vez de UI/CareerUI.nav
+  (stick o cruceta, A, B; Start = «Ahora no»). `?setnote=1` lo saca siempre (capturas: `node tools/eval.js "debug=menu&setnote=1"
+  "VB.UI.setterNote({})"`).
+- **Textos**: Controles (fila «Salto con dirección» tras la finta y, con la diana, «En la colocación en salto: mueves la diana»; como
+  con reasignar teclas Teclado y Mando no pintan esas filas, la nota de pie `.ctl-note` lo dice en las tres pestañas: «Corriendo hacia la
+  red, salta sin soltar la dirección: el remate sale más fuerte.» y, con la diana, «En la colocación en salto, la dirección mueve la
+  diana.»), Cómo se juega (remate, corto para que quepa en móvil: «Corre hacia la red y salta sin soltar la dirección: el remate sale
+  más fuerte.» y, en 6 contra 6, «Desde detrás de la línea de 3 m, pipe.», justo detrás de «remate»: a 568×320 se ve sin desplazar;
+  colocación: la diana si está activada; en 6 contra 6, «va al atacante que tenga más cerca (el marcador de color dice adónde)»), consejos `mom`, `pipe` (6v6, zaguero OH/OPP)
+  y `jdiana` (2 veces cada uno, antes que los de maestría que aún no se han agotado; `e1Tip` también corre en 6v6 con `g.djump`),
+  sello «¡Pipe!» / «¡Con impulso!» (`hit.pipe`, `hit.mom ≥ 0,5`; detrás de la jugada perfecta y la finta; debajo, «Perfecto/Bien»)
+  y hoja final «Con impulso n | Pipes n» (`g.stats.dj`, también en 6v6).
+- **Capturas**: scratchpad `salto/u` (aviso a 568×320, 640×360, 844×390, 360×640 táctil y 1280×720; Ajustes ◆ Juego; hub de la Carrera
+  de pista con el aviso). Botones ≥ 44 px y pulsables (elementFromPoint).

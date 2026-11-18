@@ -486,6 +486,23 @@ Todos llevan `type` y `t` (tiempo de juego). `player` es la referencia al objeto
 Players con `point` y el de FX/Audio sin él). **No hay eventos de sim nuevos.** Los eventos con `e.replay` nunca llegan a `UI.ingest`,
 `careerEvents`, `Badges`, `Retos`, `Profile` ni `Career`; audio.js no lanza grada ni ráfagas con ellos.
 
+**Salto con impulso (v1.10.0, sim; detalle en notes/sim.md «Salto con impulso»).** Opciones `createGame({djump, jsetAim})`: `g.djump`
+(salto con dirección del humano; main.js/netlobby.js pasan `djump: true`, las huellas no) y `g.jsetAim` (colocación en salto con diana,
+ajuste; online por hueco `humans[i].jsetAim`); nunca en la demo ni con autopilot. La CPU no usa nada nuevo.
+- `jump` añade `dir:[x,y]` (unitario de la deriva, mundo) y `jv` (m/s) cuando el salto es con dirección (si no, sin esos campos).
+- `landPlayer` añade `hard: true` tras un salto con dirección de deriva > `VB.DJ.landJ` (si no, sin el campo).
+- `hit` añade siempre `mom` (0..1: bonus del remate con impulso del humano; 0 si no hay), `pipe` (bool: 6v6, zaguero que despegó detrás de la
+  línea de 3 m, golpee donde golpee; etiqueta sin azar, para todos) y `jaim` (bool: colocación en salto a la diana movida); con `jaim`, `tempo` es
+  el de la diana ('quick' \| 'lane' \| 'high').
+- `g.aim3.kind` puede ser `'jset'` (diana de la colocación en salto, con `g.jsetAim`): no es la del remate (`kind === 'spike'`).
+- Jugador: `avx, avy` (media de la carrera), `dj` (salto con dirección en curso), `jF` (deriva hacia la red del despegue), `tkX, tkY` (punto
+  de despegue), `landT`. `g`: `djump, jsetAim, djLast` y, en el hueco (SLOT_S), `jdF, jdS, jdM, jdT, aimCarry, jsMv, jsAimD, jsetAim`.
+  `g.stats.dj = {mom:[usos, puntos], pipe:[usos, puntos], jaim}` (solo con `djump` y `stats`).
+- `VB.Sim.landingOf(g, p, out)` → `{x, y, t, net}`; `VB.Sim.jsetAimInfo(g, out)` → `{on, x, y (destino real: en 6v6 la diana metida en
+  la caja del atacante), ax, ay (la diana tal cual), tempo, apex, moved, bx, by, ok}` o null; `VB.DJ`, `VB.MOM`, `VB.JD` (constantes);
+  `VB.AI6.dianaPlan(g, p, x, y, out)` → `{lane, pref, apexD, to, d, yl}` (`dianaLane` = alias), `VB.AI6.planAt(g, t, d, yl, apex)`.
+  `p.dj` NO viaja en Fluida (no está en `FL_POSE`): es solo presentación del rival y la sim no la lee para él.
+
 ### 4.4 Módulos de presentación (todas las funciones son opcionales; main.js las llama con guarda y try/catch)
 Objetos: `VB.Arena`, `VB.FX`, `VB.Players`, `VB.CameraRig`, `VB.Input`, `VB.Audio`, `VB.UI`.
 | función | quién la llama / cuándo |

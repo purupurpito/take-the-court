@@ -1825,3 +1825,100 @@ pueda pedir una colocación si el primer toque ha sido suyo». Sección de simte
 - «Quitar las marcas del balón en el suelo para que el challenge en un futuro tenga sentido»: fx.js ya no pinta la marca del bote (`markAt`) ni
   el cráter de la playa (botes y rebotes); quedan la onda breve con el color de la llamada del juez y la arena que salta. La huella exacta del
   balón solo sale en la revisión del challenge (B6).
+
+## Salto con impulso (v1.10.0, 17-nov-2026; Ferran) — sim
+
+Petición: «Haz que se pueda saltar en dirección, y si saltas y rematas en dirección (con momentum, saltar hacia delante) le puedas rematar
+más fuerte. Así se pueden hacer pipes [...] para las colocaciones [...] dirigir la colocación con la diana también, siempre en salto. Esta
+opción se tiene que activar desde Ajustes.» SPEC fusionada en la tarea del lote (salto-dir). Todo detrás de dos puertas que la sim decide
+en `createGame` y que nunca valen en la demo ni con autopilot:
+- `g.djump` (`opts.djump === true`): salto con dirección del humano. Es la mecánica base (sin ajuste): main.js y netlobby.js pasan
+  `djump: true`; las herramientas de huella no. Con el stick suelto se salta como siempre, bit a bit.
+- `g.jsetAim` (`opts.jsetAim === true`; online `humans[i].jsetAim`, campo de hueco): colocación en salto con diana (ajuste, por defecto no).
+La CPU no usa nada nuevo: `aiJump` no cambia. La única lectura nueva de la IA (el compañero 2v2 va a la batida de la diana) solo actúa si el
+humano ha movido la diana.
+
+### Salto con dirección (`humanJump(g, p, mx, my, ml, plant)`, `VB.DJ`)
+- Carrera previa: `p.avx/avy`, media de `p.vx/vy` en el suelo (`a = dt/(DJ.tau + dt)`, racional para que el online no se desincronice entre
+  sistemas; `tau` 0,12 tras la revisión: ~0,28 s al 90 %), congelada en el aire y a 0 al aterrizar. Solo con `g.djump` (en `stepPlayer`, todos los jugadores).
+- Dirección: el stick con módulo ≥ `DJ.dead` o, si ya se soltó, la última de hace ≤ `DJ.buf` s (búfer táctil `g.jdF/jdS/jdM/jdT`, en ejes
+  del equipo: no cambia con el espejo del online). Sin dirección, sin `g.djump` o con el colocador C2 plantado (`plant`): el salto de siempre.
+- Deriva: `J = kR·carrera_en_u + kS·|stick|·(1 − carrera/SPEED)` en la dirección u, más `perp`·(carrera de lado). Tope `DJ.cap`·Salto
+  (`DJ.back` alejándose de la red; `DJ.blk` en el bloqueo con el balón rival a < 1,5 m de la red) y, a lo ancho (paralelo a la red),
+  como mucho `DJ.lat` 1,0 (revisión: perseguir la colocación de lado con el pulgar en el joystick daba 1,79 m/s de lado y ×1,6 de
+  dispersión). Carrera completa hacia la red: 1,79 m/s (0,88 m hasta la cima, 1,75 m al aterrizar); parado con stick: 0,60 (antes, tope
+  0,6 siempre).
+- Seguro de red para TODO salto con dirección: la deriva hacia la red se recorta para caer a ≥ `DJ.netX` (0,45; `DJ.oppX` 0,40 con el balón
+  rival). Despegar cerca de la red cuesta impulso y bonus, nunca un toque de red (saltotest 3: 200 saltos, 0 toques).
+- `jump(g, p, jvx, jvy, dj)`: `p.dj`, evento `jump` con `dir` y `jv`. `p.jF` = deriva hacia la red (ejes del equipo), `p.tkX/tkY` = despegue.
+- Aterrizaje duro (`p.dj` y deriva > `DJ.landJ`): `landPlayer.hard`, `p.landT` = `DJ.landT` s con la carrera ×`DJ.landK`.
+- `hitWindow`: con `p.dj` en el aire el contacto previsto lleva la deriva (`p.x + p.jvx·t`); sin `p.dj`, la expresión de siempre.
+- `assistMove`: en ataque, con `g.djump` y el stick hacia la red (módulo ≥ `DJ.dead`; `run`), la batida asistida se adelanta
+  `kR·carrera·astK`, y la carrera se regula para no perder el impulso por llegar pronto (revisión: antes, sin frenazo, quien empujaba
+  hacia la red llegaba a ella y el seguro de red le dejaba jv = 0): (1) con tiempo de sobra, ×`clamp(distancia a la batida /
+  (hitWindow.jumpT · SPEED), astF, 1)` para llegar a la batida cuando toca saltar; (2) al llegar, el frenazo de siempre pero no por debajo
+  de ×`astF` (0,55); (3) pasada la batida adelantada, hasta la de siempre (pr3 + 0,35) se frena de ×1 a ×`astF`. Medido con un humano
+  guionizado (2v2, colocación a 1,4 ± 0,3 m, salto a su tiempo ± 0,04 s, 200 semillas; scratchpad `salto/rev/run2.js`): saliendo de 4-5 m
+  con la carrera arrancada 0,45-1,0 s antes, 72-99 % de remates con impulso (antes 0-37 %); saliendo de 3,2 m, 0-24 % (poca carrera).
+- Diana del remate: la dirección del despegue no la mueve (`g.aimCarry`) hasta que el stick se suelta o gira > 67,5°.
+
+### Remate con impulso (`hit`, rama del remate, `VB.MOM`)
+- Solo humano con `p.dj` (ni dejada, ni golpe colocado, ni colocación en salto). Ventana de timing ×(1 + `MOM.win`·k(jF)) (más justa).
+- `Jd` = deriva hacia el golpe; `k = clamp((Jd − j0)/(j1 − j0))`; `kq = k·clamp((q − qLo)/(qHi − qLo))`; `boost += min(MOM.spd·kq, cap − v)`:
+  misma trayectoria (boostDip), más rápido; `power` y `digMargin` lo notan solos. `hit.mom = kq`.
+- Riesgo sin azar nuevo: dispersión ×(1 + spr·k)·(1 + mis·(1 − cosθ)·clamp((jF − j0)/misJ)) (el castigo por cruzar escala con la
+  deriva HACIA LA RED, `p.jF`: saltar de lado no castiga). Medido (saltotest 7, 2000 semillas, q 0,75): ×1,30 con la deriva alineada; de
+  lado, ×1; en diagonal a 45° con 1,8, ×1,09 más que la misma deriva hacia el golpe alineada.
+
+### Pipe
+- La regla de siempre (despegue `|toX| ≥ 3`); con la deriva, despegando a 3,3-4,0 m se remata a ~2,4-3,1 m. `hit.pipe` (6v6, zaguero no
+  líbero en el aire, despegue detrás de 3 m, `kind 'spike'`, golpee donde golpee: cuenta también el pipe legal de la CPU, que golpea a
+  ~3,4 m) es una etiqueta para todos. La colocación de pipe va a `FORM.set.pipe` (3,4 m) para todos: el `pipeH` de 2,9 m al zaguero
+  humano se quitó en la revisión (sin carrera dejaba un 21 % de «Ataque de zaguero»; con 3,4, 0,7 %).
+
+### Colocación en salto con diana (`g.jsetAim`, `VB.JD`)
+- `updateAim3` → `jsetAimStep`: fuera del ataque, con el humano en el aire y `jsetReady`, `g.aim3 = {on, kind 'jset'}` en el destino de
+  siempre (2v2 `JSET.tx` al lado del compañero; 6v6 `VB.AI6.previewSet`) mientras no se mueva; el stick la lleva a `JD.spd` m/s dentro de la
+  caja (`g.jsMv` tras `JD.mv` m). 6v6: en el aire `g.setDirA` queda la del despegue.
+- `hit` (rama jset) con la diana movida: destino = diana (2v2) o, en 6v6, la diana metida en la caja del atacante que le queda más
+  cerca (`VB.AI6.dianaPlan`: caja = destino de `FORM.set` ±`box6D` en profundidad, ±`box6L` a lo ancho; el pipe nunca por delante de
+  3,4 m, porque el zaguero CPU no despega detrás de la línea con menos: con 3,0-3,15 m, 0 remates de 40); `chooseSet` con ese carril y el
+  mismo gasto de g.rng y `VB.AI6.planAt(g, t, d, yl, cima)` (el atacante espera la cima real). Cima `clamp(z + ap0 + apS·s)`, tempo por
+  la distancia s al destino REAL, error de cima por `hk(0xE1B)`, dispersión ×(erS0 + erS1·s). `jsetAimInfo` devuelve ese destino real
+  (`x, y`) y la diana tal cual (`ax, ay`): fx pinta la diana en `ax/ay` y el marcador del tempo donde va de verdad (revisión: antes la
+  diana entre 1,6 y 3 m mandaba el balón a una banda, hasta 2,4 m lejos, sin enseñarlo). Sin mover la diana: el código de siempre (v y
+  g.rng idénticos, saltotest 10a).
+- Nota de afinado: a 8 m/s la diana recorre ~3,6 m en el vuelo; en el 2v2 la «alta» (s ≥ ~5 m) casi solo sale moviéndola nada más despegar.
+- `Sim.jsetAimInfo(g, out)` (pura); `setPreview` (2v2 en el aire) devuelve la diana movida; ai.js: el compañero 2v2 va a su batida.
+
+### Huellas, pruebas y equilibrio
+- `fp-2v2.json` y `fp-mastery.json` **idénticas sin regenerar** (todo detrás de `g.djump`/`g.jsetAim`/`p.dj`; las 4 guardas
+  `aim3.kind === 'spike'` son equivalentes; `momF = 1` y la rama explícita de `hitWindow` dejan los mismos bits).
+- `tools/fp-salto.json` (`fingerprint6.js --variant salto`): línea base NUEVA de la mecánica (no regenera nada), escrita el 18-nov-2026
+  con las constantes de abajo. Si se cambia el afinado del salto con impulso, se reescribe con `--write`.
+- `tools/saltotest.js` (node; `--quick` para ir rápido). 11 tiene dos partes: la puerta (demo/autopilot, vacía por construcción: guarda
+  de `createGame`) y la que importa, un partido HUMANO guionizado (stick siempre < `DJ.dead`, salta y golpea) con djump true/false:
+  misma `stateHash` y mismo gasto de g.rng en 2v2 y 6v6 (la CPU, el compañero IA y la asistencia no cambian si no usas la dirección).
+- `tools/fluidsimtest.js`: `SIM_BASE` 71783d49 (`--rehash`, con las huellas 2v2 y de maestría idénticas). `p.dj` no viaja en Fluida.
+- simtest: `SIMTEST_DJUMP=1` (y `SIMTEST_JSETAIM=1`) en la matriz de bots: `BOT_DJ` (prob. por ataque de esperar `DJ_BACK` m atrás, correr
+  `DJ_RUN` s y saltar sin soltar la dirección); la tabla añade `red/100` y `impulso` (% de remates con `mom ≥ 0,5`; ahora suma TODAS las
+  semillas: antes solo contaba la primera). `SIMTEST_DJBOT=1`: el mismo bot con la sim SIN djump (A/B de la sim con la misma entrada).
+  `SIMTEST_MOMSPD=x`: prueba otro `MOM.spd`.
+- **Equilibrio** tras la revisión (`SIMTEST_ONLY=matrix node tools/simtest.js 20 12345 20 16`: 16 semillas × 20 min, 1400-3100 puntos
+  por casilla, σ de una casilla ≈ 1,3 puntos y de una diferencia ≈ 1,8). Base = v1.9.1; «bot fijo» = el bot que corre (BOT_DJ) con la
+  sim sin djump; djump = ese bot con la sim nueva. `MOM.spd` se queda en **1,8**: con 1,4 nada cambia más allá del ruido (bueno-Difícil
+  +4,2, medio-Experto +3,6), así que el bonus no es lo que mueve esas casillas.
+
+  | casilla (% de puntos) | base | bot fijo | **djump (spd 1,8)** | djump − base | djump − bot fijo | spd 1,4 |
+  |---|---|---|---|---|---|---|
+  | perfecto F/N/D/E | 92,9 / 78,2 / 66,2 / 52,8 | 93,6 / 75,9 / 65,2 / 49,2 | **91,9 / 78,6 / 66,2 / 54,6** | −1,0 / +0,4 / 0,0 / +1,8 | −1,7 / +2,7 / +1,0 / +5,4 | 93,1 / 78,1 / 68,8 / 51,9 |
+  | bueno | 85,0 / 62,6 / 50,1 / 35,0 | 84,0 / 62,4 / 51,1 / 34,3 | **84,4 / 64,7 / 54,1 / 35,5** | −0,6 / +2,1 / **+4,0** / +0,5 | +0,4 / +2,3 / +3,0 / +1,2 | 86,0 / 64,7 / 54,3 / 36,5 |
+  | medio | 74,3 / 50,6 / 39,6 / 23,3 | 71,6 / 48,1 / 37,4 / 21,7 | **74,0 / 51,3 / 39,8 / 26,0** | −0,3 / +0,7 / +0,2 / +2,7 | +2,4 / +3,2 / +2,4 / +4,3 | 73,4 / 52,4 / 40,2 / 26,9 |
+  | novato | 47,0 / 36,1 / 21,1 / 11,6 | 46,0 / 34,7 / 20,9 / 12,3 | **48,2 / 37,8 / 22,1 / 14,5** | +1,2 / +1,7 / +1,0 / +2,9 | +2,2 / +3,1 / +1,2 / +2,2 | 48,3 / 37,7 / 21,4 / 13,0 |
+
+  Frente a la base, 15 de 16 casillas a ±3; fuera, bueno-Difícil +4,0 (≈ 2 σ). Novato-Fácil no baja (47,0 → 48,2). La escalera de
+  dificultad sigue ordenada en todas las filas. Toques de red cada 100 puntos (todos los equipos): base 0,06-0,85, djump 0-1,01 (≤ base
+  + 1). Remates del bot con impulso: perfecto 62-71 %, bueno 47-54 %, medio 40-44 %, novato 27-28 % (la SPEC pedía 25-45 % al bueno:
+  sale algo más porque tras la revisión la asistencia regula la carrera y el impulso es más fácil de conseguir, que era el problema).
+  El bot que corre SIN la sim nueva juega peor que la base (perfecto-Experto −3,6): la carrera sin salto con dirección no compensa; la
+  sim nueva lo devuelve a la base o un poco por encima. **Pendiente de Ferran** aceptar este equilibrio (sobre todo bueno-Difícil).

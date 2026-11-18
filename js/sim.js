@@ -201,6 +201,9 @@
       badges: null,   // insignias equipadas {id: nivel 1-3} (applyBadges; null = ninguna)
       bd: 0, bdT: 0.1,// temporizador de salto al bloqueo (IA)
       jvx: 0, jvy: 0, // deriva horizontal en el aire (impulso del despegue)
+      // salto con impulso (solo con g.djump): media de la carrera en el suelo (DJ.tau), salto con dirección (1/0), deriva hacia la red del
+      // despegue (m/s, ejes del equipo), punto de despegue (marca del pipe, fx.js) y s que quedan de aterrizaje duro
+      avx: 0, avy: 0, dj: 0, jF: 0, tkX: 0, tkY: 0, landT: 0,
       lvx: 0, lvy: 0, // impulso de la plancha
       rvx: 0, rvy: 0, // velocidad de carrera (solo con atributos y Velocidad < 50: aceleración finita; si no, no se usa)
       down: 0,        // >0 = en el suelo tras una plancha (s): no se puede mover
@@ -398,6 +401,8 @@
       call: null, challenges: [2, 2], review: null, cpuChal: null, _pendCall: null, _snap: null, _digWho: null,
       events: [],              // cola de eventos del paso (main.js la vacía cada frame)
       drill: null,             // E6 (Entrenamiento): estado del ejercicio (mkDrill) o null fuera del modo (siempre en el literal: misma forma)
+      // salto con impulso (v1.10.0): en el literal para que g no cambie de forma al crearse (copyGame recorre g con for-in); valores abajo
+      djump: false, jsetAim: false, jdF: 0.5, jdS: 0.5, jdM: 0.5, jdT: -9.5, aimCarry: 0, jsMv: 0, jsAimD: 0.5, djLast: null,
       replay: false,           // S3-C1: true solo en la partida sombra que pinta una repetición (VB.Replay); la sim no lo lee. En el
                                // literal para que la sombra tenga la misma forma que la partida en vivo; copyGame no lo copia
       stats: opts.stats ? {
@@ -414,6 +419,16 @@
     // demo, con autopilot ni en 6v6. Se decide aquí una vez; cada rama nueva solo mira g.mastery. aimSet: colocación dirigida (por defecto sí)
     g.mastery = !!opts.mastery && !g.demo && !g.autopilot && !g.rot;
     g.aimSet = opts.aimSet !== false;
+    // Salto con impulso (v1.10.0): g.djump = salto con dirección del humano (main.js/netlobby.js lo pasan; las huellas no); g.jsetAim =
+    // colocación en salto con diana (ajuste; online por hueco, humans[i].jsetAim). Nunca en la demo ni con autopilot. Estado del humano
+    // (hueco online, SLOT_S): jdF/jdS/jdM/jdT = última dirección del stick en ejes del equipo (F hacia la red, S = side·y), su módulo y
+    // su g.time (búfer DJ.buf); aimCarry = la dirección del despegue aún no mueve la diana; jsMv/jsAimD = diana de colocación movida y
+    // recorrido. djLast = último remate {team, mom, pipe} para las estadísticas (g.stats.dj)
+    g.djump = opts.djump === true && !g.demo && !g.autopilot;
+    g.jsetAim = opts.jsetAim === true && !g.demo && !g.autopilot;
+    g.jdF = 0; g.jdS = 0; g.jdM = 0; g.jdT = -9; g.aimCarry = 0; g.jsMv = 0; g.jsAimD = 0;
+    g.djLast = dblFields({ team: -1, mom: 0, pipe: 0 });
+    if (g.djump && g.stats) g.stats.dj = { mom: [0, 0], pipe: [0, 0], jaim: 0 };
     // partido a un solo set (opts.sets === 1, la prueba de la Carrera): g.toWin = sets para ganar. Sin la opción el campo NO existe
     // (al mejor de 3, `g.toWin || 2`), para que la huella 2v2 no cambie. Con un set nunca hay 3r set (setTarget y los 8 intactos)
     if (opts.sets === 1) g.toWin = 1;
@@ -609,6 +624,29 @@
  *  salto buena/perfecta del 2º toque ×dig (tempo rápido; el bloqueador CPU la lee y llega, ai.js, y sin esto no compensaba
  *  arriesgar); mate: |y| máximo del destino; buf: s que se guarda COLOCAR pulsado justo al despegar (g.jsetQ). */
   var JSET = VB.JSET = { win: 1.2, tx: 1.5, tz: 3, rise: 0.75, rise1: 1.15, minApex: 4.1, err0: 0.12, err1: 1.3, badQ: 0.45, badP: 1.5, blk: 0.6, dig: 0.8, mate: 3.6, buf: 0.2 };
+  /* «Salto con impulso» (v1.10.0; notes/sim.md «Salto con impulso»). Todo detrás de g.djump (salto con dirección del humano: partidos
+   * humanos con opts.djump, nunca demo ni autopilot) y g.jsetAim (colocación en salto con diana, ajuste): sin ellos la sim es la de
+   * siempre bit a bit (huellas 2v2 y de maestría idénticas). La CPU no usa nada de esto (aiJump no cambia).
+   *  DJ (despegue): dead = módulo mínimo del stick para saltar con dirección; buf = s que vale la última dirección (táctil: el pulgar se
+   *    suelta al pulsar SALTAR); tau = constante de la media de la carrera (p.avx/avy, a = dt/(tau+dt): racional, igual en todas las
+   *    plataformas); kR = parte de la carrera que pasa a la deriva; kS = deriva con el stick parado (×módulo, menos cuanto más corre);
+   *    perp = parte de la carrera de lado que se conserva; cap = tope (×Salto), back = tope alejándose de la red, blk = tope en el
+   *    bloqueo cerca de la red, lat = tope de la deriva a lo ancho (paralela a la red: perseguir la colocación de lado con el pulgar en
+   *    el joystick no te lanza 1,8 m de lado); netX/oppX = seguro de red (cae a |x| >= netX en jugada propia, oppX con el balón rival); landJ/landT/
+   *    landK = aterrizaje duro (deriva > landJ: landT s con la carrera ×landK); astK = adelanto de la batida asistida (assistMove);
+   *    astF = lo que frena como mucho la asistencia corriendo hacia la red (×astF, al llegar a la batida y pasada ella).
+   *  MOM (remate con impulso): j0..j1 = deriva hacia el golpe sin/con bonus completo; spd = m/s de más con bonus completo y q >= qHi (1,8: la SPEC daba 2,4 y su plan B 1,8 tras la matriz de simtest)
+   *    (nada con q <= qLo); cap = velocidad máxima del remate; win = ventana de timing más justa (×1 + win); spr = dispersión
+   *    ×(1 + spr·k); mis/misJ = dispersión extra al rematar cruzando la deriva (escala con la deriva hacia la red, p.jF).
+   *  JD (diana de la colocación en salto, g.jsetAim): spd = m/s de la diana; mv = m de recorrido para darla por movida; caja de destino
+   *    (dMin..dMax2/dMax6 m de la red, yIn m de las bandas); cima = clamp(contacto + ap0 + apS·s, apMin, apMax) (s = distancia del toque
+   *    al destino); tempo: 'quick' si s <= qS y D <= qD, 'high' si cima >= hiAp, si no 'lane'; apErr = error de cima con mal timing
+   *    (hash, no g.rng); erS0/erS1 = dispersión ×(erS0 + erS1·s); box6D/box6L = 6v6: margen alrededor del carril del atacante. */
+  var DJ = VB.DJ = { dead: 0.30, buf: 0.10, tau: 0.12, kR: 0.32, kS: 0.60, perp: 0.15, cap: 1.8, back: 0.8, blk: 1.0, lat: 1.0, netX: 0.45, oppX: 0.40,
+    landJ: 1.2, landT: 0.10, landK: 0.6, astK: 0.49, astF: 0.55 };
+  var MOM = VB.MOM = { j0: 0.7, j1: 1.6, spd: 1.8, qLo: 0.35, qHi: 0.70, cap: 24, win: 0.15, spr: 0.30, mis: 0.60, misJ: 1.1 };
+  var JD = VB.JD = { spd: 8, mv: 0.25, dMin: 0.5, dMax2: 3.2, dMax6: 4.2, yIn: 0.5, ap0: 0.55, apS: 0.25, apMin: 4.1, apMax: 5.6,
+    qS: 1.8, qD: 1.4, hiAp: 5.1, erS0: 0.85, erS1: 0.08, apErr: 0.6, box6D: 0.8, box6L: 1.0 };
   /** El remate rival no se «coloca» desde el bloqueo: con un remate del otro equipo en camino COLOCAR no hace nada en el
    *  aire (bloquea como si no se hubiera pulsado) y la UI no lo ofrece. */
   function jsetVoid(g, p) { return g.touchTeam !== p.team && g.lastKind === 'spike'; }
@@ -689,6 +727,7 @@
    *  salto posible: el destino de la colocación en salto (al compañero, tensa). 6v6: VB.AI6.previewSet. Pura, sin g.rng. */
   var _sp = { x: 0, y: 0, tempo: '', ok: true, to: null, bx: 0, by: 0 }, _wPv = { t: 0, press: 0, d: 9, dz: 9, reach: false, kind: '', zc: 0, x: 0, y: 0, z: 0, active: false, canReach: false, attack: false, jumpT: NaN };
   var _ps6 = { to: null, tempo: '', kind: '', d: 0, yl: 0, apex: 0 };
+  var _jaP = { on: false, x: 0, y: 0, ax: 0, ay: 0, tempo: '', apex: 0, moved: false, bx: 0, by: 0, ok: true };
   function setPreview(g, out) {
     if (!setWin(g)) return null;
     var p = g.ctrl, b = g.ball, sd = side(p.team), cs = g.cs || 1, M = MASTERY.set, at = null, D, apex, tempo;
@@ -701,6 +740,8 @@
     } else if (p.z > 0.05 && jsetReady(g)) {
       at = other(g, p); tempo = 'quick'; D = JSET.tx; apex = Math.max(JSET.minApex, b.z + JSET.rise);
       out.x = sd * JSET.tx; out.y = clamp(at.y, -JSET.mate, JSET.mate);
+      var ja = g.jsetAim ? jsetAimInfo(g, _jaP) : null; // (salto con impulso: diana de colocación movida = el destino)
+      if (ja && ja.moved) { tempo = ja.tempo; D = sd * ja.x / cs; apex = ja.apex; out.x = ja.x; out.y = ja.y; }
     } else {
       var st = setAim(g, p, true, _st, sx, sy);
       at = other(g, p); tempo = st.tempo; D = st.x / cs; apex = st.apex;
@@ -1026,7 +1067,9 @@
       var x = b.x + b.vx * t, y = b.y + b.vy * t, z = b.z + b.vz * t - 0.5 * G * t * t;
       if (t > 0 && z < C.BR) break;
       var pz = air ? Math.max(0, p.z + p.vz * t - 0.5 * PG * t * t) : p.z;
-      var dx = x - p.x - offx, dy = y - p.y, dz = z - (pz + zc);
+      var dx, dy, dz = z - (pz + zc);
+      if (air && p.dj) { dx = x - (p.x + p.jvx * t) - offx; dy = y - (p.y + p.jvy * t); } // salto con impulso: con la deriva del salto
+      else { dx = x - p.x - offx; dy = y - p.y; }
       var D = 0.6 * (dx * dx + dy * dy) + dz * dz;
       if (D < best) { best = D; bt = t; bd = Math.sqrt(dx * dx + dy * dy); bdz = dz; bx = x; by = y; bz = z; }
       if (t > 0.3 && D > best + 4) break; // ya se aleja mucho: no hace falta seguir
@@ -1256,6 +1299,9 @@
       if (bw !== 1) te /= bw;
     } else if (human && sedaL && shot !== 'tip' && atkC0) te /= BADGE.sedaW[sedaL];
     if (jset) te *= JSET.win; // colocación en salto: ventana más justa
+    // salto con impulso: el remate con mucha deriva hacia la red tiene la ventana algo más justa (×1 + MOM.win)
+    if (human && p.dj && atkC0 && !jset && shot !== 'tip' && shot !== 'roll' && shot !== 'dive' && shot !== 'body')
+      te *= 1 + MOM.win * clamp((p.jF - MOM.j0) / (MOM.j1 - MOM.j0), 0, 1);
     // calidad: timing x distancia x dificultad de lo que llega
     var q = timingQ(te);
     q *= 1 - 0.3 * clamp((d / C.REACH - 0.55) / 0.45, 0, 1);
@@ -1312,6 +1358,7 @@
     var prevTempo = g.lastTempo; g.lastTempo = ''; g.atkEdge = 0; // E1: tempo de la colocación que llega; filo de este toque
     var o = { x: b.x, y: b.y, z: b.z };
     var v, kind, at, er, power = 0, dip = 0, sub = shot, edge = 0, tempo = '', lq = NaN, laneB = false, hSet = false, backB = false; // (lq: calidad que se arrastra, C2)
+    var momQ = 0, jaim = false; // salto con impulso: bonus del remate (0..1, hit.mom) y colocación en salto a la diana (hit.jaim)
     if (shot === 'body') {
       // el balón da en el cuerpo sin gesto de golpeo (regla: cualquier parte del cuerpo vale como toque).
       // Rebota amortiguado hacia atrás y hacia arriba, con un desvío lateral: casi nunca controlado.
@@ -1329,11 +1376,36 @@
       // colocación en salto: hacia la zona de ataque del compañero, tensa (cima baja); con mal timing, pegada o larga
       er = (JSET.err0 + JSET.err1 * (1 - q)) * mul;
       var jx = JSET.tx, jy = clamp(mate.y, -JSET.mate, JSET.mate), jap = Math.max(JSET.minApex, b.z + (count === 1 ? JSET.rise1 : JSET.rise));
+      // salto con impulso, colocación en salto con diana (g.jsetAim, diana movida): el destino es la diana (2v2) o, en 6v6, la diana
+      // metida en la caja del atacante que le queda más cerca (VB.AI6.dianaPlan; chooseSet con ese carril y el mismo gasto de g.rng; el
+      // plan se reorienta a ese destino y esa cima, planAt); cima y tempo por la distancia s del toque al destino REAL; error de cima con
+      // mal timing por hash (no g.rng)
+      jaim = human && g.aim3.on && g.aim3.kind === 'jset' && !!g.jsMv;
+      if (jaim) { var jax = g.aim3.x, jay = g.aim3.y; jx = sd * jax; jy = jay; }
       // 6v6 (humano colocando en salto de 2º toque): al carril del atacante que elige VB.AI6.chooseSet (deja g.setPlan: ese atacante
       // va a por el 3r toque y el bloqueo rival lo lee), no al compañero más cercano
       // (colocador humano, C2: la dirección de la ventana elige atacante, VB.AI6.dirOf8; sin dirección, alta a la 4)
       // (pipe: la colocación en salto va detrás de la línea de 3 m, al destino del plan; si no, el zaguero no podría despegar detrás)
-      if (g.rot && VB.AI6 && count === 2) { var jd8 = human ? VB.AI6.dirOf8(g, p) : null, js6 = VB.AI6.chooseSet(g, p, jd8 ? jd8.lane : null, jd8 ? jd8.pref : 0, jd8 ? jd8.apexD : 0); jy = clamp(sd * js6.yl, -JSET.mate, JSET.mate); if (g.setPlan[t] && g.setPlan[t].tempo === 'pipe') jx = js6.d; }
+      var jPlan = false;
+      if (g.rot && VB.AI6 && count === 2) {
+        if (jaim && VB.AI6.dianaPlan) {
+          var ln = VB.AI6.dianaPlan(g, p, jax, jay), js6a = VB.AI6.chooseSet(g, p, ln.lane, ln.pref, ln.apexD), P6 = g.setPlan[t];
+          if (P6 && P6.to === ln.to) { jx = ln.d; jy = sd * ln.yl; } // (el atacante de la caja: su destino, el que enseña jsetAimInfo)
+          else { // (chooseSet cayó a otro: su caja)
+            var lo6 = js6a.d - JD.box6D; if (P6 && P6.tempo === 'pipe') lo6 = Math.max(lo6, VB.AI6.FORM.set.pipe.d);
+            jx = clamp(jx, lo6, Math.max(lo6, js6a.d + JD.box6D)); jy = clamp(jy, sd * js6a.yl - JD.box6L, sd * js6a.yl + JD.box6L);
+          }
+          jPlan = true;
+        } else { var jd8 = human ? VB.AI6.dirOf8(g, p) : null, js6 = VB.AI6.chooseSet(g, p, jd8 ? jd8.lane : null, jd8 ? jd8.pref : 0, jd8 ? jd8.apexD : 0); jy = clamp(sd * js6.yl, -JSET.mate, JSET.mate); if (g.setPlan[t] && g.setPlan[t].tempo === 'pipe') jx = js6.d; }
+      }
+      if (jaim) {
+        var js = Math.hypot(sd * jx - o.x, jy - o.y), csj = g.cs || 1;
+        var japx = clamp(b.z + JD.ap0 + JD.apS * js, JD.apMin, JD.apMax);
+        tempo = (js <= JD.qS && jx <= JD.qD * csj) ? 'quick' : japx >= JD.hiAp ? 'high' : 'lane';
+        jap = japx + JD.apErr * (1 - q) * ek * (2 * hk(g, 0xE1B) - 1);
+        er *= JD.erS0 + JD.erS1 * js;
+        if (jPlan && VB.AI6.planAt) VB.AI6.planAt(g, t, jx, sd * jy, japx);
+      }
       if (q < JSET.badQ && g.rng() < (JSET.badQ + 0.05 - q) * JSET.badP) {
         if (g.rng() < 0.5) jx = 0.25 + g.rng() * 0.35;          // pegada a la red: toque de red o bloqueo fácil
         else { jx = 3.6 + g.rng() * 1.8; jap -= 0.35; }        // larga y baja: el atacante no llega a rematar
@@ -1351,7 +1423,7 @@
         v = launchSafe(o, at[0] + rnd(g, er), at[1] + rnd(g, er), 0, g.beach ? Math.max(b.z + BEACH.pokeyUp, C.NET_H + BEACH.pokeyNet) : Math.max(b.z + 0.45, C.NET_H + 0.9));
         kind = 'free'; power = 0.1;
       } else if (shot === 'roll') { // E1: golpe colocado (solo con g.mastery): por encima de las manos del bloqueo, a la misma diana
-        var free3r = human && !tgt && g.aim3.on && g.aim3.kind !== 'serve';
+        var free3r = human && !tgt && g.aim3.on && g.aim3.kind === 'spike';
         at = tgt || (free3r ? [g.aim3.x, g.aim3.y] : attackTarget(p, aim, 6.5, g.cs));
         if (human) edge = edgeOf(g, at[0], at[1]);
         // dispersión: la del remate libre ×MASTERY.roll.spread (humano: spikeSpread; IA: la de su remate), con los MISMOS dos dados
@@ -1366,20 +1438,33 @@
         // (6v6, 17-nov-2026: también tras la colocación del humano —colocador—, para que el timing se note en el remate; CPU-CPU igual)
         var hSet6 = g.rot && setIn && prevPlayer && prevPlayer !== p && isHuman(g, prevPlayer);
         var sk = (!g.rot || hSet6) && !human && setIn && prevQ < SETQ.hi ? clamp((prevQ - SETQ.lo) / (SETQ.hi - SETQ.lo), 0, 1) : 1;
-        var free3 = human && !tgt && g.aim3.on && g.aim3.kind !== 'serve'; // A1: mira libre del humano
+        var free3 = human && !tgt && g.aim3.on && g.aim3.kind === 'spike'; // A1: mira libre del humano ('jset': la diana de la colocación en salto no es la del remate)
         at = tgt || (free3 ? [g.aim3.x, g.aim3.y] : attackTarget(p, aim, 6, g.cs));
         var spd = human ? 13.5 + 5.5 * q + (p.ak ? p.ak.spike : 0) : prof.spike * (0.82 + 0.18 * q) * (SETQ.spd0 + (1 - SETQ.spd0) * sk);
         // E1 (al filo): la mira libre cerca de la línea da un remate más rápido y peor de defender, pero más disperso (más fuera)
         if (g.mastery && free3) { edge = edgeOf(g, at[0], at[1]); spd += MASTERY.edge.spd * edge; }
         if (perfChain) spd += MASTERY.chain.spd; // (tramo 2: jugada perfecta)
         var boost = p.badges || sedaL ? BADGE.canon[bl(p, 'canon')] + BADGE.sedaV[sedaL] : 0; // Cañón, Manos de seda (m/s)
+        // salto con impulso (humano con salto con dirección): la deriva hacia donde va el remate le da hasta MOM.spd m/s (con buen
+        // timing: nada con q <= qLo), tope MOM.cap; va por boost (misma trayectoria con boostDip, más rápido). Riesgo: dispersión
+        // ×(1 + spr·k) y más si remata cruzando la deriva (momF). Sin azar nuevo
+        var momF = 1;
+        if (human && p.dj) {
+          var mdx = at[0] - o.x, mdy = at[1] - o.y, mdl = Math.hypot(mdx, mdy) || 1, jvn = Math.hypot(p.jvx, p.jvy);
+          var Jd = Math.max(0, (p.jvx * mdx + p.jvy * mdy) / mdl), mk = clamp((Jd - MOM.j0) / (MOM.j1 - MOM.j0), 0, 1);
+          momQ = mk * clamp((q - MOM.qLo) / (MOM.qHi - MOM.qLo), 0, 1);
+          boost += Math.min(MOM.spd * momQ, Math.max(0, MOM.cap - (spd + boost)));
+          // (el castigo por cruzar la deriva solo cuenta la deriva hacia la red, p.jF: saltar de lado persiguiendo la colocación no castiga)
+          momF = (1 + MOM.spr * mk) * (1 + MOM.mis * (1 - (jvn > 1e-9 ? Jd / jvn : 0)) * clamp((p.jF - MOM.j0) / MOM.misJ, 0, 1));
+        }
         power = clamp((spd + boost - 11) / 8, 0, 1);
-        er = (0.25 + 1.5 * (1 - q)) * mul * (1 + SETQ.er * (1 - sk));
+        er = (0.25 + 1.5 * (1 - q)) * mul * (1 + SETQ.er * (1 - sk)) * momF;
         dip = C.G * (0.15 + 0.3 * q); // liftado: el balón "cae" más
         if (boost > 0) { dip = boostDip(dip, spd, spd + boost); spd += boost; }
         if (free3) { // A2: dispersión según el timing, uniforme en un círculo de radio spikeSpread(q) (mismo gasto de azar)
           var sr = spikeSpread(q) * (p.ak ? p.ak.spread : 1) * BADGE.mira[bl(p, 'mira')] * Math.sqrt(g.rng()), sa = g.rng() * 6.2832;
           if (edge > 0) sr *= 1 + MASTERY.edge.spr * edge;
+          sr *= momF;
           v = launchDirect(o, at[0] + sr * Math.cos(sa), at[1] + sr * Math.sin(sa), C.BR, spd, C.G + dip); // bota justo en la diana
         } else { var tx0 = at[0] + rnd(g, er), ty0 = at[1] + rnd(g, er); v = g.rot && !human ? deepSpike(o, tx0, ty0, spd, C.G + dip, g.cs) : launchDirect(o, tx0, ty0, 0, spd, C.G + dip); }
         if (q < 0.45 && g.rng() < (0.48 - q) * 0.75 * ek) v[2] -= 1.4 + g.rng(); // a la red (×ek: Control)
@@ -1492,6 +1577,15 @@
       g.atkSet = setIn && prevPlayer && prevPlayer !== p && prevPlayer.team === t ? prevPlayer : null;
       if (g.stats && kind === 'spike') g.stats.spikes[t]++;
     }
+    // salto con impulso: pipe (6v6: remate de zaguero que despegó detrás de la línea de 3 m, golpee donde golpee; etiqueta sin azar, para
+    // todos: también cuenta los pipes legales de la CPU, que golpean a ~3,4 m)
+    var pipe = !!g.rot && !p.front && p.role !== 'L' && p.z > 0 && Math.abs(p.toX) >= C.ATTACK && kind === 'spike';
+    if (kind === 'spike') { var dL = g.djLast; dL.team = t; dL.mom = momQ >= 0.5 ? 1 : 0; dL.pipe = pipe && human ? 1 : 0; }
+    if (g.stats && g.stats.dj) {
+      if (kind === 'spike' && momQ >= 0.5) g.stats.dj.mom[0]++;
+      if (pipe && human) g.stats.dj.pipe[0]++;
+      if (jaim) g.stats.dj.jaim++;
+    }
     b.speed = Math.hypot(v[0], v[1], v[2]);
     p.lastAction = kind === 'free' && sub === 'tip' ? 'spike' : kind; p.actionT = 0; p.shot = sub; p.grade = grade;
     if (sub === 'body') p.anim = 0.12; // sin gesto de brazos: solo el rebote
@@ -1514,7 +1608,7 @@
     var hev = emit(g, { type: 'hit', kind: kind, player: p, team: t, touch: count, quality: q, grade: grade, timing: te,
       power: power, shot: sub, dive: shot === 'dive', aim: aim ? [aim[0], aim[1]] : null, target: at ? [at[0], at[1]] : null,
       x: b.x, y: b.y, z: b.z, speed: b.speed, human: human, dig: isDig, recv: count === 1 && inKind === 'serve', jset: jset,
-      feint: feint, tempo: tempo, edge: edge, chain: g.mastery && t === cT ? g.chain : 0 });
+      feint: feint, tempo: tempo, edge: edge, chain: g.mastery && t === cT ? g.chain : 0, mom: momQ, pipe: pipe, jaim: jaim });
     if (g.beach && kind === 'free' && sub === 'tip') hev.pokey = true; // playa: dejada de nudillos (UI: «Pokey»)
     if (feint) emit(g, { type: 'feint', player: p, team: t, shot: sub }); // E1: después del hit, en el mismo paso
     if (g.drill) drillOnHit(g, hev); // E6: nota del toque / fin de la repetición por toque
@@ -2136,6 +2230,11 @@
     var move = g.mastery && g.atkTeam === w && (how === 'kill' || how === 'tip') ? g.atkMove : '';
     if (move && g.stats) { var sm = g.stats.mastery;
       if (move === 'quick') { if (w === 0) sm.quick[1]++; } else if (g.atkHuman) { sm[move][1]++; if (tool && move === 'edge') sm.tool++; } else if (w === 1 && move === 'roll') sm.cpu.roll[1]++; }
+    // salto con impulso: punto del remate con impulso / pipe del humano (g.stats.dj; g.djLast lo deja hit)
+    if (g.stats && g.stats.dj && how === 'kill' && g.atkHow === 'kill' && g.atkTeam === w && g.djLast.team === w) {
+      if (g.djLast.mom) g.stats.dj.mom[1]++;
+      if (g.djLast.pipe) g.stats.dj.pipe[1]++;
+    }
     if (g.stats) {
       if (how === 'ace') g.stats.aces[w]++; else if (how === 'kill') g.stats.kills[w]++; else if (how === 'block') g.stats.stuffPts[w]++;
       if (p) g.stats.faults[reason] = (g.stats.faults[reason] || 0) + 1;
@@ -2295,7 +2394,7 @@
     var cs = g.cs, h = g.ctrl, m = other(g, h), o0 = g.teams[1][0], o1 = g.teams[1][1], b = g.ball, i, p, v;
     for (i = 0; i < g.players.length; i++) {
       p = g.players[i]; p.z = 0; p.vz = 0; p.vx = 0; p.vy = 0; p.anim = 0; p.bd = 0; p.bdT = 0.12;
-      p.onGround = true; p.lastAction = ''; p.actionT = 99; p.jvx = p.jvy = p.lvx = p.lvy = p.rvx = p.rvy = 0; p.down = 0; p.cool = 0;
+      p.onGround = true; p.lastAction = ''; p.actionT = 99; p.jvx = p.jvy = p.lvx = p.lvy = p.rvx = p.rvy = 0; p.down = 0; p.cool = 0; p.avx = p.avy = p.dj = p.jF = p.tkX = p.tkY = p.landT = 0;
       p.shot = ''; p.aiTeT = -1; p.tgTime = -9;
     }
     endRitual(g);
@@ -2303,7 +2402,7 @@
     g.lastLand = null; g.antennaHit = null; g.atkServe = null; g.call = null; g._pendCall = null; g.cpuChal = null;
     g.hardIn = false; g.digOk = true; g.prevKind = ''; g.atkTeam = -1; g.atkHow = ''; g.atkHuman = false; g.atkGrade = ''; g.atkSet = null;
     g.rally.t = 0; g.rally.hits = 0; g.rally.digs = 0; g.jobs[0] = g.jobs[1] = null;
-    endSwing(g); g.swingLock = 0; g.jsetQ = 0; g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; g.blockCD = 0; g.netSince = false; g.digTight = false; g.aim3.on = false; g.aim3.kind = '';
+    endSwing(g); g.swingLock = 0; g.jsetQ = 0; g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; g.blockCD = 0; g.netSince = false; g.digTight = false; g.aim3.on = false; g.aim3.kind = ''; g.aimCarry = 0;
     g.atkMove = ''; g.atkEdge = 0; g.lastTempo = ''; g.feintT = -9; g.chain = 0; g.chainH = 0; g.defRole = '';
     g.blockOff[0] = g.blockOff[1] = 0;
     var sx = -4.5 * cs, sy = g.HW + 1.2; // banda rival (los que no juegan)
@@ -2555,7 +2654,9 @@
   }
 
   // ---------- Jugadores ----------
-  function jump(g, p, jvx, jvy) {
+  /** Despegue. dj (salto con impulso, solo humanJump con g.djump): salto con dirección; deja p.dj y el evento lleva dir (unitario de la
+   *  deriva, mundo) y jv (m/s). La altura y el tiempo en el aire no cambian. */
+  function jump(g, p, jvx, jvy, dj) {
     if (p.z === 0 && p.vz === 0 && p.down <= 0) {
       p.vz = jumpV(p); p.onGround = false; p.lastAction = 'jump'; p.actionT = 0;
       if (jvx == null) { // impulso: parte de la velocidad de carrera, limitado
@@ -2564,17 +2665,31 @@
       }
       p.jvx = jvx; p.jvy = jvy || 0;
       if (g.rot) p.toX = p.x; // 6v6: despegue (falta de ataque de zaguero)
-      emit(g, { type: 'jump', player: p });
+      if (g.djump) p.dj = dj ? 1 : 0;
+      if (dj) { var dl = Math.hypot(p.jvx, p.jvy); emit(g, { type: 'jump', player: p, dir: dl > 1e-9 ? [p.jvx / dl, p.jvy / dl] : [0, 0], jv: dl }); }
+      else emit(g, { type: 'jump', player: p });
     }
   }
   function stepPlayer(g, p, dt, mx, my) {
     var air = p.z > 0 || p.vz > 0;
     if (air) {
       p.vz -= C.G * dt; p.z += p.vz * dt;
-      if (p.z <= 0) { p.z = 0; p.vz = 0; p.onGround = true; p.jvx = p.jvy = p.rvx = p.rvy = 0; emit(g, { type: 'landPlayer', player: p }); }
+      if (p.z <= 0) {
+        p.z = 0; p.vz = 0; p.onGround = true;
+        // salto con impulso (g.djump): aterrizaje duro tras una deriva grande (DJ.landT s con la carrera ×DJ.landK) y la carrera se
+        // vuelve a medir desde cero
+        var hard = false;
+        if (g.djump) {
+          if (p.dj && Math.hypot(p.jvx, p.jvy) > DJ.landJ) { p.landT = DJ.landT; hard = true; }
+          p.avx = p.avy = 0; p.dj = 0; p.jF = 0;
+        }
+        p.jvx = p.jvy = p.rvx = p.rvy = 0;
+        if (hard) emit(g, { type: 'landPlayer', player: p, hard: true }); else emit(g, { type: 'landPlayer', player: p });
+      }
     }
     var ox = p.x, oy = p.y;
     if (p.down > 0) { p.down -= dt; mx = my = 0; }
+    if (p.landT > 0 && !air) { p.landT -= dt; mx *= DJ.landK; my *= DJ.landK; } // (solo con g.djump: si no, landT es siempre 0)
     if (p.tired > 0) { var tk = 1 - SUBK.speed * p.tired; mx *= tk; my *= tk; } // cansancio (solo con banquillo: p.tired no existe sin g.subsOn)
     if (air) { p.x += p.jvx * dt; p.y += p.jvy * dt; }
     else {
@@ -2609,6 +2724,8 @@
       }
     }
     if (dt > 0) { p.vx = (p.x - ox) / dt; p.vy = (p.y - oy) / dt; }
+    // salto con impulso: media de la carrera en el suelo (a = dt/(tau+dt), racional: igual en todas las plataformas); en el aire, quieta
+    if (g.djump && p.z === 0 && p.vz === 0 && p.down <= 0) { var ea = dt / (DJ.tau + dt); p.avx += (p.vx - p.avx) * ea; p.avy += (p.vy - p.avy) * ea; }
     p.anim = Math.max(0, p.anim - dt); p.cool = Math.max(0, p.cool - dt); p.actionT += dt;
   }
 
@@ -2640,16 +2757,42 @@
    *  mete en la red: se limita la deriva hacia la red para caer a >= 0,40 m (la IA hace lo mismo). En el aire
    *  no hay control, así que un toque de red así sería culpa del juego, no del jugador. En jugada propia
    *  (ataque) la carrera sí puede llevarle a la red, como a la IA (netErr). */
-  function humanJump(g, p) {
+  /*  Salto con impulso (g.djump; mx, my, ml = stick de mundo de este paso; plant = colocador C2 plantado, salta en vertical): con
+   *  dirección (|stick| >= DJ.dead, o la última de hace <= DJ.buf s, g.jd*) la deriva sale de la carrera previa (p.avx/avy) en esa
+   *  dirección y del propio stick: J = kR·carrera + kS·|stick|·(1 − carrera/SPEED), tope DJ.cap ×Salto (DJ.back hacia atrás, DJ.blk
+   *  en el bloqueo cerca de la red) y el seguro de red de siempre para TODO salto con dirección (cae a >= DJ.netX m; DJ.oppX con el
+   *  balón rival): despegar cerca de la red quita impulso, nunca da un toque de red. Sin dirección, sin g.djump o plantado: lo de
+   *  siempre bit a bit. */
+  function humanJump(g, p, mx, my, ml, plant) {
     var sd = side(p.team), b = g.ball;
-    var jvx = p.vx * 0.3, jvy = p.vy * 0.3, jl = Math.hypot(jvx, jvy);
-    if (jl > 0.6) { jvx *= 0.6 / jl; jvy *= 0.6 / jl; }
     var oppBall = g.touchTeam !== p.team || b.x * sd < 0 || (b.vx * sd < 0 && g.touches === 0);
-    if (Math.abs(p.x) < 1.5 && oppBall && jvx * sd < 0) {
-      var air = 2 * jumpV(p) / C.G, minX = 0.40;
-      if ((p.x + jvx * air) * sd < minX) jvx = Math.min(0, (minX - p.x * sd) / air) * sd;
+    var dir = g.djump && !plant && p.down <= 0 && ((ml || 0) >= DJ.dead || g.time - g.jdT <= DJ.buf);
+    if (!dir) {
+      var jvx = p.vx * 0.3, jvy = p.vy * 0.3, jl = Math.hypot(jvx, jvy);
+      if (jl > 0.6) { jvx *= 0.6 / jl; jvy *= 0.6 / jl; }
+      if (Math.abs(p.x) < 1.5 && oppBall && jvx * sd < 0) {
+        var air = 2 * jumpV(p) / C.G, minX = 0.40;
+        if ((p.x + jvx * air) * sd < minX) jvx = Math.min(0, (minX - p.x * sd) / air) * sd;
+      }
+      if (g.djump) g.aimCarry = 0;
+      jump(g, p, jvx, jvy);
+      return;
     }
-    jump(g, p, jvx, jvy);
+    var ux, uy, m;
+    if (ml >= DJ.dead) { ux = mx / ml; uy = my / ml; m = ml; } else { ux = -sd * g.jdF; uy = sd * g.jdS; m = g.jdM; }
+    var vax = p.avx, vay = p.avy, vu = vax * ux + vay * uy, vAl = Math.max(0, vu);
+    var J = DJ.kR * vAl + DJ.kS * m * (1 - Math.min(1, vAl / C.SPEED));
+    var jx = J * ux + DJ.perp * (vax - vu * ux), jy = J * uy + DJ.perp * (vay - vu * uy);
+    var cap = DJ.cap * (p.ak ? p.ak.jump : 1);
+    if (-sd * jx < 0) cap = Math.min(cap, DJ.back);                        // alejándose de la red
+    if (oppBall && Math.abs(p.x) < 1.5) cap = Math.min(cap, DJ.blk);      // bloqueo: desliz corto y legible
+    var jn = Math.hypot(jx, jy); if (jn > cap) { jx *= cap / jn; jy *= cap / jn; }
+    if (jy > DJ.lat) jy = DJ.lat; else if (jy < -DJ.lat) jy = -DJ.lat;     // a lo ancho, como mucho DJ.lat
+    var airT = 2 * jumpV(p) / C.G, minX2 = oppBall ? DJ.oppX : DJ.netX;
+    if (jx * sd < 0 && (p.x + jx * airT) * sd < minX2) jx = Math.min(0, (minX2 - p.x * sd) / airT) * sd; // seguro de red
+    p.jF = -sd * jx; p.tkX = p.x; p.tkY = p.y;
+    g.aimCarry = 1; g.jdF = -sd * ux; g.jdS = sd * uy; // la diana no se mueve con la dirección del despegue hasta que se suelte o gire
+    jump(g, p, jx, jy, 1);
   }
 
   // ---------- Gesto de golpeo del humano ----------
@@ -2704,13 +2847,37 @@
   /** Asistencia de movimiento: cerca del punto de contacto, el jugador humano se
    *  "imanta" suavemente y frena al llegar (la colocación gruesa sigue siendo suya). */
   var _mv = [0, 0];
+  // salto con impulso: carrera hacia la red con tiempo de sobra: la asistencia la regula (×_runF, >= DJ.astF) para llegar a la batida
+  // adelantada cuando toca saltar (hitWindow.jumpT) en vez de llegar antes a la red; así el impulso no se pierde por arrancar pronto
+  var _runF = 1, _wAs = { t: 0, press: 0, d: 9, dz: 9, reach: false, kind: '', zc: 0, x: 0, y: 0, z: 0, active: false, canReach: false, attack: false, jumpT: NaN };
   function assistMove(g, p, mx, my, ring) {
+    _runF = 1;
+    var r = assistMove0(g, p, mx, my, ring);
+    if (_runF < 1) { r[0] *= _runF; r[1] *= _runF; }
+    return r;
+  }
+  function assistMove0(g, p, mx, my, ring) {
     _mv[0] = mx; _mv[1] = my;
     if (g.jobs[p.team] !== p || p.z > 0 || p.down > 0) return _mv;
-    var sd = side(p.team), tx, ty;
-    if (atkPhase(g, p.team) && Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5) { tx = g.pr3.x + sd * 0.35; ty = g.pr3.y; }
+    var sd = side(p.team), tx, ty, il = Math.hypot(mx, my), run = false;
+    if (atkPhase(g, p.team) && Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5) {
+      // salto con impulso (g.djump): corriendo hacia la red, la batida asistida se adelanta lo que va a derivar (astK) y frena menos
+      // al llegar (hasta ×astF, para no perder la carrera); pasada esa batida, hasta la de siempre (pr3 + 0,35) la carrera se va frenando
+      // hasta ×astF: saltar un pelín tarde aún da algo de impulso en vez de llegar a la red y que el seguro lo anule
+      run = g.djump && il >= DJ.dead && -sd * mx / il > 0.5;
+      tx = g.pr3.x + sd * (run ? 0.35 + DJ.kR * Math.max(0, -sd * p.avx) * DJ.astK : 0.35); ty = g.pr3.y;
+      if (run) {
+        var b0 = sd * g.pr3.x + 0.35, bA = sd * tx, px = sd * p.x;
+        if (px < bA && Math.hypot(tx - p.x, ty - p.y) <= 1.8) {
+          var fr = bA - b0 > 0.05 ? DJ.astF + (1 - DJ.astF) * clamp((px - b0) / (bA - b0), 0, 1) : DJ.astF;
+          _mv[0] = mx * fr; _mv[1] = my * fr; return _mv;
+        }
+        var wA = hitWindow(g, p, _wAs); // (antes de la batida: ¿llega antes de tiempo a tope?)
+        if (wA.attack && wA.jumpT > 0.05) _runF = clamp((px - bA) / (wA.jumpT * C.SPEED), DJ.astF, 1);
+      }
+    }
     else { tx = g.pr1.x + (ring ? 0 : sd * 0.15); ty = g.pr1.y; } // (ring: C2, ventana de colocación: al centro del aro amarillo)
-    var dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy), il = Math.hypot(mx, my);
+    var dx = tx - p.x, dy = ty - p.y, dl = Math.hypot(dx, dy);
     if (dl > 1.8 || dl < 0.03) return _mv;
     // (6v6: el imán solo ayuda si el jugador ya empuja el stick —Ferran, 11-nov-2026: sin entrada el personaje no se mueve solo—; en el
     //  2v2 g.rot es null y sigue igual)
@@ -2718,7 +2885,7 @@
     var dot = il > 0.05 ? (mx * dx + my * dy) / (il * dl) : 1;
     if (dot < -0.3) return _mv; // el jugador quiere ir a otro sitio: no se le lleva
     var s = 0.5 * Math.min(1, dl / 0.6);
-    if (il > 0.2 && dl < 0.45 && dot > 0.5) { mx *= dl / 0.45; my *= dl / 0.45; } // frena al llegar
+    if (il > 0.2 && dl < 0.45 && dot > 0.5) { var fb = run ? Math.max(DJ.astF, dl / 0.45) : dl / 0.45; mx *= fb; my *= fb; } // frena al llegar
     mx += dx / dl * s; my += dy / dl * s;
     var l = Math.hypot(mx, my); if (l > 1) { mx /= l; my /= l; }
     _mv[0] = mx; _mv[1] = my; return _mv;
@@ -2749,7 +2916,7 @@
     else placeZones(g, t, sv); // 6v6 sin ai6.js: cada uno en su zona base
     for (var j = 0; j < g.players.length; j++) {
       var p = g.players[j]; p.z = 0; p.vz = 0; p.vx = 0; p.vy = 0; p.anim = 0; p.bd = 0; p.bdT = 0.05 + g.rng() * 0.15;
-      p.onGround = true; p.lastAction = ''; p.actionT = 99; p.jvx = p.jvy = p.lvx = p.lvy = p.rvx = p.rvy = 0; p.down = 0; p.cool = 0;
+      p.onGround = true; p.lastAction = ''; p.actionT = 99; p.jvx = p.jvy = p.lvx = p.lvy = p.rvx = p.rvy = 0; p.down = 0; p.cool = 0; p.avx = p.avy = p.dj = p.jF = p.tkX = p.tkY = p.landT = 0;
       p.shot = ''; p.aiTeT = -1;
     }
     g.lastLand = null; g.antennaHit = null; g.atkServe = null;
@@ -2761,7 +2928,7 @@
     g.hardIn = false; g.digOk = true; g.prevKind = ''; g.atkTeam = -1; g.atkHow = '';
     var prevCtrl = g.ctrl;
     if (g.ctrlMode !== 'one') g.ctrl = t === 0 ? sv : g.teams[0][0]; // modo 'one': el humano sigue con su jugador (si saca el compañero, saca la IA)
-    if (g.online) resetSlots(g); else { endSwing(g); g.swingLock = 0; g.defRole = ''; }
+    if (g.online) resetSlots(g); else { endSwing(g); g.swingLock = 0; g.defRole = ''; g.aimCarry = 0; }
     g.rally.t = 0; g.rally.hits = 0; g.rally.digs = 0; g.atkSet = null;
     serveAimReset(g, sv);
     // ¿Punto de set / punto de partido?
@@ -3147,7 +3314,9 @@
       //    el imán lleva al centro del aro (assistMove con ring), así que ya colocado cualquier flecha apunta.
       // Durante el gesto, soltar conserva la última (como swingHasAim). Sin g.rng
       var sWin = setWin(g), MS = MASTERY.set, sPos = false, sTow = false;
-      if (sWin) {
+      // (6v6 con la diana de colocación en salto, g.jsetAim: en el aire el stick mueve la diana y g.setDirA queda la del despegue)
+      var sFrz = sWin && !!g.rot && g.jsetAim && hp.z > 0 && jsetReady(g);
+      if (sWin && !sFrz) {
         var sdA = side(hp.team), sAng = aim ? (Math.atan2(sdA * aim[1], -sdA * aim[0]) * 57.29577951308232 + 360) % 360 : 0, sSec = setSec(sAng);
         var sHeld = !!aim && ml >= MS.dead, wP = hitWindow(g, hp, _wPlant);
         if (!g.setWinOn) { g.setWinOn = true; g.setCarry = sHeld ? sSec : -1; g.setCarryK = 1; g.setDirA = NaN; } // (la que traía al abrirse)
@@ -3161,11 +3330,14 @@
           if (g.setCarryK === 1) { if (!g.swingLive) g.setDirA = NaN; }
           else g.setDirA = sAng;
         }
-      } else if (g.setWinOn) { g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; }
+      } else if (!sWin && g.setWinOn) { g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; }
+      // salto con impulso: búfer de la última dirección (ejes del equipo) y colocador plantado (C2: salta en vertical)
+      if (g.djump && ml >= DJ.dead && hp.z === 0) { var sdJ = side(hp.team); g.jdF = -sdJ * mx / ml; g.jdS = sdJ * my / ml; g.jdM = ml; g.jdT = g.time; }
+      var plantJ = sWin && sPos && !sTow;
       // C2: COLOCAR en el suelo, en la ventana y con el balón a la altura de colocar de pie, coloca (no salta)
       if (input.jset && g.mode === 'rally' && groundSet(g, hp)) startSwing(g, hp, '');
       else if (input.jump || input.jset) { // COLOCAR (jset) en el suelo salta como SALTAR
-        if (hp.z === 0 && hp.vz === 0) humanJump(g, hp);
+        if (hp.z === 0 && hp.vz === 0) humanJump(g, hp, mx, my, ml, plantJ);
         else if (input.jset && jsetVoid(g, hp)) { /* bloqueando un remate rival: COLOCAR no hace nada */ }
         else if (hp.z > 0.2 && hp.actionT > 0.12 && Math.hypot(b.x - hp.x, b.y - hp.y) < 3) startSwing(g, hp, input.jset ? 'jset' : 'tip'); // en el aire: colocación en salto / dejada
         else if (input.jset && hp.z > 0) g.jsetQ = JSET.buf; // recién despegado: COLOCAR se guarda JSET.buf s (doble pulsación rápida = salta y coloca)
@@ -3205,13 +3377,84 @@
   var AIM3_SPEED = 11;
   function updateAim3(g, p, dt, mx, my) {
     var ht = g.online ? p.team : 0, a = g.aim3, on = g.mode === 'rally' && p.team === ht && p.z > 0 && atkPhase(g, ht);
-    if (!on) { a.on = false; return; }
+    // salto con impulso: la dirección del despegue (g.jdF/jdS) no mueve la diana hasta que se suelta o gira más de 67,5° (g.aimCarry)
+    if (g.aimCarry) {
+      var cl = Math.hypot(mx, my), sdc = side(p.team);
+      if (cl < DJ.dead || (mx * (-sdc * g.jdF) + my * (sdc * g.jdS)) / cl < 0.383) g.aimCarry = 0;
+      else { mx = 0; my = 0; }
+    }
+    if (!on) {
+      if (g.jsetAim && g.mode === 'rally' && p.team === ht && p.z > 0 && jsetReady(g)) { jsetAimStep(g, p, a, dt, mx, my); return; }
+      a.on = false; return;
+    }
     var sd = side(p.team);
     if (!a.on || a.kind !== 'spike') { var d0 = attackTarget(p, null, 6, g.cs); a.x = d0[0]; a.y = d0[1]; a.on = true; a.kind = 'spike'; }
     // (E1, g.mastery: la diana llega hasta MASTERY.edge.lim de las líneas: se puede jugar al filo)
     var lx = g.mastery ? g.HL - MASTERY.edge.lim : 8.3 * g.cs, ly = g.mastery ? g.HW - MASTERY.edge.lim : 3.9 * g.cs;
     a.x = -sd * clamp(-sd * (a.x + mx * AIM3_SPEED * dt), 1.4 * g.cs, lx);
     a.y = clamp(a.y + my * AIM3_SPEED * dt, -ly, ly);
+  }
+
+  /** Salto con impulso, colocación en salto con diana (g.jsetAim): mientras el humano en el aire puede colocar en salto (jsetReady,
+   *  fuera del ataque), g.aim3 = {on, kind 'jset', x, y}. Nace en el destino de siempre (2v2: JSET.tx al lado del compañero; 6v6:
+   *  VB.AI6.previewSet) y lo sigue mientras no se mueva; el stick la lleva a JD.spd m/s dentro de la caja de JD (g.jsMv = 1 tras JD.mv
+   *  m de recorrido). Sin g.rng. */
+  function jsetAimStep(g, p, a, dt, mx, my) {
+    var sd = side(p.team), cs = g.cs || 1;
+    if (!a.on || a.kind !== 'jset') { a.on = true; a.kind = 'jset'; g.jsMv = 0; g.jsAimD = 0; }
+    if (!g.jsMv) {
+      if (g.rot && VB.AI6 && VB.AI6.previewSet) { var r = VB.AI6.previewSet(g, p, _ps6); a.x = sd * r.d; a.y = sd * r.yl; }
+      else { var mt = other(g, p); a.x = sd * JSET.tx; a.y = clamp(mt.y, -JSET.mate, JSET.mate); }
+    }
+    var ddx = mx * JD.spd * dt, ddy = my * JD.spd * dt;
+    if (ddx || ddy) {
+      g.jsAimD += Math.hypot(ddx, ddy); if (g.jsAimD >= JD.mv) g.jsMv = 1;
+      var dmax = (g.rot ? JD.dMax6 : JD.dMax2) * cs, ylim = g.HW - JD.yIn * cs;
+      a.x = sd * clamp(sd * (a.x + ddx), JD.dMin * cs, dmax);
+      a.y = clamp(a.y + ddy, -ylim, ylim);
+    }
+  }
+  /** Lectura pura de la diana de la colocación en salto (g.jsetAim) para fx/ui/IA: out = {on, x, y (mundo), tempo ('quick'|'lane'|
+   *  'high', con el toque previsto), apex, moved (la diana se ha movido: la colocación irá allí), bx, by (batida del atacante, como
+   *  setPreview), ok (llega a tiempo, informativo)} o null si no hay diana. Sin g.rng. */
+  var _dpJa = { lane: '', pref: 0, apexD: 0, to: null, d: 0, yl: 0 };
+  var _ja = { on: false, x: 0, y: 0, ax: 0, ay: 0, tempo: '', apex: 0, moved: false, bx: 0, by: 0, ok: true }, _wJa = { t: 0, press: 0, d: 9, dz: 9, reach: false, kind: '', zc: 0, x: 0, y: 0, z: 0, active: false, canReach: false, attack: false, jumpT: NaN };
+  function jsetAimInfo(g, out) {
+    var a = g.aim3, p = g.ctrl;
+    if (!g.jsetAim || !a.on || a.kind !== 'jset' || !p) return null;
+    out = out || _ja;
+    var b = g.ball, sd = side(p.team), cs = g.cs || 1, M = MASTERY.set;
+    var w = hitWindow(g, p, _wJa), z0 = w.reach ? w.z : b.z, sx = w.reach ? w.x : b.x, sy = w.reach ? w.y : b.y;
+    // destino real: la diana (2v2); 6v6 con la diana movida, la diana metida en la caja del atacante más cercano (VB.AI6.dianaPlan,
+    // como hit); out.ax/ay = la diana tal cual (fx pinta la diana ahí y el marcador del tempo en x/y)
+    var ex = a.x, ey = a.y;
+    if (g.rot && g.jsMv && g.touchTeam === p.team && g.touches === 1 && VB.AI6 && VB.AI6.dianaPlan) { var dp = VB.AI6.dianaPlan(g, p, a.x, a.y, _dpJa); ex = sd * dp.d; ey = sd * dp.yl; }
+    var s = Math.hypot(ex - sx, ey - sy), D = sd * ex;
+    var apex = clamp(z0 + JD.ap0 + JD.apS * s, JD.apMin, JD.apMax);
+    var tempo = (s <= JD.qS && D <= JD.qD * cs) ? 'quick' : apex >= JD.hiAp ? 'high' : 'lane';
+    out.on = true; out.x = ex; out.y = ey; out.ax = a.x; out.ay = a.y; out.tempo = tempo; out.apex = apex; out.moved = !!g.jsMv;
+    out.bx = sd * Math.min((D / cs + (M.atkAp[tempo] || M.atkAp.high)) * cs, M.atkMaxX * cs); out.by = ey;
+    var at = g.rot ? null : other(g, p);
+    if (at) { // 2v2: la batida, a >= atkSep m del toque (como setPreview)
+      var bdx = out.bx - sx, bdy = out.by - sy, bdl = Math.hypot(bdx, bdy), R = M.atkSep * cs;
+      if (bdl < R) {
+        if (bdl < 0.3 * cs) { bdx = 0; bdy = at.y >= sy ? 1 : -1; bdl = 1; }
+        out.bx = sx + bdx / bdl * R; out.by = clamp(sy + bdy / bdl * R, -(g.HW - 0.3 * cs), g.HW - 0.3 * cs);
+      }
+    }
+    var fl = Math.sqrt(2 * Math.max(0, apex - z0) / C.G) + Math.sqrt(2 * Math.max(0, apex - JSET.tz) / C.G);
+    out.ok = !at || !(VB.AI && VB.AI.timeTo) || VB.AI.timeTo(g, at, out.bx, out.by) <= Math.max(0, w.t) + fl - 0.25;
+    return out;
+  }
+  /** Salto con impulso: dónde y cuándo aterriza p (pura): out = {x, y, t (s), net (aterriza a menos de NET_TOUCH + 0,1 de la red)}.
+   *  En el suelo, su posición y t = 0. */
+  var _lo = { x: 0, y: 0, t: 0, net: false };
+  function landingOf(g, p, out) {
+    out = out || _lo;
+    var air = p.z > 0 || p.vz > 0, t = air ? (p.vz + Math.sqrt(p.vz * p.vz + 2 * C.G * Math.max(0, p.z))) / C.G : 0;
+    out.t = t; out.x = p.x + (air ? p.jvx * t : 0); out.y = p.y + (air ? p.jvy * t : 0);
+    out.net = Math.abs(out.x) < C.NET_TOUCH + 0.1;
+    return out;
   }
 
   /* Saque dirigible (sprint Carrera): mientras saca el humano, g.aim3 = {on: true, kind: 'serve', x, y} en el campo rival.
@@ -3328,7 +3571,7 @@
       var air = isAttackContact(p, b);
       if (g.swingLive && g.swingShot === 'jset' && p.z > 0) { // colocando en salto: no hay retícula de ataque
         // (E1: en el 3r toque COLOCAR es el golpe colocado: su retícula, kind 'roll', a la misma diana con el radio ×MASTERY.roll.spread)
-        if (!(g.mastery && air && g.touches === 2 && g.aim3.on && g.aim3.kind !== 'serve')) return null;
+        if (!(g.mastery && air && g.touches === 2 && g.aim3.on && g.aim3.kind === 'spike')) return null;
         var rk = (p.ak ? p.ak.spread : 1) * BADGE.mira[bl(p, 'mira')] * MASTERY.roll.spread, re = edgeOf(g, g.aim3.x, g.aim3.y), rs = 1 + MASTERY.edge.spr * re;
         out.spread = spikeSpread(0.95) * rk * rs; out.spreadPoor = spikeSpread(0.3) * rk * rs; out.spreadNow = spikeSpread(qNow(g, p)) * rk * rs;
         out.x = g.aim3.x; out.y = g.aim3.y; out.kind = 'roll'; out.mode = mode; out.aimed = true; out.edge = re;
@@ -3338,7 +3581,7 @@
         kind = 'tip';
         tx = -sd * (1.6 + (a ? clamp(-sd * a[0], -0.3, 1) : 0.3)); ty = clamp(a ? p.y + a[1] * 2.6 : -p.y, -3.8, 3.8);
         out.spread = 0.25 + 0.9 * 0.05; out.spreadPoor = 0.25 + 0.9 * 0.55;
-      } else if (g.aim3.on && g.aim3.kind !== 'serve' && (air || p.z > 0)) { // A1/A2: mira libre; el radio es la dispersión si golpeara AHORA
+      } else if (g.aim3.on && g.aim3.kind === 'spike' && (air || p.z > 0)) { // A1/A2: mira libre; el radio es la dispersión si golpeara AHORA
         tx = g.aim3.x; ty = g.aim3.y; kind = 'spike';
         var spk2 = p.ak ? p.ak.spread : 1;
         spk2 *= BADGE.mira[bl(p, 'mira')];
@@ -3587,7 +3830,7 @@
     inn.bench = false; out.bench = true; out.zone = 0; out.front = false;
     var sd = side(t), tx = out.x, ty = out.y;
     inn.x = sd * SUBK.zoneX; inn.y = SUBK.zoneY; inn.z = 0; inn.vz = 0; inn.vx = inn.vy = 0; inn.down = 0; inn.anim = 0; inn.cool = 0;
-    inn.jvx = inn.jvy = inn.lvx = inn.lvy = inn.rvx = inn.rvy = 0; inn.onGround = true; inn.lastAction = ''; inn.actionT = 99;
+    inn.jvx = inn.jvy = inn.lvx = inn.lvy = inn.rvx = inn.rvy = 0; inn.avx = inn.avy = inn.dj = inn.jF = inn.tkX = inn.tkY = inn.landT = 0; inn.onGround = true; inn.lastAction = ''; inn.actionT = 99;
     var dw = Math.hypot(tx - inn.x, ty - inn.y);
     g.subWalkL.push(dblFields({ p: inn, x: tx, y: ty, v: Math.max(SUBK.walk, dw / (SUB_HOLD - 0.3)) }));
     for (var i = 0; i < P.length; i++) if (P[i].b === out && !P[i].back) pr = P[i];
@@ -3796,7 +4039,8 @@
    * Al acabar cada paso el activo es el 0 (g.ctrl = el jugador del anfitrión). Fuera del online nada de esto existe ni se lee. */
   var ONLINE = { setPause: 10, tmoDur: 30, tmoMin: 10, tmoPerSet: 1 };
   var SLOT_S = ['hitBuf', 'jsetQ', 'swingLive', 'swingShot', 'swingLock', 'swingHasAim', 'setWinOn', 'setCarry', 'setCarryK', 'setDirA',
-    'lastGrade', 'swingT0', 'swingShot0', 'swingSwapT', 'defRole', 'aimOn', 'aimLen', 'swingLen', 'aimSet'];
+    'lastGrade', 'swingT0', 'swingShot0', 'swingSwapT', 'defRole', 'aimOn', 'aimLen', 'swingLen', 'aimSet',
+    'jdF', 'jdS', 'jdM', 'jdT', 'aimCarry', 'jsMv', 'jsAimD', 'jsetAim']; // (salto con impulso: búfer de dirección, arrastre de la diana, diana de colocación)
   function slotIdx(h) { return h && +h.idx === 1 ? 1 : 0; }
   function onlineOpts(o) {
     var n = {}, k, H = Array.isArray(o.humans) ? o.humans : [], even = !!o.even, t, A = null, B = null;
@@ -3804,6 +4048,7 @@
     n.online = true; n.demo = false; n.autopilot = false; n.format = '2v2'; n.drill = null; n.bench = null; n.ctrl = 'one';
     n.difficulty = 'normal'; n.rookie = false; n.mastery = o.mastery !== false; n.ctrlIdx = slotIdx(H[0]);
     n.aimSet = !(H[0] && H[0].aimSet === false);
+    n.jsetAim = !!(H[0] && H[0].jsetAim === true); // (colocación en salto con diana: por hueco, por defecto no)
     n.points = SET_POINTS.indexOf(+o.points) >= 0 ? +o.points : 21; // (a 21 por defecto; la playa siempre a 21)
     if (!even) for (t = 0; t < 2; t++) {
       var h = H[t], i = slotIdx(h);
@@ -3822,7 +4067,7 @@
       var s = { team: t, p: g.teams[t][slotIdx(H[t])], ai: false, aiBack: false,
         aim3: t ? dblFields({ on: false, x: 0.5, y: 0.5, kind: '' }) : g.aim3, swingAim: t ? [0, 0] : g.swingAim, aimIn: t ? [0, 0] : g.aimIn };
       for (var i = 0; i < SLOT_S.length; i++) s[SLOT_S[i]] = g[SLOT_S[i]];
-      if (t) s.aimSet = !(H[1] && H[1].aimSet === false);
+      if (t) { s.aimSet = !(H[1] && H[1].aimSet === false); s.jsetAim = !!(H[1] && H[1].jsetAim === true); }
       g.hum.push(dblFields(s));
     }
     g.tmoPer = opts.timeouts === true ? ONLINE.tmoPerSet : 0; // tiempos muertos: desactivados por defecto (decisión 5: sin pausas en juego)
@@ -3854,7 +4099,7 @@
   /** setupServe online: gesto, bloqueo del gesto y rol defensivo de los dos huecos a cero; «Continuar» también. */
   function resetSlots(g) {
     var prev = g.hT;
-    for (var s = 0; s < 2; s++) { act(g, s); endSwing(g); g.swingLock = 0; g.defRole = ''; }
+    for (var s = 0; s < 2; s++) { act(g, s); endSwing(g); g.swingLock = 0; g.defRole = ''; g.aimCarry = 0; }
     act(g, prev);
     g.skipReq[0] = g.skipReq[1] = false;
   }
@@ -4413,7 +4658,8 @@
   function humanStep(g, dt, input, mx, my, aim, ml) {
     var hp = g.ctrl, b = g.ball;
     var sWin = setWin(g), MS = MASTERY.set, sPos = false, sTow = false;
-    if (sWin) {
+    var sFrz = sWin && !!g.rot && g.jsetAim && hp.z > 0 && jsetReady(g);
+    if (sWin && !sFrz) {
       var sdA = side(hp.team), sAng = aim ? (Math.atan2(sdA * aim[1], -sdA * aim[0]) * 57.29577951308232 + 360) % 360 : 0, sSec = setSec(sAng);
       var sHeld = !!aim && ml >= MS.dead, wP = hitWindow(g, hp, _wPlant);
       if (!g.setWinOn) { g.setWinOn = true; g.setCarry = sHeld ? sSec : -1; g.setCarryK = 1; g.setDirA = NaN; }
@@ -4427,10 +4673,12 @@
         if (g.setCarryK === 1) { if (!g.swingLive) g.setDirA = NaN; }
         else g.setDirA = sAng;
       }
-    } else if (g.setWinOn) { g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; }
+    } else if (!sWin && g.setWinOn) { g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; }
+    if (g.djump && ml >= DJ.dead && hp.z === 0) { var sdJ = side(hp.team); g.jdF = -sdJ * mx / ml; g.jdS = sdJ * my / ml; g.jdM = ml; g.jdT = g.time; }
+    var plantJ = sWin && sPos && !sTow;
     if (input.jset && g.mode === 'rally' && groundSet(g, hp)) startSwing(g, hp, '');
     else if (input.jump || input.jset) {
-      if (hp.z === 0 && hp.vz === 0) humanJump(g, hp);
+      if (hp.z === 0 && hp.vz === 0) humanJump(g, hp, mx, my, ml, plantJ);
       else if (input.jset && jsetVoid(g, hp)) { /* bloqueando un remate rival: COLOCAR no hace nada */ }
       else if (hp.z > 0.2 && hp.actionT > 0.12 && Math.hypot(b.x - hp.x, b.y - hp.y) < 3) startSwing(g, hp, input.jset ? 'jset' : 'tip');
       else if (input.jset && hp.z > 0) g.jsetQ = JSET.buf;
@@ -4521,6 +4769,7 @@
     normDiff: normDiff, DIFF: DIFF, TIMING: TIMING,
     atkPhase: atkPhase, blockPressCase: blockPressCase, canJset: canJset, jsetReady: jsetReady, jsetVoid: jsetVoid, JSET: JSET, // colocación en salto
     // E1 (maestría, sprint 5): botón COLOCAR contextual, vista previa de la colocación dirigida, filo, azar sin g.rng, constantes
+    jsetAimInfo: jsetAimInfo, landingOf: landingOf, DJ: DJ, MOM: MOM, JD: JD, _updateAim3: updateAim3, _hitWindow: hitWindow, _assistMove: assistMove, // salto con impulso
     altReady: altReady, setPreview: setPreview, setWin: setWin, setTurn: setTurn, setAim: setAim, edgeOf: edgeOf, hk: hk, MASTERY: MASTERY,
     // internos expuestos para la IA y los tests
     _aimFloat: aimFloat, _floatPath: floatPath,

@@ -1198,3 +1198,11 @@ Contrato: CONTRACT §4.4 «Sprint 2-4».
   4. Ancla de reserva `plat` con bisectriz si el toque previsto es `set` pero el balón va bajo, o no hay ventana a < 0,6 m.
   En la cámara lenta de la repetición (×0,5) estos fallos se ven el doble de tiempo. El 1 de fx.js está en notes/arena.md.
 - Las ventosas de `rodiPulpo` son caras cuadradas de una esfera de 16×12; las pintadas en muslo y espinilla casi no se ven.
+
+## Salto con impulso (v1.10.0, 18-nov-2026, players)
+- `jump` con `e.dir`/`e.jv` (sim, salto con dirección del humano): `r.djL` = 10° × min(1, jv/1,8). `djLean` inclina el tronco (PP 60 %, CP 40 %)
+  solo con la parte de la deriva que va hacia el frente del cuerpo (`r.yaw`) y lo deshace entre 0,22 y 0,42 s (antes del latigazo); en
+  los primeros 0,16 s la brazada sale de más atrás y abajo. `r.lagOn = !e.dir && …` (un salto con dirección no es «sin carrera»).
+- `r.jvM` con tope 2,1 (pose de aterrizaje); `landPlayer.hard` → flexión de la amortiguación ×1,2 (`r.landHard`). Sin memoria nueva.
+- Con autopilot/demo la sim no emite `dir`: animtest (150 s, 7/99, hall+beach) da exactamente la misma salida que la copia de antes
+  (incluidos los 4 FALLOS que ya traía a 150 s); contacttest TODO OK.

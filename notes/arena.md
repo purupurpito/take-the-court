@@ -1349,3 +1349,15 @@ Fuentes: Reglas Oficiales FIVB, regla 22.2.3 (orden de las señas) y regla 28 / 
   planea leyendo su posición). camera.js (`readOfficials`) sigue leyendo `R2.sim` (el bote no entra en `sim.z`); `placeOfficials` igual.
 - Repeticiones: Arena recibe `EMPTY` y el `g` vivo (en 'point'), así que los árbitros no repiten señas y el 2º sigue su camino.
 - 0 dibujos y 0 geometría nueva (solo poses, escalas y giros de huesos que ya existían). La sim no cambia (huellas idénticas).
+
+## fx.js · Salto con impulso (v1.10.0, 18-nov-2026, players/fx)
+4 instancias más en el lote de calcomanías (`MARK_N*2 + RIP_N + 8 + 1 + 3 + 3 + 4 + FOOT_N`): 0 dibujos nuevos, sin memoria por frame.
+- `djLanding`: sombra de caída del humano en un salto con dirección (`Sim.landingOf`): aro con filo (celda 2) crema; con `net` rojo con la X
+  (celda 3) y latido. `djTakeoff`: marca del despegue del pipe (6v6, zaguero humano, `p.tkX/tkY`): verde si |tkX| ≥ 3, roja con la X si no;
+  todo el salto y 0,4 s más. `jsetAim`: diana de la colocación en salto (`g.aim3.kind 'jset'`, `Sim.jsetAimInfo`): la retícula del remate en
+  crema; el marcador `setMk` la sigue con el color del tempo y, si se ha movido, el aro de la batida (`drillRing`, también en 2v2 fuera del
+  gimnasio). `aimRing2` (aro de las ondas): segundo aro AIM_MOM en la diana del remate con impulso (`p.jF ≥ VB.MOM.j0`) en las dos paletas
+  (el tinte de la diana va a AIM_OK con buen timing y se perdía justo entonces) y, con cbColors, también alrededor de la diana de colocación.
+- Remate: la diana parte de `AIM_MOM` (#ffa514; cbColors #ffe14d) en vez de AIM_OR con impulso. `hit.mom`: destello ×(1 + 0,35·mom) (pasa
+  por softK) y estela dorada más larga y ancha. `jump` con jv ≥ 1,2: 6 chispas de polvo bajas hacia atrás (arena en la playa).
+- `aimTarget` devuelve 0 con `aim3.kind 'jset'`; el marcador de colocación también con `g.jsetAim`.

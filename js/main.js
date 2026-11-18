@@ -79,8 +79,10 @@
     return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
-      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
+      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
       replays: 'auto', camZoom: 2 };   // S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+    // jsetAim / jsetNote (v1.10.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
+    // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
     // El tipo (`arena`) sigue siendo lo único que va a la sim; la sede solo cambia el escenario. Lo desconocido vuelve a la de serie.
   }
@@ -138,6 +140,7 @@
     if (DIFFS.indexOf(s.difficulty) < 0) s.difficulty = 'normal';
     if (s.subs6 !== 'manual') s.subs6 = 'auto';
     if (['auto', 'end', 'off'].indexOf(s.replays) < 0) s.replays = 'auto';   // S3-C1 (sin migración: lo que falte o no valga, 'auto')   // 6v6: cambios de tu equipo (ui.js «Cambios de tu equipo»: Automáticos / Solo los míos)
+    s.jsetAim = s.jsetAim === true; s.jsetNote = s.jsetNote !== false;   // (salto con impulso: diana de colocación, no por defecto; aviso de colocador, sí)
     if (['auto', 'high', 'medium', 'low'].indexOf(s.quality) < 0) s.quality = 'auto';
     s.camSens = Math.max(0.5, Math.min(1.5, +s.camSens || 1));
     s.sfxVol = Math.max(0, Math.min(1, isFinite(+s.sfxVol) ? +s.sfxVol : 1));
@@ -536,6 +539,15 @@
     // (solo partidos humanos: los de autopilot —herramientas de medida— empiezan al momento, como siempre)
     if (!ctx.debug && !opts.autopilot && call('UI', 'bootBusy')) { startWait = opts; return; }
     startWait = null;
+    // Salto con impulso (v1.10.0): aviso de colocador (VB.UI.setterNote) antes de un partido 6v6 en el que llevas al colocador fuera
+    // de la Carrera (hoy el Partido rápido 6v6 siempre es OH: queda para cuando haya fila «Puesto»). En la Carrera no sale aquí, porque
+    // quedaría encima de la página Jugar del menú: lo saca su hub (career-ui.js setterNoteSoon, sin taparse con la escena de Faro).
+    // Una vez por sesión entre los dos, nunca con autopilot, online, ejercicios ni «Reiniciar partido». El partido espera a que se
+    // cierre y arranca con lo elegido (Activar = ya con la diana de colocación)
+    if (opts.format === '6v6' && opts.ctrlRole === 'S' && !opts.career && !opts.autopilot && !opts.noteDone && !restarting && !net) {
+      var nOpts = Object.assign({}, opts, { noteDone: true });
+      if (call('UI', 'setterNote', { from: 'match' }, function () { ctx.actions.startMatch(nOpts); })) return;
+    }
     call('Audio', 'unlock');
     tryFullscreen();
     ctx.frozen = false;
@@ -592,6 +604,9 @@
       // E1 (sprint 5): maestría (finta, golpe colocado, al filo, colocación dirigida) en los partidos humanos de 2v2; la sim la
       // ignora sola en demo, autopilot y 6v6. aimSet = Ajustes · Juego · Colocación dirigida
       mastery: !fmt && !auto, aimSet: ctx.settings.aimSet !== false,
+      // Salto con impulso (v1.10.0): djump = salto con dirección del humano (la sim lo ignora en demo y autopilot); jsetAim = Ajustes ·
+      // Juego · Colocación en salto con diana
+      djump: !auto, jsetAim: ctx.settings.jsetAim === true,
       // R21: estadísticas de la sim en los partidos humanos (masteryLine de la hoja final y los retos las leen). Son de solo
       // escritura: misma partida con y sin ellas (comprobado con stateHash y g.rng en 12 partidas, notes/s234/T14.md)
       stats: !auto || undefined });
@@ -738,7 +753,7 @@
     var opts = null, model = Q.model === 'fluida' ? 'fluida' : 'precisa';   // Online V2: &model=fluida (las dos páginas)
     if (slot === 0) {
       var kind = Q.map && isMapId(Q.map) ? VB.Venues.kindOf(Q.map) : (Q.venue === 'beach' || Q.venue === 'hall' ? Q.venue : venueNow());
-      opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{ aimSet: ctx.settings.aimSet !== false }, { aimSet: Q.aimset1 !== '0' }], bestOf: Q.bo === '3' ? 3 : 1,
+      opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{ aimSet: ctx.settings.aimSet !== false, jsetAim: ctx.settings.jsetAim === true }, { aimSet: Q.aimset1 !== '0', jsetAim: Q.jsetaim1 === '1' }], djump: true, bestOf: Q.bo === '3' ? 3 : 1,
         points: +Q.points || 21, present: true, stats: true };
       // (como el lobby, netlobby begin(): Fluida sin árbitro que falle, sin challenges y sin tiempos muertos en la beta)
       if (model === 'fluida') { opts.net = 'fluida'; opts.ref = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 }; opts.timeouts = false; }
@@ -1079,7 +1094,7 @@
       attrs: cd ? cd.attrs : own && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null,
       badges: cd ? cd.badges : own && !Q.nobadges ? squadBadges() : null,
       // E1: la maestría también se practica en los ejercicios (finta y golpe colocado en Remate, colocación dirigida en Colocación)
-      mastery: !auto, aimSet: ctx.settings.aimSet !== false });
+      mastery: !auto, aimSet: ctx.settings.aimSet !== false, djump: !auto, jsetAim: ctx.settings.jsetAim === true });
     g.gym = g.drill ? id : null;
     // marca de ejercicio de Carrera: al acabar (drillEnd) cuenta como sesión (careerDrillDone) y la hoja final vuelve al hub (ui.js)
     if (cd && g.drill) g.careerDrill = { id: id, mode: cd.mode, n: cd.n, max: cd.max, attrName: cd.attrName || '', done: false, res: null };
@@ -1433,14 +1448,19 @@
   // R16 (plan del sprint 2-4): sesión de entrenamiento de la Carrera a medias → la misma sesión (sin gastarla; main 13-nov); ejercicio
   // → el mismo ejercicio; reto → el mismo reto con la previa mini; Carrera → startMatch() (repite el partido con la previa normal, o
   // vuelve al hub desde la hoja); si no, las opciones del último partido de Partido rápido con la previa mini
+  var restarting = false;   // (salto con impulso: «Reiniciar» no saca el aviso de colocador)
   ctx.actions.restart = function () {
+    restarting = true;
+    try { restartRun(); } finally { restarting = false; }
+  };
+  function restartRun() {
     var g = ctx.game, live = !!(g && !g.demo);
     if (live && g.careerDrill && !g.careerDrill.done && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, !!g.autopilot); return; }
     if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
     if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
     if (live && g.career) { ctx.actions.startMatch(); return; }
     ctx.actions.startMatch(Object.assign({}, live && lastOpts || {}, { introKind: 'mini' }));
-  };
+  }
   ctx.actions.setSetting = function (k, v) {
     if (ctx.settings[k] === v) return;
     ctx.settings[k] = v; saveSettings();
@@ -1771,8 +1791,9 @@
       if (it.padEvent) call('UI', 'padEvent', it.padEvent); // 'connected' | 'disconnected' (antes de la pausa que provoca)
       if (net && ctx.state === 'playing' && netHudKeys(it)) { it.hit = it.jump = it.jset = it.switchPlayer = it.pause = it.confirm = it.navOk = it.navBack = false; it.navTab = 0; }   // (auditoría: HUD online con mando / teclado)
       if (it.pause) {
-        // Esc/Start/P: primero cierra un panel abierto; si no, pausa/reanuda
-        if (ctx.state === 'menu' && VB.CareerUI && VB.CareerUI.isOpen && VB.CareerUI.isOpen()) call('CareerUI', 'back');
+        // Esc/Start/P: primero cierra un panel abierto; si no, pausa/reanuda (el aviso de colocador, antes que nada: «Ahora no»)
+        if (call('UI', 'noteBack')) { }
+        else if (ctx.state === 'menu' && VB.CareerUI && VB.CareerUI.isOpen && VB.CareerUI.isOpen()) call('CareerUI', 'back');
         else if (!call('UI', 'back') && (ctx.state === 'playing' || ctx.state === 'paused')) ctx.actions.togglePause();
       }
       if (it.mute) ctx.actions.toggleMute();
@@ -1789,7 +1810,8 @@
       if (it.any) call('Audio', 'unlock');
       if (ctx.state !== 'playing') {
         var st0 = ctx.state;
-        if (VB.CareerUI && VB.CareerUI.isOpen && VB.CareerUI.isOpen()) call('CareerUI', 'nav', it, realDt);
+        if (call('UI', 'noteOpen')) call('UI', 'noteNav', it, realDt);   // (aviso de colocador encima de todo: el mando es suyo)
+        else if (VB.CareerUI && VB.CareerUI.isOpen && VB.CareerUI.isOpen()) call('CareerUI', 'nav', it, realDt);
         else call('UI', 'nav', it, realDt);
         if (ctx.state !== st0) { it.hit = it.jump = it.jset = it.switchPlayer = false; } // el botón que acepta un menú no golpea
       }

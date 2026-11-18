@@ -1473,8 +1473,12 @@
     }
     stp.ox = STAMP_DIRS[best][0] * STAMP_R; stp.oy = STAMP_DIRS[best][1] * STAMP_R * 0.8;
     stp.pl = null; stp.wx = e.x; stp.wy = e.y; stp.wz = e.z; stp.t = 0.62; stp.born = performance.now(); stp.cost = bc; stp.dir = best;
-    el.stampT.textContent = chainOk ? '¡Jugada perfecta!' : pf ? 'Perfecto' : 'Bien';
-    if (chainOk) { el.stampS.innerHTML = sepHTML(lastSetJ ? ['Colocación en salto', 'Remate'] : ['Recepción', 'Colocación', 'Remate'], 'v'); el.stampS.hidden = false; srSay('Jugada perfecta'); }
+    // salto con impulso (v1.10.0): pipe o remate con impulso (e.mom ≥ 0,5) en el rótulo y la nota debajo. Orden: jugada perfecta, finta,
+    // pipe, con impulso (el al filo va en el rótulo del punto)
+    var djT = !chainOk && !e.feint && e.kind === 'spike' && e.shot !== 'tip' ? (e.pipe ? '¡Pipe!' : (+e.mom || 0) >= 0.5 ? '¡Con impulso!' : '') : '';
+    el.stampT.textContent = chainOk ? '¡Jugada perfecta!' : djT || (pf ? 'Perfecto' : 'Bien');
+    if (djT) { el.stampS.textContent = (pf ? 'Perfecto' : 'Bien') + (hint ? ', ' + hint : ''); el.stampS.hidden = false; srSay(djT.replace(/¡|!/g, '')); }
+    else if (chainOk) { el.stampS.innerHTML = sepHTML(lastSetJ ? ['Colocación en salto', 'Remate'] : ['Recepción', 'Colocación', 'Remate'], 'v'); el.stampS.hidden = false; srSay('Jugada perfecta'); }
     else { el.stampS.textContent = hint; el.stampS.hidden = !hint; }
     el.stamp.className = 'on ' + (pf ? 'pf' : 'gd');
     stampPlace();
@@ -2307,7 +2311,7 @@
         if (tips && jr) coach = touchDev ? (help ? '' : gl.hit + ' remata, ' + gl.jset + (ar === 'roll' ? ' coloca al fondo' : ' coloca'))
           : ar === 'roll' ? 'En el aire, ' + gl.hit + ' <b>remata</b>, ' + gl.jump + ' deja caer y ' + gl.jset + ' <b>coloca al fondo</b>' : 'En el aire, ' + gl.hit + ' <b>remata</b> y ' + gl.jset + ' <b>coloca en salto</b> a tu compañero';
         // E1: un consejo de maestría por partido como mucho (finta, golpe colocado, colocación dirigida o al filo), con las ayudas puestas
-        var e1c = help && g.mastery && !g.drill ? e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) : '';
+        var e1c = help && (g.mastery || g.djump) && !g.drill ? e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) : '';
         if (e1c) coach = e1c;
         // modo uno: el siguiente toque es del compañero IA (no del humano): solo prepararse
         var myTurn = !!(VB.Sim.setTurn && VB.Sim.setTurn(g)), mateJob = one && nt > 0 && g.jobs && g.jobs[0] && g.jobs[0] !== p && !myTurn;
@@ -4783,6 +4787,14 @@
       // C2: colocar por destino (2v2, «Colocación dirigida: Sí»)
       if (ctx.settings.aimSet !== false) R.splice(4, 0, [dv === 'touch' ? S('Joystick') : dv === 'gamepad' ? S('Stick') : K('↑') + K('←') + K('↓') + K('→'), 'Al colocar: sin dirección, alta a la 4; ya bajo el balón, con dirección eliges el destino']);
     }
+    // Salto con impulso (v1.10.0): dirección + SALTAR = salto hacia delante (detrás de la fila de la finta); con la diana de colocación
+    // (Ajustes · Juego), otra fila
+    var dirK = dv === 'touch' ? S('Joystick') : dv === 'gamepad' ? S('Stick') : K('↑') + K('←') + K('↓') + K('→');
+    var jmpK = dv === 'touch' ? T('Saltar', 1) : dv === 'gamepad' ? padKey('b') : K('Espacio');
+    var fi = -1; for (var ri = 0; ri < R.length; ri++) if (/^Finta/.test(R[ri][1])) fi = ri;
+    var add = [[dirK + '<small>y</small>' + jmpK, 'Salto con dirección <small>(corriendo hacia la red, el remate sale más fuerte)</small>']];
+    if (ctx.settings.jsetAim === true) add.push([dirK, 'En la colocación en salto: mueves la diana']);
+    R.splice.apply(R, [fi >= 0 ? fi + 1 : R.length, 0].concat(add));
     return R;
   }
   function ctlRowsAll(dv) {
@@ -4821,7 +4833,9 @@
     var note = el.pnCtl.querySelector('.ctl-note');
     // C2: colocar por destino (2v2 con «Colocación dirigida: Sí»)
     var setT = !fmt6() && ctx.settings.aimSet !== false ? ' Al colocar, sin dirección va alta a la 4; ya bajo el balón, con dirección eliges el destino.' : '';
-    if (note) note.innerHTML = fmt6() ? '<b>Arriba</b> es siempre hacia la red. En el 6 contra 6 llevas al <b>' + roleName().toLowerCase() + '</b> (n.º ' + sixNum() + ') y la IA al resto. Sin balón, la marca del suelo es tu sitio. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.'
+    // salto con impulso (v1.10.0): la nota se ve en las tres pestañas (con reasignar teclas, Teclado y Mando no pintan las filas de ctlRows)
+    setT += ' Corriendo hacia la red, salta sin soltar la dirección: el remate sale más fuerte.' + (ctx.settings.jsetAim === true ? ' En la colocación en salto, la dirección mueve la diana.' : '');
+    if (note) note.innerHTML = fmt6() ? '<b>Arriba</b> es siempre hacia la red. En el 6 contra 6 llevas al <b>' + roleName().toLowerCase() + '</b> (n.º ' + sixNum() + ') y la IA al resto. Sin balón, la marca del suelo es tu sitio. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
       : oneMode() ? '<b>Arriba</b> es siempre hacia la red. Llevas siempre al <b>n.º ' + oneNum() + '</b> y la IA a tu compañero. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
       : '<b>Arriba</b> es siempre hacia la red. El control pasa solo a quien da el siguiente toque. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT;
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
@@ -4981,6 +4995,9 @@
     touchSize: { vals: [1, 1.15, 1.3], labels: ['100%', '115%', '130%'] },
     // Juego, E1: colocación dirigida (sim opts.aimSet) y timing exacto en ms (solo el sello de ui.js)
     aimSet: { vals: [true, false], labels: ['Sí', 'No'] },
+    // Salto con impulso (v1.10.0): colocación en salto con diana (sim opts.jsetAim; por defecto No). jsetNote (aviso de colocador) no
+    // tiene fila: «Restablecer este apartado» lo vuelve a encender
+    jsetAim: { vals: [true, false], labels: ['Sí', 'No'] },
     msTiming: { vals: [true, false], labels: ['Sí', 'No'] },
     // 6v6: cambios de tu equipo (main.js ctx.settings.subs6 → coach[0].auto): el entrenador CPU también cambia (nunca a ti) o solo los que pidas
     subs6: { vals: ['auto', 'manual'], labels: ['Automáticos', 'Solo los míos'] },
@@ -5020,7 +5037,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'aimSet', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
+    game: ['showHelp', 'coachTips', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -5465,6 +5482,9 @@
   var sbRect = null;
   function svAim(g) { return !!(g && g.aim3 && g.aim3.on && g.aim3.kind === 'serve'); }
 
+  // Salto con impulso (v1.10.0): frases de «Cómo se juega» para el remate (siempre) y la colocación (con la diana de colocación)
+  function momT() { return ' Corre hacia la red y salta sin soltar la dirección: el <b>remate sale más fuerte</b>.' + (fmt6() && !tutBeach() ? ' Desde detrás de la línea de 3 m, <b>pipe</b>.' : ''); }
+  function jdT(g) { return ctx.settings.jsetAim === true ? ' En la colocación en salto mueves la <b>diana</b> con ' + g.aim + (fmt6() && !tutBeach() ? ' y la colocación va al atacante que tenga más cerca (el marcador de color dice adónde).' : ' y el balón va donde la pongas: cerca de ti sale rápida; lejos, alta.') : ''; }
   var TUT = [
     { step: 'Paso 1 de 6', title: 'El saque', fig: {
         players: [{ t: 0, x: 10.3, y: -1.5, you: 1, lbl: 'TÚ' }, { t: 0, x: 3.5, y: 2 }, { t: 1, x: -6.5, y: -2.2 }, { t: 1, x: -6.5, y: 2.2 }],
@@ -5485,8 +5505,8 @@
         // C2 (colocar por destino): sin dirección, alta a la 4; con dirección, el destino (se ve en el suelo); timing y Colocación, la precisión
         var aimT = ctx.settings.aimSet !== false ? ' Si no tocas la dirección, va <b>alta a la 4</b>, a la izquierda de la red. Ya bajo el balón, una dirección elige el destino y lo ves en el suelo (la que traías corriendo no cuenta): cerca de ti sale rápida, lejos sale alta. El timing y tu Colocación deciden lo precisa que sale.' : '';
         var both = device() === 'touch' ? g.hit : g.hit + ' o ' + g.jset;   // (táctil: COLOCAR solo sale en el aire)
-        if (oneMode()) return 'Llevas siempre al mismo jugador: tu compañero (la IA) hace la <b>colocación</b>, un balón alto junto a la red, y tú te preparas para rematar. Si el 1r toque lo da él, la colocación es tuya: ponte bajo el balón y pulsa ' + both + '.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto.';
-        return 'El control pasa solo a tu compañero (la cámara se desliza hacia él). Ponte bajo el balón y pulsa ' + both + ': es la <b>colocación</b>.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto: más rápida, con menos margen.';
+        if (oneMode()) return 'Llevas siempre al mismo jugador: tu compañero (la IA) hace la <b>colocación</b>, un balón alto junto a la red, y tú te preparas para rematar. Si el 1r toque lo da él, la colocación es tuya: ponte bajo el balón y pulsa ' + both + '.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto.' + jdT(g);
+        return 'El control pasa solo a tu compañero (la cámara se desliza hacia él). Ponte bajo el balón y pulsa ' + both + ': es la <b>colocación</b>.' + aimT + ' Si saltas, ' + g.jset + ' en el aire coloca en salto: más rápida, con menos margen.' + jdT(g);
       },
       rule: 'Cada equipo tiene <b>3 toques</b>. Un jugador no puede tocar dos veces seguidas: eso son <b>dobles</b>.',
       ruleBeach: 'Cada equipo tiene <b>3 toques</b>. En la playa la <b>colocación de dedos</b> se pita más: a destiempo pueden pitarte <b>dobles</b>.' },
@@ -5494,7 +5514,7 @@
         players: [{ t: 0, x: 1.3, y: -2.4, you: 1, lbl: '3' }, { t: 0, x: 1.8, y: 1.2 }, { t: 1, x: -5.5, y: -2 }, { t: 1, x: -5.5, y: 2 }],
         segs: [{ a: [1.8, 1.2, 2.3], b: [1.05, -2.4, 3.15], apex: 5.3, dur: 1.15 }, { a: [1.05, -2.4, 3.15], b: [-6.2, 2.8, 0.2], dur: 0.38, who: 0, spike: 1 }],
         ring: [1.3, -2.4], jump: [[0, 0.62, 1.05]], swing: [[0, 1.05, 0.25]] },
-      text: function (g) { return 'En el 3r toque ponte bajo la colocación, pulsa ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' en lo alto: <b>remate</b>. En el aire, mueve la <b>diana</b> por el campo rival con ' + g.aim + '; en el <b>momento justo</b>, el remate va exacto a ella. Para engañar al bloqueo: ' + g.hit + ' y, antes del golpe, ' + g.jump + ' (<b>finta</b>), o ' + g.jset + ' en el aire (<b>golpe colocado</b>). La diana pegada a la línea va <b>al filo</b>.'; },
+      text: function (g) { return 'En el 3r toque ponte bajo la colocación, pulsa ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' en lo alto: <b>remate</b>.' + momT() + ' En el aire, mueve la <b>diana</b> por el campo rival con ' + g.aim + '; en el <b>momento justo</b>, el remate va exacto a ella. Para engañar al bloqueo: ' + g.hit + ' y, antes del golpe, ' + g.jump + ' (<b>finta</b>), o ' + g.jset + ' en el aire (<b>golpe colocado</b>). La diana pegada a la línea va <b>al filo</b>.'; },   // (salto con impulso: momT justo detrás de «remate», para que en móvil se vea sin desplazar)
       rule: 'En el aire, ' + '<b>Saltar</b> otra vez hace una <b>dejada</b>. Si golpeas el 3r toque sin saltar, el balón pasa en globo (<b>balón libre</b>).',
       ruleBeach: 'En el aire, <b>Saltar</b> otra vez hace una dejada <b>de nudillos</b> (<b>pokey</b>): en la playa, con la yema de los dedos sería falta. Sin saltar, el 3r toque pasa en globo (<b>balón libre</b>).' },
     { step: 'Paso 5 de 6', title: 'El bloqueo', fig: {
@@ -6208,9 +6228,14 @@
   function geOpen() { geGate = false; shown = ''; if (ctx.game) syncScreens(ctx.game); }
   /** E1: línea de la hoja final con los usos de la maestría («Fintas 3 | Colocados 5 | Al filo 4 | Rápidas 2»), '' sin nada. */
   function masteryLine(g) {
-    var m = g && !g.demo && g.mastery && g.stats && g.stats.mastery; if (!m) return '';
+    var m = g && !g.demo && g.mastery && g.stats && g.stats.mastery || {}, d0 = g && !g.demo && g.stats && g.stats.dj;   // (6v6: solo lo del salto con impulso)
+    if (!(g && !g.demo && g.mastery && g.stats && g.stats.mastery) && !d0) return '';
     var u = function (k) { return m[k] && m[k][0] | 0; }, out = [];
     var f = u('feint'), r = u('roll'), e = u('edge'), q = u('quick');
+    // salto con impulso (v1.10.0, sim g.stats.dj): remates con impulso y pipes
+    var dj = g.stats.dj, dm = dj && dj.mom ? dj.mom[0] | 0 : 0, dp = dj && dj.pipe ? dj.pipe[0] | 0 : 0;
+    if (dm) out.push('Con impulso <b>' + dm + '</b>');
+    if (dp) out.push((dp === 1 ? 'Pipe ' : 'Pipes ') + '<b>' + dp + '</b>');
     if (f) out.push((f === 1 ? 'Finta ' : 'Fintas ') + '<b>' + f + '</b>');
     if (r) out.push((r === 1 ? 'Colocado ' : 'Colocados ') + '<b>' + r + '</b>');
     if (e) out.push('Al filo <b>' + e + '</b>');
@@ -6221,13 +6246,18 @@
   // (make-the-cut.e1tips, solo este dispositivo). Salen aunque los consejos de partido estén apagados (se apagan solos al ganar el 1r
   // partido, y la maestría es justo para quien ya gana), pero no sin las ayudas (Ajustes ◆ Juego ◆ Ayudas).
   var e1 = { k: '', t: 0, on: false, seen: null };
-  var E1_KEYS = ['air', 'feint', 'aim', 'edge'];
+  var E1_KEYS = ['air', 'feint', 'aim', 'edge', 'mom', 'pipe', 'jdiana'];   // (mom / pipe / jdiana: salto con impulso, v1.10.0)
   function e1Seen() { if (!e1.seen) { e1.seen = {}; try { var o = JSON.parse(localStorage.getItem('make-the-cut.e1tips') || 'null'); if (o && typeof o === 'object') E1_KEYS.forEach(function (k) { e1.seen[k] = Math.max(0, Math.min(9, +o[k] | 0)); }); } catch (er) { } } return e1.seen; }
   function e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) {
     if (e1.k === 'done') return '';
     var S = e1Seen(), k = '', txt = '';
     var mine = !(one && g.jobs && g.jobs[0] && g.jobs[0] !== p) || !!(VB.Sim.setTurn && VB.Sim.setTurn(g));
-    if (ar === 'roll') { k = 'air'; txt = 'En el aire, ' + gl.hit + ' remata, ' + gl.jump + ' deja caer y ' + gl.jset + ' coloca al fondo'; }
+    // salto con impulso (v1.10.0): primero los consejos nuevos que aún no se han visto 2 veces (si no, los de siempre los taparían)
+    if (g.jsetAim && (S.jdiana | 0) < 2 && g.aim3 && g.aim3.on && g.aim3.kind === 'jset' && !g.jsMv) { k = 'jdiana'; txt = 'Mueve la diana con ' + gl.aim + ': cerca, rápida; lejos, alta'; }
+    else if (g.djump && (S.pipe | 0) < 2 && g.size === 6 && nt === 2 && g.touchTeam === 0 && p.z <= 0.01 && !p.front && (p.role === 'OH' || p.role === 'OPP')) { k = 'pipe'; txt = 'Pipe: despega detrás de la línea de 3 m y salta hacia delante'; }
+    else if (g.djump && (S.mom | 0) < 2 && nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'mom'; txt = 'Corre hacia la red y pulsa ' + gl.jump + ' sin soltar ' + gl.aim + ': remate con impulso'; }
+    else if (!g.mastery) { k = ''; }   // (6v6 o sin maestría: solo los del salto con impulso)
+    else if (ar === 'roll') { k = 'air'; txt = 'En el aire, ' + gl.hit + ' remata, ' + gl.jump + ' deja caer y ' + gl.jset + ' coloca al fondo'; }
     else if (nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'feint'; txt = touchDev ? 'Desliza de GOLPEAR a SALTAR: ¡finta!' : 'Arma con ' + gl.hit + ' y cambia a ' + gl.jump + ' antes del golpe: ¡finta!'; }
     else if (nt === 2 && mine && g.aimSet !== false && g.size !== 6) { k = 'aim'; txt = 'Colocas <b>' + setName(g) + '</b>; con ' + gl.aim + ' eliges otro destino: cerca, rápida; lejos, alta'; }
     else if (nt === 3 && aim3(g, p)) { k = 'edge'; txt = 'Al filo: más difícil de defender, más fácil de fallar'; }
@@ -6557,7 +6587,116 @@
     zm.t = ctx.state === 'playing' ? zm.t - rdt : 0;
     if (zm.t <= 0) { zm.t = 0; zm.el.classList.remove('on'); }
   }
+  // =====================================================================
+  //  AVISO DE COLOCADOR (salto con impulso, v1.10.0; notes/ui_main.md «Salto con impulso»)
+  // =====================================================================
+  // Hoja .sp-panel pequeña, sin velo (una capa transparente encima solo para que no se pulse lo de detrás). Sale una vez por sesión
+  // si juegas de colocador (main.js startMatch con 6v6 y ctrlRole 'S'; career-ui.js al abrir el hub de la Carrera de pista siendo
+  // colocador) con la «Colocación en salto con diana» apagada y el aviso sin quitar («No volver a mostrar» = jsetNote false).
+  // ?setnote=1 lo saca siempre (capturas). Teclado: flechas / Tab, Intro o Espacio, Esc = «Ahora no» (escucha en captura en window,
+  // registrada al cargar ui.js, antes que career-ui.js e input.js). Mando: main.js manda las intenciones a noteNav. Toque: ≥ 44 px.
+  var sn = { open: false, t0: 0, cb: null, from: '', root: null, toast: null, toastT: 0, shown: false, prev: null, ax: 0 };
+  var SN_FORCE = /[?&]setnote=1(&|$)/.test(location.search || '');
+  function snButtons() { return sn.root ? Array.prototype.slice.call(sn.root.querySelectorAll('[data-sn]')) : []; }
+  function snFocus(b, kb) {
+    if (!b) return;
+    try { b.focus({ preventScroll: true }); } catch (e) { }
+    snButtons().forEach(function (x) { if (x !== b) x.classList.remove('kf'); });
+    if (kb) b.classList.add('kf');
+  }
+  function snStep(d) {
+    var L = snButtons(), i = L.indexOf(document.activeElement), j = i < 0 ? 0 : Math.max(0, Math.min(L.length - 1, i + d));
+    if (j === i) { uiSound2('arrowEdge', d); return; }
+    snFocus(L[j], true); hoverSound();
+  }
+  function snBuild() {
+    if (sn.root) return;
+    var r = document.createElement('div'); r.id = 'setNote'; r.hidden = true;
+    r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-labelledby', 'snH'); r.setAttribute('aria-describedby', 'snT');
+    r.innerHTML = '<div class="sp-panel sn-sheet"><div class="sn-txt"><p class="sp-k">Eres colocador</p><h2 class="sp-h" id="snH">Coloca con la diana</h2>' +
+      '<p class="sn-t" id="snT"></p><small class="sn-s">Lo cambias cuando quieras en Ajustes, Juego.</small></div>' +
+      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="on"><span class="sp-l"><span class="sp-t">Activar</span></span></button>' +
+      '<div class="sn-row"><button type="button" class="sp-btn sp-sm sp-teal" data-shape="2" data-sn="later"><span class="sp-t">Ahora no</span></button>' +
+      '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="5" data-sn="never"><span class="sp-t">No volver a mostrar</span></button></div></div></div>';
+    r.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var b = e.target && e.target.closest ? e.target.closest('[data-sn]') : null;
+      if (!b || performance.now() - sn.t0 < 400) return;   // (los primeros 400 ms no cuentan: el toque o el botón que lo abrió)
+      snClose(b.getAttribute('data-sn'));
+    });
+    r.addEventListener('pointerdown', function (e) { e.stopPropagation(); snButtons().forEach(function (x) { x.classList.remove('kf'); }); });
+    (document.getElementById('app') || document.body).appendChild(r);
+    sn.root = r;
+    if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(r); } catch (e) { } }
+  }
+  function snToast(txt) {
+    if (!sn.toast) { var t = document.createElement('div'); t.id = 'snToast'; t.setAttribute('role', 'status'); (document.getElementById('app') || document.body).appendChild(t); sn.toast = t; }
+    sn.toast.textContent = txt; sn.toast.classList.add('on');
+    clearTimeout(sn.toastT); sn.toastT = setTimeout(function () { if (sn.toast) sn.toast.classList.remove('on'); }, 2500);
+  }
+  /** Abre el aviso. o = {from: 'match' | 'career'}; cb(elección: 'on' | 'later' | 'never') al cerrarlo. false si no toca (ya salió en esta
+   *  sesión, la diana ya está puesta, el aviso está quitado, online): quien llama sigue como siempre. */
+  function setterNote(o, cb) {
+    o = o || {};
+    if (sn.open || !ctx) return false;
+    var st = ctx.settings || {};
+    if (!SN_FORCE && (sn.shown || st.jsetAim === true || st.jsetNote === false || ctx.net)) return false;
+    snBuild();
+    sn.shown = true; sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
+    sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
+    var gl = GLYPH[device()] || GLYPH.keyboard;
+    sn.root.querySelector('.sn-t').innerHTML = 'En la colocación en salto puedes llevar la diana, como en el remate: muévela con ' + gl.aim + ' y la colocación va al atacante que tenga más cerca; el marcador de color dice adónde. Si no la tocas, todo sigue como ahora.';
+    sn.root.hidden = false; sn.root.classList.remove('in');
+    requestAnimationFrame(function () { if (sn.root && sn.open) sn.root.classList.add('in'); });
+    snFocus(sn.root.querySelector('[data-sn="on"]'), device() !== 'touch');
+    uiSound('open');
+    return true;
+  }
+  function snClose(choice) {
+    if (!sn.open) return;
+    sn.open = false; sn.root.hidden = true; sn.root.classList.remove('in');
+    if (choice === 'on') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetAim', true); snToast('Colocación con diana activada'); uiSound('click'); }
+    else if (choice === 'never') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetNote', false); uiSound('back'); }
+    else uiSound('back');
+    snButtons().forEach(function (x) { x.classList.remove('kf'); });
+    var cb = sn.cb; sn.cb = null;
+    if (!cb && sn.prev && sn.prev.focus && document.contains(sn.prev)) { try { sn.prev.focus({ preventScroll: true }); } catch (e) { } }
+    sn.prev = null;
+    if (cb) { try { cb(choice); } catch (e) { console.error('[VB][ERROR] setterNote: ' + e); } }
+  }
+  function snKey(e) {
+    if (!sn.open) return;
+    e.stopPropagation(); if (e.stopImmediatePropagation) e.stopImmediatePropagation();
+    var k = e.key || '';
+    if (k === 'Tab' || k.indexOf('Arrow') === 0 || k === 'Enter' || k === ' ' || k === 'Escape' || k === 'Backspace') e.preventDefault();
+    if (e.repeat && (k === 'Enter' || k === ' ' || k === 'Escape')) return;
+    if (performance.now() - sn.t0 < 400) return;
+    ctx.inputDevice = 'keyboard';
+    if (k === 'ArrowUp' || k === 'ArrowLeft' || (k === 'Tab' && e.shiftKey)) snStep(-1);
+    else if (k === 'ArrowDown' || k === 'ArrowRight' || k === 'Tab') snStep(1);
+    else if (k === 'Enter' || k === ' ') { var a = document.activeElement; if (a && a.hasAttribute && a.hasAttribute('data-sn')) snClose(a.getAttribute('data-sn')); else snFocus(snButtons()[0], true); }
+    else if (k === 'Escape' || k === 'Backspace') snClose('later');
+  }
+  window.addEventListener('keydown', snKey, true);
+  /** Mando (main.js, con el aviso abierto en vez de UI.nav / CareerUI.nav): stick o cruceta recorren, A acepta, B = «Ahora no». */
+  function snNav(it) {
+    if (!sn.open || !it) return;
+    if (performance.now() - sn.t0 < 400) { sn.ax = 1; return; }   // (y el stick tiene que volver al centro antes del primer paso)
+    if (it.device !== 'gamepad') return;
+    var v = Math.abs(it.my || 0) > Math.abs(it.mx || 0) ? -(it.my || 0) : (it.mx || 0), d = v > 0.55 ? 1 : v < -0.55 ? -1 : 0;
+    if (Math.abs(v) < 0.3) sn.ax = 0;
+    if (d && !sn.ax) { sn.ax = 1; snStep(d); }
+    var ok = it.navOk != null ? it.navOk : it.hit, bk = it.navBack != null ? it.navBack : it.jump && !it.jset;
+    if (ok) { var a = document.activeElement; snClose(a && a.hasAttribute && a.hasAttribute('data-sn') ? a.getAttribute('data-sn') : 'on'); }
+    else if (bk) snClose('later');
+  }
+
   VB.UI = {
+    /** Salto con impulso (v1.10.0): aviso de colocador (ver setterNote) y su entrada (main.js). */
+    setterNote: setterNote,
+    noteOpen: function () { return sn.open; },
+    noteNav: snNav,
+    noteBack: function () { if (!sn.open) return false; snClose('later'); return true; },
     zoomHint: zoomHint,
     banner: banner,
     callout: callout,
@@ -6630,7 +6769,7 @@
     /** Pruebas (E3): panel abierto, pila de vuelta, pestaña de Ajustes, pestañas compactas y captura en curso. */
     _settings: function () { return { panel: panel, stack: pstack.map(function (x) { return x.name; }), tab: setTabs ? setTabs.get() : '', compact: !!(el.setTabs && el.setTabs.classList.contains('tabs-ic')), capturing: capturing, ctl: ctlView, glyph: { hit: GLYPH.keyboard.hitT, jump: GLYPH.keyboard.jumpT, padHit: GLYPH.gamepad.hitT } }; },
     /** Portada del menú libre (sin panel, sin cortinilla, sin telón): install.js espera a esto para su aviso (nunca encima de «Primer partido»). */
-    menuIdle: function () { return ctx.state === 'menu' && !panel && !wp.ph && mpage === 'main' && !(bootStage < 2 && bootBusy()); },
+    menuIdle: function () { return ctx.state === 'menu' && !panel && !wp.ph && mpage === 'main' && !sn.open && !(bootStage < 2 && bootBusy()); }, // (!sn.open: nada encima del aviso de colocador)
     /** Pestañas reutilizables (ver «PESTAÑAS» arriba): VB.UI.tabs(host, items, opts) → api {get, set, step, refresh, hint, focus}. */
     tabs: makeTabs,
     /** Mando: −1 con LB/L1 pulsado, +1 con RB/R1 (o Y). Para cambiar de pestaña con it.switchPlayer fuera de ui.js. */
@@ -6960,6 +7099,7 @@
     netStatsSet: function (o) { if (o && o.t) stats = o; },
     /** Cierra el panel abierto. true si se ha consumido (Esc / B / Start). */
     back: function () {
+      if (sn.open) { snClose('later'); return true; }   // (aviso de colocador: Esc / B = «Ahora no»)
       if (panel) { uiSound('back'); return closePanel(); }
       // E6: B / Esc en la hoja final del ejercicio = «Entrenamiento» (vuelve a la lista)
       if (ctx.state === 'over' && el.gymEnd && !el.gymEnd.hidden && ctx.game && ctx.game.drill) { uiSound('back'); goGymList(ctx.game.drill.kind); return true; }
