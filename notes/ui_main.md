@@ -1813,7 +1813,7 @@ Guía completa: **notes/splat.md**. Resumen de lo que cambia en ui_main:
   `#menu.sp-full` cuando la página lleva `data-sp-full`; `renderMenu` llama a `VB.Splat.sync()` (colores de la equipación en `:root`).
 - **tools/padplay.js**: en Jugar, → desde Partido rápido va al sello de Retos y ↓ a la Carrera (antes → iba a la Carrera).
 
-## Salto con impulso: UI, ajustes, aviso de colocador y online (v1.10.0, 18-nov-2026)
+## Salto con impulso: UI, ajustes, aviso de colocador y online (v1.12.0, 18-nov-2026)
 Pedido de Ferran: salto con dirección, remate más fuerte con impulso (pipes) y colocación en salto con diana activable en Ajustes, con
 aviso si juegas de colocador. La sim es de notes/sim.md «Salto con impulso»; aquí, lo de ui_main (main.js, ui.js, index.html, career-ui.js,
 net*.js, version.js).

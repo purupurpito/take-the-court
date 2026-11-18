@@ -486,7 +486,7 @@ Todos llevan `type` y `t` (tiempo de juego). `player` es la referencia al objeto
 Players con `point` y el de FX/Audio sin él). **No hay eventos de sim nuevos.** Los eventos con `e.replay` nunca llegan a `UI.ingest`,
 `careerEvents`, `Badges`, `Retos`, `Profile` ni `Career`; audio.js no lanza grada ni ráfagas con ellos.
 
-**Salto con impulso (v1.10.0, sim; detalle en notes/sim.md «Salto con impulso»).** Opciones `createGame({djump, jsetAim})`: `g.djump`
+**Salto con impulso (v1.12.0, sim; detalle en notes/sim.md «Salto con impulso»).** Opciones `createGame({djump, jsetAim})`: `g.djump`
 (salto con dirección del humano; main.js/netlobby.js pasan `djump: true`, las huellas no) y `g.jsetAim` (colocación en salto con diana,
 ajuste; online por hueco `humans[i].jsetAim`); nunca en la demo ni con autopilot. La CPU no usa nada nuevo.
 - `jump` añade `dir:[x,y]` (unitario de la deriva, mundo) y `jv` (m/s) cuando el salto es con dirección (si no, sin esos campos).

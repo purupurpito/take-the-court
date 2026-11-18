@@ -43,6 +43,8 @@ function cut(src, from, to) {
 }
 const TALLY_SRC = cut(UI_SRC, '  function newStats() {', '  var stats = newStats();') +
   cut(UI_SRC, '  function tally(e) {', '  /** Puntos del set decisivo') +
+  // netTally también alimenta la Estadística del partido (msIngest, commit 9df2e53): msIngest tal cual, sin VB.MatchStats (no hace nada)
+  'var VB = {}, ctx = { game: null };\n' + cut(UI_SRC, '  function msIngest(e, g) {', '  function msDom() {') +
   'var stats = newStats();\nvar API = {\n' + cut(UI_SRC, '    netTally: function (events) {', '    _netStats:') +
   '  stats: function () { return stats; },\n  _netStats: function () { return stats; },\n  netStatsSet: function (o) { if (o && o.t) stats = o; },\n  feed: function (evs) { for (var i = 0; i < evs.length; i++) tally(evs[i]); }\n};\n';
 // (auditoría) netStClone y netStatsResync de js/main.js tal cual: la hoja del lado que salta a la foto del otro tras una vuelta con la IA

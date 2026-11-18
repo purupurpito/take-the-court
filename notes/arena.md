@@ -1349,8 +1349,20 @@ Fuentes: Reglas Oficiales FIVB, regla 22.2.3 (orden de las señas) y regla 28 / 
   planea leyendo su posición). camera.js (`readOfficials`) sigue leyendo `R2.sim` (el bote no entra en `sim.z`); `placeOfficials` igual.
 - Repeticiones: Arena recibe `EMPTY` y el `g` vivo (en 'point'), así que los árbitros no repiten señas y el 2º sigue su camino.
 - 0 dibujos y 0 geometría nueva (solo poses, escalas y giros de huesos que ya existían). La sim no cambia (huellas idénticas).
+- **Jueces de línea y señas fuera del punto** (18-nov-2026). Señala el juez de la LÍNEA que le toca (`J.lines`, tabla `LJ`: cada uno
+  vigila la línea en cuya prolongación está; regla 29.1 y D10), no el más cercano: `lineJudgeFor(x, y, g)` da el de la línea rebasada
+  (fuera; en la esquina, la que más) o el de la más cercana si el bote está a menos de `LJ_IN` (1 m) dentro; en mitad del campo,
+  nadie. El tocado repite sobre el mismo juez. Antena (`judgeAntenna`): el juez de la LATERAL de ese lado agita la bandera y señala
+  la antena con la mano libre (paso con `aim` + `aimL`: `aimPose` apunta el izquierdo aunque el derecho lleve la bandera) y la
+  mira. Sin jueces (`g.lineJudges` false) nadie señala. Tras la seña, al reposo. Cambio de campo (`courtChange`, seña 3:
+  `ccFr`/`ccBk`, vaivén 11): en pista silbato + seña del 1r detrás de las del punto; en la playa la pita y la hace el 2º (sin
+  repetición del 1r; Beach Guidelines 29.6), que espera 0,7 s si no estaba señalando (el silbato corto del audio suena a +1 s).
+  Sustitución (`sub`, 6v6, seña 5: `subRl`, vaivén 12) y tiempo muerto (`timeout`, solo existe en el online: silbato, la T y señala
+  al equipo con el brazo de su lado): el 2º, quieto (paso `still`, que `r2Step` respeta). `fitSeq` encoge las esperas y señas
+  largas para que la secuencia quepa antes del silbato de saque (`g.timer` + 0,7). Capturas: tools/refposes.js `ccSet, ccEight,
+  ccSwap, sub, timeout0, timeout0b, timeout1b, ljEndIn, ljEndOut, ljSideOut, ljSideIn, ljMid, ljAnt, ljAntR2` y las vistas `lj4` y `lj`.
 
-## fx.js · Salto con impulso (v1.10.0, 18-nov-2026, players/fx)
+## fx.js · Salto con impulso (v1.12.0, 18-nov-2026, players/fx)
 4 instancias más en el lote de calcomanías (`MARK_N*2 + RIP_N + 8 + 1 + 3 + 3 + 4 + FOOT_N`): 0 dibujos nuevos, sin memoria por frame.
 - `djLanding`: sombra de caída del humano en un salto con dirección (`Sim.landingOf`): aro con filo (celda 2) crema; con `net` rojo con la X
   (celda 3) y latido. `djTakeoff`: marca del despegue del pipe (6v6, zaguero humano, `p.tkX/tkY`): verde si |tkX| ≥ 3, roja con la X si no;

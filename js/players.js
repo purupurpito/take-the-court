@@ -1330,7 +1330,7 @@
     P.ra = 16; P.rb = 12;
   }
 
-  /** Salto con impulso (v1.10.0): evento jump con dir/jv. El tronco se inclina hacia la deriva (r.djX/djY, mundo) hasta DJ_LEAN
+  /** Salto con impulso (v1.12.0): evento jump con dir/jv. El tronco se inclina hacia la deriva (r.djX/djY, mundo) hasta DJ_LEAN
    *  (+10° a 1,8 m/s), solo la parte que va hacia el frente del cuerpo (r.yaw), y se deshace antes del latigazo del remate; en el
    *  despegue la brazada sale de más atrás (brazos en estela). Sin memoria nueva. */
   var DJ_LEAN = 0.1745;

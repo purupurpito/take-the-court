@@ -401,7 +401,7 @@
       call: null, challenges: [2, 2], review: null, cpuChal: null, _pendCall: null, _snap: null, _digWho: null,
       events: [],              // cola de eventos del paso (main.js la vacía cada frame)
       drill: null,             // E6 (Entrenamiento): estado del ejercicio (mkDrill) o null fuera del modo (siempre en el literal: misma forma)
-      // salto con impulso (v1.10.0): en el literal para que g no cambie de forma al crearse (copyGame recorre g con for-in); valores abajo
+      // salto con impulso (v1.12.0): en el literal para que g no cambie de forma al crearse (copyGame recorre g con for-in); valores abajo
       djump: false, jsetAim: false, jdF: 0.5, jdS: 0.5, jdM: 0.5, jdT: -9.5, aimCarry: 0, jsMv: 0, jsAimD: 0.5, djLast: null,
       replay: false,           // S3-C1: true solo en la partida sombra que pinta una repetición (VB.Replay); la sim no lo lee. En el
                                // literal para que la sombra tenga la misma forma que la partida en vivo; copyGame no lo copia
@@ -419,7 +419,7 @@
     // demo, con autopilot ni en 6v6. Se decide aquí una vez; cada rama nueva solo mira g.mastery. aimSet: colocación dirigida (por defecto sí)
     g.mastery = !!opts.mastery && !g.demo && !g.autopilot && !g.rot;
     g.aimSet = opts.aimSet !== false;
-    // Salto con impulso (v1.10.0): g.djump = salto con dirección del humano (main.js/netlobby.js lo pasan; las huellas no); g.jsetAim =
+    // Salto con impulso (v1.12.0): g.djump = salto con dirección del humano (main.js/netlobby.js lo pasan; las huellas no); g.jsetAim =
     // colocación en salto con diana (ajuste; online por hueco, humans[i].jsetAim). Nunca en la demo ni con autopilot. Estado del humano
     // (hueco online, SLOT_S): jdF/jdS/jdM/jdT = última dirección del stick en ejes del equipo (F hacia la red, S = side·y), su módulo y
     // su g.time (búfer DJ.buf); aimCarry = la dirección del despegue aún no mueve la diana; jsMv/jsAimD = diana de colocación movida y
@@ -624,7 +624,7 @@
  *  salto buena/perfecta del 2º toque ×dig (tempo rápido; el bloqueador CPU la lee y llega, ai.js, y sin esto no compensaba
  *  arriesgar); mate: |y| máximo del destino; buf: s que se guarda COLOCAR pulsado justo al despegar (g.jsetQ). */
   var JSET = VB.JSET = { win: 1.2, tx: 1.5, tz: 3, rise: 0.75, rise1: 1.15, minApex: 4.1, err0: 0.12, err1: 1.3, badQ: 0.45, badP: 1.5, blk: 0.6, dig: 0.8, mate: 3.6, buf: 0.2 };
-  /* «Salto con impulso» (v1.10.0; notes/sim.md «Salto con impulso»). Todo detrás de g.djump (salto con dirección del humano: partidos
+  /* «Salto con impulso» (v1.12.0; notes/sim.md «Salto con impulso»). Todo detrás de g.djump (salto con dirección del humano: partidos
    * humanos con opts.djump, nunca demo ni autopilot) y g.jsetAim (colocación en salto con diana, ajuste): sin ellos la sim es la de
    * siempre bit a bit (huellas 2v2 y de maestría idénticas). La CPU no usa nada de esto (aiJump no cambia).
    *  DJ (despegue): dead = módulo mínimo del stick para saltar con dirección; buf = s que vale la última dirección (táctil: el pulgar se
@@ -877,14 +877,41 @@
     if (ch) refreshTeams(g);
   }
   /** Falta de posición (reglas 7.4-7.5) en el momento del saque: pares delante/detrás (2-1, 3-6, 4-5: el zaguero más lejos de
-   *  la red) y derecha/izquierda en cada fila (4-3-2 y 5-6-1, lateral LOCAL creciente). El sacador no cuenta. Devuelve cuántos
-   *  pares están mal (0 = legal). Con los centros de los jugadores (sin la regla del pie). */
+   *  la red) y derecha/izquierda en cada fila (4-3-2 y 5-6-1, lateral LOCAL creciente). El sacador no cuenta (7.4.1). Devuelve cuántos
+   *  pares están mal (0 = legal).
+   *  CON LOS PIES (17-nov-2026, Ferran: «lo que debería de contar son los pies»; regla 7.4.3): cada jugador tiene dos pies (feet6):
+   *  a ±FOOT_W m a lo ancho de su centro y, si se mueve, con la zancada abierta FOOT_STRIDE × (velocidad / FOOT_V) en la dirección de
+   *  la marcha (un pie delante, otro detrás); cada pie es un disco de radio FOOT_R. 7.4.3.1: el delantero tiene que tener al menos parte
+   *  de un pie más cerca de la red que LOS DOS pies de su zaguero; 7.4.3.2: el del lado, parte de un pie más cerca de su línea lateral
+   *  que los dos pies del central de su fila. Quietos (pies simétricos) da lo mismo que comparar centros; moviéndose, cuenta la zancada.
+   *  Sin g.rng ni memoria por llamada (pies en _ft). */
   var OVL_FB = [[2, 1], [3, 6], [4, 5]], OVL_LR = [[4, 3], [3, 2], [5, 6], [6, 1]];
+  var FOOT_W = 0.17, FOOT_R = 0.12, FOOT_STRIDE = 0.45, FOOT_V = 5;
+  var _ftA = { d0: 0, d1: 0, l0: 0, l1: 0 }, _ftB = { d0: 0, d1: 0, l0: 0, l1: 0 };
+  /** Pies del jugador p del equipo de lado sd en coordenadas LOCALES: d (distancia a la red) y l (lateral local): extremos de los dos
+   *  pies con su radio. out = {d0: lo más cerca de la red, d1: lo más lejos, l0: lo más a la izquierda (l menor), l1: lo más a la derecha}. */
+  function feet6(p, sd, out) {
+    var d = p.x * sd, l = p.y * sd, vd = (p.vx || 0) * sd, vl = (p.vy || 0) * sd, sp = Math.sqrt(vd * vd + vl * vl);
+    var k = sp > 0.05 ? FOOT_STRIDE * 0.5 * Math.min(1, sp / FOOT_V) / sp : 0, sx = vd * k, sy = vl * k;   // media zancada en la marcha
+    // pie izquierdo (l − FOOT_W) adelantado en la marcha y el derecho atrasado (el orden da igual: se miran los extremos de los dos)
+    var aD = d + sx, aL = l - FOOT_W + sy, bD = d - sx, bL = l + FOOT_W - sy;
+    out.d0 = Math.min(aD, bD) - FOOT_R; out.d1 = Math.max(aD, bD) + FOOT_R;
+    out.l0 = Math.min(aL, bL) - FOOT_R; out.l1 = Math.max(aL, bL) + FOOT_R;
+    return out;
+  }
+  /** ¿El par delante/detrás (front, back) está mal? 7.4.3.1: el delantero, parte de un pie más cerca de la red que los dos del zaguero. */
+  function ovlFB(front, back, sd) { feet6(front, sd, _ftA); feet6(back, sd, _ftB); return !(_ftA.d0 < _ftB.d0); }
+  /** ¿El par lateral (izquierda a, derecha b; uno de los dos es el central, OVL_LR) está mal? 7.4.3.2: el jugador del lado, parte de un pie
+   *  más cerca de SU línea lateral que los dos pies del central. [4,3] y [5,6]: el del lado es a (izquierda); [3,2] y [6,1]: es b (derecha). */
+  function ovlLR(a, b, sd, outerLeft) {
+    feet6(a, sd, _ftA); feet6(b, sd, _ftB);
+    return outerLeft ? !(_ftA.l0 < _ftB.l0) : !(_ftB.l1 > _ftA.l1);
+  }
   function overlapCount(g, t) {
     if (!g.rot) return 0;
     var sd = side(t), sv = g.mode === 'serve' || g.lastKind === 'serve' ? g.server : null, n = 0, i, a, b;
-    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if (a !== sv && b !== sv && a.x * sd >= b.x * sd) n++; }
-    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if (a !== sv && b !== sv && a.y * sd >= b.y * sd) n++; }
+    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if (a !== sv && b !== sv && ovlFB(a, b, sd)) n++; }
+    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if (a !== sv && b !== sv && ovlLR(a, b, sd, i === 0 || i === 2)) n++; }
     return n;
   }
   /** Pares solapados (como overlapCount) en los que está el jugador p del equipo t: 0 = p está bien colocado (la falta, si la hay,
@@ -893,9 +920,20 @@
     if (!g.rot || !p) return 0;
     var sd = side(t), sv = g.mode === 'serve' || g.lastKind === 'serve' ? g.server : null, n = 0, i, a, b;
     if (p === sv) return 0;
-    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && a.x * sd >= b.x * sd) n++; }
-    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && a.y * sd >= b.y * sd) n++; }
+    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlFB(a, b, sd)) n++; }
+    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlLR(a, b, sd, i === 0 || i === 2)) n++; }
     return n;
+  }
+  /** Compañero con el que está solapado el jugador p del equipo t (el del PRIMER par mal, en el orden de overlapOf: delante/detrás
+   *  y luego laterales), o null. Para que el 2º árbitro señale a los dos jugadores tras la seña de posición (Guidelines 2025, 7.7).
+   *  Solo lectura (como overlapOf: sin g.rng ni estado de la partida). */
+  function overlapMate(g, t, p) {
+    if (!g.rot || !p) return null;
+    var sd = side(t), sv = g.mode === 'serve' || g.lastKind === 'serve' ? g.server : null, i, a, b;
+    if (p === sv) return null;
+    for (i = 0; i < 3; i++) { a = onCourt(g, t, OVL_FB[i][0]); b = onCourt(g, t, OVL_FB[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlFB(a, b, sd)) return a === p ? b : a; }
+    for (i = 0; i < 4; i++) { a = onCourt(g, t, OVL_LR[i][0]); b = onCourt(g, t, OVL_LR[i][1]); if ((a === p || b === p) && a !== sv && b !== sv && ovlLR(a, b, sd, i === 0 || i === 2)) return a === p ? b : a; }
+    return null;
   }
   /** Afinado del 6v6 (solo con g.rot; el 2v2 no lo lee). stuff: multiplicador de la prob. de bloqueo directo por contacto;
    *  dig: multiplicador de la prob. de defender un remate (digOk). */
@@ -969,6 +1007,8 @@
     var vz = Math.sqrt(2 * G * (apex - p.z)), T = vz / G + Math.sqrt(2 * (apex - tz) / G);
     return [(tx - p.x) / T, (ty - p.y) / T, vz];
   }
+  /** x del balón lanzado desde p con v cuando BAJA a la altura z (sin red ni rebotes). */
+  function dropX(p, v, z) { var t = (v[2] + Math.sqrt(Math.max(0, v[2] * v[2] + 2 * C.G * (p.z - z)))) / C.G; return p.x + v[0] * t; }
   function clearsNet(p, v, G) {
     G = G || C.G;
     if (!v[0]) return true; var tn = -p.x / v[0]; if (tn <= 0) return true;
@@ -1126,6 +1166,17 @@
   var BLK_ZONE = 1.1, BLK_AIRQ = 0.6;
   /** Plancha en el 1r toque: prob. de que el balón salga desviado (×ek), 17-nov-2026. */
   var DIVE_FAIL = 0.35;
+  /** ESTIRÓN del 1r toque del HUMANO (17-nov-2026, Ferran: «Hay que "nerfear" la defensa. Si el balón va muy lejos de tu cuerpo, por
+   *  mucho que hagas buen timing la pelota no va donde tú quieres exactamente»). s = (d / alcance − d0) / (1 − d0), entre 0 y 1, al
+   *  cuadrado (casi nada a media distancia, todo al límite). Calidad ×(1 − q·s) (además del −30 % lineal de siempre) y dispersión del
+   *  destino +er·s ×(1 + sp·dureza del balón que llega, 11 → 19 m/s), que el timing NO quita (los atributos sí, ×ek). Solo el humano:
+   *  la IA ya juega sus 1.os toques con su error de perfil (prof.err). Ni la plancha (ya capada, DIVE_FAIL) ni el rebote en el cuerpo. */
+  var STRETCH = { d0: 0.55, q: 0.2, er: 0.45, sp: 0.6 };
+  function stretchOf(g, p, d) { var s = clamp((d / reachOf(g, p) - STRETCH.d0) / (1 - STRETCH.d0), 0, 1); return s * s; }
+  // 6v6, 1r toque (17-nov-2026, pase más cerca de la red): el pase controlado baja a 1 m de alto (g.pr1, lo que lee la IA para ir
+  // al balón) al menos PASS_KEEP m antes de la red. Si no, ai6.computeJob lo da por perdido (pr1 al otro lado) y se cuela por
+  // debajo de la red sin que nadie lo toque. PASS_MIN: el destino (a 1,9 m de alto) nunca más cerca de la red que esto
+  var PASS_KEEP = 0.4, PASS_MIN = 0.75;
   /** BLOQUEO ACTIVO (11-nov-2026, pedido de Ferran: «al presionar golpear, lo que haga el bloqueo sea bajar… si lo aprietas demasiado
    *  rápido puedes tocar la red y que sea falta; si no lo aprietas, el rebote es suave»). En el aire en la red (|x| <= BLK_ZONE) con el
    *  balón del rival, GOLPEAR ya no es un golpe: es «bajar» el bloqueo (manos por encima de la red empujando hacia abajo).
@@ -1306,6 +1357,8 @@
     var q = timingQ(te);
     q *= 1 - 0.3 * clamp((d / C.REACH - 0.55) / 0.45, 0, 1);
     if (hardIn) q *= 1 - 0.25 * clamp((inSp - 11) / 8, 0, 1);
+    // estirón (STRETCH): el humano que llega al balón lejos del cuerpo en el 1r toque no lo controla del todo aunque clave el timing
+    var strK = human && count === 1 && !atkC0 && !jset && shot !== 'dive' && shot !== 'body' ? stretchOf(g, p, d) : 0;
     // plancha (17-nov-2026, Ferran: «hay que hacer que sea más difícil salvar esas y que vayan bastante peor»): tope 0,45 × 0,7 = 0,32
     // (siempre 'poor'; antes 0,62 × 0,85 = 0,53, 'good') y, en el 1r toque, DIVE_FAIL de que salga desviada (abajo)
     if (shot === 'dive') q = Math.min(q, 0.45) * 0.7;
@@ -1325,6 +1378,7 @@
       q = ek > 1 ? q * (1 - AK.errQ[0] * (ek - 1)) : q + (1 - q) * (1 - ek) * AK.errQ[1];
       grade = gradeOf(q);
     }
+    if (strK > 0) { q *= 1 - STRETCH.q * strK; grade = gradeOf(q); } // estirón: después de los atributos (no lo deshacen del todo)
     // playa: la colocación de dedos se pita más (dobles). Solo en la playa: el pabellón no pasa por aquí.
     //  - HUMANO: colocación de dedos (2º toque con el balón alto, o colocación en salto en cualquier toque) con mal timing: falta
     //    con prob. dblSetP (crece con el desfase |te|, más en salto; nunca con 'perfect'/'good'). Azar hash01 (no g.rng): la
@@ -1507,7 +1561,7 @@
       kind = 'free'; sub = sub || (b.z - p.z > 1.6 ? 'overhead' : 'forearm');
       g.hardIn = false; g.digOk = true;
     } else if (count === 1) {
-      er = (0.18 + 1.45 * (1 - q) + (hardIn ? 0.45 * (1 - q) : 0)) * mul;
+      er = (0.18 + 1.45 * (1 - q) + (hardIn ? 0.45 * (1 - q) : 0) + STRETCH.er * strK * (1 + STRETCH.sp * clamp((inSp - 11) / 8, 0, 1))) * mul; // (+ estirón)
       if (shot === 'shank') { // la IA llega pero no la controla: el balón sale disparado (casi siempre injugable)
         // sale tenso y bajo, casi siempre hacia fuera (el compañero rara vez llega)
         var spk = g.lastKind === 'spike';
@@ -1520,7 +1574,10 @@
         v = launchApex(o, sd * (2.5 + g.rng() * 6), wy, 0, 2.6 + g.rng() * 2); sub = 'shank';
       } else if (g.rot && VB.AI6) { // 6v6: al punto de colocación (VB.AI6.passTarget), el error en profundidad sin pasar la red
         var pt = VB.AI6.passTarget(g, p, hardIn, q);
-        v = launchApex(o, sd * Math.max(0.5, pt.d + rnd(g, er * 1.0)), clamp(sd * pt.yl + rnd(g, er * 1.3), -4.2, 4.2), 1.9, pt.apex);
+        var pd = Math.max(PASS_MIN, pt.d + rnd(g, er * 1.0)), py = clamp(sd * pt.yl + rnd(g, er * 1.3), -4.2, 4.2);
+        v = launchApex(o, sd * pd, py, 1.9, pt.apex);
+        // pase tenso desde el fondo: se aleja de 10 en 10 cm hasta que cae a 1 m en el propio campo (PASS_KEEP; sin g.rng)
+        for (var pk = 0; pk < 15 && sd * dropX(o, v, 1) < PASS_KEEP; pk++) v = launchApex(o, sd * (pd += 0.1), py, 1.9, pt.apex);
       } else {
         v = launchApex(o, sd * (2 + rnd(g, er * 1.1)), clamp(mate.y, -2.5, 2.5) + rnd(g, er * 1.3), 1.9, hardIn ? 4.1 : 4.4);
       }
@@ -1649,6 +1706,14 @@
     return Math.abs(b.y - q.y) <= (b.z > q.z + blkHands(q) ? blockHalfW(qb) * (q.ak ? q.ak.hands : 1) : BLK_BODY);
   }
 
+  /** Bloqueo ofensivo (ver checkBlock): directo = k·(a + b·cq), tope c (k = oficio del bloqueador, cq = calidad del contacto). Un balón que
+   *  cruza sin atacar llega lento y alto: con buen contacto, el directo manda (como el remate del overpass que sustituye). */
+  var OFE_STUFF = [0.2, 0.6, 0.75];
+  /** ¿Tiene q (humano) un gesto de GOLPEAR en curso? (no la dejada ni la colocación en salto; online: el de su hueco) */
+  function humSwing(g, q) {
+    if (g.online) { var s = humSlot(g, q); return s >= 0 && !!hget(g, s, 'swingLive') && hget(g, s, 'swingShot') === ''; }
+    return q === g.ctrl && !!g.swingLive && g.swingShot === '';
+  }
   function checkBlock(g) {
     var b = g.ball;
     if (g.blockCD > 0 || Math.abs(b.x) > 0.6) return;
@@ -1663,7 +1728,15 @@
       if (g.atkServe) { fault(g, g.atkServe.team, g.atkServe.reason || 'attackServe', g.atkServe.text || 'Ataque sobre el saque', g.atkServe.player); return; } // lo toca el rival: ataque completado
       var human = isHuman(g, q), prof = profOf(g, q), kindB;
       var pressed = human && g.time <= q.pressEnd;   // bloqueo activo: GOLPEAR a tiempo = bajar el bloqueo (blockPress)
-      if (human) q.pressEnd = -9;
+      // BLOQUEO OFENSIVO (17-nov-2026, Ferran: «si haces un "bloqueo ofensivo" el juego lo cuenta como remate»): ante un balón rival que
+      // cruza sin ser atacado (overpass, colocación que se pasa, balón libre), GOLPEAR en el aire es un golpe normal (blockPressCase), pero
+      // si las manos lo encuentran por encima de la red decide checkBlock: con el gesto en curso es un bloqueo pulsado (bajar las manos,
+      // OFE_STUFF), y el gesto se gasta aquí. Antes el bloqueo salía siempre suave y el mismo gesto lo volvía a golpear desde el propio
+      // campo como un remate (evento hit 'spike', remate en las estadísticas y punto 'kill'): un bloqueo contado como remate
+      // (la dejada o el balón libre del rival ya tienen su pulsación, blockPress: con el gesto en curso cuentan como pulsados, sin OFE_STUFF)
+      var swB = human && !pressed && g.lastKind !== 'spike' && humSwing(g, q), ofe = swB && g.lastKind !== 'free';
+      if (swB) pressed = true;
+      if (human) { q.pressEnd = -9; endSwingX(g); }   // (un gesto, un contacto: lo que quede del gesto no vuelve a golpear el balón bloqueado)
       var qb = blockQ(q), hands = b.z > q.z + blkHands(q), hw = hands ? blockHalfW(qb) * (q.ak ? q.ak.hands : 1) : BLK_BODY;
       var pw = clamp((b.speed - 11) / 8, 0, 1), spike = g.lastKind === 'spike';
       var cen = 1 - clamp(Math.abs(b.y - q.y) / hw, 0, 1);              // 1 = balón en el centro de las manos
@@ -1674,7 +1747,7 @@
       // resultado (probabilidades condicionadas, en este orden): directo, amortiguado, block-out, toque que sigue
       var pStuff = spike ? clamp(k * (0.15 + 0.6 * cq) - 0.15 * pw, 0.03, 0.65) : 0.12 * k * cq;
       // humano (bloqueo activo): sin pulsar nunca es directo; pulsado a tiempo, el directo manda (sigue dependiendo del contacto cq)
-      if (human) pStuff = !pressed ? 0 : spike ? clamp(k * (0.25 + 0.7 * cq) - 0.1 * pw, 0.08, 0.85) : clamp(0.05 + 0.3 * k * cq, 0, 0.6);
+      if (human) pStuff = !pressed ? 0 : spike ? clamp(k * (0.25 + 0.7 * cq) - 0.1 * pw, 0.08, 0.85) : ofe ? clamp(k * (OFE_STUFF[0] + OFE_STUFF[1] * cq), 0, OFE_STUFF[2]) : clamp(0.05 + 0.3 * k * cq, 0, 0.6);
       if (g.rot) pStuff *= SIX.stuff; // 6v6: con doble bloqueo hay más manos; el directo, menos probable por contacto
       // Salto del atacante (con atributos): el que remata desde abajo pega contra las manos (más directos); el que salta mucho
       // pega por encima de los dedos (menos). 15 → ×1,32; 90 → ×0,80; 50 o sin atributos, ×1
@@ -1725,7 +1798,7 @@
       }
       q.lastAction = 'block'; q.actionT = 0; q.shot = kindB; q.grade = gradeOf(qb);
       if (g.stats) { g.stats.blocks++; g.stats.blockKinds[kindB]++; }
-      emit(g, { type: 'block', player: q, team: q.team, x: b.x, y: b.y, z: b.z, result: kindB, quality: qb, human: human, pressed: pressed });
+      emit(g, { type: 'block', player: q, team: q.team, x: b.x, y: b.y, z: b.z, result: kindB, quality: qb, human: human, pressed: pressed, ofe: ofe });
       if (g.fl) flContact(g, 'block'); // fl
       if (g.drill) drillOnBlock(g, kindB, q); // E6: el bloqueo cierra la repetición en Remate y Bloqueo
       return;
@@ -2117,13 +2190,15 @@
   function perSet(g) { return g.chalPerSet != null ? g.chalPerSet : CHAL.perSet; }
   /** [ganador, motivo, texto] del punto de un bote según lo que se cante (inside). */
   function landOutcome(g, inside, st) {
-    var netTxt = g.lastKind === 'serve' ? 'Saque a la red' : 'Balón a la red';
+    var netTxt = NET_TXT[g.lastKind === 'serve' ? 0 : 1];
     if (inside && st === g.lastTeam && g.netSince) return [1 - st, 'in', netTxt];
     if (inside) return [1 - st, 'in', st === 0 ? LAND_TXT[0] : LAND_TXT[1]];
     // da en la red y cae fuera en el propio campo: nunca cruzó, el árbitro canta "a la red", no "fuera"
     if (st === g.lastTeam && g.netSince) return [1 - g.lastTeam, 'out', netTxt];
     return [1 - g.lastTeam, 'out', outText(g)];
   }
+  /** Textos del balón a la red que no pasa (landOutcome): point reconoce el del saque para la seña 'netBall' (FIVB 19: el 1r señala el lado de la red). */
+  var NET_TXT = ['Saque a la red', 'Balón a la red'];
   /** ONLINE: los textos del punto que dependen del lado (landOutcome) vistos desde el otro equipo; el resto no cambia. */
   var LAND_TXT = ['El balón cae en tu campo', 'El balón cae en el campo rival'];
   function textMirror(t) { var i = LAND_TXT.indexOf(t); return i < 0 ? t : LAND_TXT[1 - i]; }
@@ -2153,7 +2228,7 @@
   /** Señal oficial del árbitro por motivo (reason 'out' y 'serve' se resuelven aparte, ver point()). */
   var SIGNAL = { in: 'in', out: 'out', four: 'four', double: 'double', net: 'net', under: 'under', antenna: 'antenna',
     attackServe: 'attackFault', block: 'attackFault', serve: 'serveFault', backAttack: 'attackFault', backBlock: 'attackFault',
-    position: 'attackFault' }; // falta de posición (6v6, humano): la seña del brazo alzado del lado del infractor, que arena.js ya pinta
+    position: 'attackFault' }; // falta de posición (6v6, humano que recibe): arena.js mira reason y pinta la seña 13 (círculos con el índice)
   /** Pausa del punto con g.present (partido humano): normal, punto grande (highlight >= HOLD.bigAt), set, partido;
    *  `eight` se suma por el cambio de campo a los 8 del set decisivo. */
   var HOLD = VB.HOLD = { routine: 1.9, big: 2.4, bigAt: 0.55, set: 4.0, match: 4.2, eight: 1.4, skipAfter: 0.8, skipTo: 0.3 };
@@ -2197,7 +2272,7 @@
   function clutchOf(s0, s1, tgt) { return Math.max(s0, s1) >= tgt - HL.clutchLast && Math.abs(s0 - s1) <= HL.clutchGap; }
 
   /** Asigna punto. reason: 'in'|'out'|'antenna'|'under'|'double'|'four'|'net'|'serve'|'block'|'attackServe'.
-   *  sig: señal del árbitro explícita (solo la falta de saque: 'delay8' | 'serveFault'). */
+   *  sig: señal del árbitro explícita (solo la falta de saque: 'delay8' | 'delay5' (playa) | 'serveFault'). */
   function point(g, w, reason, text, p, sig) {
     if (g.fl && !g.fl.app && !g.fl.loc[g.fl.own]) { g.fl.guard++; return; } // fl
     if (g.drill) return drillPoint(g, w, reason, text, p, sig); // E6: en el Entrenamiento el punto cierra la repetición (sin marcador)
@@ -2206,7 +2281,7 @@
     g.call = g._pendCall; g._pendCall = null; g.cpuChal = null; g.digTight = false; if (g.online) { aimOff(g); g.skipReq[0] = g.skipReq[1] = false; } else g.aim3.on = false;
     if (g.call) { g.call.team = 1 - w; g.call.t = g.time; g.call.setNo = g.setNo; g._snap = snapOf(g); } else g._snap = null;
     g.score[w]++; g.mode = 'point'; g.ball.held = null; endSwingX(g);
-    if (g.fl && !g.fl.app) g.fl.pts.push({ r: g.fl.r, w: w, reason: reason, text: text, pid: p ? p.id : -1, sig: sig || null, T: g.fl.T, m: flMeta(g) }); // fl
+    if (g.fl && !g.fl.app) g.fl.pts.push({ r: g.fl.r, w: w, reason: reason, text: text, pid: p ? p.id : -1, sig: sig || null, T: g.fl.T, m: flMeta(g), hs: g.fl.hs, lf: g.fl.lf, lfp: g.fl.lfPar }); // fl
     if (g.subsOn) { g._subU = g._snap ? subUndo(g) : null; subCount(g); }   // banquillo: puntos en pista (g.meR, p.onR), del partido (g.rallyN) y cansancio
     var sideout = w !== g.serving;
     if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.how = g.stats.how || {}; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.rallies.push(g.rally.t); }
@@ -2252,11 +2327,28 @@
     var perfectKill = how === 'kill' && g.atkHow === 'kill' && g.atkHuman && g.atkGrade === 'perfect';
     var hl = highlightOf({ how: how, rallyHits: g.rally.hits, digs: digs, perfectKill: perfectKill, setPoint: g.setPoint !== -1,
       matchPoint: g.matchPoint !== -1, clutch: clutch, saved: saved, streak: g.streakN, setWon: setWon, matchWon: matchWon });
-    // señal oficial (SIM-02). 'touched' (balón tocado y fuera): el último contacto fue del equipo que RECIBÍA el ataque o
-    // el saque rival (su bloqueo, o su primer toque: recepción/defensa, también desviada o de rebote en el cuerpo)
-    var touchedOut = reason === 'out' && (g.lastKind === 'block' || (g.lastKind === 'pass' && g.touches === 1 && g.touchTeam === g.lastTeam));
-    var signal = sig || (reason === 'out' ? (touchedOut ? 'touched' : 'out') : SIGNAL[reason] || reason);
     var ll = g.lastLand, landSide = (reason === 'in' || reason === 'out') && ll && ll.t === g.time ? (ll.x > 0 ? 0 : 1) : -1;
+    // señal oficial (SIM-02; Guidelines FIVB 2025, regla 28.11). 'touched' (balón tocado y fuera): sale FUERA en el campo del
+    // último que lo tocó, que no es el sacador: el ataque rival cruzó y lo tocó la defensa (su bloqueo o su primer toque) y se va
+    // fuera por detrás (28.11.2), o lo juega su equipo (1.º, 2.º o 3.er toque) y se le va fuera en su propio campo (28.11.3).
+    // Si el balón vuelve tras el bloqueo y cae fuera en el campo del ATACANTE, es «fuera» (28.11.1): ya no es tocado
+    var ownOut = reason === 'out' && landSide >= 0 && landSide === g.lastTeam && g.lastKind !== 'serve';
+    // remate (o balón de ataque) a la red que cae fuera en su campo sin tocar el bloqueo: «fuera» y señalar al atacante (28.11.4)
+    var netAtk = ownOut && g.netSince && (g.lastKind === 'spike' || g.lastKind === 'free');
+    var touchedOut = ownOut && !netAtk;
+    var signal = sig || (reason === 'out' ? (touchedOut ? 'touched' : 'out') : SIGNAL[reason] || reason);
+    // SAQUE a la red que no pasa (cae en el propio campo, dentro o fuera): seña FIVB 19 (D11: «served ball fails to pass»), el 1r
+    // señala el lado de la red. reason sigue siendo 'in'/'out' (lo leen las estadísticas, matchstats y rating). El resto de balones a la
+    // red: dentro en su campo = «dentro»; fuera = el remate «fuera» + atacante (netAtk) y el pase o la colocación «tocado»
+    var netBall = (reason === 'in' || reason === 'out') && g.lastKind === 'serve' && NET_TXT.indexOf(text) >= 0;
+    if (netBall && !sig) signal = 'netBall';
+    // quién comete la falta (para el árbitro): -1 = bote dentro/fuera normal, sin infractor; si no, el que pierde el punto. faultPlayer:
+    // el infractor que viaja (p) o, si no viaja (bajo la red, antena, tocado, a la red), el último que tocó si es de ese equipo.
+    // Falta de posición: players = [infractor, compañero del primer par solapado] (overlapMate). Solo lectura: sin g.rng ni estado
+    var faultTeam = (reason === 'in' || reason === 'out') && !netBall && !touchedOut && !netAtk ? -1 : 1 - w;
+    var faultPlayer = faultTeam < 0 ? null : p || (g.lastPlayer && g.lastPlayer.team === faultTeam ? g.lastPlayer : null);
+    var posPl = reason === 'position' && p ? [p, overlapMate(g, p.team, p)] : null;
+    if (posPl && !posPl[1]) posPl.length = 1;
     // pausa del punto (SIM-03): con g.present (partido humano) más larga para los momentos grandes; si no, la de siempre
     var hold;
     if (g.present) hold = matchWon ? HOLD.match : setWon ? HOLD.set : (hl >= HOLD.bigAt ? HOLD.big : HOLD.routine) + (eight ? HOLD.eight : 0) + (bswap ? BEACH.swapHold : 0);
@@ -2267,7 +2359,9 @@
       sideout: sideout, rallyTime: g.rally.t, rallyHits: g.rally.hits, setWon: setWon, matchWon: matchWon, player: p || null,
       lastKind: g.lastKind, lastShot: g.lastShot,
       highlight: hl, digs: digs, streak: g.streakN, savedSetPoint: saved, clutch: clutch,
-      signal: signal, touchedOut: touchedOut, landSide: landSide, hold: hold, assist: assist, tool: tool, move: move });
+      signal: signal, touchedOut: touchedOut, landSide: landSide, hold: hold, assist: assist, tool: tool, move: move,
+      faultTeam: faultTeam, faultPlayer: faultPlayer });
+    if (posPl) ev.players = posPl;
     if (g.online) ev.text1 = textMirror(text); // ONLINE: el mismo texto visto desde el equipo 1 (el invitado); text es el del anfitrión
     if (reason === 'antenna') ev.antenna = g.antennaHit ? [g.antennaHit.x, g.antennaHit.y, g.antennaHit.z] : null; // null = por fuera de la antena
     g.lastPoint = { team: w, reason: reason, text: text, how: how, highlight: hl, digs: digs, streak: g.streakN, savedSetPoint: saved, clutch: clutch,
@@ -2803,6 +2897,9 @@
       g.swingShot = shot || ''; return false;
     }
     if (g.swingLock > 0) return false;
+    // en el mismo salto del bloqueo no hay otro golpe (17-nov-2026): el bloqueador no remata el balón que acaba de bloquear antes de caer
+    // (antes, machacar GOLPEAR en el bloqueo sacaba un bloqueo y, detrás, un remate del mismo jugador desde su campo)
+    if (p.z > 0 && p.lastAction === 'block' && g.mode === 'rally') return false;
     g.hitBuf = g.tm.swing; g.swingLive = true; g.swingShot = shot || ''; g.swingT0 = g.time;
     g.swingShot0 = g.swingShot; g.swingSwapT = -9;
     if (p.anim <= 0) { p.anim = 0.18; }
@@ -2980,11 +3077,14 @@
     var sd = side(sv.team), b = g.ball, prof = profOf(g, sv), human = isHuman(g, sv);
     var posFault = false;
     if (g.rot) { // 6v6: falta de posición en el golpe de saque. La IA nunca la comete (formaciones de VB.AI6): solo se cuenta; al humano
-      // (Difícil/Experto, g.posRule6: ha podido moverse durante el saque) se le pita si él está en un par solapado (overlapOf), abajo
+      // (Difícil/Experto, g.posRule6: ha podido moverse durante el saque) se le pita si él está en un par solapado (overlapOf), abajo.
+      // Reglas FIVB 2025-2028 (7.4): el equipo que SACA puede colocarse donde quiera; solo el que RECIBE comete falta de posición (la
+      // pita el 2º árbitro, 24.3.2.2). Con el humano sacando (sv.team === 0) no se pita nunca; g.overlap y stats.overlap siguen
+      // contando los dos equipos (estadística)
       var ov0 = overlapCount(g, 0), ov1 = overlapCount(g, 1);
       g.overlap = [ov0, ov1];
       if (g.stats && g.stats.overlap) { g.stats.overlap[0] += ov0 ? 1 : 0; g.stats.overlap[1] += ov1 ? 1 : 0; }
-      posFault = ov0 > 0 && g.posRule6 && g.ctrlMode === 'one' && !g.demo && !g.autopilot && g.ctrl && g.ctrl.team === 0 && overlapOf(g, 0, g.ctrl) > 0;
+      posFault = ov0 > 0 && sv.team !== 0 && g.posRule6 && g.ctrlMode === 'one' && !g.demo && !g.autopilot && g.ctrl && g.ctrl.team === 0 && overlapOf(g, 0, g.ctrl) > 0;
     }
     b.held = null;
     te = te || 0;
@@ -3137,7 +3237,7 @@
         if (g.serveAuth) { if (input.jump || input.jset) toss(g, sv, true); else if (input.hit) toss(g, sv, false); }
         if (g.serveState === 'ready' && g.serveAuth && g.opts.serveClock !== false && !(g.drill && g.drill.kind !== 'free')) { // (E6: sin regla de los 8 s en los ejercicios)
           g.serveClock -= dt;
-          if (g.serveClock <= 0) { g.serveClock = 0; fault(g, sv.team, 'serve', g.beach ? 'Falta de saque: 5 segundos' : 'Falta de saque: 8 segundos', sv, 'delay8'); return; }
+          if (g.serveClock <= 0) { g.serveClock = 0; fault(g, sv.team, 'serve', g.beach ? 'Falta de saque: 5 segundos' : 'Falta de saque: 8 segundos', sv, g.beach ? 'delay5' : 'delay8'); return; } // playa: 5 s, cinco dedos (D9-11)
         }
       } else {
         stepPlayer(g, sv, dt, 0, 0);
@@ -4370,6 +4470,22 @@
       if (s.z <= C.BR) return -1;
       if (flInZone(s, so, canMore)) return k;
     }
+    // atajo (mismo resultado, sin volar): sin baile (wobA 0) vx y la gravedad no cambian. Si el balón se aleja del otro equipo nunca
+    // entra en su zona; si ya la pasó, tampoco; y si cae (cota por arriba, con margen) antes de poder llegar a ella (cota por abajo,
+    // con margen), -1. El vuelo de abajo daría -1 tras hasta 960 medios pasos (el 60 % de los contactos propios).
+    if (!s.wobA) {
+      var dir = s.vx > 0 ? 1 : s.vx < 0 ? -1 : 0;
+      if (dir !== so) return -1;
+      var u0 = s.x * so, Lm = FL.ZMAX + 0.01;
+      if (u0 > Lm) return -1;
+      var Ge = gEff(s);
+      if (Ge > 0) {
+        var kz = u0 < -Lm ? (-Lm - u0) / (Math.abs(s.vx) * dh) : 0;
+        var A = Ge * dh * dh / 2, B = dh * s.vz - A, c0 = s.z - (C.BR - 0.005);
+        var kl = c0 <= 0 ? 0 : (B + Math.sqrt(B * B + 4 * A * c0)) / (2 * A);
+        if (Math.ceil(kl) + 3 < kz - 3) return -1;
+      }
+    }
     while (k < FL.KH_MAX) {
       flStep(s, age, dh); age += dh; k++;
       if (s.z <= C.BR) return -1;
@@ -4761,7 +4877,7 @@
     mates: mates, nearestMate: nearestMate, mateBadge: mateBadge, zoneOf: zoneOf, zonePos: zonePos, isFront: isFront, ZONE: ZONE,
     rotate: rotate, serverOf: serverOf, refreshTeams: refreshTeams,
     // 6v6 (sprint 2): líbero, falta de posición, jugador en pista por zona, puestos de la alineación 5-1
-    applyLibero: applyLibero, overlapCount: overlapCount, overlapOf: overlapOf, onCourt: onCourt, ROLES6: ROLES6,
+    applyLibero: applyLibero, overlapCount: overlapCount, overlapOf: overlapOf, feet6: feet6, FOOT: { W: FOOT_W, R: FOOT_R, STRIDE: FOOT_STRIDE, V: FOOT_V }, onCourt: onCourt, ROLES6: ROLES6,
     // 6v6 con humano: puestos jugables (fila Controlar) y cambio de puesto
     CTRL_ROLES6: CTRL_ROLES6, setCtrlRole: setCtrlRole,
     // añadidos (opcionales)

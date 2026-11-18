@@ -418,7 +418,7 @@
     });
   }
   function myAimSet() { var C = ctx(); return !(C && C.settings && C.settings.aimSet === false); }
-  /** Salto con impulso (v1.10.0): «Colocación en salto con diana» (Ajustes, Juego), por defecto no. Como aimSet, es un ajuste de cada
+  /** Salto con impulso (v1.12.0): «Colocación en salto con diana» (Ajustes, Juego), por defecto no. Como aimSet, es un ajuste de cada
    *  jugador (viaja también en «Igualado»); un invitado de antes no lo manda y juega sin ella. */
   function myJsetAim() { var C = ctx(); return !!(C && C.settings && C.settings.jsetAim === true); }
   function begin(pre, st) {

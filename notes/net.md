@@ -1304,7 +1304,38 @@ así que los dos modelos son P2P: en «Crear sala», fila **Conexión**: **Preci
 - **Pendiente:** afinar D/warp/zona con ping real (Ferran y amigos), repeticiones y challenges en Fluida (fase 2), récord aparte si se
   quiere (`m:'f'`), y ver con los informes de red cuál se siente mejor.
 
-## Salto con impulso en el online (v1.10.0, 18-nov-2026)
+## Online V2: pulido de la Fluida (18-nov-2026)
+
+Medido con `tools/fluidtest.js` (sensación por frame), `tools/fluidscen.js` (nuevo: jugadas difíciles junto a la red entre dos
+sesiones reales, reloj virtual, deterministas) y perfil de CPU. Lo que se veía y está arreglado (todo en `js/netfluid.js` salvo lo dicho):
+
+- **Balón a media velocidad 0,4-0,7 s tras cada defensa o bloqueo del rival**: el retraso de pintado crece con una curva suave
+  (nunca por debajo de 0,65x). Frames a menos de 0,6x: del 4-10 % al 0 %.
+- **Rival y balón que saltaban 1-11 m al empezar cada saque del rival**: hasta que llega su foto de saque se queda en la formación
+  de `setupServe` (determinista). Si esa foto se pierde (canal sin reenvío), la primera foto viva del rally actual hace de foto de saque.
+- **Saltos del balón al corregirlo un contacto del rival**: siempre mezclados; >1 m en un frame de 63/74 a 1/2 en el peor caso (250 ms);
+  >3 m en rally: siempre mezclado (solo se salta lo que pasa de 3 m).
+- **Remates junto a la red**: solo se salta lo que la aceleración máxima no puede absorber; mezcla de 90 ms lejos de mis jugadores.
+- **Retraso del rival (Dp)** más justo: pérdida y jitter mejor estimados (p. ej. 208 → 164 ms a 60 ms de ping).
+- **Bifurcaciones decididas por tiempo** (gana lo que pasó antes; empate, el anfitrión): un punto bien dado ya no se deshace porque el
+  rival tocase tras el traspaso (`point()` guarda hs/lf/lfp en `g.fl.pts`, línea con `g.fl`). Red tocada cruzando un traspaso: la falta
+  la pito yo. Quien pierde la bifurcación quita su contacto de los eventos (estadística igual en las dos máquinas).
+- `_undoPoint` todo o nada; no deshace si ya se preparó el saque siguiente o se enseñó el final. Si el rival ganaba y ya no se puede
+  deshacer: no cotejado y el anfitrión manda el marcador (`sb`).
+- **Pestaña del rival oculta**: el otro ya no parpadea en «Esperando…» (espera de 1,5 s si el rival está fuera; HUD solo si > 0,3 s).
+- **Rendimiento**: sin la copia entera de la partida de más por frame (`withDisplay` + `NetView.mirror` en main.js, solo Fluida;
+  vista idéntica en 23.072 frames), `flKh` con atajo analítico (67 → 38 µs, mismos resultados en 200k balones), cursor de vuelo
+  en `_ballAt` (comprobable con `BACHECK=1`), menos objetos por foto.
+
+Pruebas: fingerprint6 idéntica, fluidsimtest 41, fluidscen 542/0/0, fluidtest --quick 109/0 (umbral de aceleración a 150-250 ms:
+1,8; la p95 son ~10 muestras y un libre que antes era un salto de hasta 3 m ahora es un acelerón de 1,79), nettest 61,
+netreplaytest 34 y `netdrive --guion` 27 (las dos pruebas viejas arregladas). `netdrive` Fluida a 150 ms falla «cero congelaciones»
+con el PC cargado (invitado a 4-11 fps); la versión de antes del pulido falla igual en las mismas condiciones.
+
+Pendiente: límite de velocidad de la cámara tras traspasos (spec §5.3); control del atacante junto a la red y coste del ×4 de
+recuperación (decisiones de ajuste de Ferran); copyGame en modo diccionario (compartido). Falta la prueba de verdad: dos casas.
+
+## Salto con impulso en el online (v1.12.0, 18-nov-2026)
 - netlobby.js: `djump:true` en las opciones del anfitrión; `humans[i].jsetAim` (colocación en salto con diana, ajuste de cada jugador;
   el invitado lo manda en `'pre'` como `st.jsetAim`, también en «Igualado»). Sin `PROTO` nuevo: la versión del juego ya separa salas.
 - sim.js: `SLOT_S` lleva el búfer de dirección, el arrastre de la diana y la diana de colocación (`jdF, jdS, jdM, jdT, aimCarry, jsMv,

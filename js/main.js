@@ -76,12 +76,12 @@
   // un móvil no hereda los 30 fps ni el 50 % de resolución del PC. keys/padKeys guardan SOLO las diferencias con las teclas y
   // botones de fábrica (input.js las sanea). aimSet / msTiming: E1 (colocación dirigida; timing en ms en el sello, solo UI).
   function DEFAULTS() {
-    return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
+    return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, coachCalls: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
       replays: 'auto', camZoom: 2 };   // S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
-    // jsetAim / jsetNote (v1.10.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
+    // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
     // El tipo (`arena`) sigue siendo lo único que va a la sim; la sede solo cambia el escenario. Lo desconocido vuelve a la de serie.
@@ -539,7 +539,7 @@
     // (solo partidos humanos: los de autopilot —herramientas de medida— empiezan al momento, como siempre)
     if (!ctx.debug && !opts.autopilot && call('UI', 'bootBusy')) { startWait = opts; return; }
     startWait = null;
-    // Salto con impulso (v1.10.0): aviso de colocador (VB.UI.setterNote) antes de un partido 6v6 en el que llevas al colocador fuera
+    // Salto con impulso (v1.12.0): aviso de colocador (VB.UI.setterNote) antes de un partido 6v6 en el que llevas al colocador fuera
     // de la Carrera (hoy el Partido rápido 6v6 siempre es OH: queda para cuando haya fila «Puesto»). En la Carrera no sale aquí, porque
     // quedaría encima de la página Jugar del menú: lo saca su hub (career-ui.js setterNoteSoon, sin taparse con la escena de Faro).
     // Una vez por sesión entre los dos, nunca con autopilot, online, ejercicios ni «Reiniciar partido». El partido espera a que se
@@ -604,7 +604,7 @@
       // E1 (sprint 5): maestría (finta, golpe colocado, al filo, colocación dirigida) en los partidos humanos de 2v2; la sim la
       // ignora sola en demo, autopilot y 6v6. aimSet = Ajustes · Juego · Colocación dirigida
       mastery: !fmt && !auto, aimSet: ctx.settings.aimSet !== false,
-      // Salto con impulso (v1.10.0): djump = salto con dirección del humano (la sim lo ignora en demo y autopilot); jsetAim = Ajustes ·
+      // Salto con impulso (v1.12.0): djump = salto con dirección del humano (la sim lo ignora en demo y autopilot); jsetAim = Ajustes ·
       // Juego · Colocación en salto con diana
       djump: !auto, jsetAim: ctx.settings.jsetAim === true,
       // R21: estadísticas de la sim en los partidos humanos (masteryLine de la hoja final y los retos las leen). Son de solo
@@ -613,6 +613,7 @@
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
+    if (cs) cs.calls = ctx.settings.coachCalls !== false;   // consignas del entrenador en directo (career.js, js/consignas.js)
     // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
     if (opts.reto && !cs) { g.reto = opts.reto; g.retoOpts = Object.assign({}, opts); delete g.retoOpts.introKind; delete g.retoOpts.noIntro; }
     // R16: opciones del último partido humano de Partido rápido (restart las repite con la previa mini)
@@ -901,7 +902,8 @@
     netRecTick(r);
     if (!v && s.opts && r.status !== 'ended') { netBuildView(); v = net.view; }
     if (v) {
-      VB.NetView.mirror(v, r.g, net.slot);
+      // Fluida: la pose pintada se pone sobre la partida local solo mientras se copia a la vista (sin la copia entera de más por frame)
+      if (net.model === 'fluida' && s.withDisplay) s.withDisplay(VB.NetView.mirror, v, net.slot); else VB.NetView.mirror(v, r.g, net.slot);
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
       netConfirmed(s, r.confirmed);
       if (r.events.length) VB.NetView.mapEvents(r.events, v, net.slot, frameEvents);
@@ -972,7 +974,7 @@
         w === 'mismatch' ? 'La sala no coincide con lo anunciado: no hay partido' :
         w === 'noShow' ? (s.rivalName ? who + ' se ha ido: no hay partido' : 'Tu rival no ha llegado: no hay partido') : 'Partido terminado';
       btn = '<button data-n="menu">Volver al menú</button>';
-    } else if (r.status === 'waiting') {
+    } else if (r.status === 'waiting' && (net.model !== 'fluida' || r.waitMs > 300)) {   // (Fluida: un «esperando» de menos de 0,3 s no se enseña: sin parpadeos)
       // (revisión F3: abandonar SIEMPRE es derrota, también si quien se cayó es el rival; por eso el botón lo dice y la cuenta atrás
       //  enseña la salida que no castiga: esperar los 60 s, seguir o no contra la IA)
       msg = 'Esperando a ' + who + '…' + (r.rivalSolo ? ' (sigue contra la IA)' : '');
@@ -2202,6 +2204,9 @@
       }
       if (!o.log.length || Q.neg === '1') { o.seq++; o.log = [Q.neg === '1' ? { seq: o.seq, kind: 'play', id: 'srvErr', txt: 'Error de saque', d: -0.2, v: 6.4 } : { seq: o.seq, kind: 'play', id: 'ace', txt: 'Ace', d: 0.3, v: 6.8 }]; o.v = o.log[0].v; }
       if (Q.rtv != null && Q.rtv !== '' && isFinite(+Q.rtv)) o.v = +Q.rtv;
+      // &co=<id de VB.Consignas.C>: la consigna del entrenador en la línea de debajo (&cos=ok|miss: ya resuelta)
+      var CC = VB.Consignas && VB.Consignas.C;
+      if (Q.co && CC && CC[Q.co]) o.coach = { id: Q.co, txt: CC[Q.co].txt, state: Q.cos === 'ok' || Q.cos === 'miss' ? Q.cos : 'on', seq: 1 };
       return o;
     }
     var g, keep = [], state = 'playing', live = Q.live === '1', dbgKit = null, trialDbg = null;   // (dbgKit: equipación de la escena; trialDbg: hoja de la prueba)

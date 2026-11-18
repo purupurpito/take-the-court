@@ -1473,7 +1473,7 @@
     }
     stp.ox = STAMP_DIRS[best][0] * STAMP_R; stp.oy = STAMP_DIRS[best][1] * STAMP_R * 0.8;
     stp.pl = null; stp.wx = e.x; stp.wy = e.y; stp.wz = e.z; stp.t = 0.62; stp.born = performance.now(); stp.cost = bc; stp.dir = best;
-    // salto con impulso (v1.10.0): pipe o remate con impulso (e.mom ≥ 0,5) en el rótulo y la nota debajo. Orden: jugada perfecta, finta,
+    // salto con impulso (v1.12.0): pipe o remate con impulso (e.mom ≥ 0,5) en el rótulo y la nota debajo. Orden: jugada perfecta, finta,
     // pipe, con impulso (el al filo va en el rótulo del punto)
     var djT = !chainOk && !e.feint && e.kind === 'spike' && e.shot !== 'tip' ? (e.pipe ? '¡Pipe!' : (+e.mom || 0) >= 0.5 ? '¡Con impulso!' : '') : '';
     el.stampT.textContent = chainOk ? '¡Jugada perfecta!' : djT || (pf ? 'Perfecto' : 'Bien');
@@ -2015,7 +2015,7 @@
   // puro): aquí solo se pinta. Sin rating.js, fuera de la Carrera, en la demo o en un ejercicio no se ve nada. En el banquillo o sin
   // 5 puntos en pista (NOTA_MIN_SUB), atenuada con «s. c.». Colores por franja (rt-bad … rt-top) y CSS en career-ui.js. Solo los avisos de set y
   // de partido van al lector de pantalla (#banner, polite); la píldora lleva su aria-label y no es live.
-  var rtUI = { row: null, pill: null, v: null, sc: null, toast: null, sr: null, g: null, seen: 0, q: [], t: 0, key: '', vis: false };
+  var rtUI = { row: null, pill: null, v: null, sc: null, toast: null, sr: null, g: null, seen: 0, q: [], t: 0, key: '', vis: false, co: null, coTx: null, coSeq: -1, coSt: '', coT: 0 };
   /** El estado de la nota en directo de este partido ({ v, on, sc, seq, log, trial }) o null. g._rtDbg: escenas de depuración (&rt=1). */
   function rtSrc(g) {
     if (!g || g.demo || g.drill) return null;
@@ -2049,15 +2049,40 @@
     // (justo bajo el marcador: antes de la etiqueta «Punto de set», del contador de la jugada y del aviso corto)
     var nx = el.sb.querySelector('.sb-tag'); el.sb.insertBefore(r, nx || null);
     rtUI.row = r; rtUI.pill = r.firstChild; rtUI.v = rtUI.pill.querySelector('b'); rtUI.sc = rtUI.pill.querySelector('small'); rtUI.toast = r.lastChild;
+    // consigna del entrenador del punto (js/consignas.js): una línea bajo la nota, «ENTRENADOR Saca a la zona 1»; ✓ / ✗ al resolverse
+    var co = document.createElement('div'); co.className = 'co-call'; co.id = 'coCall'; co.hidden = true; co.setAttribute('role', 'status');
+    co.innerHTML = '<span class="co-k">ENTRENADOR</span><span class="co-tx"></span>';
+    el.sb.insertBefore(co, r.nextSibling);
+    rtUI.co = co; rtUI.coTx = co.lastChild;
     if (el.banner) { var s = document.createElement('span'); s.className = 'sr'; el.banner.appendChild(s); rtUI.sr = s; }
     return true;
   }
   function rtToastOff() { if (rtUI.toast) { rtUI.toast.className = 'rt-toast'; rtUI.toast.textContent = ''; } rtUI.t = 0; }
+  function coOff() { if (rtUI.co) { rtUI.co.hidden = true; rtUI.co.className = 'co-call'; } rtUI.coSt = ''; rtUI.coT = 0; }
+  /** Consigna del entrenador: a la vista mientras está en juego; cumplida (verde, ✓) o fallada (rojo, ✗) un momento; caducada, fuera. */
+  function coTick(c, dt) {
+    if (!rtUI.co) return;
+    if (!c) { if (rtUI.coSt && rtUI.coSt !== 'ok' && rtUI.coSt !== 'miss') coOff(); else if (rtUI.coT > 0) { rtUI.coT -= dt || 0; if (rtUI.coT <= 0) coOff(); } return; }
+    var stt = c.state;
+    if (c.seq !== rtUI.coSeq || stt !== rtUI.coSt) {
+      var fresh = c.seq !== rtUI.coSeq;
+      rtUI.coSeq = c.seq; rtUI.coSt = stt;
+      if (stt === 'gone') { coOff(); rtUI.coSt = 'gone'; return; }
+      rtUI.coTx.textContent = (stt === 'ok' ? '✓ ' : stt === 'miss' ? '✗ ' : '') + c.txt;
+      rtUI.co.hidden = false;
+      rtUI.co.className = 'co-call' + (stt === 'ok' ? ' ok' : stt === 'miss' ? ' miss' : '') + (fresh && !rm() ? ' in' : '');
+      rtUI.coT = stt === 'ok' ? 2.2 : stt === 'miss' ? 1.6 : 0;
+      if (fresh && rtUI.sr) rtUI.sr.textContent = 'Entrenador: ' + c.txt + '.';
+      return;
+    }
+    if (rtUI.coT > 0 && dt > 0) { rtUI.coT -= dt; if (rtUI.coT <= 0) { rtUI.co.hidden = true; rtUI.co.className = 'co-call'; } }
+  }
   function rtTick(g, dt) {
     var src = rtSrc(g);
-    if (!src) { if (rtUI.vis) { rtUI.vis = false; rtUI.row.hidden = true; rtToastOff(); } rtUI.g = null; return; }
+    if (!src) { if (rtUI.vis) { rtUI.vis = false; rtUI.row.hidden = true; rtToastOff(); coOff(); } rtUI.g = null; return; }
     if (!rtBuild()) return;
     if (!rtUI.vis) { rtUI.vis = true; rtUI.row.hidden = false; }
+    coTick(src.coach, dt);
     // partido nuevo (también al reiniciar uno de Carrera: la nota vuelve a 6,0) o la cuenta hacia atrás: sin avisos viejos
     var seq = src.seq | 0;
     if (rtUI.g !== g || seq < rtUI.seen) { rtUI.g = g; rtUI.seen = 0; rtUI.q.length = 0; rtToastOff(); }
@@ -4787,7 +4812,7 @@
       // C2: colocar por destino (2v2, «Colocación dirigida: Sí»)
       if (ctx.settings.aimSet !== false) R.splice(4, 0, [dv === 'touch' ? S('Joystick') : dv === 'gamepad' ? S('Stick') : K('↑') + K('←') + K('↓') + K('→'), 'Al colocar: sin dirección, alta a la 4; ya bajo el balón, con dirección eliges el destino']);
     }
-    // Salto con impulso (v1.10.0): dirección + SALTAR = salto hacia delante (detrás de la fila de la finta); con la diana de colocación
+    // Salto con impulso (v1.12.0): dirección + SALTAR = salto hacia delante (detrás de la fila de la finta); con la diana de colocación
     // (Ajustes · Juego), otra fila
     var dirK = dv === 'touch' ? S('Joystick') : dv === 'gamepad' ? S('Stick') : K('↑') + K('←') + K('↓') + K('→');
     var jmpK = dv === 'touch' ? T('Saltar', 1) : dv === 'gamepad' ? padKey('b') : K('Espacio');
@@ -4833,7 +4858,7 @@
     var note = el.pnCtl.querySelector('.ctl-note');
     // C2: colocar por destino (2v2 con «Colocación dirigida: Sí»)
     var setT = !fmt6() && ctx.settings.aimSet !== false ? ' Al colocar, sin dirección va alta a la 4; ya bajo el balón, con dirección eliges el destino.' : '';
-    // salto con impulso (v1.10.0): la nota se ve en las tres pestañas (con reasignar teclas, Teclado y Mando no pintan las filas de ctlRows)
+    // salto con impulso (v1.12.0): la nota se ve en las tres pestañas (con reasignar teclas, Teclado y Mando no pintan las filas de ctlRows)
     setT += ' Corriendo hacia la red, salta sin soltar la dirección: el remate sale más fuerte.' + (ctx.settings.jsetAim === true ? ' En la colocación en salto, la dirección mueve la diana.' : '');
     if (note) note.innerHTML = fmt6() ? '<b>Arriba</b> es siempre hacia la red. En el 6 contra 6 llevas al <b>' + roleName().toLowerCase() + '</b> (n.º ' + sixNum() + ') y la IA al resto. Sin balón, la marca del suelo es tu sitio. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
       : oneMode() ? '<b>Arriba</b> es siempre hacia la red. Llevas siempre al <b>n.º ' + oneNum() + '</b> y la IA a tu compañero. Mantén una dirección al golpear para apuntar; en el saque y el remate, mueve la diana.' + setT
@@ -4959,6 +4984,7 @@
     // estrechas «jugadores» (.cv-x) se oculta por CSS y queda «Controlar ‹ a los dos ›»
     ctrlMode: { vals: ['both', 'one'], labels: ['A los dos<span class="cv-x"> jugadores</span>', 'Un jugador'], desc: ['Controlar a los dos jugadores', 'Controlar un jugador'] },
     coachTips: { vals: [true, false], labels: ['Sí', 'No'] },
+    coachCalls: { vals: [true, false], labels: ['Sí', 'No'] },
     // formato del Partido rápido (sprint 3 del 6v6; main.js ctx.settings.format): 2 contra 2 o 6 contra 6 (en el pabellón; el puesto, en Controlar: role6)
     format: { vals: ['2v2', '6v6'], labels: ['2 contra 2', '6 contra 6'] },
     // cámara del 6v6 (camera_input, camera.js; main.js ctx.settings.cam6): detrás de tu jugador (por defecto) o la de televisión. En Ajustes ·
@@ -4995,7 +5021,7 @@
     touchSize: { vals: [1, 1.15, 1.3], labels: ['100%', '115%', '130%'] },
     // Juego, E1: colocación dirigida (sim opts.aimSet) y timing exacto en ms (solo el sello de ui.js)
     aimSet: { vals: [true, false], labels: ['Sí', 'No'] },
-    // Salto con impulso (v1.10.0): colocación en salto con diana (sim opts.jsetAim; por defecto No). jsetNote (aviso de colocador) no
+    // Salto con impulso (v1.12.0): colocación en salto con diana (sim opts.jsetAim; por defecto No). jsetNote (aviso de colocador) no
     // tiene fila: «Restablecer este apartado» lo vuelve a encender
     jsetAim: { vals: [true, false], labels: ['Sí', 'No'] },
     msTiming: { vals: [true, false], labels: ['Sí', 'No'] },
@@ -5037,7 +5063,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
+    game: ['showHelp', 'coachTips', 'coachCalls', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -5482,7 +5508,7 @@
   var sbRect = null;
   function svAim(g) { return !!(g && g.aim3 && g.aim3.on && g.aim3.kind === 'serve'); }
 
-  // Salto con impulso (v1.10.0): frases de «Cómo se juega» para el remate (siempre) y la colocación (con la diana de colocación)
+  // Salto con impulso (v1.12.0): frases de «Cómo se juega» para el remate (siempre) y la colocación (con la diana de colocación)
   function momT() { return ' Corre hacia la red y salta sin soltar la dirección: el <b>remate sale más fuerte</b>.' + (fmt6() && !tutBeach() ? ' Desde detrás de la línea de 3 m, <b>pipe</b>.' : ''); }
   function jdT(g) { return ctx.settings.jsetAim === true ? ' En la colocación en salto mueves la <b>diana</b> con ' + g.aim + (fmt6() && !tutBeach() ? ' y la colocación va al atacante que tenga más cerca (el marcador de color dice adónde).' : ' y el balón va donde la pongas: cerca de ti sale rápida; lejos, alta.') : ''; }
   var TUT = [
@@ -6232,7 +6258,7 @@
     if (!(g && !g.demo && g.mastery && g.stats && g.stats.mastery) && !d0) return '';
     var u = function (k) { return m[k] && m[k][0] | 0; }, out = [];
     var f = u('feint'), r = u('roll'), e = u('edge'), q = u('quick');
-    // salto con impulso (v1.10.0, sim g.stats.dj): remates con impulso y pipes
+    // salto con impulso (v1.12.0, sim g.stats.dj): remates con impulso y pipes
     var dj = g.stats.dj, dm = dj && dj.mom ? dj.mom[0] | 0 : 0, dp = dj && dj.pipe ? dj.pipe[0] | 0 : 0;
     if (dm) out.push('Con impulso <b>' + dm + '</b>');
     if (dp) out.push((dp === 1 ? 'Pipe ' : 'Pipes ') + '<b>' + dp + '</b>');
@@ -6246,13 +6272,13 @@
   // (make-the-cut.e1tips, solo este dispositivo). Salen aunque los consejos de partido estén apagados (se apagan solos al ganar el 1r
   // partido, y la maestría es justo para quien ya gana), pero no sin las ayudas (Ajustes ◆ Juego ◆ Ayudas).
   var e1 = { k: '', t: 0, on: false, seen: null };
-  var E1_KEYS = ['air', 'feint', 'aim', 'edge', 'mom', 'pipe', 'jdiana'];   // (mom / pipe / jdiana: salto con impulso, v1.10.0)
+  var E1_KEYS = ['air', 'feint', 'aim', 'edge', 'mom', 'pipe', 'jdiana'];   // (mom / pipe / jdiana: salto con impulso, v1.12.0)
   function e1Seen() { if (!e1.seen) { e1.seen = {}; try { var o = JSON.parse(localStorage.getItem('make-the-cut.e1tips') || 'null'); if (o && typeof o === 'object') E1_KEYS.forEach(function (k) { e1.seen[k] = Math.max(0, Math.min(9, +o[k] | 0)); }); } catch (er) { } } return e1.seen; }
   function e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) {
     if (e1.k === 'done') return '';
     var S = e1Seen(), k = '', txt = '';
     var mine = !(one && g.jobs && g.jobs[0] && g.jobs[0] !== p) || !!(VB.Sim.setTurn && VB.Sim.setTurn(g));
-    // salto con impulso (v1.10.0): primero los consejos nuevos que aún no se han visto 2 veces (si no, los de siempre los taparían)
+    // salto con impulso (v1.12.0): primero los consejos nuevos que aún no se han visto 2 veces (si no, los de siempre los taparían)
     if (g.jsetAim && (S.jdiana | 0) < 2 && g.aim3 && g.aim3.on && g.aim3.kind === 'jset' && !g.jsMv) { k = 'jdiana'; txt = 'Mueve la diana con ' + gl.aim + ': cerca, rápida; lejos, alta'; }
     else if (g.djump && (S.pipe | 0) < 2 && g.size === 6 && nt === 2 && g.touchTeam === 0 && p.z <= 0.01 && !p.front && (p.role === 'OH' || p.role === 'OPP')) { k = 'pipe'; txt = 'Pipe: despega detrás de la línea de 3 m y salta hacia delante'; }
     else if (g.djump && (S.mom | 0) < 2 && nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'mom'; txt = 'Corre hacia la red y pulsa ' + gl.jump + ' sin soltar ' + gl.aim + ': remate con impulso'; }
@@ -6588,7 +6614,7 @@
     if (zm.t <= 0) { zm.t = 0; zm.el.classList.remove('on'); }
   }
   // =====================================================================
-  //  AVISO DE COLOCADOR (salto con impulso, v1.10.0; notes/ui_main.md «Salto con impulso»)
+  //  AVISO DE COLOCADOR (salto con impulso, v1.12.0; notes/ui_main.md «Salto con impulso»)
   // =====================================================================
   // Hoja .sp-panel pequeña, sin velo (una capa transparente encima solo para que no se pulse lo de detrás). Sale una vez por sesión
   // si juegas de colocador (main.js startMatch con 6v6 y ctrlRole 'S'; career-ui.js al abrir el hub de la Carrera de pista siendo
@@ -6692,7 +6718,7 @@
   }
 
   VB.UI = {
-    /** Salto con impulso (v1.10.0): aviso de colocador (ver setterNote) y su entrada (main.js). */
+    /** Salto con impulso (v1.12.0): aviso de colocador (ver setterNote) y su entrada (main.js). */
     setterNote: setterNote,
     noteOpen: function () { return sn.open; },
     noteNav: snNav,

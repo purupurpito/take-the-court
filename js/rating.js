@@ -262,6 +262,13 @@
     st.bon += d; push(st, 'goal', id || 'goal', txt || '', d);
     return 1;
   }
+  /** Suma DENTRO de la nota (con el techo y el suelo suaves) con su aviso: consignas del entrenador cumplidas (js/consignas.js).
+   *  Va en st.raw, así que el challenge (undo) la deshace con el punto. */
+  function extra(st, id, d, txt) {
+    if (!st || st.done || !d || !st.on) return 0;
+    st.raw += d; push(st, 'coach', id || 'coach', txt || '', eff(st, d));
+    return 1;
+  }
   function list(st, sign) {
     var out = [];
     for (var id in st.acts) { var a = st.acts[id]; if (sign > 0 ? a.d > 0.0005 : a.d < -0.0005) out.push({ id: id, txt: ACTS[id] ? ACTS[id].txt : id, n: a.n, d: round2(a.d) }); }
@@ -293,6 +300,6 @@
   VB.Rating = {
     START: P0.START, OFFSET: P0.OFFSET, TEAM_PT: P0.TEAM_PT, KAPPA: P0.KAPPA, KAPPA_TRIAL: P0.KAPPA_TRIAL, RES: P0.RES, E_TABLE: E_TABLE,
     ACTS: ACTS, RATE6: RATE6, LOG_MAX: LOG_MAX, P0: P0,
-    E: E, eKey: eKey, create: create, feed: feed, bonus: bonus, setOn: setOn, close: close, undo: undo, value: value, soft: soft, fmt: fmt
+    E: E, eKey: eKey, create: create, feed: feed, bonus: bonus, extra: extra, setOn: setOn, close: close, undo: undo, value: value, soft: soft, fmt: fmt
   };
 })();

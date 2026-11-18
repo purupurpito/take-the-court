@@ -16,7 +16,7 @@
  *          createGame({mastery:true}) y el bot pulsando también COLOCAR y GOLPEAR→SALTAR en el aire y, en la ventana de colocación
  *          (C2), una de las 8 direcciones o ninguna y a veces COLOCAR en el suelo; compara con / escribe
  *          tools/fp-mastery.json (no la llama simtest: protege la maestría frente a cambios de otros lotes)
- *   node tools/fingerprint6.js --variant salto [--write]   salto con impulso (v1.10.0): 50 semillas × 150 s con
+ *   node tools/fingerprint6.js --variant salto [--write]   salto con impulso (v1.12.0): 50 semillas × 150 s con
  *          createGame({mastery:true, djump:true, jsetAim:true}) y el bot de mastery que además empuja hacia la red al saltar en fase de
  *          ataque y mueve la diana de la colocación en salto en una de cada tres; compara con / escribe tools/fp-salto.json (línea base
  *          de la mecánica nueva; se escribe UNA vez, cuando se acepte el equilibrio)
@@ -155,7 +155,7 @@ function main() {
   const t0 = Date.now(), write = process.argv.includes('--write');
   const res = runAll();
   if (write) {
-    if (SALTO) fs.writeFileSync(REF, JSON.stringify({ note: 'Huella del salto con impulso (v1.10.0; tools/fingerprint6.js --variant salto): partido humano 2v2 con createGame({mastery:true, djump:true, jsetAim:true}). Línea base de la mecánica nueva; regenerar solo con un cambio intencionado de ella.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
+    if (SALTO) fs.writeFileSync(REF, JSON.stringify({ note: 'Huella del salto con impulso (v1.12.0; tools/fingerprint6.js --variant salto): partido humano 2v2 con createGame({mastery:true, djump:true, jsetAim:true}). Línea base de la mecánica nueva; regenerar solo con un cambio intencionado de ella.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
     else if (MASTERY) fs.writeFileSync(REF, JSON.stringify({ note: 'Huella de la maestría (E1, sprint 5; tools/fingerprint6.js --variant mastery): partido humano 2v2 con createGame({mastery:true}). Regenerar solo con un cambio intencionado de la maestría.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
     else fs.writeFileSync(REF, JSON.stringify({ note: 'Huella 2v2 (tools/fingerprint6.js). cpu/human: código ANTERIOR al refactor del sprint 1 del 6v6 (sin cambios desde entonces). attrs: regenerada el 10-nov-2026 con «atributos que se notan» y otra vez en la integración del mismo día (precisión del toque ATTR_K.err y frenada al momento; cpu/human comprobadas idénticas antes, 100 de 100). human/attrs: regenerada el 11-nov-2026 (bloqueo activo) y el 12-nov-2026 (overpass que cruza = golpe normal en el aire, no pulsación de bloqueo; cpu idéntica). No regenerar salvo cambio intencionado del 2v2.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
     console.log(SALTO ? 'huella del salto escrita:' : MASTERY ? 'huella de la maestría escrita:' : 'huella 2v2 escrita:', res.length, 'partidas,', res.reduce((a, r) => a + r.pts.split(' ').filter(Boolean).length, 0), 'puntos,', (Date.now() - t0) + ' ms');

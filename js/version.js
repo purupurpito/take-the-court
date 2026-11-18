@@ -22,26 +22,64 @@
  *   rivales mejores, invitaciones a mitad y fin de temporada), entrenos Jugar/Rápido/Descansar y nota en directo.
  * 1.8.1 (17-nov-2026): cámara del 6v6 que sigue al balón y zoom de cámara (js/camera.js, js/input.js).
  * 1.8.2 (17-nov-2026): la cámara del 6v6 deja de seguir los balones muy rápidos (> 15 m/s), a petición de Ferran.
+ * 1.10.0 (17-nov-2026): consignas del entrenador en directo en la Carrera (js/consignas.js), idea de Ferran.
+ * 1.11.0 (18-nov-2026): árbitros como en la vida real (FIVB 2025-2028, Guidelines) y bandera roja de vóley, a petición de Ferran.
  * 1.9.1 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
- * 1.10.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
+ * 1.12.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.10.0';
+  VB.VERSION = '1.12.0';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.10.0', d: '2026-11-18', t: 'Salto con impulso',
+      v: '1.12.0', d: '2026-11-18', t: 'Salto con impulso',
       items: [
         'Salto con dirección: salta hacia donde apuntas con el joystick, el stick o las flechas.',
         'Remate con impulso: corre hacia la red, salta hacia delante y el remate sale más fuerte.',
         'Pipes de verdad: despega detrás de la línea de 3 m y salta hacia delante para rematar.',
         'Colocación en salto con diana: llévala donde quieras y el balón va allí (Ajustes, Juego).',
         'Si eres colocador en la Carrera, te avisamos de la diana al entrar.'
+      ]
+    },
+    {
+      v: '1.11.0', d: '2026-11-18', t: 'Árbitros de verdad',
+      items: [
+        'Los jueces de línea llevan la bandera de vóley: roja entera.',
+        'La falta de posición la pita el 2º árbitro y señala a los dos jugadores.',
+        'Solo el equipo que recibe puede cometer falta de posición, como en el reglamento.',
+        'El 1r árbitro sigue el orden real: silbato, quién saca, la falta y el jugador.',
+        'Nuevas señas: saque a la red, cambio de campo, sustitución y 5 segundos en la playa.',
+        'Cada juez de línea señala solo su línea.'
+      ]
+    },
+    {
+      v: '1.10.1', d: '2026-11-17', t: 'Pases, bloqueo y defensa',
+      items: [
+        '6 contra 6: las recepciones y defensas buenas quedan más cerca de la red.',
+        'El colocador de delante ya puede atacar de segunda tras un buen pase.',
+        'Bloquear un balón que cruza la red cuenta como bloqueo, nunca como remate.',
+        'Defender con el balón lejos del cuerpo sale menos preciso, aunque aciertes el momento.'
+      ]
+    },
+    {
+      v: '1.10.0', d: '2026-11-17', t: 'Consignas del entrenador',
+      items: [
+        'Carrera: en algunos puntos, el entrenador te pide algo antes del saque.',
+        'Saca a una zona, remata en diagonal, juega con el central, bloquea la línea…',
+        'Si cumples la consigna, tu nota del partido sube un poco.',
+        'Se pueden apagar en Ajustes › Juego › Consignas.'
+      ]
+    },
+    {
+      v: '1.9.2', d: '2026-11-17', t: 'Falta de posición con los pies',
+      items: [
+        '6 contra 6: la falta de posición se mira con los pies, como en el reglamento.',
+        'Si corres al moverte en el saque, el pie que adelantas también cuenta.'
       ]
     },
     {

@@ -688,6 +688,6 @@ Detalle: `notes/s234/T6.md`. Contrato: CONTRACT §4.4 «Sprint 2-4». Todo con s
 - Abierto: el partido de 60 s de audiotest da −19,6 LUFS (dentro de ±1 de −18,8, pero más cerca del borde que en el sprint 5); sin
   comprobar contra el audio.js de antes. Sonidos propios de las firmas: cortado.
 
-## Salto con impulso (v1.10.0, 18-nov-2026)
+## Salto con impulso (v1.12.0, 18-nov-2026)
 - `jump.jv`: `scuff` ×(1 + 0,6·min(1, jv/1,8)) y tono −10 % a tope. `landPlayer.hard`: golpe seco `free` (0,32, tono ×0,55) además de los pasos.
 - `hit.mom` (remate no perfecto): el `sub` del perfecto por el bus de refuerzo a 0,45·mom·(SUB_G/0,5) con techo SUB_CEIL·mom (el perfecto ya lo lleva).

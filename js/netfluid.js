@@ -31,13 +31,25 @@
  *   - Se manda g.fl.tc (el bulto tomado EN el contacto), no flBundle después del paso. m viaja por posición (M_KEYS) y el eco por
  *     'in' va sin eventos (llegan con el de 'ctl'): ~1 KB por contacto en vez de 3.
  *   - Foto de 65 B: sin jvx/jvy; en el peloteo el balón va en una de cada dos (y en las de contacto y traspaso).
- *   - Colchón del rival Dp = retraso medio de sus fotos + D, D = (percentil 95 del retraso − media) + intervalo (×2 con pérdida) + 1,
- *     entre 6 y 18 tics; directo durante las 32 primeras fotos y luego como mucho 4 tics/s hacia arriba y 1 tic/s hacia abajo.
- *   - Reloj del balón pintado: tras un contacto rival que viene, off(t) = lag · (Th − t)/(Th − Tc) desde el contacto (la ida que ya
- *     pasó es un salto pequeño que se mezcla); tras un contacto mío que se va, el lag sube hasta Dp frenando como mucho a la mitad.
+ *   - Colchón del rival Dp = retraso medio de sus fotos + D, D = max(0,7·(percentil 95 del retraso − media), 2·variación) + intervalo
+ *     (hasta ×2 con pérdida, lleno al 4 %; una foto que llega desordenada no cuenta como perdida) + 1, entre 6 y 18 tics; directo
+ *     durante las 32 primeras fotos y luego como mucho 4 tics/s hacia arriba y 1 tic/s hacia abajo.
+ *   - Reloj del balón pintado: tras un contacto rival que viene, off(t) = lag · (Te − t)/(Te − Tc) desde el contacto (Te = Th; en el
+ *     saque, o un libre sin nadie mío junto a la red, un poco después; un libre con los míos junto a la red llega con hasta FREE_TOL m
+ *     de retraso al traspaso); si no cabe en WARP_MAX salta solo lo que no se puede acelerar.
+ *     Tras un contacto rival que se queda en su campo el lag sube hasta Dp con una curva suave (0,65 como poco); tras uno mío que se
+ *     va, desde el traspaso y a 0,8 como poco (si cae antes, solo hasta la latencia de sus fotos menos LAND_HIDE). Mi toque con el
+ *     lag aún bajando lo pone a 0 en el acto. Toda corrección de un tc aplicado se mezcla desde la trayectoria pintada (bJump); en el
+ *     peloteo un salto de más de 3 m salta solo lo que pasa de 3 m y mezcla el resto (fuera del peloteo, de golpe).
  *     La posición sale de la cadena de contactos del rally (flFly sobre el bulto de cada contacto, míos y del rival).
- *   - Bifurcación: el tc ganador que llega cuando ya di mi punto (sin confirmar) deshace el punto (pre = flMatch al hacer setupServe);
- *     un pt rival cuyo lt (último tc mío que había aplicado) es anterior a mi último contacto se rechaza con rb.
+ *   - Saque: hasta que llega la foto de saque del rival (F_TELE del r actual) sus fotos son del punto anterior: el rival se queda (en
+ *     la sim y pintado) en la formación de mi setupServe, que es la misma que la suya.
+ *   - Bifurcación por TIEMPO (gana lo que pasó antes; empate, el anfitrión): un tc rival contra mi punto sin confirmar compara su
+ *     medio paso con lo primero de mi rama que él no vio (mis contactos con s > c.par, o mi punto, ph); dos pt del mismo rally, el
+ *     comienzo de cada rama (pt.ph / pt.lf). El que pierde deshace su punto (pre = flMatch al hacer setupServe; nunca con el saque
+ *     siguiente ya preparado ni el final presentado: entonces ptBad y sb) y quita de sus confirmados los contactos de su rama.
+ *   - Pintar: no hay copia entera por frame; main.js copia a la vista con withDisplay (la pose pintada encima de la partida local
+ *     mientras dura la copia). out.g sigue existiendo (la construye al leerla, para las pruebas).
  *   - Quien manda un rs descarta los mensajes de juego del rival (tc, pt, pa, fq, sr, sk, ev, sb, rb) hasta su rsok: son de su partida
  *     de antes del rs y aplicarlos aquí (sobre todo un pt) dejaría los marcadores distintos. El que recibe el rs manda el rsok y
  *     después el sr. Al deshacer un punto por bifurcación se usa el marcador guardado con ESE punto (ptPend.pre), no el último.
@@ -66,7 +78,13 @@
     EXTRAP_MAX: 12,                                         // tics de extrapolación como mucho (100 ms)
     BLEND_P: 60, BLEND_B: 40,                               // semivida del error de jugadores / mezcla del balón al saltar (ms)
     BALL_TAU: 100, BALL_TAU_NEAR: 60,                       // decaimiento del error del balón (ms; cerca de los míos, más rápido)
-    WARP_MAX: 2.0, LAG_UP: 0.5,                             // velocidad máxima del reloj del balón; lo que puede frenar (tic/tic)
+    WARP_MAX: 2.0, LAG_UP: 0.35,                            // velocidad máxima del reloj del balón; lo que puede frenar (tic/tic)
+    LAG_UP_RIV: 0.35,                                       // tras un contacto rival que se queda en su campo: lo que frena como mucho
+                                                            // (el lag sube hasta Dp con una curva suave; antes 0,5 fijo: media velocidad)
+    SERVE_EXT: 24,                                          // tics: lo que el saque rival puede tardar en alcanzar el presente tras el traspaso
+    FREE_TOL: 0.3,                                          // m: lo que un libre puede ir por detrás en el traspaso con los míos junto a la red
+    BLEND_B_FAR: 90,                                        // mezcla del salto del balón lejos de mis jugadores (ms; cerca, BLEND_B)
+    LAND_HIDE: 4,                                           // tics de retraso de un tc rival que la mezcla del balón disimula (_lagOnMine)
     LAG_UP_MINE: 0.2,                                       // lo que frena tras MI contacto que se va (el balón a 0,8 como poco)
     CATCH_MAX: 72, POSE_RING: 48, SNAP_RING: 32, REBASE: 0.03,
     SR_FALLBACK: 2.0,                                       // s esperando el sr del rival antes de sacar igual
@@ -74,7 +92,10 @@
     RS_EVERY: 1500, RS_TRIES: 8, PA_TIMEOUT: 400, FIN_TIMEOUT: 3000,
     CONNECT_MS: 20000, CONNECT_CAP: 60000, ADOPT_MS: 40000, START_MS: 1500, WARM_CAP: 5000,
     MAXCATCH: 36, EDGE_TTL: 150, EV_EVERY: 2, MUTE_TICKS: 18,
-    REWIND: true                                            // recuperación con la pose pasada de mis jugadores (spec §4.4)
+    REWIND: true,                                           // recuperación con la pose pasada de mis jugadores (spec §4.4)
+    BACHECK: false,                                         // pruebas: compara el cursor de _ballAt con el vuelo entero
+    KHCHECK: false                                          // depuración: revuela cada tc rival para comprobar su traspaso (khCheckBad;
+                                                            // las pruebas lo encienden: en el juego costaba hasta 7 ms al llegar un tc)
   };
   var REF0 = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 };
   var NOIN = { move: [0, 0], hit: false, jump: false, jset: false, skip: false, ai: false };
@@ -203,6 +224,8 @@
     subDenied: 1, libero: 1, lineup: 1, ask: 1, bounce: 1, drillEnd: 1, drillRep: 1, drillStage: 1 };
   // solo sonido/efecto: si llegan con más de 150 ms de retraso respecto a su momento de pintarse, no se presentan (net.js _present)
   var SENSORY = { hit: 1, block: 1, blockPress: 1, land: 1, landPlayer: 1, net: 1, netTouch: 1, bounce: 1, dive: 1, toss: 1, jump: 1, swing: 1, miss: 1, juggle: 1, dribble: 1, feint: 1, set: 1, whistle: 1 };
+  // eventos de un contacto (los que se quitan de los confirmados de la rama perdida, y los que nunca se silencian por llegar tarde)
+  var CONTACT = { hit: 1, block: 1, net: 1, tape: 1, body: 1 };
   function sendable(e) { return !NOSEND[e.type] && !(e.type === 'whistle' && e.reason !== 'serve'); }
   function isPlayer(v) { return v && typeof v === 'object' && !Array.isArray(v) && typeof v.id === 'number' && (v.team === 0 || v.team === 1) && v.st !== undefined; }
   function encEv(e) {
@@ -261,6 +284,12 @@
     this._out = { g: null, events: [], confirmed: [], app: [], status: '', tick: 0, gcTick: 0, ping: 0, waitMs: 0, unstable: false, canAI: false,
       goneIn: 0, startIn: 0, solo: false, valid: true, result: null, rivalSolo: false, gone: false, rivalLeft: false, info: null };
     this._pres = []; this._confOut = [];
+    // partida de PINTAR: ya no se copia entera cada frame (main.js pinta con withDisplay sobre la partida local con la pose pintada
+    // encima, y deshecha después); out.g la construye solo si alguien la lee (las pruebas)
+    var self0 = this;
+    Object.defineProperty(this._out, 'g', { enumerable: true, configurable: true, get: function () { return self0._gdGet(); }, set: function () { } });
+    this._ov = { r: false, rm: 1, n: 0, p: [{}, {}], b: false, bv: false, bx: 0, by: 0, bz: 0, bvx: 0, bvy: 0, bvz: 0 };
+    this._sv = { p: [{}, {}], b: [0, 0, 0, 0, 0, 0] }; this._shown = false; this._gdOk = false;
     this.warpL = [];   // (velocidades de las aceleraciones del balón pintado, para las pruebas)
     this._resetPlay();
     var self = this;
@@ -273,8 +302,8 @@
   SP._resetPlay = function () {
     this.ring = new Array(C.POSE_RING); this.gRing = new Array(64);
     this.snaps = []; this.lastSnapAt = -1; this.lastSnapT = -1; this.lateE = -1; this.jitE = 0; this.Dc = C.D_MIN; this.Dp = -1;
-    this.lateL = []; this.lateP = 0; this.lastSeq = -1; this.lossE = 0;
-    this.chain = []; this.curR = 0; this.chainS = -1; this.myLastS = -1; this.myLastTc = null; this.lastTcIn = -1; this.seenTc = {};
+    this.lateL = []; this.lateP = 0; this.lastSeq = -1; this.lossE = 0; this.teleR = -1;
+    this.chain = []; this.curR = 0; this.chainS = -1; this.myLastS = -1; this.myLastTc = null; this.lastTcIn = -1; this.seenTc = {}; this.myTcs = [];
     this.lag = 0; this.lagPlan = null; this.lastHand = 0;
     this.bOff = { x: 0, y: 0, z: 0 }; this.bShown = null; this.bSrc = ''; this.bJump = false; this.lastTf = -1;
     this.chainPrev = []; this.bCh = null; this.bRaw = null;
@@ -515,7 +544,7 @@
           case 'pa': this._onPa(c, now); break;
           case 'fq': this._onFq(c, now); break;
           case 'fx':   // mi fq llegó cuando el balón ya era mío (traspaso): ahora el dueño soy yo y la falta la doy yo (spec §4.1)
-            if (typeof c.r === 'number' && c.r === g.fl.r && this.fxHeld.length < 8) { this.fxHeld.push({ r: c.r, pid: c.pid | 0 }); this._fxCheck(now); }
+            if (typeof c.r === 'number' && c.r === g.fl.r && this.fxHeld.length < 8) { this.fxHeld.push({ r: c.r, pid: c.pid | 0, T: typeof c.T === 'number' ? c.T : -1 }); this._fxCheck(now); }
             break;
           case 'sr': if (typeof c.r === 'number' && c.r > this.peerSr) this.peerSr = c.r; if (this.peerSr === g.fl.r) g.fl.peer = true; break;
           case 'sk':
@@ -526,7 +555,16 @@
           case 'ev': this._onEv(c, now); break;
           case 'sb':
             if (!this.host && c.blk) {
+              // cruce: el sb es de un r anterior a un punto mío aún en camino (el anfitrión lo aplicará): se ignora, sin sbok; el
+              // pa/pt siguiente del anfitrión manda un sb nuevo si sigue sin cuadrar. (Antes me devolvía a r sin mi punto: marcador distinto)
+              var br = c.blk.r | 0, r0 = g.fl.r, pendB = false;
+              for (var pk0 in this.ptPend) if (+pk0 >= br) pendB = true;
+              if (br < r0 && pendB) { this.flStats.dropped++; break; }
               S.flMatch(g, c.blk); this.flStats.sbFix++; this.cmpBad = -1; this.pre = S.flMatch(g);
+              if (br > r0) {   // el anfitrión va por delante: lo que esperaba a un r viejo ya no vale y el rally viejo se cierra
+                var q2 = []; for (var qi = 0; qi < this.ptQ.length; qi++) if (this.ptQ[qi].r >= br) q2.push(this.ptQ[qi]); this.ptQ = q2;
+                if (g.mode === 'rally' || g.mode === 'serve') { g.mode = 'point'; g.timer = 0; g.ball.held = null; }
+              }
               // mis resúmenes pendientes son del marcador ANTES del arreglo: el pa que viene detrás (el anfitrión manda sb y luego pa)
               // ya no coincidiría y dejaba cmpBad puesto para siempre (partido no verificado aunque el marcador ya esté bien)
               for (var dk in this.ptDig) if (+dk < (c.blk.r | 0)) delete this.ptDig[dk];
@@ -557,12 +595,21 @@
     if (this.lateE < 0) { this.lateE = lt; this.jitE = 0; }
     else { this.jitE = this.jitE * 0.94 + Math.abs(lt - this.lateE) * 0.06; this.lateE = this.lateE * 0.97 + lt * 0.03; }
     this.lateL.push(lt); if (this.lateL.length > 64) this.lateL.shift();
-    if (this.lastSeq >= 0 && s.seq !== this.lastSeq) { var gap = (s.seq - this.lastSeq - 1) & 65535; if (gap < 1000) this.lossE = this.lossE * 0.98 + Math.min(gap, 4) * 0.02; }
+    if (this.lastSeq >= 0 && s.seq !== this.lastSeq) {
+      var gap = (s.seq - this.lastSeq - 1) & 65535;
+      if (gap < 1000) this.lossE = this.lossE * 0.98 + Math.min(gap, 4) * 0.02;
+      else if (((this.lastSeq - s.seq) & 65535) < 1000) this.lossE = Math.max(0, this.lossE - 0.02);   // (llegó tarde, no se perdió: se descuenta el hueco)
+    }
     if (this.lastSeq < 0 || ((s.seq - this.lastSeq) & 65535) < 1000) this.lastSeq = s.seq;
-    var ls = this.lateL.slice().sort(function (a, b) { return a - b; });
-    this.lateP = ls[Math.min(ls.length - 1, Math.floor(ls.length * 0.95))];
+    var nl = this.lateL.length, ls = this._lsc || (this._lsc = new Float64Array(64)), il;   // (sin copia ni comparador: orden numérico)
+    for (il = 0; il < nl; il++) ls[il] = this.lateL[il];
+    ls = ls.subarray(0, nl).sort();
+    this.lateP = ls[Math.min(nl - 1, Math.floor(nl * 0.95))];
     if (s.T > this.lastSnapT) this.lastSnapT = s.T;
-    if (s.flags & F_TELE) { var keep = []; for (i = 0; i < L.length; i++) if (L[i].T > s.T) keep.push(L[i]); L = this.snaps = keep; }
+    // la foto de saque va por el canal que pierde: si se pierde, la primera foto viva del r actual hace de foto de saque (si no, el
+    // rival se quedaba quieto en la formación todo su saque, sin andar ni lanzar, y saltaba al empezar el rally)
+    if (!(s.flags & (F_TELE | F_IDLE)) && this.teleR !== s.r && this.g && this.g.fl && s.r === (this.g.fl.r & 65535)) s.flags |= F_TELE;
+    if (s.flags & F_TELE) { this.teleR = s.r; var keep = []; for (i = 0; i < L.length; i++) if (L[i].T > s.T) keep.push(L[i]); L = this.snaps = keep; }
     else for (i = 0; i < L.length; i++) if ((L[i].flags & F_TELE) && L[i].T > s.T) return;   // anterior a un saque nuevo: ya no vale
     var at = L.length; while (at > 0 && L[at - 1].T > s.T) at--;
     L.splice(at, 0, s);
@@ -602,10 +649,16 @@
       return;
     }
     // bifurcación con un punto mío aún sin confirmar: si su contacto es anterior al primero mío, mi punto no valió (spec §4.3)
+    // Gana lo que pasó antes (spec): su contacto contra lo primero de mi rama que él no había visto (mis contactos con s > c.par)
+    // o mi punto. (Antes: pp.lf siempre -1, point() lo borra antes de leerlo, y el punto del dueño siempre perdía)
     if (c.r === F.r - 1 && this.ptPend[c.r] && c.s > this.ptPend[c.r].lt) {
-      var pp = this.ptPend[c.r], hm = 2 * c.T + c.h;
-      var win = pp.lf < 0 || hm < pp.lf || (hm === pp.lf && me === 1);
-      if (!win || !this._undoPoint(c.r, now)) { this.flStats.dropped++; return; }
+      var pp = this.ptPend[c.r], hm = 2 * c.T + c.h, md = this._myDiv(pp.tcs, c.par | 0, pp.ph);
+      var win = hm < md || (hm === md && me === 1);
+      if (!win) { this.flStats.dropped++; return; }
+      if (!this._undoPoint(c.r, now)) {   // ganaba su rama pero ya no se puede deshacer (saque siguiente o final ya puestos): no cuadra
+        this.flStats.dropped++; this.flStats.ptBad++; this.cmpBad = this.T; if (this.host) this._sendSb(now); return;
+      }
+      this._dropMine(c.r, pp.tcs, c.par | 0);
     }
     var rk = F.r;
     var st = S.flApplyTc(g, c, this.T, C.REWIND ? this._rw : null);
@@ -618,11 +671,14 @@
     if (st === 'fork') {
       this.flStats.forks++; this.myLastS = -1; this.myLastTc = null;
       var keep = []; for (var i = 0; i < this.chain.length; i++) if (this.chain[i].hc < hc) keep.push(this.chain[i]); this.chain = keep;
+      // mi toque de la rama perdida no cuenta: fuera de mis confirmados (estadísticas iguales en los dos) y un «miss» en mi jugador
+      var mt = []; for (i = 0; i < this.myTcs.length; i++) if (this.myTcs[i].hc < hc) mt.push(this.myTcs[i]);
+      this._dropMine(F.r, this.myTcs, c.par | 0, hc, true); this.myTcs = mt;
     }
     this.chain.push({ hc: hc, b: c.b, bAge: c.bAge, full: !!c.full, team: 1 - me, s: c.s });
     if (this.chain.length > 40) this.chain.shift();
     // comprobación del traspaso (depuración, spec §2.10 flOwnerCheck): el balón del tc volado kh medios pasos está en la zona del otro
-    if (c.kh >= 0 && S.flOwnerCheck) {
+    if (C.KHCHECK && c.kh >= 0 && S.flOwnerCheck) {
       var B0 = c.b, o0 = { x: B0[0], y: B0[1], z: B0[2], vx: B0[3], vy: B0[4], vz: B0[5], spin: B0[6], speed: B0[7], dip: B0[8], wobA: B0[9], wobF: B0[10], wobP: B0[11] }, of = o0;
       if (c.kh > 0) { if (c.full && c.kh >= 2) { of = S.flFly(o0, c.bAge, 1, STEP, {}); of = S.flFly(of, of.age, c.kh - 2, STEP / 2, of); } else of = S.flFly(o0, c.bAge, c.kh, STEP / 2, {}); }
       var cm = !(c.m.touchTeam === c.own && c.m.touches >= 3);
@@ -643,8 +699,37 @@
     if (pj && this.myLastS < 0) { delete this.ptRej[g.fl.r]; this._onPt(pj, now); }
   };
   /** Mi punto (r) no valió: marcador, r y modo de antes; fuera sus eventos sin confirmar. */
+  /** Medio paso en que empieza mi rama para el rival: el primero de mis contactos (tcs) que no había visto (s > seen), o ph. */
+  SP._myDiv = function (tcs, seen, ph) {
+    var d = ph, i;
+    if (tcs) for (i = 0; i < tcs.length; i++) if (tcs[i].s > seen && tcs[i].hc < d) d = tcs[i].hc;
+    return d;
+  };
+  /** Mi rama del rally r no valió: mis eventos de contacto desde el primero que el rival no vio (o desde el medio paso fromHc) fuera
+   *  de los confirmados y de los que aún no salieron; miss: un «miss» en el jugador del toque perdido (spec §4.3). */
+  SP._dropMine = function (r, tcs, seen, fromHc, miss) {
+    var me = this.slot, t0 = Infinity, i, p = null;
+    if (tcs) for (i = 0; i < tcs.length; i++) if (tcs[i].s > seen && (fromHc === undefined || tcs[i].hc >= fromHc) && tcs[i].T < t0) t0 = tcs[i].T;
+    if (t0 === Infinity) return;
+    var drop = function (e) { return e._o === me && CONTACT[e.type] === 1 && e._tick >= t0; };
+    var b = this.confBuf[r];
+    if (b) { var kb = []; for (i = 0; i < b.length; i++) { if (drop(b[i])) { if (!p && b[i].player) p = b[i].player; } else kb.push(b[i]); } this.confBuf[r] = kb; }
+    var ko = []; for (i = 0; i < this.evOut.length; i++) { var x = this.evOut[i]; if (!(x._r === r && CONTACT[x.type] === 1 && x._T >= t0)) ko.push(x); } this.evOut = ko;
+    if (miss && p && this._pres) this._pres.push({ type: 'miss', player: p, reason: 'late', _tick: this.T, _o: me, _i: this.evI++ });
+  };
+  /** ¿Gana el pt rival c a mi rama (mis contactos tcs, mi punto en ph, lt = el último tc suyo que yo había aplicado)? Lo que pasó antes:
+   *  su rama empieza en su punto, o en su primer toque desde su último tc aplicado si yo no lo apliqué (lfp + 1 > lt). Empate: anfitrión. */
+  SP._ptWins = function (c, tcs, ph, lt) {
+    var rd = typeof c.ph === 'number' ? c.ph : 2 * c.T + 1;
+    if (typeof c.lf === 'number' && c.lf >= 0 && (c.lfp | 0) + 1 > lt && c.lf < rd) rd = c.lf;
+    var md = this._myDiv(tcs, c.lt == null ? -1 : c.lt, ph);
+    return rd < md || (rd === md && this.slot === 1);
+  };
   SP._undoPoint = function (r, now) {
     var S = Sim(), g = this.g, pp = this.ptPend[r], pre = pp && pp.pre;
+    // todo o nada: con el saque siguiente ya preparado (jugadores teletransportados, nextSet) o el final ya presentado no se puede
+    // deshacer limpio; el que llama lo trata como un punto que no cuadra (ptBad, no verificado y sb del anfitrión)
+    if (g.fl.srvR > r || this.goSeen) { this._log('bifurcación: mi punto ' + r + ' ya no se puede deshacer'); return false; }
     // el marcador de ANTES de ese punto (el pre del setupServe de r). this.pre no vale: si ya pasó el tiempo muerto (corte), es el
     // del saque siguiente y no desharía nada
     if (!pre || pre.r !== r) { this._log('bifurcación: no puedo deshacer mi punto ' + r); return false; }
@@ -672,17 +757,41 @@
     var S = Sim(), g = this.g, F = g.fl;
     if (typeof c.r !== 'number') return;
     if (c.r > F.r) { if (this.ptQ.length < 16) this.ptQ.push(c); return; }
+    // mi fq devuelto (fx) esperaba a que el balón volviera a ser mío y llega su punto: si mi toque de red fue antes que su punto, lo
+    // que pasó primero manda: pito yo la falta (con el medio paso del toque) y su punto no se aplica; al llegarle el mío, lo deshace
+    // (spec: gana lo anterior). Antes _rChange tiraba el fx y el rally se lo llevaba el punto de después
+    if (c.r === F.r && this.fxHeld.length && g.mode === 'rally') {
+      var cph = typeof c.ph === 'number' ? c.ph : 2 * c.T + 1;
+      for (var fq = 0; fq < this.fxHeld.length; fq++) {
+        var hq = this.fxHeld[fq], fp = byId(g, hq.pid);
+        if (hq.r !== c.r || hq.T < 0 || 2 * hq.T - 1 >= cph || !fp || fp.team !== this.slot) continue;
+        var rk0 = F.r, np0 = F.pts.length;
+        F.own = this.slot; F.khAt = -1;   // (el rally acaba aquí: juzga quien tiene lo anterior)
+        S._fault(g, fp.team, 'net', 'Toque de red', fp); this.flStats.fqOk++;
+        if (F.pts.length > np0) F.pts[F.pts.length - 1].hs = 2 * hq.T - 1;
+        this.fxHeld = []; this.flStats.dropped++;
+        this._log('toque de red devuelto (fx) anterior a su punto: lo pito yo');
+        this._post(now, rk0); return;
+      }
+    }
     if (c.r < F.r) {
-      if (this.ptPend[c.r]) {   // los dos dimos el punto r: gana la rama con el contacto anterior
-        var pp = this.ptPend[c.r];
-        if (pp.myS > (c.lt == null ? -1 : c.lt)) { this.ptRej[c.r] = c; this._ctl({ k: 'rb', r: c.r, tc: pp.tc }); this.flStats.rb++; return; }
+      if (this.ptPend[c.r]) {   // los dos dimos el punto r: gana la rama que empezó antes (por tiempo)
+        var pp = this.ptPend[c.r], clt = c.lt == null ? -1 : c.lt;
+        if (!this._ptWins(c, pp.tcs, pp.ph, pp.lt)) {
+          // gana mi rama: si tiene un contacto que él no vio, se lo mando (rb); si no, mi pt ya le llega y lo resuelve allí
+          if (pp.myS > clt && pp.tc) { this.ptRej[c.r] = c; this._ctl({ k: 'rb', r: c.r, tc: pp.tc }); this.flStats.rb++; } else this.flStats.dropped++;
+          return;
+        }
         if (!this._undoPoint(c.r, now)) {   // (sin el marcador de antes no se puede deshacer: no verificado y el anfitrión manda el suyo)
           this.flStats.ptBad++; this.cmpBad = this.T; if (this.host) this._sendSb(now); return;
         }
+        this._dropMine(c.r, pp.tcs, clt);
       } else return;
     } else if (this.myLastS >= 0 && this.myLastS > (c.lt == null ? -1 : c.lt) && this.myLastTc) {
-      // su punto es de una rama que no ha visto mi último contacto: no vale (le mando el tc ganador)
-      this.ptRej[c.r] = c; this._ctl({ k: 'rb', r: c.r, tc: this.myLastTc }); this.flStats.rb++; return;
+      // su punto es de una rama que no ha visto mi último contacto: gana lo que pasó antes. Si es mi contacto, le mando el tc
+      // ganador (rb); si su punto fue antes (p. ej. su propia falta justo antes del traspaso), vale y mi rama se pierde
+      if (!this._ptWins(c, this.myTcs, Infinity, this.lastTcIn)) { this.ptRej[c.r] = c; this._ctl({ k: 'rb', r: c.r, tc: this.myLastTc }); this.flStats.rb++; return; }
+      this._dropMine(c.r, this.myTcs, c.lt == null ? -1 : c.lt);
     }
     if (Array.isArray(c.m)) c.m = decM(c.m);
     // su contacto de este rally que aún esperaba en tcFut (su reloj va por delante): tras el punto ya no se aplicaría (r distinto) y
@@ -730,10 +839,11 @@
   SP._onFq = function (c, now) {
     var S = Sim(), g = this.g, F = g.fl, p = byId(g, c.pid | 0);
     if (g.mode === 'rally' && c.r === F.r && F.own === this.slot && p && p.team !== this.slot) {
-      var rk = F.r;
+      var rk = F.r, np = F.pts.length;
       S._fault(g, p.team, 'net', 'Toque de red', p); this.flStats.fqOk++;
+      if (F.pts.length > np && typeof c.T === 'number') F.pts[F.pts.length - 1].hs = Math.min(2 * c.T - 1, 2 * F.T + 1);   // (el punto es del momento del toque de red)
       this._post(now, rk);
-    } else this._ctl({ k: 'fx', r: c.r, pid: c.pid });
+    } else this._ctl({ k: 'fx', r: c.r, pid: c.pid, T: c.T });
   };
   /** fq devueltos (fx) del rally actual: en cuanto el balón es mío y sigue el peloteo, falta de mi jugador (punto del rival). */
   SP._fxCheck = function (now) {
@@ -746,8 +856,9 @@
       if (g.mode !== 'rally' || F.own !== this.slot || !F.loc[this.slot]) { keep.push(q); continue; }
       var p = byId(g, q.pid);
       if (!p || p.team !== this.slot) continue;
-      var rk = F.r;
+      var rk = F.r, np = F.pts.length;
       S._fault(g, p.team, 'net', 'Toque de red', p); this.flStats.fqOk++;
+      if (F.pts.length > np && q.T >= 0) F.pts[F.pts.length - 1].hs = Math.min(2 * q.T - 1, 2 * F.T + 1);
       this._log('toque de red devuelto (fx): lo pito yo');
       this.fxHeld = []; this._post(now, rk); return;
     }
@@ -769,7 +880,9 @@
     var dt = kind === 'b' ? this.tauB : this.Tr;
     // (el bote del punto también va con el balón pintado: con el balón del rival este va Dp por detrás y el bote sonaba antes de que
     //  se le viera caer; tras el punto el reloj del balón alcanza el presente a velocidad doble, ver _dispBall)
-    if (SENSORY[e.type] === 1 && e._tick < dt - C.MUTE_TICKS) return;   // muy tarde: sin sonido ni efecto
+    // muy tarde: sin sonido ni efecto. Salvo el contacto que acaba de cambiar el balón (bloqueo, red, golpe) del rally en juego: el
+    // balón pintado salta o se mezcla ahora, y sin el evento el atacante (RTT 300) no veía ni oía el bloqueo
+    if (SENSORY[e.type] === 1 && e._tick < dt - C.MUTE_TICKS && !(kind === 'b' && CONTACT[e.type] === 1 && r >= this.g.fl.r)) return;
     this.remPres.push({ k: kind, e: e });
   };
 
@@ -813,7 +926,7 @@
     this._resetPlay();
     this.T = c.T | 0; this.gcTick = this.T; F.T = this.T;
     if (typeof c.t0 === 'number') this.t0 = c.t0 - this.off;
-    this.curR = F.r; this.confR = F.r - 1; this.pre = S.flMatch(g);
+    this.curR = F.r; this.confR = F.r - 1; this.pre = S.flMatch(g); this.teleR = F.r & 65535;   // (el rival ya preparó este saque: no manda otra foto de saque)
     if (g.mode === 'serve') { this.peerSr = F.r; F.peer = true; }   // (el sr lo manda _onCtl tras el rsok)
     this.solo = false; this.rivalSolo = false; this.lostAt = -1; this.waitStart = -1;
     this.valid = c.valid !== false;
@@ -831,46 +944,90 @@
    * lag = tics que el balón pintado va por detrás del presente. Con el balón del rival, Dp (el colchón del rival: así su mano y el
    * balón cuadran); con el mío, 0. Tras un contacto rival que viene hacia mí, el lag baja en línea recta hasta 0 en khAt (velocidad
    * 1 + lag/(Th - t) ≤ WARP_MAX; si no cabe, salto con mezcla de 40 ms). Tras un contacto mío que se va al rival, sube hasta Dp
-   * (frenando como mucho a la mitad). */
+   * (a 0,8 como poco; ver _lagOnMine). */
   SP._lagOnTc = function (c, now) {
     var tf = (now - this.t0) / STEP_MS, l0 = this.lag;
+    // el tc aplicado puede haber cambiado el balón de la sim o la cadena: la corrección sale de la trayectoria pintada de antes y
+    // decae (spec §5.3), también por los caminos sin plan (antes se tomaba el balón ya corregido: salto sin mezcla)
+    this.bJump = true;
     if (c.kh >= 0 && c.khAt >= 0) {
       // spec §5.3: off(t) = lag · clamp((Th - t) / (Th - Tc)) desde el contacto Tc; lo que ya pasó al llegar el tc (la ida) es un
       // salto pequeño que se mezcla con el desplazamiento que decae
       var Th = c.khAt / 2, Tc = c.T + (c.h + 1) / 2, span = Th - Tc;
-      if (l0 <= 0.01) { this.lagPlan = null; return; }
-      var sp = span > 0 && Th > tf ? 1 + l0 / span : Infinity;
+      // saque: nadie puede tocarlo junto a la red (sin bloqueo de saque) y el receptor está a 5-9 m: el lag acaba de bajar un poco
+      // después del traspaso (como mucho 0,5·vuelo o SERVE_EXT tics). La aceleración baja de 1 + lag/vuelo a 1 + lag/(1,5·vuelo)
+      // Igual con un balón libre si ninguno de mis jugadores está junto a la red (|x| < 2,5 m: nadie puede tocarlo en el traspaso)
+      var ext = c.kind === 'serve' || (c.m && c.m.lastKind === 'free' && !this._mineNear(2.5)), Te = ext && span > 0 ? Th + Math.min(0.5 * span, C.SERVE_EXT) : Th;
+      // libre (no la dejada) con alguno de los míos junto a la red: el lag no tiene que estar a 0 exacto en el traspaso, basta con que
+      // el balón pintado vaya como mucho FREE_TOL m por detrás del real (un bloqueo de un libre se ve en su sitio). El plan lineal deja
+      // en Th lag·(Te-Th)/(Te-Tc): con eso = res, Te - Th = res·span/(l0 - res). Antes: 1 + Dp/vuelo, hasta 1,85 con RTT 150 y variación 40
+      if (!ext && span > 0 && l0 > 0.01 && c.m && c.m.lastKind === 'free' && c.m.lastShot !== 'tip') {
+        var bh = this._ballAt(Th), vb = bh ? Math.sqrt(bh.vx * bh.vx + bh.vy * bh.vy + bh.vz * bh.vz) : 0;
+        var res = vb > 0 ? Math.min(0.5 * l0, C.FREE_TOL / (vb * STEP)) : 0;
+        if (res > 0.01) Te = Th + Math.min(C.SERVE_EXT, res * span / (l0 - res));
+      }
+      // (lag ya a 0: se queda a 0 hasta el traspaso; sin plan, la deriva lo subía hacia Dp con el balón viniendo hacia mí)
+      if (l0 <= 0.01) { this.lagPlan = Th > tf ? { t0: tf, t1: Th + 1, l0: 0, l1: 0 } : null; return; }
+      var sp = span > 0 && Th > tf ? 1 + l0 / (Te - Tc) : Infinity;
       if (sp > C.WARP_MAX) {
-        // salto al presente; hasta el traspaso el balón sigue siendo del rival y la deriva volvía a subir el lag hacia Dp (balón a
-        // media velocidad y luego parado al cambiar de dueño): se fija a 0 hasta Th
-        this.lag = 0; this.lagPlan = Th > tf ? { t0: tf, t1: Th + 1, l0: 0, l1: 0 } : null;
-        this.flStats.snaps++; this.bJump = true; this.bSnap = true; return;
+        // salto: solo lo que el reloj a WARP_MAX no puede absorber hasta Th; el resto se acelera. Hasta el traspaso el balón sigue
+        // siendo del rival y la deriva volvía a subir el lag hacia Dp: el plan lo lleva a 0 en Th
+        var lk = Th > tf ? Math.min(l0, (C.WARP_MAX - 1) * (Th - tf)) : 0;
+        this.lag = lk; this.lagPlan = Th > tf ? (lk > 0.01 ? { t0: tf, t1: Th, l0: lk, l1: 0 } : { t0: tf, t1: Th + 1, l0: 0, l1: 0 }) : null;
+        if (lk > 0.01 && C.WARP_MAX > this.flStats.warpMax) this.flStats.warpMax = C.WARP_MAX;
+        this.flStats.snaps++; this.bSnap = true; return;
       }
       if (sp > this.flStats.warpMax) this.flStats.warpMax = sp;
-      this.warpL.push({ sp: sp, k: c.kind === 'serve' ? 'serve' : c.m && c.m.lastKind, sh: c.m && c.m.lastShot }); if (this.warpL.length > 512) this.warpL.shift();
-      this.lagPlan = { t0: Tc, t1: Th, l0: l0, l1: 0 }; this.bJump = true;
-    } else this.lagPlan = null;
+      this.warpL.push({ sp: sp, k: c.kind === 'serve' ? 'serve' : c.m && c.m.lastKind, sh: c.m && c.m.lastShot, l0: l0, span: span, te: Te - Th }); if (this.warpL.length > 512) this.warpL.shift();
+      this.lagPlan = { t0: Tc, t1: Te, l0: l0, l1: 0 };
+    } else this._lagGrow(tf);
+  };
+  /** Contacto rival que se queda en su campo (kh < 0): el lag sube hacia Dp con una curva suave (smoothstep) cuya pendiente máxima
+   *  es LAG_UP_RIV (el balón a 0,65 como poco, y solo un momento). Antes: sin plan, la deriva a 0,5 fija (media velocidad 0,4-0,7 s
+   *  tras cada defensa o bloqueo rival). Lo que falte al llegar su contacto siguiente lo absorbe la aceleración de siempre. */
+  /** ¿Alguno de mis jugadores a menos de d m de la red? */
+  SP._mineNear = function (d) {
+    var M = this.g.teams[this.slot], i;
+    for (i = 0; i < M.length; i++) if (Math.abs(M[i].x) < d) return true;
+    return false;
+  };
+  SP._lagGrow = function (tf) {
+    var Dp = this.Dp > 0 ? this.Dp : C.D_MIN, l0 = this.lag, dl = Dp - l0;
+    if (dl <= 0.25) { this.lagPlan = null; return; }
+    this.lagPlan = { t0: tf, t1: tf + 1.5 * dl / C.LAG_UP_RIV, l0: l0, l1: Dp, ease: 1 };
   };
   SP._lagOnMine = function (tc, tf) {
+    // Mi toque con el balón pintado aún por detrás (un libre que llega con hasta FREE_TOL de retraso, el resto de una bajada): el lag
+    // pasa a 0 en el acto y la diferencia se mezcla como un salto (60 ms cerca de los míos). Si no, el balón pintado llegaba a mi
+    // contacto tarde y, si la sim lo recoloca en la mano, saltaba sin mezcla (0,8-0,9 m en un frame)
+    if (this.lag > 0.01 && this.lagPlan && this.lagPlan.l1 === 0) { this.lag = 0; this.lagPlan = null; this.bJump = true; }
     if (tc.kh < 0 || tc.khAt < 0) { this.lagPlan = null; return; }
     var Th = tc.khAt / 2, Dp = this.Dp > 0 ? this.Dp : C.D_MIN, l0 = this.lag;
     // el balón es mío hasta el traspaso (se pinta como se simula, spec §5.3): el lag empieza a subir en Th, y despacio (0,8 como poco;
-    // antes desde el contacto y a la mitad: mi remate se veía a cámara lenta). Si cae antes de llegar a Dp, se queda como está hasta
-    // que cae (después sube con el balón ya en el suelo)
-    var t0 = Math.max(tf, Th), t1 = t0 + Math.max(0, Dp - l0) / C.LAG_UP_MINE, Tl = this._landT(tc);
-    if (Tl >= 0 && Tl < t1) this.lagPlan = Tl > tf ? { t0: tf, t1: Tl, l0: l0, l1: l0 } : null;
-    else this.lagPlan = t1 > tf ? { t0: t0, t1: t1, l0: l0, l1: Dp } : null;
+    // antes desde el contacto y a la mitad: mi remate se veía a cámara lenta)
+    var t0 = Math.max(tf, Th), t1 = t0 + Math.max(0, Dp - l0) / C.LAG_UP_MINE, Tl = this._landT(tc), nx;
+    // Si cae antes de llegar a Dp, sube igual (a la misma pendiente) hasta lo que tarda en llegarme su tc (lateE, la latencia de sus
+    // fotos; menos LAND_HIDE tics, que la mezcla del balón ya disimula), y se queda ahí hasta que cae: así su defensa de mi remate se
+    // pinta en su sitio. Antes se quedaba a 0 y su defensa llegaba tarde: una corrección en el presente de 3-4,6 m, sin mezcla, con
+    // RTT 250 (30-40 por partido). Con RTT bajo apenas frena
+    var lc = Math.max(l0, Math.min(Dp, this.lateE >= 0 ? this.lateE - C.LAND_HIDE : Dp));
+    if (Tl >= 0 && Tl < t1) {
+      var lu = Math.min(lc, l0 + Math.max(0, Tl - t0) * C.LAG_UP_MINE), tu = t0 + (lu - l0) / C.LAG_UP_MINE;
+      nx = Tl <= tf ? null : lu - l0 > 0.01 && Tl > t0 ? { t0: t0, t1: tu, l0: l0, l1: lu, next: Tl > tu ? { t0: tu, t1: Tl, l0: lu, l1: lu } : null } : { t0: tf, t1: Tl, l0: l0, l1: l0 };
+    }
+    else nx = t1 > tf ? { t0: t0, t1: t1, l0: l0, l1: Dp } : null;
+    this.lagPlan = nx;
   };
   /** Tic (fraccionario) en que el balón de un contacto toca el suelo en vuelo libre, o -1 (más de 4 s). */
   var _fl3 = {}, _fl4 = {};
   SP._landT = function (tc) {
     var S = Sim(), B = tc.b, BR = (VB.C && VB.C.BR) || 0.21, o = _fl4, n = 0, age = tc.bAge || 0;
     if (!B || !S.flFly) return -1;
-    o.x = B[0]; o.y = B[1]; o.z = B[2]; o.vx = B[3]; o.vy = B[4]; o.vz = B[5]; o.spin = B[6]; o.speed = B[7]; o.dip = B[8]; o.wobA = B[9]; o.wobF = B[10]; o.wobP = B[11];
-    while (n < 960) {
-      var out = S.flFly(o, age, 8, STEP / 2, _fl3); n += 8; age = out.age;
-      if (out.z <= BR + 1e-6) return (2 * tc.T + tc.h + n) / 2;
-      for (var k in out) o[k] = out[k];
+    o.x = B[0] || 0; o.y = B[1] || 0; o.z = B[2] || 0; o.vx = B[3] || 0; o.vy = B[4] || 0; o.vz = B[5] || 0; o.spin = B[6] || 0; o.speed = B[7] || 0;
+    o.dip = B[8] || 0; o.wobA = B[9] || 0; o.wobF = B[10] || 0; o.wobP = B[11] || 0;
+    while (n < 960) {   // (vuela en el sitio: antes copiaba out en o cada 8 medios pasos, ~33 KB por llamada)
+      S.flFly(o, age, 8, STEP / 2, o); n += 8; age = o.age;
+      if (o.z <= BR + 1e-6) return (2 * tc.T + tc.h + n) / 2;
     }
     return -1;
   };
@@ -905,8 +1062,12 @@
     this._snapMaybe(T1);
   };
   /** Pose de la SIM de los rivales (solo para mi IA): la última foto extrapolada al tic T, como mucho 12 tics (spec §5.2). */
+  /** ¿Valen las fotos del rival para el rally actual? En el saque, hasta que llega su foto de saque (F_TELE, r actual) las fotos
+   *  son del punto anterior: el rival se queda en la formación que puso mi setupServe (determinista, la misma que la suya). Antes se
+   *  pintaba (y se simulaba, con el balón en la mano del sacador) donde estaba en el punto anterior y saltaba 2-10 m al llegar la foto. */
+  SP._rivFresh = function () { var g = this.g; return g.mode !== 'serve' || this.teleR === (g.fl.r & 65535); };
   SP._simPose = function (T) {
-    var L = this.snaps; if (!L.length) return;
+    var L = this.snaps; if (!L.length || !this._rivFresh()) return;
     var s = L[L.length - 1], g = this.g, rm = 1 - this.slot, e = clampN(T - s.T, 0, C.EXTRAP_MAX) * STEP, G = (VB.C && VB.C.G) || 9;
     var P = this._poses, tau = 0.15, kk = tau * (1 - Math.exp(-e / tau)), i;
     for (i = 0; i < NPL; i++) {
@@ -923,17 +1084,17 @@
   /** Campos discretos de una foto en una pose (e = s desde la foto). sim: también pressEnd, cool y el gesto del humano. */
   SP._discrete = function (o, q, Ts, e, sim) {
     o.anim = Math.max(0, q.anim - e);
-    var a = enumOf(ACTS, q.act); if (a !== undefined) o.lastAction = a; else delete o.lastAction;
+    o.lastAction = enumOf(ACTS, q.act);   // (undefined en vez de delete: la pose no pasa a modo diccionario; flPose se salta los undefined)
     o.actionT = q.age * STEP + e;
-    var sh = enumOf(SHOTS, q.shot); if (sh !== undefined) o.shot = sh; else delete o.shot;
-    var gr = enumOf(GRADES, q.grade); if (gr !== undefined) o.grade = gr; else delete o.grade;
+    o.shot = enumOf(SHOTS, q.shot);
+    o.grade = enumOf(GRADES, q.grade);
     o.onGround = !!(q.bits & 1) && o.z <= 0;
     o.down = Math.max(0, q.down - e);
     if (sim) {
       o.pressEnd = (q.bits & 16) ? (Ts + q.press) * STEP : -9;
       o.cool = (q.bits & 32) ? Math.max(0, 0.1 - e) : 0;
       if (q.bits & 8) { o.swingLive = !!(q.bits & 4); var sw = enumOf(SHOTS, q.sw); o.swingShot = sw !== undefined ? sw : ''; }
-      else { delete o.swingLive; delete o.swingShot; }
+      else { o.swingLive = undefined; o.swingShot = undefined; }
     }
   };
   /** Anillo de mis jugadores (x, y, z, vx, vy, vz, onGround, pressEnd) para la recuperación con rewind. */
@@ -954,6 +1115,7 @@
     var S = Sim(), g = this.g, F = g.fl, me = this.slot, E = g.events, i, e, T = this.T, sendOn = !this.solo && !F.loc[1 - me];
     for (i = 0; i < E.length; i++) {
       e = E[i]; e._tick = T; e._o = me; e._i = this.evI++;
+      if (e.type === 'block') this.bJump = true;   // (el bloqueo recoloca el balón en la red, ±0,3 m: el salto se mezcla en vez de verse de golpe)
       if (e.type === 'gameOver') { if (!this.goSeen) { this.goSeen = true; this._pres.push(e); this._onOver(e, now); } continue; }
       this._pres.push(e);
       (this.confBuf[rk] || (this.confBuf[rk] = [])).push(e);
@@ -970,13 +1132,15 @@
         var m = {}, k; for (k in tc) m[k] = tc[k];
         m.k = 'tc'; m.m = encM(tc.m);
         if (this.epoch) m.ep = this.epoch;
-        m.ne = 1; this._sendIn(encT(JSON.stringify(m), this.epoch));   // eco por 'in' sin los eventos (llegan con el de 'ctl')
-        delete m.ne; m.ev = now_ev;
-        var js = JSON.stringify(m);
+        var js0 = JSON.stringify(m).slice(0, -1);   // (una sola vez: el eco y el de 'ctl' solo se diferencian en la cola)
+        this._sendIn(encT(js0 + ',"ne":1}', this.epoch));   // eco por 'in' sin los eventos (llegan con el de 'ctl')
+        m.ev = now_ev;
+        var js = js0 + ',"ev":' + JSON.stringify(now_ev) + '}';
         try { this.link.send('ctl', js); } catch (er) { }
         this.stats.sent++; this.stats.bytesOut += js.length; this.flStats.kbOut += js.length / 1024;
         this.flStats.tcOut++;
         this.myLastS = tc.s; this.myLastTc = m; if (tc.s > this.chainS) this.chainS = tc.s;
+        this.myTcs.push({ s: tc.s, hc: 2 * tc.T + tc.h, T: tc.T }); if (this.myTcs.length > 40) this.myTcs.shift();
         this.chain.push({ hc: 2 * tc.T + tc.h, b: tc.b, bAge: tc.bAge, full: !!tc.full, team: me, s: tc.s });
         if (this.chain.length > 40) this.chain.shift();
         this._lagOnMine(tc, (now - this.t0) / STEP_MS);
@@ -997,9 +1161,12 @@
       for (i = 0; i < F.pts.length; i++) {
         var pt = F.pts[i], d = S.flDigest(g);
         if (sendOn) {
-          this._ctl({ k: 'pt', r: pt.r, T: pt.T, w: pt.w, reason: pt.reason, text: pt.text, pid: pt.pid, sig: pt.sig, m: encM(pt.m), d: d, s: this.chainS, lt: this.lastTcIn });
+          // ph: medio paso del punto (el del toque de red de un fq aceptado: lo que pasó primero); lf/lfp: mi primer toque desde el
+          // último tc aplicado (antes de que point() lo borre). Con ellos los dos lados deciden una bifurcación por tiempo
+          var ph = typeof pt.hs === 'number' ? pt.hs : 2 * pt.T + 1, lf = typeof pt.lf === 'number' ? pt.lf : -1;
+          this._ctl({ k: 'pt', r: pt.r, T: pt.T, w: pt.w, reason: pt.reason, text: pt.text, pid: pt.pid, sig: pt.sig, m: encM(pt.m), d: d, s: this.chainS, lt: this.lastTcIn, ph: ph, lf: lf, lfp: pt.lfp | 0 });
           this.flStats.ptOut++;
-          this.ptPend[pt.r] = { at: now, lf: F.lf, myS: this.myLastS, tc: this.myLastTc, lt: this.lastTcIn, pre: this.pre && this.pre.r === pt.r ? this.pre : null };
+          this.ptPend[pt.r] = { at: now, ph: ph, myS: this.myLastS, tc: this.myLastTc, lt: this.lastTcIn, tcs: this.myTcs.slice(), pre: this.pre && this.pre.r === pt.r ? this.pre : null };
           this.ptDig[pt.r] = d;
         } else this._release(pt.r);
       }
@@ -1018,7 +1185,7 @@
     var g = this.g, F = g.fl, S = Sim(), i;
     if (F.r === this.curR) return;
     this.chainPrev = this.chain;   // (para pintar el final del vuelo tras el punto: _dispBall)
-    this.curR = F.r; this.chain = []; this.chainS = -1; this.myLastS = -1; this.myLastTc = null; this.lastTcIn = -1;
+    this.curR = F.r; this.chain = []; this.chainS = -1; this.myLastS = -1; this.myLastTc = null; this.lastTcIn = -1; this.myTcs = [];
     for (var sk in this.seenTc) if ((sk.split(':')[0] | 0) < F.r - 2) delete this.seenTc[sk];
     for (var pk in this.ptRej) if (+pk < F.r) delete this.ptRej[pk];
     this.fxHeld = [];
@@ -1062,26 +1229,34 @@
     // cientos de tics y su colchón Dp tardaba minutos en bajar. Solo sale la del final de la ráfaga (snapForce y tele se guardan)
     if (this._tgt - T > C.SNAP_CATCH) return;
     this.snapForceB = this.snapForce; this.snapLastT = T; this.snapForce = false;   // (en el peloteo el balón va en una foto de cada dos, y en las de un contacto)
-    var me = this.slot, M = g.teams[me], h = g.hum[me], S = Sim(), pl = [], i;
+    // (objetos de la foto reutilizados: encS los lee en el momento y solo se queda el buffer, que sí es nuevo cada vez)
+    var me = this.slot, M = g.teams[me], h = g.hum[me], S = Sim(), sc = this._sScr, i;
+    if (!sc) { sc = this._sScr = { o: { ep: 0, T: 0, r: 0, flags: 0, seq: 0, pl: [], ball: null }, b: {} }; for (i = 0; i < NPL; i++) sc.o.pl.push({}); }
+    var pl = sc.o.pl;
     for (i = 0; i < NPL; i++) {
-      var p = M[i];
-      if (!p) { pl.push({ x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0, anim: 0, act: 0, age: 255, shot: 0, grade: 0, bits: 1, down: 0, press: 0, sw: 0 }); continue; }
+      var p = M[i], q = pl[i];
+      if (!p) { q.x = q.y = q.z = q.vx = q.vy = q.vz = q.anim = q.act = 0; q.age = 255; q.shot = q.grade = 0; q.bits = 1; q.down = q.press = q.sw = 0; continue; }
       var isH = h.p === p, pr = p.pressEnd > g.time ? (p.pressEnd - g.time) * HZ : 0;
       var bits = (p.onGround ? 1 : 0) | (p.down > 0 ? 2 : 0) | (isH && S.slotGet(g, me, 'swingLive') ? 4 : 0) | (isH ? 8 : 0) | (pr > 0 ? 16 : 0) | (p.cool > 0 ? 32 : 0);
-      pl.push({ x: p.x, y: p.y, z: p.z, vx: p.vx, vy: p.vy, vz: p.vz, anim: p.anim, act: enumIx(ACTS, p.lastAction),
-        age: p.actionT * HZ, shot: enumIx(SHOTS, p.shot), grade: enumIx(GRADES, p.grade), bits: bits, down: p.down, press: pr,
-        sw: isH ? enumIx(SHOTS, S.slotGet(g, me, 'swingShot')) : 0 });
+      q.x = p.x; q.y = p.y; q.z = p.z; q.vx = p.vx; q.vy = p.vy; q.vz = p.vz; q.anim = p.anim; q.act = enumIx(ACTS, p.lastAction);
+      q.age = p.actionT * HZ; q.shot = enumIx(SHOTS, p.shot); q.grade = enumIx(GRADES, p.grade); q.bits = bits; q.down = p.down; q.press = pr;
+      q.sw = isH ? enumIx(SHOTS, S.slotGet(g, me, 'swingShot')) : 0;
     }
-    var b = g.ball, withB = live && F.own === me && !F.loc[1 - me] && (g.mode === 'serve' || (this.snapSeq & 1) === 0 || this.snapForceB) ? { x: b.x, y: b.y, z: b.z, vx: b.vx, vy: b.vy, vz: b.vz, seq: F.seq } : null;
+    var b = g.ball, withB = null;
+    if (live && F.own === me && !F.loc[1 - me] && (g.mode === 'serve' || (this.snapSeq & 1) === 0 || this.snapForceB)) {
+      withB = sc.b; withB.x = b.x; withB.y = b.y; withB.z = b.z; withB.vx = b.vx; withB.vy = b.vy; withB.vz = b.vz; withB.seq = F.seq;
+    }
     var flags = (this.away || g.hum[me].ai ? F_AWAY : 0) | (live ? 0 : F_IDLE) | (this.solo ? F_SOLO : 0) | (g.skipReq[me] ? F_SKIP : 0) | (this.tele ? F_TELE : 0);
     this.tele = false;
-    var buf = encS({ ep: this.epoch, T: T, r: F.r, flags: flags, seq: this.snapSeq++, pl: pl, ball: withB });
+    var so = sc.o; so.ep = this.epoch; so.T = T; so.r = F.r; so.flags = flags; so.seq = this.snapSeq++; so.ball = withB;
+    var buf = encS(so);
     this._sendIn(buf); this.flStats.snapOut++;
   };
 
   /* ---- un frame ---- */
   SP.advance = function (now, inp) {
     var out = this._out, i;
+    this._gdOk = false;
     out.events = []; out.confirmed = []; out.app = this.appIn.length ? this.appIn.splice(0) : [];
     this._pres = out.events; this._confOut = out.confirmed;
     var dtF = this.lastNow ? now - this.lastNow : 0;
@@ -1149,7 +1324,7 @@
       this._display(now, dtF);
       this._presentRemote();
     }
-    out.g = this.gd; out.status = this.status; out.tick = this.T; out.gcTick = this.T;
+    out.status = this.status; out.tick = this.T; out.gcTick = this.T;
     out.ping = Math.round(this.rtt); out.waitMs = this.waitMs;
     out.unstable = (this.status === 'playing' || this.status === 'waiting') && !this.solo && now - this.lastRecv > C.UNSTABLE;
     out.canAI = this.status === 'waiting' && this.waitMs > C.WAIT_AI && !this.solo;
@@ -1162,8 +1337,11 @@
   /** Esperando, IA, abandono por tiempo (spec §8). Mi lado nunca se congela. */
   SP._life = function (now) {
     if (this.status !== 'playing' && this.status !== 'waiting') { this.goneIn = 0; return; }
-    var g = this.g, F = g.fl, quiet = now - this.lastRecv;
-    var starve = !this.solo && (quiet > C.WAIT || (F.own !== this.slot && !F.loc[F.own] && g.mode === 'rally' && quiet > C.WAIT_OWN));
+    var g = this.g, F = g.fl, quiet = now - this.lastRecv, Ls = this.snaps;
+    // rival ausente (pestaña oculta: avanza a ráfagas de ~1 s): con su balón no se avisa a los 500 ms sino con el umbral general
+    // (antes «Esperando…» parpadeaba cada segundo)
+    var rAway = Ls.length && (Ls[Ls.length - 1].flags & F_AWAY), wOwn = rAway ? C.WAIT : C.WAIT_OWN;
+    var starve = !this.solo && (quiet > C.WAIT || (F.own !== this.slot && !F.loc[F.own] && g.mode === 'rally' && quiet > wOwn));
     if (starve) { if (this.waitStart < 0) { this.waitStart = now; this.stats.waits++; } }
     else if (!this.solo) this.waitStart = -1;
     this.waitMs = this.waitStart >= 0 && !this.solo ? now - this.waitStart : 0;
@@ -1187,15 +1365,15 @@
 
   /* ---- partida de pintar (spec §5) ---- */
   SP._display = function (now, dtF) {
-    var S = Sim(), g = this.g, gd = this.gd, F = g.fl, me = this.slot, rm = 1 - me, i;
-    S.copyGame(gd, g);
+    var g = this.g, gd = this.gd, F = g.fl, me = this.slot, rm = 1 - me, i;
+    this._ov.r = false; this._ov.b = false; this._shown = true; this._gdOk = false;
     var tf = Math.min((now - this.t0) / STEP_MS, this.T + 1);
     var dTick = this.lastTf >= 0 ? Math.max(0, tf - this.lastTf) : 0; this.lastTf = tf; this.tf = tf;
     // colchón del rival: retraso medio de sus fotos + D. D = lo que llegan tarde las peores (percentil 95 de las 64 últimas, sobre
     // la media) + el intervalo entre fotos + 1 tic, entre 6 y 18 tics; Dp cambia como mucho 1 tic por segundo (sin tirones)
     var lateT = this.lateE >= 0 ? this.lateE : this.rtt / 2 / STEP_MS;
     // (con pérdida, una foto perdida deja 8 tics sin datos: un intervalo más de colchón)
-    var Dt = clampN(Math.max(this.lateP - lateT, 2 * this.jitE) + C.SNAP_RALLY * (1 + clampN(this.lossE * 100, 0, 1)) + 1, C.D_MIN, C.D_MAX), tgt = Math.max(0, lateT) + Dt, mx = (dtF || 0) / 1000;
+    var Dt = clampN(Math.max(0.7 * (this.lateP - lateT), 2 * this.jitE) + C.SNAP_RALLY * (1 + clampN(this.lossE * 25, 0, 1)) + 1, C.D_MIN, C.D_MAX), tgt = Math.max(0, lateT) + Dt, mx = (dtF || 0) / 1000;
     if (this.Dp < 0 || this.lateL.length < 32) this.Dp = tgt;   // (al principio, directo: aún no hay medida buena)
     else if (this.Dp - tgt > C.D_MAX) this.Dp = tgt;   // (muy por encima, p. ej. tras un parón: a 1 tic/s tardaba minutos)
     else this.Dp += clampN(tgt - this.Dp, -mx, 4 * mx);   // (sube más deprisa que baja: quedarse sin fotos se ve peor)
@@ -1207,14 +1385,21 @@
     this._dispBall(gd, tf, dTick, dtF, both);
   };
   SP._dispRivals = function (gd, rm, dtF) {
-    var L = this.snaps, Tr = this.Tr, T = gd.teams[rm], G = (VB.C && VB.C.G) || 9, i, s0 = null, s1 = null, k;
+    var L = this.snaps, Tr = this.Tr, T = this.g.teams[rm], G = (VB.C && VB.C.G) || 9, i, s0 = null, s1 = null, k, ov = this._ov;
     if (!L.length) return;
+    if (!this._rivFresh()) {   // saque sin su foto de saque aún: la pose de la sim (la formación de mi setupServe), sin mezcla
+      for (i = 0; i < NPL && i < T.length; i++) {
+        var sh0 = this.pShown[i] || (this.pShown[i] = {}); sh0.x = T[i].x; sh0.y = T[i].y; sh0.z = T[i].z;
+        this.pExt[i] = false; this.pOff[i].x = this.pOff[i].y = this.pOff[i].z = 0;
+      }
+      return;
+    }
     for (k = L.length - 1; k >= 0; k--) if (L[k].T <= Tr) { s0 = L[k]; s1 = L[k + 1] || null; break; }
     if (!s0) { s1 = L[0]; }
-    var decay = Math.pow(0.5, (dtF || 0) / C.BLEND_P), ext = !!s0 && !s1, live = gd.mode === 'serve' || gd.mode === 'rally';
+    var decay = Math.pow(0.5, (dtF || 0) / C.BLEND_P), ext = !!s0 && !s1, live = this.g.mode === 'serve' || this.g.mode === 'rally';
     if (live) { this.flStats.dispFrames++; if (ext) this.flStats.extrapTicks++; }
     for (i = 0; i < NPL && i < T.length; i++) {
-      var p = T[i], o = this._dp || (this._dp = {}), q0, q1;
+      var p = ov.p[i], o = this._dp || (this._dp = {}), q0, q1;
       if (s0 && s1) {
         q0 = s0.pl[i]; q1 = s1.pl[i];
         var hT = (s1.T - s0.T) * STEP, u = (Tr - s0.T) / (s1.T - s0.T), u2 = u * u, u3 = u2 * u;
@@ -1247,25 +1432,103 @@
       off.x *= decay; off.y *= decay; off.z *= decay;
       this.pExt[i] = ext;
       p.x = o.x + off.x; p.y = o.y + off.y; p.z = Math.max(0, o.z + off.z); p.vx = o.vx; p.vy = o.vy; p.vz = o.vz;
-      if (o.lastAction !== undefined) p.lastAction = o.lastAction;
-      if (o.shot !== undefined) p.shot = o.shot;
-      if (o.grade !== undefined) p.grade = o.grade;
+      p.lastAction = o.lastAction; p.shot = o.shot; p.grade = o.grade;   // (undefined: se deja el de la partida, _ovApply)
       p.anim = o.anim; p.actionT = o.actionT; p.onGround = o.onGround; p.down = o.down;
       if (!sh) sh = this.pShown[i] = {};
       sh.x = p.x; sh.y = p.y; sh.z = p.z;
     }
+    ov.r = true; ov.rm = rm; ov.n = Math.min(NPL, T.length);
+  };
+  /** Pose pintada (rivales y balón de _display) sobre la partida G. save: guarda lo que había para _ovRestore. */
+  var OVP = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'anim', 'actionT', 'onGround', 'down'], OVO = ['lastAction', 'shot', 'grade'];
+  var hasOwn = Object.prototype.hasOwnProperty;
+  SP._ovApply = function (G, save) {
+    var ov = this._ov, sv = this._sv, i, k, q, w, s, key;
+    if (ov.r) {
+      var Tm = G.teams[ov.rm];
+      for (i = 0; i < ov.n && i < Tm.length; i++) {
+        q = Tm[i]; w = ov.p[i];
+        if (save) {
+          s = sv.p[i];
+          for (k = 0; k < OVP.length; k++) s[OVP[k]] = q[OVP[k]];
+          for (k = 0; k < OVO.length; k++) { key = OVO[k]; s['h' + k] = hasOwn.call(q, key); s[key] = q[key]; }
+        }
+        for (k = 0; k < OVP.length; k++) q[OVP[k]] = w[OVP[k]];
+        for (k = 0; k < OVO.length; k++) if (w[OVO[k]] !== undefined) q[OVO[k]] = w[OVO[k]];
+      }
+    }
+    if (ov.b) {
+      var b = G.ball;
+      if (save) { s = sv.b; s[0] = b.x; s[1] = b.y; s[2] = b.z; s[3] = b.vx; s[4] = b.vy; s[5] = b.vz; }
+      b.x = ov.bx; b.y = ov.by; b.z = ov.bz;
+      if (ov.bv) { b.vx = ov.bvx; b.vy = ov.bvy; b.vz = ov.bvz; }
+    }
+  };
+  SP._ovRestore = function (G) {
+    var ov = this._ov, sv = this._sv, i, k, q, s, key;
+    if (ov.r) {
+      var Tm = G.teams[ov.rm];
+      for (i = 0; i < ov.n && i < Tm.length; i++) {
+        q = Tm[i]; s = sv.p[i];
+        for (k = 0; k < OVP.length; k++) q[OVP[k]] = s[OVP[k]];
+        for (k = 0; k < OVO.length; k++) { key = OVO[k]; if (s['h' + k]) q[key] = s[key]; else if (hasOwn.call(q, key)) delete q[key]; }
+      }
+    }
+    if (ov.b) { var b = G.ball; s = sv.b; b.x = s[0]; b.y = s[1]; b.z = s[2]; b.vx = s[3]; b.vy = s[4]; b.vz = s[5]; }
+  };
+  /** fn(a, partida, b) con la partida local mostrando la pose pintada; después todo vuelve a como estaba (main.js:
+   *  withDisplay(NetView.mirror, vista, hueco)). Igual que fn(a, gd, b) con gd = copia + pose pintada, sin la copia entera. */
+  SP.withDisplay = function (fn, a, b) {
+    var g = this.g;
+    if (!g || !this._shown) return fn(a, this.gd, b);
+    this._ovApply(g, true);
+    try { return fn(a, g, b); } finally { this._ovRestore(g); }
+  };
+  /** out.g: la partida de pintar como antes (copia de la local + pose pintada), solo si se lee; una vez por frame. */
+  SP._gdGet = function () {
+    if (!this.g || !this._shown) return this.gd;
+    if (!this._gdOk) { Sim().copyGame(this.gd, this.g); this._ovApply(this.gd, false); this._gdOk = true; }
+    return this.gd;
   };
   /** Posición del balón en el tic (fraccionario) tau según la cadena de contactos del rally: null si no la cubre. */
   var _fb = {}, _fb2 = {};
+  // cursor del vuelo (_ballAt): el último estado volado por entrada de la cadena. Pedir la misma entrada más tarde sigue desde ahí
+  // (age += dt paso a paso, como en un solo flFly: mismo resultado bit a bit) en vez de volar otra vez desde el contacto cada frame
+  function _ballCopy(a, o) {
+    o.x = a.x; o.y = a.y; o.z = a.z; o.vx = a.vx; o.vy = a.vy; o.vz = a.vz; o.spin = a.spin; o.speed = a.speed; o.dip = a.dip;
+    o.wobA = a.wobA; o.wobF = a.wobF; o.wobP = a.wobP; o.age = a.age;
+    return o;
+  }
   SP._ballAt = function (tau, Ch) {
     Ch = Ch || this.chain;
     var J = Math.floor(2 * tau) + 1, k, c = null;
     for (k = Ch.length - 1; k >= 0; k--) if (Ch[k].hc <= J) { c = Ch[k]; break; }
     if (!c) return null;
-    var S = Sim(), n = J - c.hc, B = c.b, dh = STEP / 2, o = _fb2;
+    var S = Sim(), n = J - c.hc, dh = STEP / 2, K = this._bk || (this._bk = { c: null, full: false, p: 0, o: {} });
+    // pasos hechos: el saque (full) vuela su primer paso entero (= 2 medios) y luego medios pasos; con n < 2, medios pasos desde el
+    // principio (otro camino: sin cursor). Tope de 1920 medios pasos como antes
+    var full = !!c.full && n >= 2, pt = full ? 2 + Math.min(n - 2, 1920) : Math.min(n, 1920);
+    if (C.BACHECK) var ref = this._ballAt0(c, n);
+    if (K.c === c && K.full === full && K.p <= pt && (full || !c.full)) {
+      if (pt > K.p) S.flFly(K.o, K.o.age, pt - K.p, dh, K.o);
+    } else {
+      var B = c.b, o = _fb2;
+      o.x = B[0]; o.y = B[1]; o.z = B[2]; o.vx = B[3]; o.vy = B[4]; o.vz = B[5]; o.spin = B[6]; o.speed = B[7]; o.dip = B[8]; o.wobA = B[9]; o.wobF = B[10]; o.wobP = B[11];
+      if (full) { S.flFly(o, c.bAge, 1, STEP, K.o); S.flFly(K.o, K.o.age, pt - 2, dh, K.o); }
+      else S.flFly(o, c.bAge, pt, dh, K.o);
+      K.c = c; K.full = full;
+    }
+    K.p = pt;
+    var r = _ballCopy(K.o, _fb);
+    if (ref) { for (var q in ref) if (!Object.is(ref[q], r[q])) { this.flStats.baBad = (this.flStats.baBad || 0) + 1; break; } this.flStats.baN = (this.flStats.baN || 0) + 1; }
+    return r;
+  };
+  /** _ballAt de antes (sin cursor): solo para la comprobación C.BACHECK de las pruebas. */
+  SP._ballAt0 = function (c, n) {
+    var S = Sim(), B = c.b, dh = STEP / 2, o = {}, out = {};
     o.x = B[0]; o.y = B[1]; o.z = B[2]; o.vx = B[3]; o.vy = B[4]; o.vz = B[5]; o.spin = B[6]; o.speed = B[7]; o.dip = B[8]; o.wobA = B[9]; o.wobF = B[10]; o.wobP = B[11];
-    if (c.full && n >= 2) { S.flFly(o, c.bAge, 1, STEP, _fb); return S.flFly(_fb, _fb.age, Math.min(n - 2, 1920), dh, _fb); }
-    return S.flFly(o, c.bAge, Math.min(n, 1920), dh, _fb);
+    if (c.full && n >= 2) { S.flFly(o, c.bAge, 1, STEP, out); return _ballCopy(S.flFly(out, out.age, Math.min(n - 2, 1920), dh, out), {}); }
+    return _ballCopy(S.flFly(o, c.bAge, Math.min(n, 1920), dh, out), {});
   };
   /** Balón de las fotos del rival en tau (solo las del rally r si se da), o null. */
   SP._snapBall = function (tau, r) {
@@ -1289,8 +1552,8 @@
       this.lagPlan = null; if (this.lag > 0) this.lag = Math.max(0, this.lag - dTick * (C.WARP_MAX - 1));
     } else if (this.lagPlan) {
       var P = this.lagPlan, u = P.t1 > P.t0 ? clampN((tf - P.t0) / (P.t1 - P.t0), 0, 1) : 1;
-      this.lag = P.l0 + (P.l1 - P.l0) * u;
-      if (u >= 1) this.lagPlan = null;
+      this.lag = P.l0 + (P.l1 - P.l0) * (P.ease ? u * u * (3 - 2 * u) : u);
+      if (u >= 1) this.lagPlan = P.next || null;
     } else {
       var tg = F.own === me ? 0 : this.Dp;
       if (this.lag < tg) this.lag = Math.min(tg, this.lag + dTick * C.LAG_UP);
@@ -1326,21 +1589,29 @@
       else if (pr) { ox = pr.x + pr.vx * dS; oy = pr.y + pr.vy * dS; oz = pr.z + pr.vz * dS; }
       else { ox = sh.x - off.x; oy = sh.y - off.y; oz = sh.z - off.z; }
       var ex = ox + off.x - x, ey = oy + off.y - y, ez = oz + off.z - z;
-      if (ex * ex + ey * ey + ez * ez < 9) { off.x = ex; off.y = ey; off.z = ez; } else { off.x = off.y = off.z = 0; }
+      var e2 = ex * ex + ey * ey + ez * ez;
+      if (e2 < 9) { off.x = ex; off.y = ey; off.z = ez; }
+      else if (g.mode === 'rally' && e2 < 100) {
+        // en pleno peloteo (un contacto rival que llega tarde, un salto de lo que no cabe en WARP_MAX): salta solo lo que pasa de 3 m
+        // y el resto se mezcla como un salto (40 ms cerca de los míos, 90 lejos). Antes, más de 3 m: teletransporte de golpe (spec
+        // §5.3), 9-20 por partido con RTT 250. Fuera del peloteo (el saque, tras el punto) sigue de golpe: ahí no hay vuelo que mezclar
+        var kq = 3 / Math.sqrt(e2); off.x = ex * kq; off.y = ey * kq; off.z = ez * kq; this.bSnap = true;
+        this.flStats.bTeleR = (this.flStats.bTeleR || 0) + 1;
+      } else { off.x = off.y = off.z = 0; this.flStats.bTele = (this.flStats.bTele || 0) + 1; }
     }
     this.bJump = false; this.bSrc = src; this.bCh = src === 'chain' ? Ch : null;
     if (!pr) pr = this.bRaw = {};
     pr.x = x; pr.y = y; pr.z = z; pr.vx = vx || 0; pr.vy = vy || 0; pr.vz = vz || 0; pr.src = src;
     var near = false, M = g.teams[me];
     for (var i = 0; i < M.length; i++) if (Math.abs(M[i].x - x) + Math.abs(M[i].y - y) < 3) near = true;
-    var tau0 = this.bSnap ? C.BLEND_B : near ? C.BALL_TAU_NEAR : C.BALL_TAU, dec = Math.exp(-(dtF || 0) / tau0);
+    var tau0 = this.bSnap ? (near ? C.BLEND_B : C.BLEND_B_FAR) : near ? C.BALL_TAU_NEAR : C.BALL_TAU, dec = Math.exp(-(dtF || 0) / tau0);
     if (Math.abs(off.x) + Math.abs(off.y) + Math.abs(off.z) < 1e-4) this.bSnap = false;
     off.x *= dec; off.y *= dec; off.z *= dec;
-    var gb = gd.ball;
-    gb.x = x + off.x; gb.y = y + off.y; gb.z = z + off.z;
-    if (raw && src === 'chain') { gb.vx = vx; gb.vy = vy; gb.vz = vz; }
+    var gb = this._ov;
+    gb.b = true; gb.bx = x + off.x; gb.by = y + off.y; gb.bz = z + off.z;
+    gb.bv = !!(raw && src === 'chain'); if (gb.bv) { gb.bvx = vx; gb.bvy = vy; gb.bvz = vz; }
     if (!sh) sh = this.bShown = {};
-    sh.x = gb.x; sh.y = gb.y; sh.z = gb.z;
+    sh.x = gb.bx; sh.y = gb.by; sh.z = gb.bz;
   };
   /** Eventos remotos que ya tocan: los del contacto cuando el balón pintado llega a él; los del rival cuando su pose pintada. */
   SP._presentRemote = function () {

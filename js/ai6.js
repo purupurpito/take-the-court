@@ -30,8 +30,12 @@
 
   /* ---------- Tablas (formaciones v1) ---------- */
   var FORM = {
-    passTo: { d: 1.5, yl: 0.9, apex: 4.1 },    // recepción: al colocador («zona 2,5»)
-    digTo: { d: 2.2, yl: 0.5, apex: 3.9 },     // defensa de remate: algo más separada de la red
+    // near: metros que se acerca a la red el pase bueno (17-nov-2026, Ferran: «muchas de las recepciones/defensas buenísimas van
+    // bastante lejos de la red… deberían ir un poco más cerca»): rampa con la calidad de passNearQ[0] (nada) a passNearQ[1] (todo).
+    // Perfecta: a ~1,3 m de la red a 3 m de alto (antes ~1,9), donde el colocador delantero puede atacar de segunda; la mala, igual
+    passTo: { d: 1.5, yl: 0.9, apex: 4.1, near: 0.7 },    // recepción: al colocador («zona 2,5»)
+    digTo: { d: 2.2, yl: 0.5, apex: 3.9, near: 0.8 },     // defensa de remate: algo más separada de la red
+    passNearQ: [0.45, 0.9],
     setSpot: { d: 0.9, yl: 0.9 },     // donde espera el colocador la recepción
     // carril de cada puesto delantero en defensa (bloqueo de zona): punta a la izquierda, central al medio, S/OPP a la derecha
     netLane: { OH: -2.6, MB: 0, OPP: 2.6, S: 2.6, L: 0 },
@@ -372,7 +376,8 @@
   /** Destino del 1r toque (recepción/defensa) en coordenadas locales. Anota la calidad para el colocador. */
   function passTarget(g, p, hard, q) {
     var T = hard ? FORM.digTo : FORM.passTo;
-    _pt.d = T.d; _pt.yl = T.yl; _pt.apex = T.apex;
+    var NQ = FORM.passNearQ, kq = clamp(((q == null ? 0.6 : q) - NQ[0]) / (NQ[1] - NQ[0]), 0, 1); // (pura: sin g.rng)
+    _pt.d = T.d - T.near * kq; _pt.yl = T.yl; _pt.apex = T.apex;
     var pq = g._pq6 || (g._pq6 = [{ q: 0, t: -9 }, { q: 0, t: -9 }]);
     // la defensa de un remate casi nunca deja jugar en sistema (rápida): cuenta como peor recepción
     pq[p.team].q = (q == null ? 0.6 : q) * (hard ? FORM.digSys : 1); pq[p.team].t = g.time;

@@ -1199,7 +1199,7 @@ Contrato: CONTRACT §4.4 «Sprint 2-4».
   En la cámara lenta de la repetición (×0,5) estos fallos se ven el doble de tiempo. El 1 de fx.js está en notes/arena.md.
 - Las ventosas de `rodiPulpo` son caras cuadradas de una esfera de 16×12; las pintadas en muslo y espinilla casi no se ven.
 
-## Salto con impulso (v1.10.0, 18-nov-2026, players)
+## Salto con impulso (v1.12.0, 18-nov-2026, players)
 - `jump` con `e.dir`/`e.jv` (sim, salto con dirección del humano): `r.djL` = 10° × min(1, jv/1,8). `djLean` inclina el tronco (PP 60 %, CP 40 %)
   solo con la parte de la deriva que va hacia el frente del cuerpo (`r.yaw`) y lo deshace entre 0,22 y 0,42 s (antes del latigazo); en
   los primeros 0,16 s la brazada sale de más atrás y abajo. `r.lagOn = !e.dir && …` (un salto con dirección no es «sin carrera»).

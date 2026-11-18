@@ -135,7 +135,7 @@
   // E6: diana del ejercicio (g.drill.target {x, y, r}) = 2 instancias del lote de calcomanías (celda 8 + aro con filo de la celda 2), tinte cálido.
   // E1: marcador de la colocación dirigida (Sim.setPreview) = 1 instancia más (aro de las ondas), un color por tempo. 0 dibujos nuevos.
   var drillTgt = null, drillRing = null, drA = 0, drX = 0, drY = 0, drR = 0.8, drR2 = 0, drPop = 0, setMk = null, spA = 0, spT = '';
-  // Salto con impulso (v1.10.0): sombra de caída del humano (Sim.landingOf), marca de despegue del pipe (6v6), diana de la colocación en
+  // Salto con impulso (v1.12.0): sombra de caída del humano (Sim.landingOf), marca de despegue del pipe (6v6), diana de la colocación en
   // salto (g.aim3.kind 'jset', Sim.jsetAimInfo) y segundo aro (cbColors: impulso / diana de colocación). 4 instancias más del lote de
   // calcomanías: 0 dibujos nuevos y nada por frame (las lecturas de sim devuelven objetos propios reutilizados)
   var ldMk = null, ldA = 0, ldNet = 0, tkMk = null, tkA = 0, tkHold = 0, tkX = 0, tkY = 0, tkOk = false, jsRet = null, jsA = 0, aim2 = null;
