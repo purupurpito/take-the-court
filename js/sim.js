@@ -2187,7 +2187,7 @@
     g.call = g._pendCall; g._pendCall = null; g.cpuChal = null; g.digTight = false; if (g.online) { aimOff(g); g.skipReq[0] = g.skipReq[1] = false; } else g.aim3.on = false;
     if (g.call) { g.call.team = 1 - w; g.call.t = g.time; g.call.setNo = g.setNo; g._snap = snapOf(g); } else g._snap = null;
     g.score[w]++; g.mode = 'point'; g.ball.held = null; endSwingX(g);
-    if (g.fl && !g.fl.app) g.fl.pts.push({ r: g.fl.r, w: w, reason: reason, text: text, pid: p ? p.id : -1, sig: sig || null, T: g.fl.T, m: flMeta(g) }); // fl
+    if (g.fl && !g.fl.app) g.fl.pts.push({ r: g.fl.r, w: w, reason: reason, text: text, pid: p ? p.id : -1, sig: sig || null, T: g.fl.T, m: flMeta(g), hs: g.fl.hs, lf: g.fl.lf, lfp: g.fl.lfPar }); // fl
     if (g.subsOn) { g._subU = g._snap ? subUndo(g) : null; subCount(g); }   // banquillo: puntos en pista (g.meR, p.onR), del partido (g.rallyN) y cansancio
     var sideout = w !== g.serving;
     if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.how = g.stats.how || {}; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.rallies.push(g.rally.t); }
@@ -4224,6 +4224,22 @@
       flStep(s, age, 2 * dh); age += 2 * dh; k = 2;
       if (s.z <= C.BR) return -1;
       if (flInZone(s, so, canMore)) return k;
+    }
+    // atajo (mismo resultado, sin volar): sin baile (wobA 0) vx y la gravedad no cambian. Si el balón se aleja del otro equipo nunca
+    // entra en su zona; si ya la pasó, tampoco; y si cae (cota por arriba, con margen) antes de poder llegar a ella (cota por abajo,
+    // con margen), -1. El vuelo de abajo daría -1 tras hasta 960 medios pasos (el 60 % de los contactos propios).
+    if (!s.wobA) {
+      var dir = s.vx > 0 ? 1 : s.vx < 0 ? -1 : 0;
+      if (dir !== so) return -1;
+      var u0 = s.x * so, Lm = FL.ZMAX + 0.01;
+      if (u0 > Lm) return -1;
+      var Ge = gEff(s);
+      if (Ge > 0) {
+        var kz = u0 < -Lm ? (-Lm - u0) / (Math.abs(s.vx) * dh) : 0;
+        var A = Ge * dh * dh / 2, B = dh * s.vz - A, c0 = s.z - (C.BR - 0.005);
+        var kl = c0 <= 0 ? 0 : (B + Math.sqrt(B * B + 4 * A * c0)) / (2 * A);
+        if (Math.ceil(kl) + 3 < kz - 3) return -1;
+      }
     }
     while (k < FL.KH_MAX) {
       flStep(s, age, dh); age += dh; k++;

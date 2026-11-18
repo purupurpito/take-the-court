@@ -111,7 +111,7 @@ if (!RTC && !GUION) (async () => {
     "var k=mk(this.confirmedGame());if(k&&S[S.length-1]!==k)S.push(k);return r;};})()";
   for (const p of P) await p.evalJs(HOOK);
   const t1 = Date.now();
-  let shots = 0;
+  let shots = 0; const LTH = [{ tag: '', hud: '' }, { tag: '', hud: '' }];
   while (Date.now() - t1 < SECS * 1000) {
     await sleep(5000);
     const a = await st(P[0]), b = await st(P[1]);
@@ -119,6 +119,11 @@ if (!RTC && !GUION) (async () => {
     if (shots < 2 && Date.now() - t1 > (shots ? 40000 : 15000)) {
       shots++;
       for (let k = 0; k < 2; k++) console.log('  captura', await P[k].shot(path.join(OUT, 'netdrive-' + (k ? 'invitado' : 'anfitrion') + '-' + shots + '.png')));
+    }
+    // rótulo y HUD mientras se juega (con points=N el partido puede acabar antes y al final ya no están)
+    for (let k = 0; k < 2; k++) {
+      const th = await P[k].evalJs("JSON.stringify((function(){var t=document.getElementById('netTag'),h=document.getElementById('netHud');return{tag:t&&!t.hidden?t.textContent:'',hud:h&&!h.hidden?h.textContent:''}})())").then(JSON.parse).catch(() => null);
+      if (th && th.tag) LTH[k].tag = th.tag; if (th && /ms/.test(th.hud)) LTH[k].hud = th.hud;
     }
     if (a && a.st === 'over' && b && b.st === 'over') break;
   }
@@ -142,6 +147,7 @@ if (!RTC && !GUION) (async () => {
     "hum:gc&&[gc.hum[0].p.id,gc.hum[1].p.id],tag:(function(){var e=document.getElementById('netTag');return e&&!e.hidden?e.textContent:''})()," +
     "hud:(function(){var e=document.getElementById('netHud');return e&&!e.hidden?e.textContent:''})(),q:VB.ctx.quality&&VB.ctx.quality.level}})())")));
   const [A, B] = R;
+  for (let k = 0; k < 2; k++) { if (!R[k].tag) R[k].tag = LTH[k].tag; if (!/ms/.test(R[k].hud)) R[k].hud = LTH[k].hud; }
   if (!FLUIDA) {
     let n = 0, bad = 0;
     for (const t in A.h) if (B.h[t] !== undefined) { n++; if (A.h[t] !== B.h[t]) bad++; }
@@ -578,9 +584,14 @@ if (GUION) (async () => {
   await waitFor(P[1], "!!document.querySelector('#netHud button[data-n=quit]')", 2000);
   await ev(P[1], "document.querySelector('#netHud button[data-n=quit]').click()");
   const rq = await waitFor(P[0], "VB.ctx.net&&VB.ctx.net.r.status==='ended'&&VB.ctx.net.r.result.why==='rivalQuit'", 8000);
+  // (auditoría, como en --rtc) quien abandona ve «Has abandonado [Volver al menú]»; Esc (o el botón) sale al menú
+  const hqI = await waitFor(P[1], "(function(){var h=document.getElementById('netHud');return !!(h&&!h.hidden&&/Has abandonado/.test(h.textContent)&&h.querySelector('button[data-n=menu]'))})()", 5000);
+  check('abandono: el invitado ve «Has abandonado [Volver al menú]»', hqI, await ev(P[1], "(function(){var h=document.getElementById('netHud');return h?h.textContent:''})()"));
+  await ev(P[1], 'VB.ctx.actions.pause()');
+  const mq = await waitFor(P[1], "VB.ctx.state==='menu'&&!VB.ctx.net", 5000);
   await sleep(500);
-  const r1 = await J(P[1], 'VB.NetRec.get()'), hq = (await S(P[0])).hud, mq = await J(P[1], 'VB.ctx.state');
-  check('abandono: el invitado vuelve al menú y cuenta como derrota (abandono); al anfitrión, victoria', rq && mq === 'menu' && r1.played === r0.played + 2 && r1.quits === r0.quits + 1 && r1.wins === r0.wins + 1 && /ha abandonado: ganas tú/.test(hq), { antes: r0 && [r0.played, r0.wins, r0.quits], despues: r1 && [r1.played, r1.wins, r1.quits], hud: hq });
+  const r1 = await J(P[1], 'VB.NetRec.get()'), hq = (await S(P[0])).hud;
+  check('abandono: … Esc le lleva al menú y cuenta como derrota (abandono); al anfitrión, victoria', rq && mq && r1.played === r0.played + 2 && r1.quits === r0.quits + 1 && r1.wins === r0.wins + 1 && /ha abandonado: ganas tú/.test(hq), { menu: mq, antes: r0 && [r0.played, r0.wins, r0.quits], despues: r1 && [r1.played, r1.wins, r1.quits], hud: hq });
   console.log('  captura', await P[0].shot(path.join(OUT, 'net3-anfitrion-abandono.png')));
   check('consola sin errores', !P[0].errors.length && !P[1].errors.length, [P[0].errors.slice(0, 3), P[1].errors.slice(0, 3)]);
   // ---- capturas de la gorra en el Vestuario (pista y playa) ----

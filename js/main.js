@@ -887,7 +887,8 @@
     netRecTick(r);
     if (!v && s.opts && r.status !== 'ended') { netBuildView(); v = net.view; }
     if (v) {
-      VB.NetView.mirror(v, r.g, net.slot);
+      // Fluida: la pose pintada se pone sobre la partida local solo mientras se copia a la vista (sin la copia entera de más por frame)
+      if (net.model === 'fluida' && s.withDisplay) s.withDisplay(VB.NetView.mirror, v, net.slot); else VB.NetView.mirror(v, r.g, net.slot);
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
       netConfirmed(s, r.confirmed);
       if (r.events.length) VB.NetView.mapEvents(r.events, v, net.slot, frameEvents);
@@ -958,7 +959,7 @@
         w === 'mismatch' ? 'La sala no coincide con lo anunciado: no hay partido' :
         w === 'noShow' ? (s.rivalName ? who + ' se ha ido: no hay partido' : 'Tu rival no ha llegado: no hay partido') : 'Partido terminado';
       btn = '<button data-n="menu">Volver al menú</button>';
-    } else if (r.status === 'waiting') {
+    } else if (r.status === 'waiting' && (net.model !== 'fluida' || r.waitMs > 300)) {   // (Fluida: un «esperando» de menos de 0,3 s no se enseña: sin parpadeos)
       // (revisión F3: abandonar SIEMPRE es derrota, también si quien se cayó es el rival; por eso el botón lo dice y la cuenta atrás
       //  enseña la salida que no castiga: esperar los 60 s, seguir o no contra la IA)
       msg = 'Esperando a ' + who + '…' + (r.rivalSolo ? ' (sigue contra la IA)' : '');
