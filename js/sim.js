@@ -2280,8 +2280,9 @@
     // B2: llamada de este punto (solo si acaba en bote) e instantánea del estado previo para poder anularlo
     g.call = g._pendCall; g._pendCall = null; g.cpuChal = null; g.digTight = false; if (g.online) { aimOff(g); g.skipReq[0] = g.skipReq[1] = false; } else g.aim3.on = false;
     if (g.call) { g.call.team = 1 - w; g.call.t = g.time; g.call.setNo = g.setNo; g._snap = snapOf(g); } else g._snap = null;
+    if (g.fl && g.call) g.call.r = g.fl.r; // fl
     g.score[w]++; g.mode = 'point'; g.ball.held = null; endSwingX(g);
-    if (g.fl && !g.fl.app) g.fl.pts.push({ r: g.fl.r, w: w, reason: reason, text: text, pid: p ? p.id : -1, sig: sig || null, T: g.fl.T, m: flMeta(g), hs: g.fl.hs, lf: g.fl.lf, lfp: g.fl.lfPar }); // fl
+    if (g.fl && !g.fl.app) g.fl.pts.push({ r: g.fl.r, w: w, reason: reason, text: text, pid: p ? p.id : -1, sig: sig || null, T: g.fl.T, m: flMeta(g), hs: g.fl.hs, lf: g.fl.lf, lfp: g.fl.lfPar, cl: flCall(g.call) }); // fl
     if (g.subsOn) { g._subU = g._snap ? subUndo(g) : null; subCount(g); }   // banquillo: puntos en pista (g.meR, p.onR), del partido (g.rallyN) y cansancio
     var sideout = w !== g.serving;
     if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.how = g.stats.how || {}; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.rallies.push(g.rally.t); }
@@ -4380,7 +4381,11 @@
    *       el fantasma; g.time = floor(j/2)·dt mientras dura. full: el primer vuelo es un paso entero (saque). cT: tic al que
    *       corresponden blockCD y rally.t del estado (por defecto el de fromHs).
    *   flApplyPt(g, m) → true (marcador igual a m.d) | false (distinto: la sesión lo cuenta y repara) | null (m.r ≠ r: guardarlo).
-   *       m = {r, w, reason, text, pid, sig, m, d}. Llama a point() con g.fl.app (mismos eventos, sin azar).
+   *       m = {r, w, reason, text, pid, sig, m, d, cl}. Llama a point() con g.fl.app (mismos eventos, sin azar); cl = la llamada de
+   *       línea del dueño (flCall de su g.call, con su error arbitral): queda en g.call igual que allí.
+   *   flChallenge(g, team, r, force) → bool   challenge de team sobre la llamada del rally r (g.call.r = g.fl.r del punto). Lo acepta
+   *       la máquina rival (sin force: ventana normal) y, con su «sí», lo aplica el que lo pidió (force: sin mirar la ventana). La
+   *       revisión corre en las dos; si anula el punto, stepFluid lo vuelve a pitar con g.fl.app en las dos (r sube otra vez).
    *   flServe(g, force) → bool             setupServe (y nextSet si toca) con el punto ya en 'point' y su reloj a 0 (o force); una
    *       sola vez por rally.
    *   flSkip(g, t)                         «Continuar» del equipo t (skipReq y su evento).
@@ -4389,7 +4394,7 @@
    *       swingShot en g.hum[team]. Lanza un error si el equipo se simula aquí.
    *   flDigest(g) → [r, score0, score1, sets0, sets1, setNo, serving, serverIdx0, serverIdx1, pendingSet ? 1 : 0]
    *   flMatch(g) → bloque del marcador; flMatch(g, blk) lo escribe (score, sets, setNo, setScores, serving, serverIdx, server (id),
-   *       pendingSet, finished, setPoint, matchPoint, streakTeam/N, courtSwap3/At, r). Nunca toca jugadores.
+   *       pendingSet, finished, setPoint, matchPoint, streakTeam/N, courtSwap3/At, r, challenges). Nunca toca jugadores.
    *   FL: constantes (zona, búsqueda de kh, tope de recuperación); mine(g, p). Internos para las pruebas: _flKh, _flGhost, _flHand,
    *   _flContact, _stepFluid, _stepBall. */
   var FL = { ZMIN: 0.25, ZMAX: 0.6, ZK: 0.12, KH_MAX: 960, CATCH_MAX: 72 };
@@ -4634,11 +4639,29 @@
     flCatchUp(g, 2 * m.T + m.h + 1, nowT, rewind, !!m.full, m.T);
     return fork ? 'fork' : 'ok';
   }
+  /** Copia plana de una llamada de línea (g.call / pt.cl) sin los campos que pone point(): null si no hay. */
+  function flCall(c) {
+    if (!c || typeof c !== 'object' || !Array.isArray(c.alt)) return null;
+    return { x: +c.x || 0, y: +c.y || 0, dist: +c.dist || 0, truthIn: !!c.truthIn, calledIn: !!c.calledIn, wrong: !!c.wrong,
+      alt: c.alt.slice(0, 3), used: !!c.used };
+  }
+  /** Challenge online Fluida del equipo team sobre la llamada del rally r (g.call.r). Sin force, como challenge() (ventana de
+   *  CHAL.window s); con force (el que lo pidió, al llegar el «sí» del otro) sin mirar la ventana: el otro ya la miró al aceptarlo. */
+  function flChallenge(g, team, r, force) {
+    var c = g.call;
+    if (!g.fl || !c || c.r !== r) return false;
+    if (!force) return challenge(g, team);
+    if (c.used || g.review || g.finished || c.team !== team || !(chalLeft(g, c, team) > 0)) return false;
+    if (g.mode !== 'point' && g.mode !== 'over' && g.mode !== 'serve') return false;
+    var t0 = c.t; c.t = g.time;
+    try { return challenge(g, team); } finally { c.t = t0; }
+  }
   function flApplyPt(g, m) {
     var F = g.fl;
     if (!F || !m || m.r !== F.r) return null;
     flSetMeta(g, m.m, g.time);
     if (g.mode !== 'rally' && g.mode !== 'serve') g.mode = 'rally';
+    g._pendCall = flCall(m.cl);   // la llamada de línea del dueño (con su error arbitral): el challenge es el mismo en las dos máquinas
     F.app = true;
     var gb = F.frozen && F.gv && g.mode === 'rally';   // el fantasma ya cayó: bota y rueda desde el suelo con la velocidad del bote
     try { point(g, m.w, m.reason, m.text, flBy(g, m.pid), m.sig || undefined); } finally { F.app = false; }
@@ -4678,7 +4701,8 @@
       var ss = []; for (i = 0; i < g.setScores.length; i++) ss.push(g.setScores[i].slice());
       return { score: g.score.slice(), sets: g.sets.slice(), setNo: g.setNo, setScores: ss, serving: g.serving, serverIdx: g.serverIdx.slice(),
         server: flId(g.server), pendingSet: g.pendingSet, finished: g.finished, setPoint: g.setPoint, matchPoint: g.matchPoint,
-        streakTeam: g.streakTeam, streakN: g.streakN, courtSwap3: g.courtSwap3, courtSwapAt: g.courtSwapAt, r: F ? F.r : 0 };
+        streakTeam: g.streakTeam, streakN: g.streakN, courtSwap3: g.courtSwap3, courtSwapAt: g.courtSwapAt, r: F ? F.r : 0,
+        challenges: g.challenges.slice() };
     }
     g.score[0] = blk.score[0]; g.score[1] = blk.score[1]; g.sets[0] = blk.sets[0]; g.sets[1] = blk.sets[1]; g.setNo = blk.setNo;
     g.setScores.length = 0; for (i = 0; i < blk.setScores.length; i++) g.setScores.push(blk.setScores[i].slice());
@@ -4687,6 +4711,7 @@
     g.pendingSet = !!blk.pendingSet; g.finished = !!blk.finished; g.setPoint = blk.setPoint; g.matchPoint = blk.matchPoint;
     g.streakTeam = blk.streakTeam; g.streakN = blk.streakN; g.courtSwap3 = !!blk.courtSwap3; g.courtSwapAt = blk.courtSwapAt;
     if (F && typeof blk.r === 'number') F.r = blk.r;
+    if (Array.isArray(blk.challenges)) { g.challenges[0] = blk.challenges[0] | 0; g.challenges[1] = blk.challenges[1] | 0; }
     return blk;
   }
   function flTake(g) {
@@ -4717,7 +4742,12 @@
       g.review.t += dt;
       for (i = 0; i < P.length; i++) if (mine(g, P[i])) stepPlayer(g, P[i], dt, 0, 0);
       if (g.mode === 'point' || g.mode === 'over') stepBall(g, dt);
-      if (g.review.t >= g.review.dur) endReview(g);
+      if (g.review.t >= g.review.dur) {
+        // el punto anulado se vuelve a pitar en las dos máquinas (app: sin la guarda del dueño y sin mandarlo como pt)
+        var r0 = F.r; F.app = true;
+        try { endReview(g); } finally { F.app = false; }
+        if (F.r !== r0) { F.peer = false; F.wait = 0; }   // (el sr que valía era el del punto anulado)
+      }
       fin(g); return;
     }
     if (g.mode === 'point' || g.mode === 'over') {
@@ -4913,7 +4943,7 @@
     ONLINE: ONLINE, useSlot: act, slotGet: hget, humOn: humOn, humSlot: humSlot, jsetHum: jsetHum, jsetHumSw: _jh, setSlotAI: slotAI,
     // ONLINE V2 «Fluida» (bloque FLUIDA, notes/online-v2-spec.md §2): todo detrás de g.fl (flInit) // fl-api
     flInit: flInit, flTake: flTake, flFly: flFly, flOwnerCheck: flOwnerCheck, flBundle: flBundle, flApplyTc: flApplyTc, // fl-api
-    flApplyPt: flApplyPt, flServe: flServe, flSkip: flSkip, flPose: flPose, flDigest: flDigest, flMatch: flMatch, flCatchUp: flCatchUp, // fl-api
+    flApplyPt: flApplyPt, flChallenge: flChallenge, flServe: flServe, flSkip: flSkip, flPose: flPose, flDigest: flDigest, flMatch: flMatch, flCatchUp: flCatchUp, // fl-api
     FL: FL, mine: mine, _flKh: flKh, _flGhost: flGhost, _flHand: flHand, _flContact: flContact, _stepFluid: stepFluid, _stepBall: stepBall, // fl-api
     serialize: serialize, deserialize: deserialize, SER_V: SER_V
   };

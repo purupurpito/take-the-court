@@ -30,16 +30,26 @@
  *   balón (js/camera.js ctUpdate: solo corrige cuando el balón se va del cuadro). El zoom de cámara se queda.
  * 1.14.0 (18-nov-2026): menús pensados para el móvil apaisado (Ferran: «se ve todo muy cramped»): escala de letra y piezas .ph
  *   de js/splat.js, cada pantalla con su versión de móvil (notes/splat.md §9, notes/ui_main.md «Móvil (v-next)»).
+ * 1.14.1 (18-nov-2026): challenge en la conexión Fluida (Ferran: «pon challenge en v2»): árbitro con errores de línea como en
+ *   Precisa; lo pide el que pierde el punto (ch), lo acepta la otra máquina (chok/chno) y la revisión corre en las dos
+ *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.14.0';
+  VB.VERSION = '1.14.1';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.14.1', d: '2026-11-18', t: 'Challenge en la Fluida',
+      items: [
+        'Online con la conexión Fluida: ahora también hay challenge, como en la Precisa.',
+        'El árbitro de la Fluida ya puede equivocarse en las bolas de línea, y se puede revisar.'
+      ]
+    },
     {
       v: '1.14.0', d: '2026-11-18', t: 'Menús para el móvil',
       items: [

@@ -78,7 +78,7 @@ function mine(g, p) { return !g.fl || g.fl.loc[p.team]; }
 ```
 - When there is no `g.fl` it always returns true.
 
-The session forces these room options for Fluida (lobby §7), so referee errors, challenges and timeouts are off; `refOf`/`chalOf` (sim.js 2004-2011) already support the zeros:
+(1.14.1: referee errors and challenges are ON in Fluida too, see notes/net.md «Challenge en la Fluida»; only timeouts stay off.) The session forced these room options for Fluida (lobby §7), so referee errors, challenges and timeouts were off; `refOf`/`chalOf` (sim.js 2004-2011) already support the zeros:
 ```js
 opts.ref = {d1:0,p1:0,d2:0,p2:0,d3:0,p3:0,chal:0};
 opts.timeouts = false;

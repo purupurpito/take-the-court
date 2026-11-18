@@ -756,8 +756,8 @@
       var kind = Q.map && isMapId(Q.map) ? VB.Venues.kindOf(Q.map) : (Q.venue === 'beach' || Q.venue === 'hall' ? Q.venue : venueNow());
       opts = { online: true, seed: seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', humans: [{ aimSet: ctx.settings.aimSet !== false, jsetAim: ctx.settings.jsetAim === true }, { aimSet: Q.aimset1 !== '0', jsetAim: Q.jsetaim1 === '1' }], djump: true, bestOf: Q.bo === '3' ? 3 : 1,
         points: +Q.points || 21, present: true, stats: true };
-      // (como el lobby, netlobby begin(): Fluida sin árbitro que falle, sin challenges y sin tiempos muertos en la beta)
-      if (model === 'fluida') { opts.net = 'fluida'; opts.ref = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 }; opts.timeouts = false; }
+      // (como el lobby, netlobby begin(): Fluida sin tiempos muertos; árbitro y challenge como en Precisa desde 1.14.1)
+      if (model === 'fluida') { opts.net = 'fluida'; opts.timeouts = false; }
       // (revisión) sin &map= el anfitrión elige ya la sede concreta, como hace el lobby; si no, cada página montaba un pabellón distinto
       if (!opts.mapId && VB.Venues && VB.Venues.list) {
         var vl = null; try { vl = VB.Venues.list(kind); } catch (e) { vl = null; }
@@ -1499,7 +1499,7 @@
   };
   // Challenge (B7): pide revisión de la última llamada de línea para el humano (equipo 0). true si sim la acepta
   ctx.actions.challenge = function () {
-    if (net) { if (net.model !== 'fluida' && net.view && ctx.state === 'playing') { net.sess.request('chal'); return true; } return false; }   // online: viaja en la entrada (Fluida: sin ojo de halcón en la beta)
+    if (net) { if (net.view && ctx.state === 'playing') { net.sess.request('chal'); return true; } return false; }   // online: Precisa, en la entrada; Fluida, ch → chok (netfluid _chalAsk)
     if (ctx.state !== 'playing' || !ctx.game || !Sim.challenge) return false;
     var ok = false; try { ok = !!Sim.challenge(ctx.game, 0); } catch (e) { reportError('Sim.challenge', e); }
     if (ok) call('UI', 'onChallenge', ctx.game, 0);

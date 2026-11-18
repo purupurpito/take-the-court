@@ -9,7 +9,8 @@
  *   new Session({slot, link, opts|null, name, rivalName, epoch, expect, warm, log})   (onTick y delay se ignoran)
  *     .advance(now ms, entrada) → {g (partida de PINTAR, gd), events, confirmed, app, status, tick, gcTick, ping, waitMs, unstable,
  *                                 canAI, goneIn, startIn, solo, valid, result, rivalSolo, gone, rivalLeft, info}
- *     .request('skip')   «Continuar» (bit de la entrada propia + sk {r}); 'chal' y 'tmo' no hacen nada en Fluida
+ *     .request('skip')   «Continuar» (bit de la entrada propia + sk {r}); .request('chal') challenge (ch {r} → chok/chno, 1.14.1);
+ *                        'tmo' no hace nada en Fluida
  *     .setAway(bool)  .vsAI(force)  .quit()  .sendApp(obj)
  *     .predictedGame() = .confirmedGame() = la partida LOCAL g (su marcador es el bueno)   .stepInputs() → null   .initEvents
  *   Propiedades: status, opts, host, slot, back, epoch (se lee siempre this.epoch: el lobby la reescribe), adopt, rivalName, rivalLeft,
@@ -22,8 +23,8 @@
  *   ready, start {t0 = ahora + 1,5 s}. Tic común T = floor((now - t0) / STEP_MS).
  *
  * CABLE: canal 'in' (no fiable): foto «S» binaria (tipo 2 | época << 4) y eco del tc (tipo 3 | época << 4 + JSON). Canal 'ctl'
- *   (fiable, en orden, JSON): tc, pt, pa, fq, fx, sr, sk, ev, sb, sbok, rb, rs, rsok, solo, rejoin, fin, bye, app, ping, pong, hello, ready,
- *   start. Ver codec y _onCtl.
+ *   (fiable, en orden, JSON): tc, pt, pa, fq, fx, sr, sk, ch, chok, chno, ev, sb, sbok, rb, rs, rsok, solo, rejoin, fin, bye, app, ping,
+ *   pong, hello, ready, start. pt lleva cl (la llamada de línea del dueño, con su error arbitral) para que el challenge sea igual. Ver codec y _onCtl.
  *
  * NOTAS (diferencias con la spec, comprobadas con tools/fluidtest.js):
  *   - El tc que llega de un tic que aún no he simulado (el reloj del otro va 1-3 tics por delante) espera en tcFut hasta ese tic: si
@@ -87,6 +88,7 @@
     LAND_HIDE: 4,                                           // tics de retraso de un tc rival que la mezcla del balón disimula (_lagOnMine)
     LAG_UP_MINE: 0.2,                                       // lo que frena tras MI contacto que se va (el balón a 0,8 como poco)
     CATCH_MAX: 72, POSE_RING: 48, SNAP_RING: 32, REBASE: 0.03,
+    CH_MARGIN: 0.8,                                         // s de ventana de challenge que deben quedar para pedirlo (ida y vuelta)
     SR_FALLBACK: 2.0,                                       // s esperando el sr del rival antes de sacar igual
     UNSTABLE: 1000, WAIT: 1500, WAIT_OWN: 500, WAIT_AI: 10000, GONE: 60000, GAP_RS: 3000,
     RS_EVERY: 1500, RS_TRIES: 8, PA_TIMEOUT: 400, FIN_TIMEOUT: 3000,
@@ -97,7 +99,6 @@
     KHCHECK: false                                          // depuración: revuela cada tc rival para comprobar su traspaso (khCheckBad;
                                                             // las pruebas lo encienden: en el juego costaba hasta 7 ms al llegar un tc)
   };
-  var REF0 = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 };
   var NOIN = { move: [0, 0], hit: false, jump: false, jset: false, skip: false, ai: false };
   var AIIN = { move: [0, 0], hit: false, jump: false, jset: false, skip: false, ai: true };
   /** Mensajes de control que manda también un par aún sin reloj (recién recargado): no disparan el rs del anfitrión (_recv). */
@@ -278,7 +279,7 @@
     this.stats = { frames: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0, rsIn: 0, depth: undefined, maxDepth: undefined };
     this.flStats = { snapOut: 0, snapIn: 0, kbOut: 0, kbIn: 0, interpMs: 0, extrapTicks: 0, stale: 0, hand: 0, forks: 0, late: 0, lateMaxMs: 0,
       warpMax: 1, snaps: 0, drift: 0, fqSent: 0, fqOk: 0, ptBad: 0, sbFix: 0, digestBad: 0, khCheckBad: 0,
-      tcOut: 0, tcIn: 0, ptOut: 0, ptIn: 0, srFallback: 0, badIn: 0, dropped: 0, rb: 0, dispFrames: 0 };
+      tcOut: 0, tcIn: 0, ptOut: 0, ptIn: 0, srFallback: 0, badIn: 0, dropped: 0, rb: 0, dispFrames: 0, chOut: 0, chOk: 0, chNo: 0 };
     this.rsT = -1; this.rsPend = null; this.rsId = 0; this.rsIn = 0;
     this.initEvents = [];
     this._out = { g: null, events: [], confirmed: [], app: [], status: '', tick: 0, gcTick: 0, ping: 0, waitMs: 0, unstable: false, canAI: false,
@@ -308,7 +309,7 @@
     this.bOff = { x: 0, y: 0, z: 0 }; this.bShown = null; this.bSrc = ''; this.bJump = false; this.lastTf = -1;
     this.chainPrev = []; this.bCh = null; this.bRaw = null;
     this.pOff = [{ x: 0, y: 0, z: 0 }, { x: 0, y: 0, z: 0 }]; this.pShown = [null, null]; this.pExt = [false, false];
-    this.tcQ = []; this.ptQ = []; this.tcFut = []; this.skHeld = -1; this.peerSr = -1; this.fxHeld = [];
+    this.tcQ = []; this.ptQ = []; this.tcFut = []; this.skHeld = -1; this.peerSr = -1; this.fxHeld = []; this.chPend = -1;
     this.pre = null; this.ptPend = {}; this.ptDig = {}; this.ptRej = {};
     this.confBuf = {}; this.confR = -1; this.goPend = null; this.goSeen = false; this.evI = 0;
     this.evOut = []; this.evOutAt = 0; this.remPres = [];
@@ -320,7 +321,7 @@
   SP._setOpts = function (opts) {
     var S = Sim(), n = {}, k;
     for (k in opts) n[k] = opts[k];
-    n.online = true; n.net = 'fluida'; n.ref = {}; for (k in REF0) n.ref[k] = REF0[k]; n.timeouts = false;   // (spec §2.1: sin árbitro, retos ni tiempos)
+    n.online = true; n.net = 'fluida'; n.timeouts = false;   // (spec §2.1: sin tiempos muertos; árbitro y challenge como en Precisa desde 1.14.1)
     this.opts = n;
     this.g = S.createGame(n); S.flInit(this.g, this.slot);
     this.initEvents.length = 0; S.drainEvents(this.g, this.initEvents);
@@ -333,9 +334,19 @@
   SP.predictedGame = function () { return this.g; };
   SP.stepInputs = function () { return null; };
   SP.request = function (what) {
-    if (what !== 'skip') return;   // (Fluida: sin retos ni tiempos muertos en esta versión)
+    if (what === 'chal') { this._chalAsk(); return; }
+    if (what !== 'skip') return;   // (Fluida: sin tiempos muertos)
     this.edges |= 16; if (this.edgesAt < 0) this.edgesAt = this.lastNow;
     if (this.g && this.g.fl && !this.solo && (this.status === 'playing' || this.status === 'waiting' || this.status === 'over')) this._ctl({ k: 'sk', r: this.g.fl.r });
+  };
+  /** Challenge (1.14.1): lo pide el que perdió el punto y lo acepta la otra máquina (la que saca: la ventana acaba con SU saque);
+   *  con su chok los dos corren la misma revisión (Sim.flChallenge). Solo con margen para que la respuesta llegue dentro de la ventana. */
+  SP._chalAsk = function () {
+    var S = Sim(), g = this.g, me = this.slot, c = g && g.call;
+    if (!g || !g.fl || !c || this.status !== 'playing' && this.status !== 'over') return;
+    if (this.solo) { S.challenge(g, me); return; }   // contra la IA: la partida es solo mía
+    if (this.chPend === c.r || !(S.canChallenge(g, me) > C.CH_MARGIN)) return;
+    this.chPend = c.r; this._ctl({ k: 'ch', r: c.r }); this.flStats.chOut++;
   };
   SP.setAway = function (on) { this.away = !!on; };
   SP._ctl = function (m) {
@@ -546,6 +557,13 @@
           case 'fx':   // mi fq llegó cuando el balón ya era mío (traspaso): ahora el dueño soy yo y la falta la doy yo (spec §4.1)
             if (typeof c.r === 'number' && c.r === g.fl.r && this.fxHeld.length < 8) { this.fxHeld.push({ r: c.r, pid: c.pid | 0, T: typeof c.T === 'number' ? c.T : -1 }); this._fxCheck(now); }
             break;
+          case 'ch': {   // el rival pide challenge de la llamada del rally r: decido yo (aún no he sacado o la ventana sigue abierta)
+            var chOk = typeof c.r === 'number' && S.flChallenge(g, 1 - this.slot, c.r, false);
+            this._ctl({ k: chOk ? 'chok' : 'chno', r: c.r }); if (chOk) this.flStats.chOk++; else this.flStats.chNo++;
+            break;
+          }
+          case 'chok': if (c.r === this.chPend) { this.chPend = -1; S.flChallenge(g, this.slot, c.r, true); } break;
+          case 'chno': if (c.r === this.chPend) this.chPend = -1; break;
           case 'sr': if (typeof c.r === 'number' && c.r > this.peerSr) this.peerSr = c.r; if (this.peerSr === g.fl.r) g.fl.peer = true; break;
           case 'sk':
             if (c.r === g.fl.r) S.flSkip(g, 1 - this.slot);
@@ -733,7 +751,7 @@
     // el marcador de ANTES de ese punto (el pre del setupServe de r). this.pre no vale: si ya pasó el tiempo muerto (corte), es el
     // del saque siguiente y no desharía nada
     if (!pre || pre.r !== r) { this._log('bifurcación: no puedo deshacer mi punto ' + r); return false; }
-    S.flMatch(g, pre); g.mode = 'rally'; g.finished = false;
+    S.flMatch(g, pre); g.mode = 'rally'; g.finished = false; g.call = null; g._snap = null;   // (sin challenge de un punto deshecho)
     if (g.fl.srvR > r) g.fl.srvR = r;   // (si ya había preparado el saque de r + 1, flServe no volvería a prepararlo: saque atascado)
     this.pre = pre;
     delete this.ptPend[r]; delete this.ptDig[r];
@@ -1164,7 +1182,7 @@
           // ph: medio paso del punto (el del toque de red de un fq aceptado: lo que pasó primero); lf/lfp: mi primer toque desde el
           // último tc aplicado (antes de que point() lo borre). Con ellos los dos lados deciden una bifurcación por tiempo
           var ph = typeof pt.hs === 'number' ? pt.hs : 2 * pt.T + 1, lf = typeof pt.lf === 'number' ? pt.lf : -1;
-          this._ctl({ k: 'pt', r: pt.r, T: pt.T, w: pt.w, reason: pt.reason, text: pt.text, pid: pt.pid, sig: pt.sig, m: encM(pt.m), d: d, s: this.chainS, lt: this.lastTcIn, ph: ph, lf: lf, lfp: pt.lfp | 0 });
+          this._ctl({ k: 'pt', r: pt.r, T: pt.T, w: pt.w, reason: pt.reason, text: pt.text, pid: pt.pid, sig: pt.sig, m: encM(pt.m), d: d, s: this.chainS, lt: this.lastTcIn, ph: ph, lf: lf, lfp: pt.lfp | 0, cl: pt.cl || null });
           this.flStats.ptOut++;
           this.ptPend[pt.r] = { at: now, ph: ph, myS: this.myLastS, tc: this.myLastTc, lt: this.lastTcIn, tcs: this.myTcs.slice(), pre: this.pre && this.pre.r === pt.r ? this.pre : null };
           this.ptDig[pt.r] = d;

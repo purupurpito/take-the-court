@@ -445,8 +445,8 @@
         djump: true,
         humans: [even ? { aimSet: myAimSet(), jsetAim: myJsetAim() } : { attrs: st.attrs || undefined, badges: st.badges || undefined, aimSet: myAimSet(), jsetAim: myJsetAim() },
           even ? { aimSet: gst.aimSet !== false, jsetAim: gst.jsetAim === true } : { attrs: sanAttrs(gst.attrs) || undefined, badges: sanBadges(gst.badges) || undefined, aimSet: gst.aimSet !== false, jsetAim: gst.jsetAim === true }] };
-      // Online V2 (Fluida): sin errores arbitrales, sin ojo de halcón y sin tiempos muertos (notes/online-v2-spec.md §2.1)
-      if (model === 'fluida') { opts.net = 'fluida'; opts.ref = { d1: 0, p1: 0, d2: 0, p2: 0, d3: 0, p3: 0, chal: 0 }; opts.timeouts = false; }
+      // Online V2 (Fluida): sin tiempos muertos (notes/online-v2-spec.md §2.1); árbitro y challenge como en Precisa desde 1.14.1
+      if (model === 'fluida') { opts.net = 'fluida'; opts.timeouts = false; }
       L.link.send('ctl', JSON.stringify({ k: 'pre', name: myName(), look: myLook(), model: model }));
       api().beat({ state: 'play' }).catch(function () { });
       api().delSig(r.id).catch(function () { });
@@ -1066,7 +1066,7 @@
         (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set', 3)) +
         selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador', 0) +
         selRow('net', 'Conexión', fl ? 'Fluida (v2)' : 'Precisa (v1)', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo', 2) + '</div>' +
-        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones ni ojo de halcón en esta versión.'
+        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones en esta versión.'
           : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
         '<div class="ol-bar ol-bar2 ol-dock mk-go" data-nav><button class="ol-act ol-new sp-patch" data-a="open"' + (L.busy ? ' disabled' : '') + '><span class="sp-l"><span class="sp-t">Abrir sala</span>' +
         '<small class="sp-s">' + esc(ck + (vn && vn !== ck ? ', ' + vn : '')) + '</small></span></button></div>';
@@ -1163,7 +1163,7 @@
         (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set', 3)) +
         selRow('net', 'Conexión', fl ? 'Fluida (v2)' : 'Precisa (v1)', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo', 2) +
         selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador', 0) + '</div>' +
-        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones ni ojo de halcón en esta versión.'
+        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones en esta versión.'
           : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
         '<div class="ol-bar ol-bar2 mk-go" data-nav><button class="ol-act ol-new sp-patch" data-a="open"' + (L.busy ? ' disabled' : '') + '><span class="sp-l"><span class="sp-t">Abrir sala</span>' +
         '<small class="sp-s">' + esc(ck + (vn && vn !== ck ? ', ' + vn : '')) + '</small></span></button></div>';

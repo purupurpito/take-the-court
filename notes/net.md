@@ -1342,3 +1342,16 @@ recuperación (decisiones de ajuste de Ferran); copyGame en modo diccionario (co
   jsAimD, jsetAim`). `p.dj` no viaja en Fluida (no está en `FL_POSE`: `_simPose` de netfluid.js no lo manda; es solo la inclinación
   del rival y su sombra de caída, que en Fluida no salen). netview.js los clasifica (viewtest en verde). `tools/fluidsimtest.js`: `SIM_BASE` actualizada
   con `--rehash` tras comprobar que la huella 2v2 sigue idéntica (el bloque FLUIDA no cambia).
+
+### Challenge en la Fluida (1.14.1, 18-nov-2026)
+Ferran: «pon challenge en v2». La Fluida ya no fuerza `opts.ref` a cero (main.js, netlobby.js, netfluid `_setOpts`): árbitro con
+errores de línea y 2 challenges por set, como en la Precisa. Tiempos muertos y repeticiones siguen fuera.
+- La llamada la hace el dueño del balón en `land()` (con su azar) y viaja en el `pt` como `cl` (`Sim.flCall`); `flApplyPt` la pone en
+  `g._pendCall`, así `g.call` y `g._snap` son iguales en las dos máquinas. `g.call.r` = rally de la llamada.
+- Protocolo: el que perdió el punto pide (`request('chal')` → `_chalAsk`: solo si quedan más de `C.CH_MARGIN` = 0,8 s de ventana)
+  `ch {r}`; la otra máquina (la que saca: la ventana acaba con SU saque) decide con `Sim.flChallenge(g, t, r)` y contesta `chok`/`chno`;
+  con `chok` el que pidió aplica `flChallenge(..., force)` sin mirar la ventana. La revisión corre en las dos (empieza ~RTT/2 después
+  en la del que pidió); si anula el punto, `stepFluid` lo vuelve a pitar con `g.fl.app` (sin guarda ni `pt`), `r` sube otra vez y
+  `F.peer` se borra (se espera el `sr` del punto nuevo). `flMatch` lleva `challenges` (sb y deshacer bifurcación); `_undoPoint` borra `g.call`.
+- `tools/fluidchaltest.js`: 6 partidos con árbitro muy fallón y 5 challenges, peticiones con retraso al azar y una tardía a mano:
+  mismos puntos, revisiones y challenges restantes en las dos, fin cotejado, sbFix 0.
