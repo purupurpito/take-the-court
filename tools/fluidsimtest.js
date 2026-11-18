@@ -235,7 +235,7 @@ console.log('== (e) flApplyPt: 2000 puntos aplicados en otra partida ==');
 console.log('== (f) autocomprobación de los ganchos en sim.js ==');
 {
   // huella de js/sim.js SIN el bloque FLUIDA, sin las líneas «// fl» / «// fl-api» y sin los trozos /*fl*/…/*lf*/ (= el sim.js de antes)
-  const SIM_BASE = 'd9073e03';
+  const SIM_BASE = '94666294';   // (18-nov: árbitros FIVB y pases de 1.10.1-1.11.0; huella 2v2 de simtest al día)
   const L = SIM_SRC.replace(/\r\n/g, '\n').split('\n');
   const out = [], marked = [], inl = [], bad = [];
   let inB = false, blockLines = 0;

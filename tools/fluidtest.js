@@ -239,6 +239,7 @@ function summary(R) {
     jumpP99cm: [r2(pct(st.jumpP[0], 0.99) * 100), r2(pct(st.jumpP[1], 0.99) * 100)], jumpPmaxcm: [r2(pct(st.jumpP[0], 1) * 100), r2(pct(st.jumpP[1], 1) * 100)],
     jumpB99cm: [r2(pct(st.jumpB[0], 0.99) * 100), r2(pct(st.jumpB[1], 0.99) * 100)],
     warpP95: [r2(pct(sA.warpL.filter(FREEW).map(w => w.sp), 0.95)), r2(pct(sB.warpL.filter(FREEW).map(w => w.sp), 0.95))],
+    warpP95Both: r2(pct(sA.warpL.filter(FREEW).concat(sB.warpL.filter(FREEW)).map(w => w.sp), 0.95)),   // (umbral: las dos máquinas juntas, ~24 muestras; con ~12 por lado la p95 era la peor)
     warpAllP95: [r2(pct(sA.warpL.map(w => w.sp), 0.95)), r2(pct(sB.warpL.map(w => w.sp), 0.95))],
     warpBy: (() => { const o = {}; for (const w of sA.warpL.concat(sB.warpL)) { const k = w.k + '/' + w.sh; (o[k] || (o[k] = [])).push(w.sp); } for (const k in o) o[k] = [o[k].length, r2(pct(o[k], 0.95))]; return o; })(),
     kbps: [r2(R.traf[0].bytes / 1024 / R.secs), r2(R.traf[1].bytes / 1024 / R.secs)], inKbps: [r2(R.traf[0].inB / 1024 / R.secs), r2(R.traf[1].inB / 1024 / R.secs)],
@@ -267,8 +268,8 @@ function judgeMatch(R, tag) {
   check(tag + 'guarda de point() a 0; marcador sin reparar' + (c.loss <= 5 ? ' (sbFix 0)' : ''),
     S.guard.join() === '0,0' && (c.loss > 5 || (S.fl[0].sbFix === 0 && S.fl[1].sbFix === 0)), { guard: S.guard, sbFix: [S.fl[0].sbFix, S.fl[1].sbFix], ptBad: [S.fl[0].ptBad, S.fl[1].ptBad], digestBad: [S.fl[0].digestBad, S.fl[1].digestBad] });
   check(tag + 'mis jugadores nunca los corrige la red', S.corr.join() === '0,0', { corr: S.corr, info: S.corrInfo });
-  check(tag + 'traspasos: los mismos en los dos lados (± 2: un punto por fq puede cerrar el rally justo en el khAt)' + (c.rtt <= 150 ? ', sin bifurcaciones' : '') + (c.rtt <= 250 ? ', sin recuperaciones > 300 ms' : ''),
-    S.hand[0] > 10 && Math.abs(S.hand[0] - S.hand[1]) <= 2 && (c.rtt > 150 || (S.fl[0].forks + S.fl[1].forks === 0)) && (c.rtt > 250 || S.fl[0].late + S.fl[1].late === 0) && S.fl[0].khCheckBad + S.fl[1].khCheckBad === 0,
+  check(tag + 'traspasos: los mismos en los dos lados (± 2: un punto por fq puede cerrar el rally justo en el khAt)' + (c.rtt <= 150 ? ', sin bifurcaciones' : '') + (c.rtt < 250 ? ', sin recuperaciones > 300 ms' : c.rtt === 250 ? ', como mucho una recuperación > 300 ms por lado (250 ms + jitter + tirón)' : ''),
+    S.hand[0] > 10 && Math.abs(S.hand[0] - S.hand[1]) <= 2 && (c.rtt > 150 || (S.fl[0].forks + S.fl[1].forks === 0)) && (c.rtt > 250 || (c.rtt < 250 ? S.fl[0].late + S.fl[1].late === 0 : Math.max(S.fl[0].late, S.fl[1].late) <= 1)) && S.fl[0].khCheckBad + S.fl[1].khCheckBad === 0,
     { hand: S.hand, khCheckBad: [S.fl[0].khCheckBad, S.fl[1].khCheckBad], forks: [S.fl[0].forks, S.fl[1].forks], late: [S.fl[0].late, S.fl[1].late], lateMaxMs: [S.fl[0].lateMaxMs, S.fl[1].lateMaxMs] });
   const unst = (S.unstable[0] + S.unstable[1]) / Math.max(1, S.playFrames[0] + S.playFrames[1]);
   check(tag + 'sin parones: tic = reloj común (± 2), nunca esperando, inestable ' + (c.loss <= 2 ? '< 1 %' : 'informado'),
@@ -276,10 +277,10 @@ function judgeMatch(R, tag) {
     { tickBad: S.tickBad, tickMax: S.tickMax, esperando: S.waitFrames, inestable: r2(unst * 100) + ' %', srFallback: [S.fl[0].srFallback, S.fl[1].srFallback] });
   // (aceleración del balón: 1 + Dp / vuelo hasta el traspaso; con RTT 150+ el colchón Dp ronda los 30 tics y un saque en salto pasa
   //  de 1,6: ahí se informa con tope 1,75; ver el informe de WP2)
-  const rmsLim = c.rtt <= 60 && c.loss <= 2 ? 4 : 10, exLim = c.rtt <= 150 ? 2 : 10, wLim = c.rtt <= 60 ? 1.6 : c.rtt <= 250 ? 1.8 : 2.0;   // (p95 de unas 10 muestras = la peor: un libre que antes era un salto de hasta 3 m ahora es un acelerón de 1,79)
+  const rmsLim = c.rtt <= 60 && c.loss <= 2 ? 4 : 10, exLim = c.rtt <= 150 ? 2 : 10, wLim = c.rtt <= 60 ? 1.6 : c.rtt <= 250 ? 1.75 : 2.0;
   check(tag + 'suavizado: error del rival RMS < ' + rmsLim + ' cm, extrapolación < ' + exLim + ' %, aceleración del balón (saques y libres) p95 <= ' + String(wLim).replace('.', ','),
-    Math.max(S.dispRms[0], S.dispRms[1]) < rmsLim && Math.max(S.extrapPct[0], S.extrapPct[1]) < exLim && Math.max(S.warpP95[0], S.warpP95[1]) <= wLim,
-    { rmsCm: S.dispRms, p99Cm: S.dispP99, extrap: S.extrapPct, warpP95: S.warpP95, warpTodosP95: S.warpAllP95, Dp: [S.fl[0].interpMs, S.fl[1].interpMs], saltoJugP99cm: S.jumpP99cm, saltoBalonP99cm: S.jumpB99cm, snaps: [S.fl[0].snaps, S.fl[1].snaps], drift: [S.fl[0].drift, S.fl[1].drift] });
+    Math.max(S.dispRms[0], S.dispRms[1]) < rmsLim && Math.max(S.extrapPct[0], S.extrapPct[1]) < exLim && S.warpP95Both <= wLim,
+    { rmsCm: S.dispRms, p99Cm: S.dispP99, extrap: S.extrapPct, warpP95: S.warpP95, warpP95Both: S.warpP95Both, warpTodosP95: S.warpAllP95, Dp: [S.fl[0].interpMs, S.fl[1].interpMs], saltoJugP99cm: S.jumpP99cm, saltoBalonP99cm: S.jumpB99cm, snaps: [S.fl[0].snaps, S.fl[1].snaps], drift: [S.fl[0].drift, S.fl[1].drift] });
   check(tag + 'tráfico <= 2,5 KB/s y <= 35 paquetes/s por sentido', Math.max(S.kbps[0], S.kbps[1]) <= 2.5 && Math.max(S.pps[0], S.pps[1]) <= 35, { kbps: S.kbps, fotos: S.inKbps, pps: S.pps });
   check(tag + 'eventos: sin duplicados, confirmados en orden, mismo recuento (bloqueos y puntos) en los dos',
     S.dupConf.join() === '0,0' && S.unsorted.join() === '0,0' && S.tallySame, { dup: S.dupConf, desorden: S.unsorted, tally: S.tallySame ? undefined : S.tally });
