@@ -757,11 +757,17 @@
   function onJoin(c) { var s = St(c); s.benchRun = 0; postBeat(c, s, 'welcome', {}); snap(c, s); }
 
   // ================================================================== remitentes y avisos de Partido (puros)
+  /** Quien lleva la capitanía en pista (como el acta: la mejor media de la plantilla que no sea líbero); SOLO LECTURA de c.sq6. */
+  function captainOf(c) {
+    var L = c && c.sq6 && Array.isArray(c.sq6.list) ? c.sq6.list : [], best = null;
+    for (var i = 0; i < L.length; i++) { var p = L[i]; if (p && typeof p.name === 'string' && p.pos !== 'L' && (!best || (p.ovr | 0) > (best.ovr | 0))) best = p; }
+    return best ? best.name : '';
+  }
   function senderOf(c, x) {
     var k = x.k, cs = S.cast(c), l = c.life || {};
     if (k === 'agent') return [cs.agent, WHO.agent];
     if (k === 'coach') return [cs.coach, WHO.coach];
-    if (k === 'mate') return isH(c) ? ['La capitanía', 'Vestuario'] : [c.mate && c.mate.name || 'Tu pareja', 'Pareja'];
+    if (k === 'mate') return isH(c) ? [captainOf(c) || 'La capitanía', 'Capitanía'] : [c.mate && c.mate.name || 'Tu pareja', 'Pareja'];
     if (k === 'fam') return [cs.fam, WHO.fam];
     if (k === 'barrio') return [cs.barrio, WHO.barrio];
     if (k === 'press') return [x.vars && x.vars.m || cs.media.diario, WHO.press];
@@ -851,7 +857,13 @@
     out.sort(function (a, b) { return (b.open > 0) - (a.open > 0) || b.last.s - a.last.s || b.last.w - a.last.w || b.last.n - a.last.n || b.last.i - a.last.i; });
     return out;
   }
-  function preview(c, it) { if (it.t === 'm') return it.m.t || it.m.x || ''; var tx = S.text(c, it.x); return tx.x || tx.t || ''; }
+  /** En el chat el nombre ya va arriba de la burbuja: «Sam: «Quiero…»» → «Quiero…» (solo si quien habla es quien escribe). */
+  function bare(name, t) {
+    t = String(t || ''); var p = String(name || '') + ': ';
+    if (name && t.indexOf(p) === 0) { t = t.slice(p.length); if (t.charAt(0) === '«' && t.charAt(t.length - 1) === '»' && t.indexOf('«', 1) < 0) t = t.slice(1, -1); }
+    return t;
+  }
+  function preview(c, it) { if (it.t === 'm') return it.m.x || it.m.t || ''; var tx = S.text(c, it.x); return bare(senderOf(c, it.x)[0], tx.x || tx.t || ''); }
   function phone(inner, bar) {
     return '<div class="st-phone"><div class="st-pbar" aria-hidden="true"><span>9:41</span><i></i><span>▮▮▮ ▰</span></div>' + inner + '</div>';
   }
@@ -874,9 +886,10 @@
     v.items.forEach(function (it) {
       var w = whenOf(it.t === 'm' ? it.m : it.x);
       if (w !== lastW) { log += '<p class="st-day">' + esc(w.replace(/^T(\d+)/, 'Temporada $1').replace(/ J(\d+)$/, ', jornada $1')) + '</p>'; lastW = w; }
-      if (it.t === 'm') { log += '<div class="st-bub st-bin"><b>' + esc(it.m.t) + '</b>' + esc(it.m.x) + '</div>'; return; }
+      // (como en WhatsApp: arriba de la burbuja, quien escribe; el asunto no sale)
+      if (it.t === 'm') { log += '<div class="st-bub st-bin"><b class="st-who" style="color:' + (AV.club) + '">' + esc(v.name) + '</b>' + esc(it.m.x || it.m.t) + '</div>'; return; }
       var x = it.x, tx = S.text(c, x);
-      log += '<div class="st-bub st-bin"><b>' + esc(tx.t) + '</b>' + esc(tx.x) + '</div>';
+      log += '<div class="st-bub st-bin"><b class="st-who" style="color:' + (AV[x.k] || AV.club) + '">' + esc(senderOf(c, x)[0]) + '</b>' + esc(bare(senderOf(c, x)[0], tx.x || tx.t)) + '</div>';
       if (x.o && x.ans >= 0) {
         var t2 = S.text(c, { id: x.id, b: x.b, vars: x.vars, o: 1, ans: -1 });
         log += '<div class="st-bub st-bout">' + esc(t2.o[x.ans] ? t2.o[x.ans].t : '') + '<small>✓✓</small></div>';
@@ -949,7 +962,7 @@
   var QC = ':root:not(#_):not(#_):not(#_):not(#_) #career';
   var CHAT_CSS = [
     QC + ' .st-chat{padding:6px;background:transparent;box-shadow:none;border:0}',
-    QC + ' .st-phone{position:relative;display:flex;flex-direction:column;width:100%;height:max(240px,calc(100dvh - 290px));max-height:640px;margin:0 auto;border-radius:18px;overflow:hidden;background:#f3ecdf;color:#1d1530;box-shadow:0 0 0 2.5px #1d1530,3px 4px 0 2.5px #1d1530}',
+    QC + ' .st-phone{position:relative;display:flex;flex-direction:column;width:100%;height:max(240px,calc(100dvh - 290px));max-height:640px;margin:0 auto;border-radius:18px;overflow:hidden;background:#f3ecdf;color:#1d1530;font-family:var(--sp-ui,system-ui,sans-serif);letter-spacing:0;text-transform:none;box-shadow:0 0 0 2.5px #1d1530,3px 4px 0 2.5px #1d1530}',
     QC + ' .st-pbar{display:none}',
     QC + ' .st-ctop{display:flex;align-items:baseline;gap:8px;padding:10px 14px 8px;background:#1fb5a8;color:#fff}',
     QC + ' .st-ctop b{font-size:18px;letter-spacing:.02em}' + QC + ' .st-ctop small{opacity:.9}',
@@ -974,14 +987,14 @@
     QC + ' .st-day{align-self:center;margin:6px 0 2px;padding:2px 10px;border-radius:10px;background:rgba(29,21,48,.1);font-size:12px;color:#1d1530}',
     QC + ' .st-gone{font-style:italic;max-width:90%;text-align:center}',
     QC + ' .st-bub{position:relative;max-width:84%;padding:7px 10px 8px;border-radius:14px;font-size:14.5px;line-height:1.3;box-shadow:0 0 0 1.5px #1d1530,1.5px 2px 0 1.5px #1d1530}',
-    QC + ' .st-bub b{display:block;margin-bottom:2px;font-size:12.5px;opacity:.75}',
+    QC + ' .st-bub b{display:block;margin-bottom:2px;font-size:12.5px;font-weight:800;filter:brightness(.8)}',
     QC + ' .st-bin{align-self:flex-start;background:#fff;border-bottom-left-radius:4px}',
     QC + ' .st-bout{align-self:flex-end;background:#c9f2dc;border-bottom-right-radius:4px}',
     QC + ' .st-bout small{margin-left:8px;font-size:11px;color:#1fb5a8;font-weight:800}',
     QC + ' .st-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);margin:0}',
     QC + ' .st-chat .st-fx{align-self:stretch;margin:4px 0;padding:6px 10px;border-radius:10px;background:#fff7d6;color:#1d1530;font-size:13px}',
     QC + ' .st-replies{flex:none;display:flex;flex-direction:column;gap:6px;padding:8px 10px 10px;background:#f3ecdf;box-shadow:inset 0 1.5px 0 rgba(29,21,48,.15)}',
-    QC + ' .st-replies>button{min-height:44px;margin:0;padding:6px 12px;border:0;border-radius:18px;background:#1fb5a8;color:#fff;text-align:left;font:700 14.5px/1.2 inherit;text-shadow:none;transform:none;box-shadow:0 0 0 2px #1d1530,2px 3px 0 2px #1d1530}',
+    QC + ' .st-replies>button{min-height:44px;margin:0;padding:6px 12px;border:0;border-radius:18px;background:#1fb5a8;color:#fff;text-align:left;font:700 14.5px/1.2 var(--sp-ui,system-ui,sans-serif);letter-spacing:0;text-transform:none;text-shadow:none;transform:none;box-shadow:0 0 0 2px #1d1530,2px 3px 0 2px #1d1530}',
     QC + ' .st-replies>button:focus-visible,' + QC + ' .st-replies>button.kf{outline:3px solid #ffd23f;outline-offset:2px}',
     QC + ' .st-replies>button small{display:block;margin-top:2px;font-weight:600;font-size:12px}',
     QC + ' .st-replies .lf-up{color:#fff}' + QC + ' .st-replies .lf-dn{color:#ffe0e5}',
