@@ -26,16 +26,25 @@
  * 1.11.0 (18-nov-2026): árbitros como en la vida real (FIVB 2025-2028, Guidelines) y bandera roja de vóley, a petición de Ferran.
  * 1.9.1 (17-nov-2026): menús SPLAT (materiales del vóley con toque Splatoon, elegido por Ferran): js/splat.js, notes/splat.md.
  * 1.12.0 (18-nov-2026): salto con dirección, remate con impulso, pipe y colocación en salto con diana (js/sim.js).
+ * 1.12.1 (18-nov-2026): vuelve la cámara de juego de antes de 1.8.1 (Ferran: «la nueva es horrible») con la regla de no perder el
+ *   balón (js/camera.js ctUpdate: solo corrige cuando el balón se va del cuadro). El zoom de cámara se queda.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.12.0';
+  VB.VERSION = '1.12.1';
   VB.VERSION_DATE = '2026-11-18';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.12.1', d: '2026-11-18', t: 'Cámara',
+      items: [
+        'Vuelve la cámara de antes: tranquila, sin ir detrás de cada balón.',
+        'Y ya no pierde el balón cuando queda detrás de ti, como tras un bloqueo.'
+      ]
+    },
     {
       v: '1.12.0', d: '2026-11-18', t: 'Salto con impulso',
       items: [

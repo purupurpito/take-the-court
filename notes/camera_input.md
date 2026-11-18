@@ -1256,3 +1256,43 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
   por debajo de 11 m/s (histéresis); también en el modo `point` (el balón que se va a la grada). Con `fast`: el balón y su adelanto no
   entran en BF* (ni retroceso, ni giro, ni lente por él), el rumbo no tira hacia su lado y el ancla vertical del balón (`aBall`) no cuenta.
 - cam6ball (autopilot 1280 s11 y colocador s3) igual que antes: 100 % y 98,9 % con el balón en el cuadro seguro.
+
+## Vuelve la cámara de antes + no perder el balón (17-nov-2026, v1.9.2; Ferran)
+- Ferran: «La nueva cámara es horrible. Quiero la cámara de antes, pero añadiendo que si la pelota está muy atrás en relación al jugador
+  (como cuando bloqueas) puedas ver lo que pasa. […] Más que seguir más de lo que ya se seguía, lo que se tiene que hacer es NO PERDERLO.»
+- **Revertido** (`tpShot`, 6v6 en 3ª persona; el 2v2 no lo tocaron d0bf879 ni b152718): todo el seguimiento de 1.8.1/1.8.2 —puntos del
+  balón con adelanto y `g.pr1`, zona de recepción/defensa, retroceso `bfFits`/`TP.bf`, giro hasta ±36° con muelle, balón que manda en el
+  encuadre fino, ancla de abajo a -0,78, lente que abre a 20°/s, tope de altura 7,8 m y `TP.fz` (balones rápidos)—: `tpShot` vuelve a ser
+  el de d0bf879^ (ancla del balón de 0,15 s a -0,84, giro hasta ±30°, rumbo 0,3/0,4). La rama pruebas-entrenos solo cambió en camera.js
+  `CL.match` del cierre (partido a un set), que se queda.
+- **Conservado**: el zoom de cámara entero (input, ui, main, `readComfort`; en `tpShot` distancia/altura `zoomB6`/`zoomH6` y el `nTop`
+  de zoom 1-2; con zoom 3/5, el de siempre, el encuadre es exactamente el de antes), `getDebug().tp.z`, y la tele del 6v6 (`tvShot`) con
+  el balón alto: ya era contención (solo abre la lente si el balón alto se iría por arriba).
+- **Nuevo, `ctUpdate` (contención, no seguimiento)**: ver el comentario «NO PERDER EL BALÓN» en camera.js. Puntos: el balón de ahora y,
+  solo si viene hacia la cámara y quedan DETRÁS de tu jugador, su sitio a 0,3 s y su bote previsto (< 0,7 s); a > 16 m/s solo el bote.
+  Dispara con la cámara real (`Vector3.project`): balón a > 0,95 NDC (arriba 0,82 en táctil), lo previsto ya fuera, o algo detrás de la
+  cámara. Corrige lo mínimo: girar/cabecear (±12°, 12° abajo, 9° arriba) hasta 0,9 sin empeorar al jugador; retroceder (0,8-7,6 m por la
+  línea mira-cámara, +0,3 m de altura por metro) solo si el balón de verdad no cabe o algo queda detrás. Histéresis 0,95/0,9, apagado
+  tras 0,4 s sin falta, retroceso que baja tras 0,5 s; muelles y topes (7 m/s, 32°/s). P se desplaza solo para `apply` y el giro no entra
+  en `K.outYaw/outPitch`: con la contención a 0 la cámara es la de antes. En un corte se pone a 0; al salir de los planos de juego sin
+  corte vuelve a 0 con sus muelles. `getDebug().ct` = {on, e, dp, dy, why}.
+- **Medido** (`node tools/camball.js`, nueva: 2v2 y 6v6, autopilot, ×2; antes = `git archive d0bf879^`, main = 4a9c233):
+
+  | caso | balón fuera %: antes / main / nueva | detrás de tu jugador tras bloqueo, fuera % | movimiento m/s · giro °/s (antes / main / nueva) |
+  |---|---|---|---|
+  | 2v2 1280 s11 | 0,68 / 0,67 / 0,30 | 0 / 0 / 0 (1 jugada) | 2,81·15,2 / 2,88·15,5 / 2,87·15,1 |
+  | 2v2 1280 s7 | 0 / 0 / 0 | 0 / 0 / 0 | 2,66·14,6 / 2,65·14,5 / 2,67·14,6 |
+  | 2v2 844 táctil s5 | 0,87 / 0,91 / 0,62 | 0 / 0 / 0 | 2,80·18,4 / 2,80·18,3 / 2,92·18,0 |
+  | 2v2 playa s3 | 0,65 / 0,68 / 0,42 | — | 2,75·15,7 / 2,74·15,6 / 2,75·15,5 |
+  | 6v6 1280 s11 | 1,96 / 0,00 / 0,42 | 10,2 / 0 / 0 (3 jugadas) | 1,91·6,9 / 2,25·8,1 / 1,94·8,0 |
+  | 6v6 1280 s7 | 0,26 / 0,12 / 0,00 | 0 / 0 / 0 | 1,36·4,3 / 1,44·4,4 / 1,38·4,6 |
+  | 6v6 844 táctil s5 | 0,94 / 0,40 / 0,28 | 44,0 / 13,9 / 5,8 (2 jugadas) | 1,69·7,7 / 1,98·7,4 / 1,73·8,9 |
+  Capturas (mismo instante, antes y nueva): tools/out/camara/{antes,nueva}-6v6-{1280x720,844x390t}-b*-*.png (bloqueo con el balón
+  hacia atrás, +0,25 / +0,6 / +1,0 s).
+- **Pruebas**: camtest 18 fallos (main 19 en la misma pasada: spiker, serve, wide, fovpump ya fallaban; fovpump con menos balón fuera:
+  13/30/23 frente a 21/52/…); la contención respeta el giro combinado de 38,5°/s de CAM-17 (lo suma solo si cabe con el de la cámara de
+  siempre) y se congela en el momento de red. cam6test 1280 y 844 táctil, tv6test, keytest, padtest, touchtest, settest y console.sh
+  (2v2 y 6v6) OK; abouttest 2 fallos (e) iguales en main. simtest: huella del 2v2 idéntica.
+- **Flojo**: el giro medio sube algo sobre el de antes cuando hay contención (6v6 +0,3-1,4°/s; es el giro que mete el balón); en el 6v6
+  1280 s11 queda un balón libre a 8 m que asoma por arriba un instante (main lo tenía dentro siguiendo siempre). Muestra de jugadas «detrás
+  tras bloqueo» pequeña (autopilot): 1-3 por partida.

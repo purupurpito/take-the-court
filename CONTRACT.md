@@ -838,9 +838,11 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `TOUCH=1`, `CAM6=tv`, `SHOTS=dir`) juega en vivo y comprueba jugador y balón en cuadro, suavidad, límites y cortes. `perf.js` con `EXTRA=format=6v6` mide ahora la
   3ª persona (autopilot sin `g.watch`); players.js `screenLod` (6v6): fuera de cuadro = lejano siempre; en el punto solo los 4 atletas en cuadro más cercanos llevan
   malla media y trazo (y < 15 % del alto = lejano); en el punto y el saque solo dan sombra los 3 más cercanos (calidad media).
-- **Cámara que sigue al balón y zoom (17-nov-2026, v1.8.1, camera_input)**: camera.js `tp` retrocede y sube lo justo para ver tu jugador
-  y el balón (ahora, adelanto de 0,3 s suavizado y `g.pr1`; zona de recepción/defensa con el saque rival o el rival construyendo), gira
-  hasta ±36° y el balón manda en el encuadre fino; `getDebug().tp.bf` (m de retroceso) y `.z` (zoom). `tv` mete también el balón alto.
+- **Cámara de antes + no perder el balón (17-nov-2026, v1.9.2, camera_input; sustituye al seguimiento de 1.8.1/1.8.2)**: el encuadre automático
+  del 2v2 y del 6v6 (`tp`) vuelve a ser el de antes de 1.8.1; encima, `ctUpdate` (contención) solo corrige —gira/cabecea lo justo o
+  retrocede— cuando el balón (o, si viene hacia la cámara por detrás de tu jugador, su sitio a 0,3 s y su bote) se va del cuadro;
+  `getDebug().ct` = {on, e (m de retroceso), dp, dy (°)} y `getDebug().tp.z` (zoom). `tv` sigue metiendo el balón alto. Medida:
+  `node tools/camball.js [2v2|6v6] [WxH] [s] [semilla]` (`VB_ROOT` para comparar copias, `TOUCH=1`, `MAP=beach`, `SHOTS`, `LOG=1`, `JSON`).
   **Zoom**: `ctx.settings.camZoom` 0..4 (2 = el de siempre; sustituye a la fila Distancia: sin `camZoom`, `camDist` near → 1 / far → 3;
   2v2 `distK` 0,76/0,86/1/1,18/1,34, 6v6 distancia y altura). `VB.CameraRig.OPTS` añade `camZoom`. input.js: acciones `zoomIn`/`zoomOut`
   (+ y - de la distribución española, `BracketRight`/`Slash`, y Num + / Num -), rueda girada, stick derecho (eje 3, mapeo estándar) y

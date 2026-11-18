@@ -55,7 +55,7 @@ const HOOK = `(function(){
         if(occ){ o.occ++; all.occ++; }
       }
       if(cls!=='safe') outRun+=dt; else outRun=0;
-      if(${process.env.LOG ? 'true' : 'false'}&&cls!=='safe'&&cls!=='edge'&&(M.lg=M.lg||[]).length<80) M.lg.push([ph,'b',b.x.toFixed(1),b.y.toFixed(1),b.z.toFixed(1),'v',b.vx.toFixed(0),b.vz.toFixed(0),'ndc',v.x.toFixed(2),v.y.toFixed(2),'cam',cx.toFixed(1),cz.toFixed(1),'fov',cam.fov.toFixed(0),'p',(d.pitch*57.3).toFixed(0),'bf',d.tp?d.tp.bf.toFixed(1):'-','tf',d.tp?d.tp.fov.toFixed(0):'-','jug',g.ctrl.x.toFixed(1)].join(' '));
+      if(${process.env.LOG ? 'true' : 'false'}&&cls!=='safe'&&cls!=='edge'&&(M.lg=M.lg||[]).length<80) M.lg.push([ph,'b',b.x.toFixed(1),b.y.toFixed(1),b.z.toFixed(1),'v',b.vx.toFixed(0),b.vz.toFixed(0),'ndc',v.x.toFixed(2),v.y.toFixed(2),'cam',cx.toFixed(1),cz.toFixed(1),'fov',cam.fov.toFixed(0),'p',(d.pitch*57.3).toFixed(0),'ct',d.ct?d.ct.e.toFixed(1):'-','tf',d.tp?d.tp.fov.toFixed(0):'-','jug',g.ctrl.x.toFixed(1)].join(' '));
       // jugador
       if(g.ctrl){ M.pN++; var p=g.ctrl, bad=false; for(var h=0;h<2;h++){ VB.toThree(p.x,p.y,(p.z||0)+(h?1.85:0),v); v.project(cam); if(v.z>1||Math.abs(v.x)>1||Math.abs(v.y)>1) bad=true; } if(bad) M.pOut++; }
       for(var ci=0;ci<CT.length;ci++){ if(CT[ci]>0&&g.time>=CT[ci]&&!window.__cap){ window.__cap='t'+CT[ci]+'-'+ph+'-'+cls; CT[ci]=-1; c.frozen=true; M.caps.push(window.__cap); } }
