@@ -4056,12 +4056,13 @@
   // esto llega a la sim ni a g.rng (la semilla de «Al azar» es Date.now()). Sin VB.Look (look.js sin cargar) no hay botón.
   var LK_TABS = [['pelo', 'Pelo'], ['cabeza', 'Cabeza'], ['cara', 'Cara'], ['cuerpo', 'Cuerpo'], ['brazos', 'Brazos'], ['piernas', 'Piernas'], ['colores', 'Colores']];
   var LK_ROWS = {
-    pelo: ['style', 'hair', 'skin'], cabeza: ['head', 'eyes'], cara: ['paint', 'marks', 'beard'], cuerpo: ['neck', 'under', 'band', 'legs'],
+    pelo: ['style', 'hair', 'hair2', 'hairFx', 'skin'],   // (1.16, WP2: segundo color y efecto de pelo)
+    cabeza: ['head', 'eyes'], cara: ['paint', 'marks', 'beard'], cuerpo: ['neck', 'under', 'band', 'legs'],
     brazos: ['armL', 'armR', 'elbows', 'wristL', 'wristR', 'hands'], piernas: ['knees', 'socks', 'ankle', 'shoes'],
     colores: ['c:acc', 'c:acc2', 'c:sock', 'c:shoe', 'c:glass']
   };
   var LK_LABEL = {
-    style: 'Peinado', hair: 'Color de pelo', skin: 'Piel', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba',
+    style: 'Peinado', hair: 'Color de pelo', hair2: 'Segundo color', hairFx: 'Efecto de pelo', skin: 'Piel', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba',
     neck: 'Cuello', under: 'Interior', band: 'Brazalete', legs: 'Mallas', armL: 'Manguito izq.', armR: 'Manguito dcha.', elbows: 'Coderas',
     wristL: 'Muñeca izq.', wristR: 'Muñeca dcha.', hands: 'Manos', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas',
     'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura'
@@ -4077,7 +4078,8 @@
   // «Probar»: pose y cara del muñeco, en rueda
   var LK_TRY = [['spike', 'grito', 'Remate'], ['cel', 'alegria', 'Celebración'], ['recv', 'concentrado', 'Recepción'], ['stand', 'neutra', 'De pie']];
   var LK_CAPS = { gorra: 1, gorraAtras: 1, pescador: 1 };   // sustituyen al pelo (de reserva si doll.js no publica HIDE_HAIR)
-  var LK_UNDER_CAP = { coleta: 1, trenzas: 1, coletas: 1 };  // peinados que sí asoman con gorra (look-spec §1.4.8)
+  // peinados que asoman enteros con gorra de copa: los dice doll.js (HAIR_UNDER_CAP, de HAIR_STYLES); esta lista es la de reserva
+  var LK_UNDER_CAP = { coleta: 1, trenzas: 1, coletas: 1 };
   var LK_FOOT = ['try', 'rand', 'reset', 'copy'];
   var lk = { on: false, who: 0, venue: 'hall', hall: false, fit: null, saved: null, dirty: false, nul: false, ctc: null, num: 1, o: null, tab: 'pelo',
     tryI: -1, lastStep: 0, pvT: 0, pvDue: false, idle: 0, rep: 0, repT: 0, drag: null, keySpin: 0, btnSpin: 0, btnT: 0, padSpin: 0, footI: 0, ukey: '' };
@@ -4116,7 +4118,7 @@
   // ---- lectura y escritura de una ranura en un fit (identidad y colores comunes; ropa por escenario) ----
   function lkGetFrom(f, slot) {
     if (!f) return '';
-    if (slot === 'style' || slot === 'skin' || slot === 'hair') return f[slot];
+    if (slot === 'style' || slot === 'skin' || slot === 'hair' || slot === 'hair2' || slot === 'hairFx') return f[slot] == null ? '' : f[slot];
     if (slot.indexOf('c:') === 0) return f.colors && f.colors[slot.slice(2)] != null ? f.colors[slot.slice(2)] : 'auto';
     var s = f[lkVKey()]; return s && s[slot] != null ? s[slot] : '';
   }
@@ -4124,7 +4126,7 @@
   // (elegir algo en una ruta borra lo que una versión más nueva dejó guardado en ella, _keep: si no, volvería al guardar en esa versión)
   function lkUnkeep(f, path) { var Lk = LK(); try { if (Lk && Lk.unkeep) Lk.unkeep(f, path); } catch (e) { } }
   function lkPut(f, slot, v) {
-    if (slot === 'style' || slot === 'skin' || slot === 'hair') { f[slot] = v; lkUnkeep(f, slot); return; }
+    if (slot === 'style' || slot === 'skin' || slot === 'hair' || slot === 'hair2' || slot === 'hairFx') { f[slot] = v; lkUnkeep(f, slot); return; }
     if (slot.indexOf('c:') === 0) { if (!f.colors || typeof f.colors !== 'object') f.colors = {}; f.colors[slot.slice(2)] = v; lkUnkeep(f, 'colors.' + slot.slice(2)); return; }
     var k = lkVKey(); if (!f[k] || typeof f[k] !== 'object') f[k] = {}; f[k][slot] = v; lkUnkeep(f, k + '.' + slot);
   }
@@ -4265,14 +4267,15 @@
   /** ¿Tapa el gorro el peinado? (gorra, gorra al revés y pescador; coleta, trenzas y coletas asoman igual) */
   function lkCapHides() {
     var hd = lkGet('head'), st = lkGet('style'), H = (VB.Doll && VB.Doll.HIDE_HAIR) || (VB.Look && VB.Look.HIDE_HAIR) || LK_CAPS;
-    return !!hd && (Array.isArray(H) ? H.indexOf(hd) >= 0 : !!H[hd]) && !LK_UNDER_CAP[st];
+    var U = (VB.Doll && VB.Doll.HAIR_UNDER_CAP) || LK_UNDER_CAP;
+    return !!hd && (Array.isArray(H) ? H.indexOf(hd) >= 0 : !!H[hd]) && !U[st];
   }
   function lkRowHTML(slot, U) {
     var ops = lkOpts(slot); if (ops.length < 2) return '';   // lo que no vale en este escenario no sale
     var cur = lkGet(slot), i = lkIdx(ops, cur), o = i >= 0 ? ops[i] : lkOptOf(cur, lkKey(slot));
     var locked = lkLocked(o), lt = locked ? lkLockText(o) : '', label = LK_LABEL[slot], n = ops.length;
     var isNew = false; for (var k = 0; k < ops.length && !isNew; k++) if (ops[k].cat && U[ops[k].v]) isNew = true;
-    var col = slot === 'skin' || slot === 'hair' || slot.indexOf('c:') === 0;
+    var col = slot === 'skin' || slot === 'hair' || slot === 'hair2' || slot.indexOf('c:') === 0;
     var sw = o.hex >= 0 ? '<i class="lk-sw" style="background:' + hx(o.hex) + '"></i>' : col ? '<i class="lk-sw auto"></i>' : '';
     var help = locked ? LK_LOCK + escT(lt || 'Aún no lo tienes') : slot === 'style' && lkCapHides() ? 'Con gorra no se ve el peinado entero' : escT(lkHint(o));
     var aria = label + ': ' + o.name + ', ' + (i >= 0 ? i + 1 : 1) + ' de ' + n + (o.rar != null ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') +

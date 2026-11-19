@@ -265,7 +265,7 @@
     return h;
   }
   // nombre corto de cada ranura (las filas del Vestuario, ui.js), para la ayuda de cada objeto de la tienda
-  var SLOT_N = { style: 'Peinado', hairTint: 'Color de pelo', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba', neck: 'Cuello',
+  var SLOT_N = { style: 'Peinado', hairTint: 'Color de pelo', hairFx: 'Efecto de pelo', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba', neck: 'Cuello',
     under: 'Interior', band: 'Brazalete', armL: 'Manguito', armR: 'Manguito', elbows: 'Coderas', wristL: 'Muñeca', wristR: 'Muñeca', hands: 'Manos',
     legs: 'Mallas', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas', color: 'Color' };
   /** Rareza 0-3 en estrellas (★ … ★★★★), con su lectura para el lector de pantalla. */

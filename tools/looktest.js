@@ -25,6 +25,7 @@ const GL = process.argv.includes('--gl');
 const SWEEP = process.argv.includes('--sweep');   // (con --gl) peor caso real por sede y LOD, con su margen hasta TRI_CAP
 let fail = 0, warn = 0;
 const check = (c, m) => { if (!c) { fail++; console.error('FALLO:', m); } else console.log('ok:', m); return !!c; };
+function lumT(h) { return (0.299 * ((h >> 16) & 255) + 0.587 * ((h >> 8) & 255) + 0.114 * (h & 255)) / 255; }
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 setTimeout(() => { console.error('TIEMPO AGOTADO'); process.exit(2); }, 10 * 60e3).unref();
 
@@ -63,7 +64,7 @@ const ids = C.map(x => x.id);
 check(new Set(ids).size === ids.length, 'ids únicos (' + ids.length + ')');
 check(ids.every(id => IDRE.test(id)), 'ids con el formato ^[a-z][a-zA-Z0-9]{1,15}$');
 check(L.PALETTE.every(p => IDRE.test(p.id) && (!ids.includes(p.id) || p.id === 'dorado')), 'fichas de PALETTE con formato y sin chocar con objetos (salvo dorado, que se gana)');
-const SLOTX = L.SLOTS.concat(['style', 'hairTint', 'color']);
+const SLOTX = L.SLOTS.concat(['style', 'hairTint', 'hairFx', 'color']);
 check(C.every(x => x.slots.length && x.slots.every(s => SLOTX.includes(s)) && x.slot === x.slots[0]), 'cada objeto con ranura válida');
 check(C.every(x => ['P', 'Y', 'A'].includes(x.venue)), 'cada objeto con sede válida (P, Y, A)');
 check(C.every(x => x.rarity >= 0 && x.rarity <= 3 && L.stars(x.id).length === 4 && L.stars(x.id).replace(/☆/g, '').length === x.rarity + 1), 'rareza 0-3 y estrellas');
@@ -78,27 +79,31 @@ check(C.every(x => Object.isFrozen(x)), 'objetos del catálogo congelados');
 
 // ids de la especificación (§1.2 y §1.3), por ranura
 const SPEC = {
-  style: 'tupe coleta afro flequillo rapado mono trenzas dosmonos coletas cresta',
+  style: 'tupe coleta afro flequillo rapado mono trenzas dosmonos coletas cresta' +   // + los 22 de 1.16 (WP2 del plan del Vestuario)
+    ' alCero degradado cepillo undercut crop pinchos rizosCortos afroCorto frohawk raices twists rastas despeinado cortina melenita mullet ondas melena semirrecogido coletaBaja trenza monoBajo',
   head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC',   // (gorraMTC: online, fase 3)
-  eyes: 'frente pasta oscuras deporte espejo', paint: 'zinc rayas rayasEq estrella', marks: 'pecas tirita tiraNasal', beard: 'bigote perilla tresDias',
+  eyes: 'frente pasta oscuras deporte espejo', paint: 'zinc rayas rayasEq estrella', marks: 'pecas tirita tiraNasal', beard: 'bigote perilla tresDias barba',   // (barba: 1.16, WP3)
+ 
   neck: 'medalla conchas', under: 'termica licra', band: 'capitan', legs: 'malla mallaLarga',
   armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo', elbows: 'coderas',
   wristL: 'muneq reloj munhCanon', hands: 'dedos mitones dedosMuro', knees: 'cortas altas bajadas rodiPulpo', socks: 'tobilleros media altos altosRayas desparejados',
   ankle: 'blanca tela pulseraTob escarpines tobiPulpo', shoes: 'clasicas negras neon doradas',
-  hairTint: 'tAzul tRosa tVerde tMorado tTurquesa tDorado', color: 'dorado'
+  hairTint: 'tAzul tRosa tVerde tMorado tTurquesa tDorado tRojo tNaranja tLila tMenta tPlata tEquipo', color: 'dorado',
+  hairFx: 'raiz puntas mechas flequilloFx mitad'
 };
 let specOk = true;
 Object.keys(SPEC).forEach(s => { const want = SPEC[s].split(' ').sort().join(), got = C.filter(x => x.slot === s).map(x => x.id).sort().join(); if (want !== got) { specOk = false; console.error('  ranura ' + s + ': ' + got + ' (esperado ' + want + ')'); } });
 check(specOk, 'el catálogo tiene exactamente los ids de la especificación por ranura');
 check(eq(L.items('armR'), L.items('armL')) && eq(L.items('wristR'), L.items('wristL')), 'manguitos y muñecas valen en los dos lados');
-check(L.STYLES.length === 10 && L.TINTS.length === 6 && L.SKINS.length === 14 && L.HAIRS.length === 15, '10 peinados, 6 tintes, 14 pieles y 15 colores de pelo');
+check(L.STYLES.length === 32 && L.TINTS.length === 12 && L.SKINS.length === 14 && L.HAIRS.length === 21, '32 peinados, 12 tintes, 14 pieles y 21 colores de pelo');
+check(L.STYLES.filter(id => L.isStart(id)).length === 9 + 18, '18 de los 22 peinados nuevos son de inicio (27 de 32)');
 // sede (§1.4.1)
 const ONLY_Y = 'gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines tobiPulpo'.split(' ');
 const ONLY_P = ['termica', 'bajadas', 'blanca', 'rodiPulpo', 'cortas', 'altas', 'coderas'].concat(SPEC.armL.split(' ').filter(x => x !== 'kinesio')).concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
 check(C.filter(x => x.venue === 'Y').map(x => x.id).sort().join() === ONLY_Y.slice().sort().join(), 'solo en playa: la lista de §1.4');
 check(C.filter(x => x.venue === 'P').map(x => x.id).sort().join() === ONLY_P.slice().sort().join(), 'solo en pista: la lista de §1.4');
 // CLASH
-check(L.CLASH.length >= 5 && L.CLASH.every(r => [r.a, r.b].every(sd => sd.ids.length && sd.ids.every(id => L.item(id) && L.item(id).slots.includes(sd.slot)))) && L.CLASH.every(r => r.why && r.why.a && r.why.b), 'cada regla de CLASH con ids que existen en su ranura y con su texto');
+check(L.CLASH.length >= 1 && L.CLASH.every(r => [r.a, r.b].every(sd => sd.ids.length && sd.ids.every(id => L.item(id) && L.item(id).slots.includes(sd.slot)))) && L.CLASH.every(r => r.why && r.why.a && r.why.b), 'cada regla de CLASH con ids que existen en su ranura y con su texto');
 // logros, premios y ejercicios
 const CLT = fs.readFileSync(path.join(ROOT, 'js', 'career-life.js'), 'utf8');
 const clIds = new Set(); let mm; const re = /\bid:\s*'([a-zA-Z0-9]+)'/g; while ((mm = re.exec(CLT))) clIds.add(mm[1]);
@@ -131,7 +136,7 @@ const TC = { base: 0x1144aa, accent: 0xffcc00, dark: 0x0a1a33, shorts: 0x111111,
 {
   const f = L.defaults(0); f.colors = { acc: 'eq', acc2: 'ac', sock: 'os', shoe: 'rojo', glass: 'bl' }; f.hair = 'tAzul';
   const R = L.resolve(f, 'hall', TC);
-  const KEYS = 'skin hair hair2 hairFx style acc eyes paint marks beard neck under band armL armR elbows wristL wristR hands legs knees socks ankle shoes cA cB cSock cShoe cGlass cPad'.split(' ');
+  const KEYS = 'skin hair hair2 brow hairFx style acc eyes paint marks beard neck under band armL armR elbows wristL wristR hands legs knees socks ankle shoes cA cB cSock cShoe cGlass cPad'.split(' ');
   check(Object.isFrozen(R) && eq(Object.keys(R).sort(), KEYS.slice().sort()) && !('h' in R), 'resolve: L congelado, con los campos de §2.2 y sin h');
   check(R.cA === TC.base && R.cB === TC.accent && R.cSock === TC.dark && R.cShoe === 0xe0383e && R.cGlass === 0xf4f4f4 && R.hair === 0x3a6cf0, 'resolve: fichas eq/ac/os, paleta, blanco y tinte a hex');
   const R0 = L.resolve(L.defaults(0), 'beach');
@@ -181,7 +186,8 @@ check(L.STYLES.every(id => L.HAIR_FAMS.includes(L.item(id).fam)) && L.CATALOG.fi
   check(s.hall.head === 'cinta' && s.hall.armL === '' && s.hall.socks === 'altos' && s.hall.shoes === 'neon' && s.beach.socks === '' && s.beach.shoes === '' && s.beach.head === 'pescador' && s.colors.acc === 'rojo' && s.colors.acc2 === 'auto',
     'sane(): id de otra ranura o sede vuelve al valor por defecto de la ranura; lo bueno se queda');
   check(L.sane({ hair: 'tAzul' }).hair === 'tAzul' && L.sane({ hair: 'tazul' }).hair === L.defaults(0).hair && L.sane({ skin: 0x5a3626 }).skin === 0x5a3626, 'sane(): tintes por id y pieles nuevas');
-  check(L.sane({ style: 'afro', beach: { head: 'pescador' } }).beach.head === '' && L.ok(L.sane({ style: 'afro', beach: { head: 'pescador' } })), 'sane(): aplica las compatibilidades');
+  check(L.sane({ beach: { head: 'gorra', eyes: 'frente' } }).beach.eyes === '' && L.ok(L.sane({ beach: { head: 'gorra', eyes: 'frente' } })), 'sane(): aplica las compatibilidades');
+  check(L.sane({ style: 'afro', beach: { head: 'pescador' } }).beach.head === 'pescador' && L.sane({ style: 'dosmonos', hall: { head: 'corona' } }).hall.head === 'corona', 'sane(): los gorros ya no quitan peinados (1.16: el gorro adapta el pelo)');
   check(L.sane({ hall: { head: 'corona' } }).hall.head === 'corona', 'sane() no quita lo bloqueado');
 }
 // ida y vuelta
@@ -204,23 +210,18 @@ function fixed(f, ven, ch, msg, label) {
 check(!L.ok(F({ beach: { head: 'cinta', eyes: 'frente' } }), 'beach') && L.ok(F({ beach: { head: 'gorraAtras', eyes: 'frente' } })) && L.ok(F({ beach: { head: '', eyes: 'frente' } })), 'ok(): frente solo sin gorro o con la gorra al revés');
 fixed(F({ beach: { head: 'gorra', eyes: 'frente' } }), 'beach', 'head', 'Quitado: Gafas en la frente (no caben con ese gorro)', 'frente + gorra (cambia el gorro)');
 fixed(F({ beach: { head: 'visera', eyes: 'frente' } }), 'beach', 'eyes', 'Quitado: Visera (no cabe con las gafas en la frente)', 'frente + visera (cambian las gafas)');
-fixed(F({ style: 'afro', beach: { head: 'pescador' } }), 'beach', 'style', 'Quitado: Gorro de pescador (no cabe con el afro)', 'afro + pescador');
-fixed(F({ style: 'afro', hall: { head: 'bandana' } }), 'hall', 'head', 'Quitado: Afro (no cabe con el pañuelo)', 'afro + pañuelo (cambia el gorro)');
-fixed(F({ style: 'mono', hall: { head: 'corona' } }), 'hall', 'style', 'Quitado: Coronita (no cabe con el moño)', 'coronita + moño');
-fixed(F({ style: 'cresta', beach: { head: 'corona' } }), 'beach', 'head', 'Quitado: Cresta (no cabe con la coronita)', 'coronita + cresta (cambia el gorro)');
-fixed(F({ style: 'dosmonos', hall: { head: 'cintaRizo' } }), 'hall', 'style', 'Quitado: Cinta de rizo (no cabe con los dos moños)', 'dos moños + cinta de rizo');
-fixed(F({ style: 'dosmonos', hall: { head: 'corona' } }), 'hall', 'head', 'Quitado: Dos moños (no caben con la coronita)', 'dos moños + coronita (cambia el gorro)');
-fixed(F({ style: 'coletas', hall: { head: 'bandana' } }), 'hall', 'head', 'Quitado: Coletas (no caben con el pañuelo)', 'coletas + pañuelo (cambia el gorro)');
-fixed(F({ style: 'coletas', hall: { head: 'bandana' } }), 'hall', 'style', 'Quitado: Pañuelo (no cabe con las coletas)', 'coletas + pañuelo (cambia el peinado)');
+// (1.16, WP2: los gorros adaptan el pelo; las 6 reglas de peinado de antes ya no quitan nada)
+check([['afro', 'pescador', 'beach'], ['afro', 'bandana', 'hall'], ['mono', 'corona', 'hall'], ['cresta', 'corona', 'beach'], ['dosmonos', 'cintaRizo', 'hall'], ['dosmonos', 'corona', 'hall'], ['coletas', 'bandana', 'hall']]
+  .every(c => { const f = F({ style: c[0], [c[2]]: { head: c[1] } }); return L.ok(f) && ['style', 'head'].every(ch => L.fix(f, c[2], ch).removed.length === 0); }), 'peinado + gorro: ninguna combinación se quita (afro + pescador, moño + coronita, coletas + pañuelo…)');
 fixed(F({ hall: { head: 'gorra', paint: 'zinc', shoes: 'clasicas' } }), 'hall', null, 'Quitado: Gorra (solo en playa)', 'sede: gorra en pista');
 fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'beach', null, 'Quitado: Zapatillas (solo en pista)', 'sede: zapatillas en playa');
 {
   const r = L.fix(F({ hall: { ankle: 'tela', shoes: 'neon' } }), 'hall');
   check(r.fit.hall.ankle === 'blanca' && r.fit.hall.shoes === 'neon' && r.removed.length === 1, 'sede: lo quitado en pista vuelve a la tobillera de siempre, no se queda descalzo');
-  const g = L.fix(F({ style: 'afro', hall: { head: 'bandana' }, beach: { head: 'pescador' } }), null, 'style');
-  check(g.fit.hall.head === '' && g.fit.beach.head === '' && g.fit.style === 'afro' && L.ok(g.fit), 'sin sede: arregla las dos (el peinado manda si cambió)');
-  const a = L.fix(F({ style: 'afro', hall: { head: 'bandana' }, beach: { head: 'bandana' } }), null, 'head');
-  check(a.fit.style === 'tupe' && a.removed.length === 1, 'un peinado quitado por los dos gorros se avisa una vez y vuelve a tupé');
+  const g = L.fix(F({ hall: { head: 'cinta' }, beach: { head: 'gorra', eyes: 'frente' } }), null, 'head');
+  check(g.fit.hall.head === 'cinta' && g.fit.beach.eyes === '' && g.fit.beach.head === 'gorra' && L.ok(g.fit), 'sin sede: arregla las dos (el gorro manda si cambió)');
+  const a = L.fix(F({ style: 'afro', hall: { head: 'bandana' }, beach: { head: 'pescador' } }), null, 'style');
+  check(a.fit.style === 'afro' && a.removed.length === 0, 'afro con pañuelo y pescador: se queda todo');
   const keep = F({ hall: { under: 'termica', armL: 'manguitoLlamas', band: 'capitan', wristL: 'reloj' }, beach: { eyes: 'oscuras', paint: 'rayas', marks: 'pecas', head: 'gorra' } });
   check(L.fix(keep, null, 'armL').removed.length === 0 && L.ok(keep), 'combinaciones permitidas (manguito sobre térmica, brazalete sobre manguito, reloj con manguito, gafas pintadas con pintura)');
   const before = JSON.stringify(keep); L.fix(keep, 'hall', 'head'); check(JSON.stringify(keep) === before, 'fix no toca el fit que recibe');
@@ -366,8 +367,9 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   check(!/·|1\.er|2\.º|undefined|NaN/.test(all), 'textos sin «·», sin ordinales con punto y sin undefined');
   check(L.name('', 'head') === 'Sin gorro' && L.name('rojo') === 'Rojo' && L.name('auto') === 'Automático' && L.name(0xd8d4cc) === 'Canas' && /^Tono \d+$/.test(L.name(0x5a3626, 'skin')) && L.name('cintaRizo') === 'Cinta de rizo', 'name: objetos, «nada», fichas, colores de pelo y tonos de piel');
   check(L.stars('corona') === '★★★★' && L.stars('pasta') === '★☆☆☆' && L.rarityLabel('espejo') === 'Rareza: 3 de 4', 'estrellas y aria-label de la rareza');
-  check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 21 && L.choices('skin').length === 14, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale)');
-  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC', 'HIDE_HAIR: gorra, gorra al revés, pescador y la gorra «MTC» del online');
+  check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 33 && L.choices('skin').length === 14 &&
+    L.choices('hair').filter(v => typeof v === 'number').every((v, i, a) => !i || lumT(a[i - 1]) <= lumT(v)) && L.choices('hairFx')[0] === '' && L.choices('hairFx').length === 6, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale); el pelo natural de oscuro a claro; efectos de pelo');
+  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC,bandana', 'HIDE_HAIR: gorra, gorra al revés, pescador, la gorra «MTC» del online y el pañuelo (1.16, WP3)');
 }
 // sin tocar VB ajeno
 check(Object.keys(VB).join() === 'Look', 'look.js solo publica VB.Look');
@@ -416,7 +418,7 @@ console.log('== sprint 2-4 (T9) ==');
     H.CATALOG.forEach(o => { const n = X.item(o.id); if (!n) { lostAlt.push(o.id + ' (falta)'); return; } o.unlock.forEach(u => { if (!n.unlock.some(v => eq(v, u))) lostAlt.push(o.id + ' ' + JSON.stringify(u)); }); });
     const added = C.filter(x => H.item(x.id)).map(x => x.unlock.length - H.item(x.id).unlock.length).reduce((a, b) => a + b, 0);
     check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de ' + LOOK_BASE + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
-    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online; ' + H.CATALOG.length + ' → ' + C.length + ')');
+    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6 + 34, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online) + 34 de 1.16 (22 peinados, 6 tintes, 5 efectos, la barba; ' + H.CATALOG.length + ' → ' + C.length + ')');
     check(H.CATALOG.every(o => X.isStart(o.id) === H.isStart(o.id) && X.price(o.id) === H.price(o.id) && X.item(o.id).rarity === o.rarity), 'inicio, precios y rarezas de siempre');
   } else console.log('AVISO: sin js/look.js en ' + LOOK_BASE + ': comparación de alternativas saltada');
 
