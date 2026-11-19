@@ -170,8 +170,15 @@ async function browser() {
     const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/const PAD = `([\s\S]*?)`;/)[1].replace('__PADID__', JSON.stringify('Mando virtual de pruebas (STANDARD GAMEPAD)'));
     pg = await CDP.open({ size: '1280x720', init: [PAD] });
     await pg.navigate('nonews=1&panel=set&tab=info'); await ready(pg); await sleep(1500);
+    // (el juego lee el mando una vez por frame: en los primeros segundos el enlace de programas de la GPU congela el hilo principal
+    //  medio segundo o más y una pulsación de 100 ms caía entera dentro del parón, sin que ningún frame la viera. No es un fallo del
+    //  juego (pasa igual con un mando de verdad durante la carga): se espera a que los frames corran y cada botón se mantiene
+    //  hasta que lo han visto varios frames)
+    const frame = () => pg.evalJs('VB.ctx.frame|0');
+    const frames = async (n, ms) => { const f0 = await frame(), t = Date.now(); while (Date.now() - t < ms) { if ((await frame()) >= f0 + n) return true; await sleep(30); } return false; };
+    check(await frames(30, 8000), '(e) el juego pinta frames con fluidez antes de usar el mando');
     await pg.evalJs('__pad.connect()'); await sleep(300);
-    const press = async b => { await pg.evalJs(`__pad.set(null,{${b}:1})`); await sleep(100); await pg.evalJs(`__pad.set(null,{${b}:0})`); await sleep(250); };
+    const press = async b => { await pg.evalJs(`__pad.set(null,{${b}:1})`); await frames(4, 3000); await pg.evalJs(`__pad.set(null,{${b}:0})`); await frames(4, 3000); };
     const focused = await pg.evalJs(`(function(){var g=document.querySelector('.opt-g[data-tab="info"]');if(!g)return false;var b=[].slice.call(g.querySelectorAll('button,.opt')).filter(function(x){return /Créditos/.test(x.textContent)})[0];if(!b)return false;b.focus();return document.activeElement===b;})()`);
     check(focused, '(e) Ajustes › Info con la fila «Créditos»');
     if (focused) {

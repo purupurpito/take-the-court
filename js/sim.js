@@ -414,7 +414,8 @@
         serves: [0, 0], aces: [0, 0], spikes: [0, 0], kills: [0, 0], stuffPts: [0, 0], faults: {}, body: 0, jsets: 0, courtChanges: 0,
         // E1: jugadas de maestría del humano, [usos, puntos] (tool = manos fuera con el remate al filo; lane/high = colocaciones dirigidas);
         // cpu: las de la CPU (golpe colocado [usos, puntos] y colocaciones a un lado). Solo cuentan con g.mastery
-        mastery: { feint: [0, 0], roll: [0, 0], edge: [0, 0], tool: 0, quick: [0, 0], lane: 0, high: 0, cpu: { roll: [0, 0], lane: 0 } }
+        mastery: { feint: [0, 0], roll: [0, 0], edge: [0, 0], tool: 0, quick: [0, 0], lane: 0, high: 0, cpu: { roll: [0, 0], lane: 0 } },
+        _undo: null              // contadores del último punto que se pueden revocar con challenge (point → endReview)
       } : null
     };
     // E1: maestría (finta, golpe colocado, al filo, colocación dirigida y lo que lee la IA). Solo en partidos humanos 2v2: nunca en la
@@ -2536,6 +2537,8 @@
     if (g.subsOn) { g._subU = g._snap ? subUndo(g) : null; subCount(g); }   // banquillo: puntos en pista (g.meR, p.onR), del partido (g.rallyN) y cansancio
     var sideout = w !== g.serving;
     if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.how = g.stats.how || {}; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.rallies.push(g.rally.t); }
+    // challenge: contadores que suma este punto, para que endReview los deshaga si se revoca (rutas en g.stats; solo estadísticas: sin g.rng ni estado)
+    var su = g.stats && g._snap ? [['why', text]] : null; if (g.stats) g.stats._undo = su;
     emit(g, { type: 'whistle', reason: 'point' });
     // cómo se ganó (para UI/público): ace, kill (remate), tip (dejada), block, error, free
     var how = 'error';
@@ -2555,15 +2558,18 @@
     // punto es suyo (remate o dejada; también el block-out)
     var move = g.mastery && g.atkTeam === w && (how === 'kill' || how === 'tip') ? g.atkMove : '';
     if (move && g.stats) { var sm = g.stats.mastery;
-      if (move === 'quick') { if (w === 0) sm.quick[1]++; } else if (g.atkHuman) { sm[move][1]++; if (tool && move === 'edge') sm.tool++; } else if (w === 1 && move === 'roll') sm.cpu.roll[1]++; }
+      if (move === 'quick') { if (w === 0) { sm.quick[1]++; if (su) su.push(['mastery', 'quick', 1]); } }
+      else if (g.atkHuman) { sm[move][1]++; if (su) su.push(['mastery', move, 1]); if (tool && move === 'edge') { sm.tool++; if (su) su.push(['mastery', 'tool']); } }
+      else if (w === 1 && move === 'roll') { sm.cpu.roll[1]++; if (su) su.push(['mastery', 'cpu', 'roll', 1]); } }
     // salto con impulso: punto del remate con impulso / pipe del humano (g.stats.dj; g.djLast lo deja hit)
     if (g.stats && g.stats.dj && how === 'kill' && g.atkHow === 'kill' && g.atkTeam === w && g.djLast.team === w) {
-      if (g.djLast.mom) g.stats.dj.mom[1]++;
-      if (g.djLast.pipe) g.stats.dj.pipe[1]++;
+      if (g.djLast.mom) { g.stats.dj.mom[1]++; if (su) su.push(['dj', 'mom', 1]); }
+      if (g.djLast.pipe) { g.stats.dj.pipe[1]++; if (su) su.push(['dj', 'pipe', 1]); }
     }
     if (g.stats) {
-      if (how === 'ace') g.stats.aces[w]++; else if (how === 'kill') g.stats.kills[w]++; else if (how === 'block') g.stats.stuffPts[w]++;
-      if (p) g.stats.faults[reason] = (g.stats.faults[reason] || 0) + 1;
+      var sk = how === 'ace' ? 'aces' : how === 'kill' ? 'kills' : how === 'block' ? 'stuffPts' : '';
+      if (sk) { g.stats[sk][w]++; if (su) su.push([sk, w]); }
+      if (p) { g.stats.faults[reason] = (g.stats.faults[reason] || 0) + 1; if (su) su.push(['faults', reason]); }
     }
     // ¿cierra el set / el partido? ¿cambio de campo a los 8 del set decisivo? (se decide aquí para que el evento lo lleve)
     var tgt = setTarget(g), a = g.score[0], bb = g.score[1], half = Math.ceil(tgt / 2);
@@ -2617,7 +2623,7 @@
     if (reason === 'antenna') ev.antenna = g.antennaHit ? [g.antennaHit.x, g.antennaHit.y, g.antennaHit.z] : null; // null = por fuera de la antena
     g.lastPoint = { team: w, reason: reason, text: text, how: how, highlight: hl, digs: digs, streak: g.streakN, savedSetPoint: saved, clutch: clutch,
       signal: signal, touchedOut: touchedOut, landSide: landSide, hold: hold, setWon: setWon, matchWon: matchWon, assist: assist, tool: tool, move: move };
-    if (g.stats) g.stats.how[how] = (g.stats.how[how] || 0) + 1;
+    if (g.stats) { g.stats.how[how] = (g.stats.how[how] || 0) + 1; if (su) su.push(['how', how]); }
     if (sideout) { // cambio de saque: rota el sacador del equipo que recupera el saque
       g.serving = w;
       if (g.rot) rotate(g, w); else g.serverIdx[w] = (g.serverIdx[w] + 1) % g.teams[w].length; // 6v6: rota el equipo
@@ -2959,7 +2965,13 @@
       g.score = s.score; g.sets = s.sets; g.setNo = s.setNo; g.serving = s.serving; g.serverIdx = s.serverIdx; g.setScores = s.setScores;
       g.streakTeam = s.streakTeam; g.streakN = s.streakN; g.courtSwap3 = s.courtSwap3; g.pendingSet = s.pendingSet;
       g.setPoint = s.setPoint; g.matchPoint = s.matchPoint; g.challenges = s.challenges; g.lastPoint = s.lastPoint;
-      if (g.stats) { g.stats.points--; g.stats.won[wOld]--; }
+      if (g.stats) { // el punto anulado no cuenta: ni el marcador ni su motivo, peloteo, cómo, saque/remate/bloqueo, falta o maestría
+        g.stats.points--; g.stats.won[wOld]--;
+        var su = g.stats._undo; g.stats._undo = null;
+        // (_undo guarda rutas dentro de g.stats, no referencias: sigue valiendo si alguien copia g.stats con JSON)
+        if (su) { g.stats.rallies.pop(); for (var ui = 0; ui < su.length; ui++) { var up = su[ui], uo = g.stats, uj = 0; for (; uj < up.length - 1; uj++) uo = uo[up[uj]];
+          var uk = up[uj]; uo[uk]--; if (uo[uk] === 0 && (up[0] === 'why' || up[0] === 'how' || up[0] === 'faults')) delete uo[uk]; } }
+      }
       if (g.subsOn) { g.rallyN--; if (g._meLast) g.meR--; subRedo(g, setNo0); } // banquillo: el punto anulado no cuenta (ni su rendimiento ni su cansancio: se vuelve a contar abajo)
       if (g.mode === 'serve') { endRitual(g); endSwingX(g); g.serveState = 'ready'; }
       // mismo bote (landSide del punto nuevo); si ya se preparó el saque siguiente, lastLand puede venir a null: se rehace con la llamada

@@ -61,7 +61,9 @@ function deepHash(g) {
   return h >>> 0;
 }
 
-/** Un partido en red simulado. cfg: {rtt, jit, loss, secs, seed, venue, noiseB, mutateAt, cut: {at, ms, aiAt, reloadAt}} */
+/** Un partido en red simulado. cfg: {rtt, jit, loss, secs, seed, venue, noiseB, mutateAt, cut: {at, ms, aiAt, reloadAt}, settle, settleMax}
+ *  settle(sA, sB, logA, logB): pasados `secs`, sigue jugando (como mucho `settleMax` s más, 40 por defecto) hasta que devuelve true;
+ *  así una comprobación que depende del próximo balón muerto o de la próxima reparación no falla porque la IA alargue los peloteos. */
 function run(cfg) {
   const A = load(0), Bv = load(cfg.noiseB || 0);
   let T = 0;
@@ -81,8 +83,13 @@ function run(cfg) {
   const cpu = [], st = { waitFrames: [0, 0], unstable: [0, 0], canAIat: [-1, -1], status: {}, err: null, gameOver: false, maxDepth: 0, events: [0, 0], conf: [0, 0] };
   let mutated = -1, repairedAt = -1, cutDone = false, aiDone = false, reloaded = false, resyncAt = -1, lastSync = 0;
   const aiWho = (cfg.cut && cfg.cut.who) || 'host', aiSide = [false, false];
-  const END = cfg.secs * 1000;
-  while (T < END) {
+  const END = cfg.secs * 1000, HARD = END + (cfg.settle ? (cfg.settleMax || 40) * 1000 : 0);
+  let settled = !cfg.settle, nextSettle = END;
+  while (T < HARD) {
+    if (T >= END) {
+      if (!settled && T >= nextSettle) { nextSettle = T + 250; settled = !!cfg.settle(sA, sB, logA, logB); }
+      if (settled) break;
+    }
     const k = next[0] <= next[1] ? 0 : 1;
     T = next[k];
     next[k] += 16.667 + (fr() * 2 - 1) * 1.5 + (fr() < 0.01 ? 35 : 0);
@@ -112,7 +119,7 @@ function run(cfg) {
     if (r.confirmed.some(e => e.type === 'gameOver')) st.gameOver = true;
     if (sA.status === 'over' && sB.status === 'over' && sA.gcTick === sB.gcTick) break;
   }
-  st.aiSide = aiSide;
+  st.aiSide = aiSide; st.settled = settled;
   // (bots fuera: unos frames más sin entradas nuevas para que los dos confirmen lo mismo)
   st.maxDepth = Math.max(sA.stats.maxDepth, sB.stats.maxDepth);
   cpu.sort((a, b) => a - b);
@@ -145,6 +152,13 @@ function cmpHashes(R, from) {
   let dn = 0, dbad = 0; const dticks = [];
   for (const t in R.deepA) { if (+t < (from || 0) || R.deepB[t] === undefined) continue; dn++; if (R.deepA[t] !== R.deepB[t]) { dbad++; dticks.push(+t); } }
   return { n, bad, firstBad, dn, dbad, dticks };
+}
+/** Cuántos controles de huella comunes seguidos coinciden contando desde el último (para por el primero distinto). */
+function trailingOk(logA, logB) {
+  const hb = {}; for (const [t, h] of logB) hb[t] = h;
+  let n = 0;
+  for (let i = logA.length - 1; i >= 0; i--) { const [t, h] = logA[i]; if (hb[t] === undefined) continue; if (hb[t] !== h) break; n++; }
+  return n;
 }
 const fmt = x => Math.round(x * 10) / 10;
 const t0 = Date.now();
@@ -185,16 +199,21 @@ console.log('== (2) reparación por instantánea del anfitrión ==');
   }
 }
 {
-  const R = run({ rtt: 60, jit: 20, loss: 5, secs: QUICK ? 60 : 120, seed: 78, noiseB: 1e-9 });
+  // (si la huella acaba de fallar al llegar a `secs`, sigue hasta que la reparación llegue y haya 6 controles seguidos iguales:
+  //  la ventana de los últimos 5 s queda así limpia con margen, sin depender de cuánto duren los peloteos de la IA)
+  const SECS_R = QUICK ? 60 : 120;
+  const R = run({ rtt: 60, jit: 20, loss: 5, secs: SECS_R, seed: 78, noiseB: 1e-9, settle: (a, b, lA, lB) => trailingOk(lA, lB) >= 6 });
   check('ruido de 1e-9 en Math.hypot del invitado (otro motor): sin excepciones', !R.st.err, R.st.err ? String(R.st.err.stack).split('\n').slice(0, 3).join(' | ') : undefined);
   if (!R.st.err) {
     const c = cmpHashes(R, 0);
     // (con ruido los bits difieren siempre: la huella redondeada a 1e-6 casi nunca; si falla, se repara y vuelve a coincidir)
     const last = R.logA.length ? R.logA[R.logA.length - 1][0] : 0, cl = cmpHashes(R, last - 120 * 5);
-    check('ruido: las huellas (1e-6) coinciden o se reparan y vuelven a coincidir', cl.n >= 3 && cl.bad === 0, { controles: c.n, distintas: c.bad, reparaciones: R.sB.repaired, ultimas5: cl });
+    check('ruido: las huellas (1e-6) coinciden o se reparan y vuelven a coincidir', R.st.settled && cl.n >= 3 && cl.bad === 0 && (c.bad === 0 || R.sB.repaired >= 1),
+      { controles: c.n, distintas: c.bad, reparaciones: R.sB.repaired, ultimas5: cl, s: fmt(R.T / 1000), espera: fmt(Math.max(0, R.T / 1000 - SECS_R)) });
     const G = golden(R);
     check('ruido: anfitrión = offline con las mismas entradas', G.badHash === 0 && G.finalOk === true, { tics: G.n });
-    console.log('        ruido: ' + R.sB.repaired + ' reparaciones en ' + fmt(R.T / 1000) + ' s');
+    // (la espera es lo que tardó en quedar limpia la huella pasados los SECS_R s; si crece mucho, la reparación empieza a tardar)
+    console.log('        ruido: ' + R.sB.repaired + ' reparaciones en ' + fmt(R.T / 1000) + ' s (espera tras ' + SECS_R + ' s: ' + fmt(Math.max(0, R.T / 1000 - SECS_R)) + ' s)');
   }
 }
 
@@ -211,7 +230,9 @@ console.log('== (3) desconexión ==');
   }
 }
 {
-  const R = run({ rtt: 60, jit: 10, loss: 2, secs: 85, seed: 92, cut: { at: 30, ms: 15000, aiAt: 41 } });
+  // (el hueco del invitado solo deja la IA en balón muerto: pasados los 85 s, sigue hasta el próximo, sin depender de los peloteos)
+  const R = run({ rtt: 60, jit: 10, loss: 2, secs: 85, seed: 92, cut: { at: 30, ms: 15000, aiAt: 41 },
+    settle: (a, b) => a.gc && b.gc && a.gc.hum[1].ai === false && b.gc.hum[1].ai === false });
   check('corte de 15 s: sin excepciones', !R.st.err, R.st.err ? String(R.st.err.stack).split('\n').slice(0, 3).join(' | ') : undefined);
   if (!R.st.err) {
     const w = (R.st.canAIat[0] - 30000) / 1000;
@@ -219,7 +240,8 @@ console.log('== (3) desconexión ==');
     check('corte de 15 s: el anfitrión sigue contra la IA y al volver la red hay resync con foto', R.sA.stats.resyncs === 1 && R.sB.stats.resyncs === 1 && R.resyncAt > 45000, { resyncs: [R.sA.stats.resyncs, R.sB.stats.resyncs], s: fmt(R.resyncAt / 1000) });
     const c = cmpHashes(R, Math.round((R.resyncAt / 1000 + 1) * 120)), G = golden(R);
     check('corte de 15 s: después del resync los dos coinciden y el anfitrión = offline', c.n > 10 && c.bad === 0 && c.dbad === 0 && G.badHash === 0 && G.finalOk === true, { huellas: c.n, mal: c.bad, oro: G.badHash });
-    check('corte de 15 s: el invitado vuelve a mandar (su hueco deja la IA)', R.sA.gc.hum[1].ai === false, { ai: R.sA.gc.hum[1].ai });
+    check('corte de 15 s: el invitado vuelve a mandar (su hueco deja la IA en el siguiente balón muerto)', R.st.settled && R.sA.gc.hum[1].ai === false && R.sB.gc.hum[1].ai === false,
+      { ai: [R.sA.gc.hum[1].ai, R.sB.gc.hum[1].ai], s: fmt(R.T / 1000) });
   }
 }
 for (const who of ['guest', 'both']) {   // (revisión de la fase 1: la elección del invitado ya no acaba el partido del anfitrión)

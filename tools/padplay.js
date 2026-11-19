@@ -55,19 +55,31 @@ const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, SELECT: 8, START: 9, UP: 12,
     const { evalJs } = page;
     const shot = async n => page.shot(path.join(OUT, String(++step).padStart(2, '0') + '-' + n + '.png'));
     const waitFor = async (expr, ms) => { const t = Date.now(); while (Date.now() - t < ms) { if (await evalJs(expr)) return true; await sleep(80); } return false; };
-    // pulsación: se mantiene ~5 frames (main lee el flanco en Input.poll del siguiente frame)
-    const press = async (b, ms) => { await evalJs(`__pad.set(null,{${BTN[b]}:1})`); await sleep(ms || 90); await evalJs(`__pad.set(null,{${BTN[b]}:0})`); await sleep(60); };
-    const stick = async (x, y, ms) => { await evalJs(`__pad.set([${x},${y}])`); if (ms) { await sleep(ms); await evalJs('__pad.set([0,0])'); await sleep(80); } };
+    // (el juego lee el mando una vez por frame; con la máquina cargada un toque de tiempo fijo puede caer entero entre dos frames
+    //  o en un parón y perderse. frames(n) espera a que el juego pinte n frames más)
+    const frames = async (n, ms) => { const f0 = await evalJs('VB.ctx.frame|0'), t = Date.now(); while (Date.now() - t < ms) { if ((await evalJs('VB.ctx.frame|0')) >= f0 + n) return true; await sleep(30); } return false; };
+    // pulsación: sin ms (menús, pausa) se mantiene hasta que la han visto 3 frames y se suelta igual (2 frames);
+    // con ms (juego: A en el momento justo) se mantiene ese tiempo fijo, como siempre
+    const press = async (b, ms) => {
+      await evalJs(`__pad.set(null,{${BTN[b]}:1})`);
+      if (ms) { await sleep(ms); await evalJs(`__pad.set(null,{${BTN[b]}:0})`); await sleep(60); return; }
+      await sleep(90); await frames(3, 2000); await evalJs(`__pad.set(null,{${BTN[b]}:0})`); await frames(2, 1500); await sleep(30);
+    };
+    // toque de stick con ms (menús): al menos ms y hasta que lo han visto 3 frames; sin ms se deja puesto (juego)
+    const stick = async (x, y, ms) => { await evalJs(`__pad.set([${x},${y}])`); if (ms) { await sleep(ms); await frames(3, 2000); await evalJs('__pad.set([0,0])'); await frames(2, 1500); await sleep(50); } };
     const focused = () => evalJs('(document.activeElement&&document.activeElement.id)||""');
 
     await page.navigate(EXTRA);
     await sleep(2500);
+    // (en los primeros segundos el enlace de programas de la GPU congela el hilo principal medio segundo o más: un toque de stick de
+    //  120 ms caía entero en el parón y «el mando pasa a ser el activo» fallaba a veces. Se espera a que los frames corran)
+    check(await frames(30, 8000), 'el juego pinta 30 frames antes de usar el mando');
     check(await evalJs("VB.ctx.state==='menu'"), 'arranca en el menú');
     await evalJs('__pad.connect()'); await sleep(300);
     const info = await evalJs('VB.Input.padInfo?JSON.stringify(VB.Input.padInfo()):"(sin padInfo)"');
     console.log('mando:', info);
     // cualquier entrada del mando lo convierte en el dispositivo activo
-    await stick(0, 0.9, 120);
+    await stick(0, 0.9); await frames(4, 3000); await sleep(60); await stick(0, 0); await sleep(80);
     check(await waitFor("VB.ctx.inputDevice==='gamepad'", 1500), 'el mando pasa a ser el dispositivo activo');
     // ---- menú: stick abajo/arriba elige, ←/→ cambia valor, A acepta, B vuelve
     await stick(0, 0, 0); await sleep(200);
@@ -131,10 +143,17 @@ const BTN = { A: 0, B: 1, X: 2, Y: 3, LB: 4, RB: 5, SELECT: 8, START: 9, UP: 12,
     await press('B'); await sleep(350);
     check(await evalJs("!VB.UI.isPanelOpen()&&!document.getElementById('menu').hidden"), 'B cierra el panel');
     // JUGAR → Partido rápido → ¡A JUGAR!
+    // (desde 1.14.0 la fila de arriba es JUGAR + sello «Reto del día» (btnMjReto): subiendo desde AJUSTES, a la derecha, el foco cae en
+    //  el sello; hay que ir ← hasta JUGAR, o A arranca el reto (modo 'one', donde RB no cambia de jugador) en vez del Partido rápido)
     let fp = await focused();
-    for (let i = 0; i < 8 && fp !== 'btnPlay'; i++) { await stick(0, -0.95, 110); fp = await focused(); }
-    await press('A'); await sleep(450); await press('A'); await sleep(450);
+    for (let i = 0; i < 8 && fp !== 'btnPlay' && fp !== 'btnMjReto'; i++) { await stick(0, -0.95, 110); fp = await focused(); }
+    for (let i = 0; i < 3 && fp !== 'btnPlay'; i++) { await stick(-0.95, 0, 110); fp = await focused(); }
+    check(fp === 'btnPlay', 'stick arriba y ← vuelven a JUGAR (no al sello del Reto del día) (' + fp + ')');
+    await press('A'); await sleep(450);
+    check(await evalJs("VB.UI.menuPage()==='play'") && (await focused()) === 'btnQuick', 'A en JUGAR: modos con el foco en Partido rápido (' + (await focused()) + ')');
+    await press('A'); await sleep(450);
     fp = await focused();
+    check(await evalJs("VB.UI.menuPage()==='quick'") && fp === 'btnGo', 'A en Partido rápido: preparación con el foco en ¡A JUGAR! (' + fp + ')');
     await press('A'); await sleep(450);
     if (await evalJs("!document.getElementById('pnFirst').hidden")) {
       let ff = await focused();

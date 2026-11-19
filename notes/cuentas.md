@@ -71,9 +71,21 @@ para que vea todas las escrituras de los guardados.
 ## Correo y Google (15-nov-2026)
 - **Correo y contraseña:** el campo admite un correo de verdad (con @) o un usuario (sin @, las cuentas de antes con correo ficticio).
   Con correo hay «¿Has olvidado la contraseña?» (`accounts:sendOobCode` PASSWORD_RESET; Firebase no dice si el correo existe).
-- **Google:** `account.js` carga el SDK compat de Firebase Auth 10.12.5 desde gstatic SOLO al pulsar «Entrar con Google», hace
-  `signInWithPopup` (si el navegador bloquea la ventana, `signInWithRedirect` y a la vuelta `getRedirectResult`), toma el uid, el id token y el
-  refresh token y cierra el SDK: la sesión sigue por REST como las demás (`acc.kind = 'google'`).
+- **Google:** `account.js` carga el SDK compat de Firebase Auth 10.12.5 desde gstatic (precargado al abrir el panel de la cuenta sin
+  sesión, o al pulsar «Entrar con Google» si aún no estaba), hace `signInWithPopup`, toma el uid, el id token y el refresh token y cierra
+  el SDK: la sesión sigue por REST como las demás (`acc.kind = 'google'`).
+- **Google en iPhone (Safari) y Firefox (19-nov-2026):** SIEMPRE ventana emergente, sin redirección. Antes, si la ventana se bloqueaba
+  (se abría tras esperar al SDK y Safari/Firefox ya no lo contaban como toque), se usaba `signInWithRedirect`; con `authDomain` en
+  firebaseapp.com y la página en github.io, el almacenamiento particionado de Safari 16.1+ y Firefox dejaba `getRedirectResult` vacío
+  y no se entraba sin ver ningún error. Ahora:
+  - con el SDK ya cargado, `signInWithPopup` se llama en el acto dentro del toque (sin await antes), y el navegador deja abrir la ventana;
+  - si aun así se bloquea (`popup-blocked` u `operation-not-supported-in-this-environment`), el panel pide confirmación (vista
+    `gconfirm`: «Entrar con Google», «Abrir Google» / «Cancelar»); el toque en «Abrir Google» abre la ventana en el acto;
+  - si se vuelve a bloquear, se queda en la confirmación con «Tu navegador ha bloqueado la ventana de Google. Permite las ventanas
+    emergentes para este sitio y vuelve a probar.»;
+  - `gBack()` solo borra el indicador `make-the-cut.account.gredir` que pudiera quedar de 1.15.1 o antes (sin cargar el SDK ni
+    `getRedirectResult`) y avisa de volver a probar desde «Cuenta».
+  - Prueba: `node tools/googletest.js` (SDK y nube falsos, sin red; móvil 844x390 y PC 1280x720): confirmación, ventana en el acto, «Cancelar», sin redirección, y también entrar bien (vista de la cuenta, `signOut` del SDK, subida) y el conflicto de Carreras tras entrar con Google.
 - **Falta en la consola de Firebase (Ferran):** 1) Authentication › Sign-in method › Google › Activar (elegir correo de asistencia);
   2) Authentication › Settings › Authorized domains › añadir `purupurpito.github.io`. Hasta entonces el botón avisa «Entrar con Google aún no
   está activado. Usa tu correo de momento.»
