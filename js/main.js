@@ -968,7 +968,7 @@
     else if (r.status === 'starting') { msg = 'Contra ' + who + ' | empieza en ' + (r.startIn / 1000).toFixed(1).replace('.', ',') + ' s'; btn = '<button data-n="quit">Salir</button>'; }
     else if (r.status === 'ended') {
       var w = r.result && r.result.why;
-      msg = w === 'rivalQuit' ? who + ' ha abandonado: ganas tú' : w === 'quit' ? 'Has abandonado' : w === 'version' ? 'Tu rival tiene otra versión del juego: recargad los dos' :
+      msg = w === 'rivalQuit' ? who + ' ha abandonado: ganas tú' : w === 'quit' ? 'Has abandonado' : w === 'version' ? (VB.Update ? VB.Update.versionText(r.result.rv) : 'Tu rival tiene otra versión del juego: reiniciad los dos') :
         w === 'rivalGone' ? who + ' no ha vuelto: ganas tú' : w === 'hostGone' ? who + ' no ha vuelto: el partido no cuenta' :
         w === 'late' ? 'Has tardado demasiado en volver: cuenta como abandono' :
         w === 'mismatch' ? 'La sala no coincide con lo anunciado: no hay partido' :

@@ -190,6 +190,13 @@
   function savePrefs(c) { try { ls(PREFS, JSON.stringify(c)); } catch (e) { } }
   function maps(kind) { var V = VB.Venues; var l = V && V.list ? safe(function () { return V.list(kind); }) : null; return Array.isArray(l) && l.length ? l : ['']; }
 
+  /** Salas de otra versión: si alguna es de una versión más nueva que la mía, el aviso de reiniciar (js/update.js). */
+  function verNote(rs) {
+    var U = VB.Update, nw = false;
+    if (!U || !rs) return;
+    for (var i = 0; i < rs.length; i++) if (rs[i] && rs[i].other && typeof rs[i].v === 'string' && U.note(rs[i].v.split('|')[1]) > 0) nw = true;
+    if (nw) U.show(true);
+  }
   function errText(e, what) {
     var c = e && e.code;
     if (c === 'off') return 'El online aún no está activado en el servidor. Vuelve a probar en un rato.';
@@ -197,7 +204,7 @@
     if (c === 'net') return 'No hay conexión con el servidor. Comprueba tu red y vuelve a probar.';
     if (c === 'full') return 'Esa sala ya está llena.';
     if (c === 'gone') return 'Esa sala ya no existe.';
-    if (c === 'version') return 'Esa sala es de otra versión del juego: recargad la página los dos.';
+    if (c === 'version') return VB.Update && VB.Update.outdated() ? 'Tienes una versión anterior del juego: reinicia para actualizarlo.' : 'Esa sala es de otra versión del juego: quien la creó tiene que reiniciar el juego.';
     if (c === 'dup') return 'Hay más de una sala con ese código: entra desde la lista o pide el enlace a quien la creó.';
     return what || 'Algo ha fallado. Vuelve a probar.';
   }
@@ -208,7 +215,7 @@
     if (!signedIn()) { setView('noacc'); return; }
     L.loading = true; if (manual) render();
     api().list().then(function (rs) {
-      L.loading = false; L.rooms = rs; L.listAt = Date.now(); L.listErr = '';
+      L.loading = false; L.rooms = rs; L.listAt = Date.now(); L.listErr = ''; verNote(rs);
       if (L.view === 'off') setView('list');
       render();
     }, function (e) {
@@ -1309,6 +1316,7 @@
   /* ---------------- API para ui.js ---------------- */
   function open(host) {
     ensureCss();
+    if (VB.Update) VB.Update.check(true);   // (entrar en el Online: con una versión anterior no se puede jugar con los demás)
     if (!L.host) {
       L.host = host;
       host.addEventListener('click', onClick);

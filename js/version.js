@@ -34,16 +34,25 @@
  * 1.14.1 (18-nov-2026): challenge en la conexión Fluida (Ferran: «pon challenge en v2»): árbitro con errores de línea como en
  *   Precisa; lo pide el que pierde el punto (ch), lo acepta la otra máquina (chok/chno) y la revisión corre en las dos
  *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
+ * 1.15.1 (19-nov-2026): aviso de versión nueva (Ferran: «si un teléfono está en una versión anterior le salte un aviso en la
+ *   pantalla de reiniciar»): js/update.js pregunta a Pages por version.json y ofrece «Reiniciar»; el online dice quién tiene que reiniciar.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.15.0';
+  VB.VERSION = '1.15.1';
   VB.VERSION_DATE = '2026-11-19';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.15.1', d: '2026-11-19', t: 'Aviso de versión nueva',
+      items: [
+        'Si tu móvil tiene una versión anterior del juego, te avisa y lo reinicias con un botón.',
+        'En el online te dice quién tiene la versión anterior y tiene que reiniciar.'
+      ]
+    },
     {
       v: '1.15.0', d: '2026-11-19', t: 'La IA lo intenta todo',
       items: [

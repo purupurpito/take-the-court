@@ -84,6 +84,7 @@ fs.mkdirSync(path.join(OUT, 'js'), { recursive: true });
 fs.writeFileSync(path.join(OUT, 'index.html'), htmlV);
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
 fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2));
+fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ v: VERSION }));   // (js/update.js: aviso de versión nueva en los móviles con una anterior)
 for (const f of fs.readdirSync(path.join(ROOT, 'pages'))) fs.copyFileSync(path.join(ROOT, 'pages', f), path.join(OUT, f)); // iconos y og.png
 for (const f of fs.readdirSync(path.join(ROOT, 'js'))) if (f.endsWith('.js')) fs.copyFileSync(path.join(ROOT, 'js', f), path.join(OUT, 'js', f));
 console.log('Pages listo en ' + OUT + ' (' + fs.readdirSync(path.join(OUT, 'js')).length + ' scripts, v' + VERSION + (SHA ? ' ' + SHA : '') + ')');

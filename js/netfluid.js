@@ -460,7 +460,7 @@
       case 'app': if (this.appIn.length < 64) this.appIn.push(c.d); break;
       case 'hello':
         if (!this.rivalName) this.rivalName = cleanName(c.name);
-        if (c.v !== PROTO || c.m !== 'f' || c.ver !== (VB.VERSION || '')) { this._ctl({ k: 'bye', why: 'version' }); this.status = 'ended'; this.result = { why: 'version' }; return; }
+        if (c.v !== PROTO || c.m !== 'f' || c.ver !== (VB.VERSION || '')) { this._ctl({ k: 'bye', why: 'version', ver: VB.VERSION || '' }); this.status = 'ended'; this.result = { why: 'version', rv: String(c.ver || '') }; return; }
         if (this.host && this.adopt) {
           if (!this.gotHello && c.back && c.cfg && c.cfg.opts && !this.opts) { this.gotHello = true; this._setOpts(c.cfg.opts); this.pings.length = 0; this.pingAt = -1e9; }
         } else if (this.host) {
@@ -542,6 +542,7 @@
         this.status = 'ended';
         this.result = c.why === 'quit' ? { why: 'rivalQuit', win: true } : c.why === 'gone' ? { why: 'rivalGone', win: true } :
           c.why === 'late' ? { why: 'late', win: false } : { why: c.why || 'bye', win: false };
+        if (c.why === 'version') this.result.rv = String(c.ver || '');   // (versión del rival: main.js dice quién tiene que reiniciar)
         if (c.why === 'gone' && !this.host) { this.valid = false; this.result = { why: 'hostGone', win: false }; }
         break;
       default:

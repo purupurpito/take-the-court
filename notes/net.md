@@ -1355,3 +1355,11 @@ errores de línea y 2 challenges por set, como en la Precisa. Tiempos muertos y 
   `F.peer` se borra (se espera el `sr` del punto nuevo). `flMatch` lleva `challenges` (sb y deshacer bifurcación); `_undoPoint` borra `g.call`.
 - `tools/fluidchaltest.js`: 6 partidos con árbitro muy fallón y 5 challenges, peticiones con retraso al azar y una tardía a mano:
   mismos puntos, revisiones y challenges restantes en las dos, fin cotejado, sbFix 0.
+
+### Aviso de versión nueva (1.15.1, 19-nov-2026)
+Ferran: «si un teléfono está en una versión anterior le salte un aviso en la pantalla de reiniciar». js/update.js (VB.Update) pide
+`version.json?t=` (lo escribe tools/build-pages.js) al arrancar, al volver a la pestaña (cada 5 min como mucho) y al abrir el Online
+(`check(true)`); si la publicada es más nueva, hoja SPLAT «Hay una versión nueva» con «Reiniciar» (recarga con `?u=` para saltarse la
+caché de 10 min del index) y «Luego». Nunca en partido. Las salas «Otra versión» más nuevas (`room.v`) también la abren. El `bye 'version'`
+lleva `ver` y el resultado `rv`: main.js dice «Tienes una versión anterior» o «Tu rival tiene una versión anterior». Pruebas: `&vnew=X.Y.Z`.
+Los móviles con 1.15.0 o antes no tienen este código: el aviso les sale a partir de la primera vez que recarguen.
