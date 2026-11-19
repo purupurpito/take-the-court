@@ -69,26 +69,8 @@
   stamp.addEventListener('click', function () { var r = $('btnRetos'); if (r) r.click(); });
   // móvil (notes/ui_main.md «Móvil (v-next)»): el «?» de Controlar y Cámara en Partido rápido abre su ayuda en una hoja (VB.Splat.info)
   if (S.info && $('mpQuick')) S.info($('mpQuick'));
-  // móvil: en el Vestuario, «Al azar», «Restablecer» y «Copiar» pasan a «⋯» (una hoja con sus nombres); «Probar» se queda a la vista.
-  // Los botones de siempre siguen mandando (la hoja los pulsa); sin html.ph el «⋯» no se ve (.ph-only)
-  var lkF = $('lkFoot');
-  if (lkF && S.sheet) {
-    var lkM = mk('button', 'sp-btn sp-sq sp-sm sp-ink sp-noshine ph-only lk-more', '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="19" cy="12" r="2.6"/></svg>');
-    lkM.type = 'button'; lkM.setAttribute('data-shape', '3'); lkM.setAttribute('data-lkf', 'more');
-    lkM.setAttribute('aria-label', 'Más acciones del vestuario'); lkM.title = 'Más acciones';   // (V-LKFOOT: ←/→ del pie llega al «⋯»)
-    lkF.appendChild(lkM); S.decorate(lkF);
-    lkM.addEventListener('click', function () {
-      var box = mk('div', 'lk-acts'), api = null;
-      Array.prototype.forEach.call(lkF.querySelectorAll('[data-lkf]'), function (b, i) {
-        if (b.hidden || b.getAttribute('data-lkf') === 'try' || b.getAttribute('data-lkf') === 'more') return;
-        var r = mk('button', 'sp-btn sp-md sp-wide sp-calm ' + (['sp-alt', 'sp-cream', 'sp-teal'][i % 3]), '<span class="sp-t"></span>');
-        r.type = 'button'; r.setAttribute('data-shape', String(i)); r.firstChild.textContent = b.getAttribute('aria-label') || b.title || '';
-        r.addEventListener('click', function () { if (api) api.close(); b.click(); });
-        box.appendChild(r);
-      });
-      api = S.sheet({ title: 'Vestuario', node: box });
-    });
-  }
+  // (el «⋯» del Vestuario ya va en index.html y su hoja la abre ui.js lkMoreSheet: WP6 del plan del Vestuario)
+  var lkF = $('lkFoot'); if (lkF) S.decorate(lkF);
 
   // ---------------------------------------------------------------- datos vivos (sin coste por frame: firma, como mucho cada 1,2 s)
   function career() { try { var C = VB.Career; return C && C.get ? C.get() : null; } catch (e) { return null; } }

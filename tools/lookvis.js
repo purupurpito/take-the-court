@@ -67,7 +67,7 @@ const CAM = {
   beach: { b: { d: 6.38, el: 34.9, fov: 60 }, c: { d: 6.46, el: 33.7, fov: 60 } }
 };
 // ranuras: dónde se encuadra el primer plano y si se exige verlo en el partido (de espaldas)
-const SLOT_REGION = { style: 'head', hairTint: 'head', head: 'head', eyes: 'head', paint: 'head', marks: 'head', beard: 'head', neck: 'bust',
+const SLOT_REGION = { style: 'head', hairTint: 'head', hairFx: 'head', head: 'head', eyes: 'head', paint: 'head', marks: 'head', beard: 'head', neck: 'bust',
   under: 'torso', band: 'torsoL', armL: 'torsoL', armR: 'torsoR', elbows: 'torso', wristL: 'torsoL', wristR: 'torsoR', hands: 'torso',
   legs: 'legs', knees: 'legs', socks: 'legs', ankle: 'feet', shoes: 'feet' };
 // (WP5, ronda 1) Las ranuras de UN brazo (brazalete, brazo y muñeca izquierdos o derechos) se miden en la MITAD del torso de ese
@@ -131,12 +131,13 @@ window.__LV = (function () {
     b.hall.knees = 'cortas'; b.hall.socks = 'media'; b.hall.ankle = 'blanca'; b.hall.shoes = 'clasicas';
     b.skin = V.skin; b.hair = V.hair; b.style = 'tupe';
     var ven = job.ven, s = job.slot;
-    if (s === 'style') b.style = job.ref; else if (s !== 'hairTint') b[ven][s] = job.ref;
+    // (el peinado, el tinte y el efecto de pelo van en la raíz del fit, no en la sede: hairFx sin hair2 = segundo color que contraste)
+    if (s === 'style') b.style = job.ref; else if (s === 'hairFx') b.hairFx = job.ref; else if (s !== 'hairTint') b[ven][s] = job.ref;
     b = LK.fix(b, ven, null).fit;
     var it = JSON.parse(JSON.stringify(b));
-    if (s === 'style') it.style = job.id; else if (s === 'hairTint') it.hair = job.id; else it[ven][s] = job.id;
-    var fx = LK.fix(it, ven, s === 'hairTint' ? 'style' : s), f = fx.fit;
-    var worn = s === 'style' ? f.style === job.id : s === 'hairTint' ? f.hair === job.id : f[ven][s] === job.id;
+    if (s === 'style') it.style = job.id; else if (s === 'hairTint') it.hair = job.id; else if (s === 'hairFx') it.hairFx = job.id; else it[ven][s] = job.id;
+    var fx = LK.fix(it, ven, s === 'hairTint' || s === 'hairFx' ? 'style' : s), f = fx.fit;
+    var worn = s === 'style' ? f.style === job.id : s === 'hairTint' ? f.hair === job.id : s === 'hairFx' ? f.hairFx === job.id : f[ven][s] === job.id;
     return { base: b, item: f, worn: worn, removed: (fx.removed || []).map(function (x) { return x.msg; }) };
   }
   /** pone el aspecto en la vista previa, congelado (tFix 0, sin parpadeo, cara neutra) y aplicado YA (preview.update(0)). */

@@ -584,14 +584,22 @@ async function browser() {
     const pl = JSON.parse(await pg.evalJs(`(function(){var P=VB.Doll.preview,i=P.info();if(!i||!P.lod)return '[]';var L=i.rig.look,o={beach:i.beach},out=[i.lod];
       [1,0,null].forEach(function(n){P.lod(n);P.set(L,o);out.push(P.info().lod);});return JSON.stringify(out);})()`));
     check(JSON.stringify(pl) === '[2,1,0,2]', 'vista previa: LOD2 de serie y preview.lod(1/0/null) de las herramientas (' + JSON.stringify(pl) + ')');
-    // «Al azar» del Vestuario borra el _keep de lo que pisa (si no, una versión más nueva que conozca el id lo devolvería encima) y
-    // deja el de lo que no toca (la ropa de la otra sede)
+    // «Todo al azar» del Vestuario (hoja «⋯», WP6) borra el _keep de lo que pisa (si no, una versión más nueva que conozca el id lo
+    // devolvería encima) y deja el de lo que no toca (la ropa de la otra sede); el dado (al azar SOLO la pestaña abierta, Pelo) solo el
+    // de lo de esa pestaña
     const rk = JSON.parse(await pg.evalJs(`(function(){var f=JSON.parse(JSON.stringify(VB.Look.fit(0)));
       f._keep={style:'nuevoX','hall.head':'gorroNuevo','beach.head':'gorroPlaya','colors.acc':'fucsia'};VB.Look.setFit(0,f);
-      VB.UI.openLook({venue:'hall',pick:1});var b=document.querySelector('[data-lkf="rand"]');if(!b)return 'null';
-      var k0=VB.UI._look().fit._keep;b.click();var w=VB.UI._look();return JSON.stringify({k0:k0,k:w.fit._keep||null,v:w.venue});})()`));
+      VB.UI.openLook({venue:'hall',pick:1,tab:'pelo'});var m=document.querySelector('[data-lkf="more"]');if(!m)return 'null';
+      var k0=VB.UI._look().fit._keep;m.click();var b=document.querySelector('#spSheets .lk-acts button');if(!b)return 'null';b.click();
+      var w=VB.UI._look();return JSON.stringify({k0:k0,k:w.fit._keep||null,v:w.venue});})()`));
     check(rk && rk.k0 && rk.k0.style === 'nuevoX' && rk.v === 'hall' && JSON.stringify(rk.k) === '{"beach.head":"gorroPlaya"}',
-      '«Al azar» borra el _keep de lo que cambia y deja el de la otra sede (' + JSON.stringify(rk) + ')');
+      '«Todo al azar» borra el _keep de lo que cambia y deja el de la otra sede (' + JSON.stringify(rk) + ')');
+    const rt = JSON.parse(await pg.evalJs(`(function(){VB.UI.back&&VB.UI.back();var f=JSON.parse(JSON.stringify(VB.Look.fit(0)));
+      f._keep={style:'nuevoX','hall.head':'gorroNuevo','beach.head':'gorroPlaya','colors.acc':'fucsia'};VB.Look.setFit(0,f);
+      VB.UI.openLook({venue:'hall',pick:1,tab:'pelo'});var b=document.querySelector('[data-lkf="rand"]');if(!b)return 'null';
+      b.click();var w=VB.UI._look();return JSON.stringify({k:w.fit._keep||null});})()`));
+    check(rt && JSON.stringify(rt.k) === '{"hall.head":"gorroNuevo","beach.head":"gorroPlaya","colors.acc":"fucsia"}',
+      'el dado (al azar de la pestaña) solo borra el _keep de lo de esa pestaña (' + JSON.stringify(rt) + ')');
     // --sweep (plan del Vestuario, WP0.3): peor caso REAL por sede y LOD, medido (no sumado): para cada LOD, lo peor de cada ranura
     // (sin cabeza ni ojos) + todas las combinaciones permitidas peinado × gorro × ojos, y luego dos pasadas de subida por ranura sobre
     // la peor (por si dos piezas suman más juntas). Imprime los triángulos, el margen hasta TRI_CAP y el look.

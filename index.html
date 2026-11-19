@@ -5253,34 +5253,145 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])):has(#spToasts>.sp-toast) #pfFoot{visibility:hidden}
 :root.ph:not(#_):not(#_):not(#_) #menu .pf-pin.sp-btn{margin-left:auto}
 :root.ph:not(#_):not(#_):not(#_) #menu .pf-ro{font-size:var(--ph-body)}
-/* VESTUARIO: cabecera, fila de jugador y sede, columna de iconos y la lista */
-:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpLook{--lkw:min(370px,calc(var(--ph-ffw) * .6));--sp-colw:var(--lkw);display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);
-  grid-template-areas:"head head" "top top" "rail help" "rail list";gap:var(--ph-s2) var(--ph-s3);justify-content:stretch;align-content:stretch}
-:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .mp-head{grid-area:head;padding-right:112px}
-:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-top{grid-area:top;gap:var(--ph-hit-gap);flex-wrap:wrap}
+/* VESTUARIO (WP6): columna con cabecera (Volver, título y la pestaña en un chip), jugador y sede, la tira de 7 iconos (caben a 568) y la
+   lista o la rejilla; al borde derecho, arriba Probar, Al azar y «⋯» y abajo «Dar la vuelta» (⟲ ⟳ solo con ratón: con el dedo se arrastra).
+   El muñeco va entre la columna y ese borde (ui.js lkPlace) */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpLook{--lkw:min(372px,calc(var(--ph-ffw) - 220px));--sp-colw:var(--lkw);display:grid;grid-template-columns:minmax(0,1fr);
+  grid-template-rows:auto auto auto auto minmax(0,1fr);grid-template-areas:"head" "top" "rail" "help" "list";gap:var(--ph-s2) 0;justify-content:stretch;align-content:stretch}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .mp-head{grid-area:head;padding-right:0;min-height:44px}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .mp-tt{display:flex;align-items:center;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-tchip{display:inline-flex;--sp-chs:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-top{grid-area:top;gap:var(--ph-hit-gap);flex-wrap:nowrap}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{display:contents}
-:root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkTabs{grid-area:rail}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkTabs{grid-area:rail;min-width:0}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkHelp{grid-area:help;font-size:var(--ph-label)}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkList{grid-area:list;flex:none;max-height:none;gap:var(--ph-hit-gap);margin:-6px -14px -6px -6px;padding:8px 16px 12px 8px}
-:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs{width:58px}
-:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab{justify-content:center;width:48px;padding:0}
-:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab .tb-t{display:none!important}
-:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab svg{display:block;width:22px;height:22px}
-:root.ph:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 12px}
-:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot{position:absolute;top:var(--ph-gt);right:0;padding:2px 0 0;gap:var(--ph-hit-gap)}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkGrid{grid-row:1/-1;grid-column:1;--lkt:76px;--lkg:10px}
+/* con la rejilla abierta, su «‹» hace de Volver: la cabecera se va y caben dos filas de fichas a 568×320 */
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook.lk-gon .mp-head{display:none}
+/* tira de pestañas: los 7 iconos a la vista (40 de ancho y 44 de alto); el nombre de la elegida va en el chip de la cabecera */
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs-strip .tb-row{gap:3px;padding:2px 2px 4px;justify-content:flex-start;overflow:visible}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs-strip .tab{--sp-tbh:44px;flex:1 1 40px;min-width:40px;max-width:48px;width:auto;padding:0;justify-content:center}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs-strip .tab .tb-t{display:none!important}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs-strip .tab svg{display:block;width:22px;height:22px}
+:root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs-strip .tab.lk-new::after{position:absolute;right:2px;top:3px}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 11px}
+/* acciones al borde derecho de la pantalla (fuera de la columna) */
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot{position:absolute;left:calc(100vw - 2 * var(--ph-g) - 44px);right:auto;top:var(--ph-gt);flex-direction:column;padding:0;gap:var(--ph-hit-gap)}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .sp-btn{width:44px;height:44px}
-:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .sp-btn:is([data-lkf="rand"],[data-lkf="reset"],[data-lkf="copy"]){display:none}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .lk-more>svg:not(.sp-blob){position:relative;z-index:1;width:22px;height:22px;fill:currentColor}
 :root.ph:not(#_):not(#_):not(#_) #menu .lk-r.sp-btn{min-height:56px;padding:4px 4px 5px 12px}
 :root.ph .lk-r.sp-btn{--sp-aw:32px}
 :root.ph:not(#_):not(#_):not(#_) #menu .lk-r .lk-k{font-size:var(--ph-label);letter-spacing:.04em}
 :root.ph:not(#_):not(#_):not(#_) #menu .lk-r .lk-v{font-size:var(--ph-row)}
-:root.ph:not(#_):not(#_):not(#_) #menu .lk-r .lk-st{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r .lk-st{font-size:13px}
+/* la línea de ayuda, solo cuando dice algo que hace falta (bloqueado, avisos de lo que no se ve, qué pinta un color): U7 */
 :root.ph:not(#_):not(#_):not(#_) #menu .lk-r .mi-h{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r:is(.h-lock,.h-warn,.h-use,.h-dim) .mi-h{display:-webkit-box;font-size:var(--ph-label);-webkit-line-clamp:1;line-clamp:1}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r.h-lock .mi-h{-webkit-line-clamp:3;line-clamp:3}
 :root.ph:not(#_):not(#_):not(#_) #lkSpin .lk-rot{left:auto;right:var(--ph-g);top:auto;bottom:var(--ph-gb);flex-direction:column;gap:var(--ph-hit-gap);transform:none}
 :root.ph:not(#_):not(#_):not(#_) #lkSpin .lk-rot .sp-btn{width:44px;height:44px}
+:root.ph:not(#_):not(#_):not(#_) #app.is-touch #lkSpin .lk-rot .sp-btn:not(.lk-turn){display:none}
 :root.ph:not(#_):not(#_):not(#_) :is(#pfNote,#lkNote){font-size:var(--ph-body)}
 #spSheets .lk-acts{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:6px 6px 8px 4px}
+/* ---- VESTUARIO WP6 (plan del Vestuario, 19-nov-2026): rejilla de opciones con miniaturas, filas que dicen qué pintan y qué no se ve,
+   pestañas que caben, el muñeco sin tapar en todos los tamaños (ui.js lkPlace + doll.js preview.place) y «Dar la vuelta» ---- */
+#lkFoot .lk-x{display:none!important}
+:root:not(#_):not(#_):not(#_) #menu .lk-tchip{display:none;--sp-tilt:-3deg;margin-left:8px;vertical-align:middle;align-self:center}
+/* filas: ayuda con aviso (ojo tachado, dorado), qué pinta un color, y atenuada si no llevas nada de ese color */
+:root:not(#_):not(#_):not(#_) #menu .lk-r .mi-h svg{width:13px;height:13px;fill:currentColor;vertical-align:-2px;margin-right:4px}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.h-warn .mi-h{color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.h-use .mi-h{color:rgba(255,244,220,.86)}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.dim:not(.kf):not(:focus-visible){opacity:.6}
+:root:not(#_):not(#_):not(#_) #menu .lk-r.dim .mi-h{font-style:italic}
+/* rejilla (#lkGrid): ocupa el sitio de la lista; arriba «‹», la fila y lo puesto; fichas en filas data-sp-row */
+:root:not(#_):not(#_):not(#_) #menu #mpLook.lk-gon :is(.lk-top,#lkTabs,#lkList,#lkHelp){display:none}
+#menu #lkGrid[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #menu #lkGrid{--lkt:88px;--lkg:12px;flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:8px;margin:0;pointer-events:auto}
+:root:not(#_):not(#_):not(#_) #menu .lk-gh{flex:none;display:flex;align-items:center;gap:12px;min-width:0;padding:2px 2px 0}
+:root:not(#_):not(#_):not(#_) #menu .lk-gh .lk-gb{flex:none;width:44px;height:44px;min-height:0;padding:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-gh .lk-gb>svg:not(.sp-blob){position:relative;z-index:1;width:22px;height:22px;fill:none;stroke:var(--sp-ink);stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) #menu .lk-gt{display:flex;flex-direction:column;align-items:flex-start;min-width:0;gap:1px}
+:root:not(#_):not(#_):not(#_) #menu .lk-gt .lk-k{font:400 13px/1.1 var(--sp-pop);letter-spacing:.06em;text-transform:uppercase;color:var(--sp-gold);transform:rotate(-2deg);transform-origin:0 50%}
+:root:not(#_):not(#_):not(#_) #menu .lk-gn{font:700 17px/1.15 var(--sp-ui);color:var(--sp-cream);text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu .lk-gl{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;font:600 13px/1.2 var(--sp-ui);color:#ffe08a;text-shadow:1px 1px 0 var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .lk-gl[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-gl svg{width:12px;height:12px;fill:currentColor;vertical-align:-1px;margin-right:4px}
+:root:not(#_):not(#_):not(#_) #menu .lk-fams{flex:none;display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:2px 2px 6px;scrollbar-width:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-fams::-webkit-scrollbar{display:none}
+#menu .lk-fams.sp-more-x{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}
+:root:not(#_):not(#_):not(#_) #menu .lk-fams .sp-tab{--sp-tbh:40px;--sp-tbs:13px;flex:none;height:auto;min-height:40px;padding:0 11px}
+:root:not(#_):not(#_):not(#_) #menu .lk-gbody{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;gap:var(--lkg);margin:0 -10px 0 -6px;padding:6px 10px 14px 8px;overscroll-behavior:contain;scrollbar-width:thin}
+:root:not(#_):not(#_):not(#_) #menu .lk-grow{display:flex;gap:var(--lkg);flex:none}
+/* ficha: pegatina de tinta con la miniatura del muñeco; inclinación alterna; la puesta, en oro */
+:root:not(#_):not(#_):not(#_) #menu .lk-tile{position:relative;flex:none;display:flex;flex-direction:column;align-items:center;gap:3px;box-sizing:border-box;width:var(--lkt);min-height:44px;margin:0;padding:5px 5px 6px;
+  border:0;border-radius:14px 18px 12px 16px/16px 12px 18px 14px;background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);
+  font:inherit;text-transform:none;letter-spacing:0;cursor:pointer;transform:rotate(var(--lkr,0deg));transition:transform .12s var(--ease),background .12s;-webkit-tap-highlight-color:transparent}
+#menu .lk-tile.t0{--lkr:-1.4deg}#menu .lk-tile.t1{--lkr:1deg}#menu .lk-tile.t2{--lkr:-.5deg}#menu .lk-tile.t3{--lkr:1.5deg}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile:hover{filter:none;background:#3c3176}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile:active{transform:rotate(var(--lkr,0deg)) scale(.96)}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-cream),2px 3px 0 5px var(--sp-ink);transform:rotate(var(--lkr,0deg)) scale(1.05);z-index:1}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.on{background:var(--sp-gold);color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.on .lk-ti{box-shadow:0 0 0 2px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .lk-ti{display:block;width:100%;aspect-ratio:1/1;border-radius:9px 12px 8px 11px;overflow:hidden;background:#2f2560}
+:root:not(#_):not(#_):not(#_) #menu .lk-ti :is(img,canvas){display:block;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none;user-select:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-ti :is(img,canvas)[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-tn{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;width:100%;min-height:2.3em;font:700 13px/1.15 var(--sp-ui);text-align:center;overflow-wrap:anywhere}
+:root:not(#_):not(#_):not(#_) #menu .lk-tst{position:absolute;left:3px;top:2px;padding:1px 4px;border-radius:6px;background:var(--sp-ink);color:var(--sp-gold);font:700 13px/1 var(--sp-ui);letter-spacing:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-tlk{position:absolute;right:-5px;top:-5px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#d6d0c4;color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .lk-tlk svg{width:13px;height:13px;fill:currentColor}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.lock:not(.on) .lk-ti :is(img,canvas){filter:saturate(.55) brightness(.82)}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.new::after{content:"";position:absolute;left:-4px;bottom:-4px;width:12px;height:12px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
+/* WP6 (ronda 1): la cabecera de la rejilla en pegatina de tinta (no suelta sobre el marcador y los anuncios); las familias en trazo
+   de tinta opaca, y si no caben, una flecha crema de 44 px al final de la tira que la corre (además del desvanecido) */
+:root:not(#_):not(#_):not(#_) #menu .lk-gt{flex:0 1 auto;padding:4px 12px 5px 10px;border-radius:12px 16px 10px 14px/14px 10px 16px 12px;background:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px rgba(21,16,42,.55);transform:rotate(-1deg)}
+:root:not(#_):not(#_):not(#_) #menu .lk-famw{position:relative;flex:none;min-width:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-fams .sp-tab::before{opacity:1;inset:2px -3px}
+:root:not(#_):not(#_):not(#_) #menu .lk-fmore{display:none;position:absolute;right:-2px;top:-2px;z-index:2;align-items:center;justify-content:center;width:44px;height:44px;min-height:0;margin:0;padding:0;border:0;border-radius:50%;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+:root:not(#_):not(#_):not(#_) #menu .lk-fmore svg{width:22px;height:22px;fill:none;stroke:var(--sp-ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) #menu .lk-fmore:active{transform:scale(.94)}
+:root:not(#_):not(#_):not(#_) #menu .lk-famw:has(>.lk-fams.sp-more-x) .lk-fmore{display:flex}
+:root:not(#_):not(#_):not(#_) #menu .lk-ti{position:relative}
+:root:not(#_):not(#_):not(#_) #menu .lk-thid{position:absolute;right:3px;bottom:3px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--sp-ink);color:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .lk-thid svg{width:15px;height:15px;fill:currentColor}
+/* muestras de color: círculos de 44 px en fichas redondas de 52 */
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.lk-cs{width:52px;height:52px;min-height:52px;padding:4px;border-radius:50%}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.lk-cs .lk-sw{width:44px;height:44px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(21,16,42,.35)}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.lk-cs.on{background:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.lk-cs .lk-tlk{right:-6px;top:-6px;width:20px;height:20px}
+:root:not(#_):not(#_):not(#_) #lkSpin .lk-rot .lk-turn>svg:not(.sp-blob){stroke:var(--sp-ink)}
+/* hoja «⋯» (lkMoreSheet): tres botones y una sola ✕; cabe a 568×320 */
+#spSheets .lk-sheet .lk-acts{gap:12px;padding:4px 6px 6px 4px}
+#spSheets .lk-sheet .lk-acts .sp-btn{min-height:46px}
+/* PC apaisado (ronda 1): ⟲ ↻ ⟳ en columna al borde derecho, abajo (como «Dar la vuelta» en el móvil), no en fila bajo el muñeco: de
+   cerca, las rodillas y los pies del muñeco quedaban detrás de los tres botones */
+@media (min-aspect-ratio:5/4){
+  :root:not(.ph):not(#_):not(#_):not(#_) #lkSpin .lk-rot{left:auto;right:calc(20px + var(--sr));top:auto;bottom:calc(40px + var(--sbm));flex-direction:column;gap:12px;transform:none}
+}
+/* vertical (360×640): cabecera solo con el título (y la pestaña), el muñeco en medio entre ⟲ ↻ ⟳ (izquierda) y las acciones (derecha),
+   y abajo jugador, sede, pestañas y la lista o la rejilla */
+@media (max-aspect-ratio:5/4){
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .mp-head .sp-k{display:none}
+  /* Volver en flecha (44 px): si no, el título y la pestaña no caben a 360 */
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .sp-back span{display:none}
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .sp-back{padding:0 12px 0 10px}
+  :root:not(#_):not(#_):not(#_) #menu #lkGrid{margin-top:auto}
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .lk-tchip{display:inline-flex;--sp-chs:13px}
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .mp-tt{display:flex;align-items:center;flex-wrap:nowrap;min-width:0}
+  :root:not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{position:static}
+  :root:not(#_):not(#_):not(#_) #menu .lk-foot{right:-4px;top:calc(var(--st) + 74px);bottom:auto;gap:12px}
+  :root:not(#_):not(#_):not(#_) #lkSpin .lk-rot{left:calc(12px + var(--sl));top:calc(var(--st) + 74px);bottom:auto;flex-direction:column;gap:12px;transform:none}
+  :root:not(#_):not(#_):not(#_) #menu .lk-r .lk-k{font-size:13px}
+  :root:not(#_):not(#_):not(#_) #menu .lk-r .lk-v{font-size:15.5px}
+  :root:not(#_):not(#_):not(#_) #menu .lk-r .lk-st{font-size:13px}
+  :root:not(#_):not(#_):not(#_) #menu .lk-r .mi-h{font-size:13px;-webkit-line-clamp:2;line-clamp:2}
+  :root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbs:13.5px}
+  :root:not(#_):not(#_):not(#_) #menu #lkList{max-height:34vh}
+  :root:not(#_):not(#_):not(#_) #menu #lkGrid{--lkt:80px;--lkg:10px;flex:none;height:46vh;max-height:46vh}
+  /* (ronda 1) sin los 22 px del pie de las páginas (aquí no hay pie): el hueco del muñeco crece lo mismo */
+  :root:not(#_):not(#_):not(#_) #menu.sp-full #mpLook{padding-bottom:calc(var(--sp-pad) * .6 + var(--sbm))}
+}
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 /* =====================================================================
    SPLAT · PANELES (#panel.sp-pn: Ajustes, Controles, Cómo se juega, Jugadores, Acerca de y Primer partido; y el aviso #rotate).
@@ -6002,7 +6113,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     <div class="mpage sp-page" id="mpLook" data-page="look" data-sp-full hidden>
       <div class="mp-head sp-head">
         <button class="mp-back sp-back" id="btnLookBack" aria-label="Volver y guardar el aspecto" data-shape="1"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="mp-tt"><p class="kicker sp-k">Jugadores</p><h2 class="mp-t sp-h">Vestuario</h2></div>
+        <div class="mp-tt"><p class="kicker sp-k">Jugadores</p><h2 class="mp-t sp-h">Vestuario</h2><span class="sp-chip lk-tchip" id="lkTabChip" aria-hidden="true"></span></div>
       </div>
       <div class="lk-top">
         <div class="lk-pick" id="lkPick" data-nav role="radiogroup" aria-label="Jugador"></div>
@@ -6011,20 +6122,23 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         </div>
       </div>
       <div class="lk-bar">
-        <div id="lkTabs" class="sp-tabs" data-ph-tabs="rail" aria-label="Apartado del vestuario"></div>
+        <div id="lkTabs" class="sp-tabs" data-ph-tabs="strip" aria-label="Apartado del vestuario"></div>
         <div class="lk-foot" id="lkFoot" data-nav role="toolbar" aria-label="Acciones">
           <button type="button" class="sp-btn sp-sq sp-sm sp-kit sp-noshine" data-shape="0" data-lkf="try" aria-label="Probar" title="Probar (pose y cara)"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM10 7.8v8.4l6.4-4.2z"/></svg></button>
-          <button type="button" class="sp-btn sp-sq sp-sm sp-alt sp-noshine" data-shape="1" data-lkf="rand" aria-label="Al azar" title="Al azar"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 3.2a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z"/></svg></button>
-          <button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="2" data-lkf="reset" aria-label="Restablecer este apartado" title="Restablecer este apartado"><svg viewBox="0 0 24 24" aria-hidden="true" class="st"><path d="M5 9.5h10a5 5 0 0 1 0 10H8.5"/><path d="M9 5 4.5 9.5 9 14"/></svg></button>
-          <button type="button" class="sp-btn sp-sq sp-sm sp-teal sp-noshine" data-shape="0" data-lkf="copy" aria-label="Copiar a playa" title="Copiar a playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h9.5A1.5 1.5 0 0 1 20 3.5V17h-2.4V4.4H9z"/><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h9A1.5 1.5 0 0 1 16 7.5v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 20.5z"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-alt sp-noshine" data-shape="1" data-lkf="rand" aria-label="Al azar (este apartado)" title="Al azar (este apartado)"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2zm3 3.2a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm-4 4.1a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4zm8 0a1.7 1.7 0 1 0 0 3.4 1.7 1.7 0 0 0 0-3.4z"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-ink sp-noshine lk-more" data-shape="3" data-lkf="more" aria-label="Más: todo al azar, restablecer y copiar" title="Más"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.6"/><circle cx="12" cy="12" r="2.6"/><circle cx="19" cy="12" r="2.6"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine lk-x" data-shape="2" data-lkf="reset" aria-label="Restablecer este apartado" title="Restablecer este apartado"><svg viewBox="0 0 24 24" aria-hidden="true" class="st"><path d="M5 9.5h10a5 5 0 0 1 0 10H8.5"/><path d="M9 5 4.5 9.5 9 14"/></svg></button>
+          <button type="button" class="sp-btn sp-sq sp-sm sp-teal sp-noshine lk-x" data-shape="0" data-lkf="copy" aria-label="Copiar a playa" title="Copiar a playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 2h9.5A1.5 1.5 0 0 1 20 3.5V17h-2.4V4.4H9z"/><path d="M4 7.5A1.5 1.5 0 0 1 5.5 6h9A1.5 1.5 0 0 1 16 7.5v13a1.5 1.5 0 0 1-1.5 1.5h-9A1.5 1.5 0 0 1 4 20.5z"/></svg></button>
         </div>
       </div>
       <p class="lk-help" id="lkHelp" hidden></p>
       <div class="qlist lk-list" id="lkList" data-nav role="tabpanel" aria-label="Piezas"></div>
+      <!-- rejilla de opciones de una fila (ui.js lkGridRender): miniaturas del propio muñeco o muestras de color -->
+      <div class="lk-grid" id="lkGrid" hidden></div>
     </div>
     <!-- Vestuario: mitad derecha (arrastrar gira el muñeco; botones de 44 px para el dedo) -->
     <div id="lkSpin" hidden>
-      <div class="lk-rot"><button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="1" data-rot="-1" aria-label="Girar a la izquierda" title="Girar (Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5A8 8 0 1 1 4.6 14"/><path d="M3.5 4.5 8 6.5l-1.6 4.6"/></svg></button><button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="2" data-rot="1" aria-label="Girar a la derecha" title="Girar (X)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6.5A8 8 0 1 0 19.4 14"/><path d="M20.5 4.5 16 6.5l1.6 4.6"/></svg></button></div>
+      <div class="lk-rot"><button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="1" data-rot="-1" aria-label="Girar a la izquierda" title="Girar (Z)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6.5A8 8 0 1 1 4.6 14"/><path d="M3.5 4.5 8 6.5l-1.6 4.6"/></svg></button><button type="button" class="sp-btn sp-sq sp-sm sp-gold sp-noshine lk-turn" data-shape="0" data-rot="turn" aria-label="Dar la vuelta" title="Dar la vuelta"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 0 1 14.2-5"/><path d="M18.6 3v4.4h-4.4"/><path d="M20 12a8 8 0 0 1-14.2 5"/><path d="M5.4 21v-4.4h4.4"/></svg></button><button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine" data-shape="2" data-rot="1" aria-label="Girar a la derecha" title="Girar (X)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 6.5A8 8 0 1 0 19.4 14"/><path d="M20.5 4.5 16 6.5l1.6 4.6"/></svg></button></div>
     </div>
     <!-- PERFIL (S4 D2): nivel de perfil, vitrina y álbum (ui.js pfRender; datos de js/profile.js). Se abre con el chip #btnProf -->
     <div class="mpage sp-page" id="mpProf" data-page="prof" data-sp-full hidden>

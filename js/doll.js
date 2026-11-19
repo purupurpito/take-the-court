@@ -1795,7 +1795,8 @@
    *  → 1 en la línea de pelo / la punta; kind: 'shell' (casco) o 'piece' (mechones, colas: u a lo largo de la pieza). */
   function hairTone(H, ph, th, u, kind) {
     var c = H.hr, fx = H.fx, st = H.st;
-    if (fx === 'raiz') { if (kind === 'shell' ? u < 0.34 : u < 0.12) c = H.h2; }
+    // (raíces: la mitad de arriba del casco y el primer cuarto de cada pieza; con 0,34/0,12 en el tupé solo se veía desde arriba: 1,1 %)
+    if (fx === 'raiz') { if (kind === 'shell' ? u < 0.5 : u < 0.25) c = H.h2; }
     else if (fx === 'puntas') { if (u > (kind === 'shell' ? 0.8 : 0.62)) c = H.h2; }
     else if (fx === 'mechas') { var k = Math.floor((ph + PI) / (2 * PI) * 18 + 0.5); if (k % 3 === 0 && u > 0.12) c = H.h2; }
     else if (fx === 'flequilloFx') { if (Math.abs(ph) < 1.0 && (kind === 'shell' ? th < 0.34 * PI && u > 0.45 : true)) c = H.h2; }
@@ -2870,6 +2871,11 @@
    *  (equipo TEAMS[L.team], dorsal L.num, L.beach, atlas de 1024² y la malla alta). */
   function buildRig(L, idx, opt) {
     opt = opt || {};
+    return rigSkin(opt.rig || rigBones(L, idx, opt), opt);
+  }
+  /** Esqueleto y datos del muñeco, sin malla ni material (buildRig = rigBones + rigSkin; las miniaturas montan la malla por pasos). */
+  function rigBones(L, idx, opt) {
+    opt = opt || {};
     var tc = opt.tc || (DBG_TC && DBG_TC[L.team | 0]) || TEAMS[L.team | 0] || TEAMS[0], root = new THREE.Group(); root.name = 'doll' + idx;
     var bones = [];
     function bone(parent, x, y, z) { var b = new THREE.Bone(); b.position.set(x || 0, y || 0, z || 0); parent.add(b); bones.push(b); return b; }
@@ -2899,7 +2905,13 @@
     r.bones = bones; r.rest = [];
     for (k = 0; k < bones.length; k++) r.rest.push(bones[k].matrixWorld.clone());
     r.beach = opt.beach != null ? !!opt.beach : !!L.beach || DBG_BEACH; r.num = opt.num != null ? opt.num : L.num;
-    var skin = new THREE.SkinnedMesh(rigGeometry(r, opt.lod != null ? opt.lod : LODR), dollMaterial(tc, L, r.num, r.beach, opt.px || 2));
+    return r;
+  }
+  /** Malla (la de r.geos si ya está), material (opt.mat o uno nuevo), esqueleto y tinta. */
+  function rigSkin(r, opt) {
+    var tc = r.tc, L = r.look, idx = r.idx, root = r.root, bones = r.bones;
+    // (opt.mat: material de un muñeco anterior que se reutiliza con su atlas, lo repinta quien lo pasa; las miniaturas del Vestuario)
+    var skin = new THREE.SkinnedMesh(rigGeometry(r, opt.lod != null ? opt.lod : LODR), opt.mat || dollMaterial(tc, L, r.num, r.beach, opt.px || 2));
     skin.castShadow = true; skin.receiveShadow = true; skin.name = 'dollSkin' + idx; skin.frustumCulled = false;
     root.add(skin); root.updateMatrixWorld(true);
     skin.bind(new THREE.Skeleton(bones), skin.matrixWorld);
@@ -2914,23 +2926,40 @@
    *  huesos pelvis, chest, head, hair, sh/up/el/hand/th/kn/ft. Se guarda en r.geos[lod]. */
   function rigGeometry(r, lod) {
     if (r.geos[lod]) return r.geos[lod];
+    return rigGeoRun(rigGeoBegin(r, lod), 0);
+  }
+  /** La malla por pasos (WP6, ronda 1: las miniaturas del Vestuario la montan en trozos de pocos ms por frame). rigGeoBegin prepara la
+   *  lista de piezas; rigGeoRun hace pasos hasta el plazo (performance.now; 0 = todos) y devuelve la geometría al acabar (o null).
+   *  rigGeometry hace todos de una vez: el mismo orden y el mismo resultado de siempre. */
+  function rigGeoBegin(r, lod) {
     if (!THREE) THREE = window.THREE;
-    var keepK = LODK, keepR = LODR; LODK = LOD_K[lod]; LODR = lod;
-    var G = new Geo(), tc = r.tc, bch = !!r.beach, X = normLook(r.look, bch), k, s;
+    var G = new Geo(), tc = r.tc, bch = !!r.beach, X = normLook(r.look, bch), st = { r: r, lod: lod, G: G, i: 0, steps: [] }, S = st.steps;
     function on(b) { var i = r.bones.indexOf(b); G.pre = r.rest[i]; G.bone = i; G.mode = 'flat'; G.owk = 1; G.su = SU_ALL; return G; }
-    try {
-      torsoGeo(on(r.pelvis), r);
-      headGeo(on(r.head), X, tc, r); eyesGeo(G, X, tc); faceGeo(G, r, X, tc, on);
+    S.push(function () { torsoGeo(on(r.pelvis), r); });
+    S.push(function () { headGeo(on(r.head), X, tc, r); });
+    S.push(function () {
+      eyesGeo(G, X, tc); faceGeo(G, r, X, tc, on);
       if (bch ? X.under === 'licra' : X.under === 'termica') collarGeo(on(r.chest), X, tc);   // cuello alto de la camiseta interior
       if (X.neck) neckGeo(on(r.chest), X, tc);
-      for (k = 0; k < 2; k++) {
-        s = k === 0 ? 1 : -1;
-        shoulderGeo(on(r.sh[k]), tc, X, bch); upperGeo(on(r.up[k]), k); foreGeo(on(r.el[k]), X, tc, k); wristGeo(G, X, tc, k); handGeo(on(r.hand[k]), X, tc, s);
-        thighGeo(on(r.th[k]), tc, X, bch, k); shinGeo(on(r.kn[k]), tc, X, bch, k);
-        if (bch) footGeo(on(r.ft[k]), X, tc, s); else shoeGeo(on(r.ft[k]), tc, X);
-      }
+    });
+    [0, 1].forEach(function (k) {
+      var s = k === 0 ? 1 : -1;
+      S.push(function () { shoulderGeo(on(r.sh[k]), tc, X, bch); upperGeo(on(r.up[k]), k); });
+      S.push(function () { foreGeo(on(r.el[k]), X, tc, k); wristGeo(G, X, tc, k); handGeo(on(r.hand[k]), X, tc, s); });
+      S.push(function () { thighGeo(on(r.th[k]), tc, X, bch, k); shinGeo(on(r.kn[k]), tc, X, bch, k); });
+      S.push(function () { if (bch) footGeo(on(r.ft[k]), X, tc, s); else shoeGeo(on(r.ft[k]), tc, X); });
+    });
+    S.push(function () { st.geo = G.build(); });
+    return st;
+  }
+  function rigGeoRun(st, until) {
+    if (st.geo) return st.geo;
+    var keepK = LODK, keepR = LODR; LODK = LOD_K[st.lod]; LODR = st.lod;
+    try {
+      while (st.i < st.steps.length) { st.steps[st.i++](); if (until && performance.now() >= until && st.i < st.steps.length) break; }
     } finally { LODK = keepK; LODR = keepR; }
-    return (r.geos[lod] = G.build());
+    if (st.geo) st.r.geos[st.lod] = st.geo;
+    return st.geo || null;
   }
   function setLod(r, lod) {
     var g = rigGeometry(r, lod);
@@ -3224,23 +3253,95 @@
   // se coloca ctx.camera. Un solo LOD (el de la calidad activa); set() solo rehace la malla si cambia geoSig (o la sede, o el lienzo):
   // si solo cambia el atlas, repinta el mismo lienzo. Al rehacer libera lo viejo (freeRig).
   var PV = null, PV_POS = [5, 0, 0], PV_FOV = 46;
-  // encuadres: altura del punto que se mira (en función de las medidas del muñeco), distancia de la cámara (m) y, si va, altura de la
-  // cámara sobre ese punto (× distancia; 0,1 por defecto)
+  // ENCUADRES (WP6 del plan del Vestuario): cada uno es una CAJA del muñeco, medida en sus huesos de pie (pvMeasure, en metros del
+  // muñeco sin la escala de altura): lo (abajo), hi (arriba), lat (medio ancho), up (altura de la cámara sobre el centro, × distancia),
+  // fill (parte del alto libre que ocupa: los de cerca, menos; y nunca más de PV_PPM píxeles CSS por metro: en PC no sale gigante),
+  // yaw (giro con el que se enseña: 0 = de frente; −π/2 = su lado izquierdo a cámara) y, si va, peek (giro al que se asoma un momento y
+  // vuelve: la coleta y el moño se ven de espaldas). La cámara se aleja hasta que la caja cabe en el hueco libre que da la UI (place:
+  // centro y medio ancho a lo ancho, franjas tapadas arriba y abajo) y se desplaza de lado para centrarla en él. Así el mismo encuadre
+  // vale en apaisado, en vertical y en PC. frame(nombre) va a uno con transición (≈300 ms) y frameSlot(ranura) elige el de esa ranura.
+  var PV_PPM = 340, PV_MINPX = 230;   // (lo pequeño, como los pies, puede salir algo más de cerca: hasta 230 px de alto)
   var PV_FRAMES = {
-    cuerpo: function () { return [(SH_H + HEAD_C + HEAD_RY) * 0.5, 2.6]; },
-    cabeza: function () { return [SH_H + HEAD_C + 0.06, 1.85, 0.02]; },   // [3] = altura de la cámara (× distancia): casi a la altura de la cara   // la cabeza entera con el gorro (a 1,0 m se cortaba arriba)
-    brazos: function () { return [SH_H - 0.25, 1.75]; },
-    piernas: function () { return [HIP_H * 0.45, 1.5]; }           // los pies por encima de los botones ⟲ ⟳
+    cuerpo: function (m) { return { lo: -0.04, hi: m.top + 0.14, lat: SH_X + 0.2, up: 0.1, yaw: 0 }; },
+    cabeza: function (m) { return { lo: m.chin - 0.24, hi: m.top + 0.12, lat: HEAD_RX + 0.2, up: 0.03, yaw: 0.55, fill: 0.86 }; },
+    nuca: function (m) { return { lo: m.chin - 0.24, hi: m.top + 0.12, lat: HEAD_RX + 0.2, up: 0.06, yaw: 0.55, peek: 2.75, fill: 0.86 }; },
+    perfil: function (m) { return { lo: m.chin - 0.24, hi: m.top + 0.14, lat: HEAD_RX + 0.32, up: 0.03, yaw: 1.05, fill: 0.86 }; },
+    cara: function (m) { return { lo: m.chin - 0.06, hi: m.head + HEAD_RY + 0.06, lat: HEAD_RX + 0.08, up: 0, yaw: 0.12, fill: 0.8 }; },
+    torso: function (m) { return { lo: m.hip - 0.16, hi: m.top + 0.12, lat: SH_X + 0.2, up: 0.08, yaw: 0.3 }; },
+    brazos: function (m) { return { lo: m.hand - 0.14, hi: m.top + 0.1, lat: SH_X + 0.22, up: 0.06, yaw: 0 }; },
+    brazoL: function (m) { return { lo: m.hand - 0.14, hi: m.top + 0.1, lat: 0.36, up: 0.06, yaw: -1.05 }; },
+    brazoR: function (m) { return { lo: m.hand - 0.14, hi: m.top + 0.1, lat: 0.36, up: 0.06, yaw: 1.05 }; },
+    manos: function (m) { return { lo: m.hand - 0.14, hi: m.el + 0.1, lat: SH_X + 0.22, up: 0.1, yaw: 0.35, fill: 0.86 }; },
+    piernas: function (m) { return { lo: -0.05, hi: m.hip + 0.16, lat: HIP_W + 0.26, up: 0.12, yaw: 0.3 }; },
+    rodillas: function (m) { return { lo: m.knee - 0.24, hi: m.knee + 0.24, lat: HIP_W + 0.22, up: 0.1, yaw: 0.4, fill: 0.86 }; },
+    pies: function (m) { return { lo: -0.05, hi: m.ankle + 0.18, lat: HIP_W + 0.13, up: 0.3, yaw: 0.6, fill: 0.86 }; },
+    // solo para las miniaturas de la rejilla (WP6, ronda 1): la cabeza con el pelo que cae (los peinados se distinguen a 72-96 px) y
+    // el tobillo de cerca (la tobillera es una franja fina: con los dos pies enteros no se veía)
+    peinado: function (m) { return { lo: m.chin - 0.16, hi: m.top + 0.08, lat: HEAD_RX + 0.1, up: 0.04, yaw: 1.0, fill: 0.9 }; },
+    tobillo: function (m) { return { lo: m.ankle - 0.1, hi: m.ankle + 0.16, lat: HIP_W + 0.04, up: 0.2, yaw: 0.5, fill: 0.9 }; }
   };
-  // medio ancho de cada encuadre (m, sin la escala de altura): con poco hueco libre (place), la cámara se aleja hasta que quepa
-  var PV_LAT = {
-    cuerpo: function () { return SH_X + 0.17; },
-    brazos: function () { return SH_X + 0.17; },
-    cabeza: function () { return HEAD_RX + 0.11; },
-    piernas: function () { return HIP_W + 0.2; }
+  // ranura (o fila de la UI) → encuadre. Lo que no está aquí, 'cuerpo'. Los colores van a lo que pintan (WP1: VB.Look.uses)
+  var PV_SLOT = {
+    style: 'cabeza', hair: 'nuca', hair2: 'nuca', hairFx: 'cabeza', head: 'perfil', eyes: 'cara', paint: 'cara', marks: 'cara', beard: 'cara',
+    neck: 'torso', under: 'torso', band: 'brazoL', armL: 'brazoL', armR: 'brazoR', elbows: 'brazos', wristL: 'brazoL', wristR: 'brazoR',
+    hands: 'manos', legs: 'piernas', knees: 'rodillas', socks: 'piernas', ankle: 'pies', shoes: 'pies',
+    'c:sock': 'piernas', 'c:shoe': 'pies', 'c:glass': 'cara', 'c:pad': 'rodillas'
   };
-  /** Medio hueco libre alrededor del muñeco (fracción del ancho): el que dio la UI con place(), o hasta el borde derecho. */
-  function pvHalf() { return Math.max(0.06, PV.half || 1 - PV.cx); }
+  // Recorte del muñeco en vertical (place(..., clip)): capa 3 para el segundo pase (el muñeco, su tinta y las luces de la escena)
+  var PV_CLIPL = 3, PV_HEADF = { cabeza: 1, nuca: 1, perfil: 1 };
+  function pvClipOn() {
+    return !!(PV && PV.clipB && PV.r && PV.r.skin);
+  }
+  function pvClipArm() {
+    var r = PV.r, m = r && r.skin && r.skin.material; if (!m) return;
+    var on = pvClipOn();
+    PV.clipArmed = on;
+    m.colorWrite = !on; m.depthWrite = !on;
+    if (r.ink) { if (on) { if (PV.inkVis == null) PV.inkVis = r.ink.visible; r.ink.visible = false; } else if (PV.inkVis != null) { r.ink.visible = PV.inkVis; PV.inkVis = null; } }
+  }
+  function pvClipPass(c) {
+    if (!PV || !PV.clipArmed) return;
+    var r = PV.r, R = c && c.renderer, cam = c && c.camera, sc = c && c.scene, m = r && r.skin && r.skin.material;
+    PV.clipArmed = false;
+    if (m) { m.colorWrite = true; m.depthWrite = true; }
+    if (r.ink && PV.inkVis != null) { r.ink.visible = PV.inkVis; PV.inkVis = null; }
+    if (!R || !cam || !sc || !m) return;
+    r.skin.layers.enable(PV_CLIPL); if (r.ink) r.ink.layers.enable(PV_CLIPL);
+    if (!PV.lt || PV.ltS !== sc || (PV.ltF = (PV.ltF | 0) + 1) % 60 === 0) {   // (las luces de la sede: cada 60 frames o al cambiar de escena)
+      PV.lt = true; PV.ltS = sc; sc.traverse(function (o) { if (o.isLight) o.layers.enable(PV_CLIPL); });
+    }
+    var W = (R.domElement && R.domElement.clientWidth) || c.width || 1, H = (R.domElement && R.domElement.clientHeight) || c.height || 1;
+    var ac = R.autoClear, su = R.shadowMap.autoUpdate, bg = sc.background, mask = cam.layers.mask, sct = R.getScissorTest();
+    try {
+      R.setRenderTarget(null);
+      R.autoClear = false; R.shadowMap.autoUpdate = false; sc.background = null; cam.layers.set(PV_CLIPL);
+      R.setScissorTest(true); R.setScissor(0, PV.clipB * H, W, (1 - PV.clipB - (PV.clipT || 0)) * H);
+      // con post-proceso (PC de calidad alta) la escena se pintó en otro destino: aquí no queda su profundidad (el muñeco va encima,
+      // delante no hay nada) y se limpia la de la franja
+      if (VB.Arena && VB.Arena.postActive && VB.Arena.postActive()) R.clearDepth();
+      R.render(sc, cam);
+    } finally {
+      R.autoClear = ac; R.shadowMap.autoUpdate = su; sc.background = bg; cam.layers.mask = mask;
+      R.setScissorTest(sct); R.setScissor(0, 0, W, H);
+    }
+  }
+  /** Alturas del muñeco de pie (pelvis, hombro, codo, mano, rodilla, tobillo, centro de la cabeza, barbilla y lo más alto con pelo o
+   *  gorro), en metros del muñeco. Una vez por malla (r._pvM), con la pose 'stand' del momento y la de antes devuelta. */
+  function pvMeasure(r) {
+    if (r._pvM) return r._pvM;
+    if (!TMP) TMP = new THREE.Vector3();
+    var v = TMP, p0 = r.pose, m = {};
+    function y(b, dy) { v.set(0, dy || 0, 0); b.localToWorld(v); r.root.worldToLocal(v); return v.y; }
+    r.pose = 'stand'; animate(r, 0); r.root.updateMatrixWorld(true);
+    m.hip = y(r.pelvis); m.sh = (y(r.sh[0]) + y(r.sh[1])) / 2; m.el = (y(r.el[0]) + y(r.el[1])) / 2;
+    m.hand = Math.min(y(r.hand[0], -PALM), y(r.hand[1], -PALM)); m.knee = (y(r.kn[0]) + y(r.kn[1])) / 2; m.ankle = (y(r.ft[0]) + y(r.ft[1])) / 2;
+    m.head = y(r.head, HEAD_C); m.chin = m.head - HEAD_RY; m.top = y(r.head, HEAD_C + HEAD_RY + 0.1);
+    r.pose = p0; animate(r, r.tFix >= 0 ? r.tFix : PV ? PV.t : 0); r.root.updateMatrixWorld(true);
+    r._pvM = m;
+    return m;
+  }
+  /** Ángulo a de vuelta al tramo (b − π, b + π]: para girar siempre por el camino corto. */
+  function pvNear(a, b) { var T = PI * 2; return a - T * Math.round((a - b) / T); }
   function pvKit(o, prev) {
     if (o && o.tc) return o.tc;
     if (prev && prev.tc) return prev.tc;
@@ -3288,13 +3389,16 @@
    *  cabeza con gorro o peinado) y lo más lejos del eje vertical (brazos abiertos). Recorre un ciclo entero de animate (el remate
    *  salta 0,78 m y estira el brazo: con el encuadre 'cuerpo' fijo, la cabeza y la mano se salían por arriba y por la derecha). */
   function pvEnv(r) {
-    var T = PV_CYCLE[r.pose] || 2, N = 32, v = TMP, e = { lo: 1e9, hi: -1e9, lat: 0 }, i, k;
+    // rlo / rhi: lo mismo respecto a la pelvis de ese momento (WP6: «Probar» encuadra el cuerpo a su tamaño y la cámara sigue el salto)
+    var T = PV_CYCLE[r.pose] || 2, N = 32, v = TMP, e = { lo: 1e9, hi: -1e9, lat: 0, rlo: 1e9, rhi: -1e9 }, i, k, py = 0;
     function pt(b, y, rad) {
       v.set(0, y, 0); b.localToWorld(v); r.root.worldToLocal(v);
       e.lo = Math.min(e.lo, v.y - rad); e.hi = Math.max(e.hi, v.y + rad); e.lat = Math.max(e.lat, Math.sqrt(v.x * v.x + v.z * v.z) + rad);
+      e.rlo = Math.min(e.rlo, v.y - rad - py); e.rhi = Math.max(e.rhi, v.y + rad - py);
     }
     for (i = 0; i < N; i++) {
       animate(r, T * i / N); r.root.updateMatrixWorld(true);
+      v.set(0, 0, 0); r.pelvis.localToWorld(v); r.root.worldToLocal(v); py = v.y;
       pt(r.head, HEAD_C, HEAD_RX + 0.06); pt(r.head, HEAD_C + HEAD_RY + 0.08, 0.02);   // la cabeza y lo que lleve encima
       for (k = 0; k < 2; k++) { pt(r.el[k], 0, 0.08); pt(r.hand[k], -PALM, 0.09); pt(r.ft[k], 0, 0.06); pt(r.ft[k], -ANKLE, 0.03); }
     }
@@ -3309,8 +3413,12 @@
       if (!ctx || !ctx.scene) return false;
       L = Object.freeze(Object.assign({}, L || {}));
       var op = pvOpts(o, null);
+      // yaw = giro del dedo (arrastre, ⟲ ⟳, stick, giro solo); yawB = giro del encuadre, que va con suavidad a yawT (frameSlot, turn);
+      // peekT = segundos que quedan asomado a la espalda (peek) antes de volver; sx/sy = desplazamiento suave de la cámara
       PV = { r: null, L: L, o: op, gs: geoSig(L, op.tc, op.beach), as: atlasSig(L, op.tc, op.num, op.beach), lod: pvLod(), hidden: [], yaw: 0, t: 0,
-        pose: 'stand', face: 'neutra', frame: 'cuerpo', cx: 0.68, cy: 0, cd: 0, snap: true, fov0: ctx.camera ? ctx.camera.fov : 0, film0: ctx.camera ? ctx.camera.filmOffset || 0 : 0 };
+        yawB: 0, yawT: 0, peek: 0, peekT: 0, slot: '', fl: 0, flL: null,
+        pose: 'stand', face: 'neutra', frame: 'cuerpo', cx: 0.68, half: 0, top: 0, bot: 0, cy: 0, cd: 0, sx: 0, sy: 0, snap: true,
+        fov0: ctx.camera ? ctx.camera.fov : 0, film0: ctx.camera ? ctx.camera.filmOffset || 0 : 0 };
       PV.r = pvBuild(L, op);
       pvHide();
       return true;
@@ -3343,21 +3451,63 @@
     pose: function (name) { if (!PV || !POSES[name]) return false; PV.pose = PV.r.pose = name; PV.env = null; return name; },
     /** Expresión: neutra | concentrado | esfuerzo | grito | alegria | pena | sorpresa | lengua. */
     face: function (expr) { if (!PV) return false; PV.face = EXPR[expr] ? expr : 'neutra'; setFace(PV.r, PV.face); return PV.face; },
-    /** Gira el muñeco dRad (arrastre, botones ⟲ ⟳, stick derecho). */
-    spin: function (d) { if (!PV) return 0; PV.yaw = (PV.yaw + (+d || 0)) % (PI * 2); return PV.yaw; },
-    /** Fija el giro del muñeco (0 = de frente). */
-    yaw: function (rad) { if (!PV) return 0; PV.yaw = (+rad || 0) % (PI * 2); return PV.yaw; },
-    /** Centro del muñeco en pantalla, en fracción del ancho (apaisado): la UI lo pone en el hueco libre a la derecha de su columna.
-     *  half (opcional): la mitad de ese hueco, en fracción del ancho; si el muñeco no cabe en él, la cámara se aleja (a 667×375 el
-     *  pie de iconos le tapaba el hombro). */
-    place: function (cx, half, top) {
-      if (!PV) return 0; cx = +cx; PV.cx = cx > 0.5 && cx < 0.95 ? cx : 0.68;
-      half = +half; PV.half = half > 0.02 && half <= 0.5 ? half : 0;   // hueco libre a cada lado del muñeco (fracción del ancho; 0 = hasta el borde)
-      top = +top; PV.top = top > 0 && top < 0.5 ? top : 0;            // franja de arriba tapada por la UI sobre el muñeco (fracción del alto)
+    /** Gira el muñeco dRad (arrastre, botones ⟲ ⟳, stick derecho). Corta el asomo a la espalda (peek) si lo había. */
+    spin: function (d) { if (!PV) return 0; PV.peekT = 0; PV.yaw = (PV.yaw + (+d || 0)) % (PI * 2); return PV.yaw + PV.yawB; },
+    /** Fija el giro del muñeco (0 = de frente), al momento y sin el giro del encuadre (herramientas: yaw(π) = de espaldas). */
+    yaw: function (rad) { if (!PV) return 0; PV.yaw = (+rad || 0) % (PI * 2); PV.yawB = PV.yawT = 0; PV.peekT = 0; return PV.yaw; },
+    /** Da la vuelta (180°) con giro animado (botón «Dar la vuelta» del Vestuario). Devuelve el giro al que va. */
+    turn: function () {
+      if (!PV) return 0;
+      PV.peekT = 0; PV.yawB += PV.yaw; PV.yaw = 0; PV.yawT = pvNear(PV.yawT, PV.yawB) + PI;
+      return PV.yawT;
+    },
+    /** Hueco libre donde va el muñeco (fracciones de la ventana): cx = centro a lo ancho, half = medio ancho del hueco (0 = hasta el
+     *  borde más cercano), top / bot = franjas tapadas por la UI arriba y abajo. Vale en apaisado y en vertical: la cámara se aleja
+     *  hasta que la caja del encuadre cabe en ese hueco y se desplaza de lado (no gira) para centrarla en él. clip (vertical, WP6 ronda
+     *  1): franja de abajo donde el muñeco NO se pinta (la de la lista): de cerca, el cuerpo ya no corre por detrás de las pestañas y las
+     *  filas; queda un busto en la mitad de arriba (ver pass). clipT: lo mismo arriba (la cabecera: con las piernas o los pies
+     *  encuadrados, el tronco no sube por detrás del título). */
+    place: function (cx, half, top, bot, clip, clipT) {
+      if (!PV) return 0; cx = +cx; PV.cx = cx > 0.2 && cx < 0.95 ? cx : 0.68;
+      clip = +clip; PV.clipB = clip > 0.05 && clip < 0.9 ? clip : 0;
+      clipT = +clipT; PV.clipT = PV.clipB && clipT > 0 && clipT < 0.5 ? clipT : 0;
+      half = +half; PV.half = half > 0.02 && half <= 0.5 ? half : 0;
+      top = +top; PV.top = top > 0 && top < 0.8 ? top : 0;
+      bot = +bot; PV.bot = bot > 0 && bot < 0.8 ? bot : 0;
+      if (PV.top + PV.bot > 0.85) { var k = 0.85 / (PV.top + PV.bot); PV.top *= k; PV.bot *= k; }
+      PV.placed = true;
       return PV.cx;
     },
-    /** Encuadre: 'cuerpo' | 'cabeza' | 'brazos' | 'piernas' (la cámara va hasta él con suavidad). */
+    /** Encuadre por nombre (PV_FRAMES: cuerpo, cabeza, nuca, perfil, cara, torso, brazos, brazoL, brazoR, manos, piernas, rodillas,
+     *  pies). La cámara va hasta él con suavidad; el giro NO cambia (eso es frameSlot). */
     frame: function (name) { if (!PV || !PV_FRAMES[name]) return false; PV.frame = name; return name; },
+    /** Encuadre y giro de una ranura del Vestuario (PV_SLOT; los colores con 'c:clave'). o = {back: el peinado lleva volumen detrás
+     *  (se asoma a la espalda ~1 s y vuelve), keep: no tocar el giro, frame: forzar un encuadre}. Pone el giro del encuadre (el del
+     *  dedo vuelve a 0) y va hasta él por el camino corto en ≈300 ms. Devuelve el encuadre. */
+    frameSlot: function (slot, o) {
+      if (!PV) return false;
+      o = o || {};
+      var name = o.frame && PV_FRAMES[o.frame] ? o.frame : this.frameOf(slot, o);
+      PV.frame = name; PV.slot = String(slot || '');
+      if (!o.keep) {
+        var b = PV_FRAMES[name](pvMeasure(PV.r));
+        PV.yawB = pvNear(PV.yawB + PV.yaw, b.yaw); PV.yaw = 0; PV.yawT = b.yaw;
+        PV.peek = b.peek || 0; PV.peekT = b.peek && !o.still ? 1.25 : 0;
+      }
+      return name;
+    },
+    /** Nombre del encuadre de una ranura (sin aplicarlo): lo usan las miniaturas de la rejilla del Vestuario. */
+    frameOf: function (slot, o) { return slot === 'style' && o && o.back ? 'nuca' : PV_SLOT[slot] || 'cuerpo'; },
+    /** Parpadeo de lo que pinta un color (el Vestuario, al cambiarlo): pinta el atlas con L2 durante s segundos (0,4 por defecto) y
+     *  vuelve al aspecto de verdad. Solo si L2 cambia el atlas y no la malla (si no, nada). */
+    flash: function (L2, s) {
+      if (!PV || !L2) return false;
+      var op = PV.o, r = PV.r; if (geoSig(L2, op.tc, op.beach) !== PV.gs || atlasSig(L2, op.tc, op.num, op.beach) === PV.as) return false;
+      var m = r.skin.material, cv = m.map && m.map.image; if (!cv) return false;
+      paintAtlas(cv, op.tc, L2, op.num, op.beach); m.map.needsUpdate = true;
+      PV.fl = s > 0 ? s : 0.4; PV.flL = PV.as;
+      return true;
+    },
     /** Cada frame, después de CameraRig.update: anima, vuelve a ocultar balón y manchas y coloca ctx.camera. */
     update: function (dt) {
       if (!PV) return;
@@ -3369,47 +3519,68 @@
         r.chest.scale.set(1 + 0.012 * w, 1 + 0.02 * w, 1 + 0.012 * w);
         headBob(r, 0.008 * Math.sin(PV.t * 2.2 + 0.6), 0.03 * Math.sin(PV.t * 2.2 + 0.6));
       }
-      r.root.rotation.y = PI / 2 + PV.yaw;
+      // fin del parpadeo de un color: el atlas de verdad (si entretanto no se repintó por otro cambio)
+      if (PV.fl > 0) {
+        PV.fl -= dt;
+        if (PV.fl <= 0 && PV.flL === PV.as) { var mf = r.skin.material, cvf = mf.map && mf.map.image; if (cvf) { paintAtlas(cvf, PV.o.tc, PV.L, PV.o.num, PV.o.beach); mf.map.needsUpdate = true; } }
+      }
+      // giro del encuadre: asomarse a la espalda un momento (peek) y volver; luego, con suavidad (≈300 ms), al giro que toca
+      var yT = PV.yawT;
+      if (PV.peekT > 0) { PV.peekT -= dt; yT = PV.peek; }
+      PV.yawB += (pvNear(yT, PV.yawB) - PV.yawB) * (PV.snap ? 1 : 1 - Math.exp(-dt * (PV.peekT > 0 ? 6 : 9)));
       pvHide();
       var cam = ctx && ctx.camera; if (!cam) return;
-      var asp = cam.aspect || 1, fn = asp < 1 && PV.frame !== 'cabeza' ? 'cuerpo' : PV.frame, f = PV_FRAMES[fn](), sc = r.root.scale.y, ty = f[0] * sc, d = f[1] * sc;
-      if (fn === 'cuerpo' && r.pose !== 'stand' && PV_CYCLE[r.pose]) {   // «Probar»: el encuadre sigue a la pose entera (salto, brazos arriba)
-        if (!PV.env) { PV.env = pvEnv(r); animate(r, r.tFix >= 0 ? r.tFix : PV.t); }
-        var E = PV.env, tq = Math.tan(PV_FOV * PI / 360), hv = (E.hi - E.lo) * 0.5 * sc + 0.08, hl = E.lat * sc + 0.06;
-        ty = (E.lo + E.hi) * 0.5 * sc;
-        if (asp >= 1) d = Math.max(d, hv / tq, hl / (pvHalf() * 2 * tq * asp));   // a lo ancho, en el hueco libre (place)
-        else d = Math.max(d * 2.3, hv / (tq * 0.45), hl / (tq * asp)) / 2.3;                       // vertical: mitad de arriba
-      } else if (asp >= 1 && PV_LAT[fn]) {
-        d = Math.max(d, PV_LAT[fn]() * sc / (pvHalf() * 2 * Math.tan(PV_FOV * PI / 360) * asp));   // quieto: que quepa a lo ancho
-        // y a lo alto: la cabeza entera (con peinado o gorro) dentro del 92 % de la mitad de arriba del hueco libre. En el móvil
-        // apaisado (alto corto) 'brazos' sacaba la coronilla por arriba
-        if (fn !== 'piernas') {
-          if (PV.htR !== r) { TMP.set(0, HEAD_C + HEAD_RY + 0.1, 0); r.root.updateMatrixWorld(true); r.head.localToWorld(TMP); r.root.worldToLocal(TMP); PV.ht = TMP.y; PV.htR = r; }
-          var up = (PV.ht - f[0]) * sc;
-          if (up > 0) d = Math.max(d, up / (0.92 * Math.tan(PV_FOV * PI / 360) * (1 - (PV.top || 0))));
-        }
+      var asp = cam.aspect || 1, sc = r.root.scale.y, tq = Math.tan(PV_FOV * PI / 360), M = pvMeasure(r);
+      var fn = PV.frame;
+      if (PV.fbN !== fn || PV.fbR !== r) { PV.fb = (PV_FRAMES[fn] || PV_FRAMES.cuerpo)(M); PV.fbN = fn; PV.fbR = r; }   // (sin objetos nuevos por frame)
+      var f = PV.fb, lo = f.lo, hi = f.hi, lat = f.lat;
+      var follow = false;
+      if (fn === 'cuerpo' && r.pose !== 'stand' && PV_CYCLE[r.pose]) {
+        // «Probar» (U11): la caja es la del cuerpo en la pose (brazos arriba, piernas recogidas) respecto a la pelvis, y la cámara sigue
+        // a la pelvis con retraso: el muñeco sale grande y el salto se nota (antes se encuadraba el ciclo entero y salía pequeño)
+        if (!PV.env) { PV.env = pvEnv(r); animate(r, r.tFix >= 0 ? r.tFix : PV.t); r.root.updateMatrixWorld(true); }
+        TMP.set(0, 0, 0); r.pelvis.localToWorld(TMP); r.root.worldToLocal(TMP);
+        var E = PV.env, pyN = TMP.y;
+        lo = pyN + E.rlo - 0.05; hi = pyN + E.rhi + 0.06; lat = Math.max(SH_X + 0.2, E.lat * 0.66); follow = true;
       }
-      if (asp < 1) d *= 2.3;   // en vertical el muñeco entero (o la cabeza) cabe en la mitad de arriba (la de abajo es del menú)
-      var k = PV.snap ? 1 : 1 - Math.exp(-dt * 7); PV.snap = false;
-      PV.cy += (ty - PV.cy) * k; PV.cd += (d - PV.cd) * k;
+      // hueco libre (place): a lo ancho [cx − half, cx + half] y a lo alto [top, 1 − bot]. Sin place: en apaisado a la derecha
+      // (cx 0,68, hasta el borde); en vertical, la mitad de arriba
+      var cx = PV.placed || asp >= 1 ? PV.cx : 0.5, half = PV.half || Math.min(cx, 1 - cx);
+      var top = PV.top || 0, bot = PV.placed || asp >= 1 ? PV.bot || 0 : 0.5, fh = Math.max(0.15, 1 - top - bot);
+      var ty = (lo + hi) * 0.5 * sc, hv = (hi - lo) * 0.5 * sc, hl = lat * sc;
+      // distancia: que la caja quepa a lo alto y a lo ancho (con un 6 % de aire; los de cerca, f.fill del alto); nunca más cerca de
+      // 0,55 m. Nunca más de PV_PPM píxeles CSS por metro del muñeco: en PC la cabeza salía de 600 px y los pies de 900
+      // en vertical el hueco es bajo (≈ 180-200 px a 360×640): de cuerpo entero, menos aire arriba (la caja guarda 0,24 m sobre la
+      // cabeza para el pelo alto) y casi todo el alto; así el muñeco sale ~20 % más grande sin cortarse
+      if (asp < 1 && !f.fill && !follow) { hi -= 0.08; ty = (lo + hi) * 0.5 * sc; hv = (hi - lo) * 0.5 * sc; }
+      // de cerca en vertical con recorte: la cabeza llena el hueco (menos cuello y hombros en la caja: el busto se corta por abajo)
+      else if (asp < 1 && PV.clipB && PV_HEADF[fn]) { lo += 0.1; ty = (lo + hi) * 0.5 * sc; hv = (hi - lo) * 0.5 * sc; }
+      var fill = f.fill || (asp < 1 ? 0.985 : 0.94), Hc = (ctx.renderer && ctx.renderer.domElement && ctx.renderer.domElement.clientHeight) || ctx.height || 720;
+      // (en vertical con recorte el tope se suelta: el hueco es bajo y lo de cerca tiene que llenarlo; lo que sobra no se pinta)
+      fill = Math.min(fill, Math.max((asp < 1 && PV.clipB ? 1.6 : 1) * PV_PPM * (hi - lo), PV_MINPX) / (fh * Hc));
+      var d = Math.max(0.55, hv / (tq * fh * fill), hl / (tq * asp * 2 * half * 0.94));
+      var k = PV.snap ? 1 : 1 - Math.exp(-dt * 10), kf = follow && !PV.snap ? 1 - Math.exp(-dt * 4) : k; PV.snap = false;
+      PV.cy += (ty - PV.cy) * kf; PV.cd += (d - PV.cd) * k;
+      // desplazamiento de la cámara en fracciones del cuadro (se suaviza igual: al cambiar de hueco no salta)
+      PV.sx += ((cx - 0.5) - PV.sx) * k; PV.sy += ((top + fh * 0.5 - 0.5) - PV.sy) * k;
       if (cam.fov !== PV_FOV || cam.filmOffset || cam.zoom !== 1 || cam.view) {   // sin el desplazamiento de lente ni el zoom de la cámara del menú
         cam.fov = PV_FOV; cam.filmOffset = 0; cam.zoom = 1; if (cam.view && cam.clearViewOffset) cam.clearViewOffset(); cam.updateProjectionMatrix();
       }
-      var px = PV_POS[0], pz = PV_POS[2], cd = PV.cd, cy = PV.cy;
-      cam.up.set(0, 1, 0); cam.position.set(px + cd, cy + cd * 0.1, pz); cam.lookAt(px, cy, pz); cam.updateMatrixWorld(true);
-      var e = cam.matrixWorld.elements, tv = Math.tan(PV_FOV * PI / 360);
+      var px = PV_POS[0], pz = PV_POS[2], cd = PV.cd, cy = PV.cy, upk = f.up != null ? f.up : 0.1;
+      cam.up.set(0, 1, 0); cam.position.set(px + cd, cy + cd * upk, pz); cam.lookAt(px, cy, pz); cam.updateMatrixWorld(true);
+      var e = cam.matrixWorld.elements;
       // la cámara se DESPLAZA de lado (no gira): girada, el muñeco quedaba en el borde del cono y más cerca en profundidad, y salía
       // un 15-20 % más grande y estirado que en el centro (a 844×390 se cortaba)
-      var ox, oy, oz;
-      if (asp >= 1) {   // el muñeco en x = cx del ancho (0,68; place()) y, si arriba hay UI (place top), centrado en el alto que queda
-        var sh = cd * tv * asp * 2 * (PV.cx - 0.5), su = cd * tv * (PV.top || 0);
-        ox = -e[0] * sh + e[4] * su; oy = -e[1] * sh + e[5] * su; oz = -e[2] * sh + e[6] * su;
-      }
-      else { var sv = cd * tv * 0.55; ox = -e[4] * sv; oy = -e[5] * sv; oz = -e[6] * sv; }                              // vertical: en la mitad alta
-      cam.position.set(px + cd + ox, cy + cd * (f[2] != null ? f[2] : 0.1) + oy, pz + oz); cam.lookAt(px + ox, cy + oy, pz + oz);
-      r.root.rotation.y = Math.atan2(cd, oz) + PV.yaw;   // de frente a la cámara desplazada (0 de giro = mirando a cámara)
+      var sh = cd * tq * asp * 2 * PV.sx, su = cd * tq * 2 * PV.sy;
+      var ox = -e[0] * sh + e[4] * su, oy = -e[1] * sh + e[5] * su, oz = -e[2] * sh + e[6] * su;
+      cam.position.set(px + cd + ox, cy + cd * upk + oy, pz + oz); cam.lookAt(px + ox, cy + oy, pz + oz);
+      r.root.rotation.y = Math.atan2(cd, oz) + PV.yaw + PV.yawB;   // de frente a la cámara desplazada (0 de giro = mirando a cámara)
       cam.updateMatrixWorld(true);
+      pvClipArm();
     },
+    /** Después del render del frame (main.js): con clip (vertical), el muñeco se pinta aquí, solo en la parte de arriba (tijera). En el
+     *  render normal va sin color ni profundidad (sí proyecta su sombra) y su tinta, oculta. Mismos programas: solo estado y capas. */
+    pass: function (c) { pvClipPass(c || ctx); },
     /** Apaga la vista previa: libera el muñeco, vuelve a enseñar lo que ocultó y devuelve el fov y la lente de la cámara. */
     stop: function () {
       if (!PV) return false;
@@ -3421,7 +3592,7 @@
     },
     active: function () { return !!PV; },
     /** Estado para pruebas: LOD, triángulos, firmas y el rig. */
-    info: function () { return PV ? { lod: PV.lod, tris: triCount(PV.r.skin.geometry), geo: PV.gs, atlas: PV.as, beach: PV.o.beach, frame: PV.frame, pose: PV.pose, rig: PV.r } : null; }
+    info: function () { return PV ? { lod: PV.lod, tris: triCount(PV.r.skin.geometry), geo: PV.gs, atlas: PV.as, beach: PV.o.beach, frame: PV.frame, slot: PV.slot, clip: pvClipOn() ? PV.clipB : 0, clipT: pvClipOn() ? PV.clipT || 0 : 0, yaw: PV.yaw + PV.yawB, yawT: PV.yawT, cd: PV.cd, pose: PV.pose, rig: PV.r } : null; }
   };
 
   // =====================================================================
@@ -3660,7 +3831,7 @@
       var mem = function () { R.render(C.scene, C.camera); return [R.info.memory.geometries, R.info.memory.textures]; };
       try {
         pr.memOff = was ? null : mem();
-        if (!was) P.start(C, base(false), { beach: false, px: 1 });
+        if (!was) P.start(C, base(false), { beach: false });
         var L0 = PV.L, bch0 = PV.o.beach;
         pr.mem0 = mem();
         var cands = [['cSock', 0x3fbf5a], ['paint', 'rayas'], ['marks', 'pecas'], ['beard', 'bigote'], ['band', 'capitan']], La = null;
@@ -3773,6 +3944,9 @@
     if (!L) L = bch ? PT_DEF_B : PT_DEF;
     return Object.isFrozen(L) ? L : Object.freeze(Object.assign({}, L));
   }
+  var PT_BMP = null;   // (promesa del ImageBitmap de portrait.snap)
+  /** Suelta el material que portrait.prep montó para un trabajo que ya no se usa. */
+  function ptJobMat(j) { var m = j && j.mat; if (!m) return; j.mat = null; try { if (m.map) m.map.dispose(); m.dispose(); } catch (e) { } }
   var PT_DEF_B = { skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: 'gorra' };
   function ptNum(req) { var n = req && req.num; return n != null && n !== '' ? n : 1; }
   function ptSize(req) { var s = +(req && req.size); return s > 8 ? Math.min(1024, Math.round(s)) : 256; }
@@ -3809,6 +3983,16 @@
     PT.cam.position.set(d, ty + up, sz); PT.cam.lookAt(0, ty, sz); PT.cam.updateMatrixWorld(true);
     PT.ty = ty; PT.d = d;
   }
+  /** Miniaturas del Vestuario (req.frame = un encuadre de la vista previa, PV_FRAMES): la cámara del retrato encuadra esa caja del
+   *  muñeco en el cuadrado (con un 8 % de aire), girada como la caja (salvo req.yaw). Devuelve la caja (o null). PT.ty/PT.d se borran
+   *  para que el busto de siempre se recoloque luego. */
+  function ptFrameBox(r, name) {
+    var b = PV_FRAMES[name](pvMeasure(r)), tq = Math.tan(PT_FOV * PI / 360), hv = (b.hi - b.lo) * 0.5, ty = (b.hi + b.lo) * 0.5;
+    var d = Math.max(0.4, Math.max(hv, b.lat) / (tq * 0.92)), up = b.up != null ? b.up : 0.1;
+    PT.cam.position.set(d, ty + d * up, 0); PT.cam.lookAt(0, ty, 0); PT.cam.updateMatrixWorld(true);
+    PT.ty = PT.d = NaN;
+    return b;
+  }
   /** Prepara la escena para req (luces, niebla, fondo, muñeco, pose y cara). Devuelve el rig. */
   function ptSetup(c, req) {
     var sig = c && c.scene ? ptLightSig(c.scene) : '';
@@ -3816,9 +4000,23 @@
     ptLightTone(); if (c && c.scene) ptFog(c);
     PT.scene.background.setHex(ptBg(req));
     var tc = ptKit(req), L = ptLook(req, tc), num = ptNum(req), bch = !!req.beach, gs = geoSig(L, tc, bch), as = atlasSig(L, tc, num, bch), r = PT.r;
-    if (!r || gs !== PT.gs || bch !== PT.bch) {
+    var lod = req.lod === 0 || req.lod === 1 ? req.lod : 2;   // (miniaturas del Vestuario: la malla media basta a 96 px y se monta antes)
+    if (!r || gs !== PT.gs || bch !== PT.bch || lod !== PT.lod) {
+      // WP6 (ronda 1): el material y su atlas se quedan de un muñeco al siguiente (solo cambia la malla; si el atlas también, se repinta
+      // el mismo lienzo): una miniatura de la rejilla cuesta menos de la mitad (sin lienzo, textura ni material nuevos por ficha)
+      var km = r && r.skin && r.skin.material && r.skin.material.map && r.skin.material.userData.paint ? r.skin.material : null;
+      if (km) r.skin.material = null;
+      else if (PT.job && PT.job.mat && PT.job.gs === gs && PT.job.as === as) { km = PT.job.mat; PT.as = as; }   // (el de prep, ya pintado)
       if (r) freeRig(r);
-      r = PT.r = buildRig(L, 97, { tc: tc, num: num, beach: bch, px: 1, lod: 2 });
+      // (portrait.prep ya montó el esqueleto y la malla de este aspecto por pasos: solo falta vestirlo)
+      var pj = PT.job && PT.job.gs === gs && PT.job.lod === lod && PT.job.bch === bch && PT.job.as === as && PT.job.r.geos[lod] ? PT.job.r : null;
+      if (PT.job && PT.job.mat && PT.job.mat !== km) ptJobMat(PT.job); PT.job = null;
+      r = PT.r = buildRig(L, 97, { tc: tc, num: num, beach: bch, px: 1, lod: lod, mat: km, rig: pj }); PT.lod = lod;
+      if (km && as !== PT.as) {
+        r.look = L; r.tc = tc; r.num = num;
+        km.userData.paint = { tc: tc, L: L, num: num, beach: bch };
+        if (km.map.image) { paintAtlas(km.map.image, tc, L, num, bch); km.map.needsUpdate = true; }
+      }
       r.root.name = 'dollPortrait';
       r.skin.castShadow = false; r.skin.receiveShadow = false;
       if (r.ink) { r.ink.castShadow = false; r.ink.receiveShadow = false; }
@@ -3830,10 +4028,11 @@
       if (cv) { paintAtlas(cv, tc, L, num, bch); m.map.needsUpdate = true; }
       PT.as = as;
     }
-    ptFrame(ptZoom(req));
     r.pose = ptPose(req); r.blinkOn = 0; r.tFix = 0;
+    var fb = req.frame && PV_FRAMES[req.frame] ? ptFrameBox(r, req.frame) : null;
+    if (!fb) ptFrame(ptZoom(req));
     animate(r, 0); setFace(r, ptFace(req));
-    r.root.rotation.y = PI / 2 + ptYaw(req);
+    r.root.rotation.y = PI / 2 + (fb && typeof req.yaw !== 'number' ? fb.yaw : ptYaw(req));
     r.root.updateMatrixWorld(true);
     return r;
   }
@@ -3844,14 +4043,14 @@
       req = req || {};
       if (!THREE) THREE = window.THREE;
       var tc = ptKit(req), L = ptLook(req, tc), bch = !!req.beach;
-      return geoSig(L, tc, bch) + '|' + atlasSig(L, tc, ptNum(req), bch) + '|' + ptPose(req) + '|' + ptFace(req) + '|' + ptYaw(req).toFixed(3) + '|' + ptBg(req).toString(16) + '|' + ptSize(req) + (req.zoom != null ? '|z' + ptZoom(req).toFixed(2) : '') + (req.matte ? '|m' : '');   // (req.matte: recorte con fondo transparente, main.js ptMatte)
+      return geoSig(L, tc, bch) + '|' + atlasSig(L, tc, ptNum(req), bch) + '|' + ptPose(req) + '|' + ptFace(req) + '|' + ptYaw(req).toFixed(3) + '|' + ptBg(req).toString(16) + '|' + ptSize(req) + (req.zoom != null ? '|z' + ptZoom(req).toFixed(2) : '') + (req.matte ? '|m' : '') + (req.frame ? '|f' + req.frame + (req.lod != null ? req.lod : '') : '');   // (req.frame: miniatura del Vestuario; req.matte: recorte con fondo transparente, main.js ptMatte)
     },
     /** Pinta el retrato en out2d (canvas 2D; se escala a su tamaño). c = VB.ctx. Devuelve los ms, o -1 si no puede (sin renderer, sin
      *  lienzo, error). Guarda y restaura viewport, tijera y render target; no toca autoClear. */
     draw: function (c, req, out2d) {
       c = c || VB.ctx; req = req || {};
       var R = c && c.renderer;
-      if (!R || !out2d || !out2d.getContext || !ptInit(c)) return -1;
+      if (!R || !out2d || (out2d !== 'bitmap' && !out2d.getContext) || !ptInit(c)) return -1;
       var t0 = performance.now(), rt = R.getRenderTarget(), sct = R.getScissorTest(), T = VB.TOON, ok = false;
       R.getViewport(PT_V4); R.getScissor(PT_SC);
       try {
@@ -3863,7 +4062,9 @@
           if (rt) R.setRenderTarget(null);
           R.setScissorTest(true); R.setViewport(0, 0, w, w); R.setScissor(0, 0, w, w);
           R.render(PT.scene, PT.cam);
-          out2d.getContext('2d').drawImage(R.domElement, 0, PT_V2.y - S, S, S, 0, 0, out2d.width, out2d.height);
+          // out2d = 'bitmap' (snap): copia en la GPU con createImageBitmap, sin leer los píxeles (ni esperar a la GPU) ni codificar PNG
+          if (out2d === 'bitmap') { PT_BMP = createImageBitmap(R.domElement, 0, PT_V2.y - S, S, S); if (PT_BMP.catch) PT_BMP.catch(function () { }); }
+          else out2d.getContext('2d').drawImage(R.domElement, 0, PT_V2.y - S, S, S, 0, 0, out2d.width, out2d.height);
           ok = true;
         }
       } catch (e) {
@@ -3878,9 +4079,42 @@
       PT_ST.n++; PT_ST.ms = ms; PT_ST.last = portrait.key(req); PT_ST.progs = R.info && R.info.programs ? R.info.programs.length : 0;
       return ms;
     },
+    /** Miniaturas del Vestuario (WP6, ronda 1): como draw, pero el resultado es una promesa de ImageBitmap (copia en la GPU tomada
+     *  al momento). Sin el toBlob de draw, que leía el lienzo de vuelta y esperaba a la GPU: 10-18 ms por ficha en el mismo frame.
+     *  Devuelve {ms, bmp} o null si no se puede (sin createImageBitmap: main.js usa draw). */
+    /** Prepara por pasos (≤ ms por llamada, salvo una pieza que se pase) el muñeco de req: esqueleto y malla. true = listo (o nada
+     *  que preparar: draw/snap lo harían igual); false = queda trabajo para el frame siguiente. Las miniaturas lo llaman antes de snap. */
+    prep: function (c, req, ms) {
+      req = req || {};
+      if (!ptInit(c)) return true;
+      var tc = ptKit(req), L = ptLook(req, tc), bch = !!req.beach, gs = geoSig(L, tc, bch), as = atlasSig(L, tc, ptNum(req), bch);
+      var lod = req.lod === 0 || req.lod === 1 ? req.lod : 2;
+      if (PT.r && PT.gs === gs && PT.bch === bch && PT.lod === lod) return true;
+      // la primera de una tanda (sin muñeco del retrato): las luces y el material también por su lado (eran 10-14 ms de golpe)
+      var sig = c && c.scene ? ptLightSig(c.scene) : '';
+      if (sig !== PT.sig) { PT.sig = sig; ptLights(PT_LS); return false; }
+      var j = PT.job;
+      if (!j || j.gs !== gs || j.lod !== lod || j.bch !== bch || j.as !== as) {
+        if (j) ptJobMat(j);
+        j = PT.job = { gs: gs, as: as, lod: lod, bch: bch, r: rigBones(L, 97, { tc: tc, num: ptNum(req), beach: bch }), st: null };
+        j.st = rigGeoBegin(j.r, lod);
+      }
+      if (!rigGeoRun(j.st, performance.now() + Math.max(0.5, +ms || 3))) return false;
+      if (!(PT.r && PT.r.skin && PT.r.skin.material && PT.r.skin.material.map) && !j.mat) { j.mat = dollMaterial(tc, L, ptNum(req), bch, 1); return false; }
+      // (y su atlas sube a la GPU en otro frame: initTexture)
+      if (j.mat && !j.up) { j.up = true; try { if (c.renderer && c.renderer.initTexture) { c.renderer.initTexture(j.mat.map); return false; } } catch (e) { } }
+      return true;
+    },
+    snap: function (c, req) {
+      if (typeof createImageBitmap !== 'function') return null;
+      PT_BMP = null;
+      var ms = portrait.draw(c, req, 'bitmap'), b = PT_BMP; PT_BMP = null;
+      return ms >= 0 && b ? { ms: ms, bmp: b } : null;
+    },
     /** Libera el muñeco, las luces (mapas de sombra) y la escena. main.js lo llama 1 s después de vaciar la cola. */
     free: function () {
       if (!PT) return false;
+      if (PT.job) ptJobMat(PT.job); PT.job = null;
       if (PT.r) freeRig(PT.r);
       ptDropLights();
       PT = null; PT_LS.length = 0;
@@ -3903,10 +4137,12 @@
     rigs: rigs, LOOKS: LOOKS, EXPR: EXPR, POSES: POSES,
     /** Vestuario: lo que el muñeco sabe dibujar por ranura (id → sede 'A' | 'P' | 'Y') y los gorros que sustituyen al pelo. */
     ITEMS: ITEMS, HIDE_HAIR: HIDE_HAIR, HAT_CLASS: HAT_CLASS, HAIR_UNDER_CAP: HAIR_UNDER_CAP,
+    /** Tobilleras que quedan bajo un calcetín que sube (WP4: ninguna; la tobillera va por fuera y el calcetín empieza encima). */
+    UNDER_SOCK: {},
     /** Vestuario: firmas de lo que cambia la malla (geometría y color por vértice) y de lo que se pinta en el atlas. */
     geoSig: function (L, tc, beach) { return geoSig(L, tc || TEAMS[0], !!beach); },
     atlasSig: function (L, tc, num, beach) { return atlasSig(L, tc || TEAMS[0], num, !!beach); },
-    /** Vista previa del Vestuario (ver arriba): start, set, pose, face, spin, yaw, frame, update, stop, active, info. */
+    /** Vista previa del Vestuario (ver arriba): start, set, pose, face, spin, yaw, turn, place, frame, frameSlot, flash, update, stop, active, info. */
     preview: preview,
     /** Retrato del muñeco (spec S2-B2B3 §3.1): key, draw, free, warm, stats (e info para pruebas). */
     portrait: portrait,
