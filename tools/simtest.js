@@ -1965,10 +1965,10 @@ if (ONLY !== 'matrix') {
         if (!(botRes['medio:hard'] < botRes['medio:normal'] - g1 && botRes['medio:expert'] < botRes['medio:hard'] - g2)) fail('Difícil/Experto no son claramente más difíciles para el jugador medio (Normal ' + botRes['medio:normal'].toFixed(3) + ', Difícil ' + botRes['medio:hard'].toFixed(3) + ', Experto ' + botRes['medio:expert'].toFixed(3) + '; diferencia mínima ' + g1.toFixed(3) + ' / ' + g2.toFixed(3) + ')'); }
       if (!(botRes['bueno:expert'] < 0.5)) fail('Experto no exige a un buen jugador');
       // bot perfecto contra Experto. Hasta 1.14 se exigía > 50 % (ganaba 51,7 %). Con la IA con esfuerzo real de 1.15.0 (la CPU siempre
-      // va a por el balón al 100 % de sus stats) saca ~48,6 % (32 semillas): pierde por poco. Ferran NO ha decidido reequilibrar
-      // Experto: queda PENDIENTE DE DECISIÓN y esta prueba solo vigila que no se hunda. Suelo = el objetivo de diseño 0,44 salvo que la
+      // va a por el balón al 100 % de sus stats) saca ~48,6 % (32 semillas): pierde por poco. DECIDIDO (Ferran, 20-nov-2026: «está bien
+      // que sea durísimo»): Experto se queda así, sin reequilibrar; esta prueba solo vigila que no se hunda más. Suelo = 0,44 salvo que la
       // media medida menos k·σ quede por debajo (con 8 semillas × 20 min, 0,486 − 3,5 · 0,019 ≈ 0,42; con 4, el suelo bajaría a 0,39).
-      // Si Ferran reequilibra Experto, volver a medir MATRIX_STAT.sd['perfecto:expert'] y, si vuelve a ganar, recuperar el > 0,5.
+      // Si algún día se reequilibra Experto, volver a medir MATRIX_STAT.sd['perfecto:expert'] y, si vuelve a ganar, recuperar el > 0,5.
       { const k = 'perfecto:expert', lo = Math.min(0.44, MATRIX_STAT.sd[k][0] - MATRIX_STAT.k * mxSd(k));
         if (!(botRes[k] > lo)) fail('bot perfecto hundido contra Experto (' + botRes[k].toFixed(3) + ' de puntos, suelo ' + lo.toFixed(3) + ' con ' + mxN(k) + ' semillas × ' + BOTMIN + ' min; 1.15.0: ~0,486)'); }
       // y sigue ganando con claridad a Normal y a Fácil (1.15.0, 32 semillas: 78,0 % y 93,3 %)
