@@ -131,7 +131,7 @@ const TC = { base: 0x1144aa, accent: 0xffcc00, dark: 0x0a1a33, shorts: 0x111111,
 {
   const f = L.defaults(0); f.colors = { acc: 'eq', acc2: 'ac', sock: 'os', shoe: 'rojo', glass: 'bl' }; f.hair = 'tAzul';
   const R = L.resolve(f, 'hall', TC);
-  const KEYS = 'skin hair style acc eyes paint marks beard neck under band armL armR elbows wristL wristR hands legs knees socks ankle shoes cA cB cSock cShoe cGlass'.split(' ');
+  const KEYS = 'skin hair hair2 hairFx style acc eyes paint marks beard neck under band armL armR elbows wristL wristR hands legs knees socks ankle shoes cA cB cSock cShoe cGlass cPad'.split(' ');
   check(Object.isFrozen(R) && eq(Object.keys(R).sort(), KEYS.slice().sort()) && !('h' in R), 'resolve: L congelado, con los campos de §2.2 y sin h');
   check(R.cA === TC.base && R.cB === TC.accent && R.cSock === TC.dark && R.cShoe === 0xe0383e && R.cGlass === 0xf4f4f4 && R.hair === 0x3a6cf0, 'resolve: fichas eq/ac/os, paleta, blanco y tinte a hex');
   const R0 = L.resolve(L.defaults(0), 'beach');
@@ -143,7 +143,39 @@ const TC = { base: 0x1144aa, accent: 0xffcc00, dark: 0x0a1a33, shorts: 0x111111,
 // --- sane con basura
 const JUNK = [null, undefined, 5, 'x', [], [1, 2], true, () => 1, { skin: 'red', hair: {}, style: 7, hall: 'x', beach: [1], colors: null },
   { v: 99, skin: 0x123456, hair: -1, style: 'calvo', hall: { head: 5 }, beach: null, colors: { acc: 'fucsia', glass: 3 } }, { hall: null, beach: { foo: 'bar' } }];
-[0, 1].forEach(i => check(JUNK.every(j => eq(L.sane(j, i), L.defaults(i))), 'sane() con basura, null o tipos raros da defaults(' + i + ')'));
+// (lo desconocido con formato de id o de color se guarda en _keep —WP1 del plan del Vestuario—: se mira aparte)
+const noKeep = f => { const o = JSON.parse(JSON.stringify(f)); delete o._keep; return o; };
+[0, 1].forEach(i => check(JUNK.every(j => eq(noKeep(L.sane(j, i)), L.defaults(i))), 'sane() con basura, null o tipos raros da defaults(' + i + ')'));
+check(eq(L.sane(JUNK[9], 0)._keep, { skin: 0x123456, style: 'calvo', 'colors.acc': 'fucsia' }) && JUNK.filter((j, k) => k !== 9).every(j => !L.sane(j, 0)._keep),
+  'sane(): lo desconocido con formato (peinado «calvo», ficha «fucsia», piel 0x123456) va a _keep; la basura (5, -1, objetos) no');
+// _keep (WP1): un id desconocido se dibuja con lo de por defecto, sobrevive a sane/fix/wearable/el guardado y vuelve cuando el catálogo lo conoce
+{
+  const f = L.defaults(0); f.style = 'inventado'; f.hall.head = 'gorroNuevo'; f.beach.ankle = 'tobi3'; f.colors.pad = 'neonLima'; f.hair2 = 0x112233; f.hairFx = 'brillo';
+  const s = L.sane(f, 0);
+  check(s.style === 'tupe' && s.hall.head === '' && s.beach.ankle === 'tela' && s.colors.pad === 'auto' && s.hair2 === '' && s.hairFx === '' && L.resolve(f, 'hall', TC).style === 'tupe',
+    '_keep: un fit con style «inventado» se dibuja con el peinado por defecto (y lo mismo gorro, tobillera, ficha y pelo)');
+  check(eq(s._keep, { hair2: 0x112233, hairFx: 'brillo', style: 'inventado', 'hall.head': 'gorroNuevo', 'beach.ankle': 'tobi3', 'colors.pad': 'neonLima' }), '_keep: guarda cada valor desconocido en su ruta');
+  const again = L.sane(JSON.parse(JSON.stringify(s)), 0), w = L.wearable(s, s), fx = L.fix(s, 'hall', 'head').fit;
+  check(eq(again, s) && eq(w._keep, s._keep) && eq(fx._keep, s._keep), '_keep: sobrevive a sane (ida y vuelta por JSON), wearable y fix');
+  const S2 = sandbox(); S2.L.setFit(0, s);
+  check(eq(S2.L.fit(0)._keep, s._keep) && eq(JSON.parse(S2.L.mergeRaw(S2.store['make-the-cut.look'], S2.store['make-the-cut.look'])).fits[0]._keep, s._keep), '_keep: sobrevive al guardado (setFit/fit) y a mergeRaw');
+  check(JSON.stringify(s).length < 900 && L.sane(Object.assign({}, s, { _keep: { 'hall.head': 'x'.repeat(30), 'otra.cosa': 'abc', style: 'pelo nuevo' } }), 0)._keep === undefined, '_keep: solo rutas conocidas y valores con formato (≤ 24 caracteres): no crece sin límite');
+  // cuando el catálogo lo conoce: vuelve a su sitio (gorroNuevo → cinta, que sí existe; el resto sigue en _keep)
+  const k2 = JSON.parse(JSON.stringify(s)); k2._keep['hall.head'] = 'cinta'; k2._keep.style = 'afro';
+  const s2 = L.sane(k2, 0);
+  check(s2.hall.head === 'cinta' && s2.style === 'afro' && !('hall.head' in s2._keep) && !('style' in s2._keep) && s2._keep['beach.ankle'] === 'tobi3', '_keep: lo que el catálogo ya conoce vuelve a su ruta al sanear');
+  const u = JSON.parse(JSON.stringify(s)); check(L.unkeep(u, 'style') && !('style' in u._keep) && !L.unkeep(u, 'style') && L.sane(u, 0).style === 'tupe', 'unkeep: la UI borra _keep[ruta] al elegir otra cosa');
+  check(L.sig(s) === L.sig(L.defaults(0)) && L.geoSig(s, 'hall') === L.geoSig(L.defaults(0), 'hall'), '_keep no cambia las firmas (se ve igual que lo de por defecto)');
+  const d = L.defaults(0), d2 = JSON.parse(JSON.stringify(d)); d2.hair2 = 'tRosa';
+  check(L.sig(d2) !== L.sig(d) && L.geoSig(d2, 'hall') !== L.geoSig(d, 'hall') && L.resolve(d2, 'hall', TC).hair2 === 0xff7fb8 && L.resolve(d, 'hall', TC).hair2 === -1, 'hair2: entra en las firmas y resolve lo pasa a hex (-1 sin segundo color)');
+  const old = JSON.parse(JSON.stringify(d)); delete old.hair2; delete old.hairFx; delete old.colors.pad;
+  check(eq(L.sane(old, 0), d) && L.sig(old) === L.sig(d), 'campos nuevos (hair2, hairFx, colors.pad): sane los rellena en un fit de la 1.15.1 y la firma no cambia');
+}
+// fichas de color: USES (para la UI) y vc de cada objeto
+check(['acc', 'acc2', 'sock', 'shoe', 'glass', 'pad'].every(k => Array.isArray(L.USES[k])) && L.USES.acc.includes('manguito') && L.USES.acc.includes('coleta') && L.USES.acc2.includes('desparejados') &&
+  L.USES.sock.includes('media') && L.USES.shoe.includes('clasicas') && L.USES.glass.includes('pasta') && L.uses('shoe', 'beach').length === 0 && L.uses('sock', 'beach').join() === 'escarpines',
+  'USES: qué objetos usa cada hueco de color (por vértice o pintado), y uses(hueco, sede)');
+check(L.STYLES.every(id => L.HAIR_FAMS.includes(L.item(id).fam)) && L.CATALOG.filter(x => x.slot !== 'style').every(x => x.fam === ''), 'peinados con familia (fam) de HAIR_FAMS');
 {
   const s = L.sane({ style: 'tupe', hall: { head: 'gorra', armL: 'reloj', socks: 'altos', shoes: 'neon' }, beach: { socks: 'media', shoes: 'clasicas', head: 'pescador' }, colors: { acc: 'rojo', acc2: 'fucsia' } }, 1);
   check(s.hall.head === 'cinta' && s.hall.armL === '' && s.hall.socks === 'altos' && s.hall.shoes === 'neon' && s.beach.socks === '' && s.beach.shoes === '' && s.beach.head === 'pescador' && s.colors.acc === 'rojo' && s.colors.acc2 === 'auto',

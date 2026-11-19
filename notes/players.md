@@ -1103,10 +1103,11 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
 
 ### Firmas, vista previa y prueba
 - `VB.Doll.geoSig(L, tc, beach)` (malla: geometría y colores por vértice; un color solo entra si alguna pieza lo usa por vértice) y
-  `VB.Doll.atlasSig(L, tc, num, beach)`. La vista previa usa estas y no las de look.js (allí `licra` y `mallaLarga` son `geo:false`, pero
-  cambian la bola del hombro y la de la rodilla).
+  `VB.Doll.atlasSig(L, tc, num, beach)`. La vista previa usa estas. Desde WP1 (1.16) la de look.js (`VB.Look.geoSig`, por fit) cuadra con
+  esta: `lookSelfTest` lo comprueba objeto a objeto con cada hueco de color y con `hair2` (ver «Base del plan» abajo).
 - `VB.Doll.preview`: `start(ctx, L, o)`, `set(L, o)` → `'geo'` | `'atlas'` | `''`, `pose`, `face`, `spin`, `yaw`, `frame('cuerpo' |
-  'cabeza' | 'brazos' | 'piernas')`, `update(dt)`, `stop()`, `active()`, `info()`. Un solo LOD (el de la calidad activa), atlas de `o.px`.
+  'cabeza' | 'brazos' | 'piernas')`, `update(dt)`, `stop()`, `active()`, `info()`. Siempre en LOD2 (desde WP1; antes, el de la calidad
+  activa: LOD1 en el móvil), atlas de `o.px` (ui.js pasa 2 = 1024² salvo en calidad baja o con menos de 320 px CSS de alto).
   Muñeco en three (5, 0, 0) mirando a cámara, fov 46 sin el `filmOffset` de la cámara del menú (se devuelve al parar), el muñeco hacia
   x ≈ 0,68 del ancho o donde diga `place(cx)` (fracción del ancho; ui.js `lkPlace` lo pone en el hueco libre a la derecha de su columna y
   del pie en iconos: a 844×390 sale ~0,84); en vertical, entero en la parte de arriba (siempre con la distancia de `cuerpo`, salvo
@@ -1145,6 +1146,7 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
   (pruebas). La firma de celebración (`sigOn`) sale también en el 6v6 y en la Carrera de pista.
 
 ### Medido (ejecutado)
+- (Cifras de la 1.15.1; las de ahora, en «Base del plan» abajo: la puntera nueva quita 128/202/416 en pista.)
 - Triángulos LOD0/1/2 de los looks de hoy, EXACTOS: rapado sin complemento 2418/3739/8438, afro + gafas 3786/5208/11276 (también con la
   L nueva `eyes:'frente'`), gorra 2708/4148/9244. Las 70 combinaciones viejas de peinado × complemento × sede dan los mismos triángulos
   que antes salvo coleta y trenzas con gorra (ahora se ven la cola y las trenzas: 2924/4432/9760 y 3108/4588/9884 en pista).
@@ -1188,9 +1190,55 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
   LOD1 y en LOD0 al tamaño del móvil, ampliado sin suavizar) y los gorros con tupé y coleta (`back/back-gorros-<sede>.jpg`). `--hair=`.
 - **`node tools/looktest.js`** prueba la ida y vuelta de `tools/fixtures/looks-1.15.1.json` (284 fits y un guardado entero, sacados de
   look.js de la 1.15.1 con `tools/fixtures/make-looks-fixture.js`): sane → resolve sin perder ids, ganados/vistos/fits y mergeRaw. Avisa
-  (sin fallar) mientras `sane()` no guarde los ids desconocidos en `_keep` (WP1). **`--gl --sweep`**: peor caso MEDIDO por sede y LOD
+  (sin fallar) mientras `sane()` no guarde los ids desconocidos en `_keep` (hecho en WP1: ya es una comprobación). **`--gl --sweep`**: peor caso MEDIDO por sede y LOD
   (peinado × gorro × ojos + lo peor de cada ranura y dos pasadas de subida) con su margen hasta TRI_CAP. Hoy: pista 3874/5632/11992,
   playa **4306**/5794/12616 (margen 94 en LOD0); coincide con la suma de `lookSelfTest`.
+
+### Base del plan (19-nov-2026, WP1 de notes/vestuario-plan.md)
+- **Puntera por color de vértice** (`shoeGeo`): el empeine es una media esfera con el POLO hacia delante (`sph(1, 16, 14, π, π, 0, π)` girada
+  π/2 en X; escala x 0,092K, largo 0,158K, alto 0,088√K, igual que antes). Sus anillos son cortes verticales a lo ancho, así que la
+  puntera son los primeros `SHOE_TOE` (0,36) anillos pintados con `G.vc` (`y > cos(kc·π/h)` en la primitiva: el corte cae justo en una línea
+  de anillo en cualquier LOD). Fuera la media esfera de la puntera que cortaba el empeine (borde en escalera, P7). −64/−101/−208 triángulos
+  por pie (LOD0/1/2) y el perfil de lado más redondo (14 segmentos de punta a talón en vez de 9). La tobillera y el ribete siguen donde
+  estaban (los recoloca WP4 con los calcetines).
+- **Triángulos de hoy (TRI_TODAY)**: rapado 2290/3537/8022, afro + gafas 3658/5006/10860, gorra 2580/3946/8828. Muñeco base de pista
+  2410/3677/8222 (antes 8638 en LOD2).
+- **Margen (lo imprime `lookSelfTest`, `res.log`/`res.budget`, y `looktest --gl`)**: pista 3746/5430/11576 de 4400/6000/12800 (quedan 654,
+  570 y 1224); playa sin cambios, 4306/5794/12616 (quedan **94**, 206 y 184): en la playa no hay zapatillas, así que el ahorro de presupuesto
+  de playa tiene que salir del pelo (el afro nuevo, WP2). `--sweep` da lo mismo medido. TRI_CAP sin tocar.
+- **Reglas nuevas de `lookSelfTest`**: (1) cada peinado ≤ el afro en todos los LOD y en las dos sedes (`res.styles`); (2) los `tris` del
+  catálogo de look.js al día (margen 40 triángulos o el 15 %; lo medido sale en `res.tris`); (3) las firmas de malla de look.js y de
+  doll.js cambian a la vez con cada objeto puesto sobre un muñeco mínimo y cada hueco de color (y `hair2`): 0 diferencias.
+- **Vista previa nítida**: `pvLod()` devuelve siempre 2 y ui.js `lkPvOpts` pasa `px: lkPvPx()` (2 = atlas 1024² salvo `quality.rank === 0` o
+  alto < 320 px CSS). Medido en el Vestuario táctil (UA Android, dpr 2) a 640x360, 568x320 y 360x640: calidad media, LOD2, 8222
+  triángulos, atlas 1024x1024, sin errores. Es un muñeco: 4 MB de atlas en vez de 1. Lo que sigue viéndose con dientes en el móvil es
+  el `pixelRatio` 1,25 de la calidad media (main.js `applyQuality`), no el atlas: queda para WP6 si se quiere subir solo en el menú.
+- **Doll ya no tiene copias del catálogo**: fuera `STYLES` y `ACCS` (nadie las leía; las listas son las de `VB.Look`). `ITEMS.hairFx = {}`
+  (lo llena WP2). `normLook` añade `hair2` (hex o −1), `hairFx` ('' si doll no lo sabe dibujar) y `cPad` (−1 = auto); `geoSig` añade
+  `hair2` y `hairFx` y deja fuera lo que solo se pinta (kinesio, malla corta); `atlasSig` añade `cPad`. Ninguna pieza los usa todavía.
+- **Guardados (look.js)**: campos nuevos del fit `hair2` ('' | hex | tinte), `hairFx` ('' | id de ranura `hairFx`) y `colors.pad` (ficha,
+  'auto'; en L `cPad`). `sane()` los rellena: no se sube `V`, y un fit de la 1.15.1 da la misma `sig()` (los campos nuevos solo entran en
+  `canon`/`geoSig` si no son los de por defecto). **`_keep`**: lo DESCONOCIDO (ids con formato `^[a-z][a-zA-Z0-9]{1,23}$` que el catálogo no
+  tiene, o colores de 24 bits en skin/hair/hair2) en una ruta conocida (`style`, `skin`, `hair`, `hair2`, `hairFx`, `hall.<ranura>`,
+  `beach.<ranura>`, `colors.<hueco>`) se dibuja con lo de por defecto y se guarda en `_keep[ruta]`; cuando el catálogo lo conoce, `sane()` lo
+  devuelve a su ruta. Lo conocido que no vale en una sede se quita como siempre y la basura se tira: `_keep` no crece sin límite (rutas
+  fijas, valores cortos). Sobrevive a sane, fix, wearable, setFit/fit y mergeRaw; no cambia las firmas. ui.js `lkPut` y `lkCopy` llaman a
+  `VB.Look.unkeep(fit, ruta)` al elegir algo en una ruta (si no, lo guardado volvería a pisar la elección).
+- **Catálogo**: `fam` en los peinados (`HAIR_FAMS`: corto, medio, largo, recogido, textura); `pc` (huecos que solo se pintan) junto a `vc`
+  (por vértice) → `cols` → `VB.Look.USES[hueco]` y `VB.Look.uses(hueco, sede)` para la UI (WP6). `vc` corregido para que cuadre con doll.js:
+  gomas del pelo recogido (coleta, moño, trenzas, dos moños, coletas) `A`; gorra, gorra al revés, pescador, gorra MTC, visera y cinta
+  `AB`; medalla `A`; zapatillas clásicas `H`; llamas y martillo sin `A` (su codo es oscuro). `tris` medidos (peinados sobre el tupé; el
+  resto sobre el muñeco base de su sede con la ranura vacía o la pieza de serie).
+- **Entre versiones (§3.4, revisado)**: las reglas de Firestore guardan 'look' como texto y no miran ids: no hace falta tocarlas. El online
+  exige la misma `VB.VERSION` en el saludo (net.js/netfluid.js), así que no se cruzan looks de versiones distintas. **El riesgo es real**
+  con la sincronización de cuenta: un móvil con la 1.15.1 que baja un fit nuevo lo guarda tal cual, pero en cuanto reescribe
+  'make-the-cut.look' por cualquier motivo (ganar un objeto, `markSeen`, editar) lo guarda saneado a su manera (peinado nuevo → tupé, sin
+  `_keep` ni campos nuevos) y lo sube. Arreglado en lo que se puede desde los clientes nuevos: `mergeLook` (account.js) ya no elige los fits
+  por la hora de escritura sino por `ft` (hora de la última EDICIÓN de los fits) cuando los dos lados la traen, y con la misma `ft` se
+  quedan los locales; el cliente viejo que solo gana un objeto no cambia `ft`, así que su escritura ya no pisa los fits buenos (prueba en
+  `tools/synctest.js`). Si en el móvil viejo se EDITA el look, su `ft` es más nueva y manda (lo que el jugador vio y eligió). Lo que no se
+  puede arreglar: el móvil viejo dibuja tupé hasta que se actualiza. Por eso se publica con el aviso de versión nueva (update.js, 1.15.1),
+  que salta al arrancar y al volver a la pestaña.
 
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 

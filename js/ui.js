@@ -4105,7 +4105,14 @@
     if (lk.who === 'career') return lk.ctc;
     try { return VB.Players && VB.Players.kit ? VB.Players.kit(0) : null; } catch (e) { return null; }
   }
-  function lkPvOpts() { var o = { tc: lkTc(), num: lk.num, beach: lk.venue === 'beach' }; if (ctx.isTouch) o.px = 1; return o; }
+  // atlas de la vista previa (WP1 del plan del Vestuario): 1024² (px 2) también en el móvil, que es donde se personaliza; 512² solo en
+  // calidad baja o en ventanas de menos de 320 px CSS de alto. Es un solo muñeco: 4 MB de atlas en vez de 1
+  function lkPvPx() {
+    var q = ctx.quality, h = 0;
+    try { h = window.innerHeight || 0; } catch (e) { h = 0; }
+    return (q && q.rank === 0) || (h && h < 320) ? 1 : 2;
+  }
+  function lkPvOpts() { return { tc: lkTc(), num: lk.num, beach: lk.venue === 'beach', px: lkPvPx() }; }
   // ---- lectura y escritura de una ranura en un fit (identidad y colores comunes; ropa por escenario) ----
   function lkGetFrom(f, slot) {
     if (!f) return '';
@@ -4114,10 +4121,12 @@
     var s = f[lkVKey()]; return s && s[slot] != null ? s[slot] : '';
   }
   function lkGet(slot) { return lkGetFrom(lk.fit, slot); }
+  // (elegir algo en una ruta borra lo que una versión más nueva dejó guardado en ella, _keep: si no, volvería al guardar en esa versión)
+  function lkUnkeep(f, path) { var Lk = LK(); try { if (Lk && Lk.unkeep) Lk.unkeep(f, path); } catch (e) { } }
   function lkPut(f, slot, v) {
-    if (slot === 'style' || slot === 'skin' || slot === 'hair') { f[slot] = v; return; }
-    if (slot.indexOf('c:') === 0) { if (!f.colors || typeof f.colors !== 'object') f.colors = {}; f.colors[slot.slice(2)] = v; return; }
-    var k = lkVKey(); if (!f[k] || typeof f[k] !== 'object') f[k] = {}; f[k][slot] = v;
+    if (slot === 'style' || slot === 'skin' || slot === 'hair') { f[slot] = v; lkUnkeep(f, slot); return; }
+    if (slot.indexOf('c:') === 0) { if (!f.colors || typeof f.colors !== 'object') f.colors = {}; f.colors[slot.slice(2)] = v; lkUnkeep(f, 'colors.' + slot.slice(2)); return; }
+    var k = lkVKey(); if (!f[k] || typeof f[k] !== 'object') f[k] = {}; f[k][slot] = v; lkUnkeep(f, k + '.' + slot);
   }
   /** Ranura que se pasa a VB.Look.fix: la de SLOTS, 'style'/'skin'/'hair' o 'colors'. */
   function lkFixSlot(slot) { return slot.indexOf('c:') === 0 ? 'colors' : slot; }
@@ -4507,7 +4516,7 @@
       var v = f[from] ? f[from][s] : '';
       if ((v === '' || v == null) && OWN[s]) return;
       var okv = v === '' || v == null ? true : !Lk.items || Lk.items(s, to).indexOf(v) >= 0;
-      if (okv) f[to][s] = v == null ? '' : v;
+      if (okv) { f[to][s] = v == null ? '' : v; lkUnkeep(f, to + '.' + s); }
       else if (s !== 'socks' && s !== 'shoes' && s !== 'ankle') skipped++;
     });
     if (Lk.fix) try { var r = Lk.fix(f, to, null); if (r && r.fit) f = r.fit; } catch (e) { }

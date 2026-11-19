@@ -115,8 +115,7 @@
     { skin: 0xf0c6a4, hair: 0x7a3a16, style: 'coleta', acc: 'visera', team: 1, num: 3, face: 'grito', pose: 'spike' },
     { skin: 0xc68a5f, hair: 0x1e1612, style: 'mono', acc: 'gafas', team: 1, num: 9, face: 'alegria', pose: 'cel' }
   ];
-  var STYLES = ['tupe', 'coleta', 'afro', 'flequillo', 'rapado', 'mono', 'trenzas'];
-  var ACCS = ['', 'gorra', 'visera', 'cinta', 'gafas'];
+  // (las listas de peinados y complementos son las de VB.Look: STYLES, items('head'); aquí ya no hay copias)
 
   // ---------- VESTUARIO (spec «Vestuario» §1-§4): lo que sabe dibujar el muñeco por ranura ----------
   // id → sede ('A' ambas, 'P' pista, 'Y' playa). El catálogo con nombres, rarezas y desbloqueos es de js/look.js (VB.Look); aquí solo
@@ -141,7 +140,8 @@
     knees: { cortas: 'P', altas: 'P', bajadas: 'P', rodiPulpo: 'P' },
     socks: { tobilleros: 'P', media: 'P', altos: 'P', altosRayas: 'P', desparejados: 'P' },
     ankle: { blanca: 'P', tela: 'Y', pulseraTob: 'Y', escarpines: 'Y', tobiPulpo: 'Y' },
-    shoes: { clasicas: 'P', negras: 'P', neon: 'P', doradas: 'P' }
+    shoes: { clasicas: 'P', negras: 'P', neon: 'P', doradas: 'P' },
+    hairFx: {}   // efectos de pelo (fit.hairFx, 1.16): aún ninguno
   };
   var LOOK_SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
     'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes'];
@@ -180,7 +180,10 @@
     for (var i = 0; i < LOOK_SLOTS.length; i++) { var s = LOOK_SLOTS[i]; X[s] = s === 'head' ? '' : slotVal(L[s], s, bch); }
     if (acc === 'gafas') { X.head = ''; if (L.eyes == null) X.eyes = 'frente'; }
     else X.head = typeof acc === 'string' && ITEMS.head[acc] ? acc : '';
-    X.cA = colOr(L.cA); X.cB = colOr(L.cB); X.cSock = colOr(L.cSock); X.cShoe = colOr(L.cShoe); X.cGlass = colOr(L.cGlass);
+    X.cA = colOr(L.cA); X.cB = colOr(L.cB); X.cSock = colOr(L.cSock); X.cShoe = colOr(L.cShoe); X.cGlass = colOr(L.cGlass); X.cPad = colOr(L.cPad);
+    // 1.16 (WP1 del plan del Vestuario): segundo color de pelo (hex o -1 = sin él) y efecto de pelo ('' = nada). Aún no los dibuja nadie
+    X.hair2 = L.hair2 == null || L.hair2 === '' || L.hair2 === -1 ? -1 : hairOf(L.hair2);
+    X.hairFx = typeof L.hairFx === 'string' && ITEMS.hairFx[L.hairFx] ? L.hairFx : '';
     X.beach = !!bch;
     return X;
   }
@@ -193,9 +196,13 @@
   function armVc(a) { return ARMS[a] && a !== 'kinesio' && a !== 'manguitoOro' && a !== 'manguitoLlamas' && a !== 'manguitoMazo'; }   // manguito con la bola del codo de cA
   /** Firma de lo que cambia la MALLA (geometría y colores por vértice) de un muñeco con el aspecto L, la equipación tc y la sede.
    *  Un color entra solo si alguna pieza lo lleva por vértice (si no, cambiarlo es solo repintar el atlas). */
+  // (justa: lo que no toca la malla —kinesio y malla corta, que van pintados— no entra, así que cambiarlos solo repinta el atlas; si una
+  //  pieza pasa a la malla, lookSelfTest lo pilla: «geoSig no ve el cambio de malla». cPad entrará cuando alguna pieza lo lleve por
+  //  vértice, y su ficha de look.js con vc 'P')
+  function armSig(a) { return a === 'kinesio' ? '' : a; }
   function geoSig(L, tc, bch) {
-    var X = normLook(L, bch), p = [bch ? 'Y' : 'P', X.skin, X.hair, X.style, X.head, X.eyes, X.neck, X.under, X.armL, X.armR, X.elbows,
-      X.wristL, X.wristR, X.hands, X.legs, X.knees, X.ankle, X.shoes];
+    var X = normLook(L, bch), p = [bch ? 'Y' : 'P', X.skin, X.hair, X.hair2, X.hairFx, X.style, X.head, X.eyes, X.neck, X.under, armSig(X.armL),
+      armSig(X.armR), X.elbows, X.wristL, X.wristR, X.hands, X.legs === 'mallaLarga' ? X.legs : '', X.knees, X.ankle, X.shoes];
     var uA = !!(X.head || TIES[X.style] || armVc(X.armL) || armVc(X.armR) || X.elbows || X.wristL || X.wristR || X.hands === 'mitones' ||
       X.neck === 'medalla' || (bch && (X.ankle === 'tela' || X.ankle === 'pulseraTob' || X.ankle === 'tobiPulpo')));
     var uB = !!(HIDE_HAIR[X.head] || X.head === 'visera' || X.head === 'cinta' || (!bch && X.under === 'termica') || (bch && X.under === 'licra') ||
@@ -207,7 +214,7 @@
   /** Firma de lo que se pinta en el ATLAS (ropa, dorsal, tiras, cara). */
   function atlasSig(L, tc, num, bch) {
     var X = normLook(L, bch), p = [bch ? 'Y' : 'P', num, X.skin, X.hair, X.eyes, X.paint, X.marks, X.beard, X.under, X.band, X.armL, X.armR,
-      X.legs, X.knees, X.socks, X.ankle, X.cA, X.cB, X.cSock, X.cGlass];
+      X.legs, X.knees, X.socks, X.ankle, X.cA, X.cB, X.cSock, X.cGlass, X.cPad];
     for (var i = 0; i < TC_ATLAS.length; i++) p.push(tc ? tc[TC_ATLAS[i]] : '');
     return p.join('|');
   }
@@ -1095,17 +1102,26 @@
     else if (X.ankle === 'pulseraTob' && LODR > 0) { G.owk = 0; G.add(torus(0.053 * K, 0.0045, 4, 10), colA(X, tc), 0, -0.024, -0.006, PI / 2 + 0.14, 0, 0, 1, 1, 1.05); }
     G.owk = 1;
   }
-  /** Zapatón redondeado grande (empeine, suela, puntera del acento, tobillera y ribete); la planta queda en -ANKLE. Vestuario: el
-   *  empeine según las zapatillas (clásicas y neón admiten cShoe), y la tobillera blanca (oscura con las negras) o del empeine. */
+  /** Zapatón redondeado grande (empeine con la puntera del acento, suela, tobillera y ribete); la planta queda en -ANKLE. Vestuario:
+   *  el empeine según las zapatillas (clásicas y neón admiten cShoe), y la tobillera blanca (oscura con las negras) o del empeine. */
   var SHOE_UP = { clasicas: 0xf4f4f4, negras: NEUTRAL_DK, neon: 0xd8ff3a, doradas: GOLD };
+  // Empeine: media esfera con el POLO hacia delante (WP1 del plan del Vestuario): sus anillos son cortes verticales a lo ancho, así que la
+  // puntera es un color por vértice de los SHOE_TOE primeros anillos (borde recto y limpio, sin la escalera de las dos esferas que se
+  // cortaban) y sin pieza propia: −208 triángulos por pie en LOD2, −101 en LOD1, −64 en LOD0. 16 segmentos de lado a lado por encima y 14 de la
+  // punta al talón (antes eran 9: el perfil de lado sale más redondo con los mismos triángulos).
+  var SHOE_TOE = 0.36;  // fracción de la longitud (polo → polo) que es puntera
   function shoeGeo(G, tc, X) {
     var K = FOOT_K, Y = -ANKLE + 0.075, sh = SHOE_UP[X.shoes] ? X.shoes : 'clasicas';   // la planta sigue en -ANKLE: el zapatón crece en largo y ancho (y algo en alto)
     var up = (sh === 'clasicas' || sh === 'neon') && X.cShoe >= 0 ? X.cShoe : SHOE_UP[sh];
     var sole = sh === 'neon' ? 0x1d1d22 : tc.sole, toe = sh === 'doradas' ? GOLD_HI : tc.accent;
     var ank = X.ankle === 'blanca' ? (sh === 'negras' ? 0x2c2c34 : 0xf4f4f4) : up;
-    G.add(sph(1, 18, 12, 0, PI * 2, 0, PI * 0.5), up, 0, Y, 0.055 * K, 0, 0, 0, 0.092 * K, 0.088 * Math.sqrt(K), 0.158 * K);       // empeine (media esfera)
+    // y de la primitiva = eje del polo (+1 la punta): la puntera son los anillos enteros con y > cos(kc·π/h) (el centro de cada triángulo
+    // queda estrictamente entre sus dos anillos, así que el corte cae justo en la línea del anillo kc en cualquier LOD)
+    var hs = sg(14, 5), kc = Math.max(1, Math.round(hs * SHOE_TOE)), ty = Math.cos(kc * PI / hs);
+    G.vc = function (px, py) { return py > ty ? toe : null; };
+    G.add(sph(1, 16, 14, PI, PI, 0, PI), up, 0, Y, 0.055 * K, PI / 2, 0, 0, 0.092 * K, 0.158 * K, 0.088 * Math.sqrt(K));   // empeine (media esfera, polo delante)
+    G.vc = null;
     G.add(sph(1, 18, 7, 0, PI * 2, PI * 0.5, PI * 0.5), sole, 0, Y, 0.055 * K, 0, 0, 0, 0.094 * K, 0.075, 0.16 * K);   // suela (media esfera aplastada)
-    G.owk = 0.5; G.add(sph(1, 14, 8, 0, PI * 2, 0, PI * 0.5), toe, 0, Y + 0.006, 0.12 * K, 0, 0, 0, 0.078 * K, 0.064 * Math.sqrt(K), 0.105 * K); // puntera
     G.add(cyl(0.05 * K, 0.056 * K, 0.06, 14), ank, 0, -0.03, -0.005);                                                 // tobillera
     G.owk = 0;
     G.add(cyl(0.057 * K, 0.057 * K, 0.014, 14, true), tc.accent, 0, -0.012, -0.005);                                  // ribete del tobillo
@@ -1758,7 +1774,9 @@
     o = o || {};
     return { tc: pvKit(o, prev), num: o.num != null ? o.num : prev ? prev.num : 1, beach: pvBeach(o, prev), px: o.px != null ? (o.px === 1 ? 1 : 2) : prev ? prev.px : 2 };
   }
-  function pvLod() { var q = ctx && ctx.quality; return q && q.rank != null ? clamp(q.rank | 0, 0, 2) : 2; }
+  // la vista previa del Vestuario va SIEMPRE en la malla alta (WP1 del plan del Vestuario): es un solo muñeco y es justo donde se mira
+  // el detalle; con la calidad activa, el móvil (calidad media) veía la malla media facetada (casquetes del pelo, zapatillas)
+  function pvLod() { return 2; }
   function pvHide() {
     if (!ctx || !ctx.scene) return;
     var list = [ctx.scene.getObjectByName('contactBlobs')];
@@ -1920,12 +1938,15 @@
   //  PRUEBA DEL VESTUARIO EN EL NAVEGADOR (VB.Doll.lookSelfTest; spec §9; la usa tools/looktest.js --gl)
   // =====================================================================
   // Topes por muñeco con el look completo (§1.5) y triángulos EXACTOS de los looks de hoy [LOD0, LOD1, LOD2] (pista).
+  // TRI_CAP es para el partido: hay 12 muñecos en el 6v6 del móvil. LOD0 NO se sube nunca; LOD1/LOD2 solo con una medida de fps del
+  // 6v6 a 640x360 antes y después, apuntada en notes/players.md (plan del Vestuario, §3.2). lookSelfTest imprime el margen que queda.
+  // TRI_TODAY (1.16, WP1): la puntera de la zapatilla por color de vértice ahorra 64/101/208 por pie (−128/−202/−416 en pista)
   var TRI_CAP = [4400, 6000, 12800];
   var TRI_TODAY = [
-    { L: { style: 'rapado', acc: '' }, t: [2418, 3739, 8438], n: 'rapado sin complemento' },
-    { L: { style: 'afro', acc: 'gafas' }, t: [3786, 5208, 11276], n: 'afro + gafas' },
-    { L: { style: 'afro', acc: '', eyes: 'frente' }, t: [3786, 5208, 11276], n: 'afro + gafas en la frente (L nueva)' },
-    { L: { style: 'tupe', acc: 'gorra' }, t: [2708, 4148, 9244], n: 'gorra' }
+    { L: { style: 'rapado', acc: '' }, t: [2290, 3537, 8022], n: 'rapado sin complemento' },
+    { L: { style: 'afro', acc: 'gafas' }, t: [3658, 5006, 10860], n: 'afro + gafas' },
+    { L: { style: 'afro', acc: '', eyes: 'frente' }, t: [3658, 5006, 10860], n: 'afro + gafas en la frente (L nueva)' },
+    { L: { style: 'tupe', acc: 'gorra' }, t: [2580, 3946, 8828], n: 'gorra' }
   ];
   // reglas de compatibilidad (las de VB.Look.CLASH; esta copia solo se usa si look.js no está cargado)
   var CLASH_FALLBACK = [
@@ -1964,7 +1985,7 @@
   }
   function lookSelfTest() {
     if (!THREE) THREE = window.THREE;
-    var t0 = Date.now(), fails = [], res = { ok: false, fails: fails, items: 0, today: [], worst: {}, draws: null, preview: null, ms: 0 };
+    var t0 = Date.now(), fails = [], log = [], res = { ok: false, fails: fails, log: log, items: 0, today: [], worst: {}, budget: {}, styles: {}, tris: {}, draws: null, preview: null, ms: 0 };
     var tc = Object.assign({}, TEAMS[0]), hasCanvas = typeof document !== 'undefined' && !!document.createElement, cv = null, id;
     function fail(m) { fails.push(m); }
     function base(bch) { return { skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: '' }; }
@@ -1987,10 +2008,10 @@
       });
     });
     // 2) cada objeto × sede × LOD se construye (y se pinta) sin errores; deltas sobre el muñeco base y geoSig fiel a la malla
-    var delta = {};
+    var delta = {}, itemD = {};   // itemD[id] = Δ [LOD0, LOD1, LOD2] sobre el muñeco base, el mayor de las dos sedes
     ['hall', 'beach'].forEach(function (v) {
       var bch = v === 'beach', B = base(bch), mb = measure(B, bch, tc, true), gb = geoSig(B, tc, bch);
-      delta[v] = {};
+      delta[v] = {}; res.styles[v] = {};
       ['style'].concat(LOOK_SLOTS).forEach(function (sl) {
         delta[v][sl] = [0, 0, 0];
         for (id in ITEMS[sl]) {
@@ -1999,6 +2020,8 @@
           try { m = measure(L, bch, tc, true); } catch (e) { fail('geometría ' + v + ' ' + sl + '=' + id + ': ' + (e && e.message || e)); continue; }
           if (hasCanvas) { try { paintAtlas(cv, tc, L, 7, bch); } catch (e) { fail('atlas ' + v + ' ' + sl + '=' + id + ': ' + (e && e.message || e)); } }
           for (var l = 0; l < 3; l++) delta[v][sl][l] = Math.max(delta[v][sl][l], m.t[l] - mb.t[l]);
+          if (sl === 'style') res.styles[v][id] = m.t;
+          var dk = itemD[id] || (itemD[id] = [0, 0, 0]); for (l = 0; l < 3; l++) dk[l] = Math.max(dk[l], m.t[l] - mb.t[l]);
           if (geoSig(L, tc, bch) === gb && m.h !== mb.h) fail('geoSig no ve el cambio de malla: ' + v + ' ' + sl + '=' + id);
           if (sl !== 'style' && sl !== 'head' && sl !== 'eyes') {   // un color que solo va en el atlas no cambia la malla
             ['cA', 'cB', 'cSock', 'cShoe', 'cGlass'].forEach(function (ck) {
@@ -2009,6 +2032,51 @@
         }
       });
     });
+    // 2b) tris del catálogo de look.js al día (Δ medido sobre el muñeco base de su sede; los peinados, sobre el tupé). Margen: 40
+    //     triángulos o el 15 % (los WP solo actualizan cifras cuando cambian una pieza de verdad); res.tris = lo medido, para copiarlo
+    if (CAT && CAT.length) CAT.forEach(function (it) {
+      var did = it.as && !(ITEMS[it.slot] && ITEMS[it.slot][it.id]) ? it.as : it.id, m = itemD[did];
+      if (!m || !it.tris) return;
+      var want = [Math.max(0, m[0]), Math.max(0, m[1]), Math.max(0, m[2])];
+      res.tris[it.id] = want;
+      for (var l = 0; l < 3; l++) if (Math.abs(want[l] - it.tris[l]) > Math.max(40, 0.15 * want[l])) { fail('tris desfasados en look.js: ' + it.id + ' [' + it.tris.join(', ') + '] (medido [' + want.join(', ') + '])'); break; }
+    });
+    // cada peinado ≤ el afro (el más pesado) en todos los LOD y en las dos sedes: así el peor caso de pelo es siempre el afro
+    ['hall', 'beach'].forEach(function (v) {
+      var S = res.styles[v], af = S && S.afro;
+      if (!af) return;
+      Object.keys(S).forEach(function (id) { for (var l = 0; l < 3; l++) if (S[id][l] > af[l]) { fail('el peinado ' + id + ' pesa más que el afro en ' + v + ' LOD' + l + ': ' + S[id][l] + ' > ' + af[l]); break; } });
+    });
+    // las firmas de malla de look.js (por fit) y de doll.js (por L) cambian a la vez: con cada objeto puesto sobre un muñeco mínimo
+    // (tupé o rapado, nada más), cambiar cada hueco de color o el segundo color de pelo cambia las dos o ninguna. Si look.js dice
+    // «misma malla» y doll.js la rehace, falta una letra en el vc del objeto; al revés, sobra
+    if (VB.Look && VB.Look.geoSig && VB.Look.resolve && VB.Look.defaults && CAT) {
+      var LK = VB.Look, KEYS = LK.COLOR_KEYS || [], CL_ = LK.COLOR_L || {}, nSig = 0, badSig = [];
+      var minFit = function (ven, st) {
+        var f = JSON.parse(JSON.stringify(LK.defaults(0))); f.style = st;
+        (LK.SLOTS || []).forEach(function (s) { f.hall[s] = ''; f.beach[s] = ''; });
+        f.hall.shoes = 'negras'; return f;   // (en pista siempre hay zapatillas: las negras no usan ningún color del fit)
+      };
+      ['hall', 'beach'].forEach(function (ven) {
+        var bch = ven === 'beach';
+        CAT.forEach(function (it) {
+          if (it.slot === 'hairTint' || it.slot === 'color' || (it.venue !== 'A' && (it.venue === 'Y') !== bch)) return;
+          var f = minFit(ven, it.slot === 'style' ? it.id : 'rapado');
+          if (it.slot === 'shoes') f.hall.shoes = it.id;
+          else if (it.slot !== 'style') it.slots.forEach(function (s) { f[ven][s] = it.id; });
+          var vary = KEYS.map(function (k) { return ['colors', k]; }).concat([['hair2', null]]);
+          vary.forEach(function (w) {
+            var g = JSON.parse(JSON.stringify(f));
+            if (w[0] === 'colors') g.colors[w[1]] = 'morado'; else g.hair2 = 'tRosa';
+            var lookSame = LK.geoSig(f, ven) === LK.geoSig(g, ven);
+            var dollSame = geoSig(LK.resolve(f, ven, tc), tc, bch) === geoSig(LK.resolve(g, ven, tc), tc, bch);
+            nSig++;
+            if (lookSame !== dollSame) badSig.push(ven + ' ' + it.id + ' ' + (w[1] || w[0]) + ' (look.js ' + (lookSame ? 'igual' : 'cambia') + ', doll.js ' + (dollSame ? 'igual' : 'cambia') + ')');
+          });
+        });
+      });
+      if (badSig.length) fail('geoSig de look.js y de doll.js no cuadran en ' + badSig.length + ' de ' + nSig + ' casos: ' + badSig.slice(0, 6).join(' | '));
+    }
     // 3) los looks de hoy, con los triángulos EXACTOS de siempre
     TRI_TODAY.forEach(function (d) {
       var m = measure(Object.assign({ skin: 0xdba27a, hair: 0x3a2416 }, d.L), false, tc, false);
@@ -2051,6 +2119,10 @@
         for (l = 0; l < 3; l++) if (tot[l] > best.t[l]) { best.t[l] = tot[l]; best.L[l] = top.L.style + '+' + (top.L.acc || '-') + '+' + (top.L.eyes || '-'); }
       });
       res.worst[v] = best;
+      res.budget[v] = [0, 1, 2].map(function (l) { return { lod: l, t: best.t[l], cap: TRI_CAP[l], margin: TRI_CAP[l] - best.t[l], look: best.L[l] }; });
+      res.budget[v].forEach(function (b) {
+        log.push('margen ' + (bch ? 'playa' : 'pista') + ' LOD' + b.lod + ': ' + b.t + ' / ' + b.cap + ' (quedan ' + b.margin + ', ' + (100 * b.margin / b.cap).toFixed(1) + ' %) · ' + b.look + ' + lo peor de cada ranura');
+      });
       for (l = 0; l < 3; l++) if (best.t[l] > TRI_CAP[l]) fail('tope de triángulos en ' + v + ' LOD' + l + ': ' + best.t[l] + ' > ' + TRI_CAP[l] + ' (' + best.L[l] + ' + lo peor de cada ranura)');
     });
     // 5) 3 dibujos por muñeco (piel + tinta + sombra) con el look más cargado de playa
@@ -2101,7 +2173,10 @@
       res.preview = pr;
     }
     res.ok = !fails.length; res.ms = Date.now() - t0;
-    try { console.info('[VB] lookSelfTest: ' + (res.ok ? 'bien' : fails.length + ' fallos') + ' (' + res.items + ' objetos, ' + res.ms + ' ms); peor pista ' + (res.worst.hall && res.worst.hall.t.join('/')) + ', playa ' + (res.worst.beach && res.worst.beach.t.join('/'))); } catch (e) { }
+    try {
+      console.info('[VB] lookSelfTest: ' + (res.ok ? 'bien' : fails.length + ' fallos') + ' (' + res.items + ' objetos, ' + res.ms + ' ms); peor pista ' + (res.worst.hall && res.worst.hall.t.join('/')) + ', playa ' + (res.worst.beach && res.worst.beach.t.join('/')));
+      log.forEach(function (s) { console.info('[VB]   ' + s); });
+    } catch (e) { }
     return res;
   }
 
@@ -2307,7 +2382,7 @@
   };
 
   VB.Doll = {
-    rigs: rigs, LOOKS: LOOKS, STYLES: STYLES, ACCS: ACCS, EXPR: EXPR, POSES: POSES,
+    rigs: rigs, LOOKS: LOOKS, EXPR: EXPR, POSES: POSES,
     /** Vestuario: lo que el muñeco sabe dibujar por ranura (id → sede 'A' | 'P' | 'Y') y los gorros que sustituyen al pelo. */
     ITEMS: ITEMS, HIDE_HAIR: HIDE_HAIR,
     /** Vestuario: firmas de lo que cambia la malla (geometría y color por vértice) y de lo que se pinta en el atlas. */
