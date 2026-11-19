@@ -142,7 +142,7 @@
     { id: 'termica', name: 'Camiseta térmica', slot: 'under', venue: 'P', vc: 'B', g: 'f' },
     { id: 'licra', name: 'Licra de surf', slot: 'under', venue: 'Y', rarity: 1, unlock: [shop(5000), lv(20)], vc: 'B', g: 'f' },   // geo: la bola del hombro va en cB (color por vértice)
     { id: 'capitan', name: 'Brazalete', slot: 'band', rarity: 2, unlock: [{ fame: 4 }, { ach: 'top' }], geo: false, pc: 'A', g: 'm', hint: 'En el brazo izquierdo' },
-    { id: 'malla', name: 'Malla corta', slot: 'legs', geo: false, g: 'f' },
+    { id: 'malla', name: 'Malla corta', slot: 'legs', geo: false, pc: 'B', g: 'f' },   // en cB (automático: un color que se distinga del pantalón)
     { id: 'mallaLarga', name: 'Malla larga', slot: 'legs', unlock: [shop(1000), lv(6)], vc: 'B', pc: 'B', g: 'f' },   // geo: la bola de la rodilla sin rodillera va en cB
     { id: 'manguito', name: 'Manguito', slot: 'arm', venue: 'P', vc: 'A', pc: 'B', g: 'm' },
     { id: 'manguitoRayas', name: 'Manguito de rayas', slot: 'arm', venue: 'P', unlock: [shop(1200), lv(8)], vc: 'A', pc: 'B', g: 'm' },
@@ -157,9 +157,9 @@
     { id: 'reloj', name: 'Reloj gordo', slot: 'wrist', rarity: 1, unlock: [{ ach: 'up' }, rec('wins', 50)], vc: 'A', g: 'm', tris: [112, 124, 228] },
     { id: 'dedos', name: 'Dedos vendados', slot: 'hands', rarity: 1, unlock: [{ ach: 'b50' }, gym('block', 1)], g: 'm', pl: 1, tris: [0, 160, 320] },
     { id: 'mitones', name: 'Mitones', slot: 'hands', venue: 'Y', rarity: 1, unlock: [shop(3000), lv(14)], vc: 'A', g: 'm', pl: 1 },
-    { id: 'cortas', name: 'Rodilleras', slot: 'knees', venue: 'P', g: 'f', pl: 1 },
-    { id: 'altas', name: 'Rodilleras altas', slot: 'knees', venue: 'P', g: 'f', pl: 1 },
-    { id: 'bajadas', name: 'Rodilleras bajadas', slot: 'knees', venue: 'P', rarity: 1, unlock: [{ ach: 'm150' }, rec('played', 100)], g: 'f', pl: 1 },
+    { id: 'cortas', name: 'Rodilleras', slot: 'knees', venue: 'P', vc: 'P', g: 'f', pl: 1 },
+    { id: 'altas', name: 'Rodilleras altas', slot: 'knees', venue: 'P', vc: 'P', g: 'f', pl: 1, tris: [64, 72, 112] },
+    { id: 'bajadas', name: 'Rodilleras bajadas', slot: 'knees', venue: 'P', rarity: 1, unlock: [{ ach: 'm150' }, rec('played', 100)], vc: 'P', g: 'f', pl: 1, tris: [72, 108, 168] },
     { id: 'tobilleros', name: 'Calcetines tobilleros', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'media', name: 'Calcetines', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'altos', name: 'Calcetines altos', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
@@ -185,7 +185,7 @@
     { id: 'munhCanon', name: 'Muñequera de cañón', slot: 'wrist', rarity: 2, unlock: [boss('saque')], as: 'muneq', vc: 'A', g: 'f', tris: [80, 80, 160] },
     { id: 'dedosMuro', name: 'Dedos de hierro', slot: 'hands', rarity: 2, unlock: [boss('muro')], as: 'dedos', g: 'm', pl: 1, tris: [0, 160, 320] },
     { id: 'manguitoMazo', name: 'Manguito del martillo', slot: 'arm', venue: 'P', rarity: 2, unlock: [boss('remate')], as: 'manguito', pc: 'A', g: 'm' },
-    { id: 'rodiPulpo', name: 'Rodilleras de pulpo', slot: 'knees', venue: 'P', rarity: 2, unlock: [boss('defensa')], as: 'altas', g: 'f', pl: 1 },
+    { id: 'rodiPulpo', name: 'Rodilleras de pulpo', slot: 'knees', venue: 'P', rarity: 2, unlock: [boss('defensa')], as: 'altas', g: 'f', pl: 1, tris: [64, 72, 112] },
     { id: 'tobiPulpo', name: 'Tobillera de pulpo', slot: 'ankle', venue: 'Y', rarity: 2, unlock: [boss('defensa')], as: 'tela', vc: 'A', g: 'f' },
     // ficha de color que se gana (la misma de PALETTE): así la Carrera la concede recorriendo el catálogo
     { id: 'dorado', name: 'Dorado', slot: 'color', hex: 0xf2c14e, rarity: 2, unlock: PALETTE[9].unlock, g: 'm' }
@@ -552,9 +552,8 @@
       });
     });
     var toks = TOKENS.map(function (t) { return t.id; }).concat(PALETTE.map(function (p) { return p.id; }).filter(can));
-    // 'pad' (la última: no mueve el azar de las demás) se queda en auto mientras ninguna pieza lleve cPad (doll.js): si no, dos
-    // aspectos que se ven iguales tendrían firmas distintas
-    COLOR_KEYS.forEach(function (k) { f.colors[k] = k === 'pad' || r() < 0.55 ? 'auto' : pick(r, toks); });
+    // 'pad' es la última: no mueve el azar de las demás (desde WP4 la llevan las rodilleras cortas, altas y bajadas)
+    COLOR_KEYS.forEach(function (k) { f.colors[k] = r() < 0.55 ? 'auto' : pick(r, toks); });
     return fix(f, null, null).fit;
   }
 

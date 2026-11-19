@@ -1084,10 +1084,43 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
   fuera, la esfera no en LOD0). Se estira con el brazo (comprobado en `view=estiron`).
 - `handGeo`: mitones (cA) y dedos vendados (pulgar de esparadrapo + vuelta en la punta, la vuelta no en LOD0). Coderas: bola del codo de
   cA ×1,12. El codo toma el color de la térmica o del manguito de su lado.
-- Rodilleras: `altas` (bola ×1,12/1,1 + muslo 0,82-1 y espinilla 0-0,22), `bajadas` (bola de piel + espinilla 0,12-0,42), `''` (piel; con
-  malla larga, cB). Zapatillas: `negras` (tobillera oscura), `neon` (cShoe, por defecto amarillo neón, suela negra), `doradas`; las clásicas
-  y las neón aceptan cShoe. Tobillera de pista `''` = del color del empeine. Playa: `pulseraTob` (aro fino, no en LOD0), `escarpines` (pie
-  de cSock, sin tobillera) y `''`.
+- Piernas y pies: ver «Piernas y pies (WP4, 1.16)» justo debajo (lo de antes —bandas a fracciones fijas, tobilleras dentro del pie— ya
+  no vale).
+
+#### Piernas y pies (WP4 del plan del Vestuario, 1.16, rama pj-b)
+La espinilla del chibi mide 0,23: el zapatón tapa ~0,044 abajo y la bola de la rodilla ~0,073 arriba; de calcetín, tobillera y rodillera
+solo queda una ventana de ~0,11. Todo lo de la pierna se coloca por **altura sobre el tobillo** (`legF(h)`, `thighF(d)`, `shoeTopH()`,
+`kneeR(X)`, `sockTopH()`), no a fracciones fijas de la tira.
+- **Tobillera de pista `blanca`** (P1): torno de 3 filas en el hueso de la ESPINILLA (no en el del pie: no se sale al flexionar el tobillo),
+  de 0 a `BRACE_H` 0,07 sobre el tobillo, r espinilla + 0,0105, con la fila de arriba del acento (`onCol`). Oscura (0x2c2c34) sobre un
+  empeine claro (clásicas blancas de serie, neón) y blanca sobre uno oscuro (negras, doradas, cShoe oscuro): si no, se fundía con la
+  zapatilla. Con ella no se dibujan el cuello ni el ribete del zapatón (van dentro). Sin tobillera = cuello bajo + ribete (ahora sin tapas).
+- **Tobilleras de playa** (P2): también en la espinilla, a `ANKLET_H` 0,04 (el empeine descalzo llega a +0,017). `tela`/`tobiPulpo`: toro de
+  tubo 0,012; `pulseraTob`: toro de 0,0095 con cuentas alternas cA / blanco (o cA oscurecido si el blanco se pierde en la piel), ladeada,
+  no en LOD0. Mismo coste que la de tela, que sigue siendo la peor de la ranura: el margen de playa no cambia.
+- **Calcetines** (P3): `tobilleros` = puño vuelto más oscuro, hasta 0,044 sobre el zapatón (con tobillera, 0,05 por encima de ella);
+  `media` = 84 % de la ventana con borde oscuro y franja del base; `altos` = hasta la rodilla con dos franjas en la parte que se ve;
+  `altosRayas` = rayas blancas u oscuras, las que de lejos se alejen más de la piel (rojo + blanco = rosa ≈ piel clara); `desparejados` =
+  cada pierna de un color entero (cSock / cB) y altura (alto / 62 %).
+- **Malla larga + calcetín corto** (punto 7): la malla baja hasta el calcetín (sin franja de piel); con altos, el calcetín va encima.
+- **Rodilleras** (P4, P6): color `padHex` = cPad (nuevo, `colors.pad`, fila «Rodilleras» en la pestaña Colores) o, en automático, tc.pad
+  salvo que quede a < 0,15 de luminancia de lo de debajo (piel o malla larga) → blanco, acento o casi negro. `altas`/`rodiPulpo`: la funda
+  pintada sale `KNEE_UP` 0,014 por el muslo y `KNEE_DN` 0,022 por la espinilla, fuera de la bola, con un aro (cilindro abierto) del acento
+  en cada borde (el de pulpo, PULPO_HI; sus ventosas ahora se ven). `bajadas`: aro gordo (torno, r +0,013, alto 0,05) justo bajo la
+  rodilla, que queda de piel. cPad va por vértice en cortas, altas y bajadas (vc 'P' en look.js, `PAD_VC` en doll.js).
+- **Malla corta** (P5): `tightsHex` = cB o, en automático, el primero de oscuro / base / acento / blanco / negro del equipo que se
+  distinga del pantalón (≥ 0,25 de luminancia o hexDist ≥ 260) y de la piel; bajo del acento (`onCol`) justo encima de la bola. pc 'B'.
+- **Zapatillas** (P7): `SHOE_SHAPE` por modelo (alto de suela, alto del empeine, ancho y largo): clásicas redondas, **negras bajas y
+  planas**, **neón con suela gorda**, **doradas estilizadas y largas**. Dibujo por color de vértice en el empeine: puntera (anillos),
+  franja lateral y brillo del oro como **gajos** entre meridianos (bordes limpios en cualquier LOD; una diagonal por caras salía en
+  escalera), talón (gajos de arriba, lo que más se ve de espaldas) y franja de la suela (fila del ecuador). Cordones: 3 cajas planas solo en
+  LOD2. Neón: puntera fija 0xff3aa8 (nunca el acento). Doradas: 0xc98f1c con brillo GOLD_HI, borde 0x7e500e y cordones GOLD_HI.
+- Triángulos: look de serie de pista −24/0/+72 (LOD0/1/2; TRI_TODAY regenerado). altas y rodiPulpo +64/72/112, bajadas +72/108/168.
+  Margen medido (`looktest --gl`): pista 606/462/984, playa 94/206/184 (sin cambios en playa).
+- lookvis (`--item=…` de WP4, peor de las 2 variantes): primer plano VISIBLE en todos (tobilleros 1,83 %, media 1,75 %, blanca 3,25 %,
+  pulseraTob 1,99 %, tela 2,12 %, altas 9,2 %, bajadas 2,1 %, desparejados 2,6 %, malla 3,0 / 3,2 %); en el partido en el móvil de
+  espaldas: blanca 88 px, tobilleros 30, desparejados 31, altas 42, bajadas 22. La malla corta de pista da 1 px de espaldas en el móvil (con
+  la pose de recepción el pantalón tapa la ventana del muslo): solo se ve de cerca.
 
 ### Atlas
 - `paintBody`: con la licra (playa) la piel de hombros, sisas, escote y espalda pasa a cB (tirantes y dorsal encima); la bola del hombro
