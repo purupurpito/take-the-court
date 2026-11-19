@@ -125,7 +125,7 @@
     var P = params(o), on = o.on !== false;
     var st = { v: P.START, raw: 0, bon: 0, K: 0, E: 0, on: on, meR: 0, rallies: 0, seq: 0, log: [], acts: {}, done: false, out: null,
       trial: !!(o.trial || o.toWin === 1), hall: !!o.hall, rol: 1, P: P,
-      _u: null, part: 1,
+      _u: null, part: 1, san: 0, sanLog: [],
       _t: { team: 0, drift: 0, ever: on, e0: 0, inSet: on, sets: 0, matched: false, play: 0, top: '', topA: 0, any: false,
         last0: -1, lastTeam: -1, server: -1, setter: -1, cand: -1, blocker: -1, prevKind: '', prevTeam: -1, myKind: '', myShot: '', atk0: -1, recv0: -1 } };
     st.rol = typeof o.rol === 'number' && o.rol > 0 ? o.rol : st.hall ? RATE6[o.pos] || RATE6.OH : 1;
@@ -168,7 +168,7 @@
     var a = {}, id; for (id in st.acts) a[id] = { n: st.acts[id].n, d: st.acts[id].d };
     var t = {}; for (id in st._t) t[id] = st._t[id];
     var gl = null; if (st.gl) { gl = {}; for (id in st.gl) gl[id] = st.gl[id]; }
-    return { raw: st.raw, bon: st.bon, rallies: st.rallies, meR: st.meR, acts: a, t: t, log: st.log.slice(), gl: gl };
+    return { raw: st.raw, bon: st.bon, rallies: st.rallies, meR: st.meR, acts: a, t: t, log: st.log.slice(), gl: gl, san: st.san || 0 };
   }
   /** Punto anulado por challenge (sim, endReview: en el mismo paso vuelve a pitar el punto y emite 'challengeResult' con overturned).
    *  Antes de pasarle ese 'point' repetido: vuelve a como estaba antes del punto anulado (y de su set y su partido). seq sigue
@@ -180,6 +180,11 @@
     for (id in u.t) t[id] = u.t[id];
     for (id in keep) t[id] = keep[id];
     if (u.gl && st.gl) { for (id in st.gl) if (!u.gl[id]) delete st.gl[id]; }
+    // las tarjetas (sanction) NO las deshace el challenge: se vuelven a sumar con su aviso
+    if (st.san && st.san !== u.san) {
+      st.raw += st.san - (u.san || 0);
+      for (var si = 0; si < st.sanLog.length; si++) if (st.log.indexOf(st.sanLog[si]) < 0) { st.log.push(st.sanLog[si]); if (st.log.length > LOG_MAX) st.log.shift(); }
+    }
     st._u = null; st.v = value(st);
     return true;
   }
@@ -223,6 +228,7 @@
         t.inSet = st.on;
         break;
       case 'point':
+        if (e.penalty) { endRally(t); t.play = 0; t.top = ''; t.topA = 0; t.any = false; break; } // punto de castigo (Ambiente): sin acciones ni equipo
         st._u = snap(st);
         st.rallies++;
         if (e.team === 0) {
@@ -269,6 +275,18 @@
     st.raw += d; push(st, 'coach', id || 'coach', txt || '', eff(st, d));
     return 1;
   }
+  /** Tarjeta a tu jugador (Ambiente de Carrera, P3): amarilla −0,15, roja / expulsión −0,35 DENTRO de la nota (techo y suelo suaves)
+   *  con aviso «Tarjeta amarilla» / «Tarjeta roja». A diferencia de extra(), el challenge no la deshace. color: 'yellow'|'red'|'expel'|'dq'
+   *  (las de retraso son del equipo: no restan). Devuelve 1 si ha restado. */
+  var SANCTION = { yellow: -0.15, red: -0.35, expel: -0.35, dq: -0.35 };
+  function sanction(st, color, txt) {
+    var d = SANCTION[color];
+    if (!st || st.done || !d) return 0;
+    st.raw += d; st.san = (st.san || 0) + d;
+    push(st, 'card', 'card_' + color, txt || (color === 'yellow' ? 'Tarjeta amarilla' : 'Tarjeta roja'), eff(st, d));
+    (st.sanLog || (st.sanLog = [])).push(st.log[st.log.length - 1]);
+    return 1;
+  }
   function list(st, sign) {
     var out = [];
     for (var id in st.acts) { var a = st.acts[id]; if (sign > 0 ? a.d > 0.0005 : a.d < -0.0005) out.push({ id: id, txt: ACTS[id] ? ACTS[id].txt : id, n: a.n, d: round2(a.d) }); }
@@ -300,6 +318,6 @@
   VB.Rating = {
     START: P0.START, OFFSET: P0.OFFSET, TEAM_PT: P0.TEAM_PT, KAPPA: P0.KAPPA, KAPPA_TRIAL: P0.KAPPA_TRIAL, RES: P0.RES, E_TABLE: E_TABLE,
     ACTS: ACTS, RATE6: RATE6, LOG_MAX: LOG_MAX, P0: P0,
-    E: E, eKey: eKey, create: create, feed: feed, bonus: bonus, extra: extra, setOn: setOn, close: close, undo: undo, value: value, soft: soft, fmt: fmt
+    E: E, eKey: eKey, create: create, feed: feed, bonus: bonus, extra: extra, sanction: sanction, SANCTION: SANCTION, setOn: setOn, close: close, undo: undo, value: value, soft: soft, fmt: fmt
   };
 })();

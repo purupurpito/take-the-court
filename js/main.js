@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2 };   // S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -141,6 +141,7 @@
     if (s.subs6 !== 'manual') s.subs6 = 'auto';
     if (['auto', 'end', 'off'].indexOf(s.replays) < 0) s.replays = 'auto';   // S3-C1 (sin migración: lo que falte o no valga, 'auto')   // 6v6: cambios de tu equipo (ui.js «Cambios de tu equipo»: Automáticos / Solo los míos)
     s.jsetAim = s.jsetAim === true; s.jsetNote = s.jsetNote !== false;   // (salto con impulso: diana de colocación, no por defecto; aviso de colocador, sí)
+    if (['full', 'calm', 'off'].indexOf(s.ambient) < 0) s.ambient = 'full';   // ambiente de Carrera (Ajustes · Juego; notes/ambiente.md §2F)
     if (['auto', 'high', 'medium', 'low'].indexOf(s.quality) < 0) s.quality = 'auto';
     s.camSens = Math.max(0.5, Math.min(1.5, +s.camSens || 1));
     s.sfxVol = Math.max(0, Math.min(1, isFinite(+s.sfxVol) ? +s.sfxVol : 1));
@@ -207,7 +208,7 @@
   }
 
   // Módulos en orden de inicialización/actualización
-  var MODS = ['Arena', 'FX', 'Players', 'CameraRig', 'Input', 'Audio', 'UI'];
+  var MODS = ['Arena', 'FX', 'Players', 'CameraRig', 'Input', 'Audio', 'UI', 'AmbienteUI'];   // (AmbienteUI: ambiente de Carrera, js/ambiente-ui.js; su update va aparte, después de UI)
   // Aridad fija (hasta 3 argumentos): sin `arguments`/slice, que asignaban un array en cada una de las
   // ~15 llamadas por frame (CONTRACT §2: nada de basura por frame en el bucle).
   function call(name, fn, a, b, c) {
@@ -516,6 +517,10 @@
       cs.first = n.kind === 'league' && c.phase === 'league' && (n.week | 0) === 0;
       var lg = K.league ? (hall ? K.league(me.lid, c) : K.league(me.lvl)) : null;
       if (lg && lg.name) cs.league = String(lg.name);
+      // ambiente de Carrera (js/ambiente.js): local / visitante, calor, derbi… (career.js ambCtx; solo lectura)
+      if (cs.atHome == null && ctx.settings.ambient !== 'off') cs.atHome = !!n.atHome;
+      // («Apagado»: sin cs.amb, así la previa no saca DERBI / REVANCHA / CUMBRE y la Carrera queda exactamente como antes)
+      if (K.ambCtx && ctx.settings.ambient !== 'off') cs.amb = K.ambCtx(c, n, cs) || null;
     } catch (e) { reportError('careerIntroData', e); }
   }
   ctx.actions.startMatch = function (opts) {
@@ -609,11 +614,15 @@
       djump: !auto, jsetAim: ctx.settings.jsetAim === true,
       // R21: estadísticas de la sim en los partidos humanos (masteryLine de la hoja final y los retos las leen). Son de solo
       // escritura: misma partida con y sin ellas (comprobado con stateHash y g.rng en 12 partidas, notes/s234/T14.md)
-      stats: !auto || undefined });
+      stats: !auto || undefined,
+      // ambiente de Carrera (notes/ambiente.md §0.2): abre las 3 puertas de la sim (Sim.holdFor / canPenalty / penalty) solo en la
+      // Carrera jugada con el ajuste encendido; sin él (partido rápido, entreno, online, autopilot) la sim no cambia
+      amb: cs && !auto && ctx.settings.ambient !== 'off' ? true : undefined });
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
     if (cs) cs.calls = ctx.settings.coachCalls !== false;   // consignas del entrenador en directo (career.js, js/consignas.js)
+    if (cs) { cs.ambient = auto ? 'off' : ctx.settings.ambient || 'full'; cs.ambSum = null; }   // ambiente de Carrera (career.js crea VB.Ambiente)
     // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
     if (opts.reto && !cs) { g.reto = opts.reto; g.retoOpts = Object.assign({}, opts); delete g.retoOpts.introKind; delete g.retoOpts.noIntro; }
     // R16: opciones del último partido humano de Partido rápido (restart las repite con la previa mini)
@@ -1874,9 +1883,12 @@
       // SIM-03: GOLPEAR o SALTAR durante la pausa del punto la recorta (sim decide: tras 0,8 s y nunca a menos de 0,3 s);
       // el flanco se consume para que no llegue al saque siguiente
       // (UI-11: cualquier botón —golpear, saltar, cambiar o aceptar— también en la pausa del punto que gana el partido)
+      // ambiente de Carrera: con las fichas «Protestar / Dejarlo» abiertas, CAMBIAR = Protestar (y no recorta la pausa); GOLPEAR, SALTAR
+      // o aceptar = Dejarlo y recortan la pausa como siempre (quien aporrea para seguir nunca protesta sin querer)
+      if (ctx.state === 'playing' && g && g.mode === 'point' && ambChoiceInput(g, it)) { edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; }
       if (ctx.state === 'playing' && g && (g.mode === 'point' || g.mode === 'over') && (edge.hit || edge.jump || edge.switchPlayer || (it && it.confirm)) && Sim.skipHold) {
         var skipped = false; try { skipped = Sim.skipHold(g); } catch (e) { reportError('Sim.skipHold', e); }
-        if (skipped) { edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; call('UI', 'onHoldSkip', g); }
+        if (skipped) { edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; call('UI', 'onHoldSkip', g); ambSkip(g); }
       }
       var n = 0, rpRec = !!(RPL && RPL.enabled && RPL.enabled());
       if (bench.ff && g && ctx.state === 'playing') { ffRun(g); acc = 0; n = MAX_STEPS + 1; gdt = 0; }
@@ -1897,6 +1909,8 @@
       // E6: la 10ª repetición del ejercicio (la sim no emite gameOver: drillEnd y g.drill.done)
       else if (ctx.state === 'playing' && g.drill && g.drill.done && frameEvents.some(isDrillEnd)) { if (g.careerDrill) careerDrillDone(g); setState('over'); }
       if (g.career && !g.demo && frameEvents.length) careerEvents(g, frameEvents);
+      // ambiente de Carrera: director (después de la Carrera y del grabador de repeticiones, que no ve los amb:*)
+      if (g.career && !g.demo) ambFrame(g, gdt, frameEvents);
     } else { edge.hit = edge.jump = edge.jset = edge.switchPlayer = false; acc = 0; }
     ctx.gameDt = gdt;
 
@@ -1927,6 +1941,7 @@
     call('Audio', 'handle', ev, g);
     call('Audio', 'update', g, realDt);
     call('UI', 'update', g, gdt, ev);
+    if (VB.AmbienteUI) call('AmbienteUI', 'update', g, gdt, ev);   // bocadillos y subtítulos del ambiente de Carrera (js/ambiente-ui.js)
     }
     if (g && g.career && !g.demo) {
       // B6: la hoja final de Carrera = el Resumen de la jornada de ui.js (VB.UI.endCareer, que sustituye a careerEndSheet), tras showEnd,
@@ -2029,6 +2044,78 @@
   }
   function safePoll(dt) { try { return VB.Input.poll(dt); } catch (e) { reportError('Input.poll', e); return null; } }
 
+  // ---------- Ambiente de Carrera (js/ambiente.js + js/ambiente-ui.js; notes/ambiente.md) ----------
+  // El director (VB.Ambiente) vive en la Carrera (career.js lo crea y lo alimenta con los eventos de la sim) o, en la escena
+  // ?debug=amb, aquí (ambDbg). Cada frame del partido en vivo: frame() → amb:* al array del frame (después del grabador de
+  // repeticiones) y ctl → las 3 puertas de la sim (Sim.holdFor / canPenalty / penalty). Nada con la previa (otra rama del bucle) ni
+  // durante la repetición (R: la sim en vivo no avanza); saltando el banquillo (bench.ff) solo sigue el marcador.
+  var AMBQ = [], AMBF = { intro: false, ff: false, bench: false, reduce: false, replay: false }, ambDbg = null, AMB_PEN = { card: '', pid: -1 };
+  function ambSt(g) {
+    var A = VB.Ambiente; if (!A || !g || !g.career || g.demo) return null;
+    try { return A.of ? A.of(g) : (VB.Career && VB.Career.amb ? VB.Career.amb(g) : null); } catch (e) { return null; }
+  }
+  function ambFrame(g, gdt, evs) {
+    var A = VB.Ambiente; if (!A) return;
+    if (ambDbg && ambDbg.g === g) { for (var i = 0; i < evs.length; i++) { try { A.feed(ambDbg.st, evs[i], g); } catch (e) { reportError('Ambiente.feed', e); } } }
+    var st = ambSt(g); if (!st) return;
+    // «Apagado» a mitad de partido: silencio al momento (el resto se aplica en el partido siguiente)
+    // (el director pasa un frame «saltando»: cierra unas fichas abiertas —si no, se quedaban abiertas para siempre y CAMBIAR protestaba
+    // a ciegas—, da por perdido un castigo pendiente y vacía la cola; solo se deja salir el cierre de las fichas, para que ui.js las quite)
+    if (ctx.settings.ambient === 'off' && !(ambDbg && ambDbg.g === g)) {
+      call('AmbienteUI', 'clear');
+      if (!st.offDone) {
+        st.offDone = true; AMBQ.length = 0;
+        try { A.frame(st, g, 0, AMBQ, { intro: false, ff: true }); } catch (e) { reportError('Ambiente.frame', e); }
+        for (var k = 0; k < AMBQ.length; k++) if (AMBQ[k].type === 'amb:choiceEnd') evs.push(AMBQ[k]);
+      }
+      return;
+    }
+    st.offDone = false;
+    AMBF.intro = intro.left > 0; AMBF.ff = !!bench.ff; AMBF.bench = !!g.ctrlOut; AMBF.reduce = !!ctx.reduceMotion; AMBF.replay = !!ctx.replay || !!(VB.Replay && VB.Replay.active && VB.Replay.active());
+    AMBQ.length = 0;
+    var ctl = null; try { ctl = A.frame(st, g, gdt, AMBQ, AMBF); } catch (e) { reportError('Ambiente.frame', e); return; }
+    if (ctl) {
+      if (ctl.hold > 0 && Sim.holdFor) { try { Sim.holdFor(g, ctl.hold, !!ctl.lock); } catch (e) { reportError('Sim.holdFor', e); } }
+      if (ctl.penalty >= 0) {
+        var ok = false;
+        AMB_PEN.card = ctl.pcard || 'red'; AMB_PEN.pid = ctl.ppid;
+        // (ctl.penalty = equipo SANCIONADO; el punto va al otro: notes/ambiente.md «Cambios al contrato»)
+        try { if (Sim.canPenalty && Sim.penalty && Sim.canPenalty(g, ctl.penalty)) ok = !!Sim.penalty(g, ctl.penalty, { card: AMB_PEN.card, pid: AMB_PEN.pid }); } catch (e) { reportError('Sim.penalty', e); ok = false; }
+        try { A.penaltyDone(st, ok); } catch (e) { reportError('Ambiente.penaltyDone', e); }
+      }
+    }
+    for (var j = 0; j < AMBQ.length; j++) evs.push(AMBQ[j]);
+  }
+  /** Fichas abiertas: CAMBIAR = Protestar (consume los botones: true); GOLPEAR / SALTAR / aceptar = Dejarlo (false: la pausa se recorta). */
+  function ambChoiceInput(g, it) {
+    var A = VB.Ambiente, st = ambSt(g); if (!A || !st || !A.choiceOpen(st)) return false;
+    if (edge.switchPlayer) { A.choose(st, 0, 'protest'); call('Audio', 'ui', 'click'); return true; }
+    if (edge.hit || edge.jump || (it && it.confirm)) A.choose(st, 0, 'drop');
+    return false;
+  }
+  function ambSkip(g) { var A = VB.Ambiente, st = ambSt(g); if (A && st && A.skip) { try { A.skip(st); } catch (e) { reportError('Ambiente.skip', e); } } }
+  /** Ficha táctil (ui.js): 'protest' | 'drop'. true si había elección abierta. */
+  ctx.actions.ambChoose = function (pick) {
+    var A = VB.Ambiente, st = ambSt(ctx.game); if (!A || !st || !A.choiceOpen(st)) return false;
+    var ok = A.choose(st, 0, pick === 'protest' ? 'protest' : 'drop');
+    if (ok) call('Audio', 'ui', 'click');
+    return ok;
+  };
+  /** ?debug=amb: Carrera de mentira con su director (no pasa por career.js ni toca ninguna Carrera guardada). */
+  function ambDebugStart(g, a6, k) {
+    var A = VB.Ambiente; if (!A) { console.warn('[VB] escena amb: falta js/ambiente.js'); return; }
+    var home = Q.final === '1' ? -1 : Q.away === '1' ? 1 : 0, derby = k === 'derby', heat = derby ? 0.9 : k === 'boo' ? 0.8 : +Q.heat || 0.5;
+    var amb = { home: home, heat: heat, fans: home === 0 ? [0.55, 0.15] : home === 1 ? [0.15, 0.55] : [0.3, 0.3], tags: derby ? ['derbi'] : home < 0 ? ['final'] : [],
+      level: derby ? 'high' : Q.level || 'mid', city: 'Rocaverde', venue: a6 ? 'Rocaverde' : 'Cala Rocaverde', short: ['Rocaverde', 'Sorrasal'], capt: [0, 0], coach: ['', ''], riv: derby ? 0.6 : 0.1 };
+    g.career.amb = amb; g.career.ambient = Q.calm === '1' ? 'calm' : 'full'; g.career.atHome = home === 0;
+    var st = A.create({ seed: g.seed, hall: a6, level: amb.level, mode: g.career.ambient, amb: amb, main: true, faro: true,
+      me: { name: g.career.player, num: g.career.num | 0 }, mate: a6 ? null : { name: g.career.mate, num: 2 }, club: 'Rocaverde', rivalClub: 'Sorrasal',
+      force: ['choice', 'yellow', 'red', 'boo', 'chant', 'lines'].indexOf(k) >= 0 ? k : '',
+      rate: function (kind, v, txt) { console.info('[VB] ambiente → nota: ' + kind + ' ' + v + ' ' + (txt || '')); } });
+    if (A.bind) A.bind(g, st);
+    ambDbg = { g: g, st: st };
+  }
+
   // ---------- Banquillo (Carrera de pista: empiezas de suplente o te cambian; notes/titularidad-y-cambios.md §B.3) ----------
   // ctx.bench = {out: tu atleta en el banquillo, fast: ×3, ff: '' | 'in' (saltar hasta que entres) | 'end' (saltar al final)}; ui.js
   // pinta la barra y el velo «Simulando…». Saltar = la sim avanza sin pintar en trozos de FF_CHUNK s de juego hasta FF_BUDGET ms por
@@ -2050,6 +2137,7 @@
   }
   function ffRun(g) {
     var t0 = performance.now(), steps = Math.round(FF_CHUNK / STEP), stop = false;
+    var as0 = ambSt(g); if (as0) as0.ff = true;   // ambiente: saltando, el director sigue el marcador sin disputas ni frases
     ffBatch.length = 0;
     while (!stop && performance.now() - t0 < FF_BUDGET) {
       for (var k = 0; k < steps; k++) {
@@ -2428,6 +2516,26 @@
           goals: tg.map(function (x) { return { id: x[0], stat: x[0], txt: x[1], n: x[2], op: x[3], ok: null }; }) };
         break;
       }
+      // Ambiente de Carrera (js/ambiente.js): partido de Carrera de mentira EN VIVO con la IA jugando por ti (no toca ninguna Carrera
+      // guardada). &k=choice (la 1ª disputa en contra abre «Protestar / Dejarlo»: VB.ctx.actions.ambChoose('protest'|'drop')),
+      // yellow | red (tarjeta forzada en la 1ª disputa; la roja con su punto de castigo de verdad), derby (derbi, calor 0,9), boo (pitada al
+      // saque rival), chant (cánticos), lines (una frase en cada punto). &format=6v6 pista (por defecto playa), &away=1 fuera de casa,
+      // &final=1 campo neutral, &calm=1 «Tranquilo», &heat=0..1, &level=low|mid|high|top
+      case 'amb': {
+        var a6 = Q.format === '6v6', ak = Q.k || 'lines';
+        forceVenue(a6 ? 'hall' : 'beach');
+        var aRef = VB.Career && VB.Career.beach && VB.Career.beach.REF ? Object.assign({}, VB.Career.beach.REF[ak === 'derby' ? 'high' : 'mid']) : undefined;
+        if (aRef) aRef.chal = 0;
+        g = Sim.createGame({ demo: false, autopilot: true, seed: sd, difficulty: diff, present: true, amb: true, ref: aRef,
+          format: a6 ? '6v6' : undefined, venue: a6 ? undefined : 'beach', ctrl: a6 ? 'one' : undefined, ctrlRole: a6 ? 'OH' : undefined,
+          names: a6 ? [['Ares Belmonte', 'Iker Sanz', 'Noa Vidal', 'Biel Riera', 'Leo Soler', 'Pau Mas'], ['Dani Ferrer', 'Alex Roig', 'Kai Morell', 'Joan Prats', 'Max Serra', 'Nico Pla']] : undefined });
+        var aMe = a6 ? (g.ctrl || g.teams[0][0]) : g.teams[0][0];
+        g.career = { _debug: true, mode: a6 ? 'hall' : 'beach', season: 2, phase: 'league', week: 4, round: 0, me: 'ROC', rival: 'SOR', meName: 'Rocaverde', rivalName: 'Sorrasal',
+          label: (a6 ? 'Liga de pista' : 'Circuito Regional') + ' · Jornada 5', player: a6 && aMe.name ? aMe.name : 'Ares Belmonte', num: aMe.num | 0, mate: 'Iker Sanz', mateNum: g.teams[0][1] ? g.teams[0][1].num | 0 : 2 };
+        ambDebugStart(g, a6, ak);
+        live = true;
+        break;
+      }
       // B5: previa congelada a los t s. &kind=mini|short|long (por defecto short), &career=1 (Carrera de prueba; con long, 1ª jornada),
       // &boss=muro|saque|remate|defensa (con career=1: partido de jefe), &duel=1 (duelo con tu rival), &t=s (por defecto 0,6)
       case 'intro':
@@ -2549,6 +2657,11 @@
         meName: 'Club Platja Rocaverde', rivalName: 'Voley Sóller', player: 'Ares Belmonte', num: 7, mate: 'Iker Sanz', mateNum: 4, goal: 'Gana un set a cero',
         pos0: wk ? 3 : 0, rivalPos: wk ? 5 : 0, posN: 10, h2h: wk ? [3, 2, 1, 4, 3, 1] : null, league: 'Circuito Regional', first: wk === 0 };
       if (Q.duel === '1') { g.career.duel = true; g.career.rivalInfo = { name: 'Dani Roca', w: 2, l: 3 }; }
+      // ambiente de Carrera: &derby=1 (derbi de ciudad en pista: «DERBI», career.js ambCtx), &revancha=1, &cumbre=1
+      if (Q.derby === '1' || Q.revancha === '1' || Q.cumbre === '1') {
+        if (Q.derby === '1') g.career.mode = 'hall';
+        g.career.amb = { home: 0, heat: 0.8, fans: [0.55, 0.15], tags: [Q.derby === '1' ? 'derbi' : Q.revancha === '1' ? 'revancha' : 'cumbre'], level: 'mid', city: 'Rocaverde', venue: 'Rocaverde', short: ['Rocaverde', 'Sóller'], capt: [0, 0], coach: ['', ''], riv: 0.4 };
+      }
       if (Q.boss) {
         var BS = VB.CareerLife && VB.CareerLife.BOSS_STYLES && VB.CareerLife.BOSS_STYLES[Q.boss];
         g.career.boss = { name: 'Bruno Ferrer', nick: BS && BS.nicks ? BS.nicks[0] : 'Muro', style: String(Q.boss), styleName: BS ? BS.name : 'Muro',

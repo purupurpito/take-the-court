@@ -1213,3 +1213,15 @@ En el móvil apaisado (568×320 … 915×412) el encuadre «cuerpo» de `VB.Doll
 aunque CONTRACT §4 lo asigna a players. **Pendiente del visto bueno del dueño de players.**
 
 - **Vestuario en el móvil (18-nov-2026, arreglo de portada M5)**: `VB.Doll.preview.place(cx, half, top)` admite `top` (franja de arriba tapada por la UI, fracción del alto; ui.js `lkPlace` la pasa si la cabecera llega encima del hueco). En apaisado y quieto, además de caber a lo ancho, la cámara se aleja hasta que la cabeza entera (bone `head`, `HEAD_C + HEAD_RY + 0,1`, medida una vez por malla: `PV.ht`) quepa en el 92 % de la mitad de arriba del alto libre (todos los encuadres salvo `piernas`); con `top` la cámara sube para centrar el muñeco en el alto que queda. A 568x320 «brazos» ya no corta la coronilla.
+
+## Ambiente de Carrera (P3, 18-nov-2026, players) — notes/ambiente.md §4.6
+- `VB.Players.gesture(p, kind, dur)` (p = jugador o id; `VB.Players.GESTURES`): `'protest'` (noToque: brazos abiertos al árbitro),
+  `'pointSpot'` (lookSpot), `'stare'` (pique), `'fist'` (kill), `'net'` (roar), `'headDown'` (jarras) reutilizan variantes de la
+  celebración; `'shh'` (índice en los labios), `'calm'` (palmas abajo) y `'handshake'` (mano tendida a la red) son poses nuevas
+  baratas. Solo en la pausa del punto, encima de la celebración (`gesturePose` tras `cvPose`), fundido de entrada y salida 0,22 s;
+  2 Pose temporales creadas una vez (sin memoria por frame); se apaga solo al acabar, al salir del punto o con el saque.
+- Reacciones propias: `amb:protest` (protest / pointSpot), `amb:taunt` (shh / stare / net / fist), `amb:card` (headDown del sancionado,
+  0,35 s después), `amb:refTalk{level:'verbal'}` (el capitán pide calma), `amb:handshake` (todos los que están en el suelo; en el final
+  del partido, cuando acaba la celebración: pointT + 2,6 s). Nunca con `e.replay`.
+- Punto de castigo (`point.penalty`): sin celebración (se queda la del punto anterior) y no cuenta como `LIVE_PT` de la repetición.
+- «Menos movimiento»: las poses nuevas sin oscilación.

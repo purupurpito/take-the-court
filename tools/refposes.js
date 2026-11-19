@@ -79,7 +79,21 @@ const CASES = [
   ['ljSideIn', { ev: [{ type: 'land', x: -5.0, y: -3.8, inside: true }] }, -1],
   ['ljMid', { ev: [{ type: 'land', x: 4.0, y: 0.5, inside: true }] }, -1],
   ['ljAnt', { ev: [{ type: 'point', team: 0, reason: 'antenna', signal: 'antenna', antenna: [0, -4.5, 2.6] }] }, -1],
-  ['ljAntR2', { ev: [{ type: 'point', team: 0, reason: 'antenna', signal: 'antenna', antenna: [0, 4.5, 2.6] }] }, -1]
+  ['ljAntR2', { ev: [{ type: 'point', team: 0, reason: 'antenna', signal: 'antenna', antenna: [0, 4.5, 2.6] }] }, -1],
+  // ambiente de Carrera (P2, 18-nov-2026): tarjetas del 1r (amb:card; pid -1 = al entrenador, que mira en su banquillo; con pid
+  // de un atleta, a él), charla con el que protesta (amb:refTalk) y el punto de castigo (silbato y equipo que saca, sin seña)
+  ['cardY', { ev: [{ type: 'amb:card', amb: true, team: 1, pid: -1, color: 'yellow', reason: 'protesta' }] }, -2],
+  ['cardR', { ev: [{ type: 'amb:card', amb: true, team: 0, pid: 0, color: 'red', reason: 'protesta' }] }, -2],
+  ['cardExpel', { ev: [{ type: 'amb:card', amb: true, team: 0, pid: 1, color: 'expel', reason: 'conducta' }] }, -2],
+  ['cardDQ', { ev: [{ type: 'amb:card', amb: true, team: 1, pid: 2, color: 'dq', reason: 'conducta' }] }, -2],
+  ['delayY', { ev: [{ type: 'amb:card', amb: true, team: 1, pid: -1, color: 'delayY', reason: 'retraso' }] }, -2],
+  ['delayR', { ev: [{ type: 'amb:card', amb: true, team: 0, pid: -1, color: 'delayR', reason: 'retraso' }] }, -2],
+  ['talkCalm', { ev: [{ type: 'amb:refTalk', amb: true, team: 1, pid: 2, level: 'calm' }] }, -2],
+  ['talkVerbal', { ev: [{ type: 'amb:refTalk', amb: true, team: 0, pid: 0, level: 'verbal' }] }, -2],
+  ['talkExplain', { ev: [{ type: 'point', team: 1, reason: 'out', signal: 'out', landSide: 0 }, { type: 'amb:refTalk', amb: true, team: 0, pid: 0, level: 'explain' }] }, -2],
+  ['penalty', { ev: [{ type: 'amb:card', amb: true, team: 1, pid: 2, color: 'red', reason: 'protesta' }, { type: 'whistle', reason: 'penalty' },
+    { type: 'point', team: 0, reason: 'penalty', how: 'penalty', signal: 'penalty', penalty: true, card: 'red', text: 'Punto de castigo', score: [5, 3] }] }, -2],
+  ['coachProtest', { ev: [{ type: 'amb:protest', amb: true, team: 0, pid: -1, role: 'coach', kind: 'line', k: 0.8, dur: 1.6 }] }, -1, 0]
 ];
 const pick = SIGS === 'all' ? CASES : CASES.filter(c => SIGS.split(',').indexOf(c[0]) >= 0);
 

@@ -4,7 +4,9 @@
  * electrónica de vóley. emPat nunca guarda el estado: reconstruye el partido con su motor a partir de la lista de jugadas
  * (plays), así que aquí solo se escriben jugadas:
  *   roster (plantilla de cada lado) · toss (sorteo: set 1 y el decisivo) · lineup (seis iniciales de cada set, de la zona 1 a la 6)
- *   · startPeriod · rally {side: quien gana el punto} · substitution · liberoIn / liberoOut · actingCaptain · timeout.
+ *   · startPeriod · rally {side: quien gana el punto} · substitution · liberoIn / liberoOut · actingCaptain · timeout
+ *   · sanction {side, target: dorsal | 'coach' | 'team', level: warning|penalty|delayWarning|delayPenalty} (Ambiente de Carrera:
+ *     el castigo da el punto al rival en el motor de emPat, así que el rally del punto de castigo no se apunta).
  * Local y visitante: en la Carrera, el que juega en casa (meta.atHome; si juegas fuera, tu equipo —el 0 de la sim— es el visitante);
  * fuera de la Carrera, tu equipo es el local. Dorsales en texto, como en emPat.
  * Capitán: el del club (meta.capt[t], dorsal, lo pone la Carrera: career.js capt6); sin él, el colocador. Si el capitán no está en la
@@ -115,6 +117,7 @@
       push({ kind: 'roster', side: SIDE[t], name: names[t], players: players, staff: [] }, 0);
     }
     function isLibero(t, n) { return !!libSet[t][n | 0]; }
+    function onRoster(t, n) { return !!role[t].hasOwnProperty(n | 0); }
 
     // espejo de la rotación de emPat (salida automática del líbero y capitán en juego)
     var rot = [[], []], lib = [null, null], acting = [0, 0], serving = 0, setNo = 0, ai = 0, started = false;
@@ -148,6 +151,13 @@
     function action(a) {
       var t = a.t, side = SIDE[t];
       if (a.k === 'tmo') { push({ kind: 'timeout', side: side }, 30); return; }
+      if (a.k === 'san') {   // Ambiente de Carrera: sanción (FIVB 16 y 21). El castigo da el punto en emPat: su rally no se apunta
+        var tg = a.who === 'coach' ? 'coach' : a.who === 'team' || /^delay/.test(a.lv) || !a.n ? 'team' : String(a.n);
+        if (tg !== 'team' && tg !== 'coach' && !onRoster(t, a.n)) tg = 'team';
+        if (/enalty$/.test(a.lv)) { var pr = d.rallies[a.i]; if (!pr || !pr.pen) return; }   // roja sin punto en el juego: no cabe en el acta
+        push({ kind: 'sanction', side: side, target: tg, level: a.lv }, 3);
+        return;
+      }
       if (a.k === 'sub') {
         var z = rot[t].indexOf(a.o);
         if (z >= 0) rot[t][z] = a.n;
@@ -174,10 +184,10 @@
       if (!started || (r.s | 0) !== setNo) startSet(r.s | 0);
       while (ai < d.ac.length && d.ac[ai].i <= j) {
         var a = d.ac[ai++];
-        if ((a.s | 0) === setNo) action(a);   // (lo de otro set: la limpieza del líbero entre sets, que emPat ya hace)
+        if ((a.s | 0) === setNo || a.k === 'san') action(a);   // (una tarjeta tras el último punto de un set se apunta al empezar el siguiente)   // (lo de otro set: la limpieza del líbero entre sets, que emPat ya hace)
       }
       captains();
-      push({ kind: 'rally', side: SIDE[r.w] });
+      if (!r.pen) push({ kind: 'rally', side: SIDE[r.w] });   // (punto de castigo: ya lo ha dado la sanción)
       if (r.w !== serving) {
         serving = r.w;
         rot[r.w].push(rot[r.w].shift());

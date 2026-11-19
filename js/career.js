@@ -1233,8 +1233,73 @@
     if (rt) rt.gl = {};   // objetivos de la prueba ya sumados (id → 1)
     // co: consignas del entrenador en directo (js/consignas.js; g.career.calls = false las apaga: ajuste «Consignas»)
     var co = rt && VB.Consignas && g.career.calls !== false ? VB.Consignas.create({ hall: hall, role: pos, seed: g.seed, trial: !!g.career.trial, on: on }) : null;
-    return { g: g, p: [z(), z()], last0: -1, lastTeam: -1, server: -1, setter: -1, cand: -1, blocker: -1, prevKind: '', prevTeam: -1, rallies: 0,
-      on: on, meR: 0, setNo: 1, sets: on ? [1] : [], started: on, entered: 0, pulled: 0, pullWhy: '', subEv: false, rt: rt, co: co, coU: null };
+    var m = { g: g, p: [z(), z()], last0: -1, lastTeam: -1, server: -1, setter: -1, cand: -1, blocker: -1, prevKind: '', prevTeam: -1, rallies: 0,
+      on: on, meR: 0, setNo: 1, sets: on ? [1] : [], started: on, entered: 0, pulled: 0, pullWhy: '', subEv: false, rt: rt, co: co, coU: null, amb: null };
+    m.amb = ambNew(g, m);
+    return m;
+  }
+  // ------------------------------------------------------------------ ambiente de Carrera (js/ambiente.js, notes/ambiente.md)
+  /** Director del ambiente del partido (VB.Ambiente) o null: solo partidos jugados de Carrera con «Ambiente de Carrera» ≠ Apagado
+   *  (g.career.ambient lo pone main.js; sin él, como antes: careertest y los guardados no notan nada). La nota: tarjeta tuya con
+   *  VB.Rating.sanction (o extra), «Cabeza fría» con VB.Rating.extra. */
+  function ambNew(g, m) {
+    var cs = g && g.career, A = VB.Ambiente;
+    if (!A || !cs || g.demo || g.autopilot || cs._debug || !cs.ambient || cs.ambient === 'off') return null;
+    var a = cs.amb || {}, hall = g.size === 6, W = VB.CareerWorld;
+    var faro = false; try { var c0 = cs.mode === 'hall' ? load6() : load(); faro = !!(c0 && W && W.mentorOn && W.mentorOn(c0)); } catch (e) { faro = false; }
+    var st = A.create({ seed: g.seed, hall: hall, level: a.level || (cs.ref && cs.ref.chal ? 'top' : 'mid'), mode: cs.ambient === 'calm' ? 'calm' : 'full', trial: !!cs.trial, amb: a,
+      me: { name: cs.player || 'Tú', num: cs.num | 0 }, mate: hall ? null : { name: cs.mate || '', num: cs.mateNum | 0 },
+      rivalP: cs.rivalP ? { name: String(cs.rivalP) } : null, boss: cs.boss ? { nick: cs.boss.nick || cs.boss.name } : null, faro: faro,
+      club: a.short && a.short[0] || cs.meName || cs.me || '', rivalClub: a.short && a.short[1] || cs.rivalName || cs.rival || '',
+      rate: function (k, v, txt) { ambRate(m, k, v, txt); } });
+    return st;
+  }
+  function ambRate(m, k, v, txt) {
+    var R = VB.Rating; if (!m || !m.rt || !R) return;
+    if (k === 'sanction') { if (R.sanction) R.sanction(m.rt, v, txt); else if (R.extra) R.extra(m.rt, 'card', v === 'red' || v === 'delayR' ? -0.35 : -0.15, txt); }
+    else if (k === 'cold' && R.extra) R.extra(m.rt, 'cold', +v || 0.05, txt || 'Cabeza fría');
+  }
+  /** Estado del ambiente del partido g (o null). */
+  function amb(g) { return M && g && M.g === g ? M.amb : null; }
+  function ambLevel(c, me) { return isHallC(c) ? ref6((lg6(c, me.lid) || {}).strength | 0) : league(me.lvl).ref; }
+  /** cs.amb del próximo partido n de la Carrera c (cs: g.career del partido, para el duelo / el jefe / el acta; puede faltar). Solo lectura. */
+  function ambCtx(c, n, cs) {
+    if (!c || !n || !n.me || !n.rival) return null;
+    var hall = isHallC(c), me = n.me, rv = n.rival, tags = [], lvl = ambLevel(c, me);
+    var w = c.world && c.world.riv && c.world.riv[rv.id], h = w && +w.h || 0;
+    var fin = false, semi = false;
+    if (hall) {
+      if (n.kind === 'ko' && c.kos && c.kos[n.ko]) { var rl = ((c.kos[n.ko].rounds || [])[n.round] || []).length; fin = rl === 1; semi = rl === 2; }
+    } else if (n.kind === 'cup') { fin = n.round === 1; semi = n.round === 0; }
+    var home = fin ? -1 : n.atHome ? 0 : 1, heat = { low: 0.25, mid: 0.35, high: 0.45, top: 0.55 }[lvl] || 0.35;
+    if (!hall) heat -= 0.05;
+    if (hall) {
+      if (me.city && rv.city && me.city === rv.city) { tags.push('derbi'); heat += 0.25; }
+      else if (me.cc && me.cc === rv.cc && w && (w.m | 0) >= 3 && h >= 0.4) { tags.push('clasico'); heat += 0.12; }
+    } else if (cs && (cs.duel || cs.boss)) { tags.push('derbi'); tags.push(cs.boss ? 'jefe' : 'rival'); heat += 0.25; }
+    if (fin) { tags.push('final'); heat += 0.25; } else if (semi) { tags.push('semi'); heat += 0.15; }
+    if (n.kind === 'league') {
+      var N = hall ? weeksOf6(c, me.lid) : WEEKS, wk = n.week | 0;
+      var p0 = hall ? posOf6(c, me.id) : posOf(c, me.id), p1 = hall ? posOf6(c, rv.id) : posOf(c, rv.id), tb = hall ? table6(c, me.lid) : table(c, me.lvl), nc = tb ? tb.length : 0;
+      if (wk >= N - 3 && nc > 3 && (p0 <= 2 || p0 >= nc - 1)) { tags.push(p0 <= 2 ? 'ascenso' : 'descenso'); heat += 0.15; }
+      if (wk >= 3 && p0 > 0 && p0 <= 2 && p1 > 0 && p1 <= 2) { tags.push('cumbre'); heat += 0.1; }
+    }
+    // revancha: el último cruce de la temporada con este rival lo perdiste (c.notes: núcleo de la Carrera, igual con o sin career-world.js)
+    var ln = null; (c.notes || []).forEach(function (x) { if (x && x.rival === rv.id) ln = x; });
+    if (ln && !ln.win) { tags.push('revancha'); heat += 0.1; }
+    // partidos marcados de career-story (sello del próximo partido: Derbi, Revancha, Duelo…): el ambiente dice lo mismo que el sello
+    var SW = VB.CareerStoryWall, stg = '';
+    try { stg = SW && SW.tagFor ? SW.tagFor(c) : ''; } catch (e) { stg = ''; }
+    if ((stg === 'derby' || stg === 'duel' || stg === 'boss') && tags.indexOf('derbi') < 0) { tags.push('derbi'); if (!hall) tags.push(stg === 'boss' ? 'jefe' : 'rival'); heat += 0.25; }
+    if (stg === 'rev' && tags.indexOf('revancha') < 0) { tags.push('revancha'); heat += 0.1; }
+    if (stg === 'tv') heat += 0.05;
+    if (cs && cs.first) tags.push('estreno');
+    heat = Math.min(1, heat + 0.2 * h);
+    var F = home === 0 ? [0.55, 0.15] : home === 1 ? [0.15, 0.55] : [0.3, 0.3], k = hall ? 1 : 0.8;
+    var hk = home === 1 ? rv : me, nm = function (x) { var s0 = String(x.nameBase || x.name || ''); return s0.length <= 16 ? s0 : String(x.city || x.short || s0.slice(0, 16)); };   // (lo que canta la megafonía: el nombre corto del club o su ciudad)
+    return { home: home, heat: Math.round(heat * 100) / 100, fans: [Math.round(F[0] * k * 100) / 100, Math.round(F[1] * k * 100) / 100], tags: tags, level: lvl,
+      city: String(hk.city || ''), venue: hall ? String(hk.city || '') : String(hk.beach || hk.city || ''), short: [nm(me), nm(rv)],
+      capt: cs && cs.acta && cs.acta.capt ? [cs.acta.capt[0] | 0, cs.acta.capt[1] | 0] : [0, 0], coach: ['', ''], riv: Math.round(h * 100) / 100 };
   }
   function slotOf(g, pl) {
     if (!pl || !g || !g.teams) return -1;
@@ -1252,9 +1317,11 @@
     for (var oi = 0; oi < evs.length; oi++) if (evs[oi] && evs[oi].type === 'challengeResult' && evs[oi].overturned) ovr = true;
     for (var i = 0; i < evs.length; i++) {
       var e = evs[i]; if (!e) continue;
-      if (e.type === 'newMatch') { M = newM(g); continue; }
+      if (e.type === 'newMatch') { var ka = M && M.g === g ? M.amb : null; M = newM(g); if (ka) M.amb = ka; continue; }
       if (!M || M.g !== g) M = newM(g);
       if (ovr && e.type === 'point') { ovr = false; unpoint(M); }
+      // punto de castigo (tarjeta roja, Sim.penalty): ni estadísticas, ni jugada en la nota, ni consigna; la nota y el ambiente lo ven
+      if (e.type === 'point' && e.penalty) { if (M.rt) VB.Rating.feed(M.rt, e, who); if (M.amb) VB.Ambiente.feed(M.amb, e, g); continue; }
       var s;
       if (e.type === 'hit') {
         if (e.team === 0) {
@@ -1323,6 +1390,8 @@
         var cr = VB.Consignas.feed(M.co, e, who, g);
         if (cr && cr.ok && M.rt) { var cd = VB.Consignas.take(M.co); if (cd) VB.Rating.extra(M.rt, 'coach', cd, 'Consigna cumplida'); }
       }
+      // ambiente de Carrera (grada, árbitro, tarjetas, diálogos): después de la nota y de las consignas
+      if (M.amb) VB.Ambiente.feed(M.amb, e, g);
     }
   }
   /** Deshace el último 'point' contado (punto anulado por challenge): estadísticas, puntos y nota en directo. */
@@ -1334,6 +1403,7 @@
     }
     if (m.rt) VB.Rating.undo(m.rt);
     if (m.co && m.coU) { VB.Consignas.restore(m.co, m.coU); m.coU = null; }
+    if (m.amb && VB.Ambiente) VB.Ambiente.undo(m.amb);
   }
   /** Objetivos «al menos» de la prueba cumplidos durante el partidillo: su TRIAL_GOAL entra ya en la nota en directo (con aviso). Los
    *  «como mucho» se suman al final (trialGrade). */
@@ -1357,6 +1427,12 @@
     return LIVE;
   }
 
+  /** Resumen del ambiente del partido (VB.Ambiente.sum) o null; también en g.career.ambSum para el titular (recap.js). */
+  function ambSum(m, g) {
+    var s = m && m.amb && VB.Ambiente ? VB.Ambiente.sum(m.amb) : null;
+    if (s && g && g.career) g.career.ambSum = s;
+    return s;
+  }
   /** Nota 1-10 del partido (estilo periódico deportivo). me = estadísticas de tu jugador; r = {win, sets}. */
   // Calibrado (arreglos finales del sprint): con control «uno» tu jugador remata casi todo (15-18 remates punto por partido), así
   // que con el remate a 0,32 la nota se iba casi siempre a 10. Pesos medidos con los bots de simtest en la Regional (temporada 1):
@@ -1466,6 +1542,7 @@
       sim: !!sim, nota: nota, me: me, xp: xp, lvlUp: lv.lvlUp, lvl: lv.lvl, ptsGained: lv.pts, badges: badges, coach: c.coach, train: tr, auto: au, chem: c.mate ? c.mate.chem : 0, mateForm: mf, mateForm0: mf0,
       round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }), offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     if (extra && extra.rt) sum.rt = extra.rt;   // nota en directo: { nota, best, worst } (solo en c.last, no en c.notes)
+    if (extra && extra.amb) sum.amb = extra.amb;   // ambiente: tarjetas, protestas, calor (career-life / career-world lo leen)
     life(c, 'match', sum, f);
     c.last = sum;
     save(c);
@@ -1491,8 +1568,9 @@
     // insignias (sus contadores los lleva VB.Badges con los eventos que le pasa ui.js; aquí se cierran sobre tu atleta)
     var badges = [];
     try { if (B() && B().endMatch && g) badges = B().endMatch(g, win, [c.player, null]) || []; } catch (e) { badges = []; }
+    var asum = ambSum(m, g);
     M = null;
-    return closeMine(c, f, res, mine, false, { badges: badges, rt: rt ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null });
+    return closeMine(c, f, res, mine, false, { badges: badges, rt: rt ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum });
   }
   /** Simula tu partido (resultado según medias + forma; experiencia reducida). */
   function simulateNext(c) {
@@ -3056,6 +3134,7 @@
       part: { status: sub ? 'sub' : 'start', started: !sub, entered: part.entered | 0, pulled: part.pulled | 0, meR: part.meR | 0, rallies: part.rallies | 0, share: Math.round(share * 100) / 100, sets: (part.sets || []).slice() },
       round: f.kind === 'league' ? round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }) : [], offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     if (has && extra && extra.rt) sum.rt = extra.rt;   // nota en directo: { nota, best, worst } (solo en c.last, no en c.notes)
+    if (extra && extra.amb) sum.amb = extra.amb;   // ambiente: tarjetas, protestas, calor (career-life / career-world lo leen)
     life(c, 'match', sum, f);   // reto, fama, patrocinio, servicios, rival, decisión y logros (sum.life)
     c.last = sum;
     nextLine6(c);
@@ -3105,8 +3184,9 @@
       else badges = simBadges6(c, win);
     } catch (e) { badges = []; }
     var part = { status: m.started ? 'start' : 'sub', started: m.started, entered: m.entered | 0, pulled: m.pulled | 0, pullWhy: m.pullWhy || '', meR: meR, rallies: rallies, share: share, sets: m.sets.slice() };
+    var asum = ambSum(m, g);
     M = null;
-    return closeMine6(c, f, res, mine, false, { badges: badges, part: part, rt: rt && mine.nota != null ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null });
+    return closeMine6(c, f, res, mine, false, { badges: badges, part: part, rt: rt && mine.nota != null ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum });
   }
   /** Simular tu partido. De inicio: como siempre (y, con nota < 5,5, alguna vez te cambian). Desde el banquillo: juega el titular de
    *  tu puesto; entras con pIn = 0,3 + 0,06 × (gap + 4) (0,1-0,6; +0,2 si perdéis un set que no es el último y gap ≥ −4): de inicio
@@ -3687,6 +3767,8 @@
     /** Reiniciar ('restart') o abandonar ('quit') el partidillo de una prueba (main.js): la gasta, en la Carrera de la prueba. */
     trialForfeit: function (mode, i, why) { return (mode === 'hall' ? HALL : BEACH).trialForfeit(i, why); },
     liveRating: liveRating,
+    // ambiente de Carrera (notes/ambiente.md §4.6): estado del partido g y contexto (cs.amb) del próximo partido de la Carrera c
+    amb: amb, ambCtx: function (c, n, cs) { c = c || (mode() === 'hall' ? load6() : load()); if (!c) return null; n = n || (isHallC(c) ? next6(c) : next(c)); try { return ambCtx(c, n, cs); } catch (e) { try { console.error('Career.ambCtx', e); } catch (e2) { } return null; } },
     _reset: function () { cur = null; cur6 = null; M = null; }
   };
   var C = {};

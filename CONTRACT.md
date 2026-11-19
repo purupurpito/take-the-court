@@ -1172,3 +1172,18 @@ con `net.model`, que llega de la sala por `startOnline({model})`). En sim.js, bl
 flFly, flOwnerCheck, flBundle, flApplyTc, flApplyPt, flServe, flSkip, flPose, flDigest, flMatch, flCatchUp` (estado solo en `g.fl`,
 creado por `flInit`; toda línea nueva dentro de funciones viejas va tras `if (g.fl`; `tools/fluidsimtest.js` lo comprueba con SIM_BASE).
 netview.js: `fl: 'as'`. Salas: campo opcional `net` ('fluida') y versión `PROTO|VERSION|L2`.
+
+**Ambiente de Carrera (rama carrera-ambiente, 18-nov-2026; notes/ambiente.md, §9 = estado final).** Solo partidos JUGADOS de Carrera
+(`g.career && !g.demo && !g.autopilot && !g.career._debug`) con Ajustes · Juego · «Ambiente de Carrera» (`ctx.settings.ambient`
+'full' | 'calm' | 'off'); con 'off' la Carrera queda como antes (sin `cs.amb`/`cs.atHome`, sin mensajes de la semana, sin `c.world.riv`).
+Ficheros nuevos: `js/arbitro.js` (`VB.Arbitro`, dueño sim) y `js/ambiente.js` (`VB.Ambiente`, director puro, dueño ui_main/carrera),
+cargados justo después de `js/consignas.js`; `js/ambiente-ui.js` (`VB.AmbienteUI`, bocadillos y subtítulos, dueño ui_main) justo después
+de `js/ui.js`. La sim solo se entera por 3 puertas detrás de `createGame({amb:true})` (main.js, solo Carrera): `Sim.holdFor(g, s, lock)`,
+`Sim.canPenalty(g, team)`, `Sim.penalty(g, team, {card, pid})` (team = equipo SANCIONADO; emite `whistle{reason:'penalty'}` y
+`point{reason:'penalty', penalty:true}`); ninguna toca `g.rng` (huella 2v2 intacta; bloque «Castigo» en simtest). El director emite
+eventos `amb:*` (start, hush, whistles, chant, wave, boo, roar, led, say, protest, refTalk, card, taunt, choice, choiceEnd, handshake)
+que main.js añade al array del frame DESPUÉS del grabador de repeticiones; los leen arena, audio, players, ui y AmbienteUI (todo con
+guarda). Quien consume `point` mira `e.penalty` (`how:'penalty'`): badges, rating y replay lo ignoran; la hoja de ui.js lo cuenta como error del
+rival (los puntos cuadran con el marcador) y matchstats/acta como sanción.
+`VB.Ambiente.crowdOf(g)` → estado de la grada (null fuera de la Carrera o con 'off'). Pruebas: `tools/ambientetest.js`,
+`tools/arbitrotest.js` (solo node); escena `?debug=amb&k=lines|choice|yellow|red|derby|boo|chant` y `?debug=intro&kind=long&career=1&derby=1`.

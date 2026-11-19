@@ -721,6 +721,7 @@
       hitT: -99, hitKind: '', hitC: new THREE.Vector3(), hitQ: 1,
       jumpT: -99, jumpKind: '', landT: -99, blockT: -99, swingT: -99, pressT: -99, pressOk: false, blockHard: false,
       pointT: -99, pointWin: false, celeb: 0, matchEnd: false, mateHF: false,
+      gsK: '', gsT: -99, gsD: 0,   // Ambiente de Carrera (P3): gesto con balón muerto (VB.Players.gesture): tipo, inicio (tiempo de juego), duración
       cvW0: 0, cvW1: 0, cvMode: 0, cvRx: 0, cvRy: 0, cvRz: 0, cvLx: 0, cvLy: 0, cvLz: 0,
       lieW: 0, diveTc: 0, pdW: 0, pdT0: -1, pdTp: 0, pdX: 0, pdY: 0, pdZ: 0, pdLive: false,
       diveT: -99, diveYaw: 0, diveDist: 0, diveEnd: 1.0, diveUp: 1, diveDz: 0, ozGiven: 0, upBoost: 0,
@@ -2214,6 +2215,7 @@
       // la celebración (tres tiempos) y, encima, la convergencia (camino, choque de manos, palmadas de ánimo)
       celebrate(g, r, P, diving ? Math.max(0, dv - (dEnd - 0.3)) : pa);
       if (!diving) cvPose(g, r, P);
+      if (r.gsK && !diving) gesturePose(g, r, P, tm);   // Ambiente: protesta, «shh», cabeza baja… encima de la celebración
       // la caída se amortigua aunque ya celebre: el brinco de la celebración no estira las rodillas recién apoyadas
       if (landW > 0) { var lk = clamp(landW * 1.6, 0, 1); P.s[HOP] = lerp(P.s[HOP], Math.min(P.s[HOP], 0), lk); P.s[DROP] = Math.max(P.s[DROP], 0.06 + LAND_K * 1.25 * landW); P.s[PP] = Math.max(P.s[PP], 0.15 * landW); }
     } else {
@@ -3016,6 +3018,52 @@
         look(r, crowdX, crowdY, 5, kn);
       } else return false;
     } else return false;
+    return true;
+  }
+  /* ---------- Ambiente de Carrera (P3, notes/ambiente.md §4.6): gestos con balón muerto ----------
+   * VB.Players.gesture(p, kind, dur) o los eventos amb:protest / amb:taunt / amb:card / amb:handshake. Solo en la pausa del punto
+   * (encima de la celebración, entra y sale fundido en GS_FADE s); se apaga solo al acabar, al salir del punto o con el saque.
+   * Reutiliza variantes de la celebración (noToque, lookSpot, pique, roar, kill, jarras) y añade tres poses baratas: «shh» (índice
+   * en los labios), «calm» (palmas hacia abajo) y «handshake» (mano tendida). Sin mallas ni memoria por frame. */
+  var GS_FADE = 0.22, GS_VAR = { protest: 'noToque', pointSpot: 'lookSpot', stare: 'pique', fist: 'kill', net: 'roar', headDown: 'jarras' };
+  var GS_KINDS = { protest: 1, pointSpot: 1, calm: 1, stare: 1, shh: 1, fist: 1, net: 1, headDown: 1, handshake: 1 };
+  var GA = null, GB = null;
+  function gesturePose(g, r, P, tm) {
+    var t = tm - r.gsT, d = r.gsD;
+    if (t < 0) return;
+    if (t > d || (g.mode !== 'point' && g.mode !== 'over')) { r.gsK = ''; return; }
+    if (!GA) { GA = new Pose(); GB = new Pose(); }
+    var w = sstep(0, GS_FADE, t) * (1 - sstep(d - GS_FADE, d, t)), k = r.gsK, v = GS_VAR[k];
+    var rm = !!(ctx && ctx.reduceMotion), lkW = r.lkW, lkX = r.lkX, lkY = r.lkY, lkZ = r.lkZ;
+    copyP(GA, P);                                   // pose de base (la celebración)
+    if (v) {
+      var c0 = r.celV, me0 = r.matchEnd; r.celV = v; r.matchEnd = false;
+      try { celebrate(g, r, P, Math.min(t, 1.35)); } finally { r.celV = c0; r.matchEnd = me0; }
+    } else {
+      var s2 = P.s, v2 = P.v, osc = rm ? 0 : Math.sin(t * PI * 2 * 1.6);
+      if (k === 'shh') {                            // índice en los labios, mirando al rival
+        s2[HP] = -0.1; s2[CP] = -0.05; s2[DROP] = 0.03;
+        setV(v2[HR], -0.04, 1.6, 0.2); setV(v2[AR], -1, -0.7, -0.2); s2[WRR] = 0.2;
+        setV(v2[HL], 0.26, 1.0, 0.1); setV(v2[AL], 1, -0.2, -0.3);
+        look(r, r.p.x * 0.2, r.p.y, 1.6, 0.8);
+      } else if (k === 'calm') {                    // palmas hacia abajo, despacio (pedir calma a los suyos)
+        s2[DROP] = 0.05; s2[CP] = 0.05; s2[HP] = 0.1;
+        setV(v2[HL], 0.3, 1.02 + 0.04 * osc, 0.34); setV(v2[HR], -0.3, 1.02 + 0.04 * osc, 0.34);
+        setV(v2[AL], 1, -0.4, -0.3); setV(v2[AR], -1, -0.4, -0.3); s2[WRL] = s2[WRR] = 0.1;
+      } else if (k === 'handshake') {               // mano derecha tendida hacia la red
+        s2[DROP] = 0.03; s2[CP] = 0.08; s2[HP] = -0.05;
+        setV(v2[HR], -0.16, 1.18, 0.56 + 0.02 * osc); setV(v2[AR], -1, -0.5, -0.3); s2[WRR] = 0.3;
+        setV(v2[HL], 0.26, 0.98, 0.1); setV(v2[AL], 1, -0.2, -0.3);
+        look(r, 0, r.p.y, 1.5, 0.7);
+      }
+    }
+    copyP(GB, P); copyP(P, GA); blendP(P, GB, w);
+    if (w < 1 && lkW >= 0) { r.lkW = lerp(lkW, r.lkW, w); if (w < 0.5) { r.lkX = lkX; r.lkY = lkY; r.lkZ = lkZ; } }
+  }
+  function gestureOf(g, pid, kind, dur, delay) {
+    if (pid == null || pid < 0 || !GS_KINDS[kind]) return false;
+    var r = byId[pid]; if (!r || !g) return false;
+    r.gsK = kind; r.gsT = g.time + (delay || 0); r.gsD = Math.max(0.5, Math.min(4, dur || 1.4));
     return true;
   }
   function celebrate(g, r, P, t) {
@@ -4150,6 +4198,7 @@
   function resetRig(r) {
     r.callT = -99; r.callKey = -99; r.tgtW = 0; r.covW = 0; r.fxForce = '';
     r.inited = false; r.hitT = r.jumpT = r.landT = r.blockT = r.pressT = r.swingT = r.pointT = r.diveT = r.tossT = -99;
+    r.gsK = ''; r.gsT = -99; r.gsD = 0;
     r.hitKind = ''; r.hitShot = ''; r.hitGrade = ''; r.jumpKind = ''; r.hasFace = false; r.yawRate = 0; r.yawV = 0; r.vf = r.vl = 0;
     r.diveUp = 1; r.diveDz = 0; r.ozGiven = 0; r.upBoost = 0; r.offX = r.offY = r.ox0 = r.oy0 = 0; r.lpx = r.p.x; r.lpy = r.p.y;
     r.fk[0].lock = r.fk[1].lock = false; r.locoOwn = 0; r.aw0 = r.aw1 = 0; r.hitMode = ''; r.pdW = 0; r.pdLive = false; r.diveTc = 0;
@@ -4536,8 +4585,24 @@
           best.dvYaw0 = best.yaw; diveSideOf(g, best, bd); best.dvar = 'miss'; best.dvExtra = 0.25; best.diveEnd += 0.25;
         }
         break;
+      case 'amb:protest':   // Ambiente (P3): el que protesta abre los brazos al árbitro (o señala el bote)
+        if (!e.replay) gestureOf(g, e.pid, e.kind === 'line' && (e.pid % 2) ? 'pointSpot' : 'protest', e.dur || 1.3);
+        break;
+      case 'amb:taunt':
+        if (!e.replay) gestureOf(g, e.pid, e.kind === 'shh' ? 'shh' : e.kind === 'stare' ? 'stare' : e.kind === 'net' ? 'net' : 'fist', e.dur || 1.3);
+        break;
+      case 'amb:card':      // el sancionado baja la cabeza (y se calma) tras la seña del 1r
+        if (!e.replay && e.pid >= 0) gestureOf(g, e.pid, 'headDown', 1.6, 0.35);
+        break;
+      case 'amb:refTalk':   // con amonestación verbal, el capitán llamado pide calma a los suyos
+        if (!e.replay && e.level === 'verbal' && e.pid >= 0) gestureOf(g, e.pid, 'calm', 1.4, 0.6);
+        break;
+      case 'amb:handshake': // saludo final: mano tendida a la red cuando acaba la celebración del partido
+        if (!e.replay) for (var hs = 0; hs < rigs.length; hs++) { var rh = rigs[hs]; if (rh.p && rh.p.z < 0.05) gestureOf(g, rh.id, 'handshake', 1.6, rh.matchEnd ? Math.max(0, rh.pointT + 2.6 - g.time) : 0); }
+        break;
       case 'point':
         if (g.drill) break;   // E2 × E6: en el gimnasio no hay celebración (la sim tampoco emite point)
+        if (e.penalty) { for (var kq = 0; kq < rigs.length; kq++) rigs[kq].gsK = ''; break; }   // punto de castigo (Ambiente): sin celebración
         var won = e.team, sum = (e.score ? e.score[0] + e.score[1] : 0);
         for (var k = 0; k < rigs.length; k++) {
           var rr = rigs[k], pp = rr.p;
@@ -4853,6 +4918,11 @@
     /** Depuración (pruebas): reloj del cuadro vivo de la escena congelada del punto (s desde la escena; -1 sin cuadro). */
     _tab: function () { return TAB.g ? { t: +TAB.t.toFixed(3), max: +TAB.max.toFixed(3) } : -1; },
     rigOf: function (p) { return p && byId[p.id] && byId[p.id].p === p ? byId[p.id] : null; },
+    /** Ambiente de Carrera (P3): gesto con balón muerto, encima de la celebración. p = jugador de la sim (o su id); kind =
+     *  'protest'|'pointSpot'|'calm'|'stare'|'shh'|'fist'|'net'|'headDown'|'handshake'; dur en s (0,5-4). Solo se ve en la pausa del
+     *  punto (g.mode 'point'/'over'); players.js lo llama solo con amb:protest / amb:taunt / amb:card / amb:refTalk / amb:handshake. */
+    gesture: function (p, kind, dur) { var g = REP.g || (ctx && ctx.game); return gestureOf(g, p && p.id != null ? p.id : p, kind, dur, 0); },
+    GESTURES: GS_KINDS,
     /** S3-C1 (repetición): con g (sombra de VB.Replay), cada rig pasa a animar al jugador de g con su mismo id (r.pLive guarda el de
      *  la partida en vivo) y se reinicia (resetRig), sin rigFor ni onGameStart: el aspecto (Vestuario, rival, firma, personalidad) es
      *  el del rig. Guarda y vacía la convergencia (CVP), la cola de FX y DIG_LAST/ATK_LAST/lastBlocker, y deja como «variante
@@ -4924,7 +4994,7 @@
       // los rigs recién creados se orientan antes de leer eventos (puntos de contacto en su espacio)
       for (i = 0; i < rigs.length; i++) if (!rigs[i].inited) rigs[i].yaw = desiredYaw(g, rigs[i]);
       for (i = 0; i < events.length; i++) {
-        if (events[i].type === 'point' && !g.replay && !events[i].replay) { LIVE_PT.e = events[i]; LIVE_PT.g = g; }   // lastLivePoint (bindReplay)
+        if (events[i].type === 'point' && !g.replay && !events[i].replay && !events[i].penalty) { LIVE_PT.e = events[i]; LIVE_PT.g = g; }   // lastLivePoint (bindReplay)
         try { onEvent(g, events[i]); } catch (e) { if (!window.__plErr) { window.__plErr = 1; console.error("[VB][ERROR] Players.onEvent: " + e); } }
       }
       if (g.mode === 'over' && g.finished && g.lastPoint && rigs.length && !rigs[0].matchEnd) overPose(g);

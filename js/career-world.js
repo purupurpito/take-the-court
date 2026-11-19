@@ -622,10 +622,45 @@
   }
 
   // ------------------------------------------------------------------ ganchos de career.js (después de CareerLife)
+  // ------------------------------------------------------------------ rivalidad (ambiente de Carrera, notes/ambiente.md §2D)
+  // c.world.riv[clubId] = {h 0..1, m (cruces), w, l, last:{season, wk, r:'W'|'L'}, why:[≤4]}: sube con partidos apretados, tarjetas,
+  // finales y derbis; baja ×0,6 al empezar temporada. Entra en el calor del partido (career.js ambCtx) y en los mensajes de la semana.
+  var RIV_MAX = 40, RIV_DECAY = 0.6;
+  function rivOf(w, id) {
+    if (!w.riv || typeof w.riv !== 'object' || Array.isArray(w.riv)) w.riv = {};
+    var r = w.riv[id];
+    if (!r || typeof r !== 'object') r = w.riv[id] = { h: 0, m: 0, w: 0, l: 0, last: null, why: [] };
+    if (!(r.h >= 0)) r.h = 0; if (!Array.isArray(r.why)) r.why = [];
+    return r;
+  }
+  function rivAfter(c, w, sum, f) {
+    if (!sum || sum.bench || !sum.sets || sum.rival == null) return;
+    var S = VB.ctx && VB.ctx.settings; if (S && S.ambient === 'off') return;   // («Apagado»: c.world no cambia, como antes)
+    var r = rivOf(w, sum.rival), a = sum.amb, add = 0, why = '';
+    r.m = (r.m | 0) + 1; if (sum.win) r.w = (r.w | 0) + 1; else r.l = (r.l | 0) + 1;
+    var ss = sum.setScores || [], tight = Math.min(sum.sets[0] | 0, sum.sets[1] | 0) > 0 || ss.some(function (x) { return x && Math.abs((x[0] | 0) - (x[1] | 0)) <= 2; });
+    if (tight) { add += 0.08; why = 'apretado'; }
+    if (a && a.cards) { var reds = a.cards.filter(function (x) { return x.color === 'red' || x.color === 'delayR'; }).length; if (reds) { add += 0.1 * reds; why = 'tarjetas'; } }
+    var fin = a && a.tags && a.tags.indexOf('final') >= 0 || /final/i.test(String(sum.label || '')) && !/semi/i.test(String(sum.label || ''));
+    if (fin) { add += 0.2; why = 'final'; }
+    if (a && a.tags && a.tags.indexOf('derbi') >= 0) { r.h = Math.max(r.h, 0.3); if (!why) why = 'derbi'; }
+    r.h = Math.min(1, Math.round((r.h + add) * 100) / 100);
+    r.last = { season: sum.season | 0, wk: (f && (f.kind === 'league' ? f.week : f.round)) | 0, r: sum.win ? 'W' : 'L' };
+    if (why) { r.why.push(why); if (r.why.length > 4) r.why = r.why.slice(-4); }
+    // tope: se quedan las RIV_MAX de más rivalidad
+    var ids = Object.keys(w.riv);
+    if (ids.length > RIV_MAX) { ids.sort(function (x, y) { return (w.riv[x].h || 0) - (w.riv[y].h || 0); }); ids.slice(0, ids.length - RIV_MAX).forEach(function (id) { if (+id !== sum.rival) delete w.riv[id]; }); }
+  }
+  function rivSeason(c) {
+    var w = ensure(c); if (!w.riv) return;
+    Object.keys(w.riv).forEach(function (id) { var r = w.riv[id]; if (r) r.h = Math.round((+r.h || 0) * RIV_DECAY * 100) / 100; });
+  }
+
   function afterMatch(c, sum, f) {
     if (!sum) return;
     var w = ensure(c), T = c.career || {};
     if (!sum.bench && sum.sets) addH2h(w, sum.rival, sum.sets, sum.season);
+    try { rivAfter(c, w, sum, f); } catch (e) { try { console.error('CareerWorld riv', e); } catch (e2) { } }
     try { roundNews(c, sum, f); } catch (e) { try { console.error('CareerWorld roundNews', e); } catch (e2) { } }
     if (sum.bench) { beat(c, 'bench1'); return; }
     if (sum.win && (T.won | 0) === 1) beat(c, 'win1');
@@ -650,6 +685,7 @@
   }
   function seasonStart(c) {
     try { summerNews(c); } catch (e) { try { console.error('CareerWorld summerNews', e); } catch (e2) { } }
+    try { rivSeason(c); } catch (e) { try { console.error('CareerWorld rivSeason', e); } catch (e2) { } }
     var me = E(c).myClub(c);
     if (me && isTop(c, lvOf(me))) beat(c, 'top', { lg: lgOf(c, me).name });
     if (c.player && (c.player.age | 0) >= 30) beat(c, 'vet');
@@ -678,6 +714,8 @@
     news: news, newsUnseen: newsUnseen, markNewsSeen: markNewsSeen, newsWhen: newsWhen,
     lore: lore, clubRows: clubRows, clubCard: clubCard, leaguesOf: leaguesOf, topLv: topLv, otherLv: otherLv, isTop: isTop, lgBy: lgBy, lgOf: lgOf, BEATS_H: BEATS_H,
     _andList: andList, _ordn: ordn,
+    // ambiente de Carrera: rivalidad persistente (c.world.riv)
+    rivOf: function (c, id) { var w = c && c.world; return w && w.riv && w.riv[id] || null; }, RIV_MAX: RIV_MAX, RIV_DECAY: RIV_DECAY,
     // S2-S4 (T11): escudos, vitrina y noticia del jefe
     crestOf: crestOf, trophyCase: trophyCase, newsBoss: newsBoss, CREST_SHAPES: CREST_SHAPES, CREST_DIVS: CREST_DIVS, CREST_EMB: CREST_EMB, CREST_EMB_H: CREST_EMB_H,
     CREST_MIN: CREST_MIN, CREST_SALT: CREST_SALT, _lum: lumC
