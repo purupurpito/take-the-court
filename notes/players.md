@@ -1217,6 +1217,57 @@ solo queda una ventana de ~0,11. Todo lo de la pierna se coloca por **altura sob
   de peinado dejan `renderer.info.memory` como estaba; al parar, como antes de empezar). Si la vista previa ya estaba encendida, la deja
   como estaba. En node (sin lienzo) hace la parte de geometría.
 
+#### Objetos nuevos (WP7 del plan del Vestuario, 1.16, rama personaje)
+40 objetos nuevos que se leen de espaldas y de lejos (lookvis: todos VISIBLES en el primer plano en las dos pieles y kits; los de pelo,
+cabeza, piernas y brazos por fuera, ≥ 9 px de espaldas en el partido en el móvil salvo los pendientes, 7 px en LOD0 lejos). Ids que el
+plan escribía más largos se acortaron por el formato de id (≤ 16 caracteres, `?item=` de main.js): `pescadorEstampado` → `pescadorCuadros`,
+`manguitoAntebrazo` → `manguitoBajo`, `manguitoDegradado` → `manguitoFundido`, `manguitoEstrellas` → `manguitoEstrella`.
+- **Cabeza** (doll.js `beanieGeo`, `diademaGeo`, `pinzasGeo`, `earringGeo`, `visorShades`):
+  - `gorroPompon` (pista): clase de gorro nueva `BEANIE` (`hatCup`; el pelo la trata como `CAP`, entra en HIDE_HAIR). Copa acanalada por
+    gajos, vuelta oscura y acanalada, pompón icosaedro (crema o cB si se elige). 144/189/278.
+  - `diadema`: arco plano de 3 cm de oreja a oreja que cruza la coronilla (casi vertical: se ve de espaldas y desde arriba), apoyado en el
+    pelo con `overPt` + `st.over`, y un lazo a la izquierda. 114/132/168.
+  - `pinzas`: pinza de garra GRANDE en la nuca (cuerpo cA, lomo oscuro, dientes en contraste con el pelo) y un clip en cada sien. 84.
+  - `pescadorCuadros` (playa): el pescador con damero cA / `pick(cB)` por casillas de la propia esfera y ala a gajos (mismos triángulos).
+  - `viseraGafas` (playa): la visera + gafas de sol de lentes azules espejadas de pie sobre el arranque de la visera, puente y patillas por
+    la banda (LOD0 sin brillo y con un tramo de patilla). 272/366/522: pasa del tope de objeto de cabeza de WP3 (≤ 450 / ≤ 250); el peor
+    caso de playa sigue con margen (ver abajo).
+  - `pendientes`: aros dorados grandes (r 4,3 cm) con brillo y sombra por vértice. 96 en todos los LOD.
+- **Gafas**: `gafasRedondas` (metal bronce fino, lente apenas tintada, puente de cerradura) y `aviador` (playa: gota dorada con degradado
+  marrón opaco y doble puente) pintadas, con las patillas de siempre. `gafasVentisca` (playa): máscara pintada (marco grueso cGlass, lente
+  espejada naranja → violeta opaca) + `ventiscaStrap`, correa ancha de cA con franja clara alrededor de la cabeza (sin patillas). 80/100/160.
+- **Cara** (atlas): `pinturaEquipo` (parche en cada mejilla partido en diagonal base / acento con filo blanco), `rayoOjo` (rayo del acento
+  por el rabillo de fuera del ojo derecho: si cruza el ojo, el blanco del ojo lo tapa), `tiritaNariz` (tirita grande ladeada; blanca fría
+  sobre piel clara, beige sobre oscura), `bigote70` (herradura hasta la barbilla con mechones).
+- **Cuello**: `bandanaCuello` (rulo gordo con lunares, pico sobre el pecho y nudo con dos puntas en la nuca), `silbato` (cordón en V y
+  silbato de plástico oscuro sobre camiseta clara, metálico sobre oscura), `cadenaPlata` (eslabones claro/oscuro por vértice y chapa).
+- **Torso y brazos**: `licraCorta` (playa: tronco, hombros y cuello alto en cB como la licra, manga hasta medio brazo con ribete;
+  `isLicra(X)` sustituye a `X.under === 'licra'` donde va la licra en el tronco; `longSleeve(X)` = manga larga). Manguitos (pista):
+  `manguitoMedio` (del ribete al codo, `SLV_UP_ONLY`), `manguitoBajo` (asoma sobre el codo y baja a la muñeca, `SLV_FORE_ONLY`),
+  `manguitoBicolor` y `manguitoFundido` (brazo cA, antebrazo `slvB` = cB o su contraste; el fundido en 6 escalones por tramo; bola del codo
+  slvB / mezcla, `SLV_AB` → cB en geoSig), `manguitoEstrella` (estrellas al tresbolillo, oscuras sobre manguito claro), `manguitoNumero`
+  (tu dorsal en el brazo: `paintLimbs` recibe ahora el número; oscuro sobre manguito claro). `wristBg`, `armBg` y `underElbowHex` saben
+  qué tapa cada uno.
+- **Muñecas y manos**: `cintaMuneca` (dos vueltas de esparadrapo de cA solapadas), `muneqDoble` (dos bandas de rizo cB + cA con surco),
+  `dedosColor` (los dedos vendados con esparadrapo de cA: `TAPED.dedosColor = -1` → `pick(cA, piel)`).
+- **Piernas**: `mallaUnLado` (solo la izquierda, hasta el calcetín) y `malla34` (acaba 3 cm bajo la rodilla con el bajo del acento):
+  `kneeTights(X, k)` dice qué pierna lleva malla sobre la rodilla y `tightsOf(X, tc)` su color (la larga, cB; estas dos, cB si se elige o
+  el primero de acento/base/oscuro/blanco/negro que se distinga del pantalón y de la piel: en cB automático no se veían). Rodilleras:
+  `rodillerasColor` (franja de cA por anillos de la bola) y `rodilleraUna` (solo la izquierda; `padOn(X, k)`, `kneeHex(X, tc, k)`); las
+  dos asoman como funda corta pintada por encima y por debajo de la bola (`sleevePad`: la bola sola daba 7 px en el partido).
+  Calcetines (atlas): `compresion` (hasta la rodilla, canalé, escalones de presión, puño ancho), `lunares` (lunares grandes en contraste),
+  `caido` (borde ondulado y cuatro pliegues con sombra y luz).
+- **Pies**: `botinAlto` (caña de un torno con el borde acolchado del acento y lengüeta en el talón; `SHOE_SHAPE.cuff` → `shoeTopH`, y la
+  tobillera blanca empieza en el borde de la caña), `suelaGorda` (suela blanca de 12,5 cm con franja de acento, empeine oscuro),
+  `bicolor` (delante cShoe o la base, por anillos; detrás blanco), `retro` (crema, dos franjas anchas por gajos —una en LOD0—, puntera de
+  ante y suela de goma). `SHOE_VC` = las que llevan cShoe. Playa: `escarpinesNeo` (pie de neopreno con la suela de cA y caña pintada),
+  `vendajeTob` (esparadrapo en ocho del pie a 7 cm), `cuentasTob` (10 cuentas icosaedro de colores en LOD2; aro de gajos en LOD0/1).
+- Desbloqueos: inicio, tienda (precios dentro de la banda de su rareza) y alternativas de Entrenamiento (`atk`, `set`, `block`), récord y
+  retos (`r_digs`, `r_kills`, `r_rally`, `r_venues`, `r_win`), logros (`ch10`, `p500`) y fama. Ninguno por nivel, química ni jefe (los
+  premios de nivel siguen siendo 8).
+- Presupuesto (`looktest --gl`, peor caso = peinado × gorro × gafas + lo peor de cada ranura): pista 3782/5351/11204 (quedan
+  618/649/1596), playa 3894/5343/11650 (quedan 506/657/1150; peor afro + viseraGafas + gafasVentisca). TRI_CAP sin cambios.
+
 ### Vestuario en players.js (agente players)
 - `setKit(st, g)` acepta `st.looks` = `[fit|null, fit|null]` (los fija), `null` (los quita) o `undefined` (conserva los que había:
   Ajustes › Equipación no los borra). Los looks se sanean con `VB.Look.sane` y su firma (`LOOK_SIG`) entra en la de `setKit`, así que

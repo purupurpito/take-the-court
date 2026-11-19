@@ -73,7 +73,7 @@ check(C.every(x => Array.isArray(x.unlock) && x.unlock.length && x.unlock.every(
 check(C.every(x => Array.isArray(x.tris) && x.tris.length === 3 && x.tris[0] <= x.tris[1] && x.tris[1] <= x.tris[2]), 'tris [LOD0, LOD1, LOD2] crecientes');
 check(C.every(x => typeof x.geo === 'boolean' && typeof x.hint === 'string' && x.name && !/·|1\.er|2\.º/.test(x.name + x.hint)), 'geo booleano, hint y nombres sin «·»');
 check(C.filter(x => x.tris[2] > 0).every(x => x.geo), 'lo que suma triángulos cambia la malla (geo)');
-check(C.filter(x => ['paint', 'marks', 'beard', 'band', 'legs', 'socks'].includes(x.slot) && x.id !== 'mallaLarga').every(x => !x.geo), 'pintura, marcas, barba, brazalete, malla corta y calcetines solo van en el atlas');
+check(C.filter(x => ['paint', 'marks', 'beard', 'band', 'legs', 'socks'].includes(x.slot) && ['mallaLarga', 'mallaUnLado', 'malla34'].indexOf(x.id) < 0).every(x => !x.geo), 'pintura, marcas, barba, brazalete, malla corta y calcetines solo van en el atlas (las mallas que tapan la rodilla, no: su bola va en cB)');
 check(['licra', 'mallaLarga'].every(id => L.item(id).geo && L.item(id).vc === 'B'), 'licra y malla larga cambian la malla (bola del hombro / de la rodilla en cB, color por vértice)');
 check(C.every(x => Object.isFrozen(x)), 'objetos del catálogo congelados');
 
@@ -81,13 +81,13 @@ check(C.every(x => Object.isFrozen(x)), 'objetos del catálogo congelados');
 const SPEC = {
   style: 'tupe coleta afro flequillo rapado mono trenzas dosmonos coletas cresta' +   // + los 22 de 1.16 (WP2 del plan del Vestuario)
     ' alCero degradado cepillo undercut crop pinchos rizosCortos afroCorto frohawk raices twists rastas despeinado cortina melenita mullet ondas melena semirrecogido coletaBaja trenza monoBajo',
-  head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC',   // (gorraMTC: online, fase 3)
-  eyes: 'frente pasta oscuras deporte espejo', paint: 'zinc rayas rayasEq estrella', marks: 'pecas tirita tiraNasal', beard: 'bigote perilla tresDias barba',   // (barba: 1.16, WP3)
+  head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC' + ' diadema pinzas gorroPompon pescadorCuadros viseraGafas pendientes',   // (gorraMTC: online, fase 3; + los de WP7)
+  eyes: 'frente pasta oscuras deporte espejo gafasRedondas aviador gafasVentisca', paint: 'zinc rayas rayasEq estrella pinturaEquipo rayoOjo', marks: 'pecas tirita tiraNasal tiritaNariz', beard: 'bigote perilla tresDias barba bigote70',   // (barba: 1.16, WP3; WP7)
  
-  neck: 'medalla conchas', under: 'termica licra', band: 'capitan', legs: 'malla mallaLarga',
-  armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo', elbows: 'coderas',
-  wristL: 'muneq reloj munhCanon', hands: 'dedos mitones dedosMuro', knees: 'cortas altas bajadas rodiPulpo', socks: 'tobilleros media altos altosRayas desparejados',
-  ankle: 'blanca tela pulseraTob escarpines tobiPulpo', shoes: 'clasicas negras neon doradas',
+  neck: 'medalla conchas bandanaCuello silbato cadenaPlata', under: 'termica licra licraCorta', band: 'capitan', legs: 'malla mallaLarga mallaUnLado malla34',
+  armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo manguitoMedio manguitoBajo manguitoBicolor manguitoFundido manguitoEstrella manguitoNumero', elbows: 'coderas',
+  wristL: 'muneq reloj munhCanon cintaMuneca muneqDoble', hands: 'dedos mitones dedosMuro dedosColor', knees: 'cortas altas bajadas rodiPulpo rodillerasColor rodilleraUna', socks: 'tobilleros media altos altosRayas desparejados compresion lunares caido',
+  ankle: 'blanca tela pulseraTob escarpines tobiPulpo escarpinesNeo vendajeTob cuentasTob', shoes: 'clasicas negras neon doradas botinAlto suelaGorda bicolor retro',
   hairTint: 'tAzul tRosa tVerde tMorado tTurquesa tDorado tRojo tNaranja tLila tMenta tPlata tEquipo', color: 'dorado',
   hairFx: 'raiz puntas mechas flequilloFx mitad'
 };
@@ -98,8 +98,9 @@ check(eq(L.items('armR'), L.items('armL')) && eq(L.items('wristR'), L.items('wri
 check(L.STYLES.length === 32 && L.TINTS.length === 12 && L.SKINS.length === 14 && L.HAIRS.length === 21, '32 peinados, 12 tintes, 14 pieles y 21 colores de pelo');
 check(L.STYLES.filter(id => L.isStart(id)).length === 9 + 18, '18 de los 22 peinados nuevos son de inicio (27 de 32)');
 // sede (§1.4.1)
-const ONLY_Y = 'gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines tobiPulpo'.split(' ');
-const ONLY_P = ['termica', 'bajadas', 'blanca', 'rodiPulpo', 'cortas', 'altas', 'coderas'].concat(SPEC.armL.split(' ').filter(x => x !== 'kinesio')).concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
+const ONLY_Y = ('gorra gorraAtras visera pescador frente oscuras espejo zinc conchas licra mitones tela pulseraTob escarpines tobiPulpo' +
+  ' pescadorCuadros viseraGafas aviador gafasVentisca licraCorta escarpinesNeo vendajeTob cuentasTob').split(' ');   // (+ WP7)
+const ONLY_P = ['termica', 'bajadas', 'blanca', 'rodiPulpo', 'cortas', 'altas', 'coderas', 'gorroPompon', 'rodillerasColor', 'rodilleraUna'].concat(SPEC.armL.split(' ').filter(x => x !== 'kinesio')).concat(SPEC.socks.split(' '), SPEC.shoes.split(' '));
 check(C.filter(x => x.venue === 'Y').map(x => x.id).sort().join() === ONLY_Y.slice().sort().join(), 'solo en playa: la lista de §1.4');
 check(C.filter(x => x.venue === 'P').map(x => x.id).sort().join() === ONLY_P.slice().sort().join(), 'solo en pista: la lista de §1.4');
 // CLASH
@@ -369,7 +370,7 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   check(L.stars('corona') === '★★★★' && L.stars('pasta') === '★☆☆☆' && L.rarityLabel('espejo') === 'Rareza: 3 de 4', 'estrellas y aria-label de la rareza');
   check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 33 && L.choices('skin').length === 14 &&
     L.choices('hair').filter(v => typeof v === 'number').every((v, i, a) => !i || lumT(a[i - 1]) <= lumT(v)) && L.choices('hairFx')[0] === '' && L.choices('hairFx').length === 6, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale); el pelo natural de oscuro a claro; efectos de pelo');
-  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC,bandana', 'HIDE_HAIR: gorra, gorra al revés, pescador, la gorra «MTC» del online y el pañuelo (1.16, WP3)');
+  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC,bandana,gorroPompon,pescadorCuadros', 'HIDE_HAIR: gorra, gorra al revés, pescador, la gorra «MTC» del online, el pañuelo (1.16, WP3), el gorro de lana y el pescador de cuadros (WP7)');
 }
 // sin tocar VB ajeno
 check(Object.keys(VB).join() === 'Look', 'look.js solo publica VB.Look');
@@ -418,7 +419,7 @@ console.log('== sprint 2-4 (T9) ==');
     H.CATALOG.forEach(o => { const n = X.item(o.id); if (!n) { lostAlt.push(o.id + ' (falta)'); return; } o.unlock.forEach(u => { if (!n.unlock.some(v => eq(v, u))) lostAlt.push(o.id + ' ' + JSON.stringify(u)); }); });
     const added = C.filter(x => H.item(x.id)).map(x => x.unlock.length - H.item(x.id).unlock.length).reduce((a, b) => a + b, 0);
     check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de ' + LOOK_BASE + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
-    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6 + 34, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online) + 34 de 1.16 (22 peinados, 6 tintes, 5 efectos, la barba; ' + H.CATALOG.length + ' → ' + C.length + ')');
+    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6 + 34 + 40, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online) + 34 de 1.16 (22 peinados, 6 tintes, 5 efectos, la barba) + 40 de WP7 (' + H.CATALOG.length + ' → ' + C.length + ')');
     check(H.CATALOG.every(o => X.isStart(o.id) === H.isStart(o.id) && X.price(o.id) === H.price(o.id) && X.item(o.id).rarity === o.rarity), 'inicio, precios y rarezas de siempre');
   } else console.log('AVISO: sin js/look.js en ' + LOOK_BASE + ': comparación de alternativas saltada');
 
