@@ -552,7 +552,9 @@
       });
     });
     var toks = TOKENS.map(function (t) { return t.id; }).concat(PALETTE.map(function (p) { return p.id; }).filter(can));
-    COLOR_KEYS.forEach(function (k) { f.colors[k] = r() < 0.55 ? 'auto' : pick(r, toks); });
+    // 'pad' (la última: no mueve el azar de las demás) se queda en auto mientras ninguna pieza lleve cPad (doll.js): si no, dos
+    // aspectos que se ven iguales tendrían firmas distintas
+    COLOR_KEYS.forEach(function (k) { f.colors[k] = k === 'pad' || r() < 0.55 ? 'auto' : pick(r, toks); });
     return fix(f, null, null).fit;
   }
 

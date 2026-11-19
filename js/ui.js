@@ -4487,9 +4487,12 @@
     var r = null; try { r = Lk.random(Date.now(), true); } catch (e) { r = null; }   // semilla de la UI: nunca g.rng
     if (!r) return;
     var f = lkClone(lk.fit), vk = lkVKey();
-    ['style', 'skin', 'hair'].forEach(function (k) { if (r[k] != null) f[k] = r[k]; });
-    if (r.colors) f.colors = lkClone(r.colors);
-    if (r[vk]) f[vk] = lkClone(r[vk]);   // solo la ropa del escenario que se ve; la del otro se queda
+    // cada ruta que pisa el azar borra su _keep (como lkPut): si no, una versión más nueva que conozca ese id lo devolvería encima
+    ['style', 'skin', 'hair'].forEach(function (k) { if (r[k] != null) { f[k] = r[k]; lkUnkeep(f, k); } });
+    if (r.colors) { f.colors = lkClone(r.colors); Object.keys(r.colors).forEach(function (k) { lkUnkeep(f, 'colors.' + k); }); }
+    if (r[vk]) {   // solo la ropa del escenario que se ve; la del otro (y su _keep) se queda
+      f[vk] = lkClone(r[vk]); Object.keys(r[vk]).forEach(function (s) { lkUnkeep(f, vk + '.' + s); });
+    }
     lkSet(f, null, true);
     uiSound('click'); srSay('Aspecto al azar');
     lkRender(); lkPreview();

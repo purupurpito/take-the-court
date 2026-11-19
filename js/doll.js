@@ -1110,10 +1110,23 @@
   // cortaban) y sin pieza propia: −208 triángulos por pie en LOD2, −101 en LOD1, −64 en LOD0. 16 segmentos de lado a lado por encima y 14 de la
   // punta al talón (antes eran 9: el perfil de lado sale más redondo con los mismos triángulos).
   var SHOE_TOE = 0.36;  // fracción de la longitud (polo → polo) que es puntera
+  // distancia entre dos colores (RGB «redmean», 0-765): barata y bastante parecida a lo que ve el ojo
+  function hexDist(a, b) {
+    var r = ((a >> 16 & 255) + (b >> 16 & 255)) / 2, dr = (a >> 16 & 255) - (b >> 16 & 255), dg = (a >> 8 & 255) - (b >> 8 & 255), db = (a & 255) - (b & 255);
+    return Math.sqrt((2 + r / 256) * dr * dr + 4 * dg * dg + (2 + (255 - r) / 256) * db * db);
+  }
+  // color de un detalle (puntera, ribete) sobre el color c0 de debajo: el pedido si se distingue; si no (el acento amarillo de un
+  // equipo sobre las neón o las doradas, el blanco sobre las clásicas), el color base del equipo y, si tampoco, oscuro o blanco
+  function onShoe(want, c0, tc) {
+    if (hexDist(want, c0) >= 150) return want;
+    if (typeof tc.base === 'number' && hexDist(tc.base, c0) >= 220) return tc.base;
+    return lumHex(c0) > 0.5 ? NEUTRAL_DK : 0xf4f4f4;
+  }
   function shoeGeo(G, tc, X) {
     var K = FOOT_K, Y = -ANKLE + 0.075, sh = SHOE_UP[X.shoes] ? X.shoes : 'clasicas';   // la planta sigue en -ANKLE: el zapatón crece en largo y ancho (y algo en alto)
     var up = (sh === 'clasicas' || sh === 'neon') && X.cShoe >= 0 ? X.cShoe : SHOE_UP[sh];
-    var sole = sh === 'neon' ? 0x1d1d22 : tc.sole, toe = sh === 'doradas' ? GOLD_HI : tc.accent;
+    // las doradas no pegan la suela al empeine (la amarilla de un equipo desaparecía bajo el dorado); las demás, la del equipo como siempre
+    var sole = sh === 'neon' ? 0x1d1d22 : sh === 'doradas' ? onShoe(tc.sole, up, tc) : tc.sole, toe = sh === 'doradas' ? GOLD_HI : onShoe(tc.accent, up, tc);
     var ank = X.ankle === 'blanca' ? (sh === 'negras' ? 0x2c2c34 : 0xf4f4f4) : up;
     // y de la primitiva = eje del polo (+1 la punta): la puntera son los anillos enteros con y > cos(kc·π/h) (el centro de cada triángulo
     // queda estrictamente entre sus dos anillos, así que el corte cae justo en la línea del anillo kc en cualquier LOD)
@@ -1124,7 +1137,7 @@
     G.add(sph(1, 18, 7, 0, PI * 2, PI * 0.5, PI * 0.5), sole, 0, Y, 0.055 * K, 0, 0, 0, 0.094 * K, 0.075, 0.16 * K);   // suela (media esfera aplastada)
     G.add(cyl(0.05 * K, 0.056 * K, 0.06, 14), ank, 0, -0.03, -0.005);                                                 // tobillera
     G.owk = 0;
-    G.add(cyl(0.057 * K, 0.057 * K, 0.014, 14, true), tc.accent, 0, -0.012, -0.005);                                  // ribete del tobillo
+    G.add(cyl(0.057 * K, 0.057 * K, 0.014, 14, true), onShoe(tc.accent, ank, tc), 0, -0.012, -0.005);                 // ribete del tobillo
     G.owk = 1;
   }
   /** Cuello (ranura neck) en el hueso del pecho: un aro inclinado que se apoya en el domo de los hombros, por delante más bajo y por
@@ -1776,7 +1789,10 @@
   }
   // la vista previa del Vestuario va SIEMPRE en la malla alta (WP1 del plan del Vestuario): es un solo muñeco y es justo donde se mira
   // el detalle; con la calidad activa, el móvil (calidad media) veía la malla media facetada (casquetes del pelo, zapatillas)
-  function pvLod() { return 2; }
+  // PV_LOD: nivel forzado SOLO para herramientas (tools/lookvis.js mide el partido en LOD1 y LOD0 con la vista previa); el juego
+  // nunca lo toca. null = LOD2
+  var PV_LOD = null;
+  function pvLod() { return PV_LOD != null ? PV_LOD : 2; }
   function pvHide() {
     if (!ctx || !ctx.scene) return;
     var list = [ctx.scene.getObjectByName('contactBlobs')];
@@ -1849,6 +1865,9 @@
       paintAtlas(cv, op.tc, L, op.num, op.beach); m.map.needsUpdate = true;
       return 'atlas';
     },
+    /** SOLO herramientas: fuerza el nivel de detalle de la vista previa (0, 1 o 2; otra cosa lo quita y vuelve a LOD2). Se aplica
+     *  en el próximo start/set (rehace la malla). Devuelve el nivel que queda. */
+    lod: function (n) { PV_LOD = n === 0 || n === 1 || n === 2 ? n : null; return pvLod(); },
     /** Pose del muñeco: 'idle' | 'spike' | 'cel' | 'recv' (y 'block', 'stand'). */
     pose: function (name) { if (!PV || !POSES[name]) return false; PV.pose = PV.r.pose = name; PV.env = null; return name; },
     /** Expresión: neutra | concentrado | esfuerzo | grito | alegria | pena | sorpresa | lengua. */

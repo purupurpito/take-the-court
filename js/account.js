@@ -267,6 +267,10 @@
     var out = null, Lk = VB.Look;
     if (Lk && typeof Lk.mergeRaw === 'function') { try { out = p(Lk.mergeRaw(Lraw, Rraw)); } catch (e) { out = null; } }
     if (!out) return remoteNewer ? Rraw : Lraw;
+    // un lado de una versión del guardado más nueva (v > V): mergeRaw ya dio ENTERO el de mayor v y aquí no se le mezclan los fits
+    // del otro lado (los de una v vieja dentro de un guardado v nuevo se leerían mal allí)
+    var V = typeof Lk.V === 'number' ? Lk.V : 1;
+    if ((typeof A.v === 'number' && A.v > V) || (typeof B.v === 'number' && B.v > V)) return JSON.stringify(out) === JSON.stringify(A) ? Lraw : JSON.stringify(out);
     var src = remoteNewer ? B : A, fa = +A.ft > 0 ? +A.ft : 0, fb = +B.ft > 0 ? +B.ft : 0;
     if (fa && fb) src = fb > fa ? B : A;
     if (Array.isArray(src.fits)) { out.fits = src.fits; if (fa && fb) out.ft = Math.max(fa, fb); }

@@ -32,6 +32,9 @@
  *   Salida: tools/out/lookvis/report.json (se fusiona: con --item solo se rehacen esos), report.md (tabla) y hojas
  *   tools/out/lookvis/sheets/<sede>-NN.jpg (base | objeto | diferencia en magenta, para cada caso, de la variante peor).
  *   --sheet=fail (por defecto): hojas solo de lo que no pasa algún umbral; all: de todo; none: sin hojas.
+ *   LOD: la vista previa del juego va siempre en LOD2, así que cada caso FUERZA su nivel con VB.Doll.preview.lod (a → 2, b → 1,
+ *   c → 0) y avisa (y falla) si la malla medida no es la pedida. --loda=0|1: el primer plano en otro nivel (§4.7 del plan: LOD0 de
+ *   cerca); entonces el informe va a report-loda<N>.json y las hojas a sheets-loda<N>/ para no mezclarse con el de verdad.
  *   Ejemplo (criterio de WP0): node tools/lookvis.js --item=pulseraTob,blanca,tobilleros,licra,manguito,altos
  *   Sale con 1 si algún objeto pedido con --item=…  y --expect=visible|invisible no cumple lo esperado.
  */
@@ -47,8 +50,12 @@ const CASES = (opt.case || 'a,b,c').split(',');
 const DE = +(opt.de || 8);
 const SHEET = opt.sheet || 'fail';
 const NVAR = opt.var === '1' ? 1 : 2;
+// nivel de detalle que se mide en cada caso (lo fuerza VB.Doll.preview.lod: la vista previa del juego va siempre en LOD2)
+const LODA = opt.loda === '0' || opt.loda === '1' ? +opt.loda : 2;
+const LOD_OF = { a: LODA, b: 1, c: 0 };
 const OUT = path.join(CDP.ROOT, 'tools', 'out', 'lookvis');
-const REPORT = path.join(OUT, 'report.json');
+const REPORT = path.join(OUT, LODA === 2 ? 'report.json' : 'report-loda' + LODA + '.json');
+const SHEETS = LODA === 2 ? 'sheets' : 'sheets-loda' + LODA;
 // umbrales del plan (WP0.1)
 const TH_A = +(opt.tha || 0.015), TH_B = +(opt.thb || 9);   // (--tha=0.01 --thb=6 para probar otros umbrales)
 // cámara del partido en el móvil, medida en el juego (640x360 táctil dpr 2, calidad media, buffer 800x450) con la posición de la
@@ -322,7 +329,7 @@ true;
 
 
 // ---------------------------------------------------------------- node
-fs.mkdirSync(path.join(OUT, 'sheets'), { recursive: true });
+fs.mkdirSync(path.join(OUT, SHEETS), { recursive: true });
 let report = {}; try { report = JSON.parse(fs.readFileSync(REPORT, 'utf8')); } catch (e) { }
 if (!report.items) report = { items: {} };
 const key = (ven, id) => ven + ':' + id;
@@ -355,6 +362,8 @@ async function runCase(kase, ven, list, strips, last) {
   const page = await openPage(kase, ven);
   let bad = 0;
   try {
+    const lod = await page.evalJs('VB.Doll.preview.lod ? VB.Doll.preview.lod(' + LOD_OF[kase] + ') : -1');
+    if (lod !== LOD_OF[kase]) throw new Error('no se puede forzar LOD' + LOD_OF[kase] + ' en la vista previa (VB.Doll.preview.lod)');
     const st = await page.evalJs('__LV.state()');
     console.log('[' + kase + ' ' + ven + '] ' + JSON.stringify(st) + ' · ' + list.length + ' objetos');
     const G = CAM[ven][kase] || null;
@@ -365,6 +374,7 @@ async function runCase(kase, ven, list, strips, last) {
       e.ref = job.ref; e.worn = r.worn; e.removed = r.removed;
       const req = kase === 'b' ? !FACE_ONLY[job.slot] : kase === 'a';
       const ok = kase === 'a' ? r.ratio >= TH_A : r.px >= TH_B;
+      if (r.lod !== LOD_OF[kase]) { console.error('  ERROR ' + ven + ' ' + job.id + ' (' + kase + '): medido en LOD' + r.lod + ' y no en LOD' + LOD_OF[kase]); bad++; }
       e[kase] = { px: r.px, ratio: r.ratio, view: r.view, tag: r.tag, lod: r.lod, tris: r.tris, vars: r.vars, req, ok, buf: st.w + 'x' + st.h, q: st.q };
       const noise = Math.max.apply(null, r.vars.map(v => v.noise || 0));
       if (noise) { e[kase].noise = noise; console.log('  AVISO ruido ' + ven + ' ' + job.id + ' (' + kase + '): ' + noise + ' px cambian con base contra base'); }
@@ -378,8 +388,8 @@ async function runCase(kase, ven, list, strips, last) {
         if (freeMB() < 250) { console.error('DISCO CASI LLENO: sin hojas'); bad++; break; }
         const chunk = rows.slice(i, i + 10);
         const data = await page.evalJs('__LV.compose(' + JSON.stringify(chunk) + ',' + JSON.stringify('VISIBILIDAD · ' + ven + ' · ' + chunk.map(x => x.id).join(', ')) + ',' +
-          JSON.stringify('a = primer plano LOD2 768² (mejor de 5 vistas, mín. 1,5 % de la caja) · b = partido en el móvil de espaldas LOD1 800x450 (×3, mín. 9 px) · c = LOD0 lejos 640x360 (×3) · magenta = ΔE > ' + DE) + ')', true);
-        const file = path.join(OUT, 'sheets', ven + '-' + tag + String(n).padStart(2, '0') + '.jpg');
+          JSON.stringify('a = primer plano LOD' + LODA + ' 768² (mejor de 5 vistas, mín. 1,5 % de la caja) · b = partido en el móvil de espaldas LOD1 800x450 (×3, mín. 9 px) · c = LOD0 lejos 640x360 (×3) · magenta = ΔE > ' + DE) + ')', true);
+        const file = path.join(OUT, SHEETS, ven + '-' + tag + String(n).padStart(2, '0') + '.jpg');
         fs.writeFileSync(file, Buffer.from(String(data).replace(/^data:image\/jpeg;base64,/, ''), 'base64'));
         console.log('  → ' + path.relative(CDP.ROOT, file));
       }
@@ -432,7 +442,7 @@ function table() {
   report.de = DE; report.th = { a: TH_A, b: TH_B }; report.cam = CAM; report.when = new Date().toISOString();
   fs.writeFileSync(REPORT, JSON.stringify(report, null, 1));
   const md = table();
-  fs.writeFileSync(path.join(OUT, 'report.md'), md);
+  fs.writeFileSync(path.join(OUT, LODA === 2 ? 'report.md' : 'report-loda' + LODA + '.md'), md);
   // en consola: con --item solo las filas de esos objetos (el report.md lleva todo lo medido hasta ahora)
   console.log('\n' + md.split('\n').filter(l => !onlyItems || !/^\| (hall|beach) /.test(l) || onlyItems.some(id => l.indexOf('| ' + id + ' ') >= 0 || l.indexOf('| ' + id + ' (') >= 0)).join('\n'));
   let exp = 0;
