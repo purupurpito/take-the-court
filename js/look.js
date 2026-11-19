@@ -137,17 +137,17 @@
     { id: 'trenza', name: 'Trenza', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', tris: [169, 192, 306] },
     { id: 'monoBajo', name: 'Moño bajo', slot: 'style', fam: 'recogido', vc: 'A', g: 'm', tris: [104, 170, 360] },
     // gorro
-    { id: 'cinta', name: 'Cinta', slot: 'head', vc: 'AB', g: 'f', tris: [140, 210, 320] },
+    { id: 'cinta', name: 'Cinta', slot: 'head', vc: 'AB', g: 'f', tris: [224, 294, 404] },
     { id: 'cintaRizo', name: 'Cinta de rizo', slot: 'head', unlock: [shop(800), rec('wins', 10)], vc: 'A', g: 'f', tris: [154, 224, 336] },
     { id: 'bandana', name: 'Pañuelo', slot: 'head', rarity: 1, unlock: [{ ach: 's10' }, gym('serve', 1), reto('r_aces', 2)], vc: 'A', g: 'm', hint: 'Con pañuelo no se ve el peinado entero', tris: [246, 285, 382] },
     { id: 'gorra', name: 'Gorra', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [222, 235, 430] },
     { id: 'gorraAtras', name: 'Gorra al revés', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [222, 235, 430] },
     { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', tris: [224, 260, 416] },
-    { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [242, 344, 774] },
+    { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [196, 197, 410] },
     { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [164, 164, 248] },
     // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «MTC» en el frontal; se gana al
     // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
-    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [352, 365, 560] },
+    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [236, 249, 444] },
     // gafas
     { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [180, 180, 256] },
     { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },

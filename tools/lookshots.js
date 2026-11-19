@@ -328,7 +328,7 @@ function tagRows(rows) { rows.forEach(r => r.views.forEach(v => { v.tag = v.tag 
 const COMBOS = [
   // (WP3) objetos de cabeza sobre peinados con volumen, recogidos y de lado
   { id: 'c_corona_afro', venue: 'hall', region: 'head', style: 'afro', name: 'corona + afro', list: [['head', 'corona']] },
-  { id: 'c_corona_cresta', venue: 'hall', region: 'head', style: 'cresta', name: 'corona + cresta (de lado)', list: [['head', 'corona']] },
+  { id: 'c_corona_cresta', venue: 'hall', region: 'head', style: 'cresta', name: 'corona + cresta (centrada, la cresta por dentro)', list: [['head', 'corona']] },
   { id: 'c_corona_mono', venue: 'hall', region: 'head', style: 'mono', name: 'corona + moño', list: [['head', 'corona']] },
   { id: 'c_bandana_coleta', venue: 'hall', region: 'head', style: 'coleta', name: 'pañuelo + coleta', list: [['head', 'bandana']] },
   { id: 'c_bandana_melena', venue: 'hall', region: 'head', style: 'melena', name: 'pañuelo + melena', list: [['head', 'bandana']] },
