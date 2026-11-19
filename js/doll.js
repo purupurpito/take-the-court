@@ -158,7 +158,10 @@
   // gorros que llevan cB por vértice (1.16, WP3: tira de la gorra, franja de la cinta y de la visera, cinta del pescador; la MTC lleva
   // el color de sus letras)
   var HEAD_B = { gorra: 1, gorraAtras: 1, pescador: 1, visera: 1, cinta: 1 };
-  var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
+  var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, GOLD_OC = 0xbe8e31, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
+  // oro del manguito dorado (ronda 1 de WP5): más saturado y con más contraste que GOLD, que con las luces del pabellón se quedaba en
+  // un amarillo pálido: sombra ocre tostado, medio naranja dorado y cara iluminada amarilla (el brillo sigue siendo GOLD_HI)
+  var SLV_GOLD = 0xeea316, SLV_GOLD_SH = 0x9c5f0c, SLV_GOLD_LT = 0xffcc2e;
   // objetos de jefe (variantes de una pieza base con la MISMA geometría: color por vértice o atlas; VB.Look cae a «as» sin dibujo):
   // cañón (muñequera negra con aro de cA), hierro (esparadrapo gris acero con remaches), martillo (manguito oscuro con un mazo de cA)
   // y pulpo (rodilleras altas moradas / tobillera de cA, con ventosas)
@@ -206,24 +209,28 @@
   /** Firma de lo que cambia la MALLA (geometría y colores por vértice) de un muñeco con el aspecto L, la equipación tc y la sede.
    *  Un color entra solo si alguna pieza lo lleva por vértice (si no, cambiarlo es solo repintar el atlas). */
   // (justa: lo que no toca la malla —kinesio y malla corta, que van pintados— no entra, así que cambiarlos solo repinta el atlas; si una
-  //  pieza pasa a la malla, lookSelfTest lo pilla: «geoSig no ve el cambio de malla». cPad entrará cuando alguna pieza lo lleve por
-  //  vértice, y su ficha de look.js con vc 'P')
+  //  pieza pasa a la malla, lookSelfTest lo pilla: «geoSig no ve el cambio de malla». cPad (1.16, WP4) lo llevan por vértice las
+  //  rodilleras cortas, altas y bajadas: su ficha de look.js con vc 'P')
+  var PAD_VC = { cortas: 1, altas: 1, bajadas: 1 };   // rodilleras con cPad por vértice (la de pulpo es morada siempre); las coderas también (WP5)
   function armSig(a) { return a === 'kinesio' ? '' : a; }
   function geoSig(L, tc, bch) {
     var X = normLook(L, bch), p = [bch ? 'Y' : 'P', X.skin, X.hair, X.hair2, X.hairFx, X.style, X.head, X.eyes, X.neck, X.under, armSig(X.armL),
       armSig(X.armR), X.elbows, X.wristL, X.wristR, X.hands, X.legs === 'mallaLarga' ? X.legs : '', X.knees, X.ankle, X.shoes];
     var uA = !!(X.head || X.eyes === 'deporte' || X.eyes === 'oscuras' || X.eyes === 'espejo' || TIES[X.style] || armVc(X.armL) || armVc(X.armR) || X.elbows || X.wristL || X.wristR || X.hands === 'mitones' ||
       X.neck === 'medalla' || (bch && (X.ankle === 'tela' || X.ankle === 'pulseraTob' || X.ankle === 'tobiPulpo')));
+    // (malla larga: la bola de la rodilla sin rodillera va en cB y, con rodillera automática, su color depende de cB por el contraste)
+    // (WP5: la cinta de la medalla es bicolor cA/cB; la muñequera busca contraste con el puño del manguito, que es cB)
     var uB = !!(HEAD_B[X.head] || (!bch && X.under === 'termica') || (bch && X.under === 'licra') ||
-      (X.legs === 'mallaLarga' && X.knees !== 'cortas' && !KNEE_HI[X.knees]));
-    p.push(uA ? X.cA : '', uB ? X.cB : '', bch && X.ankle === 'escarpines' ? X.cSock : '', !bch && (X.shoes === 'clasicas' || X.shoes === 'neon') ? X.cShoe : '', X.eyes ? X.cGlass : '');
+      X.legs === 'mallaLarga' || X.neck === 'medalla' || (X.wristL === 'muneq' && armVc(X.armL)) || (X.wristR === 'muneq' && armVc(X.armR)));
+    p.push(uA ? X.cA : '', uB ? X.cB : '', bch && X.ankle === 'escarpines' ? X.cSock : '', !bch && (X.shoes === 'clasicas' || X.shoes === 'neon') ? X.cShoe : '', X.eyes ? X.cGlass : '',
+      PAD_VC[X.knees] || X.elbows ? X.cPad : '');
     for (var i = 0; i < TC_GEO.length; i++) p.push(tc ? tc[TC_GEO[i]] : '');
     return p.join('|');
   }
   /** Firma de lo que se pinta en el ATLAS (ropa, dorsal, tiras, cara). */
   function atlasSig(L, tc, num, bch) {
     var X = normLook(L, bch), p = [bch ? 'Y' : 'P', num, X.skin, X.hair, X.brow, X.eyes, X.paint, X.marks, X.beard, X.under, X.band, X.armL, X.armR,
-      X.legs, X.knees, X.socks, X.ankle, X.cA, X.cB, X.cSock, X.cGlass, X.cPad];
+      X.legs, X.knees, X.socks, X.ankle, X.cA, X.cB, X.cSock, X.cGlass, X.cPad, bch ? '' : X.shoes + ':' + X.cShoe];   // (la zapatilla: alto del calcetín y su color)
     for (var i = 0; i < TC_ATLAS.length; i++) p.push(tc ? tc[TC_ATLAS[i]] : '');
     return p.join('|');
   }
@@ -482,6 +489,10 @@
       wrap(function (o) { g.fillStyle = rib; g.beginPath(); g.ellipse(o, 0, 60, 30, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 53, 24, 0, 0, PI * 2); g.fill(); });   // escote
       // tirantes del color de la camiseta sobre cada hombro (de la sisa al escote y a la espalda); con peto, los del peto
       g.fillStyle = hexCss(pat === 'peto' ? tc.bib : tc.base); [0.25, 0.75].forEach(function (u) { var cx = u * W; g.fillRect(cx - 86, -2, 34, 40); g.fillRect(cx + 52, -2, 34, 40); });
+      if (L.under === 'licra') {   // licra (WP5, T1): costura lateral bajo la sisa (de color) y la licra más oscura en el borde del cuello alto
+        var lc = colB(L, tc); g.fillStyle = hexCss(pick(colA(L, tc), lc, tc)); [0.25, 0.75].forEach(function (u) { g.fillRect(u * W - 2.5, 0, 5, 50); });
+        g.fillStyle = hexCss(mixHex(lc, 0x000000, 0.3)); g.fillRect(0, 0, W, 4);
+      }
     } else if (pat === 'peto') {
       peto(0, 30);
     } else if (pat === 'diag') {
@@ -495,7 +506,9 @@
     if (!beach) {
       // cuello redondo (ribete) y hombros: canesú oscuro ligero en la espalda
       if (pat !== 'peto') { g.fillStyle = hexCss(tc.dark); g.globalAlpha = 0.3; g.fillRect(170, 0, 172, 16); g.globalAlpha = 1; }
-      wrap(function (o) { g.fillStyle = hexCss(pat === 'peto' ? tc.dark : tc.trim); g.beginPath(); g.ellipse(o, 0, 62, 20, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 54, 15, 0, 0, PI * 2); g.fill(); });
+      // (con la térmica, lo que asoma por el cuello es la térmica: cB; el cuello alto es un aro de la malla, neckGeo)
+      var skN = L.under === 'termica' ? hexCss(colB(L, tc)) : sk;
+      wrap(function (o) { g.fillStyle = hexCss(pat === 'peto' ? tc.dark : tc.trim); g.beginPath(); g.ellipse(o, 0, 62, 20, 0, 0, PI * 2); g.fill(); g.fillStyle = skN; g.beginPath(); g.ellipse(o, -3, 54, 15, 0, 0, PI * 2); g.fill(); });
     }
     // dorsales: grande en la espalda (u 0,5), pequeño en el pecho dentro del tajo (oscuro); playa: grande también delante
     var s = String(numV == null ? 0 : numV);
@@ -545,9 +558,25 @@
     function sleeveFill(c, f0, f1, id, tr, len) {
       if (f1 <= f0) return;
       if (id === 'manguito') { band(c, f0, f1, cA); return; }
-      if (id === 'manguitoOro') {      // dorado con dos franjas de brillo hacia fuera
-        band(c, f0, f1, GOLD);
-        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) { g.fillStyle = hexCss(GOLD_HI); g.fillRect(xc - w * 0.1, y0, w * 0.035, y1 - y0); g.fillRect(xc + w * 0.05, y0, w * 0.02, y1 - y0); });
+      if (id === 'manguitoOro') {      // oro de cómic (WP5, T7; ronda 1: más saturado): sombra tostada detrás, medio dorado y cara amarilla hacia
+        // la luz con la raya GOLD_HI y el filo blanco, la línea oscura donde acaba la luz, un reflejo en la sombra, bordes marrones y un destello
+        band(c, f0, f1, SLV_GOLD_SH);
+        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+          var H = y1 - y0, e = Math.max(1, Math.min(2.2, H * 0.07));
+          function vband(x, ww, hex) { g.fillStyle = hexCss(hex); g.fillRect(x, y0, ww, H); }
+          vband(xc - w * 0.36, w * 0.62, SLV_GOLD);                 // medio (fuera y algo delante)
+          vband(xc - w * 0.24, w * 0.3, SLV_GOLD_LT);               // cara que mira a la luz
+          vband(xc - w * 0.16, w * 0.1, GOLD_HI);                   // raya de brillo
+          vband(xc - w * 0.13, w * 0.025, 0xffffff);
+          vband(xc + w * 0.24, w * 0.035, GOLD_DK);                 // donde acaba la luz
+          vband(xc + w * 0.4, w * 0.04, mixHex(SLV_GOLD_SH, SLV_GOLD, 0.6));   // reflejo en la sombra
+          g.fillStyle = hexCss(GOLD_DK); g.fillRect(c.x0, y0, c.x1 - c.x0, e); g.fillRect(c.x0, y1 - e, c.x1 - c.x0, e);   // bordes
+          // destello: estrella de cuatro puntas blanca sobre la raya (redonda: u por fila)
+          var sy = y0 + H * 0.38, r = Math.min(w * 0.09, H * 0.3 * ax);
+          g.save(); g.translate(xc - w * 0.1, sy); g.scale(1, 1 / ax); g.fillStyle = '#ffffff';
+          g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(r * 0.12, -r * 0.12, r, 0); g.quadraticCurveTo(r * 0.12, r * 0.12, 0, r);
+          g.quadraticCurveTo(-r * 0.12, r * 0.12, -r, 0); g.quadraticCurveTo(-r * 0.12, -r * 0.12, 0, -r); g.fill(); g.restore();
+        });
         return;
       }
       if (id === 'manguitoRayas') { band(c, f0, f1, cA); for (var f = f0 + 0.05; f < f1 - 0.02; f += 0.1) band(c, f, Math.min(f1, f + 0.05), cB); return; }
@@ -575,12 +604,14 @@
         return;
       }
       if (id === 'manguitoRayos') {    // rayos amarillos sobre el acento: uno grande hacia fuera y otro por detrás
+        // (WP5, T3: con un acento amarillo el rayo amarillo no se veía: pasa al oscuro del equipo o a blanco)
+        var bolt = pick(0xffd23a, cA, tc);
         band(c, f0, f1, cA);
         draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
           var H = y1 - y0, s = H / 10;
           [xc, xc + w / 2 > c.x1 ? xc - w / 2 : xc + w / 2].forEach(function (bx) {
             g.save(); g.translate(bx, y0); g.scale(ax, 1);
-            g.fillStyle = hexCss(0xffd23a); g.strokeStyle = hexCss(mixHex(cA, 0x000000, 0.45)); g.lineWidth = 0.35; g.lineJoin = 'miter';
+            g.fillStyle = hexCss(bolt); g.strokeStyle = hexCss(mixHex(cA, 0x000000, 0.45)); g.lineWidth = 0.35; g.lineJoin = 'miter';
             g.beginPath(); g.moveTo(0.6 * s, 0.4 * s); g.lineTo(2.6 * s, 0.4 * s); g.lineTo(1.0 * s, 4.4 * s); g.lineTo(2.4 * s, 4.4 * s); g.lineTo(-1.6 * s, 9.6 * s);
             g.lineTo(-0.2 * s, 5.6 * s); g.lineTo(-1.6 * s, 5.6 * s); g.closePath(); g.fill(); g.stroke(); g.restore();
           });
@@ -614,68 +645,130 @@
         }
       });
     }
-    function cuff(c, id) { band(c, 0.88, 0.97, id === 'manguitoOro' ? mixHex(GOLD, 0x8a5a10, 0.35) : id === 'manguitoLlamas' || id === 'manguitoMazo' ? cA : cB); }
-    // ---- brazos ([k] 0 izquierdo, 1 derecho): f0 = donde acaba la manga (o la licra) y empieza la piel
-    for (k = 0; k < 2; k++) {
-      var arm = k ? X.armR : X.armL, cu = col(ARM_R, COL_UP[k]), cf = col(ARM_R, COL_FORE[k]), f0 = beach ? 0.14 : 0.46;
-      if (beach && X.under === 'licra') { segs(cu, [[0, cB], [0.38, mixHex(cB, 0x000000, 0.25)], [0.44, sk]]); f0 = 0.44; }   // licra: manga corta
-      else if (beach) segs(cu, [[0, sk]]);                                                            // brazo desnudo
-      else if (X.under === 'termica') segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, cB]]);         // manga corta → térmica
-      else segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, sk]]);                                   // manga corta con ribete → piel
-      if (!beach && X.under === 'termica') segs(cf, [[0, cB], [0.9, mixHex(cB, 0x000000, 0.28)], [0.96, cB]]);   // térmica hasta la muñeca
-      else segs(cf, [[0, sk]]);                                                                       // antebrazo de piel
-      if (arm === 'kinesio') {         // kinesio: zigzag de cinta del acento por la cara de fuera del brazo, con el borde más oscuro
-        draw(cu, f0 + 0.03, 0.97, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
-          var H = y1 - y0, n = 3, i;
-          g.save(); g.translate(xc, y0); g.scale(ax, 1); g.lineJoin = 'round'; g.lineCap = 'butt';
-          g.beginPath(); for (i = 0; i <= n * 2; i++) g.lineTo((i % 2 ? 1 : -1) * H * 0.16, H * i / (n * 2));
-          g.strokeStyle = hexCss(mixHex(cA, 0x000000, 0.3)); g.lineWidth = H * 0.13; g.stroke();
-          g.strokeStyle = hexCss(cA); g.lineWidth = H * 0.1; g.stroke(); g.restore();
+    // ---- manguitos: puño de la muñeca a partir de la fracción f (con la térmica debajo, el manguito acaba antes y asoma la térmica)
+    function cuff(c, id, f) { band(c, f, f + 0.09, id === 'manguitoOro' ? GOLD_DK : id === 'manguitoLlamas' || id === 'manguitoMazo' ? cA : cB); }
+    /** kinesio de verdad (ronda 1 de WP5): cinta estrecha que sigue el músculo, como trazo con las puntas redondas por los puntos pts
+     *  ([fracción a lo largo, du]: du = 0 fuera, + delante, − detrás, en vueltas del brazo) y de ancho wm metros: borde oscuro, cinta y
+     *  un brillo por el centro. Se dibuja en metros reales (u por fila) para que la cinta no salga aplastada y se repite a ±1 vuelta
+     *  por si cruza la costura de la columna. */
+    function kTape(c, len, pts, wm, kc) {
+      draw(c, 0, 1, TUBE_ARM, len, function (xc, y0, y1, ax, w) {
+        var rpm = (y1 - y0) / len, uw = w / ax;   // filas por metro y una vuelta del brazo en «filas»
+        g.save(); g.translate(xc, y0); g.scale(ax, 1); g.lineCap = 'round'; g.lineJoin = 'round';
+        function path(o) { g.beginPath(); pts.forEach(function (p, i) { var x = p[1] * uw + o, y = p[0] * (y1 - y0); if (i) g.lineTo(x, y); else g.moveTo(x, y); }); }
+        [[mixHex(kc, 0x000000, 0.38), 1], [kc, 0.74], [mixHex(kc, 0xffffff, 0.4), 0.16]].forEach(function (L) {
+          g.strokeStyle = hexCss(L[0]); g.lineWidth = wm * rpm * L[1];
+          [-uw, 0, uw].forEach(function (o) { path(o); g.stroke(); });
         });
-      } else if (ARMS[arm]) {
+        g.restore();
+      });
+    }
+    // color de lo que hay debajo del brazalete (fracción 0,49-0,83 del brazo): el manguito, la camiseta interior o la piel
+    function armBg(arm, lsl) {
+      if (ARMS[arm] && arm !== 'kinesio') return arm === 'manguitoOro' ? SLV_GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : cA;
+      return lsl ? cB : sk;
+    }
+    // ---- brazos ([k] 0 izquierdo, 1 derecho): f0 = donde acaba la manga (o la licra) y empieza la piel
+    // WP5 (T1): la licra de playa y la térmica de pista son de MANGA LARGA en cB por todo el brazo y el antebrazo, con un puño acanalado
+    // más oscuro en la muñeca (antes la licra acababa debajo de la bola del hombro y solo se veían dos hombreras negras)
+    var lsl = beach ? X.under === 'licra' : X.under === 'termica', cuffU = cuffHex(cB);
+    for (k = 0; k < 2; k++) {
+      var arm = k ? X.armR : X.armL, cu = col(ARM_R, COL_UP[k]), cf = col(ARM_R, COL_FORE[k]), f0 = beach ? 0.14 : 0.46, sl = ARMS[arm] && arm !== 'kinesio';
+      if (beach && lsl) { segs(cu, [[0, cB]]); f0 = 0; }                                                // licra: manga larga
+      else if (beach) segs(cu, [[0, sk]]);                                                            // brazo desnudo
+      else if (lsl) segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, cB]]);                          // manga corta → térmica
+      else segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, sk]]);                                   // manga corta con ribete → piel
+      if (lsl) { segs(cf, [[0, cB], [0.85, cuffU], [0.97, cB]]); band(cf, 0.885, 0.9, cB); band(cf, 0.925, 0.94, cB); }   // hasta la muñeca, puño acanalado
+      else segs(cf, [[0, sk]]);                                                                       // antebrazo de piel
+      if (arm === 'kinesio') {
+        // kinesio (WP5, T5; ronda 1): cinta estrecha a lo largo del músculo, no parches. En el brazo, una «Y» sobre el deltoides (el tallo
+        // por fuera desde el codo y las dos colas que se abren hacia delante y hacia atrás: de espaldas en el partido se ve la de atrás) y
+        // en el antebrazo, una tira larga por fuera y detrás, del codo a la muñeca. Del acento, o lo que se distinga de lo de debajo
+        var kc = pick(cA, lsl ? cB : sk, tc, 130), ka = Math.max(f0, 0.14) + 0.06;
+        kTape(cu, UPPER, [[0.9, -0.03], [0.7, -0.02], [ka + 0.03, 0.22]], 0.04, kc);   // tallo y cola de delante
+        kTape(cu, UPPER, [[0.7, -0.02], [ka, -0.28]], 0.04, kc);                     // cola de detrás
+        kTape(cf, FORE, [[0.12, -0.16], [0.5, -0.24], [0.84, -0.18]], 0.044, kc);   // antebrazo
+      } else if (sl) {
         sleeveFill(cu, f0, 1, arm, TUBE_ARM, UPPER);
-        sleeveFill(cf, 0, 0.88, arm, TUBE_ARM, FORE); cuff(cf, arm);
+        // con la térmica debajo el manguito acaba antes y asoma el puño de la térmica (capas: se ven las dos prendas)
+        var fe = lsl && !beach ? 0.7 : 0.88;
+        sleeveFill(cf, 0, fe - 0.09, arm, TUBE_ARM, FORE); cuff(cf, arm, fe - 0.09);
       }
-      if (k === 0 && X.band === 'capitan') {   // brazalete del acento con filetes y la «C» hacia fuera (volteada: la columna va espejada)
-        // (justo por debajo de la bola del hombro y de la manga: más arriba lo tapa la bola, que cubre el ~40 % alto del brazo)
-        var b0 = beach ? (X.under === 'licra' ? 0.47 : 0.42) : 0.5;
-        band(cu, b0, b0 + 0.15, cA);
-        draw(cu, b0, b0 + 0.15, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
-          var H = y1 - y0, e = Math.max(0.6, H * 0.1), ink = lumHex(cA) > 0.55 ? faceInk(tc) : 0xffffff;
-          g.fillStyle = hexCss(mixHex(cA, 0x000000, 0.3)); g.fillRect(cu.x0, y0, cu.x1 - cu.x0, e); g.fillRect(cu.x0, y1 - e, cu.x1 - cu.x0, e);
+      if (k === 0 && X.band === 'capitan') {   // brazalete con filetes y la «C» hacia fuera (volteada: la columna va espejada)
+        // WP5: alrededor de todo el brazo, más alto (0,49-0,83: la bola del codo solo tapa el tubo desde ≈ 0,85 por fuera; en la ronda 1
+        // subió de 0,51-0,8 porque en el primer plano se quedaba en 1,2 %) y separado del ribete de la manga (acaba en 0,46) por una raya
+        // de piel; del acento salvo que se pierda contra lo de debajo (brazalete rojo sobre manguito rojo)
+        var b0 = 0.49, b1 = 0.83, bc = pick(cA, armBg(arm, lsl), tc), bdk = mixHex(bc, 0x000000, 0.38);
+        band(cu, b0, b1, bc);
+        draw(cu, b0, b1, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
+          var H = y1 - y0, e = Math.max(0.8, H * 0.12), ink = lumHex(bc) > 0.55 ? faceInk(tc) : 0xffffff;
+          g.fillStyle = hexCss(bdk); g.fillRect(cu.x0, y0, cu.x1 - cu.x0, e); g.fillRect(cu.x0, y1 - e, cu.x1 - cu.x0, e);
           g.save(); g.translate(xc, (y0 + y1) / 2); g.scale(cu.flip ? -ax : ax, 1);
-          g.strokeStyle = hexCss(ink); g.lineWidth = H * 0.2; g.lineCap = 'round';
-          g.beginPath(); g.arc(0, 0, H * 0.28, PI * 0.28, PI * 1.72); g.stroke(); g.restore();
+          g.strokeStyle = hexCss(ink); g.lineWidth = H * 0.17; g.lineCap = 'round';
+          g.beginPath(); g.arc(0, 0, H * 0.25, PI * 0.28, PI * 1.72); g.stroke(); g.restore();
         });
       }
     }
-    // ---- muslos
+    // ---- muslos (WP4: la malla corta en su color —cB o uno que se distinga del pantalón—; las rodilleras altas siguen por fuera de la
+    //      bola, así se ven. Ronda 1: con rodillera, la malla corta pasa por debajo y acaba en la espinilla con el bajo del acento: de
+    //      espaldas en el partido el pantalón tapa el muslo entero y no se veía nada)
+    var kr = kneeR(X), tiH = tightsHex(X, tc, beach), pad = padHex(X, tc);
     for (k = 0; k < 2; k++) {
       c = col(TH_R, COL_TH[k]);
-      var top = beach ? tc.base : tc.shorts, fs = beach ? 0.36 : 0.48;
+      var fs = beach ? 0.36 : 0.48;
       segs(c, beach ? [[0, tc.base], [0.3, tc.accent], [0.36, sk]] : [[0, tc.shorts], [0.42, tc.accent], [0.48, sk]]);   // malla corta / pernera → piel
-      if (X.legs === 'malla') { band(c, fs, 0.85, top); band(c, 0.82, 0.85, mixHex(top, tc.accent, 0.5)); }          // malla corta hasta casi la rodilla
+      if (X.legs === 'malla') band(c, fs, 1, tiH);   // malla corta: hasta la bola de la rodilla (y, con rodillera, asoma por debajo)
       else if (X.legs === 'mallaLarga') band(c, fs, 1, cB);
-      if (X.knees === 'altas') band(c, 0.82, 1, tc.pad);
-      else if (X.knees === 'rodiPulpo') { band(c, 0.8, 1, PULPO); suckers(c, 0.8, 1, TUBE_LEG, THIGH); }
+      if (KNEE_HI[X.knees]) {
+        var ft0 = thighF(kr + padUpH(X));
+        band(c, ft0, 1, X.knees === 'rodiPulpo' ? PULPO : pad);
+        if (X.knees === 'rodiPulpo') suckers(c, ft0, thighF(kr - 0.01), TUBE_LEG, THIGH);
+      }
     }
-    // ---- espinillas
+    // ---- espinillas: todo por ALTURA sobre el tobillo (legF): el zapatón tapa lo de abajo y la bola de la rodilla lo de arriba
+    var w0 = shoeTopH(X), w1 = SHIN - kr, brace = !beach && X.ankle === 'blanca', cSk = sockHex(X, tc);
     for (k = 0; k < 2; k++) {
       c = col(SHN_R, COL_SHN[k]);
-      var sc = X.socks === 'desparejados' && k === 1 ? cB : cS, f;
-      if (beach || X.socks === '') segs(c, [[0, sk]]);                                                         // sin calcetines
-      else if (X.socks === 'tobilleros') segs(c, [[0, sk], [0.9, sc]]);
-      else if (X.socks === 'altos') segs(c, [[0, sk], [0.2, sc], [0.3, tc.base], [0.36, sc], [0.42, tc.base], [0.48, sc]]);
-      else if (X.socks === 'altosRayas') { segs(c, [[0, sk], [0.2, sc]]); for (f = 0.26; f < 0.95; f += 0.09) band(c, f, f + 0.04, 0xf4f4f4); }
-      else segs(c, [[0, sk], [0.66, sc], [0.78, tc.base], [0.86, sc]]);                                         // piel → calcetín con franja
-      if (X.legs === 'mallaLarga') {   // la malla larga baja hasta media espinilla; los calcetines altos van por encima
-        band(c, 0, 0.4, cB); band(c, 0.37, 0.4, mixHex(cB, 0x000000, 0.3));
-        if (!beach && X.socks === 'altos') { band(c, 0.2, 0.4, sc); band(c, 0.3, 0.36, tc.base); }
-        else if (!beach && X.socks === 'altosRayas') { band(c, 0.2, 0.4, sc); band(c, 0.26, 0.3, 0xf4f4f4); band(c, 0.35, 0.39, 0xf4f4f4); }
+      var sock = beach ? '' : X.socks, sc = cSk, top = sockTopH(sock, k, brace, w0, w1, X), f;
+      if (sock === 'desparejados') {   // el alto (k = 0) del color que más se distingue de la piel (blanco sobre piel clara no se ve); el corto, del otro
+        var dHi = hexDist(cSk, sk) >= hexDist(cB, sk) ? cSk : cB;
+        sc = k === 0 ? dHi : dHi === cSk ? cB : cSk;
+        if (sc === cB && hexDist(cB, cSk) < 120) sc = onCol(tc.accent, cSk, tc);   // que se vean DOS colores
       }
-      if (X.knees === 'altas') band(c, 0, 0.22, tc.pad);
-      else if (X.knees === 'rodiPulpo') { band(c, 0, 0.24, PULPO); suckers(c, 0, 0.24, TUBE_LEG * 0.96, SHIN); }
-      else if (X.knees === 'bajadas') band(c, 0.12, 0.42, tc.pad);
+      segs(c, [[0, sk]]);                                                                                          // piel
+      // malla larga: hasta media espinilla; si el calcetín acaba más abajo, la malla baja hasta él (sin franja de piel entre los dos)
+      // malla corta: con una rodillera que tapa la bola (cortas, altas, pulpo), asoma 2 cm por debajo, con el bajo del acento (la larga
+      // baja hasta media espinilla); con la rodilla desnuda (bajadas, sin, playa) acaba encima de ella: malla · rodilla · malla no
+      if (X.legs === 'malla' && (X.knees === 'cortas' || KNEE_HI[X.knees])) {
+        var mh = SHIN - kneeVis(X, TUBE_LEG * 0.96) - 0.02;
+        // (bajo oscuro si la malla es del color del calcetín: con uno claro se leía como una raya más del calcetín)
+        band(c, 0, legF(mh), tiH); band(c, legF(mh + 0.008), legF(mh), !beach && X.socks && hexDist(tiH, cSk) < 150 ? mixHex(tiH, INK, 0.6) : onCol(tc.accent, tiH, tc));
+      }
+      if (X.legs === 'mallaLarga') {
+        var mb = SHIN * 0.5; if (sock && top < mb) mb = top;
+        band(c, 0, legF(mb), cB); band(c, legF(mb + 0.009), legF(mb), mixHex(cB, 0x000000, 0.3));
+      }
+      if (sock) {
+        // rayas: blancas u oscuras, las que de lejos (mezcladas con el calcetín) se alejen más de la piel (rojo + blanco = rosa = piel clara)
+        var st = onCol(tc.base, sc, tc), rD = mixHex(tc.dark, INK, 0.2), rib = hexDist(mixHex(sc, 0xf4f4f4, 0.4), sk) >= hexDist(mixHex(sc, rD, 0.4), sk) ? 0xf4f4f4 : rD;
+        // con malla larga lo que toca el calcetín es la malla, no la piel: rayas que no sean de su color (ronda 2: rayas negras + malla
+        // negra = la malla se leía como una raya más del calcetín)
+        if (X.legs === 'mallaLarga' && hexDist(rib, cB) < 150) rib = rib === 0xf4f4f4 ? rD : 0xf4f4f4;
+        band(c, legF(top), 1, sc);
+        // elegido a mano y del color del empeine: una raya oscura que separa el calcetín de la zapatilla (algo alta: por delante la
+        // puntera tapa ≈ 2 cm por encima del borde)
+        if (!brace && hexDist(sc, shoeUp(X)) < 150) band(c, legF(w0 + 0.03), legF(w0 + 0.019), mixHex(sc, 0x000000, 0.45));
+        if (sock === 'tobilleros') band(c, legF(top), legF(top - 0.016), mixHex(sc, 0x000000, 0.28));             // puño vuelto, más oscuro
+        else if (sock === 'media') { band(c, legF(top), legF(top - 0.007), mixHex(sc, 0x000000, 0.22)); band(c, legF(top - 0.016), legF(top - 0.03), st); }
+        else if (sock === 'altos') { var ht = Math.min(w1, top); band(c, legF(ht - 0.012), legF(ht - 0.024), st); band(c, legF(ht - 0.034), legF(ht - 0.046), st); }
+        else if (sock === 'altosRayas') { for (f = Math.min(w1, top) - 0.008; f > w0 - 0.01; f -= 0.024) band(c, legF(f), legF(f - 0.011), rib); }   // (desde el borde: con malla larga el calcetín acaba antes)
+        else if (sock === 'desparejados') band(c, legF(top), legF(top - 0.008), mixHex(sc, 0x000000, 0.28));
+      }
+      if (KNEE_HI[X.knees]) {
+        var fb = legF(SHIN - kr - padDnH(X));
+        band(c, 0, fb, X.knees === 'rodiPulpo' ? PULPO : pad);
+        if (X.knees === 'rodiPulpo') suckers(c, legF(SHIN - kr + 0.01), fb, TUBE_LEG * 0.96, SHIN);
+      }
       if (beach && X.ankle === 'escarpines') band(c, 0.85, 1, cS);
     }
   }
@@ -1141,59 +1234,268 @@
   function shoulderGeo(G, tc, X, beach) { G.add(sph(BALL_SH, 16, 12), beach ? (X.under === 'licra' ? colB(X, tc) : X.skin) : mixHex(tc.base, tc.dark, 0.14)); }
   /** Brazo k (0 izquierdo, 1 derecho): tubo en su columna de ARM_R, girado para que gu = 0,5 mire hacia fuera. */
   function upperGeo(G, k) { G.mode = 'strip'; G.rows = ARM_R; G.su = COL_UP[k]; G.add(tube(TUBE_ARM, UPPER), null, 0, -UPPER / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL; }
-  /** Color de la bola del codo del brazo k: piel; cB con la térmica; el del manguito de ese brazo; cA con coderas (mandan). */
-  function elbowHex(X, tc, k) {
+  /** Color de la bola del codo del brazo k: piel; cB con la manga larga (térmica en pista, licra en playa); el del manguito de ese
+   *  brazo; con coderas, la codera (la bola hace de manguito acolchado y encima va la concha). */
+  function elbowHex(X, tc, k) { return X.elbows === 'coderas' ? elbowPadHex(X, tc, k) : underElbowHex(X, tc, k); }
+  function underElbowHex(X, tc, k) {
     var arm = k ? X.armR : X.armL, c = X.skin;
-    if (!X.beach && X.under === 'termica') c = colB(X, tc);
-    if (ARMS[arm] && arm !== 'kinesio') c = arm === 'manguitoOro' ? GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : colA(X, tc);
-    if (X.elbows === 'coderas') c = colA(X, tc);
+    if (X.beach ? X.under === 'licra' : X.under === 'termica') c = colB(X, tc);
+    if (ARMS[arm] && arm !== 'kinesio') c = arm === 'manguitoOro' ? SLV_GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : colA(X, tc);
     return c;
   }
-  /** Antebrazo k: bola del codo (coderas: algo mayor) y tubo en su columna de ARM_R (la piel, la térmica o el manguito van pintados). */
+  /** Color de la codera del brazo k (WP5, T8): cPad si se elige; si no, la de la equipación (tc.pad) salvo que se pierda contra lo
+   *  de debajo (manguito, térmica o piel): entonces el oscuro del equipo, blanco o casi negro (pick). */
+  function elbowPadHex(X, tc, k) { return X.cPad >= 0 ? X.cPad : pick(tc.pad, underElbowHex(X, tc, k), tc, 130); }
+  var EL_PAD_TH = 1.2;   // abertura de la concha de la codera (rad desde su polo)
+  /** Antebrazo k: bola del codo y tubo en su columna de ARM_R (la piel, la térmica o el manguito van pintados). Coderas (WP5): una
+   *  concha acolchada sobre la punta del codo (detrás y algo por fuera: de espaldas es lo que se ve en el partido), más larga a lo largo
+   *  del brazo, con el reborde del acento (o lo que se distinga de la concha). 84 / 40 / 40 triángulos por brazo. */
   function foreGeo(G, X, tc, k) {
-    var e = X.elbows === 'coderas' ? 1.12 : 1;
-    G.add(sph(BALL_EL, 14, 10), elbowHex(X, tc, k), 0, 0, 0, 0, 0, 0, e, e, e);
+    // (manguito dorado: la bola del codo también de oro de cómic, con el brillo arriba y fuera y la sombra ocre abajo)
+    if ((k ? X.armR : X.armL) === 'manguitoOro' && X.elbows !== 'coderas') { var so = k ? -1 : 1; G.vc = function (px, py, pz) { var d = (px * so * 0.5 + py * 0.6 + pz * 0.62) / (Math.sqrt(px * px + py * py + pz * pz) || 1); return d > 0.7 ? GOLD_HI : d > 0.35 ? SLV_GOLD_LT : d < -0.3 ? SLV_GOLD_SH : null; }; }
+    G.add(sph(BALL_EL, 14, 10), elbowHex(X, tc, k), 0, 0, 0, 0, 0, 0); G.vc = null;
+    if (X.elbows === 'coderas') {
+      var pc = elbowPadHex(X, tc, k), rim = pick(colA(X, tc), pc, tc), s = k ? -1 : 1, lim = EL_PAD_TH * 0.8;
+      G.owk = 0.8;
+      G.vc = function (px, py, pz) { return Math.acos(clamp(py / (Math.sqrt(px * px + py * py + pz * pz) || 1), -1, 1)) > lim ? rim : null; };
+      // (rx = −π/2 lleva el polo +Y de la concha a −Z, la espalda, y su eje Z a lo largo del brazo: sz la alarga; ry la gira hacia fuera)
+      G.add(new THREE.SphereGeometry(BALL_EL * 1.16, sg(12, 8), sg(4, 3), 0, PI * 2, 0, EL_PAD_TH), pc, 0, -0.006, 0, -PI / 2, s * 0.55, 0, 1, 1, 1.3);
+      G.vc = null; G.owk = 1;
+    }
     G.mode = 'strip'; G.rows = ARM_R; G.su = COL_FORE[k];
     G.add(tube(TUBE_ARM, FORE), null, 0, -FORE / 2, 0, 0, TUBE_RY[k], 0);
     G.mode = 'flat'; G.su = SU_ALL;
   }
-  /** Muñequera de rizo y reloj (ranuras wristL / wristR) en el hueso del ANTEBRAZO, junto a la muñeca: así heredan el estirón (se
-   *  alargan y adelgazan con el antebrazo, como el resto del brazo cartoon); en la mano, que recupera su tamaño con la escala inversa,
-   *  quedarían flotando y más anchas que la muñeca estirada. La esfera del reloj mira hacia fuera (sin marca). */
+  /** Color de lo que hay en la muñeca del brazo k (para que la muñequera no se pierda contra él): el puño del manguito, el de la manga
+   *  larga o la piel. */
+  function wristBg(X, tc, k) {
+    var arm = k ? X.armR : X.armL, lsl = X.beach ? X.under === 'licra' : X.under === 'termica';
+    if (ARMS[arm] && arm !== 'kinesio' && !lsl) return arm === 'manguitoOro' ? GOLD_DK : arm === 'manguitoLlamas' || arm === 'manguitoMazo' ? colA(X, tc) : colB(X, tc);
+    return lsl ? cuffHex(colB(X, tc)) : X.skin;
+  }
+  /** Muñequera (WP5, T10): banda de rizo gruesa (alto h) con dos rebordes, de revolución: 5 tramos × 16 (160 / 100 / 80). */
+  function cuffLathe(r0, h) {
+    var rr = r0 + 0.018, rm = r0 + 0.014, b = h / 2, m = b - 0.02;
+    return lathe([V2(r0, -b), V2(rr, -b + 0.009), V2(rm, -m), V2(rm, m), V2(rr, b - 0.009), V2(r0, b)], 16, 8);
+  }
+  // centro de la muñequera sobre la muñeca y su alto (ronda 1 de WP5: de 6,4 a 7,8 cm y un punto más gruesa; en el primer plano del
+  // torso se quedaba en 1,2 % de la caja, por debajo del 1,5 % del plan)
+  var WRIST_Y = 0.047, WRIST_H = 0.078;
+  /** Muñequera de rizo, la de cañón y reloj (ranuras wristL / wristR) en el hueso del ANTEBRAZO, junto a la muñeca: así heredan el
+   *  estirón (se alargan y adelgazan con el antebrazo, como el resto del brazo cartoon); en la mano, que recupera su tamaño con la escala
+   *  inversa, quedarían flotando y más anchas que la muñeca estirada. Todo por encima de la manopla (tapa el antebrazo hasta ≈ 1 cm
+   *  sobre la muñeca). La esfera del reloj mira hacia fuera (sin marca). */
   function wristGeo(G, X, tc, k) {
-    var w = k ? X.wristR : X.wristL, s = k ? -1 : 1, y = -FORE + 0.015;
-    if (w === 'muneq') { G.owk = 0.5; G.add(torus(TUBE_ARM + 0.008, 0.014, 5, 16), colA(X, tc), 0, y, 0, PI / 2, 0, 0); }
-    else if (w === 'munhCanon') {   // jefe Cañón: la muñequera de rizo, negra con el aro de cA por fuera (la boca del cañón)
-      var rc = TUBE_ARM + 0.008, ca = colA(X, tc);
-      G.owk = 0.5; G.vc = function (px, py, pz) { return Math.sqrt(px * px + py * py) > rc + 0.006 && Math.abs(pz) < 0.007 ? ca : null; };   // rombos de cA en zigzag
-      G.add(torus(rc, 0.0155, 5, 16), NEUTRAL_DK, 0, y, 0, PI / 2, 0, 0, 1, 1, 1.5); G.vc = null;
-    }
-    else if (w === 'reloj') {
-      G.owk = 0.5; G.add(torus(TUBE_ARM + 0.004, 0.009, 5, 16), NEUTRAL_DK, 0, y, 0, PI / 2, 0, 0, 1, 1, 1.5);                 // correa
-      G.add(cyl(0.024, 0.024, 0.014, 14), colA(X, tc), s * (TUBE_ARM + 0.012), y, 0, 0, 0, PI / 2);                            // caja
-      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.018, sg(12, 8)), 0xf4f4f4, s * (TUBE_ARM + 0.0195), y, 0, 0, s * PI / 2, 0); }   // esfera (no en LOD0)
+    var w = k ? X.wristR : X.wristL, s = k ? -1 : 1, y = -FORE + WRIST_Y, r0 = TUBE_ARM + 0.001;
+    if (w === 'muneq') {             // del acento (o lo que se distinga de lo de debajo), los rebordes un punto más oscuros
+      var cm = pick(colA(X, tc), wristBg(X, tc, k), tc, 130), cr = mixHex(cm, 0x000000, 0.2);
+      G.owk = 0.6; G.vc = function (px, py) { return Math.abs(py) > WRIST_H / 2 - 0.022 ? cr : null; };
+      G.add(cuffLathe(r0, WRIST_H), cm, 0, y, 0); G.vc = null;
+    } else if (w === 'munhCanon') {  // jefe Cañón: la misma banda, negra, con el reborde de la mano (la boca del cañón) de cA
+      var ca = pick(colA(X, tc), NEUTRAL_DK, tc, 130);
+      G.owk = 0.6; G.vc = function (px, py) { return py < 0.022 - WRIST_H / 2 ? ca : py > WRIST_H / 2 - 0.022 ? 0x3a3a46 : null; };
+      G.add(cuffLathe(r0, WRIST_H), NEUTRAL_DK, 0, y, 0); G.vc = null;
+    } else if (w === 'reloj') {      // correa ancha oscura y caja gorda del acento con la esfera blanca hacia fuera
+      var rs = r0 + 0.002;
+      G.owk = 0.5; G.add(lathe([V2(rs, -0.029), V2(rs + 0.009, -0.021), V2(rs + 0.009, 0.021), V2(rs, 0.029)], 16, 8), NEUTRAL_DK, 0, y, 0);   // correa
+      G.owk = 0.7; G.add(cyl(0.044, 0.044, 0.028, 16), pick(colA(X, tc), NEUTRAL_DK, tc, 130), s * (rs + 0.018), y, 0, 0, 0, PI / 2);          // caja
+      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.033, sg(12, 8)), 0xf4f4f4, s * (rs + 0.0322), y, 0, 0, s * PI / 2, 0); }   // esfera (no en LOD0)
     }
     G.owk = 1;
   }
-  /** Manopla grande y redonda (sin dedos) con el pulgar insinuado. Plano de la mano = Y-Z del hueso (grosor en X). Vestuario: mitones
-   *  (manopla y pulgar de cA) y dedos vendados (pulgar de esparadrapo y una vuelta aplastada en la punta; la vuelta, no en LOD0). */
+  /** Manopla grande y redonda (sin dedos) con el pulgar insinuado. Plano de la mano = Y-Z del hueso (grosor en X); en la esfera unidad
+   *  de la manopla, y = −1 es la punta de los dedos y +1 la muñeca. Vestuario (WP5, por color de vértice, sin piezas aparte):
+   *  - mitones (T9): guante SIN dedos: puntas de piel, cuerpo de cA y puño acanalado (gajos alternos) junto a la muñeca;
+   *  - dedos vendados (T4): las puntas de piel, dos vueltas de esparadrapo con una raya entre ellas y el pulgar vendado; sobre piel
+   *    clara el esparadrapo es blanco puro y la raya, sombra de la piel; el de hierro, gris acero con la raya oscura.
+   *  Ronda 1 de WP5: las franjas se cortan por ANILLOS de la esfera (bandas de latitud enteras, según los anillos de este LOD) y los gajos
+   *  por sus meridianos: con un umbral cualquiera en y, en cada cuadrilátero un triángulo caía a cada lado y salían dientes de sierra. */
   function handGeo(G, X, tc, s) {
-    var K = HAND_K, tp = TAPED[X.hands], tape = !!tp, cm = X.hands === 'mitones' ? colA(X, tc) : X.skin;
+    var K = HAND_K, tp = TAPED[X.hands], sk = X.skin, ca = colA(X, tc), mit = X.hands === 'mitones';
+    var lt = lumHex(sk) > 0.62; if (tp === TAPE && lt) tp = 0xffffff;
+    var td = tp ? (tp === STEEL ? STEEL_DK : mixHex(tp, INK, lt ? 0.4 : 0.22)) : 0, cad = mixHex(ca, 0x000000, 0.28);
+    var gap = tp === STEEL ? td : lt ? mixHex(sk, INK, 0.5) : sk;
+    var hs = sg(12, 5), ws = sg(16, 8), dA = PI / hs, dW = 2 * PI / ws;
+    // anillo (0 = muñeca, hs − 1 = punta) del triángulo con centro en y: su centro siempre cae entre los dos anillos de su banda
+    function ring(py) { return Math.min(hs - 1, Math.floor(Math.acos(clamp(py, -1, 1)) / dA)); }
     G.owk = 0.75;
-    G.add(sph(1, 16, 12), cm, 0, -PALM, 0.004, 0, 0, 0, 0.058 * K, 0.108 * K, 0.094 * K);
-    if (tp === STEEL) G.vc = function (px, py) { return Math.abs(py) < 0.5 ? STEEL_DK : null; };   // hierro: tira oscura en el pulgar
-    G.add(capsule(1, 1.4, 2, 8), tape ? tp : cm, 0, -0.06 * K, 0.085 * K, -0.75, 0, 0, 0.034 * K, 0.034 * K, 0.034 * K);   // pulgar
-    G.vc = null;
-    if (tape && LODR > 0) { G.owk = 0.5; G.add(torus(1, 0.14, 5, 16), tp === STEEL ? STEEL_DK : tp, 0, -PALM - 0.058 * K, 0.004, PI / 2, 0, 0, 0.05 * K, 0.081 * K, 0.08 * K); }   // (no en LOD0: 1 cm)
+    if (mit) {
+      var kTip = Math.round(hs * 0.64), kCuff = Math.round(hs * 0.25);
+      G.vc = function (px, py, pz) {
+        var r = ring(py);
+        if (r >= kTip) return sk;
+        if (r < kCuff) return Math.floor((Math.atan2(px, pz) + PI * 2.5) / dW) % 2 ? cad : null;   // puño acanalado (un gajo de cada)
+        return null;
+      };
+    } else if (tp) {
+      // desde la punta: piel, vuelta, raya, vuelta (con pocos anillos, LOD0: piel y una vuelta ancha)
+      var kT = hs >= 10 ? hs - 2 : hs - 1, many = hs >= 7;
+      G.vc = function (px, py) {
+        var r = ring(py);
+        if (r >= kT) return null;
+        if (r === kT - 1) return tp;
+        if (many) return r === kT - 2 ? gap : r === kT - 3 ? tp : null;
+        return r === kT - 2 ? tp : null;
+      };
+    }
+    G.add(sph(1, 16, 12), mit ? ca : sk, 0, -PALM, 0.004, 0, 0, 0, 0.058 * K, 0.108 * K, 0.094 * K);
+    // pulgar: la punta es su −Y (abajo y hacia delante). Casi solo asoma el casquete de la punta (el tubo queda dentro de la palma), así
+    // que las franjas van por los ANILLOS de ese casquete, como en la palma (ronda 2 de WP5: con un umbral en y salía una estrella de
+    // dientes de sierra). Casquete de capsule(1, 1,4, cs): de y = −0,7 a −1,7, con n = 2·cs bandas de latitud (Path.getPoints dobla las
+    // divisiones de los arcos); cb = banda del triángulo, 0 junto al tubo y n − 1 la de la punta.
+    var cs = Math.max(1, Math.round(2 * LODK)), nb = 2 * cs;
+    function cb(py) { return py > -0.7 ? -1 : Math.min(nb - 1, Math.floor(Math.asin(clamp(-0.7 - py, 0, 1)) / (PI / 2 / nb))); }
+    if (mit) G.vc = function (px, py) { return cb(py) >= nb / 2 ? sk : null; };   // punta de piel: la mitad del casquete (45°)
+    // vendado: punta de piel, vuelta, raya (la misma que entre las vueltas de los dedos) y vuelta; con pocas bandas (LOD0 y LOD1, los del
+    // partido) como antes: casquete de esparadrapo y el tubo con la tira oscura, que es lo que más se distingue de la piel a esa distancia
+    // (con la punta de piel y la raya, el pulgar vendado se perdía en el partido: playa 9 → 4 px)
+    else if (tp) G.vc = nb >= 4 ? function (px, py) { var b = cb(py); return b === nb - 1 ? sk : b === nb - 3 ? gap : null; }
+      : function (px, py) { return cb(py) < 0 ? td : null; };
+    else G.vc = null;
+    G.add(capsule(1, 1.4, 2, 8), mit ? ca : tp || sk, 0, -0.06 * K, 0.085 * K, -0.75, 0, 0, 0.034 * K, 0.034 * K, 0.034 * K);
     G.vc = null;
     G.owk = 1;
   }
-  function thighGeo(G, tc, beach, k) {
+  // ---------- PIERNAS Y PIES (WP4 del plan del Vestuario): lo que se VE ----------
+  // La espinilla del chibi mide 0,23: el zapatón tapa los ~0,044 de abajo y la bola de la rodilla los ~0,073 de arriba, así que de
+  // calcetín, tobillera y rodillera solo queda una ventana de ~0,11 (y en el partido el muñeco mide ~98 px y se ve de espaldas). Por
+  // eso todo lo de la pierna se coloca por ALTURA sobre el tobillo (h) y se pasa a fracción de la tira: legF (0 rodilla, 1 tobillo) y
+  // thighF (d = distancia sobre la rodilla; 0 cadera, 1 rodilla). Antes las bandas iban a fracciones fijas y caían dentro del zapatón
+  // o de la bola (P1-P4 del plan).
+  var KNEE_UP = 0.014, KNEE_DN = 0.022;   // lo que la rodillera alta sale de la bola por arriba (muslo) y por abajo (espinilla)
+  // Con malla larga la funda alta se queda justo al borde de la bola que SE VE (solo asoman los aros): si no, entre la funda y el calcetín
+  // no se veía la malla (ronda 1). Ojo: por delante, la bola tapa el tubo solo hasta kneeVis (donde la elipse de la bola corta la
+  // superficie del tubo), no hasta kneeR (el polo de abajo, en el eje): en la chibi son 0,058 frente a 0,077.
+  function kneeVis(X, r) { var ry = kneeR(X), rx = BALL_KN * 1.08 * (KNEE_HI[X.knees] ? 1.12 : 1), q = Math.min(0.95, r / rx); return ry * Math.sqrt(1 - q * q); }
+  function padUpH(X) { return X.legs === 'mallaLarga' ? kneeVis(X, TUBE_LEG) - kneeR(X) + 0.008 : KNEE_UP; }
+  function padDnH(X) { return X.legs === 'mallaLarga' ? kneeVis(X, TUBE_LEG * 0.96) - kneeR(X) + 0.012 : KNEE_DN; }
+  // Tobillera acolchada de pista: su borde de arriba queda a la altura de siempre (la de las clásicas, BRACE_UP sobre su zapatón) o, si el
+  // modelo es más alto (las neón, de suela gorda: lo tapaban todo menos el labio), BRACE_UP_HI sobre ese zapatón (por delante la puntera
+  // tapa unos 2 cm más de lo que dice shoeTopH). Deja ver el calcetín encima.
+  var BRACE_UP = 0.032, BRACE_UP_HI = 0.046;
+  var ANKLET_H = 0.04;                   // altura de las tobilleras de playa (por encima del empeine descalzo, que llega a +0,017)
+  /** Parte de arriba del zapatón (h sobre el tobillo) a la altura de la espinilla, según la FORMA del modelo puesto (SHOE_SHAPE: suela +
+   *  empeine en z = 0; el empeine está centrado zc por delante). Ronda 1 de WP4: antes era siempre el clásico y las neón (suela gorda)
+   *  tapaban la tobillera y el calcetín tobillero. */
+  function shoeTopH(X) {
+    var S = SHOE_SHAPE[X && SHOE_UP[X.shoes] ? X.shoes : 'clasicas'], q = 0.055 / S.rz;
+    return -ANKLE + S.sole + S.hd * Math.sqrt(FOOT_K) * Math.sqrt(1 - q * q);
+  }
+  function braceH(X) { var b = shoeTopH(null) + BRACE_UP, t = shoeTopH(X); return t + BRACE_UP_HI > b + 0.02 ? t + BRACE_UP_HI : b; }   // borde de arriba de la tobillera
+  /** Color del calcetín: cSock; en automático (el acento), si se funde con el empeine (el amarillo con las doradas), el primero de
+   *  base, blanco, oscuro o casi negro que se distinga de la zapatilla y de la piel. auto: el que tendría en automático (lo que mira la
+   *  geometría —tobillera, rodillera bajada—: así cambiar cSock solo repinta el atlas, como cualquier color pintado). */
+  // Ronda 2: el umbral contra el empeine es 200 (no 150): el amarillo del kit B y el oro de las doradas quedan a 160 y con la luz se
+  // funden; con las doradas se mira también el brillo del oro (GOLD). Si nada se distingue de la zapatilla Y de la piel, el que más se
+  // aleje de la zapatilla (antes volvía al acento: justo el que se quería evitar).
+  function sockHex(X, tc, auto) {
+    var c = auto ? tc.accent : colSock(X, tc), up = shoeUp(X), k = [tc.base, 0xf4f4f4, tc.dark, NEUTRAL_DK], i, b = -1, bd = -1, d;
+    function vsShoe(h) { return Math.min(hexDist(h, up), X.shoes === 'doradas' ? hexDist(h, GOLD) : 1e9); }
+    if ((!auto && X.cSock >= 0) || vsShoe(c) >= 200) return c;
+    for (i = 0; i < k.length; i++) if (typeof k[i] === 'number' && vsShoe(k[i]) >= 200 && hexDist(k[i], X.skin) >= 150) return k[i];
+    for (i = 0; i < k.length; i++) if (typeof k[i] === 'number' && (d = vsShoe(k[i])) > bd) { bd = d; b = k[i]; }
+    return bd > vsShoe(c) ? b : c;
+  }
+  /** Color de la tobillera acolchada: blanca o casi negra (o el acento / base del equipo) que se distinga del empeine, del calcetín de
+   *  encima (el automático) y de la piel (la casi negra sobre una piel oscura sin calcetín no se veía). */
+  function braceHex(X, tc) {
+    // (sin calcetín no hay que distinguirse de él: con la piel oscura y las neón la blanca quedaba descartada por un calcetín que no se
+    //  lleva y salía la casi negra, que se perdía contra la piel; ronda 2)
+    var up = shoeUp(X), so = X.socks ? sockHex(X, tc, true) : -1, c = lumHex(up) > 0.62 ? [0x2c2c34, 0xf4f4f4] : [0xf4f4f4, 0x2c2c34], i;
+    c.push(tc.accent, tc.base);
+    // (por orden: que se distinga de las tres cosas; si ninguno, de la zapatilla y el calcetín —lo normal en pista es llevarlo: va
+    //  encima—; si no, de la zapatilla y la piel; si no, de la zapatilla)
+    for (var pass = 0; pass < 4; pass++) for (i = 0; i < c.length; i++) {
+      if (typeof c[i] === 'number' && hexDist(c[i], up) >= 200 && (pass === 1 || pass === 3 || hexDist(c[i], X.skin) >= 140) &&
+        (pass > 1 || so < 0 || hexDist(c[i], so) >= 200)) return c[i];
+    }
+    return c[0];
+  }
+  function kneeR(X) { return BALL_KN * (X && KNEE_HI[X.knees] ? 1.1 : 1.04); } // radio vertical de la bola de la rodilla
+  function legF(h) { return clamp(1 - h / SHIN, 0, 1); }
+  function thighF(d) { return clamp(1 - d / THIGH, 0, 1); }
+  /** Altura del borde de arriba del calcetín (h sobre el tobillo). w0..w1 = la ventana que se ve (zapatón..bola de la rodilla). */
+  function sockTopH(sock, k, brace, w0, w1, X) {
+    if (sock === 'tobilleros') return brace ? Math.min(braceH(X) + 0.05, w0 + 0.75 * (w1 - w0)) : w0 + 0.044;   // con tobillera asoma por encima
+    // malla larga + calcetín alto: el calcetín se queda a media espinilla y entre él y la rodillera alta se ve la malla (ronda 1: con
+    // rodilleras altas y calcetín hasta la rodilla no quedaba ni un píxel de malla)
+    if (X && X.legs === 'mallaLarga' && (sock === 'altos' || sock === 'altosRayas')) return Math.max(w0 + (KNEE_HI[X.knees] ? 0.32 : 0.4) * (w1 - w0), brace ? braceH(X) + 0.022 : 0);   // (ronda 2: con funda alta, algo más abajo: la malla era una raya)
+    if (X && X.legs === 'mallaLarga' && sock === 'media' && KNEE_HI[X.knees]) return Math.max(w0 + 0.3 * (w1 - w0), brace ? braceH(X) + 0.016 : 0);
+    if (sock === 'media') return w0 + 0.84 * (w1 - w0);
+    if (sock === 'altos' || sock === 'altosRayas') return w1 + 0.02;             // hasta debajo de la rodilla
+    if (sock === 'desparejados') return k ? w0 + 0.62 * (w1 - w0) : w1 + 0.02;   // uno alto y otro a media espinilla
+    return 0;
+  }
+  // un detalle de color c sobre el color bg: el pedido si se distingue; si no, el base del equipo y, si tampoco, oscuro o blanco
+  function onCol(want, bg, tc) {
+    if (hexDist(want, bg) >= 150) return want;
+    if (tc && typeof tc.base === 'number' && hexDist(tc.base, bg) >= 220) return tc.base;
+    return lumHex(bg) > 0.5 ? NEUTRAL_DK : 0xf4f4f4;
+  }
+  /** Puño de la manga larga (térmica, licra): más oscuro que la manga o, si la manga ya es muy oscura, más claro (negro sobre negro no se ve). */
+  function cuffHex(c) { return lumHex(c) < 0.2 ? mixHex(c, 0xffffff, 0.28) : mixHex(c, 0x000000, 0.32); }
+  /** Ayuda de contraste (WP5, T3/T4/T8): el color pedido si se distingue del de debajo (distancia ≥ d, 150 por defecto); si no, el
+   *  oscuro del equipo, blanco o casi negro: el primero que se aleje d + 50, o el que más se aleje. Solo usa la equipación y constantes
+   *  (nunca cB): así la firma de la malla no depende de más colores de los que ya lleva cada pieza. */
+  function pick(want, bg, tc, d) {
+    d = d || 150;
+    if (hexDist(want, bg) >= d) return want;
+    var c = [tc && tc.dark, 0xf8f8f4, NEUTRAL_DK], best = want, bd = -1, i, dd;
+    for (i = 0; i < c.length; i++) { if (typeof c[i] !== 'number') continue; dd = hexDist(c[i], bg); if (dd >= d + 50) return c[i]; if (dd > bd) { bd = dd; best = c[i]; } }
+    return best;
+  }
+  /** Color de las rodilleras: el elegido (cPad) o, en automático, el de la equipación salvo que se pierda contra lo de debajo (la piel,
+   *  o la malla larga): a menos de 0,15 de luminancia pasa a blanco, al acento o a casi negro (P6: negro sobre negro con malla larga). */
+  function padHex(X, tc) {
+    if (X.cPad >= 0) return X.cPad;
+    var bg = X.legs === 'mallaLarga' ? colB(X, tc) : X.skin, c = [tc.pad, 0xf4f4f4, tc.accent, NEUTRAL_DK], i;
+    for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && Math.abs(lumHex(c[i]) - lumHex(bg)) >= 0.15) return c[i];
+    return tc.pad;
+  }
+  /** Color de la malla corta: cB si se elige; en automático, el primero de oscuro, base, acento, blanco o negro del equipo que se
+   *  distinga del pantalón (≥ 0,25 de luminancia o un color bien distinto: P5, antes iba del color del pantalón) y de la piel (el
+   *  blanco sobre una piel clara no se ve). Ronda 1: en pista asoma bajo la rodillera, junto al calcetín: primero se busca uno que
+   *  tampoco sea del color del calcetín (rojo sobre rojo se leía como un calcetín más alto), admitiendo también el acento o el base
+   *  oscurecidos y un contraste con el pantalón algo menor (ya no es solo el muslo); si no hay, como antes. */
+  function tightsHex(X, tc, beach) {
+    if (X.cB >= 0) return X.cB;
+    var top = beach ? tc.base : tc.shorts, c = [tc.dark, tc.base, tc.accent, 0xf4f4f4, NEUTRAL_DK], i, so = !beach && X.socks ? sockHex(X, tc) : -1, d;
+    // (ronda 2: con rodillera que tapa la rodilla, la malla corta asoma justo encima y debajo de ella: blanca con la rodillera blanca era
+    //  un solo tramo blanco del pantalón al calcetín)
+    var pd = !beach && X.legs === 'malla' && (X.knees === 'cortas' || X.knees === 'altas') ? padHex(X, tc) : -1;
+    function vsTop(h) { return Math.abs(lumHex(h) - lumHex(top)) >= 0.25 || hexDist(h, top) >= 260; }
+    if (so >= 0) {
+      d = c.concat([mixHex(tc.accent, 0x000000, 0.45), mixHex(tc.base, 0x000000, 0.45)]);
+      for (i = 0; i < d.length; i++) if (typeof d[i] === 'number' && hexDist(d[i], so) >= 140 && hexDist(d[i], X.skin) >= 120 && (pd < 0 || hexDist(d[i], pd) >= 140) &&
+        (vsTop(d[i]) || (i >= c.length && hexDist(d[i], top) >= 110))) return d[i];
+    }
+    for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && vsTop(c[i]) && hexDist(c[i], X.skin) >= 120) return c[i];
+    return lumHex(top) > 0.5 ? NEUTRAL_DK : 0xf4f4f4;
+  }
+  function thighGeo(G, tc, X, beach, k) {
     G.add(sph(BALL_HIP, 12, 9), beach ? tc.base : tc.shorts);                // bola de la cadera (asoma al levantar la pierna); playa: malla
     G.mode = 'strip'; G.rows = TH_R; G.su = COL_TH[k]; G.add(tube(TUBE_LEG, THIGH), null, 0, -THIGH / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL;
+    // rodillera alta: la funda pintada sigue por el muslo y acaba en un aro (el borde se ve de lado y de espaldas)
+    if (KNEE_HI[X.knees]) { G.owk = 0.5; G.add(cyl(TUBE_LEG + 0.0035, TUBE_LEG + 0.0035, 0.01, 14, true), padRim(X, tc), 0, -THIGH + kneeR(X) + padUpH(X) - 0.004, 0); G.owk = 1; }
   }
-  /** Bola de la rodilla: rodillera (cortas, altas: oscuro del equipo) o rodilla desnuda (bajadas o sin; con malla larga, cB). */
-  function kneeHex(X, tc) { return X.knees === 'rodiPulpo' ? PULPO : X.knees === 'cortas' || X.knees === 'altas' ? tc.pad : X.legs === 'mallaLarga' ? colB(X, tc) : X.skin; }
+  /** Aro del borde de la rodillera alta: del acento del equipo (o lo que se distinga de la rodillera); la de pulpo, ventosa clara. */
+  /** Rodillera BAJADA: el aro cae sobre el borde del calcetín (media): en automático, que no sea del color del calcetín (se leía como
+   *  un calcetín más alto) ni de la piel. */
+  function dropPadHex(X, tc, beach) {
+    var p = padHex(X, tc), so, c, i;
+    if (X.cPad >= 0 || beach) return p;
+    // ronda 2: además de otro color, otro BRILLO (≥ 0,3): blanco sobre el amarillo del kit B seguía leyéndose como un puño de calcetín
+    so = sockHex(X, tc, true);
+    function vsSock(h) { return hexDist(h, so) >= 150 && Math.abs(lumHex(h) - lumHex(so)) >= 0.3; }
+    if (vsSock(p)) return p;
+    c = [tc.pad, tc.accent, tc.base, 0xf4f4f4, NEUTRAL_DK];
+    for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && vsSock(c[i]) && Math.abs(lumHex(c[i]) - lumHex(X.skin)) >= 0.15) return c[i];
+    for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && vsSock(c[i])) return c[i];   // (va SOBRE el calcetín: manda él)
+    return p;
+  }
+  function padRim(X, tc) { return X.knees === 'rodiPulpo' ? PULPO_HI : onCol(tc.accent, padHex(X, tc), tc); }
+  /** Bola de la rodilla: rodillera (cortas, altas: padHex) o rodilla desnuda (bajadas o sin; con malla larga, cB). */
+  function kneeHex(X, tc) { return X.knees === 'rodiPulpo' ? PULPO : X.knees === 'cortas' || X.knees === 'altas' ? padHex(X, tc) : X.legs === 'mallaLarga' ? colB(X, tc) : X.skin; }
   // ventosas de la rodillera de pulpo (solo LOD2, bola de 16 × 12): casillas [columna, fila] de la esfera, una cara doble cada una,
   // al tresbolillo por delante (+Z: columna 4 de 16 = 90°, filas 5-7 de 12 = el ecuador)
   var PULPO_Q = { '2,5': 1, '4,5': 1, '6,5': 1, '3,7': 1, '5,7': 1, '1,7': 1, '7,7': 1 };
@@ -1202,16 +1504,43 @@
     return PULPO_Q[Math.floor(ph / (PI / 8)) + ',' + Math.floor(Math.acos(clamp(y / l, -1, 1)) / (PI / 12))] ? PULPO_HI : null;
   }
   function shinGeo(G, tc, X, beach, k) {
-    // rodilla: bola = RODILLERA pintada (oscuro del equipo); en la playa, la rodilla desnuda (piel); altas: algo mayor
-    var hi = !!KNEE_HI[X.knees];
+    // rodilla: bola = RODILLERA (padHex); en la playa, la rodilla desnuda (piel); altas: algo mayor
+    var hi = !!KNEE_HI[X.knees], sr = TUBE_LEG * 0.96, yA = -SHIN;
     if (X.knees === 'rodiPulpo' && LODR === 2) G.vc = pulpoDots;   // ventosas por delante
     G.add(sph(BALL_KN, 16, 12), kneeHex(X, tc), 0, 0, 0.004, 0, 0, 0, hi ? 1.08 * 1.12 : 1.08, hi ? 1.1 : 1, hi ? 1.04 * 1.12 : 1.04);
     G.vc = null;
-    G.mode = 'strip'; G.rows = SHN_R; G.su = COL_SHN[k]; G.add(tube(TUBE_LEG * 0.96, SHIN), null, 0, -SHIN / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL;
+    G.mode = 'strip'; G.rows = SHN_R; G.su = COL_SHN[k]; G.add(tube(sr, SHIN), null, 0, -SHIN / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL;
+    if (hi) { G.owk = 0.5; G.add(cyl(sr + 0.0035, sr + 0.0035, 0.01, 14, true), padRim(X, tc), 0, -kneeR(X) - padDnH(X) + 0.004, 0); G.owk = 1; }   // borde de abajo de la funda
+    else if (X.knees === 'bajadas') {   // rodillera BAJADA: la almohadilla resbalada a media espinilla, un aro gordo; la rodilla, de piel
+      G.add(lathe([V2(sr + 0.001, -0.025), V2(0.013 + sr, -0.013), V2(0.013 + sr, 0.013), V2(sr + 0.001, 0.025)], 14, 6), dropPadHex(X, tc, beach), 0, -kneeR(X) - 0.03, 0);
+    }
+    if (!beach && X.ankle === 'blanca') {   // tobillera acolchada de pista: sale del zapatón (P1), con el borde de arriba del color del equipo
+      // (oscura sobre un empeine claro —las clásicas blancas de serie, las neón— y blanca sobre uno oscuro: si no, se funde con la zapatilla)
+      // (y que no se funda con el calcetín de encima: con las doradas y un calcetín blanco, la blanca no se veía)
+      var bc = braceHex(X, tc), bt = onCol(tc.accent, bc, tc), br = sr + 0.0105, bh = braceH(X);
+      G.vc = function (px, py) { return py > bh - 0.014 ? bt : null; };
+      G.add(lathe([V2(br - 0.004, -0.004), V2(br + 0.002, 0.012), V2(br + 0.001, bh - 0.016), V2(br - 0.006, bh)], 14, 6), bc, 0, yA, 0);
+      G.vc = null;
+    }
+    // tobilleras de playa (P2): alrededor de la espinilla, por encima del empeine descalzo (antes quedaban dentro del pie)
+    if (beach && (X.ankle === 'tela' || X.ankle === 'tobiPulpo')) {
+      var ra = sr + 0.004, ca = colA(X, tc);
+      if (X.ankle === 'tobiPulpo') {   // jefe Pulpo: la de tela con ventosas claras alternas por fuera
+        var ct = mixHex(ca, PULPO_HI, 0.7), st = 2 * PI / sg(16, 10);
+        G.vc = function (px, py) { return Math.sqrt(px * px + py * py) > ra + 0.004 && Math.floor((Math.atan2(py, px) + PI) / st) % 2 === 0 ? ct : null; };
+      }
+      G.owk = 0.5; G.add(torus(ra, 0.012, 5, 16), ca, 0, yA + ANKLET_H, 0, PI / 2, 0, 0); G.vc = null; G.owk = 1;
+    }
+    else if (beach && X.ankle === 'pulseraTob') {   // pulsera de cuentas (cA y blanco), algo ladeada (en LOD0 también: sg la simplifica)
+      var pa = colA(X, tc), pb = onCol(0xf4f4f4, pa, tc), ps = 2 * PI / sg(14, 10);
+      if (hexDist(pb, X.skin) < 150) pb = mixHex(pa, 0x000000, 0.45);   // (cuentas blancas sobre piel clara no se ven: del acento oscurecido)
+      G.vc = function (px, py) { return Math.floor((Math.atan2(py, px) + PI) / ps) % 2 ? pb : null; };
+      G.owk = 0.4; G.add(torus(sr + 0.005, 0.0095, 5, 14), pa, 0, yA + ANKLET_H - 0.004, 0, PI / 2 + 0.14, 0, 0); G.vc = null; G.owk = 1;
+    }
   }
-  /** Playa: pie DESCALZO de muñeco (empeine redondo de piel, planta con arena, dedo gordo insinuado) con la tobillera del Vestuario:
-   *  tela (toro de cA, la de siempre), pulsera de tobillo (aro fino, no en LOD0), escarpines (pie de cSock, sin tobillera) o nada.
-   *  La planta queda en -ANKLE como la suela del zapatón. s: 1 izquierdo, -1 derecho (el dedo gordo, hacia dentro). */
+  /** Playa: pie DESCALZO de muñeco (empeine redondo de piel, planta con arena, dedo gordo insinuado); escarpines = pie de cSock. Las
+   *  tobilleras (tela, pulsera, pulpo) van en la espinilla (shinGeo). La planta queda en -ANKLE como la suela del zapatón.
+   *  s: 1 izquierdo, -1 derecho (el dedo gordo, hacia dentro). */
   var SAND_HEX = 0xe8cf9a;
   function footGeo(G, X, tc, s) {
     var K = FOOT_K, Y = -ANKLE + 0.062, esc = X.ankle === 'escarpines', sk = esc ? colSock(X, tc) : X.skin;
@@ -1219,72 +1548,118 @@
     G.add(sph(1, 16, 10, 0, PI * 2, 0, PI * 0.5), sk, 0, Y, 0.045 * K, 0, 0, 0, 0.078 * K, 0.07 * Math.sqrt(K), 0.14 * K);     // empeine (media esfera)
     G.add(sph(1, 16, 6, 0, PI * 2, PI * 0.5, PI * 0.5), mixHex(sk, SAND_HEX, esc ? 0.3 : 0.4), 0, Y, 0.045 * K, 0, 0, 0, 0.08 * K, 0.062, 0.142 * K); // planta con arena
     G.owk = 0.5; G.add(sph(0.03 * K, 10, 7), sk, -s * 0.034 * K, Y + 0.004, 0.045 * K + 0.125 * K, 0, 0, 0, 1, 0.8, 1.1);   // dedo gordo
-    if (X.ankle === 'tela') { G.owk = 0; G.add(torus(0.05 * K, 0.011, 5, 16), colA(X, tc), 0, -0.01, -0.006, PI / 2, 0, 0, 1, 1, 1.05); }   // tobillera de tela
-    else if (X.ankle === 'tobiPulpo') {   // jefe Pulpo: la tobillera de tela con ventosas claras alternas por fuera
-      var ra = 0.05 * K, ct = mixHex(colA(X, tc), PULPO_HI, 0.7), st = 2 * PI / sg(16, 10);
-      G.vc = function (px, py) { return Math.sqrt(px * px + py * py) > ra + 0.004 && Math.floor((Math.atan2(py, px) + PI) / st) % 2 === 0 ? ct : null; };
-      G.owk = 0; G.add(torus(ra, 0.012, 5, 16), colA(X, tc), 0, -0.01, -0.006, PI / 2, 0, 0, 1, 1, 1.4); G.vc = null;
-    }
-    else if (X.ankle === 'pulseraTob' && LODR > 0) { G.owk = 0; G.add(torus(0.053 * K, 0.0045, 4, 10), colA(X, tc), 0, -0.024, -0.006, PI / 2 + 0.14, 0, 0, 1, 1, 1.05); }
     G.owk = 1;
   }
-  /** Zapatón redondeado grande (empeine con la puntera del acento, suela, tobillera y ribete); la planta queda en -ANKLE. Vestuario:
-   *  el empeine según las zapatillas (clásicas y neón admiten cShoe), y la tobillera blanca (oscura con las negras) o del empeine. */
-  var SHOE_UP = { clasicas: 0xf4f4f4, negras: NEUTRAL_DK, neon: 0xd8ff3a, doradas: GOLD };
+  /** Zapatón redondeado grande: empeine (media esfera con el polo delante) + suela (media esfera aplastada) + cuello y ribete; la planta
+   *  queda en -ANKLE. WP4: cada modelo con su FORMA (lo de lado se distingue) y sus dibujos por color de vértice: puntera, franja lateral,
+   *  talón y franja de la suela; cordones (3 cajas planas) solo en LOD2. Clásicas y neón admiten cShoe en el empeine.
+   *  sole = alto de la suela (= Y del ecuador sobre la planta), hd = alto del empeine, rx/rz = ancho/largo (× FOOT_K). */
+  var SHOE_UP = { clasicas: 0xf4f4f4, negras: NEUTRAL_DK, neon: 0xd8ff3a, doradas: 0xc98f1c };
+  var SHOE_SHAPE = {
+    clasicas: { sole: 0.075, hd: 0.088, rx: 0.092, rz: 0.158 },
+    negras: { sole: 0.06, hd: 0.064, rx: 0.09, rz: 0.166 },    // bajas y planas
+    neon: { sole: 0.1, hd: 0.076, rx: 0.095, rz: 0.156 },      // suela gorda
+    doradas: { sole: 0.07, hd: 0.08, rx: 0.085, rz: 0.17 }     // estilizadas y largas
+  };
+  /** Color del empeine (clásicas y neón admiten cShoe). */
+  function shoeUp(X) { var sh = SHOE_UP[X.shoes] ? X.shoes : 'clasicas'; return (sh === 'clasicas' || sh === 'neon') && X.cShoe >= 0 ? X.cShoe : SHOE_UP[sh]; }
+  var NEON_TOE = 0xff3aa8, GOLD_DK = 0x7e500e, GOLD_TOE = 0xe3ac2c;   // oro de cómic: base ocre, brillo GOLD_HI y borde marrón
   // Empeine: media esfera con el POLO hacia delante (WP1 del plan del Vestuario): sus anillos son cortes verticales a lo ancho, así que la
   // puntera es un color por vértice de los SHOE_TOE primeros anillos (borde recto y limpio, sin la escalera de las dos esferas que se
-  // cortaban) y sin pieza propia: −208 triángulos por pie en LOD2, −101 en LOD1, −64 en LOD0. 16 segmentos de lado a lado por encima y 14 de la
-  // punta al talón (antes eran 9: el perfil de lado sale más redondo con los mismos triángulos).
+  // cortaban) y sin pieza propia. 16 segmentos de lado a lado por encima y 14 de la punta al talón.
   var SHOE_TOE = 0.36;  // fracción de la longitud (polo → polo) que es puntera
   // distancia entre dos colores (RGB «redmean», 0-765): barata y bastante parecida a lo que ve el ojo
   function hexDist(a, b) {
     var r = ((a >> 16 & 255) + (b >> 16 & 255)) / 2, dr = (a >> 16 & 255) - (b >> 16 & 255), dg = (a >> 8 & 255) - (b >> 8 & 255), db = (a & 255) - (b & 255);
     return Math.sqrt((2 + r / 256) * dr * dr + 4 * dg * dg + (2 + (255 - r) / 256) * db * db);
   }
-  // color de un detalle (puntera, ribete) sobre el color c0 de debajo: el pedido si se distingue; si no (el acento amarillo de un
-  // equipo sobre las neón o las doradas, el blanco sobre las clásicas), el color base del equipo y, si tampoco, oscuro o blanco
-  function onShoe(want, c0, tc) {
-    if (hexDist(want, c0) >= 150) return want;
-    if (typeof tc.base === 'number' && hexDist(tc.base, c0) >= 220) return tc.base;
-    return lumHex(c0) > 0.5 ? NEUTRAL_DK : 0xf4f4f4;
-  }
+  // color de un detalle (puntera, ribete) sobre el color c0 de debajo (el acento amarillo de un equipo sobre las neón, el blanco sobre
+  // las clásicas): lo mismo que onCol
+  function onShoe(want, c0, tc) { return onCol(want, c0, tc); }
   function shoeGeo(G, tc, X) {
-    var K = FOOT_K, Y = -ANKLE + 0.075, sh = SHOE_UP[X.shoes] ? X.shoes : 'clasicas';   // la planta sigue en -ANKLE: el zapatón crece en largo y ancho (y algo en alto)
-    var up = (sh === 'clasicas' || sh === 'neon') && X.cShoe >= 0 ? X.cShoe : SHOE_UP[sh];
-    // las doradas no pegan la suela al empeine (la amarilla de un equipo desaparecía bajo el dorado); las demás, la del equipo como siempre
-    var sole = sh === 'neon' ? 0x1d1d22 : sh === 'doradas' ? onShoe(tc.sole, up, tc) : tc.sole, toe = sh === 'doradas' ? GOLD_HI : onShoe(tc.accent, up, tc);
-    var ank = X.ankle === 'blanca' ? (sh === 'negras' ? 0x2c2c34 : 0xf4f4f4) : up;
-    // y de la primitiva = eje del polo (+1 la punta): la puntera son los anillos enteros con y > cos(kc·π/h) (el centro de cada triángulo
-    // queda estrictamente entre sus dos anillos, así que el corte cae justo en la línea del anillo kc en cualquier LOD)
-    var hs = sg(14, 5), kc = Math.max(1, Math.round(hs * SHOE_TOE)), ty = Math.cos(kc * PI / hs);
-    G.vc = function (px, py) { return py > ty ? toe : null; };
-    G.add(sph(1, 16, 14, PI, PI, 0, PI), up, 0, Y, 0.055 * K, PI / 2, 0, 0, 0.092 * K, 0.158 * K, 0.088 * Math.sqrt(K));   // empeine (media esfera, polo delante)
+    var K = FOOT_K, sh = SHOE_UP[X.shoes] ? X.shoes : 'clasicas', S = SHOE_SHAPE[sh], Y = -ANKLE + S.sole, hd = S.hd * Math.sqrt(K);
+    var rx = S.rx * K, rz = S.rz * K, zc = 0.055 * K;
+    var up = shoeUp(X);
+    // colores de cada modelo: suela, franja de la suela (mid), puntera, franja lateral (side), talón (heel) y cordones (lace)
+    var sole, mid, toe, side, heel, lace;
+    if (sh === 'negras') { sole = 0x2e2e36; mid = 0xf4f4f4; toe = mixHex(up, 0xffffff, 0.16); side = 0xf4f4f4; heel = onCol(tc.accent, up, tc); lace = 0xf4f4f4; }
+    else if (sh === 'neon') { sole = 0x1d1d22; mid = 0xf4f4f4; toe = onCol(NEON_TOE, up, tc); side = onCol(0x1d1d22, up, tc); heel = toe; lace = onCol(0x1d1d22, up, tc); }
+    else if (sh === 'doradas') { sole = 0xf2ead2; mid = up; toe = GOLD_TOE; side = GOLD_HI; heel = GOLD_DK; lace = GOLD_HI; }
+    else { sole = tc.sole; mid = onCol(0xf4f4f4, tc.sole, tc); toe = onCol(tc.accent, up, tc); side = toe; heel = toe; lace = onCol(mixHex(up, INK, 0.55), up, tc); }
+    // y de la primitiva = eje del polo (+1 la punta), x = a lo ancho, -z = hacia arriba. La puntera son los anillos enteros con
+    // y > cos(kc·π/h) (el corte cae justo en la línea del anillo kc en cualquier LOD)
+    // Franja lateral y brillo del oro: una «gajo» entero de la esfera (entre dos meridianos que van de la punta al talón, a una elevación
+    // fija sobre el costado): bordes limpios en cualquier LOD (una diagonal por caras salía en escalera) y se estrecha sola hacia el talón
+    var hs = sg(14, 5), kc = Math.max(1, Math.round(hs * SHOE_TOE)), ty = Math.cos(kc * PI / hs), ws = sg(16, 8), wa = PI / ws;
+    var kS = Math.max(1, Math.round(ws * 0.15)), kG = Math.max(1, Math.round(ws * 0.3));
+    G.vc = function (px, py, pz) {
+      var h = -pz, band = Math.floor(Math.atan2(h, Math.abs(px)) / wa);   // gajo: 0 = el de abajo del costado … ws/2 = arriba
+      if (py > ty) return toe;
+      if (py < -0.8 && band > kS) return heel;                                       // talón (lo que más se ve: de espaldas), por gajos
+      if (sh === 'doradas') return band === kG ? side : band === 0 ? GOLD_DK : null;  // brillo de oro arriba y borde oscuro abajo
+      return band === kS && py > -0.8 ? side : null;
+    };
+    G.add(sph(1, 16, 14, PI, PI, 0, PI), up, 0, Y, zc, PI / 2, 0, 0, rx, rz, hd);   // empeine (media esfera, polo delante)
+    // suela: la fila de arriba (el ecuador) es la franja de la suela
+    G.vc = function (px, py) { return py > -0.24 ? mid : null; };
+    G.add(sph(1, 18, 7, 0, PI * 2, PI * 0.5, PI * 0.5), sole, 0, Y, zc, 0, 0, 0, rx * 1.022, S.sole, rz * 1.013);
     G.vc = null;
-    G.add(sph(1, 18, 7, 0, PI * 2, PI * 0.5, PI * 0.5), sole, 0, Y, 0.055 * K, 0, 0, 0, 0.094 * K, 0.075, 0.16 * K);   // suela (media esfera aplastada)
-    G.add(cyl(0.05 * K, 0.056 * K, 0.06, 14), ank, 0, -0.03, -0.005);                                                 // tobillera
-    G.owk = 0;
-    G.add(cyl(0.057 * K, 0.057 * K, 0.014, 14, true), onShoe(tc.accent, ank, tc), 0, -0.012, -0.005);                 // ribete del tobillo
-    G.owk = 1;
+    if (LODR === 2) {   // cordones: 3 cajas planas sobre la lengüeta, siguiendo la curva del empeine
+      G.owk = 0;
+      [-0.03, -0.006, 0.018].forEach(function (dz, i) {
+        var q = clamp(dz / rz, -0.95, 0.95), sq = Math.sqrt(1 - q * q), yT = Y + hd * sq, sl = -hd * q / (rz * sq);
+        G.add(new THREE.BoxGeometry(rx * (0.62 - i * 0.06), 0.006, 0.011), lace, 0, yT + 0.0015, zc + dz, -Math.atan(sl), 0, 0);
+      });
+      G.owk = 1;
+    }
+    if (!(X.ankle === 'blanca')) {   // cuello bajo (con la tobillera acolchada no se ve: va dentro)
+      G.add(cyl(0.05 * K, 0.056 * K, 0.06, 14, true), up, 0, -0.03, -0.005);                                    // cuello
+      G.owk = 0;
+      G.add(cyl(0.057 * K, 0.057 * K, 0.014, 14, true), onShoe(tc.accent, up, tc), 0, -0.012, -0.005);         // ribete del tobillo
+      G.owk = 1;
+    }
   }
-  /** Cuello (ranura neck) en el hueso del pecho: un aro inclinado que se apoya en el domo de los hombros, por delante más bajo y por
-   *  debajo de la mandíbula. Medalla: cinta de cA + disco dorado; collar de conchas: cordón + 5 conchas (las conchas, solo en LOD2). */
-  function neckGeo(G, X, tc) {
-    if (!X.neck) return;
-    var co = SPINE_Y + CHEST_Y, hb = NECK_Y + HEAD_C - 0.95 * HEAD_RY, yf = hb - 0.07, yb = hb + 0.03, off = 0.012;
+  /** Marco del cuello en el hueso del pecho: un aro inclinado que se apoya en el domo de los hombros, por delante más bajo y por detrás
+   *  debajo de la mandíbula, separado `off` del tronco. Devuelve centro (cy, cz), semiejes (ax, az), inclinación t y las alturas. */
+  function neckFrame(off, dyf, dyb) {
+    var co = SPINE_Y + CHEST_Y, hb = NECK_Y + HEAD_C - 0.95 * HEAD_RY, yf = hb + dyf, yb = hb + dyb;
     var rf = torsoR(yf + co), rb = torsoR(yb + co), zf = rf[1] + off, zb = rb[1] + off;
     var t = Math.atan2(yb - yf, zf + zb), cy = (yf + yb) / 2, cz = (zf - zb) / 2, az = Math.sqrt((yb - yf) * (yb - yf) + (zf + zb) * (zf + zb)) / 2;
-    var ax = torsoR(cy + co)[0] + off, i, ph;
+    return { co: co, yf: yf, yb: yb, t: t, cy: cy, cz: cz, az: az, ax: torsoR(cy + co)[0] + off };
+  }
+  /** Cuello alto de la camiseta interior (WP5, T6): con la térmica (pista) o la licra (playa), un aro de revolución algo cónico en cB
+   *  que sube del domo de los hombros hasta debajo de la cabeza, con tinta: así se lee como una camiseta y no como dos manguitos, y
+   *  sigue viéndose con manguitos. 24 lados abiertos: 48 / 32 / 22 triángulos. */
+  function collarGeo(G, X, tc) {
+    var F = neckFrame(0.004, -0.062, 0.035), h = 0.05, lift = h * 0.32;
+    G.owk = 0.9;
+    G.vc = function (px, py) { return py > 0.3 ? mixHex(colB(X, tc), 0x000000, 0.3) : null; };   // el borde de arriba, más oscuro
+    G.add(cyl(0.86, 1, 1, 24, true), colB(X, tc), 0, F.cy + Math.cos(F.t) * lift, F.cz + Math.sin(F.t) * lift, F.t, 0, 0, F.ax, h, F.az);
+    G.vc = null; G.owk = 1;
+  }
+  /** Cuello (ranura neck) en el hueso del pecho. Medalla (WP5, T9): cinta bicolor cA/cB (de lado a lado del cordón) y un disco grande
+   *  (r 0,045) de oro con el canto oscuro y el centro claro; collar de conchas: cordón (claro sobre piel oscura) + 5 conchas (LOD2).
+   *  Medalla: 188 / 120 / 112 triángulos (cinta de 16 tramos y disco de 12 lados: ≤ 120 en LOD1, el presupuesto del plan). */
+  function neckGeo(G, X, tc) {
+    if (!X.neck) return;
+    var hi = X.beach ? X.under === 'licra' : X.under === 'termica';   // con el cuello alto, por fuera de él
+    var F = neckFrame(hi ? 0.02 : 0.012, -0.07, 0.03), t = F.t, cy = F.cy, cz = F.cz, ax = F.ax, az = F.az, co = F.co, i, ph;
     function ringPt(p) { return [ax * Math.sin(p), cy - Math.sin(t) * az * Math.cos(p), cz + Math.cos(t) * az * Math.cos(p)]; }
     if (X.neck === 'medalla') {
-      G.owk = 0.5; G.add(torus(1, 0.06, 4, 24), colA(X, tc), 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az);                      // cinta
-      var dy = yf - 0.04, rd = torsoR(dy + co);
-      G.owk = 0.6; G.add(cyl(0.032, 0.032, 0.008, 12), GOLD, 0, dy, rd[1] + 0.01, PI / 2 - 0.22, 0, 0);                       // medalla
-      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.02, sg(12, 8)), GOLD_HI, 0, dy + 0.0012, rd[1] + 0.0145, -0.22, 0, 0); }   // relieve (no en LOD0)
+      var c1 = colA(X, tc), c2 = colB(X, tc);
+      if (hexDist(c1, c2) < 150) c2 = pick(c2, c1, tc);
+      // (la cinta: en el toro, z > 0 es la mitad de abajo del cordón una vez girado: una franja de cada color a lo largo)
+      G.owk = 0.5; G.vc = function (px, py, pz) { return pz > 0 ? c2 : null; };
+      G.add(torus(1, 0.075, 4, 16), c1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;                                  // cinta
+      var dy = F.yf - 0.045, rd = torsoR(dy + co);
+      G.owk = 0.7; G.vc = function (px, py) { return Math.abs(py) < 0.0049 ? GOLD_DK : null; };                                  // canto oscuro
+      G.add(cyl(0.045, 0.045, 0.01, 12), GOLD, 0, dy, rd[1] + 0.012, PI / 2 - 0.22, 0, 0); G.vc = null;                         // medalla
+      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.03, sg(12, 8)), GOLD_HI, 0, dy + 0.0012, rd[1] + 0.0175, -0.22, 0, 0); }   // relieve (no en LOD0)
     } else if (X.neck === 'conchas') {
-      G.owk = 0; G.add(torus(1, 0.035, 4, 24), 0x6b4a2e, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az);                          // cordón
+      G.owk = 0.3; G.add(torus(1, 0.05, 4, 24), lumHex(X.skin) < 0.45 ? 0xe6d6b2 : 0x6b4a2e, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az);   // cordón
       if (LODR === 2) for (i = -2; i <= 2; i++) {
-        ph = i * 0.33; var p = ringPt(ph);
-        G.owk = 0.5; G.add(sph(1, 8, 6), i % 2 ? 0xf2c7b0 : 0xf6e7d0, p[0], p[1] - 0.008, p[2] + 0.004, -0.4 - t, ph, 0, 0.016, 0.019, 0.009);
+        ph = i * 0.4; var p = ringPt(ph);
+        G.owk = 0.6; G.add(sph(1, 8, 6), i % 2 ? 0xf2b9a0 : 0xfaf0dc, p[0], p[1] - 0.016, p[2] + 0.008, -0.4 - t, ph, 0, 0.031, 0.036, 0.014);
       }
     }
     G.owk = 1;
@@ -2546,11 +2921,12 @@
     try {
       torsoGeo(on(r.pelvis), r);
       headGeo(on(r.head), X, tc, r); eyesGeo(G, X, tc); faceGeo(G, r, X, tc, on);
+      if (bch ? X.under === 'licra' : X.under === 'termica') collarGeo(on(r.chest), X, tc);   // cuello alto de la camiseta interior
       if (X.neck) neckGeo(on(r.chest), X, tc);
       for (k = 0; k < 2; k++) {
         s = k === 0 ? 1 : -1;
         shoulderGeo(on(r.sh[k]), tc, X, bch); upperGeo(on(r.up[k]), k); foreGeo(on(r.el[k]), X, tc, k); wristGeo(G, X, tc, k); handGeo(on(r.hand[k]), X, tc, s);
-        thighGeo(on(r.th[k]), tc, bch, k); shinGeo(on(r.kn[k]), tc, X, bch, k);
+        thighGeo(on(r.th[k]), tc, X, bch, k); shinGeo(on(r.kn[k]), tc, X, bch, k);
         if (bch) footGeo(on(r.ft[k]), X, tc, s); else shoeGeo(on(r.ft[k]), tc, X);
       }
     } finally { LODK = keepK; LODR = keepR; }
@@ -3055,6 +3431,8 @@
   // TRI_CAP es para el partido: hay 12 muñecos en el 6v6 del móvil. LOD0 NO se sube nunca; LOD1/LOD2 solo con una medida de fps del
   // 6v6 a 640x360 antes y después, apuntada en notes/players.md (plan del Vestuario, §3.2). lookSelfTest imprime el margen que queda.
   // TRI_TODAY (1.16, WP1): la puntera de la zapatilla por color de vértice ahorra 64/101/208 por pie (−128/−202/−416 en pista)
+  // (WP4: la tobillera acolchada sale del zapatón —en lugar del cuello y el ribete, que ya no llevan tapas— y los cordones, solo en LOD2:
+  //  −24/0/+72 en pista con el look de serie)
   var TRI_CAP = [4400, 6000, 12800];
   // TRI_TODAY (1.16, WP2): casco de pelo nuevo. El afro baja (−394/−349/−564 con gafas: rizos de 20-80 triángulos en vez de 19 esferas)
   // y el resto queda casi igual (rapado +26/+68/+34, gorra +42/+47/+2: el pelo de la nuca bajo la gorra)
@@ -3063,10 +3441,10 @@
   // TRI_TODAY (1.16, WP3): láminas de la cara (LOD0 con una fila más y la de boca más ancha: +20/+16/+16), gafas en la frente rehechas
   // (−300/−332/−784) y gorra con la visera gruesa y la copa más ligera (+8/−87/−216)
   var TRI_TODAY = [
-    { L: { style: 'rapado', acc: '' }, t: [2408, 3705, 8276], n: 'rapado sin complemento' },
-    { L: { style: 'afro', acc: 'gafas' }, t: [3056, 4425, 9732], n: 'afro + gafas' },
-    { L: { style: 'afro', acc: '', eyes: 'frente' }, t: [3056, 4425, 9732], n: 'afro + gafas en la frente (L nueva)' },
-    { L: { style: 'tupe', acc: 'gorra' }, t: [2630, 3950, 8778], n: 'gorra' }
+    { L: { style: 'rapado', acc: '' }, t: [2384, 3705, 8348], n: 'rapado sin complemento' },
+    { L: { style: 'afro', acc: 'gafas' }, t: [3032, 4425, 9804], n: 'afro + gafas' },
+    { L: { style: 'afro', acc: '', eyes: 'frente' }, t: [3032, 4425, 9804], n: 'afro + gafas en la frente (L nueva)' },
+    { L: { style: 'tupe', acc: 'gorra' }, t: [2606, 3950, 8850], n: 'gorra' }
   ];
   // reglas de compatibilidad (las de VB.Look.CLASH; esta copia solo se usa si look.js no está cargado)
   var CLASH_FALLBACK = [
@@ -3140,7 +3518,7 @@
           var dk = itemD[id] || (itemD[id] = [0, 0, 0]); for (l = 0; l < 3; l++) dk[l] = Math.max(dk[l], m.t[l] - mb.t[l]);
           if (geoSig(L, tc, bch) === gb && m.h !== mb.h) fail('geoSig no ve el cambio de malla: ' + v + ' ' + sl + '=' + id);
           if (sl !== 'style' && sl !== 'head' && sl !== 'eyes') {   // un color que solo va en el atlas no cambia la malla
-            ['cA', 'cB', 'cSock', 'cShoe', 'cGlass'].forEach(function (ck) {
+            ['cA', 'cB', 'cSock', 'cShoe', 'cGlass', 'cPad'].forEach(function (ck) {
               var L2 = Object.assign({}, L); L2[ck] = 0x8a4fd8;
               if (geoSig(L2, tc, bch) === geoSig(L, tc, bch)) { if (measure(L2, bch, tc, true, true).h !== m.h) fail('geoSig no ve ' + ck + ' con ' + sl + '=' + id + ' (' + v + ')'); }
             });

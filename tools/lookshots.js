@@ -25,6 +25,7 @@
  *       --hair=negro|rubio|castOsc… cambia el color del pelo (castaño oscuro por defecto); --item=… filtra peinados o gorros.
  *     --item=id    solo esos objetos (peinados incluidos: tupe, afro…; combos: c_head_hall…); con game también
  *     --venue=     solo esa sede
+ *     --region=hand  encuadre de las casillas de objetos (hand: primer plano de la mano izquierda, para guantes y vendas)
  *     --fmt=png    PNG en vez de JPEG (calidad 0,86; por defecto JPEG: ~0,3 MB por hoja en vez de ~2,5 MB)
  *   Salida: tools/out/look-audit/<grupo>/<fichero>.jpg (+ manifest.json con lo que hay en cada hoja).
  *   Ejemplos: node tools/lookshots.js head --item=gorra
@@ -70,11 +71,13 @@ window.__LS = (function () {
     legs: [-0.05, dm.HIP_H + 0.12, dm.HIP_W + 0.26, 0.3],
     feet: [-0.05, 0.42, dm.HIP_W + 0.22, 0.32],
     full: [-0.06, top + 0.14, dm.SH_X + 0.32, 0.35],
-    face: [top - headH - 0.02, top + 0.01, dm.HEAD_RX + 0.05, 0.3]   // (WP3) primer plano de la cara: pintura, marcas, barbas, gafas
+    face: [top - headH - 0.02, top + 0.01, dm.HEAD_RX + 0.05, 0.3],   // (WP3) primer plano de la cara: pintura, marcas, barbas, gafas
+    // primer plano de la mano izquierda (5.º valor: desplazamiento lateral del encuadre, x local del muñeco); con --region=hand
+    hand: [handLow - 0.06, handLow + 0.26, 0.16, 0.2, dm.SH_X + 0.07]
   };
   // vistas: acimut (0 = de frente, + = hacia la izquierda del muñeco) y elevación (grados)
   var VIEW = { front: [0, 4], back: [180, 4], q3l: [45, 6], sideR: [-90, 4], top: [20, 35], full: [0, 3], fullBack: [180, 3], q3bl: [135, 8], q3br: [-135, 8], below: [20, -30] };
-  var RNAME = { head: 'cabeza', bust: 'busto', torso: 'torso', legs: 'piernas', feet: 'pies', full: '', face: 'cara' };
+  var RNAME = { hand: 'mano', head: 'cabeza', bust: 'busto', torso: 'torso', legs: 'piernas', feet: 'pies', full: '', face: 'cara' };
   var VNAME = { front: 'frente', back: 'espalda', q3l: '3/4 izq', sideR: 'lado der', top: 'arriba 35°', full: 'entero', fullBack: 'entero espalda', q3bl: '3/4 espalda izq', q3br: '3/4 espalda der', below: 'desde abajo 30°', game: 'partido' };
   // «partido»: la cámara del partido en el móvil vista desde tu atleta (tools/lookvis.js, CAM): 8,7 m, 41° de elevación, 27° fuera de
   // la espalda, fov 50,4; la distancia se escala para que el muñeco mida en el lienzo lo que mide en el buffer de 800x450 (≈ 68 px de muñeco)
@@ -188,6 +191,7 @@ window.__LS = (function () {
     // encuadre cuadrado centrado: que quepa el alto y el ancho
     var d = Math.max(half, lat) / tv * 1.04 + R[3];
     var az = V[0] * PI / 180, el = V[1] * PI / 180, X = root.position.x, Z = root.position.z;
+    if (R[4]) { var o3 = new THREE.Vector3(R[4], 0, 0); root.localToWorld(o3); X = o3.x; Z = o3.z; }
     var dir = [Math.cos(az), 0, -Math.sin(az)];
     cam.fov = fov; cam.aspect = asp; cam.filmOffset = 0; cam.zoom = 1; if (cam.view && cam.clearViewOffset) cam.clearViewOffset();
     cam.updateProjectionMatrix();
@@ -362,6 +366,13 @@ const COMBOS = [
     list: [['legs', 'malla'], ['knees', 'rodiPulpo'], ['socks', 'altos'], ['shoes', 'negras']] },
   { id: 'c_legs_beach', venue: 'beach', region: 'legs', name: 'malla larga + escarpines', list: [['legs', 'mallaLarga'], ['ankle', 'escarpines']] },
   { id: 'c_legs_beach2', venue: 'beach', region: 'legs', name: 'malla corta + tobillera de pulpo', list: [['legs', 'malla'], ['ankle', 'tobiPulpo']] },
+  // revisión de WP4 (ronda 1): tobillera y calcetines con cada modelo de zapatilla, y combinaciones que antes tapaban algo
+  { id: 'r_neon_brace', venue: 'hall', region: 'feet', name: 'neón + tobillera (sin calcetín)', list: [['shoes', 'neon'], ['ankle', 'blanca'], ['socks', '']] },
+  { id: 'r_neon_nobrace', venue: 'hall', region: 'feet', name: 'neón + tobilleros (sin tobillera)', list: [['shoes', 'neon'], ['ankle', ''], ['socks', 'tobilleros']] },
+  { id: 'r_dor_brace', venue: 'hall', region: 'feet', name: 'doradas + tobillera + tobilleros', list: [['shoes', 'doradas'], ['ankle', 'blanca'], ['socks', 'tobilleros']] },
+  { id: 'r_dor_nobrace', venue: 'hall', region: 'feet', name: 'doradas + tobilleros (sin tobillera)', list: [['shoes', 'doradas'], ['ankle', ''], ['socks', 'tobilleros']] },
+  { id: 'r_bajadas_media', venue: 'hall', region: 'legs', name: 'rodilleras bajadas + calcetín media', list: [['knees', 'bajadas'], ['socks', 'media']] },
+  { id: 'r_desparejados', venue: 'hall', region: 'legs', name: 'calcetines desparejados', list: [['socks', 'desparejados']] },
   { id: 'c_all_hall', venue: 'hall', region: 'full', style: 'coleta', name: 'TODO (pista): gorra MTC, deportivas, térmica, manguitos, coderas, relojes, dedos, malla larga, altas, rayas, neón…',
     list: [['head', 'gorraMTC'], ['eyes', 'deporte'], ['beard', 'tresDias'], ['paint', 'rayasEq'], ['marks', 'tiraNasal'], ['neck', 'medalla'], ['under', 'termica'], ['band', 'capitan'],
       ['armR', 'manguitoLlamas'], ['armL', 'manguitoRayas'], ['elbows', 'coderas'], ['wrist', 'reloj'], ['hands', 'dedos'], ['legs', 'mallaLarga'], ['knees', 'altas'], ['socks', 'altosRayas'], ['ankle', 'blanca'], ['shoes', 'neon']] },
@@ -483,7 +494,7 @@ async function closeups(ven) {
     // --- objetos por ranura
     for (const it of cat) {
       const grp = SLOT_GROUP[it.slot]; if (!grp || groups.indexOf(grp) < 0 || !want(it.id) || !venOk(it, ven)) continue;
-      const region = SLOT_REGION[it.slot];
+      const region = opt.region || SLOT_REGION[it.slot];
       const both = it.slots.length > 1;
       const rows = tagRows(rows2(region));
       // (WP3) cabeza y cara: 8 columnas — 5 ángulos, desde abajo 30° (¿la visera tapa?), frente en LOD0 (z-fighting de las láminas)

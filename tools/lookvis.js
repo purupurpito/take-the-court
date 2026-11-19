@@ -24,6 +24,7 @@
  * Zonas (ZONES, en la página): la camiseta interior (térmica, licra) solo cuenta lo que cambia en las MANGAS (tramos de hueso del
  * brazo por debajo de la bola del hombro y antebrazo, con la pose de ese momento): unas hombreras sueltas no son una licra (T1).
  * Lo que cambia de base a base (misma tarea) no cuenta (ruido; suele ser 0-7 px de bordes y se avisa).
+ * Ranuras de UN brazo (brazalete, armL/armR, wristL/wristR): el primer plano cuenta en la mitad del torso de ese brazo (torsoL/torsoR).
  *
  * Uso:
  *   node tools/lookvis.js [--item=id[,id]] [--venue=hall|beach] [--case=a,b,c] [--de=8] [--sheet=all|fail|none] [--var=1|2] [--vs=id] [--expect=visible|invisible]
@@ -67,8 +68,11 @@ const CAM = {
 };
 // ranuras: dónde se encuadra el primer plano y si se exige verlo en el partido (de espaldas)
 const SLOT_REGION = { style: 'head', hairTint: 'head', head: 'head', eyes: 'head', paint: 'head', marks: 'head', beard: 'head', neck: 'bust',
-  under: 'torso', band: 'torso', armL: 'torso', armR: 'torso', elbows: 'torso', wristL: 'torso', wristR: 'torso', hands: 'torso',
+  under: 'torso', band: 'torsoL', armL: 'torsoL', armR: 'torsoR', elbows: 'torso', wristL: 'torsoL', wristR: 'torsoR', hands: 'torso',
   legs: 'legs', knees: 'legs', socks: 'legs', ankle: 'feet', shoes: 'feet' };
+// (WP5, ronda 1) Las ranuras de UN brazo (brazalete, brazo y muñeca izquierdos o derechos) se miden en la MITAD del torso de ese
+// brazo (torsoL / torsoR: misma cámara que torso, la caja solo de ese lado): su caja de ranura es ese lado. Con la caja del torso entero
+// un objeto de un solo brazo contaba contra los dos (la muñequera, el reloj o el brazalete se quedaban en 1,2 % y se veían bien).
 const FACE_ONLY = { eyes: 1, paint: 1, marks: 1, beard: 1, neck: 1 };   // «solo de primer plano» (C12)
 
 // catálogo (de js/look.js en node, sin navegador)
@@ -102,6 +106,8 @@ window.__LV = (function () {
     head: [top - headH - 0.16, top + 0.16, dm.HEAD_RX + 0.24, 0.3],
     bust: [dm.shoulder - 0.38, top + 0.1, dm.SH_X + 0.2, 0.3],
     torso: [handLow - 0.08, dm.shoulder + 0.16, dm.SH_X + 0.26, 0.3],
+    torsoL: [handLow - 0.08, dm.shoulder + 0.16, dm.SH_X + 0.26, 0.3, 0],   // [4]: solo el lado del brazo k (ranuras de un brazo)
+    torsoR: [handLow - 0.08, dm.shoulder + 0.16, dm.SH_X + 0.26, 0.3, 1],
     legs: [-0.05, dm.HIP_H + 0.12, dm.HIP_W + 0.26, 0.3],
     feet: [-0.05, 0.42, dm.HIP_W + 0.22, 0.32],
     full: [-0.06, top + 0.14, dm.SH_X + 0.32, 0.35]
@@ -145,10 +151,14 @@ window.__LV = (function () {
   }
   // caja (en píxeles del lienzo) de la región reg del muñeco vista con la cámara de ahora
   var V3 = null;
-  function boxOf(root, R) {
+  function boxOf(root, R, rig) {
     if (!V3) V3 = new THREE.Vector3();
-    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, W = cvR.width, H = cvR.height, cam = c.camera;
-    [R[0], R[1]].forEach(function (y) { [-R[2], R[2]].forEach(function (lx) { [-0.2, 0.2].forEach(function (lz) {
+    var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9, W = cvR.width, H = cvR.height, cam = c.camera, xs = [-R[2], R[2]];
+    if (R[4] != null && rig) {   // solo el lado del brazo R[4]: de x = 0 al hombro de ese brazo y más allá (marco local del muñeco)
+      root.updateMatrixWorld(true); rig.sh[R[4]].getWorldPosition(V3); root.worldToLocal(V3);
+      xs = V3.x < 0 ? [-R[2], 0] : [0, R[2]];
+    }
+    [R[0], R[1]].forEach(function (y) { xs.forEach(function (lx) { [-0.2, 0.2].forEach(function (lz) {
       V3.set(lx, y, lz); root.localToWorld(V3); V3.project(cam);
       var px = (V3.x * 0.5 + 0.5) * W, py = (-V3.y * 0.5 + 0.5) * H;
       x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
@@ -189,7 +199,7 @@ window.__LV = (function () {
     });
     return m;
   }
-  function camA(root, region, view) {
+  function camA(root, region, view, rig) {
     var cam = c.camera, R = REG[region], Vw = VIEWS_A[view];
     root.rotation.y = PI / 2; root.updateMatrixWorld(true);
     var asp = cvR.width / cvR.height, fov = 30, tv = Math.tan(fov * PI / 360);
@@ -200,7 +210,7 @@ window.__LV = (function () {
     cam.position.set(X + Math.cos(az) * d * Math.cos(el), cy + d * Math.sin(el), Z - Math.sin(az) * d * Math.cos(el));
     cam.lookAt(X, cy, Z); cam.updateMatrixWorld(true);
     // caja: la de la región, dentro del cuadrado central (el encuadre de las hojas)
-    var b = boxOf(root, R), sq = Math.min(cvR.width, cvR.height), qx = (cvR.width - sq) / 2, qy = (cvR.height - sq) / 2;
+    var b = boxOf(root, R, rig), sq = Math.min(cvR.width, cvR.height), qx = (cvR.width - sq) / 2, qy = (cvR.height - sq) / 2;
     var x0 = Math.max(b[0], qx), y0 = Math.max(b[1], qy), x1 = Math.min(b[0] + b[2], qx + sq), y1 = Math.min(b[1] + b[3], qy + sq);
     return [Math.floor(x0), Math.floor(y0), Math.max(1, Math.floor(x1 - x0)), Math.max(1, Math.floor(y1 - y0))];
   }
@@ -302,7 +312,7 @@ window.__LV = (function () {
         inf = put(w === 'item' ? F.item : F.base, job.ven, V, px, pose); root = inf.rig.root;
         if (w === 'item') { res.lod = inf.lod; res.tris = inf.tris; }
         views.forEach(function (vw) {
-          var box = kase === 'a' ? camA(root, REG[job.region] ? job.region : 'full', vw) : camB(root, G, VIEWS_B[vw]);
+          var box = kase === 'a' ? camA(root, REG[job.region] ? job.region : 'full', vw, inf.rig) : camB(root, G, VIEWS_B[vw]);
           render();
           var im = grab(box[0], box[1], box[2], box[3]);
           shots[w + vw] = { im: im, box: box, zone: w === 'item' ? zoneMask(inf.rig, job.slot, box) : null };

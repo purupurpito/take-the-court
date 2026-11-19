@@ -4059,13 +4059,13 @@
     pelo: ['style', 'hair', 'hair2', 'hairFx', 'skin'],   // (1.16, WP2: segundo color y efecto de pelo)
     cabeza: ['head', 'eyes'], cara: ['paint', 'marks', 'beard'], cuerpo: ['neck', 'under', 'band', 'legs'],
     brazos: ['armL', 'armR', 'elbows', 'wristL', 'wristR', 'hands'], piernas: ['knees', 'socks', 'ankle', 'shoes'],
-    colores: ['c:acc', 'c:acc2', 'c:sock', 'c:shoe', 'c:glass']
+    colores: ['c:acc', 'c:acc2', 'c:sock', 'c:shoe', 'c:glass', 'c:pad']
   };
   var LK_LABEL = {
     style: 'Peinado', hair: 'Color de pelo', hair2: 'Segundo color', hairFx: 'Efecto de pelo', skin: 'Piel', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba',
     neck: 'Cuello', under: 'Interior', band: 'Brazalete', legs: 'Mallas', armL: 'Manguito izq.', armR: 'Manguito dcha.', elbows: 'Coderas',
     wristL: 'Muñeca izq.', wristR: 'Muñeca dcha.', hands: 'Manos', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas',
-    'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura'
+    'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura', 'c:pad': 'Rodilleras'
   };
   // valor '' de cada ranura (siempre disponible); las zapatillas '' solo existen en la playa (descalzo)
   var LK_NONE = {
