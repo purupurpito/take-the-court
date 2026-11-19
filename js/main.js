@@ -609,6 +609,8 @@
       // E1 (sprint 5): maestría (finta, golpe colocado, al filo, colocación dirigida) en los partidos humanos de 2v2; la sim la
       // ignora sola en demo, autopilot y 6v6. aimSet = Ajustes · Juego · Colocación dirigida
       mastery: !fmt && !auto, aimSet: ctx.settings.aimSet !== false,
+      // finta (19-nov-2026): en 6v6 sin el resto de la maestría (en 2v2 ya va con mastery)
+      feint: !auto,
       // Salto con impulso (v1.12.0): djump = salto con dirección del humano (la sim lo ignora en demo y autopilot); jsetAim = Ajustes ·
       // Juego · Colocación en salto con diana
       djump: !auto, jsetAim: ctx.settings.jsetAim === true,

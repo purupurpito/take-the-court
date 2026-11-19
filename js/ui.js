@@ -5119,14 +5119,14 @@
   function ctlRowsAll(dv) {
     if (dv === 'gamepad') {
       var P = padSet();
-      return [[S('Stick') + S('Cruceta'), 'Moverse'], [padKey('a'), 'Golpear y sacar <small>(stick: diana del saque)</small>'], [padKey('b'), 'Saltar <small>(en el aire: dejada)</small>'], [padKey('x'), 'Colocar <small>(en el suelo, coloca si te toca; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [padKey('a') + '<small>y</small>' + padKey('b'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'],
+      return [[S('Stick') + S('Cruceta'), 'Moverse'], [padKey('a'), 'Golpear y sacar <small>(stick: diana del saque)</small>'], [padKey('b'), 'Saltar <small>(en el aire: dejada)</small>'], [padKey('x'), 'Colocar <small>(en el suelo, coloca si te toca; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [padKey('a') + '<small>y</small>' + padKey('b'), 'Finta <small>(en el aire: golpear pronto y saltar al golpear)</small>'],
         [padKey('y') + S(P.lb) + S(P.rb), 'Cambiar jugador'], [S(P.start), 'Pausa'], [S(P.select), 'Sonido'], [S(padFam() === 'ps' ? 'L2' : 'LT'), 'Challenge <small>(7 s tras el punto)</small>'], [S('Stick der.'), 'Zoom de cámara <small>(arriba acerca, abajo aleja)</small>'], [padKey('a') + padKey('b'), 'Menús: aceptar y volver']];
     }
     if (dv === 'touch') return [[S('Joystick') + '<small>mitad izquierda</small>', 'Moverse'], [T('Golpear'), 'Golpear y sacar <small>(joystick: diana del saque)</small>'],
-      [T('Saltar', 1), 'Saltar <small>(en el aire: dejada)</small>'], [T('Colocar', 's'), 'Colocar <small>(en el aire, en salto; en el 3r toque, golpe colocado; en el suelo, tu colocación va con Golpear)</small>'], [T('Golpear') + '<small>→</small>' + T('Saltar', 1), 'Finta <small>(desliza de Golpear a Saltar antes del golpe)</small>'], [S('⇄'), 'Cambiar jugador'], [S('CHALLENGE'), 'Challenge <small>(7 s tras el punto)</small>'], [S('II'), 'Pausa'], [S('Lupa'), 'Zoom de cámara <small>(cada toque, un nivel más lejos; del 5 vuelve al 1)</small>']];
+      [T('Saltar', 1), 'Saltar <small>(en el aire: dejada)</small>'], [T('Colocar', 's'), 'Colocar <small>(en el aire, en salto; en el 3r toque, golpe colocado; en el suelo, tu colocación va con Golpear)</small>'], [T('Golpear') + '<small>→</small>' + T('Saltar', 1), 'Finta <small>(en el aire: toca Golpear pronto y desliza a Saltar al golpear)</small>'], [S('⇄'), 'Cambiar jugador'], [S('CHALLENGE'), 'Challenge <small>(7 s tras el punto)</small>'], [S('II'), 'Pausa'], [S('Lupa'), 'Zoom de cámara <small>(cada toque, un nivel más lejos; del 5 vuelve al 1)</small>']];
     // C2 (15-nov-2026): con ratón, clic izquierdo golpea, clic derecho coloca y la rueda salta (J / X, K y Espacio siguen de alternativa)
     return [[K('W') + K('A') + K('S') + K('D') + '<small>o</small>' + K('↑') + K('←') + K('↓') + K('→'), 'Moverse'], [M('l') + '<small>o</small>' + K('J') + K('X'), 'Golpear y sacar <small>(flechas: diana)</small>'],
-      [K('Espacio') + '<small>o</small>' + M('c'), 'Saltar <small>(en el aire: dejada)</small>'], [M('r') + '<small>o</small>' + K('K'), 'Colocar <small>(en el suelo, en tu 2º toque; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [M('l') + '<small>y</small>' + K('Espacio'), 'Finta <small>(golpear y, antes del golpe, saltar o colocar)</small>'], [K('C'), 'Cambiar jugador'], [K('V'), 'Challenge <small>(7 s tras el punto)</small>'], [K('P') + K('Esc'), 'Pausa'], [K('M'), 'Sonido'], [K('+') + K('-') + '<small>o</small>' + M('c'), 'Zoom de cámara <small>(rueda girada)</small>']];
+      [K('Espacio') + '<small>o</small>' + M('c'), 'Saltar <small>(en el aire: dejada)</small>'], [M('r') + '<small>o</small>' + K('K'), 'Colocar <small>(en el suelo, en tu 2º toque; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [M('l') + '<small>y</small>' + K('Espacio'), 'Finta <small>(en el aire: golpear pronto y saltar al golpear)</small>'], [K('C'), 'Cambiar jugador'], [K('V'), 'Challenge <small>(7 s tras el punto)</small>'], [K('P') + K('Esc'), 'Pausa'], [K('M'), 'Sonido'], [K('+') + K('-') + '<small>o</small>' + M('c'), 'Zoom de cámara <small>(rueda girada)</small>']];
   }
   function renderCtl() {
     var cur = device();
@@ -5875,7 +5875,7 @@
         players: [{ t: 0, x: 1.3, y: -2.4, you: 1, lbl: '3' }, { t: 0, x: 1.8, y: 1.2 }, { t: 1, x: -5.5, y: -2 }, { t: 1, x: -5.5, y: 2 }],
         segs: [{ a: [1.8, 1.2, 2.3], b: [1.05, -2.4, 3.15], apex: 5.3, dur: 1.15 }, { a: [1.05, -2.4, 3.15], b: [-6.2, 2.8, 0.2], dur: 0.38, who: 0, spike: 1 }],
         ring: [1.3, -2.4], jump: [[0, 0.62, 1.05]], swing: [[0, 1.05, 0.25]] },
-      text: function (g) { return 'En el 3r toque ponte bajo la colocación, pulsa ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' en lo alto: <b>remate</b>.' + momT() + ' En el aire, mueve la <b>diana</b> por el campo rival con ' + g.aim + '; en el <b>momento justo</b>, el remate va exacto a ella. Para engañar al bloqueo: ' + g.hit + ' y, antes del golpe, ' + g.jump + ' (<b>finta</b>), o ' + g.jset + ' en el aire (<b>golpe colocado</b>). La diana pegada a la línea va <b>al filo</b>.'; },   // (salto con impulso: momT justo detrás de «remate», para que en móvil se vea sin desplazar)
+      text: function (g) { return 'En el 3r toque ponte bajo la colocación, pulsa ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' en lo alto: <b>remate</b>.' + momT() + ' En el aire, mueve la <b>diana</b> por el campo rival con ' + g.aim + '; en el <b>momento justo</b>, el remate va exacto a ella. Para engañar al bloqueo: ' + g.hit + ' pronto y ' + g.jump + ' al golpear (<b>finta</b>), o ' + g.jset + ' en el aire (<b>golpe colocado</b>). La diana pegada a la línea va <b>al filo</b>.'; },   // (salto con impulso: momT justo detrás de «remate», para que en móvil se vea sin desplazar)
       rule: 'En el aire, ' + '<b>Saltar</b> otra vez hace una <b>dejada</b>. Si golpeas el 3r toque sin saltar, el balón pasa en globo (<b>balón libre</b>).',
       ruleBeach: 'En el aire, <b>Saltar</b> otra vez hace una dejada <b>de nudillos</b> (<b>pokey</b>): en la playa, con la yema de los dedos sería falta. Sin saltar, el 3r toque pasa en globo (<b>balón libre</b>).' },
     { step: 'Paso 5 de 6', title: 'El bloqueo', fig: {
@@ -6629,8 +6629,8 @@
   function geOpen() { geGate = false; shown = ''; if (ctx.game) syncScreens(ctx.game); }
   /** E1: línea de la hoja final con los usos de la maestría («Fintas 3 | Colocados 5 | Al filo 4 | Rápidas 2»), '' sin nada. */
   function masteryLine(g) {
-    var m = g && !g.demo && g.mastery && g.stats && g.stats.mastery || {}, d0 = g && !g.demo && g.stats && g.stats.dj;   // (6v6: solo lo del salto con impulso)
-    if (!(g && !g.demo && g.mastery && g.stats && g.stats.mastery) && !d0) return '';
+    var m = g && !g.demo && (g.mastery || g.feintOn) && g.stats && g.stats.mastery || {}, d0 = g && !g.demo && g.stats && g.stats.dj;   // (6v6: lo del salto con impulso y las fintas)
+    if (!(g && !g.demo && (g.mastery || g.feintOn) && g.stats && g.stats.mastery) && !d0) return '';
     var u = function (k) { return m[k] && m[k][0] | 0; }, out = [];
     var f = u('feint'), r = u('roll'), e = u('edge'), q = u('quick');
     // salto con impulso (v1.12.0, sim g.stats.dj): remates con impulso y pipes
@@ -6647,7 +6647,7 @@
   // (make-the-cut.e1tips, solo este dispositivo). Salen aunque los consejos de partido estén apagados (se apagan solos al ganar el 1r
   // partido, y la maestría es justo para quien ya gana), pero no sin las ayudas (Ajustes ◆ Juego ◆ Ayudas).
   var e1 = { k: '', t: 0, on: false, seen: null };
-  var E1_KEYS = ['air', 'feint', 'aim', 'edge', 'mom', 'pipe', 'jdiana'];   // (mom / pipe / jdiana: salto con impulso, v1.12.0)
+  var E1_KEYS = ['air', 'feint', 'feint2', 'aim', 'edge', 'mom', 'pipe', 'jdiana'];   // (mom / pipe / jdiana: salto con impulso, v1.12.0; feint2: la finta nueva de 1.17.0, se vuelve a explicar)
   function e1Seen() { if (!e1.seen) { e1.seen = {}; try { var o = JSON.parse(localStorage.getItem('make-the-cut.e1tips') || 'null'); if (o && typeof o === 'object') E1_KEYS.forEach(function (k) { e1.seen[k] = Math.max(0, Math.min(9, +o[k] | 0)); }); } catch (er) { } } return e1.seen; }
   function e1Tip(g, p, nt, w, ar, gl, touchDev, one, dt) {
     if (e1.k === 'done') return '';
@@ -6657,9 +6657,10 @@
     if (g.jsetAim && (S.jdiana | 0) < 2 && g.aim3 && g.aim3.on && g.aim3.kind === 'jset' && !g.jsMv) { k = 'jdiana'; txt = 'Mueve la diana con ' + gl.aim + ': cerca, rápida; lejos, alta'; }
     else if (g.djump && (S.pipe | 0) < 2 && g.size === 6 && nt === 2 && g.touchTeam === 0 && p.z <= 0.01 && !p.front && (p.role === 'OH' || p.role === 'OPP')) { k = 'pipe'; txt = 'Pipe: despega detrás de la línea de 3 m y salta hacia delante'; }
     else if (g.djump && (S.mom | 0) < 2 && nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'mom'; txt = 'Corre hacia la red y pulsa ' + gl.jump + ' sin soltar ' + gl.aim + ': remate con impulso'; }
-    else if (!g.mastery) { k = ''; }   // (6v6 o sin maestría: solo los del salto con impulso)
+    // finta (1.17.0, también en 6v6): se arma con GOLPEAR y el golpe lo marca SALTAR (consejo nuevo 'feint2': la de antes se explicaba de otra forma)
+    else if (g.feintOn && (S.feint2 | 0) < 2 && nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'feint2'; txt = touchDev ? 'Finta: en el aire, toca GOLPEAR pronto y desliza a SALTAR al golpear' : 'Finta: en el aire, ' + gl.hit + ' pronto y ' + gl.jump + ' al golpear'; }
+    else if (!g.mastery) { k = ''; }   // (6v6 o sin maestría: solo los del salto con impulso y la finta)
     else if (ar === 'roll') { k = 'air'; txt = 'En el aire, ' + gl.hit + ' remata, ' + gl.jump + ' deja caer y ' + gl.jset + ' coloca al fondo'; }
-    else if (nt === 3 && mine && p.z <= 0.01 && w && w.attack && w.jumpT > 0.12) { k = 'feint'; txt = touchDev ? 'Desliza de GOLPEAR a SALTAR: ¡finta!' : 'Arma con ' + gl.hit + ' y cambia a ' + gl.jump + ' antes del golpe: ¡finta!'; }
     else if (nt === 2 && mine && g.aimSet !== false && g.size !== 6) { k = 'aim'; txt = 'Colocas <b>' + setName(g) + '</b>; con ' + gl.aim + ' eliges otro destino: cerca, rápida; lejos, alta'; }
     else if (nt === 3 && aim3(g, p)) { k = 'edge'; txt = 'Al filo: más difícil de defender, más fácil de fallar'; }
     if (!k || (S[k] | 0) >= 2 || (e1.k && e1.k !== k)) return '';

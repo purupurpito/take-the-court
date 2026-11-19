@@ -424,6 +424,9 @@
     // E1: maestría (finta, golpe colocado, al filo, colocación dirigida y lo que lee la IA). Solo en partidos humanos 2v2: nunca en la
     // demo, con autopilot ni en 6v6. Se decide aquí una vez; cada rama nueva solo mira g.mastery. aimSet: colocación dirigida (por defecto sí)
     g.mastery = !!opts.mastery && !g.demo && !g.autopilot && !g.rot;
+    // Finta (19-nov-2026): también en 6v6 (opts.feint, main.js) sin el resto de la maestría. g.feintOn = la finta del humano existe
+    // (GOLPEAR y, después, SALTAR o COLOCAR): con g.mastery siempre; sin ella, solo la finta (etiqueta point.move 'feint' y lectura tardía de la IA)
+    g.feintOn = (g.mastery || !!opts.feint) && !g.demo && !g.autopilot;
     g.aimSet = opts.aimSet !== false;
     // Salto con impulso (v1.12.0): g.djump = salto con dirección del humano (main.js/netlobby.js lo pasan; las huellas no); g.jsetAim =
     // colocación en salto con diana (ajuste; online por hueco, humans[i].jsetAim). Nunca en la demo ni con autopilot. Estado del humano
@@ -1550,8 +1553,11 @@
     te = te || 0; shot = shot || '';
     // E1 (finta): el humano abrió el gesto con GOLPEAR (remate armado) y lo cambió a dejada o golpe colocado al menos
     // MASTERY.feint.minT s después: la CPU lo lee tarde (ai.js, feintRead). Cuesta algo de calidad (MASTERY.feint.q)
-    var feint = g.mastery && human && atkC0 && (shot === 'tip' || shot === 'roll') && g.swingShot0 === '' &&
+    var feint = g.feintOn && human && atkC0 && (shot === 'tip' || shot === 'roll') && g.swingShot0 === '' &&
       g.swingSwapT - g.swingT0 >= MASTERY.feint.minT;
+    // (19-nov-2026) el timing de la finta sale del CAMBIO (SALTAR o COLOCAR), no de GOLPEAR: se arma pronto y se deja caer a tiempo. Antes
+    // salía de GOLPEAR y había que cambiar entre 0,03 y 0,07 s después para no perder calidad: casi imposible a propósito
+    if (feint) te += g.swingSwapT - g.swingT0;
     if (human && count === 1 && g.digTight) te *= 1.5; // A3: tras un remate perfecto rival la ventana es más justa
     var d = Math.hypot(b.x - p.x, b.y - p.y), inSp = fastInFor(g);
     var hardIn = g.lastKind === 'spike' || (g.lastKind === 'serve' && inSp > 13);
@@ -1881,6 +1887,9 @@
         g.atkMove = feint ? 'feint' : sub === 'roll' ? 'roll' : edge > MASTERY.edge.tag ? 'edge' : setIn && prevTempo === 'quick' ? 'quick' : '';
         // (la rápida se cuenta al colocarla: la remata quien sea)
         if (g.stats && g.atkMove && g.atkMove !== 'quick') { var sm = g.stats.mastery; if (human) sm[g.atkMove][0]++; else if (t === 1 && g.atkMove === 'roll') sm.cpu.roll[0]++; }
+      } else if (g.feintOn) { // 6v6: solo la finta
+        g.atkMove = feint ? 'feint' : '';
+        if (feint && g.stats) g.stats.mastery.feint[0]++;
       }
       // colocador del ataque (point.assist): el 2º toque del mismo equipo, si el ataque es el 3r (o el 1r si colocó en salto
       // y el ataque es el 2º)
@@ -2559,7 +2568,7 @@
     if (g.subsOn) subPerf(g, w, how, p); // banquillo: rendimiento del set (p.perf) para el entrenador
     // E1: jugada de maestría con la que se ganó el punto ('' sin g.mastery): la etiqueta del último ataque del equipo que gana si el
     // punto es suyo (remate o dejada; también el block-out)
-    var move = g.mastery && g.atkTeam === w && (how === 'kill' || how === 'tip') ? g.atkMove : '';
+    var move = g.feintOn && g.atkTeam === w && (how === 'kill' || how === 'tip') ? g.atkMove : ''; // (g.feintOn: con g.mastery o la finta del 6v6)
     if (move && g.stats) { var sm = g.stats.mastery;
       if (move === 'quick') { if (w === 0) { sm.quick[1]++; if (su) su.push(['mastery', 'quick', 1]); } }
       else if (g.atkHuman) { sm[move][1]++; if (su) su.push(['mastery', move, 1]); if (tool && move === 'edge') { sm.tool++; if (su) su.push(['mastery', 'tool']); } }
@@ -3224,7 +3233,7 @@
   function startSwing(g, p, shot) {
     if (g.swingLive) { // durante el gesto, la última pulsación decide el golpe
       // E1 (finta): gesto abierto con GOLPEAR y cambiado a SALTAR (dejada) o COLOCAR (golpe colocado) antes del contacto
-      if (g.mastery && g.swingShot0 === '' && (shot === 'tip' || shot === 'jset')) g.swingSwapT = g.time;
+      if (g.feintOn && g.swingShot0 === '' && (shot === 'tip' || shot === 'jset')) g.swingSwapT = g.time;
       g.swingShot = shot || ''; return false;
     }
     if (g.swingLock > 0) return false;

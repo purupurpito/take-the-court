@@ -1593,6 +1593,16 @@ colocación CPU), nunca de `g.rng`. Huella propia de la maestría: `node tools/f
 Finta = GOLPEAR y, ≥ `MASTERY.feint.minT` (0,03 s; antes 0,06) después y antes del contacto, SALTAR o COLOCAR (táctil: deslizar de GOLPEAR a
 SALTAR/COLOCAR). El timing sigue saliendo de la primera pulsación (`swingT0`): la finta real es «armar antes y cambiar».
 
+**1.17.0 (19-nov-2026) — finta para todos:**
+- El timing de la finta sale del CAMBIO (`te += swingSwapT − swingT0` en `hit`), no de GOLPEAR: se arma pronto (hasta casi toda la
+  duración del gesto, `g.tm.swing`: medido en `e1Atk`, finta perfecta 40/40 armando hasta 0,25 s antes en las cuatro dificultades) y
+  SALTAR/COLOCAR marca el golpe. Antes había que cambiar entre 0,03 y 0,07 s después de GOLPEAR para no perder calidad.
+- `g.feintOn = (g.mastery || opts.feint) && !demo && !autopilot`: la finta existe también en 6v6 (main.js pasa `feint: !auto`) sin el resto
+  de la maestría (`g.mastery` sigue apagada en 6v6). Con `g.feintOn` y sin `g.mastery`: `atkMove` solo 'feint' o '', `point.move`
+  'feint', `stats.mastery.feint`, y la lectura tardía de la IA (ai.js `feintRead` / `feintFool`); `tipRead` sigue solo con `g.mastery`.
+- simtest (b) compara con la dejada pulsada en el momento ideal (`arm 0`); (b2) igual; (b6) nueva: fintas y puntos de finta en 6v6.
+- Huellas `fp-mastery` y `fp-salto` regeneradas (sus bots fintan; sin el cambio de timing salen idénticas). `fp-2v2` no cambia.
+
 ### API nueva (todo aditivo)
 - Opciones: `opts.mastery` (bool), `opts.aimSet` (bool, por defecto true: colocación dirigida).
 - Estado (solo lectura): `g.mastery`, `g.aimSet`, `g.atkMove` ('' | 'feint' | 'roll' | 'edge' | 'quick'), `g.atkEdge` (0..1),

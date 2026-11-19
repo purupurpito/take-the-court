@@ -235,7 +235,7 @@ console.log('== (e) flApplyPt: 2000 puntos aplicados en otra partida ==');
 console.log('== (f) autocomprobación de los ganchos en sim.js ==');
 {
   // huella de js/sim.js SIN el bloque FLUIDA, sin las líneas «// fl» / «// fl-api» y sin los trozos /*fl*/…/*lf*/ (= el sim.js de antes)
-  const SIM_BASE = '1678ca8b';   // (19-nov-2026: 1.16.1, un challenge revocado deshace también las estadísticas del punto en g.stats, y fusión de 1.16.0; huellas 2v2, maestría y salto idénticas. Antes: 18-nov-2026: modelo de esfuerzo de la IA, VB.EFFORT, su calibración, su revisión, su afinado —lectura variable, preR, defMin— y la revisión del afinado —rkHi, preT, humAcc—; huellas 2v2, maestría y salto regeneradas a propósito)
+  const SIM_BASE = 'ea7859b7';   // (19-nov-2026, 1.17.0: finta también en 6v6 (g.feintOn) y con el timing del cambio, sobre 1.16.1; huella 2v2 idéntica, maestría y salto regeneradas a propósito)
   const L = SIM_SRC.replace(/\r\n/g, '\n').split('\n');
   const out = [], marked = [], inl = [], bad = [];
   let inB = false, blockLines = 0;

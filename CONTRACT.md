@@ -272,7 +272,7 @@ acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3)
 - Solo sim escribe en `game`. Los demás módulos lo leen y NUNCA lo modifican.
 
 **Sprint 5 · Maestría (E1; detalle en notes/sim.md «E1 (sprint 5)»).** Todo detrás de `createGame({mastery:true})` →
-`g.mastery = !!opts.mastery && !demo && !autopilot && !rot` (2v2 humano). El azar nuevo sale de `VB.Sim.hk(g, salt)` (hash de semilla,
+`g.mastery = !!opts.mastery && !demo && !autopilot && !rot` (2v2 humano). Finta (1.17.0): `g.feintOn = (g.mastery || opts.feint) && !demo && !autopilot` (también 6v6, sin el resto de la maestría); su timing sale del cambio a SALTAR/COLOCAR. El azar nuevo sale de `VB.Sim.hk(g, salt)` (hash de semilla,
 set, marcador y toques), nunca de `g.rng`: la huella 2v2 no cambia. Opciones `opts.mastery`, `opts.aimSet` (colocación dirigida; false =
 neutra). Mecánicas: **finta** (GOLPEAR y, ≥ 0,06 s después y antes del contacto, SALTAR o COLOCAR → dejada o colocado; con el bloqueador
 CPU en el aire la defensa puede quedar «batida», `DIFF.feintBeat`), **golpe colocado** (COLOCAR en el 3r toque: `kind 'spike'`,

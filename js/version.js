@@ -43,11 +43,20 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.16.1';
+  VB.VERSION = '1.17.0';
   VB.VERSION_DATE = '2026-11-19';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.17.0', d: '2026-11-19', t: 'Fintas',
+      items: [
+        'La finta llega al 6 contra 6 y a la Carrera de pista.',
+        'Más fácil de hacer: en el aire, Golpear pronto y Saltar en el momento del golpe.',
+        'En el móvil: toca Golpear pronto y desliza el dedo a Saltar al golpear.',
+        'Con el bloqueo rival ya en el aire, a la defensa le cuesta mucho más leerla.'
+      ]
+    },
     {
       v: '1.16.1', d: '2026-11-19', t: 'Camino y Cifras renovados',
       items: [

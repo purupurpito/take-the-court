@@ -38,7 +38,7 @@
     rally: 'as', present: 'as', hold: 'as', streakTeam: 'team', streakN: 'as', atkHuman: 'as', atkGrade: 'as', digTight: 'as',
     refErr: 'as', chalPerSet: 'as', lineJudges: 'as', call: 'special', challenges: 'swap', review: 'special', cpuChal: 'special',
     _pendCall: 'special', _snap: 'special', _digWho: 'ref', blockBy: 'ref', events: 'as', drill: 'as', replay: 'as', stats: 'as',
-    mastery: 'as', online: 'as', hT: 'as', bo1: 'as', hum: 'special', tmoPer: 'as', skipReq: 'swap', tmoReq: 'swap',
+    mastery: 'as', feintOn: 'as', amb: 'as', holdLock: 'as', online: 'as', hT: 'as', bo1: 'as', hum: 'special', tmoPer: 'as', skipReq: 'swap', tmoReq: 'swap',
     tmoLeft: 'swap', tmo: 'special', _mates: 'swap', lastLand: 'pos', netSince: 'as', _rc: 'as', _lv: 'swap',
     fl: 'as',                // Online V2 «Fluida» (VB.Sim.flInit): estado canónico en datos planos; la vista no lo lee
     // gesto del hueco activo (SLOT_S de sim.js y aim3/swingAim/aimIn): pasan a ser los del invitado

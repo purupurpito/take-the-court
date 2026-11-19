@@ -768,7 +768,7 @@ function e1Section() {
       const a = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.10 }), b2 = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.015 });
       const pr = e1Atk(s, { b1: 'hit', arm: 0.25, b2: 'jump', dt: 0.10 });
       const c2 = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jset', dt: 0.10 }), d2 = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.10, mastery: false });
-      const v = e1Atk(s, { b1: 'jump', arm: 0.1 });
+      const v = e1Atk(s, { b1: 'jump', arm: 0 }); // (1.17.0: el timing de la finta sale del cambio, aquí en el momento ideal: se compara con la dejada a tiempo)
       if (!a.h || !b2.h || !c2.h || !d2.h || !v.h || !pr.h) continue; o.n++;
       if (pr.h.feint === false && !pr.feint && pr.h.grade === 'poor') o.poor++;
       if (a.h.feint === true && a.h.shot === 'tip' && a.feint && a.feint.shot === 'tip' && a.feint.player === a.h.player) o.si++;
@@ -782,10 +782,27 @@ function e1Section() {
     res.push(['(b) finta: GOLPEAR→SALTAR a los 0,10 s = finta (evento feint), a los 0,015 s no, gesto malo no, GOLPEAR→COLOCAR = finta de colocado, sin mastery nunca; calidad ×0,92', ok,
       Object.assign(o, { q: +(o.q / o.qv).toFixed(3), qv: undefined })]);
   }
+  // (b6) finta en 6v6 (1.17.0, createGame({format:'6v6', feint:true}) sin el resto de la maestría): el bot que finta con el bloqueo
+  //      arriba saca eventos feint y puntos con move 'feint'; sin feint:true (o con autopilot) nunca, y g.mastery sigue apagada
+  if (want('b6')) {
+    let fe = 0, pts = 0, fe0 = 0, flags = 0;
+    for (let s = 1; s <= 6; s++) {
+      for (const on of [true, false]) {
+        const g = S.createGame({ seed: 7300 + s, format: '6v6', difficulty: 'normal', feint: on, mastery: true, stats: true });
+        if (g.mastery || g.feintOn !== on) flags++;
+        const inp = makeBot(BOTS.bueno, s * 5 + 2, { six: true, role: 'OH', mastery: { feint: 1, roll: 0, edge: 0, set: 0 } });
+        for (let i = 0; i < Math.round(240 / DT); i++) { S.step(g, DT, inp(g));
+          for (const e of S.drainEvents(g)) { if (e.type === 'feint') { if (on) fe++; else fe0++; } if (e.type === 'point' && e.move === 'feint') pts++; } }
+      }
+      if (S.createGame({ seed: s, format: '6v6', feint: true, autopilot: true }).feintOn) flags++;
+    }
+    res.push(['(b6) 6v6 con feint:true: fintas y puntos de finta; sin la bandera ni con autopilot, ninguna; g.mastery apagada', fe > 0 && pts > 0 && fe0 === 0 && flags === 0,
+      { fintas: fe, puntos: pts, sinBandera: fe0, banderas: flags }]);
+  }
   // (b2) premio: % de puntos de la dejada con finta frente a la dejada a la vista (mismo timing), y la dejada a la vista con y sin mastery
   const tipPts = (diff, plan, ms, N) => { let w = 0, n = 0; for (let s = 1; s <= N; s++) { const r = e1Atk(1000 + s, Object.assign({ diff, mastery: ms }, plan)); if (!r.h || !r.pt) continue; n++; if (r.pt.team === 0) w++; } return n ? w / n : 0; };
   if (want('b2')) {
-    const N = 300, F = { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.1 }, V = { b1: 'jump', arm: 0.1 };
+    const N = 300, F = { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.1 }, V = { b1: 'jump', arm: 0 }; // (V: la dejada pulsada cuando la finta cambia, 1.17.0)
     const o = {};
     for (const d of ['easy', 'normal', 'hard', 'expert']) o[d] = { finta: tipPts(d, F, true, N), vista: tipPts(d, V, true, N), vistaSin: tipPts(d, V, false, N) };
     const H = o.hard, E = o.expert;
