@@ -662,6 +662,9 @@
       if (sock) {
         // rayas: blancas u oscuras, las que de lejos (mezcladas con el calcetín) se alejen más de la piel (rojo + blanco = rosa = piel clara)
         var st = onCol(tc.base, sc, tc), rD = mixHex(tc.dark, INK, 0.2), rib = hexDist(mixHex(sc, 0xf4f4f4, 0.4), sk) >= hexDist(mixHex(sc, rD, 0.4), sk) ? 0xf4f4f4 : rD;
+        // con malla larga lo que toca el calcetín es la malla, no la piel: rayas que no sean de su color (ronda 2: rayas negras + malla
+        // negra = la malla se leía como una raya más del calcetín)
+        if (X.legs === 'mallaLarga' && hexDist(rib, cB) < 150) rib = rib === 0xf4f4f4 ? rD : 0xf4f4f4;
         band(c, legF(top), 1, sc);
         // elegido a mano y del color del empeine: una raya oscura que separa el calcetín de la zapatilla (algo alta: por delante la
         // puntera tapa ≈ 2 cm por encima del borde)
@@ -1124,22 +1127,29 @@
   /** Color del calcetín: cSock; en automático (el acento), si se funde con el empeine (el amarillo con las doradas), el primero de
    *  base, blanco, oscuro o casi negro que se distinga de la zapatilla y de la piel. auto: el que tendría en automático (lo que mira la
    *  geometría —tobillera, rodillera bajada—: así cambiar cSock solo repinta el atlas, como cualquier color pintado). */
+  // Ronda 2: el umbral contra el empeine es 200 (no 150): el amarillo del kit B y el oro de las doradas quedan a 160 y con la luz se
+  // funden; con las doradas se mira también el brillo del oro (GOLD). Si nada se distingue de la zapatilla Y de la piel, el que más se
+  // aleje de la zapatilla (antes volvía al acento: justo el que se quería evitar).
   function sockHex(X, tc, auto) {
-    var c = auto ? tc.accent : colSock(X, tc), up = shoeUp(X), k = [tc.base, 0xf4f4f4, tc.dark, NEUTRAL_DK], i;
-    if ((!auto && X.cSock >= 0) || hexDist(c, up) >= 150) return c;
-    for (i = 0; i < k.length; i++) if (typeof k[i] === 'number' && hexDist(k[i], up) >= 150 && hexDist(k[i], X.skin) >= 150) return k[i];
-    return c;
+    var c = auto ? tc.accent : colSock(X, tc), up = shoeUp(X), k = [tc.base, 0xf4f4f4, tc.dark, NEUTRAL_DK], i, b = -1, bd = -1, d;
+    function vsShoe(h) { return Math.min(hexDist(h, up), X.shoes === 'doradas' ? hexDist(h, GOLD) : 1e9); }
+    if ((!auto && X.cSock >= 0) || vsShoe(c) >= 200) return c;
+    for (i = 0; i < k.length; i++) if (typeof k[i] === 'number' && vsShoe(k[i]) >= 200 && hexDist(k[i], X.skin) >= 150) return k[i];
+    for (i = 0; i < k.length; i++) if (typeof k[i] === 'number' && (d = vsShoe(k[i])) > bd) { bd = d; b = k[i]; }
+    return bd > vsShoe(c) ? b : c;
   }
   /** Color de la tobillera acolchada: blanca o casi negra (o el acento / base del equipo) que se distinga del empeine, del calcetín de
    *  encima (el automático) y de la piel (la casi negra sobre una piel oscura sin calcetín no se veía). */
   function braceHex(X, tc) {
-    var up = shoeUp(X), so = sockHex(X, tc, true), c = lumHex(up) > 0.62 ? [0x2c2c34, 0xf4f4f4] : [0xf4f4f4, 0x2c2c34], i;
+    // (sin calcetín no hay que distinguirse de él: con la piel oscura y las neón la blanca quedaba descartada por un calcetín que no se
+    //  lleva y salía la casi negra, que se perdía contra la piel; ronda 2)
+    var up = shoeUp(X), so = X.socks ? sockHex(X, tc, true) : -1, c = lumHex(up) > 0.62 ? [0x2c2c34, 0xf4f4f4] : [0xf4f4f4, 0x2c2c34], i;
     c.push(tc.accent, tc.base);
     // (por orden: que se distinga de las tres cosas; si ninguno, de la zapatilla y el calcetín —lo normal en pista es llevarlo: va
     //  encima—; si no, de la zapatilla y la piel; si no, de la zapatilla)
     for (var pass = 0; pass < 4; pass++) for (i = 0; i < c.length; i++) {
       if (typeof c[i] === 'number' && hexDist(c[i], up) >= 200 && (pass === 1 || pass === 3 || hexDist(c[i], X.skin) >= 140) &&
-        (pass > 1 || hexDist(c[i], so) >= 200)) return c[i];
+        (pass > 1 || so < 0 || hexDist(c[i], so) >= 200)) return c[i];
     }
     return c[0];
   }
@@ -1151,7 +1161,7 @@
     if (sock === 'tobilleros') return brace ? Math.min(braceH(X) + 0.05, w0 + 0.75 * (w1 - w0)) : w0 + 0.044;   // con tobillera asoma por encima
     // malla larga + calcetín alto: el calcetín se queda a media espinilla y entre él y la rodillera alta se ve la malla (ronda 1: con
     // rodilleras altas y calcetín hasta la rodilla no quedaba ni un píxel de malla)
-    if (X && X.legs === 'mallaLarga' && (sock === 'altos' || sock === 'altosRayas')) return Math.max(w0 + 0.4 * (w1 - w0), brace ? braceH(X) + 0.022 : 0);
+    if (X && X.legs === 'mallaLarga' && (sock === 'altos' || sock === 'altosRayas')) return Math.max(w0 + (KNEE_HI[X.knees] ? 0.32 : 0.4) * (w1 - w0), brace ? braceH(X) + 0.022 : 0);   // (ronda 2: con funda alta, algo más abajo: la malla era una raya)
     if (X && X.legs === 'mallaLarga' && sock === 'media' && KNEE_HI[X.knees]) return Math.max(w0 + 0.3 * (w1 - w0), brace ? braceH(X) + 0.016 : 0);
     if (sock === 'media') return w0 + 0.84 * (w1 - w0);
     if (sock === 'altos' || sock === 'altosRayas') return w1 + 0.02;             // hasta debajo de la rodilla
@@ -1180,10 +1190,13 @@
   function tightsHex(X, tc, beach) {
     if (X.cB >= 0) return X.cB;
     var top = beach ? tc.base : tc.shorts, c = [tc.dark, tc.base, tc.accent, 0xf4f4f4, NEUTRAL_DK], i, so = !beach && X.socks ? sockHex(X, tc) : -1, d;
+    // (ronda 2: con rodillera que tapa la rodilla, la malla corta asoma justo encima y debajo de ella: blanca con la rodillera blanca era
+    //  un solo tramo blanco del pantalón al calcetín)
+    var pd = !beach && X.legs === 'malla' && (X.knees === 'cortas' || X.knees === 'altas') ? padHex(X, tc) : -1;
     function vsTop(h) { return Math.abs(lumHex(h) - lumHex(top)) >= 0.25 || hexDist(h, top) >= 260; }
     if (so >= 0) {
       d = c.concat([mixHex(tc.accent, 0x000000, 0.45), mixHex(tc.base, 0x000000, 0.45)]);
-      for (i = 0; i < d.length; i++) if (typeof d[i] === 'number' && hexDist(d[i], so) >= 140 && hexDist(d[i], X.skin) >= 120 &&
+      for (i = 0; i < d.length; i++) if (typeof d[i] === 'number' && hexDist(d[i], so) >= 140 && hexDist(d[i], X.skin) >= 120 && (pd < 0 || hexDist(d[i], pd) >= 140) &&
         (vsTop(d[i]) || (i >= c.length && hexDist(d[i], top) >= 110))) return d[i];
     }
     for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && vsTop(c[i]) && hexDist(c[i], X.skin) >= 120) return c[i];
@@ -1201,9 +1214,13 @@
   function dropPadHex(X, tc, beach) {
     var p = padHex(X, tc), so, c, i;
     if (X.cPad >= 0 || beach) return p;
-    so = sockHex(X, tc, true); if (hexDist(p, so) >= 150) return p;
+    // ronda 2: además de otro color, otro BRILLO (≥ 0,3): blanco sobre el amarillo del kit B seguía leyéndose como un puño de calcetín
+    so = sockHex(X, tc, true);
+    function vsSock(h) { return hexDist(h, so) >= 150 && Math.abs(lumHex(h) - lumHex(so)) >= 0.3; }
+    if (vsSock(p)) return p;
     c = [tc.pad, tc.accent, tc.base, 0xf4f4f4, NEUTRAL_DK];
-    for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && hexDist(c[i], so) >= 150 && Math.abs(lumHex(c[i]) - lumHex(X.skin)) >= 0.15) return c[i];
+    for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && vsSock(c[i]) && Math.abs(lumHex(c[i]) - lumHex(X.skin)) >= 0.15) return c[i];
+    for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && vsSock(c[i])) return c[i];   // (va SOBRE el calcetín: manda él)
     return p;
   }
   function padRim(X, tc) { return X.knees === 'rodiPulpo' ? PULPO_HI : onCol(tc.accent, padHex(X, tc), tc); }
