@@ -1171,6 +1171,27 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
 - El gesto `ajuste` con gorra al revés, pescador, corona, pañuelo y cinta de rizo: revisado en captura de cerca (integración, n.º 2 en
   `?debug=serve` con `Players._idle(p, 'ajuste')`); la mano no atraviesa la visera trasera ni el ala, no hace falta un blanco por gorro.
 
+### Herramientas de verificación (19-nov-2026, WP0 de notes/vestuario-plan.md; solo tools/)
+- **`node tools/lookvis.js`**: «se ve / no se ve» con un número. Para cada objeto y sede pinta el muñeco base y el muñeco con el objeto en
+  la vista previa (misma pose y cámara, en la MISMA tarea síncrona: `showroom` → `preview.update(0)` → render; tFix 0, sin parpadeo; lo
+  que cambia de base a base no cuenta) y cuenta los píxeles con ΔE76 > 8 dentro de la caja. Casos: **a** primer plano (768², LOD2, encuadre
+  de la ranura como lookshots, mejor de 5 vistas; umbral 1,5 % de la caja), **b** partido en el móvil de espaldas (640x360 dpr 2 →
+  800x450, LOD1, atlas 512², pose `recv`, cámara medida en el juego: pista 8,7 m, 41°, 27° fuera de la espalda, fov 50,4; playa 6,4 m,
+  35°, fov 60; umbral 9 px, no se exige a ojos, pintura, marcas, barba ni cuello) y **c** LOD0 lejos (`&quality=low`, 11,9 m, solo
+  informa). Peor de dos variantes (clara/A, oscura/B). Base = muñeco de serie con la ranura vacía; zapatillas frente a `clasicas`,
+  peinados frente al tupé. La camiseta interior solo cuenta en las mangas (bajo la bola del hombro). `--item`, `--venue`, `--case`,
+  `--vs=id` (¿se distinguen dos opciones?), `--expect=visible|invisible`, `--sheet=all|fail|none`, `--tha/--thb`. Sale
+  `tools/out/lookvis/report.json` + `report.md` y hojas `sheets/<sede>-NN.jpg` (base | objeto | diferencia en magenta por caso).
+  Hoy (1.15.1): 43 de 122 no pasan; reproduce el diagnóstico (blanca, tobilleros, pulseraTob y licra INVISIBLES; manguito y altos
+  visibles). El muñeco de partido mide ≈ 68 px (las 98 px del plan eran de 0 a 1,9 m).
+- **`node tools/lookshots.js back`**: todos los peinados de espaldas en UNA hoja por vista (espalda, 3/4 espalda izq./der., partido en
+  LOD1 y en LOD0 al tamaño del móvil, ampliado sin suavizar) y los gorros con tupé y coleta (`back/back-gorros-<sede>.jpg`). `--hair=`.
+- **`node tools/looktest.js`** prueba la ida y vuelta de `tools/fixtures/looks-1.15.1.json` (284 fits y un guardado entero, sacados de
+  look.js de la 1.15.1 con `tools/fixtures/make-looks-fixture.js`): sane → resolve sin perder ids, ganados/vistos/fits y mergeRaw. Avisa
+  (sin fallar) mientras `sane()` no guarde los ids desconocidos en `_keep` (WP1). **`--gl --sweep`**: peor caso MEDIDO por sede y LOD
+  (peinado × gorro × ojos + lo peor de cada ranura y dos pasadas de subida) con su margen hasta TRI_CAP. Hoy: pista 3874/5632/11992,
+  playa **4306**/5794/12616 (margen 94 en LOD0); coincide con la suma de `lookSelfTest`.
+
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 
 Detalle: `notes/s234/T2.md` (contactos, `bindReplay`, `baseLook`, celebraciones con hash), `T3.md` (retrato), `T17.md` (firmas, rabias,

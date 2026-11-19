@@ -13,12 +13,16 @@
  *     T21 (--gl): los 5 objetos de jefe con dibujo propio en doll.js y los mismos triángulos que su pieza base.
  *  2) --gl (tools/cdp.js): abre ?debug=look&looktest=1, comprueba que VB.Look del navegador firma igual que el de node y llama a
  *     VB.Doll.lookSelfTest() si existe (si aún no existe lo dice sin fallar; STRICT=1: fallo). Errores JS de la página = fallo.
- * Uso: node tools/looktest.js [--gl]        Escribe «TODO OK» al final si todo pasa; sale con 1 si falla algo.
+ *  1b) guardados de la 1.15.1 (tools/fixtures/looks-1.15.1.json): sane → resolve sin perder ningún id, guardado entero y mergeRaw.
+ *  --gl --sweep: además, el peor caso de triángulos MEDIDO por sede y LOD (peinado × gorro × ojos × lo peor de cada ranura) y su
+ *     margen hasta TRI_CAP (lo lee de js/doll.js); falla si alguno lo pasa.
+ * Uso: node tools/looktest.js [--gl [--sweep]]        Escribe «TODO OK» al final si todo pasa; sale con 1 si falla algo.
  */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const GL = process.argv.includes('--gl');
+const SWEEP = process.argv.includes('--sweep');   // (con --gl) peor caso real por sede y LOD, con su margen hasta TRI_CAP
 let fail = 0, warn = 0;
 const check = (c, m) => { if (!c) { fail++; console.error('FALLO:', m); } else console.log('ok:', m); return !!c; };
 const eq = (a, b) => JSON.stringify(a) === JSON.stringify(b);
@@ -455,6 +459,49 @@ console.log('== sprint 2-4 (T9) ==');
   check(Object.keys(S.VB).join() === 'Look', 'look.js sigue publicando solo VB.Look');
 }
 
+// ---------------------------------------------------------------- 1b) ida y vuelta de los guardados de la 1.15.1 (plan del Vestuario, WP0.3)
+// tools/fixtures/looks-1.15.1.json (tools/fixtures/make-looks-fixture.js, sacado de js/look.js de bdb00e5): cada fit, ya saneado por la
+// 1.15.1, pasa por sane → resolve sin perder ningún id; el guardado entero se carga igual (ganados, vistos y fits) y ningún id del
+// catálogo de la 1.15.1 desaparece (los ids no se borran ni se renombran nunca; los nombres sí pueden cambiar).
+{
+  const FX = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'fixtures', 'looks-1.15.1.json'), 'utf8'));
+  const R = sandbox(), RL = R.L;
+  const gone = FX.catalog.filter(id => !RL.item(id));
+  check(!gone.length, 'guardados 1.15.1: ningún id del catálogo de la 1.15.1 ha desaparecido (' + FX.catalog.length + ')' + (gone.length ? ': faltan ' + gone.join(', ') : ''));
+  const lost = [], bad = [];
+  FX.fits.forEach(x => {
+    const f = x.fit, s = RL.sane(f, 0);
+    const miss = [];
+    ['skin', 'hair', 'style'].forEach(k => { if (s[k] !== f[k]) miss.push(k + ' ' + f[k] + '→' + s[k]); });
+    ['hall', 'beach'].forEach(v => Object.keys(f[v]).forEach(sl => { if (!s[v] || s[v][sl] !== f[v][sl]) miss.push(v + '.' + sl + ' ' + f[v][sl] + '→' + (s[v] && s[v][sl])); }));
+    Object.keys(f.colors).forEach(k => { if (!s.colors || s.colors[k] !== f.colors[k]) miss.push('colors.' + k + ' ' + f.colors[k] + '→' + (s.colors && s.colors[k])); });
+    if (miss.length) lost.push(x.tag + ': ' + miss.slice(0, 3).join(', '));
+    ['hall', 'beach'].forEach(v => {
+      try {
+        const Lr = RL.resolve(f, v, TC);
+        RL.SLOTS.forEach(sl => { const id = f[v][sl], got = sl === 'head' ? Lr.acc : Lr[sl]; if (id && !got) bad.push(x.tag + ' ' + v + '.' + sl + '=' + id); });
+        if (Lr.style !== f.style) bad.push(x.tag + ' ' + v + ' style ' + f.style + '→' + Lr.style);
+      } catch (e) { bad.push(x.tag + ' ' + v + ': ' + (e && e.message || e)); }
+    });
+  });
+  check(!lost.length, 'guardados 1.15.1: ' + FX.fits.length + ' fits pasan por sane sin perder ningún id' + (lost.length ? ' (' + lost.length + ' pierden algo: ' + lost.slice(0, 4).join(' | ') + ')' : ''));
+  check(!bad.length, 'guardados 1.15.1: resolve dibuja todo lo que lleva cada fit en las dos sedes' + (bad.length ? ' (' + bad.slice(0, 4).join(' | ') + ')' : ''));
+  // el guardado entero ('make-the-cut.look' v1): se carga sin perder ganados, vistos ni fits, y mergeRaw consigo mismo no pierde nada
+  const G = sandbox(), raw = JSON.stringify(FX.store); G.store['make-the-cut.look'] = raw;
+  const st = G.L.load(), ownIds = Object.keys(FX.store.own), seenIds = Object.keys(FX.store.seen);
+  check(ownIds.every(id => st.own[id] && st.own[id].s === FX.store.own[id].s && st.own[id].t === FX.store.own[id].t) && ownIds.every(id => G.L.owned(id)), 'guardados 1.15.1: el guardado entero conserva los ' + ownIds.length + ' objetos ganados (origen y fecha)');
+  check(seenIds.every(id => st.seen[id]) && G.L.unseen().length === 0, 'guardados 1.15.1: conserva lo ya visto (' + seenIds.length + ')');
+  check([0, 1].every(i => JSON.stringify(G.L.sane(G.L.fit(i), i)) === JSON.stringify(G.L.sane(FX.store.fits[i], i)) && G.L.fit(i).style === FX.store.fits[i].style), 'guardados 1.15.1: los dos fits del guardado se leen igual');
+  check(G.L.lost() === false && G.L.readOnly() === false, 'guardados 1.15.1: ni dañado ni solo lectura');
+  const mg = JSON.parse(G.L.mergeRaw(raw, raw));
+  check(ownIds.every(id => mg.own[id]) && seenIds.every(id => mg.seen[id]), 'guardados 1.15.1: mergeRaw del guardado consigo mismo no pierde nada');
+  // id desconocido (de una versión más nueva): debería sobrevivir en _keep (plan WP1); hasta entonces solo es un aviso
+  const fu = JSON.parse(JSON.stringify(FX.fits[0].fit)); fu.hall.head = 'gorroNuevo'; fu.style = 'peinadoNuevo';
+  const su = RL.sane(fu, 0);
+  if (su && su._keep) check(JSON.stringify(su._keep).indexOf('gorroNuevo') >= 0 && JSON.stringify(su._keep).indexOf('peinadoNuevo') >= 0, 'guardados: un id desconocido sobrevive en _keep');
+  else { warn++; console.log('AVISO: sane() aún no guarda los ids desconocidos en _keep (lo hace WP1 del plan del Vestuario)'); }
+}
+
 // ---------------------------------------------------------------- 2) con navegador
 async function browser() {
   const CDP = require('./cdp.js');
@@ -463,7 +510,7 @@ async function browser() {
   const NOINTRO = `(function(){try{localStorage.setItem('make-the-cut.guided','{"done":true}');localStorage.setItem('make-the-cut.install','1')}catch(e){}})();`;
   const strict = process.env.STRICT === '1';
   const soft = m => { if (strict) check(false, m); else { warn++; console.log('AVISO: ' + m); } };
-  let pg;
+  let pg, lsWorst = null;
   try {
     pg = await CDP.open({ size: '1280x720', init: [NOINTRO] });
     await pg.navigate('debug=look&looktest=1&nonews=1');
@@ -483,6 +530,7 @@ async function browser() {
     else {
       const r = await pg.evalJs(`Promise.resolve().then(function(){return VB.Doll.lookSelfTest();}).then(function(r){return JSON.stringify(r===undefined?null:r);},function(e){return JSON.stringify({ok:false,fails:['excepción: '+(e&&e.message||e)]});})`, true);
       let res = null; try { res = JSON.parse(r); } catch (e) { res = r; }
+      if (res && res.worst) lsWorst = res.worst;
       const lines = res && typeof res === 'object' ? [].concat(res.log || [], res.lines || []) : [];
       lines.forEach(l => console.log('  ' + l));
       const fails = res && typeof res === 'object' && !Array.isArray(res) ? [].concat(res.fails || [], res.errors || []) : Array.isArray(res) ? res : [];
@@ -498,6 +546,50 @@ async function browser() {
         out.push([b[1],VB.Look.drawId(b[0],b[1]),ta,tb,ga!==gb]);});P.set(L0,o0);return JSON.stringify(out);})()`, true));
     check(bt.length === 5 && bt.every(x => x[1] === x[0]), 'objetos de jefe con dibujo propio en doll.js: ' + bt.map(x => x[0] + '→' + x[1]).join(', '));
     check(bt.length === 5 && bt.every(x => x[2] === x[3] && x[4]), 'objetos de jefe: mismos triángulos que su pieza base y malla propia (' + bt.map(x => x[0] + ' ' + x[3]).join(', ') + ')');
+    // --sweep (plan del Vestuario, WP0.3): peor caso REAL por sede y LOD, medido (no sumado): para cada LOD, lo peor de cada ranura
+    // (sin cabeza ni ojos) + todas las combinaciones permitidas peinado × gorro × ojos, y luego dos pasadas de subida por ranura sobre
+    // la peor (por si dos piezas suman más juntas). Imprime los triángulos, el margen hasta TRI_CAP y el look.
+    if (SWEEP) {
+      const capM = /var TRI_CAP = \[(\d+), (\d+), (\d+)\]/.exec(fs.readFileSync(path.join(ROOT, 'js', 'doll.js'), 'utf8'));
+      const CAP = capM ? [+capM[1], +capM[2], +capM[3]] : null;
+      check(!!CAP, 'sweep: TRI_CAP leído de js/doll.js (' + (CAP ? CAP.join('/') : '?') + ')');
+      const t0 = Date.now();
+      const sw = JSON.parse(await pg.evalJs(`(function(){
+        var D=VB.Doll,IT=D.ITEMS,LK=VB.Look,CL=(LK&&LK.CLASH)||[],out={};
+        var r=D.build({skin:0xdba27a,hair:0x3a2416,style:'tupe',acc:''},0);
+        function tri(L,bch,l){ r.look=L; r.beach=bch; r.geos[l]=null; var g=D.geometry(r,l), n=g.index?g.index.count/3:g.attributes.position.count/3; g.dispose(); r.geos[l]=null; return n; }
+        function ok(id,sl,bch){ var v=IT[sl][id]; return v==='A'||(v==='Y')===bch; }
+        function clash(L){ for(var i=0;i<CL.length;i++){ var a=CL[i].a,b=CL[i].b,va=a.slot==='head'?L.acc:a.slot==='style'?L.style:L[a.slot],vb=b.slot==='head'?L.acc:b.slot==='style'?L.style:L[b.slot]; if(a.ids.indexOf(va)>=0&&b.ids.indexOf(vb)>=0) return true; } return false; }
+        var SL=Object.keys(IT).filter(function(s){return s!=='style'&&s!=='head'&&s!=='eyes';});
+        ['hall','beach'].forEach(function(v){
+          var bch=v==='beach'; out[v]=[];
+          for(var l=0;l<3;l++){
+            var base={skin:0xdba27a,hair:0x3a2416,style:'tupe',acc:'',eyes:''};
+            SL.forEach(function(s){ base[s]=''; });
+            // lo peor de cada ranura por separado
+            SL.forEach(function(s){ var best='',bt=-1; [''].concat(Object.keys(IT[s]).filter(function(id){return ok(id,s,bch);})).forEach(function(id){ var L=Object.assign({},base); L[s]=id; var t=tri(L,bch,l); if(t>bt){bt=t;best=id;} }); base[s]=best; });
+            var top=null, n=0;
+            var heads=[''].concat(Object.keys(IT.head).filter(function(h){return ok(h,'head',bch);})), eyes=[''].concat(Object.keys(IT.eyes).filter(function(e){return ok(e,'eyes',bch);}));
+            Object.keys(IT.style).forEach(function(st){ heads.forEach(function(h){ eyes.forEach(function(e){
+              var L=Object.assign({},base,{style:st,acc:h,eyes:e}); if(clash(L)) return; n++;
+              var t=tri(L,bch,l); if(!top||t>top.t) top={t:t,L:L};
+            }); }); });
+            // subida por ranura (dos pasadas) sobre la peor
+            for(var pass=0;pass<2;pass++) SL.forEach(function(s){ [''].concat(Object.keys(IT[s]).filter(function(id){return ok(id,s,bch);})).forEach(function(id){ if(id===top.L[s]) return; var L=Object.assign({},top.L); L[s]=id; if(clash(L)) return; var t=tri(L,bch,l); if(t>top.t) top={t:t,L:L}; }); });
+            var desc=[top.L.style,top.L.acc||'-',top.L.eyes||'-'].join('+')+' · '+SL.filter(function(s){return top.L[s];}).map(function(s){return s+'='+top.L[s];}).join(' ');
+            out[v].push({l:l,t:top.t,n:n,look:desc});
+          }
+        });
+        return JSON.stringify(out);
+      })()`, true));
+      console.log('  sweep (' + Math.round((Date.now() - t0) / 1000) + ' s): peor caso medido por sede y LOD, margen hasta TRI_CAP');
+      ['hall', 'beach'].forEach(v => sw[v].forEach(x => {
+        const cap = CAP ? CAP[x.l] : 0, m = cap - x.t;
+        console.log('    ' + (v === 'hall' ? 'pista' : 'playa') + ' LOD' + x.l + ': ' + x.t + ' / ' + cap + ' (margen ' + m + ', ' + (cap ? (100 * m / cap).toFixed(1) : '?') + ' %) · ' + x.n + ' combinaciones · ' + x.look);
+        if (CAP) check(x.t <= cap, 'sweep: ' + v + ' LOD' + x.l + ' peor caso ' + x.t + ' ≤ TRI_CAP ' + cap);
+      }));
+      if (lsWorst) ['hall', 'beach'].forEach(v => { if (lsWorst[v]) console.log('    lookSelfTest (suma de lo peor de cada ranura) ' + v + ': ' + lsWorst[v].t.join('/')); });
+    }
     const errs = pg.errors.filter(e => !/favicon/i.test(String(e)));
     check(!errs.length, 'sin errores JS en la página' + (errs.length ? ': ' + errs.slice(0, 5).join(' | ') : ''));
   } catch (e) {

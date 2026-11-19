@@ -17,7 +17,12 @@
  *
  * Uso:
  *   node tools/lookshots.js [grupos] [--item=id[,id]] [--venue=hall|beach] [--out=carpeta] [--tile=N]
- *     grupos (coma): base,hair,head,torso,legs,combos,game  (por defecto todos)
+ *     grupos (coma): base,hair,back,head,torso,legs,combos,game  (por defecto todos)
+ *     back: comparar peinados y gorros DE ESPALDAS en una sola hoja por vista (una casilla por peinado, hasta 32):
+ *       back/back-peinados-<vista>-<sede>: espalda, 3/4 espalda izq., 3/4 espalda der., partido (cámara del partido en el móvil, al tamaño
+ *       del buffer de 800x450: ≈ 68 px de muñeco; LOD1, atlas 512², ampliado sin suavizar) y partido-lod0 (lo mismo en LOD0, la calidad baja);
+ *       back/back-gorros-<sede>: cada gorro con tupé (espalda, 3/4 espalda, partido) y con coleta (espalda): ¿pelo en la nuca?
+ *       --hair=negro|rubio|castOsc… cambia el color del pelo (castaño oscuro por defecto); --item=… filtra peinados o gorros.
  *     --item=id    solo esos objetos (peinados incluidos: tupe, afro…; combos: c_head_hall…); con game también
  *     --venue=     solo esa sede
  *     --fmt=png    PNG en vez de JPEG (calidad 0,86; por defecto JPEG: ~0,3 MB por hoja en vez de ~2,5 MB)
@@ -33,7 +38,7 @@ const CDP = require('./cdp.js');
 const args = process.argv.slice(2);
 const opt = {}; const pos = [];
 for (const a of args) { const m = /^--([a-z]+)=(.*)$/.exec(a); if (m) opt[m[1]] = m[2]; else pos.push(a); }
-const ALLG = ['base', 'hair', 'head', 'torso', 'legs', 'combos', 'game'];
+const ALLG = ['base', 'hair', 'back', 'head', 'torso', 'legs', 'combos', 'game'];
 const groups = (pos[0] || ALLG.join(',')).split(',').filter(Boolean);
 for (const g of groups) if (ALLG.indexOf(g) < 0) { console.error('grupo desconocido: ' + g); process.exit(2); }
 const onlyItems = opt.item ? opt.item.split(',') : null;
@@ -65,9 +70,12 @@ window.__LS = (function () {
     full: [-0.06, top + 0.14, dm.SH_X + 0.32, 0.35]
   };
   // vistas: acimut (0 = de frente, + = hacia la izquierda del muñeco) y elevación (grados)
-  var VIEW = { front: [0, 4], back: [180, 4], q3l: [45, 6], sideR: [-90, 4], top: [20, 35], full: [0, 3], fullBack: [180, 3] };
+  var VIEW = { front: [0, 4], back: [180, 4], q3l: [45, 6], sideR: [-90, 4], top: [20, 35], full: [0, 3], fullBack: [180, 3], q3bl: [135, 8], q3br: [-135, 8] };
   var RNAME = { head: 'cabeza', bust: 'busto', torso: 'torso', legs: 'piernas', feet: 'pies', full: '' };
-  var VNAME = { front: 'frente', back: 'espalda', q3l: '3/4 izq', sideR: 'lado der', top: 'arriba 35°', full: 'entero', fullBack: 'entero espalda' };
+  var VNAME = { front: 'frente', back: 'espalda', q3l: '3/4 izq', sideR: 'lado der', top: 'arriba 35°', full: 'entero', fullBack: 'entero espalda', q3bl: '3/4 espalda izq', q3br: '3/4 espalda der', game: 'partido' };
+  // «partido»: la cámara del partido en el móvil vista desde tu atleta (tools/lookvis.js, CAM): 8,7 m, 41° de elevación, 27° fuera de
+  // la espalda, fov 50,4; la distancia se escala para que el muñeco mida en el lienzo lo que mide en el buffer de 800x450 (≈ 68 px de muñeco)
+  var GAMECAM = { hall: { d: 8.71, el: 41.3, az: 153, fov: 50.4, bufH: 450 }, beach: { d: 6.38, el: 34.9, az: 153, fov: 60, bufH: 450 } };
 
   function kit(k) { return P.kitFrom(KITS[k]); }
   function emptySet() { var o = {}; LK.SLOTS.forEach(function (s) { o[s] = ''; }); return o; }
@@ -119,19 +127,55 @@ window.__LS = (function () {
 
   // ------------------------------------------------ primeros planos (vista previa del Vestuario)
   var pvOn = false;
-  async function setLook(fit, ven, kitK) {
+  async function setLook(fit, ven, kitK, px, pose) {
     var tc = kit(kitK), L = LK.resolve(fit, ven, tc);
-    var ok = c.actions.showroom(true, L, { tc: tc, num: 7, beach: ven === 'beach', px: 2 });
+    var ok = c.actions.showroom(true, L, { tc: tc, num: 7, beach: ven === 'beach', px: px || 2 });
     pvOn = ok;
     await frames(3);
     var inf = D.preview.info(); if (!inf) return null;
     var r = inf.rig; r.tFix = 0; r.blinkOn = 0; r.blinkT = 999; D.preview.face('neutra');
-    D.preview.pose('stand');
+    D.preview.pose(pose || 'stand');
     await frames(2);
     r.blinkOn = 0; r.blinkT = 999; D.preview.face('neutra');
     return { L: L, lod: inf.lod, tris: inf.tris };
   }
-  function snap(i, region, view, txt) {
+  /** Fuerza el nivel de detalle lod (0-2) en el muñeco de la vista previa (como setLod de doll.js; la malla queda en r.geos). */
+  function forceLod(lod) {
+    var inf = D.preview.info(); if (!inf || lod == null) return;
+    var r = inf.rig, g = D.geometry(r, lod);
+    if (r.skin.geometry !== g) { r.skin.geometry = g; if (r.ink) r.ink.geometry = g; }
+  }
+  /** Casilla «partido»: el muñeco entero con la cámara del partido, al tamaño del móvil (≈ 68 px de muñeco en 800x450) y ampliado sin suavizar. */
+  function snapGame(i, txt, ven) {
+    var inf = D.preview.info(); if (!inf) { label(i, 'SIN VISTA PREVIA', 1); return; }
+    var root = inf.rig.root, cam = c.camera, G = GAMECAM[ven] || GAMECAM.hall, cv = c.renderer.domElement;
+    root.rotation.y = PI / 2; root.updateMatrixWorld(true);
+    var keep = { fov: cam.fov, asp: cam.aspect, film: cam.filmOffset, zoom: cam.zoom };
+    var d = G.d * cv.height / G.bufH, az = G.az * PI / 180, el = G.el * PI / 180, cy = 0.5 * top, X = root.position.x, Z = root.position.z;
+    cam.fov = G.fov; cam.aspect = cv.width / cv.height; cam.filmOffset = 0; cam.zoom = 1; if (cam.view && cam.clearViewOffset) cam.clearViewOffset();
+    cam.updateProjectionMatrix(); cam.up.set(0, 1, 0);
+    cam.position.set(X + Math.cos(az) * d * Math.cos(el), cy + d * Math.sin(el), Z - Math.sin(az) * d * Math.cos(el));
+    cam.lookAt(X, cy, Z); cam.updateMatrixWorld(true);
+    render();
+    // recorte cuadrado alrededor del muñeco (caja proyectada) y ampliado al vecino más cercano
+    var v = new THREE.Vector3(), x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    [-0.06, top + 0.2].forEach(function (y) { [-0.5, 0.5].forEach(function (lx) { [-0.3, 0.3].forEach(function (lz) {
+      v.set(lx, y, lz); root.localToWorld(v); v.project(cam);
+      var px = (v.x * 0.5 + 0.5) * cv.width, py = (-v.y * 0.5 + 0.5) * cv.height;
+      x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
+    }); }); });
+    v.set(0, 0, 0); root.localToWorld(v); v.project(cam); var fy = (-v.y * 0.5 + 0.5) * cv.height;
+    v.set(0, top, 0); root.localToWorld(v); v.project(cam); var hpx = Math.round(fy - (-v.y * 0.5 + 0.5) * cv.height);
+    var side = Math.ceil(Math.max(x1 - x0, y1 - y0)), cx = (x0 + x1) / 2, cyp = (y0 + y1) / 2, p = cell(i);
+    S.g.imageSmoothingEnabled = false;
+    S.g.fillStyle = '#000'; S.g.fillRect(p[0], p[1], S.tw, S.th);
+    S.g.drawImage(cv, Math.round(cx - side / 2), Math.round(cyp - side / 2), side, side, p[0], p[1], S.tw, S.th);
+    S.g.imageSmoothingEnabled = true;
+    cam.fov = keep.fov; cam.aspect = keep.asp; cam.filmOffset = keep.film; cam.zoom = keep.zoom; cam.updateProjectionMatrix();
+    label(i, txt + ' · ' + hpx + ' px LOD' + (inf.rig.geos ? inf.rig.geos.indexOf(inf.rig.skin.geometry) : '?'));
+  }
+  function snap(i, region, view, txt, ven) {
+    if (view === 'game') return snapGame(i, txt, ven);
     var inf = D.preview.info(); if (!inf) { label(i, 'SIN VISTA PREVIA', 1); return; }
     var root = inf.rig.root, cam = c.camera, R = REG[region], V = VIEW[view];
     root.rotation.y = PI / 2; root.updateMatrixWorld(true);
@@ -165,10 +209,12 @@ window.__LS = (function () {
         var v = row.views[vi];
         var f = baseFit(o.base || 'std', SKIN[v.skin || row.skin], HAIRC[v.hair || row.hair || 'castOsc'], v.style || row.style || o.style);
         var w = wear(f, o.venue, (o.list || []).concat(v.list || []));
-        var lk = await setLook(w.fit, o.venue, v.kit || row.kit);
+        var lk = await setLook(w.fit, o.venue, v.kit || row.kit, v.px || row.px, v.pose || row.pose);
         if (!lk) { label(i++, 'ERROR vista previa', 1); continue; }
+        var lodF = v.lod != null ? v.lod : row.lod;
+        if (lodF != null) forceLod(lodF);
         if (vi === 0 || v.list) info.push({ row: ri, removed: w.removed, lod: lk.lod, tris: lk.tris, L: lk.L });
-        snap(i, v.region, v.view, (v.tag || row.tag || '') + (w.removed.length ? ' !' : ''));
+        snap(i, v.region, v.view, (v.tag || row.tag || '') + (w.removed.length ? ' !' : ''), o.venue);
         i++;
       }
     }
@@ -381,6 +427,30 @@ async function closeups(ven) {
         tagRows(rows3);
         await job('hair/hair-' + st + '-' + ven + '.png', { venue: ven, base: 'std', style: st, title: 'PEINADO ' + st + ' · ' + ven, sub: 'filas 1-2: vistas (clara/A castaño, oscura/B negro); fila 3: colores 3/4; fila 4: más ángulos', rows: rows3 },
           { group: 'hair', venue: ven, id: st });
+      }
+    }
+    // --- de espaldas: todos los peinados en una hoja por vista, y los gorros
+    if (groups.indexOf('back') >= 0) {
+      const hairK = opt.hair || 'castOsc';
+      const sts = styles.filter(st => want(st) || (onlyItems && onlyItems.indexOf('back') >= 0));
+      const BV = [['espalda', 'head', 'back', {}], ['34-izq', 'head', 'q3bl', {}], ['34-der', 'head', 'q3br', {}],
+        ['partido', 'full', 'game', { px: 1, lod: 1, pose: 'recv' }], ['partido-lod0', 'full', 'game', { px: 1, lod: 0, pose: 'recv' }]];
+      if (sts.length) for (const [nm, region, view, ex] of BV) {
+        const cols = sts.length <= 10 ? 5 : 8, rows = [];
+        for (let i = 0; i < sts.length; i += cols) rows.push({ skin: 'light', kit: 'A', hair: hairK, tag: '',
+          views: sts.slice(i, i + cols).map(st => Object.assign({ region, view, style: st, tag: st }, ex)) });
+        await job('back/back-peinados-' + nm + '-' + ven + '.png', { venue: ven, base: 'std', cols, tw: view === 'game' ? 240 : 260, th: view === 'game' ? 240 : 260,
+          title: 'PEINADOS DE ESPALDAS · ' + nm + ' · ' + ven + ' · ' + sts.length + ' peinados · pelo ' + hairK,
+          sub: view === 'game' ? 'cámara del partido en el móvil (8,7 m, 41°, 27° fuera de la espalda), al tamaño del buffer de 800x450 del móvil (el muñeco mide ≈ 68 px; las 98 px del plan eran 1,9 m), LOD' + ex.lod + ', atlas 512², pose de recepción, ampliado sin suavizar' : 'vista previa LOD2, cabeza', rows },
+          { group: 'back', venue: ven, what: 'peinados ' + nm, styles: sts });
+      }
+      const heads = cat.filter(it => it.slot === 'head' && venOk(it, ven) && (want(it.id) || (onlyItems && onlyItems.indexOf('back') >= 0)));
+      if (heads.length) {
+        const mk = (tag, style, region, view, ex) => ({ skin: 'light', kit: 'A', hair: hairK, tag, views: heads.map(h => Object.assign({ region, view, style, tag: h.id + ' ' + tag, list: [['head', h.id]] }, ex || {})) });
+        const rows = [mk('tupé', 'tupe', 'head', 'back'), mk('tupé', 'tupe', 'head', 'q3bl'), mk('coleta', 'coleta', 'head', 'back'), mk('tupé', 'tupe', 'full', 'game', { px: 1, lod: 1, pose: 'recv' })];
+        await job('back/back-gorros-' + ven + '.png', { venue: ven, base: 'std', cols: heads.length, tw: 220, th: 220,
+          title: 'GORROS DE ESPALDAS · ' + ven + ' · filas: tupé espalda, tupé 3/4 espalda, coleta espalda, tupé partido (LOD1)', sub: 'pelo ' + hairK, rows },
+          { group: 'back', venue: ven, what: 'gorros', heads: heads.map(h => h.id) });
       }
     }
     // --- objetos por ranura

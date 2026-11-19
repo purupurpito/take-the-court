@@ -8,7 +8,7 @@ const man = JSON.parse(fs.readFileSync(path.join(OUT, 'manifest.json'), 'utf8'))
 const files = Object.keys(man).filter(f => fs.existsSync(path.join(OUT, f))).sort();
 const by = {};
 for (const f of files) { const g = f.split('/')[0]; (by[g] = by[g] || []).push(f); }
-const ORDER = ['base', 'hair', 'head', 'torso', 'legs', 'combos', 'game-distance'];
+const ORDER = ['base', 'hair', 'back', 'head', 'torso', 'legs', 'combos', 'game-distance'];
 const L = [];
 L.push('# Auditoría del Vestuario: hojas de contacto');
 L.push('');
@@ -36,7 +36,7 @@ L.push('node tools/lookshots.js base                              # hojas de ref
 L.push('node tools/lookshots-index.js                             # rehace este INDEX.md desde manifest.json');
 L.push('```');
 L.push('');
-L.push('Grupos: `base,hair,head,torso,legs,combos,game`. Opciones: `--item=id[,id]` (ids del catálogo, peinados, `base`, ids de combo), `--venue=hall|beach`, `--out=carpeta`, `--fmt=png`. Con `--item` en game el fichero lleva los ids en el nombre (`game-distance/hall-desktop-<ids>-01.jpg`).');
+L.push('Grupos: `base,hair,back,head,torso,legs,combos,game` (`back`: todos los peinados en una hoja por vista de espaldas, también a distancia de partido en LOD1 y LOD0, y los gorros; `--hair=negro` cambia el color). Visibilidad con números: `node tools/lookvis.js` (tools/out/lookvis/report.md). Opciones: `--item=id[,id]` (ids del catálogo, peinados, `base`, ids de combo), `--venue=hall|beach`, `--out=carpeta`, `--fmt=png`. Con `--item` en game el fichero lleva los ids en el nombre (`game-distance/hall-desktop-<ids>-01.jpg`).');
 L.push('');
 for (const g of ORDER.concat(Object.keys(by).filter(k => ORDER.indexOf(k) < 0))) {
   if (!by[g]) continue;
