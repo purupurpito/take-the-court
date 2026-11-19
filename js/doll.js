@@ -1213,9 +1213,18 @@
       };
     }
     G.add(sph(1, 16, 12), mit ? ca : sk, 0, -PALM, 0.004, 0, 0, 0, 0.058 * K, 0.108 * K, 0.094 * K);
-    // pulgar: la punta es su −Y (abajo y hacia delante)
-    if (mit) G.vc = function (px, py) { return py < -0.9 ? sk : null; };
-    else if (tp) G.vc = function (px, py) { return Math.abs(py) < 0.45 ? td : null; };   // esparadrapo con una tira oscura
+    // pulgar: la punta es su −Y (abajo y hacia delante). Casi solo asoma el casquete de la punta (el tubo queda dentro de la palma), así
+    // que las franjas van por los ANILLOS de ese casquete, como en la palma (ronda 2 de WP5: con un umbral en y salía una estrella de
+    // dientes de sierra). Casquete de capsule(1, 1,4, cs): de y = −0,7 a −1,7, con n = 2·cs bandas de latitud (Path.getPoints dobla las
+    // divisiones de los arcos); cb = banda del triángulo, 0 junto al tubo y n − 1 la de la punta.
+    var cs = Math.max(1, Math.round(2 * LODK)), nb = 2 * cs;
+    function cb(py) { return py > -0.7 ? -1 : Math.min(nb - 1, Math.floor(Math.asin(clamp(-0.7 - py, 0, 1)) / (PI / 2 / nb))); }
+    if (mit) G.vc = function (px, py) { return cb(py) >= nb / 2 ? sk : null; };   // punta de piel: la mitad del casquete (45°)
+    // vendado: punta de piel, vuelta, raya (la misma que entre las vueltas de los dedos) y vuelta; con pocas bandas (LOD0 y LOD1, los del
+    // partido) como antes: casquete de esparadrapo y el tubo con la tira oscura, que es lo que más se distingue de la piel a esa distancia
+    // (con la punta de piel y la raya, el pulgar vendado se perdía en el partido: playa 9 → 4 px)
+    else if (tp) G.vc = nb >= 4 ? function (px, py) { var b = cb(py); return b === nb - 1 ? sk : b === nb - 3 ? gap : null; }
+      : function (px, py) { return cb(py) < 0 ? td : null; };
     else G.vc = null;
     G.add(capsule(1, 1.4, 2, 8), mit ? ca : tp || sk, 0, -0.06 * K, 0.085 * K, -0.75, 0, 0, 0.034 * K, 0.034 * K, 0.034 * K);
     G.vc = null;

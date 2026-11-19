@@ -1142,6 +1142,13 @@ esas fracciones.
   el reloj y el brazalete crecieron. Primer plano / partido (peor variante): brazalete 1,88-2,05 % / 14-19 px, muñequera 2,32-2,36 % /
   18-19 px, cañón 2,27-2,31 % / 17-18 px, reloj 2,38-2,44 % / 18-25 px, kinesio 2,72-3,23 % / 12-19 px, manguitos 7,8-8,4 %. Dedos en
   pista se queda en 7 px en el partido con piel clara (de espaldas el cuerpo tapa la mano; el plan no exige manos en el partido).
+  Ojo: el salto del primer plano de estas piezas (≈ ×1,9) viene casi todo de partir la caja en dos; las piezas solo crecieron un poco.
+- Ronda 2: el PULGAR (capsule(1, 1,4, cs)) también por bandas: casi solo asoma el casquete de la punta, de y = −0,7 a −1,7 con 2·cs
+  bandas de latitud (Path.getPoints dobla las divisiones de los arcos), y `cb(py)` da la banda del triángulo (−1 = tubo y casquete de
+  arriba). Mitones: piel desde la mitad del casquete (45°), un octógono limpio en vez de la estrella. Dedos en LOD2 (4 bandas): punta de
+  piel, vuelta, raya (`gap`, la de los dedos) y vuelta; en LOD0/LOD1 (2 bandas, los del partido) el casquete de esparadrapo y el tubo y el
+  casquete de arriba con la tira oscura `td`, que es lo que más se separa de la piel de lejos: dedos en el partido pista 7 → 11 px, playa
+  9 → 13 px (con la punta de piel y la raya también en LOD1 bajaba a 6 / 4 px). `lookshots --region=hand`: primer plano de la mano izquierda.
 
 #### Piernas y pies (WP4 del plan del Vestuario, 1.16, rama pj-b)
 La espinilla del chibi mide 0,23: el zapatón tapa ~0,044 abajo y la bola de la rodilla ~0,073 arriba; de calcetín, tobillera y rodillera
