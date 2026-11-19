@@ -161,8 +161,11 @@ window.__LV = (function () {
   // en el antebrazo): unas hombreras sueltas no son una licra (T1 del plan)
   var ZONES = {
     // [hueso, punto local] de cada tramo (con la pose de ahora): brazo desde debajo de la bola del hombro hasta el codo, y antebrazo
-    under: function (r) { var out = []; for (var k = 0; k < 2; k++) { out.push([[r.up[k], 0, -0.15, 0], [r.el[k], 0, 0, 0]]); out.push([[r.el[k], 0, 0, 0], [r.hand[k], 0, 0, 0]]); } return out; }
+    under: function (r) { var out = []; for (var k = 0; k < 2; k++) { out.push([[r.up[k], 0, -0.15, 0], [r.el[k], 0, 0, 0]]); out.push([[r.el[k], 0, 0, 0], [r.hand[k], 0, 0, 0]]); } return out; },
+    // (WP3) pintura, marcas y barbas: el % es de la CAJA DE LA CABEZA (lo que dice el plan), no de la región con sus márgenes de 16 cm
+    paint: headZone, marks: headZone, beard: headZone
   };
+  function headZone(r) { var d = D.dims(); return [[[r.head, 0, d.HEAD_C - d.HEAD_RY, 0], [r.head, 0, d.HEAD_C + d.HEAD_RY, 0], d.HEAD_RX]]; }
   var ZONE_RAD = 0.065;   // grosor (m) alrededor del hueso, solo de lado (en vertical no: la bola del hombro quedaría dentro)
   /** Máscara (1 = dentro) de las zonas del objeto dentro de la caja box ya proyectada con la cámara de ahora; null = toda. */
   function zoneMask(rig, slot, box) {
@@ -172,9 +175,11 @@ window.__LV = (function () {
     Z.forEach(function (seg) {
       var x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
       seg.forEach(function (pt) {
+        if (!pt || !pt[0] || !pt[0].localToWorld) return;   // (el tercer elemento, si lo hay, es el radio del tramo)
         pt[0].localToWorld(P2.set(pt[1], pt[2], pt[3]));
         [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].forEach(function (o) {
-          V3.set(P2.x + o[0] * ZONE_RAD, P2.y + o[1] * ZONE_RAD, P2.z + o[2] * ZONE_RAD).project(cam);
+          var zr = typeof seg[2] === 'number' ? seg[2] : ZONE_RAD;
+          V3.set(P2.x + o[0] * zr, P2.y + o[1] * zr, P2.z + o[2] * zr).project(cam);
           var px = (V3.x * 0.5 + 0.5) * W, py = (-V3.y * 0.5 + 0.5) * H;
           x0 = Math.min(x0, px); x1 = Math.max(x1, px); y0 = Math.min(y0, py); y1 = Math.max(y1, py);
         });

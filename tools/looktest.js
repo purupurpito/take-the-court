@@ -82,7 +82,8 @@ const SPEC = {
   style: 'tupe coleta afro flequillo rapado mono trenzas dosmonos coletas cresta' +   // + los 22 de 1.16 (WP2 del plan del Vestuario)
     ' alCero degradado cepillo undercut crop pinchos rizosCortos afroCorto frohawk raices twists rastas despeinado cortina melenita mullet ondas melena semirrecogido coletaBaja trenza monoBajo',
   head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC',   // (gorraMTC: online, fase 3)
-  eyes: 'frente pasta oscuras deporte espejo', paint: 'zinc rayas rayasEq estrella', marks: 'pecas tirita tiraNasal', beard: 'bigote perilla tresDias',
+  eyes: 'frente pasta oscuras deporte espejo', paint: 'zinc rayas rayasEq estrella', marks: 'pecas tirita tiraNasal', beard: 'bigote perilla tresDias barba',   // (barba: 1.16, WP3)
+ 
   neck: 'medalla conchas', under: 'termica licra', band: 'capitan', legs: 'malla mallaLarga',
   armL: 'manguito manguitoRayas manguitoCuadros manguitoLlamas manguitoRayos manguitoOro kinesio manguitoMazo', elbows: 'coderas',
   wristL: 'muneq reloj munhCanon', hands: 'dedos mitones dedosMuro', knees: 'cortas altas bajadas rodiPulpo', socks: 'tobilleros media altos altosRayas desparejados',
@@ -368,7 +369,7 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
   check(L.stars('corona') === '★★★★' && L.stars('pasta') === '★☆☆☆' && L.rarityLabel('espejo') === 'Rareza: 3 de 4', 'estrellas y aria-label de la rareza');
   check(L.choices('head', 'hall')[0] === '' && !L.choices('head', 'hall').includes('gorra') && L.choices('head', 'beach').includes('gorra') && L.choices('shoes', 'beach').length === 1 && L.choices('acc').length === 6 + 10 && L.choices('hair').length === 33 && L.choices('skin').length === 14 &&
     L.choices('hair').filter(v => typeof v === 'number').every((v, i, a) => !i || lumT(a[i - 1]) <= lumT(v)) && L.choices('hairFx')[0] === '' && L.choices('hairFx').length === 6, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale); el pelo natural de oscuro a claro; efectos de pelo');
-  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC', 'HIDE_HAIR: gorra, gorra al revés, pescador y la gorra «MTC» del online');
+  check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC,bandana', 'HIDE_HAIR: gorra, gorra al revés, pescador, la gorra «MTC» del online y el pañuelo (1.16, WP3)');
 }
 // sin tocar VB ajeno
 check(Object.keys(VB).join() === 'Look', 'look.js solo publica VB.Look');
@@ -417,7 +418,7 @@ console.log('== sprint 2-4 (T9) ==');
     H.CATALOG.forEach(o => { const n = X.item(o.id); if (!n) { lostAlt.push(o.id + ' (falta)'); return; } o.unlock.forEach(u => { if (!n.unlock.some(v => eq(v, u))) lostAlt.push(o.id + ' ' + JSON.stringify(u)); }); });
     const added = C.filter(x => H.item(x.id)).map(x => x.unlock.length - H.item(x.id).unlock.length).reduce((a, b) => a + b, 0);
     check(!lostAlt.length, 'ningún objeto pierde una alternativa de las de ' + LOOK_BASE + (lostAlt.length ? ': ' + lostAlt.join(', ') : ''));
-    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6 + 33, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online) + 33 de 1.16 (22 peinados, 6 tintes, 5 efectos; ' + H.CATALOG.length + ' → ' + C.length + ')');
+    check(added === 8 + 5 + 1 && C.length === H.CATALOG.length + 6 + 34, 'alternativas añadidas: 8 de nivel, 5 de retos, 1 de química; 6 objetos nuevos (5 + la gorra del online) + 34 de 1.16 (22 peinados, 6 tintes, 5 efectos, la barba; ' + H.CATALOG.length + ' → ' + C.length + ')');
     check(H.CATALOG.every(o => X.isStart(o.id) === H.isStart(o.id) && X.price(o.id) === H.price(o.id) && X.item(o.id).rarity === o.rarity), 'inicio, precios y rarezas de siempre');
   } else console.log('AVISO: sin js/look.js en ' + LOOK_BASE + ': comparación de alternativas saltada');
 

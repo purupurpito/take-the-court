@@ -1305,6 +1305,37 @@ Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, blo
   - lookvis caso b (partido en el móvil, de espaldas, frente al tupé): los 31 peinados ≥ 529 px (umbral 9).
 - **Herramientas**: `lookshots back --bviews=…` añade frente, 34-frente, lado, arriba, frente-lod0 y `fx` (hojas back/fx y back/colores).
 
+### Cabeza y cara (19-nov-2026, WP3 de notes/vestuario-plan.md)
+- **Láminas de la cara sin solape**: la de ojos (`FE_DY0`) y la de boca (`FM_DY1`) se tocan en `SPLIT_DY` = −0,297 (antes compartían
+  −0,36..−0,30 a la misma distancia: z-fighting de los halos de piel oscura y pintura diminuta). La pintura y las marcas se pintan en las
+  DOS hojas con las mismas coordenadas (`decorClip` enseña la mitad de cada una). La O del grito y los ojos de la sorpresa acaban en
+  `SPLIT_Y`. La de boca es más ancha (`FM_DX` 0,56 → 0,84, `nx − 1` columnas) para mejillas y barbas. `fOff()` = desfase por LOD
+  (`F_OFF_LOD` 0,005/0,0028/0,002) y la de ojos lleva ≥ 5 filas en LOD0: sin piel atravesando en calidad baja. Sin polygonOffset.
+- **Pintura y marcas grandes** (lookvis a, % de la CAJA DE LA CABEZA, peor piel): zinc banda nariz-pómulos 4,7 %, rayas 2 × 6 cm con borde
+  claro en piel oscura 1,66, rayasEq 1,5-1,6, estrella r 0,035 2,2, pecas (15 de 8 mm) 1,6, tirita en X blanca con tinta 1,6-1,8, tira
+  nasal 1,8-2,0. (Antes, sobre la caja de la región con márgenes: 0,06-0,45 %; lookvis mide ahora paint/marks/beard sobre la caja de la
+  cabeza con `ZONES`, que es lo que pedía el plan.)
+- **Barbas** antes de la boca (la boca siempre encima): bigote de manillar con las puntas hacia arriba (×1,2, la sonrisa se ve debajo),
+  perilla redondeada y separada, tres días = máscara lisa α 0,35 difuminada al borde, **barba** nueva (id `barba`, completa, mechones,
+  hueco de la boca). Borde claro (`faceHalo`) en piel oscura.
+- **Gafas pintadas** después de las cejas, montura 0,017-0,02: oscuras α 0,96 y espejo α 0,97 en bandas (no se ven pupilas ni iris) con
+  brillo diagonal; espejo con montura dorada. Patillas = 2 cuerdas de 3 lados (24 triángulos) pegadas a la cabeza/pelo hasta encima de la
+  oreja, también en LOD0. De espaldas: **goma** de cA por la nuca (deporte) y **cordón** de cA que cuelga (oscuras, espejo): look.js vc 'GA'.
+- **Gafas en la frente** rehechas (≈ 180/180/256 tris, antes 480/512/1040): dos lentes con montura inclinadas 25° y empujadas hasta no
+  meterse en el casco; `HAIR_STYLES[…].over(φ, θ)` dice lo que abultan las piezas encima (tupé, afro) y con la gorra al revés se apoyan en
+  su copa (`outCup`). La regla CLASH no cambia (hay guardados 1.15.1 con gorra al revés + frente).
+- **Gorros**: `profSweep` (barrido con perfil por lados de color) + `bandPath` (aro que abraza piel/pelo/lámina, desfase mayor de arriba,
+  centro y abajo). Cinta plana de 3,4 cm sobre las cejas (`BAND_Y` 0,13) con franja cB; cinta de rizo gorda con dos rayas (de cA); cantos
+  oscurecidos y `lumCap` 0,82. **Pañuelo** = casquete SCARF (frente → nuca, giro −0,5) con lunares hexagonales, dobladillo, nudo y colas
+  laterales en el muelle; para el pelo cuenta como gorra (`HIDE_HAIR` incluye bandana). Gorras: copa con `CAP_RX` −0,26 y `CAP_TL` 0,44π
+  (el borde de delante queda sobre las cejas), **visera gruesa y cerrada** (`capBrim`: 3 → 2 cm, debajo cA × 0,8), botón y tira de atrás
+  en cB (MTC: del color de las letras; vc 'A'). La visera de playa usa la cinta + `capBrim`. MTC más arriba (no la corta la visera).
+  **Corona** ×1,4 apoyada en el pelo (`surfY`), puntas altas con bolita, rubí y zafiros, centro acotado (la cresta no la deja colgando).
+- Presupuesto: peor pista 3482/5130/10752, playa 3786/5342/11694 (antes 3516/5245/11380 y 4056/5739/12510). TRI_TODAY regenerado.
+- Herramientas: lookshots `head` con 8 columnas (incluida «desde abajo 30°», LOD0 y partido), región `face`, `--hv`/`--tile`, y 9 combos
+  nuevos (`c_corona_*`, `c_bandana_*`, `c_frente_*`, `c_cintaRizo_afro`, `c_gorraAtras_coleta`).
+
+
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 
 Detalle: `notes/s234/T2.md` (contactos, `bindReplay`, `baseLook`, celebraciones con hash), `T3.md` (retrato), `T17.md` (firmas, rabias,

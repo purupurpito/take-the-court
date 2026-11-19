@@ -29,6 +29,7 @@
  *   Salida: tools/out/look-audit/<grupo>/<fichero>.jpg (+ manifest.json con lo que hay en cada hoja).
  *   Ejemplos: node tools/lookshots.js head --item=gorra
  *             node tools/lookshots.js game --item=manguitoLlamas --venue=hall
+ *   head: 8 columnas por objeto (frente, 3/4, lado, espalda, arriba, desde abajo 30°, frente LOD0, partido); --hv=0,5 elige columnas
  *   --bviews=espalda,34-izq,34-der,partido,partido-lod0,frente,34-frente,lado,arriba,frente-lod0: vistas del grupo back (5 primeras por defecto)
  * Una sola instancia de Chrome a la vez (se cierra al acabar cada fase).
  */
@@ -68,12 +69,13 @@ window.__LS = (function () {
     torso: [handLow - 0.08, dm.shoulder + 0.16, dm.SH_X + 0.26, 0.3],
     legs: [-0.05, dm.HIP_H + 0.12, dm.HIP_W + 0.26, 0.3],
     feet: [-0.05, 0.42, dm.HIP_W + 0.22, 0.32],
-    full: [-0.06, top + 0.14, dm.SH_X + 0.32, 0.35]
+    full: [-0.06, top + 0.14, dm.SH_X + 0.32, 0.35],
+    face: [top - headH - 0.02, top + 0.01, dm.HEAD_RX + 0.05, 0.3]   // (WP3) primer plano de la cara: pintura, marcas, barbas, gafas
   };
   // vistas: acimut (0 = de frente, + = hacia la izquierda del muñeco) y elevación (grados)
-  var VIEW = { front: [0, 4], back: [180, 4], q3l: [45, 6], sideR: [-90, 4], top: [20, 35], full: [0, 3], fullBack: [180, 3], q3bl: [135, 8], q3br: [-135, 8] };
-  var RNAME = { head: 'cabeza', bust: 'busto', torso: 'torso', legs: 'piernas', feet: 'pies', full: '' };
-  var VNAME = { front: 'frente', back: 'espalda', q3l: '3/4 izq', sideR: 'lado der', top: 'arriba 35°', full: 'entero', fullBack: 'entero espalda', q3bl: '3/4 espalda izq', q3br: '3/4 espalda der', game: 'partido' };
+  var VIEW = { front: [0, 4], back: [180, 4], q3l: [45, 6], sideR: [-90, 4], top: [20, 35], full: [0, 3], fullBack: [180, 3], q3bl: [135, 8], q3br: [-135, 8], below: [20, -30] };
+  var RNAME = { head: 'cabeza', bust: 'busto', torso: 'torso', legs: 'piernas', feet: 'pies', full: '', face: 'cara' };
+  var VNAME = { front: 'frente', back: 'espalda', q3l: '3/4 izq', sideR: 'lado der', top: 'arriba 35°', full: 'entero', fullBack: 'entero espalda', q3bl: '3/4 espalda izq', q3br: '3/4 espalda der', below: 'desde abajo 30°', game: 'partido' };
   // «partido»: la cámara del partido en el móvil vista desde tu atleta (tools/lookvis.js, CAM): 8,7 m, 41° de elevación, 27° fuera de
   // la espalda, fov 50,4; la distancia se escala para que el muñeco mida en el lienzo lo que mide en el buffer de 800x450 (≈ 68 px de muñeco)
   var GAMECAM = { hall: { d: 8.71, el: 41.3, az: 153, fov: 50.4, bufH: 450 }, beach: { d: 6.38, el: 34.9, az: 153, fov: 60, bufH: 450 } };
@@ -324,6 +326,16 @@ function rows2(region, extra) {
 function tagRows(rows) { rows.forEach(r => r.views.forEach(v => { v.tag = v.tag || r.tag; })); return rows; }
 
 const COMBOS = [
+  // (WP3) objetos de cabeza sobre peinados con volumen, recogidos y de lado
+  { id: 'c_corona_afro', venue: 'hall', region: 'head', style: 'afro', name: 'corona + afro', list: [['head', 'corona']] },
+  { id: 'c_corona_cresta', venue: 'hall', region: 'head', style: 'cresta', name: 'corona + cresta (de lado)', list: [['head', 'corona']] },
+  { id: 'c_corona_mono', venue: 'hall', region: 'head', style: 'mono', name: 'corona + moño', list: [['head', 'corona']] },
+  { id: 'c_bandana_coleta', venue: 'hall', region: 'head', style: 'coleta', name: 'pañuelo + coleta', list: [['head', 'bandana']] },
+  { id: 'c_bandana_melena', venue: 'hall', region: 'head', style: 'melena', name: 'pañuelo + melena', list: [['head', 'bandana']] },
+  { id: 'c_frente_afro', venue: 'beach', region: 'head', style: 'afro', name: 'gafas en la frente + afro', list: [['eyes', 'frente']] },
+  { id: 'c_frente_melena', venue: 'beach', region: 'head', style: 'melena', name: 'gafas en la frente + melena', list: [['eyes', 'frente']] },
+  { id: 'c_cintaRizo_afro', venue: 'hall', region: 'head', style: 'afro', name: 'cinta de rizo + afro + deportivas', list: [['head', 'cintaRizo'], ['eyes', 'deporte']] },
+  { id: 'c_gorraAtras_coleta', venue: 'beach', region: 'head', style: 'coleta', name: 'gorra al revés + coleta + espejo + barba', list: [['head', 'gorraAtras'], ['eyes', 'espejo'], ['beard', 'barba']] },
   { id: 'c_head_beach', venue: 'beach', region: 'head', style: 'trenzas', name: 'gorra + trenzas + gafas oscuras + perilla + zinc + pecas',
     list: [['head', 'gorra'], ['eyes', 'oscuras'], ['beard', 'perilla'], ['paint', 'zinc'], ['marks', 'pecas']] },
   { id: 'c_head_beach2', venue: 'beach', region: 'head', style: 'coletas', name: 'pescador + coletas + espejo + bigote + estrella + tirita',
@@ -474,9 +486,19 @@ async function closeups(ven) {
       const region = SLOT_REGION[it.slot];
       const both = it.slots.length > 1;
       const rows = tagRows(rows2(region));
+      // (WP3) cabeza y cara: 8 columnas — 5 ángulos, desde abajo 30° (¿la visera tapa?), frente en LOD0 (z-fighting de las láminas)
+      // y la cámara del partido en el móvil (LOD1)
+      const fr = it.slot === 'head' ? region : 'face';   // lo de la cara, de cerca (frente, 3/4 y LOD0)
+      if (grp === 'head') rows.forEach(r => { r.views = [['front', fr], ['q3l', fr], ['sideR', region], ['back', region], ['top', region], ['below', region]].map(v => ({ region: v[1], view: v[0] }))
+        .concat([{ region: fr, view: 'front', lod: 0, tag: 'LOD0' }, { region: 'full', view: 'game', px: 1, lod: 1, pose: 'recv' }]); });
       const o = { venue: ven, base: 'std', list: [[wearSlot(it.slot), it.id]], title: it.slot + ' · ' + it.id + ' «' + it.name + '»' + (both ? ' (en las dos ranuras)' : '') + (it.as ? ' [se dibuja como ' + it.as + ' si doll.js no lo conoce]' : '') + ' · ' + ven,
         sub: 'base de serie + este objeto', rows };
-      rows.forEach(r => r.views.forEach(v => { v.tag = it.id + ' ' + r.tag; }));
+      rows.forEach(r => r.views.forEach(v => { v.tag = it.id + ' ' + r.tag + (v.tag === 'LOD0' ? ' LOD0' : ''); }));
+      if (grp === 'head') {
+        // --hv=0,1,5: solo esas columnas (0 frente, 1 3/4, 2 lado, 3 espalda, 4 arriba, 5 abajo, 6 LOD0, 7 partido); --tile=N: casillas de N px
+        if (opt.hv) { const keep = opt.hv.split(',').map(Number); rows.forEach(r => { r.views = r.views.filter((v, k) => keep.indexOf(k) >= 0); }); }
+        o.cols = rows[0].views.length; o.tw = o.th = opt.tile ? TILE : 240;
+      }
       await job(grp + '/' + it.slot.replace(/[LR]$/, '') + '-' + it.id + '-' + ven + '.png', o, { group: grp, venue: ven, id: it.id, slot: it.slot, name: it.name });
     }
     // --- combos

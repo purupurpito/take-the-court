@@ -137,23 +137,23 @@
     { id: 'trenza', name: 'Trenza', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', tris: [169, 192, 306] },
     { id: 'monoBajo', name: 'Moño bajo', slot: 'style', fam: 'recogido', vc: 'A', g: 'm', tris: [104, 170, 360] },
     // gorro
-    { id: 'cinta', name: 'Cinta', slot: 'head', vc: 'AB', g: 'f', tris: [224, 336, 704] },
-    { id: 'cintaRizo', name: 'Cinta de rizo', slot: 'head', unlock: [shop(800), rec('wins', 10)], vc: 'A', g: 'f', tris: [112, 168, 384] },
-    { id: 'bandana', name: 'Pañuelo', slot: 'head', rarity: 1, unlock: [{ ach: 's10' }, gym('serve', 1), reto('r_aces', 2)], vc: 'A', g: 'm', tris: [388, 500, 1072] },
-    { id: 'gorra', name: 'Gorra', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [234, 338, 662] },
-    { id: 'gorraAtras', name: 'Gorra al revés', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [234, 338, 662] },
+    { id: 'cinta', name: 'Cinta', slot: 'head', vc: 'AB', g: 'f', tris: [140, 210, 320] },
+    { id: 'cintaRizo', name: 'Cinta de rizo', slot: 'head', unlock: [shop(800), rec('wins', 10)], vc: 'A', g: 'f', tris: [154, 224, 336] },
+    { id: 'bandana', name: 'Pañuelo', slot: 'head', rarity: 1, unlock: [{ ach: 's10' }, gym('serve', 1), reto('r_aces', 2)], vc: 'A', g: 'm', hint: 'Con pañuelo no se ve el peinado entero', tris: [246, 285, 382] },
+    { id: 'gorra', name: 'Gorra', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [222, 235, 430] },
+    { id: 'gorraAtras', name: 'Gorra al revés', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [222, 235, 430] },
     { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', tris: [224, 260, 416] },
     { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [242, 344, 774] },
-    { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [128, 128, 176] },
+    { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [164, 164, 248] },
     // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «MTC» en el frontal; se gana al
     // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
-    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'AB', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [364, 468, 792] },
+    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [352, 365, 560] },
     // gafas
-    { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [480, 512, 1040] },
-    { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
-    { id: 'oscuras', name: 'Gafas oscuras', slot: 'eyes', venue: 'Y', unlock: [shop(1000)], vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
-    { id: 'deporte', name: 'Gafas deportivas', slot: 'eyes', rarity: 1, unlock: [{ fame: 2 }, gym('recv', 1), reto('r_recv', 2)], vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
-    { id: 'espejo', name: 'Gafas de espejo', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [{ fame: 4 }, shop(15000)], vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
+    { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [180, 180, 256] },
+    { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
+    { id: 'oscuras', name: 'Gafas oscuras', slot: 'eyes', venue: 'Y', unlock: [shop(1000)], vc: 'GA', g: 'f', pl: 1, tris: [54, 54, 72] },
+    { id: 'deporte', name: 'Gafas deportivas', slot: 'eyes', rarity: 1, unlock: [{ fame: 2 }, gym('recv', 1), reto('r_recv', 2)], vc: 'GA', g: 'f', pl: 1, tris: [72, 72, 96] },
+    { id: 'espejo', name: 'Gafas de espejo', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [{ fame: 4 }, shop(15000)], vc: 'GA', g: 'f', pl: 1, tris: [54, 54, 72] },
     // cara (pintada en el atlas: 0 triángulos)
     { id: 'zinc', name: 'Crema de zinc', slot: 'paint', venue: 'Y', g: 'f' },
     { id: 'rayas', name: 'Rayas bajo los ojos', slot: 'paint', g: 'f', pl: 1 },
@@ -165,6 +165,7 @@
     { id: 'bigote', name: 'Bigote', slot: 'beard', g: 'm' },
     { id: 'perilla', name: 'Perilla', slot: 'beard', g: 'f' },
     { id: 'tresDias', name: 'Barba de tres días', slot: 'beard', g: 'f' },
+    { id: 'barba', name: 'Barba', slot: 'beard', g: 'f' },   // (1.16, WP3: barba completa; la lámina de boca es más ancha)
     // cuello, cuerpo y brazos
     { id: 'medalla', name: 'Medalla', slot: 'neck', rarity: 2, unlock: [{ ach: 't1' }], vc: 'A', g: 'f', tris: [120, 168, 252] },
     { id: 'conchas', name: 'Collar de conchas', slot: 'neck', venue: 'Y', unlock: [shop(800), lv(4)], g: 'm', tris: [88, 128, 592] },
@@ -280,6 +281,7 @@
   var HEAD_IDS = CATALOG.filter(function (it) { return it.slot === 'head'; }).map(function (it) { return it.id; });
   // 1.16 (WP2): los gorros ya no quitan peinados (doll.js los adapta por clase de gorro: el pelo asoma por debajo del borde, lo que
   // cuelga sale por la abertura o bajo el ala). Solo quedan las gafas en la frente, que no caben con ningún gorro salvo la gorra al revés
+  // (1.16, WP3: encima de su copa; antes se veían a través de ella. Se queda: hay guardados de 1.15.1 con las dos cosas)
   var CLASH = [
     { a: { slot: 'eyes', ids: ['frente'] }, b: { slot: 'head', ids: HEAD_IDS.filter(function (id) { return id !== 'gorraAtras'; }) },
       why: { a: 'no caben con ese gorro', b: 'no {cabe} con {a}' } }
@@ -288,7 +290,7 @@
   var STYLE_FALLBACK = 'tupe';   // al quitar un peinado que choca (ninguna regla lo nombra)
   // gorros de copa (gorra, gorra al revés, pescador y gorra MTC): el pelo solo asoma por debajo (doll.js HAT_CLASS; HAIR_UNDER_CAP dice
   // qué peinados asoman enteros)
-  var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador', 'gorraMTC'];
+  var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador', 'gorraMTC', 'bandana'];   // (bandana: 1.16, WP3, un casquete de verdad)
 
   // ---------------------------------------------------------------- utilidades
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
