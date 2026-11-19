@@ -627,7 +627,7 @@
   var SESS_DRILL = {
     serve: { k: 'serve', g: 'atk', name: 'Saque a diana', short: 'Saque', help: '10 saques a la diana que se mueve', medals: [12, 18, 24] },
     recv: { k: 'recv', g: 'def', name: 'Recepción', short: 'Recepción', help: '10 saques de la CPU: déjala en la zona del colocador', medals: [18, 24, 28] },
-    set: { k: 'set', g: 'atk', name: 'Colocación', short: 'Colocación', help: 'Coloca a tu compañero: de dedos o en salto', medals: [16, 22, 27] },
+    set: { k: 'set', g: 'atk', name: 'Colocación', short: 'Colocación', help: 'Coloca para el remate: de dedos o en salto', medals: [16, 22, 27] },
     atk: { k: 'spike', g: 'atk', name: 'Remate', short: 'Remate', help: 'Tu compañero te coloca: remata a la diana', medals: [12, 18, 23] },
     block: { k: 'block', g: 'def', name: 'Bloqueo', short: 'Bloqueo', help: 'La CPU ataca: salta a tiempo y cierra', medals: [6, 11, 16] }
   };

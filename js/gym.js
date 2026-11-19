@@ -33,8 +33,8 @@
   var DRILLS = [
     { id: 'serve', name: 'Saque a diana', short: 'Saque', help: '10 saques a la diana que se mueve' },
     { id: 'recv', name: 'Recepción', short: 'Recepción', help: '10 saques de la CPU: déjala en la zona del colocador' },
-    { id: 'set', name: 'Colocación', short: 'Colocación', help: 'Coloca a tu compañero: de dedos o en salto' },
-    { id: 'atk', name: 'Remate', short: 'Remate', help: 'Tu compañero te coloca: remata a la diana' },
+    { id: 'set', name: 'Colocación', short: 'Colocación', help: 'Coloca para el remate: de dedos o en salto' },
+    { id: 'atk', name: 'Remate', short: 'Remate', help: 'Te colocan: remata a la diana' },
     { id: 'block', name: 'Bloqueo', short: 'Bloqueo', help: 'La CPU ataca: salta a tiempo y cierra' },
     { id: 'free', name: 'Peloteo libre', short: 'Peloteo', help: 'Sin marcador ni sets: practica lo que quieras' }
   ];

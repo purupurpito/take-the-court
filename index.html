@@ -207,6 +207,7 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
 #ambCard.show{display:flex;animation:ambIn .25s var(--ease) both}
 #ambCard.out{animation:tvFade .3s linear reverse both}
 .rm #ambCard.show{animation:tvFade .15s linear both}
+@media (max-width:600px){#ambCard{left:auto;right:calc(64px + env(safe-area-inset-right,0px));transform:none;max-width:calc(100vw - 280px)}}   /* 568x320: centrado pisaba el marcador */
 #ambCard .amk-c{flex:0 0 auto;width:15px;height:21px;border-radius:2px;background:#ffd23f;box-shadow:0 0 0 1.5px rgba(0,0,0,.35)}
 #ambCard.r .amk-c{background:#ff3b3b}
 #ambCard.e .amk-c{background:linear-gradient(90deg,#ff3b3b 50%,#ffd23f 50%)}
@@ -474,6 +475,7 @@ kbd,.key{display:inline-flex;align-items:center;justify-content:center;min-width
 #banner.r2{right:auto;width:max-content;max-width:calc(100% - 32px);align-items:flex-start}
 #banner.r2.at-r{align-items:flex-end}
 #banner.r2.at-t{align-items:center}
+.is-touch #banner.r2.at-t{align-items:flex-start}   /* (subtítulo y chip a la izquierda: centrados quedaban bajo la pastilla CHALLENGE) */
 #banner.r2 .bn-rib{padding:2px clamp(34px,4vw,56px) 6px}
 #banner.r2 #bn1{font-size:clamp(46px,5.4vw,70px)}
 #banner.r2.long #bn1{font-size:clamp(44px,4.6vw,60px)}
@@ -1109,6 +1111,8 @@ h2 span{color:var(--hot)}
   #banner.compact #bn2{display:none} /* en apaisado bajo el subtítulo pisaba la cinta de la red; el chip ya lo dice */
   #banner.r2 #bn1{font-size:44px}
   #banner.r2.long #bn1{font-size:40px}
+  #banner.r2.fit #bn1{font-size:clamp(24px,4.5vw,36px)}   /* REV-PARTIDO: no cabía entre el marcador y la lupa (ui.js placeRib2) */
+  #banner.r2.fit .bn-rib{padding:2px 18px 5px}
   #banner.r2 #bn2{font-size:15px;margin-top:5px;padding:3px 12px 4px}
   #banner.r2 #bn3{font-size:12px;margin-top:5px;padding:4px 10px}
   #banner.t3{top:12%}
@@ -1121,6 +1125,7 @@ h2 span{color:var(--hot)}
   /* en apaisado bajo, centrada tapaba la cabeza y el balón del sacador rival (la cámara lo encuadra en el centro):
      a la derecha, junto al botón de pausa (con aire: la cinta sesgada sobresale ~4 px y se tocaba con el botón; ola 2) */
   #banner.compact{left:auto;right:calc(80px + var(--sr));align-items:flex-end}
+  .is-touch #banner.compact{right:calc(128px + var(--sr))}   /* REV-PARTIDO: con táctil, a la izquierda de la lupa (right 68-112 px), no encima */
   #banner.compact .bn-rib{padding:3px 30px 5px}
   #banner.compact #bn1{font-size:26px}
   .tb-seg{height:24px;font-size:12px}
@@ -1525,6 +1530,7 @@ kbd,.key{background:#fff7e8;color:var(--tk);border:1.5px solid var(--tk);border-
 #coach.thru:not(.off){box-shadow:none}
 /* un jugador detrás del consejo (.thrup): fondo translúcido y sin sombra desplazada, texto entero (se ve al jugador a través) */
 #coach.thrup:not(.off):not(.thru){background:rgba(43,37,71,.42);border-color:rgba(255,255,255,.2);box-shadow:none;text-shadow:0 1px 2px #000,0 0 4px #000,0 0 10px rgba(0,0,0,.85)}
+#coach.thrup.lt:not(.off):not(.thru){background:rgba(43,37,71,.68)}   /* REV-15: en la playa (fondo claro) el blanco sobre .42 no se leía */
 #guide .gd-k{box-shadow:0 0 0 2px var(--tk)}
 #guide .gd-t{background:var(--tp);box-shadow:0 0 0 2px var(--tk),5px 6px 0 2px var(--tk);text-shadow:var(--ring2),2px 3px 0 var(--tk)}
 /* sello de calidad (PERFECTO / BIEN) con contorno de tinta */
@@ -2636,6 +2642,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .rc-mv{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}
 .rc-mv b{font:800 17px/1.15 var(--display);letter-spacing:.03em;color:#fff8ee;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .rc-mv small{font:500 13px/1.3 var(--ui);color:var(--muted)}
+.rc-mv .rc-pd{white-space:nowrap}   /* raya + dato juntos: la raya ya no se queda colgando al final de la línea */
 .rc-nota{flex:0 0 auto;margin-left:auto;font:900 18px/1 var(--display);font-style:normal;color:var(--gold);white-space:nowrap}
 .rc-xr{display:flex;align-items:center;gap:4px 10px;flex-wrap:wrap}
 .rc-nm{min-width:52px;color:var(--fg2);font-weight:600}
@@ -3025,6 +3032,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   .ctl.kb>div{min-height:34px}.kslot{height:30px;min-width:50px;font-size:14px}.is-touch .kslot{height:38px}
   .opt-reset{padding:6px 10px;font-size:12px;margin-top:2px}
 }
+@media (min-height:420.02px){.ab .ab-k+.card h3 small.ab-dup{display:none}}   /* (versión y fecha ya en .ab-k; con poco alto .ab-k se oculta y se quedan en la tarjeta) */
 @media (max-height:420px){.ab .ab-k{display:none}.ab{gap:7px}.ab .card ul{font-size:13px;line-height:1.28}.ab-foot{margin-top:6px}.ab-foot button{padding:8px 18px}}
 /* ================= ENTRENAMIENTO (E6, sprint 5) =================
    Tarjeta .m-gym en Jugar (4 columnas), página #mpGym (filas con medalla y récord), pastilla #drillBar en el sitio del marcador,
@@ -3433,7 +3441,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .sp-crest{flex:none;display:flex;align-items:center;justify-content:center;width:var(--sp-cs,clamp(28px,5.6vh,48px));height:var(--sp-cs,clamp(28px,5.6vh,48px));padding:3px;border-radius:50%;box-sizing:border-box;
   background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
 .sp-crest svg{width:100%!important;height:100%!important;display:block}
-.sp-vs{font:400 clamp(9px,1.6vh,13px)/1 var(--sp-pop);font-style:normal;text-transform:uppercase;margin:0 2px}
+.sp-vs{font:400 clamp(12px,1.8vh,15px)/1 var(--sp-pop);font-style:normal;text-transform:uppercase;margin:0 4px}   /* REV-18: «en»/«vs» legible entre los escudos */
 .sp-tk-main{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:1px;padding:4px clamp(6px,1.4vh,12px)}
 :root:not(#_):not(#_):not(#_) .sp-ticket .sp-k{display:block;margin:0;font:800 clamp(9px,1.6vh,13px)/1.1 var(--sp-ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(21,16,42,.75);text-shadow:none}
 :root:not(#_):not(#_):not(#_) .sp-ticket .sp-t{font:400 clamp(15px,3.2vh,27px)/1.05 var(--sp-pop);transform:rotate(-1.5deg);transform-origin:0 50%}
@@ -3534,6 +3542,9 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .is-touch #menu.sp-full .fs-btn{height:44px;width:44px;padding:0;justify-content:center;top:calc(var(--sp-pad) * .5 + var(--st))}
 #menu.sp-full .menu-foot{zoom:1;left:calc(var(--sp-pad) * 1.3 + var(--sl));right:calc(var(--sp-pad) + var(--sr));bottom:calc(var(--sp-pad) * .55 + var(--sbm));font:600 12px var(--sp-ui);color:rgba(255,244,220,.78);text-shadow:0 1px 2px rgba(21,16,42,.9)}
 #menu.sp-full .menu-foot .ver{font-family:var(--sp-ui);font-variant-numeric:tabular-nums}
+/* REV-19: la versión, en una pastilla de tinta (morada sobre el parqué no se leía) */
+:root:not(.ph) #menu.sp-full .menu-foot .ver{padding:2px 7px;background:rgba(21,16,42,.72);color:var(--sp-cream)}
+:root:not(.ph) #menu.sp-full .menu-foot .ver:hover{background:var(--sp-ink);color:var(--sp-gold)}
 #menu.sp-full .rec,#menu.sp-full .rec b{font-family:var(--sp-ui);font-variant-numeric:tabular-nums}
 /* (el antiguo «@media (max-height:430px) and (min-aspect-ratio:5/4)» de este bloque pasó a «— móvil (.ph) —», más abajo) */
 @media (max-aspect-ratio:5/4){
@@ -3611,6 +3622,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .ph-hid{display:none!important}
 :root:not(.ph) .ph-only{display:none!important}
 :root.ph .ph-hide{display:none!important}
+#endKicker .nw,#coach .nw{white-space:nowrap}   /* REV-PARTIDO: el antetítulo final solo se parte entre trozos (ui.js nw) */
 .ph-2l{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;text-overflow:clip}
 html.sp-kb [data-kb-hide]{display:none!important}
 .kb-pin{top:var(--ph-gt,8px)!important;bottom:auto!important;max-height:calc(var(--vvh,100vh) - 16px)!important;translate:none!important}
@@ -3784,6 +3796,8 @@ html.sp-kb [data-kb-hide]{display:none!important}
 @media (max-width:639.98px){:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-sheet{width:var(--ph-ffw)}}
 :root.ph:not(#_):not(#_):not(#_) #spToasts{top:calc(var(--ph-gt) + 40px);right:var(--ph-g)}
 :root.ph:not(#_):not(#_):not(#_).sp-sh-on #spToasts{top:calc(var(--ph-gt) + 64px)}
+/* REV-6: en Online, los avisos abajo a la izquierda (el hueco junto a CÓDIGO / CREAR SALA); arriba tapaban ENTRAR de la primera sala */
+:root.ph:has(#menu[data-page="online"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:var(--ph-gb);right:auto;left:var(--ph-g);align-items:flex-start;max-width:min(300px,calc(50vw - 80px))}
 /* (móvil · carrera vida, 1.14.0): los avisos de Partido de career-story («Por responder») en botón pequeño no bajan de --ph-cap */
 :root.ph:not(#_):not(#_):not(#_) #career .sp-btn.sp-sm .sp-s{font-size:var(--ph-cap)}
 /* ==== fin SPLAT: sistema de diseño ==== */
@@ -3845,10 +3859,11 @@ html.sp-kb [data-kb-hide]{display:none!important}
 @media (max-aspect-ratio:5/4){
   #menu.mj{--mj-play:clamp(62px,10.5vh,92px);--mj-tape:clamp(52px,8vh,70px);--mj-strip:48px;--mj-stamp:clamp(64px,11vh,104px)}
   #menu.mj .mj-side{left:calc(var(--sp-pad) + var(--sl));right:calc(var(--sp-pad) + var(--sr));width:auto;justify-content:space-between;padding:calc(var(--sp-pad) * 1.2 + var(--st)) 0 calc(var(--sp-pad) + 22px + var(--sbm))}
+  #menu.mj:has(#btnProf:not([hidden])) .mj-side{padding-bottom:calc(var(--sp-pad) + 22px + 52px + var(--sbm))}   /* REV-1: hueco para el chip de Perfil */
   #menu.mj .logo{font-size:clamp(22px,9vw,60px)}
   :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-s{display:none}
   :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook){padding:0 8px 0 10px;column-gap:5px}
-  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{grid-row:1/3;align-self:center;font-size:clamp(13px,4vw,17px);letter-spacing:0;transform-origin:0 50%}
+  :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnSquad,#btnLook) .sp-t{grid-row:1/3;align-self:center;font-size:clamp(13px,3.7vw,15px);letter-spacing:0;transform-origin:0 50%}
   #menu.mj .mj-jyw,#menu.mj .mj-head{width:calc(var(--mj-tape) * .7)}
   :root:not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn{--sp-fs:clamp(10px,3.1vw,13px);letter-spacing:.02em;padding:0 6px;flex-direction:column;gap:3px;height:60px}
 }
@@ -3897,7 +3912,7 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj{--mj-tape:46px}
 :root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj #playMainSub{display:none}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj .mj-side{gap:8px;padding-top:6px;padding-bottom:4px}
-:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj #btnCont .sp-k{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.has-cont-mj #btnCont .sp-k{display:none}   /* REV-3: en todo el móvil (en el billete de 56-72 se salía por arriba) */
 :root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-cont-mj .mj-strip .sp-ic{width:42px;height:42px;padding:11px}
 :root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-cont-mj .mj-strip .sp-btn{gap:3px}
 /* DIRECTO solo en la portada y en Jugar (en las demás páginas la columna llega a su sitio) */
@@ -3911,6 +3926,10 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root.ph:not(#_):not(#_):not(#_) #btnProf .pf-ring{width:36px;height:36px}
 :root.ph:not(#_):not(#_):not(#_) #btnProf .pf-ring b{font-size:var(--ph-label)}
 :root.ph:not(#_):not(#_):not(#_) #btnProf .pf-ring small{font-size:max(12px,var(--ph-cap))}
+/* REV-1: el chip no pisa la ayuda de la portada: sin la vitrina (y sin «Álbum» si no hay ancho) queda a la derecha de AJUSTES */
+:root.ph:not(#_):not(#_):not(#_) #btnProf .pf-vi{display:none}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #btnProf .pf-al{display:none}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #btnProf.pf-chip{padding:0 4px;gap:0}
 /* V-STAMP: el sello redondo solo responde en su disco (no en su caja cuadrada, que pisa Vestuario, el billete de la Carrera y, en Jugar,
    Carrera): la caja deja pasar el toque y lo recogen el círculo dorado del SVG y la marca de «nuevo»; el clic sube al botón. */
 #btnMjReto,#btnRetos{pointer-events:none}
@@ -3964,6 +3983,8 @@ html.sp-kb [data-kb-hide]{display:none!important}
   #menu.sp-full #mpPlay .sp-pair>.sp-patch{--sp-pr:calc(var(--sp-ph) * .3)}
   :root:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair .sp-stamp{top:auto;bottom:calc(100% - var(--sp-stamp) * .14);right:4px;margin:0}
   #menu.sp-full #btnQuick{--sp-pt:clamp(18px,5.6vw,30px)}
+  :root:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-k{display:none}   /* (con el subtítulo en dos líneas, el antetítulo se salía por el canto, como en .ph) */
+  :root:not(#_):not(#_):not(#_) #menu.sp-full :is(#btnQuick,#btnCareer) .sp-s{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:clip;line-height:1.2}   /* REV-4 */
   #menu.sp-full .sp-row{gap:10px}
   :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row>.sp-btn{--sp-h:clamp(86px,13vh,110px)}
   :root:not(#_):not(#_):not(#_) #menu.sp-full .sp-row .sp-t{font-size:clamp(10.5px,3.05vw,16px)}
@@ -4009,7 +4030,7 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{grid-area:l;display:flex;flex-direction:column;align-items:center;min-width:0;max-width:100%;margin:0;padding:0;font:400 clamp(10px,1.8vh,14px)/1.1 var(--sp-pop);letter-spacing:.06em;
   text-transform:uppercase;color:var(--sp-gold);text-shadow:none;transform:rotate(-2deg)}
 :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{display:block;max-width:100%;margin:2px 0 0;font:600 clamp(10px,1.55vh,12.5px)/1.15 var(--sp-ui);letter-spacing:0;text-transform:none;color:rgba(255,244,220,.78);text-shadow:none;
-  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:rotate(1deg)}
+  white-space:normal;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;transform:rotate(1deg)}   /* REV-9: dos líneas, no «…» */
 :root:not(#_):not(#_):not(#_) #menu .sp-opt.lock .mi-h{color:#ffe08a}
 :root:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val{grid-area:v;margin-top:2px;max-width:100%}
 :root:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val b{overflow:hidden;text-overflow:ellipsis}
@@ -4034,7 +4055,7 @@ html.sp-kb [data-kb-hide]{display:none!important}
   .sp-opt{--sp-oh:clamp(54px,8.4vh,70px)}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b";padding:2px 4px}
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-l{align-items:flex-start;padding-left:4px;text-align:left;justify-self:start}
-  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{max-width:100%}
+  :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{max-width:100%;-webkit-line-clamp:3;text-align:left}
 }
 /* — móvil (.ph) — (portada, 18-nov-2026). La misma rejilla: filas de 52 con 10 de hueco, rótulo dorado a --ph-label y valor a --ph-btn
    entre flechas de 44 (tocar el valor = el siguiente, ui.js). Columna de 520 como mucho (a 568 la lectura manda; desde 844 el partido
@@ -4114,7 +4135,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 #intro .in-srv{color:#b8400f}
 #intro .in-skip{margin:12px 0 0;padding:0;background:none;color:var(--sp-cream);font:700 12.5px var(--sp-ui);text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
 #intro .in-skip .key{border:0;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);text-shadow:none}
-#intro .in-bar{position:relative;left:auto;right:auto;bottom:auto;display:block;width:min(300px,60%);height:10px;margin:9px auto 4px;border-radius:6px;background:var(--sp-ink);
+#intro .in-bar{position:relative;left:auto;right:auto;bottom:auto;display:block;width:min(300px,60%);height:10px;margin:12px auto 4px;border-radius:6px;background:var(--sp-ink);
   box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 1.5px rgba(255,244,220,.25);overflow:hidden}
 #intro .in-bar b{background:var(--sp-gold);border-radius:6px}
 #intro .in-lt{padding:12px 0 0;background:none}
@@ -4155,7 +4176,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   #intro .in-meta{margin-top:12px;padding:5px 12px;font-size:13px}
   #intro .in-chip{font-size:11.5px}
   #intro .in-skip{margin-top:8px;font-size:11.5px}
-  #intro .in-bar{height:8px;margin-top:6px}
+  #intro .in-bar{height:8px;margin-top:11px}   /* REV-PARTIDO: los rabos de «Toca para empezar ya» pisaban la barra */
   #intro .in-lt{padding-top:8px}#intro .in-lt>span{font-size:12px;padding:3px 12px}
   #intro .in-stake{margin-bottom:10px;padding:5px 18px}#intro .in-stake b{font-size:20px}
 }
@@ -4317,6 +4338,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) .sp-ov .sp-tabs.tb-touch .tb-k{display:none}
 :root:not(#_):not(#_):not(#_) #end .end-tabs{display:flex;align-items:center;gap:6px}
 :root:not(#_):not(#_):not(#_) #end .end-body>[role=tabpanel]{flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;margin:0;padding:0 4px 2px 2px;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.4) transparent}
+/* REV-PARTIDO: «hay más» más claro (con 22 px asomaba media pastilla cortada y parecía un fallo de maquetación) */
+:root:not(#_):not(#_):not(#_) #end .end-body>[role=tabpanel].more{-webkit-mask-image:linear-gradient(180deg,#000 calc(100% - 46px),rgba(0,0,0,.25) calc(100% - 12px),transparent);mask-image:linear-gradient(180deg,#000 calc(100% - 46px),rgba(0,0,0,.25) calc(100% - 12px),transparent)}
 :root:not(#_):not(#_):not(#_) #end .end-body>[hidden]{display:none}
 
 /* Resumen: titular, bloques con su etiqueta en pegatina dorada */
@@ -4377,7 +4400,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #endPlays .pl-row{gap:clamp(8px,1.4vh,12px);padding:4px 6px 4px 0;border-radius:9px 12px 10px 13px;background:rgba(255,244,220,.07);box-shadow:inset 4px 0 0 var(--k0,#ff6a2e)}
 :root:not(#_):not(#_):not(#_) #endPlays .pl-row.t1{box-shadow:inset 4px 0 0 var(--k1,#2f7bff)}
 :root:not(#_):not(#_):not(#_) #endPlays .pl-n{width:30px;font:400 clamp(16px,2.8vh,24px)/1 var(--sp-pop);font-style:normal;color:var(--sp-gold);text-shadow:1.5px 2px 0 var(--sp-ink)}
-:root:not(#_):not(#_):not(#_) #endPlays .pl-tx b{font:700 clamp(12.5px,2.1vh,17px)/1.25 var(--sp-ui);color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #endPlays .pl-tx b{font:700 clamp(12.5px,2.1vh,17px)/1.2 var(--sp-ui);color:var(--sp-cream);
+  white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}   /* REV-PARTIDO: a dos líneas (con «…» cortaba «Bloqueo del n.º 9 salvando…») */
 :root:not(#_):not(#_):not(#_) #endPlays .pl-tx small{font:500 clamp(11px,1.7vh,13.5px)/1.3 var(--sp-ui);color:rgba(255,244,220,.6)}
 :root:not(#_):not(#_):not(#_) #endPlays :is(.pl-go,.pl-all .sp-btn){min-height:44px;padding:0 14px 0 10px;--sp-fs:clamp(11px,1.9vh,15px);flex:none}
 :root:not(#_):not(#_):not(#_) #endPlays .pl-go{margin:3px 4px}
@@ -4414,6 +4438,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 @media (max-aspect-ratio:5/4){
   .sp-ov{--ov-pad:clamp(14px,4vw,28px);--ov-gap:10px}
   :root:not(#_):not(#_):not(#_) .sp-ov>.sp-sheet{left:calc(var(--ov-pad) + var(--sl));right:calc(var(--ov-pad) + var(--sr));width:auto;max-width:none;padding:calc(var(--ov-pad) * 1.1 + var(--st)) 0 calc(var(--ov-pad) + var(--sbm))}
+  :root:not(#_):not(#_):not(#_) #end.sp-ov>.sp-sheet{padding-bottom:calc(var(--ov-pad) + 14px + var(--sbm))}   /* REV-PARTIDO: las manchas de los botones de abajo se cortaban en el borde */
+  :root:not(.ph):not(#_):not(#_):not(#_) #end .end-hd.has-seal{padding-right:calc(var(--sp-stamp) * 1.08)}   /* (el sello tapaba el final del antetítulo a 360) */
   :root:not(#_):not(#_):not(#_) #pause>.sp-sheet{justify-content:space-between}
   :root:not(#_):not(#_):not(#_) .sp-ov .sp-h{--sp-hs:clamp(28px,9.6vw,52px);white-space:normal}
   :root:not(#_):not(#_):not(#_) .sp-ov .sp-k{white-space:normal}
@@ -4442,6 +4468,12 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #panel .sheet.ms .pn-head h2{font:400 clamp(22px,5vh,40px)/1 var(--sp-pop);letter-spacing:.01em;text-transform:uppercase;font-style:normal;color:var(--sp-cream);
   text-shadow:2.5px 0 0 var(--sp-ink),-2.5px 0 0 var(--sp-ink),0 2.5px 0 var(--sp-ink),0 -2.5px 0 var(--sp-ink),2px 2px 0 var(--sp-ink),-2px -2px 0 var(--sp-ink),3px 5px 0 #000;transform:rotate(-2deg);transform-origin:0 60%}
 :root:not(#_):not(#_):not(#_) #panel .sheet.ms .sh-k{font:800 clamp(10px,1.7vh,13px)/1.2 var(--sp-ui);letter-spacing:.12em;color:var(--sp-gold)}
+/* REV-PARTIDO: en vertical, 5vh daba 32-40 px y «ESTADÍSTICA DEL PARTIDO» se cortaba por la derecha: por ancho y a dos líneas */
+@media (max-aspect-ratio:5/4){
+  :root:not(#_):not(#_):not(#_) #panel .sheet.ms .pn-head .pn-tt{min-width:0;flex:1 1 auto}
+  :root:not(#_):not(#_):not(#_) #panel .sheet.ms .pn-head h2{font-size:clamp(18px,6vw,28px);line-height:1.05;white-space:normal}
+  :root:not(#_):not(#_):not(#_) #panel .sheet.ms .pn-head .sh-k{white-space:normal}
+}
 :root:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack{min-height:44px;padding:0 16px;border:0;border-radius:22px 30px 26px 18px/20px 18px 28px 24px;background:var(--sp-cream);color:var(--sp-ink);
   box-shadow:0 0 0 var(--sp-line) var(--sp-ink),var(--sp-sh);font:400 clamp(12px,2vh,15px)/1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;transform:rotate(1.5deg)}
 :root:not(#_):not(#_):not(#_) #panel .sheet.ms #btnPanelBack:is(.kf,:focus-visible){background:var(--sp-gold);box-shadow:0 0 0 var(--sp-line) var(--sp-ink),0 0 0 6px var(--sp-cream),var(--sp-sh);outline:none}
@@ -4592,6 +4624,14 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-btn{width:auto;min-width:0;padding:0 14px 0 10px;transform:none}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-t{position:static;width:auto;height:auto;margin:0;padding:2px 2px 1px;overflow:visible;clip:auto}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-ic{--sp-is:18px}
+/* REV-PARTIDO: a 640x360 (sin ph-s) con las tres pestañas, «Jugadas» quedaba debajo del ojo: lo mismo por ancho */
+@media (max-width:660px){
+  :root.ph:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek{grid-area:lm;align-self:end;justify-self:start;margin:0 0 2px}
+  :root.ph:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) #endTabs{margin-right:0}
+  :root.ph:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-btn{width:auto;min-width:0;padding:0 14px 0 10px;transform:none}
+  :root.ph:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-t{position:static;width:auto;height:auto;margin:0;padding:2px 2px 1px;overflow:visible;clip:auto}
+  :root.ph:not(#_):not(#_):not(#_) #end:has(#endTabs-plays:not([hidden])) .end-peek .sp-ic{--sp-is:18px}
+}
 /* (MV-4) abajo a la izquierda, dos pegatinas como mucho y en una línea: «Menú» y la acción del caso (Más difícil / Retos…). Con
    «Revancha en…» y «Cambiar opciones» a la vez, esta pasa a la píldora crema del final del Resumen (ui.js endOptsPill, .rc-optrow) */
 :root.ph:not(#_):not(#_):not(#_) #end:has(.rc-optrow) .end-more:has(>#btnAgainAlt:not([hidden]))>#btnEndOpts{display:none}
@@ -4622,6 +4662,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* 568×320 y parecidos (.ph-s): el antetítulo vuelve (MV-4: «Ver celebración» ya no está en esta columna), en una línea */
 :root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-hd .sp-k{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #end .end-hd{padding-top:6px}
+/* hoja de la prueba: antetítulo (partidillo + club) en una línea; partido en 2, la 2.ª pisaba el título */
+:root.ph:not(#_):not(#_):not(#_) #end.trial .end-hd .sp-k{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 :root.ph:not(#_):not(#_):not(#_) #end .end-tabs{margin:0 0 8px}
 :root.ph:not(#_):not(#_):not(#_) #end .end-tabs .tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);padding:0 12px;letter-spacing:.01em}
 :root.ph:not(#_):not(#_):not(#_) #end .end-tabs .tb-row{gap:10px;padding:3px 2px 5px}
@@ -4635,6 +4677,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #end .rc-mv b{font-size:var(--ph-head)}
 :root.ph:not(#_):not(#_):not(#_) #end .rc-mv small{font-size:var(--ph-label);white-space:normal;overflow:visible;text-overflow:clip}
 :root.ph:not(#_):not(#_):not(#_) #end .rc-nota{font-size:var(--ph-num)}
+/* el nombre del MVP, hasta 2 líneas (con «Nota 7,8» al lado se cortaba en «Ares Belmon…») */
+:root.ph:not(#_):not(#_):not(#_) #end .rc-mv b{white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.05}
 :root.ph:not(#_):not(#_):not(#_) #end .rc-xr b{font-size:var(--ph-row)}
 :root.ph:not(#_):not(#_):not(#_) #end .rc-xr .lv{font-size:var(--ph-label)}
 :root.ph:not(#_):not(#_):not(#_) #end .rc-tr{font-size:var(--ph-label)}
@@ -4763,6 +4807,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 @keyframes stIn{from{opacity:0;transform:translateY(14px) rotate(-1.5deg)}to{opacity:1;transform:rotate(-1.5deg)}}@keyframes stOut{to{opacity:0;transform:translateY(10px) rotate(-1.5deg)}}
 .rm #subTv.show,.rm #subTv.out{animation:none}
 #app.sb-bar #subTv{bottom:calc(96px + var(--sbm))}
+/* REV-PARTIDO: centrada tapaba al jugador que entra o sale (la cámara lo encuadra en el centro): al tercio inferior izquierdo, como un rótulo de TV */
+#subTv{left:calc(24px + var(--sl));right:auto;margin:0}
+#app.is-touch #subTv{left:0;right:0;margin:0 auto}   /* (táctil: a la izquierda está el joystick)*/
 
 /* ---- banquillo: una pila abajo a la derecha (rótulo, ×3 redondo y los dos saltos); la pausa del HUD se queda arriba a la derecha ---- */
 #benchBar{position:absolute;right:max(16px,var(--sr));bottom:max(12px,var(--sbm));left:auto;z-index:32;display:grid;grid-template-columns:auto auto;grid-template-areas:"t t" "f in" ". end";
@@ -4780,8 +4827,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 #benchBar .key{font:800 12px/1 var(--sp-ui)}
 .is-touch #benchBar .key{display:none}
 /* táctil: con los mandos ocultos (estás en el banquillo) la pausa del HUD sale arriba a la derecha (antes no había salida) */
-#app.is-touch.sb-bar .hud-btns{display:flex}
-#app.sb-bar .hud-btns button{width:48px;height:48px}
+#app.is-touch.sb-bar .hud-btns,#app.is-touch.watch-on .hud-btns{display:flex}   /* (y en el espectador táctil, sin mandos: REV-PARTIDO) */
+#app.sb-bar .hud-btns button,#app.is-touch.watch-on .hud-btns button{width:48px;height:48px}
 
 /* ---- simulando: pegatina sobre el partido con tinte suave (sin desenfoque) ---- */
 #ffVeil{position:absolute;inset:0;z-index:40;display:flex;align-items:center;justify-content:center;background:rgba(21,16,42,.2);-webkit-backdrop-filter:none;backdrop-filter:none;color:var(--sp-cream);text-align:center}
@@ -4836,6 +4883,20 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 #pnSubs .sb-p em{position:absolute;top:-12px;right:-7px;z-index:1;font-style:normal;padding:2px 5px 1px;text-shadow:none;transform:rotate(8deg);border-radius:6px 9px 7px 10px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:400 13px/1.1 var(--sp-pop);letter-spacing:.02em}
 #pnSubs .sb-f{grid-column:4/6;grid-row:2;min-width:48px;height:8px;border-radius:4px;background:rgba(255,244,220,.14);box-shadow:0 0 0 1.5px var(--sp-ink);overflow:hidden}
 #pnSubs .sb-f u{display:block;height:100%;background:linear-gradient(90deg,#4fe08a,#ffd36a 60%,#ff6b6b)}
+/* REV-PARTIDO: en vertical las dos columnas son estrechas y «0 pts | 0 err» montaba sobre el puesto: dorsal a la izquierda y el resto apilado */
+@media (max-width:520px){
+  #pnSubs .sb-cols{gap:8px}
+  #pnSubs .sb-p{grid-template-columns:28px minmax(0,1fr);grid-template-rows:auto;column-gap:8px;padding:6px 8px}
+  #pnSubs .sb-p b{grid-column:1;grid-row:1/4;width:28px;height:28px;font-size:14px}
+  #pnSubs .sb-z{grid-column:2;grid-row:1;justify-self:end;min-width:0;font-size:12px}
+  #pnSubs .sb-nm{grid-column:2;grid-row:1}
+  #pnSubs .sb-r{grid-column:2;grid-row:1}
+  #pnSubs .sb-p:has(.sb-nm) .sb-r{grid-row:2}
+  #pnSubs .sb-st,#pnSubs .sb-p:not(:has(.sb-nm)) .sb-st{grid-column:2;grid-row:2;white-space:normal;font-size:12px}
+  #pnSubs .sb-p:has(.sb-nm) .sb-st{grid-row:3}
+  #pnSubs .sb-f{grid-column:2;grid-row:3;min-width:0}
+  #pnSubs .sb-p:has(.sb-nm) .sb-f{grid-row:4}
+}
 #pnSubs .sb-p.sel{background:var(--sp-ink);box-shadow:0 0 0 3px var(--sp-gold),0 0 0 6px var(--sp-ink),2px 3px 0 6px var(--sp-ink);transform:scale(1.03)}
 #pnSubs .sb-p.q{box-shadow:0 0 0 3px #4fe08a,0 0 0 6px var(--sp-ink),2px 3px 0 6px var(--sp-ink)}
 #pnSubs .sb-p[disabled]{cursor:default;background:#3a3550;color:rgba(255,244,220,.6);filter:saturate(.3)}
@@ -4866,11 +4927,13 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #touch .vt-zoom{width:44px;height:44px;right:calc(68px + env(safe-area-inset-right));top:calc(14px + env(safe-area-inset-top))}
 :root.ph:not(#_):not(#_):not(#_) #touch .vt-zoom b{min-width:18px;height:18px;border-radius:9px;font-size:12px;line-height:18px;right:-4px;bottom:-4px}
 /* rótulo del cambio: más abajo, sobre el arco de los mandos */
-:root.ph:not(#_):not(#_):not(#_) #subTv{bottom:calc(96px + var(--ph-gb));font-size:17px;min-width:0;padding:7px 14px 8px}
+:root.ph:not(#_):not(#_):not(#_) #subTv{left:var(--ph-g);right:auto;margin:0;bottom:calc(8px + var(--ph-gb));font-size:17px;min-width:0;padding:7px 14px 8px}
 :root.ph:not(#_):not(#_):not(#_) #subTv .sbt-h{font-size:13px}
 :root.ph:not(#_):not(#_):not(#_) #subTv .sbt-n{font-size:13px}
 :root.ph:not(#_):not(#_):not(#_) #subTv .sbt-nm{display:inline}
 :root.ph:not(#_):not(#_):not(#_) #app.sb-bar #subTv{left:var(--ph-g);right:auto;margin:0;bottom:var(--ph-gb)}
+/* con mandos táctiles, abajo a la izquierda caía encima del joystick: centrado y bajo, entre el joystick y SALTAR */
+:root.ph:not(#_):not(#_):not(#_) #app.is-touch #subTv{left:0;right:0;margin:0 auto}
 /* banquillo */
 :root.ph:not(#_):not(#_):not(#_) #benchBar{right:var(--ph-g);bottom:var(--ph-gb);gap:var(--ph-hit-gap)}
 :root.ph:not(#_):not(#_):not(#_) #benchBar .bb-t{font-size:14px}
@@ -4951,6 +5014,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs).sp-tabs{flex:none;margin:0;gap:6px}
 :root:not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs{flex:0 1 var(--lkw);min-width:0}
 :root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs).sp-tabs .tb-row{padding:5px 8px 7px;gap:clamp(4px,1vh,8px)}
+/* REV-8: pestañas que no caben (PC): el borde derecho se desvanece (VB.Splat.more → .sp-more-x, ui.js fitTabs) */
+:root:not(.ph):not(#_):not(#_):not(#_) #menu :is(#pfTabs,#lkTabs).sp-tabs .tb-row.sp-more-x{-webkit-mask:linear-gradient(to right,#000 calc(100% - 36px),transparent);mask:linear-gradient(to right,#000 calc(100% - 36px),transparent)}
 :root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs) .tb-k{min-width:28px;height:28px;padding:0 6px;border:0;border-radius:6px 8px 6px 7px;background:var(--sp-cream);color:var(--sp-ink);
   box-shadow:0 0 0 2px var(--sp-ink),1.5px 2px 0 2px var(--sp-ink);font:800 12px/1 var(--sp-ui);text-shadow:none;transform:rotate(-4deg)}
 :root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs) .tb-k:empty,:root:not(#_):not(#_):not(#_) #menu :is(#rtTabs,#pfTabs,#lkTabs).tb-touch .tb-k{display:none}
@@ -5053,7 +5118,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #menu .pf-v:nth-child(2){transform:rotate(5deg)}
 :root:not(#_):not(#_):not(#_) #menu .pf-v:nth-child(3){transform:rotate(-2deg)}
 :root:not(#_):not(#_):not(#_) #menu .pf-v .pf-si{width:46%;height:46%;color:var(--sp-ink)}
-:root:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{max-width:92%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{max-width:92%;white-space:normal;overflow:hidden;overflow-wrap:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
 :root:not(#_):not(#_):not(#_) #menu .pf-v.t1{background:#f0b27a}:root:not(#_):not(#_):not(#_) #menu .pf-v.t2{background:#e3ebf3}:root:not(#_):not(#_):not(#_) #menu .pf-v.t3{background:var(--sp-gold)}
 :root:not(#_):not(#_):not(#_) #menu .pf-v.free{background:repeating-linear-gradient(-45deg,rgba(207,201,189,.82) 0 7px,rgba(196,189,176,.82) 7px 14px);color:rgba(21,16,42,.7);
   box-shadow:0 0 0 2px rgba(21,16,42,.7),2px 3px 0 2px rgba(21,16,42,.5);font:400 clamp(10px,1.7vh,13px)/1 var(--sp-pop);text-transform:uppercase;letter-spacing:.03em}
@@ -5070,7 +5135,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #menu .pf-s:nth-child(4n+3){border-radius:16px 10px 18px 12px/10px 16px 12px 18px}
 :root:not(#_):not(#_):not(#_) #menu .pf-s:nth-child(4n){border-radius:10px 16px 12px 18px/18px 12px 16px 10px}
 :root:not(#_):not(#_):not(#_) #menu .pf-s .pf-si{width:44%;height:44%;max-width:40px;max-height:40px;color:var(--sp-ink)}
-:root:not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{max-width:100%;white-space:normal;overflow:hidden;overflow-wrap:break-word;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}   /* REV-10: dos líneas, no «Manguito de …» ×6 */
 :root:not(#_):not(#_):not(#_) #menu .pf-s.on.t1{background:#f0b27a}:root:not(#_):not(#_):not(#_) #menu .pf-s.on.t2{background:#e3ebf3}:root:not(#_):not(#_):not(#_) #menu .pf-s.on.t3{background:var(--sp-gold)}
 :root:not(#_):not(#_):not(#_) #menu .pf-s.on .pf-si{color:var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) #menu .pf-s.off{background:repeating-linear-gradient(-45deg,rgba(190,184,172,.86) 0 7px,rgba(176,169,157,.86) 7px 14px);color:rgba(21,16,42,.72);
@@ -5111,7 +5176,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #btnProf .pf-dot{top:-3px;right:-2px;width:12px;height:12px;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
 
 /* ---- VESTUARIO: columna a la izquierda (el muñeco y #lkSpin a la derecha); lo vacío de la página deja pasar el dedo al giro ---- */
-#menu.sp-full #mpLook{--lkw:clamp(320px,38vw,480px);--sp-colw:var(--lkw);justify-content:flex-start;gap:clamp(8px,1.6vh,14px);pointer-events:none;height:auto}
+#menu.sp-full #mpLook{--lkw:clamp(320px,40vw,560px);--sp-colw:var(--lkw);justify-content:flex-start;gap:clamp(8px,1.6vh,14px);pointer-events:none;height:auto}
 #menu.sp-full #mpLook>*{pointer-events:auto}
 :root:not(#_):not(#_):not(#_) #menu .lk-top{flex:none;display:flex;align-items:center;gap:clamp(8px,1.6vh,14px);margin:0}
 :root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven){gap:4px;padding:0;background:none;box-shadow:none;border-radius:0}
@@ -5174,7 +5239,10 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root:not(#_):not(#_):not(#_) #menu .pf-vit{flex-direction:row;align-items:center}
   :root:not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{display:none}
   :root:not(#_):not(#_):not(#_) #menu .pf-v{width:52px;height:52px}
-  :root:not(#_):not(#_):not(#_) #menu .pf-grid{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));grid-auto-rows:70px}
+  /* REV-4: casillas más anchas (3-4 columnas) y altas para que el nombre quepa en dos líneas; los datos del perfil pueden partirse */
+  :root:not(#_):not(#_):not(#_) #menu .pf-grid{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));grid-auto-rows:minmax(76px,auto)}
+  :root:not(#_):not(#_):not(#_) #menu .pf-card .pf-st{white-space:normal}
+  :root:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket>.sp-blob{top:calc(-6px - 21%);height:calc(130% + 15px)}   /* REV-3: ver «SPLAT · RETOS» (.ph) */
   #menu.sp-full #mpLook{max-height:none;--lkw:auto;left:calc(var(--sp-pad) + var(--sl));right:calc(var(--sp-pad) + var(--sr));width:auto;max-width:none;justify-content:flex-start;padding-top:calc(var(--sp-pad) + var(--st))}
   :root:not(#_):not(#_):not(#_) #menu #mpLook .lk-top{margin-top:auto}
   :root:not(#_):not(#_):not(#_) #menu .lk-bar{width:100%;max-width:none;flex-wrap:nowrap}
@@ -5216,7 +5284,13 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu.sp-full #rtBody>.rt-go{grid-area:go;position:sticky;bottom:0;z-index:3}
 :root.ph:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket{flex-wrap:wrap;padding:10px 18px 12px 10px;gap:8px 10px}
 :root.ph:not(#_):not(#_):not(#_) #menu .rt-day .sp-stamp{--sp-stamp:64px}
-:root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-k{font-size:var(--ph-cap);letter-spacing:.04em}
+/* REV-3: sin antetítulo en el móvil (lo dice el sello «RETO DEL DÍA»; montado en el canto se cortaba); la fecha va en una pastilla */
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-k{display:none}
+/* (la silueta del billete va del 16 % al 86 % de su caja: con contenido alto, el nombre y las pastillas se salían por los cantos; la caja
+   del dibujo se alarga para que el canto coincida con la caja) */
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day.sp-ticket>.sp-blob{top:calc(-6px - 21%);height:calc(130% + 15px)}
+:root:not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .rt-dc{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .rt-dc{display:inline-flex}
 :root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-map{font-size:var(--ph-head);white-space:normal;overflow:visible}
 :root.ph:not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .sp-chip{--sp-chs:var(--ph-cap)}
 :root.ph:not(#_):not(#_):not(#_) #menu .rt-tier{flex:none;padding:3px 10px 3px 4px;font-size:var(--ph-label)}
@@ -5270,8 +5344,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* V-PFRAIL: el contador siempre en su propia línea (todas las pestañas igual) y la columna se ajusta a pestañas enteras */
 :root.ph:not(#_):not(#_):not(#_) #menu #pfTabs.sp-vtabs .tab .tb-t{flex:1 0 100%}
 :root.ph:not(#_):not(#_):not(#_) #menu #pfTabs.sp-vtabs .tab .tb-b{margin-top:2px}
-:root.ph:not(#_):not(#_):not(#_) :is(#menu #pfTabs,#menu #lkTabs,#panel.sp-pn .sp-tabs).sp-vtabs .tb-row{scroll-snap-type:y proximity;scroll-padding-top:4px}
-:root.ph:not(#_):not(#_):not(#_) :is(#menu #pfTabs,#menu #lkTabs,#panel.sp-pn .sp-tabs).sp-vtabs .tab{scroll-snap-align:start}
+:root.ph:not(#_):not(#_):not(#_) :is(#menu #pfTabs,#menu #lkTabs,#panel.sp-pn .sp-tabs,#career #crTabs).sp-vtabs .tb-row{scroll-snap-type:y proximity;scroll-padding-top:4px}
+:root.ph:not(#_):not(#_):not(#_) :is(#menu #pfTabs,#menu #lkTabs,#panel.sp-pn .sp-tabs,#career #crTabs).sp-vtabs .tab{scroll-snap-align:start}
 :root.ph:not(#_):not(#_):not(#_) #menu :is(#pfTabs,#lkTabs) .tab .tb-b{font-size:max(13px,var(--ph-cap))}
 :root.ph:not(#_):not(#_):not(#_) #menu .pf-grid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));grid-auto-rows:auto;gap:12px;margin:-6px -12px -6px -6px;padding:8px 14px 28px 8px}
 :root.ph:not(#_):not(#_):not(#_) #menu .pf-s{aspect-ratio:auto;height:auto;min-height:88px;padding:8px 6px;gap:5px;font-size:var(--ph-cap);line-height:1.12}
@@ -5297,7 +5371,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* VESTUARIO: cabecera, fila de jugador y sede, columna de iconos y la lista */
 :root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpLook{--lkw:min(370px,calc(var(--ph-ffw) * .6));--sp-colw:var(--lkw);display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:auto auto auto minmax(0,1fr);
   grid-template-areas:"head head" "top top" "rail help" "rail list";gap:var(--ph-s2) var(--ph-s3);justify-content:stretch;align-content:stretch}
-:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .mp-head{grid-area:head;padding-right:112px}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .mp-head{grid-area:head}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-top{grid-area:top;gap:var(--ph-hit-gap);flex-wrap:wrap}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{display:contents}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook #lkTabs{grid-area:rail}
@@ -5308,7 +5382,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab .tb-t{display:none!important}
 :root.ph:not(#_):not(#_):not(#_) #menu #lkTabs.sp-vtabs .tab svg{display:block;width:22px;height:22px}
 :root.ph:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 12px}
-:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot{position:absolute;top:var(--ph-gt);right:0;padding:2px 0 0;gap:var(--ph-hit-gap)}
+/* REV-2: Probar y ⋯ fuera de la columna, en el hueco del muñeco (dentro pisaban el título a 932) */
+:root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot{position:absolute;top:var(--ph-gt);right:auto;left:calc(100% + var(--ph-s3));padding:2px 0 0;gap:var(--ph-hit-gap)}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .sp-btn{width:44px;height:44px}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .sp-btn:is([data-lkf="rand"],[data-lkf="reset"],[data-lkf="copy"]){display:none}
 :root.ph:not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .lk-more>svg:not(.sp-blob){position:relative;z-index:1;width:22px;height:22px;fill:currentColor}
@@ -5501,6 +5576,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:400 clamp(16px,2.8vh,22px)/1 var(--sp-pop);text-shadow:none}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{min-width:0;font:400 clamp(14px,2.4vh,20px)/1.05 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;color:inherit;transform:rotate(-2deg)}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn small{display:block;margin-top:3px;font:600 clamp(10.5px,1.6vh,13px)/1.2 var(--sp-ui);letter-spacing:0;text-transform:none;color:inherit;opacity:.82;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-aspect-ratio:5/4){:root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn small{white-space:normal;overflow:visible}}   /* REV-4: «Bloqueador (Nv 1)» en dos líneas */
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pp{margin-left:auto;padding:3px 7px;border-radius:6px 8px 6px 7px;background:var(--sp-kit);color:var(--sp-kit-ink);box-shadow:0 0 0 2px var(--sp-ink);font:400 13px/1 var(--sp-pop);transform:rotate(4deg)}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .sq-lk{flex:none;display:flex;padding:4px 6px 8px 0}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook{min-height:clamp(48px,8vh,64px);padding:2px 16px}
@@ -5786,6 +5862,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* CÓMO SE JUEGA: el dibujo fijo a la izquierda (pegado arriba al desplazar), el texto a la derecha; Anterior abajo a la izquierda */
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{grid-template-columns:minmax(0,.82fr) minmax(0,1.18fr);gap:16px;align-items:start;padding:10px 14px;--sp-g:16px;--sp-pdy:10px}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-fig{position:sticky;top:4px;margin:6px 8px 10px 6px;box-shadow:0 0 0 3px var(--sp-cream),0 0 0 5.5px var(--sp-ink),4px 5px 0 5.5px var(--sp-ink)}
+/* REV-5: con poco alto (568×320, 640×360) el dibujo, a un tercio: más ancho y más líneas para el texto */
+@media (max-height:380px){:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{grid-template-columns:minmax(0,.48fr) minmax(0,1fr);gap:12px}}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-step{display:inline-block;padding:3px 9px 2px;border-radius:6px 9px 7px 8px;background:var(--sp-gold);color:var(--sp-ink);font:400 var(--ph-cap)/1.15 var(--sp-pop);letter-spacing:.04em;transform:rotate(-2deg)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-title{margin:6px 0 6px;font-size:calc(var(--ph-head) + 4px)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-text{font-size:var(--ph-body);line-height:1.45}
@@ -5998,7 +6076,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Partido rápido</h2></div>
       </div>
       <div class="qlist sp-opts" data-nav aria-label="Opciones del partido">
-        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optFmt" data-shape="0" data-opt="format" aria-label="Formato: 2 contra 2"><span class="mi-l">Formato<small class="mi-h" id="fmtHelp">Tú y tu compañero contra la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="2 contra 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="fmtVal">2 contra 2</b></span><span class="arr" data-d="1" aria-label="6 contra 6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optFmt" data-shape="0" data-opt="format" aria-label="Formato: 2 contra 2"><span class="mi-l">Formato<small class="mi-h" id="fmtHelp">Tú y tu pareja contra la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="2 contra 2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="fmtVal">2 contra 2</b></span><span class="arr" data-d="1" aria-label="6 contra 6"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optVenue" data-shape="2" data-opt="arena" aria-label="Escenario: Pabellón"><span class="mi-l">Escenario<small class="mi-h" id="venueHelp">Palau del Mar, pista cubierta de 18 × 9</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Pabellón"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="venueVal">Pabellón</b></span><span class="arr" data-d="1" aria-label="Playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCam6" data-shape="2" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es la cámara" data-q-title="Cámara en 6 contra 6" data-q-src="#cam6Help">?</button></div>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optDiff" data-shape="1" data-opt="difficulty"><span class="mi-l">Dificultad<small class="mi-h" id="diffHelp">Nivel de la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más fácil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="diffVal">Normal</b><span class="lvl" id="diffLvl"><em></em><em></em><em></em><em></em></span></span><span class="arr" data-d="1" aria-label="Más difícil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>

@@ -43,11 +43,17 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.17.0';
-  VB.VERSION_DATE = '2026-11-19';
+  VB.VERSION = '1.17.1';
+  VB.VERSION_DATE = '2026-11-20';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.17.1', d: '2026-11-20', t: 'Repaso para el móvil',
+      items: [
+        'Menús, Carrera y partido repasados en el móvil: nada cortado ni tapando los mandos.'
+      ]
+    },
     {
       v: '1.17.0', d: '2026-11-19', t: 'Fintas',
       items: [

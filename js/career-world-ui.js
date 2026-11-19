@@ -85,6 +85,7 @@
     Q + ' .cw-mentor .cw-n{color:rgba(21,16,42,.6);font:700 12px var(--sp-ui)}',
     Q + ' .cw-mentor .cw-line{color:var(--sp-ink);font:600 clamp(14px,2.2vh,16px)/1.35 var(--sp-ui)}',
     Q + ' .cw-mentor .acts{justify-content:flex-end;margin-top:8px}',
+    '@media (min-aspect-ratio:5/4){' + Q + ' .cw-mentor .acts{margin:0 0 6px}}',   // (REV-11: «Vale» a la derecha; los 6 px, para la cola del bocadillo)
     Q + ' .cw-mentor .acts>.sp-btn{flex:0 0 auto;min-width:120px}',
     // recortes de noticias (papel crema, cada uno un poco torcido) y filas de clubes (pegatinas de tinta clara)
     Q + ' .cw-list{gap:9px}',
@@ -158,6 +159,8 @@
     '#career .cw-n{font:700 12px var(--ui);color:var(--soft,#cfc8f2);letter-spacing:0;text-transform:none}',
     '#career .cw-line{font:600 15.5px/1.32 var(--ui);margin:2px 0 0}',
     '#career .cw-mentor .acts{grid-column:1/-1;margin:6px 0 0}',
+    // REV-11: en apaisado y PC, «Vale» a la derecha del texto (en su fila propia dejaba 70-90 px de crema vacía y bajaba la Carrera)
+    '@media (min-aspect-ratio:5/4){#career .cw-mentor{grid-template-columns:auto minmax(0,1fr) auto}#career .cw-mentor .acts{grid-column:3;grid-row:1;align-self:center;margin:0 0 6px}}',
     // teléfono apaisado: retrato de 40 px, botones a la derecha y la tarjeta ≤ 120 px, para que «Jugar partido» siga a la vista
     '@media (max-height:420px){',
     ' #career .cw-mentor{grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:2px 10px;padding:6px 10px;max-height:120px;overflow:hidden}',

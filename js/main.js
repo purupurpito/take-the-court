@@ -1318,14 +1318,15 @@
     if (sm) { sm.innerHTML = ''; sm.appendChild(box); } else if (mv && mv.parentNode) mv.parentNode.insertBefore(box, mv); else if (rec) rec.appendChild(box);
     rec = box;
     if (en) en.classList.add('trial');
-    if (k) { var kp = ['Partidillo de prueba', club, '1 set a ' + ((g.points | 0) || 15)]; if (VB.UI && VB.UI.sep) k.innerHTML = VB.UI.sep(kp, 'd'); else k.textContent = kp.filter(Boolean).join(', '); }
+    // (sin «1 set a 15»: ya lo dice la pastilla del set; en el móvil el antetítulo partía en 2 líneas y la 2.ª pisaba el título)
+    if (k) { var kp = ['Partidillo de prueba', club]; if (VB.UI && VB.UI.sep) k.innerHTML = VB.UI.sep(kp, 'd'); else k.textContent = kp.filter(Boolean).join(', '); }
     if (!s || s.none) {   // (la oferta ya no estaba: guardado tocado a mano o la Carrera cambió por detrás)
-      if (t) t.textContent = 'Prueba sin resolver';
+      if (t) { t.textContent = 'Prueba sin resolver'; t.classList.add('long'); }
       if (rec) { var dn = document.createElement('div'); dn.className = 'end-xp'; dn.innerHTML = '<span>La oferta de la prueba ya no está disponible.</span>'; rec.appendChild(dn); }
       return;
     }
     var L = String(s.letter || 'F'), lc = L === 'A+' || L === 'A' ? 'a' : L === 'B' ? 'b' : L === 'C' ? 'c' : 'd', left = s.left | 0, fo = !!s.forfeit;
-    if (t) t.textContent = fo ? 'Prueba suspendida' : s.pass ? '¡Te fichan!' : 'Esta vez no';
+    if (t) { t.textContent = fo ? 'Prueba suspendida' : s.pass ? '¡Te fichan!' : 'Esta vez no'; t.classList.toggle('long', t.textContent.length > 12); }   // («Prueba suspendida», a 2 líneas: se cortaba)
     if (!rec) return;
     var lefts = 'Te ' + (left === 1 ? 'queda 1 oferta' : 'quedan ' + left + ' ofertas') + '.';
     // (suspendida: dejaste el partidillo a medias, al reiniciar o abandonar; notes/nota-en-directo-spec.md §5)

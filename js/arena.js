@@ -3260,7 +3260,7 @@
   function warmMsgFonts() {
     try {
       var cv = document.createElement('canvas'); cv.width = cv.height = 8;
-      var g = cv.getContext('2d'), list = [screens.big, screens.hung], names = ['TI', 'LA CPU', 'EL LOCAL', 'LA VISITA'], subs = ['SAQUE A LA RED', 'BALÓN A LA RED'], k;
+      var g = cv.getContext('2d'), list = [screens.big, screens.hung], names = ['TI', 'LA CPU', 'EL LOCAL', 'LA VISITA', 'EL RIVAL'], subs = ['SAQUE A LA RED', 'BALÓN A LA RED'], k;
       for (k in HOW) subs.push(HOW[k]);
       for (k in REASON) subs.push(REASON[k]);
       for (var i = 0; i < list.length; i++) {
@@ -3877,9 +3877,9 @@
   function ambName(t, g) { return AMB.on && (!g || AMB.g === g || !AMB.g) && AMB.short[t] ? String(AMB.short[t]).toUpperCase() : ''; }
   /** «PUNTO PARA TI» / «SET PARA LA CPU» (rótulos del pabellón, 10-nov-2026: frases en vez de «PUNTO · TÚ»). Carrera con
    *  ambiente: el nombre corto del club («PUNTO PARA VOLEY NORTE»). */
-  function teamFor(t, g) { var an = ambName(t, g); if (an) return an; return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : g && g.online ? 'EL RIVAL' : 'LA CPU'); }   // (online: el rival es una persona)
+  function teamFor(t, g) { var an = ambName(t, g); if (an) return an; return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : g && (g.online || g.career) ? 'EL RIVAL' : 'LA CPU'); }   // (online: el rival es una persona)
   /** «CHALLENGE TUYO» / «CHALLENGE DE LA CPU». */
-  function teamOf(t, g) { var an = ambName(t, g); if (an) return 'DE ' + an; return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : g && g.online ? 'DEL RIVAL' : 'DE LA CPU'); }
+  function teamOf(t, g) { var an = ambName(t, g); if (an) return 'DE ' + an; return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : g && (g.online || g.career) ? 'DEL RIVAL' : 'DE LA CPU'); }
   var REASON = { 'in': 'DENTRO', out: 'FUERA', antenna: 'ANTENA', 'double': 'DOBLES', four: '4 TOQUES', net: 'TOQUE DE RED',
     serve: 'FALTA DE SAQUE', under: 'BAJO LA RED', block: 'BLOQUEO DEL SAQUE', attackServe: 'ATAQUE SOBRE EL SAQUE', penalty: 'PUNTO DE CASTIGO' };
   /* ---- ambiente de Carrera (P2): eventos amb:* y la grada de cada frame ---- */

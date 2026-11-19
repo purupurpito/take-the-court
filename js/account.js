@@ -682,7 +682,7 @@
         '</div><div class="ac-c2"><p class="ac-or"><span>o con tu correo</span></p>' +
         '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
         '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" required>' +
-        (create ? '<p class="ac-warn">Con tu correo podrás recuperar la contraseña si la olvidas. Con un usuario (sin @) no: apúntala bien.</p>' : '<button type="button" class="ac-link" data-ac="forgot">¿Has olvidado la contraseña?</button>') +
+        (create ? '<p class="ac-warn">Con tu correo podrás recuperar la contraseña si la olvidas. Con un usuario (sin @) no: apúntala bien.</p>' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
         '<div class="ac-acts">' + spb('close', 'Ahora no', 'sp-cream sp-sm', 2) + spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
     }

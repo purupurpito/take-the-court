@@ -443,7 +443,7 @@
       fig('them', 'Puntos regalados', t.ourErr, lost ? pctS(t.ourErr, lost) + ' de los ' + lost + ' perdidos' : 'Ningún punto perdido') +
       fig('', 'Side-out', pctS(t.soW, t.soT), t.soW + ' de ' + t.soT + ' con saque del rival') +
       fig('', 'Break point', pctS(t.brW, t.brT), t.brW + ' de ' + t.brT + ' con saque propio') +
-      fig('', 'Side-out recibiendo', pctS(t.rcW, t.rcT), t.rcT ? sep([t.rcW + ' de ' + t.rcT + ' con recepción', t.svErr ? 'sin ' + t.svErr + (t.svErr === 1 ? ' error' : ' errores') + ' de saque rival' : ''], 'v') : 'Sin recepciones') +
+      fig('', 'Side-out recibiendo', pctS(t.rcW, t.rcT), t.rcT ? t.rcW + ' de ' + t.rcT + ' con recepción' + (t.svErr ? '<br>Sin contar ' + t.svErr + (t.svErr === 1 ? ' error' : ' errores') + ' de saque rival' : '') : 'Sin recepciones') +
       fig('', 'Al primer ataque', pctS(t.fbW, t.rcT), t.rcT ? t.fbW + ' de ' + t.rcT + ' recepciones acaban en punto en el K1' : 'Sin recepciones');
     // Móvil (.ph): las seis cifras en UNA pegatina (.sp-heros, 3 × 2) y el detalle de cada una detrás de la «i» (VB.Splat.info, la
     // enciende ui.js msRender); en PC siguen las tarjetas. Las dos versiones van en el HTML y el CSS enseña una (.ph-only / .ph-hide).
