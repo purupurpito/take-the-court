@@ -137,7 +137,7 @@
     { id: 'perilla', name: 'Perilla', slot: 'beard', g: 'f' },
     { id: 'tresDias', name: 'Barba de tres días', slot: 'beard', g: 'f' },
     // cuello, cuerpo y brazos
-    { id: 'medalla', name: 'Medalla', slot: 'neck', rarity: 2, unlock: [{ ach: 't1' }], vc: 'AB', g: 'f', tris: [112, 148, 228] },
+    { id: 'medalla', name: 'Medalla', slot: 'neck', rarity: 2, unlock: [{ ach: 't1' }], vc: 'AB', g: 'f', tris: [112, 120, 188] },
     { id: 'conchas', name: 'Collar de conchas', slot: 'neck', venue: 'Y', unlock: [shop(800), lv(4)], g: 'm', tris: [88, 128, 592] },
     { id: 'termica', name: 'Camiseta térmica', slot: 'under', venue: 'P', vc: 'B', g: 'f', tris: [22, 32, 48] },
     { id: 'licra', name: 'Licra de surf', slot: 'under', venue: 'Y', rarity: 1, unlock: [shop(5000), lv(20)], vc: 'B', g: 'f', tris: [22, 32, 48] },   // geo: la bola del hombro, la del codo y el cuello alto van en cB (color por vértice)

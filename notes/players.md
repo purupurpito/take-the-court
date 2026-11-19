@@ -1098,39 +1098,50 @@ esas fracciones.
   debajo de la cabeza, con tinta; sigue viéndose con manguitos. Atlas: con la térmica, lo que asoma por el cuello de la camiseta es cB;
   con la licra, costura lateral de color (cA o `pick`) bajo cada sisa y la licra más oscura en el borde del cuello. Con térmica +
   manguito, el manguito del antebrazo acaba antes (0,61 + puño) y asoma el puño de la térmica (se ven las dos capas).
-- **Kinesio** (T5, solo atlas): tiras anchas con las esquinas redondeadas, borde oscuro y brillo: en el brazo una por fuera (22 % de la
-  vuelta) y otra detrás (18 %, la que se ve de espaldas en el partido); en el antebrazo una por fuera y algo delante y otra detrás.
+- **Kinesio** (T5, solo atlas; ronda 1): cinta estrecha que sigue el músculo (`kTape`: trazo de puntas redondas en metros reales, borde
+  oscuro, cinta y brillo por el centro; 4-4,4 cm de ancho). En el brazo, una «Y» sobre el deltoides: el tallo por fuera desde el codo y dos
+  colas que se abren hacia delante y hacia detrás (la de detrás es la que se ve de espaldas en el partido); en el antebrazo, una tira larga
+  por fuera y detrás, del codo a la muñeca. Antes eran cuatro parches que se leían como pegatinas.
   Ojo: en la columna espejada, du negativo = detrás en los dos brazos.
-- **manguitoOro** (T7): oro de cómic: base ocre (GOLD_OC 0xbe8e31), cara que mira a la luz en GOLD, raya GOLD_HI del 12 % con filo blanco,
-  bordes GOLD_DK y un destello de cuatro puntas; la bola del codo con brillo GOLD_HI arriba-fuera y sombra ocre abajo (color por vértice).
+- **manguitoOro** (T7; ronda 1: más saturado, con GOLD se quedaba en amarillo pálido bajo las luces del pabellón): oro propio
+  `SLV_GOLD*` (sombra tostada 0x9c5f0c detrás, medio 0xeea316, cara iluminada 0xffcc2e), raya GOLD_HI con filo blanco, línea oscura donde
+  acaba la luz, reflejo en la sombra, bordes GOLD_DK y un destello de cuatro puntas; la bola del codo en SLV_GOLD con brillo GOLD_HI /
+  SLV_GOLD_LT arriba-fuera y sombra tostada abajo (color por vértice).
   Su puño, GOLD_DK. Con el kit amarillo ya no es igual que el manguito normal.
-- **Brazalete** (R): banda alrededor de todo el brazo de 0,51 a 0,8 (lejos del ribete de la manga, 0,38-0,46), del acento o `pick` contra
+- **Brazalete** (R): banda alrededor de todo el brazo de 0,49 a 0,83 (ronda 1; separada del ribete de la manga, 0,38-0,46), del acento o `pick` contra
   lo de debajo (manguito, camiseta interior o piel), filetes oscuros y la «C» hacia fuera. Sigue siendo solo del brazo izquierdo.
 - **Coderas** (T8): la bola del codo pasa al color de la codera (`elbowPadHex` = cPad o tc.pad con `pick` contra lo de debajo) y encima
   va una concha acolchada (casquete θ 1,2 de la bola ×1,16, alargada ×1,3 a lo largo del brazo, hacia atrás y algo fuera: de espaldas es
   lo que se ve) con el reborde del acento (`pick`). 84/40/40 triángulos por brazo. cPad por vértice: vc 'AP' en look.js y `PAD_VC[...] ||
   X.elbows` en geoSig.
-- **Muñequera y la de cañón** (T10): banda de rizo de revolución (`cuffLathe`: alto 0,064, dos rebordes de +0,015 un punto más oscuros),
-  centrada 0,038 sobre la muñeca (por encima de la manopla); 80/100/160 por muñeca. Color: cA con `pick` contra el puño de debajo
+- **Muñequera y la de cañón** (T10): banda de rizo de revolución (`cuffLathe`: alto 0,078, dos rebordes de +0,018 un punto más oscuros),
+  centrada 0,047 sobre la muñeca (por encima de la manopla); 80/100/160 por muñeca. Color: cA con `pick` contra el puño de debajo
   (`wristBg`: manguito, manga larga o piel; por eso geoSig mete cB con muñequera + manguito de puño cB). La de cañón: negra con el
-  reborde de la mano de cA (la boca) y el de arriba gris. **Reloj gordo**: correa ancha (torno 0,042) y caja r 0,037 (80/108/172).
-- **Mitones** (T9): sin dedos, por color de vértice en la manopla: las puntas de piel (y < −0,36 de la esfera y la punta del pulgar),
-  cuerpo de cA y puño acanalado (gajos cA / cA oscuro).
-- **Dedos vendados** (T4): dos vueltas de esparadrapo en los dedos (filas de la esfera por color de vértice, umbrales que valen en los tres
-  LOD) y el pulgar vendado con una tira oscura. Sobre piel clara (lum > 0,62) el esparadrapo es blanco puro y entre las vueltas hay una
-  raya de sombra (antes el crudo no se distinguía). El de hierro igual en acero. Sin la vuelta de toro de antes: dedos y dedosMuro
+  reborde de la mano de cA (la boca) y el de arriba gris. **Reloj gordo**: correa ancha (torno 0,058) y caja r 0,044 (80/108/172).
+- **Mitones** (T9): sin dedos, por color de vértice en la manopla: las puntas de piel (el 36 % de los anillos de la esfera de la punta y
+  la punta del pulgar), cuerpo de cA y puño acanalado (gajos cA / cA oscuro, uno por meridiano).
+- **Manos por anillos** (ronda 1): en la manopla (esfera 16 × 12 en LOD2, 10 × 8 en LOD1, 8 × 5 en LOD0) las franjas se cortan por
+  ANILLO (`ring(py)`: banda de latitud del centro del triángulo, con los anillos del LOD de ahora) y los gajos por meridiano. Con un umbral
+  cualquiera en y, en cada cuadrilátero un triángulo caía a cada lado y salían dientes de sierra (las puntas de los mitones y los dedos).
+- **Dedos vendados** (T4): desde la punta, una banda de piel (las yemas), una vuelta de esparadrapo, una raya y otra vuelta (en LOD0, con
+  5 anillos, piel y una vuelta ancha), y el pulgar vendado con una tira oscura. Sobre piel clara (lum > 0,62) el esparadrapo es blanco puro
+  y la raya, sombra de la piel (con la piel en la punta y encima ya no es una mancha blanca). El de hierro igual en acero. Sin la vuelta de toro de antes: dedos y dedosMuro
   pasan de +0/160/320 a 0/0/0 triángulos.
 - **Medalla** (T9): disco r 0,045 de oro con el canto GOLD_DK y el centro GOLD_HI (no en LOD0), colgado de la cinta; cinta bicolor cA/cB
-  (una franja de cada color a lo largo; si se parecen, `pick`). Con cuello alto, por fuera de él. 112/148/228. vc 'AB'.
+  (una franja de cada color a lo largo; si se parecen, `pick`). Con cuello alto, por fuera de él. 112/120/188 (ronda 1: cinta de 16 tramos
+  y disco de 12 lados, para quedar en el presupuesto de 120 en LOD1). vc 'AB'.
 - **Conchas**: 5 conchas más grandes (LOD2) y el cordón claro sobre piel oscura (el marrón no se veía).
 - Triángulos (Δ sobre el muñeco base, en look.js): termica y licra 22/32/48, coderas 80/80/168, muñequera 80/100/160, reloj 80/108/172,
-  medalla 112/148/228, dedos 0/0/0. Margen (`looktest --gl`): pista 576/562/1224, **playa 144/386/568** (antes 94/206/184: el reloj y los
+  medalla 112/120/188, dedos 0/0/0. Margen (`looktest --gl`): pista 576/590/1264, **playa 144/406/568** (antes 94/206/184: el reloj y los
   dedos pesan menos y pagan el cuello de la licra).
 - lookvis (peor de las 2 variantes; antes → ahora): licra 0,00 % → 72,6 % (68 px de espaldas en el móvil), kinesio pista 0,25 % / 1 px →
   1,97 % / 9 px, playa 0,72 % → 2,45 % / 27 px, medalla 1,46 → 1,90 %, conchas 0,54 → 1,55 %, dedos 0,96 → 3,77 %, coderas 3,4 % / 23 px,
-  térmica 19 px. Por debajo del 1,5 % del primer plano quedan solo las piezas de UNA muñeca y el brazalete (muñequera 1,24 %, cañón 1,23 %,
-  reloj 1,14 %, brazalete 1,22 %; antes 0,66-1,04 %): lookvis las mide con el encuadre del torso entero (de la cabeza a las piernas) y ya
-  son tan gruesas como pueden ser sin parecer otra cosa; en el partido en el móvil todas pasan (12-18 px).
+  térmica 19 px.
+- Ronda 1: las ranuras de UN brazo (brazalete, armL/armR, wristL/wristR) se miden en lookvis en la mitad del torso de ese brazo
+  (`torsoL` / `torsoR`: misma cámara, la caja solo de ese lado); con la caja entera contaban contra los dos brazos. Además la muñequera,
+  el reloj y el brazalete crecieron. Primer plano / partido (peor variante): brazalete 1,88-2,05 % / 14-19 px, muñequera 2,32-2,36 % /
+  18-19 px, cañón 2,27-2,31 % / 17-18 px, reloj 2,38-2,44 % / 18-25 px, kinesio 2,72-3,23 % / 12-19 px, manguitos 7,8-8,4 %. Dedos en
+  pista se queda en 7 px en el partido con piel clara (de espaldas el cuerpo tapa la mano; el plan no exige manos en el partido).
 
 #### Piernas y pies (WP4 del plan del Vestuario, 1.16, rama pj-b)
 La espinilla del chibi mide 0,23: el zapatón tapa ~0,044 abajo y la bola de la rodilla ~0,073 arriba; de calcetín, tobillera y rodillera
@@ -1245,7 +1256,7 @@ solo queda una ventana de ~0,11. Todo lo de la pierna se coloca por **altura sob
 
 ### Problemas conocidos
 - La pintura de mejilla es pequeña: el ojo tapa casi toda la franja permitida bajo él; se lee sobre todo en el rabillo.
-- El brazalete va en la fracción 0,51-0,8 del brazo en las dos sedes (WP5) y no en 0,22-0,34: allí lo tapa la bola del hombro, que
+- El brazalete va en la fracción 0,49-0,83 del brazo en las dos sedes (WP5) y no en 0,22-0,34: allí lo tapa la bola del hombro, que
   cubre por fuera el tubo hasta ≈ 0,30.
 - La gorra al revés no lleva mechón delante: asomaba atravesando la copa; el pelo de delante queda dentro de la gorra.
 - El gesto `ajuste` con gorra al revés, pescador, corona, pañuelo y cinta de rizo: revisado en captura de cerca (integración, n.º 2 en
