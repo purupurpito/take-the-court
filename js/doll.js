@@ -150,7 +150,7 @@
   var SLOT_DEF = { hall: { knees: 'cortas', socks: 'media', ankle: 'blanca', shoes: 'clasicas' }, beach: { paint: 'zinc', ankle: 'tela' } };
   // gorros que sustituyen al pelo (se dibuja el casquete de la nuca; coleta, trenzas y coletas salen por debajo)
   var HIDE_HAIR = { gorra: 1, gorraAtras: 1, pescador: 1, gorraMTC: 1 };
-  var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
+  var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, GOLD_OC = 0xbe8e31, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
   // objetos de jefe (variantes de una pieza base con la MISMA geometría: color por vértice o atlas; VB.Look cae a «as» sin dibujo):
   // cañón (muñequera negra con aro de cA), hierro (esparadrapo gris acero con remaches), martillo (manguito oscuro con un mazo de cA)
   // y pulpo (rodilleras altas moradas / tobillera de cA, con ventosas)
@@ -199,7 +199,7 @@
   // (justa: lo que no toca la malla —kinesio y malla corta, que van pintados— no entra, así que cambiarlos solo repinta el atlas; si una
   //  pieza pasa a la malla, lookSelfTest lo pilla: «geoSig no ve el cambio de malla». cPad (1.16, WP4) lo llevan por vértice las
   //  rodilleras cortas, altas y bajadas: su ficha de look.js con vc 'P')
-  var PAD_VC = { cortas: 1, altas: 1, bajadas: 1 };   // rodilleras con cPad por vértice (la de pulpo es morada siempre)
+  var PAD_VC = { cortas: 1, altas: 1, bajadas: 1 };   // rodilleras con cPad por vértice (la de pulpo es morada siempre); las coderas también (WP5)
   function armSig(a) { return a === 'kinesio' ? '' : a; }
   function geoSig(L, tc, bch) {
     var X = normLook(L, bch), p = [bch ? 'Y' : 'P', X.skin, X.hair, X.hair2, X.hairFx, X.style, X.head, X.eyes, X.neck, X.under, armSig(X.armL),
@@ -207,10 +207,11 @@
     var uA = !!(X.head || TIES[X.style] || armVc(X.armL) || armVc(X.armR) || X.elbows || X.wristL || X.wristR || X.hands === 'mitones' ||
       X.neck === 'medalla' || (bch && (X.ankle === 'tela' || X.ankle === 'pulseraTob' || X.ankle === 'tobiPulpo')));
     // (malla larga: la bola de la rodilla sin rodillera va en cB y, con rodillera automática, su color depende de cB por el contraste)
+    // (WP5: la cinta de la medalla es bicolor cA/cB; la muñequera busca contraste con el puño del manguito, que es cB)
     var uB = !!(HIDE_HAIR[X.head] || X.head === 'visera' || X.head === 'cinta' || (!bch && X.under === 'termica') || (bch && X.under === 'licra') ||
-      X.legs === 'mallaLarga');
+      X.legs === 'mallaLarga' || X.neck === 'medalla' || (X.wristL === 'muneq' && armVc(X.armL)) || (X.wristR === 'muneq' && armVc(X.armR)));
     p.push(uA ? X.cA : '', uB ? X.cB : '', bch && X.ankle === 'escarpines' ? X.cSock : '', !bch && (X.shoes === 'clasicas' || X.shoes === 'neon') ? X.cShoe : '', X.eyes ? X.cGlass : '',
-      PAD_VC[X.knees] ? X.cPad : '');
+      PAD_VC[X.knees] || X.elbows ? X.cPad : '');
     for (var i = 0; i < TC_GEO.length; i++) p.push(tc ? tc[TC_GEO[i]] : '');
     return p.join('|');
   }
@@ -453,6 +454,10 @@
       wrap(function (o) { g.fillStyle = rib; g.beginPath(); g.ellipse(o, 0, 60, 30, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 53, 24, 0, 0, PI * 2); g.fill(); });   // escote
       // tirantes del color de la camiseta sobre cada hombro (de la sisa al escote y a la espalda); con peto, los del peto
       g.fillStyle = hexCss(pat === 'peto' ? tc.bib : tc.base); [0.25, 0.75].forEach(function (u) { var cx = u * W; g.fillRect(cx - 86, -2, 34, 40); g.fillRect(cx + 52, -2, 34, 40); });
+      if (L.under === 'licra') {   // licra (WP5, T1): costura lateral bajo la sisa (de color) y la licra más oscura en el borde del cuello alto
+        var lc = colB(L, tc); g.fillStyle = hexCss(pick(colA(L, tc), lc, tc)); [0.25, 0.75].forEach(function (u) { g.fillRect(u * W - 2.5, 0, 5, 50); });
+        g.fillStyle = hexCss(mixHex(lc, 0x000000, 0.3)); g.fillRect(0, 0, W, 4);
+      }
     } else if (pat === 'peto') {
       peto(0, 30);
     } else if (pat === 'diag') {
@@ -466,7 +471,9 @@
     if (!beach) {
       // cuello redondo (ribete) y hombros: canesú oscuro ligero en la espalda
       if (pat !== 'peto') { g.fillStyle = hexCss(tc.dark); g.globalAlpha = 0.3; g.fillRect(170, 0, 172, 16); g.globalAlpha = 1; }
-      wrap(function (o) { g.fillStyle = hexCss(pat === 'peto' ? tc.dark : tc.trim); g.beginPath(); g.ellipse(o, 0, 62, 20, 0, 0, PI * 2); g.fill(); g.fillStyle = sk; g.beginPath(); g.ellipse(o, -3, 54, 15, 0, 0, PI * 2); g.fill(); });
+      // (con la térmica, lo que asoma por el cuello es la térmica: cB; el cuello alto es un aro de la malla, neckGeo)
+      var skN = L.under === 'termica' ? hexCss(colB(L, tc)) : sk;
+      wrap(function (o) { g.fillStyle = hexCss(pat === 'peto' ? tc.dark : tc.trim); g.beginPath(); g.ellipse(o, 0, 62, 20, 0, 0, PI * 2); g.fill(); g.fillStyle = skN; g.beginPath(); g.ellipse(o, -3, 54, 15, 0, 0, PI * 2); g.fill(); });
     }
     // dorsales: grande en la espalda (u 0,5), pequeño en el pecho dentro del tajo (oscuro); playa: grande también delante
     var s = String(numV == null ? 0 : numV);
@@ -516,9 +523,21 @@
     function sleeveFill(c, f0, f1, id, tr, len) {
       if (f1 <= f0) return;
       if (id === 'manguito') { band(c, f0, f1, cA); return; }
-      if (id === 'manguitoOro') {      // dorado con dos franjas de brillo hacia fuera
-        band(c, f0, f1, GOLD);
-        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) { g.fillStyle = hexCss(GOLD_HI); g.fillRect(xc - w * 0.1, y0, w * 0.035, y1 - y0); g.fillRect(xc + w * 0.05, y0, w * 0.02, y1 - y0); });
+      if (id === 'manguitoOro') {      // oro de cómic (WP5, T7): base ocre, banda GOLD hacia fuera, raya GOLD_HI del 12 %, bordes marrones y un destello
+        band(c, f0, f1, GOLD_OC);
+        draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
+          var H = y1 - y0, e = Math.max(1, Math.min(2.2, H * 0.07));
+          g.fillStyle = hexCss(GOLD); g.fillRect(xc - w * 0.3, y0, w * 0.5, H);                      // cara que mira a la luz (fuera y algo delante)
+          g.fillStyle = hexCss(mixHex(GOLD, GOLD_OC, 0.5)); g.fillRect(xc + w * 0.2, y0, w * 0.06, H); // paso suave a la sombra
+          g.fillStyle = hexCss(GOLD_HI); g.fillRect(xc - w * 0.16, y0, w * 0.12, H);                  // raya de brillo
+          g.fillStyle = hexCss(0xffffff); g.fillRect(xc - w * 0.13, y0, w * 0.025, H);
+          g.fillStyle = hexCss(GOLD_DK); g.fillRect(c.x0, y0, c.x1 - c.x0, e); g.fillRect(c.x0, y1 - e, c.x1 - c.x0, e);   // bordes
+          // destello: estrella de cuatro puntas blanca sobre la raya (redonda: u por fila)
+          var sy = y0 + H * 0.38, r = Math.min(w * 0.09, H * 0.3 * ax);
+          g.save(); g.translate(xc - w * 0.1, sy); g.scale(1, 1 / ax); g.fillStyle = '#ffffff';
+          g.beginPath(); g.moveTo(0, -r); g.quadraticCurveTo(r * 0.12, -r * 0.12, r, 0); g.quadraticCurveTo(r * 0.12, r * 0.12, 0, r);
+          g.quadraticCurveTo(-r * 0.12, r * 0.12, -r, 0); g.quadraticCurveTo(-r * 0.12, -r * 0.12, 0, -r); g.fill(); g.restore();
+        });
         return;
       }
       if (id === 'manguitoRayas') { band(c, f0, f1, cA); for (var f = f0 + 0.05; f < f1 - 0.02; f += 0.1) band(c, f, Math.min(f1, f + 0.05), cB); return; }
@@ -546,12 +565,14 @@
         return;
       }
       if (id === 'manguitoRayos') {    // rayos amarillos sobre el acento: uno grande hacia fuera y otro por detrás
+        // (WP5, T3: con un acento amarillo el rayo amarillo no se veía: pasa al oscuro del equipo o a blanco)
+        var bolt = pick(0xffd23a, cA, tc);
         band(c, f0, f1, cA);
         draw(c, f0, f1, tr, len, function (xc, y0, y1, ax, w) {
           var H = y1 - y0, s = H / 10;
           [xc, xc + w / 2 > c.x1 ? xc - w / 2 : xc + w / 2].forEach(function (bx) {
             g.save(); g.translate(bx, y0); g.scale(ax, 1);
-            g.fillStyle = hexCss(0xffd23a); g.strokeStyle = hexCss(mixHex(cA, 0x000000, 0.45)); g.lineWidth = 0.35; g.lineJoin = 'miter';
+            g.fillStyle = hexCss(bolt); g.strokeStyle = hexCss(mixHex(cA, 0x000000, 0.45)); g.lineWidth = 0.35; g.lineJoin = 'miter';
             g.beginPath(); g.moveTo(0.6 * s, 0.4 * s); g.lineTo(2.6 * s, 0.4 * s); g.lineTo(1.0 * s, 4.4 * s); g.lineTo(2.4 * s, 4.4 * s); g.lineTo(-1.6 * s, 9.6 * s);
             g.lineTo(-0.2 * s, 5.6 * s); g.lineTo(-1.6 * s, 5.6 * s); g.closePath(); g.fill(); g.stroke(); g.restore();
           });
@@ -585,38 +606,68 @@
         }
       });
     }
-    function cuff(c, id) { band(c, 0.88, 0.97, id === 'manguitoOro' ? mixHex(GOLD, 0x8a5a10, 0.35) : id === 'manguitoLlamas' || id === 'manguitoMazo' ? cA : cB); }
-    // ---- brazos ([k] 0 izquierdo, 1 derecho): f0 = donde acaba la manga (o la licra) y empieza la piel
-    for (k = 0; k < 2; k++) {
-      var arm = k ? X.armR : X.armL, cu = col(ARM_R, COL_UP[k]), cf = col(ARM_R, COL_FORE[k]), f0 = beach ? 0.14 : 0.46;
-      if (beach && X.under === 'licra') { segs(cu, [[0, cB], [0.38, mixHex(cB, 0x000000, 0.25)], [0.44, sk]]); f0 = 0.44; }   // licra: manga corta
-      else if (beach) segs(cu, [[0, sk]]);                                                            // brazo desnudo
-      else if (X.under === 'termica') segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, cB]]);         // manga corta → térmica
-      else segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, sk]]);                                   // manga corta con ribete → piel
-      if (!beach && X.under === 'termica') segs(cf, [[0, cB], [0.9, mixHex(cB, 0x000000, 0.28)], [0.96, cB]]);   // térmica hasta la muñeca
-      else segs(cf, [[0, sk]]);                                                                       // antebrazo de piel
-      if (arm === 'kinesio') {         // kinesio: zigzag de cinta del acento por la cara de fuera del brazo, con el borde más oscuro
-        draw(cu, f0 + 0.03, 0.97, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
-          var H = y1 - y0, n = 3, i;
-          g.save(); g.translate(xc, y0); g.scale(ax, 1); g.lineJoin = 'round'; g.lineCap = 'butt';
-          g.beginPath(); for (i = 0; i <= n * 2; i++) g.lineTo((i % 2 ? 1 : -1) * H * 0.16, H * i / (n * 2));
-          g.strokeStyle = hexCss(mixHex(cA, 0x000000, 0.3)); g.lineWidth = H * 0.13; g.stroke();
-          g.strokeStyle = hexCss(cA); g.lineWidth = H * 0.1; g.stroke(); g.restore();
+    // ---- manguitos: puño de la muñeca a partir de la fracción f (con la térmica debajo, el manguito acaba antes y asoma la térmica)
+    function cuff(c, id, f) { band(c, f, f + 0.09, id === 'manguitoOro' ? GOLD_DK : id === 'manguitoLlamas' || id === 'manguitoMazo' ? cA : cB); }
+    /** tira de kinesio con las puntas redondas (redondas de verdad: u por fila) entre las fracciones fa..fb de la columna c, centrada
+     *  en xc + du·w (du = 0 fuera, ±0,25 delante o detrás) y de ancho wd·w (wd = parte de la vuelta del brazo); borde más oscuro */
+    function tape(c, fa, fb, len, du, wd, kc) {
+      draw(c, fa, fb, TUBE_ARM, len, function (xc, y0, y1, ax, w) {
+        var x = xc + du * w, hw = w * wd / 2;
+        function pill(h, e) {   // rectángulo con las esquinas redondeadas (radio la mitad del ancho: tira, no óvalo)
+          var rx = h * 0.5, ry = rx / ax, ya = y0 + 0.5 - e / ax, yb = y1 - 0.5 + e / ax;
+          g.beginPath(); g.moveTo(x - h, ya + ry); g.ellipse(x - h + rx, ya + ry, rx, ry, 0, PI, PI * 1.5); g.lineTo(x + h - rx, ya);
+          g.ellipse(x + h - rx, ya + ry, rx, ry, 0, PI * 1.5, PI * 2); g.lineTo(x + h, yb - ry); g.ellipse(x + h - rx, yb - ry, rx, ry, 0, 0, PI * 0.5);
+          g.lineTo(x - h + rx, yb); g.ellipse(x - h + rx, yb - ry, rx, ry, 0, PI * 0.5, PI); g.closePath(); g.fill();
+        }
+        [x - w, x, x + w].forEach(function (xx) { x = xx;
+          g.fillStyle = hexCss(mixHex(kc, 0x000000, 0.35)); pill(hw, 0);
+          g.fillStyle = hexCss(kc); pill(hw * 0.8, -hw * 0.2);
+          g.fillStyle = hexCss(mixHex(kc, 0xffffff, 0.35)); g.fillRect(x - hw * 0.12, y0 + hw * 1.4 / ax, hw * 0.16, Math.max(0, y1 - y0 - 2.8 * hw / ax));   // brillo de la cinta
         });
-      } else if (ARMS[arm]) {
+      });
+    }
+    // color de lo que hay debajo del brazalete (fracción 0,51-0,8 del brazo): el manguito, la camiseta interior o la piel
+    function armBg(arm, lsl) {
+      if (ARMS[arm] && arm !== 'kinesio') return arm === 'manguitoOro' ? GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : cA;
+      return lsl ? cB : sk;
+    }
+    // ---- brazos ([k] 0 izquierdo, 1 derecho): f0 = donde acaba la manga (o la licra) y empieza la piel
+    // WP5 (T1): la licra de playa y la térmica de pista son de MANGA LARGA en cB por todo el brazo y el antebrazo, con un puño acanalado
+    // más oscuro en la muñeca (antes la licra acababa debajo de la bola del hombro y solo se veían dos hombreras negras)
+    var lsl = beach ? X.under === 'licra' : X.under === 'termica', cuffU = cuffHex(cB);
+    for (k = 0; k < 2; k++) {
+      var arm = k ? X.armR : X.armL, cu = col(ARM_R, COL_UP[k]), cf = col(ARM_R, COL_FORE[k]), f0 = beach ? 0.14 : 0.46, sl = ARMS[arm] && arm !== 'kinesio';
+      if (beach && lsl) { segs(cu, [[0, cB]]); f0 = 0; }                                                // licra: manga larga
+      else if (beach) segs(cu, [[0, sk]]);                                                            // brazo desnudo
+      else if (lsl) segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, cB]]);                          // manga corta → térmica
+      else segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, sk]]);                                   // manga corta con ribete → piel
+      if (lsl) { segs(cf, [[0, cB], [0.85, cuffU], [0.97, cB]]); band(cf, 0.885, 0.9, cB); band(cf, 0.925, 0.94, cB); }   // hasta la muñeca, puño acanalado
+      else segs(cf, [[0, sk]]);                                                                       // antebrazo de piel
+      if (arm === 'kinesio') {
+        // kinesio (WP5, T5): dos tiras anchas en el brazo (fuera y detrás: de espaldas en el partido) y dos en el antebrazo (fuera y detrás), del acento (o lo que se distinga de lo de
+        // debajo); antes era un zigzag fino que solo se veía de lado
+        var kc = pick(cA, lsl ? cB : sk, tc, 130);
+        tape(cu, Math.max(f0, 0.3) + 0.02, 0.88, UPPER, 0, 0.22, kc);
+        tape(cu, Math.max(f0, 0.3) + 0.06, 0.86, UPPER, -0.24, 0.18, kc);
+        tape(cf, 0.27, 0.84, FORE, 0.1, 0.22, kc);
+        tape(cf, 0.33, 0.78, FORE, -0.2, 0.16, kc);
+      } else if (sl) {
         sleeveFill(cu, f0, 1, arm, TUBE_ARM, UPPER);
-        sleeveFill(cf, 0, 0.88, arm, TUBE_ARM, FORE); cuff(cf, arm);
+        // con la térmica debajo el manguito acaba antes y asoma el puño de la térmica (capas: se ven las dos prendas)
+        var fe = lsl && !beach ? 0.7 : 0.88;
+        sleeveFill(cf, 0, fe - 0.09, arm, TUBE_ARM, FORE); cuff(cf, arm, fe - 0.09);
       }
-      if (k === 0 && X.band === 'capitan') {   // brazalete del acento con filetes y la «C» hacia fuera (volteada: la columna va espejada)
-        // (justo por debajo de la bola del hombro y de la manga: más arriba lo tapa la bola, que cubre el ~40 % alto del brazo)
-        var b0 = beach ? (X.under === 'licra' ? 0.47 : 0.42) : 0.5;
-        band(cu, b0, b0 + 0.15, cA);
-        draw(cu, b0, b0 + 0.15, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
-          var H = y1 - y0, e = Math.max(0.6, H * 0.1), ink = lumHex(cA) > 0.55 ? faceInk(tc) : 0xffffff;
-          g.fillStyle = hexCss(mixHex(cA, 0x000000, 0.3)); g.fillRect(cu.x0, y0, cu.x1 - cu.x0, e); g.fillRect(cu.x0, y1 - e, cu.x1 - cu.x0, e);
+      if (k === 0 && X.band === 'capitan') {   // brazalete con filetes y la «C» hacia fuera (volteada: la columna va espejada)
+        // WP5: alrededor de todo el brazo, más alto (0,51-0,8: la bola del codo solo tapa el tubo desde ≈ 0,85 por fuera) y lejos del
+        // ribete de la manga; del acento salvo que se pierda contra lo de debajo (brazalete rojo sobre manguito rojo)
+        var b0 = 0.51, b1 = 0.8, bc = pick(cA, armBg(arm, lsl), tc), bdk = mixHex(bc, 0x000000, 0.38);
+        band(cu, b0, b1, bc);
+        draw(cu, b0, b1, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
+          var H = y1 - y0, e = Math.max(0.8, H * 0.12), ink = lumHex(bc) > 0.55 ? faceInk(tc) : 0xffffff;
+          g.fillStyle = hexCss(bdk); g.fillRect(cu.x0, y0, cu.x1 - cu.x0, e); g.fillRect(cu.x0, y1 - e, cu.x1 - cu.x0, e);
           g.save(); g.translate(xc, (y0 + y1) / 2); g.scale(cu.flip ? -ax : ax, 1);
-          g.strokeStyle = hexCss(ink); g.lineWidth = H * 0.2; g.lineCap = 'round';
-          g.beginPath(); g.arc(0, 0, H * 0.28, PI * 0.28, PI * 1.72); g.stroke(); g.restore();
+          g.strokeStyle = hexCss(ink); g.lineWidth = H * 0.17; g.lineCap = 'round';
+          g.beginPath(); g.arc(0, 0, H * 0.25, PI * 0.28, PI * 1.72); g.stroke(); g.restore();
         });
       }
     }
@@ -1051,50 +1102,95 @@
   function shoulderGeo(G, tc, X, beach) { G.add(sph(BALL_SH, 16, 12), beach ? (X.under === 'licra' ? colB(X, tc) : X.skin) : mixHex(tc.base, tc.dark, 0.14)); }
   /** Brazo k (0 izquierdo, 1 derecho): tubo en su columna de ARM_R, girado para que gu = 0,5 mire hacia fuera. */
   function upperGeo(G, k) { G.mode = 'strip'; G.rows = ARM_R; G.su = COL_UP[k]; G.add(tube(TUBE_ARM, UPPER), null, 0, -UPPER / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL; }
-  /** Color de la bola del codo del brazo k: piel; cB con la térmica; el del manguito de ese brazo; cA con coderas (mandan). */
-  function elbowHex(X, tc, k) {
+  /** Color de la bola del codo del brazo k: piel; cB con la manga larga (térmica en pista, licra en playa); el del manguito de ese
+   *  brazo; con coderas, la codera (la bola hace de manguito acolchado y encima va la concha). */
+  function elbowHex(X, tc, k) { return X.elbows === 'coderas' ? elbowPadHex(X, tc, k) : underElbowHex(X, tc, k); }
+  function underElbowHex(X, tc, k) {
     var arm = k ? X.armR : X.armL, c = X.skin;
-    if (!X.beach && X.under === 'termica') c = colB(X, tc);
+    if (X.beach ? X.under === 'licra' : X.under === 'termica') c = colB(X, tc);
     if (ARMS[arm] && arm !== 'kinesio') c = arm === 'manguitoOro' ? GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : colA(X, tc);
-    if (X.elbows === 'coderas') c = colA(X, tc);
     return c;
   }
-  /** Antebrazo k: bola del codo (coderas: algo mayor) y tubo en su columna de ARM_R (la piel, la térmica o el manguito van pintados). */
+  /** Color de la codera del brazo k (WP5, T8): cPad si se elige; si no, la de la equipación (tc.pad) salvo que se pierda contra lo
+   *  de debajo (manguito, térmica o piel): entonces el oscuro del equipo, blanco o casi negro (pick). */
+  function elbowPadHex(X, tc, k) { return X.cPad >= 0 ? X.cPad : pick(tc.pad, underElbowHex(X, tc, k), tc, 130); }
+  var EL_PAD_TH = 1.2;   // abertura de la concha de la codera (rad desde su polo)
+  /** Antebrazo k: bola del codo y tubo en su columna de ARM_R (la piel, la térmica o el manguito van pintados). Coderas (WP5): una
+   *  concha acolchada sobre la punta del codo (detrás y algo por fuera: de espaldas es lo que se ve en el partido), más larga a lo largo
+   *  del brazo, con el reborde del acento (o lo que se distinga de la concha). 84 / 40 / 40 triángulos por brazo. */
   function foreGeo(G, X, tc, k) {
-    var e = X.elbows === 'coderas' ? 1.12 : 1;
-    G.add(sph(BALL_EL, 14, 10), elbowHex(X, tc, k), 0, 0, 0, 0, 0, 0, e, e, e);
+    // (manguito dorado: la bola del codo también de oro de cómic, con el brillo arriba y fuera y la sombra ocre abajo)
+    if ((k ? X.armR : X.armL) === 'manguitoOro' && X.elbows !== 'coderas') { var so = k ? -1 : 1; G.vc = function (px, py, pz) { var d = (px * so * 0.5 + py * 0.6 + pz * 0.62) / (Math.sqrt(px * px + py * py + pz * pz) || 1); return d > 0.7 ? GOLD_HI : d < -0.3 ? GOLD_OC : null; }; }
+    G.add(sph(BALL_EL, 14, 10), elbowHex(X, tc, k), 0, 0, 0, 0, 0, 0); G.vc = null;
+    if (X.elbows === 'coderas') {
+      var pc = elbowPadHex(X, tc, k), rim = pick(colA(X, tc), pc, tc), s = k ? -1 : 1, lim = EL_PAD_TH * 0.8;
+      G.owk = 0.8;
+      G.vc = function (px, py, pz) { return Math.acos(clamp(py / (Math.sqrt(px * px + py * py + pz * pz) || 1), -1, 1)) > lim ? rim : null; };
+      // (rx = −π/2 lleva el polo +Y de la concha a −Z, la espalda, y su eje Z a lo largo del brazo: sz la alarga; ry la gira hacia fuera)
+      G.add(new THREE.SphereGeometry(BALL_EL * 1.16, sg(12, 8), sg(4, 3), 0, PI * 2, 0, EL_PAD_TH), pc, 0, -0.006, 0, -PI / 2, s * 0.55, 0, 1, 1, 1.3);
+      G.vc = null; G.owk = 1;
+    }
     G.mode = 'strip'; G.rows = ARM_R; G.su = COL_FORE[k];
     G.add(tube(TUBE_ARM, FORE), null, 0, -FORE / 2, 0, 0, TUBE_RY[k], 0);
     G.mode = 'flat'; G.su = SU_ALL;
   }
-  /** Muñequera de rizo y reloj (ranuras wristL / wristR) en el hueso del ANTEBRAZO, junto a la muñeca: así heredan el estirón (se
-   *  alargan y adelgazan con el antebrazo, como el resto del brazo cartoon); en la mano, que recupera su tamaño con la escala inversa,
-   *  quedarían flotando y más anchas que la muñeca estirada. La esfera del reloj mira hacia fuera (sin marca). */
+  /** Color de lo que hay en la muñeca del brazo k (para que la muñequera no se pierda contra él): el puño del manguito, el de la manga
+   *  larga o la piel. */
+  function wristBg(X, tc, k) {
+    var arm = k ? X.armR : X.armL, lsl = X.beach ? X.under === 'licra' : X.under === 'termica';
+    if (ARMS[arm] && arm !== 'kinesio' && !lsl) return arm === 'manguitoOro' ? GOLD_DK : arm === 'manguitoLlamas' || arm === 'manguitoMazo' ? colA(X, tc) : colB(X, tc);
+    return lsl ? cuffHex(colB(X, tc)) : X.skin;
+  }
+  /** Muñequera (WP5, T10): banda de rizo gruesa (alto h) con dos rebordes, de revolución: 5 tramos × 16 (160 / 100 / 80). */
+  function cuffLathe(r0, h) {
+    var rr = r0 + 0.015, rm = r0 + 0.011, b = h / 2;
+    return lathe([V2(r0, -b), V2(rr, -b + 0.008), V2(rm, -0.011), V2(rm, 0.011), V2(rr, b - 0.008), V2(r0, b)], 16, 8);
+  }
+  var WRIST_Y = 0.038, WRIST_H = 0.064;   // centro de la muñequera sobre la muñeca y su alto
+  /** Muñequera de rizo, la de cañón y reloj (ranuras wristL / wristR) en el hueso del ANTEBRAZO, junto a la muñeca: así heredan el
+   *  estirón (se alargan y adelgazan con el antebrazo, como el resto del brazo cartoon); en la mano, que recupera su tamaño con la escala
+   *  inversa, quedarían flotando y más anchas que la muñeca estirada. Todo por encima de la manopla (tapa el antebrazo hasta ≈ 1 cm
+   *  sobre la muñeca). La esfera del reloj mira hacia fuera (sin marca). */
   function wristGeo(G, X, tc, k) {
-    var w = k ? X.wristR : X.wristL, s = k ? -1 : 1, y = -FORE + 0.015;
-    if (w === 'muneq') { G.owk = 0.5; G.add(torus(TUBE_ARM + 0.008, 0.014, 5, 16), colA(X, tc), 0, y, 0, PI / 2, 0, 0); }
-    else if (w === 'munhCanon') {   // jefe Cañón: la muñequera de rizo, negra con el aro de cA por fuera (la boca del cañón)
-      var rc = TUBE_ARM + 0.008, ca = colA(X, tc);
-      G.owk = 0.5; G.vc = function (px, py, pz) { return Math.sqrt(px * px + py * py) > rc + 0.006 && Math.abs(pz) < 0.007 ? ca : null; };   // rombos de cA en zigzag
-      G.add(torus(rc, 0.0155, 5, 16), NEUTRAL_DK, 0, y, 0, PI / 2, 0, 0, 1, 1, 1.5); G.vc = null;
-    }
-    else if (w === 'reloj') {
-      G.owk = 0.5; G.add(torus(TUBE_ARM + 0.004, 0.009, 5, 16), NEUTRAL_DK, 0, y, 0, PI / 2, 0, 0, 1, 1, 1.5);                 // correa
-      G.add(cyl(0.024, 0.024, 0.014, 14), colA(X, tc), s * (TUBE_ARM + 0.012), y, 0, 0, 0, PI / 2);                            // caja
-      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.018, sg(12, 8)), 0xf4f4f4, s * (TUBE_ARM + 0.0195), y, 0, 0, s * PI / 2, 0); }   // esfera (no en LOD0)
+    var w = k ? X.wristR : X.wristL, s = k ? -1 : 1, y = -FORE + WRIST_Y, r0 = TUBE_ARM + 0.001;
+    if (w === 'muneq') {             // del acento (o lo que se distinga de lo de debajo), los rebordes un punto más oscuros
+      var cm = pick(colA(X, tc), wristBg(X, tc, k), tc, 130), cr = mixHex(cm, 0x000000, 0.2);
+      G.owk = 0.6; G.vc = function (px, py) { return Math.abs(py) > 0.014 ? cr : null; };
+      G.add(cuffLathe(r0, WRIST_H), cm, 0, y, 0); G.vc = null;
+    } else if (w === 'munhCanon') {  // jefe Cañón: la misma banda, negra, con el reborde de la mano (la boca del cañón) de cA
+      var ca = pick(colA(X, tc), NEUTRAL_DK, tc, 130);
+      G.owk = 0.6; G.vc = function (px, py) { return py < -0.014 ? ca : py > 0.014 ? 0x3a3a46 : null; };
+      G.add(cuffLathe(r0, WRIST_H), NEUTRAL_DK, 0, y, 0); G.vc = null;
+    } else if (w === 'reloj') {      // correa ancha oscura y caja gorda del acento con la esfera blanca hacia fuera
+      var rs = r0 + 0.002;
+      G.owk = 0.5; G.add(lathe([V2(rs, -0.021), V2(rs + 0.007, -0.015), V2(rs + 0.007, 0.015), V2(rs, 0.021)], 16, 8), NEUTRAL_DK, 0, y, 0);   // correa
+      G.owk = 0.7; G.add(cyl(0.037, 0.037, 0.024, 16), pick(colA(X, tc), NEUTRAL_DK, tc, 130), s * (rs + 0.016), y, 0, 0, 0, PI / 2);          // caja
+      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.028, sg(12, 8)), 0xf4f4f4, s * (rs + 0.0282), y, 0, 0, s * PI / 2, 0); }   // esfera (no en LOD0)
     }
     G.owk = 1;
   }
-  /** Manopla grande y redonda (sin dedos) con el pulgar insinuado. Plano de la mano = Y-Z del hueso (grosor en X). Vestuario: mitones
-   *  (manopla y pulgar de cA) y dedos vendados (pulgar de esparadrapo y una vuelta aplastada en la punta; la vuelta, no en LOD0). */
+  /** Manopla grande y redonda (sin dedos) con el pulgar insinuado. Plano de la mano = Y-Z del hueso (grosor en X); en la esfera unidad
+   *  de la manopla, y = −1 es la punta de los dedos y +1 la muñeca. Vestuario (WP5, por color de vértice, sin piezas aparte):
+   *  - mitones (T9): guante SIN dedos: puntas de piel (y < −0,36, y la punta del pulgar), cuerpo de cA y puño acanalado (y > 0,55);
+   *  - dedos vendados (T4): dos vueltas de esparadrapo en los dedos con piel entre ellas y el pulgar vendado; sobre piel clara el
+   *    esparadrapo es blanco puro y entre las vueltas hay una raya de sombra (el crudo de siempre no se distinguía); el de hierro, gris acero con la raya oscura. */
   function handGeo(G, X, tc, s) {
-    var K = HAND_K, tp = TAPED[X.hands], tape = !!tp, cm = X.hands === 'mitones' ? colA(X, tc) : X.skin;
+    var K = HAND_K, tp = TAPED[X.hands], sk = X.skin, ca = colA(X, tc), mit = X.hands === 'mitones';
+    var lt = lumHex(sk) > 0.62; if (tp === TAPE && lt) tp = 0xffffff;
+    var td = tp ? (tp === STEEL ? STEEL_DK : mixHex(tp, INK, lt ? 0.4 : 0.22)) : 0, gap = lt || tp === STEEL ? td : null, cad = mixHex(ca, 0x000000, 0.28);
     G.owk = 0.75;
-    G.add(sph(1, 16, 12), cm, 0, -PALM, 0.004, 0, 0, 0, 0.058 * K, 0.108 * K, 0.094 * K);
-    if (tp === STEEL) G.vc = function (px, py) { return Math.abs(py) < 0.5 ? STEEL_DK : null; };   // hierro: tira oscura en el pulgar
-    G.add(capsule(1, 1.4, 2, 8), tape ? tp : cm, 0, -0.06 * K, 0.085 * K, -0.75, 0, 0, 0.034 * K, 0.034 * K, 0.034 * K);   // pulgar
-    G.vc = null;
-    if (tape && LODR > 0) { G.owk = 0.5; G.add(torus(1, 0.14, 5, 16), tp === STEEL ? STEEL_DK : tp, 0, -PALM - 0.058 * K, 0.004, PI / 2, 0, 0, 0.05 * K, 0.081 * K, 0.08 * K); }   // (no en LOD0: 1 cm)
+    if (mit) G.vc = function (px, py, pz) {
+      if (py < -0.36) return sk;
+      if (py > 0.55) return Math.floor((Math.atan2(px, pz) + PI) / (PI / 5)) % 2 ? cad : null;   // puño acanalado
+      return null;
+    };
+    else if (tp) G.vc = function (px, py) { return py < -0.66 ? tp : py < -0.46 ? gap : py < -0.1 ? tp : null; };
+    G.add(sph(1, 16, 12), mit ? ca : sk, 0, -PALM, 0.004, 0, 0, 0, 0.058 * K, 0.108 * K, 0.094 * K);
+    // pulgar: la punta es su −Y (abajo y hacia delante)
+    if (mit) G.vc = function (px, py) { return py < -0.9 ? sk : null; };
+    else if (tp) G.vc = function (px, py) { return Math.abs(py) < 0.45 ? td : null; };   // esparadrapo con una tira oscura
+    else G.vc = null;
+    G.add(capsule(1, 1.4, 2, 8), mit ? ca : tp || sk, 0, -0.06 * K, 0.085 * K, -0.75, 0, 0, 0.034 * K, 0.034 * K, 0.034 * K);
     G.vc = null;
     G.owk = 1;
   }
@@ -1173,6 +1269,18 @@
     if (hexDist(want, bg) >= 150) return want;
     if (tc && typeof tc.base === 'number' && hexDist(tc.base, bg) >= 220) return tc.base;
     return lumHex(bg) > 0.5 ? NEUTRAL_DK : 0xf4f4f4;
+  }
+  /** Puño de la manga larga (térmica, licra): más oscuro que la manga o, si la manga ya es muy oscura, más claro (negro sobre negro no se ve). */
+  function cuffHex(c) { return lumHex(c) < 0.2 ? mixHex(c, 0xffffff, 0.28) : mixHex(c, 0x000000, 0.32); }
+  /** Ayuda de contraste (WP5, T3/T4/T8): el color pedido si se distingue del de debajo (distancia ≥ d, 150 por defecto); si no, el
+   *  oscuro del equipo, blanco o casi negro: el primero que se aleje d + 50, o el que más se aleje. Solo usa la equipación y constantes
+   *  (nunca cB): así la firma de la malla no depende de más colores de los que ya lleva cada pieza. */
+  function pick(want, bg, tc, d) {
+    d = d || 150;
+    if (hexDist(want, bg) >= d) return want;
+    var c = [tc && tc.dark, 0xf8f8f4, NEUTRAL_DK], best = want, bd = -1, i, dd;
+    for (i = 0; i < c.length; i++) { if (typeof c[i] !== 'number') continue; dd = hexDist(c[i], bg); if (dd >= d + 50) return c[i]; if (dd > bd) { bd = dd; best = c[i]; } }
+    return best;
   }
   /** Color de las rodilleras: el elegido (cPad) o, en automático, el de la equipación salvo que se pierda contra lo de debajo (la piel,
    *  o la malla larga): a menos de 0,15 de luminancia pasa a blanco, al acento o a casi negro (P6: negro sobre negro con malla larga). */
@@ -1349,25 +1457,46 @@
       G.owk = 1;
     }
   }
-  /** Cuello (ranura neck) en el hueso del pecho: un aro inclinado que se apoya en el domo de los hombros, por delante más bajo y por
-   *  debajo de la mandíbula. Medalla: cinta de cA + disco dorado; collar de conchas: cordón + 5 conchas (las conchas, solo en LOD2). */
-  function neckGeo(G, X, tc) {
-    if (!X.neck) return;
-    var co = SPINE_Y + CHEST_Y, hb = NECK_Y + HEAD_C - 0.95 * HEAD_RY, yf = hb - 0.07, yb = hb + 0.03, off = 0.012;
+  /** Marco del cuello en el hueso del pecho: un aro inclinado que se apoya en el domo de los hombros, por delante más bajo y por detrás
+   *  debajo de la mandíbula, separado `off` del tronco. Devuelve centro (cy, cz), semiejes (ax, az), inclinación t y las alturas. */
+  function neckFrame(off, dyf, dyb) {
+    var co = SPINE_Y + CHEST_Y, hb = NECK_Y + HEAD_C - 0.95 * HEAD_RY, yf = hb + dyf, yb = hb + dyb;
     var rf = torsoR(yf + co), rb = torsoR(yb + co), zf = rf[1] + off, zb = rb[1] + off;
     var t = Math.atan2(yb - yf, zf + zb), cy = (yf + yb) / 2, cz = (zf - zb) / 2, az = Math.sqrt((yb - yf) * (yb - yf) + (zf + zb) * (zf + zb)) / 2;
-    var ax = torsoR(cy + co)[0] + off, i, ph;
+    return { co: co, yf: yf, yb: yb, t: t, cy: cy, cz: cz, az: az, ax: torsoR(cy + co)[0] + off };
+  }
+  /** Cuello alto de la camiseta interior (WP5, T6): con la térmica (pista) o la licra (playa), un aro de revolución algo cónico en cB
+   *  que sube del domo de los hombros hasta debajo de la cabeza, con tinta: así se lee como una camiseta y no como dos manguitos, y
+   *  sigue viéndose con manguitos. 24 lados abiertos: 48 / 32 / 22 triángulos. */
+  function collarGeo(G, X, tc) {
+    var F = neckFrame(0.004, -0.062, 0.035), h = 0.05, lift = h * 0.32;
+    G.owk = 0.9;
+    G.vc = function (px, py) { return py > 0.3 ? mixHex(colB(X, tc), 0x000000, 0.3) : null; };   // el borde de arriba, más oscuro
+    G.add(cyl(0.86, 1, 1, 24, true), colB(X, tc), 0, F.cy + Math.cos(F.t) * lift, F.cz + Math.sin(F.t) * lift, F.t, 0, 0, F.ax, h, F.az);
+    G.vc = null; G.owk = 1;
+  }
+  /** Cuello (ranura neck) en el hueso del pecho. Medalla (WP5, T9): cinta bicolor cA/cB (de lado a lado del cordón) y un disco grande
+   *  (r 0,045) de oro con el canto oscuro y el centro claro; collar de conchas: cordón (claro sobre piel oscura) + 5 conchas (LOD2). */
+  function neckGeo(G, X, tc) {
+    if (!X.neck) return;
+    var hi = X.beach ? X.under === 'licra' : X.under === 'termica';   // con el cuello alto, por fuera de él
+    var F = neckFrame(hi ? 0.02 : 0.012, -0.07, 0.03), t = F.t, cy = F.cy, cz = F.cz, ax = F.ax, az = F.az, co = F.co, i, ph;
     function ringPt(p) { return [ax * Math.sin(p), cy - Math.sin(t) * az * Math.cos(p), cz + Math.cos(t) * az * Math.cos(p)]; }
     if (X.neck === 'medalla') {
-      G.owk = 0.5; G.add(torus(1, 0.06, 4, 24), colA(X, tc), 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az);                      // cinta
-      var dy = yf - 0.04, rd = torsoR(dy + co);
-      G.owk = 0.6; G.add(cyl(0.032, 0.032, 0.008, 12), GOLD, 0, dy, rd[1] + 0.01, PI / 2 - 0.22, 0, 0);                       // medalla
-      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.02, sg(12, 8)), GOLD_HI, 0, dy + 0.0012, rd[1] + 0.0145, -0.22, 0, 0); }   // relieve (no en LOD0)
+      var c1 = colA(X, tc), c2 = colB(X, tc);
+      if (hexDist(c1, c2) < 150) c2 = pick(c2, c1, tc);
+      // (la cinta: en el toro, z > 0 es la mitad de abajo del cordón una vez girado: una franja de cada color a lo largo)
+      G.owk = 0.5; G.vc = function (px, py, pz) { return pz > 0 ? c2 : null; };
+      G.add(torus(1, 0.075, 4, 20), c1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;                                  // cinta
+      var dy = F.yf - 0.045, rd = torsoR(dy + co);
+      G.owk = 0.7; G.vc = function (px, py) { return Math.abs(py) < 0.0049 ? GOLD_DK : null; };                                  // canto oscuro
+      G.add(cyl(0.045, 0.045, 0.01, 14), GOLD, 0, dy, rd[1] + 0.012, PI / 2 - 0.22, 0, 0); G.vc = null;                         // medalla
+      if (LODR > 0) { G.owk = 0; G.add(new THREE.CircleGeometry(0.03, sg(12, 8)), GOLD_HI, 0, dy + 0.0012, rd[1] + 0.0175, -0.22, 0, 0); }   // relieve (no en LOD0)
     } else if (X.neck === 'conchas') {
-      G.owk = 0; G.add(torus(1, 0.035, 4, 24), 0x6b4a2e, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az);                          // cordón
+      G.owk = 0.3; G.add(torus(1, 0.05, 4, 24), lumHex(X.skin) < 0.45 ? 0xe6d6b2 : 0x6b4a2e, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az);   // cordón
       if (LODR === 2) for (i = -2; i <= 2; i++) {
-        ph = i * 0.33; var p = ringPt(ph);
-        G.owk = 0.5; G.add(sph(1, 8, 6), i % 2 ? 0xf2c7b0 : 0xf6e7d0, p[0], p[1] - 0.008, p[2] + 0.004, -0.4 - t, ph, 0, 0.016, 0.019, 0.009);
+        ph = i * 0.4; var p = ringPt(ph);
+        G.owk = 0.6; G.add(sph(1, 8, 6), i % 2 ? 0xf2b9a0 : 0xfaf0dc, p[0], p[1] - 0.016, p[2] + 0.008, -0.4 - t, ph, 0, 0.031, 0.036, 0.014);
       }
     }
     G.owk = 1;
@@ -1660,6 +1789,7 @@
     try {
       torsoGeo(on(r.pelvis), r);
       headGeo(on(r.head), X, tc); eyesGeo(G, X, tc); faceGeo(G, r, X, tc, on);
+      if (bch ? X.under === 'licra' : X.under === 'termica') collarGeo(on(r.chest), X, tc);   // cuello alto de la camiseta interior
       if (X.neck) neckGeo(on(r.chest), X, tc);
       for (k = 0; k < 2; k++) {
         s = k === 0 ? 1 : -1;

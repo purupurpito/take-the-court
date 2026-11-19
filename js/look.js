@@ -137,10 +137,10 @@
     { id: 'perilla', name: 'Perilla', slot: 'beard', g: 'f' },
     { id: 'tresDias', name: 'Barba de tres días', slot: 'beard', g: 'f' },
     // cuello, cuerpo y brazos
-    { id: 'medalla', name: 'Medalla', slot: 'neck', rarity: 2, unlock: [{ ach: 't1' }], vc: 'A', g: 'f', tris: [120, 168, 252] },
+    { id: 'medalla', name: 'Medalla', slot: 'neck', rarity: 2, unlock: [{ ach: 't1' }], vc: 'AB', g: 'f', tris: [112, 148, 228] },
     { id: 'conchas', name: 'Collar de conchas', slot: 'neck', venue: 'Y', unlock: [shop(800), lv(4)], g: 'm', tris: [88, 128, 592] },
-    { id: 'termica', name: 'Camiseta térmica', slot: 'under', venue: 'P', vc: 'B', g: 'f' },
-    { id: 'licra', name: 'Licra de surf', slot: 'under', venue: 'Y', rarity: 1, unlock: [shop(5000), lv(20)], vc: 'B', g: 'f' },   // geo: la bola del hombro va en cB (color por vértice)
+    { id: 'termica', name: 'Camiseta térmica', slot: 'under', venue: 'P', vc: 'B', g: 'f', tris: [22, 32, 48] },
+    { id: 'licra', name: 'Licra de surf', slot: 'under', venue: 'Y', rarity: 1, unlock: [shop(5000), lv(20)], vc: 'B', g: 'f', tris: [22, 32, 48] },   // geo: la bola del hombro, la del codo y el cuello alto van en cB (color por vértice)
     { id: 'capitan', name: 'Brazalete', slot: 'band', rarity: 2, unlock: [{ fame: 4 }, { ach: 'top' }], geo: false, pc: 'A', g: 'm', hint: 'En el brazo izquierdo' },
     { id: 'malla', name: 'Malla corta', slot: 'legs', geo: false, pc: 'B', g: 'f' },   // en cB (automático: un color que se distinga del pantalón)
     { id: 'mallaLarga', name: 'Malla larga', slot: 'legs', unlock: [shop(1000), lv(6)], vc: 'B', pc: 'B', g: 'f' },   // geo: la bola de la rodilla sin rodillera va en cB
@@ -151,11 +151,11 @@
     { id: 'manguitoRayos', name: 'Manguito de rayos', slot: 'arm', venue: 'P', rarity: 2, unlock: [{ ach: 'b50' }, gym('block', 3)], vc: 'A', pc: 'B', g: 'm' },
     { id: 'manguitoOro', name: 'Manguito dorado', slot: 'arm', venue: 'P', rarity: 3, unlock: [shop(45000)], lux: 1, g: 'm' },
     { id: 'kinesio', name: 'Kinesio', slot: 'arm', unlock: [{ ach: 'm1' }, rec('played', 1)], geo: false, pc: 'A', g: 'm' },
-    { id: 'coderas', name: 'Coderas', slot: 'elbows', venue: 'P', vc: 'A', g: 'f', pl: 1 },
+    { id: 'coderas', name: 'Coderas', slot: 'elbows', venue: 'P', vc: 'AP', g: 'f', pl: 1, tris: [80, 80, 168] },
     // manos, piernas y pies
-    { id: 'muneq', name: 'Muñequera de rizo', slot: 'wrist', vc: 'A', g: 'f', tris: [80, 80, 160] },
-    { id: 'reloj', name: 'Reloj gordo', slot: 'wrist', rarity: 1, unlock: [{ ach: 'up' }, rec('wins', 50)], vc: 'A', g: 'm', tris: [112, 124, 228] },
-    { id: 'dedos', name: 'Dedos vendados', slot: 'hands', rarity: 1, unlock: [{ ach: 'b50' }, gym('block', 1)], g: 'm', pl: 1, tris: [0, 160, 320] },
+    { id: 'muneq', name: 'Muñequera de rizo', slot: 'wrist', vc: 'A', g: 'f', tris: [80, 100, 160] },
+    { id: 'reloj', name: 'Reloj gordo', slot: 'wrist', rarity: 1, unlock: [{ ach: 'up' }, rec('wins', 50)], vc: 'A', g: 'm', tris: [80, 108, 172] },
+    { id: 'dedos', name: 'Dedos vendados', slot: 'hands', rarity: 1, unlock: [{ ach: 'b50' }, gym('block', 1)], g: 'm', pl: 1 },
     { id: 'mitones', name: 'Mitones', slot: 'hands', venue: 'Y', rarity: 1, unlock: [shop(3000), lv(14)], vc: 'A', g: 'm', pl: 1 },
     { id: 'cortas', name: 'Rodilleras', slot: 'knees', venue: 'P', vc: 'P', g: 'f', pl: 1 },
     { id: 'altas', name: 'Rodilleras altas', slot: 'knees', venue: 'P', vc: 'P', g: 'f', pl: 1, tris: [64, 72, 112] },
@@ -182,8 +182,8 @@
     { id: 'tDorado', name: 'Tinte dorado', slot: 'hairTint', hex: 0xe8b830, rarity: 3, unlock: [shop(40000)], lux: 1, g: 'm' },
     // objetos de jefe (S3-C3 §2.1): solo de la Carrera, por la primera victoria contra un jefe de ese estilo. Son variantes de
     // piezas que ya existen: «as» = la pieza que dibuja doll.js mientras no sepa dibujar la variante (resolve la sustituye)
-    { id: 'munhCanon', name: 'Muñequera de cañón', slot: 'wrist', rarity: 2, unlock: [boss('saque')], as: 'muneq', vc: 'A', g: 'f', tris: [80, 80, 160] },
-    { id: 'dedosMuro', name: 'Dedos de hierro', slot: 'hands', rarity: 2, unlock: [boss('muro')], as: 'dedos', g: 'm', pl: 1, tris: [0, 160, 320] },
+    { id: 'munhCanon', name: 'Muñequera de cañón', slot: 'wrist', rarity: 2, unlock: [boss('saque')], as: 'muneq', vc: 'A', g: 'f', tris: [80, 100, 160] },
+    { id: 'dedosMuro', name: 'Dedos de hierro', slot: 'hands', rarity: 2, unlock: [boss('muro')], as: 'dedos', g: 'm', pl: 1 },
     { id: 'manguitoMazo', name: 'Manguito del martillo', slot: 'arm', venue: 'P', rarity: 2, unlock: [boss('remate')], as: 'manguito', pc: 'A', g: 'm' },
     { id: 'rodiPulpo', name: 'Rodilleras de pulpo', slot: 'knees', venue: 'P', rarity: 2, unlock: [boss('defensa')], as: 'altas', g: 'f', pl: 1, tris: [64, 72, 112] },
     { id: 'tobiPulpo', name: 'Tobillera de pulpo', slot: 'ankle', venue: 'Y', rarity: 2, unlock: [boss('defensa')], as: 'tela', vc: 'A', g: 'f' },
