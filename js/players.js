@@ -321,6 +321,11 @@
   var SKINS = [0xdba27a, 0x8a5638, 0xc68a5f, 0xf0c6a4, 0xb07650, 0xe6b48e, 0x6e4430, 0xf3d0b0, 0xa36a48, 0xd9a07c];
   var HAIRS = [0x3a2416, 0x241a14, 0x7a3a16, 0x1e1612, 0x6a4424, 0x9a6a3a, 0xb88a4e, 0x2b1d17, 0x4b2a18, 0xe0c070];
   var STYLES = ['tupe', 'coleta', 'afro', 'flequillo', 'rapado', 'mono', 'trenzas'];
+  // 1.16 (WP2 del plan del Vestuario): peinados nuevos para los NPC, con peso (repetidos = más frecuentes). Se eligen con OTRO trozo del
+  // hash (bits 20-21 y 24+): solo cambia ≈ 1 de cada 4 NPC y el resto de la Carrera conserva su aspecto
+  var STYLES_NEW = ['degradado', 'degradado', 'alCero', 'cepillo', 'undercut', 'crop', 'crop', 'rizosCortos', 'afroCorto', 'afroCorto', 'raices',
+    'twists', 'despeinado', 'cortina', 'melenita', 'ondas', 'melena', 'coletaBaja', 'coletaBaja', 'trenza', 'monoBajo', 'semirrecogido'];
+  function npcStyle(h) { return (h >>> 20) % 4 === 0 ? STYLES_NEW[(h >>> 24) % STYLES_NEW.length] : STYLES[(h >>> 8) % STYLES.length]; }
   var ACC_HALL = ['', '', '', 'cinta'], ACC_BEACH = ['visera', 'gorra', 'gafas', 'cinta', 'visera', 'gorra'];
   var MY_LOOKS = [
     { skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: '', accB: 'gorra', h: 1.0 },      // n.º 1: tupé, gorra en la playa
@@ -392,7 +397,7 @@
       try { return Object.freeze(Object.assign({ h: hb }, VB.Look.resolve(BOSS.fit, VEN, tc || kitOf(p)), { h: hb })); }
       catch (e) { if (!LOOK_ERR) { LOOK_ERR = true; try { console.error('[VB][ERROR] Players.lookOf (jefe): ' + e); } catch (e2) { } } }
     }
-    var skin = SKINS[h % SKINS.length], hair = HAIRS[(h >>> 4) % HAIRS.length], style = STYLES[(h >>> 8) % STYLES.length];
+    var skin = SKINS[h % SKINS.length], hair = HAIRS[(h >>> 4) % HAIRS.length], style = npcStyle(h);
     var acc = beach ? ACC_BEACH[(h >>> 12) % ACC_BEACH.length] : ACC_HALL[(h >>> 12) % ACC_HALL.length];
     var hh = p.role ? (ROLE_H[p.role] || 1) * (1 + ((p.num * 13) % 5 - 2) * 0.006) : 1 + ((h >>> 16) % 5 - 2) * 0.012;
     L = { skin: skin, hair: hair, style: style, acc: acc, h: hh };
@@ -4628,7 +4633,7 @@
     var team = o.team ? 1 : 0, idx = o.idx | 0, num = o.num | 0, role = o.role || '', beach = !!o.beach, L;
     if (!role && team === 0 && idx < 2) { L = MY_LOOKS[idx]; return Object.freeze({ skin: L.skin, hair: L.hair, style: L.style, acc: beach ? L.accB : L.acc }); }
     var h = hash32((num * 131 + team * 17 + (role ? 1009 : 0) + (team === 1 && !role ? RIVAL_SIG : 0)) >>> 0);
-    L = { skin: SKINS[h % SKINS.length], hair: HAIRS[(h >>> 4) % HAIRS.length], style: STYLES[(h >>> 8) % STYLES.length],
+    L = { skin: SKINS[h % SKINS.length], hair: HAIRS[(h >>> 4) % HAIRS.length], style: npcStyle(h),
       acc: beach ? ACC_BEACH[(h >>> 12) % ACC_BEACH.length] : ACC_HALL[(h >>> 12) % ACC_HALL.length] };
     if (NPC_EXTRAS && !(team === 0 && role)) npcExtras(L, h, beach);
     return Object.freeze(L);

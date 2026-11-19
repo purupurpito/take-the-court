@@ -59,14 +59,19 @@
   // Piel: los 10 SKINS de players.js (mismo orden) + 4 nuevos. Pelo: los 10 HAIRS + el del n.º 2 + canas, gris, platino y cobrizo.
   var SKINS = [0xdba27a, 0x8a5638, 0xc68a5f, 0xf0c6a4, 0xb07650, 0xe6b48e, 0x6e4430, 0xf3d0b0, 0xa36a48, 0xd9a07c,
     0x5a3626, 0xf7dcc4, 0xc9a27a, 0x9c6b4a];
+  // 1.16 (WP2): + 6 naturales que se distinguen de los de antes (negro azulado, castaño rojizo, miel, rubio ceniza, pelirrojo y
+  // blanco), al final para no mover nada (fromSeed lee los 11 primeros). En la UI van ordenados por luminancia (choices).
   var HAIRS = [0x3a2416, 0x241a14, 0x7a3a16, 0x1e1612, 0x6a4424, 0x9a6a3a, 0xb88a4e, 0x2b1d17, 0x4b2a18, 0xe0c070,
-    0x3a2a1e, 0xd8d4cc, 0x8f8a86, 0xf1e3b0, 0xb4471c];
+    0x3a2a1e, 0xd8d4cc, 0x8f8a86, 0xf1e3b0, 0xb4471c, 0x1c2438, 0x6e2a18, 0xc8913e, 0xbfb29a, 0xd2561c, 0xf6f3ec];
   var HAIR_NAMES = { 0x3a2416: 'Castaño oscuro', 0x241a14: 'Negro', 0x7a3a16: 'Caoba', 0x1e1612: 'Azabache', 0x6a4424: 'Castaño',
     0x9a6a3a: 'Avellana', 0xb88a4e: 'Rubio oscuro', 0x2b1d17: 'Moreno', 0x4b2a18: 'Chocolate', 0xe0c070: 'Rubio', 0x3a2a1e: 'Café',
-    0xd8d4cc: 'Canas', 0x8f8a86: 'Gris', 0xf1e3b0: 'Platino', 0xb4471c: 'Cobrizo' };
+    0xd8d4cc: 'Canas', 0x8f8a86: 'Gris', 0xf1e3b0: 'Platino', 0xb4471c: 'Cobrizo', 0x1c2438: 'Negro azulado', 0x6e2a18: 'Castaño rojizo',
+    0xc8913e: 'Miel', 0xbfb29a: 'Rubio ceniza', 0xd2561c: 'Pelirrojo', 0xf6f3ec: 'Blanco' };
   function lum(h) { return (0.299 * ((h >> 16) & 255) + 0.587 * ((h >> 8) & 255) + 0.114 * (h & 255)) / 255; }
   // en la UI la piel va de clara a oscura; el nombre es «Tono N» en ese orden
   var SKIN_ORDER = SKINS.slice().sort(function (a, b) { return lum(b) - lum(a); });
+  // el pelo natural en la UI: de oscuro a claro (1.16)
+  var HAIR_ORDER = HAIRS.slice().sort(function (a, b) { return lum(a) - lum(b); });
 
   // Fichas de color: las fijas y la paleta (dorado se gana)
   var TOKENS = [{ id: 'auto', name: 'Automático' }, { id: 'eq', name: 'Color del equipo' }, { id: 'ac', name: 'Acento del equipo' },
@@ -97,28 +102,52 @@
   var HIDE_HAIR_HINT = 'Con gorra no se ve el peinado entero';
   var CATALOG = [
     // peinados (slot 'style'; común a pista y playa). vc 'A': las gomas del pelo recogido van en cA por vértice
+    // 1.16 (WP2): casco de pelo nuevo (doll.js HAIR_STYLES): los 10 de siempre rehechos con los mismos ids y 22 nuevos (18 de inicio).
+    // Con gorra ya no se quita ningún peinado: el gorro lo adapta (solo asoma lo de debajo del borde)
     { id: 'tupe', name: 'Tupé', slot: 'style', fam: 'corto', g: 'm' },
-    { id: 'coleta', name: 'Coleta', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', tris: [208, 304, 676] },
-    { id: 'afro', name: 'Afro', slot: 'style', fam: 'textura', g: 'm', tris: [768, 817, 1598] },
-    { id: 'flequillo', name: 'Flequillo', slot: 'style', fam: 'medio', g: 'm', tris: [0, 0, 80] },
+    { id: 'coleta', name: 'Coleta', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', tris: [49, 83, 242] },
+    { id: 'afro', name: 'Afro', slot: 'style', fam: 'textura', g: 'm', tris: [348, 400, 1000] },
+    { id: 'flequillo', name: 'Tazón', slot: 'style', fam: 'medio', g: 'm' },
     { id: 'rapado', name: 'Rapado', slot: 'style', fam: 'corto', g: 'm' },
-    { id: 'mono', name: 'Moño', slot: 'style', fam: 'recogido', vc: 'A', g: 'm', tris: [24, 80, 312] },
-    { id: 'trenzas', name: 'Trenzas', slot: 'style', fam: 'largo', vc: 'A', g: 'f', pl: 1, tris: [280, 300, 440] },
-    { id: 'dosmonos', name: 'Dos moños', slot: 'style', fam: 'recogido', vc: 'A', g: 'm', pl: 1, tris: [168, 300, 824] },
-    { id: 'coletas', name: 'Coletas', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', pl: 1, tris: [288, 288, 400] },
-    { id: 'cresta', name: 'Cresta', slot: 'style', fam: 'corto', rarity: 1, unlock: [shop(3000), { gymN: 3 }], g: 'f', tris: [60, 70, 100] },
+    { id: 'mono', name: 'Moño', slot: 'style', fam: 'recogido', vc: 'A', g: 'm', tris: [24, 80, 272] },
+    { id: 'trenzas', name: 'Trenzas', slot: 'style', fam: 'largo', vc: 'A', g: 'f', pl: 1, tris: [138, 184, 396] },
+    { id: 'dosmonos', name: 'Dos moños', slot: 'style', fam: 'recogido', vc: 'A', g: 'm', pl: 1, tris: [168, 236, 600] },
+    { id: 'coletas', name: 'Coletas', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', pl: 1, tris: [218, 306, 684] },
+    { id: 'cresta', name: 'Cresta', slot: 'style', fam: 'corto', rarity: 1, unlock: [shop(3000), { gymN: 3 }], g: 'f', tris: [60, 210, 300] },
+    { id: 'alCero', name: 'Al cero', slot: 'style', fam: 'corto', g: 'm' },
+    { id: 'degradado', name: 'Degradado', slot: 'style', fam: 'corto', g: 'm' },
+    { id: 'cepillo', name: 'Cepillo', slot: 'style', fam: 'corto', g: 'm' },
+    { id: 'undercut', name: 'Undercut', slot: 'style', fam: 'corto', g: 'm', tris: [56, 133, 344] },
+    { id: 'crop', name: 'Crop', slot: 'style', fam: 'corto', g: 'm' },
+    { id: 'pinchos', name: 'Pinchos', slot: 'style', fam: 'corto', rarity: 1, unlock: [shop(3000), { fame: 1 }], g: 'm', pl: 1 },
+    { id: 'rizosCortos', name: 'Rizos cortos', slot: 'style', fam: 'textura', g: 'm', pl: 1, tris: [20, 292, 760] },
+    { id: 'afroCorto', name: 'Afro corto', slot: 'style', fam: 'textura', g: 'm' },
+    { id: 'frohawk', name: 'Cresta afro', slot: 'style', fam: 'textura', rarity: 1, unlock: [shop(3500), { ach: 'w50' }], g: 'f' },
+    { id: 'raices', name: 'Trenzas de raíz', slot: 'style', fam: 'textura', g: 'f', pl: 1, tris: [0, 28, 230] },
+    { id: 'twists', name: 'Twists', slot: 'style', fam: 'textura', g: 'm', pl: 1, tris: [0, 85, 325] },
+    { id: 'rastas', name: 'Rastas', slot: 'style', fam: 'textura', rarity: 1, unlock: [shop(4000), { fame: 2 }], g: 'f', pl: 1, tris: [6, 58, 350] },
+    { id: 'despeinado', name: 'Despeinado', slot: 'style', fam: 'medio', g: 'm', tris: [0, 25, 185] },
+    { id: 'cortina', name: 'Flequillo cortina', slot: 'style', fam: 'medio', g: 'm' },
+    { id: 'melenita', name: 'Melenita', slot: 'style', fam: 'medio', g: 'f', tris: [4, 40, 140] },
+    { id: 'mullet', name: 'Mullet', slot: 'style', fam: 'medio', rarity: 1, unlock: [shop(3500), { ach: 's5' }], g: 'm', tris: [4, 4, 40] },
+    { id: 'ondas', name: 'Ondas', slot: 'style', fam: 'largo', g: 'f', pl: 1, tris: [18, 110, 344] },
+    { id: 'melena', name: 'Melena', slot: 'style', fam: 'largo', g: 'f', tris: [18, 110, 344] },
+    { id: 'semirrecogido', name: 'Semirrecogido', slot: 'style', fam: 'largo', vc: 'A', g: 'm', tris: [148, 200, 528] },
+    { id: 'coletaBaja', name: 'Coleta baja', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', tris: [49, 83, 242] },
+    { id: 'trenza', name: 'Trenza', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', tris: [89, 102, 218] },
+    { id: 'monoBajo', name: 'Moño bajo', slot: 'style', fam: 'recogido', vc: 'A', g: 'm', tris: [24, 80, 272] },
     // gorro
     { id: 'cinta', name: 'Cinta', slot: 'head', vc: 'AB', g: 'f', tris: [224, 336, 704] },
     { id: 'cintaRizo', name: 'Cinta de rizo', slot: 'head', unlock: [shop(800), rec('wins', 10)], vc: 'A', g: 'f', tris: [112, 168, 384] },
     { id: 'bandana', name: 'Pañuelo', slot: 'head', rarity: 1, unlock: [{ ach: 's10' }, gym('serve', 1), reto('r_aces', 2)], vc: 'A', g: 'm', tris: [388, 500, 1072] },
-    { id: 'gorra', name: 'Gorra', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [170, 269, 606] },
-    { id: 'gorraAtras', name: 'Gorra al revés', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [170, 269, 606] },
-    { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', tris: [168, 212, 336] },
-    { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [178, 275, 718] },
+    { id: 'gorra', name: 'Gorra', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [186, 248, 574] },
+    { id: 'gorraAtras', name: 'Gorra al revés', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', hint: HIDE_HAIR_HINT, tris: [186, 248, 574] },
+    { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', tris: [224, 260, 416] },
+    { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [194, 254, 686] },
     { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [128, 128, 176] },
     // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «MTC» en el frontal; se gana al
     // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
-    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'AB', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [300, 399, 736] },
+    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'AB', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [316, 378, 704] },
     // gafas
     { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [480, 512, 1040] },
     { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [0, 24, 24] },
@@ -180,6 +209,19 @@
     { id: 'tMorado', name: 'Tinte morado', slot: 'hairTint', hex: 0x8a4fd8, rarity: 1, unlock: [{ gymN: 5 }], g: 'm' },
     { id: 'tTurquesa', name: 'Tinte turquesa', slot: 'hairTint', hex: 0x2ec4c4, rarity: 2, unlock: [{ ach: 'n9' }, { retoN: 30 }], g: 'm' },
     { id: 'tDorado', name: 'Tinte dorado', slot: 'hairTint', hex: 0xe8b830, rarity: 3, unlock: [shop(40000)], lux: 1, g: 'm' },
+    // 1.16 (WP2): 5 tintes más y el del color del equipo (tEquipo: el primario de la equipación, por vértice; hex = el de reserva)
+    { id: 'tRojo', name: 'Tinte rojo', slot: 'hairTint', hex: 0xd8263a, unlock: [shop(1200)], g: 'm' },
+    { id: 'tNaranja', name: 'Tinte naranja', slot: 'hairTint', hex: 0xff7a1a, unlock: [shop(1200)], g: 'm' },
+    { id: 'tLila', name: 'Tinte lila', slot: 'hairTint', hex: 0xb48cff, rarity: 1, unlock: [shop(3000), { fame: 1 }], g: 'm' },
+    { id: 'tMenta', name: 'Tinte menta', slot: 'hairTint', hex: 0x7fe0b0, rarity: 1, unlock: [shop(3000), { ach: 'w1' }], g: 'm' },
+    { id: 'tPlata', name: 'Tinte plateado', slot: 'hairTint', hex: 0xc8d0dc, rarity: 2, unlock: [shop(15000), { fame: 3 }], g: 'm' },
+    { id: 'tEquipo', name: 'Tinte del equipo', slot: 'hairTint', hex: 0xd8262e, team: 1, rarity: 1, unlock: [shop(4000), { ach: 'm50' }], g: 'm', hint: 'Del color de tu equipación' },
+    // efectos de pelo (fit.hairFx; el segundo color es fit.hair2 o, sin él, uno que contraste): color por vértice, 0 triángulos
+    { id: 'raiz', name: 'Raíces', slot: 'hairFx', g: 'f', pl: 1, hint: 'Con el segundo color en la raíz' },
+    { id: 'puntas', name: 'Puntas', slot: 'hairFx', g: 'f', pl: 1, hint: 'Con el segundo color en las puntas' },
+    { id: 'mechas', name: 'Mechas', slot: 'hairFx', unlock: [shop(1200)], g: 'f', pl: 1, hint: 'Mechas del segundo color' },
+    { id: 'flequilloFx', name: 'Flequillo teñido', slot: 'hairFx', unlock: [shop(1000)], g: 'm', hint: 'El flequillo del segundo color' },
+    { id: 'mitad', name: 'Mitad y mitad', slot: 'hairFx', rarity: 1, unlock: [shop(3000), { fame: 2 }], g: 'f', hint: 'Media cabeza de cada color' },
     // objetos de jefe (S3-C3 §2.1): solo de la Carrera, por la primera victoria contra un jefe de ese estilo. Son variantes de
     // piezas que ya existen: «as» = la pieza que dibuja doll.js mientras no sepa dibujar la variante (resolve la sustituye)
     { id: 'munhCanon', name: 'Muñequera de cañón', slot: 'wrist', rarity: 2, unlock: [boss('saque')], as: 'muneq', vc: 'A', g: 'f', tris: [80, 80, 160] },
@@ -202,7 +244,7 @@
     it.rarity = it.rarity | 0;
     it.unlock = it.unlock || S;
     // cambia la malla: lo que tiene triángulos, color por vértice o es de una ranura de geometría (sin geo:false explícito)
-    if (it.geo !== false) it.geo = !!(it.tris || it.vc || it.slot === 'style' || it.slot === 'hairTint' || GEO_SLOT[it.slot]);
+    if (it.geo !== false) it.geo = !!(it.tris || it.vc || it.slot === 'style' || it.slot === 'hairTint' || it.slot === 'hairFx' || GEO_SLOT[it.slot]);
     it.vc = it.vc || '';
     it.pc = it.pc || '';
     it.cols = it.vc + it.pc.split('').filter(function (c) { return it.vc.indexOf(c) < 0; }).join('');
@@ -212,6 +254,7 @@
     it.pl = !!it.pl;
     it.lux = !!it.lux;
     it.as = it.as || '';
+    it.team = !!it.team;
     it.ord = i;
     BY_ID[it.id] = it;
     Object.freeze(it.slots); Object.freeze(it.tris); Object.freeze(it);
@@ -235,17 +278,16 @@
   // otro). why.a / why.b: el motivo cuando se quita a / b; {cabe} = cabe | caben (según el nombre quitado), {a}/{b} = el otro
   // objeto con artículo y en minúscula («el moño»).
   var HEAD_IDS = CATALOG.filter(function (it) { return it.slot === 'head'; }).map(function (it) { return it.id; });
+  // 1.16 (WP2): los gorros ya no quitan peinados (doll.js los adapta por clase de gorro: el pelo asoma por debajo del borde, lo que
+  // cuelga sale por la abertura o bajo el ala). Solo quedan las gafas en la frente, que no caben con ningún gorro salvo la gorra al revés
   var CLASH = [
     { a: { slot: 'eyes', ids: ['frente'] }, b: { slot: 'head', ids: HEAD_IDS.filter(function (id) { return id !== 'gorraAtras'; }) },
-      why: { a: 'no caben con ese gorro', b: 'no {cabe} con {a}' } },
-    { a: { slot: 'head', ids: ['bandana', 'pescador'] }, b: { slot: 'style', ids: ['afro'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } },
-    { a: { slot: 'head', ids: ['corona'] }, b: { slot: 'style', ids: ['mono', 'dosmonos', 'cresta'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } },
-    { a: { slot: 'head', ids: ['cintaRizo', 'bandana'] }, b: { slot: 'style', ids: ['dosmonos'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } },
-    { a: { slot: 'head', ids: ['bandana'] }, b: { slot: 'style', ids: ['coletas'] }, why: { a: 'no {cabe} con {b}', b: 'no {cabe} con {a}' } }
+      why: { a: 'no caben con ese gorro', b: 'no {cabe} con {a}' } }
   ];
   CLASH.forEach(function (r) { Object.freeze(r.a.ids); Object.freeze(r.b.ids); Object.freeze(r.a); Object.freeze(r.b); Object.freeze(r.why); Object.freeze(r); });
   var STYLE_FALLBACK = 'tupe';   // al quitar un peinado que choca (ninguna regla lo nombra)
-  // objetos que sustituyen al pelo (gorra, gorra al revés y pescador): se dibuja el pelo de nuca, salvo coleta / trenzas / coletas
+  // gorros de copa (gorra, gorra al revés, pescador y gorra MTC): el pelo solo asoma por debajo (doll.js HAT_CLASS; HAIR_UNDER_CAP dice
+  // qué peinados asoman enteros)
   var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador', 'gorraMTC'];
 
   // ---------------------------------------------------------------- utilidades
@@ -442,7 +484,22 @@
   function sane(fit, i) { return fix(saneRaw(fit, i), null, null).fit; }
 
   // ---------------------------------------------------------------- resolver para doll.js
-  function hairHex(v) { return typeof v === 'string' ? (BY_ID[v] ? BY_ID[v].hex : HAIRS[0]) : v; }
+  function hairHex(v, tc) {
+    if (typeof v !== 'string') return v;
+    var it = BY_ID[v]; if (!it) return HAIRS[0];
+    if (it.team && tc && typeof tc.base === 'number' && isFinite(tc.base)) return tc.base;   // tEquipo: el primario de la equipación
+    return it.hex;
+  }
+  function mixHex(a, b, t) {
+    var ar = a >> 16 & 255, ag = a >> 8 & 255, ab = a & 255, br = b >> 16 & 255, bg = b >> 8 & 255, bb = b & 255;
+    return (Math.round(ar + (br - ar) * t) << 16) | (Math.round(ag + (bg - ag) * t) << 8) | Math.round(ab + (bb - ab) * t);
+  }
+  /** Color de las cejas (y la barba): con un tinte de fantasía, el natural del segundo color si lo es o un castaño tirando al tinte. */
+  function browHex(f, tc) {
+    if (typeof f.hair === 'number') return f.hair;
+    if (typeof f.hair2 === 'number') return f.hair2;
+    return mixHex(hairHex(f.hair, tc), 0x3a2416, 0.6);
+  }
   function colorHex(tok, tc) {
     if (own(PAL_BY, tok)) return PAL_BY[tok].hex;
     var t = TOK_BY[tok];
@@ -460,7 +517,7 @@
     return t && t[id] ? id : it.as;
   }
   function resolveRaw(f, ven, tc) {
-    var set = f[ven], L = { skin: f.skin, hair: hairHex(f.hair), hair2: f.hair2 === '' ? -1 : hairHex(f.hair2), hairFx: f.hairFx, style: f.style,
+    var set = f[ven], L = { skin: f.skin, hair: hairHex(f.hair, tc), hair2: f.hair2 === '' ? -1 : hairHex(f.hair2, tc), brow: browHex(f, tc), hairFx: f.hairFx, style: f.style,
       acc: drawId('head', set.head) };
     SLOTS.forEach(function (s) { if (s !== 'head') L[s] = drawId(s, set[s]); });
     COLOR_KEYS.forEach(function (k) { L[COLOR_L[k]] = colorHex(f.colors[k], tc); });
@@ -503,12 +560,15 @@
 
   // ---------------------------------------------------------------- generadores
   /** Fit determinista a partir de un número (compañero de la Carrera de playa: hashStr de su nombre). Solo objetos de inicio. */
-  function fromSeed(n) {
+  // (1.16) los peinados de inicio de 1.15 (mismo orden): el primer sorteo es el de siempre, así el aspecto no cambia; luego, en 1 de
+  // cada 4, uno de los nuevos (sorteo aparte al final). keepOld (jefes): sin ese sorteo, el jefe de siempre
+  var SEED_OLD = ['tupe', 'coleta', 'afro', 'flequillo', 'rapado', 'mono', 'trenzas', 'dosmonos', 'coletas'];
+  function fromSeed(n, keepOld) {
     var r = prng(hash32((n >>> 0) ^ 0x5bd1e995)), d = defaults(0), f = cloneFit(d), h = f.hall, b = f.beach;
     var pr = function (p) { return r() < p; };
     f.skin = pick(r, SKINS);
     f.hair = pick(r, HAIRS.slice(0, 11).concat(pr(0.25) ? [0xd8d4cc, 0x8f8a86, 0xf1e3b0, 0xb4471c] : []));
-    f.style = pick(r, STYLES.filter(function (id) { return isStart(id); }));
+    f.style = pick(r, SEED_OLD);
     // cara (común a las dos sedes: es la misma persona)
     var beard = pr(0.3) ? pick(r, ['bigote', 'perilla', 'tresDias']) : '';
     var marks = pr(0.18) ? 'pecas' : '';
@@ -532,6 +592,7 @@
     b.ankle = pick(r, ['tela', 'tela', 'pulseraTob', '']);
     if (pr(0.15)) b.armR = 'manguito';
     if (pr(0.15)) b.wristR = 'muneq';
+    if (!keepOld && pr(0.25)) f.style = pick(r, STYLES.filter(function (id) { return isStart(id) && SEED_OLD.indexOf(id) < 0; }));
     return fix(f, null, null).fit;
   }
   /** Fit al azar (botón «Al azar»): seed lo da la UI (Date.now()); ownedOnly = solo lo que ya tienes. */
@@ -563,7 +624,7 @@
   var NONE = { head: 'Sin gorro', eyes: 'Sin gafas', paint: 'Sin pintura', marks: 'Sin marcas', beard: 'Sin barba', neck: 'Nada',
     under: 'Nada', band: 'Sin brazalete', armL: 'Sin manguito', armR: 'Sin manguito', elbows: 'Sin coderas', wristL: 'Nada',
     wristR: 'Nada', hands: 'Nada', legs: 'Sin mallas', knees: 'Sin rodilleras', socks: 'Sin calcetines', ankle: 'Nada',
-    shoes: 'Sin zapatillas', hair2: 'Sin segundo color', hairFx: 'Nada' };
+    shoes: 'Sin zapatillas', hair2: 'Sin segundo color', hairFx: 'Sin efecto' };
   /** Nombre de un objeto, peinado, tinte, ficha de color o color de piel/pelo (hex). slot opcional para el «nada» de esa ranura. */
   function name(id, slot) {
     if (id === '' || id == null) return NONE[slot] || 'Nada';
@@ -601,8 +662,8 @@
   function choices(key, venue) {
     if (key === 'style') return STYLES.slice();
     if (key === 'skin') return SKIN_ORDER.slice();
-    if (key === 'hair') return HAIRS.slice().concat(TINTS);
-    if (key === 'hair2') return [''].concat(HAIRS, TINTS);
+    if (key === 'hair') return HAIR_ORDER.slice().concat(TINTS);
+    if (key === 'hair2') return [''].concat(HAIR_ORDER, TINTS);
     if (key === 'hairFx') return [''].concat(items('hairFx'));
     if (COLOR_KEYS.indexOf(key) >= 0) return TOKENS.map(function (t) { return t.id; }).concat(PALETTE.map(function (p) { return p.id; }));
     if (SLOTS.indexOf(key) >= 0) return [''].concat(items(key, venue));
@@ -884,7 +945,7 @@
   /** Aspecto del jefe (plan R22): fromSeed(seed) con su objeto puesto en las dos sedes y pasado por fix. seed = número o texto
    *  (el nombre: se pasa por hashStr). Estilo desconocido: el fit de fromSeed sin objeto. Determinista, sin g.rng. */
   function bossFit(style, seed) {
-    var n = typeof seed === 'number' && isFinite(seed) ? seed >>> 0 : hashStr(seed), f = fromSeed(n);
+    var n = typeof seed === 'number' && isFinite(seed) ? seed >>> 0 : hashStr(seed), f = fromSeed(n, true);
     bossItems(style).forEach(function (id) {
       var it = BY_ID[id], sl = it.slot === 'armL' ? 'armR' : it.slot === 'wristL' ? 'wristR' : it.slot;
       ['hall', 'beach'].forEach(function (ven) { if (venueOk(it, ven)) f[ven][sl] = id; });

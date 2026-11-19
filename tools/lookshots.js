@@ -29,6 +29,7 @@
  *   Salida: tools/out/look-audit/<grupo>/<fichero>.jpg (+ manifest.json con lo que hay en cada hoja).
  *   Ejemplos: node tools/lookshots.js head --item=gorra
  *             node tools/lookshots.js game --item=manguitoLlamas --venue=hall
+ *   --bviews=espalda,34-izq,34-der,partido,partido-lod0,frente,34-frente,lado,arriba,frente-lod0: vistas del grupo back (5 primeras por defecto)
  * Una sola instancia de Chrome a la vez (se cierra al acabar cada fase).
  */
 'use strict';
@@ -94,7 +95,7 @@ window.__LS = (function () {
     list.forEach(function (sv) {
       var s = sv[0], id = sv[1], slots = s === 'arm' ? ['armL', 'armR'] : s === 'wrist' ? ['wristL', 'wristR'] : [s];
       slots.forEach(function (sl) {
-        if (sl === 'style' || sl === 'hair' || sl === 'skin') f[sl] = id; else f[ven][sl] = id;
+        if (sl === 'style' || sl === 'hair' || sl === 'skin' || sl === 'hair2' || sl === 'hairFx') f[sl] = id; else f[ven][sl] = id;
         var r = LK.fix(f, ven, sl); f = r.fit; (r.removed || []).forEach(function (x) { removed.push(x.msg); });
       });
     });
@@ -434,8 +435,11 @@ async function closeups(ven) {
       const hairK = opt.hair || 'castOsc';
       const sts = styles.filter(st => want(st) || (onlyItems && onlyItems.indexOf('back') >= 0));
       const BV = [['espalda', 'head', 'back', {}], ['34-izq', 'head', 'q3bl', {}], ['34-der', 'head', 'q3br', {}],
-        ['partido', 'full', 'game', { px: 1, lod: 1, pose: 'recv' }], ['partido-lod0', 'full', 'game', { px: 1, lod: 0, pose: 'recv' }]];
-      if (sts.length) for (const [nm, region, view, ex] of BV) {
+        ['partido', 'full', 'game', { px: 1, lod: 1, pose: 'recv' }], ['partido-lod0', 'full', 'game', { px: 1, lod: 0, pose: 'recv' }],
+        // (WP2) otras vistas con --bviews=frente,34-frente,lado,arriba,frente-lod0 (por defecto, las 5 de espaldas)
+        ['frente', 'head', 'front', {}], ['34-frente', 'head', 'q3l', {}], ['lado', 'head', 'sideR', {}], ['arriba', 'head', 'top', {}], ['frente-lod0', 'head', 'front', { lod: 0 }]];
+      const bvWant = opt.bviews ? opt.bviews.split(',') : ['espalda', '34-izq', '34-der', 'partido', 'partido-lod0'];
+      if (sts.length) for (const [nm, region, view, ex] of BV.filter(b => bvWant.indexOf(b[0]) >= 0)) {
         const cols = sts.length <= 10 ? 5 : 8, rows = [];
         for (let i = 0; i < sts.length; i += cols) rows.push({ skin: 'light', kit: 'A', hair: hairK, tag: '',
           views: sts.slice(i, i + cols).map(st => Object.assign({ region, view, style: st, tag: st }, ex)) });
@@ -443,6 +447,17 @@ async function closeups(ven) {
           title: 'PEINADOS DE ESPALDAS · ' + nm + ' · ' + ven + ' · ' + sts.length + ' peinados · pelo ' + hairK,
           sub: view === 'game' ? 'cámara del partido en el móvil (8,7 m, 41°, 27° fuera de la espalda), al tamaño del buffer de 800x450 del móvil (el muñeco mide ≈ 68 px; las 98 px del plan eran 1,9 m), LOD' + ex.lod + ', atlas 512², pose de recepción, ampliado sin suavizar' : 'vista previa LOD2, cabeza', rows },
           { group: 'back', venue: ven, what: 'peinados ' + nm, styles: sts });
+      }
+      // (WP2) --bviews=…,fx: efectos de pelo (columnas) con el segundo color automático y con rosa, y los colores nuevos
+      if (bvWant.indexOf('fx') >= 0) {
+        const FX = ['', 'raiz', 'puntas', 'mechas', 'flequilloFx', 'mitad'];
+        const mkf = (style, view, h2, hair) => ({ skin: 'light', kit: 'A', hair: hair || hairK, tag: '', views: FX.map(fx => ({ region: 'head', view, style, tag: style + ' ' + (fx || 'sin efecto') + (h2 ? ' +' + h2 : ''), list: [['hairFx', fx]].concat(h2 ? [['hair2', h2]] : []) })) });
+        await job('back/fx-' + ven + '.png', { venue: ven, base: 'std', cols: FX.length, tw: 220, th: 220, title: 'EFECTOS DE PELO · ' + ven, sub: 'segundo color automático salvo «+tRosa»',
+          rows: [mkf('melena', 'q3l'), mkf('melena', 'q3bl'), mkf('tupe', 'q3l', 'tRosa', 'negro'), mkf('coleta', 'q3bl'), mkf('afroCorto', 'q3bl', 'tRosa', 'negro')] }, { group: 'back', venue: ven, what: 'fx' });
+        const HC = [0x1c2438, 0x6e2a18, 0xc8913e, 0xbfb29a, 0xd2561c, 0xf6f3ec, 'tRojo', 'tNaranja', 'tLila', 'tMenta', 'tPlata', 'tEquipo'];
+        const mkc = (style, view, skin) => ({ skin, kit: 'A', hair: hairK, tag: '', views: HC.map(h => ({ region: 'head', view, style, tag: style + ' ' + h.toString(16), list: [['hair', h]] })) });
+        await job('back/colores-' + ven + '.png', { venue: ven, base: 'std', cols: HC.length, tw: 170, th: 170, title: 'COLORES NUEVOS · ' + ven, sub: '6 naturales y 6 tintes',
+          rows: [mkc('ondas', 'q3l', 'light'), mkc('afroCorto', 'q3bl', 'dark')] }, { group: 'back', venue: ven, what: 'colores' });
       }
       const heads = cat.filter(it => it.slot === 'head' && venOk(it, ven) && (want(it.id) || (onlyItems && onlyItems.indexOf('back') >= 0)));
       if (heads.length) {

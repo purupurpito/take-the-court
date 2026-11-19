@@ -1240,6 +1240,71 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
   puede arreglar: el móvil viejo dibuja tupé hasta que se actualiza. Por eso se publica con el aviso de versión nueva (update.js, 1.15.1),
   que salta al arrancar y al volver a la pestaña.
 
+### Pelo nuevo (19-nov-2026, WP2 de notes/vestuario-plan.md)
+Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, bloque «PELO», antes de `headGeo`.
+- **Casco `hairShell(H, o)`**: rejilla (φ, θ) sobre `headShape` + normal × desfase (φ = acimut, 0 delante y ±π la nuca; θ desde la
+  coronilla). Columnas más densas sobre las orejas (`hairCols`). Filas: arriba, fijas en θ (0, 0,075π, 0,15π y 0,21π; así el brillo cae en
+  una fila exacta). Luego, hasta la línea de pelo, cada vez más juntas. Al final, la fila «tuck», pegada a la piel.
+  - Coste ≈ el casquete de antes: 32 columnas en LOD2 y 16 en LOD0.
+  - Normales por diferencias finitas de la superficie entera: sin costura en la nuca ni estrella en la coronilla.
+- **Líneas de pelo `HL`** por acimut: corto, recogido, tazón, medio, largo y afro. Llevan entradas, patilla, arco sobre la oreja y nuca hasta
+  0,63-0,82π. El pelo que tapa la oreja se abomba (`earBump`).
+- **La cara**: entre ±`FACE_PH` (asin FE_DX + 0,05) la línea no baja de `FACE_TH` (0,30π: la ceja neutra acaba en ≈ 0,32π). Sobre la lámina
+  de ojos el pelo va a `FACE_CLEAR` (F_OFF + 2,5 mm) o más. Así no hay dientes en la línea del pelo y las cejas se ven enteras.
+- **Desfase mínimo** 4,5 mm, más `HAIR_OFF_LOD` [12, 5, 0,5] mm por LOD. Con menos, la piel asomaba a puntos (en el partido a 8 m, y en
+  LOD0 por la flecha de las cuerdas).
+- **`H.pt(φ, θ, extra)`** (= shellPt): punto y normal de la superficie del casco principal. Ahí se anclan moños, gomas, colas, mechones,
+  rizos, la corona (`crown` de cada peinado → `H.crownAt`) y las gafas en la frente.
+- **Piezas**:
+  - `sweep` (barrido de anillos elípticos; punta cerrada en abanico) es la base de colas, trenzas, rastas, mechones, crestas y cintas.
+  - `hairTail` (nudo + goma + cola), `hairBraid` (eslabones alternos con la goma en la punta de verdad), `hairLock`, `hairCurl`
+    (icosaedro de 80 en LOD2, dodecaedro en LOD1 e icosaedro de 20 en LOD0) y `hairBall`.
+  - `hairSkirt`: melena, una lámina con grosor que nace dentro del casco, sale por lo más ancho de la cabeza y cae recta. Lados más cortos
+    (sobre los hombros) y espalda más larga, con onda y bajo opcionales.
+- **Lo que cuelga se mueve**:
+  - Colas y trenzas mezclan el hueso de la cabeza con `r.hair` (G.bone2/G.w2: 0 en la goma → 0,7 en la punta). El muelle es el de siempre
+    (players.js `hairSpring` sin tocar).
+  - Melenas y rastas mezclan con `chest` (0,6 abajo): al girar la cabeza no atraviesan los hombros.
+  - `pushOut` aparta trenzas y rastas del cráneo y de las bolas de los hombros.
+- **Color por vértice** (`hairTone`, 0 triángulos). El color de cada triángulo se decide con el θ del centro de su banda de filas: degradados
+  en bandas limpias, sin dientes de sierra.
+  - Brillo en la coronilla (θ 0,15-0,21π): k de 0,30 en pelo negro a 0,12 en claro, más fuerte delante.
+  - Degradados (`fade`): laterales a la «sombra de la piel» (`H.stub`), en 3 escalones.
+  - `hairFx` con `hair2`: raiz, puntas, mechas (18 sectores), flequilloFx y mitad. Sin `hair2`, un segundo color que contraste. El id es
+    `flequilloFx` porque `flequillo` ya es un peinado: los ids son globales.
+- **Tabla `HAIR_STYLES`** con los 32 peinados: `{line, off, vol, volFn, lift, flat, bump, tuck, shine, fade, crown, hat, parts, extra}`.
+  - Los 10 de siempre, rehechos con los mismos ids: tupé con lift y 2 mechones; coleta sin aro y con cola de 0,45 en el muelle; afro sin cuña,
+    con 13-15 rizos; tazón (`flequillo`) con borde grueso y sin «auriculares»; moño más grande y atrás; trenzas escaladas por FK; cresta con
+    laterales rapados y 5 pinchos.
+  - Los 22 nuevos son los ids del plan.
+  - `HAIR_UNDER_CAP` (los que llevan `hat:'show'`) lo publica VB.Doll y lo usa ui.js `lkCapHides`.
+- **Gorros por clases** (`HAT_CLASS`):
+  - CAP (gorra, gorraMTC), CAPB (gorraAtras) y BUCKET (pescador): `hatCup` + `cupRim` dan el borde de la copa por acimut. El casco solo se
+    dibuja desde un poco por encima del borde (dentro, pegado; fuera, con su volumen), así que hay pelo en la nuca.
+  - Lo de arriba (mechones, moños, pinchos) se quita si queda dentro de la copa (`H.hid`). Las colas salen por la abertura de atrás (CAP) o
+    por debajo del borde o del ala.
+  - BAND (cinta, cintaRizo, bandana, visera): el peinado entero, y el aro **abraza** lo que haya (`bandRing`: sigue la superficie, suavizado
+    donde empieza el pelo; mismos lados que el toro de antes). La cinta pasa a ser plana (1,5 × 4,5 cm) y el filete queda por fuera.
+  - CROWN: en `crown`.
+- **look.js**:
+  - Se quitan las 5 reglas de CLASH de peinado; solo queda frente + gorro. La gorra al revés sigue valiendo con las gafas en la frente: si
+    no, los guardados de 1.15.1 perdían las gafas.
+  - 22 peinados en CATALOG (18 de inicio; pinchos, cresta afro, mullet y rastas en la tienda o por fama/logro, sin tocar los premios por
+    nivel). «Flequillo» se llama «Tazón».
+  - 6 naturales nuevos al final de HAIRS. En `choices('hair')`, de oscuro a claro.
+  - 5 tintes y `tEquipo` (`team:1`: `hairHex(v, tc)` da tc.base; entra en la firma de malla de doll.js por el hex) y 5 `hairFx`.
+  - `resolve` añade `L.brow`: con un tinte de fantasía, las cejas y la barba van en el natural de `hair2` o en mixHex(tinte, castaño, 0,6).
+  - `fromSeed`: el primer sorteo es el de siempre (lista de 1.15) y, al final, 1 de cada 4 pasa a un peinado nuevo. `bossFit` usa
+    `fromSeed(n, true)`: los jefes no cambian.
+- **players.js**: `npcStyle(h)`: con `(h >>> 20) % 4 === 0`, uno de `STYLES_NEW` (con peso); si no, el de siempre. Cambia ≈ 25 % de los NPC.
+- **ui.js** (lo mínimo): filas «Segundo color» y «Efecto de pelo» en la pestaña Pelo (lkGetFrom/lkPut), y LK_UNDER_CAP desde doll.js.
+- **Medido** (lookSelfTest; peinados sobre el tupé):
+  - El afro es el más pesado en los 3 LOD: 2758/4145/9256 en pista frente a 2410/3745/8256 del tupé. Afro + gafas: 3264/4657/10296
+    (antes 3658/5006/10860).
+  - Peor caso de playa: 4088/5739/12510 (márgenes 312/261/290; antes 94/206/184). Pista: 3516/5245/11380.
+  - lookvis caso b (partido en el móvil, de espaldas, frente al tupé): los 31 peinados ≥ 529 px (umbral 9).
+- **Herramientas**: `lookshots back --bviews=…` añade frente, 34-frente, lado, arriba, frente-lod0 y `fx` (hojas back/fx y back/colores).
+
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 
 Detalle: `notes/s234/T2.md` (contactos, `bindReplay`, `baseLook`, celebraciones con hash), `T3.md` (retrato), `T17.md` (firmas, rabias,
