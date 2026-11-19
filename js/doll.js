@@ -1201,13 +1201,16 @@
   //    pecho (G.bone2/G.w2): se mueven y no atraviesan los hombros al girar la cabeza. players.js (hairSpring) no cambia.
   //  - Gorros por CLASES (HAT_CLASS): ya no prohíben peinados, los adaptan (el casco solo asoma por debajo del borde, lo de arriba se
   //    quita y lo que cuelga sale por la abertura o por debajo del ala).
+  // (ronda 1 de WP2: la frente se ve. Antes todos los perfiles bajaban a la ceja delante (θ 0,29-0,30π) y de frente todos los
+  //  peinados parecían un tazón; ahora la línea de delante sube a θ ≈ 0,22-0,26π con ENTRADAS en las esquinas (φ ≈ 0,45-0,6, más
+  //  arriba que el centro) y baja por la sien a la patilla. Solo el tazón (y los peinados con flequillo propio) tapan la frente.)
   var HL = {
-    corto: [[0, .30], [.45, .315], [.8, .37], [1.05, .47], [1.18, .555], [1.32, .565], [1.42, .45], [1.6, .405], [1.85, .425], [2.1, .53], [2.5, .64], [2.85, .69], [PI, .70]],
-    recogido: [[0, .285], [.5, .30], [.85, .36], [1.1, .46], [1.22, .52], [1.33, .51], [1.43, .42], [1.62, .395], [1.9, .425], [2.2, .55], [2.6, .66], [PI, .72]],
+    corto: [[0, .245], [.3, .25], [.55, .225], [.78, .29], [1.05, .45], [1.18, .555], [1.32, .565], [1.42, .45], [1.6, .405], [1.85, .425], [2.1, .53], [2.5, .64], [2.85, .69], [PI, .70]],
+    recogido: [[0, .235], [.35, .24], [.6, .25], [.85, .33], [1.1, .45], [1.22, .52], [1.33, .51], [1.43, .42], [1.62, .395], [1.9, .425], [2.2, .55], [2.6, .66], [PI, .72]],
     tazon: [[0, .30], [.55, .305], [.95, .40], [1.25, .48], [1.6, .50], [1.95, .53], [2.4, .60], [PI, .63]],
-    medio: [[0, .30], [.5, .315], [.85, .40], [1.1, .55], [1.35, .62], [1.7, .64], [2.2, .72], [2.7, .79], [PI, .80]],
-    largo: [[0, .30], [.5, .315], [.85, .40], [1.1, .56], [1.35, .63], [1.7, .65], [2.2, .74], [2.7, .81], [PI, .82]],
-    afro: [[0, .285], [.5, .30], [.85, .37], [1.1, .48], [1.22, .56], [1.34, .555], [1.45, .45], [1.65, .43], [1.9, .47], [2.2, .58], [2.6, .67], [PI, .71]]
+    medio: [[0, .255], [.35, .26], [.6, .27], [.85, .37], [1.1, .55], [1.35, .62], [1.7, .64], [2.2, .72], [2.7, .79], [PI, .80]],
+    largo: [[0, .275], [.4, .28], [.65, .29], [.88, .39], [1.1, .56], [1.35, .63], [1.7, .65], [2.2, .74], [2.7, .81], [PI, .82]],
+    afro: [[0, .25], [.4, .255], [.65, .27], [.88, .36], [1.1, .48], [1.22, .56], [1.34, .555], [1.45, .45], [1.65, .43], [1.9, .47], [2.2, .58], [2.6, .67], [PI, .71]]
   };
   // la cara: entre ±FACE_PH la línea no baja de FACE_TH (la ceja neutra acaba en θ ≈ 0,32π) y el pelo queda por fuera de la lámina
   var FACE_PH = Math.asin(FE_DX) + 0.05, FACE_TH = 0.30 * PI, HAIR_OFF_LOD = [0.012, 0.005, 0.0005], HAIR_TUCK = 0.0015, FACE_CLEAR = F_OFF + 0.0025;
@@ -1326,7 +1329,7 @@
     function offAt(ph, th) {
       var tm = thMax(ph), u = clamp(th / tm, 0, 1), f = off0;
       if (vol) f += vol * (o.volFn ? o.volFn(ph, th, u) : 1 - Math.pow(sstep(0.62, 1.0, u), 1.4) * 0.9);
-      if (lift) { var a = (th - 0.17 * PI) / 0.16, b = ph / 0.55; f += lift * Math.exp(-a * a - b * b); }
+      if (lift) { var a = (th - (o.liftTh || 0.17) * PI) / (o.liftW || 0.16), b = ph / 0.55; f += lift * Math.exp(-a * a - b * b); }
       if (o.bump) f += o.bump(ph, th, u);
       if (o.ear !== false) f += earBump(ph, th);
       if (cup && o.hatClamp !== false) {   // dentro de la copa, pegado (no atraviesa el gorro); fuera, el volumen del peinado
@@ -1345,12 +1348,15 @@
     // filas de cada columna: arriba fijas en θ (el brillo de 0,15-0,21π queda en una fila exacta), luego hasta la línea de pelo
     // cada vez más juntas, y la fila «tuck» (borde metido, pegado a la piel)
     var TOPR = lod > 0 ? [0, 0.075 * PI, 0.15 * PI, 0.21 * PI] : [0, 0.15 * PI, 0.21 * PI];
+    // filas de una banda que no empieza en la coronilla (gorro de copa, th0): en LOD0 una menos, para que el pelo bajo el gorro no
+    // cueste más que el peinado entero (la coronilla es un solo triángulo por columna; la banda, dos)
+    var NB = lod > 0 ? nR + 2 : nR + 1;
     var rowsOf = function (ph) {
       var tm = thMax(ph), t0 = o.th0 ? o.th0(ph) : 0, out = [], i;
       if (cup) { var rm = H.rimAt(ph); t0 = Math.max(t0, rm - 0.07 * PI); }
       if (t0 > tm - 0.02) t0 = tm - 0.02;
       if (t0 <= 0) { for (i = 0; i < TOPR.length && TOPR[i] < tm - 0.06; i++) out.push(TOPR[i]); }
-      var a = out.length ? out[out.length - 1] : t0, n = out.length ? nR : nR + 2;
+      var a = out.length ? out[out.length - 1] : t0, n = out.length ? nR : NB;
       for (i = out.length ? 1 : 0; i <= n; i++) { var s = i / n; out.push(a + (tm - a) * (1 - Math.pow(1 - s, 1.45))); }
       return out;
     };
@@ -1394,7 +1400,7 @@
       var tm = thMax(ph), t0 = o.th0 ? o.th0(ph) : 0, i;
       if (cup) t0 = Math.max(t0, H.rimAt(ph) - 0.07 * PI);
       if (th >= tm) return tm;
-      var a = t0, n = nR + 2;
+      var a = t0, n = NB;
       if (t0 <= 0) {
         var tops = []; for (i = 0; i < TOPR.length && TOPR[i] < tm - 0.06; i++) tops.push(TOPR[i]);
         a = tops[tops.length - 1]; n = nR;
@@ -1508,7 +1514,10 @@
     var OUT = [], INN = [], P = {};
     for (k = 0; k <= nC; k++) {
       var ph = cols[k] > PI ? cols[k] - 2 * PI : cols[k], a = Math.abs(ph);
-      var yb = lerp(o.ySide, o.yBack, sstep(1.35, 2.6, a)) + (o.hem ? o.hem(ph) : 0);
+      // (ronda 1) MECHONES: columnas alternas más largas (puntas en pico) y abombadas (canal entre mechón y mechón): ya no es una
+      // lámina recta. Los cantos de delante, sin pico. clump: 0 = lámina lisa
+      var cl = o.clump == null ? 1 : o.clump, odd = k % 2 === 1 && k > 0 && k < nC, yb = lerp(o.ySide, o.yBack, sstep(1.35, 2.6, a)) + (o.hem ? o.hem(ph) : 0);
+      if (odd) yb -= 0.026 * cl * FK;
       // nace dentro del casco por encima de lo más ancho de la cabeza (θ 0,5π), sale por lo más ancho (0,57π) y cae recta, abriéndose
       // un poco (con gorro de copa, por debajo del borde)
       var tTop = 0.5 * PI, tW = 0.57 * PI;
@@ -1526,6 +1535,7 @@
         if (s < 0.3) { var q = s / 0.3; y = lerp(top[1], wide.y, q); rad = lerp(Math.sqrt(top[0] * top[0] + top[2] * top[2]), rr, Math.sin(q * PI / 2)); }
         else { var q2 = (s - 0.3) / 0.7; y = lerp(wide.y, yb, q2); rad = rr + (o.flare || 0.02) * q2 * q2; }
         if (o.wave) rad += o.wave(ph, s);
+        if (s > 0.3) { var q3 = (s - 0.3) / 0.7; rad += cl * (odd ? 0.007 : -0.002) * Math.sin(q3 * PI * 0.5) - cl * 0.012 * sstep(0.7, 1, q3) * (odd ? 1 : 0.4); }
         x = ux * rad; z = uz * rad;
         O.push([x, y, z]);
         var ti = th * (s < 0.15 ? s / 0.15 : 1) * (0.55 + 0.45 * edge);
@@ -1557,12 +1567,15 @@
     hangOff(H);
   }
   /** Cola (coleta, coletas, coleta baja): nudo + goma + cola que cuelga en el muelle del pelo. */
-  function hairTail(H, p, n, len, r0, droop, side) {
-    var nk = [n[0], n[1], n[2]];
-    hairBall(H, [p[0] + nk[0] * 0.012, p[1] + nk[1] * 0.012, p[2] + nk[2] * 0.012], nk, 0.05 * FK * (r0 / 0.06), 0.8, 12);
-    var tp = [p[0] + nk[0] * 0.045, p[1] + nk[1] * 0.045, p[2] + nk[2] * 0.045];
-    hairTie(H, [p[0] + nk[0] * 0.035, p[1] + nk[1] * 0.035, p[2] + nk[2] * 0.035], nk, 0.034 * FK * (r0 / 0.06), 0.012);
-    var ns = sg(7, 3), path = hangPath(tp, [nk[0] + (side || 0) * 0.4, nk[1] + 0.35, nk[2]], len, ns, droop == null ? 0.3 : droop);
+  // o: {dir: dirección de salida de la cola (si no, la normal subida), ball: tamaño del nudo (0 = sin nudo: sale por la abertura de la
+  //  gorra), tie: distancia de la goma}
+  function hairTail(H, p, n, len, r0, droop, side, o) {
+    var nk = [n[0], n[1], n[2]], ob = o || {}, bk = ob.ball == null ? 1 : ob.ball, td = ob.tie == null ? 0.035 : ob.tie;
+    if (bk > 0) hairBall(H, [p[0] + nk[0] * 0.012, p[1] + nk[1] * 0.012, p[2] + nk[2] * 0.012], nk, 0.05 * FK * (r0 / 0.06) * bk, 0.8, 12);
+    var tp = [p[0] + nk[0] * (td + 0.01), p[1] + nk[1] * (td + 0.01), p[2] + nk[2] * (td + 0.01)];
+    hairTie(H, [p[0] + nk[0] * td, p[1] + nk[1] * td, p[2] + nk[2] * td], nk, 0.034 * FK * (r0 / 0.06), 0.012);
+    var d0 = ob.dir || [nk[0] + (side || 0) * 0.4, nk[1] + 0.35, nk[2]];
+    var ns = sg(7, 3), path = hangPath(tp, d0, len, ns, droop == null ? 0.3 : droop);
     var Rr = [], prof = [0.75, 1, 1.02, 0.92, 0.78, 0.6, 0.4, 0.2];
     for (var i = 0; i < path.length; i++) { var s = i / (path.length - 1); Rr.push(i === path.length - 1 ? 0 : r0 * lerp(prof[Math.floor(s * 7)], prof[Math.min(7, Math.floor(s * 7) + 1)], s * 7 - Math.floor(s * 7))); }
     hangOn(H, tp[1] + 0.02, tp[1] - len, 0.7, 'hair');
@@ -1638,20 +1651,40 @@
   //  asoma con gorra de copa; si no, la UI avisa), parts(H) (piezas; cada una mira H.hid), extra(H) (más cascos)}. ids: los de siempre
   //  (nunca se borran) + los 22 de 1.16.
   var HAIR_STYLES = {
-    tupe: { line: 'corto', vol: 0.012, lift: 0.045, crown: [PI, 0.1, 0.0, -0.3],
+    // tupé (ronda 1): el volumen va DELANTE, sobre la frente (antes era un mechón enorme arriba y atrás que de frente parecía un
+    // gorro de cocinero y de lado un moño). Casco con lift delante + una onda que sube desde la línea de pelo y se peina hacia atrás.
+    tupe: { line: 'corto', vol: 0.01, lift: 0.024, liftTh: 0.2, liftW: 0.22, crown: [PI, 0.1, 0.0, -0.3],
       parts: function (H) {
-        var p = H.pt(0, 0.13 * PI, -0.03); if (H.hid(p)) return;
-        H.G.vc = function () { return hairTone(H, 0, 0.3, 0.2, 'piece'); };
-        H.G.add(tuftGeo(0.26 * FK, 0.11 * FK), H.hr, 0.01, p[1] + 0.005, p[2] - 0.01, 0.95, 0, -0.15, 1.5, 1, 0.75);
-        H.G.add(tuftGeo(0.15 * FK, 0.085 * FK), H.hr, -0.01, p[1] + 0.005, p[2] - 0.065 * FK, 0.7, 0, 0.05, 1.4, 1, 0.7);
-        H.G.vc = null;
+        var n = sg(7, 4), P2 = [], Rr = [], i;
+        for (i = 0; i <= n; i++) {
+          var s = i / n, a = lerp(0.232, 0.02, Math.pow(s, 0.85)) * PI, d = midDir(0, a);
+          // sección: ancha delante (la onda), más baja hacia la coronilla; el primer anillo, casi cerrado (sin borde abierto). El centro
+          // sube media altura: el volumen queda por encima del casco y la onda vuela un poco sobre la frente
+          var w = 0.115 * FK * (1 - 0.5 * s), h = 0.042 * FK * Math.pow(1 - s, 1.25) * (i === 0 ? 0.45 : 1) + 0.004;
+          var p = H.pt(d[0], d[1], i === 0 ? 0.002 : h * 0.5); if (H.hid(p)) continue;
+          P2.push(p); Rr.push(i === 0 ? [w * 0.45, 0.004] : [w, h]);   // (el primer anillo, chato y metido: cierra la onda sin borde abierto)
+        }
+        if (P2.length > 1) hairPiece(H, sweep(P2, Rr, sg(8, 5), outRef), P2[0], 0.25, 0);
       } },
+    // coleta (ronda 1): sin gorro, la cola sale hacia ATRÁS y cae en arco (antes apuntaba arriba y en el partido se leía como un moño).
+    // Gorra (CAP): sale por la abertura de atrás, justo en el borde, sin nudo (el nudo queda dentro) y cae; gorra al revés (CAPB): por
+    // debajo de la visera de atrás; pescador (BUCKET): el nudo baja bajo el ala y la cola cae por la nuca.
     coleta: { line: 'recogido', off: 0.005, vol: 0.004, hat: 'show', crown: [0, 0.12, 0, 0],
       parts: function (H) {
-        var th = 0.33 * PI;
-        if (H.hat === 'CAP') th = H.rimAt(PI) - 0.05 * PI; else if (H.cup) th = Math.max(th, H.rimAt(PI) + 0.03 * PI);
-        var p = H.pt(PI, th, -0.01);
-        hairTail(H, p, [p[3], p[4] * 0.5 + 0.1, p[5]], 0.45 * FK, 0.062, 0.26);
+        var p, n, len = 0.46 * FK;
+        if (H.hat === 'CAP') {
+          p = H.pt(PI, H.rimAt(PI) + 0.012 * PI, -0.012); n = [p[3], 0, p[5]];
+          hairTail(H, p, n, len, 0.058, 0.32, 0, { ball: 0, tie: 0.016, dir: [n[0], -0.2, n[2]] });
+        } else if (H.hat === 'CAPB') {
+          p = H.pt(PI, H.rimAt(PI) + 0.05 * PI, -0.012); n = [p[3], p[4] * 0.3, p[5]];
+          hairTail(H, p, n, len * 0.9, 0.056, 0.35, 0, { ball: 0.7, tie: 0.03, dir: [n[0] * 0.6, -0.7, n[2] * 0.6] });
+        } else if (H.hat === 'BUCKET') {
+          p = H.pt(PI, H.rimAt(PI) + 0.1 * PI, -0.012); n = [p[3], p[4] * 0.3, p[5]];
+          hairTail(H, p, n, len * 0.85, 0.056, 0.35, 0, { ball: 0.8, tie: 0.03, dir: [n[0] * 0.5, -0.85, n[2] * 0.5] });
+        } else {
+          p = H.pt(PI, 0.37 * PI, -0.01); n = [p[3], p[4] * 0.4 + 0.08, p[5]];
+          hairTail(H, p, n, len, 0.062, 0.3, 0, { dir: [n[0], n[1] * 0.4 + 0.1, n[2]] });
+        }
       } },
     afro: { line: 'afro', off: 0.006, vol: 0.075, crown: [0, 0.06, 0.0, 0],
       volFn: function (ph, th, u) { return (1 - Math.pow(sstep(0.55, 1, u), 1.6) * 0.92) * (0.9 + 0.1 * Math.cos(th)); },
@@ -1823,14 +1856,24 @@
         hairTie(H, [p[0] + p[3] * 0.01, p[1] + p[4] * 0.01, p[2] + p[5] * 0.01], [p[3], p[4], p[5]], 0.034 * FK, 0.011);
         hairBall(H, [p[0] + p[3] * 0.04, p[1] + p[4] * 0.04, p[2] + p[5] * 0.04], [p[3], p[4], p[5]], 0.05 * FK, 0.8, 12);
       } },
-    twists: { line: 'corto', off: 0.006, vol: 0.02, crown: [0, 0.1, 0.02, 0],
+    // twists (ronda 1): cordones GRUESOS retorcidos (anillos alternos gordo/fino = las vueltas) que tapan la cabeza entera, en filas
+    // al tresbolillo, cayendo hacia fuera y abajo; el casco va oscuro por dentro (la raíz entre cordones). Antes eran trazos finos.
+    twists: { line: 'corto', off: 0.006, vol: 0.012, shine: 0, crown: [0, 0.08, 0.03, 0],
+      col: function (H) { return mixHex(H.hr, 0x000000, 0.25); },
       parts: function (H) {
-        var n = LODR === 0 ? 8 : 15, i;
-        for (i = 0; i < n; i++) {
-          var ph = PI * (-1 + 2 * (i + 0.5) / n) + (jit(i, 31) - 0.5) * 0.3, th = (0.14 + 0.36 * jit(i, 32)) * PI;
-          if (Math.abs(ph) < 0.95 && th > 0.24 * PI) th = 0.2 * PI;
-          var p0 = H.pt(ph, th, 0), dir = [p0[3] * 0.9, p0[4] * 0.6 - 0.25, p0[5] * 0.9];
-          hairLock(H, ph, th, dir, (0.11 + 0.05 * jit(i, 33)) * FK, 0.022 * FK, 0.02 * FK, 0.6, sg(5, 3), sg(4, 2));
+        var ROWS = LODR === 0 ? [[0.1, 5], [0.3, 7]] : [[0.06, 5], [0.22, 8], [0.38, 9], [0.52, 6]], k = 0, r, i;
+        for (r = 0; r < ROWS.length; r++) {
+          var th0 = ROWS[r][0] * PI, n = ROWS[r][1];
+          for (i = 0; i < n; i++, k++) {
+            var ph = PI * (-1 + 2 * (i + 0.5 * (r % 2) + 0.25) / n) + (jit(k, 31) - 0.5) * 0.2, th = th0 + (jit(k, 32) - 0.5) * 0.04 * PI;
+            if (th > H.line(ph) - 0.06 * PI) continue;                       // la cara y la oreja, libres
+            if (Math.abs(ph) < 0.95 && th > 0.16 * PI) continue;             // delante, solo arriba (caen sobre la frente)
+            var p = H.pt(ph, th, -0.008); if (H.hid(p)) continue;
+            var len = (0.1 + 0.035 * jit(k, 33)) * FK * (th < 0.15 * PI ? 0.85 : 1), rr = 0.024 * FK;
+            var path = hangPath(p, [p[3] + 0.8 * Math.sin(ph), p[4] * 0.35, p[5] + 0.8 * Math.cos(ph)], len, sg(6, 3), 0.4, pushOut), Rr = [];   // (salen hacia fuera, no hacia arriba)
+            for (var j = 0; j < path.length; j++) Rr.push(j === path.length - 1 ? 0 : rr * (1 - 0.25 * j / path.length) * (j % 2 ? 1 : 0.74));
+            hairPiece(H, sweep(path, Rr, sg(6, 4), outRef), p, len, ph);
+          }
         }
       } },
     rastas: { line: 'corto', off: 0.006, vol: 0.016, hat: 'show', crown: [0, 0.1, 0.02, 0],
@@ -1870,9 +1913,11 @@
   function tuftGeo(len, rr, seg) { return lathe([V2(0, 0), V2(rr * 0.8, len * 0.08), V2(rr, len * 0.3), V2(rr * 0.74, len * 0.62), V2(rr * 0.3, len * 0.9), V2(0, len)], seg || 10, 6); }
   /** Pelo entero de un muñeco: casco principal (con gorro de copa, solo lo de debajo del borde), cascos extra y piezas. Deja el
    *  contexto en H (la corona, las cintas y el pañuelo lo leen). */
+  var SKIP_HAIR = false;   // solo lookSelfTest: mide un gorro de copa sin pelo (lo que cuesta el gorro por sí solo)
   function hairGeo(G, X, tc, r) {
     var H = hairCtx(G, X, tc, r), st = H.st;
-    hairShell(H, { line: st.line, off: st.off, vol: st.vol, volFn: st.volFn, lift: st.lift, flat: st.flat, bump: st.bump, tuck: st.tuck, main: true,
+    if (SKIP_HAIR) { H.line = function () { return 0.3 * PI; }; H.off = function () { return 0; }; H.crownAt = { p: [0, HEAD_C + HEAD_RY, 0], tilt: 0 }; return H; }
+    hairShell(H, { line: st.line, off: st.off, vol: st.vol, volFn: st.volFn, lift: st.lift, liftTh: st.liftTh, liftW: st.liftW, flat: st.flat, bump: st.bump, tuck: st.tuck, main: true,
       col: st.col ? (function (c) { return function () { return c; }; })(st.col(H)) : null });
     if (st.extra) st.extra(H);
     if (st.parts) st.parts(H);
@@ -2574,11 +2619,13 @@
   var TRI_CAP = [4400, 6000, 12800];
   // TRI_TODAY (1.16, WP2): casco de pelo nuevo. El afro baja (−394/−349/−564 con gafas: rizos de 20-80 triángulos en vez de 19 esferas)
   // y el resto queda casi igual (rapado +26/+68/+34, gorra +42/+47/+2: el pelo de la nuca bajo la gorra)
+  // (ronda 1 de WP2: la banda de pelo bajo un gorro de copa lleva una fila menos en LOD0 → gorra −32 en LOD0; así el pelo bajo el gorro
+  //  nunca cuesta más que el peinado sin gorro, lo comprueba lookSelfTest 2c)
   var TRI_TODAY = [
     { L: { style: 'rapado', acc: '' }, t: [2316, 3605, 8056], n: 'rapado sin complemento' },
     { L: { style: 'afro', acc: 'gafas' }, t: [3264, 4657, 10296], n: 'afro + gafas' },
     { L: { style: 'afro', acc: '', eyes: 'frente' }, t: [3264, 4657, 10296], n: 'afro + gafas en la frente (L nueva)' },
-    { L: { style: 'tupe', acc: 'gorra' }, t: [2622, 3993, 8830], n: 'gorra' }
+    { L: { style: 'tupe', acc: 'gorra' }, t: [2590, 3993, 8830], n: 'gorra' }
   ];
   // reglas de compatibilidad (las de VB.Look.CLASH; esta copia solo se usa si look.js no está cargado)
   var CLASH_FALLBACK = [
@@ -2705,6 +2752,30 @@
       });
       if (badSig.length) fail('geoSig de look.js y de doll.js no cuadran en ' + badSig.length + ' de ' + nSig + ' casos: ' + badSig.slice(0, 6).join(' | '));
     }
+    // 2c) presupuesto del pelo bajo gorro de copa (plan WP2 §Presupuesto: «con gorra, el coste total ≤ el del peinado sin gorra»,
+    //     contado sin el propio gorro): pelo(peinado + gorro) ≤ pelo(peinado). Lo que cuesta el gorro solo se mide sin pelo (SKIP_HAIR)
+    ['hall', 'beach'].forEach(function (v) {
+      var bch = v === 'beach', hats = Object.keys(ITEMS.head).filter(function (h) { var vh = ITEMS.head[h]; return hatCup(h) && (vh === 'A' || (vh === 'Y') === bch); });
+      res.hatHair = res.hatHair || {};
+      hats.forEach(function (h) {
+        var hc;
+        SKIP_HAIR = true;
+        try { var a = measure({ skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: h }, bch, tc, false), b = measure({ skin: 0xdba27a, hair: 0x3a2416, style: 'tupe', acc: '' }, bch, tc, false); hc = [a.t[0] - b.t[0], a.t[1] - b.t[1], a.t[2] - b.t[2]]; }
+        finally { SKIP_HAIR = false; }
+        var worst = null;
+        for (var sid in ITEMS.style) {
+          var S = res.styles[v][sid]; if (!S) continue;
+          var m = measure({ skin: 0xdba27a, hair: 0x3a2416, style: sid, acc: h }, bch, tc, false);
+          for (var l = 0; l < 3; l++) {
+            var over = m.t[l] - hc[l] - S[l];
+            if (!worst || over > worst.over) worst = { over: over, id: sid, lod: l };
+            if (over > 0) { fail('pelo bajo ' + h + ' (' + v + ') pesa más que sin gorro: ' + sid + ' LOD' + l + ' +' + over); break; }
+          }
+        }
+        res.hatHair[v + '.' + h] = { hat: hc, worst: worst };
+        if (worst) log.push('pelo bajo ' + h + ' (' + v + '): gorro ' + hc.join('/') + ', lo más justo ' + worst.id + ' LOD' + worst.lod + ' ' + (worst.over > 0 ? '+' : '') + worst.over);
+      });
+    });
     // 3) los looks de hoy, con los triángulos EXACTOS de siempre
     TRI_TODAY.forEach(function (d) {
       var m = measure(Object.assign({ skin: 0xdba27a, hair: 0x3a2416 }, d.L), false, tc, false);
