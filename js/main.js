@@ -1429,7 +1429,8 @@
    *  del ajuste. Solo en el menú con la demo; no cambia nada si el fondo ya es ese (15-nov-2026: antes se veía la playa detrás del
    *  hub de la Carrera de pista). */
   ctx.actions.menuBackdrop = function (k) {
-    var g = ctx.game; if (ctx.state !== 'menu' || !g || !g.demo || ctx.debug) return;
+    // (en ?debug=look también: el Vestuario de playa enseña la playa, WP6 del plan del Vestuario)
+    var g = ctx.game; if (ctx.state !== 'menu' || !g || !g.demo || (ctx.debug && ctx.debug !== 'look')) return;
     k = k === 'hall' || k === 'beach' ? k : '';
     if (!k) { if (!venueForced) return; unforceVenue(); setGame(demoGame()); return; }
     var six = g.format === '6v6';
@@ -1557,7 +1558,8 @@
   // si no, se encola (sin repetir clave) y llega luego con el evento DOM `vb-portrait` {key, url} (ui.js cambia los [data-pt]).
   // Se pinta uno por frame en el paso 4b del bucle (portraitStep). Con la cola vacía 1 s, VB.Doll.portrait.free() suelta el muñeco.
   // Sin VB.Doll.portrait (players aún sin él) → {key: '', url: ''} y ui.js deja la silueta.
-  var PQ = [], PCACHE = {}, PORDER = [], P2D = null, PMAX = 12;
+  // (PMAX: 12 retratos + hasta 48 miniaturas del Vestuario, WP6: URL blob de ~10-30 KB cada una)
+  var PQ = [], PCACHE = {}, PORDER = [], P2D = null, PMAX = 60;
   var pt = { idleT: 0, freed: true, warm: '', n: 0, ms: 0 };
   function portraitApi() { var D = VB.Doll; return D && D.portrait && typeof D.portrait.draw === 'function' && typeof D.portrait.key === 'function' ? D.portrait : null; }
   function ptKey(P, req) { try { var k = P.key(req); return k ? String(k) : ''; } catch (e) { reportError('Doll.portrait.key', e); return ''; } }
@@ -1588,6 +1590,8 @@
     var P = portraitApi(); if (!P) { PQ.length = 0; return; }
     if (progWarm.pending && progsPending()) return;              // programas del retrato (o del partido) compilándose: espera
     if (prewarmPortrait(P)) return;                               // acaba de pedir los programas del retrato (alta con post): espera
+    // miniaturas del Vestuario (req.frame): como mucho una cada 2 frames (cada una monta un muñeco: en el móvil, ~20 ms)
+    if (PQ.length && PQ[0].req && PQ[0].req.frame && (pt.tk = (pt.tk | 0) + 1) % 2) return;
     var q = PQ.shift(); if (!q || PCACHE[q.key]) return;
     var r = ctx.renderer, sz = Math.max(16, Math.min(512, (+q.req.size | 0) || 144));
     if (!P2D) P2D = document.createElement('canvas');

@@ -427,7 +427,7 @@
       'btnGym', 'mpGym', 'gymList', 'gymFoot', 'btnGymBack', 'gymSub', 'drillBar', 'drillTxt', 'introDrill', 'idTitle', 'idGoal', 'idKeys', 'idMed',
       'gymEnd', 'geKick', 'geTitle', 'geTotal', 'geMax', 'geMeds', 'geReps', 'geRec', 'btnGeAgain', 'btnGeNext', 'btnGeList', 'idSes',
       // Vestuario (1.1.0): botón de la portada, atajo de Jugadores, página, giro y avisos
-      'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote',
+      'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote', 'lkGrid', 'lkTabChip',
       // sprint 2-4: B3 «Continuar carrera» (portada) y B5 previa (rótulo inferior y lo que está en juego)
       'btnCont', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake',
       // B6 hoja final con pestañas y D1 retos (franja de Jugar y página)
@@ -3783,10 +3783,10 @@
     credits: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M6 2h9l5 5v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1zm2 9v2h8v-2zm0 4v2h8v-2zm0-8v2h5V7z"/></svg>',
     // Vestuario: pelo (tupé), cabeza (gorra), cara, cuerpo (camiseta de tirantes), brazos (manguito con franjas), piernas (calcetín) y colores (paleta)
     lk_pelo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 13.5C4.2 8 7.6 3.6 12.6 3.4c2.6-.1 4.6.9 5.6 2.6 1.6.4 2.5 1.9 2.2 3.6-.2 1.6-1.2 2.8-2.4 3.4.1-2.3-1.6-4-4.2-4.2-1.6 1.6-4.2 2.4-6.6 2.2-1 .6-1.6 1.4-2.2 2.5z"/><path d="M6.3 14.8c.5-1.4 1.3-2.4 2.4-2.9 2.4.1 4.5-.6 6-1.9 1.6.4 2.5 1.6 2.4 3.4v1.1c0 3.3-2.3 6.1-5.4 6.1s-5.4-2.6-5.4-5.8z" opacity=".5"/></svg>',
-    lk_cabeza: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 14.5C4.5 9.8 7.9 6 12 6s7.5 3.8 7.5 8.5z"/><path d="M2 16h13.8c2.8 0 4.9.9 6.2 2.6H2z"/><circle cx="12" cy="4.6" r="1.4"/></svg>',
+    lk_cabeza: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 15.2C3 9.6 6.6 5.6 11.4 5.6c4.3 0 7.4 3.2 7.8 7.6v2z"/><path d="M10.6 14.2h9.6c1.8 0 2.8.9 2.8 2.1 0 .6-.5 1-1.1 1H9.8z"/><circle cx="11.2" cy="4.6" r="1.3"/><path d="M11.2 6.4c-2 2.3-2.9 5-2.9 8.8" fill="none" stroke="#15102a" stroke-width="1.2" opacity=".55"/></svg>',
     lk_cara: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19zM8.8 8.4a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm6.4 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zM7.4 13.6c.9 2.1 2.5 3.3 4.6 3.3s3.7-1.2 4.6-3.3z"/></svg>',
     lk_cuerpo: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7.6 2.5h2.6c.3 1.9 1 2.9 1.8 2.9s1.5-1 1.8-2.9h2.6c0 2.4.7 4.3 2.4 5.5V21.5H5.2V8c1.7-1.2 2.4-3.1 2.4-5.5z"/></svg>',
-    lk_brazos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M15 4.4a2.7 2.7 0 0 1 3.8 3.8L7.6 19.6a2.7 2.7 0 0 1-3.8-3.8zm-2.5 4.3-1.5 1.5 2.8 2.8 1.5-1.5zm-3.9 3.9-1.5 1.5 2.8 2.8 1.5-1.5z"/></svg>',
+    lk_brazos: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.4 2.6c1.6-.6 3.3.2 3.9 1.8l2.2 5.9 4.6 3.4c1.4 1 1.7 3 .7 4.4l-2.4 3.3c-.4.6-1.2.7-1.8.3L7.4 17c-.9-.6-1.5-1.6-1.6-2.7L4.6 6.4c-.2-1.7.4-3.2 1.8-3.8z"/><path d="M7.3 9.6l4.9-1.6.9 2.6-4.9 1.6z" fill="#15102a" opacity=".45"/><circle cx="18.6" cy="18.4" r="2.6"/></svg>',
     lk_piernas: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M8 2h7.2v9.6l3.5 4.3c1.7 2.1.2 5.6-2.5 5.6H11.2A3.2 3.2 0 0 1 8 18.3zm0 3.3V7.4h7.2V5.3z"/></svg>',
     lk_colores: '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 2.5c5.5 0 9.5 3.8 9.5 8.3 0 3-2.3 4.6-4.6 4.6h-1.6c-1 0-1.6.9-1.2 1.8l.3.6c.7 1.5-.4 3.7-2.4 3.7-5.2 0-9.5-4.1-9.5-9.5S6.6 2.5 12 2.5zM7.2 9a1.6 1.6 0 1 0 0 3.2A1.6 1.6 0 0 0 7.2 9zm3.4-3.6a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2zm4.8.4a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2z"/></svg>'
   };
@@ -4034,6 +4034,7 @@
   }
   function menuBack() {
     if (!mstack.length || ctx.state !== 'menu' || panel) return false;
+    if (mpage === 'look' && lk.grid) { lkGridClose(kbNow() || ctx.inputDevice === 'gamepad'); return true; }   // (Vestuario: primero la rejilla)
     if (mpage === 'online' && VB.NetLobby && VB.NetLobby.back && safe(VB.NetLobby.back)) { uiSound('back'); return true; }   // (online: primero lo abierto dentro del lobby)
     var kb = kbNow(), s = mstack.pop();
     // Vestuario abierto desde la Carrera: al volver, la Carrera se abre otra vez por su cuenta (o.back) y se queda con el foco
@@ -4058,29 +4059,38 @@
   var LK_ROWS = {
     pelo: ['style', 'hair', 'skin'], cabeza: ['head', 'eyes'], cara: ['paint', 'marks', 'beard'], cuerpo: ['neck', 'under', 'band', 'legs'],
     brazos: ['armL', 'armR', 'elbows', 'wristL', 'wristR', 'hands'], piernas: ['knees', 'socks', 'ankle', 'shoes'],
-    colores: ['c:acc', 'c:acc2', 'c:sock', 'c:shoe', 'c:glass']
+    colores: ['c:acc', 'c:acc2', 'c:sock', 'c:shoe', 'c:glass', 'c:pad']
   };
   var LK_LABEL = {
     style: 'Peinado', hair: 'Color de pelo', skin: 'Piel', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba',
-    neck: 'Cuello', under: 'Interior', band: 'Brazalete', legs: 'Mallas', armL: 'Manguito izq.', armR: 'Manguito dcha.', elbows: 'Coderas',
-    wristL: 'Muñeca izq.', wristR: 'Muñeca dcha.', hands: 'Manos', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas',
-    'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura'
+    neck: 'Cuello', under: 'Interior', band: 'Brazalete', legs: 'Mallas', armL: 'Manguito (brazo izq.)', armR: 'Manguito (brazo dcho.)', elbows: 'Coderas',
+    wristL: 'Muñequera (izq.)', wristR: 'Muñequera (dcha.)', hands: 'Manos', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas',
+    'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura', 'c:pad': 'Rodilleras'
   };
-  // valor '' de cada ranura (siempre disponible); las zapatillas '' solo existen en la playa (descalzo)
+  // valor '' de cada ranura (siempre disponible); las zapatillas '' solo existen en la playa (descalzo). Manda sobre VB.Look.name:
+  // «Nada» a secas no decía qué faltaba (U9)
   var LK_NONE = {
-    head: 'Sin gorro', eyes: 'Sin gafas', paint: 'Sin pintura', marks: 'Sin marcas', beard: 'Sin barba', neck: 'Nada', under: 'Nada', band: 'Sin brazalete',
-    armL: 'Sin manguito', armR: 'Sin manguito', elbows: 'Sin coderas', wristL: 'Nada', wristR: 'Nada', hands: 'Nada', legs: 'Sin mallas',
-    knees: 'Sin rodilleras', socks: 'Sin calcetines', ankle: 'Nada', shoes: 'Descalzo'
+    head: 'Sin gorro', eyes: 'Sin gafas', paint: 'Sin pintura', marks: 'Sin marcas', beard: 'Sin barba', neck: 'Sin collar', under: 'Sin camiseta interior', band: 'Sin brazalete',
+    armL: 'Sin manguito', armR: 'Sin manguito', elbows: 'Sin coderas', wristL: 'Sin muñequera', wristR: 'Sin muñequera', hands: 'Manos libres', legs: 'Sin mallas',
+    knees: 'Sin rodilleras', socks: 'Sin calcetines', ankle: 'Sin tobillera', shoes: 'Descalzo', hair2: 'Sin segundo color', hairFx: 'Sin efecto'
   };
-  var LK_FRAME = { pelo: 'cabeza', cabeza: 'cabeza', cara: 'cabeza', brazos: 'brazos', piernas: 'piernas' };   // el resto, 'cuerpo'
+  // encuadre de cada pestaña al entrar en ella (VB.Doll.preview.frame); al tocar o enfocar una fila manda el de su ranura (frameSlot)
+  var LK_FRAME = { pelo: 'cabeza', cabeza: 'perfil', cara: 'cara', cuerpo: 'torso', brazos: 'brazos', piernas: 'piernas' };   // el resto, 'cuerpo'
+  // giro de cada pestaña al entrar (como el de frameSlot: 0 = de frente; los brazos, de frente para ver los dos)
+  var LK_TAB_SLOT = { pelo: 'style', cabeza: 'head', cara: 'paint', cuerpo: 'under', brazos: 'elbows', piernas: 'knees', colores: '' };
   var LK_CHIPS = [['auto', 'De serie'], ['eq', 'Equipo'], ['ac', 'Acento'], ['os', 'Oscuro'], ['bl', 'Blanco'], ['ne', 'Negro']];
   // «Probar»: pose y cara del muñeco, en rueda
   var LK_TRY = [['spike', 'grito', 'Remate'], ['cel', 'alegria', 'Celebración'], ['recv', 'concentrado', 'Recepción'], ['stand', 'neutra', 'De pie']];
-  var LK_CAPS = { gorra: 1, gorraAtras: 1, pescador: 1 };   // sustituyen al pelo (de reserva si doll.js no publica HIDE_HAIR)
-  var LK_UNDER_CAP = { coleta: 1, trenzas: 1, coletas: 1 };  // peinados que sí asoman con gorra (look-spec §1.4.8)
-  var LK_FOOT = ['try', 'rand', 'reset', 'copy'];
+  var LK_CAPS = { gorra: 1, gorraAtras: 1, pescador: 1, gorraMTC: 1 };   // sustituyen al pelo (de reserva si doll.js / look.js no publican HIDE_HAIR)
+  var LK_UNDER_CAP = { coleta: 1, trenzas: 1, coletas: 1 };  // de reserva: peinados que sí asoman con gorra (look-spec §1.4.8); ver lkUnderCap
+  // tobilleras que quedan bajo un calcetín que sube por el tobillo (de reserva si doll.js no publica UNDER_SOCK; el aviso «queda bajo los
+  // calcetines» solo sale si de verdad no se ve: lookvis la mide INVISIBLE en pista con calcetín)
+  var LK_UNDER_SOCK = { blanca: 1 }, LK_SOCK_UP = { media: 1, altos: 1, altosRayas: 1, desparejados: 1 };
+  // lo de la cara que de espaldas, en el partido, no se ve (tools/lookvis.js: 0 px de espaldas en el móvil)
+  var LK_FACE_ONLY = { paint: 1, marks: 1, beard: 1 };
   var lk = { on: false, who: 0, venue: 'hall', hall: false, fit: null, saved: null, dirty: false, nul: false, ctc: null, num: 1, o: null, tab: 'pelo',
-    tryI: -1, lastStep: 0, pvT: 0, pvDue: false, idle: 0, rep: 0, repT: 0, drag: null, keySpin: 0, btnSpin: 0, btnT: 0, padSpin: 0, footI: 0, ukey: '' };
+    tryI: -1, lastStep: 0, pvT: 0, pvDue: false, idle: 0, rep: 0, repT: 0, drag: null, keySpin: 0, btnSpin: 0, btnT: 0, padSpin: 0, footI: 0, ukey: '',
+    grid: '', gFam: '', zoom: false, slot: '', flash: '', bd: false, tapT: 0, tapX: 0, tapY: 0 };
   var lkTabs = null, lkNq = [], lkNT = 0, lkCheckPend = true;
   function LK() { return VB.Look || null; }
   function lkPV() { var D = VB.Doll; return D && D.preview ? D.preview : null; }
@@ -4116,7 +4126,7 @@
   // ---- lectura y escritura de una ranura en un fit (identidad y colores comunes; ropa por escenario) ----
   function lkGetFrom(f, slot) {
     if (!f) return '';
-    if (slot === 'style' || slot === 'skin' || slot === 'hair') return f[slot];
+    if (slot === 'style' || slot === 'skin' || slot === 'hair' || slot === 'hair2' || slot === 'hairFx') return f[slot] != null ? f[slot] : '';
     if (slot.indexOf('c:') === 0) return f.colors && f.colors[slot.slice(2)] != null ? f.colors[slot.slice(2)] : 'auto';
     var s = f[lkVKey()]; return s && s[slot] != null ? s[slot] : '';
   }
@@ -4124,7 +4134,7 @@
   // (elegir algo en una ruta borra lo que una versión más nueva dejó guardado en ella, _keep: si no, volvería al guardar en esa versión)
   function lkUnkeep(f, path) { var Lk = LK(); try { if (Lk && Lk.unkeep) Lk.unkeep(f, path); } catch (e) { } }
   function lkPut(f, slot, v) {
-    if (slot === 'style' || slot === 'skin' || slot === 'hair') { f[slot] = v; lkUnkeep(f, slot); return; }
+    if (slot === 'style' || slot === 'skin' || slot === 'hair' || slot === 'hair2' || slot === 'hairFx') { f[slot] = v; lkUnkeep(f, slot); return; }
     if (slot.indexOf('c:') === 0) { if (!f.colors || typeof f.colors !== 'object') f.colors = {}; f.colors[slot.slice(2)] = v; lkUnkeep(f, 'colors.' + slot.slice(2)); return; }
     var k = lkVKey(); if (!f[k] || typeof f[k] !== 'object') f[k] = {}; f[k][slot] = v; lkUnkeep(f, k + '.' + slot);
   }
@@ -4137,11 +4147,12 @@
   function lkHex(e) { return typeof e === 'number' ? e : e && typeof e.hex === 'number' ? e.hex : -1; }
   function lkOptOf(v, key) {
     var Lk = LK(), it = typeof v === 'string' && v && Lk.item ? Lk.item(v) : null, nm = '', hex = -1, rar = null;
-    try { nm = Lk.name ? Lk.name(v, key) : ''; } catch (e) { nm = ''; }
+    if (v === '' && LK_NONE[key]) nm = LK_NONE[key];
+    else try { nm = Lk.name ? Lk.name(v, key) : ''; } catch (e) { nm = ''; }
     if (!nm) nm = v === '' ? LK_NONE[key] || 'Nada' : it && it.name ? it.name : String(v);
     if (typeof v === 'number') hex = v;
     else if (it) { hex = lkHex(it); rar = typeof it.rarity === 'number' ? it.rarity : 0; }
-    if (Lk.COLOR_KEYS && Lk.COLOR_KEYS.indexOf(key) >= 0 || /^(acc|acc2|sock|shoe|glass)$/.test(key)) {
+    if (Lk.COLOR_KEYS && Lk.COLOR_KEYS.indexOf(key) >= 0 || /^(acc|acc2|sock|shoe|glass|pad)$/.test(key)) {
       var tc = lkTc() || {}, T = { eq: tc.base, ac: tc.accent, os: tc.dark, bl: 0xf4f4f4, ne: 0x22222a };
       hex = typeof T[v] === 'number' ? T[v] : -1;
       (Lk.PALETTE || []).forEach(function (q) { if (q.id === v) { hex = lkHex(q); if (q.unlock) rar = 2; } });
@@ -4158,13 +4169,15 @@
     if (key === 'style') return cat.length ? cat : (Lk.STYLES || []).slice();
     if (key === 'skin') return (Lk.SKINS || []).slice();
     if (key === 'hair') return (Lk.HAIRS || []).concat((Lk.CATALOG || []).filter(function (it) { return it.slot === 'hairTint'; }).map(function (it) { return it.id; }));
-    if (/^(acc|acc2|sock|shoe|glass)$/.test(key)) return LK_CHIPS.map(function (c) { return c[0]; }).concat((Lk.PALETTE || []).map(function (q) { return q.id; }));
+    if (/^(acc|acc2|sock|shoe|glass|pad)$/.test(key)) return LK_CHIPS.map(function (c) { return c[0]; }).concat((Lk.PALETTE || []).map(function (q) { return q.id; }));
     return [''].concat(cat);
   }
   function lkOpts(slot) {
     var Lk = LK(); if (!Lk) return [];
     var key = lkKey(slot), beach = lk.venue === 'beach';
-    if ((key === 'sock' || key === 'shoe') && beach) return [];   // descalzo y sin calcetines en la playa
+    // un color que nada de esta sede usa no sale (WP1: VB.Look.uses; el de calcetín sí en la playa si hay escarpines, y el de
+    // rodilleras cuando alguna lo use); sin uses (look.js antiguo), como antes: sin calcetín ni zapatilla en la playa
+    if (/^(acc|acc2|sock|shoe|glass|pad)$/.test(key)) { if (Lk.uses) { if (!lkUses(key).length) return []; } else if (key === 'pad' || ((key === 'sock' || key === 'shoe') && beach)) return []; }
     var vals = lkVals(key);
     if (key === 'shoes' && !beach) vals = vals.filter(function (v) { return v !== ''; });   // en pista no se juega descalzo
     return vals.map(function (v) { return lkOptOf(v, key); });
@@ -4261,26 +4274,67 @@
   }
   // ---- pintado de la página ----
   var LK_LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 6 10zm2.6 0h4.8V7.5a2.4 2.4 0 0 0-4.8 0z"/></svg>';
+  var LK_EYE = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill-rule="evenodd" d="M12 5c4.6 0 8.3 3.1 10 7-1.7 3.9-5.4 7-10 7S3.7 15.9 2 12c1.7-3.9 5.4-7 10-7zm0 3.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z"/><path d="M3.5 3.5l17 17" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
   var LK_ARR_L = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg>', LK_ARR_R = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg>';
-  /** ¿Tapa el gorro el peinado? (gorra, gorra al revés y pescador; coleta, trenzas y coletas asoman igual) */
-  function lkCapHides() {
-    var hd = lkGet('head'), st = lkGet('style'), H = (VB.Doll && VB.Doll.HIDE_HAIR) || (VB.Look && VB.Look.HIDE_HAIR) || LK_CAPS;
-    return !!hd && (Array.isArray(H) ? H.indexOf(hd) >= 0 : !!H[hd]) && !LK_UNDER_CAP[st];
+  /** ¿Asoma este peinado bajo una gorra? Lo dice el catálogo de peinados nuevo (WP2: VB.Doll.HAIR_STYLES o VB.Look.HAIR_STYLES, campo
+   *  underCap) si existe; si no, la lista de reserva LK_UNDER_CAP (coleta, trenzas y coletas). */
+  function lkUnderCap(st) {
+    var H = (VB.Doll && VB.Doll.HAIR_STYLES) || (VB.Look && VB.Look.HAIR_STYLES), h = null;
+    if (H) { if (Array.isArray(H)) { for (var i = 0; i < H.length; i++) if (H[i] && H[i].id === st) { h = H[i]; break; } } else h = H[st]; }
+    if (h && typeof h === 'object' && h.underCap != null) return !!h.underCap;
+    return !!LK_UNDER_CAP[st];
+  }
+  function lkHides(hd) { var H = (VB.Doll && VB.Doll.HIDE_HAIR) || (VB.Look && VB.Look.HIDE_HAIR) || LK_CAPS; return !!hd && (Array.isArray(H) ? H.indexOf(hd) >= 0 : !!H[hd]); }
+  /** ¿Tapa el gorro el peinado? (gorra, gorra al revés, pescador y la de «MTC»; los que asoman, no) */
+  function lkCapHides() { var hd = lkGet('head'); return lkHides(hd) && !lkUnderCap(lkGet('style')); }
+  /** Objetos de esta sede que usan el hueco de color key (VB.Look.uses; [] sin él). */
+  function lkUses(key) { var Lk = LK(); if (!Lk || !Lk.uses) return []; try { return Lk.uses(key, lk.venue) || []; } catch (e) { return []; } }
+  /** Nombres de lo que LLEVAS ahora (peinado y ropa de la sede) que pinta el color key, sin repetir. */
+  function lkWornUsing(key) {
+    var u = lkUses(key), f = lk.fit, s = f && f[lkVKey()], out = [], seen = {};
+    if (!u.length || !f) return out;
+    var cand = [f.style]; if (s) for (var k in s) if (Object.prototype.hasOwnProperty.call(s, k)) cand.push(s[k]);
+    for (var i = 0; i < cand.length; i++) { var id = cand[i]; if (typeof id === 'string' && id && !seen[id] && u.indexOf(id) >= 0) { seen[id] = 1; out.push(lkItemName(id)); } }
+    return out;
+  }
+  /** «a», «a y b», «a, b y 2 más». */
+  function lkList(n) { return n.length <= 1 ? n.join('') : n.length === 2 ? n[0] + ' y ' + n[1] : n.slice(0, 2).join(', ') + ' y ' + (n.length - 2) + ' más'; }
+  /** Línea de ayuda de una fila y su tipo: {t: texto (sin escapar), k: 'lock' | 'warn' | 'use' | 'dim' | 'hint' | ''}. Bloqueado: cómo se
+   *  gana y que se puede probar (en todos los tamaños, U7). Avisos de lo que no se ve: peinado bajo la gorra, tobillera bajo el calcetín,
+   *  lo de la cara de espaldas. Colores: qué pintan («Pinta: Coleta y Manguito») o, atenuada, que no llevas nada de ese color (U4). */
+  function lkHelpOf(slot, o, locked, lt) {
+    if (locked) return { t: (lt || 'Aún no lo tienes') + '. Se puede probar', k: 'lock' };
+    var v = o && o.v;
+    if (slot.indexOf('c:') === 0) {
+      var w = lkWornUsing(slot.slice(2));
+      return w.length ? { t: 'Pinta: ' + lkList(w), k: 'use' } : { t: 'No llevas nada de este color', k: 'dim' };
+    }
+    if (slot === 'style' && lkCapHides()) return { t: 'Con gorra no se ve el peinado entero', k: 'warn' };
+    if (slot === 'head' && v && lkHides(v) && !lkUnderCap(lkGet('style'))) return { t: 'Tapa el peinado', k: 'warn' };
+    if (slot === 'ankle' && v && lk.venue !== 'beach') {
+      var U = (VB.Doll && VB.Doll.UNDER_SOCK) || LK_UNDER_SOCK, sk = lkGet('socks');
+      if ((Array.isArray(U) ? U.indexOf(v) >= 0 : !!U[v]) && LK_SOCK_UP[sk]) return { t: 'Queda bajo los calcetines', k: 'warn' };
+    }
+    if (LK_FACE_ONLY[slot] && v) return { t: 'De espaldas, en el partido, no se ve', k: 'warn' };
+    var h = lkHint(o); return { t: h, k: h ? 'hint' : '' };
   }
   function lkRowHTML(slot, U) {
     var ops = lkOpts(slot); if (ops.length < 2) return '';   // lo que no vale en este escenario no sale
     var cur = lkGet(slot), i = lkIdx(ops, cur), o = i >= 0 ? ops[i] : lkOptOf(cur, lkKey(slot));
     var locked = lkLocked(o), lt = locked ? lkLockText(o) : '', label = LK_LABEL[slot], n = ops.length;
     var isNew = false; for (var k = 0; k < ops.length && !isNew; k++) if (ops[k].cat && U[ops[k].v]) isNew = true;
-    var col = slot === 'skin' || slot === 'hair' || slot.indexOf('c:') === 0;
+    var col = lkIsCol(slot), hp = lkHelpOf(slot, o, locked, lt);
     var sw = o.hex >= 0 ? '<i class="lk-sw" style="background:' + hx(o.hex) + '"></i>' : col ? '<i class="lk-sw auto"></i>' : '';
-    var help = locked ? LK_LOCK + escT(lt || 'Aún no lo tienes') : slot === 'style' && lkCapHides() ? 'Con gorra no se ve el peinado entero' : escT(lkHint(o));
-    var aria = label + ': ' + o.name + ', ' + (i >= 0 ? i + 1 : 1) + ' de ' + n + (o.rar != null ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') +
-      (locked ? '. Bloqueado' + (lt ? ': ' + lt : '') + '. Se puede probar, pero no se guarda' : '') + (help && !locked ? '. ' + help : '') + (isNew ? '. Hay algo nuevo' : '');
+    var help = hp.t ? (hp.k === 'lock' ? LK_LOCK : hp.k === 'warn' ? LK_EYE : '') + escT(hp.t) : '';
+    // la estrella solo desde rareza 1 (lo común no lleva: antes todo llevaba «★», U9)
+    var st = o.rar != null && o.rar >= 1 ? '<span class="lk-st" aria-hidden="true">' + lkStars(o.rar) + '</span>' : '';
+    var aria = label + ': ' + o.name + ', ' + (i >= 0 ? i + 1 : 1) + ' de ' + n + (o.rar != null && o.rar >= 1 ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') +
+      (locked ? '. Bloqueado: ' + (lt || 'aún no lo tienes') + '. Se puede probar, pero no se guarda' : '') + (hp.t && !locked ? '. ' + hp.t : '') + (isNew ? '. Hay algo nuevo' : '') +
+      '. Pulsa para ver todas las opciones';
     // SPLAT: pegatina de tinta (la silueta cambia con su puesto en la lista); bloqueado = cinta gris; nuevo = punto rojo
-    return '<button type="button" class="mi lk-r sp-btn sp-ink sp-calm' + (locked ? ' lock' : '') + (isNew ? ' new sp-dot' : '') + (col ? ' col' : '') + '" data-look="' + slot + '" aria-label="' + escT(aria) + '"' + (locked ? ' aria-disabled="true"' : '') + '>' +
-      '<span class="mi-l"><span class="lk-k">' + escT(label) + '</span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' +
-      (o.rar != null ? '<span class="lk-st" aria-hidden="true">' + lkStars(o.rar) + '</span>' : '') + (locked ? '<em class="lk-lk">(bloqueado)</em>' : '') + '</span>' +
+    return '<button type="button" class="mi lk-r sp-btn sp-ink sp-calm' + (locked ? ' lock' : '') + (isNew ? ' new sp-dot' : '') + (col ? ' col' : '') + (hp.k === 'dim' ? ' dim' : '') +
+      (hp.t ? ' has-h h-' + hp.k : '') + '" data-look="' + slot + '" aria-label="' + escT(aria) + '"' + (locked ? ' aria-disabled="true"' : '') + '>' +
+      '<span class="mi-l"><span class="lk-k">' + escT(label) + '</span><span class="lk-v">' + sw + '<span class="lk-n">' + escT(o.name) + '</span>' + st + '</span>' +
       (help ? '<small class="mi-h">' + help + '</small>' : '') + '</span>' +
       '<span class="mi-v sp-select"><span class="arr" data-d="-1" aria-hidden="true">' + LK_ARR_L + '</span><span class="arr" data-d="1" aria-hidden="true">' + LK_ARR_R + '</span></span></button>';
   }
@@ -4346,29 +4400,46 @@
     }
     lkSeen(U);
     lkMore();
+    // nombre de la pestaña en la cabecera (en el móvil y en vertical las pestañas van en iconos: U6)
+    if (el.lkTabChip) { var tn = ''; LK_TABS.forEach(function (t) { if (t[0] === lk.tab) tn = t[1]; }); if (el.lkTabChip.textContent !== tn) el.lkTabChip.textContent = tn; }
+    if (lk.grid) lkGridRender();
   }
-  /** Centro del muñeco: en el hueco libre a la derecha de la columna y del pie en iconos (a 844×390 el pie llega a x ≈ 570 y en
-   *  x = 0,68 le tapaba la cabeza). Lo usan doll.js (preview.place) y el CSS (--lkcx: botones ⟲ ⟳ y avisos). En vertical no se toca. */
+  /** Hueco libre del muñeco (WP6: «el muñeco sin tapar»). Mide lo que hay alrededor y se lo pasa a doll.js (preview.place: centro y
+   *  medio ancho a lo ancho, franjas tapadas arriba y abajo), que aleja la cámara hasta que el encuadre cabe y lo centra ahí.
+   *  - Apaisado: a la derecha de la columna (y de la barra de pestañas e iconos, que en PC sale de ella); en el móvil la columna de
+   *    acciones (Probar, Al azar, «⋯») y «Dar la vuelta» van al borde derecho, y el muñeco queda entre las dos. En PC ⟲ ↻ ⟳ van debajo
+   *    del muñeco (franja de abajo) y la cabecera, si llega encima del hueco, es la franja de arriba.
+   *  - Vertical: entre la cabecera (arriba) y el selector de jugador (abajo), y entre ⟲ ↻ ⟳ (a la izquierda) y las acciones (a la derecha).
+   *  También lo usa el CSS (--lkcx: aviso y botones bajo el muñeco). */
   function lkPlace() {
     if (!lk.on || !el.mpLook || !el.menu) return;
-    var W = window.innerWidth || 1, H = window.innerHeight || 1, cx = 0.68, half = 0, top = 0;
+    var W = window.innerWidth || 1, H = window.innerHeight || 1, L = 0, R = W, T = 0, B = H;
+    function rc(n) { if (!n || !n.getClientRects().length) return null; var r = n.getBoundingClientRect(); return r.width > 1 && r.height > 1 ? r : null; }
+    var col = rc(el.mpLook), foot = rc(el.lkFoot), rot = rc(el.lkSpin && el.lkSpin.querySelector('.lk-rot'));
+    var hd = rc(el.mpLook.querySelector('.mp-head')), top = rc(el.mpLook.querySelector('.lk-top'));
     if (W > H) {
-      var r = el.mpLook.getBoundingClientRect().right, f = el.lkFoot && el.lkFoot.getBoundingClientRect();
-      if (f && f.width) r = Math.max(r, f.right);
-      // a 667×375 el hueco es de ~120 px: con el tope de 0,84 el icono «Copiar» tapaba el hombro. Ahora el centro va hasta 0,9 y
-      // doll.js aleja la cámara si el muñeco no cabe en ese medio hueco (half)
-      // móvil: ⟲ ⟳ van en columna al borde derecho (index.html «Vestuario», .ph): el muñeco se centra en el hueco que queda entre
-      // la columna y esos botones (y se aleja si no cabe), así no los pisa
-      var rl = W, rot = VB.Splat && VB.Splat.phone && VB.Splat.phone() && el.lkSpin ? el.lkSpin.querySelector('.lk-rot') : null, rb = rot && rot.getBoundingClientRect();
-      if (rb && rb.width && rb.left > r + 80) rl = rb.left - 6;
-      cx = Math.max(0.62, Math.min(0.9, (r + rl) / 2 / W));
-      half = Math.max(0.04, Math.min(cx - r / W, rl / W - cx));
-      // franja de arriba tapada: la cabecera, solo si llega encima del hueco del muñeco (doll.js lo centra en el alto que queda)
-      var hd = el.mpLook.querySelector('.mp-head'), hr = hd && hd.getBoundingClientRect();
-      if (hr && hr.width && hr.right > (cx - half) * W && hr.left < (cx + half) * W) top = Math.min(0.45, hr.bottom / H);
+      // la columna: en PC el carril de pestañas e iconos sale de ella a la derecha (y la lista de opciones no: es la columna)
+      L = col ? col.right : 0;
+      var bar = rc(el.mpLook.querySelector('.lk-bar')); if (bar && bar.right > L && bar.left < L + 40) L = Math.max(L, bar.right);
+      if (foot) { if (foot.left > L + 60) R = Math.min(R, foot.left - 8); else L = Math.max(L, foot.right); }
+      if (rot) {
+        if (rot.width > rot.height * 1.3) B = Math.min(B, rot.top - 6);      // fila bajo el muñeco (PC)
+        else if (rot.left > L + 60) R = Math.min(R, rot.left - 8);           // columna al borde derecho (móvil)
+      }
+      L += 6;
+      if (hd && hd.right > L && hd.left < R) T = Math.max(T, hd.bottom + 4);
+    } else {
+      var gd = lk.grid ? rc(el.lkGrid) : null;
+      T = hd ? hd.bottom + 6 : 0;
+      B = gd ? gd.top - 6 : top ? top.top - 6 : H * 0.5;
+      if (foot && foot.left > W * 0.5) R = Math.min(R, foot.left - 6);
+      if (rot && rot.right < W * 0.5) L = Math.max(L, rot.right + 6);
     }
+    if (R - L < W * 0.12) { L = Math.max(0, (L + R) / 2 - W * 0.06); R = L + W * 0.12; }
+    if (B - T < H * 0.2) { T = Math.max(0, B - H * 0.2); }
+    var cx = (L + R) / 2 / W, half = (R - L) / 2 / W;
     el.menu.style.setProperty('--lkcx', cx.toFixed(3));
-    var P = lkPV(); if (P && P.place) try { P.place(cx, half, top); } catch (e) { }
+    var P = lkPV(); if (P && P.place) try { P.place(cx, half, T / H, (H - B) / H); } catch (e) { }
   }
   /** Desvanecido abajo mientras queden filas por debajo del borde de la lista. */
   function lkMore() {
@@ -4404,12 +4475,214 @@
     var L = null; try { L = Lk.resolve(lk.fit, lk.venue, lkTc()); } catch (e) { return; }
     // main.js: con la vista previa encendida, showroom(true) la actualiza (preview.set) y avisa a la calidad adaptativa si se rehízo
     // la malla ('geo'). Sin esa acción (main antiguo), directamente a doll.js
-    if (ctx.actions && ctx.actions.showroom) { try { ctx.actions.showroom(true, L, lkPvOpts()); } catch (e) { } return; }
-    if (!P.set || (P.active && !P.active())) return;
-    try { if (P.set(L, lkPvOpts()) === 'geo' && ctx.noteHitch) ctx.noteHitch(); } catch (e) { }
+    if (ctx.actions && ctx.actions.showroom) { try { ctx.actions.showroom(true, L, lkPvOpts()); } catch (e) { } }
+    else if (P.set && (!P.active || P.active())) { try { if (P.set(L, lkPvOpts()) === 'geo' && ctx.noteHitch) ctx.noteHitch(); } catch (e) { } }
+    if (lk.flash) { var fs0 = lk.flash; lk.flash = ''; lkFlash(fs0); }   // (después de poner el color de verdad)
   }
-  function lkFrame() { var P = lkPV(); if (P && P.frame && lk.on) try { P.frame(lk.tryI > -1 && LK_TRY[lk.tryI][0] !== 'stand' ? 'cuerpo' : LK_FRAME[lk.tab] || 'cuerpo'); } catch (e) { } }
+  // ---- encuadre y giro por ranura (WP6, U2): al tocar o enfocar una fila, la cámara va a lo que cambia esa fila (el tobillo, la nuca,
+  //      ese brazo…) y el muñeco se gira para enseñarlo; al entrar en una pestaña, el encuadre de la pestaña ----
+  /** Familia del catálogo (WP1: fam) de un peinado. */
+  function lkFam(v) { var Lk = LK(), it = null; try { it = Lk && Lk.item ? Lk.item(v) : null; } catch (e) { it = null; } return it && it.fam || ''; }
+  /** ¿Lleva el peinado volumen detrás (coleta, moño, trenzas…)? Lo dice el catálogo de peinados nuevo (back) o la familia. */
+  function lkBack(st) {
+    var H = (VB.Doll && VB.Doll.HAIR_STYLES) || (VB.Look && VB.Look.HAIR_STYLES), h = H && !Array.isArray(H) ? H[st] : null;
+    if (h && typeof h === 'object' && h.back != null) return !!h.back;
+    var f = lkFam(st); return f === 'recogido' || f === 'largo';
+  }
+  function lkSlotOpts(slot) { return slot === 'style' ? { back: lkBack(lkGet('style')) } : {}; }
+  /** Encuadra la ranura slot (con su giro) si no era ya la encuadrada (o con force). «Probar» y el zum de cuerpo entero mandan. */
+  function lkFocusSlot(slot, force) {
+    if (!slot || !lk.on) return;
+    if (slot === lk.slot && !force) return;
+    lk.slot = slot; lk.zoom = false;
+    if (lk.tryI > -1 && LK_TRY[lk.tryI][0] !== 'stand') return;
+    var P = lkPV(); if (P && P.frameSlot) try { P.frameSlot(slot, lkSlotOpts(slot)); } catch (e) { }
+  }
+  /** Encuadre de la pestaña (al entrar, al abrir y al volver de «Probar»). */
+  function lkFrame() {
+    var P = lkPV(); if (!P || !lk.on) return;
+    try {
+      if (lk.tryI > -1 && LK_TRY[lk.tryI][0] !== 'stand') { P.frame('cuerpo'); return; }
+      lk.slot = ''; lk.zoom = false;
+      var fr = LK_FRAME[lk.tab] || 'cuerpo', s = LK_TAB_SLOT[lk.tab] || '';
+      if (P.frameSlot) P.frameSlot(s, { frame: fr, still: true }); else P.frame(fr);
+    } catch (e) { }
+  }
+  /** Doble toque sobre el muñeco: del encuadre de la ranura (o de la pestaña) al cuerpo entero y vuelta, sin tocar el giro. */
+  function lkZoom() {
+    var P = lkPV(); if (!P || !P.frame || !lk.on) return;
+    var inf = P.info ? P.info() : null, body = inf && inf.frame === 'cuerpo';
+    try {
+      if (!body) { lk.zoom = true; P.frame('cuerpo'); srSay('Cuerpo entero'); }
+      else { lk.zoom = false; var s = lk.slot; if (s && P.frameSlot) P.frameSlot(s, { keep: true }); else P.frame(LK_FRAME[lk.tab] || 'cabeza'); srSay('De cerca'); }
+    } catch (e) { }
+    uiSound('click');
+  }
+  /** «Dar la vuelta»: 180° con giro animado. */
+  function lkTurn() { var P = lkPV(); if (P && P.turn) try { P.turn(); } catch (e) { } lk.idle = 0; uiSound('click'); srSay('Media vuelta'); }
   function lkSpinBy(r) { var P = lkPV(); if (P && P.spin && r) try { P.spin(r); } catch (e) { } }
+  /** Parpadeo (0,4 s) de lo que pinta el color de la fila slot ('c:…') recién cambiado: en el muñeco se ve QUÉ pinta (U4). */
+  function lkFlash(slot) {
+    var P = lkPV(), Lk = LK(), key = slot.slice(2), lc = Lk && Lk.COLOR_L ? Lk.COLOR_L[key] : '';
+    if (!P || !P.flash || !lc || !lkWornUsing(key).length) return;
+    var L = null; try { L = Lk.resolve(lk.fit, lk.venue, lkTc()); } catch (e) { return; }
+    var c = typeof L[lc] === 'number' ? L[lc] : 0, lum = ((c >> 16 & 255) * 0.3 + (c >> 8 & 255) * 0.59 + (c & 255) * 0.11) / 255;
+    var L2 = Object.assign({}, L); L2[lc] = lum > 0.55 ? 0xff2f6d : 0xfff27a;   // rosa sobre lo claro, amarillo sobre lo oscuro
+    try { P.flash(Object.freeze(L2), 0.4); } catch (e) { }
+  }
+
+  // ---- rejilla de opciones (WP6, U5): tocar una fila abre, en el sitio de la lista, todas sus opciones a la vez: fichas con la miniatura
+  //      del PROPIO muñeco con esa opción puesta (VB.Doll.portrait con el encuadre de la ranura, una por frame, en la caché de retratos
+  //      de main.js) o muestras de color de 44 px. Tocar una ficha la pone (y la deja a la vista para comparar); tocar otra vez la puesta,
+  //      «‹», Esc o B vuelven a la lista. Peinados con fichas de familia. Teclado y mando: filas data-sp-row (←/→ en la fila, ↑/↓ entre
+  //      filas) y A / Intro = poner. Las flechas ‹ › de cada fila siguen igual (mando y teclado) ----
+  var LK_FAMS = [['corto', 'Corto'], ['medio', 'Medio'], ['largo', 'Largo'], ['recogido', 'Recogido'], ['textura', 'Textura']];
+  var LK_TBG = 0x2f2560;   // fondo de las miniaturas = el de la ficha (--sp-ink2)
+  var lkGK = {}, lkGSig = '';
+  function lkIsCol(slot) { return slot === 'skin' || slot === 'hair' || slot === 'hair2' || slot.indexOf('c:') === 0; }
+  /** Aspecto resuelto de la copia de trabajo con la opción v en slot (arreglado como lo dejaría ponerla). Para los peinados, sin el gorro
+   *  que los tapa: si no, todas las fichas salían iguales. */
+  function lkThumbL(slot, v) {
+    var Lk = LK(), f = lkClone(lk.fit); if (!Lk || !f) return null;
+    lkPut(f, slot, v);
+    if (slot === 'style') { var s = f[lkVKey()]; if (s && lkHides(s.head)) s.head = ''; }
+    try { var r = Lk.fix ? Lk.fix(f, lk.venue, lkFixSlot(slot)) : null; if (r && r.fit) f = r.fit; } catch (e) { }
+    try { return Lk.resolve(f, lk.venue, lkTc()); } catch (e) { return null; }
+  }
+  /** Pide la miniatura de la opción i (o) de la rejilla: {key, url}; si aún no está, llega luego por 'vb-portrait'. */
+  function lkThumb(slot, i, o, px) {
+    var A = ctx.actions, P = lkPV(); if (!A || !A.portrait) return null;
+    var L = lkThumbL(slot, o.v); if (!L) return null;
+    var fr = P && P.frameOf ? P.frameOf(slot) : 'cuerpo';
+    var req = { L: L, beach: lk.venue === 'beach', tc: lkTc(), num: lk.num, size: px, frame: fr, lod: 1, bg: LK_TBG, pose: 'stand', face: 'neutra' };
+    if (slot === 'style') req.yaw = 1.2;   // los peinados, de perfil: se ven la cara, la nuca y lo que cae detrás (coleta, moño)
+    var r = null; try { r = A.portrait(req); } catch (e) { r = null; }
+    if (r && r.key && !r.url) lkGK[r.key] = i;
+    return r;
+  }
+  var lkThumbQ = [], lkThumbPx = 96, lkThumbSlot = '', lkThumbRaf = 0;
+  function lkThumbPump() {
+    lkThumbRaf = 0;
+    if (!lk.grid || lk.grid !== lkThumbSlot || !el.lkGrid) { lkThumbQ = []; return; }
+    var ops = lkOpts(lkThumbSlot), t0 = performance.now();
+    while (lkThumbQ.length && performance.now() - t0 < 4) {
+      var i = lkThumbQ.shift(), o = ops[i]; if (!o) continue;
+      var r = lkThumb(lkThumbSlot, i, o, lkThumbPx);
+      if (r && r.url) { var im = el.lkGrid.querySelector('[data-lkv="' + i + '"] img'); if (im) im.setAttribute('src', r.url); }
+    }
+    if (lkThumbQ.length) lkThumbRaf = requestAnimationFrame(lkThumbPump);
+  }
+  function lkGridCols(w, tw, gap) { return Math.max(3, Math.floor((w + gap) / (tw + gap))); }
+  /** Pinta (o pone al día) la rejilla de lk.grid. Si solo cambió la elegida, mueve el aro sin rehacer (no se pierde el desplazamiento). */
+  function lkGridRender() {
+    var G = el.lkGrid, slot = lk.grid; if (!G || !slot) return;
+    var ops = lkOpts(slot); if (ops.length < 2) { lkGridClose(false); return; }
+    var cur = lkGet(slot), ci = lkIdx(ops, cur), co = ci >= 0 ? ops[ci] : lkOptOf(cur, lkKey(slot)), col = lkIsCol(slot);
+    var U = {}; lkUnseen().forEach(function (id) { U[id] = 1; });
+    G.hidden = false;
+    var cs = getComputedStyle(G), tw = parseFloat(cs.getPropertyValue('--lkt')) || 76, gap = parseFloat(cs.getPropertyValue('--lkg')) || 10;
+    var bw = (G.querySelector('.lk-gbody') || G).clientWidth || G.clientWidth || 300, cw = col ? 52 : tw, cols = lkGridCols(bw - 12, cw, gap);
+    var fam = slot === 'style' ? lk.gFam : '', vis = [];
+    ops.forEach(function (o, i) { if (!fam || lkFam(o.v) === fam) vis.push(i); });
+    var locks = vis.map(function (i) { return lkLocked(ops[i]) ? 1 : 0; }).join('');
+    var sig = slot + '|' + lk.venue + '|' + fam + '|' + cols + '|' + vis.join(',') + '|' + locks + '|' + lk.who;
+    // cabecera: «‹», la fila y lo puesto (con su candado si está bloqueado)
+    var lockd = lkLocked(co), lt = lockd ? lkLockText(co) : '';
+    var nm = G.querySelector('.lk-gn'), nt = co.name + (co.rar != null && co.rar >= 1 ? ' ' + lkStars(co.rar) : '');
+    if (sig === lkGSig && nm) {
+      nm.textContent = nt;
+      var gl = G.querySelector('.lk-gl'); if (gl) { gl.innerHTML = lockd ? LK_LOCK + escT(lt || 'Aún no lo tienes') : ''; gl.hidden = !lockd; }
+      Array.prototype.forEach.call(G.querySelectorAll('[data-lkv]'), function (b) { var on = +b.getAttribute('data-lkv') === ci; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+      return;
+    }
+    lkGSig = sig;
+    var ae = document.activeElement, fv = ae && G.contains(ae) ? ae.getAttribute('data-lkv') : null, kb = !!(ae && ae.classList && ae.classList.contains('kf'));
+    var dpr = Math.min(2, window.devicePixelRatio || 1), px = Math.max(72, Math.min(112, Math.round((tw - 14) * dpr)));
+    var h = '<div class="lk-gh" data-nav data-sp-row><button type="button" class="sp-btn sp-sq sp-sm sp-cream sp-noshine lk-gb" data-shape="2" data-lkg="close" aria-label="Volver a la lista">' + LK_ARR_L + '</button>' +
+      '<span class="lk-gt"><span class="lk-k">' + escT(LK_LABEL[slot] || '') + '</span><b class="lk-gn">' + escT(nt) + '</b><small class="lk-gl"' + (lockd ? '' : ' hidden') + '>' +
+      (lockd ? LK_LOCK + escT(lt || 'Aún no lo tienes') : '') + '</small></span></div>';   // (en la rejilla ya se está probando: sin «Se puede probar»)
+    if (slot === 'style') {
+      h += '<div class="lk-fams" data-nav data-sp-row role="group" aria-label="Familia de peinados (otra vez: todos)">';
+      LK_FAMS.forEach(function (f) {
+        var n = f[0] ? ops.filter(function (o) { return lkFam(o.v) === f[0]; }).length : ops.length; if (!n) return;
+        h += '<button type="button" class="sp-tab lk-fam' + (f[0] === fam ? ' on' : '') + '" aria-pressed="' + (f[0] === fam) + '" data-lkfam="' + f[0] + '">' + escT(f[1]) + '</button>';
+      });
+      h += '</div>';
+    }
+    h += '<div class="lk-gbody" data-nav role="listbox" aria-label="' + escT(LK_LABEL[slot] || '') + '">';
+    lkGK = {};
+    var thumbs = [];
+    for (var r0 = 0; r0 < vis.length; r0 += cols) {
+      h += '<div class="lk-grow" data-sp-row>';
+      for (var j = r0; j < Math.min(vis.length, r0 + cols); j++) {
+        var i = vis[j], o = ops[i], lock = lkLocked(o), on = i === ci, nw = o.cat && U[o.v];
+        var aria = o.name + (o.rar != null && o.rar >= 1 ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') + (lock ? '. Bloqueado: ' + (lkLockText(o) || 'aún no lo tienes') + '. Se puede probar' : '') + (nw ? '. Nuevo' : '');
+        var cls = 'lk-tile' + (col ? ' lk-cs' : '') + (on ? ' on' : '') + (lock ? ' lock' : '') + (nw ? ' new' : '') + ' t' + (i % 4);
+        h += '<button type="button" class="' + cls + '" data-lkv="' + i + '" role="option" aria-pressed="' + on + '" aria-label="' + escT(aria) + '">';
+        if (col) h += '<i class="lk-sw' + (o.hex >= 0 ? '"  style="background:' + hx(o.hex) + '"' : ' auto"') + '></i>';
+        else {
+          thumbs.push(i);
+          h += '<span class="lk-ti"><img alt="" draggable="false" hidden></span><span class="lk-tn">' + escT(o.name) + '</span>';
+          if (o.rar != null && o.rar >= 1) h += '<span class="lk-tst" aria-hidden="true">' + lkStars(o.rar) + '</span>';
+        }
+        if (lock) h += '<span class="lk-tlk" aria-hidden="true">' + LK_LOCK + '</span>';
+        h += '</button>';
+      }
+      h += '</div>';
+    }
+    h += '</div>';
+    var sb = G.querySelector('.lk-gbody'), st = sb && G._slot === slot ? sb.scrollTop : 0;
+    G.innerHTML = h; G._slot = slot;
+    Array.prototype.forEach.call(G.querySelectorAll('img[hidden]'), function (im) { im.onload = function () { im.hidden = false; }; });
+    if (VB.Splat) { VB.Splat.decorate(G); if (VB.Splat.more) { VB.Splat.more(G.querySelector('.lk-gbody')); var fr = G.querySelector('.lk-fams'); if (fr) VB.Splat.more(fr); } }
+    var nb = G.querySelector('.lk-gbody'); if (nb) nb.scrollTop = st;
+    // miniaturas: se piden después de pintar la rejilla, unas pocas por frame (cada una arregla y resuelve un aspecto): al abrirla no
+    // hay tirón; las que ya están en la caché de retratos salen al momento y el resto llega de una en una (main.js, una por frame)
+    lkThumbQ = thumbs; lkThumbPx = px; lkThumbSlot = slot;
+    if (thumbs.length && !lkThumbRaf) lkThumbRaf = requestAnimationFrame(lkThumbPump);
+    if (fv != null) { var fb = G.querySelector('[data-lkv="' + fv + '"]') || G.querySelector('[data-lkfam="' + fam + '"]'); if (fb) focusEl(fb, kb); }
+  }
+  /** Abre la rejilla de la fila slot (tocar la fila, Intro o A). */
+  function lkGridOpen(slot, kb) {
+    if (!el.lkGrid || lkOpts(slot).length < 2) return false;
+    lk.grid = slot; lk.gFam = ''; lkGSig = ''; el.lkGrid._slot = '';
+    el.mpLook.classList.add('lk-gon');
+    lkFocusSlot(slot, true);
+    lkGridRender();
+    uiSound('click'); srSay((LK_LABEL[slot] || '') + ': todas las opciones');
+    var G = el.lkGrid, on = G.querySelector('.lk-tile.on') || G.querySelector('.lk-tile');
+    if (on) { focusEl(on, kb); if (VB.Splat && VB.Splat.reveal) VB.Splat.reveal(on, { block: 'center' }); else if (on.scrollIntoView) on.scrollIntoView({ block: 'center' }); }
+    setTimeout(function () { if (lk.on) lkPlace(); }, 0);
+    return true;
+  }
+  /** Cierra la rejilla (vuelve a la lista con el foco en su fila). Las miniaturas que faltaban se quitan de la cola. */
+  function lkGridClose(kb) {
+    if (!lk.grid) return false;
+    var s = lk.grid; lk.grid = ''; lkGSig = '';
+    if (ctx.actions && ctx.actions.portraitDrop) for (var k in lkGK) if (Object.prototype.hasOwnProperty.call(lkGK, k)) try { ctx.actions.portraitDrop(k); } catch (e) { }
+    lkGK = {};
+    el.mpLook.classList.remove('lk-gon');
+    if (el.lkGrid) { el.lkGrid.hidden = true; el.lkGrid.innerHTML = ''; el.lkGrid._slot = ''; }
+    lkRender(s);
+    var row = el.lkList.querySelector('[data-look="' + s + '"]'); if (row) focusEl(row, kb);
+    setTimeout(function () { if (lk.on) { lkMore(); lkPlace(); } }, 0);
+    return true;
+  }
+  /** Pone la opción i de la rejilla (otra vez la puesta = volver a la lista). */
+  function lkGridPick(i, kb) {
+    var slot = lk.grid, ops = lkOpts(slot), o = ops[i]; if (!o || !lk.fit) return;
+    if (o.v === lkGet(slot)) { lkGridClose(kb); return; }
+    var f = lkClone(lk.fit); lkPut(f, slot, o.v); lkSet(f, slot);
+    try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('arrow', 1, i, ops.length); else click(); } catch (e) { }
+    var locked = lkLocked(o);
+    srSay(LK_LABEL[slot] + ': ' + o.name + (locked ? ' (bloqueado, se puede probar)' : ''));
+    if (slot === 'style' && lkBack(o.v)) lkFocusSlot('style', true);   // coleta, moño, trenzas: se asoma a la espalda
+    if (slot.indexOf('c:') === 0) lk.flash = slot;
+    lkRender(); lkPreview();
+  }
+  /** Fichas de familia de los peinados. */
+  function lkGridFam(f) { lk.gFam = f && f !== lk.gFam ? f : '';   // (la elegida otra vez: todos)
+    lkGSig = ''; lkGridRender(); uiSound('click'); var b = el.lkGrid.querySelector('[data-lkfam="' + (f || '') + '"]'); if (b) focusEl(b, kbNow()); if (VB.Splat && VB.Splat.more) VB.Splat.more(el.lkGrid.querySelector('.lk-fams')); }
   // ---- cambios en la copia de trabajo ----
   function lkSet(f, slot, quiet) {
     var Lk = LK(), removed = [];
@@ -4440,6 +4713,8 @@
     var i = lkIdx(ops, lkGet(slot)); i = i < 0 ? (d > 0 ? 0 : n - 1) : (i + d + n) % n;
     var o = ops[i], f = lkClone(lk.fit); lkPut(f, slot, o.v);
     lkSet(f, slot);
+    lkFocusSlot(slot, slot === 'style' && lkBack(o.v));   // (coleta, moño, trenzas: se asoma a la espalda)
+    if (slot.indexOf('c:') === 0) lk.flash = slot;
     try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui('arrow', d, i, n); else click(); } catch (e) { }
     var locked = lkLocked(o);
     srSay(LK_LABEL[slot] + ': ' + o.name + (locked ? ' (bloqueado)' : '') + ', ' + (i + 1) + ' de ' + n);
@@ -4451,6 +4726,7 @@
   function lkPickSet(w) {
     if (w === lk.who) return;
     lkCommit();
+    lkGridReset();
     lkLoad(w); lk.ukey = '';
     uiSound('click');
     srSay(w === 'career' ? 'Tu jugador de la Carrera' : 'N.º ' + lk.num);
@@ -4471,6 +4747,7 @@
     // la copia ya está arreglada para cada escenario; se vuelve a pasar por fix por si el guardado traía algo de otra sede
     var f = lkClone(lk.fit), rm0 = []; var Lk = LK(); if (Lk && Lk.fix) try { var r = Lk.fix(f, lk.venue, null); if (r && r.fit) { lk.fit = r.fit; rm0 = r.removed || []; } } catch (e) { }
     lkRemovedNotes(rm0, false);
+    lkGridReset(); lkBackdrop();
     uiSound('click'); srSay(lk.venue === 'beach' ? 'En playa' : 'En pista');
     lkRender(); restartAnim(el.lkList, lk.venue === 'beach' ? 'tp-n' : 'tp-p');
     if (kb) focusEl(el.lkVen.querySelector('button.on'), true);
@@ -4494,8 +4771,35 @@
       f[vk] = lkClone(r[vk]); Object.keys(r[vk]).forEach(function (s) { lkUnkeep(f, vk + '.' + s); });
     }
     lkSet(f, null, true);
-    uiSound('click'); srSay('Aspecto al azar');
+    uiSound('click'); srSay('Aspecto al azar'); lkNote('Todo al azar');
     lkRender(); lkPreview();
+  }
+  /** Dado junto a «Probar» (WP6): al azar SOLO las filas de la pestaña abierta (lo demás se queda); en Colores, los colores. */
+  function lkRandomTab() {
+    var Lk = LK(); if (!Lk || !Lk.random || !lk.fit) return;
+    var r = null; try { r = Lk.random(Date.now(), true); } catch (e) { r = null; }   // semilla de la UI: nunca g.rng
+    if (!r) return;
+    var f = lkClone(lk.fit), tl = '', rows = LK_ROWS[lk.tab] || [];
+    rows.forEach(function (s) { if (lkOpts(s).length >= 2) lkPut(f, s, lkGetFrom(r, s)); });
+    LK_TABS.forEach(function (t) { if (t[0] === lk.tab) tl = t[1]; });
+    lkSet(f, null, true);
+    uiSound('click'); srSay('Al azar: ' + tl);
+    lkRender(); lkPreview();
+  }
+  /** «⋯»: hoja con lo que se usa poco (Todo al azar, Restablecer este apartado, Copiar a la otra sede). Una sola ✕ (U8). */
+  function lkMoreSheet() {
+    var S = VB.Splat; if (!S || !S.sheet) return;
+    var tl = ''; LK_TABS.forEach(function (t) { if (t[0] === lk.tab) tl = t[1]; });
+    var acts = [['randAll', 'Todo al azar', 'sp-alt'], ['reset', 'Restablecer ' + tl.toLowerCase(), 'sp-cream']];
+    if (lk.who !== 'career') acts.push(['copy', lk.venue === 'beach' ? 'Copiar a pista' : 'Copiar a playa', 'sp-teal']);
+    var box = document.createElement('div'), api = null; box.className = 'lk-acts'; box.setAttribute('data-nav', '');
+    acts.forEach(function (a, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'sp-btn sp-md sp-wide sp-calm ' + a[2]; b.setAttribute('data-shape', String(i));
+      b.innerHTML = '<span class="sp-t"></span>'; b.firstChild.textContent = a[1];
+      b.addEventListener('click', function () { if (api) api.close(); if (a[0] === 'randAll') lkRandom(); else lkFoot(a[0]); });
+      box.appendChild(b);
+    });
+    api = S.sheet({ title: 'Más', node: box, dock: false, cls: 'lk-sheet' });
   }
   function lkReset() {
     var Lk = LK(); if (!Lk || !Lk.defaults || !lk.fit) return;
@@ -4529,12 +4833,13 @@
     lkRender();
   }
   function lkFoot(w) {
-    if (w === 'try') lkTry(); else if (w === 'rand') lkRandom(); else if (w === 'reset') lkReset(); else if (w === 'copy') lkCopy();
+    if (w === 'try') lkTry(); else if (w === 'rand') lkRandomTab(); else if (w === 'more') lkMoreSheet(); else if (w === 'reset') lkReset(); else if (w === 'copy') lkCopy();
   }
   // ---- ciclo de vida ----
   function lkOpen() {
     if (!el.mpLook) return;
-    lk.on = true; lk.tryI = -1; lk.idle = 0; lk.ukey = ''; lk.footI = 0;
+    lk.on = true; lk.tryI = -1; lk.idle = 0; lk.ukey = ''; lk.footI = 0; lk.slot = ''; lk.zoom = false;
+    lkGridReset();
     lkCheckNew();
     lkLoad(lk.who);
     if (lkTabs && lkTabs.get() !== lk.tab) lkTabs.set(lk.tab, 'api');
@@ -4547,14 +4852,41 @@
     lk.pvT = performance.now(); lk.pvDue = false;
     lkFrame();
     lk.placeT = 0.7;
+    lkBackdrop();
+    lkHintOnce();
     setTimeout(function () { if (lk.on) { fitTabs(lkTabs); lkMore(); lkPlace(); } }, 0);
+  }
+  /** Fondo del menú de la sede que se viste (U10): el Vestuario de playa, en la playa (y el de pista, en el pabellón). Usa la acción del
+   *  fondo de la Carrera (main.js menuBackdrop: monta la sede y una demo oculta); al salir se devuelve el del ajuste (lkClose). */
+  function lkBackdrop() {
+    var A = ctx.actions; if (!A || !A.menuBackdrop || !lk.on) return;
+    if (menuVenue() === lk.venue) return;
+    try { A.menuBackdrop(lk.venue); lk.bd = true; } catch (e) { }
+  }
+  /** Una sola vez (por dispositivo): cómo se gira y se acerca el muñeco. */
+  function lkHintOnce() {
+    var K = 'make-the-cut.lkHint', seen = false;
+    try { seen = localStorage.getItem(K) === '1'; } catch (e) { seen = false; }
+    if (seen || (ctx.debug && !(ctx.params && ctx.params.lkhint))) return;   // (las capturas de ?debug=look, sin él salvo &lkhint=1)
+    try { localStorage.setItem(K, '1'); } catch (e) { }
+    var touch = !!ctx.isTouch || ctx.inputDevice === 'touch';
+    setTimeout(function () { if (lk.on) lkNote(touch ? 'Arrastra para girar. Doble toque para acercar o alejar' : 'Arrastra para girar. Doble clic para acercar o alejar'); }, 900);
+  }
+  /** Rejilla cerrada sin repintar (al abrir y al salir del Vestuario, al cambiar de jugador o de sede). */
+  function lkGridReset() {
+    if (lk.grid && ctx.actions && ctx.actions.portraitDrop) for (var k in lkGK) if (Object.prototype.hasOwnProperty.call(lkGK, k)) try { ctx.actions.portraitDrop(k); } catch (e) { }
+    lk.grid = ''; lkGK = {}; lkGSig = '';
+    if (el.mpLook) el.mpLook.classList.remove('lk-gon');
+    if (el.lkGrid) { el.lkGrid.hidden = true; el.lkGrid.innerHTML = ''; el.lkGrid._slot = ''; }
   }
   function lkClose() {
     if (!lk.on) return;
     lkCommit();
+    lkGridReset();
     lk.on = false; lk.rep = 0; lk.drag = null; lk.keySpin = lk.btnSpin = lk.padSpin = 0; lk.pvDue = false;
     if (el.lkSpin) { el.lkSpin.hidden = true; el.lkSpin.classList.remove('drag'); }
     if (ctx.actions && ctx.actions.showroom) try { ctx.actions.showroom(false); } catch (e) { }
+    if (lk.bd) { lk.bd = false; if (ctx.actions && ctx.actions.menuBackdrop) try { ctx.actions.menuBackdrop(''); } catch (e) { } }   // (el fondo del ajuste)
   }
   /** VB.UI.openLook(o): o = {who: 'career', hall, tc, back} desde la Carrera; {tab, venue, item, pick} para ?debug=look. */
   function openLook(o) {
@@ -4577,7 +4909,7 @@
     if (it && w !== 'career' && !o.venue && it.venue && it.venue !== 'A') lk.venue = it.venue === 'Y' ? 'beach' : 'hall';
     if (!tab && it) tab = lkTabOf(it.slot);
     if (tab) lk.tab = tab;
-    if (mpage === 'look') { lkLoad(w); lk.ukey = ''; if (lkTabs && lkTabs.get() !== lk.tab) lkTabs.set(lk.tab, 'api'); lkRender(); lk.pvT = 0; lkPvFlush(); lkFrame(); }
+    if (mpage === 'look') { lkGridReset(); lkLoad(w); lk.ukey = ''; if (lkTabs && lkTabs.get() !== lk.tab) lkTabs.set(lk.tab, 'api'); lkRender(); lk.pvT = 0; lkPvFlush(); lkFrame(); }
     else {
       var a = document.activeElement;
       mstack.push({ p: mpage, f: a && a.id && el.menu.contains(a) ? a.id : '' });
@@ -4630,6 +4962,7 @@
           // Q/E, LB/RB o Y con el foco en una fila: la fila desaparece al rehacer la lista y el foco caía en <body> (↓ iba al selector
           // de jugador). Si estaba en la lista (o no estaba en ningún sitio), pasa a la 1ª fila de la pestaña nueva
           var ae = document.activeElement, inL = !ae || ae === document.body || el.lkList.contains(ae), kb = kbNow() || ctx.inputDevice === 'gamepad';
+          lkGridReset();
           lk.tab = id; lk.tryI = -1; el.lkList.scrollTop = 0; lkRender(); lkFrame();
           var a2 = document.activeElement;
           if (inL && (!a2 || a2 === document.body || !el.mpLook.contains(a2))) focusEl(lkFocusEl(), kb);
@@ -4664,11 +4997,30 @@
     var stopRep = function () { lk.rep = 0; };
     window.addEventListener('pointerup', stopRep, { passive: true });
     window.addEventListener('pointercancel', stopRep, { passive: true });
+    // tocar la fila (o Intro / A) abre su rejilla de opciones (WP6); las flechas siguen cambiando de una en una
     el.lkList.addEventListener('click', function (ev) {
       if (ev.target && ev.target.closest && ev.target.closest('.arr[data-d]')) return;   // ya lo hizo pointerdown
       var row = ev.target && ev.target.closest ? ev.target.closest('[data-look]') : null; if (!row) return;
-      lk.lastStep = 0; lkStep(row.getAttribute('data-look'), 1);
+      lkGridOpen(row.getAttribute('data-look'), ev.detail === 0 && (kbNow() || ctx.inputDevice === 'gamepad'));
     });
+    // enfocar una fila (teclado, mando, ratón encima) encuadra su ranura
+    el.lkList.addEventListener('focusin', function (ev) { var row = ev.target && ev.target.closest ? ev.target.closest('[data-look]') : null; if (row) lkFocusSlot(row.getAttribute('data-look')); });
+    if (el.lkGrid) {
+      el.lkGrid.addEventListener('click', function (ev) {
+        var t = ev.target && ev.target.closest ? ev.target : null; if (!t) return;
+        var kb = ev.detail === 0 && (kbNow() || ctx.inputDevice === 'gamepad');
+        var b = t.closest('[data-lkv]'); if (b) { lkGridPick(+b.getAttribute('data-lkv'), kb); return; }
+        var fm = t.closest('[data-lkfam]'); if (fm) { lkGridFam(fm.getAttribute('data-lkfam')); return; }
+        if (t.closest('[data-lkg="close"]')) lkGridClose(kb);
+      });
+      el.lkGrid.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-lkv],[data-lkfam]') : null; if (b && b !== hov) { hov = b; hoverSound(); } });
+      // las miniaturas que llegan (main.js, una por frame)
+      window.addEventListener('vb-portrait', function (ev) {
+        var d = ev && ev.detail; if (!lk.grid || !d || !d.key || lkGK[d.key] == null) return;
+        var im = el.lkGrid.querySelector('[data-lkv="' + lkGK[d.key] + '"] img'); delete lkGK[d.key];
+        if (im) im.setAttribute('src', d.url);
+      });
+    }
     var hov = null;
     el.lkList.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-look]') : null; if (b && b !== hov) { hov = b; hoverSound(); } });
     el.lkList.addEventListener('scroll', lkMore, { passive: true });
@@ -4676,13 +5028,19 @@
     if (el.lkSpin) {
       el.lkSpin.addEventListener('pointerdown', function (ev) {
         var rb = ev.target && ev.target.closest ? ev.target.closest('[data-rot]') : null;
+        if (rb && rb.getAttribute('data-rot') === 'turn') { lkTurn(); ev.preventDefault(); return; }
         if (rb) { lk.btnSpin = +rb.getAttribute('data-rot'); lk.btnT = performance.now(); lkSpinBy(lk.btnSpin * 0.35); lk.idle = 0; ev.preventDefault(); return; }
+        // doble toque (o doble clic) sobre el muñeco: de cerca ↔ cuerpo entero (nunca el pellizco: regla de la cámara)
+        var nowT = performance.now();
+        if (nowT - lk.tapT < 320 && Math.abs(ev.clientX - lk.tapX) < 28 && Math.abs(ev.clientY - lk.tapY) < 28) { lk.tapT = 0; lkZoom(); }
+        else { lk.tapT = nowT; lk.tapX = ev.clientX; lk.tapY = ev.clientY; }
         lk.drag = { x: ev.clientX, id: ev.pointerId }; lk.idle = 0; el.lkSpin.classList.add('drag');
         try { el.lkSpin.setPointerCapture(ev.pointerId); } catch (e) { }
       });
       el.lkSpin.addEventListener('pointermove', function (ev) {
         if (!lk.drag || ev.pointerId !== lk.drag.id) return;
         var dx = ev.clientX - lk.drag.x; lk.drag.x = ev.clientX; lkSpinBy(dx * 0.012);
+      if (Math.abs(ev.clientX - lk.tapX) > 28) lk.tapT = 0;   // (arrastrar no cuenta como toque)
       });
       var endDrag = function (ev) { if (lk.drag && (!ev || ev.pointerId === lk.drag.id)) { lk.drag = null; el.lkSpin.classList.remove('drag'); } lk.btnSpin = 0; };
       el.lkSpin.addEventListener('pointerup', endDrag);
@@ -4690,7 +5048,7 @@
       el.lkSpin.addEventListener('lostpointercapture', endDrag);
       window.addEventListener('pointerup', function () { lk.btnSpin = 0; }, { passive: true });
       // teclado en los botones (Intro / Espacio): un paso
-      el.lkSpin.addEventListener('click', function (ev) { var rb = ev.target && ev.target.closest ? ev.target.closest('[data-rot]') : null; if (rb && ev.detail === 0) lkSpinBy(+rb.getAttribute('data-rot') * 0.5); });
+      el.lkSpin.addEventListener('click', function (ev) { var rb = ev.target && ev.target.closest ? ev.target.closest('[data-rot]') : null; if (!rb || ev.detail !== 0) return; if (rb.getAttribute('data-rot') === 'turn') lkTurn(); else lkSpinBy(+rb.getAttribute('data-rot') * 0.5); });
     }
     window.addEventListener('keyup', function (e) { if (e.key === 'z' || e.key === 'Z' || e.key === 'x' || e.key === 'X') lk.keySpin = 0; });
     window.addEventListener('blur', function () { lk.keySpin = lk.btnSpin = 0; lk.rep = 0; });
@@ -7035,7 +7393,7 @@
      *  false si no se puede abrir (sin look.js, fuera del menú). */
     openLook: function (o) { return openLook(o); },
     /** Pruebas (Vestuario): estado de la página y de la copia de trabajo. */
-    _look: function () { return { on: lk.on, who: lk.who, venue: lk.venue, tab: lk.tab, dirty: lk.dirty, nul: lk.nul, fit: lkClone(lk.fit), page: mpage }; },
+    _look: function () { return { on: lk.on, who: lk.who, venue: lk.venue, tab: lk.tab, dirty: lk.dirty, nul: lk.nul, fit: lkClone(lk.fit), page: mpage, grid: lk.grid, slot: lk.slot, bd: lk.bd }; },
     menuBack: function () { return menuBack(); },
     /** Mando conectado / desconectado (main.js con Input.poll().padEvent). Al desconectarse jugando con él, input.js pausa:
      *  la hoja de pausa lo dice ("Mando desconectado") en el antetítulo, en vez del set y el tanteo. */

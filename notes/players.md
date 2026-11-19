@@ -1105,25 +1105,15 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
 - `VB.Doll.geoSig(L, tc, beach)` (malla: geometría y colores por vértice; un color solo entra si alguna pieza lo usa por vértice) y
   `VB.Doll.atlasSig(L, tc, num, beach)`. La vista previa usa estas. Desde WP1 (1.16) la de look.js (`VB.Look.geoSig`, por fit) cuadra con
   esta: `lookSelfTest` lo comprueba objeto a objeto con cada hueco de color y con `hair2` (ver «Base del plan» abajo).
-- `VB.Doll.preview`: `start(ctx, L, o)`, `set(L, o)` → `'geo'` | `'atlas'` | `''`, `pose`, `face`, `spin`, `yaw`, `frame('cuerpo' |
-  'cabeza' | 'brazos' | 'piernas')`, `update(dt)`, `stop()`, `active()`, `info()`. Siempre en LOD2 (desde WP1; antes, el de la calidad
-  activa: LOD1 en el móvil), atlas de `o.px` (ui.js pasa 2 = 1024² salvo en calidad baja o con menos de 320 px CSS de alto).
-  Muñeco en three (5, 0, 0) mirando a cámara, fov 46 sin el `filmOffset` de la cámara del menú (se devuelve al parar), el muñeco hacia
-  x ≈ 0,68 del ancho o donde diga `place(cx)` (fracción del ancho; ui.js `lkPlace` lo pone en el hueco libre a la derecha de su columna y
-  del pie en iconos: a 844×390 sale ~0,84); en vertical, entero en la parte de arriba (siempre con la distancia de `cuerpo`, salvo
-  `cabeza`). La cámara se DESPLAZA de lado (no gira) y el muñeco gira para mirarla: girada, el muñeco quedaba en el borde del cono, más
-  cerca en profundidad y un 15-20 % más grande (a 844×390 se cortaba). Encuadres [altura mirada, distancia, altura de cámara]: cuerpo
-  [mitad del muñeco, 2,6], cabeza [centro de la cabeza + 0,06, 1,85, 0,02 × d], brazos [hombro − 0,25, 1,75], piernas [cadera × 0,45, 1,5].
-  `place(cx, half)`: `half` (opcional) = medio hueco libre en fracción del ancho; si el encuadre (medio ancho en `PV_LAT`) no cabe, la
-  cámara se aleja (a 667×375 el pie de iconos tapaba el hombro). Con «Probar» (pose ≠ `stand`) y encuadre `cuerpo`, `pvEnv` recorre
-  un ciclo de `animate` de la pose (`PV_CYCLE`) y la cámara encuadra la caja entera: salto del remate y brazos en V (antes la cabeza y la
-  mano se salían). El muñeco de la vista previa no recibe sombras (`receiveShadow = false`, un uniform: el mapa de sombras de la pista
-  salía a escalones en la cara a 1,85 m, sobre todo en calidad media). Coronita con tupé: más alta, atrás e inclinada (rx −0,5).
-  Pose por defecto `stand` con respiración (la `stand` de las hojas de `?debug=doll` sigue quieta); «Probar» de ui.js acaba en `stand`
-  (la `idle` lleva el brazo del balón delante de la cara). Con solo atlas repinta el mismo lienzo (`map.needsUpdate`); al rehacer
-  libera atlas, material, malla, textura de huesos y tinta (`freeRig`, que ahora usa también `restyle` de la maqueta). Oculta balón y
-  manchas cada frame (y `players` si no hay `Players.showroom`) y lo devuelve al parar. Lo de o que no llega se queda como estaba (por
-  defecto: `VB.Players.kit(0)`, la sede de `VB.Arena.venue()`, dorsal 1, px 2).
+- `VB.Doll.preview`: `start(ctx, L, o)`, `set(L, o)` → `'geo'` | `'atlas'` | `''`, `pose`, `face`, `spin`, `yaw`, `turn`, `place`, `frame`,
+  `frameSlot`, `frameOf`, `flash`, `update(dt)`, `stop()`, `active()`, `info()`. Siempre en LOD2 (desde WP1), atlas de `o.px` (ui.js pasa 2 =
+  1024² salvo en calidad baja o con menos de 320 px CSS de alto). Muñeco en three (5, 0, 0), fov 46 sin el `filmOffset` de la cámara del
+  menú (se devuelve al parar). Desde WP6 los encuadres son CAJAS del muñeco (ver «Interfaz del Vestuario (WP6)» abajo) que la cámara mete
+  en el hueco libre que da `place`; la cámara se DESPLAZA de lado (no gira) y el muñeco gira para mirarla. Con «Probar» (pose ≠ `stand`) y
+  encuadre `cuerpo`, `pvEnv` recorre un ciclo de la pose (`PV_CYCLE`) y mide la caja respecto a la pelvis; la cámara la sigue con retraso.
+  El muñeco de la vista previa no recibe sombras (`receiveShadow = false`, un uniform). Pose por defecto `stand` con respiración; «Probar»
+  de ui.js acaba en `stand`. Con solo atlas repinta el mismo lienzo (`map.needsUpdate`); al rehacer libera atlas, material, malla, textura
+  de huesos y tinta (`freeRig`). Oculta balón y manchas cada frame (y `players` si no hay `Players.showroom`) y lo devuelve al parar.
 - `VB.Doll.lookSelfTest()` (lo usa `tools/looktest.js --gl`): cada objeto × sede × LOD se construye y se pinta; el catálogo de look.js no
   trae nada que doll.js no sepa dibujar ni con otra sede; triángulos exactos de hoy; `defaults()` de look.js dan la malla de MY_LOOKS;
   `geoSig` fiel a la malla (también con cada color); peor combinación permitida por sede (peinado × gorro × gafas con `VB.Look.CLASH` + lo
@@ -1239,6 +1229,63 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
   `tools/synctest.js`). Si en el móvil viejo se EDITA el look, su `ft` es más nueva y manda (lo que el jugador vio y eligió). Lo que no se
   puede arreglar: el móvil viejo dibuja tupé hasta que se actualiza. Por eso se publica con el aviso de versión nueva (update.js, 1.15.1),
   que salta al arrancar y al volver a la pestaña.
+
+### Interfaz del Vestuario (19-nov-2026, WP6 de notes/vestuario-plan.md)
+- **Encuadre y giro por ranura** (doll.js `PV_FRAMES`, `PV_SLOT`, `pvMeasure`, `preview.frameSlot/frameOf/turn/place/flash`). Cada encuadre es
+  una caja medida en los huesos del muñeco de pie (`pvMeasure`: pelvis, hombro, codo, mano, rodilla, tobillo, cabeza, barbilla y lo más
+  alto con pelo; una vez por malla en `r._pvM`): `{lo, hi, lat, up, yaw, peek, fill}`. Encuadres: cuerpo, cabeza (3/4, yaw 0,55), nuca (se
+  asoma a la espalda, peek 2,75 rad durante 1,25 s, y vuelve), perfil (gorros, yaw 1,05), cara, torso, brazos, brazoL / brazoR (ese brazo a
+  cámara, yaw ∓1,05), manos, piernas, rodillas y pies. `PV_SLOT` da el de cada ranura (y de los colores: calcetín → piernas, zapatilla →
+  pies, montura → cara, rodilleras → rodillas). `frameSlot('style', {back})` usa nuca si el peinado lleva volumen detrás (ui.js `lkBack`:
+  `HAIR_STYLES[id].back` si WP2 lo publica; si no, familia recogido o largo). El giro del encuadre (`yawB`) va a su meta (`yawT`) con
+  suavidad (~300 ms, por el camino corto); el del dedo (`yaw`) se suma y vuelve a 0 al cambiar de ranura. `yaw(rad)` sigue siendo
+  absoluto y al momento (herramientas). `turn()` = 180° animados.
+- **Hueco libre** (`place(cx, half, top, bot)`, en apaisado y en vertical): la cámara se aleja hasta que la caja cabe (alto: `fill` del
+  hueco, 0,94 de serie y 0,8-0,86 los de cerca; ancho: el 94 % del hueco) y se desplaza de lado para centrarla. Tope de cerca: como mucho
+  `PV_PPM` (340) píxeles CSS por metro del muñeco, salvo que la caja quepa en `PV_MINPX` (230 px): en PC la cabeza salía de 600 px y los
+  pies de 900. Sin `place`: en apaisado x 0,68 hasta el borde; en vertical, la mitad de arriba. ui.js `lkPlace` mide la columna, la barra de
+  PC, las acciones del borde derecho (móvil), ⟲ ↻ ⟳ (fila bajo el muñeco en PC, columna en móvil y en vertical) y, en vertical, la cabecera
+  (arriba) y el selector de jugador o la rejilla (abajo).
+- **Miniaturas** (doll.js `portrait`): `req.frame` (un nombre de `PV_FRAMES`) encuadra esa caja en el cuadrado (`ptFrameBox`) con su giro
+  (o `req.yaw`), y `req.lod` (0/1/2; las miniaturas van en LOD1) rehace el muñeco del retrato si cambia. La clave lleva `|f<encuadre><lod>`.
+  main.js: caché LRU de retratos de 12 → 60 (12 retratos + 48 miniaturas) y como mucho una miniatura cada 2 frames. Medido (rejilla de
+  manguitos, 640x360 táctil, dpr 2): cada miniatura 3,7-7,2 ms a CPU ×1 y ~25 ms a CPU ×4 (montar el muñeco: ~16 ms; el pintado ~4 ms); las
+  que solo cambian el atlas, ~7 ms a ×4. Abrir la rejilla 18 ms (×1) / 108 ms (×4) antes de diferir las peticiones; ahora se piden después
+  de pintarla, unos 4 ms por frame (`lkThumbPump`).
+- **ui.js (Vestuario)**:
+  - Tocar una fila (o Intro / A) abre su **rejilla** (`lkGridOpen/Render/Pick/Close`, `#lkGrid`) en el sitio de la lista: fichas con la
+    miniatura del propio muñeco con esa opción (peinados sin el gorro que los tapa y de perfil) o muestras de color de 44 px; peinados con
+    fichas de familia (otra vez la elegida = todos). Tocar una ficha la pone y la deja a la vista; otra vez la puesta, «‹», Esc o B vuelven
+    a la lista. Filas `data-sp-row`: ←/→ en la fila, ↑/↓ entre filas. Las flechas ‹ › de cada fila siguen igual (mando y teclado).
+  - Tocar o enfocar una fila encuadra su ranura (`lkFocusSlot`); al entrar en una pestaña, el encuadre de la pestaña (`LK_FRAME`,
+    `LK_TAB_SLOT`). Doble toque (o doble clic) sobre el muñeco: de cerca ↔ cuerpo entero (`lkZoom`), sin pellizco. Botón «Dar la vuelta»
+    (`data-rot="turn"`) entre ⟲ y ⟳; con el dedo en el móvil solo sale ese (se arrastra para girar). Aviso de una vez «Arrastra para
+    girar…» (`make-the-cut.lkHint`; no en `?debug=look` salvo `&lkhint=1`).
+  - Filas de color: dicen qué pintan («Pinta: Coleta y Manguito», `lkWornUsing` con `VB.Look.uses`), se atenúan con «No llevas nada de este
+    color» y no salen si nada de esa sede las usa (en la playa sí el de calcetín: escarpines; fila nueva de rodilleras, `c:pad`, cuando
+    alguna lo use). Al cambiar un color, lo que pinta parpadea 0,4 s en el muñeco (`lkFlash` → `preview.flash`: rosa sobre lo claro,
+    amarillo sobre lo oscuro; solo atlas).
+  - Avisos de lo que no se ve (`lkHelpOf`): peinado bajo la gorra, «Tapa el peinado» en el gorro, tobillera bajo el calcetín (`UNDER_SOCK` de
+    doll.js si WP4 lo publica; si no, `blanca` con calcetín que sube), y pintura, marcas y barba «De espaldas, en el partido, no se ve».
+    `LK_UNDER_CAP` sale de `HAIR_STYLES[id].underCap` si existe (lista de reserva coleta, trenzas, coletas). `LK_CAPS` de reserva con `gorraMTC`.
+  - Bloqueado: «🔒 <cómo se gana>. Se puede probar» en todos los tamaños (en el móvil la línea de ayuda solo sale si dice algo de esto).
+  - Pie: Probar, el dado (al azar SOLO la pestaña abierta, `lkRandomTab`) y «⋯» (hoja `lkMoreSheet` con Todo al azar, Restablecer <pestaña>
+    y Copiar a la otra sede; una sola ✕: `VB.Splat.sheet({dock: false})`). Restablecer y Copiar siguen en el HTML ocultos (`.lk-x`). El
+    mando sigue con X = todo al azar.
+  - Textos: la estrella solo desde rareza 1; «Manguito (brazo izq.)», «Muñequera (dcha.)», «Sin collar», «Sin muñequera», «Sin tobillera»,
+    «Manos libres»…; letra ≥ 13 px en el móvil (medido en 568x320, 640x360 y 360x640).
+  - Fondo: el Vestuario de playa enseña la playa (y el de pista, el pabellón) con `ctx.actions.menuBackdrop` (main.js: ahora también en
+    `?debug=look`); al salir vuelve el del ajuste.
+  - Móvil apaisado (.ph): columna con cabecera (Volver, título y la pestaña en un chip), jugador y sede, la tira de 7 iconos (40×44, caben
+    a 568) y la lista o la rejilla (con la rejilla abierta la cabecera se va); al borde derecho Probar, dado y «⋯» arriba y «Dar la vuelta»
+    abajo. Vertical: Volver en flecha, título y chip; el muñeco entre ⟲ ↻ ⟳ (izquierda) y las acciones (derecha); abajo jugador, sede,
+    pestañas y lista o rejilla. Iconos nuevos de Cabeza (gorra de perfil) y Brazos (brazo con manguito).
+- **Comprobar**: `node tools/vestuxwp6.js [--sizes=…] [--only=caso,…]` (JPEG por caso y `metrics.json`: lo que tapa la UI de cabeza, pies y
+  manos según el encuadre, botones, pestañas, letra < 13, recortes, rejilla y ms de miniaturas). `tools/looktest.js --gl` prueba el dado y
+  «Todo al azar» con `_keep`.
+- **Pendiente para la integración**: las filas `hair2` / `hairFx` (WP2) no están en `LK_ROWS` (doll.js aún no las dibuja); cuando WP2 las
+  pinte, añadirlas a `pelo` (la rejilla y los nombres «Sin segundo color» / «Sin efecto» ya están). Si WP4 deja la tobillera por fuera del
+  calcetín, publicar `VB.Doll.UNDER_SOCK = {}` y el aviso desaparece solo.
 
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 
