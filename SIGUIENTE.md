@@ -31,6 +31,7 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
   - `node tools/drive.js 1280 720 30` y `node tools/drive6.js 1280 720 60` (y con `TOUCH=1`, 844 390).
   - `tools/touchplay.js 844x390 25` y `tools/padplay.js 1280 720 20`. Fallan a veces en «3 toques»: repítelos.
   - `tools/cam6test.js`, `tools/tv6test.js` y `tools/perf.js`.
+  - `tools/googletest.js` si tocas la cuenta (entrar con Google con un SDK simulado: confirmación si se bloquea la ventana).
   - Capturas con `tools/shot.js <escena> W H out.png [k=v]`, `tools/eval.js` (SHOT=, TOUCH=1) y `tools/cam6test.js`;
     míralas.
 - **Textos** (guía en notes/ui_main.md)
