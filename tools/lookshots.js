@@ -349,6 +349,13 @@ const COMBOS = [
     list: [['legs', 'malla'], ['knees', 'rodiPulpo'], ['socks', 'altos'], ['shoes', 'negras']] },
   { id: 'c_legs_beach', venue: 'beach', region: 'legs', name: 'malla larga + escarpines', list: [['legs', 'mallaLarga'], ['ankle', 'escarpines']] },
   { id: 'c_legs_beach2', venue: 'beach', region: 'legs', name: 'malla corta + tobillera de pulpo', list: [['legs', 'malla'], ['ankle', 'tobiPulpo']] },
+  // revisión de WP4 (ronda 1): tobillera y calcetines con cada modelo de zapatilla, y combinaciones que antes tapaban algo
+  { id: 'r_neon_brace', venue: 'hall', region: 'feet', name: 'neón + tobillera (sin calcetín)', list: [['shoes', 'neon'], ['ankle', 'blanca'], ['socks', '']] },
+  { id: 'r_neon_nobrace', venue: 'hall', region: 'feet', name: 'neón + tobilleros (sin tobillera)', list: [['shoes', 'neon'], ['ankle', ''], ['socks', 'tobilleros']] },
+  { id: 'r_dor_brace', venue: 'hall', region: 'feet', name: 'doradas + tobillera + tobilleros', list: [['shoes', 'doradas'], ['ankle', 'blanca'], ['socks', 'tobilleros']] },
+  { id: 'r_dor_nobrace', venue: 'hall', region: 'feet', name: 'doradas + tobilleros (sin tobillera)', list: [['shoes', 'doradas'], ['ankle', ''], ['socks', 'tobilleros']] },
+  { id: 'r_bajadas_media', venue: 'hall', region: 'legs', name: 'rodilleras bajadas + calcetín media', list: [['knees', 'bajadas'], ['socks', 'media']] },
+  { id: 'r_desparejados', venue: 'hall', region: 'legs', name: 'calcetines desparejados', list: [['socks', 'desparejados']] },
   { id: 'c_all_hall', venue: 'hall', region: 'full', style: 'coleta', name: 'TODO (pista): gorra MTC, deportivas, térmica, manguitos, coderas, relojes, dedos, malla larga, altas, rayas, neón…',
     list: [['head', 'gorraMTC'], ['eyes', 'deporte'], ['beard', 'tresDias'], ['paint', 'rayasEq'], ['marks', 'tiraNasal'], ['neck', 'medalla'], ['under', 'termica'], ['band', 'capitan'],
       ['armR', 'manguitoLlamas'], ['armL', 'manguitoRayas'], ['elbows', 'coderas'], ['wrist', 'reloj'], ['hands', 'dedos'], ['legs', 'mallaLarga'], ['knees', 'altas'], ['socks', 'altosRayas'], ['ankle', 'blanca'], ['shoes', 'neon']] },
