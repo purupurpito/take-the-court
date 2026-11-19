@@ -1267,6 +1267,26 @@ plan escribía más largos se acortaron por el formato de id (≤ 16 caracteres,
   premios de nivel siguen siendo 8).
 - Presupuesto (`looktest --gl`, peor caso = peinado × gorro × gafas + lo peor de cada ranura): pista 3782/5351/11204 (quedan
   618/649/1596), playa 3894/5343/11650 (quedan 506/657/1150; peor afro + viseraGafas + gafasVentisca). TRI_CAP sin cambios.
+- **Ronda 1 de WP7** (lo que vio la revisión; lo de arriba que contradiga esto queda sustituido):
+  - Ranura nueva **`ears`** (pendientes), al final de `SLOTS`/`LOOK_SLOTS` (no mueve el azar de lo de siempre: `random` la sortea al
+    final, 12 %). Antes los pendientes iban en `head` y no cabían con ningún gorro. `saneRaw` → `earsMove`: un guardado con
+    `head: 'pendientes'` pasa a `ears` (copia). UI: fila «Pendientes» en la pestaña Cabeza (`LK_ROWS.cabeza`), `PV_SLOT.ears = 'perfil'`.
+    Aros de 4,5 cm × 1,25 cm, 6 tramos en LOD0: 72/96/96. Con pelo largo se ven de lado y de 3/4 (combos `c_ears_*` de lookshots).
+  - `lunares`: hasta la rodilla, lunares de 2,4 cm (7 por vuelta, una fila cada 3,2 cm) con puño de contraste (antes, a media
+    espinilla = «media»). `caido`: acordeón de rulos ondulados cada 1,5 cm (sombra, medio tono y luz) casi hasta la rodilla y el borde
+    vuelto claro (antes se leía como el tobillero con tobillera). lookvis --vs: lunares/media 3,21 %, caido/tobilleros 2,18 %.
+  - `botinAlto`: caña de 12 cm (`cuff` 0,12) con tira de velcro oscura y rulo del acento, cada franja un anillo del torno (dibujo por
+    cara sin dientes); la tobillera blanca va dentro (`hasBrace(X, beach)`). 104/104/136. Frente a clásicas: 11,2 % / 203 px.
+  - `vendajeTob`: `ankleTape(piel)` = esparadrapo negro sobre piel clara o media, blanco sobre oscura. `cadenaPlata`: sobre pecho claro,
+    acero oscuro con eslabones claros y chapa de canto casi negro; cordón más grueso.
+  - `manguitoFundido`: degradado continuo del lienzo (antes 6 escalones). `pescadorCuadros`: la mitad de arriba de la copa lisa
+    (desde arriba ya no es un balón de playa). `rodillerasColor`: la bola entera de color (`cupHex`: cA o lo primero que se distinga de
+    la funda y del calcetín automático) y la funda lisa. `escarpinesNeo`: sin dedo gordo. `pinturaEquipo`: media cara (mitad izquierda,
+    de la frente a la mandíbula) del color del equipo que se aleja ≥ 200 de la piel, franja del otro color y filo de tinta.
+  - `viseraGafas`: banda de 24 tramos (12 en LOD0) y sin puente en LOD0: 246/316/442, dentro del tope de WP3.
+  - Desbloqueos por nivel (huecos de la tabla): lunares Nv 12, caido 16, rodilleraUna 18, gafasRedondas 24, malla34 32, bicolor 36
+    (con su precio de tienda). LVL_PRIZES = 14.
+  - Presupuesto: pista 3846/5411/11244, playa 3940/5389/11666 (quedan 460/611/1134: los pendientes ya suman con cualquier gorro).
 
 ### Vestuario en players.js (agente players)
 - `setKit(st, g)` acepta `st.looks` = `[fit|null, fit|null]` (los fija), `null` (los quita) o `undefined` (conserva los que había:

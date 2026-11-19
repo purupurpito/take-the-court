@@ -56,7 +56,7 @@ check(!/localStorage\.(get|set|remove)Item/.test(SRC.replace(/try \{[^}]*localSt
 const API = ['item', 'name', 'stars', 'lockText', 'defaults', 'sane', 'fix', 'ok', 'resolve', 'geoSig', 'atlasSig', 'sig', 'fromSeed', 'random',
   'load', 'fit', 'setFit', 'owned', 'grant', 'wearable', 'unseen', 'markSeen', 'checkGlobal', 'matchLooks', 'mergeRaw'];
 check(API.every(k => typeof L[k] === 'function') && L.V === 1, 'API completa de §3 (' + API.length + ' funciones) y V = 1');
-check(eq(L.SLOTS, ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR', 'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes']), 'SLOTS en el orden de §3');
+check(eq(L.SLOTS, ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR', 'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes', 'ears']), 'SLOTS en el orden de §3 (+ ears al final: WP7 ronda 1)');
 
 // --- catálogo
 const C = L.CATALOG, IDRE = /^[a-z][a-zA-Z0-9]{1,15}$/;
@@ -81,7 +81,7 @@ check(C.every(x => Object.isFrozen(x)), 'objetos del catálogo congelados');
 const SPEC = {
   style: 'tupe coleta afro flequillo rapado mono trenzas dosmonos coletas cresta' +   // + los 22 de 1.16 (WP2 del plan del Vestuario)
     ' alCero degradado cepillo undercut crop pinchos rizosCortos afroCorto frohawk raices twists rastas despeinado cortina melenita mullet ondas melena semirrecogido coletaBaja trenza monoBajo',
-  head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC' + ' diadema pinzas gorroPompon pescadorCuadros viseraGafas pendientes',   // (gorraMTC: online, fase 3; + los de WP7)
+  head: 'cinta cintaRizo bandana gorra gorraAtras visera pescador corona gorraMTC' + ' diadema pinzas gorroPompon pescadorCuadros viseraGafas', ears: 'pendientes',   // (gorraMTC: online, fase 3; + los de WP7; los pendientes, en su ranura)
   eyes: 'frente pasta oscuras deporte espejo gafasRedondas aviador gafasVentisca', paint: 'zinc rayas rayasEq estrella pinturaEquipo rayoOjo', marks: 'pecas tirita tiraNasal tiritaNariz', beard: 'bigote perilla tresDias barba bigote70',   // (barba: 1.16, WP3; WP7)
  
   neck: 'medalla conchas bandanaCuello silbato cadenaPlata', under: 'termica licra licraCorta', band: 'capitan', legs: 'malla mallaLarga mallaUnLado malla34',
@@ -137,7 +137,7 @@ const TC = { base: 0x1144aa, accent: 0xffcc00, dark: 0x0a1a33, shorts: 0x111111,
 {
   const f = L.defaults(0); f.colors = { acc: 'eq', acc2: 'ac', sock: 'os', shoe: 'rojo', glass: 'bl' }; f.hair = 'tAzul';
   const R = L.resolve(f, 'hall', TC);
-  const KEYS = 'skin hair hair2 brow hairFx style acc eyes paint marks beard neck under band armL armR elbows wristL wristR hands legs knees socks ankle shoes cA cB cSock cShoe cGlass cPad'.split(' ');
+  const KEYS = 'skin hair hair2 brow hairFx style acc eyes paint marks beard neck under band armL armR elbows wristL wristR hands legs knees socks ankle shoes ears cA cB cSock cShoe cGlass cPad'.split(' ');   // (ears: WP7 ronda 1)
   check(Object.isFrozen(R) && eq(Object.keys(R).sort(), KEYS.slice().sort()) && !('h' in R), 'resolve: L congelado, con los campos de §2.2 y sin h');
   check(R.cA === TC.base && R.cB === TC.accent && R.cSock === TC.dark && R.cShoe === 0xe0383e && R.cGlass === 0xf4f4f4 && R.hair === 0x3a6cf0, 'resolve: fichas eq/ac/os, paleta, blanco y tinte a hex');
   const R0 = L.resolve(L.defaults(0), 'beach');
@@ -372,6 +372,14 @@ fixed(F({ beach: { shoes: 'clasicas', socks: 'media', under: 'termica' } }), 'be
     L.choices('hair').filter(v => typeof v === 'number').every((v, i, a) => !i || lumT(a[i - 1]) <= lumT(v)) && L.choices('hairFx')[0] === '' && L.choices('hairFx').length === 6, 'choices: filas de la UI por sede (lo que no vale en esa sede no sale); el pelo natural de oscuro a claro; efectos de pelo');
   check(L.HIDE_HAIR.join() === 'gorra,gorraAtras,pescador,gorraMTC,bandana,gorroPompon,pescadorCuadros', 'HIDE_HAIR: gorra, gorra al revés, pescador, la gorra «MTC» del online, el pañuelo (1.16, WP3), el gorro de lana y el pescador de cuadros (WP7)');
 }
+// pendientes (WP7 ronda 1): ranura propia 'ears'; un guardado con los pendientes en 'head' pasa a 'ears' y se pueden llevar con gorro
+{
+  const f0 = L.defaults(0); f0.hall.head = 'pendientes'; f0.beach.head = 'pendientes'; const s0 = L.sane(f0, 0);
+  check(s0.hall.head === '' && s0.hall.ears === 'pendientes' && s0.beach.ears === 'pendientes' && f0.hall.head === 'pendientes' && !s0._keep, 'guardados de WP7: los pendientes de head pasan a ears (el original no cambia, nada a _keep)');
+  const f1 = L.defaults(0); f1.beach.ears = 'pendientes'; const x1 = L.fix(f1, null, 'ears');
+  check(L.ok(x1.fit) && !x1.removed.length && x1.fit.beach.head === 'gorra' && x1.fit.beach.ears === 'pendientes' && L.item('pendientes').slot === 'ears', 'pendientes con la gorra de playa: sin choque');
+  check(L.fromSeed(7).hall.ears !== undefined && L.defaults(0).hall.ears === '', 'ears en los fits nuevos (vacía por defecto)');
+}
 // sin tocar VB ajeno
 check(Object.keys(VB).join() === 'Look', 'look.js solo publica VB.Look');
 
@@ -401,10 +409,12 @@ console.log('== sprint 2-4 (T9) ==');
   const allT = C.map(x => X.lockText(x.id) + X.lockText(x.id, true)).join('|');
   check(!/·|1\.er|undefined|NaN|null/.test(allT), 'textos nuevos sin «·», «1.er», undefined ni null');
 
-  // premios por nivel: 8, de la tabla de S4-D2 §2.3, siempre como alternativa
-  const D2 = { tiraNasal: 2, altosRayas: 3, conchas: 4, oscuras: 5, mallaLarga: 6, manguitoRayas: 8, tAzul: 10, tRosa: 12, mitones: 14, escarpines: 16, pescador: 18, licra: 20, tVerde: 22, manguitoCuadros: 24, neon: 28, manguitoOro: 40, tDorado: 50 };
+  // premios por nivel: 8, de la tabla de S4-D2 §2.3, siempre como alternativa; + 6 objetos nuevos de WP7 (ronda 1: el plan reparte
+  // los premios nuevos también por nivel, en niveles que no tenían premio)
+  const D2 = { tiraNasal: 2, altosRayas: 3, conchas: 4, oscuras: 5, mallaLarga: 6, manguitoRayas: 8, tAzul: 10, tRosa: 12, mitones: 14, escarpines: 16, pescador: 18, licra: 20, tVerde: 22, manguitoCuadros: 24, neon: 28, manguitoOro: 40, tDorado: 50,
+    lunares: 12, caido: 16, rodilleraUna: 18, gafasRedondas: 24, malla34: 32, bicolor: 36 };
   const P = X.LVL_PRIZES;
-  check(P.length === 8 && P.every(e => D2[e.id] === e.lvl) && P.every((e, i) => !i || P[i - 1].lvl < e.lvl), '8 premios por nivel de la tabla de S4-D2 (Nv ' + P.map(e => e.lvl + ' ' + e.id).join(', ') + ')');
+  check(P.length === 8 + 6 && P.every(e => D2[e.id] === e.lvl) && P.every((e, i) => !i || P[i - 1].lvl < e.lvl), '8 premios por nivel de la tabla de S4-D2 + 6 de WP7, uno por nivel (Nv ' + P.map(e => e.lvl + ' ' + e.id).join(', ') + ')');
   check(P.every(e => X.item(e.id).unlock.length >= 2 && X.price(e.id) > 0) && !P.some(e => ['doradas', 'corona', 'medalla', 'capitan'].includes(e.id) || X.item(e.id).lux), 'cada premio por nivel se sigue vendiendo en la tienda; nada de lujo ni doradas, corona, medalla o brazalete');
   check(X.lvlPrize(8) === 'manguitoRayas' && X.lvlPrize(9) === '' && Object.isFrozen(P), 'lvlPrize(8) = manguitoRayas, lvlPrize(9) vacío; tabla congelada');
   // sin quitar ninguna alternativa: comparado con look.js del Vestuario original (commit 928ac39; LOOK_BASE=<rev> para otro). No con
@@ -458,7 +468,7 @@ console.log('== sprint 2-4 (T9) ==');
   check(eq(g1.slice().sort(), ['conchas', 'mallaLarga', 'manguitoRayas', 'tiraNasal']), 'checkGlobal({lvl:8}) da los premios hasta el Nv 8: ' + g1.join(', '));
   const so = JSON.parse(G.store['make-the-cut.look']).own;
   check(Object.keys(so).every(id => so[id].s === 'hito') && !G.L.owned('munhCanon') && !G.L.owned('rayasEq'), 'origen hito; jefe y química no se dan fuera de la Carrera');
-  check(eq(G.L.checkGlobal({ lvl: 8 }), []) && eq(G.L.checkGlobal({ lvl: 28 }).sort(), ['licra', 'mitones', 'neon', 'tAzul']), 'checkGlobal por nivel: nada la segunda vez; luego lo que falta hasta el Nv 28');
+  check(eq(G.L.checkGlobal({ lvl: 8 }), []) && eq(G.L.checkGlobal({ lvl: 28 }).sort(), ['caido', 'gafasRedondas', 'licra', 'lunares', 'mitones', 'neon', 'rodilleraUna', 'tAzul']), 'checkGlobal por nivel: nada la segunda vez; luego lo que falta hasta el Nv 28 (con los de WP7)');
   const g2 = G.L.checkGlobal({ reto: { r_aces: 2, r_recv: 1, r_streak: 3 }, retoN: 30, dias: 7 });
   const so2 = JSON.parse(G.store['make-the-cut.look']).own;
   check(eq(g2.slice().sort(), ['bandana', 'estrella', 'tTurquesa', 'tVerde']) && g2.every(id => so2[id].s === 'retos'), 'checkGlobal con retos (origen retos): ' + g2.join(', '));

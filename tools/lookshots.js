@@ -314,11 +314,11 @@ true;
 
 // ---------------------------------------------------------------- plan
 const SLOT_GROUP = {
-  head: 'head', eyes: 'head', paint: 'head', marks: 'head', beard: 'head',
+  head: 'head', eyes: 'head', ears: 'head', paint: 'head', marks: 'head', beard: 'head',
   neck: 'torso', under: 'torso', band: 'torso', armL: 'torso', armR: 'torso', elbows: 'torso', wristL: 'torso', wristR: 'torso', hands: 'torso',
   legs: 'legs', knees: 'legs', socks: 'legs', ankle: 'legs', shoes: 'legs'
 };
-const SLOT_REGION = { head: 'head', eyes: 'head', paint: 'head', marks: 'head', beard: 'head', neck: 'bust', under: 'torso', band: 'torso',
+const SLOT_REGION = { head: 'head', eyes: 'head', ears: 'head', paint: 'head', marks: 'head', beard: 'head', neck: 'bust', under: 'torso', band: 'torso',
   armL: 'torso', armR: 'torso', elbows: 'torso', wristL: 'torso', wristR: 'torso', hands: 'torso', legs: 'legs', knees: 'legs', socks: 'legs', ankle: 'feet', shoes: 'feet' };
 const VIEWS5 = ['front', 'q3l', 'sideR', 'back', 'top'];
 function wearSlot(slot) { return slot === 'armL' ? 'arm' : slot === 'wristL' ? 'wrist' : slot; }
@@ -336,6 +336,11 @@ const COMBOS = [
   { id: 'c_corona_mono', venue: 'hall', region: 'head', style: 'mono', name: 'corona + moño', list: [['head', 'corona']] },
   { id: 'c_bandana_coleta', venue: 'hall', region: 'head', style: 'coleta', name: 'pañuelo + coleta', list: [['head', 'bandana']] },
   { id: 'c_bandana_melena', venue: 'hall', region: 'head', style: 'melena', name: 'pañuelo + melena', list: [['head', 'bandana']] },
+  // pendientes (WP7 ronda 1: ranura propia): con gorro y con pelo largo, que tapa las orejas
+  { id: 'c_ears_pompon', venue: 'hall', region: 'head', style: 'tupe', name: 'pendientes + gorro de lana', list: [['head', 'gorroPompon'], ['ears', 'pendientes']] },
+  { id: 'c_ears_melena', venue: 'hall', region: 'head', style: 'melena', name: 'pendientes + melena', list: [['ears', 'pendientes']] },
+  { id: 'c_ears_ondas', venue: 'beach', region: 'head', style: 'ondas', name: 'pendientes + ondas + gorra', list: [['head', 'gorra'], ['ears', 'pendientes']] },
+  { id: 'c_ears_visera', venue: 'beach', region: 'head', style: 'coletas', name: 'pendientes + coletas + visera con gafas', list: [['head', 'viseraGafas'], ['ears', 'pendientes']] },
   { id: 'c_frente_afro', venue: 'beach', region: 'head', style: 'afro', name: 'gafas en la frente + afro', list: [['eyes', 'frente']] },
   { id: 'c_frente_melena', venue: 'beach', region: 'head', style: 'melena', name: 'gafas en la frente + melena', list: [['eyes', 'frente']] },
   { id: 'c_cintaRizo_afro', venue: 'hall', region: 'head', style: 'afro', name: 'cinta de rizo + afro + deportivas', list: [['head', 'cintaRizo'], ['eyes', 'deporte']] },

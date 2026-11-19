@@ -45,7 +45,9 @@
   var KEY = 'make-the-cut.look', V = 1, MAX_BYTES = 8192;
 
   var SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
-    'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes'];
+    'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes', 'ears'];
+  // 'ears' (pendientes; 1.16, WP7 ronda 1) va al final: antes iban en 'head' y no se podían llevar con ningún gorro; al final no mueve
+  // el azar de las demás ranuras ni lo que ya había
   // 'pad' (rodilleras, L.cPad) es de la 1.16: va al final para no mover nada de lo que ya había (random, firmas)
   var COLOR_KEYS = ['acc', 'acc2', 'sock', 'shoe', 'glass', 'pad'];
   // hueco de color → campo de L y letra de «vc»/«pc» (colores por vértice / pintados en el atlas de cada objeto)
@@ -153,8 +155,8 @@
     { id: 'pinzas', name: 'Pinzas de pelo', slot: 'head', vc: 'A', g: 'f', pl: 1, tris: [84, 84, 84] },
     { id: 'gorroPompon', name: 'Gorro de lana', slot: 'head', venue: 'P', unlock: [shop(1200)], vc: 'AB', g: 'm', hint: 'De calentamiento, con pompón. ' + HIDE_HAIR_HINT, tris: [144, 189, 278] },
     { id: 'pescadorCuadros', name: 'Pescador de cuadros', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(6000), reto('r_digs', 2)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [196, 197, 410] },
-    { id: 'viseraGafas', name: 'Visera con gafas', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(5000), reto('r_kills', 2)], vc: 'AB', g: 'f', hint: 'Las gafas de sol, apoyadas en la visera', tris: [272, 366, 522] },
-    { id: 'pendientes', name: 'Pendientes de aro', slot: 'head', vc: 'A', g: 'm', pl: 1, tris: [96, 96, 96] },
+    { id: 'viseraGafas', name: 'Visera con gafas', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(5000), reto('r_kills', 2)], vc: 'AB', g: 'f', hint: 'Las gafas de sol, apoyadas en la visera', tris: [246, 316, 442] },
+    { id: 'pendientes', name: 'Pendientes de aro', slot: 'ears', g: 'm', pl: 1, tris: [72, 96, 96] },   // (ronda 1: ranura propia, con cualquier gorro)
     // gafas
     { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [180, 180, 256] },
     { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
@@ -162,7 +164,7 @@
     { id: 'deporte', name: 'Gafas deportivas', slot: 'eyes', rarity: 1, unlock: [{ fame: 2 }, gym('recv', 1), reto('r_recv', 2)], vc: 'GA', g: 'f', pl: 1, tris: [72, 72, 96] },
     { id: 'espejo', name: 'Gafas de espejo', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [{ fame: 4 }, shop(15000)], vc: 'GA', g: 'f', pl: 1, tris: [54, 54, 72] },
     // 1.16 (WP7): redondas y de aviador (pintadas, con patillas) y la máscara de ventisca, con la correa ancha por detrás (se ve de espaldas)
-    { id: 'gafasRedondas', name: 'Gafas redondas', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
+    { id: 'gafasRedondas', name: 'Gafas redondas', slot: 'eyes', unlock: [shop(1200), lv(24)], vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
     { id: 'aviador', name: 'Gafas de aviador', slot: 'eyes', venue: 'Y', rarity: 1, unlock: [shop(3500), { fame: 2 }], vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
     { id: 'gafasVentisca', name: 'Máscara de ventisca', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [reto('r_rally', 3), shop(16000)], vc: 'GA', g: 'f', hint: 'Con la correa por detrás', tris: [80, 100, 160] },
     // cara (pintada en el atlas: 0 triángulos)
@@ -196,7 +198,7 @@
     { id: 'malla', name: 'Malla corta', slot: 'legs', geo: false, pc: 'B', g: 'f' },   // en cB (automático: un color que se distinga del pantalón)
     { id: 'mallaLarga', name: 'Malla larga', slot: 'legs', unlock: [shop(1000), lv(6)], vc: 'B', pc: 'B', g: 'f' },   // geo: la bola de la rodilla sin rodillera va en cB
     { id: 'mallaUnLado', name: 'Malla de una pierna', slot: 'legs', unlock: [shop(1100)], vc: 'B', pc: 'B', g: 'f', hint: 'En la pierna izquierda' },   // (1.16, WP7: la rodilla sin rodillera va en cB)
-    { id: 'malla34', name: 'Malla tres cuartos', slot: 'legs', vc: 'B', pc: 'B', g: 'f' },
+    { id: 'malla34', name: 'Malla tres cuartos', slot: 'legs', unlock: [shop(1200), lv(32)], vc: 'B', pc: 'B', g: 'f' },
     { id: 'manguito', name: 'Manguito', slot: 'arm', venue: 'P', vc: 'A', pc: 'B', g: 'm' },
     { id: 'manguitoRayas', name: 'Manguito de rayas', slot: 'arm', venue: 'P', unlock: [shop(1200), lv(8)], vc: 'A', pc: 'B', g: 'm' },
     { id: 'manguitoCuadros', name: 'Manguito de cuadros', slot: 'arm', venue: 'P', rarity: 1, unlock: [shop(6000)], vc: 'A', pc: 'B', g: 'm' },
@@ -224,15 +226,15 @@
     { id: 'altas', name: 'Rodilleras altas', slot: 'knees', venue: 'P', vc: 'P', g: 'f', pl: 1, tris: [64, 72, 112] },
     { id: 'bajadas', name: 'Rodilleras bajadas', slot: 'knees', venue: 'P', rarity: 1, unlock: [{ ach: 'm150' }, rec('played', 100)], vc: 'P', g: 'f', pl: 1, tris: [72, 108, 168] },
     { id: 'rodillerasColor', name: 'Rodilleras de dos colores', slot: 'knees', venue: 'P', unlock: [shop(1000)], vc: 'PA', g: 'f', pl: 1 },   // (1.16, WP7)
-    { id: 'rodilleraUna', name: 'Una rodillera', slot: 'knees', venue: 'P', vc: 'P', g: 'f', hint: 'Solo en la rodilla izquierda' },
+    { id: 'rodilleraUna', name: 'Una rodillera', slot: 'knees', venue: 'P', unlock: [shop(1100), lv(18)], vc: 'P', g: 'f', hint: 'Solo en la rodilla izquierda' },
     { id: 'tobilleros', name: 'Calcetines tobilleros', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'media', name: 'Calcetines', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'altos', name: 'Calcetines altos', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'altosRayas', name: 'Calcetines altos de rayas', slot: 'socks', venue: 'P', unlock: [shop(900)], geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'desparejados', name: 'Calcetines desparejados', slot: 'socks', venue: 'P', rarity: 1, unlock: [{ ach: 's5' }, rec('streak', 5)], geo: false, pc: 'SB', g: 'm', pl: 1 },
     { id: 'compresion', name: 'Calcetines de compresión', slot: 'socks', venue: 'P', unlock: [shop(1100)], geo: false, pc: 'S', g: 'm', pl: 1 },   // (1.16, WP7)
-    { id: 'lunares', name: 'Calcetines de lunares', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
-    { id: 'caido', name: 'Calcetines caídos', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
+    { id: 'lunares', name: 'Calcetines de lunares', slot: 'socks', venue: 'P', unlock: [shop(1000), lv(12)], geo: false, pc: 'S', g: 'm', pl: 1 },
+    { id: 'caido', name: 'Calcetines caídos', slot: 'socks', venue: 'P', unlock: [shop(900), lv(16)], geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'blanca', name: 'Tobillera', slot: 'ankle', venue: 'P', g: 'f' },
     { id: 'tela', name: 'Tobillera de tela', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f' },
     { id: 'pulseraTob', name: 'Pulsera de tobillo', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f' },
@@ -244,9 +246,9 @@
     { id: 'negras', name: 'Zapatillas negras', slot: 'shoes', venue: 'P', g: 'f', pl: 1 },
     { id: 'neon', name: 'Zapatillas neón', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(8000), lv(28)], vc: 'H', g: 'f', pl: 1 },
     { id: 'doradas', name: 'Zapatillas doradas', slot: 'shoes', venue: 'P', rarity: 3, unlock: [{ ach: 'mvp' }, { award: 'mvp' }, shop(60000)], lux: 1, g: 'f', pl: 1 },
-    { id: 'botinAlto', name: 'Botines altos', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(4500)], vc: 'H', g: 'm', pl: 1, tris: [120, 132, 192] },   // (1.16, WP7)
+    { id: 'botinAlto', name: 'Botines altos', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(4500)], vc: 'H', g: 'm', pl: 1, tris: [104, 104, 136] },   // (1.16, WP7; ronda 1: caña de 12 cm con la tobillera dentro —medido 112/96/136—)
     { id: 'suelaGorda', name: 'Zapatillas de suela gorda', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(7000), gym('block', 2)], vc: 'H', g: 'f', pl: 1 },
-    { id: 'bicolor', name: 'Zapatillas bicolor', slot: 'shoes', venue: 'P', vc: 'H', g: 'f', pl: 1 },
+    { id: 'bicolor', name: 'Zapatillas bicolor', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(6000), lv(36)], vc: 'H', g: 'f', pl: 1 },
     { id: 'retro', name: 'Zapatillas retro', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(5000), reto('r_win', 2)], vc: 'H', g: 'f', pl: 1 },
     // tintes de fantasía (el color de pelo se guarda como su id)
     { id: 'tAzul', name: 'Tinte azul', slot: 'hairTint', hex: 0x3a6cf0, unlock: [shop(1200), lv(10)], g: 'm' },
@@ -281,7 +283,7 @@
   var SLOT_GROUP = { arm: ['armL', 'armR'], wrist: ['wristL', 'wristR'] };
   // ranuras cuya pieza va en la malla (geometría o color por vértice); las demás (pintura, marcas, barba, brazalete, mallas,
   // calcetines) solo van en el atlas, salvo lo que diga geo:false en el objeto
-  var GEO_SLOT = { head: 1, eyes: 1, neck: 1, under: 1, armL: 1, armR: 1, elbows: 1, wristL: 1, wristR: 1, hands: 1, knees: 1, ankle: 1, shoes: 1 };
+  var GEO_SLOT = { head: 1, eyes: 1, ears: 1, neck: 1, under: 1, armL: 1, armR: 1, elbows: 1, wristL: 1, wristR: 1, hands: 1, knees: 1, ankle: 1, shoes: 1 };
   var BY_ID = {};
   CATALOG.forEach(function (it, i) {
     it.slots = SLOT_GROUP[it.slot] ? SLOT_GROUP[it.slot].slice() : [it.slot];
@@ -429,9 +431,22 @@
   var KEEP_PATHS = keepPaths();
   // saneado campo a campo sin reglas de compatibilidad (lo irreparable vuelve al valor por defecto de esa ranura; lo desconocido,
   // además, a _keep). Lo que ya estaba en _keep y ahora se conoce vuelve a su sitio
+  /** Los pendientes iban en 'head' (WP7, antes de la ronda 1): pasan a su ranura 'ears' y el gorro queda libre. Copia; fit no cambia. */
+  function earsMove(fit) {
+    var mv = ['hall', 'beach'].filter(function (v) { return isObj(fit[v]) && fit[v].head === 'pendientes'; });
+    if (!mv.length) return fit;
+    var f = {}, k;
+    for (k in fit) if (own(fit, k)) f[k] = fit[k];
+    mv.forEach(function (v) {
+      var s = {}; for (k in fit[v]) if (own(fit[v], k)) s[k] = fit[v][k];
+      s.head = ''; if (!s.ears) s.ears = 'pendientes'; f[v] = s;
+    });
+    return f;
+  }
   function saneRaw(fit, i) {
     var d = defaults(i === 1 ? 1 : 0);
     if (!isObj(fit)) return d;
+    fit = earsMove(fit);
     var o = cloneFit(d), keep = {}, nk = 0, old = isObj(fit._keep) ? fit._keep : null;
     KEEP_PATHS.forEach(function (r) {
       var v = pathGet(fit, r), k = old && own(old, r) && keepFmt(r, old[r]) ? old[r] : undefined;
@@ -656,12 +671,14 @@
     ['hall', 'beach'].forEach(function (ven) {
       SLOTS.forEach(function (s) {
         var list = items(s, ven).filter(can);
+        if (s === 'ears') { f[ven][s] = ''; return; }   // (los pendientes, al final: no mueven el azar de lo de siempre)
         f[ven][s] = list.length && r() < P[s] ? pick(r, list) : (s === 'shoes' && ven === 'hall' ? 'clasicas' : '');
       });
     });
     var toks = TOKENS.map(function (t) { return t.id; }).concat(PALETTE.map(function (p) { return p.id; }).filter(can));
     // 'pad' es la última: no mueve el azar de las demás (desde WP4 la llevan las rodilleras cortas, altas y bajadas)
     COLOR_KEYS.forEach(function (k) { f.colors[k] = r() < 0.55 ? 'auto' : pick(r, toks); });
+    ['hall', 'beach'].forEach(function (ven) { var l = items('ears', ven).filter(can); f[ven].ears = l.length && r() < 0.12 ? pick(r, l) : ''; });
     return fix(f, null, null).fit;
   }
 
@@ -670,7 +687,7 @@
   var NONE = { head: 'Sin gorro', eyes: 'Sin gafas', paint: 'Sin pintura', marks: 'Sin marcas', beard: 'Sin barba', neck: 'Nada',
     under: 'Nada', band: 'Sin brazalete', armL: 'Sin manguito', armR: 'Sin manguito', elbows: 'Sin coderas', wristL: 'Nada',
     wristR: 'Nada', hands: 'Nada', legs: 'Sin mallas', knees: 'Sin rodilleras', socks: 'Sin calcetines', ankle: 'Nada',
-    shoes: 'Sin zapatillas', hair2: 'Sin segundo color', hairFx: 'Sin efecto' };
+    shoes: 'Sin zapatillas', ears: 'Sin pendientes', hair2: 'Sin segundo color', hairFx: 'Sin efecto' };
   /** Nombre de un objeto, peinado, tinte, ficha de color o color de piel/pelo (hex). slot opcional para el «nada» de esa ranura. */
   function name(id, slot) {
     if (id === '' || id == null) return NONE[slot] || 'Nada';

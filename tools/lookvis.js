@@ -67,7 +67,7 @@ const CAM = {
   beach: { b: { d: 6.38, el: 34.9, fov: 60 }, c: { d: 6.46, el: 33.7, fov: 60 } }
 };
 // ranuras: dónde se encuadra el primer plano y si se exige verlo en el partido (de espaldas)
-const SLOT_REGION = { style: 'head', hairTint: 'head', hairFx: 'head', head: 'head', eyes: 'head', paint: 'head', marks: 'head', beard: 'head', neck: 'bust',
+const SLOT_REGION = { style: 'head', hairTint: 'head', hairFx: 'head', head: 'head', ears: 'head', eyes: 'head', paint: 'head', marks: 'head', beard: 'head', neck: 'bust',
   under: 'torso', band: 'torsoL', armL: 'torsoL', armR: 'torsoR', elbows: 'torso', wristL: 'torsoL', wristR: 'torsoR', hands: 'torso',
   legs: 'legs', knees: 'legs', socks: 'legs', ankle: 'feet', shoes: 'feet' };
 // (WP5, ronda 1) Las ranuras de UN brazo (brazalete, brazo y muñeca izquierdos o derechos) se miden en la MITAD del torso de ese
@@ -448,7 +448,7 @@ function table() {
   for (const ven of venues) {
     const list = jobs(ven);
     if (!list.length) continue;
-    list.forEach(j => { const e = report.items[j.key] = report.items[j.key] || { id: j.id, slot: j.slot, ven }; e.ref0 = j.ref0; e.vs = j.key.indexOf('~') > 0; CASES.forEach(k => { delete e[k]; }); });
+    list.forEach(j => { const e = report.items[j.key] = report.items[j.key] || { id: j.id, slot: j.slot, ven }; e.slot = j.slot; e.ref0 = j.ref0; e.vs = j.key.indexOf('~') > 0; CASES.forEach(k => { delete e[k]; }); });
     const strips = {};
     for (let i = 0; i < CASES.length; i++) {
       if (freeMB() < 250) { console.error('DISCO CASI LLENO: se para'); bad++; break; }

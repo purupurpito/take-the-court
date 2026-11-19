@@ -4058,12 +4058,12 @@
   var LK_TABS = [['pelo', 'Pelo'], ['cabeza', 'Cabeza'], ['cara', 'Cara'], ['cuerpo', 'Cuerpo'], ['brazos', 'Brazos'], ['piernas', 'Piernas'], ['colores', 'Colores']];
   var LK_ROWS = {
     pelo: ['style', 'hair', 'hair2', 'hairFx', 'skin'],   // (1.16, WP2: segundo color y efecto de pelo)
-    cabeza: ['head', 'eyes'], cara: ['paint', 'marks', 'beard'], cuerpo: ['neck', 'under', 'band', 'legs'],
+    cabeza: ['head', 'eyes', 'ears'], cara: ['paint', 'marks', 'beard'], cuerpo: ['neck', 'under', 'band', 'legs'],
     brazos: ['armL', 'armR', 'elbows', 'wristL', 'wristR', 'hands'], piernas: ['knees', 'socks', 'ankle', 'shoes'],
     colores: ['c:acc', 'c:acc2', 'c:sock', 'c:shoe', 'c:glass', 'c:pad']
   };
   var LK_LABEL = {
-    style: 'Peinado', hair: 'Color de pelo', hair2: 'Segundo color', hairFx: 'Efecto de pelo', skin: 'Piel', head: 'Gorro', eyes: 'Gafas', paint: 'Pintura', marks: 'Marcas', beard: 'Barba',
+    style: 'Peinado', hair: 'Color de pelo', hair2: 'Segundo color', hairFx: 'Efecto de pelo', skin: 'Piel', head: 'Gorro', eyes: 'Gafas', ears: 'Pendientes', paint: 'Pintura', marks: 'Marcas', beard: 'Barba',
     neck: 'Cuello', under: 'Interior', band: 'Brazalete', legs: 'Mallas', armL: 'Manguito (brazo izq.)', armR: 'Manguito (brazo dcho.)', elbows: 'Coderas',
     wristL: 'Muñequera (izq.)', wristR: 'Muñequera (dcha.)', hands: 'Manos', knees: 'Rodilleras', socks: 'Calcetines', ankle: 'Tobillera', shoes: 'Zapatillas',
     'c:acc': 'Complementos', 'c:acc2': 'Detalles', 'c:sock': 'Calcetines', 'c:shoe': 'Zapatillas', 'c:glass': 'Montura', 'c:pad': 'Rodilleras'
@@ -4071,7 +4071,7 @@
   // valor '' de cada ranura (siempre disponible); las zapatillas '' solo existen en la playa (descalzo). Manda sobre VB.Look.name:
   // «Nada» a secas no decía qué faltaba (U9)
   var LK_NONE = {
-    head: 'Sin gorro', eyes: 'Sin gafas', paint: 'Sin pintura', marks: 'Sin marcas', beard: 'Sin barba', neck: 'Sin collar', under: 'Sin camiseta interior', band: 'Sin brazalete',
+    head: 'Sin gorro', eyes: 'Sin gafas', ears: 'Sin pendientes', paint: 'Sin pintura', marks: 'Sin marcas', beard: 'Sin barba', neck: 'Sin collar', under: 'Sin camiseta interior', band: 'Sin brazalete',
     armL: 'Sin manguito', armR: 'Sin manguito', elbows: 'Sin coderas', wristL: 'Sin muñequera', wristR: 'Sin muñequera', hands: 'Manos libres', legs: 'Sin mallas',
     knees: 'Sin rodilleras', socks: 'Sin calcetines', ankle: 'Sin tobillera', shoes: 'Descalzo', hair2: 'Sin segundo color', hairFx: 'Sin efecto'
   };
