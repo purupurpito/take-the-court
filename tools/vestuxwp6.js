@@ -3,7 +3,8 @@
  * Un solo Chrome. Por tamaño (568x320, 640x360 y 360x640 táctiles; 1280x720 de PC) captura en JPEG los casos de WP6 y mide:
  *  - lista de Pelo, rejilla de peinados (miniaturas), rejilla de color de pelo, tobillera (encuadre de pies), coleta (se asoma a la
  *    espalda), brazo izquierdo, colores (qué pinta cada fila), bloqueado (cresta), hoja «⋯», «Probar», Vestuario de playa (fondo);
- *  - en cada caso: cabeza, pies y manos del muñeco tapados o no por la UI (elementFromPoint), ⟲ ↻ ⟳ y acciones sin tapar, las 7
+ *  - en cada caso: todos los puntos del muñeco que se pintan (cabeza, manos, rodilla, pies; en vertical, fuera del recorte de preview.pass)
+ *    tapados o no por la UI (elementFromPoint), ⟲ ↻ ⟳ y acciones sin tapar, las 7
  *    pestañas visibles, letra mínima (< 13 px en el móvil = fallo), recortes, encuadre y giro de la vista previa;
  *  - miniaturas: ms por retrato pintado (ctx.portraitInfo) y el peor frame mientras se generan.
  * Uso: node tools/vestuxwp6.js [--sizes=568x320:t,...] [--only=caso,caso] [salida=tools/out/vestux-wp6]
@@ -30,8 +31,11 @@ const MEASURE = `(function(){
       function pr(b,y){ V.set(0,y||0,0); b.localToWorld(V); V.project(cam); return [Math.round((V.x+1)/2*W), Math.round((1-V.y)/2*H)]; }
       o.pt={ head:pr(r.head,0.25), headTop:pr(r.head,0.42), footL:pr(r.ft[0],0), footR:pr(r.ft[1],0), handL:pr(r.hand[0],0), handR:pr(r.hand[1],0), knee:pr(r.kn[0],0) };
       // solo lo que el encuadre enseña (de cerca, los pies o la cabeza quedan fuera a propósito; en vertical, detrás de la lista)
-      var F=o.frame, sees={ head: !/^(pies|rodillas|piernas)$/.test(F), feet: /^(cuerpo|piernas|pies)$/.test(F), hands: /^(cuerpo|brazos|brazoL|brazoR|manos)$/.test(F) };
-      o.cover={}; for(var k in o.pt){ var g=/^head/.test(k)?'head':/^foot/.test(k)?'feet':/^hand/.test(k)?'hands':''; if(g&&sees[g]) o.cover[k]=who(o.pt[k]); }
+      // (ronda 1) TODOS los puntos del muñeco que se pintan: los que caen dentro de la pantalla y por encima del recorte de abajo (vertical:
+      // preview.pass no pinta el muñeco por debajo de la línea clip; esos van a o.clipped). Antes, de cerca solo se miraba la cabeza y
+      // el cuerpo que corría por detrás de las pestañas no contaba.
+      o.clip=inf.clip||0; var yc=o.clip?H*(1-o.clip):H, yt=o.clip?H*(inf.clipT||0):0; o.cover={}; o.clipped=[];
+      for(var k in o.pt){ var q=o.pt[k]; if(q[0]<0||q[0]>=W||q[1]<0||q[1]>=H) continue; if(q[1]>=yc||q[1]<yt){ o.clipped.push(k); continue; } o.cover[k]=who(q); }
       o.dollPx=Math.abs(o.pt.footL[1]-o.pt.headTop[1]);
     }
   }catch(e){ o.err=String(e); }
@@ -40,12 +44,16 @@ const MEASURE = `(function(){
     var direct=[].some.call(e.childNodes,function(n){return n.nodeType===3&&n.textContent.trim();});
     if(direct){ var fs=parseFloat(cs.fontSize); if(fs<13) small[fs]=(small[fs]||0)+1+':'+e.textContent.trim().slice(0,18);
       if(e.scrollWidth>e.clientWidth+1&&(cs.overflow!=='visible'||cs.textOverflow==='ellipsis')) cut.push(e.textContent.trim().slice(0,30)); }
-    var b=e.getBoundingClientRect(); if((b.right>W+1||b.left<-1||b.bottom>H+1)&&b.width>4&&!e.closest('.lk-gbody,#lkList,.lk-fams')) cut.push('FUERA:'+(e.id||String(e.className).slice(0,30)));
+    var b=e.getBoundingClientRect(), over=Math.max(b.right-W,-b.left,b.bottom-H);
+    // (la mancha de pintura de un botón, svg.sp-blob, gotea unos px más allá del botón: si el botón cabe y solo la gota pasa ≤ 8 px del
+    // borde, es decoración, no un recorte; se cuenta aparte)
+    if(over>1&&over<=8&&e.closest('svg.sp-blob')){ var bt=e.closest('svg.sp-blob').parentElement, bb=bt&&bt.getBoundingClientRect(); if(bb&&bb.right<=W+1&&bb.left>=-1&&bb.bottom<=H+1){ o.deco=(o.deco||0)+1; return; } }
+    if((b.right>W+1||b.left<-1||b.bottom>H+1)&&b.width>4&&!e.closest('.lk-gbody,#lkList,.lk-fams')) cut.push('FUERA:'+(e.id||(e.getAttribute('class')||'').slice(0,30)||e.tagName.toLowerCase())+'<'+((e.parentElement&&(e.parentElement.id||e.parentElement.getAttribute('class')||''))+'').slice(0,24)+'>@'+Math.round(b.left)+','+Math.round(b.top)+','+Math.round(b.right)+','+Math.round(b.bottom));
   });
   o.small=small; o.cut=cut.slice(0,10);
   o.tabs=[].map.call(document.querySelectorAll('#lkTabs .tab'),function(t){var b=t.getBoundingClientRect(),c=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);return b.width&&b.right<=W+1&&b.left>=-1&&(c===t||t.contains(c))?1:0;}).join('');
   o.btns=[].map.call(document.querySelectorAll('#lkFoot [data-lkf], .lk-rot [data-rot]'),function(b){ if(!b.getClientRects().length) return null; var r=b.getBoundingClientRect(),e=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2); return (b.getAttribute('data-lkf')||b.getAttribute('data-rot'))+(e===b||b.contains(e)?'':'!TAPADO'); }).filter(Boolean).join(' ');
-  var G=document.getElementById('lkGrid'); if(G&&!G.hidden){ o.grid={tiles:G.querySelectorAll('.lk-tile').length, imgs:G.querySelectorAll('.lk-ti img:not([hidden])').length, vis:0};
+  var G=document.getElementById('lkGrid'); if(G&&!G.hidden){ o.grid={tiles:G.querySelectorAll('.lk-tile').length, imgs:G.querySelectorAll('.lk-ti :is(img,canvas):not([hidden])').length, vis:0};
     var gb=G.querySelector('.lk-gbody'), gr=gb&&gb.getBoundingClientRect(); if(gr) G.querySelectorAll('.lk-tile').forEach(function(t){var b=t.getBoundingClientRect(); if(b.top>=gr.top-2&&b.bottom<=gr.bottom+2) o.grid.vis++;}); }
   o.rows=[].map.call(document.querySelectorAll('#lkList [data-look]'),function(b){return b.innerText.replace(/\\s+/g,' ').trim().slice(0,90);});
   try{ o.pt2=VB.ctx.portraitInfo(); }catch(e){}
@@ -93,7 +101,7 @@ const CASES = [
         try { const fr = JSON.parse(await page.evalJs('JSON.stringify((window.__lkF||[]).slice(2))')); m.frameMax = Math.round(Math.max.apply(null, fr.concat([0]))); m.frames = fr.length; } catch (e) { }
         all[size + '/' + id] = m;
         const bad = Object.keys(m.cover || {}).filter(k => m.cover[k] !== 'ok').map(k => k + '=' + m.cover[k]);
-        console.log(size, id.padEnd(18), 'frame', m.frame, 'yaw', m.yaw, 'doll', m.dollPx, 'tabs', m.tabs, '|', m.btns, '| tapado:', bad.join(' ') || '-', '| small', JSON.stringify(m.small), m.cut && m.cut.length ? '| cut ' + m.cut.join(';') : '', m.grid ? '| grid ' + JSON.stringify(m.grid) : '', '| pt', m.pt2 && m.pt2.ms, 'maxF', m.frameMax, m.err || '');
+        console.log(size, id.padEnd(18), 'frame', m.frame, 'yaw', m.yaw, 'doll', m.dollPx, 'tabs', m.tabs, '|', m.btns, '| tapado:', bad.join(' ') || '-', m.clip ? '| recorte ' + m.clip.toFixed(2) + ' (' + (m.clipped.join(',') || '-') + ')' : '', m.deco ? '| gotas ' + m.deco : '', '| small', JSON.stringify(m.small), m.cut && m.cut.length ? '| cut ' + m.cut.join(';') : '', m.grid ? '| grid ' + JSON.stringify(m.grid) : '', '| pt', m.pt2 && m.pt2.ms, 'maxF', m.frameMax, m.err || '');
       }
     }
   } catch (e) { console.error('ERROR', e && e.stack || e); }

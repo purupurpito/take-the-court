@@ -1283,6 +1283,28 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
 - **Comprobar**: `node tools/vestuxwp6.js [--sizes=…] [--only=caso,…]` (JPEG por caso y `metrics.json`: lo que tapa la UI de cabeza, pies y
   manos según el encuadre, botones, pestañas, letra < 13, recortes, rejilla y ms de miniaturas). `tools/looktest.js --gl` prueba el dado y
   «Todo al azar» con `_keep`.
+- **Ronda 1 de revisión (19-nov-2026)**:
+  - **Vertical: el muñeco solo arriba.** `preview.place(cx, half, top, bot, clip, clipT)`: en vertical ui.js pasa las franjas de abajo (jugador,
+    sede, pestañas, lista o rejilla) y de arriba (cabecera) donde el muñeco NO se pinta. doll.js `pvClipArm` (al final de `update`) deja su
+    material sin color ni profundidad (sigue proyectando sombra) y su tinta oculta; main.js, tras el render del frame, llama a
+    `preview.pass(ctx)` (`pvClipPass`): segundo pase de la escena con la cámara en la capa 3 (el muñeco, su tinta y las luces de la sede la
+    llevan), tijera en el hueco, sin fondo ni mapa de sombras nuevo (con post-proceso, limpia la profundidad de la franja). Cero programas
+    nuevos (41 en 360x640 y en 640x360). De cerca queda un busto que llena el hueco (cabeza, nuca y perfil con 0,1 m menos de cuello; el tope
+    `PV_PPM` ×1,6 con recorte); de cuerpo entero en vertical, 0,08 m menos de aire arriba y `fill` 0,985. Sin la reserva de 22 px del pie.
+  - **PC**: ⟲ ↻ ⟳ en columna al borde derecho, abajo (de cerca, las rodillas quedaban detrás de la fila bajo el muñeco).
+  - **Miniaturas sin tirones**: `portrait.prep(c, req, ms)` monta el muñeco por pasos (`rigBones` + `rigGeoBegin/rigGeoRun`: las piezas de
+    `rigGeometry` en 12 pasos, mismo orden y mismos triángulos; `buildRig` = `rigBones` + `rigSkin`), las luces, el material y la subida del
+    atlas de la primera, ≤ 3 ms por frame; `portrait.snap(c, req)` lo pinta y lo copia en la GPU con `createImageBitmap` (antes `toBlob`
+    leía el lienzo y esperaba a la GPU: 10-18 ms en el mismo frame). El material y su atlas se reutilizan de un muñeco al siguiente. main.js:
+    caché propia de `ImageBitmap` (`TCACHE`, ≤ 48), evento `vb-portrait` con `bmp`; ui.js las pone en un `<canvas>` de la ficha con
+    `bitmaprenderer` (`lkTileShow`). El retrato no se suelta mientras el Vestuario está abierto (cada rejilla recompilaba su programa).
+    Medido (`portraitInfo().msMax` y envoltorio de prep/snap): ≤ 1 ms por frame en PC; 3-7,5 ms a CPU ×4 (640x360 y 360x640); la primera
+    de la sesión compila el programa del retrato (10-14 ms, una vez).
+  - **Rejilla**: miniaturas de peinado de cerca (encuadre `peinado`; 3/4 de espaldas, yaw 2,2, los de volumen detrás) y de tobillera
+    (`tobillo`); ojo tachado en la ficha de lo que con lo puesto no se vería (tobillera bajo calcetines altos, gorro que tapa el peinado);
+    cabecera en pegatina de tinta; familias en tinta opaca y flecha crema `.lk-fmore` (44 px) que corre la tira cuando no caben.
+  - `tools/vestuxwp6.js`: mira TODOS los puntos del muñeco que se pintan (fuera del recorte), nombra lo que se sale (las gotas de la mancha
+    de un botón que cabe se cuentan aparte, «gotas») y cuenta las miniaturas en `<canvas>`.
 - **Pendiente para la integración**: las filas `hair2` / `hairFx` (WP2) no están en `LK_ROWS` (doll.js aún no las dibuja); cuando WP2 las
   pinte, añadirlas a `pelo` (la rejilla y los nombres «Sin segundo color» / «Sin efecto» ya están). Si WP4 deja la tobillera por fuera del
   calcetín, publicar `VB.Doll.UNDER_SOCK = {}` y el aviso desaparece solo.

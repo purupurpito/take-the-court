@@ -5334,14 +5334,27 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #menu .lk-tile.on{background:var(--sp-gold);color:var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) #menu .lk-tile.on .lk-ti{box-shadow:0 0 0 2px var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) #menu .lk-ti{display:block;width:100%;aspect-ratio:1/1;border-radius:9px 12px 8px 11px;overflow:hidden;background:#2f2560}
-:root:not(#_):not(#_):not(#_) #menu .lk-ti img{display:block;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none;user-select:none}
-:root:not(#_):not(#_):not(#_) #menu .lk-ti img[hidden]{display:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-ti :is(img,canvas){display:block;width:100%;height:100%;object-fit:cover;-webkit-user-drag:none;user-select:none}
+:root:not(#_):not(#_):not(#_) #menu .lk-ti :is(img,canvas)[hidden]{display:none}
 :root:not(#_):not(#_):not(#_) #menu .lk-tn{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;width:100%;min-height:2.3em;font:700 13px/1.15 var(--sp-ui);text-align:center;overflow-wrap:anywhere}
 :root:not(#_):not(#_):not(#_) #menu .lk-tst{position:absolute;left:3px;top:2px;padding:1px 4px;border-radius:6px;background:var(--sp-ink);color:var(--sp-gold);font:700 13px/1 var(--sp-ui);letter-spacing:0}
 :root:not(#_):not(#_):not(#_) #menu .lk-tlk{position:absolute;right:-5px;top:-5px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#d6d0c4;color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) #menu .lk-tlk svg{width:13px;height:13px;fill:currentColor}
-:root:not(#_):not(#_):not(#_) #menu .lk-tile.lock:not(.on) .lk-ti img{filter:saturate(.55) brightness(.82)}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.lock:not(.on) .lk-ti :is(img,canvas){filter:saturate(.55) brightness(.82)}
 :root:not(#_):not(#_):not(#_) #menu .lk-tile.new::after{content:"";position:absolute;left:-4px;bottom:-4px;width:12px;height:12px;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
+/* WP6 (ronda 1): la cabecera de la rejilla en pegatina de tinta (no suelta sobre el marcador y los anuncios); las familias en trazo
+   de tinta opaca, y si no caben, una flecha crema de 44 px al final de la tira que la corre (además del desvanecido) */
+:root:not(#_):not(#_):not(#_) #menu .lk-gt{flex:0 1 auto;padding:4px 12px 5px 10px;border-radius:12px 16px 10px 14px/14px 10px 16px 12px;background:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px rgba(21,16,42,.55);transform:rotate(-1deg)}
+:root:not(#_):not(#_):not(#_) #menu .lk-famw{position:relative;flex:none;min-width:0}
+:root:not(#_):not(#_):not(#_) #menu .lk-fams .sp-tab::before{opacity:1;inset:2px -3px}
+:root:not(#_):not(#_):not(#_) #menu .lk-fmore{display:none;position:absolute;right:-2px;top:-2px;z-index:2;align-items:center;justify-content:center;width:44px;height:44px;min-height:0;margin:0;padding:0;border:0;border-radius:50%;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer;-webkit-tap-highlight-color:transparent}
+:root:not(#_):not(#_):not(#_) #menu .lk-fmore svg{width:22px;height:22px;fill:none;stroke:var(--sp-ink);stroke-width:3.2;stroke-linecap:round;stroke-linejoin:round}
+:root:not(#_):not(#_):not(#_) #menu .lk-fmore:active{transform:scale(.94)}
+:root:not(#_):not(#_):not(#_) #menu .lk-famw:has(>.lk-fams.sp-more-x) .lk-fmore{display:flex}
+:root:not(#_):not(#_):not(#_) #menu .lk-ti{position:relative}
+:root:not(#_):not(#_):not(#_) #menu .lk-thid{position:absolute;right:3px;bottom:3px;display:flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:var(--sp-ink);color:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .lk-thid svg{width:15px;height:15px;fill:currentColor}
 /* muestras de color: círculos de 44 px en fichas redondas de 52 */
 :root:not(#_):not(#_):not(#_) #menu .lk-tile.lk-cs{width:52px;height:52px;min-height:52px;padding:4px;border-radius:50%}
 :root:not(#_):not(#_):not(#_) #menu .lk-tile.lk-cs .lk-sw{width:44px;height:44px;border-radius:50%;box-shadow:inset 0 0 0 2px rgba(21,16,42,.35)}
@@ -5351,6 +5364,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* hoja «⋯» (lkMoreSheet): tres botones y una sola ✕; cabe a 568×320 */
 #spSheets .lk-sheet .lk-acts{gap:12px;padding:4px 6px 6px 4px}
 #spSheets .lk-sheet .lk-acts .sp-btn{min-height:46px}
+/* PC apaisado (ronda 1): ⟲ ↻ ⟳ en columna al borde derecho, abajo (como «Dar la vuelta» en el móvil), no en fila bajo el muñeco: de
+   cerca, las rodillas y los pies del muñeco quedaban detrás de los tres botones */
+@media (min-aspect-ratio:5/4){
+  :root:not(.ph):not(#_):not(#_):not(#_) #lkSpin .lk-rot{left:auto;right:calc(20px + var(--sr));top:auto;bottom:calc(40px + var(--sbm));flex-direction:column;gap:12px;transform:none}
+}
 /* vertical (360×640): cabecera solo con el título (y la pestaña), el muñeco en medio entre ⟲ ↻ ⟳ (izquierda) y las acciones (derecha),
    y abajo jugador, sede, pestañas y la lista o la rejilla */
 @media (max-aspect-ratio:5/4){
@@ -5371,6 +5389,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbs:13.5px}
   :root:not(#_):not(#_):not(#_) #menu #lkList{max-height:34vh}
   :root:not(#_):not(#_):not(#_) #menu #lkGrid{--lkt:80px;--lkg:10px;flex:none;height:46vh;max-height:46vh}
+  /* (ronda 1) sin los 22 px del pie de las páginas (aquí no hay pie): el hueco del muñeco crece lo mismo */
+  :root:not(#_):not(#_):not(#_) #menu.sp-full #mpLook{padding-bottom:calc(var(--sp-pad) * .6 + var(--sbm))}
 }
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 /* =====================================================================

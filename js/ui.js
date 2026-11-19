@@ -4413,7 +4413,7 @@
    *  También lo usa el CSS (--lkcx: aviso y botones bajo el muñeco). */
   function lkPlace() {
     if (!lk.on || !el.mpLook || !el.menu) return;
-    var W = window.innerWidth || 1, H = window.innerHeight || 1, L = 0, R = W, T = 0, B = H;
+    var W = window.innerWidth || 1, H = window.innerHeight || 1, L = 0, R = W, T = 0, B = H, clip = 0, clipT = 0;
     function rc(n) { if (!n || !n.getClientRects().length) return null; var r = n.getBoundingClientRect(); return r.width > 1 && r.height > 1 ? r : null; }
     var col = rc(el.mpLook), foot = rc(el.lkFoot), rot = rc(el.lkSpin && el.lkSpin.querySelector('.lk-rot'));
     var hd = rc(el.mpLook.querySelector('.mp-head')), top = rc(el.mpLook.querySelector('.lk-top'));
@@ -4434,12 +4434,15 @@
       B = gd ? gd.top - 6 : top ? top.top - 6 : H * 0.5;
       if (foot && foot.left > W * 0.5) R = Math.min(R, foot.left - 6);
       if (rot && rot.right < W * 0.5) L = Math.max(L, rot.right + 6);
+      // WP6 (ronda 1): por debajo del hueco (jugador y sede, pestañas, lista o rejilla) el muñeco no se pinta: de cerca, el cuerpo corría
+      // por detrás de las fichas y las pestañas («sin pegatinas que se pisen»); queda un busto arriba (doll.js preview.pass)
+      clip = (H - (B + 4)) / H; clipT = T > 8 ? (T - 4) / H : 0;
     }
     if (R - L < W * 0.12) { L = Math.max(0, (L + R) / 2 - W * 0.06); R = L + W * 0.12; }
     if (B - T < H * 0.2) { T = Math.max(0, B - H * 0.2); }
     var cx = (L + R) / 2 / W, half = (R - L) / 2 / W;
     el.menu.style.setProperty('--lkcx', cx.toFixed(3));
-    var P = lkPV(); if (P && P.place) try { P.place(cx, half, T / H, (H - B) / H); } catch (e) { }
+    var P = lkPV(); if (P && P.place) try { P.place(cx, half, T / H, (H - B) / H, clip, clipT); } catch (e) { }
   }
   /** Desvanecido abajo mientras queden filas por debajo del borde de la lista. */
   function lkMore() {
@@ -4553,12 +4556,24 @@
   function lkThumb(slot, i, o, px) {
     var A = ctx.actions, P = lkPV(); if (!A || !A.portrait) return null;
     var L = lkThumbL(slot, o.v); if (!L) return null;
-    var fr = P && P.frameOf ? P.frameOf(slot) : 'cuerpo';
+    var fr = slot === 'style' ? 'peinado' : slot === 'ankle' ? 'tobillo' : P && P.frameOf ? P.frameOf(slot) : 'cuerpo';
     var req = { L: L, beach: lk.venue === 'beach', tc: lkTc(), num: lk.num, size: px, frame: fr, lod: 1, bg: LK_TBG, pose: 'stand', face: 'neutra' };
-    if (slot === 'style') req.yaw = 1.2;   // los peinados, de perfil: se ven la cara, la nuca y lo que cae detrás (coleta, moño)
+    // los peinados, de cerca (frame 'peinado'): de 3/4 los de delante y de 3/4 de espaldas los que llevan volumen detrás (coleta, moño,
+    // trenzas): de perfil la coleta quedaba detrás de la cabeza y la ficha no se distinguía de la de la cinta
+    if (slot === 'style') req.yaw = lkBack(o.v) ? 2.2 : 0.9;
     var r = null; try { r = A.portrait(req); } catch (e) { r = null; }
     if (r && r.key && !r.url) lkGK[r.key] = i;
     return r;
+  }
+  /** Pone la miniatura en el <canvas> de la ficha i. r.bmp (ImageBitmap de main.js, en la GPU): se copia con createImageBitmap
+   *  (asíncrono) y se entrega al lienzo con 'bitmaprenderer', sin leer píxeles; el de la caché sigue valiendo para la próxima vez.
+   *  r.url (camino viejo, PNG): se dibuja la imagen cuando carga. */
+  function lkTileShow(i, r) {
+    var cv = el.lkGrid && el.lkGrid.querySelector('[data-lkv="' + i + '"] canvas'); if (!cv || !r) return;
+    function on(b) { if (!b || !cv.isConnected) { if (b && b.close) b.close(); return; } try { var c = cv.getContext('bitmaprenderer'); if (c) { c.transferFromImageBitmap(b); cv.hidden = false; return; } } catch (e) { }
+      try { cv.getContext('2d').drawImage(b, 0, 0, cv.width, cv.height); cv.hidden = false; } catch (e) { } }
+    if (r.bmp && typeof createImageBitmap === 'function') { try { createImageBitmap(r.bmp).then(on, function () { }); } catch (e) { } return; }
+    if (r.url) { var im = new Image(); im.onload = function () { try { var c = cv.getContext('2d'); if (c) { c.drawImage(im, 0, 0, cv.width, cv.height); cv.hidden = false; } } catch (e) { } }; im.src = r.url; }
   }
   var lkThumbQ = [], lkThumbPx = 96, lkThumbSlot = '', lkThumbRaf = 0;
   function lkThumbPump() {
@@ -4568,7 +4583,7 @@
     while (lkThumbQ.length && performance.now() - t0 < 4) {
       var i = lkThumbQ.shift(), o = ops[i]; if (!o) continue;
       var r = lkThumb(lkThumbSlot, i, o, lkThumbPx);
-      if (r && r.url) { var im = el.lkGrid.querySelector('[data-lkv="' + i + '"] img'); if (im) im.setAttribute('src', r.url); }
+      if (r && (r.bmp || r.url)) lkTileShow(i, r);
     }
     if (lkThumbQ.length) lkThumbRaf = requestAnimationFrame(lkThumbPump);
   }
@@ -4602,12 +4617,14 @@
       '<span class="lk-gt"><span class="lk-k">' + escT(LK_LABEL[slot] || '') + '</span><b class="lk-gn">' + escT(nt) + '</b><small class="lk-gl"' + (lockd ? '' : ' hidden') + '>' +
       (lockd ? LK_LOCK + escT(lt || 'Aún no lo tienes') : '') + '</small></span></div>';   // (en la rejilla ya se está probando: sin «Se puede probar»)
     if (slot === 'style') {
-      h += '<div class="lk-fams" data-nav data-sp-row role="group" aria-label="Familia de peinados (otra vez: todos)">';
+      h += '<div class="lk-famw"><div class="lk-fams" data-nav data-sp-row role="group" aria-label="Familia de peinados (otra vez: todos)">';
       LK_FAMS.forEach(function (f) {
         var n = f[0] ? ops.filter(function (o) { return lkFam(o.v) === f[0]; }).length : ops.length; if (!n) return;
         h += '<button type="button" class="sp-tab lk-fam' + (f[0] === fam ? ' on' : '') + '" aria-pressed="' + (f[0] === fam) + '" data-lkfam="' + f[0] + '">' + escT(f[1]) + '</button>';
       });
-      h += '</div>';
+      // (WP6, ronda 1) las 5 familias no caben a 568 ni a 360: una flecha de verdad al final de la tira (no solo el desvanecido) que la
+      // corre; con el mando y el teclado se llega con ←/→ (la flecha no recibe foco)
+      h += '</div><button type="button" class="lk-fmore" data-lkfm tabindex="-1" aria-hidden="true">' + LK_ARR_R + '</button></div>';
     }
     h += '<div class="lk-gbody" data-nav role="listbox" aria-label="' + escT(LK_LABEL[slot] || '') + '">';
     lkGK = {};
@@ -4616,13 +4633,16 @@
       h += '<div class="lk-grow" data-sp-row>';
       for (var j = r0; j < Math.min(vis.length, r0 + cols); j++) {
         var i = vis[j], o = ops[i], lock = lkLocked(o), on = i === ci, nw = o.cat && U[o.v];
-        var aria = o.name + (o.rar != null && o.rar >= 1 ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') + (lock ? '. Bloqueado: ' + (lkLockText(o) || 'aún no lo tienes') + '. Se puede probar' : '') + (nw ? '. Nuevo' : '');
+        // (ronda 1) lo que con lo puesto no se vería (tobillera bajo calcetines altos, gorro que tapa el peinado): ojo tachado en la ficha;
+        // si no, «Sin tobillera» y «Tobillera» salían iguales sin decir por qué
+        var hw = !col && o.v && (slot === 'ankle' || slot === 'head') ? lkHelpOf(slot, o, false, '') : null; if (hw && hw.k !== 'warn') hw = null;
+        var aria = o.name + (o.rar != null && o.rar >= 1 ? '. Rareza: ' + (o.rar + 1) + ' de 4' : '') + (lock ? '. Bloqueado: ' + (lkLockText(o) || 'aún no lo tienes') + '. Se puede probar' : '') + (hw ? '. ' + hw.t : '') + (nw ? '. Nuevo' : '');
         var cls = 'lk-tile' + (col ? ' lk-cs' : '') + (on ? ' on' : '') + (lock ? ' lock' : '') + (nw ? ' new' : '') + ' t' + (i % 4);
         h += '<button type="button" class="' + cls + '" data-lkv="' + i + '" role="option" aria-pressed="' + on + '" aria-label="' + escT(aria) + '">';
         if (col) h += '<i class="lk-sw' + (o.hex >= 0 ? '"  style="background:' + hx(o.hex) + '"' : ' auto"') + '></i>';
         else {
           thumbs.push(i);
-          h += '<span class="lk-ti"><img alt="" draggable="false" hidden></span><span class="lk-tn">' + escT(o.name) + '</span>';
+          h += '<span class="lk-ti"><canvas width="' + px + '" height="' + px + '" hidden></canvas>' + (hw ? '<span class="lk-thid" title="' + escT(hw.t) + '">' + LK_EYE + '</span>' : '') + '</span><span class="lk-tn">' + escT(o.name) + '</span>';
           if (o.rar != null && o.rar >= 1) h += '<span class="lk-tst" aria-hidden="true">' + lkStars(o.rar) + '</span>';
         }
         if (lock) h += '<span class="lk-tlk" aria-hidden="true">' + LK_LOCK + '</span>';
@@ -4633,7 +4653,6 @@
     h += '</div>';
     var sb = G.querySelector('.lk-gbody'), st = sb && G._slot === slot ? sb.scrollTop : 0;
     G.innerHTML = h; G._slot = slot;
-    Array.prototype.forEach.call(G.querySelectorAll('img[hidden]'), function (im) { im.onload = function () { im.hidden = false; }; });
     if (VB.Splat) { VB.Splat.decorate(G); if (VB.Splat.more) { VB.Splat.more(G.querySelector('.lk-gbody')); var fr = G.querySelector('.lk-fams'); if (fr) VB.Splat.more(fr); } }
     var nb = G.querySelector('.lk-gbody'); if (nb) nb.scrollTop = st;
     // miniaturas: se piden después de pintar la rejilla, unas pocas por frame (cada una arregla y resuelve un aspecto): al abrirla no
@@ -5011,14 +5030,14 @@
         var kb = ev.detail === 0 && (kbNow() || ctx.inputDevice === 'gamepad');
         var b = t.closest('[data-lkv]'); if (b) { lkGridPick(+b.getAttribute('data-lkv'), kb); return; }
         var fm = t.closest('[data-lkfam]'); if (fm) { lkGridFam(fm.getAttribute('data-lkfam')); return; }
+        if (t.closest('[data-lkfm]')) { var fs = el.lkGrid.querySelector('.lk-fams'); if (fs) { uiSound('click'); try { fs.scrollBy({ left: fs.clientWidth * 0.7, behavior: 'smooth' }); } catch (e) { fs.scrollLeft += fs.clientWidth * 0.7; } } return; }
         if (t.closest('[data-lkg="close"]')) lkGridClose(kb);
       });
       el.lkGrid.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-lkv],[data-lkfam]') : null; if (b && b !== hov) { hov = b; hoverSound(); } });
       // las miniaturas que llegan (main.js, una por frame)
       window.addEventListener('vb-portrait', function (ev) {
         var d = ev && ev.detail; if (!lk.grid || !d || !d.key || lkGK[d.key] == null) return;
-        var im = el.lkGrid.querySelector('[data-lkv="' + lkGK[d.key] + '"] img'); delete lkGK[d.key];
-        if (im) im.setAttribute('src', d.url);
+        var i = lkGK[d.key]; delete lkGK[d.key]; lkTileShow(i, d);
       });
     }
     var hov = null;
