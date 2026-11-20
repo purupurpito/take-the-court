@@ -56,6 +56,15 @@ uno con `v` mayor que el del código se lee en memoria, `readOnly()` es true, no
 `VB.Prog`, `VB.Gym`, `VB.Look`, `VB.Profile` y `VB.Retos`. Las bajadas de la cuenta solo se aplican en el menú (`VB.Account.menuReady()`).
 Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por dueño, en `notes/<dueño>.md` («Sprint 2-4»).
 
+**Extensiones de la Carrera (rama carrera-ea2k, 20-nov-2026).** Ficheros nuevos y su dueño (detalle en «Extensiones de la Carrera», al final):
+`js/career-natl.js` + `tools/natltest.js` (**seleccion**), `js/career-injury.js` + `tools/injurytest.js` (**lesiones**), `js/contest.js` +
+`js/career-allstar.js` + `tools/allstartest.js` (**estrellas**), `js/career-loan.js` + `tools/loantest.js` (**cesiones**), `js/career-race.js` +
+`tools/racetest.js` (**premios**), `js/career-dev.js` + `tools/devtest.js` (**puesto**), `js/career-prologue.js` + `tools/prologuetest.js`
+(**prologo**) y `tools/zonetest.js` (**sim**: la zona y el saque de firma viven en js/sim.js). Los registros comunes (`VB.CareerExt`,
+`VB.CareerUIExt`) y sus llamadas en career.js, career-ui.js, main.js y ui.js siguen siendo de **ui_main**. Guardados: todo va dentro de
+`make-the-cut.career(6)` sin subir VER/VER6 (`c.natl`, `c.inj`, `c.allstar`, `c.loan`, `c.race`, `c.dev`, `c.pro`, `c.sig`); ajustes nuevos
+`zone`, `serveSig` y `serveGest` dentro de `make-the-cut.settings`.
+
 **Reglas**
 - Cada especialista edita SOLO sus ficheros. Nada de tocar ficheros ajenos "solo una línea".
 - Si necesitas algo en un fichero ajeno, escríbelo en `notes/<owner>.md` (p. ej. `notes/ui_main.md`)
@@ -1187,3 +1196,231 @@ guarda). Quien consume `point` mira `e.penalty` (`how:'penalty'`): badges, ratin
 rival (los puntos cuadran con el marcador) y matchstats/acta como sanción.
 `VB.Ambiente.crowdOf(g)` → estado de la grada (null fuera de la Carrera o con 'off'). Pruebas: `tools/ambientetest.js`,
 `tools/arbitrotest.js` (solo node); escena `?debug=amb&k=lines|choice|yellow|red|derby|boo|chant` y `?debug=intro&kind=long&career=1&derby=1`.
+
+### Extensiones de la Carrera (20-nov-2026, rama carrera-ea2k; integrador de ficheros comunes)
+Registro abierto para los subsistemas de la Carrera que viven en su propio fichero: `js/career-natl.js` (selección; owner `seleccion`),
+`js/career-injury.js` (lesiones; `lesiones`), `js/contest.js` + `js/career-allstar.js` (Partido de las Estrellas y concursos;
+`estrellas`), `js/career-loan.js` (cesiones y traspaso; `cesiones`), `js/career-race.js` (carrera por los premios; `premios`),
+`js/career-dev.js` (cambio de puesto y plan; `puesto`) y `js/career-prologue.js` (prólogo juvenil; `prologo`), con sus pruebas
+`tools/natltest.js`, `injurytest.js`, `allstartest.js`, `loantest.js`, `racetest.js`, `devtest.js` y `prologuetest.js`. index.html
+los carga entre `career-story-season.js` y `career-story-ui.js`, en este orden: injury, natl, contest, allstar, loan, race, dev y
+prologue. Sin entradas en los registros, la Carrera es idéntica (careertest con y sin `NOWORLD`, fingerprint6 en los 3 modos).
+Cada fichero:
+- no tiene DOM al cargar (se carga en node con vm);
+- guarda su estado en su subobjeto de `c`, con `ensure(c)` idempotente y sin tiradas (sin subir VER/VER6);
+- tira el azar solo por hash de la semilla (`K(c)._rng(K(c)._hash(c.seed, '<tag>', …))`), nunca con `Math.random` ni `g.rng`;
+- usa como motor `K(c) = VB.Career.ext.engine(c)` (= `c.mode === 'hall' ? VB.Career.hall : VB.Career.beach`).
+
+**1. Núcleo: `VB.CareerExt`.** Es un array; cada fichero hace `(VB.CareerExt = VB.CareerExt || []).push(X)`. `X = {id, …}` y todo
+lo demás es opcional.
+
+`hook(c, kind, a, b)` recibe los eventos de `life()` de career.js. Orden: CareerLife, CareerWorld, extensiones (en orden de
+registro) y CareerStory. Valores de `kind`:
+- `'create'`: al crear, antes de guardar. `a` = opciones de `create/create6` (p. ej. `a.prologue`).
+- `'join'`: al fichar (`joinClub`/`joinClub6`, también en verano). `a` = la oferta.
+- `'setup'`: al preparar el partido. `a` = opciones de `matchSetup`/`matchSetup6`, que se pueden cambiar (atributos, `career`, `serveSig`…).
+- `'match'`: tras cada jornada tuya, antes de `c.last = sum` y de guardar. Es el evento «semana». `a` = `sum` del partido (jugado,
+  simulado, banquillo, fuera o de baja: `sum.out` = id de la baja); `b` = fixture.
+- `'sess'`: solo con la PRIMERA sesión jugada de la carrera. `a` = el resultado.
+- `'season'`: al cerrar la temporada, con `c.review` hecho y `c.phase = 'off'`. `'newSeason'`: al empezar la siguiente.
+
+Métodos con nombre. career.js los llama con `extCall`, cada uno con try/catch:
+- `blocked(c, f)` → `null` o `{id, why, head?, tail?, act?, actT?}`: baja de la jornada. Tiene que ser pura (se llama a menudo y `f`
+  puede ser null). Efectos:
+  - `next/next6` devuelven `n.bench = true` y `n.out = {…}`, y la jornada va por `benchNext/benchNext6`, sin promesa incumplida ni
+    mensaje del entrenador. En la pista, `lineup6` te deja fuera con `why 'x'`.
+  - Sesiones: `trainInfo().why = 'baja'` (solo descansar), plan `['rest'×3]`, enfoque recomendado 'rest'. `trainWeek` cuenta como descanso.
+- `sessClose(c, rests, n, bye)`: al cerrar la jornada, antes de vaciar el contador de sesiones.
+- Entreno:
+  - `trainProg(c, prog)` cambia en el sitio `prog`, el progreso del entreno semanal.
+  - `trainPick(c, grupo, ks)` → orden de mejora (del mismo largo) o null.
+  - `sessMul(c, id, D)` → multiplicador de la sesión (0 < m < 3).
+- Ofertas:
+  - `offerBonus(c)` → suma al interés de las ofertas (`offerScore`).
+  - `midOffers(c)` → `true` cierra la ventana de mitad de temporada.
+  - `holdOffers(c)` → `true` retrasa las ofertas de fin de temporada. La extensión las suelta después con `K(c)._endOffers(c)`
+    (ofertas, renovación y mensaje, leyendo `c.review`).
+  - `postSeason(c)`: se llama tras `life('season')`.
+- Partido suelto:
+  - `setup(arg, auto)` → opciones como las de `matchSetup`: attrs, badges, points, sets, difficulty, rookie, ref, venue, venueMap o
+    fixture, format '6v6', ctrlRole, ctrlIdx, meSlot, meBench, names, kit, rivalKit, scrim, nums, bench, coach, serveSig y `career`
+    (con `noAmb`, `noZone` y `pause: {restart, quit, warn}`). Tiene que poder llamarse otra vez: Reiniciar lo repite.
+  - `done(res, g)` cierra el partido; `res = {sets, setScores, win}` y `g.autopilot` = «Mirar». Lo que devuelve decide la hoja final:
+    - con `html` (ya escapado), `title`, `kicker` (texto o lista) y `back` → hoja propia (`#endExt` dentro de `#endSum`);
+    - sin `html` → el Resumen de la jornada de siempre (`VB.UI.endCareer`, p. ej. `{nota, xp, …}`).
+  - `sheet(g, s, {en, title, kicker, box})`, opcional, retoca esa hoja.
+  - `quit(cs, why, g)`: al abandonar (`why 'quit'`).
+  - Las estadísticas del partido están en `K._M()`: ingest corre igual que siempre.
+- Ejercicio (concursos):
+  - `drillSetup(arg)` → como `VB.Career.drillSetup`, más `{id: ejercicio de VB.DRILL, label, n, max, pause}`.
+  - `drillDone(arg, total, reps, g)` → `{kick: [textos], meds: HTML, html: HTML, again: {label, arg}|null, next: {label, arg}|null,
+    say}`. Lo pinta la hoja `gymEndShow` de ui.js.
+  - `drillQuit(arg, why, g)`: `why 'restart'` (devolver `false` = no se puede repetir) o `'quit'`.
+- Legado y vitrina:
+  - `legacyOf(c, t)` → puntos del trofeo `t`, o null si no es suyo. `legacyExtra(c)` → puntos extra.
+  - `retireRec(c, rec)` completa la ficha del Salón de la Fama. career-life ya pone `rec.caps` (desde `c.natl.car.caps`), y
+    `titles` cuenta también `kind 'sel'`.
+  - `caseSlots(c)` → huecos `[{id, group, kind, name, need}]`; el grupo 'Selección' va antes de 'Premios'.
+  - `caseAwards(c)` → premios `[{id, name, only?, need?}]`.
+- Pruebas y capturas:
+  - `_demo(c, tipo)` deja la pantalla lista y guarda (filas de mobaudit).
+  - `_endDemo(tipo)` → hoja de muestra (`?debug=over&cr=1&ext=<id>&k=<tipo>`).
+  - `_drillDemo(tipo)` → `{res, n, max, label, kit}` (`?debug=drill_end&career=1&ext=<id>&k=<tipo>`).
+
+Ayudas en la fachada:
+- `VB.Career.ext = {list, call(name, args), any, sum, blocked(c, f), get(id), engine(c)}`, más `setSig(c|null, serve, gest)` y `sigOf(c, venue)`.
+- Exports nuevos de la playa: `_joinClub, _newSeason, _salaryOf, _endOffers, _startOffers, _startOffer, _extBlocked, _sigOf, _isHall`.
+- Exports nuevos de la pista: `_joinClub, _newSeason, _endOffers, _startOffers, _startOffer, _setPos(c, k, quiet)` (cambio de puesto
+  sin guardar), `_myClub, _club, _lg, _labelOf`.
+- `c.review.club` = id de tu club al cerrar la temporada.
+
+Prólogo:
+- `create/create6({prologue: true})` con `VB.CareerPrologue.start(c, o)` no genera ofertas, ni el mensaje del agente, ni aplica `autoClub`.
+- `sane/sane6` no rehacen las ofertas mientras `VB.CareerPrologue.active(c)` sea true. En la playa, las ofertas de inicio admiten nivel ≤ 2.
+- En `trialResolve`, `o.up` (0, 1 o 2) cambia el texto «una categoría por encima».
+
+**2. Interfaz: `VB.CareerUIExt`.** Es un array; cada fichero hace `(VB.CareerUIExt = VB.CareerUIExt || []).push(U)`. Todo es
+opcional y va con try/catch.
+
+Sub-pestañas y acciones:
+- `id` y `prefix` (sus `data-act` empiezan por él).
+- `subs: [{tab, id, label, labelPh?, has?(c)}]`: sub-pestañas nuevas, también en la tira del móvil.
+- `page(c, subId, HLP)` → HTML de su sub-pestaña.
+
+Huecos, cada uno `(c, HLP) → HTML`. También se aceptan dentro de `U.ui`.
+- `matchTop`: encima de Faro.
+- `match`: justo bajo Faro y antes del ticket. Sale también en `phase 'off'`: el propio hueco decide si pinta.
+- `seasonEnd`: tras la tarjeta del fin de temporada.
+- `state`: Jugador › Estado, encima de todo.
+- `opts`: Palmarés › Opciones.
+- `honors`: Palmarés, tras los totales (también en Vida › Vitrina del móvil).
+- `offers`: antes de Club › Ofertas.
+- `last`: dentro de la tarjeta del último partido.
+- `offerLine(c, o, HLP)`: en cada oferta.
+- `replace.transfer(c, HLP)` sustituye la tarjeta «Traspaso». `hide: ['setpos']` quita el selector de puesto de Opciones.
+
+Avisos, rótulos y CSS:
+- `dot(c, where)` → punto de aviso. `where` = un apartado ('match', 'club'…) o una sub-pestaña.
+- `msgK: {k: 'Rótulo'}`: remitentes de la bandeja. Ya están `natl` (Selección), `med` (Médico), `loan` (Cesión), `allstar` (Estrellas) y `race` (Premios).
+- `trophyLabel(t)`: rótulo del trofeo. Ya están `sel` (Selección), `selm` (Medalla) y `selp` (Premio).
+- `css()` → CSS que se inyecta una vez (`#cr-ext-css`).
+- Ojo con los prefijos de las clases CSS: los `data-act` llevan el prefijo de la extensión, pero una clase no puede empezar por un
+  prefijo que ya use index.html. Por ejemplo, `.rc-tr`, `.rc-nm` o `.rc-b` son del resumen del partido, así que la carrera por los
+  premios usa `data-act="rc-…"` y clases `cpr-…`.
+- `replace.transfer`: si su HTML empieza por `<div class="card x-top`, la tarjeta va ANTES de la de Contrato (cesiones: «Cedido» a la
+  vista en el móvil). Con `c.contract.loan === 1`, la tarjeta de Contrato dice «Cesión: hasta final de temporada» y no habla de renovar.
+- `act` puede devolver además `setter: true` (con `render`): has pasado a colocador y sale el aviso de la diana (`setterNoteSoon`).
+- Jugador › Estado sale siempre en la tira del móvil si alguna extensión pinta el hueco `state`.
+- Hueco `match` en PC (sin `html.ph`): va DESPUÉS del ticket y de «Jugar partido» (a 1280×720 lo empujaba bajo el pliegue). En el móvil,
+  antes del ticket, como siempre.
+
+`act(act, btn, {form, view})` devuelve una de estas cosas:
+- `null`: nada. `false`: sonido «atrás».
+- `{render, focus?, snd?}` o `{tab, s?, focus?}`.
+- `{play: {id, arg, auto}}`: cierra el hub y llama a `VB.ctx.actions.startCareerExt(id, arg, auto)`.
+- `{drill: {id, arg, auto}}`: lo mismo con `startCareerExtDrill`.
+- `{view: 'create'}`.
+
+Tomar el hub entero (prólogo):
+- `takeover(c)` → true.
+- `render(c, HLP, {tab, ph})` → `{head, tabs: [[id, texto, punto?]], tab, body, view}`. En el móvil, `.card.x-go>.acts` va a la
+  barra de abajo; el foco va a `.x-go .pri`.
+- `hero(c)` → `{title, chip, line, aria}` para la portada.
+- Pantalla de crear: `createRow(form, hall, HLP)`, `createLabel(form)` y `createOpts(form)` (se mezcla en `C().create({…})`).
+
+**3. main.js y ui.js.**
+- `ctx.actions.startCareerExt(id, arg, auto)` y `ctx.actions.startCareerExtDrill(id, arg, auto)`. Dejan `g.career.ext/extArg` y
+  `g.careerExtDrill = {ext, arg, id, mode, n, max, label, pause, done, res}` (`pause` = el de `drillSetup`, que lee la pausa).
+- `careerEvents` llama a `X.done` en vez de `matchDone`.
+- `toMenu` llama a `X.quit`/`X.drillQuit` si se deja a medias y vuelve al hub (`CareerUI.open('hub', {fresh, extRes})`). Reiniciar repite el setup.
+- `cs.noAmb` = sin ambiente; `cs.noZone` = sin zona.
+- ui.js: rótulos de la pausa con `pause` y hoja de ejercicio genérica.
+
+**Zona y saque de firma:**
+- Ajustes nuevos: `zone` ('career' | 'all' | 'off'), `serveSig` y `serveGest`.
+- `createGame({zone, serveSig})`:
+  - Carrera: `zone = {cpu: true}` salvo con 'off', y `serveSig = m.serveSig`, que pone `matchSetup/trialSetup` con `sigOf(c)`.
+  - Partido rápido: zona solo con 'all', y el saque de `Sim.sigSane({id, gest}, venue)`.
+- Escenas: `&zone=1|2` y `&sig=<id>&gest=<g>` (llaman a `Sim.znDebug(g, t)`).
+- `c.sig = {serve, gest}`; sin él, el saque clásico.
+- career-ui: tarjeta «Saque de firma» en Jugador › Insignias si existe `VB.SERVE_SIG`.
+- API de la zona (js/sim.js; sin `g.zn` devuelven 0 / false / null y no hacen nada): `VB.Sim.znOn(g, t)`, `znMeter`, `znEnergy`, `znWho`,
+  `znDebug(g, t)` (zona llena, para escenas y capturas) y la tabla `VB.ZONE` (= `VB.Sim.ZN`). `createGame({zone: {cpu?, th?}})`; nunca
+  en la demo, el online ni el Entrenamiento. El medidor no gasta `g.rng`: lee los eventos, los puntos y el tiempo.
+- Saque de firma: `VB.Sim.sigSane(o, venue)` → `{id, gest, sun, roof}` o undefined (clásico) y `sigLabels(g)`; `VB.SERVE_SIG = {ids,
+  byId: {id: {name, short, desc, need, key: 'hit'|'jump'|'both', venue?, pro, con}}, gest: {ids, labels}, roofTxt}`. El estilo
+  'potente' se llama «Bomba» («Cañón» ya era una insignia). `sun` (0-1, Globo): en Partido rápido, 0,4 con la luz de playa 'tarde'
+  y 1 si no; en la Carrera, 1.
+- Eventos (§4.3): `'zone'` `{team, player, on, why: fill|time|error|streak|sub|timeout|set|bench|end|undo, n}`; `hit.sig` en el saque
+  de firma. Estadísticas: `g.stats.zn = {n: [t0, t1], t: [s0, s1], pts: [p0, p1]}` y `g.stats.sig = {id, n, aces, faults}`. La hoja
+  final (ui.js `zoneLines`) dice «Zona: N veces | S s | P puntos» y «Saque de firma: A aces | F fallos» si los has usado.
+- La zona no guarda nada en la Carrera: vale solo dentro del partido (también en el de las Estrellas, que no lleva `noZone`).
+- Prueba: `node tools/zonetest.js`. `SIM_BASE` de tools/fluidsimtest.js = 1383632.
+
+**4. Las funciones.** Una ficha por fichero; el detalle de cada una, en su cabecera y en notes/carrera.md.
+
+**Selección nacional (js/career-natl.js, owner seleccion; prueba tools/natltest.js).** VB.CareerNatl, registrada en VB.CareerExt (id
+'natl': hook, setup, done, quit, legacyOf, legacyExtra, caseSlots, _demo) y en VB.CareerUIExt (prefijo 'nt-': sub-pestaña Club ›
+Selección, huecos match y honors, dot y act). Estado en c.natl = {v, cc, lock, st, stS, trust, chem, rk, win, hist, q, qS, car{caps,
+starts, w, l, kills, aces, blocks, digs, nS, nN, debut}, med{g, s, b}, seen, youth, n, cyc, lastN, fin}, con ensure idempotente.
+- Un torneo por verano en ciclo de 4 (vbn, cont, wc, games; el inicio sale de la semilla). Se abre en 'season'; lo que falta se
+  simula en 'newSeason' (los trofeos llevan la temporada anterior).
+- Pista: repesca de 2 partidos a mitad de liga si tu país está en ella (se cierra en el 'match' siguiente).
+- Trofeos: 'sel' (oro, nombre del torneo), 'selm' (plata o bronce, med 2|1) y 'selp' (MVP o mejor del puesto), todos con {season,
+  club: país, d: clave de dificultad, med, ev}.
+- Legado: oro 12/18/30/40 (vbn/cont/wc/games), plata 60 %, bronce 40 %, MVP 10, puesto 5, y +1 por cada 5 partidos.
+- Solo los partidos jugados dan XP y no cuentan en player.matches. Tras cada partido de selección avisa a las demás extensiones con
+  hook(c, 'natl', sum).
+- VB.CareerNatl.OFF = true la apaga (pruebas). Prólogo: c.natl.youth = 1 suma +1 a la nota del seleccionador.
+
+**Lesiones (js/career-injury.js, VB.CareerInjury; ext id 'inj', prefijo de UI 'inj-'; prueba tools/injurytest.js).** Estado en c.inj =
+{on, n, run, rw, rf, sh, cur:{id, left, tot, s, at, early, intens, reh, rl}|null, back, rust, re, reZ, warn, mid, hist, cnt, miss}.
+- Usa los ganchos blocked, sessClose y hook ('create', 'setup', 'match', 'newSeason') y los huecos de UI state y last.
+- En el 'match' del partido en que te lesionas deja `sum.inj = {id, name, zone, sev, n, rl}`; ui.js lo pasa a la hoja final como
+  `d.inj = {name, n, rl}` (la pastilla la pinta recap.js).
+- Para otras funciones: VB.CareerInjury.out(c) → {id, name, zone, sev, left, tot}|null (puro; null en fase 'off').
+  - Selección: no convocar con out(c); tras un partido de selección se puede llamar roll(c, 1, 'sel') para tener el mismo riesgo.
+  - Estrellas: sin concursos si out(c). Cesiones: no pedir ni aceptar una cesión de baja.
+  - Si el bloqueo es de otra extensión (n.out.id !== 'inj'), la lesión no tira ese partido.
+- Ajuste de riesgo: P_SEASON (0,80). Rehabilitación: cada 6 descansos (REH_N), un partido menos de baja.
+- careertest NO carga este fichero (cambiaría sus progresiones fijadas). Si se carga, `c.inj.on = 0` tras `create()` deja la carrera
+  idéntica (injurytest §1).
+
+**Partido de las Estrellas y concursos (js/contest.js + js/career-allstar.js, owner estrellas; prueba tools/allstartest.js).**
+- `VB.Contest` (puro, sin Carrera): reglas, marcas de los rivales, simulación de tu marca y ranking de los concursos (saques,
+  recepción, remate).
+- `VB.CareerAllstar`, registrada en VB.CareerExt (id 'allstar': hook, setup/done/quit del partido, drillSetup/drillDone/drillQuit de los
+  concursos, _demo, _endDemo, _drillDemo) y en VB.CareerUIExt (prefijo 'as-': huecos match y honors, act, css, dot).
+- Estado en `c.allstar = {v: 1, cur, log ≤ 40, got, skip}`. El partido lleva `g.career.allstar = true`; ni XP, ni trofeos, ni legado.
+
+**Cesiones y traspaso (js/career-loan.js, VB.CareerLoan; prefijo 'ln-'; prueba tools/loantest.js).**
+- Estado en c.loan: mood, seg, ask, want, opts/optAt/optBy, on {club, len 'half'|'season', s, home {club, contract, coach, chem|mate/squad,
+  sq6}, n0, b0}, last, log y bonusS.
+- c.contract.loan = 1 mientras estás cedido; c.review.loan y c.history[].loan = {from, name} al volver.
+- Usa holdOffers, midOffers, postSeason, offerBonus (+2 tras una A) y replace.transfer (tarjeta «Cedido» con `x-top`).
+- La vieja «Pedir el traspaso» inmediata solo queda en la API (requestTransfer).
+- career-ui: «(cedido)» en Palmarés › Temporadas, y las copas del fin de temporada se comparan con el club de `c.review.club`.
+
+**Carrera por los premios (js/career-race.js, VB.CareerRace; acciones 'rc-', clases 'cpr-'; prueba tools/racetest.js).**
+- Estado en `c.race`. Ganchos: hook 'match' (flechas, avisos y corte de mitad), 'season' (premios nuevos y gala), 'newSeason' y 'join';
+  caseAwards.
+- UI: sub-pestaña Liga › Premios, tarjeta en Partido, Gala en el fin de temporada y punto de aviso.
+- Premios nuevos: young, rec y opp. El espejo de umbrales con career-life AWARDS lo vigila racetest §2.
+- API para otras funciones: `rankOf(c, cat)` y `leaders(c, cat, n)`.
+
+**Cambio de puesto y plan de desarrollo (js/career-dev.js, VB.CareerDev; prefijo 'dv-'; prueba tools/devtest.js).**
+- Estado en `c.dev` (ensure sin tiradas). Usa hook, trainProg, trainPick y sessMul.
+- UI: huecos match, state y opts; `hide: ['setpos']` quita el selector de puesto de Opciones. Al pasar a colocador, `act` devuelve
+  `setter: true`.
+
+**Prólogo juvenil (js/career-prologue.js; prefijo 'pro-'; prueba tools/prologuetest.js).**
+- Flujo de c.pro.st: intro → season → scout → done, y skip. Campos de c.pro: v, st, pg, pers, cast, m, ot, i, live, h2h, chat,
+  score, tier, perk, lead.
+- API: VB.CareerPrologue (ensure, active, start, setup, done, sim, skipRest, skip, finish, score, tierOf, offers, kidRival, setPers,
+  page, hero) y VB.CareerPrologueUI.
+- Registros: VB.CareerExt id 'pro' (hook 'join'; setup/done/quit con arg 'beach:i' | 'hall:i'; sheet, _demo, _endDemo) y VB.CareerUIExt
+  (prefijo 'pro-': takeover, render, act, hero, createRow/Label/Opts, offerLine, msgK {pro: 'Juvenil'}).
+- Niveles: ≥85 Joya, ≥70 Promesa, ≥50 Interesante, ≥25 Del montón, con 0/=/1/2/3 pruebas. Bono de probabilidad +0,05/0,10/0,15 (tope
+  0,8) y seguidores +60/120/200.
+- NOTA_D por modalidad: playa −0,3, pista +0,5.
+- El rival kid: club −1 hasta tu primer club; te persigue con 0,6 + 0,5.

@@ -932,6 +932,86 @@
     var q = tbAdd(TBK.ono, x, y, z + 0.75, 0, 0, 0.35, 0.85, soft ? 0.75 : 1.05, soft ? 0.75 : 1.05, 0, 0, 1, 1, 1, soft ? 0.7 : 1, 0);
     q.pop = soft ? 0 : 1;
   }
+  /* ---------- LA ZONA (20-nov-2026; sim g.zn, Sim.znWho/znOn, eventos 'zone') ----------
+   * Tu jugador en zona: aro en el suelo del color de tu club (aditivo, late a 1,5 Hz; quieto con «Menos movimiento») y llamitas de dibujo
+   * que suben desde los hombros (10/s en 2v2, 6/s en 6v6; ninguna en calidad baja), del color del club a blanco. El rival en racha: solo el
+   * aro, al 50 % y en su color. Al entrar, explosión de cómic y onda; al salir, un soplido gris. La estela del balón tras un toque tuyo en
+   * zona va en el color del club. Sin g.zn nada de esto se mira (dos mallas apagadas). La sombra de la repetición pinta lo mismo (g.zn va en
+   * la copia). Math.random: solo presentación. */
+  var znRing = [null, null], znCol = [null, null], znWhite = null, znAcc = [0, 0], znA = [0, 0], znHex = [-1, -1], znAp = { g: null, up: false };
+  function znBuildFx() {
+    var tx = ringTex(0.6, 0.8, 0.1), geo = new THREE.PlaneGeometry(1, 1);
+    for (var t = 0; t < 2; t++) {
+      var m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ map: tx, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, toneMapped: false, opacity: 0 }));
+      m.rotation.x = -Math.PI / 2; m.position.y = 0.021; m.visible = false; m.renderOrder = 3; m.name = 'zoneRing'; root.add(m); znRing[t] = m;
+      znCol[t] = new THREE.Color(1, 0.42, 0.24);
+    }
+    znWhite = new THREE.Color(1, 1, 1);
+  }
+  /** Color de la zona del equipo t: el de la camiseta de su club, más claro si es muy oscuro. */
+  function znColOf(t) {
+    var k = null; try { k = VB.Players && VB.Players.kit ? VB.Players.kit(t) : null; } catch (e) { k = null; }
+    var hx = k && typeof k.base === 'number' ? k.base : (t ? 0x3363ea : 0xff5a2c);
+    if (hx !== znHex[t]) {
+      znHex[t] = hx; var c = znCol[t]; c.setHex(hx);
+      var lum = 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+      if (lum < 0.25) c.lerp(znWhite, 0.45);
+    }
+    return znCol[t];
+  }
+  /** Posición dibujada del jugador (la del muñeco si players.js la tiene; si no, la de la sim). */
+  var _znP = { x: 0, y: 0 };
+  function znPos(p) {
+    var rigs = VB.Players && VB.Players.rigs; _znP.x = p.x; _znP.y = p.y;
+    if (rigs) for (var j = 0; j < rigs.length; j++) if (rigs[j] && rigs[j].p === p && rigs[j].root) { _znP.x = rigs[j].root.position.x; _znP.y = -rigs[j].root.position.z; break; }
+    return _znP;
+  }
+  function znFlames(p, n, c) {
+    if (!toonOn() || tbLow) return;
+    // nubecitas de dibujo (TBK.puff) que suben desde los hombros, del color del club a casi blanco, y alguna chispa
+    var P = znPos(p), z0 = p.z + 1.0;
+    for (var i = 0; i < n; i++) {
+      var a = Math.random() * 6.283, r0 = 0.18 + Math.random() * 0.14, w = Math.random() * 0.55, s0 = 0.16 + Math.random() * 0.08;
+      tbAdd(TBK.puff, P.x + Math.cos(a) * r0, P.y + Math.sin(a) * r0, z0 + Math.random() * 0.35, Math.cos(a) * 0.15, Math.sin(a) * 0.15, 0.6 + Math.random() * 0.4,
+        0.5, s0, s0 * 1.6, (Math.random() - 0.5) * 0.6, (Math.random() - 0.5) * 2, c.r + (1 - c.r) * w, c.g + (1 - c.g) * w, c.b + (1 - c.b) * w, 0.9, -0.8);
+      if (Math.random() < 0.3) tbAdd(TBK.spark, P.x + Math.cos(a) * r0, P.y + Math.sin(a) * r0, z0 + 0.4, 0, 0, 1.4, 0.45, 0.2, 0.05, Math.random(), 4, 1, 0.95, 0.7, 0.95, -0.5);
+    }
+  }
+  function znPuff(p) {
+    if (!toonOn()) return;
+    var P = znPos(p);
+    for (var i = 0; i < 8; i++) { var a = i * 0.785 + Math.random() * 0.3; tbAdd(TBK.spark, P.x + Math.cos(a) * 0.2, P.y + Math.sin(a) * 0.2, p.z + 1.2, Math.cos(a) * 1.1, Math.sin(a) * 1.1, 0.5, 0.45, 0.14, 0.04, Math.random(), 2, 0.72, 0.72, 0.76, 0.85, -0.6); }
+  }
+  function znFxTick(g, dt) {
+    var Sm = VB.Sim, zn = g && g.zn && !g.demo && Sm && Sm.znWho ? g.zn : null, calm = calmNow();
+    for (var t = 0; t < 2; t++) {
+      var m = znRing[t]; if (!m) continue;
+      var p = zn && zn.on[t] ? Sm.znWho(g, t) : null, want = p ? (t ? 0.5 : 0.9) : 0;
+      znA[t] += (want - znA[t]) * (dt > 0 ? Math.min(1, dt * 8) : (want ? 1 : 0));
+      if (znA[t] < 0.02 && !p) { if (m.visible) m.visible = false; znA[t] = 0; continue; }
+      if (!p) p = zn ? Sm.znWho(g, t) : null;
+      if (!p) { m.visible = false; continue; }
+      var c = znColOf(t), P = znPos(p), pulse = calm ? 1 : 1 + 0.1 * Math.sin(ctx.time * 9.42);
+      var sc = (t ? 0.85 : 0.95) * pulse * (p.bench ? 0 : 1);
+      m.visible = sc > 0; m.position.x = P.x; m.position.z = -P.y; m.scale.set(sc * 1.15, sc * 1.15, sc * 1.15);
+      m.material.color.copy(c); m.material.opacity = znA[t] * (calm ? 0.8 : 0.7 + 0.25 * (pulse - 0.9) * 5);
+      if (t === 0 && zn && zn.on[0] && dt > 0 && p.z < 3) { // llamitas del color del club
+        znAcc[0] += dt * (g.rot ? 6 : 10) * (qScale < 1 ? 0.7 : 1);
+        var n = Math.floor(znAcc[0]); if (n > 0) { znAcc[0] -= n; znFlames(p, Math.min(n, 3), c); }
+      }
+    }
+    // globo (saque de firma): destello de sol en la cima, solo de día en la playa
+    if (znAp.g === g && g.lastKind === 'serve' && g.mode === 'rally') {
+      if (znAp.up && g.ball.vz <= 0) { znAp.up = false; if (onBeach() && !(ctx.settings && ctx.settings.beachLight === 'tarde')) { flashAt(g.ball.x, g.ball.y, g.ball.z, 1.6, 0.35, 1, 0.95, 0.7); starsAt(g.ball.x, g.ball.y, g.ball.z, 3, 1.2, 0.22); } }
+    } else if (znAp.g === g && g.mode !== 'rally') znAp.g = null;
+  }
+  /** Toque del dueño de la zona en zona: estela del color del club (un poco más viva). */
+  function znTrail(e, g) {
+    var Sm = VB.Sim; if (!g || !g.zn || g.demo || !Sm || !Sm.znWho || e.team !== 0 || !g.zn.on[0] || Sm.znWho(g, 0) !== e.player || e.shot === 'body') return;
+    var c = znColOf(0);
+    if (trailA > 0) { trailCol.setRGB(c.r + (1 - c.r) * 0.25, c.g + (1 - c.g) * 0.25, c.b + (1 - c.b) * 0.25); trailA = Math.min(1.6, trailA + 0.3); }
+    else startTrail(c.r, c.g, c.b, 0.12, 0.5);
+  }
   function updateToonFx(dt) {
     if (!toon) return;
     if (!tbAlive) { if (toon.visible) { toon.visible = false; toon.count = 0; } return; }
@@ -1571,6 +1651,7 @@
       }
       buildBills(flashTex, shockTex);
       buildToonFx(); ballVel = new THREE.Vector3();
+      znBuildFx(); // la zona: aro del jugador en zona (dos mallas apagadas mientras no hay zona)
       // ondas en el suelo (caída del balón, aterrizajes)
       var ripTex = ringTex(0.7, 0.86, 0.12), ripGeo = new THREE.PlaneGeometry(1, 1);
       for (var rI = 0; rI < RIP_N; rI++) {
@@ -1665,6 +1746,7 @@
     },
     onGameStart: function () {
       trailA = 0; heat = 0; squash.t = 0; spin.rate = 0; hwC.p = null;
+      for (var zr = 0; zr < 2; zr++) { znA[zr] = 0; znAcc[zr] = 0; znHex[zr] = -1; if (znRing[zr]) znRing[zr].visible = false; } znAp.g = null;
       for (var i = 0; i < SPARK_N; i++) sp[i].life = 0;
       for (var dI = 0; dI < DUST_N; dI++) du[dI].life = 0;
       for (var fI = 0; fI < fp.length; fI++) fp[fI].t = 0; fpLast.length = 0; fpAlive = 0;
@@ -1716,6 +1798,7 @@
       if (!g) return;
       var b = g.ball;
       for (var i = 0; i < events.length; i++) this._event(events[i], g);
+      znFxTick(g, dt); // la zona (aro y llamitas) y el destello del globo
 
       // ---- balón: posición, giro con efecto, aplastamiento al golpear ----
       var oa = BOFF.g === g ? g.time - BOFF.t0 : -1;
@@ -1726,7 +1809,7 @@
         var hs = Math.hypot(b.vx, b.vy);
         if (b.held) {
           // playa: el sacador de la CPU gira el balón en la mano y le da toquecitos (sim 'pre'/'juggle'/'post'): giro rápido
-          var rtB = g.beach && g.ritual && g.ritual.on ? g.ritual.phase : '', fastB = rtB === 'pre' || rtB === 'juggle' || rtB === 'post';
+          var rtB = (g.beach || (g.ritual && g.ritual.jug)) && g.ritual && g.ritual.on ? g.ritual.phase : '', fastB = rtB === 'pre' || rtB === 'juggle' || rtB === 'post';
           axis.set(0.3, 1, 0.2).normalize(); tmpQ.setFromAxisAngle(axis, dt * (fastB ? 9 : 1.2)); spinQ.premultiply(tmpQ);
         }
         else if (hs > 0.05 || Math.abs(b.vz) > 0.05) {
@@ -2187,6 +2270,12 @@
             if (jumpS) speedLines(4, 0.28);
             else trailA = 0;
             squash.t = 0.12; squash.k = fast ? 0.08 : 0.05;
+            // saque de firma (sim e.sig): bomba con estela fuerte y más aplastamiento; flotante en salto, estela que tiembla; de tenis, estela
+            // corta y giro rápido; globo, estela alta (y destello de sol en la cima, znFxTick); de abajo, la de siempre
+            if (e.sig === 'potente') { startTrail(1, 0.86, 0.5, 0.17, 1.05); squash.k *= 1.3; speedLines(6, 0.3); heat = 0.6; }
+            else if (e.sig === 'flotsalto') { startTrail(0.95, 0.97, 1, 0.1, 0.5); spin.wob = 2.6; }
+            else if (e.sig === 'liftado') { startTrail(1, 0.95, 0.82, 0.11, 0.6); spin.rate = 22; spin.wob = 0; }
+            else if (e.sig === 'globo') { startTrail(1, 0.97, 0.86, 0.09, 0.55); spin.rate = 3; spin.wob = 0; znAp.g = g; znAp.up = true; }
           } else if (k === 'set') {
             spin.rate = 3; spin.sign = -1; spin.wob = 0;
             flashAt(e.x, e.y, e.z, 0.42, 0.07, 0.85, 0.92, 1);
@@ -2219,6 +2308,7 @@
           // orientación del aplastamiento: eje Y local según la dirección de salida
           tv.set(g.ball.vx, g.ball.vz, -g.ball.vy); if (tv.lengthSq() < 1e-6) tv.set(0, 1, 0); tv.normalize();
           squashQ.setFromUnitVectors(UPV, tv);
+          znTrail(e, g); // la zona: estela del color del club
           break;
         }
         case 'block': {
@@ -2242,6 +2332,16 @@
             squash.t = 0.1; squash.k = 0.06; spin.rate = res === 'tool' ? 14 : 6;
           }
           trailA = 0; spin.sign = -1; spin.wob = 0;
+          break;
+        }
+        case 'zone': { // la zona: al entrar, explosión de cómic y onda en el color del club; al salir, soplido gris (el rival: solo el aro)
+          if (g.demo || !e.player || e.why === 'undo') break;
+          if (e.on && e.team === 0) {
+            var zc = znColOf(0), zp = znPos(e.player), zz = e.player.z + 1.1;
+            burstToon(zp.x, zp.y, zz, 1.1, 0.2); starsAt(zp.x, zp.y, zz, 4, 2.0, 0.26);
+            if (!tbSwap) { shockAt(zp.x, zp.y, 0.3, 2.6, 0.3, zc.r, zc.g, zc.b); flashAt(zp.x, zp.y, zz, 1.1, 0.14, zc.r, zc.g, zc.b); }
+            znFlames(e.player, 6, zc);
+          } else if (!e.on && e.team === 0) znPuff(e.player);
           break;
         }
         case 'netTouch': { // un jugador toca la red: chispa fría en la cinta (plano de la red, x = 0)

@@ -307,7 +307,9 @@
       o.myClub = -1; o.mate = null; o.window = 'start';
       if (!o.pick || typeof o.pick !== 'object') o.pick = { round: 0, more: false };
       o.pick.round = clampI(o.pick.round, 0, 9); o.pick.more = !!o.pick.more;
-      if (!arr(o.offers) || !o.offers.length || !o.offers.every(function (x) { var k = x && club(o, x.club); return k && k.lvl <= 1 && x.mateP && x.mateP.st; })) o.offers = genStartOffers(o, o.pick.round);
+      // (prólogo juvenil activo: sin ofertas hasta el informe de ojeadores; k.lvl <= 2: la invitación «Joya» del juvenil es a la Hiperliga)
+      if (!proActive(o) && (!arr(o.offers) || !o.offers.length || !o.offers.every(function (x) { var k = x && club(o, x.club); return k && k.lvl <= 2 && x.mateP && x.mateP.st; }))) o.offers = genStartOffers(o, o.pick.round);
+      if (!arr(o.offers)) o.offers = [];
       trialSane(o);
       ['notes', 'history', 'trophies'].forEach(function (k) { if (!arr(o[k])) o[k] = []; });
       if (!o.stats || typeof o.stats !== 'object') o.stats = newSeasonStats();
@@ -564,15 +566,18 @@
   function fatigueMalus(c) { var f = c ? c.fatigue | 0 : 0; return f <= FAT_FREE ? 0 : Math.min(4, Math.ceil((f - FAT_FREE) / 15)); }
   /** Una semana de entrenamiento (tras cada partido tuyo): progreso del enfoque, mejoras gratis y fatiga. */
   function trainWeek(c) {
-    var T = TRAIN[c.train] || TRAIN.bal, gains = [], f0 = c.fatigue | 0, m0 = fatigueMalus(c), prog = {}, g, Dt = cd(c).train;
+    var xb = extBlocked(c, null);   // de baja (extensión): la semana cuenta como descanso
+    var T = (xb ? TRAIN.rest : TRAIN[c.train]) || TRAIN.bal, gains = [], f0 = c.fatigue | 0, m0 = fatigueMalus(c), prog = {}, g, Dt = cd(c).train;
     for (g in T.prog) prog[g] = T.prog[g];
     var mk = myClub(c), sg = mk ? STYLE_TRAIN[styleOf(mk)] : '';
-    if (sg && c.train !== 'rest') prog[sg] = (prog[sg] || 0) + STYLE_PROG;   // estilo del club (descansando no entrenas)
+    if (sg && c.train !== 'rest' && !xb) prog[sg] = (prog[sg] || 0) + STYLE_PROG;   // estilo del club (descansando no entrenas)
+    extCall('trainProg', [c, prog]);   // extensiones (plan de desarrollo…): pueden cambiar prog en el sitio
     for (g in prog) {
       c.tp[g] = (c.tp[g] || 0) + Math.round(prog[g] * Dt);   // × ritmo del entreno de la dificultad (Normal: 1)
       while (c.tp[g] >= TRAIN_NEED) {
         c.tp[g] -= TRAIN_NEED;
         var ks = TGROUP[g].filter(function (k) { return c.player.st[k] < 99; }).sort(function (a, b) { return c.player.st[a] - c.player.st[b]; });
+        extCall('trainPick', [c, g, ks.slice()]).forEach(function (o) { if (Array.isArray(o) && o.length === ks.length) ks = o; });   // (orden de mejora; el último que conteste manda)
         if (!ks.length) { c.tp[g] = 0; break; }
         c.player.st[ks[0]]++; gains.push(ks[0]);
       }
@@ -688,8 +693,8 @@
    *  wk (clave de la jornada), mode ('beach' | 'hall') }. */
   function sessInfo(c) {
     if (!c || !c.player) return null;
-    var t = sessState(c), why = !myClub(c) || !sessFixture(c) ? 'none' : t.n >= TRAIN_SESS ? 'done' : (c.fatigue | 0) >= SESS_FAT_MAX ? 'fatiga' : '';
-    return { max: TRAIN_SESS, used: t.n, left: TRAIN_SESS - t.n, can: !why, why: why, canRest: !why || why === 'fatiga', fat: c.fatigue | 0, fatMax: SESS_FAT_MAX, nextFat: SESS_FAT[Math.min(t.n, TRAIN_SESS - 1)],
+    var t = sessState(c), why = !myClub(c) || !sessFixture(c) ? 'none' : extBlocked(c, null) ? 'baja' : t.n >= TRAIN_SESS ? 'done' : (c.fatigue | 0) >= SESS_FAT_MAX ? 'fatiga' : '';
+    return { max: TRAIN_SESS, used: t.n, left: TRAIN_SESS - t.n, can: !why, why: why, canRest: !why || why === 'fatiga' || (why === 'baja' && t.n < TRAIN_SESS), fat: c.fatigue | 0, fatMax: SESS_FAT_MAX, nextFat: SESS_FAT[Math.min(t.n, TRAIN_SESS - 1)],
       fatK: sessFatK(c), imp: t.imp, last: t.last, drills: sessDrills(c), need: SESS_NEED, tot: t.tot,
       auto: t.auto, autoFat: SESS_AUTO_FAT, plan: sessPlan(c), rec: sessRecommend(c), focus: TRAIN[c.train] ? c.train : 'bal', log: t.wkLog.slice(), rest: SESS_REST,
       wk: sessKey(c), mode: isHallC(c) ? 'hall' : 'beach' };
@@ -699,7 +704,7 @@
   function sessOk(c, id, auto) {
     var inf = sessInfo(c); if (!inf) return 'none';
     if (!SESS_DRILL[id] || !inf.drills.some(function (d) { return d.id === id; })) return 'drill';
-    if (auto) return !myClub(c) ? 'none' : inf.used >= TRAIN_SESS ? 'done' : inf.fat >= SESS_FAT_MAX ? 'fatiga' : '';
+    if (auto) return !myClub(c) ? 'none' : extBlocked(c, null) ? 'baja' : inf.used >= TRAIN_SESS ? 'done' : inf.fat >= SESS_FAT_MAX ? 'fatiga' : '';
     return inf.why;
   }
   /** Letra de una sesión (A+ … F) por la fracción del oro (SESS_GRADE). */
@@ -736,6 +741,7 @@
     total = quick ? sessQuick(c, id) : clampI(total, 0, 30);
     var q = clamp(total / m[2], 0, 1), fk = sessFatK(c), first = !quick && !t.seen[id], focus = SESS_FOCUS_G[c.train] === D.g;
     var mul = (quick ? SESS_QUICK_K : 1) * (first ? SESS_FIRST : 1) * (focus ? SESS_FOCUS : 1);
+    extCall('sessMul', [c, id, D]).forEach(function (m) { m = +m; if (m > 0 && m < 3) mul *= m; });   // extensiones (plan de desarrollo…)
     var gain = Math.max(1, Math.round(SESS_MAX * (0.2 + 0.8 * q) * SESS_EFF[n] * fk * cd(c).train * mul));
     var k = D.k, up = '', st = c.player.st, fat0 = c.fatigue | 0, imp0 = t.imp, coach0 = c.coach | 0, prog0 = t.p[k] | 0;
     t.p[k] = (t.p[k] | 0) + gain;
@@ -795,6 +801,7 @@
   function sessPlan(c) {
     if (!c || !c.player) return [];
     if (c.train === 'rest') return ['rest', 'rest', 'rest'];
+    if (extBlocked(c, null)) return ['rest', 'rest', 'rest'];   // de baja (extensión): solo descansar
     var ds = sessDrills(c), g = SESS_FOCUS_G[c.train], out = [];
     if (g) out = ds.filter(function (d) { return d.group === g; }).sort(function (a, b) { return a.v - b.v || ds.indexOf(a) - ds.indexOf(b); }).map(function (d) { return d.id; });
     ds.forEach(function (d) { if (out.indexOf(d.id) < 0) out.push(d.id); });
@@ -806,7 +813,7 @@
    *  quede 6 o más por debajo de tu media: entonces, ese grupo. */
   function sessRecommend(c) {
     if (!c || !c.player) return 'bal';
-    if ((c.fatigue | 0) > 60) return 'rest';
+    if ((c.fatigue | 0) > 60 || extBlocked(c, null)) return 'rest';
     var rk = c.player.roleKey, base = { atk: 'atk', OPP: 'atk', OH: 'atk', S: 'atk', cr: 'def', L: 'def', MB: 'def' }[rk] || 'bal';
     var st = c.player.st, avg = ovrOf(st), lo = '', gap = 0;
     Object.keys(TGROUP).forEach(function (g) {
@@ -851,6 +858,7 @@
   function sessClose(c, bye) {
     var t = sessSane(c), rests = t.wkLog.filter(function (x) { return x.how === 'rest'; }).length;
     if (!bye && t.n - rests <= 0 && t.imp > 0) t.imp = round1(t.imp * SESS_IMP_DECAY);
+    extCall('sessClose', [c, rests, t.n, !!bye]);   // extensiones (lesiones: descansos = rehabilitación), antes de vaciar el contador
     t.n = 0; t.wk = null; t.wkLog = [];
   }
   /** Camiseta de entreno: el color del club al 55 % con el gris (la misma fórmula que players.js scrimBase). */
@@ -928,12 +936,15 @@
       diff: CDIFF[o.diff] && CDIFF_KEYS.indexOf(o.diff) >= 0 ? o.diff : 'normal', dUse: dZeros() };   // dificultad (sin tiradas de r: misma semilla, misma carrera)
     genSchedule(c);
     // sin club: llegan las ofertas de inicio y eliges tú (acceptOffer). o.autoClub: el de antes (pruebas)
-    c.offers = genStartOffers(c, 0);
-    msg(c, 'agent', 'Tienes ' + c.offers.length + ' ofertas', 'Soy tu agente. Varios clubes de vóley playa quieren ' + (c.offers.some(function (x) { return x.trial; }) ? 'ficharte o probarte' : 'ficharte') +
+    // prólogo juvenil (js/career-prologue.js, o.prologue): las ofertas llegan al final del juvenil (VB.CareerPrologue.start)
+    var pro = !!(o.prologue && VB.CareerPrologue && typeof VB.CareerPrologue.start === 'function');
+    c.offers = pro ? [] : genStartOffers(c, 0);
+    if (pro) { try { VB.CareerPrologue.start(c, o); } catch (e) { try { console.error('CareerPrologue.start', e); } catch (e2) { } pro = false; c.offers = genStartOffers(c, 0); } }
+    if (!pro) msg(c, 'agent', 'Tienes ' + c.offers.length + ' ofertas', 'Soy tu agente. Varios clubes de vóley playa quieren ' + (c.offers.some(function (x) { return x.trial; }) ? 'ficharte o probarte' : 'ficharte') +
       ' para la temporada 1. Compara las fichas (circuito, prestigio, compañero, objetivo, rol y sueldo) y fíjate en el compañero que te ofrecen: un buen compañero es medio partido. Si rechazas todas, llegarán otras de clubes más modestos (y se pierde la prueba, si la hay).');
     cur = c; M = null; lost = false;
-    life(c, 'create');
-    if (o.autoClub) { var i = 0, best = -1; c.offers.forEach(function (x, j) { if (!x.trial && (best < 0 || x.ovr < best)) { best = x.ovr; i = j; } }); joinClub(c, c.offers[i], c.offers[i].years); }
+    life(c, 'create', o);   // (o: las extensiones leen sus opciones de creación; Life, World y Story lo ignoran)
+    if (o.autoClub && !pro) { var i = 0, best = -1; c.offers.forEach(function (x, j) { if (!x.trial && (best < 0 || x.ovr < best)) { best = x.ovr; i = j; } }); joinClub(c, c.offers[i], c.offers[i].years); }
     save(c);
     return c;
   }
@@ -1004,7 +1015,49 @@
   function plural(n, a, b) { return n + ' ' + (n === 1 ? a : b); }
   /** «Vida» de la Carrera (js/career-life.js: retos, fama, patrocinios, decisiones, rival, tienda, premios, logros, legado), mundo
    *  (career-world.js) y «Carrera con vida» (career-story.js, el último: lee sum.life). Sin los ficheros, nada cambia. */
-  function life(c, kind, a, b) { [VB.CareerLife, VB.CareerWorld, VB.CareerStory].forEach(function (Lf) { if (!Lf || !Lf.hook) return; try { Lf.hook(c, kind, a, b); } catch (e) { try { console.error('Career hook ' + kind, e); } catch (e2) { } } }); }
+  function life(c, kind, a, b) { [VB.CareerLife, VB.CareerWorld].concat(exts(), [VB.CareerStory]).forEach(function (Lf) { if (!Lf || !Lf.hook) return; try { Lf.hook(c, kind, a, b); } catch (e) { try { console.error('Career hook ' + kind, e); } catch (e2) { } } }); }
+  // ------------------------------------------------------------------ extensiones de la Carrera (VB.CareerExt, 20-nov-2026)
+  // Registro abierto de subsistemas de la Carrera (selección, lesiones, estrellas, cesiones, premios, puesto, prólogo…), cada uno en
+  // su fichero js/career-*.js. Cada entrada: { id, hook(c, kind, a, b), y métodos opcionales } (API completa en CONTRACT.md
+  // «Extensiones de la Carrera»). Sin entradas, todo es idéntico a antes: ni tiradas ni cambios. Los errores de una extensión se
+  // registran en consola y no rompen la Carrera. El orden de life(): Life, World, extensiones (en orden de registro), Story.
+  function exts() { var a = VB.CareerExt; return Array.isArray(a) ? a : []; }
+  /** Llama x[name](...args) en cada extensión que lo tenga; devuelve los resultados que no son null/undefined. */
+  function extCall(name, args) {
+    var out = [];
+    exts().forEach(function (x) {
+      if (!x || typeof x[name] !== 'function') return;
+      try { var v = x[name].apply(x, args || []); if (v != null) out.push(v); } catch (e) { try { console.error('CareerExt ' + (x.id || '?') + '.' + name, e); } catch (e2) { } }
+    });
+    return out;
+  }
+  /** ¿Alguna extensión contesta true a x[name](...args)? (holdOffers, midOffers). Se llama a todas (sin cortocircuito). */
+  function extAny(name, args) { return extCall(name, args).some(function (v) { return v === true; }); }
+  /** Suma de x[k](c) (offerBonus). */
+  function extSum(c, k) { var s = 0; extCall(k, [c]).forEach(function (v) { s += +v || 0; }); return s; }
+  /** Baja de la jornada (lesiones, selección…): la primera respuesta de x.blocked(c, f) con id. { id, why, head?, tail?, act?, actT? } o null. */
+  function extBlocked(c, f) { var v = extCall('blocked', [c, f || null]); for (var i = 0; i < v.length; i++) if (v[i] && v[i].id) return v[i]; return null; }
+  /** ¿Prólogo juvenil en marcha? (fase pick con c.pro activo: sin ofertas hasta el informe). Sin js/career-prologue.js, nunca. */
+  function proActive(c) { try { return !!(VB.CareerPrologue && typeof VB.CareerPrologue.active === 'function' && VB.CareerPrologue.active(c)); } catch (e) { return false; } }
+  // ------------------------------------------------------------------ saque de firma (zona y saque de firma, 20-nov-2026)
+  // c.sig = { serve: id de VB.SERVE_SIG, gest: 'normal'|'tres'|'uno'|'giro' } (sin subir VER/VER6; sin él o dañado = clásico).
+  // El catálogo VB.SERVE_SIG y Sim.sigSane los pone la sim (js/sim.js). Sin ellos, sigOf devuelve undefined y nada cambia.
+  var SIG_GEST = ['normal', 'tres', 'uno', 'giro'];
+  function sigOf(c, venue) {
+    var s = (c && c.sig) || {}, T = VB.SERVE_SIG, d = T && T.byId && T.byId[s.serve];
+    var id = d && ((c.player && c.player.st && c.player.st.serve) || 0) >= (d.need || 0) ? s.serve : 'clasico';
+    try { return VB.Sim && typeof VB.Sim.sigSane === 'function' ? VB.Sim.sigSane({ id: id, gest: s.gest }, venue) || undefined : undefined; } catch (e) { return undefined; }
+  }
+  function withSig(c, venue, out) { var sg = sigOf(c, venue); if (sg) out.serveSig = sg; return out; }
+  /** Elige tu saque de firma y el gesto previo (Jugador › Insignias). Guarda. Devuelve c.sig. */
+  function setSig(c, serve, gest) {
+    c = c || (mode() === 'hall' ? load6() : load()); if (!c) return null;
+    var T = VB.SERVE_SIG; if (!T || !Array.isArray(T.ids) || T.ids.indexOf(serve) < 0) serve = 'clasico';
+    if (SIG_GEST.indexOf(gest) < 0) gest = 'normal';
+    c.sig = { serve: serve, gest: gest };
+    if (isHallC(c)) save6(c); else save(c);
+    return c.sig;
+  }
   /** Inicio: rechazar todas → nuevas ofertas, peores (de los clubes más flojos de la Regional y sin prueba). */
   function rejectAll() {
     var c = load(); if (!c || c.phase !== 'pick') return false;
@@ -1177,6 +1230,7 @@
   function next(c) {
     c = c || load(); if (!c) return null;
     var f = myFixture(c); if (!f) return null;
+    var xb = extBlocked(c, f);   // baja de una extensión (lesión…): la jornada va por el camino del banquillo (benchNext)
     var me = myClub(c), riv = club(c, f.home === me.id ? f.away : f.home), L = league(me.lvl);
     var label = f.kind === 'league' ? L.name + ' · Jornada ' + (f.week + 1) + ' de ' + WEEKS
       : L.cup + ' · ' + (f.round === 0 ? 'Semifinal' : 'Final');
@@ -1184,7 +1238,7 @@
     var ai = rivalAI(c, riv);
     return { kind: f.kind, week: f.week, round: f.round, i: f.i, label: label, home: club(c, f.home), away: club(c, f.away), me: me, rival: riv,
       atHome: f.home === me.id, ovrMe: Math.round(teamOvr(c)), ovrRival: clubOvr(riv) + attrOf(c, riv), ovrClub: clubOvr(riv), ovrSim: clubOvr(riv) + cd(c).simAttr, diff: ai.diff, soft: ai.soft, diffName: ai.name,
-      cdiff: diffOf(c), bench: f.kind === 'league' && benchFor(c, f) };
+      cdiff: diffOf(c), bench: !!xb || (f.kind === 'league' && benchFor(c, f)), out: xb };
   }
 
   /** Opciones del partido de Carrera para Sim.createGame (+ kit para Players.setKit y datos para la UI). */
@@ -1215,6 +1269,7 @@
       career: { season: c.season, phase: c.phase, week: n.week, round: n.round, label: n.label, me: n.me.short, rival: n.rival.short, venue: VENUE,
         meName: n.me.name, rivalName: n.rival.name, player: c.player.name, num: c.player.num, mate: c.mate.name, mateNum: c.mate.num, cdiff: n.cdiff, role: c.player.roleKey }
     };
+    var sg = sigOf(c, 'beach'); if (sg) out.serveSig = sg;   // saque de firma (c.sig; sin él o sin la sim nueva, nada)
     life(c, 'setup', out);   // material de la tienda, molestias y reto de la jornada (career-life.js)
     return out;
   }
@@ -1628,7 +1683,8 @@
   function offerScore(c) {
     var an = avgNota(c);
     return playerOvr(c) + (an == null ? 0 : (an - 6) * 6) + (c.coach - 50) / 10 + 0.5 * badgePower(c.player) + (c.listed ? LISTED_BONUS : 0) + (c.broken === c.season ? BROKEN_BONUS : 0) +
-      (VB.CareerLife && VB.CareerLife.offerBonus ? VB.CareerLife.offerBonus(c) + (c.life && c.life.scout === c.season ? 2 : 0) : 0);   // fama, agente estrella y ojeador
+      (VB.CareerLife && VB.CareerLife.offerBonus ? VB.CareerLife.offerBonus(c) + (c.life && c.life.scout === c.season ? 2 : 0) : 0) +   // fama, agente estrella y ojeador
+      extSum(c, 'offerBonus');   // extensiones (cesión con nota A…)
   }
   var LISTED_BONUS = 5, LISTED_COACH = 8;   // transferible: más interés de los clubes, menos confianza del entrenador
   /** Liga de un club la temporada que viene (fin de temporada: con los ascensos y descensos ya decididos en c.pendingMoves). */
@@ -1688,7 +1744,7 @@
     return cand;
   }
   function midWindow(c) {
-    var o = genOffers(c, true);
+    var o = extAny('midOffers', [c]) ? [] : genOffers(c, true);   // una extensión (cesión en curso…) puede cerrar la ventana
     c.offers = o; c.window = o.length ? 'mid' : '';
     if (o.length) msg(c, 'offer', 'Ventana de fichajes: ' + plural(o.length, 'oferta', 'ofertas'), 'Tu agente ha recibido ' + plural(o.length, 'oferta', 'ofertas') + ' a mitad de temporada. Caducan al jugar o simular el siguiente partido. Míralas en Club › Ofertas.');
     // el entrenador repasa el objetivo a mitad de temporada
@@ -1722,22 +1778,29 @@
       cup: cupWin ? 'Campeón' : cupFinal ? 'Final' : cupSemi ? 'Semifinal' : '—', nota: an, played: c.stats.played, won: c.stats.won, ppts: c.stats.pts, move: myMove,
       ovr: playerOvr(c), lvlP: c.player.lvl, d: sd.d, dm: sd.dm });
     c.review = { season: c.season, pos: pos, lvl: lvl, objective: c.objective.text, objOk: objOk, champion: champ === me.id, cup: cupWin, move: myMove, nota: an,
-      coach: c.coach, moves: moves, d: sd.d, dm: sd.dm };
+      coach: c.coach, moves: moves, d: sd.d, dm: sd.dm, club: me.id };
     c.pendingMoves = moves;
     c.pendingQ = nextQs(c, moves);
     c.phase = 'off';
+    if (!extAny('holdOffers', [c])) endOffers(c);   // una extensión (cesión en curso…) puede retrasarlas: luego llama a _endOffers(c)
+    life(c, 'season');
+    c.trophies.forEach(function (t) { if (t && t.season === c.season && !t.d) t.d = sd.d; });   // premios de career-life: su sello
+    extCall('postSeason', [c]);
+  }
+  /** Ofertas de fin de temporada, propuesta de renovación y mensaje del club (antes dentro de endSeason; lo usan las extensiones
+   *  que las retrasan con holdOffers). Lee c.review (pos, objOk, move, objective, season), así que vale después del cierre. */
+  function endOffers(c) {
+    var r = c.review || {}, me = myClub(c), pos = r.pos | 0, objOk = !!r.objOk, myMove = r.move | 0;
     c.offers = genOffers(c, false); c.window = 'end';
     // contrato: si era tu última temporada, el club propone renovar (rol según la confianza del entrenador)
     var ct = c.contract;
     if (ct && (ct.left | 0) <= 1) {
-      var rl = c.coach >= 70 ? 2 : c.coach >= 45 ? 1 : 0, nq = c.pendingQ[me.id] != null ? c.pendingQ[me.id] : me.q;
-      c.review.renew = { role: ROLE_LV[rl], salary: salaryOf(nextLvl(c, me), nq, rl), years: c.coach >= 45 ? 2 : 1 };
+      var rl = c.coach >= 70 ? 2 : c.coach >= 45 ? 1 : 0, nq = c.pendingQ && c.pendingQ[me.id] != null ? c.pendingQ[me.id] : me.q;
+      r.renew = { role: ROLE_LV[rl], salary: salaryOf(nextLvl(c, me), nq, rl), years: c.coach >= 45 ? 2 : 1 };
     }
-    msg(c, 'club', 'Fin de la temporada ' + c.season + ': ' + ordn(pos), 'Objetivo ' + (objOk ? 'cumplido' : 'no cumplido') + ' (' + c.objective.text.toLowerCase() + ').' +
+    msg(c, 'club', 'Fin de la temporada ' + (r.season || c.season) + ': ' + ordn(pos), 'Objetivo ' + (objOk ? 'cumplido' : 'no cumplido') + ' (' + String(r.objective || '').toLowerCase() + ').' +
       (myMove > 0 ? ' ¡El club asciende!' : myMove < 0 ? ' El club desciende.' : '') + ' ' + (c.offers.length ? 'Tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + ' de otros clubes.' : 'No han llegado ofertas de otros clubes.') +
-      (c.review.renew ? ' Se te acaba el contrato: el club te ofrece renovar como ' + c.review.renew.role.toLowerCase() + '.' : ''));
-    life(c, 'season');
-    c.trophies.forEach(function (t) { if (t && t.season === c.season && !t.d) t.d = sd.d; });   // premios de career-life: su sello
+      (r.renew ? ' Se te acaba el contrato: el club te ofrece renovar como ' + r.renew.role.toLowerCase() + '.' : ''));
   }
   function applyMoves(c) {
     var qs = c.pendingQ || nextQs(c, c.pendingMoves);   // guardados de antes de pendingQ: se calcula igual
@@ -1874,11 +1937,12 @@
   function benchNext(c) {
     c = c || load(); if (!c) return null;
     var f = myFixture(c), n = f && next(c); if (!n || !n.bench) return null;
+    var xb = n.out || null;   // baja de una extensión (lesión…): sin promesa incumplida ni mensaje del entrenador
     var r = rng(hash(c.seed, 'bench-m', c.season, f.week)), me = myClub(c);
     var alt = (c.squad || []).slice().sort(function (a, b) { return ovrOf(b.st) - ovrOf(a.st); })[0];
     var oa = 0.5 * mateOvr(c) + 0.5 * (alt ? ovrOf(alt.st) : clubOvr(me)) + FORM_SIM * mateFormCap(c, me, c.mate.form | 0);
     var q = quickSim(oa + (r() - 0.5) * 4, n.ovrSim + (r() - 0.5) * 4, r, PTS), win = q.sets[0] > q.sets[1];
-    var rl = roleIdx(c), why = benchWhy(c), first = !(c.stats.bench | 0);
+    var rl = roleIdx(c), why = xb ? xb.why : benchWhy(c), first = !(c.stats.bench | 0);
     c.benchWk = wkKey(c);
     // dificultad: la jornada sin ti también cuenta en su nivel (la media del rival y el entreno dependen de él; antes de finishRound)
     if (!c.dUse || typeof c.dUse !== 'object') c.dUse = dZeros();
@@ -1887,16 +1951,16 @@
     var mf0 = c.mate.form | 0, mf = mateFormStep(c), au = sessAuto(c), tr = trainWeek(c);
     c.fatigue = clamp((c.fatigue | 0) - BENCH_REST, 0, 100);
     c.stats.bench = (c.stats.bench | 0) + 1; c.career.bench = (c.career.bench | 0) + 1;
-    if (rl === 1 && c.broken !== c.season) {
+    if (!xb && rl === 1 && c.broken !== c.season) {
       c.broken = c.season;
       msg(c, 'agent', 'Promesa incumplida', me.name + ' te fichó como titular y te ha dejado en el banquillo. Hasta final de temporada puedes irte sin pegas aunque tengas contrato, y los clubes lo saben: llegarán más ofertas (a mitad de temporada basta con una nota media de 6,5).');
-    } else if (first) msg(c, 'coach', 'Esta jornada, al banquillo', why + ' Juega ' + c.mate.name + (alt ? ' con ' + alt.name : '') + '. Sube tus notas y volverás a jugar.');
-    var rival = club(c, f.home === me.id ? f.away : f.home), phase0 = c.phase, season0 = c.season, label = 'Jornada ' + (f.week + 1);
+    } else if (!xb && first) msg(c, 'coach', 'Esta jornada, al banquillo', why + ' Juega ' + c.mate.name + (alt ? ' con ' + alt.name : '') + '. Sube tus notas y volverás a jugar.');
+    var rival = club(c, f.home === me.id ? f.away : f.home), phase0 = c.phase, season0 = c.season, label = f.kind === 'league' ? 'Jornada ' + (f.week + 1) : (f.round === 0 ? 'Semifinal del Open' : 'Final del Open');
     sessClose(c);
     recordMine(c, f, q.sets, q.setScores);
     var round = finishRound(c);
     var sum = { season: season0, phase: phase0, label: label, rival: rival.id, rivalName: rival.name, win: win, sets: q.sets.slice(), setScores: q.setScores.map(function (x) { return x.slice(); }),
-      sim: true, bench: true, why: why, sub: alt ? alt.name : '', nota: null, me: { kills: 0, aces: 0, blocks: 0, assists: 0, digs: 0, errors: 0 }, xp: 0, lvlUp: 0, lvl: c.player.lvl, ptsGained: 0, badges: [],
+      sim: true, bench: true, out: xb ? xb.id : '', why: why, sub: alt ? alt.name : '', nota: null, me: { kills: 0, aces: 0, blocks: 0, assists: 0, digs: 0, errors: 0 }, xp: 0, lvlUp: 0, lvl: c.player.lvl, ptsGained: 0, badges: [],
       coach: c.coach, train: tr, auto: au, chem: c.mate.chem | 0, mateForm: mf, mateForm0: mf0, round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }),
       offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     life(c, 'match', sum, f);
@@ -2241,7 +2305,7 @@
       o.myClub = -1; o.window = 'start';
       if (!o.pick || typeof o.pick !== 'object') o.pick = { round: 0, more: false };
       o.pick.round = clampI(o.pick.round, 0, 9); o.pick.more = !!o.pick.more;
-      if (!o.offers.length || !o.offers.every(function (x) { var k = x && club(o, x.club); return k && k.cc === o.cc; })) o.offers = genStartOffers6(o, o.pick.round);
+      if (!proActive(o) && (!o.offers.length || !o.offers.every(function (x) { var k = x && club(o, x.club); return k && k.cc === o.cc; }))) o.offers = genStartOffers6(o, o.pick.round);
       trialSane(o);
       o.week = 0; o.last = null; o.kos = []; o.koI = 0; o.myRes = { lid: '', w: [] };
       return o;
@@ -2488,7 +2552,8 @@
    *  Devuelve { stat: 'start'|'sub'|'out', why, slot, start: [6 ids en orden ROLES6], bench: [ids], out: [ids], lib, rival, gap, ahead }. */
   function lineup6(c) {
     var q = sq6(c); if (!q) return null;
-    var wk = wkKey6(c), rl = roleIdx(c), pos = sqPos6(c), key = wk + '|' + rl + '|' + q.club + '|' + pos;
+    var xb = extBlocked(c, null);   // baja de una extensión (lesión…): fuera de la convocatoria (why 'x')
+    var wk = wkKey6(c), rl = roleIdx(c), pos = sqPos6(c), key = wk + '|' + rl + '|' + q.club + '|' + pos + (xb ? '|x' : '');
     if (q.L && q.wk === key) return q.L;
     var noise = function (id) { return (rng(hash(c.seed, 'sel', wk, id))() - 0.5) * 2 * SEL_NOISE; };
     var ent = q.list.map(function (x) { return { id: x.id, pos: x.pos, ovr: x.ovr, form: x.form | 0, conf: x.conf, fat: x.fat | 0, keep: x.ls ? SEL_KEEP : 0, ls: x.ls }; });
@@ -2502,7 +2567,7 @@
     // con confianza < OUT_COACH: la Rotación se queda fuera de la convocatoria, pero nunca dos jornadas seguidas (como benchFor en la
     // playa); el Titular nunca queda fuera por eso: va al banquillo ('coachSub', primer suplente de su puesto)
     var prevOut = !!q.outC;   // (squadWeek6: la jornada anterior te dejó fuera el entrenador)
-    var force = c.coach < OUT_COACH && rl < 2 ? (rl === 0 && !prevOut ? 'coach' : 'coachSub') : (rl === 2 ? me.fat >= FAT_REST_TOP : me.fat >= FAT_REST) ? 'fatiga' : rl === 2 ? 'start' : '';
+    var force = xb ? 'ext' : c.coach < OUT_COACH && rl < 2 ? (rl === 0 && !prevOut ? 'coach' : 'coachSub') : (rl === 2 ? me.fat >= FAT_REST_TOP : me.fat >= FAT_REST) ? 'fatiga' : rl === 2 ? 'start' : '';
     var by = {}, out = [];
     SQ_POS.forEach(function (p) {
       by[p] = ent.filter(function (e) { return e.pos === p; }).sort(function (a, b) { return b.sel - a.sel || (a.id < b.id ? -1 : 1); });
@@ -2510,12 +2575,12 @@
     var mine = by[pos], mi = mine.indexOf(me);
     mine.splice(mi, 1);
     if (force === 'start') mine.unshift(me);
-    else if (force === 'coach') out.push(me);
+    else if (force === 'coach' || force === 'ext') out.push(me);
     else if (force === 'fatiga' || force === 'coachSub') mine.splice(Math.min(mine.length, SLOTS6[pos]), 0, me);
     else mine.splice(mi, 0, me);
-    var ord = mine.map(function (e) { return e.id; }); if (force === 'coach') ord.push('me');
+    var ord = mine.map(function (e) { return e.id; }); if (force === 'coach' || force === 'ext') ord.push('me');
     // convocatoria de LIST6 (13): fuera los peores de los puestos con más suplentes
-    var n = ent.length - out.length, why = force === 'coach' || force === 'coachSub' ? 'coach' : force === 'fatiga' ? 'fatiga' : '';
+    var n = ent.length - out.length, why = force === 'ext' ? 'x' : force === 'coach' || force === 'coachSub' ? 'coach' : force === 'fatiga' ? 'fatiga' : '';
     while (n > LIST6) {
       var bp = '', br = 0;
       ['S', 'OPP', 'OH', 'MB'].forEach(function (p) { var rs = by[p].length - SLOTS6[p]; if (rs > br || (rs === br && rs > 0 && by[p][by[p].length - 1].sel < by[bp][by[bp].length - 1].sel)) { bp = p; br = rs; } });
@@ -2548,6 +2613,7 @@
     return L;
   }
   function coachLineMsg6(c, q, L, prev, prevWhy) {
+    if (L.why === 'x' || prevWhy === 'x') return;   // baja de una extensión: los mensajes los manda ella
     var who = function (id) { var e = id && sqEntry6(c, q, id); return e ? e.name : 'otro ' + POS6[sqPos6(c)].name.toLowerCase(); };
     if (L.stat === 'start') {
       if (prevWhy === 'fatiga') msg(c, 'coach', 'Sales de inicio', 'Ya has descansado: el próximo partido vuelves al seis inicial.');
@@ -2560,6 +2626,7 @@
   /** Texto del estado de la jornada (HALL.benchWhy): '' si sales de inicio. */
   function whyText6(c) {
     c = c || load6(); var L = c && myClub(c) ? lineup6(c) : null; if (!L || L.stat === 'start') return '';
+    if (L.why === 'x') { var xb = extBlocked(c, null); return xb ? xb.why : ''; }
     var q = c.sq6, rv = L.rival && sqEntry6(c, q, L.rival);
     if (L.stat === 'out') return cap1(WHY6[L.why] || WHY6.list) + '.';
     return (rv ? 'Sale de inicio ' + rv.name + ': ' : '') + (rv ? WHY6[L.why] || WHY6.ovr : cap1(WHY6[L.why] || WHY6.ovr)) + '.';
@@ -2662,13 +2729,15 @@
     if (!c.leagues.length) return null;
     var cos = countries6();
     c.cc = cos.some(function (x) { return x.code === o.country; }) ? String(o.country) : cos.some(function (x) { return x.code === 'ES'; }) ? 'ES' : cos[0].code;
-    c.offers = genStartOffers6(c, 0);
+    var pro = !!(o.prologue && VB.CareerPrologue && typeof VB.CareerPrologue.start === 'function');   // prólogo juvenil (como en la playa)
+    c.offers = pro ? [] : genStartOffers6(c, 0);
+    if (pro) { try { VB.CareerPrologue.start(c, o); } catch (e) { try { console.error('CareerPrologue.start', e); } catch (e2) { } pro = false; c.offers = genStartOffers6(c, 0); } }
     var L0 = lg6(c, c.offers[0] ? club(c, c.offers[0].club).lid : c.cc + '1');
-    msg(c, 'agent', 'Tienes ' + c.offers.length + ' ofertas', 'Soy tu agente. Varios clubes ' + (L0 ? 'de la ' + L0.name + ' (' + L0.country + ')' : '') + ' quieren ' + (c.offers.some(function (x) { return x.trial; }) ? 'ficharte o probarte' : 'ficharte') +
+    if (!pro) msg(c, 'agent', 'Tienes ' + c.offers.length + ' ofertas', 'Soy tu agente. Varios clubes ' + (L0 ? 'de la ' + L0.name + ' (' + L0.country + ')' : '') + ' quieren ' + (c.offers.some(function (x) { return x.trial; }) ? 'ficharte o probarte' : 'ficharte') +
       ' para la temporada 1 como ' + POS6[pos].name.toLowerCase() + '. Compara las fichas (liga, prestigio, objetivo, rol y sueldo). Juega bien y los ojeadores de las ligas fuertes, también de fuera, vendrán a verte.');
     cur6 = c; M = null; lost6 = false;
-    life(c, 'create');   // vida de la Carrera (career-life.js): c.life, con la fama heredada del Salón de la Fama
-    if (o.autoClub) { var i = 0, best = -1; c.offers.forEach(function (x, j) { if (!x.trial && (best < 0 || x.ovr < best)) { best = x.ovr; i = j; } }); joinClub6(c, c.offers[i], c.offers[i].years); }
+    life(c, 'create', o);   // vida de la Carrera (career-life.js): c.life, con la fama heredada del Salón de la Fama
+    if (o.autoClub && !pro) { var i = 0, best = -1; c.offers.forEach(function (x, j) { if (!x.trial && (best < 0 || x.ovr < best)) { best = x.ovr; i = j; } }); joinClub6(c, c.offers[i], c.offers[i].years); }
     save6(c);
     return c;
   }
@@ -2752,7 +2821,7 @@
     var lu = lineup6(c), rv = lu.rival ? sqEntry6(c, c.sq6, lu.rival) : null, ai = rivalAI6(c, riv);
     return { kind: f.kind, week: f.week, round: f.round, ko: f.ko, i: f.i, label: label, home: club(c, f.home), away: club(c, f.away), me: me, rival: riv, atHome: f.home === me.id,
       ovrMe: Math.round(teamOvr6(c)), ovrRival: riv.ovr + attrOf6(c, riv), ovrClub: riv.ovr, ovrSim: riv.ovr + cd(c).simAttr, diff: ai.diff, soft: ai.soft, diffName: ai.name, cdiff: diffOf(c), comp: ko ? ko.kind : 'league', compName: ko ? ko.name : L.name,
-      foreign: riv.cc !== me.cc, rivalLeague: lg6(c, riv.lid), bench: lu.stat === 'out',
+      foreign: riv.cc !== me.cc, rivalLeague: lg6(c, riv.lid), bench: lu.stat === 'out', out: extBlocked(c, f),
       // titularidad: 'start' (de inicio), 'sub' (empiezas en el banquillo: el partido se juega igual) o 'out' (fuera de la convocatoria)
       status: lu.stat, whyCode: lu.why, why: whyText6(c), gap: lu.gap, slot: lu.slot,
       rivalIn: rv ? { name: rv.name, pos: rv.pos, ovr: rv.ovr, form: rv.form | 0, num: rv.num } : null };
@@ -2815,6 +2884,7 @@
         meName: n.me.name, rivalName: n.rival.name, player: c.player.name, num: c.player.num, pos: role, posName: POS6[role].name, mate: '', mateNum: 0,
         meOn: meOn, status: meOn ? 'start' : 'sub', cdiff: n.cdiff, atHome: !!n.atHome, acta: acta }
     };
+    var sg6 = sigOf(c, 'hall'); if (sg6) out.serveSig = sg6;   // saque de firma
     life(c, 'setup', out);   // material de la tienda y molestias (en tu hueco, ctrlIdx) y reto de la jornada (career-life.js)
     return out;
   }
@@ -2953,22 +3023,28 @@
     var an = avgNota(c), cupR = cups.filter(function (x) { return x.kind === 'cup' && x.mine; })[0], intR = cups.filter(function (x) { return x.kind === 'intl' && x.mine; })[0];
     c.history.push({ season: c.season, club: me.id, clubName: me.name, lid: me.lid, lgShort: L.short, country: L.country, pos: pos, pts: t[pos - 1].pts, objective: c.objective.text, objOk: objOk,
       cup: cupR ? cupR.reach : '—', intl: intR ? intR.name + ': ' + intR.reach : '', nota: an, played: c.stats.played, won: c.stats.won, ppts: c.stats.pts, move: myMove, ovr: playerOvr(c), lvlP: c.player.lvl, d: sd.d, dm: sd.dm });
-    c.review = { season: c.season, pos: pos, n: n, lid: me.lid, objective: c.objective.text, objOk: objOk, champion: champ, cups: cups, move: myMove, nota: an, coach: c.coach, moves: moves, d: sd.d, dm: sd.dm };
+    c.review = { season: c.season, pos: pos, n: n, lid: me.lid, objective: c.objective.text, objOk: objOk, champion: champ, cups: cups, move: myMove, nota: an, coach: c.coach, moves: moves, d: sd.d, dm: sd.dm, club: me.id };
     c.pendingMoves = moves; c.pendingOvr = nextOvrs6(c, moves);
     c.phase = 'off';
+    if (!extAny('holdOffers', [c])) endOffers6(c);   // (como en la playa: una extensión puede retrasarlas)
+    life(c, 'season');   // premios, títulos a fama, objetivo del patrocinador y logros
+    c.trophies.forEach(function (t) { if (t && t.season === c.season && !t.d) t.d = sd.d; });   // premios de career-life: su sello
+    extCall('postSeason', [c]);
+  }
+  /** Ofertas de fin de temporada de la pista, renovación y mensaje del club (como endOffers en la playa; lee c.review). */
+  function endOffers6(c) {
+    var r = c.review || {}, me = myClub(c), rc = r.club != null ? r.club : c.myClub, L = lg6(c, r.lid || me.lid), pos = r.pos | 0, objOk = !!r.objOk, champ = !!r.champion, myMove = r.move | 0;
     c.offers = genOffers6(c, false); c.window = 'end';
     var ct = c.contract;
     if (ct && (ct.left | 0) <= 1) {
       var rl = c.coach >= 70 ? 2 : c.coach >= 45 ? 1 : 0;
-      c.review.renew = { role: ROLE_LV[rl], salary: salary6(c, me, rl, nextLid6(c, me)), years: c.coach >= 45 ? 2 : 1 };
+      r.renew = { role: ROLE_LV[rl], salary: salary6(c, me, rl, nextLid6(c, me)), years: c.coach >= 45 ? 2 : 1 };
     }
-    var cw = cups.filter(function (x) { return x.champion === me.id; }).map(function (x) { return x.name; });
-    msg(c, 'club', 'Fin de la temporada ' + c.season + ': ' + ordn(pos), 'Objetivo ' + (objOk ? 'cumplido' : 'no cumplido') + ' (' + c.objective.text.toLowerCase() + ').' + (champ ? ' ¡Campeones de la ' + L.name + '!' : '') +
+    var cw = (r.cups || []).filter(function (x) { return x.champion === rc; }).map(function (x) { return x.name; });
+    msg(c, 'club', 'Fin de la temporada ' + (r.season || c.season) + ': ' + ordn(pos), 'Objetivo ' + (objOk ? 'cumplido' : 'no cumplido') + ' (' + String(r.objective || '').toLowerCase() + ').' + (champ && L ? ' ¡Campeones de la ' + L.name + '!' : '') +
       (cw.length ? ' ¡Campeones de la ' + cw.join(' y de la ') + '!' : '') + (myMove > 0 ? ' ¡El club asciende!' : myMove < 0 ? ' El club desciende.' : '') + ' ' +
       (c.offers.length ? 'Tienes ' + plural(c.offers.length, 'oferta', 'ofertas') + ' de otros clubes' + (c.offers.some(function (x) { return x.foreign; }) ? ', también del extranjero' : '') + '.' : 'No han llegado ofertas de otros clubes.') +
-      (c.review.renew ? ' Se te acaba el contrato: el club te ofrece renovar como ' + c.review.renew.role.toLowerCase() + '.' : ''));
-    life(c, 'season');   // premios, títulos a fama, objetivo del patrocinador y logros
-    c.trophies.forEach(function (t) { if (t && t.season === c.season && !t.d) t.d = sd.d; });   // premios de career-life: su sello
+      (r.renew ? ' Se te acaba el contrato: el club te ofrece renovar como ' + r.renew.role.toLowerCase() + '.' : ''));
   }
   function applyMoves6(c) {
     var ov = c.pendingOvr || nextOvrs6(c, c.pendingMoves);
@@ -3062,7 +3138,7 @@
     return cand;
   }
   function midWindow6(c) {
-    var o = genOffers6(c, true);
+    var o = extAny('midOffers', [c]) ? [] : genOffers6(c, true);
     c.offers = o; c.window = o.length ? 'mid' : '';
     if (o.length) msg(c, 'offer', 'Ventana de fichajes: ' + plural(o.length, 'oferta', 'ofertas'), 'Tu agente ha recibido ' + plural(o.length, 'oferta', 'ofertas') + ' a mitad de temporada' + (o.some(function (x) { return x.foreign; }) ? ', también del extranjero' : '') + '. Caducan al jugar o simular el siguiente partido. Míralas en Club › Ofertas.');
     var pos = posOf6(c, c.myClub), okp = pos <= c.objective.pos;
@@ -3253,7 +3329,7 @@
     recordMine6(c, f, q.sets, q.setScores);
     var round = finishRound6(c);
     var sum = { mode: 'hall', season: season0, phase: phase0, label: label, rival: rival.id, rivalName: rival.name, win: win, sets: q.sets.slice(), setScores: q.setScores.map(function (x) { return x.slice(); }),
-      sim: true, bench: true, why: why, sub: '', nota: null, me: { kills: 0, aces: 0, blocks: 0, assists: 0, digs: 0, errors: 0 }, xp: 0, lvlUp: 0, lvl: c.player.lvl, ptsGained: 0, badges: [],
+      sim: true, bench: true, out: n.out ? n.out.id : '', why: why, sub: '', nota: null, me: { kills: 0, aces: 0, blocks: 0, assists: 0, digs: 0, errors: 0 }, xp: 0, lvlUp: 0, lvl: c.player.lvl, ptsGained: 0, badges: [],
       part: { status: 'out', started: false, entered: 0, pulled: 0, meR: 0, rallies: all, share: 0, sets: [] },
       coach: c.coach, train: tr, auto: au, chem: c.chem | 0, round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }), offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     life(c, 'match', sum, f);   // fuera de la convocatoria: patrocinio y servicios (sin reto)
@@ -3333,11 +3409,17 @@
     save6(c); return 'ok';
   }
   /** Cambiar de puesto (p. ej. cuando sim añada colocador, opuesto o central). Tus atributos no cambian: el perfil es el de origen. */
-  function setPosition6(k) {
-    var c = load6(); if (!c || !POS6[k] || positions6().indexOf(k) < 0 || c.player.roleKey === k) return false;
+  /** Cambio de puesto sobre una carrera c ya cargada (sin guardar; lo usan setPosition6 y las extensiones: HALL._setPos). quiet: sin
+   *  el mensaje del entrenador. true si ha cambiado. */
+  function setPosC6(c, k, quiet) {
+    if (!c || !c.player || !POS6[k] || positions6().indexOf(k) < 0 || c.player.roleKey === k) return false;
     c.player.roleKey = k; c.player.role = POS6[k].name;
     var mk = myClub(c); if (mk) { var st0 = c.sq6 && c.sq6.stat; c.sq6 = newSq6(c, mk, c.season + (c.phase === 'off' ? 1 : 0)); c.sq6.fresh = 0; c.sq6.stat = st0 || null; }   // plantilla con tu nuevo puesto
-    msg(c, 'coach', 'Nuevo puesto: ' + POS6[k].name.toLowerCase(), 'De acuerdo: desde la próxima jornada juegas de ' + POS6[k].name.toLowerCase() + '. Tus atributos siguen siendo los tuyos; entrena lo que pide el puesto.');
+    if (!quiet) msg(c, 'coach', 'Nuevo puesto: ' + POS6[k].name.toLowerCase(), 'De acuerdo: desde la próxima jornada juegas de ' + POS6[k].name.toLowerCase() + '. Tus atributos siguen siendo los tuyos; entrena lo que pide el puesto.');
+    return true;
+  }
+  function setPosition6(k) {
+    var c = load6(); if (!setPosC6(c, k)) return false;
     save6(c); return true;
   }
   function withC6(fn) { return function () { var c = load6(); if (!c) return false; var r = fn.apply(null, [c].concat([].slice.call(arguments))); if (r) save6(c); return r; }; }
@@ -3505,14 +3587,14 @@
     var kt = k.kit || {}, goals = trialGoals(c, o), ref = copy(REF[league(k.lvl).ref]); ref.chal = 0;
     var kit = { kitShirt: kt.shirt, kitAccent: kt.accent, kitShorts: kt.shorts, kitPattern: kt.pattern };
     trialMark(c, i, o, goals); M = null; save(c);
-    return {
+    return withSig(c, 'beach', {
       attrs: [[stMe, copy(mate.st)], [rivA, rivB]], badges: bd ? [[bd, null], null] : null,
       sets: 1, points: TRIAL_PTS, venue: VENUE, difficulty: ai.diff, ctrl: 'one', ctrlIdx: 0, rookie: !!ai.soft, diffName: ai.name, cdiff: diffOf(c),
       ref: ref, kit: kit, rivalKit: copy(kit), scrim: { base: trainShirt(kt.shirt), shorts: kt.shorts },
       career: { trial: true, mode: 'beach', club: o.club, offer: i, goals: goals, role: c.player.roleKey, season: c.season, phase: c.phase, week: 0, round: tRound(c),
         label: 'Partidillo de prueba: ' + k.name, me: 'TÚ', rival: k.short, venue: VENUE, meName: 'Tu pareja de prueba', rivalName: k.name,
         clubName: k.name, player: c.player.name, num: c.player.num, mate: mate.name, mateNum: mate.num, cdiff: diffOf(c), sets: 1, points: TRIAL_PTS }
-    };
+    });
   }
   /** Partidillo de la prueba en la pista (oferta i): tú (en tu puesto, ctrlRole6) con los suplentes del club contra sus titulares, a
    *  un set a TRIAL_PTS, con petos. La plantilla es la del club (squad6, determinista: la misma que verás si fichas): los titulares
@@ -3547,7 +3629,7 @@
     var kit = { kitShirt: kt.shirt, kitAccent: kt.accent, kitShorts: kt.shorts, kitPattern: kt.pattern, kitLibero: kt.libero };
     var tai = trialAIOf(c, rivalAI6(c, k));   // un peldaño por encima de tu dificultad (o del club, si ya está por encima)
     trialMark(c, i, o, goals); M = null; save6(c);
-    return {
+    return withSig(c, 'hall', {
       format: '6v6', venue: 'hall', ctrlRole: role, ctrlIdx: idx, ctrl: 'one', attrs: [a0, a1],
       badges: bd ? [R.map(function (x, j) { return j === idx ? bd : null; }), null] : null, nums: [nums0, nums1], names: [names0, names1],
       meOn: true, meSlot: idx, meBench: -1, sets: 1, points: TRIAL_PTS, difficulty: tai.diff, rookie: !!tai.soft, diffName: tai.name, cdiff: diffOf(c),
@@ -3555,7 +3637,7 @@
       career: { trial: true, mode: 'hall', club: o.club, offer: i, goals: goals, season: c.season, phase: c.phase, week: 0, round: tRound(c),
         label: 'Partidillo de prueba: ' + k.name, me: 'SUP', rival: 'TIT', venue: 'hall', meName: 'Suplentes', rivalName: 'Titulares',
         clubName: k.name, player: c.player.name, num: c.player.num, pos: role, posName: POS6[role].name, mate: '', mateNum: 0, meOn: true, status: 'start', sets: 1, points: TRIAL_PTS }
-    };
+    });
   }
   /** Nota de la prueba: me = tus estadísticas (ingest), res = { sets: [tú, rival], setScores }, rallies = puntos jugados, goals = los
    *  objetivos (por defecto trialGoals), rt = la nota en directo (M.rt, opcional). Con rt: los objetivos que faltan entran en ella
@@ -3598,7 +3680,8 @@
         msg(c, 'agent', '¡Prueba superada!', k.name + ' te ficha tras la prueba (' + nt + '). Contrato de 1 temporada' + (c.phase === 'off' ? ', desde la temporada que viene.' : '.'));
         trialSign(c, o, hall); if (hall) save6(c); else save(c); return true;
       }
-      msg(c, 'agent', '¡Prueba superada!', k.name + ' te ficha tras la prueba (' + nt + '). Empiezas en ' + (hall ? 'la ' + lg6(c, o.lid).name : lname(league(o.lvl))) + ', una categoría por encima.');
+      msg(c, 'agent', '¡Prueba superada!', k.name + ' te ficha tras la prueba (' + nt + '). Empiezas en ' + (hall ? 'la ' + lg6(c, o.lid).name : lname(league(o.lvl))) +
+        (o.up === 0 ? '.' : o.up === 2 ? ', dos categorías por encima.' : ', una categoría por encima.'));   // (o.up lo pone el prólogo juvenil; sin él, el texto de siempre)
       if (hall) { joinClub6(c, o, info.years); save6(c); } else { joinClub(c, o, info.years); save(c); }
       return true;
     }
@@ -3658,6 +3741,10 @@
     setTraining: setTraining6, requestTransfer: requestTransfer6, bump: bump6, toggleBadge: toggleBadge6, unread: unread6, readMsg: readMsg6, readAll: readAll6,
     _genOffers: genOffers6, _scout: scoutCheck6, _wkKey: wkKey6, _name: function (r) { return pick(r, FIRST) + ' ' + pick(r, LAST); },   // (vida de la Carrera)
     _reset: function () { cur6 = null; M = null; }, _buildWorld: buildWorld6, _endLeague: endLeague6,
+    // extensiones de la Carrera (20-nov-2026; CONTRACT.md «Extensiones de la Carrera»): fichar, temporada nueva, ofertas retrasadas,
+    // ofertas de inicio (prólogo) y cambio de puesto sobre una c ya cargada (sin guardar)
+    _joinClub: joinClub6, _newSeason: newSeason6, _endOffers: endOffers6, _startOffers: genStartOffers6, _startOffer: startOffer6, _setPos: setPosC6,
+    _myClub: myClub, _club: club, _lg: lg6, _labelOf: labelOf6,
     // titularidad (13-nov-2026): plantilla, seis de la jornada, profundidad en las ofertas y textos de rol de la pista
     ROLE_HINT: ROLE_HINT6, benchWhy: whyText6, whyText: whyText6, WHY: WHY6, lineup: lineup6, squad: squad6, squadWeek: squadWeek6, depth: depth6, depthNow: depthNow6,
     capRole: capRole6, meRules: meRules6, SQ_SIZE: SQ_SIZE, SQ_BIG: SQ_BIG, SLOTS: SLOTS6, LIST: LIST6, ME_EDGE: ME_EDGE, ME_EDGE_STEP: ME_EDGE_STEP, ME_EDGE_MIN: ME_EDGE_MIN, meEdge: meEdge6, SEL_IMP: SEL_IMP, OUT_COACH: OUT_COACH, FAT_REST: FAT_REST, FAT_REST_TOP: FAT_REST_TOP,
@@ -3712,6 +3799,9 @@
     // dificultad de la Carrera (12-nov-2026)
     CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, diffOf: diffOf, rivalAI: rivalAI, attrOf: attrOf, baseStep: baseStep, seasonDiff: seasonDiff, midNota: midNota, setDifficulty: setDifficulty,
     _M: function () { return M; }, _reset: function () { cur = null; M = null; }, _genOffers: genOffers, _rng: rng, _hash: hash,
+    // extensiones de la Carrera (20-nov-2026; CONTRACT.md «Extensiones de la Carrera»)
+    _joinClub: joinClub, _newSeason: newSeason, _salaryOf: salaryOf, _endOffers: endOffers, _startOffers: genStartOffers, _startOffer: startOffer,
+    _extBlocked: extBlocked, _sigOf: sigOf, _isHall: isHallC,
     // sesiones de entrenamiento entre jornadas (13-nov-2026)
     TRAIN_SESS: TRAIN_SESS, SESS_NEED: SESS_NEED, SESS_MAX: SESS_MAX, SESS_EFF: SESS_EFF, SESS_FAT: SESS_FAT, SESS_FAT_MAX: SESS_FAT_MAX, SESS_QUICK: SESS_QUICK,
     SESS_IMP_A: SESS_IMP_A, SESS_IMP_DECAY: SESS_IMP_DECAY, SESS_COACH: SESS_COACH, SESS_DRILL: SESS_DRILL, SESS_BY: SESS_BY, sessMedal: sessMedal,
@@ -3767,6 +3857,14 @@
     /** Reiniciar ('restart') o abandonar ('quit') el partidillo de una prueba (main.js): la gasta, en la Carrera de la prueba. */
     trialForfeit: function (mode, i, why) { return (mode === 'hall' ? HALL : BEACH).trialForfeit(i, why); },
     liveRating: liveRating,
+    // extensiones de la Carrera (20-nov-2026): registro y ayudas (CONTRACT.md «Extensiones de la Carrera»)
+    ext: { list: exts, call: extCall, any: extAny, sum: extSum, blocked: extBlocked,
+      /** La extensión registrada con ese id, o null. */
+      get: function (id) { return exts().filter(function (x) { return x && x.id === id; })[0] || null; },
+      /** Motor de una carrera concreta (VB.Career.hall o .beach), como K(c) de career-life.js. */
+      engine: function (c) { return c && c.mode === 'hall' ? HALL : BEACH; } },
+    /** Saque de firma (zona y saque de firma): setSig(c|null, serve, gest) guarda c.sig; sigOf(c, venue) → opciones de createGame o undefined. */
+    setSig: setSig, sigOf: sigOf,
     // ambiente de Carrera (notes/ambiente.md §4.6): estado del partido g y contexto (cs.amb) del próximo partido de la Carrera c
     amb: amb, ambCtx: function (c, n, cs) { c = c || (mode() === 'hall' ? load6() : load()); if (!c) return null; n = n || (isHallC(c) ? next6(c) : next(c)); try { return ambCtx(c, n, cs); } catch (e) { try { console.error('Career.ambCtx', e); } catch (e2) { } return null; } },
     _reset: function () { cur = null; cur6 = null; M = null; }

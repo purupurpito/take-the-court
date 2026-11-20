@@ -26,7 +26,11 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
   salvo el lote B (cámara lenta), que solo toca la cámara y la UI, no la sim. tools/fingerprint6.js compara posiciones con
   tolerancia 1e-7 (Linux y Windows redondean distinto).
 - **Pruebas antes de publicar**
-  - `node tools/simtest.js`, `tools/badgetest.js` y `tools/careertest.js`.
+  - `node tools/simtest.js`, `tools/badgetest.js` y `tools/careertest.js` (también con `NOWORLD=1`).
+  - Extensiones de la Carrera (rama carrera-ea2k): `node tools/natltest.js` (selección), `injurytest.js` (lesiones), `allstartest.js`
+    (Estrellas y concursos), `loantest.js` (cesiones y traspaso), `racetest.js` (premios), `devtest.js` (puesto y plan),
+    `prologuetest.js` (juvenil) y `zonetest.js` (zona y saque de firma; `SIM_BASE` de fluidsimtest = 1383632).
+  - `node tools/fingerprint6.js`, con `--variant mastery` y con `--variant salto`: las tres, «idéntica».
   - `bash tools/console.sh all`, también con `EXTRA=format=6v6` y `EXTRA=map=beach`.
   - `node tools/drive.js 1280 720 30` y `node tools/drive6.js 1280 720 60` (y con `TOUCH=1`, 844 390).
   - `tools/touchplay.js 844x390 25` y `tools/padplay.js 1280 720 20`. Fallan a veces en «3 toques»: repítelos.
@@ -239,8 +243,41 @@ trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
        Umbrales sin tocar.
     7. Demo del menú con la sede de la Carrera activa (sin hacer; sería una bandera aparte, medida con perf.js).
 
+## Ideas futuras (NO hechas)
+- **Después de retirarte: pasar a entrenador de tu último club** (Carrera). Ferran, 20-nov-2026: «sí, pero en un futuro, ahora
+  mismo no». No empezar sin que lo pida. Encajaría como extensión de la Carrera (CONTRACT.md «Extensiones de la Carrera») a partir
+  de `CareerLife.retire`.
+
 ## Peticiones entre lotes
 (Escribe aquí: lote que pide → fichero, función y cambio exacto.)
+- **Extensiones de la Carrera (rama carrera-ea2k, 20-nov-2026) → players (js/players.js, ~línea 2563)**, petición de «Zona y saque
+  de firma»: en la condición que elige la celebración 'firma', añadir `|| e.how === 'ace'` a `(e.setWon || (e.highlight || 0) >= bigAt
+  || (h & 3) === 0)`. Solo afecta al que lleva la firma (tu n.º 1 de la Carrera).
+- **Extensiones de la Carrera → tools/mobaudit-page.js (ui_main)**: `seedCareer(mode, phase)` no admite `phase 'off'`; la fila
+  `carrera-playa-natl-verano` deja el verano en manos de `X._demo(c, 'off')` de career-natl.js. Si se quiere de raíz: con `'off'`,
+  simular la temporada entera tras fichar.
+- **Extensiones de la Carrera → tools/careertest.js (ui_main)**, cambio exacto, ya probado en una copia (2177 comprobaciones TODO OK;
+  2061 con `NOWORLD=1`):
+  - en `FILES`, tras `'js/career-story-season.js'`, añadir `'js/career-natl.js', 'js/contest.js', 'js/career-allstar.js',
+    'js/career-loan.js', 'js/career-race.js', 'js/career-dev.js', 'js/career-prologue.js'`;
+  - NO añadir `js/career-injury.js`: cambiaría las progresiones fijadas, y la mecánica la cubre injurytest. Si se carga, poner
+    `c.inj.on = 0` justo tras `create()`;
+  - línea 650 («migrar dos veces no renombra ni duplica»): `m2.inbox.filter(x => /playa/i.test(x.t))` →
+    `m2.inbox.filter(x => x.k !== 'natl' && /playa/i.test(x.t))`. La selección deja en la bandeja migrada un mensaje 'natl' con
+    «… de Playa» en el título.
+- **Extensiones de la Carrera → js/recap.js (ui_main)**, de «Lesiones»: ui.js ya pasa `d.inj = {name, n, rl}` a la hoja final de la
+  Carrera. Junto a `M.boss` (~515): `M.inj = d.inj ? { t: (d.inj.rl ? 'Recaída: ' : 'Lesión: ') + d.inj.name.charAt(0).toLowerCase() +
+  d.inj.name.slice(1) + ' (' + d.inj.n + (d.inj.n === 1 ? ' partido' : ' partidos') + ')' } : null;` y pintarlo como una pastilla roja
+  en el mismo bloque que `M.boss`.
+- **Extensiones de la Carrera → js/main.js (ui_main), opcional y solo cosmético**: en la escena `drill_end&career=1&ext=…&k=…` (~2559),
+  forzar que el total pintado sea `xq.total` (career-allstar `_drillDemo` tendría que devolverlo), para que la captura
+  `carrera-estrellas-concurso-hoja` no diga «20 de 30» con un ranking de 24. En el juego real coinciden.
+- **Extensiones de la Carrera → js/career-natl.js (seleccion), js/career-allstar.js (estrellas) y js/career-loan.js (cesiones)**, de
+  «Lesiones»: mirar `VB.CareerInjury && VB.CareerInjury.out(c)` (null sin el fichero o sin lesión). Si no es null: selección, no
+  convocar o dar de baja (tras un partido de selección, `VB.CareerInjury.roll(c, 1, 'sel')` da el mismo riesgo); Estrellas, sin
+  concursos ni partido (como mucho, de invitado); cesiones, no se piden ni se aceptan. Hoy ninguno de los tres lo mira.
+- **Extensiones de la Carrera, pendiente (career-ui.js)**: la tarjeta «Saque de firma» va bajo toda la rejilla de insignias y en el móvil
+  cuesta encontrarla (fila `carrera-playa-saque-firma`). Mirar la captura y, si hace falta, subirla.
 - **Vida de la Carrera (12-nov-2026) → lote C (rama `carrera-pista`)**: main ya tiene js/career-life.js y js/career-life-ui.js y 5 llamadas
   `life(c, tipo, …)` en career.js (create, `matchSetup` → `var out = {…}; life(c, 'setup', out); return out;`, closeMine y benchNext antes de
   `c.last = sum`, final de endSeason y de newSeason) + un sumando en `offerScore` + exports `_msg/_addXP/_wkKey`; en career-ui.js la pestaña

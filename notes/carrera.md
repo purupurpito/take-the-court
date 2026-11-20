@@ -1043,3 +1043,164 @@ career-ui.js (prefijo `PQ = ':root.ph' + Q`), `PH_L` de career-life-ui.js y `PH_
 - **Liga**: `lgPick` «‹ Liga ›» (flechas de 44; el nombre abre una hoja `VB.Splat.sheet` con todas, por país en la pista) en Tabla y Clubes; `shortClub()` (las 2 últimas palabras con chicha: «Voley Sanroqueño») en tabla, calendario, tira de ofertas y título; tu fila (`tr.me`) o la próxima jornada, a la vista al cambiar de pestaña (`phReveal`).
 - **Crear**: «Crear y ver ofertas» fijo abajo a la derecha (fila propia en la rejilla), el texto largo al final; **Elegir club**: tira de ofertas con nombre corto que se desliza, «Firmar» bajo el nombre.
 - Pendiente (no hecho): selector de país con hoja al crear, Insignias/Vitrina en fichas con hoja, Mensajes en acordeón, «i» de detalles del partido, pestaña «Más» de la hoja final.
+
+## Extensiones de la Carrera (20-nov-2026, rama carrera-ea2k)
+Ocho funciones nuevas viven cada una en su fichero y se enganchan por dos registros comunes. La API completa está en
+CONTRACT.md, «Extensiones de la Carrera». Las funciones:
+- Selección nacional: js/career-natl.js.
+- Lesiones: js/career-injury.js.
+- Partido de las Estrellas y concursos: js/contest.js y js/career-allstar.js.
+- Cesiones y traspaso: js/career-loan.js.
+- Carrera por los premios: js/career-race.js.
+- Cambio de puesto y plan: js/career-dev.js.
+- Prólogo juvenil: js/career-prologue.js.
+- Zona y saque de firma: va en la sim, con `c.sig` y la tarjeta de Insignias en career-ui.
+
+Los dos registros:
+- `VB.CareerExt` (núcleo): `hook` de `life()` y métodos con nombre (`blocked`, `holdOffers`, `midOffers`, `offerBonus`,
+  `trainProg`, `sessMul`…), además de partidos y ejercicios propios (`setup/done/quit`, `drillSetup/drillDone/drillQuit`).
+- `VB.CareerUIExt` (interfaz): sub-pestañas, huecos de tarjetas, acciones por prefijo y hub entero para el prólogo.
+
+Reglas:
+- Sin entradas, todo queda como antes.
+- Guardados: cada extensión crea su subobjeto con `ensure(c)`. Las partidas viejas cargan, porque `migrate/sane6` conservan las
+  claves que no conocen.
+- La baja de una extensión (lesión) va por el camino del banquillo que ya existía.
+- La cesión retrasa las ofertas de verano con `holdOffers` y las suelta con `_endOffers`.
+- Prueba de humo de los ganchos: una extensión neutra no cambia la carrera; con una baja permanente no se juega y no hay promesa
+  incumplida; las ofertas retenidas se sueltan; el prólogo crea la carrera sin ofertas y se recarga sin ellas. Todo bien en playa
+  y pista.
+
+Cada función tiene abajo su sección: qué hace, datos, ficheros y pruebas. Encargo de Ferran del 20-nov-2026: «Haz los Sí y descarta
+los No». La 6 fue un No y no se hizo. La 11 (pasar a entrenador al retirarte) queda en SIGUIENTE.md «Ideas futuras». Las lesiones
+van con «baja probabilidad».
+
+### Selección nacional (js/career-natl.js, owner seleccion)
+- **Qué hace.** Cada verano hay un torneo de selecciones, en un ciclo de 4 años: VBN, continental, Mundial y Juegos (el inicio sale de
+  la semilla). Juegas en la pista (6v6) o en la playa (parejas nacionales, 2v2). Si te convocan, el torneo sale en Club › Selección
+  y en la tarjeta de Partido. Los partidos se juegan o se simulan.
+- **Pista: repesca.** Si tu país está en ella, hay una repesca de 2 partidos a mitad de liga.
+- **Selecciones.** Llevan el nombre del país, pero sin escudos ni federaciones reales: compañeros inventados y camiseta lisa con los
+  colores del país.
+- **Datos.** `c.natl` (ver CONTRACT.md). Trofeos 'sel', 'selm' y 'selp', legado propio y huecos de vitrina del grupo 'Selección'.
+- **Calibración** (tools/natltest.js §5; 10 semillas × 10 temporadas en Normal, 1 de cada 3 partidos jugado, 3 sesiones rápidas,
+  puntos en lo más barato y la mejor oferta, que reproduce la curva de §Progresión):
+  - nota del seleccionador = media + 3·(nota − 6,5) + 0,6·escalón de fama + 0,8·nivel de liga + 0,06·(confianza − 50) + 1 hasta los
+    21 años + 1 si viene de la sub-19;
+  - cortes CUT = {tit: +2, conv: −5, pre: −9} sobre la fuerza del país (playa: 46 + (fuerza − 50)·0,65);
+  - primera convocatoria: España en la pista, mediana T6 (T4-T8); Filipinas T1-T2; Italia nunca en 10 temporadas; España en la
+    playa, mediana T5 (T4-T6);
+  - si se toca, solo los cortes.
+- **Pruebas.** `node tools/natltest.js`. careertest con career-natl.js cargado necesita filtrar `x.k !== 'natl'` en la prueba de la
+  bandeja migrada (petición a ui_main en SIGUIENTE.md).
+
+### Lesiones (js/career-injury.js, owner lesiones)
+- **Qué hace.** Lesiones de vóley por zona (tobillo, rodilla, hombro, espalda, dedos), con pesos según tu puesto. Con baja
+  probabilidad: jugando como el piloto automático, ~1 lesión cada temporada y media, casi siempre leve. Muy cargado (fatiga > 80, sin
+  descansar), ~2 por temporada.
+  - Gravedad: leves de 1-2 partidos (80 %), medias de 2-5 (18 %) y graves de 8-12 (2 %). Tono cartoon.
+  - El riesgo sale de la «carga» (`c.inj.run`, partidos seguidos sin Descansar) y de la fatiga. Tras cada partido tuyo hay una tirada
+    por hash de la semilla, con el mismo riesgo jugado o simulado.
+- **De baja.** No juegas: la jornada va por el banquillo (blocked → benchNext). Solo puedes Descansar, que cuenta como
+  rehabilitación: cada 6 descansos, un partido menos.
+  - Con el fisio puedes elegir «Volver antes» (la mitad, pero −2 dos partidos y riesgo de recaída) o «Fisio intensivo» (−1 partido,
+    el doble del fisio).
+  - Al volver de una media o grave, 2 partidos con −1 (falta de ritmo). El verano lo cura todo.
+- **Interfaz.** Tarjeta «Físico» en Jugador › Estado, con el ajuste Lesiones: Sí / No. Además, una línea en el último partido, mensajes
+  del médico y avisos de story. La hoja final recibe `d.inj` (falta la pastilla de recap.js, petición en SIGUIENTE.md).
+- **Datos.** `c.inj` (ver CONTRACT.md). Ajuste del riesgo: `P_SEASON` (0,80).
+- **Pruebas.** `node tools/injurytest.js`. careertest no lo carga.
+
+### Partido de las Estrellas y concursos (js/career-allstar.js + js/contest.js, owner estrellas)
+- **Votación.** Abre en la jornada mid−3: en la playa, MID_WEEK = 7; en la pista, midWeek. No hay edición si la liga tiene menos de 8
+  jornadas, ni durante el prólogo.
+  - Voto = 0,35 fama + 0,35 nota + 0,15 tabla + 0,15 media, × (1 + 0,05 por petición).
+  - Los rivales tienen un voto fijo por hash, que se calcula al abrir.
+  - «Pedir el voto»: una vez por jornada, hasta 3 veces, entrenador −1.
+  - Cambiar de club durante la votación la descarta.
+- **Resultado en mid.**
+  - Playa: entran 4 (Sol = 1º y 4º, Luna = 2º y 3º).
+  - Pista: entran por puesto (S 2, OH 4, OPP 2, MB 4), con un pool de 5, 10, 5 y 10 candidatos.
+  - Técnicos: nota de 7,6 o más y al menos 4 partidos jugados.
+  - Invitación a un concurso: tu mejor golpe, si llega al 6º del pool o pasa de 75.
+- **Fin de semana.** Dura hasta tu siguiente jornada.
+  - Partido: set a 21, sin ambiente. Reiniciar es libre y salir lo simula sin ti. La zona funciona dentro del partido, pero no guarda
+    nada en la Carrera.
+  - Concursos: 2 intentos y cuenta el mejor. Las marcas rivales son fijas y el empate es tuyo. La pausa dice «Reiniciar (gasta el
+    intento)» y «Volver a la Carrera», con el aviso «Si reinicias o sales, el intento cuenta 0».
+  - Al cerrar, lo pendiente se simula: un concurso a medias queda «gone» con 0 y último, y el partido a medias se simula sin ti.
+- **Premios.** Seguidores × LV_MULT y dinero sobre SALARY por nivel. Una prenda (bandana, deporte, cintaRizo o estrella) solo jugando y
+  la primera vez. +4 de fatiga al jugar. Ni XP, ni trofeos, ni legado.
+- **Palmarés.** Tarjeta «Estrellas y concursos» en el hueco `honors`.
+- **Guardado.** `c.allstar = {v:1, cur, log ≤ 40, got, skip}`.
+- **Pruebas.** `node tools/allstartest.js`.
+
+### Cesiones y traspaso (js/career-loan.js, owner cesiones)
+- **Qué hace.** Remite a la cabecera del fichero. El «malestar» (`c.loan.mood`, 0-100) sube cuando no juegas y baja cuando juegas:
+  - pista: fuera +12, banquillo con poco juego +7 y con más +3, de inicio −8;
+  - playa: banquillo +15 y jugado −6;
+  - aviso a 45; el club propone una cesión a 65 o con pocos minutos, si tienes 26 años o menos.
+- **Pedir el traspaso.** Ya no te apunta en la lista sin más: ahora contesta el club.
+- **Cedido.** Juegas media temporada o una entera en otro club y vuelves al tuyo. Las ofertas de verano esperan (holdOffers) hasta
+  que vuelves.
+  - Interfaz: tarjeta «Cedido» arriba de Club › Contrato. La tarjeta de Contrato dice «Cesión: hasta final de temporada» y no habla
+    de renovar. Palmarés › Temporadas marca «(cedido)».
+  - La copa ganada cedido sale como «Campeón de la …», porque se compara con `c.review.club`.
+- **Calibrado.** Rotación de pista en un club mejor: 46 % por encima de 45 a mitad de temporada.
+- **Datos.** `c.loan`, `c.contract.loan`, `c.review.loan` y `c.history[].loan` (ver CONTRACT.md).
+- **Pruebas.** `node tools/loantest.js`.
+
+### Carrera por los premios (js/career-race.js, owner premios)
+- **Qué hace.** Clasificación en directo de cada premio individual durante la temporada, con candidatos inventados de tu liga (y tu
+  rival personal si juega en ella). Tendencia por jornada (↑2, ↓1, =), tu puesto y lo que te falta.
+- **Interfaz.** Liga › Premios, tarjeta en Partido (en PC, tras el ticket), Gala en el fin de temporada y punto de aviso.
+- **Datos.** `c.race`. En `hook`: 'match' (flechas, avisos y corte de mitad), 'season' (premios nuevos y gala), 'newSeason' y 'join'.
+  - Espejo de umbrales con career-life AWARDS, vigilado por racetest §2.
+  - Premios nuevos: young, rec y opp, con fama de 150 × nivel de liga.
+  - `RACE_CAL` para calibrar.
+- **API.** `VB.CareerRace.rankOf(c, cat)` y `leaders(c, cat, n)`, para selección, Estrellas y plan de desarrollo.
+- **Clases CSS.** Las clases son `cpr-…`, porque `.rc-…` ya es del resumen del partido. Las acciones sí son `rc-…`.
+- **Pruebas.** `node tools/racetest.js`.
+
+### Cambio de puesto y plan de desarrollo (js/career-dev.js, owner puesto)
+- **Propuesta del entrenador.** Propone un puesto por encaje (perfil POS6/ROLES) y por necesidad. En la pista mira el sitio en la
+  plantilla (squad6); en la playa, lo que gana la pareja.
+  - Aceptar: +3, y 4 jornadas con −2 en los 2 atributos clave.
+  - Rechazar: −4, o −2 con confianza de 70 o más. El 2º rechazo cuesta −6 y acaba con las propuestas de esa temporada.
+- **Pedirlo tú.** En Jugador › Estado; en verano, siempre sí. Al pasar a colocador sale el aviso de la diana. En el móvil, Estado sale
+  siempre en la tira.
+- **Plan de 6 jornadas.** Pasa al plan el 40 % del progreso de los otros grupos, y las sesiones van ×1,2. Medida: saque +4,3 por
+  temporada en la playa y +3,0 en la pista, con la media igual.
+- **Datos.** `c.dev` (ensure sin tiradas).
+- **Pruebas.** `node tools/devtest.js`.
+
+### Prólogo juvenil (js/career-prologue.js, owner prologo)
+- **Qué hace.** Al crear la carrera, la fila «Inicio» deja elegir entre «Desde juvenil» y «Directo a las pruebas». Desde juvenil
+  juegas una temporada corta con el instituto de tu ciudad y un torneo con ojeadores. Después llegan las ofertas de inicio, según
+  lo bien que lo hayas hecho.
+- **Flujo.** `c.pro.st`: intro → season → scout → done, y skip. Campos de `c.pro`: v, st, pg, pers, cast, m, ot, i, live, h2h, chat,
+  score, tier, perk, lead.
+- **Niveles.**
+  - ≥85 Joya, ≥70 Promesa, ≥50 Interesante, ≥25 Del montón, con 0/=/1/2/3 pruebas.
+  - Bono de probabilidad +0,05/0,10/0,15 (tope 0,8) y seguidores +60/120/200.
+  - NOTA_D por modalidad: playa −0,3, pista +0,5.
+- **Rival kid.** Club −1 hasta tu primer club; te persigue con 0,6 + 0,5. Con la selección, `c.natl.youth = 1` suma +1 a la nota del
+  seleccionador.
+- **Pruebas.** `node tools/prologuetest.js`. Sin `o.prologue` no cambia nada (prologuetest §1, con y sin el fichero).
+
+### Zona y saque de firma (js/sim.js + career-ui.js, owner sim / zona)
+- **La zona.** Un medidor que se llena con lo que haces bien (recepciones y defensas perfectas, aces, remates, bloqueos, encadenar) y
+  se vacía con los fallos y con el tiempo. Lleno, tu n.º 1 entra «en zona»: más atributos (`VB.ZONE.boost`) mientras dure la energía
+  (~50 s de juego).
+  - Sales por energía a 0, por un fallo tuyo o un ace recibido, porque el rival suma 3 puntos seguidos, por un cambio del rival, al
+    acabar el set o al ir al banquillo.
+  - La CPU también tiene su zona (el mejor rival), con la mitad de efecto.
+  - Ajuste `zone`: en la Carrera, por defecto (también la CPU); 'all' también en Partido rápido; 'off', nunca. Nunca en la demo, el
+    online ni el Entrenamiento.
+  - No guarda nada en la Carrera.
+- **Saque de firma.** En Jugador › Insignias eliges un estilo (Clásico, Bomba, Flotante en salto, De tenis, De abajo y Globo, este solo en la playa) y un
+  gesto. Se guarda en `c.sig = {serve, gest}`. El Globo molesta más con el sol: en Partido rápido, menos con la luz de tarde.
+- **Hoja final.** «Zona: N veces | S s | P puntos» y «Saque de firma: A aces | F fallos», solo si los has usado.
+- **Determinismo.** Sin `g.zn` ni `g.sig`, la sim es la de siempre: las tres huellas de fingerprint6 siguen «idéntica». `SIM_BASE` de
+  fluidsimtest = 1383632.
+- **Pruebas.** `node tools/zonetest.js`. Capturas de mobaudit: hud-zona, hud-zona-6v6, hud-saque-firma y carrera-playa-saque-firma.
