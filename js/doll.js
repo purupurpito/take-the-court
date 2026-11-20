@@ -1787,10 +1787,13 @@
     // (ni del color del calcetín, que va justo debajo: rodillera roja + calcetín rojo era un solo tubo rojo; contra la piel basta con que
     //  se distinga en luz o en color: el blanco sobre piel clara se ve)
     // (revisión final: la CORTA de serie también: negra con el pantalón negro del kit A se leía, de lejos, como un pantalón más largo)
+    // (pulido: la blanca —o casi blanca— solo sobre piel oscura: sobre piel clara o media, rodillera blanca + espinilla clara + calcetín
+    //  blanco se leían de lejos como un solo tubo blanco; entonces va la siguiente: el acento, el oscuro o el acento apagado)
     var sh = (KNEE_HI[X.knees] || X.knees === 'cortas') && typeof tc.shorts === 'number' ? tc.shorts : -1, so = sh >= 0 ? sockHex(X, tc, true) : -1;   // (el automático: no depende de si se llevan, la firma de malla no mira los calcetines)
+    var wOk = lumHex(bg) < 0.55;
     var c2 = sh >= 0 ? c.concat([tc.dark, mixHex(tc.accent, 0x000000, 0.45)]) : c;   // (y, si nada de eso vale, el oscuro o el acento apagado)
     for (i = 0; i < c2.length; i++) if (typeof c2[i] === 'number' && sh >= 0 && (Math.abs(lumHex(c2[i]) - lumHex(bg)) >= 0.15 || hexDist(c2[i], bg) >= 120) &&
-      hexDist(c2[i], sh) >= 120 && (so < 0 || hexDist(c2[i], so) >= 150)) return c2[i];
+      hexDist(c2[i], sh) >= 120 && (so < 0 || hexDist(c2[i], so) >= 150) && (wOk || hexDist(c2[i], 0xf4f4f4) >= 130)) return c2[i];
     for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && Math.abs(lumHex(c[i]) - lumHex(bg)) >= 0.15) return c[i];
     return tc.pad;
   }
