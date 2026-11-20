@@ -2273,7 +2273,14 @@
     var nC = o.cols || sg(32, 16), nR = o.rows || sg(8, 4), cols = hairCols(nC), lod = LODR, cup = H.cup;
     // (desfase mínimo 4,5 mm: con menos, la piel asomaba a puntos entre los triángulos del casco y los de la cabeza)
     var off0 = Math.max(0.0045, o.off != null ? o.off : 0.006) + HAIR_OFF_LOD[lod], vol = o.vol || 0, lift = o.lift || 0;
-    function thMax(ph) { var t = lineF(ph); return Math.abs(ph) < FACE_PH ? Math.min(t, FACE_TH) : t; }
+    // gorro de copa (pulido; o.capTrim, solo los cortos: la melena bajo la gorra sigue enmarcando la cara): delante de la oreja, una
+    // tira fina bajo el borde. La patilla entera (θ 0,56π) quedaba bajo la gorra como una cuña oscura que llegaba al ojo y, en el
+    // primer plano del partido, se leía como un parche (la «cara vendada» de antes)
+    function thMax(ph) {
+      var t = lineF(ph);
+      if (cup && o.capTrim) { var aa = Math.abs(ph); if (aa < 1.62) t = Math.min(t, H.rimAt(ph) + 0.035 * PI + 0.3 * PI * sstep(1.36, 1.62, aa)); }
+      return Math.abs(ph) < FACE_PH ? Math.min(t, FACE_TH) : t;
+    }
     function offAt(ph, th) {
       var tm = thMax(ph), u = clamp(th / tm, 0, 1), f = off0;
       if (vol) f += vol * (o.volFn ? o.volFn(ph, th, u) : 1 - Math.pow(sstep(0.62, 1.0, u), 1.4) * 0.9);
@@ -2673,6 +2680,7 @@
             if (Math.abs(ph) < 0.9 && th > 0.25 * PI) th = 0.12 * PI + jit(k, 3) * 0.1 * PI;   // fuera de la cara
           }
           var p = H.pt(ph, th, -0.022); if (H.hid(p)) continue;
+          if (H.cup && Math.abs(ph) < 1.4) continue;   // (pulido: bajo la gorra, los rizos de la sien eran dos bolas junto al ojo)
           hairCurl(H, p, (0.042 + 0.014 * jit(k, 4)) * FK, LODR === 0);
         }
       } },
@@ -2742,7 +2750,7 @@
         hairShell(H, { line: function (ph) { return Math.abs(ph) < 1 ? 0.3 * PI : lerp(0.3 * PI, 0.36 * PI, sstep(1, 1.6, Math.abs(ph))); }, off: 0.006, vol: 0.026, lift: 0.025, tuck: false,
           volFn: function () { return 1; }, ear: false, rows: sg(5, 3), main: true });
       } },
-    crop: { line: function (ph) { return Math.abs(ph) < 1 ? 0.305 * PI : hlAt(HL.corto, ph); }, off: 0.005, vol: 0.018, tuck: false, crown: [0, 0.12, 0, 0],
+    crop: { capTrim: true, line: function (ph) { return Math.abs(ph) < 1 ? 0.305 * PI : hlAt(HL.corto, ph); }, off: 0.005, vol: 0.018, tuck: false, crown: [0, 0.12, 0, 0],
       volFn: function (ph, th) { return 1 - 0.75 * sstep(0.3 * PI, 0.5 * PI, th) * sstep(0.9, 1.3, Math.abs(ph)); },
       fade: fadeSides(0.42 * PI, 0.58 * PI, 0.7, true) },
     pinchos: { line: 'corto', off: 0.005, vol: 0.012, crown: [0, 0.1, 0.02, 0],
@@ -2921,6 +2929,7 @@
     if (SKIP_HAIR) { H.line = function () { return 0.3 * PI; }; H.off = function () { return 0; }; H.crownAt = { p: [0, HEAD_C + HEAD_RY, 0], tilt: 0 }; return H; }
     // (capVol: el volumen bajo un gorro de copa; el afro entero por debajo de la gorra eran dos bolas a los lados, como unos cascos de música)
     hairShell(H, { line: st.line, off: st.off, vol: H.cup && st.capVol != null ? st.capVol : st.vol, volFn: st.volFn, lift: st.lift, liftTh: st.liftTh, liftW: st.liftW, flat: st.flat, bump: st.bump, tuck: st.tuck, main: true,
+      capTrim: st.capTrim != null ? st.capTrim : st.line === 'corto' || st.line === 'recogido' || st.line === 'afro',
       col: st.col ? (function (c) { return function () { return c; }; })(st.col(H)) : null });
     if (st.extra) st.extra(H);
     if (st.parts) st.parts(H);
