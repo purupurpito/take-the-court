@@ -38,7 +38,7 @@ const DESC = 'Vóley cartoon en 3D: partidos 2 contra 2 y 6 contra 6, pista cubi
   'Salón de la Fama. Gratis en móvil y ordenador, con mando, teclado o táctil.';
 const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const SHA = String(process.env.GITHUB_SHA || '').replace(/[^0-9a-f]/gi, '').slice(0, 7);
-const OG_IMG = BASE + 'og.png?v=' + VERSION;
+const OG_IMG = BASE + 'og.png?v=' + require('crypto').createHash('sha1').update(fs.readFileSync(path.join(ROOT, 'pages', 'og.png'))).digest('hex').slice(0, 8); // por contenido: al cambiar la imagen, las redes la piden de nuevo
 const metaTags = [
   '<meta name="description" content="' + attr(DESC) + '">',
   '<link rel="canonical" href="' + attr(BASE) + '">',
