@@ -1035,8 +1035,11 @@
         // las comisuras y, con la barba de tres días, parecían un bigote)
         // (revisión final: más arriba y más corta por el lado de la nariz, pegada al párpado de abajo y subiendo hacia la sien: de 3/4
         // la franja de cerca, larga y baja, quedaba junto a la sonrisa y se leía como un bigote negro)
-        g.save(); g.translate(s * 0.1, 0.151); g.rotate(s * 0.14);
-        rrect(g, 0, 0, 0.058, 0.023, 0.009);
+        // (y como MEDIA LUNA que abraza el ojo por abajo y por fuera, a 3 mm del blanco: se ve entera —la franja recta quedaba medio
+        // tapada por el ojo y no llegaba al 1,5 % del primer plano— y no baja hacia la boca)
+        g.save(); g.translate(s * EYE_X, EYE_Y); g.scale(s, 1);
+        var a0 = -1.5, a1 = 0.3;
+        g.beginPath(); g.ellipse(0, 0, EYE_RX + 0.027, EYE_RY + 0.012, 0, a0, a1, false); g.ellipse(0, 0, EYE_RX + 0.003, EYE_RY + 0.003, 0, a1, a0, true); g.closePath();
         if (halo) { g.strokeStyle = halo; g.lineWidth = 0.006; g.stroke(); }
         g.fillStyle = '#17161d'; g.fill();
         g.restore();

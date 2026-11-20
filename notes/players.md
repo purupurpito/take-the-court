@@ -1573,8 +1573,8 @@ Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, blo
   piezas de `rigGeoBegin` llevan lo de WP2-WP5 (`headGeo(…, r)`, cuello alto de la interior, `thighGeo(…, X, …)`).
 
 ### Repaso tras la revisión final (20-nov-2026, rama personaje)
-- **Cara** (doll.js `paintPaint`): «rayas» es una franja corta (5,8 × 2,3 cm) pegada al párpado de abajo, por fuera (centro ±0,1 / 0,151 en
-  metros de la cabeza v1); de 3/4 la larga y baja quedaba junto a la sonrisa y parecía un bigote. «zinc» va al puente y a los pómulos
+- **Cara** (doll.js `paintPaint`): «rayas» es una MEDIA LUNA que abraza el ojo por abajo y por fuera, a 3 mm del blanco (elipse del ojo + 2,7 × 1,2 cm, de −1,5 a 0,3 rad;
+  lookvis 2,5 %); de 3/4 la franja larga y baja quedaba junto a la sonrisa y parecía un bigote. «zinc» va al puente y a los pómulos
   (`yc = 0,1475 + 0,42·x²`), justo bajo los ojos; a la altura de la nariz quedaba encima de la boca (bigote blanco en piel oscura).
 - **Rodilleras cortas**: `padHex` les aplica la regla de contraste de las altas (pantalón y calcetín): ya no son negras sobre el pantalón negro.
 - **Rapados** (`stubHex`): lo rapado es del tono del pelo oscurecido con algo de piel y siempre ≥ 0,13 de luminancia por debajo de la
