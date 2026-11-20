@@ -1,9 +1,11 @@
-/* MAKE THE CUT — js/account.js (owner: ui_main)
+/* TAKE THE COURT — js/account.js (owner: ui_main)
  * Cuentas para guardar el progreso en la nube (Firebase, proyecto make-the-cut-vb; diseño en notes/cuentas.md).
  *  - Tres formas de entrar (15-nov-2026): correo y contraseña (se puede recuperar la contraseña), usuario y contraseña (correo ficticio
  *    <usuario>@cuentas.make-the-cut.invalid, las cuentas de antes) y Google. Correo y usuario van por REST, sin librerías; Google carga
  *    el SDK de Firebase Auth (gstatic) SOLO al pulsar el botón, saca el uid y el refresh token y la sesión sigue por REST como las demás.
- *    Requisitos de Google (consola de Firebase, los pone Ferran): proveedor Google activado y purupurpito.github.io en dominios autorizados.
+ *    Requisitos de Google (consola de Firebase, los pone Ferran): proveedor Google activado y takethecourt.com (y
+ *    purupurpito.github.io mientras dure el puente) en dominios autorizados. Si la clave de la API tiene restricción por referente HTTP
+ *    en Google Cloud, takethecourt.com también tiene que estar ahí (si no, fallan el correo, el usuario y Firestore).
  *  - Se sincronizan cuatro guardados del navegador: escuadrón ('make-the-cut.squad'), Carrera ('make-the-cut.career'), ajustes
  *    ('make-the-cut.settings') y récord ('make-the-cut.record'). Cada uno es un documento users/{uid}/saves/{squad|career|settings|record}
  *    = {data: JSON en texto, updatedAt: ms, v: 1}. Sin cifrar (lo eligió Ferran); las reglas solo dejan leer y escribir al dueño.
@@ -22,6 +24,9 @@
  *    pestaña, las claves con caché llaman a su gancho (Prog._reload, Career.beach/hall._reset) y VB.UI.refreshMenu.
  *  - Tope de subida 390 000 caracteres (las reglas admiten 400 000): lo que pase no se sube hasta su siguiente cambio.
  *  - Panel propio (#account) que se abre con el botón «Cuenta» del menú principal (#btnAcc, lo crea este módulo).
+ *  - Traspaso desde Make the Cut (1.19.0, js/migrate.js, notes/dominio.md): mientras VB.Migrate.pending() no se sincroniza (el traspaso
+ *    acaba en una recarga o llama a whenDone); migrate.js escribe con el setItem original, así que lo traído conserva su hora de meta.
+ *    VB.Account.mergeKey(k, L, R, incomingNewer) le presta las fusiones de MERGE. Las claves y el proyecto 'make-the-cut-vb' NO cambian.
  */
 (function () {
   'use strict';
@@ -74,8 +79,12 @@
       if (this === LS && !applying) { if (DOCS[k]) touch(k); else if (TRACK[k]) stamp(k); }
     };
   }
-  function touch(k) { meta[k] = Date.now(); jset(META, meta); if (acc) { dirty[k] = 1; schedule(); } }
-  function stamp(k) { meta[k] = Date.now(); jset(META, meta); }   // solo la hora (clave que aún no se sube)
+  // Con un traspaso en marcha (js/migrate.js) la hora solo se apunta en memoria: si no, este meta (leído antes del traspaso) pisaría
+  // el que escribe migrate.js justo antes de recargar. Si el traspaso no recarga, boot() une las dos (migDone).
+  function migBusy() { return !!(VB.Migrate && typeof VB.Migrate.pending === 'function' && VB.Migrate.pending()); }
+  function touch(k) { meta[k] = Date.now(); if (!migBusy()) jset(META, meta); if (acc) { dirty[k] = 1; schedule(); } }
+  function stamp(k) { meta[k] = Date.now(); if (!migBusy()) jset(META, meta); }   // solo la hora (clave que aún no se sube)
+  function migDone() { var st = jget(META) || {}; Object.keys(meta).forEach(function (k) { if ((+meta[k] || 0) > (+st[k] || 0)) st[k] = meta[k]; }); meta = st; jset(META, meta); }
   function schedule() { clearTimeout(pushT); pushT = setTimeout(function () { push().catch(function () { }); }, 1500); }
 
   // ---------------------------------------------------------------- Firebase (REST)
@@ -183,6 +192,14 @@
   }
   var MERGE = { 'make-the-cut.gym': mergeGym, 'make-the-cut.look': mergeLook, 'make-the-cut.legends': mergeLegends,
     'make-the-cut.profile': modMerge('Profile'), 'make-the-cut.retos': modMerge('Retos') };
+  /** Para js/migrate.js (traspaso desde Make the Cut): une L (lo de este origen) con R (lo traído) con la fusión de MERGE de esa clave;
+   *  sin fusión propia (o si falla), gana el más reciente (incomingNewer). Devuelve texto (L tal cual si no cambia nada). */
+  function mergeKey(k, L, R, incomingNewer) {
+    if (L == null) return R;
+    if (R == null) return L;
+    if (MERGE[k]) { try { var o = MERGE[k](L, R, !!incomingNewer); if (typeof o === 'string') return o; } catch (e) { } }
+    return incomingNewer ? R : L;
+  }
   /** Une lo local con lo remoto. first: primera entrada en este dispositivo (sin fechas fiables). Devuelve {changed, keys (claves
    *  cambiadas en local), conflicts:[{k, remote, local, at}], conflict (el primero o null)}. Los conflictos también quedan en la
    *  cola del módulo (los resuelve act('keepRemote'|'keepLocal') uno a uno). */
@@ -350,7 +367,7 @@
     return idt('accounts:sendOobCode', { requestType: 'PASSWORD_RESET', email: mail });
   }
   // ---- Google: SDK de Firebase Auth (compat) cargado a demanda (y precargado al abrir el panel sin sesión) y SIEMPRE en ventana emergente.
-  // Sin redirección (19-nov-2026): con authDomain en firebaseapp.com y la página en github.io, el almacenamiento particionado de Safari
+  // Sin redirección (19-nov-2026): con authDomain en firebaseapp.com y la página en github.io (ahora takethecourt.com, igual), el almacenamiento particionado de Safari
   // 16.1+ y Firefox deja getRedirectResult vacío y no se entraba sin ver ningún error. Si el navegador bloquea la ventana (se abrió tras
   // esperar al SDK y ya no cuenta como toque), el panel pide confirmación («Abrir Google») y ese toque nuevo abre la ventana al momento.
   var GREDIR = 'make-the-cut.account.gredir', sdkP = null, sdkFb = null;
@@ -821,7 +838,9 @@
   function boot() {
     build(); initBtn();
     try { var t = sessionStorage.getItem('make-the-cut.account.toast'); if (t) { sessionStorage.removeItem('make-the-cut.account.toast'); setTimeout(function () { toast(t); }, 900); } } catch (e) { }
-    if (acc) syncDown(true); else gBack();
+    var go = function () { if (acc) syncDown(true); else gBack(); };
+    // traspaso desde Make the Cut en marcha (js/migrate.js): espera; si trae algo, recarga y la sincronización va en la siguiente carga
+    if (migBusy()) VB.Migrate.whenDone(function () { migDone(); go(); }); else go();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 
@@ -834,7 +853,7 @@
     netInfo: function () { return acc ? { uid: acc.uid, kind: acc.kind || 'user', user: acc.kind === 'user' || !acc.kind ? acc.user : '' } : null; },
     FS_BASE: FS,
     // pruebas (tools/cuentatest.js): entrar sin la interfaz y borrar la cuenta al acabar
-    menuReady: menuReady, S4_SYNC: S4_SYNC,
+    menuReady: menuReady, S4_SYNC: S4_SYNC, mergeKey: mergeKey,
     _enter: enter, _delete: deleteAccount, _mergeGym: mergeGym, _gymSync: GYM_SYNC, _mergeLook: mergeLook, _lookSync: LOOK_SYNC, _push: function () { markDirty(); return push(); },
     // pruebas (tools/synctest.js)
     _merge: merge, _docs: function () { return Object.assign({}, DOCS); }, _track: function () { return Object.assign({}, TRACK); },
