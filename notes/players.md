@@ -1593,6 +1593,42 @@ Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, blo
 - **Marcadores** (arena.js `screenVis`): con la vista previa del Vestuario activa en el menú, todos al 12 % (el colgado quedaba detrás de la
   cabeza en los encuadres de pelo y cara).
 
+### Pulido, ronda 1 (20-nov-2026, rama personaje, 1.18.0)
+- **Efectos de pelo** (`hairTone`, `autoH2`): el segundo color AUTOMÁTICO ya no es un beis de piel clara. Raíces: siempre más oscuras que el
+  pelo (`mixHex(hr, 0x1a100a | 0x050302, ≈0,6)`); el resto, sobre pelo oscuro, un miel (`0xe2a848`) que se aparta de la luminancia de la piel
+  ≥ 0,14. Raíces en el espacio de la CABEZA para casco y piezas (`ex.ur = θ / línea de pelo`, borde suave 0,36-0,62 en 2-3 filas): el tupé ya
+  no tiene dos manchas sueltas. Mechas por COLUMNA (casco: una de cada tres en espejo, desde u 0,26; melena: la de la columna del casco,
+  `H.mechAt`; piezas: por cara del tubo, `geo.userData.side` de `sweep`) y «mitad» con el φ del centro de la columna o de la raíz de la
+  pieza: bordes rectos, sin dientes de sierra. `G.vc(cx, cy, cz, t)` recibe el índice del triángulo. `HAIR_STYLES[id].noFx` (true o
+  {efecto: 1}): al cero no pinta efectos, el rapado no tiene raíces; la fila avisa «Con este peinado no se ve». Rapado: `shine` 0,06.
+- **Gorro de copa** (`hairShell` `capTrim`, solo líneas corto/recogido/afro y crop): delante de la oreja, el pelo es una tira fina bajo el
+  borde (`rim + 0,035π`); la patilla entera era una cuña oscura que llegaba al ojo (el «parche» del n.º 1 en la playa). El afro bajo la
+  gorra no pone rizos en la sien.
+- **Térmica de pista**: el `else` del antebrazo de piel colgaba de la costura de la licra y pintaba piel sobre la manga: vuelve la manga
+  larga con su puño.
+- **Brazalete** en manguito bicolor/fundido: `pick2` contra la mitad de arriba Y la de abajo (antes oscuro sobre oscuro).
+- **Rodilleras automáticas**: la blanca (o casi blanca: a < 130 del blanco) solo sobre piel de luminancia < 0,55; si no, la siguiente.
+- **Gafas**: con pelo largo por los lados (líneas medio/largo y `EAR_HAIR`) la patilla se mete bajo el pelo donde lo encuentra.
+- **Orejas**: `owk` 0 y normales inclinadas un 25 % hacia fuera (sin el aro discontinuo de perfil). **Cadena de plata**: cordón 0,12,
+  brillo casi blanco en la cara de arriba de cada eslabón claro, chapa 4 × 5,2 cm más alta (no tapa el dorsal); mismos triángulos.
+- **Raya** (`st.part`, color por vértice): trenza a un lado, moño bajo al otro. **Pelo claro en LOD0/1**: nuca algo más oscura (`u > 0,55`).
+- **Vista previa por pasos** (`preview.set(L, {soon: true})`, lo pide ui.js `lkPvOpts`): `pvJobStart/pvJobRun` montan la geometría con
+  `rigGeoBegin/rigGeoRun` en trozos de ~4 ms por frame (la cabeza en dos pasos: `headBase + hairGeoMain`, luego `headGeo(…, H0)`), el
+  material se reutiliza si el atlas no cambia (`freeRig(r, keepMat)`) y el muñeco nuevo entra al acabar. Sin `soon` (herramientas) es como
+  antes. Medido (360x640, dpr 2,75, CPU ×6, cambio de peinado cada 400 ms, 5 s): peor frame 100-117 ms → 38-47 ms, frames > 50 ms 12 → 0.
+- **Bloom** (arena.js `renderPost`): 0,36 con la vista previa activa (0,72 en el resto): resplandor naranja de la camiseta en la cara.
+- **Vestuario (ui.js / index.html)**: en la pestaña Pelo la vista previa quita el gorro que tapa el peinado (`lkPvFit`; lo guardado no
+  cambia). «Probar» de 3/4 de frente (`frameSlot('', {frame: 'cuerpo', yaw: 0,45})`) y a toda la altura en vertical. «Deshacer» 5 s tras
+  el dado, Todo al azar, Restablecer y Copiar (`lkUndoOffer`). Cambio de sede: fichas, lista y muñeco primero, luego cortina de tinta
+  (`#menu.lk-swap`) mientras se monta el fondo (`lkBackdropSoon`). Nombres de miniatura con guiones blandos por sílabas (`lkShy`).
+  Ayuda: avisos a 2 líneas en `.ph`, bloqueado a 3 en vertical. Vertical: rejilla de 4 × 70 px y 56vh (8 miniaturas enteras). Sin el botón
+  de pantalla completa en el Vestuario del móvil. Avisos sobre la lista; la pista de girar se va al primer toque. PC: Probar/dado/«⋯» no
+  saltan al abrir la rejilla. Vertical: el hueco del muñeco se vuelve a medir cuando la lista cambia de alto.
+- **6v6 en calidad baja** (línea base nueva, `EXTRA=format=6v6 node tools/perf.js 640x360 15 low 6 2.75`): 60,5 fps (p5 42,4), 123 k
+  triángulos de media / 124 k de pico, 35/37 dibujos, heap 17,8 → 20 MB. En 1.17.1 (medida del revisor): 60,8 fps, 109 k / 112 k, 31/33
+  dibujos. Dentro de ARN-12 (150 k, 45 dibujos) con menos margen.
+- `earsMove` (look.js) migra un formato que nunca se publicó: se puede quitar después de 1.18.0 (tiene su prueba en looktest).
+
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 
 Detalle: `notes/s234/T2.md` (contactos, `bindReplay`, `baseLook`, celebraciones con hash), `T3.md` (retrato), `T17.md` (firmas, rabias,

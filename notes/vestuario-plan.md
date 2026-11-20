@@ -656,5 +656,5 @@ Los arreglos (tobilleras que no se veían, nuca, coleta, licra…) **nunca** se 
 11. [ ] `bash tools/console.sh`, `node tools/simtest.js`, `node tools/synctest.js`, `node tools/kittest.js`, `node tools/csscheck.js` y `node tools/build-pages.js` en verde.
 12. [ ] Los NPC llevan peinados nuevos (≈25 %) y los jefes de `fromSeed` siguen reconocibles.
 13. [ ] notes/players.md § Vestuario actualizado.
-14. [ ] version.js: VERSION y CHANGELOG solo con novedades, sin arreglos.
+14. [x] version.js: VERSION y CHANGELOG solo con novedades, sin arreglos (1.18.0 «Vestuario renovado», 20-nov-2026).
 15. [ ] Ferran lo revisa en su móvil antes de publicar.
