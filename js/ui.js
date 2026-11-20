@@ -4237,7 +4237,7 @@
   // esto llega a la sim ni a g.rng (la semilla de «Al azar» es Date.now()). Sin VB.Look (look.js sin cargar) no hay botón.
   var LK_TABS = [['pelo', 'Pelo'], ['cabeza', 'Cabeza'], ['cara', 'Cara'], ['cuerpo', 'Cuerpo'], ['brazos', 'Brazos'], ['piernas', 'Piernas'], ['colores', 'Colores']];
   var LK_ROWS = {
-    pelo: ['style', 'hair', 'hair2', 'hairFx', 'skin'],   // (1.16, WP2: segundo color y efecto de pelo)
+    pelo: ['style', 'hair', 'hair2', 'hairFx', 'skin'],   // (1.18, WP2: segundo color y efecto de pelo)
     cabeza: ['head', 'eyes', 'ears'], cara: ['paint', 'marks', 'beard'], cuerpo: ['neck', 'under', 'band', 'legs'],
     brazos: ['armL', 'armR', 'elbows', 'wristL', 'wristR', 'hands'], piernas: ['knees', 'socks', 'ankle', 'shoes'],
     colores: ['c:acc', 'c:acc2', 'c:sock', 'c:shoe', 'c:glass', 'c:pad']

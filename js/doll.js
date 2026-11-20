@@ -127,22 +127,22 @@
   // está lo que hace falta para DIBUJAR. La sede solo se impone donde cambia el sentido de la pieza (VENUE_STRICT: interior,
   // calcetines, tobillera y zapatillas); el resto se dibuja tal cual llega (la maqueta ?debug=doll lleva gorra y gafas en pista).
   var ARMS = { manguito: 'P', manguitoRayas: 'P', manguitoCuadros: 'P', manguitoLlamas: 'P', manguitoRayos: 'P', manguitoOro: 'P', kinesio: 'A', manguitoMazo: 'P',
-    // (1.16, WP7: medio —solo el brazo—, de antebrazo, bicolor, degradado, de estrellas y con tu número)
+    // (1.18, WP7: medio —solo el brazo—, de antebrazo, bicolor, degradado, de estrellas y con tu número)
     manguitoMedio: 'P', manguitoBajo: 'P', manguitoBicolor: 'P', manguitoFundido: 'P', manguitoEstrella: 'P', manguitoNumero: 'P' };   // manguitos solo en pista (1.1.1)
   var ITEMS = {
-    // (1.16, WP2: los 10 de siempre rehechos con el casco nuevo y 22 nuevos; los dibuja HAIR_STYLES)
+    // (1.18, WP2: los 10 de siempre rehechos con el casco nuevo y 22 nuevos; los dibuja HAIR_STYLES)
     style: { tupe: 'A', coleta: 'A', afro: 'A', flequillo: 'A', rapado: 'A', mono: 'A', trenzas: 'A', dosmonos: 'A', coletas: 'A', cresta: 'A',
       alCero: 'A', degradado: 'A', cepillo: 'A', undercut: 'A', crop: 'A', pinchos: 'A', rizosCortos: 'A', afroCorto: 'A', frohawk: 'A',
       melenita: 'A', despeinado: 'A', cortina: 'A', mullet: 'A', ondas: 'A', melena: 'A', coletaBaja: 'A', trenza: 'A', monoBajo: 'A',
       semirrecogido: 'A', twists: 'A', rastas: 'A', raices: 'A' },
-    // (1.16, WP7: objetos nuevos que se leen de espaldas y de lejos; los de cada ranura van al final)
+    // (1.18, WP7: objetos nuevos que se leen de espaldas y de lejos; los de cada ranura van al final)
     head: { cinta: 'A', cintaRizo: 'A', bandana: 'A', gorra: 'Y', gorraAtras: 'Y', visera: 'Y', pescador: 'Y', corona: 'A', gorraMTC: 'A',
       diadema: 'A', pinzas: 'A', gorroPompon: 'P', pescadorCuadros: 'Y', viseraGafas: 'Y' },
     ears: { pendientes: 'A' },   // (WP7 ronda 1: ranura propia; antes iban en head y no cabían con ningún gorro)
     eyes: { frente: 'Y', pasta: 'A', oscuras: 'Y', deporte: 'A', espejo: 'Y', gafasRedondas: 'A', aviador: 'Y', gafasVentisca: 'Y' },
     paint: { zinc: 'Y', rayas: 'A', rayasEq: 'A', estrella: 'A', pinturaEquipo: 'A', rayoOjo: 'A' },
     marks: { pecas: 'A', tirita: 'A', tiraNasal: 'A', tiritaNariz: 'A' },
-    beard: { bigote: 'A', perilla: 'A', tresDias: 'A', barba: 'A', bigote70: 'A' },   // (barba: 1.16, WP3)
+    beard: { bigote: 'A', perilla: 'A', tresDias: 'A', barba: 'A', bigote70: 'A' },   // (barba: 1.18, WP3)
     neck: { medalla: 'A', conchas: 'Y', bandanaCuello: 'A', silbato: 'A', cadenaPlata: 'A' },
     under: { termica: 'P', licra: 'Y', licraCorta: 'Y' },
     band: { capitan: 'A' },
@@ -155,7 +155,7 @@
     socks: { tobilleros: 'P', media: 'P', altos: 'P', altosRayas: 'P', desparejados: 'P', compresion: 'P', lunares: 'P', caido: 'P' },
     ankle: { blanca: 'P', tela: 'Y', pulseraTob: 'Y', escarpines: 'Y', tobiPulpo: 'Y', escarpinesNeo: 'Y', vendajeTob: 'Y', cuentasTob: 'Y' },
     shoes: { clasicas: 'P', negras: 'P', neon: 'P', doradas: 'P', botinAlto: 'P', suelaGorda: 'P', bicolor: 'P', retro: 'P' },
-    hairFx: { raiz: 'A', puntas: 'A', mechas: 'A', flequilloFx: 'A', mitad: 'A' }   // efectos de pelo (fit.hairFx con fit.hair2, 1.16): por color de vértice
+    hairFx: { raiz: 'A', puntas: 'A', mechas: 'A', flequilloFx: 'A', mitad: 'A' }   // efectos de pelo (fit.hairFx con fit.hair2, 1.18): por color de vértice
   };
   var LOOK_SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
     'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes', 'ears'];
@@ -163,10 +163,10 @@
   // lo que lleva cada sede cuando el campo no llega (L viejas {skin, hair, style, acc} y NPC): exactamente lo de hoy
   var SLOT_DEF = { hall: { knees: 'cortas', socks: 'media', ankle: 'blanca', shoes: 'clasicas' }, beach: { paint: 'zinc', ankle: 'tela' } };
   // gorros de copa (clases CAP, CAPB y BUCKET de HAT_CLASS): el pelo solo asoma por debajo del borde; lo que cuelga sale por la abertura
-  // o bajo el ala (1.16: ya no se prohíbe ningún peinado; HAIR_UNDER_CAP dice cuáles asoman enteros)
+  // o bajo el ala (1.18: ya no se prohíbe ningún peinado; HAIR_UNDER_CAP dice cuáles asoman enteros)
   var EAR_HAIR = { melena: 1, ondas: 1, melenita: 1, semirrecogido: 1 };   // peinados que tapan la oreja (los pendientes no se pintan)
   var HIDE_HAIR = { gorra: 1, gorraAtras: 1, pescador: 1, gorraMTC: 1, bandana: 1, gorroPompon: 1, pescadorCuadros: 1 };
-  // gorros que llevan cB por vértice (1.16, WP3: tira de la gorra, franja de la cinta y de la visera, cinta del pescador; la MTC lleva
+  // gorros que llevan cB por vértice (1.18, WP3: tira de la gorra, franja de la cinta y de la visera, cinta del pescador; la MTC lleva
   // el color de sus letras. WP7: pompón del gorro de lana si se elige cB, damero del pescador de cuadros y franja de la visera con gafas)
   var HEAD_B = { gorra: 1, gorraAtras: 1, pescador: 1, visera: 1, cinta: 1, gorroPompon: 1, pescadorCuadros: 1, viseraGafas: 1 };
   var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, GOLD_OC = 0xbe8e31, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
@@ -204,7 +204,7 @@
     if (acc === 'gafas') { X.head = ''; if (L.eyes == null) X.eyes = 'frente'; }
     else X.head = typeof acc === 'string' && ITEMS.head[acc] ? acc : '';
     X.cA = colOr(L.cA); X.cB = colOr(L.cB); X.cSock = colOr(L.cSock); X.cShoe = colOr(L.cShoe); X.cGlass = colOr(L.cGlass); X.cPad = colOr(L.cPad);
-    // 1.16 (WP1/WP2 del plan del Vestuario): segundo color de pelo (hex o -1 = sin él) y efecto de pelo ('' = nada): hairTone
+    // 1.18 (WP1/WP2 del plan del Vestuario): segundo color de pelo (hex o -1 = sin él) y efecto de pelo ('' = nada): hairTone
     X.hair2 = L.hair2 == null || L.hair2 === '' || L.hair2 === -1 ? -1 : hairOf(L.hair2);
     X.hairFx = typeof L.hairFx === 'string' && ITEMS.hairFx[L.hairFx] ? L.hairFx : '';
     X.brow = typeof L.brow === 'number' ? L.brow : X.hair;   // cejas y barba: con tinte de fantasía, un natural (VB.Look.resolve)
@@ -221,7 +221,7 @@
   var TC_GEO = ['base', 'accent', 'dark', 'shorts', 'pad', 'sole'], TC_ATLAS = ['base', 'accent', 'dark', 'trim', 'shorts', 'pad', 'numFill', 'pattern', 'libero', 'bib'];
   var TIES = { coleta: 1, mono: 1, trenzas: 1, dosmonos: 1, coletas: 1, coletaBaja: 1, trenza: 1, monoBajo: 1, semirrecogido: 1 };   // peinados con gomas de cA
   function armVc(a) { return ARMS[a] && a !== 'kinesio' && a !== 'manguitoOro' && a !== 'manguitoLlamas' && a !== 'manguitoMazo'; }   // manguito con la bola del codo de cA
-  // (1.16, WP7) qué tapa cada manguito: el medio solo el brazo (del ribete al codo), el de antebrazo solo del codo a la muñeca; bicolor y
+  // (1.18, WP7) qué tapa cada manguito: el medio solo el brazo (del ribete al codo), el de antebrazo solo del codo a la muñeca; bicolor y
   // degradado llevan cB en la bola del codo (la mitad de abajo es cB)
   var SLV_UP_ONLY = { manguitoMedio: 1 }, SLV_FORE_ONLY = { manguitoBajo: 1 }, SLV_AB = { manguitoBicolor: 1, manguitoFundido: 1 };
   /** Licra de surf (playa): la de manga larga o la de manga corta (WP7): hombros, tronco y cuello alto en cB. */
@@ -246,7 +246,7 @@
   /** Firma de lo que cambia la MALLA (geometría y colores por vértice) de un muñeco con el aspecto L, la equipación tc y la sede.
    *  Un color entra solo si alguna pieza lo lleva por vértice (si no, cambiarlo es solo repintar el atlas). */
   // (justa: lo que no toca la malla —kinesio y malla corta, que van pintados— no entra, así que cambiarlos solo repinta el atlas; si una
-  //  pieza pasa a la malla, lookSelfTest lo pilla: «geoSig no ve el cambio de malla». cPad (1.16, WP4) lo llevan por vértice las
+  //  pieza pasa a la malla, lookSelfTest lo pilla: «geoSig no ve el cambio de malla». cPad (1.18, WP4) lo llevan por vértice las
   //  rodilleras cortas, altas y bajadas: su ficha de look.js con vc 'P')
   var PAD_VC = { cortas: 1, altas: 1, bajadas: 1, rodillerasColor: 1, rodilleraUna: 1 };   // rodilleras con cPad por vértice (la de pulpo es morada siempre); las coderas también (WP5)
   // (WP7) muñequeras que buscan contraste con el puño del manguito (cB) y piezas de cuello con cA
@@ -391,8 +391,8 @@
    *  opt.wrap: proyección que no se aplasta en el borde (más allá de r = WRAP_R0 el ángulo sigue creciendo en vez de pegarse a la
    *  silueta: la barba ya no se estira hacia la oreja). opt.skirt: lista de dy por DEBAJO de dy0 (faldón bajo la barbilla) que repite
    *  la última fila de texels: la barba (o la piel) sigue por debajo del mentón y desde abajo no asoma la piel en dientes de sierra. */
-  // (1.16, WP3: el desfase depende del LOD —la rejilla de la lámina en LOD0 es gruesa y la piel la atravesaba con 2 mm—)
-  // (1.16, WP3 ronda 1: rejillas a medida —las columnas de la lámina de boca son las de la de ojos, así casan en SPLIT_DY sin
+  // (1.18, WP3: el desfase depende del LOD —la rejilla de la lámina en LOD0 es gruesa y la piel la atravesaba con 2 mm—)
+  // (1.18, WP3 ronda 1: rejillas a medida —las columnas de la lámina de boca son las de la de ojos, así casan en SPLIT_DY sin
   //  muesca—, filas más densas hacia la barbilla y el faldón)
   var F_OFF_LOD = [0.005, 0.0028, 0.002], F_PAD = 3, WRAP_R0 = 0.88, WRAP_MAX = 1.85;
   function fOff() { return F_OFF_LOD[LODR]; }
@@ -455,7 +455,7 @@
   // alturas de reposo del tronco (espacio del cuerpo) que cubren las filas TR_R: del bajo del pantalón al domo de los hombros
   // (TR_Y0 / TR_Y1 los pone applyDims)
   // direcciones de las láminas de la cara (sobre la esfera unidad) y geometría de los rasgos (metros del hueso de la cabeza)
-  // (1.16, WP3: las dos láminas se tocan en SPLIT_DY, sin solape, y la de boca es más ancha —FM_DX 0,56 → 0,84— para la pintura de
+  // (1.18, WP3: las dos láminas se tocan en SPLIT_DY, sin solape, y la de boca es más ancha —FM_DX 0,56 → 0,84— para la pintura de
   //  mejilla y las barbas)
   var SPLIT_DY = -0.297, FE_DX = 0.8, FE_DY0 = SPLIT_DY, FE_DY1 = 0.64, FM_DX = 0.84, FM_DY0 = -0.92, FM_DY1 = SPLIT_DY;
   // rasgos en metros de la cabeza de v1 (centro HEAD_C0): faceCell los escala ×FK alrededor del centro de la cabeza activa
@@ -988,7 +988,7 @@
     for (i = 0; i < 8; i++) faceCell(g, i * FM_W, FM_Y, FM_W, FM_H, FM_DX, FM_DY0, FM_DY1, function () { paintMouth(g, i, L, tc); });
     g.restore();
   }
-  // Pintura de mejilla, marcas, gafas y barbas (Vestuario; 1.16, WP3 del plan). Las láminas de ojos (dy SPLIT_DY..0,64) y de boca
+  // Pintura de mejilla, marcas, gafas y barbas (Vestuario; 1.18, WP3 del plan). Las láminas de ojos (dy SPLIT_DY..0,64) y de boca
   // (−0,92..SPLIT_DY) ya NO se solapan: se tocan en SPLIT_DY (antes compartían la franja −0,36..−0,30 a la misma distancia y lo que se
   // pintaba ahí parpadeaba; por eso la pintura y las marcas eran diminutas, metidas bajo los discos de los ojos). Ahora todo lo de
   // mejilla y nariz se pinta en las DOS hojas con las mismas coordenadas (metros de la cabeza de v1) y cada una enseña su mitad:
@@ -2081,7 +2081,7 @@
     G.owk = 1;
   }
   // =====================================================================
-  //  PELO (1.16, WP2 del plan del Vestuario): CASCO que sigue a headShape con su LÍNEA DE PELO, piezas y la tabla HAIR_STYLES
+  //  PELO (1.18, WP2 del plan del Vestuario): CASCO que sigue a headShape con su LÍNEA DE PELO, piezas y la tabla HAIR_STYLES
   // =====================================================================
   // Antes los 10 peinados salían del mismo casquete de esfera (cap): nuca calva bajo un corte recto, línea del pelo dentada contra la
   // lámina de la cara y todos iguales de espaldas. Ahora:
@@ -2160,7 +2160,7 @@
   }
   /** Gorro que cubre la cabeza (clases CAP, CAPB, BUCKET y SCARF): copa elíptica (centro, giro en X, semiejes y apertura θ) para saber
    *  qué queda dentro. Son las medidas de las copas de headGeo. */
-  // (1.16, WP3) las gorras se echan hacia atrás (giro −0,26, apertura 0,44π): el borde de delante queda justo ENCIMA de las cejas y la
+  // (1.18, WP3) las gorras se echan hacia atrás (giro −0,26, apertura 0,44π): el borde de delante queda justo ENCIMA de las cejas y la
   // visera (que nace con su cara de abajo en el borde) ya no las tapa («uniceja»); la gorra al revés, igual (la frente se ve con la tira de atrás). El pañuelo (bandana) es un
   // casquete de verdad (SCARF): cubre la coronilla y la nuca, de la frente (sobre las cejas) a la nuca; para el pelo cuenta como gorra.
   var HAT_CLASS = { gorra: 'CAP', gorraMTC: 'CAP', gorraAtras: 'CAPB', pescador: 'BUCKET', cinta: 'BAND', cintaRizo: 'BAND', bandana: 'SCARF', visera: 'BAND', corona: 'CROWN',
@@ -2620,12 +2620,12 @@
   // ---------- La tabla de peinados ----------
   // {line, off, vol, volFn, lift, flat, bump, tuck, shine, fade, crown:[φ, θ/π, extra, inclinación], hat:'show' (lo que lo distingue
   //  asoma con gorra de copa; si no, la UI avisa), parts(H) (piezas; cada una mira H.hid), extra(H) (más cascos)}. ids: los de siempre
-  //  (nunca se borran) + los 22 de 1.16.
+  //  (nunca se borran) + los 22 de 1.18.
   var HAIR_STYLES = {
     // tupé (ronda 1): el volumen va DELANTE, sobre la frente (antes era un mechón enorme arriba y atrás que de frente parecía un
     // gorro de cocinero y de lado un moño). Casco con lift delante + una onda que sube desde la línea de pelo y se peina hacia atrás.
     tupe: { line: 'corto', vol: 0.01, lift: 0.024, liftTh: 0.2, liftW: 0.22, crown: [PI, 0.1, 0.0, -0.3],
-      // over (1.16, WP3): lo que abulta la onda por encima del casco (las gafas en la frente se apoyan ENCIMA del tupé)
+      // over (1.18, WP3): lo que abulta la onda por encima del casco (las gafas en la frente se apoyan ENCIMA del tupé)
       over: function (ph, th) {
         var a = th / PI; if (a < 0.02 || a > 0.25) return 0;
         var s = Math.pow(clamp((0.232 - a) / 0.212, 0, 1), 1 / 0.85), w = 0.115 * FK * (1 - 0.5 * s), x = Math.abs(Math.sin(th) * Math.sin(ph)) * HEAD_RX;
@@ -2736,7 +2736,7 @@
           H.G.vc = null;
         }
       } },
-    // ---------- nuevos (1.16) ----------
+    // ---------- nuevos (1.18) ----------
     // al cero: todo del color de lo rapado, con más piel que los demás (stubK) pero más oscuro que ella
     alCero: { line: 'corto', off: 0.0025, shine: 0, stubK: 0.6, noFx: true, crown: [0, 0.14, 0, 0], fade: function () { return 1; } },
     degradado: { line: 'corto', off: 0.005, vol: 0.014, fade: fadeSides(0.33 * PI, 0.5 * PI, 0.8, true), crown: [0, 0.14, 0, 0],
@@ -2941,7 +2941,7 @@
     H.crownAt = { p: cp, tilt: c[3] };
     return H;
   }
-  // ---------- Objetos de cabeza (1.16, WP3 del plan del Vestuario) ----------
+  // ---------- Objetos de cabeza (1.18, WP3 del plan del Vestuario) ----------
   // Antes: cintas como un toro circular que flotaba como un halo (el filete, dentro del toro), viseras de media esfera de una cara y
   // 1,6 cm de alto en el oscuro («uniceja», y desde abajo desaparecían), corona pequeña flotando sobre el tupé, gafas en la frente
   // enterradas en el pelo con las patillas en el aire, y nada de la cara se veía de espaldas. Ahora:
@@ -3025,7 +3025,7 @@
   /** Color de las piezas finas (cintas, cordón, goma, colas del nudo): un acento muy saturado y claro (rojo, amarillo, naranja…) salía
    *  en las tiras finas con un halo de neón (comprobado con capturas: el blanco y el gris no lo hacen, y un rojo con el canal alto a 0,6
    *  ya no). Se baja el canal más alto según la saturación (0,85 en un gris → 0,6 en un color puro) sin cambiar el tono, además del tope
-   *  de luminancia. (1.16, WP3 ronda 1) */
+   *  de luminancia. (1.18, WP3 ronda 1) */
   function thinHex(c) {
     c = lumCap(c, 0.8);
     var r = c >> 16 & 255, g = c >> 8 & 255, b = c & 255, mx = Math.max(r, g, b), mn = Math.min(r, g, b), sat = mx ? (mx - mn) / mx : 0;
@@ -3077,7 +3077,7 @@
   }
   /** «MTC» de la gorra del online (ONLINE, fase 3, especialista net): una tira de la misma copa de la gorra (un 1,5 % más grande) con
    *  una malla de 13 × 5 caras alineada con este dibujo de píxeles (M de 5, T y C de 3, separadas por 1): cada cara se pinta por
-   *  vértice (G.vc) con la letra o con cA. Siempre 13 × 5 (130 triángulos en todos los LOD): con menos, no se lee. (1.16, WP3: sube
+   *  vértice (G.vc) con la letra o con cA. Siempre 13 × 5 (130 triángulos en todos los LOD): con menos, no se lee. (1.18, WP3: sube
    *  para que la visera no corte las letras; sigue el giro de la copa) */
   var MTC_ROWS = ['X...X.XXX..XX', 'XX.XX..X..X..', 'X.X.X..X..X..', 'X...X..X..X..', 'X...X..X...XX'];
   var MTC_PHI0 = PI / 2 - 0.62, MTC_PHI = 1.24, MTC_TH0 = 0.66, MTC_TH = 0.56;   // (frontal, por encima de la visera)
@@ -3098,7 +3098,7 @@
     return g;
   }
   function mtcPanel(G, cA, cup) {
-    // (1.16, WP3 ronda 1: solo las casillas de las letras —26 de 65—, en tramos seguidos por fila: lo demás ya es la copa de debajo, del
+    // (1.18, WP3 ronda 1: solo las casillas de las letras —26 de 65—, en tramos seguidos por fila: lo demás ya es la copa de debajo, del
     //  mismo cA; mismo dibujo con 52 triángulos en vez de 130, y la gorra cabe en el presupuesto de objeto de cabeza)
     var ink = mtcInk(cA), cols = MTC_ROWS[0].length, rows = MTC_ROWS.length, k = 1.015, dp = MTC_PHI / cols, dt = MTC_TH / rows, r, c;
     G.owk = 0;
@@ -3153,7 +3153,7 @@
     });
     G.owk = 1;
   }
-  // ---------- Objetos de cabeza nuevos (1.16, WP7): que se lean de espaldas y desde arriba ----------
+  // ---------- Objetos de cabeza nuevos (1.18, WP7): que se lean de espaldas y desde arriba ----------
   /** Gorro de lana con pompón: copa de punto (canalé por gajos de la propia esfera), vuelta gruesa de cB doblada en el borde y un pompón
    *  GORDO de lana (icosaedro subdividido) en lo alto, algo hacia atrás: de espaldas y desde arriba es una silueta que no tiene nada más.
    *  ≈ 420 / 280 / 200 triángulos. */
@@ -3281,7 +3281,7 @@
     if (X.head === 'pescador' || X.head === 'pescadorCuadros') {   // gorro de pescador: copa de cA y ala caída alrededor (anillo cerrado que nace en el borde)
       // (la copa acaba por encima de las cejas y el ala cae poco: los ojos se siguen viendo)
       var cs = [R + 0.016, HEAD_RY + 0.034, HEAD_RZ + 0.022], tht = PI * 0.4, st = Math.sin(tht), ct = Math.cos(tht), cy0 = HEAD_C + 0.02, ry = 0.04;
-      // (1.16, WP3 ronda 1: copa de 18 × 7 —antes 26 × 12, 774 triángulos en LOD2—: el gorro entero cabe en ≤ 450)
+      // (1.18, WP3 ronda 1: copa de 18 × 7 —antes 26 × 12, 774 triángulos en LOD2—: el gorro entero cabe en ≤ 450)
       // (WP7, estampado: damero de cA y su contraste en la copa —casillas de la propia esfera: sin dientes— y el ala a gajos; mismos triángulos)
       var est = X.head === 'pescadorCuadros', c2 = est ? pick(cB, cA, tc) : 0, nS = sg(18, 12), nR = sg(7, 5);
       // (ronda 1 de WP7: las casillas se estrechaban hacia la coronilla y desde arriba parecía un balón de playa: el casquete de arriba
@@ -3307,7 +3307,7 @@
     else if (X.head === 'cinta' || X.head === 'visera' || X.head === 'viseraGafas') {
       // cinta plana de 3,8 cm pegada a la frente (por encima de las cejas) y al pelo, con una franja fina de contraste (cB) en medio;
       // la cinta lleva además un nudo con dos colas en la nuca (faceGeo, muelle del pelo) y la visera, el cierre de atrás: de espaldas
-      // ya no son la misma raya (1.16, WP3 ronda 1)
+      // ya no son la misma raya (1.18, WP3 ronda 1)
       // (ronda 1 de WP7: con las gafas, la banda va a 24 tramos —12 en LOD0—: el gorro entero vuelve a caber en 250 / 450 triángulos)
       var h = 0.019, t = 0.007, bp = bandPath(H, HEAD_C + BAND_Y * FK, BAND_TILT * R, X.head === 'viseraGafas' ? sg(24, 12) : sg(32, 14), 0, null, null, h);
       var prof = [[-h, 0.0008], [-h * 0.86, t], [-h * 0.16, t], [h * 0.16, t], [h * 0.86, t], [h, 0.0008]];   // (franja estrecha: ancha, la cinta se leía como dos rayas)
@@ -3499,7 +3499,7 @@
     on(r.head); G.owk = 0; G.mode = 'own';
     var nx = Math.max(6, Math.round(12 * LODK + 0.5)), ny = Math.max(5, Math.round(7 * LODK + 0.5)), xs = spanList(nx, -FE_DX, FE_DX), ys = [], j;
     G.add(faceSheet(xs, ny, FE_DX, FE_DY0, FE_DY1, 0, FE_Y, FE_W, FE_H), 0xffffff);
-    // lámina de boca (1.16, WP3 ronda 1): las MISMAS columnas que la de ojos (+ una a cada lado hasta FM_DX), así sus vértices casan
+    // lámina de boca (1.18, WP3 ronda 1): las MISMAS columnas que la de ojos (+ una a cada lado hasta FM_DX), así sus vértices casan
     // en SPLIT_DY; ≥ 5 filas también en LOD0, más juntas hacia la barbilla (donde la cabeza se curva), proyección que envuelve la
     // mandíbula y un faldón de 2 filas bajo el mentón (repite la última fila de texels: la barba sigue por debajo)
     for (j = 0; j <= ny; j++) ys.push(FM_DY0 + (FM_DY1 - FM_DY0) * Math.pow(j / ny, 1.45));
@@ -4280,15 +4280,15 @@
   // Topes por muñeco con el look completo (§1.5) y triángulos EXACTOS de los looks de hoy [LOD0, LOD1, LOD2] (pista).
   // TRI_CAP es para el partido: hay 12 muñecos en el 6v6 del móvil. LOD0 NO se sube nunca; LOD1/LOD2 solo con una medida de fps del
   // 6v6 a 640x360 antes y después, apuntada en notes/players.md (plan del Vestuario, §3.2). lookSelfTest imprime el margen que queda.
-  // TRI_TODAY (1.16, WP1): la puntera de la zapatilla por color de vértice ahorra 64/101/208 por pie (−128/−202/−416 en pista)
+  // TRI_TODAY (1.18, WP1): la puntera de la zapatilla por color de vértice ahorra 64/101/208 por pie (−128/−202/−416 en pista)
   // (WP4: la tobillera acolchada sale del zapatón —en lugar del cuello y el ribete, que ya no llevan tapas— y los cordones, solo en LOD2:
   //  −24/0/+72 en pista con el look de serie)
   var TRI_CAP = [4400, 6000, 12800];
-  // TRI_TODAY (1.16, WP2): casco de pelo nuevo. El afro baja (−394/−349/−564 con gafas: rizos de 20-80 triángulos en vez de 19 esferas)
+  // TRI_TODAY (1.18, WP2): casco de pelo nuevo. El afro baja (−394/−349/−564 con gafas: rizos de 20-80 triángulos en vez de 19 esferas)
   // y el resto queda casi igual (rapado +26/+68/+34, gorra +42/+47/+2: el pelo de la nuca bajo la gorra)
   // (ronda 1 de WP2: la banda de pelo bajo un gorro de copa lleva una fila menos en LOD0 → gorra −32 en LOD0; así el pelo bajo el gorro
   //  nunca cuesta más que el peinado sin gorro, lo comprueba lookSelfTest 2c)
-  // TRI_TODAY (1.16, WP3): láminas de la cara (LOD0 con una fila más y la de boca más ancha: +20/+16/+16), gafas en la frente rehechas
+  // TRI_TODAY (1.18, WP3): láminas de la cara (LOD0 con una fila más y la de boca más ancha: +20/+16/+16), gafas en la frente rehechas
   // (−300/−332/−784) y gorra con la visera gruesa y la copa más ligera (+8/−87/−216)
   var TRI_TODAY = [
     { L: { style: 'rapado', acc: '' }, t: [2384, 3705, 8348], n: 'rapado sin complemento' },

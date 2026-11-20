@@ -255,7 +255,7 @@
   /** Une dos guardados de 'make-the-cut.look' (texto JSON {v, fits, own, seen}). own y seen: unión con VB.Look.mergeRaw (gana la t mínima);
    *  fits: los del lado más reciente por la hora de meta (remoteNewer), los dé como los dé mergeRaw. Sin js/look.js (o con un mergeRaw
    *  que falla) gana entero el más reciente. Devuelve texto JSON (el local tal cual si no cambia nada). look.js sanea al cargar.
-   *  Entre versiones (1.16, plan del Vestuario §3.4): si los dos lados traen ft (hora de la última EDICIÓN de los fits), mandan los fits
+   *  Entre versiones (1.18, plan del Vestuario §3.4): si los dos lados traen ft (hora de la última EDICIÓN de los fits), mandan los fits
    *  de la edición más reciente, y con la misma ft se quedan los locales. Un cliente viejo que reescribe el guardado sin editar (al ganar
    *  un objeto: grant, markSeen) no cambia ft pero sí pierde lo que no conoce (un peinado nuevo vuelve al tupé); con la hora de meta,
    *  esa escritura pisaba los fits buenos de los demás dispositivos. Sin ft en algún lado, la hora de meta como siempre. */

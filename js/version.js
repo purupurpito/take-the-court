@@ -36,6 +36,8 @@
  *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
  * 1.15.1 (19-nov-2026): aviso de versión nueva (Ferran: «si un teléfono está en una versión anterior le salte un aviso en la
  *   pantalla de reiniciar»): js/update.js pregunta a Pages por version.json y ofrece «Reiniciar»; el online dice quién tiene que reiniciar.
+ * 1.18.0 (20-nov-2026): Vestuario renovado (notes/vestuario-plan.md, notes/players.md § Vestuario): casco de pelo nuevo con 32
+ *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
  * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
  *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
  */
@@ -43,11 +45,21 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.17.1';
+  VB.VERSION = '1.18.0';
   VB.VERSION_DATE = '2026-11-20';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.18.0', d: '2026-11-20', t: 'Vestuario renovado',
+      items: [
+        '32 peinados, y el pelo asoma por debajo de la gorra, el pescador o el pañuelo.',
+        'Segundo color de pelo: raíces, puntas, mechas, flequillo teñido o mitad y mitad.',
+        'Objetos nuevos: pendientes, cadenas, manguitos, calcetines, zapatillas y más.',
+        'Miniaturas de cada opción y una cámara que enfoca lo que vas eligiendo.',
+        'Probar: mira tu aspecto en un remate, una celebración o una recepción.'
+      ]
+    },
     {
       v: '1.17.1', d: '2026-11-20', t: 'Repaso para el móvil',
       items: [

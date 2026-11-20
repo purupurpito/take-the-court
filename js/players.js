@@ -321,7 +321,7 @@
   var SKINS = [0xdba27a, 0x8a5638, 0xc68a5f, 0xf0c6a4, 0xb07650, 0xe6b48e, 0x6e4430, 0xf3d0b0, 0xa36a48, 0xd9a07c];
   var HAIRS = [0x3a2416, 0x241a14, 0x7a3a16, 0x1e1612, 0x6a4424, 0x9a6a3a, 0xb88a4e, 0x2b1d17, 0x4b2a18, 0xe0c070];
   var STYLES = ['tupe', 'coleta', 'afro', 'flequillo', 'rapado', 'mono', 'trenzas'];
-  // 1.16 (WP2 del plan del Vestuario): peinados nuevos para los NPC, con peso (repetidos = más frecuentes). Se eligen con OTRO trozo del
+  // 1.18 (WP2 del plan del Vestuario): peinados nuevos para los NPC, con peso (repetidos = más frecuentes). Se eligen con OTRO trozo del
   // hash (bits 20-21 y 24+): solo cambia ≈ 1 de cada 4 NPC y el resto de la Carrera conserva su aspecto
   var STYLES_NEW = ['degradado', 'degradado', 'alCero', 'cepillo', 'undercut', 'crop', 'crop', 'rizosCortos', 'afroCorto', 'afroCorto', 'raices',
     'twists', 'despeinado', 'cortina', 'melenita', 'ondas', 'melena', 'coletaBaja', 'coletaBaja', 'trenza', 'monoBajo', 'semirrecogido'];

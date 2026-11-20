@@ -10,7 +10,7 @@
  *            ankle, shoes },  beach:{ …las mismas ranuras… },
  *     colors:{ acc, acc2, sock, shoe, glass, pad },      (fichas: auto | eq | ac | os | bl | ne | id de PALETTE)
  *     _keep:{ ruta: valor } }                             (solo si hace falta; ver «Compatibilidad» abajo)
- *   hair2 (segundo color de pelo: mechas, puntas), hairFx (efecto de pelo) y colors.pad (color de rodilleras) son de la 1.16 (plan del
+ *   hair2 (segundo color de pelo: mechas, puntas), hairFx (efecto de pelo) y colors.pad (color de rodilleras) son de la 1.18 (plan del
  *   Vestuario, WP1): sane() los rellena si faltan ('' / '' / 'auto'), así que no se sube V.
  * «L» resuelto (lo que recibe doll.js, congelado): { skin, hair, hair2, hairFx, style, acc (= gorro), eyes … shoes, cA, cB, cSock,
  *   cShoe, cGlass, cPad } con los colores en hex o -1 (= auto, el de hoy; hair2 -1 = sin segundo color). Nunca lleva h: la altura la
@@ -46,9 +46,9 @@
 
   var SLOTS = ['head', 'eyes', 'paint', 'marks', 'beard', 'neck', 'under', 'band', 'armL', 'armR', 'elbows', 'wristL', 'wristR',
     'hands', 'legs', 'knees', 'socks', 'ankle', 'shoes', 'ears'];
-  // 'ears' (pendientes; 1.16, WP7 ronda 1) va al final: antes iban en 'head' y no se podían llevar con ningún gorro; al final no mueve
+  // 'ears' (pendientes; 1.18, WP7 ronda 1) va al final: antes iban en 'head' y no se podían llevar con ningún gorro; al final no mueve
   // el azar de las demás ranuras ni lo que ya había
-  // 'pad' (rodilleras, L.cPad) es de la 1.16: va al final para no mover nada de lo que ya había (random, firmas)
+  // 'pad' (rodilleras, L.cPad) es de la 1.18: va al final para no mover nada de lo que ya había (random, firmas)
   var COLOR_KEYS = ['acc', 'acc2', 'sock', 'shoe', 'glass', 'pad'];
   // hueco de color → campo de L y letra de «vc»/«pc» (colores por vértice / pintados en el atlas de cada objeto)
   var COLOR_L = { acc: 'cA', acc2: 'cB', sock: 'cSock', shoe: 'cShoe', glass: 'cGlass', pad: 'cPad' };
@@ -61,7 +61,7 @@
   // Piel: los 10 SKINS de players.js (mismo orden) + 4 nuevos. Pelo: los 10 HAIRS + el del n.º 2 + canas, gris, platino y cobrizo.
   var SKINS = [0xdba27a, 0x8a5638, 0xc68a5f, 0xf0c6a4, 0xb07650, 0xe6b48e, 0x6e4430, 0xf3d0b0, 0xa36a48, 0xd9a07c,
     0x5a3626, 0xf7dcc4, 0xc9a27a, 0x9c6b4a];
-  // 1.16 (WP2): + 6 naturales que se distinguen de los de antes (negro azulado, castaño rojizo, miel, rubio ceniza, pelirrojo y
+  // 1.18 (WP2): + 6 naturales que se distinguen de los de antes (negro azulado, castaño rojizo, miel, rubio ceniza, pelirrojo y
   // blanco), al final para no mover nada (fromSeed lee los 11 primeros). En la UI van ordenados por luminancia (choices).
   var HAIRS = [0x3a2416, 0x241a14, 0x7a3a16, 0x1e1612, 0x6a4424, 0x9a6a3a, 0xb88a4e, 0x2b1d17, 0x4b2a18, 0xe0c070,
     0x3a2a1e, 0xd8d4cc, 0x8f8a86, 0xf1e3b0, 0xb4471c, 0x1c2438, 0x6e2a18, 0xc8913e, 0xbfb29a, 0xd2561c, 0xf6f3ec];
@@ -72,7 +72,7 @@
   function lum(h) { return (0.299 * ((h >> 16) & 255) + 0.587 * ((h >> 8) & 255) + 0.114 * (h & 255)) / 255; }
   // en la UI la piel va de clara a oscura; el nombre es «Tono N» en ese orden
   var SKIN_ORDER = SKINS.slice().sort(function (a, b) { return lum(b) - lum(a); });
-  // el pelo natural en la UI: de oscuro a claro (1.16)
+  // el pelo natural en la UI: de oscuro a claro (1.18)
   var HAIR_ORDER = HAIRS.slice().sort(function (a, b) { return lum(a) - lum(b); });
 
   // Fichas de color: las fijas y la paleta (dorado se gana)
@@ -104,7 +104,7 @@
   var HIDE_HAIR_HINT = 'Con gorra no se ve el peinado entero';
   var CATALOG = [
     // peinados (slot 'style'; común a pista y playa). vc 'A': las gomas del pelo recogido van en cA por vértice
-    // 1.16 (WP2): casco de pelo nuevo (doll.js HAIR_STYLES): los 10 de siempre rehechos con los mismos ids y 22 nuevos (18 de inicio).
+    // 1.18 (WP2): casco de pelo nuevo (doll.js HAIR_STYLES): los 10 de siempre rehechos con los mismos ids y 22 nuevos (18 de inicio).
     // Con gorra ya no se quita ningún peinado: el gorro lo adapta (solo asoma lo de debajo del borde)
     { id: 'tupe', name: 'Tupé', slot: 'style', fam: 'corto', g: 'm' },
     { id: 'coleta', name: 'Coleta', slot: 'style', fam: 'recogido', vc: 'A', g: 'f', tris: [129, 173, 330] },
@@ -150,7 +150,7 @@
     // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «MTC» en el frontal; se gana al
     // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
     { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [236, 249, 444] },
-    // 1.16 (WP7): objetos de cabeza que se leen de espaldas y desde arriba (diadema por la coronilla, pinzas detrás de la oreja, pompón, damero…)
+    // 1.18 (WP7): objetos de cabeza que se leen de espaldas y desde arriba (diadema por la coronilla, pinzas detrás de la oreja, pompón, damero…)
     { id: 'diadema', name: 'Diadema', slot: 'head', vc: 'A', g: 'f', tris: [114, 132, 168] },
     { id: 'pinzas', name: 'Pinzas de pelo', slot: 'head', vc: 'A', g: 'f', pl: 1, tris: [84, 84, 84] },
     { id: 'gorroPompon', name: 'Gorro de lana', slot: 'head', venue: 'P', unlock: [shop(1200)], vc: 'AB', g: 'm', hint: 'De calentamiento, con pompón. ' + HIDE_HAIR_HINT, tris: [144, 189, 278] },
@@ -163,7 +163,7 @@
     { id: 'oscuras', name: 'Gafas oscuras', slot: 'eyes', venue: 'Y', unlock: [shop(1000)], vc: 'GA', g: 'f', pl: 1, tris: [54, 54, 72] },
     { id: 'deporte', name: 'Gafas deportivas', slot: 'eyes', rarity: 1, unlock: [{ fame: 2 }, gym('recv', 1), reto('r_recv', 2)], vc: 'GA', g: 'f', pl: 1, tris: [72, 72, 96] },
     { id: 'espejo', name: 'Gafas de espejo', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [{ fame: 4 }, shop(15000)], vc: 'GA', g: 'f', pl: 1, tris: [54, 54, 72] },
-    // 1.16 (WP7): redondas y de aviador (pintadas, con patillas) y la máscara de ventisca, con la correa ancha por detrás (se ve de espaldas)
+    // 1.18 (WP7): redondas y de aviador (pintadas, con patillas) y la máscara de ventisca, con la correa ancha por detrás (se ve de espaldas)
     { id: 'gafasRedondas', name: 'Gafas redondas', slot: 'eyes', unlock: [shop(1200), lv(24)], vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
     { id: 'aviador', name: 'Gafas de aviador', slot: 'eyes', venue: 'Y', rarity: 1, unlock: [shop(3500), { fame: 2 }], vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
     { id: 'gafasVentisca', name: 'Máscara de ventisca', slot: 'eyes', venue: 'Y', rarity: 2, unlock: [reto('r_rally', 3), shop(16000)], vc: 'GA', g: 'f', hint: 'Con la correa por detrás', tris: [80, 100, 160] },
@@ -172,32 +172,32 @@
     { id: 'rayas', name: 'Rayas bajo los ojos', slot: 'paint', g: 'f', pl: 1 },
     { id: 'rayasEq', name: 'Rayas del equipo', slot: 'paint', rarity: 1, unlock: [{ ach: 'duel5' }, rec('wins', 25), { chem: 3 }], g: 'f', pl: 1 },
     { id: 'estrella', name: 'Estrella en la mejilla', slot: 'paint', pc: 'A', rarity: 2, unlock: [{ fame: 5 }, shop(20000), reto('r_streak', 3)], g: 'f' },
-    // 1.16 (WP7): media cara de afición (base y acento del equipo) y un rayo que cruza el ojo
+    // 1.18 (WP7): media cara de afición (base y acento del equipo) y un rayo que cruza el ojo
     { id: 'pinturaEquipo', name: 'Pintura de afición', slot: 'paint', rarity: 1, unlock: [{ ach: 'ch10' }, shop(3000)], g: 'f', hint: 'Con los colores de tu equipo' },
     { id: 'rayoOjo', name: 'Rayo en el ojo', slot: 'paint', pc: 'A', rarity: 2, unlock: [reto('r_kills', 3), shop(15000)], g: 'm' },
     { id: 'pecas', name: 'Pecas', slot: 'marks', g: 'f', pl: 1 },
     { id: 'tirita', name: 'Tirita', slot: 'marks', unlock: [{ ach: 'm50' }, rec('played', 50)], g: 'f' },
     { id: 'tiraNasal', name: 'Tira nasal', slot: 'marks', pc: 'A', unlock: [shop(500), lv(2)], g: 'f' },
-    { id: 'tiritaNariz', name: 'Tirita en la nariz', slot: 'marks', g: 'f' },   // (1.16, WP7)
+    { id: 'tiritaNariz', name: 'Tirita en la nariz', slot: 'marks', g: 'f' },   // (1.18, WP7)
     { id: 'bigote', name: 'Bigote', slot: 'beard', g: 'm' },
     { id: 'perilla', name: 'Perilla', slot: 'beard', g: 'f' },
     { id: 'tresDias', name: 'Barba de tres días', slot: 'beard', g: 'f' },
-    { id: 'barba', name: 'Barba', slot: 'beard', g: 'f' },   // (1.16, WP3: barba completa; la lámina de boca es más ancha)
-    { id: 'bigote70', name: 'Bigote de herradura', slot: 'beard', unlock: [shop(1000)], g: 'm' },   // (1.16, WP7)
+    { id: 'barba', name: 'Barba', slot: 'beard', g: 'f' },   // (1.18, WP3: barba completa; la lámina de boca es más ancha)
+    { id: 'bigote70', name: 'Bigote de herradura', slot: 'beard', unlock: [shop(1000)], g: 'm' },   // (1.18, WP7)
     // cuello, cuerpo y brazos
     { id: 'medalla', name: 'Medalla', slot: 'neck', rarity: 2, unlock: [{ ach: 't1' }], vc: 'AB', g: 'f', tris: [112, 120, 188] },
     { id: 'conchas', name: 'Collar de conchas', slot: 'neck', venue: 'Y', unlock: [shop(800), lv(4)], g: 'm', tris: [88, 128, 592] },
-    // 1.16 (WP7): pañuelo al cuello (con el nudo en la nuca), silbato y cadena de plata
+    // 1.18 (WP7): pañuelo al cuello (con el nudo en la nuca), silbato y cadena de plata
     { id: 'bandanaCuello', name: 'Pañuelo al cuello', slot: 'neck', unlock: [shop(1200)], vc: 'A', g: 'm', tris: [136, 136, 190] },
     { id: 'silbato', name: 'Silbato', slot: 'neck', rarity: 1, unlock: [rec('played', 200), shop(5000)], vc: 'A', g: 'm', tris: [148, 148, 196] },
     { id: 'cadenaPlata', name: 'Cadena de plata', slot: 'neck', rarity: 1, unlock: [shop(6000), { fame: 3 }], g: 'f', tris: [92, 118, 174] },
     { id: 'termica', name: 'Camiseta térmica', slot: 'under', venue: 'P', vc: 'B', g: 'f', tris: [22, 32, 48] },
     { id: 'licra', name: 'Licra de surf', slot: 'under', venue: 'Y', rarity: 1, unlock: [shop(5000), lv(20)], vc: 'B', g: 'f', tris: [22, 32, 48] },   // geo: la bola del hombro, la del codo y el cuello alto van en cB (color por vértice)
-    { id: 'licraCorta', name: 'Licra de manga corta', slot: 'under', venue: 'Y', unlock: [shop(1200)], vc: 'B', g: 'f', tris: [22, 32, 48] },   // (1.16, WP7: hombros, tronco y cuello alto en cB; la manga hasta medio brazo)
+    { id: 'licraCorta', name: 'Licra de manga corta', slot: 'under', venue: 'Y', unlock: [shop(1200)], vc: 'B', g: 'f', tris: [22, 32, 48] },   // (1.18, WP7: hombros, tronco y cuello alto en cB; la manga hasta medio brazo)
     { id: 'capitan', name: 'Brazalete', slot: 'band', rarity: 2, unlock: [{ fame: 4 }, { ach: 'top' }], geo: false, pc: 'A', g: 'm', hint: 'En el brazo izquierdo' },
     { id: 'malla', name: 'Malla corta', slot: 'legs', geo: false, pc: 'B', g: 'f' },   // en cB (automático: un color que se distinga del pantalón)
     { id: 'mallaLarga', name: 'Malla larga', slot: 'legs', unlock: [shop(1000), lv(6)], vc: 'B', pc: 'B', g: 'f' },   // geo: la bola de la rodilla sin rodillera va en cB
-    { id: 'mallaUnLado', name: 'Malla de una pierna', slot: 'legs', unlock: [shop(1100)], vc: 'B', pc: 'B', g: 'f', hint: 'En la pierna izquierda' },   // (1.16, WP7: la rodilla sin rodillera va en cB)
+    { id: 'mallaUnLado', name: 'Malla de una pierna', slot: 'legs', unlock: [shop(1100)], vc: 'B', pc: 'B', g: 'f', hint: 'En la pierna izquierda' },   // (1.18, WP7: la rodilla sin rodillera va en cB)
     { id: 'malla34', name: 'Malla tres cuartos', slot: 'legs', unlock: [shop(1200), lv(32)], vc: 'B', pc: 'B', g: 'f' },
     { id: 'manguito', name: 'Manguito', slot: 'arm', venue: 'P', vc: 'A', pc: 'B', g: 'm' },
     { id: 'manguitoRayas', name: 'Manguito de rayas', slot: 'arm', venue: 'P', unlock: [shop(1200), lv(8)], vc: 'A', pc: 'B', g: 'm' },
@@ -206,7 +206,7 @@
     { id: 'manguitoRayos', name: 'Manguito de rayos', slot: 'arm', venue: 'P', rarity: 2, unlock: [{ ach: 'b50' }, gym('block', 3)], vc: 'A', pc: 'B', g: 'm' },
     { id: 'manguitoOro', name: 'Manguito dorado', slot: 'arm', venue: 'P', rarity: 3, unlock: [shop(45000)], lux: 1, g: 'm' },
     { id: 'kinesio', name: 'Kinesio', slot: 'arm', unlock: [{ ach: 'm1' }, rec('played', 1)], geo: false, pc: 'A', g: 'm' },
-    // 1.16 (WP7): manguitos que se distinguen de espaldas: corto (hasta el codo), de antebrazo, bicolor, degradado, de estrellas y con tu número
+    // 1.18 (WP7): manguitos que se distinguen de espaldas: corto (hasta el codo), de antebrazo, bicolor, degradado, de estrellas y con tu número
     { id: 'manguitoMedio', name: 'Manguito corto', slot: 'arm', venue: 'P', vc: 'A', pc: 'B', g: 'm', hint: 'Del hombro al codo' },
     { id: 'manguitoBajo', name: 'Manguito de antebrazo', slot: 'arm', venue: 'P', vc: 'A', pc: 'B', g: 'm', hint: 'Del codo a la muñeca' },
     { id: 'manguitoBicolor', name: 'Manguito bicolor', slot: 'arm', venue: 'P', unlock: [shop(1200)], vc: 'AB', g: 'm' },
@@ -217,36 +217,36 @@
     // manos, piernas y pies
     { id: 'muneq', name: 'Muñequera de rizo', slot: 'wrist', vc: 'A', g: 'f', tris: [80, 100, 160] },
     { id: 'reloj', name: 'Reloj gordo', slot: 'wrist', rarity: 1, unlock: [{ ach: 'up' }, rec('wins', 50)], vc: 'A', g: 'm', tris: [80, 108, 172] },
-    { id: 'cintaMuneca', name: 'Esparadrapo en la muñeca', slot: 'wrist', vc: 'A', g: 'm', tris: [80, 100, 160] },   // (1.16, WP7)
+    { id: 'cintaMuneca', name: 'Esparadrapo en la muñeca', slot: 'wrist', vc: 'A', g: 'm', tris: [80, 100, 160] },   // (1.18, WP7)
     { id: 'muneqDoble', name: 'Muñequera doble', slot: 'wrist', unlock: [shop(1000)], vc: 'AB', g: 'f', tris: [96, 120, 192] },
     { id: 'dedos', name: 'Dedos vendados', slot: 'hands', rarity: 1, unlock: [{ ach: 'b50' }, gym('block', 1)], g: 'm', pl: 1 },
     { id: 'mitones', name: 'Mitones', slot: 'hands', venue: 'Y', rarity: 1, unlock: [shop(3000), lv(14)], vc: 'A', g: 'm', pl: 1 },
-    { id: 'dedosColor', name: 'Dedos vendados de color', slot: 'hands', unlock: [shop(900), gym('set', 1)], vc: 'A', g: 'm', pl: 1 },   // (1.16, WP7)
+    { id: 'dedosColor', name: 'Dedos vendados de color', slot: 'hands', unlock: [shop(900), gym('set', 1)], vc: 'A', g: 'm', pl: 1 },   // (1.18, WP7)
     { id: 'cortas', name: 'Rodilleras', slot: 'knees', venue: 'P', vc: 'P', g: 'f', pl: 1 },
     { id: 'altas', name: 'Rodilleras altas', slot: 'knees', venue: 'P', vc: 'P', g: 'f', pl: 1, tris: [64, 72, 112] },
     { id: 'bajadas', name: 'Rodilleras bajadas', slot: 'knees', venue: 'P', rarity: 1, unlock: [{ ach: 'm150' }, rec('played', 100)], vc: 'P', g: 'f', pl: 1, tris: [72, 108, 168] },
-    { id: 'rodillerasColor', name: 'Rodilleras de dos colores', slot: 'knees', venue: 'P', unlock: [shop(1000)], vc: 'PA', g: 'f', pl: 1 },   // (1.16, WP7)
+    { id: 'rodillerasColor', name: 'Rodilleras de dos colores', slot: 'knees', venue: 'P', unlock: [shop(1000)], vc: 'PA', g: 'f', pl: 1 },   // (1.18, WP7)
     { id: 'rodilleraUna', name: 'Una rodillera', slot: 'knees', venue: 'P', unlock: [shop(1100), lv(18)], vc: 'P', g: 'f', hint: 'Solo en la rodilla izquierda' },
     { id: 'tobilleros', name: 'Calcetines tobilleros', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'media', name: 'Calcetines', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'altos', name: 'Calcetines altos', slot: 'socks', venue: 'P', geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'altosRayas', name: 'Calcetines altos de rayas', slot: 'socks', venue: 'P', unlock: [shop(900)], geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'desparejados', name: 'Calcetines desparejados', slot: 'socks', venue: 'P', rarity: 1, unlock: [{ ach: 's5' }, rec('streak', 5)], geo: false, pc: 'SB', g: 'm', pl: 1 },
-    { id: 'compresion', name: 'Calcetines de compresión', slot: 'socks', venue: 'P', unlock: [shop(1100)], geo: false, pc: 'S', g: 'm', pl: 1 },   // (1.16, WP7)
+    { id: 'compresion', name: 'Calcetines de compresión', slot: 'socks', venue: 'P', unlock: [shop(1100)], geo: false, pc: 'S', g: 'm', pl: 1 },   // (1.18, WP7)
     { id: 'lunares', name: 'Calcetines de lunares', slot: 'socks', venue: 'P', unlock: [shop(1000), lv(12)], geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'caido', name: 'Calcetines caídos', slot: 'socks', venue: 'P', unlock: [shop(900), lv(16)], geo: false, pc: 'S', g: 'm', pl: 1 },
     { id: 'blanca', name: 'Tobillera', slot: 'ankle', venue: 'P', g: 'f' },
     { id: 'tela', name: 'Tobillera de tela', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f' },
     { id: 'pulseraTob', name: 'Pulsera de tobillo', slot: 'ankle', venue: 'Y', vc: 'A', g: 'f' },
     { id: 'escarpines', name: 'Escarpines', slot: 'ankle', venue: 'Y', rarity: 1, unlock: [shop(3500)], vc: 'S', g: 'm', pl: 1 },
-    { id: 'escarpinesNeo', name: 'Escarpines de neopreno', slot: 'ankle', venue: 'Y', rarity: 1, unlock: [shop(4500)], vc: 'A', g: 'm', pl: 1 },   // (1.16, WP7)
+    { id: 'escarpinesNeo', name: 'Escarpines de neopreno', slot: 'ankle', venue: 'Y', rarity: 1, unlock: [shop(4500)], vc: 'A', g: 'm', pl: 1 },   // (1.18, WP7)
     { id: 'vendajeTob', name: 'Tobillo vendado', slot: 'ankle', venue: 'Y', g: 'm' },
     { id: 'cuentasTob', name: 'Tobillera de cuentas', slot: 'ankle', venue: 'Y', unlock: [shop(900), reto('r_venues', 1)], vc: 'A', g: 'f', tris: [0, 0, 80] },   // (Δ sobre la de tela de serie)
     { id: 'clasicas', name: 'Zapatillas', slot: 'shoes', venue: 'P', vc: 'H', g: 'f', pl: 1 },
     { id: 'negras', name: 'Zapatillas negras', slot: 'shoes', venue: 'P', g: 'f', pl: 1 },
     { id: 'neon', name: 'Zapatillas neón', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(8000), lv(28)], vc: 'H', g: 'f', pl: 1 },
     { id: 'doradas', name: 'Zapatillas doradas', slot: 'shoes', venue: 'P', rarity: 3, unlock: [{ ach: 'mvp' }, { award: 'mvp' }, shop(60000)], lux: 1, g: 'f', pl: 1 },
-    { id: 'botinAlto', name: 'Botines altos', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(4500)], vc: 'H', g: 'm', pl: 1, tris: [104, 104, 136] },   // (1.16, WP7; ronda 1: caña de 12 cm con la tobillera dentro —medido 112/96/136—)
+    { id: 'botinAlto', name: 'Botines altos', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(4500)], vc: 'H', g: 'm', pl: 1, tris: [104, 104, 136] },   // (1.18, WP7; ronda 1: caña de 12 cm con la tobillera dentro —medido 112/96/136—)
     { id: 'suelaGorda', name: 'Zapatillas de suela gorda', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(7000), gym('block', 2)], vc: 'H', g: 'f', pl: 1 },
     { id: 'bicolor', name: 'Zapatillas bicolor', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(6000), lv(36)], vc: 'H', g: 'f', pl: 1 },
     { id: 'retro', name: 'Zapatillas retro', slot: 'shoes', venue: 'P', rarity: 1, unlock: [shop(5000), reto('r_win', 2)], vc: 'H', g: 'f', pl: 1 },
@@ -257,7 +257,7 @@
     { id: 'tMorado', name: 'Tinte morado', slot: 'hairTint', hex: 0x8a4fd8, rarity: 1, unlock: [{ gymN: 5 }], g: 'm' },
     { id: 'tTurquesa', name: 'Tinte turquesa', slot: 'hairTint', hex: 0x2ec4c4, rarity: 2, unlock: [{ ach: 'n9' }, { retoN: 30 }], g: 'm' },
     { id: 'tDorado', name: 'Tinte dorado', slot: 'hairTint', hex: 0xe8b830, rarity: 3, unlock: [shop(40000)], lux: 1, g: 'm' },
-    // 1.16 (WP2): 5 tintes más y el del color del equipo (tEquipo: el primario de la equipación, por vértice; hex = el de reserva)
+    // 1.18 (WP2): 5 tintes más y el del color del equipo (tEquipo: el primario de la equipación, por vértice; hex = el de reserva)
     { id: 'tRojo', name: 'Tinte rojo', slot: 'hairTint', hex: 0xd8263a, unlock: [shop(1200)], g: 'm' },
     { id: 'tNaranja', name: 'Tinte naranja', slot: 'hairTint', hex: 0xff7a1a, unlock: [shop(1200)], g: 'm' },
     { id: 'tLila', name: 'Tinte lila', slot: 'hairTint', hex: 0xb48cff, rarity: 1, unlock: [shop(3000), { fame: 1 }], g: 'm' },
@@ -326,9 +326,9 @@
   // otro). why.a / why.b: el motivo cuando se quita a / b; {cabe} = cabe | caben (según el nombre quitado), {a}/{b} = el otro
   // objeto con artículo y en minúscula («el moño»).
   var HEAD_IDS = CATALOG.filter(function (it) { return it.slot === 'head'; }).map(function (it) { return it.id; });
-  // 1.16 (WP2): los gorros ya no quitan peinados (doll.js los adapta por clase de gorro: el pelo asoma por debajo del borde, lo que
+  // 1.18 (WP2): los gorros ya no quitan peinados (doll.js los adapta por clase de gorro: el pelo asoma por debajo del borde, lo que
   // cuelga sale por la abertura o bajo el ala). Solo quedan las gafas en la frente, que no caben con ningún gorro salvo la gorra al revés
-  // (1.16, WP3: encima de su copa; antes se veían a través de ella. Se queda: hay guardados de 1.15.1 con las dos cosas)
+  // (1.18, WP3: encima de su copa; antes se veían a través de ella. Se queda: hay guardados de 1.15.1 con las dos cosas)
   var CLASH = [
     { a: { slot: 'eyes', ids: ['frente'] }, b: { slot: 'head', ids: HEAD_IDS.filter(function (id) { return id !== 'gorraAtras'; }) },
       why: { a: 'no caben con ese gorro', b: 'no {cabe} con {a}' } }
@@ -337,7 +337,7 @@
   var STYLE_FALLBACK = 'tupe';   // al quitar un peinado que choca (ninguna regla lo nombra)
   // gorros de copa (gorra, gorra al revés, pescador y gorra MTC): el pelo solo asoma por debajo (doll.js HAT_CLASS; HAIR_UNDER_CAP dice
   // qué peinados asoman enteros)
-  var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador', 'gorraMTC', 'bandana', 'gorroPompon', 'pescadorCuadros'];   // (bandana: 1.16, WP3, un casquete de verdad; WP7: gorro de lana y pescador de cuadros)
+  var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador', 'gorraMTC', 'bandana', 'gorroPompon', 'pescadorCuadros'];   // (bandana: 1.18, WP3, un casquete de verdad; WP7: gorro de lana y pescador de cuadros)
 
   // ---------------------------------------------------------------- utilidades
   function isObj(o) { return !!o && typeof o === 'object' && !Array.isArray(o); }
@@ -622,7 +622,7 @@
 
   // ---------------------------------------------------------------- generadores
   /** Fit determinista a partir de un número (compañero de la Carrera de playa: hashStr de su nombre). Solo objetos de inicio. */
-  // (1.16) los peinados de inicio de 1.15 (mismo orden): el primer sorteo es el de siempre, así el aspecto no cambia; luego, en 1 de
+  // (1.18) los peinados de inicio de 1.15 (mismo orden): el primer sorteo es el de siempre, así el aspecto no cambia; luego, en 1 de
   // cada 4, uno de los nuevos (sorteo aparte al final). keepOld (jefes): sin ese sorteo, el jefe de siempre
   var SEED_OLD = ['tupe', 'coleta', 'afro', 'flequillo', 'rapado', 'mono', 'trenzas', 'dosmonos', 'coletas'];
   function fromSeed(n, keepOld) {
