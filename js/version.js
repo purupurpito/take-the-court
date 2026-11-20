@@ -47,11 +47,17 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.19.1';
+  VB.VERSION = '1.19.2';
   VB.VERSION_DATE = '2026-11-21';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.19.2', d: '2026-11-21', t: 'Logo nuevo',
+      items: [
+        'Logo nuevo en el menú y al arrancar.'
+      ]
+    },
     {
       v: '1.19.1', d: '2026-11-21', t: 'Icono nuevo',
       items: [
