@@ -2706,7 +2706,10 @@
             if (Math.abs(ph) < 0.9 && th > 0.25 * PI) th = 0.12 * PI + jit(k, 3) * 0.1 * PI;   // fuera de la cara
           }
           var p = H.pt(ph, th, -0.022); if (H.hid(p)) continue;
-          if (H.cup && Math.abs(ph) < 1.4) continue;   // (pulido: bajo la gorra, los rizos de la sien eran dos bolas junto al ojo)
+          // (pulido: bajo un gorro de copa, el casco se recorta delante de la oreja (capTrim) y apenas abulta (capVol); los rizos de los
+          // lados quedaban sueltos bajo el borde, junto a la sien o detrás de la oreja, y se leían como unas gafas o un segundo par de
+          // ojos. Solo quedan los de la nuca, bajo el borde de atrás)
+          if (H.cup && Math.abs(ph) < 0.7 * PI) continue;
           hairCurl(H, p, (0.042 + 0.014 * jit(k, 4)) * FK, LODR === 0);
         }
       } },
