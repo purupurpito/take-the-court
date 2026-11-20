@@ -4392,7 +4392,7 @@
   function lkLoad(w) {
     var Lk = LK(), f = null;
     if (w === 'career' && !lkCareer() && !(lk.o && lk.o.who === 'career')) w = 0;   // sin Carrera activa: el n.º 1
-    lk.who = w; lk.dirty = false; lk.nul = false; lk.tryI = -1; lkUndoDrop();
+    lk.who = w; lk.dirty = false; lk.nul = false; lkTryStop(false); lk.tryLast = null; lkUndoDrop();
     if (w === 'career') {
       var car = lkCareer(), oc = lk.o && lk.o.who === 'career' ? lk.o : null;
       lk.hall = oc && oc.hall != null ? !!oc.hall : !!(car && car.hall);
@@ -4717,7 +4717,7 @@
     if (!slot || !lk.on) return;
     if (slot === lk.slot && !force) return;
     lk.slot = slot; lk.zoom = false; lk.slotBack = lkSlotBack(slot, lkGet(slot));
-    if (lk.tryI > -1 && LK_TRY[lk.tryI][0] !== 'stand') return;
+    lkTryStop(false);   // (otra fila: se acaba la pose de «Probar» y se encuadra la fila)
     var P = lkPV(); if (P && P.frameSlot) try { P.frameSlot(slot, lkSlotOpts(slot)); } catch (e) { }
   }
   /** Encuadre de la pestaña (al entrar, al abrir y al volver de «Probar»). */
@@ -5036,11 +5036,31 @@
     }, 140);
   }
   function lkTry() {
-    var P = lkPV(); lk.tryI = (lk.tryI + 1) % LK_TRY.length; lk.idle = 0;
+    // (la siguiente pose sigue la ronda aunque la anterior ya se acabara: a los 5 s no se vuelve siempre al remate)
+    var P = lkPV(); lk.tryI = ((lk.tryI > -1 ? lk.tryI : lk.tryLast != null ? lk.tryLast : -1) + 1) % LK_TRY.length; lk.idle = 0;
     var t = LK_TRY[lk.tryI];
     if (P) try { if (P.pose) P.pose(t[0]); if (P.face) P.face(t[1]); } catch (e) { }
     lkTryFull(t[0] !== 'stand');
+    if (lkTryPoseT) { clearTimeout(lkTryPoseT); lkTryPoseT = 0; }
+    if (t[0] !== 'stand') lkTryPoseT = setTimeout(function () { lkTryPoseT = 0; lkTryStop(true); }, 5000);
     lkFrame(); uiSound('click'); srSay('Probar: ' + t[2].toLowerCase());
+  }
+  /** Fin de la pose de «Probar» (pulido): a los 5 s (a la vez que el muñeco a toda pantalla del móvil) o al cambiar de pestaña, de fila,
+   *  al dado, a «Deshacer» o a Restablecer. Antes el remate seguía en bucle para siempre: la pestaña Cabeza encuadraba un muñeco en el
+   *  aire (las piernas, con la cabeza fuera del cuadro) y el dado o «Deshacer» se veían en pleno salto. reframe: vuelve al encuadre
+   *  de la fila (o de la pestaña) abierta. */
+  var lkTryPoseT = 0;
+  function lkTryStop(reframe) {
+    if (lkTryPoseT) { clearTimeout(lkTryPoseT); lkTryPoseT = 0; }
+    var was = lk.tryI > -1 && LK_TRY[lk.tryI][0] !== 'stand';
+    if (lk.tryI > -1) lk.tryLast = lk.tryI;
+    lk.tryI = -1;
+    if (!was) return;
+    var P = lkPV();
+    if (P) try { if (P.pose) P.pose('stand'); if (P.face) P.face('neutra'); } catch (e) { }
+    lkTryFull(false);
+    if (!reframe || !lk.on) return;
+    if (lk.slot && P && P.frameSlot) { try { P.frameSlot(lk.slot, lkSlotOpts(lk.slot)); } catch (e) { } } else lkFrame();
   }
   /** «Probar» en el móvil apaisado (≤ 420 px de alto; revisión final): el muñeco quedaba pequeño en el hueco estrecho entre la lista y los
    *  botones de la derecha. Mientras dura la pose, la lista, las pestañas y la fila de jugador y sede se apartan (se desvanecen) y el
@@ -5143,6 +5163,7 @@
    *  (del mismo jugador). Sin VB.Splat.toast, el aviso de siempre sin botón. */
   var lkUndoApi = null;
   function lkUndoOffer(prev, msg) {
+    lkTryStop(true);   // (dado, Todo al azar, Restablecer y Copiar: el cambio se ve con el muñeco de pie)
     if (lkUndoApi) { try { lkUndoApi.close(); } catch (e) { } lkUndoApi = null; }
     lk.undo = prev ? { fit: prev, who: lk.who } : null;
     if (!prev || !VB.Splat || !VB.Splat.toast) { lkNote(msg); return; }
@@ -5155,7 +5176,7 @@
   function lkUndo() {
     var u = lk.undo; lk.undo = null; lkUndoApi = null;
     if (!u || !u.fit || u.who !== lk.who || !lk.on) return;
-    lk.fit = u.fit; lk.dirty = true; lk.idle = 0;
+    lk.fit = u.fit; lk.dirty = true; lk.idle = 0; lkTryStop(true);
     uiSound('back'); srSay('Deshecho');
     lkRender(); lkPreview();
   }
@@ -5165,7 +5186,7 @@
   // ---- ciclo de vida ----
   function lkOpen() {
     if (!el.mpLook) return;
-    lk.on = true; lk.tryI = -1; lk.idle = 0; lk.ukey = ''; lk.footI = 0; lk.slot = ''; lk.zoom = false;
+    lkTryStop(false); lk.tryLast = null; lk.on = true; lk.idle = 0; lk.ukey = ''; lk.footI = 0; lk.slot = ''; lk.zoom = false;
     lkGridReset();
     lkCheckNew();
     lkLoad(lk.who);
@@ -5302,7 +5323,7 @@
           var ae = document.activeElement, inL = !ae || ae === document.body || el.lkList.contains(ae), kb = kbNow() || ctx.inputDevice === 'gamepad';
           lkGridReset();
           var capW = lkCapHides() && (lk.tab === 'pelo' || id === 'pelo');   // (la gorra sale o vuelve en la vista previa: lkPvFit)
-          lk.tab = id; lk.tryI = -1; el.lkList.scrollTop = 0; lkRender(); lkFrame();
+          lkTryStop(false); lk.tab = id; el.lkList.scrollTop = 0; lkRender(); lkFrame();
           if (capW) lkPreview();
           var a2 = document.activeElement;
           if (inL && (!a2 || a2 === document.body || !el.mpLook.contains(a2))) focusEl(lkFocusEl(), kb);
