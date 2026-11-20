@@ -1640,7 +1640,7 @@ Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, blo
   encuadre de la fila o la pestaña. La ronda de poses sigue donde iba (`lk.tryLast`).
 - **Cadena de plata**: cordón `torus(1, 0,18)` (antes 0,19) de un tono por debajo y con brillo uno de cada cuatro eslabones solo por
   arriba (sin los cuadros claro/oscuro; sobre pecho claro, acero más oscuro); sobre pecho oscuro, plata clara lisa. Chapa 5 × 4,8 cm
-  colgada del cordón (`F.yf − 0,012`): deja el dorsal entero. lookvis 1,63 % / 1,63 % (umbral 1,5 %; con 0,17 y la chapa de 4,2 cm la
+  colgada del cordón (`F.yf − 0,012`): deja el dorsal entero. lookvis 1,58-1,63 % en pista y en playa (umbral 1,5 %; con 0,17 y la chapa de 4,2 cm la
   pasada completa daba 1,48 %: más fina no pasa).
 - **Raíces**: borde 0,3-0,74 (antes 0,42-0,66) y, en el castaño (luminancia 0,13-0,3), `mixHex(hr, 0x05070c, 0,62)` (antes 0,78: casquete
   casi negro de espaldas). lookvis 5,22 % / 5,52 %.
