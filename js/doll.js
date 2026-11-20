@@ -4175,7 +4175,7 @@
      *  pies). La cámara va hasta él con suavidad; el giro NO cambia (eso es frameSlot). */
     frame: function (name) { if (!PV || !PV_FRAMES[name]) return false; PV.frame = name; return name; },
     /** Encuadre y giro de una ranura del Vestuario (PV_SLOT; los colores con 'c:clave'). o = {back: el peinado lleva volumen detrás
-     *  (se asoma a la espalda ~1 s y vuelve), keep: no tocar el giro, frame: forzar un encuadre}. Pone el giro del encuadre (el del
+     *  (se asoma a la espalda ~1 s y vuelve), keep: no tocar el giro, frame: forzar un encuadre, yaw: forzar el giro}. Pone el giro del encuadre (el del
      *  dedo vuelve a 0) y va hasta él por el camino corto en ≈300 ms. Devuelve el encuadre. */
     frameSlot: function (slot, o) {
       if (!PV) return false;
@@ -4184,7 +4184,8 @@
       PV.frame = name; PV.slot = String(slot || '');
       if (!o.keep) {
         var b = PV_FRAMES[name](pvMeasure(PV.r));
-        PV.yawB = pvNear(PV.yawB + PV.yaw, b.yaw); PV.yaw = 0; PV.yawT = b.yaw;
+        var by = typeof o.yaw === 'number' ? o.yaw : b.yaw;   // (o.yaw: giro propio, p. ej. «Probar» de 3/4)
+        PV.yawB = pvNear(PV.yawB + PV.yaw, by); PV.yaw = 0; PV.yawT = by;
         PV.peek = b.peek || 0; PV.peekT = b.peek && !o.still ? 1.25 : 0;
       }
       return name;

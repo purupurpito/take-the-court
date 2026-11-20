@@ -4626,7 +4626,7 @@
     } else {
       var gd = lk.grid ? rc(el.lkGrid) : null;
       T = hd ? hd.bottom + 6 : 0;
-      B = gd ? gd.top - 6 : top ? top.top - 6 : H * 0.5;
+      B = lk.tryFull ? H - 10 : gd ? gd.top - 6 : top ? top.top - 6 : H * 0.5;   // («Probar»: la lista se aparta, toda la altura)
       if (foot && foot.left > W * 0.5) R = Math.min(R, foot.left - 6);
       if (rot && rot.right < W * 0.5) L = Math.max(L, rot.right + 6);
       // WP6 (ronda 1): por debajo del hueco (jugador y sede, pestañas, lista o rejilla) el muñeco no se pinta: de cerca, el cuerpo corría
@@ -4718,7 +4718,8 @@
   function lkFrame() {
     var P = lkPV(); if (!P || !lk.on) return;
     try {
-      if (lk.tryI > -1 && LK_TRY[lk.tryI][0] !== 'stand') { P.frame('cuerpo'); return; }
+      // («Probar» de 3/4 de frente, pulido: con un peinado de espaldas o tras «Dar la vuelta», el remate salía visto por detrás)
+      if (lk.tryI > -1 && LK_TRY[lk.tryI][0] !== 'stand') { if (P.frameSlot) P.frameSlot('', { frame: 'cuerpo', yaw: 0.45 }); else P.frame('cuerpo'); return; }
       lk.slot = ''; lk.zoom = false;
       var fr = LK_FRAME[lk.tab] || 'cuerpo', s = LK_TAB_SLOT[lk.tab] || '';
       // (pelo o cabeza con algo que se lleva detrás —coleta, trenza, pinza—: la pestaña se abre ya de espaldas)
@@ -5005,7 +5006,8 @@
   }
   function lkTryFull(on) {
     var W = window.innerWidth || 1, H = window.innerHeight || 1;
-    on = !!on && lk.on && W > H && H <= 420;
+    // (pulido: también en el móvil en vertical, donde la pose quedaba en un cuerpo entero de ~150 px sobre la lista)
+    on = !!on && lk.on && (W > H ? H <= 420 : W <= 600);
     if (lkTryT) { clearTimeout(lkTryT); lkTryT = 0; }
     if (on) lkTryT = setTimeout(function () { lkTryT = 0; lkTryFull(false); }, 5000);
     if (!!lk.tryFull === on) return;
