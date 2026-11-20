@@ -1522,7 +1522,8 @@
    *  del ajuste. Solo en el menú con la demo; no cambia nada si el fondo ya es ese (15-nov-2026: antes se veía la playa detrás del
    *  hub de la Carrera de pista). */
   ctx.actions.menuBackdrop = function (k) {
-    var g = ctx.game; if (ctx.state !== 'menu' || !g || !g.demo || ctx.debug) return;
+    // (en ?debug=look también: el Vestuario de playa enseña la playa, WP6 del plan del Vestuario)
+    var g = ctx.game; if (ctx.state !== 'menu' || !g || !g.demo || (ctx.debug && ctx.debug !== 'look')) return;
     k = k === 'hall' || k === 'beach' ? k : '';
     if (!k) { if (!venueForced) return; unforceVenue(); setGame(demoGame()); return; }
     var six = g.format === '6v6';
@@ -1658,7 +1659,17 @@
   // si no, se encola (sin repetir clave) y llega luego con el evento DOM `vb-portrait` {key, url} (ui.js cambia los [data-pt]).
   // Se pinta uno por frame en el paso 4b del bucle (portraitStep). Con la cola vacía 1 s, VB.Doll.portrait.free() suelta el muñeco.
   // Sin VB.Doll.portrait (players aún sin él) → {key: '', url: ''} y ui.js deja la silueta.
-  var PQ = [], PCACHE = {}, PORDER = [], P2D = null, PMAX = 12;
+  // (PMAX: 12 retratos + hasta 48 miniaturas del Vestuario, WP6: URL blob de ~10-30 KB cada una)
+  var PQ = [], PCACHE = {}, PORDER = [], P2D = null, PMAX = 60;
+  // miniaturas del Vestuario (req.frame; WP6, ronda 1): ImageBitmap en la GPU (VB.Doll.portrait.snap), sin PNG ni lectura del lienzo.
+  // LRU propia de ≤ 48 (plan: memoria del móvil); el evento lleva {key, url: '', bmp} y ui.js lo copia a un <canvas> de la ficha
+  var TCACHE = {}, TORDER = [], TMAX = 48;
+  function ptBmpStore(key, b) {
+    if (TCACHE[key] && TCACHE[key] !== b) ptBmpClose(TCACHE[key]);
+    TCACHE[key] = b; var i = TORDER.indexOf(key); if (i >= 0) TORDER.splice(i, 1); TORDER.push(key);
+    while (TORDER.length > TMAX) { var old = TORDER.shift(); ptBmpClose(TCACHE[old]); delete TCACHE[old]; }
+  }
+  function ptBmpClose(b) { try { if (b && b.close) b.close(); } catch (e) { } }
   var pt = { idleT: 0, freed: true, warm: '', n: 0, ms: 0 };
   function portraitApi() { var D = VB.Doll; return D && D.portrait && typeof D.portrait.draw === 'function' && typeof D.portrait.key === 'function' ? D.portrait : null; }
   function ptKey(P, req) { try { var k = P.key(req); return k ? String(k) : ''; } catch (e) { reportError('Doll.portrait.key', e); return ''; } }
@@ -1673,6 +1684,7 @@
     var P = portraitApi(); if (!P || !req) return { key: '', url: '' };
     var key = ptKey(P, req); if (!key) return { key: '', url: '' };
     if (PCACHE[key]) { ptTouch(key); return { key: key, url: PCACHE[key] }; }
+    if (TCACHE[key]) { var ti = TORDER.indexOf(key); if (ti >= 0) { TORDER.splice(ti, 1); TORDER.push(key); } return { key: key, url: '', bmp: TCACHE[key] }; }
     for (var i = 0; i < PQ.length; i++) if (PQ[i].key === key) return { key: key, url: '' };
     PQ.push({ key: key, req: req });
     return { key: key, url: '' };
@@ -1682,15 +1694,42 @@
     if (PCACHE[key]) { ptRevoke(PCACHE[key]); delete PCACHE[key]; }
     var i = PORDER.indexOf(key); if (i >= 0) PORDER.splice(i, 1);
     for (var j = PQ.length - 1; j >= 0; j--) if (PQ[j].key === key) PQ.splice(j, 1);
+    // (una miniatura ya hecha no se cierra: la rejilla que se vuelve a abrir la quiere al momento; la LRU de TMAX la acaba soltando)
   };
   /** Pruebas (portraittest): estado de la cola. */
-  ctx.portraitInfo = function () { return { queue: PQ.length, cached: PORDER.length, n: pt.n, ms: pt.ms, warm: pt.warm, freed: pt.freed }; };
+  ctx.portraitInfo = function () { return { queue: PQ.length, cached: PORDER.length, thumbs: TORDER.length, n: pt.n, ms: pt.ms, msMax: pt.msMax || 0, warm: pt.warm, freed: pt.freed }; };
   function portraitStep() {
     var P = portraitApi(); if (!P) { PQ.length = 0; return; }
     if (progWarm.pending && progsPending()) return;              // programas del retrato (o del partido) compilándose: espera
     if (prewarmPortrait(P)) return;                               // acaba de pedir los programas del retrato (alta con post): espera
-    var q = PQ.shift(); if (!q || PCACHE[q.key]) return;
+    // miniaturas del Vestuario (req.frame; WP6, ronda 1): el muñeco se monta por pasos de ≤ 3 ms (P.prep) y, en otro frame, se pinta y
+    // se copia en la GPU (P.snap). Antes, todo en un frame y con PNG: 10-25 ms de golpe por ficha (más con el móvil)
+    var q0 = PQ[0];
+    if (q0 && q0.req && q0.req.frame && !q0.req.matte && typeof P.prep === 'function' && typeof P.snap === 'function' && typeof createImageBitmap === 'function' && !PCACHE[q0.key] && !TCACHE[q0.key]) {
+      var tp = performance.now(), ready = true;
+      try { ready = P.prep(ctx, q0.req, 3); } catch (e) { reportError('Doll.portrait.prep', e); ready = true; }
+      var dp = performance.now() - tp;
+      if (dp > 0.6 || !ready) { pt.freed = false; pt.idleT = 0; pt.ms = Math.round(dp * 10) / 10; pt.msMax = Math.max(pt.msMax || 0, pt.ms); return; }
+    } else if (PQ.length && PQ[0].req && PQ[0].req.frame && (pt.tk = (pt.tk | 0) + 1) % 2) return;   // (camino viejo: una cada 2 frames)
+    var q = PQ.shift(); if (!q || PCACHE[q.key] || TCACHE[q.key]) return;
     var r = ctx.renderer, sz = Math.max(16, Math.min(512, (+q.req.size | 0) || 144));
+    if (q.req.frame && !q.req.matte && typeof P.snap === 'function') {
+      var t1 = performance.now(), sn = null;
+      try { sn = P.snap(ctx, q.req); } catch (e) { reportError('Doll.portrait.snap', e); sn = null; }
+      if (r.getScissorTest && r.getScissorTest()) { r.setScissorTest(false); r.setViewport(0, 0, ctx.width, ctx.height); }
+      if (sn) {
+        var d1 = performance.now() - t1, tk = q.key;
+        pt.freed = false; pt.idleT = 0; pt.ms = Math.round(d1 * 10) / 10; pt.msMax = Math.max(pt.msMax || 0, pt.ms); pt.n++;
+        if (d1 > 50) ctx.noteHitch();
+        sn.bmp.then(function (b) {
+          if (!b) return;
+          ptBmpStore(tk, b);
+          try { window.dispatchEvent(new CustomEvent('vb-portrait', { detail: { key: tk, url: '', bmp: b } })); } catch (e) { reportError('vb-portrait', e); }
+        }, function () { });
+        return;
+      }
+      // (sin createImageBitmap o si falla: el camino de siempre, PNG)
+    }
     if (!P2D) P2D = document.createElement('canvas');
     if (P2D.width !== sz || P2D.height !== sz) { P2D.width = sz; P2D.height = sz; }
     var t0 = performance.now(), ms = -1;
@@ -1753,6 +1792,10 @@
     return true;
   }
   function safeBool(f) { try { return !!f(); } catch (e) { return false; } }
+  function previewPass() {
+    var P = previewApi(); if (!P || !P.pass) return;
+    try { P.pass(ctx); } catch (e) { reportError('Doll.preview.pass', e); }
+  }
   function previewUpdate(dt) {
     var P = previewApi(); if (!P || !P.update) return;
     try { P.update(dt); } catch (e) { reportError('Doll.preview.update', e); }
@@ -2063,10 +2106,11 @@
       // 4b (B2): un retrato en cola, solo en el menú y en la hoja final (nunca en partido), con el telón ya quitado y sin el
       // precompilado del arranque en curso; se pinta en una esquina del lienzo ANTES del render, que lo tapa en este mismo frame
       if (PQ.length) { if ((ctx.state === 'menu' || ctx.state === 'over') && drawn >= 3 && !progWarm.gate) portraitStep(); }
-      else if (!pt.freed && (pt.idleT += realDt) > 1) portraitFree();
+      else if (!pt.freed && !lookOn && (pt.idleT += realDt) > 1) portraitFree();   // (en el Vestuario no: cada rejilla volvería a compilar el programa del retrato, 10+ ms de golpe)
       ctx.renderer.info.reset();
       try {
         if (ctx.renderFn) ctx.renderFn(ctx); else ctx.renderer.render(ctx.scene, ctx.camera);
+        if (lookOn) previewPass();   // Vestuario en vertical: el muñeco solo en la mitad de arriba (VB.Doll.preview.pass)
       } catch (e) { reportError('render', e); }
     }
 

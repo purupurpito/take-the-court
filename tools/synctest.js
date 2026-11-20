@@ -135,6 +135,30 @@ const S4 = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6
     const bl = boot({ look: true, ls: { 'make-the-cut.look': J({ v: 1, own: { a: { s: 'tienda', t: 1 } }, fits: [1] }), 'make-the-cut.account.meta': J({ 'make-the-cut.look': T - 5000 }) } });
     bl.A._merge({ look: { data: J({ v: 1, own: { b: { s: 'gym', t: 2 } }, fits: [2] }), at: T } }, false);
     ok('look (LOOK_SYNC encendido, sin js/look.js): gana el más reciente entero', JSON.parse(bl.LS.getItem('make-the-cut.look')).fits[0] === 2);
+    // look entre versiones (plan del Vestuario §3.4): un cliente viejo reescribe el guardado al ganar algo (sin editar: la misma ft) y con un
+    // peinado que no conoce ya vuelto al tupé; aunque su escritura sea más reciente, los fits buenos de aquí se quedan (y _keep con ellos).
+    // Con una ft más nueva (editó de verdad) sí mandan los suyos
+    {
+      const fit = st => ({ v: 1, skin: 0xdba27a, hair: 0x3a2416, style: st, hall: {}, beach: {}, colors: {}, _keep: st === 'tupe' ? undefined : { style: 'peinadoNuevo' } });
+      const mine = J({ v: 1, ft: 100, own: { tAzul: { s: 'tienda', t: 5 } }, seen: {}, fits: [fit('afro'), fit('afro')] });
+      const old = J({ v: 1, ft: 100, own: { tAzul: { s: 'tienda', t: 5 }, corona: { s: 'carrera', t: 9 } }, seen: {}, fits: [fit('tupe'), fit('tupe')] });
+      const bv = boot({ look: true, files: ['js/look.js'], ls: { 'make-the-cut.look': mine, 'make-the-cut.account.meta': J({ 'make-the-cut.look': T - 5000 }) } });
+      bv.A._merge({ look: { data: old, at: T } }, false);
+      const got = JSON.parse(bv.LS.getItem('make-the-cut.look'));
+      ok('look entre versiones: misma ft (el viejo no editó) → se quedan los fits locales, con _keep, y se une lo ganado', got.fits[0].style === 'afro' && got.fits[0]._keep && got.fits[0]._keep.style === 'peinadoNuevo' && got.own.corona, J(got.fits[0]));
+      const bw = boot({ look: true, files: ['js/look.js'], ls: { 'make-the-cut.look': mine, 'make-the-cut.account.meta': J({ 'make-the-cut.look': T + 5000 }) } });
+      bw.A._merge({ look: { data: J(Object.assign(JSON.parse(old), { ft: 200 })), at: T } }, false);
+      ok('look entre versiones: ft más nueva al otro lado (editó) → mandan sus fits aunque la hora de meta sea la local', JSON.parse(bw.LS.getItem('make-the-cut.look')).fits[0].style === 'tupe');
+      // guardado de una versión más nueva (v = 2) al otro lado: gana entero y no se le meten los fits v1 de aquí aunque su ft sea mayor
+      const v2 = J({ v: 2, ft: 50, own: { corona: { s: 'carrera', t: 9 } }, seen: {}, fits: [{ v: 2, formato: 'nuevo' }, { v: 2, formato: 'nuevo' }] });
+      const bx = boot({ look: true, files: ['js/look.js'], ls: { 'make-the-cut.look': J(Object.assign(JSON.parse(mine), { ft: 900 })), 'make-the-cut.account.meta': J({ 'make-the-cut.look': T + 5000 }) } });
+      bx.A._merge({ look: { data: v2, at: T } }, false);
+      const gx = JSON.parse(bx.LS.getItem('make-the-cut.look'));
+      ok('look entre versiones: el otro lado con v más nueva → entero, sin los fits v1 locales (aunque su ft sea mayor)', gx.v === 2 && gx.fits[0].formato === 'nuevo', J(gx).slice(0, 160));
+      const by = boot({ look: true, files: ['js/look.js'], ls: { 'make-the-cut.look': v2, 'make-the-cut.account.meta': J({ 'make-the-cut.look': T - 5000 }) } });
+      by.A._merge({ look: { data: J(Object.assign(JSON.parse(mine), { ft: 900 })), at: T } }, false);
+      ok('look entre versiones: aquí la v más nueva → se queda tal cual aunque el remoto v1 tenga ft mayor', by.LS.getItem('make-the-cut.look') === v2);
+    }
     // modMerge sin el módulo: LWW
     const bn = boot({ s4: true, ls: { 'make-the-cut.profile': profA, 'make-the-cut.account.meta': J({ 'make-the-cut.profile': T - 5000 }) } });
     bn.A._merge({ profile: { data: profB, at: T } }, false);

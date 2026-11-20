@@ -254,7 +254,11 @@
   }
   /** Une dos guardados de 'make-the-cut.look' (texto JSON {v, fits, own, seen}). own y seen: unión con VB.Look.mergeRaw (gana la t mínima);
    *  fits: los del lado más reciente por la hora de meta (remoteNewer), los dé como los dé mergeRaw. Sin js/look.js (o con un mergeRaw
-   *  que falla) gana entero el más reciente. Devuelve texto JSON (el local tal cual si no cambia nada). look.js sanea al cargar. */
+   *  que falla) gana entero el más reciente. Devuelve texto JSON (el local tal cual si no cambia nada). look.js sanea al cargar.
+   *  Entre versiones (1.18, plan del Vestuario §3.4): si los dos lados traen ft (hora de la última EDICIÓN de los fits), mandan los fits
+   *  de la edición más reciente, y con la misma ft se quedan los locales. Un cliente viejo que reescribe el guardado sin editar (al ganar
+   *  un objeto: grant, markSeen) no cambia ft pero sí pierde lo que no conoce (un peinado nuevo vuelve al tupé); con la hora de meta,
+   *  esa escritura pisaba los fits buenos de los demás dispositivos. Sin ft en algún lado, la hora de meta como siempre. */
   function mergeLook(Lraw, Rraw, remoteNewer) {
     function p(r) { try { var o = JSON.parse(r); return o && typeof o === 'object' && !Array.isArray(o) ? o : null; } catch (e) { return null; } }
     var A = p(Lraw), B = p(Rraw);
@@ -263,8 +267,13 @@
     var out = null, Lk = VB.Look;
     if (Lk && typeof Lk.mergeRaw === 'function') { try { out = p(Lk.mergeRaw(Lraw, Rraw)); } catch (e) { out = null; } }
     if (!out) return remoteNewer ? Rraw : Lraw;
-    var src = remoteNewer ? B : A;
-    if (Array.isArray(src.fits)) out.fits = src.fits;
+    // un lado de una versión del guardado más nueva (v > V): mergeRaw ya dio ENTERO el de mayor v y aquí no se le mezclan los fits
+    // del otro lado (los de una v vieja dentro de un guardado v nuevo se leerían mal allí)
+    var V = typeof Lk.V === 'number' ? Lk.V : 1;
+    if ((typeof A.v === 'number' && A.v > V) || (typeof B.v === 'number' && B.v > V)) return JSON.stringify(out) === JSON.stringify(A) ? Lraw : JSON.stringify(out);
+    var src = remoteNewer ? B : A, fa = +A.ft > 0 ? +A.ft : 0, fb = +B.ft > 0 ? +B.ft : 0;
+    if (fa && fb) src = fb > fa ? B : A;
+    if (Array.isArray(src.fits)) { out.fits = src.fits; if (fa && fb) out.ft = Math.max(fa, fb); }
     var txt = JSON.stringify(out);
     return txt === JSON.stringify(A) ? Lraw : txt;
   }

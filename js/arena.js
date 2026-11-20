@@ -3195,6 +3195,9 @@
     // bajo el aviso; o el colgado) que cae en el 40 % superior del cuadro sería otro «marcador» apilado ahí: se atenúa al 22 %
     // (no se apaga del todo: sigue leyéndose como pantalla). En el punto, en el cambio de campo y en escritorio, igual que siempre.
     var calm = (ctx.height || 720) <= 560 && ctx.state === 'playing' && !!g && (g.mode === 'serve' || g.mode === 'rally') && !(RT.ccT > 0);
+    // Vestuario (vista previa del muñeco en el menú): los marcadores, apagados al 12 %. Revisión final: el colgado («LOCAL 0 VISITA 0»)
+    // quedaba justo detrás de la cabeza en los encuadres de pelo y cara y competía con ella.
+    var shw = ctx.state === 'menu' && VB.Doll && VB.Doll.preview && VB.Doll.preview.active && VB.Doll.preview.active();
     for (var i = 0; i < screens.vis.length; i++) {
       var S = screens.vis[i], want = 1;
       if (!S.top) { S.top = VB.toThree(S.x, S.y, S.z1, new THREE.Vector3()); S.bot = VB.toThree(S.x, S.y, S.z0, new THREE.Vector3()); } // fijos: una vez
@@ -3214,6 +3217,7 @@
         var lo = (_v2.y - 0.2) / 0.15; lo = lo < 0 ? 0 : lo > 1 ? 1 : lo; lo = lo * lo * (3 - 2 * lo);
         var dimW = 1 - 0.78 * lo; if (dimW < want) want = dimW;
       }
+      if (shw && want > 0.12) want = 0.12;
       S.v += (want - S.v) * (rdt > 0 ? k : 1);
       var mv = 0.02 + 0.98 * S.v, dw = mv - S.w;
       if (dw > 1e-4 || dw < -1e-4) { // asentada: sin escribir uniformes cada frame (cada double nuevo es un HeapNumber)
@@ -3757,6 +3761,10 @@
       P.blur.uniforms.tDiffuse.value = P.b2.texture; P.blur.uniforms.dir.value.set(0, 1 / P.h2); pass(P.blur, P.a2);
       P.comp.uniforms.tScene.value = P.rt.texture; P.comp.uniforms.tB1.value = P.a1.texture; P.comp.uniforms.tB2.value = P.a2.texture;
       P.comp.uniforms.time.value = (c.time % 10);
+      // (pulido del Vestuario: con la vista previa, el bloom a 0,55 —no 0,72—: la camiseta naranja de la playa, a dos palmos de la cara en el
+      //  primer plano, dejaba un resplandor naranja en la mejilla y la mandíbula, muy visible sobre la piel oscura)
+      var pvOn = VB.Doll && VB.Doll.preview && VB.Doll.preview.active && VB.Doll.preview.active();
+      P.comp.uniforms.bloom.value = pvOn ? 0.55 : 0.72;
       pass(P.comp, null);
     } catch (err) {
       console.warn('[VB] arena: post-proceso desactivado', err);

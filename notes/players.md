@@ -1078,20 +1078,116 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
   trenzas y las coletas se dibujan debajo (§1.4 regla 8).
 - `eyesGeo`: las gafas en la frente de siempre (montura de cGlass) y, para las pintadas, dos patillas rectas de 6 lados por fuera de la
   cabeza, del borde de la lámina de ojos a la oreja (no en LOD0).
-- `neckGeo` en el pecho: aro inclinado sobre el domo, por debajo de la mandíbula. Medalla (cinta de cA + disco dorado; relieve no en LOD0)
-  y conchas (cordón + 5 conchas solo en LOD2).
-- `wristGeo` en el ANTEBRAZO (`r.el[k]`, y = −FORE + 0,015): muñequera (toro de cA) y reloj (correa, caja de cA y esfera blanca hacia
-  fuera, la esfera no en LOD0). Se estira con el brazo (comprobado en `view=estiron`).
-- `handGeo`: mitones (cA) y dedos vendados (pulgar de esparadrapo + vuelta en la punta, la vuelta no en LOD0). Coderas: bola del codo de
-  cA ×1,12. El codo toma el color de la térmica o del manguito de su lado.
-- Rodilleras: `altas` (bola ×1,12/1,1 + muslo 0,82-1 y espinilla 0-0,22), `bajadas` (bola de piel + espinilla 0,12-0,42), `''` (piel; con
-  malla larga, cB). Zapatillas: `negras` (tobillera oscura), `neon` (cShoe, por defecto amarillo neón, suela negra), `doradas`; las clásicas
-  y las neón aceptan cShoe. Tobillera de pista `''` = del color del empeine. Playa: `pulseraTob` (aro fino, no en LOD0), `escarpines` (pie
-  de cSock, sin tobillera) y `''`.
+- `neckGeo` en el pecho: aro inclinado sobre el domo, por debajo de la mandíbula (marco común `neckFrame`). Medalla y conchas: ver «Torso y
+  brazos (WP5)» abajo.
+- `wristGeo`, `handGeo`, coderas y codo: ver «Torso y brazos (WP5, 1.16)» justo debajo.
+- Piernas y pies: ver «Piernas y pies (WP4, 1.16)» justo debajo (lo de antes —bandas a fracciones fijas, tobilleras dentro del pie— ya
+  no vale).
+
+#### Torso y brazos (WP5 del plan del Vestuario, 1.16, rama pj-b)
+En el brazo del chibi (tubo r 0,06, brazo 0,244, antebrazo 0,226) la bola del hombro tapa por fuera el tubo hasta ≈ 0,30 de su largo y la
+del codo desde ≈ 0,85 (se corta con la superficie del tubo a √(R²−r²) de la articulación, no a R): lo que se pinta en el brazo va entre
+esas fracciones.
+- **`pick(want, bg, tc, d)`** (ayuda de contraste, T3/T4/T8): el color pedido si hexDist ≥ d (150); si no, tc.dark, blanco o casi negro
+  (el primero que se aleje d + 50, o el que más). Nunca devuelve cB: así la firma de la malla no depende de colores nuevos. Se usa en el
+  rayo del manguitoRayos (ya no amarillo sobre amarillo), el brazalete sobre el manguito, la codera sobre lo de debajo, su reborde, la
+  muñequera sobre el puño, el kinesio sobre la manga o la piel, la caja del reloj y la cinta de la medalla.
+- **Licra (playa) y térmica (pista)** (T1, T6): MANGA LARGA en cB por todo el brazo y el antebrazo (la licra ya no acaba bajo la bola del
+  hombro), puño acanalado en la muñeca (`cuffHex`: más oscuro, o más claro si la manga ya es casi negra) y la bola del codo en cB.
+  **Cuello alto** (`collarGeo`): aro algo cónico en cB (cilindro abierto de 24 lados, 22/32/48 triángulos) del domo de los hombros a
+  debajo de la cabeza, con tinta; sigue viéndose con manguitos. Atlas: con la térmica, lo que asoma por el cuello de la camiseta es cB;
+  con la licra, costura lateral de color (cA o `pick`) bajo cada sisa y la licra más oscura en el borde del cuello. Con térmica +
+  manguito, el manguito del antebrazo acaba antes (0,61 + puño) y asoma el puño de la térmica (se ven las dos capas).
+- **Kinesio** (T5, solo atlas; ronda 1): cinta estrecha que sigue el músculo (`kTape`: trazo de puntas redondas en metros reales, borde
+  oscuro, cinta y brillo por el centro; 4-4,4 cm de ancho). En el brazo, una «Y» sobre el deltoides: el tallo por fuera desde el codo y dos
+  colas que se abren hacia delante y hacia detrás (la de detrás es la que se ve de espaldas en el partido); en el antebrazo, una tira larga
+  por fuera y detrás, del codo a la muñeca. Antes eran cuatro parches que se leían como pegatinas.
+  Ojo: en la columna espejada, du negativo = detrás en los dos brazos.
+- **manguitoOro** (T7; ronda 1: más saturado, con GOLD se quedaba en amarillo pálido bajo las luces del pabellón): oro propio
+  `SLV_GOLD*` (sombra tostada 0x9c5f0c detrás, medio 0xeea316, cara iluminada 0xffcc2e), raya GOLD_HI con filo blanco, línea oscura donde
+  acaba la luz, reflejo en la sombra, bordes GOLD_DK y un destello de cuatro puntas; la bola del codo en SLV_GOLD con brillo GOLD_HI /
+  SLV_GOLD_LT arriba-fuera y sombra tostada abajo (color por vértice).
+  Su puño, GOLD_DK. Con el kit amarillo ya no es igual que el manguito normal.
+- **Brazalete** (R): banda alrededor de todo el brazo de 0,49 a 0,83 (ronda 1; separada del ribete de la manga, 0,38-0,46), del acento o `pick` contra
+  lo de debajo (manguito, camiseta interior o piel), filetes oscuros y la «C» hacia fuera. Sigue siendo solo del brazo izquierdo.
+- **Coderas** (T8): la bola del codo pasa al color de la codera (`elbowPadHex` = cPad o tc.pad con `pick` contra lo de debajo) y encima
+  va una concha acolchada (casquete θ 1,2 de la bola ×1,16, alargada ×1,3 a lo largo del brazo, hacia atrás y algo fuera: de espaldas es
+  lo que se ve) con el reborde del acento (`pick`). 84/40/40 triángulos por brazo. cPad por vértice: vc 'AP' en look.js y `PAD_VC[...] ||
+  X.elbows` en geoSig.
+- **Muñequera y la de cañón** (T10): banda de rizo de revolución (`cuffLathe`: alto 0,078, dos rebordes de +0,018 un punto más oscuros),
+  centrada 0,047 sobre la muñeca (por encima de la manopla); 80/100/160 por muñeca. Color: cA con `pick` contra el puño de debajo
+  (`wristBg`: manguito, manga larga o piel; por eso geoSig mete cB con muñequera + manguito de puño cB). La de cañón: negra con el
+  reborde de la mano de cA (la boca) y el de arriba gris. **Reloj gordo**: correa ancha (torno 0,058) y caja r 0,044 (80/108/172).
+- **Mitones** (T9): sin dedos, por color de vértice en la manopla: las puntas de piel (el 36 % de los anillos de la esfera de la punta y
+  la punta del pulgar), cuerpo de cA y puño acanalado (gajos cA / cA oscuro, uno por meridiano).
+- **Manos por anillos** (ronda 1): en la manopla (esfera 16 × 12 en LOD2, 10 × 8 en LOD1, 8 × 5 en LOD0) las franjas se cortan por
+  ANILLO (`ring(py)`: banda de latitud del centro del triángulo, con los anillos del LOD de ahora) y los gajos por meridiano. Con un umbral
+  cualquiera en y, en cada cuadrilátero un triángulo caía a cada lado y salían dientes de sierra (las puntas de los mitones y los dedos).
+- **Dedos vendados** (T4): desde la punta, una banda de piel (las yemas), una vuelta de esparadrapo, una raya y otra vuelta (en LOD0, con
+  5 anillos, piel y una vuelta ancha), y el pulgar vendado con una tira oscura. Sobre piel clara (lum > 0,62) el esparadrapo es blanco puro
+  y la raya, sombra de la piel (con la piel en la punta y encima ya no es una mancha blanca). El de hierro igual en acero. Sin la vuelta de toro de antes: dedos y dedosMuro
+  pasan de +0/160/320 a 0/0/0 triángulos.
+- **Medalla** (T9): disco r 0,045 de oro con el canto GOLD_DK y el centro GOLD_HI (no en LOD0), colgado de la cinta; cinta bicolor cA/cB
+  (una franja de cada color a lo largo; si se parecen, `pick`). Con cuello alto, por fuera de él. 112/120/188 (ronda 1: cinta de 16 tramos
+  y disco de 12 lados, para quedar en el presupuesto de 120 en LOD1). vc 'AB'.
+- **Conchas**: 5 conchas más grandes (LOD2) y el cordón claro sobre piel oscura (el marrón no se veía).
+- Triángulos (Δ sobre el muñeco base, en look.js): termica y licra 22/32/48, coderas 80/80/168, muñequera 80/100/160, reloj 80/108/172,
+  medalla 112/120/188, dedos 0/0/0. Margen (`looktest --gl`): pista 576/590/1264, **playa 144/406/568** (antes 94/206/184: el reloj y los
+  dedos pesan menos y pagan el cuello de la licra).
+- lookvis (peor de las 2 variantes; antes → ahora): licra 0,00 % → 72,6 % (68 px de espaldas en el móvil), kinesio pista 0,25 % / 1 px →
+  1,97 % / 9 px, playa 0,72 % → 2,45 % / 27 px, medalla 1,46 → 1,90 %, conchas 0,54 → 1,55 %, dedos 0,96 → 3,77 %, coderas 3,4 % / 23 px,
+  térmica 19 px.
+- Ronda 1: las ranuras de UN brazo (brazalete, armL/armR, wristL/wristR) se miden en lookvis en la mitad del torso de ese brazo
+  (`torsoL` / `torsoR`: misma cámara, la caja solo de ese lado); con la caja entera contaban contra los dos brazos. Además la muñequera,
+  el reloj y el brazalete crecieron. Primer plano / partido (peor variante): brazalete 1,88-2,05 % / 14-19 px, muñequera 2,32-2,36 % /
+  18-19 px, cañón 2,27-2,31 % / 17-18 px, reloj 2,38-2,44 % / 18-25 px, kinesio 2,72-3,23 % / 12-19 px, manguitos 7,8-8,4 %. Dedos en
+  pista se queda en 7 px en el partido con piel clara (de espaldas el cuerpo tapa la mano; el plan no exige manos en el partido).
+  Ojo: el salto del primer plano de estas piezas (≈ ×1,9) viene casi todo de partir la caja en dos; las piezas solo crecieron un poco.
+- Ronda 2: el PULGAR (capsule(1, 1,4, cs)) también por bandas: casi solo asoma el casquete de la punta, de y = −0,7 a −1,7 con 2·cs
+  bandas de latitud (Path.getPoints dobla las divisiones de los arcos), y `cb(py)` da la banda del triángulo (−1 = tubo y casquete de
+  arriba). Mitones: piel desde la mitad del casquete (45°), un octógono limpio en vez de la estrella. Dedos en LOD2 (4 bandas): punta de
+  piel, vuelta, raya (`gap`, la de los dedos) y vuelta; en LOD0/LOD1 (2 bandas, los del partido) el casquete de esparadrapo y el tubo y el
+  casquete de arriba con la tira oscura `td`, que es lo que más se separa de la piel de lejos: dedos en el partido pista 7 → 11 px, playa
+  9 → 13 px (con la punta de piel y la raya también en LOD1 bajaba a 6 / 4 px). `lookshots --region=hand`: primer plano de la mano izquierda.
+
+#### Piernas y pies (WP4 del plan del Vestuario, 1.16, rama pj-b)
+La espinilla del chibi mide 0,23: el zapatón tapa ~0,044 abajo y la bola de la rodilla ~0,073 arriba; de calcetín, tobillera y rodillera
+solo queda una ventana de ~0,11. Todo lo de la pierna se coloca por **altura sobre el tobillo** (`legF(h)`, `thighF(d)`, `shoeTopH()`,
+`kneeR(X)`, `sockTopH()`), no a fracciones fijas de la tira.
+- **Tobillera de pista `blanca`** (P1): torno de 3 filas en el hueso de la ESPINILLA (no en el del pie: no se sale al flexionar el tobillo),
+  de 0 a `BRACE_H` 0,07 sobre el tobillo, r espinilla + 0,0105, con la fila de arriba del acento (`onCol`). Oscura (0x2c2c34) sobre un
+  empeine claro (clásicas blancas de serie, neón) y blanca sobre uno oscuro (negras, doradas, cShoe oscuro): si no, se fundía con la
+  zapatilla. Con ella no se dibujan el cuello ni el ribete del zapatón (van dentro). Sin tobillera = cuello bajo + ribete (ahora sin tapas).
+- **Tobilleras de playa** (P2): también en la espinilla, a `ANKLET_H` 0,04 (el empeine descalzo llega a +0,017). `tela`/`tobiPulpo`: toro de
+  tubo 0,012; `pulseraTob`: toro de 0,0095 con cuentas alternas cA / blanco (o cA oscurecido si el blanco se pierde en la piel), ladeada,
+  no en LOD0. Mismo coste que la de tela, que sigue siendo la peor de la ranura: el margen de playa no cambia.
+- **Calcetines** (P3): `tobilleros` = puño vuelto más oscuro, hasta 0,044 sobre el zapatón (con tobillera, 0,05 por encima de ella);
+  `media` = 84 % de la ventana con borde oscuro y franja del base; `altos` = hasta la rodilla con dos franjas en la parte que se ve;
+  `altosRayas` = rayas blancas u oscuras, las que de lejos se alejen más de la piel (rojo + blanco = rosa ≈ piel clara); `desparejados` =
+  cada pierna de un color entero (cSock / cB) y altura (alto / 62 %).
+- **Malla larga + calcetín corto** (punto 7): la malla baja hasta el calcetín (sin franja de piel); con altos, el calcetín va encima.
+- **Rodilleras** (P4, P6): color `padHex` = cPad (nuevo, `colors.pad`, fila «Rodilleras» en la pestaña Colores) o, en automático, tc.pad
+  salvo que quede a < 0,15 de luminancia de lo de debajo (piel o malla larga) → blanco, acento o casi negro. `altas`/`rodiPulpo`: la funda
+  pintada sale `KNEE_UP` 0,014 por el muslo y `KNEE_DN` 0,022 por la espinilla, fuera de la bola, con un aro (cilindro abierto) del acento
+  en cada borde (el de pulpo, PULPO_HI; sus ventosas ahora se ven). `bajadas`: aro gordo (torno, r +0,013, alto 0,05) justo bajo la
+  rodilla, que queda de piel. cPad va por vértice en cortas, altas y bajadas (vc 'P' en look.js, `PAD_VC` en doll.js).
+- **Malla corta** (P5): `tightsHex` = cB o, en automático, el primero de oscuro / base / acento / blanco / negro del equipo que se
+  distinga del pantalón (≥ 0,25 de luminancia o hexDist ≥ 260) y de la piel; bajo del acento (`onCol`) justo encima de la bola. pc 'B'.
+- **Zapatillas** (P7): `SHOE_SHAPE` por modelo (alto de suela, alto del empeine, ancho y largo): clásicas redondas, **negras bajas y
+  planas**, **neón con suela gorda**, **doradas estilizadas y largas**. Dibujo por color de vértice en el empeine: puntera (anillos),
+  franja lateral y brillo del oro como **gajos** entre meridianos (bordes limpios en cualquier LOD; una diagonal por caras salía en
+  escalera), talón (gajos de arriba, lo que más se ve de espaldas) y franja de la suela (fila del ecuador). Cordones: 3 cajas planas solo en
+  LOD2. Neón: puntera fija 0xff3aa8 (nunca el acento). Doradas: 0xc98f1c con brillo GOLD_HI, borde 0x7e500e y cordones GOLD_HI.
+- Triángulos: look de serie de pista −24/0/+72 (LOD0/1/2; TRI_TODAY regenerado). altas y rodiPulpo +64/72/112, bajadas +72/108/168.
+  Margen medido (`looktest --gl`): pista 606/462/984, playa 94/206/184 (sin cambios en playa).
+- lookvis (`--item=…` de WP4, peor de las 2 variantes): primer plano VISIBLE en todos (tobilleros 1,83 %, media 1,75 %, blanca 3,25 %,
+  pulseraTob 1,99 %, tela 2,12 %, altas 9,2 %, bajadas 2,1 %, desparejados 2,6 %, malla 3,0 / 3,2 %); en el partido en el móvil de
+  espaldas: blanca 88 px, tobilleros 30, desparejados 31, altas 42, bajadas 22. La malla corta de pista da 1 px de espaldas en el móvil (con
+  la pose de recepción el pantalón tapa la ventana del muslo): solo se ve de cerca.
 
 ### Atlas
-- `paintBody`: con la licra (playa) la piel de hombros, sisas, escote y espalda pasa a cB (tirantes y dorsal encima); la bola del hombro
-  también (color por vértice).
+- `paintBody`: con la licra (playa) la piel de hombros, sisas, escote y espalda pasa a cB (tirantes y dorsal encima), con la costura
+  lateral de color; la bola del hombro también (color por vértice). Con la térmica (pista) lo que asoma por el cuello es cB (WP5).
 - Cara: halo de las pieles oscuras → `paintPaint` → `paintMarks` → ojos → `paintGlasses` → cejas, en las 8 celdas (con el aspecto de hoy
   el resultado es el de siempre: el halo de un ojo no toca el otro). `paintMouth` llama a `paintBeard` antes de la boca (perilla y barba de
   tres días con el borde degradado en el último 15 % de la lámina; en la celda del grito, el bigote) y después (bigote).
@@ -1103,32 +1199,94 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
 
 ### Firmas, vista previa y prueba
 - `VB.Doll.geoSig(L, tc, beach)` (malla: geometría y colores por vértice; un color solo entra si alguna pieza lo usa por vértice) y
-  `VB.Doll.atlasSig(L, tc, num, beach)`. La vista previa usa estas y no las de look.js (allí `licra` y `mallaLarga` son `geo:false`, pero
-  cambian la bola del hombro y la de la rodilla).
-- `VB.Doll.preview`: `start(ctx, L, o)`, `set(L, o)` → `'geo'` | `'atlas'` | `''`, `pose`, `face`, `spin`, `yaw`, `frame('cuerpo' |
-  'cabeza' | 'brazos' | 'piernas')`, `update(dt)`, `stop()`, `active()`, `info()`. Un solo LOD (el de la calidad activa), atlas de `o.px`.
-  Muñeco en three (5, 0, 0) mirando a cámara, fov 46 sin el `filmOffset` de la cámara del menú (se devuelve al parar), el muñeco hacia
-  x ≈ 0,68 del ancho o donde diga `place(cx)` (fracción del ancho; ui.js `lkPlace` lo pone en el hueco libre a la derecha de su columna y
-  del pie en iconos: a 844×390 sale ~0,84); en vertical, entero en la parte de arriba (siempre con la distancia de `cuerpo`, salvo
-  `cabeza`). La cámara se DESPLAZA de lado (no gira) y el muñeco gira para mirarla: girada, el muñeco quedaba en el borde del cono, más
-  cerca en profundidad y un 15-20 % más grande (a 844×390 se cortaba). Encuadres [altura mirada, distancia, altura de cámara]: cuerpo
-  [mitad del muñeco, 2,6], cabeza [centro de la cabeza + 0,06, 1,85, 0,02 × d], brazos [hombro − 0,25, 1,75], piernas [cadera × 0,45, 1,5].
-  `place(cx, half)`: `half` (opcional) = medio hueco libre en fracción del ancho; si el encuadre (medio ancho en `PV_LAT`) no cabe, la
-  cámara se aleja (a 667×375 el pie de iconos tapaba el hombro). Con «Probar» (pose ≠ `stand`) y encuadre `cuerpo`, `pvEnv` recorre
-  un ciclo de `animate` de la pose (`PV_CYCLE`) y la cámara encuadra la caja entera: salto del remate y brazos en V (antes la cabeza y la
-  mano se salían). El muñeco de la vista previa no recibe sombras (`receiveShadow = false`, un uniform: el mapa de sombras de la pista
-  salía a escalones en la cara a 1,85 m, sobre todo en calidad media). Coronita con tupé: más alta, atrás e inclinada (rx −0,5).
-  Pose por defecto `stand` con respiración (la `stand` de las hojas de `?debug=doll` sigue quieta); «Probar» de ui.js acaba en `stand`
-  (la `idle` lleva el brazo del balón delante de la cara). Con solo atlas repinta el mismo lienzo (`map.needsUpdate`); al rehacer
-  libera atlas, material, malla, textura de huesos y tinta (`freeRig`, que ahora usa también `restyle` de la maqueta). Oculta balón y
-  manchas cada frame (y `players` si no hay `Players.showroom`) y lo devuelve al parar. Lo de o que no llega se queda como estaba (por
-  defecto: `VB.Players.kit(0)`, la sede de `VB.Arena.venue()`, dorsal 1, px 2).
+  `VB.Doll.atlasSig(L, tc, num, beach)`. La vista previa usa estas. Desde WP1 (1.16) la de look.js (`VB.Look.geoSig`, por fit) cuadra con
+  esta: `lookSelfTest` lo comprueba objeto a objeto con cada hueco de color y con `hair2` (ver «Base del plan» abajo).
+- `VB.Doll.preview`: `start(ctx, L, o)`, `set(L, o)` → `'geo'` | `'atlas'` | `''`, `pose`, `face`, `spin`, `yaw`, `turn`, `place`, `frame`,
+  `frameSlot`, `frameOf`, `flash`, `update(dt)`, `stop()`, `active()`, `info()`. Siempre en LOD2 (desde WP1), atlas de `o.px` (ui.js pasa 2 =
+  1024² salvo en calidad baja o con menos de 320 px CSS de alto). Muñeco en three (5, 0, 0), fov 46 sin el `filmOffset` de la cámara del
+  menú (se devuelve al parar). Desde WP6 los encuadres son CAJAS del muñeco (ver «Interfaz del Vestuario (WP6)» abajo) que la cámara mete
+  en el hueco libre que da `place`; la cámara se DESPLAZA de lado (no gira) y el muñeco gira para mirarla. Con «Probar» (pose ≠ `stand`) y
+  encuadre `cuerpo`, `pvEnv` recorre un ciclo de la pose (`PV_CYCLE`) y mide la caja respecto a la pelvis; la cámara la sigue con retraso.
+  El muñeco de la vista previa no recibe sombras (`receiveShadow = false`, un uniform). Pose por defecto `stand` con respiración; «Probar»
+  de ui.js acaba en `stand`. Con solo atlas repinta el mismo lienzo (`map.needsUpdate`); al rehacer libera atlas, material, malla, textura
+  de huesos y tinta (`freeRig`). Oculta balón y manchas cada frame (y `players` si no hay `Players.showroom`) y lo devuelve al parar.
 - `VB.Doll.lookSelfTest()` (lo usa `tools/looktest.js --gl`): cada objeto × sede × LOD se construye y se pinta; el catálogo de look.js no
   trae nada que doll.js no sepa dibujar ni con otra sede; triángulos exactos de hoy; `defaults()` de look.js dan la malla de MY_LOOKS;
   `geoSig` fiel a la malla (también con cada color); peor combinación permitida por sede (peinado × gorro × gafas con `VB.Look.CLASH` + lo
   peor de cada ranura) bajo los topes; 3 dibujos por muñeco; vista previa (un cambio solo de atlas no crea mallas ni texturas; 20 cambios
   de peinado dejan `renderer.info.memory` como estaba; al parar, como antes de empezar). Si la vista previa ya estaba encendida, la deja
   como estaba. En node (sin lienzo) hace la parte de geometría.
+
+#### Objetos nuevos (WP7 del plan del Vestuario, 1.16, rama personaje)
+40 objetos nuevos que se leen de espaldas y de lejos (lookvis: todos VISIBLES en el primer plano en las dos pieles y kits; los de pelo,
+cabeza, piernas y brazos por fuera, ≥ 9 px de espaldas en el partido en el móvil salvo los pendientes, 7 px en LOD0 lejos). Ids que el
+plan escribía más largos se acortaron por el formato de id (≤ 16 caracteres, `?item=` de main.js): `pescadorEstampado` → `pescadorCuadros`,
+`manguitoAntebrazo` → `manguitoBajo`, `manguitoDegradado` → `manguitoFundido`, `manguitoEstrellas` → `manguitoEstrella`.
+- **Cabeza** (doll.js `beanieGeo`, `diademaGeo`, `pinzasGeo`, `earringGeo`, `visorShades`):
+  - `gorroPompon` (pista): clase de gorro nueva `BEANIE` (`hatCup`; el pelo la trata como `CAP`, entra en HIDE_HAIR). Copa acanalada por
+    gajos, vuelta oscura y acanalada, pompón icosaedro (crema o cB si se elige). 144/189/278.
+  - `diadema`: arco plano de 3 cm de oreja a oreja que cruza la coronilla (casi vertical: se ve de espaldas y desde arriba), apoyado en el
+    pelo con `overPt` + `st.over`, y un lazo a la izquierda. 114/132/168.
+  - `pinzas`: pinza de garra GRANDE en la nuca (cuerpo cA, lomo oscuro, dientes en contraste con el pelo) y un clip en cada sien. 84.
+  - `pescadorCuadros` (playa): el pescador con damero cA / `pick(cB)` por casillas de la propia esfera y ala a gajos (mismos triángulos).
+  - `viseraGafas` (playa): la visera + gafas de sol de lentes azules espejadas de pie sobre el arranque de la visera, puente y patillas por
+    la banda (LOD0 sin brillo y con un tramo de patilla). 272/366/522: pasa del tope de objeto de cabeza de WP3 (≤ 450 / ≤ 250); el peor
+    caso de playa sigue con margen (ver abajo).
+  - `pendientes`: aros dorados grandes (r 4,3 cm) con brillo y sombra por vértice. 96 en todos los LOD.
+- **Gafas**: `gafasRedondas` (metal bronce fino, lente apenas tintada, puente de cerradura) y `aviador` (playa: gota dorada con degradado
+  marrón opaco y doble puente) pintadas, con las patillas de siempre. `gafasVentisca` (playa): máscara pintada (marco grueso cGlass, lente
+  espejada naranja → violeta opaca) + `ventiscaStrap`, correa ancha de cA con franja clara alrededor de la cabeza (sin patillas). 80/100/160.
+- **Cara** (atlas): `pinturaEquipo` (parche en cada mejilla partido en diagonal base / acento con filo blanco), `rayoOjo` (rayo del acento
+  por el rabillo de fuera del ojo derecho: si cruza el ojo, el blanco del ojo lo tapa), `tiritaNariz` (tirita grande ladeada; blanca fría
+  sobre piel clara, beige sobre oscura), `bigote70` (herradura hasta la barbilla con mechones).
+- **Cuello**: `bandanaCuello` (rulo gordo con lunares, pico sobre el pecho y nudo con dos puntas en la nuca), `silbato` (cordón en V y
+  silbato de plástico oscuro sobre camiseta clara, metálico sobre oscura), `cadenaPlata` (eslabones claro/oscuro por vértice y chapa).
+- **Torso y brazos**: `licraCorta` (playa: tronco, hombros y cuello alto en cB como la licra, manga hasta medio brazo con ribete;
+  `isLicra(X)` sustituye a `X.under === 'licra'` donde va la licra en el tronco; `longSleeve(X)` = manga larga). Manguitos (pista):
+  `manguitoMedio` (del ribete al codo, `SLV_UP_ONLY`), `manguitoBajo` (asoma sobre el codo y baja a la muñeca, `SLV_FORE_ONLY`),
+  `manguitoBicolor` y `manguitoFundido` (brazo cA, antebrazo `slvB` = cB o su contraste; el fundido en 6 escalones por tramo; bola del codo
+  slvB / mezcla, `SLV_AB` → cB en geoSig), `manguitoEstrella` (estrellas al tresbolillo, oscuras sobre manguito claro), `manguitoNumero`
+  (tu dorsal en el brazo: `paintLimbs` recibe ahora el número; oscuro sobre manguito claro). `wristBg`, `armBg` y `underElbowHex` saben
+  qué tapa cada uno.
+- **Muñecas y manos**: `cintaMuneca` (dos vueltas de esparadrapo de cA solapadas), `muneqDoble` (dos bandas de rizo cB + cA con surco),
+  `dedosColor` (los dedos vendados con esparadrapo de cA: `TAPED.dedosColor = -1` → `pick(cA, piel)`).
+- **Piernas**: `mallaUnLado` (solo la izquierda, hasta el calcetín) y `malla34` (acaba 3 cm bajo la rodilla con el bajo del acento):
+  `kneeTights(X, k)` dice qué pierna lleva malla sobre la rodilla y `tightsOf(X, tc)` su color (la larga, cB; estas dos, cB si se elige o
+  el primero de acento/base/oscuro/blanco/negro que se distinga del pantalón y de la piel: en cB automático no se veían). Rodilleras:
+  `rodillerasColor` (franja de cA por anillos de la bola) y `rodilleraUna` (solo la izquierda; `padOn(X, k)`, `kneeHex(X, tc, k)`); las
+  dos asoman como funda corta pintada por encima y por debajo de la bola (`sleevePad`: la bola sola daba 7 px en el partido).
+  Calcetines (atlas): `compresion` (hasta la rodilla, canalé, escalones de presión, puño ancho), `lunares` (lunares grandes en contraste),
+  `caido` (borde ondulado y cuatro pliegues con sombra y luz).
+- **Pies**: `botinAlto` (caña de un torno con el borde acolchado del acento y lengüeta en el talón; `SHOE_SHAPE.cuff` → `shoeTopH`, y la
+  tobillera blanca empieza en el borde de la caña), `suelaGorda` (suela blanca de 12,5 cm con franja de acento, empeine oscuro),
+  `bicolor` (delante cShoe o la base, por anillos; detrás blanco), `retro` (crema, dos franjas anchas por gajos —una en LOD0—, puntera de
+  ante y suela de goma). `SHOE_VC` = las que llevan cShoe. Playa: `escarpinesNeo` (pie de neopreno con la suela de cA y caña pintada),
+  `vendajeTob` (esparadrapo en ocho del pie a 7 cm), `cuentasTob` (10 cuentas icosaedro de colores en LOD2; aro de gajos en LOD0/1).
+- Desbloqueos: inicio, tienda (precios dentro de la banda de su rareza) y alternativas de Entrenamiento (`atk`, `set`, `block`), récord y
+  retos (`r_digs`, `r_kills`, `r_rally`, `r_venues`, `r_win`), logros (`ch10`, `p500`) y fama. Ninguno por nivel, química ni jefe (los
+  premios de nivel siguen siendo 8).
+- Presupuesto (`looktest --gl`, peor caso = peinado × gorro × gafas + lo peor de cada ranura): pista 3782/5351/11204 (quedan
+  618/649/1596), playa 3894/5343/11650 (quedan 506/657/1150; peor afro + viseraGafas + gafasVentisca). TRI_CAP sin cambios.
+- **Ronda 1 de WP7** (lo que vio la revisión; lo de arriba que contradiga esto queda sustituido):
+  - Ranura nueva **`ears`** (pendientes), al final de `SLOTS`/`LOOK_SLOTS` (no mueve el azar de lo de siempre: `random` la sortea al
+    final, 12 %). Antes los pendientes iban en `head` y no cabían con ningún gorro. `saneRaw` → `earsMove`: un guardado con
+    `head: 'pendientes'` pasa a `ears` (copia). UI: fila «Pendientes» en la pestaña Cabeza (`LK_ROWS.cabeza`), `PV_SLOT.ears = 'perfil'`.
+    Aros de 4,5 cm × 1,25 cm, 6 tramos en LOD0: 72/96/96. Con pelo largo se ven de lado y de 3/4 (combos `c_ears_*` de lookshots).
+  - `lunares`: hasta la rodilla, lunares de 2,4 cm (7 por vuelta, una fila cada 3,2 cm) con puño de contraste (antes, a media
+    espinilla = «media»). `caido`: acordeón de rulos ondulados cada 1,5 cm (sombra, medio tono y luz) casi hasta la rodilla y el borde
+    vuelto claro (antes se leía como el tobillero con tobillera). lookvis --vs: lunares/media 3,21 %, caido/tobilleros 2,18 %.
+  - `botinAlto`: caña de 12 cm (`cuff` 0,12) con tira de velcro oscura y rulo del acento, cada franja un anillo del torno (dibujo por
+    cara sin dientes); la tobillera blanca va dentro (`hasBrace(X, beach)`). 104/104/136. Frente a clásicas: 11,2 % / 203 px.
+  - `vendajeTob`: `ankleTape(piel)` = esparadrapo negro sobre piel clara o media, blanco sobre oscura. `cadenaPlata`: sobre pecho claro,
+    acero oscuro con eslabones claros y chapa de canto casi negro; cordón más grueso.
+  - `manguitoFundido`: degradado continuo del lienzo (antes 6 escalones). `pescadorCuadros`: la mitad de arriba de la copa lisa
+    (desde arriba ya no es un balón de playa). `rodillerasColor`: la bola entera de color (`cupHex`: cA o lo primero que se distinga de
+    la funda y del calcetín automático) y la funda lisa. `escarpinesNeo`: sin dedo gordo. `pinturaEquipo`: media cara (mitad izquierda,
+    de la frente a la mandíbula) del color del equipo que se aleja ≥ 200 de la piel, franja del otro color y filo de tinta.
+  - `viseraGafas`: banda de 24 tramos (12 en LOD0) y sin puente en LOD0: 246/316/442, dentro del tope de WP3.
+  - Desbloqueos por nivel (huecos de la tabla): lunares Nv 12, caido 16, rodilleraUna 18, gafasRedondas 24, malla34 32, bicolor 36
+    (con su precio de tienda). LVL_PRIZES = 14.
+  - Presupuesto: pista 3846/5411/11244, playa 3940/5389/11666 (quedan 460/611/1134: los pendientes ya suman con cualquier gorro).
 
 ### Vestuario en players.js (agente players)
 - `setKit(st, g)` acepta `st.looks` = `[fit|null, fit|null]` (los fija), `null` (los quita) o `undefined` (conserva los que había:
@@ -1145,6 +1303,7 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
   (pruebas). La firma de celebración (`sigOn`) sale también en el 6v6 y en la Carrera de pista.
 
 ### Medido (ejecutado)
+- (Cifras de la 1.15.1; las de ahora, en «Base del plan» abajo: la puntera nueva quita 128/202/416 en pista.)
 - Triángulos LOD0/1/2 de los looks de hoy, EXACTOS: rapado sin complemento 2418/3739/8438, afro + gafas 3786/5208/11276 (también con la
   L nueva `eyes:'frente'`), gorra 2708/4148/9244. Las 70 combinaciones viejas de peinado × complemento × sede dan los mismos triángulos
   que antes salvo coleta y trenzas con gorra (ahora se ven la cola y las trenzas: 2924/4432/9760 y 3108/4588/9884 en pista).
@@ -1165,11 +1324,329 @@ Catálogo, nombres, desbloqueos y compatibilidades son de `js/look.js` (ui_main)
 
 ### Problemas conocidos
 - La pintura de mejilla es pequeña: el ojo tapa casi toda la franja permitida bajo él; se lee sobre todo en el rabillo.
-- El brazalete va en la fracción 0,5-0,65 del brazo (playa 0,42-0,57, 0,47-0,62 con licra) y no en 0,22-0,34: allí lo tapa la bola del
-  hombro, que cubre el ~40 % alto del brazo.
+- El brazalete va en la fracción 0,49-0,83 del brazo en las dos sedes (WP5) y no en 0,22-0,34: allí lo tapa la bola del hombro, que
+  cubre por fuera el tubo hasta ≈ 0,30.
 - La gorra al revés no lleva mechón delante: asomaba atravesando la copa; el pelo de delante queda dentro de la gorra.
 - El gesto `ajuste` con gorra al revés, pescador, corona, pañuelo y cinta de rizo: revisado en captura de cerca (integración, n.º 2 en
   `?debug=serve` con `Players._idle(p, 'ajuste')`); la mano no atraviesa la visera trasera ni el ala, no hace falta un blanco por gorro.
+
+### Herramientas de verificación (19-nov-2026, WP0 de notes/vestuario-plan.md; solo tools/)
+- **`node tools/lookvis.js`**: «se ve / no se ve» con un número. Para cada objeto y sede pinta el muñeco base y el muñeco con el objeto en
+  la vista previa (misma pose y cámara, en la MISMA tarea síncrona: `showroom` → `preview.update(0)` → render; tFix 0, sin parpadeo; lo
+  que cambia de base a base no cuenta) y cuenta los píxeles con ΔE76 > 8 dentro de la caja. Casos: **a** primer plano (768², LOD2, encuadre
+  de la ranura como lookshots, mejor de 5 vistas; umbral 1,5 % de la caja), **b** partido en el móvil de espaldas (640x360 dpr 2 →
+  800x450, LOD1, atlas 512², pose `recv`, cámara medida en el juego: pista 8,7 m, 41°, 27° fuera de la espalda, fov 50,4; playa 6,4 m,
+  35°, fov 60; umbral 9 px, no se exige a ojos, pintura, marcas, barba ni cuello) y **c** LOD0 lejos (`&quality=low`, 11,9 m, solo
+  informa). Peor de dos variantes (clara/A, oscura/B). Base = muñeco de serie con la ranura vacía; zapatillas frente a `clasicas`,
+  peinados frente al tupé. La camiseta interior solo cuenta en las mangas (bajo la bola del hombro). `--item`, `--venue`, `--case`,
+  `--vs=id` (¿se distinguen dos opciones?), `--expect=visible|invisible`, `--sheet=all|fail|none`, `--tha/--thb`. Sale
+  `tools/out/lookvis/report.json` + `report.md` y hojas `sheets/<sede>-NN.jpg` (base | objeto | diferencia en magenta por caso).
+  Hoy (1.15.1): 43 de 122 no pasan; reproduce el diagnóstico (blanca, tobilleros, pulseraTob y licra INVISIBLES; manguito y altos
+  visibles). El muñeco de partido mide ≈ 68 px (las 98 px del plan eran de 0 a 1,9 m).
+- **`node tools/lookshots.js back`**: todos los peinados de espaldas en UNA hoja por vista (espalda, 3/4 espalda izq./der., partido en
+  LOD1 y en LOD0 al tamaño del móvil, ampliado sin suavizar) y los gorros con tupé y coleta (`back/back-gorros-<sede>.jpg`). `--hair=`.
+- **`node tools/looktest.js`** prueba la ida y vuelta de `tools/fixtures/looks-1.15.1.json` (284 fits y un guardado entero, sacados de
+  look.js de la 1.15.1 con `tools/fixtures/make-looks-fixture.js`): sane → resolve sin perder ids, ganados/vistos/fits y mergeRaw. Avisa
+  (sin fallar) mientras `sane()` no guarde los ids desconocidos en `_keep` (hecho en WP1: ya es una comprobación). **`--gl --sweep`**: peor caso MEDIDO por sede y LOD
+  (peinado × gorro × ojos + lo peor de cada ranura y dos pasadas de subida) con su margen hasta TRI_CAP. Hoy: pista 3874/5632/11992,
+  playa **4306**/5794/12616 (margen 94 en LOD0); coincide con la suma de `lookSelfTest`.
+
+### Base del plan (19-nov-2026, WP1 de notes/vestuario-plan.md)
+- **Puntera por color de vértice** (`shoeGeo`): el empeine es una media esfera con el POLO hacia delante (`sph(1, 16, 14, π, π, 0, π)` girada
+  π/2 en X; escala x 0,092K, largo 0,158K, alto 0,088√K, igual que antes). Sus anillos son cortes verticales a lo ancho, así que la
+  puntera son los primeros `SHOE_TOE` (0,36) anillos pintados con `G.vc` (`y > cos(kc·π/h)` en la primitiva: el corte cae justo en una línea
+  de anillo en cualquier LOD). Fuera la media esfera de la puntera que cortaba el empeine (borde en escalera, P7). −64/−101/−208 triángulos
+  por pie (LOD0/1/2) y el perfil de lado más redondo (14 segmentos de punta a talón en vez de 9). La tobillera y el ribete siguen donde
+  estaban (los recoloca WP4 con los calcetines).
+- **Triángulos de hoy (TRI_TODAY)**: rapado 2290/3537/8022, afro + gafas 3658/5006/10860, gorra 2580/3946/8828. Muñeco base de pista
+  2410/3677/8222 (antes 8638 en LOD2).
+- **Margen (lo imprime `lookSelfTest`, `res.log`/`res.budget`, y `looktest --gl`)**: pista 3746/5430/11576 de 4400/6000/12800 (quedan 654,
+  570 y 1224); playa sin cambios, 4306/5794/12616 (quedan **94**, 206 y 184): en la playa no hay zapatillas, así que el ahorro de presupuesto
+  de playa tiene que salir del pelo (el afro nuevo, WP2). `--sweep` da lo mismo medido. TRI_CAP sin tocar.
+- **Reglas nuevas de `lookSelfTest`**: (1) cada peinado ≤ el afro en todos los LOD y en las dos sedes (`res.styles`); (2) los `tris` del
+  catálogo de look.js al día (margen 40 triángulos o el 15 %; lo medido sale en `res.tris`); (3) las firmas de malla de look.js y de
+  doll.js cambian a la vez con cada objeto puesto sobre un muñeco mínimo y cada hueco de color (y `hair2`): 0 diferencias.
+- **Vista previa nítida**: `pvLod()` devuelve siempre 2 y ui.js `lkPvOpts` pasa `px: lkPvPx()` (2 = atlas 1024² salvo `quality.rank === 0` o
+  alto < 320 px CSS). Medido en el Vestuario táctil (UA Android, dpr 2) a 640x360, 568x320 y 360x640: calidad media, LOD2, 8222
+  triángulos, atlas 1024x1024, sin errores. Es un muñeco: 4 MB de atlas en vez de 1. Lo que sigue viéndose con dientes en el móvil es
+  el `pixelRatio` 1,25 de la calidad media (main.js `applyQuality`), no el atlas: queda para WP6 si se quiere subir solo en el menú.
+- **Doll ya no tiene copias del catálogo**: fuera `STYLES` y `ACCS` (nadie las leía; las listas son las de `VB.Look`). `ITEMS.hairFx = {}`
+  (lo llena WP2). `normLook` añade `hair2` (hex o −1), `hairFx` ('' si doll no lo sabe dibujar) y `cPad` (−1 = auto); `geoSig` añade
+  `hair2` y `hairFx` y deja fuera lo que solo se pinta (kinesio, malla corta); `atlasSig` añade `cPad`. Ninguna pieza los usa todavía.
+- **Guardados (look.js)**: campos nuevos del fit `hair2` ('' | hex | tinte), `hairFx` ('' | id de ranura `hairFx`) y `colors.pad` (ficha,
+  'auto'; en L `cPad`). `sane()` los rellena: no se sube `V`, y un fit de la 1.15.1 da la misma `sig()` (los campos nuevos solo entran en
+  `canon`/`geoSig` si no son los de por defecto). **`_keep`**: lo DESCONOCIDO (ids con formato `^[a-z][a-zA-Z0-9]{1,23}$` que el catálogo no
+  tiene, o colores de 24 bits en skin/hair/hair2) en una ruta conocida (`style`, `skin`, `hair`, `hair2`, `hairFx`, `hall.<ranura>`,
+  `beach.<ranura>`, `colors.<hueco>`) se dibuja con lo de por defecto y se guarda en `_keep[ruta]`; cuando el catálogo lo conoce, `sane()` lo
+  devuelve a su ruta. Lo conocido que no vale en una sede se quita como siempre y la basura se tira: `_keep` no crece sin límite (rutas
+  fijas, valores cortos). Sobrevive a sane, fix, wearable, setFit/fit y mergeRaw; no cambia las firmas. ui.js `lkPut` y `lkCopy` llaman a
+  `VB.Look.unkeep(fit, ruta)` al elegir algo en una ruta (si no, lo guardado volvería a pisar la elección).
+- **Catálogo**: `fam` en los peinados (`HAIR_FAMS`: corto, medio, largo, recogido, textura); `pc` (huecos que solo se pintan) junto a `vc`
+  (por vértice) → `cols` → `VB.Look.USES[hueco]` y `VB.Look.uses(hueco, sede)` para la UI (WP6). `vc` corregido para que cuadre con doll.js:
+  gomas del pelo recogido (coleta, moño, trenzas, dos moños, coletas) `A`; gorra, gorra al revés, pescador, gorra MTC, visera y cinta
+  `AB`; medalla `A`; zapatillas clásicas `H`; llamas y martillo sin `A` (su codo es oscuro). `tris` medidos (peinados sobre el tupé; el
+  resto sobre el muñeco base de su sede con la ranura vacía o la pieza de serie).
+- **Entre versiones (§3.4, revisado)**: las reglas de Firestore guardan 'look' como texto y no miran ids: no hace falta tocarlas. El online
+  exige la misma `VB.VERSION` en el saludo (net.js/netfluid.js), así que no se cruzan looks de versiones distintas. **El riesgo es real**
+  con la sincronización de cuenta: un móvil con la 1.15.1 que baja un fit nuevo lo guarda tal cual, pero en cuanto reescribe
+  'make-the-cut.look' por cualquier motivo (ganar un objeto, `markSeen`, editar) lo guarda saneado a su manera (peinado nuevo → tupé, sin
+  `_keep` ni campos nuevos) y lo sube. Arreglado en lo que se puede desde los clientes nuevos: `mergeLook` (account.js) ya no elige los fits
+  por la hora de escritura sino por `ft` (hora de la última EDICIÓN de los fits) cuando los dos lados la traen, y con la misma `ft` se
+  quedan los locales; el cliente viejo que solo gana un objeto no cambia `ft`, así que su escritura ya no pisa los fits buenos (prueba en
+  `tools/synctest.js`). Si en el móvil viejo se EDITA el look, su `ft` es más nueva y manda (lo que el jugador vio y eligió). Lo que no se
+  puede arreglar: el móvil viejo dibuja tupé hasta que se actualiza. Por eso se publica con el aviso de versión nueva (update.js, 1.15.1),
+  que salta al arrancar y al volver a la pestaña.
+
+### Pelo nuevo (19-nov-2026, WP2 de notes/vestuario-plan.md)
+Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, bloque «PELO», antes de `headGeo`.
+- **Casco `hairShell(H, o)`**: rejilla (φ, θ) sobre `headShape` + normal × desfase (φ = acimut, 0 delante y ±π la nuca; θ desde la
+  coronilla). Columnas más densas sobre las orejas (`hairCols`). Filas: arriba, fijas en θ (0, 0,075π, 0,15π y 0,21π; así el brillo cae en
+  una fila exacta). Luego, hasta la línea de pelo, cada vez más juntas. Al final, la fila «tuck», pegada a la piel.
+  - Coste ≈ el casquete de antes: 32 columnas en LOD2 y 16 en LOD0.
+  - Normales por diferencias finitas de la superficie entera: sin costura en la nuca ni estrella en la coronilla.
+- **Líneas de pelo `HL`** por acimut: corto, recogido, tazón, medio, largo y afro. Llevan entradas, patilla, arco sobre la oreja y nuca hasta
+  0,63-0,82π. El pelo que tapa la oreja se abomba (`earBump`).
+- **La cara**: entre ±`FACE_PH` (asin FE_DX + 0,05) la línea no baja de `FACE_TH` (0,30π: la ceja neutra acaba en ≈ 0,32π). Sobre la lámina
+  de ojos el pelo va a `FACE_CLEAR` (F_OFF + 2,5 mm) o más. Así no hay dientes en la línea del pelo y las cejas se ven enteras.
+- **Desfase mínimo** 4,5 mm, más `HAIR_OFF_LOD` [12, 5, 0,5] mm por LOD. Con menos, la piel asomaba a puntos (en el partido a 8 m, y en
+  LOD0 por la flecha de las cuerdas).
+- **`H.pt(φ, θ, extra)`** (= shellPt): punto y normal de la superficie del casco principal. Ahí se anclan moños, gomas, colas, mechones,
+  rizos, la corona (`crown` de cada peinado → `H.crownAt`) y las gafas en la frente.
+- **Piezas**:
+  - `sweep` (barrido de anillos elípticos; punta cerrada en abanico) es la base de colas, trenzas, rastas, mechones, crestas y cintas.
+  - `hairTail` (nudo + goma + cola), `hairBraid` (eslabones alternos con la goma en la punta de verdad), `hairLock`, `hairCurl`
+    (icosaedro de 80 en LOD2, dodecaedro en LOD1 e icosaedro de 20 en LOD0) y `hairBall`.
+  - `hairSkirt`: melena, una lámina con grosor que nace dentro del casco, sale por lo más ancho de la cabeza y cae recta. Lados más cortos
+    (sobre los hombros) y espalda más larga, con onda y bajo opcionales.
+- **Lo que cuelga se mueve**:
+  - Colas y trenzas mezclan el hueso de la cabeza con `r.hair` (G.bone2/G.w2: 0 en la goma → 0,7 en la punta). El muelle es el de siempre
+    (players.js `hairSpring` sin tocar).
+  - Melenas y rastas mezclan con `chest` (0,6 abajo): al girar la cabeza no atraviesan los hombros.
+  - `pushOut` aparta trenzas y rastas del cráneo y de las bolas de los hombros.
+- **Color por vértice** (`hairTone`, 0 triángulos). El color de cada triángulo se decide con el θ del centro de su banda de filas: degradados
+  en bandas limpias, sin dientes de sierra.
+  - Brillo en la coronilla (θ 0,15-0,21π): k de 0,30 en pelo negro a 0,12 en claro, más fuerte delante.
+  - Degradados (`fade`): laterales a la «sombra de la piel» (`H.stub`), en 3 escalones.
+  - `hairFx` con `hair2`: raiz, puntas, mechas (18 sectores), flequilloFx y mitad. Sin `hair2`, un segundo color que contraste. El id es
+    `flequilloFx` porque `flequillo` ya es un peinado: los ids son globales.
+- **Tabla `HAIR_STYLES`** con los 32 peinados: `{line, off, vol, volFn, lift, flat, bump, tuck, shine, fade, crown, hat, parts, extra}`.
+  - Los 10 de siempre, rehechos con los mismos ids: tupé con lift y 2 mechones; coleta sin aro y con cola de 0,45 en el muelle; afro sin cuña,
+    con 13-15 rizos; tazón (`flequillo`) con borde grueso y sin «auriculares»; moño más grande y atrás; trenzas escaladas por FK; cresta con
+    laterales rapados y 5 pinchos.
+  - Los 22 nuevos son los ids del plan.
+  - `HAIR_UNDER_CAP` (los que llevan `hat:'show'`) lo publica VB.Doll y lo usa ui.js `lkCapHides`.
+- **Gorros por clases** (`HAT_CLASS`):
+  - CAP (gorra, gorraMTC), CAPB (gorraAtras) y BUCKET (pescador): `hatCup` + `cupRim` dan el borde de la copa por acimut. El casco solo se
+    dibuja desde un poco por encima del borde (dentro, pegado; fuera, con su volumen), así que hay pelo en la nuca.
+  - Lo de arriba (mechones, moños, pinchos) se quita si queda dentro de la copa (`H.hid`). Las colas salen por la abertura de atrás (CAP) o
+    por debajo del borde o del ala.
+  - BAND (cinta, cintaRizo, bandana, visera): el peinado entero, y el aro **abraza** lo que haya (`bandRing`: sigue la superficie, suavizado
+    donde empieza el pelo; mismos lados que el toro de antes). La cinta pasa a ser plana (1,5 × 4,5 cm) y el filete queda por fuera.
+  - CROWN: en `crown`.
+- **look.js**:
+  - Se quitan las 5 reglas de CLASH de peinado; solo queda frente + gorro. La gorra al revés sigue valiendo con las gafas en la frente: si
+    no, los guardados de 1.15.1 perdían las gafas.
+  - 22 peinados en CATALOG (18 de inicio; pinchos, cresta afro, mullet y rastas en la tienda o por fama/logro, sin tocar los premios por
+    nivel). «Flequillo» se llama «Tazón».
+  - 6 naturales nuevos al final de HAIRS. En `choices('hair')`, de oscuro a claro.
+  - 5 tintes y `tEquipo` (`team:1`: `hairHex(v, tc)` da tc.base; entra en la firma de malla de doll.js por el hex) y 5 `hairFx`.
+  - `resolve` añade `L.brow`: con un tinte de fantasía, las cejas y la barba van en el natural de `hair2` o en mixHex(tinte, castaño, 0,6).
+  - `fromSeed`: el primer sorteo es el de siempre (lista de 1.15) y, al final, 1 de cada 4 pasa a un peinado nuevo. `bossFit` usa
+    `fromSeed(n, true)`: los jefes no cambian.
+- **players.js**: `npcStyle(h)`: con `(h >>> 20) % 4 === 0`, uno de `STYLES_NEW` (con peso); si no, el de siempre. Cambia ≈ 25 % de los NPC.
+- **ui.js** (lo mínimo): filas «Segundo color» y «Efecto de pelo» en la pestaña Pelo (lkGetFrom/lkPut), y LK_UNDER_CAP desde doll.js.
+- **Medido** (lookSelfTest; peinados sobre el tupé):
+  - El afro es el más pesado en los 3 LOD: 2758/4145/9256 en pista frente a 2410/3745/8256 del tupé. Afro + gafas: 3264/4657/10296
+    (antes 3658/5006/10860).
+  - Peor caso de playa: 4088/5739/12510 (márgenes 312/261/290; antes 94/206/184). Pista: 3516/5245/11380.
+  - lookvis caso b (partido en el móvil, de espaldas, frente al tupé): los 31 peinados ≥ 529 px (umbral 9).
+- **Herramientas**: `lookshots back --bviews=…` añade frente, 34-frente, lado, arriba, frente-lod0 y `fx` (hojas back/fx y back/colores).
+
+### Cabeza y cara (19-nov-2026, WP3 de notes/vestuario-plan.md)
+- **Láminas de la cara sin solape**: la de ojos (`FE_DY0`) y la de boca (`FM_DY1`) se tocan en `SPLIT_DY` = −0,297 (antes compartían
+  −0,36..−0,30 a la misma distancia: z-fighting de los halos de piel oscura y pintura diminuta). La pintura y las marcas se pintan en las
+  DOS hojas con las mismas coordenadas (`decorClip` enseña la mitad de cada una). La O del grito y los ojos de la sorpresa acaban en
+  `SPLIT_Y`. La de boca es más ancha (`FM_DX` 0,56 → 0,84, `nx − 1` columnas) para mejillas y barbas. `fOff()` = desfase por LOD
+  (`F_OFF_LOD` 0,005/0,0028/0,002) y la de ojos lleva ≥ 5 filas en LOD0: sin piel atravesando en calidad baja. Sin polygonOffset.
+- **Pintura y marcas grandes** (lookvis a, % de la CAJA DE LA CABEZA, peor piel): zinc banda nariz-pómulos 4,7 %, rayas 2 × 6 cm con borde
+  claro en piel oscura 1,66, rayasEq 1,5-1,6, estrella r 0,035 2,2, pecas (15 de 8 mm) 1,6, tirita en X blanca con tinta 1,6-1,8, tira
+  nasal 1,8-2,0. (Antes, sobre la caja de la región con márgenes: 0,06-0,45 %; lookvis mide ahora paint/marks/beard sobre la caja de la
+  cabeza con `ZONES`, que es lo que pedía el plan.)
+- **Barbas** antes de la boca (la boca siempre encima): bigote de manillar con las puntas hacia arriba (×1,2, la sonrisa se ve debajo),
+  perilla redondeada y separada, tres días = máscara lisa α 0,35 difuminada al borde, **barba** nueva (id `barba`, completa, mechones,
+  hueco de la boca). Borde claro (`faceHalo`) en piel oscura.
+- **Gafas pintadas** después de las cejas, montura 0,017-0,02: oscuras α 0,96 y espejo α 0,97 en bandas (no se ven pupilas ni iris) con
+  brillo diagonal; espejo con montura dorada. Patillas = 2 cuerdas de 3 lados (24 triángulos) pegadas a la cabeza/pelo hasta encima de la
+  oreja, también en LOD0. De espaldas: **goma** de cA por la nuca (deporte) y **cordón** de cA que cuelga (oscuras, espejo): look.js vc 'GA'.
+- **Gafas en la frente** rehechas (≈ 180/180/256 tris, antes 480/512/1040): dos lentes con montura inclinadas 25° y empujadas hasta no
+  meterse en el casco; `HAIR_STYLES[…].over(φ, θ)` dice lo que abultan las piezas encima (tupé, afro) y con la gorra al revés se apoyan en
+  su copa (`outCup`). La regla CLASH no cambia (hay guardados 1.15.1 con gorra al revés + frente).
+- **Gorros**: `profSweep` (barrido con perfil por lados de color) + `bandPath` (aro que abraza piel/pelo/lámina, desfase mayor de arriba,
+  centro y abajo). Cinta plana de 3,4 cm sobre las cejas (`BAND_Y` 0,13) con franja cB; cinta de rizo gorda con dos rayas (de cA); cantos
+  oscurecidos y `lumCap` 0,82. **Pañuelo** = casquete SCARF (frente → nuca, giro −0,5) con lunares hexagonales, dobladillo, nudo y colas
+  laterales en el muelle; para el pelo cuenta como gorra (`HIDE_HAIR` incluye bandana). Gorras: copa con `CAP_RX` −0,26 y `CAP_TL` 0,44π
+  (el borde de delante queda sobre las cejas), **visera gruesa y cerrada** (`capBrim`: 3 → 2 cm, debajo cA × 0,8), botón y tira de atrás
+  en cB (MTC: del color de las letras; vc 'A'). La visera de playa usa la cinta + `capBrim`. MTC más arriba (no la corta la visera).
+  **Corona** ×1,4 apoyada en el pelo (`surfY`), puntas altas con bolita, rubí y zafiros, centro acotado (la cresta no la deja colgando).
+- Presupuesto: peor pista 3482/5130/10752, playa 3786/5342/11694 (antes 3516/5245/11380 y 4056/5739/12510). TRI_TODAY regenerado.
+- Herramientas: lookshots `head` con 8 columnas (incluida «desde abajo 30°», LOD0 y partido), región `face`, `--hv`/`--tile`, y 9 combos
+  nuevos (`c_corona_*`, `c_bandana_*`, `c_frente_*`, `c_cintaRizo_afro`, `c_gorraAtras_coleta`).
+
+### Interfaz del Vestuario (19-nov-2026, WP6 de notes/vestuario-plan.md)
+- **Encuadre y giro por ranura** (doll.js `PV_FRAMES`, `PV_SLOT`, `pvMeasure`, `preview.frameSlot/frameOf/turn/place/flash`). Cada encuadre es
+  una caja medida en los huesos del muñeco de pie (`pvMeasure`: pelvis, hombro, codo, mano, rodilla, tobillo, cabeza, barbilla y lo más
+  alto con pelo; una vez por malla en `r._pvM`): `{lo, hi, lat, up, yaw, peek, fill}`. Encuadres: cuerpo, cabeza (3/4, yaw 0,55), nuca (se
+  asoma a la espalda, peek 2,75 rad durante 1,25 s, y vuelve), perfil (gorros, yaw 1,05), cara, torso, brazos, brazoL / brazoR (ese brazo a
+  cámara, yaw ∓1,05), manos, piernas, rodillas y pies. `PV_SLOT` da el de cada ranura (y de los colores: calcetín → piernas, zapatilla →
+  pies, montura → cara, rodilleras → rodillas). `frameSlot('style', {back})` usa nuca si el peinado lleva volumen detrás (ui.js `lkBack`:
+  `HAIR_STYLES[id].back` si WP2 lo publica; si no, familia recogido o largo). El giro del encuadre (`yawB`) va a su meta (`yawT`) con
+  suavidad (~300 ms, por el camino corto); el del dedo (`yaw`) se suma y vuelve a 0 al cambiar de ranura. `yaw(rad)` sigue siendo
+  absoluto y al momento (herramientas). `turn()` = 180° animados.
+- **Hueco libre** (`place(cx, half, top, bot)`, en apaisado y en vertical): la cámara se aleja hasta que la caja cabe (alto: `fill` del
+  hueco, 0,94 de serie y 0,8-0,86 los de cerca; ancho: el 94 % del hueco) y se desplaza de lado para centrarla. Tope de cerca: como mucho
+  `PV_PPM` (340) píxeles CSS por metro del muñeco, salvo que la caja quepa en `PV_MINPX` (230 px): en PC la cabeza salía de 600 px y los
+  pies de 900. Sin `place`: en apaisado x 0,68 hasta el borde; en vertical, la mitad de arriba. ui.js `lkPlace` mide la columna, la barra de
+  PC, las acciones del borde derecho (móvil), ⟲ ↻ ⟳ (fila bajo el muñeco en PC, columna en móvil y en vertical) y, en vertical, la cabecera
+  (arriba) y el selector de jugador o la rejilla (abajo).
+- **Miniaturas** (doll.js `portrait`): `req.frame` (un nombre de `PV_FRAMES`) encuadra esa caja en el cuadrado (`ptFrameBox`) con su giro
+  (o `req.yaw`), y `req.lod` (0/1/2; las miniaturas van en LOD1) rehace el muñeco del retrato si cambia. La clave lleva `|f<encuadre><lod>`.
+  main.js: caché LRU de retratos de 12 → 60 (12 retratos + 48 miniaturas) y como mucho una miniatura cada 2 frames. Medido (rejilla de
+  manguitos, 640x360 táctil, dpr 2): cada miniatura 3,7-7,2 ms a CPU ×1 y ~25 ms a CPU ×4 (montar el muñeco: ~16 ms; el pintado ~4 ms); las
+  que solo cambian el atlas, ~7 ms a ×4. Abrir la rejilla 18 ms (×1) / 108 ms (×4) antes de diferir las peticiones; ahora se piden después
+  de pintarla, unos 4 ms por frame (`lkThumbPump`).
+- **ui.js (Vestuario)**:
+  - Tocar una fila (o Intro / A) abre su **rejilla** (`lkGridOpen/Render/Pick/Close`, `#lkGrid`) en el sitio de la lista: fichas con la
+    miniatura del propio muñeco con esa opción (peinados sin el gorro que los tapa y de perfil) o muestras de color de 44 px; peinados con
+    fichas de familia (otra vez la elegida = todos). Tocar una ficha la pone y la deja a la vista; otra vez la puesta, «‹», Esc o B vuelven
+    a la lista. Filas `data-sp-row`: ←/→ en la fila, ↑/↓ entre filas. Las flechas ‹ › de cada fila siguen igual (mando y teclado).
+  - Tocar o enfocar una fila encuadra su ranura (`lkFocusSlot`); al entrar en una pestaña, el encuadre de la pestaña (`LK_FRAME`,
+    `LK_TAB_SLOT`). Doble toque (o doble clic) sobre el muñeco: de cerca ↔ cuerpo entero (`lkZoom`), sin pellizco. Botón «Dar la vuelta»
+    (`data-rot="turn"`) entre ⟲ y ⟳; con el dedo en el móvil solo sale ese (se arrastra para girar). Aviso de una vez «Arrastra para
+    girar…» (`make-the-cut.lkHint`; no en `?debug=look` salvo `&lkhint=1`).
+  - Filas de color: dicen qué pintan («Pinta: Coleta y Manguito», `lkWornUsing` con `VB.Look.uses`), se atenúan con «No llevas nada de este
+    color» y no salen si nada de esa sede las usa (en la playa sí el de calcetín: escarpines; fila nueva de rodilleras, `c:pad`, cuando
+    alguna lo use). Al cambiar un color, lo que pinta parpadea 0,4 s en el muñeco (`lkFlash` → `preview.flash`: rosa sobre lo claro,
+    amarillo sobre lo oscuro; solo atlas).
+  - Avisos de lo que no se ve (`lkHelpOf`): peinado bajo la gorra, «Tapa el peinado» en el gorro, tobillera bajo el calcetín (`UNDER_SOCK` de
+    doll.js si WP4 lo publica; si no, `blanca` con calcetín que sube), y pintura, marcas y barba «De espaldas, en el partido, no se ve».
+    `LK_UNDER_CAP` sale de `HAIR_STYLES[id].underCap` si existe (lista de reserva coleta, trenzas, coletas). `LK_CAPS` de reserva con `gorraMTC`.
+  - Bloqueado: «🔒 <cómo se gana>. Se puede probar» en todos los tamaños (en el móvil la línea de ayuda solo sale si dice algo de esto).
+  - Pie: Probar, el dado (al azar SOLO la pestaña abierta, `lkRandomTab`) y «⋯» (hoja `lkMoreSheet` con Todo al azar, Restablecer <pestaña>
+    y Copiar a la otra sede; una sola ✕: `VB.Splat.sheet({dock: false})`). Restablecer y Copiar siguen en el HTML ocultos (`.lk-x`). El
+    mando sigue con X = todo al azar.
+  - Textos: la estrella solo desde rareza 1; «Manguito (brazo izq.)», «Muñequera (dcha.)», «Sin collar», «Sin muñequera», «Sin tobillera»,
+    «Manos libres»…; letra ≥ 13 px en el móvil (medido en 568x320, 640x360 y 360x640).
+  - Fondo: el Vestuario de playa enseña la playa (y el de pista, el pabellón) con `ctx.actions.menuBackdrop` (main.js: ahora también en
+    `?debug=look`); al salir vuelve el del ajuste.
+  - Móvil apaisado (.ph): columna con cabecera (Volver, título y la pestaña en un chip), jugador y sede, la tira de 7 iconos (40×44, caben
+    a 568) y la lista o la rejilla (con la rejilla abierta la cabecera se va); al borde derecho Probar, dado y «⋯» arriba y «Dar la vuelta»
+    abajo. Vertical: Volver en flecha, título y chip; el muñeco entre ⟲ ↻ ⟳ (izquierda) y las acciones (derecha); abajo jugador, sede,
+    pestañas y lista o rejilla. Iconos nuevos de Cabeza (gorra de perfil) y Brazos (brazo con manguito).
+- **Comprobar**: `node tools/vestuxwp6.js [--sizes=…] [--only=caso,…]` (JPEG por caso y `metrics.json`: lo que tapa la UI de cabeza, pies y
+  manos según el encuadre, botones, pestañas, letra < 13, recortes, rejilla y ms de miniaturas). `tools/looktest.js --gl` prueba el dado y
+  «Todo al azar» con `_keep`.
+- **Ronda 1 de revisión (19-nov-2026)**:
+  - **Vertical: el muñeco solo arriba.** `preview.place(cx, half, top, bot, clip, clipT)`: en vertical ui.js pasa las franjas de abajo (jugador,
+    sede, pestañas, lista o rejilla) y de arriba (cabecera) donde el muñeco NO se pinta. doll.js `pvClipArm` (al final de `update`) deja su
+    material sin color ni profundidad (sigue proyectando sombra) y su tinta oculta; main.js, tras el render del frame, llama a
+    `preview.pass(ctx)` (`pvClipPass`): segundo pase de la escena con la cámara en la capa 3 (el muñeco, su tinta y las luces de la sede la
+    llevan), tijera en el hueco, sin fondo ni mapa de sombras nuevo (con post-proceso, limpia la profundidad de la franja). Cero programas
+    nuevos (41 en 360x640 y en 640x360). De cerca queda un busto que llena el hueco (cabeza, nuca y perfil con 0,1 m menos de cuello; el tope
+    `PV_PPM` ×1,6 con recorte); de cuerpo entero en vertical, 0,08 m menos de aire arriba y `fill` 0,985. Sin la reserva de 22 px del pie.
+  - **PC**: ⟲ ↻ ⟳ en columna al borde derecho, abajo (de cerca, las rodillas quedaban detrás de la fila bajo el muñeco).
+  - **Miniaturas sin tirones**: `portrait.prep(c, req, ms)` monta el muñeco por pasos (`rigBones` + `rigGeoBegin/rigGeoRun`: las piezas de
+    `rigGeometry` en 12 pasos, mismo orden y mismos triángulos; `buildRig` = `rigBones` + `rigSkin`), las luces, el material y la subida del
+    atlas de la primera, ≤ 3 ms por frame; `portrait.snap(c, req)` lo pinta y lo copia en la GPU con `createImageBitmap` (antes `toBlob`
+    leía el lienzo y esperaba a la GPU: 10-18 ms en el mismo frame). El material y su atlas se reutilizan de un muñeco al siguiente. main.js:
+    caché propia de `ImageBitmap` (`TCACHE`, ≤ 48), evento `vb-portrait` con `bmp`; ui.js las pone en un `<canvas>` de la ficha con
+    `bitmaprenderer` (`lkTileShow`). El retrato no se suelta mientras el Vestuario está abierto (cada rejilla recompilaba su programa).
+    Medido (`portraitInfo().msMax` y envoltorio de prep/snap): ≤ 1 ms por frame en PC; 3-7,5 ms a CPU ×4 (640x360 y 360x640); la primera
+    de la sesión compila el programa del retrato (10-14 ms, una vez).
+  - **Rejilla**: miniaturas de peinado de cerca (encuadre `peinado`; 3/4 de espaldas, yaw 2,2, los de volumen detrás) y de tobillera
+    (`tobillo`); ojo tachado en la ficha de lo que con lo puesto no se vería (tobillera bajo calcetines altos, gorro que tapa el peinado);
+    cabecera en pegatina de tinta; familias en tinta opaca y flecha crema `.lk-fmore` (44 px) que corre la tira cuando no caben.
+  - `tools/vestuxwp6.js`: mira TODOS los puntos del muñeco que se pintan (fuera del recorte), nombra lo que se sale (las gotas de la mancha
+    de un botón que cabe se cuentan aparte, «gotas») y cuenta las miniaturas en `<canvas>`.
+- **Integración (19-nov-2026)**: las filas `hair2` / `hairFx` de WP2 ya están en `LK_ROWS.pelo`; `lkUnderCap` lee `VB.Doll.HAIR_UNDER_CAP`
+  (los peinados con `hat:'show'`); `lkBack` usa la familia del catálogo (recogido o largo) porque HAIR_STYLES no lleva `back`. WP4 deja la
+  tobillera por fuera del calcetín, así que doll.js publica `VB.Doll.UNDER_SOCK = {}` y el aviso «Queda bajo los calcetines» no sale. Las
+  piezas de `rigGeoBegin` llevan lo de WP2-WP5 (`headGeo(…, r)`, cuello alto de la interior, `thighGeo(…, X, …)`).
+
+### Repaso tras la revisión final (20-nov-2026, rama personaje)
+- **Cara** (doll.js `paintPaint`): «rayas» es una MEDIA LUNA que abraza el ojo por abajo y por fuera, a 3 mm del blanco (elipse del ojo + 2,7 × 1,2 cm, de −1,5 a 0,3 rad;
+  lookvis 2,5 %); de 3/4 la franja larga y baja quedaba junto a la sonrisa y parecía un bigote. «zinc» va al puente y a los pómulos
+  (`yc = 0,1475 + 0,42·x²`), justo bajo los ojos; a la altura de la nariz quedaba encima de la boca (bigote blanco en piel oscura).
+- **Rodilleras cortas**: `padHex` les aplica la regla de contraste de las altas (pantalón y calcetín): ya no son negras sobre el pantalón negro.
+- **Rapados** (`stubHex`): lo rapado es del tono del pelo oscurecido con algo de piel y siempre ≥ 0,13 de luminancia por debajo de la
+  piel (antes mitad piel: calva o gorro de baño). `alCero` lleva `stubK: 0,6` y todo el casco de ese color (en piel oscura basta con 0,04 por
+  debajo, para que no sea tan negro como el rapado); `rapado` deja el pelo arriba y una franja rapada en la nuca.
+- **Brillo del pelo** (`hairTone`): suave (sube y baja de 0,08π a 0,3π) y casi solo por delante; el aro estrecho de la coronilla parecía un
+  agujero desde la cámara del partido. `hairBall(…, wound)`: moño ENROLLADO (espiral de vueltas oscuras por color de cara) en el moño bajo
+  y el semirrecogido, que eran un disco plano.
+- **Pinzas**: lomo en arco (medio toro 3×4) y cuatro dientes en punta; mismos 84 triángulos.
+- **Pendientes**: `EAR_HAIR` (melena, melenita, ondas, semirrecogido): con esos peinados no se pintan (el pelo los tapa) y la ficha lo
+  avisa (`hint` de look.js). lookshots tiene combos `c_ears_*` de los demás largos.
+- **Vestuario (ui.js / index.html)**: las filas de color que no pintan nada de lo que llevas no salen (debajo, «Los demás colores salen
+  cuando llevas algo que los use»); letra ≥ 13 px en escritorio (rótulos, ayuda, Q/E, barra de teclas, versión, «Jugadores»); la barra de
+  teclas va en pegatina de tinta. «Probar» en el móvil apaisado (alto ≤ 420): la lista, las pestañas y la fila de jugador y sede se
+  desvanecen mientras dura la pose y el muñeco ocupa el ancho (`lkTryFull`; vuelven al tocar o pulsar, a los 5 s o con «De pie»).
+- **Marcadores** (arena.js `screenVis`): con la vista previa del Vestuario activa en el menú, todos al 12 % (el colgado quedaba detrás de la
+  cabeza en los encuadres de pelo y cara).
+
+### Pulido, ronda 1 (20-nov-2026, rama personaje, 1.18.0)
+- **Efectos de pelo** (`hairTone`, `autoH2`): el segundo color AUTOMÁTICO ya no es un beis de piel clara. Raíces: siempre más oscuras que el
+  pelo (`mixHex(hr, 0x1a100a | 0x05070c, 0,6 | 0,78)`), salvo en el pelo ya casi negro (luminancia ≤ 0,13), donde una raíz más oscura no se
+  ve y va el miel; el resto, sobre pelo oscuro, un miel (`0xe2a848`) que se aparta de la luminancia de la piel
+  ≥ 0,14. Raíces en el espacio de la CABEZA para casco y piezas (`ex.ur = θ / línea de pelo`, borde suave 0,36-0,62 en 2-3 filas): el tupé ya
+  no tiene dos manchas sueltas. Mechas por COLUMNA (casco: una de cada tres en espejo, desde u 0,26; melena: la de la columna del casco,
+  `H.mechAt`; piezas: por cara del tubo, `geo.userData.side` de `sweep`) y «mitad» con el φ del centro de la columna o de la raíz de la
+  pieza: bordes rectos, sin dientes de sierra. `G.vc(cx, cy, cz, t)` recibe el índice del triángulo. `HAIR_STYLES[id].noFx` (true o
+  {efecto: 1}): al cero no pinta efectos, el rapado no tiene raíces; la fila avisa «Con este peinado no se ve». Rapado: `shine` 0,06.
+- **Gorro de copa** (`hairShell` `capTrim`, solo líneas corto/recogido/afro y crop): delante de la oreja, el pelo es una tira fina bajo el
+  borde (`rim + 0,035π`); la patilla entera era una cuña oscura que llegaba al ojo (el «parche» del n.º 1 en la playa). El afro bajo la
+  gorra no pone rizos en la sien.
+- **Térmica de pista**: el `else` del antebrazo de piel colgaba de la costura de la licra y pintaba piel sobre la manga: vuelve la manga
+  larga con su puño.
+- **Brazalete** en manguito bicolor/fundido: `pick2` contra la mitad de arriba Y la de abajo (antes oscuro sobre oscuro).
+- **Rodilleras automáticas**: la blanca (o casi blanca: a < 130 del blanco) solo sobre piel de luminancia < 0,55; si no, la siguiente.
+- **Gafas**: con pelo largo por los lados (líneas medio/largo y `EAR_HAIR`) la patilla se mete bajo el pelo donde lo encuentra.
+- **Orejas**: `owk` 0 y normales inclinadas un 25 % hacia fuera (sin el aro discontinuo de perfil). **Cadena de plata**: eslabones claro,
+  oscuro, brillo, oscuro (más contraste contra la camiseta), chapa 5 × 6,4 cm más alta (no tapa el dorsal); mismos triángulos. **Pinzas**
+  un 15 % más grandes. Con eso, lookvis vuelve a 0 invisibles (pinzas 1,62 %, cadena 1,68 %, raíces 5,6 %).
+- **Raya** (`st.part`, color por vértice): trenza a un lado, moño bajo al otro. **Pelo claro en LOD0/1**: nuca algo más oscura (`u > 0,55`).
+- **Vista previa por pasos** (`preview.set(L, {soon: true})`, lo pide ui.js `lkPvOpts`): `pvJobStart/pvJobRun` montan la geometría con
+  `rigGeoBegin/rigGeoRun` en trozos de ~4 ms por frame (la cabeza en dos pasos: `headBase + hairGeoMain`, luego `headGeo(…, H0)`), el
+  material se reutiliza si el atlas no cambia (`freeRig(r, keepMat)`) y el muñeco nuevo entra al acabar. Sin `soon` (herramientas) es como
+  antes. Medido (360x640, dpr 2,75, CPU ×6, cambio de peinado cada 400 ms, 5 s): peor frame 100-117 ms → 38-47 ms, frames > 50 ms 12 → 0.
+- **Bloom** (arena.js `renderPost`): 0,55 con la vista previa activa (0,72 en el resto; a 0,36 las piezas finas bajaban de 1,5 % en lookvis): resplandor naranja de la camiseta en la cara.
+- **Vestuario (ui.js / index.html)**: en la pestaña Pelo la vista previa quita el gorro que tapa el peinado (`lkPvFit`; lo guardado no
+  cambia). «Probar» de 3/4 de frente (`frameSlot('', {frame: 'cuerpo', yaw: 0,45})`) y a toda la altura en vertical. «Deshacer» 5 s tras
+  el dado, Todo al azar, Restablecer y Copiar (`lkUndoOffer`). Cambio de sede: fichas, lista y muñeco primero, luego cortina de tinta
+  (`#menu.lk-swap`) mientras se monta el fondo (`lkBackdropSoon`). Nombres de miniatura con guiones blandos por sílabas (`lkShy`).
+  Ayuda: avisos a 2 líneas en `.ph`, bloqueado a 3 en vertical. Vertical: rejilla de 4 × 70 px y 56vh (8 miniaturas enteras). Sin el botón
+  de pantalla completa en el Vestuario del móvil. Avisos sobre la lista; la pista de girar se va al primer toque. PC: Probar/dado/«⋯» no
+  saltan al abrir la rejilla. Vertical: el hueco del muñeco se vuelve a medir cuando la lista cambia de alto.
+- **6v6 en calidad baja** (línea base nueva, `EXTRA=format=6v6 node tools/perf.js 640x360 15 low 6 2.75`): 60,5 fps (p5 42,4), 123 k
+  triángulos de media / 124 k de pico, 35/37 dibujos, heap 17,8 → 20 MB. En 1.17.1 (medida del revisor): 60,8 fps, 109 k / 112 k, 31/33
+  dibujos. Dentro de ARN-12 (150 k, 45 dibujos) con menos margen.
+- `earsMove` (look.js) migra un formato que nunca se publicó: se puede quitar después de 1.18.0 (tiene su prueba en looktest).
+
+### Pulido, ronda 2 (20-nov-2026, rama personaje, 1.18.0)
+- **Afro bajo gorro de copa** (gorra, pescador, gorro de pompón): solo los rizos de la nuca (`|φ| ≥ 0,7π`). Con el casco recortado delante
+  de la oreja (`capTrim`) y casi sin volumen (`capVol`), los de los lados quedaban sueltos a la altura de la oreja: «gafas» o un segundo
+  par de ojos.
+- **«Probar»** (ui.js `lkTryStop`): la pose se acaba a los 5 s (con el muñeco a toda pantalla del móvil) o al cambiar de pestaña, de fila
+  (`lkFocusSlot`), de jugador, al abrir, al dado, Todo al azar, Restablecer, Copiar (`lkUndoOffer`) y «Deshacer»; vuelve de pie y al
+  encuadre de la fila o la pestaña. La ronda de poses sigue donde iba (`lk.tryLast`).
+- **Cadena de plata**: cordón `torus(1, 0,18)` (antes 0,19) de un tono por debajo y con brillo uno de cada cuatro eslabones solo por
+  arriba (sin los cuadros claro/oscuro; sobre pecho claro, acero más oscuro); sobre pecho oscuro, plata clara lisa. Chapa 5 × 4,8 cm
+  colgada del cordón (`F.yf − 0,012`): deja el dorsal entero. lookvis 1,58-1,63 % en pista y en playa (umbral 1,5 %; con 0,17 y la chapa de 4,2 cm la
+  pasada completa daba 1,48 %: más fina no pasa).
+- **Raíces**: borde 0,3-0,74 (antes 0,42-0,66) y, en el castaño (luminancia 0,13-0,3), `mixHex(hr, 0x05070c, 0,62)` (antes 0,78: casquete
+  casi negro de espaldas). lookvis 5,22 % / 5,52 %.
+- **Orejas**: `mixHex(piel, 0x6a1e14, 0,16)`, sin tinta: de perfil (rapado) se leen por el tono.
+- **Brazalete sobre el bicolor**: 0,56-0,76 (antes 0,49-0,83) solo con ese manguito: asoma la mitad de arriba.
+- **PC**: el aviso con «Deshacer» baja 66 px (debajo del botón de pantalla completa).
 
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 

@@ -490,6 +490,10 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - `tools/drive.js` falló 1 vez de 4 («el humano llega a tocar el balón», con el PC al 60 % de CPU); las otras 3, TODO OK. Vigilar.
 
 ### Hecho
+- **Vestuario renovado (1.18.0)** (20-nov-2026, rama personaje): casco de pelo nuevo con 32 peinados y pelo que asoma bajo los gorros,
+  segundo color y efectos de pelo (raíces, puntas, mechas, flequillo, mitad y mitad), 41 objetos nuevos, editor con miniaturas, encuadre
+  por ranura y «Probar» (remate, celebración, recepción). Sin draw calls ni programas nuevos; topes TRI_CAP 4400/6000/12800. Plan en
+  notes/vestuario-plan.md, detalle en notes/players.md § Vestuario.
 - **Sedes (mapas)** (12-nov-2026, arena + lo justo de ui_main): registro `js/venues.js` (`VB.VENUES` / `VB.Venues`: nombre, nivel, ayuda,
   color de arena, luces) y `VB.Arena.registerMap` para sedes en ficheros propios `js/venue-<id>.js`. El tipo de reglas que va a la sim
   ('hall' | 'beach') no cambia de significado (huella 2v2 idéntica). Ajustes `mapHall` / `mapBeach` (Ajustes · Imagen · «Sede de playa»,
@@ -723,6 +727,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   iguales que al empezar) y cada sede con `EXTRA=map=<id>` en `console.sh all` y `perf.js` (p. ej. `EXTRA=map=fanals`; console.sh lee `EXTRA` del entorno o como 4.º argumento: `bash tools/console.sh all 1280 720 map=fanals`).
 - Carrera con vida (1.13.0): `node tools/storytest.js`, `storymsgtest.js`, `storyweektest.js`, `storywalltest.js`, `storyseasontest.js` y
   `storyuitest.js`, de una en una. Regla de oro, `c.story` y claves de azar `st-*` en notes/carrera.md §«Carrera con vida».
+- Vestuario (1.18.0): `node tools/looktest.js` (también `--gl` y `--sweep`), `lookvis.js`, `lookshots.js`, `lookzoom.js`,
+  `vestuxaudit.js`, `vestuxprobe.js` y `vestuxwp6.js`. Plan y lista final en notes/vestuario-plan.md §4; detalle en notes/players.md § Vestuario.
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

@@ -409,8 +409,9 @@
     var body = mk('div', 'sp-scroll sp-sh-b');
     if (o.node) body.appendChild(o.node); else if (o.html != null) body.innerHTML = o.html;
     p.appendChild(body);
-    var acts = (o.actions || []).slice(), dock = mk('div', 'sp-dock');
-    if (!acts.length) acts = [{ label: 'Cerrar', cls: 'sp-cream' }];
+    // o.dock === false: sin barra de acciones (la hoja ya lleva sus botones dentro; solo la ✕ cierra: antes salían dos «cerrar»)
+    var acts = o.dock === false ? [] : (o.actions || []).slice(), dock = mk('div', 'sp-dock');
+    if (!acts.length && o.dock !== false) acts = [{ label: 'Cerrar', cls: 'sp-cream' }];
     acts.sort(function (a, b) { return (a.primary ? 1 : 0) - (b.primary ? 1 : 0); });   // la principal, la última (abajo a la derecha)
     var first = null;
     acts.forEach(function (a, i) {
@@ -420,7 +421,7 @@
       dock.appendChild(b); if (a.primary || !first) first = b;
     });
     if (acts.length === 1 && !acts[0].primary) dock.classList.add('sp-dock-one');
-    p.appendChild(dock);
+    if (acts.length) p.appendChild(dock);
     h.appendChild(cat); h.appendChild(p);
     h.classList.toggle('sp-rm', reduced());
     h.hidden = false; RT.classList.add('sp-sh-on');   // (los avisos cortos bajan para no tapar la ✕)
@@ -439,6 +440,7 @@
     x.addEventListener('click', function () { api.close(); });
     shCur = api;
     var kb = !!(opener && opener.classList && opener.classList.contains('kf'));
+    if (!first) first = body.querySelector('button') || x;
     setTimeout(function () { if (shCur !== api || !first) return; try { first.focus({ preventScroll: true }); } catch (e) { } if (kb) first.classList.add('kf'); }, 30);
     return api;
   }
