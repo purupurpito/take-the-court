@@ -3494,6 +3494,7 @@
       if (lb && (lb.nick || lb.name)) d.boss = { nick: lb.nick || lb.name, win: !!lb.win, h2h: lb.h2h || null };
       if (sum && sum.inj && sum.inj.name) d.inj = { name: String(sum.inj.name), n: sum.inj.n | 0, rl: sum.inj.rl | 0 };   // lesión en este partido (career-injury.js; la pinta recap.js)
       d.train = trainLine(sum, x.ses);
+      if (sum && sum.title) d.title = String(sum.title);   // extensiones (career-natl.js): título, botón y línea de copa propios (sum.back/sum.cup los lee recap.js)
     } else {
       d.aw = endAw.slice(); d.badges = endBd.slice(); d.altDiffName = endAltName;
     }
@@ -3957,6 +3958,7 @@
         case 'chem': blk('rc-chem', H.chem, '<span class="rc-l">' + escT(M.chem.t) + '</span>'); break;
         case 'boss': blk('rc-boss' + (M.boss.win ? ' win' : ''), H.boss, '<span class="rc-l">' + escT(M.boss.t) + '</span>'); break;
         case 'train': blk('rc-train', H.train, '<span class="rc-l">' + sepHTML(M.train.t.split(' | '), 'v') + '</span>'); break;
+        case 'inj': blk('rc-inj', H.inj, '<span class="rc-l"><b>' + escT(M.inj.t) + '</b></span><span class="rc-l">' + sepHTML(M.inj.parts, 'v') + '</span>'); break;
         case 'retos':
           var rp = M.retos.pills.map(function (p) { return '<span class="rc-pill' + (p.nw ? ' nw' : '') + '">' + medalSVG(p.lvl) + escT(p.t) + '</span>'; }).join('');
           blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + ' (a cada jugador)</span>' : ''));

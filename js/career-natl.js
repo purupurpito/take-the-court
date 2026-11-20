@@ -770,6 +770,24 @@
     return w.pos ? natOf(w.my).name + ' termina ' + ordF(w.pos) : '';
   }
   function quit() { return null; }   // (a medias: el partido sigue pendiente, como una jornada de liga)
+  /** Hoja final de muestra (main.js &debug=over&cr=1&ext=natl&k=…; no toca ninguna Carrera): lo que devolvería done() en los casos
+   *  de textos más largos. k '' | 'q': billete de la clasificación con el torneo de nombre más largo («¡Billete para el Continental
+   *  Americano!»); 'loss': derrota de grupo contra el país de nombre más largo («Gana República Dominicana», «Siguiente: 3ª jornada»).
+   *  cs = el g.career de la escena (antetítulo, abreviaturas y rival), por si main.js lo aplica. */
+  function endDemo(k) {
+    var loss = k === 'loss', ei = { name: contName('América'), art: 'el' }, me = natOf(loss ? 'US' : 'DO'), rv = natOf(loss ? 'DO' : 'US');
+    var lbl = loss ? ei.name + ', ' + low1('Grupo B, 2ª jornada') : ei.name + ', ' + low1(RND_TXT.q2);
+    var sum = { kind: 'natl', label: lbl, win: !loss, nota: loss ? 6.4 : 7.6, xp: loss ? 214 : 356, lvlUp: !loss, lvl: 9, ptsGained: loss ? 0 : 3, next: '', medal: '', ev: ei.name,
+      life: { fans: loss ? 120 : 480 },
+      rt: { nota: loss ? 6.4 : 7.6, best: [{ id: 'kill', txt: 'Remate ganado', n: 8, d: 0.26 }, { id: 'ace', txt: 'Ace', n: 2, d: 0.2 }, { id: 'block', txt: 'Bloqueo punto', n: 1, d: 0.1 }],
+        worst: [{ id: 'srvErr', txt: 'Error de saque', n: 2, d: -0.17 }, { id: 'atkErr', txt: 'Remate fuera', n: 1, d: -0.08 }] } };
+    sum.title = loss ? 'Gana ' + rv.name : '¡Victoria!';
+    sum.back = loss ? 'Siguiente: ' + shortRound({ r: 'g3' }) : 'Volver a la Carrera';
+    sum.cup = loss ? '' : '¡Billete para ' + theEv(ei) + '!';
+    if (loss) sum.next = 'Siguiente: grupo B, 3ª jornada contra ' + natOf('PR').name;
+    sum.cs = { label: lbl, me: me.ab, rival: rv.ab, meName: me.name, rivalName: rv.name };
+    return sum;
+  }
 
   // ------------------------------------------------------------------ acciones (guardan)
   function cur() { var C = VB.Career; var c = C && C.get ? C.get() : null; if (c) ensure(c); return c; }
@@ -920,36 +938,44 @@
   }
   /** Tarjeta del torneo de la ventana (Club › Selección). */
   function tourCard(c, w, Hh, ph) {
-    var hl = hall(c), nat = natOf(w.my), h = '<div class="card"><h3>' + esc(w.kind === 'q' ? 'Clasificación' : w.name) + '</h3>';
+    // (con partido tuyo pendiente, .x-go: en el móvil «Jugar» / «Simular partido» salen a la barra de abajo (#crDock) y siguen a mano
+    //  aunque el hub baje hasta tu fila de la tabla del grupo; «Simular el resto» y «Pedir descanso» van debajo de la tabla)
+    var hl = hall(c), nat = natOf(w.my), pf = pendingMine(w);
+    var h = '<div class="card' + (pf ? ' x-go' : '') + '"><h3>' + esc(w.kind === 'q' ? 'Clasificación' : w.name) + '</h3>';
     var meta = w.kind === 'q' ? ['Para ' + esc(evInfo(c, w.ev, w.my).art + ' ' + w.name), 'Antes de la jornada ' + w.exp] : [w.host ? 'En ' + esc(natOf(w.host).name) : '', 'Tras la T' + w.s, esc(stageName(w)), esc(roleOf(w))];
     h += '<p class="muted">' + Hh.sp(meta, 'v') + '</p>';
     if (w.nq) h += '<p>' + esc(nat.name + ' no se ha clasificado.') + '</p>';
     // tu próximo partido y los botones, arriba (en el móvil se ven sin desplazar)
-    var pf = pendingMine(w);
     if (pf) h += '<p>' + Hh.sp([esc(roundLabel(w, pf)), '<b>' + esc((ph ? nat.ab : nat.name) + ' contra ' + (ph ? natOf(pf.a === w.my ? pf.b : pf.a).ab : natOf(pf.a === w.my ? pf.b : pf.a).name)) + '</b>', plays(c, w, pf) ? '' : 'No juegas'], 'v') + '</p>';
-    h += actsHTML(c, w, true);
+    h += actsHTML(c, w, 'main');
     if (w.kind === 'sum' && !w.nq) {
+      // (tu país: .nt-me y no .me; con .me el hub del móvil bajaría hasta tu fila y el torneo y sus botones quedarían bajo la cabecera)
       var gi = 0; w.groups.forEach(function (g, i) { if (g.indexOf(w.my) >= 0) gi = i; });
       var t = groupTable(c, w, gi);
       h += '<table><thead><tr><th class="l">Grupo ' + 'ABCD'.charAt(gi) + '</th><th>PJ</th><th class="hide-s">G</th><th class="hide-s">P</th><th>Sets</th><th>Pts</th></tr></thead><tbody>' + t.map(function (r) {
-        return '<tr' + (r.cc === w.my ? ' class="me"' : '') + '><td class="club">' + esc(ph ? natOf(r.cc).ab : natOf(r.cc).name) + '</td><td>' + r.pj + '</td><td class="hide-s">' + r.g + '</td><td class="hide-s">' + r.p + '</td><td>' + r.sf + '-' + r.sc + '</td><td class="pts">' + r.pts + '</td></tr>';
+        return '<tr' + (r.cc === w.my ? ' class="nt-me"' : '') + '><td class="club">' + esc(ph ? natOf(r.cc).ab : natOf(r.cc).name) + '</td><td>' + r.pj + '</td><td class="hide-s">' + r.g + '</td><td class="hide-s">' + r.p + '</td><td>' + r.sf + '-' + r.sc + '</td><td class="pts">' + r.pts + '</td></tr>';
       }).join('') + '</tbody></table>';
       var ko = w.fx.filter(function (f) { return !/^g/.test(f.r); });
       if (ko.length) h += '<p>' + ko.map(function (f) { return esc(RND_TXT[f.r]) + ': ' + fxLine(w, f, ph); }).join('<br>') + '</p>';
     }
     if (w.kind === 'q') h += '<p>' + w.fx.map(function (f) { return esc(RND_TXT[f.r] || '') + ': ' + fxLine(w, f, ph); }).join('<br>') + '</p>';
+    h += actsHTML(c, w, 'rest');
     var mine = w.fx.filter(function (f) { return isMine(w, f); });
     if (w.on && mine.length) h += '<p class="muted">' + mine.map(function (f) { return esc(roundLabel(w, f) + ': ' + scoreTxt(w, f)); }).join('<br>') + '</p>';
     if (w.stage === 'done' && w.kind === 'sum' && w.pos) h += '<p><b>' + esc(nat.name + ' termina ' + ordF(w.pos) + '.') + '</b> ' + esc('Oro para ' + natOf(w.champ).name + '.') + '</p>';
     return h + '</div>';
   }
-  function actsHTML(c, w, full) {
-    var f = pendingMine(w); if (!f && !(full && w.stage !== 'done')) return '';
-    var b = [];
-    if (f && plays(c, w, f)) b.push('<button class="pri" data-act="nt-play" aria-label="Jugar con la selección">Jugar</button>', '<button data-act="nt-sim">Simular partido</button>');
-    else if (f) b.push('<button class="pri" data-act="nt-sim">Simular</button>');
-    if (full && w.stage !== 'done' && w.on && !w.dec) b.push('<button data-act="nt-simall">Simular el resto</button>');
-    if (full && w.kind === 'sum' && w.on && !w.dec && !w.mt.n && w.stage !== 'done') b.push('<button data-act="nt-dec">Pedir descanso este verano</button>');
+  /** Botones del torneo. part 'main': tu partido pendiente (Jugar / Simular partido; la 1ª .acts de la tarjeta, la que pasa a la barra
+   *  en el móvil); 'rest': Simular el resto y Pedir descanso. */
+  function actsHTML(c, w, part) {
+    var f = pendingMine(w), b = [];
+    if (part === 'main') {
+      if (f && plays(c, w, f)) b.push('<button class="pri" data-act="nt-play" aria-label="Jugar con la selección">Jugar</button>', '<button data-act="nt-sim">Simular partido</button>');
+      else if (f) b.push('<button class="pri" data-act="nt-sim">Simular</button>');
+    } else if (w.stage !== 'done' && w.on && !w.dec) {
+      b.push('<button data-act="nt-simall">Simular el resto</button>');
+      if (w.kind === 'sum' && !w.mt.n) b.push('<button data-act="nt-dec">Pedir descanso este verano</button>');
+    }
     return b.length ? '<div class="acts">' + b.join('') + '</div>' : '';
   }
   /** Tarjeta en Partido (hueco 'match'): el siguiente partido de la selección o el resultado del verano. */
@@ -965,8 +991,10 @@
     var f = pendingMine(w); if (!f) return '';
     var rv = f.a === w.my ? f.b : f.a, cyc = cycOf(c, w.s), on = plays(c, w, f), pr = pressOf(f), nerv = n.car.caps < 3 || (f.r === 'f' && !n.fin);
     var h = '<div class="card new"><h3>' + esc('Selección: ' + (w.kind === 'q' ? 'clasificación' : w.name)) + '</h3>';
-    h += '<p>' + Hh.sp([esc(roundLabel(w, f)), '<b>' + esc(ph ? nat.ab + ' contra ' + natOf(rv).ab : nat.name + ' contra ' + natOf(rv).name) + '</b>'], 'v') + '</p>';
-    h += '<p class="muted">' + Hh.sp(['Fuerza ' + Math.round(Sof(c, w.my, cyc)) + ' contra ' + Math.round(Sof(c, rv, cyc)), w.host ? 'En ' + esc(natOf(w.host).name) : ''], 'v') + '</p>';
+    // (móvil: la fuerza en la 1ª línea; la tarjeta es más baja y sus botones no quedan bajo la barra de abajo)
+    var fz = 'Fuerza ' + Math.round(Sof(c, w.my, cyc)) + (ph ? '-' : ' contra ') + Math.round(Sof(c, rv, cyc));
+    h += '<p>' + Hh.sp([esc(roundLabel(w, f)), '<b>' + esc(ph ? nat.ab + ' contra ' + natOf(rv).ab : nat.name + ' contra ' + natOf(rv).name) + '</b>', ph ? fz : ''], 'v') + '</p>';
+    if (!ph) h += '<p class="muted">' + Hh.sp([fz, w.host ? 'En ' + esc(natOf(w.host).name) : ''], 'v') + '</p>';
     if (on && pr >= 2 && nerv) h += '<p>' + esc(pr >= 3 ? (f.r === 'f' ? 'Presión alta: tu primera final.' : 'Presión alta: partido grande y poca experiencia.') : 'Presión: aún te pesan los nervios.') + '</p>';
     else if (on && n.car.caps < 3) h += '<p>' + esc(n.car.caps ? 'Aún te pesan los nervios.' : 'Tu debut: los nervios te restan un poco.') + '</p>';
     if (!on) h += '<p>El seleccionador no te pone en este partido.</p>';
@@ -975,6 +1003,15 @@
     // (sin parche: en Partido la acción principal es la jornada del club; el parche «Jugar» está en Club › Selección)
     var b = on ? '<button data-act="nt-play" aria-label="Jugar con la selección">Jugar</button><button data-act="nt-sim">Simular</button>' : '<button data-act="nt-sim">Simular</button>';
     return h + '<div class="acts">' + b + '<button data-act="nt-go">Ver torneo</button></div></div>';
+  }
+  /** CSS propio: tu país en la tabla del grupo, como tu fila en las tablas del hub (career-ui.js, tr.me). */
+  function css() {
+    var Q = ':root:not(#_):not(#_):not(#_) #career', I = 'inset 0 2.5px 0 var(--sp-ink),inset 0 -2.5px 0 var(--sp-ink)';
+    return ['#career tr.nt-me td{background:rgba(255,128,64,.22)}',
+      Q + ' tbody tr.nt-me td{background:var(--sp-kit);color:var(--sp-kit-ink);text-shadow:var(--sp-kit-ts);box-shadow:' + I + '}',
+      Q + ' tbody tr.nt-me td:first-child{box-shadow:' + I + ',inset 2.5px 0 0 var(--sp-ink)}',
+      Q + ' tbody tr.nt-me td:last-child{box-shadow:' + I + ',inset -2.5px 0 0 var(--sp-ink)}',
+      Q + ' tbody tr.nt-me td.pts{color:var(--sp-kit-ink)}'].join('\n');
   }
   /** Palmarés: totales con la selección (si ya has jugado). */
   function honors(c, HLP) {
@@ -1055,14 +1092,14 @@
     NAT: NAT, EV: EV, CYC: CYC, CUT: CUT, FAME_EV: FAME_EV, NATL_XP: NATL_XP,
     evOf: evOf, cycOf: cycOf, evName: evName, str: str, strB: strB, Sof: Sof, natOf: natOf, fieldOf: fieldOf, groupTable: groupTable, placesOf: placesOf,
     plays: plays, pendingMine: pendingMine, coachName: coachName, stText: stText, winOk: winOk,
-    _debugSeed: debugSeed, _demo: debugSeed, _K: K, _openSum: openSum, _openQ: openQ, _advance: advance, _simRes: simRes,
+    _debugSeed: debugSeed, _demo: debugSeed, _endDemo: endDemo, _K: K, _openSum: openSum, _openQ: openQ, _advance: advance, _simRes: simRes,
     get OFF() { return OFF; }, set OFF(v) { OFF = !!v; }
   };
   VB.CareerNatl = API;
   (VB.CareerExt = VB.CareerExt || []).push(API);
   (VB.CareerUIExt = VB.CareerUIExt || []).push({
     id: 'natl', prefix: 'nt-', subs: [{ tab: 'club', id: 'natl', label: 'Selección', labelPh: 'Selección', has: function (c) { return !OFF && !!c && c.myClub >= 0; } }],
-    page: page, match: card, honors: honors, dot: dot, act: act
+    page: page, match: card, honors: honors, dot: dot, act: act, css: css
   });
   if (VB.CareerStory && typeof VB.CareerStory.use === 'function') { try { VB.CareerStory.use(STORY_SYS); } catch (e) { } }
 })(typeof window !== 'undefined' ? window : globalThis);

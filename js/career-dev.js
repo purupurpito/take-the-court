@@ -511,6 +511,7 @@
 
   // ------------------------------------------------------------------ interfaz (VB.CareerUIExt)
   var uiOpen = '', flash = null;   // (lista desplegada: '' | 'plan' | 'ask'; y la respuesta de la última acción: {where, txt, go})
+  var demoShow = '';   // (pantalla de muestra: la tarjeta de la lista desplegada, a la vista tras el próximo pintado; ver demo)
   function esc(H, s) { return H && H.esc ? H.esc(s) : String(s == null ? '' : s).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); }
   function spH(H, a, k) { return H && H.sp ? H.sp(a, k) : a.join(' | '); }
   function isPh(H) { try { return !!(H && H.ph && H.ph()); } catch (e) { return false; } }
@@ -519,6 +520,8 @@
   // (los botones van ya con sus clases SPLAT: así splatify no les da la mancha grande de «Jugar partido», que es la acción principal)
   function lbl(H, label) { return '<span class="sp-l"><span class="sp-t">' + esc(H, label) + '</span></span>'; }   // (rótulo como lo deja spLabel de career-ui)
   function btn(H, act, label, tone, extra) { return '<button class="sp-btn sp-md ' + (tone || 'sp-cream') + '" data-act="' + act + '"' + (extra || '') + '>' + lbl(H, label) + '</button>'; }
+  /** Rótulo del botón que pliega la lista (en el móvil, corto: cabe en la fila del título). */
+  function closeLbl(H) { return isPh(H) ? 'Cerrar' : 'Cerrar la lista'; }
   function bar(H, name, v, cur) {
     return '<div class="pbar cdv-pb' + (cur ? ' cdv-cur' : '') + '"><span>' + esc(H, name) + '</span><span class="bar"><i style="width:' + clampI(v, 0, 100) + '%"></i></span><b>' + clampI(v, 0, 100) + ' %</b></div>';
   }
@@ -552,10 +555,10 @@
       h += '<p>' + spH(H, ['<b>' + esc(H, pi.name) + '</b>', 'quedan ' + pi.left + ' de ' + pi.len + ' jornadas', pi.auto ? 'te lo puso el entrenador' : ''], 'v') + '</p>' +
         '<div class="pbar cdv-pb"><span>Jornadas</span><span class="bar"><i style="width:' + Math.round(100 * pi.done / pi.len) + '%"></i></span><b>' + pi.done + '/' + pi.len + '</b></div>' +
         '<p class="cdv-attrs">' + spH(H, pi.attrs.map(function (a) { return esc(H, a.name) + ' ' + a.v0 + (a.v !== a.v0 ? ' › <b>' + a.v + '</b>' : ''); }), 'c') + '</p>' +
-        '<div class="acts">' + btn(H, 'dv-plan-stop', 'Dejar el plan', 'sp-cream') + btn(H, 'dv-plan-open', uiOpen === 'plan' ? 'Cerrar la lista' : 'Cambiar plan', 'sp-teal', ' aria-expanded="' + (uiOpen === 'plan') + '"') + '</div>';
+        '<div class="acts cdv-ha">' + btn(H, 'dv-plan-stop', 'Dejar el plan', 'sp-cream') + btn(H, 'dv-plan-open', uiOpen === 'plan' ? closeLbl(H) : 'Cambiar plan', 'sp-teal', ' aria-expanded="' + (uiOpen === 'plan') + '"') + '</div>';
     } else {
       h += '<p class="muted">Sin plan: la mejora va al atributo más bajo de cada grupo.</p>' +
-        '<div class="acts">' + btn(H, 'dv-plan-open', uiOpen === 'plan' ? 'Cerrar la lista' : 'Elegir plan', 'sp-kit', ' aria-expanded="' + (uiOpen === 'plan') + '"') + '</div>';
+        '<div class="acts cdv-ha">' + btn(H, 'dv-plan-open', uiOpen === 'plan' ? closeLbl(H) : 'Elegir plan', 'sp-kit', ' aria-expanded="' + (uiOpen === 'plan') + '"') + '</div>';
     }
     if (uiOpen === 'plan') {
       h += '<div class="cdv-list sp-rows-2" role="group" aria-label="Planes">' + PLAN_KEYS.map(function (k, i) {
@@ -576,8 +579,8 @@
     if (d.pos.adapt) h += '<p class="cdv-cost">' + spH(H, ['Adaptación: ' + (d.pos.adapt.left === 1 ? '1 jornada más' : d.pos.adapt.left + ' jornadas más'), esc(H, adaptTxt(c, d.pos.adapt)) + ' en los partidos que juegas'], 'v') + '</p>';
     if (!others.length) return h + '<p class="muted">Por ahora en el 6 contra 6 solo se puede llevar este puesto.</p>' + flashHTML(H, 'state') + '</div>';
     var why = w === 'wait' ? 'Podrás volver a pedirlo en ' + plural(askWait(c), 'jornada', 'jornadas') : w === 'off' ? 'Antes contesta a su propuesta, en Partido' : w === 'summer' ? 'Ya has cambiado este verano' : w === 'adapt' ? 'Primero adáptate al puesto nuevo' : w ? 'Ahora no se puede pedir' : '';
-    if (why) h += '<div class="acts"><button class="sp-btn sp-md sp-cream sp-off" data-act="dv-ask-open" disabled aria-disabled="true">' + lbl(H, 'Pedir cambio') + '</button></div><p class="muted">' + esc(H, why) + '.</p>';
-    else h += '<div class="acts">' + btn(H, 'dv-ask-open', uiOpen === 'ask' ? 'Cerrar la lista' : 'Pedir cambio', 'sp-teal', ' aria-expanded="' + (uiOpen === 'ask') + '"') + '</div>';
+    if (why) h += '<div class="acts cdv-ha"><button class="sp-btn sp-md sp-cream sp-off" data-act="dv-ask-open" disabled aria-disabled="true">' + lbl(H, 'Pedir cambio') + '</button></div><p class="muted">' + esc(H, why) + '.</p>';
+    else h += '<div class="acts cdv-ha">' + btn(H, 'dv-ask-open', uiOpen === 'ask' ? closeLbl(H) : 'Pedir cambio', 'sp-teal', ' aria-expanded="' + (uiOpen === 'ask') + '"') + '</div>';
     if (uiOpen === 'ask' && !w) {
       h += '<div class="cdv-list sp-rows-2" role="group" aria-label="Pedir otro puesto">' + others.map(function (p, i) {
         var A = askChance(c, p), nm = posName(c, p) + (hall(c) || !c.mate ? '' : ' (y ' + String(c.mate.name).split(' ')[0] + ' ' + (p === 'cr' ? 'a la red' : 'atrás') + ')');
@@ -589,7 +592,23 @@
     }
     return h + flashHTML(H, 'state') + '</div>';
   }
-  function uiState(c, H) { if (!c || !c.player || c.phase === 'pick' || !myClub(c)) return ''; return planCard(c, H) + posCard(c, H); }
+  function uiState(c, H) {
+    if (!c || !c.player || c.phase === 'pick' || !myClub(c)) return '';
+    if (demoShow) showSoon(demoShow);
+    return planCard(c, H) + posCard(c, H);
+  }
+  /** Solo las pantallas de muestra (mobaudit): con una tarjeta de lesión u otras delante, la lista desplegada quedaba fuera de la
+   *  vista. Tras el pintado lleva su tarjeta arriba dentro del desplazamiento (al tocar el botón ya lo hace el foco de act). */
+  function showSoon(sel) {
+    demoShow = '';
+    if (typeof document === 'undefined' || typeof setTimeout !== 'function') return;
+    setTimeout(function () {
+      try {
+        var el = document.querySelector('#career ' + sel); if (!el) return;
+        if (VB.Splat && VB.Splat.reveal) VB.Splat.reveal(el, { block: 'start' }); else if (el.scrollIntoView) el.scrollIntoView({ block: 'start' });
+      } catch (e) { }
+    }, 0);
+  }
   /** Palmarés › Opciones (pista): el selector libre de puesto se va (hide 'setpos'); el cambio se pide al entrenador. */
   function uiOpts(c, H) {
     if (!hall(c) || !c.player || c.phase === 'pick') return '';
@@ -623,7 +642,20 @@
       PQ + ' .cdv-row{min-height:56px}',
       PQ + ' .cdv-row .sp-s{font-size:var(--ph-label)}',
       PQ + ' .cdv-chip{font-size:var(--ph-cap)}',
-      PQ + ' .cdv-note{font-size:var(--ph-body)}'
+      PQ + ' .cdv-note{font-size:var(--ph-body)}',
+      // (Partido: la propuesta arriba del todo, delante del brochazo del próximo partido —.cr-next/.cr-two van a order:-2—. Con avisos,
+      //  .cr-two lleva dentro el ticket, Faro y los avisos y la dejaba al fondo; «Jugar partido» sigue a mano en la barra de abajo)
+      PQ + ' #crBody[data-cv^="match"]>.cdv-off{order:-3}',
+      // (plan y puesto: el «?» junto al título y el botón en la misma fila, a la derecha. Al pie de la tarjeta quedaba medio cortado justo encima de
+      //  la barra de abajo de Estado, «Ir al plan del entrenador», y se solapaba con ella; si no cabe al lado del título, baja a la línea
+      //  siguiente, todavía arriba)
+      PQ + ' .card:is(.cdv-plan,.cdv-pos){display:flex;flex-wrap:wrap;align-items:center;column-gap:var(--ph-s3,12px);row-gap:var(--ph-s2,8px)}',
+      PQ + ' .card:is(.cdv-plan,.cdv-pos)>*{flex:1 1 100%;order:4;min-width:0}',
+      PQ + ' .card:is(.cdv-plan,.cdv-pos)>.cdv-list{order:3;margin:2px 0 6px}',   // (la lista desplegada, justo bajo el título y su botón)
+      PQ + ' .card:is(.cdv-plan,.cdv-pos)>h3:first-child{flex:0 1 auto;order:0;margin-right:0}',
+      PQ + ' .card:is(.cdv-plan,.cdv-pos)>.acts.cdv-ha{flex:0 0 auto;order:2;margin:0 0 0 auto;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:var(--ph-hit-gap,10px)}',
+      PQ + ' .card:is(.cdv-plan,.cdv-pos)>.acts.cdv-ha>.sp-btn{flex:0 0 auto;min-height:44px;margin:0}',
+      PQ + ' .card.card:is(.cdv-plan,.cdv-pos)>.cr-q{flex:0 0 44px;order:1;position:relative;top:auto;right:auto}'
     ].join('\n');
   }
   function curC() { var X = C(); try { return X && X.get ? X.get() : null; } catch (e) { return null; } }
@@ -674,11 +706,17 @@
     c = c || curC(); if (!c || !c.player || !myClub(c)) return false;
     var d = ensure(c);
     if (kind === 'pos') {
-      if (!d.pos.off) { var mv = bestMove(c); if (!mv) return false; propose(c, mv); d.pos.nS = Math.max(0, d.pos.nS - 1); }
+      if (!d.pos.off) {
+        var mv = bestMove(c), cur = curPos(c);
+        // (sin destino «con sentido» —s.use—, la mejor puntuación de los demás puestos: la captura siempre abre)
+        if (!mv) posList(c).forEach(function (p) { if (p === cur) return; var s = scoreOf(c, p); if (!mv || s.s > mv.s) mv = s; });
+        if (!mv) return false;
+        propose(c, mv); d.pos.nS = Math.max(0, d.pos.nS - 1);
+      }
       save(c); return true;
     }
-    if (kind === 'planOpen') { uiOpen = 'plan'; save(c); return true; }
-    if (kind === 'askOpen') { if (askOk(c) === 'wait') d.pos.askT = -99; d.pos.off = null; uiOpen = 'ask'; save(c); return true; }
+    if (kind === 'planOpen') { uiOpen = 'plan'; demoShow = '.cdv-plan'; save(c); return true; }
+    if (kind === 'askOpen') { if (askOk(c) === 'wait') d.pos.askT = -99; d.pos.off = null; uiOpen = 'ask'; demoShow = '.cdv-pos'; save(c); return true; }
     return false;
   }
 
@@ -691,7 +729,7 @@
     posInfo: function (c) { var d = ensure(c); return d ? { cur: curPos(c), off: d.pos.off, adapt: d.pos.adapt, fits: fits(c), ask: askOk(c) } : null; },
     ui: { matchTop: uiMatchTop, match: uiMatch, state: uiState, opts: uiOpts }, act: act, dot: dot, css: css,
     _demo: demo, debug: function (kind) { return demo(null, kind); },
-    _ui: function () { return { open: uiOpen, flash: flash }; }, _uiReset: function () { uiOpen = ''; flash = null; }
+    _ui: function () { return { open: uiOpen, flash: flash }; }, _uiReset: function () { uiOpen = ''; flash = null; demoShow = ''; }
   };
   VB.CareerDev = DEV;
   (VB.CareerExt = VB.CareerExt || []).push(DEV);

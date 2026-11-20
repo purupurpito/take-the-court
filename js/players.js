@@ -2565,7 +2565,7 @@
       if (scorer === r) {
         var bigAt = VB.HOLD && VB.HOLD.bigAt != null ? VB.HOLD.bigAt : 0.55;
         var sid = sigOf(r);   // S3-C2: tu n.º 1, tu compañero o el jefe (con los ganchos a null, solo tu n.º 1: lo de siempre)
-        if (sid && r.lastCel !== 'firma' && (e.setWon || (e.highlight || 0) >= bigAt || (h & 3) === 0)) v = 'firma';
+        if (sid && r.lastCel !== 'firma' && (e.setWon || (e.highlight || 0) >= bigAt || (h & 3) === 0 || (e.how === 'ace' && g.server === p))) v = 'firma';   // tras un ace tuyo, siempre tu firma (zona y saque de firma, 20-nov)
         else if (e.how === 'block' && r === lastBlocker) v = 'roar';
         else if (e.how === 'ace' && g.server === p) v = r.persona === 'fuego' && (h & 4) ? 'pecho' : 'ace';
         else if (e.setWon) v = 'bigV';

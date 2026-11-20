@@ -1355,7 +1355,7 @@ Tomar el hub entero (prólogo):
   de firma. Estadísticas: `g.stats.zn = {n: [t0, t1], t: [s0, s1], pts: [p0, p1]}` y `g.stats.sig = {id, n, aces, faults}`. La hoja
   final (ui.js `zoneLines`) dice «Zona: N veces | S s | P puntos» y «Saque de firma: A aces | F fallos» si los has usado.
 - La zona no guarda nada en la Carrera: vale solo dentro del partido (también en el de las Estrellas, que no lleva `noZone`).
-- Prueba: `node tools/zonetest.js`. `SIM_BASE` de tools/fluidsimtest.js = 1383632.
+- Prueba: `node tools/zonetest.js`. `SIM_BASE` de tools/fluidsimtest.js = 2a21ec3.
 
 **4. Las funciones.** Una ficha por fichero; el detalle de cada una, en su cabecera y en notes/carrera.md.
 

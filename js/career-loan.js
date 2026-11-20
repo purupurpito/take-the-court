@@ -14,6 +14,8 @@
  *     Al acabar la temporada vuelves solo y el entrenador la valora: A (+15 y, si eras de rotación, vuelves de titular; +2 de interés
  *     en las ofertas de ese verano), B (+8), C (+2), D (−5). Las ofertas de fin de temporada y la renovación salen ya desde tu club.
  *  4. En la playa la cesión también es a otro club (la playa va por clubes); el cambio de pareja ya existe en Club › Compañero.
+ *  5. De baja (VB.CareerInjury.out): ni pedir cesión ni traspaso («Estás de baja.»), ni propuesta del club ni ir cedido; las jornadas
+ *     de baja (sum.out, también las de selección) no cuentan como banquillo para la cesión (c.loan.xb de la temporada c.loan.xbS).
  * Registro: VB.CareerExt (núcleo: hook, offerBonus, midOffers, holdOffers, postSeason, _demo) y VB.CareerUIExt (interfaz: tarjeta del
  * traspaso, Cesiones en Club › Ofertas, avisos en Partido y en el fin de temporada, puntos y acciones 'ln-'). API en CONTRACT.md
  * «Extensiones de la Carrera».
@@ -56,6 +58,8 @@
   function ROLE_LV() { var R = VB.Career && VB.Career.beach && VB.Career.beach.ROLE_LV; return R || ['Rotación', 'Titular', 'Titular indiscutible']; }
   function roleIdx(c) { var R = ROLE_LV(); return c && c.contract ? Math.max(0, R.indexOf(c.contract.role)) : 1; }
   function pOvr(c) { try { return K(c).playerOvr(c); } catch (e) { return 0; } }
+  /** De baja por lesión ahora mismo (career-injury.js, opcional). De baja no se pide ni se va cedido. */
+  function injOut(c) { try { var I = VB.CareerInjury; return !!(I && I.out && I.out(c)); } catch (e) { return false; } }
 
   // ------------------------------------------------------------------ constantes
   var NUM = {
@@ -83,7 +87,7 @@
     if (!obj(l)) l = c.loan = {};
     l.v = 1;
     l.mood = clampI(l.mood, 0, 100);
-    ['moodW', 'brk', 'bonusS', 'midS', 'midAt', 'run', 'optK', 'clubS'].forEach(function (k) { l[k] = num(l[k]) ? l[k] | 0 : 0; });
+    ['moodW', 'brk', 'bonusS', 'midS', 'midAt', 'run', 'optK', 'clubS', 'xb', 'xbS'].forEach(function (k) { l[k] = num(l[k]) ? l[k] | 0 : 0; });
     l.seg = num(l.seg) ? l.seg | 0 : -1;
     var R = ROLE_LV();
     if (l.ask != null && !(obj(l.ask) && /^(renew|no|loan)$/.test(l.ask.k) && num(l.ask.seg) &&
@@ -143,11 +147,17 @@
       return E._salaryOf(off ? nextLid(c, k) : k.lvl, q, rl);
     } catch (e) { return c.contract ? c.contract.salary | 0 : 0; }
   }
+  /** Jornadas de banquillo de la temporada que cuentan para la cesión: c.stats.bench sin las de baja (lesión o selección: sum.out,
+   *  contadas en c.loan.xb). Una lesión no es «no juegas». */
+  function benchN(c) {
+    var s = c.stats || {}, l = c.loan, xb = l && l.xbS === (c.season | 0) ? l.xb | 0 : 0;
+    return Math.max(0, (s.bench | 0) - xb);
+  }
   /** Pocos minutos: pista, menos de la mitad de las jornadas de inicio (con 3 o más); playa, alguna jornada en el banquillo. */
   function low(c) {
-    var s = c.stats || {};
-    if (hall(c)) { var J = (s.starts | 0) + (s.subIn | 0) + (s.bench | 0); return J >= 3 && (s.starts | 0) / J < 0.5; }
-    return (s.bench | 0) >= 1;
+    var s = c.stats || {}, b = benchN(c);
+    if (hall(c)) { var J = (s.starts | 0) + (s.subIn | 0) + b; return J >= 3 && (s.starts | 0) / J < 0.5; }
+    return b >= 1;
   }
   /** «Te necesitan»: pista, estás en el seis de la jornada; playa, juegas de titular o más con la confianza del entrenador. */
   function imp(c) {
@@ -164,6 +174,7 @@
     var l = ensure(c);
     if (!c.contract || c.phase === 'pick' || c.myClub < 0) return 'Aún no tienes club.';
     if (l.on) return 'Estás cedido.';
+    if (injOut(c)) return 'Estás de baja.';
     if (c.listed) return 'Ya eres transferible.';
     if (l.ask) return 'Contesta primero al club.';
     if (l.seg === seg(c)) return 'Ya lo pediste: espera a la próxima ventana.';
@@ -173,6 +184,7 @@
     var l = ensure(c);
     if (!c.contract || c.phase === 'pick' || c.myClub < 0) return 'Aún no tienes club.';
     if (l.on) return 'Estás cedido.';
+    if (injOut(c)) return 'Estás de baja.';
     if (roleIdx(c) >= 2) return 'Eres titular indiscutible: no te ceden.';
     if (l.opts.length) return 'Ya tienes cesiones para elegir.';
     if (l.want) return 'El club ya te busca equipo.';
@@ -271,7 +283,7 @@
     l.run = start ? 0 : l.run + 1;
     if (m0 < NUM.WARN && l.mood >= NUM.WARN && l.moodW !== c.season && !l.on) {
       l.moodW = c.season;
-      var nb = hall(c) ? l.run : (c.stats && c.stats.bench) | 0;
+      var nb = hall(c) ? l.run : benchN(c);
       var t = nb >= 2 ? (hall(c) ? 'Llevas ' + nb + ' jornadas sin salir de inicio.' : 'Llevas ' + plural(nb, 'jornada', 'jornadas') + ' en el banquillo esta temporada.') : 'No estás jugando lo que esperabas.';
       msg(c, 'agent', 'Hay que hablar de minutos', t + ' Así no creces. Puedes pedir una cesión o el traspaso en Club › Contrato.');
     }
@@ -286,9 +298,9 @@
   /** ¿El club propone una cesión? (mitad: la temporada en curso; verano: la temporada entera). */
   function clubWants(c, at) {
     var l = ensure(c), rl = roleIdx(c), age = (c.player && c.player.age) | 0;
-    if (l.on || l.opts.length || l.want || rl >= 2 || !c.contract) return false;
+    if (l.on || l.opts.length || l.want || rl >= 2 || !c.contract || injOut(c)) return false;   // (de baja, no)
     if (l.clubS === c.season) return false;   // (una propuesta del club por temporada)
-    var lw = hall(c) ? low(c) : ((c.stats && c.stats.bench) | 0) >= NUM.CLUB_BENCH;   // (playa: con un solo banquillo no)
+    var lw = hall(c) ? low(c) : benchN(c) >= NUM.CLUB_BENCH;   // (playa: con un solo banquillo no)
     if (!(lw || l.mood >= NUM.CLUB_MOOD)) return false;
     if (!(age <= NUM.AGE_CLUB || l.mood >= NUM.CLUB_MOOD)) return false;
     if (at === 'end' && ((c.contract.left | 0) < 2 || (c.review && c.review.renew))) return false;
@@ -298,6 +310,10 @@
     var l = ensure(c);
     l.midS = c.season; l.midAt = wk(c);
     if (l.on) return;
+    if (injOut(c)) {   // de baja en la ventana: ni propuesta del club ni la cesión que pediste (se puede volver a pedir en verano)
+      if (l.want && l.want.at === 'mid') { l.want = null; msg(c, 'club', 'Cesión aplazada', 'Estás de baja y en esta ventana no te podemos ceder. Recupérate; en verano lo hablamos otra vez.'); }
+      return;
+    }
     if (l.want && l.want.at === 'mid' && l.want.s === c.season) { var by = l.want.by; l.want = null; openOpts(c, 'mid', by); return; }
     if (clubWants(c, 'mid')) { l.clubS = c.season; openOpts(c, 'mid', 'club'); }
   }
@@ -306,6 +322,8 @@
     if (l.opts.length && l.optAt === 'mid' && l.optK !== wk(c)) { l.opts = []; l.optAt = ''; }   // caducan al jugar
     if (l.want && l.want.at === 'mid' && l.want.s !== c.season) l.want = null;
     expireAsk(c);
+    // jornada de baja (lesión o selección): fuera de la cuenta de banquillos de la cesión (c.stats.bench sí la suma)
+    if (sum && sum.out && sum.bench) { var ss = num(sum.season) ? sum.season | 0 : c.season | 0; if (l.xbS !== ss) { l.xbS = ss; l.xb = 0; } l.xb++; }
     var skip = !sum || sum.review || sum.phase === 'off' || sum.out || (l.on && l.on.s !== c.season);   // (de baja: sin malestar)
     if (!skip) moodStep(c, sum);
     if (l.on && l.on.s === c.season && sum && sum.out && !sum.review) l.on.xo = (l.on.xo | 0) + 1;   // jornada de baja: fuera de la nota
@@ -471,8 +489,9 @@
     return 'wait';
   }
   /** Ir cedido con la opción i: 'ok' | 'none' (caducada) | ''. */
-  function takeOn(c, i) {
+  function takeOn(c, i, force) {
     var l = ensure(c), o = l.opts[i | 0], E = K(c); if (!o || l.on || !c.contract) return '';
+    if (injOut(c) && !force) return '';   // (de baja no te vas cedido; las cesiones siguen ahí hasta que caduquen)
     var at = l.optAt, mid = at === 'mid';
     if ((mid && !midOpen(c)) || (!mid && !endOpen(c))) { l.opts = []; l.optAt = ''; return 'none'; }
     if (!mid && ((c.contract.left | 0) < 2 || (c.review && c.review.renew))) return 'none';
@@ -575,7 +594,7 @@
   /** Club › Ofertas: las cesiones para elegir (antes de la tarjeta de ofertas). */
   function uiOffers(c, H) {
     var l = ensure(c); if (!l.opts.length) return '';
-    var mid = l.optAt === 'mid', h = '<div class="card new"><h3>' + H.sp(['Cesiones', mid ? 'Hasta final de temporada' : 'Toda la temporada que viene'], 'd') + '</h3>' + help(H, 'Cesiones', LOAN_HELP);
+    var mid = l.optAt === 'mid', inj = injOut(c), h = '<div class="card new"><h3>' + H.sp(['Cesiones', mid ? 'Hasta final de temporada' : 'Toda la temporada que viene'], 'd') + '</h3>' + help(H, 'Cesiones', LOAN_HELP);
     l.opts.forEach(function (o, i) {
       var k = club(c, o.club); if (!k) return;
       h += '<div class="offer-x" style="padding:8px 0;border-top:1px solid var(--sep)"><div class="row">' + (H.crest ? H.crest(k, 40) : '') + '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:18px">' +
@@ -583,8 +602,9 @@
       if (hall(c)) h += o.depth && o.depth.start ? '<span class="tag g">Juegas de inicio</span>' : '<span class="tag y">Pelearás el sitio</span>';
       else if (o.mateP) h += H.sp(['Pareja: ' + H.esc(o.mateP.name), 'Media ' + o.mate], 'c');
       h += '</p><p class="muted" style="margin:0 0 6px">' + H.sp(['Titular', 'Cobras ' + H.esc(eur(o.salary)) + ' al mes', mid ? 'Hasta final de temporada' : 'Una temporada'], 'v') + '</p>' +
-        '<div class="acts">' + btn('ln-take', 'Ir cedido', { i: i }) + '</div></div>';
+        '<div class="acts">' + btn('ln-take', 'Ir cedido', { i: i, off: inj, title: inj ? 'Estás de baja' : '' }) + '</div></div>';
     });
+    if (inj) h += '<p class="muted">Estás de baja: no puedes irte cedido hasta que te recuperes.</p>';
     h += '<div class="acts">' + btn('ln-pass', 'No, gracias') + '</div><p class="muted">' + (mid ? 'Caducan al jugar o simular el siguiente partido.' : 'Caducan al empezar la temporada.') + '</p></div>';
     return h;
   }
@@ -645,14 +665,28 @@
     else if (tipo === 'renew') { if (roleIdx(c) >= 2) c.contract.role = ROLE_LV()[1]; l.ask = proposal(c); }
     else if (tipo === 'no') l.ask = { k: 'no', seg: seg(c) };
     else if (tipo === 'back' && c.phase === 'off' && c.review && c.review.loan) { /* ya está */ }
+    else if (tipo === 'back' && c.phase === 'off') { if (!demoBack(c)) return false; }   // (otra muestra la dejó en verano sin cesión)
     else if (tipo === 'on' || tipo === 'back') {
       if (c.phase === 'off') return false;
-      if (!l.on) { if (!openMid() || takeOn(c, 0) !== 'ok') return false; }
+      if (!l.on) { if (!openMid() || takeOn(c, 0, true) !== 'ok') return false; }   // (true: también de baja, p. ej. tras la muestra de lesión)
       var g = 0;
       if (tipo === 'on') { if ((c.notes || []).length <= l.on.n0) for (var i = 0; i < 2 && c.phase !== 'off'; i++) E.simulateNext(c); }
       else { while (c.phase !== 'off' && g++ < 60) E.simulateNext(c); if (c.phase !== 'off') return false; }
     } else return false;
     E.save(c);
+    return true;
+  }
+  /** (solo muestras) En verano sin cesión: la valoración de una cesión de media temporada ya acabada (review.loan y last), sin
+   *  tocar club, contrato ni ofertas. Para la tarjeta «Fin de la cesión». */
+  function demoBack(c) {
+    var l = ensure(c), me = myClub(c); if (!c.review || !me) return false;
+    var k = c.clubs.filter(function (x) { return x && x.id !== me.id && (hall(c) ? x.lid === me.lid : x.lvl === me.lvl); })
+      .sort(function (a, b) { return clubAvg(c, a) - clubAvg(c, b) || a.id - b.id; })[0];
+    if (!k) return false;
+    var x = { club: k.id, name: k.name, home: me.id, homeName: me.name, grade: 'B', n: 6, nota: hall(c) ? 5.6 : 6.2, coach: NUM.GRADE_COACH.B, promo: 0, len: 'half', move: 0 };
+    c.review.loan = x;
+    l.last = { s: c.season, club: k.id, name: k.name, home: me.id, homeName: me.name, grade: 'B', n: 6, nota: x.nota, J: 7, coach: x.coach, promo: 0, len: 'half' };
+    if (!l.log.some(function (y) { return y.s === c.season && y.club === k.id; })) l.log.push({ s: c.season, club: k.id, name: k.name, len: 'half', grade: 'B', n: 6, nota: x.nota });
     return true;
   }
   /** (solo muestras) Deshace una cesión de muestra en curso: vuelves al club de origen tal cual. */
@@ -678,8 +712,8 @@
     NUM: NUM, MOOD: MOOD, GRADES: GRADES, ensure: ensure, info: info, grade: grade, cands: cands, seg: seg, midOpen: midOpen, moodLevel: moodLv, ordn: ordn,
     askTransfer: withC(askOn), answer: withC(answerOn), askLoan: withC(askLoanOn), take: withC(takeOn), pass: withC(passOn),
     // sobre una c ya cargada, sin guardar (pruebas)
-    _ask: askOn, _answer: answerOn, _askLoan: askLoanOn, _take: takeOn, _pass: passOn, _back: back, _openOpts: openOpts, _hook: hook,
-    _demo: function (tipo, c) { return demo(c || null, tipo); },
+    _ask: askOn, _answer: answerOn, _askLoan: askLoanOn, _take: takeOn, _pass: passOn, _back: back, _openOpts: openOpts, _hook: hook, _low: low, _benchN: benchN, _clubWants: clubWants, _injOut: injOut,
+    _demo: demo,   // (c, tipo), como CareerExt._demo; c null = la carrera activa
     ui: { transfer: uiTransfer, offers: uiOffers, match: uiMatch, seasonEnd: uiSeasonEnd, ask: uiAsk, on: uiOn }
   };
   VB.CareerLoan = API;

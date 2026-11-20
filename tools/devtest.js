@@ -463,6 +463,26 @@ section('12. Sin VB.Career ni registro de extensiones');
   ok(B.VB.CareerExt.some(x => x.id === 'dev') && B.VB.CareerUIExt.some(x => x.id === 'dev' && x.prefix === 'dv-' && x.hide.indexOf('setpos') >= 0) && B.C.ext.get('dev') === B.VB.CareerDev, 'registrado en VB.CareerExt (id dev) y VB.CareerUIExt (prefijo dv-, oculta el selector de puesto)');
 }
 
+// ------------------------------------------------------------------ 13. pantallas de muestra (mobaudit)
+section('13. _demo pos con la carrera de mobaudit (semilla 4242): siempre abre, aunque no haya destino con sentido');
+for (const mode of ['hall', 'beach']) {
+  const B = boot(true), K = B.C, D = B.VB.CareerDev;
+  const c = K.create(mode === 'hall' ? { mode: 'hall', name: 'Ares Belmonte', num: 7, seed: 4242, points: 15 } : { mode: 'beach', name: 'Ares Belmonte', num: 7, role: 'cr', points: 21, seed: 4242, ctrl: 'one' });
+  K.acceptOffer(Math.max(0, c.offers.findIndex(x => !x.trial)), 2);
+  for (let i = 0; i < 4; i++) K.simulateNext(K.get());
+  const cc = K.get(); cc.dev.pos.off = null;
+  const bm = D.bestMove(cc), r = D._demo(cc, 'pos'), o = cc.dev.pos.off;
+  ok(r === true && o && o.to !== cc.player.roleKey && D.posList(cc).indexOf(o.to) >= 0 && /dv-pos-ok/.test(D.ui.match(cc, HLP)),
+    mode + ': _demo pos deja propuesta (' + (o && o.from + ' › ' + o.to) + (bm ? '' : ', sin bestMove') + ')');
+}
+// en pista, sin destino «con sentido» (use) el demo coge la mejor puntuación igualmente
+{
+  const B = boot(true), K = B.C, D = B.VB.CareerDev, c = fresh(B, 'hall', 4242, 3);
+  const orig = D.scoreOf; c.dev.pos.off = null;
+  const best = D.posList(c).filter(p => p !== c.player.roleKey).map(p => orig(c, p)).sort((a, b) => b.s - a.s)[0];
+  ok(best && D._demo(c, 'pos') && c.dev.pos.off && c.dev.pos.off.to === (D.bestMove(c) || best).p, 'pista: el demo propone ' + (best && best.p));
+}
+
 console.log('\n' + passes + ' comprobaciones, ' + fails + ' fallos');
 console.log(fails ? 'HAY FALLOS' : 'TODO OK');
 process.exit(fails ? 1 : 0);

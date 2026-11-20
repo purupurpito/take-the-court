@@ -899,9 +899,12 @@
     var cur = a.cur = open(c, { mid: Math.max((c.week | 0) + 1, cal.mid), w0: c.week | 0 });
     return cur;
   }
-  /** Deja la Carrera c lista para la captura (vote | event | log) y guarda. */
+  /** Deja la Carrera c lista para la captura (vote | event | log) y guarda. Prepara lo que haga falta: fuera de la liga (copa, eliminatorias
+   *  o fin de temporada, p. ej. tras otra muestra que ha simulado la temporada entera) acaba la temporada y empieza la siguiente. */
   function _demo(c, k) {
-    c = c || (VB.Career && VB.Career.get()); if (!obj(c) || c.phase !== 'league' || !(c.myClub >= 0)) return false;
+    c = c || (VB.Career && VB.Career.get()); if (!obj(c) || !(c.myClub >= 0) || prologueOn(c)) return false;
+    if (c.phase !== 'league') c = demoLeague(c);
+    if (!obj(c) || c.phase !== 'league' || !(c.myClub >= 0) || !calOf(c)) return false;
     var cur = forceOpen(c);
     if (k === 'vote') { cur.camp = 1; cur.cw = -1; save(c); return true; }
     cur.wk = c.week | 0; result(c, cur);
@@ -912,6 +915,18 @@
     }
     if (k === 'log') { simAll(c); close(c, cur); save(c); return true; }
     save(c); return true;
+  }
+  /** (solo muestras) Lleva la Carrera c a la liga de la temporada siguiente: simula lo que quede y sigue en tu club. Devuelve la carrera. */
+  function demoLeague(c) {
+    var E = K(c), C = VB.Career, g = 0; if (!E || !C) return c;
+    var mode = hall(c) ? 'hall' : 'beach', reget = function () { var x = null; try { if (C.setMode) C.setMode(mode); x = C.get(); } catch (e) { } return obj(x) ? x : c; };
+    while (c.phase !== 'off' && c.phase !== 'league' && g++ < 300) {
+      var nx = E.next ? E.next(c) : null;
+      if (nx && nx.bench && E.benchNext) E.benchNext(c); else if (!E.simulateNext || !E.simulateNext(c)) break;
+      c = reget();
+    }
+    if (c.phase === 'off') { try { E.save(c); if (E.stay) E.stay(1); } catch (e) { } c = reget(); }
+    return c;
   }
   var DEMO_NAMES = ['Alex Ruiz', 'Sam Vidal', 'Noa Ferrer', 'Dani Soler', 'Eli Prat'];
   function _endDemo() {

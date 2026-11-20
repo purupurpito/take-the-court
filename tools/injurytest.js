@@ -19,6 +19,8 @@
  *  11. Textos: mensajes, tarjetas (sano, de baja, confirmación), última jornada y blocked sin «{», «undefined», «NaN», «1.er», «·» ni
  *      correos; data-act válidos.
  *  12. Interfaz (document falso, career-ui de verdad): Jugador › Estado y Partido con y sin lesión, playa y pista, sin errores.
+ *  13. Hoja final: una lesión forzada en un partido simulado sale en el Resumen (recap.js endModel: bloque «Lesión», arriba,
+ *      textos cortos y sin detalles crudos); sin lesión o en Partido rápido, sin bloque.
  * Uso: node tools/injurytest.js [--fast]   (--fast: calibrado con 12 carreras)   Sale con 1 si algo falla; acaba en «TODO OK».
  */
 'use strict';
@@ -447,6 +449,56 @@ function richDoc() {
   ok(!errs.length && /De baja</.test(h) && /Estabas de baja/.test(h), tag + 'última jornada: «De baja» y «Estabas de baja»');
   ok(CI.ui.css().indexOf(':root.ph:not(#_):not(#_):not(#_) #career') >= 0 && !/font-size:(\d|1[01])px/.test(CI.ui.css()), tag + 'CSS con el prefijo del móvil y sin letra < 12px');
 });
+
+// frases de la lesión: valen en la playa (descalzos, arena) y en la pista (zapatillas, parqué)
+{
+  const L = bootI().VB.CareerInjury.LINES, all = Object.keys(L).reduce((a, k) => a.concat(L[k]), []);
+  const bad = all.filter(s => /zapatill|calzad|parqu|tobiller|arena|descalz/i.test(s));
+  ok(all.length >= 10 && !bad.length, 'frases de lesión sin calzado ni suelo de un solo modo' + (bad.length ? ' — ' + bad.join(' | ') : ''));
+}
+
+// ------------------------------------------------------------------ 13. hoja final (recap.js)
+section('13. Hoja final: la lesión del partido en el Resumen (js/recap.js, VB.Recap.endModel)');
+['beach', 'hall'].forEach(mode => {
+  let B = null, K = null, R = null, sum = null, g = 0, seed = 4040;
+  const tag = mode + ': ';
+  // lesión forzada: fatiga y carga al máximo antes de cada jornada hasta que un partido simulado devuelva sum.inj (otra semilla si
+  // la temporada acaba sin lesión)
+  for (; !sum && seed < 4052; seed++) {
+    B = bootI({ extra: [FILE, 'js/recap.js'] }); K = B.C; R = B.VB.Recap; g = 0;
+    newCareer(B, mode, seed); K.setMode(mode);
+    while (!sum && g++ < 80) {
+      const c = K.load(); if (c.phase === 'off') break;
+      c.fatigue = 100; c.inj.run = 30; K.save(c);
+      const n = K.next(K.load()), r = n && n.bench ? K.benchNext() : K.simulateNext();
+      if (r && r.inj) sum = r;
+    }
+  }
+  ok(!!sum && !!sum.inj.name && sum.inj.n > 0, tag + 'lesión forzada en un partido (' + (sum ? sum.inj.name + ', fuera ' + sum.inj.n + ', jornada ' + g + ', semilla ' + (seed - 1) : 'ninguna') + ')');
+  if (!sum) return;
+  // lo que hace ui.js (endData): d.inj = {name, n, rl}
+  const cs = { label: sum.label, me: 'TÚ', rival: 'RIV', rivalName: sum.rivalName, num: 7, player: 'Ana Prueba', phase: sum.phase };
+  const d = { seed: 7, win: !!sum.win, sets: sum.sets, setScores: sum.setScores, to: 21, size: mode === 'hall' ? 6 : 2, career: cs, cpu: 'la CPU', pl: [], sum,
+    inj: { name: String(sum.inj.name), n: sum.inj.n | 0, rl: sum.inj.rl | 0 } };
+  const M = R.endModel(d);
+  ok(M.inj && M.blocks.indexOf('inj') >= 0 && M.heads.inj === 'Lesión', tag + 'bloque «Lesión» en el Resumen (bloques: ' + M.blocks.join(', ') + ')');
+  const iMvp = M.blocks.indexOf('mvp'), iInj = M.blocks.indexOf('inj'), iXp = M.blocks.indexOf('xp');
+  ok(iInj > iMvp && (iXp < 0 || iInj < iXp), tag + 'va arriba: después del MVP y antes del progreso');
+  ok(M.inj.t === '¡Ay! ' + sum.inj.name && M.inj.parts[0] === 'Fuera ' + sum.inj.n + (sum.inj.n === 1 ? ' partido' : ' partidos'), tag + 'textos: «' + M.inj.t + '» | ' + M.inj.sub);
+  ok(!BAD.test(M.inj.t + ' ' + M.inj.sub) && !/sangr|rot[oa]\b|fractur|grit/i.test(M.inj.t + ' ' + M.inj.sub), tag + 'sin «{», «undefined», «NaN», «·» ni detalles crudos');
+  ok(M.inj.t.length <= 40 && M.inj.parts.every(p => p.length <= 28), tag + 'cabe en el móvil (título ≤ 40, cada trozo ≤ 28)');
+  // sin lesión, o fuera de la Carrera: sin bloque
+  const M0 = R.endModel(Object.assign({}, d, { inj: null }));
+  ok(!M0.inj && M0.blocks.indexOf('inj') < 0, tag + 'sin lesión, sin bloque');
+  const Mq = R.endModel(Object.assign({}, d, { career: null, sum: null }));
+  ok(!Mq.inj, tag + 'Partido rápido: nunca bloque de lesión');
+});
+{
+  const R = bootI({ extra: [FILE, 'js/recap.js'] }).VB.Recap;
+  const a = R.injModel({ name: 'Esguince de tobillo', n: 3, rl: 1 }), b = R.injModel({ name: 'Dedo torcido', n: 1 }), cc = R.injModel({ name: 'Ligamento de la rodilla', n: 11 });
+  ok(a.sub === 'Fuera 3 partidos | Recaída | Toca parar un poco' && b.sub === 'Fuera 1 partido | Hielo, fisio y a volver' && /curarse bien/.test(cc.sub), 'injModel: recaída, singular y grave (' + [a.sub, b.sub, cc.sub].join(' / ') + ')');
+  ok(R.injModel(null) === null && R.injModel({ n: 2 }) === null, 'injModel: sin nombre → null');
+}
 
 console.log('\n' + passes + ' comprobaciones, ' + fails + ' fallos');
 if (!fails) console.log('TODO OK');

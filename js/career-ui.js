@@ -849,6 +849,11 @@
     Q + ' .sp-btn.sp-wrap{white-space:normal;text-align:left;--sp-py:8px}',
     Q + ' .sp-btn.sp-wrap .sp-t{white-space:normal;overflow:visible;line-height:1.08}',
     Q + ' .sp-btn.sp-wrap .sp-s{white-space:normal}',
+    // saque de firma (Jugador › Insignias): los rótulos se parten en líneas y el gesto, separado de las colas de los bocadillos
+    Q + ' .cr-sig-l{margin-bottom:4px}',
+    Q + ' .cr-sig-l>.sp-btn.sp-wrap{flex:1 1 calc(33.3% - 12px)}',   // (tres por fila: sola en su fila, la última se estiraba y se comía la letra)
+    Q + ' .cr-sig-l>.sp-btn.sp-wrap .sp-s{font-size:12px}',
+    Q + ' .cr-sig>label{display:block;margin-top:20px}',
     Q + ' .sp-btn.sp-off>.sp-blob{filter:grayscale(.7) brightness(.8) drop-shadow(var(--sp-sh))}',
     // segmentados y filtros (duración, puesto, dificultad, circuito, país…): trazos de pincel; el elegido, dorado
     Q + ' :is(.seg,.lg-sw,.cw-opt){gap:6px 4px}',
@@ -1189,6 +1194,9 @@
     PQ + ' .bd strong{font-size:var(--ph-row)}',
     PQ + ' .bd .muted{font-size:var(--ph-cap)}',
     PQ + ' .bd[aria-pressed="true"] strong::after{font-size:var(--ph-cap)}',
+    // saque de firma (encima de la rejilla): tres por fila y el gesto en una fila de 44
+    PQ + ' .cr-sig-l>.sp-btn.sp-wrap{flex:1 1 min(100%,200px);min-height:52px}',
+    PQ + ' .cr-sig-l>.sp-btn.sp-wrap .sp-s{font-size:var(--ph-cap)}',
     // plan del entrenador (en Partido)
     PQ + ' .pl-focus{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}',
     PQ + ' .pl-focus button{min-height:52px;font-size:var(--ph-label)}',
@@ -1364,6 +1372,8 @@
     PQ + ' .card>.cr-q{position:absolute;top:-26px;right:10px;z-index:2;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);' +
       'box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);font:400 var(--ph-row)/1 var(--sp-pop);letter-spacing:0;text-transform:none;text-shadow:none;transform:rotate(6deg)}',
     PQ + ' .card>.cr-q:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    // (en la 1ª tarjeta, más abajo: a -26 px rozaba el sello de la media de la cabecera)
+    PQ + ' #crBody>.card:first-child:not(:has(>h3:first-child+.cr-q:last-child))>.cr-q{top:-21px}',
     // ofertas: nombre en una línea y las 4 cifras del trato a la vista, encima de «Firmar»
     PQ + ' .offer-full .bigname.cr-on{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .offer-full>.row{align-items:center}',
@@ -1489,6 +1499,7 @@
       spLabel(b); b.classList.add('sp-patch'); pat = true;
     });
     q('.lf-ev .acts button').forEach(function (b, i) { spBtn(b, SPD[i % SPD.length], 'sp-md'); b.classList.add('sp-wrap'); });
+    q('.cr-sig-l>button').forEach(function (b) { b.classList.add('sp-wrap'); });   // (saque de firma: rótulos en varias líneas, sin elipsis)
     q('.cr-go>button,.cw-mentor .acts>button').forEach(function (b, i) { spBtn(b, i && b.closest('.cw-mentor') ? 'sp-teal' : 'sp-ink', 'sp-md'); });
     q('.acts>button,.pick-acts>button,.tp-acts>button,.pl-acts>button').forEach(function (b) {
       spBtn(b, b.classList.contains('pri') ? 'sp-kit' : SPC[gi++ % SPC.length], 'sp-md');
@@ -2093,7 +2104,7 @@
       h += '</div><p class="bd-msg" role="status" aria-live="polite">' + esc(badgeMsg) + '</p>';
     }
     badgeMsg = '';
-    return h + '</div>' + sigCard(c);
+    return sigCard(c) + h + '</div>';   // (el saque de firma, ENCIMA de la rejilla: en el móvil, debajo, no se veía sin bajar toda la lista)
   }
   /** Saque de firma (zona y saque de firma, 20-nov-2026): un botón por estilo de VB.SERVE_SIG (catálogo de js/sim.js:
    *  {ids, byId: {id: {name, desc, need, key: 'hit'|'jump', venue?: 'beach'|'hall'}}}) y el gesto antes de sacar. Sin el catálogo
@@ -2108,8 +2119,10 @@
       '<p class="muted">Tu saque de siempre en los partidos de la Carrera. Algunos piden más nivel de saque.</p>' +
       '<div class="acts cr-sig-l" role="group" aria-label="Saque de firma">' + ids.map(function (id) {
         var d = T.byId[id], lock = sv < (d.need | 0);
-        return '<button data-act="sig-' + esc(id) + '" aria-pressed="' + (id === cur) + '"' + (lock ? ' disabled' : '') + '>' + esc(d.name || id) +
-          '<small>' + sp([esc(d.desc || ''), lock ? 'Saque ' + (d.need | 0) : d.key === 'jump' ? 'Va en SALTAR' : d.key === 'both' ? 'GOLPEAR y SALTAR' : 'Va en GOLPEAR'], 'v') + '</small></button>';
+        // (pro y contra cortos, el botón y lo que pide si está bloqueado: la descripción entera va en el title; con elipsis no se leía «Saque 62»)
+        var kt = d.key === 'jump' ? 'Va en SALTAR' : d.key === 'both' ? 'GOLPEAR y SALTAR' : 'Va en GOLPEAR';
+        return '<button data-act="sig-' + esc(id) + '" aria-pressed="' + (id === cur) + '"' + (lock ? ' disabled' : '') + ' title="' + esc(d.desc || '') + '">' + esc(d.name || id) +
+          '<small>' + sp((lock ? ['Pide saque ' + (d.need | 0)] : []).concat([d.pro ? esc(d.pro) : '', d.con ? esc(d.con) : '', kt]).filter(Boolean), 'v') + '</small></button>';
       }).join('') + '</div>' +
       '<label>Gesto antes de sacar</label><div class="seg" role="group" aria-label="Gesto antes de sacar">' + SIG_GEST_UI.map(function (g) {
         return '<button data-act="sgest-' + g[0] + '" aria-pressed="' + (g[0] === gest) + '">' + esc(g[1]) + '</button>';

@@ -17,6 +17,8 @@
  *      (20 cesiones de mitad por modo: A entre el 10 y el 25 %, D 35 % o menos; 20 de temporada entera, más holgado: A 5-30 %, D 40 %).
  *   8. Textos de los mensajes y de las pantallas (ui.*): sin «{», «undefined», «NaN», «1.er» ni «·».
  *   9. Sin career-story ni career-world: todo funciona igual.
+ *  10. De baja (career-injury.js): sin pedir cesión ni traspaso («Estás de baja.»), sin propuesta del club ni ir cedido; las
+ *      jornadas de baja (sum.out) no cuentan como banquillo para la cesión. Muestras: _demo(c, tipo) único y 'back' desde el verano.
  * Uso: node tools/loantest.js   Sale con 1 si algo falla; acaba en «TODO OK».
  */
 'use strict';
@@ -359,11 +361,11 @@ for (const mode of ['hall', 'beach']) {
   const shots = [];
   const take = (tag) => { const c = E.load(); for (const H2 of [fakeHLP, fakePh]) { ['transfer', 'offers', 'match', 'seasonEnd'].forEach(k => { const h = L.ui[k](c, H2); if (h) shots.push([tag + ' ' + k, h]); }); } };
   until(B, mode, c => c.week >= 2); take('inicio');
-  let c = E.load(); L._demo('renew', c); take('renovar'); c.loan.ask = null; L._demo('no', c); take('no'); c.loan.ask = null; c.loan.seg = -1;
+  let c = E.load(); L._demo(c, 'renew'); take('renovar'); c.loan.ask = null; L._demo(c, 'no'); take('no'); c.loan.ask = null; c.loan.seg = -1;
   c.loan.mood = 70; take('quemado');
-  L._demo('opts', c); take('opciones');
-  L._demo('on', c); take('cedido');
-  L._demo('back', c); c = E.load(); take('vuelta'); grabMsgs(c);
+  L._demo(c, 'opts'); take('opciones');
+  L._demo(c, 'on'); take('cedido');
+  L._demo(c, 'back'); c = E.load(); take('vuelta'); grabMsgs(c);
   const bad = shots.filter(([t, h]) => BAD.test(htmlText(h)) || /="undefined"|NaN/.test(h));
   ok(shots.length >= 10 && !bad.length, mode + ': ' + shots.length + ' pantallas sin «{», «undefined», «NaN», «1.er» ni «·»' + (bad.length ? ' — ' + bad.map(x => x[0] + ': ' + htmlText(x[1]).slice(0, 160)).join(' / ') : ''));
   ok(shots.some(([t, h]) => /data-act="ln-ask"/.test(h)) && shots.some(([t, h]) => /data-act="ln-take"/.test(h)) && shots.some(([t, h]) => /data-a="sign"/.test(h)), mode + ': hay botones de pedir, ir cedido y firmar');
@@ -397,6 +399,69 @@ for (const mode of ['hall', 'beach']) {
     } catch (e) { err += e.message; }
   }
   ok(did && !err, mode + ': sin errores' + (err ? ' — ' + err : ''));
+}
+
+// ------------------------------------------------------------------ 10. de baja (career-injury.js)
+section('10. De baja: ni cesión ni traspaso, y las jornadas de baja no son banquillo');
+for (const mode of ['beach', 'hall']) {
+  const B = bootL({ extra: ['js/career-injury.js', LOAN] }), L = B.VB.CareerLoan, I = B.VB.CareerInjury, E = eng(B, mode);
+  mkRot(B, mode, 4321, 3, 'Titular');
+  until(B, mode, c => c.week >= 1);
+  let c = E.load(); const b0 = (c.stats.bench | 0), st0 = (c.stats.starts | 0);
+  ok(!!I && !!I._debugInjure, mode + ': career-injury cargado');
+  I._debugInjure(mode, 'tob2', 3); c = E.load();
+  ok(!!I.out(c) && L._injOut(c), mode + ': de baja (' + (I.out(c) || {}).name + ', ' + (I.out(c) || {}).left + ' partidos)');
+  const inf = L.info(c);
+  ok(!inf.canLoan && inf.loanWhy === 'Estás de baja.' && !inf.canAsk && inf.askWhy === 'Estás de baja.', mode + ': loanWhy y askWhy → «Estás de baja.» (' + inf.loanWhy + ' / ' + inf.askWhy + ')');
+  const seg0 = c.loan.seg;
+  ok(L._askLoan(c) === '' && !c.loan.want && c.loan.seg === seg0, mode + ': _askLoan de baja → vacío (sin «wait» ni petición gastada)');
+  ok(L._ask(c) === '' && !c.loan.ask && !c.listed, mode + ': pedir el traspaso de baja → vacío');
+  c.loan.mood = 90; c.loan.clubS = 0;
+  ok(!L._clubWants(c, 'mid') && !L._clubWants(c, 'end'), mode + ': clubWants de baja → false (aunque estés quemado)');
+  c.loan.mood = 0; E.save(c);
+  // con cesiones abiertas: no te vas de baja (la muestra sí, con force)
+  c = E.load(); L._demo(c, 'opts'); c = E.load();
+  if (c.loan.opts.length) {
+    ok(L._take(c, 0) === '' && !c.loan.on && c.loan.opts.length > 0, mode + ': ir cedido de baja → vacío (las cesiones siguen ahí)');
+    const sh = L.ui.offers(c, fakeHLP);
+    ok(/data-act="ln-take"[^>]*aria-disabled="true"/.test(sh) && /Estás de baja/.test(sh), mode + ': «Ir cedido» desactivado y aviso en Club › Ofertas');
+    c.loan.opts = []; c.loan.optAt = ''; E.save(c);
+  } else ok(false, mode + ': la muestra de cesiones no ha abierto ninguna');
+  // jugar la baja: c.stats.bench suma las jornadas, pero no cuentan para la cesión
+  let g = 0; while (g++ < 12) { c = E.load(); if (!I.out(c) || c.phase === 'off') break; step(B, mode); }
+  c = E.load();
+  const nb = (c.stats.bench | 0) - b0, xb = c.loan.xbS === c.season ? c.loan.xb | 0 : 0;
+  ok(!I.out(c) && nb >= 3 && xb === nb, mode + ': ' + nb + ' jornadas de baja en c.stats.bench y ' + xb + ' en c.loan.xb');
+  ok(L._benchN(c) === (c.stats.bench | 0) - xb, mode + ': _benchN = banquillos − bajas (' + L._benchN(c) + ')');
+  ok(L._benchN(c) === 0 && !L._low(c), mode + ': titular que solo ha estado de baja → no cuenta como «no juegas» (low false, starts +' + ((c.stats.starts | 0) - st0) + ')');
+  c.loan.clubS = 0;
+  ok(!L._clubWants(c, 'mid'), mode + ': recuperado y sin banquillos de verdad → el club no propone cesión');
+  ok(L.info(c).loanWhy !== 'Estás de baja.', mode + ': recuperado, ya no dice «Estás de baja.»');
+  // sin el descuento: playa, 3 banquillos ≥ CLUB_BENCH y low; pista, depende de las jornadas de inicio
+  const keep = [c.loan.xb, c.loan.xbS]; c.loan.xb = 0; c.loan.xbS = -1;
+  const lowRaw = L._low(c); c.loan.xb = keep[0]; c.loan.xbS = keep[1];
+  ok(!L._low(c) && (mode === 'hall' || lowRaw), mode + ': sin el descuento habría sido «pocos minutos» (' + lowRaw + '), con él no');
+  // la cuenta caduca con la temporada
+  until(B, mode, c => c.phase === 'off'); B.C.stay(1); c = E.load();
+  ok(L._benchN(c) === (c.stats.bench | 0), mode + ': temporada nueva → la cuenta de bajas ya no resta (xbS ' + c.loan.xbS + ', T' + c.season + ')');
+}
+// muestras: el mismo _demo (c, tipo) en VB.CareerLoan y en CareerExt; 'back' también desde el verano sin cesión
+for (const mode of ['beach', 'hall']) {
+  const B = bootL({ extra: ['js/career-injury.js', LOAN] }), L = B.VB.CareerLoan, E = eng(B, mode);
+  const X = (B.VB.CareerExt || []).find(x => x.id === 'loan');
+  ok(X && X._demo === L._demo, mode + ': VB.CareerLoan._demo es el de CareerExt (c, tipo)');
+  mkRot(B, mode, 2468, 3);
+  until(B, mode, c => c.phase === 'off');
+  let c = E.load(); c.loan.on = null; if (c.review) delete c.review.loan; E.save(c); c = E.load();
+  ok(L._demo(c, 'back') === true && c.review && c.review.loan && c.review.loan.grade, mode + ': _demo(c, \'back\') desde el verano sin cesión → lista (nota ' + (c.review && c.review.loan && c.review.loan.grade) + ')');
+  const se = L.ui.seasonEnd(E.load(), fakeHLP);
+  ok(/Fin de la cesión/.test(se) && !BAD.test(htmlText(se)), mode + ': tarjeta «Fin de la cesión» de la muestra');
+  ok(L._demo(E.load(), 'back') === true, mode + ': repetirla vale (mobaudit la abre en cada tamaño)');
+  // muestra de baja y luego cedido (como mobaudit en pista: partido-baja y después cedido)
+  const B2 = bootL({ extra: ['js/career-injury.js', LOAN] }), L2 = B2.VB.CareerLoan, E2 = eng(B2, mode);
+  mkRot(B2, mode, 1357, 3); until(B2, mode, c => c.week >= 2); B2.VB.CareerInjury._debugInjure(mode, 'tob2', 3);
+  c = E2.load();
+  ok(L2._demo(c, 'on') === true && E2.load().loan.on, mode + ': _demo(c, \'on\') también de baja (muestra)');
 }
 
 console.log('\n' + passes + ' comprobaciones, ' + fails + ' fallos');

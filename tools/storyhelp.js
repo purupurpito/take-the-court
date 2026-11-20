@@ -1,8 +1,14 @@
 /* MAKE THE CUT — tools/storyhelp.js (owner: carrera)
  * Ayudas de prueba de «Carrera con vida» (js/career-story*.js, notes/carrera-vida.md) para tools/storytest.js y las pruebas de los
  * paquetes (storymsgtest, storyweektest, storywalltest, storyseasontest). Node puro (vm, sin DOM).
- *  - boot({story, files, extra}) → {VB, C, S, mem, cx}: un contexto nuevo con localStorage falso y los ficheros de careertest
- *    (FILES); story: false los carga SIN career-story*.js; extra: rutas añadidas al final (p. ej. una prueba con su sistema falso).
+ *  - boot({story, files, extra, ext}) → {VB, C, S, mem, cx}: un contexto nuevo con localStorage falso y los ficheros de careertest
+ *    (FILES); story: false los carga SIN career-story*.js; extra: rutas añadidas al final (p. ej. una prueba con su sistema falso);
+ *    ext: true añade tras STORY las extensiones de la Carrera (extFiles(), antes de extra). BASE y STORY NO llevan extensiones: las
+ *    pruebas de contrato de cada extensión comparan «con y sin» sobre ellos.
+ *  - extFiles() → rutas de las extensiones de la Carrera sin interfaz (CONTRACT.md «Extensiones de la Carrera»), leídas de index.html
+ *    en su orden: los <script> entre career-story-season.js y career-story-ui.js que no acaban en -ui.js. Así una extensión nueva entra
+ *    sola. injOff(VB): deja las lesiones en «No» en todas las carreras de ese contexto (envuelve el gancho de VB.CareerInjury: c.inj.on
+ *    = 0 antes de cada evento; CONTRACT: así la Carrera es idéntica a la de sin lesiones).
  *  - autopilot(B, {mode, seasons, seed, feed, week, each, now}) → c: N temporadas de playa ('beach') o pista ('hall'). 1 de cada 3
  *    partidos «jugado» (matchSetup + matchDone con estadísticas falsas deterministas), el resto simulado, banquillos con benchNext;
  *    contesta la decisión de career-life con 0 (como careertest.js:1462). feed: true contesta con 0 cada entrada abierta del feed
@@ -18,12 +24,32 @@ const BASE = ['js/sim.js', 'js/prog.js', 'js/badges.js', 'js/leagues.js', 'js/ra
 const STORY = ['js/career-story.js', 'js/career-story-msgs.js', 'js/career-story-week.js', 'js/career-story-wall.js', 'js/career-story-season.js'];
 const STORY_UI = 'js/career-story-ui.js';
 
+/** Extensiones de la Carrera sin interfaz, en el orden de index.html (ver cabecera). */
+function extFiles() {
+  let html = '';
+  try { html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8'); } catch (e) { return []; }
+  const src = [], re = /<script\s+src="(js\/[^"]+\.js)"/g; let m;
+  while ((m = re.exec(html))) src.push(m[1]);
+  const a = src.indexOf('js/career-story-season.js'), b = src.indexOf(STORY_UI);
+  if (a < 0 || b <= a) return [];
+  return src.slice(a + 1, b).filter(f => !/-ui\.js$/.test(f) && fs.existsSync(path.join(ROOT, f)));
+}
+/** Lesiones en «No» para todas las carreras del contexto (sin VB.CareerInjury no hace nada). Devuelve true si lo ha aplicado. */
+function injOff(VB) {
+  const I = VB && VB.CareerInjury, X = I && I._ext;
+  if (!X || typeof X.hook !== 'function' || X._off) return !!(X && X._off);
+  const h = X.hook;
+  X.hook = function (c) { if (c && typeof c === 'object') { if (c.inj && typeof c.inj === 'object' && !Array.isArray(c.inj)) c.inj.on = 0; else c.inj = { on: 0 }; } return h.apply(this, arguments); };
+  X._off = true;
+  return true;
+}
+
 function boot(o) {
   o = o || {};
   const mem = {};
   const LS = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
   const cx = { console, Math, Date, JSON, Set, localStorage: LS }; cx.globalThis = cx; cx.window = cx; vm.createContext(cx);
-  const files = (o.files || BASE.concat(o.story === false ? [] : STORY)).concat(o.extra || []);
+  const files = (o.files || BASE.concat(o.story === false ? [] : STORY, o.ext ? extFiles() : [])).concat(o.extra || []);
   for (const f of files) {
     const fp = path.isAbsolute(f) ? f : path.join(ROOT, f);
     if (fs.existsSync(fp)) vm.runInContext(fs.readFileSync(fp, 'utf8'), cx, { filename: f });
@@ -96,4 +122,4 @@ function uiCtx(VB, files) {
   return { cx: ux, err };
 }
 
-module.exports = { ROOT, BASE, STORY, STORY_UI, boot, autopilot, playOne, strip, fakeDoc, uiCtx, STATS };
+module.exports = { ROOT, BASE, STORY, STORY_UI, extFiles, injOff, boot, autopilot, playOne, strip, fakeDoc, uiCtx, STATS };

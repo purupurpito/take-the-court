@@ -1202,5 +1202,5 @@ van con «baja probabilidad».
   gesto. Se guarda en `c.sig = {serve, gest}`. El Globo molesta más con el sol: en Partido rápido, menos con la luz de tarde.
 - **Hoja final.** «Zona: N veces | S s | P puntos» y «Saque de firma: A aces | F fallos», solo si los has usado.
 - **Determinismo.** Sin `g.zn` ni `g.sig`, la sim es la de siempre: las tres huellas de fingerprint6 siguen «idéntica». `SIM_BASE` de
-  fluidsimtest = 1383632.
+  fluidsimtest = 2a21ec3. Estilos equilibrados a ±1,5 de EV (zonetest con 4000 saques por estilo).
 - **Pruebas.** `node tools/zonetest.js`. Capturas de mobaudit: hud-zona, hud-zona-6v6, hud-saque-firma y carrera-playa-saque-firma.

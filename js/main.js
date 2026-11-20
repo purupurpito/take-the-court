@@ -2580,7 +2580,7 @@
             worst: [{ id: 'srvErr', txt: 'Error de saque', n: 2, d: -0.17 }, { id: 'atkErr', txt: 'Remate fuera', n: 1, d: -0.08 }, { id: 'net', txt: 'Toque de red', n: 1, d: -0.08 }] };
           // &ext=<id>&k=<tipo>: la hoja de un partido de extensión con datos de muestra (X._endDemo(k) → lo que devolvería X.done)
           var XE = Q.ext ? careerExt(Q.ext) : null;
-          if (XE && XE._endDemo) { var xs = null; try { xs = XE._endDemo(Q.k || ''); } catch (e) { reportError('CareerExt._endDemo', e); } if (xs) { g.career.ext = Q.ext; trialDbg = Object.assign({ ext: Q.ext }, xs); } }
+          if (XE && XE._endDemo) { var xs = null; try { xs = XE._endDemo(Q.k || ''); } catch (e) { reportError('CareerExt._endDemo', e); } if (xs) { g.career.ext = Q.ext; if (xs.cs) Object.assign(g.career, xs.cs); trialDbg = Object.assign({ ext: Q.ext }, xs); } }
         }
         break;
       // E6: ejercicios del Entrenamiento con la IA jugando por ti (autopilot) y congelados en un momento que se lea en la captura:

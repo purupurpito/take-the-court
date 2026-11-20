@@ -3481,9 +3481,9 @@
       else if (q < 0.45 && g.rng() < (0.5 - q) * 0.7) v[2] -= 1.1 + g.rng() * 0.8; // a la red
       b.wobA = 0;
     } else if (su === 'liftado') { // De tenis: de pie, con efecto (la física del saque en salto, algo más lenta), sin baile
-      var spdL = 15 + 3.5 * q + (sv.ak ? sv.ak.serve : 0);
+      var spdL = SD.v0 + 3.5 * q + (sv.ak ? sv.ak.serve : 0);
       er = (0.3 + 1.4 * (1 - q)) * mul; power = clamp((spdL - 10) / 8, 0, 1);
-      b.dip = C.G * (0.2 + 0.2 * q);
+      b.dip = C.G * (0.2 + 0.2 * q) * SD.dip;
       if (aimed) v = launchDirect(b, tx + ox, ty + oy, C.BR, spdL, C.G + b.dip);
       else v = launchDirect(b, tx + rnd(g, er), ty + rnd(g, er), 0, spdL, C.G + b.dip);
       if (q < 0.45 && g.rng() < (0.5 - q) * 0.7) v[2] -= 1.1 + g.rng() * 0.8; // a la red
@@ -4596,21 +4596,25 @@
    * g.sigUse = estilo del lanzamiento en curso ('' = el de siempre; lo fija toss), g.sigJumpAt = s de lanzamiento del salto automático del
    * flotante en salto (-1 = ninguno), g.sigLast = estilo del saque de este punto (estadística). sv.shot sigue siendo 'jump'/'float' (recap,
    * matchstats y nota no cambian); el evento 'hit' del saque lleva sig. Valores medidos en tools/zonetest.js §7.
-   *   win: ventana de timing (te /= win: < 1, más justa); zc: altura de contacto (m sobre los pies) de los saques de abajo. */
+   *   win: ventana de timing (te /= win: < 1, más justa); zc: altura de contacto (m sobre los pies) de los saques de abajo.
+   *   Sin ventaja neta (20-nov-2026): con el bot de zonetest §7 (desfase ~N(0, 0,06), diana central, 4000 saques) el EV (ace − falta) de
+   *   cada estilo queda a ±1,5 puntos del saque de siempre de su botón; cada uno gana en algo y pierde en otra cosa (Bomba: más rápida y
+   *   cae menos que antes, 10 veces más faltas; Flotante en salto: vuelo más corto, baila menos; De tenis: rápido y sin baile, cae poco
+   *   (dip × 0,7; v0 = m/s de base); De abajo: sin faltas, baile algo menor y vuelo lento; Globo: el sol, sky = riesgo que suma). */
   var SIG = VB.SERVE_SIG = {
     ids: ['clasico', 'potente', 'flotsalto', 'liftado', 'abajo', 'globo'],
     byId: {
       clasico: { id: 'clasico', name: 'Clásico', short: '', btn: 'both', key: 'both', need: 0, win: 1,
         desc: 'El de siempre.', pro: 'Los dos saques de siempre', con: '' },
-      potente: { id: 'potente', name: 'Bomba', short: 'Bomba', btn: 'jump', key: 'jump', need: 62, win: 0.9, spd: 3.0, dip: 1.7, er: 1.3,
+      potente: { id: 'potente', name: 'Bomba', short: 'Bomba', btn: 'jump', key: 'jump', need: 62, win: 0.9, spd: 3.0, dip: 1.3, er: 1.3,
         desc: 'En salto y más fuerte. Más rápido, más fallos.', pro: 'Más rápido', con: 'Más fallos' },
-      flotsalto: { id: 'flotsalto', name: 'Flotante en salto', short: 'Flot. salto', btn: 'hit', key: 'hit', need: 0, win: 0.93, ap: -0.25, wob: 1.12, er: 1.05,
-        desc: 'Saltas solo. Más tenso y baila más; la ventana es más justa.', pro: 'Más tenso y baila más', con: 'Ventana más justa' },
-      liftado: { id: 'liftado', name: 'De tenis', short: 'De tenis', btn: 'hit', key: 'hit', need: 55, win: 1,
-        desc: 'Sin saltar, con efecto. Rápido y seguro; no baila.', pro: 'Rápido y seguro', con: 'No baila' },
-      abajo: { id: 'abajo', name: 'De abajo', short: 'De abajo', btn: 'hit', key: 'hit', need: 0, win: 1.15, er: 0.55, wob: 0.62, apex: 4.6, zc: 1.25,
+      flotsalto: { id: 'flotsalto', name: 'Flotante en salto', short: 'Flot. salto', btn: 'hit', key: 'hit', need: 0, win: 0.93, ap: -0.25, wob: 0.46, er: 1.05,
+        desc: 'Saltas solo. Más tenso, pero baila menos y la ventana es más justa.', pro: 'Más tenso', con: 'Baila menos' },
+      liftado: { id: 'liftado', name: 'De tenis', short: 'De tenis', btn: 'hit', key: 'hit', need: 55, win: 1, v0: 15, dip: 0.7,
+        desc: 'Sin saltar, con efecto. Rápido y recto; no baila.', pro: 'Rápido y recto', con: 'No baila' },
+      abajo: { id: 'abajo', name: 'De abajo', short: 'De abajo', btn: 'hit', key: 'hit', need: 0, win: 1.15, er: 0.55, wob: 0.92, apex: 4.6, zc: 1.25,
         desc: 'Casi nunca falla. Casi nunca hace daño.', pro: 'Casi nunca falla', con: 'Casi nunca hace daño' },
-      globo: { id: 'globo', name: 'Globo', short: 'Globo', btn: 'hit', key: 'hit', venue: 'beach', need: 0, win: 1, er: 1.45, apex: 12.5, zc: 1.25, sky: 0.5, long: 0.9,
+      globo: { id: 'globo', name: 'Globo', short: 'Globo', btn: 'hit', key: 'hit', venue: 'beach', need: 0, win: 1, er: 1.45, apex: 12.5, zc: 1.25, sky: 0.3, long: 0.9,
         desc: 'Sube muy alto y cae a plomo. Con sol molesta mucho; de noche, menos. Se va largo más a menudo.', pro: 'Cae a plomo y molesta con sol', con: 'Se va largo más a menudo' }
     },
     gest: { ids: ['normal', 'tres', 'uno', 'giro'], labels: ['Ninguno', 'Tres botes', 'Un bote', 'Giro'] },

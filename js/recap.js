@@ -434,6 +434,7 @@
     return '';
   }
   function nextLabel(d, sum) {
+    if (sum && sum.back) return String(sum.back);   // extensiones (career-natl.js: «Siguiente: final», «Volver al torneo»)
     if ((sum && sum.review) || d.phase === 'off' || d.next === 'off') return 'Fin de temporada';
     var n = d.next;
     if (n === 'final') return 'Siguiente: final';
@@ -445,9 +446,20 @@
    *  {seed, win, kicker (array | texto), title, cpu, size, watch, drill, reto, sum (resumen de Carrera), aw:[{num, name?, xp, lvl,
    *  lvlUp, pts, cur, need}] (Partido rápido), bar:{cur, need} (Carrera), badges, unlocks:[ids | {id,name}], table:{rows, myId, pos0,
    *  shortOf}, first (1ª jornada), next:'league'|'semi'|'final'|'cuartos'|'octavos'|'off', phase, boss:{nick, win}, train:{t}|texto,
-   *  retos:{pills:[{name, lvl, nw}], xp}, profile:{xp, lvl, lvlUp, prize}, plays (n de Replay.list), altDiffName}.
-   *  → {kicker[], title, headline, score, mvp, mvpRival, nota, xp[], badges[], unlocks, table, cup, life[], chem, boss, train, retos,
+   *  retos:{pills:[{name, lvl, nw}], xp}, profile:{xp, lvl, lvlUp, prize}, plays (n de Replay.list), altDiffName, inj:{name, n, rl}}.
+   *  → {kicker[], title, headline, score, mvp, mvpRival, nota, xp[], badges[], unlocks, table, cup, life[], chem, boss, train, retos, inj,
    *  profile, part, buttons:{primary:{id,label}, rest:[…]} | null, tabs[], tabLabels, blocks[]} */
+  /** Lesión en este partido (career-injury.js; ui.js la pasa en d.inj = {name, n, rl}): tono de vestuario, sin dramas ni detalles.
+   *  → {name, n, rl, t, parts[], sub (parts con « | »)} | null. */
+  var INJ_TAG = ['Hielo, fisio y a volver', 'Toca parar un poco', 'Toca parar y curarse bien'];
+  function injModel(x) {
+    if (!x || !x.name) return null;
+    var n = Math.max(0, x.n | 0), name = noDot(String(x.name)), parts = [];
+    parts.push(n ? 'Fuera ' + plural(n, 'partido', 'partidos') : 'Vuelves enseguida');
+    if (x.rl) parts.push('Recaída');
+    parts.push(INJ_TAG[n >= 6 ? 2 : n >= 3 ? 1 : 0]);
+    return { name: name, n: n, rl: !!x.rl, t: '¡Ay! ' + name, parts: parts, sub: parts.join(' | ') };
+  }
   function endModel(d) {
     d = d || {};
     var cs = d.career || null, sum = d.sum || null, life = sum && sum.life || d.life || null;
@@ -494,7 +506,8 @@
     M.table = null; M.cup = '';
     var ph = sum ? sum.phase : cs && cs.phase;
     if (cs) {
-      if (ph === 'cup' || ph === 'ko') M.cup = cupLine(sum, cs, win);
+      if (sum && sum.cup) M.cup = String(sum.cup);   // extensiones (career-natl.js): su propia línea de copa
+      else if (ph === 'cup' || ph === 'ko') M.cup = cupLine(sum, cs, win);
       else if (sum && sum.review) M.cup = sum.review.pos ? 'Fin de la liga: ' + ord(sum.review.pos) : d.pos ? 'Fin de la liga: ' + ord(d.pos) : '';
       else if (d.table && d.table.rows) {
         var tb = tableSlice(d.table.rows, d.table.myId, d.first ? 0 : d.table.pos0, d.table.shortOf);
@@ -521,6 +534,7 @@
       M.retos = { pills: pills.slice(0, 3), more: Math.max(0, pills.length - 3), moreT: pills.length > 3 ? 'y ' + (pills.length - 3) + ' más' : '', xp: d.retos.xp | 0, xpT: d.retos.xp ? '+' + num(d.retos.xp) + ' de experiencia por retos' : '' };
     }
     M.profile = d.profile && (d.profile.xp | 0) > 0 ? { xp: d.profile.xp | 0, t: 'Perfil: +' + num(d.profile.xp) + ' XP', up: d.profile.lvlUp ? '¡Perfil Nv ' + (d.profile.lvl | 0) + '!' + (d.profile.prize ? ' Premio: ' + d.profile.prize : '') : '' } : null;
+    M.inj = injModel(cs ? d.inj : null);
     var pp = sum && sum.part ? partParts(sum.part) : [];
     M.part = pp.length ? { parts: pp, t: pp.join(' | ') } : null;
     // botones
@@ -544,6 +558,7 @@
     if (M.mvp || M.mvpRival) B.push('mvp');
     var bossUp = !!(M.boss && M.boss.win);   // jefe tumbado: arriba, que no quede bajo el fundido del móvil
     if (bossUp) B.push('boss');
+    if (M.inj) B.push('inj');   // lesión: arriba, antes del progreso (que no quede bajo el fundido del móvil)
     if (M.xp.length) B.push('xp');
     if (M.badges.length) B.push('badges');
     if (M.unlocks) B.push('unlocks');
@@ -557,7 +572,7 @@
     if (M.profile) B.push('profile');
     if (M.part) B.push('part');
     M.blocks = B;
-    M.heads = { mvp: 'MVP', xp: 'Progreso', unlocks: 'Vestuario', table: 'Clasificación', cup: 'Copa', life: 'Vida', chem: 'Química', boss: 'Jefe', train: 'Entreno', retos: 'Retos', profile: 'Perfil', part: 'Minutos' };
+    M.heads = { mvp: 'MVP', xp: 'Progreso', unlocks: 'Vestuario', table: 'Clasificación', cup: 'Copa', life: 'Vida', chem: 'Química', boss: 'Jefe', train: 'Entreno', retos: 'Retos', profile: 'Perfil', part: 'Minutos', inj: 'Lesión' };
     return M;
   }
 
@@ -565,6 +580,6 @@
     ord: ord, move: move, trait: trait, introPlan: introPlan, history: history, stake: stake, headline: headline, playPhrase: playPhrase,
     tableSlice: tableSlice, endModel: endModel, DUR: DUR, END_CELEB: END_CELEB, TRAITS: TRAITS, STAKES: STAKES,
     // (pruebas y ui.js)
-    h01: h01, RULES: RULES.map(function (r) { return r.k; }), ordw: ordw, partParts: partParts
+    h01: h01, RULES: RULES.map(function (r) { return r.k; }), ordw: ordw, partParts: partParts, injModel: injModel
   };
 })();

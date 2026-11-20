@@ -409,6 +409,28 @@ sec('12. Interfaz');
   K2.simulateNext(); ok(A2.act('as-camp') && A2.state(K2.load()).vote.camp === 2, 'la jornada siguiente, otra vez');
 }
 
+// ------------------------------------------------------------------ 12b. muestras (mobaudit)
+sec('12b. Muestras: _demo prepara su estado');
+{
+  for (const mode of ['beach', 'hall']) {
+    const B = boot({ all: true }), K = B.C, A = B.VB.CareerAllstar;
+    const c0 = mode === 'hall' ? K.create({ mode: 'hall', name: 'Ari Muestra', num: 9, pos: 'OH', seed: 515, now: 1 }) : K.create({ mode: 'beach', name: 'Ari Muestra', num: 9, role: 'atk', seed: 515, now: 1 });
+    K.acceptOffer(c0.offers.findIndex(x => !x.trial), 2);
+    for (let i = 0; i < 4; i++) K.simulateNext();
+    // la Carrera de mobaudit: vote, event y log seguidos y otra vez (cada tamaño repite las filas sobre la misma carrera)
+    let okAll = true;
+    for (let r = 0; r < 2; r++) for (const k of ['vote', 'event', 'log']) { const got = A._demo(K.load(), k); const cur = K.load().allstar.cur; okAll = okAll && got && (k === 'log' ? !cur || cur.st !== 'event' : cur && cur.st === (k === 'vote' ? 'vote' : 'event')); }
+    ok(okAll, mode + ': vote, event y log se preparan dos veces seguidas');
+    // fin de temporada (otra muestra ha simulado la temporada entera): empieza la siguiente y abre la votación
+    let g = 0; while (K.load().phase !== 'off' && g++ < 200) { const n = K.next(K.load()); if (n && n.bench) K.benchNext(); else if (!K.simulateNext()) break; }
+    const s0 = K.load().season;
+    ok(K.load().phase === 'off' && A._demo(K.load(), 'vote') && K.load().phase === 'league' && K.load().season === s0 + 1 && K.load().allstar.cur.st === 'vote', mode + ': desde el fin de temporada, la votación de la siguiente');
+    ok(A._demo(K.load(), 'event') && /as-card/.test(A.cardHTML(K.load(), HLP)), mode + ': y el fin de semana, con su tarjeta');
+  }
+  const B = boot({ all: true }), K = B.C, c = K.create({ mode: 'beach', name: 'Sin Club', num: 3, role: 'atk', seed: 9, now: 1 });
+  ok(B.VB.CareerAllstar._demo(c, 'vote') === false, 'sin club (eligiendo oferta): no hay muestra');
+}
+
 // ------------------------------------------------------------------ 13. contest.js solo
 sec('13. contest.js se carga solo');
 {

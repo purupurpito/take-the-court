@@ -8,8 +8,10 @@
  *  4. Salidas forzadas: error, racha del rival, fin de set, banquillo, cambio del rival y tiempo.
  *  5. Challenge: el punto revocado deja g.zn como antes; y partidos enteros con challenges revocados sin descuadres.
  *  6. copyGame en plena zona: la copia y la partida siguen con el mismo stateHash 10 s.
- *  7. Saques: 400 por estilo contra la recepción de la CPU (Normal), desfase ~N(0, 0,06), diana central: ace, falta, velocidad, vuelo.
- *     EV (ace − falta) a ±4 puntos de su familia; cada estilo se distingue en algún rasgo ≥ 15 %; el Globo en pabellón pasa a Clásico.
+ *  7. Saques: 4000 por estilo contra la recepción de la CPU (Normal), desfase ~N(0, 0,06), diana central: ace, falta, velocidad, vuelo.
+ *     Sin ventaja neta: EV (ace − falta) a ±1,5 puntos del saque de siempre de su botón (con 4000 saques el EV de un estilo se mueve
+ *     ~±0,5 entre tandas de semillas: medido el 20-nov-2026 con 3 tandas); cada estilo se distingue en algún rasgo ≥ 15 %; el Globo en
+ *     pabellón pasa a Clásico. Cada saque se corta cuando el rival ya ha tocado dos veces (ni ace ni falta posibles: mismas cifras).
  *  8. Gesto antes de sacar: balón finito, sin g.rng en 'ready', el lanzamiento corta el gesto al momento y la partida no cambia.
  *  9. Textos (VB.SERVE_SIG y el HUD de la zona en js/ui.js): sin «·», «1.er», «{», «undefined» ni «NaN».
  * 10. Sin Math.random en js/sim.js.
@@ -291,7 +293,7 @@ console.log('7. Saques de firma');
 function serveTrial(style, btn, seed, venue) {
   const g = S.createGame({ seed, difficulty: 'normal', ctrl: 'one', venue, serveSig: style === 'clasico' ? undefined : { id: style, gest: 'normal' } });
   const r = mulberry(seed * 31 + 7), teT = gauss(r) * 0.06;
-  let pressed = false, swung = false, res = null, he = null, t0 = 0, flight = -1, rg = '', apex = 0, rnd = 0;
+  let pressed = false, swung = false, res = null, he = null, t0 = 0, flight = -1, rg = '', apex = 0, rnd = 0, wob = 0;
   for (let k = 0; k < 120 * 14 && !res; k++) {
     const inp = { move: [0, 0], hit: false, jump: false, switchPlayer: false };
     if (g.mode === 'serve' && g.serveState === 'ready' && g.serveAuth && !pressed) { inp[btn] = true; pressed = true; }
@@ -304,31 +306,32 @@ function serveTrial(style, btn, seed, venue) {
     if (he && flight < 0) apex = Math.max(apex, g.ball.z);
     if (!isFinite(g.ball.x + g.ball.y + g.ball.z)) rnd = NaN;
     for (const e of drain(g)) {
-      if (e.type === 'hit' && e.kind === 'serve') { he = e; t0 = g.time; }
+      if (e.type === 'hit' && e.kind === 'serve') { he = e; t0 = g.time; wob = g.ball.wobA || 0; }
       else if (he && flight < 0 && (e.type === 'hit' || e.type === 'land' || e.type === 'net')) { flight = g.time - t0; if (e.type === 'hit') rg = e.grade; }
       if (e.type === 'point') res = { w: e.team, how: e.how, hits: g.rally.hits };
     }
+    if (!res && he && flight >= 0 && g.lastTeam === 1 && g.touches >= 2) res = { w: -1, how: 'rally', hits: g.rally.hits };   // (ya no hay ace ni falta)
   }
-  return { he, res, flight, rg, apex, ok: rnd === 0, sig: g.sig, used: he ? he.sig : undefined, stats: g.stats };
+  return { he, res, flight, rg, apex, wob, ok: rnd === 0, sig: g.sig, used: he ? he.sig : undefined, stats: g.stats };
 }
 function serveStats(style, btn, venue, n) {
-  const o = { n: 0, ace: 0, fault: 0, spd: 0, nh: 0, fl: 0, nf: 0, poor: 0, nr: 0, apex: 0, used: 0, finite: true };
+  const o = { n: 0, ace: 0, fault: 0, spd: 0, wob: 0, nh: 0, fl: 0, nf: 0, poor: 0, nr: 0, apex: 0, used: 0, finite: true };
   for (let i = 1; i <= n; i++) {
     const t = serveTrial(style, btn, i * 977 + 3, venue);
     if (!t.ok) o.finite = false;
     if (!t.res) continue; o.n++;
-    if (t.he) { o.nh++; o.spd += t.he.speed; if (t.used) o.used++; }
+    if (t.he) { o.nh++; o.spd += t.he.speed; o.wob += t.wob; if (t.used) o.used++; }
     if (t.flight > 0) { o.fl += t.flight; o.nf++; o.apex += t.apex; }
     if (t.res.w === 0 && t.res.how === 'ace') o.ace++;
     if (t.res.w === 1 && t.res.hits === 0) o.fault++;
     if (t.rg) { o.nr++; if (t.rg === 'poor') o.poor++; }
   }
-  o.aceP = 100 * o.ace / o.n; o.faultP = 100 * o.fault / o.n; o.ev = o.aceP - o.faultP; o.spd /= Math.max(1, o.nh); o.fl /= Math.max(1, o.nf); o.apex /= Math.max(1, o.nf); o.poorP = 100 * o.poor / Math.max(1, o.nr);
+  o.aceP = 100 * o.ace / o.n; o.faultP = 100 * o.fault / o.n; o.ev = o.aceP - o.faultP; o.spd /= Math.max(1, o.nh); o.wob /= Math.max(1, o.nh); o.fl /= Math.max(1, o.nf); o.apex /= Math.max(1, o.nf); o.poorP = 100 * o.poor / Math.max(1, o.nr);
   return o;
 }
-function fmtS(o) { return 'ace ' + o.aceP.toFixed(1) + ' %, falta ' + o.faultP.toFixed(1) + ' %, EV ' + o.ev.toFixed(1) + ', ' + o.spd.toFixed(1) + ' m/s, vuelo ' + o.fl.toFixed(2) + ' s, cima ' + o.apex.toFixed(1) + ' m, recepción mala ' + o.poorP.toFixed(0) + ' %'; }
+function fmtS(o) { return 'ace ' + o.aceP.toFixed(1) + ' %, falta ' + o.faultP.toFixed(1) + ' %, EV ' + o.ev.toFixed(1) + ', ' + o.spd.toFixed(1) + ' m/s, baile ' + o.wob.toFixed(2) + ', vuelo ' + o.fl.toFixed(2) + ' s, cima ' + o.apex.toFixed(1) + ' m, recepción mala ' + o.poorP.toFixed(0) + ' %'; }
 {
-  const N = QUICK ? 120 : 400, EVTOL = QUICK ? 8 : 4;   // (--quick: 120 saques, más ruido)
+  const N = QUICK ? 600 : 4000, EVTOL = QUICK ? 4 : 1.5;   // (--quick: 600 saques, más ruido)
   const R = {};
   const list = [['hall', 'clasico', 'hit'], ['hall', 'clasico', 'jump'], ['hall', 'potente', 'jump'], ['hall', 'flotsalto', 'hit'], ['hall', 'liftado', 'hit'], ['hall', 'abajo', 'hit'],
     ['beach', 'clasico', 'hit'], ['beach', 'globo', 'hit']];
@@ -337,8 +340,8 @@ function fmtS(o) { return 'ace ' + o.aceP.toFixed(1) + ' %, falta ' + o.faultP.t
   for (const st of ['potente', 'flotsalto', 'liftado', 'abajo', 'globo']) {
     const k = (st === 'globo' ? 'beach' : 'hall') + st + (st === 'potente' ? 'jump' : 'hit'), o = R[k], f = R[fam[st]];
     ok(SIG.byId[st].name + ': se usa en cada saque de su botón', o.used === o.nh && o.nh > 0, o.used + '/' + o.nh);
-    ok(SIG.byId[st].name + ': EV a ±' + EVTOL + ' puntos de su familia', Math.abs(o.ev - f.ev) <= EVTOL, o.ev.toFixed(1) + ' frente a ' + f.ev.toFixed(1));
-    const tr = { velocidad: rel(o.spd, f.spd), vuelo: rel(o.fl, f.fl), cima: rel(o.apex, f.apex), ace: rel(o.aceP + 1, f.aceP + 1), falta: rel(o.faultP + 1, f.faultP + 1), recepcion: rel(o.poorP + 1, f.poorP + 1) };
+    ok(SIG.byId[st].name + ': sin ventaja neta, EV a ±' + EVTOL + ' puntos de su familia', Math.abs(o.ev - f.ev) <= EVTOL, o.ev.toFixed(1) + ' frente a ' + f.ev.toFixed(1));
+    const tr = { velocidad: rel(o.spd, f.spd), baile: rel(o.wob, f.wob), vuelo: rel(o.fl, f.fl), cima: rel(o.apex, f.apex), ace: rel(o.aceP + 1, f.aceP + 1), falta: rel(o.faultP + 1, f.faultP + 1), recepcion: rel(o.poorP + 1, f.poorP + 1) };
     const best = Object.keys(tr).sort((a, b) => tr[b] - tr[a])[0];
     ok(SIG.byId[st].name + ': se distingue en algún rasgo ≥ 15 %', tr[best] >= 0.15, best + ' ' + (tr[best] * 100).toFixed(0) + ' %');
     ok(SIG.byId[st].name + ': balón siempre finito', o.finite);

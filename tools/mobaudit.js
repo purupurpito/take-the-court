@@ -53,9 +53,14 @@ const CR_TABS = [['match'], ['inbox'], ['player', 'phys'], ['player', 'def'], ['
   ['inbox', 'wall'], ['club', 'people'], ['life', 'pass'], ['honors', 'stats']];   // (Carrera con vida, 1.13.x)
 // Extensiones de la Carrera (20-nov-2026; CONTRACT.md «Extensiones de la Carrera»): cada una prepara su pantalla de muestra con
 // X._demo(c, tipo) (true si la ha dejado lista y guardada; false si no puede: la fila falla). XR = fila del hub de la Carrera.
+// Las filas con la misma q comparten la carrera de muestra, en orden y otra vez en cada tamaño: una muestra que la cambia para las demás
+// (simula la temporada hasta el final, te cede a otro club…) va con XO, que le da una carga de página propia.
 const XD = (id, k) => `var X = VB.Career && VB.Career.ext && VB.Career.ext.get('${id}'); if (!X || !X._demo || !X._demo(VB.Career.get(), '${k}')) return false; `;
 const XR = (sid, m, id, k, t, s) => ({ id: 'carrera-' + (m === 'hall' ? 'pista' : 'playa') + '-' + sid, area: 'carrera', q: M0 + '&ma=' + (m === 'hall' ? 'ch' : 'cb'),
   open: `if (!M.seedCareer('${m}')) return false; ` + XD(id, k) + `return M.career('${t}'${s ? `, '${s}'` : ''});` });
+const XO = (sid, m, id, k, t, s) => { const r = XR(sid, m, id, k, t, s); r.q += '&mx=' + sid; return r; };
+// Estrellas en Partido: la tarjeta queda bajo la cabecera del hub; se espera a que esté y se baja hasta ella
+const XAS = r => Object.assign(r, { open: r.open.replace(/return (M\.career\([^)]*\));$/, "await $1; var e = await M.until(()=>document.querySelector('#career .as-card'),2000) && document.querySelector('#career .as-card'); if (!e) return false; e.scrollIntoView({block:'center'}); return true;") });
 const PAUSE_EXIT = '#btnResume';
 const HUD_EXIT = '#btnHudPause, #touch .vt-pause';   // (táctil: la pausa es la del overlay)
 
@@ -108,20 +113,24 @@ const SCREENS = [
   { id: 'carrera-pista-club-ficha', area: 'carrera', q: M0 + '&ma=ch', open: "if (!M.seedCareer('hall')) return false; await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
   // extensiones de la Carrera (20-nov-2026): selección, lesiones, Estrellas, cesiones, premios, puesto, juvenil y saque de firma
   XR('club-natl', 'hall', 'natl', 'sum', 'club', 'natl'), XR('club-natl', 'beach', 'natl', 'sum', 'club', 'natl'),
-  XR('natl-tarjeta', 'hall', 'natl', 'q', 'match'), XR('natl-verano', 'beach', 'natl', 'off', 'match'),
+  XR('natl-tarjeta', 'hall', 'natl', 'q', 'match'), XR('club-natl-clasif', 'hall', 'natl', 'q', 'club', 'natl'), XR('natl-palmares', 'hall', 'natl', 'sum', 'honors', 'titles'),
+  XO('natl-verano', 'beach', 'natl', 'off', 'match'), XO('club-natl-verano', 'beach', 'natl', 'off', 'club', 'natl'),
   XR('lesion', 'beach', 'inj', 'tob2', 'player', 'train'), XR('lesion', 'hall', 'inj', 'rod3', 'player', 'train'),
   XR('partido-baja', 'beach', 'inj', 'hom2', 'match'), XR('partido-baja', 'hall', 'inj', 'tob2', 'match'),
-  ...[XR('estrellas-voto', 'beach', 'allstar', 'vote', 'match'), XR('estrellas-finde', 'hall', 'allstar', 'event', 'match')].map(r => Object.assign(r, {   // (la tarjeta queda bajo la cabecera del hub: se baja hasta ella)
-    open: r.open.replace(/return (M\.career\([^)]*\));$/, "await $1; await M.sleep(60); var e = document.querySelector('#career .as-card'); if (!e) return false; e.scrollIntoView({block:'center'}); return true;") })),
-  XR('estrellas-vitrina', 'beach', 'allstar', 'log', 'honors', 'titles'),
+  ...[XR('estrellas-voto', 'beach', 'allstar', 'vote', 'match'), XR('estrellas-voto', 'hall', 'allstar', 'vote', 'match'),
+    XR('estrellas-finde', 'hall', 'allstar', 'event', 'match'), XR('estrellas-finde', 'beach', 'allstar', 'event', 'match')].map(XAS),
+  XR('estrellas-vitrina', 'beach', 'allstar', 'log', 'honors', 'titles'), XR('estrellas-vitrina', 'hall', 'allstar', 'log', 'honors', 'titles'),
   { id: 'carrera-estrellas-concurso-hoja', area: 'carrera', q: 'debug=drill_end&career=1&ext=allstar&k=srv', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900, exit: '#btnGeList' },
   { id: 'carrera-estrellas-partido-hoja', area: 'carrera', q: 'debug=over&cr=1&ext=allstar&k=match', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
+  // hoja final de un partido con la selección (career-natl.js _endDemo): el billete con el torneo de nombre más largo y la derrota de grupo con el país más largo
+  { id: 'carrera-natl-partido-hoja', area: 'carrera', q: 'debug=over&cr=1&ext=natl&k=q', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
+  { id: 'carrera-natl-partido-hoja-derrota', area: 'carrera', q: 'debug=over&cr=1&ext=natl&k=loss', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
   XR('cesiones', 'hall', 'loan', 'opts', 'club', 'offers'), XR('cesiones', 'beach', 'loan', 'opts', 'club', 'offers'),
-  XR('traspaso-renovar', 'hall', 'loan', 'renew', 'club', 'contract'), XR('cedido', 'hall', 'loan', 'on', 'club', 'contract'),
-  XR('cesion-aviso', 'hall', 'loan', 'opts', 'match'), XR('fin-cesion', 'beach', 'loan', 'back', 'match'),
+  XR('traspaso-renovar', 'hall', 'loan', 'renew', 'club', 'contract'), XR('traspaso-no', 'hall', 'loan', 'no', 'club', 'contract'), XO('cedido', 'hall', 'loan', 'on', 'club', 'contract'),
+  XR('cesion-aviso', 'hall', 'loan', 'opts', 'match'), XO('fin-cesion', 'beach', 'loan', 'back', 'match'),
   XR('league-race', 'beach', 'race', '', 'league', 'race'), XR('league-race', 'hall', 'race', '', 'league', 'race'),
-  XR('premios-datos', 'beach', 'race', 'data', 'league', 'race'), XR('premios-datos', 'hall', 'race', 'data', 'league', 'race'),
-  XR('gala', 'hall', 'race', 'gala', 'match'),
+  XO('premios-datos', 'beach', 'race', 'data', 'league', 'race'), XO('premios-datos', 'hall', 'race', 'data', 'league', 'race'),
+  XO('gala', 'hall', 'race', 'gala', 'match'),
   XR('propuesta-puesto', 'hall', 'dev', 'pos', 'match'), XR('plan', 'beach', 'dev', 'planOpen', 'player', 'train'), XR('pedir-puesto', 'hall', 'dev', 'askOpen', 'player', 'train'),
   ...[['playa', 'beach'], ['pista', 'hall']].flatMap(([n, m]) => [['intro', 'intro'], ['intro3', 'intro3'], ['temporada', 'season'], ['equipo', 'team'], ['chat', 'chat'], ['informe', 'scout']].map(([id, st]) => ({
     id: 'carrera-juvenil-' + id + '-' + n, area: 'carrera', q: M0 + '&ma=j' + m.charAt(0) + st,

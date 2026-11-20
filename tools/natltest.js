@@ -387,6 +387,13 @@ section('11. Textos (20 semillas, estados sum, q y done)');
   const pg = txt(X.page(c, 'natl', HLP));
   ok(/Seleccionador: /.test(pg) && /Próximos veranos/.test(pg) && /Tu historia con España/.test(pg) && /Grupo [A-D]/.test(pg), 'Club › Selección: parche, cómo entrar, torneo, próximos veranos e historial');
   ok(!/1\.er|2\.º|3\.er/.test(pg) && /1ª jornada|2ª jornada|3ª jornada/.test(pg), 'jornadas con «1ª»/«2ª», sin «1.er»');
+  // móvil: el torneo con tu partido pendiente es .x-go (su 1ª .acts, «Jugar» + «Simular partido», va a la barra #crDock); el resto debajo
+  // de la tabla; tu país es tr.nt-me (con tr.me el hub bajaría hasta la tabla y dejaría el torneo bajo la cabecera)
+  const raw = X.page(c, 'natl', HLPph), tc = raw.slice(raw.indexOf('<div class="card x-go">'));
+  const a1 = tc.slice(0, tc.indexOf('</div>', tc.indexOf('<div class="acts">')));
+  ok(raw.indexOf('<div class="card x-go">') > 0 && /data-act="nt-play"/.test(a1) && /data-act="nt-sim"/.test(a1) && !/nt-simall|nt-dec/.test(a1), 'móvil: tarjeta del torneo .x-go con «Jugar» y «Simular partido» en su 1ª fila de botones');
+  ok(tc.indexOf('nt-simall') > tc.indexOf('</table>') && /tr class="nt-me"/.test(raw) && !/tr class="me"/.test(raw), '«Simular el resto» bajo la tabla; tu país con tr.nt-me');
+  ok(/tr\.nt-me td/.test(String(Bn.VB.CareerUIExt.filter((x) => x.id === 'natl')[0].css())), 'CSS propio para tr.nt-me');
   ok(X.dot(c, 'club') === false || X.dot(c, 'natl') === true, 'punto en Club y en la sub-pestaña con una ventana nueva');
   X.page(c, 'natl', HLP); ok(X.dot(K.load(), 'natl') === false, 'abrir la sub-pestaña lo marca como visto');
   const r1 = X.act('nt-go'); ok(r1 && r1.tab === 'club' && r1.s === 'natl', 'nt-go lleva a Club › Selección');
@@ -522,6 +529,10 @@ section('13. Correcciones: repesca, cuartos, sub-19, lesión, papel, hoja final'
     }
     if (last) ok(last.cup && !BAD.test(last.cup) && /Volver a la Carrera/.test(last.back), mode + ': última hoja «' + last.title + '» | ' + last.cup + ' | ' + last.back);
   }
+  // hoja de muestra para mobaudit (carrera-natl-partido-hoja): los textos más largos, sin tocar ninguna Carrera
+  const XD = N(bootN()), dq = XD._endDemo('q'), dl = XD._endDemo('loss');
+  ok(dq && dq.kind === 'natl' && /^¡Billete para el /.test(dq.cup) && dq.title === '¡Victoria!' && dq.back === 'Volver a la Carrera' && !BAD.test(dq.cup + dq.label), '_endDemo q: «' + (dq && dq.cup) + '»');
+  ok(dl && dl.win === false && dl.title === 'Gana República Dominicana' && dl.back === 'Siguiente: 3ª jornada' && !dl.cup && !BAD.test(dl.title + dl.back + dl.next), '_endDemo loss: «' + (dl && dl.title) + '» | ' + (dl && dl.back));
 }
 
 console.log('\n' + (fails ? fails + ' FALLOS' : 'TODO OK') + ' (' + passes + ' comprobaciones)');
