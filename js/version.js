@@ -47,11 +47,17 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.19.0';
-  VB.VERSION_DATE = '2026-11-20';
+  VB.VERSION = '1.19.1';
+  VB.VERSION_DATE = '2026-11-21';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.19.1', d: '2026-11-21', t: 'Icono nuevo',
+      items: [
+        'Icono nuevo de la app.'
+      ]
+    },
     {
       v: '1.19.0', d: '2026-11-20', t: 'Carrera ampliada',
       items: [
