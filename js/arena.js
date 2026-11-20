@@ -3761,6 +3761,10 @@
       P.blur.uniforms.tDiffuse.value = P.b2.texture; P.blur.uniforms.dir.value.set(0, 1 / P.h2); pass(P.blur, P.a2);
       P.comp.uniforms.tScene.value = P.rt.texture; P.comp.uniforms.tB1.value = P.a1.texture; P.comp.uniforms.tB2.value = P.a2.texture;
       P.comp.uniforms.time.value = (c.time % 10);
+      // (pulido del Vestuario: con la vista previa, el bloom a la mitad: la camiseta naranja de la playa, a dos palmos de la cara en el
+      //  primer plano, dejaba un resplandor naranja en la mejilla y la mandíbula, muy visible sobre la piel oscura)
+      var pvOn = VB.Doll && VB.Doll.preview && VB.Doll.preview.active && VB.Doll.preview.active();
+      P.comp.uniforms.bloom.value = pvOn ? 0.36 : 0.72;
       pass(P.comp, null);
     } catch (err) {
       console.warn('[VB] arena: post-proceso desactivado', err);
