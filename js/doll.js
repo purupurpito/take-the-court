@@ -850,7 +850,10 @@
         // WP5: alrededor de todo el brazo, más alto (0,49-0,83: la bola del codo solo tapa el tubo desde ≈ 0,85 por fuera; en la ronda 1
         // subió de 0,51-0,8 porque en el primer plano se quedaba en 1,2 %) y separado del ribete de la manga (acaba en 0,46) por una raya
         // de piel; del acento salvo que se pierda contra lo de debajo (brazalete rojo sobre manguito rojo)
-        var b0 = 0.49, b1 = 0.83, bc = pick(cA, armBg(arm, lsl), tc), bdk = mixHex(bc, 0x000000, 0.38);
+        // (pulido: en el manguito bicolor o fundido, que también se separe de la mitad de abajo; si no, el «pick» contra cA daba el
+        //  oscuro de la equipación, igual que el antebrazo, y el brazalete se fundía con él y escondía las dos mitades)
+        var b0 = 0.49, b1 = 0.83, bc = SLV_AB[arm] ? pick2(cA, arm === 'manguitoFundido' ? mixHex(cA, cB2, 0.3) : cA, cB2, tc) : pick(cA, armBg(arm, lsl), tc);
+        var bdk = mixHex(bc, 0x000000, 0.38);
         band(cu, b0, b1, bc);
         draw(cu, b0, b1, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
           var H = y1 - y0, e = Math.max(0.8, H * 0.12), ink = lumHex(bc) > 0.55 ? faceInk(tc) : 0xffffff;
@@ -1761,6 +1764,17 @@
     if (hexDist(want, bg) >= d) return want;
     var c = [tc && tc.dark, 0xf8f8f4, NEUTRAL_DK], best = want, bd = -1, i, dd;
     for (i = 0; i < c.length; i++) { if (typeof c[i] !== 'number') continue; dd = hexDist(c[i], bg); if (dd >= d + 50) return c[i]; if (dd > bd) { bd = dd; best = c[i]; } }
+    return best;
+  }
+  /** pick contra DOS fondos (lo de debajo y lo de al lado): el primero que se distinga de los dos o, si ninguno, el que más del peor. */
+  function pick2(want, bg1, bg2, tc, d) {
+    d = d || 150;
+    var c = [want, 0xf8f8f4, tc && tc.base, tc && tc.dark, NEUTRAL_DK], best = want, bd = -1, i, dd;
+    for (i = 0; i < c.length; i++) {
+      if (typeof c[i] !== 'number') continue;
+      dd = Math.min(hexDist(c[i], bg1), hexDist(c[i], bg2)); if (dd >= d) return c[i];
+      if (dd > bd) { bd = dd; best = c[i]; }
+    }
     return best;
   }
   /** Color de las rodilleras: el elegido (cPad) o, en automático, el de la equipación salvo que se pierda contra lo de debajo (la piel,
