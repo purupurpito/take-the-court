@@ -2089,13 +2089,17 @@
       //  claros, cordón más grueso y la chapa con el canto casi negro; sobre uno oscuro, la plata clara de antes)
       // (pulido: se leía como un cuello o una bufanda a cuadros grises. Ahora un eslabón claro de cada dos lleva un BRILLO casi blanco
       //  —ritmo claro, oscuro, brillo, oscuro: metal— y la chapa es más pequeña y cuelga más alta: ya no tapa el dorsal. Mismos triángulos)
-      var lk = 2 * PI / sg(20, 12), dy2 = F.yf - 0.006, rd2 = torsoR(dy2 + co), lc = lumHex(tc.base) > 0.6 || (hi && lumHex(colB(X, tc)) > 0.6);
-      var s1 = lc ? 0x58616f : 0xdfe5ec, s2 = lc ? 0x8f99a6 : 0x5c6674, s3 = lc ? 0x8d97a5 : 0xd4dbe4, s4 = lc ? 0x23262d : 0x5a6470, sh2 = 0xf6f9fc;
-      G.owk = 0.6; G.vc = function (px, py) { var q = Math.floor((Math.atan2(py, px) + PI) / lk); return q % 2 ? s2 : q % 4 === 0 ? sh2 : null; };   // (uno de cada dos eslabones claros, con brillo)
-      G.add(torus(1, 0.19, 4, 20), s1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;
+      var lk = 2 * PI / sg(20, 12), lc = lumHex(tc.base) > 0.6 || (hi && lumHex(colB(X, tc)) > 0.6);
+      var s1 = lc ? 0x58616f : 0xdfe5ec, s2 = lc ? 0x76808e : 0xaeb7c3, s3 = lc ? 0x8d97a5 : 0xd4dbe4, s4 = lc ? 0x23262d : 0x5a6470, sh2 = 0xf6f9fc;
+      // (pulido 2: el aro grueso con eslabones claros y oscuros alternos seguía leyéndose como un cuello a cuadros y la chapa caía sobre
+      //  el número. Ahora el cordón es fino, oscuro por debajo y con el brillo solo por arriba (una cadena, no una banda), y la chapa,
+      //  más pequeña, cuelga del propio cordón: apenas baja de él y deja el dorsal entero. Mismos triángulos)
+      G.owk = 0.6; G.vc = function (px, py, pz) { if (pz > -0.02) return null; var q = Math.floor((Math.atan2(py, px) + PI) / lk); return q % 4 === 0 ? sh2 : s2; };
+      G.add(torus(1, 0.17, 4, 20), s1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;
+      var ty = F.yf - 0.012, rdT = torsoR(ty + co);
       G.owk = 0.7; G.vc = function (px, py) { return Math.abs(py) < 0.0025 ? s4 : null; };
-      G.add(new THREE.BoxGeometry(0.05, 0.064, 0.011), s3, 0, dy2 - 0.014, rd2[1] + 0.013, -0.22, 0, 0); G.vc = null;              // chapa
-      if (LODR > 0) { G.owk = 0; G.add(new THREE.PlaneGeometry(0.011, 0.034), 0xf6f9fc, -0.006, dy2 - 0.008, rd2[1] + 0.0184, -0.22, 0, 0); }   // brillo
+      G.add(new THREE.BoxGeometry(0.042, 0.048, 0.01), lc ? 0x66707e : s3, 0, ty, rdT[1] + 0.014, -0.22, 0, 0); G.vc = null;                       // chapa
+      if (LODR > 0) { G.owk = 0; G.add(new THREE.PlaneGeometry(0.009, 0.026), 0xf6f9fc, -0.006, ty + 0.004, rdT[1] + 0.0192, -0.22, 0, 0); }   // brillo
     }
     G.owk = 1;
   }
