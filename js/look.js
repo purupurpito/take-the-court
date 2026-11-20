@@ -431,7 +431,9 @@
   var KEEP_PATHS = keepPaths();
   // saneado campo a campo sin reglas de compatibilidad (lo irreparable vuelve al valor por defecto de esa ranura; lo desconocido,
   // además, a _keep). Lo que ya estaba en _keep y ahora se conoce vuelve a su sitio
-  /** Los pendientes iban en 'head' (WP7, antes de la ronda 1): pasan a su ranura 'ears' y el gorro queda libre. Copia; fit no cambia. */
+  /** Los pendientes iban en 'head' (WP7, antes de la ronda 1): pasan a su ranura 'ears' y el gorro queda libre. Copia; fit no cambia.
+   *  (Pulido: ese formato nunca se publicó —no está en main ni en los guardados 1.15.1—; solo lo pueden tener los guardados de prueba
+   *  de la rama personaje. Se queda por eso, con su prueba en looktest, y se puede QUITAR en la versión siguiente a 1.18.0.) */
   function earsMove(fit) {
     var mv = ['hall', 'beach'].filter(function (v) { return isObj(fit[v]) && fit[v].head === 'pendientes'; });
     if (!mv.length) return fit;
