@@ -36,6 +36,8 @@
  *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
  * 1.15.1 (19-nov-2026): aviso de versión nueva (Ferran: «si un teléfono está en una versión anterior le salte un aviso en la
  *   pantalla de reiniciar»): js/update.js pregunta a Pages por version.json y ofrece «Reiniciar»; el online dice quién tiene que reiniciar.
+ * 1.19.0 (20-nov-2026): Carrera ampliada (notes/carrera.md, CONTRACT.md § extensiones): selección, lesiones, Estrellas y
+ *   concursos, cesiones, carrera por los premios, plan de desarrollo, la zona, saque de firma y prólogo juvenil.
  * 1.18.0 (20-nov-2026): Vestuario renovado (notes/vestuario-plan.md, notes/players.md § Vestuario): casco de pelo nuevo con 32
  *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
  * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
@@ -45,11 +47,25 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.18.0';
+  VB.VERSION = '1.19.0';
   VB.VERSION_DATE = '2026-11-20';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.19.0', d: '2026-11-20', t: 'Carrera ampliada',
+      items: [
+        'Selección nacional: convocatorias, clasificación, Mundial y Juegos Cuatrienales.',
+        'Lesiones poco frecuentes: unos partidos de baja, y puedes volver antes con riesgo.',
+        'Partido de las Estrellas, Sol contra Luna, con concursos de saque, recepción y remate.',
+        'Cesiones: pide salir cedido o que te cedan, y pide el traspaso si no juegas.',
+        'Carrera por los premios: sigue cada semana quién va primero en cada trofeo.',
+        'Plan de desarrollo y cambio de puesto: pídeselo al entrenador.',
+        'La zona: encadena buenas jugadas y juega encendido. El rival también tiene rachas.',
+        'Saque de firma: elige tu estilo de saque y celebra tus aces.',
+        'Prólogo juvenil: empieza en el instituto y gánate las pruebas de los clubes.'
+      ]
+    },
     {
       v: '1.18.0', d: '2026-11-20', t: 'Vestuario renovado',
       items: [
