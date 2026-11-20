@@ -2273,6 +2273,9 @@
     else if (fx === 'flequilloFx') { if (Math.abs(pf) < 1.0 && (kind === 'shell' ? th < 0.34 * PI && u > 0.45 : true)) c = H.h2; }
     else if (fx === 'mitad') { if (pf > 0) c = H.h2; }
     if (st.fade && kind === 'shell') { var f = st.fade(ph, th, u); if (f > 0) c = mixHex(c, H.stub, f); }
+    // pelo claro a la distancia del partido (pulido; LOD0/LOD1): la nuca y el borde de abajo algo más oscuros, como la sombra del pelo de
+    // verdad. Rubio sobre el parqué, de espaldas a 68 px, tenía el mismo tono que el suelo y solo lo separaba la tinta
+    if (kind === 'shell' && LODR < 2 && u > 0.55) { var lh = hairLum(c); if (lh > 0.5) c = mixHex(c, 0x3a2414, (lh > 0.65 ? 0.45 : 0.3) * sstep(0.55, 0.85, u)); }
     // raya del peinado (st.part = φ): la columna del casco que la contiene, más oscura de la frente a la coronilla
     if (st.part != null && kind === 'shell' && ex && ex.ph != null && ex.cw && Math.abs(ex.ph - st.part) < ex.cw * 0.5 && th < 0.3 * PI) c = mixHex(c, 0x000000, hairLum(c) > 0.45 ? 0.3 : 0.4);
     // brillo: SUAVE (sube y baja en una franja ancha) y casi solo por delante. Revisión final: era un aro estrecho todo alrededor de la
