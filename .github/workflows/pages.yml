@@ -24,6 +24,8 @@ jobs:
           node-version: 22
       - name: Comprobar la simulación
         run: node tools/simtest.js 10 12345 0
+      - name: Comprobar el traspaso de partidas (js/migrate.js)
+        run: node tools/migtest.js --node
       - name: Generar _site
         run: node tools/build-pages.js _site
       - uses: actions/upload-pages-artifact@v3

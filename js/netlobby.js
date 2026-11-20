@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/netlobby.js   (owner: net)
+ * TAKE THE COURT — js/netlobby.js   (owner: net)
  * Modo online, fase 2 (notes/net.md «Fase 2»): la página «Online» del menú (#mpOnline, la monta ui.js) y la conexión entre los dos
  * jugadores. Decisiones de Ferran que se cumplen aquí:
  *   1. Al entrar ves la LISTA de salas abiertas (nombre de quien la creó, formato, sede, partido, Igualado o no, 1/2) y puedes crear
@@ -1303,13 +1303,20 @@
     };
     try { navigator.clipboard.writeText(c).then(done, done); } catch (e) { done(); }
   }
+  /** Dirección que se comparte: la casa nueva (https://takethecourt.com/) desde ella y desde la antigua (purupurpito.github.io, que
+   *  durante el traspaso redirige con el puente); en local o en pruebas, la página actual. */
+  function shareSite() {
+    var h = location.hostname;
+    if (location.protocol === 'https:' && (h === 'takethecourt.com' || h === 'www.takethecourt.com' || h === 'purupurpito.github.io')) return 'https://takethecourt.com/';
+    return location.origin + location.pathname;
+  }
   /** Móvil: «Compartir» de la sala de espera (la hoja de compartir del sistema con el enlace ?sala=CÓDIGO; sin ella, se copia el enlace). */
   function shareRoom() {
     var c = L.room && L.room.code; if (!c) return;
-    var url = location.origin + location.pathname + '?sala=' + c, txt = 'Juega conmigo a Make the Cut: sala ' + c;
+    var url = shareSite() + '?sala=' + c, txt = 'Juega conmigo a Take the Court: sala ' + c;
     var copied = function () { if (VB.Splat && VB.Splat.toast) VB.Splat.toast('Enlace copiado. Código <b>' + esc(c) + '</b>', { key: 'olc' }); };
     var copy = function () { try { navigator.clipboard.writeText(txt + ' ' + url).then(copied, copied); } catch (e) { copied(); } };
-    if (navigator.share) { try { navigator.share({ title: 'Make the Cut', text: txt, url: url }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); }); return; } catch (e) { } }
+    if (navigator.share) { try { navigator.share({ title: 'Take the Court', text: txt, url: url }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); }); return; } catch (e) { } }
     copy();
   }
 
