@@ -5566,6 +5566,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* «Deshacer» en el aviso del dado, Todo al azar, Restablecer y Copiar */
 .sp-toast.lk-undo-t{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 :root:not(#_):not(#_):not(#_) .sp-toast.lk-undo-t .lk-undo{flex:none;min-height:44px;padding:0 14px;font:700 14px/1 var(--sp-ui)}
+/* PC (pulido 2): el aviso con «Deshacer» bajaba sobre el botón de pantalla completa (arriba a la derecha): ahora, debajo de él */
+:root:not(.ph):has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:calc(max(8px,var(--st)) + 66px)}
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 /* =====================================================================
    SPLAT · PANELES (#panel.sp-pn: Ajustes, Controles, Cómo se juega, Jugadores, Acerca de y Primer partido; y el aviso #rotate).
