@@ -822,7 +822,7 @@
       // la licra de playa (manga larga), con la costura lateral de color por fuera del brazo, como la del costado: se distingue de la
       // térmica de pista, que es lisa con el puño acanalado
       if (beach && lsl) { var lsc = pick(cA, cU, tc); sideSeam(cu, UPPER, lsc); sideSeam(cf, FORE, lsc); }
-      else segs(cf, [[0, sk]]);                                                                       // antebrazo de piel
+      else if (!lsl) segs(cf, [[0, sk]]);                                                             // antebrazo de piel
       if (arm === 'kinesio') {
         // kinesio (WP5, T5; ronda 1): cinta estrecha a lo largo del músculo, no parches. En el brazo, una «Y» sobre el deltoides (el tallo
         // por fuera desde el codo y las dos colas que se abren hacia delante y hacia atrás: de espaldas en el partido se ve la de atrás) y
