@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/fluidchaltest.js  (owner: net)
+/* TAKE THE COURT — tools/fluidchaltest.js  (owner: net)
  * Challenge en la conexión Fluida (1.14.1): dos VB.NetFluid.Session unidas por VB.Net.memPair, cada una en su propio contexto vm,
  * con un árbitro que falla mucho (para que haya llamadas que revisar) y 5 challenges por set. Juegan bots (VB.Net.bot); tras cada
  * punto con llamada en contra, el que lo perdió pide challenge con un retraso al azar (de 0 a 6,5 s: en el tiempo del punto, con el

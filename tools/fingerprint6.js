@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/fingerprint6.js  (owner: sim)
+/* TAKE THE COURT — tools/fingerprint6.js  (owner: sim)
  * HUELLA del 2v2 para el refactor «Sim a N jugadores» (sprint 1 del 6v6, notes/diseno-6v6-carrera.md §4, riesgo 1).
  * Juega 50 semillas × 3 variantes con el código de js/sim.js + js/ai.js y guarda, por partida, la secuencia de puntos
  * (equipo, motivo, cómo, autor, marcador), el recuento de eventos, las posiciones finales EXACTAS de los 4 jugadores y el

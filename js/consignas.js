@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/consignas.js (owner: carrera)
+/* TAKE THE COURT — js/consignas.js (owner: carrera)
  * Consignas del entrenador en directo (VB.Consignas) para los partidos JUGADOS de la Carrera. Al empezar algunos puntos (serveReady)
  * el entrenador da una indicación según el formato, tu puesto y quién saca («Saca a la zona 1», «Remata la primera en diagonal»,
  * «Juega la primera con el central», «Bloquea la línea»…). Si la cumples, la nota en directo sube un poco (career.js llama a

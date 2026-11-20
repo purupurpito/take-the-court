@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/venue-genkit.js (owner: arena)
+/* TAKE THE COURT — js/venue-genkit.js (owner: arena)
  * KIT de piezas de las sedes GENERADAS (plan «sedes-gen», fases F2-F3): VB.VenueGen.kit.
  *
  * Regla de coste: las piezas NO crean mallas. Escriben en los Builder de la sede (S = estática fusionada toon con colores por

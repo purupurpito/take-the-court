@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/arbitro.js (owner: sim · Ambiente de Carrera, paquete P3; contrato en notes/ambiente.md §4.4 y §6)
+/* TAKE THE COURT — js/arbitro.js (owner: sim · Ambiente de Carrera, paquete P3; contrato en notes/ambiente.md §4.4 y §6)
  * El 1r árbitro ante las protestas (VB.Arbitro): detecta las decisiones discutibles de cada punto (bote al límite o mal pitado,
  * «tocado», red, antena, invasión, dobles, cuatro toques, falta de posición, challenge perdido), decide si la IA protesta, si se
  * ofrece la elección al jugador («Protestar» / «Dejarlo») y cómo responde el 1r: explicación, calma, amonestación verbal a través del

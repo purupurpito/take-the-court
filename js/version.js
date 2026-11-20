@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/version.js (owner: ui_main)
+/* TAKE THE COURT — js/version.js (owner: ui_main)
  * Una sola fuente para el número de versión, las novedades y los créditos. Solo datos: sin DOM y sin red.
  * Se carga el primero después de three.js (antes de account.js). Lo leen ui.js (panel «Acerca de», pestaña Info de Ajustes,
  * #btnVer de la portada, aviso de novedades una vez por versión), main.js (ctx.bootInfo.version) y tools/build-pages.js (con vm:
@@ -40,16 +40,29 @@
  *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
  * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
  *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
+ * 1.19.0 (20-nov-2026): el juego pasa a llamarse Take the Court (decisión de Ferran, marca libre) y se muda a takethecourt.com.
+ *   Lo visible cambia; las claves internas (make-the-cut.*, proyecto de Firebase, gorraMTC) se quedan (notes/nombre.md). La
+ *   partida viaja sola desde la dirección antigua con el puente (bridge/, js/migrate.js, notes/dominio.md).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.18.0';
+  VB.VERSION = '1.19.0';
   VB.VERSION_DATE = '2026-11-20';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.19.0', d: '2026-11-20', t: 'Ahora somos Take the Court',
+      items: [
+        'Make the Cut ahora se llama Take the Court.',
+        'Nueva dirección: takethecourt.com.',
+        'Tu partida viene contigo: abre el enlace de siempre y se trae sola.',
+        'Si juegas con cuenta, entra con ella y lo tendrás todo.',
+        'Si lo tenías instalado, vuelve a instalarlo desde takethecourt.com.'
+      ]
+    },
     {
       v: '1.18.0', d: '2026-11-20', t: 'Vestuario renovado',
       items: [
@@ -284,7 +297,7 @@
     {
       v: '1.5.6', d: '2026-11-17', t: 'Beta abierta',
       items: [
-        'Make the Cut entra en beta abierta: gracias por probarlo y contarnos qué falla.'
+        'El juego entra en beta abierta: gracias por probarlo y contarnos qué falla.'
       ]
     },
     {

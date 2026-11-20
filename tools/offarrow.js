@@ -1,5 +1,5 @@
 'use strict';
-// MAKE THE CUT — indicador de borde (UI-10), owner ui_main. Escena reproducible con el jugador fuera de cuadro: ?debug=spike&camyaw=±1.2
+// TAKE THE COURT — indicador de borde (UI-10), owner ui_main. Escena reproducible con el jugador fuera de cuadro: ?debug=spike&camyaw=±1.2
 // (la cámara se gira tras su update; solo depuración). Comprueba: visible, ángulo de la flecha a ≤ 15° de la recta centro → jugador,
 // sin pisar marcador, botones del HUD ni controles táctiles; y oculto sin giro. Capturas en tools/out/offarrow_*.png. Uso: node tools/offarrow.js
 const CDP=require('./cdp.js');const path=require('path');

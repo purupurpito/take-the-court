@@ -1,4 +1,4 @@
-# Clubes reales → Make the Cut: lista para que la revise Ferran
+# Clubes reales → Take the Court: lista para que la revise Ferran
 
 Generada el 12-nov-2026 por `tools/build-leagues.js` a partir de `notes/clubes/*.json` (cinco investigaciones verificadas). Es la
 misma lista que lleva el juego (`js/leagues.js`): 28 países, 37 ligas y 390 clubes. Para cambiar algo, se corrige

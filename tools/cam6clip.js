@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/cam6clip.js (owner: arena)
+/* TAKE THE COURT — tools/cam6clip.js (owner: arena)
  * ¿Tapa algo del pabellón las cámaras del 6v6? (15-nov-2026: en 5 pistas H1 pequeñas con techo de dientes de sierra, la cámara de
  * televisión del 6v6 —x 14,2, z 7,8— quedaba entre las cerchas del techo y una viga tapaba media pista). Para cada pista (las
  * generadas y las de a mano con grupo propio: canrebot, cupula) monta la sede (CDP, como venueshots) y lanza rayos (THREE.Raycaster)

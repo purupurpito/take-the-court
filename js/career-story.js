@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-story.js (owner: carrera)
+/* TAKE THE COURT — js/career-story.js (owner: carrera)
  * «Carrera con vida» (sprint 1.13.0, notes/carrera-vida.md): núcleo VB.CareerStory. Entre partido y partido el mundo te pide 1-3
  * cosas pequeñas (mensajes con respuesta, prensa, tu semana, pacto, redes…). Este fichero NO trae contenido: es el contrato común
  * de los subsistemas (career-story-msgs.js, -week.js, -wall.js, -season.js) y de su interfaz (career-story-ui.js).

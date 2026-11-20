@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/synctest.js (owner: ui_main)
+/* TAKE THE COURT — tools/synctest.js (owner: ui_main)
  * Pruebas de la sincronización de js/account.js (S4-D4, T13). Node con vm; account.js con stubs de window, document,
  * Storage.prototype, sessionStorage, location y fetch (Firestore falso en memoria): SIN RED.
  *  1) S4_SYNC = false: las claves nuevas no están en DOCS pero su escritura apunta la hora (TRACK); con true (texto del fichero

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/netdrive.js  (owner: net)
+/* TAKE THE COURT — tools/netdrive.js  (owner: net)
  * Fase 1c del online (notes/net.md): UN Chrome headless con DOS páginas del juego real (?net=bc: BroadcastChannel con latencia
  * simulada), una de anfitrión (hueco 0) y otra de invitado (hueco 1), cada una con un bot (&bot=1 → ctx.netBot) durante SECS s.
  * Comprueba: las dos conectan y juegan, huellas de la partida confirmada iguales en los dos lados (stateHash en los mismos tics),

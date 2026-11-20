@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/netlog.js (owner: net)
+/* TAKE THE COURT — js/netlog.js (owner: net)
  * Informe de red de cada partido online (17-nov-2026, Ferran: «pon logs para comprobar cómo van las partidas, si hay mucho lag»).
  *
  *  - main.js llama a VB.NetLog.begin(net) al crear cada sesión (la revancha es otro partido), frame(net, r) en cada frame tras

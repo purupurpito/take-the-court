@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-world.js (owner: ui_main)
+/* TAKE THE COURT — js/career-world.js (owner: ui_main)
  * «Mundo» de la Carrera (VB.CareerWorld, sprint 5): Faro, el mentor, con escenas cortas en los hitos (E4, tarea C1); noticias de
  * la liga (roundNews por jornada, seasonNews con los anales al acabar, summerNews en verano) y enciclopedia de clubes (lore,
  * clubRows, clubCard, cara a cara) (E5, tarea C2). Vale para las DOS Carreras: playa (5 circuitos, K().LEAGUES por nivel) y pista

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/perf.js (owner: ui_main)
+/* TAKE THE COURT — tools/perf.js (owner: ui_main)
  * Rendimiento "de móvil medio" medido de verdad en Chrome (DevTools Protocol):
  *   viewport de móvil + devicePixelRatio + táctil + User-Agent Android + CPU frenada (Emulation.setCPUThrottlingRate),
  *   un partido REAL en vivo (autopilot: el equipo humano lo juega la IA, con el HUD de partido) durante N s por calidad.

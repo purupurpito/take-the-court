@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/venuegen-cost.js (owner: arena)
+/* TAKE THE COURT — tools/venuegen-cost.js (owner: arena)
  * Coste MEDIDO de las sedes generadas de pabellón (plan «sedes-gen», F2-F3) contra la estimación de la receta (VB.VenueGen.cost,
  * tabla COST de js/venue-gen.js) y contra Palau / Can Rebot en el mismo nivel de calidad.
  * Por cada calidad (URL quality=…) abre ?debug=serve y monta una muestra de clubes (club:CC:SIGLAS) como main.js forceVenue;

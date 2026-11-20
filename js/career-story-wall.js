@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-story-wall.js (owner: carrera)
+/* TAKE THE COURT — js/career-story-wall.js (owner: carrera)
  * «Carrera con vida» (notes/carrera-vida.md §2 S3, paquete P3): Redes y partidos marcados. Subsistema de VB.CareerStory (API en la
  * cabecera de js/career-story.js). Sin DOM al cargar (se carga en node: tools/storywalltest.js, storytest.js, careertest.js).
  *

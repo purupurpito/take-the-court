@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-story-msgs.js (owner: carrera)
+/* TAKE THE COURT — js/career-story-msgs.js (owner: carrera)
  * «Carrera con vida» (sprint 1.13.0, notes/carrera-vida.md §2 S1): Bandeja viva, Gente y Prensa (paquete P1).
  * Subsistema 'msgs' de VB.CareerStory (API en la cabecera de js/career-story.js). Sin DOM al cargar; vale para playa y pista.
  *

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/venueshots.js (owner: arena)
+/* TAKE THE COURT — tools/venueshots.js (owner: arena)
  * Variedad visual de las SEDES GENERADAS (plan «sedes-gen», F6). En el navegador (CDP, como venuegen-browse) monta cada sede como
  * main.js forceVenue (VB.Arena.onSettings con forceMap) en ?debug=rally (cámara de juego de la jugada 2v2, congelada), con los jugadores, el
  * balón, los efectos y el aro del jugador ocultos, y saca del lienzo WebGL (justo tras el fotograma del juego) una imagen de 480×270

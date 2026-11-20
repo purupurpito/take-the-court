@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/cam6ball.js  (owner: camera_input)
+/* TAKE THE COURT — tools/cam6ball.js  (owner: camera_input)
  * ¿Se ve el balón en el 6 contra 6 con humano? (17-nov-2026, pedido de Ferran: «hay veces que no ves lo que está pasando con el balón»).
  * Juega un partido 6v6 EN VIVO con la cámara de 3ª persona y mide, frame a frame (plano 'tp', peloteo y saque):
  *   - balón dentro del CUADRO SEGURO (|x|, |y| NDC <= SAFE, 0,85 por defecto), al borde (SAFE..1), fuera (> 1) o detrás de la cámara

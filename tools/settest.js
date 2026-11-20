@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/settest.js (owner: ui_main)
+/* TAKE THE COURT — tools/settest.js (owner: ui_main)
  * Pruebas de los AJUSTES DE PC (E3, sprint 5) y de la parte de Ajustes de E7, con Chrome (tools/cdp.js):
  *   a) las 7 pestañas y sus filas; las filas ★ (data-need) se esconden si su módulo no las soporta (OPTS borrados a mano)
  *   b) teclado (↓ hasta la fila, → cambia el valor), mando falso (stick y A/B, el de padplay) y toque (segmento y pista)
@@ -297,15 +297,15 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
     if (want('m')) {
       console.log('m) título de la pestaña');
       await fresh('nonews=1');
-      check('menú: «Make the Cut»', (await E('document.title')) === 'Make the Cut', await E('document.title'));
+      check('menú: «Take the Court»', (await E('document.title')) === 'Take the Court', await E('document.title'));
       await page.navigate('debug=point&nonews=1'); await ready(); await sleep(2500);
       const tp = await E('document.title');
-      check('punto: «Set N | a-b — Make the Cut»', /^Set \d \| \d+-\d+ — Make the Cut$/.test(tp), tp);
+      check('punto: «Set N | a-b — Take the Court»', /^Set \d \| \d+-\d+ — Take the Court$/.test(tp), tp);
       await E('VB.ctx.actions.pause(), 1'); await sleep(700);
-      check('pausa: «Pausa — Make the Cut»', (await E('document.title')) === 'Pausa — Make the Cut', await E('document.title'));
+      check('pausa: «Pausa — Take the Court»', (await E('document.title')) === 'Pausa — Take the Court', await E('document.title'));
       await page.navigate('debug=over&nonews=1'); await ready(); await sleep(3000);
       const to = await E('document.title');
-      check('final: «¡Victoria! a-b» o «Derrota a-b»', /^(¡Victoria!|Derrota) \d-\d — Make the Cut$/.test(to), to);
+      check('final: «¡Victoria! a-b» o «Derrota a-b»', /^(¡Victoria!|Derrota) \d-\d — Take the Court$/.test(to), to);
     }
     errs.push.apply(errs, page.errors);
   } catch (e) { fails++; console.log('  FAIL excepción: ' + (e && e.stack || e)); if (page) errs.push.apply(errs, page.errors); }

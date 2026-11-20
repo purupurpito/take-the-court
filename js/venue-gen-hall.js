@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/venue-gen-hall.js (owner: arena)
+/* TAKE THE COURT — js/venue-gen-hall.js (owner: arena)
  * Constructor de las sedes GENERADAS de pabellón: VB.VenueGen.hallDef(spec) → def de VB.Arena (mismo contrato que Can Rebot:
  * {id, kind:'hall', seed, hide, look, floor, floorLine, floorAdjust, score, drawScore, build(G, K), step, quality, dispose}).
  *

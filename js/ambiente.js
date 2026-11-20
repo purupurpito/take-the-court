@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/ambiente.js (owner: ui_main / carrera; paquete P1 del «Ambiente de Carrera», notes/ambiente.md)
+/* TAKE THE COURT — js/ambiente.js (owner: ui_main / carrera; paquete P1 del «Ambiente de Carrera», notes/ambiente.md)
  * Director del ambiente de los partidos JUGADOS de la Carrera (VB.Ambiente): grada viva (local / visitante, calor, cánticos, pitadas,
  * ola, silencio tenso), discusiones con el árbitro (protestas de la IA y tu elección «Protestar / Dejarlo»), tarjetas con el punto de
  * castigo de la roja, pique entre equipos y diálogos cortos según lo que pasa.

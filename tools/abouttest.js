@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/abouttest.js (owner: ui_main)
+/* TAKE THE COURT — tools/abouttest.js (owner: ui_main)
  * Pruebas de E7 (escaparate: versión, novedades, créditos, metadatos de Pages). Dos partes:
  *  1) SIN navegador (siempre): js/version.js en vm (semver, CHANGELOG ordenado y con [0].v === VERSION, fechas válidas, items de
  *     90 caracteres como mucho, nada de «1.er» «2.º» «3.er», «·», «navegador» ni arrobas en todo el fichero, CREDITS.by === 'Ferran',
@@ -65,11 +65,16 @@ try {
     const html = fs.readFileSync(path.join(site, 'index.html'), 'utf8');
     const head = (/<head>([\s\S]*?)<\/head>/.exec(html) || [])[1] || '';
     check(/<meta name="description" content="[^"]{60,}">/.test(head), 'head: description');
-    check(/<meta property="og:title" content="Make the Cut">/.test(head), 'head: og:title');
+    check(/<meta property="og:title" content="Take the Court">/.test(head), 'head: og:title');
     check(/<meta property="og:image" content="https:\/\/[^"]+\/og\.png\?v=\d+\.\d+\.\d+">/.test(head), 'head: og:image absoluta');
     check(/<meta property="og:image:width" content="1200">/.test(head) && /og:image:height" content="630"/.test(head), 'head: og:image 1200×630');
     check(/<meta name="twitter:card" content="summary_large_image">/.test(head), 'head: twitter:card summary_large_image');
     check(/<link rel="canonical" href="https:\/\/[^"]+\/">/.test(head), 'head: canonical');
+    // 1.19.0 (Take the Court): casa nueva en la raíz de takethecourt.com, con CNAME en _site (notes/dominio.md)
+    check(/<link rel="canonical" href="https:\/\/takethecourt\.com\/">/.test(head), 'head: canonical https://takethecourt.com/ (sin PAGES_URL)');
+    check(/<meta property="og:url" content="https:\/\/takethecourt\.com\/">/.test(head), 'head: og:url https://takethecourt.com/');
+    const cname = path.join(site, 'CNAME');
+    check(fs.existsSync(cname) && fs.readFileSync(cname, 'utf8').trim() === 'takethecourt.com', '_site/CNAME = takethecourt.com');
     check(/<meta name="theme-color"/.test(head), 'head: theme-color');
     const vb = /window\.__vbBuild=(\{[^<]*\})/.exec(head);
     let b = null; try { b = vb && JSON.parse(vb[1]); } catch (e) { }
@@ -91,7 +96,7 @@ try {
     fs.copyFileSync(path.join(ROOT, 'tools', 'build-pages.js'), path.join(d, 'tools', 'build-pages.js'));
     fs.writeFileSync(path.join(d, 'js', 'version.js'), `VB.VERSION=${JSON.stringify(ver)};VB.CHANGELOG=[{v:${JSON.stringify(cl)},d:'2026-01-01',t:'x',items:['x']}];`);
     if (og) fs.copyFileSync(path.join(ROOT, 'pages', 'og.png'), path.join(d, 'pages', 'og.png'));
-    fs.writeFileSync(path.join(d, 'index.html'), idx || '<title>Make the Cut</title>\n<meta name="theme-color" content="#070b14">\n<p>hola</p>\n');
+    fs.writeFileSync(path.join(d, 'index.html'), idx || '<title>Take the Court</title>\n<meta name="theme-color" content="#070b14">\n<p>hola</p>\n');
     return d;
   };
   let d = mini('1.2.3', '1.2.2', true);
@@ -100,7 +105,7 @@ try {
   check(runBuild(d, path.join(d, '_s')).code === 1, 'guarda: VERSION no semver hace fallar el build');
   d = mini('1.2.3', '1.2.3', false);
   check(runBuild(d, path.join(d, '_s')).code === 1, 'guarda: sin pages/og.png falla el build');
-  d = mini('1.2.3', '1.2.3', true, '<title>Make the Cut</title>\n<meta name="theme-color" content="#070b14">\n' +
+  d = mini('1.2.3', '1.2.3', true, '<title>Take the Court</title>\n<meta name="theme-color" content="#070b14">\n' +
     '<link rel="icon" href="data:image/svg+xml,<svg xmlns=\'http://www.w3.org/2000/svg\'><circle r=\'4\' fill=\'%2300aa99\'/></svg>">\n<p>hola</p>\n');
   const rr = runBuild(d, path.join(d, '_s'));
   const ih = rr.code === 0 ? fs.readFileSync(path.join(d, '_s', 'index.html'), 'utf8') : '';
@@ -154,14 +159,14 @@ async function browser() {
     // (d) título de la pestaña
     pg = await CDP.open({ size: '1280x720' });
     await pg.navigate('nonews=1'); await ready(pg); await sleep(800);
-    check((await pg.evalJs('document.title')) === 'Make the Cut', '(d) menú: «Make the Cut»');
+    check((await pg.evalJs('document.title')) === 'Take the Court', '(d) menú: «Take the Court»');
     await pg.navigate('debug=point'); await ready(pg); await sleep(3500);
     const tp = await pg.evalJs('document.title');
     check(/Set 1 \|/.test(tp), '(d) debug=point: «' + tp + '»');
     await pg.navigate('debug=serve'); await ready(pg); await sleep(3500);
     await pg.evalJs('VB.ctx.actions&&VB.ctx.actions.pause&&VB.ctx.actions.pause()'); await sleep(900);
     const tz = await pg.evalJs('document.title');
-    check(tz === 'Pausa — Make the Cut', '(d) pausa: «' + tz + '»');
+    check(tz === 'Pausa — Take the Court', '(d) pausa: «' + tz + '»');
     await pg.navigate('debug=over'); await ready(pg); await sleep(3500);
     const to = await pg.evalJs('document.title');
     check(/^(¡Victoria!|Derrota)/.test(to), '(d) debug=over: «' + to + '»');

@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/main.js   (owner: ui_main)
+ * TAKE THE COURT — js/main.js   (owner: ui_main)
  * Arranque, renderer, bucle con simulación de paso fijo a 120 Hz,
  * reparto de eventos a los módulos, calidad adaptativa (con histéresis)
  * y escenas de depuración deterministas:
@@ -776,7 +776,7 @@
       }
     }
     var NL = VB.NetLobby, mine = NL && NL.myLook ? NL.myLook() : null, name = Q.name || (slot ? 'Invitado' : 'Anfitrión'), sent = -1e9, t0 = performance.now();
-    // (pruebas: &netcap=1 = tu n.º 1 con la gorra «MTC»; &kitshirt=RRGGBB = otra camiseta; así las dos páginas, que comparten el
+    // (pruebas: &netcap=1 = tu n.º 1 con la gorra «TTC» (id gorraMTC); &kitshirt=RRGGBB = otra camiseta; así las dos páginas, que comparten el
     //  guardado, se distinguen y se ve que llega lo del rival)
     if (mine && Q.netcap === '1' && VB.Look) { var f0 = VB.Look.sane(mine.fits[0] || VB.Look.defaults(0), 0); f0.hall.head = f0.beach.head = 'gorraMTC'; mine.fits[0] = VB.Look.sane(f0, 0); }
     if (mine && /^[0-9a-f]{6}$/i.test(Q.kitshirt || '')) mine.kit.kitShirt = parseInt(Q.kitshirt, 16);
@@ -2963,7 +2963,7 @@
     if (!THREE) { showFatal('No se ha podido cargar el motor 3D. Revisa la conexión y vuelve a abrir el juego.'); return; }
     if (!Sim) { showFatal('No se ha podido cargar la simulación del juego.'); return; }
     var bi = ctx.bootInfo = { t0: Math.round(performance.now()), version: VB.VERSION || '' }, tb = performance.now();
-    if (VB.VERSION) console.info('[VB] Make the Cut v' + VB.VERSION);
+    if (VB.VERSION) console.info('[VB] Take the Court v' + VB.VERSION);
     try { initRenderer(); }
     catch (e) { console.error(e); showFatal('Tu navegador no permite WebGL. Prueba con otro navegador o activa la aceleración por hardware.'); return; }
     bi.renderer = Math.round(performance.now() - tb);
@@ -3009,7 +3009,7 @@
   }
   function showFatal(msg, soft) {
     var d = document.getElementById('fatal');
-    if (d) { d.innerHTML = '<b>Make the Cut</b><span></span>'; d.lastChild.textContent = msg; d.hidden = false; d.classList.toggle('soft', !!soft); }
+    if (d) { d.innerHTML = '<b>Take the Court</b><span></span>'; d.lastChild.textContent = msg; d.hidden = false; d.classList.toggle('soft', !!soft); }
     if (bootEl) bootEl.hidden = true;
   }
   VB.boot = boot;

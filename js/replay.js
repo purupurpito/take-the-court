@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/replay.js (owner: ui_main)
+/* TAKE THE COURT — js/replay.js (owner: ui_main)
  * VB.Replay: grabador y repetición (S3-C1 §2-§3, plan T18 con R10/R11/R12). No guarda poses: graba las ENTRADAS del humano por paso
  * de sim en un anillo (Float64Array para move: con Float32Array la resim se desincroniza, T1) y FOTOS de la partida (VB.Sim.copyGame
  * sobre partidas «sombra» creadas una vez en reset). La repetición resimula una sombra (el «corredor» R, R.replay = true) con las

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/storyweektest.js (owner: carrera)
+/* TAKE THE COURT — tools/storyweektest.js (owner: carrera)
  * Prueba de «Tu semana, Ánimo, Forma y Pacto» (js/career-story-week.js, notes/carrera-vida.md §2 S2 y §3 P2), node puro (vm):
  *   1. Tu semana: misma semilla, mismas cartas; 3 cartas con «Descansar» siempre; sin repetir las de la jornada anterior; filtros
  *      only / need; elegir aplica el efecto exacto una sola vez (y la estrella cada 2); act 'st-wk-N' enruta y guarda.

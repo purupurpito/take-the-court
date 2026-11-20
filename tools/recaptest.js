@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/recaptest.js (owner: ui_main)
+/* TAKE THE COURT — tools/recaptest.js (owner: ui_main)
  * Prueba headless de js/recap.js (VB.Recap, puro): ordinales, movimiento, rasgo, plan de la previa (mini/corta/larga), historial,
  * titular (cada regla y determinismo), frase de la jugada (C1), corte de la clasificación y modelo de la hoja final (bloques, botones,
  * pestañas). Textos: sin «·», sin «1.er», sin «bola de set» y etiquetas ≤ 28 caracteres.

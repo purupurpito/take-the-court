@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/effortstat.js  (owner: sim)
+/* TAKE THE COURT — tools/effortstat.js  (owner: sim)
  * MÉTRICAS DEL ESFUERZO DE LA DEFENSA (18-nov-2026, petición de Ferran: «Siento que los jugadores son super rapidos y llegan a todos
  * los balones siempre que quieren ir, si no llegan son porque la IA "dejan que caiga"»). Base para calibrar: juega partidas sin
  * navegador (sim + IA en un contexto vm, como tools/simtest.js) en 2v2 y 6v6, en cada dificultad, CPU contra CPU (autopilot: el

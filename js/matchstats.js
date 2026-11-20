@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/matchstats.js (owner: ui_main)
+/* TAKE THE COURT — js/matchstats.js (owner: ui_main)
  * VB.MatchStats: «Estadística del partido» (al estilo de la pantalla Estadísticas de emPatData, solo el resultado).
  *
  * DOS PARTES

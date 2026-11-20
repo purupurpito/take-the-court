@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/vestuxsheet.js: junta capturas en una hoja (recorte de la zona del muñeco) para mirarlas de una vez.
+/* TAKE THE COURT — tools/vestuxsheet.js: junta capturas en una hoja (recorte de la zona del muñeco) para mirarlas de una vez.
  * Uso: node tools/vestuxsheet.js <carpeta> <salida.png> [x,y,w,h recorte en px de la captura] [columnas=5]
  */
 'use strict';

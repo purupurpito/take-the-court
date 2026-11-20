@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# MAKE THE CUT — configuración común de Chrome para tools/shot.sh y tools/console.sh (owner: ui_main)
+# TAKE THE COURT — configuración común de Chrome para tools/shot.sh y tools/console.sh (owner: ui_main)
 # Elige el ejecutable de Chrome, las banderas de GPU y la forma de la URL file:// según el sistema.
 #   CHROME=/ruta/a/chrome   fuerza el ejecutable
 #   GL=swiftshader          fuerza render por software (máquinas sin GPU)

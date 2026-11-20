@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/gym.js (owner: ui_main)
+/* TAKE THE COURT — js/gym.js (owner: ui_main)
  * Entrenamiento (E6): datos y guardado de los ejercicios, sin DOM. La mecánica (montaje, puntuación por repetición, eventos
  * drillStage / drillRep / drillEnd) es de la sim (VB.DRILL, VB.Sim.drillStage); la interfaz (página #mpGym, #drillBar, hoja
  * .drill) es de ui.js. index.html lo carga después de prog.js. En el código el modo se llama «drill» / VB.Gym; en pantalla,

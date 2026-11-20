@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/lookzoom.js (auditoría del Vestuario): capturas de cerca de la cabeza en la vista previa (1 Chrome).
+/* TAKE THE COURT — tools/lookzoom.js (auditoría del Vestuario): capturas de cerca de la cabeza en la vista previa (1 Chrome).
  * Uso: node tools/lookzoom.js [estilos=rapado,tupe,flequillo,cresta] [W=1280] [H=720]   → tools/out/lookaudit/zoom-*.png */
 'use strict';
 const path = require('path'), CDP = require('./cdp.js');

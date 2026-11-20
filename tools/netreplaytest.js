@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/netreplaytest.js  (fase 6 del online, notes/net.md «Fase 6»)
+/* TAKE THE COURT — tools/netreplaytest.js  (fase 6 del online, notes/net.md «Fase 6»)
  * Repetición, «Mejores jugadas» y estadísticas de la hoja en el online, en Node (sin Chrome).
  * Dos máquinas (cada una en su contexto vm: sim + ai + ai6 + net + netview + recap + replay) unidas por memPair (latencia, variación
  * y pérdida), con un bot de solo entrada en cada una. Cada lado graba como main.js: VB.Replay.reset(gc, {dual, slot}), onTick →

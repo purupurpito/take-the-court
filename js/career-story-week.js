@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-story-week.js (owner: carrera)
+/* TAKE THE COURT — js/career-story-week.js (owner: carrera)
  * «Carrera con vida» (sprint 1.13.0, notes/carrera-vida.md §2 S2, paquete P2): Tu semana, Ánimo, Forma y Pacto con el entrenador.
  * Subsistema de VB.CareerStory (API en la cabecera de js/career-story.js). Sin DOM al cargar (los pintores devuelven HTML).
  *

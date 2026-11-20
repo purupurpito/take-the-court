@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/fluidtest.js  (owner: net)
+/* TAKE THE COURT — tools/fluidtest.js  (owner: net)
  * Online V2 «Fluida», paquete WP2 (notes/online-v2-spec.md §3-§8 y plan de pruebas C): dos VB.NetFluid.Session unidas por
  * VB.Net.memPair (latencia, variación, pérdida en 'in'), cada una en su PROPIO contexto vm (sim.js + ai.js + ai6.js + net.js +
  * netfluid.js), con relojes desfasados y frames de 8-25 ms con tirones de 100 ms. Juegan bots de solo entrada (VB.Net.bot) sobre

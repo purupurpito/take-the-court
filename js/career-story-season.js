@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-story-season.js (owner: carrera)
+/* TAKE THE COURT — js/career-story-season.js (owner: carrera)
  * «Carrera con vida» (notes/carrera-vida.md §S4, paquete P4): Figuras, Estadísticas y Camino de temporada. Subsistema 'season' de
  * VB.CareerStory (API en la cabecera de js/career-story.js). Vale para las dos Carreras (playa y pista). Sin DOM al cargar.
  *

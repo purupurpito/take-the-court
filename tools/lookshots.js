@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/lookshots.js (auditoría del Vestuario)
+/* TAKE THE COURT — tools/lookshots.js (auditoría del Vestuario)
  * Hojas de contacto (PNG) de TODOS los objetos del Vestuario para mirarlas sin abrir el juego: cada hoja junta muchas
  * capturas pequeñas con una etiqueta debajo (id · vista · piel/kit). Una sola carga de página por fase y por sede; el aspecto
  * se cambia dentro de la página (VB.Look.fix + resolve, así las reglas de compatibilidad se aplican) y las capturas se pintan

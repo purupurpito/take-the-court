@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-world-ui.js (owner: ui_main)
+/* TAKE THE COURT — js/career-world-ui.js (owner: ui_main)
  * Pantallas del «mundo» de la Carrera (VB.CareerWorldUI, sprint 5), dentro del hub de career-ui.js:
  *  - Partido: tarjeta de Faro, el mentor (.cw-mentor), arriba del todo: retrato SVG, una frase por pantalla, «Seguir»/«Vale» y
  *    «Saltar» (o el botón de la escena en la última frase).

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/arbitrotest.js (owner: sim · Ambiente de Carrera, P3)
+/* TAKE THE COURT — tools/arbitrotest.js (owner: sim · Ambiente de Carrera, P3)
  * Prueba de VB.Arbitro (js/arbitro.js): escala FIVB de sanciones, determinismo, detección de disputas y FRECUENCIAS medidas con
  * partidos reales de la sim (autopilot con el error arbitral de cada competición de la Carrera, mitad playa y mitad pista 6v6).
  * En cada partido se alimentan a la vez tres árbitros con los mismos puntos: jugador que siempre «Deja», jugador que siempre

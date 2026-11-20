@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/googletest.js (owner: ui_main)
+/* TAKE THE COURT — tools/googletest.js (owner: ui_main)
  * «Entrar con Google» sin Google de verdad (19-nov-2026). Chrome headless (tools/cdp.js) con un script previo que:
  *  - intercepta los <script> de gstatic.com/firebasejs (no hay red: onload tras __G.delay ms) y pone un window.firebase FALSO;
  *  - fb.auth().signInWithPopup apunta si se llamó DENTRO del clic (window.__inClick, puesto alrededor de el.click()) y responde

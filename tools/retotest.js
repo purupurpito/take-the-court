@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/retotest.js (owner: ui_main)
+/* TAKE THE COURT — tools/retotest.js (owner: ui_main)
  * Pruebas de js/retos.js (S4-D1 sin el torneo de la semana). Partes 1-4 sin navegador:
  *  1) Puro (vm + localStorage falso + VB.Prog real): catálogo, una medida por reto con eventos sintéticos, atribución 6v6,
  *     exclusiones, _ovr, endMatch idempotente, XP una vez por nivel a los dos atletas (también tras mergeRaw), dry, chainOk.
