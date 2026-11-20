@@ -2273,6 +2273,8 @@
     else if (fx === 'flequilloFx') { if (Math.abs(pf) < 1.0 && (kind === 'shell' ? th < 0.34 * PI && u > 0.45 : true)) c = H.h2; }
     else if (fx === 'mitad') { if (pf > 0) c = H.h2; }
     if (st.fade && kind === 'shell') { var f = st.fade(ph, th, u); if (f > 0) c = mixHex(c, H.stub, f); }
+    // raya del peinado (st.part = φ): la columna del casco que la contiene, más oscura de la frente a la coronilla
+    if (st.part != null && kind === 'shell' && ex && ex.ph != null && ex.cw && Math.abs(ex.ph - st.part) < ex.cw * 0.5 && th < 0.3 * PI) c = mixHex(c, 0x000000, hairLum(c) > 0.45 ? 0.3 : 0.4);
     // brillo: SUAVE (sube y baja en una franja ancha) y casi solo por delante. Revisión final: era un aro estrecho todo alrededor de la
     // coronilla y, de espaldas y desde arriba (la cámara del partido), se leía como un agujero claro en el pelo.
     if (kind === 'shell' && th > 0.08 * PI && th < 0.3 * PI && (st.shine == null || st.shine > 0)) {
@@ -2386,12 +2388,12 @@
     }
     // efectos por COLUMNA (pulido): φ del centro de la columna del triángulo (los dos de cada cuadro dan lo mismo), así las mechas y la
     // costura de «mitad» siguen los meridianos en rectas. Las mechas, una columna de cada tres, en espejo a los dos lados de la cara
-    var ex = { ur: 0, ph: 0, mech: false };
+    var ex = { ur: 0, ph: 0, mech: false, cw: 0 };
     var colF = o.col || function (ph, th, u) { ex.ur = u; return hairTone(H, ph, th, u, 'shell', ex); };
     G.vc = function (cx, cy, cz, t) {
       var an = hAngles(cx, cy, cz), tm = thMax(an[0]), ts = snapTh(an[0], an[1]), kc = tcol[t];
       if (kc == null) { ex.ph = null; ex.mech = null; }
-      else { ex.ph = (cols[kc] + cols[kc + 1]) / 2; var mc = kc < nC / 2 ? kc : nC - 1 - kc; ex.mech = mc % 3 === 1; }
+      else { ex.ph = (cols[kc] + cols[kc + 1]) / 2; ex.cw = cols[kc + 1] - cols[kc]; var mc = kc < nC / 2 ? kc : nC - 1 - kc; ex.mech = mc % 3 === 1; }
       return colF(an[0], ts, clamp(ts / tm, 0, 1));
     };
     G.add(geo, H.hr);
@@ -2865,13 +2867,15 @@
         var p = H.pt(PI, Math.max(0.63 * PI, H.cup ? H.rimAt(PI) + 0.04 * PI : 0), -0.01);
         hairTail(H, p, [p[3], p[4] * 0.3 - 0.05, p[5]], 0.27 * FK, 0.068, 0.42);   // (cola corta y GORDA: la trenza es larga y fina)
       } },
-    trenza: { line: 'recogido', off: 0.005, vol: 0.005, hat: 'show', crown: [0, 0.12, 0, 0],
+    // (pulido: de frente los tres recogidos bajos eran el mismo casco peinado hacia atrás: la trenza con la raya a un lado, el moño
+    //  bajo con la raya al otro y la coleta baja sin raya —part: φ de la raya, por color de vértice, 0 triángulos—)
+    trenza: { line: 'recogido', off: 0.005, vol: 0.005, hat: 'show', part: 0.42, crown: [0, 0.12, 0, 0],
       parts: function (H) {
         var p = H.pt(PI, Math.max(0.6 * PI, H.cup ? H.rimAt(PI) + 0.04 * PI : 0), -0.012);
         hairTie(H, [p[0] + p[3] * 0.01, p[1] + p[4] * 0.01, p[2] + p[5] * 0.01], [p[3], p[4], p[5]], 0.036 * FK, 0.011);
         hairBraid(H, [p[0] + p[3] * 0.02, p[1], p[2] + p[5] * 0.02], [p[3] * 0.6, -0.7, p[5] * 0.6], 0.5 * FK, 0.036 * FK, 0.3, pushOut);
       } },
-    monoBajo: { line: 'recogido', off: 0.005, vol: 0.005, hat: 'show', crown: [0, 0.12, 0, 0],
+    monoBajo: { line: 'recogido', off: 0.005, vol: 0.005, hat: 'show', part: -0.42, crown: [0, 0.12, 0, 0],
       parts: function (H) {
         var p = H.pt(PI, Math.max(0.56 * PI, H.cup ? H.rimAt(PI) + 0.05 * PI : 0), -0.01), n = [p[3], p[4] * 0.5, p[5]];
         hairTie(H, [p[0] + p[3] * 0.01, p[1] + p[4] * 0.01, p[2] + p[5] * 0.01], n, 0.05 * FK, 0.012);
