@@ -164,6 +164,7 @@
   var SLOT_DEF = { hall: { knees: 'cortas', socks: 'media', ankle: 'blanca', shoes: 'clasicas' }, beach: { paint: 'zinc', ankle: 'tela' } };
   // gorros de copa (clases CAP, CAPB y BUCKET de HAT_CLASS): el pelo solo asoma por debajo del borde; lo que cuelga sale por la abertura
   // o bajo el ala (1.16: ya no se prohíbe ningún peinado; HAIR_UNDER_CAP dice cuáles asoman enteros)
+  var EAR_HAIR = { melena: 1, ondas: 1, melenita: 1, semirrecogido: 1 };   // peinados que tapan la oreja (los pendientes no se pintan)
   var HIDE_HAIR = { gorra: 1, gorraAtras: 1, pescador: 1, gorraMTC: 1, bandana: 1, gorroPompon: 1, pescadorCuadros: 1 };
   // gorros que llevan cB por vértice (1.16, WP3: tira de la gorra, franja de la cinta y de la visera, cinta del pescador; la MTC lleva
   // el color de sus letras. WP7: pompón del gorro de lana si se elige cB, damero del pescador de cuadros y franja de la visera con gafas)
@@ -1016,7 +1017,9 @@
       var N = 24, x, i, top = [], bot = [];
       for (i = 0; i <= N; i++) {
         x = -0.152 + 0.304 * i / N;
-        var yc = 0.1245 + 0.36 * x * x, h = 0.0068 + 0.0062 * sstep(0.02, 0.09, Math.abs(x));
+        // (revisión final: subida al puente y los pómulos, justo bajo los ojos; a la altura de la nariz quedaba encima de la boca de
+        // esta cara sin nariz y se leía como un bigote blanco, sobre todo en piel oscura)
+        var yc = 0.1475 + 0.42 * x * x, h = 0.0062 + 0.0058 * sstep(0.02, 0.09, Math.abs(x));
         top.push([x, yc + h]); bot.push([x, yc - h - 0.0022 * Math.sin(i * 2.3) * sstep(0.03, 0.08, Math.abs(x))]);
       }
       g.beginPath(); g.moveTo(top[0][0], top[0][1]);
@@ -1025,13 +1028,15 @@
       g.closePath(); var zc = zincHex(tc, L.skin); g.fillStyle = hexCss(zc); g.fill();
       if (zc === ZINC_WHITE && lumHex(L.skin) > 0.55) { g.strokeStyle = 'rgba(70,96,128,0.6)'; g.lineWidth = 0.0035; g.stroke(); }   // filo frío: la crema blanca se separa de la piel clara
       g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 0.0035; g.lineCap = 'round';   // brillo de la crema
-      for (s = -1; s <= 1; s += 2) { g.beginPath(); g.moveTo(s * 0.07, 0.1285 + 0.36 * 0.0049 + 0.004); g.lineTo(s * 0.125, 0.1245 + 0.36 * 0.0156 + 0.006); g.stroke(); }
+      for (s = -1; s <= 1; s += 2) { g.beginPath(); g.moveTo(s * 0.07, 0.1475 + 0.42 * 0.0049 + 0.004); g.lineTo(s * 0.125, 0.1475 + 0.42 * 0.0156 + 0.005); g.stroke(); }
     } else if (p === 'rayas') {            // «eye black»: una franja negra de 2 × 6 cm bajo cada ojo, algo inclinada hacia el rabillo
       for (s = -1; s <= 1; s += 2) {
         // (bajo el RABILLO de fuera, en el pómulo, 4 cm por encima de la boca: en el centro de la mejilla quedaban a la altura de
         // las comisuras y, con la barba de tres días, parecían un bigote)
-        g.save(); g.translate(s * 0.114, 0.143); g.rotate(s * 0.2);
-        rrect(g, 0, 0, 0.07, 0.027, 0.008);
+        // (revisión final: más arriba y más corta por el lado de la nariz, pegada al párpado de abajo y subiendo hacia la sien: de 3/4
+        // la franja de cerca, larga y baja, quedaba junto a la sonrisa y se leía como un bigote negro)
+        g.save(); g.translate(s * 0.1, 0.151); g.rotate(s * 0.14);
+        rrect(g, 0, 0, 0.058, 0.023, 0.009);
         if (halo) { g.strokeStyle = halo; g.lineWidth = 0.006; g.stroke(); }
         g.fillStyle = '#17161d'; g.fill();
         g.restore();
@@ -1763,7 +1768,8 @@
     //  unas mallas negras. P6 del plan)
     // (ni del color del calcetín, que va justo debajo: rodillera roja + calcetín rojo era un solo tubo rojo; contra la piel basta con que
     //  se distinga en luz o en color: el blanco sobre piel clara se ve)
-    var sh = KNEE_HI[X.knees] && typeof tc.shorts === 'number' ? tc.shorts : -1, so = sh >= 0 ? sockHex(X, tc, true) : -1;   // (el automático: no depende de si se llevan, la firma de malla no mira los calcetines)
+    // (revisión final: la CORTA de serie también: negra con el pantalón negro del kit A se leía, de lejos, como un pantalón más largo)
+    var sh = (KNEE_HI[X.knees] || X.knees === 'cortas') && typeof tc.shorts === 'number' ? tc.shorts : -1, so = sh >= 0 ? sockHex(X, tc, true) : -1;   // (el automático: no depende de si se llevan, la firma de malla no mira los calcetines)
     var c2 = sh >= 0 ? c.concat([tc.dark, mixHex(tc.accent, 0x000000, 0.45)]) : c;   // (y, si nada de eso vale, el oscuro o el acento apagado)
     for (i = 0; i < c2.length; i++) if (typeof c2[i] === 'number' && sh >= 0 && (Math.abs(lumHex(c2[i]) - lumHex(bg)) >= 0.15 || hexDist(c2[i], bg) >= 120) &&
       hexDist(c2[i], sh) >= 120 && (so < 0 || hexDist(c2[i], so) >= 150)) return c2[i];
@@ -2185,13 +2191,23 @@
     return b;
   }
   function hairLum(h) { return lumHex(h); }
+  /** Color de lo RAPADO (pelo de 1-3 mm): del tono del pelo, oscurecido, con algo de piel debajo, y SIEMPRE más oscuro que la piel
+   *  (≥ 0,13 de luminancia). Revisión final: era mitad piel, mitad pelo; con pelo rubio, o castaño sobre piel clara, los cortos se
+   *  leían como una cabeza calva o un gorro de baño del color de la piel. k: cuánto pelo (0,72 por defecto; al cero, menos). */
+  function stubHex(skin, hr, k) {
+    var s = mixHex(skin, mixHex(hr, 0x000000, 0.3), k == null ? 0.72 : k), ls = lumHex(skin), i;
+    // (al cero sobre piel oscura basta con 0,04: si no, quedaba tan negro como el rapado y de espaldas eran el mismo peinado)
+    var d = k != null && ls < 0.4 ? 0.04 : 0.13;
+    for (i = 0; i < 8 && lumHex(s) > ls - d; i++) s = mixHex(s, mixHex(hr, 0x000000, 0.6), 0.25);
+    return s;
+  }
   /** Contexto del pelo de un muñeco (H): colores, gorro, superficie del casco principal (H.surf) y utilidades para las piezas. */
   function hairCtx(G, X, tc, r) {
     var hr = X.hair, h2 = X.hair2 >= 0 ? X.hair2 : (hairLum(hr) > 0.45 ? mixHex(hr, 0x2a1a10, 0.55) : mixHex(hr, 0xf6e2a8, 0.55));
     var hc = HAT_CLASS[X.head] || '', cup = hatCup(X.head);
     if (hc === 'SCARF' || hc === 'BEANIE') hc = 'CAP';   // el pelo, bajo el pañuelo o el gorro de lana, como bajo la gorra (lo que cuelga sale por detrás)
     var H = { G: G, X: X, st: HAIR_STYLES[X.style] || HAIR_STYLES.tupe, id: X.style, hr: hr, h2: h2, fx: X.hairFx || '', cA: colA(X, tc), hat: hc, cup: cup,
-      stub: mixHex(X.skin, mixHex(hr, 0x000000, 0.25), 0.5), r: r, surf: null, line: null, rim: {}, bandOff: 0, crownAt: null };
+      stub: stubHex(X.skin, hr, (HAIR_STYLES[X.style] || HAIR_STYLES.tupe).stubK), r: r, surf: null, line: null, rim: {}, bandOff: 0, crownAt: null };
     H.covered = function (x, y, z) { return !!cup && inCup(cup, x, y, z); };
     H.rimAt = function (ph) { if (!cup) return 0; var k = Math.round(ph * 200); return H.rim[k] != null ? H.rim[k] : (H.rim[k] = cupRim(cup, ph)); };
     /** punto y normal de la superficie del casco principal en (φ, θ) + extra por la normal: [x, y, z, nx, ny, nz] */
@@ -2211,9 +2227,12 @@
     else if (fx === 'flequilloFx') { if (Math.abs(ph) < 1.0 && (kind === 'shell' ? th < 0.34 * PI && u > 0.45 : true)) c = H.h2; }
     else if (fx === 'mitad') { if (ph > 0) c = H.h2; }
     if (st.fade && kind === 'shell') { var f = st.fade(ph, th, u); if (f > 0) c = mixHex(c, H.stub, f); }
-    if (kind === 'shell' && th > 0.15 * PI && th < 0.21 * PI && (st.shine == null || st.shine > 0)) {
-      var lu = hairLum(c), kk = (st.shine == null ? 1 : st.shine) * clamp(0.3 - (lu - 0.12) * 0.36, 0.12, 0.3) * (0.62 + 0.38 * Math.cos(ph));
-      c = mixHex(c, 0xffffff, kk);
+    // brillo: SUAVE (sube y baja en una franja ancha) y casi solo por delante. Revisión final: era un aro estrecho todo alrededor de la
+    // coronilla y, de espaldas y desde arriba (la cámara del partido), se leía como un agujero claro en el pelo.
+    if (kind === 'shell' && th > 0.08 * PI && th < 0.3 * PI && (st.shine == null || st.shine > 0)) {
+      var lu = hairLum(c), bandK = sstep(0.08 * PI, 0.16 * PI, th) * (1 - sstep(0.2 * PI, 0.3 * PI, th));
+      var kk = (st.shine == null ? 1 : st.shine) * clamp(0.3 - (lu - 0.12) * 0.36, 0.12, 0.3) * 0.8 * bandK * sstep(-0.2, 0.8, Math.cos(ph));
+      if (kk > 0.004) c = mixHex(c, 0xffffff, kk);
     }
     return c;
   }
@@ -2381,10 +2400,19 @@
     G.owk = 1;
   }
   /** Bola de pelo (moño, nudo): esfera aplastada en p, radios r × (ky en la normal). */
-  function hairBall(H, p, n, r, ky, wseg) {
+  function hairBall(H, p, n, r, ky, wseg, wound) {
     var G = H.G, geo = new THREE.SphereGeometry(1, sg(wseg || 16, 8), sg(Math.round((wseg || 16) * 0.75), 5));
     var e = aim(n[0], n[1], n[2], 'y');
     G.vc = function () { return hairTone(H, 0, PI * 0.5, 0.3, 'piece'); };
+    // wound: moño ENROLLADO (revisión final): espiral de vueltas más oscuras alrededor del eje que mira hacia fuera; liso, el moño
+    // bajo y el del semirrecogido se leían de espaldas como un disco plano pegado a la cabeza
+    if (wound) {
+      var base = hairTone(H, 0, PI * 0.5, 0.3, 'piece'), dk = mixHex(base, 0x000000, hairLum(base) > 0.4 ? 0.3 : 0.45);
+      G.vc = function (x, y, z) {
+        var t = Math.acos(clamp(y, -1, 1)) / PI, a = (Math.atan2(z, x) / (2 * PI) + 1) % 1;
+        return t > 0.62 ? dk : Math.floor(t * 9 + a) % 2 ? dk : base;
+      };
+    }
     G.add(geo, H.hr, p[0], p[1], p[2], e[0], e[1], e[2], r, r * (ky || 1), r);
     G.vc = null;
   }
@@ -2597,8 +2625,9 @@
     flequillo: { back: true, line: function (ph) { return hlAt(HL.tazon, ph) - 0.11 * PI * sstep(1.3, 2.6, Math.abs(ph)); }, vol: 0.026, tuck: false,
       volFn: function (ph, th, u) { return 1 + 0.75 * sstep(0.55, 1, u) * sstep(1.0, 1.8, Math.abs(ph)); }, crown: [0, 0.14, 0, 0] },
     // rapado: pelo de 3 mm: el tono queda a medio camino de la piel (al cero es casi piel; los cortos, el color entero)
+    // (revisión final: arriba casi el color entero y la nuca rapada en una franja: de espaldas ya no es el mismo casco que al cero)
     rapado: { line: 'corto', off: 0.003, shine: 0.2, crown: [0, 0.14, 0, 0],
-      fade: function (ph, th, u) { return u > 0.8 ? 0.5 : 0.34; } },
+      fade: function (ph, th, u) { return u > 0.72 ? 0.9 : 0.22; } },
     mono: { line: 'recogido', off: 0.005, vol: 0.005, crown: [0, 0.1, 0, 0.25],
       parts: function (H) {
         var p = H.pt(PI, 0.17 * PI, -0.01); if (H.hid(p)) return;
@@ -2643,7 +2672,8 @@
         }
       } },
     // ---------- nuevos (1.16) ----------
-    alCero: { line: 'corto', off: 0.0025, shine: 0, crown: [0, 0.14, 0, 0], fade: function () { return 0.62; } },
+    // al cero: todo del color de lo rapado, con más piel que los demás (stubK) pero más oscuro que ella
+    alCero: { line: 'corto', off: 0.0025, shine: 0, stubK: 0.6, crown: [0, 0.14, 0, 0], fade: function () { return 1; } },
     degradado: { line: 'corto', off: 0.005, vol: 0.014, fade: fadeSides(0.33 * PI, 0.5 * PI, 0.8, true), crown: [0, 0.14, 0, 0],
       volFn: function (ph, th) { return 1 - sstep(0.3 * PI, 0.45 * PI, th); } },
     // cepillo: CAJA plana y alta arriba con los lados rapados (de espaldas, un bloque cuadrado sobre una nuca clara)
@@ -2760,14 +2790,14 @@
       parts: function (H) {
         var p = H.pt(PI, Math.max(0.56 * PI, H.cup ? H.rimAt(PI) + 0.05 * PI : 0), -0.01), n = [p[3], p[4] * 0.5, p[5]];
         hairTie(H, [p[0] + p[3] * 0.01, p[1] + p[4] * 0.01, p[2] + p[5] * 0.01], n, 0.05 * FK, 0.012);
-        hairBall(H, [p[0] + p[3] * 0.055, p[1] + p[4] * 0.055, p[2] + p[5] * 0.055], n, 0.085 * FK, 0.78);
+        hairBall(H, [p[0] + p[3] * 0.055, p[1] + p[4] * 0.055, p[2] + p[5] * 0.055], n, 0.085 * FK, 0.78, 0, true);
       } },
     semirrecogido: { line: 'medio', vol: 0.018, tuck: false, hat: 'show', crown: [0, 0.12, 0, 0],
       parts: function (H) {
         hairSkirt(H, { ph0: 1.1, ySide: HEAD_C - 0.14, yBack: HEAD_C - 0.27, flare: 0.025, thick: 0.022, cols: 18, rows: 5 });
         var p = H.pt(PI, 0.32 * PI, -0.008); if (H.hid(p)) return;
         hairTie(H, [p[0] + p[3] * 0.01, p[1] + p[4] * 0.01, p[2] + p[5] * 0.01], [p[3], p[4], p[5]], 0.034 * FK, 0.011);
-        hairBall(H, [p[0] + p[3] * 0.04, p[1] + p[4] * 0.04, p[2] + p[5] * 0.04], [p[3], p[4], p[5]], 0.05 * FK, 0.8, 12);
+        hairBall(H, [p[0] + p[3] * 0.04, p[1] + p[4] * 0.04, p[2] + p[5] * 0.04], [p[3], p[4], p[5]], 0.05 * FK, 0.8, 12, true);
       } },
     // twists (ronda 1): cordones GRUESOS retorcidos (anillos alternos gordo/fino = las vueltas) que tapan la cabeza entera, en filas
     // al tresbolillo, cayendo hacia fuera y abajo; el casco va oscuro por dentro (la raíz entre cordones). Antes eran trazos finos.
@@ -3115,9 +3145,15 @@
     G.owk = 0.7;
     // (pinza de garra a escala: 11,4 × 5,8 cm y gruesa (4,4 cm: de lado no es una lámina), con el lomo arriba y los dientes a medio camino entre el color de la pinza y el
     // claro de las sienes, asomando por debajo. Antes era un bloque plano de 12 × 6 cm con una franja clara: se leía como una pegatina o una etiqueta)
-    G.add(new THREE.BoxGeometry(0.114 * FK, 0.058 * FK, 0.044), pc, q[0], q[1], q[2], e[0], e[1], e[2]);                                         // cuerpo
-    G.add(new THREE.BoxGeometry(0.114 * FK, 0.018 * FK, 0.05), mixHex(pc, 0x000000, 0.3), q[0] + u[0] * 0.021, q[1] + u[1] * 0.021, q[2] + u[2] * 0.021, e[0], e[1], e[2]);   // lomo
-    G.add(new THREE.BoxGeometry(0.09 * FK, 0.016 * FK, 0.022), mixHex(pc, c2, 0.5), q[0] - u[0] * 0.033 - n[0] * 0.006, q[1] - u[1] * 0.033 - n[1] * 0.006, q[2] - u[2] * 0.033 - n[2] * 0.006, e[0], e[1], e[2]);   // dientes
+    // (revisión final: de espaldas el bloque se leía como un rectángulo macizo. Ahora es la SILUETA de una pinza de garra: el lomo en
+    //  ARCO (medio toro grueso) y cuatro dientes en punta que bajan hacia el pelo entre las patas del arco. Mismos 36 triángulos)
+    var arc = new THREE.TorusGeometry(0.05 * FK, 0.017 * FK, 3, 4, PI); arc.translate(0, -0.012 * FK, 0.008);
+    G.add(arc, pc, q[0], q[1], q[2], e[0], e[1], e[2]);                                                                                       // lomo en arco
+    var tth = mixHex(pc, 0x000000, 0.22);
+    for (var ti = 0; ti < 4; ti++) {                                                                                                          // dientes
+      var cone = new THREE.ConeGeometry(0.0115 * FK, 0.05 * FK, 3, 1, true); cone.rotateZ(PI); cone.translate((-0.03 + 0.02 * ti) * FK, -0.022 * FK, 0.004);
+      G.add(cone, tth, q[0], q[1], q[2], e[0], e[1], e[2]);
+    }
     for (var s = -1; s <= 1; s += 2) {   // clips de las sienes
       var pt = s * 1.18, tt = 0.3 * PI, o2 = H && H.st && H.st.over ? H.st.over(pt, tt) : 0, a = overPt(H, pt, tt, 0.007 + o2), b = overPt(H, s * 1.45, tt - 0.06, 0.007 + o2);
       addAim(G, new THREE.BoxGeometry(0.026, 0.088 * FK, 0.015), c2, a[0], a[1], a[2], [b[0] - a[0], b[1] - a[1], b[2] - a[2]], 'y');
@@ -3172,7 +3208,9 @@
     G.owk = 1;
     var R = HEAD_RX + 0.01, H = LAST_HAIR = hairGeo(G, X, tc, r), hc = HAT_CLASS[X.head];
     LAST_BAND = null;
-    if (X.ears === 'pendientes') earringGeo(G, X);   // (WP7 ronda 1: ranura propia: con cualquier gorro)
+    // (WP7 ronda 1: ranura propia: con cualquier gorro). Revisión final: con el pelo largo que cae por encima de la oreja (EAR_HAIR) los
+    // aros lo atravesaban; ahí no se pintan (como el pelo bajo la gorra: lo que tapa manda) y la UI lo avisa (look.js, hint)
+    if (X.ears === 'pendientes' && !EAR_HAIR[X.style]) earringGeo(G, X);
     var cAt = thinHex(cA), cBt = thinHex(cB);   // (piezas finas: el acento no brilla como un neón)
     if (X.head === 'pescador' || X.head === 'pescadorCuadros') {   // gorro de pescador: copa de cA y ala caída alrededor (anillo cerrado que nace en el borde)
       // (la copa acaba por encima de las cejas y el ala cae poco: los ojos se siguen viendo)

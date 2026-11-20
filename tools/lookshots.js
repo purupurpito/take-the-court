@@ -341,6 +341,13 @@ const COMBOS = [
   { id: 'c_ears_melena', venue: 'hall', region: 'head', style: 'melena', name: 'pendientes + melena', list: [['ears', 'pendientes']] },
   { id: 'c_ears_ondas', venue: 'beach', region: 'head', style: 'ondas', name: 'pendientes + ondas + gorra', list: [['head', 'gorra'], ['ears', 'pendientes']] },
   { id: 'c_ears_visera', venue: 'beach', region: 'head', style: 'coletas', name: 'pendientes + coletas + visera con gafas', list: [['head', 'viseraGafas'], ['ears', 'pendientes']] },
+  // (revisión final: los aros atravesaban el pelo largo; con los peinados que tapan la oreja no se pintan)
+  { id: 'c_ears_melenita', venue: 'hall', region: 'head', style: 'melenita', name: 'pendientes + melenita', list: [['ears', 'pendientes']] },
+  { id: 'c_ears_cortina', venue: 'hall', region: 'head', style: 'cortina', name: 'pendientes + cortina', list: [['ears', 'pendientes']] },
+  { id: 'c_ears_semirrecogido', venue: 'hall', region: 'head', style: 'semirrecogido', name: 'pendientes + semirrecogido', list: [['ears', 'pendientes']] },
+  { id: 'c_ears_mullet', venue: 'hall', region: 'head', style: 'mullet', name: 'pendientes + mullet', list: [['ears', 'pendientes']] },
+  { id: 'c_ears_rastas', venue: 'hall', region: 'head', style: 'rastas', name: 'pendientes + rastas', list: [['ears', 'pendientes']] },
+  { id: 'c_ears_despeinado', venue: 'hall', region: 'head', style: 'despeinado', name: 'pendientes + despeinado', list: [['ears', 'pendientes']] },
   { id: 'c_frente_afro', venue: 'beach', region: 'head', style: 'afro', name: 'gafas en la frente + afro', list: [['eyes', 'frente']] },
   { id: 'c_frente_melena', venue: 'beach', region: 'head', style: 'melena', name: 'gafas en la frente + melena', list: [['eyes', 'frente']] },
   { id: 'c_cintaRizo_afro', venue: 'hall', region: 'head', style: 'afro', name: 'cinta de rizo + afro + deportivas', list: [['head', 'cintaRizo'], ['eyes', 'deporte']] },

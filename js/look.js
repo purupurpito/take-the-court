@@ -156,7 +156,7 @@
     { id: 'gorroPompon', name: 'Gorro de lana', slot: 'head', venue: 'P', unlock: [shop(1200)], vc: 'AB', g: 'm', hint: 'De calentamiento, con pompón. ' + HIDE_HAIR_HINT, tris: [144, 189, 278] },
     { id: 'pescadorCuadros', name: 'Pescador de cuadros', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(6000), reto('r_digs', 2)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [196, 197, 410] },
     { id: 'viseraGafas', name: 'Visera con gafas', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(5000), reto('r_kills', 2)], vc: 'AB', g: 'f', hint: 'Las gafas de sol, apoyadas en la visera', tris: [246, 316, 442] },
-    { id: 'pendientes', name: 'Pendientes de aro', slot: 'ears', g: 'm', pl: 1, tris: [72, 96, 96] },   // (ronda 1: ranura propia, con cualquier gorro)
+    { id: 'pendientes', name: 'Pendientes de aro', slot: 'ears', g: 'm', pl: 1, tris: [72, 96, 96], hint: 'Con melena, melenita, ondas o semirrecogido el pelo los tapa' },   // (ronda 1: ranura propia, con cualquier gorro)
     // gafas
     { id: 'frente', name: 'Gafas en la frente', slot: 'eyes', venue: 'Y', vc: 'G', g: 'f', pl: 1, hint: 'Sin gorro o con la gorra al revés', tris: [180, 180, 256] },
     { id: 'pasta', name: 'Gafas de pasta', slot: 'eyes', vc: 'G', g: 'f', pl: 1, tris: [24, 24, 24] },
