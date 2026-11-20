@@ -4304,7 +4304,8 @@
     try { h = window.innerHeight || 0; } catch (e) { h = 0; }
     return (q && q.rank === 0) || (h && h < 320) ? 1 : 2;
   }
-  function lkPvOpts() { return { tc: lkTc(), num: lk.num, beach: lk.venue === 'beach', px: lkPvPx() }; }
+  // (soon, pulido: la malla nueva se monta por pasos entre frames; doll.js pvJobStart)
+  function lkPvOpts() { return { tc: lkTc(), num: lk.num, beach: lk.venue === 'beach', px: lkPvPx(), soon: true }; }
   // ---- lectura y escritura de una ranura en un fit (identidad y colores comunes; ropa por escenario) ----
   function lkGetFrom(f, slot) {
     if (!f) return '';

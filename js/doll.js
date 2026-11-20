@@ -2938,13 +2938,21 @@
   /** Pelo entero de un muñeco: casco principal (con gorro de copa, solo lo de debajo del borde), cascos extra y piezas. Deja el
    *  contexto en H (la corona, las cintas y el pañuelo lo leen). */
   var SKIP_HAIR = false;   // solo lookSelfTest: mide un gorro de copa sin pelo (lo que cuesta el gorro por sí solo)
-  function hairGeo(G, X, tc, r) {
+  function hairGeo(G, X, tc, r) { return hairGeoRest(hairGeoMain(G, X, tc, r)); }
+  /** El pelo en dos pasos (pulido: la vista previa del Vestuario monta la malla entre frames y la cabeza con el pelo era el paso más
+   *  caro, 20-40 ms en un móvil lento): hairGeoMain = contexto y casco principal; hairGeoRest = cascos extra, piezas y medidas. */
+  function hairGeoMain(G, X, tc, r) {
     var H = hairCtx(G, X, tc, r), st = H.st;
-    if (SKIP_HAIR) { H.line = function () { return 0.3 * PI; }; H.off = function () { return 0; }; H.crownAt = { p: [0, HEAD_C + HEAD_RY, 0], tilt: 0 }; return H; }
+    if (SKIP_HAIR) { H.line = function () { return 0.3 * PI; }; H.off = function () { return 0; }; H.crownAt = { p: [0, HEAD_C + HEAD_RY, 0], tilt: 0 }; H.skip = true; return H; }
     // (capVol: el volumen bajo un gorro de copa; el afro entero por debajo de la gorra eran dos bolas a los lados, como unos cascos de música)
     hairShell(H, { line: st.line, off: st.off, vol: H.cup && st.capVol != null ? st.capVol : st.vol, volFn: st.volFn, lift: st.lift, liftTh: st.liftTh, liftW: st.liftW, flat: st.flat, bump: st.bump, tuck: st.tuck, main: true,
       capTrim: st.capTrim != null ? st.capTrim : st.line === 'corto' || st.line === 'recogido' || st.line === 'afro',
       col: st.col ? (function (c) { return function () { return c; }; })(st.col(H)) : null });
+    return H;
+  }
+  function hairGeoRest(H) {
+    if (H.skip) return H;
+    var st = H.st;
     if (st.extra) st.extra(H);
     if (st.parts) st.parts(H);
     // altura de la cinta (y del aro de la visera): lo que abulta el pelo a esa altura, para que el aro no se meta en él
@@ -3281,12 +3289,18 @@
    *  debajo; las cintas (BAND) abrazan lo que abulte el pelo (bandPath); la corona se apoya donde dice el peinado (crown). */
   var LAST_HAIR = null, LAST_BAND = null;
   var BAND_Y = 0.13, BAND_TILT = 0.06;   // altura de las cintas sobre el centro de la cabeza (× FK) y su caída hacia la nuca (× R)
-  function headGeo(G, X, tc, r) {
-    var sk = X.skin, cA = colA(X, tc), cB = colB(X, tc), s;
+  /** Cabeza y orejas (la piel). */
+  function headBase(G, X) {
+    var sk = X.skin, s;
     G.add(headSphere(sg(30, 16), sg(20, 12)), sk);
     G.owk = 0.6; for (s = -1; s <= 1; s += 2) G.add(sph(0.046 * FK, 10, 8), sk, s * (HEAD_RX - 0.005), HEAD_C - 0.005, -0.01, 0, 0, 0, 0.45, 1, 0.85);   // orejas sencillas
     G.owk = 1;
-    var R = HEAD_RX + 0.01, H = LAST_HAIR = hairGeo(G, X, tc, r), hc = HAT_CLASS[X.head];
+  }
+  /** Cabeza, pelo y lo que va en ella. H0: la cabeza y el casco principal ya montados (headBase + hairGeoMain, rigGeoBegin por pasos). */
+  function headGeo(G, X, tc, r, H0) {
+    var cA = colA(X, tc), cB = colB(X, tc);
+    if (!H0) { headBase(G, X); H0 = hairGeoMain(G, X, tc, r); }
+    var R = HEAD_RX + 0.01, H = LAST_HAIR = hairGeoRest(H0), hc = HAT_CLASS[X.head];
     LAST_BAND = null;
     // (WP7 ronda 1: ranura propia: con cualquier gorro). Revisión final: con el pelo largo que cae por encima de la oreja (EAR_HAIR) los
     // aros lo atravesaban; ahí no se pintan (como el pelo bajo la gorra: lo que tapa manda) y la UI lo avisa (look.js, hint)
@@ -3626,7 +3640,9 @@
     var G = new Geo(), tc = r.tc, bch = !!r.beach, X = normLook(r.look, bch), st = { r: r, lod: lod, G: G, i: 0, steps: [] }, S = st.steps;
     function on(b) { var i = r.bones.indexOf(b); G.pre = r.rest[i]; G.bone = i; G.mode = 'flat'; G.owk = 1; G.su = SU_ALL; return G; }
     S.push(function () { torsoGeo(on(r.pelvis), r); });
-    S.push(function () { headGeo(on(r.head), X, tc, r); });
+    var hs = {};   // (la cabeza en dos pasos: piel y casco principal; luego el resto del pelo y lo que va en la cabeza)
+    S.push(function () { headBase(on(r.head), X); hs.H = hairGeoMain(G, X, tc, r); });
+    S.push(function () { on(r.head); headGeo(G, X, tc, r, hs.H); });
     S.push(function () {
       eyesGeo(G, X, tc); faceGeo(G, r, X, tc, on);
       if (bch ? isLicra(X) : X.under === 'termica') collarGeo(on(r.chest), X, tc);   // cuello alto de la camiseta interior
@@ -3925,11 +3941,11 @@
 
   /** Libera todo lo de GPU de un muñeco de doll.js (atlas, material, mallas de los LOD, textura de huesos y contorno) y lo saca de
    *  la escena. El material del contorno es compartido (VB.TOON, uno por color): no se libera. */
-  function freeRig(r) {
+  function freeRig(r, keepMat) {
     if (!r) return;
     if (r.root && r.root.parent) r.root.parent.remove(r.root);
     if (r.ink) { if (VB.TOON && VB.TOON.drop) VB.TOON.drop(r.ink); else if (r.ink.parent) r.ink.parent.remove(r.ink); r.ink = null; }
-    try { var m = r.skin && r.skin.material; if (m) { if (m.map) m.map.dispose(); m.dispose(); } } catch (e) { }
+    try { var m = r.skin && r.skin.material; if (m && m !== keepMat) { if (m.map) m.map.dispose(); m.dispose(); } } catch (e) { }
     try { for (var i = 0; i < r.geos.length; i++) if (r.geos[i]) { r.geos[i].dispose(); r.geos[i] = null; } } catch (e) { }
     try { if (r.skin && r.skin.skeleton) r.skin.skeleton.dispose(); } catch (e) { }
   }
@@ -4065,8 +4081,8 @@
     if (!(VB.Players && VB.Players.showroom)) list.push(ctx.scene.getObjectByName('players'));   // sin showroom de players, se ocultan aquí
     for (var i = 0; i < list.length; i++) { var o = list[i]; if (o && o.visible) { o.visible = false; if (PV.hidden.indexOf(o) < 0) PV.hidden.push(o); } }
   }
-  function pvBuild(L, op) {
-    var r = buildRig(L, 90, { tc: op.tc, num: op.num, beach: op.beach, px: op.px, lod: PV.lod });
+  function pvBuild(L, op, rig, mat) {
+    var r = buildRig(L, 90, { tc: op.tc, num: op.num, beach: op.beach, px: op.px, lod: PV.lod, rig: rig, mat: mat });
     r.root.name = 'dollPreview'; r.root.position.set(PV_POS[0], PV_POS[1], PV_POS[2]);
     // sin recibir sombras: el mapa de sombras de la pista está pensado para la cámara de partido y, a 1,85 m (y peor en calidad
     // media, la del móvil), salía a escalones sobre la cara y la camiseta. Es un uniform: no cambia de programa. Sigue dando sombra
@@ -4075,6 +4091,43 @@
     r.pose = PV.pose; setFace(r, PV.face); r.blinkT = 2;
     ctx.scene.add(r.root);
     return r;
+  }
+  /** Malla nueva de la vista previa POR PASOS (pulido; preview.set con o.soon, lo pide el Vestuario): cada cambio de peinado o de
+   *  pieza costaba 45-60 ms de golpe en un móvil lento (~3 veces 1.17.1; tirones de más de 100 ms). Ahora la geometría se monta en
+   *  trozos de pocos ms por frame (rigGeoBegin/rigGeoRun, como las miniaturas), el material se reutiliza si el atlas no cambia (o se
+   *  pinta en su propio frame) y el muñeco nuevo entra cuando está listo; mientras, se ve el de antes. */
+  function pvJobStart(L, op) {
+    var j = PV.job;
+    if (j && j.gs === PV.gs && j.lod === PV.lod && j.beach === op.beach && j.px === op.px) { j.L = L; j.op = op; j.as = PV.as; return; }   // mismo peinado: el color, al final
+    if (j && j.mat) { try { if (j.mat.map) j.mat.map.dispose(); j.mat.dispose(); } catch (e) { } }
+    var r = rigBones(L, 90, { tc: op.tc, num: op.num, beach: op.beach, px: op.px, lod: PV.lod });
+    PV.job = { gs: PV.gs, as: PV.as, lod: PV.lod, beach: op.beach, px: op.px, L: L, op: op, r: r, st: rigGeoBegin(r, PV.lod), mat: null };
+  }
+  function pvJobRun() {
+    var j = PV.job; if (!j) return;
+    var old = PV.r, t0 = performance.now();
+    if (!j.st.geo) {
+      var keepK = LODK, keepR = LODR;
+      try { rigGeoRun(j.st, t0 + 4); } finally { LODK = keepK; LODR = keepR; }
+      if (!j.st.geo) return;
+      if (performance.now() - t0 > 4) return;   // (el material y el cambio, en el frame siguiente)
+    }
+    var om = old && old.skin && old.skin.material, reuse = om && om.map && PV.ras === j.as && PV.rpx === j.px && PV.rbeach === j.beach;
+    if (!reuse && !j.mat) { j.r.look = j.L; j.mat = dollMaterial(j.op.tc, j.L, j.op.num, j.beach, j.px || 2); return; }
+    if (j.mat && j.mat.userData && j.mat.userData.paint && j.mat.userData.paint.L !== j.L) {   // el color cambió mientras tanto
+      j.mat.userData.paint = { tc: j.op.tc, L: j.L, num: j.op.num, beach: j.beach };
+      paintAtlas(j.mat.map.image, j.op.tc, j.L, j.op.num, j.beach); j.mat.map.needsUpdate = true;
+    }
+    PV.job = null;
+    j.r.look = j.L;
+    var n = pvBuild(j.L, j.op, j.r, reuse ? om : j.mat);
+    n.tFix = old ? old.tFix : -1; PV.r = n; PV.env = null; PV.ras = j.as; PV.rpx = j.px; PV.rbeach = j.beach;
+    freeRig(old, reuse ? om : null);
+  }
+  function pvJobDrop() {
+    var j = PV && PV.job; if (!j) return;
+    PV.job = null;
+    if (j.mat) { try { if (j.mat.map) j.mat.map.dispose(); j.mat.dispose(); } catch (e) { } }
   }
   // periodo (s) de la animación de cada pose de «Probar» (animate): pvEnv la recorre entera para medir hasta dónde llega
   var PV_CYCLE = { spike: 1.9, cel: 1.1, recv: 3.7, idle: 2.86, block: 1 };
@@ -4112,7 +4165,7 @@
         yawB: 0, yawT: 0, peek: 0, peekT: 0, slot: '', fl: 0, flL: null,
         pose: 'stand', face: 'neutra', frame: 'cuerpo', cx: 0.68, half: 0, top: 0, bot: 0, cy: 0, cd: 0, sx: 0, sy: 0, snap: true,
         fov0: ctx.camera ? ctx.camera.fov : 0, film0: ctx.camera ? ctx.camera.filmOffset || 0 : 0 };
-      PV.r = pvBuild(L, op);
+      PV.r = pvBuild(L, op); PV.ras = PV.as; PV.rpx = op.px; PV.rbeach = op.beach; PV.job = null;
       pvHide();
       return true;
     },
@@ -4124,13 +4177,16 @@
       var op = pvOpts(o, PV.o), gs = geoSig(L, op.tc, op.beach), as = atlasSig(L, op.tc, op.num, op.beach), old = PV.r;
       if (gs !== PV.gs || op.beach !== PV.o.beach || op.px !== PV.o.px || pvLod() !== PV.lod) {
         PV.lod = pvLod(); PV.L = L; PV.o = op; PV.gs = gs; PV.as = as;
+        if (o && o.soon) { pvJobStart(L, op); return 'geo'; }   // (por pasos: pvJobRun en update)
+        pvJobDrop();
         var n = pvBuild(L, op);
-        n.tFix = old.tFix; PV.r = n; PV.env = null; freeRig(old);
+        n.tFix = old.tFix; PV.r = n; PV.env = null; freeRig(old); PV.ras = as; PV.rpx = op.px; PV.rbeach = op.beach;
         return 'geo';
       }
       PV.L = L; PV.o = op;
+      if (PV.job) { if (as !== PV.as) { PV.as = as; PV.job.L = L; PV.job.op = op; PV.job.as = as; } return as === PV.ras ? '' : 'atlas'; }   // (lo recoge la malla que se está montando)
       if (as === PV.as) return '';
-      PV.as = as;
+      PV.as = as; PV.ras = as;
       var m = old.skin.material, cv = m.map && m.map.image;
       old.look = L; old.tc = op.tc; old.num = op.num;
       m.userData.paint = { tc: op.tc, L: L, num: op.num, beach: op.beach };
@@ -4195,7 +4251,7 @@
     /** Parpadeo de lo que pinta un color (el Vestuario, al cambiarlo): pinta el atlas con L2 durante s segundos (0,4 por defecto) y
      *  vuelve al aspecto de verdad. Solo si L2 cambia el atlas y no la malla (si no, nada). */
     flash: function (L2, s) {
-      if (!PV || !L2) return false;
+      if (!PV || !L2 || PV.job) return false;
       var op = PV.o, r = PV.r; if (geoSig(L2, op.tc, op.beach) !== PV.gs || atlasSig(L2, op.tc, op.num, op.beach) === PV.as) return false;
       var m = r.skin.material, cv = m.map && m.map.image; if (!cv) return false;
       paintAtlas(cv, op.tc, L2, op.num, op.beach); m.map.needsUpdate = true;
@@ -4205,6 +4261,7 @@
     /** Cada frame, después de CameraRig.update: anima, vuelve a ocultar balón y manchas y coloca ctx.camera. */
     update: function (dt) {
       if (!PV) return;
+      if (PV.job) pvJobRun();
       dt = Math.min(0.05, Math.max(0, dt || 0)); PV.t += dt;
       var r = PV.r;
       animate(r, r.tFix >= 0 ? r.tFix : PV.t); blink(r, dt);
@@ -4278,6 +4335,7 @@
     /** Apaga la vista previa: libera el muñeco, vuelve a enseñar lo que ocultó y devuelve el fov y la lente de la cámara. */
     stop: function () {
       if (!PV) return false;
+      pvJobDrop();
       freeRig(PV.r);
       for (var i = 0; i < PV.hidden.length; i++) PV.hidden[i].visible = true;
       var cam = ctx && ctx.camera; if (cam && PV.fov0) { cam.fov = PV.fov0; cam.filmOffset = PV.film0; cam.updateProjectionMatrix(); }
