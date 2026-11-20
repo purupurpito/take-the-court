@@ -55,7 +55,7 @@
       items: [
         '32 peinados, y el pelo asoma por debajo de la gorra, el pescador o el pañuelo.',
         'Segundo color de pelo: raíces, puntas, mechas, flequillo teñido o mitad y mitad.',
-        'Objetos nuevos: pendientes, cadenas, manguitos, calcetines, zapatillas y más.',
+        'Más de 40 objetos nuevos: pendientes, cadenas, gafas, manguitos, calcetines y zapatillas.',
         'Miniaturas de cada opción y una cámara que enfoca lo que vas eligiendo.',
         'Probar: mira tu aspecto en un remate, una celebración o una recepción.'
       ]
