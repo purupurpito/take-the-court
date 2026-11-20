@@ -5554,6 +5554,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root:not(#_):not(#_):not(#_) #menu[data-page="look"] #lkNote{top:auto;bottom:calc(16px + var(--sbm));left:50%;width:max-content;max-width:calc(100vw - 32px)}
   :root:has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:calc(16px + var(--sbm));left:16px;right:16px;align-items:center;max-width:none}
 }
+/* PC (pulido): con la rejilla abierta, Probar, el dado y «⋯» se quedan donde estaban (antes saltaban arriba a la izquierda): la fila
+   de jugador y sede y las pestañas guardan su sitio, invisibles */
+@media (min-aspect-ratio:5/4){
+  :root:not(.ph):not(#_):not(#_):not(#_) #menu #mpLook.lk-gon :is(.lk-top,#lkTabs){display:flex;visibility:hidden}
+}
 /* cambio de sede: cortina de tinta sobre el fondo (por debajo de la interfaz) mientras se monta el pabellón o la playa (ui.js lkBackdropSoon) */
 #menu[data-page="look"]{transition:box-shadow .13s ease-out}
 #menu[data-page="look"].lk-swap{box-shadow:inset 0 0 0 100vmax rgba(21,16,42,.92)}
