@@ -852,7 +852,9 @@
         // de piel; del acento salvo que se pierda contra lo de debajo (brazalete rojo sobre manguito rojo)
         // (pulido: en el manguito bicolor o fundido, que también se separe de la mitad de abajo; si no, el «pick» contra cA daba el
         //  oscuro de la equipación, igual que el antebrazo, y el brazalete se fundía con él y escondía las dos mitades)
-        var b0 = 0.49, b1 = 0.83, bc = SLV_AB[arm] ? pick2(cA, arm === 'manguitoFundido' ? mixHex(cA, cB2, 0.3) : cA, cB2, tc) : pick(cA, armBg(arm, lsl), tc);
+        // (pulido 2: en el bicolor, el brazalete entero tapaba la mitad de arriba y de ella quedaba una raya: con él, algo más estrecho y
+        //  centrado, asoma el color de arriba por encima y por debajo. Solo en ese manguito; lookvis mide el brazalete sin manguito)
+        var b0 = arm === 'manguitoBicolor' ? 0.56 : 0.49, b1 = arm === 'manguitoBicolor' ? 0.76 : 0.83, bc = SLV_AB[arm] ? pick2(cA, arm === 'manguitoFundido' ? mixHex(cA, cB2, 0.3) : cA, cB2, tc) : pick(cA, armBg(arm, lsl), tc);
         var bdk = mixHex(bc, 0x000000, 0.38);
         band(cu, b0, b1, bc);
         draw(cu, b0, b1, TUBE_ARM, UPPER, function (xc, y0, y1, ax) {
