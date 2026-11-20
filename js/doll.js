@@ -2236,7 +2236,7 @@
     var l = hairLum(hr);
     // (en el pelo castaño oscuro, casi negro; en el que ya es casi negro no hay raíz más oscura que se vea: ahí, el miel de los demás
     //  efectos, con el borde suave —raíces teñidas—, nunca el beis de piel de antes)
-    if (fx === 'raiz' && l > 0.13) return l > 0.3 ? mixHex(hr, 0x1a100a, 0.6) : mixHex(hr, 0x05070c, 0.78);
+    if (fx === 'raiz' && l > 0.13) return l > 0.3 ? mixHex(hr, 0x1a100a, 0.6) : mixHex(hr, 0x05070c, 0.62);
     if (l > 0.45) return mixHex(hr, 0x2a1a10, 0.55);
     var c = mixHex(hr, 0xe2a848, 0.62), ls = lumHex(skin), i;
     for (i = 0; i < 6 && Math.abs(lumHex(c) - ls) < 0.14; i++) c = ls > lumHex(c) ? mixHex(c, hr, 0.3) : mixHex(c, 0xf2cf6a, 0.3);
@@ -2267,7 +2267,7 @@
     // raíces: la zona de arriba de la cabeza (θ hasta la mitad de la línea de pelo, más o menos), con borde suave en 2-3 filas. Antes: la
     // mitad del casco con un escalón recto y el primer cuarto de CADA pieza (en el tupé, dos manchas sueltas: la onda y el flequillo)
     if (fx === 'raiz') {
-      var ur = ex && ex.ur != null ? ex.ur : kind === 'shell' ? u : (u < 0.25 ? 0 : 1), mr = 1 - sstep(0.42, 0.66, ur);
+      var ur = ex && ex.ur != null ? ex.ur : kind === 'shell' ? u : (u < 0.25 ? 0 : 1), mr = 1 - sstep(0.3, 0.74, ur);
       if (mr > 0.02) c = mr > 0.98 ? H.h2 : mixHex(c, H.h2, mr);
     }
     else if (fx === 'puntas') { if (u > (kind === 'shell' ? 0.8 : 0.62)) c = H.h2; }
