@@ -2087,16 +2087,15 @@
       // WP7: cadena de plata: eslabones por color de vértice (claro / oscuro alternos) y una chapa con canto oscuro sobre el pecho
       // (ronda 1 de WP7: plata sobre la camiseta blanca no se veía —1,56 %—: sobre un pecho claro, acero oscuro con los eslabones
       //  claros, cordón más grueso y la chapa con el canto casi negro; sobre uno oscuro, la plata clara de antes)
-      // (pulido: se leía como un cuello o una bufanda a cuadros grises. Ahora el cordón es más fino, cada eslabón claro lleva un BRILLO
-      //  casi blanco en la cara de arriba —el oscuro, un filo— y la chapa es más pequeña y cuelga más alta: ya no tapa el dorsal. Mismos
-      //  triángulos)
+      // (pulido: se leía como un cuello o una bufanda a cuadros grises. Ahora un eslabón claro de cada dos lleva un BRILLO casi blanco
+      //  —ritmo claro, oscuro, brillo, oscuro: metal— y la chapa es más pequeña y cuelga más alta: ya no tapa el dorsal. Mismos triángulos)
       var lk = 2 * PI / sg(20, 12), dy2 = F.yf - 0.006, rd2 = torsoR(dy2 + co), lc = lumHex(tc.base) > 0.6 || (hi && lumHex(colB(X, tc)) > 0.6);
-      var s1 = lc ? 0x58616f : 0xdfe5ec, s2 = lc ? 0xc4ccd6 : 0x6c7684, s3 = lc ? 0x8d97a5 : 0xd4dbe4, s4 = lc ? 0x23262d : 0x5a6470, sh2 = 0xf6f9fc;
-      G.owk = 0.6; G.vc = function (px, py, pz) { var odd = Math.floor((Math.atan2(py, px) + PI) / lk) % 2; return pz < -0.04 ? (odd ? null : sh2) : odd ? s2 : null; };
-      G.add(torus(1, 0.12, 4, 20), s1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;
+      var s1 = lc ? 0x58616f : 0xdfe5ec, s2 = lc ? 0x8f99a6 : 0x5c6674, s3 = lc ? 0x8d97a5 : 0xd4dbe4, s4 = lc ? 0x23262d : 0x5a6470, sh2 = 0xf6f9fc;
+      G.owk = 0.6; G.vc = function (px, py) { var q = Math.floor((Math.atan2(py, px) + PI) / lk); return q % 2 ? s2 : q % 4 === 0 ? sh2 : null; };   // (uno de cada dos eslabones claros, con brillo)
+      G.add(torus(1, 0.19, 4, 20), s1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;
       G.owk = 0.7; G.vc = function (px, py) { return Math.abs(py) < 0.0025 ? s4 : null; };
-      G.add(new THREE.BoxGeometry(0.04, 0.052, 0.01), s3, 0, dy2 - 0.01, rd2[1] + 0.013, -0.22, 0, 0); G.vc = null;              // chapa
-      if (LODR > 0) { G.owk = 0; G.add(new THREE.PlaneGeometry(0.011, 0.034), sh2, -0.006, dy2 - 0.008, rd2[1] + 0.0184, -0.22, 0, 0); }   // brillo
+      G.add(new THREE.BoxGeometry(0.05, 0.064, 0.011), s3, 0, dy2 - 0.014, rd2[1] + 0.013, -0.22, 0, 0); G.vc = null;              // chapa
+      if (LODR > 0) { G.owk = 0; G.add(new THREE.PlaneGeometry(0.011, 0.034), 0xf6f9fc, -0.006, dy2 - 0.008, rd2[1] + 0.0184, -0.22, 0, 0); }   // brillo
     }
     G.owk = 1;
   }
@@ -2231,7 +2230,9 @@
    *  luminancia (>= 0,14). */
   function autoH2(hr, skin, fx) {
     var l = hairLum(hr);
-    if (fx === 'raiz') return l > 0.3 ? mixHex(hr, 0x1a100a, 0.6) : mixHex(hr, 0x050302, 0.62);
+    // (en el pelo castaño oscuro, casi negro; en el que ya es casi negro no hay raíz más oscura que se vea: ahí, el miel de los demás
+    //  efectos, con el borde suave —raíces teñidas—, nunca el beis de piel de antes)
+    if (fx === 'raiz' && l > 0.13) return l > 0.3 ? mixHex(hr, 0x1a100a, 0.6) : mixHex(hr, 0x05070c, 0.78);
     if (l > 0.45) return mixHex(hr, 0x2a1a10, 0.55);
     var c = mixHex(hr, 0xe2a848, 0.62), ls = lumHex(skin), i;
     for (i = 0; i < 6 && Math.abs(lumHex(c) - ls) < 0.14; i++) c = ls > lumHex(c) ? mixHex(c, hr, 0.3) : mixHex(c, 0xf2cf6a, 0.3);
@@ -2262,7 +2263,7 @@
     // raíces: la zona de arriba de la cabeza (θ hasta la mitad de la línea de pelo, más o menos), con borde suave en 2-3 filas. Antes: la
     // mitad del casco con un escalón recto y el primer cuarto de CADA pieza (en el tupé, dos manchas sueltas: la onda y el flequillo)
     if (fx === 'raiz') {
-      var ur = ex && ex.ur != null ? ex.ur : kind === 'shell' ? u : (u < 0.25 ? 0 : 1), mr = 1 - sstep(0.36, 0.62, ur);
+      var ur = ex && ex.ur != null ? ex.ur : kind === 'shell' ? u : (u < 0.25 ? 0 : 1), mr = 1 - sstep(0.42, 0.66, ur);
       if (mr > 0.02) c = mr > 0.98 ? H.h2 : mixHex(c, H.h2, mr);
     }
     else if (fx === 'puntas') { if (u > (kind === 'shell' ? 0.8 : 0.62)) c = H.h2; }
@@ -3248,11 +3249,12 @@
     // claro de las sienes, asomando por debajo. Antes era un bloque plano de 12 × 6 cm con una franja clara: se leía como una pegatina o una etiqueta)
     // (revisión final: de espaldas el bloque se leía como un rectángulo macizo. Ahora es la SILUETA de una pinza de garra: el lomo en
     //  ARCO (medio toro grueso) y cuatro dientes en punta que bajan hacia el pelo entre las patas del arco. Mismos 36 triángulos)
-    var arc = new THREE.TorusGeometry(0.05 * FK, 0.017 * FK, 3, 4, PI); arc.translate(0, -0.012 * FK, 0.008);
+    // (pulido: un 15 % más grande; en el primer plano rozaba el 1,5 % de lookvis)
+    var arc = new THREE.TorusGeometry(0.058 * FK, 0.02 * FK, 3, 4, PI); arc.translate(0, -0.013 * FK, 0.008);
     G.add(arc, pc, q[0], q[1], q[2], e[0], e[1], e[2]);                                                                                       // lomo en arco
     var tth = mixHex(pc, 0x000000, 0.22);
     for (var ti = 0; ti < 4; ti++) {                                                                                                          // dientes
-      var cone = new THREE.ConeGeometry(0.0115 * FK, 0.05 * FK, 3, 1, true); cone.rotateZ(PI); cone.translate((-0.03 + 0.02 * ti) * FK, -0.022 * FK, 0.004);
+      var cone = new THREE.ConeGeometry(0.0128 * FK, 0.056 * FK, 3, 1, true); cone.rotateZ(PI); cone.translate((-0.0336 + 0.0224 * ti) * FK, -0.025 * FK, 0.004);
       G.add(cone, tth, q[0], q[1], q[2], e[0], e[1], e[2]);
     }
     for (var s = -1; s <= 1; s += 2) {   // clips de las sienes
