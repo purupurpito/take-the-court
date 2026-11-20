@@ -4489,7 +4489,7 @@
       var w = lkWornUsing(slot.slice(2));
       return w.length ? { t: 'Pinta: ' + lkList(w), k: 'use' } : { t: 'No llevas nada de este color', k: 'dim' };
     }
-    if (slot === 'style' && lkCapHides()) return { t: 'Con gorra no se ve el peinado entero', k: 'warn' };
+    if (slot === 'style' && lkCapHides()) return { t: 'Con gorra no se ve entero; aquí, sin ella', k: 'warn' };
     // (pulido: efectos que el peinado no pinta, p. ej. las raíces en el rapado o cualquiera al cero: VB.Doll.HAIR_STYLES[id].noFx)
     if (slot === 'hairFx' && v) {
       var HS = VB.Doll && VB.Doll.HAIR_STYLES, nf = HS && HS[lkGet('style')] && HS[lkGet('style')].noFx;
@@ -4501,7 +4501,10 @@
       if ((Array.isArray(U) ? U.indexOf(v) >= 0 : !!U[v]) && LK_SOCK_UP[sk]) return { t: 'Queda bajo los calcetines', k: 'warn' };
     }
     if (LK_FACE_ONLY[slot] && v) return { t: 'De espaldas, en el partido, no se ve', k: 'warn' };
-    var h = lkHint(o); return { t: h, k: h ? 'hint' : '' };
+    var h = lkHint(o);
+    // (pulido: «Con gorra no se ve el peinado entero» no vale con un peinado que asoma entero bajo la gorra: coleta, trenzas…)
+    if (slot === 'head' && h && /no se ve el peinado/.test(h) && lkUnderCap(lkGet('style'))) h = '';
+    return { t: h, k: h ? 'hint' : '' };
   }
   var LK_GRID_IC = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="0.5" y="0.5" width="4.6" height="4.6" rx="1"/><rect x="6.9" y="0.5" width="4.6" height="4.6" rx="1"/><rect x="0.5" y="6.9" width="4.6" height="4.6" rx="1"/><rect x="6.9" y="6.9" width="4.6" height="4.6" rx="1"/></svg>';
   function lkRowHTML(slot, U) {
@@ -4664,10 +4667,18 @@
   }
   // ---- vista previa ----
   function lkPreview() { lk.pvDue = true; if (performance.now() - lk.pvT >= 120) lkPvFlush(); }
+  /** Lo que enseña la vista previa (pulido): en la pestaña Pelo, sin el gorro que tapa el peinado (gorra, pescador…). Antes, con la
+   *  gorra puesta (la de la playa por defecto), elegir un peinado en la rejilla o con las flechas no cambiaba nada en el muñeco. Lo
+   *  guardado no cambia: el gorro vuelve al salir de la pestaña (y la fila avisa de que con él no se ve entero). */
+  function lkPvFit() {
+    var f = lk.fit;
+    if (f && lk.tab === 'pelo' && lkCapHides()) { f = lkClone(f); f[lkVKey()].head = ''; }
+    return f;
+  }
   function lkPvFlush() {
     lk.pvDue = false; lk.pvT = performance.now();
     var P = lkPV(), Lk = LK(); if (!lk.on || !P || !Lk || !Lk.resolve || !lk.fit) return;
-    var L = null; try { L = Lk.resolve(lk.fit, lk.venue, lkTc()); } catch (e) { return; }
+    var L = null; try { L = Lk.resolve(lkPvFit(), lk.venue, lkTc()); } catch (e) { return; }
     // main.js: con la vista previa encendida, showroom(true) la actualiza (preview.set) y avisa a la calidad adaptativa si se rehízo
     // la malla ('geo'). Sin esa acción (main antiguo), directamente a doll.js
     if (ctx.actions && ctx.actions.showroom) { try { ctx.actions.showroom(true, L, lkPvOpts()); } catch (e) { } }
@@ -4732,7 +4743,7 @@
   function lkFlash(slot) {
     var P = lkPV(), Lk = LK(), key = slot.slice(2), lc = Lk && Lk.COLOR_L ? Lk.COLOR_L[key] : '';
     if (!P || !P.flash || !lc || !lkWornUsing(key).length) return;
-    var L = null; try { L = Lk.resolve(lk.fit, lk.venue, lkTc()); } catch (e) { return; }
+    var L = null; try { L = Lk.resolve(lkPvFit(), lk.venue, lkTc()); } catch (e) { return; }
     var c = typeof L[lc] === 'number' ? L[lc] : 0, lum = ((c >> 16 & 255) * 0.3 + (c >> 8 & 255) * 0.59 + (c & 255) * 0.11) / 255;
     var L2 = Object.assign({}, L); L2[lc] = lum > 0.55 ? 0xff2f6d : 0xfff27a;   // rosa sobre lo claro, amarillo sobre lo oscuro
     try { P.flash(Object.freeze(L2), 0.4); } catch (e) { }
@@ -5092,7 +5103,7 @@
     lkRender();
     if (el.lkSpin) el.lkSpin.hidden = false;
     var Lk = LK(), L = null;
-    try { L = Lk && Lk.resolve ? Lk.resolve(lk.fit, lk.venue, lkTc()) : null; } catch (e) { L = null; }
+    try { L = Lk && Lk.resolve ? Lk.resolve(lkPvFit(), lk.venue, lkTc()) : null; } catch (e) { L = null; }
     if (ctx.actions && ctx.actions.showroom) try { ctx.actions.showroom(true, L, lkPvOpts()); } catch (e) { }
     lk.pvT = performance.now(); lk.pvDue = false;
     lkFrame();
@@ -5209,7 +5220,9 @@
           // de jugador). Si estaba en la lista (o no estaba en ningún sitio), pasa a la 1ª fila de la pestaña nueva
           var ae = document.activeElement, inL = !ae || ae === document.body || el.lkList.contains(ae), kb = kbNow() || ctx.inputDevice === 'gamepad';
           lkGridReset();
+          var capW = lkCapHides() && (lk.tab === 'pelo' || id === 'pelo');   // (la gorra sale o vuelve en la vista previa: lkPvFit)
           lk.tab = id; lk.tryI = -1; el.lkList.scrollTop = 0; lkRender(); lkFrame();
+          if (capW) lkPreview();
           var a2 = document.activeElement;
           if (inL && (!a2 || a2 === document.body || !el.mpLook.contains(a2))) focusEl(lkFocusEl(), kb);
         } });
