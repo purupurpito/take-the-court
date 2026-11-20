@@ -1638,9 +1638,10 @@ Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, blo
 - **«Probar»** (ui.js `lkTryStop`): la pose se acaba a los 5 s (con el muñeco a toda pantalla del móvil) o al cambiar de pestaña, de fila
   (`lkFocusSlot`), de jugador, al abrir, al dado, Todo al azar, Restablecer, Copiar (`lkUndoOffer`) y «Deshacer»; vuelve de pie y al
   encuadre de la fila o la pestaña. La ronda de poses sigue donde iba (`lk.tryLast`).
-- **Cadena de plata**: cordón `torus(1, 0,17)` (antes 0,19) de un tono por debajo y con brillo uno de cada cuatro eslabones solo por
-  arriba (sin los cuadros claro/oscuro); sobre pecho oscuro, plata clara lisa. Chapa 4,2 × 4,8 cm colgada del cordón (`F.yf − 0,012`):
-  deja el dorsal entero. lookvis 1,52 % / 1,54 % (umbral 1,5 %: más fina ya no pasa).
+- **Cadena de plata**: cordón `torus(1, 0,18)` (antes 0,19) de un tono por debajo y con brillo uno de cada cuatro eslabones solo por
+  arriba (sin los cuadros claro/oscuro; sobre pecho claro, acero más oscuro); sobre pecho oscuro, plata clara lisa. Chapa 5 × 4,8 cm
+  colgada del cordón (`F.yf − 0,012`): deja el dorsal entero. lookvis 1,63 % / 1,63 % (umbral 1,5 %; con 0,17 y la chapa de 4,2 cm la
+  pasada completa daba 1,48 %: más fina no pasa).
 - **Raíces**: borde 0,3-0,74 (antes 0,42-0,66) y, en el castaño (luminancia 0,13-0,3), `mixHex(hr, 0x05070c, 0,62)` (antes 0,78: casquete
   casi negro de espaldas). lookvis 5,22 % / 5,52 %.
 - **Orejas**: `mixHex(piel, 0x6a1e14, 0,16)`, sin tinta: de perfil (rapado) se leen por el tono.
