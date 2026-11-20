@@ -2087,13 +2087,16 @@
       // WP7: cadena de plata: eslabones por color de vértice (claro / oscuro alternos) y una chapa con canto oscuro sobre el pecho
       // (ronda 1 de WP7: plata sobre la camiseta blanca no se veía —1,56 %—: sobre un pecho claro, acero oscuro con los eslabones
       //  claros, cordón más grueso y la chapa con el canto casi negro; sobre uno oscuro, la plata clara de antes)
-      var lk = 2 * PI / sg(20, 12), dy2 = F.yf - 0.045, rd2 = torsoR(dy2 + co), lc = lumHex(tc.base) > 0.6 || (hi && lumHex(colB(X, tc)) > 0.6);
-      var s1 = lc ? 0x58616f : 0xdfe5ec, s2 = lc ? 0xc4ccd6 : 0x6c7684, s3 = lc ? 0x8d97a5 : 0xd4dbe4, s4 = lc ? 0x23262d : 0x5a6470;
-      G.owk = 0.8; G.vc = function (px, py) { return Math.floor((Math.atan2(py, px) + PI) / lk) % 2 ? s2 : null; };
-      G.add(torus(1, 0.19, 4, 20), s1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;
-      G.owk = 0.8; G.vc = function (px, py) { return Math.abs(py) < 0.0035 ? s4 : null; };
-      G.add(new THREE.BoxGeometry(0.066, 0.09, 0.012), s3, 0, dy2 - 0.01, rd2[1] + 0.014, -0.22, 0, 0); G.vc = null;              // chapa
-      if (LODR > 0) { G.owk = 0; G.add(new THREE.PlaneGeometry(0.018, 0.058), 0xffffff, -0.01, dy2 - 0.007, rd2[1] + 0.0202, -0.22, 0, 0); }   // brillo
+      // (pulido: se leía como un cuello o una bufanda a cuadros grises. Ahora el cordón es más fino, cada eslabón claro lleva un BRILLO
+      //  casi blanco en la cara de arriba —el oscuro, un filo— y la chapa es más pequeña y cuelga más alta: ya no tapa el dorsal. Mismos
+      //  triángulos)
+      var lk = 2 * PI / sg(20, 12), dy2 = F.yf - 0.006, rd2 = torsoR(dy2 + co), lc = lumHex(tc.base) > 0.6 || (hi && lumHex(colB(X, tc)) > 0.6);
+      var s1 = lc ? 0x58616f : 0xdfe5ec, s2 = lc ? 0xc4ccd6 : 0x6c7684, s3 = lc ? 0x8d97a5 : 0xd4dbe4, s4 = lc ? 0x23262d : 0x5a6470, sh2 = 0xf6f9fc;
+      G.owk = 0.6; G.vc = function (px, py, pz) { var odd = Math.floor((Math.atan2(py, px) + PI) / lk) % 2; return pz < -0.04 ? (odd ? null : sh2) : odd ? s2 : null; };
+      G.add(torus(1, 0.12, 4, 20), s1, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az); G.vc = null;
+      G.owk = 0.7; G.vc = function (px, py) { return Math.abs(py) < 0.0025 ? s4 : null; };
+      G.add(new THREE.BoxGeometry(0.04, 0.052, 0.01), s3, 0, dy2 - 0.01, rd2[1] + 0.013, -0.22, 0, 0); G.vc = null;              // chapa
+      if (LODR > 0) { G.owk = 0; G.add(new THREE.PlaneGeometry(0.011, 0.034), sh2, -0.006, dy2 - 0.008, rd2[1] + 0.0184, -0.22, 0, 0); }   // brillo
     }
     G.owk = 1;
   }
