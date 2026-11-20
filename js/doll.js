@@ -301,11 +301,12 @@
     if (this.pre) m.premultiply(this.pre);
     nm.getNormalMatrix(m);
     var P = geo.attributes.position, N = geo.attributes.normal, U = geo.attributes.uv, col = new THREE.Color(hex == null ? 0xffffff : hex), i;
-    // G.vc(cx, cy, cz): centro del triángulo en coordenadas de la primitiva → hex, o null (= hex). Dibujo por cara (bordes nítidos)
+    // G.vc(cx, cy, cz, t): centro del triángulo t (en el orden de la primitiva) en sus coordenadas → hex, o null (= hex). Dibujo por
+    // cara (bordes nítidos)
     var vc = this.vc, c0 = vc ? col.clone() : null, vh;
     for (i = 0; i < P.count; i++) {
       if (vc && i % 3 === 0) {
-        vh = vc((P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3);
+        vh = vc((P.getX(i) + P.getX(i + 1) + P.getX(i + 2)) / 3, (P.getY(i) + P.getY(i + 1) + P.getY(i + 2)) / 3, (P.getZ(i) + P.getZ(i + 1) + P.getZ(i + 2)) / 3, i / 3);
         if (vh == null) col.copy(c0); else col.setHex(vh);
       }
       var w2 = 0; if (m0) { v.fromBufferAttribute(P, i).applyMatrix4(m0); w2 = this.w2(v.y); }
@@ -2204,9 +2205,21 @@
     for (i = 0; i < 8 && lumHex(s) > ls - d; i++) s = mixHex(s, mixHex(hr, 0x000000, 0.6), 0.25);
     return s;
   }
+  /** Segundo color AUTOMÁTICO (hairFx sin fit.hair2). Pulido: sobre pelo oscuro era un beis (0xf6e2a8) casi del color de la piel clara:
+   *  las raíces se leían como una coronilla calva o un gorro de baño y «mitad» como media cabeza pelada. Ahora las RAÍCES son siempre
+   *  más oscuras que el pelo (como las de verdad) y el resto de efectos, sobre pelo oscuro, un miel dorado que se separa de la piel en
+   *  luminancia (>= 0,14). */
+  function autoH2(hr, skin, fx) {
+    var l = hairLum(hr);
+    if (fx === 'raiz') return l > 0.3 ? mixHex(hr, 0x1a100a, 0.6) : mixHex(hr, 0x050302, 0.62);
+    if (l > 0.45) return mixHex(hr, 0x2a1a10, 0.55);
+    var c = mixHex(hr, 0xe2a848, 0.62), ls = lumHex(skin), i;
+    for (i = 0; i < 6 && Math.abs(lumHex(c) - ls) < 0.14; i++) c = ls > lumHex(c) ? mixHex(c, hr, 0.3) : mixHex(c, 0xf2cf6a, 0.3);
+    return c;
+  }
   /** Contexto del pelo de un muñeco (H): colores, gorro, superficie del casco principal (H.surf) y utilidades para las piezas. */
   function hairCtx(G, X, tc, r) {
-    var hr = X.hair, h2 = X.hair2 >= 0 ? X.hair2 : (hairLum(hr) > 0.45 ? mixHex(hr, 0x2a1a10, 0.55) : mixHex(hr, 0xf6e2a8, 0.55));
+    var hr = X.hair, h2 = X.hair2 >= 0 ? X.hair2 : autoH2(hr, X.skin, X.hairFx);
     var hc = HAT_CLASS[X.head] || '', cup = hatCup(X.head);
     if (hc === 'SCARF' || hc === 'BEANIE') hc = 'CAP';   // el pelo, bajo el pañuelo o el gorro de lana, como bajo la gorra (lo que cuelga sale por detrás)
     var H = { G: G, X: X, st: HAIR_STYLES[X.style] || HAIR_STYLES.tupe, id: X.style, hr: hr, h2: h2, fx: X.hairFx || '', cA: colA(X, tc), hat: hc, cup: cup,
@@ -2220,15 +2233,25 @@
     return H;
   }
   /** Color de un trozo de pelo: efecto (hairFx con hair2), degradado del peinado y brillo de la coronilla. u = 0 en la raíz (arriba)
-   *  → 1 en la línea de pelo / la punta; kind: 'shell' (casco) o 'piece' (mechones, colas: u a lo largo de la pieza). */
-  function hairTone(H, ph, th, u, kind) {
-    var c = H.hr, fx = H.fx, st = H.st;
-    // (raíces: la mitad de arriba del casco y el primer cuarto de cada pieza; con 0,34/0,12 en el tupé solo se veía desde arriba: 1,1 %)
-    if (fx === 'raiz') { if (kind === 'shell' ? u < 0.5 : u < 0.25) c = H.h2; }
+   *  → 1 en la línea de pelo / la punta; kind: 'shell' (casco) o 'piece' (mechones, colas: u a lo largo de la pieza).
+   *  ex (opcional, pulido): { ur: «u» de la raíz en el espacio de la CABEZA (θ / línea de pelo: el casco y las piezas comparten la
+   *  misma zona de raíces), ph: φ del efecto (el centro de la columna del casco o la raíz de la pieza: costuras rectas, sin dientes de
+   *  sierra), mech: ¿es una mecha? (por columna del casco o por cara del tubo) }. */
+  function hairTone(H, ph, th, u, kind, ex) {
+    var c = H.hr, fx = hairFxOf(H), st = H.st, pf = ex && ex.ph != null ? ex.ph : ph;
+    // raíces: la zona de arriba de la cabeza (θ hasta la mitad de la línea de pelo, más o menos), con borde suave en 2-3 filas. Antes: la
+    // mitad del casco con un escalón recto y el primer cuarto de CADA pieza (en el tupé, dos manchas sueltas: la onda y el flequillo)
+    if (fx === 'raiz') {
+      var ur = ex && ex.ur != null ? ex.ur : kind === 'shell' ? u : (u < 0.25 ? 0 : 1), mr = 1 - sstep(0.36, 0.62, ur);
+      if (mr > 0.02) c = mr > 0.98 ? H.h2 : mixHex(c, H.h2, mr);
+    }
     else if (fx === 'puntas') { if (u > (kind === 'shell' ? 0.8 : 0.62)) c = H.h2; }
-    else if (fx === 'mechas') { var k = Math.floor((ph + PI) / (2 * PI) * 18 + 0.5); if (k % 3 === 0 && u > 0.12) c = H.h2; }
-    else if (fx === 'flequilloFx') { if (Math.abs(ph) < 1.0 && (kind === 'shell' ? th < 0.34 * PI && u > 0.45 : true)) c = H.h2; }
-    else if (fx === 'mitad') { if (ph > 0) c = H.h2; }
+    else if (fx === 'mechas') {
+      var mk = ex && ex.mech != null ? ex.mech : Math.floor((pf + PI) / (2 * PI) * 18 + 0.5) % 3 === 0;
+      if (mk && u > (kind === 'shell' ? 0.26 : 0.12)) c = H.h2;   // (en el casco, desde un poco bajo la coronilla: si no, gajos de balón)
+    }
+    else if (fx === 'flequilloFx') { if (Math.abs(pf) < 1.0 && (kind === 'shell' ? th < 0.34 * PI && u > 0.45 : true)) c = H.h2; }
+    else if (fx === 'mitad') { if (pf > 0) c = H.h2; }
     if (st.fade && kind === 'shell') { var f = st.fade(ph, th, u); if (f > 0) c = mixHex(c, H.stub, f); }
     // brillo: SUAVE (sube y baja en una franja ancha) y casi solo por delante. Revisión final: era un aro estrecho todo alrededor de la
     // coronilla y, de espaldas y desde arriba (la cámara del partido), se leía como un agujero claro en el pelo.
@@ -2239,6 +2262,8 @@
     }
     return c;
   }
+  /** Efecto de pelo que se pinta con este peinado ('' si el peinado no lo admite: HAIR_STYLES[id].noFx, true o {efecto: 1}). */
+  function hairFxOf(H) { var fx = H.fx, nf = H.st.noFx; return fx && nf && (nf === true || nf[fx]) ? '' : fx; }
   /** CASCO de pelo. o: {line (perfil HL o función φ → θ), off, vol, volFn(φ, θ, u), lift, flat (altura sobre la coronilla a la que
    *  se corta plano), bump(φ, θ) (desfase extra: rizos, ondas), tuck (false = borde grueso, p. ej. el tazón), th0(φ) (empieza en ese θ:
    *  bandas), col(φ, θ, u) (color propio; si no, hairTone), main (es el casco principal: H.surf/H.line)}. Gorro de copa: solo la banda
@@ -2288,7 +2313,7 @@
     var R = [], maxN = 0, k, j;
     for (k = 0; k <= nC; k++) { R.push(rowsOf(cols[k])); maxN = Math.max(maxN, R[k].length); }
     for (k = 0; k <= nC; k++) while (R[k].length < maxN) R[k].splice(1, 0, R[k][0]);
-    var nRow = maxN + 1, pos = [], nrm = [], idx = [], P = {}, Pa = {}, Pb = {}, e = 0.003;
+    var nRow = maxN + 1, pos = [], nrm = [], idx = [], tcol = [], P = {}, Pa = {}, Pb = {}, e = 0.003;
     for (k = 0; k <= nC; k++) {
       var ph = cols[k];
       for (j = 0; j < nRow; j++) {
@@ -2310,8 +2335,8 @@
       var a0 = k * nRow + j, a1 = a0 + 1, b0 = a0 + nRow, b1 = b0 + 1;
       var tA = R[k][Math.min(j, maxN - 1)], tA1 = R[k][Math.min(j + 1, maxN - 1)], tB = R[k + 1][Math.min(j, maxN - 1)], tB1 = R[k + 1][Math.min(j + 1, maxN - 1)];
       if (j < nRow - 2 && tA1 === tA && tB1 === tB) continue;          // filas repetidas (relleno)
-      if (tA < 0.02 && tB < 0.02) { idx.push(a0, a1, b1); continue; }  // la coronilla: un triángulo por columna
-      idx.push(a0, a1, b1, a0, b1, b0);
+      if (tA < 0.02 && tB < 0.02) { idx.push(a0, a1, b1); tcol.push(k); continue; }  // la coronilla: un triángulo por columna
+      idx.push(a0, a1, b1, a0, b1, b0); tcol.push(k, k);
     }
     var geo = new THREE.BufferGeometry();
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
@@ -2332,11 +2357,23 @@
       var q = clamp((th - a) / Math.max(1e-6, tm - a), 0, 0.9999), sv = 1 - Math.pow(1 - q, 1 / 1.45), j = Math.floor(sv * n), sc = (j + 0.5) / n;
       return a + (tm - a) * (1 - Math.pow(1 - sc, 1.45));
     }
-    var colF = o.col || function (ph, th, u) { return hairTone(H, ph, th, u, 'shell'); };
-    G.vc = function (cx, cy, cz) { var an = hAngles(cx, cy, cz), tm = thMax(an[0]), ts = snapTh(an[0], an[1]); return colF(an[0], ts, clamp(ts / tm, 0, 1)); };
+    // efectos por COLUMNA (pulido): φ del centro de la columna del triángulo (los dos de cada cuadro dan lo mismo), así las mechas y la
+    // costura de «mitad» siguen los meridianos en rectas. Las mechas, una columna de cada tres, en espejo a los dos lados de la cara
+    var ex = { ur: 0, ph: 0, mech: false };
+    var colF = o.col || function (ph, th, u) { ex.ur = u; return hairTone(H, ph, th, u, 'shell', ex); };
+    G.vc = function (cx, cy, cz, t) {
+      var an = hAngles(cx, cy, cz), tm = thMax(an[0]), ts = snapTh(an[0], an[1]), kc = tcol[t];
+      if (kc == null) { ex.ph = null; ex.mech = null; }
+      else { ex.ph = (cols[kc] + cols[kc + 1]) / 2; var mc = kc < nC / 2 ? kc : nC - 1 - kc; ex.mech = mc % 3 === 1; }
+      return colF(an[0], ts, clamp(ts / tm, 0, 1));
+    };
     G.add(geo, H.hr);
     G.vc = null;
-    if (o.main) { H.surf = function (ph, th, out) { return surf(ph, th, out, false); }; H.line = thMax; H.off = offAt; }
+    if (o.main) {
+      H.surf = function (ph, th, out) { return surf(ph, th, out, false); }; H.line = thMax; H.off = offAt;
+      // ¿mecha en este φ? (la de la columna del casco principal: la melena sigue las franjas del casco)
+      H.mechAt = function (ph) { var q; for (q = 0; q < nC - 1 && ph >= cols[q + 1]; q++); var mc = q < nC / 2 ? q : nC - 1 - q; return mc % 3 === 1; };
+    }
     return geo;
   }
   var SWV = null;
@@ -2344,7 +2381,7 @@
    *  Radio 0 = punta cerrada. closed = bucle (cintas). Normales suaves, sin costura. */
   function sweep(P, Rr, nA, ref, closed) {
     if (!SWV) SWV = { T: new THREE.Vector3(), S: new THREE.Vector3(), B: new THREE.Vector3(), U: new THREE.Vector3() };
-    var V = SWV, n = P.length, pos = [], idx = [], i, j;
+    var V = SWV, n = P.length, pos = [], idx = [], side = [], i, j;
     for (i = 0; i < n; i++) {
       var a = closed ? P[(i - 1 + n) % n] : P[Math.max(0, i - 1)], b = closed ? P[(i + 1) % n] : P[Math.min(n - 1, i + 1)];
       V.T.set(b[0] - a[0], b[1] - a[1], b[2] - a[2]).normalize();
@@ -2360,10 +2397,10 @@
     var m = closed ? n : n - 1;
     for (i = 0; i < m; i++) for (j = 0; j < nA; j++) {
       var a0 = i * nA + j, a1 = i * nA + (j + 1) % nA, b0 = ((i + 1) % n) * nA + j, b1 = ((i + 1) % n) * nA + (j + 1) % nA;
-      if (i === n - 2 && !closed && (typeof Rr[n - 1] === 'number' ? Rr[n - 1] : Rr[n - 1][0]) === 0) { if (j === 0 || true) idx.push(a0, b0, a1); continue; }   // punta: abanico
-      idx.push(a0, b0, a1, a1, b0, b1);
+      if (i === n - 2 && !closed && (typeof Rr[n - 1] === 'number' ? Rr[n - 1] : Rr[n - 1][0]) === 0) { if (j === 0 || true) idx.push(a0, b0, a1); side.push(j); continue; }   // punta: abanico
+      idx.push(a0, b0, a1, a1, b0, b1); side.push(j, j);
     }
-    var geo = new THREE.BufferGeometry();
+    var geo = new THREE.BufferGeometry(); geo.userData.side = side;   // (la cara de cada triángulo: mechas rectas a lo largo)
     geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
     geo.setIndex(idx); geo.computeVertexNormals();
     return geo;
@@ -2391,9 +2428,17 @@
   }
   function hangOff(H) { H.G.bone2 = -1; H.G.w2 = null; }
   /** Pieza de pelo con color por vértice a lo largo (u de 0 en la raíz a 1 en la punta, por la distancia a p0 sobre len). */
+  //  Pulido: la raíz se decide en el espacio de la cabeza (ex.ur = θ / línea de pelo, como el casco), «mitad» con el φ de la raíz de la
+  //  pieza (entera de un color: sin costura en zigzag por la cola) y las mechas por CARA del tubo (franjas rectas a lo largo)
   function hairPiece(H, geo, p0, len, ph) {
-    var G = H.G;
-    G.vc = function (cx, cy, cz) { var dx = cx - p0[0], dy = cy - p0[1], dz = cz - p0[2]; return hairTone(H, ph == null ? Math.atan2(cx, cz) : ph, PI * 0.5, clamp(Math.sqrt(dx * dx + dy * dy + dz * dz) / len, 0, 1), 'piece'); };
+    var G = H.G, sd = geo.userData && geo.userData.side, ph0 = ph == null ? Math.atan2(p0[0], p0[2]) : ph;
+    var k0 = Math.floor((ph0 + PI) / (2 * PI) * 18 + 0.5), ex = { ur: null, ph: ph0, mech: false };
+    G.vc = function (cx, cy, cz, t) {
+      var dx = cx - p0[0], dy = cy - p0[1], dz = cz - p0[2];
+      if (H.line) { var an = hAngles(cx, cy, cz); ex.ur = an[1] / Math.max(0.1, H.line(an[0])); }
+      ex.mech = sd && sd[t] != null ? (sd[t] + k0) % 3 === 0 : k0 % 3 === 0;
+      return hairTone(H, ph == null ? Math.atan2(cx, cz) : ph, PI * 0.5, clamp(Math.sqrt(dx * dx + dy * dy + dz * dz) / len, 0, 1), 'piece', ex);
+    };
     G.add(geo, H.hr); G.vc = null;
   }
   /** Goma del equipo (cA) en p, perpendicular a d, radio r. */
@@ -2479,12 +2524,14 @@
     var pos = [], idx = [], W = nR + 1, nv = (nC + 1) * W;
     for (k = 0; k <= nC; k++) for (j = 0; j <= nR; j++) pos.push(OUT[k][j][0], OUT[k][j][1], OUT[k][j][2]);
     for (k = 0; k <= nC; k++) for (j = 0; j <= nR; j++) pos.push(INN[k][j][0], INN[k][j][1], INN[k][j][2]);
+    var tcol = [];   // (columna de cada triángulo: mechas y «mitad» por columna, en rectas; los cantos, null)
     for (k = 0; k < nC; k++) for (j = 0; j < nR; j++) {
       var a0 = k * W + j, a1 = a0 + 1, b0 = a0 + W, b1 = b0 + 1;
       idx.push(a0, a1, b1, a0, b1, b0);                                  // fuera (normal hacia fuera)
       idx.push(nv + a0, nv + b1, nv + a1, nv + a0, nv + b0, nv + b1);    // dentro
+      tcol.push(k, k, k, k);
     }
-    for (k = 0; k < nC; k++) { var o0 = k * W + nR, o1 = o0 + W; idx.push(o0, nv + o0, nv + o1, o0, nv + o1, o1); }   // bajo
+    for (k = 0; k < nC; k++) { var o0 = k * W + nR, o1 = o0 + W; idx.push(o0, nv + o0, nv + o1, o0, nv + o1, o1); tcol.push(k, k); }   // bajo
     for (j = 0; j < nR; j++) {                                                                                       // cantos
       var c0 = j, c1 = j + 1; idx.push(c0, nv + c1, c1, c0, nv + c0, nv + c1);
       var d0 = nC * W + j, d1 = d0 + 1; idx.push(d0, d1, nv + d1, d0, nv + d1, nv + d0);
@@ -2494,7 +2541,13 @@
     geo.setIndex(idx); geo.computeVertexNormals();
     var yTop = HEAD_C - 0.05, yMin = Math.min(o.ySide, o.yBack);
     hangOn(H, yTop, yMin, 0.6, 'chest');
-    G.vc = function (cx, cy, cz) { return hairTone(H, Math.atan2(cx, cz), PI * 0.6, clamp(0.35 + 0.65 * (HEAD_C - cy) / (HEAD_C - yMin), 0, 1), 'piece'); };
+    var ex = { ur: 9, ph: null, mech: null };
+    G.vc = function (cx, cy, cz, t) {
+      var kc = tcol[t];
+      if (kc == null) { ex.ph = null; ex.mech = null; }
+      else { var pc = (cols[kc] + cols[kc + 1]) / 2; ex.ph = pc > PI ? pc - 2 * PI : pc; ex.mech = H.mechAt ? H.mechAt(ex.ph) : null; }
+      return hairTone(H, Math.atan2(cx, cz), PI * 0.6, clamp(0.35 + 0.65 * (HEAD_C - cy) / (HEAD_C - yMin), 0, 1), 'piece', ex);
+    };
     G.add(geo, H.hr); G.vc = null;
     hangOff(H);
   }
@@ -2629,7 +2682,8 @@
       volFn: function (ph, th, u) { return 1 + 0.75 * sstep(0.55, 1, u) * sstep(1.0, 1.8, Math.abs(ph)); }, crown: [0, 0.14, 0, 0] },
     // rapado: pelo de 3 mm: el tono queda a medio camino de la piel (al cero es casi piel; los cortos, el color entero)
     // (revisión final: arriba casi el color entero y la nuca rapada en una franja: de espaldas ya no es el mismo casco que al cero)
-    rapado: { line: 'corto', off: 0.003, shine: 0.2, crown: [0, 0.14, 0, 0],
+    // (pulido: sin «raíces», que en 3 mm no existen y se leían como una coronilla calva; el brillo, casi nada: era una placa clara)
+    rapado: { line: 'corto', off: 0.003, shine: 0.06, noFx: { raiz: 1 }, crown: [0, 0.14, 0, 0],
       fade: function (ph, th, u) { return u > 0.72 ? 0.9 : 0.22; } },
     mono: { line: 'recogido', off: 0.005, vol: 0.005, crown: [0, 0.1, 0, 0.25],
       parts: function (H) {
@@ -2676,7 +2730,7 @@
       } },
     // ---------- nuevos (1.16) ----------
     // al cero: todo del color de lo rapado, con más piel que los demás (stubK) pero más oscuro que ella
-    alCero: { line: 'corto', off: 0.0025, shine: 0, stubK: 0.6, crown: [0, 0.14, 0, 0], fade: function () { return 1; } },
+    alCero: { line: 'corto', off: 0.0025, shine: 0, stubK: 0.6, noFx: true, crown: [0, 0.14, 0, 0], fade: function () { return 1; } },
     degradado: { line: 'corto', off: 0.005, vol: 0.014, fade: fadeSides(0.33 * PI, 0.5 * PI, 0.8, true), crown: [0, 0.14, 0, 0],
       volFn: function (ph, th) { return 1 - sstep(0.3 * PI, 0.45 * PI, th); } },
     // cepillo: CAJA plana y alta arriba con los lados rapados (de espaldas, un bloque cuadrado sobre una nuca clara)

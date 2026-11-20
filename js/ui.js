@@ -4490,6 +4490,11 @@
       return w.length ? { t: 'Pinta: ' + lkList(w), k: 'use' } : { t: 'No llevas nada de este color', k: 'dim' };
     }
     if (slot === 'style' && lkCapHides()) return { t: 'Con gorra no se ve el peinado entero', k: 'warn' };
+    // (pulido: efectos que el peinado no pinta, p. ej. las raíces en el rapado o cualquiera al cero: VB.Doll.HAIR_STYLES[id].noFx)
+    if (slot === 'hairFx' && v) {
+      var HS = VB.Doll && VB.Doll.HAIR_STYLES, nf = HS && HS[lkGet('style')] && HS[lkGet('style')].noFx;
+      if (nf && (nf === true || nf[v])) return { t: 'Con este peinado no se ve', k: 'warn' };
+    }
     if (slot === 'head' && v && lkHides(v) && !lkUnderCap(lkGet('style'))) return { t: 'Tapa el peinado', k: 'warn' };
     if (slot === 'ankle' && v && lk.venue !== 'beach') {
       var U = (VB.Doll && VB.Doll.UNDER_SOCK) || LK_UNDER_SOCK, sk = lkGet('socks');
