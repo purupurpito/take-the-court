@@ -4321,6 +4321,9 @@
   var LK_GRID_IC = '<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="0.5" y="0.5" width="4.6" height="4.6" rx="1"/><rect x="6.9" y="0.5" width="4.6" height="4.6" rx="1"/><rect x="0.5" y="6.9" width="4.6" height="4.6" rx="1"/><rect x="6.9" y="6.9" width="4.6" height="4.6" rx="1"/></svg>';
   function lkRowHTML(slot, U) {
     var ops = lkOpts(slot); if (ops.length < 2) return '';   // lo que no vale en este escenario no sale
+    // (revisión final: un color que no pinta nada de lo que llevas tampoco sale; se podía elegir sin ver ningún cambio. El valor se
+    //  guarda igual y la fila vuelve en cuanto te pones algo de ese color; lkRender avisa debajo)
+    if (slot.indexOf('c:') === 0 && !lkWornUsing(slot.slice(2)).length) return '';
     var cur = lkGet(slot), i = lkIdx(ops, cur), o = i >= 0 ? ops[i] : lkOptOf(cur, lkKey(slot));
     var locked = lkLocked(o), lt = locked ? lkLockText(o) : '', label = LK_LABEL[slot], n = ops.length;
     var isNew = false; for (var k = 0; k < ops.length && !isNew; k++) if (ops[k].cat && U[ops[k].v]) isNew = true;
@@ -4394,8 +4397,9 @@
     }
     // filas de la pestaña
     var fs = focusSlot || (ae && el.lkList.contains(ae) && ae.getAttribute ? ae.getAttribute('data-look') : '');
-    var h = ''; (LK_ROWS[lk.tab] || []).forEach(function (s) { h += lkRowHTML(s, U); });
+    var h = '', nOff = 0; (LK_ROWS[lk.tab] || []).forEach(function (s) { var r = lkRowHTML(s, U); if (!r && s.indexOf('c:') === 0) nOff++; h += r; });
     if (!h) h = '<p class="lk-empty">Nada que cambiar aquí ' + (lk.venue === 'beach' ? 'en la playa' : 'en la pista') + '</p>';
+    else if (nOff) h += '<p class="lk-empty lk-off">Los demás colores salen cuando llevas algo que los use</p>';
     if (el.lkList._h !== h) {
       el.lkList._h = h; el.lkList.innerHTML = h; if (VB.Splat) VB.Splat.decorate(el.lkList);
       if (fs) { var nb = el.lkList.querySelector('[data-look="' + fs + '"]'); if (nb) focusEl(nb, kb || focusSlot != null && kbNow()); }
@@ -4428,8 +4432,9 @@
         if (rot.width > rot.height * 1.3) B = Math.min(B, rot.top - 6);      // fila bajo el muñeco (PC)
         else if (rot.left > L + 60) R = Math.min(R, rot.left - 8);           // columna al borde derecho (móvil)
       }
+      if (lk.tryFull) L = 0;   // («Probar» a lo ancho: lkTryFull)
       L += 6;
-      if (hd && hd.right > L && hd.left < R) T = Math.max(T, hd.bottom + 4);
+      if (hd && hd.right > L && hd.left < R && !lk.tryFull) T = Math.max(T, hd.bottom + 4);
     } else {
       var gd = lk.grid ? rc(el.lkGrid) : null;
       T = hd ? hd.bottom + 6 : 0;
@@ -4790,7 +4795,29 @@
     var P = lkPV(); lk.tryI = (lk.tryI + 1) % LK_TRY.length; lk.idle = 0;
     var t = LK_TRY[lk.tryI];
     if (P) try { if (P.pose) P.pose(t[0]); if (P.face) P.face(t[1]); } catch (e) { }
+    lkTryFull(t[0] !== 'stand');
     lkFrame(); uiSound('click'); srSay('Probar: ' + t[2].toLowerCase());
+  }
+  /** «Probar» en el móvil apaisado (≤ 420 px de alto; revisión final): el muñeco quedaba pequeño en el hueco estrecho entre la lista y los
+   *  botones de la derecha. Mientras dura la pose, la lista, las pestañas y la fila de jugador y sede se apartan (se desvanecen) y el
+   *  muñeco ocupa el ancho entero, centrado y más grande. Vuelven al tocar o pulsar cualquier cosa (salvo Probar otra vez), a los 5 s
+   *  o con la pose «De pie». */
+  var lkTryT = 0;
+  function lkTryFullEnd(e) {
+    if (e && e.target && e.target.closest && e.target.closest('[data-lkf="try"]')) return;
+    lkTryFull(false);
+  }
+  function lkTryFull(on) {
+    var W = window.innerWidth || 1, H = window.innerHeight || 1;
+    on = !!on && lk.on && W > H && H <= 420;
+    if (lkTryT) { clearTimeout(lkTryT); lkTryT = 0; }
+    if (on) lkTryT = setTimeout(function () { lkTryT = 0; lkTryFull(false); }, 5000);
+    if (!!lk.tryFull === on) return;
+    lk.tryFull = on;
+    if (el.mpLook) el.mpLook.classList.toggle('lk-tryfull', on);
+    var f = on ? 'addEventListener' : 'removeEventListener';
+    document[f]('pointerdown', lkTryFullEnd, true); document[f]('keydown', lkTryFullEnd, true);
+    lkPlace();
   }
   function lkRandom() {
     var Lk = LK(); if (!Lk || !Lk.random || !lk.fit) return;
@@ -4914,6 +4941,7 @@
   }
   function lkClose() {
     if (!lk.on) return;
+    lkTryFull(false);
     lkCommit();
     lkGridReset();
     lk.on = false; lk.rep = 0; lk.drag = null; lk.keySpin = lk.btnSpin = lk.padSpin = 0; lk.pvDue = false;

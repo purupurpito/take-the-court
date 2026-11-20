@@ -3044,6 +3044,9 @@
     // bajo el aviso; o el colgado) que cae en el 40 % superior del cuadro sería otro «marcador» apilado ahí: se atenúa al 22 %
     // (no se apaga del todo: sigue leyéndose como pantalla). En el punto, en el cambio de campo y en escritorio, igual que siempre.
     var calm = (ctx.height || 720) <= 560 && ctx.state === 'playing' && !!g && (g.mode === 'serve' || g.mode === 'rally') && !(RT.ccT > 0);
+    // Vestuario (vista previa del muñeco en el menú): los marcadores, apagados al 12 %. Revisión final: el colgado («LOCAL 0 VISITA 0»)
+    // quedaba justo detrás de la cabeza en los encuadres de pelo y cara y competía con ella.
+    var shw = ctx.state === 'menu' && VB.Doll && VB.Doll.preview && VB.Doll.preview.active && VB.Doll.preview.active();
     for (var i = 0; i < screens.vis.length; i++) {
       var S = screens.vis[i], want = 1;
       if (!S.top) { S.top = VB.toThree(S.x, S.y, S.z1, new THREE.Vector3()); S.bot = VB.toThree(S.x, S.y, S.z0, new THREE.Vector3()); } // fijos: una vez
@@ -3063,6 +3066,7 @@
         var lo = (_v2.y - 0.2) / 0.15; lo = lo < 0 ? 0 : lo > 1 ? 1 : lo; lo = lo * lo * (3 - 2 * lo);
         var dimW = 1 - 0.78 * lo; if (dimW < want) want = dimW;
       }
+      if (shw && want > 0.12) want = 0.12;
       S.v += (want - S.v) * (rdt > 0 ? k : 1);
       var mv = 0.02 + 0.98 * S.v, dw = mv - S.w;
       if (dw > 1e-4 || dw < -1e-4) { // asentada: sin escribir uniformes cada frame (cada double nuevo es un HeapNumber)

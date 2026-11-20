@@ -1572,6 +1572,27 @@ Sustituye a `cap()` y al `switch` de peinados de `headGeo`. Todo en doll.js, blo
   tobillera por fuera del calcetín, así que doll.js publica `VB.Doll.UNDER_SOCK = {}` y el aviso «Queda bajo los calcetines» no sale. Las
   piezas de `rigGeoBegin` llevan lo de WP2-WP5 (`headGeo(…, r)`, cuello alto de la interior, `thighGeo(…, X, …)`).
 
+### Repaso tras la revisión final (20-nov-2026, rama personaje)
+- **Cara** (doll.js `paintPaint`): «rayas» es una franja corta (5,8 × 2,3 cm) pegada al párpado de abajo, por fuera (centro ±0,1 / 0,151 en
+  metros de la cabeza v1); de 3/4 la larga y baja quedaba junto a la sonrisa y parecía un bigote. «zinc» va al puente y a los pómulos
+  (`yc = 0,1475 + 0,42·x²`), justo bajo los ojos; a la altura de la nariz quedaba encima de la boca (bigote blanco en piel oscura).
+- **Rodilleras cortas**: `padHex` les aplica la regla de contraste de las altas (pantalón y calcetín): ya no son negras sobre el pantalón negro.
+- **Rapados** (`stubHex`): lo rapado es del tono del pelo oscurecido con algo de piel y siempre ≥ 0,13 de luminancia por debajo de la
+  piel (antes mitad piel: calva o gorro de baño). `alCero` lleva `stubK: 0,6` y todo el casco de ese color (en piel oscura basta con 0,04 por
+  debajo, para que no sea tan negro como el rapado); `rapado` deja el pelo arriba y una franja rapada en la nuca.
+- **Brillo del pelo** (`hairTone`): suave (sube y baja de 0,08π a 0,3π) y casi solo por delante; el aro estrecho de la coronilla parecía un
+  agujero desde la cámara del partido. `hairBall(…, wound)`: moño ENROLLADO (espiral de vueltas oscuras por color de cara) en el moño bajo
+  y el semirrecogido, que eran un disco plano.
+- **Pinzas**: lomo en arco (medio toro 3×4) y cuatro dientes en punta; mismos 84 triángulos.
+- **Pendientes**: `EAR_HAIR` (melena, melenita, ondas, semirrecogido): con esos peinados no se pintan (el pelo los tapa) y la ficha lo
+  avisa (`hint` de look.js). lookshots tiene combos `c_ears_*` de los demás largos.
+- **Vestuario (ui.js / index.html)**: las filas de color que no pintan nada de lo que llevas no salen (debajo, «Los demás colores salen
+  cuando llevas algo que los use»); letra ≥ 13 px en escritorio (rótulos, ayuda, Q/E, barra de teclas, versión, «Jugadores»); la barra de
+  teclas va en pegatina de tinta. «Probar» en el móvil apaisado (alto ≤ 420): la lista, las pestañas y la fila de jugador y sede se
+  desvanecen mientras dura la pose y el muñeco ocupa el ancho (`lkTryFull`; vuelven al tocar o pulsar, a los 5 s o con «De pie»).
+- **Marcadores** (arena.js `screenVis`): con la vista previa del Vestuario activa en el menú, todos al 12 % (el colgado quedaba detrás de la
+  cabeza en los encuadres de pelo y cara).
+
 ## Sprint 2-4 (15-nov-2026, v1.2.0): contactos, retrato, personalidad en pista y objetos de jefe
 
 Detalle: `notes/s234/T2.md` (contactos, `bindReplay`, `baseLook`, celebraciones con hash), `T3.md` (retrato), `T17.md` (firmas, rabias,
