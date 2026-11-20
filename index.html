@@ -5527,9 +5527,31 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root:not(#_):not(#_):not(#_) #menu .lk-r .mi-h{font-size:13px;-webkit-line-clamp:2;line-clamp:2}
   :root:not(#_):not(#_):not(#_) #menu :is(.lk-pick,.lk-ven) .sp-tab{--sp-tbs:13.5px}
   :root:not(#_):not(#_):not(#_) #menu #lkList{max-height:34vh}
-  :root:not(#_):not(#_):not(#_) #menu #lkGrid{--lkt:80px;--lkg:10px;flex:none;height:46vh;max-height:46vh}
+  /* (pulido: 4 columnas de 70 px y la rejilla más alta: con 3 de 80 px solo se veían 3 miniaturas enteras de 32; el muñeco queda en busto) */
+  :root:not(#_):not(#_):not(#_) #menu #lkGrid{--lkt:70px;--lkg:8px;flex:none;height:56vh;max-height:56vh}
   /* (ronda 1) sin los 22 px del pie de las páginas (aquí no hay pie): el hueco del muñeco crece lo mismo */
   :root:not(#_):not(#_):not(#_) #menu.sp-full #mpLook{padding-bottom:calc(var(--sp-pad) * .6 + var(--sbm))}
+}
+/* ---- VESTUARIO, pulido (20-nov-2026) ----
+   - nombre de la miniatura: corta por las sílabas (ui.js lkShy mete guiones blandos en las palabras largas), no a mitad de letra
+     («Degradad/o»); la elegida, sin el contorno oscuro sobre la letra oscura (se emborronaba)
+   - ayuda de la fila: en el móvil apaisado de ≤ 345 px de alto, los avisos («Con gorra…», «De espaldas…») a 2 líneas (a 1 se perdía
+     lo que no se ve); en vertical, lo bloqueado a 3 (se perdía «Se puede probar»)
+   - el botón de pantalla completa no va encima del título (vertical) ni junto a Probar (apaisado) en el Vestuario del móvil */
+:root:not(#_):not(#_):not(#_) #menu .lk-tn{overflow-wrap:normal;word-break:normal;-webkit-hyphens:manual;hyphens:manual}
+:root:not(#_):not(#_):not(#_) #menu .lk-tile.on .lk-tn{text-shadow:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .lk-r.h-warn .mi-h{-webkit-line-clamp:2;line-clamp:2}
+@media (max-aspect-ratio:5/4){
+  :root:not(#_):not(#_):not(#_) #menu .lk-r.h-lock .mi-h{-webkit-line-clamp:3;line-clamp:3}
+}
+@media (max-width:600px),(max-height:500px){
+  :root:not(#_):not(#_):not(#_) #menu[data-page="look"] .fs-btn{display:none}
+}
+/* avisos del Vestuario en el móvil: sobre la lista (abajo a la izquierda en apaisado, abajo a lo ancho en vertical), no encima de la
+   cara del muñeco ni del dado */
+:root.ph:has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:var(--ph-gb);right:auto;left:var(--ph-g);align-items:flex-start;max-width:min(300px,42vw)}
+@media (max-aspect-ratio:5/4) and (max-width:600px){
+  :root:not(#_):not(#_):not(#_) #menu[data-page="look"] #lkNote{top:auto;bottom:calc(16px + var(--sbm));left:50%;width:max-content;max-width:calc(100vw - 32px)}
 }
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 /* =====================================================================

@@ -4435,12 +4435,13 @@
     srSay(t);
     if (lkNT <= 0) lkNoteNext();
   }
+  var lkNoteApi = null;
   function lkNoteNext() {
     var t = lkNq.shift();
     if (!t) { el.lkNote.classList.remove('on'); lkNT = 0; return; }
     lkNT = t.length > 40 ? 3.4 : 2.6;
     // móvil: al carril de avisos de arriba a la derecha (VB.Splat.toast)
-    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.lkNote.classList.remove('on'); el.lkNote.textContent = t; VB.Splat.toast(escT(t), { key: 'lknote', ms: lkNT * 1000 }); return; }
+    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.lkNote.classList.remove('on'); el.lkNote.textContent = t; lkNoteApi = VB.Splat.toast(escT(t), { key: 'lknote', ms: lkNT * 1000 }); return; }
     el.lkNote.textContent = t; restartAnim(el.lkNote, 'on');
   }
   /** Lo ganado fuera de la Carrera (récord y Entrenamiento): VB.Look.checkGlobal y aviso «Nuevo en tu vestuario». */
@@ -4858,7 +4859,7 @@
         if (col) h += '<i class="lk-sw' + (o.hex >= 0 ? '"  style="background:' + hx(o.hex) + '"' : ' auto"') + '></i>';
         else {
           thumbs.push(i);
-          h += '<span class="lk-ti"><canvas width="' + px + '" height="' + px + '" hidden></canvas>' + (hw ? '<span class="lk-thid" title="' + escT(hw.t) + '">' + LK_EYE + '</span>' : '') + '</span><span class="lk-tn">' + escT(o.name) + '</span>';
+          h += '<span class="lk-ti"><canvas width="' + px + '" height="' + px + '" hidden></canvas>' + (hw ? '<span class="lk-thid" title="' + escT(hw.t) + '">' + LK_EYE + '</span>' : '') + '</span><span class="lk-tn">' + escT(lkShy(o.name)) + '</span>';
           if (o.rar != null && o.rar >= 1) h += '<span class="lk-tst" aria-hidden="true">' + lkStars(o.rar) + '</span>';
         }
         if (lock) h += '<span class="lk-tlk" aria-hidden="true">' + LK_LOCK + '</span>';
@@ -4876,6 +4877,31 @@
     lkThumbQ = thumbs; lkThumbPx = px; lkThumbSlot = slot;
     if (thumbs.length && !lkThumbRaf) lkThumbRaf = requestAnimationFrame(lkThumbPump);
     if (fv != null) { var fb = G.querySelector('[data-lkv="' + fv + '"]') || G.querySelector('[data-lkfam="' + fam + '"]'); if (fb) focusEl(fb, kb); }
+  }
+  /** Guiones blandos (U+00AD) por sílabas en las palabras de 9 letras o más (pulido): el nombre de la miniatura parte «Degra-dado»
+   *  con guion y no «Degradad/o». Reglas del castellano: V-CV, VC-CV, sin separar bl, br, cl, cr, dr, fl, fr, gl, gr, pl, pr, tr, ch,
+   *  ll, rr; las vocales juntas no se separan; nunca deja menos de 2 letras al principio ni 3 al final. */
+  var LK_SHY_V = /[aeiouáéíóúü]/i, LK_SHY_K = { bl: 1, br: 1, cl: 1, cr: 1, dr: 1, fl: 1, fr: 1, gl: 1, gr: 1, pl: 1, pr: 1, tr: 1, ch: 1, ll: 1, rr: 1 };
+  function lkShy(t) {
+    return String(t).split(' ').map(function (w) {
+      if (w.length < 9 || !/^[a-záéíóúüñ]+$/i.test(w)) return w;
+      var cut = [], i = 0, n = w.length;
+      while (i < n && !LK_SHY_V.test(w[i])) i++;
+      while (i < n) {
+        while (i < n && LK_SHY_V.test(w[i])) i++;
+        var j = i; while (j < n && !LK_SHY_V.test(w[j])) j++;
+        if (j >= n) break;
+        var c = w.slice(i, j).toLowerCase(), k = c.length, at;
+        if (k === 1) at = i;
+        else if (k === 2) at = LK_SHY_K[c] ? i : i + 1;
+        else if (k === 3) at = LK_SHY_K[c.slice(1)] ? i + 1 : i + 2;
+        else at = i + 2;
+        if (at >= 2 && n - at >= 3) cut.push(at);
+        i = j;
+      }
+      for (var q = cut.length - 1; q >= 0; q--) w = w.slice(0, cut[q]) + '­' + w.slice(cut[q]);
+      return w;
+    }).join(' ');
   }
   /** Abre la rejilla de la fila slot (tocar la fila, Intro o A). */
   function lkGridOpen(slot, kb) {
@@ -5128,7 +5154,16 @@
     if (seen || (ctx.debug && !(ctx.params && ctx.params.lkhint))) return;   // (las capturas de ?debug=look, sin él salvo &lkhint=1)
     try { localStorage.setItem(K, '1'); } catch (e) { }
     var touch = !!ctx.isTouch || ctx.inputDevice === 'touch';
-    setTimeout(function () { if (lk.on) lkNote(touch ? 'Arrastra para girar. Doble toque para acercar o alejar' : 'Arrastra para girar. Doble clic para acercar o alejar'); }, 900);
+    setTimeout(function () {
+      if (!lk.on) return;
+      lkNote(touch ? 'Arrastra para girar. Doble toque para acercar o alejar' : 'Arrastra para girar. Doble clic para acercar o alejar');
+      // (pulido: la pista se va al primer toque; ya no se queda 3,4 s encima del muñeco o del dado)
+      var api = lkNoteApi, off = function () {
+        document.removeEventListener('pointerdown', off, true);
+        if (api && api === lkNoteApi) api.close(); else if (!api && el.lkNote) { lkNq.length = 0; lkNoteNext(); }
+      };
+      document.addEventListener('pointerdown', off, true);
+    }, 900);
   }
   /** Rejilla cerrada sin repintar (al abrir y al salir del Vestuario, al cambiar de jugador o de sede). */
   function lkGridReset() {
