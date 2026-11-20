@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/og-image.js (owner: ui_main)
+/* TAKE THE COURT — tools/og-image.js (owner: ui_main)
  * Genera pages/og.png (1200×630), la imagen para compartir en redes (og:image / twitter:image, ver tools/build-pages.js).
  * Saca de index.html el SVG con los <defs> del logotipo (#mtcLogo: trazados, sin fuentes, así que sale igual siempre), monta una
  * página temporal (fondo #070b14 → #2b2547 con viñeta y una red estilizada en diagonal, logo centrado) con el rótulo

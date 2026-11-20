@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/arena.js   (owner: arena)
+ * TAKE THE COURT — js/arena.js   (owner: arena)
  * Pabellón "PALAU DEL MAR": suelo deportivo procedural (tarima pintada,
  * líneas reglamentarias FIVB), red con malla real y onda al tocarla,
  * antenas, postes acolchados, silla del 1r árbitro, 2º árbitro, jueces
@@ -426,7 +426,7 @@
   var NET_W = 10, NET_HH = 1, NSX = 50, NSY = 6, NET_MTC = '#1d1530';
   /** beach: red de playa estilo AVP (referencia: foto del Manhattan Beach Open; decisión de Ferran, 10-nov-2026): cuerda
    *  negra, banda superior amarilla y alta con el logo del juego repetido en tinta, banda inferior y laterales amarillas.
-   *  En las dos sedes, «M T C» (Make the Cut) en el centro: no es un estampado, son las propias cuerdas y nudos de la malla
+   *  En las dos sedes, «T T C» (Take the Court; hasta la 1.18, «M T C») en el centro: no es un estampado, son las propias cuerdas y nudos de la malla
    *  pintados de tinta dentro de la forma de las letras (bien separadas; antes teal #22d8c6, el turquesa de la pelota: la que caía
    *  justo detrás de la red se perdía; en crema se perdía igual con sus paneles crema. tools/balltest.js LOGO=1, 15-nov-2026). */
   function netTexture(beach) {
@@ -439,7 +439,7 @@
     // nudos
     g.fillStyle = 'rgba(10,10,12,1)';
     for (var nx = cell / 2; nx <= Wd; nx += cell) for (var ny = top + cell; ny < Ht - bot; ny += cell) g.fillRect(nx - 1.5, ny - 1.5, 3, 3);
-    // «M T C»: la misma malla (cuerdas y nudos) pintada de tinta (NET_MTC; cuerdas más gruesas que las negras de la malla), recortada por la forma de tres letras separadas
+    // «T T C»: la misma malla (cuerdas y nudos) pintada de tinta (NET_MTC; cuerdas más gruesas que las negras de la malla), recortada por la forma de tres letras separadas
     var mh = Ht - top - bot;
     (function paintLetters() {
       var off = canvas(Wd, Ht), og = off.getContext('2d');
@@ -449,12 +449,12 @@
       og.fillStyle = NET_MTC;
       for (var nx2 = cell / 2; nx2 <= Wd; nx2 += cell) for (var ny2 = top + cell; ny2 < Ht - bot; ny2 += cell) { og.beginPath(); og.arc(nx2, ny2, Math.max(3, ppm * 0.034), 0, 6.283); og.fill(); }
       // máscara: letras gruesas (relleno + trazo) con mucho aire entre ellas
-      // letras con los huecos abiertos (Arial Black, poco ensanchadas, trazo fino): si el trazo es grueso la M se cierra
+      // letras con los huecos abiertos (Arial Black, poco ensanchadas, trazo fino): si el trazo es grueso la C se cierra
       var mk = canvas(Wd, Ht), mg = mk.getContext('2d'), fh = mh * 0.88, wx = 1.12;
       mg.font = '900 ' + Math.round(fh) + 'px "Arial Black", Arial, Impact, sans-serif'; mg.textAlign = 'center'; mg.textBaseline = 'middle';
       mg.fillStyle = '#000'; mg.strokeStyle = '#000'; mg.lineWidth = cell * 0.5 / wx; mg.lineJoin = 'round';
       var gap = fh * 1.05 * wx, cy = top + mh * 0.5;
-      ['M', 'T', 'C'].forEach(function (L, i) { var cx = Wd / 2 + (i - 1) * gap; mg.save(); mg.translate(cx, cy); mg.scale(wx, 1); mg.strokeText(L, 0, 0); mg.fillText(L, 0, 0); mg.restore(); });
+      ['T', 'T', 'C'].forEach(function (L, i) { var cx = Wd / 2 + (i - 1) * gap; mg.save(); mg.translate(cx, cy); mg.scale(wx, 1); mg.strokeText(L, 0, 0); mg.fillText(L, 0, 0); mg.restore(); });
       og.globalCompositeOperation = 'destination-in'; og.drawImage(mk, 0, 0);
       g.drawImage(off, 0, 0);
     })();
@@ -464,12 +464,17 @@
     g.fillStyle = 'rgba(0,0,0,0.12)'; g.fillRect(0, top - 2, Wd, 2); g.fillRect(0, Ht - bot, Wd, 2);
     g.fillStyle = 'rgba(0,0,0,0.10)'; for (var sx = 0; sx < Wd; sx += 12) { g.fillRect(sx, 3, 5, 1); g.fillRect(sx, Ht - bot + bot * 0.5, 5, 1); }
     if (beach) {
-      // banda superior AVP: el logo del juego (balón + MAKE THE CUT) repetido en tinta a lo largo de toda la banda
+      // banda superior AVP: el logo del juego (balón + TAKE THE COURT) repetido en tinta a lo largo de toda la banda. El paso sale de
+      // lo que mide de verdad (balón + texto + aire, como mínimo 1,25 m): «TAKE THE COURT» es más largo que el antiguo «MAKE THE
+      // CUT» y con un paso fijo las copias se tocaban si la fuente de reserva es ancha. Reparto exacto en casillas iguales ENTRE las
+      // bandas laterales (0,55 m – 9,45 m: ninguna copia queda tapada por ellas) y cada copia centrada en la suya
+      var BAND_TXT = 'TAKE THE COURT', bx0 = 0.55 * ppm, bx1 = (NET_W - 0.55) * ppm;
       g.fillStyle = '#1d1530'; g.strokeStyle = '#1d1530'; g.font = '900 ' + Math.round(top * 0.5) + 'px ' + FONT; g.textAlign = 'left'; g.textBaseline = 'middle';
-      var step = 1.25 * ppm, r0 = top * 0.3;
-      for (var bx = step * 0.5; bx < Wd; bx += step) {
+      var r0 = top * 0.3, cw = r0 * 2.5 + g.measureText(BAND_TXT).width;   // balón (bx ± r0) + texto desde bx + 1,5·r0
+      var step = Math.max(1.1 * ppm, cw + top * 1.2), nb = Math.max(1, Math.floor((bx1 - bx0) / step)); step = (bx1 - bx0) / nb;
+      for (var bx = bx0 + (step - cw) / 2 + r0; bx < bx1; bx += step) {
         g.save(); g.lineWidth = Math.max(1, r0 * 0.14); drawGameBall(g, bx, top * 0.5, r0); g.restore();
-        g.fillStyle = '#1d1530'; g.fillText('MAKE THE CUT', bx + r0 * 1.5, top * 0.52);
+        g.fillStyle = '#1d1530'; g.fillText(BAND_TXT, bx + r0 * 1.5, top * 0.52);
       }
     } else {
       // marca del fabricante (ficticia) en la banda superior
@@ -2714,7 +2719,7 @@
     { name: 'PALAU DEL MAR', fg: '#ffffff', bg: ['#0b3a4f', '#146a86'], deco: 'wave' },
     { name: 'TERRA', fg: '#ffd23f', bg: ['#2a1a0d', '#4a2f17'], deco: 'leaf' },
     { name: 'SALT·9', fg: '#ffffff', bg: ['#0e1118', '#252b38'], deco: 'dots' },
-    { name: 'MAKE THE CUT', fg: '#0e1118', bg: ['#ffd23f', '#ffb03d'], deco: 'ball' }
+    { name: 'TAKE THE COURT', fg: '#0e1118', bg: ['#ffd23f', '#ffb03d'], deco: 'ball' }
   ];
   var led = { cv: null, tex: null, mcv: null, mtex: null, mat: null, mesh: null, reflMat: null, refl: null, msgT: 0, msgOn: false, scrollT: 0, scrollM: 0, w: 0, pend: null };
   function drawDeco(g, kind, x, y, h, color) {
