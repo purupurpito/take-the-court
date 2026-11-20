@@ -473,7 +473,7 @@ en la lista), rama online de `js/main.js`, y toques pedidos por el orquestador e
   al TERMINAR tu primer partido online: final normal, el rival abandona o no vuelve, o «no cuenta» por caída del anfitrión o por
   reparaciones (lo jugaste hasta donde se pudo); NO si abandonas tú o si es otra versión. En el Vestuario: «Online: termina tu primer
   partido». Dibujo (doll.js `mtcPanel`): la gorra de siempre y en el frontal una tira de la misma copa con 13 × 5 caras pintadas por
-  vértice con «MTC» (M de 5 columnas, T y C de 3), letra clara sobre cA oscuro y oscura sobre cA claro; 130 triángulos fijos en todos los
+  vértice con «MTC» (M de 5 columnas, T y C de 3; desde 1.19.0 «TTC», mismo id gorraMTC), letra clara sobre cA oscuro y oscura sobre cA claro; 130 triángulos fijos en todos los
   LOD (con menos no se lee). Capturas `tools/out/net3-gorra-{hall,beach}.png`.
 
 ### Récord online (`js/netrec.js`)
@@ -529,7 +529,7 @@ en la lista), rama online de `js/main.js`, y toques pedidos por el orquestador e
 ### Prueba en este PC (`?net=bc`)
 
 Además de lo de la fase 1: un «pre» por el mismo BroadcastChannel antes de la sesión (looks y equipación), `&netcap=1` (tu n.º 1 con la
-gorra «MTC»: las dos páginas comparten el guardado y así se distinguen), `&kitshirt=RRGGBB`, `&botprof=flojo`, `&netrec=1`.
+gorra «TTC» (id gorraMTC): las dos páginas comparten el guardado y así se distinguen), `&kitshirt=RRGGBB`, `&botprof=flojo`, `&netrec=1`.
 
 ### Pruebas
 
@@ -1250,7 +1250,7 @@ con subidas a 150»), y «lo primordial es el mejor ping; no me preocupan las tr
   queda solo en el informe. Sin WebRTC (BroadcastChannel) o en los primeros segundos, el de siempre.
 - **Reglas** (desplegadas el 17-nov-2026): crear/actualizar solo el propio (id `uid_xxx`, 4 campos, j ≤ 250 000); leer y listar solo
   la cuenta de Ferran (`hashing.sha256` del correo = el hash del acta en js/ui.js); nadie borra desde el cliente.
-- **Visor:** https://purupurpito.github.io/make-the-cut/netlogs.html con la cuenta de Ferran abierta en ese navegador (usa la sesión del
+- **Visor:** https://takethecourt.com/netlogs.html (antes https://purupurpito.github.io/make-the-cut/netlogs.html) con la cuenta de Ferran abierta en ese navegador (usa la sesión del
   juego, mismo origen). Resumen, una fila por informe y detalle por ventanas al pulsar; «Copiar todo (JSON)» para pasárselo a Claude.
 - En una prueba local (dos páginas en el mismo Chrome, PC cargado) ya se vio un caso típico: el invitado con frames de 1-3 s (compilando)
   y el anfitrión esperándole 0,5-0,7 s. `netdrive` «cero congelaciones» falla también en origin/main con el PC cargado (no es el informe).

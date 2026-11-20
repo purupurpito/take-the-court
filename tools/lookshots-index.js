@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/lookshots-index.js: escribe tools/out/look-audit/INDEX.md a partir del manifest.json de tools/lookshots.js.
+/* TAKE THE COURT — tools/lookshots-index.js: escribe tools/out/look-audit/INDEX.md a partir del manifest.json de tools/lookshots.js.
  * Uso: node tools/lookshots-index.js [carpeta]   (por defecto tools/out/look-audit) */
 'use strict';
 const fs = require('fs'), path = require('path');

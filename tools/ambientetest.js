@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/ambientetest.js (owner: ui_main / carrera; paquete P1 del «Ambiente de Carrera», notes/ambiente.md)
+/* TAKE THE COURT — tools/ambientetest.js (owner: ui_main / carrera; paquete P1 del «Ambiente de Carrera», notes/ambiente.md)
  * Prueba headless del director del ambiente (js/ambiente.js, VB.Ambiente) y de su enganche en career.js (ingest / unpoint / matchDone),
  * con partidos reales de la sim jugados por los bots de tools/simtest.js como partidos de Carrera. No abre Chrome.
  *   1) Banco de frases: comodines resueltos, longitud ≤ 64, sin palabras prohibidas (insultos, palabrotas, violencia), sin «o/a» ni «@»,

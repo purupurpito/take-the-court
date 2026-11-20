@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/vestuxprobe.js (auditoría del Vestuario, solo lectura)
+/* TAKE THE COURT — tools/vestuxprobe.js (auditoría del Vestuario, solo lectura)
  * Sondas sueltas en ?debug=look: ¿qué hay encima de los botones ⟲ ⟳ y del muñeco?, ¿se puede arrastrar para girar en vertical?,
  * ¿cuántas pestañas caben en el carril?, espalda de cada peinado (yaw=π) a 640x360 en tools/out/vestux/peinados/.
  * Uso: node tools/vestuxprobe.js

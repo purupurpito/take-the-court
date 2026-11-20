@@ -1,4 +1,4 @@
-# PLAN FINAL: «Carrera con vida» (Make the Cut, sprint 1.13.0)
+# PLAN FINAL: «Carrera con vida» (Take the Court, entonces Make the Cut, sprint 1.13.0)
 
 Base: la **Propuesta A (narrativa)**. Es la que mejor puntúan en conjunto los tres jueces (vida 8/8/9, viabilidad 8/8/7) y la única que respeta el contrato de los tests: «misma carrera con y sin el módulo». Sobre ella se injertan cuatro cosas:
 - **De C:** el diseño para móvil. «Partido» sigue sin subpestañas, con avisos en chips calculados sin guardar nada y el plan plegable.

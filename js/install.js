@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/install.js (owner: ui_main)
+/* TAKE THE COURT — js/install.js (owner: ui_main)
  * Tutorial de «instalar» el juego (añadirlo a la pantalla de inicio) para jugar a pantalla completa en el móvil, sin la barra de
  * direcciones. Pasos dibujados según dónde se abre: iPhone/iPad (Safari), Android (Chrome; botón «Instalar» directo si el
  * navegador lo ofrece) y navegadores de dentro de otras apps (WhatsApp, Instagram…), donde lo primero es abrirlo en el navegador.
@@ -95,13 +95,13 @@
       s: [['iosShare', 'En Safari, toca <b>Compartir</b> (el cuadrado con la flecha). Si no lo ves, está dentro del botón <b>•••</b>.'],
         ['iosAdd', 'Baja y toca <b>Añadir a pantalla de inicio</b>.'],
         ['iosConfirm', 'Toca <b>Añadir</b>, arriba a la derecha.'],
-        ['home', 'Abre <b>Make the Cut</b> desde su icono: a pantalla completa y sin barra.']]
+        ['home', 'Abre <b>Take the Court</b> desde su icono: a pantalla completa y sin barra.']]
     };
     return {
       intro: 'Instala el juego y se abrirá como una app: a pantalla completa, sin la barra de direcciones.',
       s: [['andMenu', 'En Chrome, toca el menú <b>⋮</b> de arriba a la derecha.'],
         ['andInstall', 'Toca <b>Instalar aplicación</b> (o <b>Añadir a pantalla de inicio</b>).'],
-        ['home', 'Abre <b>Make the Cut</b> desde su icono.']]
+        ['home', 'Abre <b>Take the Court</b> desde su icono.']]
     };
   }
 

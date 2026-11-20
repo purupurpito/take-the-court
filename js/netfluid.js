@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/netfluid.js   (owner: net)
+ * TAKE THE COURT — js/netfluid.js   (owner: net)
  * Online V2 «Fluida» (notes/online-v2-spec.md §3-§8): sesión de dos pares SIN rollback. Cada máquina simula SOLO su equipo (sus dos
  * jugadores) y el balón mientras es suyo; los jugadores rivales llegan por fotos («S», 30 Hz) y se pintan algo en el pasado. El dueño
  * del balón (g.fl.own) decide contactos, bloqueos, red y puntos; el traspaso es en el medio paso khAt que viaja en cada contacto (tc).

@@ -1,4 +1,4 @@
-# Make the Cut: de «parece un Doodle» a juego completo (plan revisado)
+# Take the Court (entonces Make the Cut): de «parece un Doodle» a juego completo (plan revisado)
 
 No he tocado el repo ni he usado git. Esta versión corrige el plan anterior con dos críticas. La primera viene de la percepción del jugador, contrastada con las capturas de la auditoría. La segunda es de viabilidad y está contrastada con el código en solo lectura. Cambios principales:
 - **La causa número 1 está dentro del partido** (luz plana, público quieto, HUD de tutorial), no en los menús. El Sprint 1 pasa a ser «los primeros 60 segundos», no textos.

@@ -977,7 +977,7 @@ Pruebas y capturas en `tools/out/w3/` (no se suben). Interfaces de CONTRACT inta
 ### UI-18 · textos
 - Ace / antenas / «Un punto para ganar el 1r set» / «Un punto para ganar el partido» / «¡Ganas el partido!» / «Balón libre · [SALTAR] para
   rematar» / «3r toque · Ataque: ponte bajo el balón, salta con K y golpea con ESPACIO arriba» / «Primer partido» / «Al mejor de 3 sets» /
-  «Make the Cut se juega en horizontal». Antetítulos con contexto: pausa «Set 1 · 24-10 · Normal» («Mando desconectado» si se va el mando; en medio
+  «Take the Court se juega en horizontal». Antetítulos con contexto: pausa «Set 1 · 24-10 · Normal» («Mando desconectado» si se va el mando; en medio
   solo los sets), final «Palau del Mar · Nivel Normal · 3 sets», paneles «Botones y gestos» / «Se guardan en este navegador». Tarjeta guiada:
   solo el ordinal («SEGUNDO TOQUE»; el nombre ya está en el contador). `#sbTag` oculto mientras la cinta «Punto de set/partido» está a la vista.
 - Hoja final: sin la cabecera «TÚ · CPU» de las estadísticas (cifras en el color del equipo); MVP en tabla: un solo rótulo vertical «MVP», cabecera
@@ -1302,7 +1302,7 @@ Petición de Ferran: quitar los números del menú, dividirlo en submenús (móv
 - **Escuadrón v3** (prog.js): BASE a media 50 (antes 40), los guardados v1/v2 suben +10 una vez; `attrs()` da atributos a la CPU
   cuando el escuadrón pasa de 50 (`cpuSt`, 50 + 0,6·(m − 50)). Ojo: con 50 cada mejora cuesta 2 puntos desde el principio.
 - Carrera con el componente de pestañas: ver notes/carrera.md «Integración».
-- Cartel «MAKE THE CUT» de las vallas (arena.js `drawGameBall`): el balón del juego (tres costuras en remolino y franjas naranja y
+- Cartel del juego de las vallas («TAKE THE COURT» desde 1.19.0; antes «MAKE THE CUT») (arena.js `drawGameBall`): el balón del juego (tres costuras en remolino y franjas naranja y
   azul, como pages/icon.svg) dibujado con Path2D en el canvas.
 - Capturas finales: `tools/out/menus/final/` (principal, jugar, preparacion, jugadores, jugadores-ataque, ajustes y cr-* a 1280×720,
   844×390 táctil y 2560×1440).

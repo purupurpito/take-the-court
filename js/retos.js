@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/retos.js (owner: ui_main)
+/* TAKE THE COURT — js/retos.js (owner: ui_main)
  * Retos (S4-D1, sin el torneo de la semana): 18 retos de maestría con bronce, plata y oro, medidos con los eventos de la sim que ya
  * existen, y un reto del día sembrado con la fecha LOCAL (sin servidor). Puro: sin DOM ni THREE; localStorage siempre en try/catch.
  * No toca g.rng, VB.Sim ni la semilla del partido: tiene su propio hash y su PRNG (mulberry32) para la fecha, así que la huella 2v2

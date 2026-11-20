@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-ui.js (owner: ui_main)
+/* TAKE THE COURT — js/career-ui.js (owner: ui_main)
  * Pantallas del modo Carrera de VÓLEY PLAYA (VB.CareerUI): crear carrera, hub (Partido · Mensajes · Jugador · Club · Liga ·
  * Palmarés), fin de temporada y ofertas. Sprint playa (10-nov-2026): textos de playa (circuitos, arena, sets a 21), sin selector
  * de puntos, ficha del compañero con media respecto al club, puntos fuertes y flojos y forma (mateLine). Crea su propio DOM (#career) y su propio <style> desde aquí para no chocar con index.html, con las

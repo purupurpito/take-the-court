@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/venue-gen-beach.js (owner: arena)
+/* TAKE THE COURT — js/venue-gen-beach.js (owner: arena)
  * Constructor de las sedes GENERADAS de playa: VB.VenueGen.beachDef(spec) → def de VB.Arena, una PIEL de PLATJA_P (como Moll y
  * Fanals): parámetros P sobre los de Platja Llarga + piezas propias en build(G, K, B), todas en la estática de la playa (B) salvo
  * la luz de noche (emisiva + halos + haces, como Fanals).

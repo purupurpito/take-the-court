@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/rating.js (owner: carrera)
+/* TAKE THE COURT — js/rating.js (owner: carrera)
  * Nota en directo de los partidos JUGADOS de la Carrera (VB.Rating), al estilo de EA SPORTS FC: empieza en 6,0, sube con lo bueno
  * que hace tu jugador, baja con lo malo y, muy poco a poco, sin participar. La nota final del partido es esta nota (career.js la usa
  * en lugar de rating() cuando este fichero está cargado). Diseño en notes/nota-en-directo-spec.md; calibrado en tools/ratingtest.js.

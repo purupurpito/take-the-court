@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-story-ui.js (owner: carrera)
+/* TAKE THE COURT — js/career-story-ui.js (owner: carrera)
  * «Carrera con vida» (sprint 1.13.0, notes/carrera-vida.md §2 S5 y §4.3): interfaz de enlace VB.CareerStoryUI (paquete P0, fase B).
  * Une career-ui.js con el núcleo (js/career-story.js) y sus sistemas (msgs, week, wall, season). Solo devuelve HTML y textos: las
  * acciones (data-act="st-…") las atiende career-ui.js (onClick → VB.CareerStoryUI.act). Sin DOM al cargar (se carga en node:

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/venuegen-lamps.js (owner: arena)
+/* TAKE THE COURT — tools/venuegen-lamps.js (owner: arena)
  * Focos de las sedes generadas de pabellón contra las cámaras del 6v6 (plan «sedes-gen», revisión de F2: una campana colgada a
  * ~7 m sobre la línea central tapaba media pista en el plano de televisión).
  * 1) En Chrome (CDP) toma las matrices de la cámara real (proyección × vista) en serve6, rally6, serve6h y rally6h a 1280×720 y

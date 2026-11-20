@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/consignatest.js (owner: carrera)
+/* TAKE THE COURT — tools/consignatest.js (owner: carrera)
  * Prueba headless de las consignas del entrenador (js/consignas.js, VB.Consignas) y de su enganche en career.js (ingest, liveRating) y
  * en la nota en directo (VB.Rating.extra). No abre Chrome.
  *   Casos con eventos falsos: dirección del remate (línea / diagonal / centro), zonas del saque, cumplida / fallada / caducada,

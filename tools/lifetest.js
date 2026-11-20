@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/lifetest.js (owner: ui_main)
+/* TAKE THE COURT — tools/lifetest.js (owner: ui_main)
  * Pruebas de la «vida» de la Carrera del sprint 2-4 (js/career-life.js), en node puro (vm, sin DOM):
  *   1. Jefes del circuito (S3 C3, solo playa): deterministas, ≥ 3 estilos en los 5 circuitos, club sin el tuyo ni el del rival,
  *      bossSt (media exacta, 1-99, atributo del estilo ≥ media + 15), partido neutro idéntico al de antes, partido de jefe

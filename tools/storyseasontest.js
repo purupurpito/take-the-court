@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/storyseasontest.js (owner: carrera)
+/* TAKE THE COURT — tools/storyseasontest.js (owner: carrera)
  * Prueba del paquete P4 de «Carrera con vida» (js/career-story-season.js, notes/carrera-vida.md §S4 y §3) en node puro (vm, sin DOM):
  *   1. Contrato: misma carrera (fuera de story/inbox/msgN/created/world) con y sin career-story-season.js, y sin ningún story;
  *      dinero, puntos de mejora (player.pts) y c.trophies idénticos. Playa y pista, 3 semillas.

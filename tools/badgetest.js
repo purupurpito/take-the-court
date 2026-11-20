@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/badgetest.js (owner: ui_main)
+/* TAKE THE COURT — tools/badgetest.js (owner: ui_main)
  * Prueba de unidad de js/prog.js (atleta genérico, migración de guardados) y js/badges.js (contar eventos, desbloqueos con
  * umbrales, huecos, equipar) con un localStorage falso. Al final, un partido entero CPU contra CPU de la sim real pasa por
  * VB.Badges.ingest para comprobar que los eventos de verdad se cuentan sin errores.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/mobcompare.js (owner: ui_main)
+/* TAKE THE COURT — tools/mobcompare.js (owner: ui_main)
  * Antes / después de dos pasadas de tools/mobaudit.js: hoja de contactos HTML (capturas lado a lado por pantalla × tamaño, con
  * las diferencias de las métricas) y un resumen en Markdown.
  * Uso: node tools/mobcompare.js <dir_antes> [dir_después] [--out salida.html] [--only regex] [--sizes 568x320,...] [--cols n]

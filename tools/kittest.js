@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// MAKE THE CUT — prueba de las equipaciones (owner: players): node tools/kittest.js [ruta/players.js]
+// TAKE THE COURT — prueba de las equipaciones (owner: players): node tools/kittest.js [ruta/players.js]
 // Carga js/players.js en node (sin THREE ni DOM: setKit / liberoColor / kitColors no los usan) y comprueba:
 //  - Carrera de pista: color del líbero del club (usado / descartado si choca) y 2ª equipación del rival (kitAccent).
 //  - Fuera de la Carrera de pista (sin kitLibero): igual que antes (huella de 400 casos sacada del players.js anterior).

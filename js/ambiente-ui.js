@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/ambiente-ui.js (owner: ui_main; paquete P1 del «Ambiente de Carrera», notes/ambiente.md §2E)
+/* TAKE THE COURT — js/ambiente-ui.js (owner: ui_main; paquete P1 del «Ambiente de Carrera», notes/ambiente.md §2E)
  * VB.AmbienteUI: los diálogos del ambiente de Carrera en pantalla. Lee los eventos `amb:say` del frame (los genera VB.Ambiente) y los
  * pinta como bocadillo pequeño sobre la cabeza de quien habla (si es un atleta y está en cuadro) o, si no (árbitro, megafonía, TV,
  * banquillo, Faro, o el atleta fuera de cuadro), como subtítulo arriba en el centro (30 % del alto, debajo de la cinta si está).

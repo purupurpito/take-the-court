@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/venuegen-beach.js (owner: arena)
+/* TAKE THE COURT — tools/venuegen-beach.js (owner: arena)
  * Recorrido de las PLAYAS GENERADAS (plan «sedes-gen», F4) en el navegador (CDP, como venuegen-browse): por cada calidad abre
  * ?debug=serve (cámara de juego) y monta cada playa como main.js forceVenue (VB.Arena.onSettings con forceMap). Por playa y calidad:
  *   - ms de setVenue; dibujos y triángulos de la escena tras 2 fotogramas; dibujos propios (mallas visibles del grupo 'beach');

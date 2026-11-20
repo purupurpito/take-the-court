@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/proftest.js (owner: ui_main)
+/* TAKE THE COURT — tools/proftest.js (owner: ui_main)
  * Pruebas de js/profile.js (S4-D2 tanda A, T13) y del contrato D4 de prog.js / gym.js. Node puro (vm + localStorage falso):
  *  1) curva need/levelOf · 2) noteMatch (fórmula por modo y dificultad) · 3) dos dispositivos y 500 casos aleatorios (LCG de semilla
  *  fija): mergeRaw conmutativa, idempotente y asociativa; el nivel nunca baja · 4) relleno inicial (930 XP con 30 partidos y 12

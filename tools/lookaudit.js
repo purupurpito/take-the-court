@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/lookaudit.js (auditoría del Vestuario, solo lectura: no toca js/ ni el guardado de nadie)
+/* TAKE THE COURT — tools/lookaudit.js (auditoría del Vestuario, solo lectura: no toca js/ ni el guardado de nadie)
  * Abre UN Chrome (?debug=look) y:
  *  1) mide los triángulos de la vista previa por peinado, por gorro (con tupé) y por gafas en LOD0/1/2 (&quality=low|medium|high);
  *  2) hace capturas de cada peinado (de frente y de espaldas), de cada gorro, y de capas (brazos, piernas, cara) en el Vestuario;

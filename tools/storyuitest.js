@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/storyuitest.js (owner: carrera)
+/* TAKE THE COURT — tools/storyuitest.js (owner: carrera)
  * Prueba de la interfaz de enlace de «Carrera con vida» (js/career-story-ui.js + las ediciones de js/career-ui.js; notes/carrera-vida.md
  * §2 S5, §3 P0 fase B y §4.3) en node puro (vm, document falso):
  *   1. career-ui.js se carga sin career-story y con él; VB.CareerStoryUI con toda la API.

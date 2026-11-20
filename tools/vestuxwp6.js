@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/vestuxwp6.js (WP6 del plan del Vestuario: comprobación de la interfaz, solo lectura)
+/* TAKE THE COURT — tools/vestuxwp6.js (WP6 del plan del Vestuario: comprobación de la interfaz, solo lectura)
  * Un solo Chrome. Por tamaño (568x320, 640x360 y 360x640 táctiles; 1280x720 de PC) captura en JPEG los casos de WP6 y mide:
  *  - lista de Pelo, rejilla de peinados (miniaturas), rejilla de color de pelo, tobillera (encuadre de pies), coleta (se asoma a la
  *    espalda), brazo izquierdo, colores (qué pinta cada fila), bloqueado (cresta), hoja «⋯», «Probar», Vestuario de playa (fondo);

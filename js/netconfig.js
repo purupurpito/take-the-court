@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/netconfig.js   (owner: net)
+ * TAKE THE COURT — js/netconfig.js   (owner: net)
  * Configuración OPCIONAL de la red del online. Vacía por defecto: el juego usa los STUN públicos de js/netrtc.js y la conexión
  * es directa (cada rival puede ver la dirección de red del otro dentro de la negociación de WebRTC; el juego nunca la enseña).
  *

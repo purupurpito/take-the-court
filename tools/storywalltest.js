@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/storywalltest.js (owner: carrera)
+/* TAKE THE COURT — tools/storywalltest.js (owner: carrera)
  * Prueba de Redes y partidos marcados de «Carrera con vida» (js/career-story-wall.js, notes/carrera-vida.md §2 S3 y §3 P3), en node
  * puro (vm, sin DOM), con tools/storyhelp.js:
  *   1. Muro de 3-5 entradas por jornada (2 en jornada de banquillo), en playa y en pista, varias temporadas.

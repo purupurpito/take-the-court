@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/camtest.js  (owner: camera_input)
+/* TAKE THE COURT — tools/camtest.js  (owner: camera_input)
  * Regresión AUTOMÁTICA de la cámara: partidos en vivo con autopilot (debug=rally&live=1) en varios tamaños y semillas,
  * con un registro por frame tomado justo después de VB.CameraRig.update (posición, giro, cabeceo, FOV, plano, cortes,
  * proyección de balón y jugadores). Comprueba:

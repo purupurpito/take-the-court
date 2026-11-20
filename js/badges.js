@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/badges.js (owner: ui_main)
+/* TAKE THE COURT — js/badges.js (owner: ui_main)
  * Insignias: 12 habilidades con tres niveles (1 bronce, 2 plata, 3 oro) que se desbloquean jugando y se equipan en cada atleta.
  *
  *   VB.Badges.LIST            catálogo [{id, name, icon (SVG inline), desc, fx [bronce, plata, oro], cond, unit, th [b, p, o]}]

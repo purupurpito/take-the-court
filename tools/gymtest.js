@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/gymtest.js (owner: ui_main)
+/* TAKE THE COURT — tools/gymtest.js (owner: ui_main)
  * Pruebas del Entrenamiento (E6). Tres partes:
  *  1) SIN navegador (siempre): js/gym.js en vm con un localStorage falso y un VB.Prog falso: DRILLS/MEDALS/XP, medalOf en los
  *     umbrales, record (récord, intentos, medalla nueva, XP una sola vez por nivel y a los dos jugadores, y nunca dos veces),

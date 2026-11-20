@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/venue-canrebot.js (owner: arena)
+/* TAKE THE COURT — js/venue-canrebot.js (owner: arena)
  * Sede de pabellón «Poliesportiu Can Rebot» (12-nov-2026): el polideportivo municipal del barrio, DE DÍA, donde empieza
  * todo (guiño: «rebot» = rebote). Es el polo opuesto al Palau nocturno: luz cálida de sol, poco público y suelo de colores.
  * En la Carrera de pista, la sede de las divisiones bajas.

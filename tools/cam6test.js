@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/cam6test.js  (owner: camera_input)
+/* TAKE THE COURT — tools/cam6test.js  (owner: camera_input)
  * Cámara del 6v6 con humano (camera.js 'tp' = 3ª persona, por defecto; CAM6=tv para la de televisión). Juega un partido 6v6 EN VIVO
  * (autopilot: la IA mueve también al humano, que hace de todo; la cámara le sigue igual que si jugaras) y, frame a frame:
  *   - JUG     el jugador que llevas (pies y cabeza) dentro del cuadro en los planos de juego (>= 99 % de los frames)

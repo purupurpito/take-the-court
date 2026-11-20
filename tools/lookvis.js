@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/lookvis.js (plan del Vestuario, WP0.1): prueba de VISIBILIDAD de cada objeto del Vestuario.
+/* TAKE THE COURT — tools/lookvis.js (plan del Vestuario, WP0.1): prueba de VISIBILIDAD de cada objeto del Vestuario.
  * «Se ve / no se ve» con un número: para cada objeto y sede renderiza el muñeco base y el muñeco con el objeto, en la MISMA pose y
  * con la MISMA cámara, y cuenta los píxeles que cambian (ΔE76 en Lab > --de, 8 por defecto) dentro de la caja del muñeco.
  * Todo en la vista previa del Vestuario (VB.Doll.preview vía ctx.actions.showroom, menú de ?debug=menu); base e objeto se pintan

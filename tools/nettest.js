@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/nettest.js  (owner: net)
+/* TAKE THE COURT — tools/nettest.js  (owner: net)
  * Fase 1a del online (notes/net.md): dos VB.Net.Session unidas por memPair (latencia, variación, pérdida y reordenación simuladas),
  * cada una en su PROPIO contexto vm (sim.js + ai.js + ai6.js + net.js con su Math), con relojes desfasados y frames con tirones.
  * Juegan dos bots de solo entrada (VB.Net.bot), uno por máquina, leyendo la partida PREDICHA (lo que ve cada jugador).

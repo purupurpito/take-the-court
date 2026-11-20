@@ -1,4 +1,4 @@
-/* MAKE THE CUT — tools/clean.js (owner: ui_main)
+/* TAKE THE COURT — tools/clean.js (owner: ui_main)
  * Limpieza de lo que dejan las herramientas de DevTools cuando se interrumpen (Ctrl+C, cuelgue, PC apagado):
  * - procesos de Chrome huérfanos con un perfil vb3c-* (más de AGE minutos, y su carpeta también) → taskkill /T /F;
  * - carpetas vb3c-* de %TEMP% de más de DEAD minutos (8 por defecto) que ningún proceso vivo usa (herramienta muerta sin close());

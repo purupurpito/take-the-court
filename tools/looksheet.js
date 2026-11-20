@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/looksheet.js (auditoría del Vestuario): hojas de contacto de las capturas de tools/lookaudit.js.
+/* TAKE THE COURT — tools/looksheet.js (auditoría del Vestuario): hojas de contacto de las capturas de tools/lookaudit.js.
  * Recorta la mitad derecha de cada captura (el muñeco) y las junta en rejillas, con un solo Chrome (canvas en una página en blanco).
  * Uso: node tools/looksheet.js [carpeta=tools/out/lookaudit]
  */

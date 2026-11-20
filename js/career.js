@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career.js (owner: ui_main)
+/* TAKE THE COURT — js/career.js (owner: ui_main)
  * Modo Carrera 2v2 de VÓLEY PLAYA: datos y lógica, sin DOM ni Three (se carga también en node: tools/careertest.js).
  *
  * Tu jugador es un atleta de VB.Prog (st, lvl, xp, pts, bp/bd/beq de VB.Badges) con su propio guardado ('make-the-cut.career').
