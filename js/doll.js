@@ -3296,7 +3296,15 @@
   function headBase(G, X) {
     var sk = X.skin, s;
     G.add(headSphere(sg(30, 16), sg(20, 12)), sk);
-    G.owk = 0.6; for (s = -1; s <= 1; s += 2) G.add(sph(0.046 * FK, 10, 8), sk, s * (HEAD_RX - 0.005), HEAD_C - 0.005, -0.01, 0, 0, 0, 0.45, 1, 0.85);   // orejas sencillas
+    // orejas sencillas (pulido: sin contorno de tinta y con las normales inclinadas hacia fuera, como la cabeza a esa altura: medio
+    //  hundidas en ella, su contorno y el brillo del borde se cortaban contra la cabeza y de perfil la oreja era un disco con un aro
+    //  discontinuo, claro sobre la piel oscura. Se sigue leyendo por su sombra)
+    G.owk = 0;
+    for (s = -1; s <= 1; s += 2) {
+      var eg = sph(0.046 * FK, 10, 8), en = eg.attributes.normal;
+      for (var ei = 0; ei < en.count; ei++) { var ex = en.getX(ei) * 0.75 + s * 0.25, ey = en.getY(ei) * 0.75, ez = en.getZ(ei) * 0.75, el = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1; en.setXYZ(ei, ex / el, ey / el, ez / el); }
+      G.add(eg, sk, s * (HEAD_RX - 0.005), HEAD_C - 0.005, -0.01, 0, 0, 0, 0.45, 1, 0.85);
+    }
     G.owk = 1;
   }
   /** Cabeza, pelo y lo que va en ella. H0: la cabeza y el casco principal ya montados (headBase + hairGeoMain, rigGeoBegin por pasos). */
@@ -3445,10 +3453,18 @@
     var pA = Math.asin(Math.min(0.99, FE_DX / c)) - 0.04, earY = HEAD_C - 0.005 + 0.046 * FK * 1.02, thE = Math.acos(clamp((earY - HEAD_C) / HEAD_RY, -1, 1));
     G.owk = 0;
     var ends = [];
+    // (pulido: con pelo largo por los lados —melena, cortina, ondas…— la patilla se mete BAJO el pelo donde lo encuentra, como unas gafas
+    //  de verdad; antes iba por encima del pelo hasta la nuca, una varilla dorada cruzando la melena)
+    var hst = HAIR_STYLES[X.style] || {}, longSide = H && H.line && (hst.line === 'medio' || hst.line === 'largo' || EAR_HAIR[X.style]), phIn = 0;
+    if (longSide) for (var q = pA; q < EAR_PH; q += 0.04) if (lerp(th, thE, clamp((q - pA) / (EAR_PH - pA), 0, 1)) < H.line(q) - 0.02) { phIn = q; break; }
     for (s = -1; s <= 1; s += 2) {
-      var A = overPt(H, s * pA, th, Math.max(0.005, faceClear() + 0.002)), M = overPt(H, s * 1.2, lerp(th, thE, 0.4), 0.006), B = overPt(H, s * EAR_PH, thE, 0.012);
+      var A = overPt(H, s * pA, th, Math.max(0.005, faceClear() + 0.002)), M, B;
+      if (phIn && phIn < 1.2) {
+        var pe = Math.min(EAR_PH, phIn + 0.14), te = lerp(th, thE, clamp((pe - pA) / (EAR_PH - pA), 0, 1));
+        B = H.pt(s * pe, te, -0.004); M = overPt(H, s * lerp(pA, pe, 0.5), lerp(th, te, 0.5), 0.004);
+      } else { M = overPt(H, s * 1.2, lerp(th, thE, 0.4), 0.006); B = overPt(H, s * EAR_PH, thE, 0.012); }
       rod(G, A, M, 0.0055, gl); rod(G, M, B, 0.0055, gl);
-      ends.push(B);
+      ends.push(phIn && phIn < 1.2 ? overPt(H, s * EAR_PH, thE, 0.012) : B);   // (el cordón de las oscuras sale de la oreja, como antes)
     }
     if (X.eyes === 'deporte') {   // goma por la nuca, a la altura de las patillas: una tira plana de cA
       var gh = 0.012, gt = 0.004, gp = bandPath(H, ey, 0, sg(12, 8), 0.001, EAR_PH - 0.25, 2 * PI - EAR_PH + 0.25, gh);
