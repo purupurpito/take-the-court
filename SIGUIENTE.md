@@ -10,7 +10,7 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
 ## Reglas que valen para todos los lotes
 - **Nombres (17-nov-2026)**: ya no queda «voley-3d» en el código. Las claves de guardado son `make-the-cut.*` (antes
   `voley3d.*`; el primer `<script>` de index.html las pasa una vez a las nuevas), las cabeceras de los ficheros dicen
-  `TAKE THE COURT —` (desde 1.19.0; antes `MAKE THE CUT —`) y el guion del flujo es `tools/workflow/make-the-cut.workflow.js`. Una rama vieja que se fusione con main
+  `TAKE THE COURT —` (desde 1.19.0; antes `MAKE THE CUT —`; js/sim.js, js/ai.js y js/ai6.js se quedan con la vieja: fluidsimtest firma el texto de sim.js con SIM_BASE) y el guion del flujo es `tools/workflow/make-the-cut.workflow.js`. Una rama vieja que se fusione con main
   tiene que pasar sus `voley3d.` a `make-the-cut.` (`sed -i 's/voley3d\./make-the-cut./g'`) o volverán a salir las claves viejas.
 - **Git**
   - Commit y push como purupurpito: `export GH_TOKEN=$(gh auth token -u purupurpito)`. Al final de cada mensaje de commit,

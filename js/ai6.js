@@ -1,5 +1,5 @@
 /* =====================================================================
- * TAKE THE COURT — js/ai6.js   (owner: sim)
+ * MAKE THE CUT — js/ai6.js   (owner: sim)
  * IA de equipo del 6v6 (sprint 2, notes/diseno-6v6-carrera.md §1.2-1.4). Pura: sin DOM/THREE. Depende de VB.Sim y
  * VB.AI (se carga después de js/ai.js). En 2v2 no se usa nunca (ai.js y sim.js solo la llaman con g.rot / g.size === 6),
  * así que el 2v2 sigue idéntico.

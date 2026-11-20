@@ -7,7 +7,8 @@
   animado (rótulo TAKE THE COURT, mismo estilo), metadatos, Open Graph y manifest (tools/build-pages.js), aviso de girar el móvil,
   pantalla de error, tutorial de instalar, compartir sala del online, competición por defecto del acta, novedades, las letras de la
   gorra del online («TTC»), las letras de la red («T T C»), las vallas LED y la banda de la red de playa.
-- Cambian también las cabeceras de código (`TAKE THE COURT — js/<fichero>`) y la documentación. Las notas que cuentan historia
+- Cambian también las cabeceras de código (`TAKE THE COURT — js/<fichero>`) y la documentación. Excepción: js/sim.js, js/ai.js y
+  js/ai6.js siguen con `MAKE THE CUT —` (no se tocan sin un cambio de juego: fluidsimtest firma el texto de sim.js con SIM_BASE). Las notas que cuentan historia
   (renombre voley-3d → make-the-cut, la revisión de marcas de «Make the Cut», notes/informes-build.md, notes/s234/) mantienen el
   nombre viejo donde describen lo que pasó.
 - Casa nueva: https://takethecourt.com/ (raíz). La dirección vieja (purupurpito.github.io/make-the-cut/) pasa a ser el puente que

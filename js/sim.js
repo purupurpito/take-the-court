@@ -1,5 +1,5 @@
 /* =====================================================================
- * TAKE THE COURT — js/sim.js   (owner: sim)
+ * MAKE THE CUT — js/sim.js   (owner: sim)
  * Simulación pura del partido: física del balón, reglas, flujo del rally,
  * calidad de golpeo por tiempo (timing), saques, bloqueos, defensas en
  * plancha y marcador. SIN DOM, SIN THREE, SIN window (solo el objeto VB).
