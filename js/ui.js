@@ -5008,11 +5008,27 @@
     // la copia ya está arreglada para cada escenario; se vuelve a pasar por fix por si el guardado traía algo de otra sede
     var f = lkClone(lk.fit), rm0 = []; var Lk = LK(); if (Lk && Lk.fix) try { var r = Lk.fix(f, lk.venue, null); if (r && r.fit) { lk.fit = r.fit; rm0 = r.removed || []; } } catch (e) { }
     lkRemovedNotes(rm0, false);
-    lkGridReset(); lkBackdrop();
+    lkGridReset();
     uiSound('click'); srSay(lk.venue === 'beach' ? 'En playa' : 'En pista');
     lkRender(); restartAnim(el.lkList, lk.venue === 'beach' ? 'tp-n' : 'tp-p');
     if (kb) focusEl(el.lkVen.querySelector('button.on'), true);
     lk.pvT = 0; lkPvFlush();
+    lkBackdropSoon();
+  }
+  /** Cambio de fondo al cambiar de sede (pulido): montar el pabellón o la playa congela 0,4-0,5 s (1,4 s en un móvil lento) y antes
+   *  se hacía en el mismo toque, sin nada en pantalla. Ahora primero cambian las fichas, la lista y el muñeco; luego una cortina de
+   *  tinta tapa el fondo (por debajo de la interfaz), se monta el fondo nuevo detrás y la cortina se va. */
+  var lkBdTok = 0;
+  function lkBackdropSoon() {
+    var A = ctx.actions, M = el.menu; if (!A || !A.menuBackdrop || !lk.on || menuVenue() === lk.venue) return;
+    var tok = ++lkBdTok; if (M) M.classList.add('lk-swap');
+    setTimeout(function () {
+      requestAnimationFrame(function () {
+        if (tok !== lkBdTok) return;
+        lkBackdrop();
+        requestAnimationFrame(function () { setTimeout(function () { if (tok === lkBdTok && M) M.classList.remove('lk-swap'); }, 40); });
+      });
+    }, 140);
   }
   function lkTry() {
     var P = lkPV(); lk.tryI = (lk.tryI + 1) % LK_TRY.length; lk.idle = 0;
@@ -5199,7 +5215,7 @@
     lkTryFull(false);
     lkCommit();
     lkGridReset();
-    lkUndoDrop();
+    lkUndoDrop(); lkBdTok++; if (el.menu) el.menu.classList.remove('lk-swap');
     lk.on = false; lk.rep = 0; lk.drag = null; lk.keySpin = lk.btnSpin = lk.padSpin = 0; lk.pvDue = false;
     if (el.lkSpin) { el.lkSpin.hidden = true; el.lkSpin.classList.remove('drag'); }
     if (ctx.actions && ctx.actions.showroom) try { ctx.actions.showroom(false); } catch (e) { }
