@@ -1200,6 +1200,12 @@ rival (los puntos cuadran con el marcador) y matchstats/acta como sanción.
   se descarga. Publicación paso a paso en notes/dominio.md; el puente de la dirección vieja en bridge/README.md.
 - **`js/migrate.js`** (traspaso; se carga antes de account.js): lee `#mig=` (y la alternativa de código/archivo) que manda el puente
   y mete en localStorage solo claves `make-the-cut.*` validadas, guardando copia en `make-the-cut.migbak.*` si ya había datos.
-  _API exacta: pendiente de pegar del informe del bloque traspaso._
+  `VB.Migrate` (primer script tras el bloque voley3d): `run()` · `decode(texto, {max}) → Promise<{keys, at, sha, verified, id, fmt, count}>`
+  (rechaza con `e.code`: format|big|base64|inflate|nodecomp|utf8|sha|json|shape|keys) · `plan(claves, foto, {trusted, mergeKey, now}) →
+  {writes, report}` (pura) · `parseHash(h)` · `pending()` · `whenDone(fn)` · `version: 1` · `LIM` · `_lastReport`. Paquete
+  `#mig=1.<z|j>.<sha16|0>.<base64url>`; plan B `#migcode` / `#migfile`. Escribe con el setItem original, copia lo pisado en
+  `make-the-cut.migbak.*`, apunta lo traído en `make-the-cut.mig.done` y avisa con `make-the-cut.account.toast`.
 - **`VB.Account.mergeKey`** (account.js, traspaso): fusión de una clave importada con la local usando las reglas de la cuenta
-  (mergeGym, mergeLook, mergeLegends, modMerge…). _API exacta: pendiente de pegar del informe del bloque traspaso._
+  (mergeGym, mergeLook, mergeLegends, modMerge…). `VB.Account.mergeKey(k, L, R, incomingNewer) → texto`: la fusión de MERGE de esa
+  clave (gym, look, legends, profile, retos); sin fusión propia o si falla, gana la más reciente. Mientras `VB.Migrate.pending()`,
+  account.js no sincroniza ni escribe meta.
