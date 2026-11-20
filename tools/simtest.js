@@ -220,6 +220,7 @@ function run(label, opts, seconds, inputFn, quiet) {
   const ev = newCounters(), evs = [], serveTakeoff = [];
   let steps = Math.round(seconds / DT), lastSamePlayer = null, sameTouch = 0, matches = 0, setsSeen = 0, matchWins = [0, 0];
   let ghost = 0, stalePr = 0, lateSw = 0, blkSwitch = 0, spikeCtl = null; const fresh = {};
+  let revoked = 0; // challenges que revocan el punto: endReview vuelve a pitarlo (otro evento point para el mismo peloteo)
   const dj = { hs: 0, mom: 0, net: 0, djJ: 0 }; // salto con impulso: remates del humano, con impulso (mom >= 0,5), toques de red, saltos con dirección
   const aiFaults = []; // dobles / 4 toques cometidos por la IA (equipo CPU o compañero IA del humano): deben ser 0
   const hls = [], sigs = {}, pf = { streakT: -1, streakN: 0, setPoint: -1, matchPoint: -1, issues: 0, digs: 0, maxDigs: 0 };
@@ -237,7 +238,7 @@ function run(label, opts, seconds, inputFn, quiet) {
         if (e.type === 'serveReady') { pf.setPoint = e.setPoint; pf.matchPoint = e.matchPoint; }
         // challenge (B2): el punto anulado se vuelve a pitar; el recuento propio vuelve al de antes de ese punto
         if (e.type === 'challenge') pf.rev = true;
-        if (e.type === 'challengeResult') pf.rev = false;
+        if (e.type === 'challengeResult') { pf.rev = false; if (e.overturned) revoked++; }
         if (e.type === 'point') {
           if (pf.rev && pf.prev) { Object.assign(pf, pf.prev); pf.rev = false; }
           pf.prev = { streakT: pf.streakT, streakN: pf.streakN, setPoint: pf.setPoint, matchPoint: pf.matchPoint };
@@ -320,7 +321,7 @@ function run(label, opts, seconds, inputFn, quiet) {
   if (blkSwitch) fail(label + ` el control salta del bloqueador al defensor ${blkSwitch} veces durante el ataque de la CPU`);
   const hlMean = hls.length ? hls.reduce((a, b) => a + b, 0) / hls.length : 0;
   if (rit.serves > 2 && !rit.cpu && !(opts.demo === false && !opts.autopilot && inputFn)) fail(label + ' ritual: ningún saque de la CPU');
-  return { g, st, ev, med, mean, matches, setsSeen, matchWins, hlMean, hls, rit, dj };
+  return { g, st, ev, med, mean, matches, setsSeen, matchWins, hlMean, hls, rit, dj, revoked };
 }
 
 // ---------- Probabilidad de partido a partir de la de punto (sets 25/25/15, dif. 2) ----------
@@ -343,9 +344,12 @@ function setWinProb(p, target) {
  *  Si se recalibra la IA, volver a medir (tools/out: bucle de semillas + media y sd por casilla) y actualizar esta tabla. */
 const MATRIX_STAT = {
   k: 3.5,
-  key: new Set(['novato:easy', 'novato:normal', 'medio:normal', 'medio:hard', 'auto:normal', 'auto:hard']),
+  key: new Set(['novato:easy', 'novato:normal', 'medio:normal', 'medio:hard', 'auto:normal', 'auto:hard', 'perfecto:expert']),
   sd: { 'novato:easy': [0.470, 0.051], 'novato:normal': [0.363, 0.052], 'medio:normal': [0.514, 0.053], 'medio:hard': [0.401, 0.040],
-    'medio:expert': [0.238, 0.038], 'auto:normal': [0.592, 0.044], 'auto:hard': [0.495, 0.043], 'auto:expert': [0.250, 0.039] }
+    'medio:expert': [0.238, 0.038], 'auto:normal': [0.592, 0.044], 'auto:hard': [0.495, 0.043], 'auto:expert': [0.250, 0.039],
+    // perfecto:expert medido con la IA de 1.15.0 (19-nov-2026, 32 semillas × 20 min, semillas base 12345 y 777: 48,2 % y 49,1 %,
+    // 2801 puntos); sd de una semilla = la binomial de ~88 puntos (las casillas medidas arriba tienen 0,038-0,053)
+    'perfecto:expert': [0.486, 0.053] }
 };
 const mxN = (k) => (MATRIX_STAT.key.has(k) ? 2 : 1) * NSEED * BOTMIN / 20;
 const mxSd = (k) => MATRIX_STAT.sd[k][1] / Math.sqrt(mxN(k));
@@ -370,7 +374,7 @@ function matchWinProb(p) { const s = setWinProb(p, 25), t = setWinProb(p, 15); r
  *  netJump:    prob. por ataque rival de ir a la red a "bloquear" (sin saber: deja el campo y salta a destiempo)
  *  misSwitch:  prob. por trayectoria de pulsar CAMBIAR sin querer (en la colocación rival cambia el rol bloqueo/defensa)
  * El perfil 'perfecto' es la cota superior (casi sin errores de percepción): sirve para comprobar que la
- * habilidad cuenta y que Experto se puede ganar. */
+ * habilidad cuenta y que Experto está a su alcance (hasta 1.14 le ganaba; con la IA de 1.15.0 saca ~49 %: ver la matriz). */
 const BOTS = {
   perfecto: { react: 0.13, rlog: 0.1, lapse: 0, posErr: 0.12, depth: 1.1, wrong: 0, sigma: 0.02, bias: 0, fast: 0, acc: 40, stop: 0.08, jumpOk: 1, block: true, jumpServe: 0.7, aim: 0.8, gap: 0.6 },
   bueno: { react: 0.2, rlog: 0.2, lapse: 0.02, posErr: 0.45, depth: 1.4, wrong: 0.02, sigma: 0.045, bias: 0.01, fast: 0.3, acc: 12, stop: 0.1, jumpOk: 0.98, block: true, jumpServe: 0.5, aim: 0.6, gap: 0.45 },
@@ -764,7 +768,7 @@ function e1Section() {
       const a = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.10 }), b2 = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.015 });
       const pr = e1Atk(s, { b1: 'hit', arm: 0.25, b2: 'jump', dt: 0.10 });
       const c2 = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jset', dt: 0.10 }), d2 = e1Atk(s, { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.10, mastery: false });
-      const v = e1Atk(s, { b1: 'jump', arm: 0.1 });
+      const v = e1Atk(s, { b1: 'jump', arm: 0 }); // (1.17.0: el timing de la finta sale del cambio, aquí en el momento ideal: se compara con la dejada a tiempo)
       if (!a.h || !b2.h || !c2.h || !d2.h || !v.h || !pr.h) continue; o.n++;
       if (pr.h.feint === false && !pr.feint && pr.h.grade === 'poor') o.poor++;
       if (a.h.feint === true && a.h.shot === 'tip' && a.feint && a.feint.shot === 'tip' && a.feint.player === a.h.player) o.si++;
@@ -778,10 +782,27 @@ function e1Section() {
     res.push(['(b) finta: GOLPEAR→SALTAR a los 0,10 s = finta (evento feint), a los 0,015 s no, gesto malo no, GOLPEAR→COLOCAR = finta de colocado, sin mastery nunca; calidad ×0,92', ok,
       Object.assign(o, { q: +(o.q / o.qv).toFixed(3), qv: undefined })]);
   }
+  // (b6) finta en 6v6 (1.17.0, createGame({format:'6v6', feint:true}) sin el resto de la maestría): el bot que finta con el bloqueo
+  //      arriba saca eventos feint y puntos con move 'feint'; sin feint:true (o con autopilot) nunca, y g.mastery sigue apagada
+  if (want('b6')) {
+    let fe = 0, pts = 0, fe0 = 0, flags = 0;
+    for (let s = 1; s <= 6; s++) {
+      for (const on of [true, false]) {
+        const g = S.createGame({ seed: 7300 + s, format: '6v6', difficulty: 'normal', feint: on, mastery: true, stats: true });
+        if (g.mastery || g.feintOn !== on) flags++;
+        const inp = makeBot(BOTS.bueno, s * 5 + 2, { six: true, role: 'OH', mastery: { feint: 1, roll: 0, edge: 0, set: 0 } });
+        for (let i = 0; i < Math.round(240 / DT); i++) { S.step(g, DT, inp(g));
+          for (const e of S.drainEvents(g)) { if (e.type === 'feint') { if (on) fe++; else fe0++; } if (e.type === 'point' && e.move === 'feint') pts++; } }
+      }
+      if (S.createGame({ seed: s, format: '6v6', feint: true, autopilot: true }).feintOn) flags++;
+    }
+    res.push(['(b6) 6v6 con feint:true: fintas y puntos de finta; sin la bandera ni con autopilot, ninguna; g.mastery apagada', fe > 0 && pts > 0 && fe0 === 0 && flags === 0,
+      { fintas: fe, puntos: pts, sinBandera: fe0, banderas: flags }]);
+  }
   // (b2) premio: % de puntos de la dejada con finta frente a la dejada a la vista (mismo timing), y la dejada a la vista con y sin mastery
   const tipPts = (diff, plan, ms, N) => { let w = 0, n = 0; for (let s = 1; s <= N; s++) { const r = e1Atk(1000 + s, Object.assign({ diff, mastery: ms }, plan)); if (!r.h || !r.pt) continue; n++; if (r.pt.team === 0) w++; } return n ? w / n : 0; };
   if (want('b2')) {
-    const N = 300, F = { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.1 }, V = { b1: 'jump', arm: 0.1 };
+    const N = 300, F = { b1: 'hit', arm: 0.1, b2: 'jump', dt: 0.1 }, V = { b1: 'jump', arm: 0 }; // (V: la dejada pulsada cuando la finta cambia, 1.17.0)
     const o = {};
     for (const d of ['easy', 'normal', 'hard', 'expert']) o[d] = { finta: tipPts(d, F, true, N), vista: tipPts(d, V, true, N), vistaSin: tipPts(d, V, false, N) };
     const H = o.hard, E = o.expert;
@@ -1799,12 +1820,16 @@ if (ONLY === 'e1') { e1Section(); console.log(failures ? failures + ' FALLOS' : 
 // ================= 1) CPU vs CPU =================
 if (ONLY !== 'matrix') {
 const demo = run('CPU vs CPU (demo del menú, perfil DIFF.demo)', { demo: true }, MIN * 60);
-  const { st, ev, med } = demo;
+  const { st, ev, med, revoked } = demo;
   if (st.points < MIN * 4.5) fail('muy pocos puntos en demo: ' + st.points);
   if (st.hits.pass < 20 || st.hits.set < 10 || st.hits.spike < 5) fail('faltan pases/colocaciones/remates');
   if (st.blocks < 1) fail('ningún bloqueo en demo');
   if (med < 2.5 || med > 9) fail('mediana de rally fuera de rango: ' + med);
-  if (ev.point !== st.points) fail('eventos point != puntos');
+  // un challenge revocado vuelve a pitar el punto (sim endReview → point): ese peloteo da 2 eventos point y cuenta 1 en g.stats
+  if (ev.point - revoked !== st.points) fail('eventos point != puntos (' + ev.point + ' eventos, ' + revoked + ' revocados por challenge, ' + st.points + ' puntos)');
+  // y las estadísticas del punto anulado se deshacen (motivo, peloteo y cómo): una entrada por punto contado
+  { const nWhy = Object.values(st.why).reduce((a, b) => a + b, 0), nHow = Object.values(st.how || {}).reduce((a, b) => a + b, 0);
+    if (nWhy !== st.points || st.rallies.length !== st.points || nHow !== st.points) fail('estadísticas del punto contadas dos veces (motivos ' + nWhy + ', peloteos ' + st.rallies.length + ', cómo ' + nHow + ', puntos ' + st.points + ', revocados ' + revoked + ')'); }
   // un partido a 3 sets puede pasar de 120 puntos (~25 min): basta con un partido completo o dos sets cerrados
   if (MIN >= 15 && demo.matches < 1 && demo.setsSeen < 2) fail('ningún partido completo ni dos sets en demo');
   const f = st.won[0] / st.points; if (f < 0.3 || f > 0.7) fail('reparto de puntos desequilibrado en demo ' + f.toFixed(2));
@@ -1939,7 +1964,15 @@ if (ONLY !== 'matrix') {
       { const g1 = mxGap('medio:normal', 'medio:hard', 0.06), g2 = mxGap('medio:hard', 'medio:expert', 0.06);
         if (!(botRes['medio:hard'] < botRes['medio:normal'] - g1 && botRes['medio:expert'] < botRes['medio:hard'] - g2)) fail('Difícil/Experto no son claramente más difíciles para el jugador medio (Normal ' + botRes['medio:normal'].toFixed(3) + ', Difícil ' + botRes['medio:hard'].toFixed(3) + ', Experto ' + botRes['medio:expert'].toFixed(3) + '; diferencia mínima ' + g1.toFixed(3) + ' / ' + g2.toFixed(3) + ')'); }
       if (!(botRes['bueno:expert'] < 0.5)) fail('Experto no exige a un buen jugador');
-      if (!(botRes['perfecto:expert'] > 0.5)) fail('bot perfecto no gana a Experto');
+      // bot perfecto contra Experto. Hasta 1.14 se exigía > 50 % (ganaba 51,7 %). Con la IA con esfuerzo real de 1.15.0 (la CPU siempre
+      // va a por el balón al 100 % de sus stats) saca ~48,6 % (32 semillas): pierde por poco. DECIDIDO (Ferran, 20-nov-2026: «está bien
+      // que sea durísimo»): Experto se queda así, sin reequilibrar; esta prueba solo vigila que no se hunda más. Suelo = 0,44 salvo que la
+      // media medida menos k·σ quede por debajo (con 8 semillas × 20 min, 0,486 − 3,5 · 0,019 ≈ 0,42; con 4, el suelo bajaría a 0,39).
+      // Si algún día se reequilibra Experto, volver a medir MATRIX_STAT.sd['perfecto:expert'] y, si vuelve a ganar, recuperar el > 0,5.
+      { const k = 'perfecto:expert', lo = Math.min(0.44, MATRIX_STAT.sd[k][0] - MATRIX_STAT.k * mxSd(k));
+        if (!(botRes[k] > lo)) fail('bot perfecto hundido contra Experto (' + botRes[k].toFixed(3) + ' de puntos, suelo ' + lo.toFixed(3) + ' con ' + mxN(k) + ' semillas × ' + BOTMIN + ' min; 1.15.0: ~0,486)'); }
+      // y sigue ganando con claridad a Normal y a Fácil (1.15.0, 32 semillas: 78,0 % y 93,3 %)
+      if (!(botRes['perfecto:normal'] > 0.65 && botRes['perfecto:easy'] > 0.8)) fail('bot perfecto no gana con claridad a Normal/Fácil (Normal ' + botRes['perfecto:normal'].toFixed(3) + ' > 0,65, Fácil ' + botRes['perfecto:easy'].toFixed(3) + ' > 0,80)');
       if (!(botRes['novato:expert'] < 0.25)) fail('Experto no exige: el novato le gana demasiados puntos');
       for (const d of LV) if (!(botRes['perfecto:' + d] > botRes['bueno:' + d] && botRes['bueno:' + d] > botRes['medio:' + d] && botRes['medio:' + d] > botRes['novato:' + d])) fail('la habilidad no se nota contra ' + d);
       for (const bn of Object.keys(BOTS)) for (let i = 1; i < LV.length; i++) if (!(botRes[bn + ':' + LV[i - 1]] > botRes[bn + ':' + LV[i]] - 0.03)) fail('nivel ' + LV[i] + ' no es más difícil que ' + LV[i - 1] + ' para el bot ' + bn);
@@ -2754,6 +2787,40 @@ if (ONLY !== 'matrix') {
       res.push(['challenge acertado anula el punto', left > 6.9 && cpuNo && ok && rv && rv.overturned && rv.dur === 4.5 && cr && cr.overturned && g.review === null &&
         g.score[0] === s0[0] + 1 && g.score[1] === s0[1] - 1 && g.challenges[0] === 2 && cr.left[0] === 2 && w0 === 1 && S.canChallenge(g, 0) === 0 && S.canChallenge(g, 1) === 0 &&
         ev.some(e => e.type === 'point' && e.team === 0), [left, s0, g.score, g.challenges]]); }
+    // challenge acertado y g.stats (1.15.1): el punto revocado se deshace ENTERO en las estadísticas internas. Partida con stats, maestría y
+    // salto con impulso; el remate de la CPU que se canta dentro mal es un kill con golpe colocado ('roll') e impulso/pipe, así que suma
+    // why, how, rallies, kills[1], mastery.cpu.roll[1] y dj.mom/pipe[1]. Tras endReview, g.stats debe ser el de antes del punto MÁS solo
+    // el punto que se vuelve a pitar (el del humano: points, won[0], why[su texto], how[su cómo], un peloteo y, si lo fuera, su ace/kill/
+    // bloqueo). faults no entra: solo suma con infractor (p), y esos puntos no acaban en bote, así que no tienen challenge
+    { let res1 = null;
+      for (let s = 1; s < 3000 && !res1; s++) {
+        const g = S.createGame({ demo: false, seed: s, stats: true, mastery: true, djump: true });
+        rallyAt(g, { x: 5, y: -(C.HW + C.IN_TOL + 0.01), z: 0.6, vz: -3 });
+        g.lastTeam = 1; g.touchTeam = 1; g.lastKind = 'spike'; g.lastShot = 'power'; g.touches = 3; g.lastPlayer = g.teams[1][0];
+        g.atkTeam = 1; g.atkHow = 'kill'; g.atkMove = 'roll'; g.atkHuman = false; g.atkHits = g.rally.hits;
+        Object.assign(g.djLast, { team: 1, mom: 1, pipe: 1 });
+        for (const p of g.players) { p.x = S.side(p.team) * 8.5; p.y = 3; }
+        const A = JSON.parse(JSON.stringify(g.stats));
+        const pe = stepUntil(g, 'point', 240).find(e => e.type === 'point');
+        if (!pe || !g.call || !g.call.wrong || g.call.team !== 0 || pe.team !== 1) continue;
+        const B = JSON.parse(JSON.stringify(g.stats));
+        const ok = S.challenge(g, 0), ev = review(g, 0), cr = ev.find(e => e.type === 'challengeResult'), rp = ev.find(e => e.type === 'point');
+        res1 = { s, A, B, C: JSON.parse(JSON.stringify(g.stats)), ok: ok && !!cr && cr.overturned && !!rp && rp.team === 0, pe, rp };
+      }
+      let good = false, info = 'sin bote mal cantado contra el humano';
+      if (res1) {
+        const { A, B, C, pe, rp } = res1;
+        // el punto revocado sí sumó todo eso (si no, la prueba no probaría nada)
+        const added = pe.how === 'kill' && B.kills[1] === A.kills[1] + 1 && B.mastery.cpu.roll[1] === A.mastery.cpu.roll[1] + 1 &&
+          B.dj.mom[1] === A.dj.mom[1] + 1 && B.dj.pipe[1] === A.dj.pipe[1] + 1 && B.how.kill === ((A.how || {}).kill || 0) + 1 && B.rallies.length === A.rallies.length + 1;
+        const E = JSON.parse(JSON.stringify(A)); E.points++; E.won[0]++; E.why[rp.text] = (E.why[rp.text] || 0) + 1; E.how = E.how || {}; E.how[rp.how] = (E.how[rp.how] || 0) + 1;
+        const sk = rp.how === 'ace' ? 'aces' : rp.how === 'kill' ? 'kills' : rp.how === 'block' ? 'stuffPts' : ''; if (sk) E[sk][0]++;
+        E.rallies.push(C.rallies[C.rallies.length - 1]); E._undo = C._undo;
+        const same = JSON.stringify(E) === JSON.stringify(C);
+        good = res1.ok && added && same;
+        info = [res1.s, pe.how, rp.how, rp.text, added, same ? 'igual' : { esperado: E, real: C }];
+      }
+      res.push(['challenge acertado deshace el punto entero en g.stats', good, info]); }
     // huella entera (Ferran, 12-nov-2026): la verdad del challenge = la huella dibujada (radio C.BR) toca la línea. (1) bote en el
     // campo de la CPU con la huella pisando la línea 5 mm (centro a C.BR − 5 mm fuera), cantado fuera: el challenge lo da DENTRO;
     // (2) bote en el campo del humano con 5 mm de hueco (centro a C.BR + 5 mm fuera), cantado dentro: el challenge lo da FUERA.
@@ -2807,7 +2874,7 @@ if (ONLY !== 'matrix') {
       res.push(['la CPU pide challenge', n > 100 && asked / n > 0.08 && asked / n < 0.4 && good / asked > 0.5 && dOk && far === 0 && accepted === asked, [n, asked, good, far]]); }
     const bad = res.filter(r => !r[1]), cpuR = res.find(r => r[0] === 'la CPU pide challenge');
     if (bad.length) fail('error arbitral / challenge: ' + bad.map(r => r[0] + ' ' + JSON.stringify(r[2])).join('; '));
-    else console.log('error arbitral (tasas ' + res[0][2][0].join('/') + ') y challenge (acertado, punto de set, fallado, ventana 7 s, CPU ' + cpuR[2][1] + '/' + cpuR[2][0] + ', huella entera IN/OUT a ±5 mm) OK');
+    else console.log('error arbitral (tasas ' + res[0][2][0].join('/') + ') y challenge (acertado, g.stats deshecho, punto de set, fallado, ventana 7 s, CPU ' + cpuR[2][1] + '/' + cpuR[2][0] + ', huella entera IN/OUT a ±5 mm) OK');
   }
   // modo «controlar 1 jugador» (createGame({ctrl:'one'})): el humano (bot 'bueno') lleva siempre al mismo jugador y la IA al
   // compañero en todo (toques, saque, bloqueo). g.ctrl no cambia nunca, el compañero toca y saca, pasa/coloca al humano, la IA
@@ -3159,6 +3226,66 @@ if (ONLY !== 'matrix') {
     const g2 = S.createGame({ seed: 1, ref: { p1: 0.2, p2: 0.08, p3: 0.02, d3: 0.1, chal: 2 } });
     if (g2.challenges[0] !== 2 || g2.chalPerSet !== 2) fail('Carrera: challenge 2 por set');
     if (failures === f0) console.log('Carrera: opts.ref y opts.nums OK');
+  }
+
+  // ---- Castigo (Ambiente de Carrera, P3, notes/ambiente.md §4.5): Sim.holdFor / canPenalty / penalty ----
+  {
+    const f0 = failures, info = {};
+    const wrapRng = g => { const r0 = g.rng, w = Object.assign(function () { w.n++; return r0(); }, { get: r0.get, set: r0.set, n: 0 }); g.rng = w; return w; };
+    // avanza (autopilot) hasta el siguiente punto que no cierre set; devuelve los eventos vistos
+    const toPoint = (g, maxS) => { const ev = []; for (let i = 0; i < (maxS || 240) * 120; i++) { S.step(g, DT, null); const k = ev.length; S.drainEvents(g, ev);
+      for (let j = k; j < ev.length; j++) if (ev[j].type === 'point' && !ev[j].setWon && !ev[j].matchWon) return ev; } return null; };
+    const seq = o => { const g = S.createGame(Object.assign({ seed: 777, autopilot: true }, o)), out = [], ev = [];
+      for (let i = 0; i < 240 * 120 && !g.finished; i++) { S.step(g, DT, null); ev.length = 0; S.drainEvents(g, ev); for (const e of ev) if (e.type === 'point') out.push(e.team + e.reason); }
+      return out.join(','); };
+    // (a) amb sin usar las puertas = sim idéntica; sin g.amb las puertas no hacen nada
+    if (seq({ amb: true }) !== seq({})) fail('Castigo: createGame({amb}) sin puertas cambia la sim');
+    { const g = S.createGame({ seed: 5, autopilot: true }); toPoint(g); const h0 = S.stateHash(g), t0 = g.timer;
+      if (g.amb || S.holdFor(g, 3, true) || S.canPenalty(g) || S.penalty(g, 0, { card: 'red' }) || S.stateHash(g) !== h0 || g.timer !== t0) fail('Castigo: sin g.amb las puertas deben ser no-op');
+      if (S.createGame({ amb: true, demo: true }).amb || S.createGame({ amb: true, drill: 'serve' }).amb) fail('Castigo: amb en demo / Entrenamiento'); }
+    // (b) holdFor: alarga, g.hold crece lo mismo, lock bloquea skipHold durante s
+    { const g = S.createGame({ seed: 6, autopilot: true, present: true, amb: true }); toPoint(g); const t0 = g.timer, h0 = g.hold;
+      if (!S.holdFor(g, 3.4, false) || Math.abs(g.timer - Math.max(t0, 3.4)) > 1e-9 || Math.abs((g.hold - g.timer) - (h0 - t0)) > 1e-9) fail('Castigo: holdFor no alarga bien ' + [t0, h0, g.timer, g.hold]);
+      S.holdFor(g, 2.6, true); for (let i = 0; i < 120; i++) S.step(g, DT, null); // 1 s (pasado skipAfter)
+      if (S.skipHold(g)) fail('Castigo: skipHold recorta con la pausa bloqueada');
+      for (let i = 0; i < 2 * 120; i++) S.step(g, DT, null);
+      if (g.mode === 'point' && !S.skipHold(g)) fail('Castigo: skipHold sigue bloqueado tras el lock'); }
+    // (c) el castigo: marcador, saque, rotación del sacador, eventos, ventana de challenge cerrada, 0 llamadas a g.rng
+    { const g = S.createGame({ seed: 7, autopilot: true, present: true, amb: true, ref: { p1: 0.5, p2: 0.5, p3: 0.5, chal: 2 } }); toPoint(g); S.drainEvents(g);
+      const team = g.serving, w = 1 - team, sc = g.score.slice(), si = g.serverIdx[w], R = wrapRng(g);
+      if (!S.canPenalty(g) || !S.canPenalty(g, team)) fail('Castigo: canPenalty false con balón muerto');
+      const pe = S.penalty(g, team, { card: 'red', pid: g.teams[team][0].id }), ev = []; S.drainEvents(g, ev);
+      const ty = ev.map(e => e.type + (e.reason ? ':' + e.reason : '')).join(',');
+      if (!pe || pe.team !== w || !pe.penalty || pe.reason !== 'penalty' || pe.how !== 'penalty' || pe.signal !== 'penalty' || pe.faultTeam !== team ||
+          pe.faultPlayer !== g.teams[team][0] || pe.player !== null || pe.card !== 'red' || pe.rallyHits !== 0 || pe.setWon || pe.matchWon) fail('Castigo: evento point ' + JSON.stringify(pe && { team: pe.team, r: pe.reason }));
+      if (g.score[w] !== sc[w] + 1 || g.score[team] !== sc[team] || g.serving !== w || g.serverIdx[w] !== (si + 1) % 2) fail('Castigo: marcador / saque ' + JSON.stringify([sc, g.score, g.serving]));
+      if (!/^whistle:penalty,point:penalty,sideout/.test(ty)) fail('Castigo: orden de eventos ' + ty);
+      if (g.call || g.cpuChal || S.canChallenge(g, 0) || S.canChallenge(g, 1) || g.mode !== 'point' || !(g.timer > 1)) fail('Castigo: challenge abierto o sin pausa');
+      if (R.n !== 0) fail('Castigo: llamadas a g.rng ' + R.n);
+      info.rng = R.n;
+      // sin cambio de saque: sanciona al que recibe → el sacador sigue
+      const s2 = g.serving, i2 = g.serverIdx[s2]; S.penalty(g, 1 - s2, { card: 'delayR', pid: -1 }); const ev2 = []; S.drainEvents(g, ev2);
+      if (g.serving !== s2 || g.serverIdx[s2] !== i2 || ev2.some(e => e.type === 'sideout') || ev2[1].card !== 'delayR' || ev2[1].faultPlayer !== null) fail('Castigo: sin cambio de saque');
+      // el partido sigue y acaba con normalidad
+      let n = 0; for (let i = 0; i < 3000 * 120 && !g.finished; i++) { S.step(g, DT, null); S.drainEvents(g); n++; if (i % 600 === 0) checkInvariants(g, 'castigo'); }
+      if (!g.finished) fail('Castigo: el partido no acaba tras los castigos'); }
+    // (d) nunca cierra el set: 24-20 y roja al que pierde → no
+    { const g = S.createGame({ seed: 8, autopilot: true, amb: true }); toPoint(g); g.score = [24, 20];
+      if (S.canPenalty(g, 1) || S.penalty(g, 1, { card: 'red' }) || g.score[0] !== 24) fail('Castigo: cierra el set');
+      if (!S.canPenalty(g, 0)) fail('Castigo: 21-24 sí se puede'); g.pendingSet = true; if (S.canPenalty(g)) fail('Castigo: con set pendiente'); g.pendingSet = false;
+      g.review = {}; if (S.canPenalty(g)) fail('Castigo: con revisión'); g.review = null;
+      g.mode = 'serve'; if (S.canPenalty(g) || S.holdFor(g, 3)) fail('Castigo: fuera de la pausa del punto'); }
+    // (e) 6v6: rota el equipo; playa: cambio de campo cada 7; pista: 8 del 3r set
+    { const g = S.createGame({ seed: 9, autopilot: true, amb: true, format: '6v6' }); toPoint(g); S.drainEvents(g);
+      const t = g.serving, w = 1 - t, z1 = g.rot[w][1]; S.penalty(g, t, { card: 'red', pid: -1 }); const ev = []; S.drainEvents(g, ev);
+      if (g.rot[w][0] !== z1 || !ev.some(e => e.type === 'rotation')) fail('Castigo 6v6: no rota'); }
+    { const g = S.createGame({ seed: 10, autopilot: true, amb: true, venue: 'beach' }); toPoint(g); S.drainEvents(g); g.score = [3, 3];
+      S.penalty(g, 1, { card: 'red' }); const ev = []; S.drainEvents(g, ev);
+      if (!ev.some(e => e.type === 'courtChange' && e.why === 'swap') || g.courtSwapAt !== 7) fail('Castigo playa: sin cambio de campo a los 7'); }
+    { const g = S.createGame({ seed: 11, autopilot: true, amb: true }); toPoint(g); S.drainEvents(g); g.setNo = 3; g.score = [7, 5];
+      S.penalty(g, 1, { card: 'red' }); const ev = []; S.drainEvents(g, ev);
+      if (!g.courtSwap3 || !ev.some(e => e.type === 'courtChange' && e.why === 'eight')) fail('Castigo: sin cambio de campo a los 8 del 3r set'); }
+    if (failures === f0) console.log('Castigo (Ambiente de Carrera): no-op sin g.amb, holdFor/lock, marcador, saque, rotación, cambios de campo, sin cerrar set, 0 llamadas a g.rng OK');
   }
 
   // ---- Colocación en salto (input.jset = COLOCAR en el aire; solo el humano) ----

@@ -392,6 +392,9 @@
       // presentación (SIM-03): g.present = true (main.js, partidos humanos) alarga la pausa de los puntos grandes;
       // hold = duración (s) de la pausa del punto en curso (point.hold), para skipHold
       present: !!opts.present && !dkp, hold: 0,
+      // Ambiente de Carrera (P3, notes/ambiente.md §4.5): amb = opts.amb (solo partidos jugados de Carrera; nunca demo, online ni
+      // Entrenamiento); holdLock = g.time hasta el que skipHold no recorta (tarjeta en pantalla). Sin amb: Sim.holdFor/penalty no hacen nada
+      amb: !!opts.amb && !opts.demo && !opts.online && !dk, holdLock: 0,
       streakTeam: -1, streakN: 0, // racha de puntos seguidos en el set (SIM-01)
       atkHuman: false, atkGrade: '', // quién/cómo fue el último ataque o saque (para 'kill perfecto del humano')
       // remate apuntado (A1-A3): mira libre del humano en el aire en el 3r toque; defensa más justa tras remate perfecto
@@ -414,12 +417,16 @@
         serves: [0, 0], aces: [0, 0], spikes: [0, 0], kills: [0, 0], stuffPts: [0, 0], faults: {}, body: 0, jsets: 0, courtChanges: 0,
         // E1: jugadas de maestría del humano, [usos, puntos] (tool = manos fuera con el remate al filo; lane/high = colocaciones dirigidas);
         // cpu: las de la CPU (golpe colocado [usos, puntos] y colocaciones a un lado). Solo cuentan con g.mastery
-        mastery: { feint: [0, 0], roll: [0, 0], edge: [0, 0], tool: 0, quick: [0, 0], lane: 0, high: 0, cpu: { roll: [0, 0], lane: 0 } }
+        mastery: { feint: [0, 0], roll: [0, 0], edge: [0, 0], tool: 0, quick: [0, 0], lane: 0, high: 0, cpu: { roll: [0, 0], lane: 0 } },
+        _undo: null              // contadores del último punto que se pueden revocar con challenge (point → endReview)
       } : null
     };
     // E1: maestría (finta, golpe colocado, al filo, colocación dirigida y lo que lee la IA). Solo en partidos humanos 2v2: nunca en la
     // demo, con autopilot ni en 6v6. Se decide aquí una vez; cada rama nueva solo mira g.mastery. aimSet: colocación dirigida (por defecto sí)
     g.mastery = !!opts.mastery && !g.demo && !g.autopilot && !g.rot;
+    // Finta (19-nov-2026): también en 6v6 (opts.feint, main.js) sin el resto de la maestría. g.feintOn = la finta del humano existe
+    // (GOLPEAR y, después, SALTAR o COLOCAR): con g.mastery siempre; sin ella, solo la finta (etiqueta point.move 'feint' y lectura tardía de la IA)
+    g.feintOn = (g.mastery || !!opts.feint) && !g.demo && !g.autopilot;
     g.aimSet = opts.aimSet !== false;
     // Salto con impulso (v1.12.0): g.djump = salto con dirección del humano (main.js/netlobby.js lo pasan; las huellas no); g.jsetAim =
     // colocación en salto con diana (ajuste; online por hueco, humans[i].jsetAim). Nunca en la demo ni con autopilot. Estado del humano
@@ -1546,8 +1553,11 @@
     te = te || 0; shot = shot || '';
     // E1 (finta): el humano abrió el gesto con GOLPEAR (remate armado) y lo cambió a dejada o golpe colocado al menos
     // MASTERY.feint.minT s después: la CPU lo lee tarde (ai.js, feintRead). Cuesta algo de calidad (MASTERY.feint.q)
-    var feint = g.mastery && human && atkC0 && (shot === 'tip' || shot === 'roll') && g.swingShot0 === '' &&
+    var feint = g.feintOn && human && atkC0 && (shot === 'tip' || shot === 'roll') && g.swingShot0 === '' &&
       g.swingSwapT - g.swingT0 >= MASTERY.feint.minT;
+    // (19-nov-2026) el timing de la finta sale del CAMBIO (SALTAR o COLOCAR), no de GOLPEAR: se arma pronto y se deja caer a tiempo. Antes
+    // salía de GOLPEAR y había que cambiar entre 0,03 y 0,07 s después para no perder calidad: casi imposible a propósito
+    if (feint) te += g.swingSwapT - g.swingT0;
     if (human && count === 1 && g.digTight) te *= 1.5; // A3: tras un remate perfecto rival la ventana es más justa
     var d = Math.hypot(b.x - p.x, b.y - p.y), inSp = fastInFor(g);
     var hardIn = g.lastKind === 'spike' || (g.lastKind === 'serve' && inSp > 13);
@@ -1877,6 +1887,9 @@
         g.atkMove = feint ? 'feint' : sub === 'roll' ? 'roll' : edge > MASTERY.edge.tag ? 'edge' : setIn && prevTempo === 'quick' ? 'quick' : '';
         // (la rápida se cuenta al colocarla: la remata quien sea)
         if (g.stats && g.atkMove && g.atkMove !== 'quick') { var sm = g.stats.mastery; if (human) sm[g.atkMove][0]++; else if (t === 1 && g.atkMove === 'roll') sm.cpu.roll[0]++; }
+      } else if (g.feintOn) { // 6v6: solo la finta
+        g.atkMove = feint ? 'feint' : '';
+        if (feint && g.stats) g.stats.mastery.feint[0]++;
       }
       // colocador del ataque (point.assist): el 2º toque del mismo equipo, si el ataque es el 3r (o el 1r si colocó en salto
       // y el ataque es el 2º)
@@ -2536,6 +2549,8 @@
     if (g.subsOn) { g._subU = g._snap ? subUndo(g) : null; subCount(g); }   // banquillo: puntos en pista (g.meR, p.onR), del partido (g.rallyN) y cansancio
     var sideout = w !== g.serving;
     if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.how = g.stats.how || {}; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.rallies.push(g.rally.t); }
+    // challenge: contadores que suma este punto, para que endReview los deshaga si se revoca (rutas en g.stats; solo estadísticas: sin g.rng ni estado)
+    var su = g.stats && g._snap ? [['why', text]] : null; if (g.stats) g.stats._undo = su;
     emit(g, { type: 'whistle', reason: 'point' });
     // cómo se ganó (para UI/público): ace, kill (remate), tip (dejada), block, error, free
     var how = 'error';
@@ -2553,17 +2568,20 @@
     if (g.subsOn) subPerf(g, w, how, p); // banquillo: rendimiento del set (p.perf) para el entrenador
     // E1: jugada de maestría con la que se ganó el punto ('' sin g.mastery): la etiqueta del último ataque del equipo que gana si el
     // punto es suyo (remate o dejada; también el block-out)
-    var move = g.mastery && g.atkTeam === w && (how === 'kill' || how === 'tip') ? g.atkMove : '';
+    var move = g.feintOn && g.atkTeam === w && (how === 'kill' || how === 'tip') ? g.atkMove : ''; // (g.feintOn: con g.mastery o la finta del 6v6)
     if (move && g.stats) { var sm = g.stats.mastery;
-      if (move === 'quick') { if (w === 0) sm.quick[1]++; } else if (g.atkHuman) { sm[move][1]++; if (tool && move === 'edge') sm.tool++; } else if (w === 1 && move === 'roll') sm.cpu.roll[1]++; }
+      if (move === 'quick') { if (w === 0) { sm.quick[1]++; if (su) su.push(['mastery', 'quick', 1]); } }
+      else if (g.atkHuman) { sm[move][1]++; if (su) su.push(['mastery', move, 1]); if (tool && move === 'edge') { sm.tool++; if (su) su.push(['mastery', 'tool']); } }
+      else if (w === 1 && move === 'roll') { sm.cpu.roll[1]++; if (su) su.push(['mastery', 'cpu', 'roll', 1]); } }
     // salto con impulso: punto del remate con impulso / pipe del humano (g.stats.dj; g.djLast lo deja hit)
     if (g.stats && g.stats.dj && how === 'kill' && g.atkHow === 'kill' && g.atkTeam === w && g.djLast.team === w) {
-      if (g.djLast.mom) g.stats.dj.mom[1]++;
-      if (g.djLast.pipe) g.stats.dj.pipe[1]++;
+      if (g.djLast.mom) { g.stats.dj.mom[1]++; if (su) su.push(['dj', 'mom', 1]); }
+      if (g.djLast.pipe) { g.stats.dj.pipe[1]++; if (su) su.push(['dj', 'pipe', 1]); }
     }
     if (g.stats) {
-      if (how === 'ace') g.stats.aces[w]++; else if (how === 'kill') g.stats.kills[w]++; else if (how === 'block') g.stats.stuffPts[w]++;
-      if (p) g.stats.faults[reason] = (g.stats.faults[reason] || 0) + 1;
+      var sk = how === 'ace' ? 'aces' : how === 'kill' ? 'kills' : how === 'block' ? 'stuffPts' : '';
+      if (sk) { g.stats[sk][w]++; if (su) su.push([sk, w]); }
+      if (p) { g.stats.faults[reason] = (g.stats.faults[reason] || 0) + 1; if (su) su.push(['faults', reason]); }
     }
     // ¿cierra el set / el partido? ¿cambio de campo a los 8 del set decisivo? (se decide aquí para que el evento lo lleve)
     var tgt = setTarget(g), a = g.score[0], bb = g.score[1], half = Math.ceil(tgt / 2);
@@ -2617,7 +2635,7 @@
     if (reason === 'antenna') ev.antenna = g.antennaHit ? [g.antennaHit.x, g.antennaHit.y, g.antennaHit.z] : null; // null = por fuera de la antena
     g.lastPoint = { team: w, reason: reason, text: text, how: how, highlight: hl, digs: digs, streak: g.streakN, savedSetPoint: saved, clutch: clutch,
       signal: signal, touchedOut: touchedOut, landSide: landSide, hold: hold, setWon: setWon, matchWon: matchWon, assist: assist, tool: tool, move: move };
-    if (g.stats) g.stats.how[how] = (g.stats.how[how] || 0) + 1;
+    if (g.stats) { g.stats.how[how] = (g.stats.how[how] || 0) + 1; if (su) su.push(['how', how]); }
     if (sideout) { // cambio de saque: rota el sacador del equipo que recupera el saque
       g.serving = w;
       if (g.rot) rotate(g, w); else g.serverIdx[w] = (g.serverIdx[w] + 1) % g.teams[w].length; // 6v6: rota el equipo
@@ -2915,11 +2933,71 @@
    *  ni con el partido ya terminado (gameOver emitido). Solo toca g.timer (y, en 'over', renuncia al challenge pendiente). */
   function skipHold(g) {
     if (g.review) return false;
+    if (g.amb && g.holdLock > g.time) return false; // Ambiente: tarjeta o castigo en pantalla (Sim.holdFor con lock)
     if ((g.mode !== 'point' && g.mode !== 'over') || g.finished || !(g.timer > 0)) return false;
     if (g.hold - g.timer < HOLD.skipAfter) return false;
     if (g.timer > HOLD.skipTo) g.timer = HOLD.skipTo;
     if (g.mode === 'over' && g.call) g.call.waived = true; // saltar el final del partido renuncia al challenge pendiente
     return true;
+  }
+  /* ---------- Ambiente de Carrera (P3, notes/ambiente.md §4.5): 3 puertas, todas no-op sin g.amb y sin g.rng ----------
+   * La sim no sabe nada de protestas ni tarjetas: el director (VB.Ambiente, main.js) le pide alargar la pausa del punto
+   * (holdFor) y, con una roja, el punto de castigo (penalty), siempre con balón muerto (g.mode === 'point'). */
+  /** Alarga la pausa del punto en curso a s segundos como mínimo (g.hold crece lo mismo: skipHold sigue midiendo desde el
+   *  principio). lock: skipHold no recorta durante s. Devuelve true si se ha aplicado. */
+  function holdFor(g, s, lock) {
+    if (!g.amb || g.mode !== 'point' || g.finished || !(s > 0)) return false;
+    if (g.timer < s) { g.hold += s - g.timer; g.timer = s; }
+    if (lock) g.holdLock = Math.max(g.holdLock, g.time + s);
+    return true;
+  }
+  /** ¿Se puede pitar un punto de castigo ahora? Balón muerto, sin revisión, sin set por empezar, sin cambios en marcha.
+   *  team (opcional) = equipo sancionado: además, el punto no puede cerrar el set (§1: nunca se cierra un set con un castigo). */
+  function canPenalty(g, team) {
+    if (!g.amb || g.mode !== 'point' || g.review || g.pendingSet || g.finished || g.subWait) return false;
+    if (team === 0 || team === 1) { var w = 1 - team, tgt = setTarget(g); if (g.score[w] + 1 >= tgt && g.score[w] + 1 - g.score[team] >= 2) return false; }
+    return true;
+  }
+  /** Punto de castigo (tarjeta roja / castigo por retraso): team = equipo SANCIONADO, el punto es para 1 - team.
+   *  o = { card: 'red'|'delayR', pid: id del sancionado (-1 entrenador o equipo) }. Cierra la ventana de challenge del punto
+   *  anterior, suma el punto, cambia el saque (rotación en 6v6), racha y cambio de campo (8 del 3r set de pista / cada 7-5 en
+   *  playa); emite whistle{reason:'penalty'} y point{reason:'penalty', penalty:true, ...}; pausa nueva. Devuelve el evento o null. */
+  function penalty(g, team, o) {
+    if ((team !== 0 && team !== 1) || !canPenalty(g, team)) return null;
+    o = o || {};
+    var w = 1 - team, card = o.card === 'delayR' ? 'delayR' : 'red', pid = o.pid == null ? -1 : o.pid, fp = null, i;
+    if (pid >= 0) {
+      for (i = 0; i < g.players.length && !fp; i++) if (g.players[i].id === pid) fp = g.players[i];
+      if (!fp && g.roster) for (var rt = 0; rt < 2 && !fp; rt++) for (i = 0; i < g.roster[rt].length; i++) if (g.roster[rt][i].id === pid) { fp = g.roster[rt][i]; break; }
+    }
+    g.call = null; g._pendCall = null; g.cpuChal = null; g._snap = null; // el punto anterior ya no se puede revisar
+    var text = 'Punto de castigo', sideout = w !== g.serving;
+    g.score[w]++;
+    if (g.stats) { g.stats.points++; g.stats.won[w]++; g.stats.why[text] = (g.stats.why[text] || 0) + 1; g.stats.how = g.stats.how || {}; g.stats.how.penalty = (g.stats.how.penalty || 0) + 1; }
+    emit(g, { type: 'whistle', reason: 'penalty', team: team });
+    var tgt = setTarget(g), a = g.score[0], bb = g.score[1], half = Math.ceil(tgt / 2);
+    var eight = !g.beach && g.setNo === 3 && !g.courtSwap3 && g.score[w] === half && g.score[1 - w] < half;
+    var bswap = g.beach && (a + bb) % (g.setNo === 3 ? BEACH.swap3 : BEACH.swap) === 0;
+    if (g.streakTeam === w) g.streakN++; else { g.streakTeam = w; g.streakN = 1; }
+    var saved = g.setPoint === team;
+    var hold = (g.present ? HOLD.routine : HOLD_LEGACY.routine) + (eight ? (g.present ? HOLD.eight : HOLD_LEGACY.eight) : 0) + (bswap ? BEACH.swapHold : 0);
+    if (g.timer > hold) hold = g.timer;   // (lo que quede de la pausa larga del punto anterior, p. ej. un cambio de campo, no se recorta)
+    g.timer = hold; g.hold = hold; g.holdLock = 0;
+    var ev = emit(g, { type: 'point', team: w, reason: 'penalty', text: text, how: 'penalty', score: [g.score[0], g.score[1]],
+      sideout: sideout, rallyTime: 0, rallyHits: 0, setWon: false, matchWon: false, player: null, lastKind: '', lastShot: '',
+      highlight: 0.2, digs: 0, streak: g.streakN, savedSetPoint: saved, clutch: false, signal: 'penalty', touchedOut: false, landSide: -1,
+      hold: hold, assist: null, tool: false, move: '', faultTeam: team, faultPlayer: fp, penalty: true, card: card, pid: pid });
+    g.lastPoint = { team: w, reason: 'penalty', text: text, how: 'penalty', highlight: 0.2, digs: 0, streak: g.streakN, savedSetPoint: saved, clutch: false,
+      signal: 'penalty', touchedOut: false, landSide: -1, hold: hold, setWon: false, matchWon: false, assist: null, tool: false, move: '', penalty: true };
+    if (sideout) {
+      g.serving = w;
+      if (g.rot) rotate(g, w); else g.serverIdx[w] = (g.serverIdx[w] + 1) % g.teams[w].length;
+      emit(g, { type: 'sideout', team: w });
+      if (g.rot) emit(g, { type: 'rotation', team: w, rot: g.rot[w].map(function (q) { return q.num; }), server: g.rot[w][0] });
+    }
+    if (eight) { g.courtSwap3 = true; courtChange(g, 'eight'); }
+    else if (bswap) { g.courtSwapAt = a + bb; courtChange(g, 'swap'); }
+    return ev;
   }
   /* ---------- Challenge (B2/B3, notes/challenge-fivb.md) ----------
    * 2 por set (g.challenges), solo dentro/fuera de un bote; ventana de CHAL.window s desde el punto y hasta que se saca la
@@ -2959,7 +3037,13 @@
       g.score = s.score; g.sets = s.sets; g.setNo = s.setNo; g.serving = s.serving; g.serverIdx = s.serverIdx; g.setScores = s.setScores;
       g.streakTeam = s.streakTeam; g.streakN = s.streakN; g.courtSwap3 = s.courtSwap3; g.pendingSet = s.pendingSet;
       g.setPoint = s.setPoint; g.matchPoint = s.matchPoint; g.challenges = s.challenges; g.lastPoint = s.lastPoint;
-      if (g.stats) { g.stats.points--; g.stats.won[wOld]--; }
+      if (g.stats) { // el punto anulado no cuenta: ni el marcador ni su motivo, peloteo, cómo, saque/remate/bloqueo, falta o maestría
+        g.stats.points--; g.stats.won[wOld]--;
+        var su = g.stats._undo; g.stats._undo = null;
+        // (_undo guarda rutas dentro de g.stats, no referencias: sigue valiendo si alguien copia g.stats con JSON)
+        if (su) { g.stats.rallies.pop(); for (var ui = 0; ui < su.length; ui++) { var up = su[ui], uo = g.stats, uj = 0; for (; uj < up.length - 1; uj++) uo = uo[up[uj]];
+          var uk = up[uj]; uo[uk]--; if (uo[uk] === 0 && (up[0] === 'why' || up[0] === 'how' || up[0] === 'faults')) delete uo[uk]; } }
+      }
       if (g.subsOn) { g.rallyN--; if (g._meLast) g.meR--; subRedo(g, setNo0); } // banquillo: el punto anulado no cuenta (ni su rendimiento ni su cansancio: se vuelve a contar abajo)
       if (g.mode === 'serve') { endRitual(g); endSwingX(g); g.serveState = 'ready'; }
       // mismo bote (landSide del punto nuevo); si ya se preparó el saque siguiente, lastLand puede venir a null: se rehace con la llamada
@@ -3149,7 +3233,7 @@
   function startSwing(g, p, shot) {
     if (g.swingLive) { // durante el gesto, la última pulsación decide el golpe
       // E1 (finta): gesto abierto con GOLPEAR y cambiado a SALTAR (dejada) o COLOCAR (golpe colocado) antes del contacto
-      if (g.mastery && g.swingShot0 === '' && (shot === 'tip' || shot === 'jset')) g.swingSwapT = g.time;
+      if (g.feintOn && g.swingShot0 === '' && (shot === 'tip' || shot === 'jset')) g.swingSwapT = g.time;
       g.swingShot = shot || ''; return false;
     }
     if (g.swingLock > 0) return false;
@@ -5177,6 +5261,8 @@
     _inBlockVol: inBlockVol, _serveRisk: serveRisk, _recvFail: recvFail, _refreshPred: refreshPred,
     // presentación del punto (SIM-01/03)
     skipHold: skipHold, highlightOf: highlightOf, clutchOf: clutchOf,
+    // Ambiente de Carrera (P3): no-op sin g.amb
+    holdFor: holdFor, canPenalty: canPenalty, penalty: penalty,
     // ritual del sacador CPU (SIM-04)
     ritualAt: ritualAt,
     // remate apuntado (A2) y challenge (B2)

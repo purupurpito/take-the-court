@@ -430,9 +430,10 @@
   var ROLES = ['hit', 'jump', 'sw', 'pause', 'set', 'zoom'];
   var CSS = '' +
     '#touch{position:absolute;inset:0;pointer-events:none;z-index:5;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;transition:opacity .15s ease-out}' +
-    // BALÓN MUERTO (entre el punto y el saque siguiente): todo el overlay baja al 25 % y deja ver el plano de reacción;
-    // vuelve en 150 ms al llegar el saque. Las zonas de pulsación siguen activas (sin latencia añadida).
-    '#touch.dead{opacity:.25;transition:opacity .3s ease-in}' +
+    // BALÓN MUERTO (entre el punto y el saque siguiente): joystick y botones de acción bajan al 25 % y dejan ver el plano de reacción;
+    // vuelven al llegar el saque. Las zonas de pulsación siguen activas (sin latencia añadida). La pausa y la lupa NO se apagan
+    // (revisión móvil: sobre el cielo de la playa la pausa, la única salida, casi no se veía)
+    '#touch.dead>.vt-joy,#touch.dead>.vt-btn:not(.vt-pause):not(.vt-zoom){opacity:.25!important;transition:opacity .3s ease-in}' +
     '#touch.on{pointer-events:auto;touch-action:none}' +
     '.vt-zone{position:absolute;left:0;top:0;bottom:0;width:50%;touch-action:none}' +
     '.vt-joy{position:absolute;left:0;top:0;pointer-events:none;transition:opacity .25s}' +
@@ -709,7 +710,9 @@
   /** Mide los botones (círculos relativos al overlay) y los rectángulos de oclusión. Solo con el overlay visible. */
   function measure() {
     if (!el.root || el.root.hidden) return;
+    var sl = SA.l, sb = SA.b;
     readSafe();   // (el notch cambia con el giro y algunos navegadores lo actualizan sin resize)
+    if ((SA.l !== sl || SA.b !== sb) && T.joy === null) placeJoy();   // (la guía en reposo sale del notch aunque no haya toque: antes se quedaba dentro)
     var rr = el.root.getBoundingClientRect();
     T.rects = T.rects || [{}, {}, {}];
     for (var i = 0; i < ROLES.length; i++) {
@@ -1101,7 +1104,7 @@
       window.addEventListener('touchend', onTouchList, { passive: true, capture: true });
       window.addEventListener('touchcancel', onTouchList, { passive: true, capture: true });
       // giro del móvil con el dedo puesto: el origen del joystick ya no significa nada -> se suelta todo
-      var onTurn = function () { resetTouch(); GEO.ok = false; };
+      var onTurn = function () { resetTouch(); GEO.ok = false; layoutTouch(); placeJoy(); };
       window.addEventListener('orientationchange', onTurn);
       try { if (screen.orientation && screen.orientation.addEventListener) screen.orientation.addEventListener('change', onTurn); } catch (_) { }
       window.addEventListener('gamepadconnected', function (e) {

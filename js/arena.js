@@ -896,6 +896,7 @@
     }
     offBatch.length = 0;
     refLook();
+    cardBuild();   // ambiente (P2): las 3 cartulinas del 1r, ocultas (precompiladas con el resto: prewarmList)
   }
   /** Fusiona piezas {g (BufferGeometry indexada con position/normal/color), b (índice de hueso)} en una geometría con
    *  skinIndex/skinWeight rígidos; cada pieza se transforma con la matriz (pose de reposo) de su hueso. */
@@ -1153,6 +1154,17 @@
   /** Reacciones del entorno a un punto/set/partido: el banquillo que gana aplaude (el entrenador, puño), el otro se queda
    *  quieto (cabeza baja un momento; el entrenador, manos a la cabeza si el punto es grande). */
   function crewReact(team, big, kind) {
+    // ambiente (P2): 'protest' = el entrenador de `team` protesta (brazos abiertos); 'card' = tarjeta a `team`: su banquillo se
+    // lamenta (entrenador manos a la cabeza, suplentes cabeza baja), el otro no hace nada
+    if (kind === 'protest') { coachProtest(team, big ? 1.8 : 1.3); return; }
+    if (kind === 'card') {
+      for (var c = 0; c < crew.length; c++) {
+        var Q = crew[c]; if (Q.team !== team) continue;
+        if (Q.kind === 'coach') { Q.seq = [step(0.3, 9, null, null), step(big ? 2.0 : 1.3, 7, POSE.headHands, POSE.headHands, F_OPEN, F_OPEN)]; Q.seqT = 0; Q.seqI = 0; }
+        else if (Q.kind === 'sub') Q.droop = big ? 2.2 : 1.2;
+      }
+      return;
+    }
     for (var i = 0; i < crew.length; i++) {
       var P = crew[i];
       if (P.kind === 'photo') { if (rnd() < 0.5) P.chimp = 0.9 + rnd() * 1.2; continue; }
@@ -1252,7 +1264,13 @@
     clap:    [-0.69, -0.21, 0.94, 1.79, -0.6], // aplauso delante del pecho (vaivén 6)
     fist:    [-2.55, -0.3, 0, 1.25, 0],       // puño arriba (vaivén 7)
     armsUp:  [-2.85, -0.4, 0, 0.3, -1.2],     // brazos arriba (vaivén 8)
-    headHands: [-2.72, -0.45, 1.17, 1.65, 0]  // manos a la cabeza
+    headHands: [-2.72, -0.45, 1.17, 1.65, 0], // manos a la cabeza
+    // ambiente de Carrera (P2): sanciones (reglas 21.3 y 16.2; señas 6-7 y 25 FIVB) y charla con el capitán
+    card:    [-2.7, -0.42, 0, 0.12, -1.45],   // tarjeta: brazo en alto hacia el equipo sancionado, la cartulina en el puño
+    cardWr:  [-1.0, 0.25, 0, 2.15, 0],        // retraso: antebrazo vertical delante, la tarjeta arriba (se ve por encima del puño)…
+    cardWrL: [-1.1, 0.55, 1.2, 1.25, 0],      // …y la otra mano en su muñeca
+    calm:    [-0.95, -0.32, 0, 0.42, 1.55],   // «calma»: los dos brazos delante, palmas hacia el suelo (vaivén 13: dan palmaditas)
+    plead:   [-0.85, -0.78, 0, 0.55, 1.35]    // entrenador que protesta: brazos abiertos hacia la pista, palmas arriba
   };
   /** Paso de una secuencia: pose de cada brazo (null = reposo), dedos, duración, velocidad de amortiguado y vaivén. */
   function step(d, rate, R, L, fR, fL, osc) { return { d: d, rate: rate, R: R, L: L, fR: fR || F_REL, fL: fL || F_REL, osc: osc || 0 }; }
@@ -1389,9 +1407,20 @@
   function refSignal(e, g) {
     if (!R1) return;
     var sig = e.signal || (e.reason === 'serve' ? (/[85]/.test(e.text || '') ? (/8/.test(e.text) ? 'delay8' : 'delay5') : 'serveFault') : SIG_FROM_REASON[e.reason]);
-    var team = e.team === 1 ? 1 : 0, side = signalSide(sig, e, g), end = !!(e.setWon || e.matchWon), pls = faultPlayers(sig, e), i;
+    var team = e.team === 1 ? 1 : 0, end = !!(e.setWon || e.matchWon), i;
     refEnd = end;
     R2S[6] = team === 0 ? -1 : 1;   // el 2º acaba en el lado del que recibe (el que pierde el punto: el infractor)
+    // ambiente (P2): punto de castigo por tarjeta roja (Sim.penalty): silbato y el equipo que saca, sin seña de falta; si el 1r
+    // aún enseña la tarjeta, va detrás de ella (y cabe antes del saque)
+    if (e.penalty || e.reason === 'penalty' || sig === 'penalty') {
+      lastSig.sig = ''; lastSig.team = team;
+      var qp = [whistleStep(), sideStep(1.0, 12, POSE.side, team, F_OPEN)];
+      if (R1.seq && R1.sig === 'card') seqAppend(R1, qp); else setSeq(R1, qp, 'penalty');
+      R1.sig = 'penalty'; fitSeq(R1, untilServe(g)); R2S[4] = R2_WAIT;
+      return;
+    }
+    var side = signalSide(sig, e, g), pls = faultPlayers(sig, e);
+    lastSig.sig = sig || ''; lastSig.side = side; lastSig.e = e; lastSig.team = team;
     if (R2 && r2Calls(sig, e, g)) {
       // silba en el acto y, si no está ya del lado del infractor, va hacia allí (r2Step); se para para señalar (paso 2)
       var gap = R2S[6] * R2_X - R2.sim.x; gap = gap < 0 ? -gap : gap;
@@ -1543,6 +1572,98 @@
     w.still = T.still = sd.still = 1;
     setSeq(R2, [w, T, sd], 'timeout');
   }
+  /* ---------------------------------------------------------------------
+   * AMBIENTE DE CARRERA (P2, notes/ambiente.md §2B-C y §4.6). El 1r árbitro saca tarjeta (refCard) y habla con el que protesta
+   * (refTalk); la cartulina es UN quad de 2 triángulos (geometría compartida, MeshBasicMaterial) pegado al hueso del antebrazo:
+   * 3 copias (mano derecha, mano izquierda y una segunda en la derecha para la expulsión, roja + amarilla juntas), invisibles
+   * salvo durante el paso de la seña (step.card). 0 dibujos fuera de esos 2 s. Lo deciden VB.Arbitro / VB.Ambiente; aquí solo
+   * se pinta al recibir amb:card / amb:refTalk (o llamando a VB.Arena.refCard / refTalk en las pruebas).
+   * --------------------------------------------------------------------- */
+  var CARD = { geo: null, m: [], cur: '', COL: { yellow: 0xffd21f, red: 0xe0262f } };
+  function cardBuild() {
+    if (CARD.geo || !R1 || !R1.elbR) return;
+    // cartulina de ~15 × 22 cm (mayor que la de verdad: se lee desde la cámara de juego), saliendo del puño
+    var w = 0.15, h = 0.22, y0 = -(CH.hand + 0.02), z = 0.035, g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.Float32BufferAttribute([-w / 2, y0, z, w / 2, y0, z, w / 2, y0 - h, z, -w / 2, y0 - h, z], 3));
+    g.setIndex([0, 2, 1, 0, 3, 2]); g.computeBoundingSphere();
+    CARD.geo = g;
+    // 0 = mano derecha, 1 = izquierda, 2 / 3 = la segunda tarjeta de esa misma mano, algo desplazada (expulsión)
+    for (var i = 0; i < 4; i++) {
+      var m = new THREE.Mesh(g, new THREE.MeshBasicMaterial({ color: CARD.COL.yellow, side: THREE.DoubleSide }));
+      m.visible = false; m.frustumCulled = false; m.name = 'refCard' + i; m.renderOrder = 2;
+      if (i >= 2) m.position.set(i === 2 ? 0.05 : -0.05, -0.03, 0.012);
+      (i & 1 ? R1.elbL : R1.elbR).add(m); CARD.m.push(m);
+    }
+  }
+  /** Muestra las cartulinas del paso en curso del 1r (c = color de amb:card; '' = ninguna; arm = mano que la levanta, 0 derecha /
+   *  1 izquierda). Solo escribe al cambiar. Descalificación: roja en la derecha y amarilla en la izquierda. */
+  function cardShow(c, arm) {
+    var key = c ? c + (arm | 0) : '';
+    if (key === CARD.cur || !CARD.geo) return;
+    CARD.cur = key;
+    var M = CARD.m, Y = CARD.COL.yellow, R = CARD.COL.red, a = arm === 1 ? 1 : 0;
+    for (var i = 0; i < 4; i++) M[i].visible = false;
+    if (!c) return;
+    if (c === 'dq') { M[0].visible = M[1].visible = true; M[0].material.color.setHex(R); M[1].material.color.setHex(Y); return; }
+    M[a].visible = true; M[a].material.color.setHex(c === 'yellow' || c === 'delayY' ? Y : R);
+    if (c === 'expel') { M[a + 2].visible = true; M[a + 2].material.color.setHex(Y); }
+  }
+  function cardStep() { var st = R1 && R1.seq ? R1.seq[R1.seqI] : null; cardShow(st && st.card ? st.card : '', st ? st.cardArm : 0); }
+  /** Atleta de la partida por id (amb:* lleva pid), o null. */
+  function playerById(g, pid) {
+    var pl = g && g.players; if (!pl || !(pid >= 0)) return null;
+    for (var i = 0; i < pl.length; i++) if (pl[i] && pl[i].id === pid) return pl[i];
+    return null;
+  }
+  /** Entrenador del banquillo de un equipo (entorno de pista), o null (playa: sin banquillo en el entorno). */
+  function coachOf(team) { for (var i = 0; i < crew.length; i++) if (crew[i].kind === 'coach' && crew[i].team === team) return crew[i]; return null; }
+  /** Tarjeta (amb:card): silbato, mira al sancionado (jugador; si es el entrenador, al banquillo) y levanta la tarjeta con el
+   *  brazo del lado del equipo (amarilla / roja; expulsión: las dos juntas en una mano; descalificación: una en cada mano, los
+   *  dos brazos arriba; retraso: la tarjeta contra la muñeca, seña 25). La mantiene ~1,8 s, quieto. */
+  var CARD_D = 1.8;
+  function refCard(color, team, pid, g) {
+    if (!R1) return;
+    cardBuild();
+    g = g || ctx.game;
+    var t = team === 1 ? 1 : 0, c = color || 'yellow', pl = playerById(g, pid), co = !pl && pid === -1 ? coachOf(t) : null, tgt = pl || (co && co.sim) || null;
+    var q = [whistleStep()], s;
+    if (tgt) q.push(lookAt(step(0.35, 9, null, null), tgt, pl ? PL_H : 1.4));
+    if (c === 'delayY' || c === 'delayR') s = step(CARD_D, 10, POSE.cardWr, POSE.cardWrL, F_FIST, F_OPEN);
+    else if (c === 'dq') s = step(CARD_D, 10, POSE.card, POSE.card, F_FIST, F_FIST, 14);
+    else s = sideStep(CARD_D, 10, POSE.card, t, F_FIST, 14);
+    s.card = c; s.cardArm = c === 'delayY' || c === 'delayR' || c === 'dq' ? 0 : t; s.still = 1; if (tgt) lookAt(s, tgt, pl ? PL_H : 1.4);
+    q.push(s);
+    setSeq(R1, q, 'card');
+  }
+  /** Charla del 1r con el que protesta (amb:refTalk): 'explain' = repite la seña del punto (o señala el lado del equipo que
+   *  saca); 'calm' = palmas abajo dando palmaditas; 'verbal' = llama al capitán (brazo hacia él y la mano que dice «ven»,
+   *  regla 21.1: amonestación a través del capitán de juego). Mira al jugador si se sabe quién es. No pisa una tarjeta. */
+  var lastSig = { sig: '', side: 0, e: null, team: 0 };
+  function refTalk(level, team, pid, g) {
+    if (!R1 || (R1.seq && R1.sig === 'card')) return;
+    g = g || ctx.game;
+    var t = team === 1 ? 1 : 0, pl = playerById(g, pid), q = [], s;
+    if (level === 'calm') s = step(1.3, 9, POSE.calm, POSE.calm, F_OPEN, F_OPEN, 13);
+    else if (level === 'verbal') {
+      q.push(sideStep(0.45, 12, POSE.beckon, t, F_OPEN));
+      s = sideStep(1.1, 9, POSE.beckon2, t, F_OPEN, 3);
+    } else {
+      s = lastSig.sig ? refSignalStep(lastSig.sig, lastSig.side, lastSig.e || {}, R1) : null;
+      if (s) s = Object.assign({}, s, { d: 1.1 }); else s = sideStep(1.1, 12, POSE.side, lastSig.team, F_OPEN);
+    }
+    if (pl) { for (var i = 0; i < q.length; i++) lookAt(q[i], pl, PL_H); if (!s.aim) lookAt(s, pl, PL_H); }
+    q.push(s);
+    // si aún está señalando el punto, la charla va detrás (y todo cabe antes del saque)
+    if (R1.seq && R1.sig !== 'serve') { seqAppend(R1, q, 'talk'); R1.sig = 'talk'; } else setSeq(R1, q, 'talk');
+    fitSeq(R1, untilServe(g));
+  }
+  /** Protesta del entrenador (amb:protest con role 'coach'): brazos abiertos en el banquillo y el 2º, si no está señalando, le
+   *  mira (es quien atiende al banquillo). */
+  function coachProtest(team, dur) {
+    var co = coachOf(team === 1 ? 1 : 0);
+    if (co) { co.seq = [step(0.15, 9, null, null), step(Math.max(0.8, dur || 1.4), 9, POSE.plead, POSE.plead, F_OPEN, F_OPEN, 6)]; co.seqT = 0; co.seqI = 0; }
+    if (R2 && co && !R2.seq) setSeq(R2, [lookAt(step(Math.max(0.8, dur || 1.4), 9, null, null), co.sim, 1.4)], 'look');
+  }
   /** Objetivos del frame a partir de la secuencia (o reposo). Vaivenes: 1 = roce de la palma, 2 = falta de ataque (dos
    *  golpes hacia abajo), 3 = la mano que indica el saque, 4 = bandera agitada, 5 = roce sobre la bandera,
    *  9 = los dos índices dibujan un rectángulo (señal de revisión por vídeo / challenge), 10 = el índice dibuja círculos
@@ -1589,6 +1710,12 @@
     else if (st.osc === 12) { // sustitución: un antebrazo gira alrededor del otro (círculos desfasados media vuelta)
       w = tsin(u * 9); var w5 = tsin(u * 9 + 1.571);
       _tR[0] += w * 0.16; _tR[3] += w5 * 0.25; _tL[0] -= w * 0.16; _tL[3] -= w5 * 0.25;
+    }
+    else if (st.osc === 13) { // «calma» (ambiente): palmaditas hacia el suelo con las dos manos
+      w = tsin(u * 10) * 0.13; _tR[0] += w; _tL[0] += w; _tR[3] -= w; _tL[3] -= w;
+    }
+    else if (st.osc === 14) { // tarjeta (ambiente): el brazo sube y se queda, con un leve empuje hacia el sancionado
+      w = u < 0.35 ? 0 : tsin((u - 0.35) * 4) * 0.05; _tR[0] += w; _tL[0] += w;
     }
     return st;
   }
@@ -1657,6 +1784,7 @@
     OFK[3] = 1 - Math.exp(-6 * k); OFK[4] = 1 - Math.exp(-7 * k); OFK[5] = 1 - Math.exp(-9 * k); OFK[6] = 1 - Math.exp(-10 * k); OFK[7] = dt; OFK[8] = k;
     if (R2) r2Step(g, dt > 0 ? dt : ctx.frozen ? k : 0);
     for (var i = 0; i < refs.length; i++) refStep(refs[i]);
+    if (CARD.geo) cardStep();   // ambiente: la cartulina del 1r solo durante la seña
     for (var j = 0; j < judges.length; j++) judgeStep(judges[j]);
     // entorno de pista (ARN-14): media cadencia (cada frame anima la mitad, alternando) con dt doble: la mitad de coste y,
     // a su distancia, el mismo aspecto
@@ -1849,17 +1977,32 @@
   // (salida sRGB) que al destino del post-proceso (salida lineal); vHazeD = profundidad de vista.
   var CROWD_HAZE_FS = 'uniform float uHaze; uniform vec3 uHazeC; varying float vHazeD;\n';
   var CROWD_HAZE_APPLY = ' gl_FragColor.rgb = mix(gl_FragColor.rgb, linearToOutputTexel(vec4(uHazeC, 1.0)).rgb, uHaze * smoothstep(9.0, 30.0, vHazeD));\n';
+  /* AMBIENTE DE CARRERA (P2, 18-nov-2026; notes/ambiente.md §2A). Grada local / visitante de verdad sin tocar las camisetas: el
+   * bloque de afición «local» (aAnim.z = 0, naranja) anima al equipo uSwap (0 = el 0, como siempre; 1 = fuera de casa: anima al
+   * rival) y el visitante (z = 1, azul) al otro; del público neutral (z = 0,5) una parte uSplit.x / uSplit.y (hash propio por
+   * instancia) se suma a cada afición. uBoo = pitada por afición (brazos al frente y la cabeza que niega), uClap = palmas
+   * rítmicas por afición con el pulso común uClapK (lo marca arena.js con el mismo patrón que audio.js), uHeat = energía de
+   * base (más balanceo) y uHush = silencio tenso (la grada se queda quieta). Todo a 0 = la grada de siempre, bit a bit. */
+  var AMB_GLSL = [
+    'uniform vec2 uSplit; uniform float uSwap; uniform vec2 uBoo; uniform vec2 uClap; uniform float uClapK; uniform float uHeat; uniform float uHush;',
+    // 0 = afición del equipo 0, 1 = del equipo 1, 0,5 = neutral
+    'float vbSide(){ float z = aAnim.z; if (z < 0.25) return uSwap; if (z > 0.75) return 1.0 - uSwap;',
+    ' float h = fract(aAnim.x * 7.31 + aAnim.w * 3.7); return h < uSplit.x ? 0.0 : (h > 1.0 - uSplit.y ? 1.0 : 0.5); }',
+    'float vbBoo(){ float sd = vbSide(); float b = sd < 0.25 ? uBoo.x : (sd > 0.75 ? uBoo.y : max(uBoo.x, uBoo.y) * 0.3); return b * step(0.2, aAnim.y); }',
+    'float vbClapR(){ float sd = vbSide(); return (sd < 0.25 ? uClap.x : (sd > 0.75 ? uClap.y : 0.0)) * step(0.2, aAnim.y); }'
+  ].join('\n');
   var CROWD_GLSL_HEAD = [
     'attribute vec4 aAnim; attribute vec3 aSkin; attribute vec3 aHair; attribute vec3 aPants; attribute vec4 aAcc;',
     'varying vec3 vFace; varying float vFaceK; varying float vHazeD;',
     'uniform float uTime; uniform vec2 uCheer; uniform vec2 uCheerAge; uniform vec2 uWave; uniform float uTension; uniform vec3 uBall; uniform float uLook; uniform float uCrowdLight;',
+    AMB_GLSL,
     CROWD_FALL_GLSL,
     'vec3 vbRotX(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(v.x, v.y * c - v.z * s, v.y * s + v.z * c); }',
     'vec3 vbRotY(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(v.x * c + v.z * s, v.y, -v.x * s + v.z * c); }',
     'vec3 vbRotZ(vec3 v, float a){ float c = cos(a), s = sin(a); return vec3(v.x * c - v.y * s, v.x * s + v.y * c, v.z); }',
     // ánimo por instancia: equipo, retraso escalonado (no todos a la vez), ola
     'float vbCheer(){ float dly = fract(aAnim.x * 0.731) * 0.42; vec2 ch = uCheer * smoothstep(vec2(dly), vec2(dly + 0.2), uCheerAge);',
-    ' float c = aAnim.z < 0.25 ? ch.x : (aAnim.z > 0.75 ? ch.y : max(ch.x, ch.y) * 0.55); return c * aAnim.y; }',
+    ' float sd = vbSide(); float c = sd < 0.25 ? ch.x : (sd > 0.75 ? ch.y : max(ch.x, ch.y) * 0.55); return c * aAnim.y; }',
     'float vbWave(){ float wd = abs(fract(aAnim.w - uWave.x + 0.5) - 0.5); return uWave.y * smoothstep(0.045, 0.0, wd) * step(0.2, aAnim.y); }' // prensa (energía < 0,2): sin ola
   ].join('\n');
   var crowdGm = null;
@@ -1873,7 +2016,9 @@
   }
   function crowdMaterial() {
     crowdU = { uTime: { value: 0 }, uCheer: { value: new THREE.Vector2() }, uCheerAge: { value: new THREE.Vector2(9, 9) }, uWave: { value: new THREE.Vector2() },
-      uTension: { value: 0 }, uBall: { value: new THREE.Vector3(0, 3, 0) }, uLook: { value: 1 }, uCrowdLight: { value: 1 }, uHaze: { value: 0.34 }, uHazeC: { value: new THREE.Vector3(0.0041, 0.0046, 0.0059) } };
+      uTension: { value: 0 }, uBall: { value: new THREE.Vector3(0, 3, 0) }, uLook: { value: 1 }, uCrowdLight: { value: 1 }, uHaze: { value: 0.34 }, uHazeC: { value: new THREE.Vector3(0.0041, 0.0046, 0.0059) },
+      // ambiente de Carrera (AMB_GLSL): todo a 0 = la grada de siempre
+      uSplit: { value: new THREE.Vector2() }, uSwap: { value: 0 }, uBoo: { value: new THREE.Vector2() }, uClap: { value: new THREE.Vector2() }, uClapK: { value: 0 }, uHeat: { value: 0 }, uHush: { value: 0 } };
     // CARTOON (arreglos finales): sombreado por bandas (MeshToonMaterial) en vez de Lambert suave; rampa propia más clara que la
     // de los atletas (0,5 · 0,78 · 1): de cerca se leen bloques de color planos sin que la grada se oscurezca ni compita con la pista
     var m = new THREE.MeshToonMaterial({ vertexColors: true, color: 0xc8c8c8 });
@@ -1894,26 +2039,30 @@
         ].join('\n'))
         .replace('#include <beginnormal_vertex>', [
           'float cheer = vbCheer(); float act = max(cheer, vbWave());',
-          'float armUp = clamp(act * 1.4, 0.0, 1.0) * (0.82 + 0.18 * sin(uTime * 11.0 + aAnim.x * 3.0));',
-          'float clap = uTension * (1.0 - act) * (0.5 + 0.5 * sin(uTime * 13.0 + aAnim.x * 7.0));',
+          // ambiente: pitada (boo), palmas rítmicas (clapR con el pulso común uClapK) y silencio tenso (hushK)
+          'float boo = vbBoo(); float clapR = vbClapR(); float hushK = 1.0 - uHush * 0.85;',
+          // palmas del cántico: brazos arriba y las manos se juntan por encima de la cabeza en cada golpe (uClapK, común a todos)
+          'float armUp = clamp(act * 1.4, 0.0, 1.0) * (0.82 + 0.18 * sin(uTime * 11.0 + aAnim.x * 3.0)); armUp = max(armUp, clapR);',
+          'float clap = uTension * hushK * (1.0 - act) * (0.5 + 0.5 * sin(uTime * 13.0 + aAnim.x * 7.0));',
           'float armCode = color.y; float side = sign(armCode); float isFore = step(1.5, abs(armCode));',
-          'float shAng = side * (armUp * 2.75 + 0.12 * uTension * (1.0 - act));',
-          'float elAng = isFore * armUp * 1.45; float clapAng = -isFore * side * clap * 0.6;',
+          // pitada: brazos fuera y antebrazos arriba que se agitan (el «¡¿qué?!» de la grada) y la cabeza que niega
+          'float shAng = side * (armUp * 2.75 + 0.12 * uTension * hushK * (1.0 - act) + boo * 0.85 + clapR * (uClapK * 0.4 - 0.24));',
+          'float elAng = isFore * (armUp * 1.45 + boo * (1.1 + 0.35 * sin(uTime * 9.0 + aAnim.x * 5.0))); float clapAng = -isFore * side * clap * 0.6;',
           // posturas de reposo por instancia (se deshacen al animar): manos en los muslos, manos juntas en el regazo,
           // mano en la barbilla, mano levantada a medias. Y encorvado/recostado variable.
-          'float pv = fract(aAnim.x * 5.17); float idleK = 1.0 - clamp(act * 2.0, 0.0, 1.0);',
+          'float pv = fract(aAnim.x * 5.17); float idleK = 1.0 - clamp(max(act, max(boo, clapR)) * 2.0, 0.0, 1.0);',
           'shAng += idleK * ((pv > 0.55 && pv < 0.75) ? -side * 0.17 : 0.0);',
           'elAng += idleK * isFore * ((pv >= 0.75 && pv < 0.9 && side > 0.0) ? -1.5 : ((pv >= 0.9 && side < 0.0) ? -0.8 : 0.0));',
-          'float hun = (fract(aAnim.x * 2.31) * 0.24 - 0.06) * idleK;',
+          'float hun = (fract(aAnim.x * 2.31) * 0.24 - 0.06) * idleK + boo * 0.12;',
           'float hunB = smoothstep(0.05, 0.45, position.y);',
           // la cabeza sigue el balón (y a ratos charla con el de al lado)
           'vec3 ip = instanceMatrix[3].xyz; vec3 fwv = normalize(instanceMatrix[2].xyz); vec3 rtv = normalize(instanceMatrix[0].xyz);',
           'vec3 dB = uBall - ip; float yaw = atan(dot(dB, rtv), max(0.4, dot(dB, fwv)));',
-          'float chat = smoothstep(0.84, 0.98, sin(uTime * 0.19 + aAnim.x * 7.3)) * (fract(aAnim.x * 3.7) > 0.5 ? 1.0 : -1.0);',
+          'float chat = smoothstep(0.84, 0.98, sin(uTime * 0.19 + aAnim.x * 7.3)) * (fract(aAnim.x * 3.7) > 0.5 ? 1.0 : -1.0) * hushK;',
           // color.z = marca (0 cuerpo, 1 bufanda, 2 cabeza, 3 sombrero) + 3 en el público de muñeco de la playa (CROWD_CHB)
           'float chb = step(2.5, color.z); float mk = color.z - chb * 3.0;',
           'float isHead = step(1.5, mk);',
-          'float hy = isHead * clamp(yaw * uLook * 0.85 + chat * 0.95 * (1.0 - act), -1.2, 1.2);',
+          'float hy = isHead * (clamp(yaw * uLook * 0.85 + chat * 0.95 * (1.0 - act), -1.2, 1.2) + boo * 0.42 * sin(uTime * 7.5 + aAnim.x * 3.0));',
           'vec3 objectNormal = vec3(normal);',
           'if (armCode != 0.0) { if (isFore > 0.5) objectNormal = vbRotY(vbRotX(objectNormal, elAng), clapAng); objectNormal = vbRotZ(objectNormal, shAng); }',
           'if (isHead > 0.5) objectNormal = vbRotY(objectNormal, hy);',
@@ -1933,9 +2082,9 @@
           'float neckY = mix(0.74, ' + CROWD_CHB.neck.toFixed(2) + ', chb);',
           'if (isHead > 0.5) transformed = vbRotY(transformed - vec3(0.0, neckY, 0.0), hy) + vec3(0.0, neckY, 0.0);',
           'transformed = vbRotX(transformed - vec3(0.0, 0.05, 0.0), hun * hunB) + vec3(0.0, 0.05, 0.0);',
-          'float bob = sin(uTime * (1.1 + aAnim.y * 0.7) + aAnim.x) * 0.012 + uTension * sin(uTime * 4.0 + aAnim.x) * 0.02;',
+          'float bob = (sin(uTime * (1.1 + aAnim.y * 0.7) + aAnim.x) * 0.012 * (1.0 + uHeat * 0.9) + uTension * sin(uTime * 4.0 + aAnim.x) * 0.02) * hushK;',
           'float hop = abs(sin(uTime * 8.0 + aAnim.x)) * 0.17 * cheer;',
-          'float rise = smoothstep(0.05, 0.6, act) * 0.36;',
+          'float rise = max(smoothstep(0.05, 0.6, act), max(clapR, boo) * 0.8) * 0.36;',
           'transformed.y += bob + hop + rise;',
           'transformed.x += sin(uTime * 0.55 + aAnim.x * 2.0) * 0.024 * max(0.0, transformed.y);' // balanceo suave
         ].join('\n'))
@@ -1952,7 +2101,7 @@
         ' diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 0.18, fk);',
         '}'].join('\n'));
     };
-    m.customProgramCacheKey = function () { return 'vb-crowd-8'; };
+    m.customProgramCacheKey = function () { return 'vb-crowd-9'; };
     return m;
   }
   /* Banderas de la grada (ARN-02): atlas de 8 banderas ORIGINALES de peña (4 locales en naranja/arena/marino, 4 visitantes en
@@ -2037,7 +2186,7 @@
         ].join('\n'));
     };
     m.onBeforeCompile = (function (vs) { return function (sh) { vs(sh); sh.fragmentShader = CROWD_HAZE_FS + sh.fragmentShader.replace('#include <fog_fragment>', CROWD_HAZE_APPLY + '#include <fog_fragment>'); }; })(m.onBeforeCompile);
-    m.customProgramCacheKey = function () { return 'vb-flag-3'; };
+    m.customProgramCacheKey = function () { return 'vb-flag-4'; };
     return m;
   }
   function flagGeometry() {
@@ -2369,25 +2518,27 @@
     'attribute vec4 aAnim; attribute vec3 aSkin; attribute vec3 aHair; attribute vec3 aPants; attribute vec2 aImp;',
     'uniform float uTime; uniform vec2 uCheer; uniform vec2 uCheerAge; uniform vec2 uWave; uniform float uTension; uniform float uCrowdLight;',
     'uniform float uDens; uniform float uSkipNear;',
+    AMB_GLSL,
     CROWD_FALL_GLSL,
     'varying vec2 vUv; varying vec3 vShirt; varying vec3 vSkin; varying vec3 vHair; varying vec3 vPants; varying float vHazeD;',
     '#include <fog_pars_vertex>',
     'float vbCheer(){ float dly = fract(aAnim.x * 0.731) * 0.42; vec2 ch = uCheer * smoothstep(vec2(dly), vec2(dly + 0.2), uCheerAge);',
-    ' float c = aAnim.z < 0.25 ? ch.x : (aAnim.z > 0.75 ? ch.y : max(ch.x, ch.y) * 0.55); return c * aAnim.y; }',
+    ' float sd = vbSide(); float c = sd < 0.25 ? ch.x : (sd > 0.75 ? ch.y : max(ch.x, ch.y) * 0.55); return c * aAnim.y; }',
     'float vbWave(){ float wd = abs(fract(aAnim.w - uWave.x + 0.5) - 0.5); return uWave.y * smoothstep(0.045, 0.0, wd) * step(0.2, aAnim.y); }',
     'void main(){',
     ' if (aImp.x >= uDens || (uSkipNear > 0.5 && aImp.y > 0.5)) { gl_Position = vec4(0.0, 0.0, -2.0, 1.0); return; }',
     ' vec3 ip = instanceMatrix[3].xyz; float sx = length(instanceMatrix[0].xyz), sy = length(instanceMatrix[1].xyz);',
     ' float cheer = vbCheer(); float act = max(cheer, vbWave());',
-    ' float clap = uTension * (1.0 - act) * step(0.5, fract(uTime * 2.2 + aAnim.x));',
+    ' float boo = vbBoo(); float clapR = vbClapR(); float hushK = 1.0 - uHush * 0.85;',
+    ' float clap = uTension * hushK * (1.0 - act) * step(0.5, fract(uTime * 2.2 + aAnim.x));',
     ' float pv = fract(aAnim.x * 5.17);',
-    ' float frame = act * 1.4 > 0.45 ? 1.0 : (clap > 0.5 ? 2.0 : ((pv > 0.55 && pv < 0.9) ? 3.0 : 0.0));',
+    ' float frame = act * 1.4 > 0.45 ? 1.0 : (clapR > 0.3 ? (uClapK > 0.5 ? 2.0 : 1.0) : (boo > 0.3 ? 3.0 : (clap > 0.5 ? 2.0 : ((pv > 0.55 && pv < 0.9) ? 3.0 : 0.0))));',
     ' float row = fract(aAnim.x * 3.7) > 0.62 ? 1.0 : 0.0;',
     ' vec2 q = uv; if (fract(aAnim.x * 1.93) > 0.5) q.x = 1.0 - q.x;',
     ' vUv = vec2((frame + q.x) * 0.25, 1.0 - (row + 1.0 - q.y) * 0.25);',
-    ' float bob = sin(uTime * (1.1 + aAnim.y * 0.7) + aAnim.x) * 0.012 + uTension * sin(uTime * 4.0 + aAnim.x) * 0.02;',
+    ' float bob = (sin(uTime * (1.1 + aAnim.y * 0.7) + aAnim.x) * 0.012 * (1.0 + uHeat * 0.9) + uTension * sin(uTime * 4.0 + aAnim.x) * 0.02) * hushK;',
     ' float hop = abs(sin(uTime * 8.0 + aAnim.x)) * 0.17 * cheer;',
-    ' float rise = smoothstep(0.05, 0.6, act) * 0.36;',
+    ' float rise = max(smoothstep(0.05, 0.6, act), max(clapR, boo) * 0.8) * 0.36;',
     ' vec3 tc = cameraPosition - ip; vec3 rt = normalize(vec3(tc.z, 0.0, -tc.x) + vec3(1e-4, 0.0, 0.0));',
     ' float sway = sin(uTime * 0.55 + aAnim.x * 2.0) * 0.024 * position.y;',
     ' vec3 wp = ip + rt * ((position.x * ' + IMP_W.toFixed(4) + ' + sway) * sx) + vec3(0.0, (' + IMP_Y0.toFixed(3) + ' + position.y * ' + IMP_H.toFixed(3) + ') * sy + bob + hop + rise, 0.0);',
@@ -3113,7 +3264,7 @@
   function warmMsgFonts() {
     try {
       var cv = document.createElement('canvas'); cv.width = cv.height = 8;
-      var g = cv.getContext('2d'), list = [screens.big, screens.hung], names = ['TI', 'LA CPU', 'EL LOCAL', 'LA VISITA'], subs = ['SAQUE A LA RED', 'BALÓN A LA RED'], k;
+      var g = cv.getContext('2d'), list = [screens.big, screens.hung], names = ['TI', 'LA CPU', 'EL LOCAL', 'LA VISITA', 'EL RIVAL'], subs = ['SAQUE A LA RED', 'BALÓN A LA RED'], k;
       for (k in HOW) subs.push(HOW[k]);
       for (k in REASON) subs.push(REASON[k]);
       for (var i = 0; i < list.length; i++) {
@@ -3153,6 +3304,7 @@
   function scoreFromGame(g) {
     if (!g) return;
     SB.names = g.demo ? ['LOCAL', 'VISITA'] : g.netCr ? ['TÚ', hungRival(g.netCr)] : ['TÚ', 'CPU'];
+    if (!g.demo && !g.netCr && ambName(0, g) && ambName(1, g)) SB.names = [hungRival({ rivalName: AMB.short[0] }), hungRival({ rivalName: AMB.short[1] })];   // Carrera con ambiente: los clubes
     var nc = !g.demo && g.netCr && g.netCr.col;   // (online: las camisetas de cada uno; el invitado suele ir de azul y el rival de rojo)
     TEAMC[0] = nc ? nc[0] : TEAMC0[0]; TEAMC[1] = nc ? nc[1] : TEAMC0[1];
     SB.score[0] = g.score[0]; SB.score[1] = g.score[1]; SB.sets[0] = g.sets[0]; SB.sets[1] = g.sets[1];
@@ -3715,12 +3867,128 @@
   /** Arranca la alegría de un equipo; si ya estaba saltando no reinicia el escalonado. */
   function startCheer(t, sec) { if (RT.cheerT[t] < 0.3) RT.cheerAge[t] = 0; RT.cheerT[t] = sec; }
   function teamName(t, g) { return g && g.demo ? (t === 0 ? 'LOCAL' : 'VISITA') : (t === 0 ? 'TÚ' : 'CPU'); }
-  /** «PUNTO PARA TI» / «SET PARA LA CPU» (rótulos del pabellón, 10-nov-2026: frases en vez de «PUNTO · TÚ»). */
-  function teamFor(t, g) { return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : g && g.online ? 'EL RIVAL' : 'LA CPU'); }   // (online: el rival es una persona)
+  /* AMBIENTE DE CARRERA (P2). Estado de la grada del partido: AMB.on solo con un partido jugado de Carrera con ambiente (lo enciende
+   * amb:start o VB.Ambiente.crowdOf(g) ≠ null; sin eso, todo como siempre). home = equipo local (0/1; -1 = campo neutral), short =
+   * nombres cortos de los clubes (rótulos del pabellón en vez de «LA CPU»). boo/clap/hush: lo que piden los eventos amb:* (con su
+   * tiempo restante); cada frame se mezcla con lo que diga crowdOf(g) y va a los uniformes de AMB_GLSL. */
+  var AMB = { on: false, g: null, home: 0, heat: 0, fans: [0.55, 0.15], short: ['', ''], boo: [0, 0], booT: [0, 0], whT: -1, whK: 0,
+    clap: [0, 0], clapT: [0, 0], chT: 0, chKind: '', hush: 0, hushOn: false, k: { boo: [0, 0], clap: [0, 0], hush: 0, split: [0, 0], swap: 0, heat: 0 } };
+  function ambReset() {
+    AMB.on = false; AMB.g = null; AMB.home = 0; AMB.heat = 0; AMB.short[0] = AMB.short[1] = ''; AMB.boo[0] = AMB.boo[1] = 0; AMB.booT[0] = AMB.booT[1] = 0;
+    AMB.whT = -1; AMB.whK = 0; AMB.clap[0] = AMB.clap[1] = 0; AMB.clapT[0] = AMB.clapT[1] = 0; AMB.chT = 0; AMB.chKind = ''; AMB.hush = 0; AMB.hushOn = false;
+  }
+  /** Nombre del equipo t para los rótulos en Carrera con ambiente ('' si no hay). */
+  function ambName(t, g) { return AMB.on && (!g || AMB.g === g || !AMB.g) && AMB.short[t] ? String(AMB.short[t]).toUpperCase() : ''; }
+  /** «PUNTO PARA TI» / «SET PARA LA CPU» (rótulos del pabellón, 10-nov-2026: frases en vez de «PUNTO · TÚ»). Carrera con
+   *  ambiente: el nombre corto del club («PUNTO PARA VOLEY NORTE»). */
+  function teamFor(t, g) { var an = ambName(t, g); if (an) return an; return g && g.demo ? (t === 0 ? 'EL LOCAL' : 'LA VISITA') : (t === 0 ? 'TI' : g && (g.online || g.career) ? 'EL RIVAL' : 'LA CPU'); }   // (online: el rival es una persona)
   /** «CHALLENGE TUYO» / «CHALLENGE DE LA CPU». */
-  function teamOf(t, g) { return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : g && g.online ? 'DEL RIVAL' : 'DE LA CPU'); }
+  function teamOf(t, g) { var an = ambName(t, g); if (an) return 'DE ' + an; return g && g.demo ? (t === 0 ? 'DEL LOCAL' : 'DE LA VISITA') : (t === 0 ? 'TUYO' : g && (g.online || g.career) ? 'DEL RIVAL' : 'DE LA CPU'); }
   var REASON = { 'in': 'DENTRO', out: 'FUERA', antenna: 'ANTENA', 'double': 'DOBLES', four: '4 TOQUES', net: 'TOQUE DE RED',
-    serve: 'FALTA DE SAQUE', under: 'BAJO LA RED', block: 'BLOQUEO DEL SAQUE', attackServe: 'ATAQUE SOBRE EL SAQUE' };
+    serve: 'FALTA DE SAQUE', under: 'BAJO LA RED', block: 'BLOQUEO DEL SAQUE', attackServe: 'ATAQUE SOBRE EL SAQUE', penalty: 'PUNTO DE CASTIGO' };
+  /* ---- ambiente de Carrera (P2): eventos amb:* y la grada de cada frame ---- */
+  var CARD_TXT = { yellow: 'TARJETA AMARILLA', red: 'TARJETA ROJA', expel: 'EXPULSIÓN', dq: 'DESCALIFICACIÓN', delayY: 'AVISO POR RETRASO', delayR: 'CASTIGO POR RETRASO' };
+  /** Ritmo de los cánticos (s): ciclo y golpes (palmada / sílaba) dentro de él. EL MISMO patrón que audio.js (AMB_RHYTHM): la grada
+   *  da la palmada a la vez que suena. palmas = 3 + 2 («pa-pa-pa · pa-pa»). */
+  var AMB_RHYTHM = { palmas: [2.1, [0, 0.3, 0.6, 1.2, 1.5]], vamos: [2.4, [0, 0.45, 1.2, 1.5, 1.8]], oe: [2.4, [0, 0.35, 0.9, 1.25]],
+    defensa: [2.4, [0, 0.3, 0.6, 1.2, 1.5]], nombre: [2.4, [0, 0.45, 1.2, 1.5, 1.8]] };
+  function clamp01(v) { v = +v; return v > 0 ? (v < 1 ? v : 1) : 0; }
+  /** Pulso de las palmas (0..1, 1 = manos juntas) a los t s de empezar el cántico `kind`. */
+  function chantPulse(kind, t) {
+    var R = AMB_RHYTHM[kind] || AMB_RHYTHM.palmas, u = t % R[0], H = R[1], d = 9;
+    for (var i = 0; i < H.length; i++) { var x = u - H[i]; if (x < -0.05) x += R[0]; if (x >= -0.05 && x < d) d = x; }
+    return d < 0 ? 1 + d / 0.05 : d < 0.04 ? 1 : d < 0.18 ? 1 - (d - 0.04) / 0.14 : 0;
+  }
+  function ambStart(e, g) {
+    AMB.on = true; AMB.g = g || null;
+    AMB.home = e.home === 1 ? 1 : e.home === -1 ? -1 : 0;
+    AMB.heat = clamp01(e.heat);
+    if (e.fans && e.fans.length === 2) { AMB.fans[0] = clamp01(e.fans[0]); AMB.fans[1] = clamp01(e.fans[1]); }
+    var sh = e.short || e.names || null;
+    AMB.short[0] = sh && sh[0] ? String(sh[0]).slice(0, 14) : ''; AMB.short[1] = sh && sh[1] ? String(sh[1]).slice(0, 14) : '';
+    if (g && AMB.short[0] && AMB.short[1]) scoreFromGame(g);   // marcador colgado y videomarcadores con los clubes
+  }
+  /** amb:* (los genera VB.Ambiente; main.js los mete en el array del frame). Devuelve true si lo ha tratado. */
+  function ambEvent(e, g) {
+    switch (e.type) {
+      case 'amb:start': ambStart(e, g); return true;
+      case 'amb:led': if (e.text && led.mcv) ledMessage(String(e.text).toUpperCase().slice(0, 26), e.team === 0 || e.team === 1 ? TEAMC[e.team] : CC_COL, e.dur || 3); return true;
+      case 'amb:roar': { var rt = e.team === 1 ? 1 : 0; startCheer(rt, Math.max(RT.cheerT[rt], 1.2 + 1.6 * clamp01(e.k == null ? 0.6 : e.k))); RT.cheerMax[rt] = 1; return true; }
+      case 'amb:boo': {
+        var by = e.by === 1 ? 1 : e.by === 0 ? 0 : AMB.home === 1 ? 1 : 0;
+        AMB.boo[by] = Math.max(AMB.booT[by] > 0 ? AMB.boo[by] : 0, clamp01(e.k == null ? 0.7 : e.k)); AMB.booT[by] = Math.max(AMB.booT[by], e.dur || 2.5);
+        return true;
+      }
+      case 'amb:whistles': AMB.whT = e.team === 1 ? 1 : 0; AMB.whK = clamp01(e.k == null ? 0.7 : e.k); return true;   // hasta el golpe de saque
+      case 'amb:chant': {
+        var ct = e.team === 1 ? 1 : 0;
+        if (!(AMB.clapT[0] > 0 || AMB.clapT[1] > 0)) AMB.chT = 0;
+        AMB.clap[ct] = clamp01(e.k == null ? 0.8 : e.k); AMB.clapT[ct] = e.dur || 4; AMB.chKind = AMB_RHYTHM[e.kind] ? e.kind : 'palmas';
+        return true;
+      }
+      case 'amb:wave': if (!ctx.reduceMotion) RT.waveT = Math.max(RT.waveT, e.dur || 7); return true;   // «Menos movimiento»: sin ola
+      case 'amb:hush': AMB.hush = clamp01(e.k == null ? 0.8 : e.k); AMB.hushOn = true; return true;      // hasta el golpe de saque
+      case 'amb:card': {
+        var kt = e.team === 1 ? 1 : 0, red = e.color !== 'yellow' && e.color !== 'delayY';
+        refCard(e.color, kt, e.pid, g); crewReact(kt, red, 'card');
+        var cn = (e.num != null && e.num !== '' && e.num >= 0 ? 'Nº ' + e.num + ' ' : '') + (e.name ? String(e.name).toUpperCase() : '');
+        screenMsg(CARD_TXT[e.color] || 'TARJETA', (cn || ambName(kt, g) || '').slice(0, 24), red ? '#e0262f' : '#ffd21f', 3.2);
+        return true;
+      }
+      case 'amb:refTalk': refTalk(e.level, e.team, e.pid, g); return true;
+      case 'amb:protest': {
+        var pt = e.team === 1 ? 1 : 0, pp = playerById(g, e.pid), du = Math.max(0.8, Math.min(2.2, e.dur || 1.2));
+        if (e.role === 'coach' || (e.pid === -1 && !pp)) crewReact(pt, clamp01(e.k) > 0.6, 'protest');
+        else if (pp && R1 && !R1.seq) setSeq(R1, [lookAt(step(du, 9, null, null), pp, PL_H)], 'look');   // el 1r mira al que protesta
+        return true;
+      }
+      case 'amb:handshake': startCheer(0, 2.2); startCheer(1, 2.2); return true;
+    }
+    return false;
+  }
+  /** Por frame: lo que piden los amb:* (con su tiempo) y VB.Ambiente.crowdOf(g) -> uniformes de la grada (suavizados). Sin ambiente
+   *  todo tiende a 0 y, una vez allí, queda exactamente como siempre. */
+  function ambFrame(g, rdt) {
+    var cr = null, K = AMB.k, i;
+    if (g && g.career && !g.demo && VB.Ambiente && VB.Ambiente.crowdOf) { try { cr = VB.Ambiente.crowdOf(g); } catch (err) { cr = null; } }
+    if (cr && cr.on !== false) {
+      if (!AMB.on || AMB.g !== g) { AMB.on = true; AMB.g = g; }
+      if (cr.home === 0 || cr.home === 1 || cr.home === -1) AMB.home = cr.home;
+      if (cr.heat != null && isFinite(cr.heat)) AMB.heat = clamp01(cr.heat);
+      if (cr.fans && cr.fans.length === 2) { AMB.fans[0] = clamp01(cr.fans[0]); AMB.fans[1] = clamp01(cr.fans[1]); }
+    } else if (AMB.on && AMB.g && g !== AMB.g) ambReset();     // otra partida (rápida, online, entrenamiento...): como siempre
+    var on = AMB.on && !(g && g.demo), live = g && g.mode === 'rally', rm = ctx.reduceMotion ? 0.5 : 1;
+    var tb0 = 0, tb1 = 0, tc0 = 0, tc1 = 0, th = 0, sx = 0, sy = 0, sw = 0, ht = 0;
+    for (i = 0; i < 2; i++) { if (AMB.booT[i] > 0) AMB.booT[i] -= rdt; if (AMB.clapT[i] > 0) AMB.clapT[i] -= rdt; }
+    if (on) {
+      sw = AMB.home === 1 ? 1 : 0; ht = AMB.heat;
+      sx = AMB.fans[0] * 0.45; sy = AMB.fans[1] * 0.45;
+      if (!live) {   // balón vivo: ni pitadas ni palmas ni silencio (se cortan en el golpe de saque)
+        tb0 = AMB.booT[0] > 0 ? AMB.boo[0] : 0; tb1 = AMB.booT[1] > 0 ? AMB.boo[1] : 0;
+        if (AMB.whT >= 0) { if (AMB.whT === 0) tb1 = Math.max(tb1, AMB.whK * 0.85); else tb0 = Math.max(tb0, AMB.whK * 0.85); }
+        tc0 = AMB.clapT[0] > 0 ? AMB.clap[0] : 0; tc1 = AMB.clapT[1] > 0 ? AMB.clap[1] : 0;
+        th = AMB.hushOn ? AMB.hush : 0;
+        if (cr) {
+          if (cr.boo) { tb0 = Math.max(tb0, clamp01(cr.boo[0])); tb1 = Math.max(tb1, clamp01(cr.boo[1])); }
+          if (cr.chant && cr.chant.k > 0) { if (cr.chant.team === 1) tc1 = Math.max(tc1, clamp01(cr.chant.k)); else tc0 = Math.max(tc0, clamp01(cr.chant.k)); if (cr.chant.kind && AMB_RHYTHM[cr.chant.kind]) AMB.chKind = cr.chant.kind; }
+          if (cr.hush) th = Math.max(th, clamp01(cr.hush));
+        }
+      } else { AMB.whT = -1; AMB.hushOn = false; AMB.clapT[0] = AMB.clapT[1] = 0; }
+    }
+    if (!(K.clap[0] > 0.01 || K.clap[1] > 0.01) && (tc0 > 0 || tc1 > 0)) AMB.chT = 0;   // empieza un cántico: el ritmo arranca aquí
+    var a = 1 - Math.exp(-6 * rdt), b = 1 - Math.exp(-3 * rdt);
+    K.boo[0] += (tb0 * rm - K.boo[0]) * a; K.boo[1] += (tb1 * rm - K.boo[1]) * a;
+    K.clap[0] += (tc0 * rm - K.clap[0]) * a; K.clap[1] += (tc1 * rm - K.clap[1]) * a;
+    K.hush += (th - K.hush) * b; K.heat += (ht - K.heat) * b;
+    K.split[0] += (sx - K.split[0]) * b; K.split[1] += (sy - K.split[1]) * b; K.swap = sw;
+    // a cero de verdad (la grada de siempre en cuanto se apaga)
+    for (i = 0; i < 2; i++) { if (K.boo[i] < 1e-3) K.boo[i] = 0; if (K.clap[i] < 1e-3) K.clap[i] = 0; if (K.split[i] < 1e-3) K.split[i] = 0; }
+    if (K.hush < 1e-3) K.hush = 0; if (K.heat < 1e-3) K.heat = 0;
+    var U = crowdU; if (!U || !U.uBoo) return;
+    U.uBoo.value.set(K.boo[0], K.boo[1]); U.uClap.value.set(K.clap[0], K.clap[1]);
+    U.uSplit.value.set(K.split[0], K.split[1]); U.uSwap.value = K.swap; U.uHush.value = K.hush; U.uHeat.value = K.heat;
+    if (K.clap[0] > 0 || K.clap[1] > 0) { AMB.chT += rdt; U.uClapK.value = chantPulse(AMB.chKind, AMB.chT); } else U.uClapK.value = 0;
+  }
   var HOW = { ace: '¡ACE!', kill: 'REMATE', tip: 'DEJADA', block: 'BLOQUEO' };
   /** Subtítulo del videomarcador: cómo se ganó; el balón que el rival no pasa de la red no es «DENTRO». */
   function pointSub(e) {
@@ -3736,6 +4004,7 @@
   function onEvents(g, events) {
     for (var i = 0; i < events.length; i++) {
       var e = events[i];
+      if (e.amb || (typeof e.type === 'string' && e.type.indexOf('amb:') === 0)) { if (!e.replay) ambEvent(e, g); continue; }   // ambiente de Carrera (P2)
       switch (e.type) {
         case 'newMatch': MOOD.winOn = false; scoreFromGame(g); break;
         case 'newSet': scoreFromGame(g); break;
@@ -3752,7 +4021,7 @@
           RT.cheerT[1 - w] = Math.min(RT.cheerT[1 - w], 0.0);
           flRate = Math.max(flRate, e.matchWon ? 30 : 12);
           if (!e.setWon && !e.matchWon) {
-            ledMessage('PUNTO PARA ' + teamFor(w, g), TEAMC[w], 2.6);
+            ledMessage(e.penalty ? 'PUNTO DE CASTIGO' : 'PUNTO PARA ' + teamFor(w, g), TEAMC[w], 2.6);
             screenMsg('PUNTO PARA ' + teamFor(w, g), pointSub(e), TEAMC[w], 2.4);
           }
           refSignal(e, g);
@@ -3796,7 +4065,7 @@
         case 'match':
           var win = e.team === 0 && !g.demo;
           ledMessage(win ? '¡VICTORIA!' : 'FIN DEL PARTIDO', TEAMC[e.team], 9);
-          screenMsg(win ? '¡VICTORIA!' : 'GANA ' + (g && g.demo ? (e.team === 0 ? 'EL LOCAL' : 'LA VISITA') : g && g.online ? 'EL RIVAL' : 'LA CPU'), 'SETS ' + (e.sets ? e.sets[0] + ' – ' + e.sets[1] : ''), TEAMC[e.team], 9);
+          screenMsg(win ? '¡VICTORIA!' : 'GANA ' + (ambName(e.team, g) || (g && g.demo ? (e.team === 0 ? 'EL LOCAL' : 'LA VISITA') : g && g.online ? 'EL RIVAL' : 'LA CPU')), 'SETS ' + (e.sets ? e.sets[0] + ' – ' + e.sets[1] : ''), TEAMC[e.team], 9);
           RT.waveAmp = 1; RT.waveT = 10; flRate = 40; MOOD.winOn = true;
           break;
         case 'block':
@@ -3827,6 +4096,7 @@
           break;
         case 'hit':
           if (e.kind === 'spike') flRate = Math.max(flRate, 4);
+          if (e.kind === 'serve' && !e.replay) { AMB.whT = -1; AMB.hushOn = false; AMB.clapT[0] = AMB.clapT[1] = 0; }   // ambiente: el saque lo corta
           break;
         case 'net':
           netRip.a = Math.min(0.22, 0.05 + (Math.hypot(g.ball.vx, g.ball.vy) * 0.02)); netRip.t = 0;
@@ -5364,6 +5634,7 @@
       RT.cheerT[0] = RT.cheerT[1] = 0; RT.waveAmp = 0; RT.waveT = 0; netRip.t = 9; led.msgT = 0; setLedMode(false); led.w = 0;
       SB.msgT = 0; SB.msg = ''; SB.next = null; led.next = null; RT.ccT = 0; scoreFromGame(g);
       MOOD.winOn = false; MOOD.win = 0; MOOD.pfT = 9; MOOD.tense = 0; MOOD.dirty = true;
+      ambReset(); cardShow('');   // ambiente: lo enciende amb:start / crowdOf del partido nuevo
     },
     onState: function (s) { if (s === 'menu') RT.menuWave = 6; },
     setQuality: function (q) {
@@ -5446,6 +5717,7 @@
       if (RT.ccT > 0) RT.ccT = Math.max(0, RT.ccT - rdt);
     var tens = ((g.matchPoint >= 0 || g.setPoint >= 0) && g.mode !== 'over') || RT.ccT > 0 ? 1 : 0;
       RT.tension += (tens - RT.tension) * Math.min(1, rdt * 2); crowdU.uTension.value = RT.tension;
+      ambFrame(g, rdt);   // ambiente de Carrera (P2): pitada, palmas, silencio, reparto de la grada
       updateLED(rdt);
       if (SB.msgT > 0) { SB.msgT -= rdt; if (SB.msgT <= 0) { SB.dirty = true; if (SB.next) { var nx = SB.next; SB.next = null; screenMsg(nx[0], nx[1], nx[2], nx[3], nx[4]); } } }
       if (SB.dirty && !BEACH.on && HMAP.grp && HMAP.def && HMAP.def.drawScore) { // pabellón con marcador propio (Palau se repinta al volver)
@@ -5482,6 +5754,13 @@
     cheer: function (team, sec) { startCheer(team === 1 ? 1 : 0, sec || 2); },
     /** Lanza la ola en la grada. */
     wave: function (sec) { RT.waveT = sec || 8; },
+    /** Ambiente de Carrera (P2): tarjeta del 1r árbitro. color 'yellow'|'red'|'expel'|'dq'|'delayY'|'delayR', team 0/1, pid = id del
+     *  atleta sancionado (-1 = entrenador / equipo). Lo mismo que hace amb:card en el pabellón (sin rótulos). */
+    refCard: function (color, team, pid) { refCard(color, team, pid, ctx.game); },
+    /** Ambiente: charla del 1r con el que protesta. level 'explain'|'calm'|'verbal' (amonestación a través del capitán). */
+    refTalk: function (level, team, pid) { refTalk(level, team, pid, ctx.game); },
+    /** Ambiente: estado de la grada de Carrera (solo lectura, pruebas): {on, home, heat, short, k: {boo, clap, hush, split, swap, heat}, card}. */
+    ambState: function () { return { on: AMB.on, home: AMB.home, heat: AMB.heat, short: AMB.short.slice(), k: AMB.k, card: CARD.cur }; },
     /** Segundos que quedan del "momento" de cambio de campo (0 = no hay). Para camera.js / ui.js. */
     courtChangeT: function () { return RT.ccT; },
     /** Puntos de interés del pabellón (coords de sim) para planos de cámara: marcador colgado, videomarcadores. */
@@ -5523,6 +5802,6 @@
       lights: { key: keyLight, hemi: hemi, fill: fillLight, rim: rimLight }, floorMat: floorMat, post: post, mood: MOOD, screens: screens,
       crew: crew, crewReact: crewReact, POSE: POSE,
       // señales de los árbitros (tools/refposes.js): R1/R2, estado del paso del 2º y las secuencias con un evento falso
-      R1: R1, R2: R2, R2S: R2S, onEvents: onEvents, judgeSignal: judgeSignal, lineJudgeFor: lineJudgeFor, refSignal: refSignal, refAuthorize: refAuthorize, refChallenge: refChallenge, refChallengeResult: refChallengeResult }; }
+      R1: R1, R2: R2, R2S: R2S, onEvents: onEvents, refCard: refCard, refTalk: refTalk, cardM: CARD.m, AMB: AMB, judgeSignal: judgeSignal, lineJudgeFor: lineJudgeFor, refSignal: refSignal, refAuthorize: refAuthorize, refChallenge: refChallenge, refChallengeResult: refChallengeResult }; }
   };
 })();

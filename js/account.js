@@ -349,19 +349,25 @@
     if (!isMail(mail) || !mailOk(mail)) return Promise.reject(err('need_mail'));
     return idt('accounts:sendOobCode', { requestType: 'PASSWORD_RESET', email: mail });
   }
-  // ---- Google: SDK de Firebase Auth (compat) cargado a demanda; ventana emergente y, si el navegador la bloquea, redirección
-  var GREDIR = 'make-the-cut.account.gredir', sdkP = null;
+  // ---- Google: SDK de Firebase Auth (compat) cargado a demanda (y precargado al abrir el panel sin sesión) y SIEMPRE en ventana emergente.
+  // Sin redirección (19-nov-2026): con authDomain en firebaseapp.com y la página en github.io, el almacenamiento particionado de Safari
+  // 16.1+ y Firefox deja getRedirectResult vacío y no se entraba sin ver ningún error. Si el navegador bloquea la ventana (se abrió tras
+  // esperar al SDK y ya no cuenta como toque), el panel pide confirmación («Abrir Google») y ese toque nuevo abre la ventana al momento.
+  var GREDIR = 'make-the-cut.account.gredir', sdkP = null, sdkFb = null;
   function loadSdk() {
     if (sdkP) return sdkP;
     function add(f) { return new Promise(function (ok, ko) { var sc = document.createElement('script'); sc.src = FB.sdk + f; sc.async = false; sc.onload = ok; sc.onerror = function () { ko(err('unavailable')); }; document.head.appendChild(sc); }); }
     sdkP = add('firebase-app-compat.js').then(function () { return add('firebase-auth-compat.js'); }).then(function () {
       var fb = window.firebase; if (!fb || !fb.auth) throw err('unavailable');
       if (!fb.apps.length) fb.initializeApp({ apiKey: FB.key, authDomain: FB.authDomain, projectId: FB.project });
-      return fb;
+      try { fb.auth(); } catch (e) { }   // (crea ya la instancia: en Safari y móvil prepara la ventana antes del toque)
+      sdkFb = fb; return fb;
     });
     sdkP.catch(function () { sdkP = null; });
     return sdkP;
   }
+  /** Precarga del SDK (al abrir el panel sin sesión): así el primer toque en «Entrar con Google» ya abre la ventana directamente. */
+  function gWarm() { if (!sdkFb && !acc) loadSdk().catch(function () { }); }
   function gFinish(cred) {
     var u = cred && cred.user; if (!u) throw err('g_cancel');
     return u.getIdTokenResult().then(function (t) {
@@ -382,29 +388,27 @@
     if (/account-exists-with-different-credential/.test(c)) return err('g_exists');
     return e && e.code && !/^auth\//.test(c) ? e : err('error', c);
   }
-  function google() {
-    return loadSdk().then(function (fb) {
-      var pr = new fb.auth.GoogleAuthProvider(); pr.setCustomParameters({ prompt: 'select_account' });
-      return fb.auth().signInWithPopup(pr).then(gFinish, function (e) {
-        if (/popup-blocked|operation-not-supported-in-this-environment/.test(String(e && e.code))) {
-          try { sessionStorage.setItem(GREDIR, '1'); } catch (x) { }
-          return fb.auth().signInWithRedirect(pr).then(function () { return new Promise(function () { }); }, function (e2) { throw gErr(e2); });   // la página se va
-        }
-        throw gErr(e);
-      });
-    }).catch(function (e) { throw e && /^(g_|unavailable|error|WEAK|INVALID|EMAIL)/.test(e.code) ? e : gErr(e); });
+  /** signInWithPopup llamado en el acto (sin await ni promesas antes): dentro de un toque, el navegador deja abrir la ventana.
+   *  Ventana bloqueada: la primera vez g_confirm (el panel pide confirmación); tras confirmar, g_blocked (permitir ventanas emergentes). */
+  function gPopup(fb, again) {
+    var p;
+    try { var pr = new fb.auth.GoogleAuthProvider(); pr.setCustomParameters({ prompt: 'select_account' }); p = fb.auth().signInWithPopup(pr); }
+    catch (e) { p = Promise.reject(e); }
+    return p.then(gFinish, function (e) {
+      if (/popup-blocked|operation-not-supported-in-this-environment/.test(String(e && e.code))) throw err(again ? 'g_blocked' : 'g_confirm');
+      throw gErr(e);
+    });
   }
-  /** Vuelta de la redirección de Google (solo si se salió por redirección: si no, ni se carga el SDK). */
+  /** Entrar con Google. Con el SDK ya cargado la ventana se abre SÍNCRONAMENTE en esta llamada (llámese desde el manejador del toque). */
+  function google(again) {
+    var p = sdkFb ? gPopup(sdkFb, again) : loadSdk().then(function (fb) { return gPopup(fb, again); });
+    return p.catch(function (e) { throw e && /^(g_|unavailable|error|WEAK|INVALID|EMAIL)/.test(e.code) ? e : gErr(e); });
+  }
+  /** Restos de la vía de redirección (hasta 1.15.1): se borra el indicador y, si alguien venía de ella, se le avisa de volver a
+   *  probar (ya no se carga el SDK ni se llama a getRedirectResult: en Safari y Firefox volvía vacío). */
   function gBack() {
     var f = null; try { f = sessionStorage.getItem(GREDIR); sessionStorage.removeItem(GREDIR); } catch (e) { }
-    if (!f || acc) return;
-    loadSdk().then(function (fb) { return fb.auth().getRedirectResult(); }).then(function (cred) {
-      if (!cred || !cred.user) return;
-      return gFinish(cred).then(function (r) {
-        if (conflicts.length) { open(); pending = conflicts[0]; pendRes = { remote: false, enter: r }; view = 'conflict'; render(); return; }
-        if (r && r.changed) reloadSoon('Has entrado con Google: progreso cargado desde tu cuenta'); else toast('Has entrado con Google');
-      });
-    }).catch(function (e) { var t = errText(gErr(e)); if (t) toast(t); });
+    if (f && !acc) toast('No se ha completado la entrada con Google. Vuelve a probar desde «Cuenta».');
   }
   function signOut() { acc = null; dirty = {}; jset(SES, null); setStatus('off'); }
   function lost() { acc = null; jset(SES, null); setStatus('off'); toast('Se ha cerrado la sesión de tu cuenta. Vuelve a entrar desde «Cuenta».'); }
@@ -426,6 +430,7 @@
     if (c === 'INVALID_EMAIL') return 'Ese correo no parece válido.';
     if (c === 'need_mail') return 'Escribe tu correo arriba y vuelve a pulsar. Las cuentas con usuario no tienen correo para recuperarla.';
     if (c === 'g_cancel') return '';
+    if (c === 'g_blocked' || c === 'g_confirm') return 'Tu navegador ha bloqueado la ventana de Google. Permite las ventanas emergentes para este sitio y vuelve a probar.';
     if (c === 'g_off') return 'Entrar con Google aún no está activado. Usa tu correo de momento.';
     if (c === 'g_env') return 'Este navegador no deja entrar con Google aquí. Prueba con tu correo.';
     if (c === 'g_domain') return 'Esta página aún no puede entrar con Google. Usa tu correo de momento.';
@@ -511,6 +516,12 @@
     '#account .ac-choice{display:flex;flex-direction:column;gap:14px;margin:6px 12px 10px 0}',
     P + '#account .ac-choice .sp-btn{width:100%;justify-content:flex-start;white-space:normal;--sp-h:62px;padding:6px 18px}',
     P + '#account .ac-choice .sp-s{white-space:normal}',
+    // confirmación de Google: «Cancelar» a la izquierda y el botón blanco de Google, grande, a la derecha
+    '#account .ac-gcw{width:min(520px,100%)}',
+    P + '#account .ac-gc .ac-h{margin-right:44px}',
+    '#account .ac-gc .ac-acts{flex-wrap:nowrap}',
+    '#account .ac-gc .ac-l{margin-right:auto}',
+    '#account .ac-gc .ac-go{flex:0 1 auto;width:auto;min-height:52px;margin:0;padding:0 22px;font-size:17px}',
     // aviso de abajo
     '#accToast{position:fixed;left:50%;bottom:calc(18px + var(--sbm,0px));transform:translateX(-50%) rotate(-1deg);z-index:195;max-width:calc(100% - 32px);box-sizing:border-box;padding:10px 16px;',
     'border-radius:12px 16px 11px 15px/15px 11px 16px 12px;background:var(--sp-cream,#fff4dc);color:var(--sp-ink,#15102a);font:700 14px/1.35 var(--sp-ui,system-ui,sans-serif);',
@@ -564,6 +575,10 @@
     PP + '#account .ac-choice{margin:0}',
     PP + '#account .ac-two .ac-sheet>.ac-dacts{grid-column:1/-1;position:static;margin:4px -18px 0;padding:6px 18px 14px;background:none}',
     PP + '#account .ac-user>span:last-child{flex:1 1 auto}',
+    PP + '#account .ac-gcw{width:min(620px,100%)}',
+    PP + '#account .ac-gc .ac-k{font-size:var(--ph-label)}',
+    PP + '#account .ac-gc .ac-h{--sp-hs:var(--ph-title);margin:0 44px 10px 0}',
+    PP + '#account .ac-gc .ac-go{min-height:56px;padding:0 24px;font-size:calc(var(--ph-btn) + 2px)}',
     // alto ≤ 345 (iPhone SE): correo y contraseña lado a lado, para que todo quepa sin desplazar
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:14px}',
     ':root.ph.ph-s' + P.slice(5) + '#account #acForm>*{grid-column:1/-1}',
@@ -609,6 +624,15 @@
   }
   var XIC = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>';
   var GSVG = '<svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.2-2.2 4.2-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>';
+  /** Confirmación de Google (la ventana se bloqueó): mismo HTML en móvil y PC; «Abrir Google» es un toque nuevo que abre la ventana. */
+  function gcHTML() {
+    return '<div class="ac-wrap ac-gcw"><div class="ac-sheet sp-panel ac-gc"><p class="ac-k sp-k">Tu cuenta</p><h2 class="ac-h sp-h" id="acTitle">Entrar con Google</h2>' +
+      '<p>Para entrar con Google se abrirá una ventana de Google. Elige allí tu cuenta y volverás aquí.</p>' +
+      '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
+      '<div class="ac-acts">' + spb('gNo', 'Cancelar', 'sp-cream ac-l', 2) +
+      '<button type="button" class="ac-g ac-go" data-ac="gOpen"' + (busy ? ' disabled' : '') + '>' + GSVG + (busy ? 'Un momento…' : 'Abrir Google') + '</button></div></div>' +
+      '<button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy ? ' hidden' : '') + '>' + XIC + '</button></div>';
+  }
   /** Móvil (html.ph; spec «Cuenta»): otra disposición con los mismos data-ac (act() no cambia). null = sin rama de móvil (conflicto). */
   function phHTML() {
     if (view === 'conflict') return null;
@@ -641,7 +665,7 @@
     return h + '<button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy ? ' hidden' : '') + '>' + XIC + '</button></div>';
   }
   function render() {
-    var hp = phone() ? phHTML() : null;
+    var hp = view === 'gconfirm' ? gcHTML() : phone() ? phHTML() : null;
     var h = '<div class="ac-wrap"><div class="ac-sheet sp-panel">';
     if (hp) h = '';
     else if (view === 'conflict' && pending) {
@@ -667,7 +691,7 @@
         '</div><div class="ac-c2"><p class="ac-or"><span>o con tu correo</span></p>' +
         '<form id="acForm" autocomplete="on" novalidate><label for="acUser">Correo o usuario</label><input id="acUser" name="username" type="text" inputmode="email" autocomplete="' + (create ? 'email' : 'username') + '" autocapitalize="none" spellcheck="false" maxlength="120" required>' +
         '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" required>' +
-        (create ? '<p class="ac-warn">Con tu correo podrás recuperar la contraseña si la olvidas. Con un usuario (sin @) no: apúntala bien.</p>' : '<button type="button" class="ac-link" data-ac="forgot">¿Has olvidado la contraseña?</button>') +
+        (create ? '<p class="ac-warn">Con tu correo podrás recuperar la contraseña si la olvidas. Con un usuario (sin @) no: apúntala bien.</p>' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
         '<div class="ac-acts">' + spb('close', 'Ahora no', 'sp-cream sp-sm', 2) + spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
     }
@@ -701,16 +725,26 @@
       }, function (e) { busy = false; if (acc && e.code !== 'unauthenticated') { view = 'in'; } msg = errText(e); render(); });
       return;
     }
-    if (a === 'google') {
+    if (a === 'google' || a === 'gOpen') {
+      // google() PRIMERO, aún dentro del toque: con el SDK cargado, signInWithPopup se llama en el acto y el navegador deja abrir la ventana
+      var again = a === 'gOpen', gp = google(again);
       busy = true; msg = ''; render();
-      google().then(function (r) {
+      gp.then(function (r) {
         busy = false;
         if (conflicts.length) { pending = conflicts[0]; pendRes = { remote: false, enter: r }; view = 'conflict'; render(); return; }
         view = 'in'; render();
         if (r.changed) reloadSoon('Has entrado con Google: progreso cargado desde tu cuenta'); else toast('Has entrado con Google: tu progreso ya se guarda en la nube');
-      }, function (e) { busy = false; msg = errText(e); render(); });
+      }, function (e) {
+        busy = false;
+        var c = e && e.code;
+        // ventana bloqueada: se pide confirmación (y, si vuelve a bloquearse, se queda ahí con el aviso de permitir ventanas emergentes)
+        if (c === 'g_confirm' || c === 'g_blocked') { view = 'gconfirm'; msg = c === 'g_blocked' ? errText(e) : ''; render(); gcFocus(); return; }
+        if (again) view = 'enter';
+        msg = errText(e); render();
+      });
       return;
     }
+    if (a === 'gNo') { view = 'enter'; msg = ''; render(); focusFirst(); return; }
     if (a === 'forgot') {
       var um = root.querySelector('#acUser').value;
       busy = true; msg = ''; render();
@@ -720,7 +754,7 @@
     }
     if (a === 'keepRemote' || a === 'keepLocal') { resolve(a); return; }
     if (a === 'sync') { markDirty(); busy = true; render(); syncDown(false).then(function () { busy = false; render(); }); return; }
-    if (a === 'out') { signOut(); view = 'enter'; tab = 'in'; render(); toast('Sesión cerrada. Tu progreso sigue en este dispositivo.'); return; }
+    if (a === 'out') { signOut(); view = 'enter'; tab = 'in'; render(); gWarm(); toast('Sesión cerrada. Tu progreso sigue en este dispositivo.'); return; }
     if (a === 'del') { view = 'del'; render(); return; }
     if (a === 'cancel') { view = 'in'; render(); return; }
     if (a === 'delYes') {
@@ -742,10 +776,12 @@
     toast(p2.k === 'make-the-cut.career6' ? 'Te quedas con la Carrera de pista de este dispositivo' : 'Te quedas con la Carrera de este dispositivo');
     return 'done';
   }
+  function gcFocus() { try { var b = root.querySelector('[data-ac=gOpen]'); if (b) b.focus({ preventScroll: true }); } catch (e) { } }
   function focusFirst() { try { var i = root.querySelector('#acUser') || root.querySelector('[data-ac=close]'); if (i) i.focus({ preventScroll: true }); } catch (e) { } }
   function open() {
     build(); view = acc ? 'in' : 'enter'; msg = ''; render();
     lastFocus = document.activeElement; root.hidden = false; focusFirst();
+    gWarm();
   }
   function close() {
     if (!root || root.hidden) return;
@@ -805,11 +841,13 @@
     _mergeLegends: mergeLegends, _s4Sync: S4_SYNC, _conflicts: function () { return conflicts.slice(); }, _resolve: resolve,
     _pendingDown: function () { return pendingDown; }, _afterDown: afterDown, _MAX_RAW: MAX_RAW,
     _careerInfo: careerInfo, _lastErr: function () { return lastErr; },
+    // pruebas (tools/googletest.js): vista actual del panel y si el SDK de Google ya está cargado
+    _view: function () { return view; }, _sdkReady: function () { return !!sdkFb; },
     // capturas (tools/eval.js): pinta la cola de conflictos dada [{k, remote, local, at}] sin tocar la nube
     _preview: function (v, o) {   // capturas: pinta una vista del panel (enter | in | del) con una cuenta de mentira, sin tocar la nube
       o = o || {}; build(); var save = acc;
       if (v === 'in' || v === 'del') acc = { user: o.user || 'jugadora7@correo.es', kind: o.kind || 'mail', uid: 'preview', rt: 'preview' };
-      view = v === 'del' ? 'del' : v === 'in' ? 'in' : 'enter'; tab = o.tab || 'in'; msg = o.msg || ''; busy = !!o.busy; lastSync = Date.now() - 120000;
+      view = v === 'del' ? 'del' : v === 'in' ? 'in' : v === 'gconfirm' ? 'gconfirm' : 'enter'; tab = o.tab || 'in'; msg = o.msg || ''; busy = !!o.busy; lastSync = Date.now() - 120000;
       render(); acc = save; busy = false; lastFocus = document.activeElement; root.hidden = false; return true;
     },
     _showConflicts: function (list) { conflicts = (list || []).slice(); if (!conflicts.length) return false; build(); pending = conflicts[0]; pendRes = { remote: false, enter: null }; view = 'conflict'; render(); lastFocus = document.activeElement; root.hidden = false; return true; }

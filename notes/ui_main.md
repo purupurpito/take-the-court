@@ -1906,3 +1906,30 @@ net*.js, version.js).
 
 ## Móvil (v-next) — portada y menús principales (18-nov-2026)
 Con `html.ph` (móvil apaisado; notes/splat.md «Móvil») cada bloque de la portada tiene su sección `/* — móvil (.ph) — */` al final y ya no queda ningún `@media (max-height:430px)` viejo. **Portada**: columna `--ph-colw`; ayuda en tres iconos redondos de 48 px con el rótulo debajo (con ancho, `.ph-w`, tres manchas con icono y rótulo); con Carrera, sin logotipo; perfil y versión abajo a la derecha (44 px; la versión solo en la portada); DIRECTO solo en portada y Jugar. **Jugar**: «6v6»/«1v1» en una palabra, «Entreno» (`data-ph-short`) en la fila de manchas (`.sp-row`, que NO es la fila de lista `.sp-lrow`). **Partido rápido**: la misma rejilla (filas de 52, rótulo `--ph-label`, valor `--ph-btn`), columna ≤ 520; «?» en Controlar y Cámara abre su ayuda en una hoja (`VB.Splat.info(#mpQuick)`, menu-jugador.js). **Paneles** (`#panel.sp-pn`): `.sheet` = cabecera + `#pnX` en rejilla «vt strip / vt body / vt dock»; Ajustes con pestañas en columna (`data-ph-tabs="rail"`, 150 px), filas de 56 con la ayuda en una línea y «i» si no cabe (`VB.Splat.helpFit`, splat.js «(móvil · portada)»; ui.js `phPanel()`), segmentados por número de opciones (`VB.Splat.fitSeg`; las muestras de equipación con `data-ph-ctl="seg"`); Controles/Jugadores/Acerca de con tira; con pantalla táctil Táctil es la primera pestaña; Cómo se juega con el dibujo pegado arriba y Anterior abajo a la izquierda. **Entrenamiento / Retos**: el parche pegado abajo dentro de la lista (`position:sticky`), recuento en la pegatina `#gymChip`; Retos › Hoy = billete | medallas apiladas. **Vestuario**: columna de iconos (`#lkTabs` rail sin rótulos), «Probar» + «⋯» (hoja con Al azar / Restablecer / Copiar, menu-jugador.js), ⟲ ⟳ en columna abajo a la derecha (ui.js `lkPlace` centra el muñeco entre la columna y esos botones). **Perfil**: marco entero (cabecera con nivel y vitrina, pestañas en columna, fichas ≥ 84 px con el nombre entero). `#pfNote` / `#lkNote` van a `VB.Splat.toast` en el móvil. **Aviso colocador**: texto | acciones, tinte del 20 % (`VB.Splat.modal`, solo móvil). En PC no cambia nada (mobaudit `--desktop` igual que antes). settest l) acepta la columna `.sp-vtabs` como «compacta» a 667×375.
+
+## Ambiente de Carrera, paquete P1: director, diálogos, pique y cableado (18-nov-2026; diseño y contrato en notes/ambiente.md)
+- **Ficheros JS nuevos** (index.html los carga P3): `js/ambiente.js` (`VB.Ambiente`, director; puro, se carga en node) justo después de
+  `js/consignas.js` (con `js/arbitro.js`, de P3) y `js/ambiente-ui.js` (`VB.AmbienteUI`, bocadillos y subtítulos; crea `#ambSay` dentro de
+  `#hud` y su `<style>`) justo después de `js/ui.js`. Prueba nueva `tools/ambientetest.js` (node, sin cerrojo).
+- **main.js**: `DEFAULTS.ambient = 'full'` ('full' | 'calm' | 'off', validado en loadSettings); `careerIntroData` → `cs.atHome` y
+  `cs.amb = VB.Career.ambCtx(c, n, cs)`; `startMatch` → `createGame({amb: true})` solo con Carrera, sin autopilot y ajuste ≠ 'off', y
+  `cs.ambient`; bucle: tras `careerEvents`, `ambFrame(g, gdt, frameEvents)` (director → `amb:*` al array del frame, después del grabador
+  de repeticiones; `ctl` → `Sim.holdFor` / `Sim.canPenalty` / `Sim.penalty` / `Ambiente.penaltyDone`); con fichas abiertas
+  `ambChoiceInput` va ANTES de `Sim.skipHold` (CAMBIAR = Protestar y no recorta; GOLPEAR / SALTAR / aceptar = Dejarlo y recortan);
+  `ambSkip` tras un recorte; `ffRun` marca `st.ff`; `VB.AmbienteUI.update` justo después de `UI.update`; `ctx.actions.ambChoose`.
+  Nada en la previa (otra rama del bucle) ni con la repetición en pantalla (la sim en vivo no avanza; en 'prep' / 'in' frame() recibe
+  `f.replay` y calla las frases). «Apagado» a mitad de partido calla al momento (el resto, al siguiente partido).
+- **Escena** `?debug=amb` (en vivo, IA jugando por ti, Carrera de mentira: no toca ningún guardado): `&k=lines` (por defecto: una frase
+  por punto) | `choice` (la 1ª disputa en contra abre las fichas) | `yellow` | `red` (tarjeta forzada en la 1ª disputa; la roja con su
+  punto de castigo real) | `derby` (calor 0,9, nivel alto) | `boo` (pitada a cada saque rival) | `chant`; `&format=6v6` pista,
+  `&away=1`, `&final=1`, `&calm=1`, `&heat=`, `&level=`, `&seed=`. Ej.: `?debug=amb&k=red&format=6v6&seed=5`.
+- **career.js**: `ambNew` en `newM` (solo con `g.career.ambient` ≠ 'off', sin autopilot ni `_debug`), `feed` en `ingest` (después de nota y
+  consignas; el punto de castigo no cuenta en estadísticas ni consignas), `undo` en `unpoint`, `newMatch` conserva el director,
+  `ambSum` en `matchDone`/`matchDone6` → `sum.amb` y `g.career.ambSum`; `ambCtx`/`amb` en la fachada.
+  career-life.js: `c.life.cards` (temporada / carrera, mensaje por roja, aviso del comité a las 3, premio a la deportividad al cerrar la
+  temporada sin tarjetas con ≥ 5 partidos con ambiente; fama: roja −3 % (mín. 20), premio +120 × nivel). career-world.js: `c.world.riv`
+  (rivalidad: apretado +0,08, roja +0,1, final +0,2, derbi ≥ 0,3; ×0,6 cada verano) y el mensaje de la semana (derbi / revancha / cumbre).
+  career-ui.js: chip «Derbi / Clásico / Revancha / Cumbre» en el próximo partido; career-life-ui.js: tarjetas en la pestaña Fama.
+  recap.js: STAKES `derby` («DERBI», «{city} se paraliza», solo pista), `revancha`, `cumbre` y la regla de titular `redCard`.
+- **Pruebas**: `node tools/ambientetest.js [n=12]` (banco de frases, determinismo, sim idéntica sin las puertas y con «Apagado», nada tras el
+  silbato ni en el avance rápido, sin frase repetida en 12, «Tranquilo», frecuencias, castigo real, enganche de Carrera y recap).

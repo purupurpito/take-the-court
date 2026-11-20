@@ -374,24 +374,115 @@
   function ticketBg(c) { var s = c && c.story; if (!s || !s.bg || !BGS[s.bg]) return null; return { id: s.bg, name: BGS[s.bg].name, col: BGS[s.bg].col }; }
   function titleOf(c) { var s = c && c.story; return s && typeof s.title === 'string' ? s.title : ''; }
 
-  // ------------------------------------------------------------------ interfaz
+  // ------------------------------------------------------------------ interfaz (SPLAT, notes/splat.md; móvil en §9)
+  // Las hojas (.card) y su rótulo-pegatina ya los pone career-ui.js (SPLAT_CSS); aquí, lo propio de Camino y Cifras con el prefijo de
+  // la Carrera (Q, 4 ids) y el del móvil (PQ, html.ph). Piezas del sistema: .sp-heros (cifras), .sp-bar (barra de pintura), .sp-btn
+  // (selectores), .sp-chip, .sp-kv (récords) y .sp-tbl + VB.Splat.tbl (tabla: en el móvil, columnas reducidas y «Ver tabla completa»).
+  var Q = ':root:not(#_):not(#_):not(#_) #career', PQ = Q.replace(':root', ':root.ph'), DQ = Q.replace(':root', ':root:not(.ph)');
+  var KO = '1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)';
   var CSS = [
-    '#career .ss-lv{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}',
-    '#career .ss-big{font:900 30px var(--display, sans-serif);color:#ffd23f;line-height:1}',
-    '#career .ss-bar{display:block;height:12px;border-radius:7px;background:rgba(0,0,0,.4);overflow:hidden;margin:6px 0 2px}#career .ss-bar i{display:block;height:100%;background:linear-gradient(90deg,#ff8040,#ffd23f)}',
-    '#career .ss-track{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:8px 0}',
-    '#career .ss-n{position:relative;min-height:44px;border-radius:10px;padding:4px 6px;background:rgba(255,255,255,.06);font:700 12px var(--ui, sans-serif);line-height:1.2;overflow:hidden}',
-    '#career .ss-n b{display:block;font:800 13px var(--display, sans-serif)}#career .ss-n.on{background:rgba(255,210,63,.18);box-shadow:inset 0 0 0 2px #ffd23f}',
-    '#career .ss-n.pz small{display:block;font-size:12px;color:#ffd23f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    '#career .ss-how{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:2px 12px;margin:4px 0}',
-    '#career .ss-pick{display:flex;flex-wrap:wrap;gap:8px}#career .ss-pick button{min-height:44px}#career .ss-pick button.on{box-shadow:inset 0 0 0 2.5px #ffd23f}',
-    '#career .ss-sw{display:inline-block;width:14px;height:14px;border-radius:50%;vertical-align:-2px;margin-right:6px;box-shadow:0 0 0 2px rgba(0,0,0,.6)}',
-    '#career .ss-tb{width:100%;border-collapse:collapse;font:600 13px var(--ui, sans-serif)}#career .ss-tb th,#career .ss-tb td{padding:5px 4px;text-align:right;border-top:1px solid rgba(255,255,255,.08)}',
-    '#career .ss-tb th:first-child,#career .ss-tb td:first-child{text-align:left}#career .ss-wrap{overflow-x:auto}',
-    // (a 360 px las 6 columnas caben: cabecera corta y sin espaciado de letras)
-    '#career .ss-tb abbr{text-decoration:none}#career .ss-key{margin:4px 0 0;font-size:12px}@media (max-width:420px){:root:not(#_):not(#_):not(#_) #career .ss-tb th{letter-spacing:0;padding:4px 2px}:root:not(#_):not(#_):not(#_) #career .ss-tb td{padding:5px 2px}}',
-    '#career .ss-svg{display:block;width:100%;max-width:520px;height:auto}',
-    '#career .ss-rec p{margin:3px 0}'
+    // cifras grandes (nivel, estrellas, lo que falta; totales de la carrera; figuras)
+    Q + ' .ss-heros{max-width:560px;margin:8px 3px 12px}',
+    Q + ' .ss-heros.ss-tint{background:var(--sp-ink2)}',
+    Q + ' .ss-heros .sp-hn{font-size:30px}',
+    Q + ' .ss-heros.ss-tint .sp-hn{font-size:26px}',
+    Q + ' .ss-heros .sp-hl{font-size:12.5px}',
+    // barra de pintura hasta el siguiente nivel (ui.js spBar, en dorado y a lo ancho)
+    Q + ' .ss-pass .sp-bar{width:min(560px,calc(100% - 6px));height:12px;margin:4px 3px 8px;--sp-barf:var(--sp-gold)}',
+    Q + ' .ss-goal{margin:0 0 6px;font:600 14px/1.35 var(--sp-ui);color:rgba(255,244,220,.92)}',
+    Q + ' .ss-goal b{color:var(--sp-gold)}',
+    Q + ' .ss-lbl{margin:10px 0 0;font:400 15px/1.1 var(--sp-pop);color:var(--sp-gold);text-shadow:' + KO + ';letter-spacing:.01em}',
+    // pista de niveles: pegatinas que no se pulsan (tinta las que faltan, contorno dorado discontinuo si dan premio, oro las logradas
+    // y tu nivel del color de tu club); inclinación y esquinas alternas, nunca una rejilla de casillas iguales
+    Q + ' .ss-track{display:grid;grid-template-columns:repeat(auto-fill,minmax(max(76px,calc((100% - 90px) / 10)),1fr));gap:12px 10px;margin:12px 0 8px;padding:0 4px 4px;list-style:none}',
+    Q + ' .ss-n{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:50px;box-sizing:border-box;margin:0;padding:6px 6px 7px;border-radius:10px 14px 9px 13px/13px 9px 14px 10px;' +
+      'background:rgba(255,244,220,.05);box-shadow:none;color:rgba(255,244,220,.66);text-align:center;transform:rotate(-1.2deg)}',
+    Q + ' .ss-n:nth-child(2n){transform:rotate(1deg);border-radius:14px 9px 13px 10px/9px 14px 10px 13px}',
+    Q + ' .ss-n:nth-child(3n){transform:rotate(-.4deg)}',
+    // pendientes sin aro (no parecen botones) y con tonos repartidos: manchas tenues de turquesa y de tinta clara entre las crema
+    Q + ' .ss-n:nth-child(4n+1){background:rgba(27,181,165,.12)}',
+    Q + ' .ss-n:nth-child(4n+3){background:rgba(47,37,96,.7)}',
+    Q + ' .ss-n b{display:block;font:400 18px/1 var(--sp-pop);letter-spacing:0}',
+    Q + ' .ss-n small{display:block;margin-top:4px;font:700 12px/1.15 var(--sp-ui);color:var(--sp-gold);overflow-wrap:anywhere;hyphens:auto}',
+    Q + ' .ss-n.pz{background:rgba(255,203,61,.1);box-shadow:none;color:var(--sp-cream);outline:2px dashed rgba(255,203,61,.75);outline-offset:-2px}',
+    Q + ' .ss-n.on{background:var(--sp-gold);color:var(--sp-ink);outline:0;box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}',
+    Q + ' .ss-n.on small{color:var(--sp-ink)}',
+    Q + ' .ss-n.on.pz{background:var(--sp-cream)}',
+    Q + ' .ss-n.cur{background:var(--sp-kit);color:var(--sp-kit-ink);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-gold),3px 4px 0 5px var(--sp-ink);z-index:1}',
+    Q + ' .ss-n.cur small{color:inherit}',
+    // selectores (título, fondo del ticket, temporada de la gráfica): pegatinas de pintura de 44 en fila
+    Q + ' .ss-pick{display:flex;flex-wrap:wrap;align-items:center;gap:12px 14px;margin:8px 2px 6px}',
+    Q + ' .ss-pick .sp-btn{--sp-h:44px;flex:0 1 auto;max-width:100%;min-width:0}',
+    Q + ' .ss-pick .sp-btn .sp-t{white-space:normal;line-height:1.1}',
+    Q + ' .ss-pick .ss-ok{margin-right:4px}',
+    Q + ' .ss-sw{display:inline-block;width:18px;height:18px;border-radius:50%;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 4px var(--sp-cream)}',
+    Q + ' .card>h3.ss-h{display:inline-block;margin:16px 0 2px;padding:0;background:none;box-shadow:none;transform:rotate(-1.5deg);font:400 16px/1.1 var(--sp-pop);color:var(--sp-gold);text-shadow:' + KO + ';letter-spacing:.01em;text-transform:none}',
+    // cómo se ganan: pegatina con las estrellas y el motivo
+    Q + ' .ss-how{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:8px 18px;margin:6px 0 4px;padding:0;list-style:none}',
+    Q + ' .ss-how li{display:flex;align-items:center;gap:10px;margin:0;font:600 13.5px/1.25 var(--sp-ui);color:rgba(255,244,220,.9)}',
+    Q + ' .ss-how .sp-chip{flex:0 0 auto;min-width:40px;text-align:center;font-variant-numeric:tabular-nums}',
+    // récords y caminos anteriores (.sp-kv)
+    Q + ' .ss-kv{margin:6px 2px 2px;row-gap:8px}',
+    Q + ' .ss-kv dd b{font:400 18px/1 var(--sp-pop);color:var(--sp-gold);margin-right:6px;font-variant-numeric:tabular-nums}',
+    Q + ' .ss-kv dd .muted{font-size:13px}',
+    // tabla por temporada (.sp-tbl)
+    Q + ' .ss-tbl{overflow-x:auto}',
+    Q + ' .ss-tbl table{width:100%}',
+    Q + ' .ss-tbl th{font-size:12px;letter-spacing:.06em}',
+    Q + ' .ss-tbl :is(th,td){text-align:right}',
+    Q + ' .ss-tbl :is(th,td):first-child{text-align:left}',
+    Q + ' .ss-tbl td.ss-c b{font:400 15px/1 var(--sp-pop);color:var(--sp-gold);margin-right:6px}',
+    Q + ' .ss-tbl td.ss-c .ss-lg{display:block;margin-top:2px;font-size:12px}',
+    Q + ' .ss-tbl td.ss-nt{font:400 16px var(--sp-pop);color:var(--sp-gold)}',
+    DQ + ' .ss-tbl tr.sp-me td{background:rgba(255,203,61,.14)}',
+    Q + ' .ss-tbl abbr{text-decoration:none}',
+    Q + ' .ss-key{margin:6px 0 0;font-size:12.5px}',
+    // gráfica de la nota
+    Q + ' .ss-svg{display:block;width:100%;max-width:560px;height:auto;margin:6px 0 2px}',
+    Q + ' .ss-pick+.ss-svg{margin-top:18px}',
+    Q + ' .ss-leg{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:4px 0 0;font:600 12.5px/1.3 var(--sp-ui);color:rgba(255,244,220,.78)}',
+    Q + ' .ss-leg span{display:inline-flex;align-items:center;gap:6px}',
+    Q + ' .ss-dot{display:inline-block;width:11px;height:11px;border-radius:50%;box-sizing:border-box}',
+    Q + ' .ss-dot.w{background:#8fe36e}' + Q + ' .ss-dot.l{background:#ff8a98}' + Q + ' .ss-dot.s{border:2px solid #ffcb3d}',
+    Q + ' .ss-dash{display:inline-block;width:18px;border-top:2px dashed #1bb5a5}',
+    Q + ' .ss-rec p,' + Q + ' .ss-fig p{margin:4px 0}',
+    // — móvil (.ph) — (letra con los tokens --ph-*, nada < 12 px; toques de 44; sin desplazamiento lateral)
+    PQ + ' .ss-heros{max-width:none}',
+    PQ + ' .ss-heros .sp-hn{font-size:var(--ph-hero)}',
+    PQ + ' .ss-heros.ss-tint .sp-hn{font-size:calc(var(--ph-hero) * .8)}',
+    PQ + ' .ss-heros.ss-tint .sp-hl{font-size:var(--ph-cap)}',
+    PQ + ' .ss-heros .sp-hl{font-size:var(--ph-label)}',
+    PQ + ' .ss-pass .sp-bar{width:calc(100% - 6px);height:12px}',
+    PQ + ' .ss-goal{font-size:var(--ph-body)}',
+    PQ + ' .ss-lbl{font-size:var(--ph-row)}',
+    PQ + ' .ss-track{grid-template-columns:repeat(auto-fill,minmax(max(84px,calc((100% - 108px) / 10)),1fr));gap:14px 12px}',
+    PQ + ' .ss-n{min-height:56px}',
+    PQ + ' .ss-n b{font-size:var(--ph-num)}',
+    PQ + ' .ss-n small{font-size:var(--ph-cap)}',
+    PQ + ' .ss-pick{gap:12px}',
+    PQ + ' .ss-pick .sp-btn{--sp-h:44px}',
+    PQ + ' .card>h3.ss-h{font-size:var(--ph-row)}',
+    PQ + ' .ss-how{grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px 18px}',
+    PQ + ' .ss-how li{font-size:var(--ph-body)}',
+    PQ + ' .ss-kv dt{font-size:var(--ph-label)}',
+    PQ + ' .ss-kv dd{font-size:var(--ph-body)}',
+    PQ + ' .ss-kv dd b{font-size:var(--ph-num)}',
+    PQ + ' .ss-kv dd .muted{font-size:var(--ph-label)}',
+    // tabla: solo las columnas de data-ph-cols (VB.Splat.tbl), el nombre parte en líneas y nada se desplaza de lado
+    PQ + ' .ss-tbl{overflow:visible}',
+    PQ + ' .ss-tbl table{border-spacing:0 5px;table-layout:auto}',
+    PQ + ' .ss-tbl th{position:static;height:auto;padding:2px 8px;background:none;font:700 var(--ph-cap)/1.1 var(--sp-ui);letter-spacing:.02em;color:var(--sp-gold)}',
+    PQ + ' .ss-tbl td{height:auto;padding:8px;font:700 var(--ph-row)/1.2 var(--sp-ui);white-space:nowrap;font-variant-numeric:tabular-nums}',
+    PQ + ' .ss-tbl td.ss-c{width:100%;white-space:normal;overflow-wrap:anywhere}',
+    PQ + ' .ss-tbl td.ss-c b{font-size:var(--ph-row)}',
+    PQ + ' .ss-tbl td.ss-c .ss-lg{font-size:var(--ph-cap)}',
+    PQ + ' .ss-tbl td.ss-nt{font-size:var(--ph-num)}',
+    PQ + ' .ss-tbl tr.sp-me td :is(b,.ss-lg),' + PQ + ' .ss-tbl tr.sp-me td.ss-nt{color:inherit}',
+    PQ + ' .ss-tbl>.sp-tbl-all{margin:12px 0 16px}',
+    PQ + ' .ss-key{font-size:var(--ph-cap)}',
+    PQ + ' .ss-svg{max-width:none}',
+    PQ + ' .ss-leg{font-size:var(--ph-cap);gap:6px 16px}',
+    PQ + ' .ss-dot{width:13px;height:13px}'
   ].join('\n');
   function css() {
     if (typeof document === 'undefined' || !document.createElement || !document.head) return;
@@ -400,69 +491,102 @@
   function H0(HLP) {
     var esc = HLP && HLP.esc ? HLP.esc : function (x) { return String(x == null ? '' : x).replace(/[&<>"']/g, function (ch) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]; }); };
     var sp = HLP && HLP.sp ? HLP.sp : function (a) { return a.filter(function (x) { return x !== '' && x != null; }).join(', '); };
-    return { esc: esc, sp: sp };
+    var ph = !!(HLP && typeof HLP.ph === 'function' && HLP.ph());
+    var q = HLP && typeof HLP.q === 'function' ? HLP.q : null;
+    return { esc: esc, sp: sp, ph: ph, q: q };
   }
-  function bar(p) { return '<span class="ss-bar"><i style="width:' + Math.round(100 * clamp(p, 0, 1)) + '%"></i></span>'; }
+  /** Barra de pintura (la de ui.js spBar). */
+  function bar(p) { return '<i class="sp-bar" aria-hidden="true"><i style="--w:' + Math.round(100 * clamp(p, 0, 1)) + '%"></i></i>'; }
+  /** Cifras en una pegatina (.sp-heros): items = [[cifra, rótulo], …]. */
+  function heros(items, cls, label) {
+    return '<div class="sp-heros ss-heros' + (cls ? ' ' + cls : '') + '"' + (label ? ' role="group" aria-label="' + label + '"' : '') + '>' +
+      items.map(function (x) { return '<span><b class="sp-hn">' + x[0] + '</b><small class="sp-hl">' + x[1] + '</small></span>'; }).join('') + '</div>';
+  }
+  /** Fila de selectores en pegatinas de pintura: opts = [{act, label (HTML), on, ic (HTML)}]. La elegida, dorada y con ✓. */
+  var PICK_C = ['sp-cream', 'sp-teal', 'sp-alt'];
+  function pick(opts, label) {
+    var k = 0;
+    return '<div class="ss-pick" data-nav data-sp-row role="group" aria-label="' + label + '">' + opts.map(function (o, i) {
+      var col = o.on ? 'sp-gold' : PICK_C[k++ % PICK_C.length];
+      return '<button type="button" class="sp-btn sp-sm ' + col + (o.on ? ' on' : '') + '" data-shape="' + (i + 2) + '" data-act="' + o.act + '" aria-pressed="' + (o.on ? 'true' : 'false') + '">' +
+        (o.ic ? '<span class="sp-ic" aria-hidden="true">' + o.ic + '</span>' : '') + '<span class="sp-t">' + (o.on ? '<span class="ss-ok" aria-hidden="true">✓</span>' : '') + o.label + '</span></button>';
+    }).join('') + '</div>';
+  }
   function prizeShort(lv) {
     var P = PRIZES[lv]; if (!P) return '';
     return P.k === 'title' ? 'Título' : P.k === 'bg' ? 'Fondo' : 'Prenda';
   }
+  var PASS_HELP = 'Premios solo de estética: títulos, fondos para tu ticket y prendas del Vestuario. Se reinicia cada temporada.';
 
   function uiPass(c, HLP) {
     css();
     var s = St(c), h = H0(HLP), e = h.esc, p = s.pass, cur = p.s === (c.season | 0) ? p : { st: 0, lv: 0, got: [], lg: [] };
-    var nextAt = Math.min(ST_MAX, (cur.lv + 1) * PER_LV), out = '';
+    var nextAt = Math.min(ST_MAX, (cur.lv + 1) * PER_LV), left = nextAt - cur.st, out = '';
     out += '<div class="card ss-pass"><h3>Camino de temporada ' + (c.season | 0) + '</h3>' +
-      '<div class="ss-lv"><span class="ss-big">Nivel ' + cur.lv + '</span><span class="muted">de ' + LV_MAX + ', ' + cur.st + ' de ' + ST_MAX + ' estrellas</span></div>' +
-      (cur.lv < LV_MAX ? bar((cur.st - cur.lv * PER_LV) / PER_LV) + '<p class="muted" style="margin:0">Siguiente nivel: ' + (nextAt - cur.st === 1 ? 'falta 1 estrella' : 'faltan ' + (nextAt - cur.st) + ' estrellas') + '.</p>'
-        : bar(1) + '<p class="muted" style="margin:0">Camino completo. Vuelve a empezar la temporada que viene.</p>') +
-      '<p class="muted">Premios solo de estética: títulos, fondos para tu ticket y prendas del Vestuario. Se reinicia cada temporada.</p>';
-    out += '<div class="ss-track" role="list">';
+      heros([[cur.lv, 'nivel de ' + LV_MAX], [cur.st, 'estrellas de ' + ST_MAX], cur.lv < LV_MAX ? [left, left === 1 ? 'falta para el ' + (cur.lv + 1) : 'faltan para el ' + (cur.lv + 1)] : ['★', 'completo']],
+        'sp-paper', 'Nivel ' + cur.lv + ' de ' + LV_MAX + ', ' + cur.st + ' de ' + ST_MAX + ' estrellas') +
+      (cur.lv < LV_MAX ? bar((cur.st - cur.lv * PER_LV) / PER_LV) + '<p class="ss-goal">Siguiente nivel: <b>' + (left === 1 ? 'falta 1 estrella' : 'faltan ' + left + ' estrellas') + '</b>' + (PRIZES[cur.lv + 1] ? ' (premio: ' + prizeShort(cur.lv + 1).toLowerCase() + ')' : '') + '.</p>'
+        : bar(1) + '<p class="ss-goal">Camino completo. Vuelve a empezar la temporada que viene.</p>') +
+      (h.ph ? '' : '<p class="muted">' + PASS_HELP + '</p>');
+    out += '<ol class="ss-track" aria-label="Niveles del Camino">';
     for (var lv = 1; lv <= LV_MAX; lv++) {
       var pz = PRIZES[lv], got = cur.got.filter(function (g) { return g.lv === lv; })[0];
-      out += '<div role="listitem" class="ss-n' + (lv <= cur.lv ? ' on' : '') + (pz ? ' pz' : '') + '"><b>' + lv + '</b>' + (pz ? '<small>' + e(got ? got.name : prizeShort(lv)) + '</small>' : '') + '</div>';
+      out += '<li class="ss-n' + (lv <= cur.lv ? ' on' : '') + (pz ? ' pz' : '') + (lv === cur.lv ? ' cur' : '') + '"><b>' + lv + '</b>' + (pz ? '<small>' + e(got ? got.name : prizeShort(lv)) + '</small>' : '') + '</li>';
     }
-    out += '</div>';
-    if (cur.lg.length) out += '<p class="muted" style="margin:4px 0 0">Últimas estrellas: ' + cur.lg.slice(-3).reverse().map(function (x) { return '+' + x.d + ' ' + e(x.t.replace(/^Jornada: /, '')); }).join('; ') + '.</p>';
+    out += '</ol>';
+    if (cur.lg.length) out += '<p class="muted" style="margin:6px 0 0">Últimas estrellas: ' + cur.lg.slice(-3).reverse().map(function (x) { return '+' + x.d + ' ' + e(x.t.replace(/^Jornada: /, '')); }).join('; ') + '.</p>';
     out += '</div>';
     // títulos y fondos
-    out += '<div class="card"><h3>Tu título</h3>';
+    out += '<div class="card ss-prz"><h3>Tu título</h3>';
     if (!s.titles.length) out += '<p class="muted">Aún no tienes títulos de perfil. El primero llega en el nivel 2 del Camino.</p>';
-    else out += '<div class="ss-pick" data-nav><button data-act="st-season-title--1"' + (s.title ? '' : ' class="on"') + '>Sin título</button>' +
-      s.titles.map(function (t, i) { return '<button data-act="st-season-title-' + i + '"' + (s.title === t ? ' class="on pri"' : '') + '>' + e(t) + '</button>'; }).join('') + '</div>';
-    out += '<h3 style="margin-top:12px">Fondo del ticket</h3>';
+    else out += pick([{ act: 'st-season-title--1', label: 'Sin título', on: !s.title }].concat(s.titles.map(function (t, i) { return { act: 'st-season-title-' + i, label: e(t), on: s.title === t }; })), 'Tu título');
+    out += '<h3 class="ss-h">Fondo del ticket</h3>';
     if (!s.bgs.length) out += '<p class="muted">Los fondos de tinta para tu ticket salen en los niveles 6, 12 y 18.</p>';
-    else out += '<div class="ss-pick" data-nav><button data-act="st-season-bg--1"' + (s.bg ? '' : ' class="on"') + '>El de siempre</button>' +
-      s.bgs.map(function (b, i) { return '<button data-act="st-season-bg-' + i + '"' + (s.bg === b ? ' class="on pri"' : '') + '><span class="ss-sw" style="background:' + BGS[b].col + '"></span>' + e(BGS[b].name) + '</button>'; }).join('') + '</div>';
+    else out += pick([{ act: 'st-season-bg--1', label: 'El de siempre', on: !s.bg }].concat(s.bgs.map(function (b, i) {
+      return { act: 'st-season-bg-' + i, label: e(BGS[b].name), on: s.bg === b, ic: '<span class="ss-sw" style="background:' + BGS[b].col + '"></span>' };
+    })), 'Fondo del ticket');
     out += '</div>';
     // cómo se ganan
-    out += '<div class="card"><h3>Cómo se ganan estrellas</h3><div class="ss-how">' + HOW.map(function (x) { return '<p class="muted" style="margin:2px 0">' + e(x[0]) + ': <b>+' + x[1] + '</b></p>'; }).join('') + '</div></div>';
+    out += '<div class="card"><h3>Cómo se ganan estrellas</h3>' + (h.ph && h.q ? h.q('Premios del Camino', PASS_HELP) : '') + '<ul class="ss-how">' + HOW.map(function (x) { return '<li><b class="sp-chip">+' + x[1] + '</b><span>' + e(x[0]) + '</span></li>'; }).join('') + '</ul></div>';
     var hk = Object.keys(s.pathHist).sort(function (a, b) { return +b - +a; });
-    if (hk.length) out += '<div class="card"><h3>Caminos anteriores</h3>' + hk.slice(0, 5).map(function (k) { var x = s.pathHist[k]; return '<p class="muted" style="margin:3px 0">Temporada ' + e(k) + ': nivel ' + (x.lv | 0) + ', ' + (x.st | 0) + ' estrellas</p>'; }).join('') + '</div>';
+    if (hk.length) out += '<div class="card"><h3>Caminos anteriores</h3><dl class="sp-kv ss-kv">' + hk.slice(0, 5).map(function (k) { var x = s.pathHist[k]; return '<dt>Temporada ' + e(k) + '</dt><dd><b>' + (x.lv | 0) + '</b><span class="muted">nivel, ' + (x.st | 0) + ' estrellas</span></dd>'; }).join('') + '</dl></div>';
     return out;
   }
 
-  /** Gráfica SVG de notas (lista de {nota, win, sim}). */
+  /** Gráfica SVG de notas (lista de {nota, win, sim}). Letra de 12 en unidades del dibujo (≥ 13 px a 360 px de ancho). */
   function chart(list, e, label) {
     if (!list.length) return '<p class="muted">Sin notas todavía.</p>';
-    var W = 320, Hh = 120, pl = 22, pr = 6, pt = 8, pb = 16, lo = 3, hi = 10;
+    var W = 320, Hh = 130, pl = 24, pr = 8, pt = 9, pb = 9, lo = 3, hi = 10;
     var xs = function (i) { return list.length < 2 ? pl + (W - pl - pr) / 2 : pl + i * (W - pl - pr) / (list.length - 1); };
     var ys = function (v) { return pt + (hi - clamp(v, lo, hi)) * (Hh - pt - pb) / (hi - lo); };
     var g = '<svg class="ss-svg" viewBox="0 0 ' + W + ' ' + Hh + '" role="img" aria-label="' + e(label) + '"><title>' + e(label) + '</title>';
-    [4, 6, 8, 10].forEach(function (v) { g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + ys(v).toFixed(1) + '" y2="' + ys(v).toFixed(1) + '" stroke="rgba(255,255,255,.12)" stroke-width="1"/><text x="2" y="' + (ys(v) + 4).toFixed(1) + '" fill="rgba(255,255,255,.55)" font-size="10">' + v + '</text>'; });
-    g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + ys(IDEAL).toFixed(1) + '" y2="' + ys(IDEAL).toFixed(1) + '" stroke="#ffd23f" stroke-dasharray="4 4" stroke-width="1"/>';
-    g += '<polyline fill="none" stroke="#ffd23f" stroke-width="2.5" stroke-linejoin="round" points="' + list.map(function (x, i) { return xs(i).toFixed(1) + ',' + ys(x.nota).toFixed(1); }).join(' ') + '"/>';
+    [4, 6, 8, 10].forEach(function (v) { g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + ys(v).toFixed(1) + '" y2="' + ys(v).toFixed(1) + '" stroke="rgba(255,244,220,.14)" stroke-width="1"/><text x="2" y="' + (ys(v) + 4).toFixed(1) + '" fill="rgba(255,244,220,.7)" font-size="12" font-weight="700" font-family="Rubik, sans-serif">' + v + '</text>'; });
+    g += '<line x1="' + pl + '" x2="' + (W - pr) + '" y1="' + ys(IDEAL).toFixed(1) + '" y2="' + ys(IDEAL).toFixed(1) + '" stroke="#1bb5a5" stroke-dasharray="5 4" stroke-width="2"/>';
+    g += '<polyline fill="none" stroke="#15102a" stroke-width="6" stroke-linejoin="round" stroke-linecap="round" points="' + list.map(function (x, i) { return xs(i).toFixed(1) + ',' + ys(x.nota).toFixed(1); }).join(' ') + '"/>';
+    g += '<polyline fill="none" stroke="#ffcb3d" stroke-width="3" stroke-linejoin="round" stroke-linecap="round" points="' + list.map(function (x, i) { return xs(i).toFixed(1) + ',' + ys(x.nota).toFixed(1); }).join(' ') + '"/>';
     list.forEach(function (x, i) {
-      var col = x.win == null ? '#ffd23f' : x.win ? '#7ee2a8' : '#ff8a8a';
-      g += '<circle cx="' + xs(i).toFixed(1) + '" cy="' + ys(x.nota).toFixed(1) + '" r="3.5" fill="' + (x.sim ? 'none' : col) + '" stroke="' + col + '" stroke-width="1.5"/>';
+      var col = x.win == null ? '#ffcb3d' : x.win ? '#8fe36e' : '#ff8a98';
+      g += '<circle cx="' + xs(i).toFixed(1) + '" cy="' + ys(x.nota).toFixed(1) + '" r="4.5" fill="' + (x.sim ? '#15102a' : col) + '" stroke="' + (x.sim ? col : '#15102a') + '" stroke-width="2"/>';
     });
-    return g + '</svg><p class="muted" style="margin:2px 0 0">Verde: victoria. Rojo: derrota. Hueco: simulado. Raya dorada: nota del Equipo ideal (' + nt(IDEAL) + ').</p>';
+    return g + '</svg><p class="ss-leg"><span><i class="ss-dot w"></i>Victoria</span><span><i class="ss-dot l"></i>Derrota</span><span><i class="ss-dot s"></i>Simulado</span><span><i class="ss-dash"></i>Equipo ideal (' + nt(IDEAL) + ')</span></p>';
   }
   function lgName(c, x) {
     if (x.lgShort) return x.lgShort;
     try { var L = K(c).league(x.lvl); return L && L.short ? L.short : ''; } catch (e) { return ''; }
   }
   function nP(n, a, b) { n = n | 0; return n + ' ' + (n === 1 ? a : b); }
+  /** Tras pintar (la Carrera pone el HTML en el mismo turno): columnas del móvil en la tabla (VB.Splat.tbl). La Carrera se repinta
+   *  entera al entrar o salir del móvil (vb:ph), así que no hace falta el gancho de tier de tbl (sería uno más por cada pintado).
+   *  OJO: _spT es un nombre interno de splat.js (tbl(), «if (!w._spT) { w._spT = 1; phHooks.push(...) }», ~línea 510). Si splat.js lo
+   *  cambia, cada pintado dejaría un gancho más sin aviso; lo limpio sería una opción de tbl (p. ej. tbl(w, {noHook:true})). */
+  function tblLater() {
+    if (typeof document === 'undefined' || typeof Promise === 'undefined') return;
+    Promise.resolve().then(function () {
+      var T = VB.Splat && VB.Splat.tbl, L = document.querySelectorAll ? document.querySelectorAll('#career .ss-tbl') : [];
+      if (!T) return;
+      for (var i = 0; i < L.length; i++) { try { L[i]._spT = 1; T(L[i]); } catch (e) { } }
+    });
+  }
   function uiStats(c, HLP) {
     css();
     var s = St(c), h = H0(HLP), e = h.esc, out = '', hist = Array.isArray(c.history) ? c.history : [];
@@ -472,10 +596,20 @@
     if (!inHist && c.stats && (c.stats.played | 0) > 0) { var k = myClub(c), an = null; if (Array.isArray(c.notes) && c.notes.length) { var sm = 0, nn = 0; c.notes.forEach(function (x) { if (num(x.nota)) { sm += x.nota; nn++; } }); an = nn ? sm / nn : null; } rows.push({ s: c.season | 0, club: k ? k.name : '', lg: '', pos: 0, pl: c.stats.played | 0, w: c.stats.won | 0, nota: an, pts: c.stats.pts | 0, now: 1 }); }
     out += '<div class="card"><h3>Por temporada</h3>';
     if (!rows.length) out += '<p class="muted">Juega tu primera jornada y aquí saldrán tus números.</p>';
-    else out += '<div class="ss-wrap"><table class="ss-tb"><thead><tr><th>Temporada</th><th>Puesto</th><th><abbr title="Partidos jugados">PJ</abbr></th><th><abbr title="Partidos ganados">PG</abbr></th><th>Puntos</th><th>Nota</th></tr></thead><tbody>' +
-      rows.slice().reverse().map(function (x) { return '<tr><td>T' + x.s + ' ' + e(x.club || '') + (x.lg ? ' <span class="muted">(' + e(x.lg) + ')</span>' : '') + '</td><td>' + (x.now ? 'en juego' : x.pos ? ordn(x.pos) : '—') + '</td><td>' + x.pl + '</td><td>' + x.w + '</td><td>' + x.pts + '</td><td>' + nt(x.nota) + '</td></tr>'; }).join('') + '</tbody></table></div><p class="muted ss-key">PJ: partidos jugados. PG: partidos ganados.</p>';
+    else {
+      // (móvil: Temporada, Puesto, PG y Nota; lo demás en «Ver tabla completa»)
+      out += '<div class="sp-tbl ss-tbl" data-ph-cols="0,1,3,5" data-ph-title="Por temporada"><table><thead><tr><th>Temporada</th><th>Puesto</th><th><abbr title="Partidos jugados">PJ</abbr></th><th><abbr title="Partidos ganados">PG</abbr></th><th>Puntos</th><th>Nota</th></tr></thead><tbody>' +
+        rows.slice().reverse().map(function (x) {
+          return '<tr' + (x.now ? ' class="sp-me"' : '') + '><td class="ss-c"><b>T' + x.s + '</b>' + e(x.club || '') + (x.lg ? '<small class="muted ss-lg">' + e(x.lg) + '</small>' : '') + '</td><td>' + (x.now ? 'en juego' : x.pos ? ordn(x.pos) : '—') + '</td><td class="num">' + x.pl + '</td><td class="num">' + x.w + '</td><td class="num">' + x.pts + '</td><td class="num ss-nt">' + nt(x.nota) + '</td></tr>';
+        }).join('') + '</tbody></table></div><p class="muted ss-key">' + (h.ph ? 'PG: partidos ganados.' : 'PJ: partidos jugados. PG: partidos ganados.') + '</p>';
+      tblLater();
+    }
     var T = c.career || {};
-    if ((T.played | 0) > 0) out += '<p class="muted">En toda tu carrera: ' + nP(T.played, 'partido', 'partidos') + ', ' + nP(T.won, 'victoria', 'victorias') + ', ' + nP(T.pts, 'punto', 'puntos') + ' (' + nP(T.kills, 'remate', 'remates') + ', ' + nP(T.aces, 'ace', 'aces') + ', ' + nP(T.blocks, 'bloqueo', 'bloqueos') + ') y ' + nP(T.digs, 'defensa', 'defensas') + '.</p>';
+    if ((T.played | 0) > 0) {
+      out += '<p class="ss-lbl">En toda tu carrera</p>' + heros([[T.played | 0, (T.played | 0) === 1 ? 'partido' : 'partidos'], [T.won | 0, (T.won | 0) === 1 ? 'victoria' : 'victorias'], [T.pts | 0, (T.pts | 0) === 1 ? 'punto' : 'puntos'], [T.digs | 0, (T.digs | 0) === 1 ? 'defensa' : 'defensas']], 'ss-tint',
+        'En toda tu carrera: ' + nP(T.played, 'partido', 'partidos') + ', ' + nP(T.won, 'victoria', 'victorias') + ', ' + nP(T.pts, 'punto', 'puntos') + ' y ' + nP(T.digs, 'defensa', 'defensas')) +
+        '<p class="muted" style="margin:0">De tus puntos: ' + nP(T.kills, 'remate', 'remates') + ', ' + nP(T.aces, 'ace', 'aces') + ' y ' + nP(T.blocks, 'bloqueo', 'bloqueos') + '.</p>';
+    }
     out += '</div>';
     // gráfica
     var seasons = Object.keys(s.ns).map(Number).filter(function (x) { return x !== (c.season | 0); }).sort(function (a, b) { return b - a; });
@@ -483,29 +617,29 @@
     var list = sel === (c.season | 0) && Array.isArray(c.notes) && c.notes.length ? c.notes.filter(function (x) { return x && num(x.nota); }).map(function (x) { return { nota: x.nota, win: x.win, sim: x.sim }; })
       : (s.ns[sel] || []).map(function (v) { return { nota: v / 10, win: null, sim: 0 }; });
     out += '<div class="card"><h3>Tu nota, temporada ' + sel + '</h3>';
-    if (seasons.length) out += '<div class="ss-pick" data-nav><button data-act="st-season-view-' + (c.season | 0) + '"' + (sel === (c.season | 0) ? ' class="on"' : '') + '>T' + (c.season | 0) + '</button>' +
-      seasons.slice(0, 5).map(function (x) { return '<button data-act="st-season-view-' + x + '"' + (sel === x ? ' class="on"' : '') + '>T' + x + '</button>'; }).join('') + '</div>';
+    if (seasons.length) out += pick([{ act: 'st-season-view-' + (c.season | 0), label: 'T' + (c.season | 0), on: sel === (c.season | 0) }].concat(seasons.slice(0, 5).map(function (x) { return { act: 'st-season-view-' + x, label: 'T' + x, on: sel === x }; })), 'Temporada de la gráfica');
     out += chart(list, e, 'Nota partido a partido, temporada ' + sel) + '</div>';
     // récords
     out += '<div class="card ss-rec"><h3>Récords de un partido</h3>';
-    var any = false;
+    var recs = '';
     REC_K.forEach(function (k) {
-      var r = s.rec[k]; if (!r) return; any = true;
-      out += '<p>' + e(REC_NAME[k]) + ': <b>' + (k === 'nota' ? nt(r.v) : r.v) + '</b> <span class="muted">' + e((r.rival ? 'contra ' + r.rival + ', ' : '') + 'T' + r.s + (r.w ? ', ' + r.w : '') + (r.sim ? ' (simulado)' : '')) + '</span></p>';
+      var r = s.rec[k]; if (!r) return;
+      recs += '<dt>' + e(REC_NAME[k]) + '</dt><dd><b>' + (k === 'nota' ? nt(r.v) : r.v) + '</b><span class="muted">' + e((r.rival ? 'contra ' + r.rival + ', ' : '') + 'T' + r.s + (r.w ? ', ' + r.w : '') + (r.sim ? ' (simulado)' : '')) + '</span></dd>';
     });
-    if (!any) out += '<p class="muted">Tus mejores partidos quedarán aquí.</p>';
+    out += recs ? '<dl class="sp-kv ss-kv">' + recs + '</dl>' : '<p class="muted">Tus mejores partidos quedarán aquí.</p>';
     out += '</div>';
     // figuras
     var fjN = s.fjH.filter(function (x) { return x.f; }).length, idN = s.fjH.filter(function (x) { return x.i; }).length;
-    out += '<div class="card"><h3>Figuras</h3><p class="muted">' + 'Figura de la jornada: ' + fjN + (fjN === 1 ? ' vez' : ' veces') + '. Equipo ideal: ' + idN + '. Figura del mes: ' + s.mvpN + '.</p>';
+    out += '<div class="card ss-fig"><h3>Figuras</h3>' + heros([[fjN, 'Figura de la jornada'], [idN, 'Equipo ideal'], [s.mvpN, 'Figura del mes']], 'ss-tint',
+      'Figura de la jornada: ' + fjN + (fjN === 1 ? ' vez' : ' veces') + '. Equipo ideal: ' + idN + '. Figura del mes: ' + s.mvpN);
     if (s.fj) {
       var fj = s.fj;
-      out += '<p style="margin:4px 0">Jornada ' + (fj.w + 1) + ' (T' + fj.s + '): ' + (fj.won ? '<b>figura de la jornada</b> con un ' + nt(fj.me) : fj.ideal ? 'Equipo ideal con un ' + nt(fj.me) + '; figura, ' + e(fj.top[0].n) + ' (' + nt(fj.top[0].v) + ')' : 'tu ' + nt(fj.me) + '; figura, ' + e(fj.top[0].n) + ' (' + e(fj.top[0].club) + ', ' + nt(fj.top[0].v) + ')') + '</p>';
+      out += '<p>Jornada ' + (fj.w + 1) + ' (T' + fj.s + '): ' + (fj.won ? '<b>figura de la jornada</b> con un ' + nt(fj.me) : fj.ideal ? 'Equipo ideal con un ' + nt(fj.me) + '; figura, ' + e(fj.top[0].n) + ' (' + nt(fj.top[0].v) + ')' : 'tu ' + nt(fj.me) + '; figura, ' + e(fj.top[0].n) + ' (' + e(fj.top[0].club) + ', ' + nt(fj.top[0].v) + ')') + '</p>';
     }
-    if (s.mt && s.mt.s === (c.season | 0)) out += '<p class="muted" style="margin:4px 0">Figura del mes (jornadas ' + (s.mt.from + 1) + '-' + (s.mt.to + 1) + '): ' + (s.mt.n ? 'tu media ' + nt(s.mt.sum / s.mt.n) + ' en ' + s.mt.n + (s.mt.n === 1 ? ' partido' : ' partidos') : 'aún sin partidos jugados') + (s.mt.n < 3 ? ' (hacen falta 3 jugados)' : '') + '. Candidaturas: ' + s.mt.top.map(function (x) { return e(x.n) + ' ' + nt(x.v); }).join(', ') + '.</p>';
-    if (s.mo.length) out += s.mo.slice().reverse().map(function (x) { return '<p class="muted" style="margin:3px 0">T' + x.s + ', tramo ' + (x.t + 1) + ': ' + (x.won ? '<b style="color:#ffd23f">Figura del mes</b> con ' + nt(x.me) : 'media ' + nt(x.me) + '; se la llevó ' + e(x.top[0].n) + ' (' + nt(x.top[0].v) + ')') + '</p>'; }).join('');
+    if (s.mt && s.mt.s === (c.season | 0)) out += '<p class="muted">Figura del mes (jornadas ' + (s.mt.from + 1) + '-' + (s.mt.to + 1) + '): ' + (s.mt.n ? 'tu media ' + nt(s.mt.sum / s.mt.n) + ' en ' + s.mt.n + (s.mt.n === 1 ? ' partido' : ' partidos') : 'aún sin partidos jugados') + (s.mt.n < 3 ? ' (hacen falta 3 jugados)' : '') + '. Candidaturas: ' + s.mt.top.map(function (x) { return e(x.n) + ' ' + nt(x.v); }).join(', ') + '.</p>';
+    if (s.mo.length) out += s.mo.slice().reverse().map(function (x) { return '<p class="muted">T' + x.s + ', tramo ' + (x.t + 1) + ': ' + (x.won ? '<b style="color:var(--sp-gold)">Figura del mes</b> con ' + nt(x.me) : 'media ' + nt(x.me) + '; se la llevó ' + e(x.top[0].n) + ' (' + nt(x.top[0].v) + ')') + '</p>'; }).join('');
     var fl = s.fjH.slice(-6).reverse();
-    if (fl.length) out += fl.map(function (x) { return '<p class="muted" style="margin:3px 0">T' + x.s + ', jornada ' + (x.w + 1) + ': ' + (x.f ? 'figura' : 'Equipo ideal') + ' con ' + nt(x.v) + (x.rival ? ' contra ' + e(x.rival) : '') + '</p>'; }).join('');
+    if (fl.length) out += fl.map(function (x) { return '<p class="muted">T' + x.s + ', jornada ' + (x.w + 1) + ': ' + (x.f ? 'figura' : 'Equipo ideal') + ' con ' + nt(x.v) + (x.rival ? ' contra ' + e(x.rival) : '') + '</p>'; }).join('');
     out += '</div>';
     return out;
   }

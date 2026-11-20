@@ -1013,8 +1013,63 @@
     });
     var cu = chemCheck(c); if (cu && cu.up) out.chemUp = { lv: cu.lv, name: cu.name };
     maybeEvent(c, sum, chemEv0 > 0);
+    try { cardsAfter(c, l, sum, L, out); rivWeek(c, l); } catch (e) { try { console.error('CareerLife cards', e); } catch (e2) { } }
     out.ach = check(c).map(function (a) { return achName(a, c); });
     sum.life = out;
+  }
+  // ------------------------------------------------------------------ tarjetas (ambiente de Carrera, notes/ambiente.md §2C)
+  // c.life.cards = {s: temporada, y, r (tuyas en la temporada), n (partidos con ambiente), tm (de tu equipo), tot:{y, r}, fair (premios),
+  // warn (temporada del aviso del comité)}. Solo lo llenan los partidos jugados con «Ambiente de Carrera» encendido (sum.amb).
+  var CARD_FAME = 0.03, FAIR_FANS = 120, COMITE_R = 3, FAIR_MIN = 5;
+  function cardsOf(c) {
+    var l = ensure(c), k = l.cards;
+    if (!k || typeof k !== 'object' || Array.isArray(k)) k = l.cards = { s: c.season | 0, y: 0, r: 0, n: 0, tm: 0, tot: { y: 0, r: 0 }, fair: 0, warn: 0 };
+    ['s', 'y', 'r', 'n', 'tm', 'fair', 'warn'].forEach(function (x) { if (!(+k[x] >= 0)) k[x] = 0; });
+    if (!k.tot || typeof k.tot !== 'object') k.tot = { y: 0, r: 0 };
+    k.tot.y = k.tot.y | 0; k.tot.r = k.tot.r | 0;
+    return k;
+  }
+  /** Mensaje de la semana (una vez por partido): derbi (pista), revancha o cumbre del PRÓXIMO partido (career.js ambCtx). Solo lee el
+   *  núcleo de la Carrera (ciudad, tabla, c.notes): igual con o sin career-world.js. l.rivMsg = el último enviado. */
+  function rivWeek(c, l) {
+    var F = VB.Career; if (!F || !F.ambCtx || c.phase === 'off' || c.phase === 'pick') return;
+    var S = VB.ctx && VB.ctx.settings; if (S && S.ambient === 'off') return;   // («Apagado»: la Carrera, como antes)
+    var n = null; try { n = K(c).next(c); } catch (e) { n = null; }
+    if (!n || !n.rival || n.bench) return;
+    var a = F.ambCtx(c, n, null); if (!a || !a.tags) return;
+    var key = (c.season | 0) + ':' + c.phase + ':' + (n.week | 0) + ':' + (n.round | 0) + ':' + n.rival.id;
+    if (l.rivMsg === key) return;
+    var rn = n.rival.name, t = '', x = '';
+    // derbi y revancha traen su mensaje de la semana desde career-story (preDerby / preRev); aquí solo la cumbre, y siempre igual
+    // con o sin los ficheros story (storytest compara la Carrera con y sin ellos)
+    if (a.tags.indexOf('cumbre') >= 0) { t = 'Partido en la cumbre'; x = rn + ' y tu equipo, arriba del todo. El próximo es de los que deciden la temporada.'; }
+    if (!t) return;
+    l.rivMsg = key;
+    K(c)._msg(c, 'coach', t, x);
+  }
+  function cardsAfter(c, l, sum, L, out) {
+    var a = sum && sum.amb; if (!a || sum.bench || sum.sim) return;
+    var k = cardsOf(c);
+    if ((k.s | 0) !== (sum.season | 0)) { k.s = sum.season | 0; k.y = 0; k.r = 0; k.n = 0; k.tm = 0; }
+    k.n++;
+    var my = a.myY | 0, mr = a.myR | 0, tm = (a.cards || []).filter(function (x) { return x.team === 0; }).length;
+    k.y += my; k.r += mr; k.tot.y += my; k.tot.r += mr; k.tm += tm;
+    out.cards = { y: my, r: mr, team: tm };
+    if (mr) {
+      out.fans += addFame(c, -Math.max(20, Math.round(l.fame * CARD_FAME)));
+      K(c)._msg(c, 'coach', 'Tarjeta roja', 'El entrenador no quiere más protestas: «Una roja regala un punto. Cabeza fría y a jugar».');
+      if (k.r >= COMITE_R && (k.warn | 0) !== (sum.season | 0)) {
+        k.warn = sum.season | 0;
+        K(c)._msg(c, 'coach', 'Aviso del comité', 'Llevas ' + k.r + ' tarjetas rojas esta temporada. El comité de competición te avisa: una más y estudiará tu caso.');
+      }
+    }
+    // temporada cerrada con este partido: premio a la deportividad si no viste ninguna tarjeta (y jugaste con ambiente)
+    if (sum.review && k.n >= FAIR_MIN && !k.y && !k.r) {
+      k.fair++;
+      out.fans += addFame(c, FAIR_FANS * LV_MULT[L]);
+      K(c)._msg(c, 'fans', 'Premio a la deportividad', 'Toda la temporada sin una sola tarjeta. La liga te da el premio a la deportividad y la afición lo aplaude.');
+      out.fair = true;
+    }
   }
   /** Fin de temporada (después de career.js endSeason): premios, objetivo del patrocinador, títulos a fama, logros. */
   function seasonEnd(c) {
@@ -1124,6 +1179,8 @@
     boss: boss, bossOf: bossOf, bossFor: bossFor, bossSt: bossSt, bossInfo: bossInfo, bossBeaten: bossBeaten, bossKey: bossKey, bossItem: bossItem, ensureBoss: ensureBoss,
     mateAnim: mateAnim, bossAnim: bossAnim, rivalStyleOf: rivalStyleOf,
     CHEM_LV: CHEM_LV, CHEM_LV6: CHEM_LV6, chemLevel: chemLevel, chemInfo: chemInfo, chemName: chemName, chemCheck: chemCheck,
-    ACH_INFO: ACH_INFO
+    ACH_INFO: ACH_INFO,
+    // ambiente de Carrera: tarjetas de la temporada y de la carrera
+    cardsOf: cardsOf, CARD_FAME: CARD_FAME, FAIR_FANS: FAIR_FANS, COMITE_R: COMITE_R, FAIR_MIN: FAIR_MIN
   };
 })();

@@ -183,6 +183,9 @@
     h += '<div class="card lf-fm"><h3>Seguidores</h3><p class="lf-big">' + num(f.fans) + '</p><p class="lf-tier">' + esc(f.name) + '</p>' +
       (f.next ? bar(f.p) + '<p class="muted" style="margin:0">' + sp(['Siguiente: ' + esc(f.next), 'faltan ' + num(f.to - f.fans)], 'v') + '</p>' : '<p class="muted">Lo máximo. Tu nombre ya es historia del vóley.</p>') +
       '<p class="muted">' + sp([l.streak >= 2 ? 'Racha de ' + l.streak + ' victorias (más seguidores por partido)' : '', 'Mejor racha: ' + (l.best | 0), l.bestNota ? 'Mejor nota: ' + String(l.bestNota).replace('.', ',') : ''], 'v') + '</p>' +
+      // ambiente de Carrera: tarjetas de la temporada y de la carrera, premios a la deportividad (career-life.js cardsOf)
+      (l.cards && (l.cards.n | 0) > 0 ? '<p class="muted">' + sp(['Tarjetas esta temporada: ' + (l.cards.y | 0) + ' amarillas, ' + (l.cards.r | 0) + ' rojas',
+        'En tu carrera: ' + ((l.cards.tot && l.cards.tot.y) | 0) + ' y ' + ((l.cards.tot && l.cards.tot.r) | 0), (l.cards.fair | 0) ? 'Premios a la deportividad: ' + (l.cards.fair | 0) : ''], 'v') + '</p>' : '') +
       (function () {
         var fx = 'Ganas seguidores con buenas notas, victorias, retos, títulos y premios. La fama trae patrocinadores y hace que los clubes te miren más (+' + String(Lf().offerBonus(c)).replace('.', ',') + ' de interés).';
         return qph() ? H.q('Seguidores', fx) : '<p class="muted">' + esc(fx) + '</p>';

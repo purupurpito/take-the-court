@@ -271,6 +271,8 @@
     '#career .cr-tabs[hidden]{display:none}',
     // (aviso de que hay más a los lados: desvanecido en los bordes de la fila que se desplaza, solo si no cabe —clase ovf, la pone fitBar—)
     '#career .ovf:not(.tabs),#career .ovf .tb-row{-webkit-mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(90deg,transparent 0,#000 14px,#000 calc(100% - 24px),transparent)}',
+    // REV-8: .ovf se mide al pintar (con la Carrera aún oculta puede salir 0); VB.Splat.more lo rehace al cambiar de tamaño → .sp-more-x
+    '#career .tabs .tb-row.sp-more-x{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 36px),transparent)}',
     '#career .cr-tabs::-webkit-scrollbar{display:none}',
     // (sin ui.js —pruebas—: botones sueltos; con ui.js las barras son el componente común VB.UI.tabs, estilos más abajo)
     '#career .cr-tabs:not(.tabs) button{flex:none;font-size:16px;padding:0 14px}',
@@ -417,6 +419,7 @@
     '#career .fact small{display:block;font:800 10.5px var(--display);letter-spacing:.2em;text-transform:uppercase;color:var(--muted)}',
     '#career .fact b{display:block;font:700 15px/1.25 var(--ui);color:#fff;overflow-wrap:anywhere}',
     '#career .bigname{font:900 24px/1.05 var(--display);text-transform:uppercase;letter-spacing:.03em;margin:0;text-shadow:var(--ring1),2px 2px 0 var(--tk)}',
+    '#career .cr-mn{font:800 17px var(--display);text-transform:uppercase}',
     '#career .msg{padding:9px 10px;border-radius:10px;background:rgba(0,0,0,.18);margin:0 0 8px}',
     '#career .msg.unread{background:rgba(255,128,64,.18);box-shadow:inset 3px 0 0 #ff8040}',
     '#career .msg b{display:block;font:800 15.5px var(--display);letter-spacing:.03em;text-transform:uppercase}',
@@ -660,6 +663,9 @@
     '.co-call.ok{border-left-color:#5fe8ad}.co-call.ok .co-tx,.co-call.ok .co-k{color:#5fe8ad}',
     '.co-call.miss{border-left-color:#ff8a98;opacity:.85}.co-call.miss .co-tx,.co-call.miss .co-k{color:#ff8a98}',
     '.co-call.in{animation:rtIn .3s cubic-bezier(.2,1.3,.4,1) both}',
+    // marcador al 78 % (alto ≤ 560): la consigna y los rótulos de la píldora, a ≥ 11 px reales (antes 8-10 px: no se leían jugando)
+    '@media (max-height:560px){.co-call{height:27px;padding:0 10px 0 8px}.co-call .co-k{font-size:14.5px;letter-spacing:.1em}.co-call .co-tx{font-size:16px}' +
+      '#rtLive .rt-k{font-size:14.5px;letter-spacing:.14em}#rtLive small{font-size:14.5px;letter-spacing:.04em}}',
     '@media (prefers-reduced-motion:reduce){.co-call.in{animation:none}}',
     // pausa del partidillo de prueba: el aviso en una línea pequeña y «Abandonar la prueba» armado como «Reiniciar»
     '#pause .p-warn{margin:12px 0 -4px;font:700 13.5px/1.25 var(--ui);color:#ffc0a8;text-align:center}#pause .p-warn[hidden]{display:none}',
@@ -868,6 +874,7 @@
     Q + ' .fact div:nth-child(even){border-radius:14px 10px 13px 11px/10px 14px 11px 13px}',
     Q + ' .fact small{font:800 10px var(--sp-ui);letter-spacing:.12em;color:var(--sp-gold)}',
     Q + ' .bigname{font:400 clamp(19px,3.4vh,26px)/1.1 var(--sp-pop);letter-spacing:.01em;color:var(--sp-cream);text-shadow:2px 2px 0 var(--sp-ink)}',
+    Q + ' .cr-mn{font:400 16px/1.15 var(--sp-pop);letter-spacing:.01em;color:var(--sp-cream)}',   // (REV-12: nombres de Club › Equipo y compañeros, con la letra SPLAT)
     Q + ' .offer-x{border-top:2px dashed rgba(255,244,220,.16)!important}',
     Q + ' .mate{border-top:2px dashed rgba(255,244,220,.14)}',
     // barras (atributos, experiencia, medidores): pista de tinta con filo crema; relleno con su color
@@ -917,7 +924,11 @@
     Q + ' .tp-hero small{font:800 11px var(--sp-ui);letter-spacing:.16em;color:var(--sp-gold);text-shadow:' + KO + '}',
     Q + ' .tp-fmt{font:400 18px var(--sp-pop)}',
     Q + ' .tp-goals li{background:var(--sp-cream);color:var(--sp-ink);border-radius:8px 12px 9px 13px/12px 8px 13px 9px;box-shadow:' + STK + ';font:400 15px/1.15 var(--sp-pop);transform:rotate(-.4deg)}',
-    Q + ' .tp-goals li:nth-child(even){transform:rotate(.4deg)}',
+    Q + ' .tp-goals li:nth-child(even){transform:rotate(-.4deg)}',   // (REV-13: todas igual de torcidas; alternando, las tiras anchas dejaban huecos desiguales)
+    // REV-13: la camiseta, con aro crema (sobre la cuña de su mismo color parecía un hueco); objetivos con hueco fijo y la nota separada
+    Q + ' .tp-hero .cr-kit{box-shadow:0 0 0 3px var(--sp-cream),3px 4px 0 3px var(--sp-ink)}',
+    Q + ' .tp-goals{gap:8px;align-content:start;grid-auto-rows:min-content}',
+    Q + ' .tp-goals+.muted{margin-top:10px}',
     Q + ' .tp-goals li i{background:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-ink);font:400 13px var(--sp-pop)}',
     Q + ' .tp-acts{gap:14px}',
     Q + ' .tp-acts .sp-patch{--sp-ph:clamp(54px,10vh,80px)}',
@@ -965,12 +976,16 @@
     ' ' + Q + ' .cr-head .cr-hcr{margin-left:auto}',
     ' ' + Q + ' .cr-head>.sp-back+.cr-title{order:0;flex:1 1 0}',
     ' ' + Q + ' .cr-title b{font-size:clamp(17px,5.2vw,22px)}',
+    ' ' + Q + ' .cr-title small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.08em}',
     ' ' + Q + ' .cr-ovr{--sp-stamp:52px}',
     ' ' + Q + ' .cr-tk{--sp-cs:30px;--sp-h:auto}',
     ' ' + Q + ' .cr-tk .sp-tk-stub{padding-left:16px}',
     ' ' + Q + ' .cr-tk .sp-t{font-size:18px;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}',
     ' ' + Q + ' .cr-tk .sp-s{white-space:normal}',
     ' ' + Q + ' .cr-tk .sp-s+.sp-s{display:none}',
+    // el antetítulo en 2 líneas como mucho, dentro del brochazo (en 3 líneas salía por arriba, en tinta sobre el fondo 3D)
+    ' ' + Q + ' .cr-tk .sp-tk-main{padding-top:12px;padding-bottom:10px}',
+    ' ' + Q + ' .cr-tk .sp-k{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;white-space:normal;overflow:hidden;text-overflow:ellipsis;letter-spacing:.04em}',
     ' ' + Q + ' .cr-tk{margin-bottom:8px}',
     ' ' + Q + ' .cr-body{padding-top:10px}',
     ' ' + Q + ' .card{margin-bottom:16px}',
@@ -988,6 +1003,9 @@
     '#career .cr-dock[hidden]{display:none}',
     Q + ' .cr-dock .sp-patch{flex:0 1 auto;width:auto;min-width:min(340px,60%);--sp-ph:clamp(56px,8vh,72px)}',
     Q + ' .cr-dock [data-act="create"] .sp-t{white-space:nowrap;overflow:visible;text-overflow:clip}',
+    // teléfono en vertical (no es .ph): el parche a lo ancho y el rótulo en 2 líneas si no cabe (se cortaba en «Crear y ver ofe»)
+    '@media (max-width:560px){' + Q + ' .cr-dock{justify-content:stretch}' + Q + ' .cr-dock .sp-patch{flex:1 1 100%;min-width:0;--sp-pt:clamp(18px,5.6vw,24px)}' +
+      Q + ' .cr-dock [data-act="create"] .sp-t{white-space:normal;line-height:1}}',
     '.rm #career .card.new{animation:none}',
     // hojas del final de un partido de la Carrera (#end.career, prueba #end.trial, sesión #gymEnd): cifras en Titan One con contorno,
     // letras en pegatina torcida con sombra dura (el resto de la hoja es de ui.js y de su bloque SPLAT)
@@ -1138,11 +1156,21 @@
     PQ + ' #crBody[data-cv^="match"]{display:flex;flex-direction:column}',
     PQ + ' #crBody[data-cv^="match"]>*{flex:none}',
     PQ + ' #crBody[data-cv^="match"]>.cr-next{order:-2}',
+    // (con avisos, el ticket va dentro de .cr-two: también delante de Faro)
+    PQ + ' #crBody[data-cv^="match"]>.cr-two{order:-2}',
+    // .cr-two: por debajo de 700 px de ancho, una columna (el ticket a lo ancho y los avisos debajo, de 2 en 2); más ancho, el ticket con más sitio
+    PQ + ' .cr-two{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}',
+    // (Faro, si hay escena, va en .cr-two tras el ticket: en dos columnas, bajo el ticket y con los avisos al lado)
+    PQ + ' .cr-two{grid-template-areas:"nx sd" "fa sd" "nd sd"}' + PQ + ' .cr-two>.cw-mentor{grid-area:fa;margin-bottom:8px}' +
+      PQ + ' .cr-two:has(>.cw-mentor){grid-template-rows:auto auto 1fr}',   // (1fr: los avisos, más altos, no estiran la fila del ticket y Faro sigue a la vista)
+    '@media (max-width:699.98px){' + PQ + ' .cr-two{display:block}' + PQ + ' .cr-two .st-chips :is(button,.sp-btn){flex-basis:calc(50% - 8px)}}',
+    // (en la columna del ticket, el antetítulo hasta 2 líneas: en una, la jornada quedaba tras los puntos suspensivos)
+    '@media (min-width:700px){' + PQ + ' .cr-two .cr-tk .sp-k{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}}',
     PQ + ' .cr-next{margin:0 0 22px}',
     PQ + ' .cr-tk{--sp-h:clamp(92px,70px + 3.5vw,104px);--sp-cs:clamp(36px,2.6vw + 21px,44px);margin:0 0 12px}',
     PQ + ' .cr-tk .sp-tk-main{white-space:normal}',
     PQ + ' .cr-tk .sp-tk-main{padding:16px 22px 14px 8px}',
-    PQ + ' .cr-tk .sp-k{font-size:var(--ph-cap);letter-spacing:.02em;text-transform:none}',
+    PQ + ' .cr-tk .sp-k{display:block;font-size:var(--ph-cap);letter-spacing:.02em;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .cr-tk .sp-k .sp-chip{font-size:var(--ph-cap)}',
     PQ + ' .cr-tk .sp-t{font-size:var(--ph-head);line-height:1.08;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}',
     PQ + ' .cr-tk .sp-s{font-size:var(--ph-label);white-space:normal}',
@@ -1338,7 +1366,9 @@
     if (!dock) return;
     // (PC/tableta: «Crear y ver ofertas» también va a la barra; pegado dentro del desplazamiento tapaba los países de debajo)
     // (Partido › «Jugar partido» + «Simular» también: se iba con el desplazamiento al leer los detalles de debajo)
-    var src = !body ? null : PH() ? body.querySelector('.card.offer-full>.acts,.card.tp>.tp-acts,.card>.acts:has(>[data-act="plan-go"]),.cr-next>.acts.cr-go,.cf .acts:has(>[data-act="create"])') :
+    // (fin de temporada: «Ver ofertas» o, sin ofertas, «Seguir en…» / «Renovar con…»; Faro y el resumen la dejaban fuera de la pantalla)
+    var src = !body ? null : PH() ? body.querySelector('.card.offer-full>.acts,.card.tp>.tp-acts,.card>.acts:has(>[data-act="plan-go"]),.cr-next>.acts.cr-go,.cf .acts:has(>[data-act="create"]),' +
+      '#crBody[data-cv^="match"]>.card>.acts:has(>.pri:is([data-s="offers"],[data-act="stay"]))') :
       body.querySelector('.cf .acts:has(>[data-act="create"])');
     dock.innerHTML = '';
     if (!src) { dock.hidden = true; return; }
@@ -1742,7 +1772,7 @@
   }
   function renderMatch(c) {
     // Faro (career-world-ui.js): la escena va arriba del todo, también en el resumen de fin de temporada (ascenso, título…)
-    var h = takeTrialRes(c) + (WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '');   // (prueba superada: su resultado, arriba)
+    var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', h = takeTrialRes(c) + mc;   // (prueba superada: su resultado, arriba)
     if (c.phase === 'off') return h + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
     var n = C().next(c);
     if (n) {
@@ -1752,6 +1782,7 @@
       // SPLAT: entrada en brochazo turquesa (los dos escudos en pegatina), el parche «Jugar partido» y, en una hoja, los detalles
       var kick = sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + (bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '');
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (en .cr-two: dos columnas en el móvil apaisado)
+      var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
         [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
         n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
@@ -1760,7 +1791,7 @@
           ? '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>' +
             '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button></div>'
           : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div>') +
-        (side ? '</div>' + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' +
+        (side ? '</div>' + (mIn ? mc : '') + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' +
         // (la pareja, en pastillas: antes era una lista metida en un paréntesis)
         '<p class="muted">' + (function () {
           var mo = C().mateOvr(c), dd = mo - C().clubOvr(n.me), tg = dd >= 3 ? 'g' : dd <= -3 ? 'r' : '';
@@ -1790,7 +1821,7 @@
     var h = '<div class="card new cr-end"><h3>Fin de la temporada ' + r.season + '</h3>' +
       // SPLAT: el puesto final en un sello dorado (con «Campeón» en el aro si has ganado la liga)
       '<span class="sp-stamp cr-pos" aria-hidden="true" data-ring="' + (r.champion ? 'CAMPEÓN ★ CAMPEÓN ★ CAMPEÓN ★ ' : 'TEMPORADA ' + r.season + ' ★ TEMPORADA ' + r.season + ' ★ ') + '"><span class="sp-sc"><b>' + ordn(r.pos) + '</b></span></span>' +
-      '<p style="font:900 24px var(--display);text-transform:uppercase;letter-spacing:.04em;margin:0">' + ordn(r.pos) + ' ' + esc(deL(L)) + '</p>' + (hall ? '<p class="muted" style="margin:0">' + esc(L.country) + '</p>' : '') + '<p>' +
+      '<p class="bigname">' + ordn(r.pos) + ' ' + esc(deL(L)) + '</p>' + (hall ? '<p class="muted" style="margin:0">' + esc(L.country) + '</p>' : '') + '<p>' +
       (r.champion ? '<span class="tag y">Campeón ' + esc(deL(L)) + '</span>' : '') + (!hall && r.cup ? '<span class="tag y">Campeón del ' + esc(L.cup) + '</span>' : '') + cupTags +
       (r.move > 0 ? '<span class="tag g">Ascenso</span>' : r.move < 0 ? '<span class="tag r">Descenso</span>' : '') +
       '<span class="tag ' + (r.objOk ? 'g' : 'r') + '">Objetivo ' + (r.objOk ? 'cumplido' : 'no cumplido') + '</span></p>' +
@@ -1804,7 +1835,7 @@
         : '<p class="muted">' + (ct ? 'Te ' + (ct.left - 1 === 1 ? 'queda 1 temporada' : 'quedan ' + (ct.left - 1) + ' temporadas') + ' de contrato.' : '') + '</p>') +
       // con ofertas, «Seguir» pide confirmación (dos pulsaciones en 3 s): un toque despistado ya no las rechaza todas
       '<div class="acts"><button class="' + (stayArm && nOf ? 'warn' : nOf ? '' : 'pri') + '" data-act="stay">' + (stayArm && nOf ? (device() === 'touch' ? 'Toca otra vez: rechazas ' : 'Pulsa otra vez: rechazas ') + plural(nOf, 'oferta', 'ofertas')
-        : (rn ? 'Renovar con ' : 'Seguir en ') + esc(k.name) + (r.move ? (r.move > 0 ? ' (sube)' : ' (baja)') : '')) + '</button></div></div>';
+        : (rn ? 'Renovar con ' : 'Seguir en ') + esc(PH() ? shortClub(k) : k.name) + (r.move ? (r.move > 0 ? ' (sube)' : ' (baja)') : '')) + '</button></div></div>';
     return h;
   }
   /** Selector de duración del contrato (1-3 temporadas). key = id del club o 'renew'. */
@@ -2096,7 +2127,7 @@
     h += '<div class="card"><h3>Plantilla</h3><p class="muted">Puedes pedir jugar con otro compañero del club' + (c.coach < C().MATE_COACH ? ', pero el entrenador aún no te deja (necesitas su confianza: «Tiene dudas» o mejor).' : '. La química se guarda con cada uno; las medias y los puntos fuertes son de verdad en el partido.') + '</p>' +
       (c.squad || []).map(function (s, i) {
         var so = C().ovrOf(s.st), d = so - mo;
-        return '<div class="mate"><div style="min-width:0"><b style="font:800 17px var(--display);text-transform:uppercase">' + esc(s.name) + '</b>' + mateLine(s, co, true) +
+        return '<div class="mate"><div style="min-width:0"><b class="cr-mn">' + esc(s.name) + '</b>' + mateLine(s, co, true) +
           '<p class="muted" style="margin:2px 0 0">' + sp([(d > 0 ? '+' : d < 0 ? '−' : '±') + Math.abs(d) + ' respecto a ' + esc(m.name.split(' ')[0]), esc(chemTxt(c, s.chem))], 'c') + '</p></div><button data-act="mate" data-i="' + i + '"' + (c.coach < C().MATE_COACH ? ' disabled' : '') + '>Elegir</button></div>';
       }).join('') + '<p class="note" role="status" aria-live="polite">' + esc(note) + '</p></div>';
     note = '';
@@ -2194,7 +2225,7 @@
   }
   function renderMatch6(c) {
     // Faro (career-world-ui.js), arriba del todo como en la playa; Titulares tras el resumen o el último partido
-    var h = takeTrialRes(c) + (WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '');   // (prueba superada: su resultado, arriba)
+    var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', h = takeTrialRes(c) + mc;   // (prueba superada: su resultado, arriba)
     if (c.phase === 'off') return h + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
     var n = C().next(c);
     if (n) {
@@ -2206,6 +2237,7 @@
       // SPLAT: entrada en brochazo (tu escudo y el del rival con la equipación que vestirá), estado y botones, y los detalles en una hoja
       var st6 = statusHTML6(c, n);
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (como en la playa)
+      var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v'), (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
         [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
           alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'v'),
@@ -2213,7 +2245,7 @@
         n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
         // («Sales de inicio…» va en la hoja de detalles; el banquillo, en su nota, encima de los botones)
         (/^<p class="cr-st6"/.test(st6.pre) ? '' : st6.pre) + st6.acts +
-        (side ? '</div>' + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' + (/^<p class="cr-st6"/.test(st6.pre) ? st6.pre : '') +
+        (side ? '</div>' + (mIn ? mc : '') + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' + (/^<p class="cr-st6"/.test(st6.pre) ? st6.pre : '') +
         '<p class="muted">6 contra 6 en el pabellón: al mejor de 3 sets a ' + c.points + (c.points > 15 ? ', el tercero a 15' : '') + '. Tú llevas a ' + esc(c.player.name) + ' (dorsal ' + c.player.num + ', ' + esc(posName(role).toLowerCase()) + ') y al resto del equipo la IA.</p>' +
         (role !== c.player.roleKey ? '<p class="muted">Tu puesto (' + esc(posName(c.player.roleKey).toLowerCase()) + ') aún no se puede llevar en el 6 contra 6: juegas de ' + esc(posName(role).toLowerCase()) + '.</p>' : '') +
         '<p class="muted">' + sp(['Entreno: ' + esc(C().TRAIN[c.train].name), 'Fatiga ' + (c.fatigue | 0) + (C().fatigueMalus(c) ? ' (−' + C().fatigueMalus(c) + ' en tus atributos)' : ''),
@@ -2374,7 +2406,7 @@
     ro.forEach(function (p) {
       if (p.pos !== last) { last = p.pos; h += '<p class="muted" style="margin:10px 0 2px;font-weight:700">' + esc(posName(p.pos)) + '</p>'; }
       var tg = STL[p.stat] || STL.sub;
-      h += '<div class="mate"' + (p.me ? ' style="background:rgba(255,128,64,.18);border-radius:10px;padding-left:8px"' : '') + '><div style="min-width:0"><b style="font:800 17px var(--display);text-transform:uppercase">' + sp([esc(p.name), 'n.º ' + p.num], 's') + '</b>' +
+      h += '<div class="mate"' + (p.me ? ' style="background:rgba(255,128,64,.18);border-radius:10px;padding-left:8px"' : '') + '><div style="min-width:0"><b class="cr-mn">' + sp([esc(p.name), 'n.º ' + p.num], 's') + '</b>' +
         '<p class="muted" style="margin:2px 0 0">' + sp(['Media ' + p.ovr, 'Forma: ' + esc(formTxt6(p.form)), p.me ? 'Tú' : ''], 'c') + ' <span class="tag ' + tg[1] + '">' + tg[0] + '</span></p></div></div>';
     });
     h += '<p class="muted" style="margin-top:8px">El entrenador elige el seis de cada jornada por media, forma, confianza, fatiga y la impresión de tus entrenos (lo que haces en pista cuenta: esta temporada tu media vale ' + (H6.meEdge ? H6.meEdge(c) : H6.ME_EDGE || 12) + ' más en su elección; la ventaja baja ' + (H6.ME_EDGE_STEP || 2) + ' cada temporada hasta ' + (H6.ME_EDGE_MIN || 4) + ').</p>';
@@ -2473,7 +2505,7 @@
     var o = c.offers[i], k = C().club(c, o.club), hall = isHall(c);
     var f = hall ? C().clubInfo(c, k, o.lid, o.ovr) : C().clubInfo(c, k, o.lvl != null ? o.lvl : k.lvl, o.q);
     var pr = C().trialSimChance ? C().trialSimChance(o) : o.chance * 0.7, pend = trialHalf(c, o) ? 1 : 0;
-    return { i: i, hall: hall, name: k.name, kit: k.kit || {}, stars: f.stars, league: f.league, place: hall ? f.country : (f.beach || k.city), ovr: o.ovr != null ? o.ovr : f.ovr,
+    return { i: i, hall: hall, club: k, name: k.name, kit: k.kit || {}, stars: f.stars, league: f.league, place: hall ? f.country : (f.beach || k.city), ovr: o.ovr != null ? o.ovr : f.ovr,
       goals: C().trialGoals ? C().trialGoals(c, o) : [], pct: Math.round(pr * 100), pts: C().TRIAL_PTS || 15, mate: !hall && o.mateP ? o.mateP.name : '',
       player: c.player.name, ovrMe: C().playerOvr(c), pend: pend, ai: trialAI(c, o), when: c.phase === 'pick' ? '' : c.phase === 'off' ? 'off' : 'mid' };
   }
@@ -2500,7 +2532,9 @@
       ovrStamp(t.ovrMe);
     tabsEl.hidden = true; subEl.hidden = true;
     var bb = trialBibs(t.kit), tpc = typeof t.kit.shirt === 'number' ? hex(t.kit.shirt) : '#3a3168';
-    var h = '<div class="card tp new"><div class="tp-hero" style="--tpc:' + tpc + '">' + kitSw(t.kit, true) +
+    // el escudo del club, como en ofertas y fichas (la muestra de la camiseta sola parecía un icono roto); sin escudos, la camiseta
+    var cw = t.club ? crest(t.club, 56) : '', tcr = cw && cw.indexOf('<svg') === 0 ? '<span class="tp-crest" style="flex:none;display:flex">' + cw + '</span>' : kitSw(t.kit, true);
+    var h = '<div class="card tp new"><div class="tp-hero" style="--tpc:' + tpc + '">' + tcr +
       '<div style="min-width:0"><small>Partidillo de prueba</small><b>' + esc(t.name) + '</b><span class="muted">' + sp([stars(t.stars), esc(t.league), esc(t.place)], 'v') + '</span></div></div>' +
       '<p class="tp-eye">El cuerpo técnico de ' + esc(t.name) + ' te observa.</p>' +
       '<p class="tp-fmt">' + sp(['1 set a ' + t.pts, { h: 'con petos <span class="tp-bibs">' + bibSw(bb[0], bb.base) + bibSw(bb[1], bb.base) + '</span>' }], 'v') + '</p>' +
@@ -2551,9 +2585,9 @@
       ovrStamp(C().playerOvr(c));
     tabsEl.hidden = false;
     // una pestaña por oferta con el nombre del club (antes tres letras: «SAL · PRUEBA», «ARE»…) y «Comparar»
-    var ph = PH();
-    tabsEl.setAttribute('data-ph-tabs', 'strip');   // (móvil: la tira de ofertas, con el nombre corto del club)
-    drawBar('tab', offs.map(function (o, i) { var k = C().club(c, o.club); return [i, esc(ph ? shortClub(k) : k.name) + (o.trial ? ' (prueba)' : ''), false]; }).concat([['cmp', 'Comparar', false]]), sub.pick);
+    tabsEl.setAttribute('data-ph-tabs', 'strip');   // (móvil: la tira de ofertas)
+    // REV-8: el nombre corto del club también en PC (con el largo, la última pestaña quedaba cortada bajo la tecla E)
+    drawBar('tab', offs.map(function (o, i) { var k = C().club(c, o.club); return [i, esc(shortClub(k)) + (o.trial ? ' (prueba)' : ''), false]; }).concat([['cmp', 'Comparar', false]]), sub.pick);
     subEl.hidden = true;
     var h = '';
     if (sub.pick === 'cmp') {
@@ -3218,6 +3252,7 @@
         stars: 3, league: hall ? 'Hiperliga' : 'Circuito Nacional', place: hall ? 'España' : 'Platja Llarga', ovr: hall ? 58 : 44,
         goals: gl.map(function (g) { return { id: g[0], stat: g[0], txt: g[1], n: g[2], op: g[3] }; }), pct: 21, pts: 15, mate: hall ? '' : 'Nico Serrat',
         player: 'Ari Lluch', ovrMe: 40, pend: 0, ai: hall ? '' : 'la IA rival juega en Normal suave' };
+      dbgTrial.club = { id: 'dbg-trial', name: dbgTrial.name, short: 'VAL', kit: dbgTrial.kit, lid: hall ? 0 : undefined };   // (escudo de muestra)
       show('hub');
     },
     _tab: function (t, s) { if (open) setTab(t, s); }

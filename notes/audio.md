@@ -691,3 +691,22 @@ Detalle: `notes/s234/T6.md`. Contrato: CONTRACT §4.4 «Sprint 2-4». Todo con s
 ## Salto con impulso (v1.12.0, 18-nov-2026)
 - `jump.jv`: `scuff` ×(1 + 0,6·min(1, jv/1,8)) y tono −10 % a tope. `landPlayer.hard`: golpe seco `free` (0,32, tono ×0,55) además de los pasos.
 - `hit.mom` (remate no perfecto): el `sub` del perfecto por el bus de refuerzo a 0,45·mom·(SUB_G/0,5) con techo SUB_CEIL·mom (el perfecto ya lo lleva).
+
+## Ambiente de Carrera — paquete 2 (18-nov-2026; diseño en notes/ambiente.md)
+Sin eventos `amb:*` ni `VB.Ambiente.crowdOf(g)` todo suena como siempre (`amb.on` false, `reactK` 1, local = equipo 0).
+- **Local de verdad**: `ambHome()` (equipo local; 0 sin ambiente o en campo neutral). `crowdReact` → `crowdReact0(e, g, home)`: la
+  grada grande celebra los puntos del local y gruñe los del visitante; fuera de casa tu grupito celebra lo tuyo (roar pequeño a 1,12);
+  campo neutral: las dos aficiones a 0,75. `reactK = 0,9 + 0,25·calor`. También el bloqueo directo, el resultado del challenge, las
+  palmas del saque y el cántico de racha siguen a `ambHome()`; con calor > 0,6, bombo en cada compás de las palmas del saque.
+- **Sonidos nuevos** (`AMBS`, fuera del banco de siempre: `AMB_LAZY`; `ambPrep()` los encola al llegar `amb:start` o `crowdOf` y reabre
+  el Worker si ya se cerró): `boo` (pitada, react −20), `whistleStorm` (bucle de silbidos al saque rival hasta el golpe, −23),
+  `chantVamos` / `chantOe` / `chantDefensa` (multitud al unísono con la envolvente de sus sílabas y vocales; ciclo 2,4 s; −22),
+  `palmas32` (3 + 2, 2,1 s, −22), `paChime` (campanita de megafonía, −24), `cardWhistle` (pitido corto de la tarjeta, −16). Ritmo =
+  `AMB_RHYTHM` de arena.js (la grada da la palmada a la vez).
+- **Eventos**: `amb:hush` (murmullo hasta −8 dB y ánimo a la mitad hasta el golpe de saque), `amb:whistles`, `amb:chant` (1-3 ciclos
+  sin jitter de velocidad, bombo con calor; la afición pequeña a 0,55), `amb:wave` (introSwell + aplauso), `amb:boo`, `amb:roar`,
+  `amb:card` (pitido + «uuuh»; a los de casa, pitada; al visitante, aplauso), `amb:protest` («uuuh» suave; con calor, pitada al
+  visitante), `amb:taunt`, `amb:say{who:'speaker'}` (campanita, ≤ 1 cada 6 s), `amb:handshake` (aplauso). `whistle{penalty}` =
+  silbato largo; `point{penalty}` contra el local = pitada. El lanzamiento del saque calla los cánticos; el golpe, silbidos y silencio.
+- API: `VB.Audio.ambPrep()`, `AMB_SOUNDS`, `ambState()`; `LOOPS` añade `whistleStorm`. audiotest: 9 escenarios «ambiente: …»
+  (categorías nuevas `ambWhistles` −23 y `pa` −24); la parte 5 (banco idéntico) no cuenta los `AMB_SOUNDS`. `node tools/audiotest.js` → TODO OK.

@@ -29,13 +29,24 @@ function play(VB, opts) {
   const S = VB.Sim, DT = 1 / VB.C.SIM_HZ, MS = VB.MatchStats;
   MS.reset();
   const g = S.createGame(Object.assign({ demo: false, autopilot: true, difficulty: 'normal' }, opts));
-  const evs = []; let over = null, subs = 0, libs = 0;
+  const evs = []; let over = null, subs = 0, libs = 0, pts = 0, pens = 0, sans = 0;
+  // Ambiente de Carrera (opts.amb): tarjetas sintéticas (amb:card, como las del director) y castigos reales (Sim.penalty) con la escala
+  // FIVB: rival amarilla → roja con punto; tu equipo advertencia por retraso → castigo por retraso; amarilla al entrenador
+  const PLAN = { 5: [1, 'yellow', 'player'], 8: [0, 'delayY', 'team'], 12: [1, 'red', 'player'], 20: [0, 'delayR', 'team'], 25: [0, 'yellow', 'coach'] };
   for (let i = 0; i < 120 * 60 * VB.C.SIM_HZ && !over; i++) {
     if (i) S.step(g, DT, null);
     evs.length = 0; S.drainEvents(g, evs);
-    for (const e of evs) { MS.ingest(e, g); if (e.type === 'gameOver') over = e; if (e.type === 'sub') subs++; if (e.type === 'libero') libs++; }
+    for (let k = 0; k < evs.length; k++) { const e = evs[k]; MS.ingest(e, g); if (e.type === 'gameOver') over = e; if (e.type === 'sub') subs++; if (e.type === 'libero') libs++;
+      if (opts.amb && e.type === 'point' && !e.penalty && !e.setWon && !e.matchWon && PLAN[++pts]) {
+        const [t, color, who] = PLAN[pts], pen = /^(red|delayR)$/.test(color) && S.canPenalty(g, t), pl = g.teams[t][1];
+        if (/^(red|delayR)$/.test(color) && !pen) { delete PLAN[pts]; PLAN[pts + 1] = [t, color, who]; continue; }
+        MS.ingest({ type: 'amb:card', amb: true, team: t, pid: who === 'player' ? pl.id : -1, num: who === 'player' ? pl.num : 0, name: '', who, color,
+          reason: color.startsWith('delay') ? 'retraso' : 'protesta', set: g.setNo, score: g.score.slice(), penalty: pen }, g);
+        sans++;
+        if (pen) { S.penalty(g, t, { card: color, pid: who === 'player' ? pl.id : -1 }); const pe = []; S.drainEvents(g, pe); for (const x of pe) { MS.ingest(x, g); if (x.penalty) pens++; } }
+      } }
   }
-  return { g, over, subs, libs };
+  return { g, over, subs, libs, pens, sans };
 }
 
 const BENCH = (t) => [{ role: 'S', name: 'Suplente S' }, { role: 'OH', name: 'Suplente OH' }, { role: 'MB', name: 'Suplente MB' },
@@ -59,13 +70,15 @@ async function loadEmpat() {
     // Carrera: fuera de casa, capitán suplente (capitán en juego desde el principio) y capitán central (el líbero entra por él)
     { k: '6v6 fuera con capitán suplente', o: { format: '6v6', points: 15, bench: [BENCH(0), BENCH(1)] }, n: 2, meta: { atHome: false, capt: [21, 7], lib: ['Nora Líbero', ''] } },
     { k: '6v6 capitán central', o: { format: '6v6', points: 15 }, n: 2, meta: { capt: [3, 9] } },
+    // Ambiente de Carrera: amarilla, roja con punto de castigo, retrasos y amarilla al entrenador (sanction de emPat)
+    { k: '6v6 con sanciones', o: { format: '6v6', points: 25, amb: true }, n: 2 },
   ];
   let totSubs = 0, totLibs = 0;
   for (const F of FORMATS) {
     const n = F.n || N;
     for (let m = 0; m < n; m++) {
       const label = F.k + ' #' + (m + 1);
-      const { g, over, subs, libs } = play(VB, Object.assign({ seed: 1000 + m * 7919 + F.k.length }, F.o));
+      const { g, over, subs, libs, pens, sans } = play(VB, Object.assign({ seed: 1000 + m * 7919 + F.k.length }, F.o));
       totSubs += subs; totLibs += libs;
       ok(label + ': el partido acaba', !!over); if (!over) continue;
       const d = VB.MatchStats.data();
@@ -79,7 +92,11 @@ async function loadEmpat() {
       ok(label + ': JSON de ida y vuelta', JSON.stringify(JSON.parse(JSON.stringify(A))) === JSON.stringify(A));
       const K = (k) => A.plays.filter((p) => p.kind === k).length;
       const pts = g.setScores.reduce((a, s) => a + s[0] + s[1], 0);
-      ok(label + ': un rally por punto', K('rally') === pts, K('rally') + ' frente a ' + pts);
+      ok(label + ': un rally por punto', K('rally') + pens === pts, K('rally') + ' + ' + pens + ' castigos frente a ' + pts);
+      if (F.o.amb) { ok(label + ': sanciones en el acta', K('sanction') === sans && sans >= 4 && pens >= 2, K('sanction') + ' / ' + sans + ' / castigos ' + pens);
+        const d2 = VB.MatchStats.data(); ok(label + ': sanciones en el registro', d2.san.length === sans && d2.rallies.filter((r) => r.pen).length === pens);
+        let cs = null; try { cs = VB.MatchStats.compute(d2, 0); } catch (er) { cs = String(er); }
+        ok(label + ': la estadística acepta el castigo', cs && typeof cs === 'object', String(cs)); }
       ok(label + ': dos plantillas', K('roster') === 2);
       const away = F.meta && F.meta.atHome === false;
       ok(label + ': local y visitante', A.info.homeName === (away ? 'Voley Rival' : 'Voley Mío') && A.info.awayName === (away ? 'Voley Mío' : 'Voley Rival'),

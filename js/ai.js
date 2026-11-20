@@ -387,12 +387,12 @@
     // vista (tipRead). Sin azar: solo mueve el retardo de reacción
     // El que estaba en el aire al llegar la finta (el bloqueador que saltó contra el remate armado) sigue engañado feintRead s DESPUÉS
     // de caer: sin eso la dejada por encima del bloqueo la recogía siempre él al aterrizar, a 1-2 m, y la finta no valía nada
-    if (g.mastery && (g.online ? g.lastTeam === 1 - t : t === 1 && g.lastTeam === 0)) {
+    if (g.feintOn && (g.online ? g.lastTeam === 1 - t : t === 1 && g.lastTeam === 0)) { // (g.feintOn: con g.mastery, o la finta sola del 6v6)
       if (g.feintT === g.lastTouchT) {
         if (p.e1T !== g.lastTouchT) { p.e1T = g.lastTouchT; p.e1Until = g.time + (pr.feintRead || 0) + (p.z > 0 ? (p.vz + Math.sqrt(p.vz * p.vz + 2 * C.G * p.z)) / C.G : 0); }
         react = Math.max(react + (pr.feintRead || 0), p.e1Until - g.lastTouchT);
         if (g.feintFool) react += VB.EFFORT.feintReact; // la finta que engaña (hk, sim.js): lee aún más tarde, pero corre a tope
-      } else if (g.lastKind === 'free' && g.lastShot === 'tip') react = Math.max(0, react - (pr.tipRead || 0));
+      } else if (g.mastery && g.lastKind === 'free' && g.lastShot === 'tip') react = Math.max(0, react - (pr.tipRead || 0));
     }
     // MODELO DE ESFUERZO (EFFORT, sim.js, 18-nov-2026): ya no hay defensor «perdido» (antes, con el dado g.digOk en contra, leía
     // tarde y corría al 60 %, 30 % en 6v6). Siempre va a tope de sus stats; si no llega es por su reacción, su arrancada, su

@@ -62,7 +62,9 @@
       roster: {}, rallies: [], r: null, me: -1, meSet: false,
       // (6v6, para el acta de js/acta.js) plantilla completa, alineación y primer saque de cada set, y lo que pasa a balón muerto:
       // ac = [{i: rally antes del que pasa, k: 'sub'|'lib'|'tmo', s: set, t: equipo, o/n: dorsal que sale / entra}]
-      sq: null, lu: {}, ac: [], bo1: !!(g && g.bo1), seed: (g && g.seed) | 0 };
+      // san = sanciones del Ambiente de Carrera (amb:card), en todos los formatos: [{i, s, t, lv, n (dorsal|0), who, rs, sc, pen}]
+      // (en 6v6 también van en ac con k: 'san' para el acta: lv = nivel de emPat warning|penalty|delayWarning|delayPenalty)
+      sq: null, lu: {}, ac: [], san: [], bo1: !!(g && g.bo1), seed: (g && g.seed) | 0 };
   }
   /** 6v6: plantilla de cada equipo (con banquillo y líbero) y alineación del set. Nada en 2v2. */
   function squadOf(g) {
@@ -119,6 +121,15 @@
     if (!e || e.replay || (g && (g.demo || g.drill || g.replay))) return;
     var ty = e.type;
     if (ty === 'newMatch') { cur = newLog(g); cur.sq = squadOf(g); lineupOf(g, 1); return; }
+    if (ty === 'amb:card') {   // Ambiente de Carrera: tarjeta (antes del punto de castigo, si lo hay)
+      if (!cur) cur = newLog(g);
+      var lv = SAN_LV[e.color]; if (!lv) return;
+      var sn = { i: nextIdx(), k: 'san', s: (g && g.setNo) | 0 || (e.set | 0) || 1, t: e.team | 0, lv: lv, n: e.who === 'player' ? e.num | 0 : 0,
+        who: e.who === 'coach' ? 'coach' : e.who === 'team' ? 'team' : 'player', rs: e.reason || '', sc: e.score ? [e.score[0] | 0, e.score[1] | 0] : null, pen: !!e.penalty };
+      cur.san.push(sn);
+      if (g && g.size === 6) cur.ac.push(sn);
+      return;
+    }
     if (ty === 'newSet' || ty === 'sub' || ty === 'libero' || ty === 'timeout') {
       if (!cur || !g || g.size !== 6) return;
       if (ty === 'newSet') { lineupOf(g, e.setNo | 0); return; }
@@ -128,6 +139,7 @@
       return;
     }
     if (ty !== 'serveReady' && ty !== 'hit' && ty !== 'block' && ty !== 'land' && ty !== 'point') return;
+    if (ty === 'point' && e.penalty && !cur) cur = newLog(g);
     if (!cur) cur = newLog(g);
     var r = cur.r;
     switch (ty) {
@@ -146,6 +158,12 @@
         if (r && r.w < 0 && !r.L) r.L = [r1(e.x), r1(e.y), e.inside ? 1 : 0];
         return;
       case 'point': {
+        if (e.penalty) {   // punto de castigo (Ambiente): un rally propio, sin acciones; el acta lo da con la sanción
+          var pr = { s: (g && g.setNo) || 1, sv: g ? (e.sideout ? 1 - (e.team | 0) : e.team | 0) : 0, srv: -1, on: null, rot: null, c: [], L: null, w: e.team | 0,
+            how: 'penalty', rs: 'penalty', fp: e.faultPlayer ? pid(e.faultPlayer) : -1, lk: '', sc: e.score ? [e.score[0] | 0, e.score[1] | 0] : null, pen: 1 };
+          cur.rallies.push(pr); cur.r = pr;
+          return;
+        }
         var tgt = r;
         if (!tgt) tgt = openRally(g, g ? g.serving : 1 - (e.team | 0), null);
         else if (tgt.w < 0 && !tgt.c.length && (e.reason === 'in' || e.reason === 'out') && cur.rallies.length > 1) tgt = cur.rallies[cur.rallies.length - 2]; // challenge acertado con el saque siguiente ya preparado: se vuelve a pitar el anterior
@@ -166,6 +184,7 @@
   var CODES = ['#', '+', '!', '-', '/', '='];
   function fund() { return { t: 0, '#': 0, '+': 0, '!': 0, '-': 0, '/': 0, '=': 0 }; }
   function blank() { return { S: fund(), R: fund(), A: fund(), B: fund(), D: fund(), E: fund(), F: fund(), X: { t: 0 }, pts: 0, err: 0, on: 0, pm: 0 }; }
+  var SAN_LV = { yellow: 'warning', red: 'penalty', expel: 'expulsion', dq: 'disqualification', delayY: 'delayWarning', delayR: 'delayPenalty' };
   var FX = { net: 'r', double: 'd', four: 'o', block: 'o', backBlock: 'p', attackServe: 'o', backAttack: 'p', position: 'p' };
   var BALL_RS = { 'in': 1, out: 1, antenna: 1, under: 1 };
   var S_FROM_R = { '#': '-', '+': '-', '!': '!', '-': '+', '/': '/', '=': '#' };
@@ -228,7 +247,9 @@
     // cómo acaba
     var w = r.w, L = 1 - w, how = r.how, rs = r.rs, dec = null, k, m;
     var lastOf = function (fn) { for (var j = acts.length - 1; j >= 0; j--) if (fn(acts[j])) return j; return -1; };
-    if (rs === 'serve') {
+    if (rs === 'penalty') {   // punto de castigo: una falta del sancionado (o del equipo, sin jugador)
+      dec = { f: 'X', r: 'o', t: L, p: r.fp, z: -1, ph: '', win: -1 }; acts.push(dec);
+    } else if (rs === 'serve') {
       k = lastOf(function (q) { return q.f === 'S'; });
       if (k >= 0) dec = acts[k]; else { dec = { f: 'S', r: '=', t: L, p: r.fp >= 0 ? r.fp : r.srv, z: -1, ph: '', win: 0 }; acts.unshift(dec); }
       dec.r = '='; dec.win = -1;
@@ -422,7 +443,7 @@
       fig('them', 'Puntos regalados', t.ourErr, lost ? pctS(t.ourErr, lost) + ' de los ' + lost + ' perdidos' : 'Ningún punto perdido') +
       fig('', 'Side-out', pctS(t.soW, t.soT), t.soW + ' de ' + t.soT + ' con saque del rival') +
       fig('', 'Break point', pctS(t.brW, t.brT), t.brW + ' de ' + t.brT + ' con saque propio') +
-      fig('', 'Side-out recibiendo', pctS(t.rcW, t.rcT), t.rcT ? sep([t.rcW + ' de ' + t.rcT + ' con recepción', t.svErr ? 'sin ' + t.svErr + (t.svErr === 1 ? ' error' : ' errores') + ' de saque rival' : ''], 'v') : 'Sin recepciones') +
+      fig('', 'Side-out recibiendo', pctS(t.rcW, t.rcT), t.rcT ? t.rcW + ' de ' + t.rcT + ' con recepción' + (t.svErr ? '<br>Sin contar ' + t.svErr + (t.svErr === 1 ? ' error' : ' errores') + ' de saque rival' : '') : 'Sin recepciones') +
       fig('', 'Al primer ataque', pctS(t.fbW, t.rcT), t.rcT ? t.fbW + ' de ' + t.rcT + ' recepciones acaban en punto en el K1' : 'Sin recepciones');
     // Móvil (.ph): las seis cifras en UNA pegatina (.sp-heros, 3 × 2) y el detalle de cada una detrás de la «i» (VB.Splat.info, la
     // enciende ui.js msRender); en PC siguen las tarjetas. Las dos versiones van en el HTML y el CSS enseña una (.ph-only / .ph-hide).

@@ -37,9 +37,13 @@
     semi: { t1: 'Semifinal', t2: 'El que gane, a la final' },
     boss: { t1: 'Jefe: {nick}', t2: '{style}' },
     duel: { t1: 'Duelo con tu rival', t2: '{name} | {w}-{l} en duelos' },
+    // ambiente de Carrera (career.js ambCtx → g.career.amb.tags): derbi de la ciudad, revancha y partido en la cumbre
+    derby: { t1: 'DERBI', t2: '{city} se paraliza' },
+    revancha: { t1: 'REVANCHA', t2: 'La última vez ganó {rival}' },
+    cumbre: { t1: 'CUMBRE', t2: 'Los dos de arriba, cara a cara' },
     first: { t1: 'Empieza la temporada {season}', t2: '{league}' }
   };
-  var STAKE_ORDER = ['final', 'semi', 'boss', 'duel', 'first'];
+  var STAKE_ORDER = ['final', 'semi', 'boss', 'duel', 'derby', 'revancha', 'cumbre', 'first'];
   var ORDW = ['', 'primer', 'segundo', 'tercer', 'cuarto', 'quinto'];
   var MEDAL = ['', 'bronce', 'plata', 'oro'];
   var TAB_LABEL = { sum: 'Resumen', stats: 'Estadísticas', plays: 'Jugadas' };
@@ -154,6 +158,10 @@
       if (k === 'semi' && st === 'semi') return { k: k, t1: S.t1, t2: S.t2 };
       if (k === 'boss' && cs.boss && (cs.boss.nick || cs.boss.name)) return { k: k, t1: fill(S.t1, { nick: cs.boss.nick || cs.boss.name }), t2: cs.boss.styleName || cs.boss.style || cs.boss.hint || '' };
       if (k === 'duel' && cs.duel && rv && rv.name) return { k: k, t1: S.t1, t2: fill(S.t2, { name: rv.name, w: rv.w | 0, l: rv.l | 0 }) };
+      var tg = cs.amb && Array.isArray(cs.amb.tags) ? cs.amb.tags : null;
+      if (k === 'derby' && tg && tg.indexOf('derbi') >= 0 && isHall(cs) && cs.amb.city) return { k: k, t1: S.t1, t2: fill(S.t2, { city: cs.amb.city }) };
+      if (k === 'revancha' && tg && tg.indexOf('revancha') >= 0) return { k: k, t1: S.t1, t2: contract(fill(S.t2, { rival: cs.rivalName || 'el rival' })) };
+      if (k === 'cumbre' && tg && tg.indexOf('cumbre') >= 0) return { k: k, t1: S.t1, t2: S.t2 };
       if (k === 'first' && (cs.first != null ? cs.first : cs.phase === 'league' && cs.week === 0)) return { k: k, t1: fill(S.t1, { season: cs.season | 0 || 1 }), t2: cs.league || cs.leagueName || '' };
     }
     return null;
@@ -267,6 +275,15 @@
       test: function (d) { var c = d.close; return c && c.how === 'ace' && c.who ? { X: whoName(c.who, d, false) } : null; } },
     { k: 'closeBlock', v: ['¡{X} cierra el partido con un muro!', '{X} cierra el partido con un bloqueo'],
       test: function (d) { var c = d.close; return c && c.how === 'block' && c.who ? { X: whoName(c.who, d, false) } : null; } },
+    // ambiente de Carrera: tarjeta roja (d.amb o g.career.ambSum = VB.Ambiente.sum)
+    { k: 'redCard', v: ['Roja a {X} y punto de castigo', 'Partido caliente: roja para {X}'],
+      test: function (d) {
+        var a = d.amb || (d.career && d.career.ambSum); if (!a || !Array.isArray(a.cards)) return null;
+        var r = null; for (var i = 0; i < a.cards.length; i++) { var c = a.cards[i]; if (c && (c.color === 'red' || c.color === 'delayR')) { r = c; break; } }
+        if (!r) return null;
+        var X = r.who === 'coach' ? (r.team === 0 ? 'tu banquillo' : 'el banquillo rival') : r.who === 'team' ? teamName(r.team | 0, d, false) : r.name ? surname(r.name) : teamName(r.team | 0, d, false);
+        return { X: X };
+      } },
     { k: 'comebackSet', v: ['{T} remonta un set en contra', '{T} gana tras perder el primer set'],
       test: function (d, w) {
         var ss = d.setScores || [], s = d.sets || [0, 0];

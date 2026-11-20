@@ -781,6 +781,10 @@
       o[0] = q.x; o[1] = q.y; o[2] = r1 ? 0 : q.z; o[3] = q.z + (r1 ? 1.85 : Math.abs(q.y) > 8 ? 1.35 : L[i].lines ? 2.25 : 1.85); o[4] = r1 ? 0.55 : 0.4;
     }
     OFFN = n; for (; n < OFFI.length; n++) { o = OFFI[n]; o[0] = 1e3; o[1] = 1e3; o[2] = 0; o[3] = 0; o[4] = 0; }   // (sin jueces de línea: huecos fuera)
+    // los planos del punto (héroe, víctima, órbita) esquivan OBST: se le añaden los oficiales en su sitio REAL (en la playa, un
+    // juez de línea en (8, 6,8) quedaba a 0,6 m de la lente del ace en móvil apaisado: una mancha negra en un tercio del cuadro)
+    OBST.length = OBST_N;
+    for (var k = 0; k < OFFN; k++) { var of = OFFI[k], ob = OBSX[k] || (OBSX[k] = [0, 0, 0]); ob[0] = of[0]; ob[1] = of[1]; ob[2] = of[4]; OBST.push(ob); }
   }
   var SVC = { fullToss: false, pwN: 0, pwX: 0, pwY: 0, pwLow: false, pwAsp: 0, nEval: 0, nOff: 0, rr: 0, wantFull: false, fullF: -1, fullLow: false, fullAsp: 0, lat: 1.2, sx: 0.36, idx: -1, pen: 0.5, off: 0.5, cc: 0.5, yaw: 0.5, p: 0.5, t: 0.4, cx: 0.5, cy: 0.5, cz: 0.5, liftU: 0.5, dB: 0.5, fk: 0.99, inMask: 0 };
   SVC.idx = -1;
@@ -1017,6 +1021,7 @@
   // obstáculos fijos [x, y, radio] (coords de sim): postes, silla del 1r árbitro, 2º árbitro, mesa, jueces de línea
   var OBST = [[0, 5.5, 0.25], [0, -5.5, 0.25], [0, -6.12, 0.6], [0, 6.05, 0.35], [-1.2, 8.25, 0.7], [0, 8.25, 0.7], [1.2, 8.25, 0.7],
               [10.4, -5.9, 0.35], [-10.4, 5.9, 0.35]];
+  var OBST_N = OBST.length, OBSX = [];   // (fijos; detrás, los oficiales reales: readOfficials)
   var PF = { lx: 0, ly: 0, vic: null, hero: null, heroIn: false, c0x: 0, c0y: 0, cx: 0, cy: 0, R: 6, ang: 0, fov: 34, z: 1.75,
              cut: false, hold: 0.45, cutDone: true, cutNow: false, dir: 1, w: 0, backCut: true, backLock: false,
              mode: 'vic', how: '', mate: null, both: false, score: 0.5, heroD: 6.5, side: 1, hxo: 0.42 };
@@ -1450,6 +1455,7 @@
   }
   function planPoint(g, how, faultP, replan) {
     var w = g.lastPoint ? g.lastPoint.team : 0, los = 1 - w, b = g.ball;
+    if (!replan) readOfficials();
     PF.w = w; PF.how = how; PF.mode = 'vic'; PF.mate = null; PF.both = false; PF.score = 0; HS.on = false;
     // ¿héroe o víctima? Víctima SOLO si el que pierde es el equipo humano y es un error propio
     var ownErr = how === 'error' && los === 0;

@@ -36,16 +36,49 @@
  *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
  * 1.15.1 (19-nov-2026): aviso de versión nueva (Ferran: «si un teléfono está en una versión anterior le salte un aviso en la
  *   pantalla de reiniciar»): js/update.js pregunta a Pages por version.json y ofrece «Reiniciar»; el online dice quién tiene que reiniciar.
+ * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
+ *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.15.1';
-  VB.VERSION_DATE = '2026-11-19';
+  VB.VERSION = '1.17.1';
+  VB.VERSION_DATE = '2026-11-20';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.17.1', d: '2026-11-20', t: 'Repaso para el móvil',
+      items: [
+        'Menús, Carrera y partido repasados en el móvil: nada cortado ni tapando los mandos.'
+      ]
+    },
+    {
+      v: '1.17.0', d: '2026-11-19', t: 'Fintas',
+      items: [
+        'La finta llega al 6 contra 6 y a la Carrera de pista.',
+        'Más fácil de hacer: en el aire, Golpear pronto y Saltar en el momento del golpe.',
+        'En el móvil: toca Golpear pronto y desliza el dedo a Saltar al golpear.',
+        'Con el bloqueo rival ya en el aire, a la defensa le cuesta mucho más leerla.'
+      ]
+    },
+    {
+      v: '1.16.1', d: '2026-11-19', t: 'Camino y Cifras renovados',
+      items: [
+        'Camino de temporada y Cifras con el estilo de los menús y pensados para el móvil.'
+      ]
+    },
+    {
+      v: '1.16.0', d: '2026-11-19', t: 'Ambiente de Carrera',
+      items: [
+        'La grada vive el partido: anima, pita al rival, canta y calla en los puntos de set.',
+        'Discusiones con el árbitro: a veces eliges entre Protestar o Dejarlo.',
+        'Tarjetas de reglamento: la amarilla avisa y la roja da punto y saque al rival.',
+        'Pique entre equipos y frases del banquillo, el rival, el árbitro y la megafonía.',
+        'Nuevo ajuste en Ajustes › Juego: Ambiente de Carrera completo, tranquilo o apagado.'
+      ]
+    },
     {
       v: '1.15.1', d: '2026-11-19', t: 'Aviso de versión nueva',
       items: [
