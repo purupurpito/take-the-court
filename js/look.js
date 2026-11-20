@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/look.js (owner: ui_main)
+/* TAKE THE COURT — js/look.js (owner: ui_main)
  * Vestuario (personalización de los muñecos): catálogo, reglas de compatibilidad, saneado, resolución para doll.js, inventario
  * y guardado. Es PURO: sin THREE ni DOM (localStorage siempre dentro de try/catch); se prueba en node con vm (tools/looktest.js).
  * index.html lo carga entre js/badges.js y js/venues.js. Todo es estético: nada de esto entra en la sim, en attrs, en badges ni
@@ -147,9 +147,9 @@
     { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', tris: [224, 260, 416] },
     { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [196, 197, 410] },
     { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [164, 164, 248] },
-    // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «MTC» en el frontal; se gana al
+    // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «TTC» (Take the Court; hasta la 1.18, «MTC») en el frontal; se gana al
     // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
-    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «MTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [236, 249, 444] },
+    { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «TTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [224, 237, 432] },
     // 1.18 (WP7): objetos de cabeza que se leen de espaldas y desde arriba (diadema por la coronilla, pinzas detrás de la oreja, pompón, damero…)
     { id: 'diadema', name: 'Diadema', slot: 'head', vc: 'A', g: 'f', tris: [114, 132, 168] },
     { id: 'pinzas', name: 'Pinzas de pelo', slot: 'head', vc: 'A', g: 'f', pl: 1, tris: [84, 84, 84] },
@@ -335,7 +335,7 @@
   ];
   CLASH.forEach(function (r) { Object.freeze(r.a.ids); Object.freeze(r.b.ids); Object.freeze(r.a); Object.freeze(r.b); Object.freeze(r.why); Object.freeze(r); });
   var STYLE_FALLBACK = 'tupe';   // al quitar un peinado que choca (ninguna regla lo nombra)
-  // gorros de copa (gorra, gorra al revés, pescador y gorra MTC): el pelo solo asoma por debajo (doll.js HAT_CLASS; HAIR_UNDER_CAP dice
+  // gorros de copa (gorra, gorra al revés, pescador y gorra TTC = gorraMTC): el pelo solo asoma por debajo (doll.js HAT_CLASS; HAIR_UNDER_CAP dice
   // qué peinados asoman enteros)
   var HIDE_HAIR = ['gorra', 'gorraAtras', 'pescador', 'gorraMTC', 'bandana', 'gorroPompon', 'pescadorCuadros'];   // (bandana: 1.18, WP3, un casquete de verdad; WP7: gorro de lana y pescador de cuadros)
 
