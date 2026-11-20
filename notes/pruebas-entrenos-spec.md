@@ -1,4 +1,4 @@
-DISEÑO FINAL: prueba con partidillo y petos, y entrenos Rápido/Manual (Make the Cut)
+DISEÑO FINAL: prueba con partidillo y petos, y entrenos Rápido/Manual (Take the Court, entonces Make the Cut)
 Base: el diseño «mínimo», que es el que menos riesgo tiene: conserva trainWeek, del que dependen TRAIN_COACH y career-life.js:482/775. Le añado del diseño «jugador» la pantalla previa con objetivos, «Simular jornada», la pantalla de nota y la idea de reutilizar el partidillo. Del diseño «fiel» tomo el desempate en C con la tirada y la regla de que el Rápido nunca da oro. Lo he cotejado con el código real: sim.js:236-238, 299 y 1993; career.js:112-128, 555-717 y 1128-1146; main.js:520-560; career-ui.js:900-912; careertest:1955-1975; version.js:18 (VB.VERSION='1.1.1'). No he editado nada.
 
 ====================================================================

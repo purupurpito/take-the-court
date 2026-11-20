@@ -10,7 +10,7 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
 ## Reglas que valen para todos los lotes
 - **Nombres (17-nov-2026)**: ya no queda «voley-3d» en el código. Las claves de guardado son `make-the-cut.*` (antes
   `voley3d.*`; el primer `<script>` de index.html las pasa una vez a las nuevas), las cabeceras de los ficheros dicen
-  `MAKE THE CUT —` y el guion del flujo es `tools/workflow/make-the-cut.workflow.js`. Una rama vieja que se fusione con main
+  `TAKE THE COURT —` (desde 1.19.0; antes `MAKE THE CUT —`) y el guion del flujo es `tools/workflow/make-the-cut.workflow.js`. Una rama vieja que se fusione con main
   tiene que pasar sus `voley3d.` a `make-the-cut.` (`sed -i 's/voley3d\./make-the-cut./g'`) o volverán a salir las claves viejas.
 - **Git**
   - Commit y push como purupurpito: `export GH_TOKEN=$(gh auth token -u purupurpito)`. Al final de cada mensaje de commit,
@@ -19,7 +19,8 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
     `git add <ficheros>`, nunca `-A` sobre todo el árbol.
   - Los agentes de un workflow NUNCA hacen commit, push, checkout, reset ni stash.
 - **Publicar y comprobar.** Publicar = push a main; GitHub Actions publica en Pages
-  (https://purupurpito.github.io/make-the-cut/). DESPUÉS DEL PUSH, COMPRUEBA QUE EL RUN DE ACTIONS ACABA EN «success»
+  (https://takethecourt.com/ desde 1.19.0; la dirección vieja https://purupurpito.github.io/make-the-cut/ es el puente,
+  bridge/README.md). DESPUÉS DEL PUSH, COMPRUEBA QUE EL RUN DE ACTIONS ACABA EN «success»
   (`gh run list -R purupurpito/make-the-cut -L 1`). El 11-nov se pasaron horas creyendo publicado algo que fallaba en CI.
   El CI pasa simtest.
 - **Huella 2v2.** `node tools/simtest.js` debe decir «huella 2v2 idéntica». Ningún lote de este fichero debe cambiar el 2v2,

@@ -34,7 +34,7 @@ tómalo como orientativo.
   deciden los minutos y la titularidad (Pitch Notes FIFA 22). La media de la temporada sale de esas notas (ver un fallo de FC 26
   que las ponía a 0,0: [foro EA](https://forums.ea.com/idea/fc-26-bug-reports-en/career-mode-live-start-point-breaks-average-match-ratings/13042848)).
 
-Qué tomamos para Make the Cut: arrancar en 6,0, que muchas acciones pequeñas sumen poco y las decisivas más (aces, bloqueos,
+Qué tomamos para Take the Court (entonces Make the Cut): arrancar en 6,0, que muchas acciones pequeñas sumen poco y las decisivas más (aces, bloqueos,
 errores), una deriva suave hacia abajo si no participas, un aviso pequeño y discreto, y que la nota final mueva la XP, la
 confianza del entrenador, la titularidad y los premios (que ya es así). No copiamos su widget: la píldora usa el estilo del
 marcador del juego (`.sb`).
