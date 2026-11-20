@@ -4538,6 +4538,7 @@
     (LK_ROWS[lk.tab] || []).forEach(function (s) { var v = lkGet(s); if (typeof v === 'string' && v && U[v]) seen.push(v); });
     if (seen.length && Lk && Lk.markSeen) try { Lk.markSeen(seen); } catch (e) { }
   }
+  var lkPlaceQ = 0;
   function lkRender(focusSlot) {
     if (!el.mpLook || !lk.fit) return;
     var U = {}, uu = lkUnseen(); uu.forEach(function (id) { U[id] = 1; });
@@ -4592,6 +4593,9 @@
     if (el.lkList._h !== h) {
       el.lkList._h = h; el.lkList.innerHTML = h; if (VB.Splat) VB.Splat.decorate(el.lkList);
       if (fs) { var nb = el.lkList.querySelector('[data-look="' + fs + '"]'); if (nb) focusEl(nb, kb || focusSlot != null && kbNow()); }
+      // (pulido: la lista cambia de alto —Piernas de playa tiene una sola fila— y en vertical el hueco del muñeco con ella: se vuelve a
+      //  medir; antes los pies quedaban pegados al título con media pantalla de arena vacía debajo)
+      if (!lkPlaceQ) lkPlaceQ = requestAnimationFrame(function () { lkPlaceQ = 0; if (lk.on) lkPlace(); });
     }
     lkSeen(U);
     lkMore();
