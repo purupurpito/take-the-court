@@ -4391,7 +4391,7 @@
   function lkLoad(w) {
     var Lk = LK(), f = null;
     if (w === 'career' && !lkCareer() && !(lk.o && lk.o.who === 'career')) w = 0;   // sin Carrera activa: el n.º 1
-    lk.who = w; lk.dirty = false; lk.nul = false; lk.tryI = -1;
+    lk.who = w; lk.dirty = false; lk.nul = false; lk.tryI = -1; lkUndoDrop();
     if (w === 'career') {
       var car = lkCareer(), oc = lk.o && lk.o.who === 'career' ? lk.o : null;
       lk.hall = oc && oc.hall != null ? !!oc.hall : !!(car && car.hall);
@@ -5047,7 +5047,7 @@
     var Lk = LK(); if (!Lk || !Lk.random || !lk.fit) return;
     var r = null; try { r = Lk.random(Date.now(), true); } catch (e) { r = null; }   // semilla de la UI: nunca g.rng
     if (!r) return;
-    var f = lkClone(lk.fit), vk = lkVKey();
+    var prev = lkClone(lk.fit), f = lkClone(lk.fit), vk = lkVKey();
     // cada ruta que pisa el azar borra su _keep (como lkPut): si no, una versión más nueva que conozca ese id lo devolvería encima
     ['style', 'skin', 'hair'].forEach(function (k) { if (r[k] != null) { f[k] = r[k]; lkUnkeep(f, k); } });
     if (r.colors) { f.colors = lkClone(r.colors); Object.keys(r.colors).forEach(function (k) { lkUnkeep(f, 'colors.' + k); }); }
@@ -5055,7 +5055,7 @@
       f[vk] = lkClone(r[vk]); Object.keys(r[vk]).forEach(function (s) { lkUnkeep(f, vk + '.' + s); });
     }
     lkSet(f, null, true);
-    uiSound('click'); srSay('Aspecto al azar'); lkNote('Todo al azar');
+    uiSound('click'); srSay('Aspecto al azar'); lkUndoOffer(prev, 'Todo al azar');
     lkRender(); lkPreview();
   }
   /** Dado junto a «Probar» (WP6): al azar SOLO las filas de la pestaña abierta (lo demás se queda); en Colores, los colores. */
@@ -5063,12 +5063,13 @@
     var Lk = LK(); if (!Lk || !Lk.random || !lk.fit) return;
     var r = null; try { r = Lk.random(Date.now(), true); } catch (e) { r = null; }   // semilla de la UI: nunca g.rng
     if (!r) return;
-    var f = lkClone(lk.fit), tl = '', rows = LK_ROWS[lk.tab] || [];
+    var prev = lkClone(lk.fit), f = lkClone(lk.fit), tl = '', rows = LK_ROWS[lk.tab] || [];
     rows.forEach(function (s) { if (lkOpts(s).length >= 2) lkPut(f, s, lkGetFrom(r, s)); });
     LK_TABS.forEach(function (t) { if (t[0] === lk.tab) tl = t[1]; });
     lkSet(f, null, true);
     uiSound('click'); srSay('Al azar: ' + tl);
     lkRender(); lkPreview();
+    lkUndoOffer(prev, 'Al azar: ' + tl);
   }
   /** «⋯»: hoja con lo que se usa poco (Todo al azar, Restablecer este apartado, Copiar a la otra sede). Una sola ✕ (U8). */
   function lkMoreSheet() {
@@ -5088,16 +5089,17 @@
   function lkReset() {
     var Lk = LK(); if (!Lk || !Lk.defaults || !lk.fit) return;
     var d = null; try { d = Lk.defaults(lk.who === 'career' ? 0 : lk.who); } catch (e) { d = null; } if (!d) return;
-    var f = lkClone(lk.fit), tl = '';
+    var prev = lkClone(lk.fit), f = lkClone(lk.fit), tl = '';
     (LK_ROWS[lk.tab] || []).forEach(function (s) { lkPut(f, s, lkGetFrom(d, s)); });
     LK_TABS.forEach(function (t) { if (t[0] === lk.tab) tl = t[1]; });
     lkSet(f, null, true);
-    uiSound('back'); lkNote('Restablecido: ' + tl);
+    uiSound('back');
     lkRender(); lkPreview();
+    lkUndoOffer(prev, 'Restablecido: ' + tl);
   }
   function lkCopy() {
     var Lk = LK(); if (lk.who === 'career' || !lk.fit || !Lk) return;
-    var from = lkVKey(), to = from === 'beach' ? 'hall' : 'beach', f = lkClone(lk.fit), skipped = 0;
+    var from = lkVKey(), to = from === 'beach' ? 'hall' : 'beach', prev = lkClone(lk.fit), f = lkClone(lk.fit), skipped = 0;
     if (!f[to] || typeof f[to] !== 'object') f[to] = {};
     // se copia lo que vale en el otro escenario; lo demás se queda como estaba allí (calcetines, zapatillas y tobillera son de
     // cada sitio: no cuentan como «no copiado»). En esas ranuras y en las rodilleras, un «nada» no pisa lo del otro escenario: en
@@ -5113,8 +5115,28 @@
     if (Lk.fix) try { var r = Lk.fix(f, to, null); if (r && r.fit) f = r.fit; } catch (e) { }
     lk.fit = f; lk.dirty = true; lk.idle = 0;
     uiSound('click');
-    lkNote((to === 'beach' ? 'Copiado a playa' : 'Copiado a pista') + (skipped ? '. Lo que solo vale ' + (to === 'beach' ? 'en la pista' : 'en la playa') + ' no se copia' : ''));
+    lkUndoOffer(prev, (to === 'beach' ? 'Copiado a playa' : 'Copiado a pista') + (skipped ? '. Lo que solo vale ' + (to === 'beach' ? 'en la pista' : 'en la playa') + ' no se copia' : ''));
     lkRender();
+  }
+  /** «Deshacer» (pulido) tras el dado, Todo al azar, Restablecer y Copiar: aviso con el botón durante 5 s; deja el aspecto de antes
+   *  (del mismo jugador). Sin VB.Splat.toast, el aviso de siempre sin botón. */
+  var lkUndoApi = null;
+  function lkUndoOffer(prev, msg) {
+    if (lkUndoApi) { try { lkUndoApi.close(); } catch (e) { } lkUndoApi = null; }
+    lk.undo = prev ? { fit: prev, who: lk.who } : null;
+    if (!prev || !VB.Splat || !VB.Splat.toast) { lkNote(msg); return; }
+    var api = VB.Splat.toast('<span class="lk-ut">' + escT(msg) + '</span><button type="button" class="sp-btn sp-sm sp-cream sp-noshine lk-undo" data-shape="1">Deshacer</button>', { key: 'lkundo', ms: 5000, cls: 'lk-undo-t' });
+    lkUndoApi = api;
+    var b = api && api.el && api.el.querySelector('.lk-undo');
+    if (b) b.addEventListener('click', function (e) { e.stopPropagation(); api.close(); lkUndo(); });
+  }
+  function lkUndoDrop() { lk.undo = null; if (lkUndoApi) { try { lkUndoApi.close(); } catch (e) { } lkUndoApi = null; } }
+  function lkUndo() {
+    var u = lk.undo; lk.undo = null; lkUndoApi = null;
+    if (!u || !u.fit || u.who !== lk.who || !lk.on) return;
+    lk.fit = u.fit; lk.dirty = true; lk.idle = 0;
+    uiSound('back'); srSay('Deshecho');
+    lkRender(); lkPreview();
   }
   function lkFoot(w) {
     if (w === 'try') lkTry(); else if (w === 'rand') lkRandomTab(); else if (w === 'more') lkMoreSheet(); else if (w === 'reset') lkReset(); else if (w === 'copy') lkCopy();
@@ -5177,6 +5199,7 @@
     lkTryFull(false);
     lkCommit();
     lkGridReset();
+    lkUndoDrop();
     lk.on = false; lk.rep = 0; lk.drag = null; lk.keySpin = lk.btnSpin = lk.padSpin = 0; lk.pvDue = false;
     if (el.lkSpin) { el.lkSpin.hidden = true; el.lkSpin.classList.remove('drag'); }
     if (ctx.actions && ctx.actions.showroom) try { ctx.actions.showroom(false); } catch (e) { }
