@@ -3318,11 +3318,14 @@
     // orejas sencillas (pulido: sin contorno de tinta y con las normales inclinadas hacia fuera, como la cabeza a esa altura: medio
     //  hundidas en ella, su contorno y el brillo del borde se cortaban contra la cabeza y de perfil la oreja era un disco con un aro
     //  discontinuo, claro sobre la piel oscura. Se sigue leyendo por su sombra)
+    // (pulido 2: sin contorno, en el rapado de perfil la oreja se perdía en la piel y quedaba solo la muesca del pelo. Ahora es un
+    //  punto más oscura y cálida que la cabeza: se lee por el tono, sin aro)
     G.owk = 0;
+    var esk = mixHex(sk, 0x6a1e14, 0.16);
     for (s = -1; s <= 1; s += 2) {
       var eg = sph(0.046 * FK, 10, 8), en = eg.attributes.normal;
       for (var ei = 0; ei < en.count; ei++) { var ex = en.getX(ei) * 0.75 + s * 0.25, ey = en.getY(ei) * 0.75, ez = en.getZ(ei) * 0.75, el = Math.sqrt(ex * ex + ey * ey + ez * ez) || 1; en.setXYZ(ei, ex / el, ey / el, ez / el); }
-      G.add(eg, sk, s * (HEAD_RX - 0.005), HEAD_C - 0.005, -0.01, 0, 0, 0, 0.45, 1, 0.85);
+      G.add(eg, esk, s * (HEAD_RX - 0.005), HEAD_C - 0.005, -0.01, 0, 0, 0, 0.45, 1, 0.85);
     }
     G.owk = 1;
   }
