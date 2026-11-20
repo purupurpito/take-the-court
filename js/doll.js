@@ -99,11 +99,16 @@
   var INK = 0x1d1530;
   function inkHex(tc) { return mixHex(tc.dark, INK, 0.35); }
   function tajoFill(tc) { return lumHex(tc.base) > 0.62 ? tc.accent : 0xf8f8f4; }
-  /** Color de la crema de zinc (playa): el acento del equipo llevado a neón (muy saturado y claro); acento gris: cian. */
-  function zincHex(tc) {
+  /** Color de la crema de zinc (playa): BLANCA de tiza, que es como se lee el zinc. Solo si el acento del equipo es frío o verde
+   *  (de 0,16 a 0,9 de tono: amarillo verdoso, verde, cian, azul, violeta) y queda lejos de la piel, va en ese color llevado a neón.
+   *  Los rojos y naranjas llevados a neón daban rosa salmón o melocotón: colorete o quemadura, y sobre piel morena ni se veía. */
+  var ZINC_WHITE = 0xf7fafc;
+  function zincHex(tc, skin) {
     var c = new THREE.Color(tc.accent), hsl = { h: 0, s: 0, l: 0 }; c.getHSL(hsl);
-    if (hsl.s < 0.25) return 0x3ff0ff;
-    c.setHSL(hsl.h, 1, clamp(hsl.l, 0.55, 0.62)); return c.getHex();
+    if (hsl.s < 0.25 || hsl.h < 0.16 || hsl.h > 0.9) return ZINC_WHITE;
+    c.setHSL(hsl.h, 1, clamp(hsl.l, 0.5, 0.6));
+    var z = c.getHex();
+    return skin != null && hexDist(z, skin) < 170 ? ZINC_WHITE : z;
   }
   // las medidas son números puros: se calculan al cargar (players.js las lee en init con VB.Doll.dims(), antes de que haya THREE aquí)
   applyDims(BODY);
@@ -208,6 +213,9 @@
   // colores automáticos (-1): los de hoy (acento del equipo, oscuro del equipo, calcetín del acento)
   function colA(X, tc) { return X.cA >= 0 ? X.cA : tc.accent; }
   function colB(X, tc) { return X.cB >= 0 ? X.cB : tc.dark; }
+  /** Color de la camiseta interior (térmica de pista, licras de playa): cB si se elige; en automático el oscuro del equipo, salvo que
+   *  se funda con la camiseta (marino sobre marino: parecía la manga de la propia camiseta) → blanco o casi negro (T6 del plan). */
+  function underHex(X, tc) { return X.cB >= 0 ? X.cB : hexDist(tc.dark, tc.base) >= 140 ? tc.dark : pick(tc.dark, tc.base, tc, 140); }
   function colSock(X, tc) { return X.cSock >= 0 ? X.cSock : tc.accent; }
   var TC_GEO = ['base', 'accent', 'dark', 'shorts', 'pad', 'sole'], TC_ATLAS = ['base', 'accent', 'dark', 'trim', 'shorts', 'pad', 'numFill', 'pattern', 'libero', 'bib'];
   var TIES = { coleta: 1, mono: 1, trenzas: 1, dosmonos: 1, coletas: 1, coletaBaja: 1, trenza: 1, monoBajo: 1, semirrecogido: 1 };   // peinados con gomas de cA
@@ -490,7 +498,7 @@
   //  (tc.numFill) delante y detrás. En la playa el peto va sobre la camiseta de tirantes (tirantes del peto, sisas y escote de piel).
   //  El líbero lleva también el peto (players.js kitOf). Solo atlas: ni malla nueva ni dibujos.
   function paintBody(g, tc, L, numV, beach) {
-    var W = ATLAS, S = TR_SPLIT, sk = hexCss(beach && isLicra(L) ? colB(L, tc) : L.skin), pat = tc.pattern === 'peto' && tc.bib != null ? 'peto' : tc.libero ? 'liso' : (tc.pattern || 'diag');
+    var W = ATLAS, S = TR_SPLIT, sk = hexCss(beach && isLicra(L) ? underHex(L, tc) : L.skin), pat = tc.pattern === 'peto' && tc.bib != null ? 'peto' : tc.libero ? 'liso' : (tc.pattern || 'diag');
     var bibEd = pat === 'peto' ? mixHex(tc.bib, INK, 0.55) : 0;
     g.save(); g.beginPath(); g.rect(0, TR_R[0], W, TR_R[1] - TR_R[0] + 1); g.clip();
     g.fillStyle = hexCss(tc.base); g.fillRect(0, 0, W, S);
@@ -522,7 +530,7 @@
       // tirantes del color de la camiseta sobre cada hombro (de la sisa al escote y a la espalda); con peto, los del peto
       g.fillStyle = hexCss(pat === 'peto' ? tc.bib : tc.base); [0.25, 0.75].forEach(function (u) { var cx = u * W; g.fillRect(cx - 86, -2, 34, 40); g.fillRect(cx + 52, -2, 34, 40); });
       if (isLicra(L)) {   // licra (WP5, T1; y la de manga corta, WP7): costura lateral bajo la sisa (de color) y la licra más oscura en el borde del cuello alto
-        var lc = colB(L, tc); g.fillStyle = hexCss(pick(colA(L, tc), lc, tc)); [0.25, 0.75].forEach(function (u) { g.fillRect(u * W - 2.5, 0, 5, 50); });
+        var lc = underHex(L, tc); g.fillStyle = hexCss(pick(colA(L, tc), lc, tc)); [0.25, 0.75].forEach(function (u) { g.fillRect(u * W - 2.5, 0, 5, 50); });
         g.fillStyle = hexCss(mixHex(lc, 0x000000, 0.3)); g.fillRect(0, 0, W, 4);
       }
     } else if (pat === 'peto') {
@@ -539,7 +547,7 @@
       // cuello redondo (ribete) y hombros: canesú oscuro ligero en la espalda
       if (pat !== 'peto') { g.fillStyle = hexCss(tc.dark); g.globalAlpha = 0.3; g.fillRect(170, 0, 172, 16); g.globalAlpha = 1; }
       // (con la térmica, lo que asoma por el cuello es la térmica: cB; el cuello alto es un aro de la malla, neckGeo)
-      var skN = L.under === 'termica' ? hexCss(colB(L, tc)) : sk;
+      var skN = L.under === 'termica' ? hexCss(underHex(L, tc)) : sk;
       wrap(function (o) { g.fillStyle = hexCss(pat === 'peto' ? tc.dark : tc.trim); g.beginPath(); g.ellipse(o, 0, 62, 20, 0, 0, PI * 2); g.fill(); g.fillStyle = skN; g.beginPath(); g.ellipse(o, -3, 54, 15, 0, 0, PI * 2); g.fill(); });
     }
     // dorsales: grande en la espalda (u 0,5), pequeño en el pecho dentro del tajo (oscuro); playa: grande también delante
@@ -573,7 +581,7 @@
    *  de piel y malla corta. Encima, por capas: interior (térmica / licra), manguitos, brazalete, mallas, calcetines, rodilleras y
    *  escarpines. Tramos [fracción desde el arranque, color]: el mismo redondeo que las tiras de siempre. */
   function paintLimbs(g, tc, X, beach, numV) {
-    var W = ATLAS, sk = X.skin, cA = colA(X, tc), cB = colB(X, tc), cS = colSock(X, tc), cB2 = slvB(X, tc), k, c;
+    var W = ATLAS, sk = X.skin, cA = colA(X, tc), cB = colB(X, tc), cU = underHex(X, tc), cS = colSock(X, tc), cB2 = slvB(X, tc), k, c;
     function col(r, su) { return { r: r, x0: Math.min(su[0], su[1]) * W, x1: Math.max(su[0], su[1]) * W, flip: su[0] > su[1] }; }
     function rowOf(c, f) { return c.r[0] + Math.round((c.r[1] - c.r[0] + 1) * f); }
     function band(c, f0, f1, hex) { var h = c.r[1] - c.r[0] + 1; g.fillStyle = hexCss(hex); g.fillRect(c.x0, c.r[0] + Math.round(h * f0), c.x1 - c.x0, Math.ceil(h * (f1 - f0)) + 1); }
@@ -773,6 +781,13 @@
      *  ([fracción a lo largo, du]: du = 0 fuera, + delante, − detrás, en vueltas del brazo) y de ancho wm metros: borde oscuro, cinta y
      *  un brillo por el centro. Se dibuja en metros reales (u por fila) para que la cinta no salga aplastada y se repite a ±1 vuelta
      *  por si cruza la costura de la columna. */
+    /** costura lateral por fuera del tubo (du = 0, y repetida a ±1 vuelta): una tira de 1,2 cm a lo largo de toda la columna */
+    function sideSeam(c, len, hex) {
+      draw(c, 0, 1, TUBE_ARM, len, function (xc, y0, y1, ax) {
+        var hw = Math.max(1.5, 0.006 * ax * (y1 - y0) / len);
+        g.fillStyle = hexCss(hex); [-1, 0, 1].forEach(function (o) { g.fillRect(xc + o * (c.x1 - c.x0) - hw, y0, 2 * hw, y1 - y0); });
+      });
+    }
     function kTape(c, len, pts, wm, kc) {
       draw(c, 0, 1, TUBE_ARM, len, function (xc, y0, y1, ax, w) {
         var rpm = (y1 - y0) / len, uw = w / ax;   // filas por metro y una vuelta del brazo en «filas»
@@ -788,27 +803,30 @@
     // color de lo que hay debajo del brazalete (fracción 0,49-0,83 del brazo): el manguito, la camiseta interior o la piel
     function armBg(arm, lsl) {
       if (ARMS[arm] && arm !== 'kinesio' && !SLV_FORE_ONLY[arm]) return arm === 'manguitoOro' ? SLV_GOLD : arm === 'manguitoLlamas' ? tc.dark : arm === 'manguitoMazo' ? MAZO_DK : cA;
-      return lsl ? cB : sk;
+      return lsl ? cU : sk;
     }
     // ---- brazos ([k] 0 izquierdo, 1 derecho): f0 = donde acaba la manga (o la licra) y empieza la piel
     // WP5 (T1): la licra de playa y la térmica de pista son de MANGA LARGA en cB por todo el brazo y el antebrazo, con un puño acanalado
     // más oscuro en la muñeca (antes la licra acababa debajo de la bola del hombro y solo se veían dos hombreras negras)
     // WP7: licra de manga CORTA (playa): la manga cB hasta media altura del brazo con un ribete más oscuro; el antebrazo, de piel
-    var lsl = beach ? X.under === 'licra' : X.under === 'termica', cuffU = cuffHex(cB);
+    var lsl = beach ? X.under === 'licra' : X.under === 'termica', cuffU = cuffHex(cU);
     for (k = 0; k < 2; k++) {
       var arm = k ? X.armR : X.armL, cu = col(ARM_R, COL_UP[k]), cf = col(ARM_R, COL_FORE[k]), f0 = beach ? 0.14 : 0.46, sl = ARMS[arm] && arm !== 'kinesio';
-      if (beach && lsl) { segs(cu, [[0, cB]]); f0 = 0; }                                                // licra: manga larga
-      else if (beach && X.under === 'licraCorta') { segs(cu, [[0, cB], [0.56, cuffU], [0.64, sk]]); f0 = 0.64; }   // licra de manga corta
+      if (beach && lsl) { segs(cu, [[0, cU]]); f0 = 0; }                                                // licra: manga larga
+      else if (beach && X.under === 'licraCorta') { segs(cu, [[0, cU], [0.56, cuffU], [0.64, sk]]); f0 = 0.64; }   // licra de manga corta
       else if (beach) segs(cu, [[0, sk]]);                                                            // brazo desnudo
-      else if (lsl) segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, cB]]);                          // manga corta → térmica
+      else if (lsl) segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, cU]]);                          // manga corta → térmica
       else segs(cu, [[0, tc.base], [0.38, tc.accent], [0.46, sk]]);                                   // manga corta con ribete → piel
-      if (lsl) { segs(cf, [[0, cB], [0.85, cuffU], [0.97, cB]]); band(cf, 0.885, 0.9, cB); band(cf, 0.925, 0.94, cB); }   // hasta la muñeca, puño acanalado
+      if (lsl) { segs(cf, [[0, cU], [0.85, cuffU], [0.97, cU]]); band(cf, 0.885, 0.9, cU); band(cf, 0.925, 0.94, cU); }   // hasta la muñeca, puño acanalado
+      // la licra de playa (manga larga), con la costura lateral de color por fuera del brazo, como la del costado: se distingue de la
+      // térmica de pista, que es lisa con el puño acanalado
+      if (beach && lsl) { var lsc = pick(cA, cU, tc); sideSeam(cu, UPPER, lsc); sideSeam(cf, FORE, lsc); }
       else segs(cf, [[0, sk]]);                                                                       // antebrazo de piel
       if (arm === 'kinesio') {
         // kinesio (WP5, T5; ronda 1): cinta estrecha a lo largo del músculo, no parches. En el brazo, una «Y» sobre el deltoides (el tallo
         // por fuera desde el codo y las dos colas que se abren hacia delante y hacia atrás: de espaldas en el partido se ve la de atrás) y
         // en el antebrazo, una tira larga por fuera y detrás, del codo a la muñeca. Del acento, o lo que se distinga de lo de debajo
-        var kc = pick(cA, lsl ? cB : sk, tc, 130), ka = Math.max(f0, 0.14) + 0.06;
+        var kc = pick(cA, lsl ? cU : sk, tc, 130), ka = Math.max(f0, 0.14) + 0.06;
         kTape(cu, UPPER, [[0.9, -0.03], [0.7, -0.02], [ka + 0.03, 0.22]], 0.04, kc);   // tallo y cola de delante
         kTape(cu, UPPER, [[0.7, -0.02], [ka, -0.28]], 0.04, kc);                     // cola de detrás
         kTape(cf, FORE, [[0.12, -0.16], [0.5, -0.24], [0.84, -0.18]], 0.044, kc);   // antebrazo
@@ -859,7 +877,12 @@
     }
     // WP7: la rodillera de dos colores y la de un lado asoman un poco por encima y por debajo de la bola (una funda corta, pintada): de
     // espaldas en el partido la bola sola daba 7 px; la de color lleva además la franja de cA en los dos bordes
+    // (las cortas también, sin canto de color: de espaldas en el partido la bola sola daba 8 px y el umbral es 9)
     function sleevePad(c, thigh, k) {
+      if (X.knees === 'cortas' && !kneeTights(X, k)) {
+        if (thigh) band(c, thighF(kr + 0.022), 1, pad);   // (solo por encima: por debajo se comía la espinilla y parecían unas mallas)
+        return;
+      }
       if (!(X.knees === 'rodillerasColor' || (X.knees === 'rodilleraUna' && k !== 1))) return;
       // (la de color: funda lisa con solo el canto oscuro, que la almohadilla de color se lea sola; ronda 1 de WP7)
       var kst = X.knees === 'rodillerasColor' ? mixHex(pad, INK, lumHex(pad) < 0.2 ? 0 : 0.5) : onCol(tc.accent, pad, tc);
@@ -999,13 +1022,16 @@
       g.beginPath(); g.moveTo(top[0][0], top[0][1]);
       for (i = 1; i <= N; i++) g.lineTo(top[i][0], top[i][1]);
       for (i = N; i >= 0; i--) g.lineTo(bot[i][0], bot[i][1]);
-      g.closePath(); g.fillStyle = hexCss(zincHex(tc)); g.fill();
+      g.closePath(); var zc = zincHex(tc, L.skin); g.fillStyle = hexCss(zc); g.fill();
+      if (zc === ZINC_WHITE && lumHex(L.skin) > 0.55) { g.strokeStyle = 'rgba(70,96,128,0.6)'; g.lineWidth = 0.0035; g.stroke(); }   // filo frío: la crema blanca se separa de la piel clara
       g.strokeStyle = 'rgba(255,255,255,0.55)'; g.lineWidth = 0.0035; g.lineCap = 'round';   // brillo de la crema
       for (s = -1; s <= 1; s += 2) { g.beginPath(); g.moveTo(s * 0.07, 0.1285 + 0.36 * 0.0049 + 0.004); g.lineTo(s * 0.125, 0.1245 + 0.36 * 0.0156 + 0.006); g.stroke(); }
     } else if (p === 'rayas') {            // «eye black»: una franja negra de 2 × 6 cm bajo cada ojo, algo inclinada hacia el rabillo
       for (s = -1; s <= 1; s += 2) {
-        g.save(); g.translate(s * 0.096, 0.1265); g.rotate(s * 0.13);
-        rrect(g, 0, 0, 0.062, 0.0225, 0.007);
+        // (bajo el RABILLO de fuera, en el pómulo, 4 cm por encima de la boca: en el centro de la mejilla quedaban a la altura de
+        // las comisuras y, con la barba de tres días, parecían un bigote)
+        g.save(); g.translate(s * 0.114, 0.143); g.rotate(s * 0.2);
+        rrect(g, 0, 0, 0.07, 0.027, 0.008);
         if (halo) { g.strokeStyle = halo; g.lineWidth = 0.006; g.stroke(); }
         g.fillStyle = '#17161d'; g.fill();
         g.restore();
@@ -1198,10 +1224,11 @@
     g.restore();
   }
   function paintEyes(g, cell, L, tc, beach) {
-    var ink = hexCss(faceInk(tc)), brow = hexCss(mixHex(L.brow != null ? L.brow : L.hair, 0x000000, 0.2)), halo = faceHalo(L), s;
-    // halo claro de las pieles oscuras (por encima de SPLIT_Y), luego pintura y marcas, ojos, cejas y gafas pintadas (en ese orden:
-    // la pintura queda bajo los ojos y las gafas encima de las cejas; sin nada de eso, lo de siempre)
-    if (halo) { g.save(); decorClip(g, 'eye'); for (s = -1; s <= 1; s += 2) { g.fillStyle = halo; ell(g, s * EYE_X, EYE_Y + 0.008, EYE_RX * 1.5, EYE_RY * 1.25); g.fill(); } g.restore(); }
+    var ink = hexCss(faceInk(tc)), brow = hexCss(mixHex(L.brow != null ? L.brow : L.hair, 0x000000, 0.2)), s;
+    // pintura y marcas, ojos, cejas y gafas pintadas (en ese orden: la pintura queda bajo los ojos y las gafas encima de las cejas).
+    // SIN halo claro alrededor de los ojos ni de las cejas en las pieles oscuras: los óvalos claros en los ojos y la boca de una piel
+    // oscura repiten la caricatura racista del «blackface». El blanco del ojo con su filo de tinta ya se lee en cualquier piel; el
+    // halo solo queda como FILO fino de pinturas, marcas y barbas (no rellena la piel).
     paintPaint(g, 'eye', L, tc);
     paintMarks(g, 'eye', L, tc);
     for (s = -1; s <= 1; s += 2) {
@@ -1247,7 +1274,6 @@
       if (cell === 5) { bi = BROW_Y + 0.012; bo = BROW_Y - 0.03; bm = BROW_Y + 0.002; }            // pena: por dentro arriba
       if (cell === 4) { bi = BROW_Y + 0.02; bo = BROW_Y + 0.01; bm = BROW_Y + 0.03; }              // alegría: altas
       if (cell === 6) { bi = BROW_Y + 0.035; bo = BROW_Y + 0.022; bm = BROW_Y + 0.045; }           // sorpresa: muy altas
-      if (halo) { g.strokeStyle = halo; g.lineWidth = bw + 0.012; g.beginPath(); g.moveTo(s * 0.035, bi); g.quadraticCurveTo(s * 0.08, bm, s * 0.13, bo); g.stroke(); }
       g.strokeStyle = brow; g.lineWidth = bw;
       g.beginPath(); g.moveTo(s * 0.035, bi); g.quadraticCurveTo(s * 0.08, bm, s * 0.13, bo); g.stroke();
     }
@@ -1309,32 +1335,40 @@
       g.fillStyle = css; g.fill();
       g.save(); hs(); g.clip(); strands(14, -0.07, 0.07, MY - 0.06, MY + 0.036); g.restore();
       hs(); g.strokeStyle = edge; g.lineWidth = 0.003; g.stroke();
-    } else if (b === 'perilla') {   // perilla en punta: arriba puntas de pelo (separada 1 cm del labio), baja hasta debajo del mentón
-      var pt = MY - 0.03, pw = 0.031;
-      var goatee = function () {   // (arriba, tres puntas suaves de pelo: un borde dentado parecía una boca con dientes)
-        g.beginPath(); g.moveTo(-pw, pt + 0.002);
-        g.quadraticCurveTo(-0.022, pt + 0.004, -0.015, pt + 0.011); g.quadraticCurveTo(-0.01, pt + 0.003, 0, pt + 0.013);
-        g.quadraticCurveTo(0.01, pt + 0.003, 0.015, pt + 0.011); g.quadraticCurveTo(0.022, pt + 0.004, pw, pt + 0.002);
-        g.bezierCurveTo(pw + 0.004, pt - 0.03, 0.016, YB + 0.012, 0.011, YB - 0.03);
-        g.lineTo(-0.011, YB - 0.03);
-        g.bezierCurveTo(-0.016, YB + 0.012, -pw - 0.004, pt - 0.03, -pw, pt + 0.002);
+    } else if (b === 'perilla') {   // perilla de CANDADO: bigote fino unido por las comisuras a la mancha de la barbilla, un aro alrededor
+      // de la boca (con su hueco) que baja bajo el mentón. Sin brillos claros dentro. (Antes, una mancha suelta bajo la boca: de frente
+      // un goterón y desde abajo una segunda boca abierta con dientes)
+      var pb = 0.036;
+      var goatee = function () {
+        g.beginPath(); g.moveTo(-0.052, MY + 0.02);
+        g.quadraticCurveTo(-0.026, MY + 0.032, 0, MY + 0.027); g.quadraticCurveTo(0.026, MY + 0.032, 0.052, MY + 0.02);   // bigote
+        g.quadraticCurveTo(0.06, MY - 0.004, 0.05, MY - 0.03);                                                             // comisura
+        g.bezierCurveTo(0.046, MY - 0.05, pb + 0.004, YB + 0.02, pb, YB - 0.03);
+        g.lineTo(-pb, YB - 0.03);
+        g.bezierCurveTo(-pb - 0.004, YB + 0.02, -0.046, MY - 0.05, -0.05, MY - 0.03);
+        g.quadraticCurveTo(-0.06, MY - 0.004, -0.052, MY + 0.02);
         g.closePath();
       };
       goatee();
-      if (halo) { g.strokeStyle = halo; g.lineWidth = 0.009; g.stroke(); }
-      g.fillStyle = css; g.fill();
-      g.save(); goatee(); g.clip(); strands(10, -pw, pw, YB + 0.01, pt); g.restore();
-      goatee(); g.strokeStyle = edge; g.lineWidth = 0.003; g.stroke();
+      if (halo) { g.strokeStyle = halo; g.lineWidth = 0.007; g.stroke(); }   // (filo de fuera; el hueco de la boca, sin filo claro)
+      g.save(); goatee(); mouthHole(0.04, 0.0145); g.clip('evenodd');
+      g.fillStyle = css; g.fillRect(-0.2, -0.1, 0.4, 0.25);
+      g.lineWidth = 0.004; for (var q = 0; q < 14; q++) {   // mechones: solo trazos más oscuros
+        var sx = -0.045 + 0.09 * ((q * 0.618 + 0.1) % 1), sy = YB + (MY - YB) * ((q * 0.381 + 0.2) % 1);
+        g.strokeStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.moveTo(sx, sy + 0.01); g.quadraticCurveTo(sx + 0.004, sy, sx - 0.002, sy - 0.01); g.stroke();
+      }
+      g.restore();
+      g.save(); goatee(); mouthHole(0.04, 0.0145); g.strokeStyle = edge; g.lineWidth = 0.003; g.stroke(); g.restore();
     } else if (b === 'tresDias') {  // máscara lisa de mandíbula y bigote (alfa 0,35) sin tapar la boca; sube por las mejillas
       g.save();
       jawPath(MY + 0.03); mouthHole(0.05, 0.016); g.clip('evenodd');
-      if (halo) { g.fillStyle = halo; g.globalAlpha = 0.35; g.fillRect(-0.2, -0.1, 0.4, 0.25); g.globalAlpha = 1; }
-      g.fillStyle = rgba(halo ? 0.55 : 0.35); g.fillRect(-0.2, -0.1, 0.4, 0.25);
+      g.fillStyle = rgba(halo ? 0.55 : 0.35); g.fillRect(-0.2, -0.1, 0.4, 0.25);   // (sin relleno claro debajo en piel oscura: ver paintEyes)
       g.restore();
     } else if (b === 'barba') {     // barba completa: de patilla a patilla por la barbilla, bigote incluido, con el hueco de la boca
       g.save();
+      jawPath(MY + 0.034);
+      if (halo) { g.strokeStyle = halo; g.lineWidth = 0.013; g.stroke(); }   // borde claro (piel oscura): solo el contorno de fuera, NUNCA un aro alrededor de la boca
       jawPath(MY + 0.034); mouthHole(0.046, 0.017);
-      if (halo) { g.strokeStyle = halo; g.lineWidth = 0.013; g.stroke(); }   // borde claro (piel oscura): arriba y en las patillas
       g.clip('evenodd');
       g.fillStyle = css; g.fillRect(-0.2, -0.1, 0.4, 0.25);
       strands(26, -SX + 0.006, SX - 0.006, YB, MY + 0.02);
@@ -1345,8 +1379,7 @@
     g.restore();
   }
   function paintMouth(g, cell, L, tc) {
-    var ink = hexCss(faceInk(tc)), cy = MOUTH_Y, inner = '#5a1620', tongue = '#ef6f78', teeth = '#fffaf0', halo = faceHalo(L);
-    if (halo) { g.save(); decorClip(g, 'mouth'); g.fillStyle = halo; ell(g, 0, cy - 0.004, 0.075, 0.04); g.fill(); g.restore(); }
+    var ink = hexCss(faceInk(tc)), cy = MOUTH_Y, inner = '#5a1620', tongue = '#ef6f78', teeth = '#fffaf0';   // (sin óvalo claro alrededor: ver paintEyes)
     paintPaint(g, 'mouth', L, tc);
     paintMarks(g, 'mouth', L, tc);
     paintBeard(g, cell, L, tc);
@@ -1482,7 +1515,7 @@
 
   // bola del hombro un punto más oscura que la camiseta: se lee como pieza aparte aunque el tronco sea del mismo color
   // (playa: hombro de piel por los tirantes; con la licra de surf, del color de la licra)
-  function shoulderGeo(G, tc, X, beach) { G.add(sph(BALL_SH, 16, 12), beach ? (isLicra(X) ? colB(X, tc) : X.skin) : mixHex(tc.base, tc.dark, 0.14)); }
+  function shoulderGeo(G, tc, X, beach) { G.add(sph(BALL_SH, 16, 12), beach ? (isLicra(X) ? underHex(X, tc) : X.skin) : mixHex(tc.base, tc.dark, 0.14)); }
   /** Brazo k (0 izquierdo, 1 derecho): tubo en su columna de ARM_R, girado para que gu = 0,5 mire hacia fuera. */
   function upperGeo(G, k) { G.mode = 'strip'; G.rows = ARM_R; G.su = COL_UP[k]; G.add(tube(TUBE_ARM, UPPER), null, 0, -UPPER / 2, 0, 0, TUBE_RY[k], 0); G.mode = 'flat'; G.su = SU_ALL; }
   /** Color de la bola del codo del brazo k: piel; cB con la manga larga (térmica en pista, licra en playa); el del manguito de ese
@@ -1578,18 +1611,23 @@
   function handGeo(G, X, tc, s) {
     var K = HAND_K, tp = TAPED[X.hands], sk = X.skin, ca = colA(X, tc), mit = X.hands === 'mitones';
     if (tp === -1) tp = pick(colA(X, tc), sk, tc, 130);   // (WP7: dedos vendados de color: esparadrapo de cA, o lo que se distinga de la piel)
-    var lt = lumHex(sk) > 0.62; if (tp === TAPE && lt) tp = 0xffffff;
-    var td = tp ? (tp === STEEL ? STEEL_DK : mixHex(tp, INK, lt ? 0.4 : 0.22)) : 0, cad = mixHex(ca, 0x000000, 0.28);
-    var gap = tp === STEEL ? td : lt ? mixHex(sk, INK, 0.5) : sk;
+    // (T4: sobre piel clara el esparadrapo blanco se fundía con la mano y solo se veían las rayas grises: ahí va NEGRO, con la raya de
+    //  piel entre vuelta y vuelta, como el vendaje de tobillo de playa)
+    var lt = lumHex(sk) > 0.62, blk = tp === TAPE && lt; if (blk) tp = 0x26262e;
+    var td = tp ? (tp === STEEL ? STEEL_DK : blk ? 0x5a5a66 : mixHex(tp, INK, lt ? 0.4 : 0.22)) : 0, cad = mixHex(ca, 0x000000, 0.28);
+    var gap = tp === STEEL ? td : blk ? sk : lt ? mixHex(sk, INK, 0.5) : sk;
     var hs = sg(12, 5), ws = sg(16, 8), dA = PI / hs, dW = 2 * PI / ws;
     // anillo (0 = muñeca, hs − 1 = punta) del triángulo con centro en y: su centro siempre cae entre los dos anillos de su banda
     function ring(py) { return Math.min(hs - 1, Math.floor(Math.acos(clamp(py, -1, 1)) / dA)); }
     G.owk = 0.75;
     if (mit) {
-      var kTip = Math.round(hs * 0.64), kCuff = Math.round(hs * 0.25);
+      // (los dedos SALEN del guante: la mitad de la mano es piel y la tela acaba en un dobladillo oscuro. Con el 64 % de tela y una
+      // puntita de piel parecía un guante de boxeo)
+      var kTip = Math.round(hs * 0.38), kCuff = Math.round(hs * 0.17), hem = hs >= 8;
       G.vc = function (px, py, pz) {
         var r = ring(py);
         if (r >= kTip) return sk;
+        if (hem && r === kTip - 1) return cad;   // dobladillo donde salen los dedos
         if (r < kCuff) return Math.floor((Math.atan2(px, pz) + PI * 2.5) / dW) % 2 ? cad : null;   // puño acanalado (un gajo de cada)
         return null;
       };
@@ -1611,7 +1649,7 @@
     // divisiones de los arcos); cb = banda del triángulo, 0 junto al tubo y n − 1 la de la punta.
     var cs = Math.max(1, Math.round(2 * LODK)), nb = 2 * cs;
     function cb(py) { return py > -0.7 ? -1 : Math.min(nb - 1, Math.floor(Math.asin(clamp(-0.7 - py, 0, 1)) / (PI / 2 / nb))); }
-    if (mit) G.vc = function (px, py) { return cb(py) >= nb / 2 ? sk : null; };   // punta de piel: la mitad del casquete (45°)
+    if (mit) G.vc = function (px, py) { return cb(py) >= 0 ? sk : null; };   // el pulgar, fuera del guante: todo el casquete de piel
     // vendado: punta de piel, vuelta, raya (la misma que entre las vueltas de los dedos) y vuelta; con pocas bandas (LOD0 y LOD1, los del
     // partido) como antes: casquete de esparadrapo y el tubo con la tira oscura, que es lo que más se distingue de la piel a esa distancia
     // (con la punta de piel y la raya, el pulgar vendado se perdía en el partido: playa 9 → 4 px)
@@ -1721,6 +1759,14 @@
   function padHex(X, tc) {
     if (X.cPad >= 0) return X.cPad;
     var bg = kneeTights(X, 0) ? tightsOf(X, tc) : X.skin, c = [tc.pad, 0xf4f4f4, tc.accent, NEUTRAL_DK], i;
+    // (la ALTA sube por el muslo hasta casi el pantalón: que tampoco sea de su color, o rodillera negra + pantalón negro se leía como
+    //  unas mallas negras. P6 del plan)
+    // (ni del color del calcetín, que va justo debajo: rodillera roja + calcetín rojo era un solo tubo rojo; contra la piel basta con que
+    //  se distinga en luz o en color: el blanco sobre piel clara se ve)
+    var sh = KNEE_HI[X.knees] && typeof tc.shorts === 'number' ? tc.shorts : -1, so = sh >= 0 ? sockHex(X, tc, true) : -1;   // (el automático: no depende de si se llevan, la firma de malla no mira los calcetines)
+    var c2 = sh >= 0 ? c.concat([tc.dark, mixHex(tc.accent, 0x000000, 0.45)]) : c;   // (y, si nada de eso vale, el oscuro o el acento apagado)
+    for (i = 0; i < c2.length; i++) if (typeof c2[i] === 'number' && sh >= 0 && (Math.abs(lumHex(c2[i]) - lumHex(bg)) >= 0.15 || hexDist(c2[i], bg) >= 120) &&
+      hexDist(c2[i], sh) >= 120 && (so < 0 || hexDist(c2[i], so) >= 150)) return c2[i];
     for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && Math.abs(lumHex(c[i]) - lumHex(bg)) >= 0.15) return c[i];
     return tc.pad;
   }
@@ -1758,7 +1804,9 @@
     if (X.cPad >= 0 || beach) return p;
     // ronda 2: además de otro color, otro BRILLO (≥ 0,3): blanco sobre el amarillo del kit B seguía leyéndose como un puño de calcetín
     so = sockHex(X, tc, true);
-    function vsSock(h) { return hexDist(h, so) >= 150 && Math.abs(lumHex(h) - lumHex(so)) >= 0.3; }
+    // (y que se separe de lo que tiene encima y debajo en la espinilla: la malla larga, si la hay —negra sobre negra se perdía—)
+    var under = kneeTights(X, 0) ? tightsOf(X, tc) : -1;
+    function vsSock(h) { return hexDist(h, so) >= 150 && Math.abs(lumHex(h) - lumHex(so)) >= 0.3 && (under < 0 || hexDist(h, under) >= 150); }
     if (vsSock(p)) return p;
     c = [tc.pad, tc.accent, tc.base, 0xf4f4f4, NEUTRAL_DK];
     for (i = 0; i < c.length; i++) if (typeof c[i] === 'number' && vsSock(c[i]) && Math.abs(lumHex(c[i]) - lumHex(X.skin)) >= 0.15) return c[i];
@@ -1955,8 +2003,8 @@
   function collarGeo(G, X, tc) {
     var F = neckFrame(0.004, -0.062, 0.035), h = 0.05, lift = h * 0.32;
     G.owk = 0.9;
-    G.vc = function (px, py) { return py > 0.3 ? mixHex(colB(X, tc), 0x000000, 0.3) : null; };   // el borde de arriba, más oscuro
-    G.add(cyl(0.86, 1, 1, 24, true), colB(X, tc), 0, F.cy + Math.cos(F.t) * lift, F.cz + Math.sin(F.t) * lift, F.t, 0, 0, F.ax, h, F.az);
+    G.vc = function (px, py) { return py > 0.3 ? mixHex(underHex(X, tc), 0x000000, 0.3) : null; };   // el borde de arriba, más oscuro
+    G.add(cyl(0.86, 1, 1, 24, true), underHex(X, tc), 0, F.cy + Math.cos(F.t) * lift, F.cz + Math.sin(F.t) * lift, F.t, 0, 0, F.ax, h, F.az);
     G.vc = null; G.owk = 1;
   }
   /** Cuello (ranura neck) en el hueso del pecho. Medalla (WP5, T9): cinta bicolor cA/cB (de lado a lado del cordón) y un disco grande
@@ -2001,7 +2049,7 @@
       // WP7: silbato de árbitro: cordón de cA por el cuello que baja en «V» hasta el silbato metálico del pecho (cuerpo, boquilla y anilla)
       // (silbato: de plástico casi negro sobre una camiseta clara y metálico sobre una oscura; con la playa, sobre la piel)
       var cc = thinHex(cA0), wy = F.yf - 0.088, wr = torsoR(wy + co), wz = wr[1] + 0.02, pl = ringPt(0.55), pr = ringPt(-0.55);
-      var bgc = X.beach ? (isLicra(X) ? colB(X, tc) : tc.base) : tc.base, wc = lumHex(bgc) > 0.55 ? 0x2a2c34 : STEEL, wd = wc === STEEL ? STEEL_DK : 0x101116, wh = wc === STEEL ? 0xe8eef6 : 0x5a5e6a;
+      var bgc = X.beach ? (isLicra(X) ? underHex(X, tc) : tc.base) : tc.base, wc = lumHex(bgc) > 0.55 ? 0x2a2c34 : STEEL, wd = wc === STEEL ? STEEL_DK : 0x101116, wh = wc === STEEL ? 0xe8eef6 : 0x5a5e6a;
       G.owk = 0.5; G.add(torus(1, 0.075, 4, 16), cc, 0, cy, cz, PI / 2 + t, 0, 0, ax, az, az);                                       // cordón
       rod(G, pl, [0.006, wy + 0.022, wz], 0.0065, cc); rod(G, pr, [-0.006, wy + 0.022, wz], 0.0065, cc);
       G.owk = 0.7; G.vc = function (px, py, pz) { return pz > 0.014 ? wh : py < -0.01 ? wd : null; };
@@ -2349,8 +2397,8 @@
   }
   function jit(i, k) { var x = Math.sin(i * 127.1 + k * 311.7) * 43758.5453; return x - Math.floor(x); }
   /** Mechón plano que sale de la superficie del casco en (φ, θ) hacia `dir` (en el espacio de la cabeza), doblándose con droop. */
-  function hairLock(H, ph, th, dir, len, w, t, droop, nA, ns) {
-    var p = H.pt(ph, th, -0.006); if (H.hid(p)) return;
+  function hairLock(H, ph, th, dir, len, w, t, droop, nA, ns, deep) {
+    var p = H.pt(ph, th, -(deep || 0.006)); if (H.hid(p)) return;
     var path = hangPath(p, dir, len, ns || sg(4, 2), droop == null ? 0.15 : droop), Rr = [], n = path.length;
     for (var i = 0; i < n; i++) { var s = i / (n - 1); Rr.push(i === n - 1 ? 0 : [w * (1 - 0.65 * s * s) * (s < 0.15 ? 0.7 + 2 * s : 1), t * (1 - 0.5 * s)]); }
     hairPiece(H, sweep(path, Rr, nA || sg(5, 3), outRef), p, len, ph);
@@ -2524,22 +2572,33 @@
           hairTail(H, p, n, len, 0.062, 0.3, 0, { dir: [n[0], n[1] * 0.4 + 0.1, n[2]] });
         }
       } },
-    afro: { line: 'afro', off: 0.006, vol: 0.075, crown: [0, 0.06, 0.0, 0],
+    afro: { line: 'afro', off: 0.006, vol: 0.075, capVol: 0.03, crown: [0, 0.06, 0.0, 0],
       over: function (ph, th) { return th < 0.45 * PI ? 0.03 * FK : 0; },   // (los rizos sueltos asoman ≈ 3 cm sobre el casco)
       volFn: function (ph, th, u) { return (1 - Math.pow(sstep(0.55, 1, u), 1.6) * 0.92) * (0.9 + 0.1 * Math.cos(th)); },
-      bump: function (ph, th, u) { return 0.012 * Math.max(0, Math.sin(ph * 6 + 0.6) * Math.sin(th * 7.5)) * (1 - sstep(0.7, 1, u)); },
+      // (bultos y rizos SIMÉTRICOS: con la fase de antes y el reparto al azar, de frente toda la masa caía en una sien y la otra quedaba
+      // casi calva)
+      bump: function (ph, th, u) { return 0.012 * Math.max(0, Math.cos(Math.abs(ph) * 6) * Math.sin(th * 7.5)) * (1 - sstep(0.7, 1, u)); },
       parts: function (H) {
         var n = LODR === 0 ? 13 : 15, i;   // (el afro es el peinado más pesado en todos los LOD: lookSelfTest lo exige)
+        var m = (n - 1) / 2;               // por parejas espejo (φ y −φ) y uno en la nuca: la misma masa a los dos lados de la cara
         for (i = 0; i < n; i++) {
-          var ph = PI * (-1 + 2 * (i + 0.5) / n) + (jit(i, 1) - 0.5) * 0.3, th = (0.2 + 0.32 * jit(i, 2)) * PI;
-          if (Math.abs(ph) < 0.9 && th > 0.25 * PI) th = 0.12 * PI + jit(i, 3) * 0.1 * PI;   // fuera de la cara
+          var k = i < m ? i : i - m, sd = i < m ? 1 : -1, ph, th;
+          if (i === n - 1) { ph = PI; th = 0.42 * PI; }
+          else {
+            ph = sd * PI * (0.18 + 0.82 * (k + 0.5) / m) + sd * (jit(k, 1) - 0.5) * 0.18; th = (0.2 + 0.32 * jit(k, 2)) * PI;
+            if (Math.abs(ph) < 0.9 && th > 0.25 * PI) th = 0.12 * PI + jit(k, 3) * 0.1 * PI;   // fuera de la cara
+          }
           var p = H.pt(ph, th, -0.022); if (H.hid(p)) continue;
-          hairCurl(H, p, (0.042 + 0.014 * jit(i, 4)) * FK, LODR === 0);
+          hairCurl(H, p, (0.042 + 0.014 * jit(k, 4)) * FK, LODR === 0);
         }
       } },
-    flequillo: { line: 'tazon', vol: 0.022, tuck: false, volFn: function () { return 1; }, crown: [0, 0.14, 0, 0] },
-    rapado: { line: 'corto', off: 0.003, shine: 0.35, crown: [0, 0.14, 0, 0],
-      fade: function (ph, th, u) { return u > 0.86 ? 0.35 : 0; } },
+    // flequillo (tazón): de espaldas, una SETA: el borde sube a la altura de la oreja y se engorda hacia abajo (alero), con la nuca de
+    // piel debajo. (Antes bajaba a 0,63π y era la misma cúpula que otros ocho peinados en el partido)
+    flequillo: { back: true, line: function (ph) { return hlAt(HL.tazon, ph) - 0.11 * PI * sstep(1.3, 2.6, Math.abs(ph)); }, vol: 0.026, tuck: false,
+      volFn: function (ph, th, u) { return 1 + 0.75 * sstep(0.55, 1, u) * sstep(1.0, 1.8, Math.abs(ph)); }, crown: [0, 0.14, 0, 0] },
+    // rapado: pelo de 3 mm: el tono queda a medio camino de la piel (al cero es casi piel; los cortos, el color entero)
+    rapado: { line: 'corto', off: 0.003, shine: 0.2, crown: [0, 0.14, 0, 0],
+      fade: function (ph, th, u) { return u > 0.8 ? 0.5 : 0.34; } },
     mono: { line: 'recogido', off: 0.005, vol: 0.005, crown: [0, 0.1, 0, 0.25],
       parts: function (H) {
         var p = H.pt(PI, 0.17 * PI, -0.01); if (H.hid(p)) return;
@@ -2568,7 +2627,8 @@
       parts: function (H) {
         for (var s = -1; s <= 1; s += 2) {
           var ph = s * 2.0, th = Math.max(0.4 * PI, H.cup ? H.rimAt(ph) + 0.03 * PI : 0), p = H.pt(ph, th, -0.01);
-          hairTail(H, p, [p[3], p[4] * 0.4 + 0.15, p[5] * 0.6], 0.3 * FK, 0.046, 0.3, s * 0.4);
+          // (salen hacia fuera y CAEN junto al cuello; antes quedaban en horizontal a la altura de la oreja, como alas)
+          hairTail(H, p, [p[3], p[4] * 0.4 + 0.15, p[5] * 0.6], 0.3 * FK, 0.046, 0.62, 0, { dir: [p[3] * 0.7, -0.15, p[5] * 0.7 - 0.25] });
         }
       } },
     cresta: { line: 'corto', off: 0.004, shine: 0.6, fade: fadeMid(0.12), crown: [0, 0.03, 0, 0],   // (corona centrada: la cresta pasa por dentro del aro)
@@ -2586,8 +2646,9 @@
     alCero: { line: 'corto', off: 0.0025, shine: 0, crown: [0, 0.14, 0, 0], fade: function () { return 0.62; } },
     degradado: { line: 'corto', off: 0.005, vol: 0.014, fade: fadeSides(0.33 * PI, 0.5 * PI, 0.8, true), crown: [0, 0.14, 0, 0],
       volFn: function (ph, th) { return 1 - sstep(0.3 * PI, 0.45 * PI, th); } },
-    cepillo: { line: 'corto', off: 0.005, vol: 0.05, flat: 0.03, fade: fadeSides(0.4 * PI, 0.55 * PI, 0.55, true), crown: [0, 0.1, 0.0, 0],
-      volFn: function (ph, th) { return 1 - 0.85 * sstep(0.22 * PI, 0.42 * PI, th); } },
+    // cepillo: CAJA plana y alta arriba con los lados rapados (de espaldas, un bloque cuadrado sobre una nuca clara)
+    cepillo: { line: 'corto', off: 0.005, vol: 0.068, flat: 0.042, fade: fadeSides(0.34 * PI, 0.48 * PI, 0.72, true), crown: [0, 0.1, 0.0, 0],
+      volFn: function (ph, th) { return 1 - 0.9 * sstep(0.2 * PI, 0.36 * PI, th); } },
     undercut: { line: 'corto', off: 0.003, shine: 0, crown: [0, 0.12, 0.03, -0.2],
       col: function (H) { return mixHex(H.stub, H.hr, 0.25); },
       extra: function (H) {
@@ -2612,17 +2673,22 @@
       } },
     rizosCortos: { line: 'corto', off: 0.005, vol: 0.02, crown: [0, 0.1, 0.01, 0],
       bump: function (ph, th, u) { return 0.006 * Math.max(0, Math.sin(ph * 8) * Math.sin(th * 10)) * (1 - u); },
+      // (rizos más gordos y solo de la coronilla a media nuca: el contorno de arriba queda abollado, que es lo que lo distingue de
+      // lejos; los que caían a la altura de la oreja eran dos orejeras)
       parts: function (H) {
         var n = LODR === 0 ? 7 : 12, i;
         for (i = 0; i < n; i++) {
-          var ph = PI * (-1 + 2 * (i + 0.5) / n) + (jit(i, 5) - 0.5) * 0.35, th = (0.1 + 0.4 * jit(i, 6)) * PI;
-          if (Math.abs(ph) < 0.9 && th > 0.22 * PI) th = 0.1 * PI + 0.1 * PI * jit(i, 12);
-          var p = H.pt(ph, th, -0.012); if (H.hid(p)) continue;
-          hairCurl(H, p, (0.028 + 0.008 * jit(i, 13)) * FK);
+          var ph = PI * (-1 + 2 * (i + 0.5) / n) + (jit(i, 5) - 0.5) * 0.35, th = (0.06 + 0.26 * jit(i, 6)) * PI;
+          if (Math.abs(ph) < 0.9 && th > 0.2 * PI) th = 0.08 * PI + 0.1 * PI * jit(i, 12);
+          if (Math.abs(ph) > 1.2 && Math.abs(ph) < 2.2) th = Math.min(th, 0.24 * PI);   // sobre la oreja, arriba
+          var p = H.pt(ph, th, -0.014); if (H.hid(p)) continue;
+          hairCurl(H, p, (0.044 + 0.008 * jit(i, 13)) * FK);
         }
       } },
-    afroCorto: { line: 'afro', off: 0.006, vol: 0.034, crown: [0, 0.08, 0.0, 0],
-      volFn: function (ph, th, u) { return 1 - Math.pow(sstep(0.6, 1, u), 1.5) * 0.85; },
+    // afro corto: una BOLA arriba (más volumen que los cortos) que se estrecha hacia la nuca con los lados degradados: de espaldas, una
+    // bola sobre una nuca clara (el afro grande baja redondo hasta la nuca)
+    afroCorto: { line: 'afro', off: 0.006, vol: 0.064, capVol: 0.026, crown: [0, 0.08, 0.0, 0], fade: fadeSides(0.4 * PI, 0.55 * PI, 0.72, true),
+      volFn: function (ph, th, u) { return 1 - Math.pow(sstep(0.45, 1, u), 1.3) * 0.9; },
       bump: function (ph, th, u) { return 0.009 * Math.max(0, Math.sin(ph * 7 + 1.1) * Math.sin(th * 9)) * (1 - sstep(0.7, 1, u)); } },
     frohawk: { line: 'corto', off: 0.004, shine: 0.5, fade: fadeMid(0.11), crown: [0, 0.03, 0, 0],
       parts: function (H) {
@@ -2635,20 +2701,24 @@
         if (P2.length < 2) return;
         hairPiece(H, sweep(P2, Rr, sg(8, 5), outRef), P2[0], 1);
       } },
-    melenita: { line: 'medio', vol: 0.02, tuck: false, hat: 'show', crown: [0, 0.14, 0, 0],
+    // melenita: media melena ROMA, un bloque recto hasta la mandíbula (sin picos y algo abierta abajo): de espaldas tapa el cuello
+    melenita: { back: true, line: 'medio', vol: 0.02, tuck: false, hat: 'show', crown: [0, 0.14, 0, 0],
       volFn: function (ph, th, u) { return 1 - 0.3 * u; },
-      parts: function (H) { hairSkirt(H, { ph0: 1.08, ySide: HEAD_C - 0.13, yBack: HEAD_C - 0.17, flare: 0.012, thick: 0.02, cols: 18, rows: 4 }); } },
+      parts: function (H) { hairSkirt(H, { ph0: 1.08, ySide: HEAD_C - 0.19, yBack: HEAD_C - 0.25, flare: 0.055, thick: 0.028, cols: 18, rows: 4, clump: 0.25 }); } },
     despeinado: { line: 'corto', off: 0.006, vol: 0.022, crown: [0, 0.12, 0.02, 0],
       parts: function (H) {
         var n = LODR === 0 ? 6 : 11, i;
         for (i = 0; i < n; i++) {
           var ph = PI * (-1 + 2 * (i + 0.5) / n) + (jit(i, 21) - 0.5) * 0.4, th = (0.12 + 0.42 * jit(i, 22)) * PI;
           if (Math.abs(ph) < 0.95 && th > 0.24 * PI) th = 0.24 * PI;
-          var p0 = H.pt(ph, th, 0), dir = [p0[3] + (jit(i, 23) - 0.5) * 1.2, p0[4] + 0.6 * jit(i, 24) - (Math.abs(ph) < 0.95 ? 0 : 0.2), p0[5] + (jit(i, 25) - 0.5) * 1.2];
-          hairLock(H, ph, th, dir, (0.07 + 0.05 * jit(i, 26)) * FK, 0.03 * FK, 0.012, 0.12);
+          // (mechones más gruesos, más cortos y que salen CASI por la normal, con la raíz bien metida en el casco: con el giro de
+          // antes, de espaldas quedaban trazos finos sueltos en el aire)
+          var p0 = H.pt(ph, th, 0), dir = [p0[3] + (jit(i, 23) - 0.5) * 0.6, p0[4] + 0.45 * jit(i, 24) - (Math.abs(ph) < 0.95 ? 0 : 0.1), p0[5] + (jit(i, 25) - 0.5) * 0.6];
+          hairLock(H, ph, th, dir, (0.06 + 0.035 * jit(i, 26)) * FK, 0.036 * FK, 0.02, 0.3, null, null, 0.016);
         }
       } },
-    cortina: { line: 'medio', vol: 0.018, crown: [0, 0.1, 0, 0],
+    // cortina: raya al medio delante y, detrás, el pelo hasta la nuca con las puntas VUELTAS hacia fuera (alas en la nuca)
+    cortina: { back: true, line: 'medio', vol: 0.018, crown: [0, 0.1, 0, 0],
       bump: function (ph, th) { return th < 0.3 * PI ? -0.012 * Math.exp(-(ph * ph) / 0.01) : 0; },
       parts: function (H) {
         for (var s = -1; s <= 1; s += 2) {
@@ -2660,27 +2730,31 @@
           }
           hairPiece(H, sweep(P2, Rr, sg(5, 3), outRef), p0, 0.3);
         }
+        hairSkirt(H, { ph0: 1.95, ySide: HEAD_C - 0.13, yBack: HEAD_C - 0.21, flare: 0.05, thick: 0.018, cols: 12, rows: 3,
+          wave: function (ph, s) { return 0.028 * sstep(0.55, 1, s); } });
       } },
-    mullet: { line: 'corto', off: 0.005, vol: 0.016, hat: 'show', crown: [0, 0.12, 0.01, 0],
-      parts: function (H) { hairSkirt(H, { ph0: 2.05, ySide: HEAD_C - 0.2, yBack: HEAD_C - 0.34, flare: 0.03, thick: 0.022, cols: 10, rows: 5, hem: function (ph) { return 0.012 * Math.sin(ph * 9); } }); } },
+    // mullet: corto y con los lados degradados, y una CORTINA estrecha de pelo largo por la nuca hasta los omoplatos
+    mullet: { back: true, line: 'corto', off: 0.005, vol: 0.016, hat: 'show', crown: [0, 0.12, 0.01, 0], fade: fadeSides(0.42 * PI, 0.54 * PI, 0.5, true),
+      parts: function (H) { hairSkirt(H, { ph0: 2.15, ySide: HEAD_C - 0.28, yBack: HEAD_C - 0.5, flare: 0.016, thick: 0.024, cols: 12, rows: 5, hem: function (ph) { return 0.012 * Math.sin(ph * 9); } }); } },
     ondas: { line: 'medio', vol: 0.022, tuck: false, hat: 'show', crown: [0, 0.12, 0, 0],
       bump: function (ph, th, u) { return 0.006 * Math.sin(th * 14 + ph * 2) * u; },
       parts: function (H) {
-        hairSkirt(H, { ph0: 1.1, ySide: HEAD_C - 0.16, yBack: HEAD_C - 0.32, flare: 0.04, thick: 0.024, cols: 20, rows: 6,
-          wave: function (ph, s) { return 0.012 * Math.sin(s * 9 + Math.abs(ph) * 3) * s; }, hem: function (ph) { return 0.02 * Math.sin(ph * 8); } });
+        // (ondas: hasta los hombros y muy abierta abajo, en triángulo; la melena es larga y recta)
+        hairSkirt(H, { ph0: 1.1, ySide: HEAD_C - 0.2, yBack: HEAD_C - 0.3, flare: 0.085, thick: 0.024, cols: 20, rows: 6,
+          wave: function (ph, s) { return 0.02 * Math.sin(s * 9 + Math.abs(ph) * 3) * s; }, hem: function (ph) { return 0.02 * Math.sin(ph * 8); } });
       } },
     melena: { line: 'largo', vol: 0.018, tuck: false, hat: 'show', crown: [0, 0.12, 0, 0],
-      parts: function (H) { hairSkirt(H, { ph0: 1.1, ySide: HEAD_C - 0.15, yBack: HEAD_C - 0.42, flare: 0.02, thick: 0.024, cols: 20, rows: 6 }); } },
+      parts: function (H) { hairSkirt(H, { ph0: 1.1, ySide: HEAD_C - 0.17, yBack: HEAD_C - 0.52, flare: 0.01, thick: 0.024, cols: 20, rows: 6 }); } },
     coletaBaja: { line: 'recogido', off: 0.005, vol: 0.005, hat: 'show', crown: [0, 0.12, 0, 0],
       parts: function (H) {
         var p = H.pt(PI, Math.max(0.63 * PI, H.cup ? H.rimAt(PI) + 0.04 * PI : 0), -0.01);
-        hairTail(H, p, [p[3], p[4] * 0.3 - 0.05, p[5]], 0.32 * FK, 0.05, 0.4);
+        hairTail(H, p, [p[3], p[4] * 0.3 - 0.05, p[5]], 0.27 * FK, 0.068, 0.42);   // (cola corta y GORDA: la trenza es larga y fina)
       } },
     trenza: { line: 'recogido', off: 0.005, vol: 0.005, hat: 'show', crown: [0, 0.12, 0, 0],
       parts: function (H) {
         var p = H.pt(PI, Math.max(0.6 * PI, H.cup ? H.rimAt(PI) + 0.04 * PI : 0), -0.012);
         hairTie(H, [p[0] + p[3] * 0.01, p[1] + p[4] * 0.01, p[2] + p[5] * 0.01], [p[3], p[4], p[5]], 0.036 * FK, 0.011);
-        hairBraid(H, [p[0] + p[3] * 0.02, p[1], p[2] + p[5] * 0.02], [p[3] * 0.6, -0.7, p[5] * 0.6], 0.42 * FK, 0.04 * FK, 0.3, pushOut);
+        hairBraid(H, [p[0] + p[3] * 0.02, p[1], p[2] + p[5] * 0.02], [p[3] * 0.6, -0.7, p[5] * 0.6], 0.5 * FK, 0.036 * FK, 0.3, pushOut);
       } },
     monoBajo: { line: 'recogido', off: 0.005, vol: 0.005, hat: 'show', crown: [0, 0.12, 0, 0],
       parts: function (H) {
@@ -2715,15 +2789,17 @@
           }
         }
       } },
-    rastas: { line: 'corto', off: 0.006, vol: 0.016, hat: 'show', crown: [0, 0.1, 0.02, 0],
+    rastas: { back: true, line: 'corto', off: 0.006, vol: 0.016, hat: 'show', crown: [0, 0.1, 0.02, 0],
       parts: function (H) {
         var n = LODR === 0 ? 10 : 16, i;
         for (i = 0; i < n; i++) {
-          var ph = PI * (-1 + 2 * (i + 0.5) / n) + (jit(i, 41) - 0.5) * 0.25, th = (0.3 + 0.28 * jit(i, 42)) * PI;
+          // (nacen MÁS ARRIBA, de la coronilla a media cabeza, y bajan pegadas al casco —pushOut las aparta de la cabeza y los hombros—:
+          // antes salían del borde de un casco liso hacia fuera y de espaldas se abrían como palos)
+          var ph = PI * (-1 + 2 * (i + 0.5) / n) + (jit(i, 41) - 0.5) * 0.25, th = (0.16 + 0.22 * jit(i, 42)) * PI;
           if (Math.abs(ph) < 1.05) continue;
           if (H.cup) th = Math.max(th, H.rimAt(ph) + 0.03 * PI);
-          var p = H.pt(ph, th, -0.01), len = (0.26 + 0.1 * jit(i, 43)) * FK * (Math.abs(ph) > 2.2 ? 1.15 : 0.8);
-          var path = hangPath(p, [p[3] * 0.7, -0.4, p[5] * 0.7], len, sg(5, 3), 0.3, pushOut), Rr = [];
+          var p = H.pt(ph, th, -0.012), len = (0.34 + 0.1 * jit(i, 43)) * FK * (Math.abs(ph) > 2.2 ? 1.12 : 0.8);
+          var path = hangPath(p, [p[3] * 0.3, -0.25, p[5] * 0.3], len, sg(5, 3), 0.55, pushOut), Rr = [];
           for (var j = 0; j < path.length; j++) Rr.push(j === path.length - 1 ? 0.012 * FK : 0.02 * FK * (j === 0 ? 1.05 : 1 - 0.15 * j / path.length));
           hangOn(H, p[1], p[1] - len, 0.6, 'chest');
           hairPiece(H, sweep(path, Rr, sg(5, 3), [0, 0, -1]), p, len, ph);
@@ -2756,7 +2832,8 @@
   function hairGeo(G, X, tc, r) {
     var H = hairCtx(G, X, tc, r), st = H.st;
     if (SKIP_HAIR) { H.line = function () { return 0.3 * PI; }; H.off = function () { return 0; }; H.crownAt = { p: [0, HEAD_C + HEAD_RY, 0], tilt: 0 }; return H; }
-    hairShell(H, { line: st.line, off: st.off, vol: st.vol, volFn: st.volFn, lift: st.lift, liftTh: st.liftTh, liftW: st.liftW, flat: st.flat, bump: st.bump, tuck: st.tuck, main: true,
+    // (capVol: el volumen bajo un gorro de copa; el afro entero por debajo de la gorra eran dos bolas a los lados, como unos cascos de música)
+    hairShell(H, { line: st.line, off: st.off, vol: H.cup && st.capVol != null ? st.capVol : st.vol, volFn: st.volFn, lift: st.lift, liftTh: st.liftTh, liftW: st.liftW, flat: st.flat, bump: st.bump, tuck: st.tuck, main: true,
       col: st.col ? (function (c) { return function () { return c; }; })(st.col(H)) : null });
     if (st.extra) st.extra(H);
     if (st.parts) st.parts(H);
@@ -3002,7 +3079,7 @@
   /** Diadema: arco plano de 2,2 cm de oreja a oreja por encima de la cabeza, algo echado hacia delante, apoyado en el pelo (o en lo que
    *  abulte: el tupé) y con los cantos más oscuros. Desde arriba y de espaldas cruza la coronilla. ≈ 108 / 80 / 54 triángulos. */
   function diademaGeo(G, H, c) {
-    var n = sg(18, 9), a = 0.1, P = [], N = [], offs = [], dirs = [], k, it;
+    var n = sg(18, 9), a = -0.12, P = [], N = [], offs = [], dirs = [], k, it;   // (a < 0: inclinada hacia atrás, sobre la coronilla: se ve de espaldas y desde la cámara del partido)
     for (k = 0; k <= n; k++) {
       var u = -1.42 + 2.84 * k / n, dx = Math.sin(u), dy = Math.cos(u) * Math.cos(a), dz = Math.cos(u) * Math.sin(a);
       var ph = Math.atan2(dx, dz), th = Math.acos(clamp(dy, -1, 1));
@@ -3010,7 +3087,8 @@
     }
     for (it = 0; it < 2; it++) offs = offs.map(function (v, i) { return Math.max(v, offs[Math.max(0, i - 1)], offs[Math.min(n, i + 1)]); });
     for (k = 0; k <= n; k++) { var q = overPt(H, dirs[k][0], dirs[k][1], offs[k]); P.push(q.slice(0, 3)); N.push(q.slice(3, 6)); }
-    var w = 0.015 * FK, t = 0.008, prof = [[-w, 0.0005], [-w * 0.8, t], [w * 0.8, t], [w, 0.0005]];
+    // (2,4 cm de ancho y 1,2 cm de grueso: con 1,5 × 0,8 cm de espaldas en el partido era una raya fina que el pelo oscuro se comía)
+    var w = 0.024 * FK, t = 0.012, prof = [[-w, 0.0005], [-w * 0.85, t], [w * 0.85, t], [w, 0.0005]];
     G.owk = 0.8;
     G.add(profSweep(P, N, prof, [1], false), c);
     G.add(profSweep(P, N, prof, [0, 2], false), mixHex(c, 0x000000, 0.32));
@@ -3035,13 +3113,15 @@
     var ul = Math.sqrt(u[0] * u[0] + u[1] * u[1] + u[2] * u[2]) || 1; u = [u[0] / ul, u[1] / ul, u[2] / ul];
     var e = aim(n[0], n[1], n[2], 'z');
     G.owk = 0.7;
-    G.add(new THREE.BoxGeometry(0.124 * FK, 0.058 * FK, 0.03), pc, q[0], q[1], q[2], e[0], e[1], e[2]);                                         // cuerpo
-    G.add(new THREE.BoxGeometry(0.13 * FK, 0.016 * FK, 0.036), mixHex(pc, 0x000000, 0.3), q[0] + u[0] * 0.021, q[1] + u[1] * 0.021, q[2] + u[2] * 0.021, e[0], e[1], e[2]);   // lomo
-    G.add(new THREE.BoxGeometry(0.11 * FK, 0.016 * FK, 0.016), c2, q[0] - u[0] * 0.034 - n[0] * 0.004, q[1] - u[1] * 0.034 - n[1] * 0.004, q[2] - u[2] * 0.034 - n[2] * 0.004, e[0], e[1], e[2]);   // dientes
+    // (pinza de garra a escala: 11,4 × 5,8 cm y gruesa (4,4 cm: de lado no es una lámina), con el lomo arriba y los dientes a medio camino entre el color de la pinza y el
+    // claro de las sienes, asomando por debajo. Antes era un bloque plano de 12 × 6 cm con una franja clara: se leía como una pegatina o una etiqueta)
+    G.add(new THREE.BoxGeometry(0.114 * FK, 0.058 * FK, 0.044), pc, q[0], q[1], q[2], e[0], e[1], e[2]);                                         // cuerpo
+    G.add(new THREE.BoxGeometry(0.114 * FK, 0.018 * FK, 0.05), mixHex(pc, 0x000000, 0.3), q[0] + u[0] * 0.021, q[1] + u[1] * 0.021, q[2] + u[2] * 0.021, e[0], e[1], e[2]);   // lomo
+    G.add(new THREE.BoxGeometry(0.09 * FK, 0.016 * FK, 0.022), mixHex(pc, c2, 0.5), q[0] - u[0] * 0.033 - n[0] * 0.006, q[1] - u[1] * 0.033 - n[1] * 0.006, q[2] - u[2] * 0.033 - n[2] * 0.006, e[0], e[1], e[2]);   // dientes
     for (var s = -1; s <= 1; s += 2) {   // clips de las sienes
       var pt = s * 1.18, tt = 0.3 * PI, o2 = H && H.st && H.st.over ? H.st.over(pt, tt) : 0, a = overPt(H, pt, tt, 0.007 + o2), b = overPt(H, s * 1.45, tt - 0.06, 0.007 + o2);
-      addAim(G, new THREE.BoxGeometry(0.02, 0.07 * FK, 0.012), c2, a[0], a[1], a[2], [b[0] - a[0], b[1] - a[1], b[2] - a[2]], 'y');
-      addAim(G, new THREE.BoxGeometry(0.01, 0.06 * FK, 0.014), pc, a[0] + a[3] * 0.004, a[1] + a[4] * 0.004, a[2] + a[5] * 0.004, [b[0] - a[0], b[1] - a[1], b[2] - a[2]], 'y');
+      addAim(G, new THREE.BoxGeometry(0.026, 0.088 * FK, 0.015), c2, a[0], a[1], a[2], [b[0] - a[0], b[1] - a[1], b[2] - a[2]], 'y');
+      addAim(G, new THREE.BoxGeometry(0.013, 0.076 * FK, 0.017), pc, a[0] + a[3] * 0.004, a[1] + a[4] * 0.004, a[2] + a[5] * 0.004, [b[0] - a[0], b[1] - a[1], b[2] - a[2]], 'y');
     }
     G.owk = 1;
   }
@@ -3118,7 +3198,7 @@
     } else if (hc === 'CAP' || hc === 'CAPB') capGeo(G, X, cA, cB);
     else if (hc === 'SCARF') scarfGeo(G, X, cA);
     else if (hc === 'BEANIE') beanieGeo(G, X, cA, cB, tc);
-    else if (X.head === 'diadema') diademaGeo(G, H, cAt);
+    else if (X.head === 'diadema') diademaGeo(G, H, pick(cAt, X.hair, tc, 170));   // (sobre el pelo: que se separe de él, también de espaldas)
     else if (X.head === 'pinzas') pinzasGeo(G, H, X, tc);
     else if (X.head === 'cinta' || X.head === 'visera' || X.head === 'viseraGafas') {
       // cinta plana de 3,8 cm pegada a la frente (por encima de las cejas) y al pelo, con una franja fina de contraste (cB) en medio;
@@ -3757,6 +3837,9 @@
     cuerpo: function (m) { return { lo: -0.04, hi: m.top + 0.14, lat: SH_X + 0.2, up: 0.1, yaw: 0 }; },
     cabeza: function (m) { return { lo: m.chin - 0.24, hi: m.top + 0.12, lat: HEAD_RX + 0.2, up: 0.03, yaw: 0.55, fill: 0.86 }; },
     nuca: function (m) { return { lo: m.chin - 0.24, hi: m.top + 0.12, lat: HEAD_RX + 0.2, up: 0.06, yaw: 0.55, peek: 2.75, fill: 0.86 }; },
+    // (lo que se lleva DETRÁS —coleta, trenza, moño, el pelo largo, la pinza—: de 3/4 de espaldas y se QUEDA ahí, con la cabeza y lo que
+    //  cuelga hasta los hombros. Antes se asomaba 1,2 s y volvía de frente: al elegir la coleta no se veía la cola)
+    detras: function (m) { return { lo: m.chin - 0.42, hi: m.top + 0.12, lat: HEAD_RX + 0.24, up: 0.1, yaw: 2.6, fill: 0.86 }; },
     perfil: function (m) { return { lo: m.chin - 0.24, hi: m.top + 0.14, lat: HEAD_RX + 0.32, up: 0.03, yaw: 1.05, fill: 0.86 }; },
     cara: function (m) { return { lo: m.chin - 0.06, hi: m.head + HEAD_RY + 0.06, lat: HEAD_RX + 0.08, up: 0, yaw: 0.12, fill: 0.8 }; },
     torso: function (m) { return { lo: m.hip - 0.16, hi: m.top + 0.12, lat: SH_X + 0.2, up: 0.08, yaw: 0.3 }; },
@@ -3989,7 +4072,7 @@
       return name;
     },
     /** Nombre del encuadre de una ranura (sin aplicarlo): lo usan las miniaturas de la rejilla del Vestuario. */
-    frameOf: function (slot, o) { return slot === 'style' && o && o.back ? 'nuca' : PV_SLOT[slot] || 'cuerpo'; },
+    frameOf: function (slot, o) { return (slot === 'style' || slot === 'head') && o && o.back ? 'detras' : PV_SLOT[slot] || 'cuerpo'; },
     /** Parpadeo de lo que pinta un color (el Vestuario, al cambiarlo): pinta el atlas con L2 durante s segundos (0,4 por defecto) y
      *  vuelve al aspecto de verdad. Solo si L2 cambia el atlas y no la malla (si no, nada). */
     flash: function (L2, s) {
@@ -4628,7 +4711,7 @@
   VB.Doll = {
     rigs: rigs, LOOKS: LOOKS, EXPR: EXPR, POSES: POSES,
     /** Vestuario: lo que el muñeco sabe dibujar por ranura (id → sede 'A' | 'P' | 'Y') y los gorros que sustituyen al pelo. */
-    ITEMS: ITEMS, HIDE_HAIR: HIDE_HAIR, HAT_CLASS: HAT_CLASS, HAIR_UNDER_CAP: HAIR_UNDER_CAP,
+    ITEMS: ITEMS, HIDE_HAIR: HIDE_HAIR, HAT_CLASS: HAT_CLASS, HAIR_UNDER_CAP: HAIR_UNDER_CAP, HAIR_STYLES: HAIR_STYLES,
     /** Tobilleras que quedan bajo un calcetín que sube (WP4: ninguna; la tobillera va por fuera y el calcetín empieza encima). */
     UNDER_SOCK: {},
     /** Vestuario: firmas de lo que cambia la malla (geometría y color por vértice) y de lo que se pinta en el atlas. */
