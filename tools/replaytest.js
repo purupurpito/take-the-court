@@ -127,6 +127,29 @@ function match(o) {
   return R0;
 }
 
+/* Semilla para (d) de la parte CDP: reproduce en node la escena debug=replay&auto=1 de main.js (autopilot, normal, pabellón —el de
+ * las escenas de depuración—, sets a 11, present; el bucle hasta el 1r punto que cierra set y TAIL pasos más) y devuelve la primera
+ * semilla 1..40 cuyo punto de set dispara Replay.autoReady en < 600 pasos (decisivo y sin challenge posible). Así (d) no depende de
+ * que la sim de hoy dé una automática con una semilla fija: la 7 la dio hasta 1.5.2 y la perdió con los remates (challenge de la CPU)
+ * y con 1.15.0 (el punto pasó a ser un error). Solo lee la sim: no la toca ni cambia ninguna huella. → {seed, how} o null. */
+function autoSeed() {
+  const evs = [], tail = (RPL.K && RPL.K.TAIL) || 156;
+  for (let seed = 1; seed <= 40; seed++) {
+    const g = S.createGame({ demo: false, autopilot: true, seed, difficulty: 'normal', venue: 'hall', points: 11, present: true });
+    if (!RPL.reset(g, { force: true, headless: true })) continue;
+    const st = () => { S.step(g, STEP, null); RPL.onStep(null, g); evs.length = 0; S.drainEvents(g, evs); RPL.onEvents(g, evs); };
+    let trig = -1;
+    for (let i = 0; i < 3600 / STEP && (trig < 0 || i - trig <= tail); i++) { st(); if (trig < 0 && evs.some(e => e.type === 'point' && (e.setWon || e.matchWon))) trig = i; }
+    if (trig < 0) continue;
+    let ready = false;
+    for (let i = 0; i < 600 && !ready; i++) { if (RPL.autoReady(g)) ready = true; else st(); }
+    const last = RPL._state().last;
+    RPL.reset(null);
+    if (ready) return { seed, how: last && last.how };
+  }
+  return null;
+}
+
 const ONLY_CDP = process.argv.indexOf('--cdp') >= 0, ONLY_NODE = process.argv.indexOf('--node') >= 0;
 if (!ONLY_CDP) {
 console.log('== replaytest (parte node) ==');
@@ -275,12 +298,14 @@ console.log('== replaytest (parte node) ==');
 // Parte CDP (T22, plan §5.3 a-j): el juego de verdad en Chrome headless (tools/cdp.js), escenas debug=replay / debug=best de main.js.
 //  (a) debug=replay: kind 'set', fases prep → in → play → out, ≥ 3 s, desync 0, #app.replay con mosca/rótulo/pista, la sim en vivo
 //      vuelve y g.setNo sube, sin errores JS
-//  (b) saltar en < 0,4 s: ctx.replaySkipReq, Intro (teclado), A (mando falso de padplay.js) y toque (TOUCH, 844×390); B / Esc / «Salir»
+//  (b) saltar en < 0,4 s (teclado: medido en la página desde el keydown; se repite una vez si pasa del tope): ctx.replaySkipReq, Intro
+//      (teclado), A (mando falso de padplay.js) y toque (TOUCH, 844×390); B / Esc / «Salir»
 //      en mejores jugadas salen de todas
 //  (c) pestaña «Jugadas (n)»: 1-3 clips en orden de puntuación con «Verlas todas»; «Ver» de una sola y vuelta a la hoja con el foco en
 //      ese «Ver»
 //  (d) «Menos movimiento»: sin repetición automática (&auto=1) y sin cámara lenta en mejores jugadas; con el ajuste por defecto sí hay
-//      automática; ajuste «Al final»: sin automática; «No»: sin pestaña
+//      automática; ajuste «Al final»: sin automática; «No»: sin pestaña. La escena usa &seed= de autoSeed() (node): la primera semilla
+//      cuyo punto de set da automática con la sim de hoy
 //  (e) 6v6 humano: Replay apagado ('6v6'), bestCount 0 y sin pestaña en la hoja 6v6
 //  (f) ejercicio: apagado ('drill')
 //  (g) montón: HeapProfiler.collectGarbage antes y después de 3 repeticiones, Δ < 1 MB
@@ -292,7 +317,9 @@ async function cdpPart() {
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/const PAD = `([\s\S]*?)`;/)[1].replace('__PADID__', JSON.stringify('Mando virtual de pruebas (STANDARD GAMEPAD)'));
   // registro por frame de las fases (desde el primer frame: init antes de la página)
-  const LOG = `(function(){ var L = window.__rp = { ph: [], t0: 0 }; var last = 'x';
+  // (kd: instante del último keydown, en captura, para medir el salto por teclado dentro de la página; ver skipTime)
+  const LOG = `(function(){ var L = window.__rp = { ph: [], t0: 0, kd: 0 }; var last = 'x';
+    window.addEventListener('keydown', function () { L.kd = performance.now(); }, true);
     function f(){ try { var c = window.VB && VB.ctx; var p = c && c.replay ? c.replay.phase + ':' + c.replay.kind + ':' + c.replay.i : null;
       if (p !== last) { L.ph.push([p, performance.now()]); last = p; } } catch (e) {} requestAnimationFrame(f); } requestAnimationFrame(f); })();`;
   const ok = (c, m, info) => { if (c) console.log('  ok   ' + m); else fail(m + (info !== undefined ? '  ' + JSON.stringify(info) : '')); return !!c; };
@@ -308,12 +335,21 @@ async function cdpPart() {
   const tap = async (x, y) => { await page.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] }); await sleep(40); await page.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] }); };
   const PH = 'VB.ctx.replay ? VB.ctx.replay.phase : null';
   const playing = async ms => waitFor(`VB.ctx.replay && VB.ctx.replay.phase === 'play' && VB.Replay.info().t > 0.8`, ms || 15000);
-  /** Salta con act() y mide hasta ctx.replay null (o hasta la siguiente jugada si next). */
+  /** Salta con act() y mide hasta ctx.replay null (o hasta la siguiente jugada si next). Con teclado se mide dentro de la página, desde
+   *  el keydown (listener en captura) hasta el primer frame del registro LOG sin esa repetición: la latencia del juego, sin los 100 ms
+   *  de sleeps de key() ni el sondeo de CDP cada 40 ms, que con el PC cargado pasaban del tope de 0,4 s sin que el juego tardase. Con
+   *  mando y toque (sin keydown) se mide como siempre, en el reloj de la prueba. */
   const skipTime = async (act, next) => {
     const i0 = await E('VB.ctx.replay ? VB.ctx.replay.i : -1');
+    await E('window.__rp.kd = 0, 1');
     const t0 = Date.now(); await act();
     const done = await waitFor(next ? `!VB.ctx.replay || VB.ctx.replay.i !== ${i0}` : '!VB.ctx.replay', 3000);
-    return done ? (Date.now() - t0) / 1000 : 99;
+    if (!done) return 99;
+    const wall = (Date.now() - t0) / 1000;
+    const inPage = await J(`(function(){ var L = window.__rp; if (!L.kd) return null;
+      for (var j = 0; j < L.ph.length; j++) { var p = L.ph[j]; if (p[1] >= L.kd && (!p[0]${next ? ` || +p[0].split(':')[2] !== ${i0}` : ''})) return (p[1] - L.kd) / 1000; }
+      return null; })()`);
+    return inPage != null ? inPage : wall;
   };
   console.log('== replaytest (parte CDP) ==');
   try {
@@ -321,7 +357,9 @@ async function cdpPart() {
     await open('1280x720');
     console.log('(a) debug=replay');
     await go('debug=replay');
-    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.phase === 'play'`, 15000), '(a) la repetición llega a play');
+    // (y #app.replay puesto: rpTick de ui.js lo pone un frame después de que la cortinilla pase la fase a 'play'; leer antes daba
+    // app:false / skip:"" de vez en cuando)
+    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.phase === 'play' && document.getElementById('app').classList.contains('replay')`, 15000), '(a) la repetición llega a play');
     const a1 = await J(`{kind: VB.ctx.replay && VB.ctx.replay.kind, app: document.getElementById('app').classList.contains('replay'), bug: !document.getElementById('rpBug').hidden,
       cap: document.getElementById('rpCap').textContent, skip: document.getElementById('rpSkipT').textContent, hud: getComputedStyle(document.getElementById('hud')).visibility,
       aria: document.getElementById('rpAria').textContent, set0: VB.ctx.game.setNo}`);
@@ -349,12 +387,18 @@ async function cdpPart() {
       ['A (mando)', async () => { await pad(0); }]
     ];
     for (const [name, act] of tries) {
-      await go('debug=replay');
-      if (name.indexOf('mando') >= 0) { await E('__pad.connect(), 1'); await sleep(200); }
-      if (!ok(await playing(), '(b) ' + name + ': en play')) continue;
-      const t = await skipTime(act);
+      let t = 99, inPlay = false;
+      for (let rep = 0; rep < 2 && t >= 0.4; rep++) {   // (inestable con el PC cargado: si pasa del tope, se repite una vez antes de fallar)
+        if (rep) console.log('  ..   (b) ' + name + ': ' + t.toFixed(2) + ' s, se repite una vez (PC cargado)');
+        await go('debug=replay');
+        if (name.indexOf('mando') >= 0) { await E('__pad.connect(), 1'); await sleep(200); }
+        inPlay = await playing();
+        if (inPlay) t = await skipTime(act);
+        if (name.indexOf('mando') >= 0) await E('__pad.disconnect(), 1');
+        if (!inPlay) break;
+      }
+      if (!ok(inPlay, '(b) ' + name + ': en play')) continue;
       ok(t < 0.4, '(b) ' + name + ' salta en ' + t.toFixed(2) + ' s (< 0,4)');
-      if (name.indexOf('mando') >= 0) await E('__pad.disconnect(), 1');
     }
     // mejores jugadas: Intro = siguiente, Esc = salir de todas
     await go('debug=best&tab=plays&play=1');
@@ -426,9 +470,21 @@ async function cdpPart() {
     // ---------------------------------------------------------------- (d)
     console.log('(d) ajustes y «Menos movimiento»');
     const withSettings = async (st, q) => { await E(`(function(){ try { localStorage.setItem('make-the-cut.settings', ${JSON.stringify(JSON.stringify(st))}); } catch (e) {} return 1; })()`); await go(q); };
-    await withSettings({}, 'debug=replay&auto=1');
-    ok(await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set'`, 8000), '(d) por defecto (Automáticas): repetición automática del punto de set');
-    await withSettings({ lessMotion: 'on' }, 'debug=replay&auto=1');
+    // Semilla calculada en node (autoSeed): la primera cuyo punto de set da automática con la sim de hoy. Con una fija (la 7 por defecto
+    // de la escena) los cambios de la sim la dejaron sin automática (1.5.2: challenge de la CPU; 1.15.0: el punto pasó a ser un error),
+    // (d) fallaba sin fallo del juego y las dos comprobaciones «sin automática» de abajo pasaban sin probar nada.
+    const AS = autoSeed();
+    if (ok(AS, '(d) hay una semilla 1..40 cuyo punto de set da automática en la escena debug=replay&auto=1 (node)')) console.log('  ..   (d) semilla ' + AS.seed + ' para la automática (punto de set: ' + AS.how + ')');
+    const ASd = AS ? AS.seed : 7, QA = 'debug=replay&auto=1&seed=' + ASd;
+    await withSettings({}, QA);
+    const dAuto = await waitFor(`VB.ctx.replay && VB.ctx.replay.kind === 'set'`, 8000);
+    if (!dAuto) {   // aviso claro: si la página no da el punto decisivo que vio node, es la semilla (o la escena), no el juego
+      const why = await J(`(function(){ var l = VB.Replay._state().last, g = VB.ctx.game, S = VB.Sim;
+        return { auto: !!(l && l.auto), how: l && l.how, chal: !!(S.canChallenge && (S.canChallenge(g, 0) > 0 || S.canChallenge(g, 1) > 0)) || !!g.cpuChal || !!g.review }; })()`);
+      if (!why.auto || why.chal) console.error('  !!   (d) la semilla ' + ASd + ' ya no da punto de set decisivo en la página (how ' + why.how + (why.chal ? ', challenge posible' : '') + '): la escena de main.js y autoSeed() no coinciden; cambia la semilla o revisa la escena');
+    }
+    ok(dAuto, '(d) por defecto (Automáticas): repetición automática del punto de set (semilla ' + ASd + ')');
+    await withSettings({ lessMotion: 'on' }, QA);
     await sleep(4000);
     ok(await E('!VB.ctx.replay && VB.ctx.reduceMotion === true'), '(d) «Menos movimiento»: sin automática');
     await withSettings({ lessMotion: 'on' }, 'debug=best&play=1');
@@ -436,7 +492,7 @@ async function cdpPart() {
     await waitFor('!!VB.ctx.replay', 8000);
     while (Date.now() - td < 25000) { const s = await J('VB.Replay.info() ? [VB.Replay.info().slow, VB.Replay.info().phase] : null'); if (!s) break; if (s[0]) slowSeen = true; await sleep(50); }
     ok(!slowSeen, '(d) «Menos movimiento»: sin cámara lenta en mejores jugadas');
-    await withSettings({ replays: 'end' }, 'debug=replay&auto=1');
+    await withSettings({ replays: 'end' }, QA);
     await sleep(4000);
     ok(await E(`!VB.ctx.replay && VB.ctx.settings.replays === 'end' && VB.Replay.enabled()`), '(d) «Al final»: graba pero sin automática');
     await withSettings({ replays: 'off' }, 'debug=best&tab=plays');

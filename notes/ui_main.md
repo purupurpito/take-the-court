@@ -1968,3 +1968,20 @@ en el «3r set» los dos primeros sets no se enseñan con parciales inventados (
 - Reinicio con 0 intentos (atajo de doble pulsación o «Reiniciar»): no abandona; toast «Hoy ya no quedan intentos. Mañana, 3 más».
 - Pruebas: `node tools/semanatest.js` (tabla congelada de 8 semanas, 300 semanas, intentos, enlace, zonesOf, guardado roto, hoja final),
   `SIMTEST_ONLY=semana node tools/simtest.js` (arranque con marcador), retotest «5)» y las filas `retos-semana*` de tools/mobaudit.js.
+
+## replaytest al día (21-nov, rama pendientes)
+El juego estaba bien; la prueba se había quedado desfasada. Solo cambia `tools/replaytest.js`: ni js/replay.js, ni la sim, ni ninguna huella.
+- **(d)** fallaba «repetición automática del punto de set» desde 1.5.2 (main del 18-nov incluido). La escena `debug=replay&auto=1` usa
+  la semilla 7, y los cambios de la sim le quitaron la automática a su punto de set: en f90e165 (1.5.2) pasó a remate con challenge
+  posible de la CPU, que la cancela (regla intencionada, S3-C1 §2.1), y desde 0cfc8e8 (1.15.0) es un error (`last.auto` false). Además,
+  «Menos movimiento: sin automática» y «Al final: sin automática» pasaban sin probar nada. Ahora la parte node reproduce la escena
+  (`autoSeed()`: autopilot, normal, pabellón, sets a 11, hasta el 1r punto de set + TAIL pasos) y pasa a la URL (`&seed=N`) la primera
+  semilla 1..40 cuya automática salta en < 600 pasos. Hoy es la 1 (remate). Si ninguna vale, falla explícito. Si la página no da el
+  punto decisivo que vio node, avisa con «la semilla N ya no da punto de set decisivo (how X)» en vez del fallo genérico.
+- **(b)** «Intro (teclado)» se mide dentro de la página: desde el keydown (listener en captura) hasta el primer frame del registro LOG
+  sin repetición. Antes la medida incluía los 100 ms de sleeps de `key()` y el sondeo de CDP, y con el PC cargado salía 1,27 s sin que
+  el juego tardase. Esc e Intro→siguiente de mejores jugadas usan la misma medida. Mando y toque siguen con el reloj de la prueba. Los
+  tres saltos de (b) se repiten una vez si pasan de 0,4 s.
+- **(a)** espera a que `#app.replay` esté puesto antes de leer el DOM. rpTick lo pone un frame después de que la fase pase a 'play', y
+  leer antes daba `app:false` / `skip:""` de vez en cuando.
+- `node tools/replaytest.js` (node + CDP, 2 min 35 s): TODO OK.
