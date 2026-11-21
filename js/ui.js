@@ -989,7 +989,7 @@
       if (VB.Retos && VB.Retos.ingest && !g.drill && !e.replay) { try { VB.Retos.ingest(e, g); } catch (er) { console.error('[VB][ERROR] Retos.ingest: ' + er); } }
       switch (e.type) {
         // E6: Entrenamiento (sim: sin point/whistle/gameOver con g.drill)
-        case 'drillStage': gymLast.t = NaN; gymLast.miss = ''; break;
+        case 'drillStage': gymLast.t = NaN; gymLast.miss = ''; gymLast.why = ''; break;
         case 'drillRep': gymRep(e, g); break;
         case 'drillEnd': gymEndShow(e, g); break;
         case 'newMatch':
@@ -1027,7 +1027,7 @@
         case 'hit':
           if (e.team === 0) { clearPrompt(); if (guideT > 0) guideHide(); } // el aviso del que acaba de golpear no pasa al compañero
           if (e.team === 0 && (e.kind === 'set' || e.touch === 2)) lastSetJ = e.shot === 'jset';   // E1: «Colocación en salto | Remate»
-          if (e.human && g.drill && typeof e.timing === 'number' && isFinite(e.timing)) gymLast.t = e.timing;   // E6: consejo del fallo
+          if (e.human && g.drill && typeof e.timing === 'number' && isFinite(e.timing)) { gymLast.t = e.timing; gymLast.why = hitWhyOf(e); }   // E6: consejo del fallo
           if (!e.human) { if (stampDbg(g) && e.team === 0 && e.player === g.ctrl) stampHit(e, g); break; }
           if (e.kind === 'spike' && e.grade === 'perfect' && e.shot !== 'tip') pulse(e.team, false);
           if (e.shot === 'body') { // sin gesto: el balón le da en el cuerpo (cuenta como toque)
@@ -1625,7 +1625,8 @@
   // Sale del punto de contacto, a ~72 px en la dirección que menos estorba: nunca encima del balón en los 0,3 s siguientes
   // (se proyecta su vuelo), ni del que golpea, ni del marcador; sube ~30 px y se funde en 0,6 s.
   // «PERFECTO» dorado o «BIEN» blanco con la pista de tiempo («un pelín pronto» / «un pelín tarde») si el desfase la explica.
-  // Nada en un golpe flojo. Capa de nivel «aviso corto» del árbitro (UI-02). &stamp=1: también con el autopilot (pruebas).
+  // Golpe flojo (4.4, 22-nov-2026): el motivo (¡Pronto!/¡Tarde!/Lejos/Pase flojo/En plancha/Balón muy rápido; VB.Sim.hitWhy) o nada.
+  // Capa de nivel «aviso corto» del árbitro (UI-02). &stamp=1: también con el autopilot (pruebas).
   var stp = { pl: null, t: 0, wx: 0, wy: 0, wz: 0, ox: 0, oy: 0, x: 0, y: 0, born: 0, cost: 0, dir: 0 }, _sv = null, _sp = { x: 0, y: 0, ok: false }, _sq = { x: 0, y: 0, ok: false };
   var STAMP_R = 72, STAMP_DIRS = [[-0.71, -0.71], [0.71, -0.71], [0, -1], [-1, 0], [1, 0], [-0.71, 0.71], [0.71, 0.71], [0, 1]];
   function stampKF() {
@@ -1649,8 +1650,15 @@
     for (var i = 1; i < K.length; i++) if (u <= K[i][0]) return K[i - 1][1] + (K[i][1] - K[i - 1][1]) * (u - K[i - 1][0]) / (K[i][0] - K[i - 1][0]);
     return 30;
   }
+  /** 4.4 (22-nov-2026, arreglo): por qué salió flojo el toque (VB.Sim.hitWhy) y su rótulo. Siempre en palabra, no solo color. */
+  var WHY_TXT = { early: '¡Pronto!', late: '¡Tarde!', far: 'Lejos', weak: 'Pase flojo', dive: 'En plancha', fast: 'Balón muy rápido' };
+  function hitWhyOf(e) { try { return VB.Sim && VB.Sim.hitWhy ? VB.Sim.hitWhy(e) || '' : ''; } catch (er) { return ''; } }
+  function whyText(e, why) { return why === 'weak' && e.touch === 3 ? 'Colocación floja' : WHY_TXT[why] || ''; }
   function stampHit(e, g) {
-    if (e.team !== 0 || (e.grade !== 'perfect' && e.grade !== 'good')) return;      // golpe flojo: nada
+    if (e.team !== 0) return;
+    // golpe flojo: el motivo, si lo hay (y no encima del «¡Pronto!/¡Tarde!/No llegas» del golpe al aire de hace un momento)
+    var why = e.grade === 'poor' ? hitWhyOf(e) : '';
+    if (e.grade !== 'perfect' && e.grade !== 'good' && (!why || performance.now() - missT < 700)) return;
     if (!ctx.camera || !VB.toThree || !ctx.THREE || !el.stamp) return;
     // árbitro de capas (UI-02): con banner y tarjeta guiada a la vez no hay sitio para otra capa
     if (((banT > 0 && el.banner.classList.contains('show')) || bugT > 0) && guideT > 0) return;
@@ -1666,7 +1674,9 @@
     var C = sproj(e.x, e.y, e.z, _sp); if (!C.ok) return;
     var cx = C.x, cy = C.y;
     // tamaño aproximado del sello (px CSS; sin medir el DOM)
-    var k = hudScale * (ctx.isTouch ? 0.82 : 1), bw = (chainOk ? 250 : pf ? 160 : hint ? 132 : 84) * k, bh = (pf ? (chainOk ? 56 : 42) : hint ? 52 : 30) * k;
+    var wt = why ? whyText(e, why) : '';
+    if (why) hint = '';
+    var k = hudScale * (ctx.isTouch ? 0.82 : 1), bw = (wt ? 22 + 14 * wt.length : chainOk ? 250 : pf ? 160 : hint ? 132 : 84) * k, bh = (pf ? (chainOk ? 56 : 42) : hint ? 52 : 30) * k;
     // vuelo del balón en los próximos 0,1/0,2/0,3 s, en pantalla (tras el golpe ya lleva su velocidad nueva)
     var b = g.ball, Gv = (VB.C && VB.C.G) || 9.81, BP = _bp3;
     for (var i = 0; i < 3; i++) { var t = (i + 1) * 0.1, q = sproj(b.x + b.vx * t, b.y + b.vy * t, Math.max(0.1, b.z + b.vz * t - 0.5 * Gv * t * t), _sq); BP[i * 3] = q.x; BP[i * 3 + 1] = q.y; BP[i * 3 + 2] = q.ok ? 1 : 0; }
@@ -1693,11 +1703,12 @@
     // salto con impulso (v1.12.0): pipe o remate con impulso (e.mom ≥ 0,5) en el rótulo y la nota debajo. Orden: jugada perfecta, finta,
     // pipe, con impulso (el al filo va en el rótulo del punto)
     var djT = !chainOk && !e.feint && e.kind === 'spike' && e.shot !== 'tip' ? (e.pipe ? '¡Pipe!' : (+e.mom || 0) >= 0.5 ? '¡Con impulso!' : '') : '';
-    el.stampT.textContent = chainOk ? '¡Jugada perfecta!' : djT || (pf ? 'Perfecto' : 'Bien');
-    if (djT) { el.stampS.textContent = (pf ? 'Perfecto' : 'Bien') + (hint ? ', ' + hint : ''); el.stampS.hidden = false; srSay(djT.replace(/¡|!/g, '')); }
+    el.stampT.textContent = wt || (chainOk ? '¡Jugada perfecta!' : djT || (pf ? 'Perfecto' : 'Bien'));
+    if (wt) { el.stampS.textContent = ''; el.stampS.hidden = true; srSay(wt.replace(/¡|!/g, '')); }
+    else if (djT) { el.stampS.textContent = (pf ? 'Perfecto' : 'Bien') + (hint ? ', ' + hint : ''); el.stampS.hidden = false; srSay(djT.replace(/¡|!/g, '')); }
     else if (chainOk) { el.stampS.innerHTML = sepHTML(lastSetJ ? ['Colocación en salto', 'Remate'] : ['Recepción', 'Colocación', 'Remate'], 'v'); el.stampS.hidden = false; srSay('Jugada perfecta'); }
     else { el.stampS.textContent = hint; el.stampS.hidden = !hint; }
-    el.stamp.className = 'on ' + (pf ? 'pf' : 'gd');
+    el.stamp.className = 'on ' + (wt ? 'ms' : pf ? 'pf' : 'gd');
     stampPlace();
     stampKF();
     try { if (el.stampIn.animate) el.stampIn.animate(rm() ? STAMP_KF_RM : STAMP_KF, { duration: 600, easing: 'linear', fill: 'both' }); } catch (er) { }
@@ -6877,13 +6888,16 @@
     lateHit: 'Un pelín tarde: pulsa antes',
     late: 'Tarde: pulsa antes',
     far: 'No llegas: muévete antes de pulsar',
+    reach: 'Lejos: colócate antes, con el balón delante del cuerpo',
+    fast: 'Balón muy rápido: colócate antes y espéralo abajo',
+    dive: 'En plancha sale floja: llega antes y tócala de pie',
     out: 'Apunta un poco más dentro: la diana manda el saque',
     jump: 'Salta cuando el atacante arma el brazo',
     net: 'A la red: golpea más arriba, en lo alto del salto',
     blocked: 'Bloqueado: apunta lejos de las manos o prueba un golpe colocado'
   };
   var MEDAL_N = ['', 'Bronce', 'Plata', 'Oro'];
-  var gymLast = { t: NaN, miss: '' }, gymTip = '', gymTipT = 0, gymSel = 'serve', gymHov = null, gymBestV = 0;
+  var gymLast = { t: NaN, miss: '', why: '' }, gymTip = '', gymTipT = 0, gymSel = 'serve', gymHov = null, gymBestV = 0;
   var geGate = false, geWait = false, geT0 = 0;
   function isDrill() { var g = ctx && ctx.game; return !!(g && g.drill && !g.demo); }
   /** Reiniciar en la pausa: el ejercicio de la sesión o el reto (R16: ctx.actions.restart sabe qué toca). */
@@ -7439,8 +7453,13 @@
     if (k === 'serve' && r === 'out') return GYM_TIPS.out;
     if (k === 'block' && r === 'none' && !(g.drill && g.drill.jumped)) return GYM_TIPS.jump;
     if (L.miss === 'late') return GYM_TIPS.late;
-    if (L.miss === 'early' || L.t < -0.03) return GYM_TIPS.early;
+    if (L.miss === 'early') return GYM_TIPS.early;
     if (L.miss === 'far') return GYM_TIPS.far;
+    // toque flojo con otra causa que pesa más que el timing (Sim.hitWhy, 4.4)
+    if (L.why === 'dive') return GYM_TIPS.dive;
+    if (L.why === 'far') return GYM_TIPS.reach;
+    if (L.why === 'fast') return GYM_TIPS.fast;
+    if (L.t < -0.03) return GYM_TIPS.early;
     if (L.t > 0.03) return GYM_TIPS.lateHit;
     if (r === 'net') return GYM_TIPS.net;
     if (k === 'atk' && (r === 'stuff' || r === 'soft')) return GYM_TIPS.blocked;
@@ -8431,7 +8450,7 @@
       if (!(ctx.introLeft > 0)) { el.app.classList.remove('intro-on'); introUI.hudT = 0; introUI.quiet = false; }
       el.end.classList.remove('win', 'lose');
       // E6 / E1: estado del ejercicio y del consejo de maestría de este partido
-      geGate = false; geWait = false; gymTip = ''; gymTipT = 0; gymLast.t = NaN; gymLast.miss = ''; e1.k = ''; e1.t = 0; e1.on = false; lastSetJ = false;
+      geGate = false; geWait = false; gymTip = ''; gymTipT = 0; gymLast.t = NaN; gymLast.miss = ''; gymLast.why = ''; e1.k = ''; e1.t = 0; e1.on = false; lastSetJ = false;
       gymBestV = g && g.drill && !g.demo && !g.careerDrill && !g.careerExtDrill ? gymBestOf(g.drill.kind) : 0;   // (entreno de la Carrera: sin «Récord», es del gimnasio)
       el.app.classList.toggle('drill-on', !!(g && g.drill && !g.demo)); last.drOn = !!(g && g.drill && !g.demo);
       kitTick();

@@ -72,6 +72,7 @@
     speed: 'as', streak: 'as', t2: 'as', tape: 'as', tempo: 'as', timing: 'as', tool: 'as', touch: 'as', touchedOut: 'as',
     truthIn: 'as', venue: 'as', why: 'as', dur: 'as', wrong: 'as', used: 'as', auto: 'as', reset: 'as', mode: 'as',
     jv: 'as', mom: 'as', pipe: 'as', hard: 'as', jaim: 'as',  // (salto con impulso; jump.dir ya es 'vec')
+    strK: 'as', reachK: 'as', inSp: 'as', prevQ: 'as',  // (hit: por qué salió flojo, Sim.hitWhy; 22-nov-2026)
     ok: 'as'   // (blockPress: pulsación del bloqueo activo a tiempo o no; faltaba, viewtest lo vio el 18-nov-2026 al cambiar los partidos de bots)
   };
   // claves conocidas de los objetos anidados que flip toca o deja (viewtest falla si aparece otra: habría que clasificarla)

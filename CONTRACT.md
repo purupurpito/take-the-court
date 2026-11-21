@@ -513,6 +513,11 @@ ajuste; online por hueco `humans[i].jsetAim`); nunca en la demo ni con autopilot
 - `hit` añade siempre `mom` (0..1: bonus del remate con impulso del humano; 0 si no hay), `pipe` (bool: 6v6, zaguero que despegó detrás de la
   línea de 3 m, golpee donde golpee; etiqueta sin azar, para todos) y `jaim` (bool: colocación en salto a la diana movida); con `jaim`, `tempo` es
   el de la diana ('quick' \| 'lane' \| 'high').
+- **(22-nov-2026, 4.4 «por qué falló el toque»)** `hit` (no el saque) añade siempre `strK` (0..1, estirón del 1r toque del humano; 0 si
+  no hay), `reachK` (distancia al balón / `C.REACH`), `inSp` (m/s del remate o saque fuerte que llegaba; 0 si no era `hardIn`) y `prevQ`
+  (calidad del toque anterior del propio equipo; 1 si no hay). Solo datos que hit ya calculaba: ni g.rng ni estado. netview: los cuatro `'as'`.
+  `VB.Sim.hitWhy(e)` (pura, solo lee el evento) → `'' | 'early' | 'late' | 'far' | 'fast' | 'weak' | 'dive'`; `VB.Sim.HIT_WHY = {min}`.
+  Sin los campos (saque, partidas viejas) solo mira el timing. UI: rótulo del sello en el toque flojo propio (notes/ui_main.md).
 - `g.aim3.kind` puede ser `'jset'` (diana de la colocación en salto, con `g.jsetAim`): no es la del remate (`kind === 'spike'`).
 - Jugador: `avx, avy` (media de la carrera), `dj` (salto con dirección en curso), `jF` (deriva hacia la red del despegue), `tkX, tkY` (punto
   de despegue), `landT`. `g`: `djump, jsetAim, djLast` y, en el hueco (SLOT_S), `jdF, jdS, jdM, jdT, aimCarry, jsMv, jsAimD, jsetAim`.

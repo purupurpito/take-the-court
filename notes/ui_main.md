@@ -1991,3 +1991,16 @@ El juego estaba bien; la prueba se había quedado desfasada. Solo cambia `tools/
 - **(a)** espera a que `#app.replay` esté puesto antes de leer el DOM. rpTick lo pone un frame después de que la fase pase a 'play', y
   leer antes daba `app:false` / `skip:""` de vez en cuando.
 - `node tools/replaytest.js` (node + CDP, 2 min 35 s): TODO OK.
+
+## Por qué falló el toque (22-nov-2026, rama investigacion; imprescindible 4.4, ARREGLO, no novedad)
+- Antes el toque flojo del humano no decía nada (el sello solo salía con PERFECTO/BIEN). Ahora `stampHit` saca en el mismo sello (misma curva
+  y posición, clase `ms`: la de la repetición sin puntos del Entrenamiento) el motivo en palabra: **¡Pronto! / ¡Tarde! / Lejos / Pase flojo
+  (Colocación floja en el 3r toque) / En plancha / Balón muy rápido**, y lo lee `srSay`. Toque flojo sin causa clara: nada, como antes.
+- La causa la da `VB.Sim.hitWhy(e)` (sim.js, pura; CONTRACT «hit»): la plancha primero (siempre sale floja); si no, la que más calidad quita
+  entre timing (`1 − timingQ`, fuera del perfecto), lejos (alcance y estirón) y balón muy rápido, con un mínimo de `HIT_WHY.min` (0,1); si
+  ninguna llega, «Pase flojo» con el pase anterior del equipo < `SETQ.lo`. Decisión provisional en notes/pendientes-ferran.md.
+- No pisa el aviso del golpe al aire («¡Pronto!/¡Tarde!/No llegas», callout): si salió hace < 0,7 s, el toque flojo no pone sello. Respeta el
+  árbitro de capas UI-02 (la misma salida temprana de `stampHit`). Ancho estimado del sello por longitud del rótulo (568×320).
+- Entrenamiento: `gymLast.why` y tres consejos nuevos en `GYM_TIPS` (`reach`, `fast`, `dive`) que van antes del «un pelín pronto» por timing.
+- Pruebas: `node tools/hitwhytest.js` (sin navegador: casos de hitWhy, partidas 2v2/playa/6v6 con un bot, mismo stateHash y g.rng con y sin
+  hitWhy). Huellas idénticas; SIM_BASE de fluidsimtest pasa a db74554b (cambio de texto de sim.js).

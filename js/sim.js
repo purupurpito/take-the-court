@@ -980,6 +980,24 @@
     return Math.max(0.05, 0.5 - 0.45 * (a - C.W_GOOD) / 0.2);
   }
   function gradeOf(q) { return q >= 0.78 ? 'perfect' : q >= 0.45 ? 'good' : 'poor'; }
+  /** Por qué salió flojo un toque (4.4 de la revisión, 22-nov-2026; ARREGLO): lee SOLO los datos del evento 'hit' (timing ya escalado,
+   *  strK, reachK, inSp, prevQ, dive), sin g ni g.rng. Devuelve '' (nota buena o sin causa clara), 'dive' (la plancha siempre sale
+   *  floja), o la causa que más calidad le quitó: 'early'/'late' (timing), 'far' (lejos del cuerpo: estirón o alcance), 'fast'
+   *  (remate o saque muy rápido); si ninguna pesa HIT_WHY.min, 'weak' con el pase anterior del equipo por debajo de SETQ.lo. */
+  var HIT_WHY = { min: 0.1 };
+  function hitWhy(e) {
+    if (!e || e.grade !== 'poor') return '';
+    if (e.dive) return 'dive';
+    var te = +e.timing || 0, a = Math.abs(te), best = '', bv = HIT_WHY.min;
+    var tl = a > C.W_PERFECT ? 1 - timingQ(te) : 0;
+    var rk = +e.reachK || 0, sk = +e.strK || 0, fl = 1 - (1 - 0.3 * clamp((rk - 0.55) / 0.45, 0, 1)) * (1 - STRETCH.q * sk);
+    var fs = 0.25 * clamp(((+e.inSp || 0) - 11) / 8, 0, 1);
+    if (tl >= bv) { best = te < 0 ? 'early' : 'late'; bv = tl; }
+    if (fl > bv) { best = 'far'; bv = fl; }
+    if (fs > bv) { best = 'fast'; bv = fs; }
+    if (!best && typeof e.prevQ === 'number' && e.prevQ < SETQ.lo) best = 'weak';
+    return best;
+  }
   /** Playa: prob. de que se piten dobles en una colocación de dedos del HUMANO (hit). te = desfase ya escalado por la ventana
    *  (atributos, insignias, ×JSET.win en salto), grade = nota del toque. 'perfect'/'good' nunca, ni |te| <= dblA0 (= C.W_GOOD).
    *  'poor': rampa lineal con |te| de BEACH.dblA0 (p dblP0) a BEACH.dblA1 (p dblP1) y plana después; en salto ×dblJump (tope dblMax). */
@@ -1942,7 +1960,8 @@
     var hev = emit(g, { type: 'hit', kind: kind, player: p, team: t, touch: count, quality: q, grade: grade, timing: te,
       power: power, shot: sub, dive: shot === 'dive', aim: aim ? [aim[0], aim[1]] : null, target: at ? [at[0], at[1]] : null,
       x: b.x, y: b.y, z: b.z, speed: b.speed, human: human, dig: isDig, recv: count === 1 && inKind === 'serve', jset: jset,
-      feint: feint, tempo: tempo, edge: edge, chain: g.mastery && t === cT ? g.chain : 0, mom: momQ, pipe: pipe, jaim: jaim });
+      feint: feint, tempo: tempo, edge: edge, chain: g.mastery && t === cT ? g.chain : 0, mom: momQ, pipe: pipe, jaim: jaim,
+      strK: strK, reachK: d / C.REACH, inSp: hardIn ? inSp : 0, prevQ: prevQ }); // (4.4: por qué salió flojo, hitWhy; solo datos que ya había)
     if (g.beach && kind === 'free' && sub === 'tip') hev.pokey = true; // playa: dejada de nudillos (UI: «Pokey»)
     if (feint) emit(g, { type: 'feint', player: p, team: t, shot: sub }); // E1: después del hit, en el mismo paso
     if (g.drill) drillOnHit(g, hev); // E6: nota del toque / fin de la repetición por toque
@@ -5649,7 +5668,7 @@
     // 6v6 con humano: puestos jugables (fila Controlar) y cambio de puesto
     CTRL_ROLES6: CTRL_ROLES6, setCtrlRole: setCtrlRole,
     // añadidos (opcionales)
-    hitWindow: hitWindow, aimPoint: aimPoint, predictKind: predictKind, canDive: canDive, canDiveMiss: canDiveMiss, missROf: missROf, diveROf: diveROf, accTOf: accTOf, aiReactEff: aiReactEff, blkTouchIn: blkTouchIn, preROf: preROf, preLate: preLate, missLands: missLands, landT: ballLandT, effortFail: effortFail, timingQ: timingQ, gradeOf: gradeOf,
+    hitWindow: hitWindow, aimPoint: aimPoint, predictKind: predictKind, canDive: canDive, canDiveMiss: canDiveMiss, missROf: missROf, diveROf: diveROf, accTOf: accTOf, aiReactEff: aiReactEff, blkTouchIn: blkTouchIn, preROf: preROf, preLate: preLate, missLands: missLands, landT: ballLandT, effortFail: effortFail, timingQ: timingQ, gradeOf: gradeOf, hitWhy: hitWhy, HIT_WHY: HIT_WHY,
     normDiff: normDiff, DIFF: DIFF, TIMING: TIMING,
     atkPhase: atkPhase, blockPressCase: blockPressCase, canJset: canJset, jsetReady: jsetReady, jsetVoid: jsetVoid, JSET: JSET, // colocación en salto
     // E1 (maestría, sprint 5): botón COLOCAR contextual, vista previa de la colocación dirigida, filo, azar sin g.rng, constantes
