@@ -218,7 +218,13 @@
     el.introHint.innerHTML = device() === 'gamepad' ? '<span class="key pad pa">A</span>para empezar ya' : 'Pulsa cualquier tecla para empezar ya';
     el.intro.className = 'show gy';
   }
-  function gymBug(cls, tag) { el.pbT.textContent = 'Remate'; el.pbS.textContent = 'Fuera'; el.pbS.hidden = !/two/.test(cls); el.pbX.textContent = '⇄ Saque'; el.pbX.hidden = !tag; el.pbug.className = cls; }
+  function gymBug(cls, tag) {
+    var two = /\btwo\b/.test(cls); senaHide();
+    el.pbT.textContent = 'Remate'; el.pbS.textContent = 'Fuera'; el.pbS.hidden = !two; el.pbS.className = ''; el.pbX.textContent = '⇄ Saque'; el.pbX.hidden = !tag;
+    // (idea «senas»: lo mismo que en el partido, la llamada del árbitro como pegatina; así se precalienta también su estilo)
+    if (two && VB.Senas) { el.pbug.className = cls.replace(/\s*\btwo\b/, ''); senaSr('Fuera'); senaShow({ id: 'fuera', word: 'FUERA' }, 'bug', true); }
+    else el.pbug.className = cls;
+  }
   /** main.js, con el contexto WebGL creado y ANTES del arranque pesado: monta el primer paso del ensayo (el que más rasteriza) para
    *  que la GPU lo pinte mientras el hilo principal construye la escena (~0,6 s en los que la GPU estaba parada). Sin los
    *  controles táctiles (aún no existen: se ensayan en el paso 4). &preboot=0 lo desactiva (A/B). */
@@ -438,7 +444,7 @@
       'menuFoot', 'btnProf', 'mpProf', 'btnProfBack', 'pfKick', 'pfCard', 'pfVit', 'pfRo', 'pfTabs', 'pfGrid', 'pfFoot', 'pfPin', 'pfNote',
       // ONLINE (especialista net, js/netlobby.js): tarjeta de Jugar y página del lobby
       'btnOnline', 'mpOnline', 'btnOnlineBack'].forEach(function (k) { el[k] = $(k); });
-    el.bn1 = $('bn1'); el.bn2 = $('bn2'); el.bn3 = $('bn3'); el.pbug = $('pbug'); el.pbT = $('pbT'); el.pbS = $('pbS'); el.pbX = $('pbX'); el.sbBody = document.querySelector('.sb-body'); el.sb = $('sb'); el.sbSet = $('sbSet'); el.tag = $('sbTag'); el.hist = $('sbHist');
+    el.bn1 = $('bn1'); el.bn2 = $('bn2'); el.bn3 = $('bn3'); el.pbug = $('pbug'); el.pbT = $('pbT'); el.pbS = $('pbS'); el.pbX = $('pbX'); el.sena = $('sena'); el.sbBody = document.querySelector('.sb-body'); el.sb = $('sb'); el.sbSet = $('sbSet'); el.tag = $('sbTag'); el.hist = $('sbHist');
     el.row0 = $('sbRow0'); el.row1 = $('sbRow1'); el.name0 = $('sbName0'); el.name1 = $('sbName1');
     el.pts0 = $('sbPts0'); el.pts1 = $('sbPts1');
     el.pips0 = $('sbSets0').children; el.pips1 = $('sbSets1').children;
@@ -633,6 +639,7 @@
   /** Banner central. cls: 'win'|'lose'|'gold'|'ace'|'neutral' */
   function banner(t1, t2, t3, cls, dur, kind) {
     t1 = cpuTxt(t1); t2 = cpuTxt(t2);
+    if (sn.host === 'ban') senaHide();   // (la pegatina de la cinta anterior no pasa a la nueva)
     el.bn1.textContent = t1 || '';
     // subtítulo con datos («Set 1 | 25-20»): trozos « | » → barra vertical fina; el resto es una frase y va tal cual
     if (t2 && t2.indexOf(' | ') >= 0) setSep(el.bn2, t2.split(' | '), 'v'); else el.bn2.textContent = t2 || '';
@@ -674,12 +681,42 @@
   function showBug(team, title, sub, tag, dur) {
     // Carrera y 6v6 espectador: «Remate de la CPU» → «Remate del rival» (cpuTxt no cambia nada en Partido rápido)
     title = cpuTxt(title); sub = cpuTxt(sub);
-    el.pbT.textContent = title; el.pbS.textContent = sub || ''; el.pbS.hidden = !sub;
+    senaHide();
+    el.pbT.textContent = title; el.pbS.textContent = sub || ''; el.pbS.hidden = !sub; el.pbS.className = '';
     el.pbX.hidden = !tag; el.pbX.textContent = tag || '';
     el.pbug.className = '';
     void el.pbug.offsetWidth;
     el.pbug.className = 'show t' + (team === 1 ? 1 : 0) + (sub ? ' two' : '');
     bugT = dur; bugOut = false;
+  }
+  // ---- Seña del árbitro como pegatina (idea «senas»; js/senas.js): un solo #sena que se pega en la pestaña (#pbug, nivel 1) o en la
+  //      cinta (.bn-rib, nivel 2). Al ir DENTRO de su rótulo, entra, sale, se aparta en la pausa (.held) y se esconde en la repetición con
+  //      él, sin temporizadores propios. Dentro de #pbug el tamaño se divide por la escala del marcador (CSS) para medir lo mismo.
+  var sn = { host: '', key: '', dbg: 0 };
+  function senaHide() {
+    if (!el.sena || !sn.host) return;
+    el.sena.hidden = true; el.sena.classList.remove('on', 'sp-dot');
+    if (sn.host === 'bug' && el.pbug) el.pbug.classList.remove('sn-on');
+    sn.host = '';
+  }
+  /** Texto completo del árbitro en #pbS, oculto a la vista (.sr): la región aria-live de #pbug lo sigue leyendo. */
+  function senaSr(t) { el.pbS.textContent = cpuTxt(t || ''); el.pbS.hidden = !t; el.pbS.className = t ? 'sr' : ''; }
+  /** Pega la seña s = {id, word} en la pestaña (where 'bug') o en la cinta ('ban'); nueva = punto rojo de «nueva». */
+  function senaShow(s, where, nueva, sr) {
+    var S = VB.Senas, it = s && S && S.BY ? S.BY[s.id] : null;
+    var host = where === 'ban' ? el.banner && el.banner.firstChild : el.pbug;
+    if (!el.sena || !it || !host) return false;
+    if (sn.host === 'bug' && where === 'ban' && el.pbug) el.pbug.classList.remove('sn-on');
+    if (el.sena.parentNode !== host) host.appendChild(el.sena);
+    var w = s.word || it.word, key = s.id + '|' + w;
+    if (sn.key !== key) { sn.key = key; el.sena.innerHTML = '<i class="sn-d">' + S.svg(s.id, w) + '</i><i class="sn-w">' + escT(w) + '</i>'; }
+    el.sena.setAttribute('aria-label', 'Seña del árbitro: ' + it.name + (sr ? '. ' + cpuTxt(sr) : ''));
+    el.sena.classList.toggle('sp-dot', !!nueva);
+    el.sena.classList.toggle('sn-ban', where === 'ban');
+    el.sena.hidden = false; restartAnim(el.sena, 'on');
+    if (where !== 'ban') el.pbug.classList.add('sn-on');
+    sn.host = where === 'ban' ? 'ban' : 'bug';
+    return true;
   }
   function hideBug(fast) {
     if (!(bugT > 0)) return;
@@ -1749,9 +1786,22 @@
       else if ((e.streak | 0) >= 3) sub = me ? e.streak + ' puntos seguidos' : e.streak + ' puntos seguidos de la CPU';
       else if (e.clutch && !spNow) sub = 'Final apretado';   // SIM-05: últimos puntos del set con ≤ 2 de diferencia
     }
+    // idea «senas»: la llamada del árbitro (el texto de la sim, tal cual) sale como pegatina con la seña oficial; el texto completo
+    // queda para el lector de pantalla. Nunca en demo, Entrenamiento ni repetición (los puntos anulados y los que cierran set no llegan)
+    var sena = null, senaTxt = '', senaNew = false;
+    if (sub && sub === txt && VB.Senas && VB.Senas.of && !e.replay && !(g && (g.demo || g.drill))) {
+      sena = safe(function () { return VB.Senas.of(e); }) || null;
+      if (sena) {
+        senaTxt = sub; sub = '';
+        // Cuaderno del árbitro: la primera vez que te la señalan se apunta (y la pegatina lleva el punto rojo de «nueva»)
+        senaNew = !!(VB.Profile && VB.Profile.noteSena && safe(function () { return VB.Profile.noteSena(sena.id); }));
+        if (senaNew) { pfDirty = true; last.pf = null; srSay('Nueva seña en el Cuaderno del árbitro'); }
+      }
+    }
     var chip = e.sideout ? 'CAMBIO DE SAQUE' : '';
     if (tier === 1) { // la pestaña siempre lleva la llamada del árbitro (fuera, red, antena, dobles, 8 s…)
-      showBug(e.team, t1, sub, e.sideout ? '⇄ Saque' : '', sub ? 1.5 : 1.05);
+      showBug(e.team, t1, sub, e.sideout ? '⇄ Saque' : '', sub || sena ? 1.5 : 1.05);
+      if (sena) { senaSr(senaTxt); senaShow(sena, 'bug', senaNew); }
       return;
     }
     // cinta: nunca el mismo subtítulo dos veces seguidas (salvo las faltas del árbitro: red, antena, dobles, 8 s…, que van siempre)
@@ -1759,7 +1809,7 @@
     if (sub) lastSub = sub;
     hideBug(false);
     queuePres({ t1: t1, t2: sub, t3: chip, cls: (me ? (k === 'ace' || kin ? 'ace' : 'win') : 'lose') + ' r2' + (kin ? ' kin' : ''), dur: k === 'ace' ? 1.6 : kin ? 1.5 : 1.45, kind: 'point', gate: 'cut',
-      kin: kin ? (k === 'ace' ? 'ace' : 'muro') : '' });
+      kin: kin ? (k === 'ace' ? 'ace' : 'muro') : '', sena: sena, senaNew: senaNew, senaTxt: senaTxt });
   }
   // C4 (sprint 2-4, spec S3-C4C5 §2.1): cinta cinética. ¡Ace! y ¡Muro! de tu equipo y el primer punto de set / partido de cada
   // racha entran con un golpe de escala y giro (Web Animations sobre #bn1, solo transform y opacidad), una sacudida corta de la cinta,
@@ -1953,7 +2003,7 @@
     var leftPoint = (cam.prev === 'point' || cam.prev === 'court') && shot !== cam.prev && shot !== 'court' && shot !== 'point';
     if (leftPoint || (!inPoint && g.mode !== 'over')) {
       if (banT > 0 && (banKind === 'point' || banKind === 'set' || banKind === 'court')) hideBanner();
-      if (bugT > 0) hideBug(false);
+      if (bugT > 0 && !(sn.dbg > performance.now())) hideBug(false);   // (VB.UI._sena: la deja 3 s)
       if (pres && pres.kind !== 'match') pres = null;
       pendCourt = null;
     }
@@ -1972,6 +2022,7 @@
       if (reactionReady(pres, d) || ctx.time - pres.rt > 1.2) {
         var o = pres; pres = null;
         banner(o.t1, o.t2, o.t3 || o.chip, o.cls, o.dur, o.kind);
+        if (o.sena) senaShow(o.sena, 'ban', o.senaNew, o.senaTxt);   // idea «senas»: pegada a la esquina de la cinta
         if (o.kin) kinPlay(o.kin, 0);   // C4: el golpe de entrada, en el mismo frame en que se pinta la cinta
         if (o.kind === 'set' || o.kind === 'match' || /toques!$/.test(o.t2 || '')) rallyFade();   // UI-15: la cuenta ya no hace falta
         if (o.kind === 'point') placeRib2(g, d); else if (o.kind === 'set' || o.kind === 'match') placeT3(g, d);
@@ -6106,7 +6157,7 @@
     return mod === 'Audio';
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
-  var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
+  var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
     game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
@@ -6240,8 +6291,8 @@
     var o = OPT[k], v = ctx.settings[k]; for (var i = 0; i < o.vals.length; i++) if (o.vals[i] === v) return i; return k === 'difficulty' ? 1 : 0; }
   // (E3: step = paso de ←/→ y del clic en la pista; 0,1 por defecto. padDead en %: 10 %-30 % de 5 en 5)
   var SLIDERS = { camSens: { min: 0.5, max: 1.5, def: 1 }, sfxVol: { min: 0, max: 1, def: 1 }, musicVol: { min: 0, max: 1, def: 0.75 },
-    volume: { min: 0, max: 1, def: 1 }, crowdVol: { min: 0, max: 1, def: 0.85 }, padDead: { min: 0.1, max: 0.3, def: 0.18, step: 0.05 } };
-  var VOLS = { volume: 1, sfxVol: 1, crowdVol: 1, musicVol: 1 };
+    volume: { min: 0, max: 1, def: 1 }, crowdVol: { min: 0, max: 1, def: 0.85 }, xarVol: { min: 0, max: 1, def: 0.6 }, padDead: { min: 0.1, max: 0.3, def: 0.18, step: 0.05 } };
+  var VOLS = { volume: 1, sfxVol: 1, crowdVol: 1, musicVol: 1, xarVol: 1 };
   function slSnap(k, v) { var c = SLIDERS[k], st = c.step || 0.1; v = Math.round((v - c.min) / st) * st + c.min; return Math.round(Math.max(c.min, Math.min(c.max, v)) * 100) / 100; }
   /** Volumen movido: quita el silencio y da una muestra (efectos: un pase; público: oleada corta; general: un clic). true si sonó algo. */
   function volFeedback(k) {
@@ -6251,6 +6302,7 @@
     try {
       if (k === 'sfxVol' && A.play) { A.play('pass', 0.8); return true; }
       if (k === 'crowdVol' && A.preview) return A.preview('crowd') !== false;
+      if (k === 'xarVol' && A.preview) return A.preview('xaranga') !== false;   // primer compás del pasacalles
       if (k === 'volume' && A.preview) return A.preview('master') !== false;
     } catch (e) { }
     return false;
@@ -6979,7 +7031,7 @@
   // cuenta), los avisos de check() y la vitrina. Nunca por frame (renderMenu corre cada 64 frames y solo lee pfSum).
   var pf = { tab: '', alb: null, map: null, tabs: null, sel: '', pins: [], q: [], noteT: 0, checkPend: true, lostSaid: false, roSaid: false };
   var pfDirty = true, pfSum = null;
-  var PF_TAB_IDS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos'];
+  var PF_TAB_IDS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos', 'cuaderno'];
   var PF_SHIRT = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M8.5 3 3 6l2 4.5 2-.9V21h10V9.6l2 .9L21 6l-5.5-3c-.4 1.6-1.8 2.8-3.5 2.8S8.9 4.6 8.5 3z"/></svg>';
   var PF_LOCK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M7 10V7.5a5 5 0 0 1 10 0V10h1a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 18 21H6a1.5 1.5 0 0 1-1.5-1.5v-8A1.5 1.5 0 0 1 6 10zm2.6 0h4.8V7.5a2.4 2.4 0 0 0-4.8 0z"/></svg>';
   /** Icono de un hueco: el SVG que da el módulo (insignias, retos, sedes, hitos…) o, si no es un SVG (el Vestuario da texto), la camiseta. */
@@ -7074,7 +7126,9 @@
     if (mine.length || ret.length) { pfDirty = true; last.pf = null; }
   }
   function pfTabItems(alb) {
-    return alb.tabs.map(function (tb) { return { id: tb.id, label: escT(tb.label), badge: tb.have + '/' + tb.total, cls: tb.items.some(function (i) { return i.isNew; }) ? 'lk-new' : '' }; });
+    // (móvil: la columna de pestañas es estrecha; «Cuaderno del árbitro» en dos líneas se salía de su mancha → el rótulo corto)
+    var ph = !!(VB.Splat && VB.Splat.phone && safe(VB.Splat.phone));
+    return alb.tabs.map(function (tb) { return { id: tb.id, label: escT(ph && tb.short ? tb.short : tb.label), short: tb.short ? escT(tb.short) : '', badge: tb.have + '/' + tb.total, cls: tb.items.some(function (i) { return i.isNew; }) ? 'lk-new' : '' }; });
   }
   /** Pinta la página entera: cabecera, tarjeta de nivel, vitrina, pestañas, rejilla y pie (keep: conserva el foco en el mismo hueco). */
   function pfRender(keep) {
@@ -7138,12 +7192,17 @@
     var P = VB.Profile, it = pf.sel && pf.map ? pf.map[pf.sel] : null, t = it && P && P.footText ? safe(function () { return P.footText(it); }) || '' : '';
     if (!it) t = pf.alb ? 'Elige un hueco para ver de dónde sale' : '';
     if (el.pfFoot.textContent !== t) el.pfFoot.textContent = t;
+    var rule = !!(it && it.rule && it.have);   // Cuaderno del árbitro: fecha + línea de reglamento, en dos líneas
+    if (el.pfFoot.classList.contains('pf-rule') !== rule) el.pfFoot.classList.toggle('pf-rule', rule);
     var ro = P ? !!safe(P.readOnly) : true, can = !!(it && it.have) && !ro;
     var pinned = !!(it && pf.pins.indexOf(it.aid) >= 0);
     el.pfPin.hidden = !can;
     if (can) {
       var d = device(), k = d === 'gamepad' ? padKey('x') : d === 'touch' ? '' : '<span class="key">F</span>';
-      var h = k + '<span>' + (pinned ? 'Quitar de la vitrina' : 'Fijar en la vitrina') + '</span>';
+      // (Cuaderno en el móvil: «Fijar» / «Quitar» a secas, para que la línea de reglamento quepa en el pie sin cortarse)
+      var shortPin = rule && !!(VB.Splat && VB.Splat.phone && safe(VB.Splat.phone));
+      var h = k + '<span>' + (pinned ? (shortPin ? 'Quitar' : 'Quitar de la vitrina') : (shortPin ? 'Fijar' : 'Fijar en la vitrina')) + '</span>';
+      el.pfPin.setAttribute('aria-label', pinned ? 'Quitar de la vitrina' : 'Fijar en la vitrina');
       var pc = el.pfPin.querySelector('.pf-pinc') || el.pfPin;   // (SPLAT: la mancha es el 1.er hijo del botón; el texto va en su span)
       if (el.pfPin._h !== h) { el.pfPin._h = h; pc.innerHTML = h; }
     }
@@ -7938,6 +7997,15 @@
     padTabDir: padTabDir,
     /** Página del menú visible: 'main' | 'play' | 'quick' | 'gym' | 'look'; menuGo(p) abre una (apilando la actual), menuBack() vuelve. */
     menuPage: function () { return mpage; },
+    /** Depuración (mobaudit, capturas): enseña la pestaña (nivel 1) o la cinta (nivel 2) con la pegatina de la seña id durante 3 s, sin
+     *  apuntarla en el Cuaderno. word opcional (p. ej. '5 SEGUNDOS'). */
+    _sena: function (id, lvl, word) {
+      var S = VB.Senas, it = S && S.BY ? S.BY[id] : null; if (!it) return false;
+      var s = { id: id, word: word || it.word }; sn.dbg = performance.now() + 3000;
+      if (lvl === 2) { hideBug(false); banner('Error de la CPU', '', '', 'win r2', 3, 'dbg'); try { placeRib2(ctx.game, camDbg()); } catch (er) { } return senaShow(s, 'ban', true, it.name); }
+      hideBanner(); showBug(0, 'Error de la CPU', '', '⇄ Saque', 3); senaSr(it.name);
+      return senaShow(s, 'bug', true);
+    },
     /** D4 (account.js tras una bajada con ganchos) y Vestuario: vuelve a leer el récord y la portada (B3) y repinta el menú. */
     refreshMenu: function () { last.rec = null; last.navh = null; last.pf = null; pfDirty = true; heroDirty = true; if (ctx && ctx.state === 'menu') { renderMenu(); if (mpage === 'prof') pfRender(true); } },
     /** D2: el menú en la página Perfil (chip de la portada, escena debug=prof). o = {tab: 'vestuario' | 'insignias' | 'entreno' | 'carrera' | 'retos' | 'sedes' | 'hitos'}. */
@@ -8236,7 +8304,7 @@
     onGameStart: function (g) {
       if (role6Pend && g && !g.demo) applyRole6();   // 6v6: goMatch llegó antes de que empezara el partido (telón de arranque)
       last = {}; banT = 0; hideBanner(); promptCur = ''; promptHold = 0; // las estadísticas se reinician con 'newMatch'
-      pres = null; pendCourt = null; courtNext = null; newSetShown = 0; lastSub = ''; lastBig = null; bigGap = 9; atSP = false; lastBn2 = ''; bugT = 0; el.pbug.className = ''; held = null;
+      pres = null; pendCourt = null; courtNext = null; newSetShown = 0; lastSub = ''; lastBig = null; bigGap = 9; atSP = false; lastBn2 = ''; bugT = 0; el.pbug.className = ''; senaHide(); held = null;
       coachSeen = {}; guideDone = {}; guideT = 0; el.guide.className = '';
       rallyHide();
       tbLabel1 = label1Of(g); // escenas de depuración que empiezan a mitad de jugada (p. ej. dive): no fiarse del valor por defecto

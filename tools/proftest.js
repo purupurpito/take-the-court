@@ -6,7 +6,7 @@
  *  victorias; dos cálculos fusionados no duplican) · 5) hitos con datos falsos (ninguno dos veces) · 6) premios de nivel con look.js
  *  real (s:'hito', lockText «Perfil: Nv N») · 7) álbum (totales por pestaña, huecos con how, conseguidos con t y src; retos solo con
  *  VB.Retos) · 8) vitrina (≤ 3, unpin, fusión por pt) · 9) migraciones (.bak + lost, v:2 solo lectura, tamaño < 4 KB) · 10) prog.js y
- *  gym.js: .bak, solo lectura, Gym.ATTR.
+ *  gym.js: .bak, solo lectura, Gym.ATTR · 12) Cuaderno del árbitro (sen: noteSena, pestaña, pie, vitrina, fusión, solo lectura, tamaño).
  * Uso: node tools/proftest.js   (acaba en «TODO OK» o sale con 1).
  */
 'use strict';
@@ -341,6 +341,56 @@ console.log('11) Sin almacenamiento');
   const P = ctx.VB.Profile;
   const r = P.noteMatch({ mode: '2v2', win: true, setsWon: 2, diff: 'normal', venue: 'palau' });
   ok('funciona en memoria sin localStorage ni otros módulos', r.xp === 45 && P.stats().m === 1 && P.album().tabs.length >= 4 && P.level().lvl >= 1);
+}
+
+// ------------------------------------------------------------------ 12) Cuaderno del árbitro (idea «senas»)
+console.log('12) Cuaderno del árbitro');
+{
+  const FILES = ['js/prog.js', 'js/badges.js', 'js/gym.js', 'js/venues.js', 'js/senas.js'];
+  const st = fakeStorage({ 'make-the-cut.devid': 'dS' }), VB = load(st, FILES), P = VB.Profile, S = VB.Senas;
+  const raw0 = st.getItem('make-the-cut.profile');
+  ok('sin señas: el perfil guardado no lleva «sen» (texto de siempre)', raw0 === null || !('sen' in JSON.parse(raw0)));
+  ok('noteSena: nueva la 1.ª vez, no la 2.ª', P.noteSena('dobles') === true && P.noteSena('dobles') === false);
+  ok('noteSena: id desconocido o mal formado no se apunta', P.noteSena('nada') === false && P.noteSena('a b') === false && P.noteSena(5) === false);
+  const sv = JSON.parse(st.getItem('make-the-cut.profile'));
+  ok('se guarda sen:{dobles:día}', sv.sen && sv.sen.dobles === Math.floor(Date.now() / 864e5) && Object.keys(sv.sen).length === 1, J(sv.sen));
+  const alb = P.album(), tb = alb.tabs[alb.tabs.length - 1];
+  ok('pestaña «cuaderno» la última, con las 11 señas', tb.id === 'cuaderno' && tb.short === 'Cuaderno' && tb.total === S.LIST.length && S.LIST.length === 11 && tb.have === 1, tb.id + ' ' + tb.have + '/' + tb.total);
+  const it = tb.items.filter(x => x.aid === 'sen:dobles')[0], it2 = tb.items.filter(x => x.aid === 'sen:red')[0];
+  ok('hueco conseguido: icono SVG, t, rule, isNew', it.have && it.icon.charAt(0) === '<' && it.t > 1e11 && it.rule === S.BY.dobles.rule && it.isNew);
+  ok('hueco sin conseguir: how y sin isNew', !it2.have && /primera vez/.test(it2.how) && !it2.isNew);
+  ok('footText: «Vista el …» + regla / how', /^Vista el \d+ [a-z]{3} \d{4}\. Regla 9\.3\.4/.test(P.footText(it)) && P.footText(it2) === it2.how, P.footText(it));
+  const un0 = P.unseenCount(); P.markSeen(['sen:dobles']);
+  ok('unseenCount cuenta la seña nueva y markSeen la quita', un0 >= 1 && P.unseenCount() === un0 - 1 && !P.album().tabs.filter(t => t.id === 'cuaderno')[0].items.filter(x => x.aid === 'sen:dobles')[0].isNew);
+  ok('se puede fijar en la vitrina (haveAid sen:)', P.pin('sen:dobles') === true && P.vitrina().indexOf('sen:dobles') >= 0 && P.pin('sen:red') === false);
+  ok('no da XP', (() => { const s2 = fakeStorage({ 'make-the-cut.devid': 'dT' }), P2 = load(s2, FILES).Profile; const x0 = P2.xp(); S.LIST.forEach(x => P2.noteSena(x.id)); return P2.xp() === x0; })());
+  const ro = J({ v: 2, base: { xp: 0, m: 0, w: 0 } }), sr = fakeStorage({ 'make-the-cut.profile': ro }), Pr = load(sr, FILES).Profile;
+  ok('perfil de solo lectura: noteSena no guarda', Pr.noteSena('fuera') === false && sr.getItem('make-the-cut.profile') === ro);
+  ok('sin VB.Senas no hay pestaña cuaderno', !load(fakeStorage()).Profile.album().tabs.some(t => t.id === 'cuaderno'));
+  // fusión con sen al azar: conmutativa, idempotente, asociativa; la fecha más antigua gana; un perfil viejo sin sen no la borra
+  const M = P, C = r => J(M.clean(JSON.parse(r))), IDS = S.LIST.map(x => x.id);
+  function rp() {
+    const o = { v: 1, base: { xp: ri(3) * 100, m: 0, w: 0 }, dev: {}, px: 0, ven: {}, ach: {}, hit: {}, bd: {}, car: {}, ann: 1, pin: [], pt: 0, seen: {} };
+    if (ri(4)) { o.sen = {}; IDS.forEach(k => { if (ri(3) === 0) o.sen[k] = 20000 + ri(400); }); }
+    return J(o);
+  }
+  let com = 0, idem = 0, asso = 0, old = 0;
+  for (let i = 0; i < 300; i++) {
+    const a = rp(), b = rp(), c = rp(), ab = M.mergeRaw(a, b);
+    if (C(ab) === C(M.mergeRaw(b, a))) com++;
+    if (C(M.mergeRaw(a, a)) === C(a) && C(M.mergeRaw(ab, b)) === C(ab)) idem++;
+    if (C(M.mergeRaw(M.mergeRaw(a, b), c)) === C(M.mergeRaw(a, M.mergeRaw(b, c)))) asso++;
+    const pa = JSON.parse(a), pb = JSON.parse(b), pm = M.clean(JSON.parse(ab)), sa = pa.sen || {}, sb = pb.sen || {};
+    if (IDS.every(k => (pm.sen[k] || 0) === (sa[k] && sb[k] ? Math.min(sa[k], sb[k]) : sa[k] || sb[k] || 0))) old++;
+  }
+  ok('300 casos con sen: conmutativa / idempotente / asociativa', com === 300 && idem === 300 && asso === 300, com + '/' + idem + '/' + asso);
+  ok('300 casos con sen: la fecha más antigua y nada se pierde', old === 300, old + '/300');
+  const viejo = J({ v: 1, base: { xp: 10, m: 1, w: 0 } }), nuevo = st.getItem('make-the-cut.profile');
+  ok('un perfil viejo sin sen no se come el nuevo', JSON.parse(M.mergeRaw(nuevo, viejo)).sen.dobles > 0 && JSON.parse(M.mergeRaw(viejo, nuevo)).sen.dobles > 0);
+  const sz = fakeStorage({ 'make-the-cut.devid': 'dZ' }), Pz = load(sz, FILES).Profile;
+  for (let i = 0; i < 24; i++) Pz.noteMatch({ mode: '2v2', win: true, setsWon: 2, diff: 'normal', venue: 'palau' });
+  S.LIST.forEach(x => Pz.noteSena(x.id));
+  ok('tamaño < 4 KB con las 11 señas', sz.getItem('make-the-cut.profile').length < 4096, sz.getItem('make-the-cut.profile').length + ' B');
 }
 
 console.log(fails ? '\n' + fails + ' FALLOS (' + oks + ' ok)' : '\nTODO OK (' + oks + ' comprobaciones)');

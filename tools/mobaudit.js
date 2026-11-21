@@ -46,7 +46,7 @@ const M0 = 'debug=menu';
 const SET_TABS = ['audio', 'image', 'cam', 'game', 'a11y', 'kit', 'info'];
 const CTL_TABS = ['keyboard', 'gamepad', 'touch'];
 const LK_TABS = ['pelo', 'cabeza', 'cara', 'cuerpo', 'brazos', 'piernas', 'colores'];
-const PF_TABS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos'];
+const PF_TABS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos', 'cuaderno'];
 const CR_TABS = [['match'], ['inbox'], ['player', 'phys'], ['player', 'def'], ['player', 'atk'], ['player', 'badges'], ['player', 'train'], ['player', 'look'],
   ['club', 'info'], ['club', 'mate|team'], ['club', 'contract'], ['club', 'offers'], ['life', 'fame'], ['life', 'shop'], ['life', 'goals'], ['life', 'legacy'],
   ['league', 'table'], ['league', 'cal'], ['league', 'cups'], ['league', 'news'], ['league', 'clubs'], ['honors', 'titles'], ['honors', 'seasons'], ['honors', 'opts'],
@@ -155,6 +155,12 @@ const SCREENS = [
   { id: 'hud-2v2-peloteo', area: 'partido', q: 'debug=rally', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-6v6', area: 'partido', q: 'debug=rally6h', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-punto', area: 'partido', q: 'debug=setpoint', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
+  // idea «senas»: pie del Cuaderno del árbitro con la fecha y la línea de reglamento (2 líneas, sin elipsis)
+  { id: 'perfil-cuaderno-pie', area: 'portada', q: 'debug=prof&pfseed=demo', open: "if (VB.UI.menuPage()!=='prof') { await M.ensureMenu(); VB.UI.openProfile({tab:'cuaderno'}); await M.idle(); } M.click('#pfTabs [data-tab=\"cuaderno\"]'); await M.sleep(150); return M.click('#pfGrid [data-aid=\"sen:tocado\"]');", wait: 400 },
+  // idea «senas»: pegatina de la seña en la pestaña (palabras largas) y en la cinta (VB.UI._sena la deja 3 s)
+  { id: 'hud-sena', area: 'partido', q: 'debug=setpoint', open: "await M.until(()=>VB.ctx.state==='playing',5000); return VB.UI._sena('retraso',1);", wait: 700, exit: HUD_EXIT, primary: '' },
+  { id: 'hud-sena-bajo', area: 'partido', q: 'debug=setpoint', open: "await M.until(()=>VB.ctx.state==='playing',5000); return VB.UI._sena('bajo',1);", wait: 700, exit: HUD_EXIT, primary: '' },
+  { id: 'hud-sena-cinta', area: 'partido', q: 'debug=setpoint', open: "await M.until(()=>VB.ctx.state==='playing',5000); return VB.UI._sena('cuatro',2);", wait: 700, exit: HUD_EXIT, primary: '' },
   { id: 'hud-cambio', area: 'partido', q: 'debug=sub6', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-zona', area: 'partido', q: 'debug=rally&zone=1', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-zona-6v6', area: 'partido', q: 'debug=rally6h&zone=2', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },

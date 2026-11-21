@@ -22,6 +22,7 @@
  *     The full mix is written to tools/out/audio/match.wav.
  *
  *  4. Robustness: the engine against a mock AudioContext whose params throw on non-finite values.
+ *  8. Xaranga (the stand brass band): where it plays (XAR_WHEN), triggers, ducking, whistle hole, volume 0 (mock engine).
  *  5. Cold start: the real game (index.html) on an emulated mid-range phone (CPU x4), JUGAR 1 s after load: synthesis
  *     Worker on, sounds lost in the first 20 s, fallback without Worker / with a CSP that blocks it, bit-identical bank.
  *
@@ -37,6 +38,7 @@
  *   --no-endui        skip part 6 (AUD-08: end sheet and menus in the real game)   --endui-only  run part 6 only
  *   --rot-only        part 7 «rótulos» only (S3-C4: kinetic banner hit + second crowd wave; mock engine, ~20 s)
  *   --s234-only       part 7 whole (S2-S4 / T6: rótulos, new ui() kinds, medal, introStart(dur), replay(on))
+ *   --xar-only        part 8 only (xaranga: the stand brass band; mock engine, ~30 s)
  * Exits 1 if a sound has NaN, peaks over 1, edge or inner clicks, a mix target miss, a clip in the match
  * or a masked whistle.
  */
@@ -266,7 +268,7 @@ function synthReport(file, writeWav) {
   }
   return rows;
 }
-const LOOPS = ['murmur', 'excite', 'whistleStorm'];
+const LOOPS = ['murmur', 'excite', 'whistleStorm', 'xarPasa', 'xarRedoble'];
 /** Sounds whose short transients are the sound itself (net cord/tape rattle grains): innerClicks not enforced. */
 const CLICK_GRAINS = ['net', 'netTape'];
 /** Loop seam: jump across the wrap (last→first sample) relative to the typical sample-to-sample step. */
@@ -405,7 +407,12 @@ const PLAN = {
   uiRank: { target: -19, desc: 'table arrow / unlock in the summary (under the -16 stings)' },
   // ambiente de Carrera (P2, 18-nov-2026): silbidos al saque rival (bucle hasta el golpe), campanita de megafonía
   ambWhistles: { target: -23, desc: 'whistles at the away server (loop until the serve: above the -26 bed, under the -20 reactions)' },
-  pa: { target: -24, desc: 'PA chime before the speaker (like a menu confirmation)' }
+  pa: { target: -24, desc: 'PA chime before the speaker (like a menu confirmation)' },
+  // xaranga (21-nov-2026): the stand brass band, at the default 60 % volume
+  xarPasa: { target: -24, desc: 'brass band street march between points (under the -20 reactions, over the -26 bed)' },
+  xarRed: { target: -25, desc: 'snare roll on a set/match-point serve (full level, after its 0.65 s crescendo)' },
+  xarDes: { target: -22, desc: 'out-of-tune trumpet when the rival misses the serve (lands as the cheer fades)' },
+  xarEns: { target: -27, desc: 'band rehearsing in the menu (only with XAR_WHEN.menu)' }
 };
 /** The end-sheet count-up of ui.js (UI-11: 600 ms, cubic ease-out, one rAF per frame) with AUD-08 wired as notes/ui_main.md asks:
  *  ui('count', u) on every frame where a displayed number changes, and on the last frame (u = 1). Returns [[t, u], ...] (s from
@@ -533,8 +540,17 @@ const SCEN = [
   { id: 'ambiente: palmas 3+2', cat: 'chant', only: ['palmas32'], ev: [{ type: 'amb:chant', amb: true, team: 0, kind: 'palmas', k: 0.8, dur: 2.1 }] },
   { id: 'ambiente: campanita de megafonía', cat: 'pa', only: ['paChime'], ev: [{ type: 'amb:say', amb: true, who: 'speaker', name: 'Megafonía', team: -1, pid: -1, text: '¡Arriba!', dur: 2, pri: 1 }] },
   { id: 'ambiente: pitido de tarjeta', cat: 'whistle', only: ['cardWhistle'], ev: [{ type: 'amb:card', amb: true, team: 1, pid: -1, color: 'yellow', reason: 'protesta' }] },
-  { id: 'ambiente: punto del local fuera de casa (grada rival)', cat: 'react', only: ['roar'], ev: [{ type: 'amb:start', amb: true, home: 1, heat: 0.4, fans: [0.15, 0.55] }, { type: 'point', team: 1, reason: 'in', how: 'kill', rallyHits: 4, lastKind: 'spike', highlight: 0.35 }], info: true }
+  { id: 'ambiente: punto del local fuera de casa (grada rival)', cat: 'react', only: ['roar'], ev: [{ type: 'amb:start', amb: true, home: 1, heat: 0.4, fans: [0.15, 0.55] }, { type: 'point', team: 1, reason: 'in', how: 'kill', rallyHits: 4, lastKind: 'spike', highlight: 0.35 }], info: true },
+  // xaranga (21-nov-2026): partido Difícil (fuera de la Carrera solo suena en Difícil y Experto)
+  { id: 'xaranga: pasacalles (racha local)', cat: 'xarPasa', only: ['xarPasa'], g: { difficulty: 'hard', mode: 'point' }, ev: [{ type: 'point', team: 0, reason: 'in', how: 'kill', rallyHits: 4, lastKind: 'spike', highlight: 0.45, streak: 3, hold: 2.4 }] },
+  { id: 'xaranga: redoble (punto de set)', cat: 'xarRed', only: ['xarRedoble'], g: { difficulty: 'hard', mode: 'serve' }, ev: [{ type: 'serveReady', team: 0, player: P0, setPoint: 0, matchPoint: -1 }] },
+  { id: 'xaranga: desafinada (saque rival fallado)', cat: 'xarDes', only: ['xarDesafina'], g: { difficulty: 'hard', mode: 'point' }, ev: [{ type: 'point', team: 0, reason: 'out', how: 'error', rallyHits: 1, lastKind: 'serve', highlight: 0.15, streak: 1 }] },
+  { id: 'xaranga: ensayo 1 (afinando)', cat: 'xarEns', only: ['xarEns1'], api: A => A._xarPlay('xarEns1', 0.55, 0.7) },
+  { id: 'xaranga: ensayo 2 (desde el principio)', cat: 'xarEns', only: ['xarEns2'], api: A => A._xarPlay('xarEns2', 0.55, 0.7) },
+  { id: 'xaranga: ensayo 3 (bombo y caja)', cat: 'xarEns', only: ['xarEns3'], api: A => A._xarPlay('xarEns3', 0.55, 0.7) }
 ];
+/** Xaranga: encola sus 6 piezas (los ensayos del menú también, aunque XAR_WHEN.menu esté apagado). */
+function xarPrepAll(A) { if (!A.xarPrep) return; const w = A.XAR_WHEN, m0 = w.menu; w.menu = true; A.xarPrep(); w.menu = m0; }
 function seeded(seed) { let s = seed >>> 0 || 1; return function () { s ^= s << 13; s >>>= 0; s ^= s >>> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
 
 async function mixReport(file) {
@@ -545,7 +561,7 @@ async function mixReport(file) {
   root.setTimeout = setTimeout; root.clearTimeout = clearTimeout;
   const vctx = { camera: { position: { x: CAM.x, y: 4, z: -CAM.y } }, state: 'playing', timeScale: 1, settings: {} };
   const realRandom = Math.random;
-  A.init(vctx); if (A.ambPrep) A.ambPrep(); A.onGameStart({ demo: false }); A.onState('playing');   // (ambiente: sus sonidos también)
+  A.init(vctx); if (A.ambPrep) A.ambPrep(); xarPrepAll(A); A.onGameStart({ demo: false }); A.onState('playing');   // (ambiente y xaranga: sus sonidos también)
   A.unlock();
   for (let i = 0; i < 20000 && (A.ready() < 1); i++) await new Promise(r => setImmediate(r));
   const ctx = mock.started.length ? mock.started[0].src.context : null;
@@ -562,7 +578,7 @@ async function mixReport(file) {
       C.currentTime += 20; // past every anti-repeat gap and voice slot
       const mark = mock.started.length;
       const g = Object.assign({ mode: 'rally', players: [], rally: { t: 3, hits: 3 }, serving: 0, matchPoint: -1, setPoint: -1, lastKind: 'pass' }, sc.g || {});
-      if (sc.api) sc.api(A, C);
+      if (sc.api) sc.api(A, C, vctx);
       else if (sc.ev) A.handle(sc.ev.map(e => Object.assign({}, e)), g);
       if (sc.update) {
         // continuous-state scenarios: drive update() like the game loop
@@ -640,7 +656,7 @@ async function mockEngine(file) {
   root.requestIdleCallback = fn => setImmediate(() => fn({ timeRemaining: () => 50, didTimeout: false }));
   root.setTimeout = setTimeout; root.clearTimeout = clearTimeout;
   const vctx = { camera: { position: { x: CAM.x, y: 4, z: -CAM.y } }, state: 'playing', timeScale: 1, settings: {} };
-  A.init(vctx); if (A.ambPrep) A.ambPrep(); A.onGameStart({ demo: false }); A.onState('playing'); A.unlock();
+  A.init(vctx); if (A.ambPrep) A.ambPrep(); xarPrepAll(A); A.onGameStart({ demo: false }); A.onState('playing'); A.unlock();
   for (let i = 0; i < 20000 && (A.ready() < 1); i++) await new Promise(r => setImmediate(r));
   const C = mock.started[0].src.context; // the iOS unlock buffer started inside unlock()
   return { A, C, mock, vctx };
@@ -1121,7 +1137,11 @@ const HIER = [
   ['cartoon: muelle del bloqueo (toque)', 'block stuff', -99, -6, 'block spring ≥ 6 LU under a stuff block'],
   ['cartoon: ¡PAM! del remate perfecto', 'remate perfecto (humano)', -99, -6, '«¡PAM!» ≥ 6 LU under the perfect spike itself'],
   ['cartoon: ¡PAM! del remate perfecto', 'setWin sting', -99, -3, '«¡PAM!» ≥ 3 LU under a set sting'],
-  ['cartoon: ¡PAM! del remate perfecto', 'perfect glint', 3, 99, '«¡PAM!» ≥ 3 LU over the small perfect glint']
+  ['cartoon: ¡PAM! del remate perfecto', 'perfect glint', 3, 99, '«¡PAM!» ≥ 3 LU over the small perfect glint'],
+  // xaranga: music of the stand, never above the referee nor a crowd reaction
+  ['xaranga: pasacalles (racha local)', 'whistle serve', -99, -6, 'brass band march ≥ 6 LU under the whistle'],
+  ['xaranga: desafinada (saque rival fallado)', 'whistle serve', -99, -4, 'out-of-tune trumpet ≥ 4 LU under the whistle'],
+  ['xaranga: pasacalles (racha local)', 'crowd bed (home serve)', 0, 99, 'brass band march over the crowd bed between points']
 ];
 function hierReport(mix) {
   const by = {}; for (const r of mix) by[r.id] = r.lufs;
@@ -1784,13 +1804,19 @@ async function robustReport(file) {
     const cp = require('child_process');
     const code = "globalThis.VB={};require(" + JSON.stringify(file) + ");const A=VB.Audio;let sc=0,out=0;const {PerformanceObserver}=require('perf_hooks');" +
       "new PerformanceObserver(l=>{for(const e of l.getEntries())if(e.detail&&e.detail.kind===1)sc++;}).observe({entryTypes:['gc']});const t=Date.now();" +
-      "for(const n of A.SOUNDS)for(let v=0;v<A.VARIANTS[n];v++){const it=A.synthSteps(n,v,48000);let r;do{r=it.next();}while(!r.done);for(const c of r.value)out+=c.length*4;}" +
+      "const X=A.XAR_SOUNDS||[],XO=process.argv.includes('xar');for(const n of A.SOUNDS){if(X.includes(n)!==XO)continue;for(let v=0;v<A.VARIANTS[n];v++){const it=A.synthSteps(n,v,48000);let r;do{r=it.next();}while(!r.done);for(const c of r.value)out+=c.length*4;}}" +
       "setTimeout(()=>console.log(JSON.stringify({sc,ms:Date.now()-t,mb:out/1048576})),30);";
     try {
       const r = JSON.parse(cp.execFileSync(process.execPath, ['--max-semi-space-size=1', '-e', code], { encoding: 'utf8' }).trim().split('\n').pop());
       // before the review-3 fix: ~870 scavenges (~740 MB of boxed doubles for 11 MB of audio); after: ~400 (mostly the first, unoptimised run of each generator)
       ok('bank generation allocation (node, 1 MB semi-space)', r.sc < 600, r.sc + ' scavenges, ' + r.ms + ' ms, output ' + r.mb.toFixed(1) + ' MB');
     } catch (e) { ok('bank generation allocation', false, String(e.message || e).slice(0, 120)); }
+    // xaranga: its pieces are not in the usual bank (xarPrep); measured apart. Almost all of it is the first, unoptimised run of its
+    // voices (a second run allocates ~0 scavenges)
+    try {
+      const r = JSON.parse(cp.execFileSync(process.execPath, ['--max-semi-space-size=1', '-e', code, 'xar'], { encoding: 'utf8' }).trim().split('\n').pop());
+      ok('xaranga generation allocation (node, 1 MB semi-space)', r.mb === 0 || r.sc < 120, r.sc + ' scavenges, ' + r.ms + ' ms, output ' + r.mb.toFixed(1) + ' MB');
+    } catch (e) { ok('xaranga generation allocation', false, String(e.message || e).slice(0, 120)); }
   }
   return res;
 }
@@ -1874,7 +1900,7 @@ async function coldIdentical(file) {
     do { await CDP.sleep(200); r = await page.evalJs('({b:VB.Audio.stats.built,t:VB.Audio.stats.total})'); } while (r.b < r.t && Date.now() - t0 < 20000);
     const builtMs = Date.now() - t0;
     const cmp = await page.evalJs(`(function(){var A=VB.Audio,bad=[],n=0,sr=48000;
-      for(var i=0;i<A.SOUNDS.length;i++){var nm=A.SOUNDS[i];if(nm==='ir'||(A.AMB_SOUNDS&&A.AMB_SOUNDS.indexOf(nm)>=0))continue;var list=A._bank(nm)||[];var V=A.VARIANTS[nm],ref=[];
+      for(var i=0;i<A.SOUNDS.length;i++){var nm=A.SOUNDS[i];if(nm==='ir'||(A.AMB_SOUNDS&&A.AMB_SOUNDS.indexOf(nm)>=0)||(A.XAR_SOUNDS&&A.XAR_SOUNDS.indexOf(nm)>=0))continue;var list=A._bank(nm)||[];var V=A.VARIANTS[nm],ref=[];
         for(var v=0;v<V;v++)ref.push(A.synth(nm,v,sr));
         if(list.length!==V){bad.push(nm+':count '+list.length+'/'+V);continue;}
         for(var k=0;k<list.length;k++){var b=list[k],hit=false;
@@ -2219,7 +2245,180 @@ function s234Table(rows) {
   for (const x of rows) { console.log(pad(x.name, 96) + (x.pass ? 'OK  ' : 'FAIL') + '  ' + x.info); if (!x.pass) bad++; }
   return bad;
 }
-module.exports = { s234Report, UI_PATCH, enduiReport, countUpCalls, METRICS, loadAudio, synthReport, mixReport, featureReport, chromeReport, robustReport, PLAN, pageHtml, PAGE_RUN, pcmOf, winLoud, clickTimes, variantsOf, chromeFeatures, coldReport, coldRun };
+
+/* ====================================================================
+ * Part 8: xaranga (21-nov-2026) — the stand brass band. Engine logic on the mock context (VB.Audio.xarState()).
+ * ==================================================================== */
+async function xarReport(file) {
+  const rows = [], ok = (name, pass, info) => rows.push({ name, pass: !!pass, info: info || '' });
+  const { A, C, mock, vctx } = await mockEngine(file);
+  if (!A.xarState) { ok('xaranga: VB.Audio.xarState() exists', false, 'missing'); return rows; }
+  const r3 = v => Math.round(v * 1000) / 1000;
+  const names = recs => recs.map(s => nameOfBuf(A, s.src.buffer));
+  const since = mark => mock.started.slice(mark).filter(s => !s.cancelled);
+  const HARD = { mode: 'point', players: [], rally: { t: 0, hits: 0 }, serving: 0, matchPoint: -1, setPoint: -1, lastKind: 'spike', difficulty: 'hard' };
+  const g = o => Object.assign({}, HARD, o || {});
+  const fresh = (gg) => { vctx.state = 'playing'; vctx.game = gg || g(); A.onGameStart(vctx.game); A.onState('playing'); C.currentTime += 30; A.update(vctx.game, 1 / 60); return mock.started.length; };
+  const pt = (team, o) => Object.assign({ type: 'point', team, reason: 'in', how: 'kill', rallyHits: 4, lastKind: 'spike', highlight: 0.4, streak: 1, hold: 2.4 }, o || {});
+  const xarRecs = mk => since(mk).filter(s => /^xar/.test(nameOfBuf(A, s.src.buffer)));
+
+  // 0. where it plays: XAR_WHEN (Ferran: Career + «good» matches = Hard/Expert outside the Career)
+  {
+    const on = gg => { vctx.game = gg; A.onGameStart(gg); return A.xarState().on; };
+    const res = { normal: on(g({ difficulty: 'normal' })), easy: on(g({ difficulty: 'easy' })), hard: on(g({ difficulty: 'hard' })), expert: on(g({ difficulty: 'expert' })),
+      careerNormal: on(g({ difficulty: 'normal', career: { id: 1 } })), careerEasy: on(g({ difficulty: 'easy', career: { id: 1 } })), demo: on(g({ demo: true })), drill: on(g({ drill: { kind: 'serve' } })) };
+    ok('xar 0. plays in the Career (any level) and in Hard/Expert matches; never Easy/Normal outside it, demo or drill',
+      !res.normal && !res.easy && res.hard && res.expert && res.careerNormal && res.careerEasy && !res.demo && !res.drill, JSON.stringify(res) + ' · XAR_WHEN ' + JSON.stringify(A.XAR_WHEN));
+  }
+  // 1. home streak of 3 → march loop, on the chant grid
+  let mk = fresh();
+  A.handle([pt(0, { streak: 1 })], vctx.game); C.currentTime += 3; A.handle([pt(0, { streak: 2 })], vctx.game); C.currentTime += 3;
+  const s1a = A.xarState().cur; A.handle([pt(0, { streak: 3 })], vctx.game);
+  const st1 = A.xarState(), ch = A._debug().chant, pasa = xarRecs(mk).filter(s => nameOfBuf(A, s.src.buffer) === 'xarPasa');
+  ok('xar 1. streak 3 of the home team → xarPasa in a loop, t0 = chant t0 (±1 ms); nothing before the 3rd point',
+    s1a === null && st1.cur === 'xarPasa' && pasa.length === 1 && pasa[0].src.loop && Math.abs(st1.t0 - ch.t0) <= 0.001,
+    'before ' + s1a + ' · cur ' + st1.cur + ' loop ' + (pasa[0] && pasa[0].src.loop) + ' · t0 ' + r3(st1.t0 - C.currentTime) + ' s vs chant ' + r3(ch.t0 - C.currentTime) + ' s');
+  // 1b. another streak point while it plays: no second loop, the new claps land on the loop's grid
+  C.currentTime += 3; const mk1b = mock.started.length;
+  A.handle([pt(0, { streak: 4 })], vctx.game);
+  const ch2 = A._debug().chant, grid = (ch2.t0 - st1.t0) / 0.42;
+  ok('xar 1b. streak 4 while the march plays: same loop, the new chant claps on its beat grid', A.xarState().cur === 'xarPasa' && xarRecs(mk1b).length === 0 && Math.abs(grid - Math.round(grid)) < 1e-3,
+    'new xar sources ' + xarRecs(mk1b).length + ' · chant t0 − loop t0 = ' + r3(grid) + ' beats');
+  // 6. ducking: ball in play 0.3, pause 0.45, replay 0.5, back to 1
+  {
+    const gr = g({ mode: 'rally', rally: { t: 2, hits: 2 } }); A.update(gr, 1 / 60); const dR = A.xarState().duck;
+    vctx.state = 'paused'; A.onState('paused'); A.update(gr, 1 / 60); const dP = A.xarState().duck;
+    vctx.state = 'playing'; A.onState('playing'); A.replay(true); A.update(g(), 1 / 60); const dRp = A.xarState().duck; A.replay(false);
+    A.update(g(), 1 / 60); const d1 = A.xarState().duck;
+    ok('xar 6. ducking: ball in play 0.3 (-10 dB), pause 0.45, replay 0.5, between points 1; the march survives', dR === 0.3 && dP === 0.45 && dRp === 0.5 && d1 === 1 && A.xarState().cur === 'xarPasa',
+      'rally ' + dR + ' · pause ' + dP + ' · replay ' + dRp + ' · point ' + d1 + ' · cur ' + A.xarState().cur);
+  }
+  // 5. every whistle opens a hole in the band (N.xarW to 0 during the whistle, back to 1)
+  {
+    const h0 = A.xarState().holes; A.handle([{ type: 'whistle', reason: 'serve' }], vctx.game); const h1 = A.xarState();
+    A.handle([{ type: 'courtChange', why: 'eight' }], vctx.game); const h2 = A.xarState().holes;
+    ok('xar 5. whistles open the hole (serve whistle and court change: 2 holes; back to 1 after)', h1.holes === h0 + 1 && h2 === h0 + 2 && h1.hole === 1, 'holes ' + h0 + ' → ' + h1.holes + ' → ' + h2 + ' · gain after ' + h1.hole);
+  }
+  // 2. rival point → the march stops within 0.5 s
+  {
+    const rec = pasa[0]; let stopAt = null; const st0 = rec.src.stop; rec.src.stop = function (w) { stopAt = w; return st0.call(this, w); };
+    C.currentTime += 3; const t = C.currentTime; A.handle([pt(1)], vctx.game);
+    ok('xar 2. rival point → the march deflates and stops (≤ 0.5 s)', A.xarState().cur === null && stopAt != null && stopAt - t <= 0.5, 'cur ' + A.xarState().cur + ' · stop at +' + (stopAt == null ? '-' : r3(stopAt - t)) + ' s');
+  }
+  // 3. set point serve → snare roll, crescendo; serve whistle → stops
+  {
+    const mk3 = fresh(); const gs = g({ mode: 'serve', setPoint: 0 });
+    A.handle([{ type: 'serveReady', team: 0, player: P0, setPoint: 0, matchPoint: -1 }], gs); const c3 = A.xarState();
+    const rr = xarRecs(mk3); C.currentTime += 0.7; A.handle([{ type: 'whistle', reason: 'serve' }], gs); const c3b = A.xarState();
+    const mk3c = mock.started.length; A.handle([{ type: 'serveReady', team: 1, player: P0, setPoint: -1, matchPoint: -1 }], g({ mode: 'serve' }));
+    ok('xar 3. serveReady on a set point → xarRedoble loop; serve whistle → silence; plain serveReady → nothing', c3.cur === 'xarRedoble' && rr.length === 1 && rr[0].src.loop && c3b.cur === null && xarRecs(mk3c).length === 0,
+      'cur ' + c3.cur + ' → after whistle ' + c3b.cur + ' · plain serve ' + xarRecs(mk3c).length + ' sources');
+  }
+  // 4. rival serve error → out-of-tune trumpet at +0.75 s (lastKind or reason); never in a neutral venue
+  {
+    let m4 = fresh(); const ta = C.currentTime; let t = ta; A.handle([pt(0, { how: 'error', reason: 'out', lastKind: 'serve' })], vctx.game);
+    const a = A.xarState(), ra = xarRecs(m4);
+    C.currentTime += 3; m4 = mock.started.length; t = C.currentTime; A.handle([pt(0, { how: 'error', reason: 'serve', lastKind: '' })], vctx.game);
+    const rb = xarRecs(m4), tb = rb.length ? rb[0].when - t : -1;
+    C.currentTime += 3; m4 = mock.started.length; A.handle([pt(0, { how: 'error', reason: 'out', lastKind: 'spike' })], vctx.game); const rc = xarRecs(m4);
+    fresh(); A.handle([{ type: 'amb:start', amb: true, home: -1, heat: 0.3 }], vctx.game); m4 = mock.started.length;
+    A.handle([pt(0, { how: 'error', reason: 'out', lastKind: 'serve' })], vctx.game); const rn = xarRecs(m4);
+    ok('xar 4. rival serve fault → xarDesafina at +0.75 s (lastKind serve or reason serve); spike error → nothing; neutral venue → nothing',
+      a.shot === 'xarDesafina' && ra.length === 1 && Math.abs(ra[0].when - (a.shotT0)) < 1e-6 && Math.abs(a.shotT0 - (ta + 0.75)) < 1e-6 && rb.length === 1 && Math.abs(tb - 0.75) < 1e-6 && rc.length === 0 && rn.length === 0,
+      'lastKind serve: ' + names(ra).join(' ') + ' · reason serve: +' + r3(tb) + ' s · spike error: ' + rc.length + ' · neutral: ' + rn.length);
+  }
+  // 4b. out-of-tune trumpet on a streak point: the march enters on the first free beat after it
+  {
+    const m = fresh(); A.handle([pt(0, { how: 'error', reason: 'out', lastKind: 'serve', streak: 3 })], vctx.game);
+    const st = A.xarState(), rec = xarRecs(m), sh = rec.find(s => nameOfBuf(A, s.src.buffer) === 'xarDesafina'), pa = rec.find(s => nameOfBuf(A, s.src.buffer) === 'xarPasa');
+    const shEnd = sh ? sh.when + sh.src.buffer.duration : 0, beats = pa ? (pa.when - A._debug().chant.t0) / 0.42 : NaN;
+    ok('xar 4b. serve fault + streak 3: trumpet first, then the march on the chant grid, after the trumpet', sh && pa && pa.when >= shEnd - 1e-6 && Math.abs(beats - Math.round(beats)) < 1e-3 && st.cur === 'xarPasa',
+      'trumpet ' + (sh ? r3(sh.when - C.currentTime) + '–' + r3(shEnd - C.currentTime) : '-') + ' s · march at ' + (pa ? r3(pa.when - C.currentTime) : '-') + ' s (' + r3(beats) + ' beats after the chant)');
+  }
+  // 10. away (amb home 1): the band is the rival's
+  {
+    let m = fresh(); A.handle([{ type: 'amb:start', amb: true, home: 1, heat: 0.4 }], vctx.game);
+    A.handle([pt(0, { streak: 3 })], vctx.game); const mine = xarRecs(m).length;
+    C.currentTime += 3; m = mock.started.length; A.handle([pt(1, { streak: 3 })], vctx.game); const riv = names(xarRecs(m));
+    C.currentTime += 3; m = mock.started.length; A.handle([pt(1, { how: 'error', reason: 'out', lastKind: 'serve', streak: 4 })], vctx.game); const des = names(xarRecs(m));
+    ok('xar 10. away: your streak → nothing; the home rival\'s streak → march; your serve fault → the out-of-tune trumpet', mine === 0 && riv.includes('xarPasa') && des.includes('xarDesafina'),
+      'your streak ' + mine + ' · rival streak ' + riv.join(' ') + ' · your serve fault ' + des.join(' '));
+  }
+  // 11. set or match won → the band stops, the stings play as always
+  {
+    const m = fresh(); A.handle([pt(0, { streak: 3 })], vctx.game); const before = A.xarState().cur; C.currentTime += 3;
+    const m2 = mock.started.length; A.handle([pt(0, { streak: 5, setWon: true }), { type: 'set', team: 0, sets: [1, 0] }], vctx.game);
+    const nm = names(since(m2));
+    ok('xar 11. set won → band stops, setWin sting still plays', before === 'xarPasa' && A.xarState().cur === null && nm.includes('setWin') && !nm.some(n => /^xar/.test(n)), 'before ' + before + ' · after ' + A.xarState().cur + ' · ' + nm.filter(n => /Win|Lose|xar/.test(n)).join(' '));
+  }
+  // 7. never in the demo, a drill, the replay or under the presentation card
+  {
+    const cases = {};
+    let m = fresh(g({ demo: true })); A.handle([pt(0, { streak: 3 }), pt(0, { how: 'error', lastKind: 'serve' })], vctx.game); cases.demo = xarRecs(m).length;
+    m = fresh(g({ drill: { kind: 'free' } })); A.handle([pt(0, { streak: 3 })], vctx.game); cases.drill = xarRecs(m).length;
+    m = fresh(); A.handle([pt(0, { streak: 3, replay: true })], vctx.game); cases.replay = xarRecs(m).length;
+    m = fresh(); A.ui('intro'); A.handle([pt(0, { streak: 3 })], vctx.game); cases.intro = xarRecs(m).length; A.ui('introSkip');
+    ok('xar 7. demo, drill, replay events and the presentation card → no band', cases.demo === 0 && cases.drill === 0 && cases.replay === 0 && cases.intro === 0, JSON.stringify(cases));
+  }
+  // 8. menu rehearsals: off by default (XAR_WHEN.menu); with it on, first at 4 s, never the same twice in a row
+  {
+    fresh(); vctx.state = 'menu'; A.onState('menu'); const gm = g({ demo: true, mode: 'rally' }); vctx.game = gm;
+    let m = mock.started.length;
+    for (let f = 0; f < 60 * 25; f++) { A.update(gm, 1 / 60); C.currentTime += 1 / 60; }
+    const off = xarRecs(m).length;
+    A.XAR_WHEN.menu = true; vctx.state = 'playing'; A.onState('playing'); A.update(g(), 1 / 60); vctx.state = 'menu'; A.onState('menu');
+    m = mock.started.length; const t0 = C.currentTime;
+    for (let f = 0; f < 60 * 45; f++) { A.update(gm, 1 / 60); C.currentTime += 1 / 60; }
+    A.XAR_WHEN.menu = false;
+    const rec = xarRecs(m), nm = names(rec), first = rec.length ? rec[0].when - t0 : -1;
+    let rep = false; for (let i = 1; i < nm.length; i++) if (nm[i] === nm[i - 1]) rep = true;
+    ok('xar 8. menu: no rehearsal with XAR_WHEN.menu off; on: first at 4 s (±0.1), then every 12-20 s, never the same twice', off === 0 && rec.length >= 2 && Math.abs(first - 4) <= 0.1 && !rep && nm.every(n => /^xarEns[123]$/.test(n)),
+      'off ' + off + ' · on: ' + nm.join(' ') + ' · first at ' + r3(first) + ' s · menu duck ' + A.xarState().duck);
+    vctx.state = 'playing'; A.onState('playing');
+  }
+  // 9. volume 0: nothing queued or played; raising it queues the pieces at the next qualifying match
+  {
+    const L = loadAudio(file), B = L.VB.Audio, mk9 = makeMock();
+    L.root.AudioContext = mk9.Ctx; L.root.requestIdleCallback = fn => setImmediate(() => fn({ timeRemaining: () => 50, didTimeout: false })); L.root.setTimeout = setTimeout; L.root.clearTimeout = clearTimeout;
+    const vc = { camera: { position: { x: CAM.x, y: 4, z: -CAM.y } }, state: 'playing', timeScale: 1, settings: { xarVol: 0 } };
+    B.init(vc); const gg = g(); vc.game = gg; B.onGameStart(gg); B.onState('playing'); B.unlock();
+    for (let i = 0; i < 20000 && (B.ready() < 1); i++) await new Promise(r => setImmediate(r));
+    const C9 = mk9.started[0].src.context; C9.currentTime += 30;
+    B.handle([pt(0, { streak: 3 }), pt(0, { how: 'error', lastKind: 'serve' })], gg);
+    const q0 = B.xarState().queued, any0 = mk9.started.some(s => s.src.buffer && s.src.buffer.length > 30000 && /^xar/.test(nameOfBuf(B, s.src.buffer))), banked0 = B.XAR_SOUNDS.some(n => B._bank(n));
+    B.onSettings({ xarVol: 0.6 }); const q1 = B.xarState().queued; B.handle([{ type: 'newMatch', demo: false, difficulty: 'hard' }], gg); const q2 = B.xarState().queued;
+    for (let i = 0; i < 20000 && (B.ready() < 1); i++) await new Promise(r => setImmediate(r));
+    ok('xar 9. xarVol 0 → no piece queued, synthesised or played; raised to 0.6 → queued at the next qualifying match (3 pieces, no rehearsals)',
+      q0 === 0 && !any0 && !banked0 && B.getVolume('xaranga') === 0.6 && q2 === 3 && !!B._bank('xarPasa'),
+      'vol 0: queued ' + q0 + ', banked ' + banked0 + ' · after raising: queued ' + q1 + ' → ' + q2 + ' at newMatch, xarPasa banked ' + !!B._bank('xarPasa'));
+  }
+  // 12. the slider sample: preview('xaranga') plays the first bar of the march and fades it at 0.9 s
+  {
+    fresh(); C.currentTime += 1; const m = mock.started.length; const p = A.preview('xaranga'); const rec = xarRecs(m);
+    ok('xar 12. preview(\'xaranga\') → one xarPasa, not looped (slider sample)', p === true && rec.length === 1 && !rec[0].src.loop && nameOfBuf(A, rec[0].src.buffer) === 'xarPasa', 'preview ' + p + ' · ' + names(rec).join(' '));
+  }
+  // 13. no saturation: a big home streak point (ovation, bombo, chant claps) with the march on top, and the out-of-tune trumpet on
+  //     a serve-fault point: the band adds ≤ 0.5 dB to the peak of the mix at the bus (before the compressor: the crowd of a big
+  //     point already goes over 0 dBFS there and the master compressor + soft clip take it), and stays well under the crowd
+  {
+    const big = fresh(); A.update(vctx.game, 1 / 60);
+    A.handle([pt(0, { streak: 5, highlight: 0.95, how: 'block', digs: 2 })], vctx.game);
+    const recs = since(big), all = mixRecords(recs), band = mixRecords(recs.filter(s => /^xar/.test(nameOfBuf(A, s.src.buffer)))), crowd = mixRecords(recs.filter(s => !/^xar/.test(nameOfBuf(A, s.src.buffer))));
+    const des = fresh(); A.handle([pt(0, { how: 'error', reason: 'out', lastKind: 'serve', highlight: 0.3, streak: 3 })], vctx.game); const all2 = mixRecords(since(des));
+    const pk = all ? M.db(M.peak([all.L, all.R])) : 99, pk2 = all2 ? M.db(M.peak([all2.L, all2.R])) : 99, pc = crowd ? M.db(M.peak([crowd.L, crowd.R])) : 99, pb = band ? M.db(M.peak([band.L, band.R])) : 99;
+    const lb = band ? M.integrated([band.L, band.R], band.sr) : -99, lc = crowd ? M.momentaryMax([crowd.L, crowd.R], crowd.sr) : -99;
+    ok('xar 13. no saturation: the band adds ≤ 0.5 dB to the peak of a big streak point (bus, pre-compressor); band peak < -10 dBFS; serve-fault mix < -1 dBFS; band ≥ 4 LU under the ovation',
+      band && pk - pc <= 0.5 && pb < -10 && pk2 < -1 && lb < lc - 4, 'streak: crowd peak ' + r1(pc) + ' → with band ' + r1(pk) + ' dBFS (band alone ' + r1(pb) + ') · serve-fault mix ' + r1(pk2) + ' dBFS · band ' + r1(lb) + ' LUFS vs ovation Mmax ' + r1(lc));
+  }
+  return rows;
+}
+function xarTable(rows) {
+  console.log('\n== 8. Xaranga: the stand brass band (where it plays, triggers, ducking, whistle hole, volume 0) — mock engine ==');
+  let bad = 0;
+  for (const x of rows) { console.log(pad(x.name, 130) + (x.pass ? 'OK  ' : 'FAIL') + '  ' + x.info); if (!x.pass) bad++; }
+  return bad;
+}
+module.exports = { makeMock, xarReport, s234Report, UI_PATCH, enduiReport, countUpCalls, METRICS, loadAudio, synthReport, mixReport, featureReport, chromeReport, robustReport, PLAN, pageHtml, PAGE_RUN, pcmOf, winLoud, clickTimes, variantsOf, chromeFeatures, coldReport, coldRun };
 if (require.main === module) (async () => {
   let bad = 0; const out = {};
   console.log('audiotest: ' + path.relative(ROOT, FILE) + (BEFORE ? '  (before: ' + path.relative(ROOT, BEFORE) + ')' : ''));
@@ -2227,6 +2426,7 @@ if (require.main === module) (async () => {
   if (has('--sweep-only')) { const c = await chromeReport(FILE, 'after'); const w = c.sweep.slice().sort((a, b) => b.tp - a.tp); console.log(w.slice(0, 12).map(x => x.id + ' @' + x.cam + 'm ' + r1(x.tp) + ' dBTP clip ' + x.clip).join('\n')); process.exit(w[0].tp <= -1 && !w.some(x => x.clip) ? 0 : 1); }
   if (has('--w3-only')) { const c = await chromeReport(FILE, 'after'); console.log(JSON.stringify(c.w3, (k, v) => typeof v === 'number' ? Math.round(v * 100) / 100 : v)); process.exit(0); }
   if (has('--endui-only')) { const er = await enduiReport(); bad += enduiTable(er); console.log(bad ? 'FALLOS: ' + bad : 'TODO OK'); process.exit(bad ? 1 : 0); }
+  if (has('--xar-only')) { const xr = await xarReport(FILE); bad += xarTable(xr); console.log(bad ? 'FALLOS: ' + bad : 'TODO OK'); process.exit(bad ? 1 : 0); }
   if (has('--rot-only') || has('--s234-only')) { const sr = await s234Report(FILE, has('--rot-only')); bad += s234Table(sr); console.log(bad ? 'FALLOS: ' + bad : 'TODO OK'); process.exit(bad ? 1 : 0); }
   const syn = synthReport(FILE, !has('--no-wav')); out.synth = syn;
   bad += synthTable(syn);
@@ -2246,6 +2446,8 @@ if (require.main === module) (async () => {
   bad += robustTable(rob);
   const s234 = await s234Report(FILE, false); out.s234 = s234;
   bad += s234Table(s234);
+  const xr = await xarReport(FILE); out.xar = xr;
+  bad += xarTable(xr);
   if (has('--calibrate')) { // suggested LEVEL table for js/audio.js: current level + (target - measured) of the first scenario of each sound
     const { VB } = loadAudio(FILE), cur = VB.Audio.LEVELS || {}, sug = {};
     for (const r of mix) { const sc = SCEN.find(x => x.id === r.id); if (!sc || r.info || !sc.only) continue; for (const n of sc.only) if (!(n in sug)) sug[n] = Math.round(((cur[n] || 0) - r.delta) * 10) / 10; }

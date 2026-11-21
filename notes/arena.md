@@ -243,6 +243,22 @@ Ver notes/sim.md §P1. Cada `point` trae `signal` (lista cerrada), `touchedOut` 
 | `serveFault` | balón no lanzado o soltado sin golpear: brazo extendido hacia arriba, palma hacia arriba | — |
 Siempre después: brazo extendido hacia el lado del equipo que saca a continuación (`e.team`). Referencia: señales oficiales de las Reglas Oficiales de Voleibol (FIVB). Los textos del videomarcador (`REASON`) no cambian.
 
+**Seña → pegatina del HUD → pitido (idea «senas», 20-nov-2026; js/senas.js, ui.js presentPoint, audio.js WH_SENA).** La pestaña / cinta del
+punto ya no lleva el texto del árbitro: lleva la pegatina `.sp-sena` (el texto queda para el lector de pantalla). UN pitido por punto:
+| `signal` (+ reason) | pegatina | pitido |
+|---|---|---|
+| `out` / `antenna` | fuera: FUERA / ANTENA | whistleLong 1,00 |
+| `touched` | tocado: TOCADO | whistleLong 1,00 |
+| `under` | bajo: BAJO LA RED | whistleLong 1,00 |
+| `net` / `netBall` / `in` con «… a la red» | red: RED / A LA RED | whistleLong 0,97 |
+| `four` / `double` | cuatro: 4 TOQUES / dobles: DOBLES | whistle (corto) 1,05 |
+| `attackFault` + attackServe·backAttack / block·backBlock | ataque / bloqueo | whistleLong 1,03 |
+| `attackFault` + position | posicion: POSICIÓN | whistleLong 0,95 |
+| `delay8` / `delay5` | retraso: 8 SEGUNDOS / 5 SEGUNDOS | whistleLong 0,92 |
+| `serveFault` | saque: SAQUE | whistle (corto) 0,98 |
+El que cierra set o partido sigue con whistleEnd. Además: tiempo muerto (solo online) = whistleEnd (largo) 1,04; sustitución = whistleEnd (largo, más flojo) 1,06 (Ferran: «tiempo muerto y eso… un pitido más largo»).
+El videomarcador del pabellón (REASON / pointSub) NO cambia.
+
 ## 11. Pulido, ola 1 (arena, 7-nov-2026): ARN-01 … ARN-07
 Scripts de medida en `tools/out/arn/` (`tune.js`, `crowd.js`, `endview.js`, `marks.js`, `ring.js`, `ringshots.js`, `ringbot.js`,
 `ballpx.js`, `progs.js`, `sig.js`, `jsig.js`, `pp.js`). Capturas en las carpetas del mismo nombre.

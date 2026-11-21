@@ -157,6 +157,12 @@ fondo de una página de botones: deja ver el partido alrededor.
 ### `.sp-hints` — barra de pistas
 En el pie (`.menu-foot`/`.navhint`) o en cualquier barra de teclas: las `.key` salen como teclas crema con tinta.
 
+### `.sp-sena` — pegatina de seña del árbitro (HUD; idea «senas», 20-nov-2026)
+`<i id="sena" class="sp-sena">` único, hijo de `#hud`; `ui.js senaShow` lo pega DENTRO de `#pbug` (pestaña del punto) o de `.bn-rib` (cinta de nivel 2) y
+entra/sale/se aparta con su rótulo. Círculo crema con contorno de tinta y sombra dura, brillo de pegatina, inclinado −6°; la silueta
+(`VB.Senas.svg`, tinta) dentro y la palabra (Titan One) en una etiqueta crema debajo. `.sp-dot` = primera vez (punto rojo). Móvil:
+60 px y palabra de 12 px reales (`--snk` deshace la escala del marcador). Golpe de 260 ms; con «Menos movimiento», fundido.
+
 ### `.sp-page` — página del menú con el sistema
 ```html
 <div class="mpage sp-page" id="mpX" data-page="x" data-sp-full hidden> <div class="mp-head sp-head">…</div> <nav data-nav>…</nav> </div>

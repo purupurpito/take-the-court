@@ -2737,7 +2737,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 #rpSkipT .rp-gap{display:inline-block;width:14px}
 #rpExit{pointer-events:auto;min-height:44px;min-width:76px;padding:0 16px;border-radius:999px;font:800 15px/1 var(--display);letter-spacing:.14em;text-transform:uppercase}
 #app.replay #hud,#app.replay #chal,#app.replay #banner,#app.replay #guide,#app.replay #skip,#app.replay #prompt,#app.replay #touch,#app.replay #stamp,
-#app.replay #callout,#app.replay #pbug,#app.replay #offArrow,#app.replay #coach,#app.replay #fsTip{visibility:hidden!important}
+#app.replay #callout,#app.replay #pbug,#app.replay #sena,#app.replay #offArrow,#app.replay #coach,#app.replay #fsTip{visibility:hidden!important}
 @media (max-height:420px){
   #rpBug{top:calc(8px + var(--st));font-size:12px;padding:5px 9px 4px}
   #rpCap{bottom:calc(10px + var(--sbm));max-width:calc(100% - 250px)}
@@ -3433,6 +3433,43 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 :root:not(#_):not(#_):not(#_) .sp-stamp:hover{transform:rotate(-4deg) scale(1.05)}
 :root:not(#_):not(#_):not(#_) .sp-stamp:is(.kf,:focus-visible){transform:rotate(0) scale(1.1);filter:drop-shadow(0 4px 0 var(--sp-ink)) drop-shadow(3px 0 0 var(--sp-cream)) drop-shadow(-3px 0 0 var(--sp-cream)) drop-shadow(0 -3px 0 var(--sp-cream)) drop-shadow(0 3px 0 var(--sp-cream))}
 :root:not(#_):not(#_):not(#_) .sp-stamp:is(:active,.sp-press){transform:rotate(-14deg) scale(.92) translateY(3px);filter:drop-shadow(0 1px 0 var(--sp-ink))}
+
+/* ===================================================================
+   SPLAT · SEÑAS (idea «senas»; js/senas.js, ui.js senaShow): pegatina redonda crema con la silueta en tinta de la seña oficial
+   del árbitro y su palabra (FUERA, DOBLES, BAJO LA RED…) en una etiqueta debajo. Va DENTRO de su rótulo: #pbug (pestaña del punto)
+   o .bn-rib (cinta de nivel 2), así entra, sale, se aparta en la pausa y se esconde en la repetición con él. Dentro de #pbug el
+   marcador está escalado (scale: --sbs × --hs): --snk deshace esa escala para que mida lo mismo en px reales. .sp-dot = nueva.
+   =================================================================== */
+#pbug{--snb:clamp(64px,9vh,84px);--snw:13px;--snk:calc(var(--sbs,1) * var(--hs,1))}
+.sp-sena{--sn:calc(var(--snb,clamp(64px,9vh,84px)) / var(--snk,1));position:absolute;z-index:2;display:flex;flex-direction:column;align-items:center;
+  width:var(--sn);pointer-events:none;font-style:normal;transform:rotate(-6deg);transform-origin:50% 40%}
+.sp-sena[hidden]{display:none}
+.sp-sena .sn-d{position:relative;display:block;width:var(--sn);height:var(--sn);box-sizing:border-box;padding:11%;border-radius:50%;overflow:hidden;
+  background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 calc(3px / var(--snk,1)) var(--sp-ink),calc(2px / var(--snk,1)) calc(3px / var(--snk,1)) 0 calc(3px / var(--snk,1)) var(--sp-ink)}
+.sp-sena .sn-d::after{content:"";position:absolute;left:13%;top:9%;width:38%;height:20%;border-radius:50%;background:rgba(255,255,255,.6);transform:rotate(-28deg);pointer-events:none}
+.sp-sena .sn-sil{display:block;width:100%;height:100%}
+.sp-sena .sn-w{position:relative;z-index:1;display:block;margin-top:calc(var(--sn) * -.2);padding:calc(2px / var(--snk,1)) calc(6px / var(--snk,1)) calc(1px / var(--snk,1));
+  border-radius:calc(6px / var(--snk,1));white-space:nowrap;background:var(--sp-cream);color:var(--sp-ink);font:400 calc(var(--snw,13px) / var(--snk,1))/1.1 var(--sp-pop);
+  font-style:normal;letter-spacing:.02em;text-transform:uppercase;box-shadow:0 0 0 calc(2.5px / var(--snk,1)) var(--sp-ink),calc(1.5px / var(--snk,1)) calc(2px / var(--snk,1)) 0 calc(2.5px / var(--snk,1)) var(--sp-ink)}
+.sp-sena.sp-dot::after{content:"";position:absolute;right:2%;top:0;width:22%;height:calc(var(--sn) * .22);border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 calc(2.5px / var(--snk,1)) var(--sp-ink);z-index:3}
+/* en la pestaña: pegada a su extremo derecho (montada 20 % encima), centrada en su altura; «⇄ Saque» (#pbX) se corre a su derecha */
+#pbug>.sp-sena{left:100%;top:50%;margin:calc(var(--sn) * -.5) 0 0 calc(var(--sn) * -.2)}
+#pbug.sn-on em{margin-left:calc(var(--sn, 60px) * .82 + 8px)}
+#pbug.sn-on{--sn:calc(var(--snb) / var(--snk,1))}
+/* en la cinta: en la esquina de arriba a la izquierda del rótulo */
+.bn-rib>.sp-sena{left:calc(var(--sn) * -.1);top:calc(var(--sn) * -.55)}
+/* cinta en la franja alta (ui.js placeRib2 → #banner.at-t; siempre en el móvil): la pegatina cuelga por debajo, no se sale por arriba */
+#banner.at-t .bn-rib>.sp-sena{left:0;top:calc(100% - var(--sn) * .1)}
+/* entrada: golpe de pegatina 0,12 s después de la pestaña (solo transform y opacidad); con «Menos movimiento», fundido */
+.sp-sena.on{animation:snIn .26s .12s cubic-bezier(.2,.9,.3,1.25) both}
+@keyframes snIn{0%{opacity:0;transform:scale(1.6) rotate(-14deg)}60%{opacity:1;transform:scale(.92) rotate(-5deg)}100%{opacity:1;transform:rotate(-6deg)}}
+.rm .sp-sena.on{animation:tvFade .15s linear both}
+/* móvil (lo principal): pegatina de 60 px reales y palabra de 12 px reales, tanto en la pestaña (marcador al 78 %) como en la cinta */
+@media (max-height:560px){#pbug,.bn-rib>.sp-sena{--snb:60px;--snw:12px}}
+@media (prefers-reduced-motion:reduce){.sp-sena.on{animation:tvFade .15s linear both}}
+/* Cuaderno del árbitro: el pie del álbum enseña fecha + línea de reglamento en dos líneas (sin elipsis) */
+:root:not(#_):not(#_):not(#_) #pfFoot.pf-rule{white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-height:1.2}
+:root.ph:not(#_):not(#_):not(#_) #menu #pfFoot.pf-rule{-webkit-line-clamp:3;line-height:1.15;padding-top:3px;padding-bottom:3px}
 
 /* ---- .sp-ticket: brochazo turquesa (entrada de partido, Carrera): talón con escudos .sp-crest, cuerpo .sp-tk-main y flecha .sp-go ---- */
 :root:not(#_):not(#_):not(#_) .sp-ticket{justify-content:flex-start;gap:0;width:100%;padding:0;text-transform:none;letter-spacing:0;font-family:var(--sp-ui)}
@@ -6126,6 +6163,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 
   <!-- ================= HUD ================= -->
   <div id="hud" hidden>
+    <i id="sena" class="sp-sena" role="img" hidden></i><!-- idea «senas»: pegatina de la seña del árbitro (ui.js senaShow la pega en #pbug o en la cinta) -->
     <div class="rl zm" id="zmHint" aria-hidden="true"><span class="rl-k">Zoom</span><span class="sep sep-v" aria-hidden="true"></span><b id="zmN">3/5</b></div>
     <div class="sb" id="sb">
       <div id="drillBar"><i class="db-ic" aria-hidden="true"></i><span id="drillTxt">Saque</span></div>
@@ -6502,6 +6540,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
             <button class="opt" data-opt="sfxVol"><span>Efectos<small>Golpes, silbato y botes</small></span><span class="slider sp-slider" data-sl="sfxVol"><span class="trk"><i></i><b></b></span><span class="v">100%</span></span></button>
             <button class="opt" data-opt="crowdVol" data-need="Audio"><span>Público<small>Grada, ánimos y reacciones</small></span><span class="slider sp-slider" data-sl="crowdVol"><span class="trk"><i></i><b></b></span><span class="v">85%</span></span></button>
             <button class="opt" data-opt="musicVol"><span>Música<small>Sintonías y sonidos del menú</small></span><span class="slider sp-slider" data-sl="musicVol"><span class="trk"><i></i><b></b></span><span class="v">75%</span></span></button>
+            <button class="opt" data-opt="xarVol" data-need="Audio"><span>Xaranga<small>La charanga de la grada</small></span><span class="slider sp-slider" data-sl="xarVol"><span class="trk"><i></i><b></b></span><span class="v">60%</span></span></button>
             <button type="button" class="opt-reset sp-pill" data-reset="audio">Restablecer este apartado</button>
           </div>
           <div class="opt-g" data-tab="image">
@@ -6675,6 +6714,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 <script src="js/retos.js"></script>
 <script src="js/look.js"></script>
 <script src="js/netrec.js"></script>
+<script src="js/senas.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/venues.js"></script>
 <script src="js/venue-gen.js"></script>
