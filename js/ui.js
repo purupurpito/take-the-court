@@ -1120,8 +1120,13 @@
           // S4-D1: cierre de los retos ANTES de la hoja (null si el partido no cuenta: demo, ejercicio, espectador, autopilot).
           // En depuración, en seco (no guarda). Los objetos del Vestuario que dan los retos los concede checkGlobal al volver al
           // menú (lkCheckNew, con su aviso); la hoja de B6 (T19) los enseñará antes con lookGrantNow
-          retoEnd = null;
-          if (VB.Retos && VB.Retos.endMatch && !e.replay && !(g && g.online)) {   // (online: sin retos, decisión 4 de Ferran)
+          retoEnd = null; semEnd = null;
+          // la situación de la semana: cierra el intento (sin retos; el set de la situación es el último parcial). En depuración, en seco
+          if (g && g.sit && !g.demo && !e.replay && VB.Semana) {
+            try { var lsS = g.setScores[g.setScores.length - 1] || g.score; semEnd = VB.Semana.finish(g, { win: e.team === 0, a: lsS[0], b: lsS[1] }, !!ctx.debug); }
+            catch (er) { console.error('[VB][ERROR] Semana.finish: ' + er); semEnd = null; }
+          }
+          if (VB.Retos && VB.Retos.endMatch && !e.replay && !(g && g.online) && !(g && g.sit)) {   // (online: sin retos, decisión 4 de Ferran)
             try { retoEnd = VB.Retos.endMatch(g, { win: e.team === 0, map: VB.Arena && VB.Arena.map ? VB.Arena.map() : '', sets: e.sets }, !!ctx.debug); }
             catch (er) { console.error('[VB][ERROR] Retos.endMatch: ' + er); retoEnd = null; }
           }
@@ -1325,6 +1330,7 @@
       }
     }
   }
+  function setT(g) { try { return VB.Sim.setTarget(g); } catch (e) { return (g && g.points) || 25; } }
   function introStart(g, plan) {
     introUI.on = true; introUI.hudT = 0; introUI.quiet = true;   // sin avisos ni consejos hasta el primer silbato
     plan = plan && plan.beats ? plan : null;
@@ -1340,6 +1346,12 @@
     if (it && it.nodeType === 3) it.nodeValue = dr ? 'Entrenamiento' : six ? '6 contra 6' : '2 contra 2';
     if (dr) { drillIntro(g); introUI.plan = null; }
     else { try { introFill(g, plan); } catch (e) { console.error('[VB][ERROR] UI.introFill: ' + e); } }
+    // la situación de la semana: antetítulo propio y el marcador de arranque en lugar de «Al mejor de 3 sets»
+    if (g && g.sit && !g.demo && !dr) {
+      if (it && it.nodeType === 3) it.nodeValue = 'La situación de la semana';
+      if (el.introFmt) el.introFmt.textContent = (g.bo1 ? 'Set único a ' + setT(g) : SET_ORD[(g.setNo | 0) - 1] + ' set a ' + setT(g)) + ': ' + g.score[0] + '-' + g.score[1];
+      if (el.introSrv) el.introSrv.textContent = cpuTxt(g.serving === 1 ? 'Saca el rival' : six ? 'Sacáis vosotros' : 'Sacas tú');
+    }
     el.intro.style.setProperty('--in-dur', (dr ? 2.5 : introUI.dur) + 's');
     var d = device();
     el.introHint.innerHTML = d === 'touch' ? 'Toca para empezar ya' : d === 'gamepad' ? padKey('a') + 'para empezar ya' : 'Pulsa cualquier tecla para empezar ya';
@@ -3284,7 +3296,7 @@
   var restartArm = 0, restartTo = 0, quitArm = 0;
   function disarmRestart() {
     restartArm = 0; quitArm = 0; clearTimeout(restartTo);
-    if (el.btnRestart && el.btnRestart.classList.contains('arm')) { el.btnRestart.classList.remove('arm'); el.btnRestart.textContent = isDrill() ? 'Reiniciar ejercicio' : isTrial() ? 'Reiniciar prueba' : 'Reiniciar partido'; }
+    if (el.btnRestart && el.btnRestart.classList.contains('arm')) { el.btnRestart.classList.remove('arm'); el.btnRestart.textContent = isDrill() ? 'Reiniciar ejercicio' : isTrial() ? 'Reiniciar prueba' : ctx.game && ctx.game.sit && !ctx.game.demo ? 'Otro intento' : 'Reiniciar partido'; }
     if (el.btnQuit && el.btnQuit.classList.contains('arm')) { el.btnQuit.classList.remove('arm'); el.btnQuit.textContent = isTrial() ? 'Abandonar la prueba' : 'Salir al menú'; }
   }
   /** ¿Partido en curso = partidillo de prueba de la Carrera? (main.js: reiniciar o abandonar resuelve la prueba como suspendida) */
@@ -3303,6 +3315,7 @@
     var pk = [{ h: 'Set ' + g.setNo + SEP_V + g.score[0] + '-' + g.score[1] }, nm || OPT.difficulty.labels[optIndex('difficulty')]];
     if (rs && !rs.sc) pk.push('Nota ' + rtNum(+rs.v || 0));
     if (g && g.reto && !g.demo) pk.unshift('Reto del día');   // D1: «Reto del día ◆ Set 1 | 24-10 ◆ Difícil»
+    if (g && g.sit && !g.demo) { pk[0] = { h: nw((g.bo1 ? 'Set único' : SET_ORD[(g.setNo | 0) - 1] + ' set') + SEP_V + g.score[0] + '-' + g.score[1]) }; pk.unshift('La situación'); }   // «La situación ◆ Set único | 22-24 ◆ Difícil»
     return pk;
   }
   var SEP_V = '<span class="sep sep-v"><span class="sr">, </span></span>'; // barra vertical fina suelta (entre trozos ya en HTML)
@@ -3372,7 +3385,14 @@
       el.pWarn = document.createElement('p'); el.pWarn.className = 'p-warn';
       if (vl2 && vl2.parentNode) vl2.parentNode.insertBefore(el.pWarn, vl2);
     }
-    if (el.pWarn) { el.pWarn.textContent = xp && xp.warn ? xp.warn : 'Si reinicias o abandonas, pierdes la prueba'; el.pWarn.hidden = !(tr || (xp && xp.warn)); }
+    var sitP = !!(g && g.sit && !g.demo), semL = sitP && VB.Semana ? VB.Semana.left() : 0;
+    if (!el.pWarn && sitP) {   // la situación de la semana: reiniciar o salir gasta este intento
+      var vl3 = el.pause.querySelector('.vlist');
+      el.pWarn = document.createElement('p'); el.pWarn.className = 'p-warn';
+      if (vl3 && vl3.parentNode) vl3.parentNode.insertBefore(el.pWarn, vl3);
+    }
+    if (el.pWarn) { el.pWarn.textContent = sitP ? (semL > 0 ? 'Reiniciar o salir gasta este intento' : 'Salir gasta este intento (hoy no quedan más)') : xp && xp.warn ? xp.warn : 'Si reinicias o abandonas, pierdes la prueba'; el.pWarn.hidden = !(tr || (xp && xp.warn) || sitP); }
+    if (sitP) { el.btnRestart.textContent = 'Otro intento'; el.btnRestart.hidden = semL <= 0; el.btnRestart._semHid = semL <= 0; } else if (el.btnRestart._semHid) { el.btnRestart.hidden = false; el.btnRestart._semHid = false; }
     el.pS0.textContent = g.score[0]; el.pS1.textContent = g.score[1];
     el.pMid.innerHTML = 'SETS<b>' + g.sets[0] + '-' + g.sets[1] + '</b>';
     if (el.pKick) setSep(el.pKick, pauseKicker(g), 'd');
@@ -3394,7 +3414,8 @@
     var six = !!(ctx.game && ctx.game.size === 6 && !ctx.game.demo);
     // ONLINE (decisión 4 de Ferran): sin récord de Partido rápido, experiencia, perfil, insignias ni Vestuario; el récord online va aparte (fase 3)
     var online = !!(ctx.game && ctx.game.online) || !!ctx.net;
-    if (!ctx.debug && !career && !watch && !six && !online) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
+    var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (decisión de Ferran): sin récord, perfil, XP ni insignias
+    if (!ctx.debug && !career && !watch && !six && !online && !sitG) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
       record.played++; if (win) { record.wins++; record.winRun++; } else record.winRun = 0;
       // los consejos del partido acompañan hasta la primera victoria; luego se apagan (se reactivan en Ajustes · Juego · Consejos)
       if (win && record.wins === 1 && ctx.settings.coachTips !== false) ctx.actions.setSetting('coachTips', false);
@@ -3408,7 +3429,7 @@
     // D2 (perfil): cada partido jugado de verdad suma XP de perfil (Partido rápido 2v2/6v6 y Carrera); nunca en depuración,
     // espectador, autopilot ni demo. El resultado {xp, lvl, lvlUp, prize} lo enseña la hoja de B6 (T19)
     profEnd = null;
-    if (!ctx.debug && !watch && !online && ctx.game && !ctx.game.autopilot && !ctx.game.demo && VB.Profile && VB.Profile.noteMatch) {
+    if (!ctx.debug && !watch && !online && !sitG && ctx.game && !ctx.game.autopilot && !ctx.game.demo && VB.Profile && VB.Profile.noteMatch) {
       try {
         var pr = VB.Profile.noteMatch({ mode: career ? 'career' : six ? '6v6' : '2v2', win: win, setsWon: e.sets[0] | 0, diff: String(ctx.game.difficulty || ''), venue: VB.Arena && VB.Arena.map ? VB.Arena.map() : '' });
         if (pr) profEnd = { xp: pr.xp | 0, lvl: pr.lvl | 0, lvlUp: !!pr.lvlUp, prize: pr.prizeName || '' };
@@ -3444,14 +3465,14 @@
     // (online, anti-trampas: las huellas de los dos lados no cuadraron al final → el récord lo apunta como «no válido»; aquí se dice por qué)
     var nrr = online && ctx.net && ctx.net.recRes;
     if (nrr && nrr.outcome && nrr.outcome.kind === 'unverified') rec += '<span class="new">No válido: las dos partidas no cuadraban al final. No cuenta en tu récord online.</span>';
-    if (!ctx.debug && !career && !six && !online) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
+    if (!ctx.debug && !career && !six && !online && !sitG) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
     var bs = record.bestStreak;
     if (isNew) rec += '<span class="new">¡Nueva mejor racha: ' + (bs === 1 ? '1 punto seguido' : bs + ' puntos seguidos') + '!</span>';
-    else if (record.winRun > 1 && !career && !online) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
+    else if (record.winRun > 1 && !career && !online && !sitG) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
     // siguiente paso en un clic: tras ganar, revancha un nivel por encima; tras perder (salvo en Fácil), uno por debajo
     var di = optIndex('difficulty'), alt = win ? (di < OPT.difficulty.vals.length - 1 ? di + 1 : -1) : (di > 0 ? di - 1 : -1);
-    if (!win && alt >= 0 && !career && !online) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
-    el.btnAgainAlt.hidden = alt < 0;
+    if (!win && alt >= 0 && !career && !online && !sitG) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
+    el.btnAgainAlt.hidden = alt < 0; el.btnAgainAlt.setAttribute('data-act', 'againAlt');   // (la situación de la semana lo cambia a «share» en endButtons)
     if (alt >= 0) { el.btnAgainAlt.textContent = 'Revancha en ' + OPT.difficulty.labels[alt]; el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); endAltName = OPT.difficulty.labels[alt]; }
     el.btnAgainAlt.setAttribute('data-short', alt >= 0 ? (alt > di ? 'Más difícil' : 'Más fácil') : '');   // (móvil: rótulo corto, CSS «SPLAT · PAUSA Y HOJA FINAL»)
     // (botones de siempre; el Resumen de B6 los vuelve a rotular según el caso: Carrera, reto, Partido rápido)
@@ -3464,7 +3485,7 @@
     if (el.btnEndOpts) { el.btnEndOpts.hidden = noOpts; el.btnEndOpts.parentNode.setAttribute('data-n', String((alt >= 0 && !career ? 1 : 0) + (noOpts ? 0 : 1) + 1)); }
     // (partido de Carrera, g.career: la experiencia y las insignias de su atleta las reparte VB.Career.matchDone, no el escuadrón)
     // (6v6 de pruebas, ?format=6v6: tampoco reparte al escuadrón de 2v2)
-    if (!ctx.debug && !online && VB.Prog && ctx.game && !ctx.game.autopilot && !ctx.game.career && ctx.game.size !== 6) {
+    if (!ctx.debug && !online && !sitG && VB.Prog && ctx.game && !ctx.game.autopilot && !ctx.game.career && ctx.game.size !== 6) {
       var dfk = ctx.game.difficulty, perP = [stats.p[0], stats.p[1]];
       var aw = VB.Prog.award(perP, { win: win, setsWon: e.sets ? e.sets[0] : 0, difficulty: dfk }), sqa = VB.Prog.get().a, xh = '';
       aw.forEach(function (r, i) {
@@ -3477,7 +3498,7 @@
     }
     el.endRecord.innerHTML = rec;
     if (el.btnMStats) el.btnMStats.hidden = !(VB.MatchStats && VB.MatchStats.ready && VB.MatchStats.ready());   // «Estadística del partido»
-    if (el.btnActa) { el.btnActa.hidden = !(actaOk && VB.Acta && VB.MatchStats && VB.Acta.available(VB.MatchStats.data())); actaLbl(''); }   // «Acta del partido» (6v6)
+    if (el.btnActa) { el.btnActa.hidden = sitG || !(actaOk && VB.Acta && VB.MatchStats && VB.Acta.available(VB.MatchStats.data())); actaLbl(''); }   // «Acta del partido» (6v6)
     placeMStats();
     // MVP de cada equipo (UI-11). UI-18: una tabla pequeña: un solo rótulo «MVP», la cabecera «Ataque · Bloqueo · Saque» una vez y en
     // cada fila el dorsal, los puntos (la cifra grande) y su desglose; el lector de pantalla oye la frase entera (aria-label).
@@ -3540,6 +3561,7 @@
       to: (g && g.points) || 25, size: (g && g.size) || 2, career: cs, cpu: g && g.netCr ? 'el rival' : 'la CPU', pl: pl, spSaved: stats.spSaved.slice(), moments: mo, close: stats.close,
       longest: stats.longest, watch: !!(g && g.watch0 && !g.demo), drill: false, reto: g && g.reto && !cs ? g.reto : null, plays: replayN(), unlocks: endUnlocks(),
       profile: profEnd || null };
+    if (g && g.sit && !g.demo && !cs) d.sit = semData(g);   // la situación de la semana (recap.js: título, bloque «Situación» y botones)
     if (cs) {
       d.sum = sum || null; x = x || {};
       if (x.tbl) d.table = { rows: x.tbl, myId: x.myId, pos0: cs.pos0 | 0, shortOf: function (k) { return x.short && x.short[k] || ''; } };
@@ -3555,6 +3577,14 @@
     var re = retoEnd;
     if (re && ((re.up && re.up.length) || (re.xp && !cs))) d.retos = { pills: (re.up || []).map(function (u) { return { name: u.name, lvl: u.lvl | 0, nw: !(u.prev | 0) }; }), xp: cs ? 0 : re.xp | 0 };
     return d;
+  }
+  /** Datos de la situación para la hoja final (recap.js endModel, d.sit). */
+  function semData(g) {
+    var M = VB.Semana, r = semEnd, st0 = g.st0 || {}, sc0 = st0.score || [0, 0];
+    var ls = g.setScores && g.setScores[g.setScores.length - 1] || g.score;
+    var lbl = (g.bo1 ? 'Set único a ' : SET_ORD[(g.setNo | 0) - 1] + ' set a ') + setT(g);
+    return { wk: g.sit.wk | 0, wn: M ? M.wkNum(g.sit.wk | 0) : 0, label: lbl, start: [sc0[0] | 0, sc0[1] | 0], a: ls[0] | 0, b: ls[1] | 0, win: !!(r ? r.w : g.sets[0] > g.sets[1]),
+      i: r ? r.i | 0 : g.sit.i | 0, tries: M ? M.TRIES : 3, left: r ? r.left | 0 : (M ? M.left() : 0), best: r && r.best ? { w: r.best.w, a: r.best.a, b: r.best.b } : null, isBest: !!(r && r.isBest) };
   }
   /** Entreno de la semana (sesiones de main antes del partido y mejoras del entreno semanal): «2 sesiones de 3 | +1 Recepción». */
   function trainLine(sum, ses) {
@@ -3588,6 +3618,10 @@
     var cs = d.career;
     // antetítulo y título: los de la Carrera (competición y «Gana el …») y del reto del día; Partido rápido, los de showEnd
     if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
+    else if (d.sit) {   // «La situación ◆ Semana 47 | Set único a 25»
+      setSep(el.endKicker, [{ h: nw('La situación') }, { h: nw('Semana ' + d.sit.wn) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
+      el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 11);
+    }
     else if (d.reto) {
       var dn = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
       // (móvil: sin «Nivel …», que partía la sede en dos líneas y quedaba bajo el sello)
@@ -3881,12 +3915,14 @@
     var B = M.buttons; if (!B) return;
     el.btnAgain.textContent = B.primary.label; el.btnAgain.setAttribute('data-act', B.primary.id); el.btnAgain.disabled = false;   // (la revancha online lo deja desactivado)
     var has = {}; (B.rest || []).forEach(function (b) { has[b.id] = b; });
-    el.btnAgainAlt.hidden = !has.againAlt; if (has.againAlt) el.btnAgainAlt.textContent = has.againAlt.label;
-    var o = has.opts || has.retos;
+    el.btnAgainAlt.hidden = !has.againAlt && !has.share; if (has.againAlt) el.btnAgainAlt.textContent = has.againAlt.label; else if (has.share) el.btnAgainAlt.textContent = has.share.label;
+    el.btnAgainAlt.setAttribute('data-act', has.share && !has.againAlt ? 'share' : 'againAlt');   // (la situación de la semana: «Compartir»)
+    var o = has.opts || has.retos || has.group;
     if (el.btnEndOpts) { el.btnEndOpts.hidden = !o; if (o) { el.btnEndOpts.textContent = o.label; el.btnEndOpts.setAttribute('data-act', o.id); } }
     el.btnMenu.hidden = !has.menu; if (has.menu) el.btnMenu.textContent = has.menu.label;
-    el.btnAgain.parentNode.setAttribute('data-n', String((has.againAlt ? 1 : 0) + (o ? 1 : 0) + (has.menu ? 1 : 0)));
-    el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : '');
+    el.btnAgain.parentNode.setAttribute('data-n', String((has.againAlt || has.share ? 1 : 0) + (o ? 1 : 0) + (has.menu ? 1 : 0)));
+    el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : has.share ? 'Enviar' : '');
+    if (el.btnEndOpts) { if (o && o.id === 'group') el.btnEndOpts.setAttribute('data-short', 'Grupo'); else el.btnEndOpts.removeAttribute('data-short'); }   // (móvil: rótulos cortos de la situación)
     endOptsPill(has.againAlt && o && o.id === 'opts' ? o.label : '');
   }
   /** Móvil (MV-4): rótulo corto de «Revancha en <nivel>» (CSS lo pone con ::after en :root.ph): «Más difícil» / «Más fácil». */
@@ -4020,6 +4056,7 @@
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
+        case 'sit': blk('rc-sit', H.sit || 'Situación', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + escT(t) + '</span>'; }).join('')); break;
       }
     });
     return h;
@@ -5640,6 +5677,7 @@
     uiSound('start');
     if (ctx.net && act === 'rematch') { if (ctx.actions.netRematch) ctx.actions.netRematch(); onlineEndSync(); return; }   // (online: revancha pactada, fase 3)
     if (act === 'next' || ctx.net) { goMenu(); return; }   // (online: si no, al menú)
+    if (g && g.sit && !g.demo) { if (act === 'share') semShare(); else goSemana(true); return; }   // la situación: «Otro intento» / «Compartir»
     if (g && g.retoOpts && !g.demo) { goReto(true); return; }
     goMatch(null, undefined, !(g && g.career));
   }
@@ -6906,7 +6944,7 @@
   // final del reto ofrece «Otra vez» (el reto de HOY, previa mini) y «Retos» (goRetosList). La pestaña se recuerda en
   // localStorage 'make-the-cut.retostab' (comodidad del aparato; nunca a la cuenta).
   var rtTab = '', rtTabsApi = null, rtStrip = '';
-  function rtTabLoad() { try { return localStorage.getItem('make-the-cut.retostab') === 'maestria' ? 'maestria' : 'hoy'; } catch (e) { return 'hoy'; } }
+  function rtTabLoad() { try { var v = localStorage.getItem('make-the-cut.retostab'); return v === 'maestria' || (v === 'semana' && VB.SemanaUI) ? v : 'hoy'; } catch (e) { return 'hoy'; } }
   function rtTabSave(v) { try { localStorage.setItem('make-the-cut.retostab', v); } catch (e) { } }
   function rtDaily() { try { return VB.Retos && VB.Retos.daily ? VB.Retos.daily() : null; } catch (e) { return null; } }
   /** MV-6: el objetivo del oro en corto (móvil con 380 de alto o menos), desde {id, n} de VB.Retos.daily().goal; '' = sin versión corta */
@@ -6927,7 +6965,7 @@
     }
     return '';
   }
-  function rtFocusEl() { return el.rtBody ? el.rtBody.querySelector('[data-reto="day"]') || el.rtBody.querySelector('button') || el.btnRetosBack : null; }
+  function rtFocusEl() { return el.rtBody ? el.rtBody.querySelector('[data-reto="day"]') || el.rtBody.querySelector('[data-sem="go"]') || el.rtBody.querySelector('button') || el.btnRetosBack : null; }
   /** Franja de Jugar: «Reto del día: Cala dels Fanals» + pastilla «Sin jugar» / «Hoy: plata», la medalla de hoy y el punto de nuevo. */
   function renderRetoStrip() {
     if (!el.btnRetos) return;
@@ -6947,7 +6985,7 @@
   function renderRetos() {
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
-    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, [{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }],
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Semana' }] : []).concat([{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»; se abre en Hoy salvo que la recuerde)
       { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
         // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
         var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
@@ -6957,7 +6995,10 @@
     else if (rtTabsApi && rtTabsApi.get() !== rtTab) rtTabsApi.set(rtTab, 'api');
     var R = VB.Retos, h, foot = '';
     if (!R) h = '<p class="rt-none">Los retos no están disponibles.</p>';
-    else if (rtTab === 'maestria') {
+    else if (rtTab === 'semana') {   // la situación de la semana (js/semana-ui.js pinta; aquí solo se monta)
+      try { h = VB.SemanaUI ? VB.SemanaUI.tabHTML(semMap) : ''; foot = VB.SemanaUI ? VB.SemanaUI.foot() : ''; } catch (e) { console.error('[VB][ERROR] SemanaUI.tabHTML: ' + e); h = ''; }
+      if (!h) h = '<p class="rt-none">La situación de la semana no está disponible.</p>';
+    } else if (rtTab === 'maestria') {
       var U = {}; try { R.unseen().forEach(function (id) { U[id] = 1; }); } catch (e) { }
       h = '';
       // SPLAT: grupo = pegatina pequeña de tinta; reto = pegatina del color de su grupo (dorada con el oro) con la medalla en pegatina
@@ -7024,6 +7065,43 @@
       setTimeout(function () { if (mpage === 'retos' && !panel && ctx.state === 'menu') focusEl(pageFocus(), kb); }, 250);
     };
     if (!wipeRun(2, f) && !wp.cb) f();
+  }
+
+  // ---- La situación de la semana (js/semana.js + js/semana-ui.js; decisiones de Ferran del 20-nov-2026: junto al reto del día, nivel y
+  // atributos iguales para todos, sin XP ni medallas ni récord). goSemana gasta el intento AL EMPEZAR (VB.Semana.begin) y arranca el
+  // partido en el marcador de la semana; la pausa avisa de que reiniciar o salir lo gasta; la hoja final ofrece «Otro intento»,
+  // «Compartir» (enlace con el mapa del grupo) y «Ver el grupo» (Retos › Semana). ?sem=… (enlace de un amigo) lo lee semAuto.
+  var semMap = 'S', semEnd = null;
+  function semToast(t) { try { if (VB.Splat && VB.Splat.toast) VB.Splat.toast(escT(t), { key: 'sem' }); } catch (e) { } }
+  function goSemana(mini) {
+    var M = VB.Semana; if (!M) return;
+    var f = function () {
+      var o = M.begin();
+      if (!o) { semToast('Hoy ya no quedan intentos. Mañana, 3 más'); if (ctx.state !== 'menu') ctx.actions.toMenu(); return; }
+      if (mini) o.introKind = 'mini';
+      ctx.actions.startMatch(o);
+    };
+    if (M.left() <= 0) { semToast('Hoy ya no quedan intentos. Mañana, 3 más'); return; }
+    if (!wipeRun(2, f) && !wp.cb) f();
+  }
+  /** Hoja final de la situación → «Ver el grupo»: al menú, en Retos › Semana (Volver lleva a Jugar). */
+  function goSemanaList() { rtTab = 'semana'; rtTabSave('semana'); goRetosList(); }
+  function semShare() { if (VB.SemanaUI) VB.SemanaUI.share(function () { if (mpage === 'retos' && rtTab === 'semana') renderRetos(); }); }
+  /** Enlace de un amigo (?sem=…): en cuanto la portada está libre, la cadena se une a la tuya y se abre Retos › Semana. Luego se quita
+   *  ?sem= de la barra de direcciones (recargar no la vuelve a meter). Con él, el reto del día no se abre solo esta vez. */
+  function semAuto() {
+    var q = ctx.params.sem, M = VB.Semana; if (!q || !M || !el.mpRetos) return;
+    var tries = 0, iv = setInterval(function () {
+      if (++tries > 4800) { clearInterval(iv); return; }   // (hasta 20 min: si las novedades o el primer partido tapan la portada, el enlace espera)
+      if (!VB.UI.menuIdle() || document.hidden) return;
+      clearInterval(iv);
+      var r = null; try { r = M.mergeLink(q); } catch (e) { console.error('[VB][ERROR] Semana.mergeLink: ' + e); }
+      try { var u = new URL(location.href); u.searchParams.delete('sem'); history.replaceState(history.state, '', u.pathname + (u.search || '') + u.hash); } catch (e) { }
+      if (!r) { semToast('Ese enlace de la situación está roto o incompleto'); return; }
+      VB.UI.openRetos('semana');
+      if (r.old) semToast('Es la cadena de la semana ' + M.wkNum(r.wk) + ': ya está cerrada');
+      else if (r.n) semToast('Tienes la cadena de ' + String(r.from).replace(/_/g, ' ') + (r.n > 1 ? ' y ' + (r.n - 1) + (r.n === 2 ? ' más' : ' más') : '') + '. ¡Te toca!');
+    }, 250);
   }
 
   // =====================================================================
@@ -7962,10 +8040,12 @@
     replayWipe: replayWipe, replayDone: replayDone,
     /** Pruebas (B6): último modelo de la hoja, sus datos y la pestaña abierta. */
     _recap: function () { return recapM ? { M: recapM, tab: endTab, blocks: recapM.blocks, buttons: recapM.buttons, tabs: recapM.tabs } : null; },
-    /** D1: el menú en la página Retos (escena debug=retos; tab = 'hoy' | 'maestria'). */
+    /** La situación de la semana (pruebas): último cierre de VB.Semana.finish. */
+    _semEnd: function () { return semEnd; },
+    /** D1: el menú en la página Retos (escena debug=retos; tab = 'hoy' | 'semana' | 'maestria'). */
     openRetos: function (tab) {
       if (ctx.state !== 'menu') return false;
-      if (tab === 'hoy' || tab === 'maestria') { rtTab = tab; rtTabSave(tab); }
+      if (tab === 'hoy' || tab === 'maestria' || (tab === 'semana' && VB.SemanaUI)) { rtTab = tab; rtTabSave(tab); }
       mstack.length = 0; mstack.push({ p: 'main', f: 'btnPlay' }); mstack.push({ p: 'play', f: 'btnRetos' });
       setPage('retos'); focusSoon(pageFocus(), false);
       return true;
@@ -8144,7 +8224,7 @@
       on(el.btnPSettings, function () { openPanel('set', 'paused'); });
       // Reiniciar en dos pasos (un dedo que se escapa no tira el partido): 1r toque arma 2 s, el 2º reinicia. Sin confirm().
       on(el.btnRestart, function () {
-        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (ctx.game && ctx.game.retoOpts && !ctx.game.demo) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
+        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (ctx.game && (ctx.game.retoOpts || ctx.game.sit) && !ctx.game.demo) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
         disarmRestart(); restartArm = performance.now();
         el.btnRestart.textContent = armTxt('reiniciar');
         el.btnRestart.classList.add('arm');
@@ -8162,8 +8242,9 @@
       el.btnAgain.addEventListener('click', endPrimary);
       el.btnMenu.addEventListener('click', function () { uiSound('back'); goMenu(); });
       // «Cambiar opciones» o, en el reto del día, «Retos» (vuelve a #mpRetos)
-      if (el.btnEndOpts) el.btnEndOpts.addEventListener('click', function () { uiSound('click'); if (el.btnEndOpts.getAttribute('data-act') === 'retos') goRetosList(); else goOptions(); });
+      if (el.btnEndOpts) el.btnEndOpts.addEventListener('click', function () { uiSound('click'); var ea = el.btnEndOpts.getAttribute('data-act'); if (ea === 'retos') goRetosList(); else if (ea === 'group') goSemanaList(); else goOptions(); });
       el.btnAgainAlt.addEventListener('click', function () {
+        if (el.btnAgainAlt.getAttribute('data-act') === 'share') { uiSound('click'); semShare(); return; }   // (la situación de la semana)
         var d = el.btnAgainAlt.getAttribute('data-d'); uiSound('start');
         goMatch(d || null, undefined, true);
       });
@@ -8187,6 +8268,9 @@
       if (el.rtBody) el.rtBody.addEventListener('click', function (ev) {
         var b = ev.target && ev.target.closest ? ev.target.closest('button') : null; if (!b || !el.rtBody.contains(b)) return;
         if (b.getAttribute('data-reto') === 'day') { uiSound('start'); goReto(false); }
+        else if (b.getAttribute('data-sem') === 'go') { if (b.getAttribute('aria-disabled') === 'true') { uiSound('back'); semToast('Hoy ya no quedan intentos. Mañana, 3 más'); } else { uiSound('start'); goSemana(false); } }
+        else if (b.getAttribute('data-sem') === 'share') { click(); semShare(); }
+        else if (b.hasAttribute('data-semmap')) { var mm = b.getAttribute('data-semmap') === 'A' ? 'A' : 'S'; if (mm !== semMap) { semMap = mm; click(); renderRetos(); var nb = el.rtBody.querySelector('[data-semmap="' + mm + '"]'); if (nb) focusEl(nb, kbNow()); } }
         else if (b.hasAttribute('data-rt')) click();
       });
       // tocar/clic durante la tarjeta de presentación la salta (UI-14; main.js la quita en el frame siguiente)
@@ -8253,7 +8337,7 @@
       window.addEventListener('gamepadconnected', function () { last.navh = null; last.ctls = null; padFamF = -999; GLYPH_PS = null; if (ctx.state === 'menu') renderMenu(); if (panel === 'ctl') { ctlView = 'gamepad'; renderCtl(); } });
       this.onSettings(ctx.settings);
       newsAuto();   // E7: novedades una vez por versión (jugador que vuelve)
-      retoAuto();   // reto del día al abrir el juego (una vez al día, sin medalla de hoy)
+      if (ctx.params.sem) semAuto(); else retoAuto();   // reto del día al abrir el juego (una vez al día, sin medalla de hoy); con ?sem=, la situación de la semana
       var pn = ctx.params.panel || (ctx.debug === 'tutorial' ? 'tut' : ctx.debug === 'controls' ? 'ctl' : ctx.debug === 'settings' ? 'set' : '');
       if (ctx.params.menu === 'play' || ctx.params.menu === 'quick') setTimeout(function () { mstack.push({ p: 'main', f: 'btnPlay' }); if (ctx.params.menu === 'quick') { mstack.push({ p: 'play', f: 'btnQuick' }); } setPage(ctx.params.menu); focusLayer(); }, 0);
       if (pn && PANELS[pn]) setTimeout(function () { if (pn === 'about') openAbout(ctx.params.tab === 'credits' ? 'credits' : 'news', 'menu'); else openPanel(pn, 'menu'); if (ctx.params.step) tutGo(+ctx.params.step - 1); }, 0);

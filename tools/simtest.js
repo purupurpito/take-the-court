@@ -26,6 +26,7 @@
  *   saltan sin soltar la dirección en una parte de sus ataques (BOT_DJ) y la tabla añade toques de red cada 100 puntos y % de remates
  *   con impulso (hit.mom >= 0,5). SIMTEST_JSETAIM=1: además createGame({jsetAim:true}) (la diana sin mover: nada cambia).
  *   SIMTEST_DJBOT=1: el mismo bot de BOT_DJ con la sim SIN djump (A/B de la sim con la misma entrada).
+ *   SIMTEST_ONLY=semana: solo la sección «Arranque con marcador» (la situación de la semana, createGame({start})).
  *   SIMTEST_ONLY=replay: solo la sección «[repetición]» (S3-C1: copyGame, stateHash, resim idéntica; SIMTEST_RP_SECS = s por partido, 180).
  */
 'use strict';
@@ -1810,7 +1811,84 @@ function replaySection() {
     ', ' + (tot.ns / Math.max(1, tot.steps) / 1000).toFixed(1) + ' µs/paso (vm), copyGame ' + (tot.copyNs / Math.max(1, tot.copies) / 1000).toFixed(0) + ' µs de media (vm), ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s' + (failures === f0 ? ' OK' : ''));
 }
 
+// LA SITUACIÓN DE LA SEMANA (js/semana.js, 20-nov-2026): createGame({start}) arranca en un marcador dado. Sin la opción, nada cambia
+function semSection() {
+  const f0 = failures, res = [], t0 = Date.now();
+  const play = (g, max) => {   // autopilot hasta gameOver; devuelve lo visto
+    const v = { first: null, over: null, newSet: 0, eight: 0, swaps: [], sets: [], pts: 0 };
+    for (const e of S.drainEvents(g)) if (e.type === 'serveReady' && !v.first) v.first = e;
+    for (let i = 0; i < (max || 120 * 60 * 30) && !v.over; i++) {
+      S.step(g, DT, null);
+      for (const e of S.drainEvents(g)) {
+        if (e.type === 'serveReady' && !v.first) v.first = e;
+        if (e.type === 'newSet') v.newSet++;
+        if (e.type === 'courtChange') { if (e.why === 'eight') v.eight++; if (e.why === 'swap') v.swaps.push(e.score[0] + e.score[1]); }
+        if (e.type === 'set') v.sets.push(e.score.slice());
+        if (e.type === 'point') v.pts++;
+        if (e.type === 'gameOver') v.over = e;
+      }
+    }
+    return v;
+  };
+  let ex = null;
+  try {
+    // (a) forma: sin opts.start no hay st0 ni bo1, y la partida es la misma con start nulo
+    const k1 = Object.keys(S.createGame({ seed: 1 })).join(','), k2 = Object.keys(S.createGame({ seed: 1, start: null })).join(',');
+    const ga = S.createGame({ seed: 3, autopilot: true }), gb = S.createGame({ seed: 3, autopilot: true, start: undefined });
+    for (let i = 0; i < 120 * 40; i++) { S.step(ga, DT, null); S.step(gb, DT, null); }
+    res.push(['(a) sin opts.start: sin st0 ni bo1, mismas claves y misma partida', k1 === k2 && k1.indexOf('st0') < 0 && k1.split(',').indexOf('bo1') < 0 && S.stateHash(ga) === S.stateHash(gb), {}]);
+    // (b) set único 22-24, saca el rival: punto de set y de partido para el rival; acaba con ese set (1-0 o 0-1)
+    const rb = { n: 0, ok: 0, mal: [] };
+    for (let sd = 0; sd < 3; sd++) {
+      const g = S.createGame({ seed: 500 + sd, autopilot: true, difficulty: 'hard', start: { setNo: 1, score: [22, 24], serving: 1, bo1: true } });
+      const v = play(g); rb.n++;
+      const sc = v.over && v.over.sets, okEnd = sc && sc[0] + sc[1] === 1 && g.setScores.length === 1 && v.newSet === 0;
+      if (v.first && v.first.setPoint === 1 && v.first.matchPoint === 1 && v.first.team === 1 && okEnd && g.bo1 === true) rb.ok++; else rb.mal.push({ sd, first: v.first && [v.first.setPoint, v.first.matchPoint], sc, ss: g.setScores });
+    }
+    res.push(['(b) set único 22-24 sacando el rival: punto de partido del rival y fin al acabar el set', rb.ok === rb.n, rb]);
+    // (c) 3r set 13-14: sets 1-1, a 15, sin el cambio de los 8 (ya pasó), termina el partido 2-1 o 1-2
+    const rc = { n: 0, ok: 0, mal: [] };
+    for (let sd = 0; sd < 3; sd++) {
+      const g = S.createGame({ seed: 600 + sd, autopilot: true, start: { setNo: 3, score: [13, 14], serving: 0 } });
+      const pre = { set: g.setNo, sets: g.sets.slice(), sw: g.courtSwap3, mp: g.matchPoint, bo1: 'bo1' in g };
+      const v = play(g); rc.n++;
+      const sc = v.over && v.over.sets, last = v.sets[v.sets.length - 1];
+      if (pre.set === 3 && pre.sets.join() === '1,1' && pre.sw && pre.mp === 1 && !pre.bo1 && v.eight === 0 && v.newSet === 0 && sc && Math.max(sc[0], sc[1]) === 2 && Math.min(sc[0], sc[1]) === 1 && last && Math.max(last[0], last[1]) >= 15 && g.setScores.length === 3) rc.ok++;
+      else rc.mal.push({ sd, pre, sc, last, eight: v.eight });
+    }
+    res.push(['(c) 3r set 13-14: sets 1-1 a 15, sin cambio a los 8 y fin 2-1 / 1-2', rc.ok === rc.n, rc]);
+    // (d) playa 19-20 (set único a 21): courtSwapAt = 35, sin cambio de campo inmediato; los cambios siguen cada 7
+    const rd = { n: 0, ok: 0, mal: [] };
+    for (let sd = 0; sd < 3; sd++) {
+      const g = S.createGame({ seed: 700 + sd, autopilot: true, venue: 'beach', start: { setNo: 1, score: [19, 20], serving: 1, srvIdx: 1, bo1: true } });
+      const pre = { at: g.courtSwapAt, pts: g.points, si: g.serverIdx[1], srv: g.server && g.server.idx };
+      const v = play(g); rd.n++;
+      if (pre.at === 35 && pre.pts === 21 && pre.si === 1 && v.swaps.every(x => x % 7 === 0 && x > 39) && v.over && v.over.sets[0] + v.over.sets[1] === 1) rd.ok++; else rd.mal.push({ sd, pre, swaps: v.swaps });
+    }
+    res.push(['(d) playa 19-20: set a 21, courtSwapAt 35, saca el n.º 2 rival y sin cambio inmediato', rd.ok === rd.n, rd]);
+    // (e) 6v6 con rot [3,0]: el colocador del equipo 0 en la zona 4; el rival con su rotación de salida (colocador en la 1)
+    const g6 = S.createGame({ seed: 800, autopilot: true, format: '6v6', start: { setNo: 1, score: [23, 23], serving: 0, rot: [3, 0], bo1: true } });
+    const zs = t => g6.rot[t].findIndex(q => q.role === 'S') + 1;
+    const z0 = zs(0), z1 = zs(1), v6 = play(g6);
+    res.push(['(e) 6v6 rot [3,0]: colocador en zona 4 (rival en 1) y fin al acabar el set', z0 === 4 && z1 === 1 && !!v6.over && v6.over.sets[0] + v6.over.sets[1] === 1, { z0, z1, sets: v6.over && v6.over.sets }]);
+    // (f) determinismo: misma semilla y mismo arranque → misma partida
+    const st = { setNo: 1, score: [20, 22], serving: 1, bo1: true };
+    const h1 = S.createGame({ seed: 901, autopilot: true, start: st }), h2 = S.createGame({ seed: 901, autopilot: true, start: st });
+    for (let i = 0; i < 120 * 60; i++) { S.step(h1, DT, null); S.step(h2, DT, null); }
+    res.push(['(f) misma semilla y mismo arranque: mismo stateHash', S.stateHash(h1) === S.stateHash(h2), {}]);
+    // (g) saneado: un marcador con el set ya ganado se recorta; sin online, demo ni ejercicio
+    const gs = S.createGame({ seed: 2, start: { setNo: 1, score: [30, 2], serving: 0 } });
+    const gd = S.createGame({ seed: 2, demo: true, start: { setNo: 3, score: [10, 10] } });
+    res.push(['(g) saneado: 30-2 → 3-2 sin set ganado; la demo ignora opts.start', gs.score[0] === 3 && gs.score[1] === 2 && gs.mode === 'serve' && !('st0' in gd) && gd.setNo === 1, { s: gs.score }]);
+  } catch (e) { ex = e && e.stack || String(e); }
+  if (ex) res.push(['excepción', false, { ex }]);
+  const bad = res.filter(r => !r[1]);
+  if (bad.length) fail('arranque con marcador: ' + bad.map(r => r[0] + ' ' + JSON.stringify(r[2])).join('; '));
+  console.log('\nArranque con marcador, la situación de la semana (' + ((Date.now() - t0) / 1000).toFixed(1) + ' s)' + (failures === f0 ? ' OK' : '') + '\n  ' + res.map(r => r[0] + (r[1] ? '' : ' ' + JSON.stringify(r[2]))).join('\n  '));
+}
+
 async function main() {
+if (ONLY === 'semana') { semSection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // SIMTEST_ONLY=semana
 if (ONLY === 'replay') { replaySection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // S3-C1: SIMTEST_ONLY=replay
 // E1: SIMTEST_ONLY=e1, solo la sección de maestría
 if (ONLY === 'gym') { gymSection(); console.log(failures ? failures + ' FALLOS' : 'TODO OK'); process.exit(failures ? 1 : 0); } // E6: SIMTEST_ONLY=gym
@@ -3985,6 +4063,9 @@ if (ONLY !== 'matrix') {
 
   // REPETICIÓN (S3-C1): copyGame/stateHash, resim idéntica y sin interferencia
   if (ONLY !== 'matrix') replaySection();
+
+  // LA SITUACIÓN DE LA SEMANA (20-nov-2026): createGame({start})
+  if (ONLY !== 'matrix') semSection();
 
   // Huella 2v2 (sprint 1 del 6v6): 150 partidas de referencia deben dar EXACTAMENTE lo mismo que tools/fp-2v2.json
   if (ONLY !== 'matrix') {

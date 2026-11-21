@@ -1933,3 +1933,31 @@ Con `html.ph` (móvil apaisado; notes/splat.md «Móvil») cada bloque de la por
   recap.js: STAKES `derby` («DERBI», «{city} se paraliza», solo pista), `revancha`, `cumbre` y la regla de titular `redCard`.
 - **Pruebas**: `node tools/ambientetest.js [n=12]` (banco de frases, determinismo, sim idéntica sin las puertas y con «Apagado», nada tras el
   silbato ni en el avance rápido, sin frase repetida en 12, «Tranquilo», frecuencias, castigo real, enganche de Carrera y recap).
+
+## La situación de la semana (20-nov-2026, rama aparte; idea «semana»)
+Cada lunes, el mismo final apurado para todo el mundo («Set único a 25: 22-24, saca el rival» o «3r set a 15: 13-14, sacas tú»), tres
+intentos al día, el mejor de la semana y un enlace para compartir con el «mapa del grupo». Sin servidor.
+**Decisiones de Ferran:** va JUNTO al reto del día (no lo sustituye: el reto del día sigue con el Vestuario, la XP de perfil y el álbum);
+nivel, atributos e insignias iguales para todos (sin rebaja de novato, sin la zona ni el saque de firma) y SIN XP, medallas, récord ni
+perfil. La portada no se toca (hay un rediseño de menús en marcha): se entra por Jugar › Retos › pestaña «Semana».
+- **js/semana.js** (`VB.Semana`, puro, sin DOM): `situation(wk)` sembrada con `mulberry32(hashStr('mtc-sem-' + semana ISO))` (nunca
+  g.rng; 8 extracciones en orden fijo: formato 50/30/20, sede, familia set único 60 % / 3r set 40 %, marcador 70 % por detrás / 20 %
+  empate / 10 % por delante y nunca un set ya ganado, saque, sacador, rotación 6v6, nivel Normal 40 % / Difícil 60 %). `begin()` gasta
+  el intento AL EMPEZAR y da las opciones de startMatch (`sit`, `start`, `seed` del intento, la misma para todos); `finish(g, res, dry)`
+  lo cierra con las zonas de `MatchStats.zonesOf`; `abandon(g)` = perdido con el marcador que lleve (un intento abierto de otra
+  sesión, al cargar, = perdido con el del arranque). Mejor: ganada > perdida; entre ganadas, menos puntos cedidos; entre perdidas, más
+  ganados. Enlace `?sem=AAAAWW.nombre~w26-24~S165~A43.….cccc` (≤ 8 entradas, nombres saneados ≤ 12, 4 caracteres de control que solo
+  descartan enlaces rotos: no es un antitrampas). Guardado `make-the-cut.semana` v1 (solo del aparato; nunca a la cuenta ni a TRACK).
+- **js/semana-ui.js** (`VB.SemanaUI`): el pintado de la pestaña (brochazo con el marcador, intentos, «¡A jugar!», «Compartir» y el mapa
+  del grupo en SVG con un punto por amigo) y `share()` (navigator.share o portapapeles con «Enlace copiado»). CSS «SPLAT · RETOS · SEMANA».
+- **ui.js**: pestaña Semana, la 1ª (`rtTabLoad` la recuerda; sin recordar, se abre Hoy), `goSemana`, `semShare`, `semAuto` (?sem= al abrir: une la cadena, abre Retos ›
+  Semana y quita el parámetro con replaceState; ese día el reto del día no se abre solo), cierre en `gameOver` (Semana.finish en lugar
+  de Retos.endMatch), exclusiones en `showEnd` (`sitG`), antetítulo de la pausa («La situación ◆ Set único | 22-24 ◆ Difícil»), previa
+  (antetítulo y «Set único a 25: 22-24»), pausa (aviso «Reiniciar o salir gasta este intento»; «Otro intento» solo si quedan) y hoja
+  final (`semData` → recap.js `sitModel`: «¡Salvada! 26-24» / «¡Cerrada! 25-23» / «Se escapó: 23-25», bloque «Situación» y botones
+  «Otro intento» | «Compartir» (btnAgainAlt con data-act share) | «Ver el grupo» (btnEndOpts con data-act group) | «Menú principal»).
+- **main.js**: `startMatch` con `opts.sit` (semilla, sin novato/zona/saque de firma, `start`), `g.sit`/`g.sitOpts`, `restartRun` (abandona
+  y empieza otro), `toMenu` (abandona). Escenas `&debug=semana` (`&semdemo=1`: cadena inventada en memoria), `semana_end` y `semana_play`
+  (`&semwk=AAAAWW` elige la semana; en `semana_play`, `&intro=1` la previa y `&pause=1` la pausa). retos.js `counts(g)`: con `g.sit` no cuenta.
+- Pruebas: `node tools/semanatest.js` (tabla congelada de 8 semanas, 300 semanas, intentos, enlace, zonesOf, guardado roto, hoja final),
+  `SIMTEST_ONLY=semana node tools/simtest.js` (arranque con marcador), retotest «5)» y las filas `retos-semana*` de tools/mobaudit.js.

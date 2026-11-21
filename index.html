@@ -5611,6 +5611,110 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(.ph):has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:calc(max(8px,var(--st)) + 66px)}
 /* ==== fin SPLAT · RETOS, ENTRENAMIENTO, VESTUARIO Y PERFIL ==== */
 /* =====================================================================
+   SPLAT · RETOS · SEMANA (la situación de la semana, 20-nov-2026; js/semana-ui.js la pinta y ui.js renderRetos la monta en #rtBody).
+   Dos columnas: .sem-l (brochazo turquesa con el sello y el marcador grande, pegatinas, intentos de hoy, parche «¡A jugar!» y
+   «Compartir») y .sem-r («Mapa del grupo»: Saque | Ataque, campo rival en SVG con un punto por amigo y la lista). En vertical
+   (≤ 480 de ancho), una sola columna. Con ≤ 380 de alto las pegatinas se quedan en sede y nivel (.sem-cx fuera; están en aria-label).
+   ===================================================================== */
+:root:not(#_):not(#_):not(#_) #menu #rtBody:has(>.sem-l){display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:start;align-content:start;gap:12px 18px}
+@media (max-width:480px){:root:not(#_):not(#_):not(#_) #menu #rtBody:has(>.sem-l){grid-template-columns:minmax(0,1fr)}}
+:root:not(.ph) #menu.sp-full #mpRetos:has(.sem-l){--sp-colw:clamp(560px,52vw,760px)}   /* (PC: dos columnas con aire) */
+#rtBody .sem-l,#rtBody .sem-r{display:flex;flex-direction:column;gap:clamp(8px,1.6vh,12px);min-width:0}
+#rtBody :is(.sem-l,.sem-r)>*{flex:none}
+/* apaisado: cada columna se desplaza sola (la lista larga del grupo no se lleva «¡A jugar!» fuera de la vista) */
+@media (min-width:481px){
+  :root:not(#_):not(#_):not(#_) #menu #rtBody:has(>.sem-l){overflow:hidden;grid-template-rows:minmax(0,1fr);align-items:stretch;height:100%;box-sizing:border-box}
+  :root:not(#_):not(#_):not(#_) #menu #rtBody>:is(.sem-l,.sem-r){min-height:0;overflow-y:auto;overflow-x:hidden;margin:-6px -8px -10px -6px;padding:6px 8px 10px 6px;scrollbar-width:thin;scrollbar-color:rgba(255,244,220,.5) transparent;overscroll-behavior:contain}
+}
+/* brochazo (no se pulsa) */
+:root:not(#_):not(#_):not(#_) #menu .sem-tk.sp-ticket{display:flex;align-items:center;gap:clamp(6px,1.6vh,14px);width:100%;min-height:0;box-sizing:border-box;
+  padding:clamp(8px,1.8vh,16px) clamp(14px,2.6vh,22px) clamp(10px,2vh,18px) clamp(8px,1.8vh,14px);white-space:normal;cursor:default;pointer-events:none;animation:none;transform:rotate(-.8deg);color:var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #menu .sem-tk .sp-stamp{--sp-stamp:clamp(54px,12vh,96px);flex:none;cursor:default;transform:rotate(-12deg)}
+#menu .sem-tk .sp-sc .sp-ball{width:50%;height:50%}
+#menu .sem-tk .sp-sc b{font:400 clamp(10px,1.8vh,14px)/1 var(--sp-pop);letter-spacing:.04em}
+.sem-tm{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+:root:not(#_):not(#_):not(#_) #menu .sem-k{margin:0;font:800 clamp(9.5px,1.6vh,12.5px)/1.1 var(--sp-ui);letter-spacing:.12em;text-transform:uppercase;color:rgba(21,16,42,.8)}
+:root:not(#_):not(#_):not(#_) #menu .sem-sc{margin:0;font:400 clamp(30px,8vh,64px)/.95 var(--sp-pop);color:var(--sp-cream);font-variant-numeric:tabular-nums;white-space:nowrap;
+  text-shadow:3px 3px 0 var(--sp-ink),-1.5px -1.5px 0 var(--sp-ink),1.5px -1.5px 0 var(--sp-ink),-1.5px 1.5px 0 var(--sp-ink);transform:rotate(-2deg);transform-origin:0 60%}
+.sem-sc i{font-style:normal;margin:0 .06em;color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .sem-sub{margin:2px 0 0;font:800 clamp(11px,1.9vh,14px)/1.2 var(--sp-ui);color:var(--sp-ink);letter-spacing:0}
+:root.ph:not(#_):not(#_):not(#_) #menu .sem-ch .sem-cx{display:none}
+:root:not(#_):not(#_):not(#_) #menu .sem-ch{display:flex;flex-wrap:wrap;gap:5px 6px;margin:4px 0 0;padding:0 2px}
+:root:not(#_):not(#_):not(#_) #menu .sem-ch .sp-chip{--sp-chs:clamp(12px,1.7vh,14px);--sp-tilt:-2deg;white-space:nowrap}
+:root:not(#_):not(#_):not(#_) #menu .sem-ch .sp-chip:nth-child(2n){--sp-tilt:2deg}
+/* intentos de hoy: pegatinas redondas (llena = gastado, dorada = ganado) */
+.sem-tries,.sem-acts{position:relative;z-index:2}   /* (encima de la pintura del brochazo, que sobresale por abajo) */
+.sem-tries{display:flex;align-items:center;gap:10px;min-width:0;padding-left:2px}
+.sem-dots{flex:none;display:flex;gap:6px}
+.sem-dot{display:block;width:16px;height:16px;border-radius:50%;background:transparent;box-shadow:inset 0 0 0 2.5px var(--sp-cream),0 0 0 2px var(--sp-ink);transform:rotate(-8deg)}
+.sem-dot.used{background:var(--sp-cream)}
+.sem-dot.won{background:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #menu .sem-tt{min-width:0;font:700 clamp(11px,1.8vh,13.5px)/1.25 var(--sp-ui);color:var(--sp-cream);
+  text-shadow:1.5px 1.5px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+/* «¡A jugar!» (parche) y «Compartir» */
+.sem-acts{display:flex;align-items:center;gap:12px;min-width:0}
+#menu.sp-full #rtBody .sem-go{flex:1 1 auto;min-width:0;--sp-ph:clamp(52px,11vh,84px);--sp-pt:calc(var(--sp-ph) * .4)}
+#menu #rtBody .sem-go.off{filter:grayscale(.85) brightness(.9)}
+:root:not(#_):not(#_):not(#_) #menu #rtBody .sem-share{flex:none;min-height:48px;min-width:48px;gap:6px;padding:0 12px}
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody .sem-share .sem-st{display:none}   /* móvil: solo el icono (aria-label «Compartir tu resultado») */
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody .sem-share{padding:0;width:52px;justify-content:center}
+/* mapa del grupo */
+.sem-gh{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+:root:not(#_):not(#_):not(#_) #menu .sem-gh>b{font:400 clamp(14px,2.6vh,19px)/1.1 var(--sp-pop);color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink);white-space:nowrap}
+.sem-seg{flex:none;display:flex;gap:4px}
+:root:not(#_):not(#_):not(#_) #menu .sem-seg>button{min-height:44px;min-width:44px;padding:0 10px;border:0;border-radius:8px 11px 9px 12px;background:rgba(21,16,42,.72);color:var(--sp-cream);
+  box-shadow:0 0 0 2px var(--sp-ink);font:700 clamp(11px,1.8vh,13px)/1 var(--sp-ui);letter-spacing:0;text-transform:none;cursor:pointer}
+:root:not(#_):not(#_):not(#_) #menu .sem-seg>button.on{background:var(--sp-gold);color:var(--sp-ink);transform:rotate(-2deg)}
+:root:not(#_):not(#_):not(#_) #menu .sem-seg>button:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2px var(--sp-ink),0 0 0 5px var(--sp-cream)}
+.sem-map{display:block;width:100%;max-width:360px;height:auto;aspect-ratio:240/134;filter:drop-shadow(2px 3px 0 var(--sp-ink))}
+.sem-cf{fill:#2f2560;stroke:none}
+.sem-cl{fill:none;stroke:rgba(255,244,220,.5);stroke-width:1.4;stroke-dasharray:4 3}
+.sem-cb{fill:none;stroke:var(--sp-cream);stroke-width:2.5}
+.sem-net{stroke:var(--sp-cream);stroke-width:4;stroke-linecap:round}
+.sem-nt{fill:var(--sp-cream);font:800 7px/1 Rubik,system-ui,sans-serif;letter-spacing:.2em;text-anchor:middle}
+.sem-zn{fill:rgba(255,244,220,.55);font:800 10px/1 Rubik,system-ui,sans-serif}
+.sem-pt circle{stroke:#15102a;stroke-width:1.8}
+.sem-pt.me circle{stroke:#fff4dc;stroke-width:2.4}
+.sem-pt text{fill:#15102a;font-family:Rubik,system-ui,sans-serif;font-weight:800;text-anchor:middle}
+.sem-more{fill:var(--sp-cream);font:800 9px/1 Rubik,system-ui,sans-serif;text-anchor:middle}
+/* lista del grupo */
+.sem-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+:root:not(#_):not(#_):not(#_) #menu .sem-list li{display:flex;align-items:center;gap:8px;min-height:30px;padding:3px 8px 3px 6px;border-radius:9px 12px 10px 13px;background:rgba(21,16,42,.72);
+  color:var(--sp-cream);box-shadow:0 0 0 2px var(--sp-ink);font:700 clamp(11.5px,1.9vh,14px)/1.2 var(--sp-ui)}
+:root:not(#_):not(#_):not(#_) #menu .sem-list li.me{background:var(--sp-kit);color:var(--sp-kit-ink)}
+.sem-c{flex:none;width:12px;height:12px;border-radius:50%;box-shadow:0 0 0 2px var(--sp-ink)}
+.sem-n{flex:1 1 auto;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root:not(#_):not(#_):not(#_) #menu .sem-you{flex:none;padding:1px 6px;border-radius:6px;background:var(--sp-ink);color:var(--sp-gold);font:800 max(12px,.82em)/1.2 var(--sp-ui);font-style:normal}
+:root:not(#_):not(#_):not(#_) #menu .sem-r1{flex:none;padding:2px 8px 1px;border-radius:6px 9px 7px 10px;font:800 max(12px,.86em)/1.2 var(--sp-ui);font-variant-numeric:tabular-nums;white-space:nowrap}
+.sem-r1.w{background:var(--sp-gold);color:var(--sp-ink)}
+.sem-r1.l{background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 1.5px rgba(255,244,220,.5)}
+:root:not(#_):not(#_):not(#_) #menu :is(.sem-empty,.sem-old){margin:0;font:600 clamp(11px,1.8vh,13px)/1.3 var(--sp-ui);color:var(--sp-cream);text-shadow:1px 1px 0 var(--sp-ink)}
+.sem-old{opacity:.9;font-style:italic}
+/* móvil: menos aire; con ≤ 380 de alto, solo sede y nivel en pegatina */
+:root.ph:not(#_):not(#_):not(#_) #menu #rtBody:has(>.sem-l){gap:var(--ph-hit-gap) 14px}
+:root.ph:not(#_):not(#_):not(#_) #menu .sem-tk .sp-stamp{--sp-stamp:56px}
+:root.ph:not(#_):not(#_):not(#_) #menu .sem-sc{font-size:clamp(30px,10vh,44px)}
+:root.ph:not(#_):not(#_):not(#_) #menu .sem-ch .sp-chip{--sp-chs:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.sem-sub,.sem-tt,.sem-seg>button,.sem-list li,.sem-empty,.sem-old){font-size:max(12px,var(--ph-cap))}
+:root.ph:not(#_):not(#_):not(#_) #menu :is(.sem-r1,.sem-you){font-size:12px}
+:root:not(#_):not(#_):not(#_) #menu .sem-k{display:none}   /* (el sello ya lo dice; en la columna estrecha pisaba el marcador) */
+:root:not(.ph):not(#_):not(#_):not(#_) #menu .sem-acts{flex-wrap:wrap}
+:root:not(.ph):not(#_):not(#_):not(#_) #menu.sp-full #rtBody .sem-go{flex:1 1 100%;--sp-pt:clamp(16px,2.8vh,24px)}
+#menu.sp-full:not(#_) #rtBody .sem-go{min-height:48px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #rtBody .sem-go{--sp-ph:56px;--sp-pt:clamp(16px,5vh,24px);padding-right:6px}
+@media (max-height:380px){
+  :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-ch .sem-cx{display:none}
+  :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-tk.sp-ticket{padding:4px 14px 6px 8px}
+  :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-tk .sp-stamp{display:none}   /* (decorativo: así sede y nivel caben en una fila) */
+  :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-ch{flex-wrap:nowrap}
+  :root:not(#_):not(#_):not(#_):not(#_) #menu .sem-sc{font-size:34px}
+  #rtBody .sem-l{gap:6px}
+  :root:not(#_):not(#_):not(#_):not(#_) #menu.sp-full #rtBody .sem-go{--sp-ph:50px}
+}
+/* hoja final: el bloque «Situación» con el mejor de la semana en dorado */
+#end .rc-sit .rc-l.up{color:var(--sp-gold);font-weight:800}
+/* ==== fin SPLAT · RETOS · SEMANA ==== */
+/* =====================================================================
    SPLAT · PANELES (#panel.sp-pn: Ajustes, Controles, Cómo se juega, Jugadores, Acerca de y Primer partido; y el aviso #rotate).
    ui.js openPanel pone .sp-pn y data-pn="<panel>" (Estadística y Cambios siguen con su estilo). Sin velo ni desenfoque: la hoja es
    una columna a la izquierda y el partido se ve a la derecha; arriba Volver (.sp-back) y el título (.sp-h), debajo las pestañas en
@@ -6318,7 +6422,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       <div class="qlist gy-list" id="gymList" data-nav aria-label="Ejercicios"></div>
       <p class="gy-foot" id="gymFoot"></p>
     </div>
-    <!-- RETOS (D1; SPLAT 17-nov-2026): pestañas Hoy | Maestría en trazos de pincel (ui.js renderRetos; datos de js/retos.js). Hoy = brochazo
+    <!-- RETOS (D1; SPLAT 17-nov-2026): pestañas Semana | Hoy | Maestría (Semana = la situación de la semana, js/semana-ui.js) en trazos de pincel (ui.js renderRetos; datos de js/retos.js). Hoy = brochazo
          turquesa con el sello dorado de la medalla de hoy, las tres medallas en pegatina y «¡A jugar!» en parche; Maestría = pegatinas del color del grupo
          (doradas con el oro) con la medalla en pegatina redonda y la barra de pintura hasta la siguiente -->
     <div class="mpage sp-page" id="mpRetos" data-page="retos" data-sp-full hidden>
@@ -6713,6 +6817,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 <script src="js/gym.js"></script>
 <script src="js/badges.js"></script>
 <script src="js/retos.js"></script>
+<script src="js/semana.js"></script>
 <script src="js/look.js"></script>
 <script src="js/netrec.js"></script>
 <script src="js/senas.js"></script>
@@ -6762,6 +6867,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 <script src="js/replay.js"></script>
 <script src="js/matchstats.js"></script>
 <script src="js/acta.js"></script>
+<script src="js/semana-ui.js"></script>
 <script src="js/ui.js"></script>
 <script src="js/ambiente-ui.js"></script>
 <script src="js/menu-jugador.js"></script>

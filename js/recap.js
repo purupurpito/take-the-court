@@ -464,6 +464,19 @@
     parts.push(INJ_TAG[n >= 6 ? 2 : n >= 3 ? 1 : 0]);
     return { name: name, n: n, rl: !!x.rl, t: '¡Ay! ' + name, parts: parts, sub: parts.join(' | ') };
   }
+  /** La situación de la semana en la hoja final → {title, lines[3], isBest} | null. «¡Salvada! 26-24» (empezabas por detrás o empatado),
+   *  «¡Cerrada! 25-23» (por delante) o «Se escapó: 23-25». */
+  function sitModel(x) {
+    if (!x || !x.start) return null;
+    var a = x.a | 0, b = x.b | 0, s0 = x.start, ahead = (s0[0] | 0) > (s0[1] | 0);
+    var title = x.win ? (ahead ? '¡Cerrada! ' : '¡Salvada! ') + a + '-' + b : 'Se escapó: ' + a + '-' + b;
+    var bl = x.best ? (x.best.w ? 'ganada ' : 'perdida ') + (x.best.a | 0) + '-' + (x.best.b | 0) : '';
+    var lines = ['Empezaste ' + (s0[0] | 0) + '-' + (s0[1] | 0) + ' (' + noDot(String(x.label || '')) + ')',
+      x.i ? 'Intento ' + (x.i | 0) + ' de ' + ((x.tries | 0) || 3) + ' de hoy' + (x.left > 0 ? '' : ': mañana, 3 más') : (x.left > 0 ? 'Te quedan ' + plural(x.left, 'intento', 'intentos') + ' hoy' : 'Mañana, 3 intentos más'),
+      // (el «¡Nuevo mejor!» en dorado solo con una ganada: una derrota que mejora otra derrota no se celebra)
+      bl ? (x.isBest && x.best.w ? '¡Nuevo mejor de la semana: ' + bl + '!' : 'Tu mejor de la semana: ' + bl) : ''].filter(Boolean);
+    return { title: title, lines: lines, isBest: !!(x.isBest && x.best && x.best.w) };
+  }
   function endModel(d) {
     d = d || {};
     var cs = d.career || null, sum = d.sum || null, life = sum && sum.life || d.life || null;
@@ -539,11 +552,21 @@
     }
     M.profile = d.profile && (d.profile.xp | 0) > 0 ? { xp: d.profile.xp | 0, t: 'Perfil: +' + num(d.profile.xp) + ' XP', up: d.profile.lvlUp ? '¡Perfil Nv ' + (d.profile.lvl | 0) + '!' + (d.profile.prize ? ' Premio: ' + d.profile.prize : '') : '' } : null;
     M.inj = injModel(cs ? d.inj : null);
+    // la situación de la semana (d.sit = {wn, label, start, a, b, win, i, tries, left, best, isBest}): título propio, sin titular (los
+    // parciales de relleno del 3r set lo confundirían) y el bloque «Situación»
+    M.sit = sitModel(d.sit);
+    if (M.sit) { M.title = M.sit.title; M.headline = ''; }
     var pp = sum && sum.part ? partParts(sum.part) : [];
     M.part = pp.length ? { parts: pp, t: pp.join(' | ') } : null;
     // botones
     if (d.watch) M.buttons = null;
     else if (cs) M.buttons = { primary: { id: 'next', label: nextLabel(d, sum) }, rest: [{ id: 'menu', label: 'Menú principal' }] };
+    else if (M.sit) {   // «Otro intento» si queda alguno hoy; si no, «Compartir» de principal. Sin «Revancha en…» ni «Cambiar opciones»
+      var pr = d.sit.left > 0 ? { id: 'again', label: 'Otro intento' } : { id: 'share', label: 'Compartir' }, rs = [];
+      if (pr.id !== 'share') rs.push({ id: 'share', label: 'Compartir' });
+      rs.push({ id: 'group', label: 'Ver el grupo' }, { id: 'menu', label: 'Menú principal' });
+      M.buttons = { primary: pr, rest: rs };
+    }
     else if (d.reto) M.buttons = { primary: { id: 'again', label: 'Otra vez' }, rest: [{ id: 'retos', label: 'Retos' }, { id: 'menu', label: 'Menú principal' }] };
     else {
       var rest = [];
@@ -559,6 +582,7 @@
     // bloques presentes, en el orden fijo del Resumen
     var B = [];
     if (M.headline) B.push('headline');
+    if (M.sit) B.push('sit');
     if (M.mvp || M.mvpRival) B.push('mvp');
     var bossUp = !!(M.boss && M.boss.win);   // jefe tumbado: arriba, que no quede bajo el fundido del móvil
     if (bossUp) B.push('boss');
@@ -576,13 +600,13 @@
     if (M.profile) B.push('profile');
     if (M.part) B.push('part');
     M.blocks = B;
-    M.heads = { mvp: 'MVP', xp: 'Progreso', unlocks: 'Vestuario', table: 'Clasificación', cup: 'Copa', life: 'Vida', chem: 'Química', boss: 'Jefe', train: 'Entreno', retos: 'Retos', profile: 'Perfil', part: 'Minutos', inj: 'Lesión' };
+    M.heads = { mvp: 'MVP', xp: 'Progreso', unlocks: 'Vestuario', table: 'Clasificación', cup: 'Copa', life: 'Vida', chem: 'Química', boss: 'Jefe', train: 'Entreno', retos: 'Retos', profile: 'Perfil', part: 'Minutos', inj: 'Lesión', sit: 'Situación' };
     return M;
   }
 
   VB.Recap = {
     ord: ord, move: move, trait: trait, introPlan: introPlan, history: history, stake: stake, headline: headline, playPhrase: playPhrase,
-    tableSlice: tableSlice, endModel: endModel, DUR: DUR, END_CELEB: END_CELEB, TRAITS: TRAITS, STAKES: STAKES,
+    tableSlice: tableSlice, endModel: endModel, sitModel: sitModel, DUR: DUR, END_CELEB: END_CELEB, TRAITS: TRAITS, STAKES: STAKES,
     // (pruebas y ui.js)
     h01: h01, RULES: RULES.map(function (r) { return r.k; }), ordw: ordw, partParts: partParts, injModel: injModel
   };

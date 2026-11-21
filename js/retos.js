@@ -361,6 +361,7 @@
    *  depuración no cuentan salvo con _force; una escena de depuración con g.reto cuenta, pero endMatch la cierra en seco (dry). */
   function counts(g) {
     if (!g || g.demo || g.drill || spectator(g)) return false;
+    if (g.sit) return false;   // la situación de la semana (js/semana.js): sin medallas ni XP (Ferran, 20-nov-2026)
     if (VB.Retos._force) return true;
     if (dbg()) return !!g.reto;
     return !g.autopilot;

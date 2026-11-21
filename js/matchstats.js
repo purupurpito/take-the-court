@@ -211,6 +211,23 @@
     if (r.L[0] * s <= 0) return -1;
     return r.L[2] ? zoneOf(r.L[0], r.L[1], opp, D) : 0;
   }
+  /** La situación de la semana (js/semana.js): zonas donde sacó y atacó un equipo, con los mismos criterios que los mapas de la hoja
+   *  (dest/zoneOf: 1-6 en el campo rival, 0 fuera; bloqueado o a la red no cuenta). me >= 0: solo ese jugador (6v6, control «Uno»);
+   *  me < 0: todo el equipo. Puro: solo lee el registro d (data()). → {S:[zonas], A:[zonas]} en el orden del partido. */
+  function zonesOf(d, team, me) {
+    var out = { S: [], A: [] };
+    if (!d || !d.rallies) return out;
+    var D = { HL: d.HL || 9, HW: d.HW || 4.5 };
+    for (var r = 0; r < d.rallies.length; r++) {
+      var R = d.rallies[r], c = R.c || [];
+      for (var i = 0; i < c.length; i++) {
+        var x = c[i]; if (x.t !== team || (me != null && me >= 0 && x.p !== me)) continue;
+        var key = x.k === 'S' ? 'S' : x.k === 'A' || x.k === 'T' ? 'A' : ''; if (!key) continue;
+        var z = dest(R, i, D); if (z >= 0) out[key].push(z);
+      }
+    }
+    return out;
+  }
   /** Acciones de un rally con su código emPat; exactamente una lleva win (+1 / −1). */
   function rallyActs(r, D) {
     var c = r.c, n = c.length, acts = [], i, x, a, recvT = 1 - r.sv;
@@ -491,7 +508,7 @@
   }
 
   VB.MatchStats = {
-    ingest: ingest, reset: reset, data: data, ready: ready, compute: compute, html: html,
+    ingest: ingest, reset: reset, data: data, ready: ready, compute: compute, html: html, zonesOf: zonesOf,
     // (pruebas)
     _rallyActs: rallyActs, _zoneOf: zoneOf, CODES: CODES, ERR_LBL: ERR_LBL
   };
