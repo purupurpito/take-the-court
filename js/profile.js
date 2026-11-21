@@ -14,13 +14,15 @@
  *
  * Guardado 'make-the-cut.profile' v1 (< 4 KB con 24 dispositivos y 40 Carreras; por eso dev y car van en listas y las fechas en días):
  *   { v:1, base:{xp,m,w}, dev:{"<devId>":[xp,m,w,m2,m6,mc,gy]}, px, ven:{sede:día}, ach:{logro:día}, hit:{hito:día},
- *     bd:{insignia:1..3}, car:{"b:<seed>"|"h:<seed>":[p,w,tit,aw]} (≤ 40), ann, pin:[aid ≤ 3], pt (ms), seen:{aid:1} }
+ *     bd:{insignia:1..3}, car:{"b:<seed>"|"h:<seed>":[p,w,tit,aw]} (≤ 40), ann, pin:[aid ≤ 3], pt (ms), seen:{aid:1}, sen:{seña:día} }
+ *   sen (Cuaderno del árbitro, idea «senas»): señas de VB.Senas vistas por primera vez; opcional (vacío no se guarda: los perfiles
+ *   de antes no cambian de texto). No da XP ni hitos.
  *   día = floor(ms / 86 400 000) (el álbum solo enseña la fecha). clean() acepta también la forma con objetos y horas en ms.
  * Contrato D4: texto dañado → 'make-the-cut.profile.bak' + lost(); v < V → .bak {from, raw} y se migra; v > V → solo lectura
  * (readOnly(), save no escribe) y mergeRaw devuelve el lado de mayor v sin tocarlo.
  *
  * API (VB.Profile): V, KEY, DEV_KEY, HITOS, LVL_XP, need, levelOf, level, xp, stats, noteMatch (= addMatch), noteGym, check, album,
- * vitrina, pin, unpin, unseenCount, markSeen, nextPrize, footText, load, lost, readOnly, mergeRaw, clean, _reload, _devId.
+ * vitrina, pin, unpin, unseenCount, markSeen, nextPrize, footText, noteSena, load, lost, readOnly, mergeRaw, clean, _reload, _devId.
  */
 (function () {
   'use strict';
@@ -100,11 +102,12 @@
     for (k in o) p[k] = o[k];
     p.dev = {}; Object.keys(o.dev).forEach(function (d) { p.dev[d] = DEV_F.map(function (f) { return o.dev[d][f]; }); });
     p.car = {}; Object.keys(o.car).forEach(function (c) { p.car[c] = CAR_F.map(function (f) { return o.car[c][f]; }); });
+    if (!p.sen || !Object.keys(p.sen).length) delete p.sen;   // (opcional: sin señas, el texto es el de siempre)
     return p;
   }
   function txtOf(o) { return JSON.stringify(pack(o)); }
   function empty() {
-    return { v: V, base: { xp: 0, m: 0, w: 0 }, dev: {}, px: 0, ven: {}, ach: {}, hit: {}, bd: {}, car: {}, ann: 1, pin: [], pt: 0, seen: {} };
+    return { v: V, base: { xp: 0, m: 0, w: 0 }, dev: {}, px: 0, ven: {}, ach: {}, hit: {}, bd: {}, car: {}, ann: 1, pin: [], pt: 0, seen: {}, sen: {} };
   }
   function capCar(car) {
     var ks = Object.keys(car);
@@ -127,7 +130,7 @@
     });
     out.dev = sorted(dv);
     out.px = n0(o.px, 1e9);
-    ['ven', 'ach', 'hit'].forEach(function (f) {
+    ['ven', 'ach', 'hit', 'sen'].forEach(function (f) {
       var s = isObj(o[f]) ? o[f] : {}, r = {};
       Object.keys(s).forEach(function (k) { if (okKey(k) && (f !== 'hit' || HIT_BY[k]) && s[k]) r[k] = dayOf(s[k]) || 1; });
       out[f] = sorted(r);
@@ -164,7 +167,7 @@
     });
     o.dev = sorted(dv);
     o.px = Math.max(A.px, B.px);
-    ['ven', 'ach', 'hit'].forEach(function (f) {
+    ['ven', 'ach', 'hit', 'sen'].forEach(function (f) {
       var r = {};
       [A[f], B[f]].forEach(function (X) { Object.keys(X).forEach(function (k) { r[k] = tmin(r[k], X[k]); }); });
       o[f] = sorted(r);
@@ -454,6 +457,7 @@
   function footText(it) {
     if (!it) return '';
     if (!it.have) return it.how || '';
+    if (it.rule) return (it.t > 1e11 ? 'Vista el ' + fmtDate(it.t) + '. ' : '') + it.rule;   // Cuaderno del árbitro
     var s = 'Conseguido' + (it.t > 1e11 ? ' el ' + fmtDate(it.t) : '');
     return s + (SRC_TXT[it.src] || '');
   }
@@ -525,6 +529,24 @@
       return { aid: aid, name: h.name, icon: IC.hit, have: have, tier: 0, t: have ? msOf(s.hit[h.id]) : 0, src: '', how: h.how + ' (+' + h.xp + ' XP)', isNew: have && !s.seen[aid] };
     }) };
   }
+  /** Cuaderno del árbitro (idea «senas»): un hueco por seña de VB.Senas.LIST; sin VB.Senas no hay pestaña. */
+  function senTab(s) {
+    var S = VB.Senas;
+    if (!S || !Array.isArray(S.LIST)) return null;
+    return { id: 'cuaderno', label: 'Cuaderno del árbitro', short: 'Cuaderno', items: S.LIST.map(function (x) {
+      var aid = 'sen:' + x.id, have = !!s.sen[x.id];
+      return { aid: aid, name: x.name, icon: x.svg || '', have: have, tier: 0, t: have ? msOf(s.sen[x.id]) : 0, src: '',
+        how: 'Sale la primera vez que el árbitro te la señala en un partido', rule: x.rule || '', isNew: have && !s.seen[aid] };
+    }) };
+  }
+  /** Seña vista en un partido (ui.js presentPoint): la apunta en el Cuaderno con la fecha. true si es nueva. Solo lectura: no guarda. */
+  function noteSena(id) {
+    var s = state();
+    if (!okKey(id) || s.sen[id] || ro) return false;
+    if (VB.Senas && VB.Senas.BY && !VB.Senas.BY[id]) return false;
+    s.sen[id] = today(); s.sen = sorted(s.sen); stamp++; save();
+    return true;
+  }
   function retosTab() {
     var R = VB.Retos;
     if (!R || typeof R.album !== 'function') return null;
@@ -532,9 +554,10 @@
     return isObj(t) && Array.isArray(t.items) ? t : null;
   }
   /** Álbum entero: {tabs:[{id, label, have, total, items:[{aid, name, icon, have, tier, t, src, how, isNew}]}], have, total}.
-   *  Orden: Vestuario, Insignias, Entreno, Carrera, Retos (solo con VB.Retos), Sedes, Hitos. Solo al abrir el perfil (no por frame). */
+   *  Orden: Vestuario, Insignias, Entreno, Carrera, Retos (solo con VB.Retos), Sedes, Hitos y Cuaderno (solo con VB.Senas). Solo al abrir
+   *  el perfil (no por frame). */
   function album() {
-    var s = state(), tabs = [lookTab(s), bdTab(s), gymTab(s), achTab(s), retosTab(), venTab(s), hitTab(s)].filter(Boolean), H = 0, T = 0;
+    var s = state(), tabs = [lookTab(s), bdTab(s), gymTab(s), achTab(s), retosTab(), venTab(s), hitTab(s), senTab(s)].filter(Boolean), H = 0, T = 0;
     tabs.forEach(function (tb) {
       tb.total = tb.items.length; tb.have = tb.items.filter(function (i) { return i.have; }).length;
       H += tb.have; T += tb.total;
@@ -553,6 +576,7 @@
       case 'ach': return !!s.ach[p[1]];
       case 'ven': return !!s.ven[p[1]];
       case 'hit': return !!s.hit[p[1]];
+      case 'sen': return !!s.sen[p[1]];
       case 'reto': return !!(VB.Retos && typeof VB.Retos.level === 'function' && VB.Retos.level(p[1]) > 0);
     }
     return false;
@@ -587,7 +611,7 @@
     var out = [], g = gymData();
     Object.keys(s.bd).forEach(function (k) { for (var l = 1; l <= s.bd[k]; l++) out.push('bd:' + k + ':' + l); });
     GYM_IDS.forEach(function (k) { for (var m = 1; m <= g[k].m; m++) out.push('gym:' + k + ':' + m); });
-    ['ach', 'ven', 'hit'].forEach(function (f) { Object.keys(s[f]).forEach(function (k) { out.push(f + ':' + k); }); });
+    ['ach', 'ven', 'hit', 'sen'].forEach(function (f) { Object.keys(s[f]).forEach(function (k) { out.push(f + ':' + k); }); });
     return out;
   }
   function unseenCount() { var s = state(); return stampAids(s).filter(function (a) { return !s.seen[a]; }).length; }
@@ -604,7 +628,7 @@
     need: need, levelOf: levelOf, level: level, xp: xp, stats: function () { return stats(); },
     noteMatch: noteMatch, addMatch: noteMatch, noteGym: noteGym, check: check,
     album: album, vitrina: vitrina, pin: pin, unpin: unpin, unseenCount: unseenCount, markSeen: markSeen,
-    nextPrize: nextPrize, footText: footText,
+    nextPrize: nextPrize, footText: footText, noteSena: noteSena,
     load: function () { return JSON.parse(JSON.stringify(state())); },   // (forma interna: dev y car con objetos, fechas en días)
     pack: function (o) { return pack(clean(o)); },
     lost: function () { state(); return lostF; }, readOnly: function () { state(); return ro; },

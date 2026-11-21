@@ -38,7 +38,7 @@ reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 
 **Sprint 2-4 (15-nov-2026, v1.2.0: «Tu carrera», «Partidos que se recuerdan», «Volver mañana»).** Nuevos de **ui_main**:
 `js/recap.js` (`VB.Recap`: el único módulo narrativo; previa, titular, frase de la jugada y modelo de la hoja final; puro),
-`js/retos.js` (`VB.Retos`: 18 retos de maestría y el reto del día), `js/profile.js` (`VB.Profile`: nivel de perfil, hitos y álbum),
+`js/retos.js` (`VB.Retos`: 18 retos de maestría y el reto del día), `js/senas.js` (`VB.Senas`: señas del árbitro como pegatina y Cuaderno del árbitro), `js/profile.js` (`VB.Profile`: nivel de perfil, hitos y álbum),
 `js/replay.js` (`VB.Replay`: repeticiones por resimulación, sin guardado) y las pruebas `tools/recaptest.js`, `tools/retotest.js`,
 `tools/proftest.js`, `tools/synctest.js`, `tools/replaytest.js`, `tools/lifetest.js` y `tools/worldtest.js`. De **players**:
 `tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **desplegadas el 16-nov-2026** (comprobado: lo publicado en make-the-cut-vb es igual que el fichero).
@@ -80,7 +80,7 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
 
 - Scripts clásicos (`<script src>`), SIN módulos ES, sin import/export, sin bundler. Un único espacio global `window.VB`.
 - Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/splat.js` (SPLAT, 17-nov-2026) → `js/account.js` → `js/sim.js` → `js/ai.js` →
-  `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
+  `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/senas.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
   `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/menu-jugador.js` (portada SPLAT) → `js/install.js` → `js/main.js` (main arranca).
   recap.js, retos.js, profile.js, replay.js y matchstats.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
@@ -159,7 +159,7 @@ main.js convierte con `VB.CameraRig.getBasis()` = `{fx, fy, rx, ry}` (adelante y
 Novedades automáticas), escenas `debug=drill_serve|drill_recv|drill_set|drill_atk|drill_block|drill_free|drill_end` (`&n=` repetición,
 `&t=` s). startMatch pasa `mastery: !6v6 && !autopilot` y `aimSet` a createGame, y en cada partido humano llama
 `VB.Players.setSignature(VB.CareerLife.signatureNow())` y `setRival(rivalNum | -1)` (en el duelo de la Carrera `nums[1] = [rivalNum, null]`).
-`settings` añade (validadas en `loadSettings`, por defecto en `DEFAULTS()`): `volume`, `crowdVol` (migración única: 0,85 × `sfxVol`),
+`settings` añade (validadas en `loadSettings`, por defecto en `DEFAULTS()`): `volume`, `crowdVol` (migración única: 0,85 × `sfxVol`), `xarVol` (0..1, 0,6: la charanga de la grada, audio.js),
 `resScale` (0 = auto, 1, .85, .7, .5: fija la escala y para la escala adaptativa), `fpsCap` (0 \| 30; con 30 la calidad adaptativa baja
 por debajo de 26 fps y no sube), `showFps`, `camDist` ('near' \| 'normal' \| 'far'), `camCuts` ('all' \| 'less'), `lessMotion` ('auto' \|
 'on' \| 'off'), `cbColors`, `ballStyle` ('clasico' \| 'contraste'), `keys` / `padKeys` (objeto plano con solo las diferencias; ≤ 12
@@ -700,7 +700,8 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `g.drill.target` en el lote de calcomanías (0 dibujos más), pulso apagado con `ctx.reduceMotion`, destello con `drillRep.pts >= 3`.
   Retícula `kind 'roll'` verde, aro coral con `edge > 0,5`, marcador `Sim.setPreview` por tempo, sin estela con `shot 'roll'`, estela
   dorada con `chain >= 3`.
-- **Audio**: `preview(kind)` ('crowd' \| 'sfx' \| 'music' \| 'master' \| 'volume'; false antes del 1r gesto o en silencio), `stats.chain`;
+- **Audio**: `preview(kind)` ('crowd' \| 'sfx' \| 'music' \| 'master' \| 'volume' \| 'xaranga'; false antes del 1r gesto o en silencio), `stats.chain`;
+  xaranga (21-nov-2026): `setVolume('xaranga', v)`, `xarState()`, `xarPrep()`, `XAR_SOUNDS`, `XAR_WHEN` (dónde suena; notes/audio.md «Xaranga»);
   maneja `fx:floor`, `feint`, `drillRep`, `drillEnd`, `hit.shot 'roll'`, `hit.style 'jfloat'` y `hit.chain`.
 - **Players** (E2): `CELEBS [{id, name, tier}]` (mismos ids que `CareerLife.CELEB_DEF`), `setSignature(id)` → id aceptado \| '',
   `setRival(num)` (vale para el partido que se crea con la llamada; -1 o ninguna llamada lo limpia). Rig de solo lectura: `persona, cvar,

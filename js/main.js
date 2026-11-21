@@ -78,7 +78,7 @@
   function DEFAULTS() {
     return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, coachCalls: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
-      volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
+      volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
       replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
@@ -168,6 +168,7 @@
     // migración (una vez, sin versión): ajustes de antes de existir el volumen del público → la mezcla que se oía (público = 0,85 × efectos)
     if (o && !('crowdVol' in o)) s.crowdVol = Math.round(0.85 * s.sfxVol * 100) / 100;
     s.crowdVol = clamp01(s.crowdVol, 0.85);
+    s.xarVol = clamp01(s.xarVol, 0.6);                                   // xaranga: la charanga de la grada (audio.js; Carrera y partidos Difícil/Experto)
     if ([0, 1, 0.85, 0.7, 0.5].indexOf(s.resScale) < 0) s.resScale = 0;
     if (s.fpsCap !== 30) s.fpsCap = 0;
     if (['near', 'normal', 'far'].indexOf(s.camDist) < 0) s.camDist = 'normal';
@@ -2849,7 +2850,7 @@
     for (i = 0; i < Math.min(4, VV.length); i++) ven[VV[i]] = day - 60 + i * 9;
     for (i = 0; i < BL.length; i++) if (i % 3 !== 2) bd[BL[i].id] = 1 + (i % 4 === 0 ? 2 : i % 4 === 1 ? 1 : 0);
     var o = { v: 1, base: { xp: 900, m: 212, w: 131 }, dev: {}, px: 0, ven: ven, ach: ach, hit: { debut: day - 60, m25: day - 50, m100: day - 20, w10: day - 45, w100: day - 5, gira: day - 30, bd1: day - 55 },
-      bd: bd, car: {}, ann: 1, pin: [], pt: 0, seen: {} };
+      bd: bd, car: {}, ann: 1, pin: [], pt: 0, seen: {}, sen: { fuera: day - 58, tocado: day - 40, red: day - 33, dobles: day - 12, retraso: day - 2 } };   // (Cuaderno del árbitro)
     var mem = { 'make-the-cut.profile': JSON.stringify(o), 'make-the-cut.look': null, 'make-the-cut.devid': 'demo1' };
     try {
       var SP = Storage.prototype, gi = SP.getItem, si = SP.setItem, ri = SP.removeItem, LS = window.localStorage;

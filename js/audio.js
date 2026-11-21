@@ -13,6 +13,7 @@
  *   crowd ─> agachada ─> paso alto ─> brillo ─> hueco silbato ┼─> fxFilter (pausa/cámara lenta) ─> master ─> compresor ─> compensación ─┬─> recorte suave ─> destino
  *   reverb (envíos) ─────────────────────────────────────────┘                                    ^                                    │
  *   music (ráfagas + interfaz + "toc" del reloj) ─────────────────────────────────────────────────┘                                    │
+ *   xaranga: pieza → hueco silbato (xarW) → agachada (xarDuck) → volumen (xar) ─> fxFilter (+ envío de reverb 0,18)                     │
  *   punch (golpe perfecto: chasquido "héroe" + sub, con techo de pico) ─> retraso 6 ms ──────────────────────────────────────────────────┘
  *   pool: 8 tiras fijas ganancia → paneo → sfx (+ envío de reverb) para los contactos de celebración y los botes del ritual de saque
  *         (AUD-05: solo se crea la BufferSource; ganancia/paneo/envío programados en la tira en el instante de arranque)
@@ -1263,6 +1264,151 @@
     return edges([L, R], sr, 0.001, sc.fade);
   }
 
+  /* ---------- Xaranga: la charanga de la grada (idea «xaranga», 21-nov-2026) ----------
+   * Música DE LA GRADA, no un tema: frases cortas (≤ 4 s), mono, a 32 kHz, en Si bemol mayor (la típica de banda; las ráfagas de
+   * la casa van en Re) y con la negra = CHANT_P = 0,42 s en 2/4, la misma rejilla de las palmas y el bombo de la grada.
+   * Melodías ORIGINALES (nada de pasodobles ni temas conocidos). Voces mono: escriben en un solo Float32Array (D). */
+  var XNOTE = { E2: 82.41, F2: 87.31, A2: 110, Bb2: 116.54, C3: 130.81, F4: 349.23, G4: 392, A4: 440, Bb4: 466.16, C5: 523.25,
+                D5: 587.33, Eb5: 622.25, F5: 698.46 };
+  var XO0 = {};
+  /** Metal mono de la charanga. P: {lo, hi, sus} filtro (ataque lo → hi, se posa en sus), sq (cuadrada añadida), d2 (segunda sierra
+   *  desafinada), sub (seno una octava abajo), vib (profundidad del vibrato), rel (s). o: det / det1 (cents, al principio / al final
+   *  de la nota), glide [f1, t] (cae o sube a f1 desde t s hasta el final), from (portamento de 60 ms desde esa frecuencia), crack
+   *  (s: gallo, salto de una cuarta arriba durante 60 ms con soplo). */
+  var XH_TP = { lo: 900, hi: 4000, sus: 2600, sq: 0.3, d2: 0, sub: 0, vib: 0.006, rel: 0.07 };
+  var XH_TB = { lo: 400, hi: 1800, sus: 1100, sq: 0, d2: 1, sub: 0.35, vib: 0.003, rel: 0.09 };
+  function* xHorn(D, sr, f, t0, dur, amp, o, rng, P) {
+    o = o || XO0;
+    var st = (t0 * sr) | 0, n = Math.ceil((dur + P.rel) * sr), m = Math.min(n, D.length - st), dn = (dur * sr) | 0, nR = Math.max(1, n - dn);
+    var nA = (0.02 * sr) | 0, nF = (0.04 * sr) | 0, nV = (0.15 * sr) | 0, n60 = (0.06 * sr) | 0, rs = rng.st, lp = new Biq('lp', P.lo, 0.75, sr), lp2 = new Biq('lp', P.lo, 0.75, sr);
+    var det0 = o.det || 0, det1 = o.det1 != null ? o.det1 : det0, gs = o.glide ? (o.glide[1] * sr) | 0 : n, lg = o.glide ? Math.log((typeof o.glide[0] === 'string' ? XNOTE[o.glide[0]] : o.glide[0]) / f) : 0;
+    var lf = o.from ? Math.log(o.from / f) : 0, ck = o.crack != null ? (o.crack * sr) | 0 : -1, sq = P.sq, d2 = P.d2, sub = P.sub;
+    var lo = P.lo, hi = P.hi, sus = P.sus, vd = P.vib, kS = Math.exp(-32 / (0.12 * sr)), ph0 = rng();
+    // estado entre tramos: 0 fase · 1 fase 2 · 2 fase sub · 3 incremento · 4 corte (posándose)
+    var Z = new Float64Array(5); Z[0] = ph0; Z[1] = rng(); Z[2] = 0; Z[3] = f / sr; Z[4] = hi;
+    // los dos Biq.p() en línea sobre sus coeficientes (como impact()): llamados por muestra, V8 metía en caja argumento y resultado
+    var c1 = lp.c, c2 = lp2.c, fy, fz;
+    for (var j0 = 0; j0 < m; j0 += CH) {
+      var j1 = j0 + CH < m ? j0 + CH : m, q = Z[0], q2 = Z[1], q3 = Z[2], inc = Z[3], cs = Z[4];
+      for (var i = j0; i < j1; i++) {
+        if ((i & 31) === 0) {
+          var u = i / n, det = det0 + (det1 - det0) * u, mul = Math.pow(2, det / 1200);
+          if (i > gs) mul *= Math.exp(lg * Math.min(1, (i - gs) / Math.max(1, n - P.rel * sr - gs)));
+          if (lf && i < n60) mul *= Math.exp(lf * (1 - i / n60));
+          if (ck >= 0 && i >= ck && i < ck + n60) mul *= 1.335;
+          if (i > nV) mul *= 1 + vd * Math.sin(TAU * 5.5 * i / sr) * Math.min(1, (i - nV) / nV);
+          inc = f * mul / sr;
+          // el corte sigue a la envolvente: al apagarse la nota se cierra (las sierras graves sueltas, sin cerrar, sonaban a clic)
+          var ek = i > dn ? 0.25 + 0.75 * (1 - (i - dn) / nR) : 1, fc;
+          if (i < nA * 2) fc = lo + (hi - lo) * i / (nA * 2); else { cs = sus + (cs - sus) * kS; fc = cs; }
+          lp.set('lp', fc * ek, 0.75, sr); lp2.set('lp', fc * ek * 1.3, 0.75, sr);
+        }
+        q += inc; if (q >= 1) q -= 1;
+        var s = 2 * q - 1;
+        if (sq) s += sq * (q < 0.5 ? 1 : -1);
+        if (d2) { q2 += inc * 1.004; if (q2 >= 1) q2 -= 1; s += 2 * q2 - 1; }
+        if (sub) { q3 += inc * 0.5; if (q3 >= 1) q3 -= 1; s += sub * Math.sin(TAU * q3); }
+        if (ck >= 0 && i >= ck && i < ck + n60 * 2) s += (rnd(rs) * 2 - 1) * 0.9 * (1 - (i - ck) / (n60 * 2));   // soplo del gallo
+        var env = Math.min(1, i / nA) * (i > dn ? 1 - (i - dn) / nR : 1);
+        if (i > n - nF && n - nF > dn) env *= (n - i) / nF;
+        fy = c1[0] * s + c1[1] * c1[5] + c1[2] * c1[6] - c1[3] * c1[7] - c1[4] * c1[8]; c1[6] = c1[5]; c1[5] = s; c1[8] = c1[7]; c1[7] = fy;
+        fz = c2[0] * fy + c2[1] * c2[5] + c2[2] * c2[6] - c2[3] * c2[7] - c2[4] * c2[8]; c2[6] = c2[5]; c2[5] = fy; c2[8] = c2[7]; c2[7] = fz;
+        D[st + i] += fz * env * amp;
+      }
+      Z[0] = q; Z[1] = q2; Z[2] = q3; Z[3] = inc; Z[4] = cs;
+      yield 0;
+    }
+  }
+  function xTrumpet(D, sr, f, t0, dur, amp, o, rng) { return xHorn(D, sr, f, t0, dur, amp, o, rng, XH_TP); }
+  function xTrombone(D, sr, f, t0, dur, amp, o, rng) { return xHorn(D, sr, f, t0, dur, amp, o, rng, XH_TB); }
+  /** Caja: ruido por un paso banda (bordones, caída de 0,12 s) + cuerpo de 185 Hz (0,05 s). o.rim: golpe de aro (420 Hz, más corto);
+   *  o.roll: golpe de redoble (más corto, para que los golpes seguidos no se emborronen). */
+  function* snare(D, sr, t0, amp, rng, o) {
+    o = o || XO0;
+    var rim = !!o.rim, roll = !!o.roll, st = (t0 * sr) | 0, n = ((rim ? 0.09 : roll ? 0.11 : 0.22) * sr) | 0, m = Math.min(n, D.length - st), rs = rng.st;
+    var bp = new Biq('bp', rim ? 3000 : 3800, 0.8, sr), kN = Math.exp(-1 / ((rim ? 0.03 : roll ? 0.045 : 0.12) * sr)), kB = Math.exp(-1 / ((rim ? 0.02 : 0.05) * sr));
+    var w = TAU * (rim ? 420 : 185) / sr, bA = rim ? 0.8 : roll ? 0.35 : 0.6, nA = Math.max(1, (0.0008 * sr) | 0), nF = (0.012 * sr) | 0;
+    var Z = new Float64Array(2); Z[0] = 1; Z[1] = 1; // estado: 0 caída del ruido · 1 caída del cuerpo
+    var cb = bp.c, fy;   // Biq.p() en línea (ver xHorn)
+    for (var j0 = 0; j0 < m; j0 += CH) {
+      var j1 = j0 + CH < m ? j0 + CH : m, eN = Z[0], eB = Z[1];
+      for (var i = j0; i < j1; i++) {
+        var nz = rnd(rs) * 2 - 1;
+        fy = cb[0] * nz + cb[1] * cb[5] + cb[2] * cb[6] - cb[3] * cb[7] - cb[4] * cb[8]; cb[6] = cb[5]; cb[5] = nz; cb[8] = cb[7]; cb[7] = fy;
+        var y = (fy * eN * 1.8 + Math.sin(w * i) * eB * bA) * amp * Math.min(1, i / nA);
+        eN *= kN; eB *= kB;
+        if (i > n - nF) y *= (n - i) / nF;
+        D[st + i] += y;
+      }
+      Z[0] = eN; Z[1] = eB; yield 0;
+    }
+  }
+  /** Partituras de la charanga (mismo espíritu que SCORES). loop: bucle de dur s; se renderiza `tail` s más y se SUMA sobre el
+   *  principio (wrapTail), así no hay costura ni se come el primer golpe (loopify fundiría principio y final).
+   *  ['t', nota, t, dur, amp, o] trompeta · ['tb', nota, t, dur, amp, o] trombón · ['k', t, amp] bombo · ['s', t, amp, o] caja ·
+   *  ['roll', t, len, amp, paso] redoble de caja (golpes cada `paso` s con acentos alternos) */
+  var XP = 0.42, X8 = 0.21;   // negra y corchea (= CHANT_P)
+  function xBar(b) { return b * 2 * XP; }
+  var XSCORES = {
+    // Pasacalles: 4 compases de 2/4 (I I V7 V7) en bucle. Trompeta en corcheas, trombón «um-pa», bombo en las partes, caja a contratiempo
+    xarPasa: { dur: 4 * 2 * XP, loop: true, tail: 1.0, peak: 0.8, n: (function () {
+      var n = [], tp = [['F4', 0, 1], ['D5', 1, 1], ['D5', 2, 1], ['C5', 3, 1], ['Bb4', 4, 2], ['F4', 6, 1], ['G4', 7, 1],
+        ['A4', 8, 1], ['C5', 9, 1], ['Eb5', 10, 1], ['D5', 11, 1], ['C5', 12, 2], ['F4', 14, 1], ['F4', 15, 1]];
+      for (var i = 0; i < tp.length; i++) n.push(['t', tp[i][0], tp[i][1] * X8, tp[i][2] * X8 - 0.04, 0.5]);
+      var tb = [['Bb2', 'F2'], ['Bb2', 'F2'], ['F2', 'C3'], ['F2', 'C3']];
+      for (var b = 0; b < 4; b++) {
+        n.push(['tb', tb[b][0], xBar(b), 0.3, 0.42], ['tb', tb[b][1], xBar(b) + XP, 0.3, 0.36]);
+        n.push(['k', xBar(b), 0.55], ['k', xBar(b) + XP, 0.42]);
+        if (b < 3) n.push(['s', xBar(b) + X8, 0.32], ['s', xBar(b) + XP + X8, 0.32]);
+        else n.push(['s', xBar(b) + X8, 0.32], ['roll', xBar(b) + XP, XP - 0.06, 0.24, 0.035], ['s', xBar(b) + XP + X8 + 0.1, 0.4]);
+      }
+      return n;
+    })() },
+    // Redoble de caja (punto de set o de partido): 3 negras en bucle, golpes cada ~26 ms con acentos alternos. El crescendo lo pone la
+    // ganancia al reproducirlo, no el buffer.
+    xarRedoble: { dur: 3 * XP, loop: true, tail: 0.3, peak: 0.75, n: [['roll', 0, 3 * XP, 0.5, 3 * XP / 48]] },
+    // Trompeta desafinada (falla el saque el rival de la charanga): «pa-ra-PIII» con gallo en el Fa5, glisando hasta el Fa4 que se
+    // desafina, y el trombón contesta «buaa-buaaa» cayendo de Si♭2 a Mi2.
+    xarDesafina: { dur: 1.9, peak: 0.8, fade: 0.08, n: [['t', 'Bb4', 0, 0.09, 0.5], ['t', 'D5', 0.12, 0.09, 0.5],
+      ['t', 'F5', 0.24, 0.55, 0.55, { crack: 0.05, glide: ['F4', 0.2], det: 25, det1: -60 }],
+      ['tb', 'Bb2', 0.95, 0.3, 0.5, { det: -10 }], ['tb', 'Bb2', 1.32, 0.45, 0.5, { glide: ['E2', 0.08], det: -15, det1: -40 }]] },
+    // Ensayos (solo si XAR_WHEN.menu): afinando · «desde el principio» · prueba de bombo y caja
+    xarEns1: { dur: 3.6, peak: 0.7, fade: 0.25, n: [['t', 'A4', 0.05, 2.1, 0.45], ['t', 'A4', 0.25, 1.9, 0.38, { det: -8, det1: 0 }],
+      ['tb', 'A2', 1.5, 1.1, 0.45], ['s', 2.75, 0.25, { rim: true }]] },
+    xarEns2: { dur: 3.9, peak: 0.7, fade: 0.3, n: (function () {
+      var n = [['t', 'F4', 0, 0.17, 0.5], ['t', 'D5', X8, 0.17, 0.5], ['k', 0, 0.5], ['s', X8, 0.3],
+        ['s', 1.25, 0.35, { rim: true }], ['s', 1.25 + XP, 0.35, { rim: true }]];
+      var t0 = 1.25 + 2 * XP, tp = [['F4', 0, 1], ['D5', 1, 1], ['D5', 2, 1], ['C5', 3, 1], ['Bb4', 4, 2], ['F4', 6, 1], ['G4', 7, 1]];
+      for (var i = 0; i < tp.length; i++) n.push(['t', tp[i][0], t0 + tp[i][1] * X8, tp[i][2] * X8 - 0.04, 0.5]);
+      for (var b = 0; b < 2; b++) n.push(['tb', 'Bb2', t0 + xBar(b), 0.3, 0.42], ['tb', 'F2', t0 + xBar(b) + XP, 0.3, 0.36], ['k', t0 + xBar(b), 0.5],
+        ['k', t0 + xBar(b) + XP, 0.4], ['s', t0 + xBar(b) + X8, 0.3], ['s', t0 + xBar(b) + XP + X8, 0.3]);
+      return n;
+    })() },
+    xarEns3: { dur: 3.4, peak: 0.7, fade: 0.25, n: [['k', 0.02, 0.6], ['k', 0.62, 0.6], ['s', 1.25, 0.25], ['s', 1.265, 0.45],
+      ['roll', 1.7, 0.5, 0.4, 0.03], ['s', 2.25, 0.5], ['s', 2.7, 0.45, { rim: true }]] }
+  };
+  /** Bucle sin costura: los `tail` s renderizados después del final se SUMAN sobre el principio (todo lo que suena al cruzar el final
+   *  sigue sonando, igual, al volver a empezar). m = muestras del bucle. */
+  function wrapTail(D, m) { var o = D.slice(0, m); for (var i = m; i < D.length; i++) o[i - m] += D[i]; return o; }
+  /** Como musicPlan pero mono (un solo canal). */
+  function* xarPlan(sc, rng, sr) {
+    var m = Math.ceil(sc.dur * sr), D = new Float32Array(m + (sc.loop ? Math.ceil(sc.tail * sr) : 0));
+    for (var k = 0; k < sc.n.length; k++) {
+      var x = sc.n[k];
+      switch (x[0]) {
+        case 't': yield* xTrumpet(D, sr, XNOTE[x[1]], x[2], x[3], x[4], x[5], rng); break;
+        case 'tb': yield* xTrombone(D, sr, XNOTE[x[1]], x[2], x[3], x[4], x[5], rng); break;
+        case 'k': yield* boom(D, D, sr, x[1], x[2] * 0.5, rng); break;   // boom suma en L y R: aquí son el mismo canal
+        case 's': yield* snare(D, sr, x[1], x[2], rng, x[3]); break;
+        case 'roll': for (var r = 0, nr = Math.round(x[2] / x[4]); r < nr; r++) yield* snare(D, sr, x[1] + r * x[4], x[3] * (r % 2 ? 0.62 : 1), rng, XO_ROLL); break;
+      }
+    }
+    var out = sc.loop ? wrapTail(D, m) : D;
+    yield* normalizeG([out], sc.peak);
+    return sc.loop ? [out] : edges([out], sr, 0.001, sc.fade);
+  }
+  var XO_ROLL = { roll: true };
+
   /* ---------- Catálogo ----------
    * nombre -> {gen(rng, sr) -> canales | plan {steps, done}, variants, rate}
    * rate: 'full' (= frecuencia del contexto, máx. 48 kHz), 'ctx' (exacta: la reverb lo exige), 'mid' (32 kHz), 'low' (22,05 kHz) */
@@ -1303,6 +1449,8 @@
   reg('paChime', 1, 'full', AMBS.paChime);
   reg('cardWhistle', 1, 'full', function (rng, sr) { return genWhistle(0.16, rng, sr); });
   Object.keys(SCORES).forEach(function (k) { reg(k, 1, 'mid', function (rng, sr) { return musicPlan(SCORES[k], rng, sr); }); });
+  // xaranga: fuera de la primera pasada (XAR_LAZY: se encolan con xarPrep cuando hace falta)
+  Object.keys(XSCORES).forEach(function (k) { reg(k, 1, 'mid', function (rng, sr) { return xarPlan(XSCORES[k], rng, sr); }); });
   reg('ir', 1, 'ctx', genIR);
   /** Orden de generación: primero lo que suena antes (interfaz, silbato, toques), luego grada y música. */
   // la presentación (introSting/introSwell) suena nada más pulsar JUGAR y la cortinilla en el primer punto: van justo detrás del silbato
@@ -1338,7 +1486,10 @@
     // la zona (20-nov-2026): entrada como una ráfaga (-16, algo por debajo del set), salida suave (-22), lecho muy bajo (llamado a 0,18)
     zoneIn: 2.4, zoneOut: 5, zoneBed: 0,
     // ambiente de Carrera (P2): reacciones -20 (pitada), palmas/cánticos -22, silbidos al saque -26, campanita -24, tarjeta -16
-    boo: -1.4, whistleStorm: -5.9, chantVamos: -5.5, chantOe: -5.5, chantDefensa: -5.9, palmas32: 1.6, paChime: -6.2, cardWhistle: -0.7
+    boo: -1.4, whistleStorm: -5.9, chantVamos: -5.5, chantOe: -5.5, chantDefensa: -5.9, palmas32: 1.6, paChime: -6.2, cardWhistle: -0.7,
+    // xaranga (21-nov-2026): pasacalles entre puntos -24 (bajo las reacciones -20, sobre el lecho -26), redoble -25, desafinada -22,
+    // ensayo de menú -27 (a 0,55). Medidos al volumen por defecto (60 %)
+    xarPasa: -6.6, xarRedoble: -9.7, xarDesafina: -5.9, xarEns1: -1, xarEns2: 2, xarEns3: 2.9
   });
 
 
@@ -1367,7 +1518,7 @@
   var genStarted = false, delayT = null;
   var GUESS_RATE = 48000;             // frecuencia supuesta antes del gesto (la habitual); solo la reverb exige la exacta
   var muted = false, hidden = false, state = 'menu', demo = true, reverbOn = true;
-  var vol = { master: 0.9, sfx: 1, music: 0.75, crowd: 0.85 };
+  var vol = { master: 0.9, sfx: 1, music: 0.75, crowd: 0.85, xaranga: 0.6 };   // xaranga: la charanga de la grada (Ajustes › Audio, 60 %)
   var MAX_VOICES = 32, ends = new Float64Array(40), slowRate = 1;
   var last = {};                      // nombre -> último instante (anti-amontonado)
   // S3-C1 (T6): repetición. evRpl = el evento que se está tratando viene de la repetición (e.replay): sus capas de grada no suenan
@@ -1379,7 +1530,7 @@
                 // máximo de voces simultáneas (ranuras ocupadas, sin lechos). AUD-06/07: presentaciones, cortinillas, reacciones.
                 fxIn: 0, fxOut: 0, dribIn: 0, dribOut: 0, pooled: 0, poolFull: 0, voicesMax: 0, intro: 0, wipe: 0, react: 0, toon: 0, pam: 0,
                 // S2-S4 (T6): rótulos cinéticos que sonaron y el último tipo; sonidos nuevos de ui() que sonaron; eventos de repetición omitidos
-                rot: 0, rotLast: '', ui2: 0, rplCut: 0 }; // missed: nombre -> veces que se pidió sin buffer (y no se pudo aplazar) // ticks: "toc" del reloj de saque programados · aplazados (sin buffer aún), descartados por llegar tarde, retraso máx. (ms)
+                rot: 0, rotLast: '', ui2: 0, rplCut: 0, xar: 0 }; // missed: nombre -> veces que se pidió sin buffer (y no se pudo aplazar) // ticks: "toc" del reloj de saque programados · aplazados (sin buffer aún), descartados por llegar tarde, retraso máx. (ms)
   var stingDone = false, beatNext = 0, clapNext = 0, clapBeat = 0, serveWait = 0, serveTeam = -1;
   /* Tensión del saque: 2 = punto de partido (latido 0,9 s, ganancia 1), 1 = punto de set (latido 1,0 s, ×0,6), 0 = nada.
    * El latido para en cuanto el sacador lanza (el gesto resuelve la tensión). */
@@ -1395,7 +1546,7 @@
   var lowT = 0, SLOW_HOLD = 0.25, FREEZE_TS = 0.04;
   var excite = 0, exciteBoost = 0, lastSpikeT = -9, lastSpikeTeam = -1, tossHush = 0;
   var pvx = new Float32Array(8), pvy = new Float32Array(8), scd = new Float32Array(8), squeakGap = 0;
-  var applied = { fx: -1, crowd: -1, mur: -1, exc: -1, bright: -1, sfx: -1, music: -1, master: -1, rate: -1, chp: -1, punch: -1 };
+  var applied = { fx: -1, crowd: -1, mur: -1, exc: -1, bright: -1, sfx: -1, music: -1, master: -1, rate: -1, chp: -1, punch: -1, xar: -1, xduck: -1 };
   var SP_PAN = 0, SP_ATT = 1;
   var perf = root.performance && root.performance.now ? root.performance : Date;
 
@@ -1455,11 +1606,27 @@
     schedule(0);
     return true;
   }
+  /* Xaranga: sus piezas tampoco van en el banco de siempre; xarPrep() las encola (partido donde toca la charanga, muestra del
+   * deslizador) solo si su volumen es > 0. Los ensayos del menú, solo con XAR_WHEN.menu. */
+  var XAR_LAZY = { xarPasa: 1, xarRedoble: 1, xarDesafina: 1, xarEns1: 1, xarEns2: 1, xarEns3: 1 }, xarQueued = Object.create(null), xarQN = 0;
+  function xarPrep() {
+    if (!(vol.xaranga > 0)) return false;
+    var add = [];
+    for (var k in XAR_LAZY) if (!xarQueued[k] && (k.indexOf('xarEns') < 0 || XAR_WHEN.menu)) { xarQueued[k] = 1; xarQN++; add.push(k); }
+    if (!add.length) return false;
+    if (!genStarted) return true;                 // queueAll ya los incluirá
+    for (var i = 0; i < add.length; i++) { jobs.push({ name: add[i], v: 0, it: null, sr: 0 }); total++; }
+    stats.total = total; stats.bankDoneAt = -1; stats.synthDoneAt = -1;
+    if (!wk && wkState === -1 && stats.worker === 'on') wkState = 0;
+    schedule(0);
+    return true;
+  }
   function queueAll() {
     var seen = Object.create(null), p, v, c;
     for (p = 0; p < CORE.length; p++) if (CATALOG[CORE[p]]) { jobs.push({ name: CORE[p], v: 0, it: null, sr: 0 }); seen[CORE[p]] = 1; coreWait[CORE[p]] = 1; coreLeft++; }
     for (p = 0; p < PRIORITY.length; p++) {
       if (AMB_LAZY[PRIORITY[p]] && !ambQueued) continue;
+      if (XAR_LAZY[PRIORITY[p]] && !xarQueued[PRIORITY[p]]) continue;
       c = CATALOG[PRIORITY[p]];
       for (v = seen[PRIORITY[p]] ? 1 : 0; v < c.variants; v++) jobs.push({ name: PRIORITY[p], v: v, it: null, sr: 0 });
     }
@@ -1740,11 +1907,16 @@
       N.duck = AC.createGain(); N.duck.gain.value = 1; N.duck.connect(N.crowdHp);
       N.crowd = AC.createGain(); N.crowd.gain.value = vol.crowd; N.crowd.connect(N.duck);
       N.music = AC.createGain(); N.music.gain.value = vol.music; N.music.connect(N.master);
+      // xaranga: hueco del silbato (rampas programadas) → agachada (setParam) → volumen; nodos separados para que no se pisen
+      N.xar = AC.createGain(); N.xar.gain.value = vol.xaranga; N.xar.connect(N.fx);
+      N.xarDuck = AC.createGain(); N.xarDuck.gain.value = 1; N.xarDuck.connect(N.xar);
+      N.xarW = AC.createGain(); N.xarW.gain.value = 1; N.xarW.connect(N.xarDuck);
       N.revIn = AC.createGain(); N.revIn.gain.value = 1;
       N.revBus = AC.createGain(); N.revBus.gain.value = 1;   // reparte a los tramos de convolución (irStep)
       N.revOut = AC.createGain(); N.revOut.gain.value = 0.55;
       N.revOut.connect(N.fx);
       if (reverbOn) N.revIn.connect(N.revBus);
+      N.xarSend = AC.createGain(); N.xarSend.gain.value = 0.18; N.xar.connect(N.xarSend); N.xarSend.connect(N.revIn);   // la charanga suena en el pabellón
       N.murG = AC.createGain(); N.murG.gain.value = 0; N.murG.connect(N.crowd);
       N.excG = AC.createGain(); N.excG.gain.value = 0; N.excG.connect(N.crowd);
       poolBuild();
@@ -1972,6 +2144,7 @@
     if (N.punch) setParam(N.punch.gain, 'punch', punchGain(), tc);
     setParam(N.sfx.gain, 'sfx', vol.sfx * (demo ? 0.35 : 1) * (state === 'paused' ? 0.5 : 1), tc);
     setParam(N.music.gain, 'music', vol.music, tc);
+    if (N.xar) setParam(N.xar.gain, 'xar', vol.xaranga, tc);
   }
   /** Ganancia del bus de refuerzo (después del compresor): la misma cadena de volúmenes que un efecto normal (general ×
    *  efectos × demo × pausa) y el maquillaje del compresor ya compensado (MAKEUP_COMP lo cancela en el bus principal). */
@@ -2251,7 +2424,18 @@
    * el lecho normal) y el ánimo se apaga. 'challengeResult' {team, overturned}: reacción según a quién favorece la decisión
    * (equipo 0 = local): si se anula el punto, la reacción es grande (ovación con bombo, o lamento fuerte); si se mantiene,
    * aplauso o lamento moderado. */
-  var frame = { cr: false, big: false }; // eventos del frame en curso (handle): hay resultado de challenge / punto de set o partido
+  var frame = { cr: false, big: false, sena: null, subWh: false }; // eventos del frame en curso (handle): hay resultado de challenge / punto de set o partido / seña del punto (VB.Senas) / ya sonó el pitido de un cambio
+  /** Pitido del punto según la seña del árbitro (idea «senas»): [sonido ya registrado, tono (rate), ganancia]. Siempre UN pitido; el que
+   *  cierra set o partido sigue siendo whistleEnd. Corto y seco (whistle, 0,32 s) para las faltas de toque; largo para el resto. */
+  var WH_SENA = {
+    fuera: ['whistleLong', 1.0, 0.55], tocado: ['whistleLong', 1.0, 0.55], bajo: ['whistleLong', 1.0, 0.55],
+    red: ['whistleLong', 0.97, 0.55],
+    dobles: ['whistle', 1.05, 0.58], cuatro: ['whistle', 1.05, 0.58],
+    ataque: ['whistleLong', 1.03, 0.58], bloqueo: ['whistleLong', 1.03, 0.58],
+    posicion: ['whistleLong', 0.95, 0.55],
+    retraso: ['whistleLong', 0.92, 0.52],
+    saque: ['whistle', 0.98, 0.55]
+  };
   var REVIEW_MAX = 6, REV_MUR = 1.78, REV_MUR_UP = 0.73, rev = { on: false, t0: -9, until: 0, team: -1, n: 0, res: 0, last: null };
   function onChallenge(e) {
     rev.on = true; rev.t0 = now(); rev.until = rev.t0 + REVIEW_MAX; rev.team = e.team | 0; rev.n++; rev.last = null;
@@ -2287,9 +2471,12 @@
   /** Racha local ≥ 3: palmas al unísono con bombo tras la ovación, en la rejilla de 0,42 s de las palmas del saque. Solo
    *  hasta poco antes de `serveReady` (point.hold); allí las palmas del saque local siguen la misma rejilla sin hueco. */
   function chant(hold, streak) {
-    var t = now(), t0 = t + 1.2, k = 0, ramp = 0.38 + 0.05 * Math.min(streak - 3, 3);
-    for (; k < 6 && 1.2 + k * CHANT_P < hold - 0.12; k++) {
-      var b = k % 4, d = 1.2 + k * CHANT_P;
+    var t = now(), off = 1.2, k = 0, ramp = 0.38 + 0.05 * Math.min(streak - 3, 3);
+    // xaranga: con el pasacalles sonando, las palmas nuevas entran en la siguiente negra de SU rejilla (no se desfasan del bucle)
+    if (xar.cur && xar.cur.name === 'xarPasa') { var x0 = xar.cur.t0; off = x0 + Math.ceil((t + 1.2 - x0) / CHANT_P - 1e-6) * CHANT_P - t; }
+    var t0 = t + off;
+    for (; k < 6 && off + k * CHANT_P < hold - 0.12; k++) {
+      var b = k % 4, d = off + k * CHANT_P;
       if (b !== 3 && play('palmas', (ramp + k * 0.03) * 0.95, null, null, jit(0.04), 0, d, 'crowd')) react.layers++;
       if (b === 0 || b === 2) play('bombo', (ramp + k * 0.03) * 0.75, null, null, jit(0.02), 0.25, d, 'crowd');
     }
@@ -2473,6 +2660,17 @@
       } catch (err) { }
       return true;
     }
+    if (kind === 'xaranga') {   // primer compás del pasacalles, fundido a los 0,9 s (sin buffer: lo encola y no suena)
+      xarPrep();
+      if (now() - prevT < 0.45 || !(bank.xarPasa && bank.xarPasa.length)) return false;
+      prevT = now();
+      if (xar.shot) xarKill(xar.shot, 0.03);
+      var xs = xarPlay('xarPasa', now(), 0.9, false);
+      if (!xs) return false;
+      try { var tx = AC.currentTime; xs.g.gain.setValueAtTime(xs.g.gain.value, tx + 0.9); xs.g.gain.setTargetAtTime(0, tx + 0.9, 0.06); xs.src.stop(tx + 1.3); xs.end = tx + 1.3; } catch (err) { }
+      xs.prev = true; xar.shot = xs;
+      return true;
+    }
     if (kind === 'sfx') return !!playGap('pass', 0.08, 0.6, null, null, jit(0.08), 0.12, 0, 'sfx');
     if (kind === 'music' || kind === 'master' || kind === 'volume') return !!playGap('click', 0.06, 0.6, null, null, jit(0.04), 0, 0, 'music');
     return false;
@@ -2577,6 +2775,7 @@
       p.setTargetAtTime(-9, t0, 0.015);
       p.setTargetAtTime(0, t0 + Math.max(0.15, dur), 0.12);
     } catch (e) { }
+    xarHole(AC.currentTime + (delay || 0), src.buffer.duration / (src.playbackRate.value || 1));
   }
   /* Sonidos programados a futuro que deben callarse si el saque se lanza antes de que suenen (latido, "toc"). */
   var future = [];
@@ -2653,17 +2852,28 @@
         playGap('bounce', 0.05, clamp(b * 0.09, 0.08, 0.5), e.x, e.y, jit(0.1) * (1 + Math.max(0, 4 - b) * 0.04), 0.15); break;
       }
       case 'whistle': // el silbato llena el pabellón: mucho envío a la reverb
-        if (e.reason === 'point' || e.reason === 'penalty') whistle(longWhistle ? 'whistleEnd' : 'whistleLong', demo ? 0.35 : 0.55, 0);   // (ambiente: punto de castigo)
+        // idea «senas»: UN solo pitido por punto, con el carácter de la seña (WH_SENA: sonido, tono y ganancia); sin seña, el de siempre
+        if (e.reason === 'point' && !longWhistle && frame.sena && WH_SENA[frame.sena.id]) {
+          var ws = WH_SENA[frame.sena.id]; whistle(ws[0], (demo ? 0.64 : 1) * ws[2], 0, ws[1]);
+        } else if (e.reason === 'point' || e.reason === 'penalty') whistle(longWhistle ? 'whistleEnd' : 'whistleLong', demo ? 0.35 : 0.55, 0);   // (ambiente: punto de castigo)
         else { whistle('whistle', demo ? 0.3 : 0.5, 0); if (intro.on) introEnd('whistle'); } // el 1r pitido suelta la presentación
+        if (e.reason === 'serve' && xar.cur && xar.cur.name === 'xarRedoble') xarStop(0.03);   // xaranga: el redoble acaba en el silbato
         break;
       case 'point': // un punto corregido por el challenge (mismo frame o < 0,5 s tras el resultado) ya tiene su reacción
         if (!e.setWon && !e.matchWon && (frame.cr || (rev.last && now() - rev.last.t < 0.5))) break;
         crowdReact(e, g);
         // ambiente: punto de castigo contra el local = pitada de su afición; se corta lo que quedara del punto anterior
         if (e.penalty && amb.on && !demo && 1 - (e.team | 0) === ambHome() && amb.home >= 0) play('boo', 0.45 + 0.35 * amb.heat, null, null, 1, 0, 0.25, 'crowd');
-        stormStop(); break;
-      case 'challenge': onChallenge(e); break;
+        stormStop();
+        xarPoint(e, g);   // xaranga
+        break;
+      case 'challenge': xarStop(0.2); onChallenge(e); break;
       case 'challengeResult': onChallengeResult(e); break;
+      // tiempo muerto (solo existe en el online; lo pita el 2º, arena.js refTimeout): pitido LARGO (Ferran, 20-nov), más que el del punto
+      case 'timeout': if (!demo) whistle('whistleEnd', 0.5, 0, 1.04); break;
+      // sustitución (6v6 y banquillo; el 2º, arena.js refSub): también pitido LARGO (Ferran: «tiempo muerto y eso… un pitido más
+      // largo»), algo más flojo; uno por frame aunque cambien los dos equipos
+      case 'sub': if (!demo && !frame.subWh) { frame.subWh = true; whistle('whistleEnd', 0.4, 0, 1.06); } break;
       case 'courtChange': // cambio de campo (18.2.1 / 18.2.2): silbato corto tras el del punto
         // (playa, why 'swap' cada 7/5 puntos: el juego sigue enseguida, el silbato corto va pegado al del punto)
         if (!demo) whistle('whistle', 0.32, e.why === 'eight' || e.why === 'swap' ? 1.0 : 2.7, 1.03);
@@ -2678,6 +2888,7 @@
         }
         chantN = 0;
         tension = demo ? 0 : e.matchPoint >= 0 ? 2 : e.setPoint >= 0 ? 1 : 0; beatNext = now() + 0.6;
+        if (xarOn(g)) { xarPrep(); xarServeReady(e, g); }   // xaranga: redoble en punto de set o de partido
         cancelTick(); tickNext = 3;
         break;
       // contactos cosméticos de la celebración (VB.Players.drainFx, repartidos por main.js como eventos 'fx:*')
@@ -2715,6 +2926,7 @@
         break;
       }
       case 'set':
+        xarStop(0.15);
         if (!demo) {
           var win = e.team === 0;
           // el set que cierra el partido lo celebra la ráfaga del partido (evento 'match')
@@ -2722,16 +2934,18 @@
         }
         break;
       case 'match':
+        xarStop(0.15);
         if (!demo && (e.team === 0 || e.team === 1)) stingTeam = e.team;
         if (!demo && !stingDone) { stingDone = true; play(e.team === 0 ? 'matchWin' : 'matchLose', e.team === 0 ? 1 : 0.75, null, null, 1, 0.12, 0.85, 'music'); }
         break;
       case 'gameOver':
+        xarStop(0.15);
         if (!demo && stingTeam < 0 && (e.team === 0 || e.team === 1)) stingTeam = e.team;
         if (!demo && !stingDone) { stingDone = true; play(e.team === 0 ? 'matchWin' : 'matchLose', e.team === 0 ? 1 : 0.75, null, null, 1, 0.12, 0, 'music'); }
         break;
       case 'newSet': if (!demo) play('applause', 0.45, null, null, 1, 0, 0.1, 'crowd'); break;
       case 'newMatch':
-        stingDone = false;
+        stingDone = false; xarStop(0.1); if (xarOn(g)) xarPrep();
         if (!e.demo && !demo && !(intro.on || now() - intro.t0 < 1.5)) {
           welcome.length = 0; deferTag = 1;
           var w1 = play('roar', 0.55, null, null, 1, 0, 0.35, 'crowd'); if (w1) welcome.push({ src: w1, at: now() + 0.35 });
@@ -2839,6 +3053,117 @@
     }
   }
 
+
+  /* ------------------------------------------------------------------
+   * Xaranga (idea «xaranga», 21-nov-2026): la charanga de la grada como música (piezas en XSCORES, sintetizadas aparte con
+   * xarPrep). Bus propio y diegético: pieza → N.xarW (hueco del silbato) → N.xarDuck (balón en juego, pausa, repetición) →
+   * N.xar (volumen «Xaranga») → N.fx (le afectan pausa, cámara lenta y volumen General; no los de Música ni Público).
+   * DÓNDE SUENA (decisión de Ferran: «en la Carrera y en partidos buenos»): XAR_WHEN, la única constante que hay que tocar.
+   * La charanga es la de la grada LOCAL (ambHome): fuera de casa celebra las rachas del rival y te suelta la trompeta desafinada
+   * cuando fallas tú el saque; en campo neutral anima a tu equipo, más floja (0,75), y nunca desafina.
+   * ------------------------------------------------------------------ */
+  var XAR_WHEN = {
+    career: true,                       // Carrera: siempre (todos sus partidos jugados tienen grada)
+    diffs: { hard: true, expert: true }, // fuera de la Carrera: solo partidos de nivel Difícil o Experto
+    menu: false                         // ensayos sueltos en los menús (xarEns1-3): apagados (no es un partido)
+  };
+  var XAR_RALLY = 0.3, XAR_PAUSE = 0.45, XAR_RPL = 0.5, XAR_MENU = 0.7, XAR_ORPHAN = 40, XAR_DES_AT = 0.75, XAR_NEUTRAL = 0.75;
+  var xar = { cur: null, shot: null, lastPt: -99, ensT: 4, ensLast: -1, ensN: 0, holes: 0, desN: 0 };
+  /** ¿Toca la charanga en este partido? (sin demo, sin Entrenamiento, con volumen) */
+  function xarOn(g) {
+    g = g || (vctx && vctx.game);
+    if (!g || demo || g.demo || g.drill || g.careerExtDrill || !(vol.xaranga > 0)) return false;
+    if (g.career) return !!XAR_WHEN.career;
+    return !!XAR_WHEN.diffs[g.difficulty];
+  }
+  function isServeErr(e) { return e.how === 'error' && (e.lastKind === 'serve' || e.reason === 'serve'); }
+  /** Pieza de la charanga por su bus (fuera de las ranuras de voz, como los silbidos de la grada). Sin buffer: no suena (no se aplaza). */
+  function xarPlay(name, at, gain, loop) {
+    if (!live() || !N.xarW) return null;
+    var list = bank[name];
+    if (!list || !list.length) { stats.missed[name] = (stats.missed[name] | 0) + 1; bumpSoft(name); return null; }
+    try {
+      var s = AC.createBufferSource(); s.buffer = list[0]; s.loop = !!loop; s.playbackRate.value = loop ? slowRate : 1;
+      var gn = AC.createGain(); gn.gain.value = gain * (LEVEL_LIN[name] || 1);
+      s.connect(gn); gn.connect(N.xarW);
+      var t0 = Math.max(AC.currentTime, at || 0);
+      s.start(t0);
+      stats.xar = (stats.xar | 0) + 1; stats.played[name] = (stats.played[name] | 0) + 1;
+      return { src: s, g: gn, name: name, t0: t0, loop: !!loop, end: loop ? 1e9 : t0 + s.buffer.duration };
+    } catch (e) { return null; }
+  }
+  function xarKill(x, tc) {
+    if (!x || !AC) return;
+    try {
+      var t = AC.currentTime, p = x.g.gain;
+      if (x.t0 > t + 0.003) { x.src.stop(0); return; }   // aún no había empezado
+      if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t); else { p.cancelScheduledValues(t); p.setValueAtTime(p.value, t); }
+      p.setTargetAtTime(0, t, tc); x.src.stop(t + tc * 6 + 0.02);
+    } catch (e) { }
+  }
+  /** Para la charanga (bucle y pieza suelta) con un fundido de constante tc. */
+  function xarStop(tc) {
+    tc = tc > 0 ? tc : 0.15;
+    if (xar.cur) { xarKill(xar.cur, tc); xar.cur = null; }
+    if (xar.shot) { xarKill(xar.shot, tc); xar.shot = null; }
+  }
+  /** Hueco del silbato: la charanga calla mientras pita el árbitro (todos los silbatos pasan por whistle()) y vuelve después. */
+  function xarHole(t0, dur) {
+    if (!N.xarW) return;
+    try {
+      var p = N.xarW.gain;
+      if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t0); else p.cancelScheduledValues(t0);
+      p.setTargetAtTime(0, t0, 0.012);
+      p.setTargetAtTime(1, t0 + Math.max(0.1, dur) + 0.1, 0.1);
+      xar.holes++;
+    } catch (e) { }
+  }
+  /** Punto: la charanga celebra a su equipo (racha ≥ 3: pasacalles; falla el saque el otro: trompeta desafinada) y se desinfla con el del rival. */
+  function xarPoint(e, g) {
+    if (!xarOn(g) || intro.on) return;
+    xarPrep();
+    if (e.setWon || e.matchWon) { xarStop(0.15); return; }   // mandan las ráfagas de set y de partido
+    if (xar.cur && xar.cur.name === 'xarRedoble') xarStop(0.1);
+    var neu = amb.on && amb.home < 0, mine = neu ? e.team === 0 : e.team === ambHome(), t = now(), k = neu ? XAR_NEUTRAL : 1, tEnd = 0;
+    if (!mine) { if (xar.cur) xarStop(0.07); return; }   // punto del rival: la charanga se desinfla (≤ 0,5 s)
+    xar.lastPt = t;
+    if (!neu && isServeErr(e)) {   // tras el silbato largo del punto (0,62 s)
+      var sh = xarPlay('xarDesafina', t + XAR_DES_AT, 1, false);
+      if (sh) { if (xar.shot) xarKill(xar.shot, 0.05); xar.shot = sh; xar.desN++; tEnd = sh.end; }
+    }
+    if ((e.streak | 0) >= 3 && !(xar.cur && xar.cur.name === 'xarPasa')) {
+      if (xar.cur) xarStop(0.15);
+      // en la MISMA rejilla de las palmas del cántico (chant(), que acaba de sonar en crowdReact): t0 = chantT0
+      var at = chantT0 > t + 0.5 ? chantT0 : t + 1.2;
+      if (tEnd > at) at += Math.ceil((tEnd - at) / CHANT_P - 1e-6) * CHANT_P;   // tras la desafinada, en la primera negra libre
+      xar.cur = xarPlay('xarPasa', at, k, true);
+    }
+  }
+  /** Saque en punto de set o de partido: calla el pasacalles y entra el redoble de caja, que crece hasta el silbato (whistleAt 0,7 s). */
+  function xarServeReady(e, g) {
+    if (!xarOn(g) || !tension) return;
+    xarPrep();
+    if (xar.cur) xarStop(0.15);
+    var r = xarPlay('xarRedoble', now() + 0.02, 1, true);
+    if (!r) return;
+    try { var p = r.g.gain, t = AC.currentTime, top = p.value; p.setValueAtTime(top * 0.35, t); p.linearRampToValueAtTime(top, t + 0.65); } catch (er) { }
+    xar.cur = r;
+  }
+  /** Ensayo en el menú (solo con XAR_WHEN.menu): uno al azar cada 12-20 s, nunca el mismo dos veces seguidas; el primero a los 4 s. */
+  function xarMenu(dt) {
+    if (!XAR_WHEN.menu || !(vol.xaranga > 0) || intro.on) return;
+    xarPrep();
+    if (xar.shot && xar.shot.end > now()) return;
+    xar.ensT -= dt;
+    if (xar.ensT > 0) return;
+    var k = (Math.random() * 3) | 0; if (k === xar.ensLast) k = (k + 1 + ((Math.random() * 2) | 0)) % 3;
+    var name = 'xarEns' + (k + 1);
+    if (!(bank[name] && bank[name].length)) { xar.ensT = 1; bumpSoft(name); return; }
+    var s = xarPlay(name, now() + 0.02, 0.55, false);
+    if (s) { xar.shot = s; xar.ensLast = k; xar.ensN++; }
+    xar.ensT = 12 + Math.random() * 8;
+  }
+
   if (root.__vbAudioWorker && typeof root.postMessage === 'function') workerMain(); // este módulo cargado como hilo de síntesis
 
   /** Tipos de ui(kind, …) (VB.Audio.UI_KINDS, congelado). */
@@ -2859,7 +3184,7 @@
     /** Variantes que se generan de cada sonido (tests). */
     VARIANTS: (function () { var o = {}; for (var k in CATALOG) o[k] = CATALOG[k].variants; return o; })(),
     /** Sonidos que suenan en bucle (sin rampa en los extremos: el corte es continuo). */
-    LOOPS: ['murmur', 'excite', 'whistleStorm'],
+    LOOPS: ['murmur', 'excite', 'whistleStorm', 'xarPasa', 'xarRedoble'],
     /** Plan de mezcla: nivel (dB) aplicado a cada sonido del catálogo (ver LEVEL). Solo lectura. */
     LEVELS: LEVEL,
     /** synth(name, variant, ctxSampleRate) -> [Float32Array...]: genera sin WebAudio. */
@@ -2907,6 +3232,18 @@
     AMB_SOUNDS: Object.keys(AMB_LAZY),
     /** Estado continuo del ambiente (pruebas): {on, home, heat, hush, hushOn, storm, chants, queued}. */
     ambState: function () { return { on: amb.on, home: amb.home, heat: amb.heat, hush: amb.hush, hushOn: amb.hushOn, storm: !!amb.storm, chants: amb.srcs.length, queued: ambQueued }; },
+    /** Xaranga: sonidos que solo se sintetizan con xarPrep (pruebas: el banco de siempre no los lleva). */
+    XAR_SOUNDS: Object.keys(XAR_LAZY),
+    /** Xaranga: dónde suena ({career, diffs, menu}; la misma constante que usa el motor, se puede cambiar en caliente). */
+    XAR_WHEN: XAR_WHEN,
+    /** Xaranga: encola la síntesis de sus piezas (solo con volumen > 0). Devuelve true si ha encolado algo. */
+    xarPrep: function () { return xarPrep(); },
+    /** Xaranga (pruebas): {cur (pieza en bucle o null), t0, shot (pieza suelta), on (toca en el partido actual), queued, ens, duck, hole, holes, des, vol}. */
+    xarState: function () { return { cur: xar.cur ? xar.cur.name : null, t0: xar.cur ? xar.cur.t0 : -1, shot: xar.shot && xar.shot.end > now() ? xar.shot.name : null, shotT0: xar.shot ? xar.shot.t0 : -1,
+      on: xarOn(vctx && vctx.game), queued: xarQN, ens: xar.ensN, ensT: xar.ensT, duck: N.xarDuck ? N.xarDuck.gain.value : 1, hole: N.xarW ? N.xarW.gain.value : 1, holes: xar.holes, des: xar.desN, vol: vol.xaranga,
+      gain: xar.cur ? xar.cur.g.gain.value : 0 }; },
+    /** OPCIONAL (pruebas): toca una pieza de la charanga por su bus (gain; duck = agachada a aplicar, p. ej. 0,7 la del menú). */
+    _xarPlay: function (name, gain, duck) { if (!XAR_LAZY[name]) return false; if (N.xarDuck && duck > 0) { applied.xduck = -1; setParam(N.xarDuck.gain, 'xduck', duck, 0.01); } var x = xarPlay(name, now(), gain > 0 ? gain : 1, false); if (x) { if (xar.shot) xarKill(xar.shot, 0.03); x.prev = true; xar.shot = x; } return !!x; },
     /** Estado del contexto: 'none' | 'suspended' | 'running' | 'interrupted' | 'closed'. */
     contextState: function () { return AC ? AC.state : 'none'; },
 
@@ -2943,15 +3280,16 @@
       else resumeIfWanted();
     },
     isMuted: function () { return muted; },
-    /** Volumen por canal: kind = 'master'|'sfx'|'music'|'crowd', v en 0..1. */
+    /** Volumen por canal: kind = 'master'|'sfx'|'music'|'crowd'|'xaranga', v en 0..1. */
     setVolume: function (kind, v) {
       if (!Object.prototype.hasOwnProperty.call(vol, kind)) return;
       vol[kind] = clamp(+v || 0, 0, 1);
       applied.crowd = -1; // la grada se recalcula en update()
       applyVolumes(false);
+      if (kind === 'xaranga' && !(vol.xaranga > 0)) xarStop(0.1);
     },
     getVolume: function (kind) { return vol[kind]; },
-    /** OPCIONAL (E3): muestra al mover un deslizador: 'crowd' | 'sfx' | 'music' | 'master'. Seguro antes del primer gesto. */
+    /** OPCIONAL (E3): muestra al mover un deslizador: 'crowd' | 'sfx' | 'music' | 'master' | 'xaranga'. Seguro antes del primer gesto. */
     preview: function (kind) { try { return preview(kind); } catch (e) { return false; } },
     /** Sonidos de interfaz (por el bus de música: no les afecta la pausa ni la cámara lenta). */
     click: function () { play('click', 0.6, null, null, jit(0.04), 0, 0, 'music'); },
@@ -3004,6 +3342,8 @@
       serveTeam = -1; tension = 0; clapNext = 0; tickNext = 0; cancelTick(); lowT = 0; rev.on = false; rev.until = 0;
       rotT.ace = rotT.muro = rotT.sp = rotT.mp = -9; rpl.on = false; evRpl = false;
       ambReset();   // ambiente (P2): lo enciende amb:start (o crowdOf) del partido nuevo
+      xarStop(0.05); xar.lastPt = -99;   // xaranga
+      if (xarOn(g)) xarPrep();
       for (var i = 0; i < 8; i++) { pvx[i] = pvy[i] = 0; scd[i] = 0.5; }
       applyVolumes(false);
     },
@@ -3011,7 +3351,7 @@
       // en pausa no debe sonar un "toc" ya programado (el reloj se para): se cancela y se vuelve a marcar al reanudar
       if (s === 'paused' && state !== 'paused' && cancelTick() && tickNext < 3) tickNext++;
       if (s === 'menu' && intro.on) introEnd('menu');
-      if (s === 'menu') rpl.on = false;
+      if (s === 'menu') { rpl.on = false; if (state !== 'menu') xarStop(0.2); }
       if (s !== 'over') { endFocus = false; cnt.on = false; }
       state = s;
       if (vctx && vctx.game) demo = !!vctx.game.demo;
@@ -3025,6 +3365,7 @@
       if (typeof st.crowdVol === 'number') VB.Audio.setVolume('crowd', st.crowdVol);
       else if (typeof st.sfxVol === 'number') VB.Audio.setVolume('crowd', 0.85 * st.sfxVol); // sin ajuste propio: la grada sigue a "efectos"
       if (typeof st.volume === 'number') VB.Audio.setVolume('master', 0.9 * st.volume);
+      if (typeof st.xarVol === 'number') VB.Audio.setVolume('xaranga', st.xarVol);
       if ((k === 'muted' || k === undefined) && typeof st.muted === 'boolean' && st.muted !== muted) VB.Audio.setMuted(st.muted);
     },
     /** Calidad baja: sin reverb y menos voces. */
@@ -3040,10 +3381,11 @@
     handle: function (events, g) {
       if (!events || !events.length) return;
       var longWh = false, i, e;
-      frame.cr = false; frame.big = false;
+      frame.cr = false; frame.big = false; frame.sena = null; frame.subWh = false;
       for (i = 0; i < events.length; i++) {
         e = events[i]; if (!e || e.replay) continue;
         if (e.type === 'point' && (e.setWon || e.matchWon)) { longWh = true; frame.big = true; }
+        if (e.type === 'point' && !e.penalty && VB.Senas && VB.Senas.of) { try { frame.sena = VB.Senas.of(e); } catch (err) { frame.sena = null; } }
         if (e.type === 'challengeResult') frame.cr = true;
       }
       for (i = 0; i < events.length; i++) {
@@ -3097,6 +3439,19 @@
       if (endFocus && st !== 'over' && st !== 'paused') endFocus = false;
       if (znBed.src && !(g && g.zn && g.zn.on[0] && !demo && st !== 'menu')) zoneBedOff();   // la zona: el lecho no sobrevive a la zona, al menú ni a la demo
       setParam(N.crowd.gain, 'crowd', vol.crowd * (paused ? 0.45 : 1) * (st === 'menu' ? 0.6 : 1) * (ef ? END_DUCK : 1) * (rpl.on ? REPLAY_CROWD : 1) * (znBed.src ? 0.71 : 1), ef ? 0.35 : rpl.on ? 0.25 : 0.15);
+      // xaranga: con el balón en juego baja ~10 dB (que no tape el peloteo), en pausa y en la repetición a medias, en el menú un poco.
+      // Fuera de un partido donde toque (menú, demo, Entrenamiento), o 40 s sin un punto nuevo (bucle huérfano), calla.
+      if (N.xarDuck) {
+        var xk = st === 'menu' ? XAR_MENU : paused ? XAR_PAUSE : rpl.on ? XAR_RPL : g && g.mode === 'rally' ? XAR_RALLY : 1;
+        setParam(N.xarDuck.gain, 'xduck', xk, xk < applied.xduck ? 0.25 : 0.4);
+        if (xar.cur || xar.shot) {
+          var xsh = xar.shot && !xar.shot.prev && (st !== 'menu' || xar.shot.name.indexOf('xarEns') < 0);   // la muestra del deslizador no se corta
+          var xoff = st === 'menu' ? !!(xar.cur || xsh) : (!xarOn(g) && (xar.cur || xsh)) || (xar.cur && xar.cur.name === 'xarPasa' && t - xar.lastPt > XAR_ORPHAN);
+          if (xoff) xarStop(0.2);
+          if (xar.shot && xar.shot.end < t) xar.shot = null;
+        }
+        if (st === 'menu' && !paused) xarMenu(dt); else xar.ensT = 4;
+      }
       // presentación (AUD-06): el lecho se agacha bajo la tarjeta (-7 dB, entra en ~0,3 s) y vuelve en ~1 s al soltarla
       if (intro.on && t > intro.until) introEnd('timeout');
       var ducked = intro.on && t < intro.t0 + INTRO_DUCK, half = intro.on && !ducked && t < intro.t0 + intro.half;
@@ -3127,6 +3482,7 @@
         applied.rate = br;
         if (N.murmurSrc) try { N.murmurSrc.playbackRate.setTargetAtTime(br, t, 0.1); } catch (e) { }
         if (N.exciteSrc) try { N.exciteSrc.playbackRate.setTargetAtTime(br, t, 0.1); } catch (e) { }
+        if (xar.cur) try { xar.cur.src.playbackRate.setTargetAtTime(br, t, 0.1); } catch (e) { }   // la charanga también
       }
       if (!g || paused || !live() || (st !== 'playing' && st !== 'menu')) return;
       // --- chirridos de zapatilla en giros y frenadas bruscas

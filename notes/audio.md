@@ -710,3 +710,41 @@ Sin eventos `amb:*` ni `VB.Ambiente.crowdOf(g)` todo suena como siempre (`amb.on
   silbato largo; `point{penalty}` contra el local = pitada. El lanzamiento del saque calla los cánticos; el golpe, silbidos y silencio.
 - API: `VB.Audio.ambPrep()`, `AMB_SOUNDS`, `ambState()`; `LOOPS` añade `whistleStorm`. audiotest: 9 escenarios «ambiente: …»
   (categorías nuevas `ambWhistles` −23 y `pa` −24); la parte 5 (banco idéntico) no cuenta los `AMB_SOUNDS`. `node tools/audiotest.js` → TODO OK.
+
+## Xaranga: la charanga de la grada (21-nov-2026, idea «xaranga»)
+Música DE LA GRADA, no un tema (la pregunta A4 de notes/juego-completo.md sigue abierta): frases cortas de 4 s como mucho, mono,
+32 kHz, unos 2,1 MB en Float32 las tres piezas de partido. Melodías ORIGINALES, Si bemol mayor, negra = `CHANT_P` = 0,42 s en 2/4
+(cae justo sobre las palmas y el bombo del cántico de racha y de la espera del saque).
+- **Dónde suena** (decisión de Ferran: «en la Carrera y en partidos buenos»): `XAR_WHEN` en audio.js, la única constante que hay que
+  tocar. Hoy: Carrera siempre (todos sus partidos jugados tienen grada); fuera de la Carrera solo en Difícil y Experto. Nunca en la
+  demo del menú, el Entrenamiento (`g.drill`, `careerExtDrill`), los eventos de la repetición ni con la tarjeta de presentación.
+  `XAR_WHEN.menu` (ensayos sueltos en el menú) está apagado: no es un partido.
+- **Bando**: la charanga es la de la grada local (`ambHome()`). Fuera de casa celebra las rachas del rival y te suelta la trompeta
+  desafinada cuando fallas tú el saque. Campo neutral: anima a tu equipo a 0,75 y nunca desafina.
+- **Piezas** (`XSCORES`, voces `xTrumpet` / `xTrombone` sobre `xHorn`, `snare`, bombo = `boom`; `xarPlan` mono; bucles con
+  `wrapTail`, que SUMA la cola renderizada sobre el principio en vez de fundirla como `loopify`):
+  `xarPasa` pasacalles I I V7 V7 en bucle (3,36 s) · `xarRedoble` redoble de caja en bucle (1,26 s; el crescendo lo pone la ganancia)
+  · `xarDesafina` «pa-ra-PIII» con gallo y glisando que se desafina (+25 → −60 cents) y el trombón que cae · `xarEns1-3` ensayos.
+- **Disparadores**: punto de su equipo con racha ≥ 3 → pasacalles en la rejilla del cántico (`chantT0`); punto del rival → se desinfla
+  (≤ 0,5 s); punto de su equipo por fallo de saque del otro (`how 'error'` y `lastKind 'serve'` o `reason 'serve'`) → desafinada a
+  +0,75 s (tras el silbato largo) y, si además hay racha, el pasacalles entra en la primera negra libre tras ella; `serveReady` en
+  punto de set o de partido → redoble que crece de 0,35 a 1 en 0,65 s y calla en seco con el silbato de saque; set/partido ganado,
+  challenge, `set`, `match`, `gameOver`, `newMatch`, menú → para. Si el pasacalles lleva 40 s sin un punto nuevo, para solo.
+  Con el pasacalles sonando, `chant()` pone las palmas nuevas en la siguiente negra de la rejilla del bucle.
+- **Grafo**: pieza → `N.xarW` (hueco del silbato: `whistle()` llama a `xarHole`, así callan TODOS los silbatos, también el de la
+  tarjeta) → `N.xarDuck` (balón en juego 0,3 ≈ −10 dB, pausa 0,45, repetición 0,5, menú 0,7) → `N.xar` (volumen «Xaranga») → `N.fx`;
+  envío de reverb 0,18 desde `N.xar`. Le afectan la pausa, la cámara lenta (el bucle sigue a `slowRate`) y el volumen General; no los
+  de Música ni Público.
+- **Volumen**: `settings.xarVol` (0..1, 60 % por defecto), fila «Xaranga · La charanga de la grada» en Ajustes › Audio; al moverla
+  suena el primer compás del pasacalles (`preview('xaranga')`). Con 0 no se sintetiza nada (`xarPrep` no encola).
+- **Síntesis perezosa**: `XAR_LAZY` + `xarPrep()` (como `ambPrep`): solo al empezar un partido donde toca, en su `newMatch` /
+  `serveReady` / punto, o con la muestra del deslizador. Los ensayos, solo con `XAR_WHEN.menu`.
+- **Niveles** (al 60 %, `LEVEL` calibrado con `--calibrate`): pasacalles −24 LUFS, redoble −25, desafinada −22, ensayo −27; con el
+  balón en juego unos −34; en el silbato, hueco a 0. Pasacalles 8 LU bajo el silbato y +3 LU sobre el lecho entre puntos; en un punto
+  grande con ovación la charanga no sube el pico de la mezcla (audiotest parte 8, «xar 13»).
+- **API**: `setVolume('xaranga', v)`, `preview('xaranga')`, `xarState()`, `xarPrep()`, `XAR_SOUNDS`, `XAR_WHEN`, `_xarPlay` (pruebas);
+  `LOOPS` añade `xarPasa` y `xarRedoble`.
+- **Pruebas**: `node tools/audiotest.js --xar-only` (parte 8: 15 comprobaciones de lógica con el contexto simulado) y, en la pasada
+  normal, síntesis de las 6 piezas, escenarios «xaranga: …» y relaciones en 2e. La parte 5 (banco idéntico) no cuenta los
+  `XAR_SOUNDS`; la asignación del banco de siempre se mide sin ellos (las piezas aparte: ~65 recolecciones, casi todo la primera
+  pasada sin optimizar). **Falta escucharlo** con auriculares y en el altavoz del móvil.

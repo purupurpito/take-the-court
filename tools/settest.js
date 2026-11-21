@@ -4,7 +4,7 @@
  *   a) las 7 pestañas y sus filas; las filas ★ (data-need) se esconden si su módulo no las soporta (OPTS borrados a mano)
  *   b) teclado (↓ hasta la fila, → cambia el valor), mando falso (stick y A/B, el de padplay) y toque (segmento y pista)
  *   c) persistencia: sobreviven a una recarga; las claves del dispositivo van en make-the-cut.device y NO en make-the-cut.settings
- *   d) valores corruptos → por defecto, sin errores
+ *   d) valores corruptos → por defecto, sin errores (xarVol «mucho» → 0,6)
  *   e) migración {sfxVol:0.6} → crowdVol 0,51 (y el bus del público de audio.js a 0,51)
  *   f) resScale 0.7 → pixelRatio = min(dpr, tope) × 0,7, y la ayuda «Fija: W × H píxeles»
  *   g) fpsCap 30 en debug=rally&live=1&aq=1 → ctx.fps entre 27 y 33 durante 6 s, sin bajadas de calidad
@@ -55,7 +55,7 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       await fresh('debug=settings&panel=set&nonews=1');
       const tabs = await J(`[].map.call(document.querySelectorAll('#setTabs .tab'), function (b) { return b.getAttribute('data-tab'); })`);
       check('7 pestañas en orden (audio, image, cam, game, a11y, kit, info)', tabs.join() === 'audio,image,cam,game,a11y,kit,info', tabs);
-      const rows = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
+      const rows = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
         game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'msTiming'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'], kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'] };
       for (const t of Object.keys(rows)) {
         await tab(t);
@@ -120,11 +120,12 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
       console.log('c) persistencia y guardado por dispositivo');
       await fresh('nonews=1');
       await E(`(function(){ var A = VB.ctx.actions; A.setSetting('resScale', 0.85); A.setSetting('fpsCap', 30); A.setSetting('showFps', true); A.setSetting('touchSize', 1.15); A.setSetting('padDead', 0.25);
-        A.setSetting('camZoom', 1); A.setSetting('crowdVol', 0.4); A.setSetting('volume', 0.7); A.setSetting('keys', {hit:['KeyL','KeyX']}); A.setSetting('lessMotion', 'on'); return 1; })()`);
+        A.setSetting('camZoom', 1); A.setSetting('crowdVol', 0.4); A.setSetting('volume', 0.7); A.setSetting('keys', {hit:['KeyL','KeyX']}); A.setSetting('lessMotion', 'on'); A.setSetting('xarVol', 0.3); return 1; })()`);
       await page.navigate('nonews=1'); await ready(); await sleep(1000);
       const s = await S();
       check('tras recargar: resScale, fpsCap, showFps, touchSize, padDead', s.resScale === 0.85 && s.fpsCap === 30 && s.showFps === true && s.touchSize === 1.15 && s.padDead === 0.25, s);
       check('tras recargar: camZoom, crowdVol, volume, keys, lessMotion', s.camZoom === 1 && s.crowdVol === 0.4 && s.volume === 0.7 && s.keys.hit && s.keys.hit[0] === 'KeyL' && s.lessMotion === 'on', s);
+      check('tras recargar: xarVol 0,3 (y el bus de la xaranga de audio.js a 0,3)', s.xarVol === 0.3 && Math.abs((await E("VB.Audio.getVolume('xaranga')")) - 0.3) < 1e-6, s.xarVol);
       const st = await LS('make-the-cut.settings'), dv = await LS('make-the-cut.device');
       check('make-the-cut.device = {resScale, fpsCap, showFps, touchSize, padDead}', dv && dv.resScale === 0.85 && dv.fpsCap === 30 && dv.showFps === true && dv.touchSize === 1.15 && dv.padDead === 0.25, dv);
       check('make-the-cut.settings sin las claves del dispositivo', st && !['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'].some(k => k in st) && st.camZoom === 1, st && Object.keys(st));
@@ -136,11 +137,12 @@ const PAD = fs.readFileSync(path.join(__dirname, 'padplay.js'), 'utf8').match(/c
     if (want('d')) {
       console.log('d) valores corruptos');
       const before = errs.length;
-      await fresh('nonews=1', { 'make-the-cut.settings': { resScale: 3, keys: 'x', padKeys: { hit: [99] }, volume: 'alto', crowdVol: -5, camDist: 'lejisimos', camZoom: 9, lessMotion: 7, ballStyle: null, cbColors: 'si', sfxVol: 0.5 }, 'make-the-cut.device': { padDead: -1, fpsCap: 45, touchSize: 2, showFps: 'si', resScale: 3 } });
+      await fresh('nonews=1', { 'make-the-cut.settings': { resScale: 3, keys: 'x', padKeys: { hit: [99] }, volume: 'alto', crowdVol: -5, xarVol: 'mucho', camDist: 'lejisimos', camZoom: 9, lessMotion: 7, ballStyle: null, cbColors: 'si', sfxVol: 0.5 }, 'make-the-cut.device': { padDead: -1, fpsCap: 45, touchSize: 2, showFps: 'si', resScale: 3 } });
       let s = await S();
       check('resScale 3 → 0; keys "x" → {}; padKeys {hit:[99]} → {}', s.resScale === 0 && JSON.stringify(s.keys) === '{}' && JSON.stringify(s.padKeys) === '{}', s);
       check('padDead -1 → 0,18; fpsCap 45 → 0; touchSize 2 → 1; showFps "si" → false', s.padDead === 0.18 && s.fpsCap === 0 && s.touchSize === 1 && s.showFps === false, s);
       check('volume "alto" → 1; crowdVol -5 → 0; camDist → normal; camZoom 9 → 2; lessMotion → auto; ballStyle → clasico; cbColors → false', s.volume === 1 && s.crowdVol === 0 && s.camDist === 'normal' && s.camZoom === 2 && s.lessMotion === 'auto' && s.ballStyle === 'clasico' && s.cbColors === false, s);
+      check('xarVol "mucho" → 0,6', s.xarVol === 0.6, s.xarVol);
       await fresh('nonews=1', { 'make-the-cut.settings': { camDist: 'far' } });
       s = await S();
       check('migración: Distancia «Lejos» de antes (sin camZoom) → zoom 4 de 5 (camZoom 3)', s.camZoom === 3, s.camZoom);
