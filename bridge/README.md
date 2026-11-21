@@ -22,6 +22,7 @@ Opcional: copiar `icon.svg`, `icon-180.png`, `icon-192.png`, `icon-512.png` y `o
 instaladas viejas y las vistas previas de enlaces antiguos no reciban el HTML del 404. No hace falta para que el puente funcione.
 
 Qué hace en cada caso:
+- La sesión de la cuenta (`make-the-cut.account`, con su token) NO viaja: en takethecourt.com se vuelve a entrar y la nube trae lo suyo.
 - Con partida: «Make the Cut ahora se llama Take the Court» y, a los 0,9 s, salta con la partida (ruta, `?sala=` y hash conservados).
 - Sin partida: el mismo mensaje y salta sin `#mig`.
 - Partida de más de 900 000 caracteres empaquetada (Firefox corta las direcciones hacia 1 MB): NO salta. «Descargar mi partida»

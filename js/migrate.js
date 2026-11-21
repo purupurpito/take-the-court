@@ -51,6 +51,7 @@
   var KEY_RE = /^make-the-cut\.[A-Za-z0-9_.-]{1,80}$/;
   var TRUSTED = 'https://purupurpito.github.io';
   var MSG = 'Partida traída de Make the Cut';
+  var MSG_PART = 'Partida traída de Make the Cut, pero algo no cupo: libera espacio y vuelve a traerla';
   var OLD_URL = 'https://purupurpito.github.io/make-the-cut/';   // el puente (bridge/)
   function set(list) { var o = {}; list.forEach(function (k) { o[PFX + k] = 1; }); return o; }
   // del dispositivo: si ya hay una aquí, se queda (si no, se trae: es el mismo navegador)
@@ -200,6 +201,7 @@
     var tag = String(opt.id || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 8) || 'x';   // copias de ESTE traspaso: no pisan las de otro
     var Mi = metaOf(inc[META], now), Ml = metaOf(loc[META], now);
     rep.ask = [];
+    var took = {};   // claves cuyo valor traído se queda (añadido, igual, unido o ganador): solo esas suben la hora
     function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k) && o[k] != null; }
     function rest(k) { return k.slice(PFX.length); }
     function bak(k, v, inSide) { var b = BAK + tag + '.' + (inSide ? 'in.' : '') + rest(k); writes[b] = v; rep.backups.push(b); }
@@ -215,9 +217,9 @@
       if (L == null) {
         // borrada AQUÍ después de un traspaso anterior (abandonar la Carrera también apunta la hora): no se resucita
         if (!first && (Ml[k] || 0) > (Mi[k] || 0)) { rep.skipped.push(k); return; }
-        writes[k] = R; rep.added.push(k); return;
+        writes[k] = R; took[k] = 1; rep.added.push(k); return;
       }
-      if (L === R) { rep.same.push(k); return; }
+      if (L === R) { took[k] = 1; rep.same.push(k); return; }
       if (DEVICE[k]) { rep.kept.push(k); return; }
       // primer traspaso a este origen: lo de aquí es lo poco que se jugó antes de pasar por el puente (una sala compartida, una
       // partida rápida): las horas no sirven (lo recién creado siempre es «más nuevo») y manda lo de Make the Cut
@@ -226,7 +228,7 @@
         var M = null;
         try { M = mergeKey ? mergeKey(k, L, R, incomingNewer) : (incomingNewer ? R : L); } catch (e) { M = incomingNewer ? R : L; }
         if (typeof M !== 'string' || M === L) { rep.kept.push(k); return; }
-        bak(k, L); writes[k] = M; rep.merged.push(k); return;
+        bak(k, L); writes[k] = M; took[k] = 1; rep.merged.push(k); return;
       }
       var win = incomingNewer;
       if (CAREERS[k]) {   // dos Carreras distintas: se pregunta (la hoja de handle()); sin respuesta, la regla de horas
@@ -236,7 +238,7 @@
         var qi = QUALITY[k](R), ql = QUALITY[k](L);
         if (qi !== ql) win = qi > ql;
       }
-      if (win) { bak(k, L); if (CAREERS[k]) prev(k, L); writes[k] = R; rep.replaced.push(k); }
+      if (win) { bak(k, L); if (CAREERS[k]) prev(k, L); writes[k] = R; took[k] = 1; rep.replaced.push(k); }
       else { bak(k, R, true); if (CAREERS[k]) prev(k, R); rep.kept.push(k); }
     });
     // sesión de la cuenta: solo con confianza, válida, si aquí no hay ninguna, en el PRIMER traspaso y sin haber cerrado sesión aquí
@@ -249,11 +251,12 @@
       else if (!validSession(sesIn)) rep.session = 'invalid';
       else { writes[SES] = sesIn; rep.session = 'imported'; if (inc[UP] != null && plainObj(jparse(inc[UP]))) writes[UP] = inc[UP]; }
     }
-    // horas: máximo por clave (lo que se trae llega con su hora; lo que se queda, con la suya)
+    // horas: máximo por clave SOLO en lo traído que se queda; lo de aquí que gana conserva su hora (si subiera a la traída, la
+    // siguiente sincronización por horas subiría lo de aquí por encima de una nube más nueva)
     if (Object.keys(Mi).length) {
       var M2 = {}, ch = false;
       Object.keys(Ml).forEach(function (k) { M2[k] = Ml[k]; });
-      Object.keys(Mi).forEach(function (k) { if ((M2[k] || 0) < Mi[k]) { M2[k] = Mi[k]; ch = true; } });
+      Object.keys(Mi).forEach(function (k) { if (took[k] && (M2[k] || 0) < Mi[k]) { M2[k] = Mi[k]; ch = true; } });
       if (ch || loc[META] == null) writes[META] = JSON.stringify(M2);
     }
     return { writes: writes, report: rep };
@@ -311,19 +314,23 @@
       if (lsGet(k) === w[k]) return;
       if (lsSet(k, w[k])) { if (k !== META && k !== UP && !/\.prev$/.test(k)) wrote++; } else failed.push(k);
     });
-    var d = doneList().filter(function (x) { return x !== dec.id; }); d.push(dec.id); lsSet(DONE, JSON.stringify(d.slice(-5)));
+    // con fallos (cuota) no se apunta como hecho: el mismo paquete se puede volver a traer cuando haya sitio
+    if (!failed.length) { var d = doneList().filter(function (x) { return x !== dec.id; }); d.push(dec.id); lsSet(DONE, JSON.stringify(d.slice(-5))); }
     // con cuenta (traída o de antes), la siguiente sincronización une con la nube por progreso y pregunta por las Carreras, como al
     // entrar en un dispositivo nuevo: las horas de lo traído no dicen nada frente a las de la nube (account.js syncDown)
     if (wrote) lsSet(MIGFIRST, '1');
     report = p.report; report.failed = failed; report.wrote = wrote; report.trusted = !!trusted; report.id = dec.id;
     if (wrote || p.report.session === 'imported') {
       report.result = 'imported'; API._lastReport = report;
-      try { if (SS) { SS.removeItem(RAW); SS.setItem(TOAST, MSG); } } catch (e) { }
+      try { if (SS) { SS.removeItem(RAW); SS.setItem(TOAST, failed.length ? MSG_PART : MSG); } } catch (e) { }
       try { console.info('[VB] traspaso: ' + wrote + ' datos traídos de Make the Cut'); } catch (e) { }
       // recarga de verdad (el enlace ya está limpio: location.replace a la misma dirección con otro hash no recargaría)
       if (!API._noReload) { try { location.reload(); } catch (e) { } return; }
       finish(null);
-    } else finish('nothing');
+    } else {
+      if (failed.length && VB.Splat && VB.Splat.toast) { try { VB.Splat.toast('Algo de la partida de Make the Cut no cupo: libera espacio y vuelve a traerla.', { ms: 6000 }); } catch (e) { } }
+      finish('nothing');
+    }
   }
 
   function careerSummary(raw) {

@@ -90,8 +90,8 @@ Primer script tras el bloque `voley3d.*` de index.html (antes que account.js y q
 |---|---|
 | no está aquí | se escribe; fuera del primer traspaso, si la hora de aquí es más nueva (se BORRÓ aquí: abandonar Carrera también la apunta), no (`skipped`) |
 | igual | nada |
-| `make-the-cut.account` | solo con confianza, en el PRIMER traspaso, si aquí no hay sesión, sin `account.out` (cerraste sesión aquí; lo apunta account.js signOut) y válida (uid, rt, user) |
-| `make-the-cut.account.meta` | máximo por clave; horas del futuro se recortan a «ahora» |
+| `make-the-cut.account` | **el puente ya no la manda** (revisión de 1.20.0: el token quedaba en el historial y en el archivo de Descargas; en takethecourt.com se vuelve a entrar). Si llegara: solo con confianza, en el PRIMER traspaso, si aquí no hay sesión, sin `account.out` (cerraste sesión aquí; lo apunta account.js signOut) y válida (uid, rt, user) |
+| `make-the-cut.account.meta` | máximo por clave SOLO en lo traído que se queda (lo de aquí que gana conserva su hora: si no, la sincronización por horas lo subiría encima de una nube más nueva); horas del futuro se recortan a «ahora» |
 | `make-the-cut.account.meta.up` | solo si se trajo la sesión |
 | del dispositivo: devid, device, seen, install, e1tips, guided, lkHint, nethelp2, netroom, nick, retostab, role6, online.pend | se queda la de aquí |
 | gym, look, legends, profile, retos | `VB.Account.mergeKey(k, aquí, traída, traídaMásNueva)` (las fusiones de account.js) |
@@ -105,6 +105,7 @@ Primer script tras el bloque `voley3d.*` de index.html (antes que account.js y q
    antes se copia a `migbak.<id>.<clave>.prev`. Si una copia no cabe (cuota), esa clave no se toca. Ninguna de estas va a la nube.
 7. Escribe con el `Storage.prototype.setItem` ORIGINAL (capturado antes de que account.js lo envuelva): lo traído no queda con la hora
    de «ahora» y no gana a lo más nuevo de la nube.
+   Si alguna escritura falla (cuota), el paquete NO se apunta en `mig.done` (se puede volver a traer) y el aviso dice que algo no cupo.
 8. Si algo cambió: `sessionStorage['make-the-cut.account.toast'] = 'Partida traída de Make the Cut'` (lo enseña account.js) y
    `location.reload()` una vez, para que todos los módulos arranquen con lo traído.
 

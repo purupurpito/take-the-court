@@ -165,6 +165,17 @@ async function nodePart() {
   r = M.plan(incC, Object.assign({}, locC, { [P + 'account.out']: '1' }), { trusted: true, now, first: true });
   ok('MIG-3: en el primer traspaso sí se trae (no hubo traspaso que borrar), pero no la sesión tras cerrar sesión', r.writes[P + 'career'] === '"carrera vieja"' && r.report.session === 'signedout');
 
+  // MIG-5: lo de aquí que se QUEDA conserva su hora (si subiera a la traída, la sincronización por horas lo subiría encima de la nube)
+  r = M.plan({ [P + 'career']: '"traida"', [P + 'account.meta']: J({ [P + 'career']: newT }) },
+    { [P + 'career']: '"local"', [P + 'account.meta']: J({ [P + 'career']: oldT }) }, { trusted: true, now, choose: { [P + 'career']: 'loc' } });
+  let m5 = {}; try { m5 = JSON.parse(r.writes[P + 'account.meta'] || loc5meta()); } catch (e) { }
+  function loc5meta() { return J({ [P + 'career']: oldT }); }
+  ok('MIG-5: Carrera «la de aquí» → su hora no sube a la traída', !(P + 'career' in r.writes) && m5[P + 'career'] === oldT, J(m5));
+  r = M.plan({ [P + 'settings']: '{"a":2}', [P + 'account.meta']: J({ [P + 'settings']: newT }) },
+    { [P + 'settings']: '{"a":1}', [P + 'account.meta']: J({ [P + 'settings']: oldT }) }, { trusted: true, now });
+  let m5b = {}; try { m5b = JSON.parse(r.writes[P + 'account.meta']); } catch (e) { }
+  ok('MIG-5: lo traído que gana sí sube con su hora', r.writes[P + 'settings'] === '{"a":2}' && m5b[P + 'settings'] === newT, J(m5b));
+
   // MIG-4: ya había una '.prev' (de account.js) distinta → antes a migbak; migbak de otro traspaso no se pisa
   r = M.plan({ [P + 'career']: '"traida"', [P + 'account.meta']: J({ [P + 'career']: newT }) },
     { [P + 'career']: '"local"', [P + 'career.prev']: '"solo en prev"', [P + 'migbak.aaaa1111.career']: '"copia de antes"', [P + 'account.meta']: J({ [P + 'career']: oldT }) },
@@ -300,7 +311,7 @@ async function browserPart() {
     ok('look unido con mergeKey (los dos objetos) y el de antes en migbak', !!lk && !!lk.own[lockIds[0]] && !!lk.own[lockIds[1]] && after['make-the-cut.migbak.' + tag + '.look'] === look(lockIds[0]));
     ok('récord de aquí con más partidos se queda; el traído en migbak.<id>.in', after['make-the-cut.record'] === '{"played":99}' && after['make-the-cut.migbak.' + tag + '.in.record'] === '{"played":3}');
     ok('nick (del dispositivo) se queda', after['make-the-cut.nick'] === '"aqui"');
-    ok('sesión de la cuenta traída (puente de confianza)', /"uid":"u1"/.test(after['make-the-cut.account'] || ''));
+    ok('la sesión de la cuenta NO viaja (el puente no manda el token)', !after['make-the-cut.account']);
     let mt = {}; try { mt = JSON.parse(after['make-the-cut.account.meta']); } catch (e) { }
     ok('meta por máximo (settings con su hora traída, no «ahora»)', mt['make-the-cut.settings'] === T0 - 50 && mt['make-the-cut.record'] === T0 - 10, J(mt));
     ok('mig.done con el sha', /^\["[0-9a-f]{16}"\]$/.test(after['make-the-cut.mig.done'] || ''), after['make-the-cut.mig.done']);

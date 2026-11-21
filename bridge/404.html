@@ -63,6 +63,8 @@ p{margin:12px 0 0}
 .btn.teal{background:var(--teal)}
 .btn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 .btn:active{transform:scale(.96,.92)}
+#manual{display:block;width:100%;height:4.6em;margin-top:8px;padding:6px 8px;border:2px solid var(--ink);border-radius:10px;background:#fff;color:var(--ink);
+  font:13px/1.3 ui-monospace,Consolas,monospace;resize:none;word-break:break-all}
 .dots{display:inline-block;width:1.2em;text-align:left}
 [hidden]{display:none!important}
 @media (max-height:440px) and (orientation:landscape){
@@ -91,6 +93,8 @@ p{margin:12px 0 0}
   <p id="big" class="warn" hidden>Tu partida es tan grande que no cabe en un enlace. Descárgala aquí y, en takethecourt.com, elige el archivo en <b>Ajustes › Info › Traer tu partida</b>.</p>
   <p id="lost" class="warn" hidden>Algún dato es demasiado grande para llevárselo y se queda aquí. El resto de tu partida sí viaja.</p>
   <p id="copied" class="note" hidden>Código copiado. En takethecourt.com, pégalo en <b>Ajustes › Info › Traer tu partida</b>.</p>
+  <p id="copyHand" class="note" hidden>No se ha podido copiar solo: selecciona el código, cópialo y pégalo en takethecourt.com, en <b>Ajustes › Info › Traer tu partida</b>.</p>
+  <textarea id="manual" readonly hidden aria-label="Código de tu partida"></textarea>
   <div class="acts">
     <button id="dl" class="btn alt" type="button" hidden>Descargar mi partida</button>
     <button id="cp" class="btn" type="button" hidden>Copiar código</button>
@@ -150,6 +154,9 @@ p{margin:12px 0 0}
     function add(name, val) {
       if (!KEY_RE.test(name) || typeof val !== 'string') return;
       if (/^make-the-cut\.(mig\.|migbak\.)|^make-the-cut\.account\.(gredir|rl|out)/.test(name)) return;
+      // la sesión (lleva el token de la cuenta) no viaja: el enlace queda en el historial y el archivo en Descargas; en
+      // takethecourt.com se vuelve a entrar y la nube trae lo suyo
+      if (/^make-the-cut\.account(\.meta\.up)?$/.test(name)) return;
       if (Object.prototype.hasOwnProperty.call(keys, name)) return;
       if (val.length > MAX_VAL_FILE || n >= MAX_KEYS_FILE) { lost.push(name); return; }   // ni en archivo: se avisa (no se pierde: sigue aquí)
       if (val.length > MAX_VAL || n >= MAX_KEYS) oversize = true;   // solo por archivo o código
@@ -204,8 +211,17 @@ p{margin:12px 0 0}
     function fallback() {
       try {
         var t = document.createElement('textarea'); t.value = payload; t.setAttribute('readonly', ''); t.style.position = 'fixed'; t.style.opacity = '0';
-        document.body.appendChild(t); t.select(); document.execCommand('copy'); document.body.removeChild(t); done();
+        document.body.appendChild(t); t.focus(); t.select(); t.setSelectionRange(0, t.value.length);
+        var ok = false; try { ok = document.execCommand('copy'); } catch (e) { }
+        document.body.removeChild(t);
+        if (ok) { done(); return; }
       } catch (e) { }
+      manual();
+    }
+    function manual() {   // sin portapapeles: el código a la vista para copiarlo a mano
+      var m = $('manual'); m.value = payload; m.hidden = false; $('copyHand').hidden = false;
+      try { m.focus(); m.select(); } catch (e) { }
+      $('openFile').href = TARGET + '#migcode'; $('openFile').hidden = false;
     }
   }
   $('dl').onclick = download; $('cp').onclick = copy;
@@ -220,6 +236,7 @@ p{margin:12px 0 0}
       $('msg').hidden = true; $('big').hidden = false; $('dl').hidden = false; $('openFile').hidden = false;
       $('openFile').href = TARGET + '#migfile'; go.className = 'btn'; go.textContent = 'Ir sin la partida';
       if (p.length <= MAX_COPY) $('cp').hidden = false;
+      if (standalone) { $('inst').hidden = false; $('keep').hidden = true; }
       return;
     }
     if (standalone) {

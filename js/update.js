@@ -40,7 +40,9 @@
   function show(force) {
     if (!outdated() || U.open) return false;
     if (!force && U.dismissed === U.latest) return false;
-    if (playing()) { if (!U.wait) U.wait = setInterval(function () { if (!playing()) { clearInterval(U.wait); U.wait = null; show(force); } }, 1500); return false; }
+    // traspaso de partida a medias u otra hoja abierta (la de traer la partida, elegir Carrera…): sheet() la cerraría; se espera
+    var M = VB.Migrate, busy = function () { return playing() || (M && M.pending && M.pending()) || (VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen()); };
+    if (busy()) { if (!U.wait) U.wait = setInterval(function () { if (!busy()) { clearInterval(U.wait); U.wait = null; show(force); } }, 1500); return false; }
     var S = VB.Splat;
     var html = '<p>Tienes la <b>' + esc(mine()) + '</b> y ya está la <b>' + esc(U.latest) + '</b>.</p>' +
       '<p>Reinicia el juego para actualizarlo. Para jugar online, los dos tenéis que tener la misma versión.</p>';

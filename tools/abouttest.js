@@ -66,7 +66,7 @@ try {
     const head = (/<head>([\s\S]*?)<\/head>/.exec(html) || [])[1] || '';
     check(/<meta name="description" content="[^"]{60,}">/.test(head), 'head: description');
     check(/<meta property="og:title" content="Take the Court">/.test(head), 'head: og:title');
-    check(/<meta property="og:image" content="https:\/\/[^"]+\/og\.png\?v=\d+\.\d+\.\d+">/.test(head), 'head: og:image absoluta');
+    check(/<meta property="og:image" content="https:\/\/[^"]+\/og\.png\?v=[0-9a-f]{8}">/.test(head), 'head: og:image absoluta');   // ?v= = huella del contenido de og.png (build-pages, 1.19.2)
     check(/<meta property="og:image:width" content="1200">/.test(head) && /og:image:height" content="630"/.test(head), 'head: og:image 1200×630');
     check(/<meta name="twitter:card" content="summary_large_image">/.test(head), 'head: twitter:card summary_large_image');
     check(/<link rel="canonical" href="https:\/\/[^"]+\/">/.test(head), 'head: canonical');
