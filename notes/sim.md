@@ -2127,3 +2127,10 @@ humano ha movido la diana.
   falta X del sancionado), acta.js (jugada `sanction` de emPat: warning/penalty/delayWarning/delayPenalty; el rally del castigo no se
   apunta porque el motor de emPat ya da el punto con la sanción), players.js (sin celebración en el castigo), ui.js (cinta «Punto de
   castigo» sin pestaña de jugada).
+
+## Arranque con marcador: createGame({start}) (20-nov-2026, la situación de la semana)
+`opts.start = {setNo 1|3, score [a,b], serving 0|1, srvIdx 0|1, rot [k0,k1] (6v6), bo1}`: `startOf` lo sanea (nunca un set ya ganado) y
+deja `g.st0` (y `g.bo1` en el set único); newGame llama a `startAt(g)` justo antes de 'newMatch': set, sets ([0,0] o [1,1] con dos
+parciales de relleno), marcador, saque, sacador (espejo de ctrlIdx), rotación 6v6 (resetRot + rotate k veces), `courtSwap3` si ya se
+pasó de los 8 y `courtSwapAt` de la playa. No gasta g.rng; setupServe calcula después el punto de set/partido. Sin la opción, g.st0 y
+g.bo1 no existen (como g.toWin): huella 2v2 idéntica. Nunca en la demo, el online ni el Entrenamiento. Prueba: `SIMTEST_ONLY=semana`.

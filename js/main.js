@@ -601,7 +601,11 @@
       b6 = [Sim.defaultBench(0), Sim.defaultBench(1)];
       c6 = [{ auto: ctx.settings.subs6 !== 'manual', iq: 2 }, { auto: true, iq: IQ6[Sim.normDiff ? Sim.normDiff(dq) : dq] || 2 }];
     }
-    var g = Sim.createGame({ demo: false, seed: seed(), difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : isRookie(), present: !opts.autopilot,
+    // la situación de la semana (opts.sit, js/semana.js): la semilla del intento (la misma para todos), sin la ayuda de novato, sin la zona ni
+    // el saque de firma (Ferran: nivel y atributos iguales para todos) y el partido empieza en el marcador de la semana (opts.start)
+    var sitO = !!(opts.sit && !cs && opts.start);
+    var g = Sim.createGame({ demo: false, seed: sitO && opts.seed && !Q.seed ? opts.seed | 0 : seed(), difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : sitO ? false : isRookie(), present: !opts.autopilot,
+      start: sitO ? opts.start : undefined,
       bench: b6 || undefined, coach: c6 || undefined, meSlot: cs && b6 ? opts.meSlot : undefined, meBench: cs && b6 ? opts.meBench : undefined, names: fmt && cs ? opts.names : undefined,
       // (sets: 1 = partido a un solo set, el partidillo de prueba de la Carrera; sin él, al mejor de 3 como siempre)
       sets: opts.sets === 1 ? 1 : undefined,
@@ -628,8 +632,8 @@
       amb: cs && !auto && !cs.noAmb && ctx.settings.ambient !== 'off' ? true : undefined,
       // zona y saque de firma (20-nov-2026; sim: opts.zone / opts.serveSig). Carrera: la zona salvo «Apagada» (también la CPU) y tu
       // saque de firma (m.serveSig); Partido rápido: la zona solo con «Siempre» y el saque de firma de Ajustes. Sin la sim nueva, nada
-      zone: auto || (cs && cs.noZone) ? undefined : cs ? (ctx.settings.zone !== 'off' ? { cpu: true } : undefined) : (ctx.settings.zone === 'all' ? {} : undefined),
-      serveSig: auto ? undefined : cs ? (opts.serveSig || undefined) : (Sim.sigSane ? sigSaneSafe({ id: ctx.settings.serveSig, gest: ctx.settings.serveGest, sun: ctx.settings.beachLight === 'tarde' ? 0.4 : 1 }, fmt ? 'hall' : (cvK || venueNow())) : undefined) });
+      zone: auto || sitO || (cs && cs.noZone) ? undefined : cs ? (ctx.settings.zone !== 'off' ? { cpu: true } : undefined) : (ctx.settings.zone === 'all' ? {} : undefined),
+      serveSig: auto || sitO ? undefined : cs ? (opts.serveSig || undefined) : (Sim.sigSane ? sigSaneSafe({ id: ctx.settings.serveSig, gest: ctx.settings.serveGest, sun: ctx.settings.beachLight === 'tarde' ? 0.4 : 1 }, fmt ? 'hall' : (cvK || venueNow())) : undefined) });
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
@@ -638,7 +642,9 @@
     // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
     if (opts.reto && !cs) { g.reto = opts.reto; g.retoOpts = Object.assign({}, opts); delete g.retoOpts.introKind; delete g.retoOpts.noIntro; }
     // R16: opciones del último partido humano de Partido rápido (restart las repite con la previa mini)
-    if (!cs && !auto) lastOpts = Object.assign({}, opts);
+    // la situación de la semana: g.sit = {wk, i} (ui.js la cierra al acabar; Retos, récord, perfil y XP no cuentan) y sus opciones
+    if (sitO) { g.sit = { wk: opts.sit.wk | 0, i: opts.sit.i | 0 }; g.sitOpts = Object.assign({}, opts); delete g.sitOpts.introKind; delete g.sitOpts.noIntro; }
+    if (!cs && !auto && !sitO) lastOpts = Object.assign({}, opts);
     if (watch6 && !opts.autopilot) g.watch = true;
     endTweaked = false; careerEnd = null;
     if (!cs) restoreEndButtons();
@@ -1490,6 +1496,7 @@
     netStop(true);   // (online: salir al menú es abandonar)
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
     var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
+    if (ctx.game && ctx.game.sit && !ctx.game.demo && !ctx.debug && VB.Semana) { try { VB.Semana.abandon(ctx.game); } catch (e) { reportError('Semana.abandon', e); } }   // (ya cerrado al acabar: no hace nada)
     // ejercicio de Carrera: de vuelta al hub, en Partido › Entrenamiento con el resultado (abandonado a medias: la sesión no se gasta)
     var drillC = !!(ctx.game && ctx.game.careerDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerDrill : null;
     // partidillo de prueba: aprobado, al hub de tu club nuevo; suspendido, a las ofertas con el resultado. Abandonarlo a medias
@@ -1562,6 +1569,13 @@
     if (live && g.career && g.career.ext) { ctx.actions.startCareerExt(g.career.ext, g.career.extArg, !!g.autopilot); return; }
     if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
     if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
+    // la situación de la semana: el intento en curso se da por perdido y empieza otro (si quedan hoy; si no, al menú)
+    if (live && g.sit) {
+      var SM = VB.Semana, so = null;
+      if (SM) { if (!ctx.debug) SM.abandon(g); so = ctx.debug ? g.sitOpts : SM.begin(); }
+      if (so) ctx.actions.startMatch(Object.assign({}, so, { introKind: 'mini' })); else ctx.actions.toMenu();
+      return;
+    }
     if (live && g.career) { ctx.actions.startMatch(); return; }
     ctx.actions.startMatch(Object.assign({}, live && lastOpts || {}, { introKind: 'mini' }));
   }
@@ -2724,9 +2738,27 @@
         keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over';
         break;
       }
+      // La situación de la semana. semana = el menú en Retos › Semana (&semdemo=1: cadena de prueba en memoria, nada se guarda);
+      // semana_end = la situación de esta semana (o de &semwk=AAAAWW) con autopilot hasta la hoja final (Semana.finish en seco);
+      // semana_play = la situación en marcha (&live=1) para el HUD; &intro=1 la previa y &pause=1 la pausa (sin gastar intentos)
+      case 'semana': {
+        if (Q.semdemo === '1' && VB.Semana && VB.Semana._demo) VB.Semana._demo();
+        ctx.actions.toMenu(); call('UI', 'openRetos', 'semana'); return;
+      }
+      case 'semana_end': case 'semana_play': {
+        var SMs = VB.Semana && VB.Semana.situation(+Q.semwk || undefined);
+        if (!SMs) { g = mk(true); break; }
+        if (SMs.six) forceVenue('hall'); else if (isMapId(SMs.map)) forceVenue(SMs.map);
+        g = Sim.createGame({ demo: false, autopilot: name === 'semana_end', seed: sd, difficulty: SMs.difficulty, format: SMs.six ? '6v6' : undefined, venue: SMs.six ? undefined : SMs.kind,
+          points: SMs.points, ctrl: SMs.six ? 'one' : 'both', start: SMs.opts.start, present: true, stats: true });
+        g.sit = { wk: SMs.wk, i: 1 }; g.sitOpts = Object.assign({}, SMs.opts, { sit: { wk: SMs.wk, i: 1 } });
+        if (name === 'semana_end') { keep = advanceUntil(g, function (e) { return e && e.type === 'gameOver'; }, 0, 3000, uiIngest); state = 'over'; }
+        else if (Q.pause === '1') state = 'paused';   // (&pause=1: la pausa con su aviso; &intro=1: la previa)
+        break;
+      }
       // D1: el menú en la página Retos (&tab=hoy|maestria; &retodate=AAAAMMDD fija el día)
       case 'retos':
-        ctx.actions.toMenu(); call('UI', 'openRetos', Q.tab === 'maestria' ? 'maestria' : Q.tab === 'hoy' ? 'hoy' : ''); return;
+        ctx.actions.toMenu(); call('UI', 'openRetos', Q.tab === 'maestria' ? 'maestria' : Q.tab === 'hoy' ? 'hoy' : Q.tab === 'semana' ? 'semana' : ''); return;
       // D2: perfil. menupf = la portada con el chip; prof = la página del perfil (&tab=vestuario|insignias|entreno|carrera|retos|sedes|
       // hitos). &pfseed=demo: perfil y vestuario de prueba en memoria (pfSeedDemo; nada se guarda)
       case 'menupf':
@@ -2777,7 +2809,7 @@
     if (name === 'subs6menu') call('UI', 'openSubs', Q.pick === '1');
     if (name === 'doll') { dollOn = true; call('Doll', 'start', ctx, g); }
     debugAnimHooks(g);   // &boss= / &mate= (C2/C3, players)
-    if (name === 'intro') debugIntro(g);
+    if (name === 'intro' || (name === 'semana_play' && Q.intro === '1')) debugIntro(g);
     console.info('[VB] escena de depuración: ' + name + ' (modo ' + g.mode + ', ' + g.score.join('-') + ', sets ' + g.sets.join('-') + ')');
   }
 

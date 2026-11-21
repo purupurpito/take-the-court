@@ -369,5 +369,13 @@ console.log('4) Sim real');
   if (low.length) console.log('    AVISO (no falla): por debajo del 50 % con el autopilot: ' + low.join(', ') + ' (mastery no se mide: exige humano)');
 }
 
+// La situación de la semana (js/semana.js, 20-nov-2026): un partido con g.sit no cuenta (sin medallas ni XP, decisión de Ferran)
+console.log('5) La situación de la semana');
+{
+  const VB = load(fakeStorage()), R = VB.Retos, g = mkGame({ sit: { wk: 202648, i: 1 } });
+  R.ingest({ type: 'newMatch' }, g); R.ingest({ type: 'gameOver', team: 0, sets: [1, 0] }, g);
+  ok('la situación de la semana no cuenta para los retos (endMatch → null)', R.endMatch(g, { win: true, map: 'palau' }) === null && !R._cur());
+}
+
 console.log(fails ? '\n' + fails + ' FALLOS (' + oks + ' ok)' : '\nTODO OK (' + oks + ' comprobaciones)');
 process.exit(fails ? 1 : 0);

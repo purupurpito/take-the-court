@@ -13,7 +13,7 @@
 'use strict';
 const path = require('path'), fs = require('fs');
 const CDP = require('./cdp.js');
-const ALL = 'menu,serve,hud,rally,spike,block,point,ace,setpoint,switch,over,mobile,pause,tutorial,controls,settings,toss,jumpserve,dive,serve6,rally6,point6,serve6h,rally6h,doll,look,drill_serve,drill_recv,drill_set,drill_atk,drill_block,drill_free,drill_end,intro,recap,retos,reto_end,replay,best,stats,menupf,prof';
+const ALL = 'menu,serve,hud,rally,spike,block,point,ace,setpoint,switch,over,mobile,pause,tutorial,controls,settings,toss,jumpserve,dive,serve6,rally6,point6,serve6h,rally6h,doll,look,drill_serve,drill_recv,drill_set,drill_atk,drill_block,drill_free,drill_end,intro,recap,retos,reto_end,semana,semana_end,replay,best,stats,menupf,prof';
 let scenes = (process.argv[2] || 'menu'); if (scenes === 'all') scenes = ALL;
 scenes = scenes.split(',').filter(Boolean);
 const W = +(process.argv[3] || 1280), H = +(process.argv[4] || 720);

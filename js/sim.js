@@ -441,6 +441,9 @@
     // partido a un solo set (opts.sets === 1, la prueba de la Carrera): g.toWin = sets para ganar. Sin la opción el campo NO existe
     // (al mejor de 3, `g.toWin || 2`), para que la huella 2v2 no cambie. Con un set nunca hay 3r set (setTarget y los 8 intactos)
     if (opts.sets === 1) g.toWin = 1;
+    // La situación de la semana (js/semana.js, 20-nov-2026): opts.start = marcador de arranque {setNo 1|3, score, serving, srvIdx, rot,
+    // bo1}. Sin la opción g.st0 y g.bo1 no existen (como g.toWin): la huella 2v2 no cambia. Nunca en la demo, el online ni el Entrenamiento
+    if (opts.start && !opts.demo && !opts.online && !dk) { g.st0 = startOf(opts.start, g); if (g.st0.bo1) g.bo1 = true; }
     if (opts.online) initOnline(g, opts); // ONLINE: perfil y timing comunes, huecos humanos g.hum (antes de los atributos)
     if (dk) g.drill = mkDrill(dk);
     dblFields(g); dblFields(g.ball); dblFields(g.pr1); dblFields(g.pr3); dblFields(g.rally);
@@ -3687,6 +3690,37 @@
     emit(g, { type: 'newSet', setNo: g.setNo });
     if (lu) subsLineupEv(g, lu);
   }
+  /** La situación de la semana: opts.start saneado y acotado. → {setNo 1|3, score [a,b] (sin set ya ganado), serving 0|1, srvIdx 0|1,
+   *  rot [k0,k1] 0-5 (solo 6v6), bo1 (set único: siempre con setNo 1)}. */
+  function startOf(o, g) {
+    var n = function (v, lo, hi) { v = Math.floor(+v); return isFinite(v) ? Math.max(lo, Math.min(hi, v)) : lo; };
+    var setNo = +o.setNo === 3 ? 3 : 1, bo1 = setNo === 1 && o.bo1 !== false;
+    var T = setNo === 3 ? Math.min(15, g.points || 25) : (g.points || 25);
+    var sc = Array.isArray(o.score) ? o.score : [0, 0], a = n(sc[0], 0, T + 6), b = n(sc[1], 0, T + 6);
+    // sin set ya ganado: el que va por delante, como mucho con un punto de ventaja si ya pasó de T-1
+    if (a >= T && a - b >= 2) a = b + 1;
+    if (b >= T && b - a >= 2) b = a + 1;
+    var rot = Array.isArray(o.rot) ? [n(o.rot[0], 0, 5), n(o.rot[1], 0, 5)] : [0, 0];
+    return { setNo: setNo, score: [a, b], serving: +o.serving === 1 ? 1 : 0, srvIdx: +o.srvIdx === 1 ? 1 : 0, rot: rot, bo1: bo1 };
+  }
+  /** newGame con g.st0: set, sets, parciales, marcador, saque, sacador y rotación (6v6) del arranque. No gasta g.rng; setupServe calcula
+   *  después el punto de set / de partido. Set único: sets [0,0] y g.bo1. 3r set: sets [1,1] con dos parciales de relleno. */
+  function startAt(g) {
+    var s = g.st0, a = s.score[0], b = s.score[1];
+    g.setNo = s.setNo; g.score = [a, b]; g.serving = s.serving;
+    if (s.setNo === 3) { g.sets = [1, 1]; g.setScores = g.beach ? [[21, 19], [19, 21]] : [[25, 22], [22, 25]]; }
+    else { g.sets = [0, 0]; g.setScores = []; }
+    if (!g.rot) {
+      g.serverIdx[s.serving] = s.srvIdx;
+      if (s.serving === 0 && g.ctrlIdx) g.serverIdx[0] = 1 - s.srvIdx;   // (modo 'one' con el n.º 2: en espejo, como en nextSet)
+    } else {
+      resetRot(g);
+      for (var t = 0; t < 2; t++) for (var k = 0; k < s.rot[t]; k++) rotate(g, t);
+    }
+    var half = Math.ceil(setTarget(g) / 2);
+    if (!g.beach && s.setNo === 3 && (a >= half || b >= half)) g.courtSwap3 = true;   // el cambio de los 8 ya pasó
+    if (g.beach) { var sw = s.setNo === 3 ? BEACH.swap3 : BEACH.swap; g.courtSwapAt = (a + b) - ((a + b) % sw); }
+  }
   function newGame(g) {
     g.score = [0, 0]; g.sets = [0, 0]; g.setNo = 1; g.serving = 0; g.serverIdx = [0, 1]; g.setScores = [];
     // modo 'one' con el n.º 2 (ctrlIdx 1): orden de saque en espejo, así el jugador del humano saca primero como con el n.º 1
@@ -3698,6 +3732,7 @@
     g.challenges = [perSet(g), perSet(g)]; g.call = null; g.review = null; g.cpuChal = null; g._snap = null; g._pendCall = null;
     g.streakTeam = -1; g.streakN = 0;
     g.courtSwapAt = 0;
+    if (g.st0) startAt(g);   // la situación de la semana: el partido empieza en ese marcador (sin gastar g.rng)
     emit(g, { type: 'newMatch', demo: g.demo, difficulty: g.difficulty, venue: g.venue });
     if (g.drill) drillStage(g); else setupServe(g); // E6: el montaje del ejercicio en lugar del primer saque
   }
