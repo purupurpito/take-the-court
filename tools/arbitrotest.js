@@ -81,6 +81,61 @@ const LV = ['low', 'mid', 'high', 'top'];
   if (failures === f0) console.log('reglas: escala FIVB, protesta repetida, disputas, ofertas y determinismo OK');
 }
 
+// ---------------------------------------------------------------- 1b) carácter del 1r de la Carrera (TRAITS), libreta (mem) y ficha «Frenar»
+{
+  const f0 = failures, P = { kind: 'line', team: 0, strength: 0.8, wrong: false, canRed: true };
+  const who = { pid: 2, role: 'player', num: 7, name: 'Ari' };
+  // sin trait: los factores valen 1 y la secuencia es la de siempre (aunque lleguen derby y mem)
+  { const a = A.create({ seed: 7, hall: true, level: 'mid', heat: 0.6 }), b = A.create({ seed: 7, hall: true, level: 'mid', heat: 0.6, derby: true, mem: 0.2 });
+    if (a.sevK !== 1 || a.nearK !== 1 || a.tauntK !== 1 || a.memK !== 1 || a.brakeOn || b.sevK !== 1 || b.memK !== 1 || b.brakeOn) fail('sin trait, factores distintos de 1');
+    const sa = [], sb = [];
+    for (let i = 0; i < 2000; i++) {
+      const D = Object.assign({}, P, { n: i + 1, id: i + 1, team: i % 2 });
+      sa.push(A.protest(a, Object.assign({}, D), Object.assign({}, who), i % 5 === 0, true).res); sb.push(A.protest(b, Object.assign({}, D), Object.assign({}, who), i % 5 === 0, true).res);
+      if (i % 7 === 0) { sa.push(A.taunt(a, i % 2, 3, 0.5).res); sb.push(A.taunt(b, i % 2, 3, 0.5).res); }
+    }
+    if (sa.join() !== sb.join()) fail('sin trait, derby y mem cambian las decisiones'); }
+  // tasa de tarjeta en estado limpio por carácter (mismas tiradas): estricto > manual > deja; nervioso = manual sin derbi y > con derbi
+  const cards = (trait, derby, team, mem) => { let n = 0; for (let s = 1; s <= 3000; s++) { const st = A.create({ seed: s, hall: true, level: 'mid', trait, derby, mem, meTeam: 0 });
+    st.verbal[team] = s % 3 === 0 ? 1 : 0; if (A.protest(st, Object.assign({}, P, { team, n: 3, id: 1 }), Object.assign({}, who), false, true).card) n++; } return n; };
+  const cE = cards('estricto'), cM = cards('manual'), cD = cards('deja'), cN = cards('nervioso', false), cND = cards('nervioso', true), cMD = cards('manual', true), c0 = cards('');
+  if (!(cE > cM * 1.1 && cM > cD * 1.1)) fail('tarjetas estricto > manual > deja: ' + [cE, cM, cD]);
+  if (cN !== cM || cMD !== cM || c0 !== cM || !(cND > cM)) fail('nervioso: solo cambia en el derbi ' + [cN, cND, cM, cMD, c0]);
+  // libreta: mem +0,2 aprieta solo a tu equipo (el rival, igual que sin libreta)
+  const m0 = cards('manual', false, 0, 0), m2 = cards('manual', false, 0, 0.2), r0 = cards('manual', false, 1, 0), r2 = cards('manual', false, 1, 0.2), mN = cards('manual', false, 0, -0.15);
+  if (!(m2 > m0 && mN < m0) || r2 !== r0) fail('libreta: mem solo con tu equipo ' + [m0, m2, mN, r0, r2]);
+  // provocación: el estricto la castiga más; el que deja jugar, menos
+  { const tz = trait => { let n = 0; for (let s = 1; s <= 3000; s++) { const st = A.create({ seed: s, trait }); if (A.taunt(st, 1, 3, 0.6).res !== 'none') n++; } return n; };
+    const tE = tz('estricto'), tM = tz('manual'), tD = tz('deja'); if (!(tE > tM && tM > tD)) fail('provocación estricto > manual > deja ' + [tE, tM, tD]); }
+  // lince: menos botes «discutibles» (el umbral de línea baja); los mal pitados se discuten igual
+  { const lines = trait => { let n = 0, w = 0; const st = A.create({ seed: 5, trait, mode: 'calm' });
+      for (let i = 0; i < 2000; i++) { const dist = (i % 200) / 1600, wrong = i % 50 === 0, e = { type: 'point', team: i % 2, reason: 'in', signal: 'in', t: i };
+        const D = A.feed(st, e, { players: [], call: { dist, wrong, t: i, calledIn: true } }); if (D && D.kind === 'line') { n++; if (D.wrong) w++; } } return [n, w]; };
+    const lL = lines('lince'), lM = lines('manual'), l0 = lines('');
+    if (!(lL[0] < lM[0] * 0.8) || lL[1] !== lM[1] || lM[0] !== l0[0]) fail('lince: menos disputas de línea ' + JSON.stringify([lL, lM, l0])); }
+  // «Frenar a …»: solo con trait, siendo capitán (playa: siempre) y con un compañero de la IA; tope compartido; la tirada no mueve st.k
+  { const run = (o, brakeP) => {
+      const keep = A.RATES.brakeP; if (brakeP != null) A.RATES.brakeP = brakeP;
+      const st = A.create(Object.assign({ seed: 11, level: 'low', heat: 1, mode: 'full', meTeam: 0, mePid: 1 }, o)), out = { brakes: 0, offers: 0, ks: [], firstBrake: -1, autoMine: 0 };
+      const pl = [{ id: 1, team: 0 }, { id: 2, team: 0 }, { id: 3, team: 0 }, { id: 9, team: 1 }, { id: 8, team: 1 }];
+      for (let i = 0; i < 400; i++) {
+        const D = A.feed(st, { type: 'point', team: 1, reason: 'net', signal: 'net', t: i, faultPlayer: { id: 2, team: 0 } }, { players: pl });
+        if (D && D.auto && D.team === 0) out.autoMine++;
+        if (D && D.brake) { out.brakes++; if (out.firstBrake < 0) out.firstBrake = i; if (!D.auto || D.auto.pid === 1 || D.auto.role !== 'player') fail('brake sin compañero de la IA ' + JSON.stringify(D.auto)); }
+        if (D && D.offer) out.offers++;
+        out.ks.push(st.k);
+      }
+      A.RATES.brakeP = keep; return out; };
+    const beach = run({ hall: false, trait: 'manual' }), beach0 = run({ hall: false, trait: 'manual' }, 0), noT = run({ hall: false });
+    const hallCapt = run({ hall: true, trait: 'manual', capt: [1, 9] }), hallNo = run({ hall: true, trait: 'manual', capt: [3, 9] });
+    if (!(beach.brakes === 1 && beach.brakes + beach.offers <= A.RATES.offerMax)) fail('brake en la playa: una, dentro del tope ' + JSON.stringify({ b: beach.brakes, o: beach.offers }));
+    if (noT.brakes || hallNo.brakes) fail('brake sin trait o sin ser capitán ' + [noT.brakes, hallNo.brakes]);
+    if (beach0.brakes) fail('brakeP = 0 y sale la ficha');
+    const upTo = beach.firstBrake; if (upTo < 0 || beach.ks.slice(0, upTo + 1).join() !== beach0.ks.slice(0, upTo + 1).join()) fail('la tirada de «Frenar» mueve st.k');
+    if (noT.ks.join() !== beach0.ks.join()) fail('sin brake, la secuencia cambia'); }
+  if (failures === f0) console.log('carácter: sin trait igual, estricto > manual > deja, nervioso en derbi, lince, libreta y «Frenar» OK');
+}
+
 // ---------------------------------------------------------------- 2) frecuencias con partidos reales
 function newAcc() { return { matches: 0, mine: { y: 0, r: 0, any: 0, me: 0 }, riv: { y: 0, r: 0, any: 0 }, autos: 0, offers: 0, cold: 0, disp: 0, verbal: 0, delay: 0 }; }
 const ACC = { drop: newAcc(), protest: newAcc(), calm: newAcc() };

@@ -89,6 +89,9 @@ async function loadEmpat() {
       if (!A) { ok(label + ': build devuelve acta', false); continue; }
       ok(label + ': formato', A.format === 'empat/acta' && A.version === 1 && Array.isArray(A.plays));
       ok(label + ': determinista', JSON.stringify(A) === JSON.stringify(VB.Acta.build(d, meta)));
+      { const RF = ['Nerea Quirada Garbero', 'Teo Urdón Albrero', 'Jon Sorbuela Ebredo'], Ar = VB.Acta.build(d, Object.assign({}, meta, { refs: RF })), Ab = VB.Acta.build(d, Object.assign({}, meta, { refs: ['Solo Uno'] }));
+        ok(label + ': árbitros de la Carrera (meta.refs) en el acta', Ar && Ar.info.referee1 === RF[0] && Ar.info.referee2 === RF[1] && Ar.info.scorer === RF[2]);
+        ok(label + ': sin los tres, designa como siempre', Ab && Ab.info.referee1 === A.info.referee1 && Ab.info.scorer === A.info.scorer); }
       ok(label + ': JSON de ida y vuelta', JSON.stringify(JSON.parse(JSON.stringify(A))) === JSON.stringify(A));
       const K = (k) => A.plays.filter((p) => p.kind === k).length;
       const pts = g.setScores.reduce((a, s) => a + s[0] + s[1], 0);

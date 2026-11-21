@@ -336,6 +336,7 @@
     // listas y números sueltos
     ['notes', 'offers', 'history', 'trophies'].forEach(function (k) { if (!arr(o[k])) o[k] = []; });
     o.notes = o.notes.filter(function (n) { return n && num(n.nota); });
+    studySane(o);   // «Te tienen estudiado»: historial de tus remates (c.study.h)
     o.offers = o.offers.filter(function (x) { return x && club(o, x.club); });
     if (!o.stats || typeof o.stats !== 'object') o.stats = newSeasonStats();
     if (!o.career || typeof o.career !== 'object') o.career = newSeasonStats();
@@ -987,6 +988,7 @@
   }
   /** Firma por el club de la oferta o (inicio, mitad o fin de temporada): compañero anunciado, plantilla, contrato, objetivo. */
   function joinClub(c, o, years) {
+    o.wasListed = !!c.listed; o.wasBroken = c.broken === c.season;   // (rencor y cariño, career-life bondJoin: irte así es neutro)
     var k = club(c, o.club), r = rng(hash(c.seed, 'join', c.season, o.club));
     var rl = Math.max(0, ROLE_LV.indexOf(o.role));
     c.myClub = k.id;
@@ -1271,7 +1273,84 @@
     };
     var sg = sigOf(c, 'beach'); if (sg) out.serveSig = sg;   // saque de firma (c.sig; sin él o sin la sim nueva, nada)
     life(c, 'setup', out);   // material de la tienda, molestias y reto de la jornada (career-life.js)
+    studyOf(c, out, n, false);   // «Te tienen estudiado»: informe del rival (out.study) y plan para la sim (out.scout), tras life
     return out;
+  }
+
+  // ------------------------------------------------------------------ «Te tienen estudiado» (notes/carrera.md)
+  // Antes de cada partido jugado, «Informe del rival»: por dónde rematan ellos, a quién conviene sacar y, si ya te estudian, qué
+  // carril de remate te cierran. Te empiezan a estudiar cuando juegas bien: media de la nota (la nota en directo de js/rating.js) de
+  // tus STUDY_WIN últimos partidos jugados ≥ STUDY_NOTA (con al menos STUDY_NOTA_N). STUDY_NOTA = 7: es la misma vara con la que la
+  // Carrera ya dice que destacas (ofertas a mitad de temporada con nota media ≥ 7) y, con el calibrado de la nota (novato ~6,1, medio
+  // ~7,8, bueno ~9,1 en la playa; receptor ~7,3 en pista), deja fuera al que empieza y entra cuando ya rindes. Con estudio, carril
+  // cerrado si hay patrón (≥ STUDY_MIN remates y ≥ STUDY_PCT en uno) y, en el partido, el rival cambia el plan si le haces daño por
+  // el otro lado (sim.js scEv, SC_ADAPT). Romper el plan (sum.study.broke): ≥ BROKE_N remates, ≤ BROKE_MAX por el carril cerrado y
+  // ≥ BROKE_K puntos por el otro: la prensa lo cuenta. Determinista (hash de c.seed), nunca g.rng.
+  var STUDY_WIN = 3, STUDY_MIN = 12, STUDY_PCT = 0.62, STUDY_NOTA = 7, STUDY_NOTA_N = 2, BROKE_N = 6, BROKE_MAX = 0.40, BROKE_K = 3;
+  function studySane(c) { if (!c.study || typeof c.study !== 'object' || !Array.isArray(c.study.h)) c.study = { h: [] }; return c.study; }
+  /** Lo que saben de ti: { state: 'calm' (aún no te estudian) | 'few' (pocos remates) | 'none' (repartes) | 'on' (patrón), lane, pct, n, avg }. */
+  function studyMe(c) {
+    var h = (c && c.study && Array.isArray(c.study.h) ? c.study.h : []).slice(-STUDY_WIN), k = h.length, sn = 0, d = 0, l = 0;
+    h.forEach(function (x) { sn += +x.n || 0; d += x.d | 0; l += x.l | 0; });
+    var avg = k ? round1(sn / k) : null, n = d + l, lane = d >= l ? 'diag' : 'line', mx = Math.max(d, l), pct = n ? Math.round(100 * mx / n) : 0;
+    if (k < STUDY_NOTA_N || avg < STUDY_NOTA) return { state: 'calm', lane: '', pct: 0, n: n, avg: avg };
+    if (n < STUDY_MIN) return { state: 'few', lane: '', pct: 0, n: n, avg: avg };
+    if (mx / n < STUDY_PCT) return { state: 'none', lane: '', pct: pct, n: n, avg: avg };
+    return { state: 'on', lane: lane, pct: pct, n: n, avg: avg };
+  }
+  /** Dorsales del rival en la playa: los de main.js startCareerMatch (rival personal o jefe en el n.º 1; si lleva el 9, el otro el 3). */
+  function rivalNums2(cs) {
+    cs = cs || {};
+    var a = cs.rivalNum != null && (cs.rivalNum | 0) > 0 ? cs.rivalNum | 0 : cs.rivalNum == null && (cs.bossNum | 0) > 0 ? cs.bossNum | 0 : 3;
+    return [a, a === 9 ? 3 : 9];
+  }
+  /** Al final de matchSetup / matchSetup6 (después de life, que puede cambiar al rival): out.study (el informe) y out.scout (la sim). */
+  function studyOf(c, out, n, hall) {
+    try {
+      var rv = n.rival || {}, r = rng(hash(c.seed, 'est', rv.id, c.season)), h1 = r(), h2 = r();
+      var riv = { lane: h1 < 0.65 ? 'diag' : 'line', pct: 60 + Math.floor(h2 * 16) };
+      var me = studyMe(c), A = out.attrs && out.attrs[1] || [], weak = null;
+      if (hall) {
+        var R = simRoles6(), nm = out.names && out.names[1] || [], nu = out.nums && out.nums[1] || [];
+        R.forEach(function (p, i) { if (p !== 'OH' || !A[i]) return; var v = A[i].recv | 0; if (!weak || v < weak.recv) weak = { num: nu[i] | 0, name: String(nm[i] || ''), recv: v }; });
+      } else if (A[0] && A[1]) {
+        var ns = rivalNums2(out.career), wi = (A[1].recv | 0) < (A[0].recv | 0) ? 1 : 0;
+        weak = { num: ns[wi], name: '', recv: A[wi].recv | 0, other: A[1 - wi].recv | 0 };
+      }
+      out.study = { riv: riv, weak: weak, me: me };
+      out.scout = { me: me.lane, mk: me.state === 'on' ? Math.round(clamp((me.pct - 55) / 25, 0.4, 1) * 100) / 100 : 0, riv: riv.lane,
+        rk: Math.round((riv.pct - 50) / 25 * 100) / 100, ad: me.state !== 'calm' };
+    } catch (e) { try { console.error('Career.studyOf', e); } catch (e2) { } }
+  }
+  function studyAvoid(lane) { return lane === 'diag' ? 'atkDiag' : lane === 'line' ? 'atkLine' : ''; }
+  /** ingest, en cada 'hit': carril de tu remate (tu jugador, 'spike'); cualquier otro toque lo borra. */
+  function studyHit(st, e, g) {
+    var tg = e.target || e.aim, L = '';
+    // (solo desde un ala, |y| ≥ 1,2 m × cs: desde el centro no hay línea ni diagonal que cerrar; misma regla que sim.js scEv y ai.js)
+    if (e.team === 0 && e.kind === 'spike' && tg && slotOf(g, e.player) === 0 && Math.abs(+e.y || 0) >= 1.2 * (g.cs || 1)) {
+      L = VB.Sim && VB.Sim.laneOf ? VB.Sim.laneOf(+e.y || 0, tg[1], g.cs || 1) : VB.Consignas ? VB.Consignas.dirOf(e, g.cs || 1) : '';
+      if (L === 'diag') st.d++; else if (L === 'line') st.l++; else L = '';
+    }
+    st.cur = L;
+  }
+  /** closeMine / closeMine6: apunta el partido en c.study.h (solo con nota) y devuelve sum.study. */
+  function studyClose(c, st, nota) {
+    var S = studySane(c), n = (st.d | 0) + (st.l | 0), me = st.me0 || '';
+    if (nota != null && isFinite(nota)) { S.h.push({ d: st.d | 0, l: st.l | 0, n: nota }); if (S.h.length > STUDY_WIN) S.h = S.h.slice(-STUDY_WIN); }
+    var shut = me === 'diag' ? st.d | 0 : me === 'line' ? st.l | 0 : 0, openK = me === 'diag' ? st.kl | 0 : me === 'line' ? st.kd | 0 : 0;
+    var broke = !!me && n >= BROKE_N && shut / n <= BROKE_MAX && openK >= BROKE_K;
+    return { me: me, d: st.d | 0, l: st.l | 0, kd: st.kd | 0, kl: st.kl | 0, sw: st.sw | 0, broke: broke };
+  }
+  /** Informe del próximo partido jugado (career-ui): matchSetup sobre una copia (no toca el guardado), con memo. null sin partido. */
+  var studyMemo = { k: '', v: null };
+  function studyNext(c) {
+    if (!c) return null;
+    var hall = c.mode === 'hall', k = [c.seed, hall ? 'h' : 'b', c.season, c.phase, c.week, c.koI, c.myClub, c.cup ? c.cup.round : '', (c.notes || []).length, c.study && c.study.h ? JSON.stringify(c.study.h) : ''].join('|');
+    if (studyMemo.k === k) return studyMemo.v;
+    var v = null;
+    try { var cc = copy(c), out = hall ? matchSetup6(cc) : matchSetup(cc); v = out && out.study ? out.study : null; } catch (e) { v = null; }
+    studyMemo.k = k; studyMemo.v = v;
+    return v;
   }
 
   // ------------------------------------------------------------------ estadísticas del partido jugado
@@ -1287,9 +1366,13 @@
       trial: !!g.career.trial, on: on }) : null;
     if (rt) rt.gl = {};   // objetivos de la prueba ya sumados (id → 1)
     // co: consignas del entrenador en directo (js/consignas.js; g.career.calls = false las apaga: ajuste «Consignas»)
-    var co = rt && VB.Consignas && g.career.calls !== false ? VB.Consignas.create({ hall: hall, role: pos, seed: g.seed, trial: !!g.career.trial, on: on }) : null;
+    // (con «Te tienen estudiado», el entrenador no pide rematar por el carril que te cierran: avoid)
+    var co = rt && VB.Consignas && g.career.calls !== false ? VB.Consignas.create({ hall: hall, role: pos, seed: g.seed, trial: !!g.career.trial, on: on, avoid: studyAvoid(g.scout && g.scout.me) }) : null;
     var m = { g: g, p: [z(), z()], last0: -1, lastTeam: -1, server: -1, setter: -1, cand: -1, blocker: -1, prevKind: '', prevTeam: -1, rallies: 0,
-      on: on, meR: 0, setNo: 1, sets: on ? [1] : [], started: on, entered: 0, pulled: 0, pullWhy: '', subEv: false, rt: rt, co: co, coU: null, amb: null };
+      on: on, meR: 0, setNo: 1, sets: on ? [1] : [], started: on, entered: 0, pulled: 0, pullWhy: '', subEv: false, rt: rt, co: co, coU: null, amb: null,
+      // «Te tienen estudiado»: tus remates por carril (d diagonal, l línea), los puntos por cada uno (kd, kl), el carril del último
+      // remate tuyo en el aire (cur), el carril que te cerraban al empezar (me0) y los cambios de plan del rival (sw). No en la prueba
+      st: g && g.career && !g.career.trial ? { d: 0, l: 0, kd: 0, kl: 0, cur: '', me0: g.scout ? g.scout.me0 || '' : '', sw: 0 } : null };
     m.amb = ambNew(g, m);
     return m;
   }
@@ -1306,6 +1389,7 @@
       me: { name: cs.player || 'Tú', num: cs.num | 0 }, mate: hall ? null : { name: cs.mate || '', num: cs.mateNum | 0 },
       rivalP: cs.rivalP ? { name: String(cs.rivalP) } : null, boss: cs.boss ? { nick: cs.boss.nick || cs.boss.name } : null, faro: faro,
       club: a.short && a.short[0] || cs.meName || cs.me || '', rivalClub: a.short && a.short[1] || cs.rivalName || cs.rival || '',
+      ref: cs.arb && typeof cs.arb === 'object' ? cs.arb : null,   // 1r designado (career-world onSetup): carácter, libreta y nombre en los bocadillos
       rate: function (k, v, txt) { ambRate(m, k, v, txt); } });
     return st;
   }
@@ -1349,12 +1433,15 @@
     if (stg === 'rev' && tags.indexOf('revancha') < 0) { tags.push('revancha'); heat += 0.1; }
     if (stg === 'tv') heat += 0.05;
     if (cs && cs.first) tags.push('estreno');
+    // rencor y cariño (career-life bondOf, solo lectura): con rencor y en su casa, la grada aprieta más
+    var Lf = VB.CareerLife, bd = Lf && Lf.bondOf ? Lf.bondOf(c, rv.id) : null, bt = bd ? bd.t | 0 : 0;
+    if (bt < 0 && home === 1) heat += 0.1 * -bt;
     heat = Math.min(1, heat + 0.2 * h);
     var F = home === 0 ? [0.55, 0.15] : home === 1 ? [0.15, 0.55] : [0.3, 0.3], k = hall ? 1 : 0.8;
     var hk = home === 1 ? rv : me, nm = function (x) { var s0 = String(x.nameBase || x.name || ''); return s0.length <= 16 ? s0 : String(x.city || x.short || s0.slice(0, 16)); };   // (lo que canta la megafonía: el nombre corto del club o su ciudad)
     return { home: home, heat: Math.round(heat * 100) / 100, fans: [Math.round(F[0] * k * 100) / 100, Math.round(F[1] * k * 100) / 100], tags: tags, level: lvl,
       city: String(hk.city || ''), venue: hall ? String(hk.city || '') : String(hk.beach || hk.city || ''), short: [nm(me), nm(rv)],
-      capt: cs && cs.acta && cs.acta.capt ? [cs.acta.capt[0] | 0, cs.acta.capt[1] | 0] : [0, 0], coach: ['', ''], riv: Math.round(h * 100) / 100 };
+      capt: cs && cs.acta && cs.acta.capt ? [cs.acta.capt[0] | 0, cs.acta.capt[1] | 0] : [0, 0], coach: ['', ''], riv: Math.round(h * 100) / 100, bond: bt };
   }
   function slotOf(g, pl) {
     if (!pl || !g || !g.teams) return -1;
@@ -1379,6 +1466,7 @@
       if (e.type === 'point' && e.penalty) { if (M.rt) VB.Rating.feed(M.rt, e, who); if (M.amb) VB.Ambiente.feed(M.amb, e, g); continue; }
       var s;
       if (e.type === 'hit') {
+        if (M.st) studyHit(M.st, e, g);   // «Te tienen estudiado»: carril de tu remate (o nada)
         if (e.team === 0) {
           s = slotOf(g, e.player); M.last0 = s; M.lastTeam = 0;
           if (s >= 0) {
@@ -1408,6 +1496,9 @@
           // al empezar el set (lineup, antes del primer saque): newSet ya lo había apuntado y no lo has jugado
           if (e.type === 'lineup') { var si = M.sets.indexOf(M.setNo); if (si >= 0) M.sets.splice(si, 1); }
         }
+      } else if (e.type === 'study') {   // el rival cambia el plan (sim, g.scout): el entrenador ya no pide ese carril
+        if (M.st) M.st.sw++;
+        if (M.co) M.co.avoid = studyAvoid(e.lane);
       } else if (e.type === 'newSet') {
         M.setNo = e.setNo > 0 ? e.setNo | 0 : M.setNo + 1;
         if (M.on && M.sets.indexOf(M.setNo) < 0) M.sets.push(M.setNo);
@@ -1415,7 +1506,8 @@
         // (y quién tocó qué en el peloteo: un challenge que da la vuelta a un remate «fuera» lo vuelve a pitar como punto en el mismo
         // paso, y sin esto el remate ya no tenía dueño —last0 = -1— y no contaba; VB.Rating sí lo restaura. 18-nov-2026)
         M.undo = { p: [Object.assign({}, M.p[0]), Object.assign({}, M.p[1])], rallies: M.rallies, meR: M.meR,
-          tr: [M.last0, M.lastTeam, M.server, M.setter, M.cand, M.blocker, M.prevKind, M.prevTeam] };
+          tr: [M.last0, M.lastTeam, M.server, M.setter, M.cand, M.blocker, M.prevKind, M.prevTeam], st: M.st ? Object.assign({}, M.st) : null };
+        if (M.st) { if (e.team === 0 && e.how === 'kill' && M.st.cur) M.st[M.st.cur === 'diag' ? 'kd' : 'kl']++; M.st.cur = ''; }
         M.rallies++;
         if (M.on) M.meR++;
         if (e.team === 0) {
@@ -1454,6 +1546,7 @@
     var u = m.undo; m.undo = null;
     if (u) {
       m.p[0] = u.p[0]; m.p[1] = u.p[1]; m.rallies = u.rallies; m.meR = u.meR;
+      if (u.st && m.st) m.st = u.st;
       if (u.tr) { m.last0 = u.tr[0]; m.lastTeam = u.tr[1]; m.server = u.tr[2]; m.setter = u.tr[3]; m.cand = u.tr[4]; m.blocker = u.tr[5]; m.prevKind = u.tr[6]; m.prevTeam = u.tr[7]; }
     }
     if (m.rt) VB.Rating.undo(m.rt);
@@ -1598,6 +1691,7 @@
       round: round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }), offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     if (extra && extra.rt) sum.rt = extra.rt;   // nota en directo: { nota, best, worst } (solo en c.last, no en c.notes)
     if (extra && extra.amb) sum.amb = extra.amb;   // ambiente: tarjetas, protestas, calor (career-life / career-world lo leen)
+    if (extra && extra.study) sum.study = studyClose(c, extra.study, nota);   // «Te tienen estudiado» (partido jugado)
     life(c, 'match', sum, f);
     c.last = sum;
     save(c);
@@ -1625,7 +1719,7 @@
     try { if (B() && B().endMatch && g) badges = B().endMatch(g, win, [c.player, null]) || []; } catch (e) { badges = []; }
     var asum = ambSum(m, g);
     M = null;
-    return closeMine(c, f, res, mine, false, { badges: badges, rt: rt ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum });
+    return closeMine(c, f, res, mine, false, { badges: badges, rt: rt ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum, study: m.st });
   }
   /** Simula tu partido (resultado según medias + forma; experiencia reducida). */
   function simulateNext(c) {
@@ -1686,6 +1780,16 @@
       (VB.CareerLife && VB.CareerLife.offerBonus ? VB.CareerLife.offerBonus(c) + (c.life && c.life.scout === c.season ? 2 : 0) : 0) +   // fama, agente estrella y ojeador
       extSum(c, 'offerBonus');   // extensiones (cesión con nota A…)
   }
+  /** Rencor y cariño (career-life bondOffer): null sin relación. */
+  function bondOff(c, id) { var Lf = VB.CareerLife; return Lf && Lf.bondOffer ? Lf.bondOffer(c, id) : null; }
+  /** Marca la oferta x con la relación: bond = grado; rencor: sueldo × bo.k (bondK) y, con cut, un rol por debajo (bondRole). */
+  function bondMark(x, bo, cut) {
+    if (!bo) return x;
+    x.bond = bo.t;
+    if (bo.k < 1) { x.bondK = bo.k; x.salary = Math.round(x.salary * bo.k / 50) * 50; }
+    if (cut) x.bondRole = 1;
+    return x;
+  }
   var LISTED_BONUS = 5, LISTED_COACH = 8;   // transferible: más interés de los clubes, menos confianza del entrenador
   /** Liga de un club la temporada que viene (fin de temporada: con los ascensos y descensos ya decididos en c.pendingMoves). */
   function nextLvl(c, k) {
@@ -1726,17 +1830,18 @@
       if (mid && kl > myL && an < 7.5 + D.midNota) return;   // a mitad de temporada, saltar de liga exige notas aún más altas
       var o = L.ovr[0] + (L.ovr[1] - L.ovr[0]) * q, thr = o - 5 + (kl > myL ? 2 : 0) + D.offer;
       var it = sc - thr + (r() - 0.5) * 8 - (mid ? 3 : 0);
-      if (it > 0) { var rl = it > ROLE_NEED[2] ? 2 : it > ROLE_NEED[1] ? 1 : 0;
-        cand.push({ club: k.id, lvl: kl, ovr: Math.round(o), q: q, interest: round1(it), mate: Math.round(o),
-          role: ROLE_LV[rl], years: 1 + Math.floor(r() * 3), salary: salaryOf(kl, q, rl) }); }
+      var bo = bondOff(c, k.id); if (bo) it += bo.adj;   // cariño: te quieren más; rencor: te ofrecen igual, pero peor (bondMark)
+      if (it > 0) { var rl = it > ROLE_NEED[2] ? 2 : it > ROLE_NEED[1] ? 1 : 0, cut = bo && bo.roleCut && rl > 0 ? 1 : 0; rl -= cut;
+        cand.push(bondMark({ club: k.id, lvl: kl, ovr: Math.round(o), q: q, interest: round1(it), mate: Math.round(o),
+          role: ROLE_LV[rl], years: 1 + Math.floor(r() * 3), salary: salaryOf(kl, q, rl) }, bo, cut)); }
       // (prueba, 17-nov-2026: el club mejor —liga de arriba o claramente más fuerte— que te quiere casi lo justo te invita a prueba)
-      else if (it > -TRIAL_GAP && (kl > myL || q > qOf(me) + 0.15) && (!tc || it > tc.it)) tc = { k: k, kl: kl, q: q, o: o, it: it };
+      else if (it > -TRIAL_GAP && (kl > myL || q > qOf(me) + 0.15) && (!tc || it > tc.it)) tc = { k: k, kl: kl, q: q, o: o, it: it, bo: bo };
     });
     // las 3 mejores, con preferencia por los clubes de la liga de arriba; se muestran de mejor a peor club
     cand.sort(function (a, b) { return (b.interest + 4 * (b.lvl - myL)) - (a.interest + 4 * (a.lvl - myL)); });
     cand = cand.slice(0, 3);
-    if (tc) cand.push({ club: tc.k.id, lvl: tc.kl, ovr: Math.round(tc.o), q: tc.q, interest: round1(tc.it), mate: Math.round(tc.o), role: ROLE_LV[0], years: 1,
-      salary: salaryOf(tc.kl, tc.q, 0), trial: true, chance: trialChanceIt(tc.it) });   // invitación a prueba (una por ventana)
+    if (tc) cand.push(bondMark({ club: tc.k.id, lvl: tc.kl, ovr: Math.round(tc.o), q: tc.q, interest: round1(tc.it), mate: Math.round(tc.o), role: ROLE_LV[0], years: 1,
+      salary: salaryOf(tc.kl, tc.q, 0), trial: true, chance: trialChanceIt(tc.it) }, tc.bo, 0));   // invitación a prueba (una por ventana)
     // ficha completa: el compañero que tendrías (el mismo que te dan al firmar; media = la del club de la temporada que viene +
     // su desvío propio, mateOff) y el objetivo aproximado. Un club con buen compañero es un argumento para fichar
     cand.forEach(function (x) { var rm = rng(hash(c.seed, 'offmate', c.season, mid ? 'mid' : 'end', x.club)), mt = newMate(c, club(c, x.club), rm, clamp(x.ovr + mateOff(rm), 22, 92)); x.mateP = mt; x.mate = ovrOf(mt.st); });
@@ -1891,7 +1996,7 @@
     // el interés) y, si no sale, el entrenador de ese club te recibirá con NEG_COACH menos de confianza si firmas igualmente
     var r = rng(hash(c.seed, 'neg', c.season, c.phase, o.club, c.week)), ok = o.interest + r() * 4 > ROLE_NEED[rl + 1];
     var k = club(c, o.club);
-    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salaryOf(o.lvl, o.q != null ? o.q : k.q, rl + 1); o.interest = round1(o.interest - 2); }
+    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salaryOf(o.lvl, o.q != null ? o.q : k.q, rl + 1); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.interest = round1(o.interest - 2); }
     else o.negNo = true;
     o.firm = true;
     msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' € al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
@@ -2298,6 +2403,7 @@
     o.listed = !!o.listed;
     var cos = countries6(); if (typeof o.cc !== 'string' || !o.leagues.some(function (L) { return L.cc === o.cc; })) o.cc = o.leagues[0].cc;
     o.notes = o.notes.filter(function (n) { return n && num(n.nota); });
+    studySane(o);   // «Te tienen estudiado»: historial de tus remates (c.study.h)
     sessSane(o);   // sesiones de entrenamiento (13-nov-2026): un guardado sin c.ts lo crea vacío (sin subir VER6)
     trialSaneT(o);   // prueba de mitad o fin de temporada (c.tst; 17-nov-2026)
     saneDiff6(o);   // dificultad (15-nov-2026): sin diff → Normal, la Carrera de pista de antes (sin subir VER6)
@@ -2766,6 +2872,7 @@
     return o;
   }
   function joinClub6(c, o, years) {
+    o.wasListed = !!c.listed; o.wasBroken = c.broken === c.season;   // (rencor y cariño, career-life bondJoin: irte así es neutro)
     var k = club(c, o.club), rl = Math.max(0, ROLE_LV.indexOf(o.role));
     c.myClub = k.id; c.chem = 0; c.ln6 = null;   // (la nota del último partido no viaja al club nuevo)
     years = clampI(years != null ? years : o.years || 1, 1, 3);
@@ -2886,6 +2993,7 @@
     };
     var sg6 = sigOf(c, 'hall'); if (sg6) out.serveSig = sg6;   // saque de firma
     life(c, 'setup', out);   // material de la tienda y molestias (en tu hueco, ctrlIdx) y reto de la jornada (career-life.js)
+    studyOf(c, out, n, true);   // «Te tienen estudiado» (tras life)
     return out;
   }
   function simMatch6(c, a, b, sd) {
@@ -3113,16 +3221,17 @@
       var thr = o - 5 + (foreign ? 2 : 0) + Math.max(0, (L.strength - 70) / 5) + cd(c).offer;
       var it = sc - thr + (r() - 0.5) * 8 - (mid ? 3 : 0) + (sct ? SCOUT_BONUS : 0);
       var yy = 1 + Math.floor(r() * 3);   // (se tira siempre: así la plantilla de un club no cambia el azar de los demás)
+      var bo = bondOff(c, k.id); if (bo) it += bo.adj;   // cariño: te quieren más; rencor: te ofrecen igual, pero peor (bondMark)
       if (it + FIT_START > 0) {
         var d = depth6(c, { id: k.id, ovr: o }, L.id, mid ? c.season : c.season + 1, 1, { merit: true });   // ¿jugarías? (la plantilla de la temporada en que llegas)
         it += fit6(d);
         if (it > 0) {
-          var rl = capRole6(it > ROLE_NEED[2] ? 2 : it > ROLE_NEED[1] ? 1 : 0, d), q = qOf6(c, k, L.id);
+          var rl = capRole6(it > ROLE_NEED[2] ? 2 : it > ROLE_NEED[1] ? 1 : 0, d), q = qOf6(c, k, L.id), cut = bo && bo.roleCut && rl > 0 ? 1 : 0; rl -= cut;
           var of = { club: k.id, lid: L.id, cc: L.cc, ovr: o, q: q, interest: round1(it), role: ROLE_LV[rl], years: yy, salary: salary6(c, k, rl, L.id), foreign: foreign, scout: sct, dm: d, dSeason: mid ? c.season : c.season + 1 };
-          offerDepth6(c, of); cand.push(of);
+          bondMark(of, bo, cut); offerDepth6(c, of); cand.push(of);
         }
         // (prueba, 17-nov-2026: el club mejor —liga más fuerte o +3 de media— que te quiere casi lo justo te invita a prueba)
-        else if (it > -TRIAL_GAP && (L.strength > myL.strength || o > myO + 3) && (!tc || it > tc.it)) tc = { k: k, L: L, o: o, it: it, d: d, foreign: foreign, sct: sct };
+        else if (it > -TRIAL_GAP && (L.strength > myL.strength || o > myO + 3) && (!tc || it > tc.it)) tc = { k: k, L: L, o: o, it: it, d: d, foreign: foreign, sct: sct, bo: bo };
       }
     });
     // de los clubes que te quieren, los 3 más atractivos: pesa sobre todo la liga y el club (con los datos reales hay 28 países y muchos
@@ -3132,7 +3241,7 @@
     cand.sort(function (a, b) { return appeal(b) - appeal(a); });
     cand = cand.slice(0, 3);
     if (tc) { var tof = { club: tc.k.id, lid: tc.L.id, cc: tc.L.cc, ovr: tc.o, q: qOf6(c, tc.k, tc.L.id), interest: round1(tc.it), role: ROLE_LV[0], years: 1, salary: salary6(c, tc.k, 0, tc.L.id),
-      foreign: tc.foreign, scout: tc.sct, dm: tc.d, dSeason: mid ? c.season : c.season + 1, trial: true, chance: trialChanceIt(tc.it) }; offerDepth6(c, tof); cand.push(tof); }   // invitación a prueba
+      foreign: tc.foreign, scout: tc.sct, dm: tc.d, dSeason: mid ? c.season : c.season + 1, trial: true, chance: trialChanceIt(tc.it) }; bondMark(tof, tc.bo, 0); offerDepth6(c, tof); cand.push(tof); }   // invitación a prueba
     cand.forEach(function (x) { var k = club(c, x.club), o0 = k.ovr; k.ovr = x.ovr; x.objective = objectiveFor6(c, k, x.lid).text; k.ovr = o0; });
     cand.sort(function (a, b) { return (a.trial ? 1 : 0) - (b.trial ? 1 : 0) || lg6(c, b.lid).strength - lg6(c, a.lid).strength || b.ovr - a.ovr; });   // (la prueba, la última)
     return cand;
@@ -3211,6 +3320,7 @@
       round: f.kind === 'league' ? round.map(function (m) { return { a: m.a, b: m.b, s: m.s }; }) : [], offers: c.window === 'mid' ? c.offers.length : 0, review: phase0 !== c.phase && c.phase === 'off' };
     if (has && extra && extra.rt) sum.rt = extra.rt;   // nota en directo: { nota, best, worst } (solo en c.last, no en c.notes)
     if (extra && extra.amb) sum.amb = extra.amb;   // ambiente: tarjetas, protestas, calor (career-life / career-world lo leen)
+    if (extra && extra.study) sum.study = studyClose(c, extra.study, has ? nota : null);   // «Te tienen estudiado» (sin nota, no apunta)
     life(c, 'match', sum, f);   // reto, fama, patrocinio, servicios, rival, decisión y logros (sum.life)
     c.last = sum;
     nextLine6(c);
@@ -3262,7 +3372,7 @@
     var part = { status: m.started ? 'start' : 'sub', started: m.started, entered: m.entered | 0, pulled: m.pulled | 0, pullWhy: m.pullWhy || '', meR: meR, rallies: rallies, share: share, sets: m.sets.slice() };
     var asum = ambSum(m, g);
     M = null;
-    return closeMine6(c, f, res, mine, false, { badges: badges, part: part, rt: rt && mine.nota != null ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum });
+    return closeMine6(c, f, res, mine, false, { badges: badges, part: part, rt: rt && mine.nota != null ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum, study: m.st });
   }
   /** Simular tu partido. De inicio: como siempre (y, con nota < 5,5, alguna vez te cambian). Desde el banquillo: juega el titular de
    *  tu puesto; entras con pIn = 0,3 + 0,06 × (gap + 4) (0,1-0,6; +0,2 si perdéis un set que no es el último y gap ≥ −4): de inicio
@@ -3373,7 +3483,7 @@
       save6(c); return 'cap';
     }
     var r = rng(hash(c.seed, 'neg6', c.season, c.phase, o.club, c.week)), ok = o.interest + r() * 4 > ROLE_NEED[rl + 1], k = kk;
-    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salary6(c, k, rl + 1, o.lid); o.interest = round1(o.interest - 2); } else o.negNo = true;
+    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salary6(c, k, rl + 1, o.lid); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.interest = round1(o.interest - 2); } else o.negNo = true;
     o.firm = true; offerDepth6(c, o);   // («Tu sitio» con el rol nuevo, o con la confianza de llegada más baja)
     msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' € al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
     save6(c); return ok ? 'ok' : 'no';
@@ -3840,6 +3950,9 @@
   function eng() { return mode() === 'hall' ? HALL : BEACH; }
   var F = {
     beach: BEACH, hall: HALL, mode: mode, setMode: setMode, has: hasMode, POS6: POS6, ordn: ordn,   // (ordn: «1r, 2º, 3r», también para main.js)
+    // «Te tienen estudiado»: informe del próximo partido (sobre una copia), lo que saben de ti, dorsales rivales de la playa y constantes
+    studyNext: studyNext, studyMe: studyMe, rivalNums2: rivalNums2, _studyClose: studyClose, _studyOf: studyOf,
+    STUDY: { WIN: STUDY_WIN, MIN: STUDY_MIN, PCT: STUDY_PCT, NOTA: STUDY_NOTA, NOTA_N: STUDY_NOTA_N, BROKE_N: BROKE_N, BROKE_MAX: BROKE_MAX, BROKE_K: BROKE_K },
     /** Crear: o.mode 'hall' → Carrera de pista (y pasa a ser la activa); 'beach' → la de playa; sin mode, la activa. */
     create: function (o) {
       var m = o && (o.mode === 'hall' || o.mode === 'beach') ? o.mode : mode();

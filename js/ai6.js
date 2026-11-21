@@ -270,7 +270,7 @@
           var pl = g.setPlan[opp], quick = pl && pl.tempo === 'quick' && pl.t === g.lastTouchT;
           // el error de colocación del bloqueador (g.blockOff: oficio del bloqueador IA, ±1,8 m con el perfil del compañero) no va en la
           // marca del humano: para él el sitio es la pista de dónde saltar (D8); acertar ya depende de su salto y su timing
-          var c = clamp(g.pr3.y + (S.isHuman(g, p) ? 0 : g.blockOff[t] * FORM.blockErr * (quick ? 1.7 : 1)), -4.0, 4.0);
+          var c = clamp(g.pr3.y + (S.isHuman(g, p) ? 0 : g.blockOff[t] * FORM.blockErr * (quick ? 1.7 : 1) + (g.scout ? VB.AI.studyShift(g, t) : 0)), -4.0, 4.0);
           var off = !bp.b ? 0 : (p === bp.lo ? -0.45 : 0.45);
           return setTg(sd * 0.6, clamp(c + off, -4.2, 4.2), false, true, 'block');
         }
@@ -281,7 +281,7 @@
     var B = FORM.back[p.role] || FORM.back.OH, d = B.d, yl = B.yl;
     if (atk) { // perímetro: se abre hacia el lado del ataque; el de la línea del atacante sube un poco
       var ay = g.pr3.y * sd;
-      yl = clamp(yl + 0.25 * ay, -3.9, 3.9);
+      yl = clamp(yl + 0.25 * ay + (g.scout ? VB.AI.studyLean6(g, t) : 0), -3.9, 3.9);
       if (yl * ay > 0 && Math.abs(B.yl) > 1) d -= 0.6;
     }
     return loc(t, d, yl, false, false, 'dig');

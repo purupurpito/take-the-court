@@ -1204,3 +1204,65 @@ van con «baja probabilidad».
 - **Determinismo.** Sin `g.zn` ni `g.sig`, la sim es la de siempre: las tres huellas de fingerprint6 siguen «idéntica». `SIM_BASE` de
   fluidsimtest = 2a21ec3. Estilos equilibrados a ±1,5 de EV (zonetest con 4000 saques por estilo).
 - **Pruebas.** `node tools/zonetest.js`. Capturas de mobaudit: hud-zona, hud-zona-6v6, hud-saque-firma y carrera-playa-saque-firma.
+
+## Rencor y cariño de los clubes (21-nov-2026, rama unico-b; idea «rencor»)
+
+Los clubes recuerdan cómo te portaste con ellos. Solo la relación con el club (decisión de Ferran: nada de puntos con nombre ni
+maldiciones de sede). No se enseña ninguna cifra: solo «Te guardan rencor» / «Te tienen cariño» y el motivo.
+
+- **Estado**: `c.life.bond = {at, tS, k: {id: {v, why, s, said}}}` en js/career-life.js (bloque «relación con los clubes»). v de −100 a
+  +100; grado t con BOND_T: ≤ −55 → −2, ≤ −25 → −1, ≥ 25 → +1, ≥ 55 → +2. Tope de 30 clubes. `ensure()` lo crea; un guardado viejo
+  empieza sin relaciones (nada retroactivo). Sin cambiar VER.
+- **Por qué en career-life y no en world/story**: careertest exige la Carrera idéntica con y sin career-world.js y storytest con y sin
+  story (que además no puede tocar las ofertas). career-life ya influye en las ofertas (offerBonus) y se carga en las dos ramas.
+- **Fuentes** (BOND_D): salir con contrato en vigor (o.early) −45; acabar el contrato +20 (+10 por temporada extra, tope +45); irte
+  declarado transferible o por promesa incumplida (o.wasListed / o.wasBroken, que joinClub guarda antes de borrarlos): **neutro**; una
+  cesión no cuenta; título (liga, copa o internacional; el ascenso no) +30 una vez por temporada (seasonEnd); ganar una eliminatoria a
+  un club de derbi (pista: misma ciudad; playa: el club de tu rival personal de antes del partido o el del jefe) −30; roja tuya jugando
+  en su casa (sum.amb.home === 1) −20. Verano: ×0,75 y fuera por debajo de 8; lo de la temporada que acaba de terminar se salta ese
+  verano (si no, una salida en el mercado de verano se enfriaba el mismo día).
+- **Ofertas** (career.js genOffers / genOffers6, bondOff + bondMark, tras la tirada de interés): cariño → interés + v × 0,06 (hasta +6).
+  Rencor → **el club sigue ofreciendo** (decisión de Ferran), con el mismo interés, pero peor: sueldo × 0,85 (t −1) o × 0,7 y un rol por
+  debajo (t −2). La oferta lleva `bond`, `bondK` y `bondRole`; negociar mantiene el descuento. La renovación de tu club no cambia.
+- **Mensajes**: «Salida sonada», «… te despide», «… no lo olvidará», «Derbi para el recuerdo», «… se acordará de ti» y el aviso del
+  próximo partido (bondWeek: uno por temporada y club). Salen también con «Ambiente de Carrera» apagado: solo se apaga la grada.
+- **Grada**: ambCtx devuelve `bond` (−2..2) y, con rencor en su casa, +0,1 × |t| de calor. ambiente.js: welcomeGrudge + pitada al
+  empezar (o pitada suave de su afición visitante en tu casa), welcomeFond + aplauso en su casa con cariño, y previa preGrudge/preFond.
+  La final, el derbi y el duelo se quedan con su bienvenida.
+- **Pantallas**: etiqueta en la línea de meta de cada oferta (lista) y el motivo en la ficha completa (career-ui offerCard/offerCard6);
+  Liga › Clubes: etiqueta en la cabecera y «Por qué: … (Tn)» (career-world clubCard.bond, solo lectura; career-world-ui cardHTML).
+- **Azar**: la relación no tira nada. En la playa, si el cariño cambia el signo del interés de un club, cambian las tiradas siguientes
+  de esa ventana (solo con relación ≠ 0). Huella 2v2 intacta (sim.js no se toca).
+- **Prueba**: `node tools/bondtest.js` (salida, contrato cumplido, neutros, título, derbi, roja, verano, tope, ofertas de playa y pista,
+  cartas en node, ambCtx, aviso, guardado viejo, determinismo). ambientetest tiene la sección «Rencor y cariño (amb.bond)».
+
+## Te tienen estudiado (21-nov-2026, rama unico-b; idea «scouting»)
+
+Antes de cada partido jugado de la Carrera (playa y pista), bajo «Jugar partido / Simular» sale el **Informe del rival**: por dónde
+rematan ellos, a quién conviene sacar y qué saben de ti. En el partido se nota de verdad. Todo se llama `study`/`estudio` (el `scout`
+de career.js ya es el ojeador de ofertas; aquí `g.scout` solo en la sim).
+
+- **Carril** de un remate: la regla de las consignas (VB.Consignas.dirOf, réplica exacta en `Sim.laneOf`; «línea» = «por la línea»).
+  Solo cuentan los remates **desde un ala** (|y| ≥ 1,2 m × cs): desde el centro no hay línea ni diagonal que cerrar.
+- **Cuándo te estudian** (decisión de Ferran: con mejores notas): media de la nota en directo (js/rating.js) de tus `STUDY_WIN` = 3
+  últimos partidos jugados ≥ `STUDY_NOTA` = 7, con al menos 2. Por qué 7: es la vara con la que la Carrera ya dice que destacas
+  (ofertas de mitad de temporada con nota media ≥ 7) y, con el calibrado de la nota (novato ~6,1, medio ~7,8, bueno ~9,1 en la playa;
+  receptor ~7,3 en pista), deja fuera al que empieza y entra cuando ya rindes.
+- **Historial** `c.study.h = [{d, l, n}]` (remates en diagonal y por la línea y la nota; playa y pista por separado; los simulados, el
+  banquillo y la prueba no apuntan). Patrón: ≥ `STUDY_MIN` = 12 remates y ≥ `STUDY_PCT` = 62 % en un carril. Estados: `calm` (aún no te
+  estudian), `few` (pocos remates), `none` (repartes), `on` (te cierran ese carril, mk = (pct − 55)/25 entre 0,4 y 1).
+- **Rival**: carril y % (60-75) con hash(c.seed, 'est', rival, temporada). Saque: el que peor recibe de `out.attrs[1]` tras `life`
+  (playa: dorsal con `rivalNums2`, la regla de main.js; pista: el receptor titular con menos recepción, con nombre).
+- **Sim** (`opts.scout` → `g.scout`, solo desde startCareerMatch; nunca demo, online, Entrenamiento, prueba ni Partido rápido):
+  bloqueador rival corrido `BLK_SHIFT` 0,3 m × mk × (0,5 + 0,5·bloqueo) hacia dentro (diagonal) o fuera (línea); defensor 2v2
+  `DEF_LEAN` 0,08 m y zagueros 6v6 `DEF_LEAN6` 0,15 hacia el carril cerrado; solo si el que ataca eres tú y desde un ala. El rival
+  remata por su carril con un control determinista sobre su reparto del partido (`rivBonus`, `RIV_B` 2,5, banda 0,08). Nada gasta g.rng.
+- **Cambia el plan en el partido** (decisión de Ferran): si te estudian (`ad`), con `SC_ADAPT` = 3 puntos de remate por el carril
+  abierto y 2 más que por el cerrado (desde su último cambio), te cierran el otro (mk ≥ 0,7). Evento `study` → aviso «Cambian el plan:
+  te tapan la línea» (ui.js) y el entrenador deja de pedir ese carril (consignas `avoid`). El challenge lo deshace (scUndo).
+- **Prensa**: `sum.study.broke` (≥ 6 remates, ≤ 40 % por el carril del informe y ≥ 3 puntos por el otro) → T.studyBroke (informativo).
+- **Pantalla**: PC, tarjeta `.cr-est` (Ellos / Saque / Tú con chip); móvil, tira `.cr-est-b` de 44 px que abre una hoja SPLAT.
+- **Calibración** (tools/studytest.js, bot «bueno» que remata a un carril desde un ala): playa 40 partidos, puntos en diagonal ×0,79
+  con la diagonal cerrada; pista ×0,9 (en pista el bot hace poco punto y el efecto es pequeño); rival «75 %» → 73 % (pista 72 %),
+  «línea 60 %» → 58 % (pista 59 %). La defensa de la playa es muy sensible: con 0,2 m los puntos en diagonal caían a la mitad.
+- **Pruebas**: `node tools/studytest.js` (STUDYTEST_N). Huella 2v2 y fingerprint6 intactas: sin opts.scout no existe g.scout.

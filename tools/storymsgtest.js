@@ -172,7 +172,11 @@ for (const mode of ['beach', 'hall']) {
 
 // ------------------------------------------------------------------ 7. textos
 section('7. Textos de todas las plantillas (todas las variantes) en playa y pista');
-const DEMO = { who: 'Alex Prueba', otro: 'Sam Ensayo', rival: 'Voley Cádiz', nota: '7,8', n: '4', m: 'Diario La Red', seat: 'Gael Arnedo' };
+{ // «Te tienen estudiado»: la crónica de romper el plan es de prensa, informativa (sin opciones)
+  const B0 = H.boot({}), T0 = B0.S.sys('msgs').tpl.studyBroke;
+  ok(!!T0 && T0.k === 'press' && !T0.o && T0.x.length === 3, 'studyBroke: plantilla de prensa sin opciones');
+}
+const DEMO = { who: 'Alex Prueba', otro: 'Sam Ensayo', rival: 'Voley Cádiz', nota: '7,8', n: '4', m: 'Diario La Red', seat: 'Gael Arnedo', ref: 'Nerea Quirada Garbero', fama: 'de mano dura', quien: 'Sam', cerrada: 'diagonal', abierta: 'línea' };   // (cerrada / abierta: T.studyBroke)
 for (const mode of ['beach', 'hall']) {
   const B = H.boot({}), S = B.S, M = S.sys('msgs');
   const c = drive(B, { mode, seasons: 1, seed: 88 });
@@ -262,6 +266,51 @@ for (const mode of ['beach', 'hall']) {
   const core = noStory(c); fakeMatch(S, c, { win: true, sim: false, nota: 7 });
   ok(noStory(c) === core, mode + ': el eco (publicación y mensaje) no toca el núcleo');
   ok(c.story.feed.some(z => z.b === 'pEcoW') && c.story.flags.press.v.done === 1, mode + ': ganando, «Lo dijo y lo cumplió» y Cris escribe');
+}
+
+// ------------------------------------------------------------------ 10. árbitros con nombre (career-world: sum.amb.ref)
+section('10. Árbitros: refCard, refBrake, refNext y la pregunta 17 de prensa');
+for (const mode of ['beach', 'hall']) {
+  const B = H.boot({}), S = B.S, K = B.C, M = S.sys('msgs'), W = B.VB.CareerWorld;
+  drive(B, { mode, seasons: 1, seed: 160 });
+  let c = K.load(); c.life.ev = null;
+  const R = W.arbPanel(c)[0], X = { played: true, end: false, real: true, H: mode === 'hall', mN: 1 }, beat = id => M.BEATS.filter(b => b.id === id)[0];
+  const amb = o => Object.assign({ cards: [], myY: 0, myR: 0, myProt: 0, brk: 0, brkName: '', protests: 0, fair: true, ref: R.id }, o);
+  const sumOf = a => ({ season: c.season, rivalName: 'Voley Prueba', win: false, sets: [1, 2], nota: 6, amb: a });
+  ok(M.PRESS.length === 17 && M.PRESS[16][2] === 'ref' && /\{ref\}/.test(M.PRESS[16][1]), 'pregunta 17 de prensa, al final, solo con árbitro');
+  ok(beat('refCard').when(c, sumOf(amb({ myY: 1, cards: [{ team: 0, color: 'yellow', mine: true }] })), X, c.story) && !beat('refCard').when(c, sumOf(amb({ myY: 1, ref: '' })), X, c.story) && !beat('refCard').when(c, sumOf(amb({})), X, c.story),
+    mode + ': refCard solo con 1r designado y tarjeta tuya');
+  const vc = beat('refCard').v(c, sumOf(amb({ myY: 1 })), X, c.story);
+  ok(vc.ref === R.name && vc.fama && vc.m, mode + ': refCard lleva el nombre y la fama del 1r (' + vc.ref + ', ' + vc.fama + ')');
+  ok(beat('refBrake').when(c, sumOf(amb({ brk: 1, brkName: 'Iker' })), X, c.story) && !beat('refBrake').when(c, sumOf(amb({ brk: 1, brkName: 'Iker', ref: '' })), X, c.story) && !beat('refBrake').when(c, sumOf(null), X, c.story),
+    mode + ': refBrake solo con 1r designado y una frenada');
+  // refNext: solo si el 1r del próximo partido te sacó tarjeta o le protestaste (y nunca toca el núcleo)
+  const core0 = noStory(c);
+  ok(!beat('refNext').when(c, sumOf(null), X, c.story), mode + ': refNext sin libreta: no sale');
+  const d = W.arbDesigna(mode === 'hall' ? clone(c) : c);
+  if (d) {
+    c.world.arb = { last: '', p: { [d.ref.id]: { m: 1, y: 1, r: 0, pr: 0, br: 0, cl: 0, cs: 0, ev: { s: c.season, wk: 'J3', k: 'yellow', n: '' } } } };
+    const w0 = JSON.stringify(c.world.arb), core1 = noStory(c);
+    ok(beat('refNext').when(c, sumOf(null), X, c.story) && beat('refNext').v(c, sumOf(null), X, c.story).ref === d.ref.name, mode + ': refNext con tarjeta del próximo 1r (' + d.ref.name + ')');
+    ok(noStory(c) === core1 && JSON.stringify(c.world.arb) === w0, mode + ': refNext no toca la carrera');
+    c.world.arb.p[d.ref.id].ev.k = 'clean';
+    ok(!beat('refNext').when(c, sumOf(null), X, c.story), mode + ': refNext con un partido limpio: no sale');
+    delete c.world.arb;
+  } else ok(false, mode + ': designación del próximo partido');
+  void core0;
+  // prensa: la pregunta 17 solo con tarjeta o protesta y 1r designado; con vars.ref
+  const seen = { yes: 0, no: 0, yesRef: true };
+  for (let i = 0; i < 40; i++) {
+    for (const withRef of [true, false]) {
+      const cc = clone(c); cc.life.ev = null; const s = S.ensure(cc); s.pressNext = 0; s.pressQ = [];
+      const a = withRef ? amb({ cards: [{ team: 1, color: 'yellow' }], protests: 1, fair: true }) : amb({ cards: [{ team: 1, color: 'yellow' }], protests: 1, ref: '' });
+      const id0 = cc.story.n | 0; s.mN += i; s.freq = 2;
+      fakeMatch(S, cc, { sim: false, nota: 6, win: i % 2 === 0, amb: a });
+      cc.story.feed.filter(x => x.id > id0 && x.b === 'pq16').forEach(x => { if (withRef) { seen.yes++; if (x.vars.ref !== R.name && !(W.refOf(cc, a.ref) && x.vars.ref === W.refOf(cc, a.ref).name)) seen.yesRef = false; } else seen.no++; });
+    }
+  }
+  ok(seen.yes > 0 && seen.no === 0 && seen.yesRef, mode + ': pregunta del arbitraje solo con 1r designado (' + seen.yes + ' con, ' + seen.no + ' sin)');
+  { const s = S.ensure(clone(c)); s.pressQ = [0, 5, 16, 15]; M.ensure(s); ok(s.pressQ.join() === '0,5,16,15', mode + ': los pressQ guardados siguen valiendo (y el 16 también)'); }
 }
 
 console.log('\n' + passes + ' comprobaciones bien' + (fails ? ', ' + fails + ' FALLOS' : ''));

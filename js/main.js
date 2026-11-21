@@ -630,6 +630,8 @@
       // zona y saque de firma (20-nov-2026; sim: opts.zone / opts.serveSig). Carrera: la zona salvo «Apagada» (también la CPU) y tu
       // saque de firma (m.serveSig); Partido rápido: la zona solo con «Siempre» y el saque de firma de Ajustes. Sin la sim nueva, nada
       zone: auto || (cs && cs.noZone) ? undefined : cs ? (ctx.settings.zone !== 'off' ? { cpu: true } : undefined) : (ctx.settings.zone === 'all' ? {} : undefined),
+      // «Te tienen estudiado» (career.js studyOf): solo en el partido jugado de la Carrera (startCareerMatch); sin él, g.scout no existe
+      scout: !auto && cs && opts.scout ? opts.scout : undefined,
       serveSig: auto ? undefined : cs ? (opts.serveSig || undefined) : (Sim.sigSane ? sigSaneSafe({ id: ctx.settings.serveSig, gest: ctx.settings.serveGest, sun: ctx.settings.beachLight === 'tarde' ? 0.4 : 1 }, fmt ? 'hall' : (cvK || venueNow())) : undefined) });
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
@@ -1255,7 +1257,7 @@
     // C3: el jefe del circuito es el n.º 1 rival (su club excluye el de tu rival personal: no coincide con rivalNum)
     var bossNum = m.career && m.career.rivalNum == null && (m.career.bossNum | 0) > 0 ? m.career.bossNum | 0 : 0;
     var n = null; try { n = K.next && K.next(); } catch (e) { } var vid = n && VB.Venues && VB.Venues.forMatch ? VB.Venues.forMatch(n, m.venue || 'beach') : null; // sede del partido (js/venues.js, tabla EMBLEM)
-    ctx.actions.startMatch({ career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
+    ctx.actions.startMatch({ career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined, scout: m.scout || undefined, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
       venue: m.venue || 'beach', // vóley playa: Platja Llarga y sus reglas (VB.Career.matchSetup().venue); la Carrera de pista, 'hall'
       format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, // Carrera de pista (lote C): 6v6 en tu puesto
       // titularidad y cambios (notes/titularidad-y-cambios.md §I.1): tal cual a Sim.createGame
@@ -2256,7 +2258,8 @@
     g.career.amb = amb; g.career.ambient = Q.calm === '1' ? 'calm' : 'full'; g.career.atHome = home === 0;
     var st = A.create({ seed: g.seed, hall: a6, level: amb.level, mode: g.career.ambient, amb: amb, main: true, faro: true,
       me: { name: g.career.player, num: g.career.num | 0 }, mate: a6 ? null : { name: g.career.mate, num: 2 }, club: 'Rocaverde', rivalClub: 'Sorrasal',
-      force: ['choice', 'yellow', 'red', 'boo', 'chant', 'lines'].indexOf(k) >= 0 ? k : '',
+      force: ['choice', 'brake', 'yellow', 'red', 'boo', 'chant', 'lines'].indexOf(k) >= 0 ? k : '',
+      ref: k === 'brake' || Q.arb === '1' ? { id: 'B1-0', name: 'Nerea Quirada Garbero', short: 'Quirada', trait: 'estricto', mem: 0 } : null,   // (1r con nombre)
       rate: function (kind, v, txt) { console.info('[VB] ambiente → nota: ' + kind + ' ' + v + ' ' + (txt || '')); } });
     if (A.bind) A.bind(g, st);
     ambDbg = { g: g, st: st };
@@ -2673,6 +2676,7 @@
       }
       // Ambiente de Carrera (js/ambiente.js): partido de Carrera de mentira EN VIVO con la IA jugando por ti (no toca ninguna Carrera
       // guardada). &k=choice (la 1ª disputa en contra abre «Protestar / Dejarlo»: VB.ctx.actions.ambChoose('protest'|'drop')),
+      // brake (la 1ª disputa en contra abre «Frenar a … / Dejarle», con el 1r «Quirada»; &arb=1 da el 1r con nombre en las demás),
       // yellow | red (tarjeta forzada en la 1ª disputa; la roja con su punto de castigo de verdad), derby (derbi, calor 0,9), boo (pitada al
       // saque rival), chant (cánticos), lines (una frase en cada punto). &format=6v6 pista (por defecto playa), &away=1 fuera de casa,
       // &final=1 campo neutral, &calm=1 «Tranquilo», &heat=0..1, &level=low|mid|high|top
@@ -2813,6 +2817,9 @@
         meName: 'Club Platja Rocaverde', rivalName: 'Voley Sóller', player: 'Ares Belmonte', num: 7, mate: 'Iker Sanz', mateNum: 4, goal: 'Gana un set a cero',
         pos0: wk ? 3 : 0, rivalPos: wk ? 5 : 0, posN: 10, h2h: wk ? [3, 2, 1, 4, 3, 1] : null, league: 'Circuito Regional', first: wk === 0 };
       if (Q.duel === '1') { g.career.duel = true; g.career.rivalInfo = { name: 'Dani Roca', w: 2, l: 3 }; }
+      // 1r designado (career-world.js): &arb=1 con recuerdo (antes del Reto), &arb=2 sin recuerdo (después)
+      if (Q.arb === '1' || Q.arb === '2') g.career.arb = { id: 'B0-3', name: 'Nerea Quirada Garbero', short: 'Quirada', trait: 'estricto', mem: 0, rec: Q.arb === '1',
+        line: Q.arb === '1' ? '1r: Nerea Quirada, te sacó amarilla en la J4' : '1r: Nerea Quirada Garbero, fama de mano dura', r2: 'Teo Urdón Albrero', sc: 'Jon Sorbuela Ebredo' };
       // ambiente de Carrera: &derby=1 (derbi de ciudad en pista: «DERBI», career.js ambCtx), &revancha=1, &cumbre=1
       if (Q.derby === '1' || Q.revancha === '1' || Q.cumbre === '1') {
         if (Q.derby === '1') g.career.mode = 'hall';

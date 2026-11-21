@@ -763,10 +763,11 @@
   }
   function ambChoiceShow(e) {
     if (!el.ambCh) return;
-    var o = e.opts || [{ k: 'protest', label: 'Protestar' }, { k: 'drop', label: 'Dejarlo' }], dv = device(), gl = G(), h = '';
+    // (kind 'brake' = «Frenar a … / Dejarle»: la calma, botón 1, va en verde (d) y dejarle protestar en naranja (p))
+    var o = e.opts || [{ k: 'protest', label: 'Protestar' }, { k: 'drop', label: 'Dejarlo' }], dv = device(), gl = G(), h = '', br = e.kind === 'brake';
     for (var i = 0; i < o.length && i < 3; i++) {
       var k = o[i].k === 'protest' ? 'protest' : 'drop', key = dv === 'touch' ? '' : (k === 'protest' ? gl.sw : gl.hit);
-      h += '<button type="button" tabindex="-1" class="amc-b ' + (k === 'protest' ? 'p' : 'd') + '" data-k="' + k + '">' + key + escT(o[i].label || (k === 'protest' ? 'Protestar' : 'Dejarlo')) + '</button>';
+      h += '<button type="button" tabindex="-1" class="amc-b ' + ((k === 'protest') !== br ? 'p' : 'd') + '" data-k="' + k + '">' + key + escT(o[i].label || (k === 'protest' ? 'Protestar' : 'Dejarlo')) + '</button>';
     }
     el.ambChR.innerHTML = h;
     el.ambChS.textContent = cpuTxt(e.sub || '¿Protestas la decisión?');
@@ -774,7 +775,7 @@
     amb.ch = { id: e.id, dur: e.dur > 0 ? e.dur : 2.4, def: e.def || 'drop' }; amb.chT = 0; amb.chEnd = 0;
     el.ambChBar.style.transform = 'scaleX(1)';
     el.ambCh.className = ''; void el.ambCh.offsetWidth; el.ambCh.className = 'show';
-    srSay((e.sub ? e.sub + '. ' : '') + 'Protestar o dejarlo.');
+    srSay((e.sub ? e.sub + '. ' : '') + (br ? (o[0] && o[0].label || 'Frenarle') + ' o dejarle.' : 'Protestar o dejarlo.'));
     amb.rectC = null;
   }
   function ambChoiceHide(pick) {
@@ -825,7 +826,7 @@
   function ambEvent(e, g) {
     if (e.replay || ctx.replay) return;
     switch (e.type) {
-      case 'amb:choice': if (e.kind == null || e.kind === 'protest') ambChoiceShow(e); break;
+      case 'amb:choice': if (e.kind == null || e.kind === 'protest' || e.kind === 'brake') ambChoiceShow(e); break;
       case 'amb:choiceEnd': if (amb.ch && (e.id == null || e.id === amb.ch.id)) ambChoiceHide(e.by === 'timeout' && !e.pick ? '' : e.pick); break;
       case 'amb:card': ambCardShow(e, g); break;
       case 'amb:say': amb.lastSay = e.text || ''; if ((e.pri | 0) >= 1 && e.text) srSay((e.name ? e.name + ': ' : '') + e.text); break;
@@ -998,6 +999,8 @@
           break;
         }
         case 'zone': znEvent(e, g); break;   // la zona (ZN-HUD)
+        // «Te tienen estudiado» (Carrera, g.scout): el rival cambia el plan porque le haces daño por el otro carril
+        case 'study': if (!e.replay && !g.demo) { var stT = 'Cambian el plan: te tapan ' + (e.lane === 'line' ? 'la línea' : 'la diagonal'); callout(stT, 1, '', 2.0); srSay(stT); } break;
         case 'block':
           if (e.human && e.result === 'stuff') pulse(e.team, false);
           // C4: el bloqueo directo de tu equipo lo dice la cinta cinética («¡Muro!») 0,5 s después: sin aviso duplicado
@@ -3795,7 +3798,8 @@
   function actaMeta(g) {
     var nm = msNames(g), cs = g && !g.demo && g.career, ca = (cs && cs.acta) || {};
     var comp = cs && cs.label ? cs.label : g && g.online ? 'Online' : g && g.watch0 ? 'Partido de la jornada' : 'Partido rápido';
-    return { names: nm.names, atHome: cs && cs.atHome === false ? false : true, capt: ca.capt, lib: ca.lib, competition: comp,
+    var ar = cs && cs.arb, refs = ar && ar.name && ar.r2 && ar.sc ? [String(ar.name), String(ar.r2), String(ar.sc)] : null;   // (1r, 2º y anotador designados en la Carrera)
+    return { names: nm.names, atHome: cs && cs.atHome === false ? false : true, capt: ca.capt, lib: ca.lib, competition: comp, refs: refs,
       venue: venueName(), seed: g ? g.seed | 0 : 0, now: Date.now() };
   }
   function openActa() {

@@ -838,6 +838,16 @@
     Q + ' .cr-go .sp-patch{flex:1.7 1 0;--sp-ph:clamp(52px,11vh,86px)}',
     Q + ' .cr-go .sp-btn{flex:1 1 0;min-width:0}',
     Q + ' .cr-nd{padding:10px 14px 8px;margin-bottom:0}',
+    // «Informe del rival» (career.js studyNext): tarjeta bajo «Jugar partido / Simular»; en el móvil, tira de una línea que abre una hoja
+    Q + ' .cr-est{padding:10px 14px 8px;margin:0 0 14px}',
+    Q + ' .cr-est p{margin:6px 0;line-height:1.3}',
+    Q + ' .cr-est p>b:first-child{color:var(--sp-gold);margin-right:4px}',
+    Q + ' .cr-est .sp-chip{margin-right:6px;vertical-align:1px}',
+    Q + ' .cr-est-b{display:flex;width:100%;--sp-h:44px;min-height:44px;margin:0 0 4px}',
+    Q + ' .cr-est-b .sp-l{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;min-width:0}',
+    Q + ' .cr-est-b .sp-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}',
+    Q + ' .cr-est-b .sp-chip{flex:none;white-space:nowrap}',
+    Q + ' .cr-ests dd{line-height:1.3}',
     Q + ' .cr-nd p{margin:3px 0}',
     Q + ' .bench{margin:0 0 12px;padding:8px 12px;border-radius:12px 18px 14px 16px/16px 12px 18px 14px;background:var(--sp-cream);box-shadow:0 0 0 3px var(--sp-ink),4px 5px 0 var(--sp-ink);transform:rotate(.4deg)}',
     Q + ' .bench p{color:var(--sp-ink)}',
@@ -1257,6 +1267,8 @@
     PQ + ' .cr-go .sp-btn .sp-s{font-size:var(--ph-cap)}',
     PQ + ' .cr-nd p{margin:6px 0}',
     PQ + ' .cr-nd .lnk{margin:4px 0 0;display:inline-flex}',
+    PQ + ' .cr-est-b{--sp-fs:var(--ph-row);margin:0 0 10px}',
+    PQ + ' .cr-ests dd{font-size:var(--ph-row)}',
     // ---- Jugador: la ficha en una línea (retrato pequeño) y los atributos a la vista
     PQ + ' .cr-ptw{margin:0 4px 4px 0}',
     PQ + ' .cr-pcard{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,250px),1fr));column-gap:26px;align-items:center;padding-top:10px}',
@@ -1884,7 +1896,7 @@
           ? (n.out ? '<div class="bench"><p><b>' + esc(n.out.head || 'Esta jornada no juegas.') + '</b> ' + esc(n.out.why || '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla. ' + esc(n.out.tail || '') + '</p></div>'
             : '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>') +
             '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button>' + (n.out && n.out.act ? '<button data-act="' + esc(n.out.act) + '">' + esc(n.out.actT || 'Ver') + '</button>' : '') + '</div>'
-          : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div>') +
+          : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div>' + studyHTML(c)) +
         (side ? '</div>' + (mIn ? mc : '') + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' +
         // (la pareja, en pastillas: antes era una lista metida en un paréntesis)
         '<p class="muted">' + (function () {
@@ -1963,12 +1975,15 @@
     return '<div class="sp-heros sp-sm cr-oh">' + it(esc(o.role), 'Rol') + (o.salary ? it(eur(o.salary).replace(' ', '&nbsp;'), 'Sueldo al mes', true) : '') + it(ovr != null ? ovr : '—', 'Media del club', true) +
       (o.objective ? it(esc(objShort(o.objective)), 'Objetivo') : it(yrsN, yrsN === 1 ? 'Temporada' : 'Temporadas', true)) + '</div>';
   }
+  /** Rencor o cariño del club de la oferta (career.js bondMark → o.bond; career-life bondLine, el motivo). */
+  function bondTag(o) { var t = o && o.bond > 0 ? '<span class="tag g">Te tienen cariño</span>' : o && o.bond < 0 ? '<span class="tag r">Te guardan rencor</span>' : ''; return t ? '<p class="off-bond" style="margin:3px 0 0">' + t + '</p>' : ''; }   // (línea propia: la de meta se corta con elipsis en el móvil)
+  function bondP(c, o) { var Lf = VB.CareerLife, t = ''; try { t = Lf && Lf.bondLine ? Lf.bondLine(c, o) : ''; } catch (e) { t = ''; } return t ? '<p class="muted">' + esc(t) + '</p>' : ''; }
   function offerCard(c, o, i, full) {
     if (isHall(c)) return offerCard6(c, o, i, full);
     var k = C().club(c, o.club), f = C().clubInfo(c, k, o.lvl != null ? o.lvl : k.lvl, o.q), mp = o.mateP, y = yrs[o.club] || o.years || 1;
     var h = '<div class="' + (full ? 'card offer-full' : 'offer-x') + '"' + (full ? '' : ' style="padding:8px 0;border-top:1px solid var(--sep)"') + '><div class="row">' + crest(k, full ? 56 : 40, c) +
       '<div class="grow" style="min-width:0">' + offName(k, full) + '<p class="muted" style="margin:2px 0 0">' +
-      sp([stars(f.stars), esc(f.league), esc(f.beach || k.city)], 'v') + '</p></div></div>';
+      sp([stars(f.stars), esc(f.league), esc(f.beach || k.city)], 'v') + '</p>' + bondTag(o) + '</div></div>';
     var rl = Math.max(0, C().ROLE_LV.indexOf(o.role)), early = !o.trial && C().earlyExit && C().earlyExit(c), cov = o.ovr != null ? o.ovr : f.ovr, oh = full && PH();
     if (oh) h += offHeros(o, cov, o.trial ? 1 : y);
     h += '<div class="fact">' + (oh ? '' : fact('Media del club', cov)) + fact('Estilo', esc(f.style) + styleTrain(f.style)) +
@@ -1981,6 +1996,7 @@
     if (!o.trial && C().ROLE_HINT) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
     if (o.negNo) h += '<p class="muted">Negociación rechazada: si firmas, el entrenador empieza con ' + C().NEG_COACH + ' menos de confianza.</p>';
+    if (full) h += bondP(c, o);   // rencor o cariño de ese club: el motivo y lo que cambia
     h += xSlot('offerLine', c, o);   // (extensiones: «Te vio en el Torneo Promesas»…)
     if (o.trial) h += trialLine(c, o) + '<p class="muted">Si no la superas, pierdes esta oferta' + (c.phase === 'pick' ? ' y sigues con las demás' : '') + '. Contrato de 1 temporada. Rivales mejores que tú y ' + (trialAI(c, o) || 'la IA un nivel por encima') + '.</p>';
     else h += '<p class="muted" style="margin-top:6px">Duración del contrato:</p>' + yearsSeg(o.club, y);
@@ -2383,7 +2399,7 @@
          sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(C().posOf(c, n.me.id)) : '', 'Equipo ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
         n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
         // («Sales de inicio…» va en la hoja de detalles; el banquillo, en su nota, encima de los botones)
-        (/^<p class="cr-st6"/.test(st6.pre) ? '' : st6.pre) + st6.acts +
+        (/^<p class="cr-st6"/.test(st6.pre) ? '' : st6.pre) + st6.acts + (n.bench ? '' : studyHTML(c)) +
         (side ? '</div>' + (mIn ? mc : '') + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' + (/^<p class="cr-st6"/.test(st6.pre) ? st6.pre : '') +
         '<p class="muted">6 contra 6 en el pabellón: al mejor de 3 sets a ' + c.points + (c.points > 15 ? ', el tercero a 15' : '') + '. Tú llevas a ' + esc(c.player.name) + ' (dorsal ' + c.player.num + ', ' + esc(posName(role).toLowerCase()) + ') y al resto del equipo la IA.</p>' +
         (role !== c.player.roleKey ? '<p class="muted">Tu puesto (' + esc(posName(c.player.roleKey).toLowerCase()) + ') aún no se puede llevar en el 6 contra 6: juegas de ' + esc(posName(role).toLowerCase()) + '.</p>' : '') +
@@ -2437,6 +2453,40 @@
     return '<div class="cr-lgp" role="group" aria-label="' + esc(aria) + '"><button class="cr-lgp-a" data-act="' + act + '" data-l="' + esc(pv.v) + '" aria-label="' + esc(aria) + ' anterior: ' + esc(pv.label) + '">‹</button>' +
       '<button class="cr-lgp-v" data-act="lgsheet" aria-label="' + esc(aria) + ': ' + esc(opts[i].label) + '. Elegir otra">' + esc(opts[i].label) + '</button>' +
       '<button class="cr-lgp-a" data-act="' + act + '" data-l="' + esc(nx.v) + '" aria-label="' + esc(aria) + ' siguiente: ' + esc(nx.label) + '">›</button></div>';
+  }
+  // ------------------------------------------------------------------ «Informe del rival» (career.js studyNext; notes/carrera.md)
+  var NNB = '\u202F';   // espacio fino antes de «%»
+  /** Textos del informe: { riv, srv, me, chip: [texto, clase], plain } o null sin partido que jugar. */
+  function studyTexts(c) {
+    var s = null; try { s = VB.Career && VB.Career.studyNext ? VB.Career.studyNext(c) : null; } catch (e) { s = null; }
+    if (!s || !s.riv) return null;
+    var lane = function (l) { return l === 'line' ? 'por la línea' : 'en diagonal'; };
+    var riv = 'Rematan sobre todo ' + lane(s.riv.lane) + ': ' + Math.round(s.riv.pct / 10) + ' de cada 10.';
+    var w = s.weak, srv = '';
+    if (w && w.name) srv = 'De sus receptores, el que peor recibe es ' + w.name + (w.num ? ' (n.º ' + w.num + ')' : '') + ': saca hacia ahí.';
+    else if (w) srv = 'Recibe peor su n.º ' + w.num + ' (recepción ' + w.recv + '; su pareja, ' + w.other + '): saca hacia ahí.';
+    var m = s.me || {}, me = '', chip = null, adapt = ' Si les haces daño por el otro lado, cambiarán el plan.';
+    if (m.state === 'on') { me = 'El ' + m.pct + NNB + '% de tus remates van ' + lane(m.lane) + ': hoy te la cierran.' + adapt; chip = ['Te tienen estudiado', 'sp-danger']; }
+    else if (m.state === 'none') { me = 'Te estudian, pero repartes los remates: no te cierran nada. Si cargas un lado, lo taparán en el partido.'; chip = ['Repartes', 'sp-cream']; }
+    else if (m.state === 'few') { me = 'Te estudian, pero aún no tienen vídeo tuyo rematando. Si cargas un lado, lo taparán en el partido.'; chip = ['Sin vídeo', 'sp-cream']; }
+    else { me = 'Aún no se fijan en ti: con mejores notas empezarán a estudiarte.'; chip = ['Sin vigilar', 'sp-cream']; }
+    return { riv: riv, srv: srv, me: me, chip: chip, plain: 'Ellos: ' + riv + (srv ? ' Saque: ' + srv : '') + ' Tú: ' + chip[0] + '. ' + me };
+  }
+  /** Tarjeta (PC) o tira de una línea (móvil, abre la hoja) del informe, dentro de .cr-next tras los botones. '' sin informe. */
+  function studyHTML(c) {
+    var T = studyTexts(c); if (!T) return '';
+    var chip = '<i class="sp-chip ' + T.chip[1] + '">' + esc(T.chip[0]) + '</i>';
+    if (PH()) return '<button type="button" class="sp-btn sp-sm sp-ink cr-est-b" data-act="est" data-shape="7" aria-label="' + esc('Informe del rival. ' + T.plain) + '">' +
+      '<span class="sp-l"><span class="sp-t">Informe del rival</span>' + chip + '</span></button>';
+    return '<div class="card cr-est" role="group" aria-label="' + esc('Informe del rival. ' + T.plain) + '"><h3>Informe del rival</h3>' +
+      '<p><b>Ellos:</b>' + esc(T.riv) + '</p>' + (T.srv ? '<p><b>Saque:</b>' + esc(T.srv) + '</p>' : '') +
+      '<p><b>Tú:</b>' + chip + esc(T.me) + '</p></div>';
+  }
+  /** Hoja del informe (móvil): Ellos / Saque / Tú. */
+  function studySheet(c) {
+    var T = studyTexts(c); if (!T || !(VB.Splat && VB.Splat.sheet)) return;
+    VB.Splat.sheet({ title: 'Informe del rival', cls: 'cr-ests', html: '<dl class="sp-kv cr-ests-kv"><dt>Ellos</dt><dd>' + esc(T.riv) + '</dd>' +
+      (T.srv ? '<dt>Saque</dt><dd>' + esc(T.srv) + '</dd>' : '') + '<dt>Tú</dt><dd><i class="sp-chip ' + T.chip[1] + '">' + esc(T.chip[0]) + '</i> ' + esc(T.me) + '</dd></dl>' });
   }
   /** Hoja con todas las ligas del selector del móvil (agrupadas por país en la pista). */
   function lgSheet() {
@@ -2570,7 +2620,7 @@
     var k = C().club(c, o.club), f = C().clubInfo(c, k, o.lid, o.ovr), y = yrs[o.club] || o.years || 1;
     var h = '<div class="' + (full ? 'card offer-full' : 'offer-x') + '"' + (full ? '' : ' style="padding:8px 0;border-top:1px solid rgba(255,255,255,.1)"') + '><div class="row">' + crest(k, full ? 56 : 40, c) +
       '<div class="grow" style="min-width:0">' + offName(k, full) + '<p class="muted" style="margin:2px 0 0">' +
-      sp([stars(f.stars), esc(f.league), esc(f.country)], 'v') + (o.foreign ? ' <span class="tag y">Extranjero</span>' : '') + (o.scout ? ' <span class="tag g">Te vio un ojeador</span>' : '') + '</p></div></div>';
+      sp([stars(f.stars), esc(f.league), esc(f.country)], 'v') + (o.foreign ? ' <span class="tag y">Extranjero</span>' : '') + (o.scout ? ' <span class="tag g">Te vio un ojeador</span>' : '') + '</p>' + bondTag(o) + '</div></div>';
     var rl = Math.max(0, C().ROLE_LV.indexOf(o.role)), early = !o.trial && C().earlyExit && C().earlyExit(c), oh = full && PH();
     // (móvil: país y liga ya van en la línea de debajo del nombre; media, objetivo, rol y sueldo, en las cifras de arriba)
     if (oh) h += offHeros(o, o.ovr, o.trial ? 1 : y);
@@ -2581,6 +2631,7 @@
     if (!o.trial) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
     if (o.negNo) h += '<p class="muted">Negociación rechazada: si firmas, el entrenador empieza con ' + C().NEG_COACH + ' menos de confianza.</p>';
+    if (full) h += bondP(c, o);   // rencor o cariño de ese club: el motivo y lo que cambia
     h += xSlot('offerLine', c, o);   // (extensiones: «Te vio en el Torneo Promesas»…)
     if (o.trial) h += trialLine(c, o) + '<p class="muted">Si no la superas, pierdes esta oferta' + (c.phase === 'pick' ? ' y sigues con las demás' : '') + '. Contrato de 1 temporada. Titulares mejores que tú y ' + (trialAI(c, o) || 'la IA un nivel por encima') + '.</p>';
     else h += '<p class="muted" style="margin-top:6px">Duración del contrato:</p>' + yearsSeg(o.club, y);
@@ -2993,6 +3044,7 @@
       }
       case 'offno': { var ai = offArm; offArm = -1; snd('back'); render(); focusSel('[data-act="offer"][data-i="' + ai + '"]'); return; }
       case 'lgsheet': snd('click'); lgSheet(); return;
+      case 'est': snd('click'); studySheet(c); return;   // «Informe del rival» (móvil)
       case 'lvl': tblLvl = +b.getAttribute('data-l'); snd('select'); keepFocus(b, render); return;
       // ---- Carrera de pista (6v6) y cambio de Carrera
       case 'lg6': tblLid = b.getAttribute('data-l'); snd('select'); keepFocus(b, render); return;
@@ -3413,6 +3465,7 @@
     heroData: heroData,
     portraitReq: function (c, who, px, face) { try { return ptReq(c || (C() && C().get()), who, px, face); } catch (e) { return null; } },
     crest: function (k, px, c) { return crest(k, px, c); },
+    _offerCard: function (c, o, i, full) { return offerCard(c, o, i, full); },   // (pruebas en node: tools/bondtest.js)
     _chemTxt: chemTxt,
     close: function () { close(); },
     isOpen: function () { return open; },

@@ -8,7 +8,7 @@
  *    (como mucho INFO_MAX[freq] por jornada). Un beat no se repite en SEEN_GAP (6) jornadas (s.seenB). Lo que no se contesta caduca
  *    a las 2 jornadas con su línea de cierre (tpl.c) y sin efecto (lo hace el núcleo).
  *  - Prensa: cada 3-4 jornadas en Normal (5 en Poca, 2-3 en Mucha; tirada 'st-press'), siempre tras una final o un derbi, duelo o jefe (con 2 jornadas de hueco),
- *    nunca si la decisión pendiente de career-life es pressWin o pressLoss, nunca tras el banquillo. 16 preguntas que no se repiten
+ *    nunca si la decisión pendiente de career-life es pressWin o pressLoss, nunca tras el banquillo. 17 preguntas que no se repiten
  *    entre las 8 últimas (s.pressQ). Tres respuestas apiladas: de equipo (química +5), humilde (Entrenador +3), chulería (fama ×0,04,
  *    Entrenador −4, pique +20). La respuesta deja s.flags.press = {mN, v:{t, rv, done}} y en el siguiente partido llega el eco (solo
  *    publicación en Redes y mensaje informativo: nunca efectos).
@@ -428,6 +428,25 @@
       'La crónica del partido contra {rival} destaca tu trabajo en defensa. Por fin alguien lo ve.', 'En Diario La Red hablan de tu evolución. Han usado la palabra «prometedor» dos veces.',
       'El Bloqueo Digital te pone en su lista de nombres a seguir. Ahora todo el mundo te seguirá.', 'Tu foto sale en la página de deportes, junto a un anuncio de sofás.'] };
 
+  // «Te tienen estudiado» (career.js studyClose, sum.study.broke): el rival te cerraba un carril y le hiciste daño por el otro.
+  // Informativo (sin opciones). {cerrada} / {abierta} = 'diagonal' | 'línea'; {n} = tus puntos por la abierta; remitente: el medio ({m})
+  T.studyBroke = { k: 'press', t: ['Les rompiste el plan', 'El plan no funcionó', 'Les cambiaste el guion'],
+    x: ['{rival} salió con la {cerrada} cerrada y {yo} les hizo {n} puntos por la {abierta}. Alguien tendrá que rehacer el informe.',
+      'Te habían estudiado: todo a la {cerrada}. Hoy fuiste por la {abierta} y sumaste {n} puntos por ahí.',
+      'La crónica lo cuenta así: «{rival} tapó la {cerrada}; {yo} encontró la {abierta}». {n} puntos por la {abierta}.'] };
+
+  // ------------------------------------------------------------------ árbitros con nombre (career-world.js: designación y libreta; informativos)
+  // {ref} = nombre del 1r del partido (refNext: el del próximo), {fama} = su carácter dicho en corto, {quien} = el compañero al que frenaste
+  T.refCard = { k: 'press', t: ['Tarjeta en titulares', 'El arbitraje, en portada', 'Hablan del 1r'],
+    x: ['{m}: «{ref} no perdona: tarjeta para {yo} ante {rival}».', '{m}: «{ref}, {fama}, volvió a sacar el color».',
+      '{m}: «Tarjeta para {yo}. {ref} no dejó pasar ni una».', '{m}: «{ref} tuvo trabajo: tarjeta para {yo} ante {rival}».'] };
+  T.refBrake = { k: 'coach', t: ['Bien frenado', 'Eso es liderazgo', 'Cabeza fría'],
+    x: ['Bien frenando a {quien}. {ref} lo vio; eso también cuenta.', 'Así se lleva un partido: calmar antes que protestar.',
+      'Frenar a {quien} a tiempo nos ha ahorrado un disgusto. Bien hecho.', 'Lo de calmar a {quien} con {ref} delante: eso es liderazgo.'] };
+  T.refNext = { k: 'peer', t: ['Ojo con el próximo', 'Ya sabes quién pita', 'Aviso'],
+    x: ['Ojo, que el próximo lo pita {ref}. Ya sabes cómo acabó la última vez.', 'Me han dicho que el próximo lo pita {ref}. Esta vez, tranquilidad.',
+      'Pita {ref} el próximo partido. Mejor no darle motivos, ¿eh?', 'El próximo, con {ref}. Que no se repita lo de la otra vez.'] };
+
   // ------------------------------------------------------------------ temporada y fichaje (informativos, fuera del tope)
   T.welcome = { k: 'mate', t: ['Bienvenida', 'Ya eres de la casa', 'Hola, fichaje'],
     x: ['Bienvenida a {club}. Aquí se trabaja mucho y se ríe más. Ya te iré contando.', 'Ya eres de {club}. Primera norma: quien llega tarde paga los cafés.',
@@ -441,7 +460,8 @@
       'Balance rápido: hay cosas que repetir y otras que olvidar. Lo hablamos en pretemporada.', 'Temporada cerrada. Gracias por el esfuerzo de cada semana.',
       'Ya está. Recarga pilas y vuelve con hambre.', 'Último mensaje de la temporada: cuida el cuerpo este verano. Y come algo de verdura.'] };
 
-  // ------------------------------------------------------------------ prensa: 16 preguntas (r: 'w' tras victoria, 'l' tras derrota, 'a' siempre)
+  // ------------------------------------------------------------------ prensa: 17 preguntas (r: 'w' tras victoria, 'l' tras derrota, 'a' siempre;
+  // q[2] 'ref': solo con 1r designado y tarjeta o protesta en el partido, refPress). Las nuevas, siempre al final (s.pressQ guarda índices)
   var PRESS = [
     ['a', '{m}: «¿Qué le falta a {club} para dar el salto?»'], ['a', '{m}: «¿Cómo te sientes en la pista ahora mismo?»'],
     ['a', '{m}: «Se habla mucho de tu futuro. ¿Te ves aquí la próxima temporada?»'], ['a', '{m}: «¿Qué le dirías a quien dice que no estás a la altura?»'],
@@ -450,7 +470,8 @@
     ['w', '{m}: «¿Hasta dónde puede llegar {club} este año?»'], ['w', '{m}: «¿Te ves como líder del equipo?»'],
     ['w', '{m}: «Dicen que {rival} os subestimó. ¿Estás de acuerdo?»'], ['l', '{m}: «¿Qué ha fallado hoy contra {rival}?»'],
     ['l', '{m}: «¿Preocupa la situación del equipo?»'], ['l', '{m}: «¿Asumes parte de la culpa de la derrota?»'],
-    ['l', '{m}: «¿Cómo se levanta un equipo después de un partido así?»'], ['l', '{m}: «¿Ha sido mejor el rival o habéis estado peor?»']
+    ['l', '{m}: «¿Cómo se levanta un equipo después de un partido así?»'], ['l', '{m}: «¿Ha sido mejor el rival o habéis estado peor?»'],
+    ['a', '{m}: «¿Qué te ha parecido el arbitraje de {ref}?»', 'ref']
   ];
   // las 3 respuestas (mismos efectos siempre), con frases que encajan con la pregunta: tras victoria, tras derrota o neutras
   var PRESS_E = [[{ chem: 5, star: 1 }, 'Respuesta de equipo en prensa'], [{ coach: 3, star: 1 }, 'Respuesta humilde en prensa'],
@@ -472,6 +493,19 @@
 
   // ================================================================== BEATS (cuándo sale cada plantilla)
   // X = lo que se calcula una vez por jornada (ver onMatch); s = c.story. Los when() son puros.
+  // árbitros (career-world.js): el 1r del partido jugado (sum.amb.ref) y el del próximo (arbDesigna, puro)
+  var REF_FAMA = { estricto: 'de mano dura', deja: 'que suele dejar jugar', lince: 'con ojo de lince', nervioso: 'de pulso nervioso', manual: 'de manual' };
+  function refNow(c, sum) { var W = VB.CareerWorld, id = sum && sum.amb && sum.amb.ref; return id && W && W.refOf ? W.refOf(c, id) : null; }
+  function refPress(c, sum) { var a = sum && sum.amb; return !!(refNow(c, sum) && ((a.cards && a.cards.length) || (a.protests | 0) > 0)); }
+  function refNextOf(c) {
+    var W = VB.CareerWorld, Sx = VB.ctx && VB.ctx.settings; if (!W || !W.arbDesigna || !W.arbEntry || (Sx && Sx.ambient === 'off')) return null;
+    var A = c.world && c.world.arb, P = A && A.p, s0 = (c.season | 0) - 1, hot = function (x) { return x && x.ev && (x.ev.k === 'red' || x.ev.k === 'yellow' || x.ev.k === 'protest') && (x.ev.s | 0) >= s0; };
+    if (!P || typeof P !== 'object' || !Object.keys(P).some(function (id) { return hot(P[id]); })) return null;   // (nada que recordar: ni se mira)
+    // (pista: next() rehace la convocatoria en c; aquí, sobre una copia, para no tocar el núcleo)
+    var cc = isH(c) ? JSON.parse(JSON.stringify(c)) : c, d = null; try { d = W.arbDesigna(cc); } catch (er) { d = null; }
+    var e = d && W.arbEntry(c, d.ref.id), ev = e && e.ev;
+    return ev && (ev.k === 'red' || ev.k === 'yellow' || ev.k === 'protest') && (ev.s | 0) >= (c.season | 0) - 1 ? d.ref : null;
+  }
   function chainAt(s, k, X, a, b) { var h = s.chn[k]; if (!h) return null; var d = X.mN - h.mN; return d >= a && d <= b ? h : null; }
   var BEATS = [
     // eco y cadenas (4)
@@ -488,6 +522,8 @@
     { id: 'cFans', pri: 4, when: function (c, sum, X, s) { var h = chainAt(s, 'fans', X, 2, 4); return !!(h && h.i === 0); } },
     { id: 'cScout', pri: 4, when: function (c, sum, X, s) { var h = chainAt(s, 'scout', X, 1, 3); return !!(h && h.i === 0 && X.real); } },
     { id: 'cSpeech', pri: 4, only: 'hall', when: function (c, sum, X, s) { var h = chainAt(s, 'speech', X, 1, 2); return !!(h && h.i === 0); } },
+    { id: 'studyBroke', pri: 4, when: function (c, sum, X) { return !!(X.real && sum.study && sum.study.broke); },
+      v: function (c, sum, X) { var d = sum.study.me === 'diag'; return { cerrada: d ? 'diagonal' : 'línea', abierta: d ? 'línea' : 'diagonal', n: d ? sum.study.kl | 0 : sum.study.kd | 0, rival: X.rival, m: S.MEDIA.diario }; } },
     { id: 'tagWin', pri: 4, when: function (c, sum, X) { return !!(X.tagPlayed && X.played && sum.win); } },
     // partido marcado próximo (3)
     { id: 'preDerby', pri: 3, when: function (c, sum, X) { return X.tagNext === 'derbi'; } },
@@ -497,6 +533,11 @@
     { id: 'preBoss', pri: 3, only: 'beach', when: function (c, sum, X) { return X.tagNext === 'jefe'; } },
     { id: 'preDuel', pri: 3, when: function (c, sum, X) { return X.tagNext === 'duelo' && !!X.rp; } },
     // racha, bajón y llaves (2)
+    { id: 'refCard', pri: 2, when: function (c, sum) { var a = sum.amb; return !!(refNow(c, sum) && ((a.myY | 0) + (a.myR | 0)) > 0); },
+      v: function (c, sum) { var R = refNow(c, sum); return { ref: R.name, fama: REF_FAMA[R.trait] || REF_FAMA.manual, m: S.MEDIA.digital }; } },
+    { id: 'refBrake', pri: 2, when: function (c, sum) { return !!(refNow(c, sum) && (sum.amb.brk | 0) > 0 && sum.amb.brkName); },
+      v: function (c, sum) { return { ref: refNow(c, sum).name, quien: String(sum.amb.brkName) }; } },
+    { id: 'refNext', pri: 2, when: function (c, sum, X) { return X.played && !X.end && !!refNextOf(c); }, v: function (c) { return { ref: refNextOf(c).name }; } },
     { id: 'agStreak', pri: 2, when: function (c, sum, X) { return X.played && !!sum.win && X.streak >= 3; } },
     { id: 'famBad', pri: 2, when: function (c, sum, X) { return X.real && sum.nota < 5; } },
     { id: 'coachBad', pri: 2, when: function (c, sum, X) { return X.real && sum.nota < 5.5 && !X.end; } },   // (con la temporada cerrada, «mañana vídeo» no pega)
@@ -644,11 +685,13 @@
   }
   function postPress(c, s, sum, X) {
     var res = sum.win ? 'w' : 'l', pool = [];
-    PRESS.forEach(function (q, i) { if ((q[0] === 'a' || q[0] === res) && s.pressQ.indexOf(i) < 0) pool.push(i); });
-    if (!pool.length) PRESS.forEach(function (q, i) { if (q[0] === 'a' || q[0] === res) pool.push(i); });
+    var rOk = refPress(c, sum), qOk = function (q) { return (q[0] === 'a' || q[0] === res) && (q[2] !== 'ref' || rOk); };
+    PRESS.forEach(function (q, i) { if (qOk(q) && s.pressQ.indexOf(i) < 0) pool.push(i); });
+    if (!pool.length) PRESS.forEach(function (q, i) { if (qOk(q)) pool.push(i); });
     var r = S.rng(c, 'st-pressq', X.season, X.mN), i = pool[Math.floor(r() * pool.length) % pool.length];
     var m = pickR(r, [S.MEDIA.diario, S.MEDIA.digital, S.MEDIA.radio]);
-    var e = S.post(c, { b: 'pq' + i, k: 'press', vars: { m: m, rival: X.rival }, o: 1 });
+    var R = rOk ? refNow(c, sum) : null, pv = { m: m, rival: X.rival }; if (R) pv.ref = R.name;
+    var e = S.post(c, { b: 'pq' + i, k: 'press', vars: pv, o: 1 });
     if (!e) return null;
     s.pressQ.push(i); if (s.pressQ.length > PRESSQ_MAX) s.pressQ = s.pressQ.slice(-PRESSQ_MAX);
     s.pressNext = X.mN + pressGap(c, s, X.season, X.mN); s.pressLast = X.mN;

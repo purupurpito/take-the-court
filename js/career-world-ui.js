@@ -302,6 +302,13 @@
     }).join('') + '</div></div>';
   }
   var KIND_T = { liga: 'Liga', copa: 'Open', ascenso: 'Ascenso' }, KIND_T6 = { liga: 'Liga', copa: 'Copa', ascenso: 'Ascenso' };
+  /** Cabecera de la ficha: «Tu club» / «Aquí juega tu rival» y el rencor o el cariño del club contigo (career-life bondOf), con el motivo. */
+  function bondHTML(k) {
+    var b = k.bond && k.bond.t ? k.bond : null, tg = [];
+    if (k.mine) tg.push('<span class="tag g">Tu club</span>'); else if (k.rival) tg.push('<span class="tag r">Aquí juega tu rival</span>');
+    if (b) tg.push(b.t > 0 ? '<span class="tag g">Te tienen cariño</span>' : '<span class="tag r">Te guardan rencor</span>');
+    return (tg.length ? '<p>' + tg.join('') + '</p>' : '') + (b && b.txt ? '<p class="muted">Por qué: ' + esc(b.txt.charAt(0).toLowerCase() + b.txt.slice(1)) + (b.s ? ' (T' + b.s + ')' : '') + '</p>' : '');
+  }
   function cardHTML(c, k) {
     var lo = k.lore || {}, h = '', hall = isH(c), KT = hall ? KIND_T6 : KIND_T;
     // 1) cabecera
@@ -309,7 +316,7 @@
       '<div class="grow" style="min-width:0"><small class="cw-kick">' + sp([esc(k.league), 'Fundado en ' + lo.founded], 'd') + '</small><p class="bigname" style="font-size:21px">' + esc(k.name) + '</p>' +
       '<p class="cw-nick">' + esc(lo.nick) + ' <i>«' + esc(lo.motto) + '»</i></p></div></div>' +
       '<p class="muted" style="margin-top:6px">' + sp([{ h: stars(k.stars) }, 'Media ' + k.ovr, esc(k.style), esc(k.beach || k.city)], 'c') + '</p>' +
-      (k.mine ? '<p><span class="tag g">Tu club</span></p>' : k.rival ? '<p><span class="tag r">Aquí juega tu rival</span></p>' : '') + '</div>';
+      bondHTML(k) + '</div>';
     // 2) esta temporada
     h += '<div class="card"><h3>Esta temporada</h3>' + (k.pj ? '<p class="cw-big">' + sp([ordn(k.pos), plural(k.pts, 'punto', 'puntos')], 'd') + '</p>' : '<p class="muted">Aún sin jugar en ' + esc(k.league) + '.</p>') +
       (k.form.length ? '<p class="cw-form" aria-label="Últimos ' + k.form.length + ': ' + k.form.map(function (f) { return f ? 'victoria' : 'derrota'; }).join(', ') + '">' + k.form.map(function (f) { return '<i class="' + (f ? 'w' : 'l') + '"></i>'; }).join('') + '<small>Últimos ' + k.form.length + '</small></p>' : '') + '</div>';

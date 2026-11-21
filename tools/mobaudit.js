@@ -111,6 +111,14 @@ const SCREENS = [
   })),
   { id: 'carrera-playa-club-ficha', area: 'carrera', q: M0 + '&ma=cb', open: "if (!M.seedCareer('beach')) return false; await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
   { id: 'carrera-pista-club-ficha', area: 'carrera', q: M0 + '&ma=ch', open: "if (!M.seedCareer('hall')) return false; await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
+  // rencor y cariño de los clubes (21-nov-2026): etiquetas en las ofertas (una con rencor, otra con cariño) y en la ficha del club
+  ...['beach', 'hall'].map(m => ({ id: 'carrera-ofertas-rencor-' + (m === 'beach' ? 'playa' : 'pista'), area: 'carrera', q: M0 + '&ma=' + (m === 'beach' ? 'cpr' : 'cpr6'),
+    open: `if (!M.seedCareer('${m}','pick')) return false; var C = VB.Career, c = C.get(), L = VB.CareerLife; if (!L || !L.ensure) return false; L.ensure(c);
+      var o = c.offers.filter(function (x) { return !x.trial; });
+      if (o[0]) { c.life.bond.k[o[0].club] = { v: -70, why: ['early'], s: 1, said: 0 }; o[0].bond = -2; o[0].bondK = 0.7; o[0].bondRole = 1; }
+      if (o[1]) { c.life.bond.k[o[1].club] = { v: 60, why: ['title'], s: 1, said: 0 }; o[1].bond = 2; }
+      C.save(c); return M.career();` })),
+  { id: 'carrera-playa-club-rencor', area: 'carrera', q: M0 + '&ma=cbr', open: "if (!M.seedCareer('beach')) return false; var C = VB.Career, c = C.get(), L = VB.CareerLife; if (!L || !L.ensure) return false; L.ensure(c); c.clubs.forEach(function (k) { c.life.bond.k[k.id] = { v: -70, why: ['derbi'], s: 1, said: 0 }; }); C.save(c); await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
   // extensiones de la Carrera (20-nov-2026): selección, lesiones, Estrellas, cesiones, premios, puesto, juvenil y saque de firma
   XR('club-natl', 'hall', 'natl', 'sum', 'club', 'natl'), XR('club-natl', 'beach', 'natl', 'sum', 'club', 'natl'),
   XR('natl-tarjeta', 'hall', 'natl', 'q', 'match'), XR('club-natl-clasif', 'hall', 'natl', 'q', 'club', 'natl'), XR('natl-palmares', 'hall', 'natl', 'sum', 'honors', 'titles'),
@@ -137,6 +145,9 @@ const SCREENS = [
     open: `var X = VB.Career && VB.Career.ext && VB.Career.ext.get('pro'); if (!X || !X._demo || !X._demo(null, '${m}:${st}')) return false; return M.career();` }))),
   { id: 'carrera-juvenil-hoja', area: 'carrera', q: 'debug=over&cr=1&ext=pro&k=end', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
   { id: 'carrera-crear-juvenil', area: 'carrera', q: M0 + '&ma=cc', open: "await M.ensureMenu(); VB.CareerUI.open('create',{from:'main'}); await M.sleep(80); var b = document.querySelector('#career [data-act=\"pro-start\"]'); if (!b) return false; b.scrollIntoView({block:'center'}); return true;" },   // (fila «Inicio» de crear: desde juvenil o directo)
+  // «Te tienen estudiado» (21-nov-2026): informe del rival con estudio (en el móvil, la hoja abierta desde la tira)
+  { id: 'carrera-playa-informe', area: 'carrera', q: M0 + '&ma=cb', open: "if (!M.seedCareer('beach')) return false; var C = VB.Career, c = C.get(); c.study = { h: [{ d: 8, l: 2, n: 7.6 }, { d: 7, l: 3, n: 7.4 }] }; C.save(c); await M.career('match'); await M.sleep(60); var b = document.querySelector('#career [data-act=\"est\"]'); if (b) { b.click(); await M.sleep(120); } return !!document.querySelector('#career .cr-est, #career .cr-est-b');" },
+  { id: 'carrera-pista-informe', area: 'carrera', q: M0 + '&ma=ch', open: "if (!M.seedCareer('hall')) return false; var C = VB.Career, c = C.get(); c.study = { h: [{ d: 8, l: 2, n: 7.6 }, { d: 7, l: 3, n: 7.4 }] }; C.save(c); await M.career('match'); await M.sleep(60); var b = document.querySelector('#career [data-act=\"est\"]'); if (b) { b.click(); await M.sleep(120); } return !!document.querySelector('#career .cr-est, #career .cr-est-b');" },
   { id: 'carrera-playa-saque-firma', area: 'carrera', q: M0 + '&ma=cb', open: "if (!M.seedCareer('beach') || !VB.SERVE_SIG) return false; return M.career('player', 'badges');" },
   { id: 'carrera-pista-aviso-colocador', area: 'carrera', q: M0 + '&ma=ch&setnote=1', open: "if (!M.seedCareer('hall')) return false; await M.career('match'); VB.UI.setterNote({from:'career'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="later"]' },
   { id: 'carrera-prueba-previa-playa', area: 'carrera', q: 'debug=trial&pre=1', open: 'return M.until(()=>VB.CareerUI.isOpen(),3000);' },
@@ -149,6 +160,10 @@ const SCREENS = [
   { id: 'carrera-sesion-hoja', area: 'carrera', q: 'debug=drill_end&career=1', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900, exit: '#btnGeList' },
   { id: 'carrera-banquillo', area: 'carrera', q: 'debug=bench6', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'carrera-previa', area: 'carrera', q: 'debug=intro&kind=long&career=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
+  // árbitros con nombre (21-nov-2026): la designación en la previa larga y la ficha «Frenar a … / Dejarle» (playa y pista)
+  { id: 'carrera-previa-arbitro', area: 'carrera', q: 'debug=intro&kind=long&career=1&arb=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },
+  { id: 'partido-frenar-playa', area: 'partido', q: 'debug=amb&k=brake', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
+  { id: 'partido-frenar-pista', area: 'partido', q: 'debug=amb&k=brake&format=6v6', open: "return M.until(()=>!!document.querySelector('#ambChoice.show'),55000);", openMs: 60000, wait: 250, exit: '', primary: '' },
 
   // ---------------- PARTIDO
   { id: 'hud-2v2', area: 'partido', q: 'debug=hud', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 1200, exit: HUD_EXIT, primary: '' },
@@ -234,7 +249,7 @@ async function main() {
             // el scrollAll de la medida anterior no debe dejar la siguiente pantalla (o talla) ya desplazada
             try { await page.evalJs('(' + PG.resetScroll.toString() + ')()'); await sleep(80); } catch (e) { }
             try {
-              const r = await withTimeout(page.evalJs('(async()=>{const M=window.__MA;' + s.open + '})()', true), 20000, s.id);
+              const r = await withTimeout(page.evalJs('(async()=>{const M=window.__MA;' + s.open + '})()', true), s.openMs || 20000, s.id);   // (openMs: filas que tardan en abrir, p. ej. la ficha de una disputa)
               ok = r !== false && r !== null && r !== 0;
               if (!ok) err = 'no se pudo abrir';
             } catch (e) { err = 'no se pudo abrir: ' + String(e.message || e).split('\n')[0].slice(0, 160); }

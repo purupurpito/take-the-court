@@ -13,8 +13,12 @@
  * con la misma forma, para que el director funcione solo.
  *
  * API (notes/ambiente.md §4.3):
- *   create(o) → st        o = { seed, hall, level, mode:'full'|'calm', trial, amb (cs.amb), me:{name,num}, mate:{name,num}|null, names,
- *                              rivalP:{name}|null, boss:{nick}|null, faro, club, rivalClub, rate(kind, color|d, txt), main }
+ *   create(o) → st        o = { seed, hall, level, mode:'full'|'calm', trial, amb (cs.amb; amb.bond −2..2 = rencor/cariño del club rival), me:{name,num}, mate:{name,num}|null, names,
+ *                              rivalP:{name}|null, boss:{nick}|null, faro, club, rivalClub, rate(kind, color|d, txt), main,
+ *                              ref:{id, name, short, trait, mem}|null (1r designado de la Carrera, career-world.js: su carácter va a VB.Arbitro
+ *                              y sus bocadillos salen como «1r Apellido»; sin él, «1r árbitro» y el árbitro de siempre) }
+ *                         Ficha «Frenar a … / Dejarle» (amb:choice kind 'brake'): VB.Arbitro marca D.brake (eres capitán y salta un
+ *                         compañero de la IA); 'protest' = frenarle (sin protesta, st.brakes++), 'drop' o tiempo = su protesta.
  *   feed(st, e, g)        evento de la sim (career.js ingest, o main.js en la escena de prueba)
  *   undo(st)              punto anulado por challenge (career.js unpoint)
  *   frame(st, g, dt, out, f) → ctl {hold, lock, penalty, pcard, ppid}   f = {intro, ff, bench, reduce, replay}
@@ -83,6 +87,23 @@
       rival: 'Derbi. Aquí no se regala nada.|Esta ciudad es nuestra.|Hoy se ve quién manda aquí.|Vas a oír a nuestra grada.|En el derbi no hay favoritos.|Nos vemos en la red.',
       mate: 'Es el derbi. Sangre fría.|Que griten. Nosotros, a jugar.|El derbi se gana con calma.|Hoy vale doble. A por ello.|No te pique nadie, ¿eh?|Esto se juega con la cabeza.',
       team: 'Derbi. Nadie se esconde.|Hoy vale doble, equipo.|Que se oiga en toda la ciudad.|Un derbi no se juega, se gana.|Calma, que nos quieren picar.|Pase lo que pase, juntos.'
+    },
+    // rencor y cariño del club rival contigo (career-life bond → career.js ambCtx → amb.bond −2..2): megafonía al empezar y previa
+    welcomeGrudge: {
+      speaker: '¡Vuelve {me} a {venue}! La grada tiene memoria.|¡Atención, {venue}: hoy vuelve {me}!|¡Llega {me}! Y la grada lo tiene muy presente.|¡Vuelve {me}! Se nota en el ambiente…|¡Hoy hay visita conocida en {venue}!|¡{me} vuelve a {venue}! A ver cómo lo recibís.'
+    },
+    welcomeFond: {
+      speaker: '¡Aplauso para {me}, que vuelve a {venue}!|¡{venue} recibe a {me} con los brazos abiertos!|¡Esta casa no te olvida, {me}!|¡Un aplauso enorme para {me}!|¡Vuelve {me}! ¡Qué recuerdos!|¡Hoy vuelve alguien muy querido en {venue}!'
+    },
+    preGrudge: {
+      rival: 'Aquí no se te ha olvidado.|¿Oyes la grada? Es por ti.|Hoy te lo vamos a cobrar.|Aquí ya no juegas en casa.|Esta grada tiene memoria.|Después de lo de la otra vez…',
+      mate: 'Que piten. Nosotros, a jugar.|Los pitos se callan ganando.|Ni caso a la grada, {me}.|Usa los pitos de gasolina.|Sabíamos que iba a pasar. A lo nuestro.|Cabeza fría. Que griten.',
+      team: 'Que piten. Nosotros, a jugar.|Los pitos se callan ganando.|Ni caso a la grada, {me}.|Usa los pitos de gasolina.|Sabíamos que iba a pasar. A lo nuestro.|Cabeza fría. Que griten.'
+    },
+    preFond: {
+      rival: 'Te echábamos de menos. Hoy, sin regalos.|Bonito volver, ¿eh? No te lo pondremos fácil.|Cariño, sí. Puntos, ninguno.|La grada te aplaude. Nosotros, no tanto.|Qué alegría verte. Pero hoy, a ganar.|Aquí te quieren. El partido, ya veremos.',
+      mate: '¿Has oído ese aplauso? Te lo has ganado.|Se nota que aquí te quieren.|Qué bonito, ¿eh? Ahora, a jugar.|Disfruta, que esto no pasa siempre.|Emociónate luego. Ahora, a ganar.|Bonito recibimiento. A lo nuestro.',
+      team: '¿Habéis oído ese aplauso? Para {me}.|Se nota que aquí te quieren, {me}.|Qué bonito, ¿eh? Ahora, a jugar.|Disfrutad, que esto no pasa siempre.|Emociones luego. Ahora, a ganar.|Bonito recibimiento. A lo nuestro.'
     },
     streakUs: {
       mate: '¡Seguimos, seguimos!|¡Esta racha no se toca!|¡Que no pare!|¡Así, así!|¡Vamos, que les cuesta!|¡Uno más y otro!|¡Estamos que nos salimos!|¡Qué bien lo estamos haciendo!',
@@ -229,6 +250,10 @@
       team: '¡Eso es! A por ellos.|Bien dicho. A jugar.|Que sepan que estamos.|Con esa rabia, equipo.|Mensaje enviado. Siguiente.|Así se defiende al equipo.',
       speaker: '¡La grada está contigo!|¡Que se oiga, afición!|¡Arriba, {home}!|¡Todo el mundo con el equipo!'
     },
+    // «Frenar a …»: tú, capitán, calmas al compañero que iba a protestar ({who}: su nombre de pila)
+    brakeMate: {
+      me: '¡{who}, déjalo, ya hablo yo!|Calma, {who}, seguimos.|{who}, a jugar, que no vale la pena.|Eh, {who}, cabeza. Siguiente bola.|Déjalo, {who}. Esa ya no vuelve.|{who}, conmigo. A por la otra.'
+    },
     dropWrong: {
       mate: 'Bien. Cabeza fría.|Bien hecho. Siguiente.|Esa nos la deben. A jugar.|Así me gusta. A por la otra.|Sin dramas. Bien.|La próxima la ganamos jugando.',
       team: 'Bien. Cabeza fría.|Bien hecho. Siguiente.|Así, sin dramas.|Esa nos la deben. A jugar.|A por la otra.|Bien llevado.',
@@ -308,10 +333,10 @@
     }
   };
   // disparador → prioridad por defecto
-  var TRIG = { welcome: 2, welcomeN: 2, welcomeD: 2, welcomeDu: 2, pre: 1, preD: 2, preDu: 2, preRev: 2, backUp: 2, protestIn: 3, protestOut: 3, protestAnt: 3, refYellow: 3, refRed: 3, streakUs: 1, streakThem: 1, myErr: 1, myErr2: 2, myKill: 1, myAce: 1, myBlock: 1, theirBlock: 1,
+  var TRIG = { welcome: 2, welcomeN: 2, welcomeD: 2, welcomeDu: 2, pre: 1, preD: 2, preDu: 2, preRev: 2, welcomeGrudge: 2, welcomeFond: 2, preGrudge: 2, preFond: 2, backUp: 2, protestIn: 3, protestOut: 3, protestAnt: 3, refYellow: 3, refRed: 3, streakUs: 1, streakThem: 1, myErr: 1, myErr2: 2, myKill: 1, myAce: 1, myBlock: 1, theirBlock: 1,
     spUs: 1, spThem: 2, matchPoint: 2, matchPointN: 2, saved: 2, comeback: 2, longRally: 1, setUs: 2, setThem: 2, protestTouch: 3, protestNet: 3,
     protestFault: 3, protestChal: 3, calmMate: 1, dropWrong: 2, ref: 2, refCalm: 2, refVerbal: 3, refDelay: 3, cardTv: 3, redTv: 3, redMate: 2,
-    redMine: 3, cardRival: 1, chalWon: 1, chalLost: 1, shh: 2, shhReply: 1, faro: 2, endWin: 3, endLoss: 3, endHomeW: 2, endHomeL: 2, endN: 3 };
+    redMine: 3, brakeMate: 2, cardRival: 1, chalWon: 1, chalLost: 1, shh: 2, shhReply: 1, faro: 2, endWin: 3, endLoss: 3, endHomeW: 2, endHomeL: 2, endN: 3 };
   var SPLIT = {};
   function lines(trig, who) {
     var k = trig + '/' + who, a = SPLIT[k];
@@ -394,7 +419,7 @@
       seed: o.seed | 0, hall: !!o.hall, level: o.level || A.level || 'mid', mode: mode, trial: !!o.trial, main: !!o.main,
       home: A.home === 1 || A.home === -1 ? A.home : 0, heat: heat, fans: A.fans && A.fans.length === 2 ? [+A.fans[0] || 0, +A.fans[1] || 0] : [0.55, 0.15],
       tags: Array.isArray(A.tags) ? A.tags.slice(0, 8) : [], city: String(A.city || ''), venue: String(A.venue || ''), short: A.short && A.short.length === 2 ? [String(A.short[0]), String(A.short[1])] : ['', ''],
-      capt: A.capt && A.capt.length === 2 ? [A.capt[0] | 0, A.capt[1] | 0] : [0, 0], riv: +A.riv || 0,
+      capt: A.capt && A.capt.length === 2 ? [A.capt[0] | 0, A.capt[1] | 0] : [0, 0], riv: +A.riv || 0, bond: clamp(A.bond | 0, -2, 2),
       me: o.me || { name: 'Tú', num: 0 }, mate: o.mate || null, rivalP: o.rivalP || null, boss: o.boss || null, faro: !!o.faro,
       club: String(o.club || A.short && A.short[0] || ''), rivalClub: String(o.rivalClub || A.short && A.short[1] || ''), rate: typeof o.rate === 'function' ? o.rate : null,
       // dinámica
@@ -404,7 +429,8 @@
       choice: null, choiceN: 0, choicePt: -99, pend: null, penPend: null, cool: false,
       energy: [0, 0], boo: [0, 0], hush: 0, chant: null, chantT: 0,
       cards: [], protests: 0, drops: 0, coldHead: 0, lines: 0, say: 0,
-      force: o.force || '', arb: null
+      force: o.force || '', arb: null,
+      ref: o.ref && typeof o.ref === 'object' ? o.ref : null, brakes: 0, brkName: '', myProt: 0   // (árbitro con nombre, frenadas, tus protestas)
     };
     var Ar = ARB();
     st.Ar = Ar; st.arb = null;   // (el árbitro se crea con la primera partida que llega: capitanes y tu atleta por pid)
@@ -510,6 +536,8 @@
   function spCoach(st, g) { if (g && g.size !== 6) return spMate(st, g); return { who: 'coach', team: 0, pid: -1, name: NAME.coach }; }   // (playa: sin banquillo que dirija; lo dice tu pareja)
   function spRival(st, g) { var p = rivalSpeaker(st, g); return { who: 'rival', team: 1, pid: pidOf(p), name: pName(st, g, p, 1) }; }
   function spOf(who) { return { who: who, team: who === 'rivalCoach' ? 1 : -1, pid: -1, name: NAME[who] || '' }; }
+  /** El 1r en los bocadillos: «1r Apellido» si la Carrera lo ha designado (st.ref), si no «1r árbitro». */
+  function spRef(st) { var R = st.ref, s = R && String(R.short || '').trim(); return { who: 'ref', team: -1, pid: -1, name: s ? '1r ' + s : NAME.ref }; }
   function spSpeaker(st) { return st.home >= -1 ? spOf('speaker') : null; }
   function spTv(st) { return st.level === 'high' || st.level === 'top' ? spOf('tv') : null; }
   function roll(st, salt) { return hash01(st.seed, st.n++, salt | 0); }
@@ -522,7 +550,9 @@
   function arbOf(st, g) {
     if (st.arb) return st.arb;
     var c0 = g && g.size === 6 ? captOf(st, g, 0) : null, c1 = g && g.size === 6 ? captOf(st, g, 1) : null;
-    st.arb = st.Ar.create({ seed: st.seed ^ 0x5A17, hall: st.hall, level: st.level, heat: st.heat, mode: st.mode, capt: [c0 ? pidOf(c0) : -1, c1 ? pidOf(c1) : -1], meTeam: 0, mePid: pidOf(myP(g)) });
+    var R = st.ref, derby = tagged(st, 'derbi') || tagged(st, 'clasico') || tagged(st, 'final');
+    st.arb = st.Ar.create({ seed: st.seed ^ 0x5A17, hall: st.hall, level: st.level, heat: st.heat, mode: st.mode, capt: [c0 ? pidOf(c0) : -1, c1 ? pidOf(c1) : -1], meTeam: 0, mePid: pidOf(myP(g)),
+      trait: R && R.trait || '', derby: derby, mem: R && +R.mem || 0 });   // (carácter y libreta del 1r designado; ARB_LOCAL lo ignora)
     return st.arb;
   }
   function feed(st, e, g) {
@@ -591,7 +621,7 @@
     if (st.ff || st.rep) return;
     // disputa (punto dudoso)
     var D = A.feed(st.arb, e, g);
-    if (st.force === 'choice' || st.force === 'yellow' || st.force === 'red') D = forced(st, e, g, D);
+    if (st.force === 'choice' || st.force === 'brake' || st.force === 'yellow' || st.force === 'red') D = forced(st, e, g, D);
     var busy = D ? dispute(st, D, g, e) : false;
     if (st.force === 'lines') st.spoke = {};
     talk(st, e, g, busy);
@@ -604,10 +634,11 @@
     // (solo un punto discutible de verdad: un bote dentro / fuera o lo que el árbitro ya vea como disputa; nunca una falta de saque)
     var sg = e.signal, ok = D || ((e.reason === 'in' || e.reason === 'out') && sg !== 'serveFault' && sg !== 'netBall' && sg !== 'touched' && e.lastKind !== 'serve');
     if (!ok) return D;
-    var T = e.team === 1 ? 0 : st.force === 'choice' ? -1 : 1; if (T < 0) return D;
+    var T = e.team === 1 ? 0 : st.force === 'choice' || st.force === 'brake' ? -1 : 1; if (T < 0) return D;
     st.forceDone = true;
     D = D || { id: 900 + st.pts, team: T, kind: 'line', strength: 0.9, wrong: true, offer: false, auto: null, canRed: true, calledIn: e.reason === 'in' };
     D.team = T; D.forced = st.force;
+    if (st.force === 'brake') { D.team = 0; D.auto = { role: 'player', pid: -1 }; D.brake = true; return D; }   // (ficha «Frenar a …»)
     if (st.force !== 'choice') D.auto = { role: g.size === 6 ? 'captain' : 'player', pid: -1 };
     return D;
   }
@@ -622,6 +653,18 @@
     var offer = st.Ar === ARB_LOCAL ? team === 0 && D.kind === 'line' && st.mode === 'full' && onCourt(g) && st.choiceN < CHOICE.max && st.pts - st.choicePt >= CHOICE.gap && !chal && !st.choice
       : !!D.offer && team === 0 && onCourt(g) && !st.choice;   // (VB.Arbitro ya decide la oferta: modo, tope, separación, challenge)
     if (D.forced) offer = D.forced === 'choice' && !st.choice;   // (escena de prueba: tarjeta forzada = protesta de la IA, sin fichas)
+    // «Frenar a [compañero]»: eres capitán y salta un compañero de la IA (VB.Arbitro ya ha mirado capitanía, modo, tope y separación)
+    if (D.brake && team === 0 && onCourt(g) && !st.choice && !offer) {
+      var bw = autoWho(st, g, D);
+      if (bw && bw.pid >= 0 && bw.pid !== pidOf(myP(g)) && bw.role !== 'coach') {
+        st.choiceN++; st.choicePt = st.pts;
+        var bn = first(bw.name), bid = ++st.idN; bn = bn.length > 10 ? bn.slice(0, 9) + '.' : bn;
+        st.choice = { id: bid, D: D, at: now + CHOICE.at, until: now + CHOICE.at + CHOICE.dur, open: false, pick: '', by: '', capt: true, done: false, kind: 'brake', who: bw, wn: bn };
+        st.wantHold = Math.max(st.wantHold || 0, CHOICE.hold);
+        st.choice.ev = { type: 'amb:choice', id: bid, kind: 'brake', opts: [{ k: 'protest', label: 'Frenar a ' + bn }, { k: 'drop', label: 'Dejarle' }], def: 'drop', dur: CHOICE.dur, sub: bn + ' va a por el 1r' };
+        return true;
+      }
+    }
     if (offer) {
       st.choiceN++; st.choicePt = st.pts;
       var isCapt = g.size !== 6 || captOf(st, g, 0) === myP(g), hasY = st.arb && st.Ar.state ? !!(st.Ar.state(st.arb).yellow || [])[0] : false;
@@ -695,7 +738,7 @@
     if (res !== 'none') {
       push(st, at + SEQ.ref, { type: 'amb:refTalk', team: team, pid: who.pid, level: lvl, dur: 1.4 });
       var rc = R && R.card ? R.card.color : '', rcRed = (rc === 'red' || rc === 'delayR') && R.penalty >= 0 && D.canRed;
-      if (st.mode === 'full' || lvl === 'verbal') say(st, at + SEQ.ref + 0.05, rc ? (rc.indexOf('delay') === 0 ? 'refDelay' : rcRed ? 'refRed' : 'refYellow') : res === 'verbal' ? 'refVerbal' : res === 'calm' ? 'refCalm' : 'ref', spOf('ref'), 3, null, true);
+      if (st.mode === 'full' || lvl === 'verbal') say(st, at + SEQ.ref + 0.05, rc ? (rc.indexOf('delay') === 0 ? 'refDelay' : rcRed ? 'refRed' : 'refYellow') : res === 'verbal' ? 'refVerbal' : res === 'calm' ? 'refCalm' : 'ref', spRef(st), 3, null, true);
     }
     // grada: pitada al árbitro si la decisión perjudica al local; la otra afición, «uuuh»
     if (st.home === team) { st.boo[st.home] = Math.max(st.boo[st.home], 0.5 + 0.4 * st.heat); push(st, at + 0.2, { type: 'amb:boo', target: 'ref', by: st.home, k: 0.5 + 0.4 * st.heat, dur: 2.2 }); }
@@ -761,6 +804,7 @@
       var hot = tagged(st, 'derbi') || tagged(st, 'clasico') || tagged(st, 'revancha') || tagged(st, 'rival') || tagged(st, 'jefe');
       if (derbyCity(st)) add('preD', roll(st, 0x9D) < 0.6 ? spRival(st, g) : spMate(st, g), 0.5, 2);
       else if (duel(st)) add('preDu', roll(st, 0x9D) < 0.6 ? spRival(st, g) : spMate(st, g), 0.5, 2);
+      else if (st.bond) add(st.bond < 0 ? 'preGrudge' : 'preFond', roll(st, 0x9D) < 0.6 ? spRival(st, g) : spMate(st, g), 0.5, 2);   // rencor o cariño del club rival
       else if (tagged(st, 'revancha')) add('preRev', roll(st, 0x9D) < 0.5 ? spRival(st, g) : spMate(st, g), 0.5, 2);
       else if (hot) add('pre', spRival(st, g), 0.5, 2);
       else add('pre', roll(st, 0x9E) < 0.5 ? spMate(st, g) : spCoach(st, g), 0.5, 1);
@@ -916,7 +960,13 @@
     if (c.open) out.push({ type: 'amb:choiceEnd', amb: true, id: c.id, pick: c.pick, by: c.by, t: st.now });
     if (c.late) return;
     var D = c.D, now = st.now;
+    if (c.kind === 'brake') {   // «Frenar a …» (protest) o «Dejarle» / tiempo (drop): su protesta, como la automática
+      if (c.pick === 'protest') { st.brakes++; st.brkName = c.wn || ''; say(st, now + 0.2, 'brakeMate', spMe(st, g), 2, { who: c.wn || '' }, true); }
+      else runProtest(st, g, D, c.who, false, now + 0.05);
+      return;
+    }
     if (c.pick === 'protest') {
+      st.myProt++;
       var me = myP(g);
       var R = runProtest(st, g, D, { pid: pidOf(me), role: c.capt ? 'captain' : 'player', who: 'me', name: st.me.name, team: 0 }, true, now + 0.05);
       // sin tarjeta: el marcador no cambia (una protesta nunca cambia la decisión), pero tu equipo y tu grada se vienen arriba
@@ -953,6 +1003,13 @@
       out.push({ type: 'amb:start', amb: true, t: st.now, heat: st.heat, home: st.home, fans: st.fans.slice(), tags: st.tags.slice(), mode: st.mode, hall: st.hall, level: st.level, names: names, short: [cut12(names[0]), cut12(names[1])] });
       if (!st.ff) {
         var wk = st.home < 0 ? 'welcomeN' : derbyCity(st) ? 'welcomeD' : duel(st) ? 'welcomeDu' : 'welcome';
+        // rencor o cariño del club rival (amb.bond): la final, el derbi y el duelo se quedan con su bienvenida
+        if (st.bond && wk === 'welcome') {
+          var bk = Math.abs(st.bond);
+          if (st.bond < 0 && st.home === 1) { wk = 'welcomeGrudge'; push(st, st.now + 0.6, { type: 'amb:boo', target: 'me', by: 1, k: 0.5 + 0.2 * bk, dur: 3 }); }
+          else if (st.bond < 0) push(st, st.now + 0.6, { type: 'amb:boo', target: 'me', by: 1, k: 0.35, dur: 2 });   // (en tu casa: su afición visitante)
+          else if (st.home === 1) { wk = 'welcomeFond'; push(st, st.now + 0.6, { type: 'amb:roar', team: 1, k: 0.6 + 0.15 * bk }); }
+        }
         say(st, st.now + 0.2, wk, spSpeaker(st), 2, null, true);
         var led = st.home < 0 ? 'GRAN FINAL' : derbyCity(st) ? '¡DERBI!' : duel(st) ? '¡DUELO!' : ledTxt('¡VAMOS ' + homeName(st).toUpperCase() + '!');
         push(st, st.now + 0.1, { type: 'amb:led', text: led, team: st.home, dur: 4 });
@@ -1025,7 +1082,8 @@
       protests: st.protests, drops: st.drops, coldHead: st.coldHead, lines: st.lines, heat: st.heat, tags: st.tags.slice(), home: st.home, fair: mine.length === 0,
       myY: st.cards.filter(function (c) { return c.mine && (c.color === 'yellow' || c.color === 'delayY'); }).length,
       myR: st.cards.filter(function (c) { return c.mine && (c.color === 'red' || c.color === 'delayR' || c.color === 'expel' || c.color === 'dq'); }).length,
-      teamR: mine.filter(function (c) { return c.color === 'red' || c.color === 'delayR' || c.color === 'expel' || c.color === 'dq'; }).length, choices: st.choiceN };
+      teamR: mine.filter(function (c) { return c.color === 'red' || c.color === 'delayR' || c.color === 'expel' || c.color === 'dq'; }).length, choices: st.choiceN,
+      ref: st.ref && st.ref.id ? String(st.ref.id) : '', brk: st.brakes, brkName: st.brkName, myProt: st.myProt };   // (libreta del 1r: career-world refAfter)
   }
 
   VB.Ambiente = {

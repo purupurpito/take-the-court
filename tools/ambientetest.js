@@ -76,6 +76,31 @@ section('Banco de frases');
   console.log('  ' + n + ' frases en ' + Object.keys(A.BANK).length + ' disparadores');
 }
 
+// ------------------------------------------------------------------ 1b) rencor y cariño del club rival (amb.bond, career-life bond)
+section('Rencor y cariño (amb.bond)');
+{
+  const run = (amb, pt) => {
+    const st = A.create({ seed: 9, hall: false, amb: Object.assign({ short: ['Rocaverde', 'Sorrasal'], city: 'Rocaverde', venue: 'Cala Rocaverde', heat: 0.5, tags: [] }, amb), me: { name: 'Ares Belmonte' }, mate: { name: 'Iker Sanz' } });
+    const g = { time: 0, teams: [[{ id: 0, num: 7, team: 0 }, { id: 1, num: 2, team: 0 }], [{ id: 2, num: 3, team: 1 }, { id: 3, num: 4, team: 1 }]], size: 2, score: [0, 0], setScores: [] };
+    const evs = [];
+    for (let i = 0; i < 300; i++) {
+      g.time = i / 30;
+      if (pt && i === 150) { g.score = [1, 0]; A.feed(st, { type: 'point', team: 0, how: 'kill', player: g.teams[0][0] }, g); }
+      const out = []; A.frame(st, g, 1 / 30, out, {}); out.forEach(e => evs.push(e));
+    }
+    return evs;
+  };
+  const sig = a => a.map(e => e.type + (e.key ? ':' + e.key : '') + (e.k != null ? ':' + e.k : '')).join('\n');
+  const g2 = run({ home: 1, bond: -2 }, true), f2 = run({ home: 1, bond: 2 }, true), h1 = run({ home: 0, bond: -1 }, true);
+  ok(g2.some(e => e.type === 'amb:say' && /^welcomeGrudge\//.test(e.key)) && g2.some(e => e.type === 'amb:boo' && e.by === 1 && e.target === 'me' && e.k > 0.85), 'rencor en su casa: megafonía «welcomeGrudge» y pitada de la grada al empezar');
+  ok(g2.some(e => e.type === 'amb:say' && /^preGrudge\//.test(e.key)), 'rencor: la previa es «preGrudge»');
+  ok(f2.some(e => e.type === 'amb:say' && /^welcomeFond\//.test(e.key)) && f2.some(e => e.type === 'amb:roar' && e.team === 1), 'cariño en su casa: «welcomeFond» y aplauso de su grada');
+  ok(f2.some(e => e.type === 'amb:say' && /^preFond\//.test(e.key)) && !f2.some(e => e.type === 'amb:boo'), 'cariño: previa «preFond» y sin pitada');
+  ok(h1.some(e => e.type === 'amb:say' && /^welcome\//.test(e.key)) && h1.some(e => e.type === 'amb:boo' && e.k === 0.35), 'rencor en tu casa: bienvenida de siempre y pitada suave de su afición visitante');
+  ok(sig(run({ home: 1 }, true)) === sig(run({ home: 1, bond: 0 }, true)) && sig(run({ home: 0 }, true)) === sig(run({ home: 0, bond: 0 }, true)), 'sin relación (bond 0): la misma secuencia de eventos que antes, con la misma semilla');
+  ok(run({ home: -1, bond: -2 }, false).some(e => e.type === 'amb:say' && /^welcomeN\//.test(e.key)), 'la final se queda con su bienvenida aunque haya rencor');
+}
+
 // ------------------------------------------------------------------ partidos con bots
 const REF = { low: { p1: 0.55, p2: 0.40, p3: 0.22, d3: 0.25, chal: 0, judges: false }, mid: { p1: 0.45, p2: 0.25, p3: 0.12, d3: 0.15, chal: 0, judges: false },
   high: { p1: 0.20, p2: 0.08, p3: 0.02, d3: 0.10, chal: 0, judges: true }, top: { p1: 0.20, p2: 0.08, p3: 0.02, d3: 0.10, chal: 2, judges: true } };
@@ -245,6 +270,57 @@ else {
     ok(got === 2, 'la roja da el punto al rival del sancionado, sin jugador (' + got + '/2)');
     void tot2;
   } else console.log('  (sin Sim.penalty en sim.js todavía: se salta)');
+
+  // ---------------------------------------------------------------- 7b) ficha «Frenar a …» y 1r con nombre (árbitros de la Carrera)
+  section('Ficha «Frenar a …» y 1r con nombre');
+  {
+    const S = E.S, REFX = { id: 'B1-4', name: 'Nerea Quirada Garbero', short: 'Quirada', trait: 'estricto', mem: 0 };
+    // pick: 'protest' (frenar), 'drop' (dejarle) o '' (tiempo); ref: con o sin 1r designado
+    const scene = (hall, pick, ref) => {
+      const g = S.createGame(hall ? { format: '6v6', seed: 91, difficulty: 'normal', ctrl: 'one', ctrlRole: 'OH', points: 15, present: true, amb: true, autopilot: true,
+        names: [['Ares Belmonte', 'Iker Sanz', 'Noa Vidal', 'Biel Riera', 'Leo Soler', 'Pau Mas'], ['Dani Ferrer', 'Alex Roig', 'Kai Morell', 'Joan Prats', 'Max Serra', 'Nico Pla']] }
+        : { seed: 91, difficulty: 'normal', venue: 'beach', points: 21, present: true, amb: true, autopilot: true });
+      const st = A.create({ seed: 91, hall, amb: { home: 0, heat: 0.6 }, me: { name: 'Ares Belmonte' }, mate: hall ? null : { name: 'Iker Sanz' }, force: 'brake', main: true, ref: ref || null });
+      const ev = [], out = [], all = []; let ch = null, endT = -1;
+      for (let i = 0; i < 120 * 60 * 25 && (endT < 0 || g.time < endT + 8); i++) {
+        S.step(g, 1 / 120, null); ev.length = 0; S.drainEvents(g, ev);
+        for (const e of ev) A.feed(st, e, g);
+        out.length = 0;
+        const ctl = A.frame(st, g, 1 / 120, out, {});
+        for (const e of out) { all.push(e); if (e.type === 'amb:choice' && !ch) { ch = e; if (pick) A.choose(st, 0, pick); } if (e.type === 'amb:choiceEnd' && endT < 0) endT = g.time; }
+        if (ctl.hold > 0) S.holdFor(g, ctl.hold, ctl.lock);
+      }
+      return { ch, all, sum: A.sum(st), st };
+    };
+    for (const hall of [false, true]) {
+      const tag = hall ? 'pista' : 'playa';
+      const fr = scene(hall, 'protest', REFX), dj = scene(hall, '', REFX), dr = scene(hall, 'drop', null);
+      const c = fr.ch, lab = c && c.opts ? c.opts.map(o => o.k + ':' + o.label).join(' | ') : '';
+      ok(c && c.kind === 'brake' && c.opts.length === 2 && c.opts[0].k === 'protest' && /^Frenar a \S+$/.test(c.opts[0].label) && c.opts[1].k === 'drop' && c.opts[1].label === 'Dejarle' && c.def === 'drop',
+        tag + ': amb:choice kind «brake» con «Frenar a …» y «Dejarle» (' + lab + ')');
+      ok(c && c.opts[0].label.length <= 'Frenar a '.length + 10 && !/Ares/.test(c.opts[0].label), tag + ': el compañero (nunca tú), nombre de pila de 10 letras como mucho');
+      const prot = x => x.all.filter(e => e.type === 'amb:protest').length;
+      ok(prot(fr) === 0 && fr.sum.brk === 1 && !fr.sum.cards.length, tag + ': frenar = sin protesta ni tarjeta y brk = 1 (' + prot(fr) + ', ' + fr.sum.brk + ')');
+      ok(fr.all.some(e => e.type === 'amb:say' && e.who === 'me' && /^brakeMate\//.test(e.key)), tag + ': tú dices la frase de calma (brakeMate)');
+      ok(fr.sum.ref === 'B1-4' && dr.sum.ref === '', tag + ': sum.ref con el 1r designado (y vacío sin él)');
+      ok(prot(dj) >= 1 && dj.sum.brk === 0, tag + ': se acaba el tiempo = su protesta, como la automática (' + prot(dj) + ')');
+      ok(prot(dr) >= 1 && dr.sum.brk === 0 && dr.sum.myProt === 0, tag + ': «Dejarle» = su protesta; no cuenta como protesta tuya');
+      const rs = x => x.all.filter(e => e.type === 'amb:say' && e.who === 'ref').map(e => e.name);
+      ok(rs(dj).length && rs(dj).every(n => n === '1r Quirada'), tag + ': los bocadillos del 1r designado dicen «1r Quirada» (' + rs(dj).join(', ') + ')');
+      ok(rs(dr).length && rs(dr).every(n => n === '1r árbitro'), tag + ': sin 1r designado, «1r árbitro» (' + rs(dr).join(', ') + ')');
+    }
+    // tus protestas (ficha «Protestar») cuentan en sum.myProt
+    { const g = S.createGame({ seed: 77, difficulty: 'normal', venue: 'beach', points: 21, present: true, amb: true, autopilot: true });
+      const st = A.create({ seed: 77, hall: false, amb: { home: 0, heat: 0.6 }, me: { name: 'Ares' }, mate: { name: 'Iker' }, force: 'choice', main: true, ref: REFX });
+      const ev = [], out = []; let done = false;
+      for (let i = 0; i < 120 * 60 * 20 && !done; i++) {
+        S.step(g, 1 / 120, null); ev.length = 0; S.drainEvents(g, ev); for (const e of ev) A.feed(st, e, g);
+        out.length = 0; const ctl = A.frame(st, g, 1 / 120, out, {}); if (ctl.hold > 0) S.holdFor(g, ctl.hold, ctl.lock);
+        for (const e of out) { if (e.type === 'amb:choice') A.choose(st, 0, 'protest'); if (e.type === 'amb:choiceEnd') done = true; }
+      }
+      for (let i = 0; i < 120 * 3; i++) { S.step(g, 1 / 120, null); out.length = 0; A.frame(st, g, 1 / 120, out, {}); }
+      ok(A.sum(st).myProt === 1 && A.sum(st).brk === 0, 'protestar con la ficha cuenta en sum.myProt (' + A.sum(st).myProt + ')'); }
+  }
 
   // ---------------------------------------------------------------- 8) enganche en career.js
   section('Enganche en career.js (ambCtx, matchDone → c.life.cards, c.world.riv, recap)');

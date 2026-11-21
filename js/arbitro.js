@@ -12,17 +12,22 @@
  *
  * API:
  *   create(o) → st     o = { seed, hall, level:'low'|'mid'|'high'|'top', heat 0..1, mode:'full'|'calm', capt:[pid0,pid1] (-1 = no hay),
- *                            meTeam (0), mePid (tu atleta: nunca protesta solo) }
+ *                            meTeam (0), mePid (tu atleta: nunca protesta solo),
+ *                            trait:'estricto'|'deja'|'lince'|'nervioso'|'manual' (carácter del 1r de la Carrera, TRAITS), derby (bool),
+ *                            mem −0,15..+0,2 (libreta oculta del 1r contigo: solo pesa en las protestas de tu equipo) }
+ *        Sin trait: todos los factores valen 1, sin ficha «Frenar» y decisiones idénticas a las de antes.
  *   feed(st, e, g) → null | D     con 'point' (lee g.call de ese mismo frame) o 'challengeResult'{overturned:false}.
  *        D = { id, team (el que la sufre), kind:'line'|'touch'|'net'|'antenna'|'under'|'fault'|'position'|'chal', strength 0..1, wrong,
- *              offer (ofrecer la elección al humano), auto:{pid, role}|null (protesta de la IA), canRed, sub (texto corto de contexto) }
+ *              offer (ofrecer la elección al humano), auto:{pid, role}|null (protesta de la IA), canRed, sub (texto corto de contexto),
+ *              brake (con trait: eres capitán y un compañero de la IA va a protestar → ficha «Frenar a … / Dejarle»; comparte tope
+ *              con offer y su tirada no mueve st.k) }
  *   protest(st, D, who, human, canRed) → R = { res:'none'|'explain'|'calm'|'verbal'|'yellow'|'red'|'expel'|'delayY'|'delayR',
  *        card:{team,pid,num,name,who,color,reason}|null, penalty: -1 | equipo SANCIONADO (el punto va al otro) }
  *        who = { pid, role:'player'|'captain'|'coach', num, name } (o solo el pid)
  *   taunt(st, team, pid, heat, who) → R   (provocación «shh»: casi siempre 'none'; 15 % 'verbal'; rarísimo amarilla)
  *   undo(st)   cancela la disputa pendiente (punto anulado por challenge)
  *   state(st) → { verbal:[n0,n1], yellow:[bool,bool], red:[n0,n1], byPid:{pid:{y,r}}, delay:[0|1|2, 0|1|2], offers, protests }
- *   RATES (probabilidades; las calibra tools/arbitrotest.js), hash01.
+ *   RATES (probabilidades; las calibra tools/arbitrotest.js), TRAITS (carácter del 1r), hash01.
  */
 (function () {
   'use strict';
@@ -53,7 +58,17 @@
     offerMax: 1, offerGap: 8, offerMin: 0.45, offerKinds: { line: 1, touch: 1 }, offerP: 0.7,
     again: 1.6,              // otra protesta del mismo equipo en el mismo punto: mala conducta reiterada (× severidad; no es «retraso»)
     // provocación
-    tauntVerbal: 0.15, tauntYellow: 0.02
+    tauntVerbal: 0.15, tauntYellow: 0.02,
+    brakeP: 0.6              // eres capitán y un compañero de la IA salta a protestar: ficha «Frenar a … / Dejarle» (solo con trait)
+  };
+  // Carácter del 1r de la Carrera (career-world.js: colegio por liga). sev = severidad de las protestas, taunt = provocación,
+  // near = umbral del bote «discutible» (el lince lo ve claro: menos disputas de línea), derby = severidad extra en derbi/clásico/final.
+  var TRAITS = {
+    estricto: { sev: 1.3, taunt: 1.6, near: 1, derby: 1 },
+    deja: { sev: 0.7, taunt: 0.5, near: 1, derby: 1 },
+    lince: { sev: 1, taunt: 1, near: 0.6, derby: 1 },
+    nervioso: { sev: 1, taunt: 1, near: 1, derby: 1.35 },
+    manual: { sev: 1, taunt: 1, near: 1, derby: 1 }
   };
 
   function hash01(a, b, c) {
@@ -66,7 +81,8 @@
 
   function create(o) {
     o = o || {};
-    var lv = RATES.level[o.level] ? o.level : 'mid';
+    var lv = RATES.level[o.level] ? o.level : 'mid', T = TRAITS[o.trait] || null, mem = +o.mem || 0;
+    mem = mem < -0.15 ? -0.15 : mem > 0.2 ? 0.2 : mem;
     return {
       seed: (o.seed | 0) ^ 0x41A2B, hall: !!o.hall, level: lv, heat: clamp01(+o.heat || 0), mode: o.mode === 'calm' ? 'calm' : 'full',
       capt: o.capt ? [o.capt[0] == null ? -1 : o.capt[0], o.capt[1] == null ? -1 : o.capt[1]] : [-1, -1],
@@ -74,12 +90,15 @@
       k: 0, n: 0, did: 0, pend: null,
       verbal: [0, 0], yellow: [false, false], red: [0, 0], byPid: {}, delay: [0, 0],
       cool: [-99, -99], offers: 0, lastOffer: -99, protests: 0,
-      ptTeam: [-1, -1]      // nº de punto de la última protesta de cada equipo (otra en el mismo punto: más severa, RATES.again)
+      ptTeam: [-1, -1],     // nº de punto de la última protesta de cada equipo (otra en el mismo punto: más severa, RATES.again)
+      // carácter (sin trait, todo 1): severidad, umbral de línea, provocación, libreta (solo tu equipo) y ficha «Frenar»
+      trait: T ? o.trait : '', sevK: T ? T.sev * (o.derby ? T.derby : 1) : 1, nearK: T ? T.near : 1, tauntK: T ? T.taunt : 1, memK: T ? 1 + mem : 1,
+      brakeOn: !!T, brakes: 0
     };
   }
 
   /** Tipo y fuerza de la disputa de un 'point' (o null). */
-  function disputeOf(e, g) {
+  function disputeOf(e, g, nearK) {
     if (!e || e.penalty || e.reason === 'penalty') return null;
     var r = e.reason, sig = e.signal, c = g && g.call;
     // nunca la falta de saque (8 s / 5 s en playa) ni el saque que no pasa
@@ -88,9 +107,9 @@
     // que se va fuera no se discuten (crítica de juego del 18-nov: el 88 % de las disputas eran «tocado» sin sentido)
     if (sig === 'touched') return e.lastKind === 'block' ? { kind: 'touch', s: RATES.str.touch, wrong: false, dist: -1 } : null;
     if ((r === 'in' || r === 'out') && c && c.t === e.t) {
-      var d = Math.abs(+c.dist || 0);
-      if (d <= RATES.near || c.wrong) {
-        var s = 0.5 + 0.5 * clamp01(1 - d / RATES.near) + (c.wrong ? RATES.wrongAdd : 0);
+      var d = Math.abs(+c.dist || 0), near = RATES.near * (nearK > 0 ? nearK : 1);
+      if (d <= near || c.wrong) {
+        var s = 0.5 + 0.5 * clamp01(1 - d / near) + (c.wrong ? RATES.wrongAdd : 0);
         return { kind: 'line', s: Math.min(1, s), wrong: !!c.wrong, dist: d, calledIn: !!c.calledIn };
       }
       return null;
@@ -137,7 +156,7 @@
     if (e.type === 'point') {
       if (e.penalty) return null;
       st.n++;
-      dsp = disputeOf(e, g);
+      dsp = disputeOf(e, g, st.nearK);
       if (!dsp) { st.pend = null; return null; }
       team = 1 - e.team; canRed = !e.setWon && !e.matchWon && !closesSet(g, team);
     } else if (e.type === 'challengeResult') {
@@ -155,6 +174,14 @@
     if (!chalLeft && st.n - st.cool[team] >= RATES.cool) {
       var p = dsp.s * (RATES.autoBase + RATES.autoHeat * st.heat) * RATES.autoK * RATES.level[st.level] * (st.mode === 'calm' ? RATES.calm : 1) * (dsp.kind === 'touch' ? RATES.autoTouch : 1);
       if (rnd(st, 0xA10) < p) { D.auto = autoWho(st, D, e, g); if (D.auto) st.cool[team] = st.n; }
+    }
+    // ficha «Frenar a …» (solo con carácter, Carrera): salta un compañero de la IA de tu equipo y tú eres capitán (pista: el brazalete;
+    // playa: siempre, con tu pareja). Comparte tope y separación con «Protestar»; su tirada es un hash fijo (sin st.k++), así que
+    // cuando no sale, el resto de decisiones del partido no cambia
+    if (st.brakeOn && mine && D.auto && D.auto.role === 'player' && D.auto.pid !== st.mePid && st.mode === 'full' && !(g && g.ctrlOut) &&
+        (!st.hall || (st.mePid >= 0 && st.capt[st.meTeam] === st.mePid)) && st.offers < RATES.offerMax && st.n - st.lastOffer >= RATES.offerGap &&
+        hash01(st.seed, st.n, 0xA16) < RATES.brakeP) {
+      D.brake = true; st.offers++; st.lastOffer = st.n; st.brakes++;
     }
     // elección del jugador: su equipo la sufre, nadie ha saltado antes, «Completo», ≤ 2 por partido separadas 8+ puntos, sin challenge
     if (mine && !D.auto && st.mode === 'full' && !(g && g.ctrlOut) && !chalLeft && st.offers < RATES.offerMax && st.n - st.lastOffer >= RATES.offerGap &&
@@ -188,7 +215,7 @@
     // demorar el juego, no protestar: este árbitro no lo pita (los colores delayY / delayR siguen en el contrato, sin uso)
     var again = st.ptTeam[t] === D.n && D.n > 0;
     st.ptTeam[t] = D.n;
-    var sev = RATES.sev[st.level] * (again ? RATES.again : 1);
+    var sev = RATES.sev[st.level] * (again ? RATES.again : 1) * st.sevK * (t === st.meTeam ? st.memK : 1);   // (carácter y libreta)
     if (st.hall && role === 'player') sev *= RATES.notCapt;
     if (role === 'coach') sev *= RATES.notCapt;           // el entrenador no puede protestar decisiones
     if (D.kind === 'chal') sev *= RATES.afterChal;
@@ -228,7 +255,7 @@
     if (!st || (team !== 0 && team !== 1)) return R;
     who = who || { pid: pid == null ? -1 : pid, role: 'player' };
     var u = rnd(st, 0xC0), h = heat == null ? st.heat : heat;
-    var pv = RATES.tauntVerbal * (0.5 + h), py = st.verbal[team] > 0 && !st.yellow[team] ? RATES.tauntYellow : 0;
+    var pv = RATES.tauntVerbal * (0.5 + h) * st.tauntK, py = st.verbal[team] > 0 && !st.yellow[team] ? RATES.tauntYellow : 0;
     if (u < py) R.res = 'yellow'; else if (u < py + pv) R.res = 'verbal';
     applyRes(st, team, who.pid, who, R, 'provocacion');
     return R;
@@ -240,5 +267,5 @@
       offers: st.offers, protests: st.protests };
   }
 
-  VB.Arbitro = { create: create, feed: feed, protest: protest, taunt: taunt, undo: undo, state: state, RATES: RATES, hash01: hash01, _disputeOf: disputeOf };
+  VB.Arbitro = { create: create, feed: feed, protest: protest, taunt: taunt, undo: undo, state: state, RATES: RATES, TRAITS: TRAITS, hash01: hash01, _disputeOf: disputeOf };
 })();
