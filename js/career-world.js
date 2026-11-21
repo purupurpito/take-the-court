@@ -583,8 +583,16 @@
       (it || []).forEach(function (cp) { if (cp && (cp.rank === 1 || cp.rank === 2)) add('h-intl-' + cp.rank, 'Internacional', 'intl', cp.name, TC_NEED_H.intl); });
       if (L1 && L2) add('h-up-' + cc, 'Ascenso', 'ascenso', 'Ascenso a la ' + L1.name, TC_NEED_H.ascenso);
     }
-    var AW = (VB.CareerLife && Array.isArray(VB.CareerLife.AWARDS) ? VB.CareerLife.AWARDS : AW_FALLBACK).filter(function (a) { return !a.only || a.only === (hall ? 'hall' : 'beach'); });
-    AW.forEach(function (a) { add('aw-' + a.id, 'Premios', 'premio', a.name, a.id === 'rook' ? 'Una vez, con 23 años o menos' : 'Premio de la gala'); });
+    // extensiones de la Carrera (VB.CareerExt; CONTRACT.md «Extensiones de la Carrera»): caseSlots(c) → huecos propios [{id, group,
+    // kind, name, need}] (selección…) y caseAwards(c) → premios propios [{id, name, only?, need?}] (carrera por los premios…)
+    var XS = Array.isArray(VB.CareerExt) ? VB.CareerExt : [], xAw = [];
+    XS.forEach(function (x) {
+      if (!x) return;
+      if (typeof x.caseSlots === 'function') { try { (x.caseSlots(c) || []).forEach(function (s) { if (s && s.id && s.kind) add(s.id, s.group || TC_OTHER, s.kind, s.name, s.need); }); } catch (e) { } }
+      if (typeof x.caseAwards === 'function') { try { (x.caseAwards(c) || []).forEach(function (a) { if (a && a.id && a.name) xAw.push(a); }); } catch (e) { } }
+    });
+    var AW = (VB.CareerLife && Array.isArray(VB.CareerLife.AWARDS) ? VB.CareerLife.AWARDS : AW_FALLBACK).concat(xAw).filter(function (a) { return !a.only || a.only === (hall ? 'hall' : 'beach'); });
+    AW.forEach(function (a) { add('aw-' + a.id, 'Premios', 'premio', a.name, a.need || (a.id === 'rook' ? 'Una vez, con 23 años o menos' : a.id === 'young' ? 'Cada temporada, con 23 años o menos' : 'Premio de la gala')); });
     var tro = Array.isArray(c.trophies) ? c.trophies : [], aws = c.life && Array.isArray(c.life.awards) ? c.life.awards : [];
     var push = function (s, t) { s.won.push({ season: t.season | 0, club: t.club || '', d: t.d || '' }); };
     var toOther = function (t) {
@@ -615,7 +623,7 @@
     slots.forEach(function (s) { s.won.sort(function (a, b) { return a.season - b.season; }); if (s.won.length) got++; s.unlock = tcUnlock(s, hall); });
     other.forEach(function (o) { o.won.sort(function (a, b) { return a.season - b.season; }); delete o.key; });
     if (hall) {   // (pista: los grupos en su orden aunque se hayan añadido huecos al final)
-      var GO = ['Liga', 'Copa', 'Internacional', 'Ascenso', 'Premios'];
+      var GO = ['Liga', 'Copa', 'Internacional', 'Ascenso', 'Selección', 'Premios'];
       slots = slots.map(function (s, i) { return [s, i]; }).sort(function (a, b) { return GO.indexOf(a[0].group) - GO.indexOf(b[0].group) || a[1] - b[1]; }).map(function (x) { return x[0]; });
     }
     return { slots: slots, total: slots.length, got: got, other: other, hall: hall };

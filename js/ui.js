@@ -960,6 +960,7 @@
           }
           break;
         }
+        case 'zone': znEvent(e, g); break;   // la zona (ZN-HUD)
         case 'block':
           if (e.human && e.result === 'stuff') pulse(e.team, false);
           // C4: el bloqueo directo de tu equipo lo dice la cinta cinética («¡Muro!») 0,5 s después: sin aviso duplicado
@@ -2282,6 +2283,117 @@
       rtUI.t = rtUI.q.length ? 1.0 : 1.6;
     }
   }
+  /* ZN-HUD: LA ZONA en el HUD del partido (20-nov-2026; sim js/sim.js: g.zn, Sim.znMeter / znEnergy / znOn, eventos 'zone'). Fila
+   * «ZONA» con un medidor pequeño bajo el marcador (dentro de #sb: escala con él, nunca tapa los mandos táctiles y no se toca), chip
+   * «RACHA» junto al nombre del rival, cinta «¡EN LA ZONA!» al entrar y un aviso corto al salir. Sin g.zn (o en la demo) no sale nada.
+   * CSS propio (#znCss, inyectado una vez; estilo SPLAT: pegatina con tinta, móvil con :root.ph y letra ≥ 12 px reales). */
+  var znUI = { row: null, pill: null, k: null, fill: null, toast: null, g: null, vis: false, cls: '', fr: -1, t: 0, cpu: false, cpuSaid: false, n: 0, col: '', tip: false, rk: false };
+  var ZN_OUT = { error: 'Fuera de la zona: un fallo', time: 'Fuera de la zona: se acabó', streak: 'El rival cortó la racha', sub: 'Un cambio del rival cortó la racha',
+    timeout: 'El rival cortó la racha', set: 'Fin del set: zona perdida', bench: 'Al banquillo: zona perdida' };
+  var ZN_IN_SUB = 'Lees antes, aciertas más y pegas más fuerte', ZN_TIP = 'Encadena buenas jugadas: casi estás en la zona', ZN_CPU = '¡El rival está en racha!';
+  function znCss() {
+    if (document.getElementById('znCss')) return;
+    var P = ':root.ph:not(#_):not(#_):not(#_) #sb', st = document.createElement('style'); st.id = 'znCss';
+    st.textContent = [
+      '.zn-row{display:flex;align-items:center;gap:8px;margin-top:9px;pointer-events:none;--zn-a:#ff6a3d}',
+      '.zn-row[hidden]{display:none}',
+      '.zn-pill{display:inline-flex;align-items:center;gap:7px;height:24px;box-sizing:border-box;padding:0 9px 0 8px;border-radius:9px;background:var(--cel,#2e2756);',
+      ' box-shadow:0 0 0 2px var(--tk,#1d1530),3px 4px 0 2px var(--tk,#1d1530);transform:rotate(-1.2deg)}',
+      '.zn-k{font:800 12px/1 var(--display);letter-spacing:.16em;color:#f7f2ea;white-space:nowrap}',
+      '.zn-bar{position:relative;display:block;width:96px;height:10px;border-radius:6px;background:#f7f2ea;box-shadow:0 0 0 2px var(--tk,#1d1530);overflow:hidden}',
+      '.zn-bar i{position:absolute;left:0;top:0;bottom:0;width:100%;transform-origin:0 50%;transform:scaleX(0);background:var(--zn-a);transition:transform .25s ease-out}',
+      '.zn-row.hot .zn-bar{box-shadow:0 0 0 2px var(--tk,#1d1530),0 0 10px 2px var(--zn-a)}',
+      '.zn-row.hot .zn-k{color:#ffe7a0}',
+      '.zn-row.on .zn-pill{background:#ffd23f;animation:znBeat .667s ease-in-out infinite}',
+      '.zn-row.on .zn-k{color:#1d1530}',
+      '.zn-row.on .zn-bar i{background:linear-gradient(90deg,#ff3d2e,#ff8a1f 55%,#ffe14d);transition:transform .12s linear}',
+      '.zn-row.still .zn-pill{animation:none}',
+      '@keyframes znBeat{0%,100%{transform:rotate(-1.2deg) scale(1)}50%{transform:rotate(-1.2deg) scale(1.07)}}',
+      '.zn-toast{display:none;align-items:center;height:24px;box-sizing:border-box;padding:0 10px 0 8px;border-radius:8px;border-left:4px solid #ff8a98;',
+      ' background:rgba(29,21,48,.94);box-shadow:0 0 0 2px var(--tk,#1d1530);font:800 14px/1 var(--display);letter-spacing:.03em;white-space:nowrap;color:#ffc3cb}',
+      '.zn-toast.on{display:inline-flex;animation:znIn .3s cubic-bezier(.2,1.3,.4,1) both}.zn-toast.still{animation:none}',
+      '@keyframes znIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}',
+      '#sbName1.zn-r::after{content:"RACHA";display:inline-block;margin-left:7px;padding:3px 6px 2px;border-radius:6px;background:#ff5a6e;color:#fff;',
+      ' font:800 12px/1 var(--display);letter-spacing:.12em;vertical-align:4px;box-shadow:0 0 0 2px var(--tk,#1d1530)}',
+      '@media (prefers-reduced-motion:reduce){.zn-row.on .zn-pill{animation:none}.zn-toast.on{animation:none}}',
+      // marcador al 78 % (alto ≤ 560): la letra y el medidor crecen para seguir a ≥ 12 px reales
+      '@media (max-height:560px){.zn-pill{height:30px;padding:0 11px 0 9px}.zn-k{font-size:15.5px;letter-spacing:.12em}.zn-bar{width:108px;height:13px}',
+      ' .zn-toast{height:30px;font-size:16px}#sbName1.zn-r::after{font-size:15.5px;padding:4px 7px 3px}}',
+      // móvil (.ph): tokens del sistema, divididos por la escala del marcador (0,78) para quedar a --ph-cap reales
+      P + ' .zn-k{font-size:calc(var(--ph-cap,12px) / .78)}' + P + ' .zn-toast{font-size:calc(var(--ph-cap,12px) / .78 + 1px)}',
+      P + ' .zn-bar{width:108px;height:13px}' + P + ' #sbName1.zn-r::after{font-size:calc(var(--ph-cap,12px) / .78)}'
+    ].join('\n');
+    document.head.appendChild(st);
+  }
+  function znBuild() {
+    if (znUI.row) return true;
+    if (!el.sb) return false;
+    znCss();
+    var r = document.createElement('div'); r.className = 'zn-row'; r.id = 'znRow'; r.hidden = true; r.setAttribute('aria-hidden', 'true');
+    r.innerHTML = '<span class="zn-pill"><span class="zn-k">ZONA</span><span class="zn-bar"><i></i></span></span><span class="zn-toast"></span>';
+    // justo bajo el marcador: antes de la nota en directo (si ya está) o de la etiqueta «Punto de set»
+    var nx = el.sb.querySelector('.rt-row') || el.sb.querySelector('.sb-tag'); el.sb.insertBefore(r, nx || null);
+    znUI.row = r; znUI.pill = r.firstChild; znUI.k = r.querySelector('.zn-k'); znUI.fill = r.querySelector('.zn-bar i'); znUI.toast = r.lastChild;
+    return true;
+  }
+  /** Color del club (VB.Players.kit(0).base; si es casi negro, el ribete; si no hay, el naranja de siempre). */
+  function znColor() {
+    var c = '#ff6a3d';
+    try {
+      var k = VB.Players && VB.Players.kit ? VB.Players.kit(0) : null, v = k ? k.base : null;
+      if (typeof v === 'number') {
+        var r = (v >> 16) & 255, gg = (v >> 8) & 255, b = v & 255, lum = (0.2126 * r + 0.7152 * gg + 0.0722 * b) / 255;
+        if (lum < 0.25 && typeof k.trim === 'number') v = k.trim;
+        c = '#' + ('00000' + v.toString(16)).slice(-6);
+      }
+    } catch (e) { }
+    if (znUI.col !== c) { znUI.col = c; if (znUI.row) znUI.row.style.setProperty('--zn-a', c); }
+  }
+  function znToastOff() { if (znUI.toast) { znUI.toast.className = 'zn-toast'; znUI.toast.textContent = ''; } znUI.t = 0; }
+  function znToast(txt) {
+    if (!znUI.toast || !txt) return;
+    var tt = znUI.toast; tt.className = 'zn-toast'; void tt.offsetWidth;
+    tt.textContent = txt; tt.className = 'zn-toast on' + (rm() ? ' still' : ''); znUI.t = 1.6;
+  }
+  function znChip(on) { if (znUI.rk !== on && el.name1) { znUI.rk = on; el.name1.classList.toggle('zn-r', on); el.name1.setAttribute('aria-label', on ? (el.name1.textContent || 'Rival') + ', en racha' : ''); if (!on) el.name1.removeAttribute('aria-label'); } }
+  function znTipOnce() {
+    if (znUI.tip) return; znUI.tip = true;
+    if (ctx.settings.coachTips === false) return;
+    var seen = false; try { seen = localStorage.getItem('make-the-cut.znTip') === '1'; } catch (e) { seen = false; }
+    if (seen) return;
+    try { localStorage.setItem('make-the-cut.znTip', '1'); } catch (e) { }
+    callout(ZN_TIP, 0, 'tip', 2.4); srSay(ZN_TIP);
+  }
+  function znHud(g, dt) {
+    var on = !!(g && g.zn && !g.demo && VB.Sim && VB.Sim.znMeter);
+    if (!on) { if (znUI.vis) { znUI.vis = false; znUI.row.hidden = true; znToastOff(); } znChip(false); znUI.g = null; return; }
+    if (!znBuild()) return;
+    if (znUI.g !== g) { znUI.g = g; znUI.cls = ''; znUI.fr = -1; znUI.cpuSaid = false; znUI.n = 0; znUI.tip = false; znToastOff(); znColor(); }
+    if (!znUI.vis) { znUI.vis = true; znUI.row.hidden = false; }
+    if ((ctx.frame & 31) === 9) znColor();
+    var S = VB.Sim, inZ = S.znOn(g, 0), f = inZ ? S.znEnergy(g, 0) : S.znMeter(g, 0);
+    var cls = 'zn-row' + (inZ ? ' on' : f >= 0.8 ? ' hot' : '') + (rm() ? ' still' : '');
+    if (znUI.cls !== cls) { znUI.cls = cls; znUI.row.className = cls; znUI.k.textContent = inZ ? 'EN LA ZONA' : 'ZONA'; }
+    var fr = Math.round(f * 100) / 100;
+    if (znUI.fr !== fr) { znUI.fr = fr; znUI.fill.style.transform = 'scaleX(' + fr + ')'; }
+    znChip(S.znOn(g, 1));
+    if (!inZ && f >= 0.6 && !znUI.tip && ctx.state === 'playing' && !g.autopilot) znTipOnce();
+    if (znUI.t > 0 && (dt > 0 || !ctx.debug)) { znUI.t -= dt || 0; if (znUI.t <= 0) znToastOff(); }
+  }
+  /** Evento 'zone' de la sim (onEvents): cinta al entrar, aviso al salir, «¡El rival está en racha!» la primera vez. */
+  function znEvent(e, g) {
+    if (!e || e.replay || g.demo || !znBuild()) return;
+    if (e.team === 0) {
+      if (e.on) {
+        if (e.why === 'undo') return;
+        znUI.n++; znToastOff();
+        // (en el móvil apaisado, 1 s: la cinta tapa el 3r segmento de la barra de toques)
+        banner('¡EN LA ZONA!', znUI.n === 1 ? ZN_IN_SUB : '', '', 'gold compact', document.documentElement.classList.contains('ph') ? 1.0 : 1.4, 'zone');
+        srSay('En la zona');
+      } else if (e.why !== 'undo' && e.why !== 'end') { znToast(ZN_OUT[e.why] || ZN_OUT.time); srSay('Fuera de la zona'); }
+    } else if (e.on && !znUI.cpuSaid && e.why !== 'undo') { znUI.cpuSaid = true; callout(ZN_CPU, 1, '', 1.8); srSay(ZN_CPU); }
+  }
+  /* fin ZN-HUD */
   function hud(g, dt) {
     var demo = g.demo;
     chalTick(g);
@@ -2291,6 +2403,7 @@
     if (last.wOn !== wOn) { last.wOn = wOn; el.app.classList.toggle('watch-on', wOn); }
     if (drOn) drillHud(g);
     rtTick(g, dt);   // nota en directo de la Carrera (píldora y avisos bajo el marcador)
+    znHud(g, dt);    // la zona (medidor bajo el marcador y chip RACHA; sin g.zn, nada)
     // (partido a un solo set —partidillo de prueba de la Carrera—: «SET ÚNICO | A 15»)
     setHTML(el.sbSet, 'set', demo ? 'DEMO' : oneSet(g) ? sepHTML(['SET ÚNICO', 'A ' + g.points], 's') : sepHTML(['SET ' + g.setNo, g.setNo === 3 ? 'A 15' : ''], 's'));
     // partido de Carrera (g.career, main.js): abreviaturas de los dos clubes en vez de TÚ / CPU
@@ -2418,11 +2531,13 @@
         // táctil: los dos saques van en el MISMO aviso junto al sacador, en dos líneas compactas («SACAR Flotante» /
         // «SALTAR En salto»; la tecla SACAR es la de siempre, #promptKey, y el resto se coloca en rejilla: ver .two en index.html); arriba, en un móvil apaisado, la pastilla del consejo tapaba la red y a los receptores de la CPU
         // («SALTAR En salto» sonaba repetido: el saque en salto se anuncia como «Potente»)
-        pk = 'serve'; ptext = touchDev ? (help ? '<span>Flotante</span>' + gl.jump + '<span>Potente</span>' : 'Lanza el balón') : 'Lanzar';
+        // saque de firma (sim g.sig): el rótulo del botón que lo lleva cambia («SACAR De abajo»; Bomba en SALTAR); sin él, los de siempre
+        var sgl = svSig(g);
+        pk = 'serve'; ptext = touchDev ? (help ? '<span>' + sgl.hit + '</span>' + gl.jump + '<span>' + sgl.jump + '</span>' : 'Lanza el balón') : 'Lanzar';
         pcls = touchDev && help ? 'hit two' : 'hit';
         coach = touchDev ? ''
-          : svAim(g) ? 'Tu saque · Muévete con ' + gl.move + '. ' + gl.serve + ' saca flotante y ' + gl.jump + ' en salto; al lanzar, apunta la <b>diana</b> con ' + gl.aim
-          : g.serveState ? 'Tu saque · Muévete con ' + gl.move + '. ' + gl.serve + ' saca flotante y ' + gl.jump + ' en salto'
+          : svAim(g) ? 'Tu saque · Muévete con ' + gl.move + '. ' + gl.serve + ' saca ' + sgl.hitT + ' y ' + gl.jump + ' ' + sgl.jumpT + '; al lanzar, apunta la <b>diana</b> con ' + gl.aim + sgl.roof
+          : g.serveState ? 'Tu saque · Muévete con ' + gl.move + '. ' + gl.serve + ' saca ' + sgl.hitT + ' y ' + gl.jump + ' ' + sgl.jumpT + sgl.roof
           : 'Tu saque · Con ' + gl.move + ' te colocas en el fondo, apunta con ' + gl.aim + ' (la <b>diana naranja</b> marca adónde va) y pulsa ' + gl.serve;
         // reloj de saque (UI-05): 8 s en el pabellón y 5 en la playa (sim g.serveClockMax). Aro alrededor de la tecla en los
         // últimos 5 s (3 en la playa; ámbar → rojo en los 2 últimos); la cifra y la unidad van en un span sin mayúsculas
@@ -3188,6 +3303,9 @@
     var tr = !dr && isTrial();
     el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : tr ? 'Reiniciar prueba' : 'Reiniciar partido';
     el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : tr ? 'Abandonar la prueba' : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
+    // partido o ejercicio de una extensión de la Carrera: sus rótulos (g.career.pause / g.careerExtDrill.pause = {restart, quit, warn})
+    var xp = g && !g.demo ? (dr ? g.careerExtDrill && (g.careerExtDrill.pause || {}) : g.career && g.career.ext ? g.career.pause || {} : null) : null;
+    if (xp) { if (xp.restart) el.btnRestart.textContent = xp.restart; el.btnQuit.textContent = xp.quit || 'Volver a la Carrera'; }
     disarmRestart();
     // partidillo de prueba: el aviso, en una línea pequeña sobre los botones (la ficha de la prueba ya lo decía al empezar)
     if (!el.pWarn && tr) {
@@ -3195,7 +3313,12 @@
       el.pWarn = document.createElement('p'); el.pWarn.className = 'p-warn'; el.pWarn.textContent = 'Si reinicias o abandonas, pierdes la prueba';
       if (vl && vl.parentNode) vl.parentNode.insertBefore(el.pWarn, vl);
     }
-    if (el.pWarn) el.pWarn.hidden = !tr;
+    if (!el.pWarn && xp && xp.warn) {
+      var vl2 = el.pause.querySelector('.vlist');
+      el.pWarn = document.createElement('p'); el.pWarn.className = 'p-warn';
+      if (vl2 && vl2.parentNode) vl2.parentNode.insertBefore(el.pWarn, vl2);
+    }
+    if (el.pWarn) { el.pWarn.textContent = xp && xp.warn ? xp.warn : 'Si reinicias o abandonas, pierdes la prueba'; el.pWarn.hidden = !(tr || (xp && xp.warn)); }
     el.pS0.textContent = g.score[0]; el.pS1.textContent = g.score[1];
     el.pMid.innerHTML = 'SETS<b>' + g.sets[0] + '-' + g.sets[1] + '</b>';
     if (el.pKick) setSep(el.pKick, pauseKicker(g), 'd');
@@ -3263,6 +3386,7 @@
     if (career) rec += ambEndHTML(ctx.game);   // Ambiente de Carrera: tarjetas del partido
     // E1: lo que has usado de la maestría (usos), en una línea y solo si hay algo que contar
     var e1l = masteryLine(ctx.game); if (e1l && !watch) rec += '<span class="e1">' + e1l + '</span>';
+    var znl = zoneLines(ctx.game); if (!watch) znl.forEach(function (x) { rec += '<span class="e1">' + x + '</span>'; });   // la zona y el saque de firma (solo si los has usado)
     // (online, anti-trampas: las huellas de los dos lados no cuadraron al final → el récord lo apunta como «no válido»; aquí se dice por qué)
     var nrr = online && ctx.net && ctx.net.recRes;
     if (nrr && nrr.outcome && nrr.outcome.kind === 'unverified') rec += '<span class="new">No válido: las dos partidas no cuadraban al final. No cuenta en tu récord online.</span>';
@@ -3368,7 +3492,9 @@
       d.first = !!cs.first; d.next = x.next || 'league'; d.phase = sum && sum.phase; d.pos = x.pos | 0; d.bar = x.bar || null;
       var lb = sum && sum.life && sum.life.boss;
       if (lb && (lb.nick || lb.name)) d.boss = { nick: lb.nick || lb.name, win: !!lb.win, h2h: lb.h2h || null };
+      if (sum && sum.inj && sum.inj.name) d.inj = { name: String(sum.inj.name), n: sum.inj.n | 0, rl: sum.inj.rl | 0 };   // lesión en este partido (career-injury.js; la pinta recap.js)
       d.train = trainLine(sum, x.ses);
+      if (sum && sum.title) d.title = String(sum.title);   // extensiones (career-natl.js): título, botón y línea de copa propios (sum.back/sum.cup los lee recap.js)
     } else {
       d.aw = endAw.slice(); d.badges = endBd.slice(); d.altDiffName = endAltName;
     }
@@ -3594,7 +3720,7 @@
   //  Acta del partido (js/acta.js, solo 6v6): el acta en el formato de emPat. En GitHub Pages el juego y emPat comparten origen
   //  (purupurpito.github.io), así que se guarda directamente en el almacén de emPat (clave empat/acta/<id>) y se abre emPat con
   //  ?acta=<id>; fuera de Pages (o si el navegador no deja), se descarga el .json para importarlo desde la portada de emPat.
-  //  En takethecourt.com (1.19.0) el juego ya no comparte origen con emPat: allí el acta siempre baja como .json (función oculta).
+  //  En takethecourt.com (1.20.0) el juego ya no comparte origen con emPat: allí el acta siempre baja como .json (función oculta).
   // =====================================================================
   var ACTA_LBL = 'Acta del partido', actaT = 0;
   // De momento NO es público (Ferran, 17-nov-2026): el botón solo sale con la cuenta de Ferran. En el código va el SHA-256 del correo
@@ -3833,6 +3959,7 @@
         case 'chem': blk('rc-chem', H.chem, '<span class="rc-l">' + escT(M.chem.t) + '</span>'); break;
         case 'boss': blk('rc-boss' + (M.boss.win ? ' win' : ''), H.boss, '<span class="rc-l">' + escT(M.boss.t) + '</span>'); break;
         case 'train': blk('rc-train', H.train, '<span class="rc-l">' + sepHTML(M.train.t.split(' | '), 'v') + '</span>'); break;
+        case 'inj': blk('rc-inj', H.inj, '<span class="rc-l"><b>' + escT(M.inj.t) + '</b></span><span class="rc-l">' + sepHTML(M.inj.parts, 'v') + '</span>'); break;
         case 'retos':
           var rp = M.retos.pills.map(function (p) { return '<span class="rc-pill' + (p.nw ? ' nw' : '') + '">' + medalSVG(p.lvl) + escT(p.t) + '</span>'; }).join('');
           blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + ' (a cada jugador)</span>' : ''));
@@ -5943,6 +6070,10 @@
     subs6: { vals: ['auto', 'manual'], labels: ['Automáticos', 'Solo los míos'] },
     // S3-C1: repeticiones (main.js ctx.settings.replays → VB.Replay): puntos de set y de partido solos, solo en «Jugadas», o ninguna
     replays: { vals: ['auto', 'end', 'off'], labels: ['Automáticas', 'Al final', 'No'] },
+    // la zona y el saque de firma (20-nov-2026; main.js ctx.settings.zone / serveSig / serveGest; filas que pone znOptRows en Ajustes · Juego)
+    zone: { vals: ['career', 'all', 'off'], labels: ['Solo Carrera', 'Siempre', 'No'] },
+    serveSig: VB.SERVE_SIG ? { vals: VB.SERVE_SIG.ids.slice(), labels: VB.SERVE_SIG.ids.map(function (id) { var d = VB.SERVE_SIG.byId[id]; return d.short || d.name; }) } : { vals: ['clasico'], labels: ['Clásico'] },
+    serveGest: { vals: ['normal', 'tres', 'uno', 'giro'], labels: ['Ninguno', 'Tres botes', 'Un bote', 'Giro'] },
     // sede de cada tipo (Ajustes · Imagen; js/venues.js: las disponibles + «Al azar»). arena.js la cambia en vivo
     mapBeach: mapOpt('beach'), mapHall: mapOpt('hall')
   };
@@ -5977,7 +6108,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
+    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -6186,7 +6317,27 @@
   var lastFmtI = -1;
   var lastCam6I = -1;
   var lastDiffI = -1;
+  /** Ajustes · Juego: filas «La zona», «Saque de firma» y «Gesto antes de sacar» (las pone ui.js una vez, antes de Repeticiones; sin la
+   *  sim nueva, sin filas). La ayuda del saque de firma dice cómo es el elegido. */
+  var ZN_ROWS = [['zone', 'La zona', 'Buenas jugadas seguidas te mejoran un rato'],
+    ['serveSig', 'Saque de firma', ''], ['serveGest', 'Gesto antes de sacar', 'Solo se ve: pulsa y lanzas al momento']];
+  function znOptRows() {
+    var gt = document.querySelector('#optList .opt-g[data-tab="game"]');
+    if (!gt || !VB.SERVE_SIG || !VB.Sim || !VB.Sim.sigSane) return;
+    if (!gt.querySelector('[data-opt="zone"]')) {
+      var ref = gt.querySelector('[data-opt="replays"]') || gt.querySelector('.opt-go') || gt.querySelector('.opt-reset');
+      ZN_ROWS.forEach(function (r) {
+        var b = document.createElement('button'); b.className = 'opt'; b.setAttribute('data-opt', r[0]);
+        b.innerHTML = '<span>' + r[1] + '<small>' + r[2] + '</small></span><span class="seg sp-seg" data-seg="' + r[0] + '"></span>';
+        gt.insertBefore(b, ref || null);
+      });
+    }
+    var sm = gt.querySelector('[data-opt="serveSig"] small'), d = VB.SERVE_SIG.byId[ctx.settings.serveSig] || VB.SERVE_SIG.byId.clasico;
+    var h = d.id === 'clasico' ? 'Partido rápido. En la Carrera, en Jugador › Insignias' : d.desc + (d.key === 'jump' ? ' Va en SALTAR.' : ' Va en GOLPEAR.') + (d.venue === 'beach' ? ' Solo en la playa.' : '');
+    if (sm && sm.textContent !== h) sm.textContent = h;
+  }
   function renderOpts() {
+    znOptRows();
     if (VB.Splat) VB.Splat.sync();   // SPLAT: la equipación nueva tiñe los paneles al momento (firma: nada si no cambia)
     var segs = document.querySelectorAll('[data-seg]');
     for (var i = 0; i < segs.length; i++) {
@@ -6421,6 +6572,15 @@
   /** Saque dirigible (sim: g.aim3.kind 'serve' con la diana encendida). */
   var sbRect = null;
   function svAim(g) { return !!(g && g.aim3 && g.aim3.on && g.aim3.kind === 'serve'); }
+  /** Saque de firma en el aviso de saque (ZN-HUD): rótulos de los dos botones y cómo se dice en el consejo de PC. */
+  var SV_SIG_T = { potente: 'la bomba', flotsalto: 'flotante en salto', liftado: 'de tenis', abajo: 'de abajo', globo: 'el globo' };
+  function svSig(g) {
+    var o = { hit: 'Flotante', jump: 'Potente', hitT: 'flotante', jumpT: 'en salto', roof: '' }, L = null;
+    try { L = g && g.sig && VB.Sim.sigLabels ? VB.Sim.sigLabels(g) : null; } catch (e) { L = null; }
+    if (L && L.id) { o.hit = L.hit; o.jump = L.jump; if (L.hit !== 'Flotante') o.hitT = SV_SIG_T[L.id] || o.hitT; else o.jumpT = SV_SIG_T[L.id] || o.jumpT; }
+    if (g && g.sig && g.sig.roof && VB.SERVE_SIG) o.roof = '. ' + VB.SERVE_SIG.roofTxt;
+    return o;
+  }
 
   // Salto con impulso (v1.12.0): frases de «Cómo se juega» para el remate (siempre) y la colocación (con la diana de colocación)
   function momT() { return ' Corre hacia la red y salta sin soltar la dirección: el <b>remate sale más fuerte</b>.' + (fmt6() && !tutBeach() ? ' Desde detrás de la línea de 3 m, <b>pipe</b>.' : ''); }
@@ -6672,7 +6832,7 @@
   function goGymList(id) {
     var kb = kbNow() || ctx.inputDevice === 'gamepad';
     // ejercicio de la Carrera: vuelta al hub de la Carrera (main.js toMenu lo abre en Partido › Entrenamiento con el resultado)
-    if (ctx.game && ctx.game.careerDrill && !ctx.game.demo) { var fc = function () { ctx.actions.toMenu(); }; if (!wipeRun(2, fc) && !wp.cb) fc(); return; }
+    if (ctx.game && (ctx.game.careerDrill || ctx.game.careerExtDrill) && !ctx.game.demo) { var fc = function () { ctx.actions.toMenu(); }; if (!wipeRun(2, fc) && !wp.cb) fc(); return; }
     var f = function () {
       ctx.actions.toMenu();
       if (ctx.state !== 'menu') return;
@@ -7125,8 +7285,9 @@
   function geKickSet() { if (el.geKick && !geKickCr) setSep(el.geKick, document.documentElement.classList.contains('ph-s') ? ['Entrenamiento'] : ['Entrenamiento', venueName()], 'd'); }
   function gymEndShow(e, g) {
     var Gm = VB.Gym, id = e.kind, total = e.total | 0, res = null, M = gymMedals(id) || [99, 99, 99], cdr = g && g.careerDrill ? g.careerDrill : null;
+    var xdr = g && g.careerExtDrill ? g.careerExtDrill : null;   // ejercicio de una extensión de la Carrera (concurso…): tampoco va al gimnasio
     // (sesión de la Carrera: no toca make-the-cut.gym ni da experiencia al escuadrón de Partido rápido; cuenta en la Carrera, main.js)
-    if (Gm && Gm.record && !ctx.debug && !cdr) { try { res = Gm.record(id, total); } catch (er) { res = null; } }
+    if (Gm && Gm.record && !ctx.debug && !cdr && !xdr) { try { res = Gm.record(id, total); } catch (er) { res = null; } }
     // D2: sesión del Entrenamiento para el perfil (hito «modos»; la XP de las medallas es derivada de VB.Gym)
     if (!ctx.debug && g && !g.autopilot && VB.Profile && VB.Profile.noteGym) { try { VB.Profile.noteGym(id); } catch (er) { console.error('[VB][ERROR] Profile.noteGym: ' + er); } }
     if (!res) {   // depuración (o sin gym.js): lo que pasaría, sin guardar nada
@@ -7173,9 +7334,25 @@
     else { geT.textContent = el.btnGeAgain.getAttribute('data-t0'); el.btnGeAgain.removeAttribute('data-cdr'); el.btnGeAgain.removeAttribute('aria-label'); }
     if (cdr) { if (!el.btnGeList.getAttribute('data-cr')) el.btnGeList.setAttribute('data-cr', el.btnGeList.textContent); el.btnGeList.textContent = 'Volver a la Carrera'; setSep(el.geKick, ['Carrera', 'Sesión ' + cdr.n + ' de ' + cdr.max], 'd'); }
     else if (el.btnGeList.getAttribute('data-cr')) { el.btnGeList.textContent = el.btnGeList.getAttribute('data-cr'); el.btnGeList.removeAttribute('data-cr'); }
-    srSay(drillName(id) + ': ' + total + ' puntos' + (cdr && cdr.res && cdr.res.grade ? ', nota ' + cdr.res.grade : '') + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + (total > 0 && res.isBest && !cdr ? ', nuevo récord' : ''));
+    if (xdr) gymExtEnd(xdr);
+    srSay(drillName(id) + ': ' + total + ' puntos' + (xdr && xdr.res && xdr.res.say ? ', ' + xdr.res.say : '') + (cdr && cdr.res && cdr.res.grade ? ', nota ' + cdr.res.grade : '') + (res.medal ? ', medalla de ' + MEDAL_N[res.medal].toLowerCase() : '') + (total > 0 && res.isBest && !cdr ? ', nuevo récord' : ''));
     // depuración: la hoja al momento; si no, tras el sello de la última repetición (0,75 s) y la cortinilla
     geGate = !(ctx.debug && ctx.params.hold !== '1'); geWait = geGate; geT0 = ctx.time; shown = '';
+  }
+  /** Hoja final de un ejercicio de extensión (g.careerExtDrill.res = lo que devolvió X.drillDone): {kick: [textos], meds: HTML,
+   *  html: HTML (ya escapado), again: {label, arg} | null, next: {label, arg} | null, say}. «Volver a la Carrera» siempre. */
+  function gymExtEnd(xdr) {
+    var r = xdr.res || {};
+    geKickCr = true; setSep(el.geKick, r.kick && r.kick.length ? r.kick : ['Carrera', xdr.label || 'Prueba'], 'd');
+    if (r.meds != null) el.geMeds.innerHTML = r.meds;
+    el.geRec.innerHTML = r.html || '';
+    var geT = el.btnGeAgain.querySelector('.sp-t') || el.btnGeAgain;
+    if (!el.btnGeAgain.getAttribute('data-t0')) el.btnGeAgain.setAttribute('data-t0', geT.textContent);
+    el.btnGeAgain.hidden = !r.again; el.btnGeAgain.removeAttribute('data-cdr');
+    if (r.again) { geT.textContent = r.again.label || 'Otra vez'; el.btnGeAgain.setAttribute('data-xdr', 'again'); } else el.btnGeAgain.removeAttribute('data-xdr');
+    el.btnGeNext.hidden = !r.next; if (r.next) el.btnGeNext.textContent = r.next.label || 'Siguiente';
+    if (!el.btnGeList.getAttribute('data-cr')) el.btnGeList.setAttribute('data-cr', el.btnGeList.textContent);
+    el.btnGeList.textContent = 'Volver a la Carrera';
   }
   /** Líneas de la hoja final de una sesión de la Carrera (resultado de VB.Career.drillDone en g.careerDrill.res; P6): «Récord: B → A»
    *  (o el primero), la barra del atributo que se llena de prog0 a prog con lo ganado (si llega a 100, «+1 Recepción (64)»), las marcas
@@ -7208,6 +7385,20 @@
   }
   function geOpen() { geGate = false; shown = ''; if (ctx.game) syncScreens(ctx.game); }
   /** E1: línea de la hoja final con los usos de la maestría («Fintas 3 | Colocados 5 | Al filo 4 | Rápidas 2»), '' sin nada. */
+  /** Hoja final: la zona (g.stats.zn, tu equipo = 0) y el saque de firma (g.stats.sig), cada uno en su línea y solo si ha salido. */
+  function zoneLines(g) {
+    var s = g && !g.demo && g.stats, z = s && s.zn, sg = s && s.sig, out = [];
+    var n = z && z.n ? z.n[0] | 0 : 0;
+    if (n > 0) {
+      var t = Math.round(+z.t[0] || 0), p = z.pts ? z.pts[0] | 0 : 0;
+      out.push(sepHTML(['Zona: <b>' + n + '</b> ' + (n === 1 ? 'vez' : 'veces'), '<b>' + t + '</b> s', '<b>' + p + '</b> ' + (p === 1 ? 'punto' : 'puntos')], 'v', true));
+    }
+    if (sg && (sg.n | 0) > 0) {
+      var a = sg.aces | 0, f = sg.faults | 0;
+      out.push(sepHTML(['Saque de firma: <b>' + a + '</b> ' + (a === 1 ? 'ace' : 'aces'), '<b>' + f + '</b> ' + (f === 1 ? 'fallo' : 'fallos')], 'v', true));
+    }
+    return out;
+  }
   function masteryLine(g) {
     var m = g && !g.demo && (g.mastery || g.feintOn) && g.stats && g.stats.mastery || {}, d0 = g && !g.demo && g.stats && g.stats.dj;   // (6v6: lo del salto con impulso y las fintas)
     if (!(g && !g.demo && (g.mastery || g.feintOn) && g.stats && g.stats.mastery) && !d0) return '';
@@ -7802,11 +7993,14 @@
       if (el.gymList) el.gymList.addEventListener('pointerover', function (ev) { if (ev.pointerType !== 'mouse') return; var b = ev.target && ev.target.closest ? ev.target.closest('[data-drill]') : null; if (b && b !== gymHov) { gymHov = b; hoverSound(); } });
       if (el.btnGeAgain) el.btnGeAgain.addEventListener('click', function () {
         if (el.btnGeAgain.getAttribute('data-cdr')) { el.btnGeNext.click(); return; }   // sesión de la Carrera: el parche es «Siguiente sesión»
+        var xg = ctx.game && !ctx.game.demo ? ctx.game.careerExtDrill : null;   // ejercicio de extensión: «Otra vez» (res.again.arg)
+        if (xg) { var xa = xg.res && xg.res.again; if (!xa) return; uiSound('start'); var xf = function () { ctx.actions.startCareerExtDrill(xg.ext, xa.arg, !!ctx.game.autopilot); }; if (!wipeRun(2, xf) && !wp.cb) xf(); return; }
         uiSound('start'); if (isDrill()) goGym(ctx.game.drill.kind);
       });
       if (el.btnGeNext) el.btnGeNext.addEventListener('click', function () {
         var g = ctx.game;
         // sesión de la Carrera: la siguiente del plan (otra sesión; main.js startCareerDrill vuelve al hub si ya no se puede)
+        if (g && g.careerExtDrill && !g.demo) { var xn = g.careerExtDrill.res && g.careerExtDrill.res.next; if (!xn) return; uiSound('start'); var xk = g.careerExtDrill.ext, xfn = function () { ctx.actions.startCareerExtDrill(xk, xn.arg, !!g.autopilot); }; if (!wipeRun(2, xfn) && !wp.cb) xfn(); return; }
         if (g && g.careerDrill && !g.demo) { var cn = g.careerDrill.next; if (!cn) return; uiSound('start'); var fn = function () { ctx.actions.startCareerDrill(cn, !!g.autopilot); }; if (!wipeRun(2, fn) && !wp.cb) fn(); return; }
         var n = g && g.drill && VB.Gym && VB.Gym.nextOf ? VB.Gym.nextOf(g.drill.kind) : null; uiSound('start'); if (n) goGym(n);
       });
@@ -8053,7 +8247,7 @@
       el.end.classList.remove('win', 'lose');
       // E6 / E1: estado del ejercicio y del consejo de maestría de este partido
       geGate = false; geWait = false; gymTip = ''; gymTipT = 0; gymLast.t = NaN; gymLast.miss = ''; e1.k = ''; e1.t = 0; e1.on = false; lastSetJ = false;
-      gymBestV = g && g.drill && !g.demo && !g.careerDrill ? gymBestOf(g.drill.kind) : 0;   // (entreno de la Carrera: sin «Récord», es del gimnasio)
+      gymBestV = g && g.drill && !g.demo && !g.careerDrill && !g.careerExtDrill ? gymBestOf(g.drill.kind) : 0;   // (entreno de la Carrera: sin «Récord», es del gimnasio)
       el.app.classList.toggle('drill-on', !!(g && g.drill && !g.demo)); last.drOn = !!(g && g.drill && !g.demo);
       kitTick();
     },

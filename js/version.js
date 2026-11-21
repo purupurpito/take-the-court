@@ -36,11 +36,14 @@
  *   (js/netfluid.js _chalAsk, Sim.flChallenge; tools/fluidchaltest.js).
  * 1.15.1 (19-nov-2026): aviso de versión nueva (Ferran: «si un teléfono está en una versión anterior le salte un aviso en la
  *   pantalla de reiniciar»): js/update.js pregunta a Pages por version.json y ofrece «Reiniciar»; el online dice quién tiene que reiniciar.
+ * 1.19.0 (20-nov-2026): Carrera ampliada (notes/carrera.md, CONTRACT.md § extensiones): selección, lesiones, Estrellas y
+ *   concursos, cesiones, carrera por los premios, plan de desarrollo, la zona, saque de firma y prólogo juvenil.
  * 1.18.0 (20-nov-2026): Vestuario renovado (notes/vestuario-plan.md, notes/players.md § Vestuario): casco de pelo nuevo con 32
  *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
  * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
  *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
- * 1.19.0 (20-nov-2026): el juego pasa a llamarse Take the Court (decisión de Ferran, marca libre) y se muda a takethecourt.com.
+ * 1.19.1 / 1.19.2 (21-nov-2026): icono nuevo de la app y logo «Red cruzada» (TAKE / THE en la cinta / COURT con balón como O).
+ * 1.20.0 (21-nov-2026): el juego pasa a llamarse Take the Court (decisión de Ferran, marca libre) y se muda a takethecourt.com.
  *   Lo visible cambia; las claves internas (make-the-cut.*, proyecto de Firebase, gorraMTC) se quedan (notes/nombre.md). La
  *   partida viaja sola desde la dirección antigua con el puente (bridge/, js/migrate.js, notes/dominio.md).
  */
@@ -48,19 +51,45 @@
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.19.0';
-  VB.VERSION_DATE = '2026-11-20';
+  VB.VERSION = '1.20.0';
+  VB.VERSION_DATE = '2026-11-21';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
     {
-      v: '1.19.0', d: '2026-11-20', t: 'Ahora somos Take the Court',
+      v: '1.20.0', d: '2026-11-21', t: 'Ahora somos Take the Court',
       items: [
         'Make the Cut ahora se llama Take the Court.',
         'Nueva dirección: takethecourt.com.',
         'Tu partida viene contigo: abre el enlace de siempre y se trae sola.',
         'Si juegas con cuenta, entra con ella y lo tendrás todo.',
         'Si lo tenías instalado, vuelve a instalarlo desde takethecourt.com.'
+      ]
+    },
+    {
+      v: '1.19.2', d: '2026-11-21', t: 'Logo nuevo',
+      items: [
+        'Logo nuevo en el menú y al arrancar.'
+      ]
+    },
+    {
+      v: '1.19.1', d: '2026-11-21', t: 'Icono nuevo',
+      items: [
+        'Icono nuevo de la app.'
+      ]
+    },
+    {
+      v: '1.19.0', d: '2026-11-20', t: 'Carrera ampliada',
+      items: [
+        'Selección nacional: convocatorias, clasificación, Mundial y Juegos Cuatrienales.',
+        'Lesiones poco frecuentes: unos partidos de baja, y puedes volver antes con riesgo.',
+        'Partido de las Estrellas, Sol contra Luna, con concursos de saque, recepción y remate.',
+        'Cesiones: pide salir cedido o que te cedan, y pide el traspaso si no juegas.',
+        'Carrera por los premios: sigue cada semana quién va primero en cada trofeo.',
+        'Plan de desarrollo y cambio de puesto: pídeselo al entrenador.',
+        'La zona: encadena buenas jugadas y juega encendido. El rival también tiene rachas.',
+        'Saque de firma: elige tu estilo de saque y celebra tus aces.',
+        'Prólogo juvenil: empieza en el instituto y gánate las pruebas de los clubes.'
       ]
     },
     {

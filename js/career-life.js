@@ -526,6 +526,7 @@
   // ------------------------------------------------------------------ premios de la temporada
   // Rivales simulados de la liga: lo que necesitas para ganar cada premio (por partido de la temporada). Objetivo: el autopiloto
   // (≈ jugador bueno) gana 1-2 por temporada jugándolo todo; simulando más de media temporada, ninguno.
+  // (espejo en js/career-race.js needOf: si cambias una fórmula de AWARDS, cámbiala también allí; racetest §2 lo vigila)
   var AWARDS = [
     { id: 'mvp', name: 'MVP', test: function (c, x) { return x.nota != null && x.nota >= 8 + 0.5 * x.r() - 0.15 * x.L && x.pos <= 2; } },
     // (h: el mismo premio en la pista, por partido a 15 y × ptsF; con lo medido para los retos —CH6— lo gana una temporada de las
@@ -647,14 +648,25 @@
   function legacyScore(c) {
     var l = ensure(c), s = 0;
     (c.trophies || []).forEach(function (t) {
+      var xl = extLegacyOf(c, t); if (xl != null) { s += xl; return; }   // trofeos de una extensión (selección…): valen lo que diga ella
       var lv = trophyLvl(c, t);
       s += t.kind === 'liga' ? 10 + 6 * lv : t.kind === 'copa' ? 6 + 4 * lv : t.kind === 'intl' ? 25 : t.kind === 'premio' ? (/^MVP/.test(t.name) ? 12 : 5) + 2 * lv : 4;
     });
     s += Math.round(Math.log(1 + l.fameMax) * 4);
     s += Math.round(((c.career && c.career.won) | 0) / 5);
     s += Object.keys(l.ach).length * 2;
+    s += extLegacyExtra(c);   // extensiones (internacionalidades…)
     return s;
   }
+  // extensiones de la Carrera (VB.CareerExt; CONTRACT.md «Extensiones de la Carrera»): legacyOf(c, t) → puntos del trofeo t o null
+  // (no es suyo); legacyExtra(c) → puntos extra; retireRec(c, rec) → completa la ficha del Salón de la Fama (p. ej. rec.caps)
+  function extList() { return Array.isArray(VB.CareerExt) ? VB.CareerExt : []; }
+  function extLegacyOf(c, t) {
+    var v = null;
+    extList().some(function (x) { if (!x || typeof x.legacyOf !== 'function') return false; try { var r = x.legacyOf(c, t); if (r != null && isFinite(+r)) { v = +r; return true; } } catch (e) { } return false; });
+    return v;
+  }
+  function extLegacyExtra(c) { var s = 0; extList().forEach(function (x) { if (x && typeof x.legacyExtra === 'function') { try { s += +x.legacyExtra(c) || 0; } catch (e) { } } }); return Math.round(s); }
   /** Escalón de legado de s puntos (c: con la carrera de pista, los nombres de pabellón). next = [puntos, nombre] o null. */
   function legacyTier(s, c) {
     var i = 0, nmOf = function (t) { return hall(c) && t[2] ? t[2] : t[1]; }; for (var j = 0; j < LEG_TIERS.length; j++) if (s >= LEG_TIERS[j][0]) i = j;
@@ -669,8 +681,10 @@
     var c = K().load(); if (!canRetire(c)) return null;
     var l = ensure(c), sc = legacyScore(c), lt = legacyTier(sc, c), k = K(c).myClub(c);
     var rec = { name: c.player.name, num: c.player.num, role: c.player.role, age: c.player.age, seasons: c.season, score: sc, tier: lt.name,
-      titles: (c.trophies || []).filter(function (t) { return t.kind === 'liga' || t.kind === 'copa' || t.kind === 'intl'; }).length,
-      awards: l.awards.length, fans: Math.round(l.fameMax), club: k ? k.name : '', ovr: K(c).playerOvr(c), played: (c.career && c.career.played) | 0, mode: hall(c) ? 'hall' : 'beach', date: Date.now() };
+      titles: (c.trophies || []).filter(function (t) { return t.kind === 'liga' || t.kind === 'copa' || t.kind === 'intl' || t.kind === 'sel'; }).length,   // ('sel': oro con la selección)
+      awards: l.awards.length, fans: Math.round(l.fameMax), club: k ? k.name : '', ovr: K(c).playerOvr(c), played: (c.career && c.career.played) | 0, mode: hall(c) ? 'hall' : 'beach', date: Date.now(),
+      caps: c.natl && c.natl.car ? c.natl.car.caps | 0 : 0 };   // partidos con la selección (js/career-natl.js; 0 sin ella)
+    extList().forEach(function (x) { if (x && typeof x.retireRec === 'function') { try { x.retireRec(c, rec); } catch (e) { } } });
     var all = legends(); all.push(rec); all.sort(function (a, b) { return b.score - a.score; }); all = all.slice(0, 20);
     try { root.localStorage.setItem(LEG_KEY, JSON.stringify(all)); } catch (e) { }
     K(c).abandon();

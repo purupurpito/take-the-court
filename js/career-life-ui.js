@@ -315,7 +315,7 @@
     h += '</div>';
     var lg = Lf().legends();
     if (lg.length) h += '<div class="card"><h3>Salón de la Fama</h3><table><thead><tr><th class="l">Jugador</th><th>Legado</th><th class="hide-s">Títulos</th><th class="hide-s">Premios</th><th>Temp.</th></tr></thead><tbody>' +
-      lg.slice(0, 10).map(function (r) { return '<tr><td class="club">' + esc(r.name) + ' <span class="muted">(' + esc(r.tier) + (r.mode === 'hall' ? ', pista' : '') + ')</span></td><td>' + r.score + '</td><td class="hide-s">' + r.titles + '</td><td class="hide-s">' + r.awards + '</td><td>' + r.seasons + '</td></tr>'; }).join('') + '</tbody></table></div>';
+      lg.slice(0, 10).map(function (r) { return '<tr><td class="club">' + esc(r.name) + ' <span class="muted">(' + esc(r.tier) + (r.mode === 'hall' ? ', pista' : '') + ')</span>' + ((r.caps | 0) > 0 ? ' <span class="muted hide-s">' + (r.caps | 0) + ' con la selección</span>' : '') + '</td><td>' + r.score + '</td><td class="hide-s">' + r.titles + '</td><td class="hide-s">' + r.awards + '</td><td>' + r.seasons + '</td></tr>'; }).join('') + '</tbody></table></div>';
     return h;
   }
 

@@ -8,7 +8,7 @@
  * con data URI de index.html (en Pages manda icon.svg) y amplía el manifest (description, id, categories).
  * Guardas que hacen FALLAR el build: VB.VERSION ausente o no semver, CHANGELOG[0].v !== VERSION, falta pages/og.png, y un index
  * con más (o menos) de un rel="icon".
- * PAGES_URL=<url> cambia la dirección pública (por defecto https://takethecourt.com/, desde la 1.19.0; antes
+ * PAGES_URL=<url> cambia la dirección pública (por defecto https://takethecourt.com/, desde la 1.20.0; antes
  * https://purupurpito.github.io/make-the-cut/): canonical, og:url y la dirección absoluta de og:image. El resto del sitio va con rutas
  * RELATIVAS y funciona igual en la raíz de un dominio y en una subcarpeta.
  * PAGES_CNAME=<dominio> escribe _site/CNAME (por defecto takethecourt.com; PAGES_CNAME= vacío no lo escribe). OJO: con Pages desplegado
@@ -35,6 +35,10 @@ const VERSION = VBV.VERSION;
 if (typeof VERSION !== 'string' || !/^\d+\.\d+\.\d+$/.test(VERSION)) fail('VB.VERSION falta o no es semver x.y.z: ' + VERSION);
 const C0 = Array.isArray(VBV.CHANGELOG) && VBV.CHANGELOG[0];
 if (!C0 || C0.v !== VERSION) fail('CHANGELOG[0].v (' + (C0 && C0.v) + ') no coincide con VERSION ' + VERSION + ': añade arriba la entrada de la versión');
+// el puente de la dirección antigua (bridge/version.json) tiene que decir la MISMA versión: js/update.js solo avisa a las pestañas viejas
+// («Hay una versión nueva» → Reiniciar → puente) si es MAYOR que la que tienen (notes/dominio.md)
+try { const bv = JSON.parse(fs.readFileSync(path.join(ROOT, 'bridge', 'version.json'), 'utf8')).v; if (bv !== VERSION) fail('bridge/version.json dice ' + bv + ' y VB.VERSION es ' + VERSION + ': ponlas iguales'); }
+catch (e) { if (fs.existsSync(path.join(ROOT, 'bridge', 'version.json'))) fail('bridge/version.json ilegible (' + e.message + ')'); }
 if (!fs.existsSync(path.join(ROOT, 'pages', 'og.png'))) fail('falta pages/og.png (se genera con node tools/og-image.js)');
 
 let BASE = process.env.PAGES_URL || 'https://takethecourt.com/';
@@ -45,7 +49,7 @@ const DESC = 'Vóley cartoon en 3D: partidos 2 contra 2 y 6 contra 6, pista cubi
   'Salón de la Fama. Gratis en móvil y ordenador, con mando, teclado o táctil.';
 const attr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 const SHA = String(process.env.GITHUB_SHA || '').replace(/[^0-9a-f]/gi, '').slice(0, 7);
-const OG_IMG = BASE + 'og.png?v=' + VERSION;
+const OG_IMG = BASE + 'og.png?v=' + require('crypto').createHash('sha1').update(fs.readFileSync(path.join(ROOT, 'pages', 'og.png'))).digest('hex').slice(0, 8); // por contenido: al cambiar la imagen, las redes la piden de nuevo
 const metaTags = [
   '<meta name="description" content="' + attr(DESC) + '">',
   '<link rel="canonical" href="' + attr(BASE) + '">',

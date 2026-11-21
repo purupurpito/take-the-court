@@ -7,8 +7,8 @@
  *     al arrancar (a los 4 s), al volver a la pestaña (como mucho cada 5 min) y al entrar en el Online (VB.Update.check(true)).
  *   - Si la publicada es más nueva: hoja «Hay una versión nueva» con «Reiniciar» (recarga con ?u= para saltarse la caché del index) y
  *     «Luego». Nunca durante un partido: espera a que acabe. Con «Luego» no vuelve a salir hasta otra versión o hasta entrar en el Online.
- *   - Traspaso a takethecourt.com (1.19.0, notes/dominio.md): el puente de la dirección antigua (bridge/) también sirve un version.json
- *     con la 1.19.0, así que las pestañas viejas que siguen abiertas ven «Hay una versión nueva», «Reiniciar» las lleva al puente y el
+ *   - Traspaso a takethecourt.com (1.20.0, notes/dominio.md): el puente de la dirección antigua (bridge/) también sirve un version.json
+ *     con la 1.20.0, así que las pestañas viejas que siguen abiertas ven «Hay una versión nueva», «Reiniciar» las lleva al puente y el
  *     puente, a takethecourt.com con la partida. Por eso la petición es RELATIVA (sirve igual en /make-the-cut/ y en la raíz).
  *   - Sin red, en file:// o sin version.json no hace nada. Pruebas: &vnew=X.Y.Z hace como si la publicada fuera X.Y.Z (sin pedir nada).
  * API: VB.Update.check(force) · .cmp(a, b) (-1/0/1, por números) · .latest (la publicada más nueva que se ha visto, o '') ·

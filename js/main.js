@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -142,6 +142,11 @@
     if (['auto', 'end', 'off'].indexOf(s.replays) < 0) s.replays = 'auto';   // S3-C1 (sin migración: lo que falte o no valga, 'auto')   // 6v6: cambios de tu equipo (ui.js «Cambios de tu equipo»: Automáticos / Solo los míos)
     s.jsetAim = s.jsetAim === true; s.jsetNote = s.jsetNote !== false;   // (salto con impulso: diana de colocación, no por defecto; aviso de colocador, sí)
     if (['full', 'calm', 'off'].indexOf(s.ambient) < 0) s.ambient = 'full';   // ambiente de Carrera (Ajustes · Juego; notes/ambiente.md §2F)
+    // zona y saque de firma (20-nov-2026): zone 'career' (solo en la Carrera, también la CPU) | 'all' (también en Partido rápido) | 'off';
+    // serveSig / serveGest = saque de firma de Partido rápido (catálogo VB.SERVE_SIG de js/sim.js; sin él, 'clasico')
+    if (['career', 'all', 'off'].indexOf(s.zone) < 0) s.zone = 'career';
+    if (!(VB.SERVE_SIG && Array.isArray(VB.SERVE_SIG.ids) && VB.SERVE_SIG.ids.indexOf(s.serveSig) >= 0)) s.serveSig = 'clasico';
+    if (['normal', 'tres', 'uno', 'giro'].indexOf(s.serveGest) < 0) s.serveGest = 'normal';
     if (['auto', 'high', 'medium', 'low'].indexOf(s.quality) < 0) s.quality = 'auto';
     s.camSens = Math.max(0.5, Math.min(1.5, +s.camSens || 1));
     s.sfxVol = Math.max(0, Math.min(1, isFinite(+s.sfxVol) ? +s.sfxVol : 1));
@@ -536,7 +541,8 @@
     if (!opts.career && !opts.autopilot && ctx.game && ctx.game.career && !ctx.game.demo) {
       if (ctx.state === 'over') { ctx.actions.toMenu(); return; }
       if (ctx.state === 'paused' || ctx.state === 'playing') {
-        if (ctx.game.career.trial) { if (!trialForfeit(ctx.game.career, 'restart')) ctx.actions.startCareerTrial(ctx.game.career.offer); else ctx.actions.toMenu(); }
+        if (ctx.game.career.ext) ctx.actions.startCareerExt(ctx.game.career.ext, ctx.game.career.extArg, false);   // (partido de una extensión: su setup es reentrante)
+        else if (ctx.game.career.trial) { if (!trialForfeit(ctx.game.career, 'restart')) ctx.actions.startCareerTrial(ctx.game.career.offer); else ctx.actions.toMenu(); }
         else ctx.actions.startCareerMatch();
         return;
       }
@@ -619,7 +625,11 @@
       stats: !auto || undefined,
       // ambiente de Carrera (notes/ambiente.md §0.2): abre las 3 puertas de la sim (Sim.holdFor / canPenalty / penalty) solo en la
       // Carrera jugada con el ajuste encendido; sin él (partido rápido, entreno, online, autopilot) la sim no cambia
-      amb: cs && !auto && ctx.settings.ambient !== 'off' ? true : undefined });
+      amb: cs && !auto && !cs.noAmb && ctx.settings.ambient !== 'off' ? true : undefined,
+      // zona y saque de firma (20-nov-2026; sim: opts.zone / opts.serveSig). Carrera: la zona salvo «Apagada» (también la CPU) y tu
+      // saque de firma (m.serveSig); Partido rápido: la zona solo con «Siempre» y el saque de firma de Ajustes. Sin la sim nueva, nada
+      zone: auto || (cs && cs.noZone) ? undefined : cs ? (ctx.settings.zone !== 'off' ? { cpu: true } : undefined) : (ctx.settings.zone === 'all' ? {} : undefined),
+      serveSig: auto ? undefined : cs ? (opts.serveSig || undefined) : (Sim.sigSane ? sigSaneSafe({ id: ctx.settings.serveSig, gest: ctx.settings.serveGest, sun: ctx.settings.beachLight === 'tarde' ? 0.4 : 1 }, fmt ? 'hall' : (cvK || venueNow())) : undefined) });
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
@@ -1091,7 +1101,8 @@
     tryFullscreen();
     ctx.frozen = false;
     applyVenuePend();
-    var free = id === 'free', own = !auto && !Q.debug, cd = opts.careerDrill && !free ? opts.careerDrill : null;
+    // (opts.careerExtDrill: ejercicio de una extensión de la Carrera —concursos de Estrellas…—, montado igual que la sesión)
+    var free = id === 'free', own = !auto && !Q.debug, cdx = opts.careerExtDrill && !free ? opts.careerExtDrill : null, cd = cdx || (opts.careerDrill && !free ? opts.careerDrill : null);
     // ejercicio de la Carrera: en la sede de tu Carrera (cd.venue: playa o pabellón, como sus partidos; toMenu la suelta); los del
     // Entrenamiento de Partido rápido, en el escenario del ajuste. (En el pabellón el ejercicio sigue siendo 2 contra 2: la sim no
     // tiene ejercicios de 6.)
@@ -1110,7 +1121,8 @@
       mastery: !auto, aimSet: ctx.settings.aimSet !== false, djump: !auto, jsetAim: ctx.settings.jsetAim === true });
     g.gym = g.drill ? id : null;
     // marca de ejercicio de Carrera: al acabar (drillEnd) cuenta como sesión (careerDrillDone) y la hoja final vuelve al hub (ui.js)
-    if (cd && g.drill) g.careerDrill = { id: id, mode: cd.mode, n: cd.n, max: cd.max, attrName: cd.attrName || '', done: false, res: null };
+    if (cdx && g.drill) g.careerExtDrill = { ext: cdx.ext, arg: cdx.arg, id: id, mode: cdx.mode, n: cdx.n | 0, max: cdx.max | 0, label: cdx.label || '', pause: cdx.pause || null, done: false, res: null };
+    else if (cd && g.drill) g.careerDrill = { id: id, mode: cd.mode, n: cd.n, max: cd.max, attrName: cd.attrName || '', done: false, res: null };
     endTweaked = false; careerEnd = null;
     restoreEndButtons();
     // (Vestuario: en la sesión de Carrera tu atleta lleva el aspecto de la Carrera, y el compañero de playa el suyo, como en el partido;
@@ -1147,6 +1159,69 @@
       if (nx && drillId(nx) && inf.drills.some(function (x) { return x.id === nx; })) d.next = nx;
     } catch (e) { reportError('Career.trainInfo', e); d.next = null; }
   }
+  // ---------- extensiones de la Carrera: partidos y ejercicios propios (20-nov-2026; CONTRACT.md «Extensiones de la Carrera») ----------
+  // Una extensión (VB.CareerExt, js/career-*.js) con setup/done/quit lanza partidos sueltos (selección, Partido de las Estrellas,
+  // juvenil…) y con drillSetup/drillDone/drillQuit ejercicios (concursos). career-ui.js los pide con act → {play} / {drill}.
+  function careerExt(id) { var a = Array.isArray(VB.CareerExt) ? VB.CareerExt : []; for (var i = 0; i < a.length; i++) if (a[i] && a[i].id === id) return a[i]; return null; }
+  function sigSaneSafe(o, v) { try { return Sim.sigSane(o, v) || undefined; } catch (e) { return undefined; } }
+  /** Partido suelto de la extensión id: X.setup(arg, auto) → opciones como matchSetup (attrs, badges, points, sets, difficulty,
+   *  rookie, ref, venue, venueMap | fixture, format '6v6', ctrlRole, ctrlIdx, meSlot, meBench, names, kit, rivalKit, nums, bench,
+   *  coach, serveSig, career {…; noAmb, noZone, pause{restart, quit, warn}}). Al acabar, careerEvents llama a X.done. */
+  ctx.actions.startCareerExt = function (id, arg, auto) {
+    var X = careerExt(id), K = VB.Career, m = null;
+    if (!X || typeof X.setup !== 'function') return false;
+    try { m = X.setup(arg, !!auto); } catch (e) { reportError('CareerExt.setup ' + id, e); m = null; }
+    if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open('hub'); return false; }
+    if (K && K.abortMatch) K.abortMatch();
+    var six = m.format === '6v6', cs = m.career || {};
+    cs.ext = id; cs.extArg = arg; if (!cs.mode) cs.mode = six ? 'hall' : 'beach';
+    var vid = m.venueMap || null;
+    if (!vid && m.fixture && VB.Venues && VB.Venues.forMatch) { try { vid = VB.Venues.forMatch(m.fixture, m.venue || (six ? 'hall' : 'beach')); } catch (e) { vid = null; } }
+    careerEnd = null;
+    ctx.actions.startMatch({ career: cs, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, sets: m.sets === 1 ? 1 : undefined, difficulty: m.difficulty, rookie: !!m.rookie,
+      ctrl: 'one', ctrlIdx: m.ctrlIdx | 0, ref: m.ref, autopilot: !!auto, venue: m.venue || (six ? 'hall' : 'beach'), format: six ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined,
+      bench: m.bench || undefined, coach: m.coach || undefined, meSlot: m.meSlot, meBench: m.meBench, names: m.names || undefined, serveSig: m.serveSig || undefined,
+      kit: m.kit ? Object.assign({}, m.kit, { rival: m.rivalKit || null }, m.scrim ? { scrim: m.scrim } : null) : null,
+      nums: m.nums || [[cs.num | 0 || null, cs.mateNum | 0 || null], null] });
+    return true;
+  };
+  /** Ejercicio de la extensión id (concurso…): X.drillSetup(arg) → como VB.Career.drillSetup más {id: ejercicio de VB.DRILL, label,
+   *  n, max}. Al acabar (drillEnd) X.drillDone(arg, total, reps, g) → resultado para la hoja (ui.js gymEndShow). */
+  ctx.actions.startCareerExtDrill = function (id, arg, auto) {
+    var X = careerExt(id), s = null;
+    if (!X || typeof X.drillSetup !== 'function') return false;
+    try { s = X.drillSetup(arg); } catch (e) { reportError('CareerExt.drillSetup ' + id, e); s = null; }
+    if (!s || !drillId(s.id)) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open('hub'); return false; }
+    ctx.actions.startMatch({ drill: s.id, careerExtDrill: Object.assign({}, s, { ext: id, arg: arg }), autopilot: !!auto });
+    return true;
+  };
+  function careerExtDrillDone(g) {
+    var d = g && g.careerExtDrill; if (!d || d.done) return;
+    d.done = true; var X = careerExt(d.ext);
+    try { d.res = X && X.drillDone ? X.drillDone(d.arg, g.drill ? g.drill.total | 0 : 0, g.drill ? (g.drill.reps || []).slice() : [], g) : null; } catch (e) { reportError('CareerExt.drillDone', e); d.res = null; }
+  }
+  /** Ejercicio o partido de extensión dejado a medias (why 'restart' | 'quit'): X.drillQuit / X.quit. */
+  function careerExtQuit(g, why) {
+    if (!g) return;
+    var d = g.careerExtDrill, cs = g.career, X = d ? careerExt(d.ext) : cs && cs.ext ? careerExt(cs.ext) : null; if (!X) return;
+    try { if (d) { if (!d.done && X.drillQuit) X.drillQuit(d.arg, why, g); } else if (X.quit) X.quit(cs, why, g); } catch (e) { reportError('CareerExt.quit', e); }
+  }
+  /** Hoja final propia de un partido de extensión (s = lo que devolvió X.done con html/title/kicker; X.sheet(g, s, els) opcional). */
+  function careerExtSheet(g, s) {
+    endTweaked = true;
+    var $ = function (id) { return document.getElementById(id); }, X = careerExt(s.ext);
+    var en = $('end'), a = $('btnAgain'), alt = $('btnAgainAlt'), mn = $('btnMenu'), t = $('endTitle'), k = $('endKicker');
+    if (a) { if (!a.getAttribute('data-cr')) a.setAttribute('data-cr', a.textContent); a.textContent = s.back || (X && X.back) || 'Volver a la Carrera'; }
+    if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú principal'; mn.hidden = false; }
+    if (alt) alt.hidden = true;
+    if (t) { t.classList.remove('long'); if (s.title) t.textContent = s.title; }
+    if (k && s.kicker) { var kp = Array.isArray(s.kicker) ? s.kicker : [s.kicker]; try { if (VB.UI && VB.UI.setSep) VB.UI.setSep(k, kp, 'd'); else k.textContent = kp.join(' | '); } catch (e) { k.textContent = kp.join(' | '); } }
+    var sm = $('endSum'), box = document.createElement('div'); box.id = 'endExt'; box.className = 'rc-b end-rec end-ext';
+    box.innerHTML = typeof s.html === 'string' ? s.html : '';
+    if (sm) { sm.innerHTML = ''; sm.appendChild(box); }
+    if (en) en.classList.add('trial');   // (hoja compacta, como la de la prueba)
+    if (X && typeof X.sheet === 'function' && !s.none) { try { X.sheet(g, s, { en: en, title: t, kicker: k, box: box }); } catch (e) { reportError('CareerExt.sheet', e); } }
+  }
   /** Insignias equipadas del escuadrón de Partido rápido para createGame({badges}) (null sin js/badges.js o sin ninguna). */
   function squadBadges() {
     var B = VB.Badges; if (!B) return null;
@@ -1179,7 +1254,7 @@
     // C3: el jefe del circuito es el n.º 1 rival (su club excluye el de tu rival personal: no coincide con rivalNum)
     var bossNum = m.career && m.career.rivalNum == null && (m.career.bossNum | 0) > 0 ? m.career.bossNum | 0 : 0;
     var n = null; try { n = K.next && K.next(); } catch (e) { } var vid = n && VB.Venues && VB.Venues.forMatch ? VB.Venues.forMatch(n, m.venue || 'beach') : null; // sede del partido (js/venues.js, tabla EMBLEM)
-    ctx.actions.startMatch({ career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
+    ctx.actions.startMatch({ career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
       venue: m.venue || 'beach', // vóley playa: Platja Llarga y sus reglas (VB.Career.matchSetup().venue); la Carrera de pista, 'hall'
       format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, // Carrera de pista (lote C): 6v6 en tu puesto
       // titularidad y cambios (notes/titularidad-y-cambios.md §I.1): tal cual a Sim.createGame
@@ -1204,7 +1279,7 @@
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open('pick'); return false; }
     if (K.abortMatch) K.abortMatch();
     var six = m.format === '6v6', cs = m.career || {};
-    ctx.actions.startMatch({ career: cs, attrs: m.attrs, badges: m.badges, points: m.points, sets: 1, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref,
+    ctx.actions.startMatch({ career: cs, attrs: m.attrs, badges: m.badges, points: m.points, sets: 1, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined,
       venue: m.venue || 'beach', format: six ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, names: m.names || undefined,
       // los petos van sobre la equipación del club (sin rival: los dos equipos son del mismo club, players.js se salta rivalPick)
       kit: m.kit ? Object.assign({}, m.kit, { scrim: m.scrim || {} }) : { scrim: m.scrim || {} },
@@ -1226,6 +1301,7 @@
     var tb = document.getElementById('endTrial'); if (tb && tb.parentNode) tb.parentNode.removeChild(tb);   // (hoja de la prueba)
     var tr = document.getElementById('endTrialRt'); if (tr && tr.parentNode) tr.parentNode.removeChild(tr);   // (y su «Lo mejor / A mejorar»)
     var er = document.getElementById('endRt'); if (er && er.parentNode) er.parentNode.removeChild(er);   // (el de la nota en directo del Resumen)
+    var ex = document.getElementById('endExt'); if (ex && ex.parentNode) ex.parentNode.removeChild(ex);   // (hoja de un partido de extensión)
     var e = document.getElementById('end'); if (e) e.classList.remove('career', 'trial'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
     var a = document.getElementById('btnAgain'); if (a && a.getAttribute('data-cr')) { a.textContent = a.getAttribute('data-cr'); a.removeAttribute('data-cr'); }
     var m = document.getElementById('btnMenu'); if (m && m.getAttribute('data-cr')) { m.textContent = m.getAttribute('data-cr'); m.removeAttribute('data-cr'); }
@@ -1420,6 +1496,10 @@
     // también la gasta: «Abandonar la prueba» la resuelve aquí como suspendida (trialForfeit 'quit') y va a las ofertas igual
     var trialC = fromCareer && ctx.game.career.trial ? ctx.game.career : null;
     if (trialC && !careerEnd) trialForfeit(trialC, 'quit');
+    // partido o ejercicio de una extensión: a medias, X.quit / X.drillQuit; luego al hub
+    var extC = fromCareer && ctx.game.career.ext ? ctx.game.career : null;
+    var extD = !!(ctx.game && ctx.game.careerExtDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerExtDrill : null;
+    if ((extC && !careerEnd) || (extD && !extD.done)) careerExtQuit(ctx.game, 'quit');
     var trialE = trialC ? careerEnd : null;
     if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
@@ -1428,6 +1508,7 @@
     setGame(demoGame());
     setState('menu');
     if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
+    else if ((extD || extC) && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: true, extRes: extD ? extD.res : careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (trialC && !menuOnly && VB.CareerUI && VB.CareerUI.open) {
       try { if (trialE && trialE.pass) VB.CareerUI.open('hub', { fresh: true, trialRes: trialE }); else VB.CareerUI.open('pick', { trialRes: trialE && !trialE.none ? trialE : null }); }
       catch (e) { reportError('CareerUI.open', e); }
@@ -1471,6 +1552,14 @@
   function restartRun() {
     var g = ctx.game, live = !!(g && !g.demo);
     if (live && g.careerDrill && !g.careerDrill.done && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, !!g.autopilot); return; }
+    // ejercicio de extensión a medias: X.drillQuit(arg, 'restart') decide (false = no se puede repetir: vuelta al hub)
+    if (live && g.careerExtDrill && g.drill) {
+      var xd = g.careerExtDrill, XX = careerExt(xd.ext), ok = true;
+      if (!xd.done && XX && XX.drillQuit) { try { ok = XX.drillQuit(xd.arg, 'restart', g) !== false; } catch (e) { reportError('CareerExt.drillQuit', e); } }
+      if (ok) ctx.actions.startCareerExtDrill(xd.ext, xd.arg, !!g.autopilot); else ctx.actions.toMenu();
+      return;
+    }
+    if (live && g.career && g.career.ext) { ctx.actions.startCareerExt(g.career.ext, g.career.extArg, !!g.autopilot); return; }
     if (live && g.drill) { ctx.actions.startMatch({ drill: g.drill.kind, autopilot: !!g.autopilot }); return; }
     if (live && g.retoOpts) { ctx.actions.startMatch(Object.assign({}, g.retoOpts, { introKind: 'mini' })); return; }
     if (live && g.career) { ctx.actions.startMatch(); return; }
@@ -1953,7 +2042,7 @@
       if (rpRec) { try { RPL.onEvents(g, frameEvents); if (RPL.autoReady(g)) RPL.start('auto'); } catch (e) { reportError('Replay.onEvents', e); } }
       if (ctx.state === 'playing' && g.finished && frameEvents.some(isGameOver)) setState('over');
       // E6: la 10ª repetición del ejercicio (la sim no emite gameOver: drillEnd y g.drill.done)
-      else if (ctx.state === 'playing' && g.drill && g.drill.done && frameEvents.some(isDrillEnd)) { if (g.careerDrill) careerDrillDone(g); setState('over'); }
+      else if (ctx.state === 'playing' && g.drill && g.drill.done && frameEvents.some(isDrillEnd)) { if (g.careerDrill) careerDrillDone(g); if (g.careerExtDrill) careerExtDrillDone(g); setState('over'); }
       if (g.career && !g.demo && frameEvents.length) careerEvents(g, frameEvents);
       // ambiente de Carrera: director (después de la Carrera y del grabador de repeticiones, que no ve los amb:*)
       if (g.career && !g.demo) ambFrame(g, gdt, frameEvents);
@@ -1994,7 +2083,9 @@
       // con «Lo mejor / A mejorar» de la nota en directo (careerRtBlock); el partidillo de prueba, su hoja propia (careerTrialSheet)
       if (careerEnd && !endTweaked && ctx.state === 'over') {
         endTweaked = true;
-        if (careerEnd.trial || (g.career && g.career.trial)) { try { careerTrialSheet(g, careerEnd); } catch (e) { reportError('careerTrialSheet', e); } }
+        var xEnd = careerEnd.ext ? careerExt(careerEnd.ext) : null;
+        if (careerEnd.ext && (typeof careerEnd.html === 'string' || careerEnd.none || (xEnd && xEnd.sheet))) { try { careerExtSheet(g, careerEnd); } catch (e) { reportError('careerExtSheet', e); } }   // (extensión: su hoja; sin html, el Resumen de siempre)
+        else if (careerEnd.trial || (g.career && g.career.trial)) { try { careerTrialSheet(g, careerEnd); } catch (e) { reportError('careerTrialSheet', e); } }
         else { call('UI', 'endCareer', careerEnd, g, careerEndXv); try { careerRtBlock(careerEnd); } catch (e) { reportError('careerRtBlock', e); } }
       }
       // (marcador con las abreviaturas de los clubes: lo pinta ui.js con g.career.me / g.career.rival)
@@ -2076,6 +2167,13 @@
     for (var i = 0; i < evs.length; i++) {
       var e = evs[i];
       if (e.type !== 'gameOver' || careerEnd) continue;
+      // partido de una extensión (selección, Estrellas, juvenil…): lo cierra X.done(res, g); ni jornada ni matchDone
+      if (g.career && g.career.ext) {
+        var XD = careerExt(g.career.ext), xr = null;
+        try { xr = XD && XD.done ? XD.done({ sets: [e.sets[0], e.sets[1]], setScores: e.setScores || g.setScores, win: e.team === 0 }, g) : null; } catch (er) { reportError('CareerExt.done', er); xr = null; }
+        careerEnd = Object.assign({ ext: g.career.ext }, xr || { none: true }); careerEndXv = null;
+        continue;
+      }
       // partidillo de prueba: lo cierra trialDone (nota con letra, objetivos, te fichan o no); ni jornada, ni XP, ni entrenador
       if (g.career && g.career.trial) {
         var tr = null;
@@ -2302,7 +2400,9 @@
   // &live=1 sigue corriendo después; &seed=N cambia la semilla.
   function debugScene(name) {
     var sd = Q.seed ? +Q.seed : 7, diff = ctx.settings.difficulty;
-    function mk(auto, noClock) { return Sim.createGame({ demo: false, autopilot: !!auto, seed: sd, difficulty: diff, serveClock: noClock ? false : undefined, venue: venueNow() }); }
+    // (&zone=1 la zona tuya; &zone=2 también la CPU; &sig=<id>&gest=<g> saque de firma: escenas de la zona, tools/mobaudit.js)
+    var znO = Q.zone ? { cpu: Q.zone === '2' } : undefined, sgO = Q.sig ? { id: Q.sig, gest: Q.gest || 'normal' } : undefined;
+    function mk(auto, noClock) { return Sim.createGame({ demo: false, autopilot: !!auto, seed: sd, difficulty: diff, serveClock: noClock ? false : undefined, venue: venueNow(), zone: znO, serveSig: sgO }); }
     var preLand = null; // último 'land' ANTERIOR al momento buscado (escenas de punto: la marca del bote)
     function advanceUntil(g, pred, extra, maxSec, onAll) {
       var evs = [], keep = [], trig = -1, t = 0, max = (maxSec || 600) / STEP;
@@ -2443,7 +2543,7 @@
       // humano no pulsa nada: se queda donde se le colocó en el saque (desde el 11-nov el personaje no se mueve solo)
       case 'serve6h': case 'rally6h':
         forceVenue('hall');
-        g = Sim.createGame({ demo: false, seed: sd, difficulty: diff, format: '6v6', ctrl: 'one', ctrlRole: 'OH', present: true });
+        g = Sim.createGame({ demo: false, seed: sd, difficulty: diff, format: '6v6', ctrl: 'one', ctrlRole: 'OH', present: true, zone: znO, serveSig: sgO });
         if (name === 'serve6h') keep = advanceUntil(g, function (e, gg) { return e && e.type === 'serveReady' && e.player === gg.ctrl; }, Q.t ? +Q.t : 1.2, 900, uiIngest);
         else keep = advanceUntil(g, function (e) { return e && e.type === 'hit' && e.team === 0 && e.touch === 2; }, 0.35, 900);
         break;
@@ -2478,6 +2578,9 @@
           trialDbg = { nota: crv, xp: 312, lvlUp: Q.lv === '1', lvl: 4, ptsGained: 3, rt: null };
           if (Q.nort !== '1') trialDbg.rt = { nota: crv, best: [{ id: 'ace', txt: 'Ace', n: 3, d: 0.31 }, { id: 'kill', txt: 'Remate ganado', n: 9, d: 0.28 }, { id: 'block', txt: 'Bloqueo punto', n: 1, d: 0.1 }],
             worst: [{ id: 'srvErr', txt: 'Error de saque', n: 2, d: -0.17 }, { id: 'atkErr', txt: 'Remate fuera', n: 1, d: -0.08 }, { id: 'net', txt: 'Toque de red', n: 1, d: -0.08 }] };
+          // &ext=<id>&k=<tipo>: la hoja de un partido de extensión con datos de muestra (X._endDemo(k) → lo que devolvería X.done)
+          var XE = Q.ext ? careerExt(Q.ext) : null;
+          if (XE && XE._endDemo) { var xs = null; try { xs = XE._endDemo(Q.k || ''); } catch (e) { reportError('CareerExt._endDemo', e); } if (xs) { g.career.ext = Q.ext; if (xs.cs) Object.assign(g.career, xs.cs); trialDbg = Object.assign({ ext: Q.ext }, xs); } }
         }
         break;
       // E6: ejercicios del Entrenamiento con la IA jugando por ti (autopilot) y congelados en un momento que se lea en la captura:
@@ -2496,6 +2599,10 @@
             res: { ok: true, id: dk, how: 'play', total: 22, medal: 2, grade: 'A', gain: 18, mul: dup ? 1 : 1.5, first: !dup, focus: false, attr: 'serve', prog0: dup ? 88 : 41, prog: dup ? 6 : 59, need: 100,
               up: dup ? 'serve' : '', v: dup ? 52 : 51, fat0: 12, fat: 16, imp0: 30, imp: 38, best0: dup ? 14 : null, best: 22, bestGrade0: dup ? 'C' : null, bestGrade: 'A' } };
           dbgKit = { kitShirt: 0xc8202e, kitAccent: 0xffffff, kitShorts: 0x1b1b1b, kitPattern: 'liso', scrim: { bib0: 0xc8202e, bib1: 0x9be52e } };
+          // &ext=<id>&k=<tipo>: la hoja de un ejercicio de extensión (X._drillDemo(k) → {res, n, max, label, kit}; no toca ninguna Carrera)
+          var XQ = Q.ext ? careerExt(Q.ext) : null, xq = null;
+          if (XQ && XQ._drillDemo) { try { xq = XQ._drillDemo(Q.k || ''); } catch (e) { reportError('CareerExt._drillDemo', e); } }
+          if (xq) { g.careerDrill = null; g.careerExtDrill = { ext: Q.ext, arg: Q.k || '', id: dk, mode: xq.mode || 'beach', n: xq.n | 0, max: xq.max | 0, label: xq.label || '', done: true, res: xq.res || null, pause: xq.pause || null }; if (xq.kit) dbgKit = xq.kit; }
         }
         if (name === 'drill_end') { keep = advanceUntil(g, function (e) { return e && e.type === 'drillEnd'; }, 0, 900); state = 'over'; break; }
         var dn = Q.n ? Math.max(1, +Q.n | 0) : ({ serve: 3, recv: 2, set: 2, atk: 6, block: 2, free: 1 })[dk];
@@ -2657,6 +2764,7 @@
     }
     // &rt=1: la píldora de la nota en directo con un aviso (ui.js la pinta con g._rtDbg en vez de VB.Career.liveRating)
     if (Q.rt === '1' && g) g._rtDbg = rtDebug(g, keep);
+    if (Q.zone && g && Sim.znDebug) { try { Sim.znDebug(g, 0); if (Q.zone === '2') Sim.znDebug(g, 1); } catch (e) { reportError('Sim.znDebug', e); } }   // (zona llena para las capturas)
     // las escenas que ya han pasado los eventos por ingest no los vuelven a contar
     setGame(g, dbgKit);
     for (var i = 0; i < keep.length; i++) pendingEvents.push(keep[i]);

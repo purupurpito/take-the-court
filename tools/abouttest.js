@@ -70,7 +70,7 @@ try {
     check(/<meta property="og:image:width" content="1200">/.test(head) && /og:image:height" content="630"/.test(head), 'head: og:image 1200×630');
     check(/<meta name="twitter:card" content="summary_large_image">/.test(head), 'head: twitter:card summary_large_image');
     check(/<link rel="canonical" href="https:\/\/[^"]+\/">/.test(head), 'head: canonical');
-    // 1.19.0 (Take the Court): casa nueva en la raíz de takethecourt.com, con CNAME en _site (notes/dominio.md)
+    // 1.20.0 (Take the Court): casa nueva en la raíz de takethecourt.com, con CNAME en _site (notes/dominio.md)
     check(/<link rel="canonical" href="https:\/\/takethecourt\.com\/">/.test(head), 'head: canonical https://takethecourt.com/ (sin PAGES_URL)');
     check(/<meta property="og:url" content="https:\/\/takethecourt\.com\/">/.test(head), 'head: og:url https://takethecourt.com/');
     const cname = path.join(site, 'CNAME');

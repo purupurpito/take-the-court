@@ -1231,6 +1231,15 @@
     // destello «perfecto» en grande). ~1 s; entra 160 ms tras el chasquido, ya sobre su cola: encima del contacto sumaba pico (medido).
     pamSting: { dur: 1.2, peak: 0.7, fade: 0.35, n: [['c', ['D4', 'Fs4', 'A4', 'D5'], 0, 0.1, 0.3], ['b', 'D3', 0, 0.1, 0.4], ['crash', 0, 0.08],
       ['bell', 'D6', 0.05, 0.16, 0.35], ['bell', 'A6', 0.11, 0.13, 0.65], ['bell', 'D7', 0.17, 0.1, 0.5]] },
+    // LA ZONA (20-nov-2026): entrada = arpegio de campanas que sube en Re mayor y golpe de metal con bombo (~1,2 s); salida = caída suave de
+    // piano eléctrico (~0,7 s); lecho = bucle de 4 s con latido grave a 1,5 Hz (6 golpes) y un acorde abierto de Re por debajo (por el bus
+    // de música a 0,18: se oye la tensión, no tapa el partido)
+    zoneIn: { dur: 1.5, peak: 0.75, fade: 0.35, n: [['air', 0, 0.3, 0.22], ['bell', 'D5', 0, 0.12, 0.3], ['bell', 'Fs5', 0.07, 0.12, 0.7], ['bell', 'A5', 0.14, 0.12, 0.35],
+      ['bell', 'D6', 0.21, 0.14, 0.6], ['c', ['D4', 'Fs4', 'A4', 'D5'], 0.3, 0.75, 0.3], ['b', 'D3', 0.3, 0.75, 0.42], ['boom', 0.3, 0.65], ['crash', 0.3, 0.1],
+      ['bell', 'A6', 0.34, 0.1, 0.5]] },
+    zoneOut: { dur: 0.9, peak: 0.55, fade: 0.3, n: [['ep', 'A4', 0, 0.3, 0.25], ['ep', 'Fs4', 0.12, 0.3, 0.25], ['ep', 'D4', 0.24, 0.45, 0.25], ['ep', 'A3', 0.24, 0.45, 0.2]] },
+    zoneBed: { dur: 4, peak: 0.6, fade: 0.02, n: [['ep', 'D3', 0, 3.9, 0.2], ['ep', 'A3', 0.01, 3.9, 0.14], ['ep', 'E4', 0.02, 3.9, 0.1],
+      ['boom', 0, 0.5], ['boom', 0.667, 0.42], ['boom', 1.333, 0.5], ['boom', 2, 0.42], ['boom', 2.667, 0.5], ['boom', 3.333, 0.42]] },
     mvpLose: { dur: 1.7, peak: 0.6, fade: 0.45, n: [['air', 0.15, 0.45, 0.2],
       ['ep', 'B3', 0.6, 0.8, 0.13], ['ep', 'D4', 0.61, 0.75, 0.11], ['ep', 'Fs4', 0.62, 0.75, 0.11],
       ['bell', 'Fs5', 0.6, 0.13, 0.4], ['bell', 'B5', 0.645, 0.11, 0.6], ['bell', 'D6', 0.69, 0.09, 0.5]] }
@@ -1326,6 +1335,8 @@
     handclap: 11.2, chest: 4.9, dribble: 1.4, wipe: -1.6, introSwell: -2.4, introSting: -0.3,
     cntTick: -1.8, cntLock: 0, arwHover: 7.9, optHover: 8.5, stepUp: -3.5, stepDown: -3.4, arwEdge: 3, tglOn: -2.6, tglOff: 0.7, optSel: -0.5, mvpWin: 1.6, mvpLose: 1.8, horn: -1.8,
     toonPop: 3.4, toonWhack: 2, toonZip: -5.9, boing: 2.6, pamSting: 2.1,
+    // la zona (20-nov-2026): entrada como una ráfaga (-16, algo por debajo del set), salida suave (-22), lecho muy bajo (llamado a 0,18)
+    zoneIn: 2.4, zoneOut: 5, zoneBed: 0,
     // ambiente de Carrera (P2): reacciones -20 (pitada), palmas/cánticos -22, silbidos al saque -26, campanita -24, tarjeta -16
     boo: -1.4, whistleStorm: -5.9, chantVamos: -5.5, chantOe: -5.5, chantDefensa: -5.9, palmas32: 1.6, paChime: -6.2, cardWhistle: -0.7
   });
@@ -2054,8 +2065,44 @@
     if (play('pamSting', 0.9, null, null, 1, 0.1, delay || 0, 'music')) { stats.pam++; return true; }
     return false;
   }
+  /* LA ZONA (20-nov-2026; sim eventos 'zone', g.zn): sting de entrada y «¡oh!» de la grada, lecho en bucle por el bus de música (entra en
+   * 0,6 s, sale en 0,8 s; el murmullo de la grada baja ~3 dB mientras dura), caída suave al salir y un brillo «perfecto» muy flojo en cada
+   * toque tuyo en zona. El rival en racha: solo la grada. Todo respeta el silencio y el volumen de música (N.music). */
+  var znBed = { src: null, g: null };
+  function zoneBedOn() {
+    if (!AC || znBed.src || !bank.zoneBed || !N.music) return;
+    try {
+      var gN = AC.createGain(), s = AC.createBufferSource(), t = AC.currentTime;
+      gN.gain.value = 0; gN.connect(N.music); s.buffer = bank.zoneBed[0]; s.loop = true; s.connect(gN); s.start(t + 0.01);
+      gN.gain.setTargetAtTime(0.18 * (LEVEL_LIN.zoneBed || 1), t, 0.2);
+      znBed.src = s; znBed.g = gN;
+    } catch (e) { znBed.src = null; znBed.g = null; }
+  }
+  function zoneBedOff() {
+    if (!znBed.src) return;
+    var s = znBed.src, gN = znBed.g; znBed.src = null; znBed.g = null;
+    try { var t = AC.currentTime; gN.gain.cancelScheduledValues(t); gN.gain.setValueAtTime(gN.gain.value, t); gN.gain.setTargetAtTime(0, t, 0.27); s.stop(t + 1.3); } catch (e) { }
+  }
+  function onZone(e, g) {
+    if (demo || evRpl || e.why === 'undo') return;
+    if (e.team === 0) {
+      if (e.on) { play('zoneIn', 1, null, null, 1, 0, 0, 'music'); play('roar', 0.5, null, null, jit(0.06), 0, 0.1, 'crowd'); zoneBedOn(); exciteBoost = Math.max(exciteBoost, 0.3); }
+      else { zoneBedOff(); if (e.why !== 'end' && e.why !== 'set') play('zoneOut', 0.8, null, null, 1, 0, 0, 'music'); }
+    } else if (e.on) playGap('ooh', 1, 0.35, null, null, jit(0.06), 0, 0.05, 'crowd');
+  }
+  /** Saque de firma (sim e.sig) y brillo de la zona en un toque tuyo. */
+  function onSigZone(e, g) {
+    var x = e.x, y = e.y;
+    if (e.kind === 'serve' && e.sig) {
+      if (e.sig === 'potente') toon('toonWhack', 0.95, x, y, jit(0.05) * 0.92, 0);
+      else if (e.sig === 'globo') { toon('toonPop', 0.6, x, y, jit(0.05) * 0.86, 0); if (!demo) playGap('ooh', 1, 0.45, null, null, jit(0.06) * 1.04, 0, 0.9, 'crowd'); }
+      else if (e.sig === 'abajo') play('pass', 0.45, x, y, jit(0.08) * 0.8, 0.08);
+    }
+    if (g && g.zn && g.zn.on[0] && !demo && e.team === 0 && VB.Sim && VB.Sim.znWho && VB.Sim.znWho(g, 0) === e.player) play('perfect', 0.08, x, y, jit(0.05) * 1.12, 0.1);
+  }
   function onHit(e, g) {
     var k = e.kind, q = isFinite(e.quality) ? e.quality : 1, sp = isFinite(e.speed) ? e.speed : 8, x = e.x, y = e.y;
+    if (e.sig || (g && g.zn)) onSigZone(e, g);
     var hg = e.human ? 1 : 0.92, shot = e.shot || '', pw = isFinite(e.power) ? clamp(e.power, 0, 1) : 0.5;
     var perf = !!e.human && e.grade === 'perfect';
     // el balón da en el cuerpo sin gesto (sim shot 'body'): golpe sordo, más apagado que un 'shank'
@@ -2550,6 +2597,7 @@
   function handleOne(e, g, longWhistle) {
     switch (e.type) {
       case 'hit': onHit(e, g); if (e.kind === 'serve') ambServe(true); break;
+      case 'zone': onZone(e, g); break;   // la zona
       case 'block': { // result: 'stuff' (directo) | 'soft' (toque de bloqueo) | 'tool' (block-out)
         var res = e.result || 'stuff', stuff = res === 'stuff';
         if (stuff && e.human) { // bloqueo directo del humano: mismo tratamiento que el remate perfecto
@@ -2800,7 +2848,7 @@
   if (Object.freeze) Object.freeze(UI_KINDS);
   /** Eventos de la repetición (e.replay) que no suenan: marcador, reacciones, ráfagas y estado del saque del partido en vivo. */
   var RPL_SKIP = { point: 1, set: 1, match: 1, gameOver: 1, newSet: 1, newMatch: 1, challenge: 1, challengeResult: 1, serveReady: 1,
-    courtChange: 1, sideout: 1, drillRep: 1, drillEnd: 1, switch: 1, ask: 1 };
+    courtChange: 1, sideout: 1, drillRep: 1, drillEnd: 1, switch: 1, ask: 1, zone: 1 };
 
   /* ------------------------------------------------------------------
    * 5. API pública
@@ -3047,7 +3095,8 @@
       // hoja final a la vista (AUD-08): la grada baja -6 dB en ~0,35 s (a la salida, con el compresor, ~-3 dB) y vuelve al salir de 'over'
       var ef = endFocus && st === 'over';
       if (endFocus && st !== 'over' && st !== 'paused') endFocus = false;
-      setParam(N.crowd.gain, 'crowd', vol.crowd * (paused ? 0.45 : 1) * (st === 'menu' ? 0.6 : 1) * (ef ? END_DUCK : 1) * (rpl.on ? REPLAY_CROWD : 1), ef ? 0.35 : rpl.on ? 0.25 : 0.15);
+      if (znBed.src && !(g && g.zn && g.zn.on[0] && !demo && st !== 'menu')) zoneBedOff();   // la zona: el lecho no sobrevive a la zona, al menú ni a la demo
+      setParam(N.crowd.gain, 'crowd', vol.crowd * (paused ? 0.45 : 1) * (st === 'menu' ? 0.6 : 1) * (ef ? END_DUCK : 1) * (rpl.on ? REPLAY_CROWD : 1) * (znBed.src ? 0.71 : 1), ef ? 0.35 : rpl.on ? 0.25 : 0.15);
       // presentación (AUD-06): el lecho se agacha bajo la tarjeta (-7 dB, entra en ~0,3 s) y vuelve en ~1 s al soltarla
       if (intro.on && t > intro.until) introEnd('timeout');
       var ducked = intro.on && t < intro.t0 + INTRO_DUCK, half = intro.on && !ducked && t < intro.t0 + intro.half;

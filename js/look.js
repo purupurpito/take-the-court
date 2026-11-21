@@ -147,7 +147,7 @@
     { id: 'visera', name: 'Visera', slot: 'head', venue: 'Y', vc: 'AB', g: 'f', tris: [224, 260, 416] },
     { id: 'pescador', name: 'Gorro de pescador', slot: 'head', venue: 'Y', rarity: 1, unlock: [shop(4000)], vc: 'AB', g: 'm', hint: HIDE_HAIR_HINT, tris: [196, 197, 410] },
     { id: 'corona', name: 'Coronita', slot: 'head', rarity: 3, unlock: [{ ach: 't5' }], vc: 'A', g: 'f', tris: [164, 164, 248] },
-    // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «TTC» (Take the Court; hasta la 1.18, «MTC») en el frontal; se gana al
+    // ONLINE (fase 3, especialista net; decisión 4 de Ferran): la única recompensa del online. Gorra con «TTC» (Take the Court; hasta la 1.19, «MTC») en el frontal; se gana al
     // terminar tu primer partido online (VB.NetRec.end la concede con origen 'online'). Vale en pista y en playa
     { id: 'gorraMTC', name: 'Online Beta Tester', slot: 'head', rarity: 2, unlock: [{ online: 1 }], vc: 'A', g: 'f', hint: 'Con «TTC» en el frontal. ' + HIDE_HAIR_HINT, tris: [224, 237, 432] },
     // 1.18 (WP7): objetos de cabeza que se leen de espaldas y desde arriba (diadema por la coronilla, pinzas detrás de la oreja, pompón, damero…)

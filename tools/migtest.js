@@ -161,6 +161,8 @@ async function browserPart() {
   ok('bridge/404.html es copia exacta de bridge/index.html', fs.readFileSync(path.join(bridgeDir, '404.html'), 'utf8') === fs.readFileSync(path.join(bridgeDir, 'index.html'), 'utf8'));
   let vj = null; try { vj = JSON.parse(fs.readFileSync(path.join(bridgeDir, 'version.json'), 'utf8')); } catch (e) { }
   ok('bridge/version.json con v semver', !!vj && /^\d+\.\d+\.\d+$/.test(vj.v), vj && vj.v);
+  { const VBV = {}; vm.runInNewContext(fs.readFileSync(path.join(ROOT, 'js', 'version.js'), 'utf8'), { VB: VBV, window: { VB: VBV } });
+    ok('bridge/version.json = VB.VERSION (si no, las pestañas viejas no ven «Hay una versión nueva»)', !!vj && vj.v === VBV.VERSION, (vj && vj.v) + ' / ' + VBV.VERSION); }
   ok('bridge sin sw.js (el juego nunca registró uno)', !fs.existsSync(path.join(bridgeDir, 'sw.js')));
   const B = await serve(bridgeDir, '127.0.0.1'), G = await serve(site, 'localhost');
   const BR = 'http://127.0.0.1:' + B.port + '/make-the-cut/', GAME = 'http://localhost:' + G.port + '/';

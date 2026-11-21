@@ -156,6 +156,18 @@ function measure(o) {
     if (a.r <= 0 || a.l >= W || a.b <= 0 || a.t >= H) return scrolled ? 'scroll' : 'out';
     return scrolled ? 'scroll' : 'in';
   }
+  // rectángulo que se ve de verdad: el de e recortado por los ancestros con overflow no visible (un objetivo que solo asoma en
+  // parte por el borde de un contenedor con desplazamiento no «tapa» lo que está fuera de ese contenedor)
+  function visRect(e, r) {
+    var a = { left: r.left, top: r.top, right: r.right, bottom: r.bottom };
+    for (var p = e.parentElement; p && p !== document.documentElement; p = p.parentElement) {
+      var cs = getComputedStyle(p); if (cs.overflowX === 'visible' && cs.overflowY === 'visible') continue;
+      var pr = p.getBoundingClientRect();
+      if (cs.overflowX !== 'visible') { a.left = Math.max(a.left, pr.left); a.right = Math.min(a.right, pr.right); }
+      if (cs.overflowY !== 'visible') { a.top = Math.max(a.top, pr.top); a.bottom = Math.min(a.bottom, pr.bottom); }
+    }
+    a.width = Math.max(0, a.right - a.left); a.height = Math.max(0, a.bottom - a.top); return a;
+  }
   var SKIP = 'svg,script,style,noscript,template,canvas,.sr,.sr-only,.visually-hidden,#fps,#srLive,#offArrow';
   function scaleOf(e) {
     var k = 1;
@@ -255,7 +267,7 @@ function measure(o) {
     var r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
     if (r.width * r.height > 0.8 * W * H) return;   // capas a pantalla completa (tocar en cualquier sitio), no botones
     var st = clipState(e, r); if (st === 'out') return;
-    T.push({ e: e, r: r, st: st, dis: !!e.disabled || e.getAttribute('aria-disabled') === 'true' });
+    T.push({ e: e, r: r, vr: visRect(e, r), st: st, dis: !!e.disabled || e.getAttribute('aria-disabled') === 'true' });
   });
   // un objetivo dentro de otro objetivo: se queda solo si es un control explícito propio (flechas, pestañas…)
   T = T.filter(function (a) {
@@ -265,7 +277,7 @@ function measure(o) {
   var vis = T.filter(function (a) { return a.st === 'in'; });
   res.targets.n = vis.length; res.density.targets = vis.length;
   vis.forEach(function (a) {
-    var r = a.r, cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    var r = a.r, v = a.vr, cx = v.left + v.width / 2, cy = v.top + v.height / 2;   // (el centro de lo que se ve)
     a.hit = false;
     if (cx >= 0 && cy >= 0 && cx < W && cy < H) { var h = document.elementFromPoint(cx, cy); a.hit = !!h && (h === a.e || a.e.contains(h)); }
     var info = { s: sel(a.e), t: txt(a.e), r: R(r) };
@@ -274,7 +286,7 @@ function measure(o) {
   });
   for (var i = 0; i < vis.length; i++) for (var j = i + 1; j < vis.length; j++) {
     var A = vis[i], B = vis[j]; if (related(A.e, B.e)) continue;
-    var ix = Math.min(A.r.right, B.r.right) - Math.max(A.r.left, B.r.left), iy = Math.min(A.r.bottom, B.r.bottom) - Math.max(A.r.top, B.r.top);
+    var ix = Math.min(A.vr.right, B.vr.right) - Math.max(A.vr.left, B.vr.left), iy = Math.min(A.vr.bottom, B.vr.bottom) - Math.max(A.vr.top, B.vr.top);   // (con lo que se ve)
     if (ix > 2 && iy > 2) { if (res.targets.overlap.length < 30) res.targets.overlap.push({ a: sel(A.e), b: sel(B.e), area: Math.round(ix * iy) }); continue; }
     var gap = Math.max(-ix, -iy, 0);
     if (ix > -GAP && iy > -GAP && gap < GAP) { if (res.targets.tight.length < 30) res.targets.tight.push({ a: sel(A.e), b: sel(B.e), gap: rnd(gap) }); }

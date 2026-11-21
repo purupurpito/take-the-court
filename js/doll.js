@@ -3120,7 +3120,7 @@
     G.add(gridGeo(S0, e0), ce); G.add(gridGeo(S1, e1), ce);
     G.owk = 1;
   }
-  /** «TTC» (Take the Court) de la gorra del online (ONLINE, fase 3, especialista net; hasta la 1.18 decía «MTC», Make the Cut: el id
+  /** «TTC» (Take the Court) de la gorra del online (ONLINE, fase 3, especialista net; hasta la 1.19 decía «MTC», Make the Cut: el id
    *  gorraMTC y estos nombres internos se quedan para no tocar las partidas guardadas): una tira de la misma copa de la gorra (un 1,5 %
    *  más grande) con este dibujo de píxeles de 11 × 5 (T, T y C de 3, separadas por 1). Cada casilla mide lo mismo que en el «MTC» de
    *  13 columnas (MTC_PHI = 1,24 × 11/13) y el dibujo sigue centrado en el frontal. (1.18, WP3: sube para que la visera no corte las

@@ -10,7 +10,7 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
 ## Reglas que valen para todos los lotes
 - **Nombres (17-nov-2026)**: ya no queda «voley-3d» en el código. Las claves de guardado son `make-the-cut.*` (antes
   `voley3d.*`; el primer `<script>` de index.html las pasa una vez a las nuevas), las cabeceras de los ficheros dicen
-  `TAKE THE COURT —` (desde 1.19.0; antes `MAKE THE CUT —`; js/sim.js, js/ai.js y js/ai6.js se quedan con la vieja: fluidsimtest firma el texto de sim.js con SIM_BASE) y el guion del flujo es `tools/workflow/make-the-cut.workflow.js`. Una rama vieja que se fusione con main
+  `TAKE THE COURT —` (desde 1.20.0; antes `MAKE THE CUT —`; js/sim.js, js/ai.js y js/ai6.js se quedan con la vieja: fluidsimtest firma el texto de sim.js con SIM_BASE) y el guion del flujo es `tools/workflow/make-the-cut.workflow.js`. Una rama vieja que se fusione con main
   tiene que pasar sus `voley3d.` a `make-the-cut.` (`sed -i 's/voley3d\./make-the-cut./g'`) o volverán a salir las claves viejas.
 - **Git**
   - Commit y push como purupurpito: `export GH_TOKEN=$(gh auth token -u purupurpito)`. Al final de cada mensaje de commit,
@@ -19,7 +19,7 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
     `git add <ficheros>`, nunca `-A` sobre todo el árbol.
   - Los agentes de un workflow NUNCA hacen commit, push, checkout, reset ni stash.
 - **Publicar y comprobar.** Publicar = push a main; GitHub Actions publica en Pages
-  (https://takethecourt.com/ desde 1.19.0; la dirección vieja https://purupurpito.github.io/make-the-cut/ es el puente,
+  (https://takethecourt.com/ desde 1.20.0; la dirección vieja https://purupurpito.github.io/make-the-cut/ es el puente,
   bridge/README.md). DESPUÉS DEL PUSH, COMPRUEBA QUE EL RUN DE ACTIONS ACABA EN «success»
   (`gh run list -R purupurpito/make-the-cut -L 1`). El 11-nov se pasaron horas creyendo publicado algo que fallaba en CI.
   El CI pasa simtest.
@@ -27,7 +27,11 @@ por sistema) y notes/ui_main.md (guía de estilo de textos).
   salvo el lote B (cámara lenta), que solo toca la cámara y la UI, no la sim. tools/fingerprint6.js compara posiciones con
   tolerancia 1e-7 (Linux y Windows redondean distinto).
 - **Pruebas antes de publicar**
-  - `node tools/simtest.js`, `tools/badgetest.js` y `tools/careertest.js`.
+  - `node tools/simtest.js`, `tools/badgetest.js` y `tools/careertest.js` (también con `NOWORLD=1` y con `NOEXT=1`).
+  - Extensiones de la Carrera (rama carrera-ea2k): `node tools/natltest.js` (selección), `injurytest.js` (lesiones), `allstartest.js`
+    (Estrellas y concursos), `loantest.js` (cesiones y traspaso), `racetest.js` (premios), `devtest.js` (puesto y plan),
+    `prologuetest.js` (juvenil) y `zonetest.js` (zona y saque de firma; `SIM_BASE` de fluidsimtest = 2a21ec3).
+  - `node tools/fingerprint6.js`, con `--variant mastery` y con `--variant salto`: las tres, «idéntica».
   - `bash tools/console.sh all`, también con `EXTRA=format=6v6` y `EXTRA=map=beach`.
   - `node tools/drive.js 1280 720 30` y `node tools/drive6.js 1280 720 60` (y con `TOUCH=1`, 844 390).
   - `tools/touchplay.js 844x390 25` y `tools/padplay.js 1280 720 20`. Fallan a veces en «3 toques»: repítelos.
@@ -240,8 +244,28 @@ trabajo?, ¿la fatiga de las sesiones obliga a demasiadas semanas de Descanso?).
        Umbrales sin tocar.
     7. Demo del menú con la sede de la Carrera activa (sin hacer; sería una bandera aparte, medida con perf.js).
 
+## Ideas futuras (NO hechas)
+- **Después de retirarte: pasar a entrenador de tu último club** (Carrera). Ferran, 20-nov-2026: «sí, pero en un futuro, ahora
+  mismo no». No empezar sin que lo pida. Encajaría como extensión de la Carrera (CONTRACT.md «Extensiones de la Carrera») a partir
+  de `CareerLife.retire`.
+
 ## Peticiones entre lotes
 (Escribe aquí: lote que pide → fichero, función y cambio exacto.)
+- **Extensiones de la Carrera (rama carrera-ea2k, 20-nov-2026) → players (js/players.js, ~línea 2563)**, petición de «Zona y saque
+  de firma»: en la condición que elige la celebración 'firma', añadir `|| e.how === 'ace'` a `(e.setWon || (e.highlight || 0) >= bigAt
+  || (h & 3) === 0)`. Solo afecta al que lleva la firma (tu n.º 1 de la Carrera).
+- **Extensiones de la Carrera → tools/mobaudit-page.js (ui_main)**: `seedCareer(mode, phase)` no admite `phase 'off'`; la fila
+  `carrera-playa-natl-verano` deja el verano en manos de `X._demo(c, 'off')` de career-natl.js. Si se quiere de raíz: con `'off'`,
+  simular la temporada entera tras fichar.
+- **Extensiones de la Carrera → js/main.js (ui_main), opcional y solo cosmético**: en la escena `drill_end&career=1&ext=…&k=…` (~2559),
+  forzar que el total pintado sea `xq.total` (career-allstar `_drillDemo` tendría que devolverlo), para que la captura
+  `carrera-estrellas-concurso-hoja` no diga «20 de 30» con un ranking de 24. En el juego real coinciden.
+- **Extensiones de la Carrera → js/career-natl.js (seleccion), js/career-allstar.js (estrellas) y js/career-loan.js (cesiones)**, de
+  «Lesiones»: mirar `VB.CareerInjury && VB.CareerInjury.out(c)` (null sin el fichero o sin lesión). Si no es null: selección, no
+  convocar o dar de baja (tras un partido de selección, `VB.CareerInjury.roll(c, 1, 'sel')` da el mismo riesgo); Estrellas, sin
+  concursos ni partido (como mucho, de invitado); cesiones, no se piden ni se aceptan. Hoy ninguno de los tres lo mira.
+- **Extensiones de la Carrera, pendiente (career-ui.js)**: la tarjeta «Saque de firma» va bajo toda la rejilla de insignias y en el móvil
+  cuesta encontrarla (fila `carrera-playa-saque-firma`). Mirar la captura y, si hace falta, subirla.
 - **Vida de la Carrera (12-nov-2026) → lote C (rama `carrera-pista`)**: main ya tiene js/career-life.js y js/career-life-ui.js y 5 llamadas
   `life(c, tipo, …)` en career.js (create, `matchSetup` → `var out = {…}; life(c, 'setup', out); return out;`, closeMine y benchNext antes de
   `c.last = sum`, final de endSeason y de newSeason) + un sumando en `offerScore` + exports `_msg/_addXP/_wkKey`; en career-ui.js la pestaña

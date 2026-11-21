@@ -24,7 +24,7 @@
  *    pestaña, las claves con caché llaman a su gancho (Prog._reload, Career.beach/hall._reset) y VB.UI.refreshMenu.
  *  - Tope de subida 390 000 caracteres (las reglas admiten 400 000): lo que pase no se sube hasta su siguiente cambio.
  *  - Panel propio (#account) que se abre con el botón «Cuenta» del menú principal (#btnAcc, lo crea este módulo).
- *  - Traspaso desde Make the Cut (1.19.0, js/migrate.js, notes/dominio.md): mientras VB.Migrate.pending() no se sincroniza (el traspaso
+ *  - Traspaso desde Make the Cut (1.20.0, js/migrate.js, notes/dominio.md): mientras VB.Migrate.pending() no se sincroniza (el traspaso
  *    acaba en una recarga o llama a whenDone); migrate.js escribe con el setItem original, así que lo traído conserva su hora de meta.
  *    VB.Account.mergeKey(k, L, R, incomingNewer) le presta las fusiones de MERGE. Las claves y el proyecto 'make-the-cut-vb' NO cambian.
  */

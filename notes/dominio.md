@@ -1,6 +1,6 @@
 # notes/dominio.md — de Make the Cut (purupurpito.github.io/make-the-cut/) a Take the Court (takethecourt.com)
 
-1.19.0 (nov-2026). Ferran cambia el nombre del juego a «Take the Court» (marca comprobada) y compra `takethecourt.com`. El juego pasa
+1.20.0 (nov-2026). Ferran cambia el nombre del juego a «Take the Court» (marca comprobada) y compra `takethecourt.com`. El juego pasa
 a la raíz de ese dominio; la dirección antigua queda servida por un **puente** que trae las partidas.
 
 ## 1. Qué cambia y qué no
@@ -25,7 +25,7 @@ localStorage es de cada ORIGEN (esquema + host + puerto; la ruta no cuenta). Las
 (que comparten otros proyectos: `/farolillo`, `/emPat`…). `https://takethecourt.com` es otro origen y empieza vacío. Lo único que
 puede leer las partidas es una página servida en el origen viejo → el repo nuevo `purupurpito/make-the-cut` con `bridge/`.
 
-El juego **no tiene service worker, Cache Storage ni IndexedDB** (grep de `serviceWorker`, `caches.`, `indexedDB` vacío en la 1.18.0;
+El juego **no tiene service worker, Cache Storage ni IndexedDB** (grep de `serviceWorker`, `caches.`, `indexedDB` vacío en la 1.18.0 y en la 1.19.2;
 `js/install.js` solo enseña un tutorial; el SDK de Firebase Auth se carga solo al pulsar Google y la sesión sigue por REST en
 localStorage). Así que el puente no necesita `sw.js` y no hay cachés viejas que limpiar. sessionStorage (`make-the-cut.account.toast`,
 `make-the-cut.online.back`) es de cada pestaña y no se trae.
@@ -50,7 +50,7 @@ paquete tal cual. El juego acepta los tres (con o sin `mig=` delante).
 - Más de 900 000 caracteres: no salta; archivo, código (≤ 200 000) y `takethecourt.com/#migfile`. App instalada (standalone): no salta
   sola; pide reinstalar desde takethecourt.com.
 - Pruebas, solo en localhost: `?to=<url local>` cambia el destino, `?stay=1` no salta.
-- `version.json` = `{"v":"1.19.0"}`: las pestañas 1.15.1+ abiertas ven «Hay una versión nueva»; «Reiniciar» (recarga con `?u=`)
+- `version.json` = `{"v":"1.20.0"}`: las pestañas 1.15.1+ abiertas ven «Hay una versión nueva»; «Reiniciar» (recarga con `?u=`)
   cae en el puente.
 - Despliegue y orden de pasos: `bridge/README.md`.
 
@@ -118,7 +118,7 @@ Primer script tras el bloque `voley3d.*` de index.html (antes que account.js y q
   archivo. La cuenta en la nube es la otra salida.
 - **Instalación**: la app instalada vieja tiene `scope` `/make-the-cut/` en otro origen: hay que instalar otra vez desde takethecourt.com.
 - **Firebase**: `takethecourt.com` en Authorized domains y, si la clave tiene restricción por referente, también allí (ver README del puente).
-- **Online**: el proyecto no cambia, así que las salas sirven entre los dos orígenes; un 1.18 contra un 1.19 ya avisa por versión.
+- **Online**: el proyecto no cambia, así que las salas sirven entre los dos orígenes; un 1.19 contra un 1.20 ya avisa por versión.
 
 ## 7. Pruebas
 

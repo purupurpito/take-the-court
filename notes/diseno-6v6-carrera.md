@@ -316,7 +316,7 @@ de nivel en 200 partidos CPU contra CPU; (c) cada atributo mueve su métrica (re
 
 Un jugador modesto (OVR ~38) se inscribe en un club de liga baja, juega partidos 6v6 controlando solo a su jugador, gana
 experiencia y estadísticas, recibe ofertas de equipos mejores y, si «pasa el corte», es convocado por la selección para la
-Liga de Naciones y los Juegos. El nombre de entonces («Make the Cut», pasar el corte) ES este modo; desde 1.19.0 el juego se llama Take the Court.
+Liga de Naciones y los Juegos. El nombre de entonces («Make the Cut», pasar el corte) ES este modo; desde 1.20.0 el juego se llama Take the Court.
 
 Temporada = pretemporada (entrenamiento + elegir oferta) → liga regular → fase final → verano (selección, si convocado).
 

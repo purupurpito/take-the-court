@@ -473,7 +473,7 @@ en la lista), rama online de `js/main.js`, y toques pedidos por el orquestador e
   al TERMINAR tu primer partido online: final normal, el rival abandona o no vuelve, o «no cuenta» por caída del anfitrión o por
   reparaciones (lo jugaste hasta donde se pudo); NO si abandonas tú o si es otra versión. En el Vestuario: «Online: termina tu primer
   partido». Dibujo (doll.js `mtcPanel`): la gorra de siempre y en el frontal una tira de la misma copa con 13 × 5 caras pintadas por
-  vértice con «MTC» (M de 5 columnas, T y C de 3; desde 1.19.0 «TTC», mismo id gorraMTC), letra clara sobre cA oscuro y oscura sobre cA claro; 130 triángulos fijos en todos los
+  vértice con «MTC» (M de 5 columnas, T y C de 3; desde 1.20.0 «TTC», mismo id gorraMTC), letra clara sobre cA oscuro y oscura sobre cA claro; 130 triángulos fijos en todos los
   LOD (con menos no se lee). Capturas `tools/out/net3-gorra-{hall,beach}.png`.
 
 ### Récord online (`js/netrec.js`)

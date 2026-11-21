@@ -426,7 +426,7 @@
   var NET_W = 10, NET_HH = 1, NSX = 50, NSY = 6, NET_MTC = '#1d1530';
   /** beach: red de playa estilo AVP (referencia: foto del Manhattan Beach Open; decisión de Ferran, 10-nov-2026): cuerda
    *  negra, banda superior amarilla y alta con el logo del juego repetido en tinta, banda inferior y laterales amarillas.
-   *  En las dos sedes, «T T C» (Take the Court; hasta la 1.18, «M T C») en el centro: no es un estampado, son las propias cuerdas y nudos de la malla
+   *  En las dos sedes, «T T C» (Take the Court; hasta la 1.19, «M T C») en el centro: no es un estampado, son las propias cuerdas y nudos de la malla
    *  pintados de tinta dentro de la forma de las letras (bien separadas; antes teal #22d8c6, el turquesa de la pelota: la que caía
    *  justo detrás de la red se perdía; en crema se perdía igual con sus paneles crema. tools/balltest.js LOGO=1, 15-nov-2026). */
   function netTexture(beach) {

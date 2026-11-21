@@ -12,11 +12,11 @@ del mismo origen (farolillo, emPat…), no borra nada, las empaqueta y salta a `
 |---|---|
 | `index.html` | el puente (todo en línea, sin dependencias salvo Google Fonts, que puede fallar sin problema) |
 | `404.html` | copia EXACTA de `index.html`: enlaces profundos (`/make-the-cut/netlogs.html`, `/make-the-cut/loquesea`) llevan la ruta |
-| `version.json` | `{"v":"1.19.0"}`: las pestañas viejas (1.15.1+) que siguen abiertas ven «Hay una versión nueva» → «Reiniciar» → puente |
+| `version.json` | `{"v":"1.20.0"}`: las pestañas viejas (1.15.1+) que siguen abiertas ven «Hay una versión nueva» → «Reiniciar» → puente |
 | `.nojekyll` | que Pages no pase Jekyll |
 
 **No hay `sw.js`**: el juego nunca registró un service worker ni usó Cache Storage ni IndexedDB (comprobado con grep en `js/` e
-`index.html` de la 1.18.0), así que no hay cachés viejas que limpiar ni nada que desregistrar.
+`index.html` de la 1.19.2), así que no hay cachés viejas que limpiar ni nada que desregistrar.
 
 Opcional: copiar `icon.svg`, `icon-180.png`, `icon-192.png`, `icon-512.png` y `og.png` desde `pages/` del juego, para que las apps
 instaladas viejas y las vistas previas de enlaces antiguos no reciban el HTML del 404. No hace falta para que el puente funcione.
@@ -32,7 +32,7 @@ Qué hace en cada caso:
 
 ## Publicar (lo hace el lead, en este orden)
 
-Antes de nada: la 1.19.0 terminada en `main`. Funciona también en la dirección antigua (rutas relativas; `js/migrate.js` no hace
+Antes de nada: la 1.20.0 terminada en `main`. Funciona también en la dirección antigua (rutas relativas; `js/migrate.js` no hace
 nada sin `#mig`), PERO «Compartir» de una sala ya da `https://takethecourt.com/?sala=…`: publicarla justo antes del paso 3 (con 1 y 2
 ya hechos), no días antes, o esos enlaces no abrirán hasta que el dominio esté listo.
 
@@ -57,7 +57,7 @@ ya hechos), no días antes, o esos enlaces no abrirán hasta que el dominio est�
    artefacto (`tools/build-pages.js` lo escribe igual, por documentar y por si un día se publica desde una rama). El dominio solo
    cuenta si se pone en Settings o por la API. Relanzar el workflow (`gh workflow run pages.yml -R purupurpito/take-the-court`) y
    esperar al certificado; luego **Enforce HTTPS** (Settings → Pages, o `gh api -X PUT repos/purupurpito/take-the-court/pages -F https_enforced=true`).
-5. **Comprobar** que `https://takethecourt.com/` sirve la 1.19.0 (`https://takethecourt.com/version.json` → `{"v":"1.19.0"}`) con
+5. **Comprobar** que `https://takethecourt.com/` sirve la 1.20.0 (`https://takethecourt.com/version.json` → `{"v":"1.20.0"}`) con
    certificado válido, y que la cuenta (entrar con usuario y con Google) funciona allí.
 6. **Crear el puente**: repo público nuevo `purupurpito/make-the-cut` con el contenido de esta carpeta en la raíz (sin la carpeta
    `bridge/`), por ejemplo:
@@ -73,19 +73,19 @@ ya hechos), no días antes, o esos enlaces no abrirán hasta que el dominio est�
    el remoto local con `git remote set-url origin https://github.com/purupurpito/take-the-court.git`).
 
 ### Comprobaciones
-- `https://takethecourt.com/` → el juego 1.19.0; `https://www.takethecourt.com/` → redirige al apex.
+- `https://takethecourt.com/` → el juego 1.20.0; `https://www.takethecourt.com/` → redirige al apex.
 - `https://purupurpito.github.io/take-the-court/` → redirige a `https://takethecourt.com/`.
 - `https://purupurpito.github.io/make-the-cut/` → el puente; con partida, a los 0,9 s el juego y el aviso «Partida traída de Make the Cut».
 - `https://purupurpito.github.io/make-the-cut/?sala=ABC123` → `https://takethecourt.com/?sala=ABC123`.
 - `https://purupurpito.github.io/make-the-cut/netlogs.html` → `https://takethecourt.com/netlogs.html` (vía 404.html).
-- `https://purupurpito.github.io/make-the-cut/version.json` → `{"v":"1.19.0"}`.
-- Una pestaña vieja abierta (1.18.0) avisa «Hay una versión nueva»; «Reiniciar» → puente → juego con la partida.
+- `https://purupurpito.github.io/make-the-cut/version.json` → `{"v":"1.20.0"}`.
+- Una pestaña vieja abierta (1.19.x) avisa «Hay una versión nueva»; «Reiniciar» → puente → juego con la partida.
 - En el juego nuevo, una segunda visita al puente no cambia nada ni enseña el aviso.
 - En local, todo esto lo prueba `node tools/migtest.js` (puente y juego en dos orígenes).
 
 ### Si algo sale mal (marcha atrás)
 - Antes del paso 6: quitar el dominio (Settings → Pages) y renombrar `take-the-court` → `make-the-cut`: el juego vuelve a la
-  dirección antigua tal cual (la 1.19.0 funciona en la subcarpeta; sin `#mig`, `js/migrate.js` no hace nada).
+  dirección antigua tal cual (la 1.20.0 funciona en la subcarpeta; sin `#mig`, `js/migrate.js` no hace nada).
 - Después del paso 6: borrar (o archivar y despublicar) el repo puente y hacer lo de arriba. Lo que los jugadores hayan jugado
   entretanto en takethecourt.com se queda en ese origen (no hay puente de vuelta); con cuenta, vuelve al entrar.
 - Si solo falla el certificado o el DNS, basta con esperar: el puente no se publica hasta que el paso 5 está bien.

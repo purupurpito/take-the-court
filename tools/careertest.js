@@ -6,6 +6,10 @@
  * al de antes, IA rival por nivel, atributos, XP, entreno, entrenador, objetivo, ofertas, cambio entre partidos, sellos y migración).
  * Uso: node tools/careertest.js [temporadas=8]   Sale con 1 si algo falla; acaba en «TODO OK».
  * NOWORLD=1: sin js/career-world.js (Faro, noticias y clubes); la prueba debe pasar igual con y sin él.
+ * Extensiones de la Carrera (CONTRACT.md «Extensiones de la Carrera»): el contexto principal carga también las de storyhelp.extFiles()
+ * (selección, lesiones, Estrellas y concursos, cesiones, premios, puesto y prólogo, en el orden de index.html), con las lesiones en
+ * «No» (storyhelp.injOff: las progresiones fijadas no cambian). NOEXT=1: sin ninguna, como antes; la prueba pasa igual con y sin
+ * ellas. Al final, «Humo con todas las extensiones»: varias temporadas de playa y pista con todo activo (lesiones incluidas).
  * Vestuario (sprint «personaliza»): sin js/look.js, las guardas; con él, initLook, lookCheck, tienda y guardados (LOOKJS=ruta: otro look.js).
  */
 'use strict';
@@ -19,14 +23,20 @@ function section(t) { console.log('\n== ' + t); }
 
 const mem = {};
 const fakeLS = { getItem: k => (k in mem ? mem[k] : null), setItem: (k, v) => { mem[k] = String(v); }, removeItem: k => { delete mem[k]; } };
-const ctx = { console, Math, Date, JSON, Set, localStorage: fakeLS }; ctx.globalThis = ctx; ctx.window = ctx;
+// console del contexto: los errores que career.js se traga en life()/extCall («Career hook …», «CareerExt …») se cuentan (ver el final)
+const extErrs = [];
+const ctxConsole = Object.assign(Object.create(console), { error: (...a) => { const t = String(a[0]); if (/^Career(Ext| hook)/.test(t)) extErrs.push(t + ': ' + (a[1] && a[1].message || a[1])); console.error(...a); } });
+const ctx = { console: ctxConsole, Math, Date, JSON, Set, localStorage: fakeLS }; ctx.globalThis = ctx; ctx.window = ctx;
 vm.createContext(ctx);
 const NOWORLD = !!process.env.NOWORLD;
 // NORATING=1: sin js/rating.js (nota en directo): la nota de los partidos jugados es la de rating(), como antes
 const NORATING = !!process.env.NORATING;
 const FILES = ['js/sim.js', 'js/prog.js', 'js/badges.js', 'js/leagues.js', 'js/rating.js', 'js/career.js', 'js/career-life.js', 'js/career-world.js',
   'js/career-story.js', 'js/career-story-msgs.js', 'js/career-story-week.js', 'js/career-story-wall.js', 'js/career-story-season.js'];   // («Carrera con vida», notes/carrera-vida.md)
-for (const f of FILES) {
+const H = require('./storyhelp.js');
+const NOEXT = !!process.env.NOEXT;
+const XFILES = NOEXT ? [] : H.extFiles();   // (extensiones de la Carrera, solo en el contexto principal y en el humo del final)
+for (const f of FILES.concat(XFILES)) {
   if (NOWORLD && f === 'js/career-world.js') continue;
   if (NORATING && f === 'js/rating.js') continue;
   if (!fs.existsSync(path.join(ROOT, f))) { console.log('(sin ' + f + ')'); continue; }
@@ -34,6 +44,11 @@ for (const f of FILES) {
 }
 const VB = ctx.VB, C = VB.Career;
 ok(C, 'VB.Career existe');
+if (XFILES.length) {
+  H.injOff(VB);
+  console.log('(con ' + XFILES.length + ' extensiones de la Carrera: ' + XFILES.map(f => f.replace(/^js\/|\.js$/g, '')).join(', ') + '; lesiones en «No»)');
+  ok(Array.isArray(VB.CareerExt) && VB.CareerExt.length >= XFILES.length - 1, 'extensiones registradas en VB.CareerExt (' + (VB.CareerExt || []).map(x => x.id).join(', ') + ')');
+} else console.log('(sin extensiones de la Carrera' + (NOEXT ? ': NOEXT=1' : '') + ')');
 
 // ------------------------------------------------------------------ crear
 section('Crear carrera');
@@ -647,7 +662,7 @@ section('Migración de un guardado v2 (pabellón, sets a 15, clubes de pabellón
   const msB = C.matchSetup(m);
   ok(msB && msB.venue === 'beach' && msB.points === 21, 'a partir de ahora se juega en la playa');
   C.save(); C._reset(); const m2 = C.get();
-  ok(m2.inbox.filter(x => /playa/i.test(x.t)).length === 1 && m2.clubs[0].name === m.clubs[0].name, 'migrar dos veces no renombra ni duplica');
+  ok(m2.inbox.filter(x => x.k !== 'natl' && /playa/i.test(x.t)).length === 1 && m2.clubs[0].name === m.clubs[0].name, 'migrar dos veces no renombra ni duplica');
 }
 
 // ------------------------------------------------------------------ compañeros de distinto nivel
@@ -2675,6 +2690,109 @@ if (C.beach && C.beach.trialAIOf && C.hall && C.hall.trialSetup) {
   fresh();
 } else console.log('(sin la prueba ampliada)');
 
+// ------------------------------------------------------------------ humo: todas las extensiones a la vez (20-nov-2026)
+section('Humo con todas las extensiones: playa y pista, 4 temporadas con lesiones, selección, Estrellas, cesiones, premios y puesto');
+if (!XFILES.length) console.log(NOEXT ? '(NOEXT=1: sin extensiones, se salta)' : '(sin extensiones en index.html: se salta)');
+else {
+  verbose = false;
+  const SEEDS = [3, 11, 29, 47], SEAS = 4, keyOf = (mode) => mode === 'hall' ? 'make-the-cut.career6' : 'make-the-cut.career';
+  const XK = ['natl', 'inj', 'allstar', 'loan', 'race', 'dev'];   // (subobjetos de c que guardan las extensiones)
+  const bootX = () => {
+    const m2 = {}, errs = [];
+    const LS = { getItem: k => (k in m2 ? m2[k] : null), setItem: (k, v) => { m2[k] = String(v); }, removeItem: k => { delete m2[k]; } };
+    const con = Object.assign(Object.create(console), { error: (...a) => { errs.push(a.map(x => x && x.stack ? x.stack.split('\n').slice(0, 3).join(' | ') : String(x)).join(' ')); } });
+    const cx = { console: con, Math, Date, JSON, Set, localStorage: LS }; cx.globalThis = cx; cx.window = cx; vm.createContext(cx);
+    for (const f of FILES.concat(XFILES)) {
+      if (NOWORLD && f === 'js/career-world.js') continue;
+      const fp = path.join(ROOT, f); if (fs.existsSync(fp)) vm.runInContext(fs.readFileSync(fp, 'utf8'), cx, { filename: f });
+    }
+    return { VB: cx.VB, C: cx.VB.Career, mem: m2, errs };
+  };
+  // el estado de cada extensión tal como lo deja su ensure (idempotente): lo que se compara antes y después de cargar
+  const EXTAPI = ['CareerNatl', 'CareerInjury', 'CareerAllstar', 'CareerLoan', 'CareerRace', 'CareerDev'];
+  const norm = (VBx, c) => { const o = JSON.parse(JSON.stringify(c)); for (const k of EXTAPI) { const X = VBx[k]; if (X && typeof X.ensure === 'function') { try { X.ensure(o); } catch (e) { } } } return JSON.stringify(XK.map(k => o[k])); };
+  const ATT = ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'];
+  /** Puntos en lo más barato (como natltest.js spend): así la media sube y la selección y los premios quedan a tiro en 4 temporadas. */
+  const spend = (K) => { const c = K.load(); let any = true, g = 0; while (any && g++ < 400) { any = false; const ks = ATT.filter(k => k in c.player.st).sort((a, b) => c.player.st[a] - c.player.st[b]); for (const k of ks) if (K.bump(k)) { any = true; break; } } };
+  const tot = { natlMsg: 0, natlPlayed: 0, caps: 0, inj: 0, injRuns: 0, vote: 0, asPlayed: 0, raceHist: 0, devMsg: 0, devAcc: 0, loanMsg: 0, save: 0 };
+  for (const mode of ['beach', 'hall']) for (const seed of SEEDS) {
+    const B = bootX(), K = B.C, VBx = B.VB, L = VBx.CareerLife, S = VBx.CareerStory, N = VBx.CareerNatl, A = VBx.CareerAllstar, D = VBx.CareerDev, hall = mode === 'hall';
+    const tag = mode + ' ' + seed;
+    let c = hall ? K.create({ mode: 'hall', name: 'Humo Pista', num: 9, pos: 'OH', seed, now: 1 }) : K.create({ mode: 'beach', name: 'Humo Playa', num: 4, role: 'atk', seed, now: 1 });
+    ok(c && c.inj && c.inj.on === 1 && c.inj.n === 0, tag + ': lesiones en «Sí» y sin tiradas al crear');
+    K.acceptOffer(c.offers.findIndex(x => !x.trial), 2);
+    const seen = new Set(), cnt = { natl: 0, med: 0, loan: 0, allstar: 0, race: 0, dv: 0 };
+    const grab = () => { for (const m of K.load().inbox || []) { const id = (m.k || '') + '|' + m.t + '|' + m.x; if (seen.has(id)) continue; seen.add(id); if (m.dv) cnt.dv++; else if (m.k in cnt) cnt[m.k]++; } };
+    const stateKey = () => { const x = K.load(); const w = x.natl && x.natl.win; return JSON.stringify([x.season, x.phase, x.week, x.koI, x.cup && x.cup.round, x.kos && x.kos.length, x.offers && x.offers.length, x.myClub, w && w.fx ? w.fx.filter(f => f.res).length : -1]); };
+    let step = 0, stuck = 0, played = 0, devAcc = false, outW = 0, saveBad = '', blockedBy = '';
+    while (step++ < 600) {
+      c = K.load();
+      if (c.season > SEAS) break;
+      const before = stateKey();
+      if (c.phase === 'off') {
+        // verano: la selección (uno de cada dos partidos tuyos jugado, el resto simulado) y seguir en el club (o la mejor oferta)
+        let g2 = 0;
+        while (N && g2++ < 20) {
+          const nf = N.nextFx(K.load()); if (!nf) break;
+          if (nf.mine && (tot.natlPlayed + g2) % 2 === 0) {
+            const w = K.load().natl.win, m = N.setup({ w: w.id, i: nf.fx.i, mode });
+            const r = m && N.done({ sets: [2, 1], setScores: hall ? [[25, 20], [21, 25], [15, 11]] : [[21, 18], [17, 21], [15, 12]], win: true }, { career: m.career, demo: false, autopilot: false });
+            if (r) tot.natlPlayed++; else if (!N.simFx(K.load())) break;
+          } else if (!N.simFx(K.load())) break;
+        }
+        const cc = K.load(); let bi = -1, bo = -1; (cc.offers || []).forEach((o, i) => { if (!o.trial && o.ovr > bo) { bo = o.ovr; bi = i; } });   // (la mejor oferta, o seguir)
+        if (bi < 0) K.stay(1); else K.acceptOffer(bi, 2);
+        if (K.load().phase === 'off') K.stay(1);
+      } else {
+        const n = K.next(c);
+        if (!n) { blockedBy = 'sin partido (fase ' + c.phase + ', jornada ' + c.week + ')'; break; }
+        try { if (K.trainSimDay) K.trainSimDay(); } catch (e) { B.errs.push('trainSimDay: ' + e.message); }
+        if (n.bench) { if (n.out) outW++; K.benchNext(); }
+        else if (step % 3 === 0) { H.playOne({ C: K, VB: VBx }, hall, step % 5 !== 0); played++; }
+        else K.simulateNext();
+        if (L) { const ev = L.pendingEvent(K.load()); if (ev) L.answer(0); }
+        if (S) { const st = K.load().story; if (st && st.feed) st.feed.filter(x => x.o && x.ans === -1).map(x => x.id).forEach(id => S.act('st-ans-' + id + '-0')); }
+        // Estrellas: si te toca el partido, se juega (resultado falso); los concursos se simulan al pasar de jornada
+        if (A && A.setup) {
+          const m = A.setup('m', false);
+          if (m) { const g = { career: m.career, size: hall ? 6 : 4, teams: [[{}, {}], [{}, {}]], demo: false, points: 21, ctrlRole: m.ctrlRole }; K.ingest([{ type: 'newMatch' }], g); if (A.done({ sets: [1, 0], setScores: [[21, 17]], win: true }, g)) tot.asPlayed++; }
+        }
+        // puesto: la primera propuesta se acepta; las demás caducan solas
+        if (D && !devAcc) { const cd = K.load(); if (cd.dev && cd.dev.pos && cd.dev.pos.off && D.accept(cd)) { devAcc = true; K.save(cd); } }
+      }
+      spend(K);
+      grab();
+      // guardar y cargar cada 5 pasos: la carrera recargada es la misma (estado de las extensiones incluido)
+      if (step % 5 === 0) {
+        const raw = B.mem[keyOf(mode)], c1 = JSON.parse(JSON.stringify(K.load())); K._reset(); const c2 = K.load();
+        if (!raw || !c2) saveBad = saveBad || 'sin guardado en el paso ' + step;
+        else if (c2.season !== c1.season || c2.week !== c1.week || c2.phase !== c1.phase || c2.myClub !== c1.myClub) saveBad = saveBad || 'temporada/jornada distintas en el paso ' + step;
+        else { const n1 = JSON.parse(norm(VBx, c1)), n2 = JSON.parse(norm(VBx, c2)), bad = XK.filter((k, i) => JSON.stringify(n1[i]) !== JSON.stringify(n2[i])); if (bad.length) saveBad = saveBad || 'estado distinto tras cargar (' + bad.join(', ') + ') en el paso ' + step; else tot.save++; }
+      }
+      if (stateKey() === before) { if (++stuck >= 4) { blockedBy = 'sin avanzar 4 pasos (fase ' + K.load().phase + ', jornada ' + K.load().week + ')'; break; } } else stuck = 0;
+    }
+    c = K.load();
+    ok(!blockedBy && c.season > SEAS, tag + ': acaba la temporada ' + SEAS + ' sin atascarse (temporada ' + c.season + ', ' + step + ' pasos' + (blockedBy ? ': ' + blockedBy : '') + ')');
+    ok(B.errs.length === 0, tag + ': sin errores en consola (' + B.errs.length + (B.errs.length ? ': ' + B.errs.slice(0, 3).join(' || ') : '') + ')');
+    ok(!saveBad, tag + ': guardar y cargar conserva la carrera y las extensiones' + (saveBad ? ' (' + saveBad + ')' : ''));
+    ok(XK.every(k => c[k] && typeof c[k] === 'object'), tag + ': cada extensión tiene su estado al final (falta: ' + XK.filter(k => !c[k]).join(', ') + ')');
+    ok(c.race && Array.isArray(c.race.hist) && c.race.hist.length >= SEAS - 1, tag + ': carrera de premios cada temporada (historial ' + (c.race && c.race.hist ? c.race.hist.length : '-') + ')');
+    ok(c.allstar && Array.isArray(c.allstar.log) && c.allstar.log.length >= SEAS - 1, tag + ': votación de las Estrellas cada temporada (' + (c.allstar && c.allstar.log ? c.allstar.log.length : '-') + ')');
+    { const raw = B.mem[keyOf(mode)], c1 = JSON.parse(JSON.stringify(c)); K._reset(); const r = K.load(); ok(r && raw && raw.length > 1000 && norm(VBx, r) === norm(VBx, c1), tag + ': guardado final (' + (raw ? raw.length : 0) + ' B) y cargado igual'); }
+    const injN = c.inj ? (c.inj.cnt || []).reduce((s, x) => s + x, 0) : 0;
+    tot.natlMsg += cnt.natl; tot.caps += c.natl && c.natl.car ? c.natl.car.caps | 0 : 0; tot.inj += injN; tot.injRuns += injN > 0 ? 1 : 0;
+    tot.vote += c.allstar && c.allstar.log ? c.allstar.log.length : 0; tot.raceHist += c.race && c.race.hist ? c.race.hist.length : 0;
+    tot.devMsg += cnt.dv; tot.devAcc += devAcc ? 1 : 0; tot.loanMsg += cnt.loan;
+    console.log('  ' + tag + ': T' + (c.season - 1) + ' acabada, media ' + K.ovrOf(c.player.st) + ', ' + played + ' jugados, ' + (c.natl && c.natl.car ? c.natl.car.caps : 0) + ' partidos con la selección (' + cnt.natl + ' mensajes), ' + injN + ' lesiones (' + outW + ' jornadas de baja), ' + (c.allstar ? c.allstar.log.length : 0) + ' votaciones, ' + cnt.dv + ' mensajes de puesto' + (devAcc ? ' (aceptado)' : '') + ', ' + cnt.loan + ' de cesión, ' + cnt.race + ' de premios');
+  }
+  const runs = 2 * SEEDS.length;
+  ok(tot.natlMsg > 0, 'convocatorias o mensajes de la selección en algún caso (' + tot.natlMsg + ' mensajes, ' + tot.caps + ' partidos, ' + tot.natlPlayed + ' jugados aquí)');
+  ok(tot.inj > 0 && tot.inj <= runs * SEAS * 2, 'lesiones posibles pero raras (' + tot.inj + ' en ' + runs + ' carreras × ' + SEAS + ' temporadas; ' + tot.injRuns + ' carreras con alguna)');
+  ok(tot.devMsg > 0, 'propuestas de cambio de puesto en algún caso (' + tot.devMsg + ' mensajes, aceptadas ' + tot.devAcc + ')');
+  ok(tot.vote >= runs * (SEAS - 1) && tot.raceHist >= runs * (SEAS - 1), 'votación y premios cada temporada (' + tot.vote + ' votaciones, ' + tot.raceHist + ' clasificaciones finales)');
+  console.log('  Estrellas jugadas: ' + tot.asPlayed + '; mensajes de cesión: ' + tot.loanMsg + '; cargas comprobadas: ' + tot.save);
+}
+ok(extErrs.length === 0, 'contexto principal: ningún error tragado por career.js en ganchos o extensiones (' + extErrs.length + (extErrs.length ? ': ' + extErrs.slice(0, 3).join(' || ') : '') + ')');
 console.log('\n' + passes + ' comprobaciones bien');
 console.log(fails ? '\n' + fails + ' FALLOS' : '\nTODO OK');
 process.exit(fails ? 1 : 0);

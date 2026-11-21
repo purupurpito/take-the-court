@@ -1,6 +1,6 @@
 /* =====================================================================
  * TAKE THE COURT — js/migrate.js   (owner: ui_main; diseño en notes/dominio.md)
- * Traspaso de partidas al cambiar de casa (1.19.0): el juego se llamaba «Make the Cut» y vivía en purupurpito.github.io/make-the-cut/;
+ * Traspaso de partidas al cambiar de casa (1.20.0): el juego se llamaba «Make the Cut» y vivía en purupurpito.github.io/make-the-cut/;
  * ahora es «Take the Court» en https://takethecourt.com/. localStorage es de cada ORIGEN, así que las partidas no pasan solas: la
  * página puente (bridge/index.html, servida en la dirección antigua) lee las claves 'make-the-cut.*', las empaqueta y salta aquí con
  * #mig=<paquete>. Este script (el PRIMERO tras el bloque 'voley3d.*' de index.html, antes que ningún módulo) las mete en este origen.

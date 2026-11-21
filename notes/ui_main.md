@@ -1302,7 +1302,7 @@ Petición de Ferran: quitar los números del menú, dividirlo en submenús (móv
 - **Escuadrón v3** (prog.js): BASE a media 50 (antes 40), los guardados v1/v2 suben +10 una vez; `attrs()` da atributos a la CPU
   cuando el escuadrón pasa de 50 (`cpuSt`, 50 + 0,6·(m − 50)). Ojo: con 50 cada mejora cuesta 2 puntos desde el principio.
 - Carrera con el componente de pestañas: ver notes/carrera.md «Integración».
-- Cartel del juego de las vallas («TAKE THE COURT» desde 1.19.0; antes «MAKE THE CUT») (arena.js `drawGameBall`): el balón del juego (tres costuras en remolino y franjas naranja y
+- Cartel del juego de las vallas («TAKE THE COURT» desde 1.20.0; antes «MAKE THE CUT») (arena.js `drawGameBall`): el balón del juego (tres costuras en remolino y franjas naranja y
   azul, como pages/icon.svg) dibujado con Path2D en el canvas.
 - Capturas finales: `tools/out/menus/final/` (principal, jugar, preparacion, jugadores, jugadores-ataque, ajustes y cr-* a 1280×720,
   844×390 táctil y 2560×1440).

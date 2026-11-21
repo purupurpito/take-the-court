@@ -343,7 +343,7 @@
       // el silbato), dur (s silbato -> lanzamiento), bounces, n (botes hechos), u (0..1 del bote en curso), player, rx/ry
       // (punto del bote), cyc/td/tu (periodo, bajada, subida), v0/vu/vc/vi (empujón, subida, recogida, contra el suelo), press
       ritual: dblFields({ on: false, phase: 'none', t: 0.5, dur: 0.5, bounces: 0, n: 0, u: 0.5, player: null, rx: 0.5, ry: 0.5,
-        pre: 0.5, post: 0.5, still: 0.5, cyc: 0.5, td: 0.5, tu: 0.5, v0: 0.5, vu: 0.5, vc: 0.5, vi: 0.5, press: false }),
+        pre: 0.5, post: 0.5, still: 0.5, cyc: 0.5, td: 0.5, tu: 0.5, v0: 0.5, vu: 0.5, vc: 0.5, vi: 0.5, press: false, jug: false }), // jug: gesto «Giro» del humano (saque de firma)
       cpuTossIn: -1,           // s de juego hasta el lanzamiento programado de la CPU (0 = ya lanzado; -1 = humano / sin saque)
       time: 0,                 // tiempo de juego acumulado (s)
       teams: teams,
@@ -451,6 +451,13 @@
     applyBadges(g, opts.badges);
     if (six) { for (var ci = 0; ci < teams[0].length; ci++) if (teams[0][ci].role === g.ctrlRole) { g.ctrl = teams[0][ci]; break; } g.ctrlBase = g.ctrl; } // 6v6: el 1r de ese puesto (OH1, S, OPP, MB1)
     if (six) subsCtrl(g, opts);         // Carrera: tu atleta por meSlot (titular) o meBench (en el banquillo: g.ctrlOut)
+    // la zona y el saque de firma (20-nov-2026): solo con su opción (Carrera, o Partido rápido con el ajuste); nunca en la demo, el online
+    // ni el Entrenamiento. Sin ellas g.zn y g.sig no existen y la sim es la de siempre (las huellas no cambian)
+    if (opts.zone && !opts.demo && !opts.online && !dk) g.zn = znNew(g, opts.zone);
+    if (opts.serveSig && !opts.demo && !opts.online && !dk) {
+      var sgo = sigSane(opts.serveSig, beach ? 'beach' : 'hall');
+      if (sgo) { g.sig = sgo; g.sigUse = ''; g.sigJumpAt = -1; g.sigLast = ''; if (g.stats) g.stats.sig = { id: sgo.id, n: 0, aces: 0, faults: 0 }; }
+    }
     g.server = g.ctrl;
     newGame(g);
     return g;
@@ -954,7 +961,7 @@
   // (notes/camera_input.md, ronda 2). Pasar cada campo entero por un double al crear el objeto hace esa generalización aquí,
   // al crear el partido, y una sola vez por sitio. La semántica no cambia (mismo valor; simtest da la misma salida).
   function dblFields(o) { for (var k in o) { var v = o[k]; if (typeof v === 'number' && (v | 0) === v) { o[k] = 0.5; o[k] = v; } } return o; }
-  function emit(g, e) { e.t = g.time; dblFields(e); g.events.push(e); if (g.subsOn) subEv(g, e); return e; }
+  function emit(g, e) { e.t = g.time; dblFields(e); g.events.push(e); if (g.subsOn) subEv(g, e); if (g.zn && e.type !== 'zone') znEv(g, e); return e; }
   function rnd(g, a) { return (g.rng() * 2 - 1) * a; }
   function gauss(g) { return (g.rng() + g.rng() + g.rng() + g.rng() - 2) * 1.732; } // ~N(0,1)
 
@@ -1080,7 +1087,8 @@
   }
   function serveReach(g, p) {
     var b = g.ball, sd = side(p.team);
-    var dx = b.x - (p.x - sd * 0.3), dy = b.y - p.y, dz = b.z - (p.z + C.ZC[g.serveJump ? 'jserve' : 'fserve']);
+    var zc = C.ZC[g.serveJump ? 'jserve' : 'fserve']; if (g.sig && g.sigUse) zc = sigZc(g, zc);
+    var dx = b.x - (p.x - sd * 0.3), dy = b.y - p.y, dz = b.z - (p.z + zc);
     return dx * dx + dy * dy + dz * dz < 0.85 * 0.85;
   }
 
@@ -1105,6 +1113,7 @@
   function hitWindow(g, p, out) {
     p = p || g.ctrl; out = out || _w;
     var b = g.ball, kind = predictKind(g, p), zc = C.ZC[kind], G = gEff(b), PG = C.G;
+    if (g.sig && g.sigUse && g.mode === 'serve') zc = sigZc(g, zc);   // saque de firma de abajo: contacto más bajo
     var sd = side(p.team), offx = g.mode === 'serve' ? -sd * 0.3 : 0;
     var air = p.z > 0 || p.vz > 0;
     // lanzamiento del saque: el contacto válido es con el balón BAJANDO (el cruce de subida no cuenta)
@@ -2181,7 +2190,8 @@
   /** Prepara el ritual del sacador sv en setupServe (CPU) o lo apaga (humano). Devuelve s desde serveReady hasta el lanzamiento. */
   function ritualSetup(g, sv, cpu) {
     var r = g.ritual;
-    r.on = false; r.phase = 'none'; r.t = 0; r.n = 0; r.u = 0; r.player = null; r.dur = 0; r.bounces = 0;
+    r.on = false; r.phase = 'none'; r.t = 0; r.n = 0; r.u = 0; r.player = null; r.dur = 0; r.bounces = 0; r.jug = false;
+    if (!cpu && g.sig && g.sig.gest !== 'normal' && g.opts.ritual !== false) { sigRitual(g, sv, r); return -1; } // saque de firma: gesto del humano
     if (!cpu || g.opts.ritual === false) return -1;               // opts.ritual:false = sin ritual (pruebas: flujo anterior)
     var st = ritualStyle(g, sv), sn = g.serveNo;
     var n = st.n, v = hash01(g.seed, sv.id, sn);
@@ -2249,7 +2259,7 @@
   function ritualBall(g, p, r, out, at) {
     var t = at != null ? at : r.t, H = holdBase(g, p, _rH), R0 = RITUAL.relZ + p.z, s, k;
     if (t <= 0) { out.x = H.x; out.y = H.y; out.z = H.z; return out; }
-    if (g.beach) return ritualBallBeach(g, p, r, out, t, H);
+    if (g.beach || r.jug) return ritualBallBeach(g, p, r, out, t, H);   // (r.jug: gesto «Giro» del humano, también en la pista)
     if (t < r.pre) {                                  // baja el balón: llega al punto del bote ya empujándolo
       s = t / r.pre;
       out.x = herm(H.x, r.rx, 0, 0, s); out.y = herm(H.y, r.ry, 0, 0, s); out.z = herm(H.z, R0, 0, -r.v0 * r.pre, s);
@@ -2301,12 +2311,12 @@
     if (!g.serveAuth) r.phase = 'wait';
     else if (t < r.pre) r.phase = 'pre';
     else if (td < nb) {
-      r.phase = g.beach ? 'juggle' : 'dribble';
+      r.phase = g.beach || r.jug ? 'juggle' : 'dribble';
       var k = Math.min(r.bounces - 1, Math.floor(td / r.cyc));
       r.u = (td - k * r.cyc) / r.cyc;
-      r.n = (td - k * r.cyc) >= (g.beach ? beachFlight(r).dw : r.td) ? k + 1 : k;
+      r.n = (td - k * r.cyc) >= (g.beach || r.jug ? beachFlight(r).dw : r.td) ? k + 1 : k;
     } else { r.n = r.bounces; r.u = 1; r.phase = td - nb < r.post ? 'post' : 'done'; }
-    if (g.beach) { // playa: sin botes; un `juggle` en cada recogida del toquecito (final de cada ciclo), en la mano del sacador
+    if (g.beach || r.jug) { // playa: sin botes; un `juggle` en cada recogida del toquecito (final de cada ciclo), en la mano del sacador
       for (var j = 0; j < r.bounces; j++) {
         var tj = r.pre + (j + 1) * r.cyc;
         if (t0 < tj && t >= tj) { var Jp = beachJ(g, sv, _rJ); emit(g, { type: 'juggle', player: sv, team: sv.team, x: Jp.x, y: Jp.y, z: Jp.z, n: j + 1, of: r.bounces, last: j === r.bounces - 1 }); }
@@ -2624,6 +2634,8 @@
     else hold = matchWon ? HOLD_LEGACY.match : setWon ? HOLD_LEGACY.set : (g.demo ? RITUAL.demoHold : HOLD_LEGACY.routine) + (eight ? HOLD_LEGACY.eight : 0) + (bswap && !g.demo ? BEACH.swapHold : 0);
     if (g.online && setWon && !matchWon) hold = ONLINE.setPause; // ONLINE: 10 s entre sets (los dos «Continuar» la saltan)
     g.timer = hold; g.hold = hold;
+    if (g.zn) znPoint(g, w, how, reason, p, assist, faultPlayer, setWon, matchWon, perfectKill);   // la zona (antes del evento 'point')
+    if (g.sig) sigPoint(g, w, how);
     var ev = emit(g, { type: 'point', team: w, reason: reason, text: text, how: how, score: [g.score[0], g.score[1]],
       sideout: sideout, rallyTime: g.rally.t, rallyHits: g.rally.hits, setWon: setWon, matchWon: matchWon, player: p || null,
       lastKind: g.lastKind, lastShot: g.lastShot,
@@ -3044,7 +3056,9 @@
         if (su) { g.stats.rallies.pop(); for (var ui = 0; ui < su.length; ui++) { var up = su[ui], uo = g.stats, uj = 0; for (; uj < up.length - 1; uj++) uo = uo[up[uj]];
           var uk = up[uj]; uo[uk]--; if (uo[uk] === 0 && (up[0] === 'why' || up[0] === 'how' || up[0] === 'faults')) delete uo[uk]; } }
       }
-      if (g.subsOn) { g.rallyN--; if (g._meLast) g.meR--; subRedo(g, setNo0); } // banquillo: el punto anulado no cuenta (ni su rendimiento ni su cansancio: se vuelve a contar abajo)
+      if (g.subsOn) { g.rallyN--; if (g._meLast) g.meR--; subRedo(g, setNo0); }
+      if (g.sig && g.stats && g.stats.sig && g.stats.sig._u) { var sgu = g.stats.sig._u; g.stats.sig.aces = sgu[0]; g.stats.sig.faults = sgu[1]; g.stats.sig._u = null; }   // saque de firma: aces y fallos del punto anulado
+      if (g.zn) znUndo(g);   // la zona: lo que sumó el punto anulado (se vuelve a contar abajo con la llamada buena) // banquillo: el punto anulado no cuenta (ni su rendimiento ni su cansancio: se vuelve a contar abajo)
       if (g.mode === 'serve') { endRitual(g); endSwingX(g); g.serveState = 'ready'; }
       // mismo bote (landSide del punto nuevo); si ya se preparó el saque siguiente, lastLand puede venir a null: se rehace con la llamada
       g.ball.held = null; if (g.lastLand) g.lastLand.t = g.time; else g.lastLand = { x: c.x, y: c.y, inside: c.truthIn, t: g.time };
@@ -3363,6 +3377,7 @@
     b.held = sv; b.vx = b.vy = b.vz = 0; b.dip = 0; b.wobA = 0;
     g.touchTeam = -1; g.touches = 0; g.lastPlayer = null; g.lastTeam = t; g.jobs[0] = g.jobs[1] = null; g.lastKind = ''; g.lastShot = '';
     g.hardIn = false; g.digOk = true; g.digK = 0; g.feintFool = false; g.prevKind = ''; g.atkTeam = -1; g.atkHow = '';
+    if (g.sig) { g.sigUse = ''; g.sigJumpAt = -1; g.sigLast = ''; }   // saque de firma
     var prevCtrl = g.ctrl;
     if (g.ctrlMode !== 'one') g.ctrl = t === 0 ? sv : g.teams[0][0]; // modo 'one': el humano sigue con su jugador (si saca el compañero, saca la IA)
     if (g.online) resetSlots(g); else { endSwing(g); g.swingLock = 0; g.defRole = ''; g.aimCarry = 0; }
@@ -3391,6 +3406,7 @@
     var rt = g.ritual; if (rt.on) { rt.on = false; rt.phase = 'none'; }
     if (g.cpuTossIn > 0) g.cpuTossIn = 0;                  // CPU: lanzado (0 hasta que acaba el saque)
     b.held = null; g.serveState = 'toss'; g.serveJump = !!jumpServe; g.tossT = 0;
+    var su = g.sig ? (g.sigUse = isHuman(g, sv) ? sigPick(g, jumpServe) : '') : ''; // saque de firma: estilo de este lanzamiento
     holdPos(g, sv, b); // sale de la mano izquierda, a la altura del pecho
     var hx, hy = sv.y; // punto de contacto (sobre el hombro derecho, algo delante)
     if (jumpServe) {
@@ -3401,11 +3417,15 @@
       hx = sv.x - sd * 1.35;                                               // carrera de 0,75 m + golpeo delante
       b.vz = vz0; b.vx = (hx - b.x) / tb; b.vy = (hy - b.y) / tb;
     } else {
-      var top = 3.0, vz1 = Math.sqrt(2 * C.G * (top - b.z));
-      var tf = (vz1 + Math.sqrt(2 * C.G * (top - (sv.z + C.ZC.fserve)))) / C.G; // cae a la altura del golpeo
-      hx = sv.x - sd * 0.38;
+      var top = 3.0, hzF = sv.z + C.ZC.fserve, fw = 0.38, SD = su ? SIG.byId[su] : null;
+      if (SD && SD.zc) { hzF = sv.z + SD.zc; top = Math.max(b.z + 0.3, hzF + 0.85); fw = 0.3; }   // de abajo y globo: lanzamiento bajo
+      else if (su === 'flotsalto') { var jvF = jumpV(sv); hzF = C.ZC.fserve + jvF * jvF / (2 * C.G); top = Math.max(3.0, hzF + 0.5); } // mano en lo alto del salto
+      var vz1 = Math.sqrt(2 * C.G * (top - b.z));
+      var tf = (vz1 + Math.sqrt(2 * C.G * (top - hzF))) / C.G; // cae a la altura del golpeo
+      hx = sv.x - sd * fw;
       b.vz = vz1; b.vx = (hx - b.x) / tf; b.vy = (hy - b.y) / tf;
       g.jumpAt = 0;
+      if (su === 'flotsalto') g.sigJumpAt = Math.max(0.05, tf - jumpV(sv) / C.G - 0.02); // salta solo para golpear en lo alto
     }
     g.lastTouchT = g.time;
     sv.lastAction = 'toss'; sv.actionT = 0; sv.anim = 0.3;
@@ -3428,8 +3448,10 @@
     }
     b.held = null;
     te = te || 0;
+    var su = g.sig && human ? g.sigUse : '', SD = su ? SIG.byId[su] : null; // saque de firma ('' = el de siempre)
     if (human && sv.ak) te /= sv.ak.wSrv;
     if (human && sv.badges) { var sw = sangreW(g, sv); if (sw !== 1) te /= sw; } // Sangre fría
+    if (SD && SD.win !== 1) te /= SD.win;                                          // ventana del estilo (< 1: más justa)
     var q = timingQ(te), grade = gradeOf(q), mul = human ? 1 : prof.err, v, power, er, tx, ty;
     // saque dirigible (humano): a la diana g.aim3, con una dispersión uniforme en un círculo de radio serveSpread(q)
     var aimed = human && !tgt && g.aim3.on && g.aim3.kind === 'serve', ox = 0, oy = 0;
@@ -3447,27 +3469,49 @@
     g.aim3.on = false;
     if (g.serveJump) { // saque en salto: potente y con liftado
       var spd = human ? 12.5 + 5 * q + (sv.ak ? sv.ak.serve : 0) : prof.jserve * (0.86 + 0.14 * q);
+      if (su === 'potente') spd += SD.spd;                                   // Bomba: más rápido
       var sboost = sv.badges ? BADGE.bombardero[bl(sv, 'bombardero')] : 0; // Bombardero (m/s)
       er = (0.3 + 1.5 * (1 - q)) * mul; power = clamp((spd + sboost - 10) / 8, 0, 1);
       b.dip = C.G * (0.12 + 0.25 * q);
+      if (su === 'potente') { er *= SD.er; b.dip *= SD.dip; }
       if (sboost > 0) { b.dip = boostDip(b.dip, spd, spd + sboost); spd += sboost; }
       if (aimed) v = launchDirect(b, tx + ox, ty + oy, C.BR, spd, C.G + b.dip); // bota en la diana (± dispersión)
       else v = launchDirect(b, tx + rnd(g, er), ty + rnd(g, er), 0, spd, C.G + b.dip);
+      if (su === 'potente') { if (q < 0.55 && g.rng() < (0.6 - q) * 0.9) v[2] -= 1.1 + g.rng() * 0.8; } // Bomba: a la red más a menudo
+      else if (q < 0.45 && g.rng() < (0.5 - q) * 0.7) v[2] -= 1.1 + g.rng() * 0.8; // a la red
+      b.wobA = 0;
+    } else if (su === 'liftado') { // De tenis: de pie, con efecto (la física del saque en salto, algo más lenta), sin baile
+      var spdL = SD.v0 + 3.5 * q + (sv.ak ? sv.ak.serve : 0);
+      er = (0.3 + 1.4 * (1 - q)) * mul; power = clamp((spdL - 10) / 8, 0, 1);
+      b.dip = C.G * (0.2 + 0.2 * q) * SD.dip;
+      if (aimed) v = launchDirect(b, tx + ox, ty + oy, C.BR, spdL, C.G + b.dip);
+      else v = launchDirect(b, tx + rnd(g, er), ty + rnd(g, er), 0, spdL, C.G + b.dip);
       if (q < 0.45 && g.rng() < (0.5 - q) * 0.7) v[2] -= 1.1 + g.rng() * 0.8; // a la red
       b.wobA = 0;
+    } else if (su === 'globo') { // Globo (playa): muy alto, cae a plomo y se va largo más a menudo; sin baile
+      er = (0.3 + 1.3 * (1 - q)) * mul * SD.er; power = 0.2;
+      b.dip = 0; b.wobA = 0;
+      var gL = SD.long * (1 - q) * g.cs;
+      v = aimed ? launchApex(b, tx + ox - sd * gL, ty + oy, C.BR, SD.apex * g.cs) : launchApex(b, tx + rnd(g, er) - sd * gL, ty + rnd(g, er), 0, SD.apex * g.cs);
     } else { // flotante: más lento, pero baila
       er = (0.3 + 1.3 * (1 - q)) * mul; power = 0.25 + 0.2 * q;
       var ap = Math.max(b.z + 0.35, 3.25 + (1 - q) * 0.4 + (human ? 0 : (prof.srvSoft || 0)));
+      // saque de firma: flotante en salto (más tenso, baila más) y de abajo (globo seguro, casi sin baile; a la red solo si es muy malo)
+      var nq = 0.45, nk = (0.5 - q) * 0.6;
+      if (su === 'flotsalto') { er *= SD.er; ap = Math.max(b.z + 0.35, ap + SD.ap); }
+      else if (su === 'abajo') { er *= SD.er; ap = Math.max(b.z + 0.35, SD.apex); power = 0.15 + 0.1 * q; nq = 0.25; nk = (0.3 - q) * 0.5; }
       if (aimed) { // saque dirigible: el baile se decide antes de lanzar para que la diana marque dónde cae (FLOAT_DANCE de baile)
-        var netBall = q < 0.45 && g.rng() < (0.5 - q) * 0.6;
+        var netBall = q < nq && g.rng() < nk;
         b.dip = 0; b.wobA = (2 + 4.2 * q) * BADGE.flotador[bl(sv, 'flotador')]; b.wobF = 3.6 + g.rng() * 2; b.wobP = g.rng() < 0.5 ? -1 : 1;
+        if (SD && SD.wob) b.wobA *= SD.wob;
         if (netBall) v = launchApex(b, tx + ox, ty + oy, 0, 2.75); // se queda en la red
         else v = aimFloat(b, tx + ox, ty + oy, ap);
       } else {
-        if (q < 0.45 && g.rng() < (0.5 - q) * 0.6) v = launchApex(b, tx + rnd(g, er), ty + rnd(g, er), 0, 2.75);
+        if (q < nq && g.rng() < nk) v = launchApex(b, tx + rnd(g, er), ty + rnd(g, er), 0, 2.75);
         else v = launchSafe(b, tx + rnd(g, er), ty + rnd(g, er), 0, ap);
         b.dip = 0; b.wobA = (2 + 4.2 * q) * (human ? 1 : prof.float); b.wobF = 3.6 + g.rng() * 2; b.wobP = g.rng() < 0.5 ? -1 : 1; // wobP = sentido
         if (sv.badges) b.wobA *= BADGE.flotador[bl(sv, 'flotador')];      // Hoja seca
+        if (SD && SD.wob) b.wobA *= SD.wob;
       }
     }
     if (!human && !(g.drill && g.drill.kind === 'recv') && g.rng() < prof.srvErr) { // error de saque de la IA: a la red o largo (E6 recepción: nunca)
@@ -3485,6 +3529,8 @@
     // carrera del receptor), escalada por la recepción del perfil. (Antes era un corte duro a 13 m/s: un
     // flotante sin apuntar nunca podía ser ace y su baile no contaba.)
     g.recvRisk = r3(serveRisk(g, 1 - sv.team)); // (r3: viaja online en flMeta; 3 decimales bastan y el paquete es más corto)
+    if (su === 'globo' && g.recvRisk > 0) g.recvRisk = r3(g.recvRisk + SD.sky * g.sig.sun); // Globo: el sol molesta al receptor
+    if (g.sig) { g.sigLast = su; if (su && g.stats && g.stats.sig) g.stats.sig.n++; }
     // EFFORT: sin dado previo. recvFail(g.recvRisk) se tira en el CONTACTO con la Recepción (y el Ancla) del que la toca de verdad
     // (effortFail), no con la del receptor previsto
     g.digOk = true; g.digK = 0; g.feintFool = false;
@@ -3493,6 +3539,7 @@
     var sev = emit(g, { type: 'hit', kind: 'serve', player: sv, team: sv.team, touch: 0, quality: q, grade: grade, timing: te,
       power: power, shot: sv.shot, dive: false, aim: aim ? [aim[0], aim[1]] : null, target: [tx, ty],
       x: b.x, y: b.y, z: b.z, speed: b.speed, human: human, dig: false, recv: false , feint: false, tempo: '', edge: 0, chain: 0});
+    if (g.sig) sev.sig = su; // saque de firma ('' = el de siempre): fx.js, audio.js y ui.js
     if (g.drill) drillOnHit(g, sev);
     endSwing(g);
     if (g.fl) flContact(g, 'serve'); // fl
@@ -3572,6 +3619,7 @@
       if (hs) {
         // El sacador humano se desplaza a lo ancho de la zona de saque
         stepPlayer(g, sv, dt, 0, my * 0.8); sv.y = clamp(sv.y, -4.3 * g.cs, 4.3 * g.cs);
+        if (g.ritual.on) { var rr = g.ritual, sdr = side(sv.team); rr.rx = sv.x - sdr * RITUAL.fwd; rr.ry = sv.y - sdr * RITUAL.side; ritualStep(g, sv); } // saque de firma: el gesto sigue al sacador
         if (g.serveAuth) { if (input.jump || input.jset) toss(g, sv, true); else if (input.hit) toss(g, sv, false); }
         if (g.serveState === 'ready' && g.serveAuth && g.opts.serveClock !== false && !(g.drill && g.drill.kind !== 'free')) { // (E6: sin regla de los 8 s en los ejercicios)
           g.serveClock -= dt;
@@ -3588,6 +3636,7 @@
     } else { // balón en el aire
       g.tossT += dt;
       if (hs) updateServeAim(g, sv, dt, mx, my); // saque dirigible: el stick mueve la diana durante el lanzamiento
+      if (g.sig && g.sigJumpAt >= 0 && g.tossT >= g.sigJumpAt) { if (sv.z === 0 && sv.vz === 0) jump(g, sv, 0, 0); g.sigJumpAt = -1; } // flotante en salto: salta solo
       if (g.serveJump && sv.z === 0 && sv.vz === 0 && g.tossT < g.jumpAt + 0.05) {
         // carrera de saque en salto (automática): 2 pasos hacia la red, despegue detrás de la línea
         var run = g.tossT > 0.2 ? 0.75 / Math.max(0.2, g.jumpAt - 0.2) / C.SPEED : 0;
@@ -3596,6 +3645,7 @@
       } else stepPlayer(g, sv, dt, 0, 0);
       if (hs) {
         if ((input.jump || input.jset) && !g.serveJump) jump(g, sv, 0, 0); // salto con toss bajo: flotante en salto
+        if (g.sig && (input.jump || input.jset)) g.sigJumpAt = -1;            // (ya ha saltado él: no se repite)
         if (input.hit) startSwing(g, sv, '');
         processSwing(g, sv, aim);
         if (g.mode === 'serve' && g.hitBuf <= 0 && g.swingLive) { endSwing(g); g.swingLock = g.tm.lock; }
@@ -3603,7 +3653,7 @@
         var w = hitWindow(g, sv);
         if (w.t <= -g.aiServeTe || !w.reach || b.vz < -6) doServe(g, sv, null, -w.t, VB.AI && VB.AI.serveTarget ? VB.AI.serveTarget(g, sv) : null);
       }
-      if (g.mode === 'serve' && b.vz < 0 && b.z < sv.z + 1.0) { // el balón cae sin golpearlo
+      if (g.mode === 'serve' && b.vz < 0 && b.z < sv.z + (g.sig && g.sigUse && SIG.byId[g.sigUse].zc ? 0.5 : 1.0)) { // el balón cae sin golpearlo (los de abajo, más bajo)
         fault(g, sv.team, 'serve', 'Falta de saque: el balón cae sin golpearlo', sv, 'serveFault'); return;
       }
     }
@@ -3669,6 +3719,7 @@
     input = input || NOIN;
     var AI = VB.AI, b = g.ball;
     g.time += dt; g.blockCD -= dt; g.hitBuf -= dt; g.swingLock -= dt; g.jsetQ -= dt;
+    if (g.zn) znTick(g, dt);   // la zona: la energía baja con el juego (solo con g.zn)
     var human = !g.demo && !g.autopilot && !g.ctrlOut; // (Carrera: con tu atleta en el banquillo, g.ctrlOut, la entrada no mueve nada)
     var mv = input.move || NOIN.move, ml = dirLen(mv);
     var mx = mv[0], my = mv[1];
@@ -4353,6 +4404,265 @@
       var x = lu[t]; if (!x || (!x.ins.length && !x.meIn && !x.meOut)) continue;
       emit(g, { type: 'lineup', team: t, set: g.setNo, ins: x.ins.slice(), outs: x.outs.slice(), meIn: t === 0 && !!x.meIn, meOut: t === 0 && !!x.meOut });
     }
+  }
+
+  /* ---------- LA ZONA y SAQUE DE FIRMA (20-nov-2026, rama carrera-ea2k; owner: zona y saque de firma) ----------
+   * Nombres internos «zn» (p.zone, zoneOf, zonePos y DIFF.zoneSet ya son de la rotación del 6v6) y «sig». En pantalla siempre «zona».
+   *
+   * LA ZONA (createGame({zone: {cpu?, th?}}); nunca en la demo, el online ni el Entrenamiento). Sin la opción g.zn NO existe y cada rama
+   * nueva va detrás de `if (g.zn)`: las huellas no cambian. El medidor no gasta g.rng: solo lee los eventos (emit → znEv), los puntos
+   * (point → znPoint, con la atribución exacta) y el tiempo (step → znTick). g.zn es un objeto plano (arrays [equipo 0, equipo 1] e ids
+   * de jugador, nunca referencias): copyGame y la repetición lo copian sin más.
+   *   g.zn = {on, m (medidor 0..th), e (energía en zona 0..100), who (id del dueño: tu n.º 1 / el mejor rival; -1 = nadie), combo,
+   *           cool (puntos de enfriamiento tras salir), run (puntos seguidos del rival desde que entraste), n (entradas), t (s en zona),
+   *           pts (puntos ganados en zona), fill (1 = el dueño no tenía atributos y se le pusieron), atk (id del último atacante o
+   *           sacador por equipo), tight (el rival remató perfecto: la defensa vale más), cpu, th, u (deshacer del challenge)}
+   * En zona: +VB.ZONE.boost puntos de atributo (×cpuBoost la CPU), tope 99, aplicados EN EL SITIO sobre p.prof y p.ak (misma forma) y
+   * restaurados exactamente al salir (statProf/attrK del p.st de siempre, o null si no tenía). p.st nunca se toca.
+   * Salidas (evento 'zone' {team, player, on:false, why}): 'time' (energía a 0), 'error' (ganancia ≤ exitAt: un fallo tuyo o un ace
+   * recibido), 'streak' (el rival suma `streak` puntos seguidos: hace de tiempo muerto, que fuera del online no hay), 'timeout' (por si
+   * algún día hay tiempos muertos fuera del online), 'sub' (cambio del entrenador rival, uno por balón muerto y sin las vueltas
+   * automáticas 'serveBack'/'doubleBack': −subE de energía; si llega a 0, sale con 'sub'),
+   * 'set', 'bench' (el dueño sale de la pista), 'end' (fin del partido) y 'undo' (challenge que revoca el punto). */
+  var ZN = VB.ZONE = {
+    th: 100,                 // medidor para entrar
+    gain: { recvP: 9, recvG: 2, recvB: -6, digP: 11, digG: 6, digB: 1, dive: 4, tight: 4, setP: 5, setG: 1, setB: -3, spikeP: 3, serveP: 3,
+      block: 4, ace: 16, kill: 13, killP: 3, tip: 8, stuff: 15, assist: 5, team: 1, opp: -3, err: -20, aceIn: -12 },
+    combo: 0.12, comboMax: 5, // encadenar: ×(1 + combo·min(seguidas, comboMax)), tope ×1,6
+    diff: { easy: 1.15, normal: 1, hard: 0.95, expert: 0.85 }, cpuK: 0.8, // la CPU llena con ×cpuK (sin la ayuda del nivel). Difícil 0,95 (no 0,92): en 6v6 casi no salía
+    cool: 2,                 // puntos sin ganancias tras salir
+    boost: { react: 12, ctl: 12, recv: 10, dig: 10, set: 10, spike: 10, serve: 10, block: 8, jump: 5, speed: 5 }, cpuBoost: 0.5,
+    drain: 2.0,              // energía por segundo de juego (saque y peloteo): ~50 s en zona
+    refill: 0.4,             // en zona, las ganancias recargan energía (×refill); las pérdidas pequeñas restan la mitad
+    decay: [0.65, 0.2], decayCpu: 1.1, // fuera de la zona el medidor se vacía solo con el juego, por s (2v2, 6v6; la CPU ×decayCpu). El vaciado no venía en el encargo (ver CONTRACT.md)
+    exitAt: -12, streak: 3, subE: 35, setM: 30
+  };
+  function znNew(g, o) {
+    o = o || {};
+    var z = { on: [false, false], m: [0, 0], e: [0, 0], who: [-1, -1], combo: [0, 0], cool: [0, 0], run: [0, 0], n: [0, 0], t: [0, 0], pts: [0, 0],
+      fill: [0, 0], atk: [-1, -1], tight: [0, 0], cpu: !!o.cpu && g.difficulty !== 'easy', th: o.th > 0 && isFinite(o.th) ? +o.th : ZN.th, u: null, subK: -1 };
+    var me = g.rot ? g.ctrlBase : g.ctrl; if (me) z.who[0] = me.id;
+    if (z.cpu) znPickCpu(g, z);
+    if (g.stats) g.stats.zn = { n: [0, 0], t: [0, 0], pts: [0, 0], _u: null };
+    return z;
+  }
+  /** Dueño de la racha de la CPU: el titular en pista del equipo 1 con más Remate + Saque + Bloqueo (sin atributos, 150; el 1r si empatan). */
+  function znPickCpu(g, z) {
+    var best = -1, id = -1, T = g.teams[1];
+    for (var i = 0; i < T.length; i++) { var p = T[i], s = p.st, v = s ? s.spike + s.serve + s.block : 150; if (v > best) { best = v; id = p.id; } }
+    z.who[1] = id;
+  }
+  function znP(g, t) { var z = g.zn; return z && z.who[t] >= 0 ? cpPlayerById(g, z.who[t]) : null; }
+  /** Equipo cuya zona puntúa la acción de p (o -1): su dueño; en 6v6 también el líbero que juega por tu central. */
+  function znT(g, p) {
+    var z = g.zn; if (!p || !z) return -1;
+    var t = p.team; if (t === 1 && !z.cpu) return -1;
+    if (p.id === z.who[t]) return t;
+    if (t === 0 && g.rot && p === g.ctrl && g.ctrlBase && g.ctrlBase.id === z.who[0] && g.liberoFor[0] === g.ctrlBase) return 0;
+    return -1;
+  }
+  function znCp(d, s) { for (var k in s) d[k] = s[k]; }
+  /** Pone (on) o quita la mejora de la zona del dueño del equipo t, en el sitio. */
+  function znApply(g, t, on) {
+    var z = g.zn, p = znP(g, t); if (!p) return;
+    var base = g.prof[p.team], st = p.st, k = t ? ZN.cpuBoost : 1;
+    if (on) {
+      var s2 = {}; for (var i = 0; i < ATTR_KEYS.length; i++) { var key = ATTR_KEYS[i]; s2[key] = clamp(Math.round((st ? st[key] : 50) + (ZN.boost[key] || 0) * k), 1, 99); }
+      var pr = statProf(base, s2), ak = attrK(s2);
+      if (st && p.prof && p.ak) { znCp(p.prof, pr); znCp(p.ak, ak); z.fill[t] = 0; }
+      else { p.prof = pr; p.ak = ak; z.fill[t] = 1; }
+    } else if (z.fill[t]) { p.prof = null; p.ak = null; z.fill[t] = 0; }
+    else if (st && p.prof && p.ak) { znCp(p.prof, statProf(base, st)); znCp(p.ak, attrK(st)); }
+  }
+  function znEnter(g, t) {
+    var z = g.zn; if (z.on[t] || z.who[t] < 0) return;
+    z.on[t] = true; z.e[t] = 100; z.m[t] = z.th; z.n[t]++; z.run[t] = 0;
+    znApply(g, t, true);
+    if (g.stats && g.stats.zn) g.stats.zn.n[t]++;
+    emit(g, { type: 'zone', team: t, player: znP(g, t), on: true, why: 'fill', n: z.n[t] });
+  }
+  function znExit(g, t, why) {
+    var z = g.zn; if (!z.on[t]) return;
+    znApply(g, t, false);
+    z.on[t] = false; z.e[t] = 0; z.m[t] = why === 'set' ? ZN.setM : 0; z.combo[t] = 0; z.cool[t] = ZN.cool; z.run[t] = 0;
+    emit(g, { type: 'zone', team: t, player: znP(g, t), on: false, why: why, n: z.n[t] });
+  }
+  /** Ganancia v (cruda) para la zona del equipo t: encadenar, nivel y enfriamiento; entra al llegar a th; en zona recarga o resta energía. */
+  function znAdd(g, t, v) {
+    var z = g.zn; if (t < 0 || !v || z.who[t] < 0) return;
+    if (v > 0) {
+      if (!z.on[t] && z.cool[t] > 0) return;
+      var dk = ZN.diff[g.difficulty] || 1, k = (1 + ZN.combo * Math.min(z.combo[t], ZN.comboMax)) * (t ? ZN.cpuK : dk);
+      z.combo[t]++;
+      if (z.on[t]) z.e[t] = Math.min(100, z.e[t] + v * k * ZN.refill);
+      else { z.m[t] = Math.min(z.th, z.m[t] + v * k); if (z.m[t] >= z.th) znEnter(g, t); }
+    } else {
+      z.combo[t] = 0;
+      if (z.on[t]) { if (v <= ZN.exitAt) znExit(g, t, 'error'); else { z.e[t] = Math.max(0, z.e[t] + v * 0.5); if (z.e[t] <= 0) znExit(g, t, 'time'); } }
+      else z.m[t] = Math.max(0, z.m[t] + v);
+    }
+  }
+  /** emit (solo con g.zn): toques, bloqueos, cambios y tiempos muertos. */
+  function znEv(g, e) {
+    var z = g.zn, G = ZN.gain, ty = e.type, p = e.player, t, v = 0;
+    if (ty === 'hit' && p) {
+      var tt = p.team, tg = z.tight[tt];
+      z.tight[tt] = 0;
+      if (e.kind === 'spike') { z.atk[tt] = p.id; z.tight[1 - tt] = e.grade === 'perfect' ? 1 : 0; }
+      else if (e.kind === 'serve' || (e.kind === 'free' && e.shot === 'tip')) z.atk[tt] = p.id;
+      t = znT(g, p); if (t < 0) return;
+      var gr = e.grade;
+      if (e.recv) v = gr === 'perfect' ? G.recvP : gr === 'good' ? G.recvG : G.recvB;
+      else if (e.dig) v = (gr === 'perfect' ? G.digP : gr === 'good' ? G.digG : G.digB) + (e.dive ? G.dive : 0) + (tg ? G.tight : 0);
+      else if (e.kind === 'set') v = gr === 'perfect' ? G.setP : gr === 'good' ? G.setG : G.setB;
+      else if ((e.kind === 'spike' || e.kind === 'serve') && gr === 'perfect') v = e.kind === 'spike' ? G.spikeP : G.serveP;
+      znAdd(g, t, v);
+    } else if (ty === 'block' && p) {
+      t = znT(g, p); if (t >= 0 && (e.result === 'soft' || e.result === 'touch')) znAdd(g, t, G.block);
+    } else if (ty === 'sub') {
+      for (t = 0; t < 2; t++) if (e.outP && e.outP.id === z.who[t]) { znExit(g, t, 'bench'); if (t === 1) znPickCpu(g, z); }
+      // cambio del entrenador rival (una vez por balón muerto: el doble cambio cuenta uno; las vueltas automáticas no cuentan)
+      var sk = g.setNo * 1000 + g.score[0] + g.score[1];
+      if (e.team === 1 && e.why !== 'serveBack' && e.why !== 'doubleBack' && z.on[0] && z.subK !== sk) { z.subK = sk; z.e[0] -= ZN.subE; if (z.e[0] <= 0) { z.e[0] = 0; znExit(g, 0, 'sub'); } }
+    } else if (ty === 'lineup') {
+      if (e.team === 0 && e.meOut) znExit(g, 0, 'bench');
+    } else if (ty === 'newSet') {
+      if (z.cpu) { var c = znP(g, 1); if (!c || c.bench || g.teams[1].indexOf(c) < 0) znPickCpu(g, z); }
+    } else if (ty === 'timeout' && (e.team === 0 || e.team === 1)) znExit(g, 1 - e.team, 'timeout');
+  }
+  function znSnap(z) { return { m: z.m.slice(), e: z.e.slice(), on: z.on.slice(), combo: z.combo.slice(), cool: z.cool.slice(), run: z.run.slice(), pts: z.pts.slice(), n: z.n.slice() }; }
+  /** point (solo con g.zn), justo antes del evento 'point': ganancias del punto, racha del rival, enfriamiento y fin de set. */
+  function znPoint(g, w, how, reason, p, assist, fp, setWon, matchWon, pk) {
+    var z = g.zn, G = ZN.gain, t, was0 = z.on[0], was1 = z.on[1];
+    z.u = g._snap ? znSnap(z) : null;
+    if (g.stats && g.stats.zn) g.stats.zn._u = z.u ? g.stats.zn.pts.slice() : null;
+    for (t = 0; t < 2; t++) if (z.on[t]) { if (w === t) { z.run[t] = 0; z.pts[t]++; if (g.stats && g.stats.zn) g.stats.zn.pts[t]++; } else z.run[t]++; }
+    var act = how === 'ace' || how === 'kill' || how === 'tip' ? (z.atk[w] >= 0 ? cpPlayerById(g, z.atk[w]) : null) : how === 'block' ? g.lastPlayer : null;
+    // fallo de quien pierde: el infractor (p / faultPlayer) o el último que tocó, de su equipo, si el balón acaba fuera o en su campo sin mérito rival
+    var lp = g.lastPlayer, err = p || fp || (how === 'error' && (reason === 'in' || reason === 'out') && lp && lp.team === 1 - w && g.lastTeam === 1 - w ? lp : null);
+    for (t = 0; t < 2; t++) {
+      if (z.who[t] < 0) continue;
+      var v;
+      if (t === w) v = act && act.team === t && znT(g, act) === t ? (how === 'ace' ? G.ace : how === 'kill' ? G.kill + (pk ? G.killP : 0) : how === 'tip' ? G.tip : G.stuff)
+        : assist && znT(g, assist) === t ? G.assist : G.team;
+      else if (err && err.team === t && znT(g, err) === t) v = G.err;
+      else if (how === 'ace' && g._rc && g._rc.who && znT(g, g._rc.who) === t) v = G.aceIn;
+      else v = G.opp;
+      znAdd(g, t, v);
+    }
+    for (t = 0; t < 2; t++) {
+      if (!(t ? was1 : was0) && !z.on[t] && z.cool[t] > 0) z.cool[t]--;   // (enfría con los puntos que acaban fuera de la zona; el de la salida no cuenta)
+      if (z.on[t] && z.run[t] >= ZN.streak) znExit(g, t, 'streak');
+      if (setWon && z.on[t]) znExit(g, t, matchWon ? 'end' : 'set');
+    }
+  }
+  /** endReview (solo con g.zn): el punto revocado deshace lo que sumó a la zona (y la mejora, si cambió la entrada). */
+  function znUndo(g) {
+    var z = g.zn, u = z.u; z.u = null; if (!u) return;
+    var S = g.stats && g.stats.zn;
+    if (S && S._u) { S.pts = S._u; S._u = null; }
+    for (var t = 0; t < 2; t++) {
+      var was = z.on[t];
+      if (was !== u.on[t]) { znApply(g, t, u.on[t]); if (S && !u.on[t]) S.n[t] = Math.max(0, S.n[t] - 1); }
+      z.m[t] = u.m[t]; z.e[t] = u.e[t]; z.on[t] = u.on[t]; z.combo[t] = u.combo[t]; z.cool[t] = u.cool[t]; z.run[t] = u.run[t]; z.pts[t] = u.pts[t]; z.n[t] = u.n[t];
+      if (was !== u.on[t]) emit(g, { type: 'zone', team: t, player: znP(g, t), on: u.on[t], why: 'undo', n: z.n[t] });
+    }
+  }
+  /** step (solo con g.zn y fuera del online): la energía baja con el juego (saque y peloteo; no en la pausa del punto ni entre sets). */
+  function znTick(g, dt) {
+    var z = g.zn; if (g.mode !== 'serve' && g.mode !== 'rally') return;
+    for (var t = 0; t < 2; t++) if (!z.on[t]) { if (z.m[t] > 0) z.m[t] = Math.max(0, z.m[t] - ZN.decay[g.rot ? 1 : 0] * (t ? ZN.decayCpu : 1) * dt); } else {
+      z.t[t] += dt; if (g.stats && g.stats.zn) g.stats.zn.t[t] += dt;
+      z.e[t] -= ZN.drain * dt; if (z.e[t] <= 0) { z.e[t] = 0; znExit(g, t, 'time'); }
+    }
+  }
+  function znOn(g, t) { return !!(g && g.zn && g.zn.on[t ? 1 : 0]); }
+  function znMeter(g, t) { var z = g && g.zn; t = t ? 1 : 0; return z ? (z.on[t] ? 1 : clamp(z.m[t] / z.th, 0, 1)) : 0; }
+  function znEnergy(g, t) { var z = g && g.zn; t = t ? 1 : 0; return z && z.on[t] ? clamp(z.e[t] / 100, 0, 1) : 0; }
+  function znWho(g, t) { return g && g.zn ? znP(g, t ? 1 : 0) : null; }
+  /** Solo escenas de depuración y pruebas: crea g.zn si falta (con la CPU) y mete al equipo t en la zona al momento. */
+  function znDebug(g, t) {
+    if (!g || g.online || g.demo) return false;
+    t = t ? 1 : 0;
+    if (!g.zn) g.zn = znNew(g, { cpu: true });
+    var z = g.zn; if (t === 1 && z.who[1] < 0) { z.cpu = true; znPickCpu(g, z); }
+    z.cool[t] = 0; z.m[t] = z.th; znEnter(g, t);
+    return z.on[t];
+  }
+
+  /* SAQUE DE FIRMA (createGame({serveSig: {id, gest, sun?}}) = lo que devuelve sigSane; solo el saque del HUMANO; nunca en la demo, el
+   * online ni el Entrenamiento). Sin la opción (o con Clásico y sin gesto: sigSane devuelve undefined) g.sig NO existe: la sim es idéntica.
+   * El estilo sustituye UN botón (btn): Bomba va en SALTAR y los demás en GOLPEAR; el otro botón saca como siempre (sin gestos nuevos).
+   * g.sigUse = estilo del lanzamiento en curso ('' = el de siempre; lo fija toss), g.sigJumpAt = s de lanzamiento del salto automático del
+   * flotante en salto (-1 = ninguno), g.sigLast = estilo del saque de este punto (estadística). sv.shot sigue siendo 'jump'/'float' (recap,
+   * matchstats y nota no cambian); el evento 'hit' del saque lleva sig. Valores medidos en tools/zonetest.js §7.
+   *   win: ventana de timing (te /= win: < 1, más justa); zc: altura de contacto (m sobre los pies) de los saques de abajo.
+   *   Sin ventaja neta (20-nov-2026): con el bot de zonetest §7 (desfase ~N(0, 0,06), diana central, 4000 saques) el EV (ace − falta) de
+   *   cada estilo queda a ±1,5 puntos del saque de siempre de su botón; cada uno gana en algo y pierde en otra cosa (Bomba: más rápida y
+   *   cae menos que antes, 10 veces más faltas; Flotante en salto: vuelo más corto, baila menos; De tenis: rápido y sin baile, cae poco
+   *   (dip × 0,7; v0 = m/s de base); De abajo: sin faltas, baile algo menor y vuelo lento; Globo: el sol, sky = riesgo que suma). */
+  var SIG = VB.SERVE_SIG = {
+    ids: ['clasico', 'potente', 'flotsalto', 'liftado', 'abajo', 'globo'],
+    byId: {
+      clasico: { id: 'clasico', name: 'Clásico', short: '', btn: 'both', key: 'both', need: 0, win: 1,
+        desc: 'El de siempre.', pro: 'Los dos saques de siempre', con: '' },
+      potente: { id: 'potente', name: 'Bomba', short: 'Bomba', btn: 'jump', key: 'jump', need: 62, win: 0.9, spd: 3.0, dip: 1.3, er: 1.3,
+        desc: 'En salto y más fuerte. Más rápido, más fallos.', pro: 'Más rápido', con: 'Más fallos' },
+      flotsalto: { id: 'flotsalto', name: 'Flotante en salto', short: 'Flot. salto', btn: 'hit', key: 'hit', need: 0, win: 0.93, ap: -0.25, wob: 0.46, er: 1.05,
+        desc: 'Saltas solo. Más tenso, pero baila menos y la ventana es más justa.', pro: 'Más tenso', con: 'Baila menos' },
+      liftado: { id: 'liftado', name: 'De tenis', short: 'De tenis', btn: 'hit', key: 'hit', need: 55, win: 1, v0: 15, dip: 0.7,
+        desc: 'Sin saltar, con efecto. Rápido y recto; no baila.', pro: 'Rápido y recto', con: 'No baila' },
+      abajo: { id: 'abajo', name: 'De abajo', short: 'De abajo', btn: 'hit', key: 'hit', need: 0, win: 1.15, er: 0.55, wob: 0.92, apex: 4.6, zc: 1.25,
+        desc: 'Casi nunca falla. Casi nunca hace daño.', pro: 'Casi nunca falla', con: 'Casi nunca hace daño' },
+      globo: { id: 'globo', name: 'Globo', short: 'Globo', btn: 'hit', key: 'hit', venue: 'beach', need: 0, win: 1, er: 1.45, apex: 12.5, zc: 1.25, sky: 0.3, long: 0.9,
+        desc: 'Sube muy alto y cae a plomo. Con sol molesta mucho; de noche, menos. Se va largo más a menudo.', pro: 'Cae a plomo y molesta con sol', con: 'Se va largo más a menudo' }
+    },
+    gest: { ids: ['normal', 'tres', 'uno', 'giro'], labels: ['Ninguno', 'Tres botes', 'Un bote', 'Giro'] },
+    roofTxt: 'Bajo techo no hay globo'
+  };
+  /** Saque de firma saneado para createGame (o undefined: Clásico sin gesto = la sim de siempre). venue 'beach'|'hall' (el Globo solo en la
+   *  playa: en la pista sale Clásico con roof = true). Idempotente. o = {id, gest, sun?, roof?}. */
+  function sigSane(o, venue) {
+    if (!o || typeof o !== 'object') return undefined;
+    var id = typeof o.id === 'string' && SIG.byId.hasOwnProperty(o.id) ? o.id : 'clasico', d = SIG.byId[id], roof = !!o.roof;
+    if (d.venue && d.venue !== (venue === 'hall' ? 'hall' : 'beach')) { id = 'clasico'; roof = true; }
+    var gest = SIG.gest.ids.indexOf(o.gest) >= 0 ? o.gest : 'normal';
+    if (id === 'clasico' && gest === 'normal' && !roof) return undefined;
+    var sun = +o.sun; sun = o.sun != null && isFinite(sun) ? clamp(sun, 0, 1) : 1;
+    return { id: id, gest: gest, sun: sun, roof: roof };
+  }
+  /** Rótulos de los dos saques del humano para el HUD: {hit, jump, id} ('Flotante' / 'Potente' sin saque de firma). */
+  function sigLabels(g) {
+    var o = { hit: 'Flotante', jump: 'Potente', id: '' }, s = g && g.sig, d = s && SIG.byId[s.id];
+    if (!d || d.btn === 'both') return o;
+    o.id = d.id; if (d.btn === 'jump') o.jump = d.short; else o.hit = d.short;
+    return o;
+  }
+  /** Estilo del lanzamiento del humano: el de su firma si el botón coincide con su familia; si no, '' (el de siempre). */
+  function sigPick(g, jumpServe) {
+    var d = SIG.byId[g.sig.id];
+    if (!d || d.btn === 'both') return '';
+    return (d.btn === 'jump') === !!jumpServe ? d.id : '';
+  }
+  /** Altura de contacto del saque en curso (los de abajo, más baja). */
+  function sigZc(g, zc) { var d = g.sigUse ? SIG.byId[g.sigUse] : null; return d && d.zc ? d.zc : zc; }
+  /** Gesto antes de sacar del humano (ritual sin g.rng): tres botes, un bote o girar el balón (los toquecitos de la playa). Presentación:
+   *  no fija la hora del lanzamiento y toss lo corta al momento. */
+  function sigRitual(g, sv, r) {
+    var gs = g.sig.gest, n = gs === 'tres' ? 3 : 1, st = ritualStyle(g, sv);
+    ritualSplit(r, (n === 1 ? 0.5 : 0.36) + 0.06 * st.tempo);
+    var sd = side(sv.team);
+    r.on = true; r.phase = 'wait'; r.player = sv; r.bounces = n; r.pre = st.pre; r.post = RITUAL.postMove; r.still = 0.15;
+    r.dur = r.pre + n * r.cyc + r.post + r.still;
+    r.rx = sv.x - sd * RITUAL.fwd; r.ry = sv.y - sd * RITUAL.side; r.press = false; r.jug = gs === 'giro';
+  }
+  /** point (solo con g.sig y estadísticas), antes del cambio de saque: aces y fallos del saque de firma de este punto. */
+  function sigPoint(g, w, how) {
+    var S = g.stats && g.stats.sig; if (!S) return;
+    S._u = g._snap ? [S.aces, S.faults] : null;   // (deshacer del challenge: endReview)
+    if (!g.sigLast || g.serving !== 0) return;
+    if (how === 'ace' && w === 0) S.aces++;
+    else if (w === 1 && how === 'error' && g.rally.hits === 0) S.faults++;
   }
 
   /* ---------- Repetición (S3-C1): copia de una partida en una partida sombra y huella del estado ----------
@@ -5278,6 +5588,9 @@
     _canSubC: function (g, t, out, inn) { return canSubX(g, t, out, inn, true); }, _applySubs: applySubs,
     // repetición (S3-C1): copia sobre una partida sombra y huella del estado (g.rng.get/set en makeRng)
     copyGame: copyGame, stateHash: stateHash,
+    // la zona y el saque de firma (20-nov-2026): sin g.zn / g.sig devuelven 0 / false / null y no hacen nada. Tablas en VB.ZONE y VB.SERVE_SIG
+    znOn: znOn, znMeter: znMeter, znEnergy: znEnergy, znWho: znWho, znDebug: znDebug, ZN: ZN, _znApply: znApply, _znUndo: znUndo,
+    sigSane: sigSane, sigLabels: sigLabels, SERVE_SIG: SIG,
     // ONLINE (fase 0, notes/net.md): huecos humanos, bits de partido y foto serializable del estado
     ONLINE: ONLINE, useSlot: act, slotGet: hget, humOn: humOn, humSlot: humSlot, jsetHum: jsetHum, jsetHumSw: _jh, setSlotAI: slotAI,
     // ONLINE V2 «Fluida» (bloque FLUIDA, notes/online-v2-spec.md §2): todo detrás de g.fl (flInit) // fl-api

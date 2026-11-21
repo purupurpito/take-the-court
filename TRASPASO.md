@@ -490,8 +490,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - `tools/drive.js` falló 1 vez de 4 («el humano llega a tocar el balón», con el PC al 60 % de CPU); las otras 3, TODO OK. Vigilar.
 
 ### Hecho
-- **Take the Court (1.19.0)** (20-nov-2026, rama nombre; marca libre y dominio takethecourt.com comprados por Ferran): el juego pasa
-  a llamarse «Take the Court» en todo lo visible (título de la pestaña, logotipo animado con el rótulo nuevo, metadatos, manifest,
+- **Take the Court (1.20.0)** (20/21-nov-2026, rama nombre, con main 1.19.2 fusionado; marca libre y dominio takethecourt.com comprados por Ferran): el juego pasa
+  a llamarse «Take the Court» en todo lo visible (título de la pestaña, metadatos, manifest,
   instalar, compartir sala, acta, gorra «TTC», letras «T T C» de la red, vallas y banda de playa). Las claves y los ids internos se
   quedan (`make-the-cut.*`, Firebase `make-the-cut-vb`, `gorraMTC`, semilla `mtc-dia-`…; lista en notes/nombre.md) para no perder
   partidas, datos de la nube, retos diarios ni la compatibilidad del online. Casa nueva en https://takethecourt.com/ (CNAME en
@@ -504,7 +504,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   2. Renombrar el repo a `purupurpito/take-the-court` y poner el dominio `takethecourt.com` en Settings › Pages (con Pages por
      Actions, el fichero CNAME no basta). DNS del dominio hacia GitHub Pages y esperar el certificado (Enforce HTTPS).
   3. Firebase: añadir `takethecourt.com` en Authentication › Authorized domains y revisar las restricciones de la clave web.
-  4. Comprobar que https://takethecourt.com/ sirve 1.19.0 (Google, cuenta, online).
+  4. Comprobar que https://takethecourt.com/ sirve 1.20.0 (Google, cuenta, online).
   5. SOLO ENTONCES crear el repo nuevo `purupurpito/make-the-cut` con el contenido de `bridge/` y Pages activado (bridge/README.md).
   Detalle y riesgos en notes/dominio.md.
 - **Vestuario renovado (1.18.0)** (20-nov-2026, rama personaje): casco de pelo nuevo con 32 peinados y pelo que asoma bajo los gorros,
@@ -676,7 +676,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   acento de equipo en la UI = color de la equipación (`--k0`/`--k1`, marcador «TÚ», tutorial); tras un punto anulado ya no sale la
   etiqueta «REMATE»; el cartel «OUT» de la UI es opaco con contorno (la red ya no lo ensucia). simtest prueba además que el humano
   bloquea en modo Uno (n.º 7 y n.º 11) sin que el compañero IA salte a la vez.
-- **Nombre del juego (historia): «Make the Cut»**, hasta 1.18.0; desde 1.19.0 es «Take the Court» (ver «Take the Court (1.19.0)» en Hecho y notes/nombre.md). (sin exclamación; elegido por Ferran el 9-nov-2026; doble sentido: el *cut shot* del vóley y «pasar el corte»,
+- **Nombre del juego (historia): «Make the Cut»**, hasta 1.19.2; desde 1.20.0 es «Take the Court» (ver «Take the Court (1.20.0)» en Hecho y notes/nombre.md). (sin exclamación; elegido por Ferran el 9-nov-2026; doble sentido: el *cut shot* del vóley y «pasar el corte»,
   ganarse la plaza, como en el modo Carrera). Cambiado en título, logos (menú y telón), rótulo del pabellón, aviso de girar el móvil
   y nombre de la app instalable. Repo renombrado a `purupurpito/make-the-cut` (GitHub redirige el repo antiguo); web en https://purupurpito.github.io/make-the-cut/. La URL antigua de Pages (/voley-3d/) da 404 salvo que se cree la redirección en el repo `purupurpito.github.io`.
   Marcas (revisado en TMview/OMPI el 9-nov-2026): nadie tiene «Make the Cut» para videojuegos (clases 9/28/41 de juegos).
@@ -765,5 +765,5 @@ cámara. Teclado, mando y táctil (móvil en horizontal). Reglas y vocabulario c
 ## Cuentas
 
 Repo público en **purupurpito** (cuenta personal), publicado en GitHub Pages:
-https://takethecourt.com/ desde 1.19.0 (dominio propio de Ferran; antes https://purupurpito.github.io/make-the-cut/, que pasa a
+https://takethecourt.com/ desde 1.20.0 (dominio propio de Ferran; antes https://purupurpito.github.io/make-the-cut/, que pasa a
 ser el puente de bridge/). Se despliega solo en cada push a main con .github/workflows/pages.yml.

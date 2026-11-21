@@ -1,10 +1,11 @@
-# Nombre del juego: Take the Court (1.19.0, 20-nov-2026)
+# Nombre del juego: Take the Court (1.20.0, 20-nov-2026)
 
 ## Decisión (Ferran)
-- Desde 1.19.0 el juego se llama **Take the Court** (marca comprobada y libre; dominio takethecourt.com comprado por Ferran).
-  Antes fue «Make the Cut» (9-nov a 20-nov-2026, hasta 1.18.0) y, al principio, «Voley 3D».
+- Desde 1.20.0 el juego se llama **Take the Court** (marca comprobada y libre; dominio takethecourt.com comprado por Ferran).
+  Antes fue «Make the Cut» (9-nov a 20-nov-2026, hasta 1.19.2) y, al principio, «Voley 3D».
 - Cambia **todo lo que ve el jugador**: título de la pestaña (`T` en js/ui.js, también «Pausa — …», «Set N | a-b — …»…), logotipo
-  animado (rótulo TAKE THE COURT, mismo estilo), metadatos, Open Graph y manifest (tools/build-pages.js), aviso de girar el móvil,
+  («Red cruzada» de main 1.19.1/1.19.2, con su icono y og.png; el rótulo «TAKE THE / COURT» con corte que hizo esta rama lo
+  descartó Ferran y no entró), metadatos, Open Graph y manifest (tools/build-pages.js), aviso de girar el móvil,
   pantalla de error, tutorial de instalar, compartir sala del online, competición por defecto del acta, novedades, las letras de la
   gorra del online («TTC»), las letras de la red («T T C»), las vallas LED y la banda de la red de playa.
 - Cambian también las cabeceras de código (`TAKE THE COURT — js/<fichero>`) y la documentación. Excepción: js/sim.js, js/ai.js y

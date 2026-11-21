@@ -75,7 +75,10 @@
     return out.join(' ') || n;
   }
   function isHall(c) { return !!(c && c.mode === 'hall'); }
-  function subsOf(t) { var c = C() && C().get(); return (isHall(c) && SUBS6[t]) || SUBS[t]; }
+  function subsOf(t) {
+    var c = C() && C().get(), base = (isHall(c) && SUBS6[t]) || SUBS[t], ex = c ? xSubs(t, c) : [];
+    return ex.length ? (base || []).concat(ex.map(function (s) { return [s.id, s.label]; })) : base;   // (+ las sub-pestañas de las extensiones)
+  }
   var sub = { player: 'phys', club: 'info', league: 'table', honors: 'titles', life: 'fame', inbox: 'box', pick: 0 };
   function LUI() { return VB.CareerLife && VB.CareerLifeUI || null; }
   /** «Carrera con vida» (career-story.js + career-story-ui.js, notes/carrera-vida.md): avisos, Bandeja con respuestas, Redes, Gente,
@@ -89,6 +92,70 @@
   function LOOK() { var X = VB.Look; return X && Array.isArray(X.CATALOG) && X.SLOTS ? X : null; }
   /** Hay objetos del vestuario que aún no has visto (punto en Jugador y en Vestuario). */
   function lookNew() { var X = LOOK(); if (!X || !X.unseen) return false; try { var u = X.unseen(); return !!(u && u.length); } catch (e) { return false; } }
+  // ---- extensiones de la Carrera en la interfaz (VB.CareerUIExt, 20-nov-2026; API en CONTRACT.md «Extensiones de la Carrera»)
+  // Cada entrada (la registra su fichero js/career-*.js con (VB.CareerUIExt = VB.CareerUIExt || []).push({...})):
+  //   id, prefix ('nt-': sus data-act), subs [{tab, id, label, labelPh?, has?(c)}], page(c, subId, HLP), huecos (matchTop, match,
+  //   seasonEnd, state, opts, honors, offers, last, offerLine(c, o, HLP)), replace {transfer}, hide ['setpos'], dot(c, where),
+  //   act(act, btn, ctx), css(), msgK {k: 'Rótulo'}, trophyLabel(t), y para tomar el hub entero (prólogo): takeover(c), render(c, HLP,
+  //   {tab, ph}), hero(c), createRow(form, hall, HLP), createLabel(form), createOpts(form). Todo opcional; los errores no rompen nada.
+  function XUI() { return Array.isArray(VB.CareerUIExt) ? VB.CareerUIExt.filter(function (x) { return x && typeof x === 'object'; }) : []; }
+  function xFn(x, k) { return !x ? null : typeof x[k] === 'function' ? x[k] : x.ui && typeof x.ui[k] === 'function' ? x.ui[k] : null; }
+  function xTry(x, k, args, def) {
+    var f = xFn(x, k); if (!f) return def;
+    try { var v = f.apply(x, args || []); return v == null ? def : v; } catch (e) { try { console.error('CareerUIExt ' + (x.id || '?') + '.' + k, e); } catch (e2) { } return def; }
+  }
+  /** HTML de un hueco (todas las extensiones, en orden de registro). */
+  function xSlot(k, c, more) { xCss(); return XUI().map(function (x) { return String(xTry(x, k, more ? [c, more, HLP] : [c, HLP], '') || ''); }).join(''); }
+  /** Sustituto de una tarjeta del núcleo (x.replace[k](c, HLP)): el primero que no esté vacío, o ''. */
+  function xReplace(k, c) {
+    xCss(); var out = '';
+    XUI().some(function (x) { var f = x.replace && typeof x.replace[k] === 'function' ? x.replace[k] : null; if (!f) return false; try { out = String(f.call(x, c, HLP) || ''); } catch (e) { out = ''; } return !!out; });
+    return out;
+  }
+  function xHide(k) { return XUI().some(function (x) { return Array.isArray(x.hide) && x.hide.indexOf(k) >= 0; }); }
+  /** Sub-pestañas de las extensiones para el apartado t: [{id, label, labelPh, x}] (has(c) decide si salen). */
+  function xSubs(t, c) {
+    var out = [];
+    XUI().forEach(function (x) {
+      (Array.isArray(x.subs) ? x.subs : []).forEach(function (s) {
+        if (!s || s.tab !== t || !s.id) return;
+        var on = true; if (typeof s.has === 'function') { try { on = !!s.has(c); } catch (e) { on = false; } }
+        if (on) out.push({ id: String(s.id), label: esc(s.label || s.id), labelPh: s.labelPh ? esc(s.labelPh) : '', x: x });
+      });
+    });
+    return out;
+  }
+  function xSubOwner(t, id, c) { var l = xSubs(t, c); for (var i = 0; i < l.length; i++) if (l[i].id === String(id)) return l[i]; return null; }
+  /** Punto de aviso: where = id de un apartado ('match', 'club'…) o de una sub-pestaña ('natl', 'offers'…). */
+  function xDot(c, where) { return XUI().some(function (x) { return !!xTry(x, 'dot', [c, where], false); }); }
+  /** Extensión que toma el hub entero (prólogo juvenil): la primera cuyo takeover(c) sea true. */
+  function xTake(c) { if (!c || view === 'create') return null; var l = XUI(); for (var i = 0; i < l.length; i++) if (xTry(l[i], 'takeover', [c], false)) return l[i]; return null; }
+  var xTab = '', xCssN = -1;
+  function xCss() {
+    if (typeof document === 'undefined' || !document.head) return;
+    var l = XUI(); if (l.length === xCssN) return; xCssN = l.length;
+    var s = ''; l.forEach(function (x) { if (typeof x.css === 'function') { try { s += '\n' + (x.css() || ''); } catch (e) { } } });
+    var st = document.getElementById('cr-ext-css'); if (!st) { st = document.createElement('style'); st.id = 'cr-ext-css'; document.head.appendChild(st); }
+    st.textContent = s;
+  }
+  /** Hub de una extensión que lo toma entero (render → {head, tabs:[[id, texto, punto?]], tab, body, view}). */
+  function renderTake(c, X) {
+    xCss();
+    var r = xTry(X, 'render', [c, HLP, { tab: xTab, ph: PH() }], null) || {};
+    if (r.tab) xTab = String(r.tab);
+    head.innerHTML = backBtn() + ptHTML(c, 'me', 44, 'cr-pt', 'Retrato de ' + c.player.name) + (r.head || '');
+    if (r.tabs && r.tabs.length) { tabsEl.hidden = false; tabsEl.setAttribute('data-ph-tabs', 'strip'); drawBar('tab', r.tabs, xTab); } else tabsEl.hidden = true;
+    subEl.hidden = true;
+    body.setAttribute('data-cv', 'x-' + (X.id || '') + '-' + (r.view || ''));
+    body.innerHTML = r.body || '';
+  }
+  /** Lanza un partido o ejercicio de una extensión (main.js: startCareerExt / startCareerExtDrill) tras cerrar el hub. */
+  function xGo(kind, p) {
+    var go = function () { var A = VB.ctx && VB.ctx.actions; if (!A) return; if (kind === 'drill') { if (A.startCareerExtDrill) A.startCareerExtDrill(p.id, p.arg, !!p.auto); } else if (A.startCareerExt) A.startCareerExt(p.id, p.arg, !!p.auto); };
+    close(true);
+    var w = false; try { w = !!(VB.UI && VB.UI.wipe && VB.UI.wipe(2, go)); } catch (e) { w = false; }
+    if (!w) go();
+  }
   var HLP = { esc: function (s) { return esc(s); }, sp: function (a, k) { return sp(a, k); }, kitSw: function (k, big) { return kitSw(k, big); },
     // B2: escudo paródico (career-world-ui.js); sin él, la muestra de equipación de siempre
     crest: function (k, px, o) { var W = WUI(); return W && W.crestSVG ? W.crestSVG(k, px, o) : k && k.kit ? kitSw(k.kit, px >= 48) : ''; },
@@ -782,6 +849,11 @@
     Q + ' .sp-btn.sp-wrap{white-space:normal;text-align:left;--sp-py:8px}',
     Q + ' .sp-btn.sp-wrap .sp-t{white-space:normal;overflow:visible;line-height:1.08}',
     Q + ' .sp-btn.sp-wrap .sp-s{white-space:normal}',
+    // saque de firma (Jugador › Insignias): los rótulos se parten en líneas y el gesto, separado de las colas de los bocadillos
+    Q + ' .cr-sig-l{margin-bottom:4px}',
+    Q + ' .cr-sig-l>.sp-btn.sp-wrap{flex:1 1 calc(33.3% - 12px)}',   // (tres por fila: sola en su fila, la última se estiraba y se comía la letra)
+    Q + ' .cr-sig-l>.sp-btn.sp-wrap .sp-s{font-size:12px}',
+    Q + ' .cr-sig>label{display:block;margin-top:20px}',
     Q + ' .sp-btn.sp-off>.sp-blob{filter:grayscale(.7) brightness(.8) drop-shadow(var(--sp-sh))}',
     // segmentados y filtros (duración, puesto, dificultad, circuito, país…): trazos de pincel; el elegido, dorado
     Q + ' :is(.seg,.lg-sw,.cw-opt){gap:6px 4px}',
@@ -1122,6 +1194,9 @@
     PQ + ' .bd strong{font-size:var(--ph-row)}',
     PQ + ' .bd .muted{font-size:var(--ph-cap)}',
     PQ + ' .bd[aria-pressed="true"] strong::after{font-size:var(--ph-cap)}',
+    // saque de firma (encima de la rejilla): tres por fila y el gesto en una fila de 44
+    PQ + ' .cr-sig-l>.sp-btn.sp-wrap{flex:1 1 min(100%,200px);min-height:52px}',
+    PQ + ' .cr-sig-l>.sp-btn.sp-wrap .sp-s{font-size:var(--ph-cap)}',
     // plan del entrenador (en Partido)
     PQ + ' .pl-focus{grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}',
     PQ + ' .pl-focus button{min-height:52px;font-size:var(--ph-label)}',
@@ -1297,6 +1372,8 @@
     PQ + ' .card>.cr-q{position:absolute;top:-26px;right:10px;z-index:2;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;border:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);' +
       'box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);font:400 var(--ph-row)/1 var(--sp-pop);letter-spacing:0;text-transform:none;text-shadow:none;transform:rotate(6deg)}',
     PQ + ' .card>.cr-q:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    // (en la 1ª tarjeta, más abajo: a -26 px rozaba el sello de la media de la cabecera)
+    PQ + ' #crBody>.card:first-child:not(:has(>h3:first-child+.cr-q:last-child))>.cr-q{top:-21px}',
     // ofertas: nombre en una línea y las 4 cifras del trato a la vista, encima de «Firmar»
     PQ + ' .offer-full .bigname.cr-on{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .offer-full>.row{align-items:center}',
@@ -1367,7 +1444,7 @@
     // (PC/tableta: «Crear y ver ofertas» también va a la barra; pegado dentro del desplazamiento tapaba los países de debajo)
     // (Partido › «Jugar partido» + «Simular» también: se iba con el desplazamiento al leer los detalles de debajo)
     // (fin de temporada: «Ver ofertas» o, sin ofertas, «Seguir en…» / «Renovar con…»; Faro y el resumen la dejaban fuera de la pantalla)
-    var src = !body ? null : PH() ? body.querySelector('.card.offer-full>.acts,.card.tp>.tp-acts,.card>.acts:has(>[data-act="plan-go"]),.cr-next>.acts.cr-go,.cf .acts:has(>[data-act="create"]),' +
+    var src = !body ? null : PH() ? body.querySelector('.card.offer-full>.acts,.card.tp>.tp-acts,.card.x-go>.acts,.card>.acts:has(>[data-act="plan-go"]),.cr-next>.acts.cr-go,.cf .acts:has(>[data-act="create"]),' +
       '#crBody[data-cv^="match"]>.card>.acts:has(>.pri:is([data-s="offers"],[data-act="stay"]))') :
       body.querySelector('.cf .acts:has(>[data-act="create"])');
     dock.innerHTML = '';
@@ -1422,6 +1499,7 @@
       spLabel(b); b.classList.add('sp-patch'); pat = true;
     });
     q('.lf-ev .acts button').forEach(function (b, i) { spBtn(b, SPD[i % SPD.length], 'sp-md'); b.classList.add('sp-wrap'); });
+    q('.cr-sig-l>button').forEach(function (b) { b.classList.add('sp-wrap'); });   // (saque de firma: rótulos en varias líneas, sin elipsis)
     q('.cr-go>button,.cw-mentor .acts>button').forEach(function (b, i) { spBtn(b, i && b.closest('.cw-mentor') ? 'sp-teal' : 'sp-ink', 'sp-md'); });
     q('.acts>button,.pick-acts>button,.tp-acts>button,.pl-acts>button').forEach(function (b) {
       spBtn(b, b.classList.contains('pri') ? 'sp-kit' : SPC[gi++ % SPC.length], 'sp-md');
@@ -1443,6 +1521,7 @@
     if (dbgTrial) { renderTrialPre(dbgTrial); return; }   // (?debug=trial&pre=1: la previa con datos de muestra)
     var c = C() && C().get();
     if (view === 'create' || !c) { renderCreate(c); return; }
+    var XT = xTake(c); if (XT) { renderTake(c, XT); return; }   // (una extensión toma el hub entero: prólogo juvenil)
     if (c.phase === 'pick') { renderPick(c); return; }
     if (trialI >= 0) { if (c.offers && c.offers[trialI] && c.offers[trialI].trial) { renderTrialPre(trialInfo(c, trialI)); return; } trialI = -1; }   // previa de una invitación a prueba (mitad o fin de temporada)
     var k = C().myClub(c), L = isHall(c) ? C().league(k.lid) : C().league(k.lvl);
@@ -1468,7 +1547,8 @@
     var tabDot = function (id) {
       return (id === 'player' && (c.player.pts > 0 || lookNew())) || (id === 'club' && (c.window === 'mid' || c.phase === 'off') && offN) || (id === 'match' && c.phase === 'off') ||
         (id === 'life' && !!(c.life && c.life.spOffers && c.life.spOffers.length)) || (id === 'league' && newsN > 0) ||
-        (id === 'match' && !!SUI() && SUI().chips(c).length > 0);   // (career-story: hay avisos en Partido)
+        (id === 'match' && !!SUI() && SUI().chips(c).length > 0) ||   // (career-story: hay avisos en Partido)
+        xDot(c, id);   // (extensiones de la Carrera)
     };
     if (ph) {   // móvil: 6 apartados con icono; el contador de Mensajes en su pastilla (fuera del rótulo)
       drawBar('tab', TABS_PH.map(function (t) {
@@ -1482,23 +1562,25 @@
     var sl = subsOf(tab);
     if (sl) sl = sl.filter(function (s) { return (CW || (s[0] !== 'news' && s[0] !== 'clubs')) && (s[0] !== 'look' || !!LOOK()) && (!STORY_SUBS[s[0]] || !!(SUI() && SUI().has(s[0]))); });
     if (sl && tab === 'inbox' && sl.length < 2) sl = null;   // (Mensajes sin Redes: sin barra, como siempre)
-    if (sl && tab === 'player' && !(SUI() && SUI().has('state'))) sl = sl.map(function (s) { return s[0] === 'train' ? ['train', 'Entreno'] : s; });
+    if (sl && tab === 'player' && !(SUI() && SUI().has('state')) && !XUI().some(function (x) { return !!xFn(x, 'state'); })) sl = sl.map(function (s) { return s[0] === 'train' ? ['train', 'Entreno'] : s; });
     if (sl && !sl.some(function (s) { return s[0] === sub[tab]; })) sub[tab] = sl[0][0];   // (p. ej. «Compañero» al pasar a la pista, o Noticias sin career-world)
     var subCur = sub[tab];
     if (ph && sl && (tab === 'life' || tab === 'honors')) {   // móvil: «Vida» = Fama (con Legado) · Tienda · Logros · Vitrina (Palmarés y Temporadas) · Opciones
       sl = LIFE_PH.filter(function (s) { var k = s[0].replace('h:', ''); return (lifeOn || s[0].indexOf('h:') === 0) && (!STORY_SUBS[k] || !!(SUI() && SUI().has(k))); });
       subCur = tab === 'honors' ? 'h:' + (sub.honors === 'seasons' ? 'titles' : sub.honors) : sub.life === 'legacy' ? 'fame' : sub.life;
-    } else if (ph && sl && tab === 'player') sl = sl.filter(function (s) { return s[0] !== 'train' || sub.player === 'train'; });
+    } else if (ph && sl && tab === 'player') sl = sl.filter(function (s) { return s[0] !== 'train' || sub.player === 'train' || XUI().some(function (x) { return !!xFn(x, 'state'); }); });   // (con una extensión en Jugador › Estado —plan, puesto, lesión—, Estado sale siempre)
     if (sl) {
       subEl.hidden = false;
       drawBar('sub', sl.map(function (s) {
         var dot = (s[0] === 'offers' && (offN || c.phase === 'off')) || (tab === 'player' && GROUP_OF[s[0]] && c.player.pts > 0) || (s[0] === 'news' && newsN > 0) || (s[0] === 'look' && lookNew()) ||
-          (s[0] === 'fame' && ph && !!(c.life && c.life.spOffers && c.life.spOffers.length));
-        return [s[0], (ph && SUB_PH[s[0]]) || s[1], dot];
+          (s[0] === 'fame' && ph && !!(c.life && c.life.spOffers && c.life.spOffers.length)) || xDot(c, s[0]);
+        var xs = ph && !SUB_PH[s[0]] ? xSubOwner(tab, s[0], c) : null;
+        return [s[0], (ph && (SUB_PH[s[0]] || (xs && xs.labelPh))) || s[1], dot];
       }), subCur);
     } else { subEl.hidden = true; }
-    var h = '', hall = isHall(c);
-    if (tab === 'match') h = hall ? renderMatch6(c) : renderMatch(c);
+    var h = '', hall = isHall(c), XS = sl ? xSubOwner(tab, sub[tab], c) : null;
+    if (XS) { xCss(); h = String(xTry(XS.x, 'page', [c, XS.id, HLP], '') || ''); }   // sub-pestaña de una extensión
+    else if (tab === 'match') h = hall ? renderMatch6(c) : renderMatch(c);
     else if (tab === 'inbox') h = sl && sub.inbox === 'wall' ? SUI().wall(c, HLP) : (SUI() && SUI().inbox(c, HLP, msgHTML, freshIds)) || renderInbox(c, freshIds);
     else if (tab === 'player') h = renderPlayer(c);
     else if (tab === 'club') h = renderClub(c);
@@ -1563,7 +1645,13 @@
     var pts = pt.meR + ' de ' + pt.rallies + ' puntos en pista';
     return sp([pt.status === 'start' ? 'De inicio' : 'Entraste en el ' + ordn(pt.entered) + ' set', pts, pt.pulled ? 'Te cambiaron en el ' + ordn(pt.pulled) + ' set' : ''], 'v');
   }
+  /** Último partido + lo que añadan las extensiones dentro de la misma tarjeta (hueco 'last'). */
   function lastCard(c) {
+    var h = lastCard0(c); if (!h) return h;
+    var xl = xSlot('last', c);
+    return xl ? h.replace(/<\/div>$/, xl + '</div>') : h;
+  }
+  function lastCard0(c) {
     var s = c.last; if (!s) return '';
     var rv = C().club(c, s.rival), sc = s.setScores.map(function (x) { return x[0] + '-' + x[1]; }).join(', ');
     var pt = s.part, ptLine = pt ? partLine6(pt) : '';
@@ -1575,9 +1663,9 @@
         (s.train && s.train.gains && s.train.gains.length ? '<p>' + s.train.gains.map(function (k) { var LB = VB.Prog && VB.Prog.LABEL || {}; return '<span class="tag g">Entreno: +1 ' + esc(LB[k] || k) + '</span>'; }).join('') + '</p>' : '') + '</div>';
     }
     if (s.bench) {   // jornada en el banquillo: sin nota ni experiencia
-      return '<div class="card' + (freshLast ? ' new' : '') + '"><h3>' + sp(esc(s.label).split(' · '), 'v') + ' <span class="tag r">' + (pt ? 'Fuera' : 'Banquillo') + '</span></h3>' +
+      return '<div class="card' + (freshLast ? ' new' : '') + '"><h3>' + sp(esc(s.label).split(' · '), 'v') + ' <span class="tag r">' + (s.out ? 'De baja' : pt ? 'Fuera' : 'Banquillo') + '</span></h3>' +
         '<p style="font:800 20px var(--display);text-transform:uppercase;letter-spacing:.04em;margin:0"><span class="' + (s.win ? 'w' : 'l') + '">' + (s.win ? 'Victoria' : 'Derrota') + ' ' + s.sets[0] + '-' + s.sets[1] + '</span> contra ' + esc(rv ? rv.name : s.rivalName) + '</p>' +
-        '<p class="muted">' + sc + '</p><p>' + (pt ? 'Fuera de la convocatoria. ' + esc(s.why || '') + ' Sin nota ni experiencia, pero descansas, entrenas y cobras.</p>' : '') + (pt ? '' : (c.mate ? 'Jugaron ' + esc(c.mate.name.split(' ')[0]) + (s.sub ? ' y ' + esc(s.sub) : '') : 'Jugó tu equipo con otro ' + esc(String(c.player.role).toLowerCase()) + ' de la plantilla') + '. Tú, al banquillo: sin nota ni experiencia, pero descansas, entrenas y cobras.</p>') +
+        '<p class="muted">' + sc + '</p>' + (s.out ? '<p>Estabas de baja. Sin nota ni experiencia: toca recuperarse.</p>' : '<p>' + (pt ? 'Fuera de la convocatoria. ' + esc(s.why || '') + ' Sin nota ni experiencia, pero descansas, entrenas y cobras.</p>' : '') + (pt ? '' : (c.mate ? 'Jugaron ' + esc(c.mate.name.split(' ')[0]) + (s.sub ? ' y ' + esc(s.sub) : '') : 'Jugó tu equipo con otro ' + esc(String(c.player.role).toLowerCase()) + ' de la plantilla') + '. Tú, al banquillo: sin nota ni experiencia, pero descansas, entrenas y cobras.</p>')) +
         (s.train && s.train.gains && s.train.gains.length ? '<p>' + s.train.gains.map(function (k) { var LB = VB.Prog && VB.Prog.LABEL || {}; return '<span class="tag g">Entreno: +1 ' + esc(LB[k] || k) + '</span>'; }).join('') + '</p>' : '') + '</div>';
     }
     var h = '<div class="card' + (freshLast ? ' new' : '') + '"><h3>' + sp(esc(s.label).split(' · '), 'v') + (s.sim ? ' <span class="tag">Simulado</span>' : '') + '</h3><div class="row">' +
@@ -1680,7 +1768,8 @@
     var inf = K.trainInfo(c); if (!inf || inf.why === 'none') return '';
     var T = K.TRAIN, plan = planOf(c, inf), f = inf.fat | 0, fc = f > 60 ? '#d8364a' : f > (K.FAT_FREE || 40) ? '#e07b2b' : '#2fbf71';
     var head = '<h3>' + sp(['Plan del entrenador', { h: trainDots(inf) + ' <span class="tr-left">' + inf.left + ' de ' + inf.max + '</span>' }], 'd') + '</h3>';
-    var why = inf.why === 'done' ? 'Ya has hecho las ' + inf.max + ' sesiones de esta jornada: vuelven tras el partido.'
+    var why = inf.why === 'baja' ? 'Estás de baja: no puedes entrenar. Descansar cuenta como rehabilitación (cada 6 descansos, un partido menos).'
+      : inf.why === 'done' ? 'Ya has hecho las ' + inf.max + ' sesiones de esta jornada: vuelven tras el partido.'
       : inf.why === 'fatiga' ? 'Con fatiga de ' + inf.fatMax + ' o más el preparador físico no te deja entrenar: descansa (botón Descansar, enfoque Descanso o fisio).' : '';
     var h = '<div class="card cr-train" id="crTrain">' + head +
       // enfoque de la semana = plan del entrenador (también guía el entreno semanal de fondo, trainWeek)
@@ -1712,7 +1801,7 @@
     if (!w) go();
   }
   function trainResText(r) {
-    if (!r || !r.ok) return r && r.why === 'done' ? 'Ya no quedan sesiones esta jornada.' : r && r.why === 'fatiga' ? 'Demasiada fatiga para entrenar: descansa.' : '';
+    if (!r || !r.ok) return r && r.why === 'done' ? 'Ya no quedan sesiones esta jornada.' : r && r.why === 'baja' ? 'Estás de baja: solo puedes descansar.' : r && r.why === 'fatiga' ? 'Demasiada fatiga para entrenar: descansa.' : '';
     if (r.how === 'rest') return 'Descansas: fatiga ' + r.fat0 + ' → ' + r.fat + '.';
     return drillName(r.id) + ': ' + r.total + ' puntos, nota ' + r.grade + ' (' + MEDAL_TXT[r.medal | 0].toLowerCase() + '). ' + (r.up ? '¡+1 en ' + lab(r.attr) + '!' : '+' + r.gain + ' de progreso en ' + lab(r.attr) + '.') +
       (r.first ? ' ¡Primera vez! +50 %.' : '') + (r.how === 'play' && r.bestGrade0 && r.bestGrade !== r.bestGrade0 ? ' Récord: ' + r.bestGrade0 + ' → ' + r.bestGrade + '.' : '') +
@@ -1734,7 +1823,7 @@
         done.push(q); if (q.up) ups.push(q.up);
       }
     }
-    if (!done.length) return why === 'fatiga' ? 'Demasiada fatiga para entrenar: descansa.' : 'No quedan sesiones esta jornada.';
+    if (!done.length) return why === 'baja' ? 'Estás de baja: solo puedes descansar.' : why === 'fatiga' ? 'Demasiada fatiga para entrenar: descansa.' : 'No quedan sesiones esta jornada.';
     var c2 = K.get(), fat = c2 ? c2.fatigue | 0 : fat0;
     return 'Jornada simulada: ' + done.map(function (x) { return x.how === 'rest' ? 'descanso' : drillName(x.id).toLowerCase() + ' ' + x.grade; }).join(', ') + '. ' +
       (ups.length ? '¡+1 en ' + ups.map(function (k) { return lab(k); }).join(', ') + '! ' : '') + 'Fatiga ' + fat0 + ' → ' + fat + '.';
@@ -1772,9 +1861,11 @@
   }
   function renderMatch(c) {
     // Faro (career-world-ui.js): la escena va arriba del todo, también en el resumen de fin de temporada (ascenso, título…)
-    var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', h = takeTrialRes(c) + mc;   // (prueba superada: su resultado, arriba)
-    if (c.phase === 'off') return h + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
+    // extensiones: hueco 'matchTop' encima de Faro y 'match' justo debajo (también en el resumen de fin de temporada)
+    var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', xm = xSlot('match', c), h = takeTrialRes(c) + xSlot('matchTop', c) + mc;   // (prueba superada: su resultado, arriba)
+    if (c.phase === 'off') return h + xm + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
     var n = C().next(c);
+    if (!n) h += xm;
     if (n) {
       // posiciones solo con la liga empezada (en la jornada 1 la tabla vacía daba «6º» contra «3r»)
       var pm = C().posOf(c, n.me.id), pr = C().posOf(c, n.rival.id), lg = c.phase === 'league' && c.week > 0;
@@ -1783,13 +1874,16 @@
       var kick = sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + (bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '');
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (en .cr-two: dos columnas en el móvil apaisado)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
+      if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
       h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, n.rival, kick, (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
         [sp([lg ? ordn(pr) : '', 'Pareja ' + n.ovrRival, 'IA ' + esc(n.diffName || diffName(n.diff))], 'v'), sp(['Tú: ' + esc(n.me.short || n.me.name), lg ? ordn(pm) : '', 'Pareja ' + n.ovrMe, n.atHome ? 'En casa' : 'Fuera'], 'v')],
         n.label.split(' · ').join(', ') + ', ' + (n.atHome ? 'contra ' : 'en casa de ') + n.rival.name, SUI() ? SUI().tagFor(c, n) : '') +
         (n.bench
           // el entrenador te sienta (rol de rotación con poca confianza, o titular con el entrenador descontento): sin partido
-          ? '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>' +
-            '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button></div>'
+          // (n.out: baja de una extensión —lesión…—, con su texto y quizá un botón suyo)
+          ? (n.out ? '<div class="bench"><p><b>' + esc(n.out.head || 'Esta jornada no juegas.') + '</b> ' + esc(n.out.why || '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla. ' + esc(n.out.tail || '') + '</p></div>'
+            : '<div class="bench"><p><b>Esta jornada no juegas.</b> ' + esc(C().benchWhy ? C().benchWhy(c) : '') + ' La juega ' + esc(c.mate.name) + ' con uno de la plantilla; tú descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>') +
+            '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button>' + (n.out && n.out.act ? '<button data-act="' + esc(n.out.act) + '">' + esc(n.out.actT || 'Ver') + '</button>' : '') + '</div>'
           : '<div class="acts cr-go"><button class="pri" data-act="play">Jugar partido</button><button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button></div>') +
         (side ? '</div>' + (mIn ? mc : '') + side + '<div class="cr-nd-w">' : '') + '<div class="card cr-nd">' +
         // (la pareja, en pastillas: antes era una lista metida en un paréntesis)
@@ -1801,6 +1895,7 @@
           esc(chemTxt(c, c.mate.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
         '</div></div>' + (side ? '</div>' : '');
+      if (!PH()) h += xm;
     } else h += storySide(c);
     h += storyTrain(c);   // sesiones de entrenamiento antes del partido (con career-story, plegables: chip «Plan» de los avisos)
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada y decisión pendiente
@@ -1815,8 +1910,9 @@
   function renderSeasonEnd(c) {
     var r = c.review || {}, k = C().myClub(c), hall = isHall(c), L = hall ? C().league(r.lid || k.lid) : C().league(r.lvl != null ? r.lvl : k.lvl);
     // pista: cada copa que has jugado, con hasta dónde llegaste (Campeón / Final / Semifinal / Cuartos)
+    var kc = (r.club != null && C().club(c, r.club)) || k;   // (el club con el que jugaste la temporada: tras una cesión, myClub ya es el de origen)
     var cupTags = hall ? (r.cups || []).filter(function (x) { return x.mine; }).map(function (x) {
-      return '<span class="tag ' + (x.champion === k.id ? 'y' : '') + '">' + esc(x.champion === k.id ? 'Campeón de la ' + x.name : x.name + ': ' + x.reach) + '</span>';
+      return '<span class="tag ' + (x.champion === kc.id ? 'y' : '') + '">' + esc(x.champion === kc.id ? 'Campeón de la ' + x.name : x.name + ': ' + x.reach) + '</span>';
     }).join('') : '';
     var h = '<div class="card new cr-end"><h3>Fin de la temporada ' + r.season + '</h3>' +
       // SPLAT: el puesto final en un sello dorado (con «Campeón» en el aro si has ganado la liga)
@@ -1826,6 +1922,7 @@
       (r.move > 0 ? '<span class="tag g">Ascenso</span>' : r.move < 0 ? '<span class="tag r">Descenso</span>' : '') +
       '<span class="tag ' + (r.objOk ? 'g' : 'r') + '">Objetivo ' + (r.objOk ? 'cumplido' : 'no cumplido') + '</span></p>' +
       '<p class="muted">' + sp(['Objetivo: ' + esc(r.objective), 'Nota media ' + dec(r.nota), 'Entrenador: ' + esc(C().coachText(c.coach)), CD() ? 'Dificultad: ' + esc(dName(dkey(c, r.d || 'normal'))) + (r.dm ? ' (mixta)' : '') : ''], 'v') + '</p></div>';
+    h += xSlot('seasonEnd', c);   // extensiones (fin de cesión, gala de premios…)
     var rn = r.renew, ct = c.contract, nOf = (c.offers || []).length;
     // las ofertas viven en Club › Ofertas (en el móvil quedaban 1000 px más abajo, tras «Seguir en…»): aquí, un aviso arriba
     if (nOf) h += '<div class="card"><h3>Ofertas <span class="muted">(' + plural(nOf, 'club te quiere', 'clubes te quieren') + ')</span></h3><p class="muted">Míralas antes de decidir: si sigues en tu club, se pierden.</p>' +
@@ -1884,6 +1981,7 @@
     if (!o.trial && C().ROLE_HINT) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
     if (o.negNo) h += '<p class="muted">Negociación rechazada: si firmas, el entrenador empieza con ' + C().NEG_COACH + ' menos de confianza.</p>';
+    h += xSlot('offerLine', c, o);   // (extensiones: «Te vio en el Torneo Promesas»…)
     if (o.trial) h += trialLine(c, o) + '<p class="muted">Si no la superas, pierdes esta oferta' + (c.phase === 'pick' ? ' y sigues con las demás' : '') + '. Contrato de 1 temporada. Rivales mejores que tú y ' + (trialAI(c, o) || 'la IA un nivel por encima') + '.</p>';
     else h += '<p class="muted" style="margin-top:6px">Duración del contrato:</p>' + yearsSeg(o.club, y);
     var canNeg = !o.trial && !o.firm && o.role !== 'Titular indiscutible';
@@ -1965,7 +2063,7 @@
   function renderPlayer(c) {
     var s = sub.player;
     if (s === 'badges') return renderBadges(c);
-    if (s === 'train') return (SUI() ? SUI().state(c, HLP) : '') + renderTrain(c);   // (career-story: ánimo y forma encima)
+    if (s === 'train') return xSlot('state', c) + (SUI() ? SUI().state(c, HLP) : '') + renderTrain(c);   // (extensiones —lesión, plan…— y career-story: ánimo y forma encima)
     if (s === 'look') return renderLook(c);
     var a = c.player, P = VB.Prog, need = C().need(a.lvl), h = '<div class="card"><div class="row"><span class="cr-ptw">' + ptHTML(c, 'me', 88, 'cr-pt88', 'Retrato de ' + a.name) + '<span class="cr-ptc">' + crest(C().myClub(c), 28, c) + '</span></span>' +
       '<div class="grow" style="min-width:0"><p class="bigname" style="font-size:20px">' + sp([esc(a.name), 'n.º ' + a.num], 's') + '</p><p class="muted" style="margin:0">' + sp([esc(a.role), a.age + ' años', 'Nivel ' + a.lvl, plural(a.matches | 0, 'partido', 'partidos')], 'c') + '</p></div></div>' +
@@ -2006,7 +2104,29 @@
       h += '</div><p class="bd-msg" role="status" aria-live="polite">' + esc(badgeMsg) + '</p>';
     }
     badgeMsg = '';
-    return h + '</div>';
+    return sigCard(c) + h + '</div>';   // (el saque de firma, ENCIMA de la rejilla: en el móvil, debajo, no se veía sin bajar toda la lista)
+  }
+  /** Saque de firma (zona y saque de firma, 20-nov-2026): un botón por estilo de VB.SERVE_SIG (catálogo de js/sim.js:
+   *  {ids, byId: {id: {name, desc, need, key: 'hit'|'jump', venue?: 'beach'|'hall'}}}) y el gesto antes de sacar. Sin el catálogo
+   *  (sim vieja) no sale. Los bloqueados (tu saque < need) van apagados con «Saque 62». */
+  var SIG_GEST_UI = [['normal', 'Ninguno'], ['tres', 'Tres botes'], ['uno', 'Un bote'], ['giro', 'Giro']];
+  function sigCard(c) {
+    var T = VB.SERVE_SIG; if (!T || !Array.isArray(T.ids) || !T.byId || !C().setSig) return '';
+    var hall = isHall(c), s = c.sig || {}, cur = T.byId[s.serve] ? s.serve : 'clasico', gest = s.gest || 'normal', sv = (c.player.st && c.player.st.serve) | 0;
+    var ids = T.ids.filter(function (id) { var d = T.byId[id]; return d && (!d.venue || d.venue === (hall ? 'hall' : 'beach')); });
+    if (!ids.length) return '';
+    return '<div class="card cr-sig"><h3>' + sp(['Saque de firma', esc((T.byId[cur] && T.byId[cur].name) || 'Clásico')], 'd') + '</h3>' +
+      '<p class="muted">Tu saque de siempre en los partidos de la Carrera. Algunos piden más nivel de saque.</p>' +
+      '<div class="acts cr-sig-l" role="group" aria-label="Saque de firma">' + ids.map(function (id) {
+        var d = T.byId[id], lock = sv < (d.need | 0);
+        // (pro y contra cortos, el botón y lo que pide si está bloqueado: la descripción entera va en el title; con elipsis no se leía «Saque 62»)
+        var kt = d.key === 'jump' ? 'Va en SALTAR' : d.key === 'both' ? 'GOLPEAR y SALTAR' : 'Va en GOLPEAR';
+        return '<button data-act="sig-' + esc(id) + '" aria-pressed="' + (id === cur) + '"' + (lock ? ' disabled' : '') + ' title="' + esc(d.desc || '') + '">' + esc(d.name || id) +
+          '<small>' + sp((lock ? ['Pide saque ' + (d.need | 0)] : []).concat([d.pro ? esc(d.pro) : '', d.con ? esc(d.con) : '', kt]).filter(Boolean), 'v') + '</small></button>';
+      }).join('') + '</div>' +
+      '<label>Gesto antes de sacar</label><div class="seg" role="group" aria-label="Gesto antes de sacar">' + SIG_GEST_UI.map(function (g) {
+        return '<button data-act="sgest-' + g[0] + '" aria-pressed="' + (g[0] === gest) + '">' + esc(g[1]) + '</button>';
+      }).join('') + '</div></div>';
   }
   /** Nombre de un objeto o peinado del vestuario ('' si no hay). */
   function lookName(X, id) { if (!id || typeof id !== 'string') return ''; var n = ''; try { n = X.name ? X.name(id) : ''; } catch (e) { n = ''; } return String(n || id); }
@@ -2094,7 +2214,7 @@
     if (s === 'people' && SUI()) return SUI().people(c, HLP);   // career-story: Club › Gente
     if (s === 'contract') return renderContract(c);
     if (s === 'offers') {
-      return '<div class="card"><h3>' + (c.window === 'mid' ? 'Ventana de fichajes' : 'Ofertas') + '</h3>' +
+      return xSlot('offers', c) + '<div class="card"><h3>' + (c.window === 'mid' ? 'Ventana de fichajes' : 'Ofertas') + '</h3>' +   // (extensiones: cesiones…, antes)
         (c.window === 'mid' || c.phase === 'off' ? offersHTML(c) + (c.window === 'mid' && c.offers.length ? '<div class="acts"><button data-act="stay">Rechazar las ofertas</button></div>' : '')
           : '<p class="muted">Las ofertas llegan a mitad de temporada (tras la jornada ' + C().MID_WEEK + ', solo con una nota media de ' + (C().midNota ? num1(C().midNota(c)) : c.listed ? '6,5' : '7') + ' o más) y al acabarla. Cuentan tu media, tu nota media, la confianza del entrenador, tus insignias y si te has declarado transferible.</p>') + '</div>';
     }
@@ -2136,28 +2256,43 @@
   /** Club › Contrato: rol, años y sueldo; pedir el traspaso. */
   function renderContract(c) {
     var ct = c.contract || {};
-    var rl = C().roleIdx ? C().roleIdx(c) : 1, brk = c.broken === c.season;
+    var rl = C().roleIdx ? C().roleIdx(c) : 1, brk = c.broken === c.season, lo = ct.loan === 1;   // (lo: cedido —career-loan.js—; vuelves a tu club al acabar)
     var h = '<div class="card"><h3>Contrato</h3><div class="fact">' + fact('Rol', esc(ct.role || '—')) + fact((ct.left | 0) === 1 ? 'Queda' : 'Quedan', plural(ct.left | 0, 'temporada', 'temporadas') + ((ct.left | 0) === 1 ? ' (esta)' : ', con esta')) +
-      fact('Sueldo (ficticio)', ct.salary ? money(ct.salary) : '—') + fact('Ahorros', eur(c.money || 0)) + fact('Firmado', 'T' + (ct.since || 1) + ' por ' + plural(ct.years | 0, 'temporada', 'temporadas')) + '</div>' +
+      fact('Sueldo (ficticio)', ct.salary ? money(ct.salary) : '—') + fact('Ahorros', eur(c.money || 0)) + (lo ? fact('Cesión', 'Hasta final de temporada') : fact('Firmado', 'T' + (ct.since || 1) + ' por ' + plural(ct.years | 0, 'temporada', 'temporadas'))) + '</div>' +
       (C().ROLE_HINT ? '<p><b>' + esc(ct.role || '') + ':</b> ' + esc(C().ROLE_HINT[rl]) + (isHall(c)
         // pista (titularidad): de inicio, desde el banquillo y sin jugar
         ? ((c.stats.starts | 0) + (c.stats.subIn | 0) + (c.stats.bench | 0) ? ' Esta temporada: ' + (c.stats.starts | 0) + ' de inicio, ' + (c.stats.subIn | 0) + ' desde el banquillo, ' + (c.stats.bench | 0) + ' sin jugar.' : '')
         : ((c.stats.bench | 0) ? ' Esta temporada, ' + plural(c.stats.bench | 0, 'jornada', 'jornadas') + ' en el banquillo.' : '')) + '</p>' : '') +
       (brk ? '<p class="bench" style="margin:6px 0"><b>Promesa incumplida.</b> Te fichó como titular y te ha sentado: hasta final de temporada puedes irte sin pegas y los clubes se interesan más por ti.</p>' : '') +
-      '<p class="muted">Cobras el sueldo cada jornada (la mitad del mensual) y lo ahorras: sirve para el fisio (Jugador › Entreno). Al acabar la última temporada del contrato, el club te propone renovar (el rol depende de la confianza del entrenador) y eliges la duración.</p></div>';
-    h += '<div class="card"><h3>' + sp(['Traspaso', c.listed ? 'Transferible' : 'No transferible'], 'd') + '</h3>' +
+      '<p class="muted">Cobras el sueldo cada jornada (la mitad del mensual) y lo ahorras: sirve para el fisio (Jugador › Entreno).' + (lo ? '' : ' Al acabar la última temporada del contrato, el club te propone renovar (el rol depende de la confianza del entrenador) y eliges la duración.') + '</p></div>';
+    var xtr = xReplace('transfer', c);   // (una extensión —cesiones— puede llevar la tarjeta del traspaso)
+    if (xtr && /class="card x-top/.test(xtr)) return xtr + h;   // (con «x-top», antes del Contrato: «Cedido» a la vista en el móvil)
+    h += xtr || '<div class="card"><h3>' + sp(['Traspaso', c.listed ? 'Transferible' : 'No transferible'], 'd') + '</h3>' +
       (c.listed ? '<p>Estás en la lista de transferibles: llegan más ofertas (a mitad de temporada basta con una nota media de ' + (C().midNota ? num1(C().midNota(c)) : '6,5') + ').</p><div class="acts"><button data-act="transfer" data-on="0">Retirar la petición</button></div>'
         : '<p class="muted">Si te declaras transferible, los clubes se interesan más por ti, pero el entrenador pierde confianza (−8).</p><div class="acts"><button class="warn" data-act="transfer" data-on="1">Pedir el traspaso</button></div>') + '</div>';
     return h;
   }
   /** Mensajes: entrenador, agente, ofertas, objetivos. Lo nuevo resaltado (se marca como leído al verlo). */
-  var MSG_K = { coach: 'Entrenador', agent: 'Agente', offer: 'Ofertas', obj: 'Objetivo', club: 'Club', train: 'Preparador físico', fans: 'Fama', mentor: 'Mentor', boss: 'Jefe', chem: 'Química' };
+  var MSG_K = { coach: 'Entrenador', agent: 'Agente', offer: 'Ofertas', obj: 'Objetivo', club: 'Club', train: 'Preparador físico', fans: 'Fama', mentor: 'Mentor', boss: 'Jefe', chem: 'Química',
+    natl: 'Selección', med: 'Médico', loan: 'Cesión', allstar: 'Estrellas', race: 'Premios' };   // (las extensiones pueden añadir más con msgK)
+  function msgK(k) {
+    if (MSG_K[k]) return MSG_K[k];
+    var v = ''; XUI().some(function (x) { v = x.msgK && typeof x.msgK[k] === 'string' ? x.msgK[k] : ''; return !!v; });
+    return v || 'Club';
+  }
   function msgHTML(m, fresh) {
-    return '<div class="msg' + (m.r && !(fresh && fresh[m.id]) ? '' : ' unread') + '"><small>' + sp([esc(MSG_K[m.k] || 'Club'), 'T' + m.s + (m.ph === 'pick' ? '' : ' J' + Math.min(m.w, C().WEEKS))], 'v') + '</small><b>' + esc(m.t) + '</b><p>' + esc(m.x) + '</p></div>';
+    return '<div class="msg' + (m.r && !(fresh && fresh[m.id]) ? '' : ' unread') + '"><small>' + sp([esc(msgK(m.k)), 'T' + m.s + (m.ph === 'pick' ? '' : ' J' + Math.min(m.w, C().WEEKS))], 'v') + '</small><b>' + esc(m.t) + '</b><p>' + esc(m.x) + '</p></div>';
   }
   function renderInbox(c, fresh) {
     var l = (c.inbox || []).slice().reverse();
     return '<div class="card"><h3>Mensajes <span class="muted">(' + l.length + ')</span></h3>' + (l.length ? l.map(function (m) { return msgHTML(m, fresh); }).join('') : '<p class="muted">Sin mensajes.</p>') + '</div>';
+  }
+  /** Rótulo de un trofeo en Palmarés: el de una extensión (trophyLabel) o el de siempre (selección: «Selección», «Medalla», «Premio»). */
+  function trophyTag(c, t) {
+    var xl = ''; XUI().some(function (x) { xl = String(xTry(x, 'trophyLabel', [t], '') || ''); return !!xl; });
+    if (xl) return xl;
+    return t.kind === 'liga' ? 'Campeón' : t.kind === 'copa' ? (isHall(c) ? 'Copa' : 'Open') : t.kind === 'intl' ? 'Internacional' : t.kind === 'premio' ? 'Premio' :
+      t.kind === 'sel' ? 'Selección' : t.kind === 'selm' ? 'Medalla' : t.kind === 'selp' ? 'Premio' : 'Ascenso';
   }
   function renderHonors(c) {
     var T = c.career, s = sub.honors, h = '', du = diffUsed(c);
@@ -2165,13 +2300,14 @@
       // B2c: vitrina con huecos (career-world-ui.js; su propia tarjeta) y debajo la lista de siempre como «Títulos por temporada»
       var tcH = ''; try { tcH = WUI() && WUI().trophyCaseHTML ? WUI().trophyCaseHTML(c, HLP) : ''; } catch (e) { tcH = ''; }
       h = tcH + '<div class="card"><h3>' + (tcH ? 'Títulos por temporada' : 'Palmarés') + '</h3>';
-      h += c.trophies.length ? c.trophies.map(function (t) { return '<p><span class="tag ' + (t.kind === 'ascenso' ? 'g' : 'y') + '">' + (t.kind === 'liga' ? 'Campeón' : t.kind === 'copa' ? (isHall(c) ? 'Copa' : 'Open') : t.kind === 'intl' ? 'Internacional' : t.kind === 'premio' ? 'Premio' : 'Ascenso') + '</span> ' + sp([esc(t.name), 'T' + t.season, esc(t.club), du ? esc(dName(dkey(c, t.d || 'normal'))) : ''], 'v') + '</p>'; }).join('') : '<p class="muted">' + (tcH ? 'Aún sin títulos: los huecos de arriba esperan.' : 'Aún sin títulos.') + '</p>';
+      h += c.trophies.length ? c.trophies.map(function (t) { return '<p><span class="tag ' + (t.kind === 'ascenso' ? 'g' : 'y') + '">' + esc(trophyTag(c, t)) + '</span> ' + sp([esc(t.name), 'T' + t.season, esc(t.club), du ? esc(dName(dkey(c, t.d || 'normal'))) : ''], 'v') + '</p>'; }).join('') : '<p class="muted">' + (tcH ? 'Aún sin títulos: los huecos de arriba esperan.' : 'Aún sin títulos.') + '</p>';
       h += '<h3 style="margin-top:10px">Totales de la carrera</h3><p>' + sp([plural(T.played, 'partido', 'partidos') + ' (' + plural(T.won, 'ganado', 'ganados') + ', ' + plural(T.sim, 'simulado', 'simulados') + ((T.bench | 0) ? ', ' + (T.bench | 0) + ' en el banquillo' : '') + ')', isHall(c) && (T.rr | 0) > 0 ? Math.round(100 * (T.mr | 0) / T.rr) + ' % de puntos jugados' : '', isHall(c) && ((T.starts | 0) + (T.subIn | 0)) ? (T.starts | 0) + ' de inicio y ' + (T.subIn | 0) + ' desde el banquillo' : '', plural(T.pts, 'punto', 'puntos'), T.kills + ' remates ganadores', plural(T.aces, 'ace', 'aces'), T.blocks + ' bloqueos', plural(T.assists, 'asistencia', 'asistencias')], 'v') + '</p></div>';
+      h += xSlot('honors', c);   // extensiones (Estrellas, selección…): también en el móvil (Vida › Vitrina)
       return h;
     }
     if (s === 'seasons') {
       return '<div class="card"><h3>Temporadas</h3>' + (c.history.length ? '<table><thead><tr><th class="l">T</th><th class="l">Club</th><th>Pos.</th><th class="hide-s">' + (isHall(c) ? 'Copa' : 'Open') + '</th><th>Nota</th>' + (du ? '<th>Dif.</th>' : '') + '<th>Media</th></tr></thead><tbody>' + c.history.map(function (r) {
-        return '<tr><td class="l">' + r.season + '</td><td class="club">' + esc(r.clubName) + ' <span class="muted">(' + esc(isHall(c) ? (r.lgShort || '') + (r.country ? ', ' + r.country : '') : C().league(r.lvl).short) + ')</span></td><td>' + ordn(r.pos) + (r.move > 0 ? ' ↑' : r.move < 0 ? ' ↓' : '') + '</td><td class="hide-s">' + esc(r.cup) + '</td><td>' + dec(r.nota) + '</td>' + (du ? '<td>' + esc(dName(dkey(c, r.d || 'normal'))) + (r.dm ? '*' : '') + '</td>' : '') + '<td>' + r.ovr + '</td></tr>';
+        return '<tr><td class="l">' + r.season + '</td><td class="club">' + esc(r.clubName) + (r.loan ? ' <span class="muted">(cedido)</span>' : '') + ' <span class="muted">(' + esc(isHall(c) ? (r.lgShort || '') + (r.country ? ', ' + r.country : '') : C().league(r.lvl).short) + ')</span></td><td>' + ordn(r.pos) + (r.move > 0 ? ' ↑' : r.move < 0 ? ' ↓' : '') + '</td><td class="hide-s">' + esc(r.cup) + '</td><td>' + dec(r.nota) + '</td>' + (du ? '<td>' + esc(dName(dkey(c, r.d || 'normal'))) + (r.dm ? '*' : '') + '</td>' : '') + '<td>' + r.ovr + '</td></tr>';
       }).join('') + '</tbody></table>' + (du && c.history.some(function (r) { return r.dm; }) ? '<p class="muted">* Dificultad mixta: cuenta la más fácil.</p>' : '') : '<p class="muted">Tu primera temporada está en marcha.</p>') + '</div>';
     }
     // dificultad (se cambia entre partidos; career.js setDifficulty)
@@ -2185,6 +2321,7 @@
       dnote = '';
     }
     if (SUI()) h += SUI().optsHTML(c, HLP);   // career-story: «Cuánta vida» (Poca / Normal / Mucha)
+    h += xSlot('opts', c);   // extensiones (tu puesto y el plan de desarrollo…)
     // abandonar (doble confirmación, sin confirm())
     h += optsModeHTML(c);
     h += '<div class="card"><h3>Opciones</h3>';
@@ -2211,7 +2348,7 @@
     if (!hall && !(C().hall && C().hall.available())) return '';
     h += '<div class="card"><h3>' + sp(['Carrera', hall ? 'Pista 6 contra 6' : 'Playa 2 contra 2'], 'd') + '</h3><p class="muted">Las Carreras de playa y de pista se guardan aparte: puedes llevar las dos.</p>' +
       '<div class="acts"><button data-act="switch" data-m="' + other + '">' + (C().has(other) ? 'Ir a la Carrera ' + oName : 'Crear una Carrera ' + oName) + '</button></div></div>';
-    if (hall) {
+    if (hall && !xHide('setpos')) {   // (una extensión —cambio de puesto— puede llevarse este selector a su tarjeta)
       var ps = C().positions(), cur = c.player.roleKey;
       h += '<div class="card"><h3>' + sp(['Puesto', posName(cur)], 'd') + '</h3>' +
         '<div class="seg" role="group" aria-label="Puesto">' + ps.map(function (k) { return '<button data-act="setpos" data-p="' + k + '" aria-pressed="' + (k === cur) + '">' + esc(posName(k)) + '</button>'; }).join('') + '</div>' +
@@ -2225,9 +2362,10 @@
   }
   function renderMatch6(c) {
     // Faro (career-world-ui.js), arriba del todo como en la playa; Titulares tras el resumen o el último partido
-    var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', h = takeTrialRes(c) + mc;   // (prueba superada: su resultado, arriba)
-    if (c.phase === 'off') return h + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
+    var mc = WUI() && WUI().mentorCard ? WUI().mentorCard(c, HLP) : '', xm = xSlot('match', c), h = takeTrialRes(c) + xSlot('matchTop', c) + mc;   // (prueba superada: su resultado, arriba)
+    if (c.phase === 'off') return h + xm + renderSeasonEnd(c) + (WUI() && WUI().headlines ? WUI().headlines(c, HLP) : '');
     var n = C().next(c);
+    if (!n) h += xm;
     if (n) {
       var lg = c.phase === 'league' && c.week > 0, same = n.rival.lid === n.me.lid, RL = n.rivalLeague || C().league(n.rival.lid), role = C().ctrlRole(c);
       // si su 1ª choca con la tuya, el rival sale con su 2ª (o con la de la CPU): la muestra enseña la que vestirá (Players.rivalKit)
@@ -2238,6 +2376,7 @@
       var st6 = statusHTML6(c, n);
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (como en la playa)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
+      if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
       h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v'), (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
         [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
           alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'v'),
@@ -2252,6 +2391,7 @@
           esc(chemTxt(c, c.chem, C().chemBonus(c)))], 'v') + '</p>' +
         (CD() ? '<p class="muted">Dificultad: <b>' + esc(dName(dkey(c))) + '</b><button class="lnk" data-tab="honors" data-s="opts" aria-label="Cambiar la dificultad">Cambiar</button></p>' : '') +
         '</div></div>' + (side ? '</div>' : '');
+      if (!PH()) h += xm;
     } else h += storySide(c);
     h += storyTrain(c);   // sesiones de entrenamiento antes del partido (y la pelea por el puesto)
     if (LUI()) h += LUI().matchCards(c, HLP);   // reto de la jornada (por puesto) y decisión pendiente, como en la playa
@@ -2268,6 +2408,10 @@
   function statusHTML6(c, n) {
     var SIM = '<button data-act="sim">Simular <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(mitad de XP)</small></button>';
     var st = n.status || (n.bench ? 'out' : 'start'), rv = n.rivalIn, H6 = C().hall || {};
+    if (st === 'out' && n.out) {   // baja de una extensión (lesión…): su texto y quizá un botón suyo
+      return { pre: '<div class="bench"><p><b>' + esc(n.out.head || 'Esta jornada no juegas.') + '</b> ' + esc(n.out.why || '') + ' ' + esc(n.out.tail || '') + '</p></div>',
+        acts: '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button>' + (n.out.act ? '<button data-act="' + esc(n.out.act) + '">' + esc(n.out.actT || 'Ver') + '</button>' : '') + '</div>' };
+    }
     if (st === 'out') {
       return { pre: '<div class="bench"><p><b>Fuera de la convocatoria.</b> ' + esc(n.why || '') + ' Descansas (fatiga −' + C().BENCH_REST + '), entrenas y cobras.</p></div>',
         acts: '<div class="acts cr-go"><button class="pri" data-act="bench">Ver la jornada</button></div>' };
@@ -2437,6 +2581,7 @@
     if (!o.trial) h += '<p class="muted" style="margin:0 0 6px"><b>' + esc(o.role) + ':</b> ' + esc(C().ROLE_HINT[rl]) + '</p>';
     if (early) h += '<p class="muted"><b>Tienes contrato en vigor:</b> si fichas, el club de ahora pone pegas y el entrenador nuevo empieza con ' + C().EARLY_COACH + ' menos de confianza (no pasa si te declaras transferible en Club › Contrato).</p>';
     if (o.negNo) h += '<p class="muted">Negociación rechazada: si firmas, el entrenador empieza con ' + C().NEG_COACH + ' menos de confianza.</p>';
+    h += xSlot('offerLine', c, o);   // (extensiones: «Te vio en el Torneo Promesas»…)
     if (o.trial) h += trialLine(c, o) + '<p class="muted">Si no la superas, pierdes esta oferta' + (c.phase === 'pick' ? ' y sigues con las demás' : '') + '. Contrato de 1 temporada. Titulares mejores que tú y ' + (trialAI(c, o) || 'la IA un nivel por encima') + '.</p>';
     else h += '<p class="muted" style="margin-top:6px">Duración del contrato:</p>' + yearsSeg(o.club, y);
     var canNeg = !o.trial && !o.firm && o.role !== 'Titular indiscutible';
@@ -2486,9 +2631,9 @@
       '<div class="cf-col"><div><label>País</label>' + countryPick(cos) + '</div>' + (CD() ? createDiff() : '') +
       '<div><label>Puntos por set</label><div class="seg" role="group" aria-label="Puntos por set">' + H6.POINTS.map(function (v) {
         return '<button data-act="pts6" data-v="' + v + '" aria-pressed="' + (form.pts6 === v) + '">' + v + '</button>';
-      }).join('') + '</div><p class="muted" style="margin:6px 0 0">Al mejor de 3 sets; el tercero, a 15. Con 15 la temporada se juega más rápido.</p></div>' + lookRow() +
+      }).join('') + '</div><p class="muted" style="margin:6px 0 0">Al mejor de 3 sets; el tercero, a 15. Con 15 la temporada se juega más rápido.</p></div>' + xCreateRows() + lookRow() +
       (has ? '<div class="card confirm"><p>Ya tienes una Carrera de pista. Para empezar otra, abandónala antes en Palmarés › Opciones.</p><div class="acts"><button class="pri" data-act="openmode" data-m="hall">Abrir la Carrera de pista</button></div></div>' :
-        '<div class="acts"><button class="pri" data-act="create">Crear y ver ofertas</button></div>') +
+        '<div class="acts"><button class="pri" data-act="create">' + esc(xCreateLabel()) + '</button></div>') +
       '</div></div>';
     body.innerHTML = h;
   }
@@ -2626,6 +2771,10 @@
       '<p class="muted" style="margin:6px 0 0">Puedes cambiarla entre partidos en Palmarés › Opciones.</p></div>';
   }
   /** Fila «Aspecto» de crear (v1 sin editor: la carrera nueva copia tu n.º 1, VB.CareerLife.initLook). */
+  /** Filas de las extensiones en la pantalla de crear (createRow(form, hall, HLP); prólogo juvenil: «Inicio»). */
+  function xCreateRows() { var hall = form.mode === 'hall'; return XUI().map(function (x) { return String(xTry(x, 'createRow', [form, hall, HLP], '') || ''); }).join(''); }
+  /** Rótulo del botón de crear (createLabel(form) de una extensión, o el de siempre). */
+  function xCreateLabel() { var v = ''; XUI().some(function (x) { v = String(xTry(x, 'createLabel', [form], '') || ''); return !!v; }); return v || 'Crear y ver ofertas'; }
   function lookRow() { return LOOK() ? '<div><label>Aspecto</label><p class="muted" style="margin:0">El de tu n.º 1 de Partido rápido (cámbialo luego en el vestuario).</p></div>' : ''; }
   function renderCreate(c) {
     if (!form.mode) form.mode = C().mode ? C().mode() : 'beach';
@@ -2641,9 +2790,9 @@
       '<div><label>Rol</label><div class="roles" role="group" aria-label="Rol">' + ['atk', 'uni', 'cr'].map(function (k) {
         return '<button data-act="role" data-r="' + k + '" aria-pressed="' + (form.role === k) + '">' + esc(R[k].name) + '<small>' + esc(R[k].hint) + '</small></button>';
       }).join('') + '</div><div class="card prev-box" style="margin:8px 0 0"><h3>' + sp(['Tus atributos', esc(R[form.role].name)], 'v') + '</h3><div class="prev">' + C().KEYS.map(function (k) { return '<span>' + esc(P && P.LABEL ? P.LABEL[k] : k) + ' <b>' + st[k] + '</b></span>'; }).join('') + '</div></div></div></div>' +
-      '<div class="cf-col">' + (CD() ? createDiff() : '') + '<div><label>Reglas de playa</label><p class="muted" style="margin:0">' + 'Sets a ' + B.PTS + ' y el tercero a ' + B.PTS3 + '. Pista de 16 × 8, cambio de campo cada 7 puntos (5 en el tercero), el bloqueo cuenta como toque y la dejada va de nudillos. ' + B.WEEKS + ' jornadas a doble vuelta y el Open de los 4 primeros.</p></div>' + lookRow() +
+      '<div class="cf-col">' + (CD() ? createDiff() : '') + '<div><label>Reglas de playa</label><p class="muted" style="margin:0">' + 'Sets a ' + B.PTS + ' y el tercero a ' + B.PTS3 + '. Pista de 16 × 8, cambio de campo cada 7 puntos (5 en el tercero), el bloqueo cuenta como toque y la dejada va de nudillos. ' + B.WEEKS + ' jornadas a doble vuelta y el Open de los 4 primeros.</p></div>' + xCreateRows() + lookRow() +
       (C().has('beach') ? '<div class="card confirm"><p>Ya tienes una Carrera de playa. Para empezar otra, abandónala antes en Palmarés › Opciones.</p><div class="acts"><button class="pri" data-act="openmode" data-m="beach">Abrir la Carrera de playa</button></div></div>' :
-        '<div class="acts"><button class="pri" data-act="create">Crear y ver ofertas</button></div>') +
+        '<div class="acts"><button class="pri" data-act="create">' + esc(xCreateLabel()) + '</button></div>') +
       '</div></div>';
     body.innerHTML = h;
   }
@@ -2656,6 +2805,29 @@
     var act = b.getAttribute('data-act'), t = b.getAttribute('data-tab'), sv = b.getAttribute('data-sub'), c = C() && C().get();
     if (t) { setTab(t, b.getAttribute('data-s')); snd('click'); return; }
     if (sv != null) { setSub(sv); snd('click'); return; }
+    // extensiones de la Carrera (VB.CareerUIExt): sus data-act empiezan por su prefix. act(act, b, {form, view}) → null | false |
+    // {render, focus, snd} | {tab, s, focus} | {play: {id, arg, auto}} (partido) | {drill: {id, arg, auto}} (ejercicio) | {view: 'create'}
+    var xa = act && XUI().filter(function (x) { return typeof x.prefix === 'string' && x.prefix && act.indexOf(x.prefix) === 0 && xFn(x, 'act'); })[0];
+    if (xa) {
+      var xr = xTry(xa, 'act', [act, b, { form: form, view: view }], null);
+      if (xr === false) { snd('back'); return; }
+      if (!xr) return;
+      if (xr.play || xr.drill) { snd('start'); xGo(xr.drill ? 'drill' : 'play', xr.drill || xr.play); return; }
+      if (xr.view === 'create') { snd('back'); form.name = ''; view = 'create'; render(); focusFirst(); syncMenu(); return; }
+      if (xr.tab) { snd(xr.snd || 'click'); if (xTake(c)) { xTab = String(xr.tab); render(); } else setTab(xr.tab, xr.s); var xf = xr.focus ? root.querySelector(xr.focus) : null; if (xf) focusEl(xf, kbNav); syncMenu(); return; }
+      if (xr.render) {
+        snd(xr.snd || (xr.ok === false ? 'back' : 'click'));
+        if (xr.focus) { render(); var xb = root.querySelector(xr.focus); if (xb) focusEl(xb, kbNav); else focusFirst(); } else keepFocus(b, render);
+        if (xr.setter) setterNoteSoon();   // (pasas a colocador: el aviso de la diana, como con el antiguo 'setpos')
+        syncMenu();
+      }
+      return;
+    }
+    if (act && (act.indexOf('sig-') === 0 || act.indexOf('sgest-') === 0) && C().setSig) {   // saque de firma (Jugador › Insignias)
+      var sg0 = (c && c.sig) || {}, isG = act.indexOf('sgest-') === 0, sv0 = act.slice(isG ? 6 : 4);
+      C().setSig(c, isG ? sg0.serve || 'clasico' : sv0, isG ? sv0 : sg0.gest || 'normal');
+      snd('select'); keepFocus(b, render); return;
+    }
     if (act && act.indexOf('lf-') === 0 && LUI()) {   // vida de la Carrera (career-life-ui.js)
       var lr = LUI().act(act, b);
       if (lr === 'retired') { snd('start'); form.name = ''; form.diff = 'normal'; view = 'create'; tab = 'match'; render(); focusFirst(); syncMenu(); return; }
@@ -2706,8 +2878,11 @@
       case 'create': {
         var inp = root.querySelector('#crName'); if (inp) form.name = inp.value;
         if (!String(form.name).trim()) { if (inp) { inp.focus(); inp.placeholder = 'Escribe un nombre'; } snd('back'); return; }
-        if (form.mode === 'hall') C().create({ mode: 'hall', name: form.name, num: form.num, pos: form.pos, country: form.country, points: form.pts6, diff: CD() && CD()[form.diff] ? form.diff : 'normal' });   // Carrera de pista (6v6)
-        else C().create({ mode: 'beach', name: form.name, num: form.num, role: form.role, diff: CD() && CD()[form.diff] ? form.diff : 'normal' });   // (playa: siempre a 21)
+        // extensiones (prólogo juvenil…): createOpts(form) añade sus opciones de creación (p. ej. {prologue: true})
+        var xo = {}; XUI().forEach(function (x) { var o2 = xTry(x, 'createOpts', [form], null); if (o2 && typeof o2 === 'object') Object.keys(o2).forEach(function (k2) { xo[k2] = o2[k2]; }); });
+        if (form.mode === 'hall') C().create(Object.assign(xo, { mode: 'hall', name: form.name, num: form.num, pos: form.pos, country: form.country, points: form.pts6, diff: CD() && CD()[form.diff] ? form.diff : 'normal' }));   // Carrera de pista (6v6)
+        else C().create(Object.assign(xo, { mode: 'beach', name: form.name, num: form.num, role: form.role, diff: CD() && CD()[form.diff] ? form.diff : 'normal' }));   // (playa: siempre a 21)
+        xTab = '';
         form.name = '';   // (si luego creas la otra Carrera, el nombre no viene ya puesto)
         tblLid = '';
         yrs = {}; sub.pick = 0; note = '';
@@ -2854,6 +3029,7 @@
     }
   }
   function setTab(t, s) {
+    var cx = C() && C().get(); if (cx && view !== 'create' && xTake(cx)) { xTab = String(t); render(); body.scrollTop = 0; return; }   // (hub de una extensión)
     tab = t; confirmStep = 0; offArm = -1; if (t !== 'league') tblLvl = -1;
     if (s && subsOf(t) && subsOf(t).some(function (x) { return x[0] === s; })) sub[t] = s;
     render(); var tb = tabsEl.querySelector('[data-tab="' + t + '"]'); if (tb) { focusEl(tb, kbNav); try { tb.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) { } } else showOn(tabsEl); body.scrollTop = 0; phReveal();
@@ -2861,6 +3037,7 @@
   /** Sub-pestaña del apartado actual (o la oferta al elegir club: un índice o 'cmp'). */
   function setSub(v) {
     var c = C() && C().get(), pk = c && c.phase === 'pick' && view !== 'create';
+    if (c && view !== 'create' && xTake(c)) { xTab = String(v); render(); body.scrollTop = 0; return; }   // (hub de una extensión: sus pestañas)
     if (pk) sub.pick = v === 'cmp' ? 'cmp' : +v;
     else if (subsOf(tab)) {
       sub[tab] = v; confirmStep = 0; offArm = -1; if (v !== 'table' && v !== 'clubs') tblLvl = -1;   // (Clubes comparte el selector de liga)
@@ -2941,6 +3118,7 @@
       if (c && view === 'hub' && c.phase === 'off' && !root.querySelector('[data-act="play"]')) { focusTab(); return; }
       // previa de la prueba: «Saltar a la pista»
       if (dbgTrial || (c && view === 'hub' && c.phase === 'pick' && trialI >= 0)) { var tpb = root.querySelector('[data-act="trial-play"]'); if (tpb) { focusEl(tpb, kbNav); return; } }
+      if (c && view === 'hub' && xTake(c)) { var xpb = root.querySelector('.x-go .pri'); if (xpb) { focusEl(xpb, kbNav); return; } }   // (hub de una extensión: su acción principal)
       if (c && view === 'hub' && c.phase === 'pick') { focusTab(); return; }   // eligiendo club: la pestaña de la oferta (no «Firmar» de golpe)
       var fr = focusReq; focusReq = '';
       var frb = fr && view === 'hub' ? root.querySelector('[data-act="' + fr + '"]') || root.querySelector('[data-act="play"]') || root.querySelector('[data-act="bench"]') : null;
@@ -3135,6 +3313,8 @@
     try { k = K.myClub(c); } catch (e) { k = null; }
     var d = { mode: hall ? 'hall' : 'beach', kind: hall ? 'Pista' : 'Playa', title: 'Continuar carrera', chip: '', line: '', aria: '', club: k || null };
     var T = 'T' + (c.season | 0), tS = 'temporada ' + (c.season | 0);
+    var XH = xTake(c), xh = XH ? xTry(XH, 'hero', [c], null) : null;   // (hub de una extensión: su título y su línea en el menú)
+    if (xh) { d.title = xh.title || d.title; d.chip = xh.chip || ''; d.line = xh.line || ''; d.club = null; d.aria = (xh.aria || d.title) + ', carrera de ' + word; return d; }
     if (c.phase === 'pick') {
       var no = (c.offers || []).length;
       d.title = 'Elige club'; d.chip = plural(no, 'oferta', 'ofertas'); d.line = 'Tu primer club'; d.club = null;
@@ -3189,6 +3369,7 @@
     var chip = '';
     var hl = isHall(c);
     if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : 'Playa o pista: crea tu jugador, elige club y ficha';
+    else if (xTake(c) && xFn(xTake(c), 'hero')) { var xq = xTry(xTake(c), 'hero', [c], {}) || {}; chip = xq.chip || ''; t = xq.line || xq.title || ''; }
     else if (c.phase === 'pick') { chip = plural((c.offers || []).length, 'oferta', 'ofertas'); t = 'Elige club'; }
     else if (c.phase === 'off') { chip = 'T' + c.season; t = 'Fin de temporada, ofertas'; }
     else { var n = C().next(c); chip = 'T' + c.season + (n ? (n.kind === 'league' ? ' J' + (n.week + 1) : (n.round === 0 ? ' Semifinal' : ' Final')) : ''); t = n ? C().myClub(c).short + ' — ' + n.rival.short : C().myClub(c).name; if (n && hl && n.kind === 'ko') chip = 'T' + c.season + ' ' + n.compName; }
