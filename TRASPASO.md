@@ -272,12 +272,21 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - **Sprint «único», ideas de partido y sonido (rama pendientes, 21-nov-2026; sin publicar):** señas del árbitro como pegatina +
     Cuaderno del árbitro (`node tools/senatest.js`, mobaudit `hud-sena*`), Xaranga (`node tools/audiotest.js --xar-only`) y la
     situación de la semana «El mismo 22-24» (`node tools/semanatest.js`, `node tools/semanacdp.js`, mobaudit `retos-semana*`/`semana-*`).
-    Decisiones provisionales y preguntas en notes/pendientes-ferran.md. Falta la novedad de la versión (la pone quien publique).
+    Decisiones provisionales y preguntas en notes/pendientes-ferran.md. Novedades escritas como 1.21.0 (js/version.js), sin publicar.
   - **Sprint «único», ideas de la Carrera (rama pendientes, 21-nov-2026; sin publicar):** rencor y cariño de los clubes
     (`node tools/bondtest.js`), árbitros con nombre y carácter (`node tools/arbitrotest.js`, `node tools/worldtest.js` §7, ambientetest)
     y «Te tienen estudiado» (`node tools/studytest.js`, completa > 10 min). mobaudit `carrera-*-rencor`, `carrera-*-informe*`,
-    `carrera-previa-arbitro`, `partido-frenar-*`. Decisiones provisionales en notes/pendientes-ferran.md. Falta la novedad de la versión.
+    `carrera-previa-arbitro`, `partido-frenar-*`. Decisiones provisionales en notes/pendientes-ferran.md. Novedades en la 1.21.0, sin publicar.
   - Preguntas para Ferran: música en ogg dentro de index.html o procedural; moneda única o ninguna; ¿6v6 visible en JUGAR?
+  - **Rama pendientes cerrada (21-nov-2026, versión 1.21.0 sin publicar ni fusionar):** sprint «único» completo (señas y Cuaderno,
+    Xaranga, «El mismo 22-24» con el sello en la portada, rencor y cariño, árbitros con nombre, «Te tienen estudiado»), jefes de pista,
+    sedes de la Carrera, `S4_SYNC = true`, repeticiones 6v6 preparadas (`REPLAY6 = false`), cámara con zoom 1-2 y replaytest/camtest al
+    día. `SIM_BASE` de fluidsimtest pasa a afb5ebee (opts.start y g.scout; las tres huellas idénticas). Hoja de decisiones para Ferran:
+    notes/pendientes-ferran.md (decisiones provisionales, preguntas, 30 frases del chat rápido, «El Corte» e interruptores). Al fusionar
+    con main (ya en 1.20.0, Take the Court): dejar las dos entradas de js/version.js y pasar a la marca nueva el enlace y el título de
+    compartir de la semana. Fallos que ya estaban en la base 1.19.2 (a2eef35), comprobados en una copia aparte: camtest serve 2/12 y
+    fovpump 0/3 (ver notes/camera_input.md; wide mejora de 1/3 a 2/3), abouttest «og:image absoluta» (la prueba espera ?v=x.y.z y el
+    build pone la huella de la imagen) y touchplay «pestaña Equipación» y «deslizar a la izquierda» en Ajustes.
   - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
     sesiones Jugar/Rápido/Descanso, notas A+-F, Rápido = récord sin oro, «Simular jornada», entreno automático; y la PRUEBA de club
     como partidillo con petos (1 set a 15, 3 objetivos, nota B ficha). Diseño en notes/pruebas-entrenos-spec.md. PENDIENTE (backlog):
