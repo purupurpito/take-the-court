@@ -42,16 +42,35 @@
  *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
  * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
  *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
+ * 1.21.0 (21-nov-2026, rama pendientes, sin publicar; la 1.20.0 es el cambio de nombre a Take the Court): sprint «único» (señas del
+ *   árbitro y Cuaderno, Xaranga, «El mismo 22-24», árbitros con nombre, «Te tienen estudiado», rencor y cariño), jefes de pista, sedes
+ *   de la Carrera y S4_SYNC encendido. Decisiones provisionales en notes/pendientes-ferran.md.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.19.2';
+  VB.VERSION = '1.21.0';
   VB.VERSION_DATE = '2026-11-21';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.21.0', d: '2026-11-21', t: 'Árbitros, grada y rivales',
+      items: [
+        'Señas del árbitro: cada falta sale con su seña oficial y se apunta en tu Cuaderno.',
+        'La Xaranga: la charanga de la grada suena en la Carrera y en Difícil y Experto.',
+        'Fuera de casa toca la charanga del rival. Su volumen, en Ajustes › Audio.',
+        'El mismo 22-24: cada semana, el mismo final apurado para todos, con 3 intentos al día.',
+        'Comparte tu resultado de la semana con un enlace y mira cómo le fue a tu grupo.',
+        'Árbitros con nombre y carácter en la Carrera: unos ven más las líneas y otros menos.',
+        'Te tienen estudiado: si juegas bien, el rival te tapa el remate y cambia el plan.',
+        'Rencor y cariño: tus antiguos clubes se acuerdan de ti, y se nota en sus ofertas.',
+        'Jefes también en la Carrera de pista: uno por liga, en el club más fuerte.',
+        'La Cúpula del Far acoge las finales de copa, y Can Rebot, partidos de la 2ª.',
+        'Tu perfil, los retos y la Carrera de pista se guardan ya en tu cuenta.'
+      ]
+    },
     {
       v: '1.19.2', d: '2026-11-21', t: 'Logo nuevo',
       items: [
