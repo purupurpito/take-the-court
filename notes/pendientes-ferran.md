@@ -15,6 +15,21 @@ rama pendientes, sin publicar.
   «Pase flojo» solo cuando nada más pesa y el pase anterior de tu equipo fue malo (< `SETQ.lo`); en el 3r toque dice «Colocación floja».
   Toque flojo sin causa clara (atributos bajos, finta, defensa en el aire…): sin rótulo, como antes. Cambiarlo: `hitWhy` en js/sim.js y
   `WHY_TXT` en js/ui.js.
+- **Arreglos de paso (informe §7; arreglos, no novedad).** Hechos sin preguntar: (1) el récord `rec('streak', N)` del catálogo de
+  look.js dice ahora «Récord: N puntos seguidos en un partido» (antes «racha de N victorias», pero cuenta `record.bestStreak`, puntos
+  seguidos; la clave y lo ya desbloqueado no cambian); (3) `toonSfx` y `onoma` ya están en `DEFAULTS()` de main.js y se guardan;
+  (5) la nota de la tabla por jugador dice «Escala de valoración de scouting» en vez de la marca «Data Volley»; (6) la nota de K1/K2
+  aclara que son fases del juego (side-out y contraataque), no llamadas del colocador.
+  **Decisión provisional:** dos filas nuevas en Ajustes › Audio, «Sonidos de dibujo» (`toonSfx`) y «¡PAM!» (`onoma`), Sí/No, las dos
+  en Sí por defecto. Si sobran botones, se quitan las dos filas de index.html (y sus `OPT` de ui.js); los ajustes se siguen guardando.
+  **Decisión provisional:** no se añade una clave nueva de «racha de victorias» para el catálogo (el logro `s5` de la Carrera ya lo cubre).
+- **Preguntas del reglamento (informe §7, puntos 2 y 4; los textos NO se han tocado):**
+  1. Falta de posición (`RULES.posicion` de js/senas.js): el texto dice «todos en su sitio de rotación», pero el juego **solo** la pita
+     al equipo que recibe (regla 7.4, desde 1.11.0); la justificación del 21-nov (que también pita al que saca) es falsa. Propuesta:
+     «Reglas 7.4-7.5: al saque, el equipo que recibe, cada uno en su sitio de rotación.» ¿La pones?
+  2. Saque (`RULES.saque`): dice «se golpea con una mano»; la 12.4.1 dice «con una mano o cualquier parte del brazo». ¿Se corrige?
+  3. Señas: la n.º 19 (red) también cubre el saque que toca la red y no pasa, y la n.º 12 es bloqueo o pantalla. ¿Ajustamos las
+     explicaciones del Cuaderno a eso?
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión

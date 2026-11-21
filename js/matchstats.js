@@ -10,7 +10,7 @@
  *  2) Cálculo y vista (compute / html): SOLO al pulsar «Estadística del partido» en la hoja final. compute(data, set) es puro y
  *     determinista (mismo log → mismo modelo) y no toca el DOM; html(model, team, opts) devuelve el HTML (cadena) de la pantalla.
  *
- * TRADUCCIÓN SIM → CÓDIGOS emPat (escala de Data Volley: # + ! − / =; en el modelo el «−» se guarda como '-')
+ * TRADUCCIÓN SIM → CÓDIGOS emPat (escala de valoración de scouting: # + ! − / =; en el modelo el «−» se guarda como '-')
  *  Fundamentos: S saque, R recepción, A ataque, B bloqueo, D defensa, E colocación, X faltas; F = balón libre (3r toque que pasa sin
  *  atacar: no tiene columna propia, pero sus puntos y errores cuentan en Pts y Err).
  *  Toques de la sim (evento 'hit'): serve → S; pass con recv (1r toque tras el saque) → R; pass resto → D; set → E;
@@ -443,7 +443,7 @@
       return '<tr><th class="l" scope="row">' + x[1] + '</th><td>' + o.t + '</td><td>' + z0(o['#']) + '</td><td>' + z0(o['=']) + '</td><td>' + z0(o['/']) + '</td><td>' + pctN(o['#'], o.t) + '</td><td>' + eff(o['#'] - o['='] - o['/'], o.t) + '</td></tr>';
     }).join('');
     h += '<div class="ms-half' + (six ? '' : ' ms-solo') + '">' + (six ? '<p class="ms-k">Ataque por fase</p>' : '') + (kr ? '<div class="ms-tb"><table class="st ktab"><thead><tr><th class="l" scope="col">Fase</th><th scope="col">Tot</th><th scope="col">#</th><th scope="col">=</th><th scope="col">/</th><th scope="col">% #</th><th scope="col">Efic.</th></tr></thead><tbody>' + kr + '</tbody></table></div>' +
-      '<p class="ms-note">K1: el primer ataque después de recibir (rec. buena = recepción # o +; mala = ! o −). K2: el contraataque, cualquier otro ataque (tras una defensa, un bloqueo o el saque propio).</p>' : '<p class="ms-empty">Sin ataques en esta selección.</p>') + '</div>';
+      '<p class="ms-note">K1 y K2 son las dos fases del juego (complejos), no llamadas del colocador. K1, el side-out: el primer ataque después de recibir (rec. buena = recepción # o +; mala = ! o −). K2, el contraataque: cualquier otro ataque (tras una defensa, un bloqueo o el saque propio).</p>' : '<p class="ms-empty">Sin ataques en esta selección.</p>') + '</div>';
     return h;
   }
   /** HTML del cuerpo de la pantalla para el equipo `team` (0/1). o = {names: [a, b], inl: [a, b] (dentro de una frase), pnames: {'equipo:dorsal': nombre} (jugadores sin nombre en la sim), sep(parts, kind) (separador de ui.js), you: 'Tú'}. */
@@ -502,7 +502,7 @@
     TT.list.forEach(function (s) { tb += statRow(s, lbl(s), team === 0 && M.me >= 0 && s.pid === M.me ? 'me' : ''); });
     tb += statRow(TT.T, 'Equipo', 'tot', true) + '</tbody></table></div>';
     h += sec('pl', 'Por jugador', tb +
-      '<p class="ms-note">Escala de Data Volley: <b>#</b> perfecto o punto, <b>+</b> positivo, <b>!</b> en juego, <b>−</b> negativo, <b>/</b> según el fundamento (en el saque, el rival lo devuelve sin atacar; en el ataque, bloqueado) y <b>=</b> error. ' +
+      '<p class="ms-note">Escala de valoración de scouting: <b>#</b> perfecto o punto, <b>+</b> positivo, <b>!</b> en juego, <b>−</b> negativo, <b>/</b> según el fundamento (en el saque, el rival lo devuelve sin atacar; en el ataque, bloqueado) y <b>=</b> error. ' +
       'Pts y Err: puntos ganados y errores que dieron el punto al rival. Eficacia de saque = (aces + positivos + devueltos sin ataque − errores − negativos) entre saques; de ataque = (puntos − errores − bloqueados) entre ataques. Recepción Pos. = perfectas y positivas; Perf. = perfectas. Blq = ataques bloqueados; Bloq. = bloqueos punto. El número pequeño es cuántas acciones hay detrás (atenuado si son menos de 3).</p>', 'ms-plsec');
     return h;
   }

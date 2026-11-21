@@ -6169,6 +6169,9 @@
     rumble: { vals: [true, false], labels: ['Sí', 'No'] },
     hudScale: { vals: [1, 1.15, 1.3], labels: ['100%', '115%', '130%'] },
     softFlash: { vals: [true, false], labels: ['Sí', 'No'] },
+    // Audio (arreglo 1.22.0): capas de dibujo y «¡PAM!» del remate perfecto; audio.js las lee en vivo de ctx.settings
+    toonSfx: { vals: [true, false], labels: ['Sí', 'No'] },
+    onoma: { vals: [true, false], labels: ['Sí', 'No'] },
     // sede (Ajustes · Imagen): arena.js la cambia en vivo, también con la demo del menú de fondo
     arena: { vals: ['hall', 'beach'], labels: ['Pabellón', 'Playa'] },
     // luz de la playa (Ajustes · Imagen): arena.js la cambia en vivo (VB.Arena.beachLight, onSettings 'beachLight'); en el pabellón no se nota
@@ -6235,7 +6238,7 @@
     return mod === 'Audio';
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
-  var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
+  var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol', 'toonSfx', 'onoma'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
     game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };

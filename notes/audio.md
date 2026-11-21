@@ -626,8 +626,9 @@ sin volverlo de juguete. Todo sintetizado (generador `genToon`, dos senos con en
   que el pulso de ui.js (`hit` `spike`, `grade 'perfect'`, humano) y además acepta `fx:onoma` / `fx:pam` / `onoma` (equipo ≠ 1): una sola vez por
   remate (< 0,4 s entre ambos no se repite). Si fx acaba emitiendo su evento, no hace falta tocar nada.
 - **Interruptores**: `ctx.settings.toonSfx === false` o `VB.Audio.setToon(false)` quitan todas las capas (vuelve el destello `perfect`);
-  `ctx.settings.onoma === false` / `onomatopoeia === false` quitan solo el «¡PAM!» propio (si fx emite el evento, suena). Ninguno existe hoy
-  en Ajustes: por defecto todo activo. No dependen de la calidad gráfica (el audio no cuesta GPU; 5 sonidos cortos más en el banco).
+  `ctx.settings.onoma === false` / `onomatopoeia === false` quitan solo el «¡PAM!» propio (si fx emite el evento, suena). Desde 1.22.0 (arreglo)
+  `toonSfx` y `onoma` están en `DEFAULTS()` de main.js (true, se guardan en make-the-cut.settings) y tienen fila en Ajustes › Audio
+  («Sonidos de dibujo» y «¡PAM!», Sí/No, entran en «Restablecer este apartado»). No dependen de la calidad gráfica (el audio no cuesta GPU; 5 sonidos cortos más en el banco).
 - API (opcional): `VB.Audio.setToon(on)`, `stats.toon` (capas que sonaron), `stats.pam`, `_debug().toon` → `{on, n, pam, pamT}`. `CORE` (primera
   pasada sin Worker) incluye `toonPop, toonWhack, boing, toonZip`; `pamSting` es música (DEFER 0,15 s).
 - `tools/audiotest.js`: categorías `toon` -25, `toonHit` -21, `toonZip` -24, `toonBoing` -24, `stinger` -21; 8 escenarios «cartoon: …» en la

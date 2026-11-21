@@ -161,7 +161,7 @@ main.js convierte con `VB.CameraRig.getBasis()` = `{fx, fy, rx, ry}` (adelante y
 Novedades automáticas), escenas `debug=drill_serve|drill_recv|drill_set|drill_atk|drill_block|drill_free|drill_end` (`&n=` repetición,
 `&t=` s). startMatch pasa `mastery: !6v6 && !autopilot` y `aimSet` a createGame, y en cada partido humano llama
 `VB.Players.setSignature(VB.CareerLife.signatureNow())` y `setRival(rivalNum | -1)` (en el duelo de la Carrera `nums[1] = [rivalNum, null]`).
-`settings` añade (validadas en `loadSettings`, por defecto en `DEFAULTS()`): `volume`, `crowdVol` (migración única: 0,85 × `sfxVol`), `xarVol` (0..1, 0,6: la charanga de la grada, audio.js),
+`settings` añade (validadas en `loadSettings`, por defecto en `DEFAULTS()`): `volume`, `crowdVol` (migración única: 0,85 × `sfxVol`), `xarVol` (0..1, 0,6: la charanga de la grada, audio.js), `toonSfx` y `onoma` (booleanos, true: capas de dibujo y «¡PAM!» de audio.js; Ajustes › Audio, desde 1.22.0),
 `resScale` (0 = auto, 1, .85, .7, .5: fija la escala y para la escala adaptativa), `fpsCap` (0 \| 30; con 30 la calidad adaptativa baja
 por debajo de 26 fps y no sube), `showFps`, `camDist` ('near' \| 'normal' \| 'far'), `camCuts` ('all' \| 'less'), `lessMotion` ('auto' \|
 'on' \| 'off'), `cbColors`, `ballStyle` ('clasico' \| 'contraste'), `keys` / `padKeys` (objeto plano con solo las diferencias; ≤ 12
