@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-prologue.js (owner: prologo)
+/* TAKE THE COURT — js/career-prologue.js (owner: prologo)
  * Prólogo juvenil («Desde juvenil»): una temporada corta con el instituto de tu ciudad antes de las ofertas de inicio de la Carrera
  * (playa y pista). Spec: notes/carrera.md «Prólogo juvenil» y CONTRACT.md «Extensiones de la Carrera».
  *

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/devtest.js (owner: puesto)
+/* TAKE THE COURT — tools/devtest.js (owner: puesto)
  * Prueba headless de js/career-dev.js (cambio de puesto y plan de desarrollo, VB.CareerDev) con las ayudas de tools/storyhelp.js.
  *  1. Contrato: sin elegir nada, la carrera es la misma con y sin el fichero (quitando c.dev, sus mensajes y msgN).
  *  2. Determinismo. 3. Ni Math.random ni g.rng; ninguna tirada al crear. 4. Guardados viejos y c.dev dañado.

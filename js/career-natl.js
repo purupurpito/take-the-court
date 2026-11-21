@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-natl.js (owner: seleccion)
+/* TAKE THE COURT — js/career-natl.js (owner: seleccion)
  * Selección nacional de la Carrera (VB.CareerNatl), para la pista (6v6) y la playa (parejas nacionales, 2v2).
  *  - Cada verano (entre el final de la liga y la temporada siguiente) hay un torneo de selecciones, en un ciclo de 4 años: VBN, el
  *    continental de tu región («Europeo VEC»…), el Mundial VBF y los Juegos Cuatrienales (nombres inventados de js/leagues.js). En la

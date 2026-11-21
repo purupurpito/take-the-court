@@ -1,4 +1,4 @@
-/* MAKE THE CUT — tools/racetest.js (owner: carrera)
+/* TAKE THE COURT — tools/racetest.js (owner: carrera)
  * Pruebas de «Carrera por los premios» (js/career-race.js, VB.CareerRace). Node puro (vm, sin DOM): node tools/racetest.js
  *  1. Sin career-race.js no cambia nada (no está en los FILES de careertest ni de storyhelp) y, con él, la temporada va igual jornada a
  *     jornada (partidos, notas, estadísticas, tabla, entrenador) hasta que el corte de mitad da seguidores; si no los da, toda la

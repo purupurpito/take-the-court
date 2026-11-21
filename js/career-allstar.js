@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-allstar.js (owner: estrellas)
+/* TAKE THE COURT — js/career-allstar.js (owner: estrellas)
  * Partido de las Estrellas y concursos de la Carrera (VB.CareerAllstar). Playa y pista. Sin DOM al cargar (se carga en node con vm);
  * genera HTML como texto para la interfaz de la Carrera (registro VB.CareerUIExt) y se engancha al núcleo por VB.CareerExt
  * (CONTRACT.md «Extensiones de la Carrera»). Las reglas de los concursos están en js/contest.js (VB.Contest).

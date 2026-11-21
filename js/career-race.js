@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-race.js (owner: premios)
+/* TAKE THE COURT — js/career-race.js (owner: premios)
  * «Carrera por los premios» (VB.CareerRace), como en EA FC y NBA 2K: durante la temporada, clasificación en directo de cada premio
  * individual con candidatos inventados de tu liga (y tu rival personal si juega en ella), tendencia por jornada (↑2, ↓1, =), tu puesto
  * y lo que te falta para subir; corte de mitad de temporada (mensaje, «Favorito» y unos pocos seguidores) y, al final, la «Gala de

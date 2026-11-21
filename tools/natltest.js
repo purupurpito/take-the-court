@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/natltest.js (owner: carrera)
+/* TAKE THE COURT — tools/natltest.js (owner: carrera)
  * Prueba de la selección nacional de la Carrera (js/career-natl.js, VB.CareerNatl) en node puro (vm, sin DOM):
  *   1. Contrato: con VB.CareerNatl.OFF = true, 6 temporadas (playa y pista, 3 semillas) dan la misma carrera que sin el fichero.
  *   2. Determinismo: misma semilla → mismo c.natl, mismos trofeos y misma fama (dos veces).

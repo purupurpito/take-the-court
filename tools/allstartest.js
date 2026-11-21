@@ -1,4 +1,4 @@
-/* MAKE THE CUT — tools/allstartest.js (owner: estrellas)
+/* TAKE THE COURT — tools/allstartest.js (owner: estrellas)
  * Pruebas del Partido de las Estrellas y los concursos de la Carrera (js/contest.js + js/career-allstar.js). Node puro (vm, sin DOM),
  * con tools/storyhelp.js. Sale con «TODO OK» o con código 1.
  *   node tools/allstartest.js            todo

@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/contest.js (owner: estrellas)
+/* TAKE THE COURT — js/contest.js (owner: estrellas)
  * Concursos de habilidad (VB.Contest; puro, sin DOM, se carga en node con vm). Los usa el fin de semana de las Estrellas de la
  * Carrera (js/career-allstar.js), pero no sabe nada de la Carrera: reglas, marcas de los rivales, simulación de tu marca, ranking y
  * premios por puesto. Los minijuegos son los ejercicios del Entrenamiento que ya tiene la sim (VB.DRILL: serve / recv / atk, 10
