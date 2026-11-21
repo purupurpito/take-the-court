@@ -1734,6 +1734,11 @@ Plan y specs en el scratchpad del sprint; notas por tarea en `notes/s234/` (se c
     pestaña «Jugadas (n)», `playBest`, escenas `replay`/`best`, `&slow=0.5`). replaytest node + CDP (61).
   - T22b: perfil (chip `#btnProf`, página `#mpProf` con álbum de 7 pestañas y vitrina, avisos `#pfNote`, escenas `menupf`/`prof` con
     `&pfseed=demo`), versión 1.2.0 y esta documentación. Ver `notes/s234/T22b.md`.
+- **6v6 (21-nov-2026):** `REPLAY6 = false` en js/replay.js. Con él (o `reset(g, {six: true})` en las pruebas) el 6v6 humano graba con
+  menos sombras (`K6`: 3 fotos clave y 2 mejores jugadas, 8 sombras); replaytest (2c) resimula partidos 6v6 enteros de autopilot con el
+  entrenador IA (cambios, tiempos muertos, líbero) y comprueba desync 0, la partida en vivo intacta y el mismo partido con y sin
+  repeticiones. Falta para encenderlo: `Players.bindReplay` con los 12 en pista (y una jugada guardada antes de un cambio: el jugador que
+  ya no está), la cámara 6v6 en `CameraRig.replay`, la pestaña «Jugadas» de la hoja 6v6, perf.js en baja/media y replaytest (e) a «graba».
 - **js/replay.js** (T18, nuevo): resimulación desde fotos clave con 11 sombras, `TAIL = 156`, tres mejores jugadas, desync 0, 0 asignaciones
   en régimen. Ver CONTRACT §4.4.
 - Carrera (career-life, career-world, career-ui): ver notes/carrera.md.

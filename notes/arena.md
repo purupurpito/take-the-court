@@ -984,7 +984,9 @@ Detalle: `notes/s234/T5.md`. Contrato: CONTRACT §4.4 «Sprint 2-4».
   con cola LRU de 4 generadas por tipo (`forget(id)` = `VB.Arena.unregisterMap` + fuera del registro; nunca la montada); `parse`
   ('club:IT:PER', 'club:IT:PER:b', 'gen:h:123', 'gen:b:7'); `randomGen(kind, seed)`; `plan(next, kind, ficha, temporada)` (tabla EMBLEM
   pura: liga y copa previa → sede del local; copa internacional → la del local con `{stage: 'intl'}` (H8/H9 si es de 1.ª); final de copa
-  → Palau; final internacional → Cúpula (o Palau); Can Rebot en el debut y en el 20 % de las jornadas de 2.ª española en casa; playa:
+  → Cúpula (desde el 21-nov-2026 también la nacional); final internacional → Cúpula (o Palau); ronda internacional con local de élite
+  (1.ª, fuerza ≥ `EMBLEM.elite` = 84) → Cúpula; Can Rebot en el debut y en el 25 % (`EMBLEM.low`) de las jornadas de 2.ª de cualquier país
+  en casa (antes: 20 % y solo la 2.ª española); playa:
   la del local, Open 1-2 Platja, 3-4 Moll, 5 y la final Fanals) y `forMatch(next, kind[, c])` (plan + `VB.Career.clubInfo` del local
   + registro; null = el tipo de siempre). `kindOf` entiende club:/gen:; `list()` no devuelve las generadas; `valid()` acepta 'club'
   (si hay constructor) y no acepta ids generados; `resolve` con el ajuste 'club' sortea `randomGen(kind, seed)`. `generated(kind)`.

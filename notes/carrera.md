@@ -983,8 +983,16 @@ Detalle: `notes/s234/T10.md` (career-life: jefes y química), `T11.md` (career-w
 Contrato: CONTRACT §1 y §4.4 «Sprint 2-4».
 - **Jefes del circuito (solo playa):** uno por circuito con estilo saque/muro/remate/defensa (permutación por semilla), `l.boss`,
   `bossSt(ovrRival + 4)` e insignias del estilo; la 1ª victoria jugada da sus objetos del Vestuario (`grant(id, 'boss')`), 250 × LV_MULT
-  seguidores, la bandeja «Has tumbado a {apodo}» y la noticia. Sin la insignia `rompemanos` (Muro sigue notándose: ≥ 70 %). Jefes de pista,
-  cortados (fase 2). `m.career.boss.style` es la CLAVE; el nombre visible es `styleName`.
+  seguidores, la bandeja «Has tumbado a {apodo}» y la noticia. Sin la insignia `rompemanos` (Muro sigue notándose: ≥ 70 %). Jefes de pista:
+  ver abajo «Jefes de la liga de pista». `m.career.boss.style` es la CLAVE; el nombre visible es `styleName`.
+- **Jefes de la liga de pista (C3 fase 2, 21-nov-2026; `BOSS_HALL = true`):** clave `'h' + lid` (p. ej. `hES1`), en el club más fuerte de TU
+  liga (`leagueClubs`, sin el tuyo ni el del rival personal; se recoloca en verano y si su club deja tu liga). Estilo por la misma
+  permutación (`bossStyleAt` con el nivel 0-4 de la liga). En el partido, `bossSetup6` pone al jefe en el seis rival en el hueco de su
+  puesto (`BOSS_POS6`: Muro → MB, Martillo → OPP, Cañón → OH, Pulpo → OH porque el líbero rival no sale de la Carrera; provisional),
+  con `bossSt(ovrRival + 4, estilo, r, puesto)`, insignias solo en ese hueco (`badges[1]` de 6), su nombre y su dorsal (si otro del rival
+  lo llevaba, intercambian dorsal; `acta.capt[1]` sigue al dorsal). `cs.boss.pos`, `cs.bossAnim.idx` = el hueco. Victoria jugada → objeto
+  de pista (`bossItem` 'P'). Tarjeta «Jefe de la liga» en Fama (career-life-ui) y etiqueta «Jefe» en la previa. Sin `rompemanos`, azar
+  con `rngOf` (nunca `g.rng`): la huella del Partido rápido no cambia. Prueba: lifetest «Duelo con el estilo del rival, Cazajefes y pista».
 - **Química con nombre:** `CHEM_LV` / `CHEM_LV6`, `chemInfo`, `chemCheck` (bandeja `'chem'` solo al subir), 3 decisiones raras dentro de
   `EVENTS` (`RARE_P` 0,1: 5,5 % de las jornadas), saludo de pareja en el partido (`setPairChem`).
 - **Logros:** `ses10`, `sesg5` (sobre `c.ts.md` de las sesiones de main) y `boss3`, al final de `ACH`: 32 en `ACH_INFO`.

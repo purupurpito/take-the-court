@@ -798,7 +798,7 @@
     } catch (e) { return null; }
   }
 
-  // ------------------------------------------------------------------ jefes del circuito (S3 C3; solo playa en esta fase)
+  // ------------------------------------------------------------------ jefes del circuito (S3 C3) y de la liga de pista (C3 fase 2)
   // Un jefe fijo por circuito de playa (clave 'b' + nivel), generado con la semilla de la carrera (rngOf: nunca el rng de career.js
   // ni g.rng). Juega en el club más fuerte de su liga (sin el tuyo ni el de tu rival). En los partidos contra su club, su n.º 1 lleva
   // atributos de jefe (bossSt: desvíos sobre la media, recentrada exacta) e insignias: solo attrs + badges, sin tocar sim.js ni ai.js.
@@ -815,6 +815,13 @@
   };
   var BOSS_KEYS = ['saque', 'muro', 'remate', 'defensa'];
   var BOSS_UP = 4, RIVAL_UP = 2, BOSS_FANS = 250;
+  // C3 fase 2 (21-nov-2026): jefes en la Carrera de pista. Uno por liga (clave 'h' + lid, p. ej. 'hES1'), en el club más fuerte de TU liga
+  // (sin el tuyo ni el de tu rival personal). Juega en el seis rival en el puesto de su estilo (BOSS_POS6; el líbero rival no sale de
+  // la Carrera, así que el Pulpo va de receptor: decisión provisional) con su nombre y su dorsal; si su dorsal lo llevaba otro del
+  // rival, se intercambian (el acta y el capitán siguen cuadrando). Sin 'rompemanos' ni g.rng (azar con rngOf). Solo toca la Carrera
+  // de pista: la huella del Partido rápido no cambia. BOSS_HALL = false lo apaga entero (vuelve a «solo playa»).
+  var BOSS_HALL = true;
+  var BOSS_POS6 = { muro: 'MB', remate: 'OPP', saque: 'OH', defensa: 'OH' };
   // compañero de playa: su estilo (career.js MATE_STYLES) → personalidad, firma y rabia en pista (players: setMate, S3 C2)
   var MATE_ANIM = {
     'Rematador potente': ['fuego', 'martillo', 'rabia'], 'Saltador': ['show', 'biceps', 'grito'], 'Muro en la red': ['fuego', 'muralla', 'manotazo'],
@@ -824,8 +831,8 @@
   function rivalStyleOf(name) { return BOSS_KEYS[Math.floor(rngOf('rstyle', String(name || ''))() * 4) % 4]; }
   function engineGenSt() { var C = VB.Career, B = C && (C.beach || C); return B && (B.genSt || B._genSt); }
   /** Atributos de jefe: genSt(o, base) + desvíos del estilo, recentrados a la media o exacta (±0,5) y recortados a 1-99. */
-  function bossSt(o, style, r) {
-    var S = BOSS_STYLES[style] || BOSS_STYLES.saque, G = engineGenSt(), st = G(o, S.base, r), ks = Object.keys(st), k, i, it;
+  function bossSt(o, style, r, base) {   // (base: puesto del 6v6 para genSt en la pista; sin él, el del estilo)
+    var S = BOSS_STYLES[style] || BOSS_STYLES.saque, G = engineGenSt(), st = G(o, base || S.base, r), ks = Object.keys(st), k, i, it;
     for (i = 0; i < ks.length; i++) { k = ks[i]; st[k] = st[k] + (S.d[k] || 0); }
     // recentrar: se reparte la diferencia entre los que no están en el tope (unas pocas pasadas bastan)
     for (it = 0; it < 6; it++) {
@@ -839,12 +846,23 @@
     for (i = 0; i < ks.length; i++) { k = ks[i]; st[k] = clamp(Math.round(st[k]), 1, 99); }
     return st;
   }
-  /** Clave del circuito de la carrera c ('b0'…'b4'); '' en la pista (fase 2) o sin club. */
-  function bossKey(c) { return c && !hall(c) && c.myClub >= 0 && K(c).myClub(c) ? 'b' + lvlOf(c) : ''; }
+  /** Clave del circuito de la carrera c ('b0'…'b4'; pista: 'h' + id de tu liga); '' sin club (o en la pista con BOSS_HALL apagado). */
+  function bossKey(c) {
+    if (!c || !(c.myClub >= 0)) return '';
+    var k = K(c).myClub(c); if (!k) return '';
+    if (hall(c)) return BOSS_HALL && k.lid != null && k.lid !== '' ? 'h' + k.lid : '';
+    return 'b' + lvlOf(c);
+  }
+  /** Clubes de tu liga (pista: los de tu lid; playa: los del nivel lvl). */
+  function bossPool(c, lvl) {
+    var E = K(c);
+    if (hall(c)) { var me = E.myClub(c); return me && E.leagueClubs ? E.leagueClubs(c, me.lid) : []; }
+    return E.clubsOf ? E.clubsOf(c, lvl) : [];
+  }
   /** Club más fuerte de la liga lvl sin el tuyo ni el de tu rival personal (null si no hay). */
   function bossClub(c, lvl) {
     var E = K(c), l = c.life, rv = l && l.rival ? l.rival.club : -1;
-    var pool = (E.clubsOf ? E.clubsOf(c, lvl) : []).filter(function (k) { return k.id !== c.myClub && k.id !== rv; });
+    var pool = bossPool(c, lvl).filter(function (k) { return k.id !== c.myClub && k.id !== rv; });
     pool.sort(function (a, b) { return E.clubOvr(b) - E.clubOvr(a) || a.id - b.id; });
     return pool[0] || null;
   }
@@ -868,8 +886,9 @@
       b = l.boss[key] = { k: key, name: name, nick: pick(r, S.nicks), style: style, num: num, club: k0.id, w: 0, l: 0, beat: 0, seen: 0 };
       return b;
     }
-    var rv = l.rival ? l.rival.club : -1, kb = E.club(c, b.club);
-    if (reclub || !kb || (kb.lvl | 0) !== lvl || b.club === c.myClub || b.club === rv) { var k1 = bossClub(c, lvl); if (k1) b.club = k1.id; }
+    var rv = l.rival ? l.rival.club : -1, kb = E.club(c, b.club), me = hall(c) ? E.myClub(c) : null;
+    var off = !kb || (hall(c) ? !me || kb.lid !== me.lid : (kb.lvl | 0) !== lvl);   // (pista: su club ya no está en tu liga)
+    if (reclub || off || b.club === c.myClub || b.club === rv) { var k1 = bossClub(c, lvl); if (k1) b.club = k1.id; }
     ['w', 'l', 'beat', 'seen', 'num'].forEach(function (x) { if (!(+b[x] >= 0)) b[x] = 0; });
     return b;
   }
@@ -917,7 +936,7 @@
   function bossAnim(style) { var S = BOSS_STYLES[style]; return S ? { pers: 'fuego', style: style, sig: S.celeb, rage: S.rage } : null; }
   /** Fin de partido contra el jefe: cara a cara (también simulado) y, la 1ª victoria JUGADA, recompensa. Devuelve out.boss o null. */
   function bossAfter(c, sum, L) {
-    if (hall(c) || sum.bench) return null;
+    if ((hall(c) && !BOSS_HALL) || sum.bench) return null;
     var b = bossFor(c, sum.rival); if (!b) return null;
     if (sum.win) b.w++; else b.l++;
     var first = false, fans = 0;
@@ -1282,6 +1301,7 @@
   function setupExtra(c, m, l, ch) {
     var cs = m.career, n = null;
     try { n = K(c).next(c); } catch (e) { n = null; }
+    if (hall(c) && BOSS_HALL && n && n.rival && m.attrs && Array.isArray(m.attrs[1]) && m.attrs[1].length === 6) bossSetup6(c, m, n);
     if (!hall(c) && n && n.rival && m.attrs && m.attrs[1] && m.attrs[1][0]) {
       var b = bossFor(c, n.rival.id), r;
       if (b) {
@@ -1311,6 +1331,35 @@
       cs.mateAnim = mateAnim(c);
     }
   }
+  /** Pista (C3 fase 2): el jefe en el seis rival, en el hueco de su puesto (BOSS_POS6), con su nombre y su dorsal. Si el dorsal del jefe
+   *  lo llevaba otro jugador del rival (seis o banquillo), ese se queda con el del sustituido; el capitán del acta sigue al dorsal. */
+  function bossSetup6(c, m, n) {
+    var b = bossFor(c, n.rival.id); if (!b) return null;
+    var E = K(c), R6 = E.simRoles ? E.simRoles() : ['S', 'OH', 'MB', 'OPP', 'OH', 'MB'], want = BOSS_POS6[b.style] || 'OH', slot = R6.indexOf(want);
+    if (slot < 0) slot = R6.indexOf('OH'); if (slot < 0) slot = 1;
+    var r = rngOf(c.seed, 'bossm6', c.season, n.week | 0, n.round | 0, n.ko | 0);
+    m.attrs[1][slot] = bossSt(clamp((n.ovrRival | 0) + BOSS_UP, 1, 99), b.style, r, R6[slot]);
+    m.badges = m.badges || [null, null];
+    m.badges[1] = R6.map(function (x, i) { return i === slot ? copyObj(BOSS_STYLES[b.style].badges) : null; });
+    var nu = m.nums && m.nums[1], nm = m.names && m.names[1], bn = m.bench && m.bench[1], old = nu ? nu[slot] | 0 : 0, bnum = b.num | 0;
+    if (nu && bnum > 0 && old !== bnum) {
+      for (var i = 0; i < nu.length; i++) if (i !== slot && (nu[i] | 0) === bnum) nu[i] = old;
+      if (Array.isArray(bn)) bn.forEach(function (x) { if (x && (x.num | 0) === bnum) x.num = old; });
+      nu[slot] = bnum;
+      var A = m.career && m.career.acta;
+      if (A && Array.isArray(A.capt)) { if ((A.capt[1] | 0) === old) A.capt[1] = bnum; else if ((A.capt[1] | 0) === bnum) A.capt[1] = old; }
+    }
+    if (nm) nm[slot] = b.name;
+    var cs = m.career;
+    if (cs) {
+      var bi = bossInfo(c, b), an = bossAnim(b.style), fit = null;
+      cs.boss = { name: bi.name, nick: bi.nick, style: bi.style, styleName: bi.styleName, hint: bi.hint, num: nu ? nu[slot] | 0 : bi.num, h2h: bi.h2h, w: bi.w, l: bi.l, first: bi.first, item: bi.item, pos: R6[slot] };
+      cs.bossNum = cs.boss.num;
+      try { fit = VB.Look && VB.Look.bossFit ? VB.Look.bossFit(b.style, hashName(b.name)) || null : null; } catch (e) { fit = null; }
+      cs.bossAnim = { idx: slot, num: cs.boss.num, fit: fit, style: b.style, pers: an.pers, sig: an.sig, rage: an.rage };
+    }
+    return slot;
+  }
   function copyObj(o) { var x = {}; for (var k in o) x[k] = o[k]; return x; }
   function hashName(s) { return Math.floor(rngOf('bossfit', String(s || ''))() * 4294967296) >>> 0; }
   function onCreate(c) { var f = legacyStart(); var l = ensure(c); if (f) { l.fame = l.fameMax = f; } initLook(c); lookCheck(c); }
@@ -1339,6 +1388,7 @@
     initLook: initLook, lookCheck: lookCheck, lookShop: lookShop, buyLook: buyLook, setLook: setLook, lookNow: lookNow, achName: achNameOf,
     // sprint 2-4: jefes del circuito (C3), química con nombre (C5), logros para el álbum (D2)
     BOSS_STYLES: BOSS_STYLES, BOSS_KEYS: BOSS_KEYS, BOSS_UP: BOSS_UP, RIVAL_UP: RIVAL_UP, BOSS_FANS: BOSS_FANS, MATE_ANIM: MATE_ANIM,
+    BOSS_HALL: BOSS_HALL, BOSS_POS6: BOSS_POS6,
     boss: boss, bossOf: bossOf, bossFor: bossFor, bossSt: bossSt, bossInfo: bossInfo, bossBeaten: bossBeaten, bossKey: bossKey, bossItem: bossItem, ensureBoss: ensureBoss,
     mateAnim: mateAnim, bossAnim: bossAnim, rivalStyleOf: rivalStyleOf,
     CHEM_LV: CHEM_LV, CHEM_LV6: CHEM_LV6, chemLevel: chemLevel, chemInfo: chemInfo, chemName: chemName, chemCheck: chemCheck,

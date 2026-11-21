@@ -152,9 +152,9 @@
     }
     return h;
   }
-  /** Jefe del circuito si el próximo partido es contra su club (playa); null si no. */
+  /** Jefe del circuito (playa) o de la liga (pista, C3 fase 2) si el próximo partido es contra su club; null si no. */
   function nextBoss(c) {
-    var L = Lf(); if (!L || !L.bossFor || isHall(c)) return null;
+    var L = Lf(); if (!L || !L.bossFor || (isHall(c) && !L.BOSS_HALL)) return null;
     try { var n = C().next(c), b = n && n.rival ? L.bossFor(c, n.rival.id) : null; return b ? L.bossInfo(c, b) : null; } catch (e) { return null; }
   }
   /** Líneas extra de la tarjeta del último partido. */
@@ -220,15 +220,16 @@
     var S = Lf().BOSS_STYLES && rv && Lf().BOSS_STYLES[rv.style]; if (!S || isHall(c)) return '';
     return '<p class="lf-bh">' + sp(['Estilo: ' + esc(S.name), esc(S.hint)], 'v') + '</p>';
   }
-  /** Fama: tarjeta «Jefe del circuito» (S3 C3; solo playa). */
+  /** Fama: tarjeta «Jefe del circuito» (S3 C3, playa) o «Jefe de la liga» (pista, C3 fase 2: con su puesto en el seis). */
   function bossCard(c) {
-    var L = Lf(); if (!L.boss || isHall(c)) return '';
+    var L = Lf(), H6 = isHall(c); if (!L.boss || (H6 && !L.BOSS_HALL)) return '';
     var b = L.boss(c); if (!b) return '';
     var bi = L.bossInfo(c, b), k = C().club(c, b.club), o = 0;
     try { o = C().clubOvr(k) + (C().attrOf ? C().attrOf(c, k) | 0 : 0) + (L.BOSS_UP | 0); } catch (e) { o = 0; }
     var own = true; try { var it = L.bossItem ? L.bossItem(c, b.style) : null; own = it ? !!VB.Look.owned(it.id) : true; } catch (e) { own = true; }
-    return '<div class="card lf-boss" data-nav><h3>Jefe del circuito</h3><div class="row"><div class="grow"><p class="bigname" style="font-size:20px">' + esc(bi.name) + ' «' + esc(bi.nick) + '»</p>' +
-      '<p class="muted" style="margin:2px 0 0">' + sp([k ? esc(k.name) : '', o ? 'Media ' + o : '', esc(bi.styleName)], 'v') + '</p></div>' +
+    var pos6 = H6 && L.BOSS_POS6 && C().POS6 ? C().POS6[L.BOSS_POS6[b.style]] : null;
+    return '<div class="card lf-boss" data-nav><h3>' + (H6 ? 'Jefe de la liga' : 'Jefe del circuito') + '</h3><div class="row"><div class="grow"><p class="bigname" style="font-size:20px">' + esc(bi.name) + ' «' + esc(bi.nick) + '»</p>' +
+      '<p class="muted" style="margin:2px 0 0">' + sp([k ? esc(k.name) : '', o ? 'Media ' + o : '', esc(bi.styleName), pos6 && pos6.name ? esc(pos6.name) : '', H6 ? 'Dorsal ' + (bi.num | 0) : ''], 'v') + '</p></div>' +
       '<div style="text-align:center"><p class="lf-big" style="font-size:26px">' + bi.w + '-' + bi.l + '</p><small class="muted">cara a cara</small></div></div>' +
       '<p class="lf-bh">' + esc(bi.hint) + '</p>' +
       '<p>' + (bi.beat ? '<span class="tag g">Derrotado en T' + bi.beat + '</span>' : '<span class="tag r">Sin derrotar</span>') +

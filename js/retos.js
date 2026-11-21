@@ -29,7 +29,8 @@
  *   { v:1, gen:1, m:{id:{l, v, s?, t?}}, xp:{id:l}, d:{k, m, n, xp}, days:{AAAAMMDD:m}, old:{d:[n0,b,p,o], w:[n0,b,p,o]},
  *     w:{k, r, out, m, n, xp}, weeks:{AAAAWW:m}, seen:{id:l} }
  *   l nivel 0-3, v récord (max/min/tier) o suma (sum/set), s ids de sede, t ms de la primera medalla. days ≤ 400 (lo más viejo se
- *   pliega en old.d); w/weeks quedan listos para el torneo de la semana (siguiente sprint): se validan y se fusionan, nada más.
+ *   pliega en old.d); w/weeks quedan como compatibilidad del guardado (21-nov-2026: el torneo de la semana se da por cubierto con «El mismo 22-24»,
+ *   decisión provisional): se validan y se fusionan, nada más, y no se conectan a la semana (darían medallas).
  *   'make-the-cut.retostab' (pestaña recordada) es del aparato y la lleva ui.js. Dañado → copia en 'make-the-cut.retos.bak' y lost();
  *   v mayor que VER → solo lectura y mergeRaw no lo rebaja (contrato D4).
  */

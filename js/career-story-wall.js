@@ -477,8 +477,8 @@
     return !!(rd && rd.length === 1);
   }
   function bossOf(c) {
-    if (isH(c)) return null;
     var L = VB.CareerLife, l = lifeOf(c);
+    if (isH(c) && !(L && L.BOSS_HALL)) return null;   // (pista: jefes de liga desde el 21-nov-2026, career-life BOSS_HALL)
     var key = L && L.bossKey ? L.bossKey(c) : '';
     return key && obj(l.boss) && obj(l.boss[key]) ? l.boss[key] : null;
   }

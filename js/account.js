@@ -16,7 +16,9 @@
  *    los looks del lado más reciente); se sincroniza desde el 15-nov-2026 (LOOK_SYNC = true).
  *  - S4 (T13): 'make-the-cut.profile', 'make-the-cut.career6', 'make-the-cut.career.mode', 'make-the-cut.legends' y 'make-the-cut.retos' tienen su fusión
  *    (MERGE: perfil y retos con su mergeRaw, Salón de la Fama por unión; Carrera de pista y modo, gana lo más reciente) pero NO se
- *    sincronizan hasta S4_SYNC = true (antes, Ferran despliega firebase/firestore.rules). Hasta entonces, TRACK (solo la hora).
+ *    se sincronizan desde el 21-nov-2026 (S4_SYNC = true; reglas desplegadas el 16-nov-2026). Con false volverían a TRACK (solo la hora).
+ *    Lo nuevo del sprint «único» viaja DENTRO de esos guardados: c.life.bond (rencor/cariño), c.world.arb (árbitros) y c.study (scouting)
+ *    en la Carrera; profile.sen (Cuaderno del árbitro) en el perfil. 'make-the-cut.semana' (El mismo 22-24) es del aparato: nunca a DOCS.
  *  - Conflictos en cola (Carrera y Carrera de pista, la primera vez); antes de pisar una Carrera local, copia en '<clave>.prev'.
  *  - Las bajadas solo se aplican en el menú (fuera, quedan pendientes hasta VB.Account.menuReady()); tras la primera recarga de la
  *    pestaña, las claves con caché llaman a su gancho (Prog._reload, Career.beach/hall._reset) y VB.UI.refreshMenu.
@@ -42,11 +44,12 @@
   if (LOOK_SYNC) DOCS['make-the-cut.look'] = 'look';
   var TRACK = { 'make-the-cut.look': 1 };
   if (LOOK_SYNC) delete TRACK['make-the-cut.look'];
-  // S4 (D2/D4, T13): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos. APAGADO hasta que Ferran despliegue
-  // firebase/firestore.rules (ya tiene las 11 claves). Orden obligatorio: 1) desplegar reglas, 2) S4_SYNC = true (y LOOK_SYNC).
-  // Mientras tanto van a TRACK: se apunta la hora de cada escritura sin subir, para que la primera fusión sepa qué es más nuevo.
-  // NUNCA van a DOCS ni a TRACK: '<clave>.bak', 'make-the-cut.career.prev', 'make-the-cut.career6.prev', 'make-the-cut.devid', 'make-the-cut.retostab'.
-  var S4_SYNC = false;
+  // S4 (D2/D4, T13): perfil, Carrera de pista, modo de Carrera, Salón de la Fama y retos. ENCENDIDO el 21-nov-2026: las reglas con las
+  // 11 claves están desplegadas desde el 16-nov-2026 (lo publicado en make-the-cut-vb es igual que firebase/firestore.rules).
+  // Con false volverían a TRACK: se apunta la hora de cada escritura sin subir, para que la primera fusión sepa qué es más nuevo.
+  // NUNCA van a DOCS ni a TRACK (son del aparato): '<clave>.bak', 'make-the-cut.career.prev', 'make-the-cut.career6.prev',
+  // 'make-the-cut.devid', 'make-the-cut.retostab', 'make-the-cut.semana', 'make-the-cut.role6', 'make-the-cut.nick', 'make-the-cut.seen', 'make-the-cut.device'.
+  var S4_SYNC = true;   // reglas con profile, career6, cmode, legends y retos desplegadas el 16-nov-2026
   var S4_DOCS = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6', 'make-the-cut.career.mode': 'cmode', 'make-the-cut.legends': 'legends', 'make-the-cut.retos': 'retos' };
   Object.keys(S4_DOCS).forEach(function (k) { if (S4_SYNC) DOCS[k] = S4_DOCS[k]; else TRACK[k] = 1; });
   // Carreras: la primera vez en un dispositivo, si la local y la de la cuenta son distintas, se pregunta (en cola, una tras otra).

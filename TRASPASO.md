@@ -224,8 +224,10 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 ### To-do
 - **Sedes nuevas** (12-nov-2026, pedido de Ferran «mapas nuevos de playa y de pista»; plan aprobado con 4 mapas): arquitectura,
   las 4 sedes del plan HECHAS (**Cala dels Fanals**, **Moll de la Sorra**, **Poliesportiu Can Rebot** y **Cúpula del Far**; ver Hecho
-  «Sedes»). Queda: Carrera con la sede por club y por nivel (`matchSetup().map`, sin tocar el guardado ni la sim; Cúpula = finales de
-  copa y élite del 6v6, Can Rebot = 2ª división).
+  «Sedes»). ~~Carrera con la sede por club y por nivel~~ HECHO (1.2.0 la sede del local con `VB.Venues.forMatch`; 21-nov-2026 la tabla
+  EMBLEM ajustada a lo pedido: Cúpula en todas las finales de copa —también la nacional— y en las rondas internacionales de un local de
+  élite —1ª con fuerza ≥ 84—; Can Rebot en el debut y en el 25 % de las jornadas en casa de la 2ª de cualquier país. Provisional:
+  notes/pendientes-ferran.md «Backlog del 21-nov»).
 - **«Que no parezca un Doodle»: plan de juego completo** (12-nov-2026; informe entero con propuestas A1-E7, referencias y fuentes en
   notes/juego-completo.md). Ferran aprobó **los sprints 2, 3 y 4** («son muy buenos») y abrió **el 5** a continuación. El sprint 1
   («Los primeros 60 segundos»: A1-A8) queda apuntado, sin decisión de Ferran.
@@ -245,14 +247,18 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
     - **Sprint 4 «Volver mañana»:** ~~D1 retos bronce/plata/oro y reto del día~~ HECHO (18 retos de maestría); ~~D2 perfil y álbum con
       huecos~~ HECHO (nivel de perfil, 16 hitos, álbum de 7 pestañas, vitrina; chip en la portada); ~~D3 cosméticos que lucen~~ HECHO
       a través del Vestuario (objetos de jefe, premios de nivel y de retos); ~~D4 sincronizar y migrar~~ HECHO en el código
-      (`S4_SYNC = false` hasta que Ferran despliegue las reglas); ~~D5 playa nocturna~~ (HECHO 12-nov: sede «Cala dels Fanals»).
+      (`S4_SYNC = true` desde el 21-nov-2026; reglas desplegadas el 16-nov); ~~D5 playa nocturna~~ (HECHO 12-nov: sede «Cala dels Fanals»).
     - **Cortado del sprint 2-4 (para otro sprint o para Ferran):**
       - Torneo de la semana (D1): la API de retos ya lo admite (`{semana}`, `w`/`weeks` en el guardado).
         21-nov: «El mismo 22-24» (la situación de la semana, js/semana.js) cubre el motivo de volver cada semana; si Ferran lo confirma,
-        se tacha (notes/pendientes-ferran.md). `w`/`weeks` y `{semana}` siguen sin usar.
-      - Jefes en la Carrera de pista (C3 fase 2) e insignia `rompemanos` del jefe Muro (tiraría un dado extra de `g.rng`).
+        se tacha (notes/pendientes-ferran.md). `w`/`weeks` y `{semana}` siguen sin usar: quedan como compatibilidad del guardado y NO se
+        conectan a la semana (darían medallas, y Ferran la quiso sin XP ni medallas). No se construye.
+      - ~~Jefes en la Carrera de pista (C3 fase 2)~~ HECHO 21-nov-2026 (`BOSS_HALL = true` en career-life.js: uno por liga, en el club
+        más fuerte de tu liga y en el puesto de su estilo). Sigue cortada la insignia `rompemanos` del jefe Muro (tiraría un dado extra de `g.rng`).
       - R3: el rival personal te sigue al ascender.
-      - Repeticiones en 6v6, primeros planos, varios ángulos y guardar o compartir jugadas; mensaje «REPETICIÓN» en las vallas.
+      - Repeticiones en 6v6 (21-nov-2026: grabación y resimulación preparadas detrás de `REPLAY6 = false` en js/replay.js, desync 0 en
+        replaytest (2c); falta el pintado, la cámara, la pestaña de la hoja 6v6 y medir), primeros planos, varios ángulos y guardar o
+        compartir jugadas; mensaje «REPETICIÓN» en las vallas.
       - Pose «brazos cruzados» del retrato, retratos de rivales, escudo en la camiseta 3D o en la grada, selector de dos carreras en
         la portada.
       - `VB.Arena.mapId()` (ui.js busca la sede por el nombre) y sonidos propios de las firmas (se reutilizan highfive/fistbump).

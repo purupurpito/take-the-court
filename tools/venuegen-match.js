@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* MAKE THE CUT — tools/venuegen-match.js  (owner: arena; plan «sedes-gen» F5)
  * Qué sede sale en cada partido de la Carrera, en el juego real (Chrome headless, como tools/eval.js): crea una Carrera de pista
- * (semilla 3, a prueba en la 1ª española) y una de playa, arranca partidos con ctx.actions.startCareerMatch y mira VB.Arena.map(), el
+ * (semilla 3, oferta firme: las pruebas ya piden partidillo) y una de playa, arranca partidos con ctx.actions.startCareerMatch y mira VB.Arena.map(), el
  * nombre en la presentación y en el marcador, y que la sim juega en 'hall' / 'beach'. Las rondas de copa se prueban sustituyendo
  * VB.Career.next() sobre la jornada real (kind/comp/label). Uso: node tools/venuegen-match.js [WxH=1280x720]. Sale con 1 si algo falla.
  */
@@ -25,7 +25,7 @@ const EXPR = String.raw`
   var gen = function (cc) { return function (r, d) { return d.gen && r.map.indexOf('g-' + cc + '-') === 0 && r.intro.indexOf(r.name) === 0 && r.sb === r.name.toUpperCase() && r.gameVenue === 'hall'; }; };
   try {
     var c6 = C.create({ mode: 'hall', name: 'Prueba Sede', num: 9, pos: 'OH', seed: 3, points: 15 });
-    C.acceptOffer(c6.offers.findIndex(function (o) { return o.trial; }), 2);
+    C.acceptOffer(c6.offers.findIndex(function (o) { return !o.trial; }), 2);   // (las pruebas ya no se aceptan sin partidillo: una oferta firme)
     var n = C.next(c6);
     await play('debut T1J1', n, function (r) { return r.map === 'canrebot'; });
     C.simulateNext(); n = C.next(c6);   // J2 fuera
@@ -34,9 +34,11 @@ const EXPR = String.raw`
     await play('casa', n, gen(n.home.cc));
     var base = n;
     function fake(over) { var x = Object.assign({}, base, over); x.fake = true; return x; }
-    await play('final copa nacional', fake({ kind: 'ko', comp: 'cup', label: 'Copa de la Corona · Final', week: 0 }), function (r) { return r.map === 'palau'; });
+    await play('final copa nacional (Cúpula desde el 21-nov-2026)', fake({ kind: 'ko', comp: 'cup', label: 'Copa de la Corona · Final', week: 0 }), function (r) { return r.map === 'cupula'; });
     await play('final continental', fake({ kind: 'ko', comp: 'intl', label: 'Champions Cup · Final', week: 0 }), function (r) { return r.map === 'cupula'; });
-    await play('cuartos continental (local 1ª)', fake({ kind: 'ko', comp: 'intl', label: 'Champions Cup · Cuartos', week: 0 }), function (r, d) { return gen(base.home.cc)(r, d) && d.tier >= 3; });
+    var hi = C.clubInfo ? C.clubInfo(c6, base.home) || base.home : base.home, elite = (hi.lvl | 0) === 1 && +hi.strength >= VB.Venues.EMBLEM.elite;
+    await play('cuartos continental (' + (elite ? 'local de élite → Cúpula' : 'local no élite → su sede') + ')', fake({ kind: 'ko', comp: 'intl', label: 'Champions Cup · Cuartos', week: 0 }),
+      function (r, d) { return elite ? r.map === 'cupula' : gen(base.home.cc)(r, d) && ((hi.lvl | 0) !== 1 || d.tier >= 3); });   // (piel H8/H9 solo con local de 1ª)
     await play('semifinal copa nacional', fake({ kind: 'ko', comp: 'cup', label: 'Copa de la Corona · Semifinal', week: 0 }), gen(base.home.cc));
     // playa
     var cb = C.create({ mode: 'beach', name: 'Prueba Playa', seed: 4321, autoClub: true });

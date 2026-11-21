@@ -4,7 +4,9 @@
  *   1. Jefes del circuito (S3 C3, solo playa): deterministas, ≥ 3 estilos en los 5 circuitos, club sin el tuyo ni el del rival,
  *      bossSt (media exacta, 1-99, atributo del estilo ≥ media + 15), partido neutro idéntico al de antes, partido de jefe
  *      (m.career.boss, bossNum, bossAnim, insignias), victoria jugada (objeto por VB.Look.grant una sola vez, seguidores, bandeja,
- *      noticia), simulada (solo cara a cara), guardado antiguo, duelo con el estilo del rival, logro «Cazajefes», pista sin jefe.
+ *      noticia), simulada (solo cara a cara), guardado antiguo, duelo con el estilo del rival, logro «Cazajefes».
+ *      Pista (C3 fase 2, 21-nov-2026): jefe por liga ('h' + lid) en el club más fuerte de tu liga, en el hueco de su puesto del seis
+ *      (BOSS_POS6) con su nombre y dorsal, insignias solo en ese hueco, dorsales sin repetir y el capitán del acta cuadrando.
  *   2. Química con nombre (S3 C5): niveles = chemBonus, nombres, sin avisos atrasados, aviso al subir (y otra vez tras bajar),
  *      pairSign forzada la jornada siguiente, saludo de pareja, decisiones raras (2-6 % de las jornadas, ≥ 5 entre dos, nunca en la
  *      bolsa normal), textos de pabellón y determinismo.
@@ -270,7 +272,7 @@ if (!BOSS_ONLY) {
     // Cazajefes
     c.life.bossW = 3; const got = Lf.check(c).map(a => a.id);
     ok(got.indexOf('boss3') >= 0, 'logro «Cazajefes» con 3 jefes');
-    // pista: sin jefe, setup sin romper (también empezando en el banquillo)
+    // pista: jefe de la liga (C3 fase 2), setup sin romper (también empezando en el banquillo)
     const H = C.hall;
     if (H && H.available && H.available()) {
       const keep = X.VB.Sim.CTRL_ROLES6; X.VB.Sim.CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB'];
@@ -278,8 +280,36 @@ if (!BOSS_ONLY) {
       c6 = C.get(); if (!C.next(c6)) C.simulateNext();
       let m6 = null, err = '';
       try { m6 = C.matchSetup(C.get()); } catch (e) { err = e.message; }
-      ok(!err && (!m6 || (!m6.career.boss && !m6.career.bossAnim && m6.career.mateAnim === null && m6.career.chemName)), 'pista: matchSetup sin jefe, mateAnim null y química del equipo (' + (m6 ? m6.career.chemName : err || 'banquillo') + ')');
-      ok(Lf.boss(C.get()) === null && Lf.bossKey(C.get()) === '', 'pista: sin jefes en esta fase');
+      const n6 = C.next(C.get()), vsBoss = !!(n6 && Lf.bossFor(C.get(), n6.rival.id));
+      ok(!err && (!m6 || ((vsBoss || (!m6.career.boss && !m6.career.bossAnim)) && m6.career.mateAnim === null && m6.career.chemName)), 'pista: matchSetup (jefe solo contra su club), mateAnim null y química del equipo (' + (m6 ? m6.career.chemName : err || 'banquillo') + ')');
+      const cH = C.get(), meK = C.hall._myClub(cH), bH = Lf.boss(cH);
+      ok(Lf.BOSS_HALL === true && Lf.bossKey(cH) === 'h' + meK.lid && bH && bH.k === 'h' + meK.lid && Lf.BOSS_STYLES[bH.style], 'pista: jefe de la liga con clave h + lid (' + Lf.bossKey(cH) + ', ' + (bH && bH.style) + ')');
+      const pool = C.hall.leagueClubs(cH, meK.lid).filter(k => k.id !== cH.myClub && k.id !== (cH.life.rival ? cH.life.rival.club : -1)).sort((a, b) => b.ovr - a.ovr || a.id - b.id);
+      ok(bH && pool.length && bH.club === pool[0].id, 'pista: juega en el club más fuerte de tu liga, sin el tuyo ni el del rival (' + (pool[0] && pool[0].name) + ')');
+      // otra Carrera igual → el mismo jefe (determinista)
+      { const Y = freshCtx(true); const keepY = Y.VB.Sim.CTRL_ROLES6; Y.VB.Sim.CTRL_ROLES6 = ['OH', 'S', 'OPP', 'MB'];
+        let y6 = Y.C.create({ mode: 'hall', name: 'Pista Jefe', num: 10, pos: 'OH', seed: 2024 }); Y.C.acceptOffer(y6.offers.findIndex(o => !o.trial), 2);
+        y6 = Y.C.get(); if (!Y.C.next(y6)) Y.C.simulateNext(); try { Y.C.matchSetup(Y.C.get()); } catch (e) { }
+        const bY = Y.Lf.boss(Y.C.get()); ok(bY && bH && bY.name === bH.name && bY.num === bH.num && bY.style === bH.style && bY.club === bH.club, 'pista: el jefe es determinista (misma semilla, mismo jefe)'); Y.VB.Sim.CTRL_ROLES6 = keepY; }
+      if (bH && advanceTo(C, bH.club, 60)) {
+        const cB = C.get(), nB = C.next(cB), mB = C.matchSetup(cB);
+        if (mB) {
+          const R6 = C.hall.simRoles(), slot = R6.indexOf(Lf.BOSS_POS6[bH.style]), all = mB.nums[1].concat(mB.bench[1].map(x => x.num));
+          ok(mB.career.boss && mB.career.boss.name === bH.name && mB.career.boss.pos === R6[slot] && mB.career.bossAnim.idx === slot, 'pista: partido de jefe con m.career.boss, su puesto (' + R6[slot] + ') y bossAnim.idx = ' + slot);
+          ok(Math.abs(mean(mB.attrs[1][slot]) - Math.min(99, nB.ovrRival + Lf.BOSS_UP)) <= 0.5, 'pista: attrs de jefe con media rival +' + Lf.BOSS_UP + ' (' + mean(mB.attrs[1][slot]).toFixed(1) + ')');
+          ok(mB.badges && mB.badges[1].length === 6 && mB.badges[1].every((b, i) => i === slot ? JSON.stringify(b) === JSON.stringify(Lf.BOSS_STYLES[bH.style].badges) : b === null), 'pista: insignias del estilo solo en el hueco del jefe');
+          ok(mB.names[1][slot] === bH.name && mB.nums[1][slot] === bH.num && mB.career.bossNum === bH.num, 'pista: nombre y dorsal del jefe en su hueco (' + bH.num + ')');
+          ok(new Set(all).size === all.length, 'pista: dorsales del rival sin repetir (seis y banquillo): ' + all.join(','));
+          const capt = mB.career.acta.capt[1];
+          ok(capt > 0 && all.indexOf(capt) >= 0, 'pista: el capitán del acta rival lleva un dorsal convocado (' + capt + ')');
+          ok(mB.career.mode === 'hall' && mB.format === '6v6', 'pista: sigue siendo 6v6 en el pabellón');
+          // victoria jugada → cara a cara y objeto de pista
+          const st = { sets: [3, 0], setScores: [[25, 20], [25, 18], [25, 21]], win: true };
+          let rs = null, e3 = ''; try { rs = C.matchDone(st, { kills: 6, aces: 1, blocks: 1, digs: 3, assists: 1, errors: 1 }, { career: mB.career, size: 6, demo: false }); } catch (e) { e3 = e.message; }
+          const bA = Lf.bossOf(C.get(), 'h' + meK.lid);
+          ok(!e3 && bA && bA.w === 1 && bA.beat > 0, 'pista: victoria jugada contra el jefe: cara a cara 1-0 y derrotado (' + (e3 || (bA && bA.w + '-' + bA.l)) + ')');
+        } else console.log('  (contra el jefe, en el banquillo: sin partido jugado)');
+      } else console.log('  (no llegó el partido contra el jefe en 60 jornadas)');
       const ms = C.get(); ms.meOn = false;
       let e2 = ''; try { Lf.hook(ms, 'setup', { format: '6v6', meOn: false, bench: [[{ st: { jump: 50, speed: 50 } }]], meBench: 0, career: {} }); } catch (e) { e2 = e.message; }
       ok(!e2, 'pista: setup con meOn false y banquillo no rompe');

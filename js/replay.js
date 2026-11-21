@@ -3,7 +3,11 @@
  * de sim en un anillo (Float64Array para move: con Float32Array la resim se desincroniza, T1) y FOTOS de la partida (VB.Sim.copyGame
  * sobre partidas «sombra» creadas una vez en reset). La repetición resimula una sombra (el «corredor» R, R.replay = true) con las
  * entradas grabadas mientras la sim en vivo espera; Players/FX/cámara pintan R con su código de siempre.
- *  - Solo 2v2 humano (ni demo, ni ejercicio, ni espectador, ni 6v6; autopilot solo con reset(g, {force:true}) o &replay=1).
+ *  - Solo 2v2 humano (ni demo, ni ejercicio, ni espectador; autopilot solo con reset(g, {force:true}) o &replay=1). 6v6 humano: preparado
+ *    detrás de REPLAY6 (APAGADO, 21-nov-2026; reset(g, {six:true}) lo enciende en las pruebas). En 6v6 hay menos sombras (K6: 3 fotos
+ *    clave y 2 mejores jugadas → 8 en vez de 11, por la memoria del móvil). Antes de encenderlo falta lo de pintado (Players.bindReplay
+ *    con los 12 en pista y los cambios hechos entre la jugada guardada y la de ahora), la cámara 6v6 en CameraRig.replay, la pestaña
+ *    «Jugadas» de la hoja final 6v6, medirlo con tools/perf.js y pasar replaytest (e) de «apagado» a «graba».
  *  - Sin guardado, sin red, sin THREE, sin DOM (los textos los pinta ui.js con info()/list()). Se carga en node (tools/replaytest.js).
  *  - Cero basura por frame en el grabador (arrays tipados y objetos reutilizados). La única memoria nueva: las sombras de reset() y
  *    los objetos de evento que la sim ya crea al resimular (igual que en vivo).
@@ -41,6 +45,10 @@
     ME_BONUS: 0.12,       // puntuación extra de las jugadas de tu equipo
     AUTO_HL: 0.55         // highlight mínimo para repetir automáticamente un cierre de set que no sea ace/remate/dejada/bloqueo
   };
+  // 6v6 (REPLAY6): menos sombras, por la memoria (cada copia de un 6v6 lleva plantilla, banquillo, líbero y entrenador)
+  var REPLAY6 = false;
+  var K6 = { KF_N: 3, BEST_N: 2 };
+  var kfN = K.KF_N, bestN = K.BEST_N;   // las de este partido (reset)
   // eventos de R que se reparten (evP para Players; evF = lo mismo sin point, para FX y Audio). Nunca a UI.ingest, Career ni Badges
   var PASS = { hit: 1, swing: 1, miss: 1, toss: 1, jump: 1, landPlayer: 1, dive: 1, block: 1, net: 1, netTouch: 1, land: 1, bounce: 1,
     feint: 1, dribble: 1, juggle: 1 };
@@ -171,7 +179,7 @@
     if (!RP.rec) return;
     if (RP.ptStep < 0) {
       if (RP.step >= RP.nextKf) {
-        var j = RP.kfI % K.KF_N;
+        var j = RP.kfI % kfN;
         S().copyGame(kf[j], g); kfStep[j] = RP.step; RP.kfI++; RP.nextKf = RP.step + K.KF_EVERY;
       }
       if (RP.step - RP.tossStep >= CAP) breakRally();   // peloteo más largo que el anillo: no repetible
@@ -221,7 +229,7 @@
   function overturn() {
     if (RP.rec && RP.ptStep >= 0) { RP.overturned = true; return; }
     if (last.serial === RP.serial) last.ok = false;
-    for (var i = 0; i < K.BEST_N; i++) if (best[i].ok && best[i].serial === RP.serial) best[i].ok = false;
+    for (var i = 0; i < bestN; i++) if (best[i].ok && best[i].serial === RP.serial) best[i].ok = false;
     sortBest();
   }
 
@@ -239,7 +247,7 @@
     if (DECISIVE[meta.how] === 1) for (j = RP.hitsN - 1; j >= lo; j--) if (hitAt(j).team === w) { dec = hitAt(j); break; }
     if (!dec && n > 0) dec = hitAt(RP.hitsN - 1);
     // foto clave de mayor paso que sea <= start (la del saque si no hay otra)
-    var kg = kfToss, k0 = RP.tossStep, m = Math.min(RP.kfI, K.KF_N);
+    var kg = kfToss, k0 = RP.tossStep, m = Math.min(RP.kfI, kfN);
     for (j = 0; j < m; j++) if (kfStep[j] <= start && kfStep[j] > k0) { kg = kf[j]; k0 = kfStep[j]; }
     if (endAt - k0 > CAP) { RP.ptStep = -1; return; }
     c.g = kg; c.k0 = k0; c.start = start; c.pt = RP.ptStep; c.hashStep = RP.hashStep; c.hashPt = RP.hashPt; c.end = endAt; c.ptT = RP.ptT;
@@ -258,9 +266,9 @@
   /** Candidato a mejor jugada: si cabe o supera a la peor, se copia la foto y su tramo de entradas (sin memoria nueva). */
   function offerBest(c) {
     var slot = null, i;
-    for (i = 0; i < K.BEST_N; i++) if (!best[i].ok) { slot = best[i]; break; }
+    for (i = 0; i < bestN; i++) if (!best[i].ok) { slot = best[i]; break; }
     if (!slot) {
-      for (i = 0; i < K.BEST_N; i++) if (!slot || best[i].score < slot.score) slot = best[i];
+      for (i = 0; i < bestN; i++) if (!slot || best[i].score < slot.score) slot = best[i];
       if (!(c.score > slot.score)) return;
     }
     if (PL.phase && PL.clip === slot) return;   // (no se pisa la que se está viendo)
@@ -278,7 +286,7 @@
   }
   function sortBest() {
     ordN = 0;
-    for (var i = 0; i < K.BEST_N; i++) if (best[i].ok) ord[ordN++] = i;
+    for (var i = 0; i < bestN; i++) if (best[i].ok) ord[ordN++] = i;
     for (var a = 1; a < ordN; a++) {   // inserción (3 elementos): puntuación de mayor a menor; a igualdad, la más antigua
       var v = ord[a], b = a - 1;
       while (b >= 0 && (best[ord[b]].score < best[v].score || (best[ord[b]].score === best[v].score && best[ord[b]].serial > best[v].serial))) { ord[b + 1] = ord[b]; b--; }
@@ -292,7 +300,7 @@
     if (!Sm || !Sm.copyGame || !Sm.stateHash || !Sm.createGame || !Sm.step) return 'sim';
     if (!g) return 'nogame';
     if (o.fluida) return 'net';   // Online V2: la conexión Fluida no tiene repeticiones en la beta (cada máquina ve su propia partida)
-    if (g.size !== 2) return '6v6';
+    if (g.size !== 2 && !(REPLAY6 || o.six)) return '6v6';
     if (g.demo) return 'demo';
     if (g.drill) return 'drill';
     if (g.watch || g.watch0) return 'watch';
@@ -322,6 +330,7 @@
     RP.why = why;
     if (why) { kfToss = null; kf.length = 0; R = null; PR = null; for (i = 0; i < K.BEST_N; i++) best[i].g = null; return false; }
     RP.force = !!o.force; RP.headless = !!o.headless;
+    var six = g.size !== 2; kfN = six ? K6.KF_N : K.KF_N; bestN = six ? K6.BEST_N : K.BEST_N;
     var cx = ctxOf();
     RP.mobile = o.mobile != null ? !!o.mobile : !!(cx && cx.isMobile);
     STEP = 1 / ((VB.C && VB.C.SIM_HZ) || 120);
@@ -331,8 +340,8 @@
     var mk = function () { var s = S().createGame(so); s.replay = true; s.events.length = 0; return s; };
     try {
       kfToss = mk(); kf.length = 0;
-      for (i = 0; i < K.KF_N; i++) kf.push(mk());
-      for (i = 0; i < K.BEST_N; i++) best[i].g = mk();
+      for (i = 0; i < kfN; i++) kf.push(mk());
+      for (i = 0; i < K.BEST_N; i++) best[i].g = i < bestN ? mk() : null;
       R = mk(); PR = mk();
       if (RP.vs === 1) { if (!(VB.NetView && VB.NetView.mirror)) throw new Error('falta VB.NetView'); RV = mk(); }
     } catch (e) {
@@ -654,7 +663,7 @@
   function prepMs() { return RP.prepMs; }
 
   VB.Replay = {
-    K: K, TXT: TXT, PASS: PASS,
+    K: K, TXT: TXT, PASS: PASS, REPLAY6: REPLAY6, K6: K6,
     reset: reset, enabled: enabled, onStep: onStep, onEvents: onEvents, autoReady: autoReady, start: start, playBest: playBest,
     tick: tick, skip: skip, abort: abort, active: active, runner: runner, info: info, list: list, bestCount: bestCount,
     desync: desync, prepMs: prepMs, cut: cut,

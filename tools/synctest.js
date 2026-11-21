@@ -2,8 +2,9 @@
 /* MAKE THE CUT — tools/synctest.js (owner: ui_main)
  * Pruebas de la sincronización de js/account.js (S4-D4, T13). Node con vm; account.js con stubs de window, document,
  * Storage.prototype, sessionStorage, location y fetch (Firestore falso en memoria): SIN RED.
- *  1) S4_SYNC = false: las claves nuevas no están en DOCS pero su escritura apunta la hora (TRACK); con true (texto del fichero
- *     reescrito antes de runInContext) sí están, con sus nombres.
+ *  1) S4_SYNC: el fichero lo trae a true desde el 21-nov-2026. boot({s4}) reescribe el texto antes de runInContext en los dos sentidos
+ *     (s4: false → apagado; s4: true → encendido; sin s4, el valor del fichero). Apagado: las claves S4 no están en DOCS pero su escritura
+ *     apunta la hora (TRACK); encendido: sí están, con sus nombres. Del aparato (nunca a DOCS/TRACK): .bak, .prev, devid, retostab, semana…
  *  2) _merge con un remoto falso: profile (unión con VB.Profile.mergeRaw), legends (unión, top 20), career6 la primera vez (conflicto),
  *     career + career6 a la vez (dos en cola, resueltos uno a uno), cmode (LWW), gym/look (como hasta ahora), retos (VB.Retos.mergeRaw).
  *  3) .prev: al ganar el remoto en una Carrera, la local queda en '<clave>.prev' (que no va a DOCS ni a TRACK).
@@ -63,7 +64,8 @@ function boot(o) {
   ctx.VB = { ctx: { state: o.state || 'menu' } };
   (o.files || []).forEach(f => vm.runInContext(fs.readFileSync(path.join(ROOT, f), 'utf8'), ctx, { filename: f }));
   let src = ACC_SRC;
-  if (o.s4) src = src.replace('var S4_SYNC = false;', 'var S4_SYNC = true;');
+  if (o.s4 === true) src = src.replace(/var S4_SYNC = (true|false);/, 'var S4_SYNC = true;');
+  else if (o.s4 === false) src = src.replace(/var S4_SYNC = (true|false);/, 'var S4_SYNC = false;');
   if (o.look) src = src.replace('var LOOK_SYNC = false;', 'var LOOK_SYNC = true;');
   vm.runInContext(src, ctx, { filename: 'js/account.js' });
   return { ctx, VB: ctx.VB, A: ctx.VB.Account, LS, SS, remote, calls, reloads: () => reloads };
@@ -74,12 +76,17 @@ const S4 = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6
   // ---------------------------------------------------------------- 1) interruptor
   console.log('1) S4_SYNC');
   {
-    ok('el fichero trae S4_SYNC = false (no se despliega nada en este lote)', /var S4_SYNC = false;/.test(ACC_SRC));
-    const b = boot();
+    const pub = (ACC_SRC.match(/var S4_SYNC = (true|false);/) || [])[1];
+    ok('el fichero trae S4_SYNC con un valor legible (publicado: ' + pub + ')', pub === 'true' || pub === 'false');
+    ok('S4_SYNC = true en el fichero (encendido el 21-nov-2026; reglas desplegadas el 16-nov-2026)', pub === 'true');
+    ok('VB.Account.S4_SYNC refleja el fichero', boot().A.S4_SYNC === (pub === 'true'));
+    const b = boot({ s4: false });
     const d = b.A._docs(), t = b.A._track();
     ok('apagado: ninguna clave S4 en DOCS', Object.keys(S4).every(k => !d[k]) && b.A._s4Sync === false && b.A.S4_SYNC === false);
     ok('apagado: las 5 en TRACK; look ya en DOCS (LOOK_SYNC = true desde el 15-nov-2026)', Object.keys(S4).every(k => t[k]) && !t['make-the-cut.look'] && d['make-the-cut.look'] === 'look' && b.A._lookSync === true);
-    ok('nunca en DOCS ni TRACK: .bak, .prev, devid, retostab', ['make-the-cut.squad.bak', 'make-the-cut.career.prev', 'make-the-cut.career6.prev', 'make-the-cut.devid', 'make-the-cut.retostab', 'make-the-cut.profile.bak', 'make-the-cut.retos.bak'].every(k => !d[k] && !t[k]));
+    const DEV = ['make-the-cut.squad.bak', 'make-the-cut.career.prev', 'make-the-cut.career6.prev', 'make-the-cut.devid', 'make-the-cut.retostab', 'make-the-cut.profile.bak', 'make-the-cut.retos.bak',
+      'make-the-cut.semana', 'make-the-cut.role6', 'make-the-cut.nick', 'make-the-cut.seen', 'make-the-cut.device', 'make-the-cut.look.bak', 'make-the-cut.gym.bak'];
+    ok('nunca en DOCS ni TRACK (apagado): .bak, .prev, devid, retostab, semana, role6, nick, seen, device', DEV.every(k => !d[k] && !t[k]));
     b.LS.setItem('make-the-cut.profile', '{"v":1}'); b.LS.setItem('make-the-cut.career6', '{"x":1}');
     const meta = JSON.parse(b.LS.getItem('make-the-cut.account.meta'));
     ok('escribir una clave S4 apunta la hora (make-the-cut.account.meta) sin subirla', meta['make-the-cut.profile'] > 0 && meta['make-the-cut.career6'] > 0);
@@ -88,6 +95,11 @@ const S4 = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6
     const on = boot({ s4: true }), d2 = on.A._docs();
     ok('encendido: las 5 en DOCS con sus nombres (profile, career6, cmode, legends, retos)', Object.keys(S4).every(k => d2[k] === S4[k]) && !Object.keys(S4).some(k => on.A._track()[k]), J(d2));
     ok('encendido: gym y look siguen (GYM_SYNC y LOOK_SYNC = true) y DOCS tiene las 11 claves', d2['make-the-cut.gym'] === 'gym' && d2['make-the-cut.look'] === 'look' && Object.keys(d2).length === 11 && on.A._gymSync === true);
+    ok('encendido: las claves del aparato siguen fuera de DOCS y de TRACK (la semana, solo del aparato)', DEV.every(k => !d2[k] && !on.A._track()[k]));
+    on.LS.setItem('make-the-cut.semana', '{"v":1}'); on.LS.setItem('make-the-cut.profile', '{"v":1,"sen":{"x":1}}');
+    await on.A._push();
+    const up = on.calls.filter(c => c.method === 'PATCH').map(c => c.url.split('/').pop());
+    ok('encendido: escribir el perfil (con el Cuaderno sen) sube profile; la semana no sube', up.indexOf('profile') >= 0 && !up.some(n => /semana/.test(n)), up.join());
   }
 
   // ---------------------------------------------------------------- 2) fusiones

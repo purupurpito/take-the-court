@@ -39,18 +39,20 @@ reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 **Sprint 2-4 (15-nov-2026, v1.2.0: «Tu carrera», «Partidos que se recuerdan», «Volver mañana»).** Nuevos de **ui_main**:
 `js/recap.js` (`VB.Recap`: el único módulo narrativo; previa, titular, frase de la jugada y modelo de la hoja final; puro),
 `js/retos.js` (`VB.Retos`: 18 retos de maestría y el reto del día), `js/senas.js` (`VB.Senas`: señas del árbitro como pegatina y Cuaderno del árbitro), `js/profile.js` (`VB.Profile`: nivel de perfil, hitos y álbum),
-`js/replay.js` (`VB.Replay`: repeticiones por resimulación, sin guardado) y las pruebas `tools/recaptest.js`, `tools/retotest.js`,
+`js/replay.js` (`VB.Replay`: repeticiones por resimulación, sin guardado; `REPLAY6` (false) y `K6` {KF_N 3, BEST_N 2}: 6v6 preparado y
+apagado, `reset(g, {six: true})` lo enciende solo para las pruebas) y las pruebas `tools/recaptest.js`, `tools/retotest.js`,
 `tools/proftest.js`, `tools/synctest.js`, `tools/replaytest.js`, `tools/lifetest.js`, `tools/worldtest.js`, `tools/bondtest.js` y `tools/studytest.js` (carrera, 21-nov). De **players**:
 `tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **desplegadas el 16-nov-2026** (comprobado: lo publicado en make-the-cut-vb es igual que el fichero).
-Guardados nuevos: `make-the-cut.retos` (v1) y `make-the-cut.profile` (v1) sincronizan solo con `S4_SYNC = true` en account.js. Hoy es `false`: ellos,
-`make-the-cut.career6`, `make-the-cut.career.mode` (`cmode`) y `make-the-cut.legends` van a `TRACK` (hora sin subir). `make-the-cut.retostab` (pestaña de Retos),
+Guardados nuevos: `make-the-cut.retos` (v1) y `make-the-cut.profile` (v1) sincronizan con `S4_SYNC = true` en account.js (encendido el 21-nov-2026;
+con `false` ellos, `make-the-cut.career6`, `make-the-cut.career.mode` (`cmode`) y `make-the-cut.legends` irían a `TRACK`, hora sin subir).
+`make-the-cut.semana` (El mismo 22-24), `make-the-cut.role6` y `make-the-cut.nick` son del aparato y tampoco van a `DOCS` ni a `TRACK`. `make-the-cut.retostab` (pestaña de Retos),
 `make-the-cut.devid` (contador del perfil por aparato), `<clave>.bak` (copia de un guardado dañado) y `make-the-cut.career(6).prev` (la Carrera local
 que pierde ante la de la cuenta) NUNCA van a `DOCS` ni a `TRACK`. `record.byD` (`{easy|normal|hard|expert:[g,p]}`) va dentro de
 `make-the-cut.record` y `settings.replays` ('auto'|'end'|'off', por defecto 'auto') dentro de `make-the-cut.settings`. Dentro de las Carreras (sin
 subir VER): `c.life.boss` (`{b0..b4: {k, name, nick, style, num, club, w, l, beat, seen}}`), `c.life.bossW`, `c.life.rival.style`, `chemLv`
 (en `c.mate`/`c.squad[i]` en la playa y `c` en la pista: último nivel de química avisado), `l.jN`, `l.rareJ`, `l.rareN`, `l.chemEv`, `l.sign`
 y `c.ts.md`. Interruptores de account.js: `GYM_SYNC = true` (12-nov-2026; donde una nota diga `false`, es errata), `LOOK_SYNC = true` (15-nov-2026) y
-`S4_SYNC = false` (orden: Ferran despliega las reglas y luego lo enciende en una publicación mínima).
+`S4_SYNC = true` (21-nov-2026; reglas desplegadas el 16-nov-2026; `VB.Account.S4_SYNC` lo refleja).
 **Contrato de guardados (D4):** un guardado ilegible se copia en `<clave>.bak` y el módulo devuelve `lost()` (la interfaz avisa una vez);
 uno con `v` mayor que el del código se lee en memoria, `readOnly()` es true, no se escribe y `mergeRaw` nunca lo rebaja. Lo cumplen
 `VB.Prog`, `VB.Gym`, `VB.Look`, `VB.Profile` y `VB.Retos`. Las bajadas de la cuenta solo se aplican en el menú (`VB.Account.menuReady()`).
@@ -788,7 +790,10 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `trophyCase(c)`, `newsBoss(c, boss, wk?)`, `BEATS.ses1`; `VB.CareerWorldUI.crestSVG(k, px, o)`, `trophyCaseHTML(c, H)`;
   `VB.CareerLife.boss(c)`, `bossFor`, `bossInfo`, `bossBeaten`, `mateAnim`, `bossAnim`, `chemLevel`, `chemName`, `chemInfo`, `chemCheck`,
   `ACH_INFO` (32 logros; `boss3` solo playa), y en `setup`: `m.career.boss`, `bossNum`, `bossAnim`, `mateAnim`, `chemLv`, `chemName`,
-  `pairSign`, `rivalP`, `rivalStyle`. `VB.Gym.ATTR`, `VB.Gym.lost/readOnly`, `VB.Prog.lost/readOnly`.
+  `pairSign`, `rivalP`, `rivalStyle`. Jefes de pista (21-nov-2026): `VB.CareerLife.BOSS_HALL` (true), `BOSS_POS6` ({estilo: puesto 6v6}),
+  `bossKey(c)` = `'h' + lid` en la pista, `bossSt(o, estilo, r, base?)` (base = puesto 6v6 para genSt; sin él, el del estilo); en el 6v6
+  `m.career.boss.pos`, `m.career.bossAnim.idx` = hueco del seis rival, `m.badges[1]` de 6 con las insignias solo en ese hueco, y
+  `m.nums[1]`/`m.names[1]`/`acta.capt[1]` con el jefe (dorsales intercambiados si chocaban). `VB.Gym.ATTR`, `VB.Gym.lost/readOnly`, `VB.Prog.lost/readOnly`.
 
 ## 5. Orden por frame (main.js)
 1. `realDt = min(maxdt, Δ)`; `resize` si cambió el contenedor.

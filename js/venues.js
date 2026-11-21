@@ -150,7 +150,12 @@
   function h32(s) { s = String(s); var h = 0x811c9dc5; for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
   // «Final» como palabra (no «Semifinal»); copa continental por la etiqueta si next() no trae comp
   var FINAL_RE = /\bfinal\b/i, INTL_RE = /\b(CEV|AVC|CSV|NORCECA|Champions|Challenge|Continental|Internacional|Intercontinental|Asian|Sudamericano)\b/i;
-  var EMBLEM = { cupFinal: 'palau', intlFinal: 'cupula', fallback: 'palau', debut: 'canrebot', esLow: 0.2, beachOpen: ['platja', 'platja', 'moll', 'moll', 'fanals'], beachFinal: 'fanals' };
+  // 21-nov-2026 (backlog de TRASPASO, lo que pidió Ferran): Cúpula del Far en TODAS las finales de copa (también la nacional) y en las
+  // rondas internacionales de la élite del 6v6 (local de 1ª con fuerza ≥ elite, la vara de career-world ELITE); Can Rebot en la 2ª de
+  // cualquier país (low: parte de las jornadas en casa, el resto en la sede del club) y en el debut. Decisiones provisionales: élite solo
+  // en copa internacional (la liga sigue en la sede del club) y low = 25 %. Solo cambia el id de mapa: el tipo que llega a la sim, no.
+  var EMBLEM = { cupFinal: 'cupula', intlFinal: 'cupula', eliteIntl: 'cupula', elite: 84, fallback: 'palau', debut: 'canrebot', low: 0.25, esLow: 0.25,
+    beachOpen: ['platja', 'platja', 'moll', 'moll', 'fanals'], beachFinal: 'fanals' };
   /** Tabla EMBLEM: qué sede toca en un partido de la Carrera. n = VB.Career.next() ({kind: 'league' | 'cup' | 'ko', comp, round, label,
    *  week, me}); info = ficha del local (clubInfo / clubInfo6); season = temporada (para el debut). Pura (sin registrar nada):
    *  {id} (sede emblema), {club, kind, opt} (la sede generada de ese club) o null. Una emblema sin registrar cae en Palau / Platja. */
@@ -169,12 +174,14 @@
     var intl = n.comp === 'intl' || ((n.kind === 'ko' || n.kind === 'cup') && n.comp !== 'cup' && INTL_RE.test(label));
     if (n.kind === 'ko' || n.kind === 'cup') {
       if (fin) return emb(intl ? EMBLEM.intlFinal : EMBLEM.cupFinal);
+      // élite del 6v6: ronda internacional con un local de 1ª de fuerza ≥ EMBLEM.elite → Cúpula (si no está registrada, su sede de club)
+      if (intl && info && (info.lvl | 0) === 1 && +info.strength >= EMBLEM.elite && ready[EMBLEM.eliteIntl]) return { id: EMBLEM.eliteIntl };
       return info ? { club: info, kind: 'hall', opt: intl ? { stage: 'intl' } : null } : null;
     }
-    // liga: debut (temporada 1, jornada 1) y jornadas de 2.ª española en casa (20 %, por hash de la jornada) en Can Rebot
+    // liga: debut (temporada 1, jornada 1) y jornadas de 2.ª en casa de cualquier país (EMBLEM.low, por hash de la jornada) en Can Rebot
     if (n.kind === 'league' && ready[EMBLEM.debut]) {
       if ((season | 0) === 1 && (n.week | 0) === 0) return { id: EMBLEM.debut };
-      if (info && String(info.cc || '').toUpperCase() === 'ES' && (info.lvl | 0) === 2 && h32('canrebot|' + (season | 0) + '|' + (n.week | 0)) % 100 < EMBLEM.esLow * 100) return { id: EMBLEM.debut };
+      if (info && (info.lvl | 0) === 2 && h32('canrebot|' + (season | 0) + '|' + (n.week | 0)) % 100 < EMBLEM.low * 100) return { id: EMBLEM.debut };
     }
     return info ? { club: info, kind: 'hall', opt: null } : null;
   }

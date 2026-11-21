@@ -103,3 +103,12 @@ Detalle: `notes/s234/T13.md`. Contrato: CONTRACT §1 «Sprint 2-4».
   en una publicación mínima, `S4_SYNC = true` (`LOOK_SYNC` ya está a `true` desde el 15-nov-2026). synctest comprueba que las reglas cubren `DOCS` con todo encendido.
 - Riesgo conocido: un aparato que crea su perfil con un récord ya sincronizado puede contar dos veces el relleno inicial; desaparece con
   `S4_SYNC`.
+- **21-nov-2026: `S4_SYNC = true`** (reglas con las 11 claves desplegadas el 16-nov-2026; comprobado entonces que lo publicado es igual que
+  el fichero). Sincronizables: squad, career, settings, record, gym, look, profile (con el Cuaderno del árbitro `sen`), career6, cmode,
+  legends y retos. Lo nuevo del sprint «único» va DENTRO de esos guardados: `c.life.bond` (rencor/cariño), `c.world.arb` (árbitros, ≤ 60) y
+  `c.study` (scouting, ventana corta) en las Carreras. Del aparato (nunca a DOCS ni a TRACK): `make-the-cut.semana` (El mismo 22-24),
+  `retostab`, `devid`, `role6`, `nick`, `seen`, `device`, `<clave>.bak` y `.prev`. Tamaño: una Carrera de pista recién creada ocupa ~119 000
+  caracteres; con lo nuevo al tope teórico (60 árbitros y rencor con los 390 clubes) ~150 000, por debajo del tope de 390 000 (crece con
+  las temporadas: conviene mirar una de 6-8 temporadas antes de publicar). tools/synctest.js reescribe el interruptor en los dos sentidos
+  (`boot({s4: false})` = apagado) y comprueba que el fichero lo trae a true. Antes de publicar: prueba manual con dos aparatos (perfil,
+  retos, Salón de la Fama y «¿Qué Carrera de pista te quedas?» con su `.prev`).

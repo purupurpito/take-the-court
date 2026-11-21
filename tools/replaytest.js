@@ -12,6 +12,9 @@
  *  (3) mejores jugadas: 1-3, en orden de puntuación, sin «error» de < 4 toques; playBest() en orden, playBest(i), skip y skip(true).
  *  (4) defensa: una mutación de g fuera de Sim.step en pleno peloteo → desync() > 0 y aviso «[VB] repetición desincronizada».
  *  (5) memoria: 0 asignaciones con el anillo en régimen (process.memoryUsage con gc, 10 000 pasos de onStep/onEvents con fotos clave).
+ *  (2c) 6v6 detrás de REPLAY6 (apagado): con reset(g, {six:true}) partidos 6v6 enteros (autopilot, entrenador IA con cambios y tiempos
+ *      muertos, líbero) con repeticiones automáticas y todas las mejores jugadas resimuladas: desync 0, la partida en vivo intacta, el
+ *      partido igual con y sin repeticiones, 8 sombras (K6) y como mucho K6.BEST_N mejores jugadas.
  * Escribe solo en la consola. Sale con 1 si algo falla. */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -73,7 +76,7 @@ function match(o) {
   const g = S.createGame(Object.assign({ demo: false, difficulty: 'normal', present: true, points: 15 }, o.opts));
   const R0 = { autos: 0, autoKinds: {}, replays: 0, playSteps: 0, slowFrames: 0, slow1: 0, slowOther: 0, evP: 0, evF: 0, badEv: [], forbidSeen: 0,
     pointP: 0, liveTouched: 0, frames: 0, prepMax: 0, nMut: 0, mutSerial: -1, mutPlays: 0, skips: 0, enabled: false, bestOrder: [], bestDes: 0 };
-  if (o.replay) R0.enabled = RPL.reset(g, { force: !!o.force, headless: true });
+  if (o.replay) R0.enabled = RPL.reset(g, { force: !!o.force, headless: true, six: !!o.six });
   const b = o.human ? bot(o.opts.seed) : null, evs = [], evP = [], evF = [];
   const simIn = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
   const maxF = Math.round((o.maxS || 3000) / FDT);
@@ -243,6 +246,34 @@ console.log('== replaytest (parte node) ==');
   if (!tot.pointP) fail('(2) el point de R no llega a Players (evP)');
   console.log('(2) ' + tot.autos + ' repeticiones automáticas + ' + tot.best + ' mejores jugadas resimuladas, desync ' + RPL.desync() + ', partido igual con/sin ' + tot.same + '/' + CASES.length +
     ', eventos evP ' + tot.evP + ' / evF ' + tot.evF + ' (filtrados ' + tot.forbid + '), cámara lenta ' + tot.slow1 + ' frames a 1 paso, prep máx ' + tot.prep.toFixed(2) + ' ms (vm)' + (failures ? '' : ' ... OK'));
+}
+
+// (2c) 6v6 detrás de REPLAY6 (apagado en el juego; six:true en la prueba)
+{
+  const rows = [];
+  let tAuto = 0, tBest = 0;
+  if (RPL.REPLAY6 !== false) fail('(2c) REPLAY6 debería seguir apagado hasta tener el pintado 6v6');
+  for (const seed of [4, 17]) {
+    const opts = { seed, autopilot: true, format: '6v6', ctrl: 'one', ctrlRole: 'OH', points: 15 };
+    const t0 = Date.now(), d0 = RPL.desync();
+    const a = match({ opts, human: false, replay: true, force: true, six: true, maxS: 4000 });
+    if (!a.enabled) { fail('(2c) 6v6 ' + seed + ': no graba (' + RPL._state().why + ')'); continue; }
+    if (!a.g.finished) fail('(2c) 6v6 ' + seed + ': el partido no acaba');
+    const n = RPL.bestCount();
+    if (n < 1 || n > RPL.K6.BEST_N) fail('(2c) 6v6 ' + seed + ': bestCount ' + n + ' (tope ' + RPL.K6.BEST_N + ')');
+    const des0 = RPL.desync(); let guard = 0;
+    if (n && RPL.playBest()) while (RPL.active() && guard++ < 50000) RPL.tick(FDT, [], []);
+    if (RPL.desync() !== d0) fail('(2c) 6v6 ' + seed + ': ' + (RPL.desync() - d0) + ' repeticiones desincronizadas (automáticas ' + (des0 - d0) + ')');
+    if (a.liveTouched) fail('(2c) 6v6 ' + seed + ': la partida en vivo cambia durante la repetición');
+    if (a.badEv.length) fail('(2c) 6v6 ' + seed + ': filtro de eventos: ' + [...new Set(a.badEv)].slice(0, 5).join(', '));
+    const b = match({ opts, human: false, replay: false, maxS: 4000 });
+    if (a.final !== b.final) fail('(2c) 6v6 ' + seed + ': el partido cambia con las repeticiones');
+    tAuto += a.autos; tBest += n;
+    rows.push('6v6 ' + seed + ': ' + a.g.setScores.map(x => x.join('-')).join(' ') + ', automáticas ' + a.autos + ', mejores ' + n + ', ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
+  }
+  console.log('  ' + rows.join('\n  '));
+  console.log('(2c) 6v6 (six:true): ' + tAuto + ' automáticas + ' + tBest + ' mejores jugadas resimuladas, desync ' + RPL.desync() + (failures ? '' : ' ... OK'));
+  RPL.reset(null);
 }
 
 // (2b) pausa saltada (Sim.skipHold fuera de step, como UI.onHoldSkip): sin repetición automática de ese punto
