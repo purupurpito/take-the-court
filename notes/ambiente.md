@@ -577,6 +577,14 @@ hay ficha «Frenar»**: las decisiones son idénticas a las de antes (arbitrotes
 `VB.Ambiente.create`, que lo guarda en `st.ref` y se lo da al árbitro en `arbOf`. Los bocadillos del 1r dicen «1r Apellido»
 (`spRef`; sin `st.ref`, «1r árbitro»).
 
+**Remate (21-nov, rama pendientes)**: `life(c, 'setup', out, n)` pasa el partido que ya calculó matchSetup/matchSetup6 y `onSetup` lo
+usa (en pista ya no vuelve a llamar a `next6`, que rehace la convocatoria en c; worldtest comprueba que matchSetup deja c entero igual y
+la tabla por carácter: nervioso en derbi ×1,3 y lince ×0,6, en playa y en pista). `arbRound` mira cuartos y octavos antes que «final».
+Si VB.Arbitro marca `D.brake` pero ambiente.js no llega a abrir la ficha (ya hay otra, tu jugador no está en pista o nadie válido),
+`VB.Arbitro.unbrake(st, D)` devuelve la oportunidad (`offers`, `lastOffer`; sin azar). El contador de fichas ofrecidas de arbitro.js se
+llama ahora `st.brakeOffers` (el `st.brakes` de ambiente.js son las frenadas de verdad). mobaudit `carrera-previa-arbitro`,
+`partido-frenar-playa|pista`: sin avisos a 568x320 y 844x390.
+
 **Ficha «Frenar a … / Dejarle»** (`amb:choice {kind:'brake', opts:[{k:'protest', label:'Frenar a Iker'}, {k:'drop', label:'Dejarle'}],
 def:'drop', sub:'Iker va a por el 1r'}`): `D.brake` lo marca VB.Arbitro cuando un compañero de la IA de tu equipo va a protestar y tú
 eres capitán (pista: el brazalete del acta; playa: siempre, con tu pareja), en «Completo», con tu jugador en pista. Comparte tope y

@@ -1235,6 +1235,12 @@ maldiciones de sede). No se enseña ninguna cifra: solo «Te guardan rencor» / 
   de esa ventana (solo con relación ≠ 0). Huella 2v2 intacta (sim.js no se toca).
 - **Prueba**: `node tools/bondtest.js` (salida, contrato cumplido, neutros, título, derbi, roja, verano, tope, ofertas de playa y pista,
   cartas en node, ambCtx, aviso, guardado viejo, determinismo). ambientetest tiene la sección «Rencor y cariño (amb.bond)».
+- **Remate (21-nov, rama pendientes)**: la ficha de la oferta (`bondLine`) sale SOLO de lo que se guardó al crearla (`o.bond`, `o.bondK`,
+  `o.bondRole` y el motivo `o.bondWhy`, que pone `bondMark`): si la relación cambia con la ventana abierta (una roja o un derbi después
+  de que lleguen las ofertas), ya no anuncia un descuento que la oferta no tiene. Negociar con éxito quita «un rol más bajo»
+  (`bondRole = 0`; el descuento de sueldo se queda). El aviso del próximo partido en una **final** (campo neutral, ambCtx home −1) dice
+  «Final contra …» en vez de «en casa de …» / «viene con su afición». Frase neutra «¡Hoy vuelve una cara muy querida a {venue}!».
+  mobaudit: `carrera-ofertas-rencor-playa|pista`, `carrera-playa-club-rencor` y `carrera-pista-club-rencor` (nueva), sin avisos.
 
 ## Te tienen estudiado (21-nov-2026, rama unico-b; idea «scouting»)
 
@@ -1266,3 +1272,8 @@ de career.js ya es el ojeador de ofertas; aquí `g.scout` solo en la sim).
   con la diagonal cerrada; pista ×0,9 (en pista el bot hace poco punto y el efecto es pequeño); rival «75 %» → 73 % (pista 72 %),
   «línea 60 %» → 58 % (pista 59 %). La defensa de la playa es muy sensible: con 0,2 m los puntos en diagonal caían a la mitad.
 - **Pruebas**: `node tools/studytest.js` (STUDYTEST_N). Huella 2v2 y fingerprint6 intactas: sin opts.scout no existe g.scout.
+- **Remate (21-nov, rama pendientes)**: `VB.Consignas.snap/restore` guardan `avoid`. El `study` de la sim llega después del `point` que
+  lo provoca; si un challenge anula ese punto, la sim vuelve al plan de antes (scUndo) y ahora el entrenador también (antes seguía
+  evitando el carril nuevo). studytest §6 lo prueba, y §7 nueva: copyGame con `g.scout` y resim desde el saque idéntica (stateHash y
+  `g.scout`), sin objetos compartidos; replay.js no pasa los `study` de la sombra (no están en PASS). mobaudit: `carrera-playa|pista-informe`
+  (hoja abierta) y `carrera-playa|pista-informe-tira` (nuevas: tira cerrada en el hub, cabe sin desplazar a 568x320).

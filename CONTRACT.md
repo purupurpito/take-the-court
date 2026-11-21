@@ -40,7 +40,7 @@ reglas con `'look'` desplegadas el 15-nov-2026). Dentro de la Carrera
 `js/recap.js` (`VB.Recap`: el único módulo narrativo; previa, titular, frase de la jugada y modelo de la hoja final; puro),
 `js/retos.js` (`VB.Retos`: 18 retos de maestría y el reto del día), `js/senas.js` (`VB.Senas`: señas del árbitro como pegatina y Cuaderno del árbitro), `js/profile.js` (`VB.Profile`: nivel de perfil, hitos y álbum),
 `js/replay.js` (`VB.Replay`: repeticiones por resimulación, sin guardado) y las pruebas `tools/recaptest.js`, `tools/retotest.js`,
-`tools/proftest.js`, `tools/synctest.js`, `tools/replaytest.js`, `tools/lifetest.js` y `tools/worldtest.js`. De **players**:
+`tools/proftest.js`, `tools/synctest.js`, `tools/replaytest.js`, `tools/lifetest.js`, `tools/worldtest.js`, `tools/bondtest.js` y `tools/studytest.js` (carrera, 21-nov). De **players**:
 `tools/contacttest.js` (contactos mano-balón por CDP). `firebase/firestore.rules` (ui_main) admite ya las 11 claves de `DOCS`, **desplegadas el 16-nov-2026** (comprobado: lo publicado en make-the-cut-vb es igual que el fichero).
 Guardados nuevos: `make-the-cut.retos` (v1) y `make-the-cut.profile` (v1) sincronizan solo con `S4_SYNC = true` en account.js. Hoy es `false`: ellos,
 `make-the-cut.career6`, `make-the-cut.career.mode` (`cmode`) y `make-the-cut.legends` van a `TRACK` (hora sin subir). `make-the-cut.retostab` (pestaña de Retos),
@@ -898,7 +898,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   camtest: `feel` descuenta un frame lento del PC dentro de la congelación y `wide` ignora los frames a ≤ 0,4 s de un tirón del PC (lo indican); `serve` en pantalla
   baja/táctil admite el sacador en x ≥ −0,02 NDC.
 - **Sprint 2-4 (15-nov-2026):** pruebas nuevas `node tools/recaptest.js`, `retotest.js` (con su parte CDP en el scratchpad de T19),
-  `lifetest.js`, `worldtest.js`, `proftest.js`, `synctest.js`, `contacttest.js [s] [semillas] [mapas] [2v2|6v6]`, `replaytest.js`
+  `lifetest.js`, `worldtest.js`, `bondtest.js` (rencor, < 1 s), `studytest.js` (scouting), `proftest.js`, `synctest.js`, `contacttest.js [s] [semillas] [mapas] [2v2|6v6]`, `replaytest.js`
   (`--node` | `--cdp`) y `portraittest` (sondas de T14). Escenas: `debug=intro` (`&kind=mini|short|long&career=1&boss=<estilo>&duel=1&t=`),
   `recap` (`&career=1&move=±n&boss=1&chem=1&cup=semi|final&unl=n&tab=sum|stats`), `retos` (`&tab=hoy|maestria`), `reto_end`,
   `replay` (`&rpt=s&match=1&auto=1&career=1`), `best` (`&tab=plays&play=1`), `menupf` y `prof` (`&tab=vestuario|insignias|entreno|carrera|
@@ -1208,6 +1208,28 @@ guarda). Quien consume `point` mira `e.penalty` (`how:'penalty'`): badges, ratin
 rival (los puntos cuadran con el marcador) y matchstats/acta como sanción.
 `VB.Ambiente.crowdOf(g)` → estado de la grada (null fuera de la Carrera o con 'off'). Pruebas: `tools/ambientetest.js`,
 `tools/arbitrotest.js` (solo node); escena `?debug=amb&k=lines|choice|yellow|red|derby|boo|chant` y `?debug=intro&kind=long&career=1&derby=1`.
+
+**Sprint «único» en la Carrera (21-nov-2026, rama pendientes; notes/carrera.md, notes/ambiente.md, notes/pendientes-ferran.md).**
+- **Rencor y cariño de los clubes** (`c.life.bond`, js/career-life.js; opcional, se crea en `ensure`, sin subir VER/VER6):
+  `VB.CareerLife.bondOf(c, id)` → `{v, t −2..2, why, last, txt, s}` | null; `bondOffer(c, id)` → `{t, adj, k, roleCut, why}` | null;
+  `bondLine(c, o)` (texto de la ficha de la oferta, SOLO con lo guardado en la oferta: `o.bond`, `o.bondK`, `o.bondRole`, `o.bondWhy`).
+  career.js `bondMark` marca las ofertas (`bond`, `bondK`, `bondRole`, `bondWhy`); al negociar con éxito `bondRole` vuelve a 0 (el
+  descuento de sueldo se queda). `ambCtx` devuelve `bond` y sube el calor con rencor en su pista. Aviso del próximo partido (`bondWeek`):
+  en la final (campo neutral, `ambCtx` home −1) dice «Final contra …». Prueba `node tools/bondtest.js` (< 1 s).
+- **Árbitros con nombre** (js/career-world.js, `c.world.arb`): gancho `life(c, 'setup', out, n)` — el 4º argumento es el partido que ya
+  calculó `matchSetup`/`matchSetup6` (en pista, `next6` rehace la convocatoria en c y no se vuelve a llamar); `onSetup(c, out, n)` pone
+  `out.career.arb` y, solo en la Carrera, lince ×0,6 / nervioso en derbi ×1,3 sobre `out.ref` p1-p3. `VB.Arbitro.unbrake(st, D)`: la
+  ficha «Frenar» que no llega a abrirse (ambiente.js) devuelve la oportunidad (`offers`, `lastOffer`; sin azar). El contador de fichas
+  ofrecidas de arbitro.js es `st.brakeOffers` (`st.brakes` de ambiente.js = frenadas de verdad, el de `sum.brk`).
+- **«Te tienen estudiado»** (scouting): `Sim.createGame({scout: {me, mk, riv, rk, ad}})` → `g.scout` SOLO con la opción (main.js, Carrera
+  jugada; nunca demo, online ni Entrenamiento; sin ella la clave no existe y la huella 2v2 no cambia). me/riv = 'diag' | 'line' | '';
+  mk/rk 0..1; ad = el rival cambia el plan en el partido (`SC_ADAPT` puntos de remate por el carril abierto → lo cierra con fuerza ≥
+  `SC_ADAPT_MK`). Evento `{type: 'study', team: 1, lane, n}` (ui.js aviso «Cambian el plan…»; career.js consignas `avoid`; replay.js no lo
+  pasa: no está en PASS). `scEv`/`scUndo` (challenge) y `Sim.laneOf(y, ty, cs)`; `copyGame` copia `g.scout` a fondo (resim idéntica,
+  studytest §7). `VB.AI.studyShift(g, t)` / `studyLean` / `studyLean6` (bloqueo y defensa; no gastan `g.rng`). `VB.Career.studyNext(c)`
+  (informe del hub, sobre una copia), `studyMe`, `rivalNums2`, `STUDY`. `VB.Consignas.create({avoid})`; `snap`/`restore` guardan `avoid`
+  (un challenge que anula el punto del cambio de plan devuelve también la consigna). Guardado: `c.study` (opcional). Prueba
+  `node tools/studytest.js` (completa > 10 min; `STUDYTEST_N=k` más corta, pero §5 necesita la muestra entera).
 
 ### Extensiones de la Carrera (20-nov-2026, rama carrera-ea2k; integrador de ficheros comunes)
 Registro abierto para los subsistemas de la Carrera que viven en su propio fichero: `js/career-natl.js` (selección; owner `seleccion`),

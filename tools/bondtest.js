@@ -166,6 +166,17 @@ section('Ofertas (playa)');
       const line = Lf.bondLine(c, o2);
       ok(txtOk(line) && /^No olvidan que te fuiste con contrato en vigor\. Te ofrecen un 30 % menos de sueldo/.test(line), 'texto de la ficha: «' + line + '»');
     }
+    // la ficha sale de lo guardado en la oferta: si la relación cambia con la ventana abierta, no anuncia lo que la oferta no tiene
+    c.life.bond.k = {};
+    const oN = C._genOffers(c, false).filter(o => o.club === id && !o.trial)[0];
+    Lf._bondAdd(c, id, -60, 'roja');
+    ok(oN && oN.bond == null && Lf.bondLine(c, oN) === '', 'oferta sin relación y rencor después: la ficha no pinta ningún descuento');
+    if (o2) {
+      c.life.bond.k = {};
+      const l2 = Lf.bondLine(c, o2);
+      ok(/^No olvidan que te fuiste con contrato en vigor\. Te ofrecen un 30 % menos de sueldo/.test(l2), 'oferta con rencor y relación olvidada después: la ficha sigue diciendo lo de la oferta (' + l2 + ')');
+      ok(o2.bondWhy === 'early', 'la oferta guarda el motivo (bondWhy)');
+    }
     c.life.bond.k = {};
     Lf._bondAdd(c, id, -30, 'roja');
     const o1 = C._genOffers(c, false).filter(o => o.club === id && !o.trial)[0];
@@ -182,6 +193,7 @@ section('Ofertas (playa)');
     if (ni >= 0 && C.ROLE_LV.indexOf(c.offers[ni].role) < 2) {
       c.offers[ni].interest = 50; C.negotiate(ni); const on = C.get().offers[ni];
       ok(on.salary === Math.round(C._salaryOf(on.lvl, on.q, C.ROLE_LV.indexOf(on.role)) * on.bondK / 50) * 50, 'negociar mantiene el sueldo del rencor (' + on.salary + ')');
+      ok(!on.bondRole && !/rol más bajo/.test(Lf.bondLine(C.get(), on)), 'tras negociar, la ficha ya no dice «un rol más bajo»');
     }
     // career-ui en node: la carta pinta la etiqueta y, en la ficha completa, el motivo
     const fakeEl = () => ({ style: {}, hidden: true, setAttribute() { }, getAttribute() { return null; }, appendChild() { }, addEventListener() { }, querySelector() { return null; }, querySelectorAll() { return []; }, classList: { add() { }, remove() { }, toggle() { }, contains() { return false; } } });
@@ -233,6 +245,18 @@ section('Grada (ambCtx) y aviso del próximo partido');
     c.life.bond.k = {}; Lf._bondAdd(c, n.rival.id, 50, 'fin');
     const n1 = (c.msgN | 0); Lf._bondWeek(c);
     ok(msgs(c, n1).some(m => m.t === 'Vuelta a casa' && txtOk(m.x)), 'cariño: «Vuelta a casa»');
+    // la final es en campo neutral (ambCtx home −1): ni «en casa de» ni «viene con su afición»
+    const B = C.beach || C, nx0 = B.next;
+    try {
+      B.next = () => Object.assign({}, n, { kind: 'cup', round: 1, atHome: false });
+      c.life.bond.k = {}; Lf._bondAdd(c, n.rival.id, -60, 'early');
+      const n2 = (c.msgN | 0); Lf._bondWeek(c);
+      const wf = msgs(c, n2);
+      ok(wf.length === 1 && /^Final contra /.test(wf[0].t) && !/en casa de|viene con su afición/.test(wf[0].t + ' ' + wf[0].x) && txtOk(wf[0].x), 'final con rencor: «Final contra …», sin «en casa de» (' + (wf[0] && wf[0].t + ' / ' + wf[0].x) + ')');
+      c.life.bond.k = {}; Lf._bondAdd(c, n.rival.id, 50, 'fin');
+      const n3 = (c.msgN | 0); Lf._bondWeek(c);
+      ok(msgs(c, n3).some(m => /^Final contra /.test(m.t) && txtOk(m.x)), 'final con cariño: «Final contra …»');
+    } finally { B.next = nx0; }
     c.life.bond.k = {};
   }
 }

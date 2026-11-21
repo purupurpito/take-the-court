@@ -213,8 +213,10 @@
     if (left <= 0.0001) return 0;
     d = Math.min(d, left); st.sum += d; return d;
   }
-  function snap(st) { return { n: st.n, sum: st.sum, c: st.c ? Object.assign({}, st.c) : null, t: Object.assign({}, st.t) }; }
-  function restore(st, s) { if (!st || !s) return; st.n = s.n; st.sum = s.sum; st.c = s.c; st.t = s.t; }
+  // (avoid va en la instantánea: el 'study' de la sim llega DESPUÉS del 'point' que lo provoca; si un challenge anula ese punto, la sim
+  // vuelve al plan de antes (scUndo) y el entrenador también)
+  function snap(st) { return { n: st.n, sum: st.sum, c: st.c ? Object.assign({}, st.c) : null, t: Object.assign({}, st.t), avoid: st.avoid || '' }; }
+  function restore(st, s) { if (!st || !s) return; st.n = s.n; st.sum = s.sum; st.c = s.c; st.t = s.t; if (typeof s.avoid === 'string') st.avoid = s.avoid; }
 
   VB.Consignas = { C: C, CHANCE: CHANCE, BONUS: BONUS, BONUS_TRIAL: BONUS_TRIAL, CAP: CAP, create: create, feed: feed, cur: cur, take: take,
     snap: snap, restore: restore, dirOf: dirOf, srvZone: srvZone, hash01: hash01 };

@@ -1272,7 +1272,7 @@
         meName: n.me.name, rivalName: n.rival.name, player: c.player.name, num: c.player.num, mate: c.mate.name, mateNum: c.mate.num, cdiff: n.cdiff, role: c.player.roleKey }
     };
     var sg = sigOf(c, 'beach'); if (sg) out.serveSig = sg;   // saque de firma (c.sig; sin él o sin la sim nueva, nada)
-    life(c, 'setup', out);   // material de la tienda, molestias y reto de la jornada (career-life.js)
+    life(c, 'setup', out, n);   // material de la tienda, molestias y reto de la jornada (career-life.js); n: el partido (career-world, el 1r)
     studyOf(c, out, n, false);   // «Te tienen estudiado»: informe del rival (out.study) y plan para la sim (out.scout), tras life
     return out;
   }
@@ -1788,6 +1788,7 @@
     x.bond = bo.t;
     if (bo.k < 1) { x.bondK = bo.k; x.salary = Math.round(x.salary * bo.k / 50) * 50; }
     if (cut) x.bondRole = 1;
+    if (bo.why) x.bondWhy = bo.why;   // (el motivo que enseña la ficha: bondLine no cambia si la relación cambia con la ventana abierta)
     return x;
   }
   var LISTED_BONUS = 5, LISTED_COACH = 8;   // transferible: más interés de los clubes, menos confianza del entrenador
@@ -1996,7 +1997,7 @@
     // el interés) y, si no sale, el entrenador de ese club te recibirá con NEG_COACH menos de confianza si firmas igualmente
     var r = rng(hash(c.seed, 'neg', c.season, c.phase, o.club, c.week)), ok = o.interest + r() * 4 > ROLE_NEED[rl + 1];
     var k = club(c, o.club);
-    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salaryOf(o.lvl, o.q != null ? o.q : k.q, rl + 1); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.interest = round1(o.interest - 2); }
+    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salaryOf(o.lvl, o.q != null ? o.q : k.q, rl + 1); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.bondRole = 0; o.interest = round1(o.interest - 2); }
     else o.negNo = true;
     o.firm = true;
     msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' € al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
@@ -2992,7 +2993,7 @@
         meOn: meOn, status: meOn ? 'start' : 'sub', cdiff: n.cdiff, atHome: !!n.atHome, acta: acta }
     };
     var sg6 = sigOf(c, 'hall'); if (sg6) out.serveSig = sg6;   // saque de firma
-    life(c, 'setup', out);   // material de la tienda y molestias (en tu hueco, ctrlIdx) y reto de la jornada (career-life.js)
+    life(c, 'setup', out, n);   // material de la tienda y molestias (en tu hueco, ctrlIdx) y reto de la jornada (career-life.js); n: el partido (sin volver a llamar a next6)
     studyOf(c, out, n, true);   // «Te tienen estudiado» (tras life)
     return out;
   }
@@ -3483,7 +3484,7 @@
       save6(c); return 'cap';
     }
     var r = rng(hash(c.seed, 'neg6', c.season, c.phase, o.club, c.week)), ok = o.interest + r() * 4 > ROLE_NEED[rl + 1], k = kk;
-    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salary6(c, k, rl + 1, o.lid); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.interest = round1(o.interest - 2); } else o.negNo = true;
+    if (ok) { o.role = ROLE_LV[rl + 1]; o.salary = salary6(c, k, rl + 1, o.lid); if (o.bondK) o.salary = Math.round(o.salary * o.bondK / 50) * 50; o.bondRole = 0; o.interest = round1(o.interest - 2); } else o.negNo = true;
     o.firm = true; offerDepth6(c, o);   // («Tu sitio» con el rol nuevo, o con la confianza de llegada más baja)
     msg(c, 'offer', ok ? 'Negociación: aceptada' : 'Negociación: rechazada', ok ? k.name + ' acepta: firmarías como ' + o.role.toLowerCase() + ' (' + o.salary + ' € al mes).' : k.name + ' no mejora su oferta y no le ha gustado que pidieras más: si firmas, el entrenador empezará con menos confianza.');
     save6(c); return ok ? 'ok' : 'no';

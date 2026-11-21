@@ -26,6 +26,7 @@
  *        who = { pid, role:'player'|'captain'|'coach', num, name } (o solo el pid)
  *   taunt(st, team, pid, heat, who) → R   (provocación «shh»: casi siempre 'none'; 15 % 'verbal'; rarísimo amarilla)
  *   undo(st)   cancela la disputa pendiente (punto anulado por challenge)
+ *   unbrake(st, D)   la ficha «Frenar» de D no se llegó a abrir (ambiente.js): devuelve la oportunidad (offers, lastOffer)
  *   state(st) → { verbal:[n0,n1], yellow:[bool,bool], red:[n0,n1], byPid:{pid:{y,r}}, delay:[0|1|2, 0|1|2], offers, protests }
  *   RATES (probabilidades; las calibra tools/arbitrotest.js), TRAITS (carácter del 1r), hash01.
  */
@@ -93,7 +94,7 @@
       ptTeam: [-1, -1],     // nº de punto de la última protesta de cada equipo (otra en el mismo punto: más severa, RATES.again)
       // carácter (sin trait, todo 1): severidad, umbral de línea, provocación, libreta (solo tu equipo) y ficha «Frenar»
       trait: T ? o.trait : '', sevK: T ? T.sev * (o.derby ? T.derby : 1) : 1, nearK: T ? T.near : 1, tauntK: T ? T.taunt : 1, memK: T ? 1 + mem : 1,
-      brakeOn: !!T, brakes: 0
+      brakeOn: !!T, brakeOffers: 0, brakeLast0: -99   // (fichas «Frenar» ofrecidas; lastOffer de antes, para unbrake)
     };
   }
 
@@ -181,7 +182,7 @@
     if (st.brakeOn && mine && D.auto && D.auto.role === 'player' && D.auto.pid !== st.mePid && st.mode === 'full' && !(g && g.ctrlOut) &&
         (!st.hall || (st.mePid >= 0 && st.capt[st.meTeam] === st.mePid)) && st.offers < RATES.offerMax && st.n - st.lastOffer >= RATES.offerGap &&
         hash01(st.seed, st.n, 0xA16) < RATES.brakeP) {
-      D.brake = true; st.offers++; st.lastOffer = st.n; st.brakes++;
+      D.brake = true; st.brakeLast0 = st.lastOffer; st.offers++; st.lastOffer = st.n; st.brakeOffers++;
     }
     // elección del jugador: su equipo la sufre, nadie ha saltado antes, «Completo», ≤ 2 por partido separadas 8+ puntos, sin challenge
     if (mine && !D.auto && st.mode === 'full' && !(g && g.ctrlOut) && !chalLeft && st.offers < RATES.offerMax && st.n - st.lastOffer >= RATES.offerGap &&
@@ -262,10 +263,18 @@
   }
 
   function undo(st) { if (st) st.pend = null; }
+  /** La ficha «Frenar» que marcó feed no llegó a abrirse (ya había otra, tu jugador no está en pista, nadie válido): devuelve la
+   *  oportunidad (tope offerMax y separación offerGap de «Protestar»). Sin azar: no mueve st.k. */
+  function unbrake(st, D) {
+    if (!st || !D || !D.brake || D.unbraked) return;
+    D.unbraked = true; D.brake = false;
+    st.offers = Math.max(0, st.offers - 1); st.lastOffer = st.brakeLast0 == null ? -99 : st.brakeLast0;
+    st.brakeOffers = Math.max(0, (st.brakeOffers | 0) - 1);
+  }
   function state(st) {
     return { verbal: st.verbal.slice(), yellow: st.yellow.slice(), red: st.red.slice(), byPid: st.byPid, delay: st.delay.slice(),
       offers: st.offers, protests: st.protests };
   }
 
-  VB.Arbitro = { create: create, feed: feed, protest: protest, taunt: taunt, undo: undo, state: state, RATES: RATES, TRAITS: TRAITS, hash01: hash01, _disputeOf: disputeOf };
+  VB.Arbitro = { create: create, feed: feed, protest: protest, taunt: taunt, undo: undo, unbrake: unbrake, state: state, RATES: RATES, TRAITS: TRAITS, hash01: hash01, _disputeOf: disputeOf };
 })();

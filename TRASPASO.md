@@ -267,6 +267,10 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
     Cuaderno del árbitro (`node tools/senatest.js`, mobaudit `hud-sena*`), Xaranga (`node tools/audiotest.js --xar-only`) y la
     situación de la semana «El mismo 22-24» (`node tools/semanatest.js`, `node tools/semanacdp.js`, mobaudit `retos-semana*`/`semana-*`).
     Decisiones provisionales y preguntas en notes/pendientes-ferran.md. Falta la novedad de la versión (la pone quien publique).
+  - **Sprint «único», ideas de la Carrera (rama pendientes, 21-nov-2026; sin publicar):** rencor y cariño de los clubes
+    (`node tools/bondtest.js`), árbitros con nombre y carácter (`node tools/arbitrotest.js`, `node tools/worldtest.js` §7, ambientetest)
+    y «Te tienen estudiado» (`node tools/studytest.js`, completa > 10 min). mobaudit `carrera-*-rencor`, `carrera-*-informe*`,
+    `carrera-previa-arbitro`, `partido-frenar-*`. Decisiones provisionales en notes/pendientes-ferran.md. Falta la novedad de la versión.
   - Preguntas para Ferran: música en ogg dentro de index.html o procedural; moneda única o ninguna; ¿6v6 visible en JUGAR?
   - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
     sesiones Jugar/Rápido/Descanso, notas A+-F, Rápido = récord sin oro, «Simular jornada», entreno automático; y la PRUEBA de club

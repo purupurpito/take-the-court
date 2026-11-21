@@ -133,6 +133,14 @@ const LV = ['low', 'mid', 'high', 'top'];
     if (beach0.brakes) fail('brakeP = 0 y sale la ficha');
     const upTo = beach.firstBrake; if (upTo < 0 || beach.ks.slice(0, upTo + 1).join() !== beach0.ks.slice(0, upTo + 1).join()) fail('la tirada de «Frenar» mueve st.k');
     if (noT.ks.join() !== beach0.ks.join()) fail('sin brake, la secuencia cambia'); }
+  // unbrake: la ficha «Frenar» que no se abre (ambiente.js) devuelve la oportunidad (tope y separación) sin mover st.k
+  { const st = A.create({ seed: 11, level: 'low', heat: 1, mode: 'full', meTeam: 0, mePid: 1, hall: false, trait: 'manual' });
+    const pl = [{ id: 1, team: 0 }, { id: 2, team: 0 }, { id: 9, team: 1 }, { id: 8, team: 1 }];
+    let D = null, lo0 = 0, of0 = 0;
+    for (let i = 0; i < 400 && !(D && D.brake); i++) { lo0 = st.lastOffer; of0 = st.offers; D = A.feed(st, { type: 'point', team: 1, reason: 'net', signal: 'net', t: i, faultPlayer: { id: 2, team: 0 } }, { players: pl }); }
+    if (!(D && D.brake) || typeof A.unbrake !== 'function') fail('unbrake: no hay ficha «Frenar» que devolver');
+    else { const k0 = st.k; A.unbrake(st, D); A.unbrake(st, D);
+      if (st.offers !== of0 || st.lastOffer !== lo0 || st.k !== k0 || D.brake || st.brakeOffers !== 0) fail('unbrake: devuelve offers/lastOffer una sola vez ' + JSON.stringify({ o: st.offers, of0, lo: st.lastOffer, lo0, k: st.k, k0 })); } }
   if (failures === f0) console.log('carácter: sin trait igual, estricto > manual > deja, nervioso en derbi, lince, libreta y «Frenar» OK');
 }
 

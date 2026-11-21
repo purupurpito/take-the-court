@@ -55,3 +55,49 @@ Ferran decidió: va JUNTO al reto del día y sin XP ni medallas. Lo demás es pr
   4. ¿Intentos solo en el aparato, sin pasar por la cuenta?
   5. En el «3r set», ¿solo «1-1» (como ahora) o los dos primeros sets con resultados inventados?
   6. ¿Damos el «torneo de la semana» por cubierto y se tacha del backlog?
+
+## Rencor y cariño de los clubes (js/career-life.js, notes/carrera.md «Rencor y cariño»)
+Ferran decidió: con rencor fuerte el club te sigue ofreciendo fichar, pero en peores condiciones; solo rencor o cariño, nada más.
+- **Decisión provisional: con «Ambiente de Carrera» apagado**, las ofertas y los mensajes siguen; solo se apaga la grada (la roja, que
+  necesita el ambiente, solo puede salir con él encendido).
+- **Decisión provisional: irse siendo transferible o porque el club incumplió su promesa de rol es neutro.**
+- **Decisión provisional: el rencor leve (t −1) también rebaja el sueldo** (× 0,85); el fuerte, × 0,7 y un rol menos. El interés no baja.
+  Si no lo quieres: `BOND_PAY[1] = 1` en career-life.js.
+- **Decisión provisional: el enfriamiento se salta el primer verano** (lo de la temporada que acaba se mantiene entero un verano más).
+- **Decisión provisional: la ficha de la oferta enseña el porcentaje** («Te ofrecen un 30 % menos de sueldo y un rol más bajo»).
+- **Decisión provisional: una cesión no cuenta**, y un título con el club de la cesión da cariño a ese club.
+- Preguntas:
+  1. ¿El rencor leve también te hace ofertas peores (−15 %), o solo el fuerte?
+  2. Con el ambiente apagado, ¿siguen las ofertas y los mensajes?
+  3. ¿Irte transferible o por promesa incumplida, neutro?
+  4. ¿Porcentaje en la ficha, o solo el motivo?
+  5. ¿Que se enfríe ya el primer verano?
+
+## Árbitros con nombre (js/career-world.js, js/arbitro.js, notes/ambiente.md «Árbitros con nombre y carácter»)
+Ferran decidió: dos apellidos inventados; el lince y el nervioso afectan a las líneas solo en la Carrera.
+- **Decisión provisional: la ficha «Frenar a [tu pareja]» también sale en la playa** (pregunta 2 sin respuesta; propuesta de la ficha).
+  Solo en pista con brazalete: una condición en arbitro.js (`!st.hall ||` …).
+- **Decisión provisional: factores de línea**: lince p1-p3 × 0,6 (falla un 40 % menos), nervioso × 1,3 en derbi.
+- **Decisión provisional: para el nervioso cuentan como derbi** también el clásico y la final.
+- **Decisión provisional: frases de fama** en la previa: «fama de mano dura», «deja jugar», «ojo de lince», «los derbis le pesan», «de manual».
+- Los apellidos se hacen con piezas (18 raíces × 12 finales); `ARB_NO` quita los que existen. Conviene que alguien repase la lista por si
+  alguno coincide con un apellido real.
+- Preguntas:
+  1. ¿La ficha «Frenar» también en la playa?
+  2. ¿Te valen los factores de las líneas (lince −40 %, nervioso +30 % en derbis, clásicos y finales)?
+  3. ¿Te gustan las frases de fama?
+
+## «Te tienen estudiado» (scouting; js/sim.js g.scout, js/ai.js, js/career.js study*, notes/carrera.md)
+Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el plan.
+- **Decisión provisional: «tus notas mejoran» = media ≥ 7** en tus 3 últimos partidos jugados (con al menos 2), no la tendencia.
+- **Decisión provisional: el cambio de plan** salta con 3 puntos de remate por el carril abierto (y 2 más que por el cerrado); te cierra
+  ese carril con fuerza ≥ 0,7 y avisa «Cambian el plan: te tapan la línea».
+- **Decisión provisional: te estudian todos los rivales desde la 1ª temporada** si cumples la nota.
+- **Decisión provisional: «por la línea»** en los textos (como las consignas), no «paralela».
+- La defensa de la playa es muy sensible: `DEF_LEAN` 0,08 m y `BLK_SHIFT` 0,3 m (la ficha decía 0,9 y 0,45) están calibrados con bots.
+  Conviene probarlo a mano.
+- Preguntas:
+  1. ¿Media ≥ 7 o que la nota suba?
+  2. ¿Te vale el umbral del cambio de plan y el aviso?
+  3. ¿Todos los rivales desde la 1ª temporada, o a partir de cierta liga?
+  4. ¿«Línea» o «paralela»?

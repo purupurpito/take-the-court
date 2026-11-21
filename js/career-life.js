@@ -1124,14 +1124,21 @@
   function bondOffer(c, id) {
     var b = bondOf(c, id); if (!b || !b.t) return null;
     if (b.t > 0) return { t: b.t, adj: round1(b.v * BOND_ADJ), k: 1, roleCut: 0 };
-    return { t: b.t, adj: 0, k: BOND_PAY[b.t + 2], roleCut: b.t <= -2 ? 1 : 0 };
+    return { t: b.t, adj: 0, k: BOND_PAY[b.t + 2], roleCut: b.t <= -2 ? 1 : 0, why: b.last };
   }
-  /** Texto de la ficha de una oferta (o: la oferta, con bond/bondRole que pone career.js). '' sin relación. */
+  /** Texto de la ficha de una oferta (o: la oferta, con bond/bondK/bondRole/bondWhy que pone career.js bondMark). '' sin relación.
+   *  Sale de lo que se guardó al CREAR la oferta (o.bond, o.bondK): si la relación cambia con la ventana abierta, la ficha no anuncia
+   *  un descuento que la oferta no tiene. El motivo: el guardado (o.bondWhy); si no hay, el de ahora si es del mismo signo. */
   function bondLine(c, o) {
-    var b = o && bondOf(c, o.club); if (!b || !b.t || !b.txt) return '';
-    if (b.t > 0) return 'Aquí te recuerdan: ' + lowFirst(b.txt) + '. Te quieren más.';
-    var pct = Math.round((1 - BOND_PAY[b.t + 2]) * 100);
-    return 'No olvidan que ' + lowFirst(b.txt) + '. Te ofrecen un ' + pct + ' % menos de sueldo' + (o.bondRole ? ' y un rol más bajo' : '') + '.';
+    if (!o || !(o.bond > 0 || o.bond < 0)) return '';
+    var why = o.bondWhy && WHY_TXT[o.bondWhy] ? o.bondWhy : '';
+    if (!why) { var b = bondOf(c, o.club); if (b && b.last && (b.t > 0) === (o.bond > 0) && b.t) why = b.last; }
+    if (!why) return '';
+    var txt = WHY_TXT[why];
+    if (o.bond > 0) return 'Aquí te recuerdan: ' + lowFirst(txt) + '. Te quieren más.';
+    var pct = o.bondK > 0 && o.bondK < 1 ? Math.round((1 - o.bondK) * 100) : 0;
+    if (!pct && !o.bondRole) return 'No olvidan que ' + lowFirst(txt) + '.';
+    return 'No olvidan que ' + lowFirst(txt) + '. Te ofrecen ' + (pct ? 'un ' + pct + ' % menos de sueldo' + (o.bondRole ? ' y un rol más bajo' : '') : 'un rol más bajo') + '.';
   }
   function bondAdd(c, id, d, why) {
     if (id == null || id < 0 || !d) return null;
@@ -1212,7 +1219,14 @@
     var rk = n.rival, bo = bondOf(c, rk.id); if (!bo || !bo.t) return;
     var e = bondSt(c).k[rk.id]; if (!e || (e.said | 0) === (c.season | 0)) return;
     e.said = c.season | 0;
-    var E = K(c), sd = sedeOf(rk);
+    var E = K(c), sd = sedeOf(rk), F = VB.Career, a = null;
+    // la final se juega en campo neutral (career.js ambCtx home −1): ni «en casa de» ni «viene con su afición»
+    try { a = F && F.ambCtx ? F.ambCtx(c, n, null) : null; } catch (e2) { a = null; }
+    if (a && a.home === -1) {
+      if (bo.t > 0) E._msg(c, 'fans', 'Final contra ' + rk.name, 'El próximo es la final, y enfrente está un club que te tiene cariño. Toca ganarles igual.');
+      else E._msg(c, 'coach', 'Final contra ' + rk.name, 'El próximo es la final. No olvidan que ' + lowFirst(bo.txt || 'te fuiste') + '. Campo neutral, pero su afición estará. Cabeza fría.');
+      return;
+    }
     if (bo.t > 0) E._msg(c, 'fans', 'Vuelta a casa', 'El próximo es contra ' + rk.name + '. Allí te tienen cariño: igual hasta te aplauden al salir.');
     else if (!n.atHome) E._msg(c, 'coach', 'Vuelves a ' + sd, 'El próximo es en casa de ' + rk.name + '. No olvidan que ' + lowFirst(bo.txt || 'te fuiste') + '. Cabeza fría con la grada.');
     else E._msg(c, 'coach', rk.name + ' viene con su afición', 'Y no te ha perdonado. Que piten; tú, a jugar.');

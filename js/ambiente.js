@@ -93,7 +93,7 @@
       speaker: '¡Vuelve {me} a {venue}! La grada tiene memoria.|¡Atención, {venue}: hoy vuelve {me}!|¡Llega {me}! Y la grada lo tiene muy presente.|¡Vuelve {me}! Se nota en el ambiente…|¡Hoy hay visita conocida en {venue}!|¡{me} vuelve a {venue}! A ver cómo lo recibís.'
     },
     welcomeFond: {
-      speaker: '¡Aplauso para {me}, que vuelve a {venue}!|¡{venue} recibe a {me} con los brazos abiertos!|¡Esta casa no te olvida, {me}!|¡Un aplauso enorme para {me}!|¡Vuelve {me}! ¡Qué recuerdos!|¡Hoy vuelve alguien muy querido en {venue}!'
+      speaker: '¡Aplauso para {me}, que vuelve a {venue}!|¡{venue} recibe a {me} con los brazos abiertos!|¡Esta casa no te olvida, {me}!|¡Un aplauso enorme para {me}!|¡Vuelve {me}! ¡Qué recuerdos!|¡Hoy vuelve una cara muy querida a {venue}!'
     },
     preGrudge: {
       rival: 'Aquí no se te ha olvidado.|¿Oyes la grada? Es por ti.|Hoy te lo vamos a cobrar.|Aquí ya no juegas en casa.|Esta grada tiene memoria.|Después de lo de la otra vez…',
@@ -665,6 +665,8 @@
         return true;
       }
     }
+    // (la ficha no se ha abierto: VB.Arbitro la había contado en el tope y la separación de «Protestar» → se devuelve la oportunidad)
+    if (D.brake && !D.forced && !(st.choice && st.choice.D === D) && st.arb && st.Ar && st.Ar.unbrake) st.Ar.unbrake(st.arb, D);
     if (offer) {
       st.choiceN++; st.choicePt = st.pts;
       var isCapt = g.size !== 6 || captOf(st, g, 0) === myP(g), hasY = st.arb && st.Ar.state ? !!(st.Ar.state(st.arb).yellow || [])[0] : false;

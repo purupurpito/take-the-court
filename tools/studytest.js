@@ -297,6 +297,13 @@ section('6. Carrera: historial, informe, prensa y consignas');
   ok(!m.co || m.co.avoid === 'atkDiag', 'la Carrera crea las consignas con avoid del carril cerrado');
   Kc.ingest([{ type: 'study', team: 1, lane: 'line', n: 1 }], g);
   ok(m.st.sw === 1 && (!m.co || m.co.avoid === 'atkLine'), 'cambio de plan en el partido: el entrenador deja de pedir la línea');
+  // challenge: el punto que provocó el cambio de plan se anula → la sim vuelve al plan de antes (scUndo) y el entrenador también
+  if (m.co) {
+    Kc.ingest([{ type: 'point', team: 0, reason: 'in', how: 'kill', t: 1 }, { type: 'study', team: 1, lane: 'diag', n: 2 }], g);
+    const av1 = m.co.avoid;
+    Kc.ingest([{ type: 'point', team: 1, reason: 'out', t: 2 }, { type: 'challengeResult', overturned: true, team: 1 }], g);
+    ok(av1 === 'atkDiag' && Kc._M().co.avoid === 'atkLine', 'challenge que anula el punto del cambio de plan: el entrenador vuelve a evitar la línea (' + av1 + ' → ' + Kc._M().co.avoid + ')');
+  }
   Kc.abortMatch();
 }
 // pista: el que peor recibe de los receptores titulares
@@ -317,6 +324,43 @@ section('6. Carrera: historial, informe, prensa y consignas');
   } else console.log('  (sin Carrera de pista disponible en este contexto: se salta)');
   Kc.setMode && Kc.setMode('beach');
 }
+
+// ------------------------------------------------------------------ 7. repetición con g.scout (copyGame + resim idéntica)
+section('7. Repetición: copyGame con g.scout y resim idéntica');
+if (!E.bots) ok(false, 'bots de tools/simtest.js');
+else for (const six of [false, true]) {
+  const W = six ? 'pista' : 'playa', sc0 = { me: 'diag', mk: 0.8, riv: 'line', rk: 0.6, ad: true };
+  const g = S.createGame(six ? hallOpts(5, { scout: sc0 }) : beachOpts(5, { scout: sc0 }));
+  const R = S.createGame(g.opts), snap = S.createGame(g.opts); R.replay = true; snap.replay = true;
+  E.ctx.__laneBias = laneBias('line'); E.ctx.__wingY = six ? null : 2.4;
+  const bot = mkBot(six, 5), ev = [], evR = [], ins = [];
+  let rec = false, rallies = 0, okN = 0, badN = 0, shared = 0, chg = 0, studyR = 0, scBefore = '';
+  for (let i = 0; i < 3600 * 60 && !(g.finished && g.mode === 'over') && rallies < 40; i++) {
+    const x = bot(g), xi = { move: [x.move[0], x.move[1]], hit: !!x.hit, jump: !!x.jump, jset: !!x.jset, switchPlayer: !!x.switchPlayer };
+    if (rec) ins.push(xi);
+    S.step(g, E.DT, xi); ev.length = 0; S.drainEvents(g, ev);
+    for (const e of ev) {
+      if (e.type === 'toss') {
+        S.copyGame(snap, g); rec = true; ins.length = 0; scBefore = JSON.stringify(g.scout);
+        if (snap.scout === g.scout || (snap.scout && g.scout && snap.scout.k === g.scout.k)) shared++;
+      } else if (e.type === 'point' && rec) {
+        rec = false; rallies++;
+        if (JSON.stringify(g.scout) !== scBefore) chg++;
+        const live0 = JSON.stringify(g.scout);
+        S.copyGame(R, snap);
+        for (const xi2 of ins) { S.step(R, E.DT, xi2); evR.length = 0; S.drainEvents(R, evR); for (const er of evR) if (er.type === 'study') studyR++; }
+        if (S.stateHash(R) === S.stateHash(g) && JSON.stringify(R.scout) === live0 && JSON.stringify(g.scout) === live0) okN++; else badN++;
+      }
+    }
+  }
+  E.ctx.__laneBias = null; E.ctx.__wingY = null;
+  ok(rallies >= 10, W + ': peloteos grabados (' + rallies + ')');
+  ok(badN === 0 && okN === rallies, W + ': resim desde el saque idéntica, con g.scout igual al del vivo (' + okN + ' de ' + rallies + ')');
+  ok(shared === 0, W + ': copyGame copia g.scout a fondo (sin objetos compartidos)');
+  ok(chg > 0, W + ': g.scout cambia dentro de los peloteos grabados (' + chg + ' veces; ' + studyR + ' «study» en la sombra)');
+}
+{ const m = fs.readFileSync(path.join(ROOT, 'js/replay.js'), 'utf8').match(/var PASS = \{[^}]*\}/);
+  ok(m && !/study/.test(m[0]), 'replay.js no pasa los «study» de la sombra a la interfaz (no están en PASS)'); }
 
 console.log('\n' + (fails ? 'FALLOS: ' + fails : 'TODO OK') + ' (' + passes + ' comprobaciones)');
 process.exit(fails ? 1 : 0);

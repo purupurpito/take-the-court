@@ -730,7 +730,7 @@
     return Math.round((m < -0.15 ? -0.15 : m > 0.2 ? 0.2 : m) * 1000) / 1000;
   }
   /** Ronda de un KO o copa para la frase ('final', 'semifinal', 'cuartos', 'octavos', 'copa'). */
-  function arbRound(label) { var L = String(label || '').toLowerCase(); return /semifinal/.test(L) ? 'semifinal' : /final/.test(L) ? 'final' : /cuartos/.test(L) ? 'cuartos' : /octavos/.test(L) ? 'octavos' : 'copa'; }
+  function arbRound(label) { var L = String(label || '').toLowerCase(); return /semifinal/.test(L) ? 'semifinal' : /cuartos/.test(L) ? 'cuartos' : /octavos/.test(L) ? 'octavos' : /final/.test(L) ? 'final' : 'copa'; }   // (antes que «final»: «Cuartos de final»)
   function arbWhen(c, ev) {
     var s = c.season | 0;
     if ((ev.s | 0) === s) { var wk = String(ev.wk || ''); return /^J\d/.test(wk) || wk === 'final' || wk === 'semifinal' || wk === 'copa' ? 'en la ' + wk : wk ? 'en ' + wk : ''; }
@@ -753,10 +753,11 @@
     return { t: ('1r: ' + R.short + ', ' + ph[ph.length - 1]).slice(0, ARB_LINE), rec: rec };
   }
   /** Gancho 'setup' (career.js matchSetup / matchSetup6): el 1r del partido en out.career.arb y, con el lince (las líneas, mejor
-   *  vistas) o el nervioso en un derbi (peor), la tabla de error de ESTE partido (out.ref p1-p3). No escribe en c. */
-  function onSetup(c, out) {
+   *  vistas) o el nervioso en un derbi (peor), la tabla de error de ESTE partido (out.ref p1-p3). No escribe en c.
+   *  n0: el partido que ya calculó matchSetup/matchSetup6 (en pista, next6 rehace la convocatoria en c: no se vuelve a llamar). */
+  function onSetup(c, out, n0) {
     if (!c || !out || !out.career || out.career.trial || out.career.ext || arbOff()) return;
-    var n = arbNext(c); if (!n || !n.rival || n.bench) return;
+    var n = n0 && n0.rival ? n0 : arbNext(c); if (!n || !n.rival || n.bench) return;
     var d = designa(c, n); if (!d) return;
     var tags = []; try { var a = K().ambCtx ? K().ambCtx(c, n, out.career) : null; tags = a && Array.isArray(a.tags) ? a.tags : []; } catch (e) { tags = []; }
     var derby = tags.indexOf('derbi') >= 0 || tags.indexOf('clasico') >= 0 || tags.indexOf('final') >= 0, R = d.ref, L = arbLine(c, d, derby);
@@ -837,7 +838,7 @@
     else if (kind === 'create') { ensure(c); beat(c, 'hola'); }
     else if (kind === 'join') onJoin(c, a);
     else if (kind === 'sess') beat(c, 'ses1');
-    else if (kind === 'setup') { try { onSetup(c, a); } catch (e) { try { console.error('CareerWorld arb setup', e); } catch (e2) { } } }   // (1r designado)   // primera sesión de entrenamiento de la carrera (career.js sessDo)
+    else if (kind === 'setup') { try { onSetup(c, a, b); } catch (e) { try { console.error('CareerWorld arb setup', e); } catch (e2) { } } }   // (1r designado)   // primera sesión de entrenamiento de la carrera (career.js sessDo)
   }
 
   VB.CareerWorld = {

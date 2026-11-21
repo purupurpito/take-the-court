@@ -375,6 +375,23 @@ section('7. Árbitros: colegio por liga, designación, libreta y «Apagado»');
     const lv = hall ? null : K.league(K.myClub(K.load()).lvl).ref;
     if (!hall) { const base = K.REF[lv], mm = K.matchSetup(K.load()), ar = mm.career.arb, f = ar.trait === 'lince' ? 0.6 : ar.trait === 'nervioso' && ar.derby ? 1.3 : 1;
       ok(Math.abs(mm.ref.p1 - Math.min(1, Math.round(base.p1 * f * 1000) / 1000)) < 1e-9 && mm.ref.chal === base.chal, mode + ': tabla de error según el carácter (' + ar.trait + ', p1 ' + mm.ref.p1 + ')'); }
+    // matchSetup no escribe en c (en pista, onSetup ya no vuelve a llamar a next6: usa el n de matchSetup6)
+    { const cs = K.load(), j0 = JSON.stringify(cs); K.matchSetup(cs); ok(JSON.stringify(cs) === j0, mode + ': matchSetup deja c entero igual (no solo c.world)'); }
+    // tabla de error por carácter con el n que pasa matchSetup (4º argumento de 'setup'): nervioso en derbi ×1,3 y lince ×0,6
+    { const cs = K.load(), n0 = K.next(cs), base = hall ? { p1: 0.2, p2: 0.1, p3: 0.05, d3: 0.3, chal: 2 } : K.REF[K.league(K.myClub(cs).lvl).ref];
+      const amb0 = K.ambCtx, seen = {};
+      try {
+        K.ambCtx = () => ({ tags: ['derbi'] });
+        for (let wk = 0; wk < 80 && !(seen.nervioso && seen.lince); wk++) {
+          const out = { career: { season: cs.season }, ref: Object.assign({}, base) };
+          Wm.hook(cs, 'setup', out, Object.assign({}, n0, { week: wk, bench: false }));
+          const ar = out.career.arb; if (!ar || seen[ar.trait] || (ar.trait !== 'nervioso' && ar.trait !== 'lince')) continue;
+          const f = ar.trait === 'lince' ? 0.6 : 1.3;
+          seen[ar.trait] = ar.derby === true && ['p1', 'p2', 'p3'].every(k => Math.abs(out.ref[k] - Math.min(1, Math.round(base[k] * f * 1000) / 1000)) < 1e-9) && out.ref.d3 === base.d3 ? 'ok' : JSON.stringify(out.ref);
+        }
+      } finally { K.ambCtx = amb0; }
+      ok(seen.nervioso === 'ok', mode + ': nervioso en derbi, p1-p3 × 1,3 (' + seen.nervioso + ')');
+      ok(seen.lince === 'ok', mode + ': ojo de lince, p1-p3 × 0,6 (' + seen.lince + ')'); }
     // «Apagado»: sin árbitro y c.world igual
     B.ctx.VB.ctx = { settings: { ambient: 'off' } };
     const cOff = K.load(), wOff = JSON.stringify(cOff.world), mo = K.matchSetup(cOff);
