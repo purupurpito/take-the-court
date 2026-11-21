@@ -59,10 +59,10 @@ Ferran decidió: va JUNTO al reto del día y sin XP ni medallas. Lo demás es pr
 - **Decisión provisional: igualdad** — nivel de la semana, atributos e insignias neutros, sin ayuda de novato, sin zona ni saque de
   firma (js/main.js `startMatch`, `sitO`). Los controles (Colocación dirigida, cambios del 6v6) siguen los Ajustes de cada uno.
 - **Decisión provisional: intentos y mejor resultado solo en este aparato** (`make-the-cut.semana` no va a la cuenta).
-- **Decisión provisional: la portada no se toca**: solo en Jugar › Retos › Semana (hay un rediseño de menús y el cambio de nombre en
-  marcha). Si Ferran la quiere en la portada: `js/menu-jugador.js stampSync`, sello con «22-24» y los intentos, que abra
-  `VB.UI.openRetos('semana')`.
-- **Decisión provisional: Retos se abre en «Hoy»** salvo que recuerde «Semana».
+- **Hecho según la propuesta que Ferran aceptó («JUNTO»)**: la situación ocupa el sello de la portada (junto a JUGAR, `js/menu-jugador.js
+  semStamp`: el marcador, p. ej. «22-24», y los intentos de hoy en puntos; abre `VB.UI.openRetos('semana')`) y la 1ª pestaña de Retos; el reto
+  del día sigue en la franja de Jugar (que abre Retos en la pestaña que recuerde, «Hoy» la primera vez) y en la pestaña Hoy. El sello
+  lee con `VB.Semana.peek()`, que no cierra intentos abiertos en otra pestaña. Al montar el rediseño de menús hay que conservarlo.
 - **Decisión provisional: el «3r set» empieza 1-1 sin parciales inventados**: el marcador enseña los pilotos 1-1 sin «S1 25-22 | S2
   22-25», y la hoja final solo el set jugado, rotulado «3r set».
 - Al fusionar el cambio de nombre a Take the Court hay que cambiar dos cadenas: la base por defecto del enlace en `js/semana.js link()`
@@ -70,12 +70,10 @@ Ferran decidió: va JUNTO al reto del día y sin XP ni medallas. Lo demás es pr
 - El «torneo de la semana» del backlog (D1) se puede dar por cubierto con esto; `w`/`weeks` de retos.js y `{semana}` de VB.Look quedan
   sin usar (no se borran: compatibilidad del guardado).
 - Preguntas:
-  1. ¿La situación en la portada (sello junto a JUGAR) o solo en Retos › Semana?
-  2. ¿Retos debe abrirse por defecto en «Semana»?
-  3. ¿Te vale la igualdad (nivel fijo, atributos neutros, sin ayuda de novato), o los novatos en Normal?
-  4. ¿Intentos solo en el aparato, sin pasar por la cuenta?
-  5. En el «3r set», ¿solo «1-1» (como ahora) o los dos primeros sets con resultados inventados?
-  6. ¿Damos el «torneo de la semana» por cubierto y se tacha del backlog?
+  1. ¿Te vale la igualdad (nivel fijo, atributos neutros, sin ayuda de novato), o los novatos en Normal?
+  2. ¿Intentos solo en el aparato, sin pasar por la cuenta?
+  3. En el «3r set», ¿solo «1-1» (como ahora) o los dos primeros sets con resultados inventados?
+  4. ¿Damos el «torneo de la semana» por cubierto y se tacha del backlog?
 
 ## Rencor y cariño de los clubes (js/career-life.js, notes/carrera.md «Rencor y cariño»)
 Ferran decidió: con rencor fuerte el club te sigue ofreciendo fichar, pero en peores condiciones; solo rencor o cariño, nada más.
@@ -100,6 +98,10 @@ Ferran decidió: dos apellidos inventados; el lince y el nervioso afectan a las 
   Solo en pista con brazalete: una condición en arbitro.js (`!st.hall ||` …).
 - **Decisión provisional: factores de línea**: lince p1-p3 × 0,6 (falla un 40 % menos), nervioso × 1,3 en derbi.
 - **Decisión provisional: para el nervioso cuentan como derbi** también el clásico y la final.
+- **Decisión provisional: dos apellidos de aire español en todas las ligas, también las extranjeras** de la Carrera de pista: la
+  pregunta de la ficha era para las ligas de España y Ferran no dijo nada de las demás. Hoy `panel()` (career-world.js) usa ARB_FN y
+  ARB_R + ARB_S para todos los colegios sin mirar el país de la liga; el juego no tiene un generador de nombres por país (el de los
+  jugadores mezcla países), así que cambiarlo pide hacer piezas por país.
 - **Decisión provisional: frases de fama** en la previa: «fama de mano dura», «deja jugar», «ojo de lince», «los derbis le pesan», «de manual».
 - Los apellidos se hacen con piezas (18 raíces × 12 finales); `ARB_NO` quita los que existen. Conviene que alguien repase la lista por si
   alguno coincide con un apellido real.
@@ -107,6 +109,8 @@ Ferran decidió: dos apellidos inventados; el lince y el nervioso afectan a las 
   1. ¿La ficha «Frenar» también en la playa?
   2. ¿Te valen los factores de las líneas (lince −40 %, nervioso +30 % en derbis, clásicos y finales)?
   3. ¿Te gustan las frases de fama?
+  4. En las ligas extranjeras de la Carrera de pista, ¿los árbitros también con nombre y dos apellidos de aire español, o con nombres
+     del país de la liga?
 
 ## «Te tienen estudiado» (scouting; js/sim.js g.scout, js/ai.js, js/career.js study*, notes/carrera.md)
 Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el plan.

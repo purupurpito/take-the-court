@@ -928,7 +928,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   importarlo en la portada de emPat. Prueba `node tools/actatest.js [partidos]` (con `../acta-electronica` o `EMPAT_DIR` comprueba cada
   jugada contra el motor de emPat y que sets y puntos coinciden).
 - **La situación de la semana (ui_main, 20/21-nov-2026; notes/ui_main.md «La situación de la semana»):** `js/semana.js` (`VB.Semana`, puro:
-  `situation(wk)`, `state()`, `left()`, `begin()`, `finish(g, res, dry)`, `abandon(g)`, `better`, `link`/`readLink`/`mergeLink`, `shareText`;
+  `situation(wk)`, `state()`, `peek()` (solo lectura: sello de la portada, js/menu-jugador.js), `left()`, `begin()`, `finish(g, res, dry)`, `abandon(g)`, `better`, `link`/`readLink`/`mergeLink`, `shareText`;
   sedes del sorteo de la lista congelada `MAPS0`) y `js/semana-ui.js` (`VB.SemanaUI`: pintado de Retos › Semana y `share()`), cargados tras
   `js/retos.js`. Sim: `createGame({start: {setNo 1|3, score [a,b], serving, srvIdx, rot [k0,k1], bo1}})` → `g.st0` (y `g.bo1` en el set
   único) SOLO cuando se pasa la opción (nunca demo, online ni Entrenamiento; sin ella las claves no existen y la huella 2v2 no cambia);
@@ -937,7 +937,8 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   v1: solo del aparato, NUNCA va a `DOCS` ni a `TRACK`. Pruebas: `node tools/semanatest.js` (node), `SIMTEST_ONLY=semana node tools/simtest.js`
   y `node tools/semanacdp.js` (Chrome, flujo completo: empezar, pausa, hoja final, 0 intentos, ?sem=; ~1-2 min, sola).
 - **Señas del árbitro (ui_main, idea «senas»):** `VB.Senas` (js/senas.js, puro; `of(e)`, `svg`, `LIST`, `BY`); `VB.UI._sena(id, lvl, word?)`
-  (depuración: pestaña nivel 1 o cinta nivel 2 durante 3 s); `profile.sen` (Cuaderno del árbitro, `noteSena`). `node tools/senatest.js`.
+  (depuración: pestaña nivel 1 o cinta nivel 2 durante 3 s); `profile.sen` (Cuaderno del árbitro, `noteSena`; nunca en depuración, espectador,
+  autopilot ni online: ahí la pegatina sale sin apuntar nada). `node tools/senatest.js`.
 - **Auditoría de móvil (ui_main, 18-nov-2026):** `node tools/mobaudit.js [--out dir=tools/out/mobaudit] [--only regex] [--area portada|carrera|online|partido] [--sizes 568x320,…] [--desktop] [--list]`
   abre el juego real (un Chrome; táctil + UA Android; `DPR=2`, `TOUCH=0`, `SIZES`, `DESKTOP=1`) y recorre ~145 pantallas (tabla `SCREENS`: id, área, query, `open` en JS con
   los ayudantes de `tools/mobaudit-page.js` `window.__MA`) en 568x320, 667x375, 740x360, 844x390 y 915x412 (+1280x720, 1920x1080, 1024x768 sin táctil con `--desktop`):

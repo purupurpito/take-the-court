@@ -6,7 +6,8 @@
  *  2) 300 semanas seguidas: nunca un set ya ganado; |diferencia| ≤ 2; el líder como mucho en T-1 salvo el deuce; 3r set siempre a 15;
  *     playa a 21; 6v6 solo en pabellón con rotación 0-5 y control «Uno»; pesos de formato cerca de 50/30/20 y «por detrás» cerca del 70 %.
  *  3) Intentos: 3 al día y el 4º begin() da null; el cambio de día da 3 nuevos; el cambio de semana vacía el estado (menos la cadena);
- *     abandon() cuenta como perdido; un intento abierto de otra sesión se da por perdido; el mejor sale de la regla de orden.
+ *     abandon() cuenta como perdido; un intento abierto de otra sesión se da por perdido; el mejor sale de la regla de orden; con dos
+ *     pestañas abiertas, ninguna pisa lo que guardó la otra; peek() no cierra el intento de otra pestaña.
  *  4) Enlace: ida y vuelta exacta; un carácter cambiado → null; nombres con '@', '<' o largos, saneados; otra semana = solo lectura; tu
  *     entrada se sustituye y no se duplica; el tope de 8 tira la más antigua que no eres tú; mergeLink es idempotente.
  *  5) MatchStats.zonesOf con un registro sintético (saque a la 1, ataque a la 4, bloqueado = sin zona; 6v6 solo tu jugador).
@@ -126,6 +127,23 @@ console.log('3) Intentos, mejor y cambios de día y de semana');
   const st2 = S2.state();
   ok('intento abierto de otra sesión: perdido con el marcador del arranque', !st2.open && st2.tries === 4 && st2.left === 2, 'tries ' + st2.tries);
   ok('el guardado no lleva nada de más', !!raw && raw.length < 2000 && JSON.parse(raw).v === 1, raw && raw.length + ' B');
+  // dos pestañas abiertas a la vez: cada operación vuelve a leer lo que guardó la otra (antes cada una pisaba la copia de la otra)
+  {
+    const sh = fakeStorage(), A = load(sh).Semana, B = load(sh).Semana;
+    A._now(20261125); B._now(20261125); A._sid('tabA'); B._sid('tabB');
+    const sA = A.situation(), TT = sA.T, wn = { win: true, a: Math.max(TT, sA.score[1] + 2) + 2, b: Math.max(TT, sA.score[1] + 2) };
+    const oA = A.begin(); B.state();   // B cierra el de A como perdido (otra sesión)
+    A.finish({ sit: oA.sit }, wn);     // A gana después
+    ok('dos pestañas: la victoria de A ve la derrota que apuntó B', A.state().tries === 2 && A.state().best && A.state().best.w === 1, 'tries ' + A.state().tries);
+    const pk = B.peek(); ok('dos pestañas: peek() de B ve la victoria de A sin escribir', pk.best && pk.best.w === 1 && pk.left === 2);
+    B.begin();
+    const fin = JSON.parse(sh.getItem(A.KEY));
+    ok('dos pestañas: el begin() de B no borra la victoria de A', fin.best && fin.best.w === 1 && fin.tries.length === 2 && fin.days['20261125'] === 2, sh.getItem(A.KEY));
+    // peek() no cierra el intento abierto de otra pestaña
+    const sh2 = fakeStorage(), C = load(sh2).Semana, D = load(sh2).Semana;
+    C._now(20261125); D._now(20261125); C._sid('tabC'); D._sid('tabD'); C.begin(); D.peek();
+    ok('peek() no cierra el intento abierto de otra pestaña', !!JSON.parse(sh2.getItem(C.KEY)).open);
+  }
   // cambio de semana: todo a cero menos la cadena (que queda en solo lectura)
   S2.mergeLink(S2.link());
   S2._now(20261201);

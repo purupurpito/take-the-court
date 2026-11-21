@@ -23,6 +23,7 @@
  *   link() → URL ?sem=…  (tu mejor entra en la cadena) · readLink(s) → {wk, list} | null · mergeLink(s) → {wk, list, old, n} | null
  *   shareText() → «La situación de la semana: 22-24 en contra. Yo la gané 26-24. ¿Y tú?»
  *   myName(), resLbl(e) → «Ganada 26-24» / «Perdida 23-25»
+ *   peek() → {wk, sit, left, best} solo lectura (sello de la portada; no cierra intentos abiertos en otra pestaña)
  *   _reset(), _now(k AAAAMMDD | 0), _sid (pruebas)
  *
  * Guardado 'make-the-cut.semana' v1 (solo del aparato; nunca va a la cuenta):
@@ -153,17 +154,23 @@
     if (Array.isArray(o.tries)) for (var j = Math.max(0, o.tries.length - MAXT); j < o.tries.length; j++) { var t = res(o.tries[j]); if (t) { t.k = num(o.tries[j].k, 0, 29991231); out.tries.push(t); } }
     return out;
   }
-  var cache = null, cacheWk = 0;
+  // La caché solo vale mientras el guardado siga siendo el que leímos o escribimos: con dos pestañas abiertas, lo que guarde la
+  // otra se vuelve a leer antes de cada operación (si no, cada una pisaba la copia de la otra y se perdían intentos o el mejor)
+  var cache = null, cacheWk = 0, cacheRaw = null;
   function load() {
     var wk = week();
-    if (cache && cacheWk === wk) return cache;
     var raw = null; try { raw = root.localStorage.getItem(KEY); } catch (e) { raw = null; }
+    if (cache && cacheWk === wk && raw === cacheRaw) return cache;
     var p = null; if (raw) { try { p = JSON.parse(raw); } catch (e) { p = null; } }
-    cache = clean(p, wk); cacheWk = wk;
+    cache = clean(p, wk); cacheWk = wk; cacheRaw = raw;
     if (!cache.me) cache.me = randMe();
     return cache;
   }
-  function save(o) { cache = o; cacheWk = o.wk; try { root.localStorage.setItem(KEY, JSON.stringify(o)); } catch (e) { } }
+  function save(o) {
+    cache = o; cacheWk = o.wk;
+    var s = JSON.stringify(o);
+    try { root.localStorage.setItem(KEY, s); cacheRaw = root.localStorage.getItem(KEY); } catch (e) { }
+  }
 
   // ---------------------------------------------------------------- intentos
   var SID = (Date.now().toString(36) + Math.floor(Math.random() * 1e6).toString(36)).slice(-12);
@@ -222,6 +229,11 @@
   function abandon(g) {
     var o = load(); if (!o.open) return false;
     abandonO(o, g); save(o); return true;
+  }
+  /** Solo lectura, sin cerrar intentos de otra pestaña (sello de la portada, que se mira cada 1,2 s): situación, quedan y mejor. */
+  function peek() {
+    var o = load();
+    return { wk: o.wk, sit: situation(o.wk), left: Math.max(0, TRIES - usedToday(o)), best: o.best };
   }
   function state() {
     var o = load(); if (closeStale(o)) save(o);
@@ -299,7 +311,7 @@
 
   VB.Semana = {
     KEY: KEY, VER: VER, TRIES: TRIES, MAXG: MAXG,
-    situation: situation, state: state, left: left, begin: begin, finish: finish, abandon: abandon, better: better,
+    situation: situation, state: state, peek: peek, left: left, begin: begin, finish: finish, abandon: abandon, better: better,
     link: link, readLink: readLink, mergeLink: mergeLink, shareText: shareText, myName: myName, resLbl: resLbl, week: week, wkNum: wkNum,
     cleanName: cleanName,
     _reset: function () { try { root.localStorage.removeItem(KEY); } catch (e) { } cache = null; cacheWk = 0; sitCache = {}; },

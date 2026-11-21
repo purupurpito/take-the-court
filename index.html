@@ -3427,6 +3427,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .sp-sc{position:absolute;left:25%;top:25%;width:50%;height:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--sp-gold);pointer-events:none;z-index:1}
 .sp-sc b{font:800 max(8px,calc(var(--sp-stamp) * .1))/1 var(--sp-ui);letter-spacing:.08em;text-transform:uppercase}
 .sp-sc .sp-ball,.sp-sc svg{width:50%;height:50%;display:block}
+.mj-sem .sp-sc b{letter-spacing:.02em;white-space:nowrap}.mj-semd{display:flex;gap:3px}.mj-semd i{width:6px;height:6px;border-radius:50%;box-shadow:inset 0 0 0 1.5px var(--sp-gold)}.mj-semd i.on{background:var(--sp-gold)}:root:not(#_):not(#_):not(#_) .mj-sem .sp-sc b.mj-semsc{font-size:max(12px,calc(var(--sp-stamp) * .15));color:var(--sp-cream);letter-spacing:0}   /* sello de la portada: el marcador de la situación de la semana */
 .sp-sc .sc-med{display:block;width:44%;height:44%;border-radius:50%;box-shadow:0 0 0 2px var(--sp-ink),inset 0 -3px 0 rgba(0,0,0,.2);background:#d98a4a}.sp-sc .sc-med.t2{background:#d6e2ee}.sp-sc .sc-med.t3{background:#ffd23f}
 .sp-ball .b0{fill:var(--sp-cream)}.sp-ball .b1{fill:var(--sp-teal)}.sp-ball .b2{fill:var(--sp-teal-d)}.sp-ball .bs{fill:none;stroke:var(--sp-ink);stroke-width:1.1}.sp-ball .b3{fill:none;stroke:var(--sp-ink);stroke-width:1.4}
 .sp-stamp.sp-dot::after,:root:not(#_):not(#_):not(#_) .sp-stamp.sp-dot::after{content:"";display:block;position:absolute;right:6%;top:6%;width:18%;height:18%;border-radius:50%;background:#ff3b5c;box-shadow:0 0 0 2.5px var(--sp-ink)}
@@ -3661,7 +3662,7 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
 .ph-hid{display:none!important}
 :root:not(.ph) .ph-only{display:none!important}
 :root.ph .ph-hide{display:none!important}
-#endKicker .nw,#coach .nw{white-space:nowrap}   /* REV-PARTIDO: el antetítulo final solo se parte entre trozos (ui.js nw) */
+#endKicker .nw,#coach .nw,#pause .sh-k .nw{white-space:nowrap}   /* REV-PARTIDO: el antetítulo final (y el de la pausa) solo se parte entre trozos (ui.js nw) */
 .ph-2l{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;text-overflow:clip}
 html.sp-kb [data-kb-hide]{display:none!important}
 .kb-pin{top:var(--ph-gt,8px)!important;bottom:auto!important;max-height:calc(var(--vvh,100vh) - 16px)!important;translate:none!important}

@@ -1827,8 +1827,11 @@
       sena = safe(function () { return VB.Senas.of(e); }) || null;
       if (sena) {
         senaTxt = sub; sub = '';
-        // Cuaderno del árbitro: la primera vez que te la señalan se apunta (y la pegatina lleva el punto rojo de «nueva»)
-        senaNew = !!(VB.Profile && VB.Profile.noteSena && safe(function () { return VB.Profile.noteSena(sena.id); }));
+        // Cuaderno del árbitro: la primera vez que te la señalan se apunta (y la pegatina lleva el punto rojo de «nueva»). Con las
+        // mismas guardas que el resto del perfil: nunca en depuración, espectador, autopilot ni online (decisión 4: el online no
+        // toca el perfil); ahí la pegatina sale igual, sin punto ni escritura
+        var senaRec = !ctx.debug && !ctx.net && !(g && (g.online || g.autopilot || (g.watch0 && !g.demo)));
+        senaNew = senaRec && !!(VB.Profile && VB.Profile.noteSena && safe(function () { return VB.Profile.noteSena(sena.id); }));
         if (senaNew) { pfDirty = true; last.pf = null; srSay('Nueva seña en el Cuaderno del árbitro'); }
       }
     }
@@ -7006,7 +7009,7 @@
   function renderRetos() {
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
-    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Semana' }] : []).concat([{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»; se abre en Hoy salvo que la recuerde: decisión provisional)
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Semana' }] : []).concat([{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»: la situación va en la 1ª pestaña y en el sello de la portada, menu-jugador.js; la franja «Reto del día» de Jugar abre la pestaña que recuerde, Hoy la 1ª vez)
       { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
         // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
         var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');

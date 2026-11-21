@@ -7,6 +7,7 @@
  *   c) hoja final (autopilot hasta el final): VB.Semana.finish cerró el intento y la hoja lleva Otro intento, Compartir, Ver el grupo y Menú
  *   d) con 0 intentos: «Reiniciar» no abandona el intento en juego (toast y sigue)
  *   e) ?sem=… (enlace de un amigo): se une la cadena, se abre Retos › Semana y se quita sem= de la barra
+ *   f) el sello de la portada (junto a JUGAR) es el de la situación, con su marcador, y abre Retos › Semana
  * Uso: node tools/semanacdp.js   (≈ 1-2 min; lanzarla sola: el PC tiene poca memoria)
  */
 'use strict';
@@ -59,6 +60,7 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
       check('c) cierre con el resultado y left 2', se && (se.left | 0) === 2 && se.i === 1, se);
       const ids = JSON.stringify(rc || '');
       check('c) hoja final: Otro intento, Compartir, Ver el grupo y Menú', /again/.test(ids) && /share/.test(ids) && /group/.test(ids) && /menu/i.test(ids), rc);
+      check('c) el autopilot no apunta señas en el Cuaderno del árbitro', await E('(function(){ try { var r = localStorage.getItem("make-the-cut.profile"); return !r || !JSON.parse(r).sen; } catch (e) { return true; } })()'));
       check('c) sin récord, XP ni perfil (el intento no cuenta)', (await E('(function(){ try { return !localStorage.getItem("make-the-cut.record") || !/"winRun":[1-9]/.test(localStorage.getItem("make-the-cut.record")); } catch (e) { return true; } })()')));
     }
 
@@ -82,7 +84,16 @@ function check(name, cond, info) { if (cond) { oks++; console.log('  ok   ' + na
     await page.navigate('nonews=1&uianim=0&' + q); await ready();
     const opened = await waitFor('VB.UI.menuPage() === "retos" && !/[?&]sem=/.test(location.search)', 25000);
     check('e) ?sem= abre Retos › Semana y se quita de la barra', opened, await J('{ page: VB.UI.menuPage(), search: location.search }'));
-    check('e) sin errores de consola', !page.errors.length, page.errors.slice(0, 5));
+
+    // ---- f) sello de la portada: la situación (marcador e intentos) y abre Retos › Semana
+    await E('VB.ctx.actions.toMenu(), 1'); await ready(); await idle();
+    await E('(function(){ try { VB.UI.openRetos("hoy"); } catch (e) {} return 1; })()'); await sleep(300);
+    await E('VB.ctx.actions.toMenu(), 1'); await ready(); await idle();
+    const stOk = await waitFor('(function(){ var b = document.getElementById("btnMjReto"), s = VB.Semana.situation(); return !!(b && !b.hidden && b.classList.contains("mj-sem") && b.getAttribute("aria-label").indexOf("La situación de la semana: " + s.score[0] + "-" + s.score[1]) === 0 && b.querySelector(".mj-semsc")); })()', 6000);
+    check('f) el sello de la portada es el de la situación (marcador e intentos)', stOk, await J('(function(){ var b = document.getElementById("btnMjReto"); return b ? { cls: b.className, aria: b.getAttribute("aria-label"), h: b.innerHTML.slice(0, 200) } : null; })()'));
+    await E('document.getElementById("btnMjReto").click(), 1');
+    check('f) el sello abre Retos › Semana', await waitFor('VB.UI.menuPage() === "retos" && !!document.querySelector("[data-sem=go]")', 5000), await J('{ page: VB.UI.menuPage() }'));
+    check('e-f) sin errores de consola', !page.errors.length, page.errors.slice(0, 5));
   } catch (e) {
     fails++; console.log('  FAIL excepción: ' + (e && e.stack || e));
   } finally {
