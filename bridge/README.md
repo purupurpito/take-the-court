@@ -12,7 +12,7 @@ del mismo origen (farolillo, emPat…), no borra nada, las empaqueta y salta a `
 |---|---|
 | `index.html` | el puente (todo en línea, sin dependencias salvo Google Fonts, que puede fallar sin problema) |
 | `404.html` | copia EXACTA de `index.html`: enlaces profundos (`/make-the-cut/netlogs.html`, `/make-the-cut/loquesea`) llevan la ruta |
-| `version.json` | `{"v":"1.20.0"}`: las pestañas viejas (1.15.1+) que siguen abiertas ven «Hay una versión nueva» → «Reiniciar» → puente |
+| `version.json` | `{"v":"<versión del juego>"}` (igual que VB.VERSION, lo exige build-pages): las pestañas viejas (1.15.1+) que siguen abiertas ven «Hay una versión nueva» → «Reiniciar» → puente |
 | `.nojekyll` | que Pages no pase Jekyll |
 
 **No hay `sw.js`**: el juego nunca registró un service worker ni usó Cache Storage ni IndexedDB (comprobado con grep en `js/` e
