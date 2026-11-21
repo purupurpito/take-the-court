@@ -6,7 +6,7 @@
  * #mig=<paquete>. Este script (el PRIMERO tras el bloque 'voley3d.*' de index.html, antes que ningún módulo) las mete en este origen.
  *   - Paquete: mig=1.<fmt>.<sha>.<datos>. fmt z = deflate (CompressionStream 'deflate', formato zlib) + base64url; fmt j = JSON en
  *     UTF-8 + base64url. sha = 16 primeras cifras hex del SHA-256 del texto JSON ('0' si el navegador viejo no pudo calcularlo).
- *     JSON = {v:1, from:'make-the-cut', at:ms, keys:{clave: texto}}.
+ *     JSON = {v:1, from:'make-the-cut', keys:{clave: texto}} (sin hora desde 1.20.0: el mismo guardado da el mismo sha; si llega «at», se lee).
  *   - Al cargar: quita #mig del enlace al momento (history.replaceState, se conserva ?sala= y el resto del hash), guarda el paquete en
  *     sessionStorage 'make-the-cut.mig.raw' (si la pestaña se recarga a medias, se retoma) y descomprime/comprueba en asíncrono.
  *   - Comprobaciones (cualquier fallo rechaza el paquete ENTERO, en silencio, con console.warn): tamaños (LIM), base64url, deflate
@@ -15,24 +15,29 @@
  *   - Confianza: se trae solo si document.referrer es https://purupurpito.github.io (el puente pone <meta name=referrer content=origin>)
  *     o, con el juego en localhost, otro localhost (pruebas), y el sha cuadra. Si no, hoja SPLAT «¿Traer la partida de Make the Cut?».
  *     Sin confianza NUNCA se trae la sesión de la cuenta ('make-the-cut.account': evita que un enlace te meta en la cuenta de otro).
- *   - Idempotente: 'make-the-cut.mig.done' guarda los 5 últimos sha traídos; uno repetido no hace nada.
- *   - Fusión por clave (con lo que había en ESTE origen al cargar, foto tomada antes que ningún módulo escriba):
- *       no está aquí → se escribe · igual → nada · sesión de la cuenta → solo si aquí no hay ninguna (y con confianza) ·
- *       'account.meta' → máximo por clave (sin horas del futuro) · 'account.meta.up' → solo si se trajo la sesión ·
+ *   - Idempotente: 'make-the-cut.mig.done' guarda los 5 últimos sha traídos; uno repetido no hace nada. El puente no mete la hora en
+ *     el paquete (1.20.0): el mismo guardado de la dirección antigua da siempre el mismo sha.
+ *   - Fusión por clave (con lo que había en ESTE origen al cargar, foto tomada antes que ningún módulo escriba). «Primer traspaso» =
+ *     mig.done vacío: lo de aquí es lo poco jugado antes de pasar por el puente y las horas no valen (lo recién creado es «más nuevo»).
+ *       no está aquí → se escribe (salvo, fuera del primer traspaso, si aquí se BORRÓ después: hora de aquí más nueva → skipped) ·
+ *       igual → nada · 'account.meta' → máximo por clave (sin horas del futuro) · 'account.meta.up' → solo si se trajo la sesión ·
  *       claves del dispositivo (DEVICE) → se queda la de aquí · con fusión de la cuenta (gym, look, legends, profile, retos) →
- *       VB.Account.mergeKey · el resto → gana la más reciente por la hora de 'account.meta' (empate: la de aquí).
- *     Lo que se pisa se copia antes en 'make-the-cut.migbak.<resto>' (no '<clave>.bak', que ya usan los módulos); lo traído que pierde
- *     queda en 'make-the-cut.migbak.in.<resto>'. Las Carreras (career, career6) que pierden van además a '<clave>.prev' (como account.js).
- *     Si una copia no cabe (cuota), esa clave no se toca.
- *   - Se escribe con el Storage.prototype.setItem ORIGINAL (capturado antes de que account.js lo envuelva): lo traído no queda con la
- *     hora de «ahora» y no gana a lo más nuevo de la nube. Luego: aviso «Partida traída de Make the Cut» (sessionStorage
- *     'make-the-cut.account.toast', lo enseña account.js) y UNA recarga (location.replace) para que todos los módulos lo lean al arrancar.
- *   - Con la cuenta: mientras hay traspaso pendiente account.js no sincroniza (VB.Migrate.pending() / whenDone(fn)); tras la recarga sigue
- *     como siempre (syncDown con la hora traída). Este script nunca abre los avisos de conflicto de la cuenta.
- *   - Plan B manual (paquete demasiado grande para un enlace, app instalada en iPhone…): #migcode (pegar el código) y #migfile (elegir
- *     el archivo descargado en el puente). Mismas comprobaciones; siempre se pide confirmación.
+ *       VB.Account.mergeKey · escuadrón y récord → el de más progreso (score / partidos, como la primera entrada en la cuenta) ·
+ *       Carreras distintas → hoja «¿Qué Carrera te quedas?» · el resto → en el primer traspaso la traída; luego, la más reciente por
+ *       la hora de 'account.meta' (empate: la de aquí).
+ *     Sesión de la cuenta: solo con confianza, si aquí no hay ninguna, en el primer traspaso y sin 'account.out' (cerraste sesión aquí).
+ *     Lo que se pisa se copia antes en 'make-the-cut.migbak.<id>.<resto>' (id: 8 cifras del sha de ESTE traspaso; no '<clave>.bak', que
+ *     ya usan los módulos); lo traído que pierde queda en 'make-the-cut.migbak.<id>.in.<resto>'. Las Carreras que pierden van además a
+ *     '<clave>.prev' (como account.js); si ya había otra '.prev' distinta, antes a migbak. Si una copia no cabe (cuota), esa clave no se toca.
+ *   - Se escribe con el Storage.prototype.setItem ORIGINAL (capturado antes de que account.js lo envuelva). Luego: aviso «Partida traída
+ *     de Make the Cut» (sessionStorage 'make-the-cut.account.toast', lo enseña account.js), 'make-the-cut.mig.first' y UNA recarga.
+ *   - Con la cuenta: mientras hay traspaso pendiente account.js no sincroniza (VB.Migrate.pending() / whenDone(fn)); tras la recarga, con
+ *     'mig.first', la primera sincronización une con la nube como la primera entrada en un dispositivo (merge(remote, true): progreso,
+ *     no horas; Carreras distintas → los avisos de conflicto de la cuenta). Entrar en la cuenta (begin) hace lo mismo y borra la marca.
+ *   - Plan B manual (paquete demasiado grande para un enlace, app instalada en iPhone…): #migcode, #migfile o Ajustes › Info › «Traer tu
+ *     partida» (VB.Migrate.manual). Archivo/código admiten valores y claves más grandes (LIM.valFile, keysFile). Siempre se confirma.
  * El juego no tiene service worker, Cache Storage ni IndexedDB: no hay nada más que traer ni cachés viejas que limpiar.
- * API: VB.Migrate = {run(), decode(texto, {max}) → Promise, plan(claves, foto, opciones), parseHash(h), pending(), whenDone(fn),
+ * API: VB.Migrate = {run(), manual(kind), decode(texto, {max, file}) → Promise, plan(claves, foto, opciones), parseHash(h), pending(), whenDone(fn),
  *      version: 1, LIM, _lastReport}.
  * ===================================================================== */
 (function () {
@@ -42,15 +47,22 @@
   var PFX = 'make-the-cut.';
   var RAW = PFX + 'mig.raw', DONE = PFX + 'mig.done', BAK = PFX + 'migbak.', TOAST = PFX + 'account.toast';
   var SES = PFX + 'account', META = PFX + 'account.meta', UP = META + '.up';
-  var LIM = { url: 1200000, file: 9000000, bytes: 12000000, json: 6000000, val: 2000000, keys: 200 };
+  var LIM = { url: 1200000, file: 9000000, bytes: 12000000, json: 6000000, val: 2000000, keys: 200, valFile: 5500000, keysFile: 400 };   // *File: archivo o código (no caben en un enlace)
   var KEY_RE = /^make-the-cut\.[A-Za-z0-9_.-]{1,80}$/;
   var TRUSTED = 'https://purupurpito.github.io';
   var MSG = 'Partida traída de Make the Cut';
+  var OLD_URL = 'https://purupurpito.github.io/make-the-cut/';   // el puente (bridge/)
   function set(list) { var o = {}; list.forEach(function (k) { o[PFX + k] = 1; }); return o; }
   // del dispositivo: si ya hay una aquí, se queda (si no, se trae: es el mismo navegador)
   var DEVICE = set(['devid', 'device', 'seen', 'install', 'e1tips', 'guided', 'lkHint', 'nethelp2', 'netroom', 'nick', 'retostab', 'role6', 'online.pend']);
   var MERGED = set(['gym', 'look', 'legends', 'profile', 'retos']);   // las que tienen fusión propia en account.js (MERGE)
   var CAREERS = set(['career', 'career6']);
+  var OUT = SES + '.out';   // account.js lo apunta al cerrar sesión: un traspaso posterior no vuelve a meter la sesión
+  var MIGFIRST = PFX + 'mig.first';   // para account.js: la siguiente sincronización une como la primera entrada (sin fiarse de las horas)
+  // progreso para decidir sin horas (las mismas cuentas que account.js score / recPlayed en la primera entrada en la cuenta)
+  function squadScore(raw) { try { var o = JSON.parse(raw), s = 0; (o && o.a || []).forEach(function (a) { s += ((a && a.lvl) || 0) * 1000 + ((a && a.xp) || 0) + ((a && a.matches) || 0); }); return +s || 0; } catch (e) { return 0; } }
+  function recPlayed(raw) { try { return +(JSON.parse(raw).played) || 0; } catch (e) { return 0; } }
+  var QUALITY = {}; QUALITY[PFX + 'squad'] = squadScore; QUALITY[PFX + 'record'] = recPlayed;
 
   var LS = null; try { LS = W.localStorage; } catch (e) { }
   var SS = null; try { SS = W.sessionStorage; } catch (e) { }
@@ -64,7 +76,7 @@
   function lsSet(k, v) { try { rawSet.call(LS, k, v); return true; } catch (e) { return false; } }
   function dropKey(k) {
     return k.indexOf(PFX + 'mig.') === 0 || k.indexOf('.migbak.') >= 0 || k.indexOf(BAK) === 0 ||
-      k === SES + '.gredir' || k.indexOf(SES + '.rl') === 0;
+      k === SES + '.gredir' || k === OUT || k.indexOf(SES + '.rl') === 0;
   }
 
   // ---------------------------------------------------------------- hash
@@ -150,16 +162,16 @@
       if (bytes.length > LIM.bytes) throw err('big');
       return (m[1] === 'z' ? inflate(bytes, LIM.bytes) : Promise.resolve(bytes)).then(function (raw) {
         var json = utf8(raw);
-        if (json.length > LIM.json) throw err('big');
+        if (json.length > (o.file ? LIM.file : LIM.json)) throw err('big');
         return (m[2] === '0' ? Promise.resolve(null) : sha16(json)).then(function (h) {
           if (h && h !== m[2]) throw err('sha');
           var obj; try { obj = JSON.parse(json); } catch (e) { throw err('json'); }
           if (!plainObj(obj) || obj.v !== 1 || obj.from !== 'make-the-cut' || !plainObj(obj.keys)) throw err('shape');
           var names = Object.keys(obj.keys), keys = {};
-          if (names.length > LIM.keys) throw err('keys');
+          if (names.length > (o.file ? LIM.keysFile : LIM.keys)) throw err('keys');
           names.forEach(function (k) {
             var v = obj.keys[k];
-            if (!KEY_RE.test(k) || typeof v !== 'string' || v.length > LIM.val) throw err('keys');
+            if (!KEY_RE.test(k) || typeof v !== 'string' || v.length > (o.file ? LIM.valFile : LIM.val)) throw err('keys');
             if (!dropKey(k)) keys[k] = v;
           });
           var verified = !!h && h === m[2];
@@ -184,30 +196,56 @@
     opt = opt || {};
     var now = opt.now || Date.now(), writes = {}, rep = { added: [], same: [], kept: [], merged: [], replaced: [], skipped: [], session: 'none', backups: [] };
     var mergeKey = typeof opt.mergeKey === 'function' ? opt.mergeKey : null;
+    var first = !!opt.first, choose = opt.choose && typeof opt.choose === 'object' ? opt.choose : {};
+    var tag = String(opt.id || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 8) || 'x';   // copias de ESTE traspaso: no pisan las de otro
     var Mi = metaOf(inc[META], now), Ml = metaOf(loc[META], now);
+    rep.ask = [];
+    function has(o, k) { return Object.prototype.hasOwnProperty.call(o, k) && o[k] != null; }
     function rest(k) { return k.slice(PFX.length); }
-    function bak(k, v, inSide) { var b = BAK + (inSide ? 'in.' : '') + rest(k); writes[b] = v; rep.backups.push(b); }
+    function bak(k, v, inSide) { var b = BAK + tag + '.' + (inSide ? 'in.' : '') + rest(k); writes[b] = v; rep.backups.push(b); }
+    // '<clave>.prev' (la usa también account.js al bajar una Carrera de la nube): si ya hay una distinta, antes a migbak
+    function prev(k, v) {
+      var pk = k + '.prev', old = has(loc, pk) ? loc[pk] : null;
+      if (old != null && old !== '' && old !== 'null' && old !== v) bak(pk, old);
+      if (old !== v) writes[pk] = v;
+    }
     Object.keys(inc).forEach(function (k) {
       if (k === META || k === UP || k === SES || dropKey(k)) return;
-      var R = inc[k], L = Object.prototype.hasOwnProperty.call(loc, k) ? loc[k] : null;
-      if (L == null) { writes[k] = R; rep.added.push(k); return; }
+      var R = inc[k], L = has(loc, k) ? loc[k] : null;
+      if (L == null) {
+        // borrada AQUÍ después de un traspaso anterior (abandonar la Carrera también apunta la hora): no se resucita
+        if (!first && (Ml[k] || 0) > (Mi[k] || 0)) { rep.skipped.push(k); return; }
+        writes[k] = R; rep.added.push(k); return;
+      }
       if (L === R) { rep.same.push(k); return; }
       if (DEVICE[k]) { rep.kept.push(k); return; }
-      var incomingNewer = (Mi[k] || 0) > (Ml[k] || 0);
+      // primer traspaso a este origen: lo de aquí es lo poco que se jugó antes de pasar por el puente (una sala compartida, una
+      // partida rápida): las horas no sirven (lo recién creado siempre es «más nuevo») y manda lo de Make the Cut
+      var incomingNewer = first || (Mi[k] || 0) > (Ml[k] || 0);
       if (MERGED[k]) {
         var M = null;
         try { M = mergeKey ? mergeKey(k, L, R, incomingNewer) : (incomingNewer ? R : L); } catch (e) { M = incomingNewer ? R : L; }
         if (typeof M !== 'string' || M === L) { rep.kept.push(k); return; }
         bak(k, L); writes[k] = M; rep.merged.push(k); return;
       }
-      if (incomingNewer) { bak(k, L); if (CAREERS[k]) writes[k + '.prev'] = L; writes[k] = R; rep.replaced.push(k); }
-      else { bak(k, R, true); if (CAREERS[k]) writes[k + '.prev'] = R; rep.kept.push(k); }
+      var win = incomingNewer;
+      if (CAREERS[k]) {   // dos Carreras distintas: se pregunta (la hoja de handle()); sin respuesta, la regla de horas
+        rep.ask.push(k);
+        var c = has(choose, k) ? choose[k] : ''; if (c === 'in') win = true; else if (c === 'loc') win = false;
+      } else if (QUALITY[k]) {   // escuadrón y récord: gana el de más progreso, como la primera entrada en la cuenta (account.js)
+        var qi = QUALITY[k](R), ql = QUALITY[k](L);
+        if (qi !== ql) win = qi > ql;
+      }
+      if (win) { bak(k, L); if (CAREERS[k]) prev(k, L); writes[k] = R; rep.replaced.push(k); }
+      else { bak(k, R, true); if (CAREERS[k]) prev(k, R); rep.kept.push(k); }
     });
-    // sesión de la cuenta: solo con confianza, válida y si aquí no hay ninguna
+    // sesión de la cuenta: solo con confianza, válida, si aquí no hay ninguna, en el PRIMER traspaso y sin haber cerrado sesión aquí
     var sesIn = inc[SES], sesLoc = loc[SES];
     if (sesIn != null) {
       if (!opt.trusted) rep.session = 'untrusted';
-      else if (sesLoc != null && sesLoc !== '') rep.session = sesLoc === sesIn ? 'same' : 'kept';
+      else if (sesLoc != null && sesLoc !== '' && sesLoc !== 'null') rep.session = sesLoc === sesIn ? 'same' : 'kept';
+      else if (has(loc, OUT)) rep.session = 'signedout';
+      else if (!first) rep.session = 'again';
       else if (!validSession(sesIn)) rep.session = 'invalid';
       else { writes[SES] = sesIn; rep.session = 'imported'; if (inc[UP] != null && plainObj(jparse(inc[UP]))) writes[UP] = inc[UP]; }
     }
@@ -254,16 +292,19 @@
   function doneList() { var a = jparse(lsGet(DONE)); return Array.isArray(a) ? a.filter(function (x) { return typeof x === 'string'; }) : []; }
   function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
-  function apply(dec, trusted) {
-    var A = VB.Account;
-    var p = plan(dec.keys, snap || {}, { trusted: trusted, now: Date.now(), mergeKey: A && typeof A.mergeKey === 'function' ? A.mergeKey : null });
+  function apply(dec, trusted, choose) {
+    var A = VB.Account, first = !doneList().length;
+    var p = plan(dec.keys, snap || {}, { trusted: trusted, now: Date.now(), mergeKey: A && typeof A.mergeKey === 'function' ? A.mergeKey : null,
+      id: dec.id, first: first, choose: choose });
+    // dos Carreras distintas (aquí y en Make the Cut): que elija el jugador antes de escribir nada
+    if (!choose && p.report.ask.length && VB.Splat && VB.Splat.sheet) { askCareers(p.report.ask.slice(), dec, {}, function (ch) { apply(dec, trusted, ch); }); return; }
     var w = p.writes, wrote = 0, failed = [];
     // primero las copias; una clave cuya copia no cabe no se toca
     var bakOf = {};
     Object.keys(w).forEach(function (k) { if (k.indexOf(BAK) === 0) bakOf[k] = 1; });
     var bad = {};
     Object.keys(bakOf).forEach(function (b) {
-      if (lsGet(b) !== w[b] && !lsSet(b, w[b])) { var r = b.slice(BAK.length).replace(/^in\./, ''); bad[PFX + r] = 1; failed.push(PFX + r); }
+      if (lsGet(b) !== w[b] && !lsSet(b, w[b])) { var r = b.slice(BAK.length).replace(/^[A-Za-z0-9]+\./, '').replace(/^in\./, ''); bad[PFX + r] = 1; failed.push(PFX + r); }
     });
     Object.keys(w).forEach(function (k) {
       if (bakOf[k] || bad[k] || bad[k.replace(/\.prev$/, '')]) return;
@@ -271,6 +312,9 @@
       if (lsSet(k, w[k])) { if (k !== META && k !== UP && !/\.prev$/.test(k)) wrote++; } else failed.push(k);
     });
     var d = doneList().filter(function (x) { return x !== dec.id; }); d.push(dec.id); lsSet(DONE, JSON.stringify(d.slice(-5)));
+    // con cuenta (traída o de antes), la siguiente sincronización une con la nube por progreso y pregunta por las Carreras, como al
+    // entrar en un dispositivo nuevo: las horas de lo traído no dicen nada frente a las de la nube (account.js syncDown)
+    if (wrote) lsSet(MIGFIRST, '1');
     report = p.report; report.failed = failed; report.wrote = wrote; report.trusted = !!trusted; report.id = dec.id;
     if (wrote || p.report.session === 'imported') {
       report.result = 'imported'; API._lastReport = report;
@@ -280,6 +324,23 @@
       if (!API._noReload) { try { location.reload(); } catch (e) { } return; }
       finish(null);
     } else finish('nothing');
+  }
+
+  function careerSummary(raw) {
+    var A = VB.Account; try { if (A && typeof A._careerInfo === 'function') return A._careerInfo(raw); } catch (e) { }
+    return 'Carrera guardada';
+  }
+  /** Una hoja por Carrera que choca: «La de Make the Cut» / «La de aquí». La otra queda en migbak (y en '<clave>.prev'). */
+  function askCareers(list, dec, ch, cb) {
+    var k = list.shift(); if (!k) { cb(ch); return; }
+    var S = VB.Splat, L = (snap || {})[k], R = dec.keys[k], done = false, nm = k === PFX + 'career6' ? 'Carrera de pista' : 'Carrera de playa';
+    var next = function (v) { if (done) return; done = true; if (v) ch[k] = v; askCareers(list, dec, ch, cb); };
+    S.sheet({ title: '¿Qué ' + nm + ' te quedas?', cls: 'vb-mig',
+      html: '<p>Tienes una ' + nm + ' en Make the Cut y otra aquí. ¿Con cuál sigues? La otra se guarda en una copia.</p>' +
+        '<p><b>Make the Cut:</b> ' + esc(careerSummary(R)) + '<br><b>Aquí:</b> ' + esc(careerSummary(L)) + '</p>',
+      actions: [{ label: 'La de aquí', cls: 'sp-cream', id: 'migKeepLoc', fn: function () { next('loc'); } },
+        { label: 'La de Make the Cut', primary: true, id: 'migKeepIn', fn: function () { next('in'); } }],
+      onClose: function () { next(null); } });
   }
 
   function confirmSheet(dec, cb) {
@@ -313,16 +374,17 @@
       'font:13px/1.3 ui-monospace,Consolas,monospace;color:var(--sp-ink,#15102a);background:var(--sp-cream2,#fffaf0);border:var(--sp-line,3px) solid var(--sp-ink,#15102a);' +
       'border-radius:10px;padding:8px 10px;word-break:break-all}.vb-migman .mig-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 0}' +
       '.vb-migman #migName{font-size:13px;opacity:.85;word-break:break-all}.vb-migman #migErr{color:var(--sp-danger,#ff4a5c);font-weight:700;margin:8px 0 0;min-height:1em}' +
-      '.vb-migman #migErr:empty{display:none}';
+      '.vb-migman #migErr:empty{display:none}.vb-migman a{color:inherit;font-weight:800;text-decoration:underline;text-underline-offset:2px}';
     (document.head || document.documentElement).appendChild(st);
   }
-  function manual(kind) {
+  function manual(kind, menu) {
     var S = VB.Splat;
     if (!S || !S.sheet) { finish('nosheet'); return; }
     css();
     var fileText = '', api = null, busy = false, chosen = false;
     var html = '<p>' + (kind === 'migfile' ? 'Elige el archivo que descargaste en la página de Make the Cut' : 'Pega el código que copiaste en la página de Make the Cut') +
       ' y pulsa <b>Traer</b>.</p>' +
+      (menu ? '<p>¿Sin código? Abre <a href="' + OLD_URL + '" target="_blank" rel="noopener">la dirección de antes</a> en el navegador donde jugabas.</p>' : '') +
       '<textarea id="migCode" rows="3" spellcheck="false" autocomplete="off" aria-label="Código de la partida" placeholder="1.z.…"></textarea>' +
       '<p class="mig-row"><label class="sp-btn sp-sm sp-cream" id="migPick"><span class="sp-t">Elegir archivo</span>' +
       '<input type="file" id="migFile" accept=".json,.txt,application/json,text/plain" hidden></label> <span id="migName"></span></p>' +
@@ -335,7 +397,7 @@
           var er = api.el.querySelector('#migErr');
           if (!txt.trim()) { if (er) er.textContent = 'Primero pega el código o elige el archivo.'; return false; }
           busy = true; if (er) er.textContent = '';
-          decode(txt, { max: LIM.file }).then(function (dec) {
+          decode(txt, { max: LIM.file, file: true }).then(function (dec) {
             chosen = true; busy = false; api.close(true); handle(dec, false);
           }, function (e) { busy = false; warn('código manual rechazado (' + (e && e.code) + ')'); if (er) er.textContent = CODE_MSG[e && e.code] || 'No es un código de partida.'; });
           return false;
@@ -385,7 +447,13 @@
     return true;
   }
 
-  var API = VB.Migrate = { run: run, decode: decode, plan: plan, parseHash: parseHash, pending: pending, whenDone: whenDone,
+  /** Desde Ajustes › Info («Traer tu partida»): la misma hoja que #migcode, con el enlace a la dirección antigua. */
+  function openManual(kind) {
+    if (pend || (VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen())) return false;
+    takeSnap(); report = null; manual(kind === 'migfile' ? 'migfile' : 'migcode', true); return true;
+  }
+
+  var API = VB.Migrate = { run: run, decode: decode, plan: plan, parseHash: parseHash, pending: pending, whenDone: whenDone, manual: openManual,
     version: 1, LIM: LIM, KEY_RE: KEY_RE, _lastReport: null, _noReload: false };
   if (typeof document !== 'undefined' && typeof location !== 'undefined' && LS && rawSet) run();
 })();

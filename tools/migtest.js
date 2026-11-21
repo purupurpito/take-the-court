@@ -38,7 +38,7 @@ function b64u(buf) { return Buffer.from(buf).toString('base64').replace(/\+/g, '
 function sha16(text) { return crypto.createHash('sha256').update(Buffer.from(text, 'utf8')).digest('hex').slice(0, 16); }
 function encode(keys, o) {
   o = o || {};
-  const json = o.json != null ? o.json : J({ v: 1, from: 'make-the-cut', at: Date.now(), keys });
+  const json = o.json != null ? o.json : J({ v: 1, from: 'make-the-cut', keys });   // (como el puente desde 1.20.0: sin hora)
   const raw = Buffer.from(json, 'utf8'), fmt = o.fmt || 'z';
   const data = fmt === 'z' ? zlib.deflateSync(raw) : raw;
   return '1.' + fmt + '.' + (o.sha != null ? o.sha : sha16(json)) + '.' + b64u(data);
@@ -104,30 +104,81 @@ async function nodePart() {
     [P + 'career6']: '"pista local"', [P + 'retoauto']: '"empate local"',
     [P + 'account.meta']: J({ [P + 'career']: now - 100, [P + 'record']: now - 20, [P + 'career6']: now - 5, [P + 'look']: now - 9, [P + 'retoauto']: now - 70 })
   };
+  // (sin first: este origen ya hizo otro traspaso antes; las copias van a migbak.<id>. con id 'x' si no se da)
   let r = M.plan(inc, loc, { trusted: true, mergeKey, now });
   const w = r.writes, rp = r.report;
   ok('plan: la que no está aquí se escribe', w[P + 'squad'] === '"nuevo"' && rp.added.includes(P + 'squad'));
   ok('plan: la igual no se toca', !(P + 'settings' in w) && rp.same.includes(P + 'settings'));
   ok('plan: la del dispositivo (nick) se queda', !(P + 'nick' in w) && rp.kept.includes(P + 'nick'));
-  ok('plan: look → mergeKey (traída más nueva) y copia en migbak', calls.length === 1 && calls[0][0] === P + 'look' && calls[0][1] === true &&
-    JSON.parse(w[P + 'look']).merged.length === 2 && w[P + 'migbak.look'] === '{"a":1}');
-  ok('plan: Carrera traída más reciente gana; la local a migbak y a .prev', w[P + 'career'] === '"carrera traida"' && w[P + 'migbak.career'] === '"carrera local"' && w[P + 'career.prev'] === '"carrera local"');
-  ok('plan: récord local más reciente se queda; el traído a migbak.in', !(P + 'record' in w) && w[P + 'migbak.in.record'] === '"rec viejo"');
-  ok('plan: Carrera de pista local más reciente se queda; la traída a .prev y migbak.in', !(P + 'career6' in w) && w[P + 'career6.prev'] === '"pista traida"' && w[P + 'migbak.in.career6'] === '"pista traida"');
+  ok('plan: look → mergeKey (traída más nueva) y copia en migbak.<id>', calls.length === 1 && calls[0][0] === P + 'look' && calls[0][1] === true &&
+    JSON.parse(w[P + 'look']).merged.length === 2 && w[P + 'migbak.x.look'] === '{"a":1}');
+  ok('plan: Carrera traída más reciente gana; la local a migbak y a .prev', w[P + 'career'] === '"carrera traida"' && w[P + 'migbak.x.career'] === '"carrera local"' && w[P + 'career.prev'] === '"carrera local"');
+  ok('plan: récord (mismo progreso) local más reciente se queda; el traído a migbak.in', !(P + 'record' in w) && w[P + 'migbak.x.in.record'] === '"rec viejo"');
+  ok('plan: Carrera de pista local más reciente se queda; la traída a .prev y migbak.in', !(P + 'career6' in w) && w[P + 'career6.prev'] === '"pista traida"' && w[P + 'migbak.x.in.career6'] === '"pista traida"');
+  ok('plan: las dos Carreras distintas se preguntan (report.ask)', J(rp.ask.slice().sort()) === J([P + 'career', P + 'career6']));
   ok('plan: empate de horas → la de aquí', !(P + 'retoauto' in w) && rp.kept.includes(P + 'retoauto'));
-  ok('plan: sesión traída (confianza, aquí no había) + meta.up', w[P + 'account'] === inc[P + 'account'] && w[P + 'account.meta.up'] === '{"x":1}' && rp.session === 'imported');
+  ok('plan: fuera del primer traspaso la sesión NO se vuelve a meter (again)', !(P + 'account' in w) && rp.session === 'again');
   const mt = JSON.parse(w[P + 'account.meta']);
   ok('plan: meta por máximo y sin horas del futuro', mt[P + 'career'] === now - 10 && mt[P + 'record'] === now - 20 && mt[P + 'career6'] === now - 5 && mt[P + 'squad'] === now);
-  r = M.plan(inc, loc, { trusted: false, mergeKey, now });
+  r = M.plan(inc, loc, { trusted: true, mergeKey, now, first: true, id: 'abcdef0123456789' });
+  ok('plan (primer traspaso): sesión traída (confianza, aquí no había) + meta.up', r.writes[P + 'account'] === inc[P + 'account'] && r.writes[P + 'account.meta.up'] === '{"x":1}' && r.report.session === 'imported');
+  ok('plan (primer traspaso): copias en migbak.<8 cifras del id>', r.writes[P + 'migbak.abcdef01.record'] === '"rec nuevo"' && !(P + 'migbak.x.record' in r.writes));
+  ok('plan (primer traspaso): sin progreso que comparar, manda lo traído aunque lo de aquí sea más nuevo', r.writes[P + 'record'] === '"rec viejo"' && r.writes[P + 'career6'] === '"pista traida"');
+  r = M.plan(inc, Object.assign({}, loc, { [P + 'account.out']: '1' }), { trusted: true, mergeKey, now, first: true });
+  ok('plan: con «account.out» (cerró sesión aquí) la sesión no se trae', !(P + 'account' in r.writes) && r.report.session === 'signedout');
+  r = M.plan(inc, loc, { trusted: true, mergeKey, now, choose: { [P + 'career']: 'loc', [P + 'career6']: 'in' } });
+  ok('plan: la elección del jugador manda en las Carreras (choose)', !(P + 'career' in r.writes) && r.writes[P + 'career6'] === '"pista traida"' && r.writes[P + 'career.prev'] === '"carrera traida"');
+  r = M.plan(inc, loc, { trusted: false, mergeKey, now, first: true });
   ok('plan sin confianza: NUNCA la sesión ni meta.up', !(P + 'account' in r.writes) && !(P + 'account.meta.up' in r.writes) && r.report.session === 'untrusted');
-  r = M.plan(inc, Object.assign({}, loc, { [P + 'account']: J({ uid: 'yo', rt: 'r', user: 'yo' }) }), { trusted: true, mergeKey, now });
+  r = M.plan(inc, Object.assign({}, loc, { [P + 'account']: J({ uid: 'yo', rt: 'r', user: 'yo' }) }), { trusted: true, mergeKey, now, first: true });
   ok('plan: con sesión aquí, se queda la de aquí', !(P + 'account' in r.writes) && r.report.session === 'kept');
-  r = M.plan({ [P + 'account']: '{"uid":1}' }, {}, { trusted: true, now });
+  r = M.plan({ [P + 'account']: '{"uid":1}' }, {}, { trusted: true, now, first: true });
   ok('plan: sesión inválida no se trae', !(P + 'account' in r.writes) && r.report.session === 'invalid');
   r = M.plan({ [P + 'gym']: '{"b":2}' }, { [P + 'gym']: '{"b":1}' }, { trusted: true, now, mergeKey: () => { throw new Error('x'); } });
   ok('plan: si la fusión falla, gana la más reciente (empate: la de aquí)', !(P + 'gym' in r.writes));
   r = M.plan({ [P + 'look']: '{"a":2}' }, { [P + 'look']: '{"a":1}' }, { trusted: true, now, mergeKey: (k, L) => L });
   ok('plan: fusión que deja lo de aquí igual → sin copia ni escritura', Object.keys(r.writes).length === 0);
+
+  // MIG-1: se jugó un rato en takethecourt.com antes de pasar por el puente (escuadrón de nivel 1, 1 partido, ajustes por defecto,
+  // todo con la hora de «ahora»); lo de Make the Cut tiene 3 días
+  const sq = (lvl, xp, m) => J({ a: [{ lvl, xp, matches: m }, { lvl, xp, matches: m }] });
+  const oldT = now - 3 * 864e5, newT = now - 6e5;
+  const incA = { [P + 'squad']: sq(14, 300, 220), [P + 'record']: J({ played: 220 }), [P + 'settings']: J({ kit: 4, cam: 2 }), [P + 'career.mode']: '"hall"',
+    [P + 'account.meta']: J({ [P + 'squad']: oldT, [P + 'record']: oldT, [P + 'settings']: oldT, [P + 'career.mode']: oldT }) };
+  const locA = { [P + 'squad']: sq(1, 20, 1), [P + 'record']: J({ played: 1 }), [P + 'settings']: J({ kit: 0 }), [P + 'career.mode']: '"beach"',
+    [P + 'account.meta']: J({ [P + 'squad']: newT, [P + 'record']: newT, [P + 'settings']: newT, [P + 'career.mode']: newT }) };
+  r = M.plan(incA, locA, { trusted: true, now, first: true, id: 'ffff0000' });
+  ok('MIG-1: primer traspaso tras jugar un rato aquí → escuadrón, récord, ajustes y modo de Make the Cut',
+    r.writes[P + 'squad'] === incA[P + 'squad'] && r.writes[P + 'record'] === incA[P + 'record'] && r.writes[P + 'settings'] === incA[P + 'settings'] &&
+    r.writes[P + 'career.mode'] === '"hall"' && r.writes[P + 'migbak.ffff0000.squad'] === locA[P + 'squad'], J(r.report));
+  r = M.plan(incA, locA, { trusted: true, now });
+  ok('MIG-1: fuera del primer traspaso, escuadrón y récord por progreso (no por hora); ajustes por hora',
+    r.writes[P + 'squad'] === incA[P + 'squad'] && r.writes[P + 'record'] === incA[P + 'record'] && !(P + 'settings' in r.writes));
+  r = M.plan({ [P + 'squad']: sq(1, 20, 1) }, { [P + 'squad']: sq(9, 0, 50) }, { trusted: true, now, first: true });
+  ok('MIG-1: si aquí hay MÁS progreso, el escuadrón de aquí se queda (también en el primer traspaso)', !(P + 'squad' in r.writes));
+
+  // MIG-3: la Carrera se abandonó aquí (hora de aquí más nueva, clave borrada) y se vuelve a pasar por el puente
+  const incC = { [P + 'career']: '"carrera vieja"', [P + 'account']: J({ uid: 'u9', rt: 'r9', user: 'ana' }), [P + 'account.meta']: J({ [P + 'career']: oldT }) };
+  const locC = { [P + 'account.meta']: J({ [P + 'career']: newT }) };
+  r = M.plan(incC, locC, { trusted: true, now });
+  ok('MIG-3: una Carrera borrada aquí después no resucita; la sesión no vuelve', !(P + 'career' in r.writes) && r.report.skipped.includes(P + 'career') && !(P + 'account' in r.writes) && r.report.session === 'again');
+  r = M.plan(incC, Object.assign({}, locC, { [P + 'account.out']: '1' }), { trusted: true, now, first: true });
+  ok('MIG-3: en el primer traspaso sí se trae (no hubo traspaso que borrar), pero no la sesión tras cerrar sesión', r.writes[P + 'career'] === '"carrera vieja"' && r.report.session === 'signedout');
+
+  // MIG-4: ya había una '.prev' (de account.js) distinta → antes a migbak; migbak de otro traspaso no se pisa
+  r = M.plan({ [P + 'career']: '"traida"', [P + 'account.meta']: J({ [P + 'career']: newT }) },
+    { [P + 'career']: '"local"', [P + 'career.prev']: '"solo en prev"', [P + 'migbak.aaaa1111.career']: '"copia de antes"', [P + 'account.meta']: J({ [P + 'career']: oldT }) },
+    { trusted: true, now, id: 'bbbb2222cccc' });
+  ok('MIG-4: la .prev que había se copia a migbak.<id>.career.prev antes de pisarla', r.writes[P + 'career.prev'] === '"local"' && r.writes[P + 'migbak.bbbb2222.career.prev'] === '"solo en prev"');
+  ok('MIG-4: las copias de otro traspaso (migbak.aaaa1111.*) no se tocan', !Object.keys(r.writes).some(k => k.indexOf(P + 'migbak.aaaa1111.') === 0) && r.writes[P + 'migbak.bbbb2222.career'] === '"local"');
+
+  // MIG-5: archivo/código admiten valores y claves más grandes; el enlace no
+  const bigVal = 'x'.repeat(2100000);
+  ok('MIG-5: valor de 2,1 M por enlace → rechazado (keys)', (await rej(encode({ [P + 'big']: bigVal }))) === 'keys');
+  d = await M.decode(encode({ [P + 'big']: bigVal }), { max: M.LIM.file, file: true });
+  ok('MIG-5: el mismo valor por archivo/código → aceptado', d.keys[P + 'big'] === bigVal);
+  const k250 = {}; for (let i = 0; i < 250; i++) k250[P + 'k' + i] = '1';
+  ok('MIG-5: 250 claves por enlace → rechazado; por archivo → aceptado', (await rej(encode(k250))) === 'keys' && (await M.decode(encode(k250), { max: M.LIM.file, file: true })).count === 250);
 }
 
 // ---------------------------------------------------------------- parte navegador
@@ -244,9 +295,10 @@ async function browserPart() {
     ok('claves traídas (settings, squad)', after['make-the-cut.settings'] === '{"kit":5}' && after['make-the-cut.squad'] === '[{"n":"Ana"}]');
     ok('voley3d.legends llega como make-the-cut.legends', after['make-the-cut.legends'] === '[]');
     ok('nada de otros proyectos (farolillo.x, empat/*)', !('farolillo.x' in after) && !('empat/acta/1' in after));
+    let tag = ''; try { tag = JSON.parse(after['make-the-cut.mig.done'])[0].slice(0, 8); } catch (e) { }   // migbak.<id>.*
     let lk = null; try { lk = JSON.parse(after['make-the-cut.look']); } catch (e) { }
-    ok('look unido con mergeKey (los dos objetos) y el de antes en migbak', !!lk && !!lk.own[lockIds[0]] && !!lk.own[lockIds[1]] && after['make-the-cut.migbak.look'] === look(lockIds[0]));
-    ok('récord de aquí más reciente se queda; el traído en migbak.in', after['make-the-cut.record'] === '{"played":99}' && after['make-the-cut.migbak.in.record'] === '{"played":3}');
+    ok('look unido con mergeKey (los dos objetos) y el de antes en migbak', !!lk && !!lk.own[lockIds[0]] && !!lk.own[lockIds[1]] && after['make-the-cut.migbak.' + tag + '.look'] === look(lockIds[0]));
+    ok('récord de aquí con más partidos se queda; el traído en migbak.<id>.in', after['make-the-cut.record'] === '{"played":99}' && after['make-the-cut.migbak.' + tag + '.in.record'] === '{"played":3}');
     ok('nick (del dispositivo) se queda', after['make-the-cut.nick'] === '"aqui"');
     ok('sesión de la cuenta traída (puente de confianza)', /"uid":"u1"/.test(after['make-the-cut.account'] || ''));
     let mt = {}; try { mt = JSON.parse(after['make-the-cut.account.meta']); } catch (e) { }
@@ -265,11 +317,23 @@ async function browserPart() {
     const rep3 = await ev('VB.Migrate._lastReport && VB.Migrate._lastReport.result');
     const after3 = await LSdump();
     const strip = o => { const x = Object.assign({}, o); delete x['make-the-cut.mig.done']; delete x['make-the-cut.account.meta']; delete x['make-the-cut.account.meta.up']; return x; };
-    ok('segunda vez por el puente: nada que traer, sin recarga ni cambios', (rep3 === 'nothing' || rep3 === 'already') && J(strip(after3)) === J(strip(before3)), rep3 + ' ' + J(Object.keys(after3).filter(k => after3[k] !== before3[k])) + ' ' + J(Object.keys(before3).filter(k => !(k in after3))));
+    ok('segunda vez por el puente: «already» (mismo guardado → mismo sha), sin recarga ni cambios', rep3 === 'already' && J(strip(after3)) === J(strip(before3)), rep3 + ' ' + J(Object.keys(after3).filter(k => after3[k] !== before3[k])) + ' ' + J(Object.keys(before3).filter(k => !(k in after3))));
     // el mismo enlace otra vez (recargar, atrás): «already» por el sha, aunque llegue sin referente
     const sameLink = deepLink.slice(deepLink.indexOf('#mig=') + 5).split('&')[0];
     await nav(GAME + '?again=1#mig=' + sameLink); await gameReady(); await sleep(500);
     ok('el mismo paquete otra vez: «already» (mig.done), sin hoja', (await ev('VB.Migrate._lastReport && VB.Migrate._lastReport.result')) === 'already' && !(await ev('!!document.getElementById("migYes")')));
+    // 3b) Ajustes › Info › «Traer tu partida» (MIG-2): sin #migcode en el enlace, la misma hoja, con el enlace a la dirección antigua
+    await c.setSize('568x320', true);
+    await nav(GAME + '?panel=set'); await gameReady(); await sleep(900);
+    const rowOk = await ev('!!document.querySelector(\'[data-go="mig"]\') && /Traer tu partida/.test(document.querySelector(\'[data-go="mig"]\').textContent)');
+    ok('Ajustes › Info tiene la fila «Traer tu partida»', rowOk);
+    await ev('document.querySelector(\'[data-go="mig"]\').click()'); await sleep(1500);
+    const man = await ev(`(function(){var y=document.getElementById('migGo'),ta=document.getElementById('migCode');if(!y||!ta)return {ok:false};var b=y.getBoundingClientRect(),e=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
+      var a=document.querySelector('.vb-migman a[href*="purupurpito.github.io/make-the-cut"]');
+      return {ok:true,tap:!!e&&(e===y||y.contains(e)),inView:b.bottom<=innerHeight+1&&b.top>=0,link:!!a,title:/Traer tu partida/.test(document.body.innerText)};})()`);
+    await shot('ajustes-traer-568x320');
+    ok('«Traer tu partida» abre la hoja: código, enlace a la dirección antigua y «Traer» pulsable a 568x320', man.ok && man.tap && man.inView && man.link && man.title, J(man));
+    await c.setSize('1280x720', false);
 
     // 4) 404.html con ruta profunda; sin partida
     await nav('http://127.0.0.1:' + B.port + '/make-the-cut/netlogs.html?x=1&stay=1&to=' + encodeURIComponent(GAME) + '#k');

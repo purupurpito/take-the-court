@@ -6155,11 +6155,13 @@
     resetArm.to = setTimeout(resetDisarm, 3000);
   }
   var wipeNote = '';
-  /** Fila que abre otro panel: Controles (en la pestaña del dispositivo en uso), Novedades y Créditos (E7). Se apila Ajustes. */
+  /** Fila que abre otro panel: Controles (en la pestaña del dispositivo en uso), Novedades y Créditos (E7). Se apila Ajustes.
+   *  «Traer tu partida» (data-go="mig") abre la hoja de js/migrate.js encima de Ajustes. */
   function goRow(b) {
     var g = b.getAttribute('data-go');
     if (g === 'ctl') openPanel('ctl', { tab: device() });
     else if (g === 'news' || g === 'credits') openAbout(g);
+    else if (g === 'mig' && VB.Migrate && VB.Migrate.manual) VB.Migrate.manual('migcode');   // 1.20.0: traer la partida de Make the Cut a mano
   }
   /** Nombre de la sede (arena.js: ajuste `arena` o ?map=): Palau del Mar / Platja Llarga. */
   function venueName() { return VB.Arena && VB.Arena.venueName ? VB.Arena.venueName() : 'Palau del Mar'; }

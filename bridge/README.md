@@ -27,7 +27,7 @@ Qué hace en cada caso:
 - Partida de más de 900 000 caracteres empaquetada (Firefox corta las direcciones hacia 1 MB): NO salta. «Descargar mi partida»
   (archivo `.json`) y «Abrir takethecourt.com» (abre `#migfile`, donde se elige el archivo). «Copiar código» solo hasta 200 000.
 - App instalada con el nombre viejo (modo standalone): no salta sola; pide instalar otra vez desde takethecourt.com y da el botón,
-  el archivo y el código. En iPhone la app instalada guarda aparte de Safari: el código o el archivo son la salida segura.
+  el archivo y el código. En iPhone la app instalada guarda aparte de Safari: el código o el archivo son la salida segura, y en el juego se meten en Ajustes › Info › «Traer tu partida» (también sin `#`).
 - Siempre hay un botón «Ir a takethecourt.com» y un `<noscript>` con el enlace.
 
 ## Publicar (lo hace el lead, en este orden)
@@ -80,7 +80,8 @@ ya hechos), no días antes, o esos enlaces no abrirán hasta que el dominio est�
 - `https://purupurpito.github.io/make-the-cut/netlogs.html` → `https://takethecourt.com/netlogs.html` (vía 404.html).
 - `https://purupurpito.github.io/make-the-cut/version.json` → `{"v":"1.20.0"}`.
 - Una pestaña vieja abierta (1.19.x) avisa «Hay una versión nueva»; «Reiniciar» → puente → juego con la partida.
-- En el juego nuevo, una segunda visita al puente no cambia nada ni enseña el aviso.
+- En el juego nuevo, una segunda visita al puente con el mismo guardado da el mismo paquete (sin hora) y sale «already»: no cambia nada ni enseña el aviso.
+- Si algún dato no cabe en un enlace (más de 2 M en una clave o más de 200 claves), el puente no salta: ofrece archivo/código (admiten 5,5 M y 400).
 - En local, todo esto lo prueba `node tools/migtest.js` (puente y juego en dos orígenes).
 
 ### Si algo sale mal (marcha atrás)

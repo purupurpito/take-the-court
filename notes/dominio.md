@@ -36,7 +36,7 @@ localStorage). Así que el puente no necesita `sw.js` y no hay cachés viejas qu
 #mig=1.<fmt>.<sha>.<datos>[&<hash original>]
   fmt  z = deflate (CompressionStream('deflate'), formato zlib) y base64url · j = JSON en UTF-8 y base64url (sin CompressionStream)
   sha  16 primeras cifras hex del SHA-256 del texto JSON · '0' si el navegador no pudo (sin crypto.subtle)
-  JSON {v:1, from:'make-the-cut', at:ms, keys:{'make-the-cut.x': texto, …}}
+  JSON {v:1, from:'make-the-cut', keys:{'make-the-cut.x': texto, …}}   (sin hora: el mismo guardado da siempre el mismo sha)
 ```
 El archivo de «Descargar mi partida» es `{"format":"take-the-court-mig","v":1,"mig":"1.z.…"}`; el código de «Copiar código» es el
 paquete tal cual. El juego acepta los tres (con o sin `mig=` delante).
@@ -80,24 +80,29 @@ Primer script tras el bloque `voley3d.*` de index.html (antes que account.js y q
    archivo manual): hoja SPLAT «¿Traer la partida de Make the Cut?» con el número de datos, «No» / «Sí, traerla».
    **Sin confianza nunca se trae `make-the-cut.account`** (la sesión): un enlace preparado no puede meterte en la cuenta de otro
    (login-CSRF).
-5. **Idempotente**: `make-the-cut.mig.done` = los 5 últimos sha traídos; un paquete repetido (recargar, atrás) no hace nada. Una visita
-   nueva al puente lleva otro `at` (otro sha), pero todo sale «igual» y no se escribe, no se recarga y no hay aviso.
+5. **Idempotente**: `make-the-cut.mig.done` = los 5 últimos sha traídos; un paquete repetido (recargar, atrás, otra visita al puente
+   con el mismo guardado: el paquete no lleva hora desde la revisión de 1.20.0) no hace nada («already»).
+   **Primer traspaso** = `mig.done` vacío: lo que haya aquí es lo poco jugado antes de pasar por el puente (una sala compartida que
+   ya abre takethecourt.com, una partida rápida) y sus horas no valen (lo recién creado siempre es «más nuevo»).
 6. **Fusión** (`VB.Migrate.plan`, pura):
 
 | Caso | Qué pasa |
 |---|---|
-| no está aquí | se escribe |
+| no está aquí | se escribe; fuera del primer traspaso, si la hora de aquí es más nueva (se BORRÓ aquí: abandonar Carrera también la apunta), no (`skipped`) |
 | igual | nada |
-| `make-the-cut.account` | solo con confianza, si aquí no hay sesión y es válida (uid, rt, user) |
+| `make-the-cut.account` | solo con confianza, en el PRIMER traspaso, si aquí no hay sesión, sin `account.out` (cerraste sesión aquí; lo apunta account.js signOut) y válida (uid, rt, user) |
 | `make-the-cut.account.meta` | máximo por clave; horas del futuro se recortan a «ahora» |
 | `make-the-cut.account.meta.up` | solo si se trajo la sesión |
 | del dispositivo: devid, device, seen, install, e1tips, guided, lkHint, nethelp2, netroom, nick, retostab, role6, online.pend | se queda la de aquí |
 | gym, look, legends, profile, retos | `VB.Account.mergeKey(k, aquí, traída, traídaMásNueva)` (las fusiones de account.js) |
-| el resto | gana la más reciente por `account.meta` (falta = 0; empate = la de aquí) |
+| squad, record | el de más progreso (score del escuadrón / partidos jugados, como la primera entrada en la cuenta); empate → regla de abajo |
+| career, career6 distintas | hoja «¿Qué Carrera de playa/pista te quedas?» («La de Make the Cut» / «La de aquí»); sin respuesta, regla de abajo |
+| el resto | primer traspaso: la traída; después, la más reciente por `account.meta` (falta = 0; empate = la de aquí) |
 
-   Lo que se pisa se copia antes en `make-the-cut.migbak.<resto>`; lo traído que pierde, en `make-the-cut.migbak.in.<resto>` (no
-   `<clave>.bak`: ya lo usan squad, gym, look, profile y retos). Las Carreras (`career`, `career6`) que pierden van además a
-   `<clave>.prev` (lo de account.js). Si una copia no cabe (cuota), esa clave no se toca. Ninguna de estas va a la nube.
+   Lo que se pisa se copia antes en `make-the-cut.migbak.<id>.<resto>`; lo traído que pierde, en `make-the-cut.migbak.<id>.in.<resto>`
+   (id = 8 primeras cifras del sha de ESE traspaso: uno nuevo no pisa las copias de otro; no `<clave>.bak`: ya lo usan squad, gym,
+   look, profile y retos). Las Carreras que pierden van además a `<clave>.prev` (lo de account.js); si ya había una `.prev` distinta,
+   antes se copia a `migbak.<id>.<clave>.prev`. Si una copia no cabe (cuota), esa clave no se toca. Ninguna de estas va a la nube.
 7. Escribe con el `Storage.prototype.setItem` ORIGINAL (capturado antes de que account.js lo envuelva): lo traído no queda con la hora
    de «ahora» y no gana a lo más nuevo de la nube.
 8. Si algo cambió: `sessionStorage['make-the-cut.account.toast'] = 'Partida traída de Make the Cut'` (lo enseña account.js) y
@@ -106,8 +111,14 @@ Primer script tras el bloque `voley3d.*` de index.html (antes que account.js y q
 ### Con la cuenta (js/account.js)
 - Mientras `VB.Migrate.pending()`, account.js no sincroniza (boot espera a `whenDone`) y las horas de sus escrituras solo van a
   memoria (si no, su meta, leído antes, pisaría el que escribe migrate.js); si el traspaso no recarga, las une (máximo) y sigue.
-- Con la sesión traída, tras la recarga sigue como siempre (syncDown con las horas traídas). Si luego se entra a mano, la primera
-  fusión normal. migrate.js nunca abre los avisos de conflicto de la cuenta (los de Carrera los abre account.js como siempre).
+- Si el traspaso escribió algo, deja `make-the-cut.mig.first`: con sesión (traída o de antes), la siguiente sincronización une con la
+  nube como la primera entrada en un dispositivo (`merge(remote, true)`: escuadrón por progreso, récord por partidos, Carreras
+  distintas → los avisos de conflicto de la cuenta) y borra la marca. Sin ella, las horas de lo traído (que en este origen son las de
+  «ahora» para lo que se jugó aquí) pisaban lo más avanzado de la nube. Entrar a mano (begin) ya une así y también la borra.
+- Plan B a mano: Ajustes › Info › «Traer tu partida» (`VB.Migrate.manual('migcode')`): la hoja de `#migcode` con el enlace a la
+  dirección antigua. Es lo que usa quien reinstala la app en iPhone (se abre sin `#`), quien descargó el archivo o cerró la pestaña.
+  Archivo y código admiten valores de hasta 5,5 M y 400 claves (`LIM.valFile`, `keysFile`); el enlace, 2 M y 200 (el puente manda
+  a archivo/código si algo no cabe en el enlace, y avisa si algo no cabe ni ahí).
 - La nube solo guarda squad, career, settings, record, gym y look (S4_SYNC = false): perfil, Carrera de pista, modo de Carrera,
   Salón de la Fama y retos SOLO llegan por el puente.
 

@@ -88,8 +88,9 @@ p{margin:12px 0 0}
   </div>
   <p id="msg">Llevándote a <b>takethecourt.com</b><span id="withSave"> con tu partida</span><span class="dots">…</span></p>
   <p id="inst" class="warn" hidden>Tienes instalado el juego con el nombre antiguo. Entra en <b>takethecourt.com</b>, instálalo otra vez desde allí y borra el icono viejo.</p>
-  <p id="big" class="warn" hidden>Tu partida es tan grande que no cabe en un enlace. Descárgala aquí y, en takethecourt.com, elige el archivo en <b>Traer tu partida</b>.</p>
-  <p id="copied" class="note" hidden>Código copiado. En takethecourt.com, pégalo en <b>Traer tu partida</b>.</p>
+  <p id="big" class="warn" hidden>Tu partida es tan grande que no cabe en un enlace. Descárgala aquí y, en takethecourt.com, elige el archivo en <b>Ajustes › Info › Traer tu partida</b>.</p>
+  <p id="lost" class="warn" hidden>Algún dato es demasiado grande para llevárselo y se queda aquí. El resto de tu partida sí viaja.</p>
+  <p id="copied" class="note" hidden>Código copiado. En takethecourt.com, pégalo en <b>Ajustes › Info › Traer tu partida</b>.</p>
   <div class="acts">
     <button id="dl" class="btn alt" type="button" hidden>Descargar mi partida</button>
     <button id="cp" class="btn" type="button" hidden>Copiar código</button>
@@ -104,6 +105,8 @@ p{margin:12px 0 0}
   'use strict';
   var TARGET = 'https://takethecourt.com/', BASE_PATH = '/make-the-cut/', MAX_URL = 900000, MAX_COPY = 200000, DELAY = 900;
   var KEY_RE = /^make-the-cut\.[A-Za-z0-9_.-]{1,80}$/, MAX_VAL = 2000000, MAX_KEYS = 200;
+  // por encima de MAX_VAL / MAX_KEYS el enlace no vale (el juego lo rechaza) pero el archivo sí (js/migrate.js LIM.valFile / keysFile)
+  var MAX_VAL_FILE = 5500000, MAX_KEYS_FILE = 400, oversize = false, lost = [];
   var $ = function (id) { return document.getElementById(id); };
   var loc = window.location, search = loc.search || '', stay = false;
   var isLocal = /^(localhost|127\.0\.0\.1|\[::1\])$/.test(loc.hostname);
@@ -145,9 +148,12 @@ p{margin:12px 0 0}
     try { LS = window.localStorage; if (!LS) return null; } catch (e) { return null; }
     try { for (i = 0; i < LS.length; i++) { k = LS.key(i); if (k) list.push(k); } } catch (e) { return null; }
     function add(name, val) {
-      if (n >= MAX_KEYS || !KEY_RE.test(name) || typeof val !== 'string' || val.length > MAX_VAL) return;
-      if (/^make-the-cut\.(mig\.|migbak\.)|^make-the-cut\.account\.(gredir|rl)/.test(name)) return;
-      if (!Object.prototype.hasOwnProperty.call(keys, name)) { keys[name] = val; n++; }
+      if (!KEY_RE.test(name) || typeof val !== 'string') return;
+      if (/^make-the-cut\.(mig\.|migbak\.)|^make-the-cut\.account\.(gredir|rl|out)/.test(name)) return;
+      if (Object.prototype.hasOwnProperty.call(keys, name)) return;
+      if (val.length > MAX_VAL_FILE || n >= MAX_KEYS_FILE) { lost.push(name); return; }   // ni en archivo: se avisa (no se pierde: sigue aquí)
+      if (val.length > MAX_VAL || n >= MAX_KEYS) oversize = true;   // solo por archivo o código
+      keys[name] = val; n++;
     }
     for (i = 0; i < list.length; i++) if (list[i].indexOf('make-the-cut.') === 0) { try { add(list[i], LS.getItem(list[i])); } catch (e) { } }
     for (i = 0; i < list.length; i++) if (list[i].indexOf('voley3d.') === 0) {   // (las de antes de la 1.6.0, si la nueva no está)
@@ -206,9 +212,10 @@ p{margin:12px 0 0}
 
   function ready(p) {
     payload = p;
-    var fits = p.length <= MAX_URL;
+    var fits = p.length <= MAX_URL && !oversize && !lost.length;
+    if (lost.length) $('lost').hidden = false;
     go.href = fits ? finalUrl(p) : finalUrl('');
-    window.__bridge = { payload: p, fits: fits, url: go.href, standalone: standalone };
+    window.__bridge = { payload: p, fits: fits, url: go.href, standalone: standalone, oversize: oversize, lost: lost.slice() };
     if (!fits) {
       $('msg').hidden = true; $('big').hidden = false; $('dl').hidden = false; $('openFile').hidden = false;
       $('openFile').href = TARGET + '#migfile'; go.className = 'btn'; go.textContent = 'Ir sin la partida';
@@ -232,7 +239,8 @@ p{margin:12px 0 0}
     leave(go.href);
     return;
   }
-  var json = JSON.stringify({ v: 1, from: 'make-the-cut', at: new Date().getTime(), keys: keys }), bytes = utf8(json);
+  // sin hora: el mismo guardado da el mismo paquete y el mismo sha (mig.done lo reconoce en una segunda visita)
+  var json = JSON.stringify({ v: 1, from: 'make-the-cut', keys: keys }), bytes = utf8(json);
   if (!window.Promise) { ready('1.j.0.' + b64u(bytes)); return; }
   sha(bytes).then(function (h) {
     return deflate(bytes).then(function (z) { ready(z ? '1.z.' + h + '.' + b64u(z) : '1.j.' + h + '.' + b64u(bytes)); });

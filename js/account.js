@@ -55,6 +55,7 @@
   var S4_DOCS = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6', 'make-the-cut.career.mode': 'cmode', 'make-the-cut.legends': 'legends', 'make-the-cut.retos': 'retos' };
   Object.keys(S4_DOCS).forEach(function (k) { if (S4_SYNC) DOCS[k] = S4_DOCS[k]; else TRACK[k] = 1; });
   // Carreras: la primera vez en un dispositivo, si la local y la de la cuenta son distintas, se pregunta (en cola, una tras otra).
+  var MIGFIRST = 'make-the-cut.mig.first';   // lo deja js/migrate.js al traer una partida (ver syncDown)
   var CONFLICT = { 'make-the-cut.career': 'Carrera', 'make-the-cut.career6': 'Carrera de pista' };
   var MAX_RAW = 390000;   // tope de subida (las reglas admiten 400 000 caracteres)
   var LS = null; try { LS = window.localStorage; } catch (e) { }
@@ -308,9 +309,15 @@
     if (!inMenu()) { pendingDown = true; return Promise.resolve(); }
     pendingDown = false;
     setStatus('busy');
+    // tras traer una partida de Make the Cut (js/migrate.js deja 'mig.first'): une como la primera entrada en un dispositivo
+    // (escuadrón por progreso, récord por partidos, Carreras distintas → se pregunta), no por horas: lo traído llega con las horas
+    // de este origen y pisaría lo que la nube tenga más avanzado
+    var first = false; try { first = LS.getItem(MIGFIRST) === '1'; } catch (e) { }
     return readAll().then(function (remote) {
-      var r = merge(remote, false);
+      var r = merge(remote, first);
+      if (first) jset(MIGFIRST, null);
       lastSync = Date.now(); setStatus('idle'); push();
+      if (r.conflicts.length) { showConflicts(r); return; }
       if (r.changed) afterDown(r.keys);
     }, function (e) { setStatus('error', e); });
   }
@@ -355,6 +362,7 @@
   function begin(o) {
     acc = { user: o.user, kind: o.kind, uid: o.uid, rt: o.rt, it: o.it, ie: Date.now() + (+o.exp || 3600) * 1000 };
     jset(SES, acc); synced = {}; jset(META + '.up', synced); conflicts = [];
+    jset(MIGFIRST, null);   // esta entrada ya une como primera vez
     return readAll().then(function (remote) {
       var r = merge(remote, true);
       return push().then(function () { lastSync = Date.now(); setStatus('idle'); return r; });
@@ -427,7 +435,14 @@
     var f = null; try { f = sessionStorage.getItem(GREDIR); sessionStorage.removeItem(GREDIR); } catch (e) { }
     if (f && !acc) toast('No se ha completado la entrada con Google. Vuelve a probar desde «Cuenta».');
   }
-  function signOut() { acc = null; dirty = {}; jset(SES, null); setStatus('off'); }
+  // (1.20.0) 'account.out': has cerrado sesión en este origen; js/migrate.js ya no vuelve a meter la sesión de Make the Cut
+  /** Cola de conflictos de Carreras fuera de la entrada (sincronización tras un traspaso): abre el panel en esa vista. */
+  function showConflicts(r) {
+    if (!conflicts.length) return;
+    build(); pending = conflicts[0]; pendRes = { remote: false, enter: { changed: !!(r && r.changed) } }; view = 'conflict'; render();
+    lastFocus = document.activeElement; root.hidden = false;
+  }
+  function signOut() { acc = null; dirty = {}; jset(SES, null); jset(SES + '.out', Date.now()); setStatus('off'); }
   function lost() { acc = null; jset(SES, null); setStatus('off'); toast('Se ha cerrado la sesión de tu cuenta. Vuelve a entrar desde «Cuenta».'); }
   function deleteAccount() {
     if (!acc) return Promise.resolve();

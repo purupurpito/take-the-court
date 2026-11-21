@@ -497,7 +497,9 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   partidas, datos de la nube, retos diarios ni la compatibilidad del online. Casa nueva en https://takethecourt.com/ (CNAME en
   `_site`; rutas relativas, sigue valiendo en /make-the-cut/). Las partidas cruzan de origen con el puente (`bridge/`: la dirección
   vieja empaqueta las claves `make-the-cut.*` y salta a `takethecourt.com/#mig=…`; `js/migrate.js` las importa sin pisar datos
-  más nuevos, con copia en `make-the-cut.migbak.*`). Con cuenta, entrar también lo trae (lo sincronizado). Novedades: nombre,
+  más nuevos, con copia en `make-the-cut.migbak.<id>.*`; escuadrón y récord por progreso, Carreras distintas → se pregunta; tras
+  el traspaso la cuenta une con la nube como primera entrada). Con cuenta, entrar también lo trae (lo sincronizado). Plan B a mano en
+  Ajustes › Info › «Traer tu partida». Novedades: nombre,
   dirección, la partida viene sola y reinstalar si estaba instalado.
 - **Publicar el cambio de nombre (lo hace Ferran / el lead, en este orden):**
   1. Fusionar la rama nombre en main y comprobar todo en local (abouttest, settest, migtest, simtest, mobaudit --area portada).
