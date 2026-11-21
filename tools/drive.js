@@ -67,6 +67,11 @@ const state = () => evalJs('JSON.stringify({s:VB.ctx.state,m:VB.ctx.game&&VB.ctx
     await sleep(3000);
     let st = await state(); check(st.s === 'menu' && st.demo, 'arranca en el menú con demo detrás (' + JSON.stringify(st) + ')');
     await shot('1-menu');
+    // «Jugar ya» (1.22.0): perfil nuevo → el foco empieza en el billete «¡Jugar ya!» (#btnNow); ↓ baja a JUGAR (este recorrido es el de los menús)
+    if (await evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()")) {
+      await press('ArrowDown'); await sleep(250);
+      check(await evalJs("document.activeElement&&document.activeElement.id==='btnPlay'"), 'perfil nuevo: ↓ desde «¡Jugar ya!» llega a JUGAR');
+    }
     // menús v2: JUGAR (Intro) → Partido rápido (Intro) → ¡A JUGAR! (Intro); cada página deja el foco en su botón principal
     await press('Enter'); await sleep(400);
     check(await evalJs("VB.UI.menuPage&&VB.UI.menuPage()==='play'&&document.activeElement.id==='btnQuick'"), 'Intro en JUGAR abre los modos con el foco en Partido rápido');

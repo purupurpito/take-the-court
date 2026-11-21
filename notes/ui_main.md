@@ -2004,3 +2004,28 @@ El juego estaba bien; la prueba se había quedado desfasada. Solo cambia `tools/
 - Entrenamiento: `gymLast.why` y tres consejos nuevos en `GYM_TIPS` (`reach`, `fast`, `dive`) que van antes del «un pelín pronto» por timing.
 - Pruebas: `node tools/hitwhytest.js` (sin navegador: casos de hitWhy, partidas 2v2/playa/6v6 con un bot, mismo stateHash y g.rng con y sin
   hitWhy). Huellas idénticas; SIM_BASE de fluidsimtest pasa a db74554b (cambio de texto de sim.js).
+
+## Jugar ya (22-nov-2026, rama investigacion; imprescindible 4.3)
+Meta del informe: el primer punto en menos de 20 s para quien llega por un enlace. Antes: portada → JUGAR → Partido rápido → ¡A JUGAR! →
+panel «Primer partido» → Jugar (5 toques) y, en el móvil, podía salir antes el aviso de instalar.
+- **Portada (#btnNow):** solo con el récord de Partido rápido a 0 y sin Carrera activa (`syncHero` → `nowWanted`). menu-jugador.js lo pinta como
+  billete dorado (`.sp-ticket.sp-gold`, «Primera vez · ¡Jugar ya! · Un set a 15 contra la CPU», el balón en el talón) en el sitio de
+  «Continuar carrera» (nunca salen los dos). Con él, JUGAR pierde `.primary` y enseña su línea, el foco por defecto (`pageFocus`) es el
+  billete y `#menu.has-now-mj` aplica las mismas reglas de alto que la Carrera (en el móvil sin logotipo: con él la fila de ayuda se salía a
+  844×390). Portada de antes (?menu=old): `.has-now` en `.mlist`, como `.has-cont`.
+- **Un toque:** `goNow` → cortinilla → `actions.playNow('ya')`: 2v2, un set a 15 (`sets:1`, en la playa también, como la prueba de la
+  Carrera), previa mini, sin «Primer partido» (ese sigue para quien entra por JUGAR). Novato: ajuste de dificultad al más fácil. El audio se
+  desbloquea dentro del gesto (también con el mando). Nunca con el aviso de instalar abierto.
+- **?jugar:** directo al partido corto tras el telón (como `&drill=`), sin gesto: el audio arranca con el primer toque/tecla y no se pide
+  pantalla completa. Se quita del enlace (recargar no arranca otro). Con un traspaso #mig pendiente no arranca: si trae algo recarga (ya sin
+  `jugar`); si no, al acabar y solo si sigue en el menú sin panel.
+- **Revancha:** la de un partido «Jugar ya» repite el formato corto (`endPrimary` con `g.playNow`); «Reiniciar» repite `lastOpts`.
+- **Hoja final del PRIMER partido** (récord de 0 a 1): bloque «Y ahora» al final del Resumen (`endFirstRow`) con tres pegatinas crema
+  pequeñas: Carrera (al menú en Jugar y abre la Carrera), Vestuario y Cuenta (solo sin sesión). En el móvil sin la línea pequeña; a 568×320
+  van en dos filas. Solo esa vez.
+- **Aviso de instalar** (install.js): espera a que el récord tenga un partido (sale al volver al menú, como antes).
+- **Tiempo hasta el primer punto** (sin analítica, nada sale del aparato): `make-the-cut.firstpt` = `{ms, m, via, d}` la primera vez que hay
+  un punto en un partido de verdad con el récord a 0; `VB.UI.firstPoint()`. Ajustes no lo enseña.
+- Pruebas: `node tools/jugaryatest.js` (portada, toque, partido corto, primer punto, «Y ahora», ?jugar, aviso de instalar en el móvil);
+  mobaudit `home-jugarya` y `final-primero`; drive.js baja con ↓ del billete a JUGAR en el perfil nuevo.
+

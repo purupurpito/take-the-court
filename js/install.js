@@ -2,7 +2,8 @@
  * Tutorial de «instalar» el juego (añadirlo a la pantalla de inicio) para jugar a pantalla completa en el móvil, sin la barra de
  * direcciones. Pasos dibujados según dónde se abre: iPhone/iPad (Safari), Android (Chrome; botón «Instalar» directo si el
  * navegador lo ofrece) y navegadores de dentro de otras apps (WhatsApp, Instagram…), donde lo primero es abrirlo en el navegador.
- *  - Sale UNA vez, sola, la primera vez que se entra desde un móvil sin tenerlo instalado (clave 'make-the-cut.install').
+ *  - Sale UNA vez, sola, la primera vez que se entra desde un móvil sin tenerlo instalado (clave 'make-the-cut.install'), y nunca antes de
+ *    acabar el primer partido («Jugar ya», 1.22.0: primero se juega).
  *  - Se cierra al momento: «Ahora no», la ✕, tocando fuera o con Esc. No vuelve a salir sola.
  *  - Se vuelve a abrir con VB.Install.open() (el botón «Pantalla completa» del menú en iPhone y en navegadores de apps).
  * Sin dependencias: crea su propio DOM y su CSS (usa los colores de index.html).
@@ -259,12 +260,16 @@
   /** ¿Tiene sentido ofrecerlo aquí? (móvil o tableta sin el juego instalado) */
   function useful() { return touch() && !standalone(); }
 
-  // Primera visita desde el móvil: sale sola una vez, cuando ya se ve el menú. Nunca en las pruebas (?debug=…) ni instalada.
+  // Primera visita desde el móvil: sale sola una vez, cuando ya se ve el menú y después del primer partido (ver played). Nunca en las pruebas (?debug=…) ni instalada.
   // Nunca a la vez que otro panel (p. ej. «Primer partido», que sale al tocar JUGAR la primera vez): espera a que la portada del
   // menú esté libre (VB.UI.menuIdle: sin panel, sin cortinilla, sin Carrera) 1,5 s seguidos. Si el jugador se va a jugar antes,
   // sale al volver al menú tras el partido; si cierra la página antes, en la próxima visita (no se marca como visto).
+  // «Jugar ya» (1.22.0, informe 4.3): quien no ha jugado nunca un partido (récord 'make-the-cut.record' a 0 o sin él) va primero a jugar;
+  // el aviso espera a que haya acabado su primer partido (sale al volver al menú, como siempre). Lo de antes de jugar no cuenta.
+  function played() { try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); return !!(r && r.played > 0); } catch (e) { return true; } }
   function idle() {
     var c = VB.ctx, U = VB.UI;
+    if (!played()) return false;
     if (c && c.state && c.state !== 'menu') return false;
     if (U && U.menuIdle) { try { if (!U.menuIdle()) return false; } catch (e) { return false; } }
     else if (U && U.isPanelOpen && U.isPanelOpen()) return false;

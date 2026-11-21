@@ -179,6 +179,12 @@ acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3)
 - `actions.portrait(req)` → `{key, url}` (cola de retratos: `url` al momento si está en la caché LRU de 12 URL `blob:`; si no, encola y
   avisa con el evento DOM `vb-portrait` `{key, url}`), `actions.portraitDrop(key)`, `portraitInfo()` (pruebas: `{queue, cached, n, ms, warm,
   freed}`). Los retratos solo se pintan en `'menu'`/`'over'`, nunca en `'playing'` (R8: la previa usa los ya precargados).
+- **(22-nov-2026, 4.3 «Jugar ya»)** `actions.playNow(via)` (via `'ya'` \| `'jugar'`): `startMatch({format:'2v2', introKind:'mini', sets:1,
+  points:15, playNow: via})`; quien no ha jugado nunca (récord a 0) pasa antes el ajuste `difficulty` al más fácil (salvo `?diff=`).
+  `startMatch` acepta `opts.playNow` y lo deja en `g.playNow` (fuera de la sim: ni huella ni g.rng). `?jugar` arranca `playNow('jugar')` tras
+  el telón (con un traspaso #mig pendiente, al acabar si no recarga) y se quita del enlace. `VB.UI.firstPoint()` → `{ms, m, via, d}` | null
+  (clave del aparato `make-the-cut.firstpt`, no la sube account.js). Pruebas: `debug=menu&now=1` (portada con «¡Jugar ya!»),
+  `debug=over&first=1` (hoja con «Y ahora»), `&fp=1` (apunta el primer punto en depuración). Detalle en notes/ui_main.md «Jugar ya».
 - `actions.playBest(i?)`: mejores jugadas desde la hoja final (`VB.Replay.playBest(i, VB.UI.replayDone)`); solo en `'over'`.
 - `actions.startMatch(opts)` admite además `map` (id de sede fuera de la Carrera; 6v6 solo sedes de pabellón), `noAttrs`, `noBadges`,
   `reto` (→ `g.reto` y `g.retoOpts`, copia de opts para «Otra vez») e `introKind` ('mini'|'short'|'long'). Los partidos humanos crean la

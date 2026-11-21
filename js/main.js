@@ -641,6 +641,8 @@
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
+    // «Jugar ya» (informe 4.3): marca para ui.js (revancha también corta, «Y ahora» en la hoja y el tiempo hasta el primer punto). Fuera de la sim
+    if (opts.playNow && !cs && !auto && !fmt) g.playNow = String(opts.playNow);
     if (cs) cs.calls = ctx.settings.coachCalls !== false;   // consignas del entrenador en directo (career.js, js/consignas.js)
     if (cs) { cs.ambient = auto ? 'off' : ctx.settings.ambient || 'full'; cs.ambSum = null; }   // ambiente de Carrera (career.js crea VB.Ambiente)
     // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
@@ -661,6 +663,14 @@
     if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   };
   var lastOpts = null;
+  /** «Jugar ya» (1.22.0, informe 4.3): partido corto para empezar sin menús. 2 contra 2, UN set a 15 contra la CPU, previa mini y sin el
+   *  panel «Primer partido» (ese sigue para quien entra por JUGAR). Quien no ha jugado nunca (isRookie) juega en el nivel más fácil (se
+   *  guarda en Ajustes, como «Jugar» de «Primer partido»; la hoja final propone el siguiente desde ahí); quien ya ha jugado, en el suyo.
+   *  ?diff= manda (pruebas). via: 'ya' (botón de la portada) | 'jugar' (?jugar). Lo llaman ui.js goNow (bajo la cortinilla) y el arranque. */
+  ctx.actions.playNow = function (via) {
+    if (isRookie() && !Q.diff && ctx.settings.difficulty !== DIFFS[0]) ctx.actions.setSetting('difficulty', DIFFS[0]);
+    ctx.actions.startMatch({ format: '2v2', introKind: 'mini', sets: 1, points: 15, playNow: via === 'jugar' ? 'jugar' : 'ya' });
+  };
 
   // ---------- ONLINE (fase 1; owner net, notes/net.md) ----------
   // Partido 1 contra 1 dentro del 2v2 entre dos máquinas (VB.Net.Session: rollback simétrico). ctx.game es la VISTA (net.view): una
@@ -3148,6 +3158,19 @@
     if (ctx.debug) debugScene(ctx.debug); else ctx.actions.toMenu();
     // E6: &drill=<id> empieza ese ejercicio (&gymauto=1: la IA juega por ti; lo usa tools/gymtest.js); sin autopilot espera al telón
     if (!ctx.debug && drillId(Q.drill)) ctx.actions.startMatch({ drill: Q.drill, autopilot: Q.gymauto === '1' });
+    // «Jugar ya» (informe 4.3): ?jugar en el enlace = directo al partido corto (espera al telón como &drill=). Sin gesto todavía: el audio
+    // se desbloquea con el primer toque o tecla (pointerdown/keydown de arriba; el mando, con it.any) y la pantalla completa no se pide.
+    // Nunca con un traspaso de partidas pendiente (#mig: acaba en una recarga) ni en depuración. Se quita del enlace para que recargar o
+    // volver atrás no arranque otro partido.
+    if (Q.jugar != null) {
+      try { if (history.replaceState) { var jq = location.search.replace(/([?&])jugar(=[^&]*)?(&|$)/, function (m0, a, b, c) { return c ? a : ''; }).replace(/[?&]$/, ''); history.replaceState(history.state, '', location.pathname + jq + location.hash); } } catch (e) { }
+      var M = VB.Migrate;
+      if (!ctx.debug && !drillId(Q.drill)) {
+        // (traspaso en marcha: si trae algo, recarga sin ?jugar; si no trae nada, al acabar, y solo si sigue en el menú sin nada delante)
+        if (M && M.pending && M.pending() && M.whenDone) M.whenDone(function () { if (ctx.state === 'menu' && !call('UI', 'isPanelOpen')) ctx.actions.playNow('jugar'); });
+        else ctx.actions.playNow('jugar');
+      }
+    }
     if (Q.prewarm !== '0') prewarm(Q.prewarm === 'c' || Q.prewarm === 'r' ? Q.prewarm : 't'); // tras el telón de carga (en depuración, el primer frame lo tapa)
     // programas: en paralelo bajo el telón; no se pinta hasta que estén (el hilo queda libre: telón, fuentes y audio siguen)
     if (Q.prewarm !== '0' && Q.prewarm !== 'c' && Q.prewarm !== 'r') { prewarmPrograms(true); needWarmDraw = Q.warmdraw !== '0'; }

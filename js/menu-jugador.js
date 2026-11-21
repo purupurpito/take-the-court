@@ -67,6 +67,15 @@
     cls(p[0], 'sp-btn sp-sm sp-ink'); p[0].setAttribute('data-shape', String(i)); label(p[0]);
     p[0].insertAdjacentHTML('afterbegin', '<span class="sp-ic">' + p[1] + '</span>'); strip.appendChild(p[0]);
   });
+  // «Jugar ya» (1.22.0, informe 4.3; solo sin partidos jugados, ui.js syncHero lo enseña): billete dorado con el balón en el talón, en el
+  // sitio de «Continuar carrera» (nunca salen los dos). Los hijos de la portada de antes (.pl-tx, .go) se quedan, ocultos por CSS
+  var bNow = $('btnNow');
+  if (bNow) {
+    bNow.classList.remove('mi', 'primary'); cls(bNow, 'sp-ticket sp-gold');
+    bNow.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.BALL + '</span></span><span class="sp-tk-main"><small class="sp-k">Primera vez</small>' +
+      '<b class="sp-t">¡Jugar ya!</b><small class="sp-s">Un set a 15 contra la CPU</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
+    nav.appendChild(bNow);
+  }
   if (bCont) { cls(bCont, 'sp-ticket'); bCont.appendChild(mk('span', 'sp-tk', '')); nav.appendChild(bCont); }
   nav.appendChild(go); nav.appendChild(tape); nav.appendChild(strip);
   var sub = $('playMainSub'); if (sub) sub.textContent = 'Partido rápido, 6 contra 6 y entrenamiento';

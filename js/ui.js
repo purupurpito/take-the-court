@@ -372,6 +372,22 @@
     return out;
   }
   function saveRecord() { try { localStorage.setItem('make-the-cut.record', JSON.stringify(record)); } catch (e) { } }
+  // «Jugar ya» (1.22.0, informe 4.3): cuánto se tarda en ver el PRIMER punto, medido en este aparato y sin analítica (nada sale de aquí;
+  // account.js no sube esta clave). Una sola vez, en el primer partido de verdad de quien no ha jugado nunca (récord a 0):
+  // 'make-the-cut.firstpt' = {ms: desde que se abrió la página, m: desde que empezó el partido, via: 'jugar' (?jugar) | 'ya' (botón de
+  // la portada) | 'menu' (Jugar › Partido rápido) | 'carrera' | 'otro', d: 'AAAA-MM-DD'}. VB.UI.firstPoint() la lee (Ajustes no la enseña).
+  var FP_KEY = 'make-the-cut.firstpt', fpT0 = 0, fpDone = (function () { try { return !!localStorage.getItem(FP_KEY); } catch (e) { return true; } })();
+  function fpNote(g) {
+    if (fpDone) return;
+    if (!g || g.demo || g.autopilot || g.drill || g.online || ctx.net || g.watch0) return;
+    if (ctx.debug && ctx.params.fp !== '1') return;   // (pruebas: &fp=1)
+    fpDone = true;
+    if (record.played !== 0) return;   // ya había jugado (récord de antes): no es su primer punto
+    var now = performance.now(), dt = new Date(), pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var o = { ms: Math.round(now), m: fpT0 ? Math.round(now - fpT0) : 0, via: g.playNow ? String(g.playNow) : g.career ? 'carrera' : g.size === 2 && !g.reto && !g.sit ? 'menu' : 'otro',
+      d: dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) };
+    try { localStorage.setItem(FP_KEY, JSON.stringify(o)); } catch (e) { }
+  }
   function click() { sndT = performance.now(); if (VB.Audio && VB.Audio.click) try { VB.Audio.click(); } catch (e) { } }
   function uiSound(kind) { sndT = performance.now(); try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(kind); else click(); } catch (e) { } }
   // B4: un sonido por tipo de acción. uiK(tipo, reserva, a, b): VB.Audio.ui(tipo) si audio.js lo tiene (VB.Audio.UI_KINDS); si no, la
@@ -435,7 +451,7 @@
       // Vestuario (1.1.0): botón de la portada, atajo de Jugadores, página, giro y avisos
       'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote', 'lkGrid', 'lkTabChip',
       // sprint 2-4: B3 «Continuar carrera» (portada) y B5 previa (rótulo inferior y lo que está en juego)
-      'btnCont', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake',
+      'btnCont', 'btnNow', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake',
       // B6 hoja final con pestañas y D1 retos (franja de Jugar y página)
       'endTabs', 'endSum', 'endStatsTab', 'endPlays', 'btnRetos', 'retoSub', 'retoMeds', 'mpRetos', 'btnRetosBack', 'rtTabs', 'rtBody', 'rtFoot',
       // S3-C1: repetición (mosca, rótulo, pista de saltar con «Salir» y aviso para el lector de pantalla)
@@ -981,6 +997,8 @@
       if (e.type === 'newSet') lastSpKey = '';
       if (g.demo) continue;
       if (e.amb) { ambEvent(e, g); continue; }   // Ambiente de Carrera (amb:*): ni estadísticas, ni insignias, ni retos
+      if (e.type === 'newMatch') fpT0 = performance.now();
+      if (e.type === 'point' && !fpDone && !e.replay) fpNote(g);   // «Jugar ya»: tiempo hasta el primer punto (una vez, solo en este aparato)
       if (e.type === 'point' && e.penalty) ambPenOk(e);   // (punto de castigo que sí llegó: su tarjeta lo dice en la hoja)
       if (ovr && e.type === 'point') { if (netP) { s0 = stats; stats = pstats; untally(); stats = s0; } else untally(); e._ovr = true; }
       if (netP) { s0 = stats; stats = pstats; tally(e); stats = s0; } else tally(e);   // (online: lo presentado no cuenta en la hoja)
@@ -3143,7 +3161,11 @@
   // #contS/#contPt/#contCr y dice si hay una carrera activa sana; ui.js decide hidden, .primary y .has-cont (sin :has por iOS 15).
   // Sin carrera (o sin syncHero) la portada es la de siempre. Se repinta al entrar en el menú, al cerrar la Carrera, al cambiar el
   // Vestuario (la clave del retrato) y tras una bajada de la cuenta (VB.UI.refreshMenu); nunca por frame.
-  var heroDirty = true, heroOn = false, contOpen = false, crWasOpen = false;
+  var heroDirty = true, heroOn = false, contOpen = false, crWasOpen = false, nowOn = false;
+  // «Jugar ya» (1.22.0, informe 4.3): #btnNow solo para quien no ha jugado nunca un partido rápido (récord a 0) y sin Carrera activa; un
+  // toque = un set a 15 contra la CPU (main.js playNow), sin Jugar ni «Primer partido» (que sigue saliendo a quien entra por JUGAR).
+  // En depuración no sale (mobaudit/capturas: &now=1 lo fuerza). Con él, JUGAR pasa a fila plana con su línea, como con la Carrera.
+  function nowWanted() { return ctx.debug ? ctx.params.now === '1' && !heroOn : !heroOn && record.played === 0; }
   function syncHero() {
     heroDirty = false;
     if (!el.btnCont) return;
@@ -3154,9 +3176,18 @@
     var ml = el.btnCont.parentNode;
     if (ml && ml.classList.contains('has-cont') !== show) ml.classList.toggle('has-cont', show);
     if (el.menuCol && el.menuCol.classList.contains('has-cont') !== show) el.menuCol.classList.toggle('has-cont', show);
-    if (el.btnPlay.classList.contains('primary') === show) el.btnPlay.classList.toggle('primary', !show);
-    if (el.playMainSub && el.playMainSub.hidden === show) el.playMainSub.hidden = !show;
-    if (!show && document.activeElement === el.btnCont && mpage === 'main') focusEl(el.btnPlay, kbNow());
+    var nw = !!el.btnNow && nowWanted(); nowOn = nw;
+    if (el.btnNow) {
+      if (el.btnNow.hidden === nw) el.btnNow.hidden = !nw;
+      if (ml && ml.classList.contains('has-now') !== nw) ml.classList.toggle('has-now', nw);
+      if (el.menuCol && el.menuCol.classList.contains('has-now') !== nw) el.menuCol.classList.toggle('has-now', nw);
+      if (el.menu && el.menu.classList.contains('has-now-mj') !== nw) el.menu.classList.toggle('has-now-mj', nw);
+    }
+    var flat = show || nw;
+    if (el.btnPlay.classList.contains('primary') === flat) el.btnPlay.classList.toggle('primary', !flat);
+    if (el.playMainSub && el.playMainSub.hidden === flat) el.playMainSub.hidden = !flat;
+    if (!show && document.activeElement === el.btnCont && mpage === 'main') focusEl(nw ? el.btnNow : el.btnPlay, kbNow());
+    if (!nw && el.btnNow && document.activeElement === el.btnNow && mpage === 'main') focusEl(show ? el.btnCont : el.btnPlay, kbNow());
   }
   /** «Continuar carrera»: abre el hub en «Partido» con el foco en «Jugar partido» (el partido no empieza solo; R15: from 'main'). */
   function goCont() {
@@ -3442,6 +3473,7 @@
     var win = e.team === 0, T = stats.t;
     endAw = []; endBd = []; endAltName = '';
     var isNew = false, career = !!(ctx.game && ctx.game.career && !ctx.game.demo);
+    firstEnd = !!(ctx.debug && ctx.params.first === '1' && !career);   // (pruebas y mobaudit: debug=over&first=1 enseña «Y ahora»)
     var watch = !!(ctx.game && ctx.game.watch0 && !ctx.game.demo);   // 6v6 espectador: tampoco cuenta (g.watch0: el de verdad; g.watch también vale en el banquillo)
     // 6v6 con humano (sprint 3): tampoco. El récord (y con él el fin de los consejos a la 1ª victoria, el novato de main.js
     // isRookie y la guía del primer partido) es del 2 contra 2; el 6v6 lo arrastra su equipo IA
@@ -3451,6 +3483,7 @@
     var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (Ferran: sin XP ni medallas): sin récord, perfil, XP ni insignias
     if (!ctx.debug && !career && !watch && !six && !online && !sitG) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
       record.played++; if (win) { record.wins++; record.winRun++; } else record.winRun = 0;
+      firstEnd = record.played === 1;   // «Jugar ya»: su primer partido → el Resumen ofrece Carrera, Vestuario y cuenta (endFirstRow)
       // los consejos del partido acompañan hasta la primera victoria; luego se apagan (se reactivan en Ajustes · Juego · Consejos)
       if (win && record.wins === 1 && ctx.settings.coachTips !== false) ctx.actions.setSetting('coachTips', false);
       if (T[0].best > record.bestStreak) { record.bestStreak = T[0].best; isNew = record.bestStreak >= 3; } // las rachas cortas no son récord
@@ -3564,7 +3597,7 @@
   // jugadas de VB.Replay (la rellena la integración de las repeticiones). Partido rápido y retos: endRecap desde showEnd. Carrera:
   // main.js llama a VB.UI.endCareer(sum, g, x) tras VB.Career.matchDone, en el mismo frame y después de showEnd, y se repinta.
   // Sin js/recap.js: sin pestañas, la hoja de antes.
-  var endAw = [], endBd = [], endAltName = '', unl0 = null, recapM = null, recapD = null, endTabsApi = null, endTab = 'sum', endRcSnd = null;
+  var firstEnd = false, endAw = [], endBd = [], endAltName = '', unl0 = null, recapM = null, recapD = null, endTabsApi = null, endTab = 'sum', endRcSnd = null;
   var RC_MED = ['', 'bronce', 'plata', 'oro'];
   /** Concede ya lo que se gana fuera de la Carrera (VB.Look.checkGlobal: Entrenamiento, récord, retos, nivel de perfil). Ids, sin aviso. */
   function lookGrantNow() {
@@ -3666,6 +3699,7 @@
     endSeal(!watch && d.reto && retoEnd && retoEnd.day ? retoEnd.day : null);   // (SPLAT: reto del día → sello dorado junto al título)
     renderPlays(watch ? 0 : d.plays | 0);
     if (!watch) endButtons(M);
+    if (firstEnd && !watch && !cs && !ctx.net) endFirstRow();
     if (ctx.net) { onlineEndButtons(); onlineEndRec(); }
     var tabs = watch ? ['stats'] : M.tabs, q = ctx.debug && ctx.params.tab;
     endPanes(tabs, q === 'stats' && tabs.indexOf('stats') >= 0 ? 'stats' : q === 'plays' && tabs.indexOf('plays') >= 0 ? 'plays' : tabs[0], watch, M.tabLabels);
@@ -3960,6 +3994,35 @@
     el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : has.share ? 'Enviar' : '');
     if (el.btnEndOpts) { if (o && o.id === 'group') el.btnEndOpts.setAttribute('data-short', 'Grupo'); else el.btnEndOpts.removeAttribute('data-short'); }   // (móvil: rótulos cortos de la situación)
     endOptsPill(has.againAlt && o && o.id === 'opts' ? o.label : '');
+  }
+  /** «Jugar ya» (1.22.0, informe 4.3): al acabar el PRIMER partido (récord de 0 a 1), una fila al final del Resumen con lo que hasta
+   *  ahora no se ha enseñado: Carrera, Vestuario y Cuenta (esta, solo sin sesión). Pegatinas pequeñas de crema (SPLAT, como la píldora de
+   *  «Cambiar opciones»); cada una vuelve al menú bajo la cortinilla y abre lo suyo. Solo esa vez: en el 2º partido ya no sale. */
+  function endFirstRow() {
+    var sum = el.endSum; if (!sum) return;
+    var old = sum.querySelector('.rc-first'); if (old) old.parentNode.removeChild(old);
+    var A = VB.Account, acc = !!(A && A.open) && !(A.user && safe(A.user));
+    var it = [['career', 'Carrera', 'Tu propio jugador'], ['look', 'Vestuario', 'Tu aspecto']];
+    if (acc) it.push(['acc', 'Cuenta', 'Guarda tu progreso']);
+    var d = document.createElement('div'); d.className = 'rc-b rc-first'; d.style.setProperty('--i', String(sum.children.length));
+    d.innerHTML = '<span class="rc-h">Y ahora</span><div class="rc-c rc-fr" data-nav data-sp-row>' + it.map(function (x, i) {
+      return '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="' + i + '" data-first="' + x[0] + '" aria-label="' + escT(x[1] + ': ' + x[2]) + '"><span class="sp-l"><span class="sp-t">' + escT(x[1]) + '</span><span class="sp-s">' + escT(x[2]) + '</span></span></button>';
+    }).join('') + '</div>';
+    Array.prototype.forEach.call(d.querySelectorAll('[data-first]'), function (b) { b.addEventListener('click', function () { uiSound('click'); goFirst(b.getAttribute('data-first')); }); });
+    sum.appendChild(d);
+    if (VB.Splat && VB.Splat.decorate) VB.Splat.decorate(d);
+  }
+  /** Fila de endFirstRow: al menú (bajo la cortinilla) y abre la Carrera (desde Jugar), el Vestuario o la cuenta. */
+  function goFirst(k) {
+    var f = function () {
+      ctx.actions.toMenu();
+      if (ctx.state !== 'menu') return;
+      if (k === 'look') { openLook(); return; }
+      if (k === 'acc') { if (VB.Account && VB.Account.open) VB.Account.open(); return; }
+      mstack.length = 0; mstack.push({ p: 'main', f: 'btnPlay' }); setPage('play');
+      var CU = VB.CareerUI; if (CU && CU.open) { try { CU.open(undefined, { from: 'play' }); } catch (e) { console.error('[VB][ERROR] CareerUI.open: ' + e); } }
+    };
+    if (!wipeRun(2, f) && !wp.cb) f();
   }
   /** Móvil (MV-4): rótulo corto de «Revancha en <nivel>» (CSS lo pone con ::after en :root.ph): «Más difícil» / «Más fácil». */
   function altShort(lb) {
@@ -4432,7 +4495,7 @@
   var mpage = 'main', mstack = [];
   function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : p === 'retos' ? el.mpRetos : p === 'prof' ? el.mpProf : p === 'online' ? el.mpOnline : el.menuCol; }
   function netLobbyFocus() { var f = VB.NetLobby && VB.NetLobby.focus ? safe(VB.NetLobby.focus) : null; return f || el.btnOnlineBack; }
-  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : el.btnPlay; }
+  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : nowOn && el.btnNow && !el.btnNow.hidden ? el.btnNow : el.btnPlay; }
   function setPage(p, anim) {
     var was = mpage;
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
@@ -5703,6 +5766,15 @@
     // (6v6, lote A D9: justo después de startMatch, el puesto elegido en Controlar; la sim mueve g.ctrl a ese jugador)
     if (!wipeRun(2, function () { if (diff) ctx.actions.setSetting('difficulty', diff); ctx.actions.startMatch(o); applyRole6(); }) && !wp.cb) { ctx.actions.startMatch(o); applyRole6(); }
   }
+  /** «Jugar ya» (#btnNow, informe 4.3): un set a 15 contra la CPU bajo la cortinilla (main.js playNow). El gesto del toque desbloquea el
+   *  audio (startMatch llama a Audio.unlock dentro de la cortinilla, y el pointerdown de main.js antes). Nunca con el aviso de instalar delante. */
+  function goNow(via) {
+    if (!ctx.actions.playNow) { goMatch(); return; }
+    if (VB.Install && VB.Install.isOpen && VB.Install.isOpen()) return;
+    if (VB.Audio && VB.Audio.unlock) { try { VB.Audio.unlock(); } catch (e) { } }   // (dentro del gesto: el mando no pasa por pointerdown)
+    var f = function () { ctx.actions.playNow(via || 'ya'); };
+    if (!wipeRun(2, f) && !wp.cb) f();
+  }
   /** Formato del partido en curso (para repetirlo), o undefined (sin partido humano de Partido rápido). */
   function curFmt() { var g = ctx.game; return g && !g.demo && !g.watch && !g.career ? (g.size === 6 ? '6v6' : '2v2') : undefined; }
   function goMenu() { if (!wipeRun(2, function () { ctx.actions.toMenu(); }) && !wp.cb) ctx.actions.toMenu(); }
@@ -5715,6 +5787,7 @@
     if (act === 'next' || ctx.net) { goMenu(); return; }   // (online: si no, al menú)
     if (g && g.sit && !g.demo) { if (act === 'share') semShare(); else goSemana(true); return; }   // la situación: «Otro intento» / «Compartir»
     if (g && g.retoOpts && !g.demo) { goReto(true); return; }
+    if (g && g.playNow && !g.career && !g.demo && g.size !== 6) { goNow(g.playNow); return; }   // («Jugar ya»: la revancha, también corta)
     goMatch(null, undefined, !(g && g.career));
   }
   /** Hoja final → «Cambiar opciones»: al menú y directo a la preparación del Partido rápido (Volver lleva a Jugar y luego a la portada). */
@@ -8120,6 +8193,8 @@
     openAbout: function (tab) { openAbout(tab, panel ? panelFrom : ctx.state); },
     /** Pruebas (E7): {seen, returning, auto: 'off' | 'waiting' | 'shown'}. */
     _about: function () { return { seen: seenGet(), returning: wasReturning, auto: aboutAuto }; },
+    /** «Jugar ya» (1.22.0): tiempo hasta el primer punto en este aparato {ms, m, via, d} (ver FP_KEY) o null si aún no hay. Sin analítica. */
+    firstPoint: function () { try { return JSON.parse(localStorage.getItem(FP_KEY) || 'null'); } catch (e) { return null; } },
     /** Pruebas (E3): panel abierto, pila de vuelta, pestaña de Ajustes, pestañas compactas y captura en curso. */
     _settings: function () { return { panel: panel, stack: pstack.map(function (x) { return x.name; }), tab: setTabs ? setTabs.get() : '', compact: !!(el.setTabs && el.setTabs.classList.contains('tabs-ic')), capturing: capturing, ctl: ctlView, glyph: { hit: GLYPH.keyboard.hitT, jump: GLYPH.keyboard.jumpT, padHit: GLYPH.gamepad.hitT } }; },
     /** Portada del menú libre (sin panel, sin cortinilla, sin telón): install.js espera a esto para su aviso (nunca encima de «Primer partido»). */
@@ -8210,6 +8285,7 @@
       lkInit();   // Vestuario
       el.btnFirstTut.addEventListener('click', function () { click(); openPanel('tut', 'menu'); });
       el.btnFirstPlay.addEventListener('click', function () { uiSound('start'); goMatch(); });
+      if (el.btnNow) el.btnNow.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goNow('ya'); });
       // Dificultad: ‹ baja y › sube (zonas propias, UI-06); un clic en el resto de la fila sigue avanzando en ciclo
       el.optDiff.addEventListener('click', function (ev) {
         var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;

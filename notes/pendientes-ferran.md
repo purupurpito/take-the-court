@@ -23,6 +23,16 @@ rama pendientes, sin publicar.
   **Decisión provisional:** dos filas nuevas en Ajustes › Audio, «Sonidos de dibujo» (`toonSfx`) y «¡PAM!» (`onoma`), Sí/No, las dos
   en Sí por defecto. Si sobran botones, se quitan las dos filas de index.html (y sus `OPT` de ui.js); los ajustes se siguen guardando.
   **Decisión provisional:** no se añade una clave nueva de «racha de victorias» para el catálogo (el logro `s5` de la Carrera ya lo cubre).
+- **4.3 «Jugar ya»** (notes/ui_main.md «Jugar ya»). Botón en la portada solo para quien no ha jugado nunca, `?jugar` en el enlace, aviso de
+  instalar después del primer partido, «Y ahora» (Carrera, Vestuario, Cuenta) al acabar ese partido y tiempo hasta el primer punto guardado
+  solo en el aparato (`VB.UI.firstPoint()`). **Decisiones provisionales:**
+  1. El botón es un billete dorado «¡Jugar ya!» ENCIMA de JUGAR (en el sitio del de la Carrera), no sustituye a JUGAR; desaparece en cuanto
+     hay un partido en el récord. En el móvil, con él, la portada va sin logotipo (como con la Carrera: si no, la ayuda no cabe a 844×390).
+  2. Partido «Jugar ya» = 2v2, un set a 15 contra la CPU (también en la playa), en Fácil para el novato (se queda en Ajustes, como «Primer
+     partido»); la revancha de ese partido también es corta.
+  3. `?jugar` vale para todos (no solo novatos): arranca el partido corto sin pasar por el menú y se quita del enlace.
+  4. «Y ahora» sale una sola vez, al acabar el primer partido; Cuenta solo si no hay sesión.
+  ¿Te vale el billete encima de JUGAR, o prefieres que JUGAR haga de «Jugar ya» la primera vez (un botón menos)?
 - **Preguntas del reglamento (informe §7, puntos 2 y 4; los textos NO se han tocado):**
   1. Falta de posición (`RULES.posicion` de js/senas.js): el texto dice «todos en su sitio de rotación», pero el juego **solo** la pita
      al equipo que recibe (regla 7.4, desde 1.11.0); la justificación del 21-nov (que también pita al que saca) es falsa. Propuesta:
