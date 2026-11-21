@@ -778,6 +778,7 @@
     for (var i = 0; i < L.length && n < OFFI.length; i++) {
       var q = L[i] && L[i].sim; if (!q) continue;
       var o = OFFI[n++], r1 = q.z > 0.5;   // (el 1r árbitro, subido en su silla: toda la silla cuenta)
+      // (juez de línea: siempre con la bandera alzada, 2,25 m —margen por si la levanta—; camtest solo la cuenta alzada si de verdad lo está)
       o[0] = q.x; o[1] = q.y; o[2] = r1 ? 0 : q.z; o[3] = q.z + (r1 ? 1.85 : Math.abs(q.y) > 8 ? 1.35 : L[i].lines ? 2.25 : 1.85); o[4] = r1 ? 0.55 : 0.4;
     }
     OFFN = n; for (; n < OFFI.length; n++) { o = OFFI[n]; o[0] = 1e3; o[1] = 1e3; o[2] = 0; o[3] = 0; o[4] = 0; }   // (sin jueces de línea: huecos fuera)
@@ -2863,7 +2864,7 @@
    * K.outYaw/outPitch. Solo lee g (y VB.Sim.predictLanding, sin g.rng): la sim no cambia. Con todo a 0, la cámara es EXACTAMENTE la de antes. */
   var CT = { on: false, e: 0.5, eT: 0.5, dp: 0.5, dy: 0.5, ay: 0.5, ap: 0.5, by: 0.5, bp: 0.5, hold: 0.5, hW: 0.5, quiet: 0.5, ux: 0.5, uy: 0.5, v: [0.5, 0.5, 0.5], n: 0, act: false };
   (function () { CT.e = CT.eT = CT.dp = CT.dy = CT.ay = CT.ap = CT.by = CT.bp = CT.hold = CT.hW = CT.quiet = CT.ux = CT.uy = 0; CT.v[0] = CT.v[1] = CT.v[2] = 0; })();
-  var CTX = [0.5, 0.5, 0.5], CTY = [0.5, 0.5, 0.5], CTZ = [0.5, 0.5, 0.5], CTK = [0, 0, 0], CTL = { x: 0.5, y: 0.5, z: 0.5, t: 0.5 };
+  var CTX = [0.5, 0.5, 0.5, 0.5], CTY = [0.5, 0.5, 0.5, 0.5], CTZ = [0.5, 0.5, 0.5, 0.5], CTK = [0, 0, 0, 0], CTL = { x: 0.5, y: 0.5, z: 0.5, t: 0.5 };
   var CTE = [0, 0.8, 1.6, 2.4, 3.2, 4.2, 5.2, 6.4, 7.6];
   var CTR = { dp: 0.5, dy: 0.5, ok: false, hard: false }, CTQ = { x: 0.5, y: 0.5, z: 0.5 }, PB = V(), ctV = null;
   var CTD = { on: false, e: 0, dp: 0, dy: 0, why: '' };   // (getDebug().ct)
@@ -2880,6 +2881,15 @@
     var toCam = b.vx * CT.ux + b.vy * CT.uy > 1;
     if (hyp3(b.vx, b.vy, b.vz) <= 16) {
       if (Math.abs(b.x) < HL && Math.abs(b.y) < HW) { CTX[n] = b.x; CTY[n] = b.y; CTZ[n] = mx(BR, b.z); CTK[n] = 0; n++; }
+      // CUMBRE (6v6 en 3ª persona con zoom cerca —1-2— y balón lento que sube): la cámara va más cerca y más baja y la lente ya está al
+      // tope; una colocación o un balón libre alto asomaba por arriba antes de que la contención reaccionara (en táctil, 7 % de la
+      // colocación propia fuera). La cumbre balística entra como punto previsto que solo pide RETROCESO (CTK = 2: ni giro ni cabeceo, que
+      // sacaban los pies del jugador por abajo), así la contención empieza mientras sube y no cuando ya se ha ido. Con el zoom de siempre
+      // o de lejos, nada cambia
+      if (shot === 'tp' && zoomI < 2 && b.vz > 0.5 && n > 0) {
+        var tU = b.vz / G, ux = b.x + b.vx * tU, uy = b.y + b.vy * tU;
+        if (Math.abs(ux) < HL && Math.abs(uy) < HW) { CTX[n] = ux; CTY[n] = uy; CTZ[n] = b.z + b.vz * b.vz / (2 * G); CTK[n] = 2; n++; }
+      }
       if (!toCam) return n;
       var tl = 0.3, qx = b.x + b.vx * tl, qy = b.y + b.vy * tl, qz = b.z + b.vz * tl - 0.5 * G * tl * tl;
       if (Math.abs(qx) < HL && Math.abs(qy) < HW && ctBehind(g, qx, qy)) { CTX[n] = qx; CTY[n] = qy; CTZ[n] = mx(BR, qz); CTK[n] = 1; n++; }
@@ -2897,7 +2907,7 @@
     for (var i = 0; i < n; i++) {
       VB.toThree(CTX[i], CTY[i], CTZ[i], ctV); ctV.project(cam);
       // (el balón de ahora, con margen; lo previsto, solo si de verdad se va: fuera del cuadro)
-      var mo = CTK[i] ? 1.0 : 0.95, to = CTK[i] ? mx(top, 1.0) : top;
+      var mo = CTK[i] === 1 ? 1.0 : 0.95, to = CTK[i] === 1 ? mx(top, 1.0) : top;
       if (ctV.z > 1 || ctV.x > mo || ctV.x < -mo || ctV.y < -mo || ctV.y > to) { CTD.why = i + ':' + (ctV.z > 1 ? 'detras' : ctV.x.toFixed(2) + ',' + ctV.y.toFixed(2)) + ' ' + shot; return true; }
     }
     return false;
@@ -2918,7 +2928,7 @@
     var tw = t * asp, ok = true, cy = Math.cos(yawB), sy = Math.sin(yawB);
     // jugador: a lo ancho ±0,95, pies >= -0,97 y cabeza <= 0,95
     var pdx = p.x - X, pdy = p.y - Y, pfd = pdx * cy + pdy * sy, ylo = -CT_DY, yhi = CT_DY, plo = -CT_DN, phi = CT_UP;
-    var bylo = -9, byhi = 9, bplo = -9, bphi = 9, nb = 0, k0 = false, k0a = 0, k0b = 0, k0c = 0, k0d = 0, hard = false;
+    var bylo = -9, byhi = 9, bplo = -9, bphi = 9, nb = 0, k0 = false, k0a = 0, k0b = 0, k0c = 0, k0d = 0, k2 = false, k2a = 0, k2b = 0, k2c = 0, k2d = 0, hard = false;
     if (pfd > 0.6) {
       var pa = wrap(at2(pdy, pdx) - yawB), pw = Math.atan(0.95 * tw), pz = mx(0, p.z || 0);
       ylo = mx(ylo, pa - pw); yhi = mn(yhi, pa + pw);
@@ -2931,9 +2941,11 @@
       var dx = CTX[i] - X, dy = CTY[i] - Y, fd = dx * cy + dy * sy;
       if (fd < 0.8) { ok = false; hard = true; continue; }   // (detrás o encima de la cámara: hay que retroceder)
       var a = wrap(at2(dy, dx) - yawB), el = at2(CTZ[i] - Z, fd) - pitB;
-      if (CTK[i]) { var mk = mn(0.97, m + 0.07); bw = Math.atan(mk * tw); bt = Math.atan(mn(0.97, top + 0.07) * t); bb = Math.atan(mk * t); } else { bw = Math.atan(m * tw); bt = Math.atan(top * t); bb = Math.atan(m * t); }
+      if (CTK[i] === 1) { var mk = mn(0.97, m + 0.07); bw = Math.atan(mk * tw); bt = Math.atan(mn(0.97, top + 0.07) * t); bb = Math.atan(mk * t); } else { bw = Math.atan(m * tw); bt = Math.atan(top * t); bb = Math.atan(m * t); }
       // (por orden de prioridad —ahora, a 0,3 s, el bote—: un punto que ya no cabe con los anteriores se deja, y no cabe todo)
       var l1 = mx(bylo, a - bw), h1 = mn(byhi, a + bw), l2 = mx(bplo, el - bt), h2 = mn(bphi, el + bb);
+      // (la cumbre no gira ni cabecea la cámara —eso lo hace el balón de ahora—: solo pide retroceso si con lo elegido no cabría)
+      if (CTK[i] === 2) { k2 = true; k2a = a - bw; k2b = a + bw; k2c = el - bt; k2d = el + bb; continue; }
       if (nb && (l1 > h1 || l2 > h2)) { ok = false; continue; }
       bylo = l1; byhi = h1; bplo = l2; bphi = h2; nb++;
       if (!CTK[i] && !k0) { k0 = true; k0a = a - bw; k0b = a + bw; k0c = el - bt; k0d = el + bb; }
@@ -2949,6 +2961,7 @@
       CTR.dy = yc; CTR.dp = pc;
       // (DURO = el balón de verdad no cabe girando: entonces, y solo entonces, se retrocede; lo previsto que no cabe se queda en giro)
       if (k0 && (yc < k0a - 1e-4 || yc > k0b + 1e-4 || pc < k0c - 1e-4 || pc > k0d + 1e-4)) hard = true;
+      if (k2 && (yc < k2a - 1e-4 || yc > k2b + 1e-4 || pc < k2c - 1e-4 || pc > k2d + 1e-4)) { hard = true; ok = false; }
     }
     CTR.ok = ok; CTR.hard = hard;
   }

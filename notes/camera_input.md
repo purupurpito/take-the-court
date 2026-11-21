@@ -1246,8 +1246,9 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
 - **Otras medidas**: cam6test 3ª persona TODO OK (1280: balón fuera 2,75 % → 0,00 %; 844 táctil: 4,20 % → 0,16 %; JUG 0 %). perf 844×390
   dpr 2,75 CPU ×4: 2v2 baja «objetivos cumplidos»; `EXTRA=format=6v6` baja y media cumplidos (media 264-342 k triángulos según la sede
   al azar). replaytest: la (d) «repetición automática del punto de set» falla igual en f90e165 (no es de este cambio).
-- **Pendiente**: con el zoom 1 (el más cercano) un balón libre que sube a 9-10 m aún se escapa por arriba un momento (98 % en autopilot,
-  97 % con el colocador en táctil); el balón que sale despedido hacia la grada de detrás, con la cámara ya en la pared (x 14,4), se ve
+- ~~**Pendiente**: con el zoom 1 (el más cercano) un balón libre que sube a 9-10 m aún se escapa por arriba un momento (98 % en autopilot,
+  97 % con el colocador en táctil)~~ (medido con el código de 1.8.1, que 1.9.2 deshizo; resuelto el 21-nov-2026, ver «Zoom 1: la cumbre
+  en la contención»); el balón que sale despedido hacia la grada de detrás, con la cámara ya en la pared (x 14,4), se ve
   al borde. No hay plano de reacción nuevo ni seguimiento del remate (CAM-08) en 6v6.
 
 ### Balones muy rápidos: la cámara no los persigue (17-nov-2026, v1.8.2; Ferran)
@@ -1301,3 +1302,42 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
 - En el móvil (`html.ph`) index.html «SPLAT · CAMBIOS Y BANQUILLO» pisa, sin tocar input.js: `.vt-tip` («MOVER») a 12 px, `.08em`, 85 %;
   la lupa `.vt-zoom` a 44×44 (misma altura que la pausa: `top:14px`, `right:68px`, 10 px de hueco) y su número `b` en 18 px / 12 px.
   Si cambiáis la geometría de la pausa o de la lupa en input.js, revisad esas reglas. Los mandos no se movieron.
+
+## Zoom 1: la cumbre en la contención + camtest al día (21-nov-2026, rama pendientes)
+- **Medido antes de tocar nada** (cam6ball, código de 1.9.2 en adelante): autopilot 1280 s11 zoom 1: balón fuera 0 %, cuadro seguro
+  98,1 % (lo que queda es franja del borde). Colocador en táctil 844 s3 zoom 1 (`ZOOM=0 TOUCH=1 BOT=bot ROLE=S`): **fuera 1,0 %** (82 frames,
+  todos por arriba en la colocación propia: 7,6 % de esa fase), borde 3,4 % (libre-r 28,8 %); con zoom 3 (`ZOOM=2`) 99,1 % y 0 fuera.
+  Causa: con el zoom 1 la cámara va más cerca y más baja (distancia ×0,68, altura ×0,76), la lente ya está al tope (57,6° a 844×390) y
+  manda el cabeceo de los pies; la contención solo arrancaba cuando el balón ya pasaba de 0,82 NDC y su retroceso tiene un muelle de
+  0,4 s. Corregir la cumbre prevista en `tpShot` (vz²/2G sin el tope de 1 s) no cambiaba nada (lente al tope): se probó y se quitó.
+- **Cambio** (`ctPoints`/`ctFit`/`ctOut`): en el 6v6 en 3ª persona con zoom 1-2 (`zoomI < 2`) y balón lento que sube (vz > 0,5, ≤ 16 m/s),
+  la cumbre balística (x + vx·vz/G, z + vz²/2G) entra como punto `CTK = 2`: dispara la contención con los márgenes del balón de ahora y,
+  si no cabe con el giro/cabeceo que pide el balón de ahora, pide RETROCESO (`hard`); no gira ni cabecea por sí misma. Una primera
+  versión que también cabeceaba por la cumbre dejaba los pies del colocador por abajo (jugador en cuadro 96,6 %): el muelle de vuelta del
+  cabeceo (0,8 s) iba detrás del cabeceo propio de `tpShot`. Con el zoom 3/5 no entra nada nuevo (`CTK` 0/1 como antes).
+- **Después**: táctil colocador s3 zoom 1: cuadro seguro **100 %**, fuera 0, jugador en cuadro 100 % (balón algo más pequeño en la
+  colocación propia, p50 10,6 → 7,7 px, porque la cámara retrocede ese rato). Autopilot 1280 s11 zoom 1: 99,0 % (fuera 0; lo que queda es
+  de lado tras nuestro bloqueo, como antes). Zoom 3: 99,0 % / 80 frames por arriba (antes 99,1 % / 74: ruido de una pasada a otra).
+  camball 6v6 1280 s11: fuera 0,19 %, contención 19,4 %; 844 táctil s5: fuera 0,11 %. cam6test y tv6test TODO OK; simtest: huella del
+  2v2 idéntica (la cámara solo lee g).
+- **camtest** (pasada entera con `PAR=1`, 12 partidas + menú/cierre/feel, ×2): 17 fallos, los mismos tipos que antes.
+  - `fovpump`: la prueba ya no cuenta como balón fuera el balón a > 15 m/s ni el que va a la grada (regla de Ferran de 1.9.2; campo
+    `bfx`). Quedan 13-16 frames por semilla que SÍ son reales: p. ej. 844t s12345 @53,5, tras nuestro tercer toque, el balón sale
+    0,1 NDC por arriba 0,22 s mientras la cámara del 2v2 cabecea hacia abajo (-21° → -27°); la contención no llega (muelle de 0,4 s).
+  - `wide`: no cuenta los frames a ≤ 0,3 s de un cambio de `g.ctrl` (confirmado con LOG=1: en s3 1680 la cadera salta de (0,29, -0,09) a
+    (-0,41, -1,06) en un frame, al pasar el control al otro jugador). Queda s12345: 23 frames reales con la cadera 0,01-0,10 NDC por
+    debajo del borde cuando tu jugador vuelve hacia la cámara tras nuestro ataque (transición attack → rally del 2v2).
+  - `serve` (10 de 12): caja del juez de línea en camtest a 2,25 m solo con la bandera alzada (en reposo 1,85 m; camera.js sigue
+    reservando 2,25). El juez lejano de 844 táctil ya no cuenta, pero debajo aparece el defecto real: en todos los tamaños, con el balón
+    en la mano o el lanzamiento flotante, la silla del 1r árbitro (y a veces el 2º) asoma ~0,05-0,08 NDC por arriba y el juez cercano
+    (12, -4,5) queda justo fuera por abajo a la izquierda: abrir la lente o girar lo mete cortado, y cabecear 1,3° hacia arriba —lo que
+    pide la silla— baja el fondo rival de ~0,56 a < 0,5 NDC (CAM-15). En 1680×720 y 1024×768 el juez cercano es una figura enorme en
+    primer plano (hasta un 80 % del alto) cortada por abajo: ni «entero» ni «fuera» caben con lente/giro/cabeceo. Se probó un cabeceo de
+    hasta 3° en la red de seguridad (solo en la grúa del salto, y luego con el fondo >= 0,5) y no resolvía ningún caso: quitado. Arreglo
+    de verdad = candidatos nuevos del saque (altura o distancia de la cámara) o decidir con Ferran (pregunta abierta: ¿juez entero,
+    fuera, o cortado solo por abajo en primer plano?).
+  - `clutter` 1280 s7 (balón al 9,1 % del alto en el borde @34,0) sale igual en las dos pasadas: no es ruido, es real (plano de reacción).
+  - `block` sin fallos en esta pasada (máx < 40,5°/s): el 68°/s anterior fue un tirón con PAR=4.
+  - `heroAll` 844t 16/18 (89 %, mínimo 90 %): el mismo «kill #3 … los false» de siempre (rival al 70 % de la altura del héroe).
+  - `pageErrors` del menú 844t: `ERR_NO_BUFFER_SPACE` al pedir Google Fonts (red del PC, no del juego).
+

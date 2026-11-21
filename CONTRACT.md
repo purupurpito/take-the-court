@@ -897,6 +897,11 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - Arreglos ola 3: simtest falla si la IA (equipo CPU, demo, autopilot o compañero IA del humano; no el jugador que controla el humano) comete un punto `double`/`four`.
   camtest: `feel` descuenta un frame lento del PC dentro de la congelación y `wide` ignora los frames a ≤ 0,4 s de un tirón del PC (lo indican); `serve` en pantalla
   baja/táctil admite el sacador en x ≥ −0,02 NDC.
+- **Cámara (21-nov-2026, camera_input)**: camtest `fovpump` no cuenta como balón fuera el balón a > 15 m/s ni el que va ya a la grada (a > 3,5 m
+  de las líneas; campo nuevo del registro `bfx`), `wide` no cuenta los frames a ≤ 0,3 s de un cambio de `g.ctrl` (campo `ci`), y la caja de los jueces de
+  línea en `serve` mide 2,25 m solo con la bandera alzada (`J.seq` con `sig` out/touched/antenna; si no, 1,85 m; camera.js sigue reservando 2,25 m).
+  En un PC con poca memoria: `PAR=1` (~12-15 min la pasada entera) u `ONLY=`. 6v6 en 3ª persona con zoom 1-2: `ctPoints` añade la cumbre balística del
+  balón que sube (punto `CTK = 2`: solo pide retroceso, ni giro ni cabeceo); con el zoom 3/5 la cámara no cambia. Sin cambios de API.
 - **Sprint 2-4 (15-nov-2026):** pruebas nuevas `node tools/recaptest.js`, `retotest.js` (con su parte CDP en el scratchpad de T19),
   `lifetest.js`, `worldtest.js`, `bondtest.js` (rencor, < 1 s), `studytest.js` (scouting), `proftest.js`, `synctest.js`, `contacttest.js [s] [semillas] [mapas] [2v2|6v6]`, `replaytest.js`
   (`--node` | `--cdp`) y `portraittest` (sondas de T14). Escenas: `debug=intro` (`&kind=mini|short|long&career=1&boss=<estilo>&duel=1&t=`),

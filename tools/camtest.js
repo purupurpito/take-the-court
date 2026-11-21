@@ -18,8 +18,10 @@
  *   - FOVRATE  ritmo de FOV en táctil (informativo)
  *   (ola 2)
  *   - FOLLOW   CAM-08: bote dentro tras un remate propio del jugador controlado en el 60 % central y sin corte desde el contacto (>= 90 %)
- *   - FOVPUMP  CAM-11 (táctil): ritmo de FOV en rally/attack p50 <= 2°/s, p95 <= 12°/s; balón fuera 0; balón tras el HUD 0
- *   - WIDE     CAM-12 (aspecto > 2): balón fuera 0, cerca del borde <= 2 %, cadera del jugador en cuadro 100 %
+ *   - FOVPUMP  CAM-11 (táctil): ritmo de FOV en rally/attack p50 <= 2°/s, p95 <= 12°/s; balón fuera 0 (sin contar el balón a > 15 m/s
+ *              ni el que va a la grada: la cámara no los persigue); balón tras el HUD 0
+ *   - WIDE     CAM-12 (aspecto > 2): balón fuera 0, cerca del borde <= 2 %, cadera del jugador en cuadro 100 % (sin contar los frames
+ *              tras un tirón del PC ni a <= 0,3 s de un cambio de g.ctrl)
  *   - SPIKER   CAM-13: rematador rival >= 18 % del alto (táctil 16 %) en el contacto (>= 90 %); en defensa jugador en pantalla, FOV p95 <= 12°/s
  *   - CUTAWAY  CAM-14: con cutaway, el sacador rival >= 40 % del alto >= 0,8 s y la vuelta >= 0,5 s antes del lanzamiento
  *   - CUTCOUNT admite los cortes nuevos: clinch (x2, cierre de set/partido) y cutaway + serve
@@ -40,6 +42,8 @@
  * Uso: node tools/camtest.js [segundos=75] [semillas=7,12345,3] [tamaños=1280x720,1680x720,1024x768,844x390t]
  *   SPEED=2 (reloj de rAF ×N: la partida va N veces más rápida a ~160 fps reales, dt de cámara 1/80 s)
  *   PAR=4 (navegadores a la vez) · STRICT=1 (sale con 1 si algo falla; por defecto también) · QUIET=1
+ *   (en un PC con poca memoria, PAR=1: una prueba de navegador a la vez; la pasada entera tarda ~12-15 min. Para mirar un arreglo,
+ *   ONLY=<comprobación> con los tamaños y semillas que toquen. Con PAR=4 y el PC cargado, block y clutter pueden fallar por tirones)
  *   STRICT2=1 (también cuentan fovpumpX —CAM-11 p50/HUD— y spikerAll —CAM-13 agregado—, informativas por defecto)
  *   ONLY=bounds,cuts,... (solo esas comprobaciones) · LOG=1 (vuelca el registro de cada partida en tools/out/camtest/)
  *   DIFF=expert (nivel de la CPU: más puntos suyos = más saques rivales para SETTLE/MONO)
@@ -100,6 +104,10 @@ const INIT = (speed) => `
         }
         // balón en cuadro
         var b = g.ball, bn0 = ndc(b.x, b.y, b.z), bn = { x: bn0.x, y: bn0.y, z: bn0.z }, bin = bn.z < 1 && Math.abs(bn.x) <= 1 && Math.abs(bn.y) <= 1 ? 1 : 0;
+        // (balón que la cámara NO persigue —regla de Ferran, 1.9.2—: a > 15 m/s, o ya camino de la grada, a > 3,5 m fuera de las líneas
+        // como ctPoints de camera.js; FOVPUMP no lo cuenta como balón perdido)
+        var bHL = (g.HL > 0 ? g.HL : (VB.C && VB.C.HL) || 8) + 3.5, bHW = (g.HW > 0 ? g.HW : (VB.C && VB.C.HW) || 4) + 3.5;
+        var bfx = Math.hypot(b.vx || 0, b.vy || 0, b.vz || 0) > 15 || Math.abs(b.x) > bHL || Math.abs(b.y) > bHW ? 1 : 0;
         // jugadores: alto en pantalla (fracción), centro, caja (fracción del área), ángulo cámara-frente
         var pl = [], maxBox = 0;
         for (var k = 0; k < 4; k++) {
@@ -160,8 +168,11 @@ const INIT = (speed) => `
           var inA = function (x, y, z) { return z < 1 && Math.abs(x) <= 1 && Math.abs(y) <= 1; };
           var farY = ndc(-9, 0, 0).y, bDst = Math.hypot(b.x - c.position.x, b.y + c.position.z, b.z - c.position.y);
           // oficiales (VB.Arena._dbg: árbitros, anotadores, jueces de línea): caja recortada por un borde = cortado
+          // (juez de línea: 2,25 m solo con la bandera ALZADA —seña de fuera, tocado o antena en curso—; en reposo la lleva abajo: 1,85 m.
+          // Con 2,25 siempre, el juez lejano en 844 táctil «rozaba» el borde de arriba —y 0,67..1,00, unos 20 px— con la bandera bajada.
+          // La cámara sigue reservando los 2,25 m: más margen, nunca menos)
           var offC = 0, A0 = window.__offs || (window.__offs = (VB.Arena && VB.Arena._dbg ? (VB.Arena._dbg().refs || []).concat(VB.Arena._dbg().judges || []) : []));
-          for (var oi = 0; oi < A0.length; oi++) { var so = A0[oi].sim; if (!so) continue; var r1 = so.z > 0.5, z0 = r1 ? 0 : so.z, z1 = so.z + (r1 ? 1.85 : Math.abs(so.y) > 8 ? 1.35 : A0[oi].lines ? 2.25 : 1.85), ro = r1 ? 0.55 : 0.4;
+          for (var oi = 0; oi < A0.length; oi++) { var so = A0[oi].sim; if (!so) continue; var r1 = so.z > 0.5, z0 = r1 ? 0 : so.z, fUp = A0[oi].lines && A0[oi].seq && (A0[oi].sig === 'out' || A0[oi].sig === 'touched' || A0[oi].sig === 'antenna'), z1 = so.z + (r1 ? 1.85 : Math.abs(so.y) > 8 ? 1.35 : fUp ? 2.25 : 1.85), ro = r1 ? 0.55 : 0.4;
             var X0 = 9, X1 = -9, Y0 = 9, Y1 = -9, beh = false;
             for (var ok8 = 0; ok8 < 8; ok8++) { var pp = ndc(so.x + Math.cos(ok8 * 0.785) * ro, so.y + Math.sin(ok8 * 0.785) * ro, (ok8 & 1) ? z1 : z0); if (pp.z >= 1) { beh = true; break; } X0 = Math.min(X0, pp.x); X1 = Math.max(X1, pp.x); Y0 = Math.min(Y0, pp.y); Y1 = Math.max(Y1, pp.y);
               pp = ndc(so.x + Math.cos(ok8 * 0.785) * ro, so.y + Math.sin(ok8 * 0.785) * ro, (ok8 & 1) ? z0 : z1); if (pp.z >= 1) { beh = true; break; } X0 = Math.min(X0, pp.x); X1 = Math.max(X1, pp.x); Y0 = Math.min(Y0, pp.y); Y1 = Math.max(Y1, pp.y); }
@@ -185,7 +196,7 @@ const INIT = (speed) => `
           pc = [+dia.toFixed(4), Math.round(bpx), Math.round(bpy), brr ? [Math.round(brr.left), Math.round(brr.top), Math.round(brr.right), Math.round(brr.bottom)] : 0, hh];
         }
         window.__R.push({ xs: xs, brd: brd, pc: pc, blk: typeof d.blk === 'number' ? +d.blk.toFixed(2) : 0, mt: d.menu || '', W: W, H: H, t: +VB.ctx.time.toFixed(4), dt: +(realDt || 0).toFixed(4), shot: VB.CameraRig.getShot ? VB.CameraRig.getShot() : '',
-          bx: +bn.x.toFixed(3), by: +bn.y.toFixed(3), hud: hudHit, chIn: chIn, chdIn: chdIn, chx: chip ? +chip.x.toFixed(2) : 9, chy: chip ? +chip.y.toFixed(2) : 9, chz: chip ? +chip.z.toFixed(3) : 9, sw: d.sx != null && g.ctrl ? +(d.sx - g.ctrl.x).toFixed(2) : 0, tt: g.touchTeam, tc: g.touches,
+          bx: +bn.x.toFixed(3), by: +bn.y.toFixed(3), bfx: bfx, hud: hudHit, chIn: chIn, chdIn: chdIn, ci: g.ctrl ? g.players.indexOf(g.ctrl) : -1, chx: chip ? +chip.x.toFixed(2) : 9, chy: chip ? +chip.y.toFixed(2) : 9, chz: chip ? +chip.z.toFixed(3) : 9, sw: d.sx != null && g.ctrl ? +(d.sx - g.ctrl.x).toFixed(2) : 0, tt: g.touchTeam, tc: g.touches,
           dx: d.x ? d.x.map(function (v) { return +v.toFixed(2); }) : null, fw: typeof d.fovWant === 'number' ? +d.fovWant.toFixed(2) : -1, fbo: typeof d.fovBoost === 'number' ? +d.fovBoost.toFixed(2) : -1, ft: d.ft ? d.ft.on : -1, cl: d.clinch ? d.clinch.phase : '',
           x: +c.position.x.toFixed(3), y: +(-c.position.z).toFixed(3), z: +c.position.y.toFixed(3),
           yaw: +Math.atan2(-v.z, v.x).toFixed(4), pitch: +Math.asin(Math.max(-1, Math.min(1, v.y))).toFixed(4), fov: +c.fov.toFixed(3),
@@ -496,16 +507,18 @@ function analyze(run) {
   const G = F.filter(r => r.st === 'playing' && r.mode === 'rally');
   // FOVPUMP (CAM-11, táctil): ritmo de FOV en rally/attack p50 <= 2°/s y p95 <= 12°/s; balón fuera 0 %; balón tras el HUD 0
   if (run.touch) {
-    const rates = []; let off = 0, n = 0, hud = 0, hudK = {};
+    // (balón fuera: sin contar el balón a > 15 m/s ni el que va ya a la grada —bfx—: la cámara no los persigue a propósito —regla de
+    // Ferran de la 1.9.2, la misma de la contención—; antes la prueba exigía 0 contando también esos y fallaba en todas las semillas)
+    const rates = []; let off = 0, offFx = 0, n = 0, hud = 0, hudK = {};
     for (let i = 1; i < F.length; i++) {
       const a = F[i - 1], b = F[i];
       if (b.st !== 'playing' || b.mode !== 'rally' || a.mode !== 'rally' || !(b.dt > 0)) continue;
-      if (['rally', 'attack', 'defend'].includes(b.shot)) { n++; if (!b.bin) off++; if (b.hud) { hud++; hudK[b.hud] = (hudK[b.hud] || 0) + 1; } }
+      if (['rally', 'attack', 'defend'].includes(b.shot)) { n++; if (!b.bin) { if (b.bfx) offFx++; else off++; } if (b.hud) { hud++; hudK[b.hud] = (hudK[b.hud] || 0) + 1; } }
       if ((b.shot === 'rally' || b.shot === 'attack') && a.shot === b.shot) rates.push(Math.abs(b.fov - a.fov) / b.dt);
     }
     const p50 = pct(rates, 0.5), p95 = pct(rates, 0.95);
     // (puerta: p95 y balón fuera; p50 y balón tras el HUD van aparte en fovpumpX, informativa salvo STRICT2=1)
-    add('fovpump', p95 <= 12 && off === 0, 'FOV rally/attack p95 ' + p95.toFixed(1) + '°/s · balón fuera ' + off + '/' + n);
+    add('fovpump', p95 <= 12 && off === 0, 'FOV rally/attack p95 ' + p95.toFixed(1) + '°/s · balón fuera ' + off + '/' + n + (offFx ? ' (+' + offFx + ' rápido o camino de la grada, sin contar)' : ''));
     if (on('fovpump')) { res.fovpumpX = { ok: p50 <= 2 && hud === 0, info: ['p50 ' + p50.toFixed(2) + '°/s (<= 2) · tras el HUD ' + hud + (hud ? ' ' + JSON.stringify(hudK) : '')] }; }
   }
   // WIDE (CAM-12, aspecto > 2 sin táctil): balón fuera 0 %, cerca del borde (|ndc| > 0,9) <= 2 %, cadera del jugador en cuadro 100 %
@@ -513,15 +526,20 @@ function analyze(run) {
     // (frames a <= 0,4 s de juego tras un frame lento del PC —dt > 4x la mediana y > 50 ms—: la cámara, con el dt recortado, va un
     // frame por detrás de unos jugadores que sí avanzaron; no es un fallo del encuadre. Se cuentan aparte)
     const dts = G.map(r => r.dt).filter(v => v > 0).sort((a, b) => a - b), mdt = dts[Math.floor(dts.length / 2)] || 1 / 60;
-    let hT = -9, n = 0, off = 0, edge = 0, hipOut = 0, hitchN = 0;
+    // (y los frames a <= 0,3 s de un cambio de g.ctrl —«A los dos»: el control pasa al otro jugador cuando el balón cambia de campo—: la
+    // cadera del nuevo controlado aparece de golpe donde esté y la cámara tarda unos frames en recolocarse; se cuentan aparte)
+    const cTs = new Map(); { let cI = null, cT = -9; for (const r of F) { if (r.ci != null && r.ci !== cI) { if (cI !== null) cT = r.t; cI = r.ci; } cTs.set(r, cT); } }
+    let hT = -9, n = 0, off = 0, edge = 0, hipOut = 0, hitchN = 0, ctrlN = 0;
     for (const r of G) {
       if (r.dt > Math.max(0.05, 4 * mdt)) hT = r.t;
+      const cT = cTs.get(r);
       if (!['rally', 'attack', 'defend'].includes(r.shot)) continue;
       if (r.t - hT <= 0.4) { hitchN++; continue; }
+      if (r.t - cT <= 0.3) { ctrlN++; if (!r.bin) off++; continue; }
       n++; if (!r.bin) off++; else if (Math.abs(r.bx) > 0.9 || Math.abs(r.by) > 0.9) edge++;
       if (!r.chIn) hipOut++;
     }
-    add('wide', off === 0 && edge <= 0.02 * n && hipOut === 0, 'balón fuera ' + off + '/' + n + ' · borde ' + (n ? (edge / n * 100).toFixed(1) : 0) + ' % · cadera fuera ' + hipOut + (hitchN ? ' · ' + hitchN + ' frames tras un tirón del PC sin contar' : ''));
+    add('wide', off === 0 && edge <= 0.02 * n && hipOut === 0, 'balón fuera ' + off + '/' + n + ' · borde ' + (n ? (edge / n * 100).toFixed(1) : 0) + ' % · cadera fuera ' + hipOut + (hitchN ? ' · ' + hitchN + ' frames tras un tirón del PC sin contar' : '') + (ctrlN ? ' · ' + ctrlN + ' tras un cambio de jugador controlado sin contar' : ''));
   }
   // SPIKER (CAM-13): remate rival: el rematador >= 18 % del alto (táctil 16 %) en el contacto (agregado >= 90 %); en defensa el
   // jugador controlado en pantalla 100 %, ritmo de FOV p95 <= 12°/s y balón fuera 0 %
