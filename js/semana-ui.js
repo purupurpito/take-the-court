@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/semana-ui.js (owner: ui_main)
+/* TAKE THE COURT — js/semana-ui.js (owner: ui_main)
  * Pintado de «La situación de la semana» (datos de js/semana.js, VB.Semana). Va aparte de ui.js porque hay un rediseño de menús en
  * marcha: ui.js solo llama a estas piezas (pestaña «Semana» de Retos, compartir) y las pinta con el estilo SPLAT (notes/splat.md).
  * CSS propio: index.html «SPLAT · RETOS · SEMANA» (clases .sem-*).
@@ -134,7 +134,7 @@
     var M = S(); if (!M) return;
     var url = M.link(), text = M.shareText();
     if (navigator.share) {
-      try { navigator.share({ title: 'Make the Cut', text: text, url: url }).then(function () { if (cb) cb('shared'); }, function (e) { if (e && e.name === 'AbortError') { if (cb) cb('cancel'); } else copy(text + ' ' + url, cb); }); return; }
+      try { navigator.share({ title: 'Take the Court', text: text, url: url }).then(function () { if (cb) cb('shared'); }, function (e) { if (e && e.name === 'AbortError') { if (cb) cb('cancel'); } else copy(text + ' ' + url, cb); }); return; }
       catch (e) { }
     }
     copy(text + ' ' + url, cb);

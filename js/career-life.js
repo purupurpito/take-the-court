@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-life.js (owner: carrera)
+/* TAKE THE COURT — js/career-life.js (owner: carrera)
  * «Vida» de la Carrera (VB.CareerLife): todo lo que pasa alrededor de los partidos para que la Carrera enganche.
  *  - Reto de la jornada: un objetivo por partido (aces, remates, nota, ganar sin ceder un set…) con premio. Solo jugando.
  *  - Fama: seguidores y escalones («Desconocido» → «Leyenda viva»). Suben con las notas, los títulos, los retos y los premios.

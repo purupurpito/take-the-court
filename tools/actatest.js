@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/actatest.js (owner: ui_main)
+/* TAKE THE COURT — tools/actatest.js (owner: ui_main)
  * Prueba del «Acta del partido» (js/acta.js) sin navegador: juega partidos 6v6 enteros con el autopilot (sets a 15 y a 25, con y
  * sin banquillo, a un set), pasa cada evento a VB.MatchStats.ingest como ui.js, construye el acta con VB.Acta.build y comprueba:
  *  - forma: format "empat/acta", versión 1, roster ×2, lineup antes de cada startPeriod, un rally por punto del marcador;

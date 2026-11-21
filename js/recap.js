@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/recap.js (owner: ui_main)
+/* TAKE THE COURT — js/recap.js (owner: ui_main)
  * VB.Recap: el único módulo narrativo (plan S2-S4, R1). Puro: sin DOM, sin THREE, sin red; se carga en node (tools/recaptest.js).
  *  - Previa (B5): introPlan(info) → mini 2,5 s | corta 4,5 s | larga 6,0 s, con los beats A/B/C, el historial (history) y lo que
  *    está en juego (stake). trait() da el rasgo de la pareja o del equipo; ord() los ordinales «1r», «2º», «3r» (nunca «1.er»).

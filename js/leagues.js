@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/leagues.js (owner: ui_main, lote C: Carrera de pista)
+/* TAKE THE COURT — js/leagues.js (owner: ui_main, lote C: Carrera de pista)
  * Datos de las ligas de PISTA (6v6) de la Carrera: VB.Leagues. Solo datos, sin lógica (career.js los lee al crear una Carrera de
  * pista y guarda una copia de los clubes en el guardado). Se carga antes de js/career.js (index.html, tools/careertest.js,
  * tools/simtest.js); career.js funciona igual sin este fichero (la Carrera de pista queda desactivada).

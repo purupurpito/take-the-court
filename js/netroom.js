@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/netroom.js   (owner: net)
+ * TAKE THE COURT — js/netroom.js   (owner: net)
  * Modo online, fase 2 (notes/net.md «Fase 2»): salas del lobby y señalización de WebRTC en Firestore por REST, con el token de la
  * cuenta (js/account.js). SIN DOM y SIN THREE: funciona igual en el navegador y en Node (tools/roomtest.js lo prueba contra el
  * emulador de Firestore o con un fetch simulado).

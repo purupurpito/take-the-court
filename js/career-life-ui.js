@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-life-ui.js (owner: carrera)
+/* TAKE THE COURT — js/career-life-ui.js (owner: carrera)
  * Pantallas de la «vida» de la Carrera (VB.CareerLifeUI), dentro del hub de career-ui.js:
  *  - Partido: tarjeta «Reto de la jornada» (con el duelo contra tu rival) y la decisión pendiente (botones con sus efectos).
  *  - Último partido: reto cumplido o no, seguidores, dinero, duelo y logros.

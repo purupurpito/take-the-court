@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/balltest.js (owner: arena)
+/* TAKE THE COURT — tools/balltest.js (owner: arena)
  * ¿Se ve la pelota en todas las sedes? (15-nov-2026, pregunta de Ferran). Como tools/venueshots.js (CDP, ?debug=rally, sedes
  * montadas con VB.Arena.onSettings + forceMap, jugadores y aros fuera), pero con la PELOTA (y sin el resto de fx: sombra, línea
  * de altura, aro) y la cámara de juego CONGELADA (VB.CameraRig.update anulado tras montar la escena), colocando la pelota en

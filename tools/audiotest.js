@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/audiotest.js   (owner: audio)
+/* TAKE THE COURT — tools/audiotest.js   (owner: audio)
  *
  * Nobody can listen during the build, so the audio is MEASURED.
  *

@@ -30,7 +30,7 @@ para que vea todas las escrituras de los guardados.
   Las cuentas de prueba se borraron.
 
 ## Proyecto
-- Proyecto Firebase **`make-the-cut-vb`** («Make the Cut»), es de la cuenta de Google de pruebas de Ferran. No escribir su correo en
+- Proyecto Firebase **`make-the-cut-vb`** («Make the Cut»; el id y el nombre del proyecto se quedan aunque el juego se llame Take the Court desde 1.20.0, notes/nombre.md), es de la cuenta de Google de pruebas de Ferran. No escribir su correo en
   ningún fichero. No tiene Analytics.
 - Firestore `(default)` en `eur3`. Acceso por usuario y contraseña (proveedor email/password).
 - App web `1:676972390856:web:f3dfd69181c99fc36378fd`. La clave web es pública por diseño (va en el cliente, como en emPat Data):
@@ -87,7 +87,8 @@ para que vea todas las escrituras de los guardados.
     `getRedirectResult`) y avisa de volver a probar desde «Cuenta».
   - Prueba: `node tools/googletest.js` (SDK y nube falsos, sin red; móvil 844x390 y PC 1280x720): confirmación, ventana en el acto, «Cancelar», sin redirección, y también entrar bien (vista de la cuenta, `signOut` del SDK, subida) y el conflicto de Carreras tras entrar con Google.
 - **Falta en la consola de Firebase (Ferran):** 1) Authentication › Sign-in method › Google › Activar (elegir correo de asistencia);
-  2) Authentication › Settings › Authorized domains › añadir `purupurpito.github.io`. Hasta entonces el botón avisa «Entrar con Google aún no
+  2) Authentication › Settings › Authorized domains › añadir `purupurpito.github.io` y, desde 1.20.0, `takethecourt.com` (sin él, Google no entra en el dominio nuevo; mirar también si la
+  clave web tiene restricción de referentes en Google Cloud, notes/dominio.md). Hasta entonces el botón avisa «Entrar con Google aún no
   está activado. Usa tu correo de momento.»
 - Reglas de Firestore con `'look'` desplegadas el 15-nov-2026 (`LOOK_SYNC = true`).
 

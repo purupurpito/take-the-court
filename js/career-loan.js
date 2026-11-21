@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-loan.js (owner: cesiones)
+/* TAKE THE COURT — js/career-loan.js (owner: cesiones)
  * Cesiones y pedir el traspaso (VB.CareerLoan), en la Carrera de playa y en la de pista.
  *  1. «Malestar» (c.loan.mood, 0-100): sube cuando no juegas (fuera de la convocatoria, banquillo sin entrar, unos pocos puntos) y baja
  *     cuando sales de inicio. Niveles: Tranquilo, Con ganas de jugar, Molesto y Quemado. Se ve en Club › Contrato y NO cambia nada en

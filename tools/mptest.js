@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/mptest.js  (owner: net)
+/* TAKE THE COURT — tools/mptest.js  (owner: net)
  * Fase 0 del online (notes/net.md): la simulación con DOS huecos humanos (uno por equipo, createGame({online: true})), sin red.
  *   (a) 20 partidos bot contra bot (un bot de solo entrada en cada hueco, semillas y sedes distintas): los dos equipos dan toques
  *       humanos calificados, sacan como humanos (sin el ritual de la CPU), la IA lleva a los compañeros y la CPU no pide challenge.

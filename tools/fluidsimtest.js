@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/fluidsimtest.js  (owner: sim)
+/* TAKE THE COURT — tools/fluidsimtest.js  (owner: sim)
  * Online V2 «Fluida», paquete WP1 (notes/online-v2-spec.md §2 y «Work packages»): los ganchos de js/sim.js detrás de g.fl y la
  * API VB.Sim.fl*, a nivel de sim (sin red). Secciones:
  *   (a) createGame sin flInit no tiene 'fl' (ni offline ni online) y step() no lo crea.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/build-leagues.js (owner: ui_main, lote C: Carrera de pista)
+/* TAKE THE COURT — tools/build-leagues.js (owner: ui_main, lote C: Carrera de pista)
  * Junta los cinco ficheros de investigación (notes/clubes/*.json) en los datos del juego y en la lista de revisión:
  *   - js/leagues.js            VB.Leagues: 3 regiones (Europa, América, Asia) con países, divisiones, clubes y competiciones. Solo lo que
  *                              usa el juego: SIN el nombre real ni el oficial de los clubes (llevan patrocinadores) ni las notas.
@@ -118,7 +118,7 @@ if (CHECK_ONLY) process.exit(0);
 
 // ------------------------------------------------------------------ js/leagues.js
 function clubLine(k) { return '            ' + JSON.stringify(k); }
-let js = `/* MAKE THE CUT — js/leagues.js (owner: ui_main, lote C: Carrera de pista)
+let js = `/* TAKE THE COURT — js/leagues.js (owner: ui_main, lote C: Carrera de pista)
  * Datos de las ligas de PISTA (6v6) de la Carrera: VB.Leagues. Solo datos, sin lógica (career.js los lee al crear una Carrera de
  * pista y guarda una copia de los clubes en el guardado). Se carga antes de js/career.js (index.html, tools/careertest.js,
  * tools/simtest.js); career.js funciona igual sin este fichero (la Carrera de pista queda desactivada).
@@ -172,7 +172,7 @@ const searched = ch => /Integrador, búsqueda web/.test(ch) || (/(Búsqueda web 
 const GEN = { M: 'hombres', W: 'mujeres', MW: 'los dos' };
 let nDoubt = 0, nPend = 0;
 const md = [];
-md.push('# Clubes reales → Make the Cut: lista para que la revise Ferran');
+md.push('# Clubes reales → Take the Court: lista para que la revise Ferran');
 md.push('');
 md.push('Generada el 12-nov-2026 por `tools/build-leagues.js` a partir de `notes/clubes/*.json` (cinco investigaciones verificadas). Es la');
 md.push('misma lista que lleva el juego (`js/leagues.js`): ' + nCountries + ' países, ' + nLeagues + ' ligas y ' + nClubs + ' clubes. Para cambiar algo, se corrige');

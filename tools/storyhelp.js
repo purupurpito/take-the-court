@@ -1,4 +1,4 @@
-/* MAKE THE CUT — tools/storyhelp.js (owner: carrera)
+/* TAKE THE COURT — tools/storyhelp.js (owner: carrera)
  * Ayudas de prueba de «Carrera con vida» (js/career-story*.js, notes/carrera-vida.md) para tools/storytest.js y las pruebas de los
  * paquetes (storymsgtest, storyweektest, storywalltest, storyseasontest). Node puro (vm, sin DOM).
  *  - boot({story, files, extra, ext}) → {VB, C, S, mem, cx}: un contexto nuevo con localStorage falso y los ficheros de careertest

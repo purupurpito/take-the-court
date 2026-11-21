@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/studytest.js (owner: carrera)
+/* TAKE THE COURT — tools/studytest.js (owner: carrera)
  * Prueba headless de «Te tienen estudiado» (notes/carrera.md): g.scout de la sim (sim.js scEv, laneOf), la IA que lo aplica (ai.js
  * studyShift / studyLean / openSpot, ai6.js defPos) y la Carrera (career.js studyOf / studyNext / studyClose / ingest, consignas avoid).
  * No abre Chrome.

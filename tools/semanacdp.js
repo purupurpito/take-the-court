@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/semanacdp.js (owner: ui_main)
+/* TAKE THE COURT — tools/semanacdp.js (owner: ui_main)
  * La situación de la semana DE VERDAD en Chrome (tools/cdp.js), el flujo completo que semanatest (node) no ve:
  *   a) Retos › Semana › «¡A jugar!» → el partido arranca en el marcador de la semana (g.score = situation().score), Semana.begin
  *      gasta el intento al empezar (left 3 → 2) y la previa dice «Intento 1 de 3 de hoy» (sin «Tu balance en…»)

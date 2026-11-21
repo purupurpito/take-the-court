@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/refposes.js  (owner: arena)
+/* TAKE THE COURT — tools/refposes.js  (owner: arena)
  * Capturas de las SEÑALES OFICIALES de los árbitros (ARN-07) y del 2º árbitro en su sitio, para revisar las poses a ojo.
  * Abre una escena congelada (?debug=serve: dt de juego 0, así la secuencia del árbitro se queda en el paso que se elija),
  * lanza cada señal con el gancho de depuración VB.Arena._dbg().refSignal(e, g) y fija el paso (seqI) de la seña; luego

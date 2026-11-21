@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/venuegen-test.js (owner: arena)
+/* TAKE THE COURT — tools/venuegen-test.js (owner: arena)
  * Prueba headless de la receta de sedes generadas (js/venue-gen.js, fase F0), sin navegador. Carga leagues.js, venues.js, career.js
  * (con sus dependencias, como careertest) y venue-gen.js en un contexto vm con localStorage falso, y recorre:
  *   - los 390 clubes de pista × 'hall' (a través de VB.Career.hall.clubInfo, como lo hará forMatch);

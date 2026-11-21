@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/venuegen-match.js  (owner: arena; plan «sedes-gen» F5)
+/* TAKE THE COURT — tools/venuegen-match.js  (owner: arena; plan «sedes-gen» F5)
  * Qué sede sale en cada partido de la Carrera, en el juego real (Chrome headless, como tools/eval.js): crea una Carrera de pista
  * (semilla 3, oferta firme: las pruebas ya piden partidillo) y una de playa, arranca partidos con ctx.actions.startCareerMatch y mira VB.Arena.map(), el
  * nombre en la presentación y en el marcador, y que la sim juega en 'hall' / 'beach'. Las rondas de copa se prueban sustituyendo

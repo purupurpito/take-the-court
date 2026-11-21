@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/vestuxaudit.js (auditoría de UI/UX del Vestuario, solo lectura: no toca js/ ni el guardado)
+/* TAKE THE COURT — tools/vestuxaudit.js (auditoría de UI/UX del Vestuario, solo lectura: no toca js/ ni el guardado)
  * Un solo Chrome. Por tamaño (568x320, 640x360, 360x640 táctiles + 1280x720 sin táctil) × sede (hall|beach) × pestaña:
  * ?debug=look&tab=&venue=&item=<objeto de muestra>, captura y métricas (JSON): caja del muñeco en pantalla (cabeza, pies,
  * manos), si la UI tapa la cabeza / los pies (elementFromPoint), filas visibles vs totales, recortes de texto, letra mínima.

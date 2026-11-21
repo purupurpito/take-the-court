@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/replaytest.js (owner: ui_main). Pruebas de VB.Replay (js/replay.js, S3-C1 / plan T18).
+/* TAKE THE COURT — tools/replaytest.js (owner: ui_main). Pruebas de VB.Replay (js/replay.js, S3-C1 / plan T18).
  *  node tools/replaytest.js          las dos partes;  --node  solo la parte node (sim + ai + ai6 + recap + replay.js en un vm);
  *  --cdp  solo la parte CDP (el juego en Chrome headless: escenas debug=replay / debug=best, saltar con teclado, mando y toque,
  *  pestaña «Jugadas», ajustes, 6v6, ejercicio, montón, dibujos, Carrera y punto de partido; ver cdpPart al final).

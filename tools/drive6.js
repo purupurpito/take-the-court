@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/drive6.js  (owner: sim desde el 11-nov-2026; antes ui_main)
+/* TAKE THE COURT — tools/drive6.js  (owner: sim desde el 11-nov-2026; antes ui_main)
  * 6 contra 6 con HUMANO (sprint 3) en el juego REAL (Chrome headless vía DevTools, como tools/drive.js), con teclado:
  * menú → JUGAR → tarjeta «6 contra 6» → preparación (fila Formato en 6 contra 6, Escenario y Controlar fijos; ←/→ en Formato
  * cambia a 2 contra 2 y vuelve) → ¡A JUGAR! → partido 6v6 en el pabellón llevando al receptor (n.º 2) → juega con el teclado

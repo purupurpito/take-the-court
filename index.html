@@ -1,4 +1,4 @@
-<title>Make the Cut</title>
+<title>Take the Court</title>
 <script>
 /* Las claves de guardado se llamaban 'voley3d.*' hasta la 1.6.0. Antes que ningún otro script, se pasan UNA vez a
    'make-the-cut.*' (local y de sesión): la clave vieja se borra solo si la nueva se ha escrito; si ya existe la nueva, gana. */
@@ -16,6 +16,7 @@
   try { move(window.sessionStorage); } catch (e) { }
 })();
 </script>
+<script src="js/migrate.js"></script>
 <script>
 /* UI-07: el logotipo no depende de la red. Dos recortes mínimos de Barlow Condensed (SIL Open Font License 1.1, The Barlow
    Project Authors, github.com/jpt/barlow) con SOLO las letras del telón: Black Italic «VOLEY3D» (1,1 KB) y Bold «PALU DEMR»
@@ -54,7 +55,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:ital,wght@0,500;0,600;0,700;0,800;0,900;1,700;1,800;1,900&family=Barlow:wght@400;500;600;700&family=Bowlby+One&family=Titan+One&family=Rubik:wght@500;600;700;800&display=swap">
 <style>
 /* =====================================================================
-   MAKE THE CUT — estilos (owner: ui_main). Juego de un solo aspecto oscuro.
+   TAKE THE COURT — estilos (owner: ui_main). Juego de un solo aspecto oscuro.
    Tokens de texto (UI-19): --fg/--fg2/--muted/--dim-text (≥ 4,5:1 sobre los paneles oscuros); --dim solo para trazos y adornos.
    Display: Barlow Condensed (italic 900 para titulares de retransmisión).
    Texto:   Barlow. Todo con fallbacks del sistema.
@@ -6345,7 +6346,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     <div class="menu-col">
       <div class="brand">
         <p class="kicker">Palau del Mar<span class="sep sep-d"><span class="sr">, </span></span>2 contra 2</p>
-        <h1 class="logo" aria-label="Make the Cut, beta">
+        <h1 class="logo" aria-label="Take the Court, beta">
           <svg class="lg" viewBox="0 0 780 490" aria-hidden="true" focusable="false"><use href="#mtcLogo"/></svg><i class="lg-beta" aria-hidden="true">Beta</i>
         </h1>
         <p class="tagline" id="menuLast" hidden></p>
@@ -6710,6 +6711,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
             <p class="opt-wipe-n" id="optWipeN" role="status" aria-live="polite" hidden></p>
             <button class="opt opt-go" data-go="news"><span>Novedades<small>Qué ha cambiado en esta versión</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button class="opt opt-go" data-go="credits"><span>Créditos<small>Quién lo ha hecho y con qué</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
+            <button class="opt opt-go" data-go="mig"><span>Traer tu partida<small>¿Jugabas en Make the Cut? Tráete tu progreso</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
           </div>
         </div>
         <p class="opt-foot sp-hints" id="optFoot"><span class="kh"><span class="key">←</span><span class="key">→</span> cambia el valor</span><span class="kh"><span class="key">Intro</span> pasa al siguiente</span><span class="kh"><span class="key">Q</span><span class="key">E</span> apartado</span></p>
@@ -6723,7 +6725,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     </div>
   </div>
 
-  <div id="rotate" hidden><div class="ph"></div><b class="sp-h">Gira el móvil</b><p class="sp-chip">Make the Cut se juega en horizontal</p></div>
+  <div id="rotate" hidden><div class="ph"></div><b class="sp-h">Gira el móvil</b><p class="sp-chip">Take the Court se juega en horizontal</p></div>
   <!-- Logotipo (1.19.1, Ferran: «la Red cruzada»): pista turquesa, red en diagonal con THE en la cinta, TAKE arriba y COURT
        abajo con un balón de 18 paneles como O. Definido una vez aquí y usado con <use href="#mtcLogo"> en el menú, el telón y
        og-image.js. Letras de Anton y Bungee pasadas a trazados (OFL): sin fuentes, sale entero desde el primer frame. Es estático

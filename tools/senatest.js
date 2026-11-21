@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/senatest.js (owner: ui_main · idea «senas»)
+/* TAKE THE COURT — tools/senatest.js (owner: ui_main · idea «senas»)
  * Prueba de js/senas.js (señas del árbitro como pegatina y Cuaderno del árbitro). Node puro (vm):
  *  1) catálogo: 11 señas con id, nombre, palabra (≤ 12 caracteres), línea de reglamento (≤ 80) y silueta SVG (viewBox 0 0 48 48, sin
  *     colores: solo currentColor) · 2) of() con todas las combinaciones signal/reason de sim.js (y sin signal, por reason) ·

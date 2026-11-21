@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/fixtures/make-looks-fixture.js
+/* TAKE THE COURT — tools/fixtures/make-looks-fixture.js
  * Genera tools/fixtures/looks-1.15.1.json con los fits de ejemplo tal y como los deja js/look.js de la 1.15.1 (commit bdb00e5),
  * para que tools/looktest.js compruebe la ida y vuelta de guardados (sane → resolve) después de tocar look.js (plan del Vestuario,
  * WP0.3). Lee look.js con `git show bdb00e5:js/look.js`, así se puede regenerar igual aunque look.js ya haya cambiado.

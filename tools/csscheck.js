@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/csscheck.js  (owner: ui_main; spec móvil §0)
+/* TAKE THE COURT — tools/csscheck.js  (owner: ui_main; spec móvil §0)
  * Guardia contra el fallo del 18-nov-2026: tres cabeceras de bloque de index.html sin su «/*» de apertura hacían que el navegador
  * se tragase la prosa como selector y tirase la PRIMERA regla de cada bloque (.sp-ov, .sp-medal, .sp-pill).
  * Uso: node tools/csscheck.js            → comprobación estática (sin navegador)

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/eval.js  (owner: ui_main)
+/* TAKE THE COURT — tools/eval.js  (owner: ui_main)
  * Abre index.html?<query> en Chrome headless (viewport EXACTO, GPU real), espera y evalúa una expresión JS en la página.
  * Uso: node tools/eval.js "<query>" "<expresión>" [espera_ms=5000] [WxH=640x360]
  * Ej.: node tools/eval.js "debug=rally" "JSON.stringify(VB.ctx.renderer.info.render)"

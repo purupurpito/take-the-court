@@ -1,4 +1,4 @@
-# MAKE THE CUT — Contrato de arquitectura
+# TAKE THE COURT — Contrato de arquitectura
 
 Juego de voley 2 contra 2 en 3D (Three.js r149), navegador, escritorio + móvil.
 Proyecto personal. Este documento es la ley para los 7 especialistas (el 7.º, `net`, desde el online) que trabajan en paralelo.
@@ -93,7 +93,7 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
   API r149: `outputEncoding`/`sRGBEncoding`, `CapsuleGeometry` disponible, `THREE.ColorManagement.legacyMode = false` (lo pone main.js:
   los hex de materiales son sRGB; **toda textura de color de canvas debe llevar `tex.encoding = THREE.sRGBEncoding`**).
 - Cero peticiones de red en tiempo de ejecución salvo three.js y Google Fonts. Texturas procedurales (canvas) o data URIs.
-- `index.html` sin `<!doctype>/<html>/<head>/<body>`; empieza por `<title>Make the Cut</title>`. Debe funcionar en `file://` y como Artifact.
+- `index.html` sin `<!doctype>/<html>/<head>/<body>`; empieza por `<title>Take the Court</title>`. Debe funcionar en `file://` y como Artifact.
 - Sim (`sim.js`, `ai.js`) pura: sin DOM, sin THREE, sin `window` salvo vía el objeto VB
   (`var root = (typeof window!=='undefined')?window:globalThis; var VB = root.VB = root.VB || {}`).
 - Rendimiento: 60 fps objetivo en móvil medio. Sin asignaciones por frame en bucles calientes (reutiliza Vector3/objetos),
@@ -390,7 +390,7 @@ de `opts.online` (huellas `fp-2v2.json` y `fp-mastery.json` idénticas; pruebas 
   `{online: 1}` → «Online: termina tu primer partido»; `checkGlobal` nunca lo concede), origen `'online'` en `SRCS` y en `HIDE_HAIR`.
   `tools/looktest.js` actualizado (clave `online`, id en la especificación de cabeza, 6 objetos nuevos desde 928ac39).
 - `js/doll.js` (players; toque): `gorraMTC` en `ITEMS.head` y `HIDE_HAIR`; se dibuja como la gorra y una tira de la copa de 13 × 5 caras
-  pintadas por vértice con «MTC» (`mtcPanel`, 130 triángulos fijos; letra clara u oscura según cA).
+  pintadas por vértice con «TTC» desde 1.20.0, antes «MTC» (`mtcPanel`, id `gorraMTC` sin cambiar, 130 triángulos fijos; letra clara u oscura según cA).
 - `js/players.js` (players; toque): `setKit(st)` acepta `st.kit1` (equipación del equipo 1 ya decidida, sin comparar) y `st.looks1`
   (looks del rival, n.º 1 y n.º 2 del equipo 1: `LOOK_OVR[2..3]`, `lookSlot`); fuera del online no vienen y se quitan.
   `VB.Players.onlineKits(a, b)` → `[k0, k1]` con las reglas de setKit (la del equipo 1 si se distingue; si no, la de la CPU más distinta).
@@ -925,7 +925,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   pista) cuando no está; `career.acta.lib` = nombres de los líberos; el resto sin nombre, inventado por semilla. Árbitros: 1r, 2º y
   anotador designados por semilla de `VB.Acta.ARBITROS`. Botón «Acta del partido» (#btnActa, junto a «Estadística del partido»): en purupurpito.github.io la guarda
   en el almacén de emPat (mismo origen: clave `empat/acta/<id>`) y abre `/emPat/?acta=<id>`; fuera de Pages descarga el .json para
-  importarlo en la portada de emPat. Prueba `node tools/actatest.js [partidos]` (con `../acta-electronica` o `EMPAT_DIR` comprueba cada
+  importarlo en la portada de emPat (en takethecourt.com, desde 1.20.0, siempre descarga: ya no comparte origen con emPat). Prueba `node tools/actatest.js [partidos]` (con `../acta-electronica` o `EMPAT_DIR` comprueba cada
   jugada contra el motor de emPat y que sets y puntos coinciden).
 - **La situación de la semana (ui_main, 20/21-nov-2026; notes/ui_main.md «La situación de la semana»):** `js/semana.js` (`VB.Semana`, puro:
   `situation(wk)`, `state()`, `peek()` (solo lectura: sello de la portada, js/menu-jugador.js), `left()`, `begin()`, `finish(g, res, dry)`, `abandon(g)`, `better`, `link`/`readLink`/`mergeLink`, `shareText`;
@@ -1469,3 +1469,27 @@ starts, w, l, kills, aces, blocks, digs, nS, nN, debut}, med{g, s, b}, seen, you
   0,8) y seguidores +60/120/200.
 - NOTA_D por modalidad: playa −0,3, pista +0,5.
 - El rival kid: club −1 hasta tu primer club; te persigue con 0,6 + 0,5.
+
+### Take the Court: nombre, dominio y traspaso de partidas (1.20.0, 20-nov-2026)
+- **Nombre:** todo lo que ve el jugador dice «Take the Court» (título de la pestaña `T` en ui.js, logotipo, metadatos y manifest de
+  build-pages, textos de instalar, compartir sala, acta). Los identificadores internos NO cambian: claves `make-the-cut.*`, proyecto
+  de Firebase `make-the-cut-vb`, colecciones de Firestore, `gorraMTC`, semilla `'mtc-dia-'` de los retos, ids SVG `mtc*`,
+  `'mtc-net-'`, `'demo-mtc'`, `NET_MTC` / `MTC_ROWS`. Lista completa y motivo en notes/nombre.md. Cabeceras de fichero:
+  `TAKE THE COURT — js/<fichero>`.
+- **Dominio:** https://takethecourt.com/ en la raíz; el juego solo usa rutas relativas y sigue funcionando en /make-the-cut/
+  durante el cambio. `tools/build-pages.js` deja `CNAME` (takethecourt.com) en `_site` y canonical/og:url en https://takethecourt.com/
+  sin `PAGES_URL` (abouttest lo comprueba). El acta de emPat solo se guarda directa en purupurpito.github.io; en el dominio nuevo
+  se descarga. Publicación paso a paso en notes/dominio.md; el puente de la dirección vieja en bridge/README.md.
+- **`js/migrate.js`** (traspaso; se carga antes de account.js): lee `#mig=` (y la alternativa de código/archivo) que manda el puente
+  y mete en localStorage solo claves `make-the-cut.*` validadas, guardando copia en `make-the-cut.migbak.*` si ya había datos.
+  `VB.Migrate` (primer script tras el bloque voley3d): `run()` · `manual(kind)` (hoja de código/archivo desde Ajustes › Info › «Traer tu partida») · `decode(texto, {max, file}) → Promise<{keys, at, sha, verified, id, fmt, count}>`
+  (rechaza con `e.code`: format|big|base64|inflate|nodecomp|utf8|sha|json|shape|keys) · `plan(claves, foto, {trusted, mergeKey, now, id, first, choose}) →
+  {writes, report}` (pura; report.ask = Carreras que chocan, report.skipped = borradas aquí después) · `parseHash(h)` · `pending()` · `whenDone(fn)` · `version: 1` · `LIM` · `_lastReport`. Paquete
+  `#mig=1.<z|j>.<sha16|0>.<base64url>`; plan B `#migcode` / `#migfile`. Escribe con el setItem original, copia lo pisado en
+  `make-the-cut.migbak.<id>.*`, apunta lo traído en `make-the-cut.mig.done`, deja `make-the-cut.mig.first` (account.js: la siguiente
+  sincronización une como primera entrada) y avisa con `make-the-cut.account.toast`. account.js `signOut` apunta `make-the-cut.account.out`
+  (un traspaso posterior ya no mete la sesión). Reglas en notes/dominio.md § Fusión.
+- **`VB.Account.mergeKey`** (account.js, traspaso): fusión de una clave importada con la local usando las reglas de la cuenta
+  (mergeGym, mergeLook, mergeLegends, modMerge…). `VB.Account.mergeKey(k, L, R, incomingNewer) → texto`: la fusión de MERGE de esa
+  clave (gym, look, legends, profile, retos); sin fusión propia o si falla, gana la más reciente. Mientras `VB.Migrate.pending()`,
+  account.js no sincroniza ni escribe meta.

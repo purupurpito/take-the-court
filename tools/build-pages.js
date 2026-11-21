@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/build-pages.js (owner: ui_main)
+/* TAKE THE COURT — tools/build-pages.js (owner: ui_main)
  * Genera la versión para GitHub Pages en _site/ a partir de index.html (formato Artifact, sin doctype/html/head/body):
  * envuelve el contenido en un documento HTML5 completo (modo estándar, lang="es", charset) y copia js/.
  * Lo usa .github/workflows/pages.yml en cada push a main. Uso local: node tools/build-pages.js [salida=_site]
@@ -8,7 +8,12 @@
  * con data URI de index.html (en Pages manda icon.svg) y amplía el manifest (description, id, categories).
  * Guardas que hacen FALLAR el build: VB.VERSION ausente o no semver, CHANGELOG[0].v !== VERSION, falta pages/og.png, y un index
  * con más (o menos) de un rel="icon".
- * PAGES_URL=<url> cambia la dirección pública (por defecto https://purupurpito.github.io/make-the-cut/).
+ * PAGES_URL=<url> cambia la dirección pública (por defecto https://takethecourt.com/, desde la 1.20.0; antes
+ * https://purupurpito.github.io/make-the-cut/): canonical, og:url y la dirección absoluta de og:image. El resto del sitio va con rutas
+ * RELATIVAS y funciona igual en la raíz de un dominio y en una subcarpeta.
+ * PAGES_CNAME=<dominio> escribe _site/CNAME (por defecto takethecourt.com; PAGES_CNAME= vacío no lo escribe). OJO: con Pages desplegado
+ * por Actions (este repo) GitHub IGNORA el archivo CNAME: el dominio se pone en Settings → Pages o con la API (bridge/README.md).
+ * Se escribe igual para que el artefacto diga dónde vive y por si un día se publica desde una rama.
  */
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
@@ -30,9 +35,15 @@ const VERSION = VBV.VERSION;
 if (typeof VERSION !== 'string' || !/^\d+\.\d+\.\d+$/.test(VERSION)) fail('VB.VERSION falta o no es semver x.y.z: ' + VERSION);
 const C0 = Array.isArray(VBV.CHANGELOG) && VBV.CHANGELOG[0];
 if (!C0 || C0.v !== VERSION) fail('CHANGELOG[0].v (' + (C0 && C0.v) + ') no coincide con VERSION ' + VERSION + ': añade arriba la entrada de la versión');
+// el puente de la dirección antigua (bridge/version.json) tiene que decir la MISMA versión: js/update.js solo avisa a las pestañas viejas
+// («Hay una versión nueva» → Reiniciar → puente) si es MAYOR que la que tienen (notes/dominio.md)
+try { const bv = JSON.parse(fs.readFileSync(path.join(ROOT, 'bridge', 'version.json'), 'utf8')).v; if (bv !== VERSION) fail('bridge/version.json dice ' + bv + ' y VB.VERSION es ' + VERSION + ': ponlas iguales'); }
+catch (e) { if (fs.existsSync(path.join(ROOT, 'bridge', 'version.json'))) fail('bridge/version.json ilegible (' + e.message + ')'); }
 if (!fs.existsSync(path.join(ROOT, 'pages', 'og.png'))) fail('falta pages/og.png (se genera con node tools/og-image.js)');
 
-let BASE = process.env.PAGES_URL || 'https://purupurpito.github.io/make-the-cut/';
+let BASE = process.env.PAGES_URL || 'https://takethecourt.com/';
+const CNAME = process.env.PAGES_CNAME != null ? String(process.env.PAGES_CNAME).trim() : 'takethecourt.com';
+if (CNAME && !/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(CNAME)) fail('PAGES_CNAME no es un dominio: ' + CNAME);
 if (!BASE.endsWith('/')) BASE += '/';
 const DESC = 'Vóley cartoon en 3D: partidos 2 contra 2 y 6 contra 6, pista cubierta y playa, y una Carrera con fichajes, fama y ' +
   'Salón de la Fama. Gratis en móvil y ordenador, con mando, teclado o táctil.';
@@ -42,13 +53,13 @@ const OG_IMG = BASE + 'og.png?v=' + require('crypto').createHash('sha1').update(
 const metaTags = [
   '<meta name="description" content="' + attr(DESC) + '">',
   '<link rel="canonical" href="' + attr(BASE) + '">',
-  '<meta property="og:type" content="website"><meta property="og:site_name" content="Make the Cut"><meta property="og:locale" content="es_ES">',
-  '<meta property="og:title" content="Make the Cut"><meta property="og:description" content="' + attr(DESC) + '">',
+  '<meta property="og:type" content="website"><meta property="og:site_name" content="Take the Court"><meta property="og:locale" content="es_ES">',
+  '<meta property="og:title" content="Take the Court"><meta property="og:description" content="' + attr(DESC) + '">',
   '<meta property="og:url" content="' + attr(BASE) + '"><meta property="og:image" content="' + attr(OG_IMG) + '">',
   '<meta property="og:image:width" content="1200"><meta property="og:image:height" content="630">' +
-    '<meta property="og:image:alt" content="Logotipo de Make the Cut: el rótulo partido por un remate">',
+    '<meta property="og:image:alt" content="Logotipo de Take the Court">',
   '<meta name="twitter:card" content="summary_large_image"><meta name="twitter:image" content="' + attr(OG_IMG) + '">',
-  '<meta name="application-name" content="Make the Cut">',
+  '<meta name="application-name" content="Take the Court">',
   '<script>window.__vbBuild=' + JSON.stringify({ v: VERSION, sha: SHA, date: new Date().toISOString() }).replace(/</g, '\\u003c') + '</script>'
 ].join('\n');
 
@@ -64,10 +75,10 @@ head += (body.match(lone) || []).join(''); body = body.replace(lone, '');
 const pwa = '<link rel="manifest" href="manifest.webmanifest">\n<link rel="icon" href="icon.svg" type="image/svg+xml">\n' +
   '<link rel="apple-touch-icon" href="icon-180.png">\n<meta name="mobile-web-app-capable" content="yes">\n' +
   '<meta name="apple-mobile-web-app-capable" content="yes">\n<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">\n' +
-  '<meta name="apple-mobile-web-app-title" content="Make the Cut">';
+  '<meta name="apple-mobile-web-app-title" content="Take the Court">';
 const html = '<!doctype html>\n<html lang="es">\n<head>\n<meta charset="utf-8">\n' + head.trim() + '\n' + pwa + '\n' + metaTags +
   '\n</head>\n<body>\n' + body.trim() + '\n</body>\n</html>\n';
-const manifest = { id: './', name: 'Make the Cut', short_name: 'Make the Cut', description: DESC, categories: ['games', 'sports'],
+const manifest = { id: './', name: 'Take the Court', short_name: 'Take the Court', description: DESC, categories: ['games', 'sports'],
   lang: 'es', start_url: './', scope: './', display: 'fullscreen',
   orientation: 'landscape', background_color: '#070b14', theme_color: '#070b14',
   icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }, { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
@@ -83,8 +94,9 @@ fs.rmSync(OUT, { recursive: true, force: true });
 fs.mkdirSync(path.join(OUT, 'js'), { recursive: true });
 fs.writeFileSync(path.join(OUT, 'index.html'), htmlV);
 fs.writeFileSync(path.join(OUT, '.nojekyll'), '');
+if (CNAME) fs.writeFileSync(path.join(OUT, 'CNAME'), CNAME + '\n');   // (Pages por Actions lo ignora: ver la cabecera)
 fs.writeFileSync(path.join(OUT, 'manifest.webmanifest'), JSON.stringify(manifest, null, 2));
 fs.writeFileSync(path.join(OUT, 'version.json'), JSON.stringify({ v: VERSION }));   // (js/update.js: aviso de versión nueva en los móviles con una anterior)
 for (const f of fs.readdirSync(path.join(ROOT, 'pages'))) fs.copyFileSync(path.join(ROOT, 'pages', f), path.join(OUT, f)); // iconos y og.png
 for (const f of fs.readdirSync(path.join(ROOT, 'js'))) if (f.endsWith('.js')) fs.copyFileSync(path.join(ROOT, 'js', f), path.join(OUT, 'js', f));
-console.log('Pages listo en ' + OUT + ' (' + fs.readdirSync(path.join(OUT, 'js')).length + ' scripts, v' + VERSION + (SHA ? ' ' + SHA : '') + ')');
+console.log('Pages listo en ' + OUT + ' (' + fs.readdirSync(path.join(OUT, 'js')).length + ' scripts, v' + VERSION + (SHA ? ' ' + SHA : '') + ', ' + BASE + (CNAME ? ', CNAME ' + CNAME : '') + ')');

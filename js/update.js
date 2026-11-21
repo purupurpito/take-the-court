@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/update.js
+ * TAKE THE COURT — js/update.js
  * Aviso de versión nueva (19-nov-2026, Ferran: «si un teléfono está en una versión anterior le salte un aviso en la pantalla de
  * reiniciar»). El móvil que se queda con el juego abierto (o la app instalada) no recarga: con una versión anterior no puede jugar
  * online con quien ya tiene la nueva (el saludo compara VB.VERSION).
@@ -7,6 +7,9 @@
  *     al arrancar (a los 4 s), al volver a la pestaña (como mucho cada 5 min) y al entrar en el Online (VB.Update.check(true)).
  *   - Si la publicada es más nueva: hoja «Hay una versión nueva» con «Reiniciar» (recarga con ?u= para saltarse la caché del index) y
  *     «Luego». Nunca durante un partido: espera a que acabe. Con «Luego» no vuelve a salir hasta otra versión o hasta entrar en el Online.
+ *   - Traspaso a takethecourt.com (1.20.0, notes/dominio.md): el puente de la dirección antigua (bridge/) también sirve un version.json
+ *     con la 1.20.0, así que las pestañas viejas que siguen abiertas ven «Hay una versión nueva», «Reiniciar» las lleva al puente y el
+ *     puente, a takethecourt.com con la partida. Por eso la petición es RELATIVA (sirve igual en /make-the-cut/ y en la raíz).
  *   - Sin red, en file:// o sin version.json no hace nada. Pruebas: &vnew=X.Y.Z hace como si la publicada fuera X.Y.Z (sin pedir nada).
  * API: VB.Update.check(force) · .cmp(a, b) (-1/0/1, por números) · .latest (la publicada más nueva que se ha visto, o '') ·
  *      .outdated() (hay una más nueva que la mía) · .note(v) (versión de una sala o del rival: si es más nueva, cuenta) · .show(force) · .reload() · .versionText(rv) (texto del online según quién está atrás).
@@ -37,7 +40,9 @@
   function show(force) {
     if (!outdated() || U.open) return false;
     if (!force && U.dismissed === U.latest) return false;
-    if (playing()) { if (!U.wait) U.wait = setInterval(function () { if (!playing()) { clearInterval(U.wait); U.wait = null; show(force); } }, 1500); return false; }
+    // traspaso de partida a medias u otra hoja abierta (la de traer la partida, elegir Carrera…): sheet() la cerraría; se espera
+    var M = VB.Migrate, busy = function () { return playing() || (M && M.pending && M.pending()) || (VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen()); };
+    if (busy()) { if (!U.wait) U.wait = setInterval(function () { if (!busy()) { clearInterval(U.wait); U.wait = null; show(force); } }, 1500); return false; }
     var S = VB.Splat;
     var html = '<p>Tienes la <b>' + esc(mine()) + '</b> y ya está la <b>' + esc(U.latest) + '</b>.</p>' +
       '<p>Reinicia el juego para actualizarlo. Para jugar online, los dos tenéis que tener la misma versión.</p>';

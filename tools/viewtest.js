@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/viewtest.js  (owner: net)
+/* TAKE THE COURT — tools/viewtest.js  (owner: net)
  * Fase 1b del online (notes/net.md): vista espejo del invitado (js/netview.js), en Node.
  *   - mirror(mirror(g)) = g bit a bit (flip es una involución exacta) en saque, peloteo, punto, revisión y con el hueco en la IA.
  *   - Ningún campo de g, de los jugadores, de los objetos anidados ni de los eventos queda sin clasificar (lista cerrada).

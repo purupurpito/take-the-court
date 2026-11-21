@@ -1,4 +1,4 @@
-/* MAKE THE CUT — tools/chrome.js (owner: ui_main)
+/* TAKE THE COURT — tools/chrome.js (owner: ui_main)
  * Lanzador común de Chrome headless para tools/drive.js y tools/eval.js.
  * - Busca Chrome en Windows / Mac / Linux (o usa la variable CHROME).
  * - Usa la tarjeta gráfica por defecto (ANGLE d3d11 en Windows, metal en Mac, gl en Linux);

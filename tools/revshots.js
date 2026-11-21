@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/revshots.js (owner: ui_main)
+/* TAKE THE COURT — tools/revshots.js (owner: ui_main)
  * Inventario de capturas para la REVISIÓN GENERAL (móvil primero): todas las pantallas y estados visibles por ZONA y TAMAÑO, para que
  * otros revisores las miren sin abrir Chrome. Un solo Chrome (tools/cdp.js) reutilizado entre capturas; táctil + UA de Android en los
  * tamaños de móvil (se ven los mandos táctiles); 1280x720 / 1920x1080 sin táctil. Las cargas llevan &ma_clean=1 (localStorage vacío:

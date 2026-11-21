@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/storymsgtest.js (owner: carrera)
+/* TAKE THE COURT — tools/storymsgtest.js (owner: carrera)
  * Prueba del paquete P1 de «Carrera con vida» (js/career-story-msgs.js, notes/carrera-vida.md §2 S1 y §3) en node puro (vm, sin DOM):
  *   1. Caducidad: lo que pide respuesta y no se contesta se cierra a las 2 jornadas (ans −2), con línea de cierre, sin efecto en
  *      el núcleo y sin poder contestarlo ya.

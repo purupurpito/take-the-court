@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/net3test.js  (owner: net)
+/* TAKE THE COURT — tools/net3test.js  (owner: net)
  * Fase 3 del online (notes/net.md «Fase 3»), lo que se prueba en Node sin navegador:
  *   (1) Récord online y gorra (js/netrec.js + js/look.js en vm, localStorage de mentira): ganar, perder, abandonar (= derrota),
  *       «no cuenta», la gorra «Online Beta Tester» una sola vez y solo si terminaste el partido, la marca de partido a medias (cerrar

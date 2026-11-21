@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/injurytest.js (owner: lesiones)
+/* TAKE THE COURT — tools/injurytest.js (owner: lesiones)
  * Pruebas de las lesiones de la Carrera (js/career-injury.js, VB.CareerInjury) en node puro (vm, sin DOM):
  *   1. Contrato: con el fichero y Lesiones: No desde el principio, la carrera es idéntica a la de sin fichero (3 semillas × 4
  *      temporadas, playa y pista); careertest.js y storyhelp no cargan el fichero.

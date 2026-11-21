@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/netview.js   (owner: net)
+ * TAKE THE COURT — js/netview.js   (owner: net)
  * Vista espejo del invitado (online, notes/net.md). La partida canónica pone al anfitrión en el equipo 0 (x > 0) y al invitado en el
  * equipo 1 (x < 0). La cámara, la interfaz, los efectos y el sonido dan por hecho que «tú» eres el equipo 0, así que el invitado
  * pinta una COPIA girada 180°: x → −x, y → −y en balón, jugadores y puntos; las parejas por equipo intercambiadas (marcador, sets,

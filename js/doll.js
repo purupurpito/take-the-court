@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/doll.js   (owner: players; MODELO DE PERSONAJE del juego, fase 2 integrada el 10-nov-2026)
+ * TAKE THE COURT — js/doll.js   (owner: players; MODELO DE PERSONAJE del juego, fase 2 integrada el 10-nov-2026)
  * MUÑECO («doll»): figura redondeada y limpia de muñeco articulado (Switch Sports / Sackboy) con caricatura de
  * cómic (Windjammers 2 / Mario Strikers): cabeza grande sin cuello, cara enorme dibujada, tubos con bolas en las
  * articulaciones, manoplas y zapatones, ropa PINTADA en la textura, contorno de tinta de color y dos bandas de sombra.
@@ -166,7 +166,7 @@
   // o bajo el ala (1.18: ya no se prohíbe ningún peinado; HAIR_UNDER_CAP dice cuáles asoman enteros)
   var EAR_HAIR = { melena: 1, ondas: 1, melenita: 1, semirrecogido: 1 };   // peinados que tapan la oreja (los pendientes no se pintan)
   var HIDE_HAIR = { gorra: 1, gorraAtras: 1, pescador: 1, gorraMTC: 1, bandana: 1, gorroPompon: 1, pescadorCuadros: 1 };
-  // gorros que llevan cB por vértice (1.18, WP3: tira de la gorra, franja de la cinta y de la visera, cinta del pescador; la MTC lleva
+  // gorros que llevan cB por vértice (1.18, WP3: tira de la gorra, franja de la cinta y de la visera, cinta del pescador; la TTC (gorraMTC) lleva
   // el color de sus letras. WP7: pompón del gorro de lana si se elige cB, damero del pescador de cuadros y franja de la visera con gafas)
   var HEAD_B = { gorra: 1, gorraAtras: 1, pescador: 1, visera: 1, cinta: 1, gorroPompon: 1, pescadorCuadros: 1, viseraGafas: 1 };
   var GOLD = 0xf2c14e, GOLD_HI = 0xfff1b0, GOLD_OC = 0xbe8e31, NEUTRAL_DK = 0x22222a, TAPE = 0xf4f2ea;
@@ -3120,12 +3120,13 @@
     G.add(gridGeo(S0, e0), ce); G.add(gridGeo(S1, e1), ce);
     G.owk = 1;
   }
-  /** «MTC» de la gorra del online (ONLINE, fase 3, especialista net): una tira de la misma copa de la gorra (un 1,5 % más grande) con
-   *  una malla de 13 × 5 caras alineada con este dibujo de píxeles (M de 5, T y C de 3, separadas por 1): cada cara se pinta por
-   *  vértice (G.vc) con la letra o con cA. Siempre 13 × 5 (130 triángulos en todos los LOD): con menos, no se lee. (1.18, WP3: sube
-   *  para que la visera no corte las letras; sigue el giro de la copa) */
-  var MTC_ROWS = ['X...X.XXX..XX', 'XX.XX..X..X..', 'X.X.X..X..X..', 'X...X..X..X..', 'X...X..X...XX'];
-  var MTC_PHI0 = PI / 2 - 0.62, MTC_PHI = 1.24, MTC_TH0 = 0.66, MTC_TH = 0.56;   // (frontal, por encima de la visera)
+  /** «TTC» (Take the Court) de la gorra del online (ONLINE, fase 3, especialista net; hasta la 1.19 decía «MTC», Make the Cut: el id
+   *  gorraMTC y estos nombres internos se quedan para no tocar las partidas guardadas): una tira de la misma copa de la gorra (un 1,5 %
+   *  más grande) con este dibujo de píxeles de 11 × 5 (T, T y C de 3, separadas por 1). Cada casilla mide lo mismo que en el «MTC» de
+   *  13 columnas (MTC_PHI = 1,24 × 11/13) y el dibujo sigue centrado en el frontal. (1.18, WP3: sube para que la visera no corte las
+   *  letras; sigue el giro de la copa) */
+  var MTC_ROWS = ['XXX.XXX..XX', '.X...X..X..', '.X...X..X..', '.X...X..X..', '.X...X...XX'];
+  var MTC_PHI = 1.24 * 11 / 13, MTC_PHI0 = PI / 2 - MTC_PHI / 2, MTC_TH0 = 0.66, MTC_TH = 0.56;   // (frontal, por encima de la visera)
   function mtcInk(cA) { return lumHex(cA) > 0.6 ? 0x1c2233 : 0xf6f3ea; }
   /** Tira de n casillas de esfera unidad (una fila, 2 triángulos por casilla; THREE.SphereGeometry pone como mínimo 3 × 2), con las
    *  coordenadas de SphereGeometry: x = −cos φ sen θ, y = cos θ, z = sen φ sen θ. */
@@ -3143,8 +3144,8 @@
     return g;
   }
   function mtcPanel(G, cA, cup) {
-    // (1.18, WP3 ronda 1: solo las casillas de las letras —26 de 65—, en tramos seguidos por fila: lo demás ya es la copa de debajo, del
-    //  mismo cA; mismo dibujo con 52 triángulos en vez de 130, y la gorra cabe en el presupuesto de objeto de cabeza)
+    // (1.18, WP3 ronda 1: solo las casillas de las letras, en tramos seguidos por fila: lo demás ya es la copa de debajo, del mismo cA;
+    //  con «TTC», 21 casillas de 55 = 42 triángulos, y la gorra cabe en el presupuesto de objeto de cabeza)
     var ink = mtcInk(cA), cols = MTC_ROWS[0].length, rows = MTC_ROWS.length, k = 1.015, dp = MTC_PHI / cols, dt = MTC_TH / rows, r, c;
     G.owk = 0;
     for (r = 0; r < rows; r++) for (c = 0; c < cols; c++) {
@@ -3156,9 +3157,9 @@
     }
     G.owk = 1;
   }
-  /** Gorra de copa (gorra, gorra al revés, gorra MTC): copa del acento con el giro de hatCup, visera gruesa (delante o detrás), botón
-   *  arriba y TIRA de atrás (o de delante, al revés) en cB: la gorra se distingue también de espaldas. La MTC: botón y tira del color
-   *  de las letras. */
+  /** Gorra de copa (gorra, gorra al revés, gorra TTC = id gorraMTC): copa del acento con el giro de hatCup, visera gruesa (delante o
+   *  detrás), botón arriba y TIRA de atrás (o de delante, al revés) en cB: la gorra se distingue también de espaldas. La TTC: botón y
+   *  tira del color de las letras. */
   function capGeo(G, X, cA, cB) {
     var cup = hatCup(X.head), back = X.head === 'gorraAtras', mtc = X.head === 'gorraMTC', acc = mtc ? mtcInk(cA) : cB;
     G.add(new THREE.SphereGeometry(1, sg(22, 14), sg(9, 5), 0, PI * 2, 0, cup.tl), cA, cup.c[0], cup.c[1], cup.c[2], cup.rx, 0, 0, cup.s[0], cup.s[1], cup.s[2]);

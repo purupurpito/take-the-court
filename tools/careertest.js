@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/careertest.js (owner: ui_main)
+/* TAKE THE COURT — tools/careertest.js (owner: ui_main)
  * Prueba headless del modo Carrera (js/career.js) con localStorage falso: crear carrera, calendario, simular temporadas enteras,
  * clasificación coherente, copa, ofertas, cambio de club, ascensos/descensos, guardar/cargar, partido jugado (eventos falsos →
  * estadísticas y nota) y curva de progresión de varias temporadas. Al final, la dificultad de la Carrera (12-nov-2026: Normal idéntico

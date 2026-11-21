@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/menu-jugador.js: portada «materiales del vóley» con el sistema SPLAT (owner: ui_main; por defecto desde el 17-nov-2026,
+/* TAKE THE COURT — js/menu-jugador.js: portada «materiales del vóley» con el sistema SPLAT (owner: ui_main; por defecto desde el 17-nov-2026,
  * Ferran: «Me gusta. Diseña todos así»). ?menu=old deja la portada de antes (comparar): este fichero no hace nada.
  *
  * El partido de demo se queda de fondo, a la vista y sin velos. Reutiliza los MISMOS botones (ids y manejadores de ui.js): solo los pone en

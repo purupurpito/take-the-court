@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/camera.js   (owner: camera_input)
+ * TAKE THE COURT — js/camera.js   (owner: camera_input)
  *
  * Rig de cámara en tercera persona por "planos" (shots):
  *   menu       retransmisión: órbita alta y lenta (desplazada a la derecha

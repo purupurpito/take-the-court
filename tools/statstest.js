@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/statstest.js (owner: ui_main)
+/* TAKE THE COURT — tools/statstest.js (owner: ui_main)
  * Prueba de la «Estadística del partido» (js/matchstats.js) sin navegador: carga sim + IA + matchstats en un contexto vm, juega
  * partidos enteros con el autopilot (2v2 pista, 2v2 playa, 6v6) pasando cada evento a VB.MatchStats.ingest como hace ui.js y
  * comprueba que:

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/camball.js  (owner: camera_input)
+/* TAKE THE COURT — tools/camball.js  (owner: camera_input)
  * ¿Pierde la cámara de juego el balón? ¿Cuánto se mueve? (17-nov-2026, v1.9.2; Ferran: «Quiero la cámara de antes … lo que se tiene que
  * hacer es NO PERDERLO»). Sirve para 2v2 y 6v6 (3ª persona), pista y playa, y para comparar copias del juego (VB_ROOT=carpeta).
  * Juega en vivo con autopilot (2v2: debug=rally&live=1; 6v6: startMatch autopilot) con el reloj de rAF ×SPEED y, en los frames de juego

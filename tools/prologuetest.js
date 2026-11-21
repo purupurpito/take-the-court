@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/prologuetest.js (owner: carrera)
+/* TAKE THE COURT — tools/prologuetest.js (owner: carrera)
  * Prueba headless del prólogo juvenil (js/career-prologue.js; CONTRACT.md «Extensiones de la Carrera»). Node puro (vm, sin DOM).
  *  1. Contrato: sin o.prologue, con y sin el fichero cargado, 2 temporadas en autopilot dan la misma carrera (playa y pista, 3 semillas).
  *  2. o.prologue sin el fichero: crea con las ofertas de siempre.

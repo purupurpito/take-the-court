@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/loantest.js (owner: carrera-loan)
+/* TAKE THE COURT — tools/loantest.js (owner: carrera-loan)
  * Prueba de las cesiones y de pedir el traspaso (js/career-loan.js, VB.CareerLoan) en node puro (vm, sin DOM):
  *   1. Contrato: autopiloto de 3 semillas × 4 temporadas, playa y pista, con y sin el fichero: fuera de loan/inbox/msgN (y de lo que
  *      quita storyhelp.strip), la carrera es idéntica.

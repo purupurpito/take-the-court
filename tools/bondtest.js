@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/bondtest.js (owner: carrera)
+/* TAKE THE COURT — tools/bondtest.js (owner: carrera)
  * Rencor y cariño de los clubes (idea «rencor», js/career-life.js c.life.bond), en node puro (vm, sin DOM):
  *   1) salir con contrato en vigor → rencor (t −1, 'early', mensaje del agente);  2) cumplir el contrato → cariño ('fin', +10 por
  *   temporada, tope +45); transferible / promesa incumplida → neutro; la cesión no cuenta;  3) título con el club +30 (una vez por

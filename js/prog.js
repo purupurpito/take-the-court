@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/prog.js (owner: ui_main)
+/* TAKE THE COURT — js/prog.js (owner: ui_main)
  * Estadísticas de tus jugadores y su progresión (base del modo Carrera, de momento en 2v2).
  *
  * Un «atleta» es un objeto { num, role, name?, lvl, xp, pts, st, matches, bp, bd, beq }:

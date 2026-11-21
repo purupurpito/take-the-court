@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/acta.js (owner: ui_main)
+/* TAKE THE COURT — js/acta.js (owner: ui_main)
  * VB.Acta: «Acta del partido». Convierte el registro de un partido 6v6 (VB.MatchStats.data(): plantilla, alineación de cada set,
  * rallies y lo que pasa a balón muerto) en un acta en el formato de emPat ("format": "empat/acta", versión 1), la app del acta
  * electrónica de vóley. emPat nunca guarda el estado: reconstruye el partido con su motor a partir de la lista de jugadas
@@ -27,7 +27,7 @@
 
   var FRONT_ENTRY = 3;   // índice de la zona 4 en la rotación (zona 1 = índice 0): el líbero que llega ahí sale (FIVB 19.3.1.3)
 
-  /** Colegio arbitral de Make the Cut (inventado). Cada partido designa tres distintos: 1r árbitro, 2º árbitro y anotador. */
+  /** Colegio arbitral de Take the Court (inventado). Cada partido designa tres distintos: 1r árbitro, 2º árbitro y anotador. */
   var ARBITROS = [
     'Aitana Roig Belda', 'Bernat Climent Sola', 'Carla Ivars Peiró', 'Damià Albors Pla', 'Elena Garrigues Mompó', 'Fermín Lacasa Ortiz',
     'Gemma Sancho Llorca', 'Héctor Revert Calabuig', 'Inés Marhuenda Coloma', 'Jaume Escrivà Tormo', 'Lidia Barceló Ferri',
@@ -201,7 +201,7 @@
     if (mr && mr[0] && mr[1] && mr[2]) ref = { referee1: mr[0], referee2: mr[1], scorer: mr[2] };
     var home = SIDE[0] === 'home' ? 0 : 1;
     var info = {
-      competition: str(meta.competition, 80) || 'Make the Cut',
+      competition: str(meta.competition, 80) || 'Take the Court',
       category: str(meta.category, 40) || 'Sénior',
       homeName: names[home], awayName: names[1 - home],
       venue: str(meta.venue, 80), town: str(meta.town, 60),

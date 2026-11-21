@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/splat.js: sistema de diseño «materiales del vóley + toque Splatoon» (owner: ui_main). Guía: notes/splat.md
+/* TAKE THE COURT — js/splat.js: sistema de diseño «materiales del vóley + toque Splatoon» (owner: ui_main). Guía: notes/splat.md
  *
  * VB.Splat pone el dibujo que el CSS solo no puede hacer bien a los componentes del bloque «SPLAT» de index.html:
  *   - .sp-btn / .sp-ticket / .sp-back → la mancha de pintura (SVG con contorno de tinta, goterón y gotas sueltas), con una forma

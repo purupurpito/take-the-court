@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/semana.js (owner: ui_main)
+/* TAKE THE COURT — js/semana.js (owner: ui_main)
  * La situación de la semana (20-nov-2026): cada lunes, el mismo final apurado para todo el mundo («Set único a 25: 22-24, saca el
  * rival»), con tres intentos al día y el mejor de la semana guardado. Decisiones de Ferran: va JUNTO al reto del día (no lo
  * sustituye) y SIN XP ni medallas (tampoco récord ni perfil: empezar desde 24-22 regalaría premios). Decisiones provisionales (propuesta
@@ -267,8 +267,9 @@
     var raw = rawOf(o.wk, o.group.list), parts = raw.split('.');
     for (var i = 1; i < parts.length; i++) { var p = parts[i].split('~'); p[0] = encodeURIComponent(p[0]); parts[i] = p.join('~'); }
     var base = '';
-    try { var L = root.location; base = L ? L.origin + L.pathname : ''; } catch (e) { base = ''; }
-    return (base || 'https://purupurpito.github.io/make-the-cut/') + '?sem=' + parts.join('.') + '.' + check(raw);
+    // como shareSite() de netlobby.js (1.20.0): desde takethecourt.com y desde la dirección antigua se comparte la casa nueva
+    try { var L = root.location, h = L ? L.hostname : ''; base = L ? (L.protocol === 'https:' && (h === 'takethecourt.com' || h === 'www.takethecourt.com' || h === 'purupurpito.github.io') ? 'https://takethecourt.com/' : L.origin + L.pathname) : ''; } catch (e) { base = ''; }
+    return (base || 'https://takethecourt.com/') + '?sem=' + parts.join('.') + '.' + check(raw);
   }
   function readLink(s) {
     if (s == null) return null;

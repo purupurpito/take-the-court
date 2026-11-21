@@ -1,4 +1,4 @@
-# TRASPASO — Make the Cut (antes «Voley 3D»)
+# TRASPASO — Take the Court (antes «Make the Cut» y, al principio, «Voley 3D»)
 
 > **Siguientes tareas y decisiones de Ferran (11-nov-2026): ver SIGUIENTE.md** (lotes A/B/C para trabajar en paralelo).
 
@@ -86,7 +86,7 @@ El Final QA 2 no encontró nada roto y no cambió código. Logs y capturas en `t
   punto, final y tutorial. Todas miradas: escena 3D completa, HUD, controles táctiles, guía de toques y textos en castellano bien.
   En baja el público y las vallas se simplifican, pero se ve bien.
 - **Restricciones de Artifact**:
-  - En estático: `index.html` empieza por `<title>Make the Cut</title>`, sin doctype/html/head/body ni `type="module"`. Lleva 10 scripts
+  - En estático: `index.html` empieza por `<title>Take the Court</title>`, sin doctype/html/head/body ni `type="module"`. Lleva 10 scripts
     clásicos más three.js 0.149.0 de cdnjs, y Google Fonts. Sin alert/confirm/prompt/print/fetch/XHR, sin import/export.
     `localStorage` solo dentro de try/catch (6 sitios). `node --check` de todos los `js/*.js` y `tools/*.js` sin errores.
     `sim.js`/`ai.js` sin DOM ni THREE.
@@ -515,6 +515,25 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - `tools/drive.js` falló 1 vez de 4 («el humano llega a tocar el balón», con el PC al 60 % de CPU); las otras 3, TODO OK. Vigilar.
 
 ### Hecho
+- **Take the Court (1.20.0)** (20/21-nov-2026, rama nombre, con main 1.19.2 fusionado; marca libre y dominio takethecourt.com comprados por Ferran): el juego pasa
+  a llamarse «Take the Court» en todo lo visible (título de la pestaña, metadatos, manifest,
+  instalar, compartir sala, acta, gorra «TTC», letras «T T C» de la red, vallas y banda de playa). Las claves y los ids internos se
+  quedan (`make-the-cut.*`, Firebase `make-the-cut-vb`, `gorraMTC`, semilla `mtc-dia-`…; lista en notes/nombre.md) para no perder
+  partidas, datos de la nube, retos diarios ni la compatibilidad del online. Casa nueva en https://takethecourt.com/ (CNAME en
+  `_site`; rutas relativas, sigue valiendo en /make-the-cut/). Las partidas cruzan de origen con el puente (`bridge/`: la dirección
+  vieja empaqueta las claves `make-the-cut.*` y salta a `takethecourt.com/#mig=…`; `js/migrate.js` las importa sin pisar datos
+  más nuevos, con copia en `make-the-cut.migbak.<id>.*`; escuadrón y récord por progreso, Carreras distintas → se pregunta; tras
+  el traspaso la cuenta une con la nube como primera entrada). Con cuenta, entrar también lo trae (lo sincronizado). Plan B a mano en
+  Ajustes › Info › «Traer tu partida». Novedades: nombre,
+  dirección, la partida viene sola y reinstalar si estaba instalado.
+- **Publicar el cambio de nombre (lo hace Ferran / el lead, en este orden):**
+  1. Fusionar la rama nombre en main y comprobar todo en local (abouttest, settest, migtest, simtest, mobaudit --area portada).
+  2. Renombrar el repo a `purupurpito/take-the-court` y poner el dominio `takethecourt.com` en Settings › Pages (con Pages por
+     Actions, el fichero CNAME no basta). DNS del dominio hacia GitHub Pages y esperar el certificado (Enforce HTTPS).
+  3. Firebase: añadir `takethecourt.com` en Authentication › Authorized domains y revisar las restricciones de la clave web.
+  4. Comprobar que https://takethecourt.com/ sirve 1.20.0 (Google, cuenta, online).
+  5. SOLO ENTONCES crear el repo nuevo `purupurpito/make-the-cut` con el contenido de `bridge/` y Pages activado (bridge/README.md).
+  Detalle y riesgos en notes/dominio.md.
 - **Vestuario renovado (1.18.0)** (20-nov-2026, rama personaje): casco de pelo nuevo con 32 peinados y pelo que asoma bajo los gorros,
   segundo color y efectos de pelo (raíces, puntas, mechas, flequillo, mitad y mitad), 41 objetos nuevos, editor con miniaturas, encuadre
   por ranura y «Probar» (remate, celebración, recepción). Sin draw calls ni programas nuevos; topes TRI_CAP 4400/6000/12800. Plan en
@@ -684,7 +703,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   acento de equipo en la UI = color de la equipación (`--k0`/`--k1`, marcador «TÚ», tutorial); tras un punto anulado ya no sale la
   etiqueta «REMATE»; el cartel «OUT» de la UI es opaco con contorno (la red ya no lo ensucia). simtest prueba además que el humano
   bloquea en modo Uno (n.º 7 y n.º 11) sin que el compañero IA salte a la vez.
-- **Nombre del juego: «Make the Cut»** (sin exclamación; elegido por Ferran el 9-nov-2026; doble sentido: el *cut shot* del vóley y «pasar el corte»,
+- **Nombre del juego (historia): «Make the Cut»**, hasta 1.19.2; desde 1.20.0 es «Take the Court» (ver «Take the Court (1.20.0)» en Hecho y notes/nombre.md). (sin exclamación; elegido por Ferran el 9-nov-2026; doble sentido: el *cut shot* del vóley y «pasar el corte»,
   ganarse la plaza, como en el modo Carrera). Cambiado en título, logos (menú y telón), rótulo del pabellón, aviso de girar el móvil
   y nombre de la app instalable. Repo renombrado a `purupurpito/make-the-cut` (GitHub redirige el repo antiguo); web en https://purupurpito.github.io/make-the-cut/. La URL antigua de Pages (/voley-3d/) da 404 salvo que se cree la redirección en el repo `purupurpito.github.io`.
   Marcas (revisado en TMview/OMPI el 9-nov-2026): nadie tiene «Make the Cut» para videojuegos (clases 9/28/41 de juegos).
@@ -758,7 +777,7 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 
 ## Restricciones (se publicará como Artifact de claude.ai)
 
-- `index.html` sin `<!doctype>`, `<html>`, `<head>` ni `<body>`; empieza por `<title>Make the Cut</title>`.
+- `index.html` sin `<!doctype>`, `<html>`, `<head>` ni `<body>`; empieza por `<title>Take the Court</title>`.
 - Scripts clásicos con `window.VB`, sin módulos ES. Three.js r149 de cdnjs, versión fijada.
 - Sin red en ejecución salvo Three.js y Google Fonts; texturas procedurales.
 - Sin `alert/confirm/prompt/print`; `localStorage` solo con try/catch; audio tras gesto del usuario.
@@ -773,4 +792,5 @@ cámara. Teclado, mando y táctil (móvil en horizontal). Reglas y vocabulario c
 ## Cuentas
 
 Repo público en **purupurpito** (cuenta personal), publicado en GitHub Pages:
-https://purupurpito.github.io/make-the-cut/ (se despliega solo en cada push a main con .github/workflows/pages.yml).
+https://takethecourt.com/ desde 1.20.0 (dominio propio de Ferran; antes https://purupurpito.github.io/make-the-cut/, que pasa a
+ser el puente de bridge/). Se despliega solo en cada push a main con .github/workflows/pages.yml.

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/semanatest.js (owner: ui_main)
+/* TAKE THE COURT — tools/semanatest.js (owner: ui_main)
  * Prueba de «La situación de la semana» (js/semana.js) sin navegador: vm con un localStorage falso y js/retos.js + js/matchstats.js +
  * js/semana.js (+ js/recap.js para el modelo de la hoja final).
  *  1) Tabla congelada de 8 semanas (2026-47 … 2027-02): la situación exacta (si cambia, cambia para todos los jugadores: no se toca).

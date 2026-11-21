@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/venue-gen.js (owner: arena)
+/* TAKE THE COURT — js/venue-gen.js (owner: arena)
  * Generador de SEDES por club, fase F0: RECETA PURA (sin THREE ni DOM; se carga igual en el navegador que en node).
  * VB.VenueGen.spec(club, kind, opt) → la receta («spec») de la sede de ese club: arquetipo, colores, ejes numéricos, nombre…
  * Los constructores (venue-gen-hall.js / venue-gen-beach.js, fases F2-F4) convierten la spec en una def de VB.Arena.

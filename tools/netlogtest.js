@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/netlogtest.js  (owner: net)
+/* TAKE THE COURT — tools/netlogtest.js  (owner: net)
  * Informe de red de los partidos online (js/netlog.js) y reglas de netlogs/{id} (firebase/firestore.rules).
  *  1) Siempre: NetLog con una sesión y un enlace simulados: ventanas de 10 s, sucesos, que NO escribe nada durante el partido y
  *     escribe UNA vez al acabar, sin direcciones IP aunque getStats las tenga.

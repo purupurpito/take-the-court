@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-injury.js (owner: lesiones)
+/* TAKE THE COURT — js/career-injury.js (owner: lesiones)
  * Lesiones y estado físico de la Carrera (playa y pista): VB.CareerInjury.
  * Encargo de Ferran (20-nov-2026): «sí, pero baja probabilidad». API de extensiones: CONTRACT.md «Extensiones de la Carrera».
  *

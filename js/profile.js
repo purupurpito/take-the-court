@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/profile.js (owner: ui_main)
+/* TAKE THE COURT — js/profile.js (owner: ui_main)
  * Perfil (S4-D2 tanda A, T13): nivel de perfil global, hitos y álbum con huecos. Puro: sin DOM ni THREE; localStorage en try/catch
  * (sin almacenamiento funciona en memoria). index.html lo carga después de js/look.js y antes de js/venues.js (T15). Lee VB.Prog,
  * VB.Badges, VB.Gym, VB.Look, VB.Career.beach/hall.get(), VB.CareerLife.ACH_INFO, VB.VENUES y VB.Retos, siempre en diferido y con

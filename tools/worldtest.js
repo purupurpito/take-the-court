@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/worldtest.js (owner: ui_main)
+/* TAKE THE COURT — tools/worldtest.js (owner: ui_main)
  * Prueba headless de lo que el sprint S2-S4 (tarea T11) añade al «mundo» de la Carrera (js/career-world.js y js/career-world-ui.js):
  *  1. Escudos paródicos (crestOf): deterministas (también tras JSON), forma, partición y emblema válidos, contraste ≥ 0,18,
  *     ninguna terna repetida dentro de una liga (también tras varias temporadas con ascensos), txt === k.short, sin Math.random.

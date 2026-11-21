@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/ui.js   (owner: ui_main)
+ * TAKE THE COURT — js/ui.js   (owner: ui_main)
  * Interfaz en DOM sobre el lienzo, en castellano:
  *   - Marcador de retransmisión (sets, puntos, saque, punto de set/partido,
  *     historial de sets), contador de toques del equipo (recepción/defensa,
@@ -3832,6 +3832,7 @@
   //  Acta del partido (js/acta.js, solo 6v6): el acta en el formato de emPat. En GitHub Pages el juego y emPat comparten origen
   //  (purupurpito.github.io), así que se guarda directamente en el almacén de emPat (clave empat/acta/<id>) y se abre emPat con
   //  ?acta=<id>; fuera de Pages (o si el navegador no deja), se descarga el .json para importarlo desde la portada de emPat.
+  //  En takethecourt.com (1.20.0) el juego ya no comparte origen con emPat: allí el acta siempre baja como .json (función oculta).
   // =====================================================================
   var ACTA_LBL = 'Acta del partido', actaT = 0;
   // De momento NO es público (Ferran, 17-nov-2026): el botón solo sale con la cuenta de Ferran. En el código va el SHA-256 del correo
@@ -4710,7 +4711,7 @@
     return !!U[st];
   }
   function lkHides(hd) { var H = (VB.Doll && VB.Doll.HIDE_HAIR) || (VB.Look && VB.Look.HIDE_HAIR) || LK_CAPS; return !!hd && (Array.isArray(H) ? H.indexOf(hd) >= 0 : !!H[hd]); }
-  /** ¿Tapa el gorro el peinado? (gorra, gorra al revés, pescador y la de «MTC»; los que asoman, no) */
+  /** ¿Tapa el gorro el peinado? (gorra, gorra al revés, pescador y la de «TTC»; los que asoman, no) */
   function lkCapHides() { var hd = lkGet('head'); return lkHides(hd) && !lkUnderCap(lkGet('style')); }
   /** Objetos de esta sede que usan el hueco de color key (VB.Look.uses; [] sin él). */
   function lkUses(key) { var Lk = LK(); if (!Lk || !Lk.uses) return []; try { return Lk.uses(key, lk.venue) || []; } catch (e) { return []; } }
@@ -5888,7 +5889,7 @@
     var key = !live ? (car ? 1 : 0) : drill ? (st === 2 ? 3 : 2) : 10 + st * 1e7 + (intro ? 5e6 : 0) + (fin ? 4e6 + g.sets[0] * 10 + g.sets[1] : (g.setNo || 1) * 1e4 + Math.min(99, g.score[0]) * 100 + Math.min(99, g.score[1]));
     if (key === ttKey) return;
     ttKey = key;
-    var T = 'Make the Cut', t;
+    var T = 'Take the Court', t;
     if (!live) t = car ? 'Carrera — ' + T : T;
     else if (st === 2) t = 'Pausa — ' + T;
     else if (drill) t = 'Entrenamiento — ' + T;
@@ -6271,11 +6272,13 @@
     resetArm.to = setTimeout(resetDisarm, 3000);
   }
   var wipeNote = '';
-  /** Fila que abre otro panel: Controles (en la pestaña del dispositivo en uso), Novedades y Créditos (E7). Se apila Ajustes. */
+  /** Fila que abre otro panel: Controles (en la pestaña del dispositivo en uso), Novedades y Créditos (E7). Se apila Ajustes.
+   *  «Traer tu partida» (data-go="mig") abre la hoja de js/migrate.js encima de Ajustes. */
   function goRow(b) {
     var g = b.getAttribute('data-go');
     if (g === 'ctl') openPanel('ctl', { tab: device() });
     else if (g === 'news' || g === 'credits') openAbout(g);
+    else if (g === 'mig' && VB.Migrate && VB.Migrate.manual) VB.Migrate.manual('migcode');   // 1.20.0: traer la partida de Make the Cut a mano
   }
   /** Nombre de la sede (arena.js: ajuste `arena` o ?map=): Palau del Mar / Platja Llarga. */
   function venueName() { return VB.Arena && VB.Arena.venueName ? VB.Arena.venueName() : 'Palau del Mar'; }

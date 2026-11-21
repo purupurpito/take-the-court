@@ -1,4 +1,4 @@
-/* MAKE THE CUT — tools/leagues-fixture.js (owner: ui_main, lote C)
+/* TAKE THE COURT — tools/leagues-fixture.js (owner: ui_main, lote C)
  * Ligas de PRUEBA inventadas para tools/careertest.js: son los antiguos datos provisionales de js/leagues.js (4 países, ciudades
  * ficticias), que cubren casos que los datos reales no tienen fijos: una liga impar de 9 clubes (descansos), una de 8 (doble vuelta),
  * un país sin 2ª (Brasil aquí), copas nacionales con country. careertest los pone en VB.Leagues.regions para las secciones de la pista

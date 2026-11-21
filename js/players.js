@@ -1,5 +1,5 @@
 /* =====================================================================
- * MAKE THE CUT — js/players.js   (owner: players)
+ * TAKE THE COURT — js/players.js   (owner: players)
  * Atletas estilizados (estilo cartoon: toon + contorno de tinta) hechos con primitivas + animación procedural.
  *
  * MODELO (espacio "cuerpo": mira a +Z, +X es su IZQUIERDA, +Y arriba,

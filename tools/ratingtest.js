@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/ratingtest.js (owner: carrera)
+/* TAKE THE COURT — tools/ratingtest.js (owner: carrera)
  * Prueba headless de la nota en directo (js/rating.js, VB.Rating) y de su enganche en career.js (ingest, liveRating, matchDone).
  * No abre Chrome.
  *   Sin opciones (rápida): tabla de acciones, fmt, soft (0-10, el techo de rating()), determinismo (dos pasadas iguales), avisos por

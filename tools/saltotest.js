@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/saltotest.js  (owner: sim)
+/* TAKE THE COURT — tools/saltotest.js  (owner: sim)
  * «Salto con impulso» (v1.12.0, notes/sim.md): pruebas de la sim (node puro, sin navegador). Sale con código 1 si algo falla.
  *   1 puerta: sin djump (o sin dirección) el salto del humano es el de siempre bit a bit
  *   2 despegue: carrera + stick, parado, hacia atrás, tope ×Salto, búfer de 0,10 s; 2b de lado (DJ.lat) y asistencia (astF)

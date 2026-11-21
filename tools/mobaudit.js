@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/mobaudit.js (owner: ui_main)
+/* TAKE THE COURT — tools/mobaudit.js (owner: ui_main)
  * Auditoría de móvil: abre el juego DE VERDAD en Chrome headless (tools/cdp.js; táctil + UA de móvil por defecto) y recorre
  * todas las pantallas del menú, la Carrera, el online y el partido en cada tamaño. Por pantalla × tamaño: captura PNG en
  * <out>/<WxH>/<id>.png y métricas en <out>/metrics.json (código de medida: tools/mobaudit-page.js):

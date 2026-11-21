@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/fluidscen.js  (owner: net)
+/* TAKE THE COURT — tools/fluidscen.js  (owner: net)
  * Online V2 «Fluida»: escenarios DIFÍCILES junto a la red (notes/online-v2-spec.md, plan de pruebas C.4) jugados como partidos de
  * verdad entre dos VB.NetFluid.Session unidas por VB.Net.memPair (reloj virtual, frames fijos de 8 ms desfasados 4 ms, sin azar
  * del harness). Cada máquina en su PROPIO contexto vm (sim.js + ai.js + ai6.js + net.js + netfluid.js), como tools/fluidtest.js.

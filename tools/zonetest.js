@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/zonetest.js (owner: zona y saque de firma)
+/* TAKE THE COURT — tools/zonetest.js (owner: zona y saque de firma)
  * Pruebas de LA ZONA (createGame({zone})) y del SAQUE DE FIRMA (createGame({serveSig})), js/sim.js. Carga sim.js, ai.js y ai6.js en vm.
  *  1. Sin opciones no existen g.zn ni g.sig; con la zona imposible ({th: 1e9}) o el saque Clásico sin gesto, la partida es idéntica paso a
  *     paso (stateHash, que incluye el estado de g.rng), 20 semillas × 120 s, 2v2 y 6v6, con un bot humano.

@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/venue-moll.js (owner: arena)
+/* TAKE THE COURT — js/venue-moll.js (owner: arena)
  * Sede de playa «Moll de la Sorra» (12-nov-2026): torneo urbano de vóley playa sobre una ISLA DE ARENA traída al muelle de
  * un puerto inventado. Sede intermedia de la Carrera de playa. De día (o de tarde, con el sol bajo entre las grúas).
  *

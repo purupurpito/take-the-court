@@ -1,4 +1,4 @@
-/* MAKE THE CUT — tools/mobaudit-page.js (owner: ui_main)
+/* TAKE THE COURT — tools/mobaudit-page.js (owner: ui_main)
  * Código que tools/mobaudit.js inyecta en la página (se serializa con toString(): nada de require ni de cierres).
  * - helpers(): window.__MA = utilidades para abrir pantallas (ensureMenu, click, tab, until, sleep, seedCareer…).
  * - measure(o): métricas de la pantalla visible (letra, objetivos táctiles, recortes, salida/acción principal, solapes,

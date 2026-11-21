@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/senas.js (owner: ui_main)
+/* TAKE THE COURT — js/senas.js (owner: ui_main)
  * Señas del árbitro como pegatina (idea «senas»): catálogo de las 11 señas oficiales que la UI enseña en lugar del texto del árbitro
  * (pestaña del punto o cinta), el pitido de cada una (audio.js) y el «Cuaderno del árbitro» del álbum (profile.js).
  * Puro: sin DOM, sin THREE y sin g.rng. La sim NO lo carga (la huella 2v2 no cambia): la seña ya la calcula sim.js (point.signal) y

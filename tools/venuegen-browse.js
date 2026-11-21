@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/venuegen-browse.js (owner: arena)
+/* TAKE THE COURT — tools/venuegen-browse.js (owner: arena)
  * Recorrido de las sedes GENERADAS de pabellón (plan «sedes-gen», F3) en el navegador (CDP, como venuetest): por cada calidad abre
  * ?debug=serve (cámara de juego) y monta cada sede como main.js forceVenue (VB.Arena.onSettings con forceMap). Por sede y calidad mide:
  *   - ms de setVenue (el montaje es síncrono dentro de onSettings);

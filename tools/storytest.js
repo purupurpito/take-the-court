@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/storytest.js (owner: carrera)
+/* TAKE THE COURT — tools/storytest.js (owner: carrera)
  * Prueba del núcleo de «Carrera con vida» (js/career-story.js, notes/carrera-vida.md §3, paquete P0) en node puro (vm, sin DOM):
  *   1. Contrato: 3 semillas × 6 temporadas, playa y pista, sin elegir nada en story, con y sin los ficheros story (y con un sistema
  *      de prueba que publica, marca y tira con rng 'st-'): la carrera, fuera de story/inbox/msgN/created/world, idéntica.

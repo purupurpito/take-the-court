@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* MAKE THE CUT — tools/looktest.js (owner: ui_main)
+/* TAKE THE COURT — tools/looktest.js (owner: ui_main)
  * Pruebas del Vestuario (js/look.js, VB.Look). Dos partes:
  *  1) SIN navegador (siempre): js/look.js en vm, sin THREE ni DOM, con un localStorage falso:
  *     catálogo (ids únicos y con formato, ranura, sede, rareza, desbloqueos, ids de la especificación), CLASH con ids que existen,

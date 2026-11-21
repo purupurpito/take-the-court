@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/career-dev.js (owner: puesto)
+/* TAKE THE COURT — js/career-dev.js (owner: puesto)
  * Cambio de puesto y plan de desarrollo (VB.CareerDev), para las dos Carreras (playa y pista).
  * API de extensiones de la Carrera: CONTRACT.md «Extensiones de la Carrera» (VB.CareerExt, VB.CareerUIExt). Pruebas: tools/devtest.js.
  *

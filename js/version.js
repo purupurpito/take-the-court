@@ -1,4 +1,4 @@
-/* MAKE THE CUT — js/version.js (owner: ui_main)
+/* TAKE THE COURT — js/version.js (owner: ui_main)
  * Una sola fuente para el número de versión, las novedades y los créditos. Solo datos: sin DOM y sin red.
  * Se carga el primero después de three.js (antes de account.js). Lo leen ui.js (panel «Acerca de», pestaña Info de Ajustes,
  * #btnVer de la portada, aviso de novedades una vez por versión), main.js (ctx.bootInfo.version) y tools/build-pages.js (con vm:
@@ -42,7 +42,11 @@
  *   peinados, segundo color y efectos de pelo, objetos nuevos, miniaturas, encuadre por ranura y Probar.
  * 1.16.1 (19-nov-2026): Camino de temporada y Cifras con SPLAT y versión de móvil (js/career-story-season.js); entrar con Google
  *   pide confirmación si se bloquea la ventana emergente (sin redirección: fallaba en iPhone y Firefox); pruebas al día con 1.15.0.
- * 1.21.0 (21-nov-2026, rama pendientes, sin publicar; la 1.20.0 es el cambio de nombre a Take the Court): sprint «único» (señas del
+ * 1.19.1 / 1.19.2 (21-nov-2026): icono nuevo de la app y logo «Red cruzada» (TAKE / THE en la cinta / COURT con balón como O).
+ * 1.20.0 (21-nov-2026): el juego pasa a llamarse Take the Court (decisión de Ferran, marca libre) y se muda a takethecourt.com.
+ *   Lo visible cambia; las claves internas (make-the-cut.*, proyecto de Firebase, gorraMTC) se quedan (notes/nombre.md). La
+ *   partida viaja sola desde la dirección antigua con el puente (bridge/, js/migrate.js, notes/dominio.md).
+ * 1.21.0 (21-nov-2026): sprint «único» (señas del
  *   árbitro y Cuaderno, Xaranga, «El mismo 22-24», árbitros con nombre, «Te tienen estudiado», rencor y cariño), jefes de pista, sedes
  *   de la Carrera y S4_SYNC encendido. Decisiones provisionales en notes/pendientes-ferran.md.
  */
@@ -69,6 +73,16 @@
         'Jefes también en la Carrera de pista: uno por liga, en el club más fuerte.',
         'La Cúpula del Far acoge las finales de copa, y Can Rebot, partidos de la 2ª.',
         'Tu perfil, los retos y la Carrera de pista se guardan ya en tu cuenta.'
+      ]
+    },
+    {
+      v: '1.20.0', d: '2026-11-21', t: 'Ahora somos Take the Court',
+      items: [
+        'Make the Cut ahora se llama Take the Court.',
+        'Nueva dirección: takethecourt.com.',
+        'Tu partida viene contigo: abre el enlace de siempre y se trae sola.',
+        'Si juegas con cuenta, entra con ella y lo tendrás todo.',
+        'Si lo tenías instalado, vuelve a instalarlo desde takethecourt.com.'
       ]
     },
     {
@@ -331,7 +345,7 @@
     {
       v: '1.5.6', d: '2026-11-17', t: 'Beta abierta',
       items: [
-        'Make the Cut entra en beta abierta: gracias por probarlo y contarnos qué falla.'
+        'El juego entra en beta abierta: gracias por probarlo y contarnos qué falla.'
       ]
     },
     {
