@@ -3,7 +3,8 @@
  * rival»), con tres intentos al día y el mejor de la semana guardado. Decisiones de Ferran: va JUNTO al reto del día (no lo
  * sustituye) y SIN XP ni medallas (tampoco récord ni perfil: empezar desde 24-22 regalaría premios). Decisiones provisionales (propuesta
  * de la ficha, sin respuesta de Ferran; notes/pendientes-ferran.md): nivel de la semana, atributos e insignias iguales para todos y sin
- * ayuda de novato; intentos y mejor resultado solo en este aparato; la portada no se toca; Retos abre en «Hoy».
+ * ayuda de novato; intentos y mejor resultado solo en este aparato. Portada (revisión del 21-nov, propuesta «JUNTO»): la situación
+ * ocupa el sello junto a JUGAR (menu-jugador.js, lee peek()) y el reto del día sigue en la franja de Jugar y en «Hoy».
  * Compartir crea un enlace con tu resultado y dónde sacaste y atacaste, encadenado a los de los amigos que te lo pasaron («mapa del
  * grupo»). Sin servidor: el enlace lleva 4 caracteres de control que solo descartan enlaces rotos; no es un antitrampas.
  *
