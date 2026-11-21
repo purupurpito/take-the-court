@@ -65,7 +65,8 @@
 
   function create(o) {
     o = o || {};
-    return { hall: !!o.hall, role: o.role || '', seed: o.seed | 0, trial: !!o.trial, on: o.on !== false, n: 0, seq: 0, sum: 0, c: null, t: fresh() };
+    // avoid: id de consigna que no se pide (Carrera, «Te tienen estudiado»: rematar por el carril que te cierran). Sin él, como siempre
+    return { hall: !!o.hall, role: o.role || '', seed: o.seed | 0, trial: !!o.trial, on: o.on !== false, n: 0, seq: 0, sum: 0, c: null, t: fresh(), avoid: o.avoid || '' };
   }
   function fresh() { return { set: null, srvTeam: -1, rivDir: '', lastMe: -1, lastTeam: -1, myKind: '' }; }
   function cur(st) { return st && st.c; }
@@ -79,7 +80,8 @@
     for (id in C) {
       c = C[id];
       if (c.fmt && c.fmt !== (st.hall ? 'hall' : 'beach')) continue;
-      if (st.hall && c.roles && !c.roles[st.role]) continue;   // (en la playa no hay puestos: todas valen)
+      if (st.hall && c.roles && !c.roles[st.role]) continue;
+      if (st.avoid && id === st.avoid) continue;   // (te cierran ese carril: el entrenador no lo pide)   // (en la playa no hay puestos: todas valen)
       if (c.k === 'srv' ? k !== 'srv' : c.k === 'rcv' ? k !== 'rcv' : c.k === 'blk' ? k !== 'blk' || !front : k === 'srv') continue;
       ids.push(id);
     }

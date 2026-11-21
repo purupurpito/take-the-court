@@ -545,3 +545,62 @@ amarilla cada 3-5 partidos y la roja rara (solo con amarilla previa del equipo: 
   ciegas), da por perdido un castigo pendiente y vacía la cola; solo sale el `amb:choiceEnd` para que ui.js quite las fichas.
   ui.js: la tarjeta de la hoja final / «Sanciones» dice «punto de castigo» solo cuando llega de verdad el `point.penalty`
   (`ambPenOk`); antes lo copiaba del `amb:card` y un castigo perdido después de salir la tarjeta seguía saliendo en la hoja.
+
+## Rencor y cariño del club rival (21-nov-2026, rama unico-b)
+
+`amb.bond` (−2..2, career.js ambCtx desde career-life `bondOf`; notes/carrera.md «Rencor y cariño de los clubes»). Con bond 0 no cambia
+nada (misma secuencia de eventos con la misma semilla, ambientetest). Disparadores nuevos (prioridad 2): `welcomeGrudge` y `welcomeFond`
+(megafonía, en lugar de `welcome`; la final, el derbi y el duelo se quedan con la suya) y `preGrudge` / `preFond` (previa, antes de
+la revancha; rival 60 % o tu pareja/equipo, con la misma tirada 0x9D). Al empezar: rencor en su casa → `amb:boo` {by 1, target 'me',
+k 0,5 + 0,2·|bond|, 3 s}; rencor en tu casa → pitada suave de su afición visitante (k 0,35); cariño en su casa → `amb:roar` {team 1}.
+El calor ya sube en ambCtx (+0,1·|t| con rencor en su casa), así que la pitada al saque rival llega sola.
+
+## Árbitros con nombre y carácter (21-nov-2026, rama unico-b)
+
+**Colegio por liga** (career-world.js, bloque «árbitros»): playa `'B' + nivel`, pista el id de la liga (`'ES1'`); copas y KO usan el de
+tu liga. `arbPanel(c, key)` da siempre 9 `{id: key + '-' + i, name, short (1r apellido), first, trait}`, puro y determinista
+(`rngOf(c.seed, 'arb-pan', key)`). **Nombres inventados del todo**: nombre de pila (lista mixta propia) y DOS apellidos hechos con
+piezas (`ARB_R` raíz + `ARB_S` final, sin repetir raíz ni final en la misma persona; `ARB_NO` quita los que existen); nunca de la
+lista `ARBITROS` de acta.js ni de FIRST/LAST de career.js (lo mira worldtest §7). Ningún nombre ni apellido se repite dentro de un
+colegio. Carácter: se baraja `['estricto' ×2, 'deja' ×2, 'lince' ×2, 'nervioso', 'manual' ×2]`.
+
+**Designación**: `arbDesigna(c, n)` → `{ref, r2, sc}` (1r, 2º y anotador) con el hash de (temporada, fase, jornada/ronda, etiqueta,
+rival); nunca el 1r de tu último partido (`c.world.arb.last`). Gancho `'setup'` (`onSetup`): pone `out.career.arb = {id, name, short,
+trait, mem, derby, line, rec, r2, sc}` sin escribir en c. Nada con «Apagado», en el partidillo de prueba ni en partidos de extensión.
+Con el **ojo de lince**, `out.ref.p1-p3 × 0,6` (falla menos las líneas); con el **nervioso en un derbi** (tags `derbi`, `clasico`
+o `final` de ambCtx), × 1,3. Solo en ese partido de Carrera: el Partido rápido, el online y la huella 2v2 no llevan `cs.arb`.
+
+**Carácter en VB.Arbitro** (`TRAITS`): estricto sev ×1,3 y provocación ×1,6; deja jugar sev ×0,7 y provocación ×0,5; lince umbral de
+bote discutible ×0,6 (menos disputas de línea; las mal pitadas se discuten igual); nervioso sev ×1,35 solo con `derby`; manual ×1.
+`create(o)` acepta `trait`, `derby` y `mem` (−0,15..+0,2, solo pesa en las protestas de tu equipo). **Sin `trait`, todo vale 1 y no
+hay ficha «Frenar»**: las decisiones son idénticas a las de antes (arbitrotest 1b). career.js `ambNew` pasa `ref: cs.arb` a
+`VB.Ambiente.create`, que lo guarda en `st.ref` y se lo da al árbitro en `arbOf`. Los bocadillos del 1r dicen «1r Apellido»
+(`spRef`; sin `st.ref`, «1r árbitro»).
+
+**Ficha «Frenar a … / Dejarle»** (`amb:choice {kind:'brake', opts:[{k:'protest', label:'Frenar a Iker'}, {k:'drop', label:'Dejarle'}],
+def:'drop', sub:'Iker va a por el 1r'}`): `D.brake` lo marca VB.Arbitro cuando un compañero de la IA de tu equipo va a protestar y tú
+eres capitán (pista: el brazalete del acta; playa: siempre, con tu pareja), en «Completo», con tu jugador en pista. Comparte tope y
+separación con «Protestar» (`offerMax 1`, `offerGap 8`) y su tirada es `hash01(seed, n, 0xA16) < RATES.brakeP (0,6)` sin `st.k++`.
+`'protest'` = frenarle (sin protesta ni riesgo de tarjeta; tu frase `brakeMate`; `st.brakes++`); `'drop'` o tiempo = su protesta,
+como la automática. ui.js: botón 1 verde (`d`), botón 2 naranja (`p`); lector «Frenar a Iker o dejarle.». main.js no cambia.
+`sum()` añade `ref` (id), `brk`, `brkName` y `myProt` (veces que elegiste «Protestar»).
+
+**Libreta oculta** `c.world.arb = {last, p: {id: {m, y, r, pr, br, cl, cs, ev: {s, wk ('J4' | 'final' | 'semifinal' | 'cuartos' |
+'octavos' | 'copa'), k ('red' > 'yellow' > 'brake' > 'protest' > 'clean'), n}}}}` (≤ 60, se quitan los de menos partidos):
+`refAfter` tras `rivAfter` (lee `sum.amb`; nada sin `sum.amb.ref` o con «Apagado»); `refSeason` × 0,6 al empezar temporada.
+`mem = clamp(0,10·y + 0,20·r + 0,05·pr − 0,05·br − 0,02·cl, −0,15, +0,2)`; no se enseña nunca.
+
+**Previa** (recap.js `history`): duelo o cara a cara > 1r con recuerdo > Reto > 1r sin recuerdo (2 líneas). `arbLine`: «1r: Nombre
+Apellido Apellido, …» ≤ 44 letras y sin «·» (si no cabe, «Nombre Apellido» y luego solo el apellido; con la frase corta si hace
+falta): «te sacó amarilla en la J4», «te sacó roja en la semifinal», «te vio frenar a Iker (J3)», «le protestaste en la J2», «3 partidos
+sin tarjetas», «… la temporada pasada»; sin recuerdo, la fama: «fama de mano dura», «deja jugar», «ojo de lince», «los derbis le pesan»
+(el nervioso, solo en derbi; si no, «de manual»), «de manual».
+
+**Mensajes y prensa** (career-story-msgs.js, informativos): `refCard` (tarjeta tuya), `refBrake` (frenaste), `refNext` (el 1r del
+próximo te sacó tarjeta o le protestaste; en pista mira la designación sobre una copia, porque `next6` rehace la convocatoria);
+pregunta 17 de prensa «¿Qué te ha parecido el arbitraje de {ref}?», al final de `PRESS` (los `pressQ` guardados siguen valiendo),
+solo con 1r designado y tarjeta o protesta en el partido. **Acta** (oculta): ui.js `actaMeta.refs` = [1r, 2º, anotador] de `cs.arb`;
+acta.js los usa si vienen los tres.
+
+Escenas: `?debug=amb&k=brake` (la 1ª disputa en contra abre «Frenar a … / Dejarle», 1r «Quirada»; `&format=6v6` en pista; `&arb=1`
+da el 1r con nombre en las demás) y `?debug=intro&kind=long&career=1&arb=1` (designación con recuerdo; `&arb=2` sin él).

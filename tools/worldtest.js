@@ -309,6 +309,93 @@ section('6. Noticia del jefe (C3) y escena ses1 de Faro (entrenos)');
   }
 }
 
+// ------------------------------------------------------------------ 7. árbitros con nombre y carácter
+section('7. Árbitros: colegio por liga, designación, libreta y «Apagado»');
+{
+  const Ba = boot(), Ka = Ba.VB.Career, Wa = Ba.VB.CareerWorld, src = fs.readFileSync(path.join(ROOT, 'js/acta.js'), 'utf8') + fs.readFileSync(path.join(ROOT, 'js/career.js'), 'utf8');
+  ok(Wa.arbPanel && Wa.arbDesigna && Wa.refOf && Wa.arbLine, 'CareerWorld exporta arbPanel, arbDesigna, refOf y arbLine');
+  // nombres: inventados con piezas (dos apellidos), nunca en las listas de acta.js / career.js
+  const parts = Wa._arbParts, TR = ['estricto', 'deja', 'lince', 'nervioso', 'manual'];
+  const fake = { seed: 1, player: { name: 'X Y' } }, allN = new Set(), badN = [];
+  for (let s = 1; s <= 200; s++) {
+    fake.seed = s;
+    const P = Wa.arbPanel(fake, 'B' + (s % 5));
+    if (P.length !== Wa.ARB_N) badN.push('tamaño ' + P.length);
+    const ns = P.map(x => x.name), sur = [].concat(...P.map(x => x.name.split(' ').slice(1)));
+    if (new Set(ns).size !== ns.length || new Set(sur).size !== sur.length || new Set(P.map(x => x.first)).size !== P.length) badN.push('repetido en ' + s);
+    if (!TR.every(t => P.some(x => x.trait === t))) badN.push('faltan caracteres en ' + s);
+    P.forEach(x => {
+      allN.add(x.name); const w = x.name.split(' ');
+      if (w.length !== 3 || x.short !== w[1] || x.first !== w[0]) badN.push('forma ' + x.name);
+      if (w.slice(1).some(a => parts.no[a] || !parts.r.some(r => a.indexOf(r) === 0) || new RegExp("'" + a + "[ ',]").test(src))) badN.push('apellido ' + x.name);
+      if (new RegExp(x.name).test(src)) badN.push('lista ' + x.name);
+      if (/·/.test(x.name)) badN.push('punto ' + x.name);
+    });
+  }
+  ok(!badN.length, 'colegios de ' + Wa.ARB_N + ': nombre y dos apellidos inventados, sin repetir, con los 5 caracteres (' + allN.size + ' nombres)' + (badN.length ? ' — ' + badN.slice(0, 3).join(', ') : ''));
+  fake.seed = 9; ok(JSON.stringify(Wa.arbPanel(fake, 'ES1')) === JSON.stringify(Wa.arbPanel(JSON.parse(JSON.stringify(fake)), 'ES1')), 'misma semilla, mismo colegio');
+  const rnd = Ba.ctx.Math.random; let rc = 0; Ba.ctx.Math.random = () => { rc++; return rnd(); };
+  Wa.arbPanel(fake, 'B2'); Ba.ctx.Math.random = rnd; ok(rc === 0, 'sin Math.random');
+
+  for (const mode of ['beach', 'hall']) {
+    const B = boot(), K = B.VB.Career, Wm = B.VB.CareerWorld, hall = mode === 'hall';
+    K.create(hall ? { mode: 'hall', name: 'Arb Pista', num: 8, pos: 'OH', seed: 515, now: 1 } : { mode: 'beach', name: 'Arb Playa', num: 7, role: 'atk', seed: 515, now: 1 });
+    K.acceptOffer(K.load().offers.findIndex(x => !x.trial), 2);
+    let c = K.load(); const w0 = JSON.stringify(c.world || null);
+    const m1 = K.matchSetup(c), m2 = K.matchSetup(K.load()), a1 = m1 && m1.career.arb, a2 = m2 && m2.career.arb;
+    ok(a1 && a2 && a1.id === a2.id && a1.name && TR.indexOf(a1.trait) >= 0 && a1.r2 && a1.sc && a1.r2 !== a1.name && a1.sc !== a1.name && a1.sc !== a1.r2, mode + ': designación estable en dos matchSetup, con 2º y anotador (' + (a1 && a1.name + ', ' + a1.trait) + ')');
+    ok(JSON.stringify(K.load().world || null) === w0, mode + ': el setup no escribe en c.world');
+    ok(a1 && a1.line.length <= Wm.ARB_LINE && /^1r: /.test(a1.line) && !/·/.test(a1.line) && a1.rec === false, mode + ': línea de la previa ≤ ' + Wm.ARB_LINE + ' letras, sin «·» y sin recuerdo («' + (a1 && a1.line) + '»)');
+    const R = Wm.refOf(c, a1.id); ok(R && R.name === a1.name, mode + ': refOf devuelve el designado');
+    // la libreta tras un partido con tu amarilla
+    const n = K.next(c), sum = { season: c.season, phase: c.phase, label: 'Jornada 1', rival: n.rival.id, rivalName: n.rival.name, win: false, sets: [1, 2], setScores: [[21, 19], [19, 21], [13, 15]], sim: false, nota: 6, me: {},
+      amb: { cards: [{ team: 0, pid: 0, color: 'yellow', mine: true, who: 'player' }], myY: 1, myR: 0, myProt: 1, brk: 0, tags: [], heat: 0.5, fair: false, ref: a1.id } };
+    Wm.hook(c, 'match', sum, { kind: 'league', week: 3 });
+    const e = c.world.arb && c.world.arb.p[a1.id];
+    ok(e && e.m === 1 && e.y === 1 && e.pr === 1 && e.ev && e.ev.k === 'yellow' && e.ev.wk === 'J4' && c.world.arb.last === a1.id, mode + ': refAfter apunta la amarilla en la libreta (' + JSON.stringify(e) + ')');
+    ok(Wm.arbMem(c, a1.id) > 0, mode + ': y el 1r te aprieta (mem ' + Wm.arbMem(c, a1.id) + ')');
+    const L1 = Wm.arbLine(c, { ref: R }, false);
+    ok(L1.rec && /amarilla en la J4$/.test(L1.t) && L1.t.length <= Wm.ARB_LINE && !/·/.test(L1.t), mode + ': con recuerdo, «' + L1.t + '»');
+    K.save(c); const d2 = Wm.arbDesigna(K.load());
+    ok(d2 && d2.ref.id !== a1.id, mode + ': el siguiente partido no lo pita el mismo 1r (' + (d2 && d2.ref.name) + ')');
+    // frenada: «te vio frenar a …»
+    const sum2 = Object.assign({}, sum, { amb: Object.assign({}, sum.amb, { cards: [], myY: 0, myProt: 0, brk: 1, brkName: 'Iker', fair: true, ref: d2.ref.id }) });
+    Wm.hook(c, 'match', sum2, { kind: 'league', week: 4 });
+    ok(/te vio frenar a Iker/.test(Wm.arbLine(c, { ref: d2.ref }, false).t) && Wm.arbMem(c, d2.ref.id) < 0, mode + ': frenada, «' + Wm.arbLine(c, { ref: d2.ref }, false).t + '» y te ablanda');
+    // temporada nueva: la libreta baja ×0,6 y el recuerdo dice «la temporada pasada»
+    Wm.hook(c, 'newSeason'); c.season++;
+    ok(Math.abs(c.world.arb.p[a1.id].y - 0.6) < 1e-9 && /temporada pasada/.test(Wm.arbLine(c, { ref: R }, false).t), mode + ': temporada nueva: ×0,6 y «' + Wm.arbLine(c, { ref: R }, false).t + '»');
+    c.season--;
+    // sin sum.amb.ref (Apagado o sin ambiente): la libreta no cambia
+    const before = JSON.stringify(c.world.arb);
+    Wm.hook(c, 'match', Object.assign({}, sum, { amb: Object.assign({}, sum.amb, { ref: '' }) }), { kind: 'league', week: 5 });
+    Wm.hook(c, 'match', Object.assign({}, sum, { amb: null }), { kind: 'league', week: 6 });
+    ok(JSON.stringify(c.world.arb) === before, mode + ': sin 1r designado, la libreta no cambia');
+    // lince: la tabla de error de este partido baja ×0,6 (las demás, igual que la de la liga)
+    const lv = hall ? null : K.league(K.myClub(K.load()).lvl).ref;
+    if (!hall) { const base = K.REF[lv], mm = K.matchSetup(K.load()), ar = mm.career.arb, f = ar.trait === 'lince' ? 0.6 : ar.trait === 'nervioso' && ar.derby ? 1.3 : 1;
+      ok(Math.abs(mm.ref.p1 - Math.min(1, Math.round(base.p1 * f * 1000) / 1000)) < 1e-9 && mm.ref.chal === base.chal, mode + ': tabla de error según el carácter (' + ar.trait + ', p1 ' + mm.ref.p1 + ')'); }
+    // «Apagado»: sin árbitro y c.world igual
+    B.ctx.VB.ctx = { settings: { ambient: 'off' } };
+    const cOff = K.load(), wOff = JSON.stringify(cOff.world), mo = K.matchSetup(cOff);
+    Wm.hook(cOff, 'match', sum, { kind: 'league', week: 7 });
+    ok(mo && !mo.career.arb && JSON.stringify(cOff.world.arb || null) === JSON.stringify(JSON.parse(wOff).arb || null), mode + ': con «Apagado», sin out.career.arb y la libreta igual');
+    delete B.ctx.VB.ctx;
+    // partidillo de prueba: sin árbitro
+    if (K.trialSetup) { const cc = K.load(); const ts = (() => { try { return K.trialSetup(0, cc); } catch (er) { return null; } })(); ok(!ts || !ts.career.arb, mode + ': el partidillo de prueba no lleva 1r designado'); }
+  }
+  // lince: con el 1r «ojo de lince», la tabla de error de ESE partido baja ×0,6 (se busca una carrera a la que le toque)
+  {
+    let got = null;
+    for (let s = 600; s < 700 && !got; s++) {
+      const B = boot(), K = B.VB.Career; K.create({ mode: 'beach', name: 'Arb Lince', num: 7, role: 'atk', seed: s, now: 1 }); K.acceptOffer(K.load().offers.findIndex(x => !x.trial), 2);
+      const m = K.matchSetup(K.load()); if (m && m.career.arb && m.career.arb.trait === 'lince') got = { m, base: K.REF[K.league(K.myClub(K.load()).lvl).ref] };
+    }
+    ok(got && Math.abs(got.m.ref.p1 - Math.round(got.base.p1 * 0.6 * 1000) / 1000) < 1e-9 && Math.abs(got.m.ref.p3 - Math.round(got.base.p3 * 0.6 * 1000) / 1000) < 1e-9 && got.m.ref.d3 === got.base.d3,
+      'ojo de lince: p1-p3 × 0,6 en su partido (' + (got && got.m.ref.p1 + ' de ' + got.base.p1) + ')');
+  }
+}
+
 console.log('\n' + passes + ' comprobaciones, ' + fails + ' fallos');
 if (fails) { console.log('HAY FALLOS'); process.exit(1); }
 console.log('TODO OK');

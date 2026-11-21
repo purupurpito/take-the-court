@@ -119,7 +119,7 @@
     if (/^final /i.test(L)) return L;
     return STAKES.final.t1;
   }
-  /** Textos del beat B (máx. 2, por prioridad). info: ver introPlan. */
+  /** Textos del beat B (máx. 2, por prioridad: duelo o cara a cara, 1r designado con recuerdo, Reto, 1r sin recuerdo). info: ver introPlan. */
   function history(info) {
     info = info || {};
     var out = [], cs = info.career;
@@ -134,7 +134,11 @@
           out.push(t);
         } else if (cs.rivalName && !cs.trial) out.push(contract('Primera vez contra ' + cs.rivalName));   // (partidillo de prueba: es el club que te prueba, sin cara a cara)
       }
+      // 1r designado (career-world: cs.arb.line, ≤ 44 letras): con recuerdo va antes del Reto; sin él, después
+      var arb = cs.arb && typeof cs.arb.line === 'string' && cs.arb.line ? cs.arb : null;
+      if (arb && arb.rec) out.push(arb.line);
       if (cs.goal) out.push('Reto: ' + low1(cs.goal));
+      if (arb && !arb.rec) out.push(arb.line);
     } else {
       var dn = info.diffName || 'Normal', b = info.byD;
       if (b && ((b[0] | 0) + (b[1] | 0)) > 0) out.push('Tu balance en ' + dn + ': ' + (b[0] | 0) + '-' + (b[1] | 0));

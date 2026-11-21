@@ -18,6 +18,48 @@
     return [Math.cos(a) * r, Math.sin(a) * r];
   }
 
+  /* «Te tienen estudiado» (Carrera jugada, g.scout de la sim; notes/carrera.md). Sin g.scout todo devuelve 0 y no suma nada, así que
+   * la huella no cambia. Desplazamientos deterministas: nunca gastan g.rng (studytest lo comprueba con un contador).
+   * BLK_SHIFT: m que su bloqueador se corre hacia dentro (te cierra la diagonal) o hacia fuera (la línea), × mk × (0,5 + 0,5·bloqueo).
+   * DEF_LEAN: m que su defensor 2v2 se echa hacia el destino del carril cerrado (×mk); DEF_LEAN6 los zagueros 6v6. Calibrado con los bots
+   * (tools/studytest.js): la defensa de la playa es muy sensible (0,2 m ya bajaba a la mitad los puntos en diagonal), por eso tan poco.
+   * RIV_B: puntos de puntuación de openSpot, como mucho, para las zonas del carril de remate del rival (rivBonus: control sobre su reparto
+   * en el partido, RIV_BAND de margen), calibrado en tools/studytest.js para que su reparto real quede cerca del % del informe. */
+  var BLK_SHIFT = 0.3, DEF_LEAN = 0.08, DEF_LEAN6 = 0.15, RIV_B = 2.5, RIV_BAND = 0.08;
+  function sgnS(v) { return v < 0 ? -1 : 1; }
+  /** Puntos de openSpot para su carril: RIV_B × (objetivo − reparto actual) / RIV_BAND, entre −1 y 1 (sin remates aún, el objetivo). */
+  function rivBonus(sc) {
+    var n = sc.rn ? sc.rn.diag + sc.rn.line : 0, sh = n ? sc.rn[sc.riv] / n : sc.rp, e = (sc.rp - sh) / RIV_BAND;
+    return RIV_B * (e > 1 ? 1 : e < -1 ? -1 : e);
+  }
+  /** ¿El ataque que viene es tuyo (el humano del equipo 0)? 2v2: g.jobs[0]; 6v6: el atacante del plan de colocación vigente. */
+  function youAttack(g) {
+    if (g.rot) { var pl = g.setPlan && g.setPlan[0]; return !!pl && pl.to === g.ctrl && pl.t === g.lastTouchT; }
+    return g.jobs[0] === g.ctrl;
+  }
+  /** Signo del lado que te cierran (+ = hacia el lado del golpe = línea; − = hacia dentro = diagonal), o 0 si no toca. */
+  function studySide(g, t) {
+    var sc = g.scout; if (!sc || t !== 1 || !sc.me || !(sc.mk > 0)) return 0;
+    var cs = g.cs || 1, y = g.pr3.y;
+    if (Math.abs(y) < 1.2 * cs || !youAttack(g)) return 0;
+    return sc.me === 'diag' ? -sgnS(y) : sgnS(y);
+  }
+  /** m que el bloqueador rival (equipo t) se corre contra tu remate estudiado (0 sin g.scout). */
+  function studyShift(g, t) {
+    var d = studySide(g, t); if (!d) return 0;
+    return d * BLK_SHIFT * g.scout.mk * (0.5 + 0.5 * (g.prof[1].block || 0)) * (g.cs || 1);
+  }
+  /** m (coordenadas del mundo) que el defensor rival 2v2 se echa hacia el destino de tu carril cerrado (0 sin g.scout). */
+  function studyLean(g, t) {
+    var d = studySide(g, t); if (!d) return 0;
+    return d * DEF_LEAN * g.scout.mk * (g.cs || 1);
+  }
+  /** Lo mismo para los zagueros 6v6, en las coordenadas locales de defPos (yl, que va × side(t)). */
+  function studyLean6(g, t) {
+    var d = studySide(g, t); if (!d) return 0;
+    return d * side(t) * DEF_LEAN6 * g.scout.mk;
+  }
+
   // Zonas candidatas del campo rival (profundidad desde la red, lateral; en la playa ×g.cs: pista 16×8)
   var DEPTHS = [2.2, 4.2, 6.2, 7.9], LATS = [-3.6, -1.8, 0, 1.8, 3.6];
   var _t2 = [0, 0];
@@ -33,6 +75,10 @@
     var blk2 = null;
     if (atk && blk && g.rot) for (var b3 = 0; b3 < opp.length; b3++) { var o3 = opp[b3]; if (o3 !== blk && o3.z > 0.15 && Math.abs(o3.x) < 1.2 && (!blk2 || Math.abs(o3.y - p.y) < Math.abs(blk2.y - p.y))) blk2 = o3; }
     var cs = g.cs || 1;
+    // «Te tienen estudiado»: el rival remata más por su carril (el del informe). Solo suma a la puntuación: mismo bucle y mismo azar
+    // (desde un ala; control determinista sobre lo que llevan en el partido, g.scout.rn: por debajo del % del informe empuja hacia su
+    //  carril y por encima lo aparta, así el reparto real queda cerca del % sea cual sea su tendencia de base en cada formato)
+    var rivL = atk && g.scout && p.team === 1 && g.scout.riv && Math.abs(p.y) >= 1.2 * (g.cs || 1) ? g.scout.riv : '', rivB = rivL ? rivBonus(g.scout) : 0;
     for (var i = 0; i < DEPTHS.length; i++) {
       if (DEPTHS[i] < minDepth) continue;
       for (var j = 0; j < LATS.length; j++) {
@@ -50,6 +96,7 @@
           if (gapB < 0.9) sc -= 3 * read * (1 - gapB / 0.9);
           if (blk2) { var gapC = Math.abs(y0 - blk2.y); if (gapC < 0.9) sc -= 3 * read * (1 - gapC / 0.9); }
         }
+        if (rivL && S.laneOf(p.y, y, cs) === rivL) sc += rivB;
         if (sc > best) { best = sc; out[0] = x; out[1] = y; }
       }
     }
@@ -270,11 +317,11 @@
         bl = g.defRole === 'block' ? hc : g.defRole === 'dig' ? hm : (Math.abs(hc.x) > 4 ? hm : hc);
       }
       if (t === 0 && g.drill) bl = g.ctrl; // E6 (Bloqueo, también con autopilot): bloquea el del humano
-      if (p === bl) return setTg(sd * 0.6, clamp(g.pr3.y + g.blockOff[t], -4.2 * cs, 4.2 * cs), false, true);
+      if (p === bl) return setTg(sd * 0.6, clamp(g.pr3.y + g.blockOff[t] + (g.scout ? studyShift(g, t) : 0), -4.2 * cs, 4.2 * cs), false, true);
       // defensor: a media pista, algo hacia la diagonal (el bloqueo tapa parte de la paralela), sin dejar
       // vendida la línea: desde ahí llega a la diagonal y, lanzándose, a la paralela
       var ay = g.pr3.y;
-      return setTg(sd * 5.4 * cs, clamp(-ay * 0.3, -2 * cs, 2 * cs));
+      return setTg(sd * 5.4 * cs, clamp(-ay * 0.3 + (g.scout ? studyLean(g, t) : 0), -2 * cs, 2 * cs));
     }
     return setTg(sd * 6.2 * cs, (idx ? 2.2 : -2.2) * cs);
   }
@@ -501,5 +548,7 @@
   }
 
   VB.AI = { aim: aim, computeJob: computeJob, pos: pos, update: update, serveTarget: serveTarget, openSpot: openSpot, timeTo: timeTo,
-    leaving: leaving }; // (E2: VB.AI.leaving(g, team))
+    leaving: leaving, // (E2: VB.AI.leaving(g, team))
+    // «Te tienen estudiado» (sin g.scout, 0)
+    studyShift: studyShift, studyLean: studyLean, studyLean6: studyLean6, BLK_SHIFT: BLK_SHIFT, DEF_LEAN: DEF_LEAN, DEF_LEAN6: DEF_LEAN6, RIV_B: RIV_B };
 })();

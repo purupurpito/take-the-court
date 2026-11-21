@@ -99,6 +99,26 @@ ok(p.t[0].tr && p.t[0].tr.t === 'Pegan fuerte', 'rasgo de tu pareja');
 ok(!texts(p).some(s => /CPU/.test(s)), 'Carrera: sin «CPU» en la previa');
 p = R.introPlan({ career: Object.assign({}, cs0, { h2h: [0, 0, 0, 0, 0, 0], last: null }) });
 ok(p.b[0] === 'Primera vez contra Voley Sóller', 'sin partidos: «Primera vez contra Voley Sóller»');
+// 1r designado (career-world: cs.arb.line ≤ 44 letras): con recuerdo va antes del Reto; sin recuerdo, después (y se cae si no cabe)
+{ const arbR = { name: 'Nerea Quirada Garbero', line: '1r: Nerea Quirada, te sacó amarilla en la J4', rec: true }, arbF = { name: 'Nerea Quirada Garbero', line: '1r: Nerea Quirada Garbero, fama de mano dura', rec: false };
+  let q = R.introPlan({ career: Object.assign({}, cs0, { arb: arbR }) });
+  ok(q.b.length === 2 && q.b[0] === 'Cara a cara: 2-1' && q.b[1] === arbR.line, '1r con recuerdo: cara a cara y designación, antes que el Reto (' + q.b.join(' / ') + ')');
+  q = R.introPlan({ career: Object.assign({}, cs0, { arb: arbF }) });
+  ok(q.b.length === 2 && q.b[1] === 'Reto: gana un set a cero', '1r sin recuerdo: el Reto va antes (' + q.b.join(' / ') + ')');
+  q = R.introPlan({ career: Object.assign({}, cs0, { arb: arbF, goal: '' }) });
+  ok(q.b[1] === arbF.line, '1r sin recuerdo y sin Reto: sale la designación (' + q.b[1] + ')');
+  q = R.introPlan({ career: Object.assign({}, cs0, { arb: arbR }), again: true });
+  ok(q.kind === 'mini' && !q.beats.some(b => b.id === 'B'), 'previa mini (reinicio): sin beat B ni designación');
+  ok([arbR.line, arbF.line].every(s => s.length <= 44 && !/·/.test(s)), 'líneas de designación ≤ 44 letras y sin «·»');
+  const W = (() => { const fs = require('fs'), path = require('path'), vm = require('vm'), cx = { console, Math, Date, JSON }; cx.globalThis = cx; cx.window = cx; vm.createContext(cx);
+    for (const f of ['js/career.js', 'js/career-world.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', f), 'utf8'), cx, { filename: f }); return cx.VB.CareerWorld; })();
+  const lines = []; for (let s = 1; s <= 60; s++) W.arbPanel({ seed: s }, 'B1').forEach(r => {
+    lines.push(W.arbLine({ season: 3 }, { ref: r }, true).t);
+    lines.push(W.arbLine({ season: 3, world: { arb: { p: { [r.id]: { m: 3, y: 1, ev: { s: 3, wk: 'J14', k: 'yellow' } } } } } }, { ref: r }, false).t);
+    lines.push(W.arbLine({ season: 3, world: { arb: { p: { [r.id]: { m: 3, br: 1, ev: { s: 3, wk: 'J12', k: 'brake', n: 'Maximiliano'.slice(0, 10) } } } } } }, { ref: r }, false).t);
+    lines.push(W.arbLine({ season: 3, world: { arb: { p: { [r.id]: { m: 3, r: 1, ev: { s: 2, wk: 'semifinal', k: 'red' } } } } } }, { ref: r }, false).t);
+  });
+  ok(lines.every(s => /^1r: /.test(s) && s.length <= 44 && !/·/.test(s) && !/undefined/.test(s)), 'arbLine: ' + lines.length + ' líneas ≤ 44 letras, sin «·» (la más larga: ' + Math.max(...lines.map(s => s.length)) + ')'); }
 p = R.introPlan({ career: Object.assign({}, cs0, { last: [2, 0] }) });
 ok(p.b[0] === 'Cara a cara: 2-1 | el último, 2-0', 'con último resultado (' + p.b[0] + ')');
 p = R.introPlan({ career: Object.assign({}, cs0, { week: 0, first: true, league: 'Circuito Regional' }) });

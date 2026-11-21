@@ -13,7 +13,8 @@
  * pista (cambiado o con el líbero en su lugar), se apunta un capitán en juego: el colocador que esté en pista o, si no, el primero de
  * la rotación que no sea líbero.
  * Nombres: los de la sim / la Carrera; el que no tenga (Partido rápido, líberos) recibe uno inventado, fijo para el partido (semilla).
- * Árbitros: 1r árbitro, 2º árbitro y anotador designados al azar (fijo por partido) de la lista ARBITROS.
+ * Árbitros: 1r árbitro, 2º árbitro y anotador designados al azar (fijo por partido) de la lista ARBITROS; en la Carrera, los que
+ * designa su colegio (meta.refs = [1r, 2º, anotador], career-world.js), si vienen los tres.
  * El líbero que rota a la delantera sale solo en emPat (salida automática, sin liberoExitConfirm): para no apuntar dos veces esa
  * salida, aquí se sigue la rotación igual que el motor de emPat y la salida del juego se omite cuando emPat ya la ha hecho.
  * Puro: build(data, meta) no toca el DOM ni la sim. Solo 6v6 (emPat es el acta de pista de 6). tools/actatest.js lo comprueba
@@ -196,6 +197,8 @@
     }
 
     var dt = new Date(now - (d.rallies.length * 25 + sets.length * 180) * 1000), ref = designa(seed);
+    var mr = Array.isArray(meta.refs) && meta.refs.length === 3 ? meta.refs.map(function (x) { return str(x, 60); }) : null;
+    if (mr && mr[0] && mr[1] && mr[2]) ref = { referee1: mr[0], referee2: mr[1], scorer: mr[2] };
     var home = SIDE[0] === 'home' ? 0 : 1;
     var info = {
       competition: str(meta.competition, 80) || 'Make the Cut',

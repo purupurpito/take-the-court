@@ -14,6 +14,8 @@
  *    nunca toca GEAR, gearBonus ni attrs; su gasto va en l.spentLook, no en l.spent). Sin look.js no hace nada.
  *  - Sprint 2-4: jefes del circuito (S3 C3, solo playa: l.boss, l.bossW, l.rival.style), química con nombre (S3 C5: chemLevel,
  *    chemInfo, chemCheck, 3 decisiones raras), logros ses10/sesg5 (sesiones de entrenamiento, c.ts.md) y boss3 al final de ACH y ACH_INFO (S4 D2). notes/s234/T10.md.
+ *  - Rencor y cariño de los clubes (c.life.bond): salir con contrato en vigor, eliminarlos en un derbi o una roja en su casa dejan rencor;
+ *    cumplir el contrato o ganar un título, cariño. Se nota en las ofertas (bondOffer), los mensajes y la grada (career.js ambCtx).
  * Sin DOM (se carga en node: tools/careertest.js, tools/lifetest.js). Guarda en c.life dentro de la carrera (sin cambiar su versión: todo tiene valor
  * por defecto y se crea al vuelo con ensure()). career.js llama a hook(c, tipo, …) en sus puntos clave; si este fichero no está,
  * la Carrera funciona igual que antes.
@@ -95,6 +97,8 @@
     // nivel de química ya avisado: se fija al cargar con el actual (sin avisos atrasados en guardados viejos)
     if (c.mate && typeof c.mate === 'object' && !(c.mate.chemLv >= 0)) c.mate.chemLv = chemLevel(c.mate.chem);
     if (hall(c) && !(c.chemLv >= 0)) c.chemLv = chemLevel(c.chem);
+    // rencor y cariño de los clubes (bondSt): se crea al vuelo; un guardado viejo empieza sin relaciones, en el club de ahora
+    if (!l.bond || typeof l.bond !== 'object' || Array.isArray(l.bond)) l.bond = { at: c.myClub >= 0 ? c.myClub | 0 : -1, tS: 0, k: {} };
     return l;
   }
 
@@ -979,7 +983,7 @@
     l.jN++;
     var chemEv0 = l.chemEv;   // (nivel alcanzado en una jornada ANTERIOR o en una decisión: pairSign sale en esta)
     // el reto y el duelo, con el rival de ANTES del partido (el que se enseñó en la tarjeta y en g.career.goal)
-    var ch = sum.bench ? null : challengeAt(c, sum.season, sum.phase, f, sum.rival), rv0 = l.rival;
+    var ch = sum.bench ? null : challengeAt(c, sum.season, sum.phase, f, sum.rival), rv0 = l.rival, rvC0 = rv0 ? { club: rv0.club } : null;   // (rvC0: el club de tu rival ANTES del partido, para el derbi de copa; ensureRival puede cambiarlo)
     // rival: se crea en tu primera jornada en una liga (o al cambiar de liga)
     ensureRival(c);
     if (!sum.bench) {
@@ -1028,6 +1032,7 @@
     var cu = chemCheck(c); if (cu && cu.up) out.chemUp = { lv: cu.lv, name: cu.name };
     maybeEvent(c, sum, chemEv0 > 0);
     try { cardsAfter(c, l, sum, L, out); rivWeek(c, l); } catch (e) { try { console.error('CareerLife cards', e); } catch (e2) { } }
+    try { bondMatch(c, sum, rvC0); bondWeek(c); } catch (e) { try { console.error('CareerLife bond', e); } catch (e2) { } }   // rencor y cariño de los clubes
     out.ach = check(c).map(function (a) { return achName(a, c); });
     sum.life = out;
   }
@@ -1085,6 +1090,133 @@
       out.fair = true;
     }
   }
+  // ------------------------------------------------------------------ relación con los clubes: rencor y cariño (idea «rencor», notes/carrera.md)
+  // c.life.bond = {at: club donde estás (-1 en pick), tS: temporada del último «título» apuntado, k: {id: {v, why: [≤3 códigos], s, said}}}.
+  // v de −100 a +100 (nunca se enseña): grado t −2..+2 con BOND_T. Solo la relación con el club, sin azar (determinista con lo que pasa).
+  // Se nota en las ofertas (cariño: más interés; rencor: te SIGUEN ofreciendo, pero en peores condiciones), en los mensajes y, con
+  // «Ambiente de Carrera» encendido, en la grada (career.js ambCtx → ambiente.js amb.bond). Con el ambiente apagado solo se apaga la grada.
+  var BOND_T = [-55, -25, 25, 55], BOND_MAX = 30, BOND_DECAY = 0.75, BOND_DROP = 8;
+  var BOND_D = { early: -45, fin: 20, finPer: 10, finMax: 45, title: 30, derbi: -30, roja: -20 };
+  var BOND_PAY = [0.7, 0.85];   // sueldo de las ofertas con rencor (t −2, −1); con t −2, además, un rol por debajo
+  var BOND_ADJ = 0.06;          // cariño: +v × 0,06 de interés (hasta +6)
+  var WHY_TXT = { early: 'Te fuiste con contrato en vigor', fin: 'Cumpliste tu contrato', title: 'Ganaste un título aquí',
+    derbi: 'Los eliminaste en un derbi', roja: 'Te expulsaron en su casa' };
+  function bondSt(c) {
+    var l = ensure(c), b = l.bond;
+    if (!b || typeof b !== 'object' || Array.isArray(b)) b = l.bond = { at: c.myClub >= 0 ? c.myClub | 0 : -1, tS: 0, k: {} };
+    if (typeof b.at !== 'number') b.at = c.myClub >= 0 ? c.myClub | 0 : -1;
+    if (!(b.tS >= 0)) b.tS = 0;
+    if (!b.k || typeof b.k !== 'object' || Array.isArray(b.k)) b.k = {};
+    return b;
+  }
+  function bondT(v) { return v <= BOND_T[0] ? -2 : v <= BOND_T[1] ? -1 : v >= BOND_T[3] ? 2 : v >= BOND_T[2] ? 1 : 0; }
+  function lowFirst(s) { s = String(s || ''); return s.charAt(0).toLowerCase() + s.slice(1); }
+  function sedeOf(k) { return k ? String(k.beach || k.city || k.name || '') : ''; }
+  /** Relación con el club id: {v, t, why: [códigos], last: código más reciente, txt, s} o null (sin relación). Solo lectura. */
+  function bondOf(c, id) {
+    var l = c && c.life, b = l && l.bond, e = b && b.k && id != null && b.k[id];
+    if (!e || typeof e !== 'object' || !(+e.v)) return null;
+    var why = Array.isArray(e.why) ? e.why.filter(function (w) { return WHY_TXT[w]; }) : [], last = why[why.length - 1] || '';
+    return { v: +e.v, t: bondT(+e.v), why: why.slice(), last: last, txt: last ? WHY_TXT[last] : '', s: e.s | 0 };
+  }
+  /** Lo que la relación cambia en una oferta de ese club: null si no hay grado. adj = interés extra (cariño); k = sueldo (rencor);
+   *  roleCut = 1 si el rol baja un escalón (mucho rencor). Con rencor el interés no baja: el club te sigue ofreciendo fichar. */
+  function bondOffer(c, id) {
+    var b = bondOf(c, id); if (!b || !b.t) return null;
+    if (b.t > 0) return { t: b.t, adj: round1(b.v * BOND_ADJ), k: 1, roleCut: 0 };
+    return { t: b.t, adj: 0, k: BOND_PAY[b.t + 2], roleCut: b.t <= -2 ? 1 : 0 };
+  }
+  /** Texto de la ficha de una oferta (o: la oferta, con bond/bondRole que pone career.js). '' sin relación. */
+  function bondLine(c, o) {
+    var b = o && bondOf(c, o.club); if (!b || !b.t || !b.txt) return '';
+    if (b.t > 0) return 'Aquí te recuerdan: ' + lowFirst(b.txt) + '. Te quieren más.';
+    var pct = Math.round((1 - BOND_PAY[b.t + 2]) * 100);
+    return 'No olvidan que ' + lowFirst(b.txt) + '. Te ofrecen un ' + pct + ' % menos de sueldo' + (o.bondRole ? ' y un rol más bajo' : '') + '.';
+  }
+  function bondAdd(c, id, d, why) {
+    if (id == null || id < 0 || !d) return null;
+    var b = bondSt(c), e = b.k[id];
+    if (!e || typeof e !== 'object') e = b.k[id] = { v: 0, why: [], s: c.season | 0, said: 0 };
+    if (!Array.isArray(e.why)) e.why = [];
+    e.v = clamp(Math.round((+e.v || 0) + d), -100, 100);
+    e.why = e.why.filter(function (w) { return w !== why; }); e.why.push(why); if (e.why.length > 3) e.why = e.why.slice(-3);
+    e.s = c.season | 0;
+    var ids = Object.keys(b.k);
+    if (ids.length > BOND_MAX) {   // tope: se olvidan los clubes con la relación más floja (nunca el que acaba de cambiar)
+      ids = ids.filter(function (x) { return +x !== +id; });
+      ids.sort(function (x, y) { return Math.abs(+b.k[x].v || 0) - Math.abs(+b.k[y].v || 0) || (+x) - (+y); });
+      ids.slice(0, ids.length + 1 - BOND_MAX).forEach(function (x) { delete b.k[x]; });
+    }
+    if (!e.v) delete b.k[id];
+    return e;
+  }
+  /** 'join': dejas b.at por c.myClub. Con contrato en vigor (o.early) → rencor; al acabar el contrato → cariño (más cuantas más
+   *  temporadas); transferible (o.wasListed) o promesa incumplida (o.wasBroken) → neutro. Una cesión no cuenta (sigues siendo del club). */
+  function bondJoin(c, o) {
+    if (o && o.loan) return;
+    var b = bondSt(c), prev = b.at;
+    b.at = c.myClub >= 0 ? c.myClub | 0 : -1;
+    if (prev == null || prev < 0 || prev === b.at || !o) return;
+    var E = K(c), k = E.club(c, prev); if (!k) return;
+    if (o.early) {
+      bondAdd(c, prev, BOND_D.early, 'early');
+      E._msg(c, 'agent', 'Salida sonada', 'En ' + k.name + ' no ha sentado nada bien tu salida. Cuando vuelvas a ' + sedeOf(k) + ', lo vas a oír.');
+      return;
+    }
+    if (o.wasListed || o.wasBroken) return;
+    var n = Math.max(1, (c.history || []).filter(function (x) { return x && x.club === prev; }).length + (c.phase === 'off' ? 0 : 1));
+    bondAdd(c, prev, Math.min(BOND_D.finMax, BOND_D.fin + BOND_D.finPer * (n - 1)), 'fin');
+    E._msg(c, 'club', k.name + ' te despide', 'Gracias por ' + (n === 1 ? 'una temporada' : n + ' temporadas') + '. En ' + sedeOf(k) + ' siempre tendrás tu casa.');
+  }
+  /** Tras un partido (no en el banquillo): derbi de eliminatoria ganado (rencor del eliminado) y roja en su casa (rencor del local).
+   *  rv0 = {club} de tu rival personal ANTES del partido (playa). */
+  function bondMatch(c, sum, rv0) {
+    if (!sum || sum.bench) return;
+    var E = K(c), rid = sum.rival, rk = rid != null ? E.club(c, rid) : null; if (!rk || rk.id === c.myClub) return;
+    if (isKO(sum.phase) && sum.win) {
+      var me = E.myClub(c), dz = false;
+      if (hall(c)) dz = !!(me && me.city && rk.city && me.city === rk.city);
+      else dz = !!(rv0 && rv0.club === rk.id) || !!bossFor(c, rk.id);
+      if (dz) { bondAdd(c, rk.id, BOND_D.derbi, 'derbi'); E._msg(c, 'fans', 'Derbi para el recuerdo', 'Has dejado fuera a ' + rk.name + '. Su afición tardará en perdonártelo.'); }
+    }
+    var a = sum.amb;
+    if (a && !sum.sim && (a.myR | 0) > 0 && a.home === 1) {
+      bondAdd(c, rk.id, BOND_D.roja, 'roja');
+      E._msg(c, 'fans', sedeOf(rk) + ' se acordará de ti', 'La expulsión ha corrido por las redes. En ' + sedeOf(rk) + ' ya te tienen fichado.');
+    }
+  }
+  /** Fin de temporada: un título (liga, copa o internacional; el ascenso no) con tu club → cariño, una vez por temporada. */
+  function bondTitles(c) {
+    var b = bondSt(c), E = K(c), me = c.myClub >= 0 && E.myClub(c); if (!me || (b.tS | 0) === (c.season | 0)) return;
+    var won = (c.trophies || []).some(function (t) { return t && (t.season | 0) === (c.season | 0) && t.club === me.name && (t.kind === 'liga' || t.kind === 'copa' || t.kind === 'intl'); });
+    if (!won) return;
+    b.tS = c.season | 0;
+    bondAdd(c, me.id, BOND_D.title, 'title');
+    E._msg(c, 'fans', me.name + ' no lo olvidará', 'La afición ya canta tu nombre. Este título se recordará en ' + sedeOf(me) + ' mucho tiempo.');
+  }
+  /** Verano: la relación se enfría (×0,75) y se olvida por debajo de 8. Lo de la temporada que acaba de terminar se salta este verano. */
+  function bondDecay(c) {
+    var b = bondSt(c);
+    Object.keys(b.k).forEach(function (id) {
+      var e = b.k[id]; if (!e || typeof e !== 'object') { delete b.k[id]; return; }
+      if ((e.s | 0) >= (c.season | 0) - 1) return;
+      e.v = Math.round((+e.v || 0) * BOND_DECAY);
+      if (Math.abs(e.v) < BOND_DROP) delete b.k[id];
+    });
+  }
+  /** Aviso del próximo partido contra un club con relación (una vez por temporada y club). También con el ambiente apagado. */
+  function bondWeek(c) {
+    if (c.phase === 'off' || c.phase === 'pick') return;
+    var n = null; try { n = K(c).next(c); } catch (e) { n = null; }
+    if (!n || !n.rival || n.bench) return;
+    var rk = n.rival, bo = bondOf(c, rk.id); if (!bo || !bo.t) return;
+    var e = bondSt(c).k[rk.id]; if (!e || (e.said | 0) === (c.season | 0)) return;
+    e.said = c.season | 0;
+    var E = K(c), sd = sedeOf(rk);
+    if (bo.t > 0) E._msg(c, 'fans', 'Vuelta a casa', 'El próximo es contra ' + rk.name + '. Allí te tienen cariño: igual hasta te aplauden al salir.');
+    else if (!n.atHome) E._msg(c, 'coach', 'Vuelves a ' + sd, 'El próximo es en casa de ' + rk.name + '. No olvidan que ' + lowFirst(bo.txt || 'te fuiste') + '. Cabeza fría con la grada.');
+    else E._msg(c, 'coach', rk.name + ' viene con su afición', 'Y no te ha perdonado. Que piten; tú, a jugar.');
+  }
   /** Fin de temporada (después de career.js endSeason): premios, objetivo del patrocinador, títulos a fama, logros. */
   function seasonEnd(c) {
     var l = ensure(c), L = lvlOf(c), r = c.review || {};
@@ -1101,6 +1233,7 @@
       else K(c)._msg(c, 'fans', s.name + ': objetivo no cumplido', 'Te quedaste en ' + got + ' de ' + s.goal.n + ' (' + s.goal.txt + '). Sin bonus esta vez.');
       l.spDone = 1; l.sponsor.done = 1;   // los patrocinios son por temporada: se va en verano (seasonStart); el último partido aún cobra
     }
+    try { bondTitles(c); } catch (e) { }
     r.fans = Math.round(l.fame); r.legacy = legacyScore(c);
     check(c);
   }
@@ -1113,6 +1246,7 @@
     if (tierOf(c) >= 1) sponsorOffers(c, 'season');
     ensureRival(c);
     ensureBoss(c, true);   // el jefe juega en el club más fuerte de su liga ESTA temporada
+    bondDecay(c);   // rencor y cariño: se enfrían con el verano
     chemCheck(c);   // (verano de la pista ×0,6 o compañero nuevo: si baja, se apunta sin aviso)
   }
   /** matchSetup: material (+ a dos atributos por pieza y nivel) y molestias (−2 a todo). Solo en el partido. */
@@ -1173,6 +1307,7 @@
     else if (kind === 'newSeason') seasonStart(c);
     else if (kind === 'setup') setup(c, a);
     else if (kind === 'create') onCreate(c);
+    else if (kind === 'join') bondJoin(c, a);
   }
 
   VB.CareerLife = {
@@ -1195,6 +1330,9 @@
     CHEM_LV: CHEM_LV, CHEM_LV6: CHEM_LV6, chemLevel: chemLevel, chemInfo: chemInfo, chemName: chemName, chemCheck: chemCheck,
     ACH_INFO: ACH_INFO,
     // ambiente de Carrera: tarjetas de la temporada y de la carrera
-    cardsOf: cardsOf, CARD_FAME: CARD_FAME, FAIR_FANS: FAIR_FANS, COMITE_R: COMITE_R, FAIR_MIN: FAIR_MIN
+    cardsOf: cardsOf, CARD_FAME: CARD_FAME, FAIR_FANS: FAIR_FANS, COMITE_R: COMITE_R, FAIR_MIN: FAIR_MIN,
+    // rencor y cariño de los clubes
+    bondOf: bondOf, bondOffer: bondOffer, bondLine: bondLine, bondT: bondT, WHY_TXT: WHY_TXT, BOND_T: BOND_T, BOND_D: BOND_D, BOND_PAY: BOND_PAY, BOND_ADJ: BOND_ADJ, BOND_MAX: BOND_MAX,
+    _bondAdd: bondAdd, _bondDecay: bondDecay, _bondWeek: bondWeek
   };
 })();

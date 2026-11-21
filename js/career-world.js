@@ -6,7 +6,8 @@
  * la carrera concreta (E(c), como career-life.js) y los resultados de resOf (pista: solo los de tu liga, c.myRes).
  * Sin DOM (se carga en node: tools/careertest.js). Estado en c.world (ensure() lo crea al vuelo; sin subir VER).
  * Solo escribe en c.world y, para el mentor, en la bandeja (K()._msg con k 'mentor'). No toca nada que influya en partidos,
- * ofertas, XP ni dinero, y su azar no consume los generadores de career.js. career.js llama a hook(c, tipo, …) desde life(),
+ * ofertas, XP ni dinero (salvo el 1r designado: su carácter y la tabla de error de ese partido, onSetup), y su azar no consume los
+ * generadores de career.js. career.js llama a hook(c, tipo, …) desde life(),
  * después de CareerLife (create, join, setup, match, season, newSeason). Sin este fichero, la Carrera queda igual.
  *
  * Bandeja (plan, conflicto 10): la escena se apunta en la bandeja SOLO si no se ve en pantalla: al saltarla («Saltar»), con las
@@ -465,7 +466,8 @@
     return { id: id, name: k.name, short: k.short, kit: k.kit, city: k.city, beach: k.beach || '', league: inf.league, lvl: lvl, stars: inf.stars, style: inf.style, ovr: inf.ovr,
       lore: lo, pos: row && row.pj ? row.pos : 0, pts: row ? row.pts : 0, pj: row ? row.pj : 0, form: form, titles: titles, path: path.slice(-8),
       vs: h && h[0] ? { pj: h[0], g: h[1], p: h[2], sf: h[3], sc: h[4], last: h[5] } : null,
-      rival: rv && rv.club === id ? { name: rv.name, w: rv.w | 0, l: rv.l | 0 } : null, mine: c.myClub === id, mySeasons: mySeasons, since: w.since | 0 };
+      rival: rv && rv.club === id ? { name: rv.name, w: rv.w | 0, l: rv.l | 0 } : null, mine: c.myClub === id, mySeasons: mySeasons, since: w.since | 0,
+      bond: VB.CareerLife && VB.CareerLife.bondOf ? VB.CareerLife.bondOf(c, id) : null };   // (rencor y cariño, career-life: solo lectura)
   }
 
   // ------------------------------------------------------------------ escudos paródicos (S2 B2b) y vitrina con huecos (B2c)
@@ -664,11 +666,134 @@
     Object.keys(w.riv).forEach(function (id) { var r = w.riv[id]; if (r) r.h = Math.round((+r.h || 0) * RIV_DECAY * 100) / 100; });
   }
 
+  // ------------------------------------------------------------------ árbitros con nombre y carácter (ambiente de Carrera)
+  // Cada liga (playa: 'B' + nivel; pista: el id de la liga, 'ES1') tiene un colegio fijo de ARB_N árbitros. Los nombres son INVENTADOS
+  // del todo: nombre de pila y dos apellidos hechos con piezas (ARB_R + ARB_S), nunca de una lista de personas (ni de la de acta.js).
+  // Su carácter (VB.Arbitro.TRAITS) sale de barajar ARB_DECK, así cada colegio los tiene todos. Las copas y los KO usan el colegio de
+  // tu liga. designa() da el 1r de tu próximo partido (determinista: reiniciar da el mismo; nunca el del partido anterior); onSetup lo
+  // pone en out.career.arb sin escribir en c. La libreta c.world.arb = {last, p: {id: {m, y, r, pr, br, cl, cs, ev:{s, wk, k, n}}}} se
+  // acuerda de tus tarjetas, protestas y frenadas con cada 1r: no se enseña nunca, pero le aprieta (mem) o le ablanda en arbitro.js.
+  // Con «Apagado», en los partidillos de prueba o sin partido no hay árbitro y c.world no cambia.
+  var ARB_N = 9, ARB_MAX = 60, ARB_DECAY = 0.6, ARB_LINE = 44;
+  var ARB_DECK = ['estricto', 'estricto', 'deja', 'deja', 'lince', 'lince', 'nervioso', 'manual', 'manual'];
+  var ARB_FN = ['Nico', 'Iker', 'Leo', 'Teo', 'Pau', 'Alba', 'Nerea', 'Irene', 'Sara', 'Lucía', 'Marta', 'Hugo', 'Adrián', 'Elena', 'Noa', 'Aitor',
+    'Jon', 'Claudia', 'Vera', 'Óscar', 'Rocío', 'Gael', 'Lola', 'Martín', 'Celia', 'Bruno', 'Ainhoa', 'Raúl', 'Laia', 'Íñigo', 'Julia', 'Mario'];
+  var ARB_R = ['Albr', 'Dalm', 'Garb', 'Marz', 'Norb', 'Quir', 'Rosc', 'Tald', 'Urd', 'Velz', 'Zarm', 'Murt', 'Brez', 'Fosc', 'Lumb', 'Sorb', 'Vilm', 'Ebr'];
+  var ARB_S = ['ana', 'edo', 'ell', 'ero', 'illa', 'ón', 'ada', 'arra', 'ines', 'ado', 'ena', 'uela'];
+  var ARB_NO = { 'Roscón': 1, 'Quirón': 1, 'Marzana': 1, 'Garbell': 1, 'Murtilla': 1, 'Urdana': 1, 'Garbana': 1, 'Roscada': 1 };   // (palabras o apellidos que existen)
+  var ARB_FAME = { estricto: 'fama de mano dura', deja: 'deja jugar', lince: 'ojo de lince', nervioso: 'los derbis le pesan', manual: 'de manual' };
+  function arbOff() { var S = VB.ctx && VB.ctx.settings; return !!(S && S.ambient === 'off'); }
+  /** Apellido inventado {s, a (raíz), b (final)}; sin raíz ni final de not (el otro apellido) y fuera de ARB_NO. */
+  function arbSur(r, not) {
+    for (var i = 0; i < 40; i++) {
+      var a = pick(r, ARB_R), b = pick(r, ARB_S), s = a + b;
+      if (!ARB_NO[s] && !(not && (not.a === a || not.b === b))) return { s: s, a: a, b: b };
+    }
+    return { s: 'Velzedo', a: 'Velz', b: 'edo' };
+  }
+  /** Colegio de la liga de c (playa 'B' + nivel; pista, el id de la liga); '' sin club. */
+  function arbKey(c) { var me = c && c.myClub >= 0 ? E(c).myClub(c) : null; if (!me) return ''; return isH(c) ? String(me.lid) : 'B' + (me.lvl | 0); }
+  /** Los ARB_N árbitros del colegio key: [{id, name, short (1r apellido), first, trait}]. Puro y determinista (azar propio). */
+  function panel(c, key) {
+    key = key || arbKey(c); if (!c || !key) return [];
+    var r = rngOf(c.seed, 'arb-pan', key), out = [], used = {}, sur = {}, deck = ARB_DECK.slice(), i, j, t;
+    for (i = deck.length - 1; i > 0; i--) { j = Math.floor(r() * (i + 1)) % (i + 1); t = deck[i]; deck[i] = deck[j]; deck[j] = t; }
+    for (var k = 0; out.length < ARB_N && k < 400; k++) {
+      var fn = pick(r, ARB_FN), s1 = arbSur(r, null), s2 = arbSur(r, s1), a1 = s1.s, a2 = s2.s, nm = fn + ' ' + a1 + ' ' + a2;
+      if (sur[a1] || sur[a2] || used[nm] || used[fn]) continue;   // (ningún nombre ni apellido repetido dentro del colegio)
+      used[nm] = used[fn] = 1; sur[a1] = sur[a2] = 1;
+      out.push({ id: key + '-' + out.length, name: nm, short: a1, first: fn, trait: deck[out.length] });
+    }
+    return out;
+  }
+  /** El árbitro de id ('ES1-3', 'B2-0') o null. */
+  function refOf(c, id) {
+    id = String(id || ''); var p = id.lastIndexOf('-'); if (!c || p <= 0) return null;
+    var P = panel(c, id.slice(0, p)); return P[+id.slice(p + 1)] || null;
+  }
+  function arbNext(c) { try { return E(c).next(c); } catch (e) { return null; } }
+  /** Designación del próximo partido n (o el siguiente de c): {ref, r2, sc} (1r, 2º y anotador) o null. Sin efectos. */
+  function designa(c, n) {
+    n = n || arbNext(c); if (!n || !n.rival) return null;
+    var P = panel(c); if (P.length < 3) return null;
+    var w = c.world, last = w && w.arb && typeof w.arb === 'object' ? String(w.arb.last || '') : '';
+    var i = Math.floor(rngOf(c.seed, 'arb-d', c.season | 0, c.phase, n.week | 0, n.round | 0, String(n.label || ''), String(n.rival.name || ''))() * P.length) % P.length;
+    if (P[i].id === last) i = (i + 1) % P.length;
+    return { ref: P[i], r2: P[(i + 1) % P.length], sc: P[(i + 2) % P.length] };
+  }
+  /** Entrada de la libreta del árbitro id (solo lectura) o null. */
+  function arbEntry(c, id) { var w = c && c.world, A = w && w.arb, p = A && A.p; return p && typeof p === 'object' && p[id] && typeof p[id] === 'object' ? p[id] : null; }
+  /** Cuánto te aprieta el árbitro id (−0,15..+0,2): tarjetas y protestas suben, frenadas y partidos limpios bajan. Nunca se enseña. */
+  function memOf(c, id) {
+    var e = arbEntry(c, id); if (!e) return 0;
+    var m = 0.10 * (+e.y || 0) + 0.20 * (+e.r || 0) + 0.05 * (+e.pr || 0) - 0.05 * (+e.br || 0) - 0.02 * (+e.cl || 0);
+    return Math.round((m < -0.15 ? -0.15 : m > 0.2 ? 0.2 : m) * 1000) / 1000;
+  }
+  /** Ronda de un KO o copa para la frase ('final', 'semifinal', 'cuartos', 'octavos', 'copa'). */
+  function arbRound(label) { var L = String(label || '').toLowerCase(); return /semifinal/.test(L) ? 'semifinal' : /final/.test(L) ? 'final' : /cuartos/.test(L) ? 'cuartos' : /octavos/.test(L) ? 'octavos' : 'copa'; }
+  function arbWhen(c, ev) {
+    var s = c.season | 0;
+    if ((ev.s | 0) === s) { var wk = String(ev.wk || ''); return /^J\d/.test(wk) || wk === 'final' || wk === 'semifinal' || wk === 'copa' ? 'en la ' + wk : wk ? 'en ' + wk : ''; }
+    return (ev.s | 0) === s - 1 ? 'la temporada pasada' : '';
+  }
+  /** Frase de la previa: «1r: Nombre Apellido Apellido, te sacó amarilla en la J4» (≤ ARB_LINE letras, sin «·»); rec = con recuerdo. */
+  function arbLine(c, d, derby) {
+    var R = d && d.ref || d; if (!R || !R.name) return { t: '', rec: false };
+    var e = arbEntry(c, R.id), ph = [], ev = e && e.ev, wh = ev ? arbWhen(c, ev) : '';
+    if (wh) {
+      if (ev.k === 'red' || ev.k === 'yellow') { var col = ev.k === 'red' ? 'roja' : 'amarilla'; ph = ['te sacó ' + col + ' ' + wh, col + ' ' + wh]; }
+      else if (ev.k === 'brake' && ev.n) ph = (ev.s | 0) === (c.season | 0) && /^J\d/.test(String(ev.wk)) ? ['te vio frenar a ' + ev.n + ' (' + ev.wk + ')', 'te vio frenar a ' + ev.n] : ['te vio frenar a ' + ev.n];
+      else if (ev.k === 'protest') ph = ['le protestaste ' + wh, 'le protestaste'];
+    }
+    if (!ph.length && e && (e.cs | 0) >= 2) ph = [(e.cs | 0) + ' partidos sin tarjetas'];
+    var rec = ph.length > 0;
+    if (!rec) ph = [R.trait === 'nervioso' && !derby ? ARB_FAME.manual : ARB_FAME[R.trait] || ARB_FAME.manual];
+    var names = [R.name, (R.first ? R.first + ' ' : '') + R.short, R.short];
+    for (var i = 0; i < ph.length; i++) for (var j = 0; j < names.length; j++) { var t = '1r: ' + names[j] + ', ' + ph[i]; if (t.length <= ARB_LINE) return { t: t, rec: rec }; }
+    return { t: ('1r: ' + R.short + ', ' + ph[ph.length - 1]).slice(0, ARB_LINE), rec: rec };
+  }
+  /** Gancho 'setup' (career.js matchSetup / matchSetup6): el 1r del partido en out.career.arb y, con el lince (las líneas, mejor
+   *  vistas) o el nervioso en un derbi (peor), la tabla de error de ESTE partido (out.ref p1-p3). No escribe en c. */
+  function onSetup(c, out) {
+    if (!c || !out || !out.career || out.career.trial || out.career.ext || arbOff()) return;
+    var n = arbNext(c); if (!n || !n.rival || n.bench) return;
+    var d = designa(c, n); if (!d) return;
+    var tags = []; try { var a = K().ambCtx ? K().ambCtx(c, n, out.career) : null; tags = a && Array.isArray(a.tags) ? a.tags : []; } catch (e) { tags = []; }
+    var derby = tags.indexOf('derbi') >= 0 || tags.indexOf('clasico') >= 0 || tags.indexOf('final') >= 0, R = d.ref, L = arbLine(c, d, derby);
+    out.career.arb = { id: R.id, name: R.name, short: R.short, trait: R.trait, mem: memOf(c, R.id), derby: derby, line: L.t, rec: L.rec, r2: d.r2.name, sc: d.sc.name };
+    var f = R.trait === 'lince' ? 0.6 : R.trait === 'nervioso' && derby ? 1.3 : 1;
+    if (f !== 1 && out.ref && typeof out.ref === 'object') ['p1', 'p2', 'p3'].forEach(function (k) { if (typeof out.ref[k] === 'number') out.ref[k] = Math.min(1, Math.round(out.ref[k] * f * 1000) / 1000); });
+  }
+  /** Libreta tras el partido (afterMatch, después de rivAfter): lee sum.amb (ref, myY, myR, myProt, brk, brkName, fair). */
+  function refAfter(c, w, sum, f) {
+    var a = sum && sum.amb; if (!a || !a.ref || sum.bench || arbOff()) return;
+    if (!w.arb || typeof w.arb !== 'object' || Array.isArray(w.arb)) w.arb = { last: '', p: {} };
+    if (!w.arb.p || typeof w.arb.p !== 'object' || Array.isArray(w.arb.p)) w.arb.p = {};
+    var id = String(a.ref), e = w.arb.p[id], r2 = function (v) { return Math.round(v * 100) / 100; };
+    if (!e || typeof e !== 'object') e = w.arb.p[id] = { m: 0, y: 0, r: 0, pr: 0, br: 0, cl: 0, cs: 0, ev: null };
+    var my = a.myY | 0, mr = a.myR | 0, pr = a.myProt | 0, br = a.brk | 0, fair = !!a.fair;
+    e.m = (e.m | 0) + 1; e.y = r2((+e.y || 0) + my); e.r = r2((+e.r || 0) + mr); e.pr = r2((+e.pr || 0) + pr); e.br = r2((+e.br || 0) + br);
+    if (fair) { e.cl = r2((+e.cl || 0) + 1); e.cs = (e.cs | 0) + 1; } else e.cs = 0;
+    var s = sum.season | 0, k = mr ? 'red' : my ? 'yellow' : br ? 'brake' : pr ? 'protest' : fair ? 'clean' : '';
+    var wk = f && f.kind === 'league' ? 'J' + ((f.week | 0) + 1) : arbRound(sum.label);
+    // (un partido limpio no borra el recuerdo de una tarjeta, frenada o protesta de esta temporada)
+    if (k && (k !== 'clean' || !e.ev || e.ev.k === 'clean' || (e.ev.s | 0) !== s)) e.ev = { s: s, wk: wk, k: k, n: k === 'brake' ? String(a.brkName || '').slice(0, 10) : '' };
+    w.arb.last = id;
+    var ids = Object.keys(w.arb.p);
+    if (ids.length > ARB_MAX) { ids.sort(function (x, y) { return (w.arb.p[x].m | 0) - (w.arb.p[y].m | 0); }); ids.slice(0, ids.length - ARB_MAX).forEach(function (x) { if (x !== id) delete w.arb.p[x]; }); }
+  }
+  /** Temporada nueva: la libreta se suaviza (× ARB_DECAY); el último hecho se guarda (las frases dicen «la temporada pasada»). */
+  function refSeason(c) {
+    var w = c && c.world, A = w && w.arb; if (!A || !A.p || typeof A.p !== 'object') return;
+    Object.keys(A.p).forEach(function (id) { var e = A.p[id]; if (!e || typeof e !== 'object') return; ['y', 'r', 'pr', 'br', 'cl'].forEach(function (k) { e[k] = Math.round((+e[k] || 0) * ARB_DECAY * 100) / 100; }); });
+  }
+
   function afterMatch(c, sum, f) {
     if (!sum) return;
     var w = ensure(c), T = c.career || {};
     if (!sum.bench && sum.sets) addH2h(w, sum.rival, sum.sets, sum.season);
     try { rivAfter(c, w, sum, f); } catch (e) { try { console.error('CareerWorld riv', e); } catch (e2) { } }
+    try { refAfter(c, w, sum, f); } catch (e) { try { console.error('CareerWorld arb', e); } catch (e2) { } }
     try { roundNews(c, sum, f); } catch (e) { try { console.error('CareerWorld roundNews', e); } catch (e2) { } }
     if (sum.bench) { beat(c, 'bench1'); return; }
     if (sum.win && (T.won | 0) === 1) beat(c, 'win1');
@@ -694,6 +819,7 @@
   function seasonStart(c) {
     try { summerNews(c); } catch (e) { try { console.error('CareerWorld summerNews', e); } catch (e2) { } }
     try { rivSeason(c); } catch (e) { try { console.error('CareerWorld rivSeason', e); } catch (e2) { } }
+    try { refSeason(c); } catch (e) { try { console.error('CareerWorld refSeason', e); } catch (e2) { } }
     var me = E(c).myClub(c);
     if (me && isTop(c, lvOf(me))) beat(c, 'top', { lg: lgOf(c, me).name });
     if (c.player && (c.player.age | 0) >= 30) beat(c, 'vet');
@@ -710,7 +836,8 @@
     else if (kind === 'newSeason') seasonStart(c);
     else if (kind === 'create') { ensure(c); beat(c, 'hola'); }
     else if (kind === 'join') onJoin(c, a);
-    else if (kind === 'sess') beat(c, 'ses1');   // primera sesión de entrenamiento de la carrera (career.js sessDo)
+    else if (kind === 'sess') beat(c, 'ses1');
+    else if (kind === 'setup') { try { onSetup(c, a); } catch (e) { try { console.error('CareerWorld arb setup', e); } catch (e2) { } } }   // (1r designado)   // primera sesión de entrenamiento de la carrera (career.js sessDo)
   }
 
   VB.CareerWorld = {
@@ -724,6 +851,9 @@
     _andList: andList, _ordn: ordn,
     // ambiente de Carrera: rivalidad persistente (c.world.riv)
     rivOf: function (c, id) { var w = c && c.world; return w && w.riv && w.riv[id] || null; }, RIV_MAX: RIV_MAX, RIV_DECAY: RIV_DECAY,
+    // árbitros con nombre y carácter (colegio por liga, designación, libreta oculta c.world.arb)
+    arbPanel: panel, arbKey: arbKey, arbDesigna: designa, refOf: refOf, arbLine: arbLine, arbMem: memOf, arbEntry: arbEntry, ARB_N: ARB_N, ARB_DECK: ARB_DECK,
+    ARB_MAX: ARB_MAX, ARB_DECAY: ARB_DECAY, ARB_LINE: ARB_LINE, ARB_FAME: ARB_FAME, _arbParts: { fn: ARB_FN, r: ARB_R, s: ARB_S, no: ARB_NO },
     // S2-S4 (T11): escudos, vitrina y noticia del jefe
     crestOf: crestOf, trophyCase: trophyCase, newsBoss: newsBoss, CREST_SHAPES: CREST_SHAPES, CREST_DIVS: CREST_DIVS, CREST_EMB: CREST_EMB, CREST_EMB_H: CREST_EMB_H,
     CREST_MIN: CREST_MIN, CREST_SALT: CREST_SALT, _lum: lumC

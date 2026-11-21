@@ -458,6 +458,9 @@
       var sgo = sigSane(opts.serveSig, beach ? 'beach' : 'hall');
       if (sgo) { g.sig = sgo; g.sigUse = ''; g.sigJumpAt = -1; g.sigLast = ''; if (g.stats) g.stats.sig = { id: sgo.id, n: 0, aces: 0, faults: 0 }; }
     }
+    // «Te tienen estudiado» (Carrera jugada, career.js studyOf): plan del rival contra tus remates y su propio carril. Solo con
+    // opts.scout (main.js startCareerMatch); sin él g.scout no existe y la sim es la de siempre (huellas intactas). Nunca gasta g.rng
+    if (opts.scout && !opts.demo && !opts.online && !dk) g.scout = scNorm(opts.scout);
     g.server = g.ctrl;
     newGame(g);
     return g;
@@ -961,7 +964,7 @@
   // (notes/camera_input.md, ronda 2). Pasar cada campo entero por un double al crear el objeto hace esa generalización aquí,
   // al crear el partido, y una sola vez por sitio. La semántica no cambia (mismo valor; simtest da la misma salida).
   function dblFields(o) { for (var k in o) { var v = o[k]; if (typeof v === 'number' && (v | 0) === v) { o[k] = 0.5; o[k] = v; } } return o; }
-  function emit(g, e) { e.t = g.time; dblFields(e); g.events.push(e); if (g.subsOn) subEv(g, e); if (g.zn && e.type !== 'zone') znEv(g, e); return e; }
+  function emit(g, e) { e.t = g.time; dblFields(e); g.events.push(e); if (g.subsOn) subEv(g, e); if (g.zn && e.type !== 'zone') znEv(g, e); if (g.scout && e.type !== 'study') scEv(g, e); return e; }
   function rnd(g, a) { return (g.rng() * 2 - 1) * a; }
   function gauss(g) { return (g.rng() + g.rng() + g.rng() + g.rng() - 2) * 1.732; } // ~N(0,1)
 
@@ -3058,6 +3061,7 @@
       }
       if (g.subsOn) { g.rallyN--; if (g._meLast) g.meR--; subRedo(g, setNo0); }
       if (g.sig && g.stats && g.stats.sig && g.stats.sig._u) { var sgu = g.stats.sig._u; g.stats.sig.aces = sgu[0]; g.stats.sig.faults = sgu[1]; g.stats.sig._u = null; }   // saque de firma: aces y fallos del punto anulado
+      if (g.scout) scUndo(g);   // «Te tienen estudiado»: el punto anulado no cuenta para el plan del rival
       if (g.zn) znUndo(g);   // la zona: lo que sumó el punto anulado (se vuelve a contar abajo con la llamada buena) // banquillo: el punto anulado no cuenta (ni su rendimiento ni su cansancio: se vuelve a contar abajo)
       if (g.mode === 'serve') { endRitual(g); endSwingX(g); g.serveState = 'ready'; }
       // mismo bote (landSide del punto nuevo); si ya se preparó el saque siguiente, lastLand puede venir a null: se rehace con la llamada
@@ -4502,6 +4506,58 @@
       else z.m[t] = Math.max(0, z.m[t] + v);
     }
   }
+  /* ---------- «Te tienen estudiado» (g.scout; notes/carrera.md «Te tienen estudiado») ----------
+   * Carril de un remate con la misma regla que las consignas (VB.Consignas.dirOf; ai.js y las pruebas de la sim no cargan
+   * consignas.js, por eso vive aquí una réplica exacta): 'line' | 'diag' | 'mid' a partir del golpe (hy) y del destino (ty).
+   * g.scout = { me: carril que te cierran ('diag'|'line'|''), mk 0..1 (cuánto), riv: su carril de remate, rk 0..1, ad: te estudian
+   * (el rival cambia el plan en el partido), k: tus puntos de remate por carril desde el último cambio, cur: carril de tu último
+   * remate en el aire, sw: cambios de plan, me0: el carril del informe }. Todo determinista (sin g.rng). */
+  var SC_SIDE = 1.2, SC_LINE = 1.6, SC_DIAG = 2.5;   // = SIDE_MIN, LINE_DY y DIAG_DY de js/consignas.js (studytest lo comprueba)
+  // el rival cambia el plan si le haces SC_ADAPT puntos de remate por el carril abierto y al menos 2 más que por el cerrado (desde su
+  // último cambio). Tras un cambio te cierra el nuevo carril con fuerza SC_ADAPT_MK como mínimo (lo ha visto en directo)
+  var SC_ADAPT = 3, SC_ADAPT_MK = 0.7;
+  function laneOf(hy, ty, k) {
+    k = k || 1; var dy = Math.abs(ty - hy);
+    if (Math.abs(hy) < SC_SIDE * k) return dy >= SC_DIAG * k ? 'diag' : 'mid';
+    if ((ty < 0 ? -1 : 1) === (hy < 0 ? -1 : 1) && dy < SC_LINE * k) return 'line';
+    if ((ty < 0 ? -1 : 1) !== (hy < 0 ? -1 : 1) && dy >= SC_DIAG * k) return 'diag';
+    return 'mid';
+  }
+  function scLane(v) { return v === 'diag' || v === 'line' ? v : ''; }
+  function scNum(v) { v = +v; return v > 0 ? (v < 1 ? v : 1) : 0; }
+  function scNorm(o) {
+    var me = scLane(o.me);
+    var rk = scNum(o.rk);
+    // rp: parte de sus remates (desde un ala) por su carril que dice el informe (rk 0..1 → 50-75 %); rn: los que llevan en el partido
+    return { me: me, me0: me, mk: me ? scNum(o.mk) : 0, riv: scLane(o.riv), rk: rk, rp: 0.5 + 0.25 * rk, rn: { diag: 0, line: 0 }, ad: !!o.ad, k: { diag: 0, line: 0 }, cur: '', sw: 0, u: null };
+  }
+  /** emit (solo con g.scout): carril de tu último remate y, en cada punto tuyo de remate, si el rival cambia el plan. */
+  function scEv(g, e) {
+    var sc = g.scout;
+    if (e.type === 'hit') {
+      var tg = e.target || e.aim;
+      // (solo remates desde un ala, |y| ≥ SC_SIDE: desde el centro no hay línea ni diagonal que cerrar, como en ai.js studySide)
+      var wing = e.kind === 'spike' && tg && Math.abs(+e.y || 0) >= SC_SIDE * (g.cs || 1), wl = wing ? scLane(laneOf(+e.y || 0, tg[1], g.cs || 1)) : '';
+      sc.cur = e.player === g.ctrl && e.team === 0 ? wl : '';
+      if (e.team === 1 && wl) sc.rn[wl]++;   // su reparto en el partido (ai.js rivBonus)
+    } else if (e.type === 'point') {
+      sc.u = { me: sc.me, mk: sc.mk, d: sc.k.diag, l: sc.k.line, cur: sc.cur, sw: sc.sw };
+      var L = sc.cur; sc.cur = '';
+      if (!(e.team === 0 && e.how === 'kill' && L)) return;
+      sc.k[L]++;
+      if (!sc.ad || L === sc.me) return;
+      var O = L === 'diag' ? 'line' : 'diag';
+      if (sc.k[L] >= SC_ADAPT && sc.k[L] >= sc.k[O] + 2) {
+        sc.me = L; sc.mk = Math.max(sc.mk, SC_ADAPT_MK); sc.k.diag = 0; sc.k.line = 0; sc.sw++;
+        emit(g, { type: 'study', team: 1, lane: L, n: sc.sw });
+      }
+    }
+  }
+  /** endReview (solo con g.scout): el punto anulado no cuenta para el plan del rival. */
+  function scUndo(g) {
+    var sc = g.scout, u = sc.u; sc.u = null; if (!u) return;
+    sc.me = u.me; sc.mk = u.mk; sc.k.diag = u.d; sc.k.line = u.l; sc.cur = u.cur; sc.sw = u.sw;
+  }
   /** emit (solo con g.zn): toques, bloqueos, cambios y tiempos muertos. */
   function znEv(g, e) {
     var z = g.zn, G = ZN.gain, ty = e.type, p = e.player, t, v = 0;
@@ -5591,6 +5647,8 @@
     // la zona y el saque de firma (20-nov-2026): sin g.zn / g.sig devuelven 0 / false / null y no hacen nada. Tablas en VB.ZONE y VB.SERVE_SIG
     znOn: znOn, znMeter: znMeter, znEnergy: znEnergy, znWho: znWho, znDebug: znDebug, ZN: ZN, _znApply: znApply, _znUndo: znUndo,
     sigSane: sigSane, sigLabels: sigLabels, SERVE_SIG: SIG,
+    // «Te tienen estudiado» (sin g.scout, nada): carril de un remate y constantes del cambio de plan
+    laneOf: laneOf, SC_ADAPT: SC_ADAPT, SC_ADAPT_MK: SC_ADAPT_MK, _scEv: scEv, _scUndo: scUndo,
     // ONLINE (fase 0, notes/net.md): huecos humanos, bits de partido y foto serializable del estado
     ONLINE: ONLINE, useSlot: act, slotGet: hget, humOn: humOn, humSlot: humSlot, jsetHum: jsetHum, jsetHumSw: _jh, setSlotAI: slotAI,
     // ONLINE V2 «Fluida» (bloque FLUIDA, notes/online-v2-spec.md §2): todo detrás de g.fl (flInit) // fl-api
