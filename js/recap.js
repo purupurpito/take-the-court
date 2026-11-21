@@ -139,6 +139,9 @@
       if (arb && arb.rec) out.push(arb.line);
       if (cs.goal) out.push('Reto: ' + low1(cs.goal));
       if (arb && !arb.rec) out.push(arb.line);
+    } else if (info.sit) {   // la situación de la semana (ui.js introInfo): no cuenta en el balance; el intento de hoy
+      var si = info.sit.i | 0, sn = (info.sit.tries | 0) || 3;
+      if (si > 0) out.push('Intento ' + si + ' de ' + sn + ' de hoy');
     } else {
       var dn = info.diffName || 'Normal', b = info.byD;
       if (b && ((b[0] | 0) + (b[1] | 0)) > 0) out.push('Tu balance en ' + dn + ': ' + (b[0] | 0) + '-' + (b[1] | 0));

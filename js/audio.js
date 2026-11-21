@@ -2857,7 +2857,7 @@
           var ws = WH_SENA[frame.sena.id]; whistle(ws[0], (demo ? 0.64 : 1) * ws[2], 0, ws[1]);
         } else if (e.reason === 'point' || e.reason === 'penalty') whistle(longWhistle ? 'whistleEnd' : 'whistleLong', demo ? 0.35 : 0.55, 0);   // (ambiente: punto de castigo)
         else { whistle('whistle', demo ? 0.3 : 0.5, 0); if (intro.on) introEnd('whistle'); } // el 1r pitido suelta la presentación
-        if (e.reason === 'serve' && xar.cur && xar.cur.name === 'xarRedoble') xarStop(0.03);   // xaranga: el redoble acaba en el silbato
+        if (e.reason === 'serve' && !evRpl && xar.cur && xar.cur.name === 'xarRedoble') xarStop(0.03);   // xaranga: el redoble acaba en el silbato
         break;
       case 'point': // un punto corregido por el challenge (mismo frame o < 0,5 s tras el resultado) ya tiene su reacción
         if (!e.setWon && !e.matchWon && (frame.cr || (rev.last && now() - rev.last.t < 0.5))) break;
@@ -3076,12 +3076,20 @@
     if (g.career) return !!XAR_WHEN.career;
     return !!XAR_WHEN.diffs[g.difficulty];
   }
+  /** Equipo local de la charanga: −1 = campo neutral. Con el Ambiente encendido manda su amb:start (ambHome); sin él (Ambiente
+   *  «Apagado»: el amb:start no llega a audio.js) la Carrera lo sabe por el partido (career.atHome): fuera de casa toca la del rival. */
+  function xarHome(g) {
+    if (amb.on) return amb.home < 0 ? -1 : ambHome();
+    var c = g && g.career;
+    return c && c.atHome === false ? 1 : 0;
+  }
   function isServeErr(e) { return e.how === 'error' && (e.lastKind === 'serve' || e.reason === 'serve'); }
   /** Pieza de la charanga por su bus (fuera de las ranuras de voz, como los silbidos de la grada). Sin buffer: no suena (no se aplaza). */
   function xarPlay(name, at, gain, loop) {
     if (!live() || !N.xarW) return null;
     var list = bank[name];
-    if (!list || !list.length) { stats.missed[name] = (stats.missed[name] | 0) + 1; bumpSoft(name); return null; }
+    // (pieza aún sin sintetizar: no suena y no se aplaza; se cuenta aparte para no ensuciar stats.missed de los sonidos del juego)
+    if (!list || !list.length) { stats.xarMiss = stats.xarMiss || {}; stats.xarMiss[name] = (stats.xarMiss[name] | 0) + 1; bumpSoft(name); return null; }
     try {
       var s = AC.createBufferSource(); s.buffer = list[0]; s.loop = !!loop; s.playbackRate.value = loop ? slowRate : 1;
       var gn = AC.createGain(); gn.gain.value = gain * (LEVEL_LIN[name] || 1);
@@ -3109,7 +3117,7 @@
   }
   /** Hueco del silbato: la charanga calla mientras pita el árbitro (todos los silbatos pasan por whistle()) y vuelve después. */
   function xarHole(t0, dur) {
-    if (!N.xarW) return;
+    if (!N.xarW || evRpl) return;   // (los silbatos de la repetición no abren hueco: la charanga ya va agachada a 0,5)
     try {
       var p = N.xarW.gain;
       if (p.cancelAndHoldAtTime) p.cancelAndHoldAtTime(t0); else p.cancelScheduledValues(t0);
@@ -3124,7 +3132,7 @@
     xarPrep();
     if (e.setWon || e.matchWon) { xarStop(0.15); return; }   // mandan las ráfagas de set y de partido
     if (xar.cur && xar.cur.name === 'xarRedoble') xarStop(0.1);
-    var neu = amb.on && amb.home < 0, mine = neu ? e.team === 0 : e.team === ambHome(), t = now(), k = neu ? XAR_NEUTRAL : 1, tEnd = 0;
+    var ht = xarHome(g), neu = ht < 0, mine = neu ? e.team === 0 : e.team === ht, t = now(), k = neu ? XAR_NEUTRAL : 1, tEnd = 0;
     if (!mine) { if (xar.cur) xarStop(0.07); return; }   // punto del rival: la charanga se desinfla (≤ 0,5 s)
     xar.lastPt = t;
     if (!neu && isServeErr(e)) {   // tras el silbato largo del punto (0,62 s)
@@ -3385,7 +3393,8 @@
       for (i = 0; i < events.length; i++) {
         e = events[i]; if (!e || e.replay) continue;
         if (e.type === 'point' && (e.setWon || e.matchWon)) { longWh = true; frame.big = true; }
-        if (e.type === 'point' && !e.penalty && VB.Senas && VB.Senas.of) { try { frame.sena = VB.Senas.of(e); } catch (err) { frame.sena = null; } }
+        // (igual que la pegatina de ui.js: nada en la repetición, y el ace que acaba en la red no lleva seña)
+        if (e.type === 'point' && !e.penalty && !e.replay && !(e.how === 'ace' && /^Balón a la red$/.test(e.text || '')) && VB.Senas && VB.Senas.of) { try { frame.sena = VB.Senas.of(e); } catch (err) { frame.sena = null; } }
         if (e.type === 'challengeResult') frame.cr = true;
       }
       for (i = 0; i < events.length; i++) {

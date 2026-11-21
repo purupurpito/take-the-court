@@ -17,7 +17,8 @@
  *   delay8 → retraso (8 SEGUNDOS) · delay5 → retraso (5 SEGUNDOS) · serveFault → saque (SAQUE)
  *   Fuera del catálogo: 'in' sin red (el «dentro» nunca lleva texto del árbitro) y 'penalty' (la tarjeta ya tiene su rótulo).
  *
- * LÍNEAS DE REGLAMENTO: en RULES, justo debajo, para que Ferran las corrija sin tocar nada más (≤ 80 caracteres cada una: caben en
+ * LÍNEAS DE REGLAMENTO (decisión provisional: Ferran no las ha confirmado; «red» y «posicion» corregidas el 21-nov, ver
+ * notes/pendientes-ferran.md): en RULES, justo debajo, para que Ferran las corrija sin tocar nada más (≤ 80 caracteres cada una: caben en
  * 2 líneas del pie del álbum en el móvil).
  */
 (function () {
@@ -30,11 +31,11 @@
     tocado: 'Si un jugador lo toca y el balón sale fuera, el punto lo pierde su equipo.',
     cuatro: 'Regla 9.3.1: como mucho 3 toques por equipo para devolver el balón.',
     dobles: 'Regla 9.3.4: un jugador no puede tocar el balón dos veces seguidas.',
-    red: 'Regla 11.4.4: falta tocar la red entre las antenas; el saque tiene que pasarla.',
+    red: 'Regla 11.4.4: falta tocar la red entre las antenas al jugar el balón.',
     bajo: 'Regla 8.4.5: falta si el balón cruza entero por debajo de la red.',
     ataque: 'Regla 13.3: no se remata el saque rival por encima de la red en zona de ataque.',
     bloqueo: 'Regla 14.6: no se bloquea el saque, ni puede bloquear un zaguero o el líbero.',
-    posicion: 'Reglas 7.4-7.5: al sacar, cada jugador del equipo que recibe en su sitio.',
+    posicion: 'Reglas 7.4-7.5: al golpe de saque, todos en su sitio de rotación, sin solaparse.',
     retraso: 'Regla 12.4.4: 8 segundos para sacar desde el silbato (5 en playa).',
     saque: 'Regla 12.4.1: el balón se lanza o se suelta y se golpea con una mano.'
   };

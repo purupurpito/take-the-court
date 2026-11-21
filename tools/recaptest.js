@@ -88,6 +88,10 @@ ok(p.kind === 'mini' && p.dur === 2.5 && p.beats.length === 1 && p.b.length === 
 p = R.introPlan({ size: 6, nums: [7], posName: 'Receptor' });
 ok(p.t[0].sm === 'Tú: n.º 7, receptor' && p.t[1].sm === 'Equipo rival', '6v6: «Tú: n.º 7, receptor» / «Equipo rival» (' + p.t[0].sm + ')');
 
+// la situación de la semana: no cuenta en el balance de Partido rápido; el beat B dice el intento de hoy
+p = R.introPlan({ diff: 'hard', diffName: 'Difícil', byD: null, winRun: 0, size: 2, sit: { i: 2, tries: 3 } });
+ok(p.b.length === 1 && p.b[0] === 'Intento 2 de 3 de hoy', 'situación: beat B «Intento 2 de 3 de hoy», sin balance ni racha (' + p.b.join(' | ') + ')');
+
 const cs0 = { season: 2, phase: 'league', week: 4, round: 0, label: 'Circuito Regional · Jornada 5', me: 'GAN', rival: 'SÓL', meName: 'Voley Gandia', rivalName: 'Voley Sóller',
   player: 'Ares Belmonte', num: 7, mate: 'Iker Sanz', mateNum: 3, pos0: 3, rivalPos: 5, h2h: [3, 2, 1, 5, 3, 1], goal: 'Gana un set a cero' };
 p = R.introPlan({ career: cs0, stA: Object.assign({}, base, { spike: 80 }), stA2: base, stB: base });

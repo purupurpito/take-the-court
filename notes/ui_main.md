@@ -1937,9 +1937,13 @@ Con `html.ph` (móvil apaisado; notes/splat.md «Móvil») cada bloque de la por
 ## La situación de la semana (20-nov-2026, rama aparte; idea «semana»)
 Cada lunes, el mismo final apurado para todo el mundo («Set único a 25: 22-24, saca el rival» o «3r set a 15: 13-14, sacas tú»), tres
 intentos al día, el mejor de la semana y un enlace para compartir con el «mapa del grupo». Sin servidor.
-**Decisiones de Ferran:** va JUNTO al reto del día (no lo sustituye: el reto del día sigue con el Vestuario, la XP de perfil y el álbum);
-nivel, atributos e insignias iguales para todos (sin rebaja de novato, sin la zona ni el saque de firma) y SIN XP, medallas, récord ni
-perfil. La portada no se toca (hay un rediseño de menús en marcha): se entra por Jugar › Retos › pestaña «Semana».
+**Decisiones de Ferran:** va JUNTO al reto del día (no lo sustituye: el reto del día sigue con el Vestuario, la XP de perfil y el álbum)
+y SIN XP ni medallas (por lo mismo, tampoco récord ni perfil).
+**Decisiones provisionales** (propuesta por defecto de la ficha; Ferran no las ha respondido; preguntas en notes/pendientes-ferran.md):
+nivel, atributos e insignias iguales para todos (sin rebaja de novato, sin la zona ni el saque de firma); intentos y mejor resultado
+solo en este aparato; la portada no se toca (hay un rediseño de menús en marcha): se entra por Jugar › Retos › pestaña «Semana», y
+Retos se abre en «Hoy» salvo que recuerde «Semana»; los controles (Colocación dirigida, cambios del 6v6) siguen los Ajustes de cada uno;
+en el «3r set» los dos primeros sets no se enseñan con parciales inventados (marcador y hoja final: «1-1» / «3r set»).
 - **js/semana.js** (`VB.Semana`, puro, sin DOM): `situation(wk)` sembrada con `mulberry32(hashStr('mtc-sem-' + semana ISO))` (nunca
   g.rng; 8 extracciones en orden fijo: formato 50/30/20, sede, familia set único 60 % / 3r set 40 %, marcador 70 % por detrás / 20 %
   empate / 10 % por delante y nunca un set ya ganado, saque, sacador, rotación 6v6, nivel Normal 40 % / Difícil 60 %). `begin()` gasta
@@ -1959,5 +1963,8 @@ perfil. La portada no se toca (hay un rediseño de menús en marcha): se entra p
 - **main.js**: `startMatch` con `opts.sit` (semilla, sin novato/zona/saque de firma, `start`), `g.sit`/`g.sitOpts`, `restartRun` (abandona
   y empieza otro), `toMenu` (abandona). Escenas `&debug=semana` (`&semdemo=1`: cadena inventada en memoria), `semana_end` y `semana_play`
   (`&semwk=AAAAWW` elige la semana; en `semana_play`, `&intro=1` la previa y `&pause=1` la pausa). retos.js `counts(g)`: con `g.sit` no cuenta.
+- Sedes del sorteo: siempre la lista congelada `MAPS0` de semana.js (21-nov): añadir sedes a `Retos.MAPS` no cambia las situaciones.
+- Previa (`introInfo` con `g.sit`): sin «Tu balance en…» ni racha de Partido rápido; recap.js `history()` saca «Intento N de 3 de hoy».
+- Reinicio con 0 intentos (atajo de doble pulsación o «Reiniciar»): no abandona; toast «Hoy ya no quedan intentos. Mañana, 3 más».
 - Pruebas: `node tools/semanatest.js` (tabla congelada de 8 semanas, 300 semanas, intentos, enlace, zonesOf, guardado roto, hoja final),
   `SIMTEST_ONLY=semana node tools/simtest.js` (arranque con marcador), retotest «5)» y las filas `retos-semana*` de tools/mobaudit.js.

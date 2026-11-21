@@ -1,7 +1,9 @@
 /* MAKE THE CUT — js/semana.js (owner: ui_main)
  * La situación de la semana (20-nov-2026): cada lunes, el mismo final apurado para todo el mundo («Set único a 25: 22-24, saca el
- * rival»), con tres intentos al día y el mejor de la semana guardado. Va JUNTO al reto del día (no lo sustituye). Decisiones de Ferran:
- * nivel, atributos e insignias iguales para todos, y SIN XP, medallas, récord ni perfil (empezar desde 24-22 regalaría premios).
+ * rival»), con tres intentos al día y el mejor de la semana guardado. Decisiones de Ferran: va JUNTO al reto del día (no lo
+ * sustituye) y SIN XP ni medallas (tampoco récord ni perfil: empezar desde 24-22 regalaría premios). Decisiones provisionales (propuesta
+ * de la ficha, sin respuesta de Ferran; notes/pendientes-ferran.md): nivel de la semana, atributos e insignias iguales para todos y sin
+ * ayuda de novato; intentos y mejor resultado solo en este aparato; la portada no se toca; Retos abre en «Hoy».
  * Compartir crea un enlace con tu resultado y dónde sacaste y atacaste, encadenado a los de los amigos que te lo pasaron («mapa del
  * grupo»). Sin servidor: el enlace lleva 4 caracteres de control que solo descartan enlaces rotos; no es un antitrampas.
  *
@@ -76,11 +78,10 @@
   // ---------------------------------------------------------------- la situación
   function mapReady(id) { try { if (VB.Venues && typeof VB.Venues.ready === 'function') return !!VB.Venues.ready(id); } catch (e) { } return true; }
   function mapName(id) { var v = VB.VENUES && VB.VENUES[id]; var M = R() && R().MAPS; return (v && v.name) || (M && M[id] && M[id].name) || NAMES0[id] || ''; }
-  function mapsOf(kind) {
-    var M = R() && R().MAPS, out = [];
-    if (M) for (var id in M) if (Object.prototype.hasOwnProperty.call(M, id) && M[id].kind === kind) out.push(id);
-    return out.length ? out : MAPS0[kind].slice();
-  }
+  /** Sedes del sorteo: SIEMPRE la lista congelada MAPS0 (mismo orden en todas las versiones). Si se añaden sedes a VB.Retos.MAPS
+   *  (sede por club…), las situaciones de todas las semanas no cambian y dos versiones distintas ven la misma; Retos.MAPS y
+   *  VB.VENUES solo dan el nombre (mapName). Una sede nueva entra aquí solo al final de su lista y sabiendo que cambia el sorteo. */
+  function mapsOf(kind) { return MAPS0[kind].slice(); }
   var sitCache = {};
   /** La situación de la semana wk (AAAAWW; por defecto la de hoy). Las extracciones van siempre en el mismo orden y gastan siempre
    *  un número, se usen o no. */

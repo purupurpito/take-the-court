@@ -2344,6 +2344,14 @@ async function xarReport(file) {
     ok('xar 10. away: your streak → nothing; the home rival\'s streak → march; your serve fault → the out-of-tune trumpet', mine === 0 && riv.includes('xarPasa') && des.includes('xarDesafina'),
       'your streak ' + mine + ' · rival streak ' + riv.join(' ') + ' · your serve fault ' + des.join(' '));
   }
+  // 10b. away in the Career with the Ambiente «Apagado» (no amb:start reaches audio.js): career.atHome false → still the rival's band
+  {
+    const ga = g({ difficulty: 'normal', career: { id: 1, atHome: false } });
+    let m = fresh(ga); A.handle([pt(0, { streak: 3 })], ga); const mine = xarRecs(m).length;
+    C.currentTime += 3; m = mock.started.length; A.handle([pt(1, { streak: 3 })], ga); const riv = names(xarRecs(m));
+    ok('xar 10b. Career away with the Ambiente off: your streak → nothing; the home rival’s streak → march', mine === 0 && riv.includes('xarPasa'),
+      'your streak ' + mine + ' · rival streak ' + riv.join(' '));
+  }
   // 11. set or match won → the band stops, the stings play as always
   {
     const m = fresh(); A.handle([pt(0, { streak: 3 })], vctx.game); const before = A.xarState().cur; C.currentTime += 3;

@@ -248,6 +248,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
       (`S4_SYNC = false` hasta que Ferran despliegue las reglas); ~~D5 playa nocturna~~ (HECHO 12-nov: sede «Cala dels Fanals»).
     - **Cortado del sprint 2-4 (para otro sprint o para Ferran):**
       - Torneo de la semana (D1): la API de retos ya lo admite (`{semana}`, `w`/`weeks` en el guardado).
+        21-nov: «El mismo 22-24» (la situación de la semana, js/semana.js) cubre el motivo de volver cada semana; si Ferran lo confirma,
+        se tacha (notes/pendientes-ferran.md). `w`/`weeks` y `{semana}` siguen sin usar.
       - Jefes en la Carrera de pista (C3 fase 2) e insignia `rompemanos` del jefe Muro (tiraría un dado extra de `g.rng`).
       - R3: el rival personal te sigue al ascender.
       - Repeticiones en 6v6, primeros planos, varios ángulos y guardar o compartir jugadas; mensaje «REPETICIÓN» en las vallas.
@@ -261,6 +263,10 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
       - Perfil: deslizar para cambiar de pestaña en táctil, el muñeco de tu n.º 1 en la página (fase 2) y el retrato en la tarjeta de
         nivel.
       - El módulo de entrenos del sprint (career-train.js): lo sustituyeron las sesiones de main (13-nov).
+  - **Sprint «único», ideas de partido y sonido (rama pendientes, 21-nov-2026; sin publicar):** señas del árbitro como pegatina +
+    Cuaderno del árbitro (`node tools/senatest.js`, mobaudit `hud-sena*`), Xaranga (`node tools/audiotest.js --xar-only`) y la
+    situación de la semana «El mismo 22-24» (`node tools/semanatest.js`, `node tools/semanacdp.js`, mobaudit `retos-semana*`/`semana-*`).
+    Decisiones provisionales y preguntas en notes/pendientes-ferran.md. Falta la novedad de la versión (la pone quien publique).
   - Preguntas para Ferran: música en ogg dentro de index.html o procedural; moneda única o ninguna; ¿6v6 visible en JUGAR?
   - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
     sesiones Jugar/Rápido/Descanso, notas A+-F, Rápido = récord sin oro, «Simular jornada», entreno automático; y la PRUEBA de club

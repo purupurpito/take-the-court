@@ -162,6 +162,11 @@ En el pie (`.menu-foot`/`.navhint`) o en cualquier barra de teclas: las `.key` s
 entra/sale/se aparta con su rótulo. Círculo crema con contorno de tinta y sombra dura, brillo de pegatina, inclinado −6°; la silueta
 (`VB.Senas.svg`, tinta) dentro y la palabra (Titan One) en una etiqueta crema debajo. `.sp-dot` = primera vez (punto rojo). Móvil:
 60 px y palabra de 12 px reales (`--snk` deshace la escala del marcador). Golpe de 260 ms; con «Menos movimiento», fundido.
+Las palabras de más de 8 letras con espacio («BAJO LA RED», «8 SEGUNDOS», «5 SEGUNDOS») van en 2 líneas centradas (`senaWord`, 21-nov:
+en una sola línea pisaban el título de la pestaña y «⇄ Saque»). Mientras está en la pestaña, `.sb.sn-up` sube el marcador por encima
+de `#prompt` (z 2): en el móvil el aviso anclado al sacador («Espera el silbato») llegaba a taparla. En la pestaña la pegatina va
+`aria-hidden` (el texto lo lee `#pbS.sr`); en la cinta, con su `aria-label`. mobaudit: `hud-sena`, `hud-sena-bajo`, `hud-sena-5s`
+(playa) y `hud-sena-cinta`.
 
 ### `.sp-page` — página del menú con el sistema
 ```html

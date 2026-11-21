@@ -603,7 +603,7 @@
       c6 = [{ auto: ctx.settings.subs6 !== 'manual', iq: 2 }, { auto: true, iq: IQ6[Sim.normDiff ? Sim.normDiff(dq) : dq] || 2 }];
     }
     // la situación de la semana (opts.sit, js/semana.js): la semilla del intento (la misma para todos), sin la ayuda de novato, sin la zona ni
-    // el saque de firma (Ferran: nivel y atributos iguales para todos) y el partido empieza en el marcador de la semana (opts.start)
+    // el saque de firma (decisión provisional, pendientes-ferran.md: nivel y atributos iguales para todos) y el partido empieza en el marcador de la semana (opts.start)
     var sitO = !!(opts.sit && !cs && opts.start);
     var g = Sim.createGame({ demo: false, seed: sitO && opts.seed && !Q.seed ? opts.seed | 0 : seed(), difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : sitO ? false : isRookie(), present: !opts.autopilot,
       start: sitO ? opts.start : undefined,

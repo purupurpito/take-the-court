@@ -177,6 +177,7 @@ const SCREENS = [
   // idea «senas»: pegatina de la seña en la pestaña (palabras largas) y en la cinta (VB.UI._sena la deja 3 s)
   { id: 'hud-sena', area: 'partido', q: 'debug=setpoint', open: "await M.until(()=>VB.ctx.state==='playing',5000); return VB.UI._sena('retraso',1);", wait: 700, exit: HUD_EXIT, primary: '' },
   { id: 'hud-sena-bajo', area: 'partido', q: 'debug=setpoint', open: "await M.until(()=>VB.ctx.state==='playing',5000); return VB.UI._sena('bajo',1);", wait: 700, exit: HUD_EXIT, primary: '' },
+  { id: 'hud-sena-5s', area: 'partido', q: 'debug=setpoint&map=beach', open: "await M.until(()=>VB.ctx.state==='playing',5000); return VB.UI._sena('retraso',1,'5 SEGUNDOS');", wait: 700, exit: HUD_EXIT, primary: '' },
   { id: 'hud-sena-cinta', area: 'partido', q: 'debug=setpoint', open: "await M.until(()=>VB.ctx.state==='playing',5000); return VB.UI._sena('cuatro',2);", wait: 700, exit: HUD_EXIT, primary: '' },
   { id: 'hud-cambio', area: 'partido', q: 'debug=sub6', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-zona', area: 'partido', q: 'debug=rally&zone=1', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },

@@ -222,7 +222,7 @@
     var two = /\btwo\b/.test(cls); senaHide();
     el.pbT.textContent = 'Remate'; el.pbS.textContent = 'Fuera'; el.pbS.hidden = !two; el.pbS.className = ''; el.pbX.textContent = '⇄ Saque'; el.pbX.hidden = !tag;
     // (idea «senas»: lo mismo que en el partido, la llamada del árbitro como pegatina; así se precalienta también su estilo)
-    if (two && VB.Senas) { el.pbug.className = cls.replace(/\s*\btwo\b/, ''); senaSr('Fuera'); senaShow({ id: 'fuera', word: 'FUERA' }, 'bug', true); }
+    if (two && VB.Senas) { el.pbug.className = cls.replace(/\s*\btwo\b/, ''); senaSr('Fuera'); senaShow({ id: 'fuera', word: 'FUERA' }, 'bug', false); }   // (sin punto rojo: el tutorial no la apunta)
     else el.pbug.className = cls;
   }
   /** main.js, con el contexto WebGL creado y ANTES del arranque pesado: monta el primer paso del ensayo (el que más rasteriza) para
@@ -667,6 +667,7 @@
     if (!(banT > 0) || !el.banner.classList.contains('show')) return null;
     if (banRect) return banRect;
     var r = null, kids = [el.banner.firstChild, el.bn2, el.bn3];
+    if (sn.host === 'ban' && el.sena && !el.sena.hidden) kids.push(el.sena);   // (la pegatina sobresale de la cinta)
     for (var i = 0; i < kids.length; i++) {
       var k = kids[i]; if (!k || k.hidden) continue;
       var q = k.getBoundingClientRect(); if (!q.width) continue;
@@ -697,10 +698,20 @@
     if (!el.sena || !sn.host) return;
     el.sena.hidden = true; el.sena.classList.remove('on', 'sp-dot');
     if (sn.host === 'bug' && el.pbug) el.pbug.classList.remove('sn-on');
+    if (el.sb) el.sb.classList.remove('sn-up');
     sn.host = '';
   }
   /** Texto completo del árbitro en #pbS, oculto a la vista (.sr): la región aria-live de #pbug lo sigue leyendo. */
   function senaSr(t) { el.pbS.textContent = cpuTxt(t || ''); el.pbS.hidden = !t; el.pbS.className = t ? 'sr' : ''; }
+  /** Palabra de la pegatina: las de más de 8 letras con espacio («BAJO LA RED», «8 SEGUNDOS») van en 2 líneas, partidas por el
+   *  espacio que deja la línea más larga más corta (así la etiqueta no pisa el título de la pestaña ni «⇄ Saque»). */
+  function senaWord(w) {
+    w = String(w || '');
+    if (w.length <= 8 || w.indexOf(' ') < 0) return escT(w);
+    var best = -1, bl = 1e9;
+    for (var i = 0; i < w.length; i++) if (w[i] === ' ') { var m = Math.max(i, w.length - i - 1); if (m < bl) { bl = m; best = i; } }
+    return escT(w.slice(0, best)) + '<br>' + escT(w.slice(best + 1));
+  }
   /** Pega la seña s = {id, word} en la pestaña (where 'bug') o en la cinta ('ban'); nueva = punto rojo de «nueva». */
   function senaShow(s, where, nueva, sr) {
     var S = VB.Senas, it = s && S && S.BY ? S.BY[s.id] : null;
@@ -709,12 +720,16 @@
     if (sn.host === 'bug' && where === 'ban' && el.pbug) el.pbug.classList.remove('sn-on');
     if (el.sena.parentNode !== host) host.appendChild(el.sena);
     var w = s.word || it.word, key = s.id + '|' + w;
-    if (sn.key !== key) { sn.key = key; el.sena.innerHTML = '<i class="sn-d">' + S.svg(s.id, w) + '</i><i class="sn-w">' + escT(w) + '</i>'; }
+    if (sn.key !== key) { sn.key = key; el.sena.innerHTML = '<i class="sn-d">' + S.svg(s.id, w) + '</i><i class="sn-w">' + senaWord(w) + '</i>'; }
     el.sena.setAttribute('aria-label', 'Seña del árbitro: ' + it.name + (sr ? '. ' + cpuTxt(sr) : ''));
+    // en la pestaña el texto completo ya lo lee #pbS.sr (región aria-live): la pegatina no se lee dos veces; en la cinta, sí
+    if (where === 'ban') el.sena.removeAttribute('aria-hidden'); else el.sena.setAttribute('aria-hidden', 'true');
     el.sena.classList.toggle('sp-dot', !!nueva);
     el.sena.classList.toggle('sn-ban', where === 'ban');
     el.sena.hidden = false; restartAnim(el.sena, 'on');
     if (where !== 'ban') el.pbug.classList.add('sn-on');
+    // la pegatina (1,5 s) va por encima del aviso anclado al sacador («Espera el silbato»), que en el móvil sube hasta su altura
+    if (el.sb) el.sb.classList.toggle('sn-up', where !== 'ban');
     sn.host = where === 'ban' ? 'ban' : 'bug';
     return true;
   }
@@ -1234,6 +1249,8 @@
   function fmtTxt(g) { return (oneSet(g) ? 'Un set a ' : 'Al mejor de 3 sets a ') + ((g && g.points) || 25); }
   var IN_FB = '<svg viewBox="0 0 56 60" aria-hidden="true"><circle cx="28" cy="17" r="12"/><path d="M4 60c0-16 10-26 24-26s24 10 24 26z"/></svg>';
   /** Datos para VB.Recap.introPlan a partir de la partida montada y de las opciones de startMatch (o.introKind fuerza el tipo). */
+  /** Parciales de relleno al principio de g.setScores: 2 en la situación de la semana que arranca en el 3r set (sim g.st0), si no 0. */
+  function sitFill(g) { return g && g.sit && g.st0 && g.st0.setNo === 3 ? 2 : 0; }
   function introInfo(g, o) {
     o = o || {};
     var six = !!(g && g.size === 6), diff = (g && g.difficulty) || ctx.settings.difficulty;
@@ -1247,6 +1264,8 @@
       diffName: (VB.DIFF && VB.DIFF[diff] && VB.DIFF[diff].name) || '', byD: (record.byD && record.byD[diff]) || null, winRun: record.winRun | 0,
       size: six ? 6 : 2, ctrlOne: one, nums: nums, posName: six && g ? (ROLE_NAME[g.ctrlRole] || '') : '', short: (ctx.height || innerHeight) <= 420,
       stA: stOf(0), stB: stOf(1) };
+    // la situación de la semana no cuenta en el Partido rápido: sin «Tu balance en…» ni racha; el beat B dice el intento de hoy
+    if (g && g.sit && !g.demo) { info.byD = null; info.winRun = 0; info.sit = { i: g.sit.i | 0, tries: 3 }; }
     var cs = g && g.career;
     if (cs) {
       var c2 = {}; for (var k in cs) if (Object.prototype.hasOwnProperty.call(cs, k)) c2[k] = cs[k];
@@ -2485,10 +2504,11 @@
       el.pips0[1].style.display = el.pips1[1].style.display = oneSet(g) ? 'none' : '';
       if (el.sn0) { el.sn0.textContent = g.sets[0]; el.sn1.textContent = g.sets[1]; }
     }
-    var hk = (g.setScores || []).length;
+    // (la situación de la semana en el «3r set»: los dos parciales de relleno del arranque no se enseñan como jugados; quedan los pilotos 1-1)
+    var hOff = sitFill(g), hk = Math.max(0, (g.setScores || []).length - hOff);
     if (last.hist !== hk) {
       last.hist = hk; el.hist.hidden = !hk;
-      el.hist.innerHTML = sepHTML((g.setScores || []).map(function (s, j) { return 'S' + (j + 1) + ' <b>' + s[0] + '-' + s[1] + '</b>'; }), 'v', true);
+      el.hist.innerHTML = sepHTML((g.setScores || []).slice(hOff).map(function (s, j) { return 'S' + (j + 1 + hOff) + ' <b>' + s[0] + '-' + s[1] + '</b>'; }), 'v', true);
     }
     var srv = g.serving;
     if (last.srv !== srv) { last.srv = srv; el.row0.classList.toggle('serving', srv === 0); el.row1.classList.toggle('serving', srv === 1); }
@@ -3414,7 +3434,7 @@
     var six = !!(ctx.game && ctx.game.size === 6 && !ctx.game.demo);
     // ONLINE (decisión 4 de Ferran): sin récord de Partido rápido, experiencia, perfil, insignias ni Vestuario; el récord online va aparte (fase 3)
     var online = !!(ctx.game && ctx.game.online) || !!ctx.net;
-    var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (decisión de Ferran): sin récord, perfil, XP ni insignias
+    var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (Ferran: sin XP ni medallas): sin récord, perfil, XP ni insignias
     if (!ctx.debug && !career && !watch && !six && !online && !sitG) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
       record.played++; if (win) { record.wins++; record.winRun++; } else record.winRun = 0;
       // los consejos del partido acompañan hasta la primera victoria; luego se apagan (se reactivan en Ajustes · Juego · Consejos)
@@ -3445,8 +3465,9 @@
     if (gNet) setSep(el.endKicker, [{ h: nw(escT(venueName())) }, { h: 'Online' + '<span class="ph-hide">' + SEP_V + nw((ctx.game && ctx.game.bo1 ? 'Un set a ' : 'Sets a ') + endPts) + '</span>' }], 'd');
     el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : gNet ? 'Gana ' + gNet.rivalName : 'Gana la CPU'; el.endTitle.classList.toggle('long', !!gNet && !win && gNet.rivalName.length > 11);
     el.endS0.textContent = e.sets[0]; el.endS1.textContent = e.sets[1];
-    el.endSets.innerHTML = (e.setScores || []).map(function (s, i) {
-      return '<span class="w' + (s[0] > s[1] ? 0 : 1) + '"><small>SET ' + (i + 1) + '</small>' + s[0] + '-' + s[1] + '</span>';
+    var eOff = sitFill(ctx.game);   // (situación en el «3r set»: solo el set jugado, rotulado «3r set»)
+    el.endSets.innerHTML = (e.setScores || []).slice(eOff).map(function (s, i) {
+      return '<span class="w' + (s[0] > s[1] ? 0 : 1) + '"><small>' + (eOff ? (i + 1 + eOff) + 'r set' : 'SET ' + (i + 1)) + '</small>' + s[0] + '-' + s[1] + '</span>';
     }).join('');
     // ataque + bloqueo + saque + errores del rival = puntos (cada punto cuenta en una sola fila)
     var rows = [['Puntos', 'points'], ['Puntos de ataque', 'kills'], ['Puntos de bloqueo', 'blocks'], ['Aces', 'aces'], ['Errores del rival', 'oppErr'], ['Mejor racha', 'best']];
@@ -6985,7 +7006,7 @@
   function renderRetos() {
     if (!el.rtBody) return;
     if (!rtTab) rtTab = rtTabLoad();
-    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Semana' }] : []).concat([{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»; se abre en Hoy salvo que la recuerde)
+    if (!rtTabsApi && el.rtTabs) rtTabsApi = makeTabs(el.rtTabs, (VB.SemanaUI ? [{ id: 'semana', label: 'Semana' }] : []).concat([{ id: 'hoy', label: 'Hoy' }, { id: 'maestria', label: 'Maestría' }]),   // (Semana = la situación de la semana, js/semana-ui.js: la 1ª pestaña, decisión de Ferran «junto»; se abre en Hoy salvo que la recuerde: decisión provisional)
       { value: rtTab, label: 'Retos', pane: el.rtBody, onChange: function (id, dir, how) {
         // Q/E (o LB/RB) con el foco en una fila: renderRetos la destruye; el foco vuelve al panel nuevo (si no, se iba al body)
         var a = document.activeElement, inP = !!(a && el.rtBody && el.rtBody.contains(a)), kb = inP && (a.classList.contains('kf') || how === 'key' || how === 'pad');
@@ -7067,8 +7088,8 @@
     if (!wipeRun(2, f) && !wp.cb) f();
   }
 
-  // ---- La situación de la semana (js/semana.js + js/semana-ui.js; decisiones de Ferran del 20-nov-2026: junto al reto del día, nivel y
-  // atributos iguales para todos, sin XP ni medallas ni récord). goSemana gasta el intento AL EMPEZAR (VB.Semana.begin) y arranca el
+  // ---- La situación de la semana (js/semana.js + js/semana-ui.js; Ferran, 20-nov-2026: junto al reto del día y sin XP ni medallas
+  // (ni récord); decisión provisional: nivel y atributos iguales para todos, notes/pendientes-ferran.md). goSemana gasta el intento AL EMPEZAR (VB.Semana.begin) y arranca el
   // partido en el marcador de la semana; la pausa avisa de que reiniciar o salir lo gasta; la hoja final ofrece «Otro intento»,
   // «Compartir» (enlace con el mapa del grupo) y «Ver el grupo» (Retos › Semana). ?sem=… (enlace de un amigo) lo lee semAuto.
   var semMap = 'S', semEnd = null;
@@ -8224,7 +8245,10 @@
       on(el.btnPSettings, function () { openPanel('set', 'paused'); });
       // Reiniciar en dos pasos (un dedo que se escapa no tira el partido): 1r toque arma 2 s, el 2º reinicia. Sin confirm().
       on(el.btnRestart, function () {
-        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart(); if (ctx.game && (ctx.game.retoOpts || ctx.game.sit) && !ctx.game.demo) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
+        if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart();
+          // (la situación de la semana sin intentos hoy: el atajo no abandona el que está en juego; avisa y sigue)
+          if (ctx.game && ctx.game.sit && !ctx.game.demo && VB.Semana && VB.Semana.left && VB.Semana.left() <= 0) { semToast('Hoy ya no quedan intentos. Mañana, 3 más'); return; }
+          if (ctx.game && (ctx.game.retoOpts || ctx.game.sit) && !ctx.game.demo) goRestart(); else if (isDrill()) goGym(ctx.game.drill.kind); else goMatch(); return; }
         disarmRestart(); restartArm = performance.now();
         el.btnRestart.textContent = armTxt('reiniciar');
         el.btnRestart.classList.add('arm');

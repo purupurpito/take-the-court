@@ -719,8 +719,9 @@ Música DE LA GRADA, no un tema (la pregunta A4 de notes/juego-completo.md sigue
   tocar. Hoy: Carrera siempre (todos sus partidos jugados tienen grada); fuera de la Carrera solo en Difícil y Experto. Nunca en la
   demo del menú, el Entrenamiento (`g.drill`, `careerExtDrill`), los eventos de la repetición ni con la tarjeta de presentación.
   `XAR_WHEN.menu` (ensayos sueltos en el menú) está apagado: no es un partido.
-- **Bando**: la charanga es la de la grada local (`ambHome()`). Fuera de casa celebra las rachas del rival y te suelta la trompeta
-  desafinada cuando fallas tú el saque. Campo neutral: anima a tu equipo a 0,75 y nunca desafina.
+- **Bando**: la charanga es la de la grada local (`xarHome(g)`: con el Ambiente encendido, `ambHome()` y −1 en campo neutral; con el
+  Ambiente «Apagado» el `amb:start` no llega y manda `g.career.atHome === false` → la del rival). Fuera de casa celebra las rachas del
+  rival y te suelta la trompeta desafinada cuando fallas tú el saque. Campo neutral: anima a tu equipo a 0,75 y nunca desafina.
 - **Piezas** (`XSCORES`, voces `xTrumpet` / `xTrombone` sobre `xHorn`, `snare`, bombo = `boom`; `xarPlan` mono; bucles con
   `wrapTail`, que SUMA la cola renderizada sobre el principio en vez de fundirla como `loopify`):
   `xarPasa` pasacalles I I V7 V7 en bucle (3,36 s) · `xarRedoble` redoble de caja en bucle (1,26 s; el crescendo lo pone la ganancia)
@@ -744,7 +745,11 @@ Música DE LA GRADA, no un tema (la pregunta A4 de notes/juego-completo.md sigue
   grande con ovación la charanga no sube el pico de la mezcla (audiotest parte 8, «xar 13»).
 - **API**: `setVolume('xaranga', v)`, `preview('xaranga')`, `xarState()`, `xarPrep()`, `XAR_SOUNDS`, `XAR_WHEN`, `_xarPlay` (pruebas);
   `LOOPS` añade `xarPasa` y `xarRedoble`.
-- **Pruebas**: `node tools/audiotest.js --xar-only` (parte 8: 15 comprobaciones de lógica con el contexto simulado) y, en la pasada
+- **Detalles (21-nov, rama pendientes)**: los silbatos de la repetición no abren hueco ni paran el redoble (`evRpl`); una pieza aún sin
+  sintetizar se cuenta en `stats.xarMiss` (no en `stats.missed`, que es la de los sonidos del juego).
+- **Decisiones provisionales** (notes/pendientes-ferran.md): nombre de la fila; online según la dificultad del anfitrión; ensayos del
+  menú apagados; «partidos buenos» = Difícil/Experto; el 22-24 semanal suena solo las semanas que sale en Difícil.
+- **Pruebas**: `node tools/audiotest.js --xar-only` (parte 8: 16 comprobaciones de lógica con el contexto simulado; «xar 10b» = Carrera fuera de casa sin Ambiente) y, en la pasada
   normal, síntesis de las 6 piezas, escenarios «xaranga: …» y relaciones en 2e. La parte 5 (banco idéntico) no cuenta los
   `XAR_SOUNDS`; la asignación del banco de siempre se mide sin ellos (las piezas aparte: ~65 recolecciones, casi todo la primera
   pasada sin optimizar). **Falta escucharlo** con auriculares y en el altavoz del móvil.
