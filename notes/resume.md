@@ -44,7 +44,8 @@ matchstats.js / badges.js / retos.js (`resumeGet/resumeSet`). Prueba: `node tool
 
 ## Carrera (22-nov-2026)
 Decisión de Ferran: «No quiero que sea posible ir reiniciando tu progreso constantemente en los partidos del modo carrera. Cada vez que se
-acabe un punto se guarda.» `VB.Resume.CAREER = true` (`?resumecareer=0` lo apaga, solo para pruebas).
+acabe un punto se guarda.» `VB.Resume.CAREER = true` (ningún parámetro de la URL lo apaga: `?resumecareer=0` ya no existe y `?debug=…` tampoco lo
+quita en la Carrera de verdad; solo las pruebas, desde tools/eval.js).
 
 **Qué partidos.** Los de la jornada (playa y pista, 2v2 y 6v6) y los de las extensiones que dan progreso: la selección (natl), el Partido
 de las Estrellas (allstar) y el juvenil (pro). Nunca las pruebas de fichaje (siguen suspendiéndose al cerrar) ni los ejercicios.
@@ -79,16 +80,35 @@ previa, antes de la primera foto, y volver da el mismo partido, no otro sorteo.
   resuelto» en la bandeja. Nunca vuelve al 0-0. Se hace al arrancar el juego (antes de la portada), al abrir el hub y al intentar retomar.
   La foto de Carrera de otra versión no se tira al leerla (`VB.Resume.raw`): de ella sale el marcador.
 - e) **Otras vías.**
-  - El candado va también en el guardado de la Carrera (`c.lock = {cm, ext, sc, t, v}`, que account.js sube con la Carrera): al primer
-    guardado del partido, al acabar cada set, al salir al menú y al irse la página a segundo plano (no en cada punto, para no subir la
-    Carrera entera cada 15 s). En otro aparato sin la foto, el partido se resuelve desde ese marcador (puede ir algo por detrás: el del
-    último set o el de cuando la app pasó a segundo plano). Abrir la Carrera en otro aparato no la desbloquea.
+  - El candado va también en el guardado de la Carrera (`c.lock = {cm, ext, sc, t, v, x}`, que account.js sube con la Carrera): al
+    primer guardado del partido, al acabar cada set, al salir al menú y al irse la página a segundo plano (no en cada punto, para no subir
+    la Carrera entera cada 15 s). `x: 1` = el marcador es exacto (se escribió al salir o al pasar a segundo plano; al volver a la pestaña
+    se quita en el siguiente evento). Sin la foto (otro aparato, foto borrada a mano) y sin `x`, el candado va por detrás de lo jugado: el
+    set que se estaba jugando se da por PERDIDO (`Career._pessSc`, para el rival a su tanteo mínimo) y el resto se simula; el mensaje
+    «Partido resuelto» lo explica. Así resolver sin foto nunca sale mejor que lo que se llevaba (revisión del 22-nov). Abrir la Carrera
+    en otro aparato no la desbloquea.
+  - **Dos pestañas a la vez** (revisión del 22-nov). La Carrera vive en memoria (`cur` / `cur6`): una pestaña vieja podía volver a
+    jugar o simular la jornada ya jugada en otra y pisar el resultado. Ahora career.js recuerda el texto que leyó o escribió por última vez
+    (`seen`): si al guardar hay otro, no escribe, tira la copia de memoria y el partido en curso (`M`) y avisa (`VB.Career.onStale`); lo
+    mismo con el evento `storage` del navegador y al mirar el candado (`lockAny` → `freshen`). VB.Resume hace lo mismo con la foto
+    (`armed.exp`, `onConflict`): si otra pestaña la ha reescrito (ha retomado el partido), esta deja de guardar sin pisarla. main.js
+    (`careerElsewhere`) corta el partido de esa pestaña sin guardar nada y avisa «La Carrera ha cambiado en otra pestaña…».
+  - **Cuenta** (revisión del 22-nov). La MISMA Carrera (misma semilla y creación) nunca se pregunta al entrar ni se decide por la hora:
+    gana la más avanzada (temporada, jornadas jugadas, jornada, partidos, mensajes; account.js `careerPick`). Cerrar sesión, jugar y
+    perder y volver a entrar ya no deja elegir «La de la cuenta» de antes del partido. La pregunta queda para Carreras distintas.
   - Recargar en la pausa entre puntos, en un cambio de set o en un tiempo muerto: vuelve la misma foto con el mismo azar → lo mismo.
-  - Challenge: el resultado se guarda al resolverse; cerrar durante la revisión vuelve a la foto del punto (se puede volver a decidir si
-    pedirlo, pero el resultado de la revisión es el mismo: no se gana nada).
+  - Challenge: se guarda al PEDIRLO (la foto lleva la revisión en marcha, `g.review`) y al resolverse: cerrar durante la revisión (la
+    marca ya se ve) y retomar sigue la misma revisión con el mismo veredicto; el challenge queda gastado igual (revisión del 22-nov; antes
+    volvía la foto del punto con el challenge sin usar).
+  - Cerrar con el punto en juego también cuesta en la nota y en las estadísticas: el punto cedido es un error tuyo («Punto abandonado»,
+    lo mismo que un error; `VB.Rating` y los errores de la jornada) si estabas en pista.
+  - Ambiente: al retomar manda el ambiente con el que se jugaba (career.js `resumeGet` guarda `cs.ambient`), no el ajuste del momento:
+    apagarlo con el partido cortado ya no borra las tarjetas ni sus consecuencias. Las tarjetas de la hoja final («Sanciones»), del
+    Resumen y del marcador también van en la foto (ui.js `resumeGet.cards`).
+  - Candado en las dos Carreras (playa y pista): resolver el de una no borra la foto válida del partido de la otra.
   - Protestar / Dejarlo: se guarda al cerrarse la ficha (su resultado ya no se puede cambiar cerrando).
   - Borrar la Carrera (abandon) borra también el candado; no da ninguna ventaja.
-  - **No cerrado (anotado):** volver a una copia vieja de la Carrera (la de la cuenta en la primera entrada en un aparato, el
+  - **No cerrado (anotado):** volver a una copia vieja de la Carrera (el
     `make-the-cut.career.prev` a mano con tools/eval.js, o tocar localStorage con las herramientas del navegador). Es restaurar una partida
     guardada antigua: queda fuera de esto.
 
