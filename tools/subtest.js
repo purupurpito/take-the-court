@@ -61,13 +61,15 @@ function mkBench(t, seed, strongServe) {
 // 13-nov era la del código previo al banquillo. Rehecha otra vez el 18-nov-2026: modelo de esfuerzo de la IA (VB.EFFORT, sin el dado
 // previo de la defensa), su calibración (antes 37/26199, 30/28617, 19/29716, 29/20540) y su revisión (antes 38/22381, 33/23779,
 // 26/22480, 28/20322), su afinado del mismo día (lectura variable, reactSd; antes 34/24260, 34/25358, 28/22835, 26/20341) y la revisión
-// del afinado (cola lenta recortada, preR con gesto, humAcc; antes 29/26497, 32/24527, 24/23528, 27/20061)
+// del afinado (cola lenta recortada, preR con gesto, humAcc; antes 29/26497, 32/24527, 24/23528, 27/20061). Rehecha el 22-nov-2026
+// (1.22.0): la IA variada (g.aiMem, notes/ia-variada.md) cambia los destinos de remate, saque y colocación sin dados nuevos, y con
+// ellos los partidos (antes 28/27187, 34/24295, 27/23142, 29/18288; main 1.21.0 sigue dando esas cifras)
 {
   const REF = [
-    { o: { format: '6v6', demo: true, seed: 900, stats: true }, pts: 28, rng: 27187, h: 146958180 },
-    { o: { format: '6v6', demo: true, seed: 901 }, pts: 34, rng: 24295, h: 1023722745 },
-    { o: { format: '6v6', autopilot: true, seed: 902, ctrl: 'one', ctrlRole: 'OH', present: true }, pts: 27, rng: 23142, h: 2859451673 },
-    { o: { format: '6v6', seed: 903, ctrl: 'one', ctrlRole: 'MB', difficulty: 'hard' }, pts: 29, rng: 18288, h: 2061126720 }
+    { o: { format: '6v6', demo: true, seed: 900, stats: true }, pts: 32, rng: 25564, h: 761406609 },
+    { o: { format: '6v6', demo: true, seed: 901 }, pts: 30, rng: 25890, h: 4237672439 },
+    { o: { format: '6v6', autopilot: true, seed: 902, ctrl: 'one', ctrlRole: 'OH', present: true }, pts: 24, rng: 23730, h: 3638780080 },
+    { o: { format: '6v6', seed: 903, ctrl: 'one', ctrlRole: 'MB', difficulty: 'hard' }, pts: 28, rng: 19618, h: 3023202607 }
   ];
   const got = [], mal = [];
   let subs = 0, on = 0;
