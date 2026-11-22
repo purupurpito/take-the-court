@@ -297,10 +297,10 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
     Worker en turn-worker/ sin desplegar y `VB.NET_TURN_URL = ''` (pasos en turn-worker/README.md). Notas: notes/resume.md,
     notes/ia-variada.md, notes/turn.md, notes/ui_main.md («Jugar ya», «Partidos cortos», «Marca de tu jugador…», «Por qué falló el
     toque») y notes/camera_input.md («Disposición táctil»). Huellas regeneradas a propósito solo por la IA variada (fp-2v2, fp-mastery,
-    fp-salto, referencia §1 de subtest; SIM_BASE 74daeb88); simtest y fluidtest recalibrados como decisión provisional. Pruebas nuevas:
+    fp-salto, referencia §1 de subtest; SIM_BASE 74daeb88); simtest y fluidtest recalibrados (medidos y confirmados el 22-nov contra main: notes/pendientes-ferran.md 4.8.5-4.8.6). Pruebas nuevas:
     hitwhytest, jugaryatest, cortostest, a11ymarktest, touchedittest, variedadtest, resumetest y turntest; filas nuevas de mobaudit
     (home-jugarya, final-primero, quick-corto, controles-touch-editor*, hud-2v2-zurdos, home-seguir*). Pasada final de una en una: todo
-    OK salvo viewtest («ritual.jug»), touchplay 667×375 (pestañas de Ajustes) y camtest (16 en las dos), que fallan igual en main.
+    OK; viewtest, touchplay 667×375, camtest y mobaudit (informe del rival), que fallaban también en main, arreglados el 22-nov (camtest sin tocar la cámara: fallos conocidos con tope, CAMZERO=1 exige 0).
     Decisiones provisionales, TURN paso a paso, lo que hay que probar a mano y avisos de huellas: notes/pendientes-ferran.md
     «Imprescindibles 1.22.0».
   - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
