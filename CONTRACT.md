@@ -261,7 +261,16 @@ lo sanea campo a campo; desde 1.22.0, informe 4.2), `touchMirror` (false; zurdos
 - **Funciones añadidas**: `hitWindow(g, p?, out?)` → `{t (s hasta el contacto ideal; <0 ya pasó), press (s hasta el momento ideal de PULSAR = t − WINDUP), d, dz, reach, kind, zc, x,y,z, active, canReach, attack, jumpT}`
   (reutiliza un objeto interno si no se pasa `out`), `aimPoint(g, out?, move?)` → `{x,y,kind:'serve'|'spike'|'tip'|'free', mode:1|2, aimed, spread, spreadPoor}`
   o null (destino previsto del golpe del humano sin el error de ejecución; `move` = `ctx.simMove`; lo usa fx.js para la retícula), `predictKind(g,p)`, `canDive(g,p)`, `timingQ(te)`, `gradeOf(q)`, `normDiff(d)`; `VB.DIFF`;
-  `VB.AI.serveTarget(g, sv)`, `VB.AI.openSpot(g, p, minDepth, out, atk)`; `VB.DIFF_ORDER`, `VB.TIMING`; internos de test `_inBlockVol`, `_serveRisk`, `_recvFail`, `_refreshPred`.
+  `VB.AI.serveTarget(g, sv)`, `VB.AI.openSpot(g, p, minDepth, out, atk, mem?)` (`mem` desde 1.22.0: 'atk' | 'srv' | omitido = lo de siempre), `VB.AI.remember(g, p, kind, x, y)` y `VB.AI.MEM` (1.22.0, IA variada; abajo); `VB.DIFF_ORDER`, `VB.TIMING`; internos de test `_inBlockVol`, `_serveRisk`, `_recvFail`, `_refreshPred`.
+- **IA variada (1.22.0, informe 4.8; notes/ia-variada.md)**: `g.aiMem` (en el literal de `createGame`, vaciada en `newGame`; datos planos que
+  `copyGame` copia; netview la clasifica 'as') = `{atk, srv: [[c, c, c] × 2], lane: [[l, l] × 2], rcv, set: [[id, id] × 2]}` por equipo: casillas de
+  openSpot (4 profundidades × 5 laterales, relativas al lado; −1 = nada) de los 3 últimos remates y saques de la IA, carriles de los 2 últimos
+  remates (1 diagonal, 2 línea), receptores (id) de los 2 últimos saques y atacantes (id) de las 2 últimas colocaciones 6v6. `openSpot(…, mem)`
+  resta `VB.AI.MEM.rep/lane/rcv` a lo repetido pero solo elige entre casillas a ≤ `MEM.tol` de la mejor; `serveTarget` no va a por el mismo
+  receptor 3 veces seguidas; `VB.AI6.chooseSet`/`previewSet` dan peso × `MEM.set` al atacante de la IA (nunca al humano) que recibió las 2
+  últimas. NUNCA gasta `g.rng` (mismas llamadas por decisión); sin `g.aiMem` (p. ej. una partida creada a mano sin la clave) todo es lo de
+  antes. Mueve las huellas a propósito: `fp-2v2.json`, `fp-mastery.json` y `fp-salto.json` regeneradas el 22-nov-2026; medidor y
+  comprobaciones en `tools/variedadtest.js` (variedad de destinos con y sin memoria, determinismo, rollback con copyGame y que Experto no se ablande).
 - **Sprint Carrera (9-nov-2026; detalle en notes/sim.md «Sprint Carrera»)**:
   - `opts.badges = [[b7, b11], [b3, b9]]` (misma forma que `attrs`), `b = {idInsignia: nivel 1-3}` o null → `p.badges = {id: nivel}` (o null). Sin `badges` la sim es idéntica
     (no gasta azar). `VB.Sim.BADGE_IDS` = `['canon','mira','rompemanos','seda','bombardero','flotador','muro','ancla','red','motor','sangrefria','lider']`; tablas por nivel en

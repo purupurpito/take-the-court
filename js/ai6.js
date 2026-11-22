@@ -409,7 +409,7 @@
     var pq = g._pq6 && g._pq6[t], good = pq && g.time - pq.t < 3 && pq.q >= 0.45;
     var inSys = _inSys = !!(good && p.role === 'S' && dOf(p) < 3.0);
     _cand.length = 0; _w.length = 0;
-    var sum = 0;
+    var sum = 0, SM = g.aiMem && g.aiMem.set[t], rep2 = SM && SM[0] >= 0 && SM[0] === SM[1] ? SM[0] : -1;
     for (var i = 0; i < tm.length; i++) {
       var q = tm[i]; if (q === p || !(canAttack(q) || canPipe(q))) continue;
       // el colocador no remata, salvo el humano que pidió la bola tras dar él el 1r toque (sim askOk, «¡Pídela!»)
@@ -424,6 +424,9 @@
       // (setReady: cerca de la red —o de su batida de zaguero— y del destino, y jugando): no se le regala el balón
       if (S.isHuman(g, q)) { if (!setReady(g, q, sd * T.d, Y)) continue; w *= HUM.atkW * (g.time - g.ask6 < HUM.askT ? HUM.ask : 1) * (q.role === 'S' ? HUM.askS : 1); }
       for (var k = 0; k < opp.length; k++) { var o = opp[k]; if (o.front && Math.abs(o.x) < 2 && Math.abs(o.y - Y) < 1.3) w *= 0.7; }
+      // IA variada (1.22.0, VB.AI.MEM.set): el atacante de la IA que recibió las 2 últimas colocaciones, menos peso (el humano no:
+      // si la pide, se respeta)
+      if (q.id === rep2 && !S.isHuman(g, q)) w *= VB.AI && VB.AI.MEM ? VB.AI.MEM.set : 0.6;
       _cand.push(q); _w.push(w); sum += w;
     }
     return sum;
@@ -474,6 +477,7 @@
     // fuera de sistema (colocador lejos de la red o no es el colocador): más alta para dar tiempo al atacante
     P.apex = TT.apex + aD + (inSys || tp === 'quick' ? 0 : 0.4); P.t = g.time; P.sys = inSys;
     g.setPlan[t] = P;
+    if (g.aiMem) { var SM = g.aiMem.set[t]; SM[1] = SM[0]; SM[0] = to ? to.id : -1; } // IA variada: a quién fue
     _sp.d = P.d; _sp.yl = P.yl; _sp.apex = P.apex;
     return _sp;
   }

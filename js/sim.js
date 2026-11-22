@@ -386,6 +386,9 @@
       atkTeam: -1, atkHow: '', atkHits: 0, // último ataque/saque (para atribuir kill/ace aunque el rival lo toque y no lo salve)
       atkSet: null,            // colocador (2º toque del mismo equipo) del último ataque, o null (point.assist)
       jobMem: [null, null], jobMemT: [-1, -1], jobSwT: [-9, -9], jobHop: [-1, -1], // IA: memoria de quién va al balón (histéresis)
+      // IA variada (1.22.0, VB.AI.remember): por equipo, los 3 últimos remates y saques (casilla de openSpot, −1 = nada), los 2 últimos carriles
+      // de remate (1 diagonal, 2 línea), receptores del saque y atacantes de la colocación 6v6 (id). Datos planos: copyGame los copia; nunca g.rng
+      aiMem: { atk: [[-1, -1, -1], [-1, -1, -1]], lane: [[0, 0], [0, 0]], srv: [[-1, -1, -1], [-1, -1, -1]], rcv: [[-1, -1], [-1, -1]], set: [[-1, -1], [-1, -1]] },
       digMargin: 0,            // margen de defensa (s) del último remate (>0 el defensor llega con tiempo; <0 al hueco)
       lastPoint: null,         // {team, reason, text, how, highlight, digs, streak, savedSetPoint, clutch, signal, touchedOut, landSide, hold, setWon, matchWon}
       setPoint: -1, matchPoint: -1, // equipo con punto de set/partido en el saque actual (-1 nadie)
@@ -3745,6 +3748,11 @@
     if (!g.beach && s.setNo === 3 && (a >= half || b >= half)) g.courtSwap3 = true;   // el cambio de los 8 ya pasó
     if (g.beach) { var sw = s.setNo === 3 ? BEACH.swap3 : BEACH.swap; g.courtSwapAt = (a + b) - ((a + b) % sw); }
   }
+  /** IA variada: vacía g.aiMem (en el sitio: misma forma para copyGame). */
+  function aiMemReset(M) {
+    if (!M) return;
+    for (var t = 0; t < 2; t++) { M.atk[t][0] = M.atk[t][1] = M.atk[t][2] = -1; M.srv[t][0] = M.srv[t][1] = M.srv[t][2] = -1; M.lane[t][0] = M.lane[t][1] = 0; M.rcv[t][0] = M.rcv[t][1] = -1; M.set[t][0] = M.set[t][1] = -1; }
+  }
   function newGame(g) {
     g.score = [0, 0]; g.sets = [0, 0]; g.setNo = 1; g.serving = 0; g.serverIdx = [0, 1]; g.setScores = [];
     // modo 'one' con el n.º 2 (ctrlIdx 1): orden de saque en espejo, así el jugador del humano saca primero como con el n.º 1
@@ -3756,6 +3764,7 @@
     g.challenges = [perSet(g), perSet(g)]; g.call = null; g.review = null; g.cpuChal = null; g._snap = null; g._pendCall = null;
     g.streakTeam = -1; g.streakN = 0;
     g.courtSwapAt = 0;
+    aiMemReset(g.aiMem); // IA variada: la memoria corta empieza vacía en cada partido
     if (g.st0) startAt(g);   // la situación de la semana: el partido empieza en ese marcador (sin gastar g.rng)
     emit(g, { type: 'newMatch', demo: g.demo, difficulty: g.difficulty, venue: g.venue });
     if (g.drill) drillStage(g); else setupServe(g); // E6: el montaje del ejercicio en lugar del primer saque

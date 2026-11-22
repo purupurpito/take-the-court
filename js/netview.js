@@ -40,6 +40,7 @@
     _pendCall: 'special', _snap: 'special', _digWho: 'ref', blockBy: 'ref', events: 'as', drill: 'as', replay: 'as', stats: 'as',
     mastery: 'as', feintOn: 'as', amb: 'as', holdLock: 'as', online: 'as', hT: 'as', bo1: 'as', hum: 'special', tmoPer: 'as', skipReq: 'swap', tmoReq: 'swap',
     tmoLeft: 'swap', tmo: 'special', _mates: 'swap', lastLand: 'pos', netSince: 'as', _rc: 'as', _lv: 'swap',
+    aiMem: 'as',             // IA variada (1.22.0): memoria corta de la IA por equipo; la vista no la lee
     fl: 'as',                // Online V2 «Fluida» (VB.Sim.flInit): estado canónico en datos planos; la vista no lo lee
     // gesto del hueco activo (SLOT_S de sim.js y aim3/swingAim/aimIn): pasan a ser los del invitado
     aim3: 'special', swingAim: 'special', aimIn: 'special', aimOn: 'slot', aimLen: 'slot', swingLen: 'slot', aimSet: 'slot',

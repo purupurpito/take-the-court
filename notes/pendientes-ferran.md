@@ -68,6 +68,20 @@ rama pendientes, sin publicar.
   3. Señas: la n.º 19 (red) también cubre el saque que toca la red y no pasa, y la n.º 12 es bloqueo o pantalla. ¿Ajustamos las
      explicaciones del Cuaderno a eso?
 
+- **4.8 «IA que no repite el mismo ataque»** (notes/ia-variada.md). Memoria corta de la IA (`g.aiMem`): no remata ni saca a la misma
+  zona tres veces seguidas, cambia de carril si los dos últimos remates fueron por el mismo, no saca tres veces seguidas al mismo receptor y
+  en 6v6 el colocador reparte menos al que recibió las dos últimas. Sin azar nuevo (vale en el online). **Aviso de huellas:** cambian los
+  destinos de la IA, así que `fp-2v2`, `fp-mastery` y `fp-salto` se han regenerado (y SIM_BASE de fluidsimtest). **Decisiones provisionales:**
+  1. En **todas las dificultades** (no solo Difícil/Experto, la alternativa del informe).
+  2. La IA solo varía **entre zonas casi tan buenas como la mejor** (`MEM.tol` = 0,6 m de hueco): con la penalización tal cual del informe
+     Experto bajaba claramente; así sigue igual de duro (medido con los bots de simtest, tools/variedadtest.js).
+  3. Si el jugador pide el balón en 6v6, al humano no se le reparte menos por haber rematado las dos últimas.
+  4. **No hecho:** el bloqueo de la IA que se corre tras 4 remates tuyos seguidos por el mismo carril (fuera de la Carrera). Sigue solo
+     «Te tienen estudiado» en la Carrera. ¿Lo quieres para otro sprint?
+  5. **simtest queda con 4 fallos de calibración de una sola semilla** (demo: 1 set en 20 min y 36 % de remates que son punto, banda
+     38-65 %; highlight 25,2 % y 5,1 %, topes 25 y 5). Con 30 semillas la memoria no los mueve (37,4 % → 36,8 %); la banda ya no encaja con
+     el código de main desde el modelo de esfuerzo. No se han tocado: ¿se recalibran las bandas de simtest? (detalle en notes/ia-variada.md)
+
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
   provisional: la «élite del 6v6» = rondas internacionales con un local de 1ª de fuerza ≥ 84** (la liga sigue en la sede del club, para

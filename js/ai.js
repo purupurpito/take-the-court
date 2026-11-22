@@ -63,10 +63,43 @@
   // Zonas candidatas del campo rival (profundidad desde la red, lateral; en la playa ×g.cs: pista 16×8)
   var DEPTHS = [2.2, 4.2, 6.2, 7.9], LATS = [-3.6, -1.8, 0, 1.8, 3.6];
   var _t2 = [0, 0];
-  /** Elige la zona libre del campo rival (lejos de los defensores), con ruido según dificultad. */
-  function openSpot(g, p, minDepth, out, atk) {
+  /* IA variada (1.22.0, imprescindible 4.8; notes/ia-variada.md): memoria corta por equipo en g.aiMem (sim.js createGame). Solo suma a
+   * la puntuación de openSpot y a los pesos de la colocación: mismo bucle y mismas llamadas a g.rng (las huellas cambian porque cambian
+   * los destinos, no la secuencia del azar). Determinista: vale en el online (Precisa: los dos lados la calculan igual y copyGame la
+   * copia; Fluida: cada máquina decide solo los toques de su equipo y solo lee su memoria).
+   * rep: puntos menos por cada vez que la casilla sale en los 3 últimos remates (o saques); lane: menos al carril (diagonal/línea) si
+   * los 2 últimos remates fueron por él; rcv: menos a las casillas cuyo receptor más cercano recibió los 2 últimos saques; set (ai6.js):
+   * peso × set al atacante de la IA que recibió las 2 últimas colocaciones; tol: m de puntuación (≈ m de hueco) que la IA está dispuesta
+   * a ceder para variar (solo elige entre casillas casi tan buenas como la mejor). Calibrado con tools/variedadtest.js. */
+  var MEM = { rep: 1.2, lane: 0.8, rcv: 0.8, set: 0.6, tol: 0.6 };
+  var _ms = [], _mp = [], _mx = [], _my = [], _mn = 0; // (casillas puntuadas de la última openSpot con memoria)
+  /** Casilla de openSpot (i profundidad, j lateral) relativa al lado del equipo (no cambia con el cambio de campo). */
+  function cellKey(i, j, sd) { return i * 5 + (sd > 0 ? j : 4 - j); }
+  /** Casilla más cercana a (x, y) del campo rival del equipo de lado sd. */
+  function cellOf(g, sd, x, y) {
+    var cs = g.cs || 1, bi = 0, bj = 0, i;
+    for (i = 1; i < DEPTHS.length; i++) if (Math.abs(DEPTHS[i] * cs - Math.abs(x)) < Math.abs(DEPTHS[bi] * cs - Math.abs(x))) bi = i;
+    for (i = 1; i < LATS.length; i++) if (Math.abs(LATS[i] * cs - y) < Math.abs(LATS[bj] * cs - y)) bj = i;
+    return cellKey(bi, bj, sd);
+  }
+  function laneCode(hy, ty, cs) { var l = S.laneOf(hy, ty, cs); return l === 'diag' ? 1 : l === 'line' ? 2 : 0; }
+  function push3(a, v) { a[2] = a[1]; a[1] = a[0]; a[0] = v; }
+  function push2(a, v) { a[1] = a[0]; a[0] = v; }
+  /** IA variada: apunta el destino (x, y) del remate ('atk', atacante p) o del saque ('srv', sacador p) del equipo de p en g.aiMem. */
+  function remember(g, p, kind, x, y) {
+    var M = g.aiMem; if (!M) return;
+    var t = p.team, sd = side(t), cs = g.cs || 1;
+    if (kind === 'atk') { push3(M.atk[t], cellOf(g, sd, x, y)); push2(M.lane[t], laneCode(p.y, y, cs)); return; }
+    push3(M.srv[t], cellOf(g, sd, x, y));
+    var opp = g.teams[1 - t], q = null, m = 1e9;
+    for (var k = 0; k < opp.length; k++) { var d = Math.hypot(opp[k].x - x, opp[k].y - y); if (d < m) { m = d; q = opp[k]; } }
+    push2(M.rcv[t], q ? q.id : -1);
+  }
+  /** Elige la zona libre del campo rival (lejos de los defensores), con ruido según dificultad. mem (IA variada): 'atk' = remate,
+   *  'srv' = saque; resta puntos a lo repetido según g.aiMem (sin mem, lo de siempre). */
+  function openSpot(g, p, minDepth, out, atk, mem) {
     var sd = side(p.team), opp = g.teams[1 - p.team], pr = (p.prof || g.prof[p.team]), best = -1e9;
-    out = out || _t2;
+    out = out || _t2; _mn = 0;
     // remate (atk): con un bloqueador rival arriba, evitar las líneas que cruzan la red por sus manos.
     // Cuanto mejor la IA (menos aimNoise), mejor "lee" el bloqueo y remata por fuera de él.
     var blk = null, read = clamp(1 - pr.aimNoise / 4.5, 0.1, 1);
@@ -78,15 +111,18 @@
     // «Te tienen estudiado»: el rival remata más por su carril (el del informe). Solo suma a la puntuación: mismo bucle y mismo azar
     // (desde un ala; control determinista sobre lo que llevan en el partido, g.scout.rn: por debajo del % del informe empuja hacia su
     //  carril y por encima lo aparta, así el reparto real queda cerca del % sea cual sea su tendencia de base en cada formato)
+    var M = mem && g.aiMem, mc = M ? (mem === 'atk' ? M.atk[p.team] : M.srv[p.team]) : null;
+    var mL = M && mem === 'atk' && M.lane[p.team][0] && M.lane[p.team][0] === M.lane[p.team][1] ? M.lane[p.team][0] : 0;
+    var mR = M && mem === 'srv' && M.rcv[p.team][0] >= 0 && M.rcv[p.team][0] === M.rcv[p.team][1] ? M.rcv[p.team][0] : -1;
     var rivL = atk && g.scout && p.team === 1 && g.scout.riv && Math.abs(p.y) >= 1.2 * (g.cs || 1) ? g.scout.riv : '', rivB = rivL ? rivBonus(g.scout) : 0;
     for (var i = 0; i < DEPTHS.length; i++) {
       if (DEPTHS[i] < minDepth) continue;
       for (var j = 0; j < LATS.length; j++) {
-        var x = -sd * DEPTHS[i] * cs, y = LATS[j] * cs, m = 1e9;
+        var x = -sd * DEPTHS[i] * cs, y = LATS[j] * cs, m = 1e9, mq = null;
         for (var k = 0; k < opp.length; k++) {
           var q = opp[k], dd = Math.hypot(q.x - x, q.y - y);
           if (q.z > 0.1 && Math.abs(q.x) < 1.2) dd += 1.2; // el bloqueador en el aire no defiende
-          if (dd < m) m = dd;
+          if (dd < m) { m = dd; mq = q; }
         }
         // la IA fácil apunta más al centro (menos riesgo, menos peligro)
         var risk = (Math.abs(LATS[j]) > 3 ? 0.6 : 0) + (DEPTHS[i] > 7.5 ? 0.5 : 0);
@@ -97,8 +133,22 @@
           if (blk2) { var gapC = Math.abs(y0 - blk2.y); if (gapC < 0.9) sc -= 3 * read * (1 - gapC / 0.9); }
         }
         if (rivL && S.laneOf(p.y, y, cs) === rivL) sc += rivB;
+        if (mc) { // IA variada: la penalización de lo repetido se guarda aparte (abajo); determinista: no toca el azar
+          var ck = cellKey(i, j, sd), pen = 0;
+          for (var r = 0; r < 3; r++) if (mc[r] === ck) pen += MEM.rep;
+          if (mL && laneCode(p.y, y, cs) === mL) pen += MEM.lane;
+          if (mR >= 0 && mq && mq.id === mR) pen += MEM.rcv;
+          _ms[_mn] = sc; _mp[_mn] = pen; _mx[_mn] = x; _my[_mn] = y; _mn++;
+        }
         if (sc > best) { best = sc; out[0] = x; out[1] = y; }
       }
+    }
+    // IA variada: entre las casillas que puntúan como mucho MEM.tol por debajo de la mejor, la de menos repetición (con la mejor si
+    // no hay otra parecida): varía sin regalar el punto (Experto, que lee muy bien el hueco, sigue rematando al hueco)
+    if (mc && _mn) {
+      var bv = -1e9;
+      for (var c = 0; c < _mn; c++) if (_ms[c] >= best - MEM.tol && _ms[c] - _mp[c] > bv) { bv = _ms[c] - _mp[c]; out[0] = _mx[c]; out[1] = _my[c]; }
+      _mn = 0;
     }
     return out;
   }
@@ -107,10 +157,14 @@
   function serveTarget(g, sv) {
     if (g.drill) { var dt = drillServe(g, sv); if (dt) return dt; } // E6 (Entrenamiento)
     var pr = (sv.prof || g.prof[sv.team]), sd = side(sv.team), opp = g.teams[1 - sv.team];
-    if (g.rng() < (pr.seam != null ? pr.seam : 1)) return openSpot(g, sv, 4, _t2).slice();
-    var q = opp[Math.floor(g.rng() * opp.length)], n = pr.srvNoise != null ? pr.srvNoise : 1;
+    if (g.rng() < (pr.seam != null ? pr.seam : 1)) { var st = openSpot(g, sv, 4, _t2, false, 'srv').slice(); remember(g, sv, 'srv', st[0], st[1]); return st; }
+    var qi = Math.floor(g.rng() * opp.length), q = opp[qi], n = pr.srvNoise != null ? pr.srvNoise : 1;
+    // IA variada: no a por el mismo receptor 3 veces seguidas (el siguiente de la lista; sin azar nuevo)
+    var R = g.aiMem && g.aiMem.rcv[sv.team];
+    if (R && opp.length > 1 && R[0] >= 0 && R[0] === R[1] && q.id === R[0]) q = opp[(qi + 1) % opp.length];
     var cs = g.cs || 1, depth = clamp(Math.abs(q.x) + S._rnd(g, 1.4), 4.2 * cs, 8.2 * cs);
     var y = clamp(q.y + S._rnd(g, n), -3.9 * cs, 3.9 * cs);
+    remember(g, sv, 'srv', -sd * depth, y);
     return [-sd * depth, y];
   }
 
@@ -540,14 +594,16 @@
       for (var k = 0; k < opp2.length; k++) if (opp2[k].z > 0.3 && Math.abs(opp2[k].x) < 1.2 && Math.abs(opp2[k].y - p.y) < 1.2) blockUp = true;
       if (blockUp && g.rng() < pr.tip) { shot = 'tip'; tgt = [-sd * (1.3 + g.rng() * 1.4), clamp(-p.y * 0.6 + S._rnd(g, 1.5), -3.6 * (g.cs || 1), 3.6 * (g.cs || 1))]; } // playa: pokey (sim)
       // E1 (g.mastery): golpe colocado por encima del bloqueo, al fondo libre (decisión con S.hk: no gasta g.rng)
-      else if (blockUp && g.mastery && S.hk(g, 0xE12) < (pr.roll || 0)) { shot = 'roll'; tgt = openSpot(g, p, 6.5, [0, 0], true); }
-      else tgt = openSpot(g, p, 2.2, [0, 0], true);
+      else if (blockUp && g.mastery && S.hk(g, 0xE12) < (pr.roll || 0)) { shot = 'roll'; tgt = openSpot(g, p, 6.5, [0, 0], true, 'atk'); }
+      else tgt = openSpot(g, p, 2.2, [0, 0], true, 'atk');
+      if (shot !== 'tip') remember(g, p, 'atk', tgt[0], tgt[1]); // IA variada
       if (g.drill && t === 0 && g.drill.kind === 'atk' && g.drill.target && shot !== 'tip') { tgt = [g.drill.target.x, g.drill.target.y]; shot = ''; } // E6 (autopilot): a la diana
     } else if (count === 3) tgt = openSpot(g, p, 4, [0, 0]);
     S._hit(g, p, null, -w.t, shot, tgt);
   }
 
   VB.AI = { aim: aim, computeJob: computeJob, pos: pos, update: update, serveTarget: serveTarget, openSpot: openSpot, timeTo: timeTo,
+    remember: remember, MEM: MEM, // IA variada (1.22.0): memoria corta de remate y saque (g.aiMem)
     leaving: leaving, // (E2: VB.AI.leaving(g, team))
     // «Te tienen estudiado» (sin g.scout, 0)
     studyShift: studyShift, studyLean: studyLean, studyLean6: studyLean6, BLK_SHIFT: BLK_SHIFT, DEF_LEAN: DEF_LEAN, DEF_LEAN6: DEF_LEAN6, RIV_B: RIV_B };

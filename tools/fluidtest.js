@@ -341,7 +341,7 @@ if (ONLY < 0) {
   }
   // corte de 15 s: a los 10 s IA (el anfitrión), al volver la red rs y acuerdo
   {
-    const R = run({ rtt: 60, jit: 10, loss: 0, venue: 'beach', seed: 4, points: 11, cut: { at: 15, ms: 15000, ai: 'host' } });
+    const R = run({ rtt: 60, jit: 10, loss: 0, venue: 'beach', seed: 4, points: 11, cut: { at: 15, ms: 15000, ai: 'host' }, secs: 1800 }); // (secs: con la IA variada, 1.22.0, este partido se alarga en la ventaja hasta 19-21, ~990 s: más que los 900 por defecto)
     const S = summary(R);
     check('corte de 15 s: sin excepciones', !S.err, S.err || undefined);
     if (!S.err) {
