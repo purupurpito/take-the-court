@@ -771,10 +771,21 @@
     net.want = false; net.rivalWants = false; net.wants = {}; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
     net.stSnap = null; net.stRs = 0; net.hx = 0;   // (auditoría: copia de la hoja para rehacerla tras una vuelta; cruceta del HUD)
     net.overAt = 0; net.ps = null; net.bs = null; net.fPrev = 0;   // (L2: final sin evento y suavizado de la vista de la sesión anterior)
+    net.hostAway = 0;   // (lane A: aviso «ha salido un momento de la app» de quien creó la sala)
     if (net.away0) { s.setAway(true); s.maxCatch = 150; }
     return s;
   }
   ctx.actions.netVsAI = function () { if (net && net.sess.vsAI()) call('Audio', 'ui', 'click'); };
+  /** Online de varios (lane A): quien creó la sala se ha ido —recargó o cerró: en el de varios no vuelve (su partida es la de verdad)—.
+   *  El invitado acaba ya con 'hostGone' (no cuenta en el récord) en vez de esperar 60 s. Lo llaman su aviso ({t:'hostLeft'}) y el
+   *  lobby (NetLobby: enlace caído y la sala ya no existe). Solo cambia el estado de la sesión, como su propio 'hostGone'. */
+  function netHostLeft() {
+    var s = net && net.sess; if (!s || !net.multi || net.seat <= 0 || s.status === 'ended' || s.status === 'over') return;
+    s.status = 'ended'; s.valid = false; s.goneFlag = true; s.result = { why: 'hostGone', win: false, left: true };
+    if (net.r) { net.r.status = 'ended'; net.r.result = s.result; net.r.valid = false; }
+    netSettle(); netHud(net.r);
+  }
+  ctx.actions.netHostLeft = function () { netHostLeft(); };
   // (auditoría: abandonar en pleno partido no salta al menú sin más: el HUD enseña «Has abandonado [Volver al menú]», como al rival;
   //  ese botón vuelve aquí con la sesión ya 'ended' y entonces sí va al menú)
   ctx.actions.netQuit = function () {
@@ -812,6 +823,9 @@
     for (var i = 0; i < list.length; i++) {
       var m = list[i]; if (!m || typeof m !== 'object') continue;
       if (m.t === 'again') { if (net.multi) netWantsMark(m.s); else net.rivalWants = true; netRematchGo(); }
+      // (lane A, online de varios: quien creó la sala sale un momento de la app —pestaña oculta— o se va del todo —recarga o cierra—)
+      else if (m.t === 'hostAway' && net.multi && net.seat > 0) net.hostAway = m.a ? performance.now() : 0;
+      else if (m.t === 'hostLeft' && net.multi && net.seat > 0) netHostLeft();
       else if (m.t === 'go' && net.slot !== 0 && net.want && (m.e | 0) === net.epoch + 1) { netSession(null, net.epoch + 1); return; }   // (misma conexión: net.model)
     }
   }
@@ -917,6 +931,15 @@
         present: true, stats: true, djump: true, format: fmt, humans: simH };
       if (coop) opts.coop = true;
       if (!opts.mapId && VB.Venues && VB.Venues.list) { var vl = null; try { vl = VB.Venues.list(kind); } catch (e) { vl = null; } if (vl && vl.length) { var mp = vl[(opts.seed >>> 0) % vl.length]; if (isMapId(mp)) opts.mapId = mp; } }
+    }
+    // (lane A, tools/netdrive.js NDRELOAD: &back=1 = esta página de invitado se ha recargado en pleno partido: sin «pre» —el anfitrión ya
+    //  juega—, sesión nueva sin opciones al momento, como la vuelta del lobby; en el modelo anfitrión, antes, el adiós de la sesión vieja)
+    if (Q.back === '1' && slot > 0) {
+      if (model === 'host') links[0].send('ctl', JSON.stringify({ k: 'bye', why: 'reload' }));
+      ctx.actions.startOnline({ humans: humans, seat: slot, links: links, opts: null, name: humans[slot].name, model: model, format: fmt, coop: coop });
+      if (net && net.sess) net.sess.back = true;
+      if (Q.bot === '1') ctx.netBot = VB.Net.bot(slot, +Q.botseed || (slot + 1), Q.botprof === 'flojo' ? 'flojo' : 'bueno', { team: humans[slot].team });
+      return;
     }
     var got = [], early = links.map(function () { return []; }), sent = -1e9, t0 = performance.now(), pre = JSON.stringify({ k: 'pre', name: humans[slot].name, model: model });
     var tm = setInterval(function () {
@@ -1145,9 +1168,11 @@
   /** Precisa-N (online de varios, P8): en la estrella, lo de otro invitado llega por dos tramos y la predicción se corrige con rollbacks
    *  de 10-24 tics: el balón PINTADO saltaba hasta 1,5 m (netdrive 2v2 × 4 a 80 ms: 5-12 saltos por invitado en 90 s). Como el balón
    *  pintado del modelo host (nethost.js _blend): si el balón de la vista salta respecto a lo esperado (seguir con la velocidad de antes
-   *  o la de ahora) entre 0,25 y 3 m, la diferencia se guarda y se deshace en BALL_TAU = 80 ms. Solo la vista (net.view, que el espejo
+   *  o la de ahora) entre 0,25 y BS_TP m, la diferencia se guarda y se deshace en BALL_TAU = 80 ms. Solo la vista (net.view, que el espejo
    *  rehace cada frame): la partida no cambia. El 1 contra 1 no pasa por aquí. net.bj = saltos que quedan (> 0,3 m), para netdrive. */
-  var BS_V = 15, BS_TP = 4;
+  // (estrés, 22-nov-2026: con el tope de 60 tics, tras un corte de 300 ms el balón predicho puede ir 4-7 m fuera —un toque que no se
+  //  sabía—; BS_TP 4 → 8, como BLEND_MAX del modelo host: se reparte a ≤ BS_V en vez de teletransportarse)
+  var BS_V = 15, BS_TP = 8;
   function netBallSmooth(v, dt) {
     var b = v.ball, S = net.bs || (net.bs = { o: [0, 0, 0], La: new Float64Array(6), ok: false }), o = S.o, L = S.ok ? S.La : null;   // (sin reservar nada por frame)
     if (!b || v.mode !== 'rally' || b.held || !(dt > 0) || dt > 0.1) { S.ok = false; o[0] = o[1] = o[2] = 0; return; }
@@ -1176,14 +1201,17 @@
    *  en 'rally' y 'serve' y sin cambio de modo (los cambios de modo recolocan a todos a propósito); el desfase sigue deshaciéndose
    *  aunque cambie el modo. No se toca a tu jugador (salvo con tu plaza en la IA, r.meAI) ni al que tiene el balón en la mano (el
    *  balón va con sus manos). Solo la vista, que el espejo rehace cada frame: la partida no cambia. Sin reservar nada por frame. */
-  var PS_MS0 = 80, PS_MS1 = 150, PS_MIN = 0.08, PS_TP = 2, PS_MAX = 16;
+  // (estrés, 22-nov-2026: con el tope de predicción de Precisa-N a 60 tics, un corte de 300 ms de un enlace deja al jugador de esa plaza
+  //  predicho con su última entrada hasta 0,5 s y al llegar lo de verdad se corrige 2-4 m; con PS_TP = 2 eso era un teletransporte. Ahora
+  //  hasta PS_TP = 4,5 m se reparte, y lo de más de 1 m en ol × 150 ms hasta PS_MS2 = 300 ms: ≤ ~0,25 m por frame a 60 fps)
+  var PS_MS0 = 80, PS_MS1 = 150, PS_MS2 = 300, PS_MIN = 0.08, PS_TP = 4.5, PS_MAX = 16, PS_SKIP = 0.5;
   /** Modelo host, invitado (P8): ¿va este jugador con el reloj del balón pintado (L1, nethost _guestPoses: el que va a tocar)? */
   function netHostBallClock(p) {
     var s = net.sess; if (!s) return false;
     if (p.id === s._capBind) return true;
     var pd = s.pDel; return !!(pd && pd[p.id] > 0.01);
   }
-  /** skip(p) (opcional): a ese jugador no se le añade desfase nuevo (el que llevara se sigue deshaciendo). */
+  /** skip(p) (opcional): a ese jugador no se le añade desfase nuevo salvo un salto de más de PS_SKIP (el que llevara se sigue deshaciendo). */
   function netPlayersSmooth(v, dt, skip) {
     var ps = v.players, S = net.ps, i, k;
     if (!ps) return;
@@ -1195,18 +1223,22 @@
       var p = ps[i], i3 = i * 3, i6 = i * 6, z = p.z || 0, vx = p.vx || 0, vy = p.vy || 0, vz = p.vz || 0;
       if (p === me || p === held) { o[i3] = o[i3 + 1] = o[i3 + 2] = 0; R[i] = 0; }
       else {
-        if (look && !(skip && skip(p))) {
+        if (look) {
+          // (skip: el que va con el reloj del balón no recibe desfase por lo pequeño —su mano y el balón llegan a la vez—, pero un salto de
+          //  más de PS_SKIP sí se reparte: estrés, netdrive 6v6 × 12 a 150 ms con cortes de 300 ms, TODOS los saltos pintados > 0,5 m que
+          //  quedaban en los invitados (4-9 por página en 60 s, hasta 1,4 m) eran de ese jugador)
+          var pmin = skip && skip(p) ? PS_SKIP : PS_MIN;
           // salto = esperada − (cruda + desfase que ya llevaba)
           var bx = p.x + o[i3], by = p.y + o[i3 + 1], bz = z + o[i3 + 2];
           var jx = L[i6] + L[i6 + 3] * dt - bx, jy = L[i6 + 1] + L[i6 + 4] * dt - by, jz = L[i6 + 2] + L[i6 + 5] * dt - bz, j = jx * jx + jy * jy + jz * jz;
           var kx = L[i6] + vx * dt - bx, ky = L[i6 + 1] + vy * dt - by, kz = L[i6 + 2] + vz * dt - bz, kk = kx * kx + ky * ky + kz * kz;
           if (kk < j) { j = kk; jx = kx; jy = ky; jz = kz; }
-          if (j > PS_MIN * PS_MIN) {
+          if (j > pmin * pmin) {
             o[i3] += jx; o[i3 + 1] += jy; o[i3 + 2] += jz;
             var ol = Math.sqrt(o[i3] * o[i3] + o[i3 + 1] * o[i3 + 1] + o[i3 + 2] * o[i3 + 2]);
             // (m por ms: llega a 0 en ol × 150 ms entre PS_MS0 y PS_MS1: hasta 1 m, como mucho ~0,11 m más por frame a 60 fps; lo
             //  pequeño se acaba antes y lo de más de 1 m tarda PS_MS1)
-            if (ol > PS_TP) { o[i3] = o[i3 + 1] = o[i3 + 2] = 0; R[i] = 0; } else R[i] = ol / Math.min(PS_MS1, Math.max(PS_MS0, ol * 150));
+            if (ol > PS_TP) { o[i3] = o[i3 + 1] = o[i3 + 2] = 0; R[i] = 0; } else R[i] = ol / Math.min(ol > 1 ? PS_MS2 : PS_MS1, Math.max(PS_MS0, ol * 150));
           }
         }
         // el desfase baja en línea recta (R[i] m/ms) hasta 0
@@ -1232,6 +1264,10 @@
   var netTk = null;
   function netAway(hidden) {
     if (!net) return;
+    // (lane A: el anfitrión de varios que sale un momento de la app lo dice; sus invitados esperan con un aviso claro, no «Esperando a…»)
+    if (net.multi && net.seat === 0 && !!hidden !== !!net.away0 && net.sess && net.sess.sendApp && (net.sess.status === 'playing' || net.sess.status === 'waiting' || net.sess.status === 'starting')) {
+      try { net.sess.sendApp({ t: 'hostAway', a: hidden ? 1 : 0 }); } catch (e) { }
+    }
     net.away0 = !!hidden;
     try { net.sess.setAway(!!hidden); net.sess.maxCatch = hidden ? 150 : 0; } catch (e) { }
     netTicker(true);   // (encendido todo el partido desde el 17-nov-2026: ver startOnline)
@@ -1255,6 +1291,8 @@
     var inp = !document.hidden && net.lastMove && ctx.state === 'playing' ? { move: net.lastMove } : null;
     try { r = s.advance(t, inp); } catch (e) { reportError('Net.advance (oculta)', e); return; }
     net.r = r; net.bgTicks = (net.bgTicks | 0) + 1;
+    // (online de varios, invitado con la pestaña oculta: la marca de la vuelta lleva la hora de ahora, por si el móvil la descarta luego)
+    if (net.multi && net.seat > 0 && document.hidden && t - (net.bkAt || 0) > 3000) { net.bkAt = t; try { if (VB.NetLobby && VB.NetLobby.backAlive) VB.NetLobby.backAlive(); } catch (e) { } }
     netConfirmed(s, r.confirmed);
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return; }
     netRecTick(r);
@@ -1377,25 +1415,28 @@
   /** Textos del HUD del online de varios → [msg (HTML con los nombres escapados), botones]. Las plazas que espera la sesión: r.waitFor. */
   function netHudMulti(r, s) {
     var msg = '', btn = '', v = net.view, k, quit = '<button data-n="quit">Salir</button>';
-    if (!r || r.status === 'connecting') { msg = s.back ? 'Volviendo al partido…' : net.epoch > 0 ? 'Empezando la revancha…' : s.host ? 'Esperando a que entren todos…' : 'Conectando…'; btn = quit; }
+    if (!r || r.status === 'connecting') { msg = s.back ? 'Volviendo a la partida…' : net.epoch > 0 ? 'Empezando la revancha…' : s.host ? 'Esperando a que entren todos…' : 'Conectando…'; btn = quit; }
     else if (r.status === 'starting') { msg = netTeamsHtml() + ' | empieza en ' + (r.startIn / 1000).toFixed(1).replace('.', ',') + ' s'; btn = quit; }
     else if (r.status === 'ended') {
       var w = r.result && r.result.why;
       msg = w === 'quit' ? 'Has abandonado' : w === 'version' ? (VB.Update ? VB.Update.versionText(r.result.rv) : 'Alguien tiene otra versión del juego: reiniciad todos') :
         w === 'rivalQuit' || w === 'rivalGone' ? 'Los rivales se han ido: ganáis' :
-        w === 'hostGone' ? (net.seat > 0 ? '<b>' + netEsc(netShort(netSeatName(0))) + '</b> no ha vuelto: el partido no cuenta' : 'El partido no cuenta') :
+        w === 'hostGone' ? (net.seat > 0 ? '<b>' + netEsc(netShort(netSeatName(0))) + '</b>' + (r.result.left ? ' se ha ido' : ' no ha vuelto') + ': el partido no cuenta' : 'El partido no cuenta') :
         w === 'lost' ? 'Se ha perdido la conexión con la sala: el partido no cuenta' :
         w === 'late' ? 'Has tardado demasiado en volver: cuenta como abandono' : w === 'mismatch' ? 'La sala no coincide con lo anunciado: no hay partido' :
         w === 'noShow' ? 'Faltan jugadores: no hay partido' : 'Partido terminado';
       btn = '<button data-n="menu">Volver al menú</button>';
     } else if (r.status === 'waiting') {
       msg = 'Esperando a: ' + (r.waitFor && r.waitFor.length ? netNamesHtml(r.waitFor) : 'los demás') + '…';
+      // (lane A: quien creó la sala avisó de que salía un momento de la app —móvil—: se le espera con su nombre, hasta los 60 s de siempre)
+      if (net.hostAway && net.seat > 0) msg = '<b>' + netEsc(netShort(netSeatName(0))) + '</b> ha salido un momento de la app. Esperando a que vuelva…';
       // (como en el 1 contra 1: la cuenta atrás y lo que pasa si no vuelve; seguir con la IA tampoco cuenta)
       if (r.canAI) {
         if (r.goneIn > 0) msg += ' Si no vuelve en ' + Math.ceil(r.goneIn / 1000) + ' s, el partido no cuenta';
         btn = '<button data-n="ai">Seguir con la IA (no cuenta)</button>' + netQuitBtn();
       }
     } else {
+      if (net.hostAway && performance.now() - net.hostAway > 3000) net.hostAway = 0;   // (ya se juega: el anfitrión volvió aunque su aviso se perdiera)
       var pg = netPings(r), amb = function (ms) { return ms > 150 ? 'var(--amber,#ffb238)' : 'inherit'; };
       msg = netTeamsHtml() + ' | <span style="color:' + amb(pg[0]) + '">' + pg[0] + ' ms</span>' +
         (pg[1] > pg[0] ? ' <span style="opacity:.7;font-weight:500">(peor <span style="color:' + amb(pg[1]) + '">' + pg[1] + ' ms</span>)</span>' : '') + (r.unstable ? ' | Conexión inestable' : '');

@@ -1366,6 +1366,9 @@ Los móviles con 1.15.0 o antes no tienen este código: el aviso les sale a part
 
 ## Online de varios (1.22.0, sprint online-multi, 21/22-nov-2026)
 
+Versión **1.22.0**. La rama investigacion también estaba numerada 1.22.0 sin publicar: tiene que subir a 1.23.0, porque el online
+decide si dos versiones juegan juntas solo por el número (salas: `v = PROTO|VB.VERSION`; sesiones: el saludo compara `VB.VERSION`).
+
 Diseño: notes/online-multi-brief.md (§3 la red, §4 salas, §5 interfaz, §6 coop). Peticiones entre paquetes y su estado:
 notes/online-multi-requests.md. Reglas de Ferran: cada persona lleva UN jugador, la IA llena los sitios vacíos, el que tenga mejor
 ping crea la sala, ninguna carga de servidor durante el partido, las trampas no preocupan, y la meta es «casi sin lag».
@@ -1394,6 +1397,7 @@ na×u32 ack, nb×(plaza, u32 primer tic, u32 tic de esa plaza, n, n×5 B)]`; con
 juega con una Session 1.21.0). 'ctl' nuevos: `hello{seat, n}`, `seat{s, ai, gone, why}`, `pings{p}`, `delay{d}`, `resync{s, rings,
 spect}`, `app{d, s}`. Bit 7 de los botones = «¡Pídela!» (switchPlayer). `result.win` por EQUIPO; un compañero que se va lo lleva la
 IA y el partido sigue; 'rivalQuit' / 'rivalGone' = se ha ido TODO el equipo rival. Sin vuelta del anfitrión que recarga.
+Tope de predicción `MAXPRED_N` 60 tics (el 1v1 sigue en 24) y ritmo de envío `SEND_HZ` 60: ver «Robustez del de varios» abajo.
 
 ### Modelo anfitrión del 6v6 (js/nethost.js)
 El anfitrión corre la partida de verdad (IA, balón entre toques humanos, rotación, líbero, marcador, árbitro); cada invitado simula
@@ -1439,7 +1443,7 @@ espera con dos columnas de sitios (dorsal, puesto, «Tú», ping, listo): tocar 
 cambia los equipos de lado; «Empezar» cuando todos los conectados están sentados y listos. El anfitrión hace las ofertas a todos en
 paralelo; con el enlace abierto todo va por 'ctl' (`lb-hi`, `lb`, `lb-sit`, `lb-rdy`, `lb-ping`/`lb-pong`, `lb-out`, `lb-bye`,
 `lb-go`, piezas `lbk` de 4000 caracteres, `cx` de la coop) y el invitado deja de leer Firestore. Quien no conecta en `CONNECT_MS` se
-suelta y su sitio lo lleva la IA. Sin vuelta tras recargar en el de varios (la IA lleva esa plaza). Pruebas: `node tools/lobbytest.js`.
+suelta y su sitio lo lleva la IA. Vuelta del invitado tras recargar: «Robustez del de varios» abajo. Pruebas: `node tools/lobbytest.js`.
 
 ### Carrera cooperativa (js/career-coop.js, VB.CareerCoop)
 Extensión de la Carrera (id 'coop'): la Carrera es del ANFITRIÓN y vive solo en su guardado; el invitado la ve desde un almacén en
@@ -1533,5 +1537,42 @@ Arreglos de lag de P8:
      pintados de los demás en los invitados: p99 0,16 → 0,09 m.
    Medidas y tabla: notes/online-multi-requests.md «P8: arreglos de lag tras la medida final».
 
-Pendiente: prueba en un teléfono de verdad (anfitrión de 6v6 en móvil; rollback de Precisa-N en móvil); TURN (sin él, una plaza que no
-conecta la lleva la IA); vuelta tras recargar en el de varios; Carrera de pista en cooperativo.
+### Robustez del de varios (revisión, lanes A y B, STRESS; 22-nov-2026)
+Detalle, medidas y antes/después: notes/online-multi-requests.md («Revisión», «Lane A», «Lane B», «STRESS», «Revisión 2»).
+- **Vuelta del INVITADO tras recargar** (2v2 Precisa-N, 6v6 anfitrión, Carrera coop; js/netlobby.js «VUELTA TRAS RECARGAR EN EL ONLINE
+  DE VARIOS»). Marca BACK en sessionStorage (`multi: 1`; sin SDP ni direcciones) en el pagehide y al ocultarse la página; con la página
+  oculta, main.js (`netBgTick`, el Worker que no se frena) llama a `VB.NetLobby.backAlive()` cada ~3 s y la marca se reapunta con la hora
+  de ahora (si el móvil la descarta tarde, la marca no está caducada); al volver a verse se borra. Sin adiós ni plaza fuera. Al cargar:
+  hoja «Volviendo a la partida…» → la siguiente oferta del anfitrión → con el enlace abierto, sesión nueva sin opciones en su plaza.
+  Plazos: 55 s (`MX_BACK_MS`, Precisa-N y coop), 120 s (`MX_BACK_HOST_MS`, modelo anfitrión); espera del enlace 70 s (`MX_BACK_WAIT`).
+  **Relink del anfitrión** (`mxRelinkHost`): oferta a los 0,6 s, cada 10 s el primer minuto y luego cada 20 s, mientras el invitado aún
+  pueda volver (plazo + 15 s de carga, `RELINK_PAD`; la hora de la primera caída queda en el par). Antes: 7 intentos (~60 s), y en el 6v6
+  una vuelta entre los ~70 y los 120 s no conectaba nunca (lobbytest (h): antes FALLO, ahora vuelve a los 82 s).
+- **Anfitrión**: no vuelve (nadie más tiene la partida entera). Al irse manda `{t:'hostLeft'}` y los invitados acaban con 'hostGone'
+  (`result.left`); respaldo `mxHostChk` (sala borrada → lo mismo). Pestaña oculta: `{t:'hostAway', a}` → «X ha salido un momento…».
+- **Sesiones**: Precisa-N readmite con saludo + ready (IA + resync con foto), también por otro enlace (`addLink`); nethost readmite con
+  `{k:'bye', why:'reload'}` + `hello`, `addLink`, y un invitado que calla más de GONE ya puede volver (`C.GONE` = `C.HOST_GONE` = 60 s,
+  `C.REHELLO` 1 s, 'ctl' `back{s}`, `result.why 'lost'` si la parada fue SU página).
+- **Ritmo de envío de Precisa-N** (`VB.Net.SEND_HZ` 60): con pantallas de más de 60 Hz, como mucho 60 paquetes/s por enlace (crédito;
+  un botón sale en el acto, un cambio del stick > 5 % puede adelantarse un frame). 126 fps: 116-118 → 58-59 paquetes/s, subida del
+  anfitrión 37 → 19 KB/s por enlace. `o.pace === false` = uno por frame (pruebas); `stats.paced`. nethost ya iba por tics.
+- **Tope de predicción** `VB.Net.MAXPRED_N` 60 (24 → 30 en lane B, 30 → 60 en STRESS): con cortes de 300 ms o 250 ms de RTT ya no se
+  para; a cambio un rollback de hasta 60 tics una vez (~5 ms con CPU ×4). `o.maxPred`, `o.delayK` para pruebas.
+- **Conexión lenta → espectador** (SessionN, anfitrión, más de 2 plazas): `blockAcc` (media que se olvida en ~10 s, `SLOW_TAU_MS`) suma
+  el tiempo que todos esperan a esa plaza, el que se va más de `PRED_SOFT` (30) tics por detrás de ella y, si es la más atrasada, lo que
+  CRECE el retraso de la partida contra el reloj por encima de 1 tic; a los `SLOW_MS` (2,5 s) pasa a la IA y a espectador (vuelve a los
+  20 s, 40, 80… hasta 2 min). Revisión 2: antes esa última parte contaba cada frame con un tic de menos que el reloj sin restar los de
+  uno más, y también el frenado de la ventaja de frames: con un anfitrión a 240 Hz y un invitado a 300 ms, 2,5 s en 90 s y la plaza a la
+  IA «por conexión lenta» sin que nadie esperara. Ahora 0 a 60/165/240 Hz (stresstest asym165 / asym240 / r250h240: IA 0) y net4test (m)
+  (600 ms, 50 % de pérdida) sigue pasando a espectador y volviendo.
+- **Telemetría «prefail»** (js/netlog.js `VB.NetLog.prefail`, `linkDiag`, `_pf`): un enlace del lobby de varios / coop que no llega a
+  abrirse antes del partido deja UN documento `netlogs/{uid}_pf…` (kind 'prefail', rol, formato, cap, modo, fase, why, ms, estados ICE,
+  tipos de candidato `srflx/udp` sin direcciones, relay, env). Uno por sala, 3 por página como mucho; nunca jugando ni con el emulador.
+  El 1v1 no lo lleva.
+- Pruebas: `node tools/stresstest.js [--models precisaN,host6,coop] [--nets r60,r150,r250,burst,asym,cpu4,burstcpu,asym165,asym240,
+  r250h240] [--secs 420]` (banco de medida, sin aprobado), net4test `--lane [--maxpred]`, (n), (o), (m); hosttest (e), (f); lobbytest
+  (g), (h); netdrive `NDRELOAD` / `NDRELOADAT` / `NDHOST=away|reload` / `NDJIT` / `NDLOSS` / `NDBURST`; `&back=1` de startNetTestN.
+
+Pendiente: prueba en teléfonos de verdad (anfitrión de 6v6 en móvil; rollback de Precisa-N en móvil; la vuelta tras recargar con el
+móvil matando la pestaña) y en redes de verdad (4G/5G, wifi de casa con NAT, redes de empresa); TURN (sin él, una plaza que no conecta
+la lleva la IA); migración del anfitrión (si se va, el partido acaba y no cuenta); Carrera de pista en cooperativo.

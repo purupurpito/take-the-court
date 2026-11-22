@@ -487,3 +487,236 @@ Para P8 (docs: CONTRACT.md y notes/net.md):
 - netlobby: COOP_DOWN_MS y la renegociación de la coop entre partidos; sondeo con lectura en vuelo y orden; mxCntW.
 - career-coop: `noP2()`, mensaje `rdy0`, ss2 en `c.coop.old[uid]`.
 - Dueño de js/profile.js: la guarda de careers() es mía (1 línea y un comentario); si preferís otra forma, decídmelo.
+
+## Lane A (vuelta tras recargar en el de varios, telemetría «prefail», Beta del 6v6; 22-nov-2026)
+
+Sin git, sin push, sin despliegue. Ficheros: js/netlobby.js (bloque «VUELTA TRAS RECARGAR EN EL ONLINE DE VARIOS», ganchos en pagehide /
+visibilitychange / backTry / mxGuestLinkState / mxRelease / mxEnd, pegatina «Beta» y consejo del 6v6), js/main.js (sección ONLINE:
+netApp `hostAway` / `hostLeft`, `netHostLeft` + `ctx.actions.netHostLeft`, netAway del anfitrión, textos de netHudMulti, `&back=1` en
+startNetTestN), js/netlog.js (`prefail`, `linkDiag`), tools/lobbytest.js (sección g y comprobaciones de prefail en b) y tools/netdrive.js
+(NDRELOAD en --multi y --coop, NDHOST=away|reload). net.js, nethost.js, netrtc.js, sim y reglas: SIN tocar (la readmisión del modelo
+anfitrión usa su propio `bye` + `hello`). Las 4 huellas idénticas; 1 contra 1 sin cambios (netdrive 1v1 Precisa 8 ok, Fluida 9 ok,
+--rtc 27 ok con las dos recargas de la fase 6).
+
+1. **Vuelta del invitado** (2v2 Precisa-N, 6v6 anfitrión, Carrera coop): marca BACK (sessionStorage, `multi: 1`) en el pagehide y al
+   ocultarse la página (el móvil puede matarla sin pagehide; al volver a verse se borra). Sin adiós ni plaza fuera. Al cargar: hoja
+   «Volviendo a la partida…» con «Cancelar» (la #olCoop), motor de invitado ya empezado que contesta la siguiente oferta del relink
+   del anfitrión y, con el enlace ABIERTO, sesión nueva sin opciones en su plaza (HUD «Volviendo a la partida…» con «Salir» hasta la
+   foto). Modelo anfitrión: antes del saludo, `{k:'bye', why:'reload'}` de la sesión vieja → el `hello` la readmite (foto tele, `back`).
+   Plazos: 55 s (Precisa-N y coop: el anfitrión da la plaza por ida a los 60 s), 120 s en el modelo anfitrión; espera del enlace 70 s.
+   Sala desaparecida → «X ha cerrado la sala: el partido no cuenta» y la marca del récord se cierra como «no cuenta». Coop: vuelve al
+   PARTIDO (net.coopCareer); su Carrera en memoria no vuelve y al salir de la hoja su `lb-bye` cierra la coop del anfitrión.
+2. **Anfitrión**: sin vuelta en el de varios (nadie más tiene la partida entera). Su pagehide manda `{t:'hostLeft'}` por la sesión y
+   los invitados acaban YA con 'hostGone' («X se ha ido: el partido no cuenta»); respaldo: invitado con el enlace caído mira la sala cada
+   5 s y, si ya no existe, lo mismo. Pestaña oculta (móvil): `{t:'hostAway', a}` → «X ha salido un momento de la app. Esperando a que
+   vuelva…» (y los 60 s de siempre).
+3. **Telemetría prefail**: enlace del lobby de varios / coop que no llega a abrirse antes del partido → UN `netlogs/{uid}_pf…` (mismas
+   reglas) con kind 'prefail', rol, fmt, cap, modo, fase, why, ms, iceState/connState/gathering/signaling, cand {loc, rem} (solo TIPO y
+   transporte, «srflx/udp»), relay, env. Uno por sala y como mucho 3 por página; nunca con partido en marcha ni contra el emulador.
+   El 1 contra 1 no lo lleva (regla «1v1 igual»: sería una línea en connFail).
+4. **Lobby**: pegatina «Beta» (sp-chip dorada girada, la del botón Online) en los tickets de 6 contra 6 y junto a «Formato» con el 6 contra
+   6 elegido (aria «beta»). Consejo «Mejor desde un ordenador o con wifi.»: nota de «Crear sala» en PC y aviso al abrir la sala de 6v6
+   (en el móvil la nota de «Crear sala» no se ve).
+
+Medidas (antes → después):
+| caso | antes | después |
+|---|---|---|
+| invitado recarga, 2v2 Precisa-N (netdrive --multi 4, BcLink) | la IA el resto del partido (a los 60 s, ida) | jugando a los 2,3 s, plaza devuelta a los 3,0 s, huellas iguales |
+| ídem 6v6 modelo anfitrión | la página nueva no podía volver | 1,8 s / 2,2 s, mismos puntos |
+| ídem coop (BcLink) | — | 2,4 s / 5,1 s |
+| ídem por el lobby + WebRTC (NDRTC=1), 2v2 / 6v6 | — | hoja a 1,4 s, jugando a 3,7 / 3,4 s, plaza a 4,3 / 4,4 s |
+| Carrera coop de punta a punta (--coop) | — | jugando a 3,7 s, plaza a 12 s; jornada y p2 acreditados; coop cerrada al salir |
+| anfitrión recarga (NDRTC=1, 2v2 y 6v6) | invitados 60 s en «Esperando…» y «no ha vuelto» | acaban a los 270 ms: «X se ha ido: el partido no cuenta» |
+| anfitrión congelado 15 s (NDHOST=away) | «Esperando a: Anfi…» | «Anfi ha salido un momento de la app…»; todos siguen al volver |
+| lecturas de Firestore (roomtest «ciclo de vida») | 110/39 · 74/28 · 138/45 · 60/22 | iguales |
+| lobbytest | 65 | 87 comprobaciones |
+| mobaudit --area online | — | igual que la base (0 recortes / 0 objetivos < 44 / letra ≥ 12); +1 texto < 14 px en create-6v6 (la pegatina, 12 px). Siguen los de antes: aviso sobre un ticket (online-aviso) y «Jugar» de debajo (online-coop) |
+
+Pendiente / para decidir:
+- Vuelta del ANFITRIÓN que recarga en el de varios: haría falta que una sesión adopte la partida de un invitado (net.js SessionN y
+  nethost.js; fuera de esta lane). Hoy acaba limpio y no cuenta.
+- Coop: tras la vuelta, el invitado no recupera la vista de la Carrera (vuelve al partido; luego al menú).
+- netdrive NDRELOAD probado con 4 páginas (no con 12) y nada en un teléfono de verdad; mxHostChk (respaldo sin aviso) sin prueba en Chrome.
+- sessionStorage = misma pestaña: si el navegador descarta la pestaña del todo (pestaña nueva), no hay vuelta.
+
+Para P8 (docs: CONTRACT.md y notes/net.md): quitar «vuelta tras recargar en el de varios» de Pendiente y apuntar lo de arriba; mensajes
+de app `hostAway {a}` / `hostLeft`; `ctx.actions.netHostLeft`; `result.left` en 'hostGone'; `VB.NetLog.{prefail, linkDiag, _pf}` y el
+documento prefail; `VB.NetLobby._state().bk`; netdrive NDRELOAD / NDRELOADAT / NDHOST; `&back=1` de startNetTestN; lobbytest (g).
+
+## Lane B (ritmo de envío, vuelta tras recargar en las sesiones, tope de predicción; 22-nov-2026)
+
+Sin git, sin push, sin despliegue. Ficheros: js/net.js (SOLO la SessionN de Precisa-N; la Session del 1 contra 1, Fluida y el cable no
+cambian), js/nethost.js, tools/net4test.js (secciones (n), (o), `--lane`, `--lane --maxpred`; `frameMs`, modelo de CPU `cpuX`/`stepUs`,
+correcciones visibles `visible`), tools/hosttest.js (sección (f), `frameMs`, `reload`, `pre`). Las 4 huellas idénticas; net4test 88 → 122, hosttest 34 → 54, net12test 27, cooptest y lobbytest 87 OK; nettest 61,
+net3test 61, mptest 53 y netreplaytest 42 OK (el 1 contra 1, igual).
+
+1. **Ritmo de envío de Precisa-N** (js/net.js, `SEND_HZ` 60, `SEND_FAST_DT` 13 ms, `SEND_SIG`). Con frames de 13 ms o más de media
+   (60 Hz) nada cambia: un paquete por frame y enlace (net4test (n): a 60 Hz mismos bytes y mismas huellas con y sin tope). Con pantallas
+   más rápidas, crédito por enlace: como mucho 60 paquetes/s de media. No se pierde nada (cada paquete lleva todo lo no confirmado).
+   Un botón nuevo sale en el acto; un cambio del stick de más de SEND_SIG (5 %) desde lo último mandado puede adelantarse un frame con
+   crédito prestado. `o.pace === false` = un paquete por frame (pruebas). `stats.paced` = envíos aplazados.
+   Medida (net4test (n): 2v2 × 4 a 126 fps, 150 ms ±15, 2 % de pérdida, retraso fijo 4):
+   | | antes (un paquete por frame) | ahora |
+   |---|---|---|
+   | paquetes/s por enlace | 116-118 | 58-59 |
+   | subida del anfitrión por enlace | 37 KB/s | 19 KB/s |
+   | subida de cada invitado | 14,2 KB/s | 7,3 KB/s |
+   | profundidad de rollback p99 (invitados) | 19-21 | 22-23 (medio frame más por tramo) |
+   | micro-esperas (con el tope de predicción nuevo) | 0 | 0 |
+   Con 6 semillas × 90 s: correcciones visibles de la partida predicha +20-28 % frente al MISMO aparato sin tope (los bots cambian el
+   stick casi cada tic), y en la línea de un móvil de 60 Hz sin tope (corrección total 218 frente a 189 m/min; > 0,5 m 137 frente a 126
+   por minuto e invitado); en la semilla 41 de (n) a 90 s, casi el doble (> 0,5 m: 99-111 → 176-185). Probado también dejar que todo
+   cambio salga sin crédito (sin tope real): 81 paquetes/s y correcciones como sin tope. Es el precio de topar: un aparato de 120 Hz pasa a mandar como uno de 60 Hz. Con humanos que no mueven el
+   stick a cada tic, menos.
+   Modelo anfitrión (nethost): ya iba por tics (paquete de 30 Hz, pose de 60 Hz), no por frames: 126 fps → 36 / 62 paquetes/s por enlace
+   (anfitrión→invitado / invitado→anfitrión), igual que a 60 Hz. Arreglado lo único que dependía del frame: tras un parón (o con frames
+   largos) salían varias poses o paquetes de 30 Hz a la vez; ahora solo el último del frame (`_ftgt`). Con 30 fps y 3 % de tirones, la
+   pose del invitado 63 → 33 paquetes/s (2,1 → 1,3 KB/s), sin cambiar nada más.
+
+2. **Vuelta tras recargar en las sesiones.** Precisa-N: funcionaba ya (saludo → hello con las opts → ready → IA + resync), por el mismo
+   enlace renegociado y con `addLink`. Ahora con pruebas: net4test (o) mata la página de un invitado 5 / 12 / 25 / 40 s y la vuelve con
+   un contexto vm nuevo, reloj de cero, sesión sin opts, misma plaza y época; también el coop de 2 (20 s). En todos: resync aplicado
+   ~0,8 s después de la página nueva, plaza humana en las 4, huellas iguales desde el resync, prueba de oro y los demás siguen (las
+   esperas son solo los 3 s hasta que la IA coge la plaza, como antes).
+   Modelo anfitrión: por el mismo enlace (el del lobby) ya readmitía con el `bye` reload + `hello`. Nuevo: `sess.addLink(link)` en
+   nethost y, si una plaza saluda por OTRO enlace mientras el viejo lleva callado más de SILENT_AI, el viejo se retira sin avisar y entra
+   como una vuelta (antes: `bye seat`); el `bye` reload por un enlace sin plaza ya no marca nada. hosttest (f): 2v2 5 / 25 s y 6v6 12 /
+   40 s, mismo enlace y addLink: readmitido 0,1-0,25 s después de la página nueva; su jugador deja la IA en el siguiente balón muerto
+   (5-12 s, como antes); marcador igual que el del anfitrión; nadie lo da por ido.
+
+3. **Tope de predicción de Precisa-N: 24 → 30** (`MAXPRED_N`; el 1 contra 1 sigue con 24). Estudio: `node tools/net4test.js --lane
+   --maxpred` (2v2 × 4, 5 semillas × 90 s, móvil de 60 Hz: render 9 ms + sim × 6 con 20 µs por tic y 130 µs por copia, modelo fijo sin
+   el ruido del reloj de Node):
+   | invitados | tope 24, K 16 (antes) | tope 30, K 16 (elegido) | tope 36 | tope 24, K 13 (+3 tics de retraso) |
+   |---|---|---|---|---|
+   | 150 ms: micro-esperas | 0,09 % de los frames | 0 | 0 (= 30) | 0,06 % |
+   | 150 ms: saltos visibles > 0,5 m por min / corrección total | 132 / 208 m/min | 122 / 199 | = 30 | 107 / 191 |
+   | 40/120/200: micro-esperas | 0,07 % | 0 | 0 (= 30) | 0,03 % |
+   | 40/120/200: > 0,5 m por min / corrección total | 73 / 146 | 76 / 152 | = 30 | 50 / 128 |
+   | sim del móvil p99 / máx | 3,7 / 4,4 ms | 3,8 / 4,6 ms | = 30 | 3,7 / 4,4 ms |
+   | frames perdidos por CPU | 0 | 0 | 0 | 0 |
+   | rollback máx | 24 | 28-30 | 28-30 | 24 |
+   A 126 fps con el ritmo nuevo (3 semillas): micro-esperas 0,35 % → 0, > 0,5 m 135 → 112 por minuto. Elegido 30: quita las esperas
+   sin más correcciones (diferencias dentro del ruido entre semillas, ±20 %) y cuesta 0,1-0,2 ms en el peor frame del móvil. 36 no aporta
+   (nunca pasa de 30). Bajar el «- 16» del retraso (K 13) quita un 20-30 % de correcciones pero no todas las esperas y pone 25 ms más de
+   retraso a TU jugador: descartado. `o.maxPred` y `o.delayK` quedan para pruebas.
+   Efecto secundario arreglado: con el tope de 30, la plaza de conexión muy mala de net4test (m) (600 ms, 50 % de pérdida) ya casi no
+   paraba la partida en seco, pero la FRENABA (72 % del tiempo real) y nunca llegaba a SLOW_MS, así que no pasaba a espectador (3 fallos
+   en (m)). Ahora el anfitrión cuenta también el tiempo que la partida va más lenta que el reloj como espera de la plaza más atrasada en
+   entradas (solo si va ≥ 15 tics atrasada): (m) vuelve a pasar (78 % del tiempo real, espectador y vuelta).
+
+Pendiente / visto:
+- El tope de 60 Hz sube un poco las correcciones crudas en pantallas de 120 Hz (ver 1); netPlayersSmooth (main.js) las reparte. Si en un
+  móvil de verdad se nota, subir SEND_HZ a 90 es una línea.
+- Las correcciones visibles varían ±20 % entre semillas: para afinar más hacen falta más semillas o humanos de verdad.
+- Nada de esto probado en un teléfono de verdad ni con netdrive (Chrome); los números son de los bancos en Node.
+
+Para P8 (docs): CONTRACT.md y notes/net.md: `VB.Net.{MAXPRED_N, SEND_HZ}`, opciones de SessionN `maxPred`, `delayK`, `pace`, `stats.paced`
+/ `stats.copies`; nethost `addLink` y la vuelta por otro enlace; net4test `--lane [--maxpred …]`, (n), (o); hosttest (f), `--reload`.
+
+## STRESS (matriz de red dura; 22-nov-2026)
+
+Sin git, sin push, sin despliegue. Ficheros: js/net.js (SOLO la SessionN: `MAXPRED_N` 30 → 60, `PRED_SOFT` 30 y la cuenta de esperas de la
+conexión lenta), js/main.js (sección ONLINE, solo el de varios: `netPlayersSmooth` PS_TP 2 → 4,5 m, PS_MS2 300 ms, PS_SKIP 0,5 m;
+`netBallSmooth` BS_TP 4 → 8 m), tools/stresstest.js (nuevo), tools/net4test.js (`cfg.cpuOf`, comprobación de huellas de (m)),
+tools/hosttest.js (`cfg.script`, `cfg.cpuOf`), tools/netdrive.js (--multi: NDJIT, NDLOSS, NDBURST y saltos pintados del que va con el
+reloj del balón). nethost.js, netrtc.js, sim, reglas y la Session del 1 contra 1: SIN tocar. Las 4 huellas idénticas; nettest 61,
+net3test 61, mptest 53, netreplaytest 42, viewtest 29; netdrive 1v1 Precisa 8 ok y Fluida 9 ok.
+
+Banco: `node tools/stresstest.js [--models precisaN,host6,coop] [--nets r60,r150,r250,burst,asym,cpu4,burstcpu] [--secs 420] [--points 11]`
+(r60/r150/r250 = RTT con el anfitrión ±40 ms y 5 % de pérdida; burst = 150 ms ±15, 2 % y cortes de 300 ms cada 8-12 s en cada enlace;
+asym = un invitado a 250 ms y los demás a 40; cpu4 = el invitado 1 con la sim ×4 y 8 ms de render; burstcpu = las dos).
+
+Problemas encontrados y arreglos:
+1. **Congelaciones de Precisa-N con cortes cortos y con 250 ms.** Con el tope de 30 tics (250 ms), a 150 ms el camino invitado → anfitrión
+   → invitado ya gasta ~24: un corte de 300 ms de UN enlace paraba a los 4 ~250 ms; a 250 ms ±40 el camino solo ya pasaba de 30. El tope
+   solo actúa al llegar a él (lo normal sigue en 15-25 tics), así que subirlo a 60 cambia únicamente lo que antes era una espera: se
+   sigue prediciendo esa plaza con su última entrada y se corrige al llegar (un rollback de hasta 60 tics una vez: ~5 ms con la sim ×4,
+   cabe en el frame: 0 vsyncs perdidas en burstcpu). La detección de conexión lenta (SLOW_MS) contaba paradas; ahora ir más de
+   PRED_SOFT (30) tics por detrás de una plaza cuenta como esperarla (net4test (m) sigue pasando a espectador y vuelve).
+2. **Lo que se pinta tras esas correcciones largas.** Con el tope de 60, el jugador de la plaza cortada se corregía 2-4 m (más que
+   PS_TP 2 = teletransporte: netdrive 2v2 burst, pintado máx 3,0-3,8 m) y el balón hasta 5-7 m (BS_TP 4). PS_TP 4,5 m (lo de más de 1 m
+   se reparte en ol × 150 ms hasta 300 ms) y BS_TP 8 m (como BLEND_MAX del modelo host).
+3. **Modelo host, invitados: todos los saltos pintados > 0,5 m que quedaban eran del jugador que va con el reloj del balón** (netdrive
+   6v6 × 12 con cortes: 4-9 por página en 60 s, todos «del que va con el reloj del balón»). Ese jugador no recibía desfase nuevo (L1:
+   mano y balón a la vez); ahora lo pequeño sigue sin desfase pero un salto de más de PS_SKIP (0,5 m) sí se reparte.
+4. **net4test (m)**: con el tope de 60 la plaza lenta llega a confirmar con SU entrada tics que el anfitrión ya había pasado a la IA, hasta
+   que le llega el resync de espectador (~300 ms). Es la carrera de siempre al pasar una plaza a la IA (también posible con 30; el resync
+   la arregla). La comprobación queda: huellas iguales siempre en las 3 que siguen y en las 4 desde el primer resync de espectador.
+
+Medidas en Node (tools/stresstest.js, semilla 3, hasta 420 s / 11 puntos; «micro» = la peor máquina, también las paradas de < 100 ms;
+saltos = corrección de la partida PREDICHA antes del suavizado de main.js, por minuto e invitado):
+| celda | antes | después |
+|---|---|---|
+| 2v2 × 4, 150 ms con cortes (48-89 cortes) | 1280 frames en espera (máx 440 en una), micro 16,1 s, rb p99 30 (tope) | 5 frames, micro 0,2 s, rb p99 49 (máx 60) |
+| ídem + invitado 1 con CPU ×4 | igual que arriba | igual que arriba; 0 vsyncs perdidas |
+| 2v2 × 4, 250 ms ±40, 5 % | micro 7,1 s, rb p99 30 (tope), jug > 0,5 269/min | micro 0, rb p99 33 (máx 45), 248/min |
+| 2v2 × 4, 150 ms ±40, 5 % | micro 33 ms, rb p99 24 (máx 30) | micro 0, rb p99 23 (máx 33) |
+| 2v2 × 4, 60 ms ±40, 5 % · asimétrico 250/40 · CPU ×4 | 0 esperas (rb p99 15 / 21 / 22) | igual (sin cambio) |
+| coop, 150 ms con cortes | 46 frames en espera, micro 2,4 s, rb p99 30 | 0, 0, rb p99 33 (máx 49) |
+| coop, resto de la matriz | 0 esperas | igual |
+| 6v6 × 12 modelo host, toda la matriz | 0 esperas, 0 saltos del balón pintado > 0,5 m (invitados y anfitrión), jugador propio 0 | igual (nethost sin tocar) |
+| desincronías / reparaciones / plazas a la IA | 0 / 0 / 0 en todas las celdas | 0 / 0 / 0 |
+| puntos iguales en todas las máquinas · el partido acaba | sí · sí (6v6 a 60 ms y asimétrico no acaban en 420 s: peloteos largos) | sí · igual |
+
+Medidas en Chrome (netdrive --multi, BcLink, 90 s salvo donde se dice; «pintado» = net.view tras el suavizado, por invitado):
+| prueba | antes | después |
+|---|---|---|
+| 2v2 × 4, 150 ms, cortes (NDBURST=1, 25-27) | esperas 12/117/102/117 (falla «≤ 3») | 0/0/0/0; jugadores pintados > 0,5 m 0 (máx 0,29 m); balón pintado > 0,5 m 5 → 6 (máx 0,55 → 0,63) |
+| ídem, con el tope de 60 SIN el arreglo 2 | — | jugadores pintados máx 3,0-3,8 m, balón 5,4 m (por eso el arreglo 2) |
+| 2v2 × 4, 250 ms ±40, 5 % (NDJIT=40 NDLOSS=5) | jugadores pintados > 0,5 m 11/17/12 (máx 2,7), > 0,15 m 183/343/194 | 0/0/0 (máx 0,28), 29/26/18; balón > 0,5 m 1-2 en los dos |
+| 2v2 × 4, asimétrico 250/40/40 | pintados > 0,15 m 64/46/31, > 0,5 m 1 (2,11 m) | 13/13/10, 0 |
+| 2v2 × 4, 150 ms, invitado 1 CPU ×4 | esperas 0; los otros invitados > 0,15 m 27/29 | 0; 7/9 (la página ×4: balón > 0,5 m 4 → 9 con 49-57 parones de rAF de la pestaña de detrás: ruido) |
+| coop 2, 150 ms, cortes | esperas 19/7 (falla «≤ 3») | 0/0; jugadores pintados 0 > 0,5 m en los dos |
+| 6v6 × 12 host, 150 ms, cortes (96-99) | jugadores pintados > 0,5 m 4-10 por invitado en 90 s (máx 2,06 m) | 0-1 por invitado en 60 s (máx 0,59 m); > 0,15 m ~110-150/min → ~55-80/min; misma secuencia de puntos |
+
+Pruebas tras los cambios: las 4 huellas idénticas; net4test 123 OK; net4test --lane 34 OK; hosttest 54 OK; net12test 27 OK; cooptest 125 ok;
+lobbytest 87 OK; nettest 61, net3test 61, mptest 53, netreplaytest 42, viewtest 29; netdrive 1v1 Precisa 8 ok, Fluida 9 ok; netdrive
+--multi NDRELOAD (2v2, 150 ms) 6 ok (jugando a los 2,6 s, plaza a los 3,1 s).
+
+Pendiente / visto:
+- La carrera al pasar una plaza a la IA (punto 4) se podría cerrar del todo si un invitado solo confirmara tics suyos que el anfitrión
+  ya ha recibido (ack); no se ha tocado (cambia cuándo confirma el invitado). Hoy la arregla el resync.
+- Los saltos crudos de Precisa-N a 250 ms siguen altos (~250/min por invitado); lo pintado queda en p99 0,11 m sin saltos > 0,5 m.
+- Las métricas de Node para el modelo host (jugadores de los demás, ~14/min > 0,5 m con cortes) son ANTES del suavizado de main.js;
+  en Chrome quedan 0-1 por minuto.
+- No probado: NDBURST por el lobby + WebRTC (NDRTC) ni la Carrera coop de punta a punta (--coop) con cortes; nada en un teléfono.
+
+Para P8 (docs: CONTRACT.md y notes/net.md): `VB.Net.MAXPRED_N` 60 (antes 30) y PRED_SOFT; main.js PS_TP / PS_MS2 / PS_SKIP / BS_TP;
+tools/stresstest.js en el control de regresión del online de varios; netdrive NDJIT / NDLOSS / NDBURST; net4test `cfg.cpuOf`; hosttest
+`cfg.script` / `cfg.cpuOf`.
+
+## Revisión 2: arreglos de los hallazgos confirmados (22-nov-2026)
+
+Sin git, sin push, sin despliegue. Ficheros: js/net.js (SOLO la SessionN: la cuenta `slowLost`), js/netlobby.js (`mxRelinkHost`,
+`mxBackAlive` / `VB.NetLobby.backAlive`, comentarios), js/main.js (sección ONLINE, `netBgTick`: una línea), js/version.js y
+bridge/version.json (1.22.0 → 1.23.0), js/netroom.js (un comentario), tools/stresstest.js (celdas asym165 / asym240 / r250h240),
+tools/lobbytest.js (sección h), notes/net.md, CONTRACT.md, TRASPASO.md. Las 4 huellas idénticas; 1 contra 1 sin tocar.
+
+1. **Conexión lenta con un anfitrión de pantalla rápida** (net.js, SessionN). `slowLost` sumaba cada frame con un tic de menos que el
+   reloj (redondeo) sin restar los de uno más, y también el frenado de la ventaja de frames (`t0 += STEP_MS × 0,125`). Ahora cuenta solo
+   lo que CRECE el retraso de la partida contra el reloj (`(now - t0) / STEP_MS - localTick`, sin redondear) por encima de 1 tic, con el
+   retraso de antes tomado DESPUÉS del frenado. 2v2 × 4, un invitado a 300 ms (los demás a 40), 90 s, `blockAcc` máximo de esa plaza en
+   el anfitrión: 60 Hz 34 ms (a 250 ms) → 0 ms (a 300 ms), 165 Hz 1215 → 0 ms, 240 Hz 2498 ms y la plaza a la IA «conexión lenta» → 0 ms, IA 0.
+   stresstest (240 s) precisaN y coop en asym165 / asym240 / r250h240 / asym / burst: IA 0, desync 0, puntos iguales. net4test (m)
+   (600 ms, 50 % de pérdida) sigue pasando a espectador y volviendo (ritmo 93,5 %); net4test 123 OK.
+2. **El anfitrión deja de reofrecer antes de que el invitado deje de poder volver** (netlobby.js `mxRelinkHost`). Antes 7 intentos
+   (~60 s, respuesta mirada hasta ~69 s) frente a los 120 s de `MX_BACK_HOST_MS`. Ahora por tiempo: plazo de vuelta del modelo
+   (120 s host, 55 s Precisa-N / coop) + `RELINK_PAD` 15 s desde la PRIMERA caída del par (`p.rlT0`; un 'down' nuevo no alarga), cada
+   10 s el primer minuto y luego cada 20 s (respuesta mirada 9 s / 19 s). lobbytest (h), 6v6, página muerta 80 s: antes FALLO (sin
+   enlace a los 120 s), ahora vuelve a SU plaza a los 82 s.
+3. **Marca de vuelta caducada si el móvil descarta la pestaña tarde** (netlobby.js `mxBackAlive`, main.js `netBgTick`). Con la página
+   oculta, cada ~3 s (el Worker del pulso, que no se frena en segundo plano) la marca BACK se reapunta con la hora de ahora (solo
+   invitado de varios con partido en marcha; nada si la vuelta ya está en curso). lobbytest (h): la marca avanza 1,2 s con backAlive.
+4. **Choque de versión** con la rama investigacion (también 1.22.0): online de varios pasa a **1.23.0** (VERSION, CHANGELOG, cabecera,
+   bridge/version.json). Al fusionar, la entrada 1.22.0 de investigacion va debajo (o se juntan si salen a la vez).
+
+Pruebas tras los cambios (una cada vez): fingerprint6 2v2 / mastery / salto / 6v6 idénticas; net4test 123 OK; hosttest 54 OK; cooptest
+125 ok; lobbytest 87 → 91 OK (h nueva, ~2 min); roomtest 260 ok; nettest 61, net3test 61, mptest 53, abouttest OK; netdrive --multi 4
+(2v2 Precisa-N, 80 ms): 5 ok (esperas 0, huellas iguales, resyncs 0, consola limpia).
+
+Pendiente / visto:
+- netdrive NDRELOAD con 80 s de página muerta por el lobby de verdad (NDRTC=1) no se ha añadido: lo cubre lobbytest (h) en Node.
+- El frenado de la ventaja de frames (`adv > 1,5`: `t0 += STEP_MS × 0,125` por FRAME) frena más con más fps (×4 a 240 Hz que a 60);
+  está también en la Session del 1 contra 1 y no se ha tocado («1v1 igual»). Si se quiere, pasarlo a ms por tiempo transcurrido.
+- Teléfonos y redes de verdad, TURN y migración del anfitrión: TRASPASO.md «To-do».

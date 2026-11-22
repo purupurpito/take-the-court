@@ -29,7 +29,8 @@ function run(cfg) {
   useH(cfg.H);
   const n = cfg.n || 12, fmt = cfg.fmt || (n > 4 ? '6v6' : '2v2');
   const V = []; for (let i = 0; i < n; i++) V.push(load());
-  if (cfg.C) for (const v of V) Object.assign(v.NetHost.C, cfg.C);   // (ajuste de constantes de nethost para probar)
+  if (cfg.C) for (const v of V) Object.assign(v.NetHost.C, cfg.C);
+  if (cfg.pre) for (const v of V) cfg.pre(v);   // (pruebas: retoques del contexto de cada máquina antes de crear las sesiones)   // (ajuste de constantes de nethost para probar)
   let T = 0;
   const M = V[0].Net.memStar({ n, rtt: cfg.rtt || (k => 30 + 15 * k), jit: cfg.jit == null ? 10 : cfg.jit, loss: cfg.loss == null ? 2 : cfg.loss, seed: cfg.seed || 7, clock: () => T, relay: false });
   const seats = seatsOf(n, cfg.swap);   // (swap: el anfitrión en el equipo 1)
@@ -90,12 +91,34 @@ function run(cfg) {
   const fr = mulberry((cfg.seed || 7) * 31 + 7), END = (cfg.secs ? cfg.secs : 3600) * 1000;
   const st = []; for (let i = 0; i < n; i++) st.push({ frames: 0, cpu: [], status: {}, pts: [], over: false, pErr: [], bErr: [], ev: 0, bC: [], bBig: [], oC: [], myLag: [], bPrev: null, oPrev: null });
   let err = null, quitDone = false, stallDone = false;
-  const R0 = { gr: {} };
+  const R0 = { gr: {}, reload: null };
+  // lane B: frame de cfg.frameMs (16,667 = 60 Hz; 7,94 = 126 fps). cfg.reload = {seat, at, gap (ms), via: 'same'|'add'}: la página de
+  // ese invitado muere gap ms y vuelve con una sesión NUEVA (otro contexto, reloj de cero, sin opts) que, como el lobby (lane A),
+  // manda antes el adiós de la sesión vieja ({k:'bye', why:'reload'}) por el enlace renegociado ('same') o por uno nuevo (addLink).
+  const FM = cfg.frameMs || 16.667, RL = cfg.reload;
   while (!err) {
     let k = 0; for (let i = 1; i < n; i++) if (next[i] < next[k]) k = i;
     T = next[k]; if (T >= END) break;
-    next[k] += 16.667 + (fr() * 2 - 1) * 1.5 + (fr() < (cfg.hitch == null ? 0.01 : cfg.hitch) ? 35 : 0);
+    next[k] += FM + (fr() * 2 - 1) * 1.5 * FM / 16.667 + (fr() < (cfg.hitch == null ? 0.01 : cfg.hitch) ? 35 : 0);
+    if (RL && k === RL.seat && T >= RL.at) {
+      if (!R0.reload) { R0.reload = { cutT: T }; M.down(RL.gap, k); }
+      if (T < RL.at + RL.gap) continue;   // (página muerta)
+      if (!R0.reload.backT) {
+        const Vn = load(); if (cfg.C) Object.assign(Vn.NetHost.C, cfg.C);
+        let gl;
+        if (RL.via === 'add') { const pr = Vn.Net.memPair({ lag: 60, jit: 8, loss: 1, seed: 91 + k, clock: () => T }); M.down(1e9, k); S[0].addLink(pr[0]); gl = pr[1]; }
+        else { gl = M.links[k][0]; gl.flush(); }
+        gl.send('ctl', JSON.stringify({ k: 'bye', why: 'reload' }));
+        V[k] = Vn; off[k] = -T + 2500; st[k].noPts = true; st[k].pts = []; st[k].bPrev = st[k].oPrev = null;
+        S[k] = new Vn.NetHost.Session({ slot: k, links: [gl], seats, names: seats.map(h => h.name), opts: null, name: seats[k].name, log });
+        bots[k] = Vn.Net.bot(k, (cfg.seed || 7) * 17 + k, cfg.prof || 'bueno', { team: seats[k].team });
+        R0.reload.backT = T;
+      }
+      if (!R0.reload.inT && S[k].status === 'playing' && S[0].peers.some(p => p.seat === k && !p.gone && p.hello)) R0.reload.inT = T;
+      if (!R0.reload.playT && S[k].status === 'playing' && S[0].g && !S[0].g.hum[k].ai && S[0].peers.some(p => p.seat === k && !p.gone)) R0.reload.playT = T;
+    }
     if (cfg.stall && !stallDone && k === cfg.stall.seat && T >= cfg.stall.at) { stallDone = true; next[k] += cfg.stall.ms; }
+    if (cfg.script) cfg.script(T, { M, S, st, k });   // (estrés: cortes a ráfagas, cambios de red… antes del frame de la máquina k)
     if (cfg.quit && !quitDone && T >= cfg.quit.at && k === cfg.quit.seat) { quitDone = true; S[k].quit(); }
     const s = S[k], x = st[k];
     if (s.status === 'ended' && k !== 0) continue;
@@ -106,6 +129,9 @@ function run(cfg) {
     const us = Number(process.hrtime.bigint() - t0) / 1000;
     x.frames++; x.status[r.status] = (x.status[r.status] || 0) + 1;
     if (r.status === 'playing') x.cpu.push(us);
+    // (estrés: CPU de móvil lento en la máquina k: el frame cuesta render + advance × cpuOf(k); si no cabe, pierde vsyncs)
+    const cx = cfg.cpuOf ? cfg.cpuOf(k) : 0;
+    if (cx && (r.status === 'playing' || r.status === 'waiting')) { const cost = (cfg.renderMs == null ? 8 : cfg.renderMs) + us * cx / 1000; if (cost > FM) { const lost = Math.ceil(cost / FM - 1); x.miss = (x.miss | 0) + lost; next[k] += lost * FM; } }
     x.ev += r.events.length;
     for (const e of r.confirmed) if (e.type === 'point' && e.score) x.pts.push(e.team + ':' + e.score.join('-'));
     if (k === 0) for (const e of r.confirmed) if (e.type === 'hit' && e.player) {   // (calidad de los toques por equipo y si era de un invitado)
@@ -144,7 +170,7 @@ function run(cfg) {
     console.log('    tardes por tipo (n, tics de media, > 3 tics): ' + JSON.stringify(cat));
   }
   if (process.env.GRADES) console.log('    calidad de los toques por equipo: ' + JSON.stringify(R0.gr));
-  return { cfg, n, fmt, V, M, S, st, T, err, msgs, tickUs };
+  return { cfg, n, fmt, V, M, S, st, T, err, msgs, tickUs, reload: R0.reload };
 }
 
 /** Resumen de un partido: métricas y comprobaciones con prefijo tag. strict: comprueba que el partido termina. */
@@ -159,7 +185,7 @@ function summary(R, tag, strict) {
   // marcador igual: los puntos confirmados del anfitrión son la verdad; cada invitado ve los mismos en el mismo orden
   const ref = st[0].pts; let bad = 0, worstMiss = 0;
   for (let i = 1; i < n; i++) {
-    if (S[i].status === 'ended') continue;
+    if (S[i].status === 'ended' || st[i].noPts) continue;   // (noPts: la página recargó; su marcador se mira aparte)
     const a = st[i].pts, m = Math.min(a.length, ref.length);
     if (a.slice(0, m).join() !== ref.slice(0, m).join()) bad++;
     worstMiss = Math.max(worstMiss, ref.length - a.length);
@@ -221,6 +247,30 @@ function summary(R, tag, strict) {
   return out;
 }
 
+/** (f) lane B: vuelta tras recargar en el modelo anfitrión (2v2 × 4 y 6v6): la página de un invitado muere 5-40 s y vuelve con una
+ *  sesión nueva (otro contexto, reloj de cero, sin opts) por el enlace renegociado o por uno nuevo (addLink). */
+function testReload(QUICK) {
+  console.log('== (f) vuelta tras recargar: un invitado sin página 5-40 s vuelve con sesión y estado nuevos; el anfitrión lo readmite ==');
+  const cases = QUICK ? [[2, '2v2', 4, 5, 'same'], [2, '6v6', 12, 40, 'add']] : [[2, '2v2', 4, 5, 'same'], [3, '2v2', 4, 25, 'add'], [5, '6v6', 12, 12, 'same'], [7, '6v6', 12, 40, 'add']];
+  for (const [seat, fmt, n, gap, via] of cases) {
+    const at = 20000, tag = 'recarga ' + fmt + ' ' + gap + ' s (' + (via === 'add' ? 'addLink' : 'mismo enlace') + '):';
+    const R = run({ n, fmt, rtt: () => 90, jit: 10, loss: 2, seed: 20 + gap, secs: (at + gap * 1000) / 1000 + (n > 4 ? 50 : 25), points: 25, reload: { seat, at, gap: gap * 1000, via } });
+    check(tag + ' sin excepciones', !R.err, R.err ? String(R.err.stack).split(/\n/).slice(0, 3).join(' | ') : undefined);
+    if (R.err) continue;
+    const h = R.S[0], g = R.S[seat], rl = R.reload || {};
+    check(tag + ' la página nueva juega en su plaza (humana en el anfitrión, sin «hostGone»)', !!rl.playT && g.status === 'playing' && !g.result && !h.g.hum[seat].ai && !h.seatGone(seat),
+      { st: g.status, res: g.result, ai: h.g.hum[seat].ai, msgs: R.msgs.filter(m => new RegExp('plaza ' + seat + ' ').test(m)).slice(-4) });
+    check(tag + ' los demás invitados la tienen dentro (sin seatGone)', R.S.every((s, i) => i === 0 || i === seat || !s.seatGone(seat)));
+    const ref = R.st[0].pts.join(';'), mine = R.st[seat].pts.join(';'), dsc = g.g ? Math.abs(g.g.score[0] + g.g.score[1] - h.g.score[0] - h.g.score[1]) : 9;
+    check(tag + ' marcador: los puntos que confirma tras volver son los del anfitrión, en orden (y al final, como mucho uno por llegar)', g.g && g.g.setNo === h.g.setNo && dsc <= 1 && (!mine || ref.indexOf(mine) >= 0),
+      { inv: g.g && g.g.score, anf: h.g.score, puntos: R.st[seat].pts });
+    const others = R.st.filter((x, i) => i > 0 && i !== seat);
+    check(tag + ' los demás siguen jugando', R.S.every((s, i) => i === seat || s.status === 'playing' || s.status === 'over'), R.S.map(s => s.status).join(','));
+    console.log('        ' + tag + ' de vuelta a los ' + ((rl.backT - rl.cutT) / 1000).toFixed(1) + ' s; readmitido (foto aplicada, jugando) ' + (((rl.inT || 0) - rl.backT) / 1000).toFixed(2) + ' s después; su jugador deja la IA en el siguiente balón muerto, a los ' + (((rl.playT || 0) - rl.backT) / 1000).toFixed(1) + ' s · toques del invitado tras volver ' + g.hstats.tcOut + ' · frames de los demás ' + others.reduce((a, x) => a + x.frames, 0));
+    void H0;
+  }
+}
+
 function main() {
   const argv = process.argv, arg = (k, d) => argv.includes(k) ? argv[argv.indexOf(k) + 1] : d;
   const QUICK = argv.includes('--quick'), N = +arg('--n', 12), FMT = arg('--fmt', N > 4 ? '6v6' : '2v2');
@@ -264,6 +314,7 @@ function main() {
         { ai: h5.g.hum[3].ai, st: g5.status, res: g5.result });
     }
   }
+  if (!QUICK || argv.includes('--reload')) testReload(QUICK);
   const { fails, oks } = H0.counts();
   console.log((fails ? 'FALLO: ' + fails + ' de ' + (fails + oks) : 'hosttest OK: ' + oks + ' comprobaciones') + ', ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
   return fails ? 1 : 0;

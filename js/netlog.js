@@ -24,6 +24,12 @@
  *    dice plaza, equipo, humanos, formato y la ruta de cada enlace (conns), y rol = anfitrión si tu plaza es la 0.
  *  - Solo con cuenta y enlace WebRTC de verdad (no en las pruebas por BroadcastChannel), salvo ?netlog=1 (depuración: además lo
  *    escribe en la consola).
+ *  - Fallo de conexión ANTES del partido (lane A, 22-nov-2026; prefail): un enlace del lobby de varios o de la Carrera coop que no llega
+ *    a abrirse (ICE fallido o se acaba el tiempo) deja UN documento pequeño con las mismas convenciones y las mismas reglas:
+ *    netlogs/{uid}_pf…  = {uid, ver, t, j}, j = {v: 1, kind: 'prefail', rol, fmt, cap, modo, fase ('sala' | 'vuelta'), why, ms,
+ *    iceState, connState, gathering, link, cand: {loc, rem} (cuántos candidatos de cada TIPO y transporte, «srflx/udp»: nunca
+ *    direcciones ni puertos), relay, env}. Lo pide el lobby (VB.NetLog.prefail) solo sin partido en marcha: nada durante el juego.
+ *    Como mucho PF_MAX por página. linkDiag(link) saca el estado ICE y los tipos de candidato del RTCPeerConnection del enlace.
  */
 (function () {
   'use strict';
@@ -241,8 +247,57 @@
     flush(c, true);
   }
 
+  /* ---- fallo de conexión antes del partido (prefail) ---- */
+  var PF_MAX = 3, pfN = 0, pfLast = [];
+  /** Tipos de candidato de una SDP: {'host/udp': 2, 'srflx/udp': 1…}. Solo tipo y transporte (la dirección y el puerto no se leen). */
+  function candTypes(d) {
+    var sdp = d && d.sdp; if (typeof sdp !== 'string') return null;
+    var c = {}, re = /a=candidate:\S+ \d+ (\S+) \d+ \S+ \d+ typ (\w+)/g, m, n = 0;
+    while ((m = re.exec(sdp)) && n < 64) { var k = String(m[2]).slice(0, 8) + '/' + String(m[1]).toLowerCase().slice(0, 4); c[k] = (c[k] || 0) + 1; n++; }
+    return c;
+  }
+  /** Estado de un enlace (js/netrtc.js Link) para el informe: el suyo y el del RTCPeerConnection (ICE, conexión, candidatos). */
+  function linkDiag(link) {
+    var o = { st: link && link.state ? String(link.state) : '', opens: link ? link.opens | 0 : 0 }, pc = link && link.pc;
+    if (pc) {
+      try {
+        o.ice = String(pc.iceConnectionState || ''); o.conn = String(pc.connectionState || ''); o.gath = String(pc.iceGatheringState || ''); o.sig = String(pc.signalingState || '');
+        o.loc = candTypes(pc.localDescription); o.rem = candTypes(pc.remoteDescription);
+      } catch (e) { }
+    }
+    return o;
+  }
+  /** o = {role: 'host'|'guest', fmt, cap, mode, why, ms, phase, diag (linkDiag), relay}. Devuelve el informe (o null si ya van PF_MAX). */
+  function prefail(o) {
+    o = o || {};
+    if (pfN >= PF_MAX) return null;
+    pfN++;
+    var d = o.diag || {}, t = Date.now(), id = 'pf' + t.toString(36) + Math.floor(Math.random() * 1679616).toString(36);
+    var j = { v: 1, kind: 'prefail', ver: VB.VERSION || '', id: id, ini: new Date(t).toISOString(), rol: o.role === 'host' ? 'anfitrion' : 'invitado',
+      fmt: String(o.fmt || '').slice(0, 8), cap: o.cap | 0, modo: String(o.mode || '').slice(0, 8), fase: o.phase === 'vuelta' ? 'vuelta' : 'sala', why: String(o.why || '').slice(0, 16),
+      ms: Math.max(0, Math.round(+o.ms || 0)), iceState: d.ice || '', connState: d.conn || '', gathering: d.gath || '', signaling: d.sig || '', link: d.st || '', opens: d.opens | 0,
+      cand: { loc: d.loc || null, rem: d.rem || null }, relay: !!o.relay, env: env() };
+    pfLast.push(j); if (pfLast.length > 5) pfLast.shift();
+    if (FORCE && root.console) console.info('[netlog] prefail ' + JSON.stringify(j));
+    put(id, JSON.stringify(j), true, null);
+    return j;
+  }
+  /** Escribe netlogs/{uid}_{id} (las mismas reglas que el informe del partido). Nunca contra el emulador ni sin cuenta. */
+  function put(id, js, keep, done) {
+    var A = VB.Account, base = String(A && A.FS_BASE || '').replace(/\/+$/, '');
+    if (!base || !A.netAuth || typeof fetch === 'undefined' || Q.netemu) { if (done) done(); return; }
+    A.netAuth().then(function (a) {
+      if (!a || !a.uid || !a.token) throw new Error('sin cuenta');
+      var body = JSON.stringify({ fields: { uid: { stringValue: a.uid }, ver: { stringValue: String(VB.VERSION || '') }, t: { timestampValue: new Date().toISOString() }, j: { stringValue: js } } });
+      return fetch(base + '/netlogs/' + a.uid + '_' + id, { method: 'PATCH', headers: { Authorization: 'Bearer ' + a.token, 'Content-Type': 'application/json' }, body: body, keepalive: !!keep && body.length < 60000 })
+        .then(function (res) { if (FORCE && root.console) console.info('[netlog] guardado ' + res.status); return res; });
+    }).catch(function (e) { if (FORCE && root.console) console.info('[netlog] sin guardar: ' + (e && e.message)); })
+      .then(function (res) { if (done) done(res); });
+  }
+
   // cerrar la pestaña a mitad: el informe sale con lo que haya (keepalive)
   if (root.addEventListener) root.addEventListener('pagehide', function () { if (cur) end(cur.net, 'pestaña'); });
 
-  VB.NetLog = { begin: begin, frame: frame, end: end, _cur: function () { return cur; }, _report: function () { return cur ? report(cur) : null; } };
+  VB.NetLog = { begin: begin, frame: frame, end: end, prefail: prefail, linkDiag: linkDiag, _cur: function () { return cur; }, _report: function () { return cur ? report(cur) : null; },
+    _pf: function () { return pfLast.slice(); }, _candTypes: candTypes };
 })();

@@ -151,7 +151,7 @@ const ADAPTERS = {
       const seats = cfg.seats || [{ team: 0 }, { team: 1 }, { team: 0 }, { team: 1 }], n = seats.length;
       const links = i === 0 ? Array.from({ length: n - 1 }, (_, k) => M.links[0][k + 1]) : [M.links[i][0]];
       const o = { slot: i, links, seats, opts: i === 0 ? cfg.opts : null, name: 'Plaza ' + i, names: seats.map((_, k) => 'Plaza ' + k),
-        record: i === 0, hashLog: [], log, delay: cfg.delay, adaptive: cfg.adaptive };
+        record: i === 0, hashLog: [], log, delay: cfg.delay, adaptive: cfg.adaptive, maxPred: cfg.maxPred, delayK: cfg.delayK, pace: cfg.pace };
       if (i === 0 && cfg.linkSeats) o.linkSeats = cfg.linkSeats;
       if (i === 0 && cfg.aiSeats) o.aiSeats = cfg.aiSeats;
       return new V.Net.Session(o);
@@ -206,6 +206,27 @@ function optsN(seed, seats, o) {
   return r;
 }
 
+/** lane B: correcciones VISIBLES en la partida predicha (lo que se pinta antes del suavizado de main.js): cuánto se aparta cada
+ *  jugador que no es el tuyo y el balón de seguir con su velocidad (la de antes o la de ahora) entre dos frames. x.pj = desvíos (m). */
+const GRAV = 9.81;
+function visCorr(x, g, slot, T) {
+  const live = g.mode === 'rally' || g.mode === 'serve', P = x.pPrev, mine = g.hum && g.hum[slot] ? g.hum[slot].p : null;
+  const cur = live ? { T, mode: g.mode, pl: g.players.map(p => p === mine ? null : [p.x, p.y, p.vx, p.vy]), b: g.ball.held ? null : [g.ball.x, g.ball.y, g.ball.z, g.ball.vx, g.ball.vy, g.ball.vz] } : null;
+  if (cur && P && P.mode === cur.mode && T - P.T < 80) {
+    const dt = (T - P.T) / 1000;
+    for (let i = 0; i < cur.pl.length; i++) {
+      const a = P.pl[i], b = cur.pl[i]; if (!a || !b) continue;
+      x.pj.push(Math.min(Math.hypot(b[0] - a[0] - a[2] * dt, b[1] - a[1] - a[3] * dt), Math.hypot(b[0] - a[0] - b[2] * dt, b[1] - a[1] - b[3] * dt)));
+    }
+    if (P.b && cur.b) {
+      const a = P.b, b = cur.b;
+      const d = Math.min(Math.hypot(b[0] - a[0] - a[3] * dt, b[1] - a[1] - a[4] * dt, b[2] - a[2] - a[5] * dt + 0.5 * GRAV * dt * dt), Math.hypot(b[0] - a[0] - b[3] * dt, b[1] - a[1] - b[4] * dt, b[2] - a[2] - b[5] * dt));
+      (x.bj || (x.bj = [])).push(d);
+    }
+  }
+  x.pPrev = cur;
+}
+
 /** Un partido de N máquinas. cfg: {n, topo, rtt, jit, loss, seed, secs, model, opts, prof, offs, hitch}.
  *  Las máquinas 0..peers-1 juegan con el adaptador; las demás hacen de sonda (a todas).
  *  Ganchos (P2): cfg.script(T, X) antes de cada frame (X = {M, S, V, st, T}: cortar enlaces, abandonar…), cfg.dead(k, T) = la máquina k
@@ -228,13 +249,17 @@ function runMatch(cfg) {
   const next = []; for (let i = 0; i < n; i++) next.push(i * 3.3);
   const fr = mulberry(cfg.seed * 31 + 7), END = (cfg.secs || 60) * 1000;
   const st = [];
-  for (let i = 0; i < n; i++) st.push({ frames: 0, wait: 0, unstable: 0, depth: {}, cpu: [], events: 0, conf: 0, status: {}, err: null, pts: [] });
+  for (let i = 0; i < n; i++) st.push({ frames: 0, wait: 0, unstable: 0, depth: {}, cpu: [], events: 0, conf: 0, status: {}, err: null, pts: [], stall: 0, stallMs: 0, miss: 0, resim: 0, pj: [], pPrev: null });
   let err = null;
-  const X = { M, S, V, st, T: 0 };
+  // lane B: frame de cfg.frameMs (16,667 = 60 Hz; 7,9 = 126 fps) o, por máquina, cfg.frameOf(i). Modelo de CPU de móvil (cfg.cpuX):
+  // el frame cuesta cfg.renderMs + lo que tarda advance × cpuX; si no cabe en el frame, se pierde la vsync (el siguiente llega tarde).
+  const FMs = []; for (let i = 0; i < n; i++) FMs.push(cfg.frameOf ? cfg.frameOf(i) : (cfg.frameMs || 16.667));
+  const X = { M, S, V, st, T: 0, bots, off, FMs, AD };
   while (!err) {
     let k = 0; for (let i = 1; i < n; i++) if (next[i] < next[k]) k = i;
     T = next[k]; if (T >= END) break;
-    next[k] += 16.667 + (fr() * 2 - 1) * 1.5 + (fr() < (cfg.hitch == null ? 0.01 : cfg.hitch) ? 35 : 0);
+    const FM = FMs[k];
+    next[k] += FM + (fr() * 2 - 1) * 1.5 * FM / 16.667 + (fr() < (cfg.hitch == null ? 0.01 : cfg.hitch) ? 35 : 0);
     if (cfg.script) { X.T = T; try { cfg.script(T, X); } catch (e) { err = e; break; } }
     if (P[k]) { P[k].frame(T); continue; }
     if (cfg.dead && cfg.dead(k, T)) continue;
@@ -246,6 +271,18 @@ function runMatch(cfg) {
     const us = Number(process.hrtime.bigint() - t0) / 1000;
     x.frames++; x.status[r.status] = (x.status[r.status] || 0) + 1;
     if (r.status === 'playing' || r.status === 'waiting') x.cpu.push(us);
+    const cpuX = cfg.cpuOf ? cfg.cpuOf(k) : cfg.cpuX;   // (estrés: CPU por máquina, p. ej. un invitado a ×4)
+    if (cpuX && (r.status === 'playing' || r.status === 'waiting')) {
+      // (cfg.stepUs: modelo fijo, sin el ruido del reloj de Node: tics dados en el frame (confirmados + predichos) × stepUs y cada
+      //  copia de gc × copyUs, todo × cpuX; sin stepUs, lo que tardó advance de verdad × cpuX)
+      let simMs = us * cpuX / 1000;
+      if (cfg.stepUs && s.stats) { const st0 = s.stats, dS = (st0.steps | 0) - (x.lSteps | 0), dC = (st0.copies | 0) - (x.lCopies | 0); x.lSteps = st0.steps | 0; x.lCopies = st0.copies | 0; simMs = ((dS + (st0.resim | 0)) * cfg.stepUs + dC * (cfg.copyUs || 130)) * cpuX / 1000; (x.simMs || (x.simMs = [])).push(simMs); }
+      const cost = (cfg.renderMs == null ? 8 : cfg.renderMs) + simMs;
+      if (cost > FM) { const lost = Math.ceil(cost / FM - 1); x.miss += lost; next[k] += lost * FM; }
+    }
+    if ((r.status === 'playing' || r.status === 'waiting') && s.waitStart >= 0) { x.stall++; x.stallMs += FM; }   // (micro-esperas: también las de < 100 ms, que no llegan a 'waiting')
+    if (s.stats && typeof s.stats.resim === 'number') x.resim += s.stats.resim;
+    if (cfg.visible && r.g && (r.status === 'playing' || r.status === 'over')) visCorr(x, r.g, AD.slotOf(k), T);
     if (r.status === 'waiting') x.wait++;
     if (r.unstable) x.unstable++;
     if (s.stats && typeof s.stats.depth === 'number') x.depth[s.stats.depth] = (x.depth[s.stats.depth] || 0) + 1;
@@ -461,11 +498,19 @@ function testPrecisaN(QUICK) {
       const h = R.S[0], g3 = R.S[3], rate = h.gcTick / (R.T / 1000 * 120);
       check('lenta: el anfitrión la pasa a la IA por esperas acumuladas y le manda un resync de espectador', h.slowN[3] >= 1 && g3.stats.rsIn >= 1 && R.msgs.some(m => /espectador/.test(m)), { veces: h.slowN[3], rsIn: g3.stats.rsIn });
       check('lenta: el partido de los demás no va a cámara lenta (≥ 75 % del tiempo real confirmado)', rate >= 0.75, { ritmo: r1(rate * 100) + ' %' });
-      const c = cmpHashes(R); check('lenta: huellas iguales en las 4 (el espectador confirma lo mismo que los demás)', c.n > 20 && c.bad === 0, c);
+      // (estrés, tope 60: el anfitrión escribe {ai} en la plaza 3 desde su primer tic que le falta, y la plaza 3 puede haber confirmado
+      //  ya esos tics con SU entrada (la que se perdió por el camino) hasta que le llega el resync de espectador, ~300 ms después: es la
+      //  carrera de siempre al pasar una plaza a la IA, y el resync la arregla. Las 3 que siguen, iguales siempre; las 4, desde el resync.)
+      const m1 = R.msgs.map(m => /\[netN 3\] resync aplicado: tic (\d+)/.exec(m)).find(Boolean), f1 = m1 ? +m1[1] : 0;
+      const c3 = cmpFrom(R, [0, 1, 2], 0); check('lenta: huellas iguales en las 3 que siguen', c3.n > 20 && c3.bad === 0, c3);
+      const c = cmpFrom(R, [0, 1, 2, 3], f1); check('lenta: huellas iguales en las 4 desde el resync de espectador (el espectador confirma lo mismo que los demás)', f1 > 0 && c.n > 20 && c.bad === 0, Object.assign(c, { desde: f1 }));
       const G = golden(R); check('lenta: PRUEBA DE ORO', G.checked > 5 && G.bad === 0 && G.finalOk === true, G);
       check('lenta: vuelve sola pasados 20 s (resync normal) y, si sigue mala, la IA otra vez con más espera', h.stats.resyncs >= 2, { resyncs: h.stats.resyncs, slowN: h.slowN[3] });
     }
   }
+
+  testPace(QUICK, run);
+  testReload(QUICK, run);
 
   console.log('== (l) códec de varios y bit switchPlayer ==');
   {
@@ -484,12 +529,153 @@ function testPrecisaN(QUICK) {
   }
 }
 
+/* ---------- lane B (22-nov-2026): ritmo de envío, vuelta tras recargar y tope de predicción de Precisa-N ---------- */
+const histPct = (h, q) => { const ks = Object.keys(h).map(Number).sort((a, b) => a - b); let tot = 0; for (const k of ks) tot += h[k]; let acc = 0; for (const k of ks) { acc += h[k]; if (acc >= q * tot) return k; } return 0; };
+/** Métricas por máquina que juega: paquetes y KB/s por enlace (el anfitrión: media de sus enlaces), rollback, micro-esperas, frames
+ *  perdidos (modelo de CPU), tics rehechos por frame y correcciones visibles de la partida predicha. */
+function laneStats(R, who) {
+  const secs = R.T / 1000, tr = R.M.traffic && R.M.traffic();
+  return who.map(i => {
+    const x = R.st[i], s = R.S[i], pj = x.pj || [], bj = x.bj || [];
+    let pk = 0, by = 0, nl = 0;
+    if (tr) { if (i === 0) { for (let j = 1; j < R.np; j++) if (tr[0][j].pk) { pk += tr[0][j].pk; by += tr[0][j].bytes; nl++; } } else { pk = tr[i][0].pk; by = tr[i][0].bytes; nl = 1; } }
+    return { i, pkS: Math.round(pk / Math.max(1, nl) / secs), kbS: r1(by / Math.max(1, nl) / secs / 1024),
+      d50: histPct(x.depth, 0.5), d95: histPct(x.depth, 0.95), d99: histPct(x.depth, 0.99), dMax: s.stats ? s.stats.maxDepth : 0,
+      stall: x.stall, stallMs: Math.round(x.stallMs), waitEp: s.stats ? s.stats.waits : 0, miss: x.miss, resim: r1(x.resim / Math.max(1, x.frames)),
+      cpu50: r1(pct(x.cpu, 0.5)), cpu99: r1(pct(x.cpu, 0.99)),
+      pj15: pj.filter(d => d > 0.15).length, pj50: pj.filter(d => d > 0.5).length, pj99: Math.round(pct(pj, 0.99) * 100) / 100, bj50: bj.filter(d => d > 0.5).length, bj99: Math.round(pct(bj, 0.99) * 100) / 100,
+      delay: s.delayTo, paced: s.stats ? s.stats.paced : 0, frames: x.frames, sim99: r1(pct(x.simMs || [], 0.99)), simMax: r1(pct(x.simMs || [], 1)), pjSum: Math.round(pj.filter(d => d > 0.02).reduce((a, b) => a + b, 0)) };
+  });
+}
+function laneLine(tag, L) {
+  for (const m of L) console.log('        ' + tag + ' plaza ' + m.i + ': ' + m.pkS + ' pk/s ' + m.kbS + ' KB/s por enlace · rollback p50/p95/p99/máx ' + m.d50 + '/' + m.d95 + '/' + m.d99 + '/' + m.dMax +
+    ' · micro-esperas ' + m.stall + ' frames (' + m.waitEp + ' veces) · frames perdidos ' + m.miss + ' · rehechos/frame ' + m.resim + ' · CPU p50/p99 ' + m.cpu50 + '/' + m.cpu99 + ' µs' +
+    ' · saltos visibles jugadores >0,15/>0,5 m ' + m.pj15 + '/' + m.pj50 + ' (p99 ' + m.pj99 + ') balón >0,5 ' + m.bj50 + ' · retraso ' + m.delay);
+}
+const sumK = (L, k) => L.reduce((a, m) => a + m[k], 0);
+
+/** (n) Ritmo de envío: 2v2 × 4 a 126 fps (pantalla de 120 Hz y algo) con y sin tope de 60 paquetes/s por enlace. */
+function testPace(QUICK, run) {
+  console.log('== (n) ritmo de envío de Precisa-N: 2v2 × 4 a 126 fps, RTT 150 ms ±15, 2 % de pérdida, sin tope (antes) y con tope de 60 Hz ==');
+  const S4 = [{ team: 0 }, { team: 1 }, { team: 0 }, { team: 1 }];
+  const base = { rtt: k => k ? 150 : 0, seed: 41, secs: QUICK ? 40 : 90, frameMs: 7.94, visible: true, delay: 4, adaptive: false, opts: optsN(41, S4) };   // (retraso fijo: solo cambia el ritmo)
+  const A = run(Object.assign({}, base, { pace: false })), B = run(Object.assign({}, base));
+  check('ritmo: sin excepciones', !A.err && !B.err, errTxt(A) || errTxt(B));
+  if (A.err || B.err) return;
+  const LA = laneStats(A, [0, 1, 2, 3]), LB = laneStats(B, [0, 1, 2, 3]);
+  laneLine('antes:', LA); laneLine('ahora:', LB);
+  check('ritmo: con el tope, ≤ 62 paquetes/s por enlace en todas (antes ~126)', LB.every(m => m.pkS <= 62) && LA.every(m => m.pkS > 100), { antes: LA.map(m => m.pkS), ahora: LB.map(m => m.pkS) });
+  check('ritmo: la subida del anfitrión por enlace baja más de un 30 %', LB[0].kbS < 0.7 * LA[0].kbS, { antes: LA[0].kbS, ahora: LB[0].kbS });
+  const c = cmpHashes(B), G = golden(B);
+  check('ritmo: huellas iguales y PRUEBA DE ORO con el tope', c.n > 5 && c.bad === 0 && G.checked > 5 && G.bad === 0 && G.finalOk === true, { c, G });
+  check('ritmo: sin esperas de más (micro-esperas de los 4 ≤ las de antes + 10 frames; con el tope de predicción de 30, ninguna)', sumK(LB, 'stall') <= sumK(LA, 'stall') + 10, { antes: LA.map(m => m.stall), ahora: LB.map(m => m.stall) });
+  // (medio frame más por tramo de media: el p99 de la profundidad sube 1-4 tics; lo que cuesta CPU es solo el frame que rehace)
+  check('ritmo: rollback p99 como mucho 4 tics más y por debajo del tope', LB.every((m, i) => m.d99 <= LA[i].d99 + 4 && m.dMax <= 30), { antes: LA.map(m => m.d99), ahora: LB.map(m => m.d99), max: LB.map(m => m.dMax) });
+  const C = run(Object.assign({}, base, { frameMs: 16.667, secs: QUICK ? 20 : 40 })), D = run(Object.assign({}, base, { frameMs: 16.667, secs: QUICK ? 20 : 40, pace: false }));
+  check('ritmo: a 60 Hz nada cambia (mismos bytes y mismas huellas que sin tope)', !C.err && !D.err && C.S.every((s, i) => s.stats.bytesOut === D.S[i].stats.bytesOut && JSON.stringify(s.hashLog) === JSON.stringify(D.S[i].hashLog)) && C.S.every(s => s.stats.paced === 0),
+    C.err || D.err ? errTxt(C) || errTxt(D) : C.S.map((s, i) => [s.stats.bytesOut, D.S[i].stats.bytesOut]));
+}
+
+/** (o) Vuelta tras recargar (lane A en el lobby): la página del invitado muere D s y vuelve con una sesión NUEVA (otro contexto, otro
+ *  reloj, sin opciones, misma plaza y época) por un enlace nuevo. via 'same': el anfitrión sigue con el mismo objeto de enlace (el
+ *  lobby lo renegocia: mxRelinkHost); via 'add': un enlace nuevo con sess.addLink (el del enlace viejo queda sin plaza). */
+function reloadRun(run, o) {
+  const seats = o.seats || [{ team: 0 }, { team: 1 }, { team: 0 }, { team: 1 }], k = o.seat || 2, at = o.at || 15000, D = o.gap * 1000;
+  const box = { back: null };
+  const R = run({ seats, n: seats.length, rtt: o.rtt || (q => 60 + 20 * q), seed: o.seed || 51, secs: (at + D) / 1000 + (o.after || 25), opts: optsN(o.seed || 51, seats, { coop: o.coop }),
+    dead: (q, T) => q === k && T >= at && T < at + D,
+    script: (T, X) => {
+      if (T >= at && !X.cut) { X.cut = true; X.M.down(D, k); }   // (la página vieja ya no existe: lo que va o viene se pierde)
+      if (T >= at + D && !X.re) {
+        X.re = true;
+        const V = load(), host = X.S[0];
+        let gl;
+        if (o.via === 'add') {
+          const pr = V.Net.memPair({ lag: 60 + 20 * k, jit: 15, loss: 2, seed: 77 + k, clock: () => X.T });
+          X.M.down(1e9, k);   // (el enlace viejo no vuelve)
+          host.addLink(pr[0]); gl = pr[1];
+        } else { gl = X.M.links[k][0]; gl.flush(); }   // (relink: el mismo objeto en el anfitrión; la página nueva no hereda nada en vuelo)
+        X.V[k] = V; X.off[k] = -T + 3000;   // (página nueva: performance.now empieza de cero)
+        const old = X.S[k];
+        X.S[k] = new V.Net.Session({ slot: k, links: [gl], seats, opts: null, name: 'Plaza ' + k, names: seats.map((_, q) => 'Plaza ' + q), hashLog: [], epoch: old.epoch, back: true });
+        X.bots[k] = V.Net.bot(k, 99 + k, 'bueno');
+        box.back = { T };
+      }
+      if (box.back && !box.back.rsT && X.S[k].stats.rsIn > 0) box.back.rsT = T;
+    }, done: (S, T) => S.slice(0, seats.length).some(s => s.status === 'over') });
+  return { R, back: box.back, k, at, D };
+}
+function testReload(QUICK, run) {
+  console.log('== (o) vuelta tras recargar: la página de un invitado muere 5-40 s y vuelve con sesión y estado nuevos, enlace renegociado o nuevo ==');
+  const cases = QUICK ? [[5, 'same'], [40, 'add']] : [[5, 'same'], [12, 'add'], [25, 'same'], [40, 'add']];
+  for (const [gap, via] of cases) {
+    const X = reloadRun(run, { gap, via, seed: 51 + gap });
+    const R = X.R, tag = 'recarga ' + gap + ' s (' + (via === 'add' ? 'addLink' : 'mismo enlace') + '):';
+    check(tag + ' sin excepciones', !R.err, errTxt(R));
+    if (R.err) continue;
+    const g = R.S[X.k], h = R.S[0];
+    check(tag + ' la sesión nueva recibe el resync y juega', !!X.back && g.stats.rsIn >= 1 && (g.status === 'playing' || g.status === 'over') && !!g.opts, { st: g.status, rsIn: g.stats.rsIn });
+    check(tag + ' su plaza vuelve a ser humana en todas (no se dio por ida)', R.S.every(s => !s.seatAI(X.k) && !s.seatGone(X.k)) && !h.gc.hum[X.k].ai, R.S.map(s => [s.seatAI(X.k), s.seatGone(X.k)]));
+    const c = cmpFrom(R, [0, 1, 2, 3], g.rsT); check(tag + ' huellas iguales en las 4 desde el resync', c.n > 5 && c.bad === 0, Object.assign(c, { rsT: g.rsT }));
+    const G = golden(R); check(tag + ' PRUEBA DE ORO del anfitrión', G.checked > 5 && G.bad === 0 && G.finalOk === true, G);
+    const others = [0, 1, 2, 3].filter(i => i !== X.k);
+    check(tag + ' los demás siguen jugando sin esperar (< 4 s en total)', others.every(i => R.S[i].status === 'playing' || R.S[i].status === 'over') && others.every(i => R.st[i].wait < 240), others.map(i => [R.S[i].status, R.st[i].wait]));
+    console.log('        ' + tag + ' página nueva a los ' + r1((X.back.T - X.at) / 1000) + ' s; resync aplicado ' + Math.round(X.back.rsT - X.back.T) + ' ms después (tic ' + g.rsT + ')');
+  }
+  {   // coop de 2 (cable de 2 plazas, el de la Carrera cooperativa)
+    const X = reloadRun(run, { gap: 20, via: 'same', seed: 61, coop: true, seats: [{ team: 0 }, { team: 0 }], seat: 1, rtt: () => 120 });
+    const R = X.R, tag = 'recarga coop 20 s:';
+    check(tag + ' sin excepciones', !R.err, errTxt(R));
+    if (!R.err) {
+      const g = R.S[1];
+      check(tag + ' vuelve con resync y su plaza es humana', g.stats.rsIn >= 1 && !R.S[0].seatAI(1) && !R.S[0].gc.hum[1].ai, { rsIn: g.stats.rsIn, st: g.status });
+      const c = cmpFrom(R, [0, 1], g.rsT); check(tag + ' huellas iguales desde el resync', c.n > 5 && c.bad === 0, c);
+    }
+  }
+}
+
+/** Estudio del tope de predicción (lane B, punto 3): 2v2 × 4, invitados a cfg RTT, móvil de 60 Hz con la sim × cpuX (frame = render
+ *  + sesión × cpuX), combinaciones de tope y del «- K» del retraso. node tools/net4test.js --lane --maxpred [--secs 90] [--cpu 6]. */
+function studyMaxPred(argv, run) {
+  const arg = (k, d) => argv.includes(k) ? argv[argv.indexOf(k) + 1] : d;
+  const SECS = +arg('--secs', 90), CPU = +arg('--cpu', 6), REND = +arg('--render', 7), seeds = String(arg('--seeds', '41,42')).split(',').map(Number);
+  const nets = String(arg('--nets', '150,mix')).split(',');
+  const combos = String(arg('--combos', '24:16,30:16,36:16,24:14,24:12,30:14')).split(',').map(c => c.split(':').map(Number));
+  const S4 = [{ team: 0 }, { team: 1 }, { team: 0 }, { team: 1 }];
+  for (const net of nets) {
+    const rt = net === 'mix' ? [0, 40, 120, 200] : [0, +net, +net, +net];
+    console.log('== tope de predicción: RTT con el anfitrión ' + rt.slice(1).join('/') + ' ms ±15, 2 % de pérdida, móvil 60 Hz (render ' + REND + ' ms + sesión × ' + CPU + '), ' + SECS + ' s × semillas ' + seeds.join(',') + ' ==');
+    for (const [mp, dk] of combos) {
+      const acc = [];
+      for (const seed of seeds) {
+        const R = run({ rtt: k => rt[k], seed, secs: SECS, maxPred: mp, delayK: dk, cpuX: CPU, renderMs: REND, stepUs: +arg('--step', 20), copyUs: +arg('--copy', 130), frameMs: +arg('--frame', 16.667), visible: true, opts: optsN(seed, S4) });
+        if (R.err) { console.log('   error ' + errTxt(R)); continue; }
+        const c = cmpHashes(R); if (c.bad) console.log('   HUELLAS DISTINTAS ' + JSON.stringify(c));
+        acc.push(laneStats(R, [0, 1, 2, 3]));
+      }
+      const G = [1, 2, 3], tot = k => acc.reduce((a, L) => a + G.reduce((b, i) => b + L[i][k], 0), 0), mx = k => Math.max(...acc.map(L => Math.max(...G.map(i => L[i][k]))));
+      const fr = tot('frames');
+      console.log('   tope ' + mp + ', K ' + dk + ' (retraso ' + acc.map(L => L[0].delay).join('/') + '): invitados · micro-esperas ' + tot('stall') + ' frames (' + (100 * tot('stall') / fr).toFixed(2) + ' %) · frames perdidos por CPU ' + tot('miss') + ' (' + (100 * tot('miss') / fr).toFixed(2) + ' %)' +
+        ' · rollback p99 máx ' + mx('d99') + ', máx ' + mx('dMax') + ' · rehechos/frame ' + r1(tot('resim') / acc.length / 3) + ' · sim del móvil p99/máx ' + mx('sim99') + '/' + mx('simMax') + ' ms' +
+        ' · saltos visibles >0,15/>0,5 m por minuto ' + r1(tot('pj15') / (SECS / 60) / acc.length / 3) + '/' + r1(tot('pj50') / (SECS / 60) / acc.length / 3) + ' (p99 ' + mx('pj99') + ' m) · corrección total ' + r1(tot('pjSum') / (SECS / 60) / acc.length / 3) + ' m/min · balón >0,5 m ' + tot('bj50') +
+        ' · anfitrión micro-esperas ' + acc.reduce((a, L) => a + L[0].stall, 0));
+    }
+  }
+}
+
 /* ---------- Pruebas ---------- */
 function main() {
   const argv = process.argv, arg = (k, d) => argv.includes(k) ? argv[argv.indexOf(k) + 1] : d;
   const QUICK = argv.includes('--quick'), N = +arg('--n', 4), TOPO = arg('--topo', 'both'), MODEL = arg('--model', 'precisa2');
   const SECS = +arg('--secs', QUICK ? 30 : 90);
   const t0 = Date.now();
+  if (argv.includes('--lane')) {   // (lane B: solo (n) ritmo de envío y (o) vuelta tras recargar; con --maxpred, el estudio del tope)
+    const S4 = [{ team: 0 }, { team: 1 }, { team: 0 }, { team: 1 }];
+    const run = (c) => runMatch(Object.assign({ n: c.seats ? c.seats.length : 4, topo: 'star', relay: false, model: 'precisaN', seats: S4, jit: 15, loss: 2 }, c));
+    if (argv.includes('--maxpred')) studyMaxPred(argv, run); else { testPace(QUICK, run); testReload(QUICK, run); }
+    console.log((fails ? 'FALLO: ' + fails + ' de ' + (fails + oks) : 'net4test --lane OK: ' + oks + ' comprobaciones') + ', ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');
+    return fails ? 1 : 0;
+  }
 
   console.log('== (a) memMesh con n = 2 = memPair (mismo partido Precisa, misma red) ==');
   {

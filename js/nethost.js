@@ -227,6 +227,12 @@
   SP.predictedGame = function () { return this.g; };
   SP.stepInputs = function () { return null; };
   SP.seatGone = function (s) { return !!this.gone[s]; };
+  /** Anfitrión: un enlace más a mitad de partido (un invitado que vuelve tras recargar por otro Link; su plaza la dice su 'hello'). El
+   *  lobby de varios hoy no lo usa (renegocia el MISMO enlace: mxRelinkHost), pero así vale también con un enlace nuevo. */
+  SP.addLink = function (link) {
+    if (!link || !this.host || this.links.indexOf(link) >= 0) return;
+    this.links.push(link); this.peers.push(this._peer(link));
+  };
   SP.vsAI = function () { return false; };
   SP.setAway = function (on) { this.away = !!on; };
   SP.request = function (what) {
@@ -321,7 +327,7 @@
       case 'pong': this._pong(pe, c, now); return;
       case 'app': if (this.appIn.length < 64) this.appIn.push(c.d); if (this.host) this._bcast({ k: 'app', d: c.d, s: pe.seat }, pe.seat); return;
       case 'bye':
-        if (this.host) { this._seatGone(pe, c.why || 'bye'); return; }
+        if (this.host) { if (pe.seat > 0 || c.why !== 'reload') this._seatGone(pe, c.why || 'bye'); return; }   // (el adiós de la sesión vieja por un enlace nuevo: no es de nadie aún)
         if (this.status === 'over') { this.rivalLeft = true; return; }
         if (this.status !== 'ended') { this.status = 'ended'; this.valid = false; this.goneFlag = true; this.result = { why: 'hostGone', win: false }; }
         return;
@@ -364,7 +370,13 @@
         var s = c.seat | 0;
         if (c.v !== PROTO || (VB.VERSION && c.ver && c.ver !== VB.VERSION)) { this._ctl(pe, { k: 'bye', why: 'version', rv: VB.VERSION || '' }); return; }
         if (!g || s <= 0 || s >= g.hum.length) { this._ctl(pe, { k: 'bye', why: 'seat' }); return; }
-        for (var i = 0; i < this.peers.length; i++) if (this.peers[i] !== pe && this.peers[i].seat === s && !this.peers[i].gone) { this._ctl(pe, { k: 'bye', why: 'seat' }); return; }
+        for (var i = 0; i < this.peers.length; i++) {
+          var op = this.peers[i]; if (op === pe || op.seat !== s || op.gone) continue;
+          // (lane B: la misma plaza por OTRO enlace —addLink tras recargar— y el viejo lleva callado más de SILENT_AI: el viejo se
+          //  retira sin avisar a nadie, su plaza nunca se dio por ida, y el nuevo entra como una vuelta; si el viejo sigue vivo, no)
+          if (this.t0 && this.lastNow - op.heard > C.SILENT_AI) { op.gone = true; op.seat = -1; pe.gone = true; this._log('la plaza ' + s + ' vuelve por otro enlace'); continue; }
+          this._ctl(pe, { k: 'bye', why: 'seat' }); return;
+        }
         // (un 'hello' repetido de una plaza que sigue dentro: el invitado lleva un rato sin oírnos, pero el canal 'ctl' es fiable y le
         //  llegará todo lo pendiente; nada de foto nueva, que a mitad de peloteo le movería el balón)
         if (this.t0 && pe.hello && !pe.gone && pe.seat === s) return;
@@ -510,7 +522,7 @@
       this.hstats.holds++;
     }
     this._hostPost(T, false);
-    if (T % C.BUNDLE === 0) this._bundle(T);
+    if (T % C.BUNDLE === 0 && (redo || !(T + C.BUNDLE <= this._ftgt))) this._bundle(T);   // (lane B: tras un parón, solo el último del frame)
     var us = ((typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now()) - t0) * 1000;
     if (this.hstats.tickUs.length < 200000) this.hstats.tickUs.push(us);
   };
@@ -611,6 +623,7 @@
     //  siguen con el t0 del 'go' y quedarían adelantados el resto del partido: toques rechazados y Dp inflado)
     if (tgt - this.T > C.MAXCATCH + (this.maxCatch | 0)) { this.T = tgt - C.MAXCATCH; this.hstats.skips = (this.hstats.skips | 0) + 1; }
     var first = true;
+    this._ftgt = tgt;   // (lane B: los paquetes de 30 Hz y las poses de un frame con muchos tics, solo el último: nunca una ráfaga)
     for (var T = this.T + 1; T <= tgt; T++) {
       this.edgesNow = first ? this.edges : 0;
       this._hostTick(T, first ? inp : this._moveOnly(inp), false);
@@ -815,7 +828,7 @@
     }
     for (i = 0; i < F.fq.length; i++) this._ctl(pe, { k: 'fq', r: F.fq[i].r, pid: F.fq[i].pid, T: F.fq[i].T });
     F.fq.length = 0; F.pts.length = 0;
-    if (T % C.POSE === 0) this._sendPose(T);
+    if (T % C.POSE === 0 && !(T + C.POSE <= this._ftgt)) this._sendPose(T);   // (lane B: tras un parón, solo la última pose del frame)
   };
   SP._guestLife = function (now) {
     var pe = this.peers[0]; if (!pe) return;
@@ -856,6 +869,7 @@
     if (tgt - this.T > C.MAXCATCH + (this.maxCatch | 0)) this.T = tgt - C.MAXCATCH;
     if (inp) this.edges |= (inp.skip ? 1 : 0) | (inp.chal ? 2 : 0) | (inp.tmo ? 4 : 0);   // (bits de partido en la entrada, como en Precisa)
     var D = this._dispDelay(dtF), first = true;
+    this._ftgt = tgt;
     this.hstats.interpMs = Math.round(D * STEP_MS);
     for (var T = this.T + 1; T <= tgt; T++) {
       this._guestTick(T, first ? inp : this._moveOnly(inp), D);

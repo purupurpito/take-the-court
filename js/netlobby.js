@@ -868,6 +868,10 @@
     // lista: «3/4» en vez del hueco «?»; crear sala: las filas fijas por el formato enseñan siempre su explicación
     '#mpOnline .fx-slot.fx-cnt{border-style:solid;font-size:14px;letter-spacing:.02em}',
     '#mpOnline .ol-sel.ol-lock{opacity:.78}' + PP + '#menu #mpOnline .ol-sel.ol-lock .ol-hint{display:block}',
+    // «Beta» del 6 contra 6 (lane A): la pegatina del botón Online del menú (.sp-chip dorada, girada) en la esquina del brochazo y junto
+    // al rótulo «Formato»; sin pulsarse (aria-hidden: el aria de la sala y de la fila ya dicen «beta»)
+    P + '#mpOnline .ol-fx .ol-beta{position:absolute;right:12px;top:-7px;z-index:3;--sp-tilt:7deg;pointer-events:none}',
+    P + '#mpOnline .ol-sel .ol-beta2{margin-left:6px;--sp-tilt:-4deg;vertical-align:.1em;pointer-events:none}',
     // sala de espera: dos columnas de sitios (una por equipo, con el color de su camiseta en --tk); en cada una, sitios de 44 de alto
     // en rejilla (2 por fila en 568×320: los 12 del 6v6 caben con poco desplazamiento dentro de la hoja)
     '#mpOnline .mx-teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,218px),1fr));gap:10px 12px;margin:10px 12px 4px}',
@@ -976,10 +980,12 @@
     var tag = o.prev ? 'div' : 'button';
     // online de varios: en vez del hueco «?», cuántos hay de cuántos («3/4») y el aria con las plazas libres
     var nIn = r.multi ? 1 + (r.nseat | 0) : 0, freeTxt = r.multi ? (r.free === 1 ? '. 1 plaza libre' : '. ' + (r.free | 0) + ' plazas libres') : '. Una plaza libre';
+    // (lane A, 22-nov-2026: el 6 contra 6 lleva la pegatina «Beta», la misma del botón Online del menú, en la esquina del brochazo)
+    var beta = !!(r.multi && r.fmt === '6v6');
     return '<' + tag + ' class="ol-fx sp-ticket sp-calm sp-noshine ' + (beach ? 'sp-gold v-beach' : 'v-hall') + (o.isNew ? ' fx-new' : '') + (off ? ' fx-off' : '') + (o.prev ? ' fx-prev' : '') + '"' +
       ' data-shape="' + (o.idx | 0) + '"' +
       (o.prev ? '' : ' data-a="join" data-id="' + esc(r.id) + '"' + (off || L.busy ? ' disabled' : '') +
-        ' aria-label="' + esc('Sala de ' + r.name + '. ' + cfgParts(r).join(', ') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : freeTxt)) + '"') +
+        ' aria-label="' + esc('Sala de ' + r.name + '. ' + cfgParts(r).join(', ') + (beta ? '. Beta' : '') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : freeTxt)) + '"') +
       (o.isNew ? ' style="animation-delay:' + (o.delay | 0) + 'ms"' : '') + '><span class="sp-tk">' +
       '<span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true">' + VEN_IC[beach ? 'beach' : 'hall'] + '</span></span>' +
       '<span class="sp-tk-main fx-main"><small class="sp-k fx-k">' + kind + (vn && vn !== kind ? '<i class="ol-sep" aria-hidden="true"></i>' + esc(vn) : '') + '</small>' +
@@ -988,13 +994,13 @@
         : '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>') +
       '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" data-ph-ell aria-hidden="true">' + esc(vn) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
       '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
-      (off || o.prev ? '' : '<span class="fx-go">Entrar' + GO_IC + '</span>') + '</span></span></' + tag + '>';
+      (off || o.prev ? '' : '<span class="fx-go">Entrar' + GO_IC + '</span>') + '</span></span>' + (beta ? '<i class="sp-chip ol-beta" aria-hidden="true">Beta</i>' : '') + '</' + tag + '>';
   }
   /** Selector de «Crear sala»: la pegatina de tinta de Partido rápido (.sp-opt: rótulo dorado y ‹ valor › en trazo dorado entre flechas
    *  crema de 44 px). ↑↓ elige, ←→ o las flechas cambian (netlobby side / onClick con .arr). */
-  function selRow(k, label, val, hint, n, dis) {   // (dis: fila fija por el formato, p. ej. el 6 contra 6 siempre en Pabellón)
-    return '<button class="ol-sel sp-btn sp-ink sp-wide sp-opt sp-calm' + (L.lastSel === k ? ' ol-on' : '') + (dis ? ' ol-lock' : '') + '" data-ol="' + k + '" data-shape="' + (n | 0) + '"' + (dis ? ' disabled' : '') + ' aria-label="' + esc(label + ': ' + val + '. ' + hint) + '">' +
-      '<span class="mi-l">' + esc(label) + '<small class="ol-hint" aria-hidden="true">' + esc(hint) + '</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1">' + ARR_L + '</span>' +
+  function selRow(k, label, val, hint, n, dis, beta) {   // (dis: fila fija por el formato, p. ej. el 6 contra 6 siempre en Pabellón; beta: pegatina «Beta»)
+    return '<button class="ol-sel sp-btn sp-ink sp-wide sp-opt sp-calm' + (L.lastSel === k ? ' ol-on' : '') + (dis ? ' ol-lock' : '') + '" data-ol="' + k + '" data-shape="' + (n | 0) + '"' + (dis ? ' disabled' : '') + ' aria-label="' + esc(label + ': ' + val + (beta ? ' (beta)' : '') + '. ' + hint) + '">' +
+      '<span class="mi-l">' + esc(label) + (beta ? ' <i class="sp-chip ol-beta2" aria-hidden="true">Beta</i>' : '') + '<small class="ol-hint" aria-hidden="true">' + esc(hint) + '</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1">' + ARR_L + '</span>' +
       '<span class="mv-val"><b>' + esc(val).replace(/ \((v\d)\)$/,' <i class="sl-ver">($1)</i>') + '</b></span><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
   }
   /* Móvil (spec «Online»): los mismos puntos en frases de 2 líneas como mucho, «Sin pausa» el segundo, y en páginas de dos (puntitos y
@@ -1486,7 +1492,7 @@
     var six = c.fmt === '6v6', m = c.fmt === '2v2' || six;
     var netV = !m ? (fl ? 'Fluida (v2)' : 'Precisa (v1)') : six ? 'Anfitrión' : 'Precisa (v1)';
     var netH = !m ? (fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo') : six ? 'La partida va por quien crea la sala' : 'En 2 contra 2, siempre Precisa';
-    return selRow('fmt', 'Formato', FMT_TXT[c.fmt] || FMT_TXT['1v1'], !m ? 'Tú y tu rival, cada uno con un compañero IA' : six ? 'Hasta 12 personas; la IA, el resto' : 'Hasta 4 personas; la IA, el resto', 1) +
+    return selRow('fmt', 'Formato', FMT_TXT[c.fmt] || FMT_TXT['1v1'], !m ? 'Tú y tu rival, cada uno con un compañero IA' : six ? 'Hasta 12 personas; la IA, el resto' : 'Hasta 4 personas; la IA, el resto', 1, false, six) +
       selRow('venue', 'Escenario', ck, six ? 'El 6 contra 6 es en pista' : cb ? 'En la arena' : 'En pista cubierta', 0, six) +
       selRow('map', 'Sede', vn, 'Donde se juega', 2) +
       selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set', 1) +
@@ -1495,7 +1501,8 @@
       selRow('net', 'Conexión', netV, netH, 2, m);
   }
   function mkTip(c, fl) {
-    if (c.fmt === '6v6') return 'Cada persona lleva un jugador y la IA, los sitios libres. Mejor si quien crea la sala tiene buena conexión (wifi o cable).';
+    // (lane A: la partida del 6 contra 6 va por el aparato de quien crea la sala, que sube ~130 KB/s con 11 invitados: un consejo, una línea)
+    if (c.fmt === '6v6') return 'Mejor desde un ordenador o con wifi.';
     if (c.fmt === '2v2') return 'Cada persona lleva un jugador y la IA, los sitios libres. Tú repartes los sitios en la sala de espera.';
     return fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones en esta versión.'
       : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.';
@@ -1653,7 +1660,7 @@
   function mxLinkState(E, u, s) {
     var p = E.peers[u]; if (!p) return;
     if (s === 'open') {
-      p.open = true; E.heard[u] = Date.now(); mxStop(E, 'sig:' + u); mxStop(E, 'relink:' + u); mxStop(E, 'coopDown:' + u);
+      p.open = true; p.rlT0 = 0; E.heard[u] = Date.now(); mxStop(E, 'sig:' + u); mxStop(E, 'relink:' + u); mxStop(E, 'coopDown:' + u);
       if (!E.mock) api().delSig(E.room.id, u).catch(noop);   // (la señalización lleva direcciones de red: fuera en cuanto abre)
     } else if (s === 'down' || s === 'closed') {
       // (coop emparejada entre partidos —E.coopOn, en el hub de la Carrera—: una caída corta también se renegocia, como en pleno
@@ -1670,6 +1677,7 @@
    *  | 'nostart' (estaba de pie al empezar) | 'mismatch'. Su sitio vuelve a ser de la IA; noKick: ya no está sentado en la sala. */
   function mxRelease(E, u, why, noKick) {
     var p = E.peers[u], m = mxMem(E, u);
+    if (why === 'noconn' && p && !E.started && !E.attached) mxPrefail(E, p.link, why, Date.now() - p.t0);   // (lane A: antes de cerrar el enlace)
     mxStop(E, 'sig:' + u); mxStop(E, 'connT:' + u); mxStop(E, 'relink:' + u); mxStop(E, 'coopDown:' + u);
     delete E.peers[u]; delete E.links[u]; delete E.hi[u]; delete E.heard[u];
     if (p && p.link) {
@@ -1688,16 +1696,26 @@
     if (E.coop) { mxEnd(E, why === 'left' ? 'mateLeft' : why); return; }   // (coop: sin compañero no hay sala)
     mxCnt(E); mxBump(E);
   }
+  /** Enlace caído de un invitado en pleno partido: el anfitrión le vuelve a ofrecer (a los 0,6 s, cada 10 s el primer minuto y luego cada
+   *  20 s). (revisión: por TIEMPO y no por 7 intentos —~60 s—: mientras el invitado aún puede volver tras recargar, MX_BACK_HOST_MS en el
+   *  modelo anfitrión y MX_BACK_MS en Precisa-N y la coop, más RELINK_PAD de lo que tarda su página en cargar y ponerse a escuchar. Antes,
+   *  en el 6v6 un invitado que volvía entre los ~70 s y los 120 s esperaba a una oferta que ya no llegaba. La hora de la primera caída
+   *  queda en el par: un 'down' de nuevo no alarga la ventana.) */
+  var RELINK_PAD = 15000, RELINK_SLOW_MS = 60000;
   function mxRelinkHost(E, u) {
     var p = E.peers[u]; if (!p) return;
-    var tries = 0;
+    if (!p.rlT0) p.rlT0 = Date.now();
+    var t0 = p.rlT0, lim = (roomModel(E.room) === 'host' ? MX_BACK_HOST_MS : MX_BACK_MS) + RELINK_PAD, k = 0;
     var go = function () {
-      if (E.peers[u] !== p || E.closed || !p.link || p.link.state === 'open' || p.link.state === 'closed' || tries++ > 6) { mxStop(E, 'relink:' + u); return; }
+      if (E.peers[u] !== p || E.closed || !p.link || p.link.state === 'open' || p.link.state === 'closed' || Date.now() - t0 > lim) { mxStop(E, 'relink:' + u); return; }
+      var late = Date.now() - t0 > RELINK_SLOW_MS;
+      if (late && (k++ & 1)) return;   // (pasado el primer minuto, una de cada dos: cada 20 s)
+      var win = late ? 19000 : 9000;   // (se mira la respuesta hasta casi la oferta siguiente)
       var gen = p.gen = nextGen(), link = p.link, id = E.room.id;
       link.offer().then(function (sdp) { return api().putSig(id, 'offer', { sdp: sdp, gen: gen }, u); }).then(function () {
-        var t0 = Date.now();
+        var t1 = Date.now();
         mxEvery(E, 'sig:' + u, SIG_POLL, function () {
-          if (p.gen !== gen || link.state === 'open' || Date.now() - t0 > 9000) { mxStop(E, 'sig:' + u); return; }
+          if (p.gen !== gen || link.state === 'open' || Date.now() - t1 > win) { mxStop(E, 'sig:' + u); return; }
           api().getSig(id, 'answer', u).then(function (a) { if (a && a.gen === gen && p.gen === gen) { mxStop(E, 'sig:' + u); link.accept(a.sdp).catch(noop); } }, noop);
         });
       }).catch(noop);
@@ -1827,7 +1845,7 @@
     mxEvery(E, 'poll', 3000, function () { mxGuestPoll(E); });
     mxEvery(E, 'pump', PUMP_MS, function () { mxPump(E); });
     // (como en el 1 contra 1: la oferta llega en 2-4 s; sin ella y sin latido de la sala, «no responde»)
-    var tJoin = Date.now();
+    var tJoin = E.tJoin = Date.now();
     mxAfter(E, 'offerT', OFFER_MS, function chk() {
       if (E.closed || E.started || E.gotOffer) return;
       if (Date.now() - tJoin > MX_OFFER_MAX) { mxEnd(E, 'noHost'); return; }
@@ -1844,6 +1862,7 @@
     mxEvery(E, 'sig', SIG_POLL, function () {
       if (E.closed) { mxStop(E, 'sig'); return; }
       if (E.hostLink && E.hostLink.state === 'open' && !(E.started && netWaiting())) return;
+      if (E.started && netEnded()) return;   // (lane A: partido acabado del todo —'ended'—: ya no hay nada que renegociar)
       api().getSig(id, 'offer', E.myU).then(function (o) {
         if (!o || o.gen <= seen || E.closed) return;
         seen = o.gen; E.gen = o.gen;
@@ -1864,7 +1883,8 @@
   }
   function mxGuestLinkState(E, s) {
     if (s === 'open') {
-      E.heard.host = Date.now(); mxStop(E, 'coopDown');
+      E.heard.host = Date.now(); mxStop(E, 'coopDown'); mxStop(E, 'hostChk');
+      if (E.back && !E.backGo) { mxBackOpen(E); return; }   // (lane A: vuelta tras recargar: con el enlace abierto empieza la sesión)
       if (E.started || E.attached || E.closed || E.coopOn) return;
       mxStop(E, 'poll'); mxStop(E, 'offerT'); mxStop(E, 'connT');   // (desde aquí, nada de Firestore: todo va por el enlace)
       E.status = 'linked'; E.hiSent = true; mxSend(E.hostLink, mxHi(E));
@@ -1874,6 +1894,7 @@
         if (s === 'down' && E.coopOn && !E.attached) { mxDrain(E, E.room.host, E.hostLink); if (E.closed) return; }   // (un 'lb-bye' en la cola cuenta)
         if (s === 'down') {
           mxGuestListen(E, E.gen);   // (la escucha de ofertas: el anfitrión renegocia; también entre partidos de la coop)
+          mxHostChk(E);   // (lane A: si quien creó la sala recargó o cerró, su sala ya no existe: se acaba sin esperar 60 s)
           if (E.coopOn && !E.attached) mxAfter(E, 'coopDown', COOP_DOWN_MS, function () { if (!E.closed && !E.attached && (!E.hostLink || E.hostLink.state !== 'open')) mxEnd(E, 'hostLost'); });
         } else if (E.coopOn && !E.attached && !E.closed) { mxDrain(E, E.room.host, E.hostLink); if (!E.closed) mxEnd(E, 'hostLost'); }
       }
@@ -1902,6 +1923,7 @@
   /** La sala se acaba sin que lo pidas (te sacan, se cierra, se cae…): limpia y avisa (onEnd). */
   function mxEnd(E, why) {
     if (E.closed) return;
+    if (E.role === 'guest' && !E.started && !E.attached && (why === 'noconn' || why === 'hostLost')) mxPrefail(E, E.hostLink, why, Date.now() - (E.tJoin || Date.now()));
     E.closed = true; mxStopAll(E);
     if (!E.started) mxCloseLinks(E);
     if (!E.mock) { if (E.role === 'host') api().close(); else if (!E.started) api().leave(E.room.id); }
@@ -1994,6 +2016,9 @@
       L.room = r; L.role = 'host'; L.rival = ''; L.fail = ''; L.started = false; L.status = 'wait'; L.pick = '';
       L.mx = Mx({ role: 'host', room: r, onChange: mChange, onNote: mNote, onEnd: mEnd });
       mxHostInit(L.mx);
+      // (lane A: el consejo del 6 contra 6 para quien crea la sala, en una línea; en el móvil la nota de «Crear sala» no se ve, así que
+      //  sale aquí: aviso de arriba en el móvil, nota de la sala en PC)
+      if (six) { L.msg = 'Mejor desde un ordenador o con wifi.'; L.msgBad = false; }
       setView('room');
     }).catch(function (e) {
       L.busy = false;
@@ -2284,6 +2309,7 @@
     else if (a === 'join') coopJoinGo();
     else if (a === 'ok') coopHide();
     else if (a === 'okClose') { coopClose(); }
+    else if (a === 'bkCancel') bkCancel();   // (lane A: «Volviendo a la partida…» → Cancelar)
   }
   function coopShare() {
     var c = CO && CO.E && CO.E.room.code; if (!c) return;
@@ -2323,7 +2349,7 @@
     if (me.cfg.onClose) { try { me.cfg.onClose(why); } catch (e) { if (window.console) console.error(e); } }
   }
   function coopBusy(cfg) {
-    var bad = CO || L.mx || L.room ? 'busy' : noRtc() ? 'nortc' : !signedIn() ? 'noacc' : '';
+    var bad = CO || L.mx || L.room || BK ? 'busy' : noRtc() ? 'nortc' : !signedIn() ? 'noacc' : '';
     if (!bad) return false;
     if (bad !== 'busy') coopSheet({ title: cfg.title || 'Carrera cooperativa', text: coopWhy(bad), bad: true, ctas: [['ok', 'Entendido', 'sp-gold']] });
     if (cfg.onClose) setTimeout(function () { try { cfg.onClose(bad); } catch (e) { } }, 0);
@@ -2360,7 +2386,7 @@
     }).catch(function (e) { if (CO === me) coopEnded((e && e.code) || 'error'); });
     return true;
   }
-  function coopCancel() { var me = CO; if (!me) { coopHide(); return; } coopClose(); if (me.cfg.onClose) { try { me.cfg.onClose('cancel'); } catch (e) { } } }
+  function coopCancel() { if (BK && !BK.go) { bkCancel(); return; } var me = CO; if (!me) { coopHide(); return; } coopClose(); if (me.cfg.onClose) { try { me.cfg.onClose('cancel'); } catch (e) { } } }
   function coopClose() { var me = CO; CO = null; coopHide(); if (me && me.E) mxLeave(me.E); }
   function coopSend(obj) {
     var me = CO; if (!me || !me.E || !me.ready || me.E.closed) return false;
@@ -2477,10 +2503,14 @@
   // (pagehide también salta al ir a otra página; 'persisted' = la página queda en la caché del navegador y puede volver: entonces
   // también se suelta, y al volver se está en la lista.)
   document.addEventListener('vb:ph', function () { if (L.on) render(true); });   // (girar / cambiar de tamaño: otra disposición)
-  document.addEventListener('visibilitychange', function () { try { mxVis(L.mx); if (CO && CO.E && CO.E !== L.mx) mxVis(CO.E); } catch (e) { } });
+  document.addEventListener('visibilitychange', function () { try { mxVis(L.mx); if (CO && CO.E && CO.E !== L.mx) mxVis(CO.E); mxBackVis(); } catch (e) { } });
   window.addEventListener('pagehide', function () {
-    if (CO && CO.E) { try { mxBye(CO.E); } catch (e) { } }   // (Carrera cooperativa: la sala o la plaza, fuera)
-    if (L.mx) { try { mxBye(L.mx); } catch (e) { } if (!L.started) { L.mx = null; L.room = null; L.role = ''; L.view = 'list'; } return; }   // (online de varios: sin vuelta tras recargar en esta versión)
+    // (lane A) online de varios y Carrera coop: el INVITADO en pleno partido apunta la vuelta y NO suelta su plaza (ni dice adiós: para
+    // los demás es una caída y la IA lleva su jugador mientras vuelve); el ANFITRIÓN avisa de que se va (sin vuelta: no cuenta)
+    var mxSaved = false; try { mxSaved = mxBackSave(); mxHostLeaving(); } catch (e) { }
+    if (BK) { if (!mxSaved && BK.E) { try { mxBye(BK.E); } catch (e) { } } return; }
+    if (CO && CO.E && !(mxSaved && CO.E.role === 'guest')) { try { mxBye(CO.E); } catch (e) { } }   // (Carrera cooperativa: la sala o la plaza, fuera)
+    if (L.mx) { if (!(mxSaved && L.mx.role === 'guest')) { try { mxBye(L.mx); } catch (e) { } } if (!L.started) { L.mx = null; L.room = null; L.role = ''; L.view = 'list'; } return; }
     if (!rooms || !L.room || !L.role) return;
     // (vuelta al partido tras recargar: ver «VUELTA AL PARTIDO» abajo. Si se ha apuntado la vuelta, el invitado NO suelta su
     // hueco: con la sala aún en 'full' el PATCH de bye entraría y la sala volvería a la lista sin él. Si no vuelve, el anfitrión
@@ -2500,7 +2530,7 @@
   var BACK = 'make-the-cut.online.back', BACK_MS = 50000;
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { } return null; }
   function backSave() {
-    if (L.mx) return false;   // (online de varios: sin vuelta tras recargar en esta versión; la IA lleva tu plaza)
+    if (L.mx) return false;   // (online de varios: su propia vuelta, mxBackSave más abajo)
     if (L.role === 'host') return hostBackSave();   // (fase 6: también el anfitrión)
     try {
       var C = ctx(), n = C && C.net, st = n && n.sess && n.sess.status;
@@ -2515,6 +2545,7 @@
     var b = null; try { b = JSON.parse(ss(BACK) || 'null'); } catch (e) { b = null; }
     ss(BACK, null);   // (un solo intento)
     if (!b || typeof b.id !== 'string' || !b.uid || noRtc()) return;
+    if (b.multi) { mxBackTry(b); return; }   // (lane A: online de varios y Carrera coop)
     var late = !(Date.now() - (+b.t || 0) < BACK_MS);
     if (late && b.role !== 'host') return;   // (fase 6: el anfitrión fuera de plazo aún borra su sala, abajo)
     var tries = 0, wait = setInterval(function () {
@@ -2586,6 +2617,184 @@
     }, 500);
     relink();
   }
+
+  /* ---------------- VUELTA TRAS RECARGAR EN EL ONLINE DE VARIOS (lane A, 22-nov-2026) ----------------
+   * 2 contra 2 (Precisa-N), 6 contra 6 (modelo anfitrión) y Carrera cooperativa. El INVITADO que recarga, o al que el móvil le mata la
+   * pestaña en segundo plano, vuelve solo a SU plaza:
+   *  - Marca BACK (sessionStorage, la misma clave que el 1 contra 1, con multi: 1) = {id sala, uid, gen, plaza, humans (equipo, idx,
+   *    puesto, nombre y look de cada plaza), modelo, formato, coop, cc (Carrera coop), época, lo anunciado, nombre de quien creó la sala,
+   *    t}. Se apunta en el pagehide y TAMBIÉN al ocultarse la página (visibilitychange: el móvil puede matarla sin pagehide), y mientras
+   *    sigue oculta se reapunta cada ~3 s (mxBackAlive: t = la última vez que estaba viva); al volver a verse se borra. Nada de SDP
+   *    ni direcciones de red. Su plaza no se suelta ni se dice adiós: los demás lo viven como una caída (la IA lleva su jugador) y en
+   *    'play' las reglas tampoco dejan levantarse.
+   *  - Al cargar (backTry, un solo intento): con la marca de menos de MX_BACK_MS (55 s; 120 s en el modelo anfitrión, que readmite
+   *    incluso tras darle por ido), la sala aún con su plaza y viva → hoja «Volviendo a la partida…» con «Cancelar» (la #olCoop de la
+   *    coop) y un motor de invitado (Mx) ya «empezado» que escucha la siguiente oferta del anfitrión en sig/o_<uid> (gen mayor que la
+   *    apuntada: su relink reofrece a los 0,6 s, cada 10 s el primer minuto y luego cada 20 s, mientras aún se pueda volver: mxRelinkHost).
+   *    Con el enlace ABIERTO (no antes: las sesiones dan 'noShow' a los 20 s sin oír a nadie) empieza una sesión nueva sin opciones, como en mGuestGo: el saludo trae las del anfitrión. Precisa-N
+   *    (SessionN): saludo + ready → el anfitrión le pasa a la IA y le manda el resync con la foto. Modelo anfitrión (nethost): antes del
+   *    saludo, el adiós de la sesión vieja ({k:'bye', why:'reload'}: era verdad, esa sesión ya no existe) y el saludo lo readmite (foto
+   *    tele, 'go', 'back' a los demás). HUD «Volviendo a la partida…» con «Salir» hasta que llega la foto.
+   *  - Sin enlace en MX_BACK_WAIT (70 s), o la sala desaparece (quien la creó recargó o cerró: «… ha cerrado la sala: el partido no
+   *    cuenta», y la marca del récord se cierra como «no cuenta»), una hoja lo dice. «Cancelar» = dejar el partido (la marca del récord
+   *    queda y a los 90 s cuenta como abandono, como en el 1 contra 1: recargar no sale gratis).
+   *  - Carrera coop: vuelve al PARTIDO (enlace directo, net.coopCareer: sin revancha ni récord). Su Carrera en memoria no vuelve: al
+   *    salir de la hoja final, el adiós ('lb-bye') cierra la coop en el anfitrión, que ya acreditó a p2 en su guardado.
+   * El ANFITRIÓN no vuelve en el de varios (su partida es la de verdad y nadie la tiene entera): al irse avisa ({t:'hostLeft'} por la
+   * sesión) y los invitados acaban en el acto con 'hostGone' («X se ha ido: el partido no cuenta»). Si el aviso no llega, el invitado con
+   * el enlace caído mira la sala cada 5 s (mxHostChk): sin sala, lo mismo. Con la pestaña oculta un rato (móvil), sus invitados esperan
+   * con «X ha salido un momento de la app…» (main.js, {t:'hostAway'}) hasta los 60 s de siempre. */
+  var MX_BACK_MS = 55000, MX_BACK_HOST_MS = 120000, MX_BACK_WAIT = 70000, HOST_CHK_MS = 5000;
+  var BK = null;   // {b (la marca), E (motor de la vuelta), go (ya hay sesión), t0}
+  function netEnded() { var C = ctx(), r = C && C.net && C.net.r; return !!(r && r.status === 'ended'); }
+  function netLive() { var C = ctx(), s = C && C.net && C.net.sess; return !!(s && s.status !== 'ended'); }
+  /** Motor del partido de varios en el que estás (vuelta, sala de varios empezada o coop). */
+  function mxBackEngine() {
+    if (BK && BK.E && !BK.E.closed) return BK.E;
+    if (L.mx && L.mx.started && !L.mx.closed) return L.mx;
+    if (CO && CO.E && !CO.E.closed) return CO.E;
+    return null;
+  }
+  /** Invitado en pleno partido de varios: apunta la vuelta. true = apuntada (entonces no se suelta la plaza). */
+  function mxBackSave() {
+    try {
+      if (BK && !BK.go) { ss(BACK, JSON.stringify(BK.b)); return !!ss(BACK); }   // (recarga mientras volvía: la misma marca, con su hora)
+      var E = mxBackEngine(), C = ctx(), n = C && C.net, s = n && n.sess, st = s && s.status;
+      if (!E || E.role !== 'guest' || E.mock || !n || !n.multi || !(n.seat > 0) || !Array.isArray(n.humans) || n.seat >= n.humans.length) return false;
+      if (!(st === 'playing' || st === 'waiting' || st === 'starting' || st === 'connecting') || s.goneFlag) return false;
+      var H = n.humans.map(function (h) { return { team: h.team, idx: h.idx, role: h.role || '', name: h.name || '', look: h.look || null }; });
+      ss(BACK, JSON.stringify({ multi: 1, id: E.room.id, uid: api().uid() || '', gen: E.gen | 0, seat: n.seat, humans: H, model: n.model === 'host' ? 'host' : 'precisa',
+        fmt: E.room.fmt === '6v6' ? '6v6' : '2v2', coop: E.room.mode === 'coop' ? 1 : 0, cc: n.coopCareer ? 1 : 0, ep: n.epoch | 0, expect: n.expect || null,
+        host: NR().cleanName(E.room.name) || '', t: Date.now() }));
+      return !!ss(BACK);   // (sessionStorage puede fallar: entonces se sale como antes)
+    } catch (e) { }
+    return false;
+  }
+  /** Página oculta en pleno partido de varios (invitado): por si el móvil la mata sin pagehide, la vuelta queda apuntada; al volver a
+   *  verse, fuera (la sesión siguió viva). */
+  function mxBackVis() {
+    var E = mxBackEngine(); if (!E || E.role !== 'guest') return;
+    if (docHidden()) { mxBackSave(); return; }
+    var b = null; try { b = JSON.parse(ss(BACK) || 'null'); } catch (e) { b = null; }
+    if (b && b.multi && !(BK && !BK.go)) ss(BACK, null);
+  }
+  /** Página oculta en pleno partido de varios (invitado), cada ~3 s desde el pulso de main.js (netBgTick, un Worker que no se frena en
+   *  segundo plano): la marca BACK se vuelve a apuntar con la hora de ahora. (revisión: antes quedaba con la hora en que se ocultó; si el
+   *  móvil la mantenía viva más de MX_BACK_MS —55 s— y la descartaba después, al restaurarla la marca ya estaba caducada y no volvía.) */
+  function mxBackAlive() {
+    try { if (!docHidden() || (BK && !BK.go)) return; var E = mxBackEngine(); if (E && E.role === 'guest') mxBackSave(); } catch (e) { }
+  }
+  /** Anfitrión de varios que se va en pleno partido (pagehide): sus invitados acaban ya ('hostGone', no cuenta) en vez de esperar 60 s. */
+  function mxHostLeaving() {
+    var E = L.mx && L.mx.role === 'host' && L.mx.started ? L.mx : CO && CO.E && CO.E.role === 'host' && CO.E.attached ? CO.E : null;
+    var C = ctx(), n = C && C.net, s = n && n.sess;
+    if (!E || E.mock || !n || !n.multi || n.seat !== 0 || !s || !s.sendApp || s.status === 'ended' || s.status === 'over') return;
+    try { s.sendApp({ t: 'hostLeft' }); } catch (e) { }
+  }
+  /** Invitado con el enlace caído en pleno partido: si la sala ya no existe, quien la creó se ha ido (recargó o cerró) y no vuelve. */
+  function mxHostChk(E) {
+    if (E.mock || (E.back && !E.backGo)) return;
+    mxEvery(E, 'hostChk', HOST_CHK_MS, function () {
+      if (E.closed || (E.hostLink && E.hostLink.state === 'open') || !netLive()) { mxStop(E, 'hostChk'); return; }
+      api().get(E.room.id).then(function (r) {
+        if (r || E.closed || (E.hostLink && E.hostLink.state === 'open') || !netLive()) return;
+        mxStop(E, 'hostChk');
+        var C = ctx(); if (C && C.actions && C.actions.netHostLeft) C.actions.netHostLeft();
+      }, noop);
+    });
+  }
+  /** Telemetría (lane A): un enlace que no llega a abrirse ANTES del partido deja un documento pequeño (VB.NetLog.prefail). */
+  function mxPrefail(E, link, why, ms) {
+    if (!E || E.mock || E.pf || !VB.NetLog || !VB.NetLog.prefail || (link && link.opens) || netLive()) return;
+    E.pf = true;   // (uno por sala)
+    var r = E.room || {};
+    try {
+      VB.NetLog.prefail({ role: E.role, fmt: E.coop ? 'coop' : fmtOf(r), cap: r.cap | 0, mode: r.mode || '', why: why, ms: ms, phase: E.back ? 'vuelta' : 'sala',
+        diag: VB.NetLog.linkDiag ? VB.NetLog.linkDiag(link) : null, relay: !!(VB.NetRtc && VB.NetRtc.relayOn && VB.NetRtc.relayOn()) });
+    } catch (e) { }
+  }
+  /** Hoja «Volviendo a la partida…» (la de la coop: SPLAT, modal, móvil primero). */
+  function bkSheet(text) { coopSheet({ title: 'Volviendo a la partida…', text: text, ctas: [['bkCancel', 'Cancelar', 'sp-danger']] }); }
+  function bkStop(me) { var E = me && me.E; if (E && !E.closed) { E.closed = true; mxStopAll(E); mxCloseLinks(E); } }
+  function mxBackTry(b) {
+    var lim = b.model === 'host' ? MX_BACK_HOST_MS : MX_BACK_MS;
+    if (!(Date.now() - (+b.t || 0) < lim) || !Array.isArray(b.humans) || !(b.seat > 0) || b.seat >= b.humans.length || b.humans.length > 12) return;
+    var tries = 0, wait = setInterval(function () {
+      var C = ctx(), U = VB.UI;
+      if (++tries > 60 || Date.now() - b.t > lim) { clearInterval(wait); return; }
+      if (!signedIn() || !C || C.state !== 'menu' || !C.actions || !C.actions.startOnline || !U || !U.menuIdle || !U.menuIdle() || L.room || L.mx || CO || BK) return;
+      clearInterval(wait);
+      var me = BK = { b: b, E: null, go: false, t0: Date.now() };
+      bkSheet('Buscando la sala de ' + (NR().cleanName(b.host) || 'quien la creó') + '…');
+      api().get(b.id).then(function (r) {
+        if (BK !== me) return;
+        if (!r) { bkFail('gone'); return; }
+        var okSt = r.state === 'play' || (r.mode === 'coop' && (r.state === 'full' || r.state === 'coop'));
+        if (api().uid() !== b.uid || !r.multi || r.host === b.uid || !(b.uid in (r.seats || {})) || r.age > NR().LIVE_MS || !okSt) { bkFail('nope'); return; }
+        mxRejoin(r, b);
+      }, function () { if (BK === me) bkFail('net'); });
+    }, 500);
+  }
+  function mxRejoin(r, b) {
+    try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }   // (el partido recuperado hereda la marca del récord)
+    var me = BK;
+    var E = Mx({ role: 'guest', room: r, coop: r.mode === 'coop', onChange: noop, onNote: noop, onEnd: function (why, E2) { if (BK && BK.E === E2) BK = null; } });
+    E.started = true; E.back = b; E.backGo = false; E.gen = b.gen | 0; E.status = 'back'; E.tJoin = Date.now();
+    me.E = E;
+    bkSheet('Reconectando con la sala de ' + (NR().cleanName(r.name) || NR().cleanName(b.host) || 'quien la creó') + '. Mientras, tu jugador lo lleva la IA.');
+    mxGuestListen(E, E.gen);
+    mxEvery(E, 'bkRoom', HOST_CHK_MS, function () {   // (la sala desaparece mientras esperas: quien la creó se ha ido)
+      if (BK !== me || E.backGo) { mxStop(E, 'bkRoom'); return; }
+      api().get(r.id).then(function (r2) { if (BK === me && !E.backGo && !r2) bkFail('gone'); }, noop);
+    });
+    mxAfter(E, 'bkT', MX_BACK_WAIT, function () { if (BK === me && !E.backGo) bkFail('noconn'); });
+  }
+  /** El enlace de la vuelta está abierto: sesión nueva en tu plaza (como mGuestGo, con lo apuntado en la marca). */
+  function mxBackOpen(E) {
+    var b = E.back, C = ctx(), link = E.hostLink, me = BK;
+    E.backGo = true; if (me && me.E === E) me.go = true;
+    mxStop(E, 'bkRoom'); mxStop(E, 'bkT');
+    coopHide();
+    var coop = !!b.coop, ps = b.fmt === '6v6' ? 6 : 2, humans = [];
+    for (var k = 0; k < b.humans.length; k++) {
+      var h = b.humans[k] || {};
+      humans.push({ team: h.team === 1 && !coop ? 1 : 0, idx: Math.max(0, Math.min(ps - 1, h.idx | 0)), role: ROLE6_K.indexOf(h.role) >= 0 ? h.role : '',
+        name: NR().cleanName(h.name) || 'Jugador ' + (k + 1), look: saneLook(h.look) || (k === b.seat ? myLook() : null) });
+    }
+    var ep = Math.max(0, Math.min(1e6, b.ep | 0));
+    // (modelo anfitrión: la sesión vieja de esta plaza ya no existe; su adiós hace que el saludo de la nueva la readmita con la foto)
+    if (b.model === 'host') { try { link.send('ctl', JSON.stringify(ep ? { k: 'bye', why: 'reload', ep: ep } : { k: 'bye', why: 'reload' })); } catch (e) { } }
+    link.onclose = function () { mxLinkGone(E, E.room.host); };
+    if (coop) {   // (Carrera coop: al salir de la hoja final, el adiós cierra la coop del anfitrión: esta página ya no tiene su Carrera)
+      var c0 = link.close;
+      link.close = function () { try { if (link.state === 'open') link.send('ctl', JSON.stringify({ k: 'lb-bye' })); } catch (e) { } return c0.apply(link, arguments); };
+    }
+    var ok = !!(C && C.actions && C.actions.startOnline) && C.actions.startOnline({ humans: humans, seat: b.seat, links: [link], opts: null, name: myName(),
+      model: b.model === 'host' ? 'host' : 'precisa', format: b.fmt === '6v6' ? '6v6' : '2v2', expect: b.expect && typeof b.expect === 'object' ? b.expect : null, coop: coop });
+    if (!ok) { if (me && me.E === E) BK = null; bkStop({ E: E }); coopSheet({ title: 'Volver a la partida', text: mxWhy('error'), bad: true, ctas: [['ok', 'Entendido', 'sp-gold']] }); return; }
+    var n = C.net;
+    if (n && n.sess) {
+      if (ep) { n.epoch = ep; n.sess.epoch = ep; }   // (revancha n.º k: la sesión nueva habla en la época del anfitrión)
+      n.sess.back = true;   // (HUD «Volviendo a la partida…» hasta que llega la foto)
+      if (b.cc) n.coopCareer = true;   // (Carrera coop: sin revancha ni récord online)
+    }
+  }
+  /** La vuelta no puede ser: why 'gone' (la sala ya no existe) | 'nope' (ya no tienes plaza o el partido acabó) | 'noconn' | 'net'. */
+  function bkFail(why) {
+    var me = BK; if (!me) return;
+    if (why === 'noconn' && me.E) mxPrefail(me.E, me.E.hostLink, 'noconn', Date.now() - me.t0);   // (antes de cerrar el enlace)
+    BK = null; bkStop(me);
+    if (why === 'gone') {   // (quien creó la sala se fue: el partido no cuenta, tampoco para tu récord)
+      try { var R = VB.NetRec; if (R && R.resume && R.resume()) { R.begin(me.b.host || 'Rival'); R.end(me.b.host || 'Rival', { why: 'hostGone', win: false }, false, null); } } catch (e) { }
+    }
+    var who = NR().cleanName(me.b.host) || 'Quien creó la sala';
+    var txt = why === 'gone' ? who + ' ha cerrado la sala: el partido no cuenta.' : why === 'noconn' ? 'No se ha podido volver a conectar con la sala de ' + who + '.' :
+      why === 'net' ? errText({ code: 'net' }) : 'Ya no se puede volver a esa partida.';
+    coopSheet({ title: 'Volver a la partida', text: txt, bad: true, ctas: [['ok', 'Entendido', 'sp-gold']] });
+  }
+  /** «Cancelar» en «Volviendo a la partida…»: dejas el partido (la marca del récord cuenta como abandono a los 90 s). */
+  function bkCancel() { var me = BK; BK = null; bkStop(me); coopHide(); }
+
   setTimeout(backTry, 300);
 
   // ?sala=CÓDIGO: abre Online y entra en esa sala en cuanto el menú está libre
@@ -2603,10 +2812,11 @@
   VB.NetLobby = {
     menuOn: function () { return MENU_ON || Q.online === '1' || !!EMU; },
     open: open, leave: leave, back: back, side: side, focus: first,
-    myName: myName, myStats: myStats, myLook: myLook, saneLook: saneLook, _ver: ver,   // (_ver: pruebas, la versión de sala que publica)
+    myName: myName, myStats: myStats, myLook: myLook, saneLook: saneLook, _ver: ver, backAlive: mxBackAlive,   // (_ver: pruebas, la versión de sala que publica; backAlive: main.js, página oculta)
     _state: function () {
       var E = L.mx, st = { view: L.view, role: L.role, rival: L.rival, status: L.status, started: L.started, rooms: L.rooms.map(function (r) { return { id: r.id, name: r.name, other: r.other, multi: !!r.multi, fmt: r.fmt, cap: r.cap, nseat: r.nseat }; }), room: L.room && { id: L.room.id, code: L.room.code, state: L.room.state, multi: !!L.room.multi, fmt: L.room.fmt, cap: L.room.cap }, link: L.link && L.link.state, linkInfo: L.link && L.link.info(), msg: L.msg, fail: L.fail, emu: EMU };
       // (online de varios) la sala: quién está, sitios, listos, pings; los enlaces por uid; ¿se puede empezar?
+      if (BK) st.bk = { go: !!BK.go, seat: BK.b.seat, room: BK.b.id, link: BK.E && BK.E.hostLink ? BK.E.hostLink.state : '' };   // (lane A: vuelta en el de varios)
       if (E) { var lk = {}; for (var u in E.links) lk[u] = E.links[u] && E.links[u].state; st.mx = { role: E.role, status: E.status, started: E.started, ro: JSON.parse(JSON.stringify(E.ro)), links: lk, can: mxCanStart(E), pick: L.pick || '', me: E.myU }; }
       return st;
     },

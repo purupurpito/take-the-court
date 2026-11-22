@@ -13,7 +13,13 @@
  *  d) Reglas sin desplegar: crear una sala de varios → «Las salas de varios aún no están activadas» y el 1 contra 1 sigue.
  *  e) 1 contra 1 por el lobby (el camino de siempre: «pre» y startOnline con slot/link) y un cliente 1.21.0 (L2) ve la sala como
  *     «otra versión».
- * Uso: node tools/lobbytest.js [--port 8095] [--only a,b,c,d,e]
+ *  g) (lane A) vuelta tras recargar en el de varios: el invitado de 2 contra 2 y de 6 contra 6 recarga en pleno partido (pagehide:
+ *     marca BACK sin soltar la plaza), la página nueva vuelve sola a SU plaza (la siguiente oferta del anfitrión, startOnline con la
+ *     misma plaza y opts null; en el 6v6, antes, el adiós de la sesión vieja); el anfitrión que se va avisa ({t:'hostLeft'}) y una
+ *     vuelta a una sala que ya no existe no empieza nada. En b), la telemetría del enlace que nunca abre (VB.NetLog.prefail).
+ *  h) (revisión) 6 contra 6: con la pestaña oculta la marca BACK se reapunta (backAlive) y una vuelta a los 80 s de morir la página
+ *     conecta (el anfitrión del modelo host reofrece mientras se puede volver, 120 s). ~2 min de verdad.
+ * Uso: node tools/lobbytest.js [--port 8095] [--only a,b,c,d,e,f,g,h]
  */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), vm = require('vm'), { spawn } = require('child_process');
@@ -26,7 +32,7 @@ let fails = 0, oks = 0;
 function check(name, ok, info) { if (ok) oks++; else fails++; console.log((ok ? '  ok   ' : '  FALLO ') + name + (info !== undefined ? ' ' + (typeof info === 'string' ? info : JSON.stringify(info)) : '')); }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 async function until(f, ms, step) { const t0 = Date.now(); for (;;) { let v = false; try { v = f(); } catch (e) { v = false; } if (v) return v; if (Date.now() - t0 > ms) return false; await sleep(step || 50); } }
-const SRC = { room: fs.readFileSync(path.join(ROOT, 'js/netroom.js'), 'utf8'), lobby: fs.readFileSync(path.join(ROOT, 'js/netlobby.js'), 'utf8') };
+const SRC = { room: fs.readFileSync(path.join(ROOT, 'js/netroom.js'), 'utf8'), lobby: fs.readFileSync(path.join(ROOT, 'js/netlobby.js'), 'utf8'), log: fs.readFileSync(path.join(ROOT, 'js/netlog.js'), 'utf8') };
 
 /* ---------- WebRTC de mentira: las SDP son fichas de un registro común; los mensajes, en memoria (en orden) ---------- */
 function makeHub() {
@@ -59,15 +65,16 @@ const HUB = makeHub();
 function el() { return { style: {}, hidden: true, innerHTML: '', setAttribute() { }, getAttribute() { return null; }, removeAttribute() { }, addEventListener() { }, appendChild() { }, querySelector() { return null; }, querySelectorAll() { return []; }, classList: { add() { }, remove() { }, contains() { return false; } } }; }
 function page(name, uid, o) {
   o = o || {};
-  const store = {}, sstore = {}, started = [], reads = { GET: 0, POST: 0, PATCH: 0, DELETE: 0 };
+  const store = {}, sstore = Object.assign({}, o.ss || {}), started = [], reads = { GET: 0, POST: 0, PATCH: 0, DELETE: 0 }, ev = {};
+  const on = (t, f) => { (ev[t] = ev[t] || []).push(f); };   // (lane A: pagehide / visibilitychange se pueden disparar a mano)
   const mkLS = s => ({ getItem: k => (k in s ? s[k] : null), setItem: (k, v) => { s[k] = String(v); }, removeItem: k => { delete s[k]; } });
   const f0 = o.fetch || fetch;
   const c = {
     console, setTimeout, clearTimeout, setInterval, clearInterval, btoa, atob, URLSearchParams, URL, TextEncoder, performance,
     fetch: (u, op) => { reads[(op && op.method) || 'GET'] = (reads[(op && op.method) || 'GET'] || 0) + 1; return f0(u, op); },
-    navigator: {}, localStorage: mkLS(store), sessionStorage: mkLS(sstore), addEventListener() { }, removeEventListener() { },
+    navigator: {}, localStorage: mkLS(store), sessionStorage: mkLS(sstore), addEventListener: on, removeEventListener() { },
     location: { search: '?netemu=' + PORT + '&netuid=' + uid + '&name=' + encodeURIComponent(name) + '&netice=none' + (o.q || ''), protocol: 'http:', hostname: 'localhost', origin: 'http://localhost', pathname: '/index.html' },
-    document: { getElementById: () => null, createElement: () => el(), head: el(), body: el(), addEventListener() { }, querySelectorAll: () => [], visibilityState: 'visible', documentElement: el() }
+    document: { getElementById: () => null, createElement: () => el(), head: el(), body: el(), addEventListener: on, querySelectorAll: () => [], visibilityState: 'visible', documentElement: el() }
   };
   c.window = c; c.globalThis = c; c.self = c;
   for (const k in (o.ls || {})) store[k] = o.ls[k];
@@ -76,10 +83,12 @@ function page(name, uid, o) {
     NetRtc: { Link: function (lo) { return new HUB.FakeLink(lo, o.block); }, supported: () => true },
     ctx: { state: 'menu', settings: {}, actions: { startOnline: so => { started.push(so); return true; } } }
   };
+  if (o.ui) c.VB.UI = { menuIdle: () => true };   // (lane A: página recién cargada con el menú libre: la vuelta tras recargar arranca)
   vm.createContext(c);
   vm.runInContext(SRC.room, c, { filename: 'netroom.js' });
+  if (o.netlog) vm.runInContext(SRC.log, c, { filename: 'netlog.js' });
   vm.runInContext(SRC.lobby, c, { filename: 'netlobby.js' });
-  return { name, uid, c, VB: c.VB, NL: c.VB.NetLobby, started, reads, st: () => c.VB.NetLobby._state() };
+  return { name, uid, c, VB: c.VB, NL: c.VB.NetLobby, started, reads, sstore, st: () => c.VB.NetLobby._state(), fire: t => (ev[t] || []).forEach(f => f({})) };
 }
 
 /* ---------- emulador ---------- */
@@ -194,9 +203,9 @@ async function test2v2() {
 async function test6v6() {
   console.log('\nb) 6 contra 6: puesto preferido, invitado que no conecta, sacar, salir, mover, cambiar equipos');
   await wipe();
-  const H = page('Hugo Seis', 'uidS0', { ls: { 'make-the-cut.role6': 'S' }, q: '&netconnms=6000' });
+  const H = page('Hugo Seis', 'uidS0', { ls: { 'make-the-cut.role6': 'S' }, q: '&netconnms=6000', netlog: true });
   const G = [page('Ines Uno', 'uidS1', { ls: { 'make-the-cut.role6': 'S' } }), page('Juan Dos', 'uidS2'), page('Kira Tres', 'uidS3', { ls: { 'make-the-cut.role6': 'MB' } }),
-    page('Leo Bloq', 'uidS4', { block: true, q: '&netconnms=6000' }), page('Mia Cinco', 'uidS5'), page('Nico Seis', 'uidS6')];
+    page('Leo Bloq', 'uidS4', { block: true, q: '&netconnms=6000', netlog: true }), page('Mia Cinco', 'uidS5'), page('Nico Seis', 'uidS6')];
   H.NL._act('create', { fmt: '6v6', venue: 'beach', bo: 3, pts: 25 });
   await until(() => H.st().mx && H.st().room.multi, 8000);
   check('sala de 6 contra 6: cap 12, siempre en Pabellón, model host', H.st().room.cap === 12 && H.st().room.fmt === '6v6' && (await owner('GET', 'rooms/uidS0')).j.fields.venue.stringValue === 'hall');
@@ -216,6 +225,12 @@ async function test6v6() {
   const g4 = G[3];
   await until(() => !g4.st().mx, 15000);
   check('el bloqueado vuelve a la lista con un aviso', !g4.st().mx && /conectar|sitio|responde/.test(g4.st().msg), g4.st().msg);
+  // (lane A) telemetría: UN informe pequeño del enlace que no llegó a abrir, en los dos lados (en Node no se escribe: emulador)
+  const pfH = H.VB.NetLog._pf(), pfG = g4.VB.NetLog._pf(), pf0 = pfH[0] || {};
+  check('prefail del anfitrión: uno, kind prefail, rol, 6v6, cap 12, why noconn, ms y estado del enlace', pfH.length === 1 && pf0.kind === 'prefail' && pf0.rol === 'anfitrion' && pf0.fmt === '6v6' && pf0.cap === 12 && pf0.why === 'noconn' && pf0.ms >= 5000 && pf0.link === 'connecting' && pf0.opens === 0 && pf0.cand && pf0.env,
+    pfH.map(x => ({ rol: x.rol, fmt: x.fmt, cap: x.cap, why: x.why, ms: x.ms, link: x.link })));
+  check('prefail del invitado que no conecta: uno, rol invitado', pfG.length === 1 && pfG[0].rol === 'invitado' && pfG[0].fmt === '6v6' && pfG[0].fase === 'sala', pfG.map(x => ({ rol: x.rol, why: x.why, ms: x.ms, link: x.link })));
+  check('el informe no lleva direcciones de red', !/\d+\.\d+\.\d+\.\d+/.test(JSON.stringify(pfH.concat(pfG))));
   // sacar a alguien
   H.NL._act('pick', 'uidS6'); H.NL._act('kick');
   await until(() => !G[5].st().mx, 5000);
@@ -356,6 +371,118 @@ async function test1v1() {
   M.NL._act('leave'); await sleep(300);
 }
 
+/* ---------- g) vuelta tras recargar en el de varios (lane A) ---------- */
+const BACKK = 'make-the-cut.online.back';
+/** Página «muerta» (recargada): sus temporizadores y su motor se paran como si la pestaña ya no existiera. */
+function killPage(p) { const E = p.NL._mx(); if (E) { E.closed = true; Object.keys(E.tm).forEach(k => { clearInterval(E.tm[k]); clearTimeout(E.tm[k]); }); } }
+async function room3(fmt, ids) {
+  const H = page('Vera Host', ids[0]), G = [page('Wilma Dos', ids[1]), page('Xian Tres', ids[2])];
+  H.NL._act('create', { fmt: fmt, venue: 'beach', bo: 1, even: false });
+  await until(() => H.st().mx && H.st().room.multi, 8000);
+  G.forEach(g => g.NL._act('join', ids[0]));
+  await until(() => G.every(g => g.st().mx && g.st().mx.status === 'linked') && ro(H).filter(m => m.ok).length === 3, 20000);
+  await until(() => G.every(g => { const m = mem(g, g.uid); return m && m.c >= 0; }), 4000);
+  G.forEach(g => g.NL._act('ready'));
+  await until(() => H.st().mx.can.ok, 4000);
+  H.NL._act('start');
+  const go = await until(() => H.started.length && G.every(g => g.started.length), 6000);
+  return { H, G, go };
+}
+/** Lo que main.js deja en ctx.net en pleno partido (lo justo para el lobby). */
+function fakeNet(p, so, app) {
+  p.VB.ctx.state = 'playing';
+  p.VB.ctx.net = { multi: true, seat: so.seat, team: so.humans[so.seat].team, humans: so.humans, model: so.model, epoch: 0, expect: so.expect || null,
+    r: { status: 'playing' }, sess: { status: 'playing', sendApp: d => app.push(d) } };
+}
+async function testBack() {
+  console.log('\ng) vuelta tras recargar en el de varios (2 contra 2 y 6 contra 6; el anfitrión que se va; la sala que ya no existe)');
+  for (const fmt of ['2v2', '6v6']) {
+    await wipe();
+    const ids = fmt === '2v2' ? ['uidV0', 'uidV1', 'uidV2'] : ['uidW0', 'uidW1', 'uidW2'];
+    const { H, G, go } = await room3(fmt, ids);
+    check(fmt + ': partido empezado con 3 personas', !!go);
+    if (!go) continue;
+    const appH = [], appG = [];
+    fakeNet(H, H.started[0], appH); G.forEach(g => fakeNet(g, g.started[0], appG));
+    const g1 = G[0], so1 = g1.started[0], hIdx = H.started[0].links.findIndex(k => k.peer === so1.links[0]), hk = H.started[0].links[hIdx];
+    // la página de Wilma se recarga: pagehide → marca BACK y NI adiós NI plaza fuera; su enlace cae (el anfitrión lo ve 'down')
+    g1.fire('pagehide');
+    const mark = JSON.parse(g1.sstore[BACKK] || 'null');
+    check(fmt + ': pagehide del invitado en pleno partido apunta la vuelta (multi, plaza, humanos, modelo, formato)', !!mark && mark.multi === 1 && mark.seat === so1.seat && mark.humans.length === 3 &&
+      mark.model === (fmt === '6v6' ? 'host' : 'precisa') && mark.fmt === fmt && mark.id === ids[0] && !/sdp|candidate/i.test(JSON.stringify(mark)), mark && { seat: mark.seat, model: mark.model, fmt: mark.fmt });
+    const q0 = hk.q.length;
+    so1.links[0]._kill(); killPage(g1);
+    await sleep(700);
+    check(fmt + ': no dice adiós por el enlace (lb-bye) ni suelta su plaza en la sala', !hk.q.slice(0, q0).concat(hk.q).some(m => /lb-bye/.test(m.data)) && (await seatsOf(ids[0])).indexOf(ids[1]) >= 0, await seatsOf(ids[0]));
+    // página nueva, misma pestaña (sessionStorage) y misma cuenta
+    const t0 = Date.now(), nb = page('Wilma Dos', ids[1], { ss: g1.sstore, ui: true });
+    const sawSheet = await until(() => nb.st().bk, 5000);
+    check(fmt + ': la página nueva enseña «Volviendo a la partida…» (vuelta en marcha, sin sesión aún)', !!sawSheet && !nb.started.length, nb.st().bk);
+    const back = await until(() => nb.started.length, 30000);
+    const s2 = nb.started[0] || {};
+    check(fmt + ': vuelve sola a SU plaza (startOnline: misma plaza, 1 enlace ya abierto, opts null, modelo, formato, mismos humanos)', !!back && s2.seat === so1.seat && s2.links.length === 1 && s2.links[0].state === 'open' &&
+      s2.opts === null && s2.model === so1.model && s2.format === fmt && JSON.stringify(s2.humans.map(h => [h.name, h.team, h.idx])) === JSON.stringify(so1.humans.map(h => [h.name, h.team, h.idx])), { seat: s2.seat, ms: Date.now() - t0 });
+    check(fmt + ': el anfitrión renegocia la MISMA pareja (su enlace vuelve a abrirse)', hk.state === 'open' && H.st().mx.links[ids[1]] === 'open', [hk.state, H.st().mx.links[ids[1]]]);
+    check(fmt + ': la marca se gasta (un solo intento) y la hoja se va', !nb.sstore[BACKK] && !(nb.st().bk && !nb.st().bk.go), nb.st().bk);
+    if (fmt === '6v6') {
+      await sleep(200);
+      const got = hk.q.map(m => m.data).filter(d => typeof d === 'string');
+      check('6v6: antes de la sesión nueva, el adiós de la vieja ({k:"bye", why:"reload"}) para que el modelo anfitrión la readmita', got.some(d => /"k":"bye".*"why":"reload"/.test(d)), got.slice(-3));
+    } else {
+      // el anfitrión se va (recarga o cierra) en pleno partido: avisa a todos por la sesión y su sala desaparece
+      const g2 = G[1]; g2.fire('pagehide');   // (antes, Xian también recarga: su vuelta llegará a una sala que ya no existe)
+      check('2v2: la marca de Xian, apuntada', !!g2.sstore[BACKK]);
+      g2.started[0].links[0]._kill(); killPage(g2);
+      H.fire('pagehide');
+      check('2v2: el anfitrión que se va en pleno partido avisa ({t:"hostLeft"} por la sesión)', appH.some(d => d && d.t === 'hostLeft'), appH);
+      await sleep(800);
+      check('2v2: y su sala se borra (no vuelve en el de varios)', (await owner('GET', 'rooms/' + ids[0])).status === 404);
+      const nc = page('Xian Tres', ids[2], { ss: g2.sstore, ui: true });
+      await until(() => nc.st().bk, 5000);
+      const ended = await until(() => !nc.st().bk, 8000);
+      check('2v2: la vuelta a una sala que ya no existe no empieza nada (hoja «… ha cerrado la sala»)', !!ended && !nc.started.length && !nc.sstore[BACKK], nc.st().bk);
+      killPage(nc);
+    }
+    killPage(nb); [H].concat(G).forEach(p => { try { killPage(p); p.NL._act('leave'); } catch (e) { } });
+    H.started[0].links.forEach(k => k.close()); nb.started.forEach(x => x.links[0].close());
+    await sleep(300);
+  }
+}
+
+/* ---------- h) revisión: 6 contra 6, la página muerta 80 s y la marca que se reapunta con la pestaña oculta ---------- */
+// mxBackAlive (main.js, cada ~3 s con la pestaña oculta) lleva la hora de la marca a «ahora»; y el anfitrión del modelo host sigue
+// ofreciendo mientras el invitado aún puede volver (MX_BACK_HOST_MS, 120 s): antes paraba a los ~60 s (7 intentos) y una vuelta a los
+// 80 s no llegaba nunca a conectar. Tarda ~2 min de verdad.
+async function testBackLate() {
+  console.log('\nh) 6 contra 6: la marca con la pestaña oculta y la vuelta tras 80 s con la página muerta (~2 min)');
+  await wipe();
+  const ids = ['uidY0', 'uidY1', 'uidY2'], DEAD = 80000;
+  const { H, G, go } = await room3('6v6', ids);
+  check('6v6 tarde: partido empezado con 3 personas', !!go);
+  if (!go) return;
+  const appH = [], appG = [];
+  fakeNet(H, H.started[0], appH); G.forEach(g => fakeNet(g, g.started[0], appG));
+  const g1 = G[0], so1 = g1.started[0], hk = H.started[0].links.find(k => k.peer === so1.links[0]);
+  g1.c.document.hidden = true; g1.fire('visibilitychange');
+  const m1 = JSON.parse(g1.sstore[BACKK] || 'null');
+  await sleep(1200);
+  g1.NL.backAlive();
+  const m2 = JSON.parse(g1.sstore[BACKK] || 'null');
+  check('6v6 tarde: con la pestaña oculta la marca se apunta y backAlive la reapunta con la hora de ahora', !!m1 && !!m2 && m2.multi === 1 && m2.t - m1.t >= 1000, m1 && m2 && { dt: m2.t - m1.t });
+  g1.fire('pagehide');
+  so1.links[0]._kill(); killPage(g1);
+  const tDead = Date.now();
+  await sleep(DEAD);
+  check('6v6 tarde: el anfitrión aún no ha soltado la pareja (sigue reofreciendo)', !!H.st().mx && H.st().mx.links[ids[1]] !== undefined && hk.state !== 'closed', H.st().mx && H.st().mx.links);
+  const nb = page('Wilma Dos', ids[1], { ss: g1.sstore, ui: true });
+  const back = await until(() => nb.started.length, 40000);
+  check('6v6 tarde: vuelve a SU plaza a los ' + Math.round((Date.now() - tDead) / 1000) + ' s de morir la página (antes: nunca, el anfitrión dejaba de ofrecer a los ~60 s)',
+    !!back && nb.started[0].seat === so1.seat && nb.started[0].links[0].state === 'open' && hk.state === 'open', { back: !!back, hk: hk.state, bk: nb.st().bk });
+  killPage(nb); [H].concat(G).forEach(p => { try { killPage(p); p.NL._act('leave'); } catch (e) { } });
+  H.started[0].links.forEach(k => k.close()); nb.started.forEach(x => x.links[0].close());
+  await sleep(300);
+}
+
 (async () => {
   const jar = findJar();
   if (!jar) { console.log('Sin emulador de Firestore (Java + jar): npx firebase-tools@13.29.1 setup:emulators:firestore'); process.exit(3); }
@@ -365,7 +492,7 @@ async function test1v1() {
   let up = false;
   for (let i = 0; i < 120 && !up; i++) { await sleep(500); try { up = (await fetch('http://127.0.0.1:' + PORT + '/')).status < 500; } catch (e) { } }
   if (!up) { check('el emulador arranca', false); process.exit(1); }
-  const T = { a: test2v2, f: testSlowPoll, b: test6v6, c: testCoop, d: testDenied, e: test1v1 };
+  const T = { a: test2v2, f: testSlowPoll, b: test6v6, c: testCoop, d: testDenied, e: test1v1, g: testBack, h: testBackLate };
   for (const k of Object.keys(T)) {
     if (ONLY && ONLY.indexOf(k) < 0) continue;
     try { await T[k](); } catch (e) { check('parte ' + k + ' sin excepciones', false, String(e && e.stack || e)); }

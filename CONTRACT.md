@@ -1495,6 +1495,8 @@ starts, w, l, kills, aces, blocks, digs, nS, nN, debut}, med{g, s, b}, seen, you
   account.js no sincroniza ni escribe meta.
 
 ### Online de varios: 2v2 × 4, 6v6 × 12 y Carrera cooperativa (1.22.0, sprint online-multi, 21/22-nov-2026)
+Versión **1.22.0** (la rama investigacion, también numerada 1.22.0 sin publicar, tiene que subir a 1.23.0: el online solo mira el número: salas `v = PROTO|VB.VERSION`,
+saludo de las sesiones con `VB.VERSION`; dos versiones distintas con el mismo número se tomarían por compatibles).
 Diseño en notes/online-multi-brief.md; protocolo, medidas y despliegue en notes/net.md «Online de varios»; quién pidió qué en
 notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de API ni de camino.
 
@@ -1532,11 +1534,19 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
 - `js/net.js` (**net**): `new Session(o)` da una `SessionN` (Precisa-N) si `o` trae `seats`, más de un enlace o `n > 2`:
   `{slot (TU plaza), links | link, linkSeats?, seats, names, opts, delay, adaptive, aiSeats, …}`; además de lo de Session:
   `r.waitFor`, `r.pings[s]`, `r.aiSeats`, `r.meAI`, `r.canAI`, `sess.seatGone(s)`, `sess.seatAI(s)`, `sess.addLink(link)`, `sess.n`,
-  `sess.team`, `sess.delay`. `VB.Net.{SessionN, packN, unpackN, adaptDelay, SEAT_AI_MS, Shaper}`. `bot(slot, seed, prof, {team})` por
+  `sess.team`, `sess.delay`. `VB.Net.{SessionN, packN, unpackN, adaptDelay, SEAT_AI_MS, MAXPRED_N (60), SEND_HZ (60), Shaper}`.
+  Opciones de pruebas `maxPred`, `delayK`, `pace` (false = un paquete por frame); `stats.paced`, `stats.copies`. Conexión lenta
+  (anfitrión, > 2 plazas): `SLOW_MS` 2,5 s de espera acumulada (media de ~10 s) → IA y espectador; cuenta las esperas, ir más de
+  `PRED_SOFT` (30) tics por detrás y lo que CRECE el retraso contra el reloj por encima de 1 tic (no el redondeo por frame ni el frenado
+  de la ventaja de frames: revisión 2). `bot(slot, seed, prof, {team})` por
   plaza. **`BcLink({room, slot, to, lag, jit, loss})`** (P8): con `to`, enlace de UNA pareja (canal `mtc-net-<room>-a-b` y Shaper propios).
   Predicción INCREMENTAL de la SessionN (P8, lag en móvil): la partida predicha del frame anterior sigue valiendo si las entradas que
   usó son las que se saben ahora; solo se rehace desde gc si alguna cambió (misma partida, menos CPU). `stats.depth` = tics por
   delante de gc (como antes); `stats.resim` = tics rehechos en el último frame. El 1 contra 1 (Session) no cambia.
+- `js/nethost.js`, robustez (revisión y lane B): `C.GONE` = `C.HOST_GONE` = 60 s, `C.REHELLO` 1 s (el invitado que no oye repite
+  `hello`; el anfitrión lo readmite con foto tele y `{k:'back', s}` a los demás), `result.why 'lost'` (la parada fue la página del
+  invitado), `sess.addLink(link)` (vuelta por otro enlace; el viejo, callado > SILENT_AI, se retira), `{k:'bye', why:'reload'}` +
+  `hello` = readmisión tras recargar. Envío por tics (paquete de 30 Hz, pose de 60 Hz): tras un parón solo sale el último del frame.
 - `js/netrtc.js` (**net**, P8): `Link` con simulador de red para pruebas: `?netlag=&netjit=&netloss=` (solo file:// o localhost) o
   `new Link({shape: {lag, jit, loss}})`; retrasa y pierde lo que llega, como el Shaper de memPair/BcLink. Sin la query, igual que antes.
 - `js/netroom.js` (**net**): esquema v3 (salas de varios): `rooms.open({…, mode: 'vs'|'coop', cap: 2|4|12, fmt: '2v2'|'6v6',
@@ -1547,7 +1557,18 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
   firebase/firestore.rules (`roomOkMulti`), NO desplegadas: notes/net.md «Despliegue de las reglas».
 - `js/netlobby.js` (**net**): `LOBBY = 3`; salas de varios (bloque «ONLINE DE VARIOS», protocolo en su cabecera) y
   `VB.NetLobby.coop = {host(cfg), join(cfg), close(), send(obj), onMessage(fn) → quitar, state()}` (bloque «CARRERA COOPERATIVA»;
-  `cfg.onReady({link, seat, names, looks, room})`, `cfg.onClose(why)`); pruebas: `_act(a, v)`, `_state().mx`, `_mx()`, `?netconnms=`.
+  `cfg.onReady({link, seat, names, looks, room})`, `cfg.onClose(why)`); pruebas: `_act(a, v)`, `_state().mx`, `_state().bk` (vuelta en
+  marcha), `_mx()`, `?netconnms=`.
+  **Vuelta del invitado tras recargar** (lane A): marca BACK en sessionStorage (clave `make-the-cut.online.back`, `multi: 1`) en el
+  pagehide y al ocultarse; `VB.NetLobby.backAlive()` (main.js `netBgTick`, cada ~3 s con la pestaña oculta) la reapunta con la hora de
+  ahora. Plazos `MX_BACK_MS` 55 s (Precisa-N y coop), `MX_BACK_HOST_MS` 120 s (modelo anfitrión), `MX_BACK_WAIT` 70 s. `mxRelinkHost`
+  reofrece a los 0,6 s, cada 10 s el primer minuto y luego cada 20 s, hasta el plazo + `RELINK_PAD` (15 s) desde la primera caída.
+  Coop emparejada entre partidos: una caída se renegocia (`COOP_DOWN_MS` 60 s). El anfitrión no vuelve: app `{t:'hostLeft'}` /
+  `{t:'hostAway', a}`.
+  **Telemetría** (lane A): `VB.NetLog.{prefail(o), linkDiag(link), _pf()}`: un enlace del lobby de varios / coop que no abre antes del
+  partido deja un documento `netlogs/{uid}_pf…` (kind 'prefail'; tipos de candidato sin direcciones). Nunca jugando; el 1v1 no lo lleva.
+- `js/netroom.js` (revisión): `create({…, store})` (pares o_/a_ apuntados para barrerlos), `kick(uid)` escribe también `ban.<uid>`,
+  join de alguien vetado → error `'kicked'`, `list()` barre caducadas de cualquier estado. Reglas con `ban` (SIN desplegar).
 - `js/netrec.js` / `js/netlog.js` (**net**): NetRec guarda `m` (compañeros) y `f` (formato) en cada entrada y cuenta 'mateQuit' /
   'mateGone' como «no cuenta»; NetLog añade `pe`/`ps` (ping por plaza) y `multi`.
 - `js/netview.js` (**net**): `mirror(view, g, me)`, `mapEvents(evs, view, me, out)`, `inputToWorld(inp, me)` con `me` = hueco (0|1)
@@ -1556,7 +1577,8 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
   opts, name, model: 'precisa'|'host', format, coop, expect})` (de varios si `VB.Sim.isMulti` o más de un enlace; si no, el 1v1 de
   siempre); `ctx.net.{multi, humans, seat, team, me, links, coopCareer}`; `#netTags` (hasta 11 etiquetas, solo `translate3d`, «IA»
   cuando la plaza la lleva la IA); HUD «Esperando a: …», ping propio y el peor, «Tu conexión va lenta: te lleva la IA un rato»
-  (`r.meAI`). `ctx.actions.startCoopCareerMatch({seat, humans})` (P7). `netBallSmooth` (P8): en Precisa-N el salto del balón de un
+  (`r.meAI`). `ctx.actions.startCoopCareerMatch({seat, humans})` (P7). `ctx.actions.netHostLeft()` (lane A: el anfitrión se ha ido;
+  `result = {why: 'hostGone', left: true}`). `&back=1` en `startNetTestN` (pruebas: vuelta de una página de BcLink). `netBallSmooth` (P8): en Precisa-N el salto del balón de un
   rollback se reparte en 80 ms (solo la vista); `netPlayersSmooth` (L2): ídem con los jugadores que no lleva esta máquina
   (80-150 ms; Precisa-N de varios y, en el modelo host, la vista del anfitrión y la de los invitados salvo el que va con el reloj
   del balón de L1, `pDel` / `_capBind`). `netBallSmooth` deshace como mucho 15 m/s (≤ 0,25 m por frame) y reparte saltos de hasta 4 m. Pruebas de N páginas: `?net=bc&n=N&slot=k&fmt=2v2|6v6&coop=1&model=precisa|host
@@ -1568,7 +1590,8 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
 
 **Control de regresión** (además del de siempre): las 4 huellas (`node tools/fingerprint6.js`, `--variant mastery`, `--variant salto`,
 `--variant 6v6`), `node tools/mptest.js`, `net4test`, `net12test`, `hosttest` (con la sección (d), 0 saltos del balón), `cooptest`
-(~60-80 s), `lobbytest` (emulador), `roomtest` (con «Ciclo de vida»), `netlogtest`, y en
+(~60-80 s), `lobbytest` (emulador; (h) tarda ~2 min), `roomtest` (con «Ciclo de vida»), `netlogtest`, `stresstest` (banco de medida:
+`node tools/stresstest.js --nets r60,r150,r250,burst,asym,cpu4,asym165,asym240,r250h240`, mirar IA 0, desync 0 y puntos iguales), y en
 Chrome (una cada vez): `node tools/netdrive.js` (1v1), `node tools/netdrive.js 60 120 "quality=low&model=fluida"`,
 `node tools/netdrive.js --multi 4 90 80`, `NDFMT=6v6 node tools/netdrive.js --multi 12 90 80`, `NDRTC=1 node tools/netdrive.js --multi 4`,
 `node tools/netdrive.js --coop`, `node tools/netdrive.js --rtc 40 80 "quality=low&netlag=80&netjit=15&netloss=2"` (y con

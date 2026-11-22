@@ -675,7 +675,7 @@
    *   CONFIRMAR: gc avanza un tic cuando están las entradas de TODAS las plazas. Las plazas que lleva la IA no esperan: el anfitrión
    *     escribe por ellas la entrada {ai} (la sim pasa la plaza a la IA) y la reenvía como cualquier otra, así todos confirman lo mismo.
    *   PREDECIR: cada plaza remota, con su última entrada conocida (botones a falso, el bit ai como estaba).
-   *   ESPERA: si alguna plaza va MAXPRED tics por detrás, se espera (r.waitFor = esas plazas). El anfitrión pasa a la IA la plaza que
+   *   ESPERA: si alguna plaza va MAXPRED_N (60) tics por detrás, se espera (r.waitFor = esas plazas). El anfitrión pasa a la IA la plaza que
    *     no oye en SEAT_AI_MS o que le hace esperar SEAT_AI_MS seguidos, y el partido sigue (aviso {k:'seat', s, ai:1} a todos). Si la
    *     vuelve a oír seguida REJOIN_STABLE_MS, le manda un resync (foto de gc + las entradas de todas las plazas desde ahí) y vuelve.
    *     Con más de 2 plazas, la que hace esperar a todos a ratos (SLOW_MS de espera acumulada en ~10 s) también pasa a la IA, y el
@@ -700,6 +700,13 @@
    *   o: {slot (TU plaza), links | link, linkSeats?, seats [{team, idx, name}…] o n, opts (anfitrión), delay, adaptive, aiSeats
    *   (anfitrión: plazas que ya se sabe que no vienen: la IA desde el tic 0), name, names, rivalName, epoch, expect, warm, log,
    *   record, hashLog, onTick}.
+   *   ENVÍO (lane B): con frames de 13 ms o más (60 Hz), un paquete por frame y enlace, como siempre; con pantallas más rápidas, como
+   *     mucho SEND_HZ (60) de media por enlace (crédito; cada paquete lleva todo lo no confirmado, así que no se pierde nada). Un cambio
+   *     de la entrada (stick > SEND_SIG desde lo último mandado) puede adelantarse un frame pidiendo crédito prestado; un botón, siempre.
+   *     o.pace === false: un paquete por frame (pruebas).
+   *   VUELTA TRAS RECARGAR (lane A en el lobby): la página nueva es una sesión nueva, sin opts, en su plaza y con la misma época, por el
+   *     mismo enlace renegociado (mxRelinkHost) o por uno nuevo (sess.addLink en el anfitrión): saludo → hello con las opts → ready →
+   *     el anfitrión la pasa a la IA y le manda el resync. Probado en net4test (o) con 5-40 s de página muerta y en el coop de 2.
    *   PENDIENTE: la vuelta del anfitrión que recarga (fase 6) no existe en el de varios: un anfitrión sin opts = no hay partido.
    * ===================================================================== */
   var SW = 128;                        // bit 7: switchPlayer
@@ -712,8 +719,31 @@
   var SLOW_BACK_MS = 20000, SLOW_BACK_MAX = 120000;   // y no vuelve hasta 20 s después (40, 80… hasta 2 min si se repite)
   var PK_BUDGET = 1000;                // bytes por paquete 'in' (fragmentar en SCTP no fiable multiplica la pérdida)
   var DELAY_MIN = 2, DELAY_MAX = 8;
+  // Ritmo de envío (lane B, 22-nov-2026): antes salía un paquete 'in' por frame y por enlace, así que una pantalla de 120-144 Hz
+  // mandaba el doble (27,8 KB/s por enlace a 126 fps). Ahora, con frames de menos de SEND_FAST_DT ms de media, como mucho SEND_HZ
+  // paquetes por segundo y enlace (crédito por enlace, de media exacta; nunca más de un frame de espera). No se pierde nada: cada
+  // paquete lleva todo lo que el otro aún no ha confirmado. Un botón propio o reenviado sale en el acto; un cambio del stick de más de
+  // SEND_SIG puede adelantarse un frame con crédito prestado. Con 60 Hz, igual que antes (cada frame). Medido (net4test (n), 126 fps,
+  // 150 ms, retraso fijo 4): 117 → 59 paquetes/s y 37 → 19 KB/s de subida del anfitrión por enlace; profundidad p99 +2-4 tics (medio
+  // frame más por tramo); con 6 semillas, correcciones visibles como las de un móvil de 60 Hz sin tope (dentro del ruido).
+  var MAXPRED_N = 60;                  // tope de predicción de Precisa-N (tics; el 1 contra 1 sigue con MAXPRED = 24). Ver las notas de abajo
+  // Estrés (22-nov-2026, tools/stresstest.js): con 30, un corte de 300 ms de UN enlace (wifi que se va un momento) paraba a los 4 unos
+  // 250 ms (a 150 ms de RTT el camino invitado → anfitrión → invitado ya gasta ~24 de los 30), y a 250 ms de RTT ±40 el camino solo ya
+  // pasaba de 30 (micro-esperas de 7 s por partido). El tope solo cuenta cuando se llega a él (lo normal sigue en 20-25 tics), así que
+  // subirlo cambia únicamente lo que antes era una espera: ahora se sigue prediciendo esa plaza con su última entrada y se corrige al
+  // llegar (un rollback de hasta 60 tics UNA vez: ~5 ms con la sim ×4 de un móvil, cabe en el frame). Cortes cada ~10 s en cada
+  // enlace, 2v2 × 4 a 150 ms: frames en espera 1280 → 5, micro-esperas 16 s → 0,2 s; 250 ms ±40: 7,1 s → 0; saltos visibles igual.
+  // Tope de predicción (lane B, 22-nov-2026): los invitados de 2v2 a 150 ms llegan al tope de 24 por el camino invitado → anfitrión →
+  // invitado (p95 19-22 tics) y se quedan quietos un frame de vez en cuando. Medido con net4test --lane --maxpred (2v2 × 4, 5 semillas
+  // × 90 s, móvil de 60 Hz: render 9 ms + sim × 6 con 20 µs por tic y 130 µs por copia): tope 30 = 0 micro-esperas (antes 0,07-0,09 %
+  // de los frames), mismas correcciones visibles (dentro del ruido: -8 % a 150 ms, +5 % con 40/120/200), coste de la sim en el móvil
+  // p99 3,7 → 3,8 ms y máx 4,4 → 4,6 ms, ningún frame perdido; 36 da lo mismo que 30 (nunca pasa de 30). Bajar el «- 16» del retraso
+  // (K 13: +3 tics, 25 ms más de retraso propio) quita un 20-30 % de correcciones pero no las esperas y se nota en tu jugador: no.
+  var PRED_SOFT = 30;                  // tics: más allá, seguir prediciendo una plaza cuenta como esperarla (detección de conexión lenta)
+  var SEND_HZ = 60, SEND_MS = 1000 / SEND_HZ, SEND_FAST_DT = 13, SEND_SIG = Math.round(0.05 * 32767);
   /** Retraso de entrada para el peor camino entre dos plazas (notes/net.md: clamp(round(RTT/2/STEP_MS) - 16, 2, 8)). */
-  function adaptDelay(maxRtt) { return Math.max(DELAY_MIN, Math.min(DELAY_MAX, Math.round((+maxRtt || 0) / 2 / STEP_MS) - 16)); }
+  var DELAY_K = 16;
+  function adaptDelay(maxRtt, k) { return Math.max(DELAY_MIN, Math.min(DELAY_MAX, Math.round((+maxRtt || 0) / 2 / STEP_MS) - (k > 0 ? k : DELAY_K))); }
 
   /** Paquete de varios: bl = [{s, first, n, st (tic de esa plaza), ring}]. */
   function packN(from, tick, acks, bl, ep) {
@@ -793,10 +823,15 @@
     this.t0 = 0; this.off = 0; this.lastNow = 0; this.lastRecv = 0; this.started = false;
     this.helloAt = -1e9; this.gotHello = false; this.pings = []; this.pingAt = -1e9; this.pingId = 0; this.ready = false; this.pingsAt = -1e9;
     this.rtt = 0; this.rttN = 0; this.adv = 0; this.waitStart = -1; this.waitMs = 0; this.waitFor = [];
+    this.maxPred = o.maxPred > 0 ? Math.max(8, Math.min(120, o.maxPred | 0)) : MAXPRED_N;   // (tope de predicción de Precisa-N; ver MAXPRED_N)
+    this._soft = Math.min(this.maxPred, PRED_SOFT);   // (para contar esperas de una conexión lenta, como con el tope de 30 de antes)
+    this.delayK = o.delayK > 0 ? o.delayK | 0 : DELAY_K;   // (pruebas: el «- 16» de la fórmula del retraso)
+    this.pace = o.pace !== false;   // (pruebas: false = un paquete por frame, como antes)
+    this.sendCr = []; this.dtE = 0; this._fast = false; this._crAdd = 1; this._urg = 0; this.refT = [];   // (ritmo de envío: crédito por enlace)
     this.myHash = {}; this.theirHash = {}; this.snaps = [];
     this.mismatches = 0; this.repaired = 0; this.repairs = []; this.cmpOk = 0; this.cmpBad = -1;
     this.presTick = 0; this.presKeys = {}; this.presList = []; this.overSeen = false;
-    this.stats = { frames: 0, maxDepth: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0, rsIn: 0, seatAI: 0, relayed: 0, delayChanges: 0 }; this.rsT = -1;
+    this.stats = { frames: 0, maxDepth: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0, rsIn: 0, seatAI: 0, relayed: 0, delayChanges: 0, paced: 0 }; this.rsT = -1;
     this.initEvents = []; this._cand = []; this._conf = [];
     this._out = { g: null, events: [], confirmed: [], app: [], status: '', tick: 0, gcTick: 0, ping: 0, waitMs: 0, unstable: false, canAI: false, info: null, waitFor: [], pings: [], aiSeats: [] };
     if (this.host && !o.opts) { this.status = 'ended'; this.result = { why: 'noShow', win: false }; this._log('anfitrión sin opciones: el de varios no tiene vuelta del anfitrión'); }
@@ -930,7 +965,11 @@
   /** Mete en el anillo de la plaza s los n valores de v desde first. */
   NP._put = function (s, first, n, v) {
     var R = this.rings[s];
-    for (var k = 0; k < n; k++) { var t = first + k; if (t < this.gcTick - RING / 2 || R.has(t)) continue; R.put(t, v[k * 3], v[k * 3 + 1], v[k * 3 + 2]); }
+    for (var k = 0; k < n; k++) {
+      var t = first + k; if (t < this.gcTick - RING / 2 || R.has(t)) continue;
+      R.put(t, v[k * 3], v[k * 3 + 1], v[k * 3 + 2]);
+      if (this.host && this._urg < 2) { var u = this._sig(R, this.refT[s], v[k * 3], v[k * 3 + 1], v[k * 3 + 2]); if (u > this._urg) this._urg = u; }   // (un cambio de un invitado: el anfitrión lo reenvía sin esperar turno)
+    }
     while (R.has(this.rHave[s])) this.rHave[s]++;
   };
   NP._onInputs = function (data, now, j) {
@@ -1300,7 +1339,7 @@
       }
       if (ok) from = Q.T;
     }
-    if (from === this.gcTick) S.copyGame(gp, this.gc);
+    if (from === this.gcTick) { S.copyGame(gp, this.gc); this.stats.copies = (this.stats.copies | 0) + 1; }
     for (t = from; t < this.localTick; t++) {
       u = (t & PQ_M) * n;
       for (s = 0; s < n; s++) {
@@ -1321,32 +1360,66 @@
     if (!this.host || !this.adaptive) return;
     var a = 0, b = 0;
     for (var s = 1; s < this.n; s++) { if (this.aiHeld[s] || this.gone[s] || !this.rttNs[s]) continue; var r = this.rtts[s]; if (r > a) { b = a; a = r; } else if (r > b) b = r; }
-    var d = adaptDelay(a + b), raw = (a + b) / 2 / STEP_MS - 16;
+    var d = adaptDelay(a + b, this.delayK), raw = (a + b) / 2 / STEP_MS - this.delayK;
     if (d !== this.delayTo && Math.abs(raw - this.delayTo) < 0.9 && d > DELAY_MIN && d < DELAY_MAX) d = this.delayTo;   // (histéresis: sin saltar 5↔6 en cada punto por la variación del ping)
     if (d !== this.delayTo) { this.delayTo = d; this.pendDelay = d; this.stats.delayChanges++; this._ctl({ k: 'delay', d: d }); this._log('retraso de entrada → ' + d + ' tics (peor camino ' + Math.round(a + b) + ' ms)'); }
   };
 
   /* ---- envío de entradas ---- */
+  /** Ritmo de envío: una vez por frame, antes de mandar (dtE = media del frame; _fast = pantalla de más de ~77 Hz). */
+  NP._pace = function () {
+    var dt = this.prevNow ? Math.min(100, Math.max(0, this.lastNow - this.prevNow)) : SEND_MS;
+    this.dtE = this.dtE > 0 ? this.dtE * 0.9 + dt * 0.1 : dt;
+    this._fast = this.pace && this.dtE < SEND_FAST_DT; this._crAdd = dt / SEND_MS;
+  };
+  /** ¿Toca mandar por el enlace j en este frame? (una llamada por enlace y frame: suma su crédito). Sin topar: siempre. */
+  NP._due = function (j) {
+    var c = this.sendCr; while (c.length <= j) c.push(1);
+    if (!this._fast) { c[j] = 1; return true; }
+    c[j] = Math.min(1, c[j] + this._crAdd);
+    // (sin cambios: con crédito ≥ 0,5; con un cambio del stick, puede pedir prestado uno, ≥ -0,5; un botón sale siempre. Cada envío
+    //  cuesta 1 y el crédito sube SEND_HZ por segundo, así que la media no pasa de SEND_HZ salvo por los botones, que son pocos)
+    if (this._urg < 2 && c[j] < (this._urg ? -0.5 : 0.5)) { this.stats.paced++; return false; }
+    c[j] = Math.max(-2, c[j] - 1);
+    return true;
+  };
+  /** ¿La entrada (x, y, b) cambia de verdad respecto a la última que ya salió de esa plaza (tic ref)? Lo que se predice de una plaza
+   *  remota es su última entrada conocida (sin botones): si no cambia, mandarla un frame más tarde no cambia ninguna predicción ni
+   *  corrige nada; si cambia (otro botón, o el stick más de SEND_SIG desde lo último mandado), sale en el acto. */
+  NP._sig = function (R, ref, x, y, b) {   // → 0 nada nuevo, 1 cambio de stick o de bit ai, 2 botón nuevo
+    if (!(ref >= 0) || !R.has(ref)) return 1;
+    var i = ref & RM;
+    if ((b & EDGE_N) && b !== R.B[i]) return 2;
+    return b !== R.B[i] || Math.abs(x - R.X[i]) + Math.abs(y - R.Y[i]) > SEND_SIG ? 1 : 0;
+  };
+  /** Tras mandar: lo último que ha salido de cada plaza (la mía y, el anfitrión, las que reenvía). */
+  NP._sent = function () {
+    this.refT[this.slot] = this.mineTop - 1;
+    if (this.host) for (var s = 0; s < this.n; s++) if (s !== this.slot) this.refT[s] = this.rHave[s] - 1;
+  };
   NP._sendInputs = function () {
     var have = this.mineTop, me = this.slot, s, k, j;
+    this._pace();
     if (this.n === 2) {   // 2 plazas: el paquete del 1 contra 1
       var ot = 1 - me, j2 = this.seatLink[ot]; if (j2 < 0 || (this.solo && !this.host) || this.gone[ot]) return;
+      if (!this._due(j2)) return;
       var from = Math.max(this.remoteAck, have - MAXSEND * 8), L2 = this.links[j2];
       if (have > from) for (var a = from, np = 0; a < have && np < 4; a += 255, np++) { var nn = Math.min(255, have - a), pk = packInputs(this.mine, a, nn, this.rHave[ot], this.localTick, this.epoch); L2.send('in', pk); this.stats.sent++; this.stats.bytesOut += pk.length; }
       else { var pk0 = packInputs(this.mine, have, 0, this.rHave[ot], this.localTick, this.epoch); L2.send('in', pk0); }
-      return;
+      this._sent(); return;
     }
     var acks = []; for (s = 0; s < this.n; s++) acks.push(s === me ? have : this.rHave[s]);
     if (!this.host) {
-      if (this.solo) return;
+      if (this.solo || !this._due(0)) return;
       if (this.spect) { acks[me] = this.rHave[me]; this._pkOut(0, [], acks); return; }   // (espectador: solo acks y mi tic)
       var f0 = Math.max(this.remoteAck, have - RING / 2);
       this._pkOut(0, [{ s: me, first: f0, n: Math.max(0, Math.min(255, have - f0)), st: this.localTick, ring: this.mine }], acks);
-      return;
+      this._sent(); return;
     }
-    var now = this.lastNow;
+    var now = this.lastNow, sent = false;
     for (j = 0; j < this.links.length; j++) {
-      var g = this.linkSeat[j]; if (g <= 0 || this.gone[g]) continue;
+      var g = this.linkSeat[j]; if (g <= 0 || this.gone[g] || !this._due(j)) continue;
+      sent = true;
       var bl = [];
       for (k = 0; k < this.n; k++) {
         if (k === g && !(this.spectS[g] && this.aiHeld[g])) continue;   // (al espectador, también la suya: la escribe la IA)
@@ -1357,6 +1430,7 @@
       }
       this._pkOut(j, bl, acks);
     }
+    if (sent) this._sent();
   };
   /** Manda los bloques por el enlace j, en paquetes de PK_BUDGET bytes como mucho (4 por frame; lo que no cabe, el frame siguiente). */
   NP._pkOut = function (j, bl, acks) {
@@ -1416,13 +1490,14 @@
       var lvl = (inp && inp.ai) || this.away ? B.ai : 0;
       var minR = 1e9; for (s = 0; s < this.n; s++) if ((s !== this.slot || this.spect) && this.rHave[s] < minR) minR = this.rHave[s];
       while (this.localTick < target && budget-- > 0) {
-        if (this.localTick - minR >= MAXPRED) { stalled = true; break; }
+        if (this.localTick - minR >= this.maxPred) { stalled = true; break; }
         var st = this.localTick + this.delay;
         if (st >= this.mineTop && !this.spect) {
           if (st > this.mineTop) {   // (el retraso ha crecido: los tics de en medio repiten la última entrada, sin botones)
             var lt = this.mineTop - 1, li = lt & RM, hasL = lt >= 0 && this.mine.has(lt);
             for (var gt = this.mineTop; gt < st; gt++) this.mine.put(gt, hasL ? this.mine.X[li] : 0, hasL ? this.mine.Y[li] : 0, hasL ? this.mine.B[li] & ~EDGE_N : 0);
           }
+          if (this._urg < 2) { var u = this._sig(this.mine, this.refT[this.slot], mx, my, this.edges | lvl); if (u > this._urg) this._urg = u; }   // (un cambio propio sale en este frame)
           this.mine.put(st, mx, my, this.edges | lvl); this.edges = 0; this.edgesAt = -1; this.mineTop = st + 1;
         }
         this.localTick++;
@@ -1430,18 +1505,34 @@
       // a quién se espera
       var wf = this.waitFor; wf.length = 0;
       if (stalled) {
-        for (s = 0; s < this.n; s++) if (s !== this.slot && this.localTick - this.rHave[s] >= MAXPRED) wf.push(s);
+        for (s = 0; s < this.n; s++) if (s !== this.slot && this.localTick - this.rHave[s] >= this.maxPred) wf.push(s);
         if (!this.host && wf.length > 1 && wf[0] === 0) wf.shift();   // (el anfitrión también espera a esa plaza: no es él)
         if (this.waitStart < 0) { this.waitStart = now; this.stats.waits++; }
         this.t0 = now - this.localTick * STEP_MS;
-      } else if (this.localTick - minR < MAXPRED) this.waitStart = -1;
+      } else if (this.localTick - minR < this.maxPred) this.waitStart = -1;
       this.waitMs = this.waitStart >= 0 ? now - this.waitStart : 0;
       if (this.status !== 'over') this.status = this.waitStart >= 0 && this.waitMs > 100 ? 'waiting' : 'playing';
       // anfitrión: la plaza que no se oye o que hace esperar SEAT_AI_MS pasa a la IA; 60 s con la IA = se ha ido
+      // (lane B: sin parar en seco, la partida también puede ir más lenta que el reloj —el tope de 30 deja que una conexión muy mala la
+      //  frene en vez de pararla: 72 % del tiempo real en net4test (m)—; ese tiempo perdido cuenta como espera de la plaza más atrasada
+      //  en entradas, si va de verdad atrasada, así la conexión lenta sigue llegando a SLOW_MS)
+      // (revisión: el tiempo perdido es lo que CRECE el retraso de la partida contra el reloj —(now - t0) / STEP_MS - localTick, sin
+      //  redondear—, y solo por encima de 1 tic: el redondeo de los tics por frame no cuenta (antes, con una pantalla de 165-240 Hz, cada
+      //  frame con un tic de menos sumaba y uno de más no restaba: 2,5-4,7 s de «espera» sin que nadie esperara) y el frenado de la
+      //  ventaja de frames (t0 += …, abajo) tampoco, porque _gapPrev se toma después de él)
+      var slowS = -1, slowLost = 0, gapNow = (now - this.t0) / STEP_MS - this.localTick;
+      if (this.host && this.n > 2 && !stalled && this._gapPrev != null) {
+        slowLost = Math.min(100, Math.max(0, gapNow - Math.max(1, this._gapPrev)) * STEP_MS);
+        var lo = 1e9; for (s = 1; s < this.n; s++) if (!this.aiHeld[s] && !this.gone[s] && this.rHave[s] < lo) { lo = this.rHave[s]; slowS = s; }
+        if (slowS > 0 && this.localTick - lo < this._soft / 2) slowS = -1;
+      }
       var dk = this.prevNow ? Math.exp(-Math.max(0, now - this.prevNow) / SLOW_TAU_MS) : 1, dtw = this.prevNow ? Math.min(100, now - this.prevNow) : 0;
       if (this.host && this.status !== 'over') for (s = 1; s < this.n; s++) {
         if (this.gone[s]) continue;
-        this.blockAcc[s] = this.blockAcc[s] * dk + (stalled && wf.indexOf(s) >= 0 ? dtw : 0);
+        // (estrés: con el tope de 60 casi nunca se para; ir más allá de PRED_SOFT tics por detrás de esa plaza cuenta como esperarla,
+        //  lo que antes era una espera con el tope de 30: la conexión mala sigue llegando a SLOW_MS y un corte suelto no)
+        var past = !stalled && this.localTick - this.rHave[s] >= this._soft;
+        this.blockAcc[s] = this.blockAcc[s] * dk + (stalled && wf.indexOf(s) >= 0 ? dtw : past ? dtw : !stalled && s === slowS ? slowLost : 0);
         if (this.aiHeld[s]) {   // (espectador por conexión lenta: sigue conectado y la espera crece hasta 2 min; se va solo si deja de oírse 60 s)
           var gRef = this.spectS[s] || now < this.slowUntil[s] ? Math.max(this.aiAt[s], this.heard[s]) : this.aiAt[s];
           if (gRef >= 0 && now - gRef > GONE_MS) this._seatGone(s, 'gone', now);
@@ -1459,7 +1550,7 @@
       var lostFor = this.host ? 0 : this.solo ? (this.lostAt >= 0 ? now - this.lostAt : 0) : this.waitMs;
       if (!this.host && lostFor > GONE_MS && !this.goneFlag && this.status !== 'over') this._gone();
       this.goneIn = !this.host && lostFor > 0 && !this.goneFlag && this.status !== 'over' ? Math.max(0, GONE_MS - lostFor) : 0;
-      this._sendInputs();
+      this._sendInputs(); this._urg = 0;
       // ventaja de frames contra la plaza más atrasada
       if (this.rttN && !this.solo && !stalled) {
         var minE = 1e9;
@@ -1468,8 +1559,12 @@
           var lat = this.host ? this.rtts[s] / 2 : this.rtt / 2, e = this.remoteTick[s] + (now - this.remoteTickAt[s] + lat) / STEP_MS;
           if (e < minE) minE = e;
         }
-        if (minE < 1e9) { this.adv = this.adv * 0.95 + (this.localTick - minE) * 0.05; if (this.adv > 1.5) this.t0 += STEP_MS * 0.125; }
+        if (minE < 1e9) {
+          this.adv = this.adv * 0.95 + (this.localTick - minE) * 0.05;
+          if (this.adv > 1.5) this.t0 += STEP_MS * 0.125;
+        }
       }
+      this._gapPrev = (now - this.t0) / STEP_MS - this.localTick;   // (retraso contra el reloj al acabar el frame; ver slowLost)
       this._confirm(this.localTick, false);
       for (i = 0; i < this._conf.length; i++) this._conf[i]._conf = true;
       for (i = 0; i < this._conf.length; i++) {
@@ -1488,7 +1583,7 @@
       this._predict();
       this._present(out.events);
       this.presTick = Math.max(this.presTick, this.localTick);
-    } else this.waitFor.length = 0;
+    } else { this.waitFor.length = 0; this._gapPrev = null; }
     out.g = this.gp; out.status = this.status; out.tick = this.localTick; out.gcTick = this.gcTick;
     out.ping = Math.round(this.rtt); out.waitMs = this.waitMs;
     out.unstable = (this.status === 'playing' || this.status === 'waiting') && !this.solo && now - this.lastRecv > UNSTABLE_MS;
@@ -1691,7 +1786,7 @@
   }
 
   VB.Net = {
-    Session: Session, SessionN: SessionN, packN: packN, unpackN: unpackN, adaptDelay: adaptDelay, SEAT_AI_MS: SEAT_AI_MS, memPair: memPair, BcLink: BcLink, bot: bot, BOT: BOT, Shaper: Shaper,
+    Session: Session, SessionN: SessionN, packN: packN, unpackN: unpackN, adaptDelay: adaptDelay, SEAT_AI_MS: SEAT_AI_MS, MAXPRED_N: MAXPRED_N, SEND_HZ: SEND_HZ, memPair: memPair, BcLink: BcLink, bot: bot, BOT: BOT, Shaper: Shaper,
     decode: decode, q16: q16, bitsOf: bitsOf, packInputs: packInputs, unpackInputs: unpackInputs, mulberry: mulberry,
     PROTO: PROTO, BITS: B, cleanName: cleanName, CONNECT_MS: CONNECT_MS, STEP: STEP, STEP_MS: STEP_MS, MAXPRED: MAXPRED, HASH_EVERY: HASH_EVERY, WAIT_AI_MS: WAIT_AI_MS, GONE_MS: GONE_MS
   };

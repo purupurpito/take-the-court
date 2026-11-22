@@ -50,8 +50,10 @@
  *   árbitro y Cuaderno, Xaranga, «El mismo 22-24», árbitros con nombre, «Te tienen estudiado», rencor y cariño), jefes de pista, sedes
  *   de la Carrera y S4_SYNC encendido. Decisiones provisionales en notes/pendientes-ferran.md.
  * 1.22.0 (22-nov-2026): online de varios (sprint online-multi, notes/net.md «Online de varios»): 2 contra 2 con hasta 4 personas
- *   (Precisa-N), 6 contra 6 con hasta 12 (modelo anfitrión, js/nethost.js), salas con formato y sitios, y Carrera cooperativa de
- *   playa (js/career-coop.js). Las salas de varios piden las reglas v3 de Firestore desplegadas.
+ *   (Precisa-N), 6 contra 6 con hasta 12 (modelo anfitrión, js/nethost.js; beta), salas con formato y sitios, y Carrera cooperativa
+ *   de playa (js/career-coop.js). Las salas de varios piden las reglas v3 de Firestore desplegadas. La rama investigacion, que también
+ *   estaba numerada 1.22.0 sin publicar, tiene que pasar a 1.23.0 al fusionarse: el online decide si dos versiones juegan juntas SOLO
+ *   por este número (salas: v = PROTO|VB.VERSION; sesiones: el saludo compara VB.VERSION).
  */
 (function () {
   'use strict';
@@ -66,7 +68,7 @@
       v: '1.22.0', d: '2026-11-22', t: 'Online con amigos',
       items: [
         'Online 2 contra 2: hasta 4 personas, cada una con su jugador. La IA llena los huecos.',
-        'Online 6 contra 6 en pista: hasta 12 personas, cada una en su puesto de la rotación.',
+        'Online 6 contra 6 en pista (beta): hasta 12 personas, cada una en su puesto.',
         'Al crear la sala eliges el formato: 1 contra 1, 2 contra 2 o 6 contra 6.',
         'Sala de espera con sitios: elige el tuyo, mira el ping de cada uno y pulsa «Listo».',
         'Carrera cooperativa de playa: juega la liga y el Open con otra persona como tu pareja.',
