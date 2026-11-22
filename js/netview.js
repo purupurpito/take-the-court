@@ -6,11 +6,15 @@
  * challenges…); los índices de equipo cambiados (0 ↔ 1) y su hueco como hueco activo (g.ctrl = su jugador). Es solo de pintado:
  * nunca se avanza la vista con Sim.step. SIN DOM y SIN THREE (tools/viewtest.js la prueba en Node).
  *
- *   mirror(view, g, slot) → view: copyGame(view, g) y, con slot 1, flip(view). view = Sim.createGame con las MISMAS opciones.
+ *   mirror(view, g, me) → view: copyGame(view, g) y, si «yo» soy del equipo 1, flip(view). view = Sim.createGame con las MISMAS
+ *                           opciones. me = el hueco del 1 contra 1 (0|1: hueco = equipo) o {team, seat} (online de varios, g.mh:
+ *                           plaza ≠ equipo; tras girar, MI plaza pasa a ser la activa de la vista: g.ctrl = mi jugador, seatView).
  *   flip(v)                 gira en el sitio. Es una involución exacta: flip(flip(v)) deja v igual bit a bit (viewtest).
  *   mapEvents(evs, view, slot, out) eventos de la partida canónica → eventos para presentar en la vista (copias: jugadores de la
  *                           vista por id; con slot 1, girados y con los equipos cambiados; el punto con el texto del invitado).
- *   inputToWorld(inp, slot) la entrada se construye con la cámara de la VISTA: con slot 1 se gira move antes de mandarla.
+ *   inputToWorld(inp, me)   la entrada se construye con la cámara de la VISTA: con el equipo 1 se gira move antes de mandarla.
+ *   seatView(v, seat)       (online de varios) la plaza seat pasa a ser la activa de la vista: su gesto en los campos de g y g.ctrl.
+ *   teamOf(me) / seatOf(me) equipo y plaza de «yo» (número del 1 contra 1 u objeto {team, seat}).
  *   FIELDS / PLAYER / EVENT: clasificación CERRADA de todos los campos (viewtest falla si aparece uno sin clasificar).
  * ===================================================================== */
 (function () {
@@ -23,7 +27,8 @@
   // a negar · 'vec' = [x, y] a negar · 'ref' = referencia a un jugador (copyGame la empareja por id) · 'refs' = lista de jugadores
   // (solo eventos) · 'special' = lo hace flip a mano
   var FIELDS = {
-    opts: 'as', format: 'as', size: 'as', rot: 'as', lineup: 'as', libero: 'as', liberoFor: 'as', roster: 'as', setPlan: 'as',
+    // (6v6: rot, lineup, libero, liberoFor, roster y setPlan son parejas por equipo; en 2v2 son null y no se tocan)
+    opts: 'as', format: 'as', size: 'as', rot: 'swap', lineup: 'swap', libero: 'swap', liberoFor: 'swap', roster: 'swap', setPlan: 'swap',
     demo: 'as', autopilot: 'as', ctrlMode: 'as', ctrlRole: 'as', ctrlBase: 'as', posRule6: 'as', hAct: 'as', ask6: 'as',
     ctrlIdx: 'special', difficulty: 'as', prof: 'swap', tm: 'as', recvRisk: 'as', courtSwap3: 'as', points: 'as', venue: 'as',
     beach: 'as', HL: 'as', HW: 'as', cs: 'as', courtSwapAt: 'as', antennaHit: 'pos', atkServe: 'special', rng: 'as', seed: 'as',
@@ -40,6 +45,10 @@
     _pendCall: 'special', _snap: 'special', _digWho: 'ref', blockBy: 'ref', events: 'as', drill: 'as', replay: 'as', stats: 'as',
     mastery: 'as', feintOn: 'as', amb: 'as', holdLock: 'as', online: 'as', hT: 'as', bo1: 'as', hum: 'special', tmoPer: 'as', skipReq: 'swap', tmoReq: 'swap',
     tmoLeft: 'swap', tmo: 'special', _mates: 'swap', lastLand: 'pos', netSince: 'as', _rc: 'as', _lv: 'swap',
+    mh: 'as', skipS: 'as',
+    // 6v6 (online de varios): cambios apagados online (subsOn, subWait), tu atleta en el banquillo (ctrlOut, por plaza), solapes de la
+    // falta de posición y memorias de la IA de 6 (ai6.js _pq6 / _sp6), todo por equipo
+    subsOn: 'as', subWait: 'as', ctrlOut: 'as', overlap: 'swap', _pq6: 'swap', _sp6: 'swap',   // online de varios (sim.js bloque MULTI): marca y «Continuar» por plaza (los índices son de plaza, no de equipo)
     fl: 'as',                // Online V2 «Fluida» (VB.Sim.flInit): estado canónico en datos planos; la vista no lo lee
     // gesto del hueco activo (SLOT_S de sim.js y aim3/swingAim/aimIn): pasan a ser los del invitado
     aim3: 'special', swingAim: 'special', aimIn: 'special', aimOn: 'slot', aimLen: 'slot', swingLen: 'slot', aimSet: 'slot',
@@ -56,7 +65,8 @@
     lvx: 'neg', lvy: 'neg', rvx: 'neg', rvy: 'neg', down: 'as', shot: 'as', grade: 'as', aiTe: 'as', aiTeT: 'as', aiJt: 'as',
     aiDv: 'as', aiRk: 'as', e1T: 'as', e1Until: 'as', lastAction: 'as', pressEnd: 'as', actionT: 'as', onGround: 'as', tgx: 'neg', tgy: 'neg',
     tgA: 'as', tgB: 'as', tgTime: 'as', aiPlT: 'as', aiPl: 'as',
-    avx: 'neg', avy: 'neg', tkX: 'neg', tkY: 'neg', dj: 'as', jF: 'as', landT: 'as'   // (salto con impulso: carrera media, despegue; jF ya es «hacia la red»)
+    avx: 'neg', avy: 'neg', tkX: 'neg', tkY: 'neg', dj: 'as', jF: 'as', landT: 'as',   // (salto con impulso: carrera media, despegue; jF ya es «hacia la red»)
+    fx: 'neg', fy: 'neg', toX: 'neg', bench: 'as'   // (6v6: sitio de la formación, x del despegue y en el banquillo)
   };
   var EVENT = {
     type: 'as', t: 'as', _tick: 'as', _conf: 'as', team: 'team', landSide: 'team', setPoint: 'team', matchPoint: 'team', serving: 'team',
@@ -72,6 +82,8 @@
     speed: 'as', streak: 'as', t2: 'as', tape: 'as', tempo: 'as', timing: 'as', tool: 'as', touch: 'as', touchedOut: 'as',
     truthIn: 'as', venue: 'as', why: 'as', dur: 'as', wrong: 'as', used: 'as', auto: 'as', reset: 'as', mode: 'as',
     jv: 'as', mom: 'as', pipe: 'as', hard: 'as', jaim: 'as',  // (salto con impulso; jump.dir ya es 'vec')
+    inP: 'ref', outP: 'ref', rot: 'as',   // (6v6: líbero que entra / sale; rotation.rot = dorsales por zona)
+    seat: 'as',   // (online de varios: plaza que pidió skip / tiempo muerto / IA / «¡Pídela!» / líbero; índice de plaza, no cambia con el giro)
     ok: 'as'   // (blockPress: pulsación del bloqueo activo a tiempo o no; faltaba, viewtest lo vio el 18-nov-2026 al cambiar los partidos de bots)
   };
   // claves conocidas de los objetos anidados que flip toca o deja (viewtest falla si aparece otra: habría que clasificarla)
@@ -79,13 +91,17 @@
     ball: 'x,y,z,vx,vy,vz,held,spin,speed,dip,wobA,wobF,wobP', pr1: 'x,y,z,t', pr3: 'x,y,z,t', aim3: 'on,x,y,kind', lastLand: 'x,y,inside,t',
     antennaHit: 'x,y,z', call: 'x,y,dist,truthIn,calledIn,wrong,team,t,alt,used,setNo,waived', _pendCall: 'x,y,dist,truthIn,calledIn,wrong,team,t,alt,used,setNo,waived',
     review: 'team,t,dur,x,y,dist,truthIn,calledIn,overturned', cpuChal: 'team,at', tmo: 'team,t,dur', atkServe: 'team,player,reason,text',
-    ritual: 'on,phase,t,dur,bounces,n,u,player,rx,ry,pre,post,still,cyc,td,tu,v0,vu,vc,vi,press', rally: 't,hits,digs', tm: 'assist,swing,lock',
+    ritual: 'on,phase,t,dur,bounces,n,u,player,rx,ry,pre,post,still,cyc,td,tu,v0,vu,vc,vi,press,jug', rally: 't,hits,digs', tm: 'assist,swing,lock',
     _rc: 'pace,wob,run,move,line,ft,who',
     lastPoint: 'team,reason,text,how,highlight,digs,streak,savedSetPoint,clutch,signal,touchedOut,landSide,hold,setWon,matchWon,assist,tool,move',
     _snap: 'score,sets,setNo,serving,serverIdx,setScores,streakTeam,streakN,courtSwap3,pendingSet,setPoint,matchPoint,challenges,lastPoint',
-    hum: 'team,p,ai,aiBack,aim3,swingAim,aimIn,hitBuf,jsetQ,swingLive,swingShot,swingLock,swingHasAim,setWinOn,setCarry,setCarryK,setDirA,lastGrade,swingT0,swingShot0,swingSwapT,defRole,aimOn,aimLen,swingLen,aimSet,jdF,jdS,jdM,jdT,aimCarry,jsMv,jsAimD,jsetAim'
+    // (online de varios: idx = jugador en teams[team], tm = timing de su equipo y, en 6v6, los campos por plaza de sim.js SLOT_6)
+    hum: 'team,idx,tm,hAct,ask6,ctrlBase,ctrlRole,ctrlOut,p,ai,aiBack,aim3,swingAim,aimIn,hitBuf,jsetQ,swingLive,swingShot,swingLock,swingHasAim,setWinOn,setCarry,setCarryK,setDirA,lastGrade,swingT0,swingShot0,swingSwapT,defRole,aimOn,aimLen,swingLen,aimSet,jdF,jdS,jdM,jdT,aimCarry,jsMv,jsAimD,jsetAim'
   };
-  var NOSLOT = { team: 1, p: 1, ai: 1, aiBack: 1, aim3: 1, swingAim: 1, aimIn: 1 };
+  var NOSLOT = { team: 1, p: 1, ai: 1, aiBack: 1, aim3: 1, swingAim: 1, aimIn: 1, idx: 1, tm: 1 };
+  // campos del gesto por plaza (los 'slot' de FIELDS = SLOT_S de sim.js) y los del 6v6 (sim.js SLOT_6, solo con g.rot)
+  var SLOTK = []; (function () { for (var k in FIELDS) if (FIELDS[k] === 'slot') SLOTK.push(k); })();
+  var SLOT6 = ['hAct', 'ask6', 'ctrlBase', 'ctrlRole', 'ctrlOut'];
   // textos del árbitro que dependen de quién mira (sim.js LAND_TXT): el invitado ve el otro
   var LAND_TXT = ['El balón cae en tu campo', 'El balón cae en el campo rival'];
   function textMirror(t) { var i = LAND_TXT.indexOf(t); return i < 0 ? t : LAND_TXT[1 - i]; }
@@ -108,6 +124,13 @@
     lp.team = tf(lp.team); lp.landSide = tf(lp.landSide); if (typeof lp.text === 'string') lp.text = textMirror(lp.text);
   }
 
+  function flipP(p) {
+    if (!p || !once(p)) return;
+    p.team = tf(p.team); p.x = -p.x; p.y = -p.y; p.vx = -p.vx; p.vy = -p.vy;
+    p.jvx = -p.jvx; p.jvy = -p.jvy; p.lvx = -p.lvx; p.lvy = -p.lvy; p.rvx = -p.rvx; p.rvy = -p.rvy;
+    if (p.tgx !== undefined) { p.tgx = -p.tgx; p.tgy = -p.tgy; }
+    if (p.fx !== undefined) { p.fx = -p.fx; p.fy = -p.fy; p.toX = -p.toX; }   // (6v6)
+  }
   /** Gira la partida v en el sitio (involución exacta). Solo para pintar. */
   function flip(v) {
     seen.clear();
@@ -124,12 +147,10 @@
     }
     // jugadores: equipo cambiado y posición girada; equipos intercambiados y players = teams[0] + teams[1]
     var P = v.players;
-    for (i = 0; i < P.length; i++) {
-      var p = P[i]; if (!once(p)) continue;
-      p.team = tf(p.team); p.x = -p.x; p.y = -p.y; p.vx = -p.vx; p.vy = -p.vy;
-      p.jvx = -p.jvx; p.jvy = -p.jvy; p.lvx = -p.lvx; p.lvy = -p.lvy; p.rvx = -p.rvx; p.rvy = -p.rvy;
-      if (p.tgx !== undefined) { p.tgx = -p.tgx; p.tgy = -p.tgy; }
-    }
+    for (i = 0; i < P.length; i++) flipP(P[i]);
+    // 6v6: los que no están en pista (líbero fuera, plantilla; ya intercambiadas como parejas por equipo)
+    if (v.roster) for (i = 0; i < 2; i++) if (v.roster[i]) for (var j = 0; j < v.roster[i].length; j++) flipP(v.roster[i][j]);
+    if (v.libero) for (i = 0; i < 2; i++) flipP(v.libero[i]);
     var T = v.teams, t0 = T[0]; T[0] = T[1]; T[1] = t0;
     P.length = 0; for (i = 0; i < T[0].length; i++) P.push(T[0][i]); for (i = 0; i < T[1].length; i++) P.push(T[1][i]);
     // objetos con equipo y posición
@@ -148,7 +169,10 @@
     }
     // huecos: el del invitado pasa a ser el 0 y el activo (sus campos a los de siempre de g)
     var H = v.hum;
-    if (H && H.length === 2) {
+    if (H && v.mh) {   // online de varios: plaza ≠ equipo; las plazas no se reordenan (la activa la elige seatView, fuera del giro)
+      for (i = 0; i < H.length; i++) { var hm = H[i]; if (!once(hm)) continue; hm.team = tf(hm.team); if (hm.aim3) negPos(hm.aim3); if (hm.swingAim) negVec(hm.swingAim); if (hm.aimIn) negVec(hm.aimIn); }
+      if (v.aim3) negPos(v.aim3); if (v.swingAim) negVec(v.swingAim); if (v.aimIn) negVec(v.aimIn);   // (once: si son los de una plaza, ya están)
+    } else if (H && H.length === 2) {
       var h0 = H[0]; H[0] = H[1]; H[1] = h0;
       for (i = 0; i < 2; i++) { var h = H[i]; if (!once(h)) continue; h.team = tf(h.team); if (h.aim3) negPos(h.aim3); if (h.swingAim) negVec(h.swingAim); if (h.aimIn) negVec(h.aimIn); }
       var a = H[0];
@@ -162,11 +186,27 @@
     return v;
   }
 
-  /** view ← g (copia) y, para el invitado, girada. */
-  function mirror(view, g, slot) {
+  /** Equipo y plaza de «yo»: me = hueco del 1 contra 1 (0|1, hueco = equipo) u {team, seat} (online de varios). */
+  function teamOf(me) { return me && typeof me === 'object' ? (me.team === 1 ? 1 : 0) : me === 1 ? 1 : 0; }
+  function seatOf(me) { return me && typeof me === 'object' ? (me.seat | 0) : me === 1 ? 1 : 0; }
+  /** Online de varios: la plaza s pasa a ser la activa de la VISTA (como sim.js act, pero sin guardar la que había: tras copyGame la
+   *  activa es la 0 y g.hum[0] ya está al día, fin). Solo para pintar: g.ctrl = su jugador, su gesto en los campos de siempre. */
+  function seatView(v, s) {
+    var H = v.hum, a = H && H[s], i;
+    if (!a || !v.mh || v.hT === s) return v;
+    for (i = 0; i < SLOTK.length; i++) if (SLOTK[i] in a) v[SLOTK[i]] = a[SLOTK[i]];
+    if (v.rot) for (i = 0; i < SLOT6.length; i++) if (SLOT6[i] in a) v[SLOT6[i]] = a[SLOT6[i]];
+    v.aim3 = a.aim3; v.swingAim = a.swingAim; v.aimIn = a.aimIn; v.ctrl = a.p; v.hT = s;
+    if (a.tm) v.tm = a.tm;
+    if (v.ctrl) v.ctrlIdx = v.ctrl.idx;
+    return v;
+  }
+  /** view ← g (copia) y, para quien juega en el equipo 1, girada; online de varios: además mi plaza como activa. */
+  function mirror(view, g, me) {
     VB.Sim.copyGame(view, g);
     flRivalJob(view);
-    if (slot === 1) flip(view);
+    if (teamOf(me) === 1) flip(view);
+    if (view.mh) seatView(view, seatOf(me));
     return view;
   }
   /* Online V2 «Fluida»: la sim local solo calcula g.jobs del equipo propio (el rival lo mueven sus fotos), pero players.js anima a los
@@ -197,12 +237,13 @@
 
   function byId(view, p) {
     if (!p || typeof p !== 'object' || p.id === undefined) return p;
-    var L = view.players; for (var i = 0; i < L.length; i++) if (L[i].id === p.id) return L[i];
+    var L = view.players, i, t; for (i = 0; i < L.length; i++) if (L[i].id === p.id) return L[i];
+    if (view.roster) for (t = 0; t < 2; t++) { L = view.roster[t] || []; for (i = 0; i < L.length; i++) if (L[i].id === p.id) return L[i]; }   // (6v6: fuera de pista)
     return p;
   }
   /** Un evento de la partida canónica → copia para la vista (jugadores de la vista; con slot 1, girado). */
   function mapEvent(e, view, slot) {
-    var o = {}, k, v, c, m = slot === 1;
+    var o = {}, k, v, c, m = teamOf(slot) === 1;   // (slot: el hueco del 1 contra 1 o {team, seat}; gira quien juega en el equipo 1)
     for (k in e) {
       v = e[k]; c = EVENT[k];
       if (c === 'ref' || (v && typeof v === 'object' && !Array.isArray(v) && v.id !== undefined && v.team !== undefined)) { o[k] = byId(view, v); continue; }
@@ -228,11 +269,11 @@
   }
   /** Entrada construida con la cámara de la vista → mundo canónico (el invitado gira move). Copia; no toca inp. */
   function inputToWorld(inp, slot) {
-    var o = {}, k; for (k in inp) o[k] = inp[k];
-    o.move = inp.move ? (slot === 1 ? [-inp.move[0], -inp.move[1]] : [inp.move[0], inp.move[1]]) : [0, 0];
+    var o = {}, k, m = teamOf(slot) === 1; for (k in inp) o[k] = inp[k];
+    o.move = inp.move ? (m ? [-inp.move[0], -inp.move[1]] : [inp.move[0], inp.move[1]]) : [0, 0];
     return o;
   }
 
   VB.NetView = { mirror: mirror, flip: flip, mapEvent: mapEvent, mapEvents: mapEvents, inputToWorld: inputToWorld, textMirror: textMirror,
-    FIELDS: FIELDS, PLAYER: PLAYER, EVENT: EVENT, NESTED: NESTED, NOSLOT: NOSLOT };
+    seatView: seatView, teamOf: teamOf, seatOf: seatOf, FIELDS: FIELDS, PLAYER: PLAYER, EVENT: EVENT, NESTED: NESTED, NOSLOT: NOSLOT };
 })();

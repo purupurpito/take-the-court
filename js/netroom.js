@@ -30,6 +30,44 @@
  *   sala = {id, code, name, gname, host, guest, fmt, venue, map, even, bo, pts, state, v, seen (ms del servidor), age (ms), other (otra versión)}
  *   Errores: Error con .code = 'off' (las reglas del online aún no están desplegadas: 403 al listar, o al crear si tampoco se lista), 'denied' (403 en lo
  *   demás), 'auth' (sin sesión), 'net' (sin conexión), 'full', 'gone', 'version', 'error'.
+ *
+ * ---- ESQUEMA v3: SALAS DE VARIOS (online multi, notes/online-multi-brief.md §4; para el lobby de P6) ----
+ * Aditivo: las salas 1 contra 1 de siempre (sin la clave cap) no cambian NADA (ni campos, ni llamadas, ni reglas: un cliente 1.21.0
+ * en caché sigue funcionando con ellas). Una sala de varios lleva además:
+ *   mode  'vs' (dos equipos) | 'coop' (Carrera cooperativa: todos los humanos en el mismo equipo; NO sale en list(), solo por código
+ *         o enlace: byCode/get)
+ *   cap   plazas humanas contando al anfitrión: 2 | 4 | 12. Combinaciones (CAPS): vs 2v2 → 2|4 · vs 6v6 → 2|4|12 · coop 2v2 → 2 ·
+ *         coop 6v6 → 2|4. 6v6 siempre en Pabellón (venue 'hall'). Fluida (net) solo en vs con cap 2 (2v2×4 va en Precisa).
+ *   fmt   formato del partido ('2v2' | '6v6'; en las 1v1 sigue siendo '2v2')
+ *   seats {<uid>: {n: nombre visible, at: hora del SERVIDOR al sentarse}}: los invitados (el anfitrión NO está). Cada invitado solo
+ *         toca SU clave (entrar/salir); como mucho cap-1 claves (lo hacen cumplir las reglas). guest y gname se quedan en ''.
+ *   cnt   invitados que el anfitrión da por dentro (conectados) 0..cap-1; solo lo escribe el anfitrión (beat({cnt})).
+ *   lineup (opcional) texto del anfitrión (≤ 4000; p. ej. JSON de plazas/equipos/roles) para el lobby.
+ *   Estado: 'open' mientras se puede entrar (las reglas paran en cap-1 aunque siga 'open'); el anfitrión lo pasa a 'full'/'play'.
+ *   Señalización POR PAREJA (anfitrión ↔ cada invitado), la clave de la pareja es SIEMPRE el uid del invitado:
+ *     rooms/{id}/sig/o_<uidInvitado> = {sdp, gen} (oferta del anfitrión) · rooms/{id}/sig/a_<uidInvitado> = {sdp, gen} (su respuesta)
+ *     Lee o_: el anfitrión y ese invitado. Lee a_: ese invitado y el anfitrión mientras ese invitado esté sentado. Nadie más.
+ *     Solo se escriben para un invitado sentado (seats). Bórralas en cuanto abra el enlace (delSig(id, uid)).
+ *
+ *   rooms.open(cfg)              cfg += {mode, cap, fmt, lineup}: con cualquiera de mode/cap (o fmt '6v6', o multi: true) la sala es
+ *                                de varios (lo que no cuadre se corrige: ver CAPS); sin ellos, 1v1 como siempre. Al reabrir borra la
+ *                                señalización por pareja de los invitados de la sala anterior (1 lectura más).
+ *   rooms.join(id, gname)        en una sala de varios hace joinMulti (el lobby puede llamar siempre a join)
+ *   rooms.joinMulti(id, gname)   → Promise<sala> te sienta (seats.<tu uid>); errores: full | gone | version | denied | net | auth.
+ *                                Coste: 1 lectura + 1 escritura (la sala devuelta ya lleva tu plaza, sin releer).
+ *   rooms.leaveMulti(id)         → Promise   te levantas antes de empezar (borra antes tu a_<uid>); en 'play' las reglas no dejan
+ *                                (como en 1v1: la vuelta tras recargar necesita la plaza). rooms.leave(id) también vale si entraste
+ *                                con este cliente.
+ *   rooms.kick(uid)              → Promise<sala|null> el anfitrión levanta a un invitado (y late)
+ *   rooms.beat(patch)            patch admite también {cnt, lineup, state, seats (entero)}
+ *   rooms.putSig(id, 'offer'|'answer', {sdp, gen}, uidInvitado) / rooms.getSig(id, kind, uidInvitado) → {sdp, gen, to, uid}|null
+ *   rooms.delSig(id, uidInvitado | [uids])   sin el tercer argumento (o sin el segundo de delSig): los documentos 1v1 offer/answer.
+ *                                El invitado pasa SU uid (rooms.uid()); el anfitrión, el del invitado de esa pareja.
+ *   close / bye('host') / _sweep / sweep borran también las o_/a_ de todos los invitados que la sala tuvo (los que este cliente vio
+ *   y los que hay ahora). bye('guest', id) en una sala de varios: borra tu a_ y te levanta (keepalive).
+ *   sala de varios += {mode, cap, seats, cnt, lineup?, multi: true, nseat (invitados sentados), free (plazas libres = cap-1-nseat)}.
+ *   list(): sin las coop y sin las de varios ya sin plazas. Conteo por entrada (tools/roomtest.js lo mide contra el emulador).
+ *   VB.NetRoom.CAPS / VB.NetRoom.multiCfg(cfg) (normaliza mode/cap/fmt/venue/net; null = sala 1v1).
  * ===================================================================== */
 (function () {
   'use strict';
@@ -59,26 +97,51 @@
   }
 
   /* ---- valores de Firestore ---- */
+  // (esquema v3: también mapas y listas, para seats; los escalares se codifican exactamente igual que antes)
   function enc(v) {
     if (v === null || v === undefined) return { nullValue: null };
     if (typeof v === 'boolean') return { booleanValue: v };
     if (typeof v === 'number') return Number.isInteger(v) ? { integerValue: String(v) } : { doubleValue: v };
+    if (v instanceof Date) return { timestampValue: v.toISOString() };
+    if (Array.isArray(v)) return { arrayValue: { values: v.map(enc) } };
+    if (typeof v === 'object') { var f = {}; for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k)) f[k] = enc(v[k]); return { mapValue: { fields: f } }; }
     return { stringValue: String(v) };
+  }
+  function dec1(x) {
+    if (!x || typeof x !== 'object') return null;
+    if ('stringValue' in x) return x.stringValue;
+    if ('booleanValue' in x) return x.booleanValue;
+    if ('integerValue' in x) return +x.integerValue;
+    if ('doubleValue' in x) return +x.doubleValue;
+    if ('timestampValue' in x) return Date.parse(x.timestampValue);
+    if ('mapValue' in x) return dec((x.mapValue && x.mapValue.fields) || {});
+    if ('arrayValue' in x) return ((x.arrayValue && x.arrayValue.values) || []).map(dec1);
+    return null;
   }
   function dec(f) {
     var o = {};
-    for (var k in f) {
-      var x = f[k];
-      if ('stringValue' in x) o[k] = x.stringValue;
-      else if ('booleanValue' in x) o[k] = x.booleanValue;
-      else if ('integerValue' in x) o[k] = +x.integerValue;
-      else if ('doubleValue' in x) o[k] = +x.doubleValue;
-      else if ('timestampValue' in x) o[k] = Date.parse(x.timestampValue);
-      else o[k] = null;
-    }
+    for (var k in f) o[k] = dec1(f[k]);
     return o;
   }
-  var ROOM_KEYS = ['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'net'];
+  var ROOM_KEYS = ['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'net',
+    'mode', 'cap', 'seats', 'cnt', 'lineup'];   // (las cinco últimas: solo salas de varios, esquema v3)
+
+  /* ---- salas de varios (esquema v3) ---- */
+  // plazas humanas (con el anfitrión) admitidas por modo y formato; la primera es la de por defecto (las reglas dicen lo mismo)
+  var CAPS = { vs: { '2v2': [4, 2], '6v6': [12, 4, 2] }, coop: { '2v2': [2], '6v6': [2, 4] } };
+  /** cfg de open() → {mode, cap, fmt, venue, fluida} normalizado, o null si es una sala 1v1 de las de siempre. */
+  function multiCfg(cfg) {
+    cfg = cfg || {};
+    if (cfg.cap == null && cfg.mode == null && cfg.fmt !== '6v6' && !cfg.multi) return null;
+    var mode = cfg.mode === 'coop' ? 'coop' : 'vs', fmt = cfg.fmt === '6v6' ? '6v6' : '2v2', ok = CAPS[mode][fmt];
+    var cap = ok.indexOf(+cfg.cap) >= 0 ? +cfg.cap : ok[0];
+    return { mode: mode, cap: cap, fmt: fmt, venue: fmt === '6v6' ? 'hall' : (cfg.venue === 'beach' ? 'beach' : 'hall'),
+      fluida: cfg.net === 'fluida' && mode === 'vs' && cap === 2 && fmt === '2v2' };   // (Fluida es de 2 plazas y solo 2v2: NPL = 2)
+  }
+  /** Ruta de campo para una clave de seats (uid): siempre entre comillas invertidas (un uid puede empezar por cifra). */
+  function seatPath(uid) { return 'seats.`' + String(uid).replace(/\\/g, '\\\\').replace(/`/g, '\\`') + '`'; }
+  function seatUids(r) { return r && r.seats && typeof r.seats === 'object' ? Object.keys(r.seats) : []; }
+  function pairDoc(kind, uid) { return (kind === 'answer' ? 'a_' : 'o_') + uid; }
 
   function create(o) {
     o = o || {};
@@ -87,6 +150,8 @@
     var ver = String(o.ver || '');
     var me = null;      // {uid, token} de la última llamada
     var mine = null;    // tu sala (anfitrión): último estado escrito
+    var known = {};     // salas de varios: uids de invitados que este cliente ha visto en TU sala (para borrar su señalización)
+    var joinedM = {};   // salas de varios donde te sentaste con este cliente (leave/bye saben que es una sala de varios)
 
     function call(method, url, body, quiet404) {
       if (!F) return Promise.reject(err('net', 'sin fetch'));
@@ -117,7 +182,18 @@
       var now = readTime ? Date.parse(readTime) : (doc.updateTime ? Date.parse(doc.updateTime) : Date.now());
       d.age = d.seen ? Math.max(0, now - d.seen) : 1e12;
       d.other = !!ver && d.v !== ver;
+      // esquema v3: sala de varios (con cap); las 1v1 salen exactamente como antes
+      if (typeof d.cap === 'number') {
+        if (!d.seats || typeof d.seats !== 'object') d.seats = {};
+        d.multi = true; d.nseat = seatUids(d).length; d.free = Math.max(0, d.cap - 1 - d.nseat);
+      }
       return d;
+    }
+    function noteSeats(r) { if (r && me && r.id === me.uid) seatUids(r).forEach(function (u) { known[u] = 1; }); return r; }
+    /** Borra la señalización por pareja de esos invitados (o_ y a_), sin fallar. */
+    function delPairs(id, uids) {
+      var L = []; (uids || []).forEach(function (u) { if (u) L.push(call('DELETE', docUrl('rooms/' + id + '/sig/o_' + u), null, true).catch(function () { }), call('DELETE', docUrl('rooms/' + id + '/sig/a_' + u), null, true).catch(function () { })); });
+      return Promise.all(L).then(function () { });
     }
     /** Escritura con seen = hora del servidor (documents:commit con transformación). mask = campos que se tocan (sin mask: el doc entero). */
     function commitRoom(id, fields, mask, exists) {
@@ -139,6 +215,28 @@
     }
     function eq(field, v) { return { fieldFilter: { field: { fieldPath: field }, op: 'EQUAL', value: enc(v) } }; }
 
+    /** Esquema v3: te sienta en r (ya leída). 1 escritura: commit con máscara seats.<uid> y at = hora del servidor (transformación). */
+    function joinM(r, gname) {
+      var id = r.id, uid = me.uid, n = cleanName(gname) || 'Jugador';
+      if (r.host === uid) throw err('denied', 'es tu sala');
+      if (r.state !== 'open' || (r.free <= 0 && !(uid in r.seats))) throw err('full');
+      var seat = {}; seat[uid] = { mapValue: { fields: { n: { stringValue: n } } } };
+      var w = { update: { name: docRoot + '/rooms/' + id, fields: { seats: { mapValue: { fields: seat } } } }, updateMask: { fieldPaths: [seatPath(uid)] },
+        updateTransforms: [{ fieldPath: seatPath(uid) + '.at', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: true } };
+      return call('POST', base + ':commit', { writes: [w] }).then(function (j) {
+        joinedM[id] = 1;
+        var t = j && j.writeResults && j.writeResults[0] && j.writeResults[0].transformResults && j.writeResults[0].transformResults[0];
+        r.seats[uid] = { n: n, at: t && t.timestampValue ? Date.parse(t.timestampValue) : Date.now() };
+        r.nseat = seatUids(r).length; r.free = Math.max(0, r.cap - 1 - r.nseat);
+        return r;
+      }, function (e) {
+        if (e.code === 'denied' || e.code === 'gone' || e.code === 'conflict') return api.get(id).then(function (r2) {
+          throw err(!r2 || r2.age > LIVE_MS ? 'gone' : r2.multi && (r2.state !== 'open' || r2.free <= 0) && !(uid in r2.seats) ? 'full' : 'denied', e.message);
+        }, function () { throw err('denied', e.message); });
+        throw e;
+      });
+    }
+
     var api = {
       LIVE_MS: LIVE_MS, STALE_MS: STALE_MS, BEAT_MS: BEAT_MS,
       uid: function () { return me && me.uid; },
@@ -149,20 +247,23 @@
         return query(null, LIST_MAX, [{ field: { fieldPath: 'seen' }, direction: 'DESCENDING' }]).then(function (L) {
           L = L.filter(function (r) { return r.state === 'open'; });
           var dead = L.filter(function (r) { return r.age > STALE_MS + 30000 && r.host !== (me && me.uid); }).slice(0, 3);
-          dead.forEach(function (r) { api._sweep(r.id).catch(function () { }); });
+          dead.forEach(function (r) { api._sweep(r.id, r).catch(function () { }); });
           var mineId = me && me.uid;
-          return L.filter(function (r) { return r.age < LIVE_MS && r.host !== mineId; }).sort(function (a, b) { return a.age - b.age; });
+          // (esquema v3: las coop no se listan, solo por código o enlace; las de varios sin plaza libre tampoco)
+          return L.filter(function (r) { return r.age < LIVE_MS && r.host !== mineId && r.mode !== 'coop' && !(r.multi && r.free <= 0); })
+            .sort(function (a, b) { return a.age - b.age; });
         }, function (e) { if (e.code === 'denied') throw err('off', e.message); throw e; });
       },
       /** Limpieza: también las salas llenas o jugando que se quedaron sin latido (las abiertas caen en list). */
       sweep: function () {
         var cut = new Date(Date.now() - STALE_MS - 60000).toISOString();
         return query({ fieldFilter: { field: { fieldPath: 'seen' }, op: 'LESS_THAN', value: { timestampValue: cut } } }, 5).then(function (L) {
-          return Promise.all(L.filter(function (r) { return r.age > STALE_MS + 30000; }).map(function (r) { return api._sweep(r.id).catch(function () { }); }));
+          return Promise.all(L.filter(function (r) { return r.age > STALE_MS + 30000; }).map(function (r) { return api._sweep(r.id, r).catch(function () { }); }));
         });
       },
-      _sweep: function (id) {
-        return Promise.all(['offer', 'answer'].map(function (k) { return call('DELETE', docUrl('rooms/' + id + '/sig/' + k), null, true).catch(function () { }); }))
+      /** r (opcional) = la sala tal como se leyó: si es de varios, también se borran las o_/a_ de sus invitados. */
+      _sweep: function (id, r) {
+        return Promise.all(['offer', 'answer'].map(function (k) { return call('DELETE', docUrl('rooms/' + id + '/sig/' + k), null, true).catch(function () { }); }).concat([delPairs(id, seatUids(r))]))
           .then(function () { return call('DELETE', docUrl('rooms/' + id), null, true); });
       },
       /** Crea (o rehace) tu sala: rooms/{tu uid}. */
@@ -174,7 +275,14 @@
             venue: cfg.venue === 'beach' ? 'beach' : 'hall', map: String(cfg.map || '').slice(0, 40), even: !!cfg.even, bo: +cfg.bo === 3 ? 3 : 1,
             pts: [11, 15, 21, 25].indexOf(+cfg.pts) >= 0 ? +cfg.pts : 21, state: 'open', v: ver.slice(0, 40) };
           // Online V2: la conexión Fluida va en la sala (net = 'fluida'); en las Precisa la clave no existe (salas como siempre)
-          if (cfg.net === 'fluida') d.net = 'fluida';
+          var mc = multiCfg(cfg);
+          if (!mc) { if (cfg.net === 'fluida') d.net = 'fluida'; }
+          else {
+            // esquema v3: sala de varios (seats vacío, cnt 0; guest/gname se quedan en '')
+            d.fmt = mc.fmt; d.venue = mc.venue; d.mode = mc.mode; d.cap = mc.cap; d.seats = {}; d.cnt = 0;
+            if (mc.fluida) d.net = 'fluida';
+            if (typeof cfg.lineup === 'string' && cfg.lineup.length <= 4000) d.lineup = cfg.lineup;
+          }
           // (auditoría: un código nuevo que ya usa otra sala viva se cambia; el de tu sala de antes, cfg.code, se respeta)
           var fresh = !codeOk(cfg.code), tries = 0;
           var pick = function () {
@@ -184,7 +292,11 @@
             }, function () { });
           };
           // (antes de abrir: fuera la señalización de una sesión anterior que no se cerró, p. ej. una recarga a mitad de conexión)
-          return pick().then(function () { return api.delSig(a.uid); }).then(function () { return commitRoom(a.uid, d, null, null); }).then(function () { mine = d; return api.get(a.uid); }, function (e) {
+          // (esquema v3: y la señalización por pareja de los invitados de la sala anterior, si era de varios: se leen de la sala vieja)
+          var prevPairs = function () {
+            return api.get(a.uid).then(function (r) { var u = seatUids(r); for (var k in known) if (u.indexOf(k) < 0) u.push(k); known = {}; return delPairs(a.uid, u); }, function () { });
+          };
+          return pick().then(function () { return Promise.all([api.delSig(a.uid), prevPairs()]); }).then(function () { return commitRoom(a.uid, d, null, null); }).then(function () { mine = d; return api.get(a.uid); }, function (e) {
             if (e.code !== 'denied') throw e;
             // 403 al crear: 'off' solo si tampoco se puede listar (reglas sin desplegar); si no, es un dato que las reglas no aceptan
             return query(eq('state', 'open'), 1).then(function () { throw err('denied', e.message); }, function (e2) { throw err(e2.code === 'denied' ? 'off' : e2.code, e.message); });
@@ -205,7 +317,7 @@
         });
       },
       /** El anfitrión lee su sala tal como está (el invitado puede haber entrado o salido). */
-      get: function (id) { return call('GET', docUrl('rooms/' + id), null, true).then(function (j) { return j ? room(j) : null; }); },
+      get: function (id) { return call('GET', docUrl('rooms/' + id), null, true).then(function (j) { return j ? noteSeats(room(j)) : null; }); },
       byCode: function (code) {
         code = normCode(code); if (!codeOk(code)) return Promise.resolve(null);
         // (auditoría: las reglas no exigen código único y otra cuenta puede copiar el de una sala ajena: con más de una sala viva con ese
@@ -222,6 +334,7 @@
         return api.get(id).then(function (r) {
           if (!r || r.age > LIVE_MS) throw err('gone');
           if (r.other) throw err('version');
+          if (r.multi) return joinM(r, gname);   // esquema v3: sala de varios
           if (r.state !== 'open' || r.guest) throw err('full');
           var f = { guest: { stringValue: me.uid }, gname: { stringValue: cleanName(gname) || 'Jugador' }, state: { stringValue: 'full' } };
           return call('PATCH', docUrl('rooms/' + id) + '?updateMask.fieldPaths=guest&updateMask.fieldPaths=gname&updateMask.fieldPaths=state&currentDocument.exists=true', { fields: f })
@@ -231,22 +344,60 @@
             });
         });
       },
+      /** Esquema v3: sentarse en una sala de varios (solo seats.<tu uid> = {n, at: hora del servidor}). */
+      joinMulti: function (id, gname) {
+        return api.get(id).then(function (r) {
+          if (!r || r.age > LIVE_MS) throw err('gone');
+          if (r.other) throw err('version');
+          if (!r.multi) throw err('error', 'no es una sala de varios');
+          return joinM(r, gname);
+        });
+      },
       /** El invitado sale antes de empezar. */
       leave: function (id) {
+        if (joinedM[id]) return api.leaveMulti(id);   // esquema v3
         var f = { guest: { stringValue: '' }, gname: { stringValue: '' }, state: { stringValue: 'open' } };
         // primero se borra tu respuesta (lleva tus direcciones de red): que no la herede quien entre después
         return call('DELETE', docUrl('rooms/' + id + '/sig/answer'), null, true).catch(function () { }).then(function () { return call('PATCH', docUrl('rooms/' + id) + '?updateMask.fieldPaths=guest&updateMask.fieldPaths=gname&updateMask.fieldPaths=state&currentDocument.exists=true', { fields: f }); }).then(function () { }, function () { });
       },
+      /** Esquema v3: te levantas de una sala de varios antes de empezar (primero se borra tu respuesta: lleva tus direcciones de red). */
+      leaveMulti: function (id) {
+        delete joinedM[id];
+        return Promise.resolve(me || auth()).then(function (a) {
+          me = me || a;
+          return call('DELETE', docUrl('rooms/' + id + '/sig/a_' + me.uid), null, true).catch(function () { }).then(function () {
+            return call('PATCH', docUrl('rooms/' + id) + '?updateMask.fieldPaths=' + encodeURIComponent(seatPath(me.uid)) + '&currentDocument.exists=true', { fields: {} });
+          });
+        }).then(function () { }, function () { });
+      },
+      /** Esquema v3: el anfitrión levanta a un invitado de su sala (y late). null si la sala ya no existe. */
+      kick: function (uid) {
+        if (!mine || !me || !uid) return Promise.resolve(null);
+        known[uid] = 1;
+        return commitRoom(me.uid, {}, [seatPath(uid)], true).then(function () { return api.get(me.uid); }, function (e) {
+          if (e.code === 'gone' || e.code === 'conflict' || /NOT_FOUND|no entity/i.test(e.message)) { mine = null; return null; }
+          throw e;
+        });
+      },
       /** Al cerrar o recargar la pestaña (pagehide): lo mismo que close() (anfitrión) o leave(id) (invitado), sin esperar respuesta
        *  (fetch keepalive con el último token: no hay tiempo de renovarlo). Si el token ya no vale, la sala caduca sola (LIVE_MS). */
-      bye: function (role, id) {
+      bye: function (role, id, multi) {
         if (!me || !F) return;
+        if (multi && id) joinedM[id] = 1;   // (esquema v3: el lobby que retomó una plaza tras recargar lo dice aquí)
         var h = { Authorization: 'Bearer ' + me.token }, ka = function (m, u, b) {
           try { var o = { method: m, headers: h, keepalive: true }; if (b) { o.headers = { Authorization: h.Authorization, 'Content-Type': 'application/json' }; o.body = JSON.stringify(b); } F(u, o).catch(function () { }); } catch (e) { }
         };
         if (role === 'host') {
           mine = null;
+          // (esquema v3: las o_/a_ de los invitados que se han visto en tu sala)
+          for (var u in known) { ka('DELETE', docUrl('rooms/' + me.uid + '/sig/o_' + u)); ka('DELETE', docUrl('rooms/' + me.uid + '/sig/a_' + u)); }
+          known = {};
           ka('DELETE', docUrl('rooms/' + me.uid + '/sig/offer')); ka('DELETE', docUrl('rooms/' + me.uid + '/sig/answer')); ka('DELETE', docUrl('rooms/' + me.uid));
+        } else if (role === 'guest' && id && joinedM[id]) {
+          // esquema v3: tu respuesta fuera y tu plaza libre (en 'play' las reglas no dejan levantarse: la plaza sigue para la vuelta)
+          delete joinedM[id];
+          ka('DELETE', docUrl('rooms/' + id + '/sig/a_' + me.uid));
+          ka('PATCH', docUrl('rooms/' + id) + '?updateMask.fieldPaths=' + encodeURIComponent(seatPath(me.uid)) + '&currentDocument.exists=true', { fields: {} });
         } else if (role === 'guest' && id) {
           ka('DELETE', docUrl('rooms/' + id + '/sig/answer'));
           ka('PATCH', docUrl('rooms/' + id) + '?updateMask.fieldPaths=guest&updateMask.fieldPaths=gname&updateMask.fieldPaths=state&currentDocument.exists=true',
@@ -267,26 +418,39 @@
       /** El anfitrión cierra su sala (señalización y sala). */
       close: function () {
         if (!me) return Promise.resolve();
-        var id = me.uid; mine = null;
-        return api.delSig(id).then(function () { return call('DELETE', docUrl('rooms/' + id), null, true); }).then(function () { }, function () { });
+        var id = me.uid, wasM = !!(mine && mine.cap); mine = null;
+        // (esquema v3: en una sala de varios se lee antes quién está sentado para borrar también su señalización por pareja)
+        var pairs = function () {
+          var u = Object.keys(known); known = {};
+          return (wasM ? api.get(id).then(function (r) { seatUids(r).forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); }, function () { }) : Promise.resolve())
+            .then(function () { known = {}; return delPairs(id, u); });
+        };
+        return Promise.all([api.delSig(id), pairs()]).then(function () { return call('DELETE', docUrl('rooms/' + id), null, true); }).then(function () { }, function () { });
       },
       /** offer: s = {sdp, gen, to: uid del invitado al que va} · answer: s = {sdp, gen} (se firma con tu uid). Las reglas solo dejan leer
-       *  la oferta a su destinatario (y al anfitrión) y la respuesta a quien la escribió (y al anfitrión mientras sea su invitado). */
-      putSig: function (id, kind, s) {
+       *  la oferta a su destinatario (y al anfitrión) y la respuesta a quien la escribió (y al anfitrión mientras sea su invitado).
+       *  Esquema v3: con peer (uid del INVITADO de la pareja) va a sig/o_<peer> o sig/a_<peer> = {sdp, gen} (sin to/uid: van en el nombre). */
+      putSig: function (id, kind, s, peer) {
         var f = { sdp: { stringValue: String(s.sdp || '') }, gen: { integerValue: String(s.gen | 0) } };
         return Promise.resolve(me || auth()).then(function (a) {
           me = me || a;
+          if (peer) return call('PATCH', docUrl('rooms/' + id + '/sig/' + pairDoc(kind, peer)), { fields: f });
           if (kind === 'answer') f.uid = { stringValue: String(me.uid) }; else f.to = { stringValue: String(s.to || '') };
           return call('PATCH', docUrl('rooms/' + id + '/sig/' + (kind === 'answer' ? 'answer' : 'offer')), { fields: f });
         }).then(function () { });
       },
-      /** → {sdp, gen, to|uid} o null (no hay, o no es para ti: las reglas responden 403 y aquí cuenta como «no hay»). */
-      getSig: function (id, kind) {
-        return call('GET', docUrl('rooms/' + id + '/sig/' + (kind === 'answer' ? 'answer' : 'offer')), null, true).then(function (j) {
-          if (!j || !j.fields) return null; var d = dec(j.fields); return { sdp: String(d.sdp || ''), gen: d.gen | 0, to: String(d.to || ''), uid: String(d.uid || '') };
+      /** → {sdp, gen, to|uid} o null (no hay, o no es para ti: las reglas responden 403 y aquí cuenta como «no hay»).
+       *  Con peer (esquema v3): la de esa pareja; to (oferta) / uid (respuesta) = peer. */
+      getSig: function (id, kind, peer) {
+        return call('GET', docUrl('rooms/' + id + '/sig/' + (peer ? pairDoc(kind, peer) : kind === 'answer' ? 'answer' : 'offer')), null, true).then(function (j) {
+          if (!j || !j.fields) return null; var d = dec(j.fields);
+          if (peer) { d.to = kind === 'answer' ? '' : peer; d.uid = kind === 'answer' ? peer : ''; }
+          return { sdp: String(d.sdp || ''), gen: d.gen | 0, to: String(d.to || ''), uid: String(d.uid || '') };
         }, function (e) { if (e.code === 'denied') return null; throw e; });
       },
-      delSig: function (id) {
+      /** Sin peers: los documentos 1v1 (offer y answer). Con peers (uid o lista de uids de invitados, esquema v3): sus o_ y a_. */
+      delSig: function (id, peers) {
+        if (peers) return delPairs(id, Array.isArray(peers) ? peers : [peers]);
         return Promise.all(['offer', 'answer'].map(function (k) { return call('DELETE', docUrl('rooms/' + id + '/sig/' + k), null, true).catch(function () { }); })).then(function () { });
       },
       _mine: function () { return mine; }
@@ -295,5 +459,5 @@
   }
 
   VB.NetRoom = { create: create, newCode: newCode, codeOk: codeOk, normCode: normCode, cleanName: cleanName, enc: enc, dec: dec, ALPHA: ALPHA,
-    LIVE_MS: LIVE_MS, STALE_MS: STALE_MS, BEAT_MS: BEAT_MS };
+    LIVE_MS: LIVE_MS, STALE_MS: STALE_MS, BEAT_MS: BEAT_MS, CAPS: CAPS, multiCfg: multiCfg, seatPath: seatPath };
 })();

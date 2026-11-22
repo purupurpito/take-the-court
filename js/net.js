@@ -38,7 +38,10 @@
  *   memPair({lag (RTT ms), jit (± ms por sentido), loss (%), seed, clock}) → [linkA, linkB] (Node / pruebas)
  *   BcLink({room, slot, lag, jit, loss}) → enlace por BroadcastChannel (dos pestañas o dos páginas del mismo Chrome)
  *   Enlace = {send(ch, data), poll(now) → [{ch, data}], close()}; ch 'in' = no fiable (entradas), 'ctl' = fiable y en orden.
- *   bot(team, seed, prof) → function(g) → entrada (bot de solo entrada para pruebas; lee con useSlot y deja el hueco 0)
+ *   bot(slot, seed, prof, o) → function(g) → entrada (bot de solo entrada para pruebas; lee con useSlot y deja el hueco 0). slot = el
+ *     HUECO que lleva (online a N, notes/online-multi-brief.md P0); su equipo, o.team o g.hum[slot].team (con 2 huecos, hueco == equipo:
+ *     la firma de siempre bot(team, seed, prof) da exactamente lo mismo). En 6v6 (g.rot) sin balón suyo va a su sitio (VB.AI6.spot).
+ *   Enlaces de prueba para N pares (memMesh, memStar): js/nettest-links.js (usa Shaper, exportado aquí).
  *   AUDITORÍA (17-nov-2026, notes/net.md «Auditoría»): o.expect (invitado: opciones que anuncia la sala; si no cuadran → 'mismatch'),
  *     resync con id repetido hasta el 'rsok' (lo del canal fiable viejo se pierde al renegociar), los dos recargan → noShow, mensajes
  *     del rival acotados (hash, snapok, resync, delay), tope de 60 s en 'connecting'.
@@ -718,20 +721,25 @@
   BcLink.prototype.down = function (ms) { this.shaper.down = this.now() + ms; };
   BcLink.prototype.close = function () { try { this.bc.close(); } catch (e) { } };
 
-  /* ---------- Bot de solo entrada (pruebas: nettest, netdrive). Azar propio, nunca g.rng. Lee con useSlot y deja el hueco 0. ---------- */
+  /* ---------- Bot de solo entrada (pruebas: nettest, netdrive). Azar propio, nunca g.rng. Lee con useSlot y deja el hueco 0. ----------
+   * Por HUECO (P0 del online a N): bot(slot, seed, prof, {team}) lleva el hueco slot; el equipo se lee en cada llamada (o.team, o si no
+   * g.hum[slot].team, o si no el propio hueco). Con 2 huecos hueco == equipo: el azar (semilla + slot) y todo lo demás, como siempre. */
   var BOT = {
     bueno: { sigma: 0.04, posErr: 0.35, react: 0.18, aim: 0.6, block: true, jumpServe: 0.5 },
     flojo: { sigma: 0.11, posErr: 1.1, react: 0.32, aim: 0.15, block: false, jumpServe: 0.05 }
   };
-  function bot(team, seed, profName) {
+  function bot(slot, seed, profName, bo) {
     var S = Sim(), C = VB.C, prof = BOT[profName] || BOT.bueno;
-    var r = mulberry(seed * 7919 + 13 + team * 104729), sd = S.side(team), w = {};
+    slot = slot | 0; var fixT = bo && (bo.team === 0 || bo.team === 1) ? bo.team : -1;
+    var r = mulberry(seed * 7919 + 13 + slot * 104729), w = {}, team = slot, sd = 1;
     var gauss = function () { return (r() + r() + r() + r() - 2) * 1.732; };
     var stamp = -9, lead = 0, jlead = 0, ex = 0, ey = 0, presses = 0, serveWait = 0, react = 0, aimv = [0, 0], useAim = false, blockT = -1, blockSeen = -9;
     return function (g) {
       var inp = { move: [0, 0], hit: false, jump: false, jset: false, skip: false };
       if (!g || !g.online) return inp;
-      S.useSlot(g, team);
+      var hs = g.hum && g.hum[slot];
+      team = fixT >= 0 ? fixT : hs && (hs.team === 0 || hs.team === 1) ? hs.team : slot; sd = S.side(team);
+      S.useSlot(g, slot);
       try {
         var p = g.ctrl, b = g.ball;
         if (g.mode === 'point' || g.mode === 'over') { inp.skip = r() < 0.02; return inp; }
@@ -759,6 +767,8 @@
         if (job) {
           var pr = attack ? g.pr3 : g.pr1, kk = Math.min(1, Math.max(0, pr.t) / 1.1) * 0.5;
           tx = pr.x + sd * (attack ? 0.35 : 0.15) + ex * kk; ty = pr.y + ey * kk;
+        } else if (g.rot && VB.AI6) {   // 6v6: a su sitio de la formación (recepción, bloqueo de zona, defensa…), como el bot del simtest
+          var sp = VB.AI6.spot(g, p); tx = sp.x + ex * 0.3; ty = sp.y + ey * 0.3;
         } else if (prof.block && g.touchTeam === 1 - team && g.touches >= 1 && g.pr3.x * sd < 0 && g.defRole !== 'dig') {
           tx = sd * 0.6; ty = g.pr3.y;
         } else { tx = sd * 5.5; ty = -S.other(g, p).y * 0.5; }
@@ -787,7 +797,7 @@
   }
 
   VB.Net = {
-    Session: Session, memPair: memPair, BcLink: BcLink, bot: bot, BOT: BOT,
+    Session: Session, memPair: memPair, BcLink: BcLink, bot: bot, BOT: BOT, Shaper: Shaper,
     decode: decode, q16: q16, bitsOf: bitsOf, packInputs: packInputs, unpackInputs: unpackInputs, mulberry: mulberry,
     PROTO: PROTO, BITS: B, cleanName: cleanName, CONNECT_MS: CONNECT_MS, STEP: STEP, STEP_MS: STEP_MS, MAXPRED: MAXPRED, HASH_EVERY: HASH_EVERY, WAIT_AI_MS: WAIT_AI_MS, GONE_MS: GONE_MS
   };

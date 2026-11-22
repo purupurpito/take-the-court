@@ -673,15 +673,25 @@
   // Fase 3 (notes/net.md «Fase 3»): o.look = {mine, theirs} (VB.NetLobby.myLook / saneLook: looks del Vestuario y equipación de
   // cada uno, solo estética), o.rivalName (el del «pre»; la sesión lo confirma en su saludo). Revancha sobre el MISMO enlace con una
   // sesión nueva de la época siguiente (VB.Net Session epoch). Récord online y gorra: VB.NetRec.
+  // ONLINE DE VARIOS (sprint online-multi, notes/online-multi-brief.md P4): o.humans = [{team, idx | role, name, look}…] (una plaza por
+  // humano, en el orden de la sim: g.hum), o.seat (o o.slot) = TU plaza y o.links = los enlaces (invitado: [el del anfitrión]; anfitrión:
+  // uno por invitado; o.link vale si es uno). Con humanos que no son «hueco = equipo» (VB.Sim.isMulti: más de 2, coop, 6v6…) la vista
+  // gira por EQUIPO (net.team) y tu plaza es la activa de la vista (net.me = {team, seat}: VB.NetView), las etiquetas con el nombre de
+  // cada humano salen de un grupo (netTags) y la hoja, el récord y las repeticiones van por equipo. El 1 contra 1 no cambia: net.me =
+  // net.slot (número) y todo lo de siempre.
   ctx.actions.startOnline = function (o) {
     o = o || {};
-    if (!VB.Net || !VB.NetView || !o.link) return false;
+    var multi = netMultiOf(o);
+    if (!multi) o = net2Seats(o);   // (2 plazas «hueco = equipo» con la API de plazas: o.humans + o.seat → el 1 contra 1 de siempre)
+    if (!VB.Net || !VB.NetView || !(o.link || (multi && o.links && o.links.length))) return false;
     netStop(false);
     call('Audio', 'unlock');
     net = ctx.net = { sess: null, slot: o.slot === 1 ? 1 : 0, view: null, over: false, menu: false, r: null, name: o.name || '', rival: o.rivalName || '',
       look: o.look || null, base: o.opts || null, link: o.link, delay: o.delay, epoch: 0, away0: !!document.hidden,
       expect: o.expect || null,   // (auditoría: invitado: lo que anuncia la sala; la sesión lo compara con las opciones del anfitrión)
       model: o.model === 'fluida' && VB.NetFluid ? 'fluida' : 'precisa' };   // Online V2: conexión de la sala (la revancha la repite)
+    net.seat = net.slot; net.team = net.slot; net.me = net.slot; net.multi = false;   // (1 contra 1: hueco = plaza = equipo)
+    if (multi) netMultiSetup(o);
     netSession(o.opts || null, 0);
     // latido de la sesión en un Worker durante TODO el partido (antes solo con la pestaña oculta): si el navegador deja de dar frames a
     // la página > 100 ms (ventana tapada por otra, tirón del compositor), la sesión sigue recibiendo y mandando las entradas y el rival
@@ -691,19 +701,59 @@
     netHud(null);
     return true;
   };
+  /** ¿Pide o el online de varios? (humanos que no son «hueco = equipo»: VB.Sim.isMulti, o más de un enlace) */
+  function netMultiOf(o) {
+    var H = o.humans, S0 = VB.Sim;
+    if (!Array.isArray(H) || H.length < 2 || !S0 || !S0.isMulti) return false;
+    return S0.isMulti({ humans: H, format: o.format || (o.opts && o.opts.format), coop: o.coop || (o.opts && o.opts.coop) }) || !!(o.links && o.links.length > 1);
+  }
+  /** Llamada con la API de plazas (o.humans, o.seat, o.links) que no es de varios (2 humanos, uno por equipo, en el orden de la sim):
+   *  la pasa a la del 1 contra 1 (o.slot = tu plaza, o.link, o.rivalName, o.look = {mine, theirs}) sin pisar lo que ya traiga. */
+  function net2Seats(o) {
+    var H = o.humans; if (!Array.isArray(H) || H.length !== 2) return o;
+    var r = {}, k; for (k in o) r[k] = o[k];
+    var seat = (o.slot === undefined ? o.seat : o.slot) | 0; if (seat !== 1) seat = 0;
+    var me = H[seat] || {}, th = H[1 - seat] || {}, NL = VB.NetLobby;
+    r.slot = seat;
+    if (!r.link && o.links && o.links.length) r.link = o.links[0];
+    if (!r.name && me.name) r.name = String(me.name);
+    if (!r.rivalName && th.name) r.rivalName = String(th.name);
+    if (!r.look) r.look = { mine: me.look || (NL && NL.myLook ? NL.myLook() : null), theirs: th.look && NL && NL.saneLook ? NL.saneLook(th.look) : th.look || null };
+    return r;
+  }
+  /** Online de varios: plazas (equipo por defecto como la sim: coop → 0, si no plaza % 2), tu plaza y tu equipo, enlaces y modelo. */
+  function netMultiSetup(o) {
+    var H = o.humans, NL = VB.NetLobby, coop = !!(o.coop || (o.opts && o.opts.coop)), seat = (o.seat === undefined ? o.slot : o.seat) | 0, s;
+    if (seat < 0 || seat >= H.length) seat = 0;
+    net.multi = true; net.humans = [];
+    for (s = 0; s < H.length; s++) {
+      var h = H[s] || {}, t = h.team === 0 || h.team === 1 ? h.team : coop ? 0 : s % 2, lk = h.look || null;
+      if (s === seat && !lk) lk = (o.look && o.look.mine) || (NL && NL.myLook ? NL.myLook() : null);
+      else if (s !== seat && lk && NL && NL.saneLook) lk = NL.saneLook(lk);   // (lo de los demás llega por la red: solo estética, saneado)
+      net.humans.push({ team: t, idx: h.idx, role: h.role || '', name: String(h.name || (s === seat ? net.name : '') || ''), look: lk });
+    }
+    net.seat = net.slot = seat; net.team = net.humans[seat].team; net.me = { team: net.team, seat: seat };
+    net.links = o.links && o.links.length ? o.links.slice() : [o.link]; net.link = net.links[0];
+    // (Fluida es de 2 plazas; el 6v6 de varios usará su propia sesión, VB.NetHost (P5), si existe y la sala la pide)
+    net.model = o.model === 'host' && VB.NetHost && VB.NetHost.Session ? 'host' : 'precisa';
+    net.rival = netListTxt(netSeatsOf(1 - net.team, false)) || 'la IA';
+  }
   function netSession(opts, epoch) {
     // Online V2 (notes/online-v2-spec.md §9): Fluida = VB.NetFluid.Session, misma fachada; sin onTick (no hay grabador de repeticiones)
-    var fl = net.model === 'fluida', Ses = fl ? VB.NetFluid.Session : VB.Net.Session;
-    var s = new Ses({ slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch, expect: net.expect,
+    var fl = net.model === 'fluida', hs = net.model === 'host', Ses = fl ? VB.NetFluid.Session : hs ? VB.NetHost.Session : VB.Net.Session;
+    var so = { slot: net.slot, link: net.link, opts: opts, name: net.name, rivalName: net.rival, delay: net.delay, epoch: epoch, expect: net.expect,
       // 17-nov-2026: «listo» (invitado) y arranque (anfitrión) esperan a que esta máquina compile los gráficos del partido (netBuildView):
       // un parón de compilado a mitad de partido para a los dos (el otro espera). Programas en paralelo y luego el primer dibujo de todo.
       warm: function () { if (!net || net.sess !== s || !net.view) return false; if (progWarm.pending && progsPending()) return false; if (net.wd) { net.wd = false; warmDraw(); } return true; },
       log: ctx.debug ? function (m) { console.info('[VB] ' + m); } : null,
       // fase 6: cada paso CONFIRMADO, con sus dos entradas, al grabador de repeticiones (VB.Replay en modo dual sobre gc)
-      onTick: fl ? null : function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } });
+      onTick: fl || hs ? null : function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } };
+    // online de varios: todos los enlaces y las plazas (slot = TU plaza; su equipo es seats[slot].team: notes/online-multi-requests.md P4 → P2)
+    if (net.multi) { so.links = net.links; so.seats = net.humans; so.names = net.humans.map(function (h) { return h.name; }); }
+    var s = new Ses(so);
     if (VB.NetLog && net.sess) { try { VB.NetLog.end(net, 'revancha'); } catch (e) { } }
     net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
-    net.want = false; net.rivalWants = false; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
+    net.want = false; net.rivalWants = false; net.wants = {}; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
     net.stSnap = null; net.stRs = 0; net.hx = 0;   // (auditoría: copia de la hoja para rehacerla tras una vuelta; cruceta del HUD)
     if (net.away0) { s.setAway(true); s.maxCatch = 150; }
     return s;
@@ -724,11 +774,12 @@
    *  una sesión de la época siguiente sobre el mismo enlace (mismos nombres, looks y opciones de la sala). */
   ctx.actions.netRematch = function () {
     if (!net || !net.sess || net.want || net.sess.rivalLeft || net.sess.status !== 'over') return false;
-    net.want = true; net.sess.sendApp({ t: 'again' }); call('Audio', 'ui', 'click');
+    net.want = true; net.sess.sendApp(net.multi ? { t: 'again', s: net.seat } : { t: 'again' }); call('Audio', 'ui', 'click');
     netRematchGo();
     return true;
   };
   function netRematchGo() {
+    if (net && net.multi && net.want && !net.rivalWants) netWantsMark(-1);   // (vuelve a mirar: una plaza que se ha ido ya no cuenta)
     if (!net || !net.want || !net.rivalWants || net.slot !== 0 || !net.base) return;
     var o = {}, k; for (k in net.base) o[k] = net.base[k];
     o.seed = netSeed(); net.base = o;   // (las opciones de la sala, Fluida incluida: opts.net; la sesión nueva sale de net.model)
@@ -744,9 +795,17 @@
   function netApp(list) {
     for (var i = 0; i < list.length; i++) {
       var m = list[i]; if (!m || typeof m !== 'object') continue;
-      if (m.t === 'again') { net.rivalWants = true; netRematchGo(); }
-      else if (m.t === 'go' && net.slot === 1 && net.want && (m.e | 0) === net.epoch + 1) { netSession(null, net.epoch + 1); return; }   // (misma conexión: net.model)
+      if (m.t === 'again') { if (net.multi) netWantsMark(m.s); else net.rivalWants = true; netRematchGo(); }
+      else if (m.t === 'go' && net.slot !== 0 && net.want && (m.e | 0) === net.epoch + 1) { netSession(null, net.epoch + 1); return; }   // (misma conexión: net.model)
     }
+  }
+  /** Online de varios: la plaza s quiere la revancha; net.rivalWants = la quieren todas las demás plazas humanas (las que la sesión da
+   *  por idas, s.seatGone(k) si lo tiene, no cuentan). La empieza el anfitrión (plaza 0), como en el 1 contra 1. */
+  function netWantsMark(k) {
+    k = k | 0; if (k >= 0 && k < net.humans.length) net.wants[k] = true;
+    var all = true, ss = net.sess;
+    for (var i = 0; i < net.humans.length; i++) if (i !== net.seat && !net.wants[i] && !(ss && ss.seatGone && ss.seatGone(i))) all = false;
+    net.rivalWants = all;
   }
   /** Récord online (VB.NetRec): marca al empezar (cerrar la pestaña = abandono) y, una vez por partido, el resultado cuando ya no
    *  cambia (final confirmado, abandono, o juzgado por tiempo). En depuración (?net=) solo con &netrec=1 (pruebas). */
@@ -756,12 +815,12 @@
     var s = net.sess, res = s.result;
     if (!res || !(s.status === 'over' || s.status === 'ended' || s.goneFlag)) return;
     net.recDone = true;
-    var gc = s.confirmedGame(), sets = gc && gc.sets ? [gc.sets[net.slot] | 0, gc.sets[1 - net.slot] | 0] : null;
-    try { net.recRes = VB.NetRec.end(s.rivalName || net.rival, res, s.valid, sets); } catch (e) { reportError('NetRec.end', e); }
+    var gc = s.confirmedGame(), sets = gc && gc.sets ? [gc.sets[net.team] | 0, gc.sets[1 - net.team] | 0] : null;   // (por EQUIPO: en el 1 contra 1 equipo = hueco)
+    try { net.recRes = VB.NetRec.end(net.multi ? net.rival : s.rivalName || net.rival, res, s.valid, sets); } catch (e) { reportError('NetRec.end', e); }
   }
   function netRecTick(r) {
     if (!netRecOn()) return;
-    if (!net.recBegun && (r.status === 'playing' || r.status === 'waiting')) { net.recBegun = true; net.recBeat = performance.now(); try { VB.NetRec.begin(net.sess.rivalName || net.rival); } catch (e) { } }
+    if (!net.recBegun && (r.status === 'playing' || r.status === 'waiting')) { net.recBegun = true; net.recBeat = performance.now(); try { VB.NetRec.begin(net.multi ? net.rival : net.sess.rivalName || net.rival); } catch (e) { } }
     else if (net.recBegun && !net.recDone && performance.now() - net.recBeat > 10000) { net.recBeat = performance.now(); try { VB.NetRec.beat(); } catch (e) { } }
     netSettle();
   }
@@ -770,10 +829,12 @@
     netTicker(false);
     try { if (quit) { net.sess.quit(); netSettle(); } } catch (e) { }
     if (VB.NetLog) { try { VB.NetLog.end(net, quit ? 'sale' : 'cierra'); } catch (e) { } }
-    try { if (net.link && net.link.close) net.link.close(); } catch (e) { }
+    var LL = net.links || [net.link];
+    for (var li = 0; li < LL.length; li++) { try { if (LL[li] && LL[li].close) LL[li].close(); } catch (e) { } }
     net = ctx.net = null; ctx.netBot = null;
     var h = document.getElementById('netHud'); if (h) h.hidden = true;
     var a = document.getElementById('netTag'); if (a) a.hidden = true;
+    var at = document.getElementById('netTags'); if (at) at.hidden = true;
   }
   /** ?net=bc: partida de prueba entre dos pestañas (o dos páginas del mismo Chrome). El hueco 0 es el anfitrión: decide las opciones.
    *  Antes de la sesión, un «pre» como el del lobby (looks y equipación de cada uno) por el mismo BroadcastChannel. */
@@ -815,6 +876,7 @@
   /** Equipaciones y looks del partido online (solo estética): las dos equipaciones las decide VB.Players.onlineKits con las de los
    *  dos (los dos lados calculan lo mismo: misma función y mismos datos); el equipo 0 de la vista es siempre el tuyo. */
   function netKit() {
+    if (net.multi) return netKitMulti();
     var lk = net.look || {}, me = lk.mine || {}, th = lk.theirs || {};
     var host = net.slot === 0 ? me : th, guest = net.slot === 0 ? th : me;
     var P = VB.Players, ks = P && P.onlineKits ? P.onlineKits(host.kit, guest.kit) : null;
@@ -823,8 +885,47 @@
     return { kitShirt: mineK.kitShirt, kitAccent: mineK.kitAccent, kitShorts: mineK.kitShorts, kitPattern: mineK.kitPattern, kit1: theirK,
       looks1: th.fits && (th.fits[0] || th.fits[1]) ? [th.fits[0] || null, th.fits[1] || null] : null };
   }
+  /** Online de varios: las equipaciones de los dos equipos las decide VB.Players.onlineKits con las del «capitán» de cada uno (la primera
+   *  plaza del equipo con look; el equipo sin humanos, la de la CPU que no choque). Looks (2v2): netFits. */
+  function netKitMulti() {
+    var H = net.humans, P = VB.Players, cap = [null, null], i;
+    for (i = 0; i < H.length; i++) if (!cap[H[i].team] && H[i].look && H[i].look.kit) cap[H[i].team] = H[i].look.kit;
+    var ks = P && P.onlineKits ? P.onlineKits(cap[0], cap[1]) : null;
+    if (!ks) return null;
+    var mineK = ks[net.team], theirK = ks[1 - net.team];
+    return { kitShirt: mineK.kitShirt, kitAccent: mineK.kitAccent, kitShorts: mineK.kitShorts, kitPattern: mineK.kitPattern, kit1: theirK, looks1: netFits(1 - net.team) };
+  }
+  /** Looks del equipo t (solo 2v2: dos por equipo): el de cada humano en su jugador (sus fits[0]) y, en el de la IA, el del capitán. */
+  function netFits(t) {
+    var H = net.humans, f = [null, null], base = null, i;
+    if (net.view && net.view.size !== 2) return null;
+    for (i = 0; i < H.length; i++) {
+      var fi = H[i].team === t && H[i].look && H[i].look.fits; if (!fi) continue;
+      if (!base) base = fi;
+      if ((H[i].idx === 0 || H[i].idx === 1) && !f[H[i].idx]) f[H[i].idx] = fi[0] || fi[1] || null;
+    }
+    if (base) for (i = 0; i < 2; i++) if (!f[i]) f[i] = base[i] || null;
+    return f[0] || f[1] ? f : null;
+  }
+  /** Plazas humanas del equipo t (canónico), sin la tuya con notMe. */
+  function netSeatsOf(t, notMe) { var r = [], H = net.humans || []; for (var k = 0; k < H.length; k++) if (H[k].team === t && !(notMe && k === net.seat)) r.push(k); return r; }
+  function netSeatName(k) { var h = net.humans && net.humans[k]; return (h && h.name) || 'Jugador ' + (k + 1); }
+  /** Texto de una lista de plazas: «Ana», «Ana y Luis»; con más de 2, «Equipo de Ana (6)» (cabe en el HUD del móvil). '' si no hay. */
+  function netListTxt(L) {
+    if (!L.length) return '';
+    if (L.length > 2) return 'Equipo de ' + netSeatName(L[0]) + ' (' + L.length + ')';
+    return L.length === 2 ? netSeatName(L[0]) + ' y ' + netSeatName(L[1]) : netSeatName(L[0]);
+  }
+  function netAbbr(n) { return String(n || '').replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/g, '').slice(0, 3).toUpperCase(); }
   /** Nombres del marcador y de los textos («Saca la CPU» → «Saca el rival»): ui.js mira g.netCr igual que g.career. */
   function netNames(v) {
+    if (net.multi) {   // online de varios: tu equipo (TÚ, o «Tú y Ana») contra los rivales humanos (o la IA en el coop)
+      var riv = netSeatsOf(1 - net.team, false), mt = netSeatsOf(net.team, true);
+      net.cr = v.netCr = { me: 'TÚ', rival: riv.length ? netAbbr(netSeatName(riv[0])) || 'RIV' : 'CPU',
+        meName: !mt.length ? net.name || 'Tú' : mt.length === 1 ? 'Tú y ' + netSeatName(mt[0]) : 'Tu equipo', rivalName: riv.length ? netListTxt(riv) : 'la IA',
+        mates: mt.map(netSeatName), rivals: riv.map(netSeatName) };   // (mates / rivals: para la hoja final y el récord, P6)
+      return;
+    }
     var rv = net.sess.rivalName || net.rival || 'Rival';
     var ab = rv.replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/g, '').slice(0, 3).toUpperCase() || 'RIV';
     net.cr = v.netCr = { me: 'TÚ', rival: ab, meName: net.name || 'Tú', rivalName: rv };
@@ -837,13 +938,18 @@
     var st = net.view && net.view.stats, m = st && st.mastery, tag = VB.MASTERY && VB.MASTERY.edge ? VB.MASTERY.edge.tag : 0.5;
     if (!m || !net.view.mastery) return;
     for (var i = 0; i < list.length; i++) {
-      var e = list[i]; if (!e || e.type !== 'hit' || !e.human || e.team !== net.slot) continue;
+      var e = list[i]; if (!e || e.type !== 'hit' || !e.human || e.team !== net.team || (net.multi && !netMine(e))) continue;
       if (e.kind === 'spike' || (e.kind === 'free' && e.shot === 'tip')) {
         var mv = e.feint ? 'feint' : e.shot === 'roll' ? 'roll' : e.edge > tag ? 'edge' : '';
         if (mv) m[mv][0]++;
       }
       if (e.tempo && e.tempo !== 'lane' && e.tempo !== 'high') m.quick[0]++;
     }
+  }
+  /** Online de varios: ¿es tuyo el toque e (el jugador de tu plaza en la partida confirmada)? Tus compañeros humanos no cuentan. */
+  function netMine(e) {
+    var gc = net.sess.confirmedGame(), hs = gc && gc.hum && gc.hum[net.seat];
+    return !!(hs && hs.p && e.player && e.player.id === hs.p.id);
   }
   /** Fase 6: lo confirmado de un frame → maestría, estadísticas de la hoja (VB.UI.netTally, con los eventos girados para el invitado)
    *  y grabador de repeticiones (eventos canónicos; una reparación con foto o una vuelta cortan el peloteo en curso). */
@@ -855,7 +961,7 @@
     if (s.stats.rsIn !== net.stRs) { net.stRs = s.stats.rsIn; try { netStatsResync(s, list); } catch (e) { reportError('netStatsResync', e); } }
     if (!list.length) return;
     netMastery(list);
-    if (VB.UI && VB.UI.netTally) { var mp = []; try { VB.NetView.mapEvents(list, net.view, net.slot, mp); VB.UI.netTally(mp); } catch (e) { reportError('UI.netTally', e); } }
+    if (VB.UI && VB.UI.netTally) { var mp = []; try { VB.NetView.mapEvents(list, net.view, net.me, mp); VB.UI.netTally(mp); } catch (e) { reportError('UI.netTally', e); } }
     if (rec && net.model !== 'fluida') { try { RPL.onEvents(s.confirmedGame(), list); } catch (e) { reportError('Replay.onEvents', e); } }   // (Fluida: sin grabador)
     // (auditoría: copia de la hoja tras cada punto jugado con el rival presente: si luego hay que saltar a la foto del otro, se vuelve a ella)
     if (!s.solo && !s.rivalSolo && VB.UI && VB.UI._netStats) for (var i = 0; i < list.length; i++) if (list[i].type === 'point') { net.stSnap = { t: s.gcTick, st: netStClone(VB.UI._netStats()) }; break; }
@@ -878,7 +984,7 @@
     if (!gc.pendingSet && gc.mode !== 'over') { tot[0] += gc.score[0] | 0; tot[1] += gc.score[1] | 0; }
     for (i = 0; i < list.length; i++) if (list[i].type === 'point' && (list[i].team === 0 || list[i].team === 1)) { inL[list[i].team]++; if (list[i].setWon) setsL[list[i].team]++; }
     for (t = 0; t < 2; t++) {
-      var vt = net.slot === 1 ? 1 - t : t, d = tot[t] - inL[t] - (st.t[vt].points | 0);
+      var vt = net.team === 1 ? 1 - t : t, d = tot[t] - inL[t] - (st.t[vt].points | 0);   // (la hoja va por EQUIPO)
       if (d > 0) st.t[vt].points += d;
       if (st.sets) st.sets[vt] = Math.max(0, (gc.sets[t] | 0) - setsL[t]);
     }
@@ -889,7 +995,9 @@
     var s = net.sess, o = s.opts;
     if (o.mapId && isMapId(o.mapId)) forceVenue(o.mapId); else forceVenue(o.venue === 'beach' ? 'beach' : 'hall');
     var v = Sim.createGame(o);
-    VB.NetView.mirror(v, s.predictedGame(), net.slot);
+    // (online de varios: el equipo de cada plaza es el que dejó la sim, que sanea las repetidas; tu equipo, el de tu plaza)
+    if (net.multi) { var G0 = s.confirmedGame(), k0; for (k0 = 0; G0 && G0.hum && k0 < G0.hum.length && k0 < net.humans.length; k0++) net.humans[k0].team = G0.hum[k0].team; net.team = net.me.team = net.humans[net.seat].team; }
+    VB.NetView.mirror(v, s.predictedGame(), net.me);
     v.events.length = 0;
     netNames(v);
     net.view = v;
@@ -898,13 +1006,13 @@
     // (colores de los dos equipos para el marcador colgado del pabellón, arena.js: el invitado no viste el rojo del equipo 0)
     var hx = function (c) { return typeof c === 'number' ? '#' + ('00000' + (c >>> 0).toString(16)).slice(-6) : null; };
     net.cr.col = kit && kit.kit1 && hx(kit.kitShirt) && hx(kit.kit1.kitShirt) ? [hx(kit.kitShirt), hx(kit.kit1.kitShirt)] : null;
-    var mf = net.look && net.look.mine && net.look.mine.fits;
+    var mf = net.multi ? netFits(net.team) : net.look && net.look.mine && net.look.mine.fits;
     rpPre = v;   // (fase 6: el grabador no graba la vista sino la partida confirmada, en modo dual)
     setGame(v, kit, mf && (mf[0] || mf[1]) ? { fits: mf } : {});
     net.rpCut = s.repaired + s.stats.resyncs;
     // (Online V2: en Fluida no hay repeticiones en la beta; el reset con {fluida} deja el grabador bloqueado ('net') y sin «Jugadas»)
-    try { if (VB.Replay && VB.Replay.reset) { if (net.model === 'fluida') VB.Replay.reset(v, { fluida: true }); else VB.Replay.reset(s.confirmedGame(), { dual: true, slot: net.slot }); } } catch (e) { reportError('Replay.reset', e); }
-    VB.NetView.mapEvents(s.initEvents, v, net.slot, pendingEvents);   // (setGame vacía pendingEvents)
+    try { if (VB.Replay && VB.Replay.reset) { if (net.model === 'fluida') VB.Replay.reset(v, { fluida: true }); else if (net.model === 'host') VB.Replay.reset(v, { fluida: true }); else VB.Replay.reset(s.confirmedGame(), { dual: true, slot: net.slot, team: net.team }); } } catch (e) { reportError('Replay.reset', e); }
+    VB.NetView.mapEvents(s.initEvents, v, net.me, pendingEvents);   // (setGame vacía pendingEvents)
     setState('playing');
     // como al empezar un partido normal: texturas y programas del pabellón, los jugadores y los efectos ANTES del saque (antes no se
     // hacía en el online: el primer remate, la primera onda o el pabellón de la sala se compilaban en pleno partido y el rival esperaba).
@@ -920,7 +1028,11 @@
       // «Continuar» en la pausa del punto y entre sets (se salta solo si los dos lo piden): cualquier botón
       if ((v.mode === 'point' || v.mode === 'over') && (edge.hit || edge.jump || edge.switchPlayer || (it && it.confirm))) s.request('skip');
       if (ctx.netBot) { try { raw = ctx.netBot(s.predictedGame()); } catch (e) { reportError('netBot', e); } }
-      else raw = VB.NetView.inputToWorld({ move: simIn.move, hit: edge.hit, jump: edge.jump, jset: edge.jset }, net.slot);
+      else {
+        var ri = { move: simIn.move, hit: edge.hit, jump: edge.jump, jset: edge.jset };
+        if (v.size === 6) ri.switchPlayer = edge.switchPlayer;   // (6v6: CAMBIAR = «¡Pídela!», sim g.ask6; la sesión lo manda si sabe)
+        raw = VB.NetView.inputToWorld(ri, net.me);
+      }
       edge.hit = edge.jump = edge.jset = edge.switchPlayer = false;
     }
     net.lastMove = raw && raw.move ? raw.move : null;   // (el latido sigue con este movimiento si el navegador se salta frames)
@@ -930,13 +1042,15 @@
     if (VB.NetLog) { try { VB.NetLog.frame(net, r); } catch (e) { } }   // informe de red (solo lee; se guarda al acabar)
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return 0; }   // (revancha: sesión nueva; la vista llega con sus opciones)
     netRecTick(r);
+    // varios: el anfitrión que ya pidió la revancha la empieza en cuanto las plazas que faltan se van (sin esperar otro «again»)
+    if (net.multi && net.want && !net.rivalWants && net.slot === 0 && r.status === 'over') { netRematchGo(); if (net.sess !== s) return 0; }
     if (!v && s.opts && r.status !== 'ended') { netBuildView(); v = net.view; }
     if (v) {
       // Fluida: la pose pintada se pone sobre la partida local solo mientras se copia a la vista (sin la copia entera de más por frame)
-      if (net.model === 'fluida' && s.withDisplay) s.withDisplay(VB.NetView.mirror, v, net.slot); else VB.NetView.mirror(v, r.g, net.slot);
+      if (net.model === 'fluida' && s.withDisplay) s.withDisplay(VB.NetView.mirror, v, net.me); else VB.NetView.mirror(v, r.g, net.me);
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
       netConfirmed(s, r.confirmed);
-      if (r.events.length) VB.NetView.mapEvents(r.events, v, net.slot, frameEvents);
+      if (r.events.length) VB.NetView.mapEvents(r.events, v, net.me, frameEvents);
       if (ctx.state === 'playing' && !net.over && frameEvents.some(isGameOver)) { net.over = true; netSettle(); setState('over'); }
     }
     netHud(r);
@@ -976,7 +1090,7 @@
     if (r.app.length) { netApp(r.app); if (net.sess !== s) return; }
     netRecTick(r);
     // (el final del partido llega al volver: gameOver confirmado a la cola de eventos del siguiente frame)
-    if (net.view) for (var i = 0; i < r.confirmed.length; i++) if (r.confirmed[i].type === 'gameOver') { var ev = []; VB.NetView.mapEvents([r.confirmed[i]], net.view, net.slot, ev); for (var k = 0; k < ev.length; k++) pendingEvents.push(ev[k]); }
+    if (net.view) for (var i = 0; i < r.confirmed.length; i++) if (r.confirmed[i].type === 'gameOver') { var ev = []; VB.NetView.mapEvents([r.confirmed[i]], net.view, net.me, ev); for (var k = 0; k < ev.length; k++) pendingEvents.push(ev[k]); }
   }
   function netEl(id, css) {
     var e = document.getElementById(id); if (e) return e;
@@ -989,12 +1103,13 @@
       'flex-wrap:wrap;max-width:calc(100vw - 28px - var(--sl,0px) - var(--sr,0px));box-sizing:border-box');   // (fase 4: en un teléfono el aviso largo con dos botones baja de línea)
     if (!h.hasAttribute('data-ui')) h.setAttribute('data-ui', '');   // (auditoría: un clic en el aviso no es un golpe, input.js MOUSE_UI)
     // (auditoría: con «Gira el móvil» delante no se enseña; vuelve solo al girar)
-    if (!net || ctx.portraitBlock || (ctx.state === 'over' && net.view)) { h.hidden = true; if (net) netTag(r); return; }   // (la hoja final ya dice lo suyo)
+    if (!net || ctx.portraitBlock || (ctx.state === 'over' && net.view)) { h.hidden = true; if (net) netTagAll(r); return; }   // (la hoja final ya dice lo suyo)
     h.hidden = false;
     // (revisión F4: en los textos el nombre va como marca \u0001 y se pinta aparte; antes un replace() del nombre podía dar en el texto fijo, p. ej. «en» en «Siguiente»)
     var s = net.sess, name = s.rivalName || 'tu rival', who = '\u0001', msg = '', btn = '';
     // (revisión F3: antes de empezar siempre hay salida; salir aquí no cuenta para nadie, y a los 20 s sin noticias del rival la sesión lo deja)
-    if (!r || r.status === 'connecting') { msg = s.back ? 'Volviendo al partido…' : net.epoch > 0 ? 'Empezando la revancha…' : s.host ? 'Esperando a que entre tu rival…' : 'Conectando…'; btn = '<button data-n="quit">Salir</button>'; }
+    if (net.multi) { var mh = netHudMulti(r, s); msg = mh[0]; btn = mh[1]; }
+    else if (!r || r.status === 'connecting') { msg = s.back ? 'Volviendo al partido…' : net.epoch > 0 ? 'Empezando la revancha…' : s.host ? 'Esperando a que entre tu rival…' : 'Conectando…'; btn = '<button data-n="quit">Salir</button>'; }
     else if (r.status === 'starting') { msg = 'Contra ' + who + ' | empieza en ' + (r.startIn / 1000).toFixed(1).replace('.', ',') + ' s'; btn = '<button data-n="quit">Salir</button>'; }
     else if (r.status === 'ended') {
       var w = r.result && r.result.why;
@@ -1049,7 +1164,71 @@
       h.firstChild.innerHTML = msg.split(who).join('<b class="nn"></b>');
       var nn = h.querySelectorAll('.nn'); for (var j = 0; j < nn.length; j++) nn[j].textContent = name;   // (el nombre del rival nunca se pinta como HTML)
     }
-    netTag(r);
+    netTagAll(r);
+  }
+  function netEsc(t) { return String(t).replace(/[&<>"']/g, function (c) { return '&#' + c.charCodeAt(0) + ';'; }); }
+  /** Nombres de una lista de plazas para el HUD (escapados: llegan por la red), en negrita: «Ana, Luis y Marta». */
+  function netNamesHtml(L) {
+    // (móvil: como mucho 2 nombres de ~10 letras y «+N»; con 11 plazas la línea no puede tapar media pista)
+    var a = [], n = Math.min(L.length, L.length > 2 ? 1 : 2);
+    for (var i = 0; i < n; i++) a.push('<b>' + netEsc(netShort(netSeatName(L[i]))) + '</b>');
+    if (L.length > n) return a[0] + ' y ' + (L.length - n) + ' más';
+    return a.length > 1 ? a[0] + ' y ' + a[1] : a.join('');
+  }
+  /** Nombre recortado para el HUD (como las etiquetas: max-width 8.5em → ~10 letras y «…»). */
+  function netShort(t) { t = String(t || ''); return t.length > 10 ? t.slice(0, 9) + '…' : t; }
+  /** «Tú y Ana contra Luis y Marta» (con más de 2 por lado, «Tu equipo (6) contra Equipo de Luis (6)»; el coop, «contra la IA»). */
+  function netTeamsHtml() {
+    var mt = netSeatsOf(net.team, true), riv = netSeatsOf(1 - net.team, false);
+    var a = !mt.length ? 'Tú' : mt.length === 1 ? 'Tú y <b>' + netEsc(netShort(netSeatName(mt[0]))) + '</b>' : 'Tu equipo (' + (mt.length + 1) + ')';
+    var rv = riv.length > 2 ? 'Equipo de ' + netShort(netSeatName(riv[0])) + ' (' + riv.length + ')' : riv.map(function (k) { return netShort(netSeatName(k)); }).join(' y ');
+    return a + ' contra ' + (riv.length ? '<b>' + netEsc(rv) + '</b>' : 'la IA');
+  }
+  /** Ping de la red (WebRTC, como mucho cada 2 s): mine = el tuyo (invitado: con el anfitrión; anfitrión: el peor de sus enlaces) y
+   *  worst = el peor de la sala (r.pings, por plaza, si la sesión lo da; si no, el tuyo). */
+  function netPings(r) {
+    var t = performance.now(), L = net.links || [net.link], i;
+    if (!net.iceAt || t - net.iceAt > 2000) {
+      net.iceAt = t; var m = 0;
+      for (i = 0; i < L.length; i++) { try { var inf = L[i] && L[i].info ? L[i].info() : null; if (inf && inf.rtt > m) m = inf.rtt; } catch (e) { } }
+      net.iceRtt = m;
+    }
+    var mine = Math.round(net.iceRtt > 0 ? net.iceRtt : (r.ping || 0)), worst = mine, P = r.pings;
+    if (P) for (i = 0; i < P.length; i++) if (i !== net.seat && P[i] > worst) worst = Math.round(P[i]);
+    return [mine, worst];
+  }
+  /** Textos del HUD del online de varios → [msg (HTML con los nombres escapados), botones]. Las plazas que espera la sesión: r.waitFor. */
+  function netHudMulti(r, s) {
+    var msg = '', btn = '', v = net.view, k, quit = '<button data-n="quit">Salir</button>';
+    if (!r || r.status === 'connecting') { msg = s.back ? 'Volviendo al partido…' : net.epoch > 0 ? 'Empezando la revancha…' : s.host ? 'Esperando a que entren todos…' : 'Conectando…'; btn = quit; }
+    else if (r.status === 'starting') { msg = netTeamsHtml() + ' | empieza en ' + (r.startIn / 1000).toFixed(1).replace('.', ',') + ' s'; btn = quit; }
+    else if (r.status === 'ended') {
+      var w = r.result && r.result.why;
+      msg = w === 'quit' ? 'Has abandonado' : w === 'version' ? (VB.Update ? VB.Update.versionText(r.result.rv) : 'Alguien tiene otra versión del juego: reiniciad todos') :
+        w === 'rivalQuit' || w === 'rivalGone' ? 'Los rivales se han ido: ganáis' : w === 'hostGone' ? 'El anfitrión no ha vuelto: el partido no cuenta' :
+        w === 'late' ? 'Has tardado demasiado en volver: cuenta como abandono' : w === 'mismatch' ? 'La sala no coincide con lo anunciado: no hay partido' :
+        w === 'noShow' ? 'Faltan jugadores: no hay partido' : 'Partido terminado';
+      btn = '<button data-n="menu">Volver al menú</button>';
+    } else if (r.status === 'waiting') {
+      msg = 'Esperando a: ' + (r.waitFor && r.waitFor.length ? netNamesHtml(r.waitFor) : 'los demás') + '…';
+      if (r.canAI) btn = '<button data-n="ai">Seguir con la IA</button><button data-n="quit">Abandonar (cuenta como derrota)</button>';
+    } else {
+      var pg = netPings(r), amb = function (ms) { return ms > 150 ? 'var(--amber,#ffb238)' : 'inherit'; };
+      msg = netTeamsHtml() + ' | <span style="color:' + amb(pg[0]) + '">' + pg[0] + ' ms</span>' +
+        (pg[1] > pg[0] ? ' <span style="opacity:.7;font-weight:500">(peor <span style="color:' + amb(pg[1]) + '">' + pg[1] + ' ms</span>)</span>' : '') + (r.unstable ? ' | Conexión inestable' : '');
+      // plazas de los demás que lleva la IA (se ha ido o tiene la pestaña oculta: vuelve en el siguiente balón muerto)
+      var ai = []; if (v && v.hum) for (k = 0; k < v.hum.length; k++) if (k !== net.seat && v.hum[k].ai) ai.push(k);
+      if (ai.length) msg += ' | ' + netNamesHtml(ai) + (ai.length > 1 ? ': los lleva la IA' : ': lo lleva la IA');
+      // pausa de 10 s entre sets: «Continuar» por plaza (se salta cuando han pulsado todas las humanas, sim g.skipS)
+      if (v && v.pendingSet && v.mode === 'point' && ctx.state === 'playing') {
+        var left = Math.max(0, Math.ceil(v.timer || 0)), mine = !!(v.skipS && v.skipS[net.seat]), wt = [];
+        if (v.skipS && v.hum) for (k = 0; k < v.hum.length; k++) if (k !== net.seat && !v.skipS[k] && !v.hum[k].ai) wt.push(k);
+        msg = 'Siguiente set en ' + left + ' s' + (mine && wt.length ? ', esperando a: ' + netNamesHtml(wt) : '');
+        if (!mine) btn = '<button data-n="skip">Continuar</button>';
+      } else if (net.away0) msg += ' (tu jugador lo lleva la IA)';
+      if (net.menu) btn = '<button data-n="quit">Abandonar (cuenta como derrota)</button>';
+    }
+    return [msg, btn];
   }
   /** #netHud justo debajo del marcador (#sb), nunca encima (se mira cada medio segundo: el marcador cambia de alto con los sets). */
   var _hudPlaceAt = 0;
@@ -1080,6 +1259,7 @@
     if (cur < 0 && free && it.device === 'gamepad' && it.navOk) { bs[0].focus(); return true; }
     return false;
   }
+  function netTagAll(r) { if (net.multi) netTags(r); else netTag(r); }
   /** Flechita con el NOMBRE del rival encima de su jugador (nunca la IP ni el correo). z-index 2: por debajo del marcador (#hud, 3). */
   var _tagV = null;
   function netTag(r) {
@@ -1099,6 +1279,45 @@
     }
     a.hidden = false;
     a.style.left = ((_tagV.x + 1) * 0.5 * ctx.width) + 'px'; a.style.top = ((1 - _tagV.y) * 0.5 * ctx.height) + 'px';
+  }
+  /** Online de varios: etiqueta con el NOMBRE de cada humano (hasta 11: todos menos tú) sobre su jugador, subrayada con el color de su
+   *  equipo y con «IA» cuando su plaza la lleva la IA. Un grupo de divs reutilizados en #netTags: por frame solo cambia transform
+   *  (translate3d, sin layout) y el texto solo si cambia. Es DOM: ninguna llamada de dibujo más (el 6v6 en calidad baja sigue ≤45). */
+  var _tags = [];
+  function netTagMk(box) {
+    var e = document.createElement('div'), n = document.createElement('div'), b = document.createElement('span'), a = document.createElement('div');
+    e.style.cssText = 'position:absolute;left:0;top:0;will-change:transform;color:#fff;font:700 12px var(--ui,system-ui);text-shadow:0 1px 3px rgba(0,0,0,.8);' +
+      'text-align:center;white-space:nowrap';
+    n.style.cssText = 'display:inline-block;max-width:8.5em;overflow:hidden;text-overflow:ellipsis;vertical-align:bottom;border-bottom:2px solid transparent;padding:0 2px';
+    b.textContent = 'IA'; b.style.cssText = 'margin-left:3px;padding:0 4px;border-radius:6px;background:rgba(9,14,26,.8);font:800 10px var(--ui,system-ui);vertical-align:bottom';
+    a.textContent = '▼'; a.style.fontSize = '10px';
+    var top = document.createElement('div'); top.appendChild(n); top.appendChild(b);
+    e.appendChild(top); e.appendChild(a); e.hidden = true; box.appendChild(e);
+    return { el: e, n: n, b: b, a: a, k: '', x: NaN, y: NaN };
+  }
+  function netTags(r) {
+    var box = netEl('netTags', 'position:absolute;left:0;top:0;width:0;height:0;z-index:2;pointer-events:none');
+    var v = net && net.view, H = v && v.hum, i, n = 0;
+    if (!H || !ctx.camera || !VB.toThree || ctx.state !== 'playing' || !r || r.status === 'connecting' || ctx.portraitBlock) { box.hidden = true; return; }
+    box.hidden = false;
+    if (!_tagV) _tagV = new THREE.Vector3();
+    var col = net.cr && net.cr.col;
+    for (var k = 0; k < H.length && n < 11; k++) {
+      var hs = H[k]; if (k === net.seat || !hs || !hs.p) continue;
+      var t = _tags[n] || (_tags[n] = netTagMk(box)); n++;
+      if (t.el.parentNode !== box) box.appendChild(t.el);
+      var p = hs.p, tm = hs.team === 1 ? 1 : 0, ai = !!hs.ai, nm = netSeatName(k), key = nm + '|' + ai + '|' + tm;   // (equipo de la VISTA: 0 = el tuyo)
+      if (t.k !== key) {
+        t.k = key; t.n.textContent = nm; t.b.hidden = !ai;
+        var c = (col && col[tm]) || (tm ? '#5aa9ff' : '#ff5a2c'); t.n.style.borderBottomColor = c; t.a.style.color = c;
+      }
+      VB.toThree(p.x, p.y, (p.z || 0) + 2.25, _tagV); _tagV.project(ctx.camera);
+      if (_tagV.z > 1 || _tagV.z < -1) { if (!t.el.hidden) t.el.hidden = true; continue; }
+      if (t.el.hidden) t.el.hidden = false;
+      var x = Math.round((_tagV.x + 1) * 0.5 * ctx.width), y = Math.round((1 - _tagV.y) * 0.5 * ctx.height);
+      if (t.x !== x || t.y !== y) { t.x = x; t.y = y; t.el.style.transform = 'translate3d(' + x + 'px,' + y + 'px,0) translate(-50%,-100%)'; }
+    }
+    for (i = n; i < _tags.length; i++) if (!_tags[i].el.hidden) _tags[i].el.hidden = true;
   }
   /** E6: arranca un ejercicio (ver startMatch). createGame({drill}) monta la 1ª repetición; la sim no emite point/whistle/gameOver
    *  y al acabar la 10ª emite drillEnd (frame → 'over'). g.gym = id (marca para ui.js). */

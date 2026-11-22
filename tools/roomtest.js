@@ -5,6 +5,10 @@
  *     v1.19.x: `npx firebase-tools@13.29.1 setup:emulators:firestore`): arranca el emulador con las reglas del proyecto y prueba
  *     el cliente de verdad (fichas JWT sin firmar, que el emulador acepta) con tres cuentas A, B y C.
  *  2) Siempre: lógica del cliente con un fetch simulado (403 al listar → 'off', sin sesión → 'auth', sin red → 'net', nombres).
+ *  Esquema v3 (salas de varios, notes/online-multi-brief.md §4): entrar/salir de varios invitados, límites de plazas, combinaciones
+ *  de mode/cap/fmt, señalización por pareja (privacidad), limpieza, y lecturas/escrituras por entrada; además, las pruebas 1v1 de
+ *  siempre se pasan también con el cliente de la versión publicada (js/netroom.js de git HEAD: un 1.21.0 en caché) contra las
+ *  reglas nuevas, y el cliente nuevo contra las reglas publicadas (HEAD).
  * Uso: node tools/roomtest.js [--no-emu] [--port 8089]
  * Nunca toca el Firebase de verdad (proyecto demo-mtc del emulador).
  */
@@ -24,6 +28,16 @@ function check(name, ok, info) {
   console.log((ok ? '  ok   ' : '  FALLO ') + name + (info !== undefined ? ' ' + (typeof info === 'string' ? info : JSON.stringify(info)) : ''));
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
+/** Un archivo tal como está en git HEAD (la versión publicada), o null (solo lectura: git show). */
+function gitShow(rel) {
+  try { const r = require('child_process').spawnSync('git', ['show', 'HEAD:' + rel], { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 1 << 24 }); return r.status === 0 ? r.stdout : null; } catch (e) { return null; }
+}
+/** VB.NetRoom de un código fuente aparte (el cliente publicado), en su propio contexto. */
+function loadNR(src) {
+  const vm = require('vm'); const ctx = { fetch, console, setTimeout, clearTimeout, URL, TextEncoder };
+  ctx.globalThis = ctx; vm.createContext(ctx); vm.runInContext(src, ctx, { filename: 'netroom-HEAD.js' });
+  return ctx.VB && ctx.VB.NetRoom;
+}
 /** Para el emulador de verdad: en Windows `java` suele ser un lanzador y kill() deja vivo al java.exe hijo (se quedaba escuchando con
  *  las reglas VIEJAS y la siguiente pasada probaba contra él): taskkill /T se lleva el árbol entero. */
 function killTree(p) {
@@ -93,6 +107,49 @@ async function mockTests() {
   check('lista: «otra versión» marcada', L.find(x => x.id === 'e').other === true && L.find(x => x.id === 'a').other === false);
   await sleep(20);
   check('lista: borra de paso la caducada (> 5 min) con su señalización', calls.some(c => c[0] === 'DELETE' && /rooms\/d$/.test(c[1])) && calls.some(c => c[0] === 'DELETE' && /rooms\/d\/sig\/offer$/.test(c[1])) && !calls.some(c => c[0] === 'DELETE' && /rooms\/c$/.test(c[1])));
+  // esquema v3: enc/dec de mapas y listas (los escalares, igual que antes), normalización de open() y filtro de la lista
+  {
+    const v = { n: 'Ana', at: 5, ok: true, x: 1.5, l: [1, 'a'], m: { b: { c: 'd' } }, e: {} };
+    const e = NR.enc(v), back = NR.dec(e.mapValue.fields);
+    check('enc/dec: mapas y listas ida y vuelta (seats)', JSON.stringify(back) === JSON.stringify(v) && e.mapValue.fields.at.integerValue === '5', back);
+    check('enc: los escalares se codifican como antes', JSON.stringify([NR.enc('a'), NR.enc(3), NR.enc(true), NR.enc(null), NR.enc(2.5)]) ===
+      JSON.stringify([{ stringValue: 'a' }, { integerValue: '3' }, { booleanValue: true }, { nullValue: null }, { doubleValue: 2.5 }]));
+    check('dec: un tipo desconocido sigue dando null', NR.dec({ g: { geoPointValue: {} } }).g === null);
+    const M = NR.multiCfg;
+    check('multiCfg: sin mode/cap/6v6 = sala 1v1 (null)', M({ name: 'x', net: 'fluida', venue: 'beach' }) === null && M({}) === null && M({ fmt: '2v2' }) === null);
+    const n = (c) => { const r = M(c); return r && [r.mode, r.cap, r.fmt, r.venue, r.fluida].join(); };
+    check('multiCfg: combinaciones de plazas (vs 2v2 2|4, vs 6v6 2|4|12, coop 2 o 4 en 6v6) y lo que no cuadra se corrige',
+      n({ cap: 4 }) === 'vs,4,2v2,hall,false' && n({ cap: 12 }) === 'vs,4,2v2,hall,false' && n({ mode: 'vs', cap: 2, venue: 'beach' }) === 'vs,2,2v2,beach,false'
+      && n({ fmt: '6v6', venue: 'beach' }) === 'vs,12,6v6,hall,false' && n({ fmt: '6v6', cap: 4 }) === 'vs,4,6v6,hall,false'
+      && n({ mode: 'coop', cap: 4 }) === 'coop,2,2v2,hall,false' && n({ mode: 'coop', fmt: '6v6', cap: 4 }) === 'coop,4,6v6,hall,false'
+      && n({ mode: 'coop', fmt: '6v6', cap: 12 }) === 'coop,2,6v6,hall,false' && n({ mode: 'raro', cap: 3 }) === 'vs,4,2v2,hall,false',
+      [n({ cap: 4 }), n({ fmt: '6v6', venue: 'beach' }), n({ mode: 'coop', cap: 4 })]);
+    check('multiCfg: Fluida solo en vs con 2 plazas', n({ cap: 2, net: 'fluida' }).endsWith('true') && n({ cap: 4, net: 'fluida' }).endsWith('false') && n({ mode: 'coop', net: 'fluida' }).endsWith('false')
+      && n({ fmt: '6v6', cap: 2, net: 'fluida' }) === 'vs,2,6v6,hall,false');
+    check('seatPath: la clave del uid siempre entre comillas invertidas', NR.seatPath('9abc') === 'seats.`9abc`' && NR.seatPath('a`b') === 'seats.`a\\`b`', NR.seatPath('a`b'));
+    const sent = [];
+    const rr = NR.create({ base: 'http://x/v1/projects/p/databases/(default)/documents', auth, ver: '1|x', fetch: async (url, o) => {
+      if (/:commit$/.test(url)) sent.push(JSON.parse(o.body).writes[0].update.fields);
+      return { ok: true, status: url.indexOf('/sig/') >= 0 ? 404 : 200, text: async () => (/:runQuery$/.test(url) ? '[]' : '{}') };
+    } });
+    await rr.open({ name: 'Ana', mode: 'vs', cap: 4, fmt: '2v2', venue: 'beach', net: 'fluida', lineup: '{"a":1}' }); await rr.open({ name: 'Ana', fmt: '6v6', venue: 'beach' }); await rr.open({ name: 'Ana' });
+    const f0 = sent[0], f1 = sent[1], f2 = sent[2];
+    check('open(): sala de varios con mode/cap/seats vacío/cnt 0, guest/gname vacíos, sin net con 4 plazas; lineup si viene',
+      f0.mode.stringValue === 'vs' && f0.cap.integerValue === '4' && f0.cnt.integerValue === '0' && f0.seats.mapValue && Object.keys(f0.seats.mapValue.fields).length === 0
+      && f0.guest.stringValue === '' && f0.gname.stringValue === '' && !('net' in f0) && f0.venue.stringValue === 'beach' && f0.lineup.stringValue === '{"a":1}', f0);
+    check('open(): 6v6 → 12 plazas en Pabellón; sin mode/cap la sala 1v1 de siempre (sin las claves nuevas)',
+      f1.fmt.stringValue === '6v6' && f1.cap.integerValue === '12' && f1.venue.stringValue === 'hall'
+      && Object.keys(f2).sort().join() === 'bo,code,even,fmt,gname,guest,host,map,name,pts,state,v,venue' && f2.fmt.stringValue === '2v2');
+    // lista: las coop no salen; las de varios sin plaza tampoco
+    const mdoc = (id, extra) => doc(id, 1000, Object.assign({ mode: { stringValue: 'vs' }, cap: { integerValue: '4' }, cnt: { integerValue: '0' }, seats: { mapValue: { fields: {} } } }, extra || {}));
+    const seatsOf = k => ({ mapValue: { fields: Object.fromEntries(Array.from({ length: k }, (_, i) => ['g' + i, { mapValue: { fields: { n: { stringValue: 'G' + i }, at: { timestampValue: ts(now) } } } }])) } });
+    const r2 = NR.create({ base: 'http://x/v1/projects/p/databases/(default)/documents', auth, ver: '1|x', fetch: async (url) => ({ ok: true, status: 200,
+      text: async () => JSON.stringify(/:runQuery$/.test(url) ? [mdoc('m1'), mdoc('m2', { seats: seatsOf(3) }), mdoc('m3', { mode: { stringValue: 'coop' }, cap: { integerValue: '2' } }), mdoc('m4', { seats: seatsOf(2) }), doc('l1', 500)] : {}) }) });
+    const L2 = await r2.list(), m4 = L2.find(x => x.id === 'm4'), l1 = L2.find(x => x.id === 'l1');
+    check('lista: sin las coop ni las de varios llenas; plazas libres (free) y sentados (nseat); las 1v1 sin campos nuevos',
+      L2.map(x => x.id).sort().join() === 'l1,m1,m4' && m4.multi === true && m4.nseat === 2 && m4.free === 1 && m4.seats.g1.n === 'G1' && typeof m4.seats.g1.at === 'number'
+      && l1.multi === undefined && l1.seats === undefined && l1.free === undefined, L2.map(x => x.id + ':' + x.free));
+  }
   // nombres y códigos
   check('nombre: espacios, < > y controles fuera; 16 como mucho', NR.cleanName('  Ana   <b>Pérez</b>\u0007 de la Torre Grande ') === 'Ana bPérez/b de ' || NR.cleanName('  Ana   <b>Pérez</b>\u0007 de la Torre Grande ').length <= 16, NR.cleanName('  Ana   <b>Pérez</b>\u0007 de la Torre Grande '));
   const em = '\u{1F3D0}'.repeat(12);
@@ -113,7 +170,7 @@ function fakeToken(uid) {
   return b64u({ alg: 'none', typ: 'JWT' }) + '.' + b64u({ iss: 'https://securetoken.google.com/' + PROJECT, aud: PROJECT, auth_time: t, user_id: uid, sub: uid, iat: t, exp: t + 3600,
     firebase: { identities: {}, sign_in_provider: 'password' } }) + '.';
 }
-async function emuTests(base) {
+async function emuTests(base, NR) {
   const ver = '1|test';
   const mk = uid => NR.create({ base, ver, auth: async () => ({ uid, token: fakeToken(uid) }) });
   const A = mk('uidA'), B = mk('uidB'), C = mk('uidC');
@@ -313,6 +370,248 @@ async function emuTests(base) {
   }
 }
 
+/* ---------- 1b) esquema v3: salas de varios contra el emulador ---------- */
+async function emuMulti(base) {
+  const ver = '3|test', docRoot = base.slice(base.indexOf('projects/'));
+  // cada cliente cuenta sus peticiones (GET = lectura, PATCH/POST = escritura, DELETE = borrado; sig = las de señalización, que en
+  // las reglas leen además la sala con get(): 1 lectura más cada una)
+  const counts = {};
+  const mk = uid => { const c = counts[uid] = { GET: 0, PATCH: 0, POST: 0, DELETE: 0, sig: 0 };
+    return NR.create({ base, ver, auth: async () => ({ uid, token: fakeToken(uid) }), fetch: (url, o) => { c[o.method] = (c[o.method] || 0) + 1; if (/\/sig\//.test(url)) c.sig++; return fetch(url, o); } }); };
+  const zero = uid => { const c = counts[uid]; for (const k in c) c[k] = 0; };
+  const cnt = uid => { const c = counts[uid]; return { r: c.GET, w: c.PATCH + c.POST, d: c.DELETE, rr: c.sig }; };
+  const raw = async (method, p, body, tok) => { const r = await fetch(base + p, { method, headers: Object.assign({ Authorization: 'Bearer ' + (tok || 'owner') }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined }); return { status: r.status, j: await r.json().catch(() => null) }; };
+  const st = async p => (await raw('GET', p)).status;
+  const seat = n => ({ mapValue: { fields: { n: { stringValue: n } } } });
+  /** Sentarse a mano (commit con máscara seats.<k> y at del servidor), para probar las reglas sin el cliente. */
+  const sit = (uid, rid, seats, o) => { o = o || {};
+    return raw('POST', ':commit', { writes: [{ update: { name: docRoot + '/rooms/' + rid, fields: Object.assign({ seats: { mapValue: { fields: seats } } }, o.extra || {}) },
+      updateMask: { fieldPaths: Object.keys(seats).map(k => NR.seatPath(k)).concat(o.mask || []) },
+      updateTransforms: o.noAt ? [] : Object.keys(seats).map(k => ({ fieldPath: NR.seatPath(k) + '.at', setToServerValue: 'REQUEST_TIME' })), currentDocument: { exists: true } }] }, fakeToken(uid)); };
+  const unsit = (uid, rid, k) => raw('PATCH', '/rooms/' + rid + '?updateMask.fieldPaths=' + encodeURIComponent(NR.seatPath(k)) + '&currentDocument.exists=true', { fields: {} }, fakeToken(uid));
+  const goodM = { code: { stringValue: 'M7P2QX' }, name: { stringValue: 'Moi' }, gname: { stringValue: '' }, host: { stringValue: 'mC' }, guest: { stringValue: '' }, fmt: { stringValue: '2v2' },
+    venue: { stringValue: 'beach' }, map: { stringValue: '' }, even: { booleanValue: false }, bo: { integerValue: '1' }, pts: { integerValue: '21' }, state: { stringValue: 'open' }, v: { stringValue: ver },
+    mode: { stringValue: 'vs' }, cap: { integerValue: '4' }, seats: { mapValue: { fields: {} } }, cnt: { integerValue: '0' } };
+  const fxM = async (fields, uid) => { uid = uid || 'mC'; const r = await raw('POST', ':commit', { writes: [{ update: { name: docRoot + '/rooms/' + uid, fields: Object.assign({}, fields, { host: { stringValue: uid } }) },
+    updateTransforms: [{ fieldPath: 'seen', setToServerValue: 'REQUEST_TIME' }] }] }, fakeToken(uid)); await raw('DELETE', '/rooms/' + uid); return r.status; };
+  const W = (o) => Object.assign({}, goodM, o);
+  console.log('\nEsquema v3: salas de varios contra el emulador');
+
+  // --- crear ---
+  const H = mk('mH'), X = mk('mX');
+  const rh = await H.open({ name: 'Hugo', mode: 'vs', cap: 4, fmt: '2v2', venue: 'beach', map: 'platja' });
+  check('el anfitrión abre una sala 2v2 de 4 plazas (mode, cap, seats vacío, cnt 0, guest/gname vacíos)', rh && rh.multi === true && rh.cap === 4 && rh.mode === 'vs' && rh.fmt === '2v2'
+    && rh.venue === 'beach' && rh.nseat === 0 && rh.free === 3 && rh.cnt === 0 && rh.guest === '' && rh.gname === '' && rh.state === 'open' && rh.age < 5000, rh);
+  let L = await X.list();
+  check('sale en la lista con 3 plazas libres', L.some(r => r.id === 'mH' && r.free === 3 && r.multi));
+  const K = mk('mK'), rk = await K.open({ name: 'Kai', mode: 'coop', cap: 4 });
+  L = await X.list();
+  check('sala coop (cap corregido a 2): NO sale en la lista pero se encuentra por código y por enlace (get)', rk.cap === 2 && rk.mode === 'coop' && !L.some(r => r.id === 'mK')
+    && (await X.byCode(rk.code)).id === 'mK' && (await X.get('mK')).mode === 'coop');
+  const S = mk('mS'), rs = await S.open({ name: 'Sol', fmt: '6v6', venue: 'beach' });
+  check('sala 6v6: 12 plazas y en Pabellón aunque se pida playa', rs.fmt === '6v6' && rs.cap === 12 && rs.venue === 'hall' && rs.mode === 'vs');
+
+  // --- entrar (varios invitados) y conteo ---
+  const G = [1, 2, 3, 4, 5].map(i => mk('mG' + i));
+  zero('mG1');
+  const t0 = Date.now(), r1 = await G[0].join('mH', 'Gil');
+  const c1 = cnt('mG1');
+  check('G1 entra (join reconoce la sala de varios): su plaza con su nombre y la hora del servidor; nada de guest/state', r1 && r1.seats.mG1 && r1.seats.mG1.n === 'Gil'
+    && Math.abs(r1.seats.mG1.at - t0) < 15000 && r1.nseat === 1 && r1.free === 2 && r1.guest === '' && r1.state === 'open', r1 && r1.seats);
+  check('entrar cuesta 1 lectura + 1 escritura (sin releer la sala)', c1.r === 1 && c1.w === 1 && c1.d === 0, c1);
+  const r2 = await G[1].joinMulti('mH', 'Gala'), r3 = await G[2].joinMulti('mH', 'Gus');
+  let rr = await H.get('mH');
+  check('G2 y G3 entran: 3 invitados, sala llena (free 0) y aún «open» (el anfitrión decide el estado)', r2 && r3 && rr.nseat === 3 && rr.free === 0 && rr.state === 'open'
+    && rr.seats.mG2.n === 'Gala' && rr.seats.mG3.n === 'Gus' && rr.seats.mG1.n === 'Gil', rr && Object.keys(rr.seats));
+  check('G4 ya no cabe (cliente: full)', await code(G[3].joinMulti('mH', 'Gea')) === 'full');
+  check('… ni a mano (reglas: como mucho cap-1 invitados)', (await sit('mG4', 'mH', { mG4: seat('Gea') })).status === 403);
+  L = await X.list();
+  check('una sala de varios sin plazas ya no sale en la lista', !L.some(r => r.id === 'mH'));
+  check('quien ya está sentado puede volver a sentarse (cambiar su nombre) aunque esté llena', (await G[0].joinMulti('mH', 'Gil2')).seats.mG1.n === 'Gil2' && (await H.get('mH')).nseat === 3);
+  // --- salir ---
+  zero('mG3');
+  await G[2].leaveMulti('mH');
+  const c3 = cnt('mG3');
+  rr = await H.get('mH');
+  check('G3 se levanta: solo su clave fuera, los demás siguen', rr.nseat === 2 && !rr.seats.mG3 && rr.seats.mG1 && rr.seats.mG2, Object.keys(rr.seats));
+  check('levantarse cuesta 1 escritura + 1 borrado (su respuesta)', c3.w === 1 && c3.d === 1 && c3.r === 0, c3);
+  // --- lo que las reglas no dejan al sentarse ---
+  check('plaza con at del cliente (sin transformación): rechazada', (await sit('mG4', 'mH', { mG4: { mapValue: { fields: { n: { stringValue: 'Gea' }, at: { timestampValue: new Date().toISOString() } } } } }, { noAt: true })).status === 403);
+  check('plaza sin at: rechazada', (await sit('mG4', 'mH', { mG4: seat('Gea') }, { noAt: true })).status === 403);
+  check('plaza con un campo de más (p. ej. correo): rechazada', (await sit('mG4', 'mH', { mG4: { mapValue: { fields: { n: { stringValue: 'Gea' }, mail: { stringValue: 'a@b.c' } } } } })).status === 403);
+  check('plaza con nombre de 17 o vacío: rechazada', (await sit('mG4', 'mH', { mG4: seat('x'.repeat(17)) })).status === 403 && (await sit('mG4', 'mH', { mG4: seat('') })).status === 403);
+  check('sentarse en la plaza de OTRO: rechazado', (await sit('mG4', 'mH', { mG1: seat('Falso') })).status === 403);
+  check('sentar a dos de golpe (la tuya y otra): rechazado', (await sit('mG4', 'mH', { mG4: seat('Gea'), mZ: seat('Zoe') })).status === 403);
+  check('sentarse tocando cnt o state: rechazado', (await sit('mG4', 'mH', { mG4: seat('Gea') }, { extra: { cnt: { integerValue: '2' } }, mask: ['cnt'] })).status === 403
+    && (await sit('mG4', 'mH', { mG4: seat('Gea') }, { extra: { state: { stringValue: 'full' } }, mask: ['state'] })).status === 403);
+  check('el anfitrión no se sienta en su propia sala', (await sit('mH', 'mH', { mH: seat('Hugo') })).status === 403);
+  check('un invitado no levanta a otro ni cambia cnt/estado', (await unsit('mG2', 'mH', 'mG1')).status === 403
+    && (await raw('PATCH', '/rooms/mH?updateMask.fieldPaths=cnt', { fields: { cnt: { integerValue: '2' } } }, fakeToken('mG2'))).status === 403
+    && (await raw('PATCH', '/rooms/mH?updateMask.fieldPaths=state', { fields: { state: { stringValue: 'play' } } }, fakeToken('mG2'))).status === 403);
+  check('la rama 1v1 de entrar (guest/gname/state) no vale en una sala de varios', (await raw('PATCH', '/rooms/mH?updateMask.fieldPaths=guest&updateMask.fieldPaths=gname&updateMask.fieldPaths=state',
+    { fields: { guest: { stringValue: 'mG4' }, gname: { stringValue: 'Gea' }, state: { stringValue: 'full' } } }, fakeToken('mG4'))).status === 403);
+  const SRC = gitShow('js/netroom.js'), OLD = SRC && SRC.indexOf('joinMulti') < 0 ? loadNR(SRC) : null;
+  if (OLD) {
+    const O = OLD.create({ base, ver, auth: async () => ({ uid: 'mG4', token: fakeToken('mG4') }) });
+    const oc = await code(O.join('mH', 'Gea')); rr = await H.get('mH');
+    check('un cliente 1.21.0 (js/netroom.js de HEAD) que intente entrar en una sala de varios no la estropea', oc !== 'ok' && rr.guest === '' && rr.nseat === 2, oc);
+  }
+  check('G4 entra en la plaza que dejó G3', (await G[3].joinMulti('mH', 'Gea')).seats.mG4.n === 'Gea');
+
+  // --- el anfitrión ---
+  let b = await H.beat({ cnt: 3 });
+  check('latido del anfitrión con cnt: los invitados siguen', b && b.cnt === 3 && b.nseat === 3 && b.age < 3000);
+  check('cnt fuera de rango (> cap-1) rechazado', await code(H.beat({ cnt: 4 })) === 'denied' && await code(H.beat({ cnt: -1 })) === 'denied');
+  check('el anfitrión no puede pasar de cap-1 invitados (seats a mano) ni poner un cap/mode que no cuadra',
+    await code(H.beat({ seats: { a1: { n: 'A' }, a2: { n: 'B' }, a3: { n: 'C' }, a4: { n: 'D' } } })) === 'denied'
+    && await code(H.beat({ cap: 12 })) === 'denied' && await code(H.beat({ mode: 'coop' })) === 'denied' && await code(H.beat({ guest: 'mG1' })) === 'denied');
+  b = await H.beat({ state: 'full' });
+  await G[1].leaveMulti('mH');
+  rr = await H.get('mH');
+  check('con la sala en «full» nadie entra, pero se puede salir', b.state === 'full' && rr.nseat === 2 && await code(G[4].joinMulti('mH', 'Goya')) === 'full'
+    && (await sit('mG5', 'mH', { mG5: seat('Goya') })).status === 403);
+  await H.beat({ state: 'open' });
+  await G[1].joinMulti('mH', 'Gala');
+  const rkck = await H.kick('mG4');
+  check('el anfitrión levanta a un invitado (kick)', rkck && !rkck.seats.mG4 && rkck.nseat === 2 && rkck.age < 3000, rkck && Object.keys(rkck.seats));
+  await G[3].joinMulti('mH', 'Gea');
+
+  // --- señalización por pareja ---
+  zero('mH'); zero('mG4');
+  await H.putSig('mH', 'offer', { sdp: 'OFERTA-G4 c=IN IP4 1.2.3.4', gen: 1 }, 'mG4');
+  const o4 = await G[3].getSig('mH', 'offer', 'mG4');
+  await G[3].putSig('mH', 'answer', { sdp: 'RESPUESTA-G4 c=IN IP4 5.6.7.8', gen: 1 }, 'mG4');
+  const a4 = await H.getSig('mH', 'answer', 'mG4');
+  await H.delSig('mH', 'mG4');
+  const ch = cnt('mH'), cg = cnt('mG4');
+  check('pareja anfitrión↔G4: oferta o_mG4 y respuesta a_mG4 (to/uid = G4)', o4 && o4.sdp.startsWith('OFERTA-G4') && o4.gen === 1 && o4.to === 'mG4'
+    && a4 && a4.sdp.startsWith('RESPUESTA-G4') && a4.uid === 'mG4', [o4, a4]);
+  check('al abrir el enlace se borran las dos', await st('/rooms/mH/sig/o_mG4') === 404 && await st('/rooms/mH/sig/a_mG4') === 404);
+  check('una pareja cuesta: anfitrión 1 escritura + 1 lectura + 2 borrados, invitado 1 lectura + 1 escritura (con una sola consulta cada uno)',
+    ch.w === 1 && ch.r === 1 && ch.d === 2 && cg.r === 1 && cg.w === 1 && cg.d === 0, { anfitrion: ch, invitado: cg });
+  {
+    // resumen por invitado (una consulta de cada lado; cada sondeo de más del lobby suma 1 lectura + 1 de las reglas en la señalización)
+    const R = c1.r + ch.r + cg.r, Rr = ch.rr + cg.rr, Wr = c1.w + ch.w + cg.w, D = ch.d;
+    console.log('  info  por invitado (entrar + una pareja): ' + R + ' lecturas de documento + ' + Rr + ' lecturas de las reglas (get de la sala en sig) = '
+      + (R + Rr) + ' lecturas, ' + Wr + ' escrituras, ' + D + ' borrados; sala de 12: ×11 = ' + (R + Rr) * 11 + ' lecturas, ' + Wr * 11 + ' escrituras, ' + D * 11
+      + ' borrados (sin contar los sondeos del lobby ni el latido del anfitrión, 1 escritura + 1 lectura cada 20 s)');
+  }
+  await H.putSig('mH', 'offer', { sdp: 'OFERTA-G1', gen: 2 }, 'mG1');
+  await G[0].putSig('mH', 'answer', { sdp: 'RESPUESTA-G1', gen: 2 }, 'mG1');
+  check('otro invitado (G2) NO lee la oferta ni la respuesta de G1', (await G[1].getSig('mH', 'offer', 'mG1')) === null && (await G[1].getSig('mH', 'answer', 'mG1')) === null
+    && (await raw('GET', '/rooms/mH/sig/o_mG1', null, fakeToken('mG2'))).status === 403 && (await raw('GET', '/rooms/mH/sig/a_mG1', null, fakeToken('mG2'))).status === 403);
+  check('… ni alguien de fuera', (await raw('GET', '/rooms/mH/sig/o_mG1', null, fakeToken('mX'))).status === 403 && (await raw('GET', '/rooms/mH/sig/a_mG1', null, fakeToken('mX'))).status === 403);
+  check('G1 lee su oferta; el anfitrión su respuesta', (await G[0].getSig('mH', 'offer', 'mG1')).sdp === 'OFERTA-G1' && (await H.getSig('mH', 'answer', 'mG1')).sdp === 'RESPUESTA-G1');
+  check('oferta para alguien que no está sentado: rechazada', await code(H.putSig('mH', 'offer', { sdp: 'x', gen: 1 }, 'mG5')) === 'denied');
+  check('G1 no escribe la respuesta de otro, ni ofertas, ni G2 la de G1', await code(G[0].putSig('mH', 'answer', { sdp: 'x', gen: 1 }, 'mG2')) === 'denied'
+    && await code(G[0].putSig('mH', 'offer', { sdp: 'x', gen: 1 }, 'mG1')) === 'denied' && await code(G[1].putSig('mH', 'answer', { sdp: 'x', gen: 1 }, 'mG1')) === 'denied');
+  check('un invitado sin sentar no escribe respuesta', await code(G[4].putSig('mH', 'answer', { sdp: 'x', gen: 1 }, 'mG5')) === 'denied');
+  check('pareja: un campo de más (to/uid), SDP > 20 000 o gen < 0: rechazados',
+    (await raw('PATCH', '/rooms/mH/sig/o_mG1', { fields: { sdp: { stringValue: 'x' }, gen: { integerValue: '1' }, to: { stringValue: 'mG1' } } }, fakeToken('mH'))).status === 403
+    && await code(H.putSig('mH', 'offer', { sdp: 'x'.repeat(20001), gen: 3 }, 'mG1')) === 'denied'
+    && (await raw('PATCH', '/rooms/mH/sig/o_mG1', { fields: { sdp: { stringValue: 'x' }, gen: { integerValue: '-1' } } }, fakeToken('mH'))).status === 403);
+  check('los documentos 1v1 offer/answer no valen en una sala de varios', await code(G[0].putSig('mH', 'answer', { sdp: 'x', gen: 1 })) === 'denied'
+    && await code(H.putSig('mH', 'offer', { sdp: 'x', gen: 1, to: 'mG1' })) === 'denied');
+  check('alguien de fuera no borra la señalización de una sala viva', (await raw('DELETE', '/rooms/mH/sig/o_mG1', null, fakeToken('mX'))).status === 403
+    && (await raw('DELETE', '/rooms/mH/sig/a_mG1', null, fakeToken('mG2'))).status === 403);
+  await G[0].leaveMulti('mH');
+  check('G1 se levanta: su respuesta se borra', await st('/rooms/mH/sig/a_mG1') === 404);
+  await raw('PATCH', '/rooms/mH/sig/a_mG1', { fields: { sdp: { stringValue: 'VIEJA' }, gen: { integerValue: '2' } } });
+  check('… y una respuesta que se quedó ya no la lee el anfitrión (G1 no está sentado)', (await H.getSig('mH', 'answer', 'mG1')) === null);
+  check('… pero G1 puede borrar las suyas aunque ya no esté sentado', (await raw('DELETE', '/rooms/mH/sig/a_mG1', null, fakeToken('mG1'))).status === 200
+    && (await raw('DELETE', '/rooms/mH/sig/o_mG1', null, fakeToken('mG1'))).status === 200);
+
+  // --- jugando ---
+  await G[0].joinMulti('mH', 'Gil');
+  await H.beat({ state: 'play' });
+  await G[0].leaveMulti('mH');
+  rr = await H.get('mH');
+  check('en «play» un invitado no se levanta (la vuelta tras recargar necesita la plaza) y nadie entra', rr.seats.mG1 && rr.state === 'play' && await code(G[4].joinMulti('mH', 'Goya')) === 'full');
+  const okP = await H.putSig('mH', 'offer', { sdp: 'o-play', gen: 7 }, 'mG1').then(() => true, e => e.code);
+  const G1b = mk('mG1');   // (la página recargada del invitado: cliente nuevo, misma cuenta)
+  const okA = await G1b.putSig('mH', 'answer', { sdp: 'a-play', gen: 7 }, 'mG1').then(() => true, e => e.code);
+  check('en «play» la señalización de vuelta sigue cabiendo (nueva oferta gen+1 y respuesta)', okP === true && okA === true && (await G1b.getSig('mH', 'offer', 'mG1')).gen === 7);
+  const H2 = mk('mH'), rres = await H2.resume(), bres = await H2.beat();
+  check('el anfitrión que recarga retoma su sala de varios (invitados y cap) y late', rres && rres.multi && rres.cap === 4 && rres.nseat === 3 && bres && bres.nseat === 3 && bres.state === 'play' && bres.age < 3000);
+  await H2.close();
+  check('cerrar la sala de varios borra la sala y la señalización de todos sus invitados', await st('/rooms/mH') === 404 && await st('/rooms/mH/sig/o_mG1') === 404 && await st('/rooms/mH/sig/a_mG1') === 404);
+
+  // --- límites: 6v6 con 12 plazas y coop con 2 ---
+  {
+    const g12 = Array.from({ length: 12 }, (_, i) => mk('s' + String(i).padStart(2, '0')));
+    let ok11 = 0; for (let i = 0; i < 11; i++) { const r = await g12[i].joinMulti('mS', 'J' + i).catch(e => e.code); if (r && r.seats) ok11++; }
+    rr = await S.get('mS');
+    check('6v6: entran 11 invitados (12 humanos con el anfitrión)', ok11 === 11 && rr.nseat === 11 && rr.free === 0, ok11);
+    check('6v6: el duodécimo invitado no cabe (cliente y reglas)', await code(g12[11].joinMulti('mS', 'J11')) === 'full' && (await sit('s11', 'mS', { s11: seat('J11') })).status === 403);
+    await S.close();
+    check('6v6: cerrar borra la sala', await st('/rooms/mS') === 404);
+    const C1 = mk('mC1'), C2 = mk('mC2');
+    const j1 = await C1.joinMulti('mK', 'Ceci');
+    check('coop de 2: entra uno y el segundo no cabe', j1 && j1.nseat === 1 && await code(C2.joinMulti('mK', 'Cora')) === 'full');
+    await K.close();
+  }
+
+  // --- reabrir, pagehide y limpieza ---
+  {
+    const R = mk('mR'), RG = mk('mRg');
+    await R.open({ name: 'Rita', cap: 4 });
+    await RG.joinMulti('mR', 'Rui');
+    await R.putSig('mR', 'offer', { sdp: 'o', gen: 1 }, 'mRg'); await RG.putSig('mR', 'answer', { sdp: 'a', gen: 1 }, 'mRg');
+    const R2 = mk('mR');   // (recarga del anfitrión sin cerrar: cliente nuevo que no conoce a sus invitados)
+    const ro = await R2.open({ name: 'Rita', cap: 4 });
+    check('reabrir una sala de varios: sin invitados y sin la señalización de la sesión anterior', ro.nseat === 0 && await st('/rooms/mR/sig/o_mRg') === 404 && await st('/rooms/mR/sig/a_mRg') === 404);
+    await RG.joinMulti('mR', 'Rui'); await RG.putSig('mR', 'answer', { sdp: 'a', gen: 2 }, 'mRg');
+    RG.bye('guest', 'mR'); await sleep(600);
+    rr = await R2.get('mR');
+    check('pestaña cerrada (pagehide) de un invitado: plaza libre y su respuesta borrada', rr && rr.nseat === 0 && await st('/rooms/mR/sig/a_mRg') === 404);
+    const RG2 = mk('mRg'); await RG2.joinMulti('mR', 'Rui');
+    await R2.beat();   // (el anfitrión ve al invitado en su latido)
+    await R2.putSig('mR', 'offer', { sdp: 'o', gen: 3 }, 'mRg'); await RG2.putSig('mR', 'answer', { sdp: 'a', gen: 3 }, 'mRg');
+    R2.bye('host'); await sleep(600);
+    check('pestaña cerrada (pagehide) del anfitrión: sala y señalización por pareja borradas', await st('/rooms/mR') === 404 && await st('/rooms/mR/sig/o_mRg') === 404 && await st('/rooms/mR/sig/a_mRg') === 404);
+    const RG3 = mk('mRg'); await R.open({ name: 'Rita', cap: 4 }); await RG3.joinMulti('mR', 'Rui');
+    const RG4 = mk('mRg');   // (recargó: este cliente no sabe que estaba sentado, el lobby se lo dice con el tercer argumento)
+    await RG4.get('mR'); RG4.bye('guest', 'mR', true); await sleep(600);
+    check('bye(guest, id, true) de un invitado que retomó su plaza tras recargar la libera', (await R.get('mR')).nseat === 0);
+    await R.close();
+    // caducadas: una 'play' (sweep) y una 'open' (de paso al listar), con señalización por pareja
+    const oldM = (uid, state) => W({ host: { stringValue: uid }, state: { stringValue: state }, seats: { mapValue: { fields: { ['q' + uid]: { mapValue: { fields: { n: { stringValue: 'Q' }, at: { timestampValue: new Date().toISOString() } } } } } } },
+      seen: { timestampValue: new Date(Date.now() - 600000).toISOString() } });
+    for (const [u, s] of [['mE1', 'play'], ['mE2', 'open']]) {
+      await raw('PATCH', '/rooms/' + u, { fields: oldM(u, s) });
+      await raw('PATCH', '/rooms/' + u + '/sig/o_q' + u, { fields: { sdp: { stringValue: 'x' }, gen: { integerValue: '1' } } });
+      await raw('PATCH', '/rooms/' + u + '/sig/a_q' + u, { fields: { sdp: { stringValue: 'x' }, gen: { integerValue: '1' } } });
+    }
+    await X.sweep(); await X.list(); await sleep(600);
+    check('limpieza: las salas de varios caducadas se borran con la señalización de sus invitados (sweep y lista)',
+      await st('/rooms/mE1') === 404 && await st('/rooms/mE1/sig/o_qmE1') === 404 && await st('/rooms/mE1/sig/a_qmE1') === 404
+      && await st('/rooms/mE2') === 404 && await st('/rooms/mE2/sig/o_qmE2') === 404 && await st('/rooms/mE2/sig/a_qmE2') === 404);
+  }
+
+  // --- combinaciones que las reglas no aceptan (creación a mano) ---
+  check('sala de varios bien hecha (y con lineup) aceptada', await fxM(goodM) === 200 && await fxM(W({ lineup: { stringValue: '{"t":[[1,2],[3,4]]}' } })) === 200);
+  check('2v2 con 12 plazas, cap 3 o mode raro: rechazadas', await fxM(W({ cap: { integerValue: '12' } })) === 403 && await fxM(W({ cap: { integerValue: '3' } })) === 403
+    && await fxM(W({ mode: { stringValue: 'liga' } })) === 403);
+  check('6v6 en playa rechazada; 6v6 en Pabellón con 12 aceptada', await fxM(W({ fmt: { stringValue: '6v6' }, cap: { integerValue: '12' } })) === 403
+    && await fxM(W({ fmt: { stringValue: '6v6' }, cap: { integerValue: '12' }, venue: { stringValue: 'hall' } })) === 200);
+  check('coop: 2 plazas sí; 4 solo en 6v6; 12 nunca', await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '2' } })) === 200
+    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '4' } })) === 403
+    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '4' }, fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' } })) === 200
+    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '12' }, fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' } })) === 403);
+  check('Fluida solo en vs con 2 plazas', await fxM(W({ cap: { integerValue: '2' }, net: { stringValue: 'fluida' } })) === 200 && await fxM(W({ net: { stringValue: 'fluida' } })) === 403
+    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '2' }, net: { stringValue: 'fluida' } })) === 403
+    && await fxM(W({ fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' }, cap: { integerValue: '2' }, net: { stringValue: 'fluida' } })) === 403
+    && await fxM(W({ fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' }, cap: { integerValue: '2' } })) === 200);
+  check('al crear: invitados ya sentados, cnt ≠ 0, guest/gname con algo o estado ≠ open: rechazadas',
+    await fxM(W({ seats: { mapValue: { fields: { x: { mapValue: { fields: { n: { stringValue: 'X' } } } } } } } })) === 403 && await fxM(W({ cnt: { integerValue: '1' } })) === 403
+    && await fxM(W({ guest: { stringValue: 'mG1' } })) === 403 && await fxM(W({ gname: { stringValue: 'Gil' } })) === 403 && await fxM(W({ state: { stringValue: 'full' } })) === 403);
+  check('campos de más, sin cnt, seats que no es un mapa o lineup > 4000: rechazadas', await fxM(W({ mail: { stringValue: 'a@b.c' } })) === 403
+    && await fxM(Object.fromEntries(Object.entries(goodM).filter(([k]) => k !== 'cnt'))) === 403 && await fxM(W({ seats: { stringValue: '{}' } })) === 403
+    && await fxM(W({ lineup: { stringValue: 'x'.repeat(4001) } })) === 403);
+  check('nadie crea una sala de varios con el uid de otro', (await raw('POST', ':commit', { writes: [{ update: { name: docRoot + '/rooms/mOtro', fields: W({ host: { stringValue: 'mOtro' } }) },
+    updateTransforms: [{ fieldPath: 'seen', setToServerValue: 'REQUEST_TIME' }] }] }, fakeToken('mC'))).status === 403);
+}
+
 (async () => {
   const t0 = Date.now();
   await mockTests();
@@ -331,8 +630,18 @@ async function emuTests(base) {
     if (!up) { console.log(log.slice(-2000)); check('el emulador arranca con las reglas', false); }
     else {
       const base = 'http://127.0.0.1:' + PORT + '/v1/projects/' + PROJECT + '/databases/(default)/documents';
-      await fetch('http://127.0.0.1:' + PORT + '/emulator/v1/projects/' + PROJECT + '/databases/(default)/documents', { method: 'DELETE' }).catch(() => { });
-      try { await emuTests(base); } catch (e) { check('pruebas del emulador sin excepciones', false, String(e && e.stack || e)); }
+      const wipe = () => fetch('http://127.0.0.1:' + PORT + '/emulator/v1/projects/' + PROJECT + '/databases/(default)/documents', { method: 'DELETE' }).catch(() => { });
+      await wipe();
+      try { await emuTests(base, NR); } catch (e) { check('pruebas del emulador sin excepciones', false, String(e && e.stack || e)); }
+      await wipe();
+      try { await emuMulti(base); } catch (e) { check('pruebas de salas de varios sin excepciones', false, String(e && e.stack || e)); }
+      // un cliente 1.21.0 en caché (js/netroom.js de HEAD) contra las reglas nuevas: las mismas pruebas 1v1 de siempre
+      const SRC = gitShow('js/netroom.js');
+      if (SRC && SRC.indexOf('joinMulti') < 0) {
+        await wipe();
+        console.log('\nCliente publicado (js/netroom.js de git HEAD, 1v1) contra las reglas nuevas');
+        try { await emuTests(base, loadNR(SRC)); } catch (e) { check('pruebas 1v1 con el cliente publicado sin excepciones', false, String(e && e.stack || e)); }
+      } else console.log('\n(git HEAD ya trae el cliente de varios o no hay git: se omite la pasada con el cliente 1v1 publicado)');
     }
     kill();
     // 3) las reglas de hoy (sin el bloque ONLINE: lo desplegado hasta que Ferran despliegue): el cliente dice 'off' y no se rompe nada
@@ -358,8 +667,11 @@ async function emuTests(base) {
     // 4) Online V2: las reglas ONLINE de antes de 'net' (las desplegadas hasta que Ferran despliegue las nuevas): una sala Fluida da
     //    'denied' (el lobby dice «La conexión Fluida aún no está activada.») y las Precisa siguen funcionando
     console.log('\nReglas ONLINE sin el campo net (antes de desplegar Online V2)');
-    const noNet = cur.replace(", 'seen', 'net'])", ", 'seen'])").replace(/\r?\n\s*\/\/ Online V2:[^\n]*\r?\n\s*&& \(!\('net' in d\)[^\n]*;/, ';');
-    if (noNet === cur || noNet.indexOf("'net'") >= 0) check('reglas sin net derivadas de las actuales', false);
+    // (de las reglas publicadas, git HEAD, si aún no traen el esquema v3; si no, de las actuales)
+    const headRules = gitShow('firebase/firestore.rules'), src4 = headRules && headRules.indexOf('roomOkMulti') < 0 ? headRules : cur;
+    const noNet = src4.replace(", 'seen', 'net'])", ", 'seen'])").replace(/\r?\n\s*\/\/ Online V2:[^\n]*\r?\n\s*&& \(!\('net' in d\)[^\n]*;/, ';');
+    if (src4 !== cur && (noNet === src4 || noNet.indexOf("'net'") >= 0)) check('reglas sin net derivadas de las publicadas', false);
+    else if (src4 === cur) console.log('  (omitido: git HEAD ya trae el esquema v3)');
     else {
       const prevRules = path.join(os.tmpdir(), 'mtc-rules-sin-net.rules');
       fs.writeFileSync(prevRules, noNet);
@@ -378,6 +690,34 @@ async function emuTests(base) {
         await O.close();
       }
       killTree(j3);
+    }
+    // 5) esquema v3: las reglas publicadas (git HEAD, sin salas de varios) con el cliente nuevo: las 1v1 siguen igual y una sala de
+    //    varios da 'denied' (no 'off': el lobby puede decir «aún no está activado» sin romper el 1v1)
+    console.log('\nReglas publicadas (git HEAD, sin salas de varios) con el cliente nuevo');
+    if (!headRules || headRules.indexOf('roomOkMulti') >= 0) console.log('  (omitido: no hay git o HEAD ya trae el esquema v3)');
+    else {
+      const pubRules = path.join(os.tmpdir(), 'mtc-rules-head.rules');
+      fs.writeFileSync(pubRules, headRules);
+      const P5 = PORT + 3;
+      const j5 = spawn('java', ['-Xmx384m', '-jar', jar, '--host', '127.0.0.1', '--port', String(P5), '--rules', pubRules, '--project_id', PROJECT], { stdio: 'ignore', windowsHide: true });
+      process.on('exit', () => killTree(j5));
+      let up5 = false;
+      for (let i = 0; i < 120 && !up5; i++) { await sleep(500); try { up5 = (await fetch('http://127.0.0.1:' + P5 + '/')).status < 500; } catch (e) { } }
+      if (!up5) check('el emulador arranca con las reglas publicadas', false);
+      else {
+        const base5 = 'http://127.0.0.1:' + P5 + '/v1/projects/' + PROJECT + '/databases/(default)/documents';
+        const mk5 = uid => NR.create({ base: base5, ver: '1|t', auth: async () => ({ uid, token: fakeToken(uid) }) });
+        const O = mk5('uidA'), G5 = mk5('uidB');
+        check('reglas publicadas: crear una sala de varios → denied (no off)', await code(O.open({ name: 'Ana', mode: 'vs', cap: 4 })) === 'denied');
+        const rp = await O.open({ name: 'Ana', venue: 'beach' }).catch(e => e.code);
+        const jn = rp && rp.id ? await G5.join('uidA', 'Berta').catch(e => e.code) : null;
+        await O.putSig('uidA', 'offer', { sdp: 'o', gen: 1, to: 'uidB' }).catch(() => { });
+        const so = await G5.getSig('uidA', 'offer');
+        check('reglas publicadas: el cliente nuevo crea, entra y se señaliza en una sala 1v1 como siempre', rp && rp.id === 'uidA' && rp.multi === undefined && jn && jn.guest === 'uidB' && so && so.sdp === 'o',
+          { rp: rp && rp.id ? rp.id : rp, jn: jn && jn.guest ? jn.guest : jn });
+        await O.close();
+      }
+      killTree(j5);
     }
   }
   console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)');

@@ -7,6 +7,8 @@
  *     challenges intercambiados, balón y predicciones girados, y su gesto (aim3, hitBuf…) es el del hueco activo.
  *   - Los eventos se remapean (jugador de la vista por id, equipo cambiado, x/y girados, texto del punto visto desde el invitado).
  *   - La entrada del invitado construida en la vista + inputToWorld mueve a su jugador hacia donde apuntaba en pantalla.
+ *   - (3) Online de varios (sim g.mh: 2v2 × 4, coop, 6v6 × 12 y × 3): involución, clasificación cerrada (también los campos del 6v6),
+ *     giro por EQUIPO (no por plaza) y, para cada plaza, su jugador como g.ctrl de la vista, su gesto y su equipo como el 0.
  * Uso: node tools/viewtest.js
  */
 'use strict';
@@ -128,7 +130,7 @@ check('pasa por saque, peloteo, punto, revisión, IA, tiempo muerto y final', st
 // todos los campos de FIELDS existen de verdad en g (lista sin restos)
 {
   const g = S.createGame({ online: true, seed: 1, venue: 'hall', humans: [{}, {}] });
-  const extra = Object.keys(NV.FIELDS).filter(k => !(k in g) && ['blockBy', 'atkServe', '_digWho', 'antennaHit', '_rc', '_lv', 'lastLand', 'netSince', 'review', 'tmo', 'fl'].indexOf(k) < 0);   // (fl: Online V2 Fluida, solo con Sim.flInit)
+  const extra = Object.keys(NV.FIELDS).filter(k => !(k in g) && ['blockBy', 'atkServe', '_digWho', 'antennaHit', '_rc', '_lv', 'lastLand', 'netSince', 'review', 'tmo', 'fl', 'mh', 'skipS', 'subsOn', 'subWait', 'ctrlOut', 'overlap', '_pq6', '_sp6'].indexOf(k) < 0);   // (fl: Online V2 Fluida, solo con Sim.flInit; mh/skipS: online de varios; el resto, solo 6v6)
   check('FIELDS sin campos que no existen', extra.length === 0, extra);
 }
 
@@ -150,5 +152,94 @@ console.log('== (2) entrada del invitado: inputToWorld + espejo = el movimiento 
   const w0 = NV.inputToWorld({ move: [0.3, -0.5], hit: true }, 0), w1 = NV.inputToWorld({ move: [0.3, -0.5], hit: true }, 1);
   check('inputToWorld: el anfitrión tal cual, el invitado girado, los botones igual', w0.move[0] === 0.3 && w1.move[0] === -0.3 && w1.move[1] === 0.5 && w1.hit === true);
 }
+console.log('== (3) online de varios (g.mh): giro por EQUIPO, mi plaza activa en la vista ==');
+{
+  // configuraciones: 4 plazas en 2v2, coop (2 humanos en el equipo 0), 12 plazas en 6v6 (casi todas con la IA: el bot es de 2v2) y 3 plazas en 6v6
+  const H6 = []; for (let t = 0; t < 2; t++) for (let i = 0; i < 6; i++) H6.push({ team: t, idx: i });
+  const CFG = [
+    { tag: '2v2 × 4', o: { venue: 'beach', humans: [{ team: 0, idx: 0 }, { team: 1, idx: 0 }, { team: 0, idx: 1 }, { team: 1, idx: 1 }], bestOf: 1, points: 11 }, bots: [0, 1, 2, 3], secs: 300 },
+    { tag: 'coop', o: { venue: 'beach', coop: true, humans: [{ idx: 0 }, { idx: 1 }], bestOf: 1, points: 11 }, bots: [0, 1], secs: 240 },
+    { tag: '6v6 × 12', o: { venue: 'hall', format: '6v6', humans: H6, bestOf: 1, points: 11 }, bots: [0, 7], secs: 200 },
+    { tag: '6v6 × 3', o: { venue: 'hall', format: '6v6', humans: [{ team: 0, role: 'OH' }, { team: 1, role: 'S' }, { team: 0, role: 'MB' }], bestOf: 1, points: 11 }, bots: [0, 1, 2], secs: 200 }
+  ];
+  for (const cf of CFG) {
+    const mk = () => S.createGame(Object.assign({ online: true, seed: 77, present: true, stats: true, timeouts: true }, cf.o));
+    const g = mk(), view = mk(), copy = mk(), NS = g.hum.length;
+    unk.g.clear(); unk.player.clear(); unk.nested.clear(); unk.event.clear();
+    const bots = []; for (let s = 0; s < NS; s++) bots.push(cf.bots.indexOf(s) >= 0 ? N.bot(s, 11 + s, 'bueno') : null);
+    let invN = 0, invBad = 0, sem = [], evN = 0, evBad = [], hits = 0, aiSeen = 0;
+    const ev = [];
+    for (let i = 0; i < 120 * cf.secs && !g.finished; i++) {
+      const ins = [];
+      for (let s = 0; s < NS; s++) ins.push(bots[s] ? bots[s](g) : { move: [0, 0], ai: true });
+      if (i > 6000 && i < 7500 && bots[1]) ins[1].ai = true;   // (una plaza humana pasa un rato a la IA)
+      if (i % 3000 === 1700) ins[NS - 1].chal = true;
+      S.step(g, DT, ins);
+      ev.length = 0; S.drainEvents(g, ev);
+      classify(g, ev);
+      for (const e of ev) {
+        if (e.type === 'hit' && e.human) hits++;
+        // eventos: gira quien juega en el equipo 1 (sea cual sea su plaza)
+        for (let s = 0; s < NS; s++) {
+          const me = { team: g.hum[s].team, seat: s }, m = NV.mapEvent(e, view, me); evN++;
+          if (typeof e.team === 'number' && e.team >= 0 && m.team !== (me.team ? 1 - e.team : e.team)) evBad.push('team ' + e.type);
+          if (typeof e.x === 'number' && !Object.is(m.x, me.team ? -e.x : e.x)) evBad.push('x ' + e.type);
+          if (e.seat !== undefined && m.seat !== e.seat) evBad.push('seat ' + e.type);
+        }
+      }
+      if (i % 89 === 0) {
+        if (g.hum.some(h => h.ai)) aiSeen++;
+        S.copyGame(copy, g);
+        const h0 = deepHash(g);
+        if (deepHash(copy) !== h0) { invBad++; sem.push('copia'); }
+        NV.flip(copy); const h1 = deepHash(copy); NV.flip(copy); invN++;
+        if (deepHash(copy) !== h0 || h1 === h0) invBad++;
+        for (let s = 0; s < NS; s++) {
+          const hs = g.hum[s], me = { team: hs.team, seat: s }, sg = hs.team ? -1 : 1;
+          NV.mirror(view, g, me);
+          const vp = view.ctrl, gp = hs.p;
+          if (!vp || vp.id !== gp.id || vp.team !== 0 || !Object.is(vp.x, sg * gp.x) || !Object.is(vp.y, sg * gp.y)) sem.push('ctrl');
+          if (view.hum[s].team !== 0 || view.hum[s].p !== vp || view.hT !== s) sem.push('plaza');
+          if (view.hitBuf !== S.slotGet(g, s, 'hitBuf') || view.swingLive !== S.slotGet(g, s, 'swingLive') || view.aimSet !== S.slotGet(g, s, 'aimSet')) sem.push('gesto');
+          if (S.slotGet(view, s, 'hitBuf') !== view.hitBuf || (s && S.slotGet(view, 0, 'hitBuf') !== g.hum[0].hitBuf)) sem.push('slotGet de la vista');
+          if (g.rot && (view.hAct !== S.slotGet(g, s, 'hAct') || view.ctrlBase.id !== S.slotGet(g, s, 'ctrlBase').id)) sem.push('6v6 por plaza');
+          if (g.rot && (view.rot[0].some(q => q.team !== 0) || view.rot[0][0].id !== g.rot[hs.team][0].id || view.libero[0].id !== g.libero[hs.team].id || view.libero[0].team !== 0 || view.roster[0].some(q => q.team !== 0))) sem.push('6v6 rotación / líbero / plantilla');
+          if (hs.aim3.on && !Object.is(view.aim3.x, sg * hs.aim3.x)) sem.push('aim3');
+          if (view.score[0] !== g.score[hs.team] || view.sets[0] !== g.sets[hs.team]) sem.push('marcador');
+          if (!Object.is(view.ball.x, sg * g.ball.x)) sem.push('balón');
+          if (view.teams[0].some(q => q.team !== 0) || view.teams[0][0].id !== g.teams[hs.team][0].id) sem.push('teams');
+          if (!hs.ai && S.humSlot(view, vp) !== s) sem.push('humSlot');
+          if (g.mode === 'serve' && g.serveState === 'ready' && g.server === gp && !hs.ai && !(vp.x > 0)) sem.push('saco en x>0');
+        }
+      }
+    }
+    check(cf.tag + ': mirror(mirror(g)) = g bit a bit', invN > 100 && invBad === 0, { fotos: invN, mal: invBad, toquesHumanos: hits, conIA: aiSeen });
+    check(cf.tag + ': cada plaza ve su jugador como g.ctrl, su gesto y su equipo como el 0', sem.length === 0 && hits > 20, [...new Set(sem)].slice(0, 8));
+    check(cf.tag + ': nada sin clasificar (g, jugadores, anidados, eventos)', unk.g.size + unk.player.size + unk.nested.size + unk.event.size === 0, [...unk.g, ...unk.player, ...unk.nested, ...unk.event]);
+    check(cf.tag + ': eventos girados por equipo (no por plaza)', evN > 200 && evBad.length === 0, { eventos: evN, mal: [...new Set(evBad)].slice(0, 6) });
+  }
+  // entrada: plazas que no son «hueco = equipo» (la 1 y la 3 en el equipo 1, la 2 en el 0) mueven a SU jugador hacia donde apuntan en pantalla
+  let bad = 0, n = 0;
+  for (const seat of [1, 2, 3]) for (const dir of [[1, 0], [0, 1], [-0.7, 0.7]]) {
+    const o = { online: true, seed: 5, venue: 'hall', humans: [{ team: 0, idx: 0 }, { team: 1, idx: 0 }, { team: 0, idx: 1 }, { team: 1, idx: 1 }] };
+    const g = S.createGame(o), view = S.createGame(o), me = { team: g.hum[seat].team, seat };
+    const idle = () => [0, 1, 2, 3].map(() => ({ move: [0, 0] }));
+    for (let i = 0; i < 120 * 30 && g.mode !== 'rally'; i++) {
+      const q = idle();   // (saca la plaza del sacador: lanza y golpea al bajar el balón)
+      for (let s = 0; s < 4; s++) if (g.mode === 'serve' && g.server === g.hum[s].p && ((g.serveState === 'ready' && g.serveT > 0.5) || (g.serveState === 'toss' && g.ball.vz < 0))) q[s].hit = true;
+      S.step(g, DT, q);
+    }
+    NV.mirror(view, g, me); const x0 = view.ctrl.x, y0 = view.ctrl.y;
+    const inW = NV.inputToWorld({ move: dir }, me);
+    for (let i = 0; i < 12; i++) { const q = idle(); q[seat] = inW; S.step(g, DT, q); }
+    NV.mirror(view, g, me);
+    const dx = view.ctrl.x - x0, dy = view.ctrl.y - y0, d = Math.hypot(dx, dy);
+    n++; if (!(d > 0.01 && (dx * dir[0] + dy * dir[1]) / (d * Math.hypot(dir[0], dir[1])) > 0.9)) { bad++; console.log('    plaza', seat, 'dir', dir, 'movió', dx.toFixed(3), dy.toFixed(3)); }
+  }
+  check('2v2 × 4: cada plaza mueve a su jugador hacia donde apunta en la vista (giro por equipo)', bad === 0, { pruebas: n, mal: bad });
+  const w1 = NV.inputToWorld({ move: [0.3, -0.5] }, { team: 1, seat: 2 }), w0 = NV.inputToWorld({ move: [0.3, -0.5] }, { team: 0, seat: 3 });
+  check('inputToWorld por equipo: {team 1, plaza 2} girado, {team 0, plaza 3} tal cual; teamOf/seatOf con número = el 1 contra 1', w1.move[0] === -0.3 && w0.move[0] === 0.3 && NV.teamOf(1) === 1 && NV.seatOf(1) === 1 && NV.teamOf(0) === 0 && NV.teamOf({ team: 1, seat: 3 }) === 1 && NV.seatOf({ team: 1, seat: 3 }) === 3);
+}
+
 console.log('\n' + oks + ' ok, ' + fails + ' fallos');
 process.exit(fails ? 1 : 0);

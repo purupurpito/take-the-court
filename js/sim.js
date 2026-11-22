@@ -454,6 +454,7 @@
     applyBadges(g, opts.badges);
     if (six) { for (var ci = 0; ci < teams[0].length; ci++) if (teams[0][ci].role === g.ctrlRole) { g.ctrl = teams[0][ci]; break; } g.ctrlBase = g.ctrl; } // 6v6: el 1r de ese puesto (OH1, S, OPP, MB1)
     if (six) subsCtrl(g, opts);         // Carrera: tu atleta por meSlot (titular) o meBench (en el banquillo: g.ctrlOut)
+    if (g.mh) mhPost(g); // mh
     // la zona y el saque de firma (20-nov-2026): solo con su opción (Carrera, o Partido rápido con el ajuste); nunca en la demo, el online
     // ni el Entrenamiento. Sin ellas g.zn y g.sig no existen y la sim es la de siempre (las huellas no cambian)
     if (opts.zone && !opts.demo && !opts.online && !dk) g.zn = znNew(g, opts.zone);
@@ -730,7 +731,7 @@
     var p = g.ctrl, ht = g.online && p ? p.team : 0;
     if (!p || p.team !== ht || !(g.touchTeam === ht && g.touches === 1 && g.lastPlayer !== p) || g.lastKind === 'set') return false;
     // (6v6: el 2º toque es suyo si se lo da el reparto o, siendo el colocador, si el balón le cae cerca o en la zona de ataque: humanOwns)
-    if (g.rot) return !!VB.AI6 && isHuman(g, p) && (g.jobs[0] === p || (p.role === 'S' && VB.AI6.humanOwns(g, 0, p, g.pr1, 1, g.lastPlayer)));
+    if (g.rot) return !!VB.AI6 && isHuman(g, p) && (g.jobs[/*mh*/g.mh ? ht : /*hm*/0] === p || (p.role === 'S' && VB.AI6.humanOwns(g, /*mh*/g.mh ? ht : /*hm*/0, p, g.pr1, 1, g.lastPlayer)));
     return !!g.mastery;
   }
   /** C2: sector (0 ↑ hacia la red, 1 ↗, 2 →, 3 ↘, 4 ↓, 5 ↙, 6 ←, 7 ↖) de un ángulo en grados. */
@@ -876,6 +877,7 @@
    *  Sin eventos switch: el evento libero lleva human: true cuando le afecta. */
   function applyLibero(g) {
     if (!g.rot) return;
+    if (g.mh) return mhLibero(g); // mh
     var ch = false;
     for (var t = 0; t < 2; t++) {
       var lib = g.libero[t]; if (!lib) continue;
@@ -1520,7 +1522,7 @@
       if (neu) ap = Math.max(ap, M.neutralApex);
       out.x = D * cs; out.y = sd * L * cs; out.apex = ap; out.s = s; out.D = D; out.L = L;
     } else if ((g.online || p.team === 1) && hk(g, 0xE13) < (profOf(g, p).zoneSet || 0)) {
-      var hc0 = g.online ? g.hum[1 - p.team].p : g.ctrl, hy = hc0 ? hc0.y : 0, sg = Math.abs(hy) > 0.2 ? (hy > 0 ? -1 : 1) : (hk(g, 0xE17) < 0.5 ? -1 : 1);
+      var hc0 = g.online ? /*mh*/g.mh ? mhP(g, 1 - p.team) : /*hm*/g.hum[1 - p.team].p : g.ctrl, hy = hc0 ? hc0.y : 0, sg = Math.abs(hy) > 0.2 ? (hy > 0 ? -1 : 1) : (hk(g, 0xE17) < 0.5 ? -1 : 1);
       out.tempo = 'lane'; out.y = sg * M.zoneY * cs;
     }
     return out;
@@ -1933,7 +1935,7 @@
     // no la cobertura del propio remate tras un bloqueo directo rival, ni el desviado ni el rebote en el cuerpo)
     var isDig = kind === 'pass' && count === 1 && sub !== 'shank' && shot !== 'body' &&
       (inKind === 'spike' || (inKind === 'block' && inPrev === 'spike' && inShot === 'touch'));
-    if (human) { if (g.online) hset(g, t, 'lastGrade', grade); else g.lastGrade = grade; }
+    if (human) { if (g.online) hset(g, /*mh*/g.mh ? humSlot(g, p) : /*hm*/t, 'lastGrade', grade); else g.lastGrade = grade; }
     if (g.stats) {
       g.stats.hits[kind]++; g.stats.grades[grade]++; if (human) g.stats.hgrades[grade]++;
       g.stats.shots[sub] = (g.stats.shots[sub] || 0) + 1;
@@ -2115,7 +2117,7 @@
       // El humano sigue expuesto a la regla: si el balón le da a él, es toque.
       if (!isHuman(g, p) && g.touchTeam === p.team &&
           (g.lastPlayer === p || g.touches >= 3 || g.time - g.lastTouchT < 0.3)) continue;
-      if (isHuman(g, p)) { if (g.online ? hget(g, p.team, 'swingLive') : g.swingLive) continue; }                    // gesto en curso: lo resuelve processSwing
+      if (isHuman(g, p)) { if (g.online ? hget(g, /*mh*/g.mh ? humSlot(g, p) : /*hm*/p.team, 'swingLive') : g.swingLive) continue; }                    // gesto en curso: lo resuelve processSwing
       else if (g.jobs[p.team] === p) continue;                            // la IA que va a jugarlo lo juega con un gesto (EFFORT: ya no hay «batida»)
       hit(g, p, null, 0.25, 'body', null);
       return;
@@ -2557,7 +2559,7 @@
     if (g.drill) return drillPoint(g, w, reason, text, p, sig); // E6: en el Entrenamiento el punto cierra la repetición (sin marcador)
     if (g.mode !== 'rally' && g.mode !== 'serve') { g._pendCall = null; return; }
     // B2: llamada de este punto (solo si acaba en bote) e instantánea del estado previo para poder anularlo
-    g.call = g._pendCall; g._pendCall = null; g.cpuChal = null; g.digTight = false; if (g.online) { aimOff(g); g.skipReq[0] = g.skipReq[1] = false; } else g.aim3.on = false;
+    g.call = g._pendCall; g._pendCall = null; g.cpuChal = null; g.digTight = false; if (g.online) { aimOff(g); g.skipReq[0] = g.skipReq[1] = false; /*mh*/if (g.mh) mhSkipClr(g); /*hm*/} else g.aim3.on = false;
     if (g.call) { g.call.team = 1 - w; g.call.t = g.time; g.call.setNo = g.setNo; g._snap = snapOf(g); } else g._snap = null;
     if (g.fl && g.call) g.call.r = g.fl.r; // fl
     g.score[w]++; g.mode = 'point'; g.ball.held = null; endSwingX(g);
@@ -3086,7 +3088,7 @@
   /** B3: la CPU decide si pide challenge al acabar el punto (gasta azar solo con un bote a <= 10 cm de la línea). */
   function cpuChallengeDecide(g) {
     var c = g.call; if (!c || c.used) return;
-    var t = c.team, ai = g.online ? !!g.hum[t].ai : (t === 1 || g.demo || g.autopilot); // (online: solo el hueco que lleva la IA)
+    var t = c.team, ai = g.online ? /*mh*/g.mh ? !humOn(g, t) : /*hm*/!!g.hum[t].ai : (t === 1 || g.demo || g.autopilot); // (online: solo el hueco que lleva la IA)
     if (!ai || !(g.challenges[t] > 0) || Math.abs(c.dist) > ((g.refErr || REF_ERR).d3)) return;
     // la CPU "lo ha visto": pide sobre todo cuando el árbitro se equivocó; con la llamada bien hecha, muy rara vez
     var near = Math.abs(c.dist) < CHAL.cpuNear;
@@ -3452,6 +3454,7 @@
       g.overlap = [ov0, ov1];
       if (g.stats && g.stats.overlap) { g.stats.overlap[0] += ov0 ? 1 : 0; g.stats.overlap[1] += ov1 ? 1 : 0; }
       posFault = ov0 > 0 && sv.team !== 0 && g.posRule6 && g.ctrlMode === 'one' && !g.demo && !g.autopilot && g.ctrl && g.ctrl.team === 0 && overlapOf(g, 0, g.ctrl) > 0;
+      if (g.mh) posFault = mhPosFault(g, sv, ov0, ov1); // mh
     }
     b.held = null;
     te = te || 0;
@@ -3551,7 +3554,7 @@
     endSwing(g);
     if (g.fl) flContact(g, 'serve'); // fl
     // 6v6: el humano solapado en el momento del golpe de saque (reglas 7.4-7.5): el saque sale, pero el árbitro pita en el acto
-    if (posFault) fault(g, 0, 'position', 'Falta de posición', g.ctrl, SIGNAL.position);
+    if (posFault) fault(g, /*mh*/g.mh ? posFault.team : /*hm*/0, 'position', 'Falta de posición', /*mh*/g.mh ? posFault : /*hm*/g.ctrl, SIGNAL.position);
   }
 
   /* Saque dirigible flotante: el baile (b.wobA/wobF/wobP ya decididos) desvía el balón de forma determinista. aimFloat lanza de
@@ -3619,7 +3622,7 @@
 
   function stepServe(g, dt, input, mx, my, aim, human) {
     var sv = g.server, b = g.ball, sd = side(sv.team), i, p;
-    var hs = human && sv.team === (g.online ? g.hT : 0) && sv === g.ctrl; // saca el humano (modo 'one': solo si saca su jugador)
+    var hs = human && sv.team === (g.online ? /*mh*/g.mh ? mhT(g) : /*hm*/g.hT : 0) && sv === g.ctrl; // saca el humano (modo 'one': solo si saca su jugador)
     g.serveT += dt;
     if (!g.serveAuth && g.serveT >= g.whistleAt/*fl*/ && (!g.fl || g.fl.peer || (g.fl.loc[0] && g.fl.loc[1]) || g.serveT >= g.whistleAt + 1.5)/*lf*/) { g.serveAuth = true; if (!g.drill) emit(g, { type: 'whistle', reason: 'serve' }); } // autorización del saque (E6: sin silbato en el Entrenamiento)
     if (g.serveState === 'ready') {
@@ -3666,6 +3669,7 @@
     }
     // 6v6 en Difícil/Experto (g.posRule6): el humano que no saca se coloca él durante el saque (puede solaparse: doServe se lo pita);
     // la marca de recepción (fx.js, VB.AI6.spot) le enseña su sitio legal. En Fácil/Normal, y en 2v2, nadie más se mueve
+    if (g.mh) { mhServeMove(g, sv, dt); stepBall(g, dt); return; } // mh
     var hm = g.posRule6 && human && !hs && g.ctrl.team === 0 && g.mode === 'serve' ? g.ctrl : null;
     if (hm && (mx || my)) g.hAct = g.time;
     for (i = 0; i < g.players.length; i++) { p = g.players[i]; if (p !== sv/*fl*/ && (!g.fl || mine(g, p))/*lf*/) stepPlayer(g, p, dt, p === hm ? mx : 0, p === hm ? my : 0); }
@@ -3685,7 +3689,7 @@
     g.serverIdx = g.serving === 0 ? [0, 1] : [1, 0];
     if (g.ctrlIdx) g.serverIdx[0] = 1 - g.serverIdx[0]; // modo 'one' con el n.º 2: el orden de saque del equipo 0, en espejo
     if (g.online) {
-      if (g.hum[1].p.idx === 1) g.serverIdx[1] = 1 - g.serverIdx[1];
+      if (/*mh*/g.mh ? mhMir(g, 1) : /*hm*/g.hum[1].p.idx === 1) g.serverIdx[1] = 1 - g.serverIdx[1];
       g.tmoLeft[0] = g.tmoLeft[1] = g.tmoPer;
       for (var tq = 0; tq < 2; tq++) if (g.tmoReq[tq]) { g.tmoReq[tq] = false; emit(g, { type: 'timeoutCancel', team: tq }); } // no pasa al set siguiente
     }
@@ -3729,7 +3733,7 @@
     g.score = [0, 0]; g.sets = [0, 0]; g.setNo = 1; g.serving = 0; g.serverIdx = [0, 1]; g.setScores = [];
     // modo 'one' con el n.º 2 (ctrlIdx 1): orden de saque en espejo, así el jugador del humano saca primero como con el n.º 1
     if (g.ctrlIdx) g.serverIdx[0] = 1;
-    if (g.online) { if (g.hum[1].p.idx === 1) g.serverIdx[1] = 0; g.tmoLeft[0] = g.tmoLeft[1] = g.tmoPer; g.tmo = null; g.tmoReq[0] = g.tmoReq[1] = false; }
+    if (g.online) { if (/*mh*/g.mh ? mhMir(g, 1) : /*hm*/g.hum[1].p.idx === 1) g.serverIdx[1] = 0; g.tmoLeft[0] = g.tmoLeft[1] = g.tmoPer; g.tmo = null; g.tmoReq[0] = g.tmoReq[1] = false; }
     if (g.subsOn) subsNewSet(g, true); // banquillo: pista = alineación, contadores a 0 (también al volver a empezar la demo)
     resetRot(g);
     g.pendingSet = false; g.finished = false; g.lastPoint = null; g.courtSwap3 = false;
@@ -3992,6 +3996,7 @@
   var SERVE_AIM0 = 7.0, SERVE_AIM_SPEED = 12, SERVE_AIM_MIN = 1.0;
   function serveAimReset(g, sv) {
     if (g.online) { // ONLINE: diana de saque en el hueco del sacador humano; los demás, apagadas
+      if (g.mh) return mhSrvAim(g, sv); // mh
       for (var s = 0; s < 2; s++) { var a2 = g.hum[s].aim3, mine = g.hum[s].p === sv && isHuman(g, sv);
         a2.on = mine; a2.kind = mine ? 'serve' : ''; if (mine) { a2.x = -side(sv.team) * SERVE_AIM0 * g.cs; a2.y = 0; } }
       return;
@@ -4023,12 +4028,12 @@
    *  Antes el control saltaba del bloqueador al defensor ~0,43 s antes del contacto, en plena transición.
    *  Devuelve true durante la fase en la que se puede elegir rol (colocación rival, balón aún en su campo). */
   function updateDefense(g) {
-    var ht = g.online ? g.hT : 0, op = 1 - ht, sh = side(ht); // (online: el humano del hueco activo; sh·x es exacto: sh = ±1)
+    var ht = g.online ? /*mh*/g.mh ? mhT(g) : /*hm*/g.hT : 0, op = 1 - ht, sh = side(ht); // (online: el humano del hueco activo; sh·x es exacto: sh = ±1)
     if (g.mode !== 'rally' || g.touchTeam !== op || g.lastKind === 'serve') { g.defRole = ''; return false; }
     var setPhase = atkPhase(g, op) && sh * g.ball.x < 0 && sh * g.pr3.x < -0.2 && sh * g.pr3.x > -4.2;
     if (setPhase && g.rot) {
       // 6v6: el reparto lo hace la formación (VB.AI6.blockPlan / defensa perímetro): el humano delantero bloquea, el zaguero defiende
-      var bp6 = g.ctrl.front && VB.AI6 ? VB.AI6.blockPlan(g, 0) : null;
+      var bp6 = g.ctrl.front && VB.AI6 ? VB.AI6.blockPlan(g, /*mh*/g.mh ? ht : /*hm*/0) : null;
       g.defRole = bp6 && (bp6.a === g.ctrl || bp6.b === g.ctrl) ? 'block' : 'dig';
     } else if (setPhase && g.ctrlMode === 'one') {
       // modo 'one': sin cambio de control; bloquea el que esté más cerca de la red (el humano o su compañero IA).
@@ -4078,7 +4083,7 @@
     } else if (g.aimOn) a = g.aimIn;
     if (!a && g.swingLive && g.swingHasAim) a = g.swingAim;
     if (g.mode === 'serve') {
-      p = g.server; if (!p || p.team !== (g.online ? g.hT : 0) || p !== g.ctrl || (g.online && g.hum[g.hT].ai)) return null; // modo 'one': no apunta el saque del compañero IA
+      p = g.server; if (!p || p.team !== (g.online ? /*mh*/g.mh ? mhT(g) : /*hm*/g.hT : 0) || p !== g.ctrl || (g.online && g.hum[g.hT].ai)) return null; // modo 'one': no apunta el saque del compañero IA
       mode = g.serveState === 'toss' ? 2 : (g.serveAuth ? 1 : 0); if (!mode) return null;
       if (g.aim3.on && g.aim3.kind === 'serve') { // saque dirigible: la diana y su dispersión (radio) según el timing
         var jmp = g.serveState === 'toss' && g.serveJump, ssk = p.ak ? p.ak.srvSpread : 1;
@@ -4093,8 +4098,8 @@
       out.spread = 0.3 + 1.3 * 0.05; out.spreadPoor = 0.3 + 1.3 * 0.55; // flotante (el salto: algo más)
       if (g.serveJump) { out.spread = 0.3 + 1.5 * 0.05; out.spreadPoor = 0.3 + 1.5 * 0.55; }
     } else if (g.mode === 'rally') {
-      p = g.ctrl; var ht = g.online ? g.hT : 0, sh = side(ht);
-      if (!p || p.team !== ht || !atkPhase(g, ht) || sh * b.x < -0.2 || sh * b.x > 4.5 || (g.online && g.hum[ht].ai)) return null;
+      p = g.ctrl; var ht = g.online ? /*mh*/g.mh ? mhT(g) : /*hm*/g.hT : 0, sh = side(ht);
+      if (!p || p.team !== ht || !atkPhase(g, ht) || sh * b.x < -0.2 || sh * b.x > 4.5 || (g.online && g.hum[/*mh*/g.mh ? g.hT : /*hm*/ht].ai)) return null;
       mode = 2; sd = side(p.team);
       var air = isAttackContact(p, b);
       if (g.swingLive && g.swingShot === 'jset' && p.z > 0) { // colocando en salto: no hay retícula de ataque
@@ -4157,6 +4162,7 @@
    *  de pipe, canPipe) y antes de que su equipo coloque (el balón llega del rival o aún vamos por el 1r toque). Fuera de ahí la
    *  pulsación no hace nada. */
   function askOk(g) {
+    if (g.mh) return mhAskOk(g); // mh
     var p = g.ctrl, A6 = VB.AI6;
     if (!(g.rot && p && g.mode === 'rally' && p.role !== 'L' && !p.bench)) return false;
     // colocador humano (17-nov-2026, Ferran: «que el colocador pueda pedir una colocación si el primer toque ha sido suyo»): solo
@@ -4166,7 +4172,7 @@
     return !(g.touchTeam === 0 && g.touches >= 2) && !atkPhase(g, 0);
   }
   function focusPoint(g) {
-    return atkPhase(g, g.online ? g.hT : 0) ? g.pr3 : g.pr1;
+    return atkPhase(g, g.online ? /*mh*/g.mh ? mhT(g) : /*hm*/g.hT : 0) ? g.pr3 : g.pr1;
   }
 
 
@@ -4882,7 +4888,7 @@
     'jdF', 'jdS', 'jdM', 'jdT', 'aimCarry', 'jsMv', 'jsAimD', 'jsetAim']; // (salto con impulso: búfer de dirección, arrastre de la diana, diana de colocación)
   function slotIdx(h) { return h && +h.idx === 1 ? 1 : 0; }
   function onlineOpts(o) {
-    var n = {}, k, H = Array.isArray(o.humans) ? o.humans : [], even = !!o.even, t, A = null, B = null;
+    /*mh*/if (mhIs(o)) return mhOpts(o); /*hm*/var n = {}, k, H = Array.isArray(o.humans) ? o.humans : [], even = !!o.even, t, A = null, B = null;
     for (k in o) n[k] = o[k];
     n.online = true; n.demo = false; n.autopilot = false; n.format = '2v2'; n.drill = null; n.bench = null; n.ctrl = 'one';
     n.difficulty = 'normal'; n.rookie = false; n.mastery = o.mastery !== false; n.ctrlIdx = slotIdx(H[0]);
@@ -4898,7 +4904,7 @@
     return n;
   }
   function initOnline(g, opts) {
-    var H = Array.isArray(opts.humans) ? opts.humans : [];
+    /*mh*/if (opts.mh) return mhInit(g, opts); /*hm*/var H = Array.isArray(opts.humans) ? opts.humans : [];
     g.online = true; g.prof = [DIFF.mate, DIFF.mate]; g.tm = TIMING.online; g.hT = 0;
     g.bo1 = +opts.bestOf !== 3; // 1 set (por defecto) o mejor de 3 (21-21-15)
     g.hum = [];
@@ -4917,26 +4923,29 @@
     if (!g.online || g.hT === t) return;
     var a = g.hum[g.hT], b = g.hum[t], k;
     for (var i = 0; i < SLOT_S.length; i++) { k = SLOT_S[i]; a[k] = g[k]; g[k] = b[k]; }
+    if (g.mh) mhAct(g, a, b); // mh
     g.aim3 = b.aim3; g.swingAim = b.swingAim; g.aimIn = b.aimIn; g.ctrl = b.p; g.hT = t;
   }
   /** Fin del paso online: activo el hueco 0 y g.hum[0] al día (la foto no depende de quién leyó qué hueco entre pasos). */
-  function fin(g) { act(g, 0); var h = g.hum[0]; for (var i = 0; i < SLOT_S.length; i++) h[SLOT_S[i]] = g[SLOT_S[i]]; }
+  function fin(g) { act(g, 0); var h = g.hum[0]; for (var i = 0; i < SLOT_S.length; i++) h[SLOT_S[i]] = g[SLOT_S[i]]; /*mh*/if (g.mh) mhFin(g, h); /*hm*/}
   function hget(g, t, k) { return t === g.hT ? g[k] : g.hum[t][k]; }
   function hset(g, t, k, v) { if (t === g.hT) g[k] = v; else g.hum[t][k] = v; }
   /** ¿El equipo t tiene ahora un humano (hueco no traspasado a la IA)? Solo online. */
-  function humOn(g, t) { return !!g.online && !g.hum[t].ai; }
+  function humOn(g, t) { /*mh*/if (g.mh) return mhOn(g, t); /*hm*/return !!g.online && !g.hum[t].ai; }
   /** Hueco (0/1) del humano que lleva a p, o -1 (IA). Solo online. */
-  function humSlot(g, p) { var h = g.hum; return h[0].p === p && !h[0].ai ? 0 : h[1].p === p && !h[1].ai ? 1 : -1; }
+  function humSlot(g, p) { /*mh*/if (g.mh) return mhSlot(g, p); /*hm*/var h = g.hum; return h[0].p === p && !h[0].ai ? 0 : h[1].p === p && !h[1].ai ? 1 : -1; }
   function endSwingAll(g) {
+    if (g.mh) return mhEndSwingAll(g); // mh
     for (var s = 0; s < 2; s++) {
       if (s === g.hT) endSwing(g);
       else { var h = g.hum[s]; h.hitBuf = 0; h.swingLive = false; h.swingShot = ''; h.swingHasAim = false; }
     }
   }
   function endSwingX(g) { if (g.online) endSwingAll(g); else endSwing(g); }
-  function aimOff(g) { g.hum[0].aim3.on = false; g.hum[1].aim3.on = false; }
+  function aimOff(g) { /*mh*/if (g.mh) return mhAimOff(g); /*hm*/g.hum[0].aim3.on = false; g.hum[1].aim3.on = false; }
   /** setupServe online: gesto, bloqueo del gesto y rol defensivo de los dos huecos a cero; «Continuar» también. */
   function resetSlots(g) {
+    if (g.mh) return mhResetSlots(g); // mh
     var prev = g.hT;
     for (var s = 0; s < 2; s++) { act(g, s); endSwing(g); g.swingLock = 0; g.defRole = ''; g.aimCarry = 0; }
     act(g, prev);
@@ -4946,6 +4955,7 @@
    *  gesto queda en _jh {live, shot}. Fuera del online, lo de siempre (solo el equipo 0). */
   var _jh = { live: false, shot: '' };
   function jsetHum(g, t) {
+    if (g.mh) return mhJsetHum(g, t); // mh
     if (!g.online) { _jh.live = g.swingLive; _jh.shot = g.swingShot; return t === 0 && jsetReady(g) ? g.ctrl : null; }
     if (g.hum[t].ai) return null;
     var prev = g.hT; act(g, t);
@@ -4956,6 +4966,7 @@
   /** Traspaso del hueco s a la IA (on) o de vuelta al humano. Con el balón en la mano del sacador que cambia de manos, el saque se
    *  prepara otra vez (como setCtrlRole): ritual y hora de lanzamiento si pasa a la IA, diana si vuelve al humano. */
   function slotAI(g, s, on) {
+    if (g.mh) return mhSlotAI(g, s, on); // mh
     var h = g.hum[s], prev = g.hT, sv = g.server;
     if (!g.online || h.ai === !!on) return;
     var wasH = g.mode === 'serve' && sv ? isHuman(g, sv) : false;
@@ -4968,7 +4979,7 @@
       serveAimReset(g, sv); holdPos(g, sv, g.ball);
     }
   }
-  function skipBoth(g) { return (g.skipReq[0] || g.hum[0].ai) && (g.skipReq[1] || g.hum[1].ai); }
+  function skipBoth(g) { /*mh*/if (g.mh) return mhSkipAll(g); /*hm*/return (g.skipReq[0] || g.hum[0].ai) && (g.skipReq[1] || g.hum[1].ai); }
   /** Bits de partido de las dos entradas (al principio del paso, hueco 0 y luego 1). */
   function netBits(g, ins) {
     for (var s = 0; s < 2; s++) {
@@ -4989,7 +5000,7 @@
   }
   function startTmo(g) {
     var t = g.tmoReq[0] ? 0 : 1;
-    g.tmoReq[t] = false; g.tmoLeft[t]--; g.skipReq[0] = g.skipReq[1] = false;
+    g.tmoReq[t] = false; g.tmoLeft[t]--; g.skipReq[0] = g.skipReq[1] = false;/*mh*/ if (g.mh) mhSkipClr(g);/*hm*/
     g.tmo = dblFields({ team: t, t: 0, dur: ONLINE.tmoDur });
     if (g.mode === 'serve') { endRitual(g); resetSlots(g); }
     emit(g, { type: 'timeout', team: t, dur: ONLINE.tmoDur, left: [g.tmoLeft[0], g.tmoLeft[1]] });
@@ -5000,7 +5011,7 @@
     for (i = 0; i < g.players.length; i++) stepPlayer(g, g.players[i], dt, 0, 0);
     if (g.mode === 'point' || g.mode === 'over') stepBall(g, dt);
     if (m.t >= m.dur || (m.t >= ONLINE.tmoMin && (g.skipReq[0] || g.skipReq[1]))) {
-      g.tmo = null; g.skipReq[0] = g.skipReq[1] = false;
+      g.tmo = null; g.skipReq[0] = g.skipReq[1] = false;/*mh*/ if (g.mh) mhSkipClr(g);/*hm*/
       if (g.mode === 'serve') setupServe(g);          // se vuelve a autorizar el saque desde el principio
       else if (g.timer < 1) g.timer = 1;              // un respiro antes del saque
       emit(g, { type: 'timeoutEnd', team: m.team });
@@ -5010,6 +5021,7 @@
   /** step() del online (ver arriba). Mismo orden que el de siempre: bits, revisión, tiempo muerto, punto, saque y peloteo; en el peloteo
    *  los dos humanos (hueco 0 y luego 1) y después la IA, cada uno con su hueco activo. */
   function stepOnline(g, dt, inputs) {
+    if (g.mh) return mhStep(g, dt, inputs); // mh
     var AI = VB.AI, H = g.hum, s, i, p, inp;
     g.time += dt; g.blockCD -= dt;
     for (s = 0; s < 2; s++) {
@@ -5077,6 +5089,344 @@
     refreshPred(g);
     fin(g);
   }
+  /* ==== MULTI ==== */
+  /* ONLINE de varios (sprint online-multi, notes/online-multi-brief.md §2 y §9, paquete P1): N plazas humanas g.hum[s] desacopladas
+   * del equipo (plaza ≠ equipo). createGame({online: true, humans: [h…], format: '2v2'|'6v6', coop, teamLv, attrs, badges, …}) con
+   * h = {team: 0|1, idx (jugador en teams[team]: 0-1 en 2v2, 0-5 en 6v6 = S, OH1, MB1, OPP, OH2, MB2), role ('OH'|'S'|'OPP'|'MB', solo
+   * 6v6 y sin idx: el primero libre de ese puesto), aimSet, jsetAim, attrs, badges}.
+   * Es «de varios» (g.mh = true; mhIs) con format '6v6', con coop, con más de 2 plazas o con alguna plaza cuyo team no sea su índice.
+   * Si no, es el 1 contra 1 de siempre (plaza s = equipo s): g.mh no existe y los ganchos «if (g.mh…» de fuera del bloque no hacen nada
+   * (tools/fluidsimtest.js quita el bloque y los ganchos y comprueba que sim.js queda igual que antes: SIM_BASE).
+   * Plaza s = {team, idx, p (jugador que lleva), ai, aiBack, tm (timing de su equipo), aim3, swingAim, aimIn, …SLOT_S (+ SLOT_6 en
+   * 6v6)}. Cada humano lleva UN jugador; la IA lleva al resto (y al de una plaza con ai). La plaza activa (g.hT) es la de siempre:
+   * act/useSlot carga su gesto en los campos de g; para la IA de un equipo se activa su plaza «representante» (mhRep: la primera
+   * humana sin ai del equipo), así ai.js / ai6.js leen a SU humano. Al acabar cada paso la activa es la 0 (fin).
+   * step(g, dt, ins) con ins[s] = entrada de la plaza s ({move, hit, jump, jset, switchPlayer} + bits de partido):
+   *   chal y tmo piden por el EQUIPO de la plaza (g.challenges[t], g.tmoReq[t]); skip es por plaza (g.skipS[s]): la pausa se salta
+   *   cuando han pulsado todas las plazas humanas (las que lleva la IA cuentan como sí) y g.skipReq[t] = alguna plaza del equipo t
+   *   (reanudar el tiempo muerto); ai pasa la plaza a la IA (vuelve en el siguiente balón muerto). Los eventos skipReq, timeoutReq,
+   *   slotAI, ask y libero llevan seat (la plaza) además de team.
+   * coop: las plazas sin team van todas al equipo 0 (dos humanos juntos contra la IA). teamLv[t] = {prof: 'mate'|'easy'|'normal'|
+   *   'hard'|'expert', tm: 'online'|nivel, rookie}: perfil de la IA del equipo t y timing de sus humanos (por defecto DIFF.mate y
+   *   TIMING.online, lo del 1 contra 1). attrs / badges: la matriz completa [[…],[…]] de las opciones y, encima, los de cada plaza.
+   * 6v6: hAct, ask6, ctrlBase, ctrlRole y ctrlOut van por plaza (SLOT_6). El banquillo sigue apagado online (bench null): a un humano
+   *   no lo cambia nadie; el líbero entra por el central de una plaza y la plaza pasa a llevarle hasta que su central vuelve (mhLibero).
+   * Nada aquí gasta g.rng: las reglas son las mismas, solo cambia quién es humano. */
+  var SLOT_6 = ['hAct', 'ask6', 'ctrlBase', 'ctrlRole', 'ctrlOut'], SLOT_S6 = SLOT_S.concat(SLOT_6);
+  var MH_LV = { prof: 'mate', tm: 'online', rookie: false };
+  /** Campos del gesto por plaza (el 6v6 online solo existe con g.mh). */
+  function slotK(g) { return g.rot ? SLOT_S6 : SLOT_S; }
+  /** ¿Piden estas opciones el online de varios? */
+  function mhIs(o) {
+    var H = o && Array.isArray(o.humans) ? o.humans : [];
+    if (!o || o.format === '6v6' || o.coop || H.length > 2) return !!o;
+    for (var i = 0; i < H.length; i++) if (H[i] && (H[i].team === 0 || H[i].team === 1) && H[i].team !== i) return true;
+    return false;
+  }
+  /** Plazas saneadas [{team, idx}] sin repetir jugador (una repetida pasa al primer hueco libre de su equipo; con el equipo lleno, al
+   *  otro). Sin humanos, una por equipo como en el 1 contra 1. Más plazas que jugadores: error. */
+  function mhSeats(o, size) {
+    var H = Array.isArray(o.humans) ? o.humans : [], n = H.length || 2, Q = [], used = [[], []], s, t, i, h;
+    if (n > 2 * size) throw new Error('online: ' + n + ' plazas para ' + 2 * size + ' jugadores');
+    function free(tt, role) { for (var j = 0; j < size; j++) if (!used[tt][j] && (!role || ROLES6[j] === role)) return j; return -1; }
+    for (s = 0; s < n; s++) {
+      h = H[s] || {};
+      t = h.team === 0 || h.team === 1 ? h.team : o.coop ? 0 : s % 2;
+      i = h.idx === (h.idx | 0) && h.idx >= 0 && h.idx < size && !used[t][h.idx] ? h.idx : -1;
+      if (i < 0 && size === 6 && CTRL_ROLES6.indexOf(h.role) >= 0) i = free(t, h.role);
+      if (i < 0) i = free(t, null);
+      if (i < 0) { t = 1 - t; i = free(t, null); }
+      used[t][i] = true; Q.push({ team: t, idx: i });
+    }
+    return Q;
+  }
+  /** Copia de una matriz [[…],[…]] con size jugadores por equipo (null si no hay y no se pide crearla). */
+  function mhMat(m, size, mk) {
+    if (!Array.isArray(m) && !mk) return null;
+    var r = [[], []];
+    for (var t = 0; t < 2; t++) for (var i = 0; i < size; i++) r[t].push(m && m[t] && m[t][i] && typeof m[t][i] === 'object' ? m[t][i] : null);
+    return r;
+  }
+  /** 2v2: el orden de saque del equipo t va en espejo (como ctrlIdx en el 1 contra 1) si tiene plazas y ninguna lleva a su n.º 1. */
+  function mhMirQ(Q, t) { var any = false; for (var i = 0; i < Q.length; i++) if (Q[i].team === t) { if (!Q[i].idx) return false; any = true; } return any; }
+  function mhMir(g, t) { return !g.rot && mhMirQ(g.hum, t); }
+  /** onlineOpts del online de varios (ver la cabecera del bloque). */
+  function mhOpts(o) {
+    var n = {}, k, six = o.format === '6v6', size = six ? 6 : 2, Q = mhSeats(o, size), H = Array.isArray(o.humans) ? o.humans : [];
+    var h0 = H[0] || {}, A = null, B = null, s, h;
+    for (k in o) n[k] = o[k];
+    n.online = true; n.mh = true; n.seats = Q; n.demo = false; n.autopilot = false; n.format = six ? '6v6' : '2v2'; n.drill = null;
+    n.bench = null; delete n.meSlot; delete n.meBench; n.ctrl = 'one'; n.difficulty = 'normal'; n.rookie = false; n.mastery = o.mastery !== false;
+    n.ctrlIdx = !six && mhMirQ(Q, 0) ? 1 : 0;
+    n.ctrlRole = six ? ROLES6[Q[0].idx] : undefined;
+    n.aimSet = h0.aimSet !== false; n.jsetAim = h0.jsetAim === true;
+    n.points = SET_POINTS.indexOf(+o.points) >= 0 ? +o.points : 21;
+    if (!o.even) {
+      A = mhMat(o.attrs, size); B = mhMat(o.badges, size);
+      for (s = 0; s < Q.length; s++) {
+        h = H[s]; if (!h) continue;
+        if (h.attrs && typeof h.attrs === 'object') { A = A || mhMat(null, size, true); A[Q[s].team][Q[s].idx] = h.attrs; }
+        if (h.badges && typeof h.badges === 'object') { B = B || mhMat(null, size, true); B[Q[s].team][Q[s].idx] = h.badges; }
+      }
+    }
+    n.attrs = A; n.badges = B;
+    return n;
+  }
+  function mhLv(L, t) { var v = L && L[t]; return v && typeof v === 'object' ? v : MH_LV; }
+  function mhProf(v) {
+    if (!v.prof || v.prof === 'mate') return DIFF.mate;
+    var d = normDiff(v.prof); return rookieProf(DIFF[d], !!v.rookie && (d === 'easy' || d === 'normal'), d);
+  }
+  function mhTm(v) {
+    if (!v.tm || v.tm === 'online') return TIMING.online;
+    var d = normDiff(v.tm); return v.rookie && (d === 'easy' || d === 'normal') ? TIMING.easy : TIMING[d];
+  }
+  /** initOnline del online de varios: plazas, perfiles y timing por equipo, bits de partido. */
+  function mhInit(g, opts) {
+    var H = Array.isArray(opts.humans) ? opts.humans : [], Q = opts.seats, L = opts.teamLv, K = slotK(g), s, i;
+    g.online = true; g.mh = true; g.hT = 0;
+    g.prof = [mhProf(mhLv(L, 0)), mhProf(mhLv(L, 1))];
+    g.bo1 = +opts.bestOf !== 3;
+    g.hum = [];
+    for (s = 0; s < Q.length; s++) {
+      var q = Q[s], h = H[s] || {}, p = g.teams[q.team][q.idx];
+      var o = { team: q.team, idx: q.idx, p: p, ai: false, aiBack: false, tm: mhTm(mhLv(L, q.team)),
+        aim3: s ? dblFields({ on: false, x: 0.5, y: 0.5, kind: '' }) : g.aim3, swingAim: s ? [0, 0] : g.swingAim, aimIn: s ? [0, 0] : g.aimIn };
+      for (i = 0; i < K.length; i++) o[K[i]] = g[K[i]];
+      if (s) { o.aimSet = h.aimSet !== false; o.jsetAim = h.jsetAim === true; }
+      if (g.rot) { o.ctrlBase = p; o.ctrlRole = p.role; o.ctrlOut = false; o.hAct = -9; o.ask6 = -9; }
+      g.hum.push(dblFields(o));
+    }
+    g.tm = g.hum[0].tm;
+    g.tmoPer = opts.timeouts === true ? ONLINE.tmoPerSet : 0;
+    g.skipReq = [false, false]; g.skipS = []; for (s = 0; s < Q.length; s++) g.skipS.push(false);
+    g.tmoReq = [false, false]; g.tmoLeft = [g.tmoPer, g.tmoPer]; g.tmo = null;
+  }
+  /** createGame, tras el puesto del 6v6 y subsCtrl: los campos de g vuelven a ser los de la plaza 0 (la activa). */
+  function mhPost(g) {
+    var h = g.hum[0];
+    g.ctrl = h.p;
+    if (g.rot) { g.ctrlBase = h.ctrlBase; g.ctrlRole = h.ctrlRole; g.ctrlOut = false; }
+  }
+  /** act: los campos del 6v6 por plaza y el timing de su equipo. */
+  function mhAct(g, a, b) {
+    if (g.rot) for (var i = 0, k; i < SLOT_6.length; i++) { k = SLOT_6[i]; a[k] = g[k]; g[k] = b[k]; }
+    g.tm = b.tm;
+  }
+  function mhFin(g, h) { if (g.rot) for (var i = 0; i < SLOT_6.length; i++) h[SLOT_6[i]] = g[SLOT_6[i]]; }
+  /** Equipo de la plaza activa. */
+  function mhT(g) { return g.hum[g.hT].team; }
+  /** Jugador de la primera plaza del equipo t (o null: equipo sin humanos). */
+  function mhP(g, t) { for (var s = 0; s < g.hum.length; s++) if (g.hum[s].team === t) return g.hum[s].p; return null; }
+  /** Plaza representante del equipo t para su IA: la primera sin ai; si no, la primera del equipo; sin plazas, la 0. */
+  function mhRep(g, t) {
+    var H = g.hum, f = -1;
+    for (var s = 0; s < H.length; s++) if (H[s].team === t) { if (!H[s].ai) return s; if (f < 0) f = s; }
+    return f < 0 ? 0 : f;
+  }
+  function mhOn(g, t) { for (var s = 0; s < g.hum.length; s++) if (g.hum[s].team === t && !g.hum[s].ai) return true; return false; }
+  function mhSlot(g, p) { for (var s = 0; s < g.hum.length; s++) if (g.hum[s].p === p && !g.hum[s].ai) return s; return -1; }
+  /** Campo k de la plaza del humano q (la activa: el de g), o el de g si q no es humano. Para ai6.js (hAct, ask6). */
+  function mhGetP(g, q, k) { var s = g.mh ? mhSlot(g, q) : -1; return s < 0 ? g[k] : hget(g, s, k); }
+  /** Humanos (sin la IA) del equipo t, array cacheado: no modificar. Fuera del online, [g.ctrl] en el equipo 0 (si juega un humano);
+   *  en el 1 contra 1, el de su plaza. */
+  var _hoA = [[], []];
+  function humansOf(g, t) {
+    var r = _hoA[t]; r.length = 0;
+    if (!g.online) { if (t === 0 && !g.demo && !g.autopilot && g.ctrl) r.push(g.ctrl); return r; }
+    for (var s = 0; s < g.hum.length; s++) if (g.hum[s].team === t && !g.hum[s].ai) r.push(g.hum[s].p);
+    return r;
+  }
+  function mhEndSwingAll(g) {
+    for (var s = 0; s < g.hum.length; s++) {
+      if (s === g.hT) endSwing(g);
+      else { var h = g.hum[s]; h.hitBuf = 0; h.swingLive = false; h.swingShot = ''; h.swingHasAim = false; }
+    }
+  }
+  function mhAimOff(g) { for (var s = 0; s < g.hum.length; s++) g.hum[s].aim3.on = false; }
+  function mhSkipClr(g) { for (var s = 0; s < g.skipS.length; s++) g.skipS[s] = false; }
+  function mhSkipAll(g) { for (var s = 0; s < g.hum.length; s++) if (!g.skipS[s] && !g.hum[s].ai) return false; return true; }
+  function mhResetSlots(g) {
+    var prev = g.hT;
+    for (var s = 0; s < g.hum.length; s++) { act(g, s); endSwing(g); g.swingLock = 0; g.defRole = ''; g.aimCarry = 0; }
+    act(g, prev);
+    g.skipReq[0] = g.skipReq[1] = false; mhSkipClr(g);
+  }
+  /** jsetHum con varias plazas: el primer humano del equipo t que puede colocar en salto ahora (su gesto en _jh), o null. */
+  function mhJsetHum(g, t) {
+    var prev = g.hT, r = null;
+    _jh.live = false; _jh.shot = '';
+    for (var s = 0; s < g.hum.length && !r; s++) {
+      if (g.hum[s].team !== t || g.hum[s].ai) continue;
+      act(g, s);
+      if (jsetReady(g)) { r = g.ctrl; _jh.live = g.swingLive; _jh.shot = g.swingShot; }
+    }
+    act(g, prev);
+    return r;
+  }
+  /** slotAI con el evento por plaza (team de la plaza y seat). */
+  function mhSlotAI(g, s, on) {
+    var h = g.hum[s], prev = g.hT, sv = g.server;
+    if (h.ai === !!on) return;
+    var wasH = g.mode === 'serve' && sv ? isHuman(g, sv) : false;
+    act(g, s); endSwing(g); g.defRole = ''; g.jsetQ = 0; g.setWinOn = false; g.setCarry = -1; g.setDirA = NaN; act(g, prev);
+    h.ai = !!on; h.aiBack = false;
+    emit(g, { type: 'slotAI', team: h.team, seat: s, on: !!on });
+    if (g.mode === 'serve' && g.serveState === 'ready' && sv && isHuman(g, sv) !== wasH) {
+      var ti = ritualSetup(g, sv, !isHuman(g, sv));
+      g.timer = ti > 0 ? ti : 1.3; g.cpuTossIn = ti;
+      serveAimReset(g, sv); holdPos(g, sv, g.ball);
+    }
+  }
+  /** Bits de partido de todas las plazas (en orden de plaza): chal/tmo por el equipo de la plaza, skip por plaza. */
+  function mhBits(g, ins, n) {
+    for (var s = 0; s < n; s++) {
+      var inp = ins[s], h = g.hum[s], t = h.team;
+      if (inp.ai && !h.ai) slotAI(g, s, true);
+      h.aiBack = !inp.ai && h.ai;
+      if (h.aiBack && (g.mode === 'point' || g.mode === 'over') && !g.review && !g.tmo) slotAI(g, s, false);
+      if (inp.chal && !g.tmo) challenge(g, t);
+      if (inp.tmo && !g.tmoReq[t] && !g.tmo && g.tmoLeft[t] > 0 && g.mode !== 'over' && !g.pendingSet && !g.finished) { g.tmoReq[t] = true; emit(g, { type: 'timeoutReq', team: t, seat: s }); }
+      if (inp.skip && !g.skipS[s]) { g.skipS[s] = true; g.skipReq[t] = true; emit(g, { type: 'skipReq', team: t, seat: s }); }
+    }
+  }
+  /** serveAimReset: diana de saque solo en la plaza del sacador humano. */
+  function mhSrvAim(g, sv) {
+    for (var s = 0; s < g.hum.length; s++) {
+      var a2 = g.hum[s].aim3, mine = g.hum[s].p === sv && isHuman(g, sv);
+      a2.on = mine; a2.kind = mine ? 'serve' : ''; if (mine) { a2.x = -side(sv.team) * SERVE_AIM0 * g.cs; a2.y = 0; }
+    }
+  }
+  /** stepServe (final): todos menos el sacador; en el 6v6 (g.posRule6) cada humano que no saca se coloca con SU stick. */
+  function mhServeMove(g, sv, dt) {
+    for (var i = 0; i < g.players.length; i++) {
+      var p = g.players[i]; if (p === sv) continue;
+      var s = g.posRule6 && g.mode === 'serve' ? mhSlot(g, p) : -1;
+      if (s >= 0 && (_mxM[s] || _myM[s])) hset(g, s, 'hAct', g.time);
+      stepPlayer(g, p, dt, s >= 0 ? _mxM[s] : 0, s >= 0 ? _myM[s] : 0);
+    }
+  }
+  /** doServe (6v6): falta de posición del primer humano solapado del equipo que recibe (el jugador, o false). */
+  function mhPosFault(g, sv, ov0, ov1) {
+    var r = 1 - sv.team;
+    if (!(r ? ov1 : ov0) || !g.posRule6) return false;
+    for (var s = 0; s < g.hum.length; s++) { var h = g.hum[s]; if (h.team === r && !h.ai && overlapOf(g, r, h.p) > 0) return h.p; }
+    return false;
+  }
+  /** applyLibero con plazas: si el líbero entra por el central de una plaza, la plaza le lleva a él (y recupera a su central al volver). */
+  function mhLibero(g) {
+    var ch = false;
+    for (var t = 0; t < 2; t++) {
+      var lib = g.libero[t]; if (!lib) continue;
+      var want = null;
+      for (var k = 0; k < 3; k++) { var z = [0, 4, 5][k], q = g.rot[t][z]; if (q.role === 'MB') want = (z === 0 && g.serving === t) ? null : q; }
+      var cur = g.liberoFor[t];
+      if (want === cur) continue;
+      var tm = g.teams[t], hs;
+      if (cur) {
+        tm[tm.indexOf(lib)] = cur; cur.bench = false; lib.bench = true; g.liberoFor[t] = null; cur.x = lib.x; cur.y = lib.y;
+        hs = mhBaseSeat(g, cur); if (hs >= 0) mhRepoint(g, hs, cur);
+        emit(g, { type: 'libero', team: t, inP: cur, outP: lib, human: hs >= 0, seat: hs });
+      }
+      if (want) {
+        tm[tm.indexOf(want)] = lib; lib.bench = false; want.bench = true; g.liberoFor[t] = want; lib.x = want.x; lib.y = want.y;
+        hs = mhBaseSeat(g, want); if (hs >= 0) mhRepoint(g, hs, lib);
+        emit(g, { type: 'libero', team: t, inP: lib, outP: want, human: hs >= 0, seat: hs });
+      }
+      ch = true;
+    }
+    if (ch) refreshTeams(g);
+  }
+  function mhBaseSeat(g, base) { for (var s = 0; s < g.hum.length; s++) if (hget(g, s, 'ctrlBase') === base) return s; return -1; }
+  function mhRepoint(g, s, p) { var prev = g.hT; act(g, s); g.hum[s].p = p; g.ctrl = p; endSwing(g); act(g, prev); }
+  /** askOk (6v6) con el humano de cualquier equipo. */
+  function mhAskOk(g) {
+    var p = g.ctrl, A6 = VB.AI6, t = p ? p.team : 0;
+    if (!(g.rot && p && g.mode === 'rally' && p.role !== 'L' && !p.bench)) return false;
+    if (p.role === 'S') return p.front && g.touchTeam === t && g.touches === 1 && g.lastPlayer === p && !atkPhase(g, t);
+    if (!(p.front || (A6 && A6.canPipe && A6.canPipe(p)))) return false;
+    return !(g.touchTeam === t && g.touches >= 2) && !atkPhase(g, t);
+  }
+  var _inM = [], _mxM = [], _myM = [], _mlM = [], _aimM = [], _aimOkM = [];
+  /** stepOnline del online de varios: el mismo orden (bits, revisión, tiempo muerto, punto, saque, peloteo); en el peloteo los humanos
+   *  en orden de plaza y luego la IA, cada uno con su plaza (o la representante de su equipo) activa. */
+  function mhStep(g, dt, inputs) {
+    var AI = VB.AI, H = g.hum, n = H.length, s, i, p, t, inp;
+    g.time += dt; g.blockCD -= dt;
+    for (s = 0; s < n; s++) {
+      inp = (inputs && inputs[s]) || NOIN; _inM[s] = inp;
+      if (!_aimM[s]) _aimM[s] = [0, 0];
+      act(g, s);
+      g.hitBuf -= dt; g.swingLock -= dt; g.jsetQ -= dt;
+      var mv = inp.move || NOIN.move, ml = dirLen(mv), mx = mv[0], my = mv[1];
+      if (ml > 1) { mx /= ml; my /= ml; ml = 1; }
+      _mxM[s] = mx; _myM[s] = my; _mlM[s] = ml; _aimOkM[s] = ml > 0.2;
+      if (_aimOkM[s]) { _aimM[s][0] = mx / ml; _aimM[s][1] = my / ml; }
+      g.aimOn = _aimOkM[s]; if (_aimOkM[s]) { g.aimIn[0] = _aimM[s][0]; g.aimIn[1] = _aimM[s][1]; }
+      if (g.rot || g.mastery) g.aimLen = ml;
+    }
+    act(g, 0);
+    mhBits(g, _inM, n);
+    if (g.review) {
+      g.review.t += dt;
+      for (i = 0; i < g.players.length; i++) stepPlayer(g, g.players[i], dt, 0, 0);
+      if (g.mode === 'point' || g.mode === 'over') stepBall(g, dt);
+      if (g.review.t >= g.review.dur) endReview(g);
+      fin(g); return;
+    }
+    if (g.tmo) { tmoStep(g, dt); fin(g); return; }
+    if (tmoReady(g)) { startTmo(g); fin(g); return; }
+    if (g.cpuChal && g.time >= g.cpuChal.at) { var cc = g.cpuChal; g.cpuChal = null; if (challenge(g, cc.team)) { fin(g); return; } }
+
+    if (g.mode === 'point' || g.mode === 'over') {
+      if (skipBoth(g)) skipHold(g);
+      for (i = 0; i < g.players.length; i++) stepPlayer(g, g.players[i], dt, 0, 0);
+      stepBall(g, dt);
+      g.timer -= dt;
+      if (g.timer <= 0) {
+        if (g.mode === 'over') {
+          if (!(g.call && g.call.waived) && (canChallenge(g, 0) > 0 || canChallenge(g, 1) > 0 || g.cpuChal)) g.timer = 0;
+          else if (!g.finished) { g.finished = true; emit(g, { type: 'gameOver', team: g.sets[0] > g.sets[1] ? 0 : 1, sets: [g.sets[0], g.sets[1]], setScores: g.setScores.slice() }); }
+        } else {
+          if (g.pendingSet) nextSet(g);
+          setupServe(g);
+        }
+      }
+      fin(g); return;
+    }
+    if (g.mode === 'serve') {
+      var sv = g.server, ss = mhSlot(g, sv);
+      // 6v6: «¡Pídela!» durante el saque no vale (aún no hay jugada): se avisa igual (evento 'ask' sin ok), como fuera del online
+      if (g.rot) for (s = 0; s < n; s++) if (_inM[s].switchPlayer && !H[s].ai) emit(g, { type: 'ask', player: H[s].p, ok: false, seat: s });
+      if (ss >= 0) { act(g, ss); stepServe(g, dt, _inM[ss], _mxM[ss], _myM[ss], _aimOkM[ss] ? _aimM[ss] : null, true); }
+      else { act(g, mhRep(g, sv.team)); stepServe(g, dt, NOIN, 0, 0, null, false); }
+      if (g.mode !== 'serve') endRitual(g); refreshPred(g);
+      fin(g); return;
+    }
+    // ---- Peloteo ----
+    g.rally.t += dt;
+    for (t = 0; t < 2; t++) { act(g, mhRep(g, t)); g.jobs[t] = AI.computeJob(g, t); }
+    for (s = 0; s < n; s++) {
+      act(g, s);
+      if (H[s].ai) { g.defRole = ''; continue; }
+      if (g.mode !== 'rally') continue;
+      updateDefense(g);
+      inp = _inM[s];
+      if (g.rot) { // 6v6: «¡Pídela!» (CAMBIAR) y el humano que juega (VB.AI6.setReady), como en el step de siempre
+        if (inp.switchPlayer) { var ak = askOk(g); if (ak) g.ask6 = g.time; emit(g, { type: 'ask', player: g.ctrl, ok: ak, seat: s }); }
+        if (_mlM[s] > 0.15 || inp.hit || inp.jump || inp.jset || inp.switchPlayer) g.hAct = g.time;
+      }
+      humanStep(g, dt, inp, _mxM[s], _myM[s], _aimOkM[s] ? _aimM[s] : null, _mlM[s]);
+    }
+    for (i = 0; i < g.players.length; i++) {
+      p = g.players[i]; if (g.mode !== 'rally' || mhSlot(g, p) >= 0) continue;
+      act(g, mhRep(g, p.team)); AI.update(g, p, dt);
+    }
+    for (i = 0; i < 2 && g.mode === 'rally'; i++) stepBall(g, dt / 2);
+    refreshPred(g);
+    fin(g);
+  }
+  /* ==== fin MULTI ==== */
   /* ==== FLUIDA (Online V2) ==== */
   /* Online V2 «Fluida» (notes/online-v2-spec.md §2). Todo lo de este bloque solo corre con g.fl, que crea flInit (nunca createGame ni
    * mkPlayer): sin g.fl la sim, la huella 2v2 y el online Precisa no cambian (tools/fluidsimtest.js lo comprueba).
@@ -5688,6 +6038,8 @@
     ONLINE: ONLINE, useSlot: act, slotGet: hget, humOn: humOn, humSlot: humSlot, jsetHum: jsetHum, jsetHumSw: _jh, setSlotAI: slotAI,
     // ONLINE V2 «Fluida» (bloque FLUIDA, notes/online-v2-spec.md §2): todo detrás de g.fl (flInit) // fl-api
     flInit: flInit, flTake: flTake, flFly: flFly, flOwnerCheck: flOwnerCheck, flBundle: flBundle, flApplyTc: flApplyTc, // fl-api
+    // ONLINE de varios (bloque MULTI, notes/online-multi-brief.md): plazas g.hum[s] desacopladas del equipo (g.mh) // mh-api
+    humansOf: humansOf, seatOf: humSlot, seatGet: mhGetP, seatRep: mhRep, isMulti: mhIs, SLOT_6: SLOT_6, // mh-api
     flApplyPt: flApplyPt, flChallenge: flChallenge, flServe: flServe, flSkip: flSkip, flPose: flPose, flDigest: flDigest, flMatch: flMatch, flCatchUp: flCatchUp, // fl-api
     FL: FL, mine: mine, _flKh: flKh, _flGhost: flGhost, _flHand: flHand, _flContact: flContact, _stepFluid: stepFluid, _stepBall: stepBall, // fl-api
     serialize: serialize, deserialize: deserialize, SER_V: SER_V

@@ -20,6 +20,16 @@
  *          createGame({mastery:true, djump:true, jsetAim:true}) y el bot de mastery que además empuja hacia la red al saltar en fase de
  *          ataque y mueve la diana de la colocación en salto en una de cada tres; compara con / escribe tools/fp-salto.json (línea base
  *          de la mecánica nueva; se escribe UNA vez, cuando se acepte el equilibrio)
+ *   node tools/fingerprint6.js --variant 6v6 [--write]   HUELLA DEL 6v6 (P0 del sprint online-multi, notes/online-multi-brief.md §7):
+ *          50 semillas × 3 variantes de 6v6 sin conexión, con su propio bot (makeBot6: va a su sitio de la formación con
+ *          VB.AI6.spot, al balón cuando es suyo y saca; azar propio, nunca g.rng):
+ *            cpu6:   CPU contra CPU (demo 6v6), 150 s
+ *            human6: humano simulado de un puesto (OH/S/MB/OPP según la semilla) contra Fácil/Normal/Difícil/Experto, 150 s; una
+ *                    de cada cuatro con createGame({mastery:true}) (el bot también pulsa COLOCAR)
+ *            bench6: igual que human6 con banquillo y entrenador (opts.bench/coach/meSlot), atributos de los 12 e insignias; una de
+ *                    cada tres semillas con autopilot
+ *          compara con / escribe tools/fp-6v6.json. Protege el 6v6 sin conexión frente al modelo de plazas (P1) y al resto del
+ *          online a N jugadores; no la llama simtest (va en el control de regresión de cada paquete, brief §7)
  * tools/simtest.js lo llama al final (sección «Huella 2v2»).
  */
 'use strict';
@@ -27,7 +37,8 @@ const fs = require('fs'), path = require('path'), vm = require('vm');
 const ROOT = path.join(__dirname, '..');
 const VARIANT = process.argv.includes('--variant') ? process.argv[process.argv.indexOf('--variant') + 1] : '';
 const SALTO = VARIANT === 'salto', MASTERY = VARIANT === 'mastery' || SALTO; // (salto: el bot de mastery y lo suyo)
-const REF = path.join(__dirname, SALTO ? 'fp-salto.json' : MASTERY ? 'fp-mastery.json' : 'fp-2v2.json');
+const SIX = VARIANT === '6v6'; // (6v6: variantes y bot propios; las de 2v2 no cambian)
+const REF = path.join(__dirname, SIX ? 'fp-6v6.json' : SALTO ? 'fp-salto.json' : MASTERY ? 'fp-mastery.json' : 'fp-2v2.json');
 const NSEEDS = 50, SECS = 150;
 
 function load() {
@@ -90,6 +101,45 @@ function makeBot(seed, mastery, salto) {
   };
 }
 
+/** Bot humano de 6v6 (huella 6v6), determinista con su azar: el personaje no se mueve solo, así que sin balón suyo va a su sitio de
+ *  la formación (VB.AI6.spot, que solo lee el estado) con un error pequeño; si el balón es suyo (g.jobs[0]) va al punto de juego
+ *  (pr3 si es el remate, pr1 si no), golpea cerca, salta al remate y al bloqueo; saca con flotante o en salto; pide el balón (CAMBIAR
+ *  = ask6) alguna vez. Con mastery, COLOCAR a veces. Nunca toca g.rng. */
+function makeBot6(seed, mastery) {
+  const r = mulberry(seed * 6007 + 101);
+  let serveWait = -1, jumpCd = 0, ex = 0, ey = 0, stamp = -9;
+  return function (g, S, VB) {
+    const p = g.ctrl, b = g.ball, inp = { move: [0, 0], hit: false, jump: false, switchPlayer: false };
+    if (g.mode === 'serve') {
+      if (g.server !== p || g.serving !== 0) return inp;
+      if (serveWait < 0) serveWait = 40 + Math.floor(r() * 200);
+      if (--serveWait === 0) { if (r() < 0.35) inp.jump = true; else inp.hit = true; }
+      if (g.serveState === 'toss' && b.z > 2.3 && b.vz < 0 && r() < 0.25) inp.hit = true;
+      return inp;
+    }
+    serveWait = -1;
+    if (g.mode !== 'rally') return inp;
+    if (stamp !== g.lastTouchT) { stamp = g.lastTouchT; ex = (r() - 0.5) * 0.6; ey = (r() - 0.5) * 0.6; }
+    const job = g.jobs[0] === p, sd = S.side(0);
+    const attack = job && g.touchTeam === 0 && g.touches === 2 && Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5;
+    let tx, ty;
+    if (job) { const pr = attack ? g.pr3 : g.pr1; tx = pr.x + (attack ? 0.35 : 0.15) * sd + ex * 0.3; ty = pr.y + ey * 0.3; }
+    else { const sp = VB.AI6.spot(g, p); tx = sp.x + (sp.block ? 0 : ex); ty = sp.y + ey; }
+    const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
+    if (d > 0.2) inp.move = [dx / d * Math.min(1, d), dy / d * Math.min(1, d)];
+    if (r() < 0.1) inp.move = [inp.move[0] + (r() - 0.5) * 0.6, inp.move[1] + (r() - 0.5) * 0.6];
+    const bd = Math.hypot(b.x - p.x, b.y - p.y);
+    if (job && bd < 1.6 && b.z < 3.2 && r() < 0.35) inp.hit = true;
+    if (--jumpCd <= 0 && attack && bd < 2.5 && b.z > 2.3 && r() < 0.25) { inp.jump = true; jumpCd = 60; }
+    if (jumpCd <= 0 && !job && Math.abs(p.x) < 1.2 && g.touchTeam === 1 && g.touches === 2 && Math.abs(b.x) < 3 && r() < 0.1) { inp.jump = true; jumpCd = 60; } // bloqueo
+    if (p.z > 0.6 && bd < 2 && r() < 0.05) inp.hit = true;
+    if (mastery && p.z > 0.6 && bd < 2 && r() < 0.03) inp.jset = true;
+    if (r() < 0.003) inp.switchPlayer = true;
+    if (r() < 0.002) inp.hit = true;
+    return inp;
+  };
+}
+
 function attrsFor(seed) {
   const r = mulberry(seed * 104729 + 1), K = ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'];
   const one = () => { const o = {}; for (const k of K) o[k] = 20 + Math.floor(r() * 79); return o; };
@@ -102,8 +152,29 @@ function badgesFor(seed) {
   return [[one(), one()], [one(), one()]];
 }
 
+const ROLES6 = ['OH', 'S', 'MB', 'OPP'];
+function attrs6For(seed) {
+  const r = mulberry(seed * 92821 + 3), K = ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'];
+  const one = () => { const o = {}; for (const k of K) o[k] = 25 + Math.floor(r() * 70); return o; };
+  return [[0, 1, 2, 3, 4, 5].map(one), [0, 1, 2, 3, 4, 5].map(() => r() < 0.8 ? one() : null)];
+}
+function badges6For(seed) {
+  const r = mulberry(seed * 49157 + 11);
+  const IDS = ['canon', 'mira', 'rompemanos', 'seda', 'bombardero', 'flotador', 'muro', 'ancla', 'red', 'motor', 'sangrefria', 'lider'];
+  const one = () => { const o = {}; o[IDS[Math.floor(r() * IDS.length)]] = 1 + Math.floor(r() * 3); return o; };
+  return [[0, 1, 2, 3, 4, 5].map(one), [0, 1, 2, 3, 4, 5].map(one)];
+}
+const BENCH6 = (t, seed) => [{ role: 'OH', num: 14 + t, st: { jump: 70, spike: 75 } }, { role: 'MB', st: { block: 80 } }, { role: 'S' }, { role: 'OPP', fat: 20 + seed % 30 }, { role: 'L' }];
+
 const DIFFS = ['easy', 'normal', 'hard', 'expert'];
 function optsFor(variant, seed) {
+  if (variant === 'cpu6') return { format: '6v6', demo: true, seed: seed, stats: true };
+  if (variant === 'human6' || variant === 'bench6') {
+    const o = { format: '6v6', demo: false, seed: seed, stats: true, difficulty: DIFFS[seed % 4], ctrl: 'one', ctrlRole: ROLES6[seed % 4], points: [15, 21, 25][seed % 3] };
+    if (variant === 'human6') { if (seed % 4 === 0) o.mastery = true; if (seed % 5 === 0) o.rookie = true; }
+    else { o.bench = [BENCH6(0, seed), BENCH6(1, seed)]; o.coach = [{ iq: 1 + seed % 3 }, { iq: 3 }]; o.meSlot = seed % 6; o.attrs = attrs6For(seed); o.badges = badges6For(seed); if (seed % 3 === 1) o.autopilot = true; }
+    return o;
+  }
   if (variant === 'cpu') return { demo: true, seed: seed, stats: true };
   if (variant === 'mastery') return Object.assign(optsFor('human', seed), { mastery: true });
   if (variant === 'salto') return Object.assign(optsFor('human', seed), { mastery: true, djump: true, jsetAim: true });
@@ -127,11 +198,11 @@ function runOne(VB, variant, seed) {
   const opts = optsFor(variant, seed);
   const g = S.createGame(opts);
   let nrng = 0; const rng0 = g.rng; g.rng = function () { nrng++; return rng0(); };
-  const bot = variant === 'cpu' || opts.autopilot ? null : makeBot(seed, variant === 'mastery' || variant === 'salto', variant === 'salto');
+  const bot = variant === 'cpu' || variant === 'cpu6' || opts.autopilot ? null : SIX ? makeBot6(seed, !!opts.mastery) : makeBot(seed, variant === 'mastery' || variant === 'salto', variant === 'salto');
   const pts = [], evc = {}, evs = [];
   const steps = Math.round(SECS / DT);
   for (let i = 0; i < steps; i++) {
-    S.step(g, DT, bot ? bot(g, S) : null);
+    S.step(g, DT, bot ? bot(g, S, VB) : null);
     evs.length = 0; S.drainEvents(g, evs);
     for (const e of evs) {
       evc[e.type] = (evc[e.type] || 0) + 1;
@@ -147,7 +218,7 @@ function runOne(VB, variant, seed) {
 
 function runAll() {
   const VB = load(), out = [];
-  for (let s = 1; s <= NSEEDS; s++) for (const v of SALTO ? ['salto'] : MASTERY ? ['mastery'] : ['cpu', 'human', 'attrs']) out.push(runOne(VB, v, s));
+  for (let s = 1; s <= NSEEDS; s++) for (const v of SIX ? ['cpu6', 'human6', 'bench6'] : SALTO ? ['salto'] : MASTERY ? ['mastery'] : ['cpu', 'human', 'attrs']) out.push(runOne(VB, v, s));
   return out;
 }
 
@@ -155,10 +226,11 @@ function main() {
   const t0 = Date.now(), write = process.argv.includes('--write');
   const res = runAll();
   if (write) {
-    if (SALTO) fs.writeFileSync(REF, JSON.stringify({ note: 'Huella del salto con impulso (v1.12.0; tools/fingerprint6.js --variant salto): partido humano 2v2 con createGame({mastery:true, djump:true, jsetAim:true}). Línea base de la mecánica nueva; regenerar solo con un cambio intencionado de ella.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
+    if (SIX) fs.writeFileSync(REF, JSON.stringify({ note: 'Huella 6v6 (tools/fingerprint6.js --variant 6v6; P0 del sprint online-multi, 21-nov-2026): cpu6/human6/bench6 grabadas con el código de 1.21.0 ANTES del modelo de plazas. Regenerar solo con un cambio intencionado del 6v6 sin conexión.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
+    else if (SALTO) fs.writeFileSync(REF, JSON.stringify({ note: 'Huella del salto con impulso (v1.12.0; tools/fingerprint6.js --variant salto): partido humano 2v2 con createGame({mastery:true, djump:true, jsetAim:true}). Línea base de la mecánica nueva; regenerar solo con un cambio intencionado de ella.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
     else if (MASTERY) fs.writeFileSync(REF, JSON.stringify({ note: 'Huella de la maestría (E1, sprint 5; tools/fingerprint6.js --variant mastery): partido humano 2v2 con createGame({mastery:true}). Regenerar solo con un cambio intencionado de la maestría.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
     else fs.writeFileSync(REF, JSON.stringify({ note: 'Huella 2v2 (tools/fingerprint6.js). cpu/human: código ANTERIOR al refactor del sprint 1 del 6v6 (sin cambios desde entonces). attrs: regenerada el 10-nov-2026 con «atributos que se notan» y otra vez en la integración del mismo día (precisión del toque ATTR_K.err y frenada al momento; cpu/human comprobadas idénticas antes, 100 de 100). human/attrs: regenerada el 11-nov-2026 (bloqueo activo) y el 12-nov-2026 (overpass que cruza = golpe normal en el aire, no pulsación de bloqueo; cpu idéntica). No regenerar salvo cambio intencionado del 2v2.', n: res.length, runs: res }, null, 0).replace(/\},\{/g, '},\n{') + '\n');
-    console.log(SALTO ? 'huella del salto escrita:' : MASTERY ? 'huella de la maestría escrita:' : 'huella 2v2 escrita:', res.length, 'partidas,', res.reduce((a, r) => a + r.pts.split(' ').filter(Boolean).length, 0), 'puntos,', (Date.now() - t0) + ' ms');
+    console.log(SIX ? 'huella 6v6 escrita:' : SALTO ? 'huella del salto escrita:' : MASTERY ? 'huella de la maestría escrita:' : 'huella 2v2 escrita:', res.length, 'partidas,', res.reduce((a, r) => a + r.pts.split(' ').filter(Boolean).length, 0), 'puntos,', (Date.now() - t0) + ' ms');
     return 0;
   }
   if (!fs.existsSync(REF)) { console.error('FALLO: falta ' + 'tools/' + path.basename(REF) + ' (node tools/fingerprint6.js' + (VARIANT ? ' --variant ' + VARIANT : '') + ' --write con el código de referencia)'); return 1; }
@@ -174,8 +246,8 @@ function main() {
   }
   const npts = res.reduce((a, r) => a + r.pts.split(' ').filter(Boolean).length, 0);
   const nrng = res.reduce((a, r) => a + r.rng, 0);
-  if (bad) { console.error(SALTO ? 'FALLO: huella del salto distinta en' : MASTERY ? 'FALLO: huella de la maestría distinta en' : 'FALLO: huella 2v2 distinta en', bad, 'de', res.length, 'partidas'); return 1; }
-  console.log(SALTO ? 'huella del salto idéntica:' : MASTERY ? 'huella de la maestría idéntica:' : 'huella 2v2 idéntica:', res.length, 'partidas,', npts, 'puntos,', nrng, 'llamadas a g.rng,', (Date.now() - t0) + ' ms');
+  if (bad) { console.error(SIX ? 'FALLO: huella 6v6 distinta en' : SALTO ? 'FALLO: huella del salto distinta en' : MASTERY ? 'FALLO: huella de la maestría distinta en' : 'FALLO: huella 2v2 distinta en', bad, 'de', res.length, 'partidas'); return 1; }
+  console.log(SIX ? 'huella 6v6 idéntica:' : SALTO ? 'huella del salto idéntica:' : MASTERY ? 'huella de la maestría idéntica:' : 'huella 2v2 idéntica:', res.length, 'partidas,', npts, 'puntos,', nrng, 'llamadas a g.rng,', (Date.now() - t0) + ' ms');
   return 0;
 }
 

@@ -55,14 +55,16 @@
   var DECISIVE = { ace: 1, kill: 1, tip: 1, block: 1 };
   var F_HIT = 1, F_JUMP = 2, F_JSET = 4, F_SW = 8, F_NULL = 16;
   // ONLINE (fase 6, notes/net.md): modo «dual» = graba las DOS entradas de cada paso de la partida CONFIRMADA (Sim.step(gc, STEP, ins)
-  // con ins = [hueco 0, hueco 1]) con sus bits de red. Anillos y tramos aparte: el modo offline (mv/fl) no cambia de formato
+  // con ins = [hueco 0, hueco 1]) con sus bits de red. Anillos y tramos aparte: el modo offline (mv/fl) no cambia de formato.
+  // Online de varios (sprint online-multi, sim.js bloque MULTI): RP.ns = plazas (g.hum.length; 2 en el 1 contra 1), una entrada por
+  // plaza y paso; RP.me = MI EQUIPO (no la plaza) y RP.seat = mi plaza (la vista girada RV la pone como activa: NetView.seatView)
   var F_CHAL = 32, F_SKIP = 64, F_TMO = 128, F_AI = 256;
   var TXT = { set: 'Punto de set', match: 'Punto de partido', best: 'Mejores jugadas', end: 'Fin de la repetición' };
 
   var STEP = 1 / 120;
   var CAP = K.LOG_CAP;
   var mv = new Float64Array(CAP * 2), fl = new Uint8Array(CAP);
-  var mv2 = null, fl2 = null;   // dual: Float64Array(CAP * 4) [x0, y0, x1, y1] y Uint16Array(CAP * 2) (se crean en el primer partido online)
+  var mv2 = null, fl2 = null;   // dual: Float64Array(CAP * 2 * ns) [x0, y0, x1, y1, …] y Uint16Array(CAP * ns) (se crean en el primer partido online)
 
   function mkMeta() {
     return { team: 0, how: '', move: '', highlight: 0, savedSetPoint: false, digs: 0, rallyHits: 0, who: { num: 0, team: 0 },
@@ -92,7 +94,8 @@
     step: 0, tLast: -1, timerLast: 0,
     rec: false, tossStep: 0, nextKf: 0, kfI: 0, ptStep: -1, hashStep: -1, hashPt: 0, endStep: -1, ptT: 0,
     hit0: 0, hitsN: 0, overturned: false, skipSeen: false, serial: 0, autoDone: -1, desync: 0, prepMs: 0,
-    dual: false, me: 0, vs: 0   // online: dual = dos entradas por paso; me = tu equipo canónico (puntuación extra); vs = 1 → se pinta girado (invitado)
+    dual: false, me: 0, vs: 0,   // online: dual = dos entradas por paso; me = tu equipo canónico (puntuación extra); vs = 1 → se pinta girado (invitado)
+    ns: 2, seat: 0               // online: plazas por paso (2 en el 1 contra 1) y la tuya
   };
   var kfToss = null, kf = [], kfStep = new Float64Array(K.KF_N), R = null, PR = null, RV = null;   // RV = vista girada de R (invitado online)   // R = corredor; PR = la siguiente de la cola, preparándose
   var hits = [];
@@ -113,6 +116,7 @@
   var INFO = { kind: '', i: 0, n: 0, title: '', pill: '', sub: '', phrase: '', aria: '', slow: false, t: 0, dur: 0, phase: '' };
   var IN = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
   var IN2 = [mkIn2(), mkIn2()];
+  var RPME = { team: 0, seat: 0 };   // «yo» para NetView (equipo y plaza)
   function mkIn2() { return { move: [0, 0], hit: false, jump: false, jset: false, chal: false, skip: false, tmo: false, ai: false, switchPlayer: false }; }
   function bits2(q) {
     return (q.hit ? F_HIT : 0) | (q.jump ? F_JUMP : 0) | (q.jset ? F_JSET : 0) | (q.switchPlayer ? F_SW : 0) | (q.chal ? F_CHAL : 0) |
@@ -161,11 +165,11 @@
     if (g !== RP.g) return;
     if (RP.tLast >= 0 && Math.abs(g.time - RP.tLast - STEP) > 1e-6 && RP.rec) breakRally();
     var i = RP.step % CAP;
-    if (RP.dual) {   // online: simIn = [entrada del hueco 0, entrada del hueco 1] (las de VB.Net, ya decodificadas)
-      for (var h = 0; h < 2; h++) {
+    if (RP.dual) {   // online: simIn = [entrada del hueco 0, entrada del hueco 1, …] (las de VB.Net, ya decodificadas; una por plaza)
+      for (var h = 0, ns = RP.ns; h < ns; h++) {
         var q = simIn && simIn[h], qm = q && q.move;
-        mv2[4 * i + 2 * h] = qm ? +qm[0] || 0 : 0; mv2[4 * i + 2 * h + 1] = qm ? +qm[1] || 0 : 0;
-        fl2[2 * i + h] = q ? bits2(q) : F_NULL;
+        mv2[2 * ns * i + 2 * h] = qm ? +qm[0] || 0 : 0; mv2[2 * ns * i + 2 * h + 1] = qm ? +qm[1] || 0 : 0;
+        fl2[ns * i + h] = q ? bits2(q) : F_NULL;
       }
     } else if (simIn) {
       var m = simIn.move;
@@ -274,11 +278,12 @@
     if (PL.phase && PL.clip === slot) return;   // (no se pisa la que se está viendo)
     S().copyGame(slot.g, c.g);
     if (RP.dual) {
-      if (!slot.mv2) { slot.mv2 = new Float64Array(K.CLIP_CAP * 4); slot.fl2 = new Uint16Array(K.CLIP_CAP * 2); }
+      var ns = RP.ns;
+      if (!slot.mv2 || slot.mv2.length < K.CLIP_CAP * 2 * ns) { slot.mv2 = new Float64Array(K.CLIP_CAP * 2 * ns); slot.fl2 = new Uint16Array(K.CLIP_CAP * ns); }
       for (var k2 = c.k0; k2 < c.end; k2++) {
         var a2 = k2 % CAP, b2 = k2 - c.k0;
-        for (var j2 = 0; j2 < 4; j2++) slot.mv2[4 * b2 + j2] = mv2[4 * a2 + j2];
-        slot.fl2[2 * b2] = fl2[2 * a2]; slot.fl2[2 * b2 + 1] = fl2[2 * a2 + 1];
+        for (var j2 = 0; j2 < 2 * ns; j2++) slot.mv2[2 * ns * b2 + j2] = mv2[2 * ns * a2 + j2];
+        for (j2 = 0; j2 < ns; j2++) slot.fl2[ns * b2 + j2] = fl2[ns * a2 + j2];
       }
     } else for (var k = c.k0; k < c.end; k++) { var a = k % CAP, b = k - c.k0; slot.mv[2 * b] = mv[2 * a]; slot.mv[2 * b + 1] = mv[2 * a + 1]; slot.fl[b] = fl[a]; }
     copyClip(slot, c);
@@ -321,8 +326,13 @@
     RP.on = false; RP.g = g || null; RP.step = 0; RP.tLast = -1; RP.timerLast = 0; RP.rec = false; RP.ptStep = -1; RP.hashStep = -1;
     RP.endStep = -1; RP.kfI = 0; RP.hit0 = 0; RP.hitsN = 0; RP.overturned = false; RP.skipSeen = false; RP.serial = 0; RP.autoDone = -1;
     RP.desync = 0; RP.prepMs = 0;
-    RP.dual = !!o.dual; RP.me = RP.dual && o.slot === 1 ? 1 : 0; RP.vs = RP.me; RV = null;
-    if (RP.dual && !mv2) { mv2 = new Float64Array(CAP * 4); fl2 = new Uint16Array(CAP * 2); }
+    // (o.slot = tu hueco; online de varios: o.team = tu equipo y o.slot tu plaza. Sin o.team, hueco = equipo, como en el 1 contra 1)
+    RP.dual = !!o.dual; RP.me = RP.dual && (o.team === 0 || o.team === 1 ? o.team : o.slot === 1 ? 1 : 0) === 1 ? 1 : 0; RP.vs = RP.me; RV = null;
+    RP.ns = RP.dual && g && g.hum && g.hum.length > 2 ? g.hum.length : 2; RP.seat = RP.dual ? Math.max(0, o.slot | 0) : 0;
+    if (RP.seat >= RP.ns) RP.seat = 0;
+    RPME.team = RP.vs; RPME.seat = RP.seat;
+    while (IN2.length < RP.ns) IN2.push(mkIn2());
+    if (RP.dual && (!mv2 || mv2.length < CAP * 2 * RP.ns)) { mv2 = new Float64Array(CAP * 2 * RP.ns); fl2 = new Uint16Array(CAP * RP.ns); }
     last.ok = false; last.g = null;
     for (var i = 0; i < K.BEST_N; i++) best[i].ok = false;
     ordN = 0;
@@ -343,7 +353,8 @@
       for (i = 0; i < kfN; i++) kf.push(mk());
       for (i = 0; i < K.BEST_N; i++) best[i].g = i < bestN ? mk() : null;
       R = mk(); PR = mk();
-      if (RP.vs === 1) { if (!(VB.NetView && VB.NetView.mirror)) throw new Error('falta VB.NetView'); RV = mk(); }
+      // (vista: girada si eres del equipo 1; online de varios, también con otra plaza que la 0, para que g.ctrl sea tu jugador)
+      if (RP.vs === 1 || RP.seat > 0) { if (!(VB.NetView && VB.NetView.mirror)) throw new Error('falta VB.NetView'); RV = mk(); }
     } catch (e) {
       RP.why = 'create'; kfToss = null; kf.length = 0; R = null; PR = null; RV = null;
       if (typeof console !== 'undefined') console.error('[VB][ERROR] Replay.reset: ' + (e && e.stack || e));
@@ -419,26 +430,29 @@
     Sm.step(G, STEP, inp);
     EVT.length = 0; Sm.drainEvents(G, EVT);
   }
-  /** Online: avanza G un paso con las DOS entradas grabadas (las mismas que tuvo la partida confirmada). */
+  /** Online: avanza G un paso con las entradas grabadas de cada plaza (las mismas que tuvo la partida confirmada). */
+  var IN2v = [];   // (las RP.ns primeras de IN2: step mira ins.length)
   function stepG2(G, c, k) {
-    var Ms = c.own ? c.mv2 : mv2, Fs = c.own ? c.fl2 : fl2, a = c.own ? k - c.k0 : k % CAP, null2 = true;
-    for (var h = 0; h < 2; h++) {
-      var f = Fs[2 * a + h], q = IN2[h];
+    var Ms = c.own ? c.mv2 : mv2, Fs = c.own ? c.fl2 : fl2, a = c.own ? k - c.k0 : k % CAP, null2 = true, ns = RP.ns;
+    if (IN2v.length !== ns) { IN2v.length = 0; for (var j = 0; j < ns; j++) IN2v.push(IN2[j]); }
+    for (var h = 0; h < ns; h++) {
+      var f = Fs[ns * a + h], q = IN2v[h];
       if (!(f & F_NULL)) null2 = false;
-      q.move[0] = Ms[4 * a + 2 * h]; q.move[1] = Ms[4 * a + 2 * h + 1]; unbits2(f & ~F_NULL, q);
+      q.move[0] = Ms[2 * ns * a + 2 * h]; q.move[1] = Ms[2 * ns * a + 2 * h + 1]; unbits2(f & ~F_NULL, q);
     }
     var Sm = S();
-    Sm.step(G, STEP, null2 ? null : IN2);
+    Sm.step(G, STEP, null2 ? null : IN2v);
     EVT.length = 0; Sm.drainEvents(G, EVT);
   }
-  /** Online, invitado: la partida que se pinta es RV (copia girada de R, como su vista espejo: VB.NetView) y los eventos se giran. */
+  /** Online, invitado: la partida que se pinta es RV (copia girada de R, como su vista espejo: VB.NetView) y los eventos se giran.
+   *  Online de varios: se gira si eres del equipo 1 y tu plaza es la activa de RV (los eventos, con los jugadores de RV). */
   function viewSync(outP, outF) {
     if (!RV) return;
     var NV = VB.NetView;
-    NV.mirror(RV, R, 1); RV.replay = true;
+    NV.mirror(RV, R, RPME); RV.replay = true;
     var i;
-    if (outP) for (i = 0; i < outP.length; i++) outP[i] = NV.mapEvent(outP[i], RV, 1);
-    if (outF) for (i = 0; i < outF.length; i++) outF[i] = NV.mapEvent(outF[i], RV, 1);
+    if (outP) for (i = 0; i < outP.length; i++) outP[i] = NV.mapEvent(outP[i], RV, RPME);
+    if (outF) for (i = 0; i < outF.length; i++) outF[i] = NV.mapEvent(outF[i], RV, RPME);
   }
   /** Avanza R un paso (PL.k) en 'play'; out* = arrays de eventos a rellenar. → false si el hash del punto no cuadra. */
   function stepR(c, outP, outF) {
@@ -483,7 +497,7 @@
     // tiempos en R.time (tras la preparación R está en c.start)
     CAM.slowFrom = slow ? R.time + (c.slowFrom - PL.k) * STEP : -1;
     CAM.slowTo = slow ? R.time + (c.slowTo - PL.k) * STEP : -1;
-    CAM.fx = RV ? -c.fx : c.fx; CAM.fy = RV ? -c.fy : c.fy; CAM.fz = c.fz;   // (invitado: punto de interés girado)
+    CAM.fx = RV && RP.vs === 1 ? -c.fx : c.fx; CAM.fy = RV && RP.vs === 1 ? -c.fy : c.fy; CAM.fz = c.fz;   // (equipo 1: punto de interés girado)
     return CAM;
   }
   function wipe(cb) {
@@ -669,7 +683,7 @@
     desync: desync, prepMs: prepMs, cut: cut,
     /** Pruebas (tools/replaytest.js): copia de lectura del estado interno. */
     _state: function () {
-      return { on: RP.on, why: RP.why, step: RP.step, dual: RP.dual, vs: RP.vs, rec: RP.rec, serial: RP.serial, phase: PL.phase, k: PL.k, rate: PL.rate,
+      return { on: RP.on, why: RP.why, step: RP.step, dual: RP.dual, vs: RP.vs, ns: RP.ns, seat: RP.seat, rec: RP.rec, serial: RP.serial, phase: PL.phase, k: PL.k, rate: PL.rate,
         last: last.ok ? { k0: last.k0, start: last.start, pt: last.pt, end: last.end, slowFrom: last.slowFrom, slowTo: last.slowTo, auto: last.auto, how: last.meta.how, score: last.score } : null,
         best: list().map(function (o) { return o.pts; }), clip: PL.clip ? { start: PL.clip.start, end: PL.clip.end, slowFrom: PL.clip.slowFrom, slowTo: PL.clip.slowTo, pt: PL.clip.pt, hashStep: PL.clip.hashStep } : null };
     },

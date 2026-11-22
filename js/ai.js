@@ -148,6 +148,9 @@
   function airLand(g, p) { // s hasta que aterriza (0 en el suelo)
     return (p.z > 0 || p.vz > 0) ? (p.vz + Math.sqrt(p.vz * p.vz + 2 * C.G * Math.max(0, p.z))) / C.G : 0;
   }
+  /** ¿Lleva un humano a q? Fuera del online de varios, q === g.ctrl (el de siempre: el de la plaza activa); con varias plazas
+   *  (g.mh), cualquier plaza humana: a dos humanos del mismo equipo se les da la misma preferencia (notes/online-multi-brief.md §8.2). */
+  function hu(g, q) { return g.mh ? S.humSlot(g, q) >= 0 : g.ctrl === q; }
   function jobCost(g, p, pr) {
     var c = timeTo(g, p, pr.x, pr.y);
     // en el aire y el balón llega antes de que pueda aterrizar y moverse: no puede ser él
@@ -180,7 +183,7 @@
     } else {
       // primera elección: a igualdad (±0,12 s), se queda el jugador que ya controla el humano (menos cambios de cámara)
       var bias = (g.online ? S.humOn(g, t) : t === 0) && !g.demo ? 0.12 : 0;
-      pick = (ca - (g.ctrl === a ? bias : 0)) <= (cb - (g.ctrl === bb ? bias : 0)) ? a : bb;
+      pick = (ca - (hu(g, a) ? bias : 0)) <= (cb - (hu(g, bb) ? bias : 0)) ? a : bb;
     }
     if (g.jobMem) {
       if (!mem || pick !== mem) g.jobSwT[t] = g.time; // la primera elección también cuenta como cambio
@@ -201,7 +204,7 @@
       var q = tm[i]; if (q === excl) continue;
       var c = jobCost(g, q, pr);
       if (q === mem) { cm = c; continue; }
-      var cb = c - (!mem && g.ctrl === q ? bias : 0);
+      var cb = c - (!mem && hu(g, q) ? bias : 0);
       if (cb < bc) { bc = cb; best = q; }
       if (c < ac) { ac = c; alt = q; }
     }

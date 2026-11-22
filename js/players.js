@@ -1510,9 +1510,21 @@
    *  IA: golpea cuando w.t <= -aiTe (desfase muestreado por toque; en el saque -aiServeTe), o antes si baja del salto (p.z < 0,3).
    *  Humano: el contacto llega con la pulsación; sin pulsar, el brazo se queda armado; pulsado, espera al ideal. */
   var SWING_T = 0.12;
+  /** ¿Lleva a p un humano? Fuera del online de varios, lo de siempre: tu jugador (g.ctrl del equipo 0, sin demo ni autopiloto). Online de
+   *  varios (g.mh: la vista de VB.NetView, con tu plaza como activa): cualquier plaza humana que no lleve la IA, la tuya o la de otro
+   *  (un compañero o un rival humano se anima como humano: sin el desfase de la IA). Sin memoria nueva. */
+  function humP(g, p) {
+    if (g.mh && g.hum) { for (var s = 0; s < g.hum.length; s++) if (g.hum[s].p === p && !g.hum[s].ai) return true; return false; }
+    return !g.demo && !g.autopilot && p.team === 0 && p === g.ctrl;
+  }
+  /** Campo k del gesto del humano que lleva a p: el de g si es el jugador activo (tú); online de varios, el de su plaza (g.hum[s][k]). */
+  function humK(g, p, k) {
+    if (g.mh && g.hum && p !== g.ctrl) for (var s = 0; s < g.hum.length; s++) if (g.hum[s].p === p) return g.hum[s][k];
+    return g[k];
+  }
   function contactIn(g, p, hw) {
     var t = hw.t;
-    if (!g.demo && !g.autopilot && p.team === 0 && p === g.ctrl) return g.swingLive ? Math.max(t, 0) : Math.max(t, SWING_T * 0.8);
+    if (humP(g, p)) return humK(g, p, 'swingLive') ? Math.max(t, 0) : Math.max(t, SWING_T * 0.8);
     if (g.mode === 'rally' && p.aiTeT === g.lastTouchT) t += p.aiTe || 0;
     else if (g.mode === 'serve' && g.server === p) t += g.aiServeTe || 0;   // IA sacando: golpea cuando w.t <= -aiServeTe
     if (p.z > 0.3) { var vz = p.vz, te = (vz + Math.sqrt(vz * vz + 2 * C.G * (p.z - 0.3))) / C.G; if (te < t) t = te; }
@@ -2245,7 +2257,7 @@
   function callGesture(g, r, P, hw, job, air, tm) {
     var p = r.p, ca = tm - r.callT;
     // 6v6: «¡Pídela!» aceptado (sim g.ask6, askOk): el humano levanta el brazo como en el «¡Mía!» (ui.js pone el «¡Aquí!»)
-    if (g.rot && p === g.ctrl && g.ask6 > r.callT) { r.callT = g.ask6; ca = tm - r.callT; }
+    if (g.rot && (p === g.ctrl || (g.mh && humP(g, p))) && humK(g, p, 'ask6') > r.callT) { r.callT = humK(g, p, 'ask6'); ca = tm - r.callT; }   // (online de varios: el «¡Pídela!» de cada plaza)
     if (job && hw && !air && !(p.down > 0) && g.mode === 'rally' && (g.touchTeam !== p.team || g.touches === 0) && r.callKey !== g.lastTouchT) {
       var ht = hw.t;
       if (ht > 0.8 && ht <= 1.15) {
@@ -2284,7 +2296,7 @@
     if (!air && p.down <= 0) {
       if (tossing && r.tossJump && g.jumpAt > 0 && g.serveState === 'toss') tJ = tm - g.tossT + g.jumpAt;
       else if (g.mode === 'rally' && g.jobs && g.jobs[p.team] === p && (VB.Sim.atkPhase ? VB.Sim.atkPhase(g, p.team) : g.touchTeam === p.team && g.touches === 2) && Math.abs(g.pr3.x) < 3.8 && g.pr3.z > 2.5) { // también tras una colocación en salto en el 1r toque
-        var human = !g.demo && !g.autopilot && p.team === 0 && p === g.ctrl;
+        var human = humP(g, p);
         if (human) { if (hw && hw.attack && hw.jumpT === hw.jumpT) tJ = tm + hw.jumpT; }
         else if (p.aiTeT === g.lastTouchT) { tJ = tm + g.pr3.t - 0.47 - (p.aiJt || 0); warp = true; }
       }
@@ -2478,7 +2490,7 @@
     var p = r.p, b = g.ball, t0 = p.team;
     if (g.mode !== 'rally' || b.held || p.z > 0 || p.vz > 0 || p.down > 0) return -1;
     if (!g.jobs || g.jobs[t0] !== p) return -1;
-    if (!g.demo && !g.autopilot && t0 === 0 && p === g.ctrl) return -1;   // el humano decide cuándo: imprevisible
+    if (humP(g, p)) return -1;   // el humano decide cuándo: imprevisible (online de varios: cualquier humano)
     if (g.lastKind === 'serve' && g.touchTeam === t0) return -1;
     if (g.touchTeam === t0 && g.lastPlayer === p) return -1;
     // (reacción efectiva del modelo de esfuerzo, como ai.js: sin Líder ni finta)
@@ -2778,7 +2790,7 @@
    *  cadera se aparta del balón y la cabeza lo sigue hasta el bote. Solo quien no lleva el humano y está a < 3 m del bote previsto. */
   function leavePose(g, r, P, air, tm, dt, snap) {
     var p = r.p, t = p.team, want = 0;
-    if (!air && g.mode === 'rally' && g.lastKind === 'serve' && g.touchTeam !== t && !g.drill && !(p === g.ctrl && !g.demo && !g.autopilot)) {
+    if (!air && g.mode === 'rally' && g.lastKind === 'serve' && g.touchTeam !== t && !g.drill && !(g.mh ? humP(g, p) : p === g.ctrl && !g.demo && !g.autopilot)) {
       var lv = false;
       if (VB.AI && VB.AI.leaving) { try { lv = !!VB.AI.leaving(g, t); } catch (e) { lv = false; } }
       else { var L = g._lv && g._lv[t]; lv = !!(L && L.on && L.t === g.lastTouchT); }

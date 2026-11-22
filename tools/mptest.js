@@ -13,6 +13,11 @@
  *   (d) serialize → JSON → deserialize → 2 000 pasos idénticos bit a bit a la original (también con -0 y NaN), en saque, peloteo,
  *       punto, revisión y tiempo muerto; copyGame entre partidas online también.
  *   (e) atributos por hueco (los de cada jugador), «Igualado» sin atributos ni insignias, opciones del partido (1 set / mejor de 3).
+ *   (f) online de varios (sprint online-multi, P1: plazas g.hum[s] desacopladas del equipo, bloque MULTI de sim.js):
+ *       4 plazas en 2v2 (2 por equipo), coop (2 humanos del mismo equipo contra la IA, teamLv), 12 plazas en 6v6 (y 3 plazas con la IA
+ *       en el resto), cada toque humano es del jugador de SU plaza, la IA toma una plaza y la devuelve, skip por plaza / chal y tmo por
+ *       equipo, foto y copyGame bit a bit con N plazas, matriz completa de atributos, el banquillo nunca cambia a un humano, y el 1
+ *       contra 1 sigue sin g.mh.
  * Uso: node tools/mptest.js            (sale con código 1 si algo falla)
  * La huella 2v2 de siempre la protegen tools/simtest.js / tools/fingerprint6.js (el online va por un camino aparte de step).
  */
@@ -43,13 +48,15 @@ const PROF = {
   bueno: { sigma: 0.04, posErr: 0.35, react: 0.18, aim: 0.6, block: true, jumpServe: 0.5 },
   flojo: { sigma: 0.11, posErr: 1.1, react: 0.32, aim: 0.15, block: false, jumpServe: 0.05 }
 };
-function mkBot(team, seed, prof) {
-  const r = mulberry(seed * 7919 + 13 + team * 104729), sd = S.side(team), w = {};
+/* seat: plaza que lleva el bot (online de varios); sin ella, la del equipo (el 1 contra 1, plaza = equipo). */
+function mkBot(team, seed, prof, seat) {
+  const r = mulberry(seed * 7919 + 13 + team * 104729 + (seat === undefined ? 0 : (seat + 1) * 7)), sd = S.side(team), w = {};
+  if (seat === undefined) seat = team;
   const gauss = () => (r() + r() + r() + r() - 2) * 1.732;
   let stamp = -9, lead = 0, jlead = 0, ex = 0, ey = 0, presses = 0, serveWait = 0, react = 0, aimv = [0, 0], useAim = false, blockT = -1, blockSeen = -9;
   return function (g) {
     const inp = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
-    S.useSlot(g, team);
+    S.useSlot(g, seat);
     try {
       const p = g.ctrl, b = g.ball;
       if (g.mode === 'serve') {
@@ -78,7 +85,8 @@ function mkBot(team, seed, prof) {
         tx = pr.x + sd * (attack ? 0.35 : 0.15) + ex * k; ty = pr.y + ey * k;
       } else if (prof.block && g.touchTeam === 1 - team && g.touches >= 1 && g.pr3.x * sd < 0 && g.defRole !== 'dig') {
         tx = sd * 0.6; ty = g.pr3.y;
-      } else { tx = sd * 5.5; ty = -S.other(g, p).y * 0.5; }
+      } else if (g.rot) { const sp = VB.AI6.spot(g, p); tx = sp.x; ty = sp.y; } // 6v6: a su sitio de la formación
+      else { tx = sd * 5.5; ty = -S.other(g, p).y * 0.5; }
       if (since >= react && p.z === 0) {
         const dx = tx - p.x, dy = ty - p.y, d = Math.hypot(dx, dy);
         if (d > 0.1) { const f = Math.min(1, d / 0.3); inp.move = [dx / d * f, dy / d * f]; }
@@ -452,6 +460,248 @@ console.log('\n== (e) atributos por hueco, Igualado y opciones ==');
   check('el n.º 2 del equipo 1 (idx 1) saca primero en su equipo', (() => { const q = S.createGame({ online: true, seed: 1, humans: [{}, { idx: 1 }] }); return q.serverIdx[1] === 0 && q.hum[1].p === q.teams[1][1]; })());
   const off = S.createGame({ seed: 1 });
   check('fuera del online nada cambia: sin g.online ni g.hum', !off.online && !off.hum && off.prof[0] === VB.DIFF.mate && off.tm === VB.TIMING.normal);
+}
+
+console.log('\n== (f) online de varios: plazas desacopladas del equipo ==');
+{
+  /** Partido con N plazas, un bot por plaza (bots[s] o null = la plaza sin entrada). Resumen por plaza y por equipo. */
+  function playN(opts, bots, maxSec, hook) {
+    const g = S.createGame(opts), ev = [], n = g.hum.length;
+    const seat = g.hum.map(() => ({ hHits: 0, aiHits: 0, hToss: 0 }));
+    const T = [0, 1].map(() => ({ hHits: 0, aiHits: 0, hToss: 0, cpuToss: 0, points: 0 }));
+    let bad = 0, ritualHuman = 0, cpuChalSet = 0, steps = Math.round((maxSec || 900) / DT), over = false, err = null, libSeat = 0, libHits = 0;
+    const libP = g.rot ? [g.libero[0], g.libero[1]] : [];
+    for (let i = 0; i < steps; i++) {
+      const ins = bots.map(b => (b ? b(g) : {}));
+      if (hook) hook(g, i, ins);
+      try { S.step(g, DT, ins); } catch (e) { err = e; break; }
+      if (g.cpuChal && S.humOn(g, g.cpuChal.team)) cpuChalSet++;
+      if (g.mode === 'serve' && g.server && S.isHuman(g, g.server) && (g.ritual.on || g.cpuTossIn >= 0)) ritualHuman++;
+      ev.length = 0; S.drainEvents(g, ev);
+      for (const e of ev) {
+        if (e.type === 'hit') {
+          const s = S.humSlot(g, e.player);
+          if (e.human) {
+            T[e.team].hHits++;
+            // propiedad del toque: lo da el jugador de una plaza humana (sin ai) de SU equipo
+            if (s < 0 || g.hum[s].team !== e.team || g.hum[s].p !== e.player) bad++; else seat[s].hHits++;
+            if (libP.indexOf(e.player) >= 0) libHits++;
+          } else {
+            T[e.team].aiHits++;
+            if (s >= 0) bad++;                              // un jugador de plaza humana nunca toca como IA
+          }
+        }
+        if (e.type === 'toss') {
+          if (e.human) { T[e.team].hToss++; const s = S.humSlot(g, e.player); if (s >= 0) seat[s].hToss++; else bad++; } else T[e.team].cpuToss++;
+        }
+        if (e.type === 'libero' && e.human && e.seat >= 0) libSeat++;
+        if (e.type === 'point') T[e.team].points++;
+        if (e.type === 'gameOver') over = true;
+      }
+      if (over) break;
+    }
+    return { g, n, seat, T, bad, over, err, ritualHuman, cpuChalSet, libSeat, libHits };
+  }
+  const errOf = (R, k) => R.err ? k + ': ' + String(R.err.stack || R.err).split('\n').slice(0, 3).join(' | ') : null;
+  const H4 = [{ team: 0, idx: 0 }, { team: 1, idx: 0 }, { team: 0, idx: 1 }, { team: 1, idx: 1 }];
+  const bots4 = (s, prof) => H4.map((h, k) => mkBot(h.team, s, prof || PROF.bueno, k));
+
+  // --- 1 contra 1 sin cambios: humans de 2 (con o sin team = su índice) no es «de varios»
+  {
+    const a = S.createGame({ online: true, seed: 1, humans: [{}, {}] }), b = S.createGame({ online: true, seed: 1, humans: [{ team: 0 }, { team: 1, idx: 1 }] });
+    const off = S.createGame({ seed: 1 });
+    check('1 contra 1: sin g.mh ni g.skipS (plaza = equipo); humansOf fuera del online = [g.ctrl] en el equipo 0', !a.mh && !b.mh && !a.skipS && b.hum[1].p === b.teams[1][1] &&
+      !S.isMulti({ online: true, humans: [{}, {}] }) && S.isMulti({ online: true, humans: [{ team: 1 }, { team: 0 }] }) &&
+      S.humansOf(off, 0).length === 1 && S.humansOf(off, 0)[0] === off.ctrl && S.humansOf(off, 1).length === 0 && S.humansOf(a, 1)[0] === a.hum[1].p);
+  }
+
+  // --- 4 plazas en 2v2 (2 por equipo): los cuatro jugadores son humanos
+  {
+    let fin = 0, errs = [], bad = 0, rit = 0, cpu = 0, mateAI = 0, cpuToss = 0, perSeat = [0, 0, 0, 0], tossSeat = [0, 0, 0, 0];
+    for (let s = 1; s <= 6; s++) {
+      const R = playN({ online: true, seed: 7000 + s, venue: s % 2 ? 'beach' : 'hall', humans: H4, stats: true, present: true }, bots4(s), 1500);
+      if (R.err) errs.push(errOf(R, s));
+      if (R.over) fin++;
+      bad += R.bad; rit += R.ritualHuman; cpu += R.cpuChalSet; mateAI += R.T[0].aiHits + R.T[1].aiHits; cpuToss += R.T[0].cpuToss + R.T[1].cpuToss;
+      R.seat.forEach((x, k) => { perSeat[k] += x.hHits; tossSeat[k] += x.hToss; });
+      if (s === 1) check('4 plazas: g.mh, plaza ≠ equipo (plaza 2 = equipo 0, n.º 2), humOn en los dos equipos, sin espejo de saque', R.g.mh && R.g.hum[2].team === 0 && R.g.hum[2].p === R.g.teams[0][1] &&
+        S.humansOf(R.g, 0).length === 2 && S.humansOf(R.g, 1).length === 2 && R.g.ctrlIdx === 0 && R.g.hum.length === 4);
+    }
+    check('4 plazas: sin excepciones y los 6 partidos terminan', errs.length === 0 && fin === 6, { fin, errs: errs.slice(0, 2) });
+    check('4 plazas: cada plaza da toques humanos y saca como humana; nadie toca ni saca como IA', perSeat.every(v => v > 20) && tossSeat.every(v => v > 5) && mateAI === 0 && cpuToss === 0,
+      { toques: perSeat, saques: tossSeat, ia: mateAI, cpuToss });
+    check('4 plazas: cada toque humano es del jugador de su plaza; sin ritual de CPU; la CPU no pide challenge por un equipo con humanos', bad === 0 && rit === 0 && cpu === 0, { bad, rit, cpu });
+  }
+
+  // --- coop: 2 humanos en el equipo 0 contra la IA (teamLv: la IA rival en Difícil, timing de Normal para los humanos)
+  {
+    let fin = 0, errs = [], bad = 0, seatH = [0, 0], hT1 = 0, cpuT1 = 0, aiT1 = 0, hT0toss = 0, ai0 = 0;
+    const lv = [{ prof: 'mate', tm: 'normal' }, { prof: 'hard' }];
+    for (let s = 1; s <= 6; s++) {
+      const R = playN({ online: true, coop: true, seed: 7100 + s, venue: s % 2 ? 'beach' : 'hall', humans: [{}, {}], teamLv: lv, stats: true }, [mkBot(0, s, PROF.bueno, 0), mkBot(0, s, PROF.bueno, 1)], 1500);
+      if (R.err) errs.push(errOf(R, s));
+      if (R.over) fin++;
+      bad += R.bad; seatH[0] += R.seat[0].hHits; seatH[1] += R.seat[1].hHits; hT1 += R.T[1].hHits + R.T[1].hToss; cpuT1 += R.T[1].cpuToss; aiT1 += R.T[1].aiHits; hT0toss += R.T[0].hToss; ai0 += R.T[0].aiHits;
+      if (s === 1) {
+        const g = R.g;
+        check('coop: las dos plazas en el equipo 0 (n.º 1 y n.º 2), el equipo 1 sin humanos (humOn falso), perfiles y timing por equipo',
+          g.mh && g.hum[0].team === 0 && g.hum[1].team === 0 && g.hum[1].p === g.teams[0][1] && !S.humOn(g, 1) && S.humOn(g, 0) &&
+          g.prof[0] === VB.DIFF.mate && g.prof[1] === VB.DIFF.hard && g.hum[0].tm === VB.TIMING.normal && g.hum[1].tm === VB.TIMING.normal && g.tm === VB.TIMING.normal);
+      }
+    }
+    check('coop: sin excepciones y los 6 partidos terminan', errs.length === 0 && fin === 6, { fin, errs: errs.slice(0, 2) });
+    check('coop: los dos humanos tocan y sacan; el equipo 1 lo juega todo la IA (toques y saques de CPU)', seatH.every(v => v > 30) && hT0toss > 10 && ai0 === 0 && hT1 === 0 && cpuT1 > 10 && aiT1 > 100,
+      { toques: seatH, sacan: hT0toss, ia0: ai0, equipo1: { humano: hT1, cpuToss: cpuT1, ia: aiT1 } });
+    check('coop: cada toque humano es del jugador de su plaza', bad === 0, bad);
+    // skip: la pausa del punto solo se salta con las dos plazas (el equipo de la IA no cuenta)
+    const g = S.createGame({ online: true, coop: true, seed: 7150, humans: [{}, {}], present: true }), b0 = mkBot(0, 1, PROF.bueno, 0), b1 = mkBot(0, 1, PROF.bueno, 1), ev = [];
+    let i = 0; while (g.mode !== 'point' && i++ < 120 * 120) S.step(g, DT, [b0(g), b1(g)]);
+    const hold = g.hold;
+    for (let k = 0; k < 120; k++) { S.step(g, DT, [{ skip: true }, {}]); ev.push(...S.drainEvents(g, [])); }
+    const one = Math.abs(g.timer - (hold - 1)) < 1e-6;
+    S.step(g, DT, [{}, { skip: true }]); ev.push(...S.drainEvents(g, []));
+    const sk = ev.filter(e => e.type === 'skipReq');
+    check('coop: skip con una plaza no salta la pausa; con las dos sí (eventos skipReq con team 0 y su seat)', one && g.timer <= VB.HOLD.skipTo + 1e-9 && sk.length === 2 && sk[0].seat === 0 && sk[1].seat === 1 && sk.every(e => e.team === 0),
+      { hold, uno: one, timer: +g.timer.toFixed(3), skipReq: sk.map(e => [e.team, e.seat]) });
+  }
+
+  // --- 6v6: 12 plazas (todos humanos) y 3 plazas (la IA en el resto)
+  {
+    const H12 = Array.from({ length: 12 }, (_, i) => ({ team: i < 6 ? 0 : 1, idx: i % 6 }));
+    // (el bot de esta prueba es el del 2v2: con doce defiende casi todo y los peloteos se eternizan, así que no se espera al final del
+    // partido: 500 s por semilla, la mitad de las plazas con el bot flojo para que haya puntos)
+    let pts = 0, errs = [], bad = 0, seatH = new Array(12).fill(0), ai = 0, lib = 0, libH = 0, rit = 0, cpuT = 0;
+    for (let s = 1; s <= 3; s++) {
+      const R = playN({ online: true, seed: 7200 + s, format: '6v6', humans: H12, points: 15, stats: true }, H12.map((h, k) => mkBot(h.team, s, k % 2 ? PROF.flojo : PROF.bueno, k)), 500);
+      if (R.err) errs.push(errOf(R, s));
+      pts += R.T[0].points + R.T[1].points;
+      bad += R.bad; ai += R.T[0].aiHits + R.T[1].aiHits; lib += R.libSeat; libH += R.libHits; rit += R.ritualHuman; cpuT += R.T[0].cpuToss + R.T[1].cpuToss;
+      R.seat.forEach((x, k) => { seatH[k] += x.hHits; });
+      if (s === 1) {
+        const g = R.g;
+        check('12 plazas: 6v6 online (g.rot, g.mh), cada plaza con su atleta (ctrlBase, ctrlRole), sin banquillo', g.rot && g.mh && g.hum.length === 12 && !g.subsOn &&
+          g.hum.every((h, k) => S.slotGet(g, k, 'ctrlBase') === g.lineup[h.team][h.idx]) &&
+          g.hum.every((h, k) => S.slotGet(g, k, 'ctrlRole') === ['S', 'OH', 'MB', 'OPP', 'OH', 'MB'][k % 6]));
+      }
+    }
+    check('12 plazas: sin excepciones y hay puntos (3 × 500 s)', errs.length === 0 && pts >= 15, { puntos: pts, errs: errs.slice(0, 2) });
+    // (el líbero de cada equipo se reparte entre las plazas de sus centrales: cada uno sale por su central zaguero)
+    check('12 plazas: todos tocan como humanos (salvo el líbero sin plaza propia: lo lleva la plaza de su central); nadie como IA ni sin plaza', seatH.every(v => v > 3) && ai === 0 && bad === 0 && rit === 0 && cpuT === 0,
+      { toques: seatH, ia: ai, bad, rit, cpuToss: cpuT });
+    check('12 plazas: el líbero entra por el central de una plaza y la plaza le lleva (eventos libero con seat; toques humanos del líbero)', lib >= 2 && libH > 0, { libero: lib, toquesLibero: libH });
+
+    // 3 plazas (2 en el equipo 0 por puesto, 1 en el 1): la IA lleva a los otros 9
+    let fin3 = 0, err3 = [], bad3 = 0, s3 = [0, 0, 0], ai3 = [0, 0], ask = 0;
+    const H3 = [{ team: 0, role: 'OH' }, { team: 0, role: 'S' }, { team: 1, role: 'MB' }];
+    for (let s = 1; s <= 3; s++) {
+      const R = playN({ online: true, seed: 7300 + s, format: '6v6', humans: H3, points: 15 }, H3.map((h, k) => mkBot(h.team, s, PROF.bueno, k)), 1500, (g, i, ins) => { if (i % 997 === 5) ins[0].switchPlayer = true; });
+      if (R.err) err3.push(errOf(R, s));
+      if (R.over) fin3++;
+      bad3 += R.bad; R.seat.forEach((x, k) => { s3[k] += x.hHits; }); ai3[0] += R.T[0].aiHits; ai3[1] += R.T[1].aiHits;
+    }
+    {
+      const g = S.createGame({ online: true, seed: 7300, format: '6v6', humans: H3 });
+      check('3 plazas 6v6: por puesto (OH1 n.º 2, S n.º 1, MB1 del equipo 1), plaza 2 en el equipo 1', S.slotGet(g, 0, 'ctrlBase') === g.lineup[0][1] && S.slotGet(g, 1, 'ctrlBase') === g.lineup[0][0] &&
+        S.slotGet(g, 2, 'ctrlBase') === g.lineup[1][2] && g.hum[2].team === 1 && S.slotGet(g, 1, 'ctrlRole') === 'S' && g.ctrl === g.hum[0].p);
+    }
+    check('3 plazas 6v6: sin excepciones, terminan, las tres plazas tocan y la IA juega el resto en los dos equipos', err3.length === 0 && fin3 === 3 && s3.every(v => v > 5) && ai3.every(v => v > 100) && bad3 === 0,
+      { fin: fin3, errs: err3.slice(0, 2), toques: s3, ia: ai3, bad: bad3 });
+  }
+
+  // --- la IA toma una plaza (la 2: equipo 0, n.º 2) y la devuelve en el siguiente balón muerto; las otras tres siguen siendo humanas
+  {
+    const g = S.createGame({ online: true, seed: 7400, humans: H4, venue: 'hall' }), B = bots4(4), ev = [], p2 = g.hum[2].p;
+    const ins = () => B.map(b => b(g));
+    let i = 0; while (g.mode !== 'rally' && i++ < 120 * 60) S.step(g, DT, ins());
+    const x = ins(); x[2] = { ai: true }; S.step(g, DT, x); ev.length = 0; S.drainEvents(g, ev);
+    const on = g.hum[2].ai && !S.isHuman(g, p2) && ev.some(e => e.type === 'slotAI' && e.on && e.team === 0 && e.seat === 2) && S.humOn(g, 0);
+    let aiHits = 0, hum2 = 0, others = 0, otherAI = 0;
+    for (let k = 0; k < 120 * 200 && !g.finished; k++) {
+      const y = ins(); y[2] = { ai: true, move: [1, 0], hit: k % 5 === 0 }; S.step(g, DT, y); ev.length = 0; S.drainEvents(g, ev);
+      for (const e of ev) if (e.type === 'hit') {
+        if (e.player === p2) { if (e.human) hum2++; else aiHits++; }
+        else if (e.human) others++; else otherAI++;
+      }
+    }
+    i = 0; while (g.mode !== 'rally' && i++ < 120 * 60) { const y = ins(); y[2] = { ai: true }; S.step(g, DT, y); }
+    S.step(g, DT, ins());
+    const still = g.hum[2].ai;
+    let back = null; i = 0;
+    while (!back && i++ < 120 * 60) { S.step(g, DT, ins()); ev.length = 0; S.drainEvents(g, ev); back = ev.find(e => e.type === 'slotAI' && !e.on); }
+    check('ai en una plaza: su jugador lo juega la IA (la entrada no cuenta), las otras tres plazas siguen humanas, vuelve en el balón muerto',
+      on && aiHits > 10 && hum2 === 0 && others > 30 && otherAI === 0 && still && !!back && back.seat === 2 && S.isHuman(g, p2),
+      { on, aiHits, hum2, others, otherAI, still, back: back && [back.team, back.seat], mode: g.mode });
+  }
+
+  // --- bits por equipo con 4 plazas: skip necesita las 4; chal de la plaza 2 gasta el challenge del equipo 0; tmo de la plaza 3 es del 1
+  {
+    const g = S.createGame({ online: true, seed: 7500, humans: H4, present: true }), B = bots4(5), ev = [];
+    let i = 0; while (g.mode !== 'point' && i++ < 120 * 120) S.step(g, DT, B.map(b => b(g)));
+    const hold = g.hold;
+    for (let k = 0; k < 120; k++) S.step(g, DT, [{ skip: true }, { skip: true }, { skip: true }, {}]);
+    const three = Math.abs(g.timer - (hold - 1)) < 1e-6;
+    S.step(g, DT, [{}, {}, {}, { skip: true }]);
+    check('4 plazas: skip con tres plazas no salta la pausa; con las cuatro sí', three && g.timer <= VB.HOLD.skipTo + 1e-9, { hold, tres: three, timer: +g.timer.toFixed(3) });
+    let done = null;
+    for (let s = 1; s <= 40 && !done; s++) {
+      const q = S.createGame({ online: true, seed: 7600 + s, humans: H4, venue: 'hall', timeouts: true }), Q = bots4(s);
+      for (let k = 0; k < 120 * 400 && !done && !q.finished; k++) {
+        const x = Q.map(b => b(q));
+        if (q.mode === 'point' && q.call && !q.call.used && q.call.team === 0 && S.canChallenge(q, 0) > 0) {
+          const before = q.challenges.slice(); x[2].chal = true; x[3].tmo = q.tmoLeft[1] > 0;
+          S.step(q, DT, x); ev.length = 0; S.drainEvents(q, ev);
+          const ch = ev.find(e => e.type === 'challenge'), tq = ev.find(e => e.type === 'timeoutReq');
+          let res = null;
+          for (let j = 0; j < 120 * 8 && !res; j++) { S.step(q, DT, Q.map(b => b(q))); ev.length = 0; S.drainEvents(q, ev); res = ev.find(e => e.type === 'challengeResult'); }
+          done = { ch: ch && ch.team, tmo: tq && [tq.team, tq.seat], res: res && [res.team, res.left], before, req: q.tmoReq.slice() };
+          done.ok = ch && ch.team === 0 && tq && tq.team === 1 && tq.seat === 3 && res && res.team === 0 && res.left[1] === before[1];
+        } else { S.step(q, DT, x); S.drainEvents(q, []); }
+      }
+    }
+    check('4 plazas: chal de la plaza 2 es el challenge del equipo 0 (el del 1 intacto); tmo de la plaza 3 pide por el equipo 1 (seat 3)', !!done && done.ok, done);
+  }
+
+  // --- foto y copyGame bit a bit con 4 plazas (2v2) y con 12 plazas (6v6)
+  {
+    const cases = [];
+    const H12 = Array.from({ length: 12 }, (_, i) => ({ team: i < 6 ? 0 : 1, idx: i % 6 }));
+    for (const [name, opts] of [['2v2×4', { online: true, seed: 7700, humans: H4, stats: true, timeouts: true }],
+      ['coop', { online: true, coop: true, seed: 7701, humans: [{}, {}], teamLv: [null, { prof: 'expert' }], stats: true }],
+      ['6v6×12', { online: true, seed: 7702, format: '6v6', humans: H12, stats: true }]]) {
+      const g = S.createGame(opts), B = g.hum.map((h, k) => mkBot(h.team, 9, PROF.bueno, k));
+      for (let i = 0; i < 120 * 40; i++) { S.step(g, DT, B.map(b => b(g))); g.events.length = 0; }
+      const js = JSON.stringify(S.serialize(g)), g2 = S.createGame(opts), okD = S.deserialize(JSON.parse(js), g2) === g2;
+      const g3 = S.createGame(opts); S.copyGame(g3, g); g3.stats = JSON.parse(JSON.stringify(g.stats));
+      let same = deepHash(g) === deepHash(g2) && deepHash(g) === deepHash(g3), at = -1;
+      for (let k = 0; k < 2000 && same; k++) {
+        const x = B.map(b => b(g));
+        if (k % 300 === 77) for (const y of x) y.skip = true;
+        if (k === 900) x[1].ai = true;
+        S.step(g, DT, x); S.step(g2, DT, x); S.step(g3, DT, x);
+        const e1 = S.drainEvents(g, []).length, e2 = S.drainEvents(g2, []).length; S.drainEvents(g3, []);
+        if (e1 !== e2 || (k % 50 === 49 && (deepHash(g) !== deepHash(g2) || deepHash(g) !== deepHash(g3)))) { same = false; at = k; }
+      }
+      cases.push({ name, okD, same, at, kb: +(js.length / 1024).toFixed(1) });
+    }
+    check('foto → JSON → partida nueva y copyGame: idénticas 2 000 pasos después con 4, coop y 12 plazas', cases.every(c => c.okD && c.same), cases);
+  }
+
+  // --- atributos: matriz completa por jugador (6v6) y encima los de cada plaza; Igualado sin nada; el banquillo nunca entra online
+  {
+    const M = [[0, 1, 2, 3, 4, 5].map(i => ({ spike: 40 + i })), [0, 1, 2, 3, 4, 5].map(i => ({ spike: 60 + i }))];
+    const g = S.createGame({ online: true, seed: 7800, format: '6v6', attrs: M, badges: [[null, { canon: 1 }], []], bench: [[{}, {}], [{}, {}]],
+      humans: [{ team: 0, idx: 3, attrs: { spike: 99 } }, { team: 1, idx: 0 }] });
+    const st = t => g.lineup[t].map(p => p.st ? p.st.spike : null); // (lineup: teams[t] ya lleva al líbero en el hueco de su central)
+    check('6v6: matriz completa de atributos (los 12) y la plaza encima de la suya; insignias de la matriz; sin banquillo (bench null)',
+      JSON.stringify(st(0)) === JSON.stringify([40, 41, 42, 99, 44, 45]) && JSON.stringify(st(1)) === JSON.stringify([60, 61, 62, 63, 64, 65]) &&
+      g.teams[0][1].badges && g.teams[0][1].badges.canon === 1 && !g.subsOn && g.opts.bench === null, { e0: st(0), e1: st(1), subsOn: g.subsOn });
+    const e = S.createGame({ online: true, seed: 7800, format: '6v6', even: true, attrs: M, humans: [{ team: 0, idx: 3, attrs: { spike: 99 } }, { team: 1 }] });
+    check('6v6 Igualado: sin atributos ni insignias en nadie', e.players.every(p => !p.st && !p.badges && !p.ak));
+    let threw = false; try { S.createGame({ online: true, humans: [{}, {}, {}, {}, {}] }); } catch (x) { threw = true; }
+    const d = S.createGame({ online: true, seed: 1, humans: [{ team: 0, idx: 0 }, { team: 0, idx: 0 }, { team: 0, idx: 1 }] });
+    check('plazas saneadas: un jugador repetido pasa al hueco libre (o al otro equipo); más plazas que jugadores es un error', threw &&
+      d.hum[1].p === d.teams[0][1] && d.hum[2].team === 1 && new Set(d.hum.map(h => h.p)).size === 3, d.hum.map(h => [h.team, h.idx]));
+  }
 }
 
 console.log('\n' + (fails ? fails + ' FALLOS, ' : '') + oks + ' pruebas OK en ' + ((Date.now() - t0) / 1000).toFixed(1) + ' s');

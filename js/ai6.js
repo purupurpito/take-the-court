@@ -150,6 +150,30 @@
     }
     return true;
   }
+  /* Online de varios (g.mh, sim bloque MULTI): varios humanos en un equipo, cada uno con su gesto y su «es mío» (humanOwns).
+   * Con un solo humano es lo de siempre (computeJob con hum/own). _mhH = humanos del equipo t (sin el excluido), _mhO = suyo o no. */
+  var _mhH = [], _mhO = [];
+  /** «¡mía!» de cualquier humano del equipo t: GOLPEAR cerca del punto de toque y le da tiempo (computeJob). */
+  function mhMine(g, t, pr, excl) {
+    for (var s = 0; s < g.hum.length; s++) {
+      var h = g.hum[s], q = h.p; if (h.team !== t || h.ai || q === excl) continue;
+      if (S.slotGet(g, s, 'swingLive') && Math.hypot(pr.x - q.x, pr.y - q.y) < HUM.mine && jobCost(g, q, pr) < pr.t + 0.2) return q;
+    }
+    return null;
+  }
+  /** Llena _mhH/_mhO y devuelve cuántos humanos ven el balón claramente suyo. */
+  function mhOwn(g, t, pr, n, excl) {
+    var k = 0; _mhH.length = 0; _mhO.length = 0;
+    for (var s = 0; s < g.hum.length; s++) {
+      var h = g.hum[s], q = h.p; if (h.team !== t || h.ai || q === excl) continue;
+      var o = humanOwns(g, t, q, pr, n, excl); _mhH.push(q); _mhO.push(o); if (o) k++;
+    }
+    return k;
+  }
+  function mhAdj(q, mo) { var j = _mhH.indexOf(q); return j >= 0 ? (_mhO[j] ? 0 : HUM.yield) : (mo ? HUM.cede : 0); }
+  function mhOwnOf(q) { var j = q ? _mhH.indexOf(q) : -1; return j >= 0 && _mhO[j]; }
+  /** g.time del último «¡Pídela!» del humano q (online de varios: el de su plaza). */
+  function ask6Of(g, q) { return g.mh ? S.seatGet(g, q, 'ask6') : g.ask6; }
   /** Mejor candidato del equipo t para el balón (tiempo hasta el balón + puesto), con la memoria por trayectoria de ai.js:
    *  solo cambia si otro llega claramente antes o el elegido no llega de ninguna manera. */
   function computeJob(g, t) {
@@ -167,18 +191,21 @@
     if (mem === excl || (mem && mem.bench)) mem = null;
     // «¡mía!» (§1.5): el humano pulsa GOLPEAR cerca del punto de toque y le da tiempo a llegar: el balón es suyo
     var hu = t === 0 ? g.ctrl : null;
-    if (hu && hu !== excl && g.swingLive && S.isHuman(g, hu) && Math.hypot(pr.x - hu.x, pr.y - hu.y) < HUM.mine && jobCost(g, hu, pr) < pr.t + 0.2) {
+    // (online de varios, g.mh: cualquier humano del equipo t con su propio gesto; mhMine)
+    if (g.mh) { hu = mhMine(g, t, pr, excl); if (hu) { if (mem !== hu) g.jobSwT[t] = g.time; g.jobMem[t] = hu; g.jobMemT[t] = g.lastTouchT; return hu; } }
+    else if (hu && hu !== excl && g.swingLive && S.isHuman(g, hu) && Math.hypot(pr.x - hu.x, pr.y - hu.y) < HUM.mine && jobCost(g, hu, pr) < pr.t + 0.2) {
       if (mem !== hu) g.jobSwT[t] = g.time;
       g.jobMem[t] = hu; g.jobMemT[t] = g.lastTouchT;
       return hu;
     }
     // humano (sin movimientos automáticos): ¿el balón es claramente suyo? (HUM; solo su equipo y con humano de verdad)
     var hum = hu && hu !== excl && S.isHuman(g, hu) ? hu : null, own = hum ? humanOwns(g, t, hum, pr, mineN, excl) : false;
-    var best = null, bc = 1e9, cm = 1e9;
+    var best = null, bc = 1e9, cm = 1e9, mo = g.mh ? mhOwn(g, t, pr, mineN, excl) : 0;
     for (var i = 0; i < tm.length; i++) {
       var q = tm[i]; if (q === excl) continue;
       var c = jobCost(g, q, pr) + rolePen(g, t, q, mineN, pr);
       if (hum) c += q === hum ? (own ? 0 : HUM.yield) : (own ? HUM.cede : 0);
+      else if (g.mh && _mhH.length) c += mhAdj(q, mo);
       if (q === mem) cm = c;
       else if (c < bc) { bc = c; best = q; }
     }
@@ -186,7 +213,7 @@
     if (mem) {
       var clearly = best && bc < cm - 0.3 && g.time - g.jobSwT[t] > 0.5 && pr.t > 0.4;
       // (un balón claramente del humano no se le quita porque «no llega»: ya no va solo; si no va, cae)
-      var hopeless = best && !(own && mem === hum) && pr.t > 0.15 && cm > pr.t + 0.35 && bc < pr.t + 0.1 && bc < cm - 0.2 && g.time - g.jobSwT[t] > 0.25 && g.jobHop[t] !== g.lastTouchT;
+      var hopeless = best && !(own && mem === hum) && !(g.mh && mhOwnOf(mem)) && pr.t > 0.15 && cm > pr.t + 0.35 && bc < pr.t + 0.1 && bc < cm - 0.2 && g.time - g.jobSwT[t] > 0.25 && g.jobHop[t] !== g.lastTouchT;
       if (hopeless) g.jobHop[t] = g.lastTouchT;
       pick = (clearly || hopeless) ? best : mem;
     } else pick = best;
@@ -387,7 +414,7 @@
    *  zaguero: su batida de pipe empieza a ~6 m), a ≤ HUM.setR m del destino y con el mando tocado en los últimos HUM.idleT s
    *  (g.hAct, sim.step). Quieto o lejos: el colocador busca a otro. (No se aplica al colocador humano: no es el atacante.) */
   function setReady(g, q, x, y) {
-    return dOf(q) <= (q.front ? HUM.setD : HUM.setDb) && Math.hypot(q.x - x, q.y - y) <= HUM.setR && g.time - g.hAct <= HUM.idleT;
+    return dOf(q) <= (q.front ? HUM.setD : HUM.setDb) && Math.hypot(q.x - x, q.y - y) <= HUM.setR && g.time - (g.mh ? S.seatGet(g, q, 'hAct') : g.hAct) <= HUM.idleT;
   }
   /** Tempo de la colocación al atacante q (y su carril para el stick del colocador humano, LANE). */
   function tempoOf(q) { return !q.front ? 'pipe' : q.role === 'MB' ? 'quick' : q.role === 'OPP' || q.role === 'S' ? 'shoot' : 'high'; }
@@ -413,7 +440,7 @@
     for (var i = 0; i < tm.length; i++) {
       var q = tm[i]; if (q === p || !(canAttack(q) || canPipe(q))) continue;
       // el colocador no remata, salvo el humano que pidió la bola tras dar él el 1r toque (sim askOk, «¡Pídela!»)
-      if (q.role === 'S' && !(S.isHuman(g, q) && g.lastPlayer === q && g.touches === 1 && g.time - g.ask6 < HUM.askT)) continue;
+      if (q.role === 'S' && !(S.isHuman(g, q) && g.lastPlayer === q && g.touches === 1 && g.time - ask6Of(g, q) < HUM.askT)) continue;
       var tempo = tempoOf(q);
       // rápida y pipe solo en sistema; la que pide el colocador humano (want: carril de dirOf8) se respeta también fuera de sistema
       // (17-nov-2026: antes se iba sin avisar a la 4 —«las colocaciones no van donde tocan»—; fuera de sistema sale más alta)
@@ -422,7 +449,7 @@
       var T = FORM.set[tempo], ty = setY(g, p, q, tempo), Y = sd * ty, w = tempo === 'pipe' ? FORM.setW.pipe : FORM.setW[q.role] || 0.5;
       // humano (sprint 3): un atacante más, algo preferido; con «¡Pídela!» reciente, mucho más. Solo si está para atacar
       // (setReady: cerca de la red —o de su batida de zaguero— y del destino, y jugando): no se le regala el balón
-      if (S.isHuman(g, q)) { if (!setReady(g, q, sd * T.d, Y)) continue; w *= HUM.atkW * (g.time - g.ask6 < HUM.askT ? HUM.ask : 1) * (q.role === 'S' ? HUM.askS : 1); }
+      if (S.isHuman(g, q)) { if (!setReady(g, q, sd * T.d, Y)) continue; w *= HUM.atkW * (g.time - ask6Of(g, q) < HUM.askT ? HUM.ask : 1) * (q.role === 'S' ? HUM.askS : 1); }
       for (var k = 0; k < opp.length; k++) { var o = opp[k]; if (o.front && Math.abs(o.x) < 2 && Math.abs(o.y - Y) < 1.3) w *= 0.7; }
       _cand.push(q); _w.push(w); sum += w;
     }

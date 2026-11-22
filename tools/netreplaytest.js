@@ -11,6 +11,8 @@
  *       también (equipos cambiados); el marcador de list() desde su lado.
  *   (4) estadísticas de la hoja: VB.UI.netTally (código de js/ui.js, extraído) con los eventos confirmados (girados para el invitado)
  *       = tally de la partida offline equivalente (las mismas entradas, Sim.step paso a paso), girada para el invitado.
+ *   (6) online de varios (sim g.mh, sin red: la sesión de N plazas es de P2): el grabador dual con N plazas (4 en 2v2, coop) graba y
+ *       repite bit a bit, y la repetición se pinta desde TU plaza: girada si eres del equipo 1, con tu jugador como g.ctrl.
  * Uso: node tools/netreplaytest.js   (sale con 1 si algo falla)
  */
 'use strict';
@@ -50,7 +52,7 @@ const TALLY_SRC = cut(UI_SRC, '  function newStats() {', '  var stats = newStats
 // (auditoría) netStClone y netStatsResync de js/main.js tal cual: la hoja del lado que salta a la foto del otro tras una vuelta con la IA
 const MAIN_SRC = fs.readFileSync(path.join(ROOT, 'js/main.js'), 'utf8');
 const FIX_SRC = cut(MAIN_SRC, '  function netStClone(o) {', '  function netBuildView() {') + 'this.clone = netStClone; this.fix = netStatsResync;';
-function mkFix(slot, UI) { const c = { net: { slot, stSnap: null }, VB: { UI }, JSON }; vm.createContext(c); vm.runInContext(FIX_SRC, c, { filename: 'main.js (hoja tras una vuelta)' }); return c; }
+function mkFix(slot, UI) { const c = { net: { slot, team: slot, stSnap: null }, VB: { UI }, JSON }; /* (1 contra 1: equipo = hueco) */ vm.createContext(c); vm.runInContext(FIX_SRC, c, { filename: 'main.js (hoja tras una vuelta)' }); return c; }
 function mkTally() { const c = {}; vm.createContext(c); vm.runInContext(TALLY_SRC, c, { filename: 'ui.js (tally)' }); return c.API; }
 /** Lo que enseña la hoja (sin referencias a jugadores: lastHitter / blocker / undo / last*). */
 function sheet(st) {
@@ -212,6 +214,55 @@ for (const ai of [0, 1]) {
   const ta = R.side[0].tally.stats().t, tb = R.side[1].tally.stats().t;
   check(tag + 'partido acabado, con vuelta, y la hoja de los dos = marcador final', R.overAt > 0 && R.sess[1].stats.rsIn >= 1 && ta[0].points === tot[0] && ta[1].points === tot[1] && tb[1].points === tot[0] && tb[0].points === tot[1],
     { sets: gc.setScores, anf: ta.map(x => x.points), inv: tb.map(x => x.points), rsIn: R.sess[1].stats.rsIn });
+}
+
+// (6) online de varios: grabador dual de N plazas (Replay.reset(g, {dual, slot: tu plaza, team: tu equipo})) sobre una partida de la sim
+//     con bots por plaza, repetido contra las huellas de cada tic; la vista de la repetición es la de tu plaza
+function multiRec(o, seat, secs) {
+  const VB = load(), S = VB.Sim, RPL = VB.Replay, N = VB.Net;
+  const g = S.createGame(Object.assign({ online: true, seed: 321, present: true, stats: true, bestOf: 1, points: 7 }, o));
+  const NS = g.hum.length, team = g.hum[seat].team, bots = [];
+  for (let k = 0; k < NS; k++) bots.push(N.bot(k, 50 + k, 'bueno'));
+  const on = RPL.reset(g, { dual: true, slot: seat, team, headless: true }), hashes = [], st0 = RPL._state();
+  for (let i = 0; i < 120 * secs && !g.finished; i++) {
+    const ins = bots.map(b => b(g));
+    if (i > 3000 && i < 3600) ins[NS - 1].ai = true;   // (una plaza con la IA un rato: bit ai grabado)
+    S.step(g, 1 / 120, ins); RPL.onStep(ins, g); hashes[RPL._state().step] = S.stateHash(g) >>> 0;
+    const ev = []; S.drainEvents(g, ev); if (ev.length) RPL.onEvents(g, ev);
+  }
+  const out = { on, ns: st0.ns, seat: st0.seat, vs: st0.vs, n: RPL.bestCount(), clips: 0, cmp: 0, bad: 0, view: 0, viewBad: 0, done: false, desync: 0 };
+  if (!RPL.playBest(undefined, () => { out.done = true; })) return out;
+  const tmp = S.createGame(g.opts), evP = [], evF = [];
+  let last = -1;
+  for (let f = 0; f < 60 * 120 && RPL.active(); f++) {
+    evP.length = 0; evF.length = 0; RPL.tick(1 / 60, evP, evF);
+    const st = RPL._state(), R = RPL._R();
+    if (st.clip && st.clip.start !== last) { last = st.clip.start; out.clips++; }
+    if (st.phase !== 'play' && st.phase !== 'out') continue;
+    out.cmp++;
+    const h = S.stateHash(R) >>> 0; if (h !== hashes[st.k]) out.bad++;
+    const run = RPL.runner(); if (!run) continue;
+    out.view++;
+    const me = R.hum[seat].p;
+    if (seat === 0 && team === 0) { if (run !== R) out.viewBad++; continue; }
+    // copia (girada si eres del equipo 1) con tu plaza activa: girarla otra vez da la sombra canónica; g.ctrl es tu jugador
+    S.copyGame(tmp, run); if (team === 1) VB.NetView.flip(tmp);
+    if (run === R || (S.stateHash(tmp) >>> 0) !== h || run.ctrl.id !== me.id || run.ctrl.team !== 0 || run.hT !== seat) out.viewBad++;
+    for (const e of evP) if (e.player && run.players.indexOf(e.player) < 0 && !(run.roster && run.roster.some(L => L.indexOf(e.player) >= 0))) out.viewBad++;
+  }
+  out.desync = RPL.desync();
+  return out;
+}
+{
+  console.log('== online de varios: grabador dual de N plazas ==');
+  const H4 = [{ team: 0, idx: 0 }, { team: 1, idx: 0 }, { team: 0, idx: 1 }, { team: 1, idx: 1 }];
+  for (const [tag, o, seat] of [['2v2 × 4, plaza 0 (equipo 0)', { venue: 'beach', humans: H4 }, 0], ['2v2 × 4, plaza 3 (equipo 1)', { venue: 'beach', humans: H4 }, 3],
+    ['2v2 × 4, plaza 2 (equipo 0, no es la 0)', { venue: 'hall', humans: H4 }, 2], ['coop, plaza 1', { venue: 'beach', coop: true, humans: [{ idx: 0 }, { idx: 1 }] }, 1]]) {
+    const o2 = multiRec(o, seat, 400);
+    check(tag + ': graba con ' + o2.ns + ' plazas y repite bit a bit (desync 0)', o2.on && o2.ns === o.humans.length && o2.seat === seat && o2.n >= 1 && o2.done && o2.clips === o2.n && o2.cmp > 100 && o2.bad === 0 && o2.desync === 0,
+      { plazas: o2.ns, jugadas: o2.n, vistas: o2.clips, comparados: o2.cmp, distintos: o2.bad, desync: o2.desync });
+    check(tag + ': se pinta desde tu plaza (girada solo si eres del equipo 1; g.ctrl = tu jugador; eventos de la vista)', o2.view > 100 && o2.viewBad === 0 && o2.vs === (o.humans[seat].team === 1 ? 1 : 0), { vistas: o2.view, mal: o2.viewBad, vs: o2.vs });
+  }
 }
 
 // (1b) el modo offline no cambia: un partido offline graba como siempre (sin dual) y repite sin desincronizarse

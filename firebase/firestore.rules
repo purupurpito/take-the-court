@@ -42,6 +42,19 @@ service cloud.firestore {
     //   uno solo lee lo que va dirigido a él: un invitado nuevo nunca lee la respuesta (ni la oferta) de uno anterior. El cliente la
     //   borra al conectar, al salir el invitado y al volver a abrir la sala. Nada de esto se enseña en el juego: del rival solo se ve
     //   su nombre.
+    // ESQUEMA v3, SALAS DE VARIOS (online multi, 21-nov-2026; notes/online-multi-brief.md §4). SIN DESPLEGAR. Aditivo: las salas
+    //   1v1 (sin la clave cap) siguen exactamente con las reglas de arriba (los clientes 1.21.0 en caché no notan nada). Una sala de
+    //   varios lleva además mode ('vs'|'coop'), cap (plazas humanas con el anfitrión: 2|4|12), seats ({uid: {n, at}}: los invitados;
+    //   at = hora del servidor), cnt (invitados que el anfitrión da por dentro, 0..cap-1) y lineup opcional (texto del anfitrión);
+    //   fmt '2v2'|'6v6' (6v6 solo en 'hall'; cap 12 solo en 6v6; coop: cap 2, o 4 en 6v6; Fluida solo vs con cap 2); guest/gname ''.
+    //   - Crear / cambiar: el anfitrión, con roomOkMulti (seats vacío y cnt 0 al crear).
+    //   - Sentarse: quien no es el anfitrión, en una sala de varios 'open' y viva; SOLO toca seats.<su uid> = {n, at = hora del
+    //     servidor} y como mucho cap-1 invitados. Levantarse: solo su propia clave, con la sala 'open' o 'full' (en 'play' no).
+    //   - Las ramas 1v1 de entrar no valen en una sala de varios.
+    //   rooms/{uid}/sig/o_<uidInvitado> (oferta del anfitrión) y sig/a_<uidInvitado> (respuesta de ese invitado) = {sdp, gen}:
+    //   señalización por pareja. Lee o_: el anfitrión y ese invitado; lee a_: ese invitado y el anfitrión mientras siga sentado.
+    //   Escribir: solo para un invitado sentado (el anfitrión su o_, el invitado su a_). Borrar: anfitrión, ese invitado, o cualquiera
+    //   si la sala ya no existe o está caducada.
     // ------------------------------------------------------------------------------------------------------------------------
     function signed() { return request.auth != null; }
     function nameOk(n) { return n is string && n.size() >= 1 && n.size() <= 16; }
@@ -58,6 +71,30 @@ service cloud.firestore {
         // Online V2: 'net' es opcional (sin la clave = conexión Precisa); si está, solo 'fluida'
         && (!('net' in d) || d.net in ['fluida']);
     }
+    // esquema v3: sala de varios (la marca es la clave cap; las 1v1 no la tienen)
+    function multi(d) { return 'cap' in d; }
+    function roomOkMulti(d) {
+      return d.keys().hasOnly(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen', 'net',
+            'mode', 'cap', 'seats', 'cnt', 'lineup'])
+        && d.keys().hasAll(['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'seen',
+            'mode', 'cap', 'seats', 'cnt'])
+        && d.code is string && d.code.matches('[2-9A-HJKMNP-Z]{6}')
+        && nameOk(d.name) && d.gname == '' && d.host is string && d.guest == ''
+        && d.fmt in ['2v2', '6v6'] && d.venue in ['beach', 'hall'] && (d.fmt == '2v2' || d.venue == 'hall')
+        && d.map is string && d.map.size() <= 40
+        && d.even is bool && d.bo in [1, 3] && d.pts in [11, 15, 21, 25]
+        && d.state in ['open', 'full', 'play'] && d.v is string && d.v.size() <= 40
+        && d.seen == request.time
+        && d.mode in ['vs', 'coop'] && d.cap in [2, 4, 12]
+        && (d.cap <= 4 || d.fmt == '6v6')
+        && (d.mode == 'vs' || d.cap == 2 || (d.cap == 4 && d.fmt == '6v6'))
+        && (!('net' in d) || (d.net in ['fluida'] && d.mode == 'vs' && d.cap == 2 && d.fmt == '2v2'))   // (Fluida: solo 2v2)
+        && d.seats is map && d.seats.size() <= d.cap - 1
+        && d.cnt is int && d.cnt >= 0 && d.cnt <= d.cap - 1
+        && (!('lineup' in d) || (d.lineup is string && d.lineup.size() <= 4000));
+    }
+    // una plaza: solo el nombre visible y la hora del servidor (transformación REQUEST_TIME)
+    function seatOk(s) { return s is map && s.keys().hasOnly(['n', 'at']) && s.keys().hasAll(['n', 'at']) && nameOk(s.n) && s.at == request.time; }
     function members(d) { return [d.host, d.guest]; }
     function live(d) { return d.seen > request.time - duration.value(90, 's'); }
     function stale(d) { return d.seen < request.time - duration.value(300, 's'); }
@@ -66,42 +103,72 @@ service cloud.firestore {
       allow list: if signed() && request.query.limit <= 50;
       allow create: if signed() && rid == request.auth.uid && roomOk(request.resource.data)
         && request.resource.data.host == request.auth.uid && request.resource.data.guest == '' && request.resource.data.gname == ''
-        && request.resource.data.state == 'open';
+        && request.resource.data.state == 'open'
+        // esquema v3: o una sala de varios recién abierta (sin invitados)
+        || signed() && rid == request.auth.uid && roomOkMulti(request.resource.data) && request.resource.data.host == request.auth.uid
+          && request.resource.data.get('seats', {}).size() == 0 && request.resource.data.get('cnt', -1) == 0 && request.resource.data.state == 'open';
       allow update: if signed() && (
         // el anfitrión: lo que quiera de su sala (latido, estado, echar al invitado), siempre válida y con seen del servidor
         (rid == request.auth.uid && resource.data.host == request.auth.uid && request.resource.data.host == request.auth.uid
           && roomOk(request.resource.data))
         // entrar: una sala abierta, vacía y viva; solo guest (= quien entra), gname y state ('full')
         || (resource.data.state == 'open' && resource.data.guest == '' && resource.data.host != request.auth.uid && live(resource.data)
+          && !multi(resource.data)
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guest', 'gname', 'state'])
           && request.resource.data.guest == request.auth.uid && request.resource.data.state == 'full' && nameOk(request.resource.data.gname))
         // salir antes de empezar: el invitado deja la sala abierta y vacía
         || (resource.data.state == 'full' && resource.data.guest == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['guest', 'gname', 'state'])
-          && request.resource.data.guest == '' && request.resource.data.gname == '' && request.resource.data.state == 'open'));
+          && request.resource.data.guest == '' && request.resource.data.gname == '' && request.resource.data.state == 'open')
+        // esquema v3, el anfitrión de una sala de varios: lo que quiera (latido, estado, cnt, levantar a alguien), siempre válida
+        || (rid == request.auth.uid && resource.data.host == request.auth.uid && request.resource.data.host == request.auth.uid
+          && roomOkMulti(request.resource.data))
+        // esquema v3, sentarse: sala de varios abierta y viva; solo seats.<tu uid> = {n, at del servidor}; como mucho cap-1 invitados
+        || (multi(resource.data) && resource.data.state == 'open' && resource.data.host != request.auth.uid && live(resource.data)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seats'])
+          && request.resource.data.get('seats', {}).diff(resource.data.get('seats', {})).affectedKeys().hasOnly([request.auth.uid])
+          && request.auth.uid in request.resource.data.get('seats', {}) && seatOk(request.resource.data.get('seats', {})[request.auth.uid])
+          && request.resource.data.get('seats', {}).size() <= resource.data.get('cap', 0) - 1)
+        // esquema v3, levantarse antes de empezar: solo tu clave (en 'play' no: la vuelta tras recargar necesita la plaza)
+        || (multi(resource.data) && resource.data.state in ['open', 'full'] && request.auth.uid in resource.data.get('seats', {})
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['seats'])
+          && request.resource.data.get('seats', {}).diff(resource.data.get('seats', {})).affectedKeys().hasOnly([request.auth.uid])
+          && !(request.auth.uid in request.resource.data.get('seats', {}))));
       allow delete: if signed() && (resource.data.host == request.auth.uid || stale(resource.data));
       match /sig/{kind} {
         function room() { return get(/databases/$(database)/documents/rooms/$(rid)).data; }
         function here() { return exists(/databases/$(database)/documents/rooms/$(rid)); }
+        // esquema v3: documentos por pareja o_<uid> / a_<uid>; peer() = el uid del invitado de la pareja
+        function pair() { return kind.matches('[oa]_[A-Za-z0-9_-]{1,128}'); }
+        function offerP() { return kind.matches('o_.+'); }
+        function peer() { return kind[2:kind.size()]; }
+        function seated(u) { return multi(room()) && u in room().get('seats', {}); }
         // leer: la oferta, el anfitrión o su destinatario (to); la respuesta, quien la escribió (uid) o el anfitrión mientras ese
         // sea su invitado. Así nadie hereda la SDP de otro (quien entra después de que alguien saliera no puede leer la suya).
         // (resource == null: el documento no existe y la lectura da 404, no 403)
         allow get: if signed() && here() && (resource == null
           || (kind == 'offer' && (room().host == request.auth.uid || resource.data.to == request.auth.uid))
           || (kind == 'answer' && (resource.data.uid == request.auth.uid
-                || (room().host == request.auth.uid && resource.data.uid == room().guest))));
-        allow create, update: if signed() && here() && room().state in ['full', 'play']
+                || (room().host == request.auth.uid && resource.data.uid == room().guest)))
+          // esquema v3: o_ la lee el anfitrión y ese invitado; a_ ese invitado y el anfitrión mientras siga sentado
+          || (pair() && multi(room()) && (peer() == request.auth.uid
+                || (room().host == request.auth.uid && (offerP() || seated(peer()))))));
+        allow create, update: if signed() && here() && ((room().state in ['full', 'play']
           && ((kind == 'offer' && room().host == request.auth.uid && request.resource.data.keys().hasOnly(['sdp', 'gen', 'to'])
                 && request.resource.data.to == room().guest)
             || (kind == 'answer' && room().guest == request.auth.uid && request.resource.data.keys().hasOnly(['sdp', 'gen', 'uid'])
-                && request.resource.data.uid == request.auth.uid))
+                && request.resource.data.uid == request.auth.uid)))
+          // esquema v3: por pareja, solo para un invitado sentado: o_ el anfitrión, a_ ese invitado; solo {sdp, gen}
+          || (pair() && seated(peer()) && request.resource.data.keys().hasOnly(['sdp', 'gen'])
+            && ((offerP() && room().host == request.auth.uid) || (!offerP() && peer() == request.auth.uid))))
           && request.resource.data.keys().hasAll(['sdp', 'gen'])
           && request.resource.data.sdp is string && request.resource.data.sdp.size() <= 20000
           && request.resource.data.gen is int && request.resource.data.gen >= 0;
         // borrar: los dos jugadores, quien escribió la respuesta aunque ya haya salido (al cerrar la pestaña el borrado y la salida
         // van a la vez) y cualquiera si la sala ya no existe o está caducada
         allow delete: if signed() && (!here() || request.auth.uid in members(room()) || stale(room())
-          || (resource != null && resource.data.get('uid', '') == request.auth.uid));
+          || (resource != null && resource.data.get('uid', '') == request.auth.uid)
+          || (pair() && peer() == request.auth.uid));
       }
     }
     // Informes de red de los partidos online (js/netlog.js, 17-nov-2026): uno por partido y jugador, escrito UNA vez al acabar con su

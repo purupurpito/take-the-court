@@ -235,16 +235,24 @@ console.log('== (e) flApplyPt: 2000 puntos aplicados en otra partida ==');
 console.log('== (f) autocomprobación de los ganchos en sim.js ==');
 {
   // huella de js/sim.js SIN el bloque FLUIDA, sin las líneas «// fl» / «// fl-api» y sin los trozos /*fl*/…/*lf*/ (= el sim.js de antes)
+  // Online de varios (sprint online-multi, P1): también sin el bloque MULTI, sin las líneas «// mh» / «// mh-api» y sin los trozos
+  // /*mh*/…/*hm*/. Cada línea «// mh» empieza por if (g.mh…; cada trozo lleva g.mh, opts.mh o mhIs( (los ganchos del 1 contra 1)
   const SIM_BASE = 'afb5ebee';  // (21-nov-2026, rama pendientes: sprint «único», opts.start de la situación de la semana y g.scout de «Te tienen estudiado», los dos detrás de su opción y sin gastar g.rng; las tres huellas idénticas). Antes 2a21ec3 (carrera-ea2k: la zona y el saque de firma)
   const L = SIM_SRC.replace(/\r\n/g, '\n').split('\n');
-  const out = [], marked = [], inl = [], bad = [];
-  let inB = false, blockLines = 0;
+  const out = [], marked = [], inl = [], bad = [], mMarked = [], mInl = [];
+  let inB = false, blockLines = 0, inM = false, mLines = 0;
   // funciones que no pueden tener nada nuevo
   const ranges = {}; let cur = null;
   L.forEach((l, i) => { const m = /^  function (\w+)\(/.exec(l); if (m) { cur = m[1]; ranges[cur] = ranges[cur] || [i, i]; } if (cur) ranges[cur][1] = i; });
   L.forEach((l, i) => {
     if (l.indexOf('/* ==== FLUIDA (Online V2) ==== */') >= 0) { inB = true; return; }
     if (inB) { blockLines++; if (l.indexOf('/* ==== fin FLUIDA ==== */') >= 0) inB = false; return; }
+    if (l.indexOf('/* ==== MULTI ==== */') >= 0) { inM = true; return; }
+    if (inM) { mLines++; if (l.indexOf('/* ==== fin MULTI ==== */') >= 0) inM = false; return; }
+    if (/\/\/ mh-api\s*$/.test(l)) return;
+    if (/\/\/ mh\s*$/.test(l)) { mMarked.push(i + 1); if (!/^\s*if \(g\.mh[ )]/.test(l)) bad.push({ linea: i + 1, txt: l.trim().slice(0, 80) }); return; }
+    const msegs = l.match(/\/\*mh\*\/[\s\S]*?\/\*hm\*\//g);
+    if (msegs) { for (const s of msegs) { mInl.push(i + 1); if (!/\bg\.mh\b|\bopts\.mh\b|\bmhIs\(/.test(s)) bad.push({ linea: i + 1, trozo: s }); } l = l.replace(/\/\*mh\*\/[\s\S]*?\/\*hm\*\//g, ''); }
     if (/\/\/ fl-api\s*$/.test(l)) return;
     if (/\/\/ fl\s*$/.test(l)) {
       marked.push(i + 1);
@@ -261,7 +269,8 @@ console.log('== (f) autocomprobación de los ganchos en sim.js ==');
   const hx = h.toString(16);
   console.log('    líneas nuevas marcadas: ' + marked.join(', '));
   console.log('    trozos en línea: ' + inl.join(', ') + '; bloque FLUIDA: ' + blockLines + ' líneas');
-  check('cada línea nueva dentro de una función existente empieza por if (g.fl…) y cada trozo en línea lleva g.fl; nada en createGame/mkPlayer', bad.length === 0 && marked.length > 0, bad);
+  console.log('    MULTI: líneas «// mh» ' + mMarked.join(', ') + '; trozos /*mh*/ en ' + mInl.join(', ') + '; bloque MULTI: ' + mLines + ' líneas');
+  check('cada línea nueva dentro de una función existente empieza por if (g.fl…) / if (g.mh…) y cada trozo en línea lleva g.fl / g.mh; nada de fl en createGame/mkPlayer', bad.length === 0 && marked.length > 0 && !inM, bad);
   if (process.argv.includes('--rehash')) console.log('    SIM_BASE nueva: ' + hx);
   check('sim.js sin los ganchos ni el bloque FLUIDA = el de antes (SIM_BASE)', hx === SIM_BASE, { huella: hx, esperada: SIM_BASE });
   check('createGame no menciona fl', !/\bfl\b|g\.fl/.test(L.slice(ranges.createGame[0], ranges.createGame[1] + 1).join('\n').replace(/\/\/.*$/gm, '')));
