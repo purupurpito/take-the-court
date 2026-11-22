@@ -6273,6 +6273,11 @@
     lessMotion: { vals: ['auto', 'on', 'off'], labels: ['Auto', 'Sí', 'No'] },
     cbColors: { vals: [true, false], labels: ['Sí', 'No'] },
     ballStyle: { vals: ['clasico', 'contraste'], labels: ['Clásico', 'Contraste'] },
+    // informe 4.6: marca de tu jugador (players.js: halo y galón ×0,8 / ×1 / ×1,4; alto contraste = blanco con filos negros). Sin «No»
+    ctrlMark: { vals: ['small', 'normal', 'large'], labels: ['Pequeña', 'Normal', 'Grande'] },
+    ctrlMarkCol: { vals: ['contraste', 'auto'], labels: ['Sí', 'No'] },
+    // informe 4.7: indicador de caída (fx.js landAidOf): el aro de dónde cae el balón y la línea de altura. El aro amarillo de golpeo, siempre
+    landAid: { vals: ['auto', 'siempre', 'retira', 'no'], labels: ['Auto', 'Siempre', 'Se retira', 'No'] },
     // Controles · Táctil (input.js: VB.Input.OPTS)
     touchSize: { vals: [1, 1.15, 1.3], labels: ['100%', '115%', '130%'] },
     // Juego, E1: colocación dirigida (sim opts.aimSet) y timing exacto en ms (solo el sello de ui.js)
@@ -6323,7 +6328,7 @@
   }
   /** E3: claves de cada apartado para «Restablecer este apartado» (ctx.actions.resetSettings). keys / pad: los de Controles. */
   var TAB_KEYS = { audio: ['volume', 'sfxVol', 'crowdVol', 'musicVol', 'xarVol', 'toonSfx', 'onoma'], image: ['quality', 'resScale', 'fpsCap', 'showFps', 'beachLight', 'mapHall', 'mapBeach'], cam: ['camSens', 'camZoom', 'camCuts', 'cam6'],
-    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle'],
+    game: ['showHelp', 'coachTips', 'coachCalls', 'ambient', 'aimSet', 'jsetAim', 'jsetNote', 'msTiming', 'replays', 'subs6', 'zone', 'serveSig', 'serveGest'], a11y: ['camStable', 'rumble', 'hudScale', 'softFlash', 'lessMotion', 'cbColors', 'ballStyle', 'ctrlMark', 'ctrlMarkCol', 'landAid'],
     kit: ['kitShirt', 'kitAccent', 'kitShorts', 'kitPattern'], keys: ['keys'], pad: ['padKeys', 'padDead'] };
   var resetArm = { b: null, t: 0, to: 0 };
   function resetDisarm() {
@@ -6579,6 +6584,7 @@
       sls[m].querySelector('i').style.width = f + '%'; sls[m].querySelector('b').style.left = f + '%';
       sls[m].querySelector('.v').textContent = Math.round(v * 100) + '%';
     }
+    a11yPv();
     // E3: filas ★ que su módulo aún no soporta, ocultas
     var nd = document.querySelectorAll('[data-need]');
     for (var ni = 0; ni < nd.length; ni++) { var hid = !supports(nd[ni].getAttribute('data-need'), nd[ni].getAttribute('data-opt')); if (nd[ni].hidden !== hid) nd[ni].hidden = hid; }
@@ -6711,7 +6717,7 @@
     // Partido rápido: una línea de ayuda bajo cada fila (con Playa, Puntos explica las reglas de playa)
     setText(el.fmtHelp, 'fh', six ? 'Equipos completos: llevas al ' + roleName().toLowerCase() : 'Tú y tu pareja contra la CPU');
     setText(el.venueHelp, 'vh', six ? 'El 6 contra 6 se juega en el pabellón' : venueHelpOf(vb ? 'beach' : 'hall') || (vb ? 'Platja Llarga, vóley playa en pista de 16 × 8' : 'Palau del Mar, pista cubierta de 18 × 9'));
-    setText(el.diffHelp, 'dh', DIFF_HELP[di] || 'Nivel de la CPU');
+    setText(el.diffHelp, 'dh', laNoteOf(di) || DIFF_HELP[di] || 'Nivel de la CPU');
     setText(el.ptsHelp, 'ph', lk !== 'full' ? (vb ? 'Reglas de playa: un set a 21' : 'Un solo set a ' + ptsN) : vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
     var lshort = lk !== 'full' || (!vb && ptsN === 7);
     setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da XP' : ''));
@@ -6719,6 +6725,36 @@
   }
   /** Una línea por nivel de dificultad (fila Dificultad de Partido rápido). */
   var DIFF_HELP = ['La CPU saca suave', 'Ataca y defiende a medio gas', 'Defiende casi todo', 'Casi no falla'];
+  // ---------- Accesibilidad: marca de tu jugador e indicador de caída (informe 4.6 / 4.7) ----------
+  /** Modo efectivo del indicador de caída ('siempre' | 'retira' | 'no') con el ajuste y la dificultad de ahora (fx.js landAidOf). */
+  function laMode(diff) {
+    var v = ctx.settings.landAid, d = diff || ctx.settings.difficulty;
+    if (VB.FX && VB.FX.landAidOf) return VB.FX.landAidOf(v, d);
+    return v === 'siempre' || v === 'retira' || v === 'no' ? v : d === 'hard' || d === 'expert' ? 'retira' : 'siempre';
+  }
+  // aviso de una línea al cambiar la dificultad (con landAid 'auto' el aro de caída cambia solo): 4 s en la ayuda de la fila Dificultad
+  var laNote = { m: '', t: 0, to: 0 };
+  function laNoteOf(di) {
+    var m = laMode(OPT.difficulty.vals[di]);
+    if (laNote.m && m !== laNote.m && ctx.settings.landAid === 'auto') {
+      laNote.t = performance.now() + 4000; clearTimeout(laNote.to); laNote.to = setTimeout(renderOpts, 4100);
+      laNote.txt = m === 'retira' ? 'Aro de caída: solo al final del vuelo' : 'Aro de caída: otra vez todo el vuelo';
+    }
+    laNote.m = m;
+    return performance.now() < laNote.t ? laNote.txt : '';
+  }
+  var LA_HELP = { siempre: 'Dónde cae el balón, todo el vuelo', retira: 'Solo al final del vuelo', no: 'Sin aro de caída; el aro amarillo sigue' },
+    LA_AUTO = { siempre: 'todo el vuelo', retira: 'solo al final' };   // (corto: con la ayuda recortada el móvil pone el botón ⓘ en vez de la vista previa)
+  var MK_K = { small: 0.8, normal: 1, large: 1.4 };
+  /** Ajustes › Accesibilidad: vista previa de la marca (tamaño y contraste) y del indicador de caída, y la ayuda de la fila. */
+  function a11yPv() {
+    var st = ctx.settings, pm = document.querySelector('#optList .a11y-pv[data-pv="mark"]'), pl = document.querySelector('#optList .a11y-pv[data-pv="land"]');
+    if (pm) { var k = MK_K[st.ctrlMark] || 1, hc = st.ctrlMarkCol === 'contraste'; pm.style.setProperty('--k', String(k)); pm.classList.toggle('hc', hc); }
+    var m = laMode();
+    if (pl && pl.getAttribute('data-m') !== m) pl.setAttribute('data-m', m);
+    var sm = document.querySelector('#optList [data-opt="landAid"] small');
+    if (sm) { var h = st.landAid === 'auto' ? 'Auto (' + (OPT.difficulty.labels[optIndex('difficulty')] || '') + '): ' + (LA_AUTO[m] || '') : LA_HELP[m]; if (sm.textContent !== h) sm.textContent = h; }
+  }
 
   // ---------- Tutorial ----------
   // Diagramas con proyección en perspectiva de la pista vista desde detrás del

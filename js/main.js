@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -157,7 +157,11 @@
     if (!VV || !VV.valid('hall', s.mapHall)) s.mapHall = 'rand';
     if (!VV || !VV.valid('beach', s.mapBeach)) s.mapBeach = 'platja';
     if ([7, 11, 15, 21, 25].indexOf(s.setPoints) < 0) s.setPoints = 25;   // (7: partido corto, informe 4.5; solo lo acepta el Partido rápido, ver quickShort)
-    if (['full', 'one', 'clutch'].indexOf(s.matchLen) < 0) s.matchLen = 'full';   // Partido rápido: duración (informe 4.5): completo | un set | final apretado
+    if (['full', 'one', 'clutch'].indexOf(s.matchLen) < 0) s.matchLen = 'full';
+    // Accesibilidad (informe 4.6 / 4.7; solo visuales): marca de tu jugador (players.js) e indicador de caída (fx.js landAidOf)
+    if (['small', 'normal', 'large'].indexOf(s.ctrlMark) < 0) s.ctrlMark = 'normal';
+    if (s.ctrlMarkCol !== 'contraste') s.ctrlMarkCol = 'auto';
+    if (['auto', 'siempre', 'retira', 'no'].indexOf(s.landAid) < 0) s.landAid = 'auto';   // Partido rápido: duración (informe 4.5): completo | un set | final apretado
     // equipación: solo colores de las paletas de ui.js (OPT.kit*) y diseños conocidos
     if (['diag', 'liso', 'franjas', 'rayas'].indexOf(s.kitPattern) < 0) s.kitPattern = 'diag';   // Partido rápido: puntos por set (sim: VB.Sim.SET_POINTS)
     if (s.ctrlMode !== 'one') s.ctrlMode = 'both';                      // control: los dos jugadores o solo uno (sim: g.ctrlMode)

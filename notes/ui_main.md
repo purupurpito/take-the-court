@@ -2044,3 +2044,20 @@ panel «Primer partido» → Jugar (5 toques) y, en el móvil, podía salir ante
 - **Huellas:** simtest y fingerprint6 idénticas; solo cambia la firma de texto SIM_BASE de fluidsimtest (db74554b → b7b6d738) por la
   línea de `points` de `createGame` (el 7 con `opts.quick`), sin g.rng.
 
+## Marca de tu jugador e indicador de caída (22-nov-2026, rama investigacion; imprescindibles 4.6 y 4.7)
+Solo visuales: ni la sim, ni `g.rng`, ni las huellas (simtest, fingerprint6 y fluidsimtest iguales). Prueba: `node tools/a11ymarktest.js`.
+- **Ajustes** (main.js `DEFAULTS()` + `loadSettings`, lo corrupto o lo que falte vuelve al valor por defecto; partidas viejas cargan igual):
+  `ctrlMark` 'small' | 'normal' | 'large', `ctrlMarkCol` 'auto' | 'contraste', `landAid` 'auto' | 'siempre' | 'retira' | 'no'. Entran en
+  «Restablecer este apartado» de Accesibilidad (`TAB_KEYS.a11y`).
+- **Marca** (players.js `markLook()`): ×0,8 / ×1 / ×1,4 sobre el halo (después de la atenuación junto al aro amarillo y del ×1,3 del 6v6) y
+  sobre el galón. Alto contraste: halo blanco grueso entre dos filos negros y galón blanco con filo negro (no amarillo: es del aro de
+  golpeo). No hay «No»: la marca no se apaga nunca, tampoco en Experto (las pistas de sitio del 6v6 son otra cosa).
+- **Indicador de caída** (fx.js `landAidOf`, `LA_T0` 0,8 s / `LA_T1` 0,35 s): «Siempre» como antes; «Se retira» = el aro de caída solo en
+  el último tramo del vuelo (aparece a 0,8 s del bote y está entero a 0,35 s) y la línea de altura a la mitad; «No» quita los dos. El aro
+  amarillo de golpeo (`focusRing`) sale siempre. «Auto» = Siempre en Fácil/Normal, Se retira en Difícil/Experto (`g.difficulty`).
+- **Avisos** (ui.js `laNoteOf` / `a11yPv`): con «Auto», al cambiar de dificultad la ayuda de la fila Dificultad dice 4 s «Aro de caída:
+  solo al final del vuelo» / «otra vez todo el vuelo». La ayuda de la fila dice siempre lo que hace ahora («Auto (Difícil): solo al final»;
+  con «No», que el aro amarillo sigue).
+- **Vista previa**: icono dibujado (SVG) a la derecha del nombre de la fila: marca con su tamaño y contraste, y el vuelo con o sin aro. En
+  el móvil va en la 2ª columna de la etiqueta; no sale si la ayuda va recortada (el botón ⓘ ocupa ese sitio) ni por debajo de 600 px de
+  ancho (a 568×320 no cabía sin partir el nombre en tres líneas).

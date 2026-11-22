@@ -166,7 +166,9 @@ Novedades automáticas), escenas `debug=drill_serve|drill_recv|drill_set|drill_a
 por debajo de 26 fps y no sube), `showFps`, `camDist` ('near' \| 'normal' \| 'far'), `camCuts` ('all' \| 'less'), `lessMotion` ('auto' \|
 'on' \| 'off'), `cbColors`, `ballStyle` ('clasico' \| 'contraste'), `keys` / `padKeys` (objeto plano con solo las diferencias; ≤ 12
 acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3), `aimSet` (true: colocación dirigida de E1), `msTiming`
-(false: sello en ms). `DEVICE_KEYS` van a `make-the-cut.device`, no a `make-the-cut.settings`.
+(false: sello en ms), `ctrlMark` ('small' \| 'normal' \| 'large', por defecto 'normal'), `ctrlMarkCol` ('auto' \| 'contraste') y
+`landAid` ('auto' \| 'siempre' \| 'retira' \| 'no', por defecto 'auto') (desde 1.22.0, informe 4.6 / 4.7; solo visuales, Ajustes › Accesibilidad).
+`DEVICE_KEYS` van a `make-the-cut.device`, no a `make-the-cut.settings`.
 
 **Vestuario en `VB.ctx`** (main.js, 13-nov-2026): `noteHitch()` (la ventana de fps en curso no cuenta para la calidad adaptativa:
 `aq.skip = 1`), `actions.showroom(on, L, o)` (vista previa del Vestuario en el menú; ver «Vestuario» al final) y `actions.looksChanged()`
@@ -714,7 +716,9 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   no tiene plano de reacción, de héroe ni del sacador rival (`heroShot()` null) y la vuelta al saque es un corte 'serve' sin `nextCutIn`;
   `drillStage` → corte seco `lastCut.kind 'drill'` (sin cámara lenta, hit-stop ni seguimiento del remate). Intro, cierre de set/partido y
   grúa del cambio de campo, igual. El 6v6 no cambia.
-- **FX** (E3/E6/E1): `OPTS = ['cbColors','ballStyle']`, `onSettings(s, k)`; paleta para daltónicos (bote dentro azul / fuera naranja,
+- **FX** (E3/E6/E1): `OPTS = ['cbColors','ballStyle','landAid']`, `onSettings(s, k)`; `landAidOf(val, diff)` → 'siempre' \| 'retira' \| 'no'
+  (informe 4.7: 'auto' = 'siempre' en easy/normal y 'retira' en hard/expert; gradúa solo el aro de caída y la línea de altura, nunca el
+  aro amarillo `focusRing`; la demo del menú va siempre en 'siempre'); paleta para daltónicos (bote dentro azul / fuera naranja,
   retícula ámbar → azul perfecta, aro al filo magenta) y balón de contraste (textura rehecha una vez). Diana del ejercicio desde
   `g.drill.target` en el lote de calcomanías (0 dibujos más), pulso apagado con `ctx.reduceMotion`, destello con `drillRep.pts >= 3`.
   Retícula `kind 'roll'` verde, aro coral con `edge > 0,5`, marcador `Sim.setPreview` por tempo, sin estela con `shot 'roll'`, estela
@@ -722,6 +726,8 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
 - **Audio**: `preview(kind)` ('crowd' \| 'sfx' \| 'music' \| 'master' \| 'volume' \| 'xaranga'; false antes del 1r gesto o en silencio), `stats.chain`;
   xaranga (21-nov-2026): `setVolume('xaranga', v)`, `xarState()`, `xarPrep()`, `XAR_SOUNDS`, `XAR_WHEN` (dónde suena; notes/audio.md «Xaranga»);
   maneja `fx:floor`, `feint`, `drillRep`, `drillEnd`, `hit.shot 'roll'`, `hit.style 'jfloat'` y `hit.chain`.
+- **Players** (informe 4.6): `OPTS = ['ctrlMark','ctrlMarkCol']` (lee `ctx.settings` cada frame: halo y galón ×0,8 / ×1 / ×1,4; alto contraste
+  = textura del halo y geometría del galón alternativas, creadas una vez); `_marker()` añade `halo`, `hc` y `k`.
 - **Players** (E2): `CELEBS [{id, name, tier}]` (mismos ids que `CareerLife.CELEB_DEF`), `setSignature(id)` → id aceptado \| '',
   `setRival(num)` (vale para el partido que se crea con la llamada; -1 o ninguna llamada lo limpia). Rig de solo lectura: `persona, cvar,
   dvar, lvar, idle`. Pruebas: `_anim(p)` → `{persona, cvar, dvar, lvar, idle, celId, celV, leave, evG, blk, sig, rival}`, `_celeb(p, id)`,

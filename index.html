@@ -984,6 +984,24 @@ h2 span{color:var(--hot)}
   background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line);color:var(--fg);font:800 20px/1.1 var(--display);letter-spacing:.06em}
 .opt:focus-visible,.opt.kf{background:rgba(22,32,56,.95);box-shadow:inset 0 0 0 1px rgba(255,150,90,.6);outline:none}
 .opt small{display:block;margin-top:3px;font:500 13px/1.3 var(--ui);letter-spacing:0;text-transform:none;color:var(--muted)}
+/* Accesibilidad (informe 4.6 / 4.7): vista previa de la marca de tu jugador y del indicador de caída (ui.js a11yPv: --k, .hc, data-m) */
+.a11y-pv{float:right;width:38px;height:38px;margin:-6px 0 -6px 10px;border-radius:10px;background:rgba(214,178,118,.32);box-shadow:inset 0 0 0 2px rgba(0,0,0,.22)}
+.a11y-pv svg{display:block;width:100%;height:100%;overflow:visible}
+.a11y-pv .pv-s{transform:scale(var(--k,1));transform-origin:20px 24px;transform-box:view-box;transition:transform .18s}
+.a11y-pv .pv-h{fill:none;stroke:#fff;stroke-width:2.2;opacity:.9}
+.a11y-pv .pv-hb{fill:none;stroke:#08080c;stroke-width:0}
+.a11y-pv .pv-c{fill:#ff7a3d;stroke:#2a1308;stroke-width:1.4;stroke-linejoin:round}
+.a11y-pv.hc .pv-h{stroke-width:2.6;opacity:1}
+.a11y-pv.hc .pv-hb{stroke-width:5.6}
+.a11y-pv.hc .pv-c{fill:#fff;stroke:#050507;stroke-width:2.4}
+.a11y-pv .pv-arc{fill:none;stroke:rgba(255,255,255,.75);stroke-width:1.6;stroke-dasharray:2 3}
+.a11y-pv .pv-b{fill:#ffe9a8;stroke:#2a1308;stroke-width:1.3}
+.a11y-pv .pv-dl{stroke:rgba(255,255,255,.6);stroke-width:1.2}
+.a11y-pv .pv-r{fill:none;stroke:#fff;stroke-width:2.2}
+.a11y-pv[data-m="retira"] .pv-r{opacity:.5;stroke-dasharray:3 2.5}
+.a11y-pv[data-m="retira"] .pv-dl{opacity:.45}
+.a11y-pv[data-m="no"] .pv-r,.a11y-pv[data-m="no"] .pv-dl{display:none}
+@media (prefers-reduced-motion:reduce){.a11y-pv .pv-s{transition:none}}
 .seg{display:flex;gap:3px;padding:3px;border-radius:10px;background:rgba(0,0,0,.35)}
 .seg span{padding:7px 11px;border-radius:7px;font:800 14px var(--display);letter-spacing:.1em;color:var(--muted);transition:background .2s,color .2s}
 .seg span.on{background:var(--t0);color:#1d0c02;box-shadow:0 4px 12px rgba(255,90,40,.35)}
@@ -6105,6 +6123,10 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:2px}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child>small{grid-column:1;grid-row:2;margin-top:2px;font-size:var(--ph-label);white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;line-height:1.25;color:rgba(255,244,220,.8)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child>.sp-info{grid-column:2;grid-row:1/3;margin:-6px -4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child>.a11y-pv{display:block;float:none;grid-column:2;grid-row:1/3;width:32px;height:32px;margin:0 0 0 6px}
+/* vista previa «si cabe»: fuera con la ayuda recortada (sale el botón ⓘ en su sitio) y en los móviles más estrechos */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child:has(.sp-info)>.a11y-pv{display:none}
+@media (max-width:600px){:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child>.a11y-pv{display:none}}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt[aria-expanded="true"]>span:first-child>small{white-space:normal;display:block;-webkit-line-clamp:none;overflow:visible;font-size:var(--ph-body);line-height:1.35;color:var(--sp-cream)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt>:last-child:not(:first-child){justify-self:end;max-width:100%;min-width:0}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .opt.info .iv{font-size:var(--ph-body)}
@@ -6722,6 +6744,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
             <button class="opt" data-opt="lessMotion"><span>Menos movimiento<small>Cortinillas y animaciones cortas. En Auto, lo que pida el sistema</small></span><span class="seg sp-seg" data-seg="lessMotion"></span></button>
             <button class="opt" data-opt="cbColors" data-need="FX"><span>Colores para daltonismo<small>Diana y llamadas de línea sin rojo ni verde</small></span><span class="seg sp-seg" data-seg="cbColors"></span></button>
             <button class="opt" data-opt="ballStyle" data-need="FX"><span>Balón<small>El de alto contraste es amarillo y azul oscuro</small></span><span class="seg sp-seg" data-seg="ballStyle"></span></button>
+            <button class="opt" data-opt="ctrlMark" data-need="Players"><span>Marca de tu jugador<i class="a11y-pv" data-pv="mark" aria-hidden="true"><svg viewBox="0 0 40 40"><g class="pv-s"><ellipse class="pv-hb" cx="20" cy="31" rx="12" ry="4.5"/><ellipse class="pv-h" cx="20" cy="31" rx="12" ry="4.5"/><path class="pv-c" d="M13.5 8.5h4.2l2.3 3.2 2.3-3.2h4.2L20 17z"/></g></svg></i><small>El aro y la flecha de quien llevas</small></span><span class="seg sp-seg" data-seg="ctrlMark"></span></button>
+            <button class="opt" data-opt="ctrlMarkCol" data-need="Players"><span>Marca de alto contraste<small>Blanca con borde negro, se ve en cualquier suelo</small></span><span class="seg sp-seg" data-seg="ctrlMarkCol"></span></button>
+            <button class="opt" data-opt="landAid" data-need="FX"><span>Indicador de caída<i class="a11y-pv" data-pv="land" aria-hidden="true"><svg viewBox="0 0 40 40"><path class="pv-arc" d="M5 31Q15 0 30 31"/><line class="pv-dl" x1="19" y1="17" x2="19" y2="31"/><ellipse class="pv-r" cx="30" cy="31.5" rx="6.5" ry="2.6"/><circle class="pv-b" cx="19" cy="12.5" r="3.8"/></svg></i><small>Dónde cae el balón, todo el vuelo</small></span><span class="seg sp-seg" data-seg="landAid"></span></button>
             <button type="button" class="opt-reset sp-pill" data-reset="a11y">Restablecer este apartado</button>
           </div>
           <div class="opt-g" id="optKit" data-tab="kit">

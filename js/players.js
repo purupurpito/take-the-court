@@ -487,6 +487,21 @@
   var groupRoot, marker, markerCone, markerMat, coneMat;
   var SHOWROOM = false;   // Vestuario abierto (showroom): atletas ocultos y sin animar
   var markerDim = 1;   // atenuación del halo con el balón muerto
+  // informe 4.6: marca del jugador controlado ajustable (ctx.settings.ctrlMark 'small'|'normal'|'large' = ×0,8/×1/×1,4 en halo y galón;
+  // ctrlMarkCol 'auto'|'contraste' = aro blanco con filos negros y galón blanco con filo negro). Nunca se apaga: no hay 'no'.
+  var MARK_K = { small: 0.8, normal: 1, large: 1.4 }, markK = 1, markHC = false, markTex = [null, null], markGeo = [null, null];
+  /** Escala de la marca según el ajuste y, si cambia el contraste, cambia textura del halo y geometría del galón (se crean una vez). */
+  function markLook() {
+    var st = ctx && ctx.settings, hc = !!(st && st.ctrlMarkCol === 'contraste');
+    if (hc !== markHC && markerMat && markerCone) {
+      var i = hc ? 1 : 0;
+      if (!markTex[i]) markTex[i] = markerTexture(hc);
+      if (!markGeo[i]) markGeo[i] = chevronGeometry(hc);
+      markerMat.map = markTex[i]; markerMat.needsUpdate = true; markerCone.geometry = markGeo[i]; markHC = hc;
+    }
+    markK = (st && MARK_K[st.ctrlMark]) || 1;
+    return markK;
+  }
   var lastCtrl = null; // 6v6: el control pasa al líbero y vuelve (sim setupServe, sin evento switch): el halo entra con fundido en el nuevo
 
   // ---------- Utilidades ----------
@@ -4150,8 +4165,13 @@
   // =====================================================================
   //  MARCADOR DEL JUGADOR CONTROLADO
   // =====================================================================
-  function markerTexture() {
+  function markerTexture(hc) {
     var cv = canvas(128, 128), g = cv.getContext('2d');
+    if (hc) {   // alto contraste (informe 4.6, ctrlMarkCol 'contraste'): aro blanco grueso entre dos filos negros, se lee en arena y en parqué
+      g.lineWidth = 17; g.strokeStyle = 'rgba(10,10,14,1)'; g.beginPath(); g.arc(64, 64, 52, 0, 2 * PI); g.stroke();
+      g.lineWidth = 9; g.strokeStyle = 'rgba(255,255,255,1)'; g.beginPath(); g.arc(64, 64, 52, 0, 2 * PI); g.stroke();
+      var th = new THREE.CanvasTexture(cv); th.encoding = THREE.sRGBEncoding; return th;
+    }
     var gr = g.createRadialGradient(64, 64, 30, 64, 64, 63);
     // halo BLANCO y fino: el amarillo queda reservado al 'aro amarillo' de FX (dónde jugar el balón)
     gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(0.66, 'rgba(255,255,255,0.08)');
@@ -4161,14 +4181,15 @@
   }
 
   /** Galón (V hacia abajo, punta en el origen) en una sola geometría: filo oscuro detrás y relleno naranja delante. */
-  var CHEV_FILL = 0xff7a3d, CHEV_EDGE = 0x2a1308;
-  function chevronGeometry() {
+  var CHEV_FILL = 0xff7a3d, CHEV_EDGE = 0x2a1308, CHEV_FILL_HC = 0xffffff, CHEV_EDGE_HC = 0x050507;
+  function chevronGeometry(hc) {
     function shape(k, cy) {
       var P = [[-0.17, 0.2], [-0.085, 0.2], [0, 0.105], [0.085, 0.2], [0.17, 0.2], [0, 0]], sh = new THREE.Shape();
       for (var i = 0; i < P.length; i++) { var x = P[i][0] * k, y = cy + (P[i][1] - cy) * k; if (i) sh.lineTo(x, y); else sh.moveTo(x, y); }
       return new THREE.ShapeGeometry(sh).toNonIndexed();
     }
-    var edge = shape(1.24, 0.12), fill = shape(1, 0.12), pos = [], col = [], cE = new THREE.Color(CHEV_EDGE), cF = new THREE.Color(CHEV_FILL).multiplyScalar(0.78);
+    // alto contraste: relleno blanco (por debajo del bloom) y filo negro más ancho
+    var edge = shape(hc ? 1.36 : 1.24, 0.12), fill = shape(1, 0.12), pos = [], col = [], cE = new THREE.Color(hc ? CHEV_EDGE_HC : CHEV_EDGE), cF = new THREE.Color(hc ? CHEV_FILL_HC : CHEV_FILL).multiplyScalar(hc ? 0.86 : 0.78);
     [[edge, cE, -0.004], [fill, cF, 0]].forEach(function (L) {
       var a = L[0].attributes.position;
       for (var i = 0; i < a.count; i++) { pos.push(a.getX(i), a.getY(i) - 0.012 * (L[2] ? 1 : 0), L[2]); col.push(L[1].r, L[1].g, L[1].b); }
@@ -4715,7 +4736,8 @@
       ensureTemps();
       groupRoot = new THREE.Group(); groupRoot.name = 'players'; groupRoot.visible = !SHOWROOM; ctx.scene.add(groupRoot);
       // marcador del jugador controlado: aro luminoso + flecha flotante
-      markerMat = new THREE.MeshBasicMaterial({ map: markerTexture(), transparent: true, depthWrite: false, opacity: 1, toneMapped: false });
+      markTex[0] = markerTexture(false); markHC = false;
+      markerMat = new THREE.MeshBasicMaterial({ map: markTex[0], transparent: true, depthWrite: false, opacity: 1, toneMapped: false });
       marker = new THREE.Mesh(new THREE.PlaneGeometry(1.5, 1.5), markerMat);
       marker.rotation.x = -PI / 2; marker.position.y = 0.018; marker.renderOrder = 3; ctx.scene.add(marker);
       // indicador flotante: galón naranja del equipo con filo oscuro, plano y siempre de cara a la cámara, de tamaño
@@ -4723,7 +4745,8 @@
       // forceSinglePass: en r149 un transparente DoubleSide se pinta en 2 pasadas con needsUpdate=true en cada una (getProgram ×2 por frame);
       // el galón es plano y siempre de cara a la cámara: una pasada da la misma imagen
       coneMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, opacity: 0, depthWrite: false, side: THREE.DoubleSide, toneMapped: true, forceSinglePass: true });
-      markerCone = new THREE.Mesh(chevronGeometry(), coneMat);
+      markGeo[0] = chevronGeometry(false);
+      markerCone = new THREE.Mesh(markGeo[0], coneMat);
       markerCone.renderOrder = 4; markerCone.visible = false; ctx.scene.add(markerCone);
     },
     setQuality: function (q) {
@@ -4919,7 +4942,9 @@
       return true;
     },
     /** Depuración (pruebas): estado del galón del jugador controlado. */
-    _marker: function () { return markerCone ? { visible: markerCone.visible, opacity: +coneMat.opacity.toFixed(3), y: +markerCone.position.y.toFixed(2), scale: +markerCone.scale.x.toFixed(2), calls: 1 } : null; },
+    _marker: function () { return markerCone ? { visible: markerCone.visible, opacity: +coneMat.opacity.toFixed(3), y: +markerCone.position.y.toFixed(2), scale: +markerCone.scale.x.toFixed(2), calls: 1, halo: marker ? +marker.scale.x.toFixed(3) : 0, hc: markHC, k: markK } : null; },
+    /** Informe 4.6: ajustes que lee Players (ui.js esconde las filas con data-need="Players" si falta). */
+    OPTS: ['ctrlMark', 'ctrlMarkCol'],
     /** Depuración (pruebas): reloj del cuadro vivo de la escena congelada del punto (s desde la escena; -1 sin cuadro). */
     _tab: function () { return TAB.g ? { t: +TAB.t.toFixed(3), max: +TAB.max.toFixed(3) } : -1; },
     rigOf: function (p) { return p && byId[p.id] && byId[p.id].p === p ? byId[p.id] : null; },
@@ -5062,7 +5087,9 @@
         if (fp && fp.x === fp.x) { var fdx = fp.x - hx, fdy = fp.y - hy; nearF = 1 - sstep(0.9, 2.4, Math.sqrt(fdx * fdx + fdy * fdy)); }
         // 6v6 (sprint 3): entre 12 y con la cámara de televisión lejos, halo y galón más grandes (k6) para saber siempre a quién llevas
         var k6 = g.size === 6 ? 1.3 : 1;
-        var pulse = (reach ? 1.08 + Math.sin(ctx.time * 16) * 0.07 : 1) * (1 - 0.38 * nearF) * k6;
+        // informe 4.6: tamaño de la marca (ctrlMark, Ajustes › Accesibilidad) y alto contraste (ctrlMarkCol); solo visual
+        var kM = markLook();
+        var pulse = (reach ? 1.08 + Math.sin(ctx.time * 16) * 0.07 : 1) * (1 - 0.38 * nearF) * k6 * kM;
         marker.scale.set(pulse, pulse, pulse);
         // balón muerto (punto / final): el halo se funde al 25 % como los controles táctiles (CAM-07): el plano de héroe queda limpio
         var hdW = (g.mode === 'point' || g.mode === 'over') ? 0.25 : 1;
@@ -5084,7 +5111,7 @@
         coneMat.opacity += (want - coneMat.opacity) * (dt > 0 ? kf(10, dt) : 1);
         markerCone.visible = coneMat.opacity > 0.02;
         if (cam) markerCone.quaternion.copy(cam.quaternion);
-        markerCone.scale.setScalar(clamp(cd / 12.5, 0.5, 2.2) * (k6 > 1 ? 1.5 : 1));
+        markerCone.scale.setScalar(clamp(cd / 12.5, 0.5, 2.2) * (k6 > 1 ? 1.5 : 1) * kM);
       }
     }
   };

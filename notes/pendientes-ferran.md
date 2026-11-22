@@ -42,6 +42,14 @@ rama pendientes, sin publicar.
   3. Dificultad deja de ocupar la fila entera para que quepa Duración sin una fila más (a 568×320 no cabía otra).
   4. Vale también en 6 contra 6. «Jugar ya» (un set a 15) sigue contando como antes: no es un formato del menú.
   ¿Prefieres que los cortos cuenten aparte (p. ej. su propio «ganados de jugados») en vez de no contar?
+- **4.6 «Marca de tu jugador» y 4.7 «Indicador de caída»** (Ajustes › Accesibilidad; notes/ui_main.md «Marca de tu jugador e indicador de
+  caída»). Solo visuales, sin tocar huellas. **Decisiones provisionales:**
+  1. Alto contraste = **blanco con borde negro** (halo y galón); no amarillo, que es el color del aro de golpeo.
+  2. «Se va retirando» = el aro de caída **sale solo en el último tramo del vuelo** (desde 0,8 s antes del bote) y la línea de altura a la
+     mitad; no se va apagando con los partidos. Nunca se apaga solo: con «Auto» en Difícil/Experto pasa a «Se retira», no a «No».
+  3. El aviso al cambiar de dificultad es una línea de 4 s en la ayuda de la fila Dificultad (no un cartel aparte).
+  4. La vista previa es un icono en la fila; a 568×320 no cabe y no sale.
+  ¿Te vale que «Auto» retire el aro en Difícil y Experto, o lo quieres siempre entero salvo que lo cambie el jugador?
 - **Preguntas del reglamento (informe §7, puntos 2 y 4; los textos NO se han tocado):**
   1. Falta de posición (`RULES.posicion` de js/senas.js): el texto dice «todos en su sitio de rotación», pero el juego **solo** la pita
      al equipo que recibe (regla 7.4, desde 1.11.0); la justificación del 21-nov (que también pita al que saca) es falsa. Propuesta:
