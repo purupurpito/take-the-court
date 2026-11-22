@@ -3040,6 +3040,20 @@
     else if (bswap) { g.courtSwapAt = a + bb; courtChange(g, 'swap'); }
     return ev;
   }
+  /** «Retomar el partido» en la Carrera (js/resume.js, main.js): se cerró con el punto en juego y ese punto no se repite; el equipo
+   *  team lo cede (punto para 1 - team, con su set y su partido si los cierra). Solo con el balón en 'serve' o 'rally'; sin g.rng;
+   *  silbato y equipo que saca, sin seña de falta (signal 'penalty'). Nunca se llama en una partida normal (las huellas no cambian).
+   *  Devuelve el evento 'point' o null. */
+  function concede(g, team) {
+    if ((team !== 0 && team !== 1) || g.finished || g.drill || g.online || (g.mode !== 'serve' && g.mode !== 'rally')) return null;
+    g._pendCall = null;
+    if (g.ritual && g.ritual.on) { g.ritual.on = false; g.ritual.phase = 'none'; }
+    if (g.cpuTossIn > 0) g.cpuTossIn = 0;
+    var n0 = g.events.length;
+    point(g, 1 - team, 'concede', 'Punto para el rival', null, 'penalty');
+    for (var i = n0; i < g.events.length; i++) if (g.events[i].type === 'point') return g.events[i];
+    return null;
+  }
   /* ---------- Challenge (B2/B3, notes/challenge-fivb.md) ----------
    * 2 por set (g.challenges), solo dentro/fuera de un bote; ventana de CHAL.window s desde el punto y hasta que se saca la
    * siguiente jugada. Acertado: se conserva y el punto pasa al otro equipo (instantánea previa al punto); fallado: se pierde.
@@ -5692,7 +5706,7 @@
     // presentación del punto (SIM-01/03)
     skipHold: skipHold, highlightOf: highlightOf, clutchOf: clutchOf,
     // Ambiente de Carrera (P3): no-op sin g.amb
-    holdFor: holdFor, canPenalty: canPenalty, penalty: penalty,
+    holdFor: holdFor, canPenalty: canPenalty, penalty: penalty, concede: concede,
     // ritual del sacador CPU (SIM-04)
     ritualAt: ritualAt,
     // remate apuntado (A2) y challenge (B2)
