@@ -114,14 +114,17 @@ rama pendientes, sin publicar.
   **Corregido el 22-nov (revisión de la rama):** antes aquí ponía «cerrar la pestaña nunca deja repetir un punto», y no era verdad: la foto
   es la de antes del saque con el mismo azar, así que cerrar a mitad de un peloteo y retomar dejaba repetir ese punto hasta ganarlo (y
   con él récord, racha, retos e insignias). Ver la decisión provisional 6. **Decisiones provisionales:**
-  1. **La Carrera queda detrás de un interruptor apagado** (`VB.Resume.CAREER = false`; `?resumecareer=1` lo enciende para probar). Motivo:
-     la nota en directo, las consignas del entrenador, el ambiente (su director con su propio azar) y los contadores de «Te tienen estudiado»
-     viven en career.js con funciones dentro y no se pueden guardar todavía; retomar con ellos a cero daría notas y estadísticas de la
-     jornada incompletas. En la Carrera todo sigue como antes (cerrar a mitad = el partido sigue pendiente en la jornada). Las pruebas de
-     fichaje nunca se guardan: cerrar a mitad sigue suspendiéndola (tu decisión del 15-nov); tampoco la selección, las Estrellas, las cesiones…
+  1. **Carrera: decidido por ti el 22-nov** («No quiero que sea posible ir reiniciando tu progreso constantemente en los partidos del
+     modo carrera. Cada vez que se acabe un punto se guarda»). Hecho así (notes/resume.md «Carrera»): los partidos de la jornada (playa y
+     pista) y los de la selección, las Estrellas y el juvenil se guardan al acabar cada punto (y desde el primer saque), con la nota en
+     directo, las consignas, el ambiente y las estadísticas de la jornada; salir al menú guarda (en la pausa pone «Salir (se guarda)» y
+     no hay «Reiniciar»), la Carrera queda bloqueada en ese partido hasta acabarlo (ni simular, ni pasar de jornada, ni empezarlo de cero);
+     cerrar con el punto en juego = **ese punto es para el rival**; y si la foto no vale (versión nueva, otro aparato) el partido se acaba
+     **simulado desde el marcador guardado**, nunca desde el 0-0. Las pruebas de fichaje siguen como decidiste el 15-nov (cerrar a mitad
+     la suspende). Las Estrellas siguen castigando más al salir (se simula sin ti).
   2. El billete «Seguir el partido» es **dorado, en el sitio de «¡Jugar ya!» / «Continuar carrera»** y, mientras hay un partido a medias,
      **tapa a los dos** (la Carrera sigue en Jugar → Carrera). No hay botón de «descartar» (un botón menos): empezar cualquier otro partido,
-     o salir al menú desde la pausa, lo descarta.
+     o salir al menú desde la pausa, lo descarta (en el Partido rápido; en la Carrera, no: ver 1).
   3. También se guardan los partidos cortos, «Jugar ya», el 6 contra 6 y el reto del día; **no** el online, el Entrenamiento, la situación de
      la semana (22-24) ni la demo.
   4. Al retomar sale la cinta **«Seguimos · 18-15 | 2º set»** y el partido sigue al momento (sin previa ni pausa). Si la versión del juego
@@ -134,7 +137,6 @@ rama pendientes, sin publicar.
      La cinta dice «Seguimos · 18-15 | 2º set · Se cerró con un punto en juego: ya no cuenta» y la hoja final lo repite. Cerrar en la
      pausa entre puntos o antes del saque sigue contando con normalidad. Alternativas descartadas por ahora: dar el punto al rival al
      retomar (habría que tocar la sim y el punto a medias) o no ofrecer retomar (se perdería el caso del móvil que mata la pestaña).
-  ¿Quieres la Carrera también (habría que guardar la nota en directo y el ambiente: un sprint aparte), o te basta con el Partido rápido?
 - **4.1 «Servidor TURN»** (notes/turn.md; pasos en turn-worker/README.md). **Preparado y APAGADO**: el Worker de Cloudflare está en
   `turn-worker/` sin desplegar, sin clave TURN creada y con `VB.NET_TURN_URL = ''`, así que el juego no hace ninguna petición nueva.
   **Lo tienes que hacer tú:** crear la clave TURN en Cloudflare Realtime, `npx wrangler@4 login`, `deploy`, los dos `secret put` y,

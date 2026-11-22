@@ -71,7 +71,7 @@
         'La marca de tu jugador, más grande o en alto contraste (Ajustes › Accesibilidad).',
         'El aro de caída, a tu gusto: siempre, solo al final del vuelo o nunca.',
         'La CPU ya no repite el mismo ataque: cambia de zona, de carril y de receptor.',
-        '¿Se cerró el juego a mitad? Sigue tu Partido rápido desde el último punto.'
+        '¿Se cerró el juego a mitad? Sigue el partido desde el último punto, también en la Carrera.'
       ]
     },
     {
