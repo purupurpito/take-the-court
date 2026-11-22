@@ -51,7 +51,10 @@
     pos: { txt: 'Falta de posición', w: -0.17, toast: true },
     err: { txt: 'Error', w: -0.17, toast: true },
     blocked: { txt: 'Te bloquean', w: 0, toast: true },
-    recvErr: { txt: 'Recepción fallida', w: -0.03, toast: true }
+    recvErr: { txt: 'Recepción fallida', w: -0.03, toast: true },
+    // «Seguir el partido» en la Carrera (22-nov-2026): cerraste con el punto en juego y al retomar ese punto fue para el rival
+    // (Sim.concede, reason 'concede'): cuesta lo mismo que un error tuyo, para que cerrar un peloteo perdido no salga más barato
+    quit: { txt: 'Punto abandonado', w: -0.17, toast: true }
   };
   var RATE6 = { OH: 3.0, OPP: 2.8, MB: 3.4, S: 2.0, L: 4.0 };   // (copia de RATE6 de career.js; career.js pasa o.rol)
 
@@ -240,7 +243,8 @@
           else if (e.how === 'block' && t.blocker === 0) act(st, 'block');
         } else {
           var fp = W(e.player);
-          if (fp === 0) act(st, FAULT[e.reason] || errOf(t));
+          if (e.reason === 'concede') act(st, 'quit');
+          else if (fp === 0) act(st, FAULT[e.reason] || errOf(t));
           else if (fp < 0 && e.how === 'error' && t.lastTeam === 0 && t.last0 === 0) act(st, errOf(t));
           else if (e.how === 'block' && t.atk0 === 0) act(st, 'blocked');
           else if (e.how === 'ace' && t.recv0 === 0) act(st, 'recvErr');

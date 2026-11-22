@@ -8694,7 +8694,8 @@
     netStatsSet: function (o) { if (o && o.t) stats = o; },
     /** «Retomar el partido» (js/resume.js, informe 4.9): lo que la hoja final lleva contado de este partido (VB.Resume lo pasa a datos
      *  planos; los jugadores van por id) y su vuelta tras rehacer la partida. Fuera del online. */
-    resumeGet: function () { return ctx.net ? null : { stats: stats, unl0: unl0 }; },
+    // (cards: las tarjetas del Ambiente de Carrera de antes del corte, para «Sanciones» de la hoja, el Resumen y los puntitos del marcador)
+    resumeGet: function () { return ctx.net ? null : { stats: stats, unl0: unl0, cards: amb.cards.map(function (c) { return Object.assign({}, c, { score: c.score.slice() }); }) }; },
     /** Partido retomado (main.js, tras rehacerlo): la cinta «Seguimos» con el marcador y el set, en vez de la de «Set 1». */
     resumed: function (g) {
       if (!g || g.demo) return;
@@ -8707,6 +8708,10 @@
       if (s.undo && s.undo.P && s.p) s.undo.P = s.p[s.undo.P.id] || null;   // (el deshacer del challenge apunta a la MISMA fila del jugador)
       stats = s; pstats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null;
       unl0 = Array.isArray(o.unl0) ? o.unl0 : unl0;
+      amb.cards.length = 0;
+      if (Array.isArray(o.cards)) o.cards.forEach(function (c) { if (c && typeof c === 'object') amb.cards.push({ team: c.team === 1 ? 1 : 0, pid: c.pid == null ? -1 : c.pid, num: c.num | 0, name: String(c.name || ''), who: c.who || 'player',
+        color: AMB_COL[c.color] ? c.color : 'yellow', reason: c.reason || 'protesta', set: c.set | 0 || 1, score: Array.isArray(c.score) ? [c.score[0] | 0, c.score[1] | 0] : [0, 0], penalty: !!c.penalty, penWait: !!c.penWait }); });
+      amb.sb[0] = amb.sb[1] = ''; ambSbTick();
     },
     /** Cierra el panel abierto. true si se ha consumido (Esc / B / Start). */
     back: function () {
