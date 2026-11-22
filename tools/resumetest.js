@@ -17,6 +17,10 @@
  *  C) node, Carrera (career.js con nota, consignas, árbitro y ambiente; playa y pista): partido entero vs. cortado y rehecho desde el JSON
  *     → mismo resumen de jornada y misma Carrera guardada; foto live → punto para el rival (Sim.concede), determinista; candado (ni
  *     simular ni dificultad); resolución desde el marcador (nunca 0-0); otra versión no se tira; pack/unpack.
+ *  Revisión del 22-nov: dos pestañas (la vieja no pisa la Carrera ni la foto; evento «storage»), candado sin foto y sin x → set a medias
+ *     perdido, punto abandonado = error tuyo, Ambiente apagado entre medias, challenge guardado al pedirlo (node); ?resumecareer=0 no
+ *     apaga nada, tarjetas en la foto, la otra pestaña corta el partido, candado en las dos Carreras, la cuenta no recupera una Carrera
+ *     de antes del partido (navegador).
  * Uso: node tools/resumetest.js [--node] [--browser]   (sin nada, todo; --node = A y C; sale con 1 si algo falla)
  */
 'use strict';
@@ -130,6 +134,37 @@ function partA() {
       if (ev.some(e => e.type === 'point')) saved = R.load();
     }
     ok(!!saved && saved.nc === 1 && !saved.live && R.noCount(saved) && R.peek().nc === true, 'retomado con el punto en juego: las fotos siguientes llevan nc: 1 (no cuenta)');
+    R.clear(); R.disarm();
+  }
+  // (revisión) challenge: se guarda al pedirlo (la foto lleva la revisión en marcha); cerrar antes del veredicto y retomar da el MISMO
+  // veredicto y el challenge queda gastado igual (antes volvía la foto del punto con el challenge sin usar)
+  {
+    VB.Badges._reset(); VB.Retos._reset(); VB.MatchStats.reset(); R.clear();
+    let done = null;
+    for (const sd of [42, 7, 9, 11, 5, 13, 17, 19, 23, 29]) {
+      const gOpts = { demo: false, seed: sd, difficulty: 'normal', present: true, stats: true, points: 21, ctrl: 'one', ctrlIdx: 0, venue: 'hall' };
+      const g = S.createGame(JSON.parse(JSON.stringify(gOpts)));
+      R.clear(); R.arm(g, { kind: 'career', opts: {}, gOpts, map: '', cm: 'x' });
+      const ev = []; S.drainEvents(g, ev);
+      let k = 0, asked = false, rec = null, kR = -1;
+      for (; k < 120 * 1500 && !g.finished; k++) {
+        S.step(g, DT, inputAt(k)); ev.length = 0; S.drainEvents(g, ev); R.onFrame(g, ev);
+        if (asked && ev.some(e => e.type === 'challenge')) { rec = R.load('career'); kR = k; break; }
+        if (!asked && S.canChallenge(g, 0) > 0) asked = S.challenge(g, 0);
+      }
+      if (!rec) continue;
+      // el original sigue hasta el veredicto
+      let resA = null;
+      for (let j = 1; j < 120 * 10 && !resA; j++) { S.step(g, DT, inputAt(kR + j)); ev.length = 0; S.drainEvents(g, ev); const x = ev.find(e => e.type === 'challengeResult'); if (x) resA = JSON.stringify([x.overturned, x.left, g.score, g.sets, S.stateHash(g)]); }
+      const rec2 = JSON.parse(JSON.stringify(rec)), g2 = S.createGame(JSON.parse(JSON.stringify(rec2.gOpts)));
+      const ap = R.apply(rec2, g2), rv = !!g2.review;
+      let resB = null;
+      for (let j = 1; j < 120 * 10 && !resB; j++) { S.step(g2, DT, inputAt(kR + j)); ev.length = 0; S.drainEvents(g2, ev); const x = ev.find(e => e.type === 'challengeResult'); if (x) resB = JSON.stringify([x.overturned, x.left, g2.score, g2.sets, S.stateHash(g2)]); }
+      done = { ap, rv, resA, resB, sd };
+      break;
+    }
+    ok(!!done && done.ap && done.rv, 'challenge: guardado al pedirlo, con la revisión en marcha en la foto' + (done ? ' (semilla ' + done.sd + ')' : ' (no salió ningún challenge)'));
+    ok(!!done && !!done.resA && done.resA === done.resB, 'challenge: cerrado antes del veredicto y retomado, el MISMO veredicto y el challenge gastado igual (' + (done && done.resA) + ')');
     R.clear(); R.disarm();
   }
   // versión distinta, foto tocada, plain/unplain
@@ -259,6 +294,16 @@ function partC() {
     R.mods(rec, g2);
     const lr1 = C.liveRating(g2);
     ok(lr1 && lr1.v === rt0, mode + ': la nota en directo sigue donde estaba (' + rt0 + ')');
+    {   // (revisión) con «Ambiente de Carrera» en Apagado entre cortar y retomar: el ambiente sigue (sus tarjetas y su árbitro), no se tira
+      const G3 = careerGame(B, GS), g3 = S.createGame(JSON.parse(JSON.stringify(rec.gOpts)));
+      R.apply(rec, g3); g3.career = G3.cs; G3.cs.ambient = 'off'; G3.cs.amb = null;
+      R.disarm(); R.mods(rec, g3);
+      const am = C._M() && C._M().amb, A = VB.Ambiente;
+      const want = JSON.stringify(A.sum(R._unpack(rec.mods.cr, g3).m.amb)), got = am ? JSON.stringify(A.sum(am)) : 'null';
+      ok(!!am && got === want && g3.career.ambient === 'full', mode + ': Ambiente apagado entre medias: al retomar sigue el de entonces (' + (am ? 'tarjetas ' + (A.sum(am).cards || []).length : 'sin ambiente') + ')');
+      // (de vuelta a la partida g2 de la prueba)
+      R.disarm(); R.arm(g2, { kind: 'career', opts: {}, gOpts: rec.gOpts, map: '', cm: rec.cm, played: true }); R.mods(rec, g2);
+    }
     const rB = careerLoop(B, g2, kNext, MAXK, null);
     ok(!!rB.sum, mode + ': partido B (cortado y retomado) acabado');
     ok(rB.sum && JSON.stringify(rB.sum) === sumA, mode + ': resumen de jornada idéntico al de sin cortar (nota ' + (rB.sum && rB.sum.nota) + ', ' + (rB.sum && rB.sum.sets.join('-')) + ')');
@@ -284,7 +329,13 @@ function partC() {
         const Gx = careerGame(B, GS), gx = S.createGame(JSON.parse(JSON.stringify(live.gOpts)));
         R.apply(live, gx); gx.career = Gx.cs; R.arm(gx, { kind: 'career', opts: {}, gOpts: live.gOpts, cm: live.cm, played: true }); R.mods(live, gx);
         for (let n = 0; gx.mode !== 'serve' && gx.mode !== 'rally' && n < 4800; n++) S.step(gx, 1 / VB.C.SIM_HZ, { move: [0, 0] });
+        const M0 = C._M(), er0 = M0 ? M0.p[0].errors : -1, v0 = M0 && M0.rt ? M0.rt.v : null;
         const e = S.concede(gx, 0);
+        const evc = []; S.drainEvents(gx, evc); C.ingest(evc, gx);
+        if (t === 0) {
+          const M1 = C._M(), on = !!(M1 && M1.on);
+          ok(!on || (M1.p[0].errors === er0 + 1 && M1.rt.acts.quit && M1.rt.acts.quit.n === 1 && M1.rt.v <= v0), mode + ': el punto abandonado cuenta como error tuyo (errores ' + er0 + ' -> ' + (M1 && M1.p[0].errors) + ', nota ' + v0 + ' -> ' + (M1 && M1.rt && M1.rt.v) + ', «Punto abandonado»)');
+        }
         res.push(JSON.stringify([e && e.team, gx.score, gx.sets, S.stateHash(gx)]));
       }
       const rv = JSON.parse(res[0]);
@@ -304,6 +355,54 @@ function partC() {
     ok(sr && sr.setScores[pre] && sr.setScores[pre][0] >= rec.sc.score[0] && sr.setScores[pre][1] >= rec.sc.score[1], mode + ': el set a medias sigue desde su marcador (nunca 0-0)');
     ok(C.get().inbox.some(m => m.t === 'Partido resuelto'), mode + ': y la Carrera lo cuenta («Partido resuelto»)');
     R.clear(); R.disarm();
+  }
+  // (revisión) dos pestañas a la vez: la Carrera en memoria de la pestaña vieja no pisa la buena, ni su partido la foto
+  {
+    if (careerPrep(B, 'beach', 5151)) {
+      const B2 = careerBoot(); B2.cx.localStorage = B.cx.localStorage;   // (otra pestaña: el mismo localStorage)
+      B2.C._reset();
+      const n0 = B.C.get().notes.length; B2.C.get();
+      let stale = 0; B2.C.onStale = () => { stale++; };
+      const sA = B.C.simulateNext();
+      ok(!!sA && B.C.get().notes.length === n0 + 1, 'dos pestañas: en A se juega (simula) la jornada (' + n0 + ' -> ' + B.C.get().notes.length + ')');
+      const before = B.mem['make-the-cut.career'];
+      B2.C.simulateNext();
+      ok(B.mem['make-the-cut.career'] === before && stale === 1, 'dos pestañas: B, con la Carrera vieja en memoria, NO pisa lo de A (avisa: onStale ' + stale + ')');
+      ok(B2.C.get().notes.length === n0 + 1, 'dos pestañas: B vuelve a leer la buena (' + B2.C.get().notes.length + ' jornadas)');
+      // el candado: lockAny mira si ha cambiado fuera
+      B2.C.get(); const lkSig = B.C.matchSig();
+      B.C.beach.lockSet({ cm: lkSig, ext: null, sc: { score: [3, 2], sets: [0, 0], ss: [], setNo: 1, pts: 21, tw: 2 }, t: 1, v: 'test-1' });
+      stale = 0;
+      ok(!!B2.C.lockAny() && stale === 1 && B2.C.simulateNext() === null, 'dos pestañas: el candado puesto en A se ve en B (lockAny) y B no puede simular');
+      // la foto del partido: A armada, B la reescribe (ha retomado el partido) -> A deja de guardar y avisa
+      const RA = B.VB.Resume, RB = B2.VB.Resume, GO = { demo: false, seed: 3, difficulty: 'normal', stats: true };
+      const ga = B.VB.Sim.createGame(JSON.parse(JSON.stringify(GO))); B.VB.Sim.drainEvents(ga, []);
+      RA.arm(ga, { kind: 'career', opts: {}, gOpts: GO, cm: lkSig });
+      ok(RA.save(ga), 'dos pestañas: A guarda la foto de su partido');
+      let cf = 0; RA.onConflict = () => { cf++; };
+      const gb = B2.VB.Sim.createGame(JSON.parse(JSON.stringify(GO))); B2.VB.Sim.drainEvents(gb, []);
+      RB.arm(gb, { kind: 'career', opts: {}, gOpts: GO, cm: lkSig, played: true });
+      B2.VB.Sim.step(gb, 1 / B2.VB.C.SIM_HZ, { move: [0, 0] }); B2.VB.Sim.drainEvents(gb, []);
+      ok(RB.save(gb), 'dos pestañas: B retoma el partido y guarda');
+      const txtB = B.mem[RA.KEYS.career];
+      ok(!RA.save(ga) && cf === 1 && !RA.armed() && B.mem[RA.KEYS.career] === txtB, 'dos pestañas: A ya no guarda (no pisa la foto de B) y avisa (onConflict)');
+      RA.arm(ga, { kind: 'career', opts: {}, gOpts: GO, cm: lkSig, played: true });
+      ok(RA._external(RA.KEYS.career, 'otra') === true && !RA.armed() && cf === 2, 'dos pestañas: el evento «storage» de la foto también corta la pestaña vieja');
+      RA.onConflict = null; RA.disarm(); RB.disarm(); RA.clear();
+    } else ok(false, 'dos pestañas: sin Carrera');
+  }
+  // (revisión) candado sin foto y sin x (escrito mientras se jugaba): el set a medias se da por perdido; con x, desde el marcador
+  {
+    const P = C.beach._pessSc({ score: [12, 8], sets: [1, 1], ss: [[21, 15], [18, 21]], setNo: 3, pts: 21, tw: 2 }, 21);
+    ok(P.sets[1] === 2 && P.ss.length === 3 && P.ss[2][0] === 12 && P.ss[2][1] === 15 && P.pz.join('-') === '12-8', 'candado sin foto (en juego): el set que se jugaba es para el rival (' + P.ss.map(x => x.join('-')).join(', ') + ')');
+    const P2 = C.beach._pessSc({ score: [21, 15], sets: [1, 0], ss: [[21, 15]], setNo: 1, pts: 21, tw: 2 }, 21);
+    ok(P2.ss.length === 2 && P2.ss[1].join('-') === '0-21' && P2.sets.join('-') === '1-1', 'candado del final de un set: el set siguiente, para el rival (' + P2.ss.map(x => x.join('-')).join(', ') + ')');
+    if (careerPrep(B, 'beach', 6161)) {
+      const E = C.beach, sig = C.matchSig(), sc = { score: [10, 4], sets: [0, 0], ss: [], setNo: 1, pts: 21, tw: 2 };
+      E.lockSet({ cm: sig, ext: null, sc, t: 1, v: 'test-1' });
+      const sr = E.lockResolve(C.beach._pessSc(sc, 21));
+      ok(!!sr && sr.setScores[0].join('-') === '10-21' && C.get().inbox.some(m => m.t === 'Partido resuelto' && /se da por perdido/.test(m.x)), 'resuelto sin foto: 1r set perdido desde 10-4 (' + (sr ? sr.setScores.map(x => x.join('-')).join(', ') : 'nada') + ') y el mensaje lo explica');
+    }
   }
   // simRest: foto en la pausa del cambio de set (el set ya está en ss)
   {
@@ -413,13 +512,22 @@ async function partB() {
     // ---------------- Carrera (22-nov-2026): se guarda en cada punto y no se puede repetir
     const KC = 'make-the-cut.resume.career';
     ok(await J(pg, 'VB.Resume.CAREER') === true, 'Carrera: «Seguir el partido» encendido (CAREER)');
+    // (revisión) ningún parámetro de la URL lo apaga en el juego publicado
+    await pg.navigate('?resumecareer=0');
+    ok(await waitFor(pg, READY, 30000) && await J(pg, 'VB.Resume.CAREER') === true, '?resumecareer=0 ya no apaga el guardado de la Carrera');
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 30000), 'de vuelta sin parámetros');
     const mk = await J(pg, "(function(){var C=VB.Career;var c=C.create({mode:'beach',name:'Prueba Seguir',num:7,role:'atk',seed:4242});var oi=Math.max(0,(c.offers||[]).findIndex(function(o){return !o.trial}));C.acceptOffer(oi,2);for(var i=0;i<6;i++){var n=C.next(C.get());if(n&&n.bench)C.benchNext();else break;}var n2=C.next(C.get());return {ok:!!C.matchSetup(),wk:n2?n2.week:-1}})()");
     ok(mk.ok, 'Carrera de playa creada, con partido que jugar (jornada ' + (mk.wk + 1) + ')');
     await pg.evalJs("VB.ctx.actions.startCareerMatch()");
     ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&VB.ctx.game.career&&!VB.ctx.game.demo&&VB.Resume.armed()===VB.ctx.game&&VB.ctx.game.rsLock===1", 15000), 'partido de Carrera: armado y con candado');
     await pg.evalJs("VB.ctx.introSkipReq=true");
     ok(await waitFor(pg, "(function(){var r=JSON.parse(localStorage.getItem('" + KC + "')||'null');var c=JSON.parse(localStorage.getItem('make-the-cut.career')||'null');return !!r&&r.kind==='career'&&!!c&&!!c.lock&&c.lock.cm===r.cm})()", 30000), 'guardado ya en el primer saque, con el candado en la Carrera (c.lock)');
+    ok(await J(pg, "!JSON.parse(localStorage.getItem('make-the-cut.career')).lock.x"), 'el candado escrito con el partido en juego no lleva x (sin foto, el set a medias se perdería)');
     ok(await waitFor(pg, "VB.ctx.game.score[0]+VB.ctx.game.score[1]>=2&&VB.ctx.game.mode==='serve'", 120000), 'dos puntos jugados');
+    // (revisión) las tarjetas del ambiente van en la foto (hoja «Sanciones», Resumen y marcador): una de prueba, que vuelve al retomar
+    ok(await J(pg, "(function(){var o=VB.UI.resumeGet();o.cards=[{team:0,pid:-1,num:7,name:'Prueba',who:'player',color:'yellow',reason:'protesta',set:1,score:[1,1],penalty:false}];VB.UI.resumeSet(o);return VB.UI.ambCards().length===1&&VB.UI.resumeGet().cards.length===1})()"), 'tarjetas del ambiente en UI.resumeGet/resumeSet');
+    ok(await waitFor(pg, "(function(){var r=JSON.parse(localStorage.getItem('" + KC + "')||'null');return !!r&&r.mods&&r.mods.ui&&r.mods.ui.cards&&r.mods.ui.cards.length===1})()", 60000), 'y en la foto del siguiente punto');
     await pg.evalJs("VB.ctx.actions.pause()"); await sleep(300);
     const pz = await J(pg, "{r:document.getElementById('btnRestart').hidden,q:document.getElementById('btnQuit').textContent.replace(/\\s+/g,' ').trim()}");
     ok(pz.r && /Salir \(se guarda\)/.test(pz.q), 'pausa: sin «Reiniciar» y «' + pz.q + '»');
@@ -429,6 +537,7 @@ async function partB() {
     await pg.evalJs("VB.ctx.actions.toMenu()"); await sleep(400);
     const out = await J(pg, "(function(){var b=document.getElementById('btnSeguir');return {st:VB.ctx.state,rec:!!localStorage.getItem('" + KC + "'),bil:!!b&&!b.hidden&&b.offsetParent!==null,txt:b?b.textContent.replace(/\\s+/g,' ').trim():'',sim:VB.Career.simulateNext(),hub:!!document.querySelector('#app.cr-on')}})()");
     ok(out.st === 'menu' && out.rec && !out.hub, 'salir: a la portada, lo guardado se queda');
+    ok(await J(pg, "JSON.parse(localStorage.getItem('make-the-cut.career')).lock.x===1"), 'salir: el candado lleva el marcador exacto (x: 1)');
     ok(out.bil && /Carrera/.test(out.txt) && out.txt.indexOf(sc0.sc[0] + '-' + sc0.sc[1]) >= 0, 'portada: billete «' + out.txt + '»');
     ok(out.sim === null, 'con el partido a medias no se puede simular la jornada');
     // el hub, bloqueado
@@ -439,6 +548,17 @@ async function partB() {
     ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&VB.ctx.game.career&&VB.Resume.armed()===VB.ctx.game", 15000), 'hub → «Seguir el partido»: el partido sigue');
     const sc1 = await J(pg, "(function(){var g=VB.ctx.game,lr=VB.Career.liveRating(g);return {sc:[g.score[0],g.score[1]],set:g.setNo,v:lr?lr.v:null}})()");
     ok(sc1.sc[0] === sc0.sc[0] && sc1.sc[1] === sc0.sc[1] && sc1.v === sc0.v, 'mismo marcador (' + sc1.sc.join('-') + ') y misma nota en directo (' + sc1.v + ')');
+    ok(await J(pg, "VB.UI.ambCards().length===1"), 'la tarjeta de antes del corte sigue (hoja y marcador)');
+    // (revisión) dos pestañas: otra pestaña escribe la foto (ha retomado el partido) → aquí se corta sin guardar ni borrar nada
+    const fotoAntes = await pg.evalJs("localStorage.getItem('" + KC + "')");
+    await pg.evalJs("window.dispatchEvent(new StorageEvent('storage',{key:'" + KC + "',oldValue:null,newValue:'{\"otra\":1}'}))");
+    ok(await waitFor(pg, "VB.ctx.state==='menu'&&!VB.Resume.armed()", 5000), 'otra pestaña escribe la foto: aquí el partido se corta (a la portada)');
+    ok(await pg.evalJs("localStorage.getItem('" + KC + "')") === fotoAntes, '… sin pisar ni borrar la foto');
+    await pg.evalJs("VB.ctx.actions.startCareerMatch()");
+    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&VB.ctx.game.career&&VB.Resume.armed()===VB.ctx.game", 15000), 'y se puede seguir aquí (retoma la foto)');
+    await pg.evalJs("window.dispatchEvent(new StorageEvent('storage',{key:'make-the-cut.career',oldValue:null,newValue:'{}'}))");
+    ok(await waitFor(pg, "VB.ctx.state==='menu'&&!VB.Resume.armed()", 5000), 'otra pestaña cambia la Carrera: aquí el partido también se corta');
+    ok(await J(pg, "!!VB.Career.get()&&!!VB.Career.get().lock"), '… y la Carrera se vuelve a leer (con su candado)');
     // empezar la jornada «de cero» retoma la misma
     await pg.evalJs("VB.ctx.actions.toMenu()"); await sleep(300);
     await pg.evalJs("VB.ctx.actions.startCareerMatch()");
@@ -466,6 +586,48 @@ async function partB() {
     ok(await waitFor(pg, "!localStorage.getItem('" + KC + "')", 8000), 'la foto que no vale se quita al arrancar');
     const aft = await J(pg, "(function(){var c=VB.Career.get(),n=VB.Career.next(c),b=document.getElementById('btnSeguir'),l=c.notes[c.notes.length-1];return {lock:!!c.lock,wk:n?n.week:-1,notes:c.notes.length,msg:(c.inbox||[]).some(function(m){return m.t==='Partido resuelto'}),bil:!!b&&!b.hidden,ss:l&&l.sc?l.sc:null}})()");
     ok(!aft.lock && aft.notes === before.notes + 1 && aft.msg && !aft.bil, 'otra versión: el partido se resuelve desde ' + before.sc.score.join('-') + ' (sin candado, «Partido resuelto», sin billete)');
+    // (revisión) sin foto y con un candado escrito en juego (sin x): el set a medias se da por perdido, no se simula desde un marcador viejo
+    await pg.evalJs("VB.ctx.actions.startCareerMatch()");
+    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&VB.ctx.game.career&&VB.Resume.armed()===VB.ctx.game", 15000), 'otro partido de Carrera');
+    await pg.evalJs("VB.ctx.introSkipReq=true");
+    ok(await waitFor(pg, "(function(){var c=JSON.parse(localStorage.getItem('make-the-cut.career')||'null');return !!c&&!!c.lock&&!!localStorage.getItem('" + KC + "')})()", 30000), 'con foto y candado');
+    await pg.evalJs("VB.ctx.actions.toMenu()"); await sleep(300);
+    const n1 = await J(pg, "VB.Career.get().notes.length");
+    await pg.evalJs("(function(){var c=JSON.parse(localStorage.getItem('make-the-cut.career'));delete c.lock.x;c.lock.sc={score:[9,3],sets:[0,0],ss:[],setNo:1,pts:21,tw:2,one:false};localStorage.setItem('make-the-cut.career',JSON.stringify(c));localStorage.removeItem('" + KC + "')})()");
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 30000), 'recarga sin la foto');
+    ok(await waitFor(pg, "!VB.Career.get().lock", 8000), 'sin foto: resuelto al arrancar');
+    const pzR = await J(pg, "(function(){var c=VB.Career.get(),l=c.notes[c.notes.length-1],m=(c.inbox||[]).filter(function(m){return m.t==='Partido resuelto'}).pop();return {n:c.notes.length,s:l?l.s:null,x:m?m.x:''}})()");
+    ok(pzR.n === n1 + 1 && /se da por perdido/.test(pzR.x) && pzR.s && pzR.s[1] >= 1, 'candado sin x: el set que se jugaba (9-3) se da por perdido (sets ' + JSON.stringify(pzR.s) + ')');
+    // (revisión) candado en las dos Carreras: resolver el de pista no borra la foto (válida) del partido de playa
+    await pg.evalJs("VB.ctx.actions.startCareerMatch()");
+    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&VB.ctx.game.career&&VB.Resume.armed()===VB.ctx.game", 15000), 'partido de playa');
+    await pg.evalJs("VB.ctx.introSkipReq=true");
+    ok(await waitFor(pg, "!!localStorage.getItem('" + KC + "')&&!!VB.Career.beach.lockGet()", 30000), 'con foto y candado (playa)');
+    await pg.evalJs("VB.ctx.actions.toMenu()"); await sleep(300);
+    const two = await J(pg, "(function(){var C=VB.Career,H=C.hall;var ct=H.countries?H.countries():[];var c=C.create({mode:'hall',name:'Prueba Pista',num:7,role:'OH',seed:777,country:ct[0]&&(ct[0].cc||ct[0].id||ct[0])});if(!c)return {ok:false};var c6=C.get();if(c6.offers&&c6.offers.length&&c6.myClub<0){var oi=Math.max(0,c6.offers.findIndex(function(o){return !o.trial}));C.acceptOffer(oi,2);}for(var i=0;i<6;i++){var n=C.next(C.get());if(n&&n.bench)C.benchNext();else break;}var sig=C.matchSig();C.setMode('beach');return {ok:!!sig&&H.lockSet({cm:sig,ext:null,sc:{score:[5,5],sets:[0,0],ss:[],setNo:1,pts:H.get().points||25,tw:3},t:1,v:VB.VERSION,x:1}),sig:sig}})()");
+    ok(two.ok, 'Carrera de pista con candado (' + two.sig + ') a la vez que la de playa');
+    const r1 = await J(pg, "(function(){var a=VB.ctx.actions.careerLock();return {a:a,foto:!!localStorage.getItem('" + KC + "'),h:!!VB.Career.hall.lockGet()}})()");
+    ok(!r1.h && r1.foto, 'se resuelve el de pista y la foto de playa se queda');
+    const r2 = await J(pg, "VB.ctx.actions.careerLock()");
+    ok(!!r2 && typeof r2.sub === 'string', 'el partido de playa se sigue pudiendo retomar (' + (r2 && r2.sub) + ')');
+    // (revisión) cuenta: la MISMA Carrera (semilla y creación) nunca se pregunta: gana la más avanzada, aunque la de la cuenta sea más
+    // nueva o sea la primera entrada (cerrar sesión, jugar y perder, y volver a entrar ya no recupera la de antes del partido)
+    const acc = await J(pg, "(function(){var A=VB.Account,K='make-the-cut.career',L=localStorage.getItem(K),c=JSON.parse(L);" +
+      "var old=JSON.parse(L);old.notes=old.notes.slice(0,Math.max(0,old.notes.length-1));old.msgN=Math.max(0,(old.msgN|0)-1);old.lock=null;var Ro=JSON.stringify(old);" +
+      "var adv=JSON.parse(L);adv.notes=adv.notes.concat([{nota:6,win:1,sim:1,kind:'league',wk:9,rival:'x',s:[2,0]}]);adv.msgN=(adv.msgN|0)+1;var Ra=JSON.stringify(adv);" +
+      "var oth=JSON.parse(L);oth.seed=(oth.seed|0)+1;var Rx=JSON.stringify(oth);" +
+      "var p1=A._careerPick(L,Ro),p2=A._careerPick(L,Ra),p3=A._careerPick(L,Rx),p4=A._careerPick(L,L);" +
+      "var m1=A._merge({career:{data:Ro,at:Date.now()+9e6}},true),k1=localStorage.getItem(K)===L;" +
+      "var m2=A._merge({career:{data:Ro,at:Date.now()+9e6}},false),k2=localStorage.getItem(K)===L;" +
+      "var m3=A._merge({career:{data:Rx,at:Date.now()+9e6}},true);" +
+      "var m4=A._merge({career:{data:Ra,at:1}},false),k4=localStorage.getItem(K)===Ra;" +
+      "localStorage.setItem(K,L);VB.Career._reset();" +
+      "return {p:[p1,p2,p3,p4],c1:m1.conflicts.length,k1:k1,k2:k2,c3:m3.conflicts.length,k4:k4}})()");
+    ok(acc.p.join(',') === 'local,remote,,tie', 'cuenta: careerPick (más vieja → local, más avanzada → remota, otra Carrera → se pregunta, igual → empate): ' + acc.p.join(','));
+    ok(acc.c1 === 0 && acc.k1 && acc.k2, 'cuenta: la de la cuenta, de antes del partido y más nueva, no pisa la del aparato ni se pregunta (primera entrada y sincronización)');
+    ok(acc.c3 === 1, 'cuenta: una Carrera distinta de verdad sí se pregunta');
+    ok(acc.k4, 'cuenta: la de la cuenta más avanzada (jugada en otro aparato) sí entra, aunque su hora sea vieja');
     ok(pg.errors.length === 0, 'sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));
   } finally { pg.close(); }
 }
