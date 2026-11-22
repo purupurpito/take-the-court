@@ -811,7 +811,7 @@
     n.online = true;
     var gc = S.createGame(n);
     if (!gc.hum || gc.hum.length !== this.n) throw new Error('netN: ' + (gc.hum ? gc.hum.length : 0) + ' plazas en la partida y ' + this.n + ' en la sesión');
-    this.opts = n; this.gc = gc; this.gp = S.createGame(n);
+    this.opts = n; this.gc = gc; this.gp = S.createGame(n); this._pqDirty();
     this.team = this.gc.hum[this.slot].team;
     this.initEvents.length = 0; S.drainEvents(this.gc, this.initEvents); this.gp.events.length = 0;
     for (s = 0; s < this.n; s++) for (t = 0; t < this.delay; t++) this.rings[s].put(t, 0, 0, 0);   // tics 0..delay-1: neutros (no viajan)
@@ -1168,6 +1168,7 @@
     if (t > this.gcTick || t < this.gcTick - RING / 2 || t < this.syncFloor) return;
     var to = this.gcTick;
     if (!S.deserialize(c.d, this.gc)) return;
+    this._pqDirty();   // (gc cambia por debajo: la predicha del frame anterior ya no vale)
     this.gcTick = t; this.mismatches++; this.repaired++; this.cmpBad = -1;
     this._confirm(to, true);
     for (var k = t + HASH_EVERY; k <= this.gcTick; k += HASH_EVERY) if (this.myHash[k] !== undefined) this._ctl({ k: 'hash', t: k, h: this.myHash[k] });
@@ -1212,6 +1213,7 @@
     if (rings.length !== this.n || F < T || F - T > RING) return false;
     for (s = 0; s < this.n; s++) if (!Array.isArray(rings[s]) || rings[s].length > 3 * RING) return false;
     if (!this.opts || !S.deserialize(c.d, this.gc)) return false;
+    this._pqDirty();
     this.gcTick = T;
     for (s = 0; s < this.n; s++) {
       R = this.rings[s]; R.clearFrom(T);
@@ -1262,28 +1264,57 @@
     for (var s = 0; s < this.n; s++) { var R = this.rings[s]; a.push(R.X[i], R.Y[i], R.B[i]); }
     this.rec[t] = a;
   };
+  /** Predicción INCREMENTAL (P8, lag en móvil lento): antes cada frame copiaba gc y rehacía TODOS los tics de gcTick a localTick
+   *  (2v2 × 4 a 150 ms: 20-24 tics por frame; en un móvil lento, CPU ×4, 2,3 ms de p50 solo en la sesión). Ahora se guarda qué
+   *  entrada se usó en cada tic predicho (PQ_W tics por plaza) y, si las que se saben ahora (llegadas o predichas otra vez) son las
+   *  mismas, la partida predicha del frame anterior sigue valiendo: solo se dan los tics nuevos. Si alguna cambió, se rehace desde
+   *  gc como siempre (mismo resultado: la sim es determinista y gp = gc + las mismas entradas). Las fotos y los resync que tocan gc
+   *  la invalidan (_pqDirty). stats.resim = tics rehechos en el último frame. */
+  var PQ_W = 512, PQ_M = PQ_W - 1;
+  NP._pqDirty = function () { if (this._pq) this._pq.T = -1; };
   NP._predict = function () {
-    var S = Sim(), gp = this.gp, ins = this._ins, me = this.slot, n = this.n, s, t;
-    S.copyGame(gp, this.gc);
+    var S = Sim(), gp = this.gp, ins = this._ins, me = this.slot, n = this.n, s, t, R, x, y, b, u;
     var depth = this.localTick - this.gcTick;
     if (depth > this.stats.maxDepth) this.stats.maxDepth = depth;
     this.stats.depth = depth;
-    if (depth <= 0) return;
+    var Q = this._pq;
+    if (!Q || Q.n !== n) Q = this._pq = { n: n, X: new Int16Array(n), Y: new Int16Array(n), B: new Uint8Array(n), UX: new Int16Array(PQ_W * n), UY: new Int16Array(PQ_W * n), UB: new Uint8Array(PQ_W * n), T: -1, C: 0 };
+    if (depth <= 0) { S.copyGame(gp, this.gc); Q.T = -1; this.stats.resim = 0; return; }
     for (s = 0; s < n; s++) {   // predicción de cada plaza remota: su última entrada conocida, botones a falso
       if (s === me && !this.spect) continue;   // (espectador: la mía también es remota)
-      var lk = this.rHave[s] - 1, R = this.rings[s];
-      if (lk >= 0 && R.has(lk)) { var j = lk & RM; decode(R.X[j], R.Y[j], R.B[j] & ~EDGE_N, this._pred[s]); } else decode(0, 0, 0, this._pred[s]);
+      var lk = this.rHave[s] - 1; R = this.rings[s];
+      if (lk >= 0 && R.has(lk)) { var j = lk & RM; Q.X[s] = R.X[j]; Q.Y[s] = R.Y[j]; Q.B[s] = R.B[j] & ~EDGE_N; } else { Q.X[s] = Q.Y[s] = Q.B[s] = 0; }
+      decode(Q.X[s], Q.Y[s], Q.B[s], this._pred[s]);
     }
-    for (t = this.gcTick; t < this.localTick; t++) {
+    // ¿sigue valiendo la del frame anterior? (las entradas de [C, T) que se usaron, contra las de ahora)
+    var from = this.gcTick;
+    if (Q.T > this.gcTick && Q.T <= this.localTick && Q.C <= this.gcTick && this.localTick - Q.C < PQ_W) {
+      var ok = true;
+      for (t = Q.C; t < Q.T && ok; t++) {
+        u = (t & PQ_M) * n;
+        for (s = 0; s < n; s++) {
+          R = this.rings[s];
+          if (R.has(t)) { var i0 = t & RM; x = R.X[i0]; y = R.Y[i0]; b = R.B[i0]; } else { x = Q.X[s]; y = Q.Y[s]; b = Q.B[s]; }
+          if (x !== Q.UX[u + s] || y !== Q.UY[u + s] || b !== Q.UB[u + s]) { ok = false; break; }
+        }
+      }
+      if (ok) from = Q.T;
+    }
+    if (from === this.gcTick) S.copyGame(gp, this.gc);
+    for (t = from; t < this.localTick; t++) {
+      u = (t & PQ_M) * n;
       for (s = 0; s < n; s++) {
-        if (this.rings[s].has(t)) { this.rings[s].dec(t, ins[s]); continue; }
-        var P = this._pred[s], q = ins[s];
-        q.move[0] = P.move[0]; q.move[1] = P.move[1]; q.hit = q.jump = q.jset = q.chal = q.skip = q.tmo = false; q.ai = P.ai; q.switchPlayer = false;
+        R = this.rings[s];
+        if (R.has(t)) { var i1 = t & RM; x = R.X[i1]; y = R.Y[i1]; b = R.B[i1]; } else { x = Q.X[s]; y = Q.Y[s]; b = Q.B[s]; }
+        Q.UX[u + s] = x; Q.UY[u + s] = y; Q.UB[u + s] = b;
+        decode(x, y, b, ins[s]);   // (la predicha lleva los botones a falso y el bit ai como estaba: lo mismo que antes)
       }
       S.step(gp, STEP, ins);
       var ev = gp.events;
       if (ev.length) { for (var i = 0; i < ev.length; i++) { ev[i]._tick = t; this._cand.push(ev[i]); } ev.length = 0; }
     }
+    Q.T = this.localTick; Q.C = this.gcTick;
+    this.stats.resim = this.localTick - from;
   };
   /** Anfitrión: retraso para el peor camino entre dos plazas humanas (por la estrella: invitado↔invitado = suma de sus pings). */
   NP._evalDelay = function () {

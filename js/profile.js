@@ -219,6 +219,9 @@
   }
   function careers() {   // [{c, pre}] de las dos Carreras que existan
     var C = VB.Career, out = [];
+    // (invitado de la Carrera cooperativa: VB.Career lee la Carrera del ANFITRIÓN desde un almacén en memoria; sus logros, títulos y
+    //  partidos no son tuyos y check() los fundiría para siempre en tu perfil —y en tu cuenta—. Mientras dure, ninguna Carrera cuenta)
+    try { if (C && typeof C._memStore === 'function' && C._memStore()) return out; } catch (e) { return out; }
     [['b', 'beach'], ['h', 'hall']].forEach(function (p) {
       var E = C && C[p[1]], c = null;
       if (E && typeof E.get === 'function') { try { c = E.get(); } catch (e) { c = null; } }

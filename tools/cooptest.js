@@ -10,6 +10,12 @@
  *     la IA intactas; c.last.coop;
  *  5. foto anfitrión → invitado (gzip) por el lobby falso: el localStorage del invitado (su propia Carrera) no cambia, la ve desde la
  *     memoria como protagonista, su copia de p2 en make-the-cut.coop.p2; puerta de intenciones; intención «up» aplicada por el anfitrión;
+ *  5b. (L4) invitado: hoja «esperando la Carrera», estado del anfitrión (st: eligiendo / jugando sin ti) en su tarjeta de arriba, «Tu
+ *     jugador», Resumen de la jornada de los dos tras matchDone (sum), copia de p2 al día, corte en la hoja final → «se ha cortado» y de
+ *     vuelta a SU Carrera, sin escribir más que make-the-cut.coop.p2;
+ *  5c. (L4) invitado SIN Carrera propia: entra, «Listo», su partido arranca, al cortarse se queda sin Carrera y con su p2 guardado;
+ *  5d. (L4) insignias en un coop de verdad (Precisa-N de net4test, RTT 200 y 120 ms, 3 % de pérdida): las del anfitrión y de p2 que
+ *     cierra matchDone = las de la partida de oro (offline con las entradas confirmadas); imprime lo que daba contar lo presentado;
  *  6. determinismo (dos contextos, mismos pasos → mismo c.coop y mismas opciones);
  *  7. NOEXT: con y sin career-coop.js, una carrera en piloto automático queda idéntica.
  * Uso: node tools/cooptest.js   Sale con 1 si algo falla; acaba en «TODO OK».
@@ -112,9 +118,9 @@ const link = () => ({ state: 'open', q: [], poll() { const o = this.q; this.q = 
   for (let i = 0; i < 3; i++) kill(t0[0], E);
   for (let i = 0; i < 2; i++) E.push({ type: 'hit', team: 0, kind: 'serve', touch: 0, player: t0[1], grade: 'good', human: true }, { type: 'point', team: 0, how: 'ace', reason: 'in' });
   const mt = { seat: 0, cs: mo.cs, gc: null, gw: null, done: false };
-  // (ui.js cuenta las insignias con la partida PRESENTADA: aquí, la misma g; matchDone cierra con la vista confirmada)
+  // (L4: las insignias las cuenta feed con los eventos CONFIRMADOS; ui.js ya no las cuenta en el cooperativo)
   const bp0 = Object.assign({}, c.coop.p2.bp || {}), bpMe0 = Object.assign({}, c.player.bp || {});
-  A.VB.Badges.ingest({ type: 'newMatch' }, g); E.forEach(e => A.VB.Badges.ingest(e, g));
+  A.VB.Badges._reset();
   A.CC.feed(mt, g, E.slice(0, 10));
   A.CC.feed(mt, g, E.slice(10));
   const M = A.C.beach._M();
@@ -135,8 +141,18 @@ const link = () => ({ state: 'open', q: [], poll() { const o = this.q; this.q = 
   ok(c.mate.chem === chemM && c.mate.form === formM, 'química y forma del compañero de la IA intactas (no ha jugado)');
   ok(c.coop.chem === chemC + 5 && !c.coop.pend && c.last.coop && c.last.coop.xp === sum.coop.xp, 'química del cooperativo +5; c.last.coop con el resumen de p2');
   ok(sum.me.kills === 3, 'tu nota y tus números son solo tuyos (3 remates)');
-  ok((pd.bp.bombardero | 0) === (bp0.bombardero | 0) + 2 && (pd.bp.canon | 0) === (bp0.canon | 0) + 6, 'insignias de p2: +2 bombardero (aces) y +6 cañón (' + (pd.bp.bombardero | 0) + ', ' + (pd.bp.canon | 0) + ')');
+  // (6 remates de p2 en el 1r lote y 1 más tras la vuelta: el contador sigue en la vista nueva, no empieza de cero)
+  ok((pd.bp.bombardero | 0) === (bp0.bombardero | 0) + 2 && (pd.bp.canon | 0) === (bp0.canon | 0) + 7, 'insignias de p2 (confirmadas): +2 bombardero (aces) y +7 cañón, también tras la vuelta (' + (pd.bp.bombardero | 0) + ', ' + (pd.bp.canon | 0) + ')');
   ok((c.player.bp.canon | 0) === (bpMe0.canon | 0) + 3, 'tus insignias: +3 cañón');
+  ok((pd.bp.motor | 0) === (bp0.motor | 0) + 1 && (c.player.bp.motor | 0) === (bpMe0.motor | 0) + 1, 'un partido más para los dos (motor +1)');
+  // Resumen de la jornada de los dos (b): el del anfitrión con su tabla y su barra; el del invitado, el de p2
+  ok(mt.x && Array.isArray(mt.x.tbl) && mt.x.bar && mt.x.bar.need > 0 && mt.x.bar.cur === (c.player.xp | 0), 'anfitrión: datos de su Resumen (tabla y barra de nivel)');
+  const gsum = mt.gsum;
+  ok(gsum && gsum.t === 'sum' && gsum.sum.xp === sum.coop.xp && gsum.sum.nota === sum.coop.nota && gsum.sum.me.kills === 7, 'invitado: su Resumen con SU XP, nota y números');
+  ok(gsum && gsum.cs.player === pd.name && gsum.cs.num === pd.num && gsum.cs.mate === c.player.name && gsum.cs.mateNum === c.player.num, 'invitado: él es el protagonista y el anfitrión su pareja');
+  ok(gsum && gsum.sum.badges.every(b => b.slot === 0) && gsum.sum.badges.length === sum.badges.filter(b => b.slot === 1).length, 'invitado: solo sus insignias (' + (gsum && gsum.sum.badges.length) + ')');
+  ok(gsum && !gsum.sum.life && !gsum.sum.train && !gsum.sum.coop && !('offers' in gsum.sum) && gsum.x && gsum.x.bar.cur === (pd.xp | 0), 'invitado: sin lo que es solo del anfitrión; barra de SU nivel');
+  ok(gsum && gsum.rec && gsum.rec.p2 && gsum.rec.p2.xp === pd.xp && gsum.rec.cid === (c.seed >>> 0), 'invitado: la copia nueva de su p2 viaja con el Resumen');
   const before = JSON.stringify(A.C.load());
   A.CC.feed(mt, g2, [{ type: 'gameOver', team: 0, sets: [2, 1], setScores: [] }]);
   ok(JSON.stringify(A.C.load()) === before, 'un segundo gameOver no cierra otra jornada');
@@ -223,6 +239,238 @@ const link = () => ({ state: 'open', q: [], poll() { const o = this.q; this.q = 
   ok(!G.CC.guest() && G.C.get().player.name === 'Ana Propia' && G.mem['make-the-cut.career'] === own.career, 'al cortarse, el invitado vuelve a su Carrera (intacta)');
   A.lob.cfg.onClose('down');
   ok(!A.CC.host() && A.CC.hostPlay() === null, 'el anfitrión sin pareja juega como siempre');
+
+  // ------------------------------------------------------------------ 5b
+  section('Invitado: pantallas, estado del anfitrión, Resumen y corte (L4)');
+  {
+    const H0 = boot(true); const hc = newCareer(H0, 9090, 'Anfitriona');
+    H0.CC.startHost(); H0.lob.cfg.onReady({ link: link(), seat: 0, names: ['Anfitriona', 'Bea'], looks: [null, null] });
+    H0.CC._onMsg({ t: 'hi', id: 'uidBea', name: 'Bea', num: 5, ver: H0.VB.VERSION || '', gz: true });
+    await new Promise(r => setTimeout(r, 400));
+    // invitado con su Carrera propia
+    const B0 = boot(true); newCareer(B0, 31, 'Bea Propia');
+    const B = boot(true, { 'make-the-cut.career': B0.mem['make-the-cut.career'], 'make-the-cut.career.mode': 'beach' });
+    const ownB = B.mem['make-the-cut.career'];
+    B.writes.length = 0;
+    B.CC.join('XYZ234'); B.lob.cfg.onReady({ link: link(), seat: 1, names: ['Anfitriona', 'Bea'], looks: [null, null] });
+    const w0 = B.CC.sheet();
+    ok(w0 && w0.k === 'wait' && /Anfitriona/.test(w0.text) && w0.ctas[0][0] === 'end', 'conectado sin la Carrera: pantalla «esperando la Carrera de Anfitriona» con «Salir»');
+    B.CC._onMsg(H0.lob.sent.filter(m => m.t === 'snap').pop()); await new Promise(r => setTimeout(r, 400));
+    ok(B.CC.paired() && B.CC.sheet() === null, 'llega la Carrera: sin hoja, al hub');
+    // estado del anfitrión → tarjeta del invitado (arriba, hueco matchTop)
+    const UX = B.VB.CareerUIExt.find(x => x.id === 'coop'), Hh = { sp: a => a.join(' · '), esc: s => s };
+    ok(H0.CC.hostState() === 'menu', 'anfitrión fuera de la Carrera: «menu»');
+    H0.VB.ctx = { state: 'playing' }; ok(H0.CC.hostState() === 'solo', 'anfitrión jugando un partido sin su pareja: «solo»'); H0.VB.ctx = undefined;
+    H0.lob.sent.length = 0; H0.CC._S.lastJson = JSON.stringify(H0.C.load()); H0.CC._S.stSent = '';
+    // (tick a mano: el temporizador de 500 ms manda el estado solo al cambiar)
+    const tickOnce = async () => { H0.CC._tick(); };
+    await tickOnce();
+    const st1 = H0.lob.sent.filter(m => m.t === 'st');
+    ok(st1.length === 1 && st1[0].w === 'menu', 'el anfitrión manda su estado al invitado (st ' + (st1[0] && st1[0].w) + ')');
+    await tickOnce();
+    ok(H0.lob.sent.filter(m => m.t === 'st').length === 1, 'y solo cuando cambia');
+    B.CC._onMsg({ t: 'st', w: 'hub' });
+    const gcB = B.C.get(), card1 = UX.ui.matchTop(gcB, Hh);
+    ok(/está eligiendo/.test(card1) && /co-ready/.test(card1) && /co-me/.test(card1) && /nivel 1/.test(card1), 'tarjeta del invitado: «Anfitriona está eligiendo», «Listo», «Tu jugador» y su nivel');
+    ok(UX.ui.match(gcB, Hh) === '', 'la tarjeta de siempre no sale para el invitado (va arriba)');
+    B.CC._onMsg({ t: 'st', w: 'solo' });
+    ok(/jugando un partido sin ti/.test(UX.ui.matchTop(B.C.get(), Hh)), 'el anfitrión juega sin él: «está jugando un partido sin ti»');
+    B.CC._onMsg({ t: 'st', w: '<script>' });
+    ok(B.CC._S.hostW === '', 'estado desconocido: se ignora');
+    ok(JSON.stringify(UX.act('co-me')) === JSON.stringify({ tab: 'player' }), '«Tu jugador» lleva a su ficha (Jugador)');
+    ok(B.C.get().player.name === 'Bea' && B.C.get().player.lvl === 1, 'su ficha es la de su p2 (Bea, nivel 1)');
+    // partido: el anfitrión cierra la jornada → Resumen de los dos
+    const shown = { H: [], B: [] };
+    const fakeUI = who => ({ endCareer: (sum, g, x) => { shown[who].push({ sum, g, x }); return {}; } });
+    H0.VB.UI = fakeUI('H'); B.VB.UI = fakeUI('B');
+    const moH = H0.CC.matchOpts({ seed: 3 }), gH = H0.VB.Sim.createGame(JSON.parse(JSON.stringify(moH.opts)));
+    let outH = { confirmed: [] }; const sessH = { advance() { return outH; }, confirmedGame() { return gH; } }, netH = { sess: sessH };
+    H0.VB.ctx = { state: 'playing', net: netH, game: { sets: [0, 0], setScores: [] } };
+    H0.C.abortMatch(); H0.CC.matchStarted(0, netH, moH);
+    const sessB = { advance() { return { confirmed: [] }; }, confirmedGame() { return null; } }, netB = { sess: sessB };
+    B.VB.ctx = { state: 'playing', net: netB, game: { sets: [0, 0], setScores: [] } };
+    B.CC.matchStarted(1, netB, null);
+    ok(B.CC.sheet() === null, 'en pleno partido, ninguna hoja encima');
+    H0.lob.sent.length = 0;
+    outH = { confirmed: [{ type: 'hit', team: 0, kind: 'spike', touch: 2, player: gH.teams[0][1], grade: 'good', human: true }, { type: 'point', team: 0, how: 'kill', reason: 'in' },
+      { type: 'gameOver', team: 0, sets: [2, 0], setScores: [[21, 15], [21, 17]] }] }; sessH.advance();
+    const sm = H0.lob.sent.filter(m => m.t === 'sum').pop();
+    ok(sm && sm.sum && sm.cs.player === 'Bea' && sm.rec && sm.rec.p2.name === 'Bea', 'tras matchDone el anfitrión manda al invitado su Resumen (sum) en la hoja final');
+    ok(shown.H.length === 0, 'el anfitrión no pinta el Resumen hasta que su hoja final está a la vista');
+    H0.VB.ctx.state = 'over'; H0.VB.ctx.game = { sets: [2, 0], setScores: [[21, 15], [21, 17]] }; H0.CC.matchWatch(); H0.CC.matchWatch();
+    ok(shown.H.length === 1 && shown.H[0].sum.xp > 0 && shown.H[0].g.career && shown.H[0].g.career.coop && shown.H[0].x && shown.H[0].x.bar, 'anfitrión: «Resumen de la jornada» una sola vez, con su g.career, tabla y barra');
+    ok(shown.H[0] && shown.H[0].g.sets[0] === 2 && Object.getPrototypeOf(shown.H[0].g) === H0.VB.ctx.game, 'sobre la partida de la hoja final (vista online), sin tocarla');
+    B.writes.length = 0;
+    B.CC._onMsg(JSON.parse(JSON.stringify(Object.assign({}, sm, { cs: Object.assign({}, sm.cs, { meName: '<img src=x onerror=1>Club' }) }))));
+    const recB = JSON.parse(B.mem[B.CC.P2_KEY]);
+    ok(recB.p2.xp === sm.rec.p2.xp && recB.p2.matches === sm.rec.p2.matches, 'invitado: su copia de p2 al día en cuanto llega el Resumen (antes de la foto)');
+    ok(shown.B.length === 0, 'invitado: aún en juego, el Resumen espera');
+    B.VB.ctx.state = 'over'; B.VB.ctx.game = { sets: [2, 0], setScores: [[21, 15], [21, 17]] }; B.CC.matchWatch(); B.CC.matchWatch();
+    const sb = shown.B[0];
+    ok(shown.B.length === 1 && sb.sum.xp === sm.sum.xp && sb.g.career.player === 'Bea' && sb.g.career.mate === 'Anfitriona', 'invitado: «Resumen de la jornada» de su p2 (una vez)');
+    ok(sb && sb.g.career.meName.indexOf('<') < 0, 'lo que llega del otro aparato, sin etiquetas');
+    ok(B.writes.every(k => k === B.CC.P2_KEY) && B.mem['make-the-cut.career'] === ownB, 'el invitado solo ha escrito make-the-cut.coop.p2 (' + B.writes.join(', ') + ')');
+    // se corta en la hoja final: la hoja «se ha cortado» espera a que deje el partido y vuelve a SU Carrera
+    B.lob.cfg.onClose('hostLost');
+    ok(!B.CC.guest() && B.CC.inMatch() && B.CC.sheet() === null, 'corte en la hoja final: sigue en su hoja (sin hoja encima)');
+    B.VB.ctx = { state: 'menu', net: null };
+    B.CC.matchWatch();
+    const dn = B.CC.sheet();
+    ok(!B.CC.inMatch() && dn && dn.k === 'down' && /Anfitriona/.test(dn.text) && /Bea, nivel/.test(dn.sub), 'al salir: «Se ha cortado el cooperativo con Anfitriona» y su jugador guardado');
+    ok(B.C.get().player.name === 'Bea Propia' && B.mem['make-the-cut.career'] === ownB, 'de vuelta a SU Carrera, intacta');
+    B.CC.join('XYZ234');
+    ok(B.CC.sheet() === null || B.CC.sheet().k !== 'down', 'volver a entrar quita el aviso del corte');
+    B.CC.leave();
+    ok(B.CC.sheet() === null, 'salir por su cuenta: sin aviso de corte');
+    H0.lob.cfg.onClose('down'); H0.CC._S.match = null;
+  }
+
+  // ------------------------------------------------------------------ 5c
+  section('Invitado SIN Carrera propia: entra, juega y vuelve al menú (d)');
+  {
+    const H1 = boot(true); newCareer(H1, 6060, 'Anfitrión');
+    H1.CC.startHost(); H1.lob.cfg.onReady({ link: link(), seat: 0, names: ['Anfitrión', 'Cris'], looks: [null, null] });
+    H1.CC._onMsg({ t: 'hi', id: 'uidCris', name: 'Cris', num: 0, ver: H1.VB.VERSION || '', gz: true });
+    await new Promise(r => setTimeout(r, 400));
+    const N = boot(true);
+    ok(N.C.get() === null, 'el invitado no tiene Carrera');
+    N.CC.join('QWE234'); N.lob.cfg.onReady({ link: link(), seat: 1, names: ['Anfitrión', 'Cris'], looks: [null, null] });
+    const hiN = N.lob.sent.find(m => m.t === 'hi');
+    ok(hiN && hiN.num === 0, 'se presenta sin dorsal propio');
+    N.CC._onMsg(H1.lob.sent.filter(m => m.t === 'snap').pop()); await new Promise(r => setTimeout(r, 400));
+    ok(N.CC.paired() && N.C.get() && N.C.get().player.name === 'Cris' && N.C.get().player.num >= 1, 'recibe la Carrera y juega como Cris (n.º ' + (N.C.get() && N.C.get().player.num) + ')');
+    ok(N.CC.setReady(true), '«Listo»');
+    let called = null;
+    N.VB.ctx = { state: 'menu', actions: { startCoopCareerMatch: o => { called = o; return true; } } };
+    N.CC._onMsg({ t: 'play', humans: [{ name: 'Anfitrión', look: null }, { name: 'Cris', look: null }] });
+    ok(called && called.seat === 1 && called.humans[1].name === 'Cris', 'el «play» del anfitrión arranca SU partido (plaza 1)');
+    ok(!N.lob.sent.some(m => m.t === 'nack'), 'sin «nack»: entra en el partido');
+    N.lob.cfg.onClose('mateLeft');
+    ok(N.C.get() === null && Object.keys(N.mem).every(k => k === N.CC.P2_KEY), 'al cortarse: sin Carrera y su aparato solo con make-the-cut.coop.p2 (' + Object.keys(N.mem).join(', ') + ')');
+    const dn = N.CC.sheet();
+    ok(dn && dn.k === 'down' && /Cris/.test(dn.sub), 'hoja «se ha cortado» con su jugador guardado');
+    const UX = N.VB.CareerUIExt.find(x => x.id === 'coop');
+    ok(/Tu jugador en la Carrera de Anfitrión: Cris/.test(UX.createRow({}, false, { sp: a => a.join(' · ') })), 'en «crear», su jugador del cooperativo (una línea)');
+    H1.lob.cfg.onClose('down');
+  }
+
+  // ------------------------------------------------------------------ 5d
+  section('Insignias de un coop de verdad (Precisa-N, red mala): confirmado = oro; lo presentado se desviaba (a)');
+  {
+    const N4 = require('./net4test.js');
+    const BX = () => { const cx = { console, Math, JSON }; cx.window = cx; cx.globalThis = cx; vm.createContext(cx); vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/badges.js'), 'utf8'), cx); return cx.VB.Badges; };
+    const res = [];
+    for (const [rtt, seed] of [[200, 12], [120, 15]]) {
+      const K = boot(true); const kc = newCareer(K, 4040 + seed, 'Anfitriona');
+      K.CC.adopt(kc, { id: 'uidX', name: 'Xan', num: 9 }, 1); K.C.save(kc);
+      const mo2 = K.CC.matchOpts({ seed: 70 + seed }); const op = JSON.parse(JSON.stringify(mo2.opts)); op.bestOf = 1;   // (un set: la prueba dura menos)
+      const bp20 = Object.assign({}, K.C.load().coop.p2.bp || {}), bp10 = Object.assign({}, K.C.load().player.bp || {});
+      K.C.abortMatch(); K.VB.Badges._reset();
+      const BP = BX(); let host = null; const gP = { get teams() { return host.gp.teams; }, get setPoint() { return host.gp.setPoint; }, get matchPoint() { return host.gp.matchPoint; } };
+      const mtK = { seat: 0, cs: mo2.cs, gc: null, gw: null, done: false };
+      N4.ADAPTERS.coopL4 = Object.assign({}, N4.ADAPTERS.precisaN, {
+        make(V, i, M, cfg, lg) {
+          const s = N4.ADAPTERS.precisaN.make(V, i, M, cfg, lg);
+          if (i === 0) {
+            host = s; const adv = s.advance;
+            s.advance = function () {
+              const r = adv.apply(s, arguments);
+              const ovr = (r.events || []).some(e => e.type === 'challengeResult' && e.overturned);   // (lo que hacía ui.js con lo presentado)
+              for (const e of r.events || []) BP.ingest(ovr && e.type === 'point' ? Object.assign({}, e, { _ovr: true }) : e, gP);
+              if (r.confirmed && r.confirmed.length) K.CC.feed(mtK, s.confirmedGame(), r.confirmed);   // (lo nuevo: career-coop con lo confirmado)
+              return r;
+            };
+          }
+          return s;
+        }
+      });
+      const SC = [{ team: 0 }, { team: 0 }];
+      const R = N4.runMatch({ topo: 'star', relay: false, rtt: () => rtt, jit: 15, loss: 3, seed, secs: 900, model: 'coopL4', seats: SC, opts: op });
+      // oro: offline con las entradas confirmadas del anfitrión
+      const V = R.V[0], Sm = V.Sim, D = V.Net.decode, rec = host.rec, BG = BX(), gO = Sm.createGame(host.opts), ins = [], gG = { get teams() { return gO.teams; }, get setPoint() { return gO.setPoint; }, get matchPoint() { return gO.matchPoint; } };
+      for (let t = 0; t < rec.length && rec[t]; t++) {
+        const rr = rec[t], ns = rr.length / 3; while (ins.length < ns) ins.push({ move: [0, 0] });
+        for (let s = 0; s < ns; s++) D(rr[3 * s], rr[3 * s + 1], rr[3 * s + 2], ins[s]);
+        Sm.step(gO, 1 / 120, ins);
+        const ovr = gO.events.some(e => e.type === 'challengeResult' && e.overturned);
+        for (const e of gO.events) BG.ingest(ovr && e.type === 'point' ? Object.assign({}, e, { _ovr: true }) : e, gG);
+        gO.events.length = 0;
+      }
+      const cG = BG._cur().c, cP = BP._cur().c, cz = K.C.load();
+      const gained = (a, b0, s) => { const o = {}; for (const k in a.bp) { const d = (a.bp[k] | 0) - (b0[k] | 0) - (k === 'motor' ? 1 : 0) - (k === 'lider' && cz.last && cz.last.win ? 1 : 0); if (d) o[k] = d; } return o; };
+      const eq = (x, y) => { const ks = new Set(Object.keys(x).concat(Object.keys(y))); for (const k of ks) if ((x[k] | 0) !== (y[k] | 0)) return false; return true; };
+      const dist = (x, y) => { let d = 0; const ks = new Set(Object.keys(x).concat(Object.keys(y))); for (const k of ks) d += Math.abs((x[k] | 0) - (y[k] | 0)); return d; };
+      const g1 = gained(cz.player, bp10), g2 = gained(cz.coop.p2, bp20);
+      const tot = c2 => c2.reduce((n, o) => n + Object.values(o).reduce((a, b) => a + b, 0), 0);
+      ok(!R.err && host.status === 'over' && mtK.done && cz.last && cz.last.coop, 'rtt ' + rtt + ': partido entero y jornada cerrada (máx. retroceso ' + host.stats.maxDepth + ' tics)');
+      ok(eq(g1, cG[0]) && eq(g2, cG[1]), 'rtt ' + rtt + ': insignias del anfitrión y de p2 = las de la partida de oro (' + tot(cG) + ' cuentas)');
+      res.push({ rtt, seed, oro: tot(cG), presentado: tot(cP), errPresentado: dist(cP[0], cG[0]) + dist(cP[1], cG[1]), errConfirmado: dist(g1, cG[0]) + dist(g2, cG[1]) });
+    }
+    console.log('  medida (cuentas de insignias en el partido): ' + res.map(r => 'rtt ' + r.rtt + ' semilla ' + r.seed + ': oro ' + r.oro + ', presentado ' + r.presentado + ' (error ' + r.errPresentado + '), confirmado error ' + r.errConfirmado).join(' · '));
+    ok(res.every(r => r.errConfirmado === 0), 'con lo confirmado, error 0 en todas las redes');
+  }
+
+  // ------------------------------------------------------------------ 5b
+  section('Arreglos de la revisión (ss2, «nack», «Listo» caducado, perfil del invitado)');
+  {
+    // ss2: la temporada de un invitado no la hereda el siguiente; vuelve con él
+    const B = boot(true); let cc = newCareer(B, 6161);
+    B.CC.adopt(cc, { id: 'ana', name: 'Ana' }, 1);
+    B.CC.creditMate(cc, { p: [{}, { kills: 9, aces: 2 }] }, { sets: [2, 0], setScores: [[21, 10], [21, 12]] }, 40);
+    const k0 = cc.coop.ss2 && cc.coop.ss2.st.kills;
+    B.CC.adopt(cc, { id: 'luis', name: 'Luis' }, 2);
+    const gvL = B.CC.guestView(cc);
+    ok(k0 === 9 && !cc.coop.ss2 && gvL.stats.played === 0 && gvL.stats.kills === 0, 'otro invitado no hereda la temporada del anterior (ss2): 0 jugados, 0 remates');
+    B.CC.adopt(cc, { id: 'ana', name: 'Ana' }, 3);
+    ok(cc.coop.ss2 && cc.coop.ss2.st.kills === 9 && cc.coop.ss2.st.played === 1, 'Ana vuelve: recupera su temporada');
+
+    // «nack»: el partido lo juega el compañero de la IA → p2 sin XP ni insignias; química y forma del compañero de la IA, como siempre
+    const N = boot(true); let cn = newCareer(N, 7272);
+    N.CC.adopt(cn, { id: 'x', name: 'Pau', num: 0 }, 1); N.C.save(cn);
+    const moN = N.CC.matchOpts({ seed: 5 });
+    N.C.abortMatch();
+    const gN = N.VB.Sim.createGame(JSON.parse(JSON.stringify(moN.opts))), EN = [];
+    for (let i = 0; i < 4; i++) EN.push({ type: 'hit', team: 0, kind: 'spike', touch: 2, player: gN.teams[0][1], grade: 'good' }, { type: 'point', team: 0, how: 'kill', reason: 'in' });
+    cn = N.C.load();
+    const p2N = JSON.parse(JSON.stringify(cn.coop.p2)), chemN = cn.coop.chem, mateN = JSON.stringify([cn.mate.chem, cn.mate.form]);
+    const mtN = { seat: 0, cs: moN.cs, gc: null, gw: null, done: false, noP2: true };
+    N.CC._S.match = mtN;
+    ok(N.CC.noP2() === true, 'VB.CareerCoop.noP2() con el «nack» del invitado');
+    N.VB.Badges._reset();
+    N.CC.feed(mtN, gN, EN.concat([{ type: 'gameOver', team: 0, sets: [2, 0], setScores: [[21, 15], [21, 16]] }]));
+    N.CC._S.match = null;
+    cn = N.C.load();
+    ok(mtN.done && (cn.coop.p2.xp | 0) === (p2N.xp | 0) && (cn.coop.p2.matches | 0) === (p2N.matches | 0) && JSON.stringify(cn.coop.p2.bp || {}) === JSON.stringify(p2N.bp || {}),
+      'con «nack» p2 no se lleva XP, partido ni insignias de lo que jugó la IA');
+    ok(cn.coop.chem === chemN && JSON.stringify([cn.mate.chem, cn.mate.form]) !== mateN, 'con «nack» la química del cooperativo no sube y el compañero de la IA cierra su química y su forma');
+
+    // «Listo» caducado: vale para ESE partido; si el anfitrión simula, hay que volver a pulsarlo
+    const R = boot(true); let cr = newCareer(R, 8383);
+    R.CC.adopt(cr, { id: 'y', name: 'Rut', num: 0 }, 1); R.C.save(cr);
+    Object.assign(R.CC._S, { role: 'host', link: link(), hi: { id: 'y', name: 'Rut' }, names: ['Anfitriona', 'Rut'] });
+    R.CC._onMsg({ t: 'ready', on: true });
+    const h1 = R.CC.hostPlay();
+    R.C.simulateNext(R.C.load());
+    R.lob.sent.length = 0;
+    const h2 = R.CC.hostPlay();
+    ok(h1 && h1.go && h2 && h2.wait && !R.CC.ready() && R.lob.sent.some(m => m.t === 'rdy0'), '«Listo» y simulado: el siguiente partido espera otro «Listo» y se avisa al invitado (rdy0)');
+    R.CC._reset();
+
+    // perfil del invitado: con la Carrera del anfitrión en memoria, Profile.check no se queda sus logros ni sus títulos
+    let P = null;
+    try { P = (function () { const X = boot(true); vm.runInContext(fs.readFileSync(path.join(ROOT, 'js/profile.js'), 'utf8'), X.cx, { filename: 'js/profile.js' }); return X; })(); } catch (e) { P = null; }
+    if (P && P.VB.Profile) {
+      const hc = JSON.parse(JSON.stringify(newCareer(boot(true), 9494, 'Host')));
+      hc.coop = { v: 1, on: true, uid2: 'z', name2: 'Zoe', p2: hc.mate, stats2: {} }; P.CC.ensure(hc);
+      hc.life = hc.life || {}; hc.life.ach = { m1: 1, w1: 1, t1: 1 }; hc.trophies = [{ kind: 'liga', season: 1 }];
+      P.CC._S.role = 'guest'; P.CC._S.link = link();
+      P.CC.installGuest(hc);
+      P.VB.Profile.check();
+      const pr = JSON.parse(P.mem['make-the-cut.profile'] || 'null') || {};
+      ok(!Object.keys(pr.ach || {}).length && !Object.keys(pr.car || {}).length, 'invitado: Profile.check no se lleva los logros ni la Carrera del anfitrión (' + JSON.stringify([pr.ach, pr.car]) + ')');
+      P.CC._reset();
+    } else ok(false, 'js/profile.js carga en el contexto de prueba');
+  }
 
   // ------------------------------------------------------------------ 6
   section('Determinismo');

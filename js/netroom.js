@@ -44,6 +44,10 @@
  *   cnt   invitados que el anfitrión da por dentro (conectados) 0..cap-1; solo lo escribe el anfitrión (beat({cnt})).
  *   lineup (opcional) texto del anfitrión (≤ 4000; p. ej. JSON de plazas/equipos/roles) para el lobby.
  *   Estado: 'open' mientras se puede entrar (las reglas paran en cap-1 aunque siga 'open'); el anfitrión lo pasa a 'full'/'play'.
+ *         Una coop esperando compañero va en 'coop' (nunca 'open'): los clientes 1.21.0 en caché listan y buscan por código solo
+ *         state == 'open', así que no la ven; los 1.22.0 entran por código (byCode acepta 'open' y 'coop') o por enlace.
+ *   net   (opcional) 'fluida' (vs, cap 2, 2v2) | 'host' (modelo del anfitrión: siempre en 6v6; las reglas lo dejan también en vs 2v2
+ *         de 4 plazas). Sin la clave = Precisa. multiCfg lo pone solo.
  *   Señalización POR PAREJA (anfitrión ↔ cada invitado), la clave de la pareja es SIEMPRE el uid del invitado:
  *     rooms/{id}/sig/o_<uidInvitado> = {sdp, gen} (oferta del anfitrión) · rooms/{id}/sig/a_<uidInvitado> = {sdp, gen} (su respuesta)
  *     Lee o_: el anfitrión y ese invitado. Lee a_: ese invitado y el anfitrión mientras ese invitado esté sentado. Nadie más.
@@ -59,7 +63,10 @@
  *                                (como en 1v1: la vuelta tras recargar necesita la plaza). rooms.leave(id) también vale si entraste
  *                                con este cliente.
  *   rooms.kick(uid)              → Promise<sala|null> el anfitrión levanta a un invitado (y late)
- *   rooms.beat(patch)            patch admite también {cnt, lineup, state, seats (entero)}
+ *   rooms.beat(patch, o)         patch admite también {cnt, lineup, state, seats (entero)}. o.lite: sin la lectura de después (1
+ *                                escritura en vez de 1 escritura + 1 lectura); devuelve tu sala tal como la escribiste, o null
+ *                                si ya no existe (la escritura lleva currentDocument.exists). Para latidos en los que no se mira
+ *                                la sala (sala de varios ya en marcha, coop emparejada, cnt).
  *   rooms.putSig(id, 'offer'|'answer', {sdp, gen}, uidInvitado) / rooms.getSig(id, kind, uidInvitado) → {sdp, gen, to, uid}|null
  *   rooms.delSig(id, uidInvitado | [uids])   sin el tercer argumento (o sin el segundo de delSig): los documentos 1v1 offer/answer.
  *                                El invitado pasa SU uid (rooms.uid()); el anfitrión, el del invitado de esa pareja.
@@ -124,22 +131,30 @@
     return o;
   }
   var ROOM_KEYS = ['code', 'name', 'gname', 'host', 'guest', 'fmt', 'venue', 'map', 'even', 'bo', 'pts', 'state', 'v', 'net',
-    'mode', 'cap', 'seats', 'cnt', 'lineup'];   // (las cinco últimas: solo salas de varios, esquema v3)
+    'mode', 'cap', 'seats', 'cnt', 'lineup', 'ban'];   // (las seis últimas: solo salas de varios, esquema v3)
+  var BAN_MAX = 20;   // (ban: a quien el anfitrión sacó; las reglas lo topan en 20)
 
   /* ---- salas de varios (esquema v3) ---- */
   // plazas humanas (con el anfitrión) admitidas por modo y formato; la primera es la de por defecto (las reglas dicen lo mismo)
   var CAPS = { vs: { '2v2': [4, 2], '6v6': [12, 4, 2] }, coop: { '2v2': [2], '6v6': [2, 4] } };
-  /** cfg de open() → {mode, cap, fmt, venue, fluida} normalizado, o null si es una sala 1v1 de las de siempre. */
+  /** cfg de open() → {mode, cap, fmt, venue, fluida, net, state} normalizado, o null si es una sala 1v1 de las de siempre.
+   *  net: 'fluida' | 'host' | '' (Precisa); el 6v6 siempre 'host'; 'host' en 2v2 solo si se pide y es vs de 4 plazas.
+   *  state: el de una sala recién abierta ('open'; 'coop' en las coop: así un 1.21.0 no la lista). */
   function multiCfg(cfg) {
     cfg = cfg || {};
     if (cfg.cap == null && cfg.mode == null && cfg.fmt !== '6v6' && !cfg.multi) return null;
     var mode = cfg.mode === 'coop' ? 'coop' : 'vs', fmt = cfg.fmt === '6v6' ? '6v6' : '2v2', ok = CAPS[mode][fmt];
     var cap = ok.indexOf(+cfg.cap) >= 0 ? +cfg.cap : ok[0];
+    var fluida = cfg.net === 'fluida' && mode === 'vs' && cap === 2 && fmt === '2v2';   // (Fluida es de 2 plazas y solo 2v2: NPL = 2)
+    var host = fmt === '6v6' || (cfg.net === 'host' && mode === 'vs' && cap === 4);
     return { mode: mode, cap: cap, fmt: fmt, venue: fmt === '6v6' ? 'hall' : (cfg.venue === 'beach' ? 'beach' : 'hall'),
-      fluida: cfg.net === 'fluida' && mode === 'vs' && cap === 2 && fmt === '2v2' };   // (Fluida es de 2 plazas y solo 2v2: NPL = 2)
+      fluida: fluida, net: fluida ? 'fluida' : host ? 'host' : '', state: mode === 'coop' ? 'coop' : 'open' };
   }
+  /** Estado en el que una sala de varios admite invitados: 'open' (vs) o 'coop' (coop esperando compañero). */
+  function joinable(r) { return !!r && (r.state === 'open' || (r.state === 'coop' && r.mode === 'coop')); }
   /** Ruta de campo para una clave de seats (uid): siempre entre comillas invertidas (un uid puede empezar por cifra). */
   function seatPath(uid) { return 'seats.`' + String(uid).replace(/\\/g, '\\\\').replace(/`/g, '\\`') + '`'; }
+  function banPath(uid) { return 'ban.`' + String(uid).replace(/\\/g, '\\\\').replace(/`/g, '\\`') + '`'; }
   function seatUids(r) { return r && r.seats && typeof r.seats === 'object' ? Object.keys(r.seats) : []; }
   function pairDoc(kind, uid) { return (kind === 'answer' ? 'a_' : 'o_') + uid; }
 
@@ -151,6 +166,13 @@
     var me = null;      // {uid, token} de la última llamada
     var mine = null;    // tu sala (anfitrión): último estado escrito
     var known = {};     // salas de varios: uids de invitados que este cliente ha visto en TU sala (para borrar su señalización)
+    // (y una copia en el almacén del navegador: tras una recarga o un cierre a medias, open() aún sabe a quién borrar la o_/a_. Un
+    //  cliente 1.21.0 que barre la sala caducada borra la sala pero no las o_/a_, y la sala nueva ya no las lista: sin esto se quedaban)
+    var store = o.store !== undefined ? o.store : (function () { try { return root.localStorage || null; } catch (e) { return null; } })();
+    var PAIRS_KEY = 'make-the-cut.netroom.pairs';
+    function pairsRead(uid) { try { var v = store && JSON.parse(store.getItem(PAIRS_KEY) || 'null'); return v && v.h === uid && Array.isArray(v.u) ? v.u.filter(function (x) { return typeof x === 'string' && x.length <= 128; }).slice(0, 64) : []; } catch (e) { return []; } }
+    function pairsSave() { try { if (store && me) { var u = pairsRead(me.uid); for (var k in known) if (u.indexOf(k) < 0) u.push(k); store.setItem(PAIRS_KEY, JSON.stringify({ h: me.uid, u: u.slice(-64) })); } } catch (e) { } }
+    function pairsClear(uid, done) { try { if (store) { var u = pairsRead(uid).filter(function (x) { return done.indexOf(x) < 0; }); if (u.length) store.setItem(PAIRS_KEY, JSON.stringify({ h: uid, u: u })); else store.removeItem(PAIRS_KEY); } } catch (e) { } }
     var joinedM = {};   // salas de varios donde te sentaste con este cliente (leave/bye saben que es una sala de varios)
     var skew = null;    // hora del servidor - Date.now() (ms), de la última readTime / commitTime: la edad de get() sin readTime
     function noteSrv(t) { var v = t ? Date.parse(t) : NaN; if (v === v) skew = v - Date.now(); }
@@ -195,7 +217,10 @@
       }
       return d;
     }
-    function noteSeats(r) { if (r && me && r.id === me.uid) seatUids(r).forEach(function (u) { known[u] = 1; }); return r; }
+    function noteSeats(r) {
+      if (r && me && r.id === me.uid) { var n = 0; seatUids(r).forEach(function (u) { if (!known[u]) n++; known[u] = 1; }); if (n) pairsSave(); }
+      return r;
+    }
     /** Borra la señalización por pareja de esos invitados (o_ y a_), sin fallar. */
     function delPairs(id, uids) {
       var L = []; (uids || []).forEach(function (u) { if (u) L.push(call('DELETE', docUrl('rooms/' + id + '/sig/o_' + u), null, true).catch(function () { }), call('DELETE', docUrl('rooms/' + id + '/sig/a_' + u), null, true).catch(function () { })); });
@@ -225,7 +250,8 @@
     function joinM(r, gname) {
       var id = r.id, uid = me.uid, n = cleanName(gname) || 'Jugador';
       if (r.host === uid) throw err('denied', 'es tu sala');
-      if (r.state !== 'open' || (r.free <= 0 && !(uid in r.seats))) throw err('full');
+      if (r.ban && typeof r.ban === 'object' && r.ban[uid]) throw err('kicked', 'te sacaron de esta sala');   // (las reglas dirían lo mismo, con 403)
+      if (!joinable(r) || (r.free <= 0 && !(uid in r.seats))) throw err('full');
       var seat = {}; seat[uid] = { mapValue: { fields: { n: { stringValue: n } } } };
       var w = { update: { name: docRoot + '/rooms/' + id, fields: { seats: { mapValue: { fields: seat } } } }, updateMask: { fieldPaths: [seatPath(uid)] },
         updateTransforms: [{ fieldPath: seatPath(uid) + '.at', setToServerValue: 'REQUEST_TIME' }], currentDocument: { exists: true } };
@@ -237,7 +263,7 @@
         return r;
       }, function (e) {
         if (e.code === 'denied' || e.code === 'gone' || e.code === 'conflict') return api.get(id).then(function (r2) {
-          throw err(!r2 || r2.age > LIVE_MS ? 'gone' : r2.multi && (r2.state !== 'open' || r2.free <= 0) && !(uid in r2.seats) ? 'full' : 'denied', e.message);
+          throw err(!r2 || r2.age > LIVE_MS ? 'gone' : r2.multi && (!joinable(r2) || r2.free <= 0) && !(uid in r2.seats) ? 'full' : 'denied', e.message);
         }, function () { throw err('denied', e.message); });
         throw e;
       });
@@ -251,8 +277,9 @@
       //  más bajo, y 40 salas abiertas que no servían, caducadas o de otra versión, escondían las nuevas. Un solo campo: índice automático)
       list: function () {
         return query(null, LIST_MAX, [{ field: { fieldPath: 'seen' }, direction: 'DESCENDING' }]).then(function (L) {
-          L = L.filter(function (r) { return r.state === 'open'; });
+          // (de paso, hasta 3 caducadas de cualquier estado —también 'play', 'coop' o 'full' que se quedaron sin latido—, con su señalización)
           var dead = L.filter(function (r) { return r.age > STALE_MS + 30000 && r.host !== (me && me.uid); }).slice(0, 3);
+          L = L.filter(function (r) { return r.state === 'open'; });
           dead.forEach(function (r) { api._sweep(r.id, r).catch(function () { }); });
           var mineId = me && me.uid;
           // (esquema v3: las coop no se listan, solo por código o enlace; las de varios sin plaza libre tampoco)
@@ -285,8 +312,8 @@
           if (!mc) { if (cfg.net === 'fluida') d.net = 'fluida'; }
           else {
             // esquema v3: sala de varios (seats vacío, cnt 0; guest/gname se quedan en '')
-            d.fmt = mc.fmt; d.venue = mc.venue; d.mode = mc.mode; d.cap = mc.cap; d.seats = {}; d.cnt = 0;
-            if (mc.fluida) d.net = 'fluida';
+            d.fmt = mc.fmt; d.venue = mc.venue; d.mode = mc.mode; d.cap = mc.cap; d.seats = {}; d.cnt = 0; d.state = mc.state;
+            if (mc.net) d.net = mc.net;
             if (typeof cfg.lineup === 'string' && cfg.lineup.length <= 4000) d.lineup = cfg.lineup;
           }
           // (auditoría: un código nuevo que ya usa otra sala viva se cambia; el de tu sala de antes, cfg.code, se respeta)
@@ -300,7 +327,9 @@
           // (antes de abrir: fuera la señalización de una sesión anterior que no se cerró, p. ej. una recarga a mitad de conexión)
           // (esquema v3: y la señalización por pareja de los invitados de la sala anterior, si era de varios: se leen de la sala vieja)
           var prevPairs = function () {
-            return api.get(a.uid).then(function (r) { var u = seatUids(r); for (var k in known) if (u.indexOf(k) < 0) u.push(k); known = {}; return delPairs(a.uid, u); }, function () { });
+            var u = pairsRead(a.uid);
+            var del = function () { for (var k in known) if (u.indexOf(k) < 0) u.push(k); known = {}; return delPairs(a.uid, u).then(function () { pairsClear(a.uid, u); }); };
+            return api.get(a.uid).then(function (r) { seatUids(r).forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); return del(); }, del);
           };
           return pick().then(function () { return Promise.all([api.delSig(a.uid), prevPairs()]); }).then(function () { return commitRoom(a.uid, d, null, null); }).then(function () { mine = d; return api.get(a.uid); }, function (e) {
             if (e.code !== 'denied') throw e;
@@ -310,14 +339,20 @@
         });
       },
       /** Latido del anfitrión; con patch cambia estado / invitado ({state, guest, gname}). null si la sala ya no existe. */
-      beat: function (patch) {
+      beat: function (patch, o) {
         if (!mine || !me) return Promise.resolve(null);
+        var lite = !!(o && o.lite);
         // solo los campos del patch (nunca se reescribe guest/gname con lo que había: el invitado puede haber entrado entre medias)
         var d = {}, mask = [];
         if (patch) for (var k in patch) if (ROOM_KEYS.indexOf(k) >= 0) { d[k] = patch[k]; mask.push(k); }
         var w = mask.length ? null : { transform: { document: docRoot + '/rooms/' + me.uid, fieldTransforms: [{ fieldPath: 'seen', setToServerValue: 'REQUEST_TIME' }] }, currentDocument: { exists: true } };
         var p = w ? call('POST', base + ':commit', { writes: [w] }) : commitRoom(me.uid, d, mask, true);
-        return p.then(function () { for (var k2 in d) mine[k2] = d[k2]; return api.get(me.uid); }, function (e) {
+        return p.then(function () {
+          for (var k2 in d) mine[k2] = d[k2];
+          // (lite: sin releer; la escritura ya falla si la sala no existe. Copia con id, para quien mire r.id / r.state)
+          if (lite) { var c = { id: me.uid }; for (var k3 in mine) c[k3] = mine[k3]; return c; }
+          return api.get(me.uid);
+        }, function (e) {
           if (e.code === 'gone' || e.code === 'conflict' || /NOT_FOUND|no entity/i.test(e.message)) { mine = null; return null; }
           throw e;
         });
@@ -328,7 +363,10 @@
         code = normCode(code); if (!codeOk(code)) return Promise.resolve(null);
         // (auditoría: las reglas no exigen código único y otra cuenta puede copiar el de una sala ajena: con más de una sala viva con ese
         //  código no se elige ninguna, 'dup', en vez de entrar en la de uid más bajo)
-        return query({ compositeFilter: { op: 'AND', filters: [eq('code', code), eq('state', 'open')] } }, 5).then(function (L) {
+        // (esquema v3: también las coop que esperan compañero, state 'coop'. Se filtra aquí y no en la consulta: un solo campo en el
+        //  filtro = índice automático; con el código casi único, 5 filas sobran)
+        return query(eq('code', code), 5).then(function (L) {
+          L = L.filter(function (r) { return r.state === 'open' || (r.state === 'coop' && r.mode === 'coop'); });
           var live = L.filter(function (r) { return r.age < LIVE_MS; });
           if (live.length > 1) throw err('dup', 'código repetido');
           return live[0] || L[0] || null;
@@ -379,10 +417,21 @@
       /** Esquema v3: el anfitrión levanta a un invitado de su sala (y late). null si la sala ya no existe. */
       kick: function (uid) {
         if (!mine || !me || !uid) return Promise.resolve(null);
-        known[uid] = 1;
-        return commitRoom(me.uid, {}, [seatPath(uid)], true).then(function () { return api.get(me.uid); }, function (e) {
+        known[uid] = 1; pairsSave();
+        // (en la misma escritura, ban.<uid> = true: las reglas no le dejan volver a sentarse en esta sala; la sala nueva empieza sin ban)
+        var ban = mine.ban && typeof mine.ban === 'object' ? mine.ban : {}, f = {}, mask = [seatPath(uid)];
+        if (!ban[uid] && Object.keys(ban).length < BAN_MAX) { f.ban = {}; f.ban[uid] = true; mask.push(banPath(uid)); }
+        var gone = function (e) {
           if (e.code === 'gone' || e.code === 'conflict' || /NOT_FOUND|no entity/i.test(e.message)) { mine = null; return null; }
           throw e;
+        };
+        return commitRoom(me.uid, f, mask, true).then(function () {
+          if (f.ban && mine) { mine.ban = mine.ban || {}; mine.ban[uid] = true; }
+          return api.get(me.uid);
+        }, function (e) {
+          // (reglas de antes del ban: sin él, solo levantarle)
+          if (e.code === 'denied' && f.ban) return commitRoom(me.uid, {}, [seatPath(uid)], true).then(function () { return api.get(me.uid); }, gone);
+          return gone(e);
         });
       },
       /** Al cerrar o recargar la pestaña (pagehide): lo mismo que close() (anfitrión) o leave(id) (invitado), sin esperar respuesta
@@ -429,7 +478,7 @@
         var pairs = function () {
           var u = Object.keys(known); known = {};
           return (wasM ? api.get(id).then(function (r) { seatUids(r).forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); }, function () { }) : Promise.resolve())
-            .then(function () { known = {}; return delPairs(id, u); });
+            .then(function () { known = {}; pairsRead(id).forEach(function (x) { if (u.indexOf(x) < 0) u.push(x); }); return delPairs(id, u).then(function () { pairsClear(id, u); }); });
         };
         return Promise.all([api.delSig(id), pairs()]).then(function () { return call('DELETE', docUrl('rooms/' + id), null, true); }).then(function () { }, function () { });
       },
@@ -465,5 +514,5 @@
   }
 
   VB.NetRoom = { create: create, newCode: newCode, codeOk: codeOk, normCode: normCode, cleanName: cleanName, enc: enc, dec: dec, ALPHA: ALPHA,
-    LIVE_MS: LIVE_MS, STALE_MS: STALE_MS, BEAT_MS: BEAT_MS, CAPS: CAPS, multiCfg: multiCfg, seatPath: seatPath };
+    LIVE_MS: LIVE_MS, STALE_MS: STALE_MS, BEAT_MS: BEAT_MS, CAPS: CAPS, multiCfg: multiCfg, seatPath: seatPath, joinable: joinable };
 })();

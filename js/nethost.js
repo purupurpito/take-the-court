@@ -12,15 +12,20 @@
  *   - Cada invitado simula SOLO su jugador (retraso de entrada 0; Sim.nhStep). Los demás se pintan interpolados (Hermite, colchón
  *     Dt como en Fluida); el balón vuela fantasma desde el último contacto conocido (presente) y se PINTA con un reloj deformado:
  *     va con el retraso de los demás cuando lo van a tocar otros y llega al presente cuando viene hacia ti, sin teletransportes.
- *   - Paquete del anfitrión a 30 Hz por 'in' (no fiable): las poses de los jugadores en pista (22 B cada uno: 12 + 12·22 = 276 B,
- *     < 1200 B). Por 'ctl' (fiable, en orden): contactos (tc), lanzamientos del saque, eventos de la sim y la FOTO entera de la
+ *     L1 (sprint online-multi, 22-nov-2026): el reloj respeta el horizonte de lo sabido de cada jugador que puede tocar (espera en su
+ *     mano a que llegue su toque), el anfitrión pinta igual, lo que aún salte se reparte y tras el punto el balón termina su vuelo.
+ *     Detalle en el bloque «balón pintado CONTINUO». Protocolo 'H2'.
+ *   - Paquete del anfitrión a 30 Hz por 'in' (no fiable): las poses de los jugadores en pista (22 B cada uno: 15 + 12·22 = 279 B,
+ *     < 1200 B; cabecera [12], [13] = reparto de la IA de cada equipo, [14] = F.seq del último contacto; bit 64 de cada pose = «va a
+ *     por el balón», que el invitado declara en su pose con el bit 4). Por 'ctl' (fiable, en orden): contactos (tc), lanzamientos del saque, eventos de la sim y la FOTO entera de la
  *     partida (Sim.serialize, en trozos de ≤ 15 KB) en cada cambio de modo salvo saque → peloteo (punto, saque preparado, revisión,
  *     tiempo muerto): marcador, rotación, líbero y árbitro quedan siempre como en el anfitrión.
  *   - Punto salvable: si el balón va a botar con un invitado cerca, el anfitrión guarda una copia (copyGame) justo antes y retiene
  *     lo que manda del punto hasta HOLD_MAX ms (la ida de ese invitado + 40): si llega su toque con un sello anterior al bote, vuelve
  *     a la copia, aplica el toque y rehace los tics (sin el punto). La plancha del último momento no se pierde por la latencia.
- *   - Un invitado que se va (bye, o GONE ms sin oírle): su plaza pasa a la IA (Sim.setSlotAI) para el resto del partido; callado
- *     SILENT_AI ms, la IA la lleva hasta que vuelva (en el siguiente balón muerto).
+ *   - Un invitado que se va (bye, o GONE ms sin oírle): su plaza pasa a la IA; callado SILENT_AI ms, la IA la lleva hasta que vuelva
+ *     (en el siguiente balón muerto). Tras GONE puede volver: el invitado que lleva WAIT ms sin oír al anfitrión repite su 'hello'
+ *     cada REHELLO ms y el anfitrión lo readmite (foto tele, 'back' a los demás). GONE = HOST_GONE = 60 s, como Precisa-N y el lobby.
  *
  * Fachada: new VB.NetHost.Session({slot (TU plaza; 0 = anfitrión), link, links, seats: [{team, idx, role, name}…], names, opts
  *   (solo el anfitrión), name, epoch, warm, log}) → advance(now, inp) → r {status 'connecting'|'starting'|'playing'|'waiting'|
@@ -36,7 +41,7 @@
   var VB = root.VB = root.VB || {};
 
   var HZ = (VB.C && VB.C.SIM_HZ) || 120, STEP = 1 / HZ, STEP_MS = 1000 / HZ;
-  var PROTO = 'H1';
+  var PROTO = 'H2';                      // (L1: H2 = el paquete de 30 Hz lleva el reparto de la IA del anfitrión)
   /** Constantes (ms salvo que diga tics de 1/120 s o m). */
   var C = {
     BUNDLE: 4, POSE: 2,                  // tics entre paquetes del anfitrión (30 Hz) y entre poses del invitado (60 Hz)
@@ -45,9 +50,19 @@
     LATE_MAX: 60,                        // tics: tope de la media de retraso de los paquetes en el colchón Dp (un desfase raro no lo infla)
     HOLD_MAX: 160, RESCUE_R: 3.2,        // retención de un punto salvable y radio del invitado que puede salvarlo (m)
     PLAUS_R: 3.5, TC_OLD: 90,            // plausibilidad de un toque: distancia a su pose (m) y antigüedad máxima (tics)
-    PING: 500, PING_FAST: 120, SILENT_AI: 2000, GONE: 20000, WAIT: 1000, HOST_GONE: 20000,
+    PING: 500, PING_FAST: 120, SILENT_AI: 2000, GONE: 60000, WAIT: 1000, HOST_GONE: 60000, REHELLO: 1000,
     START_MS: 1500, CONNECT_MS: 20000, READY_MS: 12000, WARM_CAP: 5000,
-    FS_CHUNK: 15000, LAG_K: 10, RATE_MIN: 0.6, RATE_MAX: 1.5, BALL_TAU: 80, BLEND_P: 60,
+    FS_CHUNK: 15000, LAG_K: 10, RATE_MIN: 0.5, RATE_MAX: 1.5, BALL_TAU: 80, BLEND_P: 60,
+    // L1 (balón pintado continuo; ver «balón pintado CONTINUO»): medios pasos salvo que diga otra cosa
+    LAG_MAX: 96, START_BACK: 40, RATE_UP: 12,    // lag máximo del reloj pintado; arranque desde la mano; subida de velocidad (por s)
+    BLK_X: 1.0, BLK_Z: 2.0, BLK_PX: 1.8, BLK_Y: 1.6,   // zona de bloqueo: balón a |x| < BLK_X y z > BLK_Z; bloqueador a |x| < BLK_PX, |Δy| < BLK_Y (m)
+    MATE_CAP: false,                             // (compañero que llega antes que yo: frena; probado, sube el lag al tocar yo)
+    CAPS: true, HPAINT: true,                    // (pruebas: horizonte de lo sabido; balón pintado nuevo del anfitrión)                                    // (el reparto del anfitrión manda en mi equipo, sim.js nhStep)
+    PDEL_MAX: 24, PDEL_V: 0.4,                   // retraso extra de la pose del que va a tocar (tics) y su velocidad de cambio (tics por tic)
+    RATE_ME: 1.9, TRACK_K: 4, WARP_D: 0.2,       // reloj cuando viene a mí; seguimiento del horizonte; lo que acelerar mueve por frame (m)
+    LAT_N: 12, LAT_PAD: 6,                       // muestras por fuente para su lat y margen
+    TR_N: 300, REACH: 2.0, REACH_Z: 4.0, RUN_V: 6, RUN_T: 0.35,   // trayectoria (tics); alcance de un jugador (m); su carrera (m/s, s)
+    BLEND_MIN: 0.12, BLEND_MAX: 8, CORR_V: 12, CORR_MAX: 0.15, TAIL_MS: 700,   // salto que se mezcla (m); corrección a CORR_V m/s y CORR_MAX m por frame; cola
     EV_LATE: 30                          // tics: un evento de sonido que llega más tarde que esto respecto a su pintado sale ya
   };
   var NOIN = { move: [0, 0], hit: false, jump: false, jset: false, skip: false, ai: false };
@@ -55,7 +70,7 @@
   var ACTS = ['', 'pass', 'set', 'spike', 'free', 'serve', 'block', 'swing', 'jump', 'toss', 'dive'];
   var SHOTS = ['', 'tip', 'roll', 'jset', 'body', 'float', 'jump', 'dive', 'tool', 'stuff', 'soft', 'feint', 'dig', 'hard', 'quick', 'power', 'kill', 'shank', 'over'];
   var GRADES = ['', 'perfect', 'good', 'poor'];
-  var OTHER = 255, PL_B = 21, BH = 12, GH = 9;
+  var OTHER = 255, PL_B = 21, BH = 15, GH = 9;   // (BH: cabecera del paquete de 30 Hz; [12], [13] = reparto de la IA, id o 255; [14] = contacto, F.seq)
   // eventos que suenan o se ven en el balón: el invitado los presenta cuando su balón pintado llega a ese tic
   var SENSORY = { hit: 1, block: 1, blockPress: 1, land: 1, landPlayer: 1, net: 1, netTouch: 1, bounce: 1, dive: 1, toss: 1, jump: 1, swing: 1, miss: 1, juggle: 1, dribble: 1, feint: 1 };
   // eventos de mi jugador que no se mandan con mi toque (solo pose)
@@ -175,6 +190,7 @@
     this._evLocal = []; this._evQ = []; this._conf = [];
     this.outQ = []; this.hold = null; this.inRing = [];
     this.snaps = []; this.Dp = -1; this.lateL = []; this.chain = []; this.tau = -1; this.bOff = { x: 0, y: 0, z: 0 }; this.bLast = null;
+    this.latL = {}; this.tailMs = 0; this.eLast = null; this.jobIds = null; this._TrPose = 0;   // (L1)
     this.pend = null; this.lastHostTc = null; this.tcSeq = 0; this.fsBuf = null; this.srvN = 0; this.prevSS = ''; this.prevMode = '';
     this.lastSig = ''; this.poseScr = {}; this.seatRtt = []; this.pgAt = -1e9; this._sv = null; this.bLastT = -1; this.heardAt = -1; this.waitStart = -1;
     if (this.host && o.opts) this._setOpts(o.opts);
@@ -292,7 +308,7 @@
       if (!pe.pose || q.T > pe.pose.T) { pe.pose = q; this.hstats.poseIn++; }
       pe.ai = !!(q.fl & 1);
     } else if (!this.host && type === T_BUNDLE && u.length >= BH) {
-      var n = u[8], o = { T: dv.getUint32(1, true), r: dv.getUint16(5, true), fl: u[7], srv: u[11], pl: {} }, k = BH;
+      var n = u[8], o = { T: dv.getUint32(1, true), r: dv.getUint16(5, true), fl: u[7], srv: u[11], jb: [u[12], u[13]], sq: u[14], pl: {} }, k = BH;
       if (u.length < BH + n * (PL_B + 1)) return;
       for (var i = 0; i < n; i++) { o.pl[u[k]] = poseR(dv, u, k + 1); k += PL_B + 1; }
       this._onBundle(o, now);
@@ -349,9 +365,14 @@
         if (c.v !== PROTO || (VB.VERSION && c.ver && c.ver !== VB.VERSION)) { this._ctl(pe, { k: 'bye', why: 'version', rv: VB.VERSION || '' }); return; }
         if (!g || s <= 0 || s >= g.hum.length) { this._ctl(pe, { k: 'bye', why: 'seat' }); return; }
         for (var i = 0; i < this.peers.length; i++) if (this.peers[i] !== pe && this.peers[i].seat === s && !this.peers[i].gone) { this._ctl(pe, { k: 'bye', why: 'seat' }); return; }
+        // (un 'hello' repetido de una plaza que sigue dentro: el invitado lleva un rato sin oírnos, pero el canal 'ctl' es fiable y le
+        //  llegará todo lo pendiente; nada de foto nueva, que a mitad de peloteo le movería el balón)
+        if (this.t0 && pe.hello && !pe.gone && pe.seat === s) return;
+        var back = pe.gone && this.t0;
         pe.seat = s; pe.hello = true; pe.name = cleanName(c.name) || this.names[s] || '';
         if (pe.gone) { pe.gone = false; delete this.gone[s]; }
         pe.started = true;
+        if (back) { this._q({ k: 'back', s: s }); this._log('la plaza ' + s + ' vuelve'); }
         this._ctl(pe, { k: 'start', opts: this.opts, seat: s, names: this.names });
         if (this.t0) {   // (vuelve o llega tarde: la partida de ahora y el reloj)
           this._ctl(pe, { k: 'go', t0: this.t0 });
@@ -393,6 +414,7 @@
     var res = S.nhApplyTc(g, m, this.T);
     if (res === 'ok' || res === 'fork') {
       if (res === 'fork') H.tcFork++; H.tcOk++;
+      this._chainPush(m, false, false, c.sq, s);
       this._q({ k: 'tc', s: s, sq: c.sq, m: m });
       if (Array.isArray(c.ev)) for (var i = 0; i < c.ev.length && i < 8; i++) { var e = decEv(c.ev[i], g); e._s = s; g.events.push(e); }
       this._hostPost(this.T, true);
@@ -401,7 +423,7 @@
   SP._hostToss = function (pe, c) {
     var S = Sim(), g = this.g, m = c.m;
     if (!m || g.server !== g.hum[pe.seat].p || g.hum[pe.seat].ai) return;
-    if (S.nhToss(g, m, this.T)) { this.hstats.tossIn++; this.prevSS = 'ready'; this._hostPost(this.T, true); }
+    if (S.nhToss(g, m, this.T)) { this.hstats.tossIn++; this.prevSS = 'ready'; this._tossM = m; this._tossS = pe.seat; this._hostPost(this.T, true); }
   };
   /** Punto retenido salvado: vuelta a la copia de antes del bote, el toque y los tics rehechos (lo retenido se tira). */
   SP._rescue = function (pe, c) {
@@ -416,6 +438,7 @@
       S.copyGame(g, this.gk); g.fl.T = T1; this.outQ = this.outQ.concat(hd.q); this._evLocal = this._evLocal.concat(hd.loc); return;
     }
     this.hstats.rescues++; this.hstats.tcOk++;
+    this._chainPush(m, false, false, c.sq, pe.seat);
     this.prevMode = g.mode; this.prevSS = g.serveState; this.lastSig = this._sig();
     this._q({ k: 'tc', s: pe.seat, sq: c.sq, m: m });
     if (Array.isArray(c.ev)) for (var i = 0; i < c.ev.length && i < 8; i++) { var e = decEv(c.ev[i], g); e._s = pe.seat; g.events.push(e); }
@@ -500,11 +523,14 @@
   /** Tras un tic (o un mensaje aplicado): contactos, lanzamiento, eventos y foto a la cola; eventos a la salida local. */
   SP._hostPost = function (T, mid) {
     var S = Sim(), g = this.g, F = g.fl, i;
-    for (i = 0; i < F.nh.tcs.length; i++) this._q({ k: 'tc', s: -1, m: F.nh.tcs[i] });
+    for (i = 0; i < F.nh.tcs.length; i++) { this._q({ k: 'tc', s: -1, m: F.nh.tcs[i] }); this._chainPush(F.nh.tcs[i], false); }
     F.nh.tcs.length = 0; F.pts.length = 0; F.fq.length = 0;
     if (g.mode === 'serve' && g.serveState !== 'ready' && this.prevSS === 'ready' && this.prevMode === 'serve') {
-      var tb = S.flBundle(g); tb.kind = 'toss'; tb.T = T; tb.h = 1; tb.bAge = F.bAge; tb.own = 0;
-      this._q({ k: 'toss', m: tb });
+      // (L1: el lanzamiento de un invitado sale con SU tic y su estado: los demás aprenden lo que tarda y lo pintan desde la mano)
+      var tb = this._tossM;
+      if (!tb || tb.r !== F.r) { tb = S.flBundle(g); tb.kind = 'toss'; tb.T = T; tb.h = 1; tb.bAge = F.bAge; tb.own = 0; this._tossS = -1; }
+      this._q({ k: 'toss', m: tb, s: this._tossS >= 0 ? this._tossS : -1 });
+      this._chainPush(tb, true, false, undefined, this._tossS >= 0 ? this._tossS : undefined);
     }
     var E = g.events;
     if (E.length) {
@@ -520,7 +546,7 @@
       if (F.sr) this.srvN++;
       if (ser) this._q({ k: 'fs', T: T, tele: F.sr, srv: this.srvN & 255, d: JSON.stringify(S.serialize(g)) });
     }
-    F.sr = false;
+    F.sr = false; this._tossM = null; this._tossS = -1;
     this.prevMode = g.mode; this.prevSS = g.serveState;
   };
   /** Paquete de 30 Hz: poses de los jugadores en pista (por id). */
@@ -529,12 +555,21 @@
     var live = g.mode === 'serve' || g.mode === 'rally';
     u[0] = T_BUNDLE | ((this.epoch & 15) << 4); dv.setUint32(1, T >>> 0, true); dv.setUint16(5, g.fl.r & 65535, true); u[7] = live ? 1 : 0; u[8] = n;
     dv.setUint16(9, (this.bSeq = ((this.bSeq | 0) + 1) & 65535), true); u[11] = this.srvN & 255;
+    u[12] = g.jobs && g.jobs[0] ? g.jobs[0].id & 255 : 255; u[13] = g.jobs && g.jobs[1] ? g.jobs[1].id & 255 : 255;   // (L1: quién va a por el balón)
+    u[14] = g.fl.seq & 255;   // (L1: tras qué contacto se hizo ese reparto: el invitado solo lo usa si es su último contacto conocido)
     for (var i = 0; i < n; i++) {
       var p = P[i], s = S.seatOf(g, p);
-      u[k] = p.id & 255; poseW(dv, u, k + 1, poseOut(g, p, q, s >= 0, s)); k += PL_B + 1;
+      poseOut(g, p, q, s >= 0, s); if (this._voy(p, s)) q.bits |= 64;   // (L1: bit 64 = va a por el balón)
+      u[k] = p.id & 255; poseW(dv, u, k + 1, q); k += PL_B + 1;
     }
     for (var j = 0; j < this.peers.length; j++) if (this.peers[j].started) this._sendIn(this.peers[j], u);
     this.hstats.bundles++; if (u.length > this.hstats.bundleMax) this.hstats.bundleMax = u.length;
+  };
+  /** L1 (anfitrión): ¿va p a por el balón? Invitado: lo que declara en su pose (bit 4); el resto, el reparto de la IA de aquí. */
+  SP._voy = function (p, s) {
+    var g = this.g; if (g.mode !== 'rally') return false;
+    if (s > 0 && g.fl.nh.rem[s] && !g.hum[s].ai) { var pe = this._seatPeer(s); return !!(pe && pe.pose && (pe.pose.fl & 4)); }
+    return !!(g.jobs && g.jobs[p.team] === p);
   };
   SP._hostLife = function (now) {
     var g = this.g, i, pe, need = [];
@@ -598,10 +633,11 @@
       case 'go': this.t0h = +c.t0 || 0; return;
       case 'fs': this._fsPart(c, now); return;
       case 'tc': if (g) this._guestTc(c); return;
-      case 'toss': if (g && S.nhToss(g, c.m, this.T)) this._chainPush(c.m, true); return;
+      case 'toss': if (g && S.nhToss(g, c.m, this.T)) this._chainPush(c.m, true, false, undefined, typeof c.s === 'number' && c.s > 0 && c.s !== this.seat ? c.s : -1); return;
       case 'rej': if (g) this._guestRej(c); return;
       case 'ev': if (g && Array.isArray(c.l)) this._guestEv(c.l); return;
       case 'gone': this.gone[c.s | 0] = true; return;
+      case 'back': delete this.gone[c.s | 0]; return;
       case 'pg': if (Array.isArray(c.p)) this.seatRtt = c.p.map(function (v) { return +v || 0; }); return;
     }
   };
@@ -622,21 +658,37 @@
     F = g.fl; F.loc = [false, false]; F.me = 1; F.own = 0; F.peer = true; F.T = T;
     F.nh = { host: false, seat: this.seat, rem: [], tcs: [], grace: 0.15, dropT: 0 };
     if (keep) { var me2 = g.hum[this.seat].p; if (me2 && me2.id === keep.id) for (k = 0; k < KEEP.length; k++) me2[KEEP[k]] = keep[KEEP[k]]; }
-    var dt = Math.max(0, T - (c.T | 0)) * STEP;
+    var nT = Math.max(0, T - (c.T | 0)), dt = nT * STEP, b = g.ball;
     if (g.mode === 'point' || g.mode === 'over') g.timer -= dt;
+    // (foto a mitad de peloteo —una plaza pasa a la IA o vuelve—: es del tic c.T del anfitrión; el balón vuela hasta mi tic T, como
+    //  nhApplyTc con un contacto. Sin esto mi balón simulado iba una ida por detrás hasta el siguiente contacto: ~1 m a 120 ms, y mis
+    //  toques salían contra ese balón viejo)
+    if (!c.tele && nT > 0 && !b.held && (g.mode === 'rally' || g.mode === 'serve')) {
+      var fb = S.flFly(b, F.bAge, 2 * nT, F.dh || STEP / 2, this._fsB || (this._fsB = {}));
+      for (k = 0; k < BK12.length; k++) b[BK12[k]] = fb[BK12[k]];
+      F.bAge = fb.age; if (g.mode === 'serve') g.tossT += dt;
+    }
     g.events.length = 0;
     this.hstats.fsIn++; this.stats.rsIn++; this.rsT = T;
     if (c.tele) { this.srvN = c.srv | 0; this.snaps = this.snaps.filter(function (s) { return s.srv === (c.srv | 0); }); }
-    this.chain = []; this.pend = null; this.lastHostTc = null; this.tau = -1;
+    // (L1: la cadena y el reloj pintado siguen con la foto del punto: el balón pintado termina su vuelo; con la del saque, de cero.
+    //  Sin tele, mi toque en vuelo sigue pendiente: su eco lo vuelve a aplicar —la foto es de antes de que el anfitrión lo tuviera— y
+    //  su rechazo devuelve el balón al último contacto del anfitrión)
+    if (c.tele) { this.pend = null; this.lastHostTc = null; this.chain = []; this.tau = -1; this.eLast = null; }
+    else if (this.pend) this.pend.fs = true;
     this.myTeam = g.hum[this.seat].team;
   };
   /** Contacto que manda el anfitrión (de otro, o el eco del mío). */
   SP._guestTc = function (c) {
     var S = Sim(), g = this.g, m = c.m;
     if (!m || !m.b) return;
-    if (c.s === this.seat && this.pend && this.pend.sq === c.sq) { this.pend = null; this.lastHostTc = m; this.hstats.tcEcho++; return; }
+    if (c.s === this.seat && this.pend && this.pend.sq === c.sq) {
+      var refs = this.pend.fs; this.pend = null; this.lastHostTc = m; this.hstats.tcEcho++;
+      if (refs) S.nhApplyTc(g, m, this.T);   // (una foto llegó entre mi toque y su eco: la foto no lo tenía)
+      return;
+    }
     var r = S.nhApplyTc(g, m, this.T);
-    if (r === 'ok' || r === 'fork') { this.lastHostTc = m; this._chainPush(m, false); if (this.pend) { this.pend = null; this.hstats.tcLost++; } }
+    if (r === 'ok' || r === 'fork') { this.lastHostTc = m; this._chainPush(m, false, false, undefined, typeof c.s === 'number' && c.s > 0 ? c.s : -1); if (this.pend) { this.pend = null; this.hstats.tcLost++; } }
   };
   SP._guestRej = function (c) {
     if (!this.pend || this.pend.sq !== c.sq) return;
@@ -655,25 +707,14 @@
       this._evQ.push(e);
     }
   };
-  /** Cadena de contactos del rally para el balón pintado: {hs (medio paso desde el que vuela), b, age, mine, sq}. */
-  SP._chainPush = function (m, toss, mine, sq) {
-    var hs = toss ? 2 * m.T + 2 : 2 * m.T + m.h + 1;
-    if (m.full && !toss) hs = 2 * m.T + m.h + 1;
-    if (this.chain.length && this.chain[this.chain.length - 1].r !== m.r) this.chain = [];
-    if (this.tau >= 0 && hs < this.tau && this.chain.length) {   // (ya se pintó más allá de este contacto: llega tarde)
-      var lt = this.tau - hs; this.hstats.lateC++; if (lt > this.hstats.lateMax) this.hstats.lateMax = lt;
-      if (this.lateDbg) this.lateDbg.push({ lt: lt, lag: this.lastTf - this.tau, toMe: this.toMe, arr: 2 * this.T - hs, kind: m.kind, D: this.Dp, mine: mine });
-      (this.hstats.lateK[toss ? 'toss' : mine ? 'mine' : m.kind] = (this.hstats.lateK[toss ? 'toss' : mine ? 'mine' : m.kind] || 0) + 1);
-    }
-    while (this.chain.length && this.chain[this.chain.length - 1].hs > hs) this.chain.pop();
-    this.chain.push({ hs: hs, b: m.b.slice(), age: m.bAge || 0, mine: !!mine, sq: sq, r: m.r });
-    if (this.chain.length > 24) this.chain.shift();
-  };
   /** Paquete de poses del anfitrión: al anillo de interpolación; mide lo que llega tarde (colchón Dp). */
   SP._onBundle = function (o, now) {
     var L = this.snaps;
     if (L.length && o.T <= L[L.length - 1].T) return;
     L.push(o); if (L.length > 48) L.shift();
+    this.jobIds = o.jb; this.jobT = o.T; this.jobSq = o.sq;
+    var vo = this.voyIds || (this.voyIds = {}), id; for (id in vo) vo[id] = false;
+    for (id in o.pl) if (o.pl[id].bits & 64) vo[id] = true;
     if (this.t0h && this.offOk) {
       var Tnow = (now + this.off - this.t0h) / STEP_MS, late = Tnow - o.T;
       this.lateL.push(late); if (this.lateL.length > 64) this.lateL.shift();
@@ -691,15 +732,23 @@
     return this.Dp;
   };
   /** Poses de los demás en el tic Tr (Hermite entre dos paquetes; extrapolación corta si faltan). */
-  SP._guestPoses = function (Tr) {
+  SP._guestPoses = function (Tr0) {
     var S = Sim(), g = this.g, L = this.snaps, P = g.players, s0 = null, s1 = null, k, i, o = this.poseScr;
     if (!L.length) return;
-    for (k = L.length - 1; k >= 0; k--) if (L[k].T <= Tr) { s0 = L[k]; s1 = L[k + 1] || null; break; }
-    if (!s0) { s0 = L[0]; s1 = null; }
-    if (s0.srv !== (this.srvN & 255)) return;   // (aún las de antes del saque: la formación de la foto)
-    var G = (VB.C && VB.C.G) || 9;
+    var srv = this.srvN & 255, Lr = L[L.length - 1];
+    if (Lr.srv !== srv && L[0].srv !== srv) return;
+    var G = (VB.C && VB.C.G) || 9, pd = this.pDel || (this.pDel = {}), cap = this._capBind, lagT = this.tau >= 0 ? Tr0 - this.tau / 2 : 0;
     for (i = 0; i < P.length; i++) {
       var p = P[i]; if (!S.nhFrozen(g, p)) continue;
+      // (L1: el que va a tocar y frena el balón pintado se pinta con el reloj del balón: su golpe y el balón llegan a la vez; el retraso
+      //  extra entra y sale a ≤ C.PDEL_V tics por tic: su animación va un poco más lenta o más rápida, nunca salta)
+      var dl = pd[p.id] || 0, tg = p.id === cap && g.mode === 'rally' ? clampN(lagT, 0, C.PDEL_MAX) : 0;
+      if (dl !== tg) { dl += clampN(tg - dl, -C.PDEL_V, C.PDEL_V); pd[p.id] = dl; }
+      var Tr = Tr0 - dl;
+      s0 = null; s1 = null;
+      for (k = L.length - 1; k >= 0; k--) if (L[k].T <= Tr) { s0 = L[k]; s1 = L[k + 1] || null; break; }
+      if (!s0) { s0 = L[0]; s1 = null; }
+      if (s0.srv !== srv) { if (!dl) continue; s0 = null; for (k = 0; k < L.length; k++) if (L[k].srv === srv) { s0 = L[k]; s1 = L[k + 1] || null; break; } if (!s0) continue; Tr = Math.max(Tr, s0.T); }   // (aún las de antes del saque: la formación de la foto)
       var q0 = s0.pl[p.id & 255], q1 = s1 && s1.srv === s0.srv ? s1.pl[p.id & 255] : null;
       if (!q0) continue;
       if (q1) {
@@ -724,14 +773,15 @@
     var S = Sim(), g = this.g, h = g.hum[this.seat], p = h.p, u = new Uint8Array(GH + PL_B), dv = new DataView(u.buffer);
     u[0] = T_POSE | ((this.epoch & 15) << 4); dv.setUint32(1, T >>> 0, true); u[5] = g.fl.r & 255; u[6] = this.srvN & 255;
     var act = g.rot && g.time - S.slotGet(g, this.seat, 'hAct') < 0.1;
-    u[7] = (this.away ? 1 : 0) | (act ? 2 : 0);   // (solo «ausente»: h.ai lo decide el anfitrión y vuelve en el balón muerto)
+    var voy = g.mode === 'rally' && !h.ai && g.jobs && g.jobs[h.team] === p;   // (L1: «voy a por él»: mi reparto me lo da)
+    u[7] = (this.away ? 1 : 0) | (act ? 2 : 0) | (voy ? 4 : 0);   // (solo «ausente»: h.ai lo decide el anfitrión y vuelve en el balón muerto)
     poseW(dv, u, GH, poseOut(g, p, this._pq || (this._pq = {}), true, this.seat));
     this._sendIn(this.peers[0], u);
   };
   SP._guestTick = function (T, inp, D) {
     var S = Sim(), g = this.g, F = g.fl, pe = this.peers[0], i, s = this.seat;
     F.T = T;
-    this._guestPoses(T - D);
+    this._guestPoses(T - D); this._TrPose = T - D;
     var ins = this._ins; while (ins.length < g.hum.length) ins.push(NOIN);
     for (i = 0; i < ins.length; i++) ins[i] = NOIN;
     var me = this._gin || (this._gin = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false });
@@ -783,8 +833,14 @@
     }
     if ((this.status === 'playing' || this.status === 'waiting') && this.heardAt > 0) {
       var q = now - this.heardAt;
-      if (q > C.HOST_GONE) { this.status = 'ended'; this.valid = false; this.goneFlag = true; this.result = { why: 'hostGone', win: false }; }
-      else if (q > C.WAIT) { if (this.status !== 'waiting') { this.status = 'waiting'; this.waitStart = now; } this.out.waitMs = now - this.waitStart; }
+      // (sin noticias HOST_GONE ms: si la que se paró fue esta página —pestaña o app en segundo plano—, 'lost'; si no, 'hostGone')
+      if (q > C.HOST_GONE) { this.status = 'ended'; this.valid = false; this.goneFlag = true; this.result = { why: this.stallAt > 0 && this.stallAt >= this.heardAt ? 'lost' : 'hostGone', win: false }; }
+      else if (q > C.WAIT) {
+        if (this.status !== 'waiting') { this.status = 'waiting'; this.waitStart = now; }
+        this.out.waitMs = now - this.waitStart;
+        // (el anfitrión pudo darme por ido —GONE— y ya no me manda nada: el 'hello' le pide volver; si sigo dentro, lo ignora)
+        if (now - (this.helloAt || -1e9) > C.REHELLO) { this.helloAt = now; this._ctl(pe, { k: 'hello', v: PROTO, seat: this.seat, name: this.name, ver: VB.VERSION || '' }); }
+      }
       else if (this.status === 'waiting') this.status = 'playing';
     }
   };
@@ -814,62 +870,248 @@
     }
     this._dispBall(Tf, D, dtF);
   };
-  /** Balón pintado del invitado: la cadena de contactos volada al medio paso tau, con tau = presente − lag; el lag va hacia el
-   *  colchón de los demás (lo tocan otros) o hacia 0 (viene hacia mí) con la velocidad del reloj entre RATE_MIN y RATE_MAX. Lo que
-   *  quede de un salto (contacto inesperado, rechazo) se deshace con BALL_TAU ms. Se escribe sobre g.ball hasta el siguiente advance. */
-  SP._dispBall = function (Tf, D, dtF) {
-    var S = Sim(), g = this.g, b = g.ball, F = g.fl, ch = this.chain, H = this.hstats, sv = this._sv || (this._sv = {}), k;
-    var KEYS = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'spin'];
-    for (k = 0; k < KEYS.length; k++) sv[KEYS[k]] = b[KEYS[k]];
-    this._svOn = true;
-    var pres = 2 * Tf, live = g.mode === 'rally' || (g.mode === 'serve' && !b.held);
-    if (!live || !ch.length || ch[ch.length - 1].r !== F.r) { this.tau = -1; this._blend(b, dtF); return; }
-    // ¿Quién toca ahora? El equipo del campo donde va a caer el balón y, en él, el que su IA mandaría (computeJob). Yo → el balón llega
-    // al presente (lag 0). Otro humano → su contacto viene por el anfitrión (dos tramos): el lag cubre además su ida. La IA → el lag de
-    // los demás jugadores (su contacto llega antes de pintarlo).
-    var Lmax = 2 * D, me = g.hum[this.seat].p, toMe = false, AI = VB.AI, Lt = Lmax, nt, job = null;
-    var tl = S.landT ? S.landT(g) : 0, lx = b.x + b.vx * (tl > 0 && tl < 5 ? tl : 0);
-    nt = lx * S.side(0) > 0 ? 0 : 1;
-    if (AI && AI.computeJob && S.seatRep) { var rp = S.seatRep(g, nt); S.useSlot(g, rp); try { job = AI.computeJob(g, nt); } catch (e) { job = null; } S.useSlot(g, 0); }
-    if (!g.hum[this.seat].ai) { var dx = b.x - me.x, dy = b.y - me.y; toMe = job === me || (dx * dx + dy * dy < 1.2 && !(g.touchTeam === me.team && g.lastPlayer === me)); }
-    if (toMe) Lt = 0;
-    else if (job) { var js = S.seatOf(g, job); if (js >= 0 && js !== this.seat && this.seatRtt[js] > 0) Lt = Lmax + 2 * (this.seatRtt[js] / 2 / STEP_MS + 2); }
-    Lt = Math.min(Lt, 2 * C.D_MAX + 8); this.toMe = toMe;
-    var dP = this.lastTf >= 0 ? Math.max(0, pres - this.lastTf) : 0; this.lastTf = pres;
-    if (this.tau < 0) this.tau = pres - Lt;
-    else {
-      var L = pres - this.tau, rate = clampN(1 + (L - Lt) / C.LAG_K, C.RATE_MIN, C.RATE_MAX);
-      this.tau += dP * rate;
-      if (rate > H.warpMax) H.warpMax = rate;
+  /* ---------- L1: balón pintado CONTINUO (invitados y anfitrión) ----------
+   * El balón se pinta volando la cadena de contactos conocidos hasta el medio paso tau (reloj pintado). Un contacto ajeno que llega
+   * cuando tau ya lo pasó hace saltar el balón (P5: hasta 28 saltos por partido, hasta 3,5 m). Ahora:
+   *   1. Horizonte de lo sabido. Un contacto del jugador p en el medio paso hs llega aquí, como tarde, en pres = hs + lat(fuente de p)
+   *      (lat aprendida por fuente con lo que tardan sus contactos de verdad: _latObs / _latOf; antes de tener muestras, el ping). Así
+   *      K = pres − lat es hasta dónde sé seguro que p no ha tocado. En la trayectoria conocida (vuelo desde el último contacto,
+   *      _traj) se busca la primera muestra in > K al alcance de p y el reloj se frena para llegar a in justo cuando llegue K:
+   *      r = (in − tau) / (in − K). Su toque llega con el balón pintado en su mano: sin salto. Si nadie toca, el balón pasa y el reloj
+   *      recupera (hasta RATE_MAX).
+   *   2. Candidatos con lo que sabe el anfitrión: su reparto de la IA (g.jobs, en el paquete de 30 Hz) dice quién va a por el balón en
+   *      cada equipo; los demás de ese equipo solo cuentan en la zona de bloqueo. Los humanos de otras plazas cuentan siempre (van a
+   *      donde quieren). El que acaba de tocar no (dos toques seguidos no valen). En el saque no hay bloqueo.
+   *   3. Viene hacia mí (lo dice el reparto del anfitrión o la distancia): el reloj va al presente (mi toque es contra el balón de
+   *      ahora) y solo frenan los rivales y el bloqueo de mi equipo; mis compañeros, no.
+   *   4. Lo que aún salte (dos invitados que tocan a la vez, un rechazo) se reparte: desfase que se deshace con BALL_TAU ms y nunca a
+   *      más de CORR_V m/s (ningún frame mueve el balón más de ~0,2 m de lo que vuela).
+   *   5. Tras el punto (o mientras el anfitrión retiene un punto salvable) el balón pintado sigue su vuelo hasta el suelo (cola) y
+   *      luego pasa al de verdad mezclado: el anfitrión ya no ve volver el balón del suelo en un punto salvado.
+   * El anfitrión pinta igual (lat 0 para su IA y su jugador; lat de cada invitado para sus toques). La partida no cambia: todo esto es
+   * solo lo que se pinta (g.ball se deshace en el siguiente advance). */
+  var BK12 = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'spin', 'speed', 'dip', 'wobA', 'wobF', 'wobP'], PKEYS = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'spin'];
+  /** Cadena de contactos del rally para el balón pintado: {hs (medio paso desde el que vuela), b, age, mine, sq, r, lp (id del que
+   *  tocó), k (tipo)}. src = fuente del contacto (plaza del invitado que tocó; -1 el anfitrión) para medir lo que tarda en llegar. */
+  SP._chainPush = function (m, toss, mine, sq, src) {
+    var hs = toss ? 2 * m.T + 2 : 2 * m.T + m.h + 1;
+    if (this.chain.length && this.chain[this.chain.length - 1].r !== m.r) this.chain = [];
+    if (!mine && src !== undefined && src !== null) this._latObs(src, this._presHs() - hs);
+    if (this.tau >= 0 && hs < this.tau && this.chain.length) {   // (ya se pintó más allá de este contacto: llega tarde)
+      var lt = this.tau - hs; this.hstats.lateC++; if (lt > this.hstats.lateMax) this.hstats.lateMax = lt;
+      if (this.lateDbg) {
+        var who = toss ? -1 : m.m && m.m.lp, wp = byId(this.g, who), mt = this.g.hum[this.seat] ? this.g.hum[this.seat].team : -1;
+        this.lateDbg.push({ lt: lt, lag: this.lastTf - this.tau, toMe: this.toMe, arr: this._presHs() - hs, kind: toss ? 'toss' : m.kind, src: src, D: this.Dp, mine: mine, cap: this._capId,
+          who: who, why: this.toMe ? this._whyMe : '', fresh: this._jobFresh(), mate: wp ? wp.team === mt : null, voy: wp ? this._voyOf(wp, Sim().seatOf(this.g, wp), this._jobsNow()) : null });
+      }
+      (this.hstats.lateK[toss ? 'toss' : mine ? 'mine' : m.kind] = (this.hstats.lateK[toss ? 'toss' : mine ? 'mine' : m.kind] || 0) + 1);
     }
-    this.tau = clampN(this.tau, pres - 2 * C.D_MAX - 8, pres);
+    while (this.chain.length && this.chain[this.chain.length - 1].hs > hs) this.chain.pop();
+    this.chain.push({ hs: hs, b: m.b.slice(), age: m.bAge || 0, mine: !!mine, sq: sq, r: m.r, s: typeof m.s === 'number' ? m.s & 255 : -1, lp: toss ? -1 : m.m && typeof m.m.lp === 'number' ? m.m.lp : -1, k: toss ? 'toss' : m.kind });
+    if (this.chain.length > 24) this.chain.shift();
+  };
+  /** Presente en medios pasos (el reloj compartido del partido). */
+  SP._presHs = function () { return this.t0 ? 2 * (this.lastNow - this.t0) / STEP_MS : 2 * this.T; };
+  /** Lo que tarda en llegar un contacto de la fuente src (medios pasos desde su medio paso hasta que llega aquí). */
+  SP._latObs = function (src, a) {
+    if (!(a > -40 && a < 600)) return;
+    var L = this.latL[src] || (this.latL[src] = []); L.push(a); if (L.length > C.LAT_N) L.shift();
+  };
+  /** lat de una fuente: el máximo de sus últimos LAT_N contactos más LAT_PAD; con menos de 3, prior (del ping). Acotada a [prior/2, 2·prior]. */
+  SP._latOf = function (src, prior) {
+    var L = this.latL[src]; if (!L || L.length < 3) return prior;
+    var m = -1e9; for (var i = 0; i < L.length; i++) if (L[i] > m) m = L[i];
+    return clampN(m + C.LAT_PAD, prior * 0.5, prior * 2 + 8);
+  };
+  SP._priorHost = function () { return 2 * (this.Dp > 0 ? this.Dp : C.D_MIN + this.rtt / 2 / STEP_MS); };
+  SP._priorSeat = function (s) {
+    if (this.host) { var pe = this._seatPeer(s); return 2 * ((pe && pe.rtt ? pe.rtt : 100) / 2 / STEP_MS + 3); }
+    return this._priorHost() + 2 * ((this.seatRtt[s] > 0 ? this.seatRtt[s] : 100) / 2 / STEP_MS + 2);
+  };
+  /** Reparto de la IA del anfitrión por equipo (jugador o null); undefined si aún no se sabe. */
+  SP._jobsNow = function () {
+    var g = this.g;
+    if (this.host) return g.jobs;
+    if (!this.jobIds || !this._jobFresh()) return undefined;
+    var o = this._jb || (this._jb = [null, null]);
+    for (var t = 0; t < 2; t++) o[t] = this.jobIds[t] === 255 ? null : byId(g, this.jobIds[t]);
+    return o;
+  };
+  /** ¿Va p a por el balón? Lo que declara (bit 64 del paquete del anfitrión; en el anfitrión, la pose del invitado o su IA); sin
+   *  eso aún, el reparto de la IA del anfitrión; sin nada, sí. */
+  SP._voyOf = function (p, s, jobs) {
+    if (this.host) return this._voy(p, s);
+    if (this.voyIds && this.voyIds[p.id & 255]) return true;
+    if (jobs === undefined) return true;
+    return jobs[p.team] === p;
+  };
+  /** ¿El reparto del último paquete es de la trayectoria de ahora? Lo hizo el anfitrión con el mismo último contacto que yo sé (su F.seq
+   *  = el de mi último contacto). Por tic no vale: el toque de un invitado lleva SU tic y el anfitrión lo sabe su ida después; un
+   *  reparto de en medio es aún el de antes (el del que acaba de tocar) y dejaba el balón sin dueño. */
+  SP._jobFresh = function () {
+    var ch = this.chain, c = ch.length ? ch[ch.length - 1] : null;
+    return !!c && c.r === this.g.fl.r && c.s >= 0 && c.s === this.jobSq;
+  };
+  /** Trayectoria conocida desde el contacto e: una muestra por tic (medio paso e.hs + 2i) hasta el suelo o TR_N tics. En caché. */
+  SP._traj = function (e) {
+    var t = this._tr; if (t && t.e === e) return t;
+    var S = Sim(), dh = (this.g.fl && this.g.fl.dh) || STEP / 2, BR = (VB.C && VB.C.BR) || 0.21, o = this._tro || (this._tro = {}), k, i;
+    if (!t) t = this._tr = { e: null, n: 0, x: new Float32Array(C.TR_N), y: new Float32Array(C.TR_N), z: new Float32Array(C.TR_N) };
+    t.e = e; t.n = 0; t.x0 = t.y0 = 1e9; t.x1 = t.y1 = -1e9;
+    for (k = 0; k < BK12.length; k++) o[BK12[k]] = e.b[k] || 0;
+    o.age = e.age;
+    for (i = 0; i < C.TR_N; i++) {
+      t.x[i] = o.x; t.y[i] = o.y; t.z[i] = o.z; t.n = i + 1;
+      if (o.x < t.x0) t.x0 = o.x; if (o.x > t.x1) t.x1 = o.x; if (o.y < t.y0) t.y0 = o.y; if (o.y > t.y1) t.y1 = o.y;
+      if (i > 0 && o.z <= BR + 1e-4) break;
+      S.flFly(o, o.age, 2, dh, o);
+    }
+    return t;
+  };
+  /** ¿Viene hacia mí? (mi jugador, sin la IA): cerca, o el reparto me lo da: el del anfitrión o el de mi partida (g.jobs de mi equipo,
+   *  el mismo que ve quien juega aquí; si fuera solo el del anfitrión, el balón llegaría tarde a quien va a por él y fallaría). */
+  SP._toMe = function (meP) {
+    if (!meP) return false;
+    var g = this.g, b = g.ball, dx = b.x - meP.x, dy = b.y - meP.y, d2 = dx * dx + dy * dy;
+    if (g.touchTeam === meP.team && g.lastPlayer === meP) return false;   // (acabo de tocar yo: el siguiente no es mío)
+    var jobs = this._jobsNow(), J = jobs ? jobs[meP.team] : null;
+    // (cerca, salvo que el anfitrión se lo dé a un compañero: en 6v6 el balón pasa a menudo junto a uno camino de otro)
+    if (d2 < 1.2 && !(J && J !== meP && J.team === meP.team)) { this._whyMe = 'cerca'; return true; }
+    if (J === meP) { this._whyMe = 'anf'; return true; }
+    this._whyMe = 'local';
+    return g.mode === 'rally' && !!g.jobs && g.jobs[meP.team] === meP;
+  };
+  /** Velocidad máxima del reloj pintado para no pasar el horizonte de lo sabido de ningún candidato (e = último contacto conocido). */
+  SP._capRate = function (e, pres, toMe, meP) {
+    var S = Sim(), g = this.g, P = g.players, tr = this._traj(e), host = this.host, tau = this.tau, rMin = 99, jobs = this._jobsNow();
+    var myT = this.myTeam, serveK = e.k === 'serve' || e.k === 'toss', Tp = host ? this.T : this._TrPose, end = e.hs + 2 * (tr.n - 1), R2 = C.REACH * C.REACH;
+    this._capId = -1;
+    var meK = -1;   // (primera muestra a mi alcance: mi ventana)
+    if (toMe && meP) for (var q = Math.max(0, Math.floor((tau - e.hs) / 2)); q < tr.n; q++) {
+      var qx = tr.x[q] - meP.x, qy = tr.y[q] - meP.y; if (tr.z[q] < C.REACH_Z && qx * qx + qy * qy < R2) { meK = q; break; }
+    }
+    for (var i = 0; i < P.length; i++) {
+      var p = P[i]; if (p === meP || p.id === e.lp) continue;
+      var s = S.seatOf(g, p), rem = host ? s > 0 && g.fl.nh.rem[s] && !g.hum[s].ai : s > 0 && s !== this.seat && !g.hum[s].ai && !this.gone[s];
+      // 0 = no cuenta, 1 = solo en la zona de bloqueo (lo juzga el anfitrión: su lat), 2 = donde llegue (su lat)
+      var voy = (e.k === 'toss' && p === g.server) || this._voyOf(p, s, jobs), mode = voy ? 2 : 1;   // (el lanzamiento: lo golpea el que saca)
+      // (viene a mí: un compañero que va a por él cuenta solo si lo alcanza ANTES que yo; si llegamos a la vez, va al presente y lo
+      //  decide el anfitrión; los demás compañeros, solo el bloqueo)
+      var kMax = tr.n, latS = rem && voy ? this._latOf(s, this._priorSeat(s)) : this._latOf(-1, this._priorHost()), lat = latS;
+      if (toMe && p.team === myT) {
+        // (tras su ventana tengo que volver al presente antes de la mía: a RATE_ME se recupera lat en lat / (RATE_ME − 1))
+        if (C.MATE_CAP && voy && !host && meK >= 0) kMax = meK - Math.ceil(lat / (C.RATE_ME - 1) / 2) - 2; else mode = 1;
+        if (kMax <= 0) mode = 1;
+      }
+      if (serveK && mode === 1) mode = 0;
+      var src = mode === 2 && rem ? s : -1;
+      if (host && src < 0) mode = 0;   // (en el anfitrión lo suyo y lo de su IA es al momento)
+      if (!mode) continue;
+      var K = pres - (src >= 0 ? latS : this._latOf(-1, this._priorHost()));
+      if (K >= end) continue;   // (toda la trayectoria ya es sabida para p)
+      // (lejos de toda la trayectoria, ni mirarla: caja de la trayectoria ± alcance y carrera)
+      var mg = C.REACH + C.RUN_V * C.RUN_T + 0.5;
+      if (p.x < tr.x0 - mg || p.x > tr.x1 + mg || p.y < tr.y0 - mg || p.y > tr.y1 + mg) continue;
+      var vx = clampN(p.vx, -C.RUN_V, C.RUN_V), vy = clampN(p.vy, -C.RUN_V, C.RUN_V), sd = S.side(p.team), found = -1;
+      for (var k = Math.max(0, Math.floor((K - e.hs) / 2) + 1); k < kMax; k++) {
+        var x = tr.x[k], y = tr.y[k], z = tr.z[k], dtS = clampN(((e.hs + 2 * k) / 2 - Tp) * STEP, 0, C.RUN_T), px = p.x + vx * dtS, py = p.y + vy * dtS;
+        if (!serveK && x < C.BLK_X && x > -C.BLK_X && z > C.BLK_Z && px < C.BLK_PX && px > -C.BLK_PX && Math.abs(y - py) < C.BLK_Y) { found = k; break; }   // (bloqueo)
+        if (mode === 2 && z < C.REACH_Z && x * sd > -0.3 && (x - px) * (x - px) + (y - py) * (y - py) < R2) { found = k; break; }
+      }
+      if (found < 0) continue;
+      // (lejos: llegar a in justo cuando llegue K; ya dentro de su alcance, seguir a K: tau = K, sin parar el balón)
+      var inH = e.hs + 2 * found, r = inH - K <= 2.5 ? 1 + (K - tau) / C.TRACK_K : inH <= tau ? 0 : (inH - tau) / (inH - K);
+      if (r < rMin) { rMin = r; this._capId = p.id; if (this.capDbg) this._capW = { id: p.id, s: s, src: src, mode: mode, inH: inH - e.hs, tauRel: tau - e.hs, K: K - e.hs, lat: pres - K, k: e.k, found: found, z: tr.z[found], x: tr.x[found], age: pres - e.hs }; }
+    }
+    return rMin;
+  };
+  /** Balón pintado (anfitrión e invitado). pres: presente (medios pasos); Lt: lag al que tiende el reloj (el colchón de los demás en el
+   *  invitado, 0 en el anfitrión); live: hay balón en juego. Se escribe sobre g.ball hasta el siguiente advance. */
+  SP._paintBall = function (pres, Lt, dtF, live) {
+    var S = Sim(), g = this.g, b = g.ball, F = g.fl, ch = this.chain, H = this.hstats, sv = this._sv || (this._sv = {}), k;
+    for (k = 0; k < PKEYS.length; k++) sv[PKEYS[k]] = b[PKEYS[k]];
+    this._svOn = true; this._rate = 1;
+    var tail = false;
+    if (!live || !ch.length || ch[ch.length - 1].r !== F.r) {
+      // (cola: el balón pintado aún vuela por detrás del punto: sigue su vuelo hasta el suelo o el presente; luego, el de verdad)
+      if (this.tau >= 0 && this.eLast && this.tailMs < C.TAIL_MS && !this.tailEnd && pres - this.tau > 1) { tail = true; this.tailMs += dtF || 16; }
+      else { this.tau = -1; this.eLast = null; this.tailEnd = false; this.lastTf = -1; this._rPrev = undefined; this._capBind = -1; this._blend(b, dtF); return; }
+    } else { this.tailMs = 0; this.tailEnd = false; }
+    var meP = null; if (g.hum[this.seat] && !g.hum[this.seat].ai) meP = g.hum[this.seat].p;
+    var toMe = !tail && this._toMe(meP); this.toMe = toMe;
+    if (toMe) Lt = 0;
+    var dP = this.lastTf >= 0 ? Math.max(0, pres - this.lastTf) : 0; this.lastTf = pres;
+    if (this.tau < 0) {
+      this.tau = pres - Lt;
+      if (ch.length && ch[0].hs < this.tau && this.tau - ch[0].hs < C.START_BACK) this.tau = ch[0].hs;   // (desde la mano, sin saltar)
+    } else {
+      var rMax = toMe ? C.RATE_ME : C.RATE_MAX, L = pres - this.tau, rate = tail ? C.RATE_MAX : clampN(1 + (L - Lt) / C.LAG_K, C.RATE_MIN, rMax);
+      var rc = tail || !C.CAPS ? 99 : this._capRate(ch[ch.length - 1], pres, toMe, meP);
+      var r = rc < rate ? Math.max(C.RATE_MIN, rc) : rate;
+      this._capBind = rc < rate && rc < 1.05 ? this._capId : -1;   // (quién frena el balón: su pose va con el reloj del balón, _guestPoses)
+      // (subir de velocidad, poco a poco; bajar, enseguida: frenar es lo que evita el salto)
+      if (this._rPrev !== undefined && r > this._rPrev) r = Math.min(r, this._rPrev + C.RATE_UP * (dtF || 16) / 1000);
+      this._rPrev = r;
+      if (rc < C.RATE_MIN) { H.capMiss = (H.capMiss | 0) + 1; if (this.capDbg && this.capDbg.length < 400 && (!this._capLastW || this._capLastW.id !== this._capW.id || this._capLastW.inH !== this._capW.inH)) { this.capDbg.push(JSON.stringify(this._capW)); this._capLastW = this._capW; } }
+      // (acelerar no mueve el balón más de WARP_D m por frame de lo que vuela: en un frame largo se recupera en varios)
+      // (la velocidad del balón PINTADO o la de los contactos que este frame puede pasar, la mayor)
+      var bl = this.bLast || b, bv = Math.sqrt(bl.vx * bl.vx + bl.vy * bl.vy + bl.vz * bl.vz);
+      if (!tail) for (var ci = ch.length - 1; ci >= 0 && ch[ci].hs > this.tau - 2; ci--) { var eb = ch[ci].b; bv = Math.max(bv, Math.sqrt(eb[3] * eb[3] + eb[4] * eb[4] + eb[5] * eb[5])); }
+      if (r > 1 && bv > 1 && dP * (r - 1) * STEP / 2 * bv > C.WARP_D) r = 1 + C.WARP_D / (dP * STEP / 2 * bv);
+      if (r < 1 && bv > 1 && dP * (1 - r) * STEP / 2 * bv > C.WARP_D * 1.25) r = 1 - C.WARP_D * 1.25 / (dP * STEP / 2 * bv);   // (frenar, algo más)
+      this.tau += dP * r; this._rate = r;
+      if (r > H.warpMax) H.warpMax = r;
+      if (r < (H.warpMin === undefined ? 9 : H.warpMin)) H.warpMin = r;
+    }
+    this.tau = clampN(this.tau, pres - C.LAG_MAX, pres);
     var lag = pres - this.tau; if (lag > H.lagMax) H.lagMax = lag;
-    var e = null; for (k = ch.length - 1; k >= 0; k--) if (ch[k].hs <= this.tau) { e = ch[k]; break; }
-    if (!e) e = ch[0];
+    var e = null;
+    if (tail) e = this.eLast;
+    else { for (k = ch.length - 1; k >= 0; k--) if (ch[k].hs <= this.tau) { e = ch[k]; break; } if (!e) e = ch[0]; }
+    this._eCh = this.eLast !== e; this.eLast = e;
     var n = Math.max(0, Math.floor(this.tau - e.hs)), fr = this.tau - e.hs - n, o = this._bo || (this._bo = {}), o2 = this._bo2 || (this._bo2 = {});
-    var src = this._bsrc || (this._bsrc = {}), BK = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'spin', 'speed', 'dip', 'wobA', 'wobF', 'wobP'];
-    for (k = 0; k < BK.length; k++) src[BK[k]] = e.b[k];
-    S.flFly(src, e.age, n, F.dh || STEP / 2, o);
-    S.flFly(o, o.age, 1, F.dh || STEP / 2, o2);
-    for (k = 0; k < 3; k++) { var kk = KEYS[k]; b[kk] = o[kk] + (o2[kk] - o[kk]) * Math.max(0, fr); }
+    // (cursor de vuelo: el reloj casi siempre avanza, así que se sigue volando desde el frame anterior en vez de desde el contacto;
+    //  mismos pasos y en el mismo orden que volar de una vez: mismo resultado)
+    var fc = this._fc || (this._fc = { e: null, n: 0, st: {} }), dh = F.dh || STEP / 2;
+    if (fc.e !== e || n < fc.n) { fc.e = e; fc.n = 0; for (k = 0; k < BK12.length; k++) fc.st[BK12[k]] = e.b[k]; fc.st.age = e.age; }
+    if (n > fc.n) { S.flFly(fc.st, fc.st.age, n - fc.n, dh, fc.st); fc.n = n; }
+    for (k = 0; k < BK12.length; k++) o[BK12[k]] = fc.st[BK12[k]]; o.age = fc.st.age;
+    S.flFly(o, o.age, 1, dh, o2);
+    for (k = 0; k < 3; k++) { var kk = PKEYS[k]; b[kk] = o[kk] + (o2[kk] - o[kk]) * Math.max(0, fr); }
     b.vx = o.vx; b.vy = o.vy; b.vz = o.vz; b.spin = o.spin;
+    if (tail && !o.vx && !o.vy && !o.vz) this.tailEnd = true;   // (ya en el suelo: el siguiente frame pasa al balón de verdad)
     this._blend(b, dtF);
   };
-  /** Continuidad del balón pintado: si salta respecto al último pintado (más de lo que se mueve), el salto se reparte en BALL_TAU. */
+  /** Continuidad del balón pintado: lo que salte respecto al último pintado (más de lo que vuela a la velocidad del reloj) pasa a un
+   *  desfase que se deshace con BALL_TAU ms y, como mucho, a CORR_V m/s. */
   SP._blend = function (b, dtF) {
-    var o = this.bOff, L = this.bLast, dt = (dtF || 16) / 1000, H = this.hstats;
+    var o = this.bOff, L = this.bLast, dt = (dtF || 16) / 1000, H = this.hstats, rt = this._rate || 1, dr = dt * rt;
     if (L) {
       // (lo esperado: seguir con la velocidad de antes o con la de ahora: un toque cambia la velocidad dentro del frame)
-      var jx = L.x + L.vx * dt - (b.x + o.x), jy = L.y + L.vy * dt - (b.y + o.y), jz = L.z + L.vz * dt - (b.z + o.z), j = Math.sqrt(jx * jx + jy * jy + jz * jz);
-      var kx = L.x + b.vx * dt - (b.x + o.x), ky = L.y + b.vy * dt - (b.y + o.y), kz = L.z + b.vz * dt - (b.z + o.z), j2 = Math.sqrt(kx * kx + ky * ky + kz * kz);
+      var jx = L.x + L.vx * dr - (b.x + o.x), jy = L.y + L.vy * dr - (b.y + o.y), jz = L.z + L.vz * dr - (b.z + o.z), j = Math.sqrt(jx * jx + jy * jy + jz * jz);
+      var kx = L.x + b.vx * dr - (b.x + o.x), ky = L.y + b.vy * dr - (b.y + o.y), kz = L.z + b.vz * dr - (b.z + o.z), j2 = Math.sqrt(kx * kx + ky * ky + kz * kz);
       if (j2 < j) { j = j2; jx = kx; jy = ky; jz = kz; }
-      if (j > 0.25 && j < 3) { o.x += jx; o.y += jy; o.z += jz; this.hstats.blends++; }
+      if (j > C.BLEND_MIN && j < C.BLEND_MAX) {
+        o.x += jx; o.y += jy; o.z += jz; H.blends++;
+        if (j > 0.3) {
+          var rk = this.g.mode + (this.tau < 0 ? '-real' : this.tailMs > 0 ? '-cola' : '');
+          H.rawJ = (H.rawJ | 0) + 1; if (j > (H.rawJMax || 0)) H.rawJMax = j;
+          (H.rawK || (H.rawK = {}))[rk] = (H.rawK[rk] || 0) + 1;
+          if (this.g.mode === 'rally') { H.rawJR = (H.rawJR | 0) + 1; if (j > (H.rawJRMax || 0)) H.rawJRMax = j; }
+          if (this.rawDbg && this.rawDbg.length < 300) this.rawDbg.push({ j: +j.toFixed(2), m: rk, eCh: this._eCh, k: this.eLast ? this.eLast.k : '', mine: this.eLast ? this.eLast.mine : null, r: +(this._rate || 1).toFixed(2), dtF: Math.round(dtF), z: +b.z.toFixed(2), lp: this.eLast ? this.eLast.lp : -1 });
+        }
+      }
     }
-    var d = Math.pow(0.5, (dtF || 16) / C.BALL_TAU); o.x *= d; o.y *= d; o.z *= d;
+    var on = Math.sqrt(o.x * o.x + o.y * o.y + o.z * o.z);
+    if (on > 1e-4) {
+      var dec = on * (1 - Math.pow(0.5, (dtF || 16) / C.BALL_TAU)), cap = Math.min(C.CORR_V * dt, C.CORR_MAX);
+      if (dec > cap) dec = cap;
+      var f = (on - dec) / on; o.x *= f; o.y *= f; o.z *= f;
+    } else o.x = o.y = o.z = 0;
     var px = b.x + o.x, py = b.y + o.y, pz = Math.max((VB.C && VB.C.BR) || 0.21, b.z + o.z);
     if (L) {
-      var mx = px - (L.x + L.vx * dt), my = py - (L.y + L.vy * dt), mz = pz - (L.z + L.vz * dt), jm = Math.sqrt(mx * mx + my * my + mz * mz);
-      var nx = px - (L.x + b.vx * dt), ny = py - (L.y + b.vy * dt), nz = pz - (L.z + b.vz * dt); jm = Math.min(jm, Math.sqrt(nx * nx + ny * ny + nz * nz));
+      var mx = px - (L.x + L.vx * dr), my = py - (L.y + L.vy * dr), mz = pz - (L.z + L.vz * dr), jm = Math.sqrt(mx * mx + my * my + mz * mz);
+      var nx = px - (L.x + b.vx * dr), ny = py - (L.y + b.vy * dr), nz = pz - (L.z + b.vz * dr); jm = Math.min(jm, Math.sqrt(nx * nx + ny * ny + nz * nz));
       if (jm > 0.3 && this.g.mode === 'rally') { H.bJump++; if (jm > H.bJumpMax) H.bJumpMax = jm; }
     }
     b.x = px; b.y = py; b.z = pz;
@@ -877,21 +1119,26 @@
     var l = this.bLast; l.x = b.x; l.y = b.y; l.z = b.z; l.vx = b.vx; l.vy = b.vy; l.vz = b.vz;
     H.dispFrames++;
   };
-  /** P8: balón pintado del ANFITRIÓN. Un toque de un invitado que llega tarde se aplica rehaciendo el balón desde su tic (y un punto
-   *  salvado vuelve del suelo): en la vista del anfitrión el balón saltaba (netdrive 6v6: ~10 saltos de hasta 1,1 m por minuto). Ahora
-   *  el salto se reparte en BALL_TAU ms con el mismo _blend del invitado; la partida de verdad no cambia (se deshace en el siguiente
-   *  advance, como en el invitado). Solo en juego: fuera del rally el balón va tal cual. */
+  /** Balón pintado del invitado: la cadena al reloj tau; tiende al colchón de los demás (2·D medios pasos) o al presente si viene a mí. */
+  SP._dispBall = function (Tf, D, dtF) {
+    var g = this.g, live = g.mode === 'rally' || (g.mode === 'serve' && !g.ball.held);
+    this._paintBall(2 * Tf, 2 * D, dtF, live);
+  };
+  /** Balón pintado del ANFITRIÓN (P8 + L1): su partida es la de verdad, pero un toque de invitado llega tarde y se aplica rehaciendo
+   *  el balón desde su tic. Con el horizonte de cada invitado, el balón pintado espera en su mano a que llegue su toque (y en un punto
+   *  retenido no llega al suelo antes de saber si lo salva). Fuera del juego, el balón tal cual (mezclado). */
   SP._hostPaint = function (dtF) {
-    var g = this.g, b = g.ball, sv = this._sv || (this._sv = {}), KEYS = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'spin'];
-    if (g.mode !== 'rally' || b.held) { this.bLast = null; this.bOff.x = this.bOff.y = this.bOff.z = 0; return; }
-    for (var k = 0; k < KEYS.length; k++) sv[KEYS[k]] = b[KEYS[k]];
-    this._svOn = true;
-    this._blend(b, dtF);
+    var g = this.g, live = this.status !== 'connecting' && this.status !== 'starting' && (g.mode === 'rally' || (g.mode === 'serve' && !g.ball.held) || !!this.hold);
+    if (!C.HPAINT) { if (g.mode !== 'rally' || g.ball.held) { this.bLast = null; this.bOff.x = this.bOff.y = this.bOff.z = 0; this._svOn = false; return; } for (var kk = 0; kk < PKEYS.length; kk++) (this._sv || (this._sv = {}))[PKEYS[kk]] = g.ball[PKEYS[kk]]; this._svOn = true; this._rate = 1; this._blend(g.ball, dtF); return; }
+    if (!live && this.tau < 0 && (g.mode !== 'rally' || g.ball.held)) {   // (fuera del juego y sin cola: tal cual, como antes)
+      this.bLast = null; this.bOff.x = this.bOff.y = this.bOff.z = 0; this._svOn = false; return;
+    }
+    this._paintBall(2 * this.T + 1, 0, dtF, live);
   };
   SP._unpaint = function () {
     if (!this._svOn || !this.g) return;
-    var b = this.g.ball, sv = this._sv, KEYS = ['x', 'y', 'z', 'vx', 'vy', 'vz', 'spin'];
-    for (var k = 0; k < KEYS.length; k++) b[KEYS[k]] = sv[KEYS[k]];
+    var b = this.g.ball, sv = this._sv;
+    for (var k = 0; k < PKEYS.length; k++) b[PKEYS[k]] = sv[PKEYS[k]];
     this._svOn = false;
   };
   /** Eventos del anfitrión que esperan a su momento pintado (los de sonido), salvo si ya van muy tarde. */
@@ -907,6 +1154,7 @@
   /* ---- un frame ---- */
   SP.advance = function (now, inp) {
     var o = this.out, dtF = this.lastNow ? now - this.lastNow : 16;
+    if (!this.host && dtF > C.WAIT) this.stallAt = now;   // (esta página estuvo parada: pestaña oculta, app en segundo plano…)
     this._unpaint();
     this.lastNow = now; this.stats.frames++;
     o.events.length = 0; o.confirmed.length = 0; o.app.length = 0; o.unstable = false;

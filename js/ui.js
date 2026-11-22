@@ -984,7 +984,10 @@
       if (e.type === 'point' && e.penalty) ambPenOk(e);   // (punto de castigo que sí llegó: su tarjeta lo dice en la hoja)
       if (ovr && e.type === 'point') { if (netP) { s0 = stats; stats = pstats; untally(); stats = s0; } else untally(); e._ovr = true; }
       if (netP) { s0 = stats; stats = pstats; tally(e); stats = s0; } else tally(e);   // (online: lo presentado no cuenta en la hoja)
-      if (VB.Badges && !g.drill) VB.Badges.ingest(e, g); // insignias: cuenta remates, aces, recepciones… del equipo 0 (js/badges.js; los ejercicios no cuentan)
+      // insignias: cuenta remates, aces, recepciones… del equipo 0 (js/badges.js; los ejercicios no cuentan). En la Carrera
+      // cooperativa (ctx.net.coopCareer) no: las cuenta js/career-coop.js con los eventos CONFIRMADOS (lo presentado tras un retroceso
+      // contaba de más o de menos)
+      if (VB.Badges && !g.drill && !(ctx.net && ctx.net.coopCareer)) VB.Badges.ingest(e, g);
       // S4-D1: retos de maestría y del día (js/retos.js; O(1) por evento, sin asignar; nunca los ejercicios ni la repetición)
       if (VB.Retos && VB.Retos.ingest && !g.drill && !e.replay) { try { VB.Retos.ingest(e, g); } catch (er) { console.error('[VB][ERROR] Retos.ingest: ' + er); } }
       switch (e.type) {

@@ -92,6 +92,35 @@ const seatsOf = async id => { const r = await owner('GET', 'rooms/' + id); retur
 function mem(p, u) { const s = p.st(); return s.mx && s.mx.ro.m.filter(m => m.u === u)[0]; }
 function ro(p) { const s = p.st(); return s.mx ? s.mx.ro.m : []; }
 
+/* ---------- a2) sondeo lento del anfitrión (red móvil) ---------- */
+// Una lectura de la sala que tarda más que ROOM_POLL (2 s) y llega DESPUÉS de otra más nueva no puede soltar como «se fue» a quien
+// acaba de conectar (antes: su enlace se cerraba antes del saludo y el invitado acababa en «Se ha perdido la conexión con la sala»).
+async function testSlowPoll() {
+  console.log('\na2) sondeo lento del anfitrión');
+  await wipe();
+  let slow = 0, slowSeen = 0;
+  const fz = async (u, op) => {
+    const isGet = (!op || !op.method || op.method === 'GET') && /\/rooms\/uidW$/.test(u.split('?')[0]);
+    const take = isGet && slow > 0 ? (slow--, true) : false;
+    const r = await fetch(u, op);
+    if (take) { slowSeen++; await sleep(3500); }
+    return r;
+  };
+  const H = page('Wen Host', 'uidW', { fetch: fz }), G = page('Xavi Lento', 'uidX');
+  H.NL._act('create', { fmt: '2v2', venue: 'beach', bo: 1, even: false });
+  const okRoom = await until(() => H.st().view === 'room' && H.st().mx && H.st().room.multi, 8000);
+  if (!okRoom) { check('sala para el sondeo lento', false); return; }
+  slow = 1; await until(() => slowSeen > 0 || slow === 0, 5000);   // (la lectura lenta ya ha salido: la sala aún sin Xavi)
+  G.NL._act('join', 'uidW');
+  const linked = await until(() => G.st().mx && G.st().mx.status === 'linked' && mem(H, 'uidX') && mem(H, 'uidX').ok, 20000);
+  await sleep(4000);
+  const gs = G.st();
+  check('una lectura vieja que llega tarde no suelta a quien acaba de conectar', !!linked && gs.mx && !gs.mx.closed && gs.view === 'room' && mem(H, 'uidX') && mem(H, 'uidX').ok === 1,
+    { linked: !!linked, view: gs.view, msg: gs.msg, m: mem(H, 'uidX') });
+  [H, G].forEach(p => { try { p.NL._act('leave'); } catch (e) { } });
+  await sleep(300);
+}
+
 /* ---------- a) 2 contra 2 con 4 personas ---------- */
 async function test2v2() {
   console.log('\na) 2 contra 2: anfitrión y 3 invitados');
@@ -144,7 +173,9 @@ async function test2v2() {
     check('invitados: plaza propia (1-3, distintas), 1 enlace, opts null y expect', seats.slice().sort().join() === '1,2,3' && G.every(g => g.started[0].links.length === 1 && g.started[0].opts === null && g.started[0].expect && g.started[0].expect.venue === 'beach'), seats);
     check('todos ven los mismos humanos (nombres y equipos)', G.every(g => JSON.stringify(g.started[0].humans.map(h => [h.name, h.team, h.idx])) === JSON.stringify(hs.humans.map(h => [h.name, h.team, h.idx]))));
     check('el enlace del anfitrión k es el de la plaza k+1', hs.links.every((k, i) => { const gi = G.findIndex(g => g.started[0].seat === i + 1); return k.peer === G[gi].started[0].links[0]; }));
-    const rd = await owner('GET', 'rooms/uidH');
+    // (P8) el latido de 'play' sale tras startOnline: se espera a que llegue (leerla justo después fallaba 1 de cada 3 pasadas)
+    let rd = null;
+    for (let t = Date.now(); Date.now() - t < 5000; await sleep(100)) { rd = await owner('GET', 'rooms/uidH'); if (rd.j && rd.j.fields && rd.j.fields.state && rd.j.fields.state.stringValue === 'play') break; }
     check('la sala pasa a «play»', rd.j && rd.j.fields.state.stringValue === 'play', rd.j && rd.j.fields.state);
     // caída en pleno partido: se renegocia esa pareja
     const k1 = hs.links[0], o1 = k1.opens;
@@ -263,6 +294,12 @@ async function testCoop() {
   check('fachada: close() no cierra el enlace de verdad', F._real().state === 'open' && got.h.link.state === 'open');
   await sleep(2500);
   check('tras el partido el latido sigue (no se da por caído)', got.hClose === null && got.gClose === null, [got.hClose, got.gClose]);
+  // un corte corto del enlace entre partidos (wifi → 4G): se renegocia, la coop sigue (antes la sala se cerraba y el invitado salía)
+  const rk = F._real(), op0 = rk.opens; rk._kill();
+  const back = await until(() => rk.state === 'open' && rk.opens > op0, 20000);
+  got.gMsg.length = 0; H.NL.coop.send({ t: 'tras' }); await until(() => got.gMsg.length, 3000);
+  check('coop entre partidos: un corte del enlace se renegocia y la coop sigue', !!back && got.hClose === null && got.gClose === null && got.gMsg.some(m => m.t === 'tras'),
+    [rk.state, got.hClose, got.gClose]);
   G.NL.coop.close();
   await until(() => got.hClose, 4000);
   check('el compañero sale: onClose en el anfitrión', got.hClose === 'mateLeft', got.hClose);
@@ -328,7 +365,7 @@ async function test1v1() {
   let up = false;
   for (let i = 0; i < 120 && !up; i++) { await sleep(500); try { up = (await fetch('http://127.0.0.1:' + PORT + '/')).status < 500; } catch (e) { } }
   if (!up) { check('el emulador arranca', false); process.exit(1); }
-  const T = { a: test2v2, b: test6v6, c: testCoop, d: testDenied, e: test1v1 };
+  const T = { a: test2v2, f: testSlowPoll, b: test6v6, c: testCoop, d: testDenied, e: test1v1 };
   for (const k of Object.keys(T)) {
     if (ONLY && ONLY.indexOf(k) < 0) continue;
     try { await T[k](); } catch (e) { check('parte ' + k + ' sin excepciones', false, String(e && e.stack || e)); }

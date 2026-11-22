@@ -9,13 +9,17 @@
  *  de mode/cap/fmt, señalización por pareja (privacidad), limpieza, y lecturas/escrituras por entrada; además, las pruebas 1v1 de
  *  siempre se pasan también con el cliente de la versión publicada (js/netroom.js de git HEAD: un 1.21.0 en caché) contra las
  *  reglas nuevas, y el cliente nuevo contra las reglas publicadas (HEAD).
- * Uso: node tools/roomtest.js [--no-emu] [--port 8089]
+ *  Ciclo de vida (sección 6): el lobby de verdad con reloj virtual cuenta las lecturas/escrituras de Firestore de cada tipo de sala
+ *  (1v1, 2v2 × 4, 6v6 × 12, coop) por fase y comprueba que, con los enlaces abiertos, solo late el anfitrión.
+ *  «Versión publicada» = git merge-base HEAD main (la 1.21.0 mientras dure la rama online-multi; MTC_PUB_REF=<ref> para otra).
+ * Uso: node tools/roomtest.js [--no-emu] [--port 8089] [--no-life] [--life-only] [--life-ref <ref>]
  * Nunca toca el Firebase de verdad (proyecto demo-mtc del emulador).
  */
 'use strict';
 const fs = require('fs'), os = require('os'), path = require('path'), { spawn } = require('child_process');
 const ROOT = path.join(__dirname, '..');
-const ARGS = process.argv.slice(2), NO_EMU = ARGS.includes('--no-emu');
+const ARGS = process.argv.slice(2), NO_EMU = ARGS.includes('--no-emu'), NO_LIFE = ARGS.includes('--no-life'), LIFE_ONLY = ARGS.includes('--life-only');
+const LIFE_REF = ARGS.indexOf('--life-ref') >= 0 ? ARGS[ARGS.indexOf('--life-ref') + 1] : '';
 const PORT = +(ARGS[ARGS.indexOf('--port') + 1] || 0) || 8089;
 const PROJECT = 'demo-mtc';
 global.window = undefined;
@@ -28,10 +32,12 @@ function check(name, ok, info) {
   console.log((ok ? '  ok   ' : '  FALLO ') + name + (info !== undefined ? ' ' + (typeof info === 'string' ? info : JSON.stringify(info)) : ''));
 }
 const sleep = ms => new Promise(r => setTimeout(r, ms));
-/** Un archivo tal como está en git HEAD (la versión publicada), o null (solo lectura: git show). */
-function gitShow(rel) {
-  try { const r = require('child_process').spawnSync('git', ['show', 'HEAD:' + rel], { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 1 << 24 }); return r.status === 0 ? r.stdout : null; } catch (e) { return null; }
-}
+/** Commit de la versión publicada: MTC_PUB_REF, o la base común con main (en la rama online-multi, la 1.21.0: HEAD ya trae el cliente
+ *  de varios y con HEAD se saltaban las pasadas de compatibilidad), o HEAD. Solo lectura (git merge-base / git show). */
+function git(args) { try { const r = require('child_process').spawnSync('git', args, { cwd: ROOT, encoding: 'utf8', windowsHide: true, maxBuffer: 1 << 24 }); return r.status === 0 ? r.stdout : null; } catch (e) { return null; } }
+const PUB_REF = process.env.MTC_PUB_REF || ((git(['merge-base', 'HEAD', 'main']) || '').trim() || 'HEAD');
+/** Un archivo tal como está en la versión publicada (o en ref), o null. */
+function gitShow(rel, ref) { return git(['show', (ref || PUB_REF) + ':' + rel]); }
 /** VB.NetRoom de un código fuente aparte (el cliente publicado), en su propio contexto. */
 function loadNR(src) {
   const vm = require('vm'); const ctx = { fetch, console, setTimeout, clearTimeout, URL, TextEncoder };
@@ -99,7 +105,7 @@ async function mockTests() {
   const calls = [];
   r = NR.create({ base: 'http://x/v1/projects/p/databases/(default)/documents', auth, ver: '1|x', fetch: async (url, o) => {
     calls.push([o.method, url]);
-    if (/:runQuery$/.test(url)) return { ok: true, status: 200, text: async () => JSON.stringify([doc('a', 5000), doc('b', 1000), doc('u1', 0), doc('c', 200000), doc('d', 400000), doc('e', 2000, { v: { stringValue: '1|y' } })]) };
+    if (/:runQuery$/.test(url)) return { ok: true, status: 200, text: async () => JSON.stringify([doc('a', 5000), doc('b', 1000), doc('u1', 0), doc('c', 200000), doc('d', 400000), doc('e', 2000, { v: { stringValue: '1|y' } }), doc('f', 500000, { state: { stringValue: 'play' } })]) };
     return { ok: true, status: 200, text: async () => '{}' };
   } });
   const L = await r.list();
@@ -107,6 +113,7 @@ async function mockTests() {
   check('lista: «otra versión» marcada', L.find(x => x.id === 'e').other === true && L.find(x => x.id === 'a').other === false);
   await sleep(20);
   check('lista: borra de paso la caducada (> 5 min) con su señalización', calls.some(c => c[0] === 'DELETE' && /rooms\/d$/.test(c[1])) && calls.some(c => c[0] === 'DELETE' && /rooms\/d\/sig\/offer$/.test(c[1])) && !calls.some(c => c[0] === 'DELETE' && /rooms\/c$/.test(c[1])));
+  check('lista: también la caducada que se quedó en «play» (no solo las «open»)', calls.some(c => c[0] === 'DELETE' && /rooms\/f$/.test(c[1])));
   // esquema v3: enc/dec de mapas y listas (los escalares, igual que antes), normalización de open() y filtro de la lista
   {
     const v = { n: 'Ana', at: 5, ok: true, x: 1.5, l: [1, 'a'], m: { b: { c: 'd' } }, e: {} };
@@ -408,8 +415,19 @@ async function emuMulti(base) {
   L = await X.list();
   check('sala coop (cap corregido a 2): NO sale en la lista pero se encuentra por código y por enlace (get)', rk.cap === 2 && rk.mode === 'coop' && !L.some(r => r.id === 'mK')
     && (await X.byCode(rk.code)).id === 'mK' && (await X.get('mK')).mode === 'coop');
+  check('(L3) la sala coop se abre en estado «coop», nunca «open»', rk.state === 'coop', rk.state);
+  check('(L3) el anfitrión de la coop no puede pasarla a «open» (latido); a «full» sí', await code(K.beat({ state: 'open' })) === 'denied' && (await K.beat({ state: 'coop' })).state === 'coop');
   const S = mk('mS'), rs = await S.open({ name: 'Sol', fmt: '6v6', venue: 'beach' });
   check('sala 6v6: 12 plazas y en Pabellón aunque se pida playa', rs.fmt === '6v6' && rs.cap === 12 && rs.venue === 'hall' && rs.mode === 'vs');
+  check('(L3) sala 6v6 con net «host» (modelo del anfitrión); la 2v2 sin net (Precisa)', rs.net === 'host' && rh.net === undefined, [rs.net, rh.net]);
+  {
+    const zl = mk('mZl'); await zl.open({ name: 'Zoe', mode: 'vs', cap: 4 });
+    const t = counts.mZl; for (const k in t) t[k] = 0;
+    const rl = await zl.beat({ cnt: 0 }, { lite: true });
+    check('(L3) latido lite: 1 escritura y ninguna lectura; devuelve la sala escrita (null si ya no existe)', rl && rl.id === 'mZl' && rl.cnt === 0 && t.GET === 0 && t.POST === 1, t);
+    await zl.close();
+    check('(L3) latido lite de una sala borrada → null', (await zl.beat(null, { lite: true })) === null);
+  }
 
   // --- entrar (varios invitados) y conteo ---
   const G = [1, 2, 3, 4, 5].map(i => mk('mG' + i));
@@ -472,9 +490,14 @@ async function emuMulti(base) {
     && (await sit('mG5', 'mH', { mG5: seat('Goya') })).status === 403);
   await H.beat({ state: 'open' });
   await G[1].joinMulti('mH', 'Gala');
-  const rkck = await H.kick('mG4');
-  check('el anfitrión levanta a un invitado (kick)', rkck && !rkck.seats.mG4 && rkck.nseat === 2 && rkck.age < 3000, rkck && Object.keys(rkck.seats));
-  await G[3].joinMulti('mH', 'Gea');
+  const rkck = await H.kick('mG2');
+  check('el anfitrión levanta a un invitado (kick) y lo apunta en ban', rkck && !rkck.seats.mG2 && rkck.nseat === 2 && rkck.age < 3000 && rkck.ban && rkck.ban.mG2 === true, rkck && [Object.keys(rkck.seats), rkck.ban]);
+  check('a quien sacan no puede volver a sentarse (cliente «kicked» y reglas 403); los demás sí', await code(G[1].joinMulti('mH', 'Gala')) === 'kicked'
+    && (await sit('mG2', 'mH', { mG2: seat('Gala') })).status === 403 && (await G[3].joinMulti('mH', 'Gea')).seats.mG4.n === 'Gea');
+  check('nadie más que el anfitrión toca ban (un invitado no se quita el veto ni veta a otro)',
+    (await sit('mG2', 'mH', { mG2: seat('Gala') }, { extra: { ban: { mapValue: { fields: {} } } }, mask: ['ban'] })).status === 403
+    && (await sit('mG5', 'mH', { mG5: seat('Goya') }, { extra: { ban: { mapValue: { fields: { mG4: { booleanValue: true } } } } }, mask: ['ban.`mG4`'] })).status === 403);
+  await G[2].joinMulti('mH', 'Gus');   // (la plaza que dejó G2: siguen 3 invitados)
 
   // --- señalización por pareja ---
   zero('mH'); zero('mG4');
@@ -494,7 +517,7 @@ async function emuMulti(base) {
     const R = c1.r + ch.r + cg.r, Rr = ch.rr + cg.rr, Wr = c1.w + ch.w + cg.w, D = ch.d;
     console.log('  info  por invitado (entrar + una pareja): ' + R + ' lecturas de documento + ' + Rr + ' lecturas de las reglas (get de la sala en sig) = '
       + (R + Rr) + ' lecturas, ' + Wr + ' escrituras, ' + D + ' borrados; sala de 12: ×11 = ' + (R + Rr) * 11 + ' lecturas, ' + Wr * 11 + ' escrituras, ' + D * 11
-      + ' borrados (sin contar los sondeos del lobby ni el latido del anfitrión, 1 escritura + 1 lectura cada 20 s)');
+      + ' borrados (sin los sondeos del lobby ni el latido del anfitrión: ver «Ciclo de vida» más abajo)');
   }
   await H.putSig('mH', 'offer', { sdp: 'OFERTA-G1', gen: 2 }, 'mG1');
   await G[0].putSig('mH', 'answer', { sdp: 'RESPUESTA-G1', gen: 2 }, 'mG1');
@@ -546,8 +569,13 @@ async function emuMulti(base) {
     await S.close();
     check('6v6: cerrar borra la sala', await st('/rooms/mS') === 404);
     const C1 = mk('mC1'), C2 = mk('mC2');
-    const j1 = await C1.joinMulti('mK', 'Ceci');
-    check('coop de 2: entra uno y el segundo no cabe', j1 && j1.nseat === 1 && await code(C2.joinMulti('mK', 'Cora')) === 'full');
+    const kc = await C1.byCode(rk.code);
+    const j1 = await C1.join(kc && kc.id, 'Ceci');
+    check('coop de 2: por código (byCode + join, estado «coop») entra uno y el segundo no cabe', j1 && j1.nseat === 1 && j1.state === 'coop' && await code(C2.joinMulti('mK', 'Cora')) === 'full');
+    await C1.leaveMulti('mK');
+    check('(L3) en «coop» el invitado se levanta y vuelve a sentarse', (await K.get('mK')).nseat === 0 && (await C1.joinMulti('mK', 'Ceci')).nseat === 1);
+    await K.beat({ state: 'full' });
+    check('(L3) coop emparejada («full»): nadie más entra', await code(C2.joinMulti('mK', 'Cora')) === 'full');
     await K.close();
   }
 
@@ -574,6 +602,22 @@ async function emuMulti(base) {
     await RG4.get('mR'); RG4.bye('guest', 'mR', true); await sleep(600);
     check('bye(guest, id, true) de un invitado que retomó su plaza tras recargar la libera', (await R.get('mR')).nseat === 0);
     await R.close();
+    // (un cliente 1.21.0 barre la sala de varios caducada con su _sweep viejo: borra la sala, sig/offer y sig/answer, pero no las o_/a_;
+    //  el anfitrión, al reabrir tras recargar, las borra igual porque las apuntó en el almacén del navegador)
+    {
+      const LS = {}, ls = { getItem: k => (k in LS ? LS[k] : null), setItem: (k, v) => { LS[k] = String(v); }, removeItem: k => { delete LS[k]; } };
+      const mkS = uid => NR.create({ base, ver, store: ls, auth: async () => ({ uid, token: fakeToken(uid) }) });
+      const RS = mkS('mR'), RSG = mk('mRg');
+      await RS.open({ name: 'Rita', cap: 4 }); await RSG.joinMulti('mR', 'Rui'); await RS.beat();
+      await RS.putSig('mR', 'offer', { sdp: 'o-vieja', gen: 1 }, 'mRg'); await RSG.putSig('mR', 'answer', { sdp: 'a-vieja', gen: 1 }, 'mRg');
+      await raw('DELETE', '/rooms/mR/sig/offer'); await raw('DELETE', '/rooms/mR/sig/answer'); await raw('DELETE', '/rooms/mR');   // (el _sweep de 1.21.0)
+      const left = await st('/rooms/mR/sig/o_mRg') === 200 && await st('/rooms/mR/sig/a_mRg') === 200;
+      const RS2 = mkS('mR'); await RS2.open({ name: 'Rita', cap: 4 });   // (recarga: cliente nuevo, mismo navegador)
+      await RSG.joinMulti('mR', 'Rui');
+      check('cliente viejo barre la sala de varios y el anfitrión la reabre: sin o_/a_ huérfanas (la SDP vieja no se lee)', left
+        && await st('/rooms/mR/sig/o_mRg') === 404 && await st('/rooms/mR/sig/a_mRg') === 404 && (await RSG.getSig('mR', 'offer', 'mRg')) === null && !LS['make-the-cut.netroom.pairs'], { left, LS });
+      await RS2.close();
+    }
     // caducadas: una 'play' (sweep) y una 'open' (de paso al listar), con señalización por pareja
     const oldM = (uid, state) => W({ host: { stringValue: uid }, state: { stringValue: state }, seats: { mapValue: { fields: { ['q' + uid]: { mapValue: { fields: { n: { stringValue: 'Q' }, at: { timestampValue: new Date().toISOString() } } } } } } },
       seen: { timestampValue: new Date(Date.now() - 600000).toISOString() } });
@@ -594,12 +638,22 @@ async function emuMulti(base) {
     && await fxM(W({ mode: { stringValue: 'liga' } })) === 403);
   check('6v6 en playa rechazada; 6v6 en Pabellón con 12 aceptada', await fxM(W({ fmt: { stringValue: '6v6' }, cap: { integerValue: '12' } })) === 403
     && await fxM(W({ fmt: { stringValue: '6v6' }, cap: { integerValue: '12' }, venue: { stringValue: 'hall' } })) === 200);
-  check('coop: 2 plazas sí; 4 solo en 6v6; 12 nunca', await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '2' } })) === 200
-    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '4' } })) === 403
-    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '4' }, fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' } })) === 200
-    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '12' }, fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' } })) === 403);
+  check('coop: 2 plazas sí; 4 solo en 6v6; 12 nunca', await fxM(W({ mode: { stringValue: 'coop' }, state: { stringValue: 'coop' }, cap: { integerValue: '2' } })) === 200
+    && await fxM(W({ mode: { stringValue: 'coop' }, state: { stringValue: 'coop' }, cap: { integerValue: '4' } })) === 403
+    && await fxM(W({ mode: { stringValue: 'coop' }, state: { stringValue: 'coop' }, cap: { integerValue: '4' }, fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' } })) === 200
+    && await fxM(W({ mode: { stringValue: 'coop' }, state: { stringValue: 'coop' }, cap: { integerValue: '12' }, fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' } })) === 403);
+  // (L3) una coop nunca 'open' (los 1.21.0 en caché listan y buscan por código solo 'open') y 'coop' solo en las coop
+  check('coop en «open» rechazada (un 1.21.0 la vería); vs en «coop» rechazada; sala 1v1 en «coop» rechazada',
+    await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '2' } })) === 403 && await fxM(W({ state: { stringValue: 'coop' } })) === 403
+    && (await raw('POST', ':commit', { writes: [{ update: { name: docRoot + '/rooms/mC', fields: Object.assign(Object.fromEntries(Object.entries(goodM).filter(([k]) => ['mode', 'cap', 'seats', 'cnt'].indexOf(k) < 0)), { host: { stringValue: 'mC' }, state: { stringValue: 'coop' } }) },
+      updateTransforms: [{ fieldPath: 'seen', setToServerValue: 'REQUEST_TIME' }] }] }, fakeToken('mC'))).status === 403);
+  check('net «host»: 6v6 (vs o coop de 4) y vs 2v2 de 4 sí; 2v2 de 2, coop 2v2 o net raro no',
+    await fxM(W({ fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' }, cap: { integerValue: '12' }, net: { stringValue: 'host' } })) === 200
+    && await fxM(W({ mode: { stringValue: 'coop' }, state: { stringValue: 'coop' }, fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' }, cap: { integerValue: '4' }, net: { stringValue: 'host' } })) === 200
+    && await fxM(W({ net: { stringValue: 'host' } })) === 200 && await fxM(W({ cap: { integerValue: '2' }, net: { stringValue: 'host' } })) === 403
+    && await fxM(W({ mode: { stringValue: 'coop' }, state: { stringValue: 'coop' }, cap: { integerValue: '2' }, net: { stringValue: 'host' } })) === 403 && await fxM(W({ net: { stringValue: 'rara' } })) === 403);
   check('Fluida solo en vs con 2 plazas', await fxM(W({ cap: { integerValue: '2' }, net: { stringValue: 'fluida' } })) === 200 && await fxM(W({ net: { stringValue: 'fluida' } })) === 403
-    && await fxM(W({ mode: { stringValue: 'coop' }, cap: { integerValue: '2' }, net: { stringValue: 'fluida' } })) === 403
+    && await fxM(W({ mode: { stringValue: 'coop' }, state: { stringValue: 'coop' }, cap: { integerValue: '2' }, net: { stringValue: 'fluida' } })) === 403
     && await fxM(W({ fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' }, cap: { integerValue: '2' }, net: { stringValue: 'fluida' } })) === 403
     && await fxM(W({ fmt: { stringValue: '6v6' }, venue: { stringValue: 'hall' }, cap: { integerValue: '2' } })) === 200);
   check('al crear: invitados ya sentados, cnt ≠ 0, guest/gname con algo o estado ≠ open: rechazadas',
@@ -612,9 +666,198 @@ async function emuMulti(base) {
     updateTransforms: [{ fieldPath: 'seen', setToServerValue: 'REQUEST_TIME' }] }] }, fakeToken('mC'))).status === 403);
 }
 
+
+/* ---------- 1c) un cliente 1.21.0 en caché frente a las salas coop (L3) ---------- */
+async function oldVsCoop(base, OLD) {
+  const verNew = '3|test';
+  const K = NR.create({ base, ver: verNew, auth: async () => ({ uid: 'oK', token: fakeToken('oK') }) });
+  const O = OLD.create({ base, ver: '2|viejo', auth: async () => ({ uid: 'oOld', token: fakeToken('oOld') }) });
+  const V = NR.create({ base, ver: verNew, auth: async () => ({ uid: 'oV', token: fakeToken('oV') }) });
+  const rk = await K.open({ name: 'Kai', mode: 'coop', cap: 2 }), rv = await V.open({ name: 'Vera', mode: 'vs', cap: 4 });
+  const L = await O.list();
+  check('cliente 1.21.0: la sala coop NO sale en su lista (la vs de 4 sí, como «otra versión»)', !L.some(r => r.id === 'oK') && L.some(r => r.id === 'oV' && r.other), L.map(r => [r.id, r.other]));
+  check('cliente 1.21.0: el código de una coop no le lleva a ninguna sala', (await O.byCode(rk.code)) === null);
+  check('cliente 1.21.0: tampoco entra en la coop (ni con el id)', await code(O.join('oK', 'Viejo')) !== 'ok' && (await K.get('oK')).nseat === 0 && (await K.get('oK')).guest === '');
+  await K.close(); await V.close();
+}
+/** --life-ref <ref>: el ciclo de vida con el lobby, la sala y las reglas de ese commit (otro emulador). */
+async function lifeRef(jar) {
+  if (!LIFE_REF || !jar) return;
+  const src = { room: gitShow('js/netroom.js', LIFE_REF), lobby: gitShow('js/netlobby.js', LIFE_REF) }, rules = gitShow('firebase/firestore.rules', LIFE_REF);
+  if (!src.room || !src.lobby || !rules) { console.log('\n(--life-ref ' + LIFE_REF + ': no se pueden leer los ficheros de ese commit)'); return; }
+  const rp = path.join(os.tmpdir(), 'mtc-rules-ref.rules'); fs.writeFileSync(rp, rules);
+  const P6 = PORT + 4;
+  const j6 = spawn('java', ['-Xmx384m', '-jar', jar, '--host', '127.0.0.1', '--port', String(P6), '--rules', rp, '--project_id', PROJECT], { stdio: 'ignore', windowsHide: true });
+  process.on('exit', () => killTree(j6));
+  let up = false;
+  for (let i = 0; i < 120 && !up; i++) { await sleep(500); try { up = (await fetch('http://127.0.0.1:' + P6 + '/')).status < 500; } catch (e) { } }
+  if (up) await lifeCycle(src, P6, LIFE_REF, false); else console.log('\n(--life-ref: el emulador no arranca)');
+  killTree(j6);
+}
+
+/* ---------- 6) ciclo de vida de cada tipo de sala: lecturas y escrituras de Firestore (L3, 22-nov-2026) ----------
+ * El lobby DE VERDAD (js/netroom.js + js/netlobby.js en un contexto vm por jugador, como tools/lobbytest.js) contra el emulador, con
+ * un WebRTC de mentira y un RELOJ VIRTUAL (Date, setTimeout/setInterval y performance de cada página): 10 min de partido tardan unos
+ * segundos. Por tipo de sala (1v1, 2v2 × 4, 6v6 × 12, coop) y por fase: W = el anfitrión solo esperando (1 min), Wh = 1 min más con
+ * la pestaña oculta, J = entrar (uno cada 2 s) y conectar, R = sala llena con los enlaces abiertos (1 min), P = partido (10 min; en la
+ * coop, la sesión de la Carrera emparejada), E = fin. Lecturas = GET de documento + filas de runQuery (mínimo 1) + 1 por cada petición
+ * de señalización (las reglas de sig leen la sala con get()/exists()). Escrituras = commit/PATCH. Comprueba que, con los enlaces
+ * abiertos, nadie más lee Firestore salvo el latido del anfitrión. --life-ref <ref> mide también el lobby y las reglas de ese commit
+ * (el «antes»), en un emulador aparte. */
+function lifeHub(clock) {
+  const reg = new Map(); let n = 0;
+  function FakeLink(o) { this.onstate = o && typeof o.onstate === 'function' ? o.onstate : null; this.onclose = null; this.q = []; this.pend = []; this.state = 'new'; this.opens = 0; this.peer = null; }
+  const P = FakeLink.prototype;
+  P._set = function (s) { if (this.state === s || this.state === 'closed') return; this.state = s; if (this.onstate) { try { this.onstate(s); } catch (e) { console.error(e); } } };
+  P.offer = function () { this.peer = null; this._set('connecting'); const sdp = 'O' + (++n); reg.set(sdp, this); return Promise.resolve(sdp); };
+  P.answer = function (sdp) { const off = reg.get(sdp); this._set('connecting'); if (!off) return Promise.reject(new Error('sin oferta')); const a = 'A' + (++n); reg.set(a, this); this._off = off; return Promise.resolve(a); };
+  P.accept = function (sdp) { const ans = reg.get(sdp); if (!ans || ans._off !== this) return Promise.reject(new Error('respuesta rara')); this.peer = ans; ans.peer = this; clock.setTimeout(() => { this._open(); ans._open(); }, 20); return Promise.resolve(); };
+  P._open = function () { this.opens++; this._set('open'); const p = this.pend; this.pend = []; p.forEach(d => this._deliver('ctl', d)); };
+  P._deliver = function (ch, d) { const pr = this.peer; if (!pr || pr.state === 'closed') return; clock.setTimeout(() => { if (pr.peer === this) pr.q.push({ ch, data: d }); }, 4); };
+  P.send = function (ch, d) { if (this.state === 'closed') return; if (this.state === 'open' && this.peer) { this._deliver(ch, d); return; } if (ch === 'ctl' && this.pend.length < 400) this.pend.push(d); };
+  P.poll = function () { const o = this.q; this.q = []; return o; };
+  P.info = function () { return { type: 'host', rtt: 12, opens: this.opens, rtype: 'host', proto: 'udp', relayProto: '' }; };
+  P.close = function () { if (this.state === 'closed') return; const pr = this.peer; this._set('closed'); this.q = []; const f = this.onclose; this.onclose = null; if (f) f(); if (pr && pr.peer === this) clock.setTimeout(() => pr._set('down'), 30); };
+  return { FakeLink };
+}
+/** Reloj virtual común a todas las páginas: los temporizadores solo avanzan cuando no hay ninguna petición al emulador en vuelo. */
+function lifeClock() {
+  const q = []; let seq = 0;
+  const C = { now: Date.now(), inflight: 0 };
+  const add = (fn, ms, every, args) => { const id = ++seq; ms = Math.max(0, +ms || 0); q.push({ id, at: C.now + ms, fn, every: every ? Math.max(1, ms) : 0, args: args || [] }); return id; };
+  C.setTimeout = (fn, ms, ...a) => add(fn, ms, false, a);
+  C.setInterval = (fn, ms, ...a) => add(fn, ms, true, a);
+  C.clear = id => { const i = q.findIndex(x => x.id === id); if (i >= 0) q.splice(i, 1); };
+  C.settle = async () => { let idle = 0; for (let k = 0; k < 20000 && idle < 3; k++) { await new Promise(r => setImmediate(r)); idle = C.inflight ? 0 : idle + 1; } };
+  C.advance = async ms => {
+    const end = C.now + ms;
+    for (;;) {
+      await C.settle();
+      let nx = null; for (const x of q) if (!nx || x.at < nx.at || (x.at === nx.at && x.id < nx.id)) nx = x;
+      if (!nx || nx.at > end) { C.now = end; return; }
+      C.now = Math.max(C.now, nx.at);
+      if (nx.every) nx.at += nx.every; else q.splice(q.indexOf(nx), 1);
+      try { nx.fn.apply(null, nx.args); } catch (e) { console.error(e); }
+    }
+  };
+  C.until = async (f, ms) => { const end = C.now + ms; while (C.now < end) { let v = false; try { v = f(); } catch (e) { } if (v) return true; await C.advance(50); } return false; };
+  return C;
+}
+function lifePage(clock, hub, src, port, name, uid) {
+  const vm = require('vm');
+  const store = {}, n = { r: 0, w: 0, d: 0 }, started = [], vis = [];
+  const RD = Date;
+  function VDate(...a) { if (!new.target) return new RD(clock.now).toString(); return a.length ? new RD(...a) : new RD(clock.now); }
+  VDate.now = () => clock.now; VDate.parse = RD.parse; VDate.UTC = RD.UTC; VDate.prototype = RD.prototype;
+  const mkLS = s => ({ getItem: k => (k in s ? s[k] : null), setItem: (k, v) => { s[k] = String(v); }, removeItem: k => { delete s[k]; } });
+  const el = () => ({ style: {}, hidden: true, innerHTML: '', setAttribute() { }, getAttribute() { return null; }, removeAttribute() { }, addEventListener() { }, appendChild() { }, querySelector() { return null; }, querySelectorAll() { return []; }, classList: { add() { }, remove() { }, contains() { return false; } } });
+  const doc = { hidden: false, visibilityState: 'visible', getElementById: () => null, createElement: () => el(), head: el(), body: el(), querySelectorAll: () => [], documentElement: el(),
+    addEventListener(t, f) { if (t === 'visibilitychange') vis.push(f); } };
+  const lfetch = (u, op) => {
+    const m = (op && op.method) || 'GET', sig = /\/sig\//.test(u);
+    if (m === 'GET') n.r++; else if (m === 'DELETE') n.d++; else if (!/:runQuery$/.test(u)) n.w++;
+    if (sig) n.r++;   // (las reglas de sig leen la sala)
+    clock.inflight++;
+    return fetch(u, op).then(r => r.text().then(t => {
+      clock.inflight--;
+      if (/:runQuery$/.test(u)) { let k = 0; try { k = JSON.parse(t).filter(x => x && x.document).length; } catch (e) { } n.r += Math.max(1, k); }
+      return { ok: r.ok, status: r.status, text: async () => t, json: async () => JSON.parse(t) };
+    }), e => { clock.inflight--; throw e; });
+  };
+  const c = {
+    console, btoa, atob, URLSearchParams, URL, TextEncoder, Date: VDate,
+    setTimeout: clock.setTimeout, setInterval: clock.setInterval, clearTimeout: clock.clear, clearInterval: clock.clear, performance: { now: () => clock.now },
+    fetch: lfetch, navigator: {}, localStorage: mkLS(store), sessionStorage: mkLS({}), addEventListener() { }, removeEventListener() { },
+    location: { search: '?netemu=' + port + '&netuid=' + uid + '&name=' + encodeURIComponent(name) + '&netice=none', protocol: 'http:', hostname: 'localhost', origin: 'http://localhost', pathname: '/index.html' },
+    document: doc
+  };
+  c.window = c; c.globalThis = c; c.self = c;
+  c.VB = { VERSION: '9.9.9', Net: { PROTO: 7 }, NetRtc: { Link: function (lo) { return new hub.FakeLink(lo); }, supported: () => true },
+    ctx: { state: 'menu', settings: {}, actions: { startOnline: so => { started.push(so); return true; } } } };
+  vm.createContext(c);
+  vm.runInContext(src.room, c, { filename: 'netroom.js' });
+  vm.runInContext(src.lobby, c, { filename: 'netlobby.js' });
+  return { name, uid, NL: c.VB.NetLobby, n, started, st: () => c.VB.NetLobby._state(), snap: () => Object.assign({}, n),
+    hide: h => { doc.hidden = !!h; doc.visibilityState = h ? 'hidden' : 'visible'; vis.forEach(f => { try { f(); } catch (e) { } }); } };
+}
+const lifeDiff = (a, b) => ({ r: b.r - a.r, w: b.w - a.w, d: b.d - a.d });
+const lifeSum = L => L.reduce((a, x) => ({ r: a.r + x.r, w: a.w + x.w, d: a.d + x.d }), { r: 0, w: 0, d: 0 });
+/** Un tipo de sala de punta a punta. → {phases: {open, W, Wh, J, R, P, E}: {host, guest (el primero), guests (todos)}} o {err} */
+async function lifeRun(kind, src, port) {
+  const clock = lifeClock(), hub = lifeHub(clock);
+  const nG = kind === '6v6' ? 11 : kind === '2v2' ? 3 : 1, tag = kind.replace(/\W/g, '');
+  const H = lifePage(clock, hub, src, port, 'Ana Host', 'lf' + tag + 'H');
+  const G = []; for (let i = 0; i < nG; i++) G.push(lifePage(clock, hub, src, port, 'Invitado ' + (i + 1), 'lf' + tag + 'G' + i));
+  const all = [H].concat(G), ph = {};
+  let mark = all.map(p => p.snap());
+  const cut = k => { const now = all.map(p => p.snap()), d = now.map((s, i) => lifeDiff(mark[i], s)); mark = now; ph[k] = { host: d[0], guest: d[1], guests: lifeSum(d.slice(1)) }; };
+  const coop = kind === 'coop', got = { h: null, g: null };
+  if (coop) H.NL.coop.host({ title: 'Carrera', name: 'Ana Host', look: null, venue: 'beach', onReady: i => { got.h = i; }, onClose: () => { } });
+  else H.NL._act('create', { fmt: kind === '6v6' ? '6v6' : kind === '2v2' ? '2v2' : '1v1', venue: 'beach', bo: 1 });
+  const opened = await clock.until(() => coop ? !!H.NL.coop.state().code : H.st().view === 'room', 20000);
+  if (!opened) return { err: 'no se abre la sala: ' + JSON.stringify(H.st().msg || '') };
+  cut('open');
+  await clock.advance(60000); cut('W');
+  H.hide(true); await clock.advance(60000); H.hide(false); await clock.advance(10); cut('Wh');
+  const code = coop ? H.NL.coop.state().code : null;
+  for (let i = 0; i < nG; i++) {
+    if (coop) G[i].NL.coop.join({ code, name: 'Invitado 1', look: null, onReady: x => { got.g = x; }, onClose: () => { } });
+    else G[i].NL._act('join', H.uid);
+    await clock.advance(2000);
+  }
+  const linked = await clock.until(() => coop ? !!(got.h && got.g)
+    : kind === '1v1' ? H.started.length && G[0].started.length
+      : G.every(g => g.st().mx && g.st().mx.status === 'linked') && H.st().mx && H.st().mx.ro.m.filter(m => m.ok).length === nG + 1, 120000);
+  if (!linked) return { err: 'no conectan' };
+  if (kind === '2v2' || kind === '6v6') await clock.until(() => G.every(g => { const s = g.st(), m = s.mx && s.mx.ro.m.filter(x => x.u === g.uid)[0]; return m && m.c >= 0; }), 10000);
+  cut('J');
+  if (kind !== '1v1') { await clock.advance(60000); cut('R'); }
+  if (kind === '2v2' || kind === '6v6') {
+    G.forEach(g => g.NL._act('ready'));
+    await clock.until(() => H.st().mx && H.st().mx.can && H.st().mx.can.ok, 10000);
+    H.NL._act('start');
+    if (!await clock.until(() => H.started.length && G.every(g => g.started.length), 20000)) return { err: 'no empieza' };
+  }
+  await clock.advance(10 * 60000); cut('P');
+  // fin: main.js cierra los enlaces (coop: el compañero sale)
+  if (coop) G[0].NL.coop.close();
+  else if (kind === '1v1') { H.started[0].link.close(); G[0].started[0].link.close(); }
+  else { H.started[0].links.forEach(k => k.close()); G.forEach(g => g.started[0] && g.started[0].links[0].close()); }
+  await clock.advance(3000); cut('E');
+  return { phases: ph };
+}
+async function lifeCycle(src, port, label, strict) {
+  console.log('\nCiclo de vida de cada sala: lecturas/escrituras/borrados de Firestore [' + label + ']');
+  console.log('  (W = anfitrión solo 1 min · Wh = 1 min con la pestaña oculta · J = entrar y conectar · R = sala llena con los enlaces abiertos 1 min ·');
+  console.log('   P = 10 min de partido (coop: la Carrera emparejada) · E = fin · «invitados» = la suma de todos)');
+  const f = x => (x.r + '/' + x.w + '/' + x.d).padStart(9), z = { r: 0, w: 0, d: 0 }, out = {};
+  console.log('  sala   quién               W       Wh        J        R        P        E    total');
+  for (const kind of ['1v1', '2v2', '6v6', 'coop']) {
+    let res;
+    try { res = await lifeRun(kind, src, port); } catch (e) { res = { err: String(e && e.stack || e) }; }
+    out[kind] = res;
+    if (res.err) { console.log('  ' + kind.padEnd(6) + ' ' + res.err); if (strict) check('ciclo de vida ' + kind + ' sin errores', false, res.err); continue; }
+    const P = res.phases, ks = ['open', 'W', 'Wh', 'J', 'R', 'P', 'E'];
+    for (const who of ['host', 'guest', 'guests']) {
+      if (who === 'guests' && kind !== '2v2' && kind !== '6v6') continue;
+      const tot = lifeSum(ks.filter(k => P[k]).map(k => P[k][who]));
+      console.log('  ' + kind.padEnd(6) + ' ' + ({ host: 'anfitrión', guest: 'un invitado', guests: 'invitados' }[who]).padEnd(13) + ['W', 'Wh', 'J', 'R', 'P', 'E'].map(k => f(P[k] ? P[k][who] : z)).join('') + f(tot));
+    }
+    if (strict) {
+      const R = P.R, Pm = P.P;
+      if (R) check(kind + ': sala llena con los enlaces abiertos: en 1 min nadie lee Firestore (el anfitrión solo late, sin releer)', R.host.r === 0 && R.guests.r === 0 && R.guests.w === 0, { host: R.host, guests: R.guests });
+      // (la única lectura del anfitrión es la del latido de «play» al empezar: levanta a quien se sentó en el último momento)
+      if (kind !== '1v1') check(kind + ': 10 min de partido: los invitados no tocan Firestore; el anfitrión, un latido por minuto sin releer', Pm.guests.r + Pm.guests.w + Pm.guests.d === 0 && Pm.host.r <= 1 && Pm.host.w <= 11,
+        { host: Pm.host, guests: Pm.guests });
+      if (kind !== '1v1') check(kind + ': anfitrión solo y con la pestaña oculta: una lectura cada 6 s como mucho', P.Wh.host.r <= 12, P.Wh.host);
+    }
+  }
+  return out;
+}
+
 (async () => {
   const t0 = Date.now();
-  await mockTests();
+  if (!LIFE_ONLY) await mockTests();
   const jar = NO_EMU ? null : findJar();
   let java = null;
   if (!jar) console.log('\n(sin emulador de Firestore: solo la lógica del cliente; instala el jar con `npx firebase-tools@13.29.1 setup:emulators:firestore`)');
@@ -631,17 +874,25 @@ async function emuMulti(base) {
     else {
       const base = 'http://127.0.0.1:' + PORT + '/v1/projects/' + PROJECT + '/databases/(default)/documents';
       const wipe = () => fetch('http://127.0.0.1:' + PORT + '/emulator/v1/projects/' + PROJECT + '/databases/(default)/documents', { method: 'DELETE' }).catch(() => { });
-      await wipe();
-      try { await emuTests(base, NR); } catch (e) { check('pruebas del emulador sin excepciones', false, String(e && e.stack || e)); }
-      await wipe();
-      try { await emuMulti(base); } catch (e) { check('pruebas de salas de varios sin excepciones', false, String(e && e.stack || e)); }
-      // un cliente 1.21.0 en caché (js/netroom.js de HEAD) contra las reglas nuevas: las mismas pruebas 1v1 de siempre
+      const SRCNOW = { room: fs.readFileSync(path.join(ROOT, 'js/netroom.js'), 'utf8'), lobby: fs.readFileSync(path.join(ROOT, 'js/netlobby.js'), 'utf8') };
+      if (!LIFE_ONLY) {
+        await wipe();
+        try { await emuTests(base, NR); } catch (e) { check('pruebas del emulador sin excepciones', false, String(e && e.stack || e)); }
+        await wipe();
+        try { await emuMulti(base); } catch (e) { check('pruebas de salas de varios sin excepciones', false, String(e && e.stack || e)); }
+      }
+      if (!NO_LIFE) { await wipe(); try { await lifeCycle(SRCNOW, PORT, 'esta copia', true); } catch (e) { check('ciclo de vida sin excepciones', false, String(e && e.stack || e)); } }
+      if (LIFE_ONLY) { kill(); await lifeRef(jar); console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)'); process.exit(fails ? 1 : 0); }
+      // un cliente 1.21.0 en caché (js/netroom.js de la versión publicada) contra las reglas nuevas: las mismas pruebas 1v1 de siempre,
+      // y no ve las salas coop (state 'coop') ni en la lista ni por código
       const SRC = gitShow('js/netroom.js');
       if (SRC && SRC.indexOf('joinMulti') < 0) {
         await wipe();
-        console.log('\nCliente publicado (js/netroom.js de git HEAD, 1v1) contra las reglas nuevas');
+        console.log('\nCliente publicado (js/netroom.js de ' + PUB_REF.slice(0, 7) + ', 1v1) contra las reglas nuevas');
         try { await emuTests(base, loadNR(SRC)); } catch (e) { check('pruebas 1v1 con el cliente publicado sin excepciones', false, String(e && e.stack || e)); }
-      } else console.log('\n(git HEAD ya trae el cliente de varios o no hay git: se omite la pasada con el cliente 1v1 publicado)');
+        await wipe();
+        try { await oldVsCoop(base, loadNR(SRC)); } catch (e) { check('cliente publicado y salas coop sin excepciones', false, String(e && e.stack || e)); }
+      } else console.log('\n(la versión publicada ya trae el cliente de varios o no hay git: se omite la pasada con el cliente 1v1 publicado)');
     }
     kill();
     // 3) las reglas de hoy (sin el bloque ONLINE: lo desplegado hasta que Ferran despliegue): el cliente dice 'off' y no se rompe nada
@@ -667,11 +918,11 @@ async function emuMulti(base) {
     // 4) Online V2: las reglas ONLINE de antes de 'net' (las desplegadas hasta que Ferran despliegue las nuevas): una sala Fluida da
     //    'denied' (el lobby dice «La conexión Fluida aún no está activada.») y las Precisa siguen funcionando
     console.log('\nReglas ONLINE sin el campo net (antes de desplegar Online V2)');
-    // (de las reglas publicadas, git HEAD, si aún no traen el esquema v3; si no, de las actuales)
+    // (de las reglas publicadas, si aún no traen el esquema v3; si no, de las actuales)
     const headRules = gitShow('firebase/firestore.rules'), src4 = headRules && headRules.indexOf('roomOkMulti') < 0 ? headRules : cur;
     const noNet = src4.replace(", 'seen', 'net'])", ", 'seen'])").replace(/\r?\n\s*\/\/ Online V2:[^\n]*\r?\n\s*&& \(!\('net' in d\)[^\n]*;/, ';');
     if (src4 !== cur && (noNet === src4 || noNet.indexOf("'net'") >= 0)) check('reglas sin net derivadas de las publicadas', false);
-    else if (src4 === cur) console.log('  (omitido: git HEAD ya trae el esquema v3)');
+    else if (src4 === cur) console.log('  (omitido: la versión publicada ya trae el esquema v3)');
     else {
       const prevRules = path.join(os.tmpdir(), 'mtc-rules-sin-net.rules');
       fs.writeFileSync(prevRules, noNet);
@@ -693,8 +944,8 @@ async function emuMulti(base) {
     }
     // 5) esquema v3: las reglas publicadas (git HEAD, sin salas de varios) con el cliente nuevo: las 1v1 siguen igual y una sala de
     //    varios da 'denied' (no 'off': el lobby puede decir «aún no está activado» sin romper el 1v1)
-    console.log('\nReglas publicadas (git HEAD, sin salas de varios) con el cliente nuevo');
-    if (!headRules || headRules.indexOf('roomOkMulti') >= 0) console.log('  (omitido: no hay git o HEAD ya trae el esquema v3)');
+    console.log('\nReglas publicadas (' + PUB_REF.slice(0, 7) + ', sin salas de varios) con el cliente nuevo');
+    if (!headRules || headRules.indexOf('roomOkMulti') >= 0) console.log('  (omitido: no hay git o la versión publicada ya trae el esquema v3)');
     else {
       const pubRules = path.join(os.tmpdir(), 'mtc-rules-head.rules');
       fs.writeFileSync(pubRules, headRules);
@@ -720,6 +971,7 @@ async function emuMulti(base) {
       killTree(j5);
     }
   }
+  if (jar) await lifeRef(jar);
   console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)');
   process.exit(fails ? 1 : 0);
 })();

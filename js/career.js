@@ -1726,6 +1726,10 @@
     // extensión (coopMatch: nota, XP e insignias sobre p2), antes de closeMine, que guarda; la forma y la química del compañero de la
     // IA no cambian (no ha jugado)
     var coop = !!(g && g.career && g.career.coop), mate2 = coop && c.coop && c.coop.p2 && typeof c.coop.p2 === 'object' ? c.coop.p2 : null;
+    // (el invitado no pudo empezar —'nack'—: jugó el compañero de la IA. Ni XP ni insignias para p2, y la química y la forma del
+    //  compañero de la IA se cierran como en un partido normal)
+    var CC = VB.CareerCoop;
+    if (coop && CC && typeof CC.noP2 === 'function' && CC.noP2()) { coop = false; mate2 = null; }
     if (coop) extCall('coopMatch', [c, m, res, rallies, g]);
     try { if (B() && B().endMatch && g) badges = B().endMatch(g, win, [c.player, mate2]) || []; } catch (e) { badges = []; }
     var asum = ambSum(m, g);

@@ -1499,18 +1499,22 @@ Diseño en notes/online-multi-brief.md; protocolo, medidas y despliegue en notes
 notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de API ni de camino.
 
 **Ficheros nuevos** (owner entre paréntesis; index.html los carga donde se dice):
-- `js/nethost.js` (**net**) → `VB.NetHost.{Session, C, PROTO 'H1'}`, tras js/netfluid.js. Modelo anfitrión del 6v6 (y 2v2 × 4 como
+- `js/nethost.js` (**net**) → `VB.NetHost.{Session, C, PROTO 'H2'}`, tras js/netfluid.js. Modelo anfitrión del 6v6 (y 2v2 × 4 como
   opción): misma fachada que `VB.Net.Session` (`advance(now, inp) → r {status, g, events, confirmed, app, ping, pings[s], waitFor[s],
   canAI, startIn, waitMs, result, unstable}`, `predictedGame()`, `confirmedGame()`, `request('skip'|'chal'|'tmo')`, `setAway`, `quit`,
   `sendApp`, `vsAI` (false), `initEvents`, `stats`, `hstats`, `seatGone(s)`, `repaired`). `result.why` 'end'|'quit'|'hostGone'|
   'noShow'|'cancel'; `result.win` por equipo. El balón PINTADO (invitado y, desde P8, también el anfitrión: `_hostPaint`) se escribe
-  en `r.g.ball` y se deshace al empezar el siguiente `advance`. Sin grabador de repeticiones (`Replay.reset(v, {fluida: true})`).
+  en `r.g.ball` y se deshace al empezar el siguiente `advance`; desde L1 es CONTINUO (horizonte de lo sabido por fuente, reparto de
+  la IA y «voy» de los invitados en el paquete de 30 Hz de 279 B; ver notes/net.md «Modelo anfitrión del 6v6»). Sin grabador de
+  repeticiones (`Replay.reset(v, {fluida: true})`).
 - `js/career-coop.js` (**carrera**) → `VB.CareerCoop`, extensión `VB.CareerExt` id `'coop'` (gancho `coopMatch(c, m, res, rallies, g)`
   que `matchDone` de playa llama con `g.career.coop`) y `VB.CareerUIExt` prefijo `'co-'` (tarjeta «Cooperativo» en Partido y fila al
   crear); script tras js/career-prologue.js. API (cabecera del fichero): `guest()`, `host()`, `paired()`, `ready()`, `startHost()`,
   `join(code)`, `onJoinLink(code)`, `leave()`, `setReady(on)`, `intent(act, btn)` (puerta del invitado en career-ui onClick),
   `hostPlay()`, `matchOpts()`, `matchLink()`, `matchStarted(seat, net, mo)`, datos puros para pruebas (`ensure`, `adopt`, `newP2`,
-  `applySetup`, `creditMate`, `feed`, `pack`/`unpack`, `memStore`, `P2_KEY` = `'make-the-cut.coop.p2'`). Guardado: `c.coop` dentro de
+  `applySetup`, `creditMate`, `feed`, `pack`/`unpack`, `memStore`, `P2_KEY` = `'make-the-cut.coop.p2'`) y, desde L4, `guestSum`,
+  `endX`, `showSum`, `sheet`, `hostState`, `p2Rec`, `matchWatch`, `_demo`, `_tick`; mensajes de la coop `st` (qué hace el anfitrión)
+  y `sum` (Resumen del invitado). Las insignias del coop las cuenta `feed` con lo CONFIRMADO (ui.js no, con `ctx.net.coopCareer`). Guardado: `c.coop` dentro de
   `make-the-cut.career` sin subir VER, solo si se ha usado; el invitado nunca escribe la Carrera (solo `make-the-cut.coop.p2`).
 - `js/nettest-links.js` (**net**, solo pruebas; index.html NO lo carga) → `VB.Net.memMesh` / `VB.Net.memStar` (N pares con un Shaper
   por pareja dirigida).
@@ -1530,11 +1534,16 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
   `r.waitFor`, `r.pings[s]`, `r.aiSeats`, `r.meAI`, `r.canAI`, `sess.seatGone(s)`, `sess.seatAI(s)`, `sess.addLink(link)`, `sess.n`,
   `sess.team`, `sess.delay`. `VB.Net.{SessionN, packN, unpackN, adaptDelay, SEAT_AI_MS, Shaper}`. `bot(slot, seed, prof, {team})` por
   plaza. **`BcLink({room, slot, to, lag, jit, loss})`** (P8): con `to`, enlace de UNA pareja (canal `mtc-net-<room>-a-b` y Shaper propios).
+  Predicción INCREMENTAL de la SessionN (P8, lag en móvil): la partida predicha del frame anterior sigue valiendo si las entradas que
+  usó son las que se saben ahora; solo se rehace desde gc si alguna cambió (misma partida, menos CPU). `stats.depth` = tics por
+  delante de gc (como antes); `stats.resim` = tics rehechos en el último frame. El 1 contra 1 (Session) no cambia.
 - `js/netrtc.js` (**net**, P8): `Link` con simulador de red para pruebas: `?netlag=&netjit=&netloss=` (solo file:// o localhost) o
   `new Link({shape: {lag, jit, loss}})`; retrasa y pierde lo que llega, como el Shaper de memPair/BcLink. Sin la query, igual que antes.
 - `js/netroom.js` (**net**): esquema v3 (salas de varios): `rooms.open({…, mode: 'vs'|'coop', cap: 2|4|12, fmt: '2v2'|'6v6',
   lineup})`, `join` / `joinMulti` / `leaveMulti`, `kick(uid)`, `beat({cnt, state, lineup, seats})`, `putSig/getSig/delSig(id, kind,
-  uidInvitado)` (docs `sig/o_<uid>` y `sig/a_<uid>`), `VB.NetRoom.CAPS`, `multiCfg(cfg)`, `seatPath(uid)`. Reglas en
+  uidInvitado)` (docs `sig/o_<uid>` y `sig/a_<uid>`), `VB.NetRoom.CAPS`, `multiCfg(cfg)` (devuelve además `net` y `state`),
+  `joinable(room)`, `seatPath(uid)`; `beat(patch, {lite: true})` (1 escritura sin releer); coop esperando = `state: 'coop'`;
+  `net: 'host'` en 6v6; constantes `PLAY_BEAT_MS`, `HID_POLL_MS`, `MX_STALE_MS`, `MX_OFFER_MAX`. Reglas en
   firebase/firestore.rules (`roomOkMulti`), NO desplegadas: notes/net.md «Despliegue de las reglas».
 - `js/netlobby.js` (**net**): `LOBBY = 3`; salas de varios (bloque «ONLINE DE VARIOS», protocolo en su cabecera) y
   `VB.NetLobby.coop = {host(cfg), join(cfg), close(), send(obj), onMessage(fn) → quitar, state()}` (bloque «CARRERA COOPERATIVA»;
@@ -1548,7 +1557,9 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
   siempre); `ctx.net.{multi, humans, seat, team, me, links, coopCareer}`; `#netTags` (hasta 11 etiquetas, solo `translate3d`, «IA»
   cuando la plaza la lleva la IA); HUD «Esperando a: …», ping propio y el peor, «Tu conexión va lenta: te lleva la IA un rato»
   (`r.meAI`). `ctx.actions.startCoopCareerMatch({seat, humans})` (P7). `netBallSmooth` (P8): en Precisa-N el salto del balón de un
-  rollback se reparte en 80 ms (solo la vista). Pruebas de N páginas: `?net=bc&n=N&slot=k&fmt=2v2|6v6&coop=1&model=precisa|host
+  rollback se reparte en 80 ms (solo la vista); `netPlayersSmooth` (L2): ídem con los jugadores que no lleva esta máquina
+  (80-150 ms; Precisa-N de varios y, en el modelo host, la vista del anfitrión y la de los invitados salvo el que va con el reloj
+  del balón de L1, `pDel` / `_capBind`). `netBallSmooth` deshace como mucho 15 m/s (≤ 0,25 m por frame) y reparte saltos de hasta 4 m. Pruebas de N páginas: `?net=bc&n=N&slot=k&fmt=2v2|6v6&coop=1&model=precisa|host
   &lag= (o &lags=a,b,c)&jit=&loss=&bot=1&norender=1&delay=` (`startNetTestN`; `&norender=1` también con `?netemu=`).
 - `js/career.js` (**carrera**, P7): almacén intercambiable `VB.Career._useStore(store|null)` / `_memStore()`; `closeMine` con
   `extra.coop` no toca química ni forma del compañero de la IA; `B().endMatch(g, win, [c.player, c.coop.p2])`.
@@ -1556,7 +1567,8 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
   cooperativa (`ctx.net.coopCareer`) sin «Revancha» y con «Volver a la Carrera».
 
 **Control de regresión** (además del de siempre): las 4 huellas (`node tools/fingerprint6.js`, `--variant mastery`, `--variant salto`,
-`--variant 6v6`), `node tools/mptest.js`, `net4test`, `net12test`, `hosttest`, `cooptest`, `lobbytest` (emulador), `netlogtest`, y en
+`--variant 6v6`), `node tools/mptest.js`, `net4test`, `net12test`, `hosttest` (con la sección (d), 0 saltos del balón), `cooptest`
+(~60-80 s), `lobbytest` (emulador), `roomtest` (con «Ciclo de vida»), `netlogtest`, y en
 Chrome (una cada vez): `node tools/netdrive.js` (1v1), `node tools/netdrive.js 60 120 "quality=low&model=fluida"`,
 `node tools/netdrive.js --multi 4 90 80`, `NDFMT=6v6 node tools/netdrive.js --multi 12 90 80`, `NDRTC=1 node tools/netdrive.js --multi 4`,
 `node tools/netdrive.js --coop`, `node tools/netdrive.js --rtc 40 80 "quality=low&netlag=80&netjit=15&netloss=2"` (y con

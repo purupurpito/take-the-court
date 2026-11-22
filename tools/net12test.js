@@ -103,7 +103,8 @@ function main() {
     const R = HT.run({ n: N, fmt: '6v6', rtt: k => 30 + (170 * (k - 1)) / (N - 2), jit: 10, loss: 2, seed: 41, secs: QUICK ? 90 : 2 * SECS, points: 15 });
     HT.summary(R, 'host6:', false);
     console.log('== (i) host6 con el adaptador de net4test (runMatch, el mismo bucle que los demás modelos) ==');
-    const R2 = runMatch({ n: N, topo: 'star', rtt: rttStar, jit: 10, loss: 2, seed: 43, secs: QUICK ? 40 : SECS, model: 'host6', relay: false });
+    // (L1: al menos 180 s: con 12 bots un peloteo de 6v6 dura 20-30 s y en 90 o 120 s podía no caer ningún punto)
+    const R2 = runMatch({ n: N, topo: 'star', rtt: rttStar, jit: 10, loss: 2, seed: 43, secs: Math.max(180, 2 * SECS), model: 'host6', relay: false });
     check('host6: sin excepciones', !R2.err, R2.err ? String(R2.err.stack).split('\n').slice(0, 3).join(' | ') : undefined);
     if (!R2.err) {
       check('host6: las 12 llegan a jugar', R2.st.every(x => (x.status.playing || 0) > 100), R2.st.map(x => x.status.playing || 0).join(','));

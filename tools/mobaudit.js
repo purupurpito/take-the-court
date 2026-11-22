@@ -101,7 +101,8 @@ const SCREENS = [
   { id: 'online-room', area: 'online', q: M0 + '&online=1&olmock=1', open: "return M.online('room');", primary: '' },
   { id: 'online-room-rival', area: 'online', q: M0 + '&online=1&olmock=1', open: "return M.online('rival');", primary: '' },
   // online de varios (sprint online-multi, P6): «Crear sala» con la fila Formato, la sala de espera con las columnas de sitios
-  // (2v2: 4; 6v6: 12, la de 568×320 se desplaza por dentro), la del invitado, el anfitrión con alguien elegido y la hoja de la coop
+  // (2v2: 4; 6v6: 12, que caben enteros sin desplazar también en 568×320 desde L3: formato y código en la cabecera, el estado en la
+  // barra), la del invitado, el anfitrión con alguien elegido y la hoja de la coop (modal: lo de debajo, inert)
   ...['2v2', '6v6'].map((f, k) => ({ id: 'online-create-' + f, area: 'online', q: M0 + '&online=1&olmock=1',
     open: `if (!(await M.online('create'))) return false; for (let i = 0; i < ${k + 1}; i++) { M.click('#mpOnline [data-ol="fmt"]'); await M.sleep(80); } return !!document.querySelector('#mpOnline [data-ol="fmt"]') && VB.NetLobby._state().view === 'create';`, primary: '.sp-patch' })),
   ...[['2v2', 'host', '[data-a="start"]'], ['6v6', 'host', '[data-a="start"]'], ['6v6', 'guest', '[data-a="ready"]']].map(x => ({ id: 'online-sala-' + x[0] + (x[1] === 'guest' ? '-invitado' : ''), area: 'online', q: M0 + '&online=1&olmock=1',
@@ -173,6 +174,20 @@ const SCREENS = [
   { id: 'carrera-hoja-final', area: 'carrera', q: 'debug=over&cr=1', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
   { id: 'carrera-resumen-jornada', area: 'carrera', q: 'debug=recap&career=1', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
   { id: 'carrera-resumen-stats', area: 'carrera', q: 'debug=recap&career=1&tab=stats', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900 },
+  // Carrera cooperativa (js/career-coop.js, L4 del sprint online-multi): pantallas de muestra con VB.CareerCoop._demo(tipo), sin red.
+  // Anfitrión con pareja lista; invitado con la Carrera (el anfitrión eligiendo / jugando sin él) y su ficha; «esperando la Carrera» y
+  // «se ha cortado» (hoja #coSheet encima); el Resumen de la jornada del invitado. Cada una con su carga (el estado de la coop no se
+  // arrastra de una fila a otra).
+  ...['host', 'guest', 'solo'].map(k => ({ id: 'carrera-coop-' + { host: 'anfitrion', guest: 'invitado', solo: 'invitado-espera' }[k], area: 'carrera', q: M0 + '&ma=cb&mx=coop-' + k,
+    open: `if (!M.seedCareer('beach')) return false; await M.career('match'); if (!VB.CareerCoop || !VB.CareerCoop._demo('${k}')) return false; await M.sleep(150); await M.career('match'); var e = document.querySelector('#crCoop'); if (!e) return false; e.scrollIntoView({block:'center'}); return true;` })),
+  { id: 'carrera-coop-invitado-ficha', area: 'carrera', q: M0 + '&ma=cb&mx=coop-ficha',
+    open: "if (!M.seedCareer('beach')) return false; await M.career('match'); if (!VB.CareerCoop || !VB.CareerCoop._demo('guest')) return false; await M.sleep(150); return M.career('player', 'phys');" },
+  { id: 'carrera-coop-esperando', area: 'carrera', q: M0 + '&ma=cb&mx=coop-wait', exit: '[data-cs="end"]', primary: '',
+    open: "if (!M.seedCareer('beach')) return false; await M.career('match'); if (!VB.CareerCoop || !VB.CareerCoop._demo('wait')) return false; await M.sleep(200); var d = document.getElementById('coSheet'); return !!d && !d.hidden;" },
+  { id: 'carrera-coop-cortado', area: 'carrera', q: M0 + '&ma=cb&mx=coop-down', exit: '[data-cs="ok"]', primary: '',
+    open: "if (!M.seedCareer('beach')) return false; await M.career('match'); if (!VB.CareerCoop || !VB.CareerCoop._demo('down')) return false; await M.sleep(200); var d = document.getElementById('coSheet'); return !!d && !d.hidden;" },
+  { id: 'carrera-coop-resumen', area: 'carrera', q: 'debug=recap&career=1&mx=coop-sum', wait: 900,
+    open: "if (!(await M.until(()=>VB.ctx.state==='over',5000))) return false; await M.sleep(300); return !!(VB.CareerCoop && VB.CareerCoop._demo('sum'));" },
   { id: 'carrera-sesion-hoja', area: 'carrera', q: 'debug=drill_end&career=1', open: "return M.until(()=>VB.ctx.state==='over',5000);", wait: 900, exit: '#btnGeList' },
   { id: 'carrera-banquillo', area: 'carrera', q: 'debug=bench6', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'carrera-previa', area: 'carrera', q: 'debug=intro&kind=long&career=1&t=3', open: "return M.until(()=>!!document.querySelector('#intro:not([hidden])'),5000);", wait: 600, exit: '', primary: '' },

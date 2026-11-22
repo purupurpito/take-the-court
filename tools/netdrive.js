@@ -692,6 +692,9 @@ if (MULTI) (async () => {
       '&jit=15&loss=2&bot=1&botseed=' + (k * 7 + 3) + (PTS ? '&points=' + PTS : '') + (k ? '' : '&map=' + (FMT === '6v6' ? 'palau' : '')) + (rend ? '' : (process.env.NDNRWARM ? '&norender=1' : '&norender=1&prewarm=0&warmdraw=0')) + (MEXTRA ? '&' + MEXTRA : '');
     await p.send('Page.navigate', { url: CH.pageUrl(ROOT, q) });
   }
+  // NDFRONT=k: la página k pasa a ser la pestaña de delante (las demás quedan detrás: Chrome les da requestAnimationFrame a trompicones,
+  // parones de ~1 s que salen también en las que no pintan; sirve para ver si un parón es del juego o de la pestaña de detrás)
+  if (process.env.NDFRONT != null && P[+process.env.NDFRONT]) await P[+process.env.NDFRONT].send('Page.bringToFront').catch(() => { });
   if (MRTC) {
     const waitFor = async (p, js, ms) => { const tEnd = Date.now() + ms; while (Date.now() < tEnd) { if (await ev(p, js)) return true; await sleep(250); } return false; };
     for (const p of P) await waitFor(p, "!!(window.VB&&VB.ctx&&VB.ctx.state==='menu'&&VB.UI&&VB.NetLobby)", 40000);
@@ -738,16 +741,26 @@ if (MULTI) (async () => {
     await ev(P[0], "document.querySelector('#mpOnline [data-a=start]').click()");
   }
   // contadores en página (los dos modelos): esperas, parones de frame, rollback, saltos del balón, coste de la sesión
-  const HOOK = "(function(){if(window.__mx)return;var W=window.__mx={frames:0,wait:0,unst:0,ms:0,maxMs:0,cpu:[],dep:{},jumps:0,jMax:0,raf:0,rafBig:0,rafMax:0,H:{},pts:[],over:0,st:{}};" +
-    "var last=0;function raf(t){if(last&&VB.ctx.state==='playing'&&VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.status==='playing'){var d=t-last;W.raf++;if(d>100)W.rafBig++;if(d>W.rafMax)W.rafMax=d;}last=t;requestAnimationFrame(raf);}requestAnimationFrame(raf);" +
+  const HOOK = "(function(){if(window.__mx)return;var W=window.__mx={vbN:0,vbJ:0,vbMax:0,vb:null,frames:0,wait:0,unst:0,ms:0,maxMs:0,cpu:[],dep:{},jumps:0,jMax:0,raf:0,rafBig:0,rafMax:0,H:{},pts:[],over:0,st:{},PJ:{D:pjN(),R:pjN()},raf1:[]};" +
+    // saltos de los jugadores que no son el tuyo (L2): R = partida predicha (cruda, sin suavizar), D = vista PINTADA (la de net.view tal
+    // como quedó el frame anterior: se lee al empezar el advance siguiente, antes de que el espejo la rehaga). Salto = distancia entre la
+    // posición y la extrapolada del frame anterior (con la velocidad de antes o la de ahora, la menor), en 'rally' o 'serve' sin cambio de
+    // modo; j = > 0,15 m, j5 = > 0,5 m. Solo en los advance de un frame (net.frameAt cambia): los del latido del Worker no repintan.
+    "function pjN(){var h=[];for(var q=0;q<101;q++)h.push(0);return{x:[],y:[],z:[],vx:[],vy:[],vz:[],t:0,m:'',ok:0,n:0,j:0,j5:0,mx:0,sum:0,h:h};}" +
+    "function pj(A,g,t,me){var ps=g&&g.players;if(!ps){A.ok=0;return;}var m=g.mode,dt=(t-A.t)/1000,use=A.ok&&A.m===m&&(m==='rally'||m==='serve')&&dt>0&&dt<0.1;" +
+    "for(var i=0;i<ps.length;i++){var p=ps[i],z=p.z||0,vz=p.vz||0;if(use&&p.id!==me){var ax=A.x[i]+A.vx[i]*dt-p.x,ay=A.y[i]+A.vy[i]*dt-p.y,az=A.z[i]+A.vz[i]*dt-z,bx=A.x[i]+p.vx*dt-p.x,by=A.y[i]+p.vy*dt-p.y,bz=A.z[i]+vz*dt-z;" +
+    "var j=Math.min(Math.sqrt(ax*ax+ay*ay+az*az),Math.sqrt(bx*bx+by*by+bz*bz));A.n++;A.sum+=j;A.h[Math.min(100,(j/0.01)|0)]++;if(j>0.15)A.j++;if(j>0.5)A.j5++;if(j>A.mx)A.mx=j;}" +
+    "A.x[i]=p.x;A.y[i]=p.y;A.z[i]=z;A.vx[i]=p.vx||0;A.vy[i]=p.vy||0;A.vz[i]=vz;}A.t=t;A.m=m;A.ok=1;}" +
+    "var last=0;function raf(t){if(last&&VB.ctx.state==='playing'&&VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.status==='playing'){var d=t-last;W.raf++;if(d>100){W.rafBig++;if(W.raf1.length<40)W.raf1.push([Math.round((t-(W.t0||t))/100)/10,Math.round(d)]);}if(d>W.rafMax)W.rafMax=d;if(!W.t0)W.t0=t;}last=t;requestAnimationFrame(raf);}requestAnimationFrame(raf);" +
     "setInterval(function(){var n=VB.ctx.net;if(!n||!n.sess||n.sess.__mx)return;var s=n.sess;s.__mx=1;if(s.hstats&&!s.host)s.lateDbg=[];var o=s._hashTick;if(o)s._hashTick=function(){o.call(this);if(this.myHash)W.H[this.gcTick]=this.myHash[this.gcTick];};" +
-    "var pb=null,pt=0,pm='';var a=s.advance;s.advance=function(now,inp){var t=performance.now(),r=a.call(this,now,inp),d=performance.now()-t;W.frames++;W.ms+=d;if(d>W.maxMs)W.maxMs=d;if(W.cpu.length<20000&&r.status==='playing')W.cpu.push(Math.round(d*1000));W.st[r.status]=(W.st[r.status]|0)+1;" +
-    "if(r.status==='waiting')W.wait++;if(r.unstable)W.unst++;if(this.stats&&this.stats.depth!=null&&r.status==='playing'){var k=this.stats.depth|0;W.dep[k]=(W.dep[k]|0)+1;}" +
+    "var pb=null,pt=0,pm='',vt=0;var a=s.advance;s.advance=function(now,inp){var t=performance.now(),nn=VB.ctx.net,vw=nn&&nn.view,me=vw&&vw.ctrl?vw.ctrl.id:-1,live=nn&&nn.r&&nn.r.status==='playing',fr=!!nn&&nn.frameAt!==W.fa;if(fr){W.fa=nn.frameAt;if(vw&&live)pj(W.PJ.D,vw,vt,me);else W.PJ.D.ok=0;var vb=vw&&vw.ball;if(vb&&live&&vw.mode==='rally'&&W.vb&&W.vb[6]==='rally'){var vd=(vt-W.vb[7])/1000;if(vd>0&&vd<0.1){var ex=W.vb[0]+W.vb[3]*vd-vb.x,ey=W.vb[1]+W.vb[4]*vd-vb.y,ez=W.vb[2]+W.vb[5]*vd-4.9*vd*vd-vb.z,vj=Math.sqrt(ex*ex+ey*ey+ez*ez);W.vbN++;if(vj>0.5)W.vbJ++;if(vj>W.vbMax)W.vbMax=vj;}}W.vb=vb&&live?[vb.x,vb.y,vb.z,vb.vx||0,vb.vy||0,vb.vz||0,vw.mode,vt]:null;vt=t;}var r=a.call(this,now,inp),d=performance.now()-t;W.frames++;W.ms+=d;if(d>W.maxMs)W.maxMs=d;if(W.cpu.length<20000&&r.status==='playing')W.cpu.push(Math.round(d*1000));W.st[r.status]=(W.st[r.status]|0)+1;" +
+    "if(fr){if(r.status==='playing')pj(W.PJ.R,r.g,t,me);else W.PJ.R.ok=0;}if(r.status==='waiting')W.wait++;if(r.unstable)W.unst++;if(this.stats&&this.stats.depth!=null&&r.status==='playing'){var k=this.stats.depth|0;W.dep[k]=(W.dep[k]|0)+1;if(this.stats.resim!=null){W.rsN=(W.rsN|0)+1;W.rsS=(W.rsS|0)+(this.stats.resim|0);}}" +
     "for(var i=0;i<r.confirmed.length;i++){var e=r.confirmed[i];if(e.type==='point')W.pts.push(e.team);if(e.type==='gameOver')W.over++;}" +
-    "var g=r.g,b=g&&g.ball;if(b&&r.status==='playing'){var m=g.mode;if(pb&&m===pm&&m==='rally'){var dt=(t-pt)/1000,ex=pb[0]+pb[3]*dt,ey=pb[1]+pb[4]*dt,ez=pb[2]+pb[5]*dt-4.9*dt*dt,j=Math.sqrt((b.x-ex)*(b.x-ex)+(b.y-ey)*(b.y-ey)+(b.z-ez)*(b.z-ez));if(j>0.6&&dt<0.1){W.jumps++;if(j>W.jMax)W.jMax=j;}}" +
+    "var g=r.g,b=g&&g.ball;if(b&&r.status==='playing'){var m=g.mode;if(pb&&m===pm&&m==='rally'){var dt=(t-pt)/1000,ex=pb[0]+pb[3]*dt,ey=pb[1]+pb[4]*dt,ez=pb[2]+pb[5]*dt-4.9*dt*dt,j=Math.sqrt((b.x-ex)*(b.x-ex)+(b.y-ey)*(b.y-ey)+(b.z-ez)*(b.z-ez));if(j>0.6&&dt<0.1){W.jumps++;if(j>W.jMax)W.jMax=j;if((W.jl=W.jl||[]).length<12)W.jl.push([Math.round(t/100)/10,+j.toFixed(2),+b.z.toFixed(2),+pb[5].toFixed(1),+(b.vz||0).toFixed(1),+Math.hypot(pb[3]-(b.vx||0),pb[4]-(b.vy||0)).toFixed(1),g.touches!=null?g.touches:(g.touch!=null?g.touch:''),g.lastTeam!=null?g.lastTeam:'',+(dt*1000).toFixed(0)]);}}" +
     "pb=[b.x,b.y,b.z,b.vx||0,b.vy||0,b.vz||0];pt=t;pm=m;}else pb=null;return r;};},50);})()";
   const ST = "(function(){var n=VB.ctx.net,r=n&&n.r;if(!n)return{st:VB.ctx.state};var s=n.sess,gc=s.confirmedGame&&s.confirmedGame();" +
     "return{hai:(function(){var g=n.sess.predictedGame&&n.sess.predictedGame();return g&&g.hum?g.hum.map(function(h){return h.ai?1:0}).join(''):''})(),vis:document.visibilityState,away:!!n.away0,st:VB.ctx.state,ns:r&&r.status,sc:gc&&gc.score,sets:gc&&gc.sets,ping:r&&r.ping,pings:r&&r.pings,wf:r&&r.waitFor,meAI:r&&r.meAI,delay:s.delay,fps:VB.ctx.fps}})()";
+  const delayTxt = (d) => d == null ? (MODEL === 'host' ? '0 (host: tu jugador sin retraso)' : '—') : d;
   let all = false;
   for (let i = 0; i < 180 && !all; i++) {
     await sleep(500);
@@ -755,6 +768,9 @@ if (MULTI) (async () => {
     if (MRTC) for (let k = 0; k < N; k++) if (S[k] && S[k].ns && !S[k].bot) await ev(P[k], "(function(){var n=VB.ctx.net;if(!n||VB.ctx.netBot)return;VB.ctx.netBot=VB.Net.bot(n.seat," + (k * 7 + 3) + ",'bueno',{team:n.team});})()");
     all = S.every(x => x && x.ns === 'playing');
     if (all) for (const p of P) await ev(p, HOOK);
+    // NDDROPGO=k (L2): la página k no presenta nunca el evento gameOver (como un final confirmado en silencio por un resync): debe
+    // llegar igual a la hoja final (main.js netFrame: status 'over' sin evento → 'over' a los 600 ms)
+    if (all && process.env.NDDROPGO != null && P[+process.env.NDDROPGO]) await ev(P[+process.env.NDDROPGO], "(function(){var s=VB.ctx.net&&VB.ctx.net.sess;if(!s||!s._present||s.__dg)return;s.__dg=1;var o=s._present;s._present=function(out){var n=out.length;o.call(this,out);for(var i=out.length-1;i>=n;i--)if(out[i].type==='gameOver'){out.splice(i,1);window.__dgN=(window.__dgN|0)+1;}};})()");
     if (i % 10 === 9) console.log('  esperando…', JSON.stringify(S.map(x => x && (x.ns || x.st))));
   }
   check('las ' + N + ' páginas conectan (' + (MRTC ? 'lobby + WebRTC' : 'estrella de BcLink de pareja') + ') y juegan', all, MRTC ? await J(P[0], 'VB.ctx.net&&VB.ctx.net.model') : undefined);
@@ -763,12 +779,12 @@ if (MULTI) (async () => {
   while (Date.now() - t1 < (ENDALL ? 900 : MSECS) * 1000) {
     await sleep(5000);
     const S = await Promise.all(P.map(p => J(p, ST)));
-    console.log('  ' + Math.round((Date.now() - t1) / 1000) + ' s · ' + S.map((x, k) => k + ':' + (x ? (x.ns || x.st) + (x.sc ? ' ' + x.sc.join('-') : '') + (x.fps ? ' ' + x.fps + 'fps' : '') + (x.meAI ? ' IA' : '') + (x.away ? ' AUSENTE' : '') + (x.hai ? ' ia=' + x.hai : '') + (x.vis && x.vis !== 'visible' ? ' ' + x.vis : '') : '?')).join(' · ') + ' · retraso ' + (S[0] && S[0].delay));
+    console.log('  ' + Math.round((Date.now() - t1) / 1000) + ' s · ' + S.map((x, k) => k + ':' + (x ? (x.ns || x.st) + (x.sc ? ' ' + x.sc.join('-') : '') + (x.fps ? ' ' + x.fps + 'fps' : '') + (x.meAI ? ' IA' : '') + (x.away ? ' AUSENTE' : '') + (x.hai ? ' ia=' + x.hai : '') + (x.vis && x.vis !== 'visible' ? ' ' + x.vis : '') : '?')).join(' · ') + ' · retraso ' + delayTxt(S[0] && S[0].delay));
     if (shots < 1 && Date.now() - t1 > 20000) { shots++; for (let k = 0; k < Math.min(NREND, 2); k++) console.log('  captura', await P[k].shot(path.join(OUT, 'multi-' + FMT + '-' + MODEL + '-' + k + '.png'))); }
     if (S.every(x => x && (x.st === 'over' || x.ns === 'over' || x.ns === 'ended'))) { await sleep(3000); break; }
   }
   const FIN = "(function(){var n=VB.ctx.net,W=window.__mx||{},s=n&&n.sess,gc=s&&s.confirmedGame(),v=n&&n.view;" +
-    "return{st:VB.ctx.state,ns:n&&n.r&&n.r.status,W:{frames:W.frames,wait:W.wait,unst:W.unst,ms:W.frames?W.ms/W.frames:0,maxMs:W.maxMs,dep:W.dep,jumps:W.jumps,jMax:W.jMax,raf:W.raf,rafBig:W.rafBig,rafMax:W.rafMax,over:W.over,pts:W.pts,st:W.st}," +
+    "return{st:VB.ctx.state,ns:n&&n.r&&n.r.status,W:{frames:W.frames,wait:W.wait,unst:W.unst,ms:W.frames?W.ms/W.frames:0,maxMs:W.maxMs,dep:W.dep,rsAv:W.rsN?W.rsS/W.rsN:null,jumps:W.jumps,jMax:W.jMax,jl:W.jl,raf:W.raf,rafBig:W.rafBig,rafMax:W.rafMax,over:W.over,pts:W.pts,st:W.st,raf1:W.raf1,PJ:W.PJ&&{R:{n:W.PJ.R.n,j:W.PJ.R.j,j5:W.PJ.R.j5,mx:W.PJ.R.mx,av:W.PJ.R.n?W.PJ.R.sum/W.PJ.R.n:0},D:{n:W.PJ.D.n,j:W.PJ.D.j,j5:W.PJ.D.j5,mx:W.PJ.D.mx,av:W.PJ.D.n?W.PJ.D.sum/W.PJ.D.n:0,p99:(function(A){var c=0,k;for(k=0;k<101;k++){c+=A.h[k];if(c>=A.n*0.99)return k/100;}return 1;})(W.PJ.D)}},vbN:W.vbN,vbJ:W.vbJ,vbMax:W.vbMax}," +
     "cpu:(function(){var c=(W.cpu||[]).slice().sort(function(a,b){return a-b});return c.length?[c[c.length>>1],c[Math.floor(c.length*0.99)]]:[0,0]})(),H:W.H," +
     "sc:gc&&gc.score,sets:gc&&gc.sets,ss:gc&&gc.setScores,myP:gc&&gc.hum&&n&&gc.hum[n.seat]&&gc.hum[n.seat].p.id,viewCtrl:v&&v.ctrl&&v.ctrl.id,viewTeam:v&&v.ctrl&&v.ctrl.team,seat:n&&n.seat,team:n&&n.team," +
     "maxDepth:s&&s.stats&&s.stats.maxDepth,resyncs:s&&s.stats&&s.stats.resyncs,delay:s&&s.delay,hs:s&&s.hstats?{bJump:s.hstats.bJump,bJumpMax:s.hstats.bJumpMax,tcIn:s.hstats.tcIn,tcFork:s.hstats.tcFork,tcRej:s.hstats.tcRej,rescues:s.hstats.rescues,late:s.hstats.lateC,lateMax:s.hstats.lateMax,bundleMax:s.hstats.bundleMax}:null," +
@@ -779,11 +795,15 @@ if (MULTI) (async () => {
     const r = R[k]; if (!r) { console.log('  ' + P[k].tag + ': sin datos'); continue; }
     const d = r.W.dep || {}, keys = Object.keys(d).map(Number).sort((a, b) => a - b); let tot = 0; for (const x of keys) tot += d[x];
     let acc = 0, p95 = 0; for (const x of keys) { acc += d[x]; if (acc >= tot * 0.95) { p95 = x; break; } }
-    r.p95 = p95;
+    r.p95 = p95; acc = 0; let p99 = 0; for (const x of keys) { acc += d[x]; if (acc >= tot * 0.99) { p99 = x; break; } } r.p99 = p99;
+    r.nLinks = MRTC ? (k ? 1 : N - 1) : (k ? 1 : N - 1); r.upLink = Math.round((r.bytesOut || 0) / secs / 1024 / r.nLinks * 10) / 10;
+    // (P8) resumen de una línea para la tabla de medidas: esperas, rollback p99, jugadores pintados p99, balón pintado > 0,5 m, rAF, fps, subida por enlace
+    console.log('  RESUMEN ' + P[k].tag + ' | esperas ' + r.W.wait + ' | rb p99 ' + (MODEL === 'precisa' ? p99 : '—') + ' | jug p99 ' + (r.W.PJ ? r.W.PJ.D.p99.toFixed(2) : '?') + ' m (máx ' + (r.W.PJ ? (+r.W.PJ.D.mx).toFixed(2) : '?') + ') | balón pintado >0,5 m ' + r.W.vbJ + ' (máx ' + (+r.W.vbMax || 0).toFixed(2) + ') | rAF>100 ' + r.W.rafBig + ' (máx ' + Math.round(r.W.rafMax) + ') | fps ' + r.fps + ' | sube ' + r.upLink + ' KB/s × ' + r.nLinks);
     console.log('  ' + P[k].tag + (k < NREND ? ' (pinta' + (CPU > 1 && k === CPUPAGE ? ', CPU ×' + CPU : '') + ')' : ' (sin dibujo' + (CPU > 1 && k === CPUPAGE ? ', CPU ×' + CPU : '') + ')') + ': esperas ' + r.W.wait + '/' + r.W.frames + ' frames · inestable ' + r.W.unst +
-      ' · parones rAF>100 ms ' + r.W.rafBig + ' (máx ' + Math.round(r.W.rafMax) + ' ms) · rollback máx ' + r.maxDepth + ' p95 ' + p95 + ' · saltos del balón ' + r.W.jumps + ' (máx ' + (+r.W.jMax || 0).toFixed(2) + ' m)' +
+      ' · parones rAF>100 ms ' + r.W.rafBig + ' (máx ' + Math.round(r.W.rafMax) + ' ms) · rollback máx ' + r.maxDepth + ' p95 ' + p95 + (r.W.rsAv != null ? ' (tics rehechos por frame, media ' + r.W.rsAv.toFixed(1) + ')' : '') + ' · saltos del balón ' + r.W.jumps + ' (máx ' + (+r.W.jMax || 0).toFixed(2) + ' m)' +
       (r.hs ? ' · host: bJump ' + r.hs.bJump + ' (máx ' + (+r.hs.bJumpMax || 0).toFixed(2) + ') toques ' + r.hs.tcIn + ' forks ' + r.hs.tcFork + ' rech ' + r.hs.tcRej + ' rescates ' + r.hs.rescues + ' tarde ' + r.hs.late : '') +
-      (MODEL === 'precisa' ? ' · tras suavizar ' + r.bj + ' (máx ' + (+r.bjMax || 0).toFixed(2) + ' m)' : '') + ' · sesión ' + r.cpu[0] + '/' + r.cpu[1] + ' µs (p50/p99) · fps ' + r.fps + ' · frame JS ' + (+r.frameMs || 0).toFixed(1) + ' ms · retraso ' + r.delay + ' · sube ' + Math.round((r.bytesOut || 0) / secs / 1024 * 10) / 10 + ' KB/s');
+      (MODEL === 'precisa' ? ' · tras suavizar ' + r.bj + ' (máx ' + (+r.bjMax || 0).toFixed(2) + ' m)' : '') + (r.W.PJ ? ' · jugadores: crudo ' + r.W.PJ.R.j + '>0,15/' + r.W.PJ.R.j5 + '>0,5 (máx ' + (+r.W.PJ.R.mx).toFixed(2) + ' m) pintado ' + r.W.PJ.D.j + '/' + r.W.PJ.D.j5 + ' (máx ' + (+r.W.PJ.D.mx).toFixed(2) + ' m)' : '') +
+      ' · sesión ' + r.cpu[0] + '/' + r.cpu[1] + ' µs (p50/p99) · fps ' + r.fps + ' · frame JS ' + (+r.frameMs || 0).toFixed(1) + ' ms · retraso ' + delayTxt(r.delay) + ' · sube ' + Math.round((r.bytesOut || 0) / secs / 1024 * 10) / 10 + ' KB/s');
   }
   if (MODEL === 'precisa') {
     let n = 0, bad = 0;
@@ -799,6 +819,8 @@ if (MULTI) (async () => {
   const wt = R.reduce((a, r) => a + (r ? r.W.wait : 0), 0);
   check('congelaciones de la sesión (frames en «waiting») con ' + MLAG + ' ms: como mucho 3 por página', wt <= N * 3, R.map(r => r && r.W.wait));
   check('consola sin errores', P.every(p => !p.errors.length), P.map(p => p.errors.slice(0, 2)));
+  if (process.env.NDDROPGO != null && P[+process.env.NDDROPGO]) console.log('  NDDROPGO: gameOver quitados en la página ' + process.env.NDDROPGO + ': ' + await ev(P[+process.env.NDDROPGO], 'window.__dgN|0') + ' · estado ' + (R[+process.env.NDDROPGO] || {}).st);
+  for (let k = 0; k < N; k++) if (R[k] && R[k].W.raf1 && R[k].W.raf1.length) console.log('  ' + P[k].tag + ' parones rAF > 100 ms [s desde el 1r frame jugando, ms]: ' + JSON.stringify(R[k].W.raf1.slice(0, 12)));
   for (let k = 0; k < Math.min(NREND, 2); k++) console.log('  captura final', await P[k].shot(path.join(OUT, 'multi-' + FMT + '-' + MODEL + '-' + k + '-fin.png')));
   if (process.env.NDJSON) fs.writeFileSync(process.env.NDJSON, JSON.stringify({ N, FMT, MODEL, COOP, CPU, MLAG, secs, R: R.map(r => r && Object.assign({}, r, { H: undefined })) }, null, 1));
   for (const p of P) p.close();

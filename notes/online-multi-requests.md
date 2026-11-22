@@ -165,3 +165,325 @@ Pendiente / aceptado:
 - ui.js sigue contando las insignias con la partida presentada (con retrocesos puede contar de más algún evento mal predicho); lo
   limpio sería que ui.js no las cuente con `ctx.net.coopCareer` y que career-coop las ingiera de los confirmados (petición a P4).
 - El invitado que manda `nack` deja al anfitrión en su partido con la IA en la plaza 1 (no se aborta la sesión).
+
+## L3 (lobby, salas, reglas y móvil; 22-nov-2026)
+
+Hecho en js/netroom.js, js/netlobby.js, firebase/firestore.rules, tools/roomtest.js y tools/mobaudit.js (solo un comentario). Las 4
+huellas, idénticas; el 1 contra 1 del lobby no cambia (mismas lecturas en el ciclo de vida: 110/39/7 antes y después).
+- **Salas coop fuera de las listas de 1.21.0**: una coop esperando compañero va en `state: 'coop'` (nunca 'open'); las reglas solo
+  dejan 'coop' en las coop y nunca 'open' en ellas (`multiMode` en firestore.rules, con ternarios: escrito con `!=`/`||` el emulador
+  da HTTP 500 al validar). Sentarse y levantarse valen en 'coop'; `byCode` busca por código y filtra 'open' | 'coop' en el cliente
+  (un solo campo en la consulta). roomtest pasa otra vez las pruebas con el cliente publicado: «versión publicada» = `git merge-base
+  HEAD main` (antes `HEAD`, que en esta rama ya trae el cliente de varios y se saltaban 3 pasadas): un 1.21.0 no ve la coop ni en la
+  lista ni por código, ni puede entrar. Queda ACEPTADO lo de «Otra versión» solo para las vs.
+- **`net: 'host'`**: `multiCfg` lo pone en todo 6v6 (y en vs 2v2 de 4 si se pide); reglas: 'host' en 6v6 o con 4 plazas, 'fluida' solo
+  vs 2v2 de 2. `roomModel` (netlobby) lo lee además del formato.
+- **Lecturas** (tools/roomtest.js «Ciclo de vida»: lobby de verdad, reloj virtual, emulador; `--life-ref <commit>` mide el antes):
+  `rooms.beat(patch, {lite: true})` = 1 escritura sin releer; el anfitrión de varios late así (sondeo aparte), y con el partido
+  empezado o la coop emparejada, una vez por minuto (`PLAY_BEAT_MS`). Sondeo del anfitrión: nada con la sala llena y todos dentro;
+  cada 6 s con la pestaña oculta (`HID_POLL_MS`), y al volver una lectura y un latido en el acto. Invitado esperando la oferta: el
+  anfitrión cuenta como ido con el latido de más de 65 s (antes 30 s: un anfitrión oculto sin enlaces puede quedar a 1 temporizador
+  por minuto) y como mucho 95 s.
+  Anfitrión (lecturas/escrituras): 2v2 × 4 todo el ciclo 165/47 → 74/28; 6v6 × 12 238/64 → 138/45; coop 120/44 → 60/22. Por minuto:
+  sala llena con enlaces abiertos 33 → 0 lecturas; partido 3,1 l + 3,1 e → 0 l + 1 e; pestaña oculta esperando 33 → 11 lecturas.
+  Invitados: igual que antes (0 con el enlace abierto, en todos los tipos).
+- **Móvil**: online-coop 6 solapes → 0 (la hoja es modal de verdad: lo de debajo `inert` + sin toques); salas 2v2 / 6v6 / invitado /
+  elegido, recortes 2-9 → 0 en los 5 tamaños, letra ≥ 12 y ningún objetivo < 44. En el móvil, la cabecera de la sala de varios lleva
+  el formato, «cambiar de lado» y el código; el estado va en la barra entre «Salir» y la principal; 2v2 un sitio por fila, 6v6 dos;
+  sitio estrecho (< 140 px) → nombre corto «Javi O.» (consulta de contenedor; el entero en aria/title). 6v6 en 568×320: los 12 sitios
+  a la vista sin desplazar (hoja 64-244 px, equipos 70-243).
+- **L3 → P8 (docs)**: notes/net.md «Salas: esquema v3» y CONTRACT.md: `state 'coop'`, `net 'host'`, `beat(patch, {lite})`,
+  `VB.NetRoom.joinable`, `multiCfg` devuelve además `net` y `state`, `PLAY_BEAT_MS`/`HID_POLL_MS`/`MX_STALE_MS`/`MX_OFFER_MAX`, y
+  `node tools/roomtest.js [--no-life] [--life-only] [--life-ref <ref>]`. Las reglas han vuelto a cambiar y siguen SIN desplegar
+  (mismo orden: reglas y luego cliente).
+- **L3 → ui_main**: lo que queda en las filas del online es del menú de debajo: «Jugar» (#btnPlay .sp-t) recortado 4 px de alto en
+  667×375 y más (sale igual en la fila `home`; en online-coop se ve a través del velo); en escritorio, «DIRECTO» (#menu .live) a
+  11,5 px y #btnVer de 18 px de alto.
+- **L3 → dueño de tools/lobbytest.js**: «la sala pasa a «play»» falla 1 de cada 3 pasadas: lee la sala justo tras startOnline, antes
+  de que llegue el latido de 'play' (esperar con `until` a que `state` sea 'play').
+- **Pendiente / para decidir** (1v1, sin tocar por la regla «1v1 igual»): el latido del 1v1 también podría ir lite (30 lecturas menos
+  por cada 10 min de partido) y su invitado da al anfitrión por ido con 30 s de latido viejo (el mismo caso de la pestaña oculta).
+
+## L4 (Carrera cooperativa: pulido; 22-nov-2026)
+
+Hecho en js/career-coop.js, js/ui.js (SOLO la puerta de `VB.Badges.ingest`), tools/cooptest.js y tools/mobaudit.js (filas
+carrera-coop-*). career.js, career-ui.js: sin cambios (lo nuevo entra por los ganchos que ya había: `matchTop`/`match`, `act` con
+`{tab}`). Las 4 huellas, idénticas; careertest 2248 / NOEXT 2178 / NOWORLD 2131, la misma salida que antes; badgetest 53, viewtest 29,
+lobbytest 63; cooptest 70 → 118 comprobaciones.
+- **(a) Insignias de lo CONFIRMADO**: ui.js ya no cuenta con `ctx.net.coopCareer`; `feed` las ingiere (anfitrión y p2) sobre la vista
+  confirmada, con el `_ovr` del challenge como ui.js, siguiendo al contador si una vuelta cambia gc, y con el setPoint/matchPoint del
+  último `serveReady` confirmado mientras cuenta («Sangre fría» no lee el estado de gc, que va unos tics por delante). Esto sustituye
+  la petición «ui.js sigue contando las insignias con la partida presentada» de la ronda anterior: HECHA.
+  Medida (coop Precisa-N de net4test, 24 partidos de un set a 21, semillas 12-17 × RTT 40/120/200/300 ms, ±15, 3 % de pérdida;
+  cuentas = suma de contadores de insignias de los dos humanos frente a la partida de oro): contando lo presentado (antes), error 36
+  cuentas sobre 880 (4,1 %; 0/231 a 40 ms, 6/202 a 120, 19/238 a 200 —8 %—, 11/209 a 300; peor partido 6 de 45); contando lo confirmado
+  (ahora), error 0 en los 24. cooptest 5d lo comprueba con el partido de Carrera de verdad (matchOpts) y matchDone: error 0.
+- **(b) Resumen de la jornada en los dos**: tras matchDone el anfitrión prepara su Resumen (tabla, barra) y manda al invitado `sum`
+  (su Resumen: SU XP, nota, números e insignias; él protagonista y el anfitrión su pareja; sin vida/entreno/ofertas del anfitrión) con
+  la copia nueva de su p2. Con la hoja final a la vista (ctx.state 'over'), career-coop llama a `VB.UI.endCareer(sum, vista + g.career,
+  x)` en cada aparato (main.js solo lo hace con g.career, que la vista online no lleva); la hoja sigue siendo la online («Volver a la
+  Carrera»). Lo que llega del otro aparato se limpia (sin «<»/«>»).
+- **(c) Pantallas del invitado** (SPLAT, móvil primero): hoja modal `#coSheet` «Conectado con X. Esperando a que llegue su Carrera…»
+  (Salir) y «Se ha cortado el cooperativo con X» con su jugador guardado (Entendido); con el corte en pleno partido o en la hoja final,
+  la hoja espera a que la deje. Al cortarse vuelve a SU menú: su hub si tiene Carrera, el menú principal si no. En el hub, tarjeta
+  arriba del todo (hueco matchTop): qué hace el anfitrión (mensaje nuevo `st` {w: 'hub'|'solo'|'menu'}, solo al cambiar: «está
+  eligiendo», «está jugando un partido sin ti», «ha salido de la Carrera», «el próximo partido lo juega sin ti»), su jugador (n.º,
+  nivel, puntos), «Listo», «Tu jugador» (a su ficha) y «Salir». Fuera del cooperativo, Partido › Cooperativo y «crear» enseñan su
+  jugador guardado («Tu jugador en la Carrera de X: …, nivel N»).
+- **(d) Invitado sin Carrera propia**: entra, recibe la Carrera, «Listo», juega (plaza 1) y al cortarse se queda sin Carrera y solo con
+  make-the-cut.coop.p2 (cooptest 5c).
+- **(e)** El invitado solo escribe make-the-cut.coop.p2 (también al llegar `sum`); con y sin career-coop la Carrera en piloto
+  automático es idéntica (cooptest §7).
+- **mobaudit** (`--area carrera --only coop`, 7 filas × 5 tamaños, 0 fallos al abrir): anfitrión, invitado, invitado con el anfitrión
+  jugando, ficha del invitado, esperando, cortado, Resumen del invitado. Ningún objetivo < 44, 0 solapes (la hoja deja lo de debajo
+  `inert`, como #olCoop), salida y principal dentro. Quedan cosas de debajo, no del cooperativo (ver ui_main).
+- **L4 → ui_main**: en el Resumen de la jornada, la píldora de insignia nueva (`div.end-bd.rc-bd>span.l1>small`, «nueva (bronce)») va a
+  11,5 px en 568×320 (sale en carrera-coop-resumen porque la muestra lleva una insignia; la fila carrera-resumen-jornada no lleva).
+- **L4 → P4/ui_main (ui.js fuera de la puerta de insignias)**: `VB.Retos.ingest` sigue contando lo PRESENTADO en el cooperativo (retos de
+  maestría/del día del anfitrión con retrocesos). Si se quiere exacto: saltarlo con `ctx.net.coopCareer` y que career-coop lo alimente
+  en `feed` como las insignias (career-coop ya expone el sitio).
+- **L4 → P4 (main.js, opcional)**: en el coop el Resumen no lleva «Lo mejor / A mejorar» (careerRtBlock) ni las sesiones de entreno de
+  la semana (careerSes en careerEndX): si se exportan (p. ej. `ctx.actions.careerRtBlock(sum)`), career-coop las llama tras endCareer.
+- **L4 → L3 (lobby)**: `coopBusy` pide cuenta (`noacc`) también al invitado; el invitado sin Carrera puede jugar, pero no sin cuenta.
+  Si Ferran quiere invitados sin cuenta, es del lobby/reglas.
+- **L4 → P8 (docs)**: CONTRACT.md / notes/net.md: mensajes `st` y `sum` de la coop; `VB.CareerCoop.{guestSum, endX, showSum, sheet,
+  hostState, p2Rec, matchWatch, _demo, _tick}`; puerta de ui.js; `node tools/cooptest.js` tarda ahora ~60-80 s (5d juega 2 partidos
+  Precisa-N de verdad).
+
+## L2 (suavizado de la vista de Precisa-N y pegamento del partido, 22-nov-2026)
+
+Hecho en js/main.js (sección ONLINE) y tools/netdrive.js. netview.js, players.js y viewtest.js no han hecho falta (el suavizado va
+sobre net.view, que el espejo rehace cada frame; las etiquetas ya siguen a los jugadores suavizados). La sim no cambia; el 1 contra 1
+(Precisa y Fluida) no pasa por nada de esto (netdrive 1v1 Precisa 8 ok y Fluida 9 ok).
+- `netPlayersSmooth` (main.js): tras un rollback, los jugadores que no lleva esta máquina (otros humanos y la IA) se pintan con un
+  desfase que se deshace en línea recta en 80-150 ms (ol × 150 ms: hasta 1 m, ≤ 0,11 m más por frame); más de 2 m = teletransporte;
+  solo en 'rally'/'serve' sin cambio de modo; no toca a tu jugador (salvo con `r.meAI`) ni al que tiene el balón en la mano. Typed
+  arrays, sin reservas por frame. `netBallSmooth` ya no crea un array por frame, y los dos usan el tiempo de verdad entre frames (no
+  `realDt`, topado a MAX_DT: tras un parón de 1 s se pinta donde está).
+- Final sin evento (P7 → P4 (b)): en el de varios, si la sesión está en 'over' y el gameOver no se presentó (final confirmado en
+  silencio por un resync / foto), a los 600 ms pasa a la hoja final igual. Probado con `NDDROPGO=k` en netdrive (la página k nunca
+  presenta el gameOver): llega a 'over' (2v2 × 4, partido entero).
+- `r.meAI` en el HUD y sin «Revancha» con `ctx.net.coopCareer`: ya estaban (P8); comprobado.
+- netdrive --multi: «retraso undefined» era el modelo host (no tiene retraso de entrada): ahora «0 (host: tu jugador sin retraso)».
+  Métrica nueva por página: saltos de los jugadores que no son el tuyo, crudo (partida predicha) y pintado (net.view), > 0,15 / > 0,5 m
+  y máximo; lista de parones rAF > 100 ms con su segundo; `NDFRONT=k` (página k delante); `NDDROPGO=k`.
+- Parones de ~1 s en el arranque del 6v6: NO son del juego. Son de las pestañas de detrás del Chrome de netdrive (salen igual en las
+  páginas sin dibujo, que no compilan nada, y duran siempre ~1000-1070 ms). Con `NDFRONT=1` el invitado 6v6 que pinta, delante, no
+  tiene ninguno (máx 48 ms, también en el arranque) y los pasa a tener el anfitrión, ahora detrás. El arranque ya precalienta
+  (netBuildView: prewarm + prewarmPrograms + warmDraw antes del «listo»); las 11 etiquetas son DOM y no cuestan nada. Sin cambio.
+
+Medidas (netdrive --multi 4, 2v2 Precisa-N, escritorio, 90 s; saltos de jugadores > 0,15 m / > 0,5 m, máx):
+| RTT | antes (pintado = crudo) | después, pintado (crudo en la misma prueba) |
+|---|---|---|
+| 80 ms | invitados 372-449 / 23-30, máx 0,84-1,33 m | 1-4 / 0, máx 0,17-0,22 m (crudo 317-448 / 10-43, máx 1,01 m) |
+| 150 ms | invitados 585-732 / 205-286, máx 1,53-2,50 m | 32-51 / 0, máx 0,32-0,45 m (crudo 539-572 / 163-179, máx 1,68 m) |
+| 80 ms, partido entero (~8 min) | — | 0-7 / 0, máx 0,27 m (crudo 2198-2531 / 140-214) |
+Sin cambio en esperas (0), huellas, coste de sesión (p50 300-500 µs) ni fps.
+
+Peticiones:
+- **L2 → P8 (docs)**: notes/net.md «Integración y lag»: quitar de «Pendiente» «jugadores remotos sin suavizar tras un rollback» y
+  apuntar lo de arriba (y que los parones de ~1 s de netdrive son de las pestañas de detrás, no del juego).
+
+## L1 (balón continuo en el modelo anfitrión del 6v6, 22-nov-2026)
+
+Hecho en js/nethost.js (bloque «balón pintado CONTINUO»; protocolo 'H2'), tools/hosttest.js (continuidad medida desde fuera de
+nethost en TODAS las máquinas, sección (d) con el escenario objetivo y comprobaciones nuevas) y tools/net12test.js ((i) a 180 s).
+js/sim.js sin cambios (igual que HEAD). Las 4 huellas idénticas; nettest, net3test, fluidtest, fluidsimtest, mptest, viewtest,
+netreplaytest, net4test, net12test y hosttest OK; netdrive --multi 4 (2v2 Precisa y 6v6 host) OK: consola limpia y 0 saltos.
+
+Qué cambia (solo lo que se PINTA; la partida del anfitrión y las reglas no cambian):
+1. Horizonte de lo sabido: el reloj del balón pintado no pasa de un punto de la trayectoria en el que un jugador PODRÍA tocar sin que
+   su toque haya podido llegar aún (lat por fuente aprendida de los toques de verdad). Frena antes (hasta ×0,5) para llegar a su mano
+   justo cuando llega su toque, y luego recupera (hasta ×1,5; ×1,9 si viene a mí). El anfitrión pinta igual (lat de cada invitado):
+   en un punto salvado el balón ya no vuelve del suelo.
+2. Quién puede tocar: el reparto de la IA del anfitrión (g.jobs) y lo que declara cada invitado («voy», bit 4 de su pose → bit 64 del
+   paquete) van en el paquete de 30 Hz con el F.seq de su último contacto: solo vale si es el mismo contacto que sé (por tic no:
+   el toque de un invitado lleva SU tic y el anfitrión lo sabe su ida después). Los demás de ese equipo, solo en la zona de bloqueo.
+3. Viene a mí: por cerca (salvo que el anfitrión se lo dé a un compañero), por su reparto o por el mío; tras tocar yo, no.
+4. Lo que aún salte se reparte: ≤ 0,15 m por frame de corrección; acelerar o frenar el reloj, ≤ 0,2-0,25 m por frame.
+5. Tras el punto el balón pintado termina su vuelo y luego pasa al de verdad.
+6. En el invitado, el que va a tocar (y frena el balón) se pinta con el reloj del balón: su golpe y el balón llegan a la vez.
+
+Medidas (tools/hosttest.js, 6v6, anfitrión + 11 invitados a 80-150 ms, ±15 ms, 2 % de pérdida, 4 partidos enteros, semillas 7, 8, 9, 11):
+| | antes (97b295b) | después |
+|---|---|---|
+| saltos del balón pintado > 0,5 m (invitados) | 50 (máx 3,84 m; hasta 14 en un invitado) | 0 (máx 0,41 m) |
+| ídem en el anfitrión | 10 (máx 0,70 m) | 0 (máx 0,34 m) |
+| corrección por frame p99 (invitados / anfitrión) | 0,15 / 0,17 m | 0,16 / 0,17 m |
+| contactos que llegan con el balón pintado ya pasado | 1794 | 432 (−76 %) |
+| toques de invitado rechazados | 39 | 12 |
+| balón pintado al tocar yo (tics por detrás, media / p90) | 3,6 / 8,9 | 2,7 / 7,6 |
+| jugador propio (máx. por frame, sin tirones) | 0,13 m | 0,14 m |
+| puntos iguales en las 12 máquinas | sí | sí |
+| paquete de 30 Hz | 276 B | 279 B |
+| CPU por frame, mismo escenario 150 s (anfitrión / invitado, p50-p99) | 299-1016 / 130-371 µs | 310-1120 / 134-396 µs |
+La sección (d) de hosttest (semilla 11, partido entero): 0 saltos (máx 0,40 m invitados, 0,30 m anfitrión), p99 0,16 / 0,17 m.
+
+Probado y descartado: que el reparto del anfitrión mandara también en la sim de cada invitado (nhStep). Quita casi todos los choques
+de compañeros (432 → ~60 tardíos) pero el equipo del anfitrión gana 34-6 en 4 partidos (sin ello 25-21): cambia el juego, no solo
+lo pintado. sim.js queda como estaba.
+
+Peticiones:
+- **L1 → P8 (docs)**: CONTRACT.md («`VB.NetHost.{Session, C, PROTO 'H1'}`» → 'H2') y notes/net.md «Modelo anfitrión del 6v6»: paquete
+  de 279 B (cabecera de 15 B: [12], [13] reparto de la IA por equipo, id o 255; [14] F.seq; bit 64 de cada pose = va a por el balón;
+  el invitado lo declara con el bit 4 del byte [7] de su pose), «Protocolo 'H2'», el aviso «un punto salvado hace que el balón
+  vuelva del suelo a la plancha» ya no vale, y `node tools/hosttest.js` (d) en el control de regresión.
+
+Pendiente / visto:
+- Lo que queda de saltos «crudos» (antes de repartir, ~450 por partido en el peloteo) es sobre todo la propia sim en el contacto (el
+  bloqueo y la plancha recolocan el balón 0,5-0,8 m; también se ve en el anfitrión) y dos invitados del mismo equipo que tocan a la vez
+  (cada uno ve el balón ir a él). Se reparten: ningún frame mueve el balón más de ~0,4 m de lo que vuela.
+- En el banco con 12 bots el equipo del anfitrión gana más (antes 64-66 % de los puntos; ahora 54-75 % según semillas): su colocador
+  juega sin retardo. No es del balón pintado; con 4 humanos y 8 de la IA el reparto es el mismo que antes.
+- El anfitrión no retrasa la pose del invitado que va a tocar (el invitado sí): en su vista el golpe se adelanta la ida de ese invitado.
+- Falta la prueba en un móvil de verdad (el coste extra es ~5-10 % por frame en escritorio).
+
+## P8 (medida final tras L1-L4): estado de las peticiones abiertas (22-nov-2026)
+
+- L1 → P8, L2 → P8, L3 → P8, L4 → P8 (docs): HECHO. CONTRACT.md (PROTO 'H2', balón continuo, netroom `joinable`/`beat lite`/'coop'/
+  'host', career-coop `st`/`sum` y API nueva, `netPlayersSmooth`, control de regresión con hosttest (d), cooptest ~60-80 s y roomtest)
+  y notes/net.md (modelo anfitrión: paquete de 279 B y cabecera de 15 B, «Protocolo 'H2'», fuera el aviso del balón que volvía del
+  suelo; salas: 'coop', `net: 'host'`, lecturas; coop: insignias de lo confirmado, Resumen en los dos; integración: puntos 6-8 y
+  fuera de «Pendiente» los jugadores remotos sin suavizar).
+- L3 → dueño de tools/lobbytest.js («la sala pasa a «play»» fallaba 1 de cada 3): HECHO. Espera hasta 5 s a que el latido deje
+  `state: 'play'`. 4 pasadas seguidas OK (63 comprobaciones).
+- L4 → P4/ui_main (`VB.Retos.ingest` cuenta lo presentado en el coop): NO HACE FALTA. ui.js nunca llama a `Retos.endMatch` en el online
+  (`!(g && g.online)`, decisión 4 de Ferran), así que lo que cuente `ingest` en un partido online no llega a ningún sitio.
+- tools/netdrive.js --multi: métricas nuevas para la tabla de medidas (línea «RESUMEN» por página): p99 del salto de los jugadores
+  PINTADOS que no son el tuyo, saltos > 0,5 m del balón PINTADO (net.view, los dos modelos), rollback p99 y subida por enlace.
+- Siguen abiertas (no son de integración; para Ferran o para el siguiente sprint):
+  - L4 → P4 (opcional): «Lo mejor / A mejorar» y sesiones de entreno en el Resumen del coop (exportar `careerRtBlock` de main.js).
+  - L4 → L3: el invitado del coop necesita cuenta (`noacc`). Decide Ferran.
+  - L3/L4 → ui_main: «Jugar» recortado 4 px en 667×375, «DIRECTO» a 11,5 px, #btnVer 18 px, píldora de insignia nueva a 11,5 px en
+    568×320. Son del menú y del Resumen de siempre, no del online.
+  - L3 (1v1, sin tocar por «1v1 igual»): latido lite y 65 s de latido viejo también en el 1v1.
+  - Reglas SIN desplegar (orden: reglas y luego cliente 1.22.0).
+- **Arreglo de P8 en js/main.js (sección ONLINE, una rama)**: en el modelo host el ANFITRIÓN pasa también por `netPlayersSmooth`
+  (solo su vista; los invitados ya interpolan). Pintaba a cada invitado con su última pose extrapolada y cada pose nueva con su jitter
+  daba un tirón. netdrive 6v6 × 12 a 150 ms, jugadores de los demás en la vista del anfitrión (> 0,15 / > 0,5 m, máx, p99): 1137 / 45,
+  0,96 m, 0,15 m → 0 / 0, 0,14 m, 0,06 m (crudo en la misma prueba 1014 / 40). A 80 ms: 874 / 3 → 0 / 0. CPU igual (200/800 µs).
+  netdrive 1v1 Precisa (8 ok) y Fluida (9 ok) sin cambios.
+- Visto y NO es del juego: los 1-3 «saltos» de ~1 m del balón pintado de los invitados 6v6 en netdrive caen todos en un frame de
+  63-71 ms que tienen A LA VEZ todas las páginas de detrás del Chrome de pruebas (la sesión nunca pasa de 5 ms) y coinciden con un
+  contacto (bloqueo a 2,9 m, Δv 15 m/s; plancha a 0,66 m, Δv 19,5 m/s): el contacto cae dentro del hueco. Con la página delante no salen.
+
+## P8: arreglos de lag tras la medida final (22-nov-2026)
+
+Sin git, sin push, sin despliegue. Ficheros: js/net.js (solo `NP._predict` de la SessionN y 3 líneas `_pqDirty`; la Session del 1 contra 1
+no cambia), js/main.js (sección ONLINE: `netBallSmooth`, rama del modelo host y `netHostBallClock`), tools/netdrive.js (media de tics
+rehechos por frame en --multi), CONTRACT.md y notes/net.md (punto 11). Cada medida, antes y después con el mismo comando (90 s, RTT ±15 ms,
+2 % de pérdida, Chrome de escritorio; otra sesión corría tools/drive6.js de fondo). Las cifras de la página CPU ×4 varían de una pasada a
+otra (parones de pestaña de detrás): se dan las dos pasadas cuando las hay.
+
+1. **Predicción incremental de Precisa-N** (el coste de la sesión en el móvil lento). La partida predicha del frame anterior se reutiliza si
+   las entradas que usó siguen siendo las de ahora; si no, se rehace desde gc como antes. Comprobado aparte (banco en memoria, cada 7.º
+   frame se rehace también a la antigua y se comparan las huellas de estado): 4542 comparaciones, 0 distintas (2v2 × 4 a 150 y 80 ms y
+   coop de 2 a 120 ms). Tics rehechos por frame: 14,1 → 5,5 (150 ms), 9,1 → 4,1 (80 ms), 6,5 → 3,0 (coop).
+2. **Balón pintado de Precisa-N**: corrección como mucho a 15 m/s (≤ 0,25 m por frame) y saltos de hasta 4 m repartidos (antes 3 m, a la
+   mitad cada 80 ms).
+3. **Invitados del modelo host con `netPlayersSmooth`**, salvo el jugador que va con el reloj del balón de L1 (`pDel > 0` o `_capBind`):
+   a ese no se le añade desfase nuevo, así su mano y el balón siguen llegando a la vez (la objeción de P8 a L1 queda resuelta así).
+
+| prueba | antes | después |
+|---|---|---|
+| 2v2 × 4, 150 ms, inv1 CPU ×4 (detrás): sesión p50/p99 en la x4 | 2,3 / 5,2 ms | 0,8-1,0 / 4,7-4,8 ms |
+| ídem: tics rehechos por frame en la x4 (rollback p99 sigue 24) | ~20 (todo el rollback) | 6,0-8,0 |
+| ídem: jugadores pintados p99 (máx) en la x4 | 0,19-0,21 m (0,66-0,68) | 0,16-0,17 m (0,53; una pasada 2,06 = teletransporte de > 2 m tras un parón de 1 s, igual que el crudo) |
+| ídem: balón pintado > 0,5 m en la x4 | 3-13 (máx 0,88-1,73) | 4 (máx 0,69-1,03) |
+| ídem: invitados sin frenar, sesión p50 | 0,4 ms | 0,2 ms |
+| 2v2 × 4, 150 ms, x4 DELANTE (NDFRONT=1): sesión x4, jugadores p99, balón > 0,5 | 2,4 / 4,7 ms · 0,14 m · 0 | 0,6 / 4,2 ms · 0,11 m · 1 (0,52) |
+| 2v2 × 4, 80 ms, x4: jugadores p99 (máx), balón > 0,5 m en la x4 | 0,11 (0,25) · 5 (0,82) | 0,09 (0,33) · 0 (0,47); sesión x4 1,0 / 3,8 ms |
+| coop 2 páginas 120 ms: sesión p50 | 0,1-0,2 ms | 0,1-0,2 ms; tics rehechos 1,6 / 2,5; jugadores 0,04 m; balón 0 |
+| 6v6 × 12, 150 ms, invitados: jugadores pintados p99 (máx) | 0,16-0,17 m (0,54-0,68) | 0,09 m (0,40-0,86) |
+| ídem: saltos > 0,5 m de jugadores por invitado | 2-5 | 0-2 |
+| ídem: balón pintado > 0,5 m por invitado; anfitrión | 1-3 (máx ~1,0); 0 | 0-1 (máx 0,93); 0 |
+| 6v6 × 12, 150 ms, subida del anfitrión | 12-13 KB/s × 11 | 12 KB/s × 11 (sin cambio, ver abajo) |
+
+- **Lo que NO cambia**: el rollback de los invitados de 2v2 a 150 ms sigue en el tope (p99 24, p95 19-22): es el camino invitado → anfitrión
+  → invitado (~300 ms de ida y vuelta) menos un retraso de 4-5 tics. Subir el retraso ya se probó (net.md punto 5) y no compensa. Lo que
+  cuesta ahora es solo el frame en que una predicción falla (p99 de la sesión ~4,5 ms con CPU ×4, ~1,1 ms en un móvil de verdad
+  si el ×4 se parece). Con humanos de teclado fallará menos que con los bots (que cambian el stick cada frame); con stick táctil, parecido.
+- **Subida del anfitrión 6v6**: medida aparte en memoria (12 plazas, 150 ms): 12,1 KB/s por enlace a 125 fps y 13,6 a 60 fps, NO depende de
+  los fps (paquete de 30 Hz por tics: 8,2 KB/s; fotos 2,4-4,0; contactos y eventos ~1,2). Lo que sí sigue los fps es el anfitrión de
+  **Precisa-N 2v2** (un paquete por frame: 27,6 KB/s por enlace a 126 fps, 13,8 a 56 fps). No se ha topado: con 3 enlaces son ~40-130 KB/s
+  y topar a 60 Hz añadiría hasta 8 ms al reenvío. Se mantiene la recomendación de PC o wifi para crear salas de 6v6 (~135 KB/s).
+- Pruebas tras los cambios: las 4 huellas idénticas; nettest 61, net3test 61, mptest 53, viewtest 29, netreplaytest 42, net4test 88, todo OK;
+  cooptest 118; netdrive 1v1 Precisa 8 ok y Fluida 9 ok; netdrive --multi 4 a 150 ms (x4 detrás y delante), a 80 ms (x4), coop 120 ms y 6v6 × 12 a 150 ms:
+  todas sus comprobaciones OK (huellas iguales, resyncs 0, misma secuencia de puntos, consola limpia, 0 esperas).
+- Sigue pendiente: la prueba en un teléfono de verdad (los números de CPU ×4 y los parones de 1 s son del Chrome de pruebas), CPU del
+  anfitrión 6v6 en un móvil, y lo de Ferran de la lista anterior (reglas sin desplegar, cuenta del invitado coop, etc.).
+
+## Revisión: arreglos de los hallazgos confirmados (22-nov-2026)
+
+Sin git, sin push, sin despliegue. Huellas offline idénticas (las 4); 1 contra 1 Precisa/Fluida sin tocar (net.js, netfluid.js y la
+rama 1v1 del HUD no cambian). Ficheros: js/nethost.js, js/netlobby.js, js/netroom.js, firebase/firestore.rules, js/career-coop.js,
+js/career.js (3 líneas en matchDone), js/main.js (sección ONLINE: HUD del de varios, récord), js/profile.js (careers(), 1 guarda) y los
+bancos tools/hosttest.js (e), tools/lobbytest.js (a2 y coop), tools/roomtest.js y tools/cooptest.js («Arreglos de la revisión»).
+
+1. **nethost: un invitado que calla más de GONE ya puede volver.** GONE y HOST_GONE 20 → 60 s (como Precisa-N y el lobby). El invitado
+   que lleva WAIT (1 s) sin oír al anfitrión repite `hello` cada REHELLO (1 s); el anfitrión lo readmite si lo había dado por ido (foto
+   tele, `go`, y `{k:'back', s}` a todos: los demás borran su `gone[s]`); un `hello` repetido de una plaza que sigue dentro se ignora
+   (el 'ctl' es fiable; nada de foto a mitad de peloteo). Si el invitado acaba sin noticias y la que se paró fue SU página, el resultado
+   es `'lost'` (no `'hostGone'`; NetRec: no cuenta). Medido con hosttest run() (2v2 host, 120 ms, semilla 11, parón de la plaza 3 a 30 s):
+
+   | parón | antes | después |
+   |---|---|---|
+   | 15 s | vuelve | vuelve |
+   | 21 s | gone, IA el resto del partido, invitado 'ended' hostGone | vuelve (playing, hum[3].ai false) |
+   | 45 s | ídem | vuelve |
+   | 70 s | ídem | el anfitrión lo da por ido a los 60 s → `hello` → «vuelve»; playing |
+   | 21 s con GONE forzado a 20 s | hostGone | «se va» → «vuelve» (8 frames en 'waiting'); los demás sin seatGone(3) |
+
+   hosttest (e), nuevo, lo comprueba (GONE 8 s, parón de 9,5 s).
+2. **nethost: foto a mitad de peloteo.** `_fsPart` vuela el balón de c.T a mi T (S.flFly en medios pasos, como nhApplyTc; en el saque con
+   el balón en el aire, también tossT). Sin tele ya no borra `pend`: el eco de mi toque lo vuelve a aplicar (la foto no lo tenía) y su
+   rechazo sigue devolviendo el balón al último contacto del anfitrión. Error del balón SIMULADO del invitado contra el del anfitrión en el
+   mismo tic, entre la foto y el siguiente contacto (2v2 host, 120 ms ±10, semilla 11, 100 s, parón de 2,6 s de la plaza 3):
+   parón a 55 s: p50 0,45 m (p95 0,50) → 0,00 (p95 0,00); a 63 s: p50 1,09 m → 0,00 (la única muestra > 0,5 m que queda, 5,15 m, es de la
+   propia página parada, con su cola de 2,6 s). Sin foto: p50 0,00 antes y después.
+3. **netlobby: sondeo del anfitrión ordenado.** Una lectura en vuelo (hasta 10 s) salta el turno; una respuesta más vieja que la última
+   aplicada no cuenta; solo se suelta como «se fue» a quien ya estaba ofrecido cuando empezó la lectura (p.t0 < inicio). lobbytest a2
+   (lectura de 3,5 s que llega tarde): antes FALLO («Se ha perdido la conexión con la sala de Wen Host.»), después ok. De paso, `cnt` se
+   escribe de una en una (mxCntW): tres saludos a la vez dejaban a veces cnt 2 con 3 dentro (lobbytest a: fallaba 2 de 3 pasadas; ahora 4 de 4 ok).
+4. **netlobby: coop emparejada entre partidos.** Con `E.coopOn`, una caída del enlace se renegocia como en pleno partido (anfitrión
+   mxRelinkHost, invitado mxGuestListen sobre el MISMO enlace de la fachada); antes se lee la cola (un `lb-bye` cuenta). Si no vuelve en
+   COOP_DOWN_MS (60 s), se acaba. lobbytest (c) «un corte del enlace se renegocia y la coop sigue»: antes FALLO (closed, gone, hostLost),
+   después ok.
+5. **«Sacar de la sala» = fuera de esa sala.** rooms.kick escribe `seats.<uid>` (borrado) y `ban.<uid> = true` en el mismo commit (≤ 20;
+   si las reglas no lo aceptan, solo lo levanta); un join de alguien vetado → `'kicked'` («Quien creó la sala te ha sacado…»); en el lobby
+   el veto de un «Sacar» dura toda la sala. Reglas: `ban` opcional (mapa ≤ 20) en roomOkMulti, y la rama de sentarse exige no estar en él.
+   **Ojo, emulador en español**: cualquier forma de esa condición sin el ternario `resource == null ? true : …` da HTTP 500 en TODO (un
+   upsert evalúa la rama de update sin documento y el emulador revienta al formatear el aviso en es_ES); con `-Duser.language=en` no pasa.
+   roomtest: veto (cliente y reglas) y nadie más que el anfitrión toca `ban`.
+6. **netroom: o_/a_ huérfanas.** Los invitados vistos se apuntan también en el almacén del navegador (`make-the-cut.netroom.pairs`,
+   opción `store` de create; en Node no hay almacén) y open()/close() los borran aunque la sala vieja ya no exista. list() barre de paso
+   hasta 3 caducadas de CUALQUIER estado (antes solo 'open'). roomtest: «cliente viejo barre la sala de varios y el anfitrión la reabre» y
+   «también la caducada que se quedó en play».
+7. **profile.js careers()**: con `VB.Career._memStore()` puesto (invitado de la coop) no cuenta ninguna Carrera. Antes (vm, coopleak):
+   ach {m1,w1,t1}, car {'b:99'} y el hito 'titulo' en el perfil del invitado; después, ach {} y car {}. cooptest lo comprueba.
+8. **career-coop adopt**: ss2 se archiva con el invitado y vuelve con él (antes Luis veía 1 jugado y 9 remates de Ana; ahora 0 y 0).
+9. **«nack»**: `VB.CareerCoop.noP2()`, que matchDone usa: mate2 = null y extra.coop = false (química y forma del compañero de la IA como
+   siempre). cooptest: sin esto, 2 fallos (insignias de p2 y química).
+10. **«Listo» caducado**: el anfitrión guarda la clave del partido (temporada, fase, jornada, partidos apuntados, tipo) al llegar el
+    «Listo»; si cambia (simulado, partido en solitario), lo anula y manda `{t:'rdy0'}` (el invitado lo apaga). cooptest lo comprueba.
+11. **HUD del de varios** (main.js netHudMulti): esperando con canAI, «Si no vuelve en N s, el partido no cuenta» y «Seguir con la IA (no
+    cuenta)»; jugando, « | Los rivales no han vuelto: ganáis (contra la IA)» o « | Contra la IA (no cuenta)»; 'hostGone' con el nombre de
+    quien creó la sala (nunca «anfitrión»); 'lost', nuevo. Sin cuentas de personas: «Tu equipo contra Equipo de Luis» (también en el texto
+    de rivales del récord).
+12. **La Carrera coop, fuera del récord online** (netRecOn con net.coopCareer), y su botón dice «Salir del partido» (no «cuenta como derrota»).
+13. Textos: tarjeta de pista «Pronto: la Carrera de pista en cooperativo. De momento, el cooperativo es de la Carrera de playa.»;
+    «(o pulsa «Sacar de la sala»)»; el código de la coop con el mismo aviso que el lobby (sin 0, O, 1, I ni L).
+
+Pruebas tras los cambios: fingerprint6 2v2 / mastery / salto / 6v6 idénticas; net4test 88 OK; hosttest 34 OK (2 nuevas); net12test 27 OK;
+cooptest 125 ok (7 nuevas); lobbytest 65 OK (2 nuevas); roomtest 256 ok y los mismos 4 fallos de antes («Reglas desplegadas hoy»: el
+emulador en es_ES devuelve 500 en vez de 403 con las reglas viejas; salen igual con las reglas sin tocar); nettest 61 OK; careertest
+2248 OK. netdrive --multi 4 a 150 ms, Precisa-N: 5 ok (esperas 0, rb p99 10/21, jugadores pintados p99 0,04-0,11 m, balón > 0,5 m 0-2,
+resyncs 0, consola limpia); modelo host 2v2: 5 ok (misma secuencia de puntos, esperas 0, balón > 0,5 m 0, sube 7,1 KB/s × 3).
+
+Para P8 (docs: CONTRACT.md y notes/net.md):
+- nethost: `C.GONE` y `C.HOST_GONE` 60 s, `C.REHELLO`, 'ctl' `back{s}`, `hello` repetido en 'waiting', `result.why 'lost'`.
+- netroom: `create({…, store})`, `kick` con `ban`, error `'kicked'`, `list()` barre caducadas de cualquier estado; reglas `ban` (SIN
+  desplegar; el orden de siempre: primero las reglas, luego el cliente).
+- netlobby: COOP_DOWN_MS y la renegociación de la coop entre partidos; sondeo con lectura en vuelo y orden; mxCntW.
+- career-coop: `noP2()`, mensaje `rdy0`, ss2 en `c.coop.old[uid]`.
+- Dueño de js/profile.js: la guarda de careers() es mía (1 línea y un comentario); si preferís otra forma, decídmelo.

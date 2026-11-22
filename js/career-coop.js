@@ -27,9 +27,16 @@
  * no; su close() al acabar el partido la devuelve al lobby sin cortarla) y los mensajes de la app siguen llegando durante el partido.
  * Mensajes (objetos, fiables y en orden por ctl; el lobby trocea lo grande), campo t:
  *   invitado → anfitrión: hi {id, name, num, ver, gz, aimSet, jsetAim}, need {rev}, int {a: 'up'|'badge', k}, ready {on}
- *   anfitrión → invitado: snap {rev, z: 'gz'|'', d}, play {humans: [{name, look}×2]}, bye {why}
+ *   anfitrión → invitado: snap {rev, z: 'gz'|'', d}, play {humans: [{name, look}×2]}, bye {why}, st {w: 'hub'|'solo'|'menu'} (qué
+ *     hace el anfitrión, para la pantalla del invitado), sum {sum, cs, x, rec} (el «Resumen de la jornada» del invitado y la copia
+ *     nueva de su p2, justo tras matchDone, con la hoja final a la vista)
  * Partido: el anfitrión manda play y los dos llaman a ctx.actions.startCoopCareerMatch (main.js). Al acabar (ctx.net cambia) el
  * anfitrión manda la foto nueva (en pleno partido no: la Carrera no cambia hasta matchDone).
+ * Insignias (L4, 22-nov-2026): las cuenta career-coop con los eventos CONFIRMADOS (feed → VB.Badges.ingest sobre la vista confirmada,
+ * para el anfitrión y para p2); ui.js no las cuenta con ctx.net.coopCareer (lo presentado tras un retroceso contaba de más o de menos).
+ * Hoja final: los dos ven el «Resumen de la jornada» (VB.UI.endCareer): el anfitrión, el suyo; el invitado, el de su p2 (mensaje sum).
+ * Pantallas del invitado (SPLAT, #coSheet): «esperando la Carrera» y «se ha cortado» (vuelve a SU menú; su p2 queda en P2_KEY); en el
+ * hub, la tarjeta de arriba dice qué hace el anfitrión (eligiendo, jugando sin ti…) y lleva a su jugador.
  */
 (function () {
   'use strict';
@@ -120,12 +127,14 @@
     if (o.p2 && o.uid2 && o.uid2 !== id) {   // otra persona: el p2 de antes al archivo (hasta OLD_MAX, el más viejo fuera)
       o.old = o.old || {};
       o.old[o.uid2] = { name: o.name2, p2: o.p2, stats2: o.stats2, notes2: o.notes2, chem: o.chem, at: num(now) ? now : 0 };
+      if (o.ss2) o.old[o.uid2].ss2 = o.ss2;   // (sus números de la temporada se van con él: el nuevo no los hereda)
       var ks = Object.keys(o.old).sort(function (a, b) { return (o.old[a].at || 0) - (o.old[b].at || 0); });
       while (ks.length > OLD_MAX) delete o.old[ks.shift()];
-      o.p2 = null; o.stats2 = zeros(); o.notes2 = []; o.chem = 0;
+      o.p2 = null; o.stats2 = zeros(); o.notes2 = []; o.chem = 0; delete o.ss2;
     }
     if (!o.p2 && o.old && o.old[id]) {   // vuelve alguien que ya jugó: lo suyo
       var b = o.old[id]; o.p2 = saneP2(b.p2, eng(c)); o.stats2 = b.stats2 || zeros(); o.notes2 = b.notes2 || []; o.chem = b.chem | 0; delete o.old[id];
+      if (b.ss2) o.ss2 = b.ss2; else delete o.ss2;   // (ensure lo sanea; si es de otra temporada, creditMate lo empieza de cero)
       ensure(c);
     }
     if (!o.p2) o.p2 = newP2(c, { id: id, name: name, num: g.num });
@@ -212,8 +221,52 @@
     if (o.ss2 && (o.ss2.s | 0) === sea) v.stats = cnt(o.ss2.st);
     else { v.stats = cnt(null); v.stats.played = ns.length; v.stats.won = ns.filter(function (n) { return n.win; }).length; }
     v.career = cnt(o.stats2);
-    if (v.last && v.last.coop) { var q = v.last.coop; v.last.xp = q.xp; v.last.lvlUp = q.lvlUp; v.last.lvl = q.lvl; v.last.ptsGained = q.pts; v.last.nota = q.nota; if (q.me) v.last.me = Object.assign({ nota: q.nota }, q.me); v.last.badges = []; }
+    if (v.last && v.last.coop) { var q = v.last.coop; v.last.xp = q.xp; v.last.lvlUp = q.lvlUp; v.last.lvl = q.lvl; v.last.ptsGained = q.pts; v.last.nota = q.nota; if (q.me) v.last.me = Object.assign({ nota: q.nota }, q.me); v.last.badges = slot1(v.last.badges); }
     return v;
+  }
+  /** Las insignias de p2 (hueco 1 de endMatch) como si fueran del protagonista (hueco 0): lo que ve el invitado. */
+  function slot1(bs) { return (Array.isArray(bs) ? bs : []).filter(function (b) { return b && b.slot === 1; }).map(function (b) { return Object.assign({}, b, { slot: 0 }); }); }
+  /** Datos de la tabla y la barra de nivel del Resumen (como careerEndX de main.js) para el atleta a (c.player o p2). */
+  function endX(c, a) {
+    var Kb = KB(), x = { ses: null };
+    try {
+      var me = Kb.myClub ? Kb.myClub(c) : null;
+      if (me && Kb.table) {
+        x.tbl = Kb.table(c, me.lvl); x.myId = me.id; x.short = {};
+        (c.clubs || []).forEach(function (k) { if (k && k.id != null) x.short[k.id] = k.short || k.name || ''; });
+      }
+      if (me && Kb.posOf) x.pos = Kb.posOf(c, me.id) | 0;
+      if (c.review && c.review.pos) x.pos = c.review.pos | 0;
+      var n = c.phase === 'off' ? null : Kb.next ? Kb.next(c) : null;
+      if (!n) x.next = 'off';
+      else if (n.kind === 'league') x.next = 'league';
+      else { var st = String(n.label || '').split(' · ').pop().toLowerCase(); x.next = /^final/.test(st) ? 'final' : /semi/.test(st) ? 'semi' : /cuartos/.test(st) ? 'cuartos' : /octavos/.test(st) ? 'octavos' : 'league'; }
+      if (a && Kb.need && a.lvl != null) x.bar = { cur: a.xp | 0, need: Kb.need(a.lvl) | 0 };
+    } catch (e) { log('endX', e); }
+    return x;
+  }
+  /** Resumen de la jornada del INVITADO a partir del del anfitrión (sum, con sum.coop = lo de p2) y su g.career (cs): él es el
+   *  protagonista (cs.player = p2) y el anfitrión su pareja. Fuera lo que es solo del anfitrión (vida, entreno, ofertas, ambiente…). */
+  function guestSum(c, sum, cs) {
+    var q = sum && sum.coop, p2 = c && c.coop && c.coop.p2; if (!q || !p2) return null;
+    var s = copy(sum);
+    s.xp = q.xp | 0; s.lvlUp = q.lvlUp | 0; s.lvl = q.lvl | 0; s.ptsGained = q.pts | 0; s.nota = q.nota; s.me = Object.assign({ nota: q.nota }, q.me || {});
+    s.badges = slot1(sum.badges);
+    ['life', 'rt', 'amb', 'study', 'train', 'auto', 'coach', 'chem', 'mateForm', 'mateForm0', 'inj', 'coop', 'offers', 'part'].forEach(function (k) { delete s[k]; });
+    var g = copy(cs || {}), hn = g.player, hnum = g.num;
+    g.player = p2.name; g.num = p2.num | 0; g.mate = hn || ''; g.mateNum = hnum | 0;
+    var k = KB() && KB().myClub ? KB().myClub(c) : null;
+    return { t: 'sum', sum: s, cs: g, x: endX(c, p2), rec: { cid: c.seed >>> 0, host: c.player ? c.player.name : '', club: k ? k.name : '', season: c.season | 0, p2: p2 } };
+  }
+  /** Lo que llega del otro aparato y acaba en el DOM: copia sin «<» ni «>» en ningún texto (los números siguen siendo números). */
+  function cleanDeep(o, d) {
+    d = d | 0; if (d > 8) return null;
+    if (typeof o === 'string') return o.replace(/[<>]/g, '').slice(0, 400);
+    if (typeof o === 'number') return isFinite(o) ? o : 0;
+    if (typeof o === 'boolean' || o == null) return o;
+    if (Array.isArray(o)) return o.slice(0, 200).map(function (x) { return cleanDeep(x, d + 1); });
+    if (typeof o === 'object') { var r = {}; Object.keys(o).slice(0, 200).forEach(function (k) { r[k] = cleanDeep(o[k], d + 1); }); return r; }
+    return null;
   }
   /** Almacén en memoria para VB.Career._useStore (el del invitado). */
   function memStore() {
@@ -242,7 +295,8 @@
 
   // ================================================================== estado de la conexión
   var S = { role: '', link: null, room: null, names: ['', ''], looks: [null, null], hi: null, ready: false, rev: 0, got: 0, lastJson: '',
-    mem: null, note: '', match: null, timer: 0, needAt: 0, want: 0, prep: false, pending: false, code: '' };
+    mem: null, note: '', match: null, timer: 0, needAt: 0, want: 0, prep: false, pending: false, code: '',
+    hostW: '', stSent: '', down: null };   // (hostW: qué hace el anfitrión, visto por el invitado; stSent: lo último que se le dijo; down: aviso del corte)
   function lsGet(k) { try { return root.localStorage ? root.localStorage.getItem(k) : null; } catch (e) { return null; } }
   function lsSet(k, v) { try { if (root.localStorage) root.localStorage.setItem(k, v); } catch (e) { } }
   function myId() {
@@ -254,7 +308,7 @@
   function myLook() { var N = VB.NetLobby; try { return N && N.myLook ? N.myLook() : null; } catch (e) { return null; } }
   function settings() { return (VB.ctx && VB.ctx.settings) || {}; }
   function send(m) { var X = L(); if (!X || !X.send) return false; try { X.send(m); return true; } catch (e) { log('send', e); return false; } }
-  function ui() { var U = VB.CareerUI; if (U && U.render) { try { U.render(); } catch (e) { } } if (U && U.syncMenu) { try { U.syncMenu(); } catch (e) { } } }
+  function ui() { var U = VB.CareerUI; if (U && U.render) { try { U.render(); } catch (e) { } } if (U && U.syncMenu) { try { U.syncMenu(); } catch (e) { } } sheetSync(); }
   function linked() { return !!(S.role && S.link && S.link.state !== 'closed'); }
   function guestOn() { return S.role === 'guest'; }
   function hostOn() { return S.role === 'host'; }
@@ -270,20 +324,50 @@
   function tick() {
     var now = Date.now();
     if (S.match) { matchWatch(); return; }
-    if (hostOn() && S.hi && now - lastPoll > POLL_MS) { lastPoll = now; sendSnap(false); }   // (la Carrera ha cambiado: foto nueva)
+    if (!S.role) { stopTimer(); return; }   // (invitado al que se le cortó en pleno partido: ya ha vuelto a su menú)
+    if (hostOn() && S.hi) {
+      if (now - lastPoll > POLL_MS) { lastPoll = now; sendSnap(false); }   // (la Carrera ha cambiado: foto nueva)
+      var w = hostState(); if (w !== S.stSent && send({ t: 'st', w: w })) S.stSent = w;   // (solo al cambiar: «eligiendo», «jugando sin ti»…)
+    }
     if (guestOn() && (S.got === 0 || S.want > S.got) && now - S.needAt > NEED_MS) { S.needAt = now; send({ t: 'need', rev: S.got }); }
+  }
+  /** Qué hace el anfitrión ahora (para la tarjeta del invitado): 'hub' = en la Carrera (eligiendo), 'solo' = jugando un partido sin
+   *  su pareja (selección, Estrellas, pruebas… o un amistoso), 'menu' = fuera de la Carrera. */
+  function hostState() {
+    var st = VB.ctx && VB.ctx.state, U = VB.CareerUI;
+    if (st === 'playing' || st === 'over') return 'solo';
+    var o = false; try { o = !!(U && U.isOpen && U.isOpen()); } catch (e) { o = false; }
+    return o ? 'hub' : 'menu';
   }
   function reset(why) {
     stopTimer();
-    // (el invitado se va en pleno partido: el anfitrión sigue con la IA en su plaza y la jornada cuenta igual; matchDone llega con gameOver)
-    var was = S.role, keep = was === 'host' && S.match && !S.match.done ? S.match : null;
+    // (el invitado se va en pleno partido: el anfitrión sigue con la IA en su plaza y la jornada cuenta igual; matchDone llega con gameOver.
+    //  Al invitado al que se le corta en pleno partido (o en la hoja final) se le guarda el partido: vuelve a su menú cuando lo deje)
+    var was = S.role, keep = S.match && (was === 'host' ? !S.match.done : was === 'guest') ? S.match : null;
     if (was === 'guest' && VB.Career && VB.Career._useStore) { VB.Career._useStore(null); }   // (otra vez la Carrera propia, de localStorage)
+    var hn = S.names[0];
     S.role = ''; S.link = null; S.room = null; S.names = ['', '']; S.looks = [null, null]; S.hi = null; S.ready = false; S.rev = 0; S.got = 0; S.want = 0;
-    S.lastJson = ''; S.mem = null; S.match = null; S.pending = false; S.code = '';
+    S.lastJson = ''; S.mem = null; S.match = null; S.pending = false; S.code = ''; S.hostW = ''; S.stSent = '';
     if (S.offMsg) { try { S.offMsg(); } catch (e) { } S.offMsg = null; }
     if (keep) { S.match = keep; startTimer(); }
     if (why && was) S.note = why === 'leave' ? 'Has salido del cooperativo.' : why === 'version' ? 'Tenéis versiones distintas del juego: actualizad los dos.' : 'Se ha cortado el cooperativo.';
+    // invitado: pantalla «se ha cortado» (no si sale él) y de vuelta a SU menú (su Carrera, o el menú principal si no tiene)
+    if (was === 'guest' && why && why !== 'leave') S.down = { why: why, host: hn || '', p2: p2Rec() };
+    if (was === 'guest' && !keep) guestHome();
     ui();
+  }
+  /** La copia del jugador del invitado (make-the-cut.coop.p2) o null. */
+  function p2Rec() { var r = null; try { r = JSON.parse(lsGet(P2_KEY) || 'null'); } catch (e) { r = null; } return r && r.p2 && typeof r.p2 === 'object' ? r : null; }
+  function saveP2Rec(rec) {
+    var prev = lsGet(P2_KEY), nr = JSON.stringify(rec);
+    if (!prev || prev.replace(/"at":\d+,/, '') !== nr.replace(/"at":\d+,/, '')) lsSet(P2_KEY, nr);   // (solo la copia de su jugador: otra clave)
+  }
+  /** El invitado vuelve a lo suyo: con la Carrera abierta, a SU hub si tiene Carrera propia; si no, al menú principal. */
+  function guestHome() {
+    var U = VB.CareerUI, C = VB.Career; if (!U || !(U.isOpen && U.isOpen())) return;
+    var st = VB.ctx && VB.ctx.state; if (st === 'playing' || st === 'over') return;
+    var has = false; try { has = !!(C && C.get && C.get()); } catch (e) { has = false; }
+    try { if (has) U.open('hub', { from: 'main' }); else U.close(); } catch (e) { log('guestHome', e); }
   }
 
   // ---- anfitrión
@@ -330,13 +414,25 @@
     adopt(c, { id: S.hi.id || S.hi.name, name: S.hi.name, num: m.num }, Date.now());
     c.coop.lastSync = Date.now();
     Kb.save(c);
-    S.ready = false; S.note = '';
+    S.ready = false; S.note = ''; S.stSent = '';
     sendSnap(true); ui();
+  }
+  /** Clave del partido que toca (temporada, fase, jornada, partidos apuntados y tipo): el «Listo» del invitado vale para ESE partido. */
+  function fxKey(c) {
+    var Kb = KB(), n = null; try { n = c && Kb.next ? Kb.next(c) : null; } catch (e) { n = null; }
+    return c ? [c.season | 0, c.phase || '', c.week | 0, Array.isArray(c.notes) ? c.notes.length : 0, n ? n.kind || '' : ''].join('|') : '';
+  }
+  /** Anfitrión: el partido que toca ya no es aquel para el que el invitado pulsó «Listo» (simulado, partido en solitario…): su «Listo»
+   *  ya no vale y se le dice (sin esto, el siguiente partido empezaba en cooperativo sin que confirmara, quizá lejos del aparato). */
+  function readyCheck(c) {
+    if (!S.ready || !c || S.readyKey === fxKey(c)) return false;
+    S.ready = false; S.readyKey = ''; send({ t: 'rdy0' }); return true;
   }
   /** Manda la Carrera entera al invitado si ha cambiado (o siempre con force). Nunca en pleno partido (la sesión lee el enlace). */
   function sendSnap(force) {
     if (!hostOn() || !S.hi || S.match) return false;
     var Kb = KB(), c = Kb.load(); if (!c) return false;
+    if (readyCheck(c)) ui();
     var json = JSON.stringify(c);
     if (!force && json === S.lastJson) return false;
     S.lastJson = json; var rev = ++S.rev;
@@ -350,7 +446,7 @@
         if (m.t === 'hi') onHi(m);
         else if (m.t === 'need') sendSnap(true);
         else if (m.t === 'int') { var Kb = KB(), c = Kb.load(); if (c && applyIntent(c, m)) { Kb.save(c); sendSnap(false); ui(); } }
-        else if (m.t === 'ready') { S.ready = !!m.on; ui(); }
+        else if (m.t === 'ready') { S.ready = !!m.on; var cr = KB().load(); S.readyKey = S.ready && cr ? fxKey(cr) : ''; ui(); }
         else if (m.t === 'nack') {   // (el invitado no ha podido empezar: la IA lleva su plaza y p2 no se lleva la XP de la IA)
           S.ready = false; if (S.match && S.match.seat === 0 && !S.match.done) S.match.noP2 = true;
           S.note = (S.names[1] || 'Tu pareja') + ' no ha podido entrar en el partido: juega la IA en su sitio.'; ui();
@@ -358,6 +454,9 @@
       } else if (guestOn()) {
         if (m.t === 'snap') onSnap(m);
         else if (m.t === 'play') onPlay(m);
+        else if (m.t === 'st') { var w = ['hub', 'solo', 'menu'].indexOf(m.w) >= 0 ? m.w : ''; if (w !== S.hostW) { S.hostW = w; ui(); } }
+        else if (m.t === 'sum') onSum(m);
+        else if (m.t === 'rdy0') { if (S.ready) { S.ready = false; ui(); } }   // (el partido que toca ha cambiado: hay que volver a pulsar «Listo»)
         else if (m.t === 'bye') { var X = L(); try { if (X) X.close(); } catch (e) { } reset(m.why === 'version' ? 'version' : 'down'); }
       }
     } catch (e) { log('mensaje ' + m.t, e); }
@@ -368,9 +467,10 @@
   function join(code) {
     var X = L(); code = normCode(code);
     if (!X) { S.note = 'El cooperativo aún no está disponible en esta versión.'; ui(); return false; }
-    if (!CODE_RE.test(code)) { S.note = 'El código tiene 6 letras o números.'; ui(); return false; }
+    // (el mismo texto que el lobby, coopWhy('code'): los códigos nunca llevan 0, O, 1, I ni L)
+    if (!CODE_RE.test(code)) { S.note = 'El código tiene 6 letras y cifras (sin 0, O, 1, I ni L).'; ui(); return false; }
     if (S.role) return false;
-    S.pending = true; S.code = code; S.note = 'Buscando la sala ' + code + '…';
+    S.pending = true; S.code = code; S.note = 'Buscando la sala ' + code + '…'; S.down = null;
     try {
       if (X.join({ code: code, name: myName(), look: myLook(),
         onReady: function (info) { onReady('guest', info); }, onClose: function (why) { reset(why || 'down'); } }) === false) { S.pending = false; S.note = ''; ui(); return false; }
@@ -398,6 +498,15 @@
       ui();
     }, function (e) { log('foto', e); });
   }
+  /** Resumen de la jornada del invitado (llega tras matchDone del anfitrión, con la hoja final a la vista): se guarda para pintarlo
+   *  (matchWatch) y la copia de su p2 se pone al día ya (si el enlace se corta antes de la foto, su progreso no se pierde). */
+  function onSum(m) {
+    var d = cleanDeep({ sum: m.sum, cs: m.cs, x: m.x, rec: m.rec });
+    if (!d || !d.sum || typeof d.sum !== 'object' || !d.cs || typeof d.cs !== 'object') return;
+    var r = d.rec;
+    if (r && r.p2 && typeof r.p2 === 'object' && r.p2.st) saveP2Rec({ cid: r.cid >>> 0, host: cleanName(r.host), club: String(r.club || '').slice(0, 60), season: r.season | 0, at: Date.now(), p2: r.p2 });
+    if (S.match && S.match.seat === 1) { S.match.gsum = { sum: d.sum, cs: d.cs, x: d.x && typeof d.x === 'object' ? d.x : null }; matchWatch(); }
+  }
   /** Pone la Carrera del anfitrión c en el almacén en memoria (vista del invitado) y apunta su copia de p2 en el aparato. */
   function installGuest(c) {
     var first = !S.mem;
@@ -406,9 +515,9 @@
     S.mem.setItem(MKEY, 'beach');
     var C = VB.Career;
     if (first) C._useStore(S.mem); else C._reset();
-    var k = KB() && KB().myClub ? KB().myClub(c) : null, rec = { cid: c.seed >>> 0, host: c.player.name, club: k ? k.name : '', season: c.season | 0, at: Date.now(), p2: c.coop.p2 };
-    var prev = lsGet(P2_KEY), nr = JSON.stringify(rec);
-    if (!prev || prev.replace(/"at":\d+,/, '') !== nr.replace(/"at":\d+,/, '')) lsSet(P2_KEY, nr);   // (solo la copia de su jugador: otra clave)
+    var k = KB() && KB().myClub ? KB().myClub(c) : null;
+    saveP2Rec({ cid: c.seed >>> 0, host: c.player.name, club: k ? k.name : '', season: c.season | 0, at: Date.now(), p2: c.coop.p2 });
+    S.down = null;
     var U = VB.CareerUI;
     // (1ª foto: al hub aunque la Carrera ya esté abierta: quien no tiene Carrera propia estaba en «crear», sin tarjeta ni «Listo»)
     if (first && U && U.open && !S.match && (!VB.ctx || VB.ctx.state !== 'playing')) { try { U.open('hub', { from: 'main' }); } catch (e) { } }
@@ -445,6 +554,7 @@
     var CM = VB.Career; if (CM && CM.mode && CM.mode() !== 'beach') return null;
     var Kb = KB(), c = Kb.load(), n = c ? Kb.next(c) : null;
     if (!n || n.bench || KINDS.indexOf(n.kind) < 0) { S.note = 'Este partido lo juegas tú solo con tu compañero de la IA.'; return null; }
+    readyCheck(c);
     if (!S.ready) { S.note = 'Esperando a que ' + S.names[1] + ' pulse «Listo».'; return { wait: true }; }
     return { go: startMatch };
   }
@@ -510,35 +620,72 @@
   }
   /** Eventos confirmados evs de la partida canónica gc → VB.Career (con g.career = cs sobre una vista de gc: la sim no lleva career). */
   function feed(mt, gc, evs) {
-    var C = VB.Career; if (!gc || !C) return null;
+    var C = VB.Career, BG = VB.Badges; if (!gc || !C) return null;
     if (gc !== mt.gc) {   // (partida nueva o reemplazada por una vuelta: la vista nueva y la estadística sigue en el mismo M)
-      var gw = Object.create(gc); gw.career = mt.cs; var M0 = C.beach._M();
-      if (M0 && mt.gw && M0.g === mt.gw) M0.g = gw;
+      var gw = Object.create(gc), gw0 = mt.gw; gw.career = mt.cs; var M0 = C.beach._M();
+      if (M0 && gw0 && M0.g === gw0) M0.g = gw;
+      // (y el contador de insignias también sigue: VB.Badges empieza de cero si cambia la partida)
+      try { var cu0 = BG && BG._cur ? BG._cur() : null; if (cu0 && gw0 && cu0.g === gw0) cu0.g = gw; } catch (eb) { }
       mt.gc = gc; mt.gw = gw;
     }
     try { C.ingest(evs, mt.gw); } catch (e) { log('ingest', e); }
+    // insignias del anfitrión y de p2 con lo CONFIRMADO (ui.js no las cuenta en el cooperativo): un punto anulado por el challenge,
+    // como en ui.js (_ovr en el 'point' del mismo lote que el challengeResult anulado; copia: el evento es de la sesión)
+    // («Sangre fría» mira g.setPoint / g.matchPoint al sacar: lo confirmado llega con unos tics de retraso y gc ya va por delante (el
+    //  punto que da la bola de partido haría «clutch» el saque anterior). Mientras cuenta, la vista lleva los del último serveReady
+    //  confirmado, que son los del momento del saque; luego se quitan y la vista vuelve a leer los de gc)
+    if (BG && BG.ingest && !mt.done) {
+      var ovr = false, j, gv = mt.gw, sp = mt.sp || (mt.sp = [-1, -1]);
+      for (j = 0; j < evs.length; j++) if (evs[j] && evs[j].type === 'challengeResult' && evs[j].overturned) ovr = true;
+      for (j = 0; j < evs.length; j++) {
+        var ev = evs[j]; if (!ev || ev.amb) continue;
+        if (ev.type === 'serveReady') { sp[0] = num(ev.setPoint) ? ev.setPoint : -1; sp[1] = num(ev.matchPoint) ? ev.matchPoint : -1; }
+        gv.setPoint = sp[0]; gv.matchPoint = sp[1];
+        try { BG.ingest(ovr && ev.type === 'point' ? Object.assign({}, ev, { _ovr: true }) : ev, gv); } catch (eb2) { log('Badges.ingest', eb2); }
+      }
+      delete gv.setPoint; delete gv.matchPoint;
+    }
     for (var i = 0; i < evs.length; i++) {
       var e = evs[i]; if (!e || e.type !== 'gameOver' || mt.done) continue;
       mt.done = true;
-      // (VB.Badges cuenta con ui.js los eventos de la partida PRESENTADA; matchDone cierra con la vista confirmada mt.gw: su contador
-      //  pasa a esa vista para que endMatch lo encuentre y los dos atletas no se queden solo con motor/líder)
-      try { var BG = VB.Badges, cu = BG && BG._cur ? BG._cur() : null; if (cu && cu.g !== mt.gw) cu.g = mt.gw; } catch (eb) { }
       try { mt.sum = C.matchDone({ sets: [e.sets[0], e.sets[1]], setScores: e.setScores || gc.setScores, win: e.team === 0 }, null, mt.gw); } catch (er) { log('matchDone', er); }
+      if (mt.sum) afterDone(mt);
     }
     return mt.sum || null;
+  }
+  /** Tras matchDone (anfitrión): los datos de su Resumen (tabla y barra) y el Resumen de su pareja, que viaja ya (la hoja final). */
+  function afterDone(mt) {
+    var Kb = KB(), c = null; try { c = Kb.load(); } catch (e) { c = null; } if (!c) return;
+    mt.x = endX(c, c.player);
+    if (mt.noP2 || !mt.sum.coop) return;
+    var gs = null; try { gs = guestSum(c, mt.sum, mt.cs); } catch (e) { log('guestSum', e); }
+    mt.gsum = gs;
+    if (gs && hostOn()) send(gs);
   }
   /** El partido ha terminado cuando main.js suelta la sesión (ctx.net otro o null): el enlace ha vuelto al lobby y la foto viaja. */
   function matchWatch() {
     var mt = S.match; if (!mt) return;
     var net = VB.ctx ? VB.ctx.net : null;
     if (net === mt.net && net && net.sess !== mt.sess && net.sess) { mt.done = true; wrapSessFriendly(net.sess); }   // (revancha: amistoso)
-    if (net === mt.net && net) return;
-    S.match = null;
+    if (net === mt.net && net) {
+      // hoja final a la vista: el Resumen de la jornada (el del anfitrión con su g.career; el del invitado, el que le ha mandado)
+      if (!mt.shown && VB.ctx.state === 'over') { var R = mt.seat === 0 ? (mt.sum ? { sum: mt.sum, cs: mt.cs, x: mt.x } : null) : mt.gsum; if (R) { mt.shown = true; showSum(R); } }
+      return;
+    }
+    S.match = null; S.stSent = '';
     if (hostOn()) { S.lastJson = ''; sendSnap(true); }
     else if (guestOn()) { S.want = mt.rev0 + 1; S.needAt = 0; }
     var U = VB.CareerUI, st = VB.ctx && VB.ctx.state;
     if ((S.role || mt.seat === 0) && U && U.open && !(U.isOpen && U.isOpen()) && st !== 'playing') { try { U.open('hub', { fresh: hostOn(), from: 'main' }); } catch (e) { } }
+    if (!S.role && mt.seat === 1) { stopTimer(); guestHome(); }   // (al invitado se le cortó en pleno partido: a lo suyo)
     ui();
+  }
+  /** Pinta el Resumen de la jornada en la hoja final online (VB.UI.endCareer; main.js solo lo hace con g.career, que la vista online
+   *  no lleva): R = {sum, cs (g.career), x (tabla, barra…)}. La hoja sigue siendo la online (botón «Volver a la Carrera»). */
+  function showSum(R) {
+    var U = VB.UI, g = VB.ctx && VB.ctx.game; if (!U || !U.endCareer || !g || !R || !R.sum) return false;
+    var gv = Object.create(g); gv.career = R.cs || {};
+    try { U.endCareer(R.sum, gv, R.x || null); return true; } catch (e) { log('endCareer', e); return false; }
   }
   function wrapSessFriendly(s) { if (s && !s._coopW) { s._coopW = true; S.match.sess = s; } }
 
@@ -563,21 +710,40 @@
     return '<div class="coo-join"><label for="coCode">Código</label><input id="coCode" class="coo-code" maxlength="6" autocomplete="off" spellcheck="false" autocapitalize="characters" inputmode="text" placeholder="ABC234" value="' + esc(S.code) + '">' +
       btn(H, 'co-join', 'Unirse', 'sp-cream') + '</div>';
   }
-  function card(c, H) {
-    if (!c || !c.player) return '';
-    var h = '<div class="card coo-card" id="crCoop"><h3>' + spH(H, ['Cooperativo', guestOn() ? 'Invitado' : hostOn() ? 'Anfitrión' : 'Online'], 'd') + '</h3>';
-    if (guestOn() && !paired()) {   // (aún sin la Carrera del anfitrión: nada que marcar como «Listo»)
+  /** Qué pasa ahora, visto por el invitado (la línea grande de su tarjeta). */
+  function statusTxt(c, hn) {
+    if (S.hostW === 'solo') return hn + ' está jugando un partido sin ti. Espera a que acabe.';
+    if (S.hostW === 'menu') return hn + ' ha salido de la Carrera un momento. Espera a que vuelva.';
+    if (c.phase === 'off') return hn + ' está cerrando la temporada.';
+    var n = null; try { n = KB() && KB().next ? KB().next(c) : null; } catch (e) { n = null; }
+    if (n && (n.bench || KINDS.indexOf(n.kind) < 0)) return 'El próximo partido (' + String(n.label || '').split(' · ').join(', ') + ') lo juega ' + hn + ' sin ti.';
+    return S.ready ? 'Estás listo. Empezáis cuando ' + hn + ' pulse «Jugar partido».' : hn + ' está eligiendo. Pulsa «Listo» y empezáis cuando pulse «Jugar partido».';
+  }
+  /** Tarjeta del invitado, arriba del todo en Partido (hueco matchTop): qué hace el anfitrión, su jugador, «Listo», «Tu jugador», «Salir». */
+  function guestCard(c, H) {
+    if (!guestOn() || !c || !c.player) return '';
+    var h = '<div class="card coo-card coo-g" id="crCoop"><h3>' + spH(H, ['Cooperativo', 'Invitado'], 'd') + '</h3>';
+    if (!paired()) {   // (aún sin la Carrera del anfitrión: nada que marcar como «Listo»; la hoja #coSheet lo dice encima)
       return h + '<p>' + esc('Conectado: esperando la Carrera de ' + (S.names[0] || 'tu pareja') + '…') + '</p><div class="acts">' + btn(H, 'co-end', 'Salir', 'sp-cream') + '</div>' + noteP() + '</div>';
     }
-    if (guestOn()) {
-      var o = c.coop || {}, hn = (o.host && o.host.name) || S.names[0];
-      h += '<p>' + esc('Juegas la Carrera de ' + hn + ' como su pareja (' + (c.player.name || '') + ', dorsal ' + (c.player.num | 0) + '). Solo puedes gastar tus puntos e insignias; lo demás lo decide ' + hn + '.') + '</p>' +
-        '<div class="acts">' + btn(H, 'co-ready', S.ready ? 'Listo ✓' : 'Listo', S.ready ? 'sp-kit' : 'sp-cream', ' aria-pressed="' + S.ready + '"') + btn(H, 'co-end', 'Salir', 'sp-cream') + '</div>';
-      return h + noteP() + '</div>';
-    }
+    var o = c.coop || {}, hn = (o.host && o.host.name) || S.names[0] || 'tu pareja', me = c.player, pts = me.pts | 0;
+    h += '<p class="coo-st" role="status">' + esc(statusTxt(c, hn)) + '</p>' +
+      '<p class="coo-me">' + esc('Tú: ' + (me.name || '') + ', n.º ' + (me.num | 0) + ', nivel ' + (me.lvl | 0) + (pts > 0 ? ' · ' + pts + (pts === 1 ? ' punto' : ' puntos') + ' para gastar' : '')) + '</p>' +
+      '<p class="muted">' + esc('Gastas tus puntos e insignias; lo demás lo decide ' + hn + '.') + '</p>' +
+      '<div class="acts">' + btn(H, 'co-ready', S.ready ? 'Listo ✓' : 'Listo', S.ready ? 'sp-kit' : 'sp-cream', ' aria-pressed="' + S.ready + '"') + btn(H, 'co-me', 'Tu jugador', 'sp-cream') + btn(H, 'co-end', 'Salir', 'sp-cream') + '</div>';
+    return h + noteP() + '</div>';
+  }
+  /** Tu jugador del cooperativo guardado en este aparato (fuera del cooperativo): una línea, o ''. */
+  function recLine() {
+    var r = p2Rec(); if (!r) return '';
+    return '<p class="coo-me">' + esc('Tu jugador en la Carrera de ' + (cleanName(r.host) || 'tu pareja') + ': ' + (cleanName(r.p2.name) || 'Pareja') + ', n.º ' + (r.p2.num | 0) + ', nivel ' + (r.p2.lvl | 0) + '.') + '</p>';
+  }
+  function card(c, H) {
+    if (!c || !c.player || guestOn()) return '';   // (el invitado: guestCard, arriba)
+    var h = '<div class="card coo-card" id="crCoop"><h3>' + spH(H, ['Cooperativo', hostOn() ? 'Anfitrión' : 'Online'], 'd') + '</h3>';
     if (isHall(c) && hostOn()) return h + '<p>' + esc('Cooperativo abierto con ' + (S.names[1] || 'tu pareja') + ' en tu Carrera de playa: cambia a la playa para jugar juntos. Aquí, en la pista, juegas tú solo.') + '</p>' +
       '<div class="acts">' + btn(H, 'co-end', 'Terminar el cooperativo', 'sp-cream') + '</div>' + noteP() + '</div>';
-    if (isHall(c)) return h + '<p class="muted">Pronto: la Carrera de pista en cooperativo llegará con el 6 contra 6 online.</p>' + (S.role ? '' : joinRow(H)) + noteP() + '</div>';
+    if (isHall(c)) return h + '<p class="muted">Pronto: la Carrera de pista en cooperativo. De momento, el cooperativo es de la Carrera de playa.</p>' + (S.role ? '' : joinRow(H)) + noteP() + '</div>';
     if (hostOn()) {
       var nm = S.names[1] || 'tu pareja';
       if (!S.hi) h += '<p>' + esc('Conectado con ' + nm + '…') + '</p>';
@@ -586,13 +752,13 @@
       return h + '<div class="acts">' + btn(H, 'co-end', 'Terminar el cooperativo', 'sp-cream') + '</div>' + noteP() + '</div>';
     }
     var can = c.phase !== 'pick' && c.myClub >= 0, X = L();
-    h += '<p class="muted">Juega la liga y el Open con otra persona como pareja, cada uno en su aparato.</p>' +
+    h += '<p class="muted">Juega la liga y el Open con otra persona como pareja, cada uno en su aparato.</p>' + recLine() +
       '<div class="acts">' + (can ? btn(H, 'co-host', S.pending ? 'Abriendo…' : 'Jugar en cooperativo', 'sp-kit', X && !S.pending ? '' : ' disabled') : '') + '</div>' + joinRow(H);
     return h + noteP() + '</div>';
   }
   function createRow(form, hall, H) {
     if (guestOn()) return '';
-    return '<div class="coo-create"><label for="coCode">¿Te han invitado a un cooperativo?</label>' + joinRow(H).replace('<label for="coCode">Código</label>', '') + noteP() + '</div>';
+    return '<div class="coo-create"><label for="coCode">¿Te han invitado a un cooperativo?</label>' + recLine() + joinRow(H).replace('<label for="coCode">Código</label>', '') + noteP() + '</div>';
   }
   function act(a, b) {
     if (a === 'co-host') { startHost(); return { render: true, focus: '#crCoop button' }; }
@@ -601,8 +767,80 @@
       join(inp ? inp.value : S.code); return { render: true, focus: '#crCoop button, #coCode' };
     }
     if (a === 'co-ready') { setReady(!S.ready); return { render: true, focus: '[data-act="co-ready"]' }; }
+    if (a === 'co-me') return { tab: 'player' };   // (el invitado: su ficha, su nivel y sus puntos)
     if (a === 'co-end') { leave(); return { render: true }; }
     return null;
+  }
+
+  // ---- hoja SPLAT del invitado (#coSheet): «esperando la Carrera» y «se ha cortado» (encima de todo; nunca en pleno partido)
+  function sheetWant() {
+    var st = VB.ctx && VB.ctx.state; if (st === 'playing' || st === 'over') return null;
+    if (guestOn() && !paired() && !S.match) {
+      var hn = S.names[0] || 'tu pareja';
+      return { k: 'wait', title: 'Carrera cooperativa', text: 'Conectado con ' + hn + '. Esperando a que llegue su Carrera…',
+        sub: 'Vas a jugar como su pareja. Tu jugador se guarda en este aparato.', ctas: [['end', 'Salir', 'sp-danger']] };
+    }
+    if (S.down && !S.role) {
+      var d = S.down, r = d.p2, hd = cleanName(d.host) || (r && cleanName(r.host)) || 'tu pareja';
+      return { k: 'down', title: 'Carrera cooperativa', bad: true,
+        text: d.why === 'version' ? 'Tenéis versiones distintas del juego: actualizad los dos.' : 'Se ha cortado el cooperativo con ' + hd + '.',
+        sub: r ? 'Tu jugador (' + (cleanName(r.p2.name) || 'Pareja') + ', nivel ' + (r.p2.lvl | 0) + ') queda guardado en este aparato: cuando vuelvas a entrar en la Carrera de ' + hd + ', sigue donde lo dejaste.' : '',
+        ctas: [['ok', 'Entendido', 'sp-gold']] };
+    }
+    return null;
+  }
+  function sheetCss() {
+    if (document.getElementById('coSheetCss')) return;
+    var P = ':root:not(#_):not(#_) ', s = document.createElement('style'); s.id = 'coSheetCss';
+    s.textContent = ['/* ---- career-coop: hoja del invitado ---- */',
+      '#coSheet{position:fixed;inset:0;z-index:1190;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) 16px max(12px,env(safe-area-inset-bottom));box-sizing:border-box;background:rgba(10,8,24,.6)}',
+      '#coSheet[hidden]{display:none}',
+      '#coSheet .cs-card{display:flex;flex-direction:column;gap:10px;width:min(100%,500px);max-height:100%;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;padding:16px 18px 18px}',
+      '#coSheet h3{margin:0;font:400 clamp(18px,3.4vw + 6px,26px)/1.1 var(--sp-pop,sans-serif);letter-spacing:.01em;text-transform:uppercase;color:var(--sp-gold,#ffd23f);text-shadow:2px 2px 0 var(--sp-ink,#15102a);transform:rotate(-1.5deg);transform-origin:0 50%}',
+      '#coSheet .cs-t{margin:0;font:700 clamp(15px,1vw + 12px,17px)/1.35 var(--sp-ui,sans-serif);color:rgba(255,244,220,.96)}#coSheet .cs-t.bad{color:#ffb3bc}',
+      '#coSheet .cs-s{margin:0;font:600 clamp(13px,1vw + 10px,15px)/1.4 var(--sp-ui,sans-serif);color:rgba(255,244,220,.84)}',
+      '.cs-under,.cs-under *{pointer-events:none!important}',
+      '#coSheet .cs-bar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px 14px;margin-top:4px}',
+      P + '#coSheet .cs-bar .sp-btn{--sp-h:50px;--sp-fs:16px;--sp-px:20px;flex:0 1 auto;width:auto;min-width:0}'].join('\n');
+    document.head.appendChild(s);
+  }
+  /** La hoja es modal (aria-modal): lo de debajo queda inert y sin toques mientras se ve (como #olCoop de netlobby.js). No se tocan los
+   *  avisos (aria-live, #spToasts) ni lo que ya estaba oculto o inert. */
+  var under = [];
+  function sheetUnder(on) {
+    under.forEach(function (e) { e.removeAttribute('inert'); e.classList.remove('cs-under'); }); under = [];
+    if (!on || typeof document === 'undefined' || !document.body) return;
+    var ch = document.body.children || [];
+    for (var i = 0; i < ch.length; i++) {
+      var e = ch[i];
+      if (!e || e.id === 'coSheet' || /^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test(e.tagName) || e.hidden || e.hasAttribute('inert') || e.hasAttribute('aria-live') || e.id === 'spToasts' || (e.querySelector && e.querySelector('#spToasts'))) continue;
+      e.setAttribute('inert', ''); e.classList.add('cs-under'); under.push(e);
+    }
+  }
+  function sheetSync() {
+    if (typeof document === 'undefined' || !document.body) return;
+    var w = sheetWant(), d = document.getElementById('coSheet');
+    if (!w) { if (d && !d.hidden) { d.hidden = true; d.innerHTML = ''; d.removeAttribute('data-k'); } sheetUnder(false); return; }
+    sheetCss();
+    if (!d) {
+      d = document.createElement('div'); d.id = 'coSheet'; d.hidden = true;
+      d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Carrera cooperativa');
+      d.addEventListener('click', function (ev) {
+        var b = ev.target && ev.target.closest ? ev.target.closest('[data-cs]') : null; if (!b) return;
+        var a = b.getAttribute('data-cs'); try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(a === 'end' ? 'back' : 'click'); } catch (e) { }
+        if (a === 'end') leave();
+        else if (a === 'ok') { S.down = null; S.note = ''; sheetSync(); guestHome(); ui(); }
+      });
+      document.body.appendChild(d);
+    }
+    var key = JSON.stringify(w); if (d.getAttribute('data-k') === key && !d.hidden) return;
+    d.setAttribute('data-k', key);
+    d.innerHTML = '<div class="cs-card sp-panel"><h3>' + esc(w.title) + '</h3><p class="cs-t' + (w.bad ? ' bad' : '') + '" role="status">' + esc(w.text) + '</p>' +
+      (w.sub ? '<p class="cs-s">' + esc(w.sub) + '</p>' : '') +
+      '<div class="cs-bar">' + w.ctas.map(function (x, i) { return '<button type="button" class="sp-btn sp-md ' + x[2] + '" data-shape="' + i + '" data-cs="' + x[0] + '"><span class="sp-t">' + esc(x[1]) + '</span></button>'; }).join('') + '</div></div>';
+    d.hidden = false; sheetUnder(true);
+    if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(d); } catch (e) { } }
+    setTimeout(function () { var b = d.querySelector('[data-cs]'); if (b && !d.hidden) { try { b.focus({ preventScroll: true }); } catch (e) { } } }, 30);
   }
   function css() {
     var Q = ':root:not(#_):not(#_):not(#_) #career';
@@ -612,15 +850,53 @@
       Q + ' .coo-code{width:8.5em;min-height:44px;font:700 16px var(--ui,sans-serif);letter-spacing:.12em;text-transform:uppercase;text-align:center}',
       Q + ' .coo-note{margin:8px 0 0;font-weight:700;font-size:max(12px,.9em)}',
       Q + ' .coo-create{display:flex;flex-direction:column;gap:6px}',
+      Q + ' .coo-st{margin:4px 0 6px;font-weight:800;font-size:max(14px,1.02em);line-height:1.35}',
+      Q + ' .coo-me{margin:4px 0;font-weight:700;font-size:max(13px,.95em)}',
+      Q + ' .coo-g .acts{flex-wrap:wrap}',
       // invitado: lo que no puede tocar, apagado (la puerta de onClick lo para y lo explica)
       Q + '.cr-coopg button[data-act]:not([data-act^="co-"]):not([data-act="up"]):not([data-act="badge"]):not([data-act="close"]):not([data-act="hub"]):not([data-act="lvl"]):not([data-act="lg6"]):not([data-act="lgsheet"]):not([data-act="est"]):not([data-act^="st-"]){opacity:.45;filter:saturate(.4)}'
     ].join('\n');
   }
-  (VB.CareerUIExt = VB.CareerUIExt || []).push({ id: 'coop', prefix: 'co-', ui: { match: card }, createRow: createRow, act: act, css: css });
+  (VB.CareerUIExt = VB.CareerUIExt || []).push({ id: 'coop', prefix: 'co-', ui: { matchTop: guestCard, match: card }, createRow: createRow, act: act, css: css });
+
+  /** tools/mobaudit.js (filas carrera-coop-*): deja una pantalla del cooperativo de muestra en la página, sin red. kind: 'host'
+   *  (anfitrión con pareja presentada y lista), 'guest' (invitado con la Carrera; el anfitrión eligiendo), 'solo' (el anfitrión juega
+   *  sin él), 'wait' (esperando la Carrera), 'down' (se ha cortado: de vuelta a su Carrera, con la hoja), 'sum' (Resumen de la jornada
+   *  del invitado sobre la hoja final de muestra, ?debug=recap&career=1). Con una Carrera de playa con club guardada (salvo 'sum'). */
+  function demo(kind) {
+    var fake = { state: 'open', send: function () { }, poll: function () { return []; } }, mate = { id: 'demo', name: 'Noa Ferrer', num: 11 };
+    if (kind === 'sum') {
+      var g = VB.ctx && VB.ctx.game; if (!g || !g.career || !g.sets) return false;
+      var cs = copy(g.career), hn = cs.player || 'Anfitriona', hnum = cs.num | 0, BL = VB.Badges && VB.Badges.BY && VB.Badges.BY.canon;
+      cs.player = mate.name; cs.num = cs.mateNum | 0 || mate.num; cs.mate = hn; cs.mateNum = hnum;
+      var win = g.sets[0] > g.sets[1];
+      var s = { label: cs.label || '', phase: 'league', season: 1, win: win, sets: g.sets.slice(), setScores: (g.setScores || []).map(function (x) { return x.slice(); }),
+        nota: 7.4, xp: 212, lvlUp: 1, lvl: 4, ptsGained: 3, me: { nota: 7.4, kills: 6, aces: 2, blocks: 1, assists: 3, digs: 5, errors: 2 },
+        badges: BL ? [{ slot: 0, num: cs.num, id: 'canon', name: BL.name, lvl: 1, prev: 0, tier: 'bronce', eq: true }] : [], round: [] };
+      return showSum({ sum: s, cs: cs, x: null });
+    }
+    reset(''); S.note = ''; S.down = null;   // (antes de leer la Carrera: una muestra anterior de invitado dejaba la de memoria)
+    var Kb = KB(), c = null; try { c = Kb && Kb.load(); } catch (e) { c = null; }
+    if (!c || isHall(c) || !(c.myClub >= 0)) return false;
+    if (kind === 'host') {
+      adopt(c, mate, 1); Kb.save(c);
+      S.role = 'host'; S.link = fake; S.names = [c.player.name, mate.name]; S.hi = { id: mate.id, name: mate.name, gz: false, aimSet: true, jsetAim: false }; S.ready = true; S.stSent = 'hub';
+      ui(); return true;
+    }
+    if (['guest', 'solo', 'wait', 'down'].indexOf(kind) < 0) return false;
+    var hc = copy(c); adopt(hc, mate, 1); hc.coop.p2.pts = 3; hc.coop.p2.lvl = 3;
+    S.role = 'guest'; S.link = fake; S.names = [c.player.name, mate.name];
+    if (kind === 'wait') { ui(); return true; }
+    installGuest(hc); S.got = 1; S.hostW = kind === 'solo' ? 'solo' : 'hub';
+    if (kind === 'down') reset('down');
+    ui(); return true;
+  }
 
   VB.CareerCoop = {
     // estado
-    guest: guestOn, host: hostOn, paired: paired, ready: function () { return S.ready; }, names: function () { return S.names.slice(); },
+    guest: guestOn, host: hostOn, paired: paired, ready: function () { return S.ready; },
+    names: function () { return S.names.slice(); },
+    noP2: function () { return !!(S.match && S.match.noP2); },   // (career.js matchDone: este partido lo jugó el compañero de la IA)
     note: function () { return S.note; }, inMatch: function () { return !!S.match; },
     // entrada
     startHost: startHost, join: join, onJoinLink: onJoinLink, leave: leave, setReady: setReady,
@@ -631,7 +907,8 @@
     // datos (pruebas: tools/cooptest.js)
     ensure: ensure, adopt: adopt, newP2: newP2, applySetup: applySetup, creditMate: creditMate, applyIntent: applyIntent, guestView: guestView,
     memStore: memStore, pack: pack, unpack: unpack, installGuest: function (c) { return installGuest(c); }, feed: feed,
+    guestSum: guestSum, endX: endX, showSum: showSum, sheet: sheetWant, hostState: hostState, p2Rec: p2Rec, matchWatch: function () { matchWatch(); },
     P2_KEY: P2_KEY, KINDS: KINDS,
-    _ext: EXT, _S: S, _onMsg: onMsg, _onReady: onReady, _reset: function () { reset(''); S.note = ''; }
+    _ext: EXT, _S: S, _onMsg: onMsg, _onReady: onReady, _reset: function () { reset(''); S.note = ''; S.down = null; }, _demo: demo, _tick: function () { tick(); }
   };
 })();

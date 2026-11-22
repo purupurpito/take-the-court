@@ -770,6 +770,7 @@
     net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
     net.want = false; net.rivalWants = false; net.wants = {}; net.recBegun = false; net.recDone = false; net.recRes = null; net.recBeat = 0;
     net.stSnap = null; net.stRs = 0; net.hx = 0;   // (auditoría: copia de la hoja para rehacerla tras una vuelta; cruceta del HUD)
+    net.overAt = 0; net.ps = null; net.bs = null; net.fPrev = 0;   // (L2: final sin evento y suavizado de la vista de la sesión anterior)
     if (net.away0) { s.setAway(true); s.maxCatch = 150; }
     return s;
   }
@@ -824,7 +825,8 @@
   }
   /** Récord online (VB.NetRec): marca al empezar (cerrar la pestaña = abandono) y, una vez por partido, el resultado cuando ya no
    *  cambia (final confirmado, abandono, o juzgado por tiempo). En depuración (?net=) solo con &netrec=1 (pruebas). */
-  function netRecOn() { return !!VB.NetRec && (!ctx.debug || Q.netrec === '1'); }
+  // (la Carrera cooperativa no va al récord online: es contra la IA y la Carrera ya lleva lo suyo; un abandono ahí no es una derrota online)
+  function netRecOn() { return !!VB.NetRec && (!ctx.debug || Q.netrec === '1') && !(net && net.coopCareer); }
   function netSettle() {
     if (!net || !net.sess || net.recDone || !net.recBegun || !netRecOn()) return;
     var s = net.sess, res = s.result;
@@ -972,10 +974,11 @@
   /** Plazas humanas del equipo t (canónico), sin la tuya con notMe. */
   function netSeatsOf(t, notMe) { var r = [], H = net.humans || []; for (var k = 0; k < H.length; k++) if (H[k].team === t && !(notMe && k === net.seat)) r.push(k); return r; }
   function netSeatName(k) { var h = net.humans && net.humans[k]; return (h && h.name) || 'Jugador ' + (k + 1); }
-  /** Texto de una lista de plazas: «Ana», «Ana y Luis»; con más de 2, «Equipo de Ana (6)» (cabe en el HUD del móvil). '' si no hay. */
+  /** Texto de una lista de plazas: «Ana», «Ana y Luis»; con más de 2, «Equipo de Ana» (cabe en el HUD del móvil; sin la cuenta de
+   *  personas, que se leía como el tamaño del equipo: «(3)» en un 6 contra 6). '' si no hay. */
   function netListTxt(L) {
     if (!L.length) return '';
-    if (L.length > 2) return 'Equipo de ' + netSeatName(L[0]) + ' (' + L.length + ')';
+    if (L.length > 2) return 'Equipo de ' + netSeatName(L[0]);
     return L.length === 2 ? netSeatName(L[0]) + ' y ' + netSeatName(L[1]) : netSeatName(L[0]);
   }
   function netAbbr(n) { return String(n || '').replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ0-9]/g, '').slice(0, 3).toUpperCase(); }
@@ -1110,11 +1113,31 @@
     if (v) {
       // Fluida: la pose pintada se pone sobre la partida local solo mientras se copia a la vista (sin la copia entera de más por frame)
       if (net.model === 'fluida' && s.withDisplay) s.withDisplay(VB.NetView.mirror, v, net.me); else VB.NetView.mirror(v, r.g, net.me);
-      if (net.multi && net.model === 'precisa') netBallSmooth(v, realDt);   // (Precisa-N: el salto del balón de un rollback se reparte)
+      if (net.multi && net.model === 'precisa') {   // (Precisa-N: el salto de un rollback se reparte)
+        // (con el tiempo de verdad entre frames, no realDt, que va topado a MAX_DT: tras un parón de 1 s se pinta donde está)
+        var fdt = net.fPrev ? (net.frameAt - net.fPrev) / 1000 : 0; net.fPrev = net.frameAt;
+        netBallSmooth(v, fdt); netPlayersSmooth(v, fdt);
+      } else if (net.multi && net.model === 'host') {
+        // (P8, modelo host. ANFITRIÓN: pinta a cada invitado con su última pose extrapolada y cada pose nueva, con su ±jitter, daba un
+        //  tirón: netdrive 6v6 × 12 a 150 ms, 45 saltos > 0,5 m en 90 s (hasta 0,96 m). Se reparten como en Precisa-N; el balón ya lo
+        //  suaviza nethost (_hostPaint). INVITADO: interpola a los demás, pero un paquete que falta (extrapolación y vuelta) o un frame
+        //  largo aún daban 2-5 saltos > 0,5 m por 90 s a 150 ms; se reparten igual SALVO el que va a tocar (L1: se pinta con el reloj
+        //  del balón para que su mano y el balón lleguen a la vez): a ese no se le añade desfase, solo se acaba el que llevara)
+        var fdh = net.fPrev ? (net.frameAt - net.fPrev) / 1000 : 0; net.fPrev = net.frameAt;
+        netPlayersSmooth(v, fdh, net.slot === 0 ? null : netHostBallClock);
+      }
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
       netConfirmed(s, r.confirmed);
       if (r.events.length) VB.NetView.mapEvents(r.events, v, net.me, frameEvents);
       if (ctx.state === 'playing' && !net.over && frameEvents.some(isGameOver)) { net.over = true; netSettle(); setState('over'); }
+      // (varios, L2) la sesión da el partido por acabado (status 'over', con el gameOver confirmado) pero su evento no llegó a presentarse:
+      // pasa si el final se confirmó en silencio (resync / reparación con foto justo al acabar). Antes el invitado se quedaba en 'playing'
+      // con el cartel del set encima (P7: más de 160 s). El gameOver presentado sale en el MISMO frame que el status 'over'; si a los
+      // 600 ms no ha salido, a la hoja final igual. El 1 contra 1 no pasa por aquí.
+      else if (net.multi && ctx.state === 'playing' && !net.over && r.status === 'over') {
+        if (!net.overAt) net.overAt = performance.now();
+        else if (performance.now() - net.overAt > 600) { net.over = true; netSettle(); setState('over'); }
+      }
     }
     netHud(r);
     return v ? realDt : 0;
@@ -1124,21 +1147,83 @@
    *  pintado del modelo host (nethost.js _blend): si el balón de la vista salta respecto a lo esperado (seguir con la velocidad de antes
    *  o la de ahora) entre 0,25 y 3 m, la diferencia se guarda y se deshace en BALL_TAU = 80 ms. Solo la vista (net.view, que el espejo
    *  rehace cada frame): la partida no cambia. El 1 contra 1 no pasa por aquí. net.bj = saltos que quedan (> 0,3 m), para netdrive. */
+  var BS_V = 15, BS_TP = 4;
   function netBallSmooth(v, dt) {
-    var b = v.ball, S = net.bs || (net.bs = { o: [0, 0, 0], L: null }), o = S.o, L = S.L;
-    if (!b || v.mode !== 'rally' || b.held || !(dt > 0) || dt > 0.1) { S.L = null; o[0] = o[1] = o[2] = 0; return; }
+    var b = v.ball, S = net.bs || (net.bs = { o: [0, 0, 0], La: new Float64Array(6), ok: false }), o = S.o, L = S.ok ? S.La : null;   // (sin reservar nada por frame)
+    if (!b || v.mode !== 'rally' || b.held || !(dt > 0) || dt > 0.1) { S.ok = false; o[0] = o[1] = o[2] = 0; return; }
     var px = b.x, py = b.y, pz = b.z;
     if (L) {
       var jx = L[0] + L[3] * dt - (px + o[0]), jy = L[1] + L[4] * dt - (py + o[1]), jz = L[2] + L[5] * dt - (pz + o[2]), j = Math.sqrt(jx * jx + jy * jy + jz * jz);
       var kx = L[0] + b.vx * dt - (px + o[0]), ky = L[1] + b.vy * dt - (py + o[1]), kz = L[2] + b.vz * dt - (pz + o[2]), k = Math.sqrt(kx * kx + ky * ky + kz * kz);
       if (k < j) { j = k; jx = kx; jy = ky; jz = kz; }
-      if (j > 0.25 && j < 3) { o[0] += jx; o[1] += jy; o[2] += jz; }
+      if (j > 0.25 && j < BS_TP) { o[0] += jx; o[1] += jy; o[2] += jz; }
     }
-    var d = Math.pow(0.5, dt * 1000 / 80); o[0] *= d; o[1] *= d; o[2] *= d;
+    // (P8: lo que se deshace en un frame, como mucho BS_V m/s: con CPU ×4 a 150 ms un rollback de 2-3 m se pintaba en 2-3 frames de
+    //  0,5-0,8 m; ahora a ≤ 0,25 m por frame a 60 fps. Hasta BS_TP m se reparte; más, se pinta donde está)
+    var d = Math.pow(0.5, dt * 1000 / 80), ol = Math.sqrt(o[0] * o[0] + o[1] * o[1] + o[2] * o[2]), cut = ol * (1 - d), lim = BS_V * dt;
+    if (cut > lim) d = 1 - lim / ol;
+    o[0] *= d; o[1] *= d; o[2] *= d;
     var nx = px + o[0], ny = py + o[1], nz = Math.max((VB.C && VB.C.BR) || 0.21, pz + o[2]);
     if (L) { var mx = nx - (L[0] + b.vx * dt), my = ny - (L[1] + b.vy * dt), mz = nz - (L[2] + b.vz * dt), jm = Math.sqrt(mx * mx + my * my + mz * mz); if (jm > 0.3) { net.bj = (net.bj | 0) + 1; if (jm > (net.bjMax || 0)) net.bjMax = jm; } }
     b.x = nx; b.y = ny; b.z = nz;
-    S.L = [nx, ny, nz, b.vx || 0, b.vy || 0, b.vz || 0];
+    var La = S.La; La[0] = nx; La[1] = ny; La[2] = nz; La[3] = b.vx || 0; La[4] = b.vy || 0; La[5] = b.vz || 0; S.ok = true;
+  }
+  /** Precisa-N (online de varios, L2): tras un rollback los jugadores que no lleva esta máquina (los otros humanos y la IA, que depende
+   *  de lo que hagan ellos) saltaban de golpe: netdrive 2v2 × 4, invitados, 370-460 saltos > 0,15 m en 90 s a 80 ms (hasta 1,1 m) y
+   *  600-730 a 150 ms (hasta 1,7 m). Como el balón: si la posición de la vista se aparta de la esperada (la pintada del frame anterior
+   *  más su velocidad, la de antes o la de ahora: la menor) más de PS_MIN, el salto se guarda como desfase y se deshace en línea recta
+   *  en 80-150 ms (PS_MS0-PS_MS1, más tiempo cuanto mayor; sin el tirón del primer frame de un decaimiento exponencial). Más de PS_TP = teletransporte: se pinta donde está. Solo
+   *  en 'rally' y 'serve' y sin cambio de modo (los cambios de modo recolocan a todos a propósito); el desfase sigue deshaciéndose
+   *  aunque cambie el modo. No se toca a tu jugador (salvo con tu plaza en la IA, r.meAI) ni al que tiene el balón en la mano (el
+   *  balón va con sus manos). Solo la vista, que el espejo rehace cada frame: la partida no cambia. Sin reservar nada por frame. */
+  var PS_MS0 = 80, PS_MS1 = 150, PS_MIN = 0.08, PS_TP = 2, PS_MAX = 16;
+  /** Modelo host, invitado (P8): ¿va este jugador con el reloj del balón pintado (L1, nethost _guestPoses: el que va a tocar)? */
+  function netHostBallClock(p) {
+    var s = net.sess; if (!s) return false;
+    if (p.id === s._capBind) return true;
+    var pd = s.pDel; return !!(pd && pd[p.id] > 0.01);
+  }
+  /** skip(p) (opcional): a ese jugador no se le añade desfase nuevo (el que llevara se sigue deshaciendo). */
+  function netPlayersSmooth(v, dt, skip) {
+    var ps = v.players, S = net.ps, i, k;
+    if (!ps) return;
+    if (!S) S = net.ps = { o: new Float64Array(PS_MAX * 3), r: new Float64Array(PS_MAX), L: new Float64Array(PS_MAX * 6), m: '', ok: false };
+    var o = S.o, R = S.r, L = S.L, n = Math.min(ps.length, PS_MAX);
+    if (!(dt > 0) || dt > 0.1) { for (k = 0; k < n * 3; k++) o[k] = 0; S.ok = false; return; }   // (parón: se pinta donde está)
+    var m = v.mode, look = S.ok && S.m === m && (m === 'rally' || m === 'serve'), me = net.r && net.r.meAI ? null : v.ctrl, held = v.ball ? v.ball.held : null;
+    for (i = 0; i < n; i++) {
+      var p = ps[i], i3 = i * 3, i6 = i * 6, z = p.z || 0, vx = p.vx || 0, vy = p.vy || 0, vz = p.vz || 0;
+      if (p === me || p === held) { o[i3] = o[i3 + 1] = o[i3 + 2] = 0; R[i] = 0; }
+      else {
+        if (look && !(skip && skip(p))) {
+          // salto = esperada − (cruda + desfase que ya llevaba)
+          var bx = p.x + o[i3], by = p.y + o[i3 + 1], bz = z + o[i3 + 2];
+          var jx = L[i6] + L[i6 + 3] * dt - bx, jy = L[i6 + 1] + L[i6 + 4] * dt - by, jz = L[i6 + 2] + L[i6 + 5] * dt - bz, j = jx * jx + jy * jy + jz * jz;
+          var kx = L[i6] + vx * dt - bx, ky = L[i6 + 1] + vy * dt - by, kz = L[i6 + 2] + vz * dt - bz, kk = kx * kx + ky * ky + kz * kz;
+          if (kk < j) { j = kk; jx = kx; jy = ky; jz = kz; }
+          if (j > PS_MIN * PS_MIN) {
+            o[i3] += jx; o[i3 + 1] += jy; o[i3 + 2] += jz;
+            var ol = Math.sqrt(o[i3] * o[i3] + o[i3 + 1] * o[i3 + 1] + o[i3 + 2] * o[i3 + 2]);
+            // (m por ms: llega a 0 en ol × 150 ms entre PS_MS0 y PS_MS1: hasta 1 m, como mucho ~0,11 m más por frame a 60 fps; lo
+            //  pequeño se acaba antes y lo de más de 1 m tarda PS_MS1)
+            if (ol > PS_TP) { o[i3] = o[i3 + 1] = o[i3 + 2] = 0; R[i] = 0; } else R[i] = ol / Math.min(PS_MS1, Math.max(PS_MS0, ol * 150));
+          }
+        }
+        // el desfase baja en línea recta (R[i] m/ms) hasta 0
+        var ox = o[i3], oy = o[i3 + 1], oz = o[i3 + 2], len = Math.sqrt(ox * ox + oy * oy + oz * oz);
+        if (len > 0) {
+          var nl = len - R[i] * dt * 1000;
+          if (nl <= 1e-4) { o[i3] = o[i3 + 1] = o[i3 + 2] = 0; R[i] = 0; }
+          else { var f = nl / len; o[i3] = ox * f; o[i3 + 1] = oy * f; o[i3 + 2] = oz * f; }
+        }
+        if (o[i3] !== 0 || o[i3 + 1] !== 0 || o[i3 + 2] !== 0) {
+          p.x += o[i3]; p.y += o[i3 + 1];
+          var nz = z + o[i3 + 2]; p.z = nz < 0 ? 0 : nz;   // (no por debajo del suelo)
+        }
+      }
+      L[i6] = p.x; L[i6 + 1] = p.y; L[i6 + 2] = p.z || 0; L[i6 + 3] = vx; L[i6 + 4] = vy; L[i6 + 5] = vz;
+    }
+    S.m = m; S.ok = true;
   }
   /** Pestaña oculta (fase 3): tu jugador pasa a la IA (bit ai, al instante) y la sesión sigue avanzando con un temporizador (en una
    *  pestaña oculta no hay requestAnimationFrame y el rival se quedaría esperando). Un Worker de un Blob da el pulso: sus mensajes no
@@ -1261,11 +1346,12 @@
   }
   /** Nombre recortado para el HUD (como las etiquetas: max-width 8.5em → ~10 letras y «…»). */
   function netShort(t) { t = String(t || ''); return t.length > 10 ? t.slice(0, 9) + '…' : t; }
-  /** «Tú y Ana contra Luis y Marta» (con más de 2 por lado, «Tu equipo (6) contra Equipo de Luis (6)»; el coop, «contra la IA»). */
+  /** «Tú y Ana contra Luis y Marta» (con más de 2 por lado, «Tu equipo contra Equipo de Luis»: sin cuentas, que se leían como el
+   *  tamaño del equipo —«(4)» en un 6 contra 6 con 4 personas—; el coop, «contra la IA»). */
   function netTeamsHtml() {
     var mt = netSeatsOf(net.team, true), riv = netSeatsOf(1 - net.team, false);
-    var a = !mt.length ? 'Tú' : mt.length === 1 ? 'Tú y <b>' + netEsc(netShort(netSeatName(mt[0]))) + '</b>' : 'Tu equipo (' + (mt.length + 1) + ')';
-    var rv = riv.length > 2 ? 'Equipo de ' + netShort(netSeatName(riv[0])) + ' (' + riv.length + ')' : riv.map(function (k) { return netShort(netSeatName(k)); }).join(' y ');
+    var a = !mt.length ? 'Tú' : mt.length === 1 ? 'Tú y <b>' + netEsc(netShort(netSeatName(mt[0]))) + '</b>' : 'Tu equipo';
+    var rv = riv.length > 2 ? 'Equipo de ' + netShort(netSeatName(riv[0])) : riv.map(function (k) { return netShort(netSeatName(k)); }).join(' y ');
     return a + ' contra ' + (riv.length ? '<b>' + netEsc(rv) + '</b>' : 'la IA');
   }
   /** Ping de la red (WebRTC, como mucho cada 2 s): mine = el tuyo (invitado: con el anfitrión; anfitrión: el peor de sus enlaces) y
@@ -1281,6 +1367,13 @@
     if (P) for (i = 0; i < P.length; i++) if (i !== net.seat && P[i] > worst) worst = Math.round(P[i]);
     return [mine, worst];
   }
+  /** Botón de salir del partido del de varios: abandonar cuenta como derrota en el récord online; en la Carrera cooperativa no hay
+   *  récord online (el partido no se apunta en la Carrera y se vuelve a jugar) y, con el partido ya resuelto, solo «Salir». */
+  function netQuitBtn(r) {
+    var w = r && r.result && r.result.why;
+    if (net.coopCareer || (r && (r.valid === false || w === 'rivalGone' || w === 'rivalQuit'))) return '<button data-n="quit">Salir del partido</button>';
+    return '<button data-n="quit">Abandonar (cuenta como derrota)</button>';
+  }
   /** Textos del HUD del online de varios → [msg (HTML con los nombres escapados), botones]. Las plazas que espera la sesión: r.waitFor. */
   function netHudMulti(r, s) {
     var msg = '', btn = '', v = net.view, k, quit = '<button data-n="quit">Salir</button>';
@@ -1289,17 +1382,27 @@
     else if (r.status === 'ended') {
       var w = r.result && r.result.why;
       msg = w === 'quit' ? 'Has abandonado' : w === 'version' ? (VB.Update ? VB.Update.versionText(r.result.rv) : 'Alguien tiene otra versión del juego: reiniciad todos') :
-        w === 'rivalQuit' || w === 'rivalGone' ? 'Los rivales se han ido: ganáis' : w === 'hostGone' ? 'El anfitrión no ha vuelto: el partido no cuenta' :
+        w === 'rivalQuit' || w === 'rivalGone' ? 'Los rivales se han ido: ganáis' :
+        w === 'hostGone' ? (net.seat > 0 ? '<b>' + netEsc(netShort(netSeatName(0))) + '</b> no ha vuelto: el partido no cuenta' : 'El partido no cuenta') :
+        w === 'lost' ? 'Se ha perdido la conexión con la sala: el partido no cuenta' :
         w === 'late' ? 'Has tardado demasiado en volver: cuenta como abandono' : w === 'mismatch' ? 'La sala no coincide con lo anunciado: no hay partido' :
         w === 'noShow' ? 'Faltan jugadores: no hay partido' : 'Partido terminado';
       btn = '<button data-n="menu">Volver al menú</button>';
     } else if (r.status === 'waiting') {
       msg = 'Esperando a: ' + (r.waitFor && r.waitFor.length ? netNamesHtml(r.waitFor) : 'los demás') + '…';
-      if (r.canAI) btn = '<button data-n="ai">Seguir con la IA</button><button data-n="quit">Abandonar (cuenta como derrota)</button>';
+      // (como en el 1 contra 1: la cuenta atrás y lo que pasa si no vuelve; seguir con la IA tampoco cuenta)
+      if (r.canAI) {
+        if (r.goneIn > 0) msg += ' Si no vuelve en ' + Math.ceil(r.goneIn / 1000) + ' s, el partido no cuenta';
+        btn = '<button data-n="ai">Seguir con la IA (no cuenta)</button>' + netQuitBtn();
+      }
     } else {
       var pg = netPings(r), amb = function (ms) { return ms > 150 ? 'var(--amber,#ffb238)' : 'inherit'; };
       msg = netTeamsHtml() + ' | <span style="color:' + amb(pg[0]) + '">' + pg[0] + ' ms</span>' +
         (pg[1] > pg[0] ? ' <span style="opacity:.7;font-weight:500">(peor <span style="color:' + amb(pg[1]) + '">' + pg[1] + ' ms</span>)</span>' : '') + (r.unstable ? ' | Conexión inestable' : '');
+      // (como en el 1 contra 1: los rivales no volvieron y se sigue contra la IA con el partido ya ganado; o ya no cuenta)
+      var rw = r.result && r.result.why;
+      if ((rw === 'rivalGone' || rw === 'rivalQuit') && r.valid !== false) msg += ' | Los rivales no han vuelto: ganáis (contra la IA)';
+      else if (r.solo || r.valid === false) msg += ' | Contra la IA (no cuenta)';
       // plazas de los demás que lleva la IA (se ha ido o tiene la pestaña oculta: vuelve en el siguiente balón muerto)
       var ai = []; if (v && v.hum) for (k = 0; k < v.hum.length; k++) if (k !== net.seat && v.hum[k].ai) ai.push(k);
       if (ai.length) msg += ' | ' + netNamesHtml(ai) + (ai.length > 1 ? ': los lleva la IA' : ': lo lleva la IA');
@@ -1311,7 +1414,7 @@
         if (!mine) btn = '<button data-n="skip">Continuar</button>';
       } else if (net.away0) msg += ' (tu jugador lo lleva la IA)';
       else if (r.meAI) msg += ' | Tu conexión va lenta: te lleva la IA un rato';   // (Precisa-N: el anfitrión te deja de espectador y vuelves solo)
-      if (net.menu) btn = '<button data-n="quit">Abandonar (cuenta como derrota)</button>';
+      if (net.menu) btn = netQuitBtn(r);
     }
     return [msg, btn];
   }
