@@ -14,7 +14,11 @@ redes de empresa). Hasta ahora el lobby solo podía decir «vuestras redes no lo
   credenciales de Cloudflare Realtime TURN de 2 h (`generate-ice-servers`), solo las entradas TURN y sin el puerto 53. Comprueba el
   token sin SDK (RS256, claves públicas de `securetoken@system.gserviceaccount.com`, `iss`/`aud` = `make-the-cut-vb`). Secretos
   `TURN_KEY_ID` y `TURN_KEY_API_TOKEN` con `wrangler secret put` (nunca en el repo). CORS solo para takethecourt.com, el puente de
-  github.io y localhost:8080. Límite por uid (binding de Rate Limiting; sin él, uno sencillo por instancia).
+  github.io y localhost:8080; **sin Origin, 403** (22-nov-2026, revisión de la rama: antes las peticiones sin Origin pasaban con
+  token). Límite por uid **y por IP** (`CF-Connecting-IP`; binding de Rate Limiting; sin él, uno sencillo por instancia): las cuentas se
+  crean gratis por REST con la clave pública, así que el uid solo no frena. **Pendiente de Ferran antes de desplegar: alerta (o tope)
+  de gasto de Realtime TURN en Cloudflare** (turn-worker/README.md, paso 1). No hecho: exigir antigüedad de cuenta o sala online
+  activa (el ID token no trae la fecha de creación de la cuenta; haría falta Firestore o la Admin API).
 - **`js/netconfig.js`**: `VB.NET_TURN_URL = ''` (apagado). Encenderlo = poner `'https://turn.takethecourt.com/ice'`.
 - **`js/netrtc.js`**: `turnPrep(auth)` pide las credenciales (como mucho 2 s: si tarda, se sigue con STUN y la respuesta tardía vale
   para la siguiente negociación), las guarda en `VB.NET_ICE = {turn, relayOnly:false, exp}` y las reutiliza hasta 10 min antes de

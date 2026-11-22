@@ -517,7 +517,7 @@
       '.vt-pause{width:44px;height:44px}.vt-zoom{right:calc(68px + env(safe-area-inset-right));top:calc(16px + env(safe-area-inset-top))}}' +
     '@media (max-height:340px){.vt-hit{width:calc(78px*var(--vts,1));height:calc(78px*var(--vts,1))}.vt-jump{width:calc(60px*var(--vts,1));height:calc(60px*var(--vts,1));right:calc(120px*var(--vts,1) + env(safe-area-inset-right))}' +
       '.vt-sw{right:calc(12px + env(safe-area-inset-right));bottom:calc(118px*var(--vts,1) + env(safe-area-inset-bottom))}' +
-      '.vt-set{width:calc(52px*var(--vts,1));height:calc(52px*var(--vts,1));right:calc(124px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(84px*var(--vts,1) + env(safe-area-inset-bottom))}}}' +
+      '.vt-set{width:calc(52px*var(--vts,1));height:calc(52px*var(--vts,1));right:calc(124px*var(--vts,1) + env(safe-area-inset-right));bottom:calc(84px*var(--vts,1) + env(safe-area-inset-bottom))}}' +
     // DISPOSICIÓN (imprescindible 4.2, 1.22.0): espejo para zurdos (joystick en la mitad DERECHA) y opacidad elegida por botón. La
     // opacidad va en filter (se multiplica con la de los estados: reposo, jugador detrás, balón muerto al 25 %); .dn y .off ya usan filter
     '#touch.mirror .vt-zone{left:auto;right:0}' +
@@ -1089,8 +1089,15 @@
       var cs = getComputedStyle(b);
       M[k] = { d: b.offsetWidth, bw: cs.boxSizing === 'border-box' ? 0 : b.offsetWidth - b.clientWidth, cx: b.offsetLeft + b.offsetWidth / 2, cy: b.offsetTop + b.offsetHeight / 2, f: parseFloat(cs.fontSize) || 0 };
     }
-    var out = {};
-    for (k in M) {
+    var out = {}, placed = [];
+    // (22-nov-2026, revisión de la rama) primero los botones que has movido y luego los de fábrica: un botón que se echa ENCIMA de uno ya
+    // colocado (se pisan los círculos) se aparta en línea recta hasta dejar 6 px, como con la pausa y la lupa. Antes podían quedar uno
+    // encima de otro (COLOCAR dentro de GOLPEAR con «Zurdos» y GOLPEAR movido) y el toque iba al que no era.
+    var order = [];
+    for (k in M) if (lay && lay[k] && fin(lay[k].x) && fin(lay[k].y)) order.push(k);
+    for (k in M) if (order.indexOf(k) < 0) order.push(k);
+    for (var oi = 0; oi < order.length; oi++) {
+      k = order[oi];
       var m = M[k], s = 1, cx = m.cx, cy = m.cy;
       e = lay && lay[k];
       if (e && fin(e.s)) s = e.s;
@@ -1102,9 +1109,17 @@
         var fx = FX[f], dx = cx - fx.cx, dy = cy - fx.cy, dl = Math.hypot(dx, dy), need = r + fx.r + 6;
         if (dl < need) { if (dl < 1) { dx = 0; dy = 1; dl = 1; } cx = fx.cx + dx / dl * need; cy = fx.cy + dy / dl * need; }
       }
+      // (solo si se pisan de verdad: lo de fábrica no se toca; hasta 4 vueltas, por si al apartarse de uno se echa encima de otro)
+      for (var pass = 0, hitAny = true; pass < 4 && hitAny; pass++) {
+        hitAny = false;
+        for (var pi = 0; pi < placed.length; pi++) {
+          var po = placed[pi], ex = cx - po.cx, ey = cy - po.cy, el2 = Math.hypot(ex, ey);
+          if (el2 < r + po.r + 2) { var nd = r + po.r + 6; if (el2 < 1) { ex = 0; ey = -1; el2 = 1; } cx = po.cx + ex / el2 * nd; cy = po.cy + ey / el2 * nd; hitAny = true; }
+        }
+      }
       cx = W - sa.l - sa.r > d + 2 * pad ? clampN(cx, sa.l + r + pad, W - sa.r - r - pad) : W / 2;
       cy = H - sa.t - sa.b > d + 2 * pad ? clampN(cy, sa.t + r + pad, H - sa.b - r - pad) : H / 2;
-      out[k] = { cx: cx, cy: cy, r: r };
+      out[k] = { cx: cx, cy: cy, r: r }; placed.push(out[k]);
     }
     // 2) escribir
     for (k in out) {

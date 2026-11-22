@@ -6,7 +6,12 @@
  *    siguiente ('serveReady'), una foto de la partida (VB.Sim.serialize: el grafo entero de g con g.rng, las estadísticas de la sim, la
  *    rotación, el líbero, los cambios, la zona, el saque de firma…) más las opciones con las que se creó (las de Sim.createGame tal cual,
  *    así los ajustes que cambies entre medias no la rompen) y lo que cuentan los módulos durante el partido (hoja final de ui.js,
- *    Estadística del partido, insignias y retos). Solo después de un punto: cerrar la pestaña nunca deja repetir un punto.
+ *    Estadística del partido, insignias y retos).
+ *  - PUNTO EN JUEGO (22-nov-2026, revisión de la rama): la foto es la de antes del saque, con el mismo g.rng, así que cerrar la pestaña
+ *    a mitad de un peloteo y retomar dejaría repetir ese punto (hasta ganarlo). Por eso, en cuanto el punto se pone en juego (lanzamiento
+ *    del saque o cualquier golpe después de la foto), la MISMA clave se reescribe con live: 1 (el texto ya guardado con un campo más, sin
+ *    serializar otra vez). Retomar una foto con live: 1 se puede, pero ese partido ya NO CUENTA (récord, racha, perfil, XP, insignias
+ *    ni retos: g.rsNc, como los partidos cortos) y las fotos siguientes llevan nc: 1. Decisión provisional en notes/pendientes-ferran.md.
  *  - Clave make-the-cut.resume (JSON). Sello con VB.VERSION: si la versión cambia, la foto se descarta (la sim puede ser otra).
  *    Al restaurar se comprueba que Sim.stateHash de la partida rehecha sea el de la foto; si no cuadra, se descarta.
  *  - Qué partidos: Partido rápido (2v2, 6v6, playa, cortos, «Jugar ya», reto del día). Nunca el online, la demo, el autopilot, el
@@ -18,10 +23,12 @@
  *
  * API (VB.Resume; main.js la usa, ui.js / menu-jugador.js solo leen peek):
  *   arm(g, meta)          partido g apto: meta = {kind: 'quick'|'career', opts (las de startMatch), gOpts (las de Sim.createGame), map, qs,
- *                         cm (Carrera: firma del partido), played (true = ya lleva puntos: el retomado)}. Sin arm, onFrame no guarda nada.
+ *                         cm (Carrera: firma del partido), played (true = ya lleva puntos: el retomado), nc (no cuenta)}. Sin arm, onFrame no guarda nada.
  *   disarm()              deja de guardar (sin borrar lo guardado).
  *   onFrame(g, events)    main.js, cada frame con eventos, DESPUÉS de UI.update: guarda o borra según los eventos.
  *   save(g) → bool        guarda ya (si g está armado y ya se ha jugado algún punto).
+ *   markLive() → bool     marca la última foto como «punto en juego» (live: 1); onFrame lo hace solo con 'toss' / 'hit'.
+ *   noCount(rec) → bool   la foto es de un punto en juego (live) o de un partido ya retomado así (nc): el partido no cuenta.
  *   load() → rec | null   lo guardado si es de esta versión y sano (si no, lo borra).
  *   peek() → {kind, score, sets, setNo, one, label, sub} | null   para la portada (sin la foto).
  *   apply(rec, g) → bool  rehace la partida g (creada con rec.gOpts) con la foto; comprueba la huella.
@@ -104,7 +111,7 @@
     }
   }
 
-  function arm(g, meta) { armed = g && meta ? { g: g, meta: meta, pts: meta.played ? 1 : 0 } : null; }
+  function arm(g, meta) { armed = g && meta ? { g: g, meta: meta, pts: meta.played ? 1 : 0, txt: null, live: false } : null; }
   function disarm() { armed = null; }
   // (solo cuenta un punto JUGADO aquí: un partido que empieza con marcador —«Final apretado» a 20-20— no se ofrece hasta su primer punto)
   function played() { return armed.pts > 0; }
@@ -116,20 +123,31 @@
     var rec = { f: FMT, v: ver(), t: Date.now(), kind: m.kind, opts: m.opts || {}, gOpts: m.gOpts, map: m.map || '', qs: m.qs || null, cm: m.cm || null,
       sc: { score: [g.score[0] | 0, g.score[1] | 0], sets: [g.sets[0] | 0, g.sets[1] | 0], setNo: g.setNo | 0, one: !!g.bo1 || (g.toWin | 0) === 1, size: g.size | 0 },
       h: S.stateHash(g) >>> 0, snap: snap, mods: modsGet(g) };
+    if (m.nc) rec.nc = 1;   // (retomado tras cerrar con el punto en juego: sigue sin contar)
     var txt; try { txt = JSON.stringify(rec); } catch (e) { return false; }
-    return setRaw(txt);
+    armed.txt = null; armed.live = false;
+    if (!setRaw(txt)) return false;
+    armed.txt = txt; return true;
+  }
+  /** El punto se ha puesto en juego después de la última foto: la misma foto con live: 1 (retomarla ya no cuenta). Sin foto, nada. */
+  function markLive() {
+    if (!armed || armed.live || !armed.txt) return false;
+    armed.live = true;
+    return setRaw('{"live":1,' + armed.txt.slice(1));
   }
 
   function onFrame(g, events) {
     if (!armed || armed.g !== g || !events || !events.length) return;
-    var want = false;
+    var want = false, live = false;
     for (var i = 0; i < events.length; i++) {
       var t = events[i].type;
       if (t === 'gameOver') { clear(); armed = null; return; }
-      if (t === 'point' && !events[i].replay) { armed.pts++; want = true; }
-      else if (t === 'challengeResult' || t === 'serveReady') want = true;
+      if (t === 'point' && !events[i].replay) { armed.pts++; want = true; live = false; }
+      else if (t === 'challengeResult' || t === 'serveReady') { want = true; live = false; }
+      else if (t === 'toss' || t === 'hit') live = true;   // (punto en juego: lanzamiento del saque o golpe)
     }
     if (want && !g.finished) save(g);
+    if (live && !g.finished) markLive();
   }
 
   function load() {
@@ -143,8 +161,10 @@
     if (r.kind === 'career' && !api.CAREER) return null;
     var sc = r.sc, a = sc.score[0] | 0, b = sc.score[1] | 0;
     var sub = a + '-' + b + ' · ' + (sc.one ? 'set único' : setLabel(sc.setNo));
-    return { kind: r.kind, score: [a, b], sets: sc.sets.slice(), setNo: sc.setNo, one: sc.one, size: sc.size, label: 'Seguir el partido', sub: sub };
+    return { kind: r.kind, score: [a, b], sets: sc.sets.slice(), setNo: sc.setNo, one: sc.one, size: sc.size, label: 'Seguir el partido', sub: sub, nc: noCount(r) };
   }
+  /** ¿Lo retomado ya no cuenta? (cerrado con el punto en juego, o retomado así antes) */
+  function noCount(rec) { return !!(rec && (rec.live === 1 || rec.nc === 1)); }
   function apply(rec, g) {
     var S = VB.Sim; if (!rec || !g || !S || !S.deserialize) return false;
     var ok = null; try { ok = S.deserialize(rec.snap, g); } catch (e) { ok = null; }
@@ -155,6 +175,6 @@
   var api = VB.Resume = {
     KEY: KEY, CAREER: Q.resumecareer === '1',
     arm: arm, disarm: disarm, armed: function () { return armed ? armed.g : null; }, onFrame: onFrame, save: save, load: load, peek: peek,
-    apply: apply, mods: mods, clear: clear, setLabel: setLabel, _plain: plain, _unplain: unplain
+    apply: apply, mods: mods, clear: clear, noCount: noCount, markLive: markLive, setLabel: setLabel, _plain: plain, _unplain: unplain
   };
 })();

@@ -8,6 +8,12 @@ matchstats.js / badges.js / retos.js (`resumeGet/resumeSet`). Prueba: `node tool
 - En el Partido rápido (2v2, 6v6, playa, cortos, «Jugar ya», reto del día), al acabar cada punto (`point`), al resolverse un challenge
   (`challengeResult`) y al preparar el saque siguiente (`serveReady`) se guarda el partido en `make-the-cut.resume` (localStorage, solo en
   el aparato; account.js no lo sube). Nada antes del primer punto.
+- **Punto en juego (22-nov, revisión de la rama).** La foto es la de ANTES del saque con el mismo `g.rng`: cerrar a mitad de un peloteo y
+  retomar dejaba repetir el punto (hasta ganarlo). Ahora, con el primer `toss` o `hit` después de la foto, la misma clave se reescribe
+  con `live: 1` (el texto ya guardado con un campo más). Retomar una foto `live` se puede, pero el partido queda con `g.rsNc = 1`: no
+  cuenta (récord, racha, perfil, XP, insignias, retos; ui.js showEnd y retos.js counts, como `g.short`), las fotos siguientes llevan
+  `nc: 1`, la cinta «Seguimos» lo dice y la hoja final también. Cerrar entre puntos sigue contando. Decisión provisional en
+  notes/pendientes-ferran.md (4.9.6).
 - La portada enseña el billete **«Seguir el partido · 18-15 · 2º set»** (dorado, en el sitio de «¡Jugar ya!» / «Continuar carrera», que
   tapa mientras lo hay). Un toque → cortinilla → el partido sigue con la cinta «Seguimos · 18-15 | 2º set», sin previa.
 - Se borra: en `gameOver`, al salir al menú a mitad (abandonar), al empezar cualquier otro partido de verdad (setGame) y si la versión del

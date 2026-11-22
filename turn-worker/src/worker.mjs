@@ -4,7 +4,9 @@
  *
  *   POST /ice   con «Authorization: Bearer <ID token de Firebase>» (proyecto make-the-cut-vb)
  *     200 → { iceServers: [{ urls: ['turn:…', 'turns:…'], username, credential }], ttl, exp }   (ttl en s; exp en ms de época)
- *     401 sin token o token no válido · 403 origen no permitido · 405 otro método · 429 demasiadas · 502 Cloudflare no contesta
+ *     401 sin token o token no válido · 403 sin Origin o con uno no permitido · 405 otro método · 429 demasiadas · 502 Cloudflare no contesta
+ *   Origin OBLIGATORIO (22-nov-2026, revisión de la rama): una petición sin Origin (curl, scripts) se rechaza aunque traiga token. No es
+ *   infalible (un script puede inventárselo), pero corta los de copiar y pegar; el freno de verdad son los dos límites y el tope de gasto.
  *   OPTIONS /ice → CORS (solo los orígenes de ALLOWED_ORIGINS)
  *   GET /health → 'ok' (sin llamar a nada)
  *
@@ -18,7 +20,8 @@
  *
  * Secretos (npx wrangler secret put, NUNCA en el repo): TURN_KEY_ID, TURN_KEY_API_TOKEN.
  * Variables (wrangler.toml): FIREBASE_PROJECT, ALLOWED_ORIGINS (separados por comas), TTL (s; 7200 = 2 h).
- * Límite opcional: binding RATE_LIMITER (Workers Rate Limiting) por uid; sin él, un límite sencillo por instancia.
+ * Límite opcional: binding RATE_LIMITER (Workers Rate Limiting) por uid Y por IP (CF-Connecting-IP; las cuentas se crean gratis, así que
+ * el uid solo no frena a quien saca cuentas nuevas); sin él, un límite sencillo por instancia con las mismas dos claves.
  * ===================================================================== */
 
 const JWKS_URL = 'https://www.googleapis.com/service_accounts/v1/jwk/securetoken@system.gserviceaccount.com';
@@ -26,7 +29,7 @@ const CF_API = 'https://rtc.live.cloudflare.com/v1/turn/keys/';
 const SKEW_S = 60;
 
 let jwks = null, jwksExp = 0;          // caché de las claves públicas de Google (por instancia)
-const hits = new Map();                // límite sencillo por uid (por instancia) si no hay RATE_LIMITER
+const hits = new Map();                // límite sencillo por uid y por IP (por instancia) si no hay RATE_LIMITER
 const LIMIT_N = 20, LIMIT_MS = 10 * 60 * 1000;
 
 function b64uBytes(s) {
@@ -99,14 +102,19 @@ function json(status, body, extra) {
   return new Response(JSON.stringify(body), { status, headers: Object.assign(h, extra || {}) });
 }
 
-async function limited(env, uid) {
+async function limited1(env, key) {
   if (env.RATE_LIMITER && typeof env.RATE_LIMITER.limit === 'function') {
-    try { const r = await env.RATE_LIMITER.limit({ key: uid }); return !r.success; } catch (e) { return false; }
+    try { const r = await env.RATE_LIMITER.limit({ key }); return !r.success; } catch (e) { return false; }
   }
-  const now = Date.now(), L = (hits.get(uid) || []).filter(t => now - t < LIMIT_MS);
-  L.push(now); hits.set(uid, L);
+  const now = Date.now(), L = (hits.get(key) || []).filter(t => now - t < LIMIT_MS);
+  L.push(now); hits.set(key, L);
   if (hits.size > 5000) hits.clear();
   return L.length > LIMIT_N;
+}
+/** Límite por cuenta y por IP (las dos cuentan siempre: así una IP con muchas cuentas nuevas también se para). */
+async function limited(env, uid, ip) {
+  const a = await limited1(env, 'u:' + uid), b = ip ? await limited1(env, 'ip:' + ip) : false;
+  return a || b;
 }
 
 export async function handle(request, env, fetchFn = fetch) {
@@ -114,7 +122,7 @@ export async function handle(request, env, fetchFn = fetch) {
   const ch = cors(env, origin);
   if (url.pathname === '/health') return new Response('ok', { headers: { 'Cache-Control': 'no-store' } });
   if (url.pathname !== '/ice' && url.pathname !== '/') return json(404, { error: 'not_found' }, ch);
-  if (origin && !ch['Access-Control-Allow-Origin']) return json(403, { error: 'origin' }, ch);
+  if (!origin || !ch['Access-Control-Allow-Origin']) return json(403, { error: 'origin' }, ch);
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: ch });
   if (request.method !== 'POST') return json(405, { error: 'method' }, Object.assign({ 'Allow': 'POST, OPTIONS' }, ch));
   const m = /^Bearer\s+(\S+)$/.exec(request.headers.get('Authorization') || '');
@@ -122,7 +130,7 @@ export async function handle(request, env, fetchFn = fetch) {
   let uid;
   try { uid = await verifyIdToken(m[1], env.FIREBASE_PROJECT || 'make-the-cut-vb', fetchFn); }
   catch (e) { return json(401, { error: 'auth' }, ch); }
-  if (await limited(env, uid)) return json(429, { error: 'rate' }, Object.assign({ 'Retry-After': '600' }, ch));
+  if (await limited(env, uid, request.headers.get('CF-Connecting-IP') || '')) return json(429, { error: 'rate' }, Object.assign({ 'Retry-After': '600' }, ch));
   if (!env.TURN_KEY_ID || !env.TURN_KEY_API_TOKEN) return json(502, { error: 'config' }, ch);
   const ttl = Math.max(600, Math.min(parseInt(env.TTL, 10) || 7200, 86400));
   let r;

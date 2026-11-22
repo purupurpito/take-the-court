@@ -95,6 +95,37 @@ function partA() {
     ok(snapA.length === 1 && snapA[0] === snapB[0], C.id + ': la foto entera igual en el saque siguiente');
     ok(modsA === modsSnap(VB, g2), C.id + ': insignias, retos y Estadística del partido idénticos al final (' + (finA ? 'partido acabado' : g.score.join('-') + ' set ' + g.setNo) + ')');
   }
+  // punto en juego (22-nov-2026): la foto de antes del saque, al lanzar el saque o golpear, pasa a live: 1 (retomarla no cuenta)
+  {
+    VB.Badges._reset(); VB.Retos._reset(); VB.MatchStats.reset(); R.clear();
+    const gOpts = { demo: false, seed: 42, difficulty: 'normal', present: true, stats: true, points: 21, ctrl: 'one', ctrlIdx: 0, venue: 'hall' };
+    const g = S.createGame(JSON.parse(JSON.stringify(gOpts)));
+    R.arm(g, { kind: 'quick', opts: {}, gOpts, map: '' });
+    const ev = [];
+    let k = 0, pts = 0, atReady = null, live = null, cleared = null, liveTxt = null;
+    for (; k < 120 * 900 && !g.finished && !cleared; k++) {
+      S.step(g, DT, inputAt(k)); ev.length = 0; S.drainEvents(g, ev); R.onFrame(g, ev);
+      for (const e of ev) if (e.type === 'point') pts++;
+      if (pts >= 1 && ev.some(e => e.type === 'serveReady')) atReady = R.load();
+      if (atReady && !live && ev.some(e => e.type === 'toss' || e.type === 'hit')) { live = R.load(); liveTxt = JSON.stringify(live); }
+      if (live && ev.some(e => e.type === 'point')) cleared = R.load();
+    }
+    ok(!!atReady && !atReady.live && !R.noCount(atReady), 'punto en juego: la foto del saque, sin live');
+    ok(!!live && live.live === 1 && R.noCount(live) && live.h === atReady.h && JSON.stringify(live.snap) === JSON.stringify(atReady.snap), 'punto en juego: al lanzar el saque, la MISMA foto con live: 1');
+    ok(!!cleared && !cleared.live && !R.noCount(cleared), 'punto en juego: al acabar el punto, foto nueva sin live');
+    R.clear();
+    // retomarla: se aplica, pero sigue sin contar (las fotos siguientes llevan nc: 1)
+    const rec2 = JSON.parse(liveTxt), g2 = S.createGame(JSON.parse(JSON.stringify(rec2.gOpts)));
+    ok(R.apply(rec2, g2), 'punto en juego: la foto live se puede retomar (huella igual)');
+    R.arm(g2, { kind: 'quick', opts: {}, gOpts: rec2.gOpts, played: true, nc: R.noCount(rec2) });
+    let saved = null;
+    for (let j = 0; j < 120 * 120 && !g2.finished && !saved; j++) {
+      S.step(g2, DT, inputAt(j)); ev.length = 0; S.drainEvents(g2, ev); R.onFrame(g2, ev);
+      if (ev.some(e => e.type === 'point')) saved = R.load();
+    }
+    ok(!!saved && saved.nc === 1 && !saved.live && R.noCount(saved) && R.peek().nc === true, 'retomado con el punto en juego: las fotos siguientes llevan nc: 1 (no cuenta)');
+    R.clear(); R.disarm();
+  }
   // versión distinta, foto tocada, plain/unplain
   {
     const g = S.createGame({ demo: false, seed: 3, difficulty: 'normal', stats: true });
@@ -176,6 +207,16 @@ async function partB() {
     ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo&&VB.Resume.armed()===VB.ctx.game", 10000), 'retomado en mitad de la pausa del punto');
     ok(await waitFor(pg, "VB.ctx.game.mode==='serve'", 20000), 'y llega al saque siguiente');
     await sleep(1500);
+    await pg.evalJs("VB.ctx.actions.toMenu()"); await sleep(300);
+    // (22-nov) la misma foto marcada «punto en juego» (cerrado a mitad de un peloteo): se retoma, pero ya no cuenta y lo dice
+    await pg.evalJs('localStorage.setItem("make-the-cut.resume",' + JSON.stringify('{"live":1,' + recPoint.slice(1)) + ')');
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 30000), 'recarga con la foto «punto en juego»');
+    await sleep(500);
+    await pg.evalJs("document.getElementById('btnSeguir').click()");
+    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo&&VB.Resume.armed()===VB.ctx.game", 10000), 'punto en juego: se retoma');
+    const lv = await J(pg, "{nc:VB.ctx.game.rsNc===1,bn:(document.getElementById('bn3')||{}).textContent||''}");
+    ok(lv.nc && /ya no cuenta/.test(lv.bn), 'punto en juego: el partido ya no cuenta (g.rsNc) y la cinta «Seguimos» lo dice («' + lv.bn + '»)');
     await pg.evalJs("VB.ctx.actions.toMenu()"); await sleep(300);
     // otra versión: no sale y se borra
     await pg.evalJs('localStorage.setItem("make-the-cut.resume",' + JSON.stringify(recPoint.replace('"v":"' + saved.ver + '"', '"v":"0.0.1"')) + ')');

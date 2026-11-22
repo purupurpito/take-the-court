@@ -26,7 +26,7 @@
   // Presentación (UI-02/03/04): banKind = qué anuncia el banner visible ('point' | 'set' | 'match' | 'court' | 'info' | 'sp');
   // banGate = cómo acaba ('cut' = con el corte de vuelta al saque; 'court' = al bajar la grúa del cambio de campo)
   var banKind = '', banTier = 0, banRect = null, bugT = 0, bugOut = false;
-  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '', byD: {} }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
+  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '', byD: {}, anyMatch: 0 }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
   // byD (B5): {easy:[ganados, perdidos], normal, hard, expert}, solo partidos 2v2 de Partido rápido (la previa dice «3-1 en Normal»)
   var hudScale = 1;            // UI-16: escala del HUD (ctx.settings.hudScale) × vpScale (pantallas grandes; vpFit)
   var hudSet = 1, vpScale = 1; // ajuste del jugador (1 | 1,15 | 1,3) y escala por tamaño de pantalla (--vs)
@@ -372,6 +372,14 @@
     return out;
   }
   function saveRecord() { try { localStorage.setItem('make-the-cut.record', JSON.stringify(record)); } catch (e) { } }
+  /** ¿Ha jugado alguna vez un partido de verdad? (22-nov-2026, revisión de la rama) record.played es solo el récord del 2v2 largo de
+   *  Partido rápido: no sube con el 6v6, los cortos, el online, la Carrera ni la situación de la semana. record.anyMatch (opcional, 0 en
+   *  las partidas viejas) se pone a 1 al acabar cualquier partido humano; para quien ya jugaba antes de 1.22.0 vale también el perfil
+   *  (partidos de VB.Profile: 2v2, 6v6 y Carrera). Lo usan «¡Jugar ya!» (nowWanted), el tiempo hasta el primer punto y «Y ahora». */
+  function everPlayed() {
+    if (record.played > 0 || record.anyMatch > 0) return true;
+    try { var P = VB.Profile; return !!(P && P.stats && P.stats().m > 0); } catch (e) { return false; }
+  }
   // «Jugar ya» (1.22.0, informe 4.3): cuánto se tarda en ver el PRIMER punto, medido en este aparato y sin analítica (nada sale de aquí;
   // account.js no sube esta clave). Una sola vez, en el primer partido de verdad de quien no ha jugado nunca (récord a 0):
   // 'make-the-cut.firstpt' = {ms: desde que se abrió la página, m: desde que empezó el partido, via: 'jugar' (?jugar) | 'ya' (botón de
@@ -382,7 +390,7 @@
     if (!g || g.demo || g.autopilot || g.drill || g.online || ctx.net || g.watch0) return;
     if (ctx.debug && ctx.params.fp !== '1') return;   // (pruebas: &fp=1)
     fpDone = true;
-    if (record.played !== 0) return;   // ya había jugado (récord de antes): no es su primer punto
+    if (everPlayed()) return;   // ya había jugado (cualquier partido, también 6v6, cortos u online): no es su primer punto
     var now = performance.now(), dt = new Date(), pad = function (n) { return (n < 10 ? '0' : '') + n; };
     var o = { ms: Math.round(now), m: fpT0 ? Math.round(now - fpT0) : 0, via: g.playNow ? String(g.playNow) : g.career ? 'carrera' : g.size === 2 && !g.reto && !g.sit ? 'menu' : 'otro',
       d: dt.getFullYear() + '-' + pad(dt.getMonth() + 1) + '-' + pad(dt.getDate()) };
@@ -1286,7 +1294,7 @@
       stA: stOf(0), stB: stOf(1) };
     // la situación de la semana no cuenta en el Partido rápido: sin «Tu balance en…» ni racha; el beat B dice el intento de hoy
     if (g && g.sit && !g.demo) { info.byD = null; info.winRun = 0; info.sit = { i: g.sit.i | 0, tries: 3 }; }
-    if (g && g.short && !g.demo) { info.byD = null; info.winRun = 0; }   // (partido corto: tampoco cuenta en el balance)
+    if (g && (g.short || g.rsNc) && !g.demo) { info.byD = null; info.winRun = 0; }   // (partido corto: tampoco cuenta en el balance)
     var cs = g && g.career;
     if (cs) {
       var c2 = {}; for (var k in cs) if (Object.prototype.hasOwnProperty.call(cs, k)) c2[k] = cs[k];
@@ -3172,7 +3180,7 @@
   // «Jugar ya» (1.22.0, informe 4.3): #btnNow solo para quien no ha jugado nunca un partido rápido (récord a 0) y sin Carrera activa; un
   // toque = un set a 15 contra la CPU (main.js playNow), sin Jugar ni «Primer partido» (que sigue saliendo a quien entra por JUGAR).
   // En depuración no sale (mobaudit/capturas: &now=1 lo fuerza). Con él, JUGAR pasa a fila plana con su línea, como con la Carrera.
-  function nowWanted() { return ctx.debug ? ctx.params.now === '1' && !heroOn : !heroOn && record.played === 0; }
+  function nowWanted() { return ctx.debug ? ctx.params.now === '1' && !heroOn : !heroOn && !everPlayed(); }
   function syncHero() {
     heroDirty = false;
     if (!el.btnCont) return;
@@ -3493,6 +3501,7 @@
     var win = e.team === 0, T = stats.t;
     endAw = []; endBd = []; endAltName = '';
     var isNew = false, career = !!(ctx.game && ctx.game.career && !ctx.game.demo);
+    var first0 = !everPlayed();   // (antes de apuntar este partido: ¿es el primero de verdad?)
     firstEnd = !!(ctx.debug && ctx.params.first === '1' && !career);   // (pruebas y mobaudit: debug=over&first=1 enseña «Y ahora»)
     var watch = !!(ctx.game && ctx.game.watch0 && !ctx.game.demo);   // 6v6 espectador: tampoco cuenta (g.watch0: el de verdad; g.watch también vale en el banquillo)
     // 6v6 con humano (sprint 3): tampoco. El récord (y con él el fin de los consejos a la 1ª victoria, el novato de main.js
@@ -3503,10 +3512,16 @@
     var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (Ferran: sin XP ni medallas): sin récord, perfil, XP ni insignias
     // partido corto (informe 4.5: un set, final apretado o set a 7): tampoco, para que no se farmeen (los retos los cierra retos.js counts)
     var shortG = !!(ctx.game && ctx.game.short && !ctx.game.demo);
-    var noRec = sitG || shortG;
+    // retomado tras cerrar la pestaña con el punto en juego (js/resume.js, g.rsNc): tampoco, para que cerrar no deje repetir puntos
+    var rsNc = !!(ctx.game && ctx.game.rsNc && !ctx.game.demo);
+    var noRec = sitG || shortG || rsNc;
+    // cualquier partido humano de verdad (también 6v6, cortos, Carrera, online y la situación) marca «ya ha jugado» (everPlayed)
+    if (!ctx.debug && ctx.game && !ctx.game.demo && !ctx.game.autopilot && !ctx.game.drill && !watch && !(record.anyMatch > 0)) {
+      record.anyMatch = 1; saveRecord();
+      if (first0 && !career && !online && !sitG) firstEnd = true;   // «Jugar ya»: su primer partido → «Y ahora» (endFirstRow)
+    }
     if (!ctx.debug && !career && !watch && !six && !online && !noRec) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
       record.played++; if (win) { record.wins++; record.winRun++; } else record.winRun = 0;
-      firstEnd = record.played === 1;   // «Jugar ya»: su primer partido → el Resumen ofrece Carrera, Vestuario y cuenta (endFirstRow)
       // los consejos del partido acompañan hasta la primera victoria; luego se apagan (se reactivan en Ajustes · Juego · Consejos)
       if (win && record.wins === 1 && ctx.settings.coachTips !== false) ctx.actions.setSetting('coachTips', false);
       if (T[0].best > record.bestStreak) { record.bestStreak = T[0].best; isNew = record.bestStreak >= 3; } // las rachas cortas no son récord
@@ -3558,6 +3573,7 @@
     if (nrr && nrr.outcome && nrr.outcome.kind === 'unverified') rec += '<span class="new">No válido: las dos partidas no cuadraban al final. No cuenta en tu récord online.</span>';
     if (!ctx.debug && !career && !six && !online && !noRec) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
     if (shortG && !online) rec += '<span>Partido corto: no cuenta para el récord ni da experiencia</span>';
+    else if (rsNc && !online) rec += '<span>Se cerró con un punto en juego: este partido no cuenta para el récord ni da experiencia</span>';
     var bs = record.bestStreak;
     if (isNew) rec += '<span class="new">¡Nueva mejor racha: ' + (bs === 1 ? '1 punto seguido' : bs + ' puntos seguidos') + '!</span>';
     else if (record.winRun > 1 && !career && !online && !noRec) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
@@ -6758,7 +6774,7 @@
     setText(el.diffHelp, 'dh', laNoteOf(di) || DIFF_HELP[di] || 'Nivel de la CPU');
     setText(el.ptsHelp, 'ph', lk !== 'full' ? (vb ? 'Reglas de playa: un set a 21' : 'Un solo set a ' + ptsN) : vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
     var lshort = lk !== 'full' || (!vb && ptsN === 7);
-    setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da XP' : ''));
+    setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da experiencia' : ''));
     setText(el.ctrlHelp, 'ch', six ? (ROLE_HELP[role6] || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al n.º ' + tn[0] + '; la IA lleva al n.º ' + tn[1] : 'El control pasa a quien va a tocar');
   }
   /** Una línea por nivel de dificultad (fila Dificultad de Partido rápido). */
@@ -6777,9 +6793,20 @@
     if (laNote.m && m !== laNote.m && ctx.settings.landAid === 'auto') {
       laNote.t = performance.now() + 4000; clearTimeout(laNote.to); laNote.to = setTimeout(renderOpts, 4100);
       laNote.txt = m === 'retira' ? 'Aro de caída: solo al final del vuelo' : 'Aro de caída: otra vez todo el vuelo';
+      // (móvil: las .mi-h van ocultas en html.ph y con alto <= 560; el aviso sale también como toast para que se vea)
+      if (laHelpHidden() && VB.Splat && VB.Splat.toast) { try { VB.Splat.toast(escT(laNote.txt), { key: 'lanote', ms: 4000 }); } catch (e) { } }
     }
     laNote.m = m;
     return performance.now() < laNote.t ? laNote.txt : '';
+  }
+  function laHelpHidden() { return document.documentElement.classList.contains('ph') || (ctx.height || innerHeight) <= 560; }
+  /** Aviso de una sola vez (onGameStart): con «Auto», la primera vez que un partido (también de la Carrera) empieza en un nivel en el que
+   *  el aro de caída se retira. Así nunca se recorta sin avisar (informe 4.7). Se apunta en el ajuste laSeen. */
+  function laFirstNote(g) {
+    if (!g || g.demo || g.autopilot || g.drill || g.online || ctx.net || g.watch0 || ctx.debug) return;
+    if (ctx.settings.laSeen || ctx.settings.landAid !== 'auto' || laMode(g.difficulty) !== 'retira') return;
+    ctx.actions.setSetting('laSeen', true);
+    if (VB.Splat && VB.Splat.toast) { try { VB.Splat.toast(escT('En este nivel, el aro de caída sale solo al final del vuelo. Se cambia en Ajustes › Accesibilidad'), { key: 'lafirst', ms: 7000 }); } catch (e) { } }
   }
   var LA_HELP = { siempre: 'Dónde cae el balón, todo el vuelo', retira: 'Solo al final del vuelo', no: 'Sin aro de caída; el aro amarillo sigue' },
     LA_AUTO = { siempre: 'todo el vuelo', retira: 'solo al final' };   // (corto: con la ayuda recortada el móvil pone el botón ⓘ en vez de la vista previa)
@@ -8641,6 +8668,7 @@
       gymBestV = g && g.drill && !g.demo && !g.careerDrill && !g.careerExtDrill ? gymBestOf(g.drill.kind) : 0;   // (entreno de la Carrera: sin «Récord», es del gimnasio)
       el.app.classList.toggle('drill-on', !!(g && g.drill && !g.demo)); last.drOn = !!(g && g.drill && !g.demo);
       kitTick();
+      laFirstNote(g);
     },
     /** Estadística del partido (escena debug=stats): la abre en cuanto se ve la hoja final. o = {set: 0-3, team: 0|1}. */
     openMatchStats: function (o) { msReq = o || {}; },
@@ -8664,7 +8692,7 @@
     resumed: function (g) {
       if (!g || g.demo) return;
       var R = VB.Resume, sn = g.setNo | 0 || 1, one = !!g.bo1 || (g.toWin | 0) === 1;
-      banner('Seguimos', (g.score[0] | 0) + '-' + (g.score[1] | 0) + ' | ' + (one ? 'Set único' : R && R.setLabel ? R.setLabel(sn) : 'Set ' + sn), '', 'neutral', BAN.set, 'newSet');
+      banner('Seguimos', (g.score[0] | 0) + '-' + (g.score[1] | 0) + ' | ' + (one ? 'Set único' : R && R.setLabel ? R.setLabel(sn) : 'Set ' + sn), g.rsNc ? 'Se cerró con un punto en juego: ya no cuenta' : '', 'neutral', BAN.set, 'newSet');
     },
     resumeSet: function (o) {
       if (!o || !o.stats || !o.stats.t) return;

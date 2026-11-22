@@ -17,7 +17,7 @@ ALLOWED_ORIGINS = "https://takethecourt.com,https://www.takethecourt.com,https:/
 # Vida de las credenciales en segundos (2 h).
 TTL = "7200"
 
-# Límite por cuenta (Workers Rate Limiting): 20 peticiones por minuto y uid. Si da problemas al desplegar, borra este bloque:
+# Límite por cuenta y por IP (Workers Rate Limiting): 20 peticiones por minuto por uid y otras 20 por IP (CF-Connecting-IP). Si da problemas al desplegar, borra este bloque:
 # el Worker usa entonces un límite sencillo por instancia (20 cada 10 min).
 [[ratelimits]]
 name = "RATE_LIMITER"

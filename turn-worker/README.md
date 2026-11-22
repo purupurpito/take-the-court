@@ -13,13 +13,16 @@ informe del 21-nov; diseño en `notes/turn.md`.
 
 `POST https://turn.takethecourt.com/ice` con `Authorization: Bearer <ID token de Firebase>`:
 
-1. Comprueba el ID token (firma RS256 con las claves públicas de Google, proyecto `make-the-cut-vb`, sin caducar).
-2. Límite por cuenta (20 por minuto).
-3. Llama a `https://rtc.live.cloudflare.com/v1/turn/keys/<TURN_KEY_ID>/credentials/generate-ice-servers` con `TURN_KEY_API_TOKEN`
+1. Exige la cabecera `Origin` de uno de `ALLOWED_ORIGINS` (sin Origin → 403: corta curl y los scripts de copiar y pegar; no es
+   infalible, un script puede inventársela).
+2. Comprueba el ID token (firma RS256 con las claves públicas de Google, proyecto `make-the-cut-vb`, sin caducar).
+3. Límite por cuenta **y por IP** (`CF-Connecting-IP`), 20 por minuto cada uno: las cuentas se crean gratis con la clave pública del
+   repo, así que el límite por cuenta solo no frena a quien saca cuentas nuevas.
+4. Llama a `https://rtc.live.cloudflare.com/v1/turn/keys/<TURN_KEY_ID>/credentials/generate-ice-servers` con `TURN_KEY_API_TOKEN`
    y `ttl` = 7200.
-4. Devuelve solo las entradas TURN (sin el puerto 53): `{ iceServers: [{urls, username, credential}], ttl, exp }`.
+5. Devuelve solo las entradas TURN (sin el puerto 53): `{ iceServers: [{urls, username, credential}], ttl, exp }`.
 
-Errores: 401 sin sesión o token malo, 403 origen que no es el juego, 429 demasiadas, 502 Cloudflare no contesta o faltan secretos.
+Errores: 401 sin sesión o token malo, 403 sin Origin o con un origen que no es el juego, 429 demasiadas, 502 Cloudflare no contesta o faltan secretos.
 `GET /health` → `ok`.
 
 ## Pasos para ponerlo en marcha (Ferran)
@@ -36,6 +39,11 @@ del repo (`cd <repo>\turn-worker`); los comandos usan `npx`, no hay que instalar
 
 Precio: Cloudflare Realtime TURN tiene un tramo gratis al mes y luego cobra por GB. Un partido online pasa por TURN solo cuando no
 hay otra forma y gasta muy poco (unos 65 bytes por foto de entradas); mira el precio actual en el panel antes de activarlo.
+
+**Antes de desplegar, pon una alerta de gasto** (Cloudflare → Billing → Notifications / alertas de uso de Realtime, o un tope si
+el panel lo ofrece). Aunque el Worker pide sesión, Origin y tiene límites por cuenta y por IP, cualquiera puede crear cuentas gratis:
+un abuso con muchas IP podría usar el TURN como relé y lo que pase del tramo gratis se cobra en tu cuenta. Con la alerta te enteras
+el primer día; si salta, quita la URL de `js/netconfig.js` (el juego vuelve a solo STUN) y borra la clave TURN en el panel.
 
 ### 2. Entrar con wrangler
 

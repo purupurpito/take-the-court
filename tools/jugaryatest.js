@@ -18,7 +18,7 @@ const ok = (c, m) => { if (c) console.log('ok:', m); else { fail++; console.erro
 setTimeout(() => { console.error('TIEMPO AGOTADO'); process.exit(2); }, 300e3).unref();
 
 async function waitFor(pg, expr, ms) { const t = Date.now() + ms; while (Date.now() < t) { try { if (await pg.evalJs(expr)) return true; } catch (e) { } await sleep(150); } return false; }
-const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.UI&&VB.UI.bootBusy&&!VB.UI.bootBusy()";
+const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootBusy&&!VB.UI.bootBusy()";   // (frame > 5: los módulos ya han hecho init, como en resumetest)
 
 (async () => {
   let pg = null;
@@ -59,6 +59,12 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.UI&&VB.UI.bootBusy&&!VB.UI.boot
     await pg.evalJs('VB.UI.menuBack&&VB.UI.menuBack()'); await sleep(600);
     const now2 = await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()");
     ok(!now2, 'tras el primer partido la portada ya no enseña «¡Jugar ya!»');
+    // (22-nov) la revancha de «Jugar ya» de quien ya ha jugado es un partido corto más: no cuenta (g.short)
+    await pg.evalJs("VB.ctx.actions.playNow('ya')");
+    ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 8000), '«Jugar ya» otra vez: empieza');
+    const sh = await pg.evalJs("JSON.stringify(VB.ctx.game.short||null)").then(JSON.parse);
+    ok(sh && sh.len === 'one' && sh.pts === 15, '«Jugar ya» de quien ya ha jugado: partido corto, no cuenta (' + JSON.stringify(sh) + ')');
+    await pg.evalJs("VB.ctx.actions.toMenu()"); await sleep(600);
     ok(!pg.errors.length, 'sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));
     pg.close(); pg = null; await sleep(800);
 
@@ -68,8 +74,23 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.UI&&VB.UI.bootBusy&&!VB.UI.boot
     ok(await waitFor(pg, "VB.ctx&&VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 25000), '?jugar: directo al partido');
     const j = await pg.evalJs("JSON.stringify({pn:VB.ctx.game.playNow,pts:VB.ctx.game.points,tw:VB.ctx.game.toWin,q:location.search})").then(JSON.parse);
     ok(j.pn === 'jugar' && j.pts === 15 && j.tw === 1, '?jugar: partido corto (' + JSON.stringify(j) + ')');
+    ok(!(await pg.evalJs('!!VB.ctx.game.short')), '?jugar de un novato: su primer partido sí cuenta (sin g.short)');
     ok(j.q === '?x=1', '?jugar se quita del enlace y deja el resto (' + j.q + ')');
     ok(!pg.errors.length, '?jugar: sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));
+    pg.close(); pg = null; await sleep(800);
+
+    // ---------------------------------------------------------------- (f) ya ha jugado, pero no el 2v2 largo (6v6, cortos, online…)
+    pg = await CDP.open({ size: '1280x720' });
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 25000), '(f) arranca');
+    await pg.evalJs("localStorage.setItem('make-the-cut.record',JSON.stringify({played:0,wins:0,bestStreak:0,winRun:0,tut:0,lastA:0,lastB:0,lastD:'',byD:{},anyMatch:1}))");
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 25000), '(f) recarga con anyMatch');
+    ok(!(await pg.evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()")), 'récord 2v2 a 0 pero ya ha jugado (anyMatch): sin «¡Jugar ya!»');
+    await pg.navigate('jugar');
+    ok(await waitFor(pg, "VB.ctx&&VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 25000), '(f) ?jugar');
+    ok(await pg.evalJs("!!(VB.ctx.game.short&&VB.ctx.game.short.len==='one')"), '?jugar de quien ya ha jugado: partido corto que no cuenta');
+    ok(!pg.errors.length, '(f) sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));
     pg.close(); pg = null; await sleep(800);
 
     // ---------------------------------------------------------------- (e) aviso de instalar en el móvil, después del primer partido
@@ -82,6 +103,13 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.UI&&VB.UI.bootBusy&&!VB.UI.boot
     await pg.evalJs("localStorage.setItem('make-the-cut.record',JSON.stringify({played:1,wins:0,bestStreak:0,winRun:0,tut:0,lastA:0,lastB:1,lastD:'easy',byD:{}}))");
     ok(await waitFor(pg, '!!(VB.Install&&VB.Install.isOpen())', 8000), 'móvil: con un partido en el récord, el aviso sale');
     ok(!pg.errors.length, 'móvil: sin errores de consola' + (pg.errors.length ? ': ' + pg.errors.slice(0, 3).join(' | ') : ''));
+    pg.close(); pg = null; await sleep(800);
+    // (g) móvil: quien solo ha jugado 6v6 / cortos (récord 2v2 a 0, anyMatch 1) también ve el aviso de instalar
+    pg = await CDP.open({ size: '844x390', touch: true, ua: CDP.ANDROID_UA });
+    await pg.navigate('');
+    ok(await waitFor(pg, READY, 25000), '(g) móvil: arranca');
+    await pg.evalJs("localStorage.setItem('make-the-cut.record',JSON.stringify({played:0,wins:0,bestStreak:0,winRun:0,tut:0,lastA:0,lastB:0,lastD:'',byD:{},anyMatch:1}))");
+    ok(await waitFor(pg, '!!(VB.Install&&VB.Install.isOpen())', 8000), 'móvil: récord 2v2 a 0 pero anyMatch 1 (6v6, cortos…): el aviso de instalar sale');
   } catch (e) { fail++; console.error('FALLO (excepción):', e && e.stack || e); }
   finally { if (pg) pg.close(); }
   console.log(fail ? 'jugaryatest: ' + fail + ' FALLO(S)' : 'jugaryatest: todo bien');

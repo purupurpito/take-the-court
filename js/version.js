@@ -49,16 +49,31 @@
  * 1.21.0 (21-nov-2026): sprint «único» (señas del
  *   árbitro y Cuaderno, Xaranga, «El mismo 22-24», árbitros con nombre, «Te tienen estudiado», rencor y cariño), jefes de pista, sedes
  *   de la Carrera y S4_SYNC encendido. Decisiones provisionales en notes/pendientes-ferran.md.
+ * 1.22.0 (22-nov-2026, rama investigacion, sin publicar): imprescindibles del informe de la revisión (Jugar ya, partidos cortos,
+ *   disposición táctil, marca e indicador de caída, IA variada, Retomar el partido). Versión nueva OBLIGATORIA: la IA variada cambia
+ *   lo que simula cada lado y el lobby online y el sello de Retomar separan por VB.VERSION (una 1.21.0 en caché no debe cruzarse).
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.21.0';
-  VB.VERSION_DATE = '2026-11-21';
+  VB.VERSION = '1.22.0';
+  VB.VERSION_DATE = '2026-11-22';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.22.0', d: '2026-11-22', t: 'A tu manera',
+      items: [
+        '¡Jugar ya!: la primera vez, un botón en la portada te pone a jugar sin pasar por menús.',
+        'Partidos cortos: en Partido rápido elige un set, un final apretado o sets a 7.',
+        'Coloca los botones táctiles a tu gusto: sitio, tamaño, opacidad y modo zurdos.',
+        'La marca de tu jugador, más grande o en alto contraste (Ajustes › Accesibilidad).',
+        'El aro de caída, a tu gusto: siempre, solo al final del vuelo o nunca.',
+        'La CPU ya no repite el mismo ataque: cambia de zona, de carril y de receptor.',
+        '¿Se cerró el juego a mitad? Sigue tu Partido rápido desde el último punto.'
+      ]
+    },
     {
       v: '1.21.0', d: '2026-11-21', t: 'Árbitros, grada y rivales',
       items: [

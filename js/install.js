@@ -266,7 +266,12 @@
   // sale al volver al menú tras el partido; si cierra la página antes, en la próxima visita (no se marca como visto).
   // «Jugar ya» (1.22.0, informe 4.3): quien no ha jugado nunca un partido (récord 'make-the-cut.record' a 0 o sin él) va primero a jugar;
   // el aviso espera a que haya acabado su primer partido (sale al volver al menú, como siempre). Lo de antes de jugar no cuenta.
-  function played() { try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); return !!(r && r.played > 0); } catch (e) { return true; } }
+  // (22-nov-2026: también con anyMatch, que sube con cualquier partido —6v6, cortos, online…—, o con partidos en el perfil; antes solo
+  // record.played, el récord del 2v2 largo, y a quien solo jugaba 6v6 nunca le salía el aviso)
+  function played() {
+    try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); if (r && (r.played > 0 || r.anyMatch > 0)) return true; } catch (e) { return true; }
+    try { var P = window.VB && window.VB.Profile; return !!(P && P.stats && P.stats().m > 0); } catch (e) { return false; }
+  }
   function idle() {
     var c = VB.ctx, U = VB.UI;
     if (!played()) return false;

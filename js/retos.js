@@ -363,7 +363,7 @@
   function counts(g) {
     if (!g || g.demo || g.drill || spectator(g)) return false;
     if (g.sit) return false;   // la situación de la semana (js/semana.js): sin medallas ni XP (Ferran, 20-nov-2026)
-    if (g.short) return false;   // partido corto del Partido rápido (informe 4.5, main.js quickShort): tampoco, para que no se farmeen
+    if (g.short || g.rsNc) return false;   // partido corto del Partido rápido (informe 4.5, main.js quickShort): tampoco, para que no se farmeen
     if (VB.Retos._force) return true;
     if (dbg()) return !!g.reto;
     return !g.autopilot;

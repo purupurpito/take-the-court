@@ -6,7 +6,7 @@
  *  (c) «Final apretado» a 25: un set (g.toWin 1) que empieza en el 20-20, g.short {len:'clutch', from:20};
  *  (d) al acabar: ni récord, ni retos, ni XP del escuadrón, ni perfil; la hoja dice «Partido corto»;
  *  (e) un set a 15 y set a 7 al mejor de 3 (g.short también); el partido de siempre (Completo, 25) sin g.short y al mejor de 3;
- *  (f) «Jugar ya», los retos y quien trae sets/points no se tocan (sin g.short) aunque el ajuste diga «Un set»;
+ *  (f) los retos y quien trae sets/points no se tocan (sin g.short) aunque el ajuste diga «Un set»; «Jugar ya» de quien ya ha jugado, corto «one»;
  *  (g) ajustes viejos sin matchLen → 'full'; matchLen dañado → 'full'.
  * Uso: node tools/cortostest.js   (sale con 1 si algo falla)
  */
@@ -18,7 +18,7 @@ const ok = (c, m) => { if (c) console.log('ok:', m); else { fail++; console.erro
 setTimeout(() => { console.error('TIEMPO AGOTADO'); process.exit(2); }, 300e3).unref();
 
 async function waitFor(pg, expr, ms) { const t = Date.now() + ms; while (Date.now() < t) { try { if (await pg.evalJs(expr)) return true; } catch (e) { } await sleep(150); } return false; }
-const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.UI&&VB.UI.bootBusy&&!VB.UI.bootBusy()";
+const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootBusy&&!VB.UI.bootBusy()";   // (frame > 5: los módulos ya han hecho init, como en resumetest)
 const GS = "JSON.stringify((function(g){return {short:g.short||null,tw:g.toWin===undefined?null:g.toWin,pts:g.points,sc:g.score.slice(),sets:g.sets.slice(),pn:g.playNow||null,reto:!!g.reto,st0:!!g.st0}})(VB.ctx.game))";
 
 (async () => {
@@ -59,7 +59,10 @@ const GS = "JSON.stringify((function(g){return {short:g.short||null,tw:g.toWin==
     ok(await waitFor(pg, "VB.ctx.state==='over'", 90000), 'el partido acaba');
     await sleep(800);
     const after = await pg.evalJs("JSON.stringify({r:localStorage.getItem('make-the-cut.record'),rt:localStorage.getItem('make-the-cut.retos'),sq:localStorage.getItem('make-the-cut.squad'),pf:localStorage.getItem('make-the-cut.profile'),txt:document.getElementById('endRecord').textContent})").then(JSON.parse);
-    ok(after.r === before.r, 'récord sin tocar');
+    // (22-nov: el corto escribe la marca anyMatch = «ya ha jugado algo», y al escribir el récord sale entero; lo que cuenta no cambia)
+    { const strip = s => { const o = JSON.parse(s || '{}'); return JSON.stringify([o.played | 0, o.wins | 0, o.winRun | 0, o.bestStreak | 0, JSON.stringify(o.byD || {})]); };
+      ok(strip(after.r) === strip(before.r), 'récord sin tocar (salvo la marca anyMatch)' + (strip(after.r) === strip(before.r) ? '' : ' ' + before.r + ' → ' + after.r));
+      ok(JSON.parse(after.r || '{}').anyMatch === 1, 'el corto sí marca «ya ha jugado» (record.anyMatch 1: sin «¡Jugar ya!» en la portada)'); }
     ok(after.rt === before.rt, 'retos sin tocar');
     ok(after.sq === before.sq, 'XP e insignias del escuadrón sin tocar');
     ok(after.pf === before.pf, 'perfil (XP de perfil) sin tocar');
@@ -74,7 +77,8 @@ const GS = "JSON.stringify((function(g){return {short:g.short||null,tw:g.toWin==
     ok(!g.short && g.tw === null && g.pts === 25 && !g.st0, 'el de siempre: sin g.short, al mejor de 3 a 25 (' + JSON.stringify(g) + ')');
     // ---------------------------------------------------------------- (f) lo demás no se toca
     g = await start("VB.ctx.actions.setSetting('matchLen','clutch');", "{format:'2v2',introKind:'mini',sets:1,points:15,playNow:'ya'}");
-    ok(!g.short && g.pn === 'ya' && g.pts === 15 && g.sc[0] === 0, '«Jugar ya» sin g.short (' + JSON.stringify(g) + ')');
+    // (22-nov) quien ya ha jugado (aquí, el corto de arriba): «Jugar ya» es un corto más (g.short 'one') y no cuenta; el del novato, en jugaryatest
+    ok(g.short && g.short.len === 'one' && g.pn === 'ya' && g.pts === 15 && g.sc[0] === 0, '«Jugar ya» de quien ya ha jugado: g.short one, no el clutch del ajuste (' + JSON.stringify(g) + ')');
     g = await start('', "{format:'2v2',reto:{kind:'win',key:'x',goal:1,n:1}}");
     ok(!g.short && g.reto && g.sc[0] === 0, 'reto del día sin g.short (' + JSON.stringify(g) + ')');
     g = await start("VB.ctx.actions.setSetting('format','6v6');VB.ctx.actions.setSetting('matchLen','clutch');VB.ctx.actions.setSetting('setPoints',25);", "{format:'6v6'}");

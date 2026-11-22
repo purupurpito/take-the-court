@@ -1350,7 +1350,9 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
   las claves → de fábrica.
 - **Colocación** (`placeLayout(E, lay, mirror, sa, W, H)`, la misma para el overlay del partido y para el editor): quita lo puesto en línea,
   mide lo de fábrica con `offsetLeft/Top/Width` (sin transformaciones: `.idle`, `.dn` y el `scale(.7)` de COLOCAR oculto no cuentan), refleja
-  dentro de la zona segura (`x' = l + W − r − x`), aparta de la pausa y de la lupa (no se mueven) y hace clamp a la zona segura con 4 px. El
+  dentro de la zona segura (`x' = l + W − r − x`), aparta de la pausa y de la lupa (no se mueven), aparta cada botón de los ya colocados
+  si se pisan (22-nov, revisión de la rama: primero los movidos, luego los de fábrica; hasta 4 vueltas, 6 px de hueco; antes COLOCAR podía
+  quedar dentro de GOLPEAR con «Zurdos» y GOLPEAR movido) y hace clamp a la zona segura con 4 px. El
   ancho en línea descuenta el borde (content-box). **Sin disposición ni espejo no se toca nada**: el CSS de siempre (mobaudit y touchplay
   iguales). Con el overlay oculto no se puede medir: `LAY.dirty` y se coloca en `setShown(true)` (vía `layoutTouch`), al girar y al cambiar
   de tamaño. El ⇄ que reaparece (`swHide`) se vuelve a colocar.

@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, touchLayout: null, touchMirror: false, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -161,7 +161,11 @@
     // Accesibilidad (informe 4.6 / 4.7; solo visuales): marca de tu jugador (players.js) e indicador de caída (fx.js landAidOf)
     if (['small', 'normal', 'large'].indexOf(s.ctrlMark) < 0) s.ctrlMark = 'normal';
     if (s.ctrlMarkCol !== 'contraste') s.ctrlMarkCol = 'auto';
-    if (['auto', 'siempre', 'retira', 'no'].indexOf(s.landAid) < 0) s.landAid = 'auto';   // Partido rápido: duración (informe 4.5): completo | un set | final apretado
+    if (['auto', 'siempre', 'retira', 'no'].indexOf(s.landAid) < 0) s.landAid = 'auto';
+    // (22-nov-2026, revisión de la rama) ajustes guardados de antes de 1.22.0 (sin la clave landAid): 'siempre', el aro entero de siempre.
+    // 'auto' (se retira en Difícil y Experto) queda para los jugadores nuevos: a quien ya jugaba en Difícil no se le quita sin avisar
+    if (o && !('landAid' in o)) s.landAid = 'siempre';
+    s.laSeen = s.laSeen === true;   // (ya se le ha avisado una vez de que con «Auto» el aro de caída sale solo al final: ui.js onGameStart)   // Partido rápido: duración (informe 4.5): completo | un set | final apretado
     // equipación: solo colores de las paletas de ui.js (OPT.kit*) y diseños conocidos
     if (['diag', 'liso', 'franjas', 'rayas'].indexOf(s.kitPattern) < 0) s.kitPattern = 'diag';   // Partido rápido: puntos por set (sim: VB.Sim.SET_POINTS)
     if (s.ctrlMode !== 'one') s.ctrlMode = 'both';                      // control: los dos jugadores o solo uno (sim: g.ctrlMode)
@@ -433,6 +437,11 @@
     try { return !!R.playBest(i == null ? undefined : i | 0, function () { call('UI', 'replayDone'); }); } catch (e) { reportError('Replay.playBest', e); return false; }
   };
   // primer partido (sin récord guardado): la CPU saca más suave (notes/sim.md, createGame({rookie}))
+  /** ¿Ha jugado alguna vez un partido de verdad? (como ui.js everPlayed: récord del 2v2, anyMatch o partidos del perfil) */
+  function everPlayed() {
+    try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); if (r && (r.played > 0 || r.anyMatch > 0)) return true; } catch (e) { }
+    try { var P = VB.Profile; return !!(P && P.stats && P.stats().m > 0); } catch (e) { return false; }
+  }
   function isRookie() { try { var r = JSON.parse(localStorage.getItem('make-the-cut.record') || 'null'); return !(r && r.played > 0); } catch (e) { return false; } }
   function seed() { return Q.seed ? (+Q.seed | 0) : ((Date.now() ^ (Math.random() * 1e9)) & 0x7fffffff); }
   /** Escenario del partido que se crea ('hall' | 'beach'): el que tiene arena montado (ajuste `arena` o ?map=). En la playa la sim
@@ -673,8 +682,13 @@
     if (cs) g.career = cs;
     // «Jugar ya» (informe 4.3): marca para ui.js (revancha también corta, «Y ahora» en la hoja y el tiempo hasta el primer punto). Fuera de la sim
     if (opts.playNow && !cs && !auto && !fmt) g.playNow = String(opts.playNow);
+    // (22-nov-2026, revisión de la rama) «Jugar ya» solo cuenta en el PRIMER partido de quien no ha jugado nunca; su revancha y ?jugar de
+    // quien ya ha jugado son un partido corto más (un set a 15): sin récord, retos, insignias ni XP, para que no se farmee
+    if (g.playNow && everPlayed()) g.short = { len: 'one', pts: 15, from: 0 };
     // partido corto (informe 4.5): marca para ui.js / retos.js (sin récord, retos, insignias, XP ni perfil) y para la previa y la hoja. Fuera de la sim
     if (qs) g.short = { len: qs.len, pts: qs.pts, from: qs.from | 0 };
+    // retomado tras cerrar con el punto en juego (js/resume.js live / nc): sigue, pero ya no cuenta (ui.js / retos.js, como los cortos)
+    if (rs && VB.Resume && VB.Resume.noCount && VB.Resume.noCount(rs)) g.rsNc = 1;
     if (cs) cs.calls = ctx.settings.coachCalls !== false;   // consignas del entrenador en directo (career.js, js/consignas.js)
     if (cs) { cs.ambient = auto ? 'off' : ctx.settings.ambient || 'full'; cs.ambSum = null; }   // ambiente de Carrera (career.js crea VB.Ambiente)
     // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
@@ -694,7 +708,7 @@
     setGame(g, opts.kit || null, cs ? careerLookOpts(cs, cvK === 'hall') : lookOptsOf(g));
     if (rsOk) {
       var rsOpts = null; try { rsOpts = JSON.parse(JSON.stringify(opts, function (k, v) { return k === 'career' || k === 'kit' || k === 'resume' ? undefined : v; })); } catch (e) { rsOpts = {}; }
-      try { RSM.arm(g, { kind: cs ? 'career' : 'quick', opts: rsOpts, gOpts: gKeep, map: mapNow(), qs: qs || null, cm: cs ? careerSig() : null, played: !!rs }); } catch (e) { reportError('Resume.arm', e); }
+      try { RSM.arm(g, { kind: cs ? 'career' : 'quick', opts: rsOpts, gOpts: gKeep, map: mapNow(), qs: qs || null, cm: cs ? careerSig() : null, played: !!rs, nc: !!g.rsNc }); } catch (e) { reportError('Resume.arm', e); }
     }
     setState('playing');
     // retomar: lo que los módulos llevaban contado (hoja final, estadística, insignias, retos), la cámara en su sitio y el aviso «Seguimos»

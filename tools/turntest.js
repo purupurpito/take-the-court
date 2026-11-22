@@ -186,9 +186,18 @@ async function testWorker() {
   check('límite sencillo: la 21ª en 10 min → 429', last === 429, last);
   let rlKeys = [];
   y = await go({ token: tok({ sub: 'rl' }) }, Object.assign({}, ENV, { RATE_LIMITER: { limit: async (o) => { rlKeys.push(o.key); return { success: false }; } } }));
-  check('con RATE_LIMITER: lo usa por uid', y.r.status === 429 && rlKeys[0] === 'rl');
+  check('con RATE_LIMITER: lo usa por uid', y.r.status === 429 && rlKeys[0] === 'u:rl');
+  rlKeys = [];
+  y = await go({ token: tok({ sub: 'rl2' }), headers: { 'CF-Connecting-IP': '203.0.113.7' } }, Object.assign({}, ENV, { RATE_LIMITER: { limit: async (o) => { rlKeys.push(o.key); return { success: o.key[0] === 'u' }; } } }));
+  check('con RATE_LIMITER: también por IP (CF-Connecting-IP)', y.r.status === 429 && rlKeys.join() === 'u:rl2,ip:203.0.113.7', rlKeys);
+  W._test.reset(); last = 0;
+  for (let i = 0; i < 21; i++) last = (await go({ token: tok({ sub: 'nueva' + i }), headers: { 'CF-Connecting-IP': '198.51.100.9' } })).r.status;
+  check('límite sencillo por IP: 21 cuentas nuevas desde la misma IP → la 21ª 429', last === 429, last);
+  W._test.reset();
   y = await go({ token: tok(), origin: '' });
-  check('sin Origin (no navegador) también vale con token', y.r.status === 200);
+  check('sin Origin (curl, scripts) → 403 aunque traiga token', y.r.status === 403 && y.j.error === 'origin');
+  y = await go({ method: 'OPTIONS', origin: '' });
+  check('OPTIONS sin Origin → 403', y.r.status === 403);
 }
 
 /* ---------------- (3) sin credenciales en el repo ---------------- */

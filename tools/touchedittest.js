@@ -48,6 +48,8 @@ const near = (a, b, t) => Math.abs(a - b) <= (t == null ? 1.5 : t);
     for (const k of ['hit', 'jump', 'sw']) check('zurdos: ' + k + ' reflejado (cx = W - cx de fábrica, mismo alto y tamaño)', near(G[k].cx, W - G0[k].cx) && near(G[k].cy, G0[k].cy) && near(G[k].r, G0[k].r), { m: G[k], f: G0[k] });
     check('zurdos: pausa y lupa quietas arriba a la derecha', near(G.pause.cx, G0.pause.cx) && near(G.zoom.cx, G0.zoom.cx) && G.pause.cx > W * 0.8);
     check('zurdos: la guía del joystick, abajo a la derecha', await E(`(function(){ var b=document.querySelector('#touch .vt-base').getBoundingClientRect(); return b.left > innerWidth * 0.6 && b.top > innerHeight * 0.5; })()`));
+    // la regla del espejo de .vt-zone se aplica (22-nov: una «}» de más en el @media (max-height:340px) la dejaba muerta)
+    check('zurdos: .vt-zone en la mitad derecha (regla #touch.mirror .vt-zone viva)', await E(`(function(){ var z=document.querySelector('#touch .vt-zone'), r=z.getBoundingClientRect(); return getComputedStyle(z).right === '0px' && r.left >= innerWidth * 0.5 - 1; })()`));
     const hit = [G.hit.cx, G.hit.cy], jump = [G.jump.cx, G.jump.cy];
     // joystick en la mitad derecha
     await touch('touchStart', [[W - 180, H - 120, 1]]);
@@ -164,6 +166,12 @@ const near = (a, b, t) => Math.abs(a - b) <= (t == null ? 1.5 : t);
     d = await dbg(); check('el sitio viejo de GOLPEAR ya no golpea', !d.hitDown, d.ptrs);
     await touch('touchEnd', []);
     await page.shot(path.join(OUT, 'touchedit-propia-' + SIZE + '.png'));
+    // (22-nov-2026) GOLPEAR movido encima de COLOCAR (la disposición de mobaudit controles-touch-editor-zurdos): COLOCAR se aparta
+    await store({ 'make-the-cut.device': { touchLayout: { hit: { x: 0.7, y: 0.55, s: 1.3 } }, touchMirror: true } }); await serve();
+    d = await dbg();
+    { const a = d.geo.hit, b = d.geo.set, dd = Math.hypot(a.cx - b.cx, a.cy - b.cy);
+      check('GOLPEAR movido encima de COLOCAR: no se pisan (COLOCAR se aparta)', dd >= a.r + b.r + 4, { hit: a, set: b, dd: Math.round(dd) });
+      check('GOLPEAR se queda donde lo pusiste (manda el movido)', near(a.cx, W - W * 0.7, 3) && near(a.cy, H * 0.55, 3), a); }
     // zonas seguras: el botón pegado al borde respeta el inset
     let saOk = true;
     try { await page.send('Emulation.setSafeAreaInsetsOverride', { insets: { left: 44, right: 44, top: 0, bottom: 21 } }); } catch (er) { saOk = false; }

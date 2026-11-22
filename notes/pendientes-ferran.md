@@ -9,6 +9,13 @@ publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas ab
 rama pendientes, sin publicar.
 
 ## Imprescindibles 1.22.0 (rama investigacion; informe estudios/revision-juegos-voley-2026-11-21.md §4)
+- **Revisión de la rama (22-nov).** Arreglos hechos sin preguntar: una llave de más en el CSS del táctil dejaba muerta la regla de zurdos
+  de `.vt-zone`; la fila Duración de Partido rápido lleva su «?» en el móvil (allí la ayuda va oculta y no se veía «no cuenta para el
+  récord»); «XP» y «experiencia» unificados («ni da experiencia»). **Decisión provisional: versión 1.22.0** (js/version.js y
+  bridge/version.json) con su entrada de Novedades «A tu manera» (7 frases: Jugar ya, cortos, botones, marca, aro de caída, IA variada,
+  Retomar). Es obligatoria antes de publicar: la IA variada cambia lo que simula cada lado y el lobby online y el sello de «Seguir el
+  partido» separan por versión; con «1.21.0» en las dos, una copia vieja en caché y una nueva entrarían en la misma sala y se
+  desincronizarían. Revisa los textos de las Novedades.
 - **4.4 «Por qué falló cada toque»** (arreglo, no novedad; notes/ui_main.md «Por qué falló el toque»). **Decisión provisional:** la causa
   no sale por un orden fijo como decía el informe, sino por **la que más calidad le quitó** al toque (timing, lejos, balón muy rápido; mínimo
   0,1), y la **plancha va la primera**: en plancha el toque sale siempre flojo aunque el timing sea perfecto, decir «¡Tarde!» engañaría.
@@ -27,7 +34,10 @@ rama pendientes, sin publicar.
   instalar después del primer partido, «Y ahora» (Carrera, Vestuario, Cuenta) al acabar ese partido y tiempo hasta el primer punto guardado
   solo en el aparato (`VB.UI.firstPoint()`). **Decisiones provisionales:**
   1. El botón es un billete dorado «¡Jugar ya!» ENCIMA de JUGAR (en el sitio del de la Carrera), no sustituye a JUGAR; desaparece en cuanto
-     hay un partido en el récord. En el móvil, con él, la portada va sin logotipo (como con la Carrera: si no, la ayuda no cabe a 844×390).
+     se ha jugado **cualquier** partido (22-nov: antes miraba solo el récord del 2v2 largo y a quien jugaba 6v6, cortos, online o la
+     situación de la semana le seguía saliendo «Primera vez»; ahora `record.anyMatch`, opcional, o partidos en el perfil). Lo mismo
+     para el aviso de instalar, el tiempo hasta el primer punto y «Y ahora» (sale tras el primer partido de cualquier modo salvo
+     Carrera, online y la situación de la semana). En el móvil, con él, la portada va sin logotipo (como con la Carrera: si no, la ayuda no cabe a 844×390).
   2. Partido «Jugar ya» = 2v2, un set a 15 contra la CPU (también en la playa), en Fácil para el novato (se queda en Ajustes, como «Primer
      partido»); la revancha de ese partido también es corta.
   3. `?jugar` vale para todos (no solo novatos): arranca el partido corto sin pasar por el menú y se quita del enlace.
@@ -40,8 +50,9 @@ rama pendientes, sin publicar.
      echa encima se aparta. El joystick no se coloca (sigue saliendo donde pones el dedo): solo su opacidad.
   2. «Zurdos» pasa el joystick a la mitad DERECHA y refleja los botones (también los que hayas movido). «Restablecer» vuelve a lo de fábrica y
      deja «Zurdos» como esté.
-  3. Cada cambio se guarda al momento (sin «Cancelar»: un botón menos). Los botones pueden quedar encima unos de otros si los pones así (manda
-     el que tocas más por dentro).
+  3. Cada cambio se guarda al momento (sin «Cancelar»: un botón menos). **Dos botones ya no pueden quedar uno encima de otro** (22-nov,
+     revisión de la rama: con «Zurdos» y GOLPEAR movido, COLOCAR quedaba dentro de GOLPEAR y el toque iba al que no era): primero se
+     colocan los que has movido y el que se les echa encima se aparta en línea recta (como con la pausa y la lupa).
   4. El editor se abre solo desde Controles (no hay atajo en la pausa del partido).
 - **4.5 «Partidos cortos»** (notes/ui_main.md «Partidos cortos»). Fila «Duración» en Partido rápido: Completo / Un set / Final apretado,
   y el 7 en «Puntos por set». **Decisiones provisionales:**
@@ -50,14 +61,22 @@ rama pendientes, sin publicar.
   2. Los cortos (un set, final, y también «Completo» con sets a 7) **no cuentan nada**: ni récord, ni retos, ni insignias, ni XP (escuadrón y
      perfil). No se llevan aparte. Quien solo juega cortos sigue siendo «novato» para la ayuda del primer partido.
   3. Dificultad deja de ocupar la fila entera para que quepa Duración sin una fila más (a 568×320 no cabía otra).
-  4. Vale también en 6 contra 6. «Jugar ya» (un set a 15) sigue contando como antes: no es un formato del menú.
+  4. Vale también en 6 contra 6. **«Jugar ya» (un set a 15) solo cuenta en el primer partido de quien no ha jugado nunca** (22-nov,
+     revisión de la rama: antes contaba siempre y su revancha y `?jugar` daban victorias y XP baratas). La revancha de ese primer partido
+     y `?jugar` de quien ya ha jugado son un corto más (`g.short` «Un set»): no cuentan y la hoja dice «Partido corto».
   ¿Prefieres que los cortos cuenten aparte (p. ej. su propio «ganados de jugados») en vez de no contar?
 - **4.6 «Marca de tu jugador» y 4.7 «Indicador de caída»** (Ajustes › Accesibilidad; notes/ui_main.md «Marca de tu jugador e indicador de
   caída»). Solo visuales, sin tocar huellas. **Decisiones provisionales:**
   1. Alto contraste = **blanco con borde negro** (halo y galón); no amarillo, que es el color del aro de golpeo.
   2. «Se va retirando» = el aro de caída **sale solo en el último tramo del vuelo** (desde 0,8 s antes del bote) y la línea de altura a la
      mitad; no se va apagando con los partidos. Nunca se apaga solo: con «Auto» en Difícil/Experto pasa a «Se retira», no a «No».
-  3. El aviso al cambiar de dificultad es una línea de 4 s en la ayuda de la fila Dificultad (no un cartel aparte).
+  3. El aviso al cambiar de dificultad es una línea de 4 s en la ayuda de la fila Dificultad (no un cartel aparte); **en el móvil** (donde
+     esa ayuda va oculta) sale además como aviso corto (toast) de 4 s (22-nov).
+  5. **Partidas de antes (22-nov, revisión de la rama):** los ajustes guardados sin la clave `landAid` pasan a **«Siempre»** (el aro entero de
+     siempre); «Auto» queda para los jugadores nuevos. Así a quien ya jugaba en Difícil/Experto no se le recorta sin avisar.
+  6. **Aviso de una vez:** con «Auto», la primera vez que un partido (también de la Carrera, al subir a una división en Difícil) empieza
+     en un nivel en el que el aro se retira, sale «En este nivel, el aro de caída sale solo al final del vuelo. Se cambia en Ajustes ›
+     Accesibilidad» (7 s). Se apunta en el ajuste nuevo `laSeen`.
   4. La vista previa es un icono en la fila; a 568×320 no cabe y no sale.
   ¿Te vale que «Auto» retire el aro en Difícil y Experto, o lo quieres siempre entero salvo que lo cambie el jugador?
 - **Preguntas del reglamento (informe §7, puntos 2 y 4; los textos NO se han tocado):**
@@ -78,13 +97,18 @@ rama pendientes, sin publicar.
   3. Si el jugador pide el balón en 6v6, al humano no se le reparte menos por haber rematado las dos últimas.
   4. **No hecho:** el bloqueo de la IA que se corre tras 4 remates tuyos seguidos por el mismo carril (fuera de la Carrera). Sigue solo
      «Te tienen estudiado» en la Carrera. ¿Lo quieres para otro sprint?
-  5. **simtest queda con 4 fallos de calibración de una sola semilla** (demo: 1 set en 20 min y 36 % de remates que son punto, banda
-     38-65 %; highlight 25,2 % y 5,1 %, topes 25 y 5). Con 30 semillas la memoria no los mueve (37,4 % → 36,8 %); la banda ya no encaja con
-     el código de main desde el modelo de esfuerzo. No se han tocado: ¿se recalibran las bandas de simtest? (detalle en notes/ia-variada.md)
+  5. **simtest recalibrado (22-nov, decisión provisional; antes quedaba con 4 fallos).** Con la IA variada la demo de 20 min cierra 1 set
+     (~103 puntos) y da 36 % de remates que son punto; la calibración del highlight da 25,2 % de puntos grandes y 5,1 % ≥ 0,8 fuera de punto
+     de set. Con 30 semillas la memoria no mueve los remates (37,4 % → 36,8 %): la banda del 51,5 % ya no encajaba con main desde el modelo
+     de esfuerzo. Cambios en tools/simtest.js: centro de la banda de remates **0,37** (mismo ancho), la demo pide **un set cerrado** (no dos)
+     y los topes del highlight **28 % / 6 %** (antes 25 / 5). simtest vuelve a TODO OK. Si prefieres los topes de antes, se vuelven a poner
+     y se retoca HOLD en sim.js (eso movería huellas).
 - **4.9 «Retomar el partido tras cerrar el navegador»** (js/resume.js, notes/resume.md). El Partido rápido se guarda al acabar cada punto
   (clave del aparato `make-the-cut.resume`, sellada con la versión) y la portada ofrece **«Seguir el partido 18-15 · 2º set»**; al tocarlo, el
-  partido sigue exactamente igual (comprobado con la huella del estado en los saques siguientes). Cerrar la pestaña nunca deja repetir un
-  punto (solo se guarda después de cada punto). Sin huellas nuevas: no toca la sim. **Decisiones provisionales:**
+  partido sigue exactamente igual (comprobado con la huella del estado en los saques siguientes). Sin huellas nuevas: no toca la sim.
+  **Corregido el 22-nov (revisión de la rama):** antes aquí ponía «cerrar la pestaña nunca deja repetir un punto», y no era verdad: la foto
+  es la de antes del saque con el mismo azar, así que cerrar a mitad de un peloteo y retomar dejaba repetir ese punto hasta ganarlo (y
+  con él récord, racha, retos e insignias). Ver la decisión provisional 6. **Decisiones provisionales:**
   1. **La Carrera queda detrás de un interruptor apagado** (`VB.Resume.CAREER = false`; `?resumecareer=1` lo enciende para probar). Motivo:
      la nota en directo, las consignas del entrenador, el ambiente (su director con su propio azar) y los contadores de «Te tienen estudiado»
      viven en career.js con funciones dentro y no se pueden guardar todavía; retomar con ellos a cero daría notas y estadísticas de la
@@ -99,6 +123,12 @@ rama pendientes, sin publicar.
      ha cambiado desde que se guardó, se descarta sin avisar (la partida podría no cuadrar con la sim nueva).
   5. Las mejores jugadas de antes de cerrar (pestaña «Jugadas») se pierden; la hoja final, la Estadística del partido, las insignias y los
      retos sí siguen la cuenta.
+  6. **Cerrar con un punto en juego (22-nov).** En cuanto el punto se pone en juego (lanzamiento del saque o cualquier golpe), lo guardado
+     se marca «punto en juego» (`live: 1`, la misma foto). Retomarlo se puede (si el sistema mata el navegador con la app en segundo plano
+     no se pierde el partido), pero **ese partido ya no cuenta**: ni récord, ni racha, ni retos, ni insignias, ni XP (como los cortos).
+     La cinta dice «Seguimos · 18-15 | 2º set · Se cerró con un punto en juego: ya no cuenta» y la hoja final lo repite. Cerrar en la
+     pausa entre puntos o antes del saque sigue contando con normalidad. Alternativas descartadas por ahora: dar el punto al rival al
+     retomar (habría que tocar la sim y el punto a medias) o no ofrecer retomar (se perdería el caso del móvil que mata la pestaña).
   ¿Quieres la Carrera también (habría que guardar la nota en directo y el ambiente: un sprint aparte), o te basta con el Partido rápido?
 - **4.1 «Servidor TURN»** (notes/turn.md; pasos en turn-worker/README.md). **Preparado y APAGADO**: el Worker de Cloudflare está en
   `turn-worker/` sin desplegar, sin clave TURN creada y con `VB.NET_TURN_URL = ''`, así que el juego no hace ninguna petición nueva.
@@ -108,7 +138,11 @@ rama pendientes, sin publicar.
   2. Credenciales de **2 h**, pedidas al abrir/entrar en la sala y antes de cada oferta/respuesta, esperando **como mucho 2 s**; si no
      llegan, se juega con STUN como hasta ahora. Solo con sesión iniciada (el online ya la pide).
   3. Dominio `turn.takethecourt.com` (lo crea wrangler con `custom_domain`, sin tocar el DNS a mano); límite de 20 peticiones por minuto
-     y cuenta; orígenes permitidos: takethecourt.com, www, el puente de github.io y localhost:8080.
+     por cuenta **y otras 20 por IP** (22-nov: las cuentas se crean gratis, el uid solo no frenaba); orígenes permitidos: takethecourt.com,
+     www, el puente de github.io y localhost:8080, y **sin cabecera Origin, 403** (antes pasaba con token).
+  5. **Antes de desplegar, pon una alerta (o tope) de gasto de Realtime TURN en Cloudflare** (turn-worker/README.md, paso 1): aunque
+     haya sesión, Origin y límites, alguien con muchas IP y cuentas nuevas podría usar el TURN de relé y lo que pase del tramo gratis se
+     cobra. No hecho: exigir antigüedad de cuenta o sala online activa (el token no trae la fecha de alta; haría falta Firestore).
   4. El aviso de «No se ha podido conectar» no cambia de texto.
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)

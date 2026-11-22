@@ -2026,6 +2026,13 @@ panel «Primer partido» → Jugar (5 toques) y, en el móvil, podía salir ante
 - **Aviso de instalar** (install.js): espera a que el récord tenga un partido (sale al volver al menú, como antes).
 - **Tiempo hasta el primer punto** (sin analítica, nada sale del aparato): `make-the-cut.firstpt` = `{ms, m, via, d}` la primera vez que hay
   un punto en un partido de verdad con el récord a 0; `VB.UI.firstPoint()`. Ajustes no lo enseña.
+- **«Ya ha jugado» (22-nov, revisión de la rama):** el billete, el tiempo hasta el primer punto, «Y ahora» y el aviso de instalar ya no miran
+  solo `record.played` (récord del 2v2 largo, que no sube con 6v6, cortos, online ni la semana): `everPlayed()` (ui.js y main.js) =
+  `record.played > 0 || record.anyMatch > 0 || VB.Profile.stats().m > 0`. `record.anyMatch` (opcional, 0 en las partidas viejas) se pone
+  a 1 en showEnd con cualquier partido humano (no demo, autopilot, ejercicio ni espectador). «Y ahora» sale tras el primer partido de
+  cualquier modo salvo Carrera, online y la semana. install.js `played()` mira lo mismo.
+- **«Jugar ya» solo cuenta la primera vez (22-nov):** main.js, si `g.playNow` y `everPlayed()`, `g.short = {len:'one', pts:15}`: la revancha
+  y `?jugar` de quien ya ha jugado son un corto más (sin récord, retos, insignias ni XP; la hoja dice «Partido corto»).
 - Pruebas: `node tools/jugaryatest.js` (portada, toque, partido corto, primer punto, «Y ahora», ?jugar, aviso de instalar en el móvil);
   mobaudit `home-jugarya` y `final-primero`; drive.js baja con ↓ del billete a JUGAR en el perfil nuevo.
 

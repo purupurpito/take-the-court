@@ -48,7 +48,7 @@ const COUNT = ms => `(function(){return new Promise(function(res){var sc=VB.ctx.
     await pg.evalJs(`localStorage.setItem('make-the-cut.settings', JSON.stringify({difficulty:'normal'}))`);
     await pg.navigate(''); await ready(pg);
     s = await J(pg, 'var s=VB.ctx.settings;return {m:s.ctrlMark,c:s.ctrlMarkCol,l:s.landAid}');
-    ok(s.m === 'normal' && s.c === 'auto' && s.l === 'auto', 'partida vieja sin las claves nuevas: carga con los valores por defecto', JSON.stringify(s));
+    ok(s.m === 'normal' && s.c === 'auto' && s.l === 'siempre', 'partida vieja sin las claves nuevas: marca por defecto y el aro de caída entero (siempre, no auto: 22-nov)', JSON.stringify(s));
 
     // ---------------------------------------------------------------- b) landAidOf
     console.log('b) VB.FX.landAidOf');
