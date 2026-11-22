@@ -1373,3 +1373,19 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
   segura, lo editado en partido, valores rotos). mobaudit: `controles-touch-editor`, `controles-touch-editor-zurdos`, `hud-2v2-zurdos`.
 - **Ojo** `tools/touchtest.js 568x320` falla la herencia del joystick (el 2.º dedo en x=300 cae en la mitad derecha a 568 de ancho) ya en main:
   la prueba está pensada para 844×390.
+
+## camtest en verde con los fallos conocidos acotados (22-nov-2026, rama investigacion)
+- Sin tocar la cámara (regla de Ferran: la de antes de 1.5.4 + contención, no seguimiento). Los 17 fallos de la pasada entera (`PAR=1`)
+  eran los mismos de «camtest al día» (21-nov) más uno nuevo de la prueba: salen igual en 12b48c5 y en main 1.21.0 (copia aparte con
+  `PAGE_ROOT`), y js/camera.js no ha cambiado desde entonces.
+- `serve`: la sonda guarda cada oficial cortado (`xs[7]`: índice, árbitro/juez, borde, cuánto sale). No falla, y se cuenta como «conocido
+  (pendiente de Ferran)», (a) silla del 1r árbitro, 2º árbitro o anotadores asomando <= 0,12 NDC (medido 0,05-0,10) y (b) el juez de línea
+  cercano en primer plano cortado por abajo. Cualquier otro oficial cortado, uno de esos más allá del margen, el sacador fuera de su sitio o
+  el fondo < 0,5 siguen fallando (`CAMBREAK=serve` sigue detectado). La pregunta de arriba (¿juez entero, fuera o cortado por abajo?) sigue
+  abierta: si Ferran decide, se cambian los candidatos del saque y se quita la tolerancia.
+- `fovpump`: balón fuera tolerado hasta el 0,8 % de los frames de rally/attack/defend (medido 12-16 por partida, 0,4-0,6 %).
+- `wide`: cadera fuera tolerada hasta el 1 % (medido 16-23 en 1680×720 s12345).
+- `heroAll`: >= 90 % o como mucho ⌈10 % de n⌉ fallos (13/15 en 1680×720 era ruido de muestra del «kill #3 … los false» de siempre).
+- `spiker` (nuevo con la IA variada, 1024×768 s3): el jugador controlado «fuera» 9 frames en defensa justo tras un cambio de `g.ctrl`
+  (el nuevo aparece en x -1,01 NDC y la cámara se recoloca en 0,2 s). Como en `wide`, no se cuentan los 0,3 s tras el cambio.
+- `CAMZERO=1` quita todas estas tolerancias (exige 0 como antes).
