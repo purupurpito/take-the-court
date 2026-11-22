@@ -77,11 +77,12 @@
     ok: 'as'   // (blockPress: pulsación del bloqueo activo a tiempo o no; faltaba, viewtest lo vio el 18-nov-2026 al cambiar los partidos de bots)
   };
   // claves conocidas de los objetos anidados que flip toca o deja (viewtest falla si aparece otra: habría que clasificarla)
+  // (ritual.jug: gesto «Giro» del saque de firma, booleano igual para los dos lados; faltaba desde la Carrera EA/2K, 22-nov-2026)
   var NESTED = {
     ball: 'x,y,z,vx,vy,vz,held,spin,speed,dip,wobA,wobF,wobP', pr1: 'x,y,z,t', pr3: 'x,y,z,t', aim3: 'on,x,y,kind', lastLand: 'x,y,inside,t',
     antennaHit: 'x,y,z', call: 'x,y,dist,truthIn,calledIn,wrong,team,t,alt,used,setNo,waived', _pendCall: 'x,y,dist,truthIn,calledIn,wrong,team,t,alt,used,setNo,waived',
     review: 'team,t,dur,x,y,dist,truthIn,calledIn,overturned', cpuChal: 'team,at', tmo: 'team,t,dur', atkServe: 'team,player,reason,text',
-    ritual: 'on,phase,t,dur,bounces,n,u,player,rx,ry,pre,post,still,cyc,td,tu,v0,vu,vc,vi,press', rally: 't,hits,digs', tm: 'assist,swing,lock',
+    ritual: 'on,phase,t,dur,bounces,n,u,player,rx,ry,pre,post,still,cyc,td,tu,v0,vu,vc,vi,press,jug', rally: 't,hits,digs', tm: 'assist,swing,lock',
     _rc: 'pace,wob,run,move,line,ft,who',
     lastPoint: 'team,reason,text,how,highlight,digs,streak,savedSetPoint,clutch,signal,touchedOut,landSide,hold,setWon,matchWon,assist,tool,move',
     _snap: 'score,sets,setNo,serving,serverIdx,setScores,streakTeam,streakN,courtSwap3,pendingSet,setPoint,matchPoint,challenges,lastPoint',
