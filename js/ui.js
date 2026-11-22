@@ -442,7 +442,7 @@
       'btnPlay', 'optDiff', 'optVenue', 'venueVal', 'optPts', 'ptsVal', 'optCtrl', 'ctrlVal', 'btnTut', 'btnControls', 'btnSettings', 'btnSquad', 'squadSub', 'sqBody', 'btnResume', 'btnRestart', 'btnQuit', 'btnPControls', 'btnPSettings',
       'btnAgain', 'btnMenu', 'btnPanelBack', 'btnTutPrev', 'btnTutNext', 'btnHudPause', 'btnHudMute', 'icoSound',
       'pnKick', 'pnTitle', 'tutBody', 'tutFig', 'tutStep', 'tutTitle', 'tutText', 'tutDots', 'ctlGrid', 'ctlSub', 'navHint', 'menuRecord', 'menuLast',
-      'btnQuick', 'btnGo', 'btnPlayBack', 'btnQuickBack', 'mpPlay', 'mpQuick', 'venueHelp', 'ptsHelp', 'ctrlHelp', 'diffHelp', 'optFmt', 'fmtVal', 'fmtHelp', 'optCam6', 'cam6Val', 'cam6Help', 'btn6v6', 'sqPick', 'ctlTabs', 'sqTabs', 'setTabs', 'optList',
+      'btnQuick', 'btnGo', 'btnPlayBack', 'btnQuickBack', 'mpPlay', 'mpQuick', 'venueHelp', 'ptsHelp', 'ctrlHelp', 'diffHelp', 'optFmt', 'fmtVal', 'fmtHelp', 'optLen', 'lenVal', 'lenHelp', 'optCam6', 'cam6Val', 'cam6Help', 'btn6v6', 'sqPick', 'ctlTabs', 'sqTabs', 'setTabs', 'optList',
       'diffVal', 'diffLvl', 'playSub', 'qualNote', 'tb1t', 'btnFirstTut', 'btnFirstPlay', 'firstDiff', 'guide', 'guideK', 'guideT', 'skip', 'btnAgainAlt', 'endMvp', 'btnPeek', 'btnEndBack', 'btnEndOpts',
       'btnVer', 'abTabs', 'abBody', 'btnAbOk', 'optVer', 'optSave', 'resNote', 'ctlMsg',
       // E6: Entrenamiento (tarjeta, página, pastilla del HUD, tarjeta de presentación y hoja final)
@@ -1264,7 +1264,9 @@
   /** Formato del partido para la tarjeta y el aviso del primer set: a un set (g.toWin 1, el partidillo de prueba) o al mejor de 3. */
   /** ¿Partido a un set? (la prueba de la Carrera, g.toWin 1, o la sala online de 1 set, g.bo1) */
   function oneSet(g) { return !!(g && (g.toWin === 1 || g.bo1)); }
-  function fmtTxt(g) { return (oneSet(g) ? 'Un set a ' : 'Al mejor de 3 sets a ') + ((g && g.points) || 25); }
+  function fmtTxt(g) { return (oneSet(g) ? 'Un set a ' : 'Al mejor de 3 sets a ') + ((g && g.points) || 25) + (shortFrom(g) ? ', desde el ' + shortFrom(g) + '-' + shortFrom(g) : ''); }
+  /** Partidos cortos (informe 4.5; main.js quickShort, g.short = {len, pts, from}): marcador de arranque del «Final apretado» (0 si no lo es). */
+  function shortFrom(g) { return g && g.short && g.short.len === 'clutch' ? g.short.from | 0 : 0; }
   var IN_FB = '<svg viewBox="0 0 56 60" aria-hidden="true"><circle cx="28" cy="17" r="12"/><path d="M4 60c0-16 10-26 24-26s24 10 24 26z"/></svg>';
   /** Datos para VB.Recap.introPlan a partir de la partida montada y de las opciones de startMatch (o.introKind fuerza el tipo). */
   /** Parciales de relleno al principio de g.setScores: 2 en la situación de la semana que arranca en el 3r set (sim g.st0), si no 0. */
@@ -1284,6 +1286,7 @@
       stA: stOf(0), stB: stOf(1) };
     // la situación de la semana no cuenta en el Partido rápido: sin «Tu balance en…» ni racha; el beat B dice el intento de hoy
     if (g && g.sit && !g.demo) { info.byD = null; info.winRun = 0; info.sit = { i: g.sit.i | 0, tries: 3 }; }
+    if (g && g.short && !g.demo) { info.byD = null; info.winRun = 0; }   // (partido corto: tampoco cuenta en el balance)
     var cs = g && g.career;
     if (cs) {
       var c2 = {}; for (var k in cs) if (Object.prototype.hasOwnProperty.call(cs, k)) c2[k] = cs[k];
@@ -3481,7 +3484,10 @@
     // ONLINE (decisión 4 de Ferran): sin récord de Partido rápido, experiencia, perfil, insignias ni Vestuario; el récord online va aparte (fase 3)
     var online = !!(ctx.game && ctx.game.online) || !!ctx.net;
     var sitG = !!(ctx.game && ctx.game.sit && !ctx.game.demo);   // la situación de la semana (Ferran: sin XP ni medallas): sin récord, perfil, XP ni insignias
-    if (!ctx.debug && !career && !watch && !six && !online && !sitG) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
+    // partido corto (informe 4.5: un set, final apretado o set a 7): tampoco, para que no se farmeen (los retos los cierra retos.js counts)
+    var shortG = !!(ctx.game && ctx.game.short && !ctx.game.demo);
+    var noRec = sitG || shortG;
+    if (!ctx.debug && !career && !watch && !six && !online && !noRec) {   // los partidos de Carrera no cuentan para el récord de Partido rápido
       record.played++; if (win) { record.wins++; record.winRun++; } else record.winRun = 0;
       firstEnd = record.played === 1;   // «Jugar ya»: su primer partido → el Resumen ofrece Carrera, Vestuario y cuenta (endFirstRow)
       // los consejos del partido acompañan hasta la primera victoria; luego se apagan (se reactivan en Ajustes · Juego · Consejos)
@@ -3496,7 +3502,7 @@
     // D2 (perfil): cada partido jugado de verdad suma XP de perfil (Partido rápido 2v2/6v6 y Carrera); nunca en depuración,
     // espectador, autopilot ni demo. El resultado {xp, lvl, lvlUp, prize} lo enseña la hoja de B6 (T19)
     profEnd = null;
-    if (!ctx.debug && !watch && !online && !sitG && ctx.game && !ctx.game.autopilot && !ctx.game.demo && VB.Profile && VB.Profile.noteMatch) {
+    if (!ctx.debug && !watch && !online && !noRec && ctx.game && !ctx.game.autopilot && !ctx.game.demo && VB.Profile && VB.Profile.noteMatch) {
       try {
         var pr = VB.Profile.noteMatch({ mode: career ? 'career' : six ? '6v6' : '2v2', win: win, setsWon: e.sets[0] | 0, diff: String(ctx.game.difficulty || ''), venue: VB.Arena && VB.Arena.map ? VB.Arena.map() : '' });
         if (pr) profEnd = { xp: pr.xp | 0, lvl: pr.lvl | 0, lvlUp: !!pr.lvlUp, prize: pr.prizeName || '' };
@@ -3507,7 +3513,7 @@
     var endPts = (ctx.game && ctx.game.points) || 25, dn = VB.DIFF && ctx.game && VB.DIFF[ctx.game.difficulty] && VB.DIFF[ctx.game.difficulty].name;
     // «Palau del Mar ◆ Nivel Normal | Sets a 25»: la sede tras el rombo del antetítulo; nivel y puntos por set, datos con la barra fina
     // (móvil: «Sets a 25» en .ph-hide, el antetítulo cabe en una línea)
-    setSep(el.endKicker, [{ h: nw(escT(venueName())) }, { h: nw('Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')])) + '<span class="ph-hide">' + SEP_V + nw((oneSet(ctx.game) ? 'Un set a ' : 'Sets a ') + endPts) + '</span>' }], 'd');
+    setSep(el.endKicker, [{ h: nw(escT(venueName())) }, { h: nw('Nivel ' + escT(dn || OPT.difficulty.labels[optIndex('difficulty')])) + '<span class="ph-hide">' + SEP_V + nw((shortFrom(ctx.game) ? 'Desde el ' + shortFrom(ctx.game) + '-' + shortFrom(ctx.game) : oneSet(ctx.game) ? 'Set único a ' : 'Sets a ') + (shortFrom(ctx.game) ? '' : endPts)) + '</span>' }], 'd');
     var gNet = ctx.game && ctx.game.netCr;   // (online: el nombre del rival y «Online» en vez del nivel)
     if (gNet) setSep(el.endKicker, [{ h: nw(escT(venueName())) }, { h: 'Online' + '<span class="ph-hide">' + SEP_V + nw((ctx.game && ctx.game.bo1 ? 'Un set a ' : 'Sets a ') + endPts) + '</span>' }], 'd');
     el.endTitle.textContent = watch ? (win ? 'Gana el local' : 'Gana el visitante') : win ? '¡Victoria!' : gNet ? 'Gana ' + gNet.rivalName : 'Gana la CPU'; el.endTitle.classList.toggle('long', !!gNet && !win && gNet.rivalName.length > 11);
@@ -3533,10 +3539,11 @@
     // (online, anti-trampas: las huellas de los dos lados no cuadraron al final → el récord lo apunta como «no válido»; aquí se dice por qué)
     var nrr = online && ctx.net && ctx.net.recRes;
     if (nrr && nrr.outcome && nrr.outcome.kind === 'unverified') rec += '<span class="new">No válido: las dos partidas no cuadraban al final. No cuenta en tu récord online.</span>';
-    if (!ctx.debug && !career && !six && !online && !sitG) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
+    if (!ctx.debug && !career && !six && !online && !noRec) rec += '<span>Partidos ganados: <b>' + record.wins + ' de ' + record.played + '</b></span>';
+    if (shortG && !online) rec += '<span>Partido corto: no cuenta para el récord ni da experiencia</span>';
     var bs = record.bestStreak;
     if (isNew) rec += '<span class="new">¡Nueva mejor racha: ' + (bs === 1 ? '1 punto seguido' : bs + ' puntos seguidos') + '!</span>';
-    else if (record.winRun > 1 && !career && !online && !sitG) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
+    else if (record.winRun > 1 && !career && !online && !noRec) rec += '<span class="new">' + record.winRun + ' victorias seguidas</span>';
     // siguiente paso en un clic: tras ganar, revancha un nivel por encima; tras perder (salvo en Fácil), uno por debajo
     var di = optIndex('difficulty'), alt = win ? (di < OPT.difficulty.vals.length - 1 ? di + 1 : -1) : (di > 0 ? di - 1 : -1);
     if (!win && alt >= 0 && !career && !online && !sitG) rec += '<span class="new">¿Te cuesta? Prueba el nivel <b>' + OPT.difficulty.labels[alt] + '</b></span>';
@@ -3553,7 +3560,7 @@
     if (el.btnEndOpts) { el.btnEndOpts.hidden = noOpts; el.btnEndOpts.parentNode.setAttribute('data-n', String((alt >= 0 && !career ? 1 : 0) + (noOpts ? 0 : 1) + 1)); }
     // (partido de Carrera, g.career: la experiencia y las insignias de su atleta las reparte VB.Career.matchDone, no el escuadrón)
     // (6v6 de pruebas, ?format=6v6: tampoco reparte al escuadrón de 2v2)
-    if (!ctx.debug && !online && !sitG && VB.Prog && ctx.game && !ctx.game.autopilot && !ctx.game.career && ctx.game.size !== 6) {
+    if (!ctx.debug && !online && !noRec && VB.Prog && ctx.game && !ctx.game.autopilot && !ctx.game.career && ctx.game.size !== 6) {
       var dfk = ctx.game.difficulty, perP = [stats.p[0], stats.p[1]];
       var aw = VB.Prog.award(perP, { win: win, setsWon: e.sets ? e.sets[0] : 0, difficulty: dfk }), sqa = VB.Prog.get().a, xh = '';
       aw.forEach(function (r, i) {
@@ -6218,7 +6225,11 @@
     quality: { vals: ['auto', 'high', 'medium', 'low'], labels: ['Auto', 'Alta', 'Media', 'Baja'] },
     showHelp: { vals: [true, false], labels: ['Sí', 'No'] },
     // Partido rápido: puntos por set (sim: VB.Sim.SET_POINTS); el set decisivo va a min(15, puntos)
-    setPoints: { vals: [11, 15, 21, 25], labels: ['11', '15', '21', '25'] },
+    // (7 = partido corto, informe 4.5: solo en pista y solo en el Partido rápido; main.js quickShort. No está en Sim.SET_POINTS)
+    setPoints: { vals: [7, 11, 15, 21, 25], labels: ['7', '11', '15', '21', '25'] },
+    // Partido rápido: duración (informe 4.5; main.js ctx.settings.matchLen / quickShort): al mejor de 3, un set, o «Final apretado» (un set
+    // que empieza empatado a 5 del final: 20-20 a 25, 10-10 a 15). Ningún punto vale más. Los cortos no cuentan para récord, retos ni XP
+    matchLen: { vals: ['full', 'one', 'clutch'], labels: ['Completo', 'Un set', 'Final'] },
     // control: los dos jugadores (el control pasa a quien toca) o solo uno (la IA lleva al compañero; sim: g.ctrlMode)
     // En modo Uno llevas siempre al n.º 1 (ya no se elige a cuál; el ajuste antiguo ctrlPlayer se ignora). desc: ayuda de la fila
     // La fila se lee entera: «Controlar ‹ a los dos jugadores ›» / «Controlar ‹ un jugador ›» (petición de Ferran); en pantallas
@@ -6514,7 +6525,7 @@
     if (j === i) { restartAnim(valEl.parentNode, d < 0 ? 'sl-r' : 'sl-l'); uiSound2('arrowEdge', d); return; }
     changeOpt(k, 0, j, d);
   }
-  var lastPtsI = -1;
+  var lastPtsI = -1, lastLenI = -1;
   var lastVenueI = -1;
   /** Puntos de la playa en la fila 05 del menú (fijos: sets a 21 y el 3r a 15). */
   var BEACH_PTS = '21 / 15';
@@ -6648,7 +6659,21 @@
       if (c6a.length === 2) { c6a[0].classList.toggle('end', c6 === 0); c6a[1].classList.toggle('end', c6 === OPT.cam6.vals.length - 1); }
       setText(el.cam6Help, 'c6h', OPT.cam6.help[c6]);
     }
-    var pi = optIndex('setPoints'), ptxt = vb ? BEACH_PTS : OPT.setPoints.labels[pi];
+    // menú: duración (partidos cortos, informe 4.5). «Final» dice desde dónde empieza: «Desde 20-20» (a 25), «Desde 16-16» (playa, a 21)
+    var li = optIndex('matchLen'), lk = OPT.matchLen.vals[li], ptsN = vb ? 21 : OPT.setPoints.vals[optIndex('setPoints')], lfrom = ptsN - 5;
+    var ltxt = lk === 'clutch' ? 'Desde ' + lfrom + '-' + lfrom : OPT.matchLen.labels[li];
+    if (el.optLen) {
+      if (el.lenVal.textContent !== ltxt) {
+        el.lenVal.textContent = ltxt;
+        if (lastLenI >= 0 && lastLenI !== li) { var lv = el.lenVal.parentNode; lv.classList.remove('sl-l', 'sl-r'); void lv.offsetWidth; lv.classList.add(li > lastLenI ? 'sl-r' : 'sl-l'); }
+      }
+      lastLenI = li;
+      var lal = 'Duración: ' + (lk === 'clutch' ? 'final apretado, un set desde el ' + lfrom + '-' + lfrom : lk === 'one' ? 'un set' : 'completo, al mejor de 3 sets');
+      if (el.optLen.getAttribute('aria-label') !== lal) el.optLen.setAttribute('aria-label', lal);
+      var las = el.optLen.querySelectorAll('.arr');
+      if (las.length === 2) { las[0].classList.toggle('end', li === 0); las[1].classList.toggle('end', li === OPT.matchLen.vals.length - 1); }
+    }
+    var pi = optIndex('setPoints'), ptxt = vb ? (lk === 'full' ? BEACH_PTS : '21') : OPT.setPoints.labels[pi];
     el.optPts.classList.toggle('lock', vb);
     var ptl = vb ? 'Puntos por set: 21, y el tercer set a 15 (reglas de vóley playa; se elige en Pabellón)' : 'Puntos por set: ' + OPT.setPoints.labels[pi];
     if (el.optPts.getAttribute('aria-label') !== ptl) { el.optPts.setAttribute('aria-label', ptl); el.optPts.title = vb ? 'En la playa los sets van a 21 y el tercero a 15' : ''; }
@@ -6687,7 +6712,9 @@
     setText(el.fmtHelp, 'fh', six ? 'Equipos completos: llevas al ' + roleName().toLowerCase() : 'Tú y tu pareja contra la CPU');
     setText(el.venueHelp, 'vh', six ? 'El 6 contra 6 se juega en el pabellón' : venueHelpOf(vb ? 'beach' : 'hall') || (vb ? 'Platja Llarga, vóley playa en pista de 16 × 8' : 'Palau del Mar, pista cubierta de 18 × 9'));
     setText(el.diffHelp, 'dh', DIFF_HELP[di] || 'Nivel de la CPU');
-    setText(el.ptsHelp, 'ph', vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
+    setText(el.ptsHelp, 'ph', lk !== 'full' ? (vb ? 'Reglas de playa: un set a 21' : 'Un solo set a ' + ptsN) : vb ? 'Reglas de playa: sets a 21 y el tercero a 15' : 'Al mejor de 3 sets; el tercero, a ' + Math.min(15, OPT.setPoints.vals[pi]));
+    var lshort = lk !== 'full' || (!vb && ptsN === 7);
+    setText(el.lenHelp, 'lh', (lk === 'clutch' ? 'Un set que empieza en el ' + lfrom + '-' + lfrom : lk === 'one' ? 'Un solo set' : 'Al mejor de 3 sets') + (lshort ? '; no cuenta para el récord ni da XP' : ''));
     setText(el.ctrlHelp, 'ch', six ? (ROLE_HELP[role6] || 'Llevas al ' + roleName().toLowerCase() + ' (n.º ' + sixNum() + '); la IA mueve al resto') : ci > 0 ? 'Llevas al n.º ' + tn[0] + '; la IA lleva al n.º ' + tn[1] : 'El control pasa a quien va a tocar');
   }
   /** Una línea por nivel de dificultad (fila Dificultad de Partido rápido). */
@@ -8306,6 +8333,11 @@
         var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;
         if (a) { stepOpt('format', +a.getAttribute('data-d'), el.fmtVal); restartAnim(a, 'hit'); }
         else changeOpt('format', 1);
+      });
+      if (el.optLen) el.optLen.addEventListener('click', function (ev) {
+        var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;
+        if (a) { stepOpt('matchLen', +a.getAttribute('data-d'), el.lenVal); restartAnim(a, 'hit'); }
+        else changeOpt('matchLen', 1);
       });
       if (el.optCam6) el.optCam6.addEventListener('click', function (ev) {
         var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;

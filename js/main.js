@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -156,7 +156,8 @@
     var VV = VB.Venues;
     if (!VV || !VV.valid('hall', s.mapHall)) s.mapHall = 'rand';
     if (!VV || !VV.valid('beach', s.mapBeach)) s.mapBeach = 'platja';
-    if ([11, 15, 21, 25].indexOf(s.setPoints) < 0) s.setPoints = 25;
+    if ([7, 11, 15, 21, 25].indexOf(s.setPoints) < 0) s.setPoints = 25;   // (7: partido corto, informe 4.5; solo lo acepta el Partido rápido, ver quickShort)
+    if (['full', 'one', 'clutch'].indexOf(s.matchLen) < 0) s.matchLen = 'full';   // Partido rápido: duración (informe 4.5): completo | un set | final apretado
     // equipación: solo colores de las paletas de ui.js (OPT.kit*) y diseños conocidos
     if (['diag', 'liso', 'franjas', 'rayas'].indexOf(s.kitPattern) < 0) s.kitPattern = 'diag';   // Partido rápido: puntos por set (sim: VB.Sim.SET_POINTS)
     if (s.ctrlMode !== 'one') s.ctrlMode = 'both';                      // control: los dos jugadores o solo uno (sim: g.ctrlMode)
@@ -606,12 +607,15 @@
     // la situación de la semana (opts.sit, js/semana.js): la semilla del intento (la misma para todos), sin la ayuda de novato, sin la zona ni
     // el saque de firma (decisión provisional, pendientes-ferran.md: nivel y atributos iguales para todos) y el partido empieza en el marcador de la semana (opts.start)
     var sitO = !!(opts.sit && !cs && opts.start);
-    var g = Sim.createGame({ demo: false, seed: sitO && opts.seed && !Q.seed ? opts.seed | 0 : seed(), difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : sitO ? false : isRookie(), present: !opts.autopilot,
-      start: sitO ? opts.start : undefined,
+    // Partidos cortos (informe 4.5): la fila «Duración» y el 7 de «Puntos por set» del Partido rápido (qs = null en el partido de siempre)
+    var sd0 = sitO && opts.seed && !Q.seed ? opts.seed | 0 : seed(), qs = quickShort(opts, cs, auto, fmt ? 'hall' : (cvK || venueNow()), sd0);
+    var g = Sim.createGame({ demo: false, seed: sd0, difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : sitO ? false : isRookie(), present: !opts.autopilot,
+      start: sitO ? opts.start : qs && qs.from ? qs.start : undefined,
+      quick: qs ? true : undefined,   // (la sim solo acepta el set a 7 con quick: Partido rápido)
       bench: b6 || undefined, coach: c6 || undefined, meSlot: cs && b6 ? opts.meSlot : undefined, meBench: cs && b6 ? opts.meBench : undefined, names: fmt && cs ? opts.names : undefined,
       // (sets: 1 = partido a un solo set, el partidillo de prueba de la Carrera; sin él, al mejor de 3 como siempre)
-      sets: opts.sets === 1 ? 1 : undefined,
-      points: opts.points || +Q.points || ctx.settings.setPoints, ctrl: fmt ? 'one' : (opts.ctrl || Q.ctrl || ctx.settings.ctrlMode), ctrlRole: fmt ? (cs && opts.ctrlRole) || 'OH' : undefined, // (6v6: siempre 'one'; el receptor, o tu puesto en la Carrera de pista; espectador sin eventos switch)
+      sets: opts.sets === 1 || (qs && qs.len !== 'full') ? 1 : undefined,
+      points: qs ? qs.pts : opts.points || +Q.points || ctx.settings.setPoints, ctrl: fmt ? 'one' : (opts.ctrl || Q.ctrl || ctx.settings.ctrlMode), ctrlRole: fmt ? (cs && opts.ctrlRole) || 'OH' : undefined, // (6v6: siempre 'one'; el receptor, o tu puesto en la Carrera de pista; espectador sin eventos switch)
       ctrlIdx: ctrlIdxOf(opts),
       // (S4-D1: opts.noAttrs / opts.noBadges = retos «sin mejoras»: el escuadrón juega con atributos e insignias neutros)
       attrs: opts.attrs || (own && !opts.noAttrs && !Q.noattrs && VB.Prog ? VB.Prog.attrs() : null),
@@ -643,6 +647,8 @@
     if (cs) g.career = cs;
     // «Jugar ya» (informe 4.3): marca para ui.js (revancha también corta, «Y ahora» en la hoja y el tiempo hasta el primer punto). Fuera de la sim
     if (opts.playNow && !cs && !auto && !fmt) g.playNow = String(opts.playNow);
+    // partido corto (informe 4.5): marca para ui.js / retos.js (sin récord, retos, insignias, XP ni perfil) y para la previa y la hoja. Fuera de la sim
+    if (qs) g.short = { len: qs.len, pts: qs.pts, from: qs.from | 0 };
     if (cs) cs.calls = ctx.settings.coachCalls !== false;   // consignas del entrenador en directo (career.js, js/consignas.js)
     if (cs) { cs.ambient = auto ? 'off' : ctx.settings.ambient || 'full'; cs.ambSum = null; }   // ambiente de Carrera (career.js crea VB.Ambiente)
     // S4-D1: reto del día (opts.reto = {kind, key, goal, n}); retoOpts = las opciones tal cual, para «Otra vez» / restart
@@ -663,6 +669,22 @@
     if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   };
   var lastOpts = null;
+  /** Partidos cortos (1.22.0, informe 4.5). Solo el Partido rápido elegido desde el menú (y su revancha / reiniciar): nunca la Carrera,
+   *  el autopilot, los retos, la situación de la semana, «Jugar ya» ni quien ya trae sets / start / points. Lee los ajustes matchLen
+   *  ('full' | 'one' | 'clutch') y setPoints (7 = set a 7); ?len= manda (pruebas). → null con el partido de siempre (al mejor de 3 y
+   *  11-25: las huellas no cambian) o {len, pts, from, start}: 'one' = un set; 'clutch' = «Final apretado», un set que empieza empatado
+   *  a pts-5 (20-20 a 25, 10-10 a 15; en la playa, a 21, el 16-16). Saca quien diga la semilla (sin g.rng). Ningún punto vale más. */
+  function quickShort(opts, cs, auto, kind, sd) {
+    if (cs || auto || opts.reto || opts.sit || opts.start || opts.playNow || opts.sets != null || opts.points) return null;
+    var len = Q.len || ctx.settings.matchLen;
+    if (['one', 'clutch'].indexOf(len) < 0) len = 'full';
+    var pts = kind === 'beach' ? 21 : (+Q.points || +ctx.settings.setPoints || 25);
+    if ([7, 11, 15, 21, 25].indexOf(pts) < 0) pts = 25;
+    if (len === 'full' && pts !== 7) return null;
+    var r = { len: len, pts: pts, from: 0, start: null };
+    if (len === 'clutch') { r.from = pts - 5; r.start = { setNo: 1, score: [r.from, r.from], serving: (sd >>> 3) & 1, srvIdx: 0, bo1: true }; }
+    return r;
+  }
   /** «Jugar ya» (1.22.0, informe 4.3): partido corto para empezar sin menús. 2 contra 2, UN set a 15 contra la CPU, previa mini y sin el
    *  panel «Primer partido» (ese sigue para quien entra por JUGAR). Quien no ha jugado nunca (isRookie) juega en el nivel más fácil (se
    *  guarda en Ajustes, como «Jugar» de «Primer partido»; la hoja final propone el siguiente desde ahí); quien ya ha jugado, en el suyo.

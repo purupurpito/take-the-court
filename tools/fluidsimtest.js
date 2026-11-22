@@ -235,7 +235,7 @@ console.log('== (e) flApplyPt: 2000 puntos aplicados en otra partida ==');
 console.log('== (f) autocomprobación de los ganchos en sim.js ==');
 {
   // huella de js/sim.js SIN el bloque FLUIDA, sin las líneas «// fl» / «// fl-api» y sin los trozos /*fl*/…/*lf*/ (= el sim.js de antes)
-  const SIM_BASE = 'db74554b';  // (22-nov-2026, rama investigacion, 4.4 «por qué falló cada toque»: hitWhy pura y strK/reachK/inSp/prevQ en el evento hit, datos que ya existían, sin g.rng; las tres huellas idénticas). Antes afb5ebee (21-nov-2026, rama pendientes: sprint «único», opts.start de la situación de la semana y g.scout de «Te tienen estudiado», los dos detrás de su opción y sin gastar g.rng; las tres huellas idénticas). Antes 2a21ec3 (carrera-ea2k: la zona y el saque de firma)
+  const SIM_BASE = 'b7b6d738';  // (22-nov-2026, rama investigacion, 4.5 «partidos cortos»: createGame acepta points 7 solo con opts.quick (Partido rápido), sin g.rng; las tres huellas idénticas). Antes db74554b (22-nov-2026, rama investigacion, 4.4 «por qué falló cada toque»: hitWhy pura y strK/reachK/inSp/prevQ en el evento hit, datos que ya existían, sin g.rng; las tres huellas idénticas). Antes afb5ebee (21-nov-2026, rama pendientes: sprint «único», opts.start de la situación de la semana y g.scout de «Te tienen estudiado», los dos detrás de su opción y sin gastar g.rng; las tres huellas idénticas). Antes 2a21ec3 (carrera-ea2k: la zona y el saque de firma)
   const L = SIM_SRC.replace(/\r\n/g, '\n').split('\n');
   const out = [], marked = [], inl = [], bad = [];
   let inB = false, blockLines = 0;

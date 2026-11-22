@@ -2029,3 +2029,18 @@ panel «Primer partido» → Jugar (5 toques) y, en el móvil, podía salir ante
 - Pruebas: `node tools/jugaryatest.js` (portada, toque, partido corto, primer punto, «Y ahora», ?jugar, aviso de instalar en el móvil);
   mobaudit `home-jugarya` y `final-primero`; drive.js baja con ↓ del billete a JUGAR en el perfil nuevo.
 
+## Partidos cortos (22-nov-2026, rama investigacion; imprescindible 4.5)
+- **Menú:** fila «Duración» (`#optLen`, ajuste `matchLen`) en Partido rápido, junto a Dificultad (Dificultad deja de ocupar la fila entera:
+  la rejilla sigue en 3 filas de 2 y cabe a 568×320): Completo → Un set → «Desde 20-20» (el valor dice desde dónde empieza: `puntos-5`).
+  «Puntos por set» suma el 7 (7, 11, 15, 21, 25). En la playa los puntos siguen fijos a 21 (un set a 21; final desde el 16-16).
+- **Partido:** main.js `quickShort` (solo el Partido rápido elegido desde el menú y su revancha / reiniciar) → `sets:1`, `start` (sim
+  `startOf` con `bo1`), `quick:true` para el 7; `g.short = {len, pts, from}`. Ningún punto vale más: es un set reglamentario más corto.
+  Completo con sets a 7 también es corto (al mejor de 3 a 7). 6 contra 6 también. «Jugar ya», retos, semana, Carrera y online no lo leen.
+- **No cuenta** (para que no se farmeen): récord (`record.*`), retos y maestría (`VB.Retos` counts), insignias y XP del escuadrón
+  (`VB.Prog.award` / `VB.Badges.endMatch`) ni XP de perfil (`VB.Profile.noteMatch`). La hoja final lo dice en Estadísticas («Partido corto: no
+  cuenta para el récord ni da experiencia») y la ayuda de la fila también. La previa: «Un set a 25, desde el 20-20»; antetítulo de la hoja:
+  «Desde el 20-20» / «Set único a 15».
+- **Prueba:** tools/cortostest.js (navegador, de una en una); fila `quick-corto` en tools/mobaudit.js (Experto + «Desde 20-20»).
+- **Huellas:** simtest y fingerprint6 idénticas; solo cambia la firma de texto SIM_BASE de fluidsimtest (db74554b → b7b6d738) por la
+  línea de `points` de `createGame` (el 7 con `opts.quick`), sin g.rng.
+

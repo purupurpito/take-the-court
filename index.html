@@ -4072,7 +4072,7 @@ html.sp-kb [data-kb-hide]{display:none!important}
 
 /* =====================================================================
    SPLAT · PARTIDO RÁPIDO (#mpQuick): cada opción es una pegatina de tinta con su rótulo dorado y el valor en trazo dorado entre dos
-   flechas en pegatina; Dificultad ocupa la fila entera; «¡A jugar!» es el parche cosido. Las mismas filas, ids y flechas de ui.js
+   flechas en pegatina; Dificultad y Duración (partidos cortos, 1.22.0) comparten fila; «¡A jugar!» es el parche cosido. Las mismas filas, ids y flechas de ui.js
    ===================================================================== */
 #menu.sp-full #mpQuick{--sp-colw:clamp(340px,46vw,760px)}
 #menu.sp-full .sp-opts{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--sp-gap) clamp(12px,1.6vw,20px);width:100%}
@@ -4080,7 +4080,7 @@ html.sp-kb [data-kb-hide]{display:none!important}
 /* (Cámara y Controlar: la fila y su «?» del móvil, botones hermanos; el «?» va encima del borde derecho de la fila) */
 #menu .sp-qrow{position:relative;min-width:0}
 #menu .sp-qrow:has(>.sp-opt[hidden]){display:none}
-#menu.sp-full #optDiff,#menu.sp-full #btnGo{grid-column:1/-1}
+#menu.sp-full #btnGo{grid-column:1/-1}   /* (Dificultad, en media fila desde 1.22.0: a su lado va Duración, informe 4.5) */
 #menu.sp-full #btnGo{--sp-ph:clamp(54px,12vh,100px);margin-top:4px}
 :root:not(#_):not(#_):not(#_) #menu #playSub{display:none}
 .sp-opt{--sp-cf:var(--sp-ink2);--sp-tcf:var(--sp-cream);--sp-icf:var(--sp-gold);--sp-aw:clamp(26px,4.6vh,34px)}
@@ -4101,11 +4101,6 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root:not(#_):not(#_):not(#_) #menu .sp-opt .lvl em{width:7px;height:13px;margin:0;border-radius:3px 4px 3px 4px;background:rgba(21,16,42,.25);box-shadow:none;transform:skewX(-12deg)}
 :root:not(#_):not(#_):not(#_) #menu .sp-opt .lvl em.on{background:var(--sp-ink)}
 :root:not(#_):not(#_):not(#_) #menu .sp-opt.lock .arr{opacity:.38}
-@media (min-height:561px) and (min-aspect-ratio:5/4){
-  /* con alto: Dificultad, en su fila entera, lleva el rótulo a la izquierda y el valor a la derecha */
-  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b";padding:2px 6px}
-  :root:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mi-l{align-items:flex-start;justify-self:start;padding-left:6px}
-}
 @media (max-height:560px) and (min-aspect-ratio:5/4){
   :root:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{display:none}
   .sp-opt{--sp-oh:50px}
@@ -4130,10 +4125,10 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .mi-h{display:none}
 :root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val{margin:2px 0 0;padding:2px 10px;--sp-vs:var(--ph-btn)}
 :root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .mv-val b{letter-spacing:.01em}
-:root.ph:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt{grid-template-columns:44px minmax(0,1fr) auto 44px;grid-template-rows:auto;grid-template-areas:"a l v b"}
-:root.ph:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mi-l{align-items:flex-start;justify-self:start;padding-left:8px}
-:root.ph:not(#_):not(#_):not(#_) #menu #optDiff.sp-opt .mv-val{margin:0}
 :root.ph:not(#_):not(#_):not(#_) #menu .sp-opt .lvl em{width:8px;height:15px}
+/* (Dificultad en media fila desde 1.22.0: las barras más juntas, que «EXPERTO» y las 4 barras no se acerquen a la flecha de 44) */
+:root.ph:not(#_):not(#_):not(#_) #menu #optDiff .lvl{gap:2px}
+:root.ph:not(#_):not(#_):not(#_) #menu #optDiff .lvl em{width:6px}
 :root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnGo{margin-top:0}
 /* V-QHELP: el «?» va en su propia celda de 44 px a la derecha de la fila (nunca encima): disco de 32, toque de 44×44 */
 :root.ph:not(#_):not(#_):not(#_) #menu .sp-qrow{display:grid;grid-template-columns:minmax(0,1fr) 46px;align-items:center;gap:var(--ph-s1,4px)}
@@ -6420,7 +6415,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         </div>
       </nav>
     </div>
-    <!-- PARTIDO RÁPIDO (sistema SPLAT): preparación (formato, escenario, dificultad, puntos y control) en pegatinas de tinta con el valor en trazo
+    <!-- PARTIDO RÁPIDO (sistema SPLAT): preparación (formato, escenario, dificultad, duración, puntos y control) en pegatinas de tinta con el valor en trazo
          dorado entre flechas (.sp-opt + .sp-select) y ¡A JUGAR! en parche cosido. En 6 contra 6, Controlar queda fijo (.lock) y en el sitio de
          Escenario (siempre el pabellón en 6 contra 6) sale Cámara: 3ª persona o Televisión, el ajuste cam6 -->
     <div class="mpage sp-page" id="mpQuick" data-page="quick" data-sp-full hidden>
@@ -6433,6 +6428,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optVenue" data-shape="2" data-opt="arena" aria-label="Escenario: Pabellón"><span class="mi-l">Escenario<small class="mi-h" id="venueHelp">Palau del Mar, pista cubierta de 18 × 9</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Pabellón"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="venueVal">Pabellón</b></span><span class="arr" data-d="1" aria-label="Playa"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCam6" data-shape="2" data-opt="cam6" aria-label="Cámara: 3ª persona" hidden><span class="mi-l">Cámara<small class="mi-h" id="cam6Help">Detrás de tu jugador, siguiendo la jugada</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="3ª persona"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="cam6Val">3ª persona</b></span><span class="arr" data-d="1" aria-label="Televisión"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es la cámara" data-q-title="Cámara en 6 contra 6" data-q-src="#cam6Help">?</button></div>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optDiff" data-shape="1" data-opt="difficulty"><span class="mi-l">Dificultad<small class="mi-h" id="diffHelp">Nivel de la CPU</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más fácil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="diffVal">Normal</b><span class="lvl" id="diffLvl"><em></em><em></em><em></em><em></em></span></span><span class="arr" data-d="1" aria-label="Más difícil"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
+        <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optLen" data-shape="2" data-opt="matchLen" aria-label="Duración: Completo"><span class="mi-l">Duración<small class="mi-h" id="lenHelp">Al mejor de 3 sets</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Más largo"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="lenVal">Completo</b></span><span class="arr" data-d="1" aria-label="Más corto"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <button class="mi sp-btn sp-ink sp-opt sp-calm" id="optPts" data-shape="3" data-opt="setPoints"><span class="mi-l">Puntos por set<small class="mi-h" id="ptsHelp">Al mejor de 3; el 3r set, a 15</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Menos puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ptsVal">25</b></span><span class="arr" data-d="1" aria-label="Más puntos"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button>
         <div class="sp-qrow"><button class="mi sp-btn sp-ink sp-opt sp-calm" id="optCtrl" data-shape="0" data-opt="ctrlMode"><span class="mi-l">Controlar<small class="mi-h" id="ctrlHelp">El control pasa a quien toca</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1" aria-label="Control anterior"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg></span><span class="mv-val"><b id="ctrlVal">A los dos<span class="cv-x"> jugadores</span></b></span><span class="arr" data-d="1" aria-label="Control siguiente"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></span></button><button type="button" class="sp-q ph-only" data-skip tabindex="-1" aria-label="Qué es Controlar" data-q-title="Controlar" data-q-src="#ctrlHelp">?</button></div>
         <button class="mi primary sp-patch" id="btnGo"><span class="sp-l"><span class="sp-t">¡A jugar!</span><span class="mi-s sp-s" id="playSub"><span class="chip">Partido rápido</span></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>

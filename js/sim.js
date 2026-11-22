@@ -323,7 +323,8 @@
       courtSwap3: false,       // ya se cambió de campo a mitad del set decisivo (a los 8 si va a 15)
       // puntos por set (Partido rápido: 11 | 15 | 21 | 25); el set decisivo va a min(15, points). Ver setTarget.
       // La playa siempre a 21, salvo el partido a un solo set (opts.sets === 1: la prueba de la Carrera), que también acepta 11 o 15
-      points: (beach && opts.sets !== 1) ? 21 : SET_POINTS.indexOf(+opts.points) >= 0 ? +opts.points : (beach ? 21 : 25),
+      // Partidos cortos (informe 4.5): el set a 7 solo con opts.quick (Partido rápido, main.js quickShort); no está en SET_POINTS (el online sigue en 11-25)
+      points: (beach && opts.sets !== 1) ? 21 : SET_POINTS.indexOf(+opts.points) >= 0 || (opts.quick === true && +opts.points === 7) ? +opts.points : (beach ? 21 : 25),
       // pista de esta partida (ver C.BEACH): media longitud, media anchura y escala respecto a la de 18×9 (1 en el pabellón:
       // multiplicar por g.cs deja los números exactos y la huella 2v2 intacta)
       venue: beach ? 'beach' : 'hall', beach: beach,

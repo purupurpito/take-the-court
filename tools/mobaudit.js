@@ -70,6 +70,8 @@ const SCREENS = [
   { id: 'jugar', area: 'portada', q: M0, open: "return M.page('play');", primary: '' },
   { id: 'quick-2v2', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','2v2'); return M.page('quick');" },
   { id: 'quick-6v6', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','6v6'); return M.page('quick');" },
+  // (partidos cortos, informe 4.5: los valores más largos de Dificultad y Duración)
+  { id: 'quick-corto', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.ctx.actions.setSetting('format','2v2'); VB.ctx.actions.setSetting('difficulty','expert'); VB.ctx.actions.setSetting('matchLen','clutch'); VB.ctx.actions.setSetting('setPoints',25); return M.page('quick');" },
   { id: 'entreno', area: 'portada', q: M0, open: "return M.page('gym');", primary: '' },
   ...SET_TABS.map(t => ({ id: 'ajustes-' + t, area: 'portada', q: M0, open: `return M.panel('#btnSettings','#pnSet','#setTabs','${t}');`, primary: '' })),
   ...CTL_TABS.map(t => ({ id: 'controles-' + t, area: 'portada', q: M0, open: `return M.panel('#btnControls','#pnCtl','#ctlTabs','${t}');`, primary: '' })),

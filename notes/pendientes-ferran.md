@@ -33,6 +33,15 @@ rama pendientes, sin publicar.
   3. `?jugar` vale para todos (no solo novatos): arranca el partido corto sin pasar por el menú y se quita del enlace.
   4. «Y ahora» sale una sola vez, al acabar el primer partido; Cuenta solo si no hay sesión.
   ¿Te vale el billete encima de JUGAR, o prefieres que JUGAR haga de «Jugar ya» la primera vez (un botón menos)?
+- **4.5 «Partidos cortos»** (notes/ui_main.md «Partidos cortos»). Fila «Duración» en Partido rápido: Completo / Un set / Final apretado,
+  y el 7 en «Puntos por set». **Decisiones provisionales:**
+  1. «Final apretado» empieza empatado a 5 del final de los puntos elegidos (25 → 20-20, 15 → 10-10; en la playa, a 21, el 16-16), no con
+     dos opciones fijas «10-10 / 20-20»: una sola fila y un valor que dice desde dónde empieza («Desde 20-20»). Saca quien diga la semilla.
+  2. Los cortos (un set, final, y también «Completo» con sets a 7) **no cuentan nada**: ni récord, ni retos, ni insignias, ni XP (escuadrón y
+     perfil). No se llevan aparte. Quien solo juega cortos sigue siendo «novato» para la ayuda del primer partido.
+  3. Dificultad deja de ocupar la fila entera para que quepa Duración sin una fila más (a 568×320 no cabía otra).
+  4. Vale también en 6 contra 6. «Jugar ya» (un set a 15) sigue contando como antes: no es un formato del menú.
+  ¿Prefieres que los cortos cuenten aparte (p. ej. su propio «ganados de jugados») en vez de no contar?
 - **Preguntas del reglamento (informe §7, puntos 2 y 4; los textos NO se han tocado):**
   1. Falta de posición (`RULES.posicion` de js/senas.js): el texto dice «todos en su sitio de rotación», pero el juego **solo** la pita
      al equipo que recibe (regla 7.4, desde 1.11.0); la justificación del 21-nov (que también pita al que saca) es falsa. Propuesta:
