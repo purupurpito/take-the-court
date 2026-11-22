@@ -6,7 +6,7 @@ Proyecto personal. Este documento es la ley para los 7 especialistas (el 7.º, `
 ## 1. Propiedad de ficheros (exacta)
 
 ```json
-{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js, js/look.js, js/splat.js and js/menu-jugador.js (SPLAT design system and home menu, notes/splat.md; wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
+{"sim":"js/sim.js and js/ai.js (gameplay simulation, rules, AI, hit quality/timing, serve types, difficulty) and tools/simtest.js","players":"js/players.js and js/doll.js (athlete models, chibi doll geometry and atlas, look rendering and wardrobe preview, materials, procedural animation state machine, celebrations)","arena":"js/arena.js, js/venues.js, js/venue-*.js and js/fx.js (venue registry and maps, pavilion, floor, lines, net, antennas, posts, lighting, shadows, stands, crowd, LED boards, hanging scoreboard, ball mesh+shadow+trail, particles/impact FX)","camera_input":"js/camera.js and js/input.js (third-person camera rig, transitions, shake, slow-mo hook, camera-relative input mapping, keyboard, gamepad, touch controls overlay)","audio":"js/audio.js (procedural WebAudio: hit sounds per touch type, spike crack, net, block, whistle, crowd ambience and reactions, UI clicks, music sting)","ui_main":"index.html, css (inline in index.html), js/ui.js, js/main.js, js/look.js, js/splat.js, js/menu-jugador.js and js/resume.js (SPLAT design system and home menu, notes/splat.md; resume a match after the browser closes, notes/resume.md; wardrobe catalog and save; boot, loop, renderer setup, adaptive quality, menus, HUD, scoreboard overlay, pause, end screen, settings, tutorial/onboarding, debug scenes, tools/shot.sh, tools/console.sh)","net":"js/net*.js (online mode: session, rollback, transport, rooms, mirror view js/netview.js) and tools/mptest.js, tools/net*.js, tools/viewtest.js, tools/roomtest.js; notes in notes/net.md"}
 ```
 
 `js/prog.js` (estadísticas y progresión de tus jugadores: `VB.Prog`, guardado en `make-the-cut.squad`) también es de **ui_main**; sim lo recibe ya convertido en `createGame({attrs: [[st7, st11], [st3, st9]]})` (atributos 1-99 con las claves `VB.ATTR_KEYS`; 50 = neutro; sin `attrs` la sim no cambia), que deja `p.st`, `p.prof` (perfil de IA, `Sim.statProf`) y `p.ak` (multiplicadores del humano, `Sim.attrK`; constantes en `VB.ATTR_K`). Integración (10-nov-2026): `p.ak` añade `eRecv/eDig/eSet/eAtk` (precisión del toque: dispersión ×1,5-0,6 y calidad del pase/colocación) y `rRecv/rDig` (alcance del 1r toque ×0,94-1,05); con Velocidad < 50 frenar y girar es al momento (la rampa `accT` solo al arrancar).
@@ -84,8 +84,8 @@ Detalle por tarea en `notes/s234/T*.md` (se conservan tal cual); el resumen por 
 - Orden de carga (index.html, sprint 2-4): `three.min.js` (cdnjs 0.149.0) → `js/version.js` → `js/splat.js` (SPLAT, 17-nov-2026) → `js/account.js` → `js/sim.js` → `js/ai.js` →
   `js/ai6.js` → `js/prog.js` → `js/gym.js` → `js/badges.js` → `js/retos.js` → `js/look.js` → `js/senas.js` → `js/profile.js` → `js/venues.js` → `js/arena.js` → `js/venue-*.js` (sedes: `venue-fanals.js`, `venue-moll.js`, `venue-canrebot.js`, `venue-cupula.js`) → `js/fx.js` → `js/players.js` → `js/doll.js` → `js/camera.js` →
   `js/input.js` → `js/audio.js` → `js/leagues.js` → `js/career.js` → `js/career-life.js` → `js/career-life-ui.js` → `js/career-world.js` →
-  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/menu-jugador.js` (portada SPLAT) → `js/install.js` → `js/main.js` (main arranca).
-  recap.js, retos.js, profile.js, replay.js y matchstats.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
+  `js/career-world-ui.js` → `js/career-ui.js` → `js/recap.js` → `js/replay.js` → `js/matchstats.js` → `js/ui.js` → `js/menu-jugador.js` (portada SPLAT) → `js/install.js` → `js/resume.js` (retomar el partido) → `js/main.js` (main arranca).
+  recap.js, retos.js, profile.js, replay.js, matchstats.js y resume.js son puros (sin DOM ni THREE) y se cargan también en node para las pruebas. gym.js lee `VB.DRILL` (sim) de forma
   perezosa. Favicon como data URI en index.html (build-pages lo quita en Pages y pone el suyo).
 - **Versión:** cada publicación visible sube `VB.VERSION` (semver) y añade su entrada al principio de `VB.CHANGELOG` (js/version.js);
   `tools/build-pages.js` falla si `CHANGELOG[0].v !== VERSION`, si falta `pages/og.png` o si no hay exactamente un `rel="icon"`.
@@ -195,6 +195,24 @@ lo sanea campo a campo; desde 1.22.0, informe 4.2), `touchMirror` (false; zurdos
   playa; saca quien diga la semilla) y `quick:true`; deja `g.short = {len, pts, from}` (fuera de la sim). Con `g.short`: sin récord, retos
   (`VB.Retos` counts), insignias, XP del escuadrón ni XP de perfil. `?len=one|clutch` manda (pruebas). Sim: `createGame` acepta
   `points: 7` solo con `opts.quick === true` (no está en `SET_POINTS`; el online sigue en 11-25). Detalle en notes/ui_main.md «Partidos cortos».
+- **(22-nov-2026, 4.9 «Retomar el partido»)** `js/resume.js` (`VB.Resume`, ui_main, sin DOM ni THREE): guarda el partido al acabar cada
+  punto en la clave del aparato `make-the-cut.resume` (no la sube account.js): `{f:1, v: VB.VERSION, t, kind:quick|career, opts (las
+  de startMatch sin career/kit), gOpts (las de Sim.createGame tal cual), map (sede), qs (partido corto), cm (firma del partido de Carrera),
+  sc:{score, sets, setNo, one, size}, h: Sim.stateHash, snap: Sim.serialize(g), mods:{ui, ms, bd, rt}}`. Otra versión → se descarta;
+  huella distinta al rehacer → se descarta. API: `arm(g, meta)`, `disarm()`, `armed()`, `onFrame(g, events)` (main.js tras
+  `UI.update`: guarda en `point` / `challengeResult` / `serveReady` si ya hay algún punto; `gameOver` borra), `save(g)`, `load()`,
+  `peek()` → `{kind, score, sets, setNo, one, size, label, sub}` | null, `apply(rec, g)` → bool, `mods(rec, g)`, `clear()`,
+  `setLabel(n)` → «1r set» / «2º set» / «3r set», `CAREER` (interruptor de la Carrera: `false`; `?resumecareer=1` lo enciende).
+  `actions.resumeMatch()` → bool (Partido rápido: `startMatch(rec.opts + {resume: rec})`; Carrera, solo con el interruptor:
+  `startCareerMatch({resume: rec})` si la jornada es la misma). `startMatch(opts)` acepta `opts.resume` (crea con `rec.gOpts`, aplica la
+  foto, sin previa, misma sede, devuelve `false` si no cuadra) y `startCareerMatch(o)` acepta `o.resume` (devuelve `false` si falla).
+  Se arma en Partido rápido (no autopilot, online, espectador, Entrenamiento, situación de la semana; la Carrera solo con `CAREER` y nunca
+  pruebas de fichaje ni extensiones). `setGame` de un partido de verdad nuevo lo borra; `toMenu` a mitad, también. Módulos con
+  `resumeGet(g)` / `resumeSet(o, g)` (datos planos; VB.Resume pasa los jugadores a `{$pid}` y la partida a `{$g}`): `VB.UI` (hoja
+  final: `stats` y lo sin ver del Vestuario), `VB.MatchStats` (`cur.r` como índice), `VB.Badges` y `VB.Retos` (sus contadores del
+  partido). `VB.UI.resumed(g)`: cinta «Seguimos · 18-15 | 2º set». Portada: `#btnSeguir` (billete SPLAT dorado en el sitio de «Jugar ya» /
+  «Continuar carrera», que tapa mientras hay algo guardado; `debug=menu&seguir=1` lo deja salir en depuración). Prueba:
+  `tools/resumetest.js`. Detalle en notes/resume.md.
 - `actions.playBest(i?)`: mejores jugadas desde la hoja final (`VB.Replay.playBest(i, VB.UI.replayDone)`); solo en `'over'`.
 - `actions.startMatch(opts)` admite además `map` (id de sede fuera de la Carrera; 6v6 solo sedes de pabellón), `noAttrs`, `noBadges`,
   `reto` (→ `g.reto` y `g.retoOpts`, copia de opts para «Otra vez») e `introKind` ('mini'|'short'|'long'). Los partidos humanos crean la
@@ -842,7 +860,7 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
    Si llega `gameOver` en partido → `state = 'over'`. Con la tarjeta de presentación (`ctx.introLeft > 0`) la sim no avanza y los eventos iniciales salvo `newMatch` llegan al acabarla; cualquier botón la salta (sin golpear ni pausar). Antes del bucle de pasos: en `'point'`/`'over'` jugando, GOLPEAR, SALTAR, CAMBIAR o ACEPTAR llama a `Sim.skipHold(g)`; si recorta, se consume
    el flanco y se avisa a `UI.onHoldSkip()`.
 4. `Arena.update(g, gdt, ev)` → `Players.update` → (main.js añade a `ev` los `fx:*` de `Players.drainFx`) → `FX.update` → `CameraRig.update(g, realDt, ev)` →
-   `Audio.handle(ev, g)` → `Audio.update(g, realDt)` → `UI.update(g, gdt, ev)`.
+   `Audio.handle(ev, g)` → `Audio.update(g, realDt)` → `UI.update(g, gdt, ev)` → (`AmbienteUI.update`) → `Resume.onFrame(g, ev)` (1.22.0: guarda tras cada punto).
 5. `renderFn(ctx)` o `renderer.render(scene, camera)`.
 6. Calidad adaptativa (ventanas de 2 s): baja un nivel (`setQuality`) tras 2 ventanas < 45 fps o 3 seguidas < 52; en "baja" reduce la escala de render solo si
    el cuello es la GPU (`ctx.cpuBusy` < 0,40); tras cada escalón de escala mira 2 ventanas y, si los fps no suben ≥ 15 %, lo deshace y no vuelve a escalar en la

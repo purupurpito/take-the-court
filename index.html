@@ -2570,13 +2570,13 @@ body #account input:focus{box-shadow:inset 0 0 0 3px #ffb238}
   #menu .menu-col.has-cont .brand .kicker{display:none}
 }
 /* «Jugar ya» (1.22.0) en la portada de antes (?menu=old): JUGAR pasa a fila plana como con «Continuar carrera» */
-#menu .mlist>#btnNow{height:74px;font-size:36px}
-#menu .mlist>#btnNow .pl-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
+#menu .mlist>:is(#btnNow,#btnSeguir){height:74px;font-size:36px}
+#menu .mlist>:is(#btnNow,#btnSeguir) .pl-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
 #menu .mlist.has-now>#btnPlay{height:54px;font-size:22px}
 #menu .mlist.has-now>#btnPlay .pl-tx{display:flex;flex-direction:column;gap:2px;min-width:0}
 #menu .mlist.has-now>#btnPlay .go{display:none}
 @media (max-height:420px){
-  #menu .mlist>#btnNow{height:56px;font-size:28px}
+  #menu .mlist>:is(#btnNow,#btnSeguir){height:56px;font-size:28px}
   #menu .mlist.has-now>#btnPlay{height:44px;font-size:19px}
   #menu .menu-col.has-now .brand .kicker{display:none}
 }
@@ -4013,10 +4013,12 @@ html.sp-kb [data-kb-hide]{display:none!important}
   :root:not(.ph) #menu.sp-full #mpQuick{--sp-colw:clamp(340px,64vw,760px)}
 }
 /* «Jugar ya» (1.22.0, informe 4.3): billete dorado en el sitio del de la Carrera (nunca a la vez: con Carrera no sale). Mismas reglas de
-   alto que «Continuar carrera» en el móvil (#menu.mj.has-now-mj ↔ .has-cont-mj); el talón lleva el balón del juego. */
-#menu.mj #btnNow{margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
-:root:not(#_):not(#_):not(#_) #menu.mj #btnNow>:is(.pl-tx,.go){display:none}
-#menu.mj #btnNow .sp-crest svg{width:100%;height:100%}
+   alto que «Continuar carrera» en el móvil (#menu.mj.has-now-mj ↔ .has-cont-mj); el talón lleva el balón del juego.
+   «Seguir el partido» (#btnSeguir, 1.22.0, informe 4.9: partido a medias guardado, js/resume.js) usa el MISMO billete y el mismo sitio:
+   mientras lo hay, tapa a «Jugar ya» y a «Continuar carrera» (ui.js syncHero; la Carrera sigue en Jugar). */
+#menu.mj :is(#btnNow,#btnSeguir){margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir)>:is(.pl-tx,.go){display:none}
+#menu.mj :is(#btnNow,#btnSeguir) .sp-crest svg{width:100%;height:100%}
 :root.ph:not(#_):not(#_):not(#_) #menu.mj.has-now-mj .brand{display:none}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-now-mj{--mj-tape:46px}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-now-mj .mj-side{gap:8px;padding-top:6px;padding-bottom:4px}
@@ -6405,6 +6407,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <!-- «Jugar ya» (1.22.0, informe 4.3): solo para quien no ha jugado nunca (ui.js syncHero). Un set a 15 contra la CPU sin pasar por
              Jugar ni por «Primer partido»; menu-jugador.js lo pinta como billete dorado (.sp-ticket.sp-gold) en el sitio de «Continuar carrera» -->
         <button class="mi primary" id="btnNow" hidden><span class="pl-tx"><span>¡Jugar ya!</span><span class="mi-s">Un set a 15 contra la CPU</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
+        <button class="mi primary" id="btnSeguir" hidden><span class="pl-tx"><span>Seguir el partido</span><span class="mi-s" id="seguirS"></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi primary" id="btnPlay"><span class="pl-tx"><span>Jugar</span><span class="mi-s" id="playMainSub" hidden>Partido rápido, 6 contra 6 y entrenamiento</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi" id="btnSquad"><span>Jugadores</span><span class="mi-s" id="squadSub">Estadísticas y mejoras</span></button>
         <button class="mi" id="btnLook"><span>Vestuario</span><span class="mi-s" id="lookSub">Aspecto de tus jugadores</span></button>
@@ -6932,4 +6935,5 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 <script src="js/ambiente-ui.js"></script>
 <script src="js/menu-jugador.js"></script>
 <script src="js/install.js"></script>
+<script src="js/resume.js"></script>
 <script src="js/main.js"></script>

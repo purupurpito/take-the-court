@@ -10,7 +10,8 @@
  *   - Jugadores y Vestuario: .sp-btn.sp-wide de la equipación y del contraste; Jugadores lleva tu camiseta con el dorsal y Vestuario tu cabeza
  *     (retrato recortado de VB.Doll.portrait con req.matte, pintado una vez por main.js).
  *   - Cómo se juega, Controles y Ajustes: tres .sp-btn.sp-sm de tinta con icono dorado.
- *   - Carrera: .sp-ticket (brochazo turquesa) con tu escudo y el del rival.
+ *   - Carrera: .sp-ticket (brochazo turquesa) con tu escudo y el del rival. «¡Jugar ya!» y «Seguir el partido» (partido a medias guardado,
+ *     js/resume.js): .sp-ticket.sp-gold en el mismo sitio (ui.js syncHero decide cuál sale).
  * Filas con data-sp-row: ←/→ dentro de la fila y ↑/↓ de fila en fila (ui.js adjustFocused / navMove). Pruebas: &mjseed=1 (Carrera de muestra),
  * &mjfocus=<id> (enfoca ese botón). Datos vivos sin coste por frame: una firma, como mucho cada 1,2 s.
  */
@@ -75,6 +76,15 @@
     bNow.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.BALL + '</span></span><span class="sp-tk-main"><small class="sp-k">Primera vez</small>' +
       '<b class="sp-t">¡Jugar ya!</b><small class="sp-s">Un set a 15 contra la CPU</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
     nav.appendChild(bNow);
+  }
+  // «Seguir el partido» (1.22.0, informe 4.9; js/resume.js, ui.js syncHero lo enseña con un partido a medias guardado): el mismo billete
+  // dorado y el mismo sitio; mientras lo hay tapa a «Jugar ya» y a «Continuar carrera». La línea (marcador y set) la escribe ui.js
+  var bSeg = $('btnSeguir');
+  if (bSeg) {
+    bSeg.classList.remove('mi', 'primary'); cls(bSeg, 'sp-ticket sp-gold');
+    bSeg.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.BALL + '</span></span><span class="sp-tk-main"><small class="sp-k">Partido a medias</small>' +
+      '<b class="sp-t">Seguir el partido</b><small class="sp-s"></small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
+    nav.appendChild(bSeg);
   }
   if (bCont) { cls(bCont, 'sp-ticket'); bCont.appendChild(mk('span', 'sp-tk', '')); nav.appendChild(bCont); }
   nav.appendChild(go); nav.appendChild(tape); nav.appendChild(strip);

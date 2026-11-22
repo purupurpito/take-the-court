@@ -403,6 +403,10 @@
 
   function setGame(g, kit, lookOpts) {
     call('Replay', 'abort');   // S3-C1: una repetición en curso se corta sin cortinilla (menú, revancha, reiniciar, escenas)
+    // «Retomar el partido» (js/resume.js): un partido de verdad nuevo (no el que se retoma) descarta el guardado; la demo, el autopilot y
+    // las escenas de depuración no lo tocan. startMatch lo arma después si el partido es apto
+    if (VB.Resume) { try { VB.Resume.disarm(); if (g && !g.demo && !g.autopilot && !ctx.debug && g !== rsKeep) VB.Resume.clear(); } catch (e) { reportError('Resume', e); } }
+    rsKeep = null;
     ctx.game = g; ctx.timeScale = 1; acc = 0; ctx.replaySkipReq = false;
     // g.watch0 = espectador de verdad (?format=6v6, escenas); g.watch se recalcula cada frame con el banquillo (g.watch0 || g.ctrlOut)
     if (g && g.watch0 === undefined) g.watch0 = !!g.watch;
@@ -420,6 +424,7 @@
     if (rpPre === g) rpPre = null; else call('Replay', 'reset', g);
   }
   var rpPre = null;
+  var rsKeep = null;   // partido que se está retomando (setGame no borra su guardado)
   /** S3-C1 / R10: mejores jugadas desde la hoja final (pestaña «Jugadas»): i = una (índice de VB.Replay.list()) o, sin i, todas.
    *  Al acabar o salir, ui.js vuelve a enseñar la hoja con el foco en el «Ver» pulsado (VB.UI.replayDone). */
   ctx.actions.playBest = function (i) {
@@ -540,6 +545,10 @@
   }
   ctx.actions.startMatch = function (opts) {
     opts = opts || {};
+    // «Retomar el partido» (js/resume.js, informe 4.9): opts.resume = lo guardado (VB.Resume.load). Las opciones son las de aquel partido
+    // (rec.opts) y la sim se crea con las MISMAS de Sim.createGame (rec.gOpts), así los ajustes cambiados entre medias no la rompen
+    var rs = opts.resume && typeof opts.resume === 'object' && opts.resume.gOpts ? opts.resume : null;
+    if (opts.resume) { opts = Object.assign({}, opts); delete opts.resume; }
     netStop(true);   // (un partido normal pedido con el online en marcha: el online se abandona)
     // E6: ejercicio del Entrenamiento (opts.drill). Siempre 2v2 en el escenario del ajuste; dificultad Normal y control Uno salvo en
     // el peloteo libre (los del Partido rápido); sin marcador ni récord. &gymauto=1 / opts.autopilot: la IA juega por ti (pruebas)
@@ -558,14 +567,14 @@
       }
     }
     // (solo partidos humanos: los de autopilot —herramientas de medida— empiezan al momento, como siempre)
-    if (!ctx.debug && !opts.autopilot && call('UI', 'bootBusy')) { startWait = opts; return; }
+    if (!ctx.debug && !opts.autopilot && call('UI', 'bootBusy')) { startWait = rs ? Object.assign({}, opts, { resume: rs }) : opts; return; }
     startWait = null;
     // Salto con impulso (v1.12.0): aviso de colocador (VB.UI.setterNote) antes de un partido 6v6 en el que llevas al colocador fuera
     // de la Carrera (hoy el Partido rápido 6v6 siempre es OH: queda para cuando haya fila «Puesto»). En la Carrera no sale aquí, porque
     // quedaría encima de la página Jugar del menú: lo saca su hub (career-ui.js setterNoteSoon, sin taparse con la escena de Faro).
     // Una vez por sesión entre los dos, nunca con autopilot, online, ejercicios ni «Reiniciar partido». El partido espera a que se
     // cierre y arranca con lo elegido (Activar = ya con la diana de colocación)
-    if (opts.format === '6v6' && opts.ctrlRole === 'S' && !opts.career && !opts.autopilot && !opts.noteDone && !restarting && !net) {
+    if (opts.format === '6v6' && opts.ctrlRole === 'S' && !opts.career && !opts.autopilot && !opts.noteDone && !restarting && !net && !rs) {
       var nOpts = Object.assign({}, opts, { noteDone: true });
       if (call('UI', 'setterNote', { from: 'match' }, function () { ctx.actions.startMatch(nOpts); })) return;
     }
@@ -586,7 +595,7 @@
     applyVenuePend();
     // «Al azar» / «Sede de un club»: cada partido rápido humano se sortea de nuevo (también la revancha). No en la Carrera (sede del
     // local), ni con ?map= (pruebas), ni en autopilot (herramientas de medida: perf, drive)
-    if (!cs && !auto && !Q.map && VB.Arena && VB.Arena.reroll) {
+    if (!cs && !auto && !rs && !Q.map && VB.Arena && VB.Arena.reroll) {
       var rk = fmt ? 'hall' : venueNow(), rp = ctx.settings[rk === 'beach' ? 'mapBeach' : 'mapHall'];
       if (rp === 'rand' || rp === 'club') { VB.Arena.reroll(rk); if (venueNow() === rk) applyVenue(rk); }   // (6v6 desde la playa: lo monta forceVenue)
     }
@@ -600,6 +609,7 @@
     // (Carrera: opts.venueMap = sede del partido, VB.Venues.forMatch: la del local, una emblema o null = la del ajuste del tipo)
     if (cs && opts.venueMap && VB.Venues && VB.Venues.kindOf(opts.venueMap) === cv) cv = opts.venueMap;
     if (cv) forceVenue(cv); else unforceVenue();
+    if (rs && rs.map && isMapId(rs.map) && mapNow() !== rs.map) forceVenue(rs.map);   // (retomar: la misma sede, también la sorteada)
     var cvK = cv ? (isMapId(cv) ? VB.Venues.kindOf(cv) : cv) : '';   // tipo ('hall' | 'beach') para la sim
     if (!auto) animHooks(cs);
     // banquillo y cambios (6v6): la Carrera trae bench / meSlot / meBench / names / coach (VB.Career.matchSetup); el Partido rápido 6v6
@@ -615,8 +625,8 @@
     // el saque de firma (decisión provisional, pendientes-ferran.md: nivel y atributos iguales para todos) y el partido empieza en el marcador de la semana (opts.start)
     var sitO = !!(opts.sit && !cs && opts.start);
     // Partidos cortos (informe 4.5): la fila «Duración» y el 7 de «Puntos por set» del Partido rápido (qs = null en el partido de siempre)
-    var sd0 = sitO && opts.seed && !Q.seed ? opts.seed | 0 : seed(), qs = quickShort(opts, cs, auto, fmt ? 'hall' : (cvK || venueNow()), sd0);
-    var g = Sim.createGame({ demo: false, seed: sd0, difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : sitO ? false : isRookie(), present: !opts.autopilot,
+    var sd0 = rs ? rs.gOpts.seed | 0 : sitO && opts.seed && !Q.seed ? opts.seed | 0 : seed(), qs = rs ? rs.qs || null : quickShort(opts, cs, auto, fmt ? 'hall' : (cvK || venueNow()), sd0);
+    var gOpts = rs ? JSON.parse(JSON.stringify(rs.gOpts)) : { demo: false, seed: sd0, difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : sitO ? false : isRookie(), present: !opts.autopilot,
       start: sitO ? opts.start : qs && qs.from ? qs.start : undefined,
       quick: qs ? true : undefined,   // (la sim solo acepta el set a 7 con quick: Partido rápido)
       bench: b6 || undefined, coach: c6 || undefined, meSlot: cs && b6 ? opts.meSlot : undefined, meBench: cs && b6 ? opts.meBench : undefined, names: fmt && cs ? opts.names : undefined,
@@ -648,7 +658,16 @@
       zone: auto || sitO || (cs && cs.noZone) ? undefined : cs ? (ctx.settings.zone !== 'off' ? { cpu: true } : undefined) : (ctx.settings.zone === 'all' ? {} : undefined),
       // «Te tienen estudiado» (career.js studyOf): solo en el partido jugado de la Carrera (startCareerMatch); sin él, g.scout no existe
       scout: !auto && cs && opts.scout ? opts.scout : undefined,
-      serveSig: auto || sitO ? undefined : cs ? (opts.serveSig || undefined) : (Sim.sigSane ? sigSaneSafe({ id: ctx.settings.serveSig, gest: ctx.settings.serveGest, sun: ctx.settings.beachLight === 'tarde' ? 0.4 : 1 }, fmt ? 'hall' : (cvK || venueNow())) : undefined) });
+      serveSig: auto || sitO ? undefined : cs ? (opts.serveSig || undefined) : (Sim.sigSane ? sigSaneSafe({ id: ctx.settings.serveSig, gest: ctx.settings.serveGest, sun: ctx.settings.beachLight === 'tarde' ? 0.4 : 1 }, fmt ? 'hall' : (cvK || venueNow())) : undefined) };
+    var gKeep = rs ? rs.gOpts : null; if (!rs) { try { gKeep = JSON.parse(JSON.stringify(gOpts)); } catch (e) { gKeep = null; } }   // (antes de crear: createGame no las cambia, pero por si acaso)
+    var g = Sim.createGame(gOpts);
+    // retomar: la foto encima de la partida recién creada; si no cuadra (huella distinta), se descarta y se queda en el menú
+    if (rs && !(VB.Resume && VB.Resume.apply(rs, g))) {
+      if (VB.Resume) VB.Resume.clear();
+      console.warn('[VB] Retomar: la foto guardada no cuadra con esta partida; descartada');
+      unforceVenue(); call('UI', 'refreshMenu');
+      return false;
+    }
     // partido de Carrera: marca para ui.js/badges.js (no reparten experiencia ni insignias al escuadrón de Partido rápido) y
     // para el hub (VB.Career.matchDone al llegar gameOver)
     if (cs) g.career = cs;
@@ -667,15 +686,47 @@
     if (watch6 && !opts.autopilot) g.watch = true;
     endTweaked = false; careerEnd = null;
     if (!cs) restoreEndButtons();
+    // «Retomar el partido»: ¿se guarda este partido al acabar cada punto? Partido rápido sí; nunca el online, el autopilot, el espectador,
+    // la situación de la semana ni las pruebas de fichaje (ni las extensiones de la Carrera); la Carrera, solo con VB.Resume.CAREER
+    var RSM = VB.Resume, rsOk = !!RSM && !!gKeep && !auto && !opts.autopilot && !net && !sitO && !g.watch && !g.drill && (!ctx.debug || Q.resume === '1') &&
+      (!cs || (RSM.CAREER && !cs.trial && !cs.ext && !cs._debug));
+    if (rs) rsKeep = g;
     setGame(g, opts.kit || null, cs ? careerLookOpts(cs, cvK === 'hall') : lookOptsOf(g));
+    if (rsOk) {
+      var rsOpts = null; try { rsOpts = JSON.parse(JSON.stringify(opts, function (k, v) { return k === 'career' || k === 'kit' || k === 'resume' ? undefined : v; })); } catch (e) { rsOpts = {}; }
+      try { RSM.arm(g, { kind: cs ? 'career' : 'quick', opts: rsOpts, gOpts: gKeep, map: mapNow(), qs: qs || null, cm: cs ? careerSig() : null, played: !!rs }); } catch (e) { reportError('Resume.arm', e); }
+    }
     setState('playing');
+    // retomar: lo que los módulos llevaban contado (hoja final, estadística, insignias, retos), la cámara en su sitio y el aviso «Seguimos»
+    if (rs) {
+      try { RSM.mods(rs, g); } catch (e) { reportError('Resume.mods', e); }
+      call('CameraRig', 'snap', g);
+      call('UI', 'resumed', g);
+    }
     // los jugadores se reconstruyen en onGameStart: sube sus texturas/programas antes del primer frame
     // (sin pintar: aquí no hay telón que tape los objetos ocultos)
     if (Q.prewarm !== '0') { prewarm('t'); prewarmPrograms(false); }
     // UI-14: tarjeta de presentación (partidos humanos; en depuración solo con &intro=1)
-    if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
+    if (!auto && !rs && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   };
   var lastOpts = null;
+  /** «Retomar el partido» (js/resume.js, informe 4.9): «Seguir el partido» de la portada. Partido rápido: startMatch con lo guardado. Carrera
+   *  (solo con VB.Resume.CAREER): el mismo partido de la jornada (startCareerMatch) y, si la jornada ya no es la del guardado, se descarta.
+   *  false si no hay nada que retomar o no cuadra (lo guardado se borra). */
+  ctx.actions.resumeMatch = function () {
+    var R = VB.Resume, rec = null; try { rec = R ? R.load() : null; } catch (e) { rec = null; }
+    if (!rec) return false;
+    if (rec.kind === 'career') {
+      if (!R.CAREER || careerSig() !== rec.cm) { R.clear(); call('UI', 'refreshMenu'); return false; }
+      return ctx.actions.startCareerMatch({ resume: rec }) !== false && !!R.armed();
+    }
+    return ctx.actions.startMatch(Object.assign({}, rec.opts || {}, { resume: rec })) !== false && !!R.armed();
+  };
+  /** Firma del próximo partido de la Carrera (modo, fase, jornada / ronda y rival) para no retomar un partido que ya no toca. */
+  function careerSig() {
+    var K = VB.Career; if (!K || !K.next) return '';
+    try { var c = K.get ? K.get() : null, n = K.next(c); if (!c || !n) return ''; return [K.MODE || '', c.season | 0, c.phase || '', n.kind || '', n.week | 0, n.round | 0, n.ko || '', n.rival ? n.rival.id : ''].join('|'); } catch (e) { return ''; }
+  }
   /** Partidos cortos (1.22.0, informe 4.5). Solo el Partido rápido elegido desde el menú (y su revancha / reiniciar): nunca la Carrera,
    *  el autopilot, los retos, la situación de la semana, «Jugar ya» ni quien ya trae sets / start / points. Lee los ajustes matchLen
    *  ('full' | 'one' | 'clutch') y setPoints (7 = set a 7); ?len= manda (pruebas). → null con el partido de siempre (al mejor de 3 y
@@ -1292,8 +1343,9 @@
     var t = e.target && e.target.closest ? e.target.closest('#btnMenu') : null;
     if (t && endTweaked && ctx.game && ctx.game.career) menuOnly = true;
   }, true);
-  ctx.actions.startCareerMatch = function () {
+  ctx.actions.startCareerMatch = function (o) {
     var K = VB.Career; if (!K || !K.matchSetup) return false;
+    var rsC = o && o.resume ? o.resume : undefined;   // («Retomar el partido», solo con VB.Resume.CAREER: el mismo partido con la foto encima)
     var m = null; try { m = K.matchSetup(); } catch (e) { reportError('Career.matchSetup', e); }
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
     if (K.abortMatch) K.abortMatch();
@@ -1303,7 +1355,7 @@
     // C3: el jefe del circuito es el n.º 1 rival (su club excluye el de tu rival personal: no coincide con rivalNum)
     var bossNum = m.career && m.career.rivalNum == null && (m.career.bossNum | 0) > 0 ? m.career.bossNum | 0 : 0;
     var n = null; try { n = K.next && K.next(); } catch (e) { } var vid = n && VB.Venues && VB.Venues.forMatch ? VB.Venues.forMatch(n, m.venue || 'beach') : null; // sede del partido (js/venues.js, tabla EMBLEM)
-    ctx.actions.startMatch({ career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined, scout: m.scout || undefined, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
+    var rsR = ctx.actions.startMatch({ resume: rsC, career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined, scout: m.scout || undefined, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
       venue: m.venue || 'beach', // vóley playa: Platja Llarga y sus reglas (VB.Career.matchSetup().venue); la Carrera de pista, 'hall'
       format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, // Carrera de pista (lote C): 6v6 en tu puesto
       // titularidad y cambios (notes/titularidad-y-cambios.md §I.1): tal cual a Sim.createGame
@@ -1315,7 +1367,7 @@
       // del muñeco usa el dorsal)
       nums: m.nums || (m.career ? [[m.career.num | 0 || null, m.career.mateNum | 0 || null], m.career.rivalNum != null && (m.career.rivalNum | 0) > 0 ? [m.career.rivalNum | 0, (m.career.rivalNum | 0) === 9 ? 3 : null] : bossNum ? [bossNum, bossNum === 9 ? 3 : null] : null] : undefined) });
     // (si el rival lleva el 9, el 2º CPU, que es el 9 por defecto, pasa al 3: si no, los dos harían de rival en players.js)
-    return true;
+    return rsR !== false;
   };
   /** Partidillo de prueba de la oferta i (al elegir club o invitación de mitad / fin de temporada; VB.Career.trialSetup): un solo set a 15 con petos (kit.scrim: los dos
    *  equipos con la camiseta de entreno del club y peto naranja / lima, players.js), en la playa con tu pareja de prueba contra una
@@ -1537,6 +1589,8 @@
   }
   ctx.actions.toMenu = function () {
     netStop(true);   // (online: salir al menú es abandonar)
+    // «Retomar el partido»: salir al menú a mitad es abandonar (lo guardado se borra; acabado, ya lo borró gameOver)
+    if (VB.Resume && ctx.game && VB.Resume.armed() === ctx.game) { try { VB.Resume.clear(); VB.Resume.disarm(); } catch (e) { reportError('Resume', e); } }
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
     var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
     if (ctx.game && ctx.game.sit && !ctx.game.demo && !ctx.debug && VB.Semana) { try { VB.Semana.abandon(ctx.game); } catch (e) { reportError('Semana.abandon', e); } }   // (ya cerrado al acabar: no hace nada)
@@ -2134,6 +2188,8 @@
     call('Audio', 'update', g, realDt);
     call('UI', 'update', g, gdt, ev);
     if (VB.AmbienteUI) call('AmbienteUI', 'update', g, gdt, ev);   // bocadillos y subtítulos del ambiente de Carrera (js/ambiente-ui.js)
+    // «Retomar el partido» (js/resume.js): tras la UI (la hoja final ya ha contado el punto), guarda al acabar cada punto y borra en gameOver
+    if (ev !== EMPTY && g && !g.demo && VB.Resume) { try { VB.Resume.onFrame(g, ev); } catch (e) { reportError('Resume.onFrame', e); } }
     }
     if (g && g.career && !g.demo) {
       // B6: la hoja final de Carrera = el Resumen de la jornada de ui.js (VB.UI.endCareer, que sustituye a careerEndSheet), tras showEnd,

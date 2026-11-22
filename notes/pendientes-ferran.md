@@ -81,6 +81,25 @@ rama pendientes, sin publicar.
   5. **simtest queda con 4 fallos de calibración de una sola semilla** (demo: 1 set en 20 min y 36 % de remates que son punto, banda
      38-65 %; highlight 25,2 % y 5,1 %, topes 25 y 5). Con 30 semillas la memoria no los mueve (37,4 % → 36,8 %); la banda ya no encaja con
      el código de main desde el modelo de esfuerzo. No se han tocado: ¿se recalibran las bandas de simtest? (detalle en notes/ia-variada.md)
+- **4.9 «Retomar el partido tras cerrar el navegador»** (js/resume.js, notes/resume.md). El Partido rápido se guarda al acabar cada punto
+  (clave del aparato `make-the-cut.resume`, sellada con la versión) y la portada ofrece **«Seguir el partido 18-15 · 2º set»**; al tocarlo, el
+  partido sigue exactamente igual (comprobado con la huella del estado en los saques siguientes). Cerrar la pestaña nunca deja repetir un
+  punto (solo se guarda después de cada punto). Sin huellas nuevas: no toca la sim. **Decisiones provisionales:**
+  1. **La Carrera queda detrás de un interruptor apagado** (`VB.Resume.CAREER = false`; `?resumecareer=1` lo enciende para probar). Motivo:
+     la nota en directo, las consignas del entrenador, el ambiente (su director con su propio azar) y los contadores de «Te tienen estudiado»
+     viven en career.js con funciones dentro y no se pueden guardar todavía; retomar con ellos a cero daría notas y estadísticas de la
+     jornada incompletas. En la Carrera todo sigue como antes (cerrar a mitad = el partido sigue pendiente en la jornada). Las pruebas de
+     fichaje nunca se guardan: cerrar a mitad sigue suspendiéndola (tu decisión del 15-nov); tampoco la selección, las Estrellas, las cesiones…
+  2. El billete «Seguir el partido» es **dorado, en el sitio de «¡Jugar ya!» / «Continuar carrera»** y, mientras hay un partido a medias,
+     **tapa a los dos** (la Carrera sigue en Jugar → Carrera). No hay botón de «descartar» (un botón menos): empezar cualquier otro partido,
+     o salir al menú desde la pausa, lo descarta.
+  3. También se guardan los partidos cortos, «Jugar ya», el 6 contra 6 y el reto del día; **no** el online, el Entrenamiento, la situación de
+     la semana (22-24) ni la demo.
+  4. Al retomar sale la cinta **«Seguimos · 18-15 | 2º set»** y el partido sigue al momento (sin previa ni pausa). Si la versión del juego
+     ha cambiado desde que se guardó, se descarta sin avisar (la partida podría no cuadrar con la sim nueva).
+  5. Las mejores jugadas de antes de cerrar (pestaña «Jugadas») se pierden; la hoja final, la Estadística del partido, las insignias y los
+     retos sí siguen la cuenta.
+  ¿Quieres la Carrera también (habría que guardar la nota en directo y el ambiente: un sprint aparte), o te basta con el Partido rápido?
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
@@ -227,6 +246,8 @@ Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el pla
   juego.
 
 ## Lo que queda detrás de un interruptor
+- **Retomar el partido en la Carrera**: `CAREER` de js/resume.js (`VB.Resume.CAREER = false`; `?resumecareer=1` para probar). El Partido
+  rápido sí se retoma (4.9).
 - **Repeticiones en 6v6**: `REPLAY6 = false` en js/replay.js. Grabadas y resimuladas en las pruebas, sin pintar todavía (faltan los 12
   jugadores en la repetición, la cámara 6v6, la pestaña «Jugadas» de la hoja 6v6 y medirlo en el móvil).
 - **Ensayos de la charanga en los menús**: `XAR_WHEN.menu = false` en js/audio.js (hechos, apagados).

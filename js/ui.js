@@ -451,7 +451,7 @@
       // Vestuario (1.1.0): botón de la portada, atajo de Jugadores, página, giro y avisos
       'btnLook', 'btnSqLook', 'mpLook', 'btnLookBack', 'lkPick', 'lkVen', 'lkTabs', 'lkFoot', 'lkHelp', 'lkList', 'lkSpin', 'lkNote', 'lkGrid', 'lkTabChip',
       // sprint 2-4: B3 «Continuar carrera» (portada) y B5 previa (rótulo inferior y lo que está en juego)
-      'btnCont', 'btnNow', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake',
+      'btnCont', 'btnNow', 'btnSeguir', 'seguirS', 'contPt', 'contK', 'contT', 'contS', 'contCr', 'playMainSub', 'introLT', 'introStake',
       // B6 hoja final con pestañas y D1 retos (franja de Jugar y página)
       'endTabs', 'endSum', 'endStatsTab', 'endPlays', 'btnRetos', 'retoSub', 'retoMeds', 'mpRetos', 'btnRetosBack', 'rtTabs', 'rtBody', 'rtFoot',
       // S3-C1: repetición (mosca, rótulo, pista de saltar con «Salir» y aviso para el lector de pantalla)
@@ -3164,7 +3164,11 @@
   // #contS/#contPt/#contCr y dice si hay una carrera activa sana; ui.js decide hidden, .primary y .has-cont (sin :has por iOS 15).
   // Sin carrera (o sin syncHero) la portada es la de siempre. Se repinta al entrar en el menú, al cerrar la Carrera, al cambiar el
   // Vestuario (la clave del retrato) y tras una bajada de la cuenta (VB.UI.refreshMenu); nunca por frame.
-  var heroDirty = true, heroOn = false, contOpen = false, crWasOpen = false, nowOn = false;
+  var heroDirty = true, heroOn = false, contOpen = false, crWasOpen = false, nowOn = false, segOn = false;
+  // «Seguir el partido» (1.22.0, informe 4.9; js/resume.js): con un partido a medias guardado, #btnSeguir ocupa el sitio del billete
+  // (tapa a «Jugar ya» y a «Continuar carrera», que sigue en Jugar) con el marcador y el set: «18-15 · 2º set». En depuración no sale
+  // (capturas: &seguir=1 lo deja salir si hay algo guardado)
+  function segPeek() { var R = VB.Resume; if (!R || !R.peek || (ctx.debug && ctx.params.seguir !== '1')) return null; try { return R.peek(); } catch (e) { return null; } }
   // «Jugar ya» (1.22.0, informe 4.3): #btnNow solo para quien no ha jugado nunca un partido rápido (récord a 0) y sin Carrera activa; un
   // toque = un set a 15 contra la CPU (main.js playNow), sin Jugar ni «Primer partido» (que sigue saliendo a quien entra por JUGAR).
   // En depuración no sale (mobaudit/capturas: &now=1 lo fuerza). Con él, JUGAR pasa a fila plana con su línea, como con la Carrera.
@@ -3175,22 +3179,35 @@
     var CU = VB.CareerUI, show = false;
     if (CU && typeof CU.syncHero === 'function') { try { show = !!CU.syncHero(); } catch (e) { show = false; console.error('[VB][ERROR] CareerUI.syncHero: ' + e); } }
     heroOn = show;
-    if (el.btnCont.hidden === show) el.btnCont.hidden = !show;
+    var sg = el.btnSeguir ? segPeek() : null, sgOn = !!sg; segOn = sgOn;
+    var showC = show && !sgOn;   // (con un partido a medias, su billete va en el sitio del de la Carrera)
+    if (el.btnCont.hidden === showC) el.btnCont.hidden = !showC;
     var ml = el.btnCont.parentNode;
-    if (ml && ml.classList.contains('has-cont') !== show) ml.classList.toggle('has-cont', show);
-    if (el.menuCol && el.menuCol.classList.contains('has-cont') !== show) el.menuCol.classList.toggle('has-cont', show);
-    var nw = !!el.btnNow && nowWanted(); nowOn = nw;
-    if (el.btnNow) {
-      if (el.btnNow.hidden === nw) el.btnNow.hidden = !nw;
-      if (ml && ml.classList.contains('has-now') !== nw) ml.classList.toggle('has-now', nw);
-      if (el.menuCol && el.menuCol.classList.contains('has-now') !== nw) el.menuCol.classList.toggle('has-now', nw);
-      if (el.menu && el.menu.classList.contains('has-now-mj') !== nw) el.menu.classList.toggle('has-now-mj', nw);
+    if (ml && ml.classList.contains('has-cont') !== showC) ml.classList.toggle('has-cont', showC);
+    if (el.menuCol && el.menuCol.classList.contains('has-cont') !== showC) el.menuCol.classList.toggle('has-cont', showC);
+    var nw = !sgOn && !!el.btnNow && nowWanted(); nowOn = nw;
+    if (el.btnSeguir) {
+      if (el.btnSeguir.hidden === sgOn) el.btnSeguir.hidden = !sgOn;
+      if (sg) {
+        var sgS = el.btnSeguir.querySelector('.sp-tk .sp-s'), sgK = el.btnSeguir.querySelector('.sp-tk .sp-k'), sgL = sg.kind === 'career' ? 'Carrera · ' + sg.sub : sg.sub;
+        if (el.seguirS && el.seguirS.textContent !== sgL) el.seguirS.textContent = sgL;
+        if (sgS && sgS.textContent !== sg.sub) sgS.textContent = sg.sub;
+        if (sgK) { var kk = sg.kind === 'career' ? 'Carrera · a medias' : 'Partido a medias'; if (sgK.textContent !== kk) sgK.textContent = kk; }
+        el.btnSeguir.setAttribute('aria-label', 'Seguir el partido: ' + sgL);
+      }
     }
-    var flat = show || nw;
+    var tk = nw || sgOn;   // (billete de «Jugar ya» o de «Seguir el partido»: el mismo sitio y las mismas reglas de alto)
+    if (el.btnNow && el.btnNow.hidden === nw) el.btnNow.hidden = !nw;
+    if (ml && ml.classList.contains('has-now') !== tk) ml.classList.toggle('has-now', tk);
+    if (el.menuCol && el.menuCol.classList.contains('has-now') !== tk) el.menuCol.classList.toggle('has-now', tk);
+    if (el.menu && el.menu.classList.contains('has-now-mj') !== tk) el.menu.classList.toggle('has-now-mj', tk);
+    var flat = show || nw || sgOn;
     if (el.btnPlay.classList.contains('primary') === flat) el.btnPlay.classList.toggle('primary', !flat);
     if (el.playMainSub && el.playMainSub.hidden === flat) el.playMainSub.hidden = !flat;
-    if (!show && document.activeElement === el.btnCont && mpage === 'main') focusEl(nw ? el.btnNow : el.btnPlay, kbNow());
-    if (!nw && el.btnNow && document.activeElement === el.btnNow && mpage === 'main') focusEl(show ? el.btnCont : el.btnPlay, kbNow());
+    var mainF = sgOn ? el.btnSeguir : showC ? el.btnCont : nw ? el.btnNow : el.btnPlay;
+    if (!showC && document.activeElement === el.btnCont && mpage === 'main') focusEl(mainF, kbNow());
+    if (!nw && el.btnNow && document.activeElement === el.btnNow && mpage === 'main') focusEl(mainF, kbNow());
+    if (!sgOn && el.btnSeguir && document.activeElement === el.btnSeguir && mpage === 'main') focusEl(mainF, kbNow());
   }
   /** «Continuar carrera»: abre el hub en «Partido» con el foco en «Jugar partido» (el partido no empieza solo; R15: from 'main'). */
   function goCont() {
@@ -4502,7 +4519,7 @@
   var mpage = 'main', mstack = [];
   function pageEl(p) { return p === 'play' ? el.mpPlay : p === 'quick' ? el.mpQuick : p === 'gym' ? el.mpGym : p === 'look' ? el.mpLook : p === 'retos' ? el.mpRetos : p === 'prof' ? el.mpProf : p === 'online' ? el.mpOnline : el.menuCol; }
   function netLobbyFocus() { var f = VB.NetLobby && VB.NetLobby.focus ? safe(VB.NetLobby.focus) : null; return f || el.btnOnlineBack; }
-  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : nowOn && el.btnNow && !el.btnNow.hidden ? el.btnNow : el.btnPlay; }
+  function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : segOn && el.btnSeguir && !el.btnSeguir.hidden ? el.btnSeguir : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : nowOn && el.btnNow && !el.btnNow.hidden ? el.btnNow : el.btnPlay; }
   function setPage(p, anim) {
     var was = mpage;
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
@@ -5772,6 +5789,14 @@
     if (mini) { o = o || {}; o.introKind = 'mini'; }   // B5/B6: la revancha desde la hoja final, con la previa mini
     // (6v6, lote A D9: justo después de startMatch, el puesto elegido en Controlar; la sim mueve g.ctrl a ese jugador)
     if (!wipeRun(2, function () { if (diff) ctx.actions.setSetting('difficulty', diff); ctx.actions.startMatch(o); applyRole6(); }) && !wp.cb) { ctx.actions.startMatch(o); applyRole6(); }
+  }
+  /** «Seguir el partido» (#btnSeguir, informe 4.9): el partido guardado bajo la cortinilla (main.js resumeMatch). Si no cuadra (versión
+   *  nueva, foto rota), lo guardado se borra y la portada vuelve a la de siempre. */
+  function goSeguir() {
+    if (!ctx.actions.resumeMatch) return;
+    if (VB.Audio && VB.Audio.unlock) { try { VB.Audio.unlock(); } catch (e) { } }
+    var f = function () { var ok = false; try { ok = ctx.actions.resumeMatch(); } catch (e) { ok = false; console.error('[VB][ERROR] resumeMatch: ' + e); } if (!ok) { heroDirty = true; if (ctx.state === 'menu') syncHero(); } };
+    if (!wipeRun(2, f) && !wp.cb) f();
   }
   /** «Jugar ya» (#btnNow, informe 4.3): un set a 15 contra la CPU bajo la cortinilla (main.js playNow). El gesto del toque desbloquea el
    *  audio (startMatch llama a Audio.unlock dentro de la cortinilla, y el pointerdown de main.js antes). Nunca con el aviso de instalar delante. */
@@ -8361,6 +8386,7 @@
       lkInit();   // Vestuario
       el.btnFirstTut.addEventListener('click', function () { click(); openPanel('tut', 'menu'); });
       el.btnFirstPlay.addEventListener('click', function () { uiSound('start'); goMatch(); });
+      if (el.btnSeguir) el.btnSeguir.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goSeguir(); });
       if (el.btnNow) el.btnNow.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goNow('ya'); });
       // Dificultad: ‹ baja y › sube (zonas propias, UI-06); un clic en el resto de la fila sigue avanzando en ciclo
       el.optDiff.addEventListener('click', function (ev) {
@@ -8631,6 +8657,22 @@
     _netStats: function () { return stats; },
     /** Auditoría: main.js vuelve a una copia de la hoja tras una vuelta (resync) con la IA de por medio. */
     netStatsSet: function (o) { if (o && o.t) stats = o; },
+    /** «Retomar el partido» (js/resume.js, informe 4.9): lo que la hoja final lleva contado de este partido (VB.Resume lo pasa a datos
+     *  planos; los jugadores van por id) y su vuelta tras rehacer la partida. Fuera del online. */
+    resumeGet: function () { return ctx.net ? null : { stats: stats, unl0: unl0 }; },
+    /** Partido retomado (main.js, tras rehacerlo): la cinta «Seguimos» con el marcador y el set, en vez de la de «Set 1». */
+    resumed: function (g) {
+      if (!g || g.demo) return;
+      var R = VB.Resume, sn = g.setNo | 0 || 1, one = !!g.bo1 || (g.toWin | 0) === 1;
+      banner('Seguimos', (g.score[0] | 0) + '-' + (g.score[1] | 0) + ' | ' + (one ? 'Set único' : R && R.setLabel ? R.setLabel(sn) : 'Set ' + sn), '', 'neutral', BAN.set, 'newSet');
+    },
+    resumeSet: function (o) {
+      if (!o || !o.stats || !o.stats.t) return;
+      var s = newStats(), k; for (k in o.stats) s[k] = o.stats[k];
+      if (s.undo && s.undo.P && s.p) s.undo.P = s.p[s.undo.P.id] || null;   // (el deshacer del challenge apunta a la MISMA fila del jugador)
+      stats = s; pstats = newStats(); lastSpKey = ''; retoEnd = null; profEnd = null;
+      unl0 = Array.isArray(o.unl0) ? o.unl0 : unl0;
+    },
     /** Cierra el panel abierto. true si se ha consumido (Esc / B / Start). */
     back: function () {
       if (VB.Splat && VB.Splat.sheetOpen && VB.Splat.sheetOpen()) { uiSound('back'); return VB.Splat.closeTop(); }   // (móvil: primero la hoja de abajo)

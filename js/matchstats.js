@@ -509,6 +509,9 @@
 
   VB.MatchStats = {
     ingest: ingest, reset: reset, data: data, ready: ready, compute: compute, html: html, zonesOf: zonesOf,
+    // «Retomar el partido» (js/resume.js): el registro en curso en datos planos (cur.r va como índice de su rally) y su vuelta
+    resumeGet: function () { if (!cur) return null; var o = {}, k; for (k in cur) if (k !== 'r') o[k] = cur[k]; o.rI = cur.r ? cur.rallies.indexOf(cur.r) : -1; return o; },
+    resumeSet: function (o) { if (!o || !Array.isArray(o.rallies)) return; var c = {}, k; for (k in o) if (k !== 'rI') c[k] = o[k]; c.r = o.rI >= 0 ? c.rallies[o.rI] || null : null; cur = c; },
     // (pruebas)
     _rallyActs: rallyActs, _zoneOf: zoneOf, CODES: CODES, ERR_LBL: ERR_LBL
   };
