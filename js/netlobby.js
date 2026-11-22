@@ -249,7 +249,7 @@
       L.busy = false;
       if (!r) throw { code: 'error' };
       L.room = r; L.role = 'host'; L.rival = ''; L.fail = ''; L.started = false; L.status = 'wait';
-      setView('room');
+      setView('room'); turnReady();   // (TURN: se piden ya, mientras se espera al rival)
       every('beat', NR().BEAT_MS, hostBeat);
       every('poll', ROOM_POLL, hostPoll);
     }).catch(function (e) {
@@ -273,6 +273,17 @@
       else render();
     }, function () { });
   }
+  /* TURN de respaldo (Imprescindible 4.1, notes/turn.md): antes de cada offer()/answer() se piden credenciales temporales al Worker
+   * (VB.NET_TURN_URL de js/netconfig.js) con el ID token de la cuenta; como mucho NetRtc.TURN_WAIT_MS y, si no llegan, solo STUN.
+   * Apagado (null, sin esperas ni peticiones) con la URL vacía, en las pruebas con emulador (?netemu) o salas de mentira (?olmock),
+   * y con ?netice=none. Desde file:// o localhost, ?netturn=URL la pone a mano (para probar el Worker con «wrangler dev»). */
+  if (LOCAL && Q.netturn) VB.NET_TURN_URL = Q.netturn;
+  function turnReady() {
+    var R = VB.NetRtc, A = VB.Account;
+    if (EMU || MOCK || (Q.netice === 'none' && LOCAL) || !R || !R.turnPrep || !R.turnUrl() || !signedIn()) return null;
+    return R.turnPrep(function () { return A.netAuth().then(function (a) { return a && a.token; }); });
+  }
+  function withTurn(fn) { var p = turnReady(); return p ? p.then(fn, fn) : fn(); }
   function newLink() {
     if (L.link) { var o = L.link; L.link = null; o.onclose = null; o.close(); }
     var ice = Q.netice === 'none' && LOCAL ? [] : undefined;
@@ -289,7 +300,7 @@
     L.rival = NR().cleanName(r.gname) || 'Rival'; L.status = 'connecting'; L.fail = ''; render();
     sound('click');
     var link = newLink(), id = L.room.id;
-    link.offer().then(function (sdp) {
+    withTurn(function () { return link.offer(); }).then(function (sdp) {
       if (L.conn !== conn) return;
       return api().putSig(id, 'offer', { sdp: sdp, gen: conn.gen, to: conn.guest }).then(function () {
         every('sig', SIG_POLL, function () {
@@ -337,7 +348,7 @@
     api().join(id, myName()).then(function (r) {
       L.busy = false;
       L.room = r; L.role = 'guest'; L.rival = NR().cleanName(r.name) || 'Rival'; L.status = 'connecting'; L.fail = ''; L.started = false;
-      setView('room'); sound('click');
+      setView('room'); sound('click'); turnReady();   // (TURN: se piden ya, mientras llega la oferta)
       L.gotOffer = false;
       guestListen(0);
       every('poll', 3000, guestPoll);
@@ -383,7 +394,7 @@
         seen = o.gen; L.gen = o.gen;
         if (!L.gotOffer && !L.started) { L.gotOffer = true; stop('offerT'); stop('connT'); timers.connT = setTimeout(function () { if (L.role === 'guest' && !L.started) connFail(); }, CONNECT_MS + 5000); }
         var link = L.started && L.link ? L.link : newLink();
-        link.answer(o.sdp).then(function (sdp) { return api().putSig(id, 'answer', { sdp: sdp, gen: o.gen }); }).catch(function () { });
+        withTurn(function () { return link.answer(o.sdp); }).then(function (sdp) { return api().putSig(id, 'answer', { sdp: sdp, gen: o.gen }); }).catch(function () { });
       }, function () { });
     });
   }
@@ -478,7 +489,7 @@
     var go = function () {
       if (!L.started || !L.link || L.link.state === 'open' || L.link.state === 'closed' || tries++ > 6) { stop('relink'); return; }
       var gen = nextGen(), link = L.link, id = L.room.id, to = L.room.guest;
-      link.offer().then(function (sdp) { return api().putSig(id, 'offer', { sdp: sdp, gen: gen, to: to }); }).then(function () {
+      withTurn(function () { return link.offer(); }).then(function (sdp) { return api().putSig(id, 'offer', { sdp: sdp, gen: gen, to: to }); }).then(function () {
         var t0 = Date.now();
         every('sig', SIG_POLL, function () {
           if (L.gen !== gen || !L.link || L.link.state === 'open' || Date.now() - t0 > 9000) { stop('sig'); return; }

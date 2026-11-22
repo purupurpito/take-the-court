@@ -1,0 +1,25 @@
+# TAKE THE COURT — Worker de credenciales TURN (Imprescindible 4.1). Pasos en README.md.
+# Los SECRETOS (TURN_KEY_ID, TURN_KEY_API_TOKEN) NO van aquí: `npx wrangler secret put ...`.
+name = "ttc-turn"
+main = "src/worker.mjs"
+compatibility_date = "2026-11-01"
+workers_dev = false
+
+# Dominio propio en la zona takethecourt.com (ya está en Cloudflare): custom_domain crea solo el registro DNS y el certificado.
+routes = [
+  { pattern = "turn.takethecourt.com", custom_domain = true }
+]
+
+[vars]
+FIREBASE_PROJECT = "make-the-cut-vb"
+# Orígenes que pueden pedir credenciales: el juego publicado, el puente viejo y pruebas con un servidor local.
+ALLOWED_ORIGINS = "https://takethecourt.com,https://www.takethecourt.com,https://purupurpito.github.io,http://localhost:8080,http://127.0.0.1:8080"
+# Vida de las credenciales en segundos (2 h).
+TTL = "7200"
+
+# Límite por cuenta (Workers Rate Limiting): 20 peticiones por minuto y uid. Si da problemas al desplegar, borra este bloque:
+# el Worker usa entonces un límite sencillo por instancia (20 cada 10 min).
+[[ratelimits]]
+name = "RATE_LIMITER"
+namespace_id = "1001"
+simple = { limit = 20, period = 60 }

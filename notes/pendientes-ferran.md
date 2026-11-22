@@ -100,6 +100,16 @@ rama pendientes, sin publicar.
   5. Las mejores jugadas de antes de cerrar (pestaña «Jugadas») se pierden; la hoja final, la Estadística del partido, las insignias y los
      retos sí siguen la cuenta.
   ¿Quieres la Carrera también (habría que guardar la nota en directo y el ambiente: un sprint aparte), o te basta con el Partido rápido?
+- **4.1 «Servidor TURN»** (notes/turn.md; pasos en turn-worker/README.md). **Preparado y APAGADO**: el Worker de Cloudflare está en
+  `turn-worker/` sin desplegar, sin clave TURN creada y con `VB.NET_TURN_URL = ''`, así que el juego no hace ninguna petición nueva.
+  **Lo tienes que hacer tú:** crear la clave TURN en Cloudflare Realtime, `npx wrangler@4 login`, `deploy`, los dos `secret put` y,
+  cuando `curl https://turn.takethecourt.com/health` diga `ok`, poner la URL en js/netconfig.js. **Decisiones provisionales:**
+  1. TURN **solo de respaldo** (policy `all`): no oculta tu dirección al rival (eso sería `relayOnly:true`, más ping y más tráfico de pago).
+  2. Credenciales de **2 h**, pedidas al abrir/entrar en la sala y antes de cada oferta/respuesta, esperando **como mucho 2 s**; si no
+     llegan, se juega con STUN como hasta ahora. Solo con sesión iniciada (el online ya la pide).
+  3. Dominio `turn.takethecourt.com` (lo crea wrangler con `custom_domain`, sin tocar el DNS a mano); límite de 20 peticiones por minuto
+     y cuenta; orígenes permitidos: takethecourt.com, www, el puente de github.io y localhost:8080.
+  4. El aviso de «No se ha podido conectar» no cambia de texto.
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión

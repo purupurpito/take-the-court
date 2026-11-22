@@ -1199,6 +1199,15 @@ dibujo nuevas en partido (todo va en la malla y el atlas del muñeco). Detalle e
   (`{turn:[{urls, username, credential}], relayOnly}`; credenciales temporales servidas desde fuera, nunca fijas en el repositorio) `js/netrtc.js` negocia en
   `iceTransportPolicy: 'relay'`. `VB.NetRtc.relayOn()` (¿se usará TURN en la próxima conexión?), `VB.NetRtc._pcConfig()` (pruebas)
   y `_relayReset()`; si una conexión por TURN no abre, la siguiente va en directo.
+  **TURN de respaldo (1.22.0, informe 4.1; notes/turn.md, Worker en `turn-worker/`):** `VB.NET_TURN_URL` (netconfig, `''` = apagado,
+  sin peticiones). `VB.NetRtc.turnPrep(auth) → Promise<bool>` (nunca rechaza; como mucho `VB.NetRtc.TURN_WAIT_MS` = 2000 ms): con URL, POST
+  con `Authorization: Bearer <ID token>` (`auth() → Promise<token>`) y, si llega, `VB.NET_ICE = {turn, relayOnly:false, exp}` (policy 'all':
+  TURN + STUN, lo directo primero); caché hasta 10 min antes de `exp`, sin reintentar en 60 s tras un fallo. `VB.NetRtc.turnUrl()` (URL
+  válida o `''`: https, o http solo a localhost), `_turnParse`, `_turnReset` (pruebas). `VB.NET_ICE.exp` (opcional, ms): caducadas = sin TURN.
+  `Link.offer()/answer()` de un enlace cerrado rechazan sin abrir conexión. netlobby.js llama a `turnPrep` antes de cada offer/answer
+  (también al renegociar) y al abrir/entrar en la sala; nunca con `?netemu`, `?olmock` ni `?netice=none`; `?netturn=URL` (solo file:// o
+  localhost) la pone a mano. Worker: `POST /ice` → `{iceServers:[{urls, username, credential}], ttl, exp}` (solo TURN), 401/403/429/502.
+  Prueba: `node tools/turntest.js`.
 - `js/net.js`: `session.result.unverified = true` cuando al final ninguna huella cuadró o hay una distinta sin reparar.
 - `js/netrec.js`: `outcome` → `{kind:'unverified'}` («no válido», no suma ni a ganados ni a perdidos); `VB.NetRec.resume()` hereda
   la marca de partido de la página anterior (vuelta tras recargar). `end()` devuelve `{rec, entry, cap, outcome}`.

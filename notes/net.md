@@ -638,6 +638,7 @@ Decisión 7 de Ferran: la entrada «Online» se ve en el menú y él pondrá gen
   colgado del pabellón con «TÚ / CPU». (SUPERADO casi todo: escribir con mando en «Lobby rediseñado y teclado en pantalla»; maestría
   y marcador colgado en «Fase 5»; vuelta del invitado y soporte de TURN en «Robustez y privacidad». Queda: vuelta del anfitrión y
   activar TURN con una cuenta.)
+  (22-nov-2026, 1.22.0: TURN de respaldo preparado y apagado, con Worker en turn-worker/; ver notes/turn.md.)
 - Las Novedades del online las escribe la sesión principal (esta fase no toca Novedades ni Controles).
 
 ---

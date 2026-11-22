@@ -4,7 +4,8 @@
  *   - Dos canales «negociados» (los crean los dos lados con el mismo id, sin esperar a ondatachannel):
  *       'in'  id 1, {ordered:false, maxRetransmits:0}  → entradas (no fiable: la redundancia la pone la sesión)
  *       'ctl' id 2, fiable y en orden                  → control (JSON)
- *   - STUN públicos y gratuitos (Google y Cloudflare). TURN opcional (js/netconfig.js, vacío por defecto; ver pcConfig): si las redes no dejan conectar
+ *   - STUN públicos y gratuitos (Google y Cloudflare). TURN opcional (js/netconfig.js, vacío por defecto; ver pcConfig y turnPrep: credenciales
+ *     temporales de turn-worker/ como respaldo, notes/turn.md): si las redes no dejan conectar
  *     directamente, el lobby lo dice. La SDP va COMPLETA (se espera a reunir los candidatos, como mucho GATHER_MS): una oferta y una
  *     respuesta por conexión, sin goteo de candidatos.
  *   - Mismo contrato que memPair/BcLink de js/net.js: {send(ch, data), poll(now) → [{ch, data}], close()}. Además:
@@ -30,6 +31,7 @@
   function turnCfg() {
     var c = VB.NET_ICE;
     if (!c || !Array.isArray(c.turn)) return null;
+    if (typeof c.exp === 'number' && c.exp <= Date.now()) return null;   // (credenciales temporales del Worker ya caducadas)
     var L = c.turn.filter(function (s) { return s && (typeof s.urls === 'string' || Array.isArray(s.urls)) && /^turns?:/.test([].concat(s.urls)[0] || ''); });
     return L.length ? { servers: L, relay: c.relayOnly !== false } : null;
   }
@@ -126,12 +128,14 @@
   }
   /** Anfitrión: conexión nueva y su oferta completa (SDP). */
   LP.offer = function () {
+    if (this.state === 'closed') return Promise.reject(new Error('cerrada'));   // (cerrada mientras se esperaba el TURN: no se abre otra)
     var pc = this._mk();
     return pc.createOffer().then(function (o) { return pc.setLocalDescription(o); }).then(function () { return gather(pc, GATHER_MS); })
       .then(function () { return pc.localDescription.sdp; });
   };
   /** Invitado: conexión nueva con la oferta del anfitrión; devuelve la respuesta completa. */
   LP.answer = function (sdp) {
+    if (this.state === 'closed') return Promise.reject(new Error('cerrada'));
     var pc = this._mk();
     return pc.setRemoteDescription({ type: 'offer', sdp: sdp }).then(function () { return pc.createAnswer(); }).then(function (a) { return pc.setLocalDescription(a); })
       .then(function () { return gather(pc, GATHER_MS); }).then(function () { return pc.localDescription.sdp; });
@@ -161,6 +165,63 @@
   /** Pruebas: simula una caída (cierra la conexión sin avisar al otro lado de nada más). */
   LP._kill = function () { this._drop(); if (this.state !== 'closed') this._set('down'); };
 
+  /* TURN de respaldo con credenciales temporales (Imprescindible 4.1, notes/turn.md; Worker en turn-worker/). Apagado mientras
+   * VB.NET_TURN_URL (js/netconfig.js) esté vacía. turnPrep(auth) → Promise<bool> que SIEMPRE se resuelve, como mucho en TURN_WAIT_MS:
+   *   - si ya hay credenciales que duran más de TURN_EARLY_MS (o un VB.NET_ICE fijo sin exp), true sin pedir nada;
+   *   - si no, POST a la URL con «Authorization: Bearer <ID token de Firebase>» (auth() → Promise<token>) y, si contesta bien,
+   *     VB.NET_ICE = {turn, relayOnly:false, exp} (policy 'all': el TURN solo se usa si lo directo no conecta);
+   *   - si tarda más de TURN_WAIT_MS se sigue sin TURN (false); la petición sigue y, si llega, vale para la siguiente negociación.
+   *     Si falla, no se vuelve a pedir en TURN_RETRY_MS. Nunca gasta g.rng ni toca la partida. */
+  var TURN_WAIT_MS = 2000, TURN_EARLY_MS = 10 * 60 * 1000, TURN_RETRY_MS = 60 * 1000, TURN_ABORT_MS = 8000;
+  var turnBusy = null, turnFailAt = 0;
+  function turnUrl() {
+    var u = VB.NET_TURN_URL;
+    return typeof u === 'string' && (/^https:\/\/\S+$/.test(u) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?(\/\S*)?$/.test(u)) ? u : '';
+  }
+  function turnFresh() {
+    var c = VB.NET_ICE; if (!c || !turnCfg()) return false;
+    return typeof c.exp !== 'number' || c.exp - Date.now() > TURN_EARLY_MS;
+  }
+  /** Respuesta del Worker → lista de servidores TURN válidos (solo turn:/turns: con usuario y clave), o null. */
+  function turnParse(j) {
+    var L = j && Array.isArray(j.iceServers) ? j.iceServers : [];
+    var out = [];
+    L.forEach(function (s) {
+      if (!s || typeof s.username !== 'string' || typeof s.credential !== 'string') return;
+      var u = [].concat(s.urls || []).filter(function (x) { return typeof x === 'string' && /^turns?:/.test(x); });
+      if (u.length) out.push({ urls: u, username: s.username, credential: s.credential });
+    });
+    return out.length ? out : null;
+  }
+  function turnGet(auth, url) {
+    var ac = typeof AbortController === 'function' ? new AbortController() : null;
+    var kill = ac ? setTimeout(function () { try { ac.abort(); } catch (e) { } }, TURN_ABORT_MS) : 0;
+    return Promise.resolve().then(auth).then(function (tok) {
+      if (!tok || typeof tok !== 'string') throw new Error('sin sesión');
+      return fetch(url, { method: 'POST', headers: { Authorization: 'Bearer ' + tok }, signal: ac ? ac.signal : undefined, cache: 'no-store', credentials: 'omit' });
+    }).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); }).then(function (j) {
+      var L = turnParse(j); if (!L) throw new Error('sin TURN');
+      var ttl = Math.max(60, Math.min(+j.ttl || 3600, 86400));
+      VB.NET_ICE = { turn: L, relayOnly: false, exp: Date.now() + ttl * 1000 };
+      relayBad = false; turnFailAt = 0;
+      return true;
+    }).catch(function () { turnFailAt = Date.now(); return false; }).then(function (ok) { if (kill) clearTimeout(kill); turnBusy = null; return ok; });
+  }
+  function turnPrep(auth) {
+    var url = turnUrl();
+    if (!url || typeof fetch !== 'function' || typeof auth !== 'function') return Promise.resolve(false);
+    if (turnFresh()) return Promise.resolve(true);
+    if (!turnBusy && turnFailAt && Date.now() - turnFailAt < TURN_RETRY_MS) return Promise.resolve(false);
+    if (!turnBusy) turnBusy = turnGet(auth, url);
+    var p = turnBusy;
+    return new Promise(function (ok) {
+      var t = setTimeout(function () { ok(false); }, TURN_WAIT_MS);
+      p.then(function (v) { clearTimeout(t); ok(v); });
+    });
+  }
+
   VB.NetRtc = { Link: Link, ICE: ICE, GATHER_MS: GATHER_MS, supported: function () { return typeof RTCPeerConnection === 'function'; },
-    _pcConfig: pcConfig, relayOn: function () { return !relayBad && !!turnCfg(); }, _relayReset: function () { relayBad = false; } };
+    _pcConfig: pcConfig, relayOn: function () { return !relayBad && !!turnCfg(); }, _relayReset: function () { relayBad = false; },
+    TURN_WAIT_MS: TURN_WAIT_MS, turnUrl: turnUrl, turnPrep: turnPrep, _turnParse: turnParse,
+    _turnReset: function () { turnBusy = null; turnFailAt = 0; } };
 })();
