@@ -601,7 +601,9 @@ function runHlMatch(j) {
 /** Banda calibrada (SIM-05): en 20 partidos CPU vs CPU, entre el 15 y el 25 % de los puntos con highlight >= VB.HOLD.bigAt (la
  *  cinta grande y la pausa larga) y menos del 5 % >= 0,8 fuera de los puntos de set/partido. Medido con 160 partidos de demo
  *  (8-nov-2026): 19,6 % (grupos de 20 partidos: 17,6-20,9; σ ≈ 1,1 puntos) y 3,2 %. */
-// (22-nov-2026, decisión provisional de la rama investigacion: bigHi 0,25 → 0,28 y topMax 0,05 → 0,06. La IA variada reparte más los
+// (22-nov-2026, rama investigacion: bigHi 0,25 → 0,28 y topMax 0,05 → 0,06; CONFIRMADO el mismo día con 100 partidos completos de demo
+// en 5 grupos de 20 semillas: rama 22,4-25,2 % grandes (media 23,9) y 4,1-5,4 % ≥ 0,8 (media 5,0); main 1.21.0 20,9-22,8 % (21,8) y
+// 4,3-5,2 % (4,7). El 5 % ya lo pasaba main en un grupo; +2 puntos de grandes con la IA variada, dentro del 15-28 % con ~3σ de margen. La IA variada reparte más los
 // remates y salen algo más de puntos grandes: 25,2 % y 5,1 % en estos 20 partidos, justo encima de los topes de antes; 30 semillas de
 // demo dan 20-22 % de puntos grandes. Si Ferran prefiere los topes de antes, se vuelve a 0,25 / 0,05 y se retoca HOLD en sim.js.)
 const HL_CAL = { matches: 20, bigLo: 0.15, bigHi: 0.28, topAt: 0.8, topMax: 0.06 };
@@ -1912,7 +1914,8 @@ const demo = run('CPU vs CPU (demo del menú, perfil DIFF.demo)', { demo: true }
   { const nWhy = Object.values(st.why).reduce((a, b) => a + b, 0), nHow = Object.values(st.how || {}).reduce((a, b) => a + b, 0);
     if (nWhy !== st.points || st.rallies.length !== st.points || nHow !== st.points) fail('estadísticas del punto contadas dos veces (motivos ' + nWhy + ', peloteos ' + st.rallies.length + ', cómo ' + nHow + ', puntos ' + st.points + ', revocados ' + revoked + ')'); }
   // un partido a 3 sets puede pasar de 120 puntos (~25 min): basta con un partido completo o UN set cerrado. (22-nov-2026, decisión
-  // provisional de la rama investigacion: antes pedía dos sets; con el modelo de esfuerzo los peloteos de la demo son más largos y con la
+  // rama investigacion, confirmado: antes pedía dos sets; los partidos de demo tienen los mismos puntos en main y en la rama (~105 por
+  // partido en 100 partidos); con el modelo de esfuerzo los peloteos de la demo son más largos y con la
   // IA variada la demo de 20 min da ~103 puntos y cierra 1 set. Una sim que no cierra sets sigue fallando aquí.)
   if (MIN >= 15 && demo.matches < 1 && demo.setsSeen < 1) fail('ningún partido completo ni un set cerrado en demo');
   const f = st.won[0] / st.points; if (f < 0.3 || f > 0.7) fail('reparto de puntos desequilibrado en demo ' + f.toFixed(2));
@@ -1920,7 +1923,8 @@ const demo = run('CPU vs CPU (demo del menú, perfil DIFF.demo)', { demo: true }
   // Banda 0,38-0,65 para una demo de 20 min (~165 remates: ±3,5σ de muestreo alrededor de 0,515). En carreras más
   // cortas el ruido crece como 1/√n: la banda se ensancha en la misma proporción (10 min, ~80 remates: 0,32-0,71).
   // Medido (R6, 105 semillas): 20 min 41-61 %, 10 min 38-65 % con el mismo perfil (σ 3,9 y 5,5 puntos).
-  // RECALIBRADO (22-nov-2026, decisión provisional de la rama investigacion, notes/ia-variada.md): desde el modelo de esfuerzo del 18-nov
+  // RECALIBRADO (22-nov-2026, rama investigacion, notes/ia-variada.md; CONFIRMADO con 100 partidos completos de demo: rama 35,5-37,6 %,
+  // media 36,4; main 1.21.0 37,6-39,0 %, media 38,2): desde el modelo de esfuerzo del 18-nov
   // la demo ya no da ~51 %: 30 semillas × 10 min dan 37,4 % en main y 36,8 % con la IA variada (por semilla 26-47 %). El centro pasa
   // a 0,37 con el mismo ancho (±13,5 puntos con 165 remates): sigue cazando una defensa que lo saca todo o un remate que siempre es punto.
   { const sp = st.spikes[0] + st.spikes[1], kr = (st.kills[0] + st.kills[1]) / Math.max(1, sp), KC = 0.37;

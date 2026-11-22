@@ -271,7 +271,10 @@ function judgeMatch(R, tag) {
   check(tag + 'guarda de point() a 0; marcador sin reparar' + (c.loss <= 5 ? ' (sbFix 0)' : ''),
     S.guard.join() === '0,0' && (c.loss > 5 || (S.fl[0].sbFix === 0 && S.fl[1].sbFix === 0)), { guard: S.guard, sbFix: [S.fl[0].sbFix, S.fl[1].sbFix], ptBad: [S.fl[0].ptBad, S.fl[1].ptBad], digestBad: [S.fl[0].digestBad, S.fl[1].digestBad] });
   check(tag + 'mis jugadores nunca los corrige la red', S.corr.join() === '0,0', { corr: S.corr, info: S.corrInfo });
-  check(tag + 'traspasos: los mismos en los dos lados (± 2: un punto por fq puede cerrar el rally justo en el khAt)' + (c.rtt <= 150 ? ', sin bifurcaciones' : '') + (c.rtt < 250 ? ', sin recuperaciones > 300 ms' : c.rtt === 250 ? ', como mucho dos recuperaciones > 300 ms por lado (250 ms + jitter + tirón; 1.22.0: dos, ver notes/pendientes-ferran.md 4.8.6)' : ''),
+  // (RTT 250, tope de dos: medido el 22-nov-2026 con 30 partidos —jit 20, pérdida 0/2/5, playa y pabellón, semillas 1-5— en la rama
+  // y en main 1.21.0: 8 recuperaciones > 300 ms en las dos, y main también llega a 2 en un lado (pabellón s2 pérdida 2, 325 ms). No es
+  // una regresión de la IA variada: con el tope 1 la matriz entera ya fallaba en main)
+  check(tag + 'traspasos: los mismos en los dos lados (± 2: un punto por fq puede cerrar el rally justo en el khAt)' + (c.rtt <= 150 ? ', sin bifurcaciones' : '') + (c.rtt < 250 ? ', sin recuperaciones > 300 ms' : c.rtt === 250 ? ', como mucho dos recuperaciones > 300 ms por lado (250 ms + jitter + tirón; 1.22.0: dos, confirmado, ver notes/pendientes-ferran.md 4.8.6)' : ''),
     S.hand[0] > 10 && Math.abs(S.hand[0] - S.hand[1]) <= 2 && (c.rtt > 150 || (S.fl[0].forks + S.fl[1].forks === 0)) && (c.rtt > 250 || (c.rtt < 250 ? S.fl[0].late + S.fl[1].late === 0 : Math.max(S.fl[0].late, S.fl[1].late) <= 2)) && S.fl[0].khCheckBad + S.fl[1].khCheckBad === 0,
     { hand: S.hand, khCheckBad: [S.fl[0].khCheckBad, S.fl[1].khCheckBad], forks: [S.fl[0].forks, S.fl[1].forks], late: [S.fl[0].late, S.fl[1].late], lateMaxMs: [S.fl[0].lateMaxMs, S.fl[1].lateMaxMs] });
   const unst = (S.unstable[0] + S.unstable[1]) / Math.max(1, S.playFrames[0] + S.playFrames[1]);

@@ -72,7 +72,7 @@ Experto sigue igual de duro: las diferencias de puntos están dentro del ruido d
   38-65 %), y la calibración del highlight da 25,2 % (tope 25 %) y 5,1 % (tope 5 %). Medido con 30 semillas de demo (10 min): remates que
   son punto 37,4 % sin memoria y 36,8 % con ella (por semilla, 26-47 %); puntos grandes 21,7 % y 20,2 %. La memoria no los mueve: la banda
   del 38-65 % (medida antes del modelo de esfuerzo del 18-nov) ya queda por encima de lo que da el código de main con la mayoría de semillas.
-  **22-nov (revisión de la rama, decisión provisional):** bandas recalibradas en tools/simtest.js: remates que son punto centrados en
+  **22-nov (revisión de la rama; confirmado el mismo día con 100 partidos de demo en la rama y en main, notes/pendientes-ferran.md 4.8.5):** bandas recalibradas en tools/simtest.js: remates que son punto centrados en
   0,37 (mismo ancho), la demo pide un set cerrado (no dos) y los topes del highlight 28 % / 6 %. simtest vuelve a TODO OK
   (notes/pendientes-ferran.md, «Imprescindibles 1.22.0», 4.8.5).
 

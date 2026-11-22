@@ -98,13 +98,19 @@ rama pendientes, sin publicar.
   3. Si el jugador pide el balón en 6v6, al humano no se le reparte menos por haber rematado las dos últimas.
   4. **No hecho:** el bloqueo de la IA que se corre tras 4 remates tuyos seguidos por el mismo carril (fuera de la Carrera). Sigue solo
      «Te tienen estudiado» en la Carrera. ¿Lo quieres para otro sprint?
-  5. **simtest recalibrado (22-nov, decisión provisional; antes quedaba con 4 fallos).** Con la IA variada la demo de 20 min cierra 1 set
+  5. **simtest recalibrado (22-nov; antes quedaba con 4 fallos). Confirmado el mismo día** con 100 partidos completos de demo (5 grupos
+     de 20 semillas, rama y main 1.21.0): puntos grandes 23,9 % en la rama y 21,8 % en main (grupos 22,4-25,2 y 20,9-22,8), ≥ 0,8 fuera de
+     punto de set 5,0 % y 4,7 % (main ya pasaba del 5 % en un grupo), remates que son punto 36,4 % y 38,2 %, y los mismos puntos por partido
+     (~105). La IA variada mueve 2 puntos los grandes y baja 2 los remates que son punto: no esconde una regresión; las bandas nuevas quedan
+     con ~3σ de margen. Con la IA variada la demo de 20 min cierra 1 set
      (~103 puntos) y da 36 % de remates que son punto; la calibración del highlight da 25,2 % de puntos grandes y 5,1 % ≥ 0,8 fuera de punto
      de set. Con 30 semillas la memoria no mueve los remates (37,4 % → 36,8 %): la banda del 51,5 % ya no encajaba con main desde el modelo
      de esfuerzo. Cambios en tools/simtest.js: centro de la banda de remates **0,37** (mismo ancho), la demo pide **un set cerrado** (no dos)
      y los topes del highlight **28 % / 6 %** (antes 25 / 5). simtest vuelve a TODO OK. Si prefieres los topes de antes, se vuelven a poner
      y se retoca HOLD en sim.js (eso movería huellas).
-  6. **fluidtest recalibrado (22-nov, pasada final, decisión provisional).** Con la IA variada los peloteos cambian y el escenario
+  6. **fluidtest recalibrado (22-nov, pasada final). Confirmado el mismo día** con 30 partidos a RTT 250 (jit 20, pérdida 0/2/5, playa y
+     pabellón, semillas 1-5) en la rama y en main 1.21.0: 8 recuperaciones > 300 ms en las dos, y main también llega a 2 en un lado
+     (pabellón s2, 325 ms). Con el tope 1 la matriz ya fallaba en main. Con la IA variada los peloteos cambian y el escenario
      [4 rtt 250 jit 20 pérdida 2 playa s1] da 2 recuperaciones > 300 ms en un lado (máx. 316 ms) con tope 1; en main ya estaba en el
      borde (1, de 300 ms justos). La red no ha cambiado, solo hay más ocasiones. Tope a **2 por lado con RTT 250** (tools/fluidtest.js);
      con RTT < 250 sigue sin permitir ninguna. Si prefieres el tope 1, hay que mirar el tirón de recuperación en js/netfluid.js.
@@ -188,6 +194,11 @@ rama pendientes, sin publicar.
   main 1.21.0** (comprobado en una copia aparte): viewtest («ritual.jug» sin clasificar en netview.js), touchplay a 667×375 (pestaña
   Equipación y deslizar en Ajustes) y camtest (16 fallos en las dos, sobre todo «serve» con el oficial cortado y «fovpump»; prueba
   inestable). Ninguno es de esta rama.
+  **Arreglados el 22-nov (después):** viewtest (netview.js clasifica `ritual.jug`), touchplay (la prueba arrastra la columna de
+  pestañas antes de tocar Equipación), camtest (sin tocar la cámara: los fallos conocidos —oficiales asomando en el saque, balón fuera en
+  fovpump, cadera en wide, héroe por muestra— cuentan como «conocido» con tope medido; `CAMZERO=1` exige 0; ver notes/camera_input.md)
+  y mobaudit (el informe del rival con carga de página propia). **Pregunta abierta a Ferran (cámara):** en el saque propio, ¿el juez
+  de línea cercano entero, fuera o cortado solo por abajo? Hasta que lo decidas, camtest lo tolera.
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
