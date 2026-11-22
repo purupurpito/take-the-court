@@ -705,7 +705,8 @@
     if (!cs) restoreEndButtons();
     // «Retomar el partido»: ¿se guarda este partido al acabar cada punto? Partido rápido sí; nunca el online, el autopilot, el espectador,
     // la situación de la semana ni las pruebas de fichaje (ni las extensiones de la Carrera); la Carrera, solo con VB.Resume.CAREER
-    var RSM = VB.Resume, rsOk = !!RSM && !!gKeep && !auto && !opts.autopilot && !net && !sitO && !g.watch && !g.drill && (!ctx.debug || Q.resume === '1') &&
+    // (la Carrera de verdad se guarda también con ?debug=… en la URL: si no, cualquier parámetro de depuración apagaba el antitrampas)
+    var RSM = VB.Resume, rsOk = !!RSM && !!gKeep && !auto && !opts.autopilot && !net && !sitO && !g.watch && !g.drill && (cs || !ctx.debug || Q.resume === '1') &&
       (!cs || (RSM.CAREER && !cs.trial && !cs._debug));   // (Carrera: la jornada y las extensiones —selección, Estrellas, juvenil—; nunca la prueba)
     if (rs) rsKeep = g;
     setGame(g, opts.kit || null, cs ? careerLookOpts(cs, cvK === 'hall') : lookOptsOf(g));
@@ -808,9 +809,14 @@
       lk = { cm: raw.cm, ext: raw.ext || null, sc: raw.sc }; la = { mode: raw.ext ? raw.ext.mode || 'beach' : raw.cm.split('|')[0], lock: lk };
     }
     if (!lk) { if (raw) { try { R.clear('career'); } catch (e) { } } return ''; }
-    var sc = raw && raw.cm === lk.cm && raw.sc ? raw.sc : lk.sc;
+    var own = !!(raw && raw.cm === lk.cm && raw.sc), sc = own ? raw.sc : lk.sc;
+    // (sin la foto de ese partido: el candado lleva el marcador de un momento anterior —primera foto, último set— salvo que se dejara
+    // así a propósito —salir, segundo plano: lk.x—. Entonces el set que se jugaba se da por perdido: borrar la foto o resolverlo en
+    // otro aparato nunca sale mejor que lo que se llevaba)
+    if (!own && !lk.x) { var EP = la.mode === 'hall' ? K.hall : K.beach; if (EP && EP._pessSc) { try { sc = EP._pessSc(sc, (sc && sc.pts) || 0); } catch (e) { reportError('Career.pessSc', e); } } }
     try { careerLockResolve(la.mode, lk, sc); } catch (e) { reportError('careerLockResolve', e); }
-    try { R.clear('career'); } catch (e) { }
+    // (la foto de la OTRA Carrera —playa con candado mientras se resuelve el de pista— no se toca: ese partido se puede retomar)
+    if (!raw || own || !careerRecFits(raw)) { try { R.clear('career'); } catch (e) { } }
     try { if (VB.CareerUI && VB.CareerUI.syncMenu) VB.CareerUI.syncMenu(); } catch (e) { }
     call('UI', 'refreshMenu');
     return 'resolved';
@@ -846,13 +852,15 @@
   }
   /** El candado en el guardado de la Carrera (c.lock) con el marcador de la última foto: al primer guardado del partido, al acabar cada
    *  set, al salir al menú y al irse la página a segundo plano (no en cada punto: account.js subiría la Carrera entera cada vez). */
-  function careerLockSync(g) {
+  function careerLockSync(g, exact) {
     var R = VB.Resume, K = VB.Career; if (!R || !K || !g || !g.rsLock || g.demo || R.armed() !== g || g.finished) return false;
     var rec = null; try { rec = R.raw('career'); } catch (e) { rec = null; }
     if (!rec || typeof rec.cm !== 'string' || !rec.sc) return false;   // (aún sin foto: el partido no tiene candado)
     var E = (rec.ext ? rec.ext.mode : (g.career && g.career.mode)) === 'hall' ? K.hall : K.beach;
     if (!E || !E.lockSet) return false;
-    try { E.lockSet({ cm: rec.cm, ext: rec.ext || null, sc: rec.sc, t: Date.now(), v: String(VB.VERSION || '') }); } catch (e) { reportError('Career.lockSet', e); return false; }
+    // (x: 1 = el marcador es el del momento en que se dejó —salir, segundo plano—; sin x, el partido seguía: sin foto, el set a medias se pierde)
+    var lo = { cm: rec.cm, ext: rec.ext || null, sc: rec.sc, t: Date.now(), v: String(VB.VERSION || '') }; if (exact) lo.x = 1;
+    try { E.lockSet(lo); } catch (e) { reportError('Career.lockSet', e); return false; }
     lockG = g; return true;
   }
   /** ¿El partido g es de Carrera con candado ahora? (armado en VB.Resume) */
@@ -863,7 +871,35 @@
     for (var n = 0; g.mode !== 'serve' && g.mode !== 'rally' && !g.finished && n < 120 * 40; n++) { try { Sim.step(g, STEP, LOCK_NOIN); } catch (e) { return false; } }
     try { return !!Sim.concede(g, 0); } catch (e) { reportError('Sim.concede', e); return false; }
   }
-  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && ctx.game) careerLockSync(ctx.game); });
+  // (al volver a la pestaña el partido sigue: el candado vuelve a ser «en juego» en el siguiente evento, lockG = null)
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && ctx.game) careerLockSync(ctx.game, true); else if (document.visibilityState === 'visible' && ctx.game && ctx.game.rsLock) lockG = null; });
+  /** La Carrera (o la foto de su partido) ha cambiado en otra pestaña (VB.Resume.onConflict / VB.Career.onStale, 22-nov-2026): un
+   *  partido de Carrera de esta pestaña se corta sin guardar nada (la foto y el candado son de la otra) y se avisa; en el menú solo se
+   *  vuelve a pintar con la Carrera buena. */
+  function careerElsewhere() {
+    var g = ctx.game, R = VB.Resume;
+    if (g && !g.demo && g.career && !g.career._debug && (ctx.state === 'playing' || ctx.state === 'paused')) {
+      try { if (R && R.armed() === g) R.disarm(); } catch (e) { }
+      try { if (VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); } catch (e) { }
+      g.career = null; careerEnd = null; menuOnly = true;   // (sin abandonos ni hub: lo de esta pestaña ya no vale)
+      ctx.actions.toMenu();
+      careerElsewhereMsg();
+      return;
+    }
+    if (ctx.state !== 'menu') return;
+    setTimeout(function () {
+      try { if (VB.CareerUI && VB.CareerUI.isOpen && VB.CareerUI.isOpen()) { VB.CareerUI.render(); careerElsewhereMsg(); } } catch (e) { reportError('CareerUI.render', e); }
+      try { if (VB.CareerUI && VB.CareerUI.syncMenu) VB.CareerUI.syncMenu(); } catch (e) { }
+      call('UI', 'refreshMenu');
+    }, 0);
+  }
+  var elseT = 0;
+  function careerElsewhereMsg() {
+    if (Date.now() - elseT < 3000) return; elseT = Date.now();
+    try { if (VB.Splat && VB.Splat.toast) VB.Splat.toast('La Carrera ha cambiado en otra pestaña: aquí se ha vuelto a cargar. Juega en una sola pestaña.', { key: 'crTab' }); } catch (e) { }
+  }
+  if (VB.Resume) VB.Resume.onConflict = function () { careerElsewhere(); };
+  if (VB.Career) VB.Career.onStale = function () { careerElsewhere(); };
   /** Para el hub de la Carrera (career-ui.js): el partido a medias con candado {sub, score, lost, label, ext} o null (si no había foto
    *  que valga, ya se ha resuelto y devuelve null: el hub enseña el resultado). */
   ctx.actions.careerLock = function () {
@@ -1748,7 +1784,7 @@
     if (VB.Resume && ctx.game && VB.Resume.armed() === ctx.game) {
       try {
         var g0 = ctx.game, X0 = g0.career && g0.career.ext ? careerExt(g0.career.ext) : null, strict = !!(X0 && X0.quitStrict);
-        if (careerLocked(g0) && !strict && !g0.finished && VB.Resume.raw('career')) { careerLockSync(g0); keep = true; }
+        if (careerLocked(g0) && !strict && !g0.finished && VB.Resume.raw('career')) { careerLockSync(g0, true); keep = true; }
         else if (careerLocked(g0)) { VB.Resume.clear('career'); if (VB.Career && VB.Career.lockDone) VB.Career.lockDone(g0); }
         else VB.Resume.clear('quick');
         VB.Resume.disarm();

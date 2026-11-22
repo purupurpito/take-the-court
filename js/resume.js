@@ -21,7 +21,9 @@
  *    peloteo ya cuenta) y al cerrarse una protesta del ambiente (amb:choiceEnd: su resultado no se puede volver a elegir). Salir al menú no
  *    lo borra (la Carrera queda bloqueada en ese partido hasta acabarlo) y una foto de otra versión no se tira aquí: main.js resuelve el
  *    partido desde el marcador guardado (raw). Todo en notes/resume.md («Carrera»). Las pruebas de fichaje no: cerrar a mitad de una prueba
- *    sigue suspendiéndola (decisión de Ferran del 15-nov). CAREER = true (?resumecareer=0 lo apaga, solo para pruebas).
+ *    sigue suspendiéndola (decisión de Ferran del 15-nov). CAREER = true (ya no hay parámetro de la URL que lo apague: solo las
+ *    pruebas, desde tools/eval.js). Dos pestañas a la vez: la que encuentra en la clave una foto que no es la suya deja de guardar
+ *    (onConflict; también con el evento 'storage'). Se guarda además al pedir un challenge (la foto lleva la revisión en marcha).
  *  - Claves make-the-cut.resume (Partido rápido) y make-the-cut.resume.career (JSON; solo en el aparato: account.js no las sube). Sello
  *    con VB.VERSION: Partido rápido de otra versión se descarta. Al restaurar se comprueba que Sim.stateHash de la partida rehecha sea el
  *    de la foto.
@@ -46,7 +48,8 @@
  *   mods(rec, g)          devuelve a los módulos (ui, estadística, insignias, retos, Carrera) lo que llevaban contado.
  *   clear(kind)           borra lo guardado ('quick' | 'career'; sin kind, los dos).
  *   setLabel(n) → '1r set' | '2º set' | '3r set' | '4º set' | '5º set'
- *   CAREER                interruptor de la Carrera (true).
+ *   CAREER                interruptor de la Carrera (true; solo las pruebas lo cambian).
+ *   onConflict(g, why)    main.js: otra pestaña juega el partido de Carrera (la foto de la clave no es la de esta pestaña).
  * Sin DOM ni Three: se prueba en node (tools/resumetest.js).
  */
 (function () {
@@ -54,8 +57,6 @@
   var root = typeof window !== 'undefined' ? window : globalThis;
   var VB = root.VB = root.VB || {};
   var KEY = 'make-the-cut.resume', KEYS = { quick: KEY, career: KEY + '.career' }, FMT = 1;
-  var Q = {};
-  try { (root.location && root.location.search || '').replace(/^\?/, '').split('&').forEach(function (kv) { if (!kv) return; var i = kv.indexOf('='); Q[decodeURIComponent(i < 0 ? kv : kv.slice(0, i))] = i < 0 ? '1' : decodeURIComponent(kv.slice(i + 1)); }); } catch (e) { }
 
   var armed = null;   // {g, meta, pts, txt, live, k}
   var mem = { quick: null, career: null };     // sin localStorage (node, modo privado que lo bloquea): en memoria
@@ -67,7 +68,7 @@
     k = kindOf(k); var s = store(); if (!s) { mem[k] = v; return true; }
     try { s.setItem(KEYS[k], v); return true; } catch (e) { try { s.removeItem(KEYS[k]); } catch (e2) { } return false; }   // (cuota llena: mejor nada que una foto vieja)
   }
-  function clear1(k) { k = kindOf(k); var s = store(); mem[k] = null; if (s) { try { s.removeItem(KEYS[k]); } catch (e) { } } }
+  function clear1(k) { k = kindOf(k); var s = store(); mem[k] = null; if (s) { try { s.removeItem(KEYS[k]); } catch (e) { } } if (armed && armed.k === k) armed.exp = null; }
   function clear(k) { if (k === 'quick' || k === 'career') clear1(k); else { clear1('quick'); clear1('career'); } }
   function ver() { return String(VB.VERSION || ''); }
 
@@ -168,7 +169,17 @@
     }
   }
 
-  function arm(g, meta) { armed = g && meta ? { g: g, meta: meta, k: kindOf(meta.kind), pts: meta.played ? 1 : 0, txt: null, live: false } : null; }
+  // (Carrera, 22-nov-2026, revisión: dos pestañas a la vez) exp = el texto que esta pestaña espera encontrar en la clave (lo último que
+  // leyó o escribió). Si al ir a guardar hay otro, es que otra pestaña está jugando ese partido (o lo ha retomado): esta deja de
+  // guardar sin pisar nada y avisa (api.onConflict, main.js corta el partido aquí). Lo mismo con el evento 'storage' del navegador.
+  function arm(g, meta) {
+    armed = g && meta ? { g: g, meta: meta, k: kindOf(meta.kind), pts: meta.played ? 1 : 0, txt: null, live: false, exp: null } : null;
+    if (armed) armed.exp = getRaw(armed.k);
+  }
+  function conflict(why) {
+    var g = armed && armed.g; armed = null;
+    try { if (typeof api.onConflict === 'function') api.onConflict(g, why || 'save'); } catch (e) { }
+  }
   function disarm() { armed = null; }
   // (solo cuenta un punto JUGADO aquí: un partido que empieza con marcador —«Final apretado» a 20-20— no se ofrece hasta su primer
   // punto. En la Carrera, desde el primer saque: cerrar a mitad del primer peloteo tampoco deja repetirlo)
@@ -186,15 +197,19 @@
     if (m.nc && armed.k !== 'career') rec.nc = 1;   // (retomado tras cerrar con el punto en juego: sigue sin contar)
     if (m.ext) rec.ext = m.ext;                   // (Carrera: partido de una extensión {id, arg, mode, cs})
     var txt; try { txt = JSON.stringify(rec); } catch (e) { return false; }
+    if (armed.k === 'career' && getRaw('career') !== armed.exp) { conflict('save'); return false; }   // (otra pestaña: no se pisa)
     armed.txt = null; armed.live = false;
-    if (!setRaw(armed.k, txt)) return false;
-    armed.txt = txt; return true;
+    if (!setRaw(armed.k, txt)) { armed.exp = getRaw(armed.k); return false; }
+    armed.txt = txt; armed.exp = txt; return true;
   }
   /** El punto se ha puesto en juego después de la última foto: la misma foto con live: 1. Sin foto, nada. */
   function markLive() {
     if (!armed || armed.live || !armed.txt) return false;
+    if (armed.k === 'career' && getRaw('career') !== armed.exp) { conflict('save'); return false; }
     armed.live = true;
-    return setRaw(armed.k, '{"live":1,' + armed.txt.slice(1));
+    var t = '{"live":1,' + armed.txt.slice(1);
+    if (!setRaw(armed.k, t)) return false;
+    armed.exp = t; return true;
   }
 
   function onFrame(g, events) {
@@ -204,7 +219,8 @@
       var t = events[i].type;
       if (t === 'gameOver') { clear1(armed.k); armed = null; return; }
       if (t === 'point' && !events[i].replay) { armed.pts++; want = true; live = false; }
-      else if (t === 'challengeResult' || t === 'serveReady' || (car && t === 'amb:choiceEnd')) { want = true; if (t !== 'amb:choiceEnd') live = false; }
+      // ('challenge': la foto lleva la revisión en marcha, g.review; cerrar antes del veredicto ya no devuelve el challenge sin gastar)
+      else if (t === 'challengeResult' || t === 'challenge' || t === 'serveReady' || (car && t === 'amb:choiceEnd')) { want = true; if (t !== 'amb:choiceEnd') live = false; }
       else if (t === 'toss' || t === 'hit') live = true;   // (punto en juego: lanzamiento del saque o golpe)
     }
     if (want && !g.finished) save(g);
@@ -244,10 +260,23 @@
   }
 
   var api = VB.Resume = {
-    KEY: KEY, KEYS: KEYS, CAREER: Q.resumecareer !== '0',
+    KEY: KEY, KEYS: KEYS, CAREER: true, onConflict: null,
     arm: arm, disarm: disarm, armed: function () { return armed ? armed.g : null; }, armedKind: function () { return armed ? armed.k : ''; },
     onFrame: onFrame, save: save, load: load, raw: raw, peek: peek,
     apply: apply, mods: mods, clear: clear, noCount: noCount, lost: lost, markLive: markLive, setLabel: setLabel,
-    _plain: plain, _unplain: unplain, _pack: pack, _unpack: unpack
+    _plain: plain, _unplain: unplain, _pack: pack, _unpack: unpack,
+    /** Otra pestaña ha escrito la foto de la Carrera (evento 'storage'; las pruebas lo llaman a mano): si esta tenía armado un partido
+     *  de Carrera y el texto no es el suyo, deja de guardar y avisa (onConflict). */
+    _external: function (key, val) {
+      if (!armed || armed.k !== 'career' || key !== KEYS.career) return false;
+      if ((val == null ? null : val) === armed.exp) return false;
+      conflict('tab'); return true;
+    }
   };
+  try {
+    if (root.addEventListener && root.document) root.addEventListener('storage', function (e) {
+      if (!e || (e.key !== KEYS.career && e.key !== null)) return;
+      api._external(KEYS.career, e.key === null ? null : e.newValue);
+    });
+  } catch (e) { }
 })();
