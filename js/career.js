@@ -1210,7 +1210,7 @@
   function setDifficulty(k) {
     var c = load(); if (!c) return '';
     if (CDIFF_KEYS.indexOf(k) < 0) return 'bad';
-    if (M) return 'match';   // partido de Carrera a medias (main.js llama a abortMatch al salir)
+    if (M || lockOf(c)) return 'match';   // partido de Carrera a medias (main.js llama a abortMatch al salir; con candado, hasta acabarlo)
     if (diffOf(c) === k) return 'same';
     var low = seasonDiff(c), used = CDIFF_KEYS.reduce(function (s, x) { return s + ((c.dUse && c.dUse[x]) | 0); }, 0), live = c.phase === 'league' || c.phase === 'cup';
     c.diff = k;
@@ -1562,6 +1562,81 @@
     });
   }
   function abortMatch() { M = null; }
+
+  // ------------------------------------------------------------------ «Retomar el partido» en la Carrera (js/resume.js, notes/resume.md)
+  // Decisión de Ferran (22-nov-2026): «No quiero que sea posible ir reiniciando tu progreso constantemente en los partidos del modo
+  // carrera. Cada vez que se acabe un punto se guarda.» VB.Resume guarda la foto de la partida tras cada punto; aquí:
+  //  - resumeGet / resumeSet: lo que cuenta el partido (M: estadísticas de la jornada, nota en directo, consignas, ambiente con su azar
+  //    y su cola, «Te tienen estudiado»), entero (VB.Resume lo pasa con pack: grafo, jugadores por id). Al retomar, M sigue igual.
+  //  - el candado c.lock = {cm (matchSig), ext ({id, arg, mode, cs} en una extensión), sc (marcador: score, sets, ss, setNo, pts, tw, one),
+  //    t, v}: mientras está, el partido no se puede simular ni empezar de cero, ni la jornada avanzar (simulateNext, benchNext,
+  //    setDifficulty → 'match'). Va en el guardado de la Carrera (account.js lo sube): en otro aparato sin la foto, el partido se resuelve.
+  //  - lockResolve: el partido sin foto que valga (versión nueva, foto rota, otro aparato) se acaba simulado DESDE el marcador guardado
+  //    (simRest: cada punto con la proporción de puntos que llevabas en el partido, suavizada con la de las medias), con estadísticas y nota
+  //    de partido simulado (XP a medias). Nunca vuelve al 0-0.
+  /** Lo que cuenta el partido en curso g, para la foto (null sin partido de Carrera). */
+  function resumeGet(g) { return M && g && M.g === g && g.career && !g.demo ? { m: M } : null; }
+  /** Al retomar (VB.Resume.mods): M vuelve a como estaba; las funciones (el aviso de la nota del ambiente, el árbitro) son las nuevas. */
+  function resumeSet(o, g) {
+    if (!o || !o.m || !g || !g.career) return;
+    var d = o.m, m = newM(g), k, fa = m.amb;
+    for (k in d) if (k !== 'g' && k !== 'amb') m[k] = d[k];
+    m.g = g;
+    if (fa && d.amb) { for (k in d.amb) if (k !== 'rate' && k !== 'Ar') fa[k] = d.amb[k]; m.amb = fa; } else m.amb = null;
+    M = m;
+  }
+  /** Firma del próximo partido de la Carrera c (modo, temporada, fase, tipo, jornada, ronda, copa y rival): el de la foto y el del candado. */
+  function matchSig(c, n) {
+    if (!c) return '';
+    var hall = isHallC(c); n = n || (hall ? next6(c) : next(c)); if (!n) return '';
+    return [hall ? 'hall' : 'beach', c.season | 0, c.phase || '', n.kind || '', n.week | 0, n.round | 0, n.ko || '', n.rival ? n.rival.id : ''].join('|');
+  }
+  function lockOf(c) { return c && c.lock && typeof c.lock === 'object' && typeof c.lock.cm === 'string' ? c.lock : null; }
+  /** El resto del partido desde el marcador sc ({score, sets, ss, setNo, pts, tw, one}); pO = prob. de punto por las medias. */
+  function simRest(sc, pO, r, P) {
+    sc = sc || {};
+    var ss = (sc.ss || []).map(function (x) { return [x[0] | 0, x[1] | 0]; }), sets = sc.sets ? [sc.sets[0] | 0, sc.sets[1] | 0] : [0, 0];
+    var tw = sc.one ? 1 : (sc.tw | 0) || 2, pts = (sc.pts | 0) || P, a = sc.score ? sc.score[0] | 0 : 0, b = sc.score ? sc.score[1] | 0 : 0, setNo = (sc.setNo | 0) || ss.length + 1;
+    var won = a, all = a + b; ss.forEach(function (x) { won += x[0]; all += x[0] + x[1]; });
+    var pA = clamp((won + 20 * pO) / (all + 20), 0.2, 0.8);
+    var tg = function (n) { return n === 3 ? Math.min(15, pts) : pts; }, done = function (x, y, t) { return (x >= t || y >= t) && Math.abs(x - y) >= 2; };
+    if (done(a, b, tg(setNo))) { a = 0; b = 0; setNo++; }   // (foto en la pausa del cambio de set: ese set ya está en ss)
+    while (sets[0] < tw && sets[1] < tw) {
+      var t = tg(setNo);
+      while (!done(a, b, t)) { if (r() < pA) a++; else b++; }
+      ss.push([a, b]); sets[a > b ? 0 : 1]++; a = 0; b = 0; setNo++;
+    }
+    return { sets: sets, setScores: ss };
+  }
+  /** Partido de la jornada con candado y sin foto que valga: se acaba simulado desde sc (o el del candado). Devuelve el sum o null. */
+  function lockResolve(c, sc) {
+    var lk = lockOf(c); if (!lk) return null;
+    c.lock = null; M = null;
+    var hall = isHallC(c), n = hall ? next6(c) : next(c), f = hall ? myFixture6(c) : myFixture(c);
+    if (lk.ext || !n || !f || n.bench || matchSig(c, n) !== lk.cm) { if (hall) save6(c); else save(c); return null; }   // (ya no toca: solo se quita)
+    sc = sc || lk.sc || {};
+    var r = rng(hash(c.seed, 'lock', c.season, c.phase, f.week, f.round, f.ko || '', c.notes.length));
+    var to = hall ? teamOvr6(c) : teamOvr(c), q = simRest(sc, clamp(0.5 + 0.009 * (to - n.ovrSim), 0.2, 0.8), r, hall ? c.points : PTS), win = q.sets[0] > q.sets[1];
+    var me = { kills: 0, aces: 0, blocks: 0, assists: 0, digs: 0, errors: 0, recvP: 0, perfect: 0, good: 0, poor: 0 };
+    me.nota = round1(clamp(6.1 + (to - n.ovrSim) * 0.04 + (win ? 0.6 : -0.6) + (r() - 0.5) * 1.6, 3, 9.5));
+    var s0 = (sc.score ? sc.score[0] | 0 : 0) + '-' + (sc.score ? sc.score[1] | 0 : 0);
+    msg(c, 'club', 'Partido resuelto', 'El partido contra ' + n.rival.name + ' se quedó a medias (' + s0 + ') y no se podía retomar: se ha acabado simulado desde ese marcador.');
+    if (hall) {
+      var all = q.setScores.reduce(function (s, x) { return s + x[0] + x[1]; }, 0), sets = q.setScores.map(function (x, i) { return i + 1; });
+      return closeMine6(c, f, q, me, true, { badges: [], part: { status: 'start', started: true, entered: 0, pulled: 0, pullWhy: '', meR: all, rallies: all, share: 1, sets: sets } });
+    }
+    return closeMine(c, f, q, me, true, { badges: [] });
+  }
+  /** Gancho del candado para cada Carrera (BEACH / HALL): get / set / resolve sobre la c de ese modo. */
+  function lockApi(ld, sv) {
+    return {
+      lockGet: function (c) { return lockOf(c || ld()); },
+      lockSet: function (o) { var c = ld(); if (!c) return false; c.lock = o ? copy(o) : null; return sv(c); },
+      lockClear: function () { var c = ld(); if (!c || !c.lock) return false; c.lock = null; return sv(c); },
+      lockResolve: function (sc) { var c = ld(); return c ? lockResolve(c, sc) : null; },
+      matchSig: function (c) { return matchSig(c || ld()); }
+    };
+  }
   /** Nota en directo del partido de Carrera g (ui.js, cada frame): { v, on, sc, seq, log, trial } (objeto reutilizado; log = el
    *  registro de avisos de VB.Rating, solo lectura) o null (sin rating.js, sin partido o de otra partida). sc: pista con cambios,
    *  menos de NOTA_MIN_R puntos en pista y sin ser titular en pista (aún sin nota: «s. c.»). */
@@ -1701,6 +1776,7 @@
   /** main.js, al llegar gameOver de un partido de Carrera: r = {sets:[tú, rival], setScores, win}. stats = tus números (opcional). */
   function matchDone(r, stats, g) {
     var c = load(); if (!c || !r || !r.sets) return null;
+    c.lock = null;   // (partido acabado: fuera el candado; closeMine guarda)
     var f = myFixture(c); if (!f) return null;
     var m = M && (!g || M.g === g) ? M : newM(g);
     var me = stats || m.p[0];
@@ -1723,7 +1799,7 @@
   }
   /** Simula tu partido (resultado según medias + forma; experiencia reducida). */
   function simulateNext(c) {
-    c = c || load(); if (!c) return null;
+    c = c || load(); if (!c || lockOf(c)) return null;   // (partido a medias con candado: ni simularlo ni pasar de jornada)
     var f = myFixture(c); if (!f) return null;
     if (next(c).bench) return benchNext(c);   // en el banquillo: la jornada se juega sin ti
     var n = next(c), r = rng(hash(c.seed, 'mine', c.season, c.phase, f.week, f.round, c.notes.length));
@@ -2041,7 +2117,7 @@
   /** La jornada en la que el entrenador te sienta: la juega tu pareja con el mejor de la plantilla (simulada). Sin nota ni
    *  experiencia; descansas (−BENCH_REST de fatiga), entrenas y cobras. Si eras titular, promesa incumplida (c.broken). */
   function benchNext(c) {
-    c = c || load(); if (!c) return null;
+    c = c || load(); if (!c || lockOf(c)) return null;   // (partido a medias con candado: nada avanza)
     var f = myFixture(c), n = f && next(c); if (!n || !n.bench) return null;
     var xb = n.out || null;   // baja de una extensión (lesión…): sin promesa incumplida ni mensaje del entrenador
     var r = rng(hash(c.seed, 'bench-m', c.season, f.week)), me = myClub(c);
@@ -2560,7 +2636,7 @@
   function setDifficulty6(k) {
     var c = load6(); if (!c) return '';
     if (CDIFF_KEYS.indexOf(k) < 0) return 'bad';
-    if (M) return 'match';
+    if (M || lockOf(c)) return 'match';
     if (diffOf(c) === k) return 'same';
     var low = seasonDiff(c), used = CDIFF_KEYS.reduce(function (s, x) { return s + ((c.dUse && c.dUse[x]) | 0); }, 0), live = c.phase === 'league' || c.phase === 'ko';
     c.diff = k;
@@ -3350,6 +3426,7 @@
   }
   function matchDone6(r, stats, g) {
     var c = load6(); if (!c || !r || !r.sets) return null;
+    c.lock = null;
     var f = myFixture6(c); if (!f) return null;
     var m = M && (!g || M.g === g) ? M : newM(g), me = stats || m.p[0];
     var res = { sets: [r.sets[0] | 0, r.sets[1] | 0], setScores: (r.setScores || []).map(function (x) { return [x[0] | 0, x[1] | 0]; }) }, win = res.sets[0] > res.sets[1];
@@ -3379,7 +3456,7 @@
    *  tu puesto; entras con pIn = 0,3 + 0,06 × (gap + 4) (0,1-0,6; +0,2 si perdéis un set que no es el último y gap ≥ −4): de inicio
    *  en el set siguiente al perdido (lo que queda de partido) o, si no, unos puntos del último set (8-30 %). */
   function simulateNext6(c) {
-    c = c || load6(); if (!c) return null;
+    c = c || load6(); if (!c || lockOf(c)) return null;
     var f = myFixture6(c); if (!f) return null;
     var n = next6(c); if (n.bench) return benchNext6(c);
     var Lu = lineup6(c), sub = Lu.stat !== 'start', rl = roleIdx(c), role = ctrlRole6(c);
@@ -3422,7 +3499,7 @@
   }
   /** Fuera de la convocatoria: la jornada se simula sin ti. Sin nota ni experiencia; descansas (−BENCH_REST de fatiga), entrenas y cobras. */
   function benchNext6(c) {
-    c = c || load6(); if (!c) return null;
+    c = c || load6(); if (!c || lockOf(c)) return null;
     var f = myFixture6(c), n = f && next6(c); if (!n || !n.bench) return null;
     var r = rng(hash(c.seed, 'bench6', c.season, f.week)), me = myClub(c);
     var q = quickSim(me.ovr - 1 + (r() - 0.5) * 4, n.ovrSim + (r() - 0.5) * 4, r, c.points), win = q.sets[0] > q.sets[1];
@@ -3851,7 +3928,8 @@
     acceptOffer: acceptOffer6, stay: stay6, negotiate: negotiate6, rejectAll: rejectAll6, moreTime: moreTime6, changeMate: function () { return ''; },
     setTraining: setTraining6, requestTransfer: requestTransfer6, bump: bump6, toggleBadge: toggleBadge6, unread: unread6, readMsg: readMsg6, readAll: readAll6,
     _genOffers: genOffers6, _scout: scoutCheck6, _wkKey: wkKey6, _name: function (r) { return pick(r, FIRST) + ' ' + pick(r, LAST); },   // (vida de la Carrera)
-    _reset: function () { cur6 = null; M = null; }, _buildWorld: buildWorld6, _endLeague: endLeague6,
+    _reset: function () { cur6 = null; M = null; }, _buildWorld: buildWorld6,
+    resumeGet: resumeGet, resumeSet: resumeSet, _simRest: simRest, _endLeague: endLeague6,
     // extensiones de la Carrera (20-nov-2026; CONTRACT.md «Extensiones de la Carrera»): fichar, temporada nueva, ofertas retrasadas,
     // ofertas de inicio (prólogo) y cambio de puesto sobre una c ya cargada (sin guardar)
     _joinClub: joinClub6, _newSeason: newSeason6, _endOffers: endOffers6, _startOffers: genStartOffers6, _startOffer: startOffer6, _setPos: setPosC6,
@@ -3882,6 +3960,7 @@
     trialPending: function () { return trialPendingOn(load6()); }, trialStale: function () { var c = load6(); return c ? trialStaleOn(c) : null; }
   };
   Object.keys(TRIAL_API).forEach(function (k) { HALL[k] = TRIAL_API[k]; });
+  (function (L) { Object.keys(L).forEach(function (k) { HALL[k] = L[k]; }); })(lockApi(load6, save6));
 
   var BEACH = {
     VER: VER, STORE: KEY, KEYS: KEYS, LEAGUES: LEAGUES, ROLES: ROLES, REF: REF, POINTS: POINTS, WEEKS: WEEKS, MID_WEEK: MID_WEEK, START_OVR: START_OVR, PTS_LVL: PTS_LVL,
@@ -3909,6 +3988,7 @@
     _genSt: genSt,
     // dificultad de la Carrera (12-nov-2026)
     CDIFF: CDIFF, CDIFF_KEYS: CDIFF_KEYS, STEPS: STEPS, DIFF_MSG: DIFF_MSG, diffOf: diffOf, rivalAI: rivalAI, attrOf: attrOf, baseStep: baseStep, seasonDiff: seasonDiff, midNota: midNota, setDifficulty: setDifficulty,
+    resumeGet: resumeGet, resumeSet: resumeSet, _simRest: simRest,
     _M: function () { return M; }, _reset: function () { cur = null; M = null; }, _genOffers: genOffers, _rng: rng, _hash: hash,
     // extensiones de la Carrera (20-nov-2026; CONTRACT.md «Extensiones de la Carrera»)
     _joinClub: joinClub, _newSeason: newSeason, _salaryOf: salaryOf, _endOffers: endOffers, _startOffers: genStartOffers, _startOffer: startOffer,
@@ -3933,6 +4013,7 @@
     trialPending: function () { return trialPendingOn(load()); }, trialStale: function () { var c = load(); return c ? trialStaleOn(c) : null; }
   };
   Object.keys(TRIAL_API).forEach(function (k) { BEACH[k] = TRIAL_API[k]; });
+  (function (L) { Object.keys(L).forEach(function (k) { BEACH[k] = L[k]; }); })(lockApi(load, save));
 
   // =====================================================================================================================
   // VB.Career: fachada de las dos Carreras. Cada clave lleva a la Carrera ACTIVA ('beach' | 'hall'): las que la pista redefine van a
@@ -3964,6 +4045,14 @@
     /** Al cerrar un partido: el de la Carrera a la que pertenece (g.career.mode), aunque la activa hubiera cambiado. */
     matchDone: function (r, st, g) { return (g && g.career && g.career.mode === 'hall' ? HALL : g && g.career ? BEACH : eng()).matchDone(r, st, g); },
     ingest: ingest, abortMatch: abortMatch, owns: owns,
+    // «Retomar el partido» en la Carrera: lo contado del partido g (de cualquiera de las dos) y el candado de las dos Carreras
+    resumeGet: resumeGet, resumeSet: resumeSet,
+    /** Candado de cualquiera de las dos Carreras: {mode, lock} o null (la de pista primero si las dos lo tuvieran). */
+    lockAny: function () { var h = lockOf(load6()), b = lockOf(load()); return h ? { mode: 'hall', lock: h } : b ? { mode: 'beach', lock: b } : null; },
+    /** Firma del próximo partido de la Carrera activa (o de c). */
+    matchSig: function (c) { return matchSig(c || (mode() === 'hall' ? load6() : load())); },
+    /** Fin del partido de Carrera g (jornada o extensión): quita el candado de su Carrera. */
+    lockDone: function (g) { var m = g && g.career && g.career.mode === 'hall' ? HALL : g && g.career ? BEACH : eng(); return m.lockClear(); },
     /** Fin de un ejercicio de Carrera jugado (main.js): a la Carrera del ejercicio (g.careerDrill.mode), aunque la activa hubiera cambiado. */
     drillDone: function (mode, id, total) { return (mode === 'hall' ? HALL : BEACH).trainSession(id, 'play', total); },
     /** Fin del partidillo de una prueba (main.js, g.career.trial): a la Carrera de la prueba (mode o g.career.mode). */

@@ -950,7 +950,8 @@
     calOf: calOf, close: close, tecPick: tecPick, invBest: invBest, cutOvr: cutOvr, gapOf: gapOf, cmpOvr: cmpOvr, notaInfo: notaInfo, fameTop: fameTop, result: result, open: open, live: live, K: K, matchSheet: matchSheet, rivalsOf: rivalsOf, more: more };
   VB.CareerAllstar = A;
 
-  var X = { id: ID, hook: function (c, k, a, b) { hook(c, k, a, b); }, setup: setup, done: done, quit: quit, drillSetup: drillSetup, drillDone: drillDone,
+  // quitStrict: salir a mitad ya castiga (se simula sin ti, quit): «Retomar el partido» en la Carrera (main.js toMenu) no lo guarda al salir
+  var X = { id: ID, quitStrict: true, hook: function (c, k, a, b) { hook(c, k, a, b); }, setup: setup, done: done, quit: quit, drillSetup: drillSetup, drillDone: drillDone,
     drillQuit: drillQuit, _demo: _demo, _endDemo: _endDemo, _drillDemo: _drillDemo };
   (VB.CareerExt = VB.CareerExt || []).push(X);
   (VB.CareerUIExt = VB.CareerUIExt || []).push({ id: ID, prefix: 'as-', match: cardHTML, honors: honorsHTML, act: act, css: css, dot: dot });
