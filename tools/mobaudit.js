@@ -75,6 +75,10 @@ const SCREENS = [
   { id: 'entreno', area: 'portada', q: M0, open: "return M.page('gym');", primary: '' },
   ...SET_TABS.map(t => ({ id: 'ajustes-' + t, area: 'portada', q: M0, open: `return M.panel('#btnSettings','#pnSet','#setTabs','${t}');`, primary: '' })),
   ...CTL_TABS.map(t => ({ id: 'controles-' + t, area: 'portada', q: M0, open: `return M.panel('#btnControls','#pnCtl','#ctlTabs','${t}');`, primary: '' })),
+  // disposición táctil (1.22.0, imprescindible 4.2): el editor a pantalla completa, de fábrica y con zurdos + un botón movido y más grande
+  // (carga propia: el editor tapa la pantalla y las filas que comparten carga lo heredarían)
+  { id: 'controles-touch-editor', area: 'portada', q: M0 + '&ma=te', open: "if (!(await M.panel('#btnControls','#pnCtl','#ctlTabs','touch'))) return false; var b = document.querySelector('[data-tedit]'); if (!b) return false; b.click(); await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok', primary: '' },
+  { id: 'controles-touch-editor-zurdos', area: 'portada', q: M0 + '&ma=tz', open: "await M.ensureMenu(); VB.Input.closeEditor(); VB.ctx.actions.setSetting('touchMirror', true); VB.ctx.actions.setSetting('touchLayout', { hit: { x: 0.7, y: 0.55, s: 1.3 }, jump: { o: 0.6 } }); if (!VB.Input.editLayout()) return false; await M.sleep(150); return VB.Input.editing();", wait: 300, exit: '.vte-ok', primary: '' },
   ...[0, 1, 2, 3, 4, 5].map(k => ({ id: 'comojuega-' + (k + 1), area: 'portada', q: M0, open: `return M.tutStep(${k});` })),
   ...[0, 1, 2].map(k => ({ id: 'jugadores-g' + k, area: 'portada', q: M0, open: `return M.panel('#btnSquad','#pnSquad','#sqTabs','g${k}');`, primary: '' })),
   { id: 'acerca-novedades', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('news'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
@@ -176,6 +180,7 @@ const SCREENS = [
 
   // ---------------- PARTIDO
   { id: 'hud-2v2', area: 'partido', q: 'debug=hud', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 1200, exit: HUD_EXIT, primary: '' },
+  { id: 'hud-2v2-zurdos', area: 'partido', q: 'debug=rally', open: "await M.until(()=>VB.ctx.state==='playing',5000); VB.ctx.actions.setSetting('touchMirror', true); return true;", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-2v2-peloteo', area: 'partido', q: 'debug=rally', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-6v6', area: 'partido', q: 'debug=rally6h', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },
   { id: 'hud-punto', area: 'partido', q: 'debug=setpoint', open: "return M.until(()=>VB.ctx.state==='playing',5000);", wait: 600, exit: HUD_EXIT, primary: '' },

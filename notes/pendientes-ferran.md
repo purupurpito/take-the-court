@@ -33,6 +33,16 @@ rama pendientes, sin publicar.
   3. `?jugar` vale para todos (no solo novatos): arranca el partido corto sin pasar por el menú y se quita del enlace.
   4. «Y ahora» sale una sola vez, al acabar el primer partido; Cuenta solo si no hay sesión.
   ¿Te vale el billete encima de JUGAR, o prefieres que JUGAR haga de «Jugar ya» la primera vez (un botón menos)?
+- **4.2 «Botones táctiles movibles, con opacidad y modo zurdo»** (notes/camera_input.md «Disposición táctil»). Ajustes › Controles › Táctil ›
+  «Disposición de botones»: editor a pantalla completa con los botones de verdad (arrastrar, Tamaño 70-150 % y Opacidad 30-100 % por botón,
+  «Zurdos», «Restablecer», «Listo»). Solo en el aparato (`make-the-cut.device`), nunca en la cuenta. **Decisiones provisionales:**
+  1. Se mueven GOLPEAR, SALTAR, COLOCAR y ⇄; la pausa y la lupa se quedan arriba a la derecha (también con «Zurdos») y un botón que se les
+     echa encima se aparta. El joystick no se coloca (sigue saliendo donde pones el dedo): solo su opacidad.
+  2. «Zurdos» pasa el joystick a la mitad DERECHA y refleja los botones (también los que hayas movido). «Restablecer» vuelve a lo de fábrica y
+     deja «Zurdos» como esté.
+  3. Cada cambio se guarda al momento (sin «Cancelar»: un botón menos). Los botones pueden quedar encima unos de otros si los pones así (manda
+     el que tocas más por dentro).
+  4. El editor se abre solo desde Controles (no hay atajo en la pausa del partido).
 - **4.5 «Partidos cortos»** (notes/ui_main.md «Partidos cortos»). Fila «Duración» en Partido rápido: Completo / Un set / Final apretado,
   y el 7 en «Puntos por set». **Decisiones provisionales:**
   1. «Final apretado» empieza empatado a 5 del final de los puntos elegidos (25 → 20-20, 15 → 10-10; en la playa, a 21, el 16-16), no con

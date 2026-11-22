@@ -1341,3 +1341,33 @@ dedos a la vez, mover y colocar, no deben cambiar la cámara); un control en pan
   - `heroAll` 844t 16/18 (89 %, mínimo 90 %): el mismo «kill #3 … los false» de siempre (rival al 70 % de la altura del héroe).
   - `pageErrors` del menú 844t: `ERR_NO_BUFFER_SPACE` al pedir Google Fonts (red del PC, no del juego).
 
+
+## Disposición táctil: mover, tamaño, opacidad y zurdos (1.22.0, imprescindible 4.2 del informe; rama investigacion)
+- **Ajustes** (main.js `DEFAULTS` + `DEVICE_KEYS` → `make-the-cut.device`, nunca a la cuenta): `touchLayout` (null = de fábrica) y
+  `touchMirror` (false). `touchLayout = {hit|jump|set|sw: {x, y, s, o}, joy: {o}}`, todo opcional: `x, y` = CENTRO del botón en fracciones 0-1
+  de la pantalla SIN zonas seguras y SIN espejo (el espejo se aplica encima: cambiar a zurdos refleja también lo movido); `s` 0,7-1,5 sobre
+  `touchSize`; `o` 0,3-1. `cleanLayout` (input.js) lo sanea campo a campo; main.js solo exige null u objeto pequeño. Partidas viejas: sin
+  las claves → de fábrica.
+- **Colocación** (`placeLayout(E, lay, mirror, sa, W, H)`, la misma para el overlay del partido y para el editor): quita lo puesto en línea,
+  mide lo de fábrica con `offsetLeft/Top/Width` (sin transformaciones: `.idle`, `.dn` y el `scale(.7)` de COLOCAR oculto no cuentan), refleja
+  dentro de la zona segura (`x' = l + W − r − x`), aparta de la pausa y de la lupa (no se mueven) y hace clamp a la zona segura con 4 px. El
+  ancho en línea descuenta el borde (content-box). **Sin disposición ni espejo no se toca nada**: el CSS de siempre (mobaudit y touchplay
+  iguales). Con el overlay oculto no se puede medir: `LAY.dirty` y se coloca en `setShown(true)` (vía `layoutTouch`), al girar y al cambiar
+  de tamaño. El ⇄ que reaparece (`swHide`) se vuelve a colocar.
+- **Opacidad**: clase `.vt-op` + `--vto` → `filter: opacity()` (se multiplica con la opacidad de los estados: reposo .55, jugador detrás .3,
+  balón muerto .25). `.dn` y `.off` ya usaban `filter`: tienen su regla `.vt-btn.vt-op.dn|.off` que añade la opacidad.
+- **Zurdos** (`joySide(x, w)`): la mitad del joystick pasa a la DERECHA en los tres sitios de la lógica de punteros (nacer en `onPtrDown`,
+  adoptar en `onPtrMove`, heredar en `endPtr`); `clampJoy` entre el 38 % del ancho y `W − r − R − 8`; la guía en reposo abajo a la derecha;
+  `.vt-zone` a la derecha (`#touch.mirror`). Deslizar entre botones, dedos perdidos, giro y adopción no cambian. ui.js `joyBox` no aparta el
+  aviso por la izquierda si el joystick está a la derecha.
+- **Editor** (`VB.Input.editLayout({onClose})`, desde Ajustes › Controles › Táctil › «Disposición de botones», fila `data-tedit` de ui.js):
+  `.vte` fijo a pantalla completa (z 9000) con los botones de verdad (mismas clases `.vt-*`), la guía del joystick, la mitad del joystick
+  sombreada y la pausa y la lupa atenuadas (fijas). Barra SPLAT (`.vte-bar` > `.sp-panel`, arriba a la izquierda; abajo si ahí tapa menos
+  botones): nombre del elegido, Tamaño y Opacidad (range de 44 px; el joystick solo opacidad), «Zurdos» (crema / oro), «Restablecer»
+  (turquesa; vuelve a lo de fábrica y deja «Zurdos» como esté) y «Listo». Arrastrar = un dedo sobre un botón; lo guardado es la posición
+  tras apartarse y el clamp. Guarda al momento con `setSetting`. Un botón que queda debajo de la barra se coge por el fondo de la barra.
+  Esc / B del mando / Listo cierran; mientras está abierto, `poll()` no da nada de menús (el panel de debajo no se mueve).
+- **Pruebas**: `node tools/touchedittest.js [WxH]` (49 comprobaciones: zurdos en partido con toques reales, editor, guardado, clamp y zona
+  segura, lo editado en partido, valores rotos). mobaudit: `controles-touch-editor`, `controles-touch-editor-zurdos`, `hud-2v2-zurdos`.
+- **Ojo** `tools/touchtest.js 568x320` falla la herencia del joystick (el 2.º dedo en x=300 cae en la mitad derecha a 568 de ancho) ya en main:
+  la prueba está pensada para 844×390.

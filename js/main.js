@@ -39,7 +39,7 @@
   if (Q.debug === 'mobile') { isTouch = true; isMobile = true; }
 
   // E3: ajustes que solo valen para este dispositivo (make-the-cut.device; ver DEFAULTS)
-  var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead'];
+  var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead', 'touchLayout', 'touchMirror'];   // (1.22.0: disposición táctil y zurdos, cada móvil la suya)
   var ctx = VB.ctx = {
     THREE: THREE,
     container: document.getElementById('stage'),
@@ -79,7 +79,7 @@
     return { muted: false, difficulty: 'normal', quality: 'auto', showHelp: true, coachTips: true, coachCalls: true, setPoints: 25, kitShirt: 0xff5a2c, kitAccent: 0xffb238, kitShorts: 0x191b22, kitPattern: 'diag', ctrlMode: 'both', ctrlPlayer: 0, format: '2v2', cam6: '3p', camSens: 1, sfxVol: 1, musicVol: 0.75,
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
-      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
+      keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, touchLayout: null, touchMirror: false, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
       replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto' };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
@@ -188,6 +188,9 @@
     s.keys = cleanBinds(s.keys, false); s.padKeys = cleanBinds(s.padKeys, true);
     if (!(s.padDead >= 0.1 && s.padDead <= 0.3)) s.padDead = 0.18; else s.padDead = Math.round(s.padDead * 100) / 100;
     if ([1, 1.15, 1.3].indexOf(s.touchSize) < 0) s.touchSize = 1;
+    // disposición táctil (1.22.0, imprescindible 4.2): null o un objeto pequeño; input.js lo sanea campo a campo (cleanLayout)
+    var tl = s.touchLayout; if (!tl || typeof tl !== 'object' || Array.isArray(tl)) s.touchLayout = null; else { try { if (JSON.stringify(tl).length > 1500) s.touchLayout = null; } catch (e) { s.touchLayout = null; } }
+    if (s.touchMirror !== true) s.touchMirror = false;
     if (Q.diff && DIFFS.indexOf(Q.diff) >= 0) s.difficulty = Q.diff;
     return s;
   }

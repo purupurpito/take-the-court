@@ -2995,7 +2995,7 @@
     if (!joyR || ctx.frame - joyF > 64) {
       joyF = ctx.frame; joyR = { r: 0, h: 0 };
       var j = document.querySelector('#touch .vt-joy'), b = j && j.getBoundingClientRect();
-      if (b && b.width) { joyR.r = b.right + 6; joyR.h = ctx.height - b.top; }
+      if (b && b.width && b.left < ctx.width * 0.5) { joyR.r = b.right + 6; joyR.h = ctx.height - b.top; }   // (zurdos: joystick a la derecha, no aparta el aviso por la izquierda)
     }
     return joyR;
   }
@@ -6030,13 +6030,23 @@
     R.splice.apply(R, [fi >= 0 ? fi + 1 : R.length, 0].concat(add));
     return R;
   }
+  /** Mitad del joystick táctil: izquierda o, con «Zurdos» (Disposición de botones), derecha. */
+  function joyHalf() { return ctx.settings.touchMirror === true ? 'mitad derecha' : 'mitad izquierda'; }
+  /** Abre el editor de disposición táctil (input.js) y, al cerrarlo, repinta Controles y devuelve el foco a la fila. */
+  function openTouchEdit() {
+    if (!VB.Input || !VB.Input.editLayout) return;
+    VB.Input.editLayout({ onClose: function () {
+      if (panel !== 'ctl') return;
+      renderCtl(); var nb = el.ctlGrid.querySelector('[data-tedit]'); if (nb) focusEl(nb, kbNow() || ctx.inputDevice === 'gamepad');
+    } });
+  }
   function ctlRowsAll(dv) {
     if (dv === 'gamepad') {
       var P = padSet();
       return [[S('Stick') + S('Cruceta'), 'Moverse'], [padKey('a'), 'Golpear y sacar <small>(stick: diana del saque)</small>'], [padKey('b'), 'Saltar <small>(en el aire: dejada)</small>'], [padKey('x'), 'Colocar <small>(en el suelo, coloca si te toca; en el aire, en salto; en el 3r toque, golpe colocado)</small>'], [padKey('a') + '<small>y</small>' + padKey('b'), 'Finta <small>(en el aire: golpear pronto y saltar al golpear)</small>'],
         [padKey('y') + S(P.lb) + S(P.rb), 'Cambiar jugador'], [S(P.start), 'Pausa'], [S(P.select), 'Sonido'], [S(padFam() === 'ps' ? 'L2' : 'LT'), 'Challenge <small>(7 s tras el punto)</small>'], [S('Stick der.'), 'Zoom de cámara <small>(arriba acerca, abajo aleja)</small>'], [padKey('a') + padKey('b'), 'Menús: aceptar y volver']];
     }
-    if (dv === 'touch') return [[S('Joystick') + '<small>mitad izquierda</small>', 'Moverse'], [T('Golpear'), 'Golpear y sacar <small>(joystick: diana del saque)</small>'],
+    if (dv === 'touch') return [[S('Joystick') + '<small>' + joyHalf() + '</small>', 'Moverse'], [T('Golpear'), 'Golpear y sacar <small>(joystick: diana del saque)</small>'],
       [T('Saltar', 1), 'Saltar <small>(en el aire: dejada)</small>'], [T('Colocar', 's'), 'Colocar <small>(en el aire, en salto; en el 3r toque, golpe colocado; en el suelo, tu colocación va con Golpear)</small>'], [T('Golpear') + '<small>→</small>' + T('Saltar', 1), 'Finta <small>(en el aire: toca Golpear pronto y desliza a Saltar al golpear)</small>'], [S('⇄'), 'Cambiar jugador'], [S('CHALLENGE'), 'Challenge <small>(7 s tras el punto)</small>'], [S('II'), 'Pausa'], [S('Lupa'), 'Zoom de cámara <small>(cada toque, un nivel más lejos; del 5 vuelve al 1)</small>']];
     // C2 (15-nov-2026): con ratón, clic izquierdo golpea, clic derecho coloca y la rueda salta (J / X, K y Espacio siguen de alternativa)
     return [[K('W') + K('A') + K('S') + K('D') + '<small>o</small>' + K('↑') + K('←') + K('↓') + K('→'), 'Moverse'], [M('l') + '<small>o</small>' + K('J') + K('X'), 'Golpear y sacar <small>(flechas: diana)</small>'],
@@ -6055,7 +6065,9 @@
     else if (edit && ctlView === 'gamepad') h = ctlPadHTML(I);
     else {
       var R = ctlRows(ctlView);
-      if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button></div>';
+      if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button>' +
+        // 1.22.0 (imprescindible 4.2): editor de disposición (VB.Input.editLayout): mover, tamaño y opacidad por botón, zurdos y restablecer
+        (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>Disposición de botones<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
       if (ctlView === 'touch' && VB.Splat && VB.Splat.phone && VB.Splat.phone()) {
         // V-TOUCHCTL (móvil): Táctil con las mismas filas que Teclado / Mando: rótulo dorado + UNA línea de ayuda a la izquierda
         // (primera frase del paréntesis; «i» con helpFit si no cabe) y los botones a la derecha. En PC sigue la <dl>.
@@ -6063,7 +6075,8 @@
         for (var j = 0; j < R.length; j++) {
           var keys = R[j][0], d = R[j][1], si = d.indexOf('<small>'), tt = si < 0 ? d : d.slice(0, si), help = '';
           if (si >= 0) help = d.slice(si).replace(/<\/?small>/g, '').replace(/^\s*\(|\)\s*$/g, '').split(';')[0].trim();
-          if (keys.indexOf('<small>mitad izquierda</small>') >= 0) { keys = keys.replace('<small>mitad izquierda</small>', ''); help = 'Joystick: mitad izquierda' + (help ? '; ' + help : ''); }
+          var jh = '<small>' + joyHalf() + '</small>';
+          if (keys.indexOf(jh) >= 0) { keys = keys.replace(jh, ''); help = 'Joystick: ' + joyHalf() + (help ? '; ' + help : ''); }
           if (help) help = help.charAt(0).toUpperCase() + help.slice(1);
           h += '<div><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
         }
@@ -8503,6 +8516,7 @@
         var rb = t.closest('.opt-reset[data-reset]'); if (rb && el.panel.contains(rb)) { resetClick(rb); return; }
         var wbt = t.closest('.opt-wipe[data-wipe]'); if (wbt && el.panel.contains(wbt)) { wipeClick(wbt); return; }
         var ks = t.closest('.kslot'); if (ks && el.panel.contains(ks)) { ctlSlot(ks); return; }
+        var te = t.closest('[data-tedit]'); if (te && el.panel.contains(te)) { click(); openTouchEdit(); return; }
         var ab = t.closest('[data-ab]');
         if (ab && el.panel.contains(ab)) {
           var w = ab.getAttribute('data-ab'); if (w === 'old') abOld = !abOld; else abLic = abLic === w ? '' : w;

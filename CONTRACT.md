@@ -23,7 +23,7 @@ guardado `make-the-cut.gym`), `js/career-world.js` (`VB.CareerWorld`: Faro el me
 `tools/fp-mastery.json` (huella de la maestría, `node tools/fingerprint6.js --variant mastery`) de **sim**. Guardados nuevos:
 `make-the-cut.gym` (v1 `{v, d:{id:{b,m,n,t}}, free:{rally}, xp:{id:nivel}}`; va a `DOCS` desde que Ferran desplegó las reglas con `'gym'` el
 12-nov-2026: `GYM_SYNC = true` en account.js), `make-the-cut.device` (ajustes del aparato: `resScale, fpsCap, showFps, touchSize,
-padDead`), `make-the-cut.seen` (`{v}`: última versión cuyas Novedades se vieron), `make-the-cut.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
+padDead`, y desde 1.22.0 `touchLayout, touchMirror`), `make-the-cut.seen` (`{v}`: última versión cuyas Novedades se vieron), `make-the-cut.retoauto` (AAAAMMDD: día en que Retos › Hoy ya se abrió solo
 al entrar; ui.js `retoAuto`, 16-nov-2026) y `make-the-cut.e1tips` (consejos de maestría vistos); estos NUNCA van a `DOCS`. Dentro de `make-the-cut.career` (sin subir VER): `c.world` (`mentor{on,seen,last,q[≤3]}`, `h2h`, `since`, `news[≤60]`, `newsN`,
 `newsSeen`, `annals[≤40]`, `lead`, `tpl`; ≈ 13 KB a 12 temporadas) y `c.life.celeb` / `c.life.celebAnn`.
 
@@ -165,7 +165,9 @@ Novedades automáticas), escenas `debug=drill_serve|drill_recv|drill_set|drill_a
 `resScale` (0 = auto, 1, .85, .7, .5: fija la escala y para la escala adaptativa), `fpsCap` (0 \| 30; con 30 la calidad adaptativa baja
 por debajo de 26 fps y no sube), `showFps`, `camDist` ('near' \| 'normal' \| 'far'), `camCuts` ('all' \| 'less'), `lessMotion` ('auto' \|
 'on' \| 'off'), `cbColors`, `ballStyle` ('clasico' \| 'contraste'), `keys` / `padKeys` (objeto plano con solo las diferencias; ≤ 12
-acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3), `aimSet` (true: colocación dirigida de E1), `msTiming`
+acciones), `padDead` (0,1-0,3, por defecto 0,18), `touchSize` (1 \| 1,15 \| 1,3), `touchLayout` (null = de fábrica, o `{hit|jump|set|sw: {x, y, s, o}, joy: {o}}`
+con todo opcional: centro en fracciones 0-1 de la pantalla sin zonas seguras y sin espejo, tamaño 0,7-1,5, opacidad 0,3-1; input.js `cleanLayout`
+lo sanea campo a campo; desde 1.22.0, informe 4.2), `touchMirror` (false; zurdos: joystick en la mitad derecha y botones reflejados), `aimSet` (true: colocación dirigida de E1), `msTiming`
 (false: sello en ms), `ctrlMark` ('small' \| 'normal' \| 'large', por defecto 'normal'), `ctrlMarkCol` ('auto' \| 'contraste') y
 `landAid` ('auto' \| 'siempre' \| 'retira' \| 'no', por defecto 'auto') (desde 1.22.0, informe 4.6 / 4.7; solo visuales, Ajustes › Accesibilidad).
 `DEVICE_KEYS` van a `make-the-cut.device`, no a `make-the-cut.settings`.
@@ -712,6 +714,11 @@ El cambio de campo (`courtChange`, plano `'court'`) usa un corte deliberado (rea
   `poll()` añade `navOk / navBack / navTab` (botones fijos 0, 1 y 4/5 del mando); `confirm` del mando = navOk o Start. `glyph()` cubre
   hit/jump. Fijas: Esc, Enter; reservadas: Tab, F1-F24, F, modificadores, ContextMenu, Backspace/Delete. El botón táctil COLOCAR usa
   `Sim.altReady` y lee «COLOCADO» con 'roll'. `--vts` (CSS) = `touchSize`.
+  1.22.0 (informe 4.2, disposición táctil): `editLayout({onClose})` → bool (editor a pantalla completa, `.vte`; guarda al momento
+  `touchLayout` / `touchMirror` con `setSetting`; Esc, «Listo» o B del mando lo cierran y mientras está abierto `poll()` no da navOk / navBack /
+  navTab / confirm / pause), `editing()`, `closeEditor()`, `cleanLayout(v)`, `_editState()` (pruebas). `onSettings` atiende `touchLayout` y
+  `touchMirror`; `OPTS` no cambia. Sin disposición ni espejo, el overlay es el CSS de siempre (sin estilos en línea). `_debug()` añade
+  `mirror, lay, layDirty`.
 - **CameraRig** (E3/E6): `OPTS = ['camDist','camCuts','lessMotion']`; `distK` 0,86 / 1 / 1,18; con `camCuts 'less'` o `g.drill` el punto
   no tiene plano de reacción, de héroe ni del sacador rival (`heroShot()` null) y la vuelta al saque es un corte 'serve' sin `nextCutIn`;
   `drillStage` → corte seco `lastCut.kind 'drill'` (sin cámara lenta, hit-stop ni seguimiento del remate). Intro, cierre de set/partido y
