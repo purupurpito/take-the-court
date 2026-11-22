@@ -18,6 +18,10 @@
  *    una foto de s.flStats (fl: los contadores son acumulados desde el inicio; interpMs, lateMaxMs, warpMax y drift, el valor del
  *    momento), y el total, la del final. En Fluida no hay rollback ni ventaja de frames (stats.depth y s.adv no existen: rb/adv van
  *    a null) y en vez de huellas hay un resumen del marcador: si ptBad o digestBad suben, suceso 'marcador_distinto'.
+ *  - Online de varios (sprint online-multi, P6; net.multi): muestras POR PAR. Cada ventana lleva además pe = [[mín, media, p95, máx]
+ *    del ping de la red de cada enlace] (anfitrión: uno por invitado, en el orden de net.links = plazas 1, 2…; invitado: el del
+ *    anfitrión) y ps = [ping de la app de cada plaza] si la sesión lo da (r.pings[plaza]; null en la tuya o sin datos). El informe
+ *    dice plaza, equipo, humanos, formato y la ruta de cada enlace (conns), y rol = anfitrión si tu plaza es la 0.
  *  - Solo con cuenta y enlace WebRTC de verdad (no en las pruebas por BroadcastChannel), salvo ?netlog=1 (depuración: además lo
  *    escribe en la consola).
  */
@@ -62,7 +66,7 @@
     for (var i = 0; i < FL_KEYS.length; i++) { var v = f[FL_KEYS[i]]; if (typeof v === 'number' && isFinite(v)) { o[FL_KEYS[i]] = r1(v); n++; } }
     return n ? o : null;
   }
-  function newWin(t) { return { t0: t, rtt: [], ice: [], frames: 0, worst: 0, slow: 0, waits: 0, waitMs: 0, dSum: 0, dN: 0, dMax: 0, unstMs: 0, hidMs: 0, advMin: 1e9, advMax: -1e9 }; }
+  function newWin(t) { return { t0: t, rtt: [], ice: [], pe: [], ps: [], frames: 0, worst: 0, slow: 0, waits: 0, waitMs: 0, dSum: 0, dN: 0, dMax: 0, unstMs: 0, hidMs: 0, advMin: 1e9, advMax: -1e9 }; }
   function ev(c, t, k, extra) {
     if (c.ev.length >= MAX_EV) { c.evDrop = (c.evDrop || 0) + 1; return; }
     var e = { t: r1((t - c.t0) / 1000), k: k };
@@ -87,7 +91,9 @@
       win: newWin(t), wins: [], ev: [], lastSeq: s.rttSeq || 0, lastF: 0, lastIce: -1e9, st0: null, status: '', unst: false, solo: false,
       cmpBad: -1, ptBad: 0, digestBad: 0, resyncs: 0, waitT: -1, lastSt: null, conn: null, busy: false, ended: false, env: env()
     };
-    ev(cur, t, 'inicio', { rol: net.slot === 0 ? 'anfitrion' : 'invitado', epoca: net.epoch | 0, delay: s.delay | 0 });
+    var ini = { rol: net.slot === 0 ? 'anfitrion' : 'invitado', epoca: net.epoch | 0, delay: s.delay | 0 };
+    if (net.multi) { ini.plaza = net.seat | 0; ini.enlaces = (net.links || []).length; }
+    ev(cur, t, 'inicio', ini);
   }
 
   function closeWin(c, t) {
@@ -104,6 +110,13 @@
       unstMs: Math.round(w.unstMs), hidMs: Math.round(w.hidMs), st: s.status
     };
     if (s.flStats) o.fl = flSnap(s.flStats);
+    if (c.net.multi) {   // online de varios: por par (enlace) y por plaza
+      // (bucle y no map: los huecos de un array disperso, p. ej. tu propia plaza, tienen que salir como null)
+      var pe = [], ps = [], any = false, k;
+      for (k = 0; k < w.pe.length; k++) pe.push(w.pe[k] && w.pe[k].length ? stat(w.pe[k]) : null);
+      for (k = 0; k < w.ps.length; k++) { ps.push(w.ps[k] && w.ps[k].length ? stat(w.ps[k]) : null); if (w.ps[k] && w.ps[k].length) any = true; }
+      o.pe = pe; if (any) o.ps = ps;
+    }
     c.lastSt = { sent: st.sent || 0, recv: st.recv || 0, bytesOut: st.bytesOut || 0, steps: st.steps || 0, resyncs: st.resyncs || 0 };
     if (c.wins.length < MAX_WIN) c.wins.push(o); else c.winDrop = (c.winDrop || 0) + 1;
     if (FORCE && root.console) console.info('[netlog] ventana ' + JSON.stringify(o));
@@ -138,6 +151,20 @@
           if (cn !== c.conn) { if (c.conn) ev(c, t, 'ruta', { de: c.conn, a: cn }); c.conn = cn; }
         }
       } catch (e) { }
+    }
+    // online de varios: ping de la red de CADA enlace (cada ICE_MS) y el de la app de cada plaza que dé la sesión (r.pings)
+    if (net.multi && t - (c.lastPe || -1e9) > ICE_MS) {
+      c.lastPe = t;
+      var LL = net.links || [], cs = c.conns || (c.conns = []);
+      for (var li = 0; li < LL.length && li < 16; li++) {
+        try {
+          var lf = LL[li] && LL[li].info ? LL[li].info() : null;
+          if (lf && lf.rtt > 0) (w.pe[li] || (w.pe[li] = [])).push(lf.rtt);
+          if (lf && lf.type) cs[li] = lf.type + '/' + (lf.rtype || '?') + '/' + (lf.proto || '?') + (lf.relayProto ? '/' + lf.relayProto : '');
+        } catch (e) { }
+      }
+      var PS = r.pings || s.pings;
+      if (Array.isArray(PS)) for (var pi = 0; pi < PS.length && pi < 16; pi++) if (pi !== net.seat && typeof PS[pi] === 'number' && PS[pi] > 0) (w.ps[pi] || (w.ps[pi] = [])).push(PS[pi]);
     }
     // rollback y ventaja
     var st = s.stats || {};
@@ -177,6 +204,9 @@
       env: c.env, conn: c.conn || '', estado: s.status,
       total: { frames: st.frames || 0, steps: st.steps || 0, maxDepth: typeof st.maxDepth === 'number' ? st.maxDepth : null, waits: st.waits || 0, resyncs: st.resyncs || 0, sent: st.sent || 0, recv: st.recv || 0, kbOut: r1((st.bytesOut || 0) / 1024) },
       fl: s.flStats ? flSnap(s.flStats) : undefined,
+      multi: net.multi ? { plaza: net.seat | 0, equipo: net.team | 0, humanos: (net.humans || []).length, fmt: g.format || '', conns: c.conns || [],
+        mates: net.cr && Array.isArray(net.cr.mates) ? net.cr.mates.map(function (x) { return String(x).slice(0, 24); }) : undefined,
+        rivals: net.cr && Array.isArray(net.cr.rivals) ? net.cr.rivals.map(function (x) { return String(x).slice(0, 24); }) : undefined } : undefined,
       res: c.res ? { gana: !!c.res.win, why: c.res.why || '', noValido: !!c.res.unverified } : null,
       wins: c.wins, ev: c.ev, drop: (c.winDrop || c.evDrop) ? { wins: c.winDrop || 0, ev: c.evDrop || 0 } : undefined
     };

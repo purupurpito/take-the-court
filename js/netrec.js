@@ -21,6 +21,12 @@
  *   boot()                 al cargar: una marca que quedó (sin latido en 90 s) = abandono (devuelve la entrada o null). Las marcas
  *                          son una lista (una por página); begin/beat/end también barren las viejas de otras páginas (90 s sin latido)
  *   get() → récord saneado · line(rec) → «3 ganados de 5» · CAP = 'gorraMTC'
+ * Online de varios (sprint online-multi, P6): en un partido de 2 contra 2 / 6 contra 6 (VB.ctx.net.multi) end() guarda aparte a
+ *   los COMPAÑEROS y a los RIVALES (ctx.net.cr.mates / ctx.net.cr.rivals, arrays de nombres que rellena main.js netNames): la entrada
+ *   lleva n = los rivales en un texto («Ana y Luis», «Ana +3»), m = los compañeros (igual) y f = '2v2' | '6v6' | 'coop'. Que se vaya
+ *   un rival gana el partido (rivalQuit / rivalGone, como en el 1 contra 1), pero que se vaya un COMPAÑERO no: why 'mateQuit' /
+ *   'mateGone', o rivalQuit / rivalGone con result.mate = true o con result.seat de una plaza de tu equipo → «no cuenta» (la IA
+ *   siguió con su jugador; ni ganas ni pierdes por ello). Sin esos datos (1 contra 1), todo igual que antes.
  * ===================================================================== */
 (function () {
   'use strict';
@@ -38,6 +44,21 @@
     if (s.indexOf('@') >= 0) s = '';   // (nunca algo con pinta de correo)
     return s.slice(0, 16) || 'Rival';
   }
+  /** Texto corto de una lista de nombres (compañeros o rivales del online de varios): «Ana», «Ana y Luis», «Ana +3». */
+  function listTxt(L) {
+    L = (Array.isArray(L) ? L : []).map(function (x) { return cleanName(x); });
+    if (!L.length) return '';
+    return L.length === 1 ? L[0] : L.length === 2 ? L[0] + ' y ' + L[1] : L[0] + ' +' + (L.length - 1);
+  }
+  function cleanList(s) { return String(s || '').replace(/[\u0000-\u001f\u007f<>"'`]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40); }
+  /** El partido de varios en curso (main.js ctx.net): {mates, rivals, f, mateSeat(seat) → ¿esa plaza es de tu equipo?} o null. */
+  function multiInfo() {
+    var n = VB.ctx && VB.ctx.net;
+    if (!n || !n.multi) return null;
+    var cr = n.cr || {}, H = Array.isArray(n.humans) ? n.humans : [];
+    return { mates: Array.isArray(cr.mates) ? cr.mates : [], rivals: Array.isArray(cr.rivals) ? cr.rivals : [], f: n.coop || (H.length && H.every(function (h) { return h && h.team === n.team; })) ? 'coop' : (n.view && n.view.size === 6) || (n.base && n.base.format === '6v6') || H.length > 4 ? '6v6' : '2v2',
+      mateSeat: function (s) { var h = H[s | 0]; return !!h && h.team === n.team && (s | 0) !== n.seat; } };
+  }
   function empty() { return { v: 1, played: 0, wins: 0, losses: 0, quits: 0, nc: 0, streak: 0, best: 0, last: [] }; }
   function sane(o) {
     var r = empty();
@@ -47,7 +68,10 @@
     if (Array.isArray(o.last)) o.last.slice(0, MAX_LAST).forEach(function (e) {
       if (!e || typeof e !== 'object') return;
       var w = e.w === 1 ? 1 : e.w === 0 ? 0 : -1;
-      r.last.push({ n: cleanName(e.n), w: w, s: String(e.s || '').replace(/[^\w\- áéíóúñ]/gi, '').slice(0, 16), t: ms(e.t) });
+      var x = { n: cleanName(e.n), w: w, s: String(e.s || '').replace(/[^\w\- áéíóúñ]/gi, '').slice(0, 16), t: ms(e.t) };
+      if (typeof e.m === 'string' && e.m) x.m = cleanList(e.m);   // (online de varios: compañeros)
+      if (e.f === '2v2' || e.f === '6v6' || e.f === 'coop') x.f = e.f;
+      r.last.push(x);
     });
     return r;
   }
@@ -55,8 +79,11 @@
   function put(r) { return wr(KEY, JSON.stringify(sane(r))); }
 
   /** Cómo cuenta un resultado de la sesión: w 1 (ganado), 0 (perdido) o -1 (no cuenta), y kind para el texto. */
-  function outcome(res, valid) {
+  function outcome(res, valid, mi) {
     var why = res && res.why;
+    // online de varios: que se vaya un compañero no da el partido (ni lo quita): no cuenta
+    if (why === 'mateQuit' || why === 'mateGone') return { w: -1, kind: 'mateGone' };
+    if ((why === 'rivalQuit' || why === 'rivalGone') && (res.mate === true || (mi && typeof res.seat === 'number' && mi.mateSeat(res.seat)))) return { w: -1, kind: 'mateGone' };
     if (!why || why === 'version' || why === 'hostGone' || why === 'bye') return { w: -1, kind: why || 'none' };
     if (why === 'noShow' || why === 'cancel') return { w: -1, kind: 'bye' };   // (antes de empezar: no hubo partido; main.js ni siquiera lo apunta)
     if (valid === false) return { w: -1, kind: 'invalid' };
@@ -66,9 +93,9 @@
     if (why === 'rivalGone') return { w: 1, kind: 'rivalGone' };
     return { w: res.win ? 1 : 0, kind: 'over' };
   }
-  var S_TXT = { quit: 'abandono', rivalQuit: 'abandonó', rivalGone: 'no volvió', invalid: 'no cuenta', unverified: 'no válido', hostGone: 'no cuenta', version: 'no cuenta', bye: 'no cuenta', none: 'no cuenta' };
+  var S_TXT = { mateGone: 'se fue un compa', quit: 'abandono', rivalQuit: 'abandonó', rivalGone: 'no volvió', invalid: 'no cuenta', unverified: 'no válido', hostGone: 'no cuenta', version: 'no cuenta', bye: 'no cuenta', none: 'no cuenta' };
   /** ¿Terminaste el partido? (para la gorra: sí si se jugó hasta el final o el rival se fue; no si abandonaste tú). */
-  function finished(o) { return o.kind === 'over' || o.kind === 'rivalQuit' || o.kind === 'rivalGone' || o.kind === 'hostGone' || o.kind === 'invalid' || o.kind === 'unverified'; }
+  function finished(o) { return o.kind === 'over' || o.kind === 'mateGone' || o.kind === 'rivalQuit' || o.kind === 'rivalGone' || o.kind === 'hostGone' || o.kind === 'invalid' || o.kind === 'unverified'; }
 
   function grantCap() {
     var L = VB.Look; if (!L || !L.grant) return false;
@@ -128,14 +155,19 @@
     if (cur) putMarks(marks().filter(function (m) { return m.id !== cur; }));   // (solo la marca de esta página)
     cur = '';
     sweep();
-    return settle(name, res, valid, sets);
+    return settle(name, res, valid, sets, multiInfo());
   }
-  function settle(name, res, valid, sets) {
-    var o = outcome(res, valid), r = get(), s = o.kind === 'over' && sets ? (sets[0] | 0) + '-' + (sets[1] | 0) : S_TXT[o.kind] || '';
+  function settle(name, res, valid, sets, mi) {
+    var o = outcome(res, valid, mi), r = get(), s = o.kind === 'over' && sets ? (sets[0] | 0) + '-' + (sets[1] | 0) : S_TXT[o.kind] || '';
     if (o.w === 1) { r.wins++; r.streak++; if (r.streak > r.best) r.best = r.streak; }
     else if (o.w === 0) { r.losses++; r.streak = 0; if (o.kind === 'quit') r.quits++; }
     else r.nc++;
     var entry = { n: cleanName(name), w: o.w, s: s, t: Date.now() };
+    if (mi) {   // online de varios: rivales y compañeros aparte (sin rivales humanos, la IA: coop)
+      entry.n = cleanName(listTxt(mi.rivals) || (mi.f === 'coop' ? 'la IA' : name));
+      var mt = listTxt(mi.mates); if (mt) entry.m = cleanList(mt);
+      entry.f = mi.f;
+    }
     r.last.unshift(entry); r.last = r.last.slice(0, MAX_LAST);
     put(r);
     var cap = finished(o) ? grantCap() : false;
@@ -152,5 +184,5 @@
     return r.wins + (r.wins === 1 ? ' ganado' : ' ganados') + ' de ' + r.played + (r.quits ? ' (' + r.quits + (r.quits === 1 ? ' abandono)' : ' abandonos)') : '');
   }
 
-  VB.NetRec = { KEY: KEY, PEND: PEND, CAP: CAP, get: get, outcome: outcome, begin: begin, beat: beat, end: end, boot: boot, resume: resume, line: line, _sane: sane };
+  VB.NetRec = { KEY: KEY, PEND: PEND, CAP: CAP, get: get, outcome: outcome, listTxt: listTxt, begin: begin, beat: beat, end: end, boot: boot, resume: resume, line: line, _sane: sane };
 })();

@@ -59,3 +59,109 @@ Hecho en js/netview.js, js/main.js (sección ONLINE), js/replay.js, js/players.j
 - **P4 → P6 (lobby, récord, hoja)**: el lobby llama a startOnline como arriba (tu look en `humans[seat].look` o `look.mine`; los de los demás se sanean con `NetLobby.saneLook`). `VB.NetRec.end(nombre, res, valid, sets)` recibe en el de varios los rivales en un texto («Ana y Luis», «Equipo de Ana (6)», «la IA» en el coop) y los sets por equipo; para guardar compañeros y rivales aparte, `ctx.net.cr.mates` / `ctx.net.cr.rivals` (arrays de nombres). La revancha de la hoja (ui.js) sigue leyendo `net.want` / `net.rivalWants` (en el de varios, `rivalWants` = la quieren todas las demás plazas). Textos del HUD que dependen de `result.why` en el de varios: 'rivalQuit'/'rivalGone' → «Los rivales se han ido: ganáis», 'hostGone', 'noShow' → «Faltan jugadores».
 - **P4 → P7 (coop)**: `startCoopCareerMatch` puede llamar a `startOnline({coop: true, humans: [{idx: 0, name, look}, {idx: 1, name, look}], seat, links: [link], opts})`; el invitado del coop no gira (equipo 0) y su plaza es la activa de su vista. Las estadísticas de la hoja y la maestría van por equipo, y la maestría solo cuenta TUS toques (`netMine`).
 - **P4 → P8 (docs y netdrive)**: CONTRACT.md / notes/net.md: la API de arriba y `#netTags` (grupo de hasta 11 etiquetas, solo `transform: translate3d`, «IA» cuando la plaza la lleva la IA, subrayado del color del equipo). `?net=bc` sigue siendo de 2 páginas (BcLink sin `to`): netdrive de N páginas es de P8. No hay aros en el suelo para los otros humanos (las etiquetas DOM no gastan llamadas de dibujo); si se quieren, un InstancedMesh en players.js.
+
+## P2 (Precisa-N: rollback de N plazas, js/net.js)
+
+Hecho en js/net.js (bloque «PRECISA-N», con la API en su cabecera), tools/net4test.js (adaptadores `precisaN`, `mixA`, `mixB`; secciones (d)-(m)) y tools/net12test.js (sección (d), 12 plazas en 6v6, solo corrección). La Session del 1 contra 1 no ha cambiado (nettest, net3test, netreplaytest, mptest, netdrive 1v1 Precisa y las 4 huellas, iguales): `new VB.Net.Session(o)` devuelve una `SessionN` solo si `o` trae `seats`, más de un enlace o `n > 2`.
+
+- **P2 → P4 (main.js)**: lo que pediste ya está, con la misma llamada de `netSession`:
+  - `r.waitFor` (plazas a las que se espera), `r.pings[s]` (ping de cada plaza con el anfitrión; el tuyo en tu plaza), `r.canAI`, `r.aiSeats` (plazas que lleva la IA por la red) y **`r.meAI`** (nuevo): el anfitrión lleva TU plaza con la IA. Pasa si tu conexión hace esperar a todos a ratos: te deja de ESPECTADOR (ves el partido de verdad con tu jugador llevado por la IA) y vuelves solo a los 20 s (40, 80… si se repite). Texto del HUD sugerido: «Tu conexión va lenta: te lleva la IA un rato».
+  - `sess.seatGone(s)`, `sess.seatAI(s)`, `sess.team`, `sess.n`, `sess.delay` (retraso de entrada actual, adaptativo).
+  - Los `app` de un invitado llegan a todos (el anfitrión los reenvía con `{d, s}`; en `r.app` llega `d`). `result.win` va por EQUIPO.
+  - `result.why` en el de varios: 'over' (por equipo; `unverified` si las huellas no cuadraron), 'rivalQuit' (se ha ido todo el equipo rival: se acaba), 'rivalGone' (todo el equipo rival lleva 60 s fuera: ganas y se sigue con la IA, `r.gone`), 'hostGone' (se fue el anfitrión, centro de la estrella, sin ser el último rival: no cuenta), 'quit', 'late', 'noShow', 'cancel', 'mismatch', 'version'. Un compañero que se va NO acaba el partido: lo lleva la IA.
+  - El bit de `switchPlayer` ya viaja (bit 7). `stepInputs()` da n entradas (orden de plaza) y `rec[t]` 3n valores, para replay.js.
+  - `delay`: si main.js pasa `net.delay` sin definir, empieza en 2 y el anfitrión lo adapta (fórmula del brief) en cada punto confirmado; `adaptive: false` lo deja fijo.
+  - `r.canAI` en el de varios: invitado que lleva 10 s sin el anfitrión (como el 1 contra 1). El anfitrión casi nunca lo verá: pasa a la IA por sí solo, a los 3 s, la plaza que no oye o que le hace esperar.
+- **P2 → P6 (lobby)**: `links` del anfitrión = un enlace por invitado, en cualquier orden; la plaza de cada enlace la dice el saludo del invitado (su sesión con `slot` = su índice en `humans`). Si el lobby ya la sabe, `linkSeats[j]`. `aiSeats: [plazas]` para las que se sabe que no vienen (la IA desde el tic 0, sin esperar). Una plaza que no está lista a los 20 s empieza con la IA y puede entrar luego (resync a mitad de partido). Un invitado que reconecta con otro Link: `sess.addLink(link)` (su saludo lo ata a su plaza).
+- **P2 → P8 (docs y netdrive)**: CONTRACT.md / notes/net.md: el protocolo de Precisa-N. Paquete 'in' de tipo 2 `[2|época<<4, plaza|resync<<4, nb, u32 tic, na, na×u32 ack, nb×(plaza, u32 primer tic, u32 tic de esa plaza, n, n×5 B)]`; con 2 plazas, el de tipo 1 de siempre (una SessionN de 2 juega con la Session de 1.21.0: net4test (f)). Mensajes 'ctl' nuevos: `hello{seat, n}`, `seat{s, ai, gone, why}`, `pings{p}`, `delay{d}`, `resync{s, rings, spect}`, `app{d, s}`. Constantes: SEAT_AI_MS 3 s, REJOIN_STABLE_MS 1 s, RS_GAP_MS 3 s, SLOW_MS 2,5 s en ~10 s, SLOW_BACK_MS 20 s (hasta 2 min). Pendiente: la vuelta del anfitrión que recarga (fase 6) en el de varios (un anfitrión sin opts → 'noShow'). Para netdrive de N páginas, la SessionN ya acepta `links` (un BcLink con `to` por invitado en el anfitrión).
+- **P2 → P5 (6v6)**: medido con net12test (d), escritorio: Precisa-N con 12 plazas es correcto (huellas y oro), pero el anfitrión sube ~500 KB/s de carga útil y cada frame cuesta 1,5-1,9 ms de p50 (p99 3,4-4,8 ms). Confirma el brief: el 6v6 va con vuestro modelo.
+
+## P7 (Carrera cooperativa de playa, js/career-coop.js)
+
+Hecho en js/career-coop.js (nuevo; `VB.CareerCoop`, extensión `VB.CareerExt` id 'coop' y `VB.CareerUIExt` prefijo 'co-'; script en index.html tras career-prologue.js, así storyhelp.extFiles() la carga en careertest), js/career.js (almacén `_useStore`, gancho `coopMatch` en matchDone de playa, `extra.coop` en closeMine), js/career-ui.js (puerta del invitado en onClick, `play()` del anfitrión por `hostPlay`, clase `cr-coopg`, Intro en `#coCode`), js/career-story-ui.js (plegables del invitado en memoria), js/career-life.js (el invitado no se retira ni escribe el Salón de la Fama), js/main.js (`ctx.actions.startCoopCareerMatch`) y tools/cooptest.js. Sin usar el cooperativo no hay `c.coop` y la Carrera es idéntica (careertest con y sin NOEXT/NOWORLD, cooptest §7).
+
+Decisiones por defecto (para que Ferran las confirme):
+- La Carrera es del ANFITRIÓN y vive solo en su guardado. El invitado la ve desde un almacén en memoria (`VB.Career._useStore`): nunca en su localStorage ni en su nube. Solo guarda la copia de su jugador en `make-the-cut.coop.p2` (no se sube a la cuenta).
+- El invitado es la pareja de playa (sustituye al compañero de la IA mientras dura el cooperativo) con jugador propio `c.coop.p2` (nombre, dorsal, rol, nivel, XP, puntos, insignias). Empieza con los atributos del compañero de la IA de ese momento y nivel 1. Química propia `c.coop.chem` (+5 por partido juntos; la del compañero de la IA no cambia, y tampoco su forma).
+- La Carrera solo avanza cuando el anfitrión avanza. El invitado gasta SUS puntos e insignias y pulsa «Listo»; lo demás, de solo lectura. El anfitrión no puede empezar el partido cooperativo sin el «Listo» (puede simular: los simulados no dan XP a p2).
+- Sin invitado conectado, el anfitrión juega con el compañero de la IA, como siempre. Si el invitado se va a mitad de partido, la IA lleva su plaza y la jornada cuenta (p2 se acredita igual).
+- Solo liga y Open. Selección, Estrellas, juvenil, pruebas y demás partidos de extensión: solo el anfitrión (la tarjeta lo dice). Pista: «Pronto».
+- Otra persona (otro id) que entra: p2 nuevo; el anterior se archiva en `c.coop.old` (hasta 3) y vuelve si regresa.
+- v1 sin ambiente (noAmb), zona (noZone) ni «Te tienen estudiado» en el partido cooperativo.
+- Hace falta la misma VB.VERSION (el «hi» la compara; si no, «Tenéis versiones distintas»).
+
+Peticiones:
+- **P7 → P4 (main.js, hoja final)**: (a) `ctx.net.coopCareer === true` en el partido de Carrera cooperativa: escondedle «Revancha» (hoy empezaría un amistoso sobre el mismo enlace; career-coop lo ignora). (b) Visto en una prueba de dos páginas (lobby falso sobre BcLink, bots, Precisa coop): al acabar, el ANFITRIÓN pasó a 'over' y el INVITADO se quedó en `ctx.state 'playing'` con `net.r.status 'over'` más de 160 s, con el cartel «SET ÚNICO» encima. Mirad `netFrame` / `isGameOver` del invitado de varios (equipo 0, plaza 1). (c) Opcional: tras el partido cooperativo el anfitrión no ve la hoja «Resumen de la jornada» (VB.UI.endCareer); el resumen está en `VB.CareerCoop._S.match.sum` hasta que se suelta la sesión (y en `c.last`, con `c.last.coop` = lo de p2).
+- **P7 → P6 (lobby)**: consumo el contrato de la cabecera «CARRERA COOPERATIVA» tal cual: la fachada `link` va directa a startOnline, `onMessage` devuelve el quitador (lo uso al cortar), `VB.CareerCoop.onJoinLink(code)` existe (abre la Carrera y llama a `coop.join`). Durante el partido career-coop no manda nada (la foto viaja al soltar la sesión). Nombre del invitado: `VB.NetLobby.myName()`.
+- **P7 → P8 (docs)**: CONTRACT.md «Extensiones de la Carrera»: js/career-coop.js (owner carrera; id 'coop'; método `coopMatch(c, m, res, rallies, g)` que matchDone de playa llama con `g.career.coop`; `closeMine` con `extra.coop` no toca química ni forma del compañero de la IA; `B().endMatch(g, win, [c.player, c.coop.p2])`), `VB.Career._useStore(s|null)` / `_memStore()`, `ctx.actions.startCoopCareerMatch({seat, humans})`, `VB.CareerCoop` (API en la cabecera del fichero) y `node tools/cooptest.js` en el control de regresión. Para mobaudit (ui_main): la tarjeta «Cooperativo» sale en Carrera › Partido (playa: botón, código y «Unirse»; invitado: «Listo» / «Salir»; pista: «Pronto») y en la fila de crear.
+- **Pendiente (P7, después de P5)**: Carrera de pista en cooperativo (online 6v6, «me2» en slotOf/newM, meRules6 con los dos humanos en pista).
+
+## P6 (lobby de varios, récord e informe, js/netlobby.js)
+
+Hecho en js/netlobby.js (bloques «ONLINE DE VARIOS» y «CARRERA COOPERATIVA», con el protocolo y el contrato en sus cabeceras), js/netrec.js, js/netlog.js, js/ui.js (solo la hoja final online: onlineEndSync / onlineEndRec), tools/netlogtest.js, tools/mobaudit.js (filas online-create-2v2/6v6, online-sala-2v2/6v6/6v6-invitado/6v6-elegido, online-coop) y tools/lobbytest.js (NUEVO: varias páginas vm con netroom + netlobby contra el emulador y un WebRTC de mentira; 63 comprobaciones). El 1 contra 1 del lobby no cambia de camino (lobbytest (e) y netdrive --rtc); solo `LOBBY = 3` (un 1.21.0 ve las salas nuevas como «Otra versión»).
+
+- Lobby: «Crear sala» con la fila Formato (1/2/6 contra 6; 6v6 fija Pabellón; Conexión: 1v1 a elegir, 2v2 Precisa, 6v6 'host'). Tickets «n/cap» + formato. Sala de espera con dos columnas de sitios (dorsal, puesto, «Tú», ping, listo); tocar = sentarse/levantarse; el anfitrión elige a alguien y lo mueve (o se cambian) o lo saca, y cambia los equipos de lado; «Empezar» cuando todos los conectados están sentados y listos. Estrella con ofertas en paralelo; con el enlace abierto todo va por 'ctl' y el invitado deja de leer Firestore; quien no conecta en CONNECT_MS se suelta (kick) y su sitio lo lleva la IA. Reglas sin desplegar → «Las salas de varios aún no están activadas».
+- **P6 → P4 (main.js)**: (a) el anfitrión llama a `startOnline({humans, seat: 0, links, linkSeats, opts, name, model, format, expect: null})` con `links[j]` = enlace de la plaza `linkSeats[j]` (= j + 1); el invitado `startOnline({humans, seat, links: [hostLink], opts: null, name, model, format, expect})` (como en 1v1: las opts llegan en el saludo de la sesión). `format` va arriba porque el invitado no tiene opts y `netMultiOf` lo necesita para un 6v6 de 2 humanos. Reenviad `o.linkSeats` (y, si lo usáis, `o.aiSeats`) a la sesión en `netSession` (P2 lo acepta). (b) Sin vuelta tras recargar en el de varios (backSave lo salta): la plaza la lleva la IA. (c) La hoja final (ui.js) ya enseña «Tu equipo: tú, Ana · Rivales: …» y la revancha «Esperando a los demás (k/n)…» con `net.wants`, `net.humans`, `net.seat` y `sess.seatGone`.
+- **P6 → P2**: `result.seat` (plaza de quien se fue) o `result.mate` ayudan a NetRec; ya está cubierto con vuestro 'rivalQuit' = todo el equipo rival (un compañero que se va no acaba el partido). NetRec cuenta 'mateQuit'/'mateGone' (si algún día existen) como «no cuenta».
+- **P6 → P7**: el contrato `VB.NetLobby.coop` está en la cabecera «CARRERA COOPERATIVA» de js/netlobby.js (host/join/close/send/onMessage/state; onReady({link, seat, names, looks, room}); onClose(why)). `coop.host` acepta además `venue` ('beach' por defecto). La fachada `link` no deja ver a la sesión los mensajes del lobby ('lb…') ni los de la app ('cx'), y los de la app se siguen entregando durante el partido; su `close()` (netStop) devuelve el enlace al lobby. `?coop=CÓDIGO` y un código de coop escrito en «Código» llaman a `VB.CareerCoop.onJoinLink(code)`.
+- **P6 → P8 (docs y netdrive)**: CONTRACT.md / notes/net.md: el protocolo del lobby de varios ('lb-hi', 'lb', 'lb-sit', 'lb-rdy', 'lb-ping'/'lb-pong', 'lb-out', 'lb-bye', 'lb-go', piezas 'lbk' de 4000 caracteres, 'cx' de la coop), `VB.NetLobby._act` / `_state().mx` / `_mx` (pruebas), `?netconnms=` (pruebas en local), `node tools/lobbytest.js` en el control de regresión, y en CONTRACT/notes que NetRec guarda `m` (compañeros) y `f` (formato) en cada entrada y NetLog `pe`/`ps`/`multi`. netdrive de N páginas por el lobby de verdad sigue pendiente (lobbytest cubre el lobby en Node, sin WebRTC ni render).
+
+## P5 (modelo «host» del 6v6 online, js/nethost.js)
+
+Hecho: `js/nethost.js` (`VB.NetHost.Session`, la fachada de VB.Net.Session con `model: 'host'`), ganchos en los bloques MULTI y FLUIDA de js/sim.js (`nhInit`, `nhApplyTc`, `nhToss`, `nhPose`, `nhMine`, `nhFrozen`, `nhStep`, `nhRemServe`; las 4 huellas idénticas y SIM_BASE igual), `tools/hosttest.js`, adaptadores `host6` / `host4` en tools/net4test.js (sección h) y tools/net12test.js (secciones h, i). Script en index.html detrás de js/netfluid.js. Cabecera de js/nethost.js = el diseño entero.
+
+- **P5 → P3 (salas)**: hace falta `net: 'host'` en las salas de varios con `fmt: '6v6'` (y, si el lobby quiere la opción, en 2v2 con cap 4): una línea en `roomOkMulti` (firestore.rules) y otra en `multiCfg` (netroom.js).
+- **P5 → P6 (lobby)**: para el 6v6, `startOnline({model: 'host', humans, seat, links, opts})`. El anfitrión (plaza 0) pasa TODOS los enlaces de sus invitados, en cualquier orden (cada invitado dice su plaza en su `hello`); el invitado pasa `[enlace con el anfitrión]` y su plaza. Solo estrella: no hace falta ningún enlace invitado↔invitado. La barrera de salida está en la sesión: `r.status 'connecting'` con `r.waitFor` = plazas aún no listas; a los 12 s (READY_MS) empieza igual y las plazas que faltan las lleva la IA. Requiere partida «de varios» (`VB.Sim.isMulti`): con 2 plazas 1v1, Precisa o Fluida.
+- **P5 → P4 (main.js)**: lo que da la sesión: `r.pings[s]`, `r.waitFor`, `r.startIn`, `r.waitMs`, `r.result.why` ('end' | 'quit' | 'hostGone' | 'noShow' | 'cancel'), `s.seatGone(s)`, `s.hstats` (métricas). Sin `withDisplay`: el balón PINTADO del invitado se escribe en `r.g.ball` y se deshace al empezar el siguiente `advance` (main.js ya hace el espejo en el mismo frame). Los `app` de un invitado los reenvía el anfitrión a todos (con `s`). Bits de partido: `request('skip'|'chal'|'tmo')` o `inp.skip/chal/tmo`; `switchPlayer` en la entrada se manda como «¡Pídela!». `opts.timeouts` se fuerza a false (como en Fluida). Aviso: en la vista del ANFITRIÓN, un punto salvado por un invitado (su plancha llegó tarde) hace que el balón vuelva del suelo a la plancha (raro; `hstats.rescues`).
+- **P5 → P8 (docs y pruebas en Chrome)**: CONTRACT.md / notes/net.md: API de arriba, protocolo 'H1' (paquete de 30 Hz de 276 B con 12 jugadores; pose del invitado de 30 B a 60 Hz; 'ctl': tc, toss, ev, fs en trozos de 15 KB, pg, rej, gone, app, bye). netdrive de N páginas con `model: 'host'` y una página con CPU frenada como anfitrión; medir el anfitrión en un móvil real (subida ~130 KB/s con 11 invitados: recomendar PC o wifi para crear la sala).
+
+## P8 (integración y lag QA): estado de cada petición (22-nov-2026)
+
+- P0 → P8, P1 → P8, P2 → P8, P3 → P8, P4 → P8, P5 → P8, P6 → P8, P7 → P8 (docs): HECHO en notes/net.md «Online de varios»
+  (Precisa-N, modelo anfitrión, salas v3, lobby, coop, despliegue de reglas, medidas) y CONTRACT.md «Online de varios».
+- P3 → P6 (`LOBBY = 3`): hecho por P6. P0 → P4 (`ritual.jug` en viewtest): arreglado por P4.
+- P3 → P5 / P5 → P3 (`net: 'host'` en reglas y `multiCfg`): NO hace falta. El lobby saca la conexión del formato (`roomModel`: 6v6 →
+  'host', 2v2 y coop → Precisa) y el invitado lo comprueba con el `model` del `lb-go`. Sin cambio de reglas.
+- P6 → P4 (main.js reenvía `linkSeats` / `aiSeats`): HECHO (`netMultiSetup` los guarda; `netSession` los pasa; `aiSeats` solo en la
+  época 0). `format` arriba ya lo leía `netMultiOf`.
+- P2 → P4 (HUD de `r.meAI`): HECHO, «Tu conexión va lenta: te lleva la IA un rato».
+- P7 → P4 (a) sin «Revancha» en la Carrera cooperativa: HECHO (ui.js `onlineEndButtons` la esconde y pone «Volver a la Carrera»;
+  `netRematch` también la rechaza con `net.coopCareer`). (b) invitado que se quedaba en 'playing': NO se reproduce (netdrive --coop y
+  --multi coop: las dos páginas llegan a la hoja final). (c) hoja «Resumen de la jornada» tras el coop: sin hacer (opcional).
+- P5: el error de sintaxis de net12test.js ya no está (P5 lo arregló).
+- P6 → P8 (netdrive y la ayuda por páginas): HECHO (--rtc recorre «Siguiente»; 27 ok con el Shaper a 80 ms).
+- P4/P2/P5 → P8 (netdrive de N páginas): HECHO (`--multi`, `NDRTC=1`, `--coop`).
+- Arreglos de lag hechos por P8 en ficheros de otros: js/nethost.js (`_pong`: reloj del invitado; `_hostPaint`; pose del invitado ya en la cuenta atrás), js/main.js
+  (`netBallSmooth`, `startNetTestN`, `noDraw`), js/net.js (`BcLink` con `to`), js/netrtc.js (Shaper), js/ui.js (coop sin revancha),
+  tools/cooptest.js (esperas de 50 → 400 ms: la compresión de la foto tarda ~90 ms la primera vez en Node y la prueba fallaba).
+
+## Ronda de arreglos tras la revisión (22-nov-2026)
+
+Hechos (14 hallazgos de la revisión; detalle en los comentarios del código):
+- js/nethost.js: el anfitrión 6v6 que se queda atrás más de MAXCATCH tics ya NO mueve t0 (los invitados seguían con el t0 del 'go' y
+  quedaban adelantados el resto del partido: toques rechazados y Dp inflado); salta T hacia delante como el invitado (`hstats.skips`).
+  La media de retraso de `_dispDelay` lleva tope (`C.LATE_MAX` = 60 tics).
+- js/net.js (Precisa-N): una plaza de espectador por conexión lenta ya no se da por ida a los 60 s de estar con la IA (la espera crece
+  a 80-120 s): solo si deja de oírse 60 s (`max(aiAt, heard)`).
+- js/netlobby.js: coop emparejada → el anfitrión deja de sondear la sala (`E.coopOn`; queda el latido de 20 s, que la mantiene viva
+  para renegociar en pleno partido: una sala de más de 5 min sin latido la puede borrar cualquiera). Barrera de inicio: con la
+  lectura que devuelve el latido `state:'play'` se levanta a todo sentado que no juega; el invitado que ve 'play' sin haber empezado
+  sale con 'late'. Quien sale ('left') queda vetado 4 s (`LEFT_BAN_MS`): un sondeo en vuelo ya no le reofrece. Salir de la app antes
+  de empezar: `lb-away` + `visibilitychange` (espera `AWAY_MS` = 60 s al ausente; oculta, la página no cuenta silencios). `mxDrain`
+  devuelve a la cola lo que va tras un `lb-go` y el invitado con el enlace caído justo tras el `lb-go` renegocia en vez de 'hostLost'.
+- js/netroom.js: `get()` calcula la edad con la hora del servidor (desfase de la última readTime / commitTime) en vez de updateTime,
+  que se congela si el anfitrión muere.
+- js/career-coop.js: `hostPlay` solo con la Carrera de playa en pantalla (la de pista juega su partido); tarjeta del anfitrión con
+  «Terminar el cooperativo» también en la pista. Insignias del coop: el contador de VB.Badges (partida presentada, ui.js) pasa a la
+  vista confirmada antes de matchDone, y `ensure` sanea p2 sobre el MISMO objeto (career.js matchDone guarda la referencia de
+  c.coop.p2 antes de coopMatch: las insignias de p2 iban a un objeto huérfano). Invitado sin Carrera propia: la 1ª foto abre el hub
+  aunque la Carrera esté abierta. Vista del invitado: SUS estadísticas (nuevo `c.coop.ss2` por temporada, `stats2` total) y notas.
+  «Listo» solo con la foto recibida; si el invitado no puede empezar manda `nack` y el anfitrión no acredita a p2 (`noP2`).
+- tools/cooptest.js: +4 comprobaciones (insignias de p2 y tuyas, estadísticas del invitado, hostPlay en pista).
+
+Pendiente / aceptado:
+- netroom (salas coop en la lista de clientes 1.21.0 en caché): ACEPTADO. Salen como «Otra versión» con el nombre del anfitrión; no
+  se puede entrar (LOBBY 3). Quitarlas exige un `state` distinto de 'open' para coop en `roomOkMulti` (reglas = P3 + despliegue).
+- ui.js sigue contando las insignias con la partida presentada (con retrocesos puede contar de más algún evento mal predicho); lo
+  limpio sería que ui.js no las cuente con `ctx.net.coopCareer` y que career-coop las ingiera de los confirmados (petición a P4).
+- El invitado que manda `nack` deja al anfitrión en su partido con la IA en la plaza 1 (no se aborta la sesión).

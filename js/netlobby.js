@@ -26,7 +26,8 @@
   // (olmock=empty: sin salas; olmock=nortc: navegador sin WebRTC). VB.NetLobby._mock(o) pinta estados sueltos (avisos, conectando…).
   var MOCK = LOCAL && /^(1|empty|nortc)$/.test(Q.olmock || '') ? Q.olmock : '';
   var NICK = 'make-the-cut.nick', PREFS = 'make-the-cut.netroom', HELPK = 'make-the-cut.nethelp2';   // (nethelp2 = '1': ya vio «Cómo funciona»; Online V2 lo vuelve a enseñar por «Conexión»)
-  var CONNECT_MS = 30000, OFFER_MS = 10000, OFFER_MAX = 65000, PRE_MS = 12000, LIST_EVERY = 8000, ROOM_POLL = 2000, SIG_POLL = 1000;   // (lecturas de Firestore: ver notes/net.md «Cuotas»)
+  // (pruebas, solo file:// o localhost: &netconnms=N acorta CONNECT_MS; tools/lobbytest.js lo usa para el invitado que nunca conecta)
+  var CONNECT_MS = LOCAL && /^\d{3,5}$/.test(Q.netconnms || '') ? +Q.netconnms : 30000, OFFER_MS = 10000, OFFER_MAX = 65000, PRE_MS = 12000, LIST_EVERY = 8000, ROOM_POLL = 2000, SIG_POLL = 1000;   // (lecturas de Firestore: ver notes/net.md «Cuotas»)
 
   function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { } return null; }
   function jls(k) { try { return JSON.parse(ls(k) || 'null'); } catch (e) { return null; } }
@@ -36,7 +37,9 @@
   /** Versión de la sala (room.v): PROTO|VB.VERSION|L<lobby>. Online V2: 'L2' = el lobby sabe de conexiones (sala con net, 'pre' con
    *  model). Una sala de un cliente de antes (sin la marca) sale como «Otra versión» y al revés, aunque VB.VERSION no cambie: un 1.8.2
    *  en caché no puede entrar en una sala Fluida creyéndola Precisa. (hay que subir VB.VERSION igualmente al publicar) */
-  var LOBBY = 2;
+  // Online de varios (sprint online-multi): 'L3' = el lobby sabe de salas de varios (esquema v3: 2 contra 2, 6 contra 6, Carrera
+  // cooperativa). Un 1.21.0 (L2) ve TODAS las salas de este cliente como «Otra versión» (y al revés).
+  var LOBBY = 3;
   function ver() { return (VB.Net ? VB.Net.PROTO : 0) + '|' + (VB.VERSION || '') + '|L' + LOBBY; }
   function sound(k) { try { if (VB.Audio && VB.Audio.ui) VB.Audio.ui(k); } catch (e) { } }
 
@@ -73,17 +76,30 @@
     var mb = maps('beach'), mh = maps('hall');
     var R = MOCK === 'empty' ? [] : [
       { id: 'm1', code: 'K7P2QX', name: 'Lucía Marín', gname: '', venue: 'beach', map: mb[0] || '', bo: 1, pts: 21, even: false, state: 'open', age: 4000 },
+      { id: 'm5', code: 'M2V4NP', name: 'Nerea Puig', gname: '', venue: 'beach', map: mb[0] || '', bo: 1, pts: 21, even: false, state: 'open', age: 6000, multi: true, mode: 'vs', cap: 4, fmt: '2v2', seats: {}, nseat: 1, free: 2 },
       { id: 'm2', code: 'H3M9RT', name: 'Pau Ferrer', gname: '', venue: 'hall', map: mh[1] || mh[0] || '', bo: 3, pts: 25, even: true, state: 'open', age: 9000 },
       { id: 'm3', code: 'W8ZK4N', name: 'Sara Llopis', gname: 'Iker', venue: 'hall', map: mh[0] || '', bo: 1, pts: 15, even: false, state: 'full', age: 12000 },
-      { id: 'm4', code: 'T5BQ7J', name: 'Javi Ortega', gname: '', venue: 'beach', map: mb[1] || mb[0] || '', bo: 3, pts: 21, even: false, state: 'open', age: 20000, other: true }
+      { id: 'm4', code: 'T5BQ7J', name: 'Javi Ortega', gname: '', venue: 'beach', map: mb[1] || mb[0] || '', bo: 3, pts: 21, even: false, state: 'open', age: 20000, other: true },
+      // (online de varios: m5, un 2 contra 2 con 2 de 4, y m6, un 6 contra 6 con 9 de 12)
+      { id: 'm6', code: 'R6S6QK', name: 'Alex Roca', gname: '', venue: 'hall', map: mh[0] || '', bo: 3, pts: 25, even: false, state: 'open', age: 15000, multi: true, mode: 'vs', cap: 12, fmt: '6v6', seats: {}, nseat: 8, free: 3 }
     ];
     var find = function (id) { return id === me ? mine : R.filter(function (r) { return r.id === id; })[0] || null; };
     return {
       uid: function () { return me; }, list: function () { return P(R.slice()); }, sweep: function () { return P(); },
-      open: function (o) { mine = { id: me, code: 'Q4WX8M', name: o.name, gname: '', host: me, guest: '', venue: o.venue, map: o.map, bo: o.bo, pts: o.pts, even: o.even, state: 'open', age: 0 }; return P(mine); },
+      open: function (o) {
+        mine = { id: me, code: 'Q4WX8M', name: o.name, gname: '', host: me, guest: '', venue: o.venue, map: o.map, bo: o.bo, pts: o.pts, even: o.even, state: 'open', age: 0 };
+        var mc = NR().multiCfg(o);   // (online de varios: la misma forma que una sala de varios de js/netroom.js)
+        if (mc) { mine.multi = true; mine.mode = mc.mode; mine.cap = mc.cap; mine.fmt = mc.fmt; mine.venue = mc.venue; mine.seats = {}; mine.nseat = 0; mine.free = mc.cap - 1; mine.cnt = 0; }
+        return P(mine);
+      },
+      kick: function () { return P(mine); }, joinMulti: function (id) { return this.join(id); }, leaveMulti: function () { return P(); },
       beat: function (f) { if (mine && f) for (var k in f) mine[k] = f[k]; return P(mine); },
       get: function (id) { return P(find(id)); }, byCode: function (c) { return P(R.filter(function (r) { return r.code === c; })[0] || null); },
-      join: function (id) { var r = find(id); if (!r) return Promise.reject({ code: 'gone' }); if (r.state === 'full') return Promise.reject({ code: 'full' }); r.guest = me; r.state = 'full'; r.gname = myName(); return P(r); },
+      join: function (id) {
+        var r = find(id); if (!r) return Promise.reject({ code: 'gone' }); if (r.state === 'full' || (r.multi && r.free <= 0)) return Promise.reject({ code: 'full' });
+        if (r.multi) { r.seats[me] = { n: myName(), at: Date.now() }; r.nseat++; r.free--; return P(r); }
+        r.guest = me; r.state = 'full'; r.gname = myName(); return P(r);
+      },
       leave: function () { }, close: function () { mine = null; }, bye: function () { }, delSig: function () { return P(); }, putSig: function () { return P(); },
       getSig: function () { return P(null); }, resume: function () { return P(null); },
       _rival: function (n) { if (mine) { mine.guest = 'mockRival'; mine.gname = n || 'Rival'; mine.state = 'full'; } }
@@ -159,7 +175,8 @@
     return [kind].concat(vn && vn !== kind ? [vn] : [], chips(r, true));
   }
   /** Online V2: conexión de la sala ('fluida' solo si la sala lo dice; sin la clave, Precisa, la de siempre). */
-  function roomModel(r) { return r && r.net === 'fluida' ? 'fluida' : 'precisa'; }
+  // (online de varios: 2 contra 2 siempre Precisa; 6 contra 6, el modelo del anfitrión, 'host', VB.NetHost; la coop, Precisa)
+  function roomModel(r) { if (r && r.multi) return r.fmt === '6v6' ? 'host' : 'precisa'; return r && r.net === 'fluida' ? 'fluida' : 'precisa'; }
   /** Chips del partido (lista, vista previa de «Crear sala» y sala de espera). (fase 6: puntos por set en Pabellón)
    *  Online V2: un tercer chip «Fluida» solo en las salas Fluida (aria: «conexión fluida»). */
   function chips(r, aria) {
@@ -167,6 +184,7 @@
     var out = [r.bo === 3 ? 'Mejor de 3' + (p !== 21 ? ' a ' + p : '') : '1 set a ' + p, r.even ? 'Igualado' : 'Con sus atributos'];
     // (el chip visible va PRIMERO: .fx-chips corta lo que no cabe y en un móvil en vertical el último no se ve; en el aria, al final)
     if (roomModel(r) === 'fluida') { if (aria) out.push('conexión fluida'); else out.unshift('Fluida'); }
+    if (r.multi) out.unshift(FMT_TXT[fmtOf(r)]);   // (online de varios: el formato, el primero)
     return out;
   }
   function chipsHTML(r) { return chips(r).map(function (t) { return '<i>' + esc(t) + '</i>'; }).join(''); }
@@ -185,7 +203,8 @@
   function prefs() {
     var p = jls(PREFS) || {};
     return { venue: p.venue === 'beach' ? 'beach' : 'hall', mapH: String(p.mapH || ''), mapB: String(p.mapB || ''), bo: +p.bo === 3 ? 3 : 1, even: !!p.even, pts: [11, 15, 21, 25].indexOf(+p.pts) >= 0 ? +p.pts : 21,
-      model: p.model === 'fluida' ? 'fluida' : 'precisa' };   // (Online V2: conexión; Precisa si no se eligió nunca)
+      model: p.model === 'fluida' ? 'fluida' : 'precisa',   // (Online V2: conexión; Precisa si no se eligió nunca)
+      fmt: p.fmt === '2v2' || p.fmt === '6v6' ? p.fmt : '1v1' };   // (online de varios: formato de la sala; 1 contra 1 si no se eligió nunca)
   }
   function savePrefs(c) { try { ls(PREFS, JSON.stringify(c)); } catch (e) { } }
   function maps(kind) { var V = VB.Venues; var l = V && V.list ? safe(function () { return V.list(kind); }) : null; return Array.isArray(l) && l.length ? l : ['']; }
@@ -243,6 +262,7 @@
   function createRoom() {
     if (noRtc()) { setView('nortc'); return; }   // (revisión F4: sin WebRTC nunca se abre ni se ocupa una sala)
     var c = L.cfg; savePrefs(c);
+    if (c.fmt === '2v2' || c.fmt === '6v6') { mCreate(c); return; }   // (online de varios: sala de 2 contra 2 o 6 contra 6)
     var map = c.venue === 'beach' ? c.mapB : c.mapH;
     L.msg = ''; L.busy = true; render();
     api().open({ name: myName(), venue: c.venue, map: map, bo: c.bo, even: c.even, pts: c.venue === 'beach' ? 21 : c.pts, net: c.model === 'fluida' ? 'fluida' : undefined }).then(function (r) {
@@ -336,6 +356,7 @@
     L.msg = ''; L.busy = true; render();
     api().join(id, myName()).then(function (r) {
       L.busy = false;
+      if (r && r.multi) { mJoined(r); return; }   // (online de varios: te has sentado en una sala de 2v2 / 6v6)
       L.room = r; L.role = 'guest'; L.rival = NR().cleanName(r.name) || 'Rival'; L.status = 'connecting'; L.fail = ''; L.started = false;
       setView('room'); sound('click');
       L.gotOffer = false;
@@ -368,6 +389,7 @@
     api().byCode(code).then(function (r) {
       L.busy = false;
       if (!r) { L.msg = 'No hay ninguna sala abierta con el código ' + code + '.'; L.msgBad = true; render(); return; }
+      if (r.mode === 'coop') { coopLink(code); return; }   // (código de una Carrera cooperativa: VB.CareerCoop o la hoja de unirse)
       joinRoom(r.id);
     }, function (e) { L.busy = false; if (e.code === 'off') { setView('off'); return; } L.msg = errText(e); L.msgBad = true; render(); });
   }
@@ -499,6 +521,7 @@
 
   /* ---------------- salir ---------------- */
   function leaveRoom() {
+    if (L.mx) { var E0 = L.mx; L.mx = null; mxLeave(E0); L.room = null; L.role = ''; L.rival = ''; L.status = ''; L.fail = ''; L.started = false; stopAll(); return; }   // (online de varios)
     var id = L.room && L.room.id, role = L.role;
     abortConn(); stopAll(); L.room = null; L.role = ''; L.rival = ''; L.status = ''; L.fail = '';
     if (role === 'host') api().close(); else if (role === 'guest' && id) api().leave(id);
@@ -840,6 +863,59 @@
     '#mpOnline .ol-p b{font-size:22px;white-space:normal;overflow-wrap:anywhere;text-overflow:clip;line-height:1.05}#mpOnline .mt-top{flex-wrap:wrap;row-gap:6px}',
     '#mpOnline .ol-bar2{flex-wrap:wrap}' + P + '#mpOnline .ol-bar2 .sp-btn{flex:1 1 auto}}',
     '@media (max-width:400px) and (max-aspect-ratio:5/4){#mpOnline .ol-fx .sp-tk-stub{display:none}#mpOnline .fx-main{padding-left:14px}}',
+    // — online de varios (sprint online-multi, P6) —
+    // lista: «3/4» en vez del hueco «?»; crear sala: las filas fijas por el formato enseñan siempre su explicación
+    '#mpOnline .fx-slot.fx-cnt{border-style:solid;font-size:14px;letter-spacing:.02em}',
+    '#mpOnline .ol-sel.ol-lock{opacity:.78}' + PP + '#menu #mpOnline .ol-sel.ol-lock .ol-hint{display:block}',
+    // sala de espera: dos columnas de sitios (una por equipo, con el color de su camiseta en --tk); en cada una, sitios de 44 de alto
+    // en rejilla (2 por fila en 568×320: los 12 del 6v6 caben con poco desplazamiento dentro de la hoja)
+    '#mpOnline .mx-teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,218px),1fr));gap:10px 12px;margin:10px 12px 4px}',
+    '#mpOnline .mx-team{display:flex;flex-direction:column;gap:6px;min-width:0;padding:7px 8px 8px;border-radius:12px 16px 11px 15px/14px 11px 16px 12px;background:rgba(255,244,220,.07);box-shadow:inset 0 4px 0 var(--tk)}',
+    '#mpOnline .mx-th{display:flex;align-items:baseline;gap:6px;font:400 var(--ph-label,13px)/1.1 var(--sp-pop);letter-spacing:.04em;text-transform:uppercase;color:var(--sp-cream)}',
+    '#mpOnline .mx-th span{font:700 12px/1 var(--sp-ui);letter-spacing:0;color:rgba(255,244,220,.7)}#mpOnline .mx-th i{font:700 12px/1 var(--sp-ui);font-style:normal;letter-spacing:0;text-transform:none;color:var(--sp-gold)}',
+    '#mpOnline .mx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(116px,1fr));gap:6px}',
+    P + '#mpOnline .mx-chip{display:flex;align-items:center;gap:6px;min-width:0;width:auto;height:auto;min-height:44px;margin:0;padding:3px 6px 3px 5px;box-sizing:border-box;border:0;border-radius:10px 13px 9px 12px;',
+    'background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),inset 5px 0 0 var(--tk);text-align:left;text-transform:none;letter-spacing:0;text-shadow:none;cursor:pointer;font:inherit;outline:none;transform:none;-webkit-tap-highlight-color:transparent}',
+    P + '#mpOnline .mx-chip.empty{background:rgba(21,16,42,.55);color:var(--sp-cream);box-shadow:0 0 0 2px rgba(255,244,220,.32),inset 5px 0 0 var(--tk)}',
+    P + '#mpOnline .mx-chip.me{background:var(--sp-gold)}' + P + '#mpOnline .mx-chip.conn{opacity:.72}' + P + '#mpOnline .mx-chip:disabled{cursor:default;filter:none;opacity:1}' + P + '#mpOnline .mx-chip.conn:disabled{opacity:.72}',
+    P + '#mpOnline .mx-chip.pick{box-shadow:0 0 0 2px var(--sp-ink),0 0 0 5px var(--sp-gold),inset 5px 0 0 var(--tk)}',
+    P + '#mpOnline .mx-chip:is(.kf,:focus-visible){box-shadow:0 0 0 2px var(--sp-ink),0 0 0 5px var(--sp-cream),inset 5px 0 0 var(--tk)}',
+    P + '#mpOnline .mx-chip:not(:disabled):active{translate:1px 1px}',
+    '#mpOnline .mx-num{position:relative;flex:none;display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%;background:var(--tk);color:#fff;font:400 13px/1 var(--sp-pop);',
+    'text-shadow:0 1px 0 rgba(0,0,0,.5);box-shadow:0 0 0 2px var(--sp-ink)}',
+    // (listo y ping, pegados al dorsal: el nombre gana el ancho)
+    '#mpOnline .mx-num .mx-ok{position:absolute;right:-6px;top:-6px}#mpOnline .mx-num .mx-ping{position:absolute;right:-3px;bottom:-3px}',
+    '#mpOnline .mx-tx{flex:1 1 auto;display:flex;flex-direction:column;gap:1px;min-width:0}',
+    '#mpOnline .mx-tx b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:800 var(--ph-row,14px)/1.15 var(--sp-ui)}',
+    '#mpOnline .mx-tx small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font:700 12px/1.15 var(--sp-ui);opacity:.78}#mpOnline .mx-tx em{font-style:normal;font-weight:900;color:#a8143a;opacity:1}',
+    '#mpOnline .mx-chip.empty .mx-tx b{font-weight:700;opacity:.8}',
+    '#mpOnline .mx-sg{flex:none;display:flex;flex-direction:column;align-items:center;gap:3px}',
+    '#mpOnline .mx-ping{display:block;width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1.5px var(--sp-ink)}#mpOnline .mx-ping.g{background:#33d17a}#mpOnline .mx-ping.y{background:#ffc93d}#mpOnline .mx-ping.r{background:#ff4d5e}',
+    '#mpOnline .mx-ok{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#33d17a;color:var(--sp-ink);font:900 12px/1 var(--sp-ui);font-style:normal;text-shadow:none;box-shadow:0 0 0 1.5px var(--sp-ink)}',
+    '#mpOnline .mx-bench{display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px;margin:6px 12px 0;font:700 12px/1.2 var(--sp-ui);color:rgba(255,244,220,.8)}#mpOnline .mx-bench small{font-size:inherit}',
+    P + '#mpOnline .mx-bp{display:inline-flex;align-items:center;min-height:30px;margin:0;padding:0 10px;box-sizing:border-box;border:0;border-radius:9px 12px 9px 11px;background:rgba(255,244,220,.14);color:var(--sp-cream);',
+    'font:700 13px/1 var(--sp-ui);font-style:normal;text-transform:none;letter-spacing:0;text-shadow:none;box-shadow:none;transform:none}',
+    P + '#mpOnline button.mx-bp{min-height:44px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);cursor:pointer}' + P + '#mpOnline button.mx-bp.pick{background:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-ink),0 0 0 5px var(--sp-cream)}',
+    P + '#mpOnline .mx-swap{flex:none;display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;min-height:0;margin:0 0 0 auto;padding:0;border:0;border-radius:12px 15px 11px 14px;background:var(--sp-cream);color:var(--sp-ink);',
+    'box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer;transform:none;-webkit-tap-highlight-color:transparent}',
+    P + '#mpOnline .mx-swap svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    P + '#mpOnline .mx-swap:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 6px var(--sp-cream)}',
+    '#mpOnline .ol-mx .mt-top .ol-code{margin-left:0;min-height:44px;display:inline-flex;align-items:center;gap:8px;border:0;cursor:pointer}#mpOnline .ol-mx .mt-ven{flex:1 1 auto}',
+    '#mpOnline .ol-mx .mt-top .ol-code svg{flex:none;width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    '#mpOnline .ol-mx .mt-chips i{font-size:12px}',
+    PP + '#mpOnline .ol-mx .mt-chips{margin-top:8px}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-mx .mx-teams{margin:6px 8px 2px;gap:8px}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-mx .mx-team{padding:6px 6px 6px}',
+    // Carrera cooperativa: hoja propia (encima de lo que haya: la Carrera la abre desde su pantalla)
+    '#olCoop{position:fixed;inset:0;z-index:1200;display:flex;align-items:center;justify-content:center;padding:max(12px,env(safe-area-inset-top)) 16px max(12px,env(safe-area-inset-bottom));box-sizing:border-box;background:rgba(10,8,24,.6)}',
+    '#olCoop[hidden]{display:none}',
+    '#olCoop .oc-card{display:flex;flex-direction:column;gap:12px;width:min(100%,500px);max-height:100%;box-sizing:border-box;overflow-y:auto;overscroll-behavior:contain;padding:16px 18px 18px}',
+    '#olCoop h3{margin:0;font:400 clamp(18px,3.4vw + 6px,26px)/1.1 var(--sp-pop);letter-spacing:.01em;text-transform:uppercase;color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink);transform:rotate(-1.5deg);transform-origin:0 50%}',
+    '#olCoop .oc-t{margin:0;font:600 clamp(14px,1vw + 11px,16px)/1.4 var(--sp-ui);color:rgba(255,244,220,.94)}#olCoop .oc-t.bad{color:#ffb3bc}',
+    '#olCoop .oc-code{align-self:flex-start;display:inline-flex;align-items:center;gap:10px;min-height:48px;margin:0;padding:0 14px 0 16px;border:0;font:400 22px/1 var(--sp-pop);letter-spacing:.22em;cursor:pointer}',
+    P + '#olCoop .oc-code.sp-chip{font-size:22px;--sp-chs:22px}',
+    '#olCoop .oc-code svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    '#olCoop .oc-bar{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:12px 14px;margin-top:2px}',
+    P + '#olCoop .oc-bar .sp-btn{--sp-h:50px;--sp-fs:16px;--sp-px:20px;flex:0 1 auto;width:auto;min-width:0}',
     // menos movimiento (ajuste del juego o del sistema)
     '.rm #mpOnline .ol-fx.fx-new,.rm #mpOnline .ol-p.riv b,.rm #mpOnline .ol-live,.rm #mpOnline .ol-dots i,.rm #mpOnline .ol-act.spin .ol-ic svg,.rm #mpOnline .ol-retry::before{animation:none!important}',
     '@media (prefers-reduced-motion:reduce){#mpOnline .ol-fx.fx-new,#mpOnline .ol-p.riv b,#mpOnline .ol-live,#mpOnline .ol-dots i{animation:none!important}}'
@@ -857,6 +933,7 @@
    * género neutro (notes/ui_main.md «Textos: guía de estilo»). */
   var HELP = [
     ['1 contra 1', 'Cada persona lleva a su n.º 1 y la IA lleva a su pareja. Es 2 contra 2 en la playa o en pista.'],
+    ['2 y 6 contra 6', 'En las salas de 2 contra 2 (hasta 4 personas) y de 6 contra 6 (hasta 12, en pista) cada persona lleva un jugador y la IA lleva los sitios libres. Quien crea la sala reparte los sitios y pulsa «Empezar».'],
     ['Tu jugador', 'Juegas con los atributos e insignias de tu jugador de la Carrera (sin Carrera, los de tu n.º 1 de Partido rápido). En una sala «Igualado», nadie lleva atributos ni insignias.'],
     ['Salas', 'Crea una sala y espera a que alguien entre desde la lista, o entra en una sala abierta. También puedes pasar el código de tu sala.'],
     ['Sin pausa', 'No se puede parar el partido. Entre sets hay 10 s de descanso: si tu rival y tú pulsáis «Continuar», se sigue antes.'],
@@ -875,25 +952,28 @@
    *  VS el hueco, los chips del partido, el estado y «Entrar». o.prev: vista previa de «Crear sala» (no es un botón ni se puede pulsar). */
   function fxHTML(r, o) {
     o = o || {};
-    var full = r.state === 'full', off = !o.prev && (r.other || full), beach = r.venue === 'beach', vn = venueName(r), kind = beach ? 'Playa' : 'Pabellón';
+    var full = r.state === 'full' || (r.multi && (r.state !== 'open' || r.free <= 0)), off = !o.prev && (r.other || full), beach = r.venue === 'beach', vn = venueName(r), kind = beach ? 'Playa' : 'Pabellón';
     var tag = o.prev ? 'div' : 'button';
+    // online de varios: en vez del hueco «?», cuántos hay de cuántos («3/4») y el aria con las plazas libres
+    var nIn = r.multi ? 1 + (r.nseat | 0) : 0, freeTxt = r.multi ? (r.free === 1 ? '. 1 plaza libre' : '. ' + (r.free | 0) + ' plazas libres') : '. Una plaza libre';
     return '<' + tag + ' class="ol-fx sp-ticket sp-calm sp-noshine ' + (beach ? 'sp-gold v-beach' : 'v-hall') + (o.isNew ? ' fx-new' : '') + (off ? ' fx-off' : '') + (o.prev ? ' fx-prev' : '') + '"' +
       ' data-shape="' + (o.idx | 0) + '"' +
       (o.prev ? '' : ' data-a="join" data-id="' + esc(r.id) + '"' + (off || L.busy ? ' disabled' : '') +
-        ' aria-label="' + esc('Sala de ' + r.name + '. ' + cfgParts(r).join(', ') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : '. Una plaza libre')) + '"') +
+        ' aria-label="' + esc('Sala de ' + r.name + '. ' + cfgParts(r).join(', ') + (r.other ? '. Otra versión del juego' : full ? '. Llena' : freeTxt)) + '"') +
       (o.isNew ? ' style="animation-delay:' + (o.delay | 0) + 'ms"' : '') + '><span class="sp-tk">' +
       '<span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true">' + VEN_IC[beach ? 'beach' : 'hall'] + '</span></span>' +
       '<span class="sp-tk-main fx-main"><small class="sp-k fx-k">' + kind + (vn && vn !== kind ? '<i class="ol-sep" aria-hidden="true"></i>' + esc(vn) : '') + '</small>' +
       '<span class="fx-line"><b class="fx-name" title="' + esc(r.name) + '">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
-      '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>' +
+      (r.multi ? '<span class="fx-slot fx-cnt' + (full ? ' in' : '') + '" aria-hidden="true">' + nIn + '/' + (r.cap | 0) + '</span></span>'
+        : '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>') +
       '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" data-ph-ell aria-hidden="true">' + esc(vn) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
       '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
       (off || o.prev ? '' : '<span class="fx-go">Entrar' + GO_IC + '</span>') + '</span></span></' + tag + '>';
   }
   /** Selector de «Crear sala»: la pegatina de tinta de Partido rápido (.sp-opt: rótulo dorado y ‹ valor › en trazo dorado entre flechas
    *  crema de 44 px). ↑↓ elige, ←→ o las flechas cambian (netlobby side / onClick con .arr). */
-  function selRow(k, label, val, hint, n) {
-    return '<button class="ol-sel sp-btn sp-ink sp-wide sp-opt sp-calm' + (L.lastSel === k ? ' ol-on' : '') + '" data-ol="' + k + '" data-shape="' + (n | 0) + '" aria-label="' + esc(label + ': ' + val + '. ' + hint) + '">' +
+  function selRow(k, label, val, hint, n, dis) {   // (dis: fila fija por el formato, p. ej. el 6 contra 6 siempre en Pabellón)
+    return '<button class="ol-sel sp-btn sp-ink sp-wide sp-opt sp-calm' + (L.lastSel === k ? ' ol-on' : '') + (dis ? ' ol-lock' : '') + '" data-ol="' + k + '" data-shape="' + (n | 0) + '"' + (dis ? ' disabled' : '') + ' aria-label="' + esc(label + ': ' + val + '. ' + hint) + '">' +
       '<span class="mi-l">' + esc(label) + '<small class="ol-hint" aria-hidden="true">' + esc(hint) + '</small></span><span class="mi-v sp-select"><span class="arr" data-d="-1">' + ARR_L + '</span>' +
       '<span class="mv-val"><b>' + esc(val).replace(/ \((v\d)\)$/,' <i class="sl-ver">($1)</i>') + '</b></span><span class="arr" data-d="1">' + ARR_R + '</span></span></button>';
   }
@@ -902,6 +982,7 @@
   var HELP_PH = [
     ['1 contra 1', 'Cada persona lleva a su n.º 1 y la IA a su pareja: 2 contra 2, en la playa o en pista.'],
     ['Sin pausa', 'El partido no se para. Entre sets hay 10 s de descanso (si los dos pulsáis «Continuar», se sigue antes).'],
+    ['2 y 6 contra 6', 'Cada persona lleva un jugador y la IA, los sitios libres. Quien crea la sala reparte y pulsa «Empezar».'],
     ['Tu jugador', 'Juegas con los atributos e insignias de tu jugador de la Carrera (o de tu n.º 1). En «Igualado», nadie los lleva.'],
     ['Salas', 'Crea una sala y espera a que alguien entre, o entra en una de la lista. También puedes pasar tu código.'],
     ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis lo mismo. Fluida (v2): tu equipo responde al instante.'],
@@ -1060,23 +1141,17 @@
     } else if (v === 'create') {
       var c = L.cfg, ms = maps(c.venue), cur = c.venue === 'beach' ? c.mapB : c.mapH;
       if (ms.indexOf(cur) < 0) { cur = ms[0]; if (c.venue === 'beach') c.mapB = cur; else c.mapH = cur; }
-      var cb = c.venue === 'beach', ck = cb ? 'Playa' : 'Pabellón', vn = cur && VB.Venues && VB.Venues.name ? VB.Venues.name(cur) || cur : ck, fl = c.model === 'fluida';
-      var pr = { name: myName(), venue: c.venue, map: cur, bo: c.bo, pts: cb ? 21 : c.pts, even: c.even, net: fl ? 'fluida' : undefined };
-      // (orden del móvil: Escenario, Sede, Partido, Puntos, Igualado, Conexión)
+      var cb = c.venue === 'beach', ck = cb ? 'Playa' : 'Pabellón', vn = cur && VB.Venues && VB.Venues.name ? VB.Venues.name(cur) || cur : ck, fl = c.model === 'fluida' && c.fmt === '1v1';
+      var pr = mkPrev(c, cur);
+      // (orden, el mismo en el móvil y en PC: Formato, Escenario, Sede, Partido, Puntos, Igualado, Conexión)
       h = '<div class="ol-mk ' + (cb ? 'v-beach' : 'v-hall') + '">' +
         '<div class="mk-top"><i class="sp-chip">Tu sala</i><small>Así sale en la lista</small></div>' +
         '<div class="mk-prev" aria-hidden="true">' + fxHTML(pr, { prev: true, idx: 1 }) + '</div>' +
-        '<div class="mk-sels ol-scroll" data-nav>' +
-        selRow('venue', 'Escenario', ck, cb ? 'En la arena' : 'En pista cubierta', 0) +
-        selRow('map', 'Sede', vn, 'Donde se juega', 2) +
-        selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set', 1) +
-        (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set', 3)) +
-        selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador', 0) +
-        selRow('net', 'Conexión', fl ? 'Fluida (v2)' : 'Precisa (v1)', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo', 2) + '</div>' +
-        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones en esta versión.'
-          : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
+        '<div class="mk-sels ol-scroll" data-nav>' + mkRows(c, cb, ck, vn, fl) + '</div>' +
+        '<p class="mk-tip">' + mkTip(c, fl) + '</p></div>' +
         '<div class="ol-bar ol-bar2 ol-dock mk-go" data-nav><button class="ol-act ol-new sp-patch" data-a="open"' + (L.busy ? ' disabled' : '') + '><span class="sp-l"><span class="sp-t">Abrir sala</span>' +
         '<small class="sp-s">' + esc(ck + (vn && vn !== ck ? ', ' + vn : '')) + '</small></span></button></div>';
+    } else if (v === 'room' && L.mx) { h = mRoomHTML(true);   // (online de varios: las dos columnas de plazas)
     } else if (v === 'room' && L.room) {
       var r2 = L.room, host = L.role === 'host', me = myName(), riv = L.rival, st = '';
       if (L.started) st = 'Empieza el partido…';
@@ -1156,24 +1231,18 @@
       var cb = c.venue === 'beach', ck = cb ? 'Playa' : 'Pabellón', vn = cur && VB.Venues && VB.Venues.name ? VB.Venues.name(cur) || cur : ck;
       // (fase 6) El mismo lenguaje que la cartelera: UN rótulo con la franja de la sede (arena / madera), la vista previa de tu sala tal
       // y como saldrá en la lista (TÚ VS ?, con sus chips) y debajo los selectores compactos (↑↓ elige, ←→ cambia). Sin tarjetas sueltas.
-      var fl = c.model === 'fluida';
-      var pr = { name: myName(), venue: c.venue, map: cur, bo: c.bo, pts: cb ? 21 : c.pts, even: c.even, net: fl ? 'fluida' : undefined };
+      var fl = c.model === 'fluida' && c.fmt === '1v1';
+      var pr = mkPrev(c, cur);
       // (SPLAT) arriba, «Tu sala» y la vista previa tal y como saldrá en la lista (el brochazo de la cartelera); debajo, los selectores de
       // Partido rápido (pegatinas de tinta, se desplazan por dentro) y «Abrir sala» en parche cosido, siempre a la vista.
       h = note() + '<div class="ol-mk ' + (cb ? 'v-beach' : 'v-hall') + '">' +
         '<div class="mk-top"><i class="sp-chip">Tu sala</i><small>Así sale en la lista</small></div>' +
         '<div class="mk-prev" aria-hidden="true">' + fxHTML(pr, { prev: true, idx: 1 }) + '</div>' +
-        '<div class="mk-sels ol-scroll" data-nav>' +
-        selRow('venue', 'Escenario', ck, cb ? 'En la arena' : 'En pista cubierta', 0) +
-        selRow('map', 'Sede', vn, 'Donde se juega', 2) +
-        selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set', 1) +
-        (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set', 3)) +
-        selRow('net', 'Conexión', fl ? 'Fluida (v2)' : 'Precisa (v1)', fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo', 2) +
-        selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador', 0) + '</div>' +
-        '<p class="mk-tip">' + (fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones en esta versión.'
-          : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.') + '</p></div>' +
+        '<div class="mk-sels ol-scroll" data-nav>' + mkRows(c, cb, ck, vn, fl) + '</div>' +
+        '<p class="mk-tip">' + mkTip(c, fl) + '</p></div>' +
         '<div class="ol-bar ol-bar2 mk-go" data-nav><button class="ol-act ol-new sp-patch" data-a="open"' + (L.busy ? ' disabled' : '') + '><span class="sp-l"><span class="sp-t">Abrir sala</span>' +
         '<small class="sp-s">' + esc(ck + (vn && vn !== ck ? ', ' + vn : '')) + '</small></span></button></div>';
+    } else if (v === 'room' && L.mx) { h = note() + mRoomHTML(false);   // (online de varios)
     } else if (v === 'room' && L.room) {
       var r2 = L.room, host = L.role === 'host', me = myName(), riv = L.rival;
       var st = '', bad = false;
@@ -1255,7 +1324,9 @@
 
   function step(k, d) {
     var c = L.cfg; if (!c) return;
-    if (k === 'venue') c.venue = c.venue === 'beach' ? 'hall' : 'beach';
+    if (k === 'fmt') { var FM = ['1v1', '2v2', '6v6'], fi = FM.indexOf(c.fmt); c.fmt = FM[((fi < 0 ? 0 : fi) + (d > 0 ? 1 : -1) + 3) % 3]; cfgFix(c); }
+    else if ((k === 'venue' && c.fmt === '6v6') || (k === 'net' && c.fmt !== '1v1')) return;   // (filas fijas por el formato)
+    else if (k === 'venue') c.venue = c.venue === 'beach' ? 'hall' : 'beach';
     else if (k === 'map') { var ms = maps(c.venue), cur = c.venue === 'beach' ? c.mapB : c.mapH, i = ms.indexOf(cur); i = (i + (d > 0 ? 1 : -1) + ms.length) % ms.length; if (c.venue === 'beach') c.mapB = ms[i]; else c.mapH = ms[i]; }
     else if (k === 'bo') c.bo = c.bo === 3 ? 1 : 3;
     else if (k === 'pts') { var PV = [11, 15, 21, 25], pi = PV.indexOf(c.pts); c.pts = PV[((pi < 0 ? 2 : pi) + (d > 0 ? 1 : -1) + PV.length) % PV.length]; }
@@ -1279,7 +1350,7 @@
     else if (a === 'editX') { var ek = L.edit; L.edit = ''; L.osk = null; render(true); focusA(ek); }
     else if (a === 'share') shareRoom();
     else if (a === 'helpOk') { ls(HELPK, '1'); setView('list'); refreshList(false); focusA(L.helpFrom || 'help'); L.helpFrom = ''; }
-    else if (a === 'new') { L.cfg = prefs(); L.msg = ''; L.lastSel = ''; setView('create'); setTimeout(function () { var f = first(); if (f) f.focus(); }, 30); }
+    else if (a === 'new') { L.cfg = cfgFix(prefs()); L.msg = ''; L.lastSel = ''; setView('create'); setTimeout(function () { var f = first(); if (f) f.focus(); }, 30); }
     else if (a === 'open') createRoom();
     else if (a === 'name' || a === 'code') {
       L.edit = a; L.msg = '';
@@ -1293,6 +1364,14 @@
     else if (a === 'refresh') refreshList(true);
     else if (a === 'leave') { leaveRoom(); L.msg = ''; setView('list'); refreshList(true); focusA('new'); }
     else if (a === 'copy') copyCode();
+    // online de varios (sala de espera con plazas)
+    else if (a === 'chair') mChair(+b.getAttribute('data-id'));
+    else if (a === 'ready') mReady();
+    else if (a === 'start') mStart();
+    else if (a === 'swap') mSwap();
+    else if (a === 'kick') mKick();
+    else if (a === 'unpick') { L.pick = ''; render(); focusA('leave'); }
+    else if (a === 'pick') mPick(b.getAttribute('data-id'));
   }
   function copyCode() {
     var c = L.room && L.room.code; if (!c) return;
@@ -1318,6 +1397,903 @@
     var copy = function () { try { navigator.clipboard.writeText(txt + ' ' + url).then(copied, copied); } catch (e) { copied(); } };
     if (navigator.share) { try { navigator.share({ title: 'Take the Court', text: txt, url: url }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); }); return; } catch (e) { } }
     copy();
+  }
+
+  /* =====================================================================================================================
+   * ONLINE DE VARIOS (sprint online-multi, paquete P6; notes/online-multi-brief.md §4-5, notes/online-multi-requests.md)
+   * Salas de 2 contra 2 (hasta 4 personas) y 6 contra 6 (hasta 12, siempre en Pabellón), y la Carrera cooperativa
+   * (VB.NetLobby.coop, para P7). Cada persona lleva UN jugador; la IA, los sitios libres. Sala = esquema v3 de js/netroom.js.
+   *  - Estrella: el anfitrión abre un enlace WebRTC con CADA invitado, en paralelo (una oferta por invitado en cuanto se sienta en
+   *    la sala; sig/o_<uid> y sig/a_<uid>). E.links = {uid: Link} (L.mx.links en el lobby). Los invitados no se conectan entre sí.
+   *  - En cuanto el enlace abre, todo va por el canal 'ctl' (JSON) y ese invitado deja de leer Firestore: saludo ('lb-hi': nombre,
+   *    atributos, look, conexión, puesto preferido), la sala ('lb': ro = {v, ko, m: [{u, n, c, r, p, h, ok}]} = uid, nombre, sitio
+   *    (-1 = de pie), listo, ping (ms, lo mide el anfitrión), anfitrión, conectado; ko = camisetas de los dos equipos), sentarse
+   *    ('lb-sit'), listo ('lb-rdy'), latido ('lb-ping' / 'lb-pong' cada KEEP_MS: el ping y la caída sin aviso, DEAD_MS), sacar
+   *    ('lb-out'), salir ('lb-bye') y empezar ('lb-go'). Lo grande va troceado en piezas de CHUNK caracteres ('lbk', ≤ 12 KB en
+   *    UTF-8: SCTP lleva mal los mensajes de más de 16 KB en algunos navegadores). Todos empiezan por {"k":"lb…" (o "cx" en la coop).
+   *  - Sitio c = equipo · porLado + índice en el equipo (2v2: 0-1; 6v6: 0-5 = S, OH1, MB1, OPP, OH2, MB2, el orden de la sim). En la
+   *    coop todos los sitios son del equipo 0.
+   *  - Arranque: «Empezar» (anfitrión; cuando todos los que están dentro están sentados y listos) manda a cada invitado sentado
+   *    {k:'lb-go', us (uid de cada plaza), humans [{team, idx, name}], looks, seed, opts, model, fmt}. La plaza 0 es la del anfitrión
+   *    y las demás van por sitio. Un invitado que no llegó a conectar se suelta (su sitio lo lleva la IA; la sala no se rehace).
+   *    Luego ctx.actions.startOnline (main.js; notes/online-multi-requests.md P4 → P6) con humans, seat, links (anfitrión: los de
+   *    los invitados en el orden de sus plazas, links[k] = plaza k + 1; invitado: [el del anfitrión]), opts (anfitrión; el invitado
+   *    null, como en el 1 contra 1: llegan en el saludo de la sesión), model y format.
+   *  - En pleno partido, si un enlace cae, se renegocia esa pareja sobre la misma sala (gen + 1), como en el 1 contra 1.
+   * ===================================================================================================================== */
+  var FMT_TXT = { '1v1': '1 contra 1', '2v2': '2 contra 2', '6v6': '6 contra 6' };
+  var ROLE6_TXT = ['Colocador', 'Receptor 1', 'Central 1', 'Opuesto', 'Receptor 2', 'Central 2'], ROLE6_K = ['S', 'OH', 'MB', 'OPP', 'OH', 'MB'];
+  var KEEP_MS = 1000, DEAD_MS = 9000, PUMP_MS = 40, CHUNK = 4000, RO_PING_MS = 2000, BAN_MS = 15000;
+  // (salir de la app antes de empezar, p. ej. a WhatsApp a pegar el código: el móvil congela los temporizadores. Quien se va avisa
+  //  ('lb-away') y los demás le esperan AWAY_MS en vez de DEAD_MS; la propia página no cuenta silencios mientras está oculta.
+  //  Las caídas de verdad las da el estado 'closed' del enlace. LEFT_BAN_MS: veto corto tras salir, más que un sondeo de ida y vuelta)
+  var AWAY_MS = 60000, LEFT_BAN_MS = 4000;
+  IC.swap = svg('M4 8.5h14.5l-3.5-3.5M20 15.5H5.5L9 19');
+  function noop() { }
+  function fmtOf(r) { return !r || !r.multi ? '1v1' : r.fmt === '6v6' ? '6v6' : '2v2'; }
+  function perSide(r) { return r && r.fmt === '6v6' ? 6 : 2; }
+  function nChairs(r) { return r && r.mode === 'coop' ? perSide(r) : 2 * perSide(r); }
+  function chairOf(r, c) { var ps = perSide(r); return { t: (c / ps) | 0, i: c % ps }; }
+  function dorsal(r, c) { var q = chairOf(r, c); return perSide(r) === 6 ? q.t * 6 + q.i + 1 : [[1, 2], [3, 9]][q.t][q.i]; }
+  function chairRole(r, c) { var q = chairOf(r, c); return perSide(r) === 6 ? ROLE6_TXT[q.i] : 'Jugador ' + (q.i + 1); }
+  /** Puesto preferido en el 6 contra 6 (el de Partido rápido, ui.js: localStorage 'make-the-cut.role6'). */
+  function role6Pref() { var v = ls('make-the-cut.role6'); return ROLE6_K.indexOf(v) >= 0 ? v : ''; }
+  function iceOpt() { return Q.netice === 'none' && LOCAL ? [] : undefined; }
+  /** Look de una plaza del online de varios: cada humano lleva UN jugador, así que basta su n.º 1 (menos bytes en 'lb-go'). */
+  function trimLook(lk) { lk = saneLook(lk); return lk ? { fits: [lk.fits[0] || lk.fits[1] || null, null], kit: lk.kit } : null; }
+  function cfgFix(c) { if (c.fmt === '6v6') c.venue = 'hall'; return c; }
+  /** «Crear sala»: la sala de muestra (así sale en la lista). */
+  function mkPrev(c, cur) {
+    var cb = c.venue === 'beach', m = c.fmt === '2v2' || c.fmt === '6v6';
+    var pr = { name: myName(), venue: c.venue, map: cur, bo: c.bo, pts: cb ? 21 : c.pts, even: c.even, net: c.model === 'fluida' && !m ? 'fluida' : undefined };
+    if (m) { pr.multi = true; pr.mode = 'vs'; pr.fmt = c.fmt; pr.cap = c.fmt === '6v6' ? 12 : 4; pr.nseat = 0; pr.free = pr.cap - 1; pr.state = 'open'; }
+    return pr;
+  }
+  /** Filas de «Crear sala» (mismo orden en el móvil y en PC). 6v6: Escenario fijo en Pabellón; Conexión: 1v1 a elegir, 2v2 Precisa,
+   *  6v6 la del anfitrión (model 'host'). */
+  function mkRows(c, cb, ck, vn, fl) {
+    var six = c.fmt === '6v6', m = c.fmt === '2v2' || six;
+    var netV = !m ? (fl ? 'Fluida (v2)' : 'Precisa (v1)') : six ? 'Anfitrión' : 'Precisa (v1)';
+    var netH = !m ? (fl ? 'Tu lado, sin retraso' : 'Los dos veis lo mismo') : six ? 'La partida va por quien crea la sala' : 'En 2 contra 2, siempre Precisa';
+    return selRow('fmt', 'Formato', FMT_TXT[c.fmt] || FMT_TXT['1v1'], !m ? 'Tú y tu rival, cada uno con un compañero IA' : six ? 'Hasta 12 personas; la IA, el resto' : 'Hasta 4 personas; la IA, el resto', 1) +
+      selRow('venue', 'Escenario', ck, six ? 'El 6 contra 6 es en pista' : cb ? 'En la arena' : 'En pista cubierta', 0, six) +
+      selRow('map', 'Sede', vn, 'Donde se juega', 2) +
+      selRow('bo', 'Partido', c.bo === 3 ? 'Mejor de 3' : '1 set', c.bo === 3 ? (cb ? 'Sets a 21; el tercero, a 15' : 'Gana quien gane 2 sets') : 'Un solo set', 1) +
+      (cb ? '' : selRow('pts', 'Puntos', String(c.pts), 'Puntos por set', 3)) +
+      selRow('even', 'Igualado', c.even ? 'Sí' : 'No', c.even ? 'Nadie lleva atributos ni insignias' : 'Cada persona, con los de su jugador', 0) +
+      selRow('net', 'Conexión', netV, netH, 2, m);
+  }
+  function mkTip(c, fl) {
+    if (c.fmt === '6v6') return 'Cada persona lleva un jugador y la IA, los sitios libres. Mejor si quien crea la sala tiene buena conexión (wifi o cable).';
+    if (c.fmt === '2v2') return 'Cada persona lleva un jugador y la IA, los sitios libres. Tú repartes los sitios en la sala de espera.';
+    return fl ? 'Tu equipo responde al instante y el rival se ve una pizca en diferido. Sin repeticiones en esta versión.'
+      : c.even ? 'Igualado: nadie lleva atributos ni insignias.' : 'Cada persona juega con los atributos de su jugador.';
+  }
+
+  /* ---- motor de la sala (anfitrión o invitado; lo usan el lobby y la Carrera cooperativa) ---- */
+  /** o = {role, room, coop, mock, name, look, onChange(E), onNote(texto, malo, E), onEnd(why, E), onGo(msg, E)} */
+  function Mx(o) {
+    return { o: o, role: o.role, room: o.room, coop: !!o.coop, mock: !!o.mock, myU: o.mock ? 'mockMe' : api().uid() || '', peers: {}, links: {}, ro: { v: 0, m: [], ko: null },
+      hi: {}, tm: {}, started: false, attached: false, closed: false, gen: 0, buf: {}, hostLink: null, heard: {}, lastPing: 0, roAt: 0, roDirty: false, ban: {}, cnt: 0, away: {},
+      status: o.role === 'host' ? 'wait' : 'connecting', gotOffer: false, nm: (o.name && NR().cleanName(o.name)) || myName(), lk: o.look ? saneLook(o.look) : null };
+  }
+  function mxEvery(E, k, ms, f) { clearInterval(E.tm[k]); E.tm[k] = setInterval(f, ms); }
+  function mxAfter(E, k, ms, f) { clearTimeout(E.tm[k]); E.tm[k] = setTimeout(f, ms); }
+  function mxStop(E, k) { clearInterval(E.tm[k]); clearTimeout(E.tm[k]); delete E.tm[k]; }
+  function mxStopAll(E, keep) { Object.keys(E.tm).forEach(function (k) { if (!keep || keep.indexOf(k) < 0) mxStop(E, k); }); }
+  function mxMem(E, u) { for (var i = 0; i < E.ro.m.length; i++) if (E.ro.m[i].u === u) return E.ro.m[i]; return null; }
+  function mxAt(E, c) { for (var i = 0; i < E.ro.m.length; i++) if (E.ro.m[i].c === c) return E.ro.m[i]; return null; }
+  function mxMine(E) { return mxMem(E, E.myU); }
+  function mxModel(E) { return roomModel(E.room); }
+  function mxLook(E) { return E.coop ? (E.lk || saneLook(myLook())) : trimLook(E.lk || myLook()); }
+  function mxHi(E) {
+    var st = myStats();
+    return { k: 'lb-hi', n: E.nm, st: { attrs: st.attrs, badges: st.badges, aimSet: myAimSet(), jsetAim: myJsetAim() }, look: mxLook(E), model: mxModel(E), lob: LOBBY, pr: role6Pref() };
+  }
+  /** Manda un objeto por 'ctl' (JSON); si pasa de CHUNK caracteres, en piezas 'lbk' que el otro lado junta (mxUnchunk). */
+  var bigN = 0;
+  function mxSend(link, o) {
+    if (!link) return;
+    var s = JSON.stringify(o);
+    if (s.length <= CHUNK) { link.send('ctl', s); return; }
+    var id = (++bigN).toString(36) + Date.now().toString(36), n = Math.ceil(s.length / CHUNK);
+    for (var i = 0; i < n; i++) link.send('ctl', JSON.stringify({ k: 'lbk', id: id, i: i, n: n, p: s.slice(i * CHUNK, (i + 1) * CHUNK) }));
+  }
+  function mxParse(d) {
+    if (typeof d !== 'string' || d.length > CHUNK * 4) return null;
+    try { var c = JSON.parse(d); return c && typeof c === 'object' && typeof c.k === 'string' ? c : null; } catch (e) { return null; }
+  }
+  /** Junta las piezas 'lbk' (llegan en orden: el canal es fiable y ordenado). Devuelve el mensaje entero o null. Hasta 8 MB. */
+  function mxUnchunk(E, c) {
+    if (!c || c.k !== 'lbk') return c;
+    if (typeof c.id !== 'string' || c.id.length > 40 || !(c.n > 0 && c.n <= 2000) || !(c.i >= 0 && c.i < c.n) || typeof c.p !== 'string') return null;
+    var b = E.buf[c.id];
+    if (!b) { for (var k in E.buf) if (Date.now() - E.buf[k].t > 60000) delete E.buf[k]; b = E.buf[c.id] = { n: c.n | 0, got: 0, p: [], t: Date.now() }; }
+    if (b.p[c.i] == null) { b.p[c.i] = c.p; b.got++; }
+    if (b.got < b.n) return null;
+    delete E.buf[c.id];
+    try { var o = JSON.parse(b.p.join('')); return o && typeof o === 'object' && typeof o.k === 'string' && o.k !== 'lbk' ? o : null; } catch (e) { return null; }
+  }
+  function mxLobbyMsg(d) { return typeof d === 'string' && (d.lastIndexOf('{"k":"lb', 0) === 0 || d.lastIndexOf('{"k":"cx"', 0) === 0); }
+
+  /* ---- anfitrión ---- */
+  function mxHostInit(E) {
+    E.ro.m = [{ u: E.myU, n: E.nm, c: E.coop ? 0 : mxPrefChair(E, E.myU, role6Pref()), r: true, h: 1, ok: 1, p: 0 }];
+    E.hi[E.myU] = mxHi(E); E.ro.v = 1; mxKits(E);
+    if (E.mock) return;
+    mxEvery(E, 'poll', ROOM_POLL, function () { mxHostPoll(E); });
+    mxEvery(E, 'beat', NR().BEAT_MS, function () { api().beat().then(function (r) { if (!r && !E.closed && !E.started) mxEnd(E, 'gone'); }, noop); });
+    mxEvery(E, 'pump', PUMP_MS, function () { mxPump(E); });
+  }
+  /** Sitio para quien entra: al equipo con menos personas (en el 6v6, su puesto preferido si está libre; si no, receptor). -1 = lleno. */
+  function mxPrefChair(E, u, pref) {
+    var r = E.room, ps = perSide(r), n = nChairs(r), cnt = [0, 0], free = [], i;
+    for (i = 0; i < n; i++) { var m = mxAt(E, i); if (m && m.u !== u) cnt[(i / ps) | 0]++; else free.push(i); }
+    if (!free.length) return -1;
+    var t0 = E.coop ? 0 : cnt[1] < cnt[0] ? 1 : 0, order = E.coop ? [0] : [t0, 1 - t0];
+    // 6v6: su puesto en cualquier equipo que no quede con 2 personas más que el otro
+    if (ps === 6 && pref) for (var k0 = 0; k0 < order.length; k0++) {
+      var tt = order[k0]; if (!E.coop && cnt[tt] + 1 - cnt[1 - tt] > 1) continue;
+      for (var j0 = 0; j0 < free.length; j0++) if (((free[j0] / ps) | 0) === tt && ROLE6_K[free[j0] % ps] === pref) return free[j0];
+    }
+    for (var k = 0; k < order.length; k++) {
+      var fr = free.filter(function (c) { return ((c / ps) | 0) === order[k]; });
+      if (!fr.length) continue;
+      if (ps === 6) { var want = pref || 'OH'; for (var j = 0; j < fr.length; j++) if (ROLE6_K[fr[j] % ps] === want) return fr[j]; }
+      return fr[0];
+    }
+    return free[0];
+  }
+  function mxHostPoll(E) {
+    if (E.closed || E.started || E.attached || E.coopOn) return;   // (coop emparejada: ya no entra nadie; nada de Firestore en los partidos)
+    api().get(E.room.id).then(function (r) {
+      if (E.closed || E.started || E.attached || E.coopOn) return;
+      if (!r) { mxEnd(E, 'gone'); return; }
+      E.room = r;
+      var seats = r.seats || {}, now = Date.now(), u;
+      for (u in seats) if (u !== E.myU && !E.peers[u] && !(E.ban[u] > now)) mxConnect(E, u, seats[u] && seats[u].n);
+      for (u in E.peers) if (!(u in seats)) mxRelease(E, u, 'left', true);   // (se levantó de la sala: leaveMulti o bye)
+      mxCnt(E);
+      E.o.onChange(E);
+    }, noop);
+  }
+  /** cnt de la sala = invitados conectados (lo escribe solo el anfitrión, cuando cambia). */
+  function mxCnt(E) {
+    var n = 0; for (var u in E.peers) if (E.peers[u].ok) n++;
+    if (n !== E.cnt) { E.cnt = n; if (!E.mock && !E.closed) api().beat({ cnt: n }).catch(noop); }
+  }
+  /** Oferta para un invitado recién sentado (en paralelo con los demás: cada pareja con sus temporizadores 'sig:'/'connT:'+uid). */
+  function mxConnect(E, u, n) {
+    var p = E.peers[u] = { u: u, n: NR().cleanName(n) || 'Jugador', gen: nextGen(), t0: Date.now(), open: false, ok: false, ans: false, link: null };
+    var link = new VB.NetRtc.Link({ iceServers: iceOpt(), onstate: function (s) { if (E.peers[u] === p) mxLinkState(E, u, s); } });
+    p.link = E.links[u] = link;
+    if (!mxMem(E, u)) E.ro.m.push({ u: u, n: p.n, c: -1, r: false, ok: 0, p: 0 });
+    mxBump(E);
+    var id = E.room.id;
+    link.offer().then(function (sdp) {
+      if (E.peers[u] !== p) return;
+      return api().putSig(id, 'offer', { sdp: sdp, gen: p.gen }, u).then(function () {
+        mxEvery(E, 'sig:' + u, SIG_POLL, function () {
+          if (E.peers[u] !== p || p.ans) { mxStop(E, 'sig:' + u); return; }
+          api().getSig(id, 'answer', u).then(function (a) {
+            if (E.peers[u] !== p || p.ans || !a || a.gen !== p.gen) return;
+            p.ans = true; mxStop(E, 'sig:' + u);
+            link.accept(a.sdp).catch(function () { if (E.peers[u] === p) mxRelease(E, u, 'noconn'); });
+          }, noop);
+        });
+      });
+    }).catch(function () { if (E.peers[u] === p) mxRelease(E, u, 'noconn'); });
+    // (no conecta en CONNECT_MS, o abre pero no saluda: se suelta su plaza y su sitio lo lleva la IA; la sala sigue)
+    mxAfter(E, 'connT:' + u, CONNECT_MS, function () { if (E.peers[u] === p && !p.ok && !E.started) mxRelease(E, u, 'noconn'); });
+  }
+  function mxLinkState(E, u, s) {
+    var p = E.peers[u]; if (!p) return;
+    if (s === 'open') {
+      p.open = true; E.heard[u] = Date.now(); mxStop(E, 'sig:' + u); mxStop(E, 'relink:' + u);
+      if (!E.mock) api().delSig(E.room.id, u).catch(noop);   // (la señalización lleva direcciones de red: fuera en cuanto abre)
+    } else if (s === 'down' || s === 'closed') {
+      if (E.started || E.attached) { if (s === 'down') mxRelinkHost(E, u); }
+      else { mxDrain(E, u, p.link); if (E.peers[u] === p && !E.closed) mxRelease(E, u, p.ok ? 'gone' : 'noconn'); }   // (su adiós puede estar aún en la cola)
+    }
+  }
+  /** Suelta a un invitado: why = 'left' (salió) | 'kick' (lo saca el anfitrión) | 'noconn' (no llegó a conectar) | 'gone' (se cayó)
+   *  | 'nostart' (estaba de pie al empezar) | 'mismatch'. Su sitio vuelve a ser de la IA; noKick: ya no está sentado en la sala. */
+  function mxRelease(E, u, why, noKick) {
+    var p = E.peers[u], m = mxMem(E, u);
+    mxStop(E, 'sig:' + u); mxStop(E, 'connT:' + u); mxStop(E, 'relink:' + u);
+    delete E.peers[u]; delete E.links[u]; delete E.hi[u]; delete E.heard[u];
+    if (p && p.link) {
+      var lk = p.link; lk.onclose = null; lk.onstate = null;
+      if (lk.state === 'open' && (why === 'kick' || why === 'nostart' || why === 'mismatch')) { try { lk.send('ctl', JSON.stringify({ k: 'lb-out', why: why })); } catch (e) { } setTimeout(function () { lk.close(); }, 400); }
+      else lk.close();
+    }
+    if (m) E.ro.m = E.ro.m.filter(function (x) { return x.u !== u; });
+    // (que el siguiente sondeo no le vuelva a ofrecer mientras la sala aún lo tiene sentado; si salió él, un veto corto, más largo que la
+    //  ida y vuelta de un sondeo: una lectura que ya iba de camino aún lo trae sentado y no hay que ofrecerle otra vez)
+    E.ban[u] = Date.now() + (why === 'left' ? LEFT_BAN_MS : BAN_MS);
+    if (!E.mock && !E.closed) { if (!noKick) api().kick(u).catch(noop); api().delSig(E.room.id, u).catch(noop); }
+    if ((why === 'noconn' || why === 'gone') && E.o.onNote) E.o.onNote((m ? m.n : 'Alguien') + (why === 'noconn' ? ' no ha podido conectar: su sitio lo lleva la IA.' : ' se ha desconectado.'), true, E);
+    if (E.closed) return;
+    if (E.coop) { mxEnd(E, why === 'left' ? 'mateLeft' : why); return; }   // (coop: sin compañero no hay sala)
+    mxCnt(E); mxBump(E);
+  }
+  function mxRelinkHost(E, u) {
+    var p = E.peers[u]; if (!p) return;
+    var tries = 0;
+    var go = function () {
+      if (E.peers[u] !== p || E.closed || !p.link || p.link.state === 'open' || p.link.state === 'closed' || tries++ > 6) { mxStop(E, 'relink:' + u); return; }
+      var gen = p.gen = nextGen(), link = p.link, id = E.room.id;
+      link.offer().then(function (sdp) { return api().putSig(id, 'offer', { sdp: sdp, gen: gen }, u); }).then(function () {
+        var t0 = Date.now();
+        mxEvery(E, 'sig:' + u, SIG_POLL, function () {
+          if (p.gen !== gen || link.state === 'open' || Date.now() - t0 > 9000) { mxStop(E, 'sig:' + u); return; }
+          api().getSig(id, 'answer', u).then(function (a) { if (a && a.gen === gen && p.gen === gen) { mxStop(E, 'sig:' + u); link.accept(a.sdp).catch(noop); } }, noop);
+        });
+      }).catch(noop);
+    };
+    mxStop(E, 'relink:' + u); setTimeout(go, 600); mxEvery(E, 'relink:' + u, 10000, go);
+  }
+  /** Camisetas de los dos equipos para las columnas (las mismas que main.js netKitMulti: la del primer humano de cada equipo, en el
+   *  orden de las plazas, por VB.Players.onlineKits). */
+  function mxKits(E) {
+    var cap = [null, null], P2 = VB.Players, L2 = mxOrder(E);
+    for (var i = 0; i < L2.length; i++) { var t = chairOf(E.room, L2[i].c).t, hi = E.hi[L2[i].u]; if (!cap[t] && hi && hi.look && hi.look.kit) cap[t] = hi.look.kit; }
+    var ks = P2 && P2.onlineKits ? safe(function () { return P2.onlineKits(cap[0], cap[1]); }) : null;
+    E.ro.ko = ks ? [ks[0].kitShirt | 0, ks[1].kitShirt | 0] : null;
+  }
+  /** Sentados en el orden de las plazas de la sim: el anfitrión el primero y los demás por sitio. */
+  function mxOrder(E) {
+    return E.ro.m.filter(function (m) { return m.c >= 0; }).sort(function (a, b) { return a.h ? -1 : b.h ? 1 : a.c - b.c; });
+  }
+  function mxBump(E) { E.ro.v++; mxKits(E); mxBcast(E); if (E.o.onChange) E.o.onChange(E); }
+  function mxBcast(E) {
+    if (E.role !== 'host' || E.mock) return;
+    E.roAt = Date.now(); E.roDirty = false;
+    var msg = { k: 'lb', ro: E.ro };
+    for (var u in E.peers) { var p = E.peers[u]; if (p.ok && p.link && p.link.state === 'open') mxSend(p.link, msg); }
+  }
+  /** Lista de la sala que manda el anfitrión, saneada (nombres, sitios dentro de la sala, como mucho cap personas). */
+  function mxSaneRo(E, ro) {
+    if (!ro || typeof ro !== 'object' || !Array.isArray(ro.m)) return null;
+    var n = nChairs(E.room), out = { v: ro.v | 0, m: [], ko: null }, used = {};
+    if (Array.isArray(ro.ko) && ro.ko.length === 2) out.ko = [ro.ko[0] & 0xffffff, ro.ko[1] & 0xffffff];
+    ro.m.slice(0, Math.max(2, E.room.cap | 0)).forEach(function (x) {
+      if (!x || typeof x.u !== 'string' || x.u.length > 128 || used[x.u]) return;
+      var c = Math.floor(+x.c); if (!(c >= 0 && c < n)) c = -1;
+      used[x.u] = 1;
+      out.m.push({ u: x.u, n: NR().cleanName(x.n) || 'Jugador', c: c, r: !!x.r && c >= 0, p: Math.max(0, Math.min(9999, x.p | 0)), h: x.h ? 1 : 0, ok: x.ok ? 1 : 0 });
+    });
+    return out;
+  }
+
+  /* ---- los dos lados: leer los enlaces (antes del partido) y el latido ---- */
+  function mxPump(E) {
+    if (E.closed || E.attached || E.started) return;
+    var now = Date.now(), host = E.role === 'host', us = host ? Object.keys(E.peers) : [E.room.host];
+    for (var i = 0; i < us.length; i++) {
+      var u = us[i], link = host ? E.peers[u] && E.peers[u].link : E.hostLink;
+      if (!link || link.state !== 'open') continue;
+      var ms = link.poll();
+      for (var j = 0; j < ms.length; j++) {
+        if (ms[j].ch !== 'ctl') continue;
+        var c = mxUnchunk(E, mxParse(ms[j].data));
+        if (c) mxMsg(E, u, c, now);
+        // (un 'lb-go' arranca el partido o la sala se cierra: lo que quede en el lote es de la sesión, vuelve a la cola del enlace)
+        if (E.closed || E.started || E.attached) { if (!E.closed) link.q = ms.slice(j + 1).concat(link.q); return; }
+      }
+    }
+    if (now - E.lastPing < KEEP_MS) return;
+    E.lastPing = now;
+    if (host) {
+      for (var u2 in E.peers) {
+        var p = E.peers[u2]; if (!p.open || !p.link || p.link.state !== 'open') continue;
+        mxSend(p.link, { k: 'lb-ping', t: now });
+        if (!docHidden() && now - (E.heard[u2] || now) > (E.away[u2] ? AWAY_MS : DEAD_MS)) mxRelease(E, u2, 'gone');   // (sin noticias: se cayó sin avisar)
+      }
+      if (E.roDirty && now - E.roAt > RO_PING_MS) { mxBcast(E); E.o.onChange(E); }   // (los pings, cada 2 s como mucho)
+    } else if (!docHidden() && E.hostLink && E.hostLink.state === 'open' && now - (E.heard.host || now) > (E.away.host ? AWAY_MS : DEAD_MS)) mxEnd(E, 'hostLost');
+  }
+  function docHidden() { return typeof document !== 'undefined' && !!document.hidden; }
+  /** La página se oculta o vuelve (antes de empezar): aviso a los demás y, al volver, el silencio de mientras no cuenta. */
+  function mxVis(E) {
+    if (!E || E.closed || E.mock || E.started || E.attached) return;
+    var hid = docHidden(), now = Date.now(), msg = { k: 'lb-away', a: hid ? 1 : 0 };
+    mxLinksOf(E).forEach(function (k) { if (k.state === 'open') mxSend(k, msg); });
+    if (!hid) { for (var u in E.heard) E.heard[u] = now; E.lastPing = 0; }
+  }
+  /** Lee lo que quede en la cola de un enlace que se acaba de caer (antes del partido): el adiós o el «te sacan» llegan antes. */
+  function mxDrain(E, u, link) {
+    if (!link || E.attached || E.started) return;
+    var ms = link.poll(), t = Date.now();
+    for (var i = 0; i < ms.length && !E.closed; i++) {
+      if (ms[i].ch !== 'ctl') continue;
+      var c = mxUnchunk(E, mxParse(ms[i].data)); if (c) mxMsg(E, u, c, t);
+      // (como en mxPump: tras un 'lb-go' lo que queda es de la sesión del partido —el hola con las opciones—, vuelve a la cola)
+      if (E.started || E.attached) { if (!E.closed) link.q = ms.slice(i + 1).concat(link.q); return; }
+    }
+  }
+  function mxMsg(E, u, c, now) {
+    var host = E.role === 'host';
+    E.heard[host ? u : 'host'] = now;
+    if (c.k === 'cx') { coopIn(E, c.d); return; }
+    if (c.k === 'lb-away') { E.away[host ? u : 'host'] = c.a ? now : 0; return; }   // (se fue a otra app / volvió)
+    if (host) {
+      var p = E.peers[u], m = mxMem(E, u); if (!p) return;
+      if (c.k === 'lb-pong') { var rt = now - (+c.t || 0); if (m && rt >= 0 && rt < 10000) { if (Math.abs(rt - (m.p | 0)) > 8) E.roDirty = true; m.p = rt; } return; }
+      if (c.k === 'lb-hi') {
+        if ((c.model === 'host' || c.model === 'fluida' ? c.model : 'precisa') !== mxModel(E)) { mxRelease(E, u, 'mismatch'); return; }
+        var st = c.st && typeof c.st === 'object' ? c.st : {};
+        E.hi[u] = { st: { attrs: sanAttrs(st.attrs), badges: sanBadges(st.badges), aimSet: st.aimSet !== false, jsetAim: st.jsetAim === true }, look: E.coop ? saneLook(c.look) : trimLook(c.look) };
+        var first = !p.ok; p.ok = true; mxStop(E, 'connT:' + u);
+        if (m) { m.n = NR().cleanName(c.n) || p.n; m.ok = 1; if (m.c < 0 && first) m.c = mxPrefChair(E, u, ROLE6_K.indexOf(c.pr) >= 0 ? c.pr : ''); }
+        mxCnt(E); mxBump(E);
+        if (E.coop) { mxSend(p.link, mxHi(E)); coopReady(E, u); }
+        return;
+      }
+      if (!m || !p.ok || E.started) return;
+      if (c.k === 'lb-sit') { var cc = Math.floor(+c.c); if (cc === -1) { m.c = -1; m.r = false; } else if (cc >= 0 && cc < nChairs(E.room) && !mxAt(E, cc)) m.c = cc; mxBump(E); return; }
+      if (c.k === 'lb-rdy') { m.r = !!c.r && m.c >= 0; mxBump(E); return; }
+      if (c.k === 'lb-bye') { var nm = m.n; mxRelease(E, u, 'left', false); if (E.o.onNote && !E.closed) E.o.onNote(nm + ' ha salido de la sala.', false, E); return; }
+      return;
+    }
+    // invitado: lo que manda el anfitrión
+    if (c.k === 'lb') { var ro = mxSaneRo(E, c.ro); if (ro) { E.ro = ro; E.o.onChange(E); } return; }
+    if (c.k === 'lb-ping') { if (E.hostLink) mxSend(E.hostLink, { k: 'lb-pong', t: c.t }); return; }
+    if (c.k === 'lb-hi') { E.hi.host = { n: NR().cleanName(c.n) || '', look: E.coop ? saneLook(c.look) : trimLook(c.look) }; if (E.coop) coopReady(E, E.room.host); return; }
+    if (c.k === 'lb-out') { mxEnd(E, c.why === 'kick' || c.why === 'nostart' || c.why === 'mismatch' ? c.why : 'out'); return; }
+    if (c.k === 'lb-bye') { mxEnd(E, 'hostLeft'); return; }
+    if (c.k === 'lb-go' && !E.started && E.o.onGo) E.o.onGo(c, E);
+  }
+
+  /* ---- invitado ---- */
+  function mxGuestInit(E) {
+    if (E.mock) return;
+    mxGuestListen(E, 0);
+    mxEvery(E, 'poll', 3000, function () { mxGuestPoll(E); });
+    mxEvery(E, 'pump', PUMP_MS, function () { mxPump(E); });
+    // (como en el 1 contra 1: la oferta llega en 2-4 s; sin ella y sin latido de la sala, «no responde»)
+    var tJoin = Date.now();
+    mxAfter(E, 'offerT', OFFER_MS, function chk() {
+      if (E.closed || E.started || E.gotOffer) return;
+      if (Date.now() - tJoin > OFFER_MAX) { mxEnd(E, 'noHost'); return; }
+      api().get(E.room.id).then(function (r2) {
+        if (E.closed || E.started || E.gotOffer) return;
+        if (r2 && r2.state === 'play') mxEnd(E, 'late');
+        else if (r2 && r2.age > NR().BEAT_MS + 10000) mxEnd(E, 'noHost'); else mxAfter(E, 'offerT', 5000, chk);
+      }, function () { mxAfter(E, 'offerT', 5000, chk); });
+    });
+  }
+  /** Espera una oferta de generación nueva en sig/o_<tu uid> y contesta (también para renegociar en pleno partido). */
+  function mxGuestListen(E, minGen) {
+    var id = E.room.id, seen = minGen;
+    mxEvery(E, 'sig', SIG_POLL, function () {
+      if (E.closed) { mxStop(E, 'sig'); return; }
+      if (E.hostLink && E.hostLink.state === 'open' && !(E.started && netWaiting())) return;
+      api().getSig(id, 'offer', E.myU).then(function (o) {
+        if (!o || o.gen <= seen || E.closed) return;
+        seen = o.gen; E.gen = o.gen;
+        if (!E.gotOffer && !E.started) {
+          E.gotOffer = true; mxStop(E, 'offerT');
+          mxAfter(E, 'connT', CONNECT_MS + 5000, function () { if (!E.closed && !E.started && !E.hiSent) mxEnd(E, 'noconn'); });
+        }
+        var link = (E.started || E.attached) && E.hostLink ? E.hostLink : mxNewHostLink(E);
+        link.answer(o.sdp).then(function (sdp) { return api().putSig(id, 'answer', { sdp: sdp, gen: o.gen }, E.myU); }).catch(noop);
+      }, noop);
+    });
+  }
+  function mxNewHostLink(E) {
+    if (E.hostLink) { var o = E.hostLink; o.onstate = null; o.onclose = null; o.close(); }
+    var link = new VB.NetRtc.Link({ iceServers: iceOpt(), onstate: function (s) { if (E.hostLink === link) mxGuestLinkState(E, s); } });
+    E.hostLink = link; E.links = {}; E.links[E.room.host] = link;
+    return link;
+  }
+  function mxGuestLinkState(E, s) {
+    if (s === 'open') {
+      E.heard.host = Date.now();
+      if (E.started || E.attached || E.closed) return;
+      mxStop(E, 'poll'); mxStop(E, 'offerT'); mxStop(E, 'connT');   // (desde aquí, nada de Firestore: todo va por el enlace)
+      E.status = 'linked'; E.hiSent = true; mxSend(E.hostLink, mxHi(E));
+      E.o.onChange(E);
+    } else if (s === 'down' || s === 'closed') {
+      if (E.started || E.attached) { if (s === 'down') mxGuestListen(E, E.gen); }
+      else {
+        mxDrain(E, E.room.host, E.hostLink);   // (un 'lb-bye' / 'lb-out' que llegó justo antes cuenta)
+        // (un 'lb-go' en la cola: el partido ya ha empezado y el enlace se renegocia como en pleno partido)
+        if (E.started || E.attached) { if (s === 'down' && !E.closed) mxGuestListen(E, E.gen); return; }
+        if (!E.closed) mxEnd(E, 'hostLost');
+      }
+    }
+  }
+  function mxGuestPoll(E) {
+    if (E.closed || E.started || (E.hostLink && E.hostLink.state === 'open')) return;
+    api().get(E.room.id).then(function (r) {
+      if (E.closed || E.started || (E.hostLink && E.hostLink.state === 'open')) return;
+      if (!r || r.age > NR().LIVE_MS) { mxEnd(E, 'hostLeft'); return; }
+      if (r.state === 'play' && !E.started) { mxEnd(E, 'late'); return; }   // (empezó sin mí: me senté justo antes de «Empezar»)
+      if (!(E.myU in (r.seats || {}))) { mxEnd(E, E.gotOffer ? 'noconn' : 'out'); return; }
+      E.room = r; E.o.onChange(E);
+    }, noop);
+  }
+
+  /* ---- fin, salida y arranque ---- */
+  function mxLinksOf(E) { var o = []; if (E.role === 'host') { for (var u in E.peers) if (E.peers[u].link) o.push(E.peers[u].link); } else if (E.hostLink) o.push(E.hostLink); return o; }
+  function mxCloseLinks(E) { mxLinksOf(E).forEach(function (k) { k.onclose = null; k.onstate = null; try { k.close(); } catch (e) { } }); }
+  /** La sala se acaba sin que lo pidas (te sacan, se cierra, se cae…): limpia y avisa (onEnd). */
+  function mxEnd(E, why) {
+    if (E.closed) return;
+    E.closed = true; mxStopAll(E);
+    if (!E.started) mxCloseLinks(E);
+    if (!E.mock) { if (E.role === 'host') api().close(); else if (!E.started) api().leave(E.room.id); }
+    if (E.o.onEnd) E.o.onEnd(why, E);
+  }
+  /** Sales tú (botón, Esc, coop.close): el adiós por los enlaces, la sala o tu plaza fuera. Sin onEnd. */
+  function mxLeave(E) {
+    if (E.closed) return;
+    var bye = JSON.stringify({ k: 'lb-bye' });
+    mxLinksOf(E).forEach(function (k) { if (k.state === 'open') { try { k.send('ctl', bye); } catch (e) { } } });
+    E.closed = true; mxStopAll(E);
+    mxCloseLinks(E);   // (Link.close espera a que salga el adiós si el canal aún está mandando)
+    if (!E.mock) { if (E.role === 'host') api().close(); else api().leave(E.room.id); }
+  }
+  /** Al cerrar la pestaña (pagehide): el adiós y la sala o la plaza con fetch keepalive, sin esperar. */
+  function mxBye(E) {
+    if (E.closed || E.mock) return;
+    var bye = JSON.stringify({ k: 'lb-bye' });
+    mxLinksOf(E).forEach(function (k) { if (k.state === 'open') { try { k.send('ctl', bye); } catch (e) { } } });
+    if (rooms) { try { rooms.bye(E.role, E.room.id, true); } catch (e) { } }
+  }
+  /** Un enlace del partido se cerró (main.js netStop al acabar): cuando no queda ninguno, la sala se cierra. */
+  function mxLinkGone(E, u) {
+    delete E.links[u];
+    if (E.role === 'host' && E.peers[u]) { mxStop(E, 'relink:' + u); mxStop(E, 'sig:' + u); delete E.peers[u]; }
+    if ((E.role === 'host' && Object.keys(E.peers).length) || E.closed) return;
+    E.closed = true; mxStopAll(E);
+    if (E.role === 'host' && !E.mock) api().close();
+    if (E.o.onEnd) E.o.onEnd('over', E);
+  }
+  /** ¿Puede empezar? Todos los que están dentro (conectados), sentados y listos; al menos otra persona. Los que aún conectan no
+   *  frenan: si no llegan, la IA lleva su sitio. */
+  function mxCanStart(E) {
+    var n = 0, wait = [];
+    for (var i = 0; i < E.ro.m.length; i++) {
+      var m = E.ro.m[i]; if (m.h || !m.ok) continue;
+      if (m.c < 0 || !m.r) wait.push(m.n); else n++;
+    }
+    return { ok: n > 0 && !wait.length && !E.started, wait: wait, n: n };
+  }
+  /** Anfitrión: reparte las plazas y manda 'lb-go' a cada invitado sentado. → {humans, links, us, opts, model, fmt} para startOnline. */
+  function mxGo(E) {
+    var r = E.room, even = !!r.even, seated = mxOrder(E).filter(function (m) { return m.h || (m.ok && E.peers[m.u]); });
+    var us = seated.map(function (m) { return m.u; });
+    // los que no juegan: dentro pero de pie → fuera; aún conectando → se sueltan (su sitio, la IA)
+    Object.keys(E.peers).forEach(function (u) { if (us.indexOf(u) < 0) mxRelease(E, u, E.peers[u].ok ? 'nostart' : 'noconn'); });
+    var seed = (window.crypto && crypto.getRandomValues) ? crypto.getRandomValues(new Uint32Array(1))[0] >>> 1 : Math.floor(Math.random() * 2147483647);
+    var hum = [], simH = [], looks = [], links = [];
+    seated.forEach(function (m) {
+      var q = chairOf(r, m.c), hi = E.hi[m.u] || {}, st = hi.st || {};
+      hum.push({ team: q.t, idx: q.i, name: m.n }); looks.push(hi.look || null);
+      var h = { team: q.t, idx: q.i, aimSet: st.aimSet !== false, jsetAim: st.jsetAim === true };
+      if (!even) { if (st.attrs) h.attrs = st.attrs; if (st.badges) h.badges = st.badges; }
+      simH.push(h);
+      if (!m.h) links.push(E.peers[m.u].link);
+    });
+    var opts = { online: true, seed: seed, venue: r.venue === 'beach' ? 'beach' : 'hall', mapId: r.map || '', bestOf: r.bo === 3 ? 3 : 1, points: r.pts || 21, even: even,
+      present: true, stats: true, djump: true, format: r.fmt === '6v6' ? '6v6' : '2v2', humans: simH };
+    if (E.coop) opts.coop = true;
+    var go = { k: 'lb-go', us: us, humans: hum, looks: looks, seed: seed, opts: opts, model: mxModel(E), fmt: opts.format };
+    E.started = true;
+    links.forEach(function (k) { mxSend(k, go); });
+    mxStopAll(E, ['beat']);
+    // (quien se sentó en Firestore en el último hueco del sondeo nunca llegó a E.peers: la sala ya en 'play' no admite a nadie más y la
+    //  lectura que devuelve el latido trae los sentados de verdad; los que no juegan se levantan, y su lobby lo ve en mxGuestPoll)
+    if (!E.mock) api().beat({ state: 'play', cnt: links.length }).then(function (r2) {
+      var st2 = (r2 && r2.seats) || {};
+      for (var u2 in st2) if (u2 !== E.myU && us.indexOf(u2) < 0) api().kick(u2).catch(noop);
+    }).catch(noop);
+    return { humans: hum.map(function (h, s) { return { team: h.team, idx: h.idx, name: h.name, look: looks[s] }; }), links: links, us: us, opts: opts, model: go.model, fmt: go.fmt };
+  }
+
+  /* ---- el lobby (#mpOnline) con una sala de varios ---- */
+  function mxWhy(why, E) {
+    var who = (E && E.room && E.room.name) || 'Quien creó la sala';
+    return {
+      hostLeft: who + ' ha cerrado la sala.', hostLost: 'Se ha perdido la conexión con la sala de ' + who + '.', kick: who + ' te ha sacado de la sala.',
+      noconn: 'No se ha podido conectar con la sala: vuestras redes no lo permiten. Probad otra vez o desde otra red.',
+      noHost: who + ' no responde: parece que ya no está en la sala. Prueba con otra.', gone: 'Tu sala se ha cerrado.',
+      nostart: 'La partida ha empezado sin ti (estabas de pie).', late: 'La partida ha empezado justo cuando entrabas: prueba con otra sala.', mismatch: 'La sala no coincide con lo anunciado: no hay partido.',
+      out: 'Ya no tienes sitio en esa sala.', error: 'Algo ha fallado. Vuelve a probar.'
+    }[why] || 'La sala se ha cerrado.';
+  }
+  function mCreate(c) {
+    var six = c.fmt === '6v6', venue = six ? 'hall' : c.venue, map = venue === 'beach' ? c.mapB : c.mapH;
+    L.msg = ''; L.busy = true; render();
+    api().open({ name: myName(), venue: venue, map: map, bo: c.bo, even: c.even, pts: venue === 'beach' ? 21 : c.pts, mode: 'vs', cap: six ? 12 : 4, fmt: six ? '6v6' : '2v2' }).then(function (r) {
+      L.busy = false;
+      if (!r || !r.multi) throw { code: r ? 'denied' : 'error' };
+      L.room = r; L.role = 'host'; L.rival = ''; L.fail = ''; L.started = false; L.status = 'wait'; L.pick = '';
+      L.mx = Mx({ role: 'host', room: r, onChange: mChange, onNote: mNote, onEnd: mEnd });
+      mxHostInit(L.mx);
+      setView('room');
+    }).catch(function (e) {
+      L.busy = false;
+      if (e && e.code === 'off') { setView('off'); return; }
+      // (reglas del esquema v3 sin desplegar: crear una sala de varios da 'denied'; el 1 contra 1 sigue igual)
+      L.msg = e && e.code === 'denied' ? 'Las salas de varios aún no están activadas.' : errText(e, 'No se ha podido crear la sala.'); L.msgBad = true; render();
+    });
+  }
+  function mJoined(r) {
+    L.room = r; L.role = 'guest'; L.rival = NR().cleanName(r.name) || 'Rival'; L.fail = ''; L.started = false; L.status = 'connecting'; L.pick = '';
+    L.mx = Mx({ role: 'guest', room: r, onChange: mChange, onNote: mNote, onEnd: mEnd, onGo: mGuestGo });
+    mxGuestInit(L.mx);
+    setView('room'); sound('click');
+  }
+  function mChange(E) { if (L.mx !== E) return; L.room = E.room; if (L.pick && !mxMem(E, L.pick)) L.pick = ''; render(); }
+  function mNote(t, bad, E) { if (L.mx !== E) return; L.msg = t; L.msgBad = !!bad; render(); }
+  function mEnd(why, E) {
+    if (L.mx !== E) return;
+    var was = L.started;
+    L.mx = null; stopAll(); L.room = null; L.role = ''; L.rival = ''; L.status = ''; L.started = false; L.pick = '';
+    if (was || why === 'over') { L.view = 'list'; return; }
+    L.msg = mxWhy(why, E); L.msgBad = true;
+    if (L.on) { setView('list'); refreshList(false); }
+  }
+  function mStart() {
+    var E = L.mx, C = ctx(); if (!E || E.role !== 'host' || E.started) return;
+    var cs = mxCanStart(E);
+    if (!cs.ok) { L.msg = cs.wait.length ? 'Faltan por estar listos: ' + cs.wait.join(', ') + '.' : 'Espera a que entre alguien más.'; L.msgBad = false; render(); return; }
+    if (!C || !C.actions || !C.actions.startOnline) return;
+    L.pick = '';
+    var g = mxGo(E);
+    L.started = true; L.status = 'play'; stopAll();
+    g.links.forEach(function (k, i) { var u = g.us[i + 1]; k.onclose = function () { mxLinkGone(E, u); }; });
+    // (linkSeats[j] = plaza del enlace j: P2 la sabe también por el saludo de cada invitado; main.js la pasa si la reenvía)
+    var ok = C.actions.startOnline({ humans: g.humans, seat: 0, links: g.links, linkSeats: g.links.map(function (k, i) { return i + 1; }), opts: g.opts, name: myName(), model: g.model, format: g.fmt, expect: null });
+    if (!ok) { L.started = false; mxEnd(E, 'error'); return; }
+    render();
+  }
+  function mGuestGo(c, E) {
+    var C = ctx(), r = E.room, us = Array.isArray(c.us) ? c.us : [], seat = us.indexOf(E.myU), H = Array.isArray(c.humans) ? c.humans : [], n = us.length;
+    if (seat < 1 || n > (r.cap | 0) || H.length !== n) { mxEnd(E, 'out'); return; }
+    var model = roomModel(r);
+    if ((c.model === 'host' || c.model === 'fluida' ? c.model : 'precisa') !== model) { mxEnd(E, 'mismatch'); return; }
+    if (!C || !C.actions || !C.actions.startOnline) { mxEnd(E, 'error'); return; }
+    var ps = perSide(r), humans = [];
+    for (var s = 0; s < n; s++) {
+      var h = H[s] || {};
+      humans.push({ team: h.team === 1 && r.mode !== 'coop' ? 1 : 0, idx: Math.max(0, Math.min(ps - 1, h.idx | 0)), name: NR().cleanName(h.name) || 'Jugador ' + (s + 1),
+        look: s === seat ? mxLook(E) : saneLook(Array.isArray(c.looks) ? c.looks[s] : null) });
+    }
+    E.started = true; L.started = true; L.status = 'play';
+    mxStopAll(E, ['sig']);   // (la escucha de ofertas sigue para renegociar si el enlace cae; con él abierto no lee nada)
+    var link = E.hostLink;
+    link.onclose = function () { mxLinkGone(E, r.host); };
+    var expect = { even: !!r.even, bestOf: r.bo === 3 ? 3 : 1, points: r.pts || 21, venue: r.venue === 'beach' ? 'beach' : 'hall' };
+    var ok = C.actions.startOnline({ humans: humans, seat: seat, links: [link], opts: null, name: myName(), model: model, format: r.fmt === '6v6' ? '6v6' : '2v2', expect: expect });
+    if (!ok) { E.started = false; L.started = false; mxEnd(E, 'error'); return; }
+    render();
+  }
+  function mChair(c) {
+    var E = L.mx; if (!E || E.started || L.started || !(c >= 0 && c < nChairs(E.room))) return;
+    var at = mxAt(E, c), me = mxMine(E);
+    if (E.role === 'host') {
+      if (L.pick) {   // (anfitrión con alguien elegido: lo pone ahí; si el sitio está ocupado, se cambian)
+        var pm = mxMem(E, L.pick); L.pick = '';
+        if (pm && at !== pm) { if (at) { at.c = pm.c; if (at.c < 0) at.r = false; } pm.c = c; mxBump(E); } else render();
+        return;
+      }
+      if (!at) { if (me) { me.c = c; mxBump(E); } return; }
+      if (at.h) return;
+      L.pick = at.u; render(); return;
+    }
+    if (!me || !E.hostLink || E.hostLink.state !== 'open') return;
+    if (at && at.u === me.u) { me.c = -1; me.r = false; mxSend(E.hostLink, { k: 'lb-sit', c: -1 }); }   // (tu sitio: te levantas)
+    else if (!at) { me.c = c; mxSend(E.hostLink, { k: 'lb-sit', c: c }); }
+    render();
+  }
+  function mPick(u) { var E = L.mx; if (!E || E.role !== 'host' || E.started) return; L.pick = L.pick === u ? '' : u; render(); }
+  function mReady() {
+    var E = L.mx, me = E && mxMine(E); if (!E || E.role !== 'guest' || !me || me.c < 0 || !E.hostLink || E.hostLink.state !== 'open') return;
+    me.r = !me.r; mxSend(E.hostLink, { k: 'lb-rdy', r: me.r }); render(); focusA('ready');
+  }
+  function mSwap() {
+    var E = L.mx; if (!E || E.role !== 'host' || E.started || E.coop) return;
+    var ps = perSide(E.room); E.ro.m.forEach(function (m) { if (m.c >= 0) m.c = (m.c + ps) % (2 * ps); });
+    L.pick = ''; mxBump(E);
+  }
+  function mKick() { var E = L.mx; if (!E || E.role !== 'host' || !L.pick || E.started) return; var u = L.pick; L.pick = ''; mxRelease(E, u, 'kick'); render(); focusA('leave'); }
+  function mStatus(E) {
+    if (L.started) return 'Empieza el partido…';
+    var me = mxMine(E);
+    if (E.role === 'host') {
+      if (L.pick) { var pm = mxMem(E, L.pick); return 'Toca un sitio para poner a ' + (pm ? pm.n : '…') + ' (o pulsa «Sacar»).'; }
+      var conn = E.ro.m.filter(function (m) { return !m.ok; }).map(function (m) { return m.n; }), cs = mxCanStart(E);
+      if (!cs.n && !cs.wait.length) return conn.length ? 'Conectando con ' + conn.join(', ') + '…' : 'Esperando jugadores. Tu sala sale en la lista de Online.';
+      if (cs.wait.length) return 'Faltan por estar listos: ' + cs.wait.join(', ') + '.';
+      return conn.length ? '¡Listos! Aún conectando: ' + conn.join(', ') + '.' : '¡Todos listos! Pulsa «Empezar».';
+    }
+    if (E.status !== 'linked') return 'Conectando con la sala de ' + (E.room.name || '…') + '…';
+    if (!me) return 'Entrando en la sala…';
+    if (me.c < 0) return 'Toca un sitio libre para sentarte.';
+    return me.r ? 'Listo. Esperando a que ' + (E.room.name || 'quien creó la sala') + ' pulse «Empezar».' : 'Toca otro sitio para cambiarte. Pulsa «Listo» cuando quieras.';
+  }
+  function hexCol(v, d) { return typeof v === 'number' && isFinite(v) ? '#' + ('00000' + (v & 0xffffff).toString(16)).slice(-6) : d; }
+  function mChip(E, c, me) {
+    var r = E.room, m = mxAt(E, c), mine = !!(m && me && m.u === me.u), host = E.role === 'host', role = chairRole(r, c), num = dorsal(r, c);
+    var can = !L.started && (host ? (!m || !m.h || !!L.pick) : E.status === 'linked' && !!me && (!m || mine));
+    var cls = 'mx-chip' + (m ? '' : ' empty') + (mine ? ' me' : '') + (m && (m.r || m.h) ? ' rdy' : '') + (m && L.pick === m.u ? ' pick' : '') + (m && !m.ok ? ' conn' : '');
+    var ping = m && !m.h && m.ok && m.p ? '<i class="mx-ping ' + (m.p < 90 ? 'g' : m.p < 170 ? 'y' : 'r') + '" aria-hidden="true"></i>' : '';   // (verde < 90 ms, amarillo < 170, rojo)
+    var tick = m && (m.r || m.h) ? '<i class="mx-ok" aria-hidden="true">✓</i>' : '';
+    var aria = 'Dorsal ' + num + ', ' + role + ': ' + (m ? m.n + (mine ? ' (tú)' : '') + (m.h ? ', anfitrión' : '') + (!m.ok ? ', conectando' : m.r || m.h ? ', listo' : ', no está listo') +
+      (ping ? ', ping ' + m.p + ' ms' : '') : 'libre, lo lleva la IA');
+    // (tu sitio dice «Tú» en vez de tu nombre; el nombre entero, en el aria y en el title)
+    return '<button class="' + cls + '" data-a="chair" data-id="' + c + '"' + (can ? '' : ' disabled') + ' aria-label="' + esc(aria) + '"' + (m ? ' title="' + esc(m.n) + '"' : '') + '><span class="mx-num">' + num + ping + tick + '</span>' +
+      '<span class="mx-tx"><b data-ph-ell>' + (mine ? '<em>Tú</em>' : esc(m ? m.n : 'IA')) + '</b><small data-ph-ell>' + esc(role) + (m && !m.ok ? ' · conectando' : '') + '</small></span></button>';
+  }
+  /** Sala de espera de varios: dos columnas de sitios (2 o 6 por lado) con los colores de cada equipo; de pie, abajo. */
+  function mRoomHTML(PH) {
+    var E = L.mx, r = E.room, host = E.role === 'host', ps = perSide(r), me = mxMine(E), b2 = r.venue === 'beach', vn2 = venueName(r), k2 = b2 ? 'Playa' : 'Pabellón';
+    var ko = E.ro.ko, cols = '', teams = r.mode === 'coop' ? [0] : [0, 1];
+    teams.forEach(function (t) {
+      var chips = '', n = 0;
+      for (var i = 0; i < ps; i++) { chips += mChip(E, t * ps + i, me); if (mxAt(E, t * ps + i)) n++; }
+      var mine = me && me.c >= 0 && chairOf(r, me.c).t === t;
+      cols += '<div class="mx-team" style="--tk:' + hexCol(ko && ko[t], t ? '#ff7a45' : '#2bb3a3') + '"><b class="mx-th">' + (t ? 'Equipo B' : 'Equipo A') + ' <span>' + n + '/' + ps + '</span>' +
+        (mine ? ' <i>· el tuyo</i>' : '') + '</b><div class="mx-grid" data-nav>' + chips + '</div></div>';
+    });
+    var bench = E.ro.m.filter(function (m) { return m.c < 0; }), benchH = '';
+    if (bench.length) benchH = '<div class="mx-bench" data-nav><small>De pie:</small>' + bench.map(function (m) {
+      if (host && m.ok && !m.h) return '<button class="mx-bp' + (L.pick === m.u ? ' pick' : '') + '" data-a="pick" data-id="' + esc(m.u) + '" aria-label="' + esc(m.n + ', de pie. Elegir para darle un sitio') + '">' + esc(m.n) + '</button>';
+      return '<i class="mx-bp">' + esc(m.n) + (m.ok ? '' : ' (conectando…)') + '</i>';
+    }).join('') + '</div>';
+    var st = mStatus(E), bad = false;
+    var h = '<div class="ol-match ol-mx sp-panel ol-scroll ' + (b2 ? 'v-beach' : 'v-hall') + '">' +
+      '<div class="mt-top" data-nav><span class="sp-crest" aria-hidden="true">' + VEN_IC[b2 ? 'beach' : 'hall'] + '</span><span class="mt-ven"><b data-ph-ell>' + FMT_TXT[fmtOf(r)] + ' · ' + k2 +
+      (vn2 && vn2 !== k2 ? ' · ' + esc(vn2) : '') + '</b>' + (host ? '' : '<small class="mt-who">Sala de ' + esc(r.name) + '</small>') + '</span>' +
+      (host && r.mode !== 'coop' && !L.started ? '<button class="mx-swap" type="button" data-a="swap" aria-label="Cambiar los equipos de lado">' + IC.swap + '</button>' : '') +
+      '<button class="ol-code sp-chip" type="button" data-a="copy" aria-label="' + esc('Código ' + r.code.split('').join(' ') + '. Copiar') + '">' + esc(r.code) + IC.copy + '</button></div>' +
+      '<div class="mx-teams">' + cols + '</div>' + benchH +
+      '<div class="fx-chips mt-chips">' + chipsHTML(r) + '</div>' +
+      // (móvil: el estado fuera del desplazamiento, justo encima de la barra; en PC, dentro de la hoja como en el 1 contra 1)
+      (PH ? '</div><p class="ol-st ol-st-pin mx-st' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p>' : '<p class="ol-st mx-st' + (bad ? ' bad' : '') + '" role="status">' + esc(st) + '</p></div>');
+    var dock = '<div class="ol-bar ol-bar2' + (PH ? ' ol-dock' : '') + '" data-nav>';
+    if (host && L.pick && !L.started) {
+      dock += '<button class="ol-act sp-btn sp-ink sp-dock-l" data-shape="2" data-a="unpick"><span class="sp-t">Cancelar</span></button>' +
+        '<button class="ol-act ol-new sp-btn sp-danger" data-shape="1" data-a="kick">' + ic('out') + '<span class="sp-t">Sacar de la sala</span></button>';
+    } else {
+      dock += '<button class="ol-act ol-out sp-btn sp-danger sp-dock-l" data-shape="1" data-a="leave">' + ic('out') + '<span class="sp-t">Salir</span></button>';
+      if (host) {
+        var cs = mxCanStart(E);
+        dock += (PH ? '<button class="ol-act ol-ico sp-btn sp-teal sp-sq" data-shape="2" data-a="share" aria-label="Compartir la sala">' + ic('share') + '</button>' : '') +
+          '<button class="ol-act ol-new sp-btn sp-kit" data-shape="0" data-a="start"' + (cs.ok && !L.started ? '' : ' disabled') + '><span class="sp-t">Empezar</span></button>';
+      } else {
+        var rd = !!(me && me.r), can = !!me && me.c >= 0 && E.status === 'linked' && !L.started;
+        dock += '<button class="ol-act ol-new sp-btn ' + (rd ? 'sp-gold' : 'sp-kit') + '" data-shape="0" data-a="ready" aria-pressed="' + rd + '"' + (can ? '' : ' disabled') + '><span class="sp-t">' + (rd ? 'No estoy listo' : 'Listo') + '</span></button>';
+      }
+    }
+    return h + dock + '</div>';
+  }
+  /** ?olmock: sala de varios de muestra (sin red), para las capturas y tools/mobaudit.js. fmt '2v2' | '6v6', role 'host' | 'guest'. */
+  function mDemo(fmt, role) {
+    leaveRoom();
+    var six = fmt === '6v6', ms = maps('hall'), host = role !== 'guest';
+    var r = { id: host ? 'mockMe' : 'mockH', code: 'Q4WX8M', name: host ? myName() : 'Lucía Marín', host: host ? 'mockMe' : 'mockH', venue: 'hall', map: ms[0] || '', bo: 3, pts: 25,
+      even: false, state: 'open', age: 0, multi: true, mode: 'vs', cap: six ? 12 : 4, fmt: six ? '6v6' : '2v2', seats: {}, nseat: six ? 10 : 3, free: six ? 1 : 0 };
+    var E = Mx({ role: host ? 'host' : 'guest', room: r, mock: true, onChange: mChange, onNote: mNote, onEnd: mEnd, onGo: noop });
+    E.status = 'linked';
+    var N = ['Lucía Marín', 'Pau Ferrer', 'Sara Llopis', 'Javi Ortega', 'Iker Sanz', 'Marta Gil', 'Nerea Puig', 'Alex Roca', 'Bruno Vidal', 'Carla Soler', 'Dani Mas'];
+    var m = [], me = myName();
+    if (six) {
+      // [sitio, ping, listo, conectado]: casi todos dentro, uno de pie y otro aún conectando
+      var S6 = [[0, 95, 1, 1], [2, 40, 1, 1], [3, 66, 1, 1], [6, 120, 1, 1], [7, 58, 1, 1], [9, 182, 0, 1], [10, 0, 0, 0], [11, 77, 1, 1], [-1, 61, 0, 1]];
+      m.push(host ? { u: 'mockMe', n: me, c: 1, r: true, h: 1, ok: 1, p: 0 } : { u: 'mockH', n: N[0], c: 1, r: true, h: 1, ok: 1, p: 0 });
+      if (!host) m.push({ u: 'mockMe', n: me, c: 4, r: false, h: 0, ok: 1, p: 48 });
+      S6.forEach(function (x, k) { m.push({ u: 'mk' + k, n: N[k + 1], c: x[0], r: !!x[2], h: 0, ok: x[3], p: x[1] }); });
+    } else {
+      m.push(host ? { u: 'mockMe', n: me, c: 0, r: true, h: 1, ok: 1, p: 0 } : { u: 'mockH', n: N[0], c: 0, r: true, h: 1, ok: 1, p: 0 });
+      if (!host) m.push({ u: 'mockMe', n: me, c: 3, r: false, h: 0, ok: 1, p: 52 });
+      m.push({ u: 'mk1', n: N[1], c: 1, r: true, h: 0, ok: 1, p: 44 }, { u: 'mk2', n: N[2], c: 2, r: true, h: 0, ok: 1, p: 131 });
+    }
+    E.ro = { v: 1, m: m, ko: null }; mxKits(E);
+    L.mx = E; L.room = r; L.role = E.role; L.started = false; L.pick = ''; L.msg = '';
+    setView('room');
+  }
+
+  /* =====================================================================================================================
+   * CARRERA COOPERATIVA: VB.NetLobby.coop (contrato P6 ↔ P7; notes/online-multi-requests.md «P6 → P7»)
+   *   coop.host({title, name, look, venue, onReady, onClose}) → true | false (ya hay una sala en marcha). Abre una sala coop (mode
+   *     'coop', cap 2, fmt '2v2', no sale en la lista) y enseña una hoja SPLAT (#olCoop) con el código, «Compartir» (enlace
+   *     ?coop=CÓDIGO) y «Cancelar».
+   *   coop.join({code, name, look, onReady, onClose}) → true | false. Entra por código (la hoja dice «Buscando…» / «Conectando…»).
+   *     Con ?coop=CÓDIGO en la dirección, el lobby llama a VB.CareerCoop.onJoinLink(código) si existe; si no, una hoja para unirse.
+   *   onReady({link, seat (0 anfitrión, 1 invitado), names: [anfitrión, invitado], looks: [anfitrión, invitado], room: {id, code,
+   *     host, mode}}) cuando el enlace WebRTC está abierto y los dos se han saludado. La hoja se cierra.
+   *     link = fachada del enlace para pasarla a ctx.actions.startOnline({coop: true, links: [link], …}): mientras la sesión la lee
+   *     (poll), el lobby no la lee; su close() (main.js netStop al acabar el partido) NO cierra el enlace de verdad, solo lo devuelve
+   *     al lobby (latido y mensajes). Mientras no hay partido, el lobby mantiene el enlace vivo (latido 'lb-ping' cada 1 s; sin
+   *     noticias en 9 s = caído) y llama a onClose(why) si se cae: why = 'hostLeft' | 'mateLeft' | 'hostLost' | 'gone' | 'kick' |
+   *     'cancel' (Cancelar en la hoja) | 'denied' (reglas sin desplegar) | 'off' | 'nortc' | 'noacc' | 'nocode' | 'full' | …
+   *   coop.send(obj) → true | false: mensaje de la app al otro lado, fiable y en orden por el canal 'ctl' (JSON), troceado solo si pasa
+   *     de 4000 caracteres (piezas de ≤ 12 KB); vale antes, durante y después del partido.
+   *   coop.onMessage(fn) → función para quitarlo: fn(obj) por cada mensaje del otro lado (en el orden en que se mandaron).
+   *   coop.close(): sales tú (sin onClose). coop.state() → {on, role, ready, code}.
+   * ===================================================================================================================== */
+  var CO = null, COH = [], CO_PEND = '';
+  function coopIn(E, d) {
+    if (!CO || CO.E !== E) return;
+    COH.slice().forEach(function (fn) { try { fn(d); } catch (e) { if (window.console) console.error(e); } });
+  }
+  function coopWhy(why) {
+    return {
+      denied: 'La Carrera cooperativa aún no está activada en el servidor.', off: 'El online aún no está activado en el servidor. Vuelve a probar en un rato.',
+      nortc: 'Este navegador no puede jugar online.', noacc: 'Necesitas una cuenta para jugar en cooperativo.', code: 'El código tiene 6 letras y cifras (sin 0, O, 1, I ni L).',
+      nocode: 'No hay ninguna Carrera cooperativa abierta con ese código.', notcoop: 'Ese código es de una sala normal: entra desde Online.', full: 'Esa Carrera ya tiene compañero.',
+      gone: 'La sala se ha cerrado.', hostLeft: 'Quien te invitó ha cerrado la sala.', hostLost: 'Se ha perdido la conexión.', noHost: 'Quien te invitó no responde.',
+      noconn: 'No se ha podido conectar: vuestras redes no lo permiten. Probad otra vez o desde otra red.', mateLeft: 'Tu compañero ha salido.',
+      kick: 'Te han sacado de la sala.', version: errText({ code: 'version' }), auth: errText({ code: 'auth' }), net: errText({ code: 'net' })
+    }[why] || 'Algo ha fallado. Vuelve a probar.';
+  }
+  function coopEl() {
+    var d = document.getElementById('olCoop');
+    if (!d) {
+      d = document.createElement('div'); d.id = 'olCoop'; d.hidden = true;
+      d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', 'Carrera cooperativa');
+      d.addEventListener('click', coopClick);
+      d.addEventListener('keydown', function (e) { if (e.key === 'Escape' || e.key === 'Backspace' && e.target === d) { e.stopPropagation(); e.preventDefault(); coopCancel(); } });
+      document.body.appendChild(d);
+    }
+    return d;
+  }
+  /** Hoja SPLAT de la coop: o = {title, text, bad, code, ctas: [[acción, texto, color]]} (la última, la principal, abajo a la derecha). */
+  function coopSheet(o) {
+    ensureCss();
+    var d = coopEl(), key = JSON.stringify(o);
+    if (d.getAttribute('data-k') === key && !d.hidden) return;
+    d.setAttribute('data-k', key);
+    d.innerHTML = '<div class="oc-card sp-panel"><h3>' + esc(o.title || 'Carrera cooperativa') + '</h3>' +
+      (o.text ? '<p class="oc-t' + (o.bad ? ' bad' : '') + '" role="status">' + esc(o.text) + '</p>' : '') +
+      (o.code ? '<button class="oc-code sp-chip" type="button" data-oc="copy" aria-label="' + esc('Código ' + o.code.split('').join(' ') + '. Copiar') + '">' + esc(o.code) + IC.copy + '</button>' : '') +
+      '<div class="oc-bar">' + (o.ctas || []).map(function (x, i) { return '<button class="sp-btn sp-md ' + x[2] + '" data-shape="' + i + '" data-oc="' + x[0] + '"><span class="sp-t">' + esc(x[1]) + '</span></button>'; }).join('') + '</div></div>';
+    d.hidden = false;
+    if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(d); } catch (e) { } }
+    setTimeout(function () { var bs = d.querySelectorAll('[data-oc]'), b = bs[bs.length - 1]; if (b && !d.hidden) { try { b.focus(); } catch (e) { } } }, 30);
+  }
+  function coopHide() { var d = document.getElementById('olCoop'); if (d) { d.hidden = true; d.innerHTML = ''; d.removeAttribute('data-k'); } }
+  function coopClick(ev) {
+    var b = ev.target && ev.target.closest ? ev.target.closest('[data-oc]') : null; if (!b) return;
+    var a = b.getAttribute('data-oc'); sound('click');
+    if (a === 'cancel') coopCancel();
+    else if (a === 'copy') { var c = CO && CO.E && CO.E.room.code; if (c) { try { navigator.clipboard.writeText(c).then(noop, noop); } catch (e) { } if (VB.Splat && VB.Splat.toast) VB.Splat.toast('Código copiado: <b>' + esc(c) + '</b>', { key: 'olc' }); } }
+    else if (a === 'share') coopShare();
+    else if (a === 'join') coopJoinGo();
+    else if (a === 'ok') coopHide();
+    else if (a === 'okClose') { coopClose(); }
+  }
+  function coopShare() {
+    var c = CO && CO.E && CO.E.room.code; if (!c) return;
+    var url = shareSite() + '?coop=' + c, txt = 'Juega conmigo la Carrera de Take the Court en cooperativo: código ' + c;
+    var copied = function () { if (VB.Splat && VB.Splat.toast) VB.Splat.toast('Enlace copiado. Código <b>' + esc(c) + '</b>', { key: 'olc' }); };
+    var copy = function () { try { navigator.clipboard.writeText(txt + ' ' + url).then(copied, copied); } catch (e) { copied(); } };
+    if (navigator.share) { try { navigator.share({ title: 'Take the Court', text: txt, url: url }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); }); return; } catch (e) { } }
+    copy();
+  }
+  function coopRender(E) {
+    var me = CO; if (!me || me.E !== E || me.ready) return;
+    var t = me.cfg.title || 'Carrera cooperativa', p = null;
+    for (var u in E.peers) p = E.peers[u];
+    if (E.role === 'host') coopSheet({ title: t, text: p ? 'Conectando con ' + p.n + '…' : 'Pasa el código o el enlace a quien vaya a jugar contigo. Esperando…', code: E.room.code,
+      ctas: [['cancel', 'Cancelar', 'sp-danger'], ['share', 'Compartir', 'sp-kit']] });
+    else coopSheet({ title: t, text: 'Conectando con la Carrera de ' + (E.room.name || '…') + '…', ctas: [['cancel', 'Cancelar', 'sp-danger']] });
+  }
+  function coopReady(E, u) {
+    var me = CO; if (!me || me.E !== E || me.ready) return;
+    var host = E.role === 'host', o = host ? mxMem(E, u) : null;
+    var names = host ? [E.nm, (o && o.n) || 'Invitado'] : [(E.hi.host && E.hi.host.n) || E.room.name || 'Anfitrión', E.nm];
+    var looks = host ? [mxLook(E), (E.hi[u] && E.hi[u].look) || null] : [(E.hi.host && E.hi.host.look) || null, mxLook(E)];
+    me.ready = true; me.link = mkFacade(E); E.coopOn = true;
+    // (la sala ya no admite a nadie más; las reglas ya paran en cap-1). Se deja de sondear la sala: solo queda el latido de 20 s, que
+    //  la mantiene viva para renegociar el enlace en pleno partido (una sala de más de 5 min sin latido la puede borrar cualquiera)
+    if (host) mxStop(E, 'poll');
+    if (host && !E.mock) api().beat({ state: 'full' }).catch(noop);
+    coopHide();
+    if (me.cfg.onReady) { try { me.cfg.onReady({ link: me.link, seat: host ? 0 : 1, names: names, looks: looks, room: { id: E.room.id, code: E.room.code, host: E.room.host, mode: 'coop' } }); } catch (e) { if (window.console) console.error(e); } }
+  }
+  function coopEnded(why, E) {
+    var me = CO; if (!me || (E && me.E !== E)) return;
+    CO = null;
+    if (!me.ready && why !== 'cancel') coopSheet({ title: me.cfg.title || 'Carrera cooperativa', text: coopWhy(why), bad: true, ctas: [['ok', 'Entendido', 'sp-gold']] });
+    else coopHide();
+    if (me.cfg.onClose) { try { me.cfg.onClose(why); } catch (e) { if (window.console) console.error(e); } }
+  }
+  function coopBusy(cfg) {
+    var bad = CO || L.mx || L.room ? 'busy' : noRtc() ? 'nortc' : !signedIn() ? 'noacc' : '';
+    if (!bad) return false;
+    if (bad !== 'busy') coopSheet({ title: cfg.title || 'Carrera cooperativa', text: coopWhy(bad), bad: true, ctas: [['ok', 'Entendido', 'sp-gold']] });
+    if (cfg.onClose) setTimeout(function () { try { cfg.onClose(bad); } catch (e) { } }, 0);
+    return true;
+  }
+  function coopHost(cfg) {
+    cfg = cfg || {};
+    if (coopBusy(cfg)) return false;
+    var me = CO = { role: 'host', cfg: cfg, ready: false, E: null, link: null };
+    coopSheet({ title: cfg.title || 'Carrera cooperativa', text: 'Abriendo la sala…', ctas: [['cancel', 'Cancelar', 'sp-danger']] });
+    api().open({ name: NR().cleanName(cfg.name) || myName(), mode: 'coop', cap: 2, fmt: '2v2', venue: cfg.venue === 'hall' ? 'hall' : 'beach', map: '', bo: 1, pts: 21, even: false }).then(function (r) {
+      if (CO !== me) { api().close(); return; }
+      if (!r || !r.multi) throw { code: 'denied' };
+      me.E = Mx({ role: 'host', room: r, coop: true, name: cfg.name, look: cfg.look, onChange: coopRender, onEnd: coopEnded });
+      mxHostInit(me.E); coopRender(me.E);
+    }).catch(function (e) { if (CO === me) coopEnded((e && e.code) || 'error'); });
+    return true;
+  }
+  function coopJoin(cfg) {
+    cfg = cfg || {};
+    if (coopBusy(cfg)) return false;
+    var code = NR().normCode(cfg.code), me = CO = { role: 'guest', cfg: cfg, ready: false, E: null, link: null };
+    if (!NR().codeOk(code)) { coopEnded('code'); return false; }
+    coopSheet({ title: cfg.title || 'Carrera cooperativa', text: 'Buscando la sala ' + code + '…', ctas: [['cancel', 'Cancelar', 'sp-danger']] });
+    api().byCode(code).then(function (r) {
+      if (CO !== me) return null;
+      if (!r) throw { code: 'nocode' };
+      if (r.mode !== 'coop') throw { code: 'notcoop' };
+      return api().join(r.id, NR().cleanName(cfg.name) || myName()).then(function (r2) {
+        if (CO !== me) { api().leave(r2.id); return; }
+        me.E = Mx({ role: 'guest', room: r2, coop: true, name: cfg.name, look: cfg.look, onChange: coopRender, onEnd: coopEnded, onGo: noop });
+        mxGuestInit(me.E); coopRender(me.E);
+      });
+    }).catch(function (e) { if (CO === me) coopEnded((e && e.code) || 'error'); });
+    return true;
+  }
+  function coopCancel() { var me = CO; if (!me) { coopHide(); return; } coopClose(); if (me.cfg.onClose) { try { me.cfg.onClose('cancel'); } catch (e) { } } }
+  function coopClose() { var me = CO; CO = null; coopHide(); if (me && me.E) mxLeave(me.E); }
+  function coopSend(obj) {
+    var me = CO; if (!me || !me.E || !me.ready || me.E.closed) return false;
+    var k = me.link && me.link._real(); if (!k) return false;
+    mxSend(k, { k: 'cx', d: obj }); return true;
+  }
+  /** Fachada del enlace de la coop para la sesión del partido (ver el contrato arriba). */
+  function mkFacade(E) {
+    var cur = function () { if (E.role !== 'host') return E.hostLink; for (var u in E.peers) return E.peers[u].link; return null; };
+    var F = { onclose: null };
+    Object.defineProperty(F, 'state', { get: function () { var k = cur(); return E.closed || !k ? 'closed' : k.state; } });
+    Object.defineProperty(F, 'opens', { get: function () { var k = cur(); return k ? k.opens : 0; } });
+    F.send = function (ch, d) { var k = cur(); if (k && !E.closed) k.send(ch, d); };
+    F.poll = function (now) {
+      E.attached = true;
+      var k = cur(); if (!k || E.closed) return [];
+      var ms = k.poll(now), out = [], t = Date.now(), u = E.role === 'host' ? Object.keys(E.peers)[0] : E.room.host;
+      for (var i = 0; i < ms.length; i++) {
+        var m = ms[i];
+        if (m.ch === 'ctl' && mxLobbyMsg(m.data)) { var c = mxUnchunk(E, mxParse(m.data)); if (c) mxMsg(E, u, c, t); if (E.closed) return out; }
+        else out.push(m);
+      }
+      return out;
+    };
+    F.info = function () { var k = cur(); return k && k.info ? k.info() : { type: '', rtt: 0 }; };
+    // (main.js netStop al acabar el partido: el enlace vuelve al lobby, que retoma el latido; el de verdad lo cierra coop.close())
+    F.close = function () { E.attached = false; var t = Date.now(); E.heard.host = t; for (var u in E.peers) E.heard[u] = t; };
+    F._real = cur;
+    return F;
+  }
+  /** ?coop=CÓDIGO o un código de coop en «Código»: la Carrera (P7) si está; si no, una hoja para unirse. */
+  function coopLink(code) {
+    code = NR().normCode(code);
+    var CC = VB.CareerCoop;
+    if (CC && typeof CC.onJoinLink === 'function') { try { CC.onJoinLink(code); } catch (e) { if (window.console) console.error(e); } return; }
+    CO_PEND = code;
+    coopSheet({ title: 'Carrera cooperativa', text: 'Te han invitado a jugar una Carrera en cooperativo (código ' + code + ').', ctas: [['ok', 'Ahora no', 'sp-ink'], ['join', 'Entrar', 'sp-kit']] });
+  }
+  function coopJoinGo() {
+    var code = CO_PEND; CO_PEND = '';
+    coopJoin({ code: code, name: myName(), look: myLook(), onReady: function (i) {
+      coopSheet({ title: 'Carrera cooperativa', text: 'Conectado con ' + i.names[0] + '. Esta versión del juego aún no puede jugar la Carrera en cooperativo.', ctas: [['okClose', 'Salir', 'sp-gold']] });
+    } });
+  }
+  if (Q.coop && VB.NetRoom) {
+    var ctries = 0, cwait = setInterval(function () {
+      var C = ctx(), U = VB.UI;
+      if (++ctries > 240) { clearInterval(cwait); return; }
+      if (!C || C.state !== 'menu' || !U || !U.menuIdle || !U.menuIdle()) return;
+      clearInterval(cwait); coopLink(String(Q.coop));
+    }, 500);
   }
 
   /* ---------------- API para ui.js ---------------- */
@@ -1369,6 +2345,7 @@
     if (L.edit) { var k = L.edit; L.edit = ''; L.osk = null; render(true); focusA(k); return true; }
     if (L.view === 'create') { L.msg = ''; setView('list'); refreshList(false); focusA('new'); return true; }
     if (L.view === 'help') { ls(HELPK, '1'); setView('list'); refreshList(false); focusA(L.helpFrom || 'help'); L.helpFrom = ''; return true; }
+    if (L.view === 'room' && L.mx && L.pick && !L.started) { L.pick = ''; render(); return true; }   // (anfitrión con alguien elegido: primero se suelta)
     if (L.view === 'room' && !L.started) { leaveRoom(); setView('list'); refreshList(true); focusA('new'); return true; }
     return false;
   }
@@ -1382,7 +2359,10 @@
   // (pagehide también salta al ir a otra página; 'persisted' = la página queda en la caché del navegador y puede volver: entonces
   // también se suelta, y al volver se está en la lista.)
   document.addEventListener('vb:ph', function () { if (L.on) render(true); });   // (girar / cambiar de tamaño: otra disposición)
+  document.addEventListener('visibilitychange', function () { try { mxVis(L.mx); if (CO && CO.E && CO.E !== L.mx) mxVis(CO.E); } catch (e) { } });
   window.addEventListener('pagehide', function () {
+    if (CO && CO.E) { try { mxBye(CO.E); } catch (e) { } }   // (Carrera cooperativa: la sala o la plaza, fuera)
+    if (L.mx) { try { mxBye(L.mx); } catch (e) { } if (!L.started) { L.mx = null; L.room = null; L.role = ''; L.view = 'list'; } return; }   // (online de varios: sin vuelta tras recargar en esta versión)
     if (!rooms || !L.room || !L.role) return;
     // (vuelta al partido tras recargar: ver «VUELTA AL PARTIDO» abajo. Si se ha apuntado la vuelta, el invitado NO suelta su
     // hueco: con la sala aún en 'full' el PATCH de bye entraría y la sala volvería a la lista sin él. Si no vuelve, el anfitrión
@@ -1402,6 +2382,7 @@
   var BACK = 'make-the-cut.online.back', BACK_MS = 50000;
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { } return null; }
   function backSave() {
+    if (L.mx) return false;   // (online de varios: sin vuelta tras recargar en esta versión; la IA lleva tu plaza)
     if (L.role === 'host') return hostBackSave();   // (fase 6: también el anfitrión)
     try {
       var C = ctx(), n = C && C.net, st = n && n.sess && n.sess.status;
@@ -1505,14 +2486,43 @@
     menuOn: function () { return MENU_ON || Q.online === '1' || !!EMU; },
     open: open, leave: leave, back: back, side: side, focus: first,
     myName: myName, myStats: myStats, myLook: myLook, saneLook: saneLook, _ver: ver,   // (_ver: pruebas, la versión de sala que publica)
-    _state: function () { return { view: L.view, role: L.role, rival: L.rival, status: L.status, started: L.started, rooms: L.rooms.map(function (r) { return { id: r.id, name: r.name, other: r.other }; }), room: L.room && { id: L.room.id, code: L.room.code, state: L.room.state }, link: L.link && L.link.state, linkInfo: L.link && L.link.info(), msg: L.msg, fail: L.fail, emu: EMU }; },
+    _state: function () {
+      var E = L.mx, st = { view: L.view, role: L.role, rival: L.rival, status: L.status, started: L.started, rooms: L.rooms.map(function (r) { return { id: r.id, name: r.name, other: r.other, multi: !!r.multi, fmt: r.fmt, cap: r.cap, nseat: r.nseat }; }), room: L.room && { id: L.room.id, code: L.room.code, state: L.room.state, multi: !!L.room.multi, fmt: L.room.fmt, cap: L.room.cap }, link: L.link && L.link.state, linkInfo: L.link && L.link.info(), msg: L.msg, fail: L.fail, emu: EMU };
+      // (online de varios) la sala: quién está, sitios, listos, pings; los enlaces por uid; ¿se puede empezar?
+      if (E) { var lk = {}; for (var u in E.links) lk[u] = E.links[u] && E.links[u].state; st.mx = { role: E.role, status: E.status, started: E.started, ro: JSON.parse(JSON.stringify(E.ro)), links: lk, can: mxCanStart(E), pick: L.pick || '', me: E.myU }; }
+      return st;
+    },
+    // (online de varios, pruebas: tools/lobbytest.js) las mismas acciones que los botones de la sala de espera
+    _act: function (a, v) {
+      if (a === 'create') { L.cfg = cfgFix(Object.assign(prefs(), v || {})); createRoom(); return true; }
+      if (a === 'join') { joinRoom(v); return true; }
+      if (a === 'code') { joinCode(v); return true; }
+      if (a === 'chair') { mChair(v | 0); return true; }
+      if (a === 'pick') { mPick(v); return true; }
+      if (a === 'ready') { mReady(); return true; }
+      if (a === 'start') { mStart(); return true; }
+      if (a === 'swap') { mSwap(); return true; }
+      if (a === 'kick') { mKick(); return true; }
+      if (a === 'leave') { leaveRoom(); L.view = 'list'; return true; }
+      return false;
+    },
+    _mx: function () { return L.mx; },
     _link: function () { return L.link; },
+    // Carrera cooperativa (P7): ver «CARRERA COOPERATIVA» arriba
+    coop: { host: coopHost, join: coopJoin, close: coopClose, send: coopSend,
+      onMessage: function (fn) { if (typeof fn !== 'function') return noop; COH.push(fn); return function () { var i = COH.indexOf(fn); if (i >= 0) COH.splice(i, 1); }; },
+      state: function () { return { on: !!CO, role: CO ? CO.role : '', ready: !!(CO && CO.ready), code: CO && CO.E ? CO.E.room.code : '' }; } },
     // capturas con ?olmock: pinta un estado suelto (o = campos de L: msg, msgBad, listErr, status, rival, fail, view…; rival: '<nombre>'
     // llega un rival a tu sala de mentira). Sin ?olmock no hace nada.
     _mock: function (o) {
       if (!MOCK || !o) return false;
       if (o.arrive && rooms && rooms._rival) { rooms._rival(o.arrive); delete o.arrive; }
+      if (o.coopDemo === 'off' || o.multiDemo) { coopHide(); if (o.coopDemo === 'off') return true; }
+      if (o.multiDemo) { mDemo(o.multiDemo, o.role); if (o.pick && L.mx) { var pk = L.mx.ro.m.filter(function (m) { return !m.h && m.ok && m.c >= 0; })[1]; if (pk) L.pick = pk.u; render(true); } return true; }   // (sala de varios de muestra)
+      if (o.coopDemo) { coopSheet(o.coopDemo === 'guest' ? { title: 'Carrera cooperativa', text: 'Conectando con la Carrera de Lucía Marín…', ctas: [['cancel', 'Cancelar', 'sp-danger']] }
+        : { title: 'Carrera cooperativa', text: 'Pasa el código o el enlace a quien vaya a jugar contigo. Esperando…', code: 'Q4WX8M', ctas: [['cancel', 'Cancelar', 'sp-danger'], ['share', 'Compartir', 'sp-kit']] }); return true; }
       var v = o.view; delete o.view;
+      if (v && v !== 'room' && L.mx && L.mx.mock) { L.pick = ''; leaveRoom(); }   // (otra vista: fuera la sala de varios de muestra)
       for (var k in o) L[k] = o[k];
       if (v) setView(v); else render(true);
       return true;

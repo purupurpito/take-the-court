@@ -36,12 +36,16 @@
  *     .confirmedGame() / .predictedGame()
  *   Entrada = {move:[x,y] (mundo canónico), hit, jump, jset, chal, skip, tmo, ai}. Se cuantiza ANTES de usarla también en local.
  *   memPair({lag (RTT ms), jit (± ms por sentido), loss (%), seed, clock}) → [linkA, linkB] (Node / pruebas)
- *   BcLink({room, slot, lag, jit, loss}) → enlace por BroadcastChannel (dos pestañas o dos páginas del mismo Chrome)
+ *   BcLink({room, slot, lag, jit, loss}) → enlace por BroadcastChannel (dos pestañas o dos páginas del mismo Chrome); con o.to, enlace
+ *     de una pareja (slot ↔ to) con canal y Shaper propios (netdrive de N páginas, ?net=bc&n=N)
  *   Enlace = {send(ch, data), poll(now) → [{ch, data}], close()}; ch 'in' = no fiable (entradas), 'ctl' = fiable y en orden.
  *   bot(slot, seed, prof, o) → function(g) → entrada (bot de solo entrada para pruebas; lee con useSlot y deja el hueco 0). slot = el
  *     HUECO que lleva (online a N, notes/online-multi-brief.md P0); su equipo, o.team o g.hum[slot].team (con 2 huecos, hueco == equipo:
  *     la firma de siempre bot(team, seed, prof) da exactamente lo mismo). En 6v6 (g.rot) sin balón suyo va a su sitio (VB.AI6.spot).
  *   Enlaces de prueba para N pares (memMesh, memStar): js/nettest-links.js (usa Shaper, exportado aquí).
+ *   ONLINE DE VARIOS (Precisa-N, P2 del sprint online-multi): new Session({seats | links (más de uno) | n > 2, …}) devuelve una SessionN
+ *     (N plazas, estrella con el anfitrión de centro, bloque «PRECISA-N» más abajo). Sin eso, la Session de 2 de siempre, sin cambios.
+ *     packN/unpackN (paquete de varios), adaptDelay(rttMs), SEAT_AI_MS. Bit 7 de los botones = switchPlayer (solo lo manda Precisa-N).
  *   AUDITORÍA (17-nov-2026, notes/net.md «Auditoría»): o.expect (invitado: opciones que anuncia la sala; si no cuadran → 'mismatch'),
  *     resync con id repetido hasta el 'rsok' (lo del canal fiable viejo se pierde al renegociar), los dos recargan → noShow, mensajes
  *     del rival acotados (hash, snapok, resync, delay), tope de 60 s en 'connecting'.
@@ -85,14 +89,14 @@
   function bitsOf(inp) {
     if (!inp) return 0;
     return (inp.hit ? B.hit : 0) | (inp.jump ? B.jump : 0) | (inp.jset ? B.jset : 0) | (inp.chal ? B.chal : 0) |
-      (inp.skip ? B.skip : 0) | (inp.tmo ? B.tmo : 0) | (inp.ai ? B.ai : 0);
+      (inp.skip ? B.skip : 0) | (inp.tmo ? B.tmo : 0) | (inp.ai ? B.ai : 0) | (inp.switchPlayer ? 128 : 0);   // (128: «¡Pídela!»; solo lo lee Precisa-N)
   }
   /** Entrada cuantizada → objeto de entrada de la sim (out se reutiliza). */
   function decode(x, y, b, out) {
     out = out || { move: [0, 0] };
     out.move[0] = x / 32767; out.move[1] = y / 32767;
     out.hit = !!(b & B.hit); out.jump = !!(b & B.jump); out.jset = !!(b & B.jset); out.chal = !!(b & B.chal);
-    out.skip = !!(b & B.skip); out.tmo = !!(b & B.tmo); out.ai = !!(b & B.ai); out.switchPlayer = false;
+    out.skip = !!(b & B.skip); out.tmo = !!(b & B.tmo); out.ai = !!(b & B.ai); out.switchPlayer = !!(b & 128);   // (bit 7: el 1 contra 1 nunca lo pone)
     return out;
   }
 
@@ -130,6 +134,8 @@
   }
   function Session(o) {
     o = o || {};
+    // online de varios (plazas de main.js, varios enlaces o más de 2 plazas): Precisa-N, más abajo. El 1 contra 1 sigue aquí sin cambios
+    if (Array.isArray(o.seats) || (Array.isArray(o.links) && o.links.length > 1) || (o.n | 0) > 2) return new SessionN(o);
     this.slot = o.slot === 1 ? 1 : 0; this.host = this.slot === 0;
     this.link = o.link; this.name = String(o.name || ''); this.rivalName = cleanName(o.rivalName);   // (el del lobby manda; el saludo solo lo pone si no había)
     // fase 3: época (revancha n.º k sobre el mismo enlace: los mensajes de otra época se ignoran), mensajes de la interfaz ('app':
@@ -651,6 +657,860 @@
     }
   };
 
+  /* =====================================================================
+   * PRECISA-N (sprint online-multi, paquete P2; notes/online-multi-brief.md §3 recomendación 2 y §9)
+   * El mismo rollback de Precisa con N PLAZAS humanas (2v2 con hasta 4 humanos, coop de 2 en el mismo equipo; el 6v6 de 12 solo en
+   * pruebas: en producción el 6v6 va con el modelo del anfitrión, P5). new VB.Net.Session(o) da una SessionN cuando o trae `seats`
+   * (lo que pasa main.js en el online de varios), más de un enlace o o.n > 2; el 1 contra 1 sigue con la Session de arriba, sin tocar.
+   *   PLAZA: hueco = índice de plaza en g.hum (NO el equipo; su equipo es g.hum[slot].team). Un anillo de entradas por plaza.
+   *   ESTRELLA: el anfitrión (plaza 0) es el centro. Anfitrión: o.links = un enlace por invitado (la plaza de cada enlace la dice su
+   *     saludo; o.linkSeats[j] la fija de antemano). Invitado: o.links[0] (u o.link) = su enlace con el anfitrión. El anfitrión reenvía
+   *     a cada invitado las entradas de todas las demás plazas (de SU anillo, con el ack de cada invitado por plaza) y los mensajes
+   *     'app' de un invitado a los demás. Invitado↔invitado = dos tramos.
+   *   PAQUETE 'in' de varios (tipo 2): [2 | época << 4, u8 plaza emisora, u8 nb, u32 tic del emisor, u8 na, na × u32 ack (rHave del
+   *     emisor por plaza; la suya = lo que tiene suyo), nb × (u8 plaza, u32 primer tic, u32 tic de esa plaza, u8 n, n × (i16 x, i16 y,
+   *     u8 bits))]. Con n = 2 va el paquete de tipo 1 de siempre (sin plaza: es la otra), así que una SessionN de 2 plazas habla con
+   *     la Session del 1 contra 1 (también hello/start/hash/snap/resync: tools/net4test.js lo prueba en los dos sentidos).
+   *   Bit 7 de los botones = switchPlayer («¡Pídela!» del 6v6, sim g.ask6). El 1 contra 1 nunca lo pone.
+   *   CONFIRMAR: gc avanza un tic cuando están las entradas de TODAS las plazas. Las plazas que lleva la IA no esperan: el anfitrión
+   *     escribe por ellas la entrada {ai} (la sim pasa la plaza a la IA) y la reenvía como cualquier otra, así todos confirman lo mismo.
+   *   PREDECIR: cada plaza remota, con su última entrada conocida (botones a falso, el bit ai como estaba).
+   *   ESPERA: si alguna plaza va MAXPRED tics por detrás, se espera (r.waitFor = esas plazas). El anfitrión pasa a la IA la plaza que
+   *     no oye en SEAT_AI_MS o que le hace esperar SEAT_AI_MS seguidos, y el partido sigue (aviso {k:'seat', s, ai:1} a todos). Si la
+   *     vuelve a oír seguida REJOIN_STABLE_MS, le manda un resync (foto de gc + las entradas de todas las plazas desde ahí) y vuelve.
+   *     Con más de 2 plazas, la que hace esperar a todos a ratos (SLOW_MS de espera acumulada en ~10 s) también pasa a la IA, y el
+   *     anfitrión le manda un resync de ESPECTADOR (spect): ve el partido de verdad con su jugador llevado por la IA (r.meAI) en vez de
+   *     una partida que ya no es la de los demás; vuelve sola pasados SLOW_BACK_MS (cada vez el doble). En el paquete de un invitado,
+   *     los 4 bits altos de la plaza llevan el n.º de su último resync (para no creerse un ack viejo de su propia plaza).
+   *     60 s con la IA = se ha ido (seatGone). Un invitado que pierde al anfitrión espera como en el 1 contra 1 (10 s → «Seguir con
+   *     la IA», 60 s → «no cuenta»).
+   *   HUELLAS: cada invitado manda la suya al anfitrión y el anfitrión la suya a todos; si la de un invitado no cuadra, el anfitrión le
+   *     manda la foto de ese tic (solo a él). Un final sin huellas que cuadren no cuenta (result.unverified).
+   *   RETRASO ADAPTATIVO: el anfitrión calcula clamp(round(maxRTT/2/STEP_MS) - 16, 2, 8) en cada punto confirmado (maxRTT = el peor
+   *     camino entre dos plazas: por la estrella, invitado↔invitado = suma de sus dos pings) y lo manda ({k:'delay'}); cada uno lo
+   *     aplica en el siguiente balón muerto. (El retraso de cada uno no hace falta que coincida para el determinismo: las entradas van
+   *     con su tic; se acuerda para que todos predigan lo mismo.) o.adaptive === false lo deja fijo.
+   *   VENTAJA DE FRAMES: contra la plaza más atrasada (la estimación del anfitrión viaja con cada bloque reenviado).
+   *   RESULTADO por EQUIPO: win = gameOver.team === g.hum[slot].team. Si todas las plazas humanas del equipo rival se van
+   *     (abandono) → 'rivalQuit' (ganas); 60 s perdidas → 'rivalGone' (ganas, se sigue con la IA). Un compañero que se va lo lleva la
+   *     IA y el partido sigue. El anfitrión es el centro: si se va él, se acaba ('rivalQuit' si era el último rival, si no 'hostGone').
+   * API: la de Session (advance, request, setAway, vsAI, quit, sendApp, confirmedGame, predictedGame, stepInputs) y además
+   *   r.waitFor (plazas a las que se espera), r.pings[s] (ping de cada plaza con el anfitrión; la tuya, el tuyo), r.aiSeats (plazas
+   *   que lleva la IA por la red), sess.seatGone(s), sess.seatAI(s), sess.n, sess.team, sess.delay.
+   *   o: {slot (TU plaza), links | link, linkSeats?, seats [{team, idx, name}…] o n, opts (anfitrión), delay, adaptive, aiSeats
+   *   (anfitrión: plazas que ya se sabe que no vienen: la IA desde el tic 0), name, names, rivalName, epoch, expect, warm, log,
+   *   record, hashLog, onTick}.
+   *   PENDIENTE: la vuelta del anfitrión que recarga (fase 6) no existe en el de varios: un anfitrión sin opts = no hay partido.
+   * ===================================================================== */
+  var SW = 128;                        // bit 7: switchPlayer
+  var EDGE_N = EDGE | SW;
+  var SEAT_AI_MS = 3000;               // plaza que no se oye o que hace esperar 3 s seguidos → la IA (el partido sigue)
+  var REJOIN_STABLE_MS = 1000;         // la plaza vuelve tras oírla seguida 1 s…
+  var RS_GAP_MS = 3000;                // …y como mucho un resync cada 3 s por plaza (una conexión que va y viene no inunda de fotos)
+  var PINGS_EVERY_MS = 2000;           // el anfitrión manda los pings de todas las plazas
+  var SLOW_MS = 2500, SLOW_TAU_MS = 10000; // con más de 2 plazas: la que acumula 2,5 s de espera de todos en ~10 s (media que se olvida) → la IA
+  var SLOW_BACK_MS = 20000, SLOW_BACK_MAX = 120000;   // y no vuelve hasta 20 s después (40, 80… hasta 2 min si se repite)
+  var PK_BUDGET = 1000;                // bytes por paquete 'in' (fragmentar en SCTP no fiable multiplica la pérdida)
+  var DELAY_MIN = 2, DELAY_MAX = 8;
+  /** Retraso de entrada para el peor camino entre dos plazas (notes/net.md: clamp(round(RTT/2/STEP_MS) - 16, 2, 8)). */
+  function adaptDelay(maxRtt) { return Math.max(DELAY_MIN, Math.min(DELAY_MAX, Math.round((+maxRtt || 0) / 2 / STEP_MS) - 16)); }
+
+  /** Paquete de varios: bl = [{s, first, n, st (tic de esa plaza), ring}]. */
+  function packN(from, tick, acks, bl, ep) {
+    var na = acks.length, size = 8 + 4 * na, k, j;
+    for (k = 0; k < bl.length; k++) size += 10 + 5 * bl[k].n;
+    var buf = new Uint8Array(size), dv = new DataView(buf.buffer), o = 8;
+    buf[0] = 2 | ((ep & 15) << 4); buf[1] = from & 255; buf[2] = bl.length; dv.setUint32(3, tick >>> 0); buf[7] = na;
+    for (k = 0; k < na; k++) { dv.setUint32(o, acks[k] >>> 0); o += 4; }
+    for (k = 0; k < bl.length; k++) {
+      var b = bl[k], R = b.ring;
+      buf[o] = b.s; dv.setUint32(o + 1, b.first >>> 0); dv.setUint32(o + 5, Math.max(0, b.st) >>> 0); buf[o + 9] = b.n; o += 10;
+      for (j = 0; j < b.n; j++) { var i = (b.first + j) & RM; dv.setInt16(o, R.X[i]); dv.setInt16(o + 2, R.Y[i]); buf[o + 4] = R.B[i]; o += 5; }
+    }
+    return buf;
+  }
+  function unpackN(buf) {
+    if (!buf || !buf.length || (buf[0] & 15) !== 2) return null;
+    var u = buf instanceof Uint8Array ? buf : new Uint8Array(buf);
+    if (u.length < 8) return null;
+    var dv = new DataView(u.buffer, u.byteOffset, u.byteLength), nb = u[2], na = u[7], o = 8, k, j;
+    if (u.length < 8 + 4 * na) return null;
+    var acks = []; for (k = 0; k < na; k++) { acks.push(dv.getUint32(o)); o += 4; }
+    var bl = [];
+    for (k = 0; k < nb; k++) {
+      if (u.length < o + 10) return null;
+      var s = u[o], first = dv.getUint32(o + 1), st = dv.getUint32(o + 5), n = u[o + 9], v = []; o += 10;
+      if (u.length < o + 5 * n) return null;
+      for (j = 0; j < n; j++) { v.push(dv.getInt16(o), dv.getInt16(o + 2), u[o + 4]); o += 5; }
+      bl.push({ s: s, first: first, st: st, n: n, v: v });
+    }
+    return { from: u[1] & 15, gen: u[1] >> 4, tick: dv.getUint32(3), acks: acks, bl: bl, ep: u[0] >> 4 };
+  }
+
+  function SessionN(o) {
+    o = o || {};
+    var n = Array.isArray(o.seats) && o.seats.length >= 2 ? o.seats.length : Math.max(2, o.n | 0), s, k;
+    if (n > 16) throw new Error('netN: ' + n + ' plazas (16 como mucho)');
+    this.n = n; this.multi = true;
+    this.slot = Math.max(0, Math.min(n - 1, o.slot | 0)); this.host = this.slot === 0;
+    this.team = o.seats && o.seats[this.slot] && o.seats[this.slot].team === 1 ? 1 : 0;   // (el de verdad lo deja la sim al crear la partida)
+    this.links = Array.isArray(o.links) && o.links.length ? o.links.slice() : o.link ? [o.link] : [];
+    this.link = this.links[0] || null;
+    this.name = String(o.name || ''); this.rivalName = cleanName(o.rivalName);
+    this.names = Array.isArray(o.names) ? o.names.map(function (x) { return String(x || ''); }) : [];
+    this.epoch = Math.max(0, Math.min(1e6, o.epoch | 0)); this.appIn = []; this.rivalLeft = false;
+    this.delay = Math.max(0, Math.min(8, o.delay == null ? 2 : o.delay | 0)); this.adaptive = o.adaptive !== false; this.pendDelay = -1; this.delayTo = this.delay;
+    this.record = !!o.record; this.rec = this.record ? [] : null;
+    this.hashLog = Array.isArray(o.hashLog) ? o.hashLog : null;
+    this.onTick = typeof o.onTick === 'function' ? o.onTick : null;
+    this.expect = o.expect && typeof o.expect === 'object' ? o.expect : null;
+    this.log = typeof o.log === 'function' ? o.log : null;
+    this.status = 'connecting'; this.opts = null; this.gc = null; this.gp = null;
+    // por plaza
+    this.rings = []; this.rHave = []; this.remoteTick = []; this.remoteTickAt = []; this.rtts = []; this.rttNs = []; this.seatRtt = [];
+    this.heard = []; this.heardSince = []; this.aiHeld = []; this.gone = []; this.aiAt = []; this.lastRs = []; this.blockSince = []; this.blockAcc = []; this.slowN = []; this.slowUntil = []; this.spectS = []; this.rsIdS = [];
+    this.readyS = []; this.theirHashS = []; this.repairPend = []; this.repairAtS = []; this.cmpBadS = []; this.hashFloor = []; this.rsPendS = [];
+    this.rejoinEp = []; this.acks = []; this.seatLink = []; this._ins = []; this._pred = [];
+    for (s = 0; s < n; s++) {
+      this.rings.push(new Ring()); this.rHave.push(0); this.remoteTick.push(0); this.remoteTickAt.push(0); this.rtts.push(0); this.rttNs.push(0); this.seatRtt.push(0);
+      this.heard.push(-1e9); this.heardSince.push(-1e9); this.aiHeld.push(false); this.gone.push(''); this.aiAt.push(-1); this.lastRs.push(-1e9); this.blockSince.push(-1); this.blockAcc.push(0); this.slowN.push(0); this.slowUntil.push(-1e9); this.spectS.push(false); this.rsIdS.push(0);
+      this.readyS.push(false); this.theirHashS.push({}); this.repairPend.push(false); this.repairAtS.push(-1e9); this.cmpBadS.push(-1); this.hashFloor.push(-1); this.rsPendS.push(null);
+      var a = []; for (k = 0; k < n; k++) a.push(0);
+      this.rejoinEp.push(0); this.acks.push(a); this.seatLink.push(-1); this._ins.push({ move: [0, 0] }); this._pred.push({ move: [0, 0] });
+    }
+    this.mine = this.rings[this.slot]; this.mineTop = 0;
+    this.linkSeat = []; for (s = 0; s < this.links.length; s++) this.linkSeat.push(-1);
+    if (this.host && Array.isArray(o.linkSeats)) for (s = 0; s < this.links.length; s++) { var q = o.linkSeats[s] | 0; if (q > 0 && q < n) { this.linkSeat[s] = q; this.seatLink[q] = s; } }
+    if (!this.host) { this.linkSeat[0] = 0; this.seatLink[0] = 0; }
+    this.preAI = []; if (this.host && Array.isArray(o.aiSeats)) for (s = 0; s < o.aiSeats.length; s++) { var x = o.aiSeats[s] | 0; if (x > 0 && x < n) this.preAI.push(x); }
+    this.rsId = 0; this.rsIn = 0; this.rsPend = null; this.muteBefore = 0; this.syncFloor = -1;
+    this.localTick = 0; this.remoteAck = 0; this.gcTick = 0;
+    this.edges = 0; this.edgesAt = -1; this.away = false; this.solo = false; this.valid = true; this.result = null;
+    this.goneFlag = false; this.lostAt = -1; this.rivalSolo = false; this.soloEpoch = 0; this.rejoinAt = -1e9; this.meAI = false; this.spect = false;
+    this.lateAt = -1e9; this.repInvalid = false; this.rivInvalid = false; this.back = !!o.back; this.adopt = false; this.hostBack = false;
+    this.warmFn = typeof o.warm === 'function' ? o.warm : null; this.warmSince = -1; this.startPend = false;
+    this.connAt = -1; this.heardAt = -1; this.rttFloor = -1e9;
+    this.t0 = 0; this.off = 0; this.lastNow = 0; this.lastRecv = 0; this.started = false;
+    this.helloAt = -1e9; this.gotHello = false; this.pings = []; this.pingAt = -1e9; this.pingId = 0; this.ready = false; this.pingsAt = -1e9;
+    this.rtt = 0; this.rttN = 0; this.adv = 0; this.waitStart = -1; this.waitMs = 0; this.waitFor = [];
+    this.myHash = {}; this.theirHash = {}; this.snaps = [];
+    this.mismatches = 0; this.repaired = 0; this.repairs = []; this.cmpOk = 0; this.cmpBad = -1;
+    this.presTick = 0; this.presKeys = {}; this.presList = []; this.overSeen = false;
+    this.stats = { frames: 0, maxDepth: 0, steps: 0, sent: 0, recv: 0, bytesOut: 0, waits: 0, resyncs: 0, rsIn: 0, seatAI: 0, relayed: 0, delayChanges: 0 }; this.rsT = -1;
+    this.initEvents = []; this._cand = []; this._conf = [];
+    this._out = { g: null, events: [], confirmed: [], app: [], status: '', tick: 0, gcTick: 0, ping: 0, waitMs: 0, unstable: false, canAI: false, info: null, waitFor: [], pings: [], aiSeats: [] };
+    if (this.host && !o.opts) { this.status = 'ended'; this.result = { why: 'noShow', win: false }; this._log('anfitrión sin opciones: el de varios no tiene vuelta del anfitrión'); }
+    if (o.opts) this._setOpts(o.opts);
+  }
+  var NP = SessionN.prototype = Object.create(SP);
+  NP.constructor = SessionN;
+  NP._log = function (m) { if (this.log) this.log('[netN ' + this.slot + '] ' + m); };
+  NP._setOpts = function (opts) {
+    var S = Sim(), n = {}, k, s, t;
+    for (k in opts) n[k] = opts[k];
+    n.online = true;
+    var gc = S.createGame(n);
+    if (!gc.hum || gc.hum.length !== this.n) throw new Error('netN: ' + (gc.hum ? gc.hum.length : 0) + ' plazas en la partida y ' + this.n + ' en la sesión');
+    this.opts = n; this.gc = gc; this.gp = S.createGame(n);
+    this.team = this.gc.hum[this.slot].team;
+    this.initEvents.length = 0; S.drainEvents(this.gc, this.initEvents); this.gp.events.length = 0;
+    for (s = 0; s < this.n; s++) for (t = 0; t < this.delay; t++) this.rings[s].put(t, 0, 0, 0);   // tics 0..delay-1: neutros (no viajan)
+    for (s = 0; s < this.n; s++) this.rHave[s] = this.delay;
+    this.localTick = 0; this.gcTick = 0; this.mineTop = this.delay;
+  };
+  /** Lobby (P6): un enlace más a mitad de sesión (un invitado que vuelve a conectar con otro Link). Su plaza la dice su saludo. */
+  NP.addLink = function (link) { if (!link || this.links.indexOf(link) >= 0) return; this.links.push(link); this.linkSeat.push(-1); if (!this.link) this.link = link; };
+  NP.seatGone = function (s) { return !!this.gone[s | 0]; };
+  /** ¿Lleva esta plaza la IA por la red (se fue, no conecta o la lleva el anfitrión)? */
+  NP.seatAI = function (s) { return !!(this.aiHeld[s | 0] || this.gone[s | 0]); };
+  NP.request = function (what) { var b = what === 'switchPlayer' ? SW : B[what]; if (b & EDGE_N) { this.edges |= b; if (this.edgesAt < 0) this.edgesAt = this.lastNow; } };
+  /* ---- envío de control ---- */
+  NP._send = function (j, ch, d) { var L = this.links[j]; if (!L) return; try { L.send(ch, d); } catch (e) { } };
+  NP._ctlTo = function (j, m) { if (this.epoch) m.ep = this.epoch; this._send(j, 'ctl', JSON.stringify(m)); };
+  /** Al anfitrión (invitado) o a todos los invitados enlazados (anfitrión), menos la plaza `but`. */
+  NP._ctl = function (m, but) {
+    if (this.epoch) m.ep = this.epoch;
+    var js = JSON.stringify(m);
+    if (!this.host) { this._send(0, 'ctl', js); return; }
+    for (var j = 0; j < this.links.length; j++) { var s = this.linkSeat[j]; if (s > 0 && s !== but) this._send(j, 'ctl', js); }
+  };
+  NP._ctlSeat = function (s, m) { var j = this.seatLink[s]; if (j >= 0) this._ctlTo(j, m); };
+  NP.sendApp = function (d) { this._ctl({ k: 'app', d: d, s: this.slot }); };
+  /* ---- plazas ---- */
+  /** Equipo de la plaza s (el de la partida; sin partida, el de plaza % 2). */
+  NP._teamOf = function (s) { var g = this.gc; return g && g.hum && g.hum[s] ? g.hum[s].team : (s % 2); };
+  /** ¿Se han ido (para siempre) todas las plazas humanas del equipo rival t (y tenía alguna)? */
+  NP._teamGone = function (t) {
+    var any = false;
+    for (var s = 0; s < this.n; s++) if (s !== this.slot && this._teamOf(s) === t) { any = true; if (!this.gone[s]) return false; }
+    return any && t !== this.team;
+  };
+  /** Anfitrión: la plaza s pasa a la IA (desde su primer tic que falta; el partido sigue). */
+  NP._toAI = function (s, why, now) {
+    if (!this.host || s <= 0 || this.aiHeld[s]) return;
+    this.aiHeld[s] = true; this.aiAt[s] = now; this.blockSince[s] = -1; this.blockAcc[s] = 0; this.spectS[s] = false; this.repairPend[s] = false; this.theirHashS[s] = {}; this.cmpBadS[s] = -1;
+    this.stats.seatAI++;
+    if (this.status === 'playing' || this.status === 'waiting' || this.status === 'over') this._fab(s);
+    this._ctl({ k: 'seat', s: s, ai: 1, why: why });
+    this._log('plaza ' + s + ' → IA (' + why + ')');
+  };
+  /** Entrada {ai} en la plaza s hasta un poco por delante (se reenvía como cualquier otra). */
+  NP._fab = function (s, upTo) {
+    var R = this.rings[s], top = upTo != null ? upTo : this.localTick + this.delay + MAXCATCH + 1;
+    for (var t = this.rHave[s]; t < top; t++) if (!R.has(t)) R.put(t, 0, 0, B.ai);
+    while (R.has(this.rHave[s])) this.rHave[s]++;
+  };
+  /** La plaza s se ha ido para siempre (abandono, adiós, 60 s sin volver). */
+  NP._seatGone = function (s, why, now) {
+    if (s === this.slot || this.gone[s]) return;
+    this.gone[s] = why || 'gone';
+    if (this.host) { this._toAI(s, why, now); this._ctl({ k: 'seat', s: s, gone: this.gone[s] }); }
+    this._judge(now);
+  };
+  /** ¿Se ha ido todo el equipo rival? Por abandono → se acaba (ganas); por tiempo → ganas y se sigue con la IA. */
+  NP._judge = function (now) {
+    if (this.status === 'ended' || this.status === 'over' || this.goneFlag) return;
+    var t = 1 - this.team; if (!this._teamGone(t)) return;
+    if (this.status === 'connecting' || this.status === 'starting') { this._noShow('los rivales se han ido antes de empezar'); return; }
+    var quit = false; for (var s = 0; s < this.n; s++) if (this._teamOf(s) === t && (this.gone[s] === 'quit' || this.gone[s] === 'left')) quit = true;
+    if (quit) { this.status = 'ended'; this.result = { why: 'rivalQuit', win: true }; }
+    else { this.goneFlag = true; this.result = { why: 'rivalGone', win: true }; }
+    void now;
+  };
+  NP.vsAI = function (force) {
+    if (this.solo || this.status !== 'waiting' || (!force && this.waitMs <= WAIT_AI_MS)) return false;
+    if (this.host) { var any = false; for (var i = 0; i < this.waitFor.length; i++) { this._toAI(this.waitFor[i], 'vsAI', this.lastNow); any = true; } return any; }
+    this.solo = true; this.soloEpoch++;
+    if (this.lostAt < 0) this.lostAt = this.waitStart >= 0 ? this.waitStart : this.lastNow;
+    this.valid = false;
+    this._ctl({ k: 'solo' }); this._log('seguir contra la IA'); return true;
+  };
+  NP.quit = function () {
+    if (this.status === 'ended') return;
+    if (this.status === 'connecting' || this.status === 'starting') { this._ctl({ k: 'bye', why: 'left' }); this.status = 'ended'; this.result = { why: 'cancel', win: false }; return; }
+    if (this.status === 'over' || this.goneFlag) { this._ctl({ k: 'bye', why: 'left' }); this.status = 'ended'; return; }
+    this._ctl({ k: 'bye', why: 'quit' });
+    this.status = 'ended'; this.result = { why: 'quit', win: false };
+  };
+  /** Invitado: 60 s sin el anfitrión → «no cuenta» (sin el centro de la estrella nadie puede seguir). */
+  NP._gone = function () {
+    if (this.goneFlag || this.host) return;
+    if (!this.solo) this.vsAI(true);
+    this.goneFlag = true; this.valid = false; this.result = { why: 'hostGone', win: false };
+    this._ctl({ k: 'bye', why: 'gone' });
+    this._log('el anfitrión no volvió en ' + (GONE_MS / 1000) + ' s');
+  };
+  NP._noShow = function (why) {
+    if (this.status !== 'connecting' && this.status !== 'starting') return;
+    this.status = 'ended'; this.result = { why: 'noShow', win: false }; this.rivalLeft = true;
+    this._log('no hay partido: ' + why);
+  };
+
+  /* ---- recepción ---- */
+  NP._recv = function (now) {
+    var any = false, j, i, s;
+    for (j = 0; j < this.links.length; j++) {
+      var Lk = this.links[j]; if (!Lk) continue;
+      var L = Lk.poll(now);
+      for (i = 0; i < L.length; i++) {
+        var m = L[i];
+        s = this.linkSeat[j];
+        if (!this.host && this.lastRecv && now - this.lastRecv > UNSTABLE_MS) this.rttFloor = now;
+        this.stats.recv++; any = true;
+        if (s >= 0) { if (now - this.heard[s] > 300) this.heardSince[s] = now; this.heard[s] = now; }
+        if (!this.host) this.lastRecv = now;
+        if (m.ch === 'in') this._onInputs(m.data, now, j);
+        else { var c = null; try { c = typeof m.data === 'string' ? JSON.parse(m.data) : m.data; } catch (e) { } if (c && typeof c === 'object') this._onCtl(c, now, j); }
+      }
+    }
+    if (this.host) { var lr = 0; for (s = 1; s < this.n; s++) if (!this.aiHeld[s] && !this.gone[s] && this.heard[s] > lr) lr = this.heard[s]; if (lr > 0) this.lastRecv = lr; }
+    // invitado contra la IA que vuelve a oír al anfitrión: pide volver
+    if (any && !this.host && this.solo && !this.goneFlag && this.status !== 'ended' && now - this.rejoinAt > 500) { this.rejoinAt = now; this._ctl({ k: 'rejoin', e: this.soloEpoch }); }
+  };
+  /** Mete en el anillo de la plaza s los n valores de v desde first. */
+  NP._put = function (s, first, n, v) {
+    var R = this.rings[s];
+    for (var k = 0; k < n; k++) { var t = first + k; if (t < this.gcTick - RING / 2 || R.has(t)) continue; R.put(t, v[k * 3], v[k * 3 + 1], v[k * 3 + 2]); }
+    while (R.has(this.rHave[s])) this.rHave[s]++;
+  };
+  NP._onInputs = function (data, now, j) {
+    if (!this.opts || !data) return;
+    var u = data instanceof Uint8Array ? data : new Uint8Array(data); if (!u.length) return;
+    var ty = u[0] & 15, from, k;
+    if (ty === 1) {   // tipo 1 (2 plazas: el paquete del 1 contra 1): es de la otra plaza
+      if (this.n !== 2) return;
+      var p1 = unpackInputs(u); if (!p1 || p1.ep !== (this.epoch & 15)) return;
+      from = 1 - this.slot;
+      if (this.linkSeat[j] !== from) return;
+      this.heardAt = now;
+      if (!this.solo && !this.aiHeld[from] && !this.gone[from]) this._put(from, p1.first, p1.n, p1.v);
+      if (p1.ack > this.acks[from][this.slot]) this.acks[from][this.slot] = p1.ack;
+      if (p1.ack > this.remoteAck) this.remoteAck = p1.ack;
+      if (p1.tick >= this.remoteTick[from]) { this.remoteTick[from] = p1.tick; this.remoteTickAt[from] = now; }
+      if (this.host) this._heardSeat(from, now);
+      return;
+    }
+    var p = unpackN(u); if (!p || p.ep !== (this.epoch & 15)) return;
+    from = p.from; if (from >= this.n || this.linkSeat[j] !== from) return;   // (cada enlace es de una plaza: la de su saludo)
+    this.heardAt = now;
+    var A = this.acks[from];
+    for (k = 0; k < p.acks.length && k < this.n; k++) if (p.acks[k] > A[k] && (k !== from || (this.host && p.gen === (this.rsIdS[from] & 15)))) A[k] = p.acks[k];   // (el de su propia plaza solo vale tras su último resync: espectador)
+    if (!this.host && p.acks.length > this.slot && p.acks[this.slot] > this.remoteAck) this.remoteAck = p.acks[this.slot];
+    if (this.host) {
+      if (p.tick >= this.remoteTick[from]) { this.remoteTick[from] = p.tick; this.remoteTickAt[from] = now; }
+      for (k = 0; k < p.bl.length; k++) { var b = p.bl[k]; if (b.s === from && !this.aiHeld[from] && !this.gone[from]) this._put(from, b.first, b.n, b.v); }   // (un invitado solo manda lo suyo)
+      this._heardSeat(from, now);
+    } else {
+      for (k = 0; k < p.bl.length; k++) {
+        var c = p.bl[k]; if (c.s >= this.n || (c.s === this.slot && !this.spect)) continue;   // (espectador: mi plaza la escribe el anfitrión)
+        if (!this.solo) this._put(c.s, c.first, c.n, c.v);
+        if (c.st >= this.remoteTick[c.s] || now - this.remoteTickAt[c.s] > 2000) { this.remoteTick[c.s] = c.st; this.remoteTickAt[c.s] = now; }
+      }
+    }
+  };
+  /** Anfitrión: se ha oído a la plaza s. Si la llevaba la IA y se la oye seguida, vuelve (resync). */
+  NP._heardSeat = function (s, now) {
+    if (!this.aiHeld[s] || this.gone[s] || !this.readyS[s] || (this.status !== 'playing' && this.status !== 'waiting')) return;
+    if (now - this.heardSince[s] >= REJOIN_STABLE_MS && now - this.lastRs[s] >= RS_GAP_MS && now >= this.slowUntil[s]) this._resync(s, now);
+  };
+  NP._onCtl = function (c, now, j) {
+    var s = this.linkSeat[j];
+    if (c.k === 'bye' && (c.ep | 0) === this.epoch - 1 && (c.why === 'left' || c.why === 'quit' || c.why === 'gone')) {   // adiós de la época anterior (tras pedir la revancha)
+      if (!this.host) this._noShow('el anfitrión se fue (época anterior)');
+      else if (s > 0) this._seatGone(s, 'left', now);
+      return;
+    }
+    if ((c.ep | 0) !== this.epoch) return;
+    this.heardAt = now;
+    if (this.host) this._hostCtl(c, now, j, s); else this._guestCtl(c, now);
+  };
+  NP._pong = function (c, now, s) {
+    var rtt = now - c.t;
+    if (this.host) {
+      if (s <= 0 || !(rtt < 3000)) return;
+      this.rtts[s] = this.rttNs[s] ? this.rtts[s] * 0.8 + rtt * 0.2 : rtt; this.rttNs[s]++;
+      var m = 0; for (var q = 1; q < this.n; q++) if (!this.aiHeld[q] && !this.gone[q] && this.rtts[q] > m) m = this.rtts[q];
+      this.rtt = m; this.rttN++; this.rttLast = rtt; this.rttSeq = (this.rttSeq || 0) + 1;
+      return;
+    }
+    if (this.rttN && c.t < this.rttFloor) return;
+    if (rtt < 3000 || !this.rttN) { this.rtt = this.rttN ? this.rtt * 0.8 + rtt * 0.2 : rtt; this.rttN++; this.rtts[0] = this.rtt; }
+    if (rtt < 3000) { this.rttLast = rtt; this.rttSeq = (this.rttSeq || 0) + 1; }
+    if (!this.ready && c.id < 1000) this.pings.push({ rtt: rtt, off: c.th - (c.t + now) / 2 });
+  };
+  NP._hostCtl = function (c, now, j, s) {
+    var live = this.status === 'playing' || this.status === 'waiting' || this.status === 'starting';
+    if (c.k === 'hello') {
+      var q = c.seat === undefined && this.n === 2 ? 1 : c.seat | 0;   // (sin plaza: el invitado del 1 contra 1, la 1)
+      if (q <= 0 || q >= this.n) return;
+      if (c.v !== PROTO || c.ver !== (VB.VERSION || '')) { this._ctlTo(j, { k: 'bye', why: 'version', ver: VB.VERSION || '' }); return; }   // (solo esa plaza no juega)
+      var old = this.seatLink[q];
+      if (old >= 0 && old !== j) this.linkSeat[old] = -1;   // (otro enlace para la misma plaza: vale el último que saluda)
+      this.seatLink[q] = j; this.linkSeat[j] = q; this.heard[q] = now; this.heardSince[q] = now;
+      if (!this.names[q]) this.names[q] = cleanName(c.name);
+      if (this.status === 'over' || this.status === 'ended') return;
+      if (this.gone[q]) { this._ctlTo(j, { k: 'bye', why: 'late' }); return; }
+      this._ctlTo(j, { k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, cfg: { opts: this.opts, delay: this.delayTo, n: this.n }, live: live });
+      return;
+    }
+    if (s <= 0) return;   // (enlace sin plaza: solo vale el saludo)
+    switch (c.k) {
+      case 'app':
+        if (this.appIn.length < 64) this.appIn.push(c.d);
+        this._ctl({ k: 'app', d: c.d, s: s }, s); this.stats.relayed++;   // (los 'app' de un invitado llegan a todos)
+        break;
+      case 'ping': this._ctlTo(j, { k: 'pong', t: c.t, th: now, id: c.id }); break;
+      case 'pong': this._pong(c, now, s); break;
+      case 'ready':
+        this.readyS[s] = true;
+        if (this.status === 'connecting') {
+          if (this.aiHeld[s]) { this.aiHeld[s] = false; this._ctl({ k: 'seat', s: s, ai: 0 }); }
+        } else if (this.status === 'starting') {
+          if (this.aiHeld[s] && !this.gone[s]) { this.aiHeld[s] = false; this._ctl({ k: 'seat', s: s, ai: 0 }); }   // (aún no hay tics: vuelve gratis)
+          this._ctlTo(j, { k: 'start', t0: this.t0, ai: this._aiList() });
+        } else if (this.status === 'playing' || this.status === 'waiting') {
+          if (this.gone[s]) this._late(now, j);
+          else { if (!this.aiHeld[s]) this._toAI(s, 'vuelve', now); this._resync(s, now); }   // (recargó o llegó tarde: entra con la foto)
+        }
+        break;
+      case 'rejoin':
+        if (this.status !== 'playing' && this.status !== 'waiting') break;
+        if (this.gone[s]) { this._late(now, j); break; }
+        if ((c.e | 0) > this.rejoinEp[s]) { this.rejoinEp[s] = c.e | 0; if (!this.aiHeld[s]) this._toAI(s, 'rejoin', now); this._resync(s, now); }
+        break;
+      case 'hash':
+        var hk = c.t;
+        if (typeof hk !== 'number' || (hk | 0) !== hk || hk % HASH_EVERY || hk <= this.gcTick - HASH_EVERY * 20 || hk > this.gcTick + RING / 2) break;
+        if (this.aiHeld[s] || this.gone[s]) break;   // (la de una plaza que lleva la IA no cuenta: vuelve con resync)
+        this.theirHashS[s][hk] = c.h >>> 0; this._checkSeat(s, hk, now);
+        break;
+      case 'snapok':
+        if (!this.repairPend[s]) break;
+        this.repairPend[s] = false; if (this.cmpBadS[s] <= (c.t | 0)) this.cmpBadS[s] = -1;
+        for (var ht in this.theirHashS[s]) if (+ht > c.t) this._checkSeat(s, +ht, now);
+        break;
+      case 'rsok': if (this.rsPendS[s] && (c.id | 0) === this.rsPendS[s].m.id) this.rsPendS[s] = null; break;
+      case 'solo': this.rivalSolo = true; break;
+      case 'invalid': this.valid = false; this.rivInvalid = true; this._ctl({ k: 'invalid' }, s); break;
+      case 'bye':
+        if (c.why === 'version') { this._seatGone(s, 'left', now); break; }
+        this._seatGone(s, c.why === 'quit' ? 'quit' : c.why === 'gone' ? 'gone' : 'left', now);
+        if (this._allGone()) this.rivalLeft = true;
+        break;
+    }
+  };
+  NP._allGone = function () { for (var s = 1; s < this.n; s++) if (!this.gone[s]) return false; return true; };
+  NP._aiList = function () { var r = []; for (var s = 0; s < this.n; s++) if (this.aiHeld[s] || this.gone[s]) r.push(s); return r; };
+  NP._late = function (now, j) { if (now - this.lateAt > 1000) { this.lateAt = now; this._ctlTo(j, { k: 'bye', why: 'late' }); } };
+  NP._guestCtl = function (c, now) {
+    switch (c.k) {
+      case 'app': if (this.appIn.length < 64) this.appIn.push(c.d); break;
+      case 'hello':
+        if (!this.rivalName) this.rivalName = cleanName(c.name);
+        if (c.v !== PROTO || c.ver !== (VB.VERSION || '')) { this._ctl({ k: 'bye', why: 'version', ver: VB.VERSION || '' }); this.status = 'ended'; this.result = { why: 'version', rv: String(c.ver || '') }; return; }
+        if (this.gotHello) break;
+        this.gotHello = true;
+        if (!this.opts) {
+          var co = c.cfg && c.cfg.opts, cn = c.cfg && c.cfg.n != null ? c.cfg.n | 0 : 2;
+          if (!co || typeof co !== 'object' || cn !== this.n || (this.expect && !sameRoom(co, this.expect))) {
+            this._ctl({ k: 'bye', why: 'mismatch' }); this.status = 'ended'; this.result = { why: 'mismatch', win: false }; this._log('la sala no coincide con lo anunciado'); return;
+          }
+          this.delay = c.cfg.delay != null ? Math.max(0, Math.min(8, c.cfg.delay | 0)) : this.delay; this.delayTo = this.delay;
+          try { this._setOpts(co); } catch (e) { this._ctl({ k: 'bye', why: 'mismatch' }); this.status = 'ended'; this.result = { why: 'mismatch', win: false }; this._log(String(e && e.message)); return; }
+        }
+        this.pings.length = 0; this.pingAt = -1e9;
+        break;
+      case 'ping': this._ctl({ k: 'pong', t: c.t, th: now, id: c.id }); break;
+      case 'pong': this._pong(c, now, 0); break;
+      case 'pings': if (Array.isArray(c.p)) for (var i = 0; i < this.n && i < c.p.length; i++) if (i !== this.slot) this.seatRtt[i] = Math.max(0, Math.min(9999, +c.p[i] || 0)); break;
+      case 'start':
+        if (!this.ready) break;
+        this.t0 = c.t0 - this.off; if (this.status === 'connecting') this.status = 'starting';
+        if (Array.isArray(c.ai)) for (var a = 0; a < c.ai.length; a++) { var q = c.ai[a] | 0; if (q >= 0 && q < this.n && q !== this.slot) this.aiHeld[q] = true; }
+        break;
+      case 'seat':
+        var ss = c.s | 0; if (ss <= 0 || ss >= this.n) break;
+        if (ss === this.slot) { this.meAI = !!c.ai && !c.gone; break; }   // (el anfitrión lleva mi plaza con la IA: vuelvo con su resync; r.meAI)
+        if (c.gone) this._seatGone(ss, String(c.gone), now);
+        else this.aiHeld[ss] = !!c.ai;
+        break;
+      case 'delay': if (this.adaptive) { var d = c.d | 0; if (d >= DELAY_MIN && d <= DELAY_MAX) { this.pendDelay = d; this.delayTo = d; } } break;
+      case 'hash':
+        var hk = c.t;
+        if (typeof hk !== 'number' || (hk | 0) !== hk || hk % HASH_EVERY || hk <= this.gcTick - HASH_EVERY * 20 || hk > this.gcTick + RING / 2) break;
+        this.theirHash[hk] = c.h >>> 0; this._checkHash(hk, now);
+        break;
+      case 'snap': this._applySnap(c, now); break;
+      case 'resync':
+        var rid = c.id | 0;
+        if (rid && rid <= this.rsIn) { this._ctl({ k: 'rsok', id: rid }); break; }
+        if (this.goneFlag) { this._ctl({ k: 'bye', why: 'gone' }); break; }
+        if (this._applyResync(c, now) && rid) { this.rsIn = rid; this._ctl({ k: 'rsok', id: rid }); }
+        break;
+      case 'solo': this.rivalSolo = true; break;
+      case 'invalid': this.valid = false; this.rivInvalid = true; break;
+      case 'bye':   // del anfitrión: el centro de la estrella se va
+        if (c.why === 'left' || c.why === 'quit' || c.why === 'gone' || c.why === 'late') this.rivalLeft = true;
+        if (this.status === 'ended' || this.status === 'over') break;
+        if ((this.status === 'connecting' || this.status === 'starting') && c.why !== 'version') { this._noShow('el anfitrión se fue antes de empezar'); break; }
+        if (this.goneFlag) break;   // (ya juzgado: el resultado no cambia; se sigue con la IA)
+        this.status = 'ended';
+        if (c.why === 'late') { this.result = { why: 'late', win: false }; break; }
+        if (c.why === 'version') { this.result = { why: 'version', rv: String(c.ver || '') }; break; }
+        this.gone[0] = c.why === 'quit' ? 'quit' : 'gone';
+        if (this._teamGone(1 - this.team)) this.result = { why: c.why === 'quit' ? 'rivalQuit' : 'rivalGone', win: true };
+        else { this.valid = false; this.result = { why: 'hostGone', win: false }; }
+        break;
+    }
+  };
+
+  /* ---- huellas y reparación ---- */
+  NP._hashTick = function () {
+    var S = Sim(), t = this.gcTick, h = S.stateHash(this.gc) >>> 0, s;
+    this.myHash[t] = h; if (!this.solo) this._ctl({ k: 'hash', t: t, h: h });
+    if (this.hashLog) this.hashLog.push([t, h]);
+    if (this.host) { this.snaps.push({ t: t, d: S.serialize(this.gc) }); if (this.snaps.length > 6) this.snaps.shift(); }
+    var old = t - HASH_EVERY * 20;
+    if (this.myHash[old] !== undefined) delete this.myHash[old];
+    if (this.theirHash[old] !== undefined) delete this.theirHash[old];
+    if (this.host) { for (s = 1; s < this.n; s++) { if (this.theirHashS[s][old] !== undefined) delete this.theirHashS[s][old]; this._checkSeat(s, t, this.lastNow); } }
+    else this._checkHash(t, this.lastNow);
+  };
+  /** Invitado: la del anfitrión contra la mía (el anfitrión repara: aquí solo se apunta). */
+  NP._checkHash = function (t) {
+    if (this.host || t <= this.syncFloor) return;
+    var a = this.myHash[t], b = this.theirHash[t];
+    if (a === undefined || b === undefined) return;
+    if (a === b) { this.cmpOk++; if (t > this.cmpBad) this.cmpBad = -1; return; }
+    if (t > this.cmpBad) this.cmpBad = t;
+  };
+  /** Anfitrión: la de la plaza s contra la mía; si no cuadra, la foto de ese tic solo a esa plaza. */
+  NP._checkSeat = function (s, t, now) {
+    if (t <= this.hashFloor[s] || this.aiHeld[s] || this.gone[s]) return;
+    var a = this.myHash[t], b = this.theirHashS[s][t];
+    if (a === undefined || b === undefined) return;
+    if (a === b) { this.cmpOk++; if (t > this.cmpBadS[s]) this.cmpBadS[s] = -1; return; }
+    if (t > this.cmpBadS[s]) this.cmpBadS[s] = t;
+    if (this.repairPend[s] && now - this.repairAtS[s] < 3000) return;
+    var sn = null; for (var i = 0; i < this.snaps.length; i++) if (this.snaps[i].t === t) sn = this.snaps[i];
+    if (!sn) return;
+    this.mismatches++; this.repairPend[s] = true; this.repairAtS[s] = now;
+    this._ctlSeat(s, { k: 'snap', t: t, d: sn.d }); this._log('huella distinta de la plaza ' + s + ' en el tic ' + t + ': le mando la foto');
+  };
+  /** ¿Hay alguna huella distinta sin reparar (de una plaza humana)? */
+  NP._badNow = function () {
+    if (!this.host) return this.cmpBad >= 0;
+    for (var s = 1; s < this.n; s++) if (!this.aiHeld[s] && !this.gone[s] && this.cmpBadS[s] >= 0) return true;
+    return false;
+  };
+  NP._applySnap = function (c, now) {
+    var S = Sim(), t = c.t | 0;
+    if (t > this.gcTick || t < this.gcTick - RING / 2 || t < this.syncFloor) return;
+    var to = this.gcTick;
+    if (!S.deserialize(c.d, this.gc)) return;
+    this.gcTick = t; this.mismatches++; this.repaired++; this.cmpBad = -1;
+    this._confirm(to, true);
+    for (var k = t + HASH_EVERY; k <= this.gcTick; k += HASH_EVERY) if (this.myHash[k] !== undefined) this._ctl({ k: 'hash', t: k, h: this.myHash[k] });
+    this._ctl({ k: 'snapok', t: t });
+    this.repairs.push(now); while (this.repairs.length && now - this.repairs[0] > 60000) this.repairs.shift();
+    if (this.repairs.length >= 3 && this.valid) { this.valid = false; this.repInvalid = true; this._ctl({ k: 'invalid' }); this._log('3 reparaciones en 60 s: partido no válido'); }
+    this._log('reparado en el tic ' + t);
+  };
+
+  /* ---- resync por plaza: el anfitrión fija la IA en la plaza s hasta F y le manda la foto de gc y las entradas de todas desde ahí ---- */
+  NP._resync = function (s, now, spect) {
+    var S = Sim();
+    if (this.status === 'starting' || s <= 0 || this.seatLink[s] < 0) return;
+    var F = this.localTick + this.delay + REJOIN_MARGIN, k, t, i;
+    if (spect) { this._fab(s); F = this.rHave[s]; this.spectS[s] = true; }   // (espectador: la plaza sigue con la IA; le reenvío también la suya)
+    else { this._fab(s, F); this.aiHeld[s] = false; this.spectS[s] = false; this.blockAcc[s] = 0; }   // (desde F manda ella)
+    this._confirm(this.localTick, false);
+    var T = this.gcTick, rings = [];
+    for (k = 0; k < this.n; k++) {
+      var R = this.rings[k], a = [], top = k === this.slot ? this.mineTop : this.rHave[k];
+      for (t = T; t < top && R.has(t); t++) { i = t & RM; a.push(R.X[i], R.Y[i], R.B[i]); }
+      rings.push(a);
+      this.acks[s][k] = T + a.length / 3;
+    }
+    this.lastRs[s] = now; this.blockSince[s] = -1; this.hashFloor[s] = T; this.theirHashS[s] = {}; this.cmpBadS[s] = -1; this.repairPend[s] = false;
+    this.heard[s] = Math.max(this.heard[s], now);
+    this.stats.resyncs++;
+    var rm = { k: 'resync', s: s, T: T, F: F, d: S.serialize(this.gc), t0: this.t0, rings: rings, valid: this.valid, se: this.soloEpoch, id: ++this.rsId, delay: this.delayTo };
+    this.rsIdS[s] = rm.id; if (spect) rm.spect = 1;
+    if (this.n === 2) { rm.mine = rings[this.slot]; rm.fab = rings[s]; }   // (2 plazas: lo que entiende la Session del 1 contra 1)
+    this._ctlSeat(s, rm); this.rsPendS[s] = { m: rm, at: now, n: 0 };
+    if (!spect) this._ctl({ k: 'seat', s: s, ai: 0 }, s);
+    this._log((spect ? 'resync de espectador a la plaza ' : 'resync de la plaza ') + s + ': foto del tic ' + T + (spect ? '' : ', IA hasta ' + F));
+  };
+  NP._applyResync = function (c, now) {
+    var S = Sim(), T = c.T | 0, F = c.F | 0, k, j, s, R;
+    var rings = Array.isArray(c.rings) ? c.rings : null;
+    if (!rings) {   // (anfitrión del 1 contra 1, 2 plazas: mine = las suyas, fab = las mías)
+      if (this.n !== 2 || !Array.isArray(c.mine) || !Array.isArray(c.fab)) return false;
+      rings = []; rings[1 - this.slot] = c.mine; rings[this.slot] = c.fab;
+    }
+    if (rings.length !== this.n || F < T || F - T > RING) return false;
+    for (s = 0; s < this.n; s++) if (!Array.isArray(rings[s]) || rings[s].length > 3 * RING) return false;
+    if (!this.opts || !S.deserialize(c.d, this.gc)) return false;
+    this.gcTick = T;
+    for (s = 0; s < this.n; s++) {
+      R = this.rings[s]; R.clearFrom(T);
+      for (k = T, j = 0; j + 2 < rings[s].length; k++, j += 3) R.put(k, rings[s][j], rings[s][j + 1], rings[s][j + 2]);
+      this.rHave[s] = T; while (R.has(this.rHave[s])) this.rHave[s]++;
+    }
+    this.mineTop = this.rHave[this.slot];
+    if (c.delay != null && this.adaptive) { var d = c.delay | 0; if (d >= DELAY_MIN && d <= DELAY_MAX) { this.delay = this.delayTo = d; this.pendDelay = -1; } }
+    this.localTick = T; this.t0 = c.t0 - this.off; this.solo = false; this.rivalSolo = false; this.lostAt = -1;
+    this.spect = !!c.spect && this.n > 2; this.meAI = this.spect;   // (espectador: mi jugador lo lleva la IA; mis entradas no cuentan hasta el próximo resync)
+    this.valid = c.valid !== false && !this.repInvalid;
+    if (this.status !== 'over') this.result = null;
+    this.edges = 0; this.edgesAt = -1;
+    this.myHash = {}; this.theirHash = {}; this.syncFloor = T; this.cmpBad = -1;
+    if (this.status !== 'over') this.status = 'playing';
+    this.waitStart = -1; this.started = true; this.stats.resyncs++; this.stats.rsIn++; this.rsT = T;
+    this.presTick = Math.max(T, this._target(now)); this.muteBefore = this.presTick; this.presKeys = {}; this.presList.length = 0;
+    this.remoteAck = Math.max(this.remoteAck, F);
+    this.back = false;
+    this._log('resync aplicado: tic ' + T + ', mando desde ' + F);
+    return true;
+  };
+
+  /* ---- avance confirmado: gc mientras estén las entradas de todas las plazas ---- */
+  NP._confirm = function (upTo, silent) {
+    var S = Sim(), ins = this._ins, n = this.n, R = this.rings, s;
+    while (this.gcTick < upTo) {
+      var t = this.gcTick;
+      for (s = 0; s < n; s++) if (!R[s].has(t)) return;
+      for (s = 0; s < n; s++) R[s].dec(t, ins[s]);
+      if (this.rec && !silent) this._recIn(t);
+      S.step(this.gc, STEP, ins);
+      this.gcTick = t + 1; this.stats.steps++;
+      if (this.onTick && !silent) this.onTick(this.gcTick, this.gc);
+      var ev = this.gc.events;
+      if (ev.length) {
+        if (!silent) for (var i = 0; i < ev.length; i++) { ev[i]._tick = t; this._cand.push(ev[i]); this._conf.push(ev[i]); }
+        ev.length = 0;
+      }
+      if (this.gcTick % HASH_EVERY === 0) {
+        if (silent) this.myHash[this.gcTick] = S.stateHash(this.gc) >>> 0;
+        else this._hashTick();
+      }
+    }
+  };
+  NP._recIn = function (t) {
+    var a = [], i = t & RM;
+    for (var s = 0; s < this.n; s++) { var R = this.rings[s]; a.push(R.X[i], R.Y[i], R.B[i]); }
+    this.rec[t] = a;
+  };
+  NP._predict = function () {
+    var S = Sim(), gp = this.gp, ins = this._ins, me = this.slot, n = this.n, s, t;
+    S.copyGame(gp, this.gc);
+    var depth = this.localTick - this.gcTick;
+    if (depth > this.stats.maxDepth) this.stats.maxDepth = depth;
+    this.stats.depth = depth;
+    if (depth <= 0) return;
+    for (s = 0; s < n; s++) {   // predicción de cada plaza remota: su última entrada conocida, botones a falso
+      if (s === me && !this.spect) continue;   // (espectador: la mía también es remota)
+      var lk = this.rHave[s] - 1, R = this.rings[s];
+      if (lk >= 0 && R.has(lk)) { var j = lk & RM; decode(R.X[j], R.Y[j], R.B[j] & ~EDGE_N, this._pred[s]); } else decode(0, 0, 0, this._pred[s]);
+    }
+    for (t = this.gcTick; t < this.localTick; t++) {
+      for (s = 0; s < n; s++) {
+        if (this.rings[s].has(t)) { this.rings[s].dec(t, ins[s]); continue; }
+        var P = this._pred[s], q = ins[s];
+        q.move[0] = P.move[0]; q.move[1] = P.move[1]; q.hit = q.jump = q.jset = q.chal = q.skip = q.tmo = false; q.ai = P.ai; q.switchPlayer = false;
+      }
+      S.step(gp, STEP, ins);
+      var ev = gp.events;
+      if (ev.length) { for (var i = 0; i < ev.length; i++) { ev[i]._tick = t; this._cand.push(ev[i]); } ev.length = 0; }
+    }
+  };
+  /** Anfitrión: retraso para el peor camino entre dos plazas humanas (por la estrella: invitado↔invitado = suma de sus pings). */
+  NP._evalDelay = function () {
+    if (!this.host || !this.adaptive) return;
+    var a = 0, b = 0;
+    for (var s = 1; s < this.n; s++) { if (this.aiHeld[s] || this.gone[s] || !this.rttNs[s]) continue; var r = this.rtts[s]; if (r > a) { b = a; a = r; } else if (r > b) b = r; }
+    var d = adaptDelay(a + b), raw = (a + b) / 2 / STEP_MS - 16;
+    if (d !== this.delayTo && Math.abs(raw - this.delayTo) < 0.9 && d > DELAY_MIN && d < DELAY_MAX) d = this.delayTo;   // (histéresis: sin saltar 5↔6 en cada punto por la variación del ping)
+    if (d !== this.delayTo) { this.delayTo = d; this.pendDelay = d; this.stats.delayChanges++; this._ctl({ k: 'delay', d: d }); this._log('retraso de entrada → ' + d + ' tics (peor camino ' + Math.round(a + b) + ' ms)'); }
+  };
+
+  /* ---- envío de entradas ---- */
+  NP._sendInputs = function () {
+    var have = this.mineTop, me = this.slot, s, k, j;
+    if (this.n === 2) {   // 2 plazas: el paquete del 1 contra 1
+      var ot = 1 - me, j2 = this.seatLink[ot]; if (j2 < 0 || (this.solo && !this.host) || this.gone[ot]) return;
+      var from = Math.max(this.remoteAck, have - MAXSEND * 8), L2 = this.links[j2];
+      if (have > from) for (var a = from, np = 0; a < have && np < 4; a += 255, np++) { var nn = Math.min(255, have - a), pk = packInputs(this.mine, a, nn, this.rHave[ot], this.localTick, this.epoch); L2.send('in', pk); this.stats.sent++; this.stats.bytesOut += pk.length; }
+      else { var pk0 = packInputs(this.mine, have, 0, this.rHave[ot], this.localTick, this.epoch); L2.send('in', pk0); }
+      return;
+    }
+    var acks = []; for (s = 0; s < this.n; s++) acks.push(s === me ? have : this.rHave[s]);
+    if (!this.host) {
+      if (this.solo) return;
+      if (this.spect) { acks[me] = this.rHave[me]; this._pkOut(0, [], acks); return; }   // (espectador: solo acks y mi tic)
+      var f0 = Math.max(this.remoteAck, have - RING / 2);
+      this._pkOut(0, [{ s: me, first: f0, n: Math.max(0, Math.min(255, have - f0)), st: this.localTick, ring: this.mine }], acks);
+      return;
+    }
+    var now = this.lastNow;
+    for (j = 0; j < this.links.length; j++) {
+      var g = this.linkSeat[j]; if (g <= 0 || this.gone[g]) continue;
+      var bl = [];
+      for (k = 0; k < this.n; k++) {
+        if (k === g && !(this.spectS[g] && this.aiHeld[g])) continue;   // (al espectador, también la suya: la escribe la IA)
+        var top = k === me ? have : this.rHave[k], f = Math.max(this.acks[g][k], top - RING / 2);
+        var st = k === me || this.aiHeld[k] || this.gone[k] || !this.remoteTickAt[k] ? this.localTick :   // (la que lleva la IA aquí va a mi paso)
+          Math.round(this.remoteTick[k] + (now - this.remoteTickAt[k] + this.rtts[k] / 2) / STEP_MS);
+        bl.push({ s: k, first: f, n: Math.max(0, Math.min(255, top - f)), st: st, ring: this.rings[k] });
+      }
+      this._pkOut(j, bl, acks);
+    }
+  };
+  /** Manda los bloques por el enlace j, en paquetes de PK_BUDGET bytes como mucho (4 por frame; lo que no cabe, el frame siguiente). */
+  NP._pkOut = function (j, bl, acks) {
+    var L = this.links[j]; if (!L) return;
+    var head = 8 + 4 * acks.length, cur = [], size = head, np = 0, k, maxN = Math.floor((PK_BUDGET - head - 10) / 5);
+    for (k = 0; k <= bl.length; k++) {
+      var b = k < bl.length ? bl[k] : null;
+      if (b && b.n > maxN) b = { s: b.s, first: b.first, n: maxN, st: b.st, ring: b.ring };
+      var bs = b ? 10 + 5 * b.n : 0;
+      if (!b || (cur.length && size + bs > PK_BUDGET)) {
+        var pk = packN(this.slot | (this.host ? 0 : (this.rsIn & 15) << 4), this.localTick, acks, cur, this.epoch);
+        try { L.send('in', pk); } catch (e) { }
+        this.stats.sent++; this.stats.bytesOut += pk.length; np++;
+        cur = []; size = head;
+        if (!b || np >= 4) break;
+      }
+      cur.push(b); size += bs;
+    }
+  };
+
+  /* ---- un frame ---- */
+  NP.advance = function (now, inp) {
+    var out = this._out, i, s;
+    out.events = []; out.confirmed = []; out.app = this.appIn.length ? this.appIn.splice(0) : [];
+    this._cand = []; this._conf = [];
+    if (this.links.length) this._recv(now);
+    this.prevNow = this.lastNow; this.lastNow = now; this.stats.frames++;
+    if (inp) this.edges |= bitsOf(inp) & EDGE_N;
+    if (this.connAt < 0) this.connAt = now;
+    this._connect(now);
+    // resync sin confirmar: otra vez (anfitrión, por plaza)
+    if (this.host) for (s = 1; s < this.n; s++) {
+      var rp = this.rsPendS[s]; if (!rp) continue;
+      if (this.gone[s] || this.status === 'ended' || rp.n >= RS_TRIES) this.rsPendS[s] = null;
+      else if (now - rp.at > RS_EVERY_MS) { rp.at = now; rp.n++; this._ctlSeat(s, rp.m); }
+    }
+    if (this.status === 'starting' && now >= this.t0) { this.status = 'playing'; this.started = true; this.back = false; this.lastRecv = now; for (s = 0; s < this.n; s++) this.heard[s] = Math.max(this.heard[s], now); }
+    if (this.edges && this.edgesAt < 0) this.edgesAt = now;
+    if (this.status === 'connecting' || this.status === 'starting' || (this.edges && now - this.edgesAt > EDGE_TTL_MS)) this.edges = 0;
+    if (!this.edges) this.edgesAt = -1;
+    // pings de RTT cada segundo (anfitrión: a cada invitado; invitado: al anfitrión) y, el anfitrión, los de todos cada 2 s
+    if ((this.status === 'playing' || this.status === 'waiting' || this.status === 'over') && now - this.pingAt > 1000) { this.pingAt = now; this._ctl({ k: 'ping', t: now, id: 1000 + (this.pingId++) }); }
+    if (this.host && this.status !== 'connecting' && this.status !== 'ended' && now - this.pingsAt > PINGS_EVERY_MS) {
+      this.pingsAt = now; var pp = []; for (s = 0; s < this.n; s++) pp.push(s === 0 ? 0 : Math.round(this.rtts[s]));
+      this._ctl({ k: 'pings', p: pp });
+    }
+
+    var playing = this.status === 'playing' || this.status === 'waiting' || this.status === 'over';
+    if (playing && this.opts) {
+      var target = this._target(now), budget = this.maxCatch > 0 ? Math.min(this.maxCatch, 600) : MAXCATCH, stalled = false;
+      // retraso nuevo: en el balón muerto
+      if (this.pendDelay >= 0 && this.gp && (this.gp.mode === 'point' || this.gp.mode === 'over')) { this.delay = this.pendDelay; this.pendDelay = -1; }
+      // plazas que lleva la IA por la red: el anfitrión escribe su entrada (el invitado contra la IA, la de todas)
+      if (this.host) { for (s = 1; s < this.n; s++) if (this.aiHeld[s] || this.gone[s]) this._fab(s); }
+      else if (this.solo) { for (s = 0; s < this.n; s++) if (s !== this.slot) this._fab(s); }
+      var mv = inp && inp.move ? inp.move : null, mx = mv ? q16(mv[0]) : 0, my = mv ? q16(mv[1]) : 0;
+      var lvl = (inp && inp.ai) || this.away ? B.ai : 0;
+      var minR = 1e9; for (s = 0; s < this.n; s++) if ((s !== this.slot || this.spect) && this.rHave[s] < minR) minR = this.rHave[s];
+      while (this.localTick < target && budget-- > 0) {
+        if (this.localTick - minR >= MAXPRED) { stalled = true; break; }
+        var st = this.localTick + this.delay;
+        if (st >= this.mineTop && !this.spect) {
+          if (st > this.mineTop) {   // (el retraso ha crecido: los tics de en medio repiten la última entrada, sin botones)
+            var lt = this.mineTop - 1, li = lt & RM, hasL = lt >= 0 && this.mine.has(lt);
+            for (var gt = this.mineTop; gt < st; gt++) this.mine.put(gt, hasL ? this.mine.X[li] : 0, hasL ? this.mine.Y[li] : 0, hasL ? this.mine.B[li] & ~EDGE_N : 0);
+          }
+          this.mine.put(st, mx, my, this.edges | lvl); this.edges = 0; this.edgesAt = -1; this.mineTop = st + 1;
+        }
+        this.localTick++;
+      }
+      // a quién se espera
+      var wf = this.waitFor; wf.length = 0;
+      if (stalled) {
+        for (s = 0; s < this.n; s++) if (s !== this.slot && this.localTick - this.rHave[s] >= MAXPRED) wf.push(s);
+        if (!this.host && wf.length > 1 && wf[0] === 0) wf.shift();   // (el anfitrión también espera a esa plaza: no es él)
+        if (this.waitStart < 0) { this.waitStart = now; this.stats.waits++; }
+        this.t0 = now - this.localTick * STEP_MS;
+      } else if (this.localTick - minR < MAXPRED) this.waitStart = -1;
+      this.waitMs = this.waitStart >= 0 ? now - this.waitStart : 0;
+      if (this.status !== 'over') this.status = this.waitStart >= 0 && this.waitMs > 100 ? 'waiting' : 'playing';
+      // anfitrión: la plaza que no se oye o que hace esperar SEAT_AI_MS pasa a la IA; 60 s con la IA = se ha ido
+      var dk = this.prevNow ? Math.exp(-Math.max(0, now - this.prevNow) / SLOW_TAU_MS) : 1, dtw = this.prevNow ? Math.min(100, now - this.prevNow) : 0;
+      if (this.host && this.status !== 'over') for (s = 1; s < this.n; s++) {
+        if (this.gone[s]) continue;
+        this.blockAcc[s] = this.blockAcc[s] * dk + (stalled && wf.indexOf(s) >= 0 ? dtw : 0);
+        if (this.aiHeld[s]) {   // (espectador por conexión lenta: sigue conectado y la espera crece hasta 2 min; se va solo si deja de oírse 60 s)
+          var gRef = this.spectS[s] || now < this.slowUntil[s] ? Math.max(this.aiAt[s], this.heard[s]) : this.aiAt[s];
+          if (gRef >= 0 && now - gRef > GONE_MS) this._seatGone(s, 'gone', now);
+          continue;
+        }
+        if (wf.indexOf(s) >= 0) { if (this.blockSince[s] < 0) this.blockSince[s] = now; } else this.blockSince[s] = -1;
+        if (now - this.heard[s] > SEAT_AI_MS) this._toAI(s, 'sin noticias', now);
+        else if (this.blockSince[s] >= 0 && now - this.blockSince[s] > SEAT_AI_MS) this._toAI(s, 'hace esperar', now);
+        else if (this.n > 2 && this.blockAcc[s] > SLOW_MS) {   // (a ratos, pero mucho: conexión lenta → IA y espectador, vuelve más tarde)
+          this.slowN[s]++; this.slowUntil[s] = now + Math.min(SLOW_BACK_MAX, SLOW_BACK_MS * Math.pow(2, this.slowN[s] - 1));
+          this._toAI(s, 'conexión lenta', now); this._resync(s, now, true);
+        }
+      }
+      // invitado: el anfitrión no vuelve en 60 s (esperando o ya contra la IA)
+      var lostFor = this.host ? 0 : this.solo ? (this.lostAt >= 0 ? now - this.lostAt : 0) : this.waitMs;
+      if (!this.host && lostFor > GONE_MS && !this.goneFlag && this.status !== 'over') this._gone();
+      this.goneIn = !this.host && lostFor > 0 && !this.goneFlag && this.status !== 'over' ? Math.max(0, GONE_MS - lostFor) : 0;
+      this._sendInputs();
+      // ventaja de frames contra la plaza más atrasada
+      if (this.rttN && !this.solo && !stalled) {
+        var minE = 1e9;
+        for (s = 0; s < this.n; s++) {
+          if (s === this.slot || this.aiHeld[s] || this.gone[s] || !this.remoteTickAt[s]) continue;
+          var lat = this.host ? this.rtts[s] / 2 : this.rtt / 2, e = this.remoteTick[s] + (now - this.remoteTickAt[s] + lat) / STEP_MS;
+          if (e < minE) minE = e;
+        }
+        if (minE < 1e9) { this.adv = this.adv * 0.95 + (this.localTick - minE) * 0.05; if (this.adv > 1.5) this.t0 += STEP_MS * 0.125; }
+      }
+      this._confirm(this.localTick, false);
+      for (i = 0; i < this._conf.length; i++) this._conf[i]._conf = true;
+      for (i = 0; i < this._conf.length; i++) {
+        var ce = this._conf[i];
+        out.confirmed.push(ce);
+        if (ce.type === 'point') this._evalDelay();
+        if (ce.type === 'gameOver') {
+          this.status = 'over';
+          if (this.solo && !this.goneFlag) this._gone();
+          if (!this.result) {
+            this.result = { why: 'over', win: ce.team === this.team };   // (por EQUIPO)
+            if (!this.cmpOk || this._badNow()) { this.result.unverified = true; this._log('final sin huellas que cuadren: no válido'); }
+          }
+        }
+      }
+      this._predict();
+      this._present(out.events);
+      this.presTick = Math.max(this.presTick, this.localTick);
+    } else this.waitFor.length = 0;
+    out.g = this.gp; out.status = this.status; out.tick = this.localTick; out.gcTick = this.gcTick;
+    out.ping = Math.round(this.rtt); out.waitMs = this.waitMs;
+    out.unstable = (this.status === 'playing' || this.status === 'waiting') && !this.solo && now - this.lastRecv > UNSTABLE_MS;
+    out.canAI = this.status === 'waiting' && this.waitMs > WAIT_AI_MS && !this.solo;
+    out.goneIn = this.goneIn || 0;
+    out.startIn = this.status === 'starting' ? Math.max(0, this.t0 - now) : 0;
+    out.solo = this.solo; out.valid = this.valid; out.result = this.result; out.rivalSolo = this.rivalSolo; out.gone = this.goneFlag; out.rivalLeft = this.rivalLeft;
+    out.waitFor = this.waitFor.slice(); out.aiSeats = this._aiList(); out.meAI = this.meAI || this.spect;
+    var P = out.pings; P.length = 0;
+    for (s = 0; s < this.n; s++) P.push(s === this.slot ? Math.round(this.rtt) : Math.round(this.host ? this.rtts[s] : s === 0 ? this.rtt : this.seatRtt[s]));
+    return out;
+  };
+  /** Saludo, reloj y arranque (antes del tic 0). */
+  NP._connect = function (now) {
+    var s;
+    if (this.status !== 'connecting') return;
+    if (this.host) {
+      // arranca cuando están listas todas las plazas que pueden venir; a los CONNECT_MS, con las que estén (el resto, la IA)
+      var need = 0, rd = 0, seen = false;
+      for (s = 1; s < this.n; s++) {
+        if (this.gone[s] || this.preAI.indexOf(s) >= 0) continue;
+        need++; if (this.readyS[s]) rd++; if (this.heard[s] > 0) seen = true;
+      }
+      var late = now - this.connAt > CONNECT_MS;
+      if (now - this.connAt > CONNECT_CAP_MS || (late && !rd && !seen) || (need === 0 && this._allGone())) { this._noShow('no ha llegado nadie'); return; }
+      if (rd === need || (late && rd > 0)) {
+        if (!this._warmOk(now)) return;
+        for (s = 1; s < this.n; s++) if (!this.readyS[s] && !this.aiHeld[s]) { this.aiHeld[s] = true; this.aiAt[s] = now; }
+        this._begin(now);
+      }
+      return;
+    }
+    if (now - Math.max(this.connAt, this.heardAt) > CONNECT_MS) { this._noShow('sin noticias del anfitrión en ' + (CONNECT_MS / 1000) + ' s'); return; }
+    if (now - this.connAt > CONNECT_CAP_MS) { this._noShow('no se ha podido empezar en ' + (CONNECT_CAP_MS / 1000) + ' s'); return; }
+    if (!this.gotHello && now - this.helloAt > 500) { this.helloAt = now; this._ctl({ k: 'hello', v: PROTO, ver: VB.VERSION || '', name: this.name, seat: this.slot, n: this.n }); }
+    if (this.gotHello && !this.ready) {
+      if (this.pings.length < 8 && now - this.pingAt > 60) { this.pingAt = now; this._ctl({ k: 'ping', t: now, id: this.pingId++ }); }
+      if ((this.pings.length >= 8 || (this.pings.length >= 3 && this.pingId > 30)) && this._warmOk(now)) {
+        var best = this.pings.slice().sort(function (a, b) { return a.rtt - b.rtt; }).slice(0, 3);
+        var offs = best.map(function (p) { return p.off; }).sort(function (a, b) { return a - b; });
+        this.off = offs[offs.length >> 1]; this.ready = true; this._ctl({ k: 'ready' });
+        this._log('reloj: desfase ' + this.off.toFixed(1) + ' ms, RTT ' + best[0].rtt.toFixed(1) + ' ms');
+      } else if (this.pingId > 30 && this.pings.length < 3) { this.pingId = 0; this.pings.length = 0; }
+    }
+  };
+  NP._begin = function (now) {
+    this.t0 = now + START_MS; this.status = 'starting';
+    var ai = this._aiList(), j;
+    for (j = 0; j < this.links.length; j++) { var s = this.linkSeat[j]; if (s > 0 && this.readyS[s]) this._ctlTo(j, { k: 'start', t0: this.t0, ai: ai }); }
+    for (j = 0; j < ai.length; j++) this._ctl({ k: 'seat', s: ai[j], ai: 1, why: 'no conecta' });
+    this._log('empieza en ' + START_MS + ' ms' + (ai.length ? ' (IA en ' + ai.join(', ') + ')' : ''));
+  };
+
   /* ---------- Simulador de red (latencia, variación, pérdida) común a MemLink y BcLink ---------- */
   function mulberry(seed) {
     var s = seed >>> 0;
@@ -697,22 +1557,25 @@
     return [mk(A, Bq), mk(Bq, A)];
   }
 
-  /** Enlace por BroadcastChannel entre dos pestañas / páginas del mismo origen, con el simulador de red (?lag=&jit=&loss=). */
+  /** Enlace por BroadcastChannel entre dos pestañas / páginas del mismo origen, con el simulador de red (?lag=&jit=&loss=).
+   *  Online de varios (P8, netdrive de N páginas): con o.to (plaza del otro extremo) el enlace es de UNA PAREJA (slot ↔ to), con su canal
+   *  propio ('…-a-b', a < b: solo lo oyen esas dos páginas) y su propio Shaper (lag de esa pareja). El anfitrión abre uno por invitado
+   *  ({slot: 0, to: k}) y cada invitado uno con el anfitrión ({slot: k, to: 0}). Sin o.to, el de 2 páginas de siempre. */
   function BcLink(o) {
     o = o || {};
-    var self = this, slot = o.slot === 1 ? 1 : 0;
-    this.slot = slot; this.q = []; this.n = 0; this.shaper = new Shaper(o, (o.seed || 7) + slot * 31);
+    var self = this, pair = o.to != null, slot = pair ? o.slot | 0 : o.slot === 1 ? 1 : 0, to = pair ? o.to | 0 : 1 - slot;
+    this.slot = slot; this.to = to; this.q = []; this.n = 0;
+    this.shaper = new Shaper(o, (o.seed || 7) + slot * 31 + (pair ? to * 977 : 0));
     this.now = function () { return (typeof performance !== 'undefined' ? performance.now() : Date.now()); };
-    this.bc = new BroadcastChannel('mtc-net-' + String(o.room || 'prueba'));
+    this.bc = new BroadcastChannel('mtc-net-' + String(o.room || 'prueba') + (pair ? '-' + Math.min(slot, to) + '-' + Math.max(slot, to) : ''));
     // el retraso se aplica al RECIBIR (cada página con su reloj): así no hacen falta temporizadores
     this.bc.onmessage = function (ev) {
-      var m = ev.data; if (!m || m.from === slot) return;
+      var m = ev.data; if (!m || m.from === slot || (pair && m.from !== to)) return;
       var at = self.shaper.due(m.ch, self.now()); if (at < 0) return;
       self.q.push({ at: at, ch: m.ch, data: m.data, n: ++self.n });
     };
   }
-  BcLink.prototype.send = function (ch, data) { try { this.bc.postMessage({ from: this.slot, ch: ch, data: data }); } catch (e) { } };
-  BcLink.prototype.poll = function (now) {
+  BcLink.prototype.send = function (ch, data) { try { this.bc.postMessage({ from: this.slot, ch: ch, data: data }); } catch (e) { } };  BcLink.prototype.poll = function (now) {
     var out = [], keep = [], q = this.q; now = this.now();
     q.sort(function (a, b) { return a.at - b.at || a.n - b.n; });
     for (var i = 0; i < q.length; i++) { if (q[i].at <= now) out.push({ ch: q[i].ch, data: q[i].data }); else keep.push(q[i]); }
@@ -797,7 +1660,7 @@
   }
 
   VB.Net = {
-    Session: Session, memPair: memPair, BcLink: BcLink, bot: bot, BOT: BOT, Shaper: Shaper,
+    Session: Session, SessionN: SessionN, packN: packN, unpackN: unpackN, adaptDelay: adaptDelay, SEAT_AI_MS: SEAT_AI_MS, memPair: memPair, BcLink: BcLink, bot: bot, BOT: BOT, Shaper: Shaper,
     decode: decode, q16: q16, bitsOf: bitsOf, packInputs: packInputs, unpackInputs: unpackInputs, mulberry: mulberry,
     PROTO: PROTO, BITS: B, cleanName: cleanName, CONNECT_MS: CONNECT_MS, STEP: STEP, STEP_MS: STEP_MS, MAXPRED: MAXPRED, HASH_EVERY: HASH_EVERY, WAIT_AI_MS: WAIT_AI_MS, GONE_MS: GONE_MS
   };

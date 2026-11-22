@@ -222,6 +222,17 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
 - **Repo de redirección**: la URL antigua de Pages (/voley-3d/) da 404. ¿Se crea la redirección en el repo `purupurpito.github.io`?
 
 ### To-do
+- **Online de varios (1.22.0, rama online-multi, sin publicar), lo que falta:**
+  1. **Ferran: desplegar las reglas v3 ANTES de publicar el cliente** (`npx firebase-tools deploy --only firestore:rules`; aditivas,
+     el 1v1 de 1.21.0 sigue igual). Sin ellas, «Las salas de varios aún no están activadas». notes/net.md «Despliegue de las reglas».
+  2. Prueba en un teléfono de verdad: anfitrión de 6v6 en móvil (sube ~150 KB/s con 11 invitados: recomendar PC o wifi para crear la
+     sala) y rollback de Precisa-N en móvil. En Chrome sin cabeza, una página a CPU ×4 tiene parones de rAF de hasta 1 s que no se
+     sabe si pasan en un móvil.
+  3. TURN (sin él, una plaza que no conecta la lleva la IA). Vuelta tras recargar en el de varios (hoy la plaza la lleva la IA; el
+     anfitrión que recarga acaba la partida). Carrera de pista en cooperativo (espera al 6v6 online con «me2»).
+  4. Decisiones de la Carrera cooperativa para Ferran (lista en notes/online-multi-requests.md P7): la Carrera es del anfitrión, solo
+     liga y Open, el invitado solo gasta sus puntos e insignias, sin ambiente ni zona en v1.
+  5. Jugadores remotos tras un rollback de Precisa-N: se ven saltar (solo se suaviza el balón).
 - **Sedes nuevas** (12-nov-2026, pedido de Ferran «mapas nuevos de playa y de pista»; plan aprobado con 4 mapas): arquitectura,
   las 4 sedes del plan HECHAS (**Cala dels Fanals**, **Moll de la Sorra**, **Poliesportiu Can Rebot** y **Cúpula del Far**; ver Hecho
   «Sedes»). ~~Carrera con la sede por club y por nivel~~ HECHO (1.2.0 la sede del local con `VB.Venues.forMatch`; 21-nov-2026 la tabla
@@ -515,6 +526,13 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - `tools/drive.js` falló 1 vez de 4 («el humano llega a tocar el balón», con el PC al 60 % de CPU); las otras 3, TODO OK. Vigilar.
 
 ### Hecho
+- **Online de varios (1.22.0, 21/22-nov-2026, rama online-multi; sin publicar):** 2 contra 2 con hasta 4 personas (Precisa-N:
+  rollback de N plazas en estrella), 6 contra 6 con hasta 12 (modelo anfitrión, js/nethost.js), salas con Formato y sitios (esquema v3,
+  lobby de varios) y Carrera cooperativa de playa (js/career-coop.js). Cada persona lleva un jugador y la IA llena los huecos; el
+  1 contra 1 no cambia (4 huellas idénticas). Integración y lag (P8): netdrive de N páginas (`--multi`, BcLink de pareja,
+  `&norender=1`, `NDRTC=1` por el lobby de verdad y WebRTC), `--coop` de la tarjeta de la Carrera a la XP en los dos, Shaper en
+  RtcLink (`?netlag=&netjit=&netloss=`); arreglados el reloj del invitado del modelo host (saltos del balón de hasta 12 m), los invitados con la IA en el primer peloteo y el balón
+  pintado del anfitrión y de Precisa-N. Medidas, protocolo y pruebas en notes/net.md «Online de varios»; API en CONTRACT.md.
 - **Take the Court (1.20.0)** (20/21-nov-2026, rama nombre, con main 1.19.2 fusionado; marca libre y dominio takethecourt.com comprados por Ferran): el juego pasa
   a llamarse «Take the Court» en todo lo visible (título de la pestaña, metadatos, manifest,
   instalar, compartir sala, acta, gorra «TTC», letras «T T C» de la red, vallas y banda de playa). Las claves y los ids internos se

@@ -206,7 +206,11 @@
 
   // ------------------------------------------------------------------ almacenamiento
   var cur = null;
-  function store() { try { return root.localStorage || null; } catch (e) { return null; } }
+  // Carrera cooperativa (js/career-coop.js, sprint online-multi P7): el invitado ve la Carrera del anfitrión desde un almacén en memoria
+  // (_useStore). Con él, todo lo que esta fachada lee y escribe (playa, pista y modo) va a ese almacén y NUNCA a localStorage (account.js
+  // subiría la del anfitrión encima de la Carrera del invitado en su cuenta). Sin él (lo de siempre), localStorage.
+  var memStore = null;
+  function store() { if (memStore) return memStore; try { return root.localStorage || null; } catch (e) { return null; } }
   function save(c) {
     c = c || cur; if (!c) return false;
     try { var s = store(); if (!s) return false; s.setItem(KEY, JSON.stringify(c)); return true; } catch (e) { return false; }
@@ -1669,8 +1673,10 @@
     pay(c); promoteCheck(c);   // sueldo de la jornada; de la rotación a titular con PROMOTE_AT
     if (coachText(c.coach) !== ct0) msg(c, 'coach', 'El entrenador: «' + coachText(c.coach) + '»', COACH_LINE[coachText(c.coach)] || '');
     // gestión: química con el compañero (jugando juntos; simulado cuenta menos), su forma y la semana de entrenamiento
-    if (c.mate) c.mate.chem = clamp((c.mate.chem | 0) + (sim ? 3 : 5), 0, 100);
-    var mf0 = c.mate ? c.mate.form | 0 : 0, mf = mateFormStep(c);
+    // (Carrera cooperativa, extra.coop: jugó tu pareja humana; la química y la forma del compañero de la IA se quedan como estaban)
+    var cp = !!(extra && extra.coop);
+    if (c.mate && !cp) c.mate.chem = clamp((c.mate.chem | 0) + (sim ? 3 : 5), 0, 100);
+    var mf0 = c.mate ? c.mate.form | 0 : 0, mf = cp ? mf0 : mateFormStep(c);
     var au = sessAuto(c);   // entreno automático: las sesiones libres de la jornada, en Rápido (antes del entreno semanal)
     var tr = trainWeek(c);
     // temporada
@@ -1716,10 +1722,15 @@
     mine.nota = rt ? rt.nota : rating(mine, { win: win, sets: res.sets }, rallies);
     // insignias (sus contadores los lleva VB.Badges con los eventos que le pasa ui.js; aquí se cierran sobre tu atleta)
     var badges = [];
-    try { if (B() && B().endMatch && g) badges = B().endMatch(g, win, [c.player, null]) || []; } catch (e) { badges = []; }
+    // Carrera cooperativa (g.career.coop, js/career-coop.js): el compañero es humano (c.coop.p2). Sus números (m.p[1]) los cierra la
+    // extensión (coopMatch: nota, XP e insignias sobre p2), antes de closeMine, que guarda; la forma y la química del compañero de la
+    // IA no cambian (no ha jugado)
+    var coop = !!(g && g.career && g.career.coop), mate2 = coop && c.coop && c.coop.p2 && typeof c.coop.p2 === 'object' ? c.coop.p2 : null;
+    if (coop) extCall('coopMatch', [c, m, res, rallies, g]);
+    try { if (B() && B().endMatch && g) badges = B().endMatch(g, win, [c.player, mate2]) || []; } catch (e) { badges = []; }
     var asum = ambSum(m, g);
     M = null;
-    return closeMine(c, f, res, mine, false, { badges: badges, rt: rt ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum, study: m.st });
+    return closeMine(c, f, res, mine, false, { badges: badges, rt: rt ? { nota: rt.nota, best: rt.best, worst: rt.worst } : null, amb: asum, study: m.st, coop: coop });
   }
   /** Simula tu partido (resultado según medias + forma; experiencia reducida). */
   function simulateNext(c) {
@@ -3981,7 +3992,11 @@
     setSig: setSig, sigOf: sigOf,
     // ambiente de Carrera (notes/ambiente.md §4.6): estado del partido g y contexto (cs.amb) del próximo partido de la Carrera c
     amb: amb, ambCtx: function (c, n, cs) { c = c || (mode() === 'hall' ? load6() : load()); if (!c) return null; n = n || (isHallC(c) ? next6(c) : next(c)); try { return ambCtx(c, n, cs); } catch (e) { try { console.error('Career.ambCtx', e); } catch (e2) { } return null; } },
-    _reset: function () { cur = null; cur6 = null; M = null; }
+    _reset: function () { cur = null; cur6 = null; M = null; },
+    /** Carrera cooperativa (js/career-coop.js): s = almacén en memoria {getItem, setItem, removeItem} del invitado (la Carrera del
+     *  anfitrión) o null = localStorage otra vez. Vacía lo cargado (cur, cur6, M). Devuelve si queda un almacén en memoria. */
+    _useStore: function (s) { memStore = s && typeof s.getItem === 'function' && typeof s.setItem === 'function' ? s : null; cur = null; cur6 = null; M = null; return !!memStore; },
+    _memStore: function () { return memStore; }
   };
   var C = {};
   Object.keys(BEACH).concat(Object.keys(HALL)).forEach(function (k) {

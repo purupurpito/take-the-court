@@ -5300,7 +5300,7 @@
   /** stepServe (final): todos menos el sacador; en el 6v6 (g.posRule6) cada humano que no saca se coloca con SU stick. */
   function mhServeMove(g, sv, dt) {
     for (var i = 0; i < g.players.length; i++) {
-      var p = g.players[i]; if (p === sv) continue;
+      var p = g.players[i]; if (p === sv || nhFrozen(g, p)) continue;
       var s = g.posRule6 && g.mode === 'serve' ? mhSlot(g, p) : -1;
       if (s >= 0 && (_mxM[s] || _myM[s])) hset(g, s, 'hAct', g.time);
       stepPlayer(g, p, dt, s >= 0 ? _mxM[s] : 0, s >= 0 ? _myM[s] : 0);
@@ -5353,6 +5353,7 @@
   function mhStep(g, dt, inputs) {
     var AI = VB.AI, H = g.hum, n = H.length, s, i, p, t, inp;
     g.time += dt; g.blockCD -= dt;
+    if (g.fl && g.fl.nh) { g.time = g.fl.T * dt; g.fl.dh = dt / 2; g.fl.hs = 2 * g.fl.T - 1; } // nethost (anfitrión): tic compartido y medio paso
     for (s = 0; s < n; s++) {
       inp = (inputs && inputs[s]) || NOIN; _inM[s] = inp;
       if (!_aimM[s]) _aimM[s] = [0, 0];
@@ -5369,7 +5370,7 @@
     mhBits(g, _inM, n);
     if (g.review) {
       g.review.t += dt;
-      for (i = 0; i < g.players.length; i++) stepPlayer(g, g.players[i], dt, 0, 0);
+      for (i = 0; i < g.players.length; i++) if (!nhFrozen(g, g.players[i])) stepPlayer(g, g.players[i], dt, 0, 0);
       if (g.mode === 'point' || g.mode === 'over') stepBall(g, dt);
       if (g.review.t >= g.review.dur) endReview(g);
       fin(g); return;
@@ -5380,7 +5381,7 @@
 
     if (g.mode === 'point' || g.mode === 'over') {
       if (skipBoth(g)) skipHold(g);
-      for (i = 0; i < g.players.length; i++) stepPlayer(g, g.players[i], dt, 0, 0);
+      for (i = 0; i < g.players.length; i++) if (!nhFrozen(g, g.players[i])) stepPlayer(g, g.players[i], dt, 0, 0);
       stepBall(g, dt);
       g.timer -= dt;
       if (g.timer <= 0) {
@@ -5396,6 +5397,7 @@
     }
     if (g.mode === 'serve') {
       var sv = g.server, ss = mhSlot(g, sv);
+      if (ss >= 0 && nhRemS(g, ss)) { nhRemServe(g, dt, ss); refreshPred(g); fin(g); return; } // nethost: saca un invitado (su gesto llega por la red)
       // 6v6: «¡Pídela!» durante el saque no vale (aún no hay jugada): se avisa igual (evento 'ask' sin ok), como fuera del online
       if (g.rot) for (s = 0; s < n; s++) if (_inM[s].switchPlayer && !H[s].ai) emit(g, { type: 'ask', player: H[s].p, ok: false, seat: s });
       if (ss >= 0) { act(g, ss); stepServe(g, dt, _inM[ss], _mxM[ss], _myM[ss], _aimOkM[ss] ? _aimM[ss] : null, true); }
@@ -5409,7 +5411,7 @@
     for (s = 0; s < n; s++) {
       act(g, s);
       if (H[s].ai) { g.defRole = ''; continue; }
-      if (g.mode !== 'rally') continue;
+      if (g.mode !== 'rally' || nhRemS(g, s)) continue;   // (nethost: el jugador de un invitado lo mueve su máquina: llega su pose)
       updateDefense(g);
       inp = _inM[s];
       if (g.rot) { // 6v6: «¡Pídela!» (CAMBIAR) y el humano que juega (VB.AI6.setReady), como en el step de siempre
@@ -5422,9 +5424,31 @@
       p = g.players[i]; if (g.mode !== 'rally' || mhSlot(g, p) >= 0) continue;
       act(g, mhRep(g, p.team)); AI.update(g, p, dt);
     }
-    for (i = 0; i < 2 && g.mode === 'rally'; i++) stepBall(g, dt / 2);
+    for (i = 0; i < 2 && g.mode === 'rally'; i++) { if (g.fl) g.fl.hs = 2 * g.fl.T + i; stepBall(g, dt / 2); }
     refreshPred(g);
     fin(g);
+  }
+  /** nethost (js/nethost.js, P5): ¿lleva un invitado la plaza s? (anfitrión: su jugador no se simula aquí, llega su pose) */
+  function nhRemS(g, s) { var N = g.fl && g.fl.nh; return !!(N && N.host && N.rem[s] && !g.hum[s].ai); }
+  /** nethost: ¿no se simula aquí el jugador p? (anfitrión: el de un invitado; invitado: todos menos el suyo) */
+  function nhFrozen(g, p) {
+    var N = g.fl && g.fl.nh; if (!N) return false;
+    if (!N.host) return !nhMine(g, p);
+    var s = mhSlot(g, p); return s >= 0 && nhRemS(g, s);
+  }
+  /** nethost, anfitrión: saque de un invitado. Listo: stepServe sin entrada (reloj de 8 s, silbato, la formación); el lanzamiento y el
+   *  golpe llegan por la red (nhToss / su tc). En el aire: vuela el balón y, si cae sin golpe, la falta espera N.grace s (el golpe del
+   *  invitado puede venir de camino). */
+  function nhRemServe(g, dt, ss) {
+    var N = g.fl.nh, sv = g.server, b = g.ball;
+    act(g, ss);
+    if (g.serveState === 'ready') { N.dropT = 0; stepServe(g, dt, NOIN, 0, 0, null, true); return; }
+    g.serveT += dt; g.tossT += dt;
+    if (b.vz < 0 && b.z < sv.z + 1.0) {
+      N.dropT += dt;
+      if (N.dropT > N.grace) { N.dropT = 0; fault(g, sv.team, 'serve', 'Falta de saque: el balón cae sin golpearlo', sv, 'serveFault'); return; }
+    }
+    mhServeMove(g, sv, dt); stepBall(g, dt);
   }
   /* ==== fin MULTI ==== */
   /* ==== FLUIDA (Online V2) ==== */
@@ -5488,11 +5512,12 @@
   var FL = { ZMIN: 0.25, ZMAX: 0.6, ZK: 0.12, KH_MAX: 960, CATCH_MAX: 72 };
   var NOIN_AI = { move: [0, 0], hit: false, jump: false, switchPlayer: false, ai: true };
   /** ¿Se simula aquí el jugador p? (sin g.fl, siempre) */
-  function mine(g, p) { return !g.fl || g.fl.loc[p.team]; }
+  function mine(g, p) { return !g.fl || (g.fl.nh ? !nhFrozen(g, p) : g.fl.loc[p.team]); }
   /** ¿Le está vedado a p tocar el balón? (con los dos equipos aquí, en solitario, nunca; useCatch: también durante la recuperación) */
   function flNo(g, p, useCatch) {
     var F = g.fl;
     if (useCatch && F.catch) return true;
+    if (F.nh) return nhFrozen(g, p);   // (nethost: solo toca quien se simula aquí; el toque de un invitado llega en su tc)
     if (F.loc[0] && F.loc[1]) return false;
     return F.own !== p.team || !F.loc[p.team];
   }
@@ -5594,6 +5619,7 @@
   /** Contacto (toque, saque, bloqueo, red/cinta, cuerpo) hecho aquí por el dueño: cadena, edad, kh/khAt y el tc para la sesión. */
   function flContact(g, kind) {
     var F = g.fl;
+    if (F.nh) { nhContact(g, kind); return; }
     F.par = F.seq; F.seq++;
     if (kind !== 'net' && kind !== 'tape') F.bAge = 0;
     F.cT = F.T; F.cH = F.hs - 2 * F.T; F.cFull = kind === 'serve';
@@ -5809,9 +5835,131 @@
     if (!g.hum[1 - F.me].ai) slotAI(g, 1 - F.me, true);
     if (g.mode === 'rally' && F.frozen) { F.frozen = false; setupServe(g); } // flReplay: el fantasma ya cayó sin punto: se vuelve a sacar
   }
+  /* ---- nethost (js/nethost.js, P5): online de varios (6v6 hasta 12 humanos; también 2v2 × 4) con AUTORIDAD DEL ANFITRIÓN y tu
+   * jugador tuyo (notes/online-multi-brief.md §3, recomendación 3). Reutiliza la maquinaria Fluida (g.fl: tc, flApplyTc, flCatchUp,
+   * vuelo fantasma, metadatos) con la propiedad POR JUGADOR en vez de por equipo. Todo detrás de g.fl.nh, que solo crea nhInit.
+   *   Anfitrión (nhInit(g, true, 0, rem)): F.loc = [true, true] → step() va por stepOnline → mhStep con todas las reglas, la IA, el
+   *     balón, la rotación, el líbero, el marcador y el árbitro. Las plazas con rem[s] (las de los invitados) no se simulan aquí
+   *     (nhFrozen: ni stepPlayer, ni humanStep, ni toques activos): su pose llega por la red (nhPose) y sus toques en un tc
+   *     (nhApplyTc → flApplyTc: gana el contacto anterior; empate, el del anfitrión). Bloqueo y cuerpo de TODOS los juzga el
+   *     anfitrión con la pose que tenga. El saque de un invitado: mhStep → nhRemServe (reloj y silbato aquí; lanzamiento por nhToss).
+   *   Invitado (nhInit(g, false, s)): F.loc = [false, false] → step() va por stepFluid → nhStep: solo su jugador (humanStep /
+   *     stepServe con su entrada, retraso 0); los demás no se mueven aquí (la sesión pone su pose interpolada con nhPose); el balón
+   *     vuela fantasma (flGhost) desde el último contacto; nunca pita un punto (la guarda de point(): loc[own] es false), nunca
+   *     juzga bloqueos ni cuerpo (loc[equipo] false). Sus contactos (golpe / plancha / saque) van a F.nh.tcs para la sesión.
+   *   F.nh = {host, seat (la plaza local), rem[s] (anfitrión: plaza de invitado), tcs[] (flBundle de cada contacto hecho aquí, con
+   *     own 0; la sesión los vacía), grace (s de espera de la falta de saque de un invitado), dropT}. F.own es siempre 0, F.me 0 en el
+   *     anfitrión y 1 en el invitado: flCatchUp vuela con reglas en el anfitrión y fantasma en el invitado. */
+  function nhInit(g, host, seat, rem) {
+    var F = flInit(g, host ? 0 : 1);
+    F.loc[0] = F.loc[1] = !!host; F.own = 0; F.peer = true;   // (peer: el silbato del saque no espera a nadie)
+    F.nh = { host: !!host, seat: host ? 0 : seat | 0, rem: [], tcs: [], grace: 0.15, dropT: 0 };
+    for (var s = 0; s < g.hum.length; s++) F.nh.rem.push(!!(host && rem && rem[s]));
+    return F;
+  }
+  /** Invitado: ¿es p el jugador de mi plaza (y no lo lleva la IA)? */
+  function nhMine(g, p) { var N = g.fl.nh, h = g.hum[N.seat]; return !!h && h.p === p && !h.ai; }
+  /** flContact de nethost: cadena y tc de TODOS los contactos hechos aquí (sin traspasos: kh/khAt -1). */
+  function nhContact(g, kind) {
+    var F = g.fl;
+    F.par = F.seq; F.seq++;
+    if (kind !== 'net' && kind !== 'tape') F.bAge = 0;
+    F.cT = F.T; F.cH = F.hs - 2 * F.T; F.cFull = kind === 'serve';
+    if (F.lf < 0) { F.lf = F.hs; F.lfPar = F.par; }
+    F.kh = -1; F.khAt = -1; F.dirty = kind; F.frozen = false;
+    F.tc = flBundle(g); F.tc.own = 0; F.nh.tcs.push(F.tc); F.dirty = '';
+  }
+  /** Aplica un contacto ajeno (flApplyTc con own 0). Invitado: siempre gana el del anfitrión (sin bifurcación: se olvida mi cadena
+   *  local). Anfitrión: el de un invitado, con la regla de bifurcación de Fluida (gana el anterior). → el resultado de flApplyTc. */
+  function nhApplyTc(g, m, nowT) {
+    var F = g.fl;
+    if (!F || !F.nh || !m) return 'bad';
+    if (g.mode === 'point' || g.mode === 'over') return 'over';   // (balón muerto: un tc tardío no reabre el punto; flApplyTc haría setupServe)
+    if (m.own !== 0) { var c = {}, k; for (k in m) c[k] = m[k]; c.own = 0; m = c; }
+    if (!F.nh.host && m.r === F.r && m.par <= F.seq) { F.seq = m.par; F.lf = -1; }
+    var r = flApplyTc(g, m, nowT, null);
+    F.own = 0;
+    return r;
+  }
+  /** Lanzamiento del saque hecho en otra máquina (m = flBundle del tic del lanzamiento, kind 'toss', con sv). El balón vuela (vuelo
+   *  puro, medios pasos) desde ese tic hasta nowT. → true si se aplicó. */
+  function nhToss(g, m, nowT) {
+    var F = g.fl;
+    if (!F || !m || !m.sv || !m.b || m.r !== F.r || g.mode !== 'serve' || g.serveState !== 'ready') return false;
+    var s = m.sv, b = g.ball, i, n;
+    g.serveState = s.serveState; g.serveJump = s.serveJump; g.tossT = s.tossT; g.jumpAt = s.jumpAt; g.serveAuth = true;
+    for (i = 0; i < FL_BK.length; i++) b[FL_BK[i]] = m.b[i];
+    b.held = null; F.bAge = m.bAge || 0; F.frozen = false;
+    n = Math.max(0, (nowT === undefined ? F.T : nowT) - m.T);
+    if (n > 0) { flFly(b, F.bAge, 2 * n, F.dh, _nhB); for (i = 0; i < FL_BK.length; i++) b[FL_BK[i]] = _nhB[FL_BK[i]]; F.bAge = _nhB.age; g.tossT += n * 2 * F.dh; }
+    endRitual(g);
+    return true;
+  }
+  var _nhB = {};
+  /** Pose de un jugador que no se simula aquí (la sesión: interpolada en el invitado, extrapolada en el anfitrión). pz: los campos de
+   *  FL_POSE que vengan y, en el de una plaza humana, swingLive / swingShot (y act: el humano está jugando → hAct en el 6v6). */
+  function nhPose(g, p, pz) {
+    var k, s;
+    for (k = 0; k < FL_POSE.length; k++) if (pz[FL_POSE[k]] !== undefined) p[FL_POSE[k]] = pz[FL_POSE[k]];
+    s = g.mh ? mhSlot(g, p) : -1;
+    if (s >= 0) {
+      if (pz.swingLive !== undefined) hset(g, s, 'swingLive', !!pz.swingLive);
+      if (pz.swingShot !== undefined) hset(g, s, 'swingShot', pz.swingShot);
+      if (pz.act && g.rot) hset(g, s, 'hAct', g.time);
+    }
+  }
+  var _nhAim = [0, 0];
+  /** step() del invitado nethost: solo mi plaza (mismo orden que mhStep para ella); los demás quietos (su pose la pone la sesión);
+   *  balón fantasma en el peloteo; nada de bits de partido (van al anfitrión por la sesión); ningún punto (lo pita el anfitrión). */
+  function nhStep(g, dt, inputs) {
+    var AI = VB.AI, F = g.fl, N = F.nh, s = N.seat, H = g.hum, h = H[s], me = h.p, inp, k;
+    g.time = F.T * dt; g.blockCD -= dt; F.dh = dt / 2; F.hs = 2 * F.T - 1;
+    inp = (inputs && inputs[s]) || NOIN;
+    act(g, s);
+    g.hitBuf -= dt; g.swingLock -= dt; g.jsetQ -= dt;
+    var mv = inp.move || NOIN.move, ml = dirLen(mv), mx = mv[0], my = mv[1];
+    if (ml > 1) { mx /= ml; my /= ml; ml = 1; }
+    var aimOk = ml > 0.2, aim = null;
+    if (aimOk) { _nhAim[0] = mx / ml; _nhAim[1] = my / ml; aim = _nhAim; g.aimIn[0] = aim[0]; g.aimIn[1] = aim[1]; }
+    g.aimOn = aimOk;
+    if (g.rot || g.mastery) g.aimLen = ml;
+    var live = !h.ai;
+    if (g.review || g.tmo || g.mode === 'point' || g.mode === 'over') {
+      if (g.review) g.review.t += dt;
+      if (live && !g.tmo) stepPlayer(g, me, dt, 0, 0);
+      if (!g.tmo && (g.mode === 'point' || g.mode === 'over')) stepBall(g, dt);
+      if (!g.review && !g.tmo) g.timer -= dt;
+      fin(g); return;
+    }
+    if (g.mode === 'serve') {
+      if (g.server === me && live) {
+        stepServe(g, dt, inp, mx, my, aim, true);
+        if (g.mode !== 'serve') endRitual(g);
+      } else {
+        g.serveT += dt; if (g.serveState !== 'ready') g.tossT += dt;
+        if (live) stepPlayer(g, me, dt, g.posRule6 ? mx : 0, g.posRule6 ? my : 0);
+        if (g.ball.held) stepBall(g, dt); else flGhost(g, dt);   // (en la mano: holdPos con la pose del sacador; lanzado: vuelo puro)
+      }
+      refreshPred(g); fin(g); return;
+    }
+    g.rally.t += dt;
+    if (live && g.mode === 'rally') {
+      g.jobs[h.team] = AI.computeJob(g, h.team);
+      updateDefense(g);
+      if (g.rot) {
+        if (inp.switchPlayer) { var ak = askOk(g); if (ak) g.ask6 = g.time; emit(g, { type: 'ask', player: me, ok: ak, seat: s }); }
+        if (ml > 0.15 || inp.hit || inp.jump || inp.jset || inp.switchPlayer) g.hAct = g.time;
+      }
+      humanStep(g, dt, inp, mx, my, aim, ml);
+    }
+    for (k = 0; k < 2 && g.mode === 'rally'; k++) { F.hs = 2 * F.T + k; flGhost(g, dt / 2); }
+    refreshPred(g);
+    fin(g);
+  }
   /** step() del online Fluida con el rival remoto: copia recortada de stepOnline solo para el equipo local. inputs = [in0, in1] con la
    *  entrada local en su hueco (el otro, NOIN). Los jugadores rivales nunca pasan por stepPlayer/AI.update/humanStep: los pone flPose. */
   function stepFluid(g, dt, inputs) {
+    if (g.fl.nh) return nhStep(g, dt, inputs);   // (nethost: el invitado; el anfitrión va por stepOnline → mhStep)
     var AI = VB.AI, H = g.hum, F = g.fl, me = F.me, rm = 1 - me, P = g.players, s, i, p, inp;
     g.time = F.T * dt; g.blockCD -= dt; F.dh = dt / 2; F.hs = 2 * F.T - 1;
     inp = (inputs && inputs[me]) || NOIN; _inS[me] = inp; _inS[rm] = H[rm].ai ? NOIN_AI : NOIN;
@@ -6041,6 +6189,7 @@
     // ONLINE de varios (bloque MULTI, notes/online-multi-brief.md): plazas g.hum[s] desacopladas del equipo (g.mh) // mh-api
     humansOf: humansOf, seatOf: humSlot, seatGet: mhGetP, seatRep: mhRep, isMulti: mhIs, SLOT_6: SLOT_6, // mh-api
     flApplyPt: flApplyPt, flChallenge: flChallenge, flServe: flServe, flSkip: flSkip, flPose: flPose, flDigest: flDigest, flMatch: flMatch, flCatchUp: flCatchUp, // fl-api
+    nhInit: nhInit, nhApplyTc: nhApplyTc, nhToss: nhToss, nhPose: nhPose, nhMine: nhMine, nhFrozen: nhFrozen, // fl-api
     FL: FL, mine: mine, _flKh: flKh, _flGhost: flGhost, _flHand: flHand, _flContact: flContact, _stepFluid: stepFluid, _stepBall: stepBall, // fl-api
     serialize: serialize, deserialize: deserialize, SER_V: SER_V
   };

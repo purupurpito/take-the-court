@@ -215,10 +215,14 @@
 
   // ------------------------------------------------------------------ plegables (plan del entrenador y último partido)
   function jk(c) { return c ? [c.mode || 'beach', c.season | 0, c.phase || '', c.week | 0].join(':') : ''; }
+  // (Carrera cooperativa, js/career-coop.js: el invitado mira la Carrera del anfitrión; sus plegables se quedan en esta pantalla, no en localStorage)
+  var coopFold = {};
+  function coopGuest() { var CO = VB.CareerCoop; try { return !!(CO && CO.guest && CO.guest()); } catch (e) { return false; } }
   function foldGet(k, c) {
+    if (coopGuest()) { var q = coopFold[k]; return q && q.k === jk(c) ? q.v : null; }
     try { var raw = root.localStorage && root.localStorage.getItem('make-the-cut.career.' + k + 'Fold'), o = raw ? JSON.parse(raw) : null; return o && o.k === jk(c) ? (o.v ? 1 : 0) : null; } catch (e) { return null; }
   }
-  function foldSet(k, c, v) { try { if (root.localStorage) root.localStorage.setItem('make-the-cut.career.' + k + 'Fold', JSON.stringify({ k: jk(c), v: v ? 1 : 0 })); } catch (e) { } }
+  function foldSet(k, c, v) { if (coopGuest()) { coopFold[k] = { k: jk(c), v: v ? 1 : 0 }; return; } try { if (root.localStorage) root.localStorage.setItem('make-the-cut.career.' + k + 'Fold', JSON.stringify({ k: jk(c), v: v ? 1 : 0 })); } catch (e) { } }
   function planOpen(c, inf, force) {
     if (force) { foldSet('plan', c, 0); return true; }   // (al volver de un ejercicio o con «Ir al plan»: queda abierto esta jornada)
     var f = foldGet('plan', c);

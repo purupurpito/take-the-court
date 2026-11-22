@@ -152,6 +152,8 @@
     var mine = null;    // tu sala (anfitrión): último estado escrito
     var known = {};     // salas de varios: uids de invitados que este cliente ha visto en TU sala (para borrar su señalización)
     var joinedM = {};   // salas de varios donde te sentaste con este cliente (leave/bye saben que es una sala de varios)
+    var skew = null;    // hora del servidor - Date.now() (ms), de la última readTime / commitTime: la edad de get() sin readTime
+    function noteSrv(t) { var v = t ? Date.parse(t) : NaN; if (v === v) skew = v - Date.now(); }
 
     function call(method, url, body, quiet404) {
       if (!F) return Promise.reject(err('net', 'sin fetch'));
@@ -170,6 +172,8 @@
             throw err(r.status === 403 ? 'denied' : r.status === 401 ? 'auth' : r.status === 404 ? 'gone' : r.status === 409 || r.status === 412 ? 'conflict' :
               r.status >= 500 || r.status === 429 ? 'net' : 'error', msg);
           }
+          if (j && j.commitTime) noteSrv(j.commitTime);
+          else if (Array.isArray(j) && j[0] && j[0].readTime) noteSrv(j[0].readTime);
           return j;
         });
       });
@@ -179,7 +183,9 @@
       if (!doc || !doc.fields) return null;
       var d = dec(doc.fields), id = String(doc.name || '').split('/').pop();
       d.id = id;
-      var now = readTime ? Date.parse(readTime) : (doc.updateTime ? Date.parse(doc.updateTime) : Date.now());
+      // (get() no trae readTime y updateTime se congela si el anfitrión deja de escribir: con la hora del servidor conocida, esa)
+      var ut = doc.updateTime ? Date.parse(doc.updateTime) : NaN;
+      var now = readTime ? Date.parse(readTime) : skew !== null ? Math.max(Date.now() + skew, ut === ut ? ut : 0) : (ut === ut ? ut : Date.now());
       d.age = d.seen ? Math.max(0, now - d.seen) : 1e12;
       d.other = !!ver && d.v !== ver;
       // esquema v3: sala de varios (con cap); las 1v1 salen exactamente como antes

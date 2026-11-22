@@ -3500,7 +3500,7 @@
     if (alt >= 0) { el.btnAgainAlt.textContent = 'Revancha en ' + OPT.difficulty.labels[alt]; el.btnAgainAlt.setAttribute('data-d', OPT.difficulty.vals[alt]); endAltName = OPT.difficulty.labels[alt]; }
     el.btnAgainAlt.setAttribute('data-short', alt >= 0 ? (alt > di ? 'Más difícil' : 'Más fácil') : '');   // (móvil: rótulo corto, CSS «SPLAT · PAUSA Y HOJA FINAL»)
     // (botones de siempre; el Resumen de B6 los vuelve a rotular según el caso: Carrera, reto, Partido rápido)
-    el.btnAgain.textContent = 'Revancha'; el.btnAgain.setAttribute('data-act', 'again');
+    el.btnAgain.textContent = 'Revancha'; el.btnAgain.setAttribute('data-act', 'again'); el.btnAgain.hidden = false;   // (la Carrera cooperativa la esconde)
     if (el.btnEndOpts) { el.btnEndOpts.textContent = 'Cambiar opciones'; el.btnEndOpts.setAttribute('data-act', 'opts'); }
     el.btnMenu.textContent = 'Menú principal'; el.btnMenu.hidden = false;
     // «Cambiar opciones»: al menú, directo a la preparación del Partido rápido (dificultad, puntos, control, escenario). En la
@@ -3977,6 +3977,9 @@
     el.btnAgainAlt.hidden = true; if (el.btnEndOpts) el.btnEndOpts.hidden = true;
     el.btnMenu.hidden = false; el.btnMenu.textContent = 'Volver al menú';
     el.btnAgain.parentNode.setAttribute('data-n', '1');
+    // Carrera cooperativa (js/career-coop.js, net.coopCareer): sin revancha (sería un amistoso sobre el mismo enlace); al salir, la
+    // sesión suelta el enlace al lobby y career-coop vuelve a abrir la Carrera en las dos máquinas
+    if (ctx.net && ctx.net.coopCareer) { el.btnAgain.hidden = true; el.btnMenu.textContent = 'Volver a la Carrera'; return; }
     onlineEndSync();
   }
   var netEndKey = '';
@@ -3984,6 +3987,13 @@
     var n = ctx.net; if (!n || !n.sess || el.btnAgain.getAttribute('data-act') !== 'rematch') return;
     var s = n.sess, who = s.rivalName || n.rival || 'tu rival', left = !!s.rivalLeft || s.status === 'ended';
     var t = left ? who + ' se ha ido' : n.want ? (n.rivalWants ? 'Empezando…' : 'Esperando a ' + who + '…') : n.rivalWants ? '¡Revancha! (' + who + ' quiere)' : 'Revancha';
+    // online de varios (P6): la revancha la tienen que querer TODAS las demás plazas (main.js net.wants / net.rivalWants)
+    if (n.multi) {
+      var H = n.humans || [], tot = 0, got = 0;
+      for (var hi = 0; hi < H.length; hi++) if (hi !== n.seat && !(s.seatGone && s.seatGone(hi))) { tot++; if (n.wants && n.wants[hi]) got++; }
+      t = left || !tot ? 'Los demás se han ido' : n.want ? (n.rivalWants ? 'Empezando…' : 'Esperando a los demás (' + got + '/' + tot + ')…') : got ? '¡Revancha! (' + got + '/' + tot + ' quieren)' : 'Revancha';
+      left = left || !tot;
+    }
     var k = t + (left || n.want ? '|x' : '');
     if (netEndKey === k) return; netEndKey = k;
     el.btnAgain.textContent = t; el.btnAgain.disabled = left || n.want;
@@ -3991,6 +4001,13 @@
   /** Récord online (VB.NetRec) al pie del resumen, y la gorra si es nueva (también sale en «Nuevo en tu vestuario»). */
   function onlineEndRec() {
     var R = VB.NetRec, n = ctx.net; if (!R || !el.endSum || !n) return;
+    // online de varios (P6): quién iba en cada equipo (main.js net.cr: meName «Tú y Ana» / «Tu equipo», mates, rivals)
+    if (n.multi && n.cr) {
+      var cr = n.cr, lt = function (L) { return R.listTxt ? R.listTxt(L) : (L || []).join(', '); };
+      var q = document.createElement('p'); q.className = 'rc-net rc-teams'; q.style.cssText = 'margin:8px 0 0;font:700 14px var(--ui);color:var(--soft,#cfd6e4);text-align:center';
+      q.textContent = (cr.mates && cr.mates.length ? 'Tu equipo: tú, ' + lt(cr.mates) : 'Tu equipo: tú') + ' · Rivales: ' + (cr.rivals && cr.rivals.length ? lt(cr.rivals) : 'la IA');
+      el.endSum.appendChild(q);
+    }
     var ln = ''; try { ln = R.line(); } catch (e) { ln = ''; }
     if (!ln) return;
     var p = document.createElement('p'); p.className = 'rc-net'; p.style.cssText = 'margin:8px 0 0;font:700 14px var(--ui);color:var(--soft,#cfd6e4);text-align:center';

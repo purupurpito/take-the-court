@@ -682,6 +682,8 @@
   function legends() { try { var s = root.localStorage && root.localStorage.getItem(LEG_KEY); var a = s ? JSON.parse(s) : []; return Array.isArray(a) ? a : []; } catch (e) { return []; } }
   /** Te retiras: la carrera pasa al Salón de la Fama del dispositivo y se borra (como abandonar, pero con homenaje). */
   function retire() {
+    // (Carrera cooperativa, js/career-coop.js: el invitado ve la Carrera del anfitrión en memoria; ni retirarla ni escribir el Salón de la Fama)
+    var CO = VB.CareerCoop; try { if (CO && CO.guest && CO.guest()) return null; } catch (e) { }
     var c = K().load(); if (!canRetire(c)) return null;
     var l = ensure(c), sc = legacyScore(c), lt = legacyTier(sc, c), k = K(c).myClub(c);
     var rec = { name: c.player.name, num: c.player.num, role: c.player.role, age: c.player.age, seasons: c.season, score: sc, tier: lt.name,

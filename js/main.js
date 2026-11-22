@@ -660,6 +660,13 @@
     if (!auto && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   };
   var lastOpts = null;
+  // pruebas de red de N páginas (P8, tools/netdrive.js --multi): &norender=1 = página sin dibujo (sim, sesión y bot; ni escena ni GPU)
+  var noDraw = !!((Q.net || Q.netemu) && Q.norender === '1'), ndDot = null;
+  // (Chrome sin nada que componer baja requestAnimationFrame a 1 por segundo: un punto de 1 px que cambia cada frame lo mantiene a 60)
+  function noDrawTick() {
+    if (!ndDot) { ndDot = document.createElement('div'); ndDot.style.cssText = 'position:fixed;left:0;top:0;width:1px;height:1px;z-index:99;pointer-events:none'; document.body.appendChild(ndDot); }
+    ndDot.style.background = (ctx.frame & 1) ? '#010101' : '#020202';
+  }
 
   // ---------- ONLINE (fase 1; owner net, notes/net.md) ----------
   // Partido 1 contra 1 dentro del 2v2 entre dos máquinas (VB.Net.Session: rollback simétrico). ctx.game es la VISTA (net.view): una
@@ -734,6 +741,9 @@
     }
     net.seat = net.slot = seat; net.team = net.humans[seat].team; net.me = { team: net.team, seat: seat };
     net.links = o.links && o.links.length ? o.links.slice() : [o.link]; net.link = net.links[0];
+    // (anfitrión: plaza de cada enlace y plazas que se sabe que no vienen, si el lobby las da; la sesión también las saca de los saludos)
+    net.linkSeats = Array.isArray(o.linkSeats) ? o.linkSeats.slice() : null; net.aiSeats = Array.isArray(o.aiSeats) ? o.aiSeats.slice() : null;
+    net.adaptive = o.adaptive === false ? false : undefined;   // (pruebas: retraso de entrada fijo)
     // (Fluida es de 2 plazas; el 6v6 de varios usará su propia sesión, VB.NetHost (P5), si existe y la sala la pide)
     net.model = o.model === 'host' && VB.NetHost && VB.NetHost.Session ? 'host' : 'precisa';
     net.rival = netListTxt(netSeatsOf(1 - net.team, false)) || 'la IA';
@@ -749,7 +759,12 @@
       // fase 6: cada paso CONFIRMADO, con sus dos entradas, al grabador de repeticiones (VB.Replay en modo dual sobre gc)
       onTick: fl || hs ? null : function (t, gc) { var RP = VB.Replay; if (RP && RP.enabled && RP.enabled() && net && net.sess === s) RP.onStep(s.stepInputs(), gc); } };
     // online de varios: todos los enlaces y las plazas (slot = TU plaza; su equipo es seats[slot].team: notes/online-multi-requests.md P4 → P2)
-    if (net.multi) { so.links = net.links; so.seats = net.humans; so.names = net.humans.map(function (h) { return h.name; }); }
+    if (net.multi) {
+      so.links = net.links; so.seats = net.humans; so.names = net.humans.map(function (h) { return h.name; });
+      if (net.linkSeats) so.linkSeats = net.linkSeats;
+      if (net.aiSeats && !epoch) so.aiSeats = net.aiSeats;   // (en la revancha la sesión ya sabe quién se fue: seatGone)
+      if (net.adaptive === false) so.adaptive = false;
+    }
     var s = new Ses(so);
     if (VB.NetLog && net.sess) { try { VB.NetLog.end(net, 'revancha'); } catch (e) { } }
     net.sess = s; net.epoch = epoch; net.view = null; net.over = false; net.menu = false; net.r = null;
@@ -773,7 +788,7 @@
   /** Revancha (hoja final): se pide al rival; cuando los dos la quieren, quien creó la sala manda la semilla nueva y los dos empiezan
    *  una sesión de la época siguiente sobre el mismo enlace (mismos nombres, looks y opciones de la sala). */
   ctx.actions.netRematch = function () {
-    if (!net || !net.sess || net.want || net.sess.rivalLeft || net.sess.status !== 'over') return false;
+    if (!net || !net.sess || net.want || net.sess.rivalLeft || net.sess.status !== 'over' || net.coopCareer) return false;   // (Carrera coop: sin revancha)
     net.want = true; net.sess.sendApp(net.multi ? { t: 'again', s: net.seat } : { t: 'again' }); call('Audio', 'ui', 'click');
     netRematchGo();
     return true;
@@ -839,6 +854,7 @@
   /** ?net=bc: partida de prueba entre dos pestañas (o dos páginas del mismo Chrome). El hueco 0 es el anfitrión: decide las opciones.
    *  Antes de la sesión, un «pre» como el del lobby (looks y equipación de cada uno) por el mismo BroadcastChannel. */
   function startNetTest() {
+    if (+Q.n > 2 || Q.coop === '1' || Q.fmt === '6v6') { startNetTestN(); return; }   // (online de varios: N páginas)
     var slot = Q.slot === '1' ? 1 : 0, link;
     try { link = new VB.Net.BcLink({ room: Q.room || 'prueba', slot: slot, lag: +Q.lag || 0, jit: +Q.jit || 0, loss: +Q.loss || 0 }); }
     catch (e) { showFatal('Este navegador no permite la prueba online entre pestañas (BroadcastChannel).', true); return; }
@@ -871,6 +887,52 @@
       if ((got.model === 'fluida' ? 'fluida' : 'precisa') !== model) console.warn('[VB] ?net=bc: el rival pide la conexión ' + (got.model || 'precisa') + ' y esta página ' + model);
       ctx.actions.startOnline({ slot: slot, link: link, opts: opts, name: name, rivalName: String(got.name || ''), look: { mine: mine, theirs: NL && NL.saneLook ? NL.saneLook(got.look) : null }, model: model });
       if (Q.bot === '1') ctx.netBot = VB.Net.bot(slot, +Q.botseed || (slot + 1), Q.botprof === 'flojo' ? 'flojo' : 'bueno');
+    }, 50);
+  }
+  /** Online de varios entre N páginas del mismo Chrome (P8, tools/netdrive.js --multi): ?net=bc&n=N&slot=k (0 = anfitrión) &fmt=2v2|6v6
+   *  &coop=1 (todos en el equipo 0) &model=precisa|host &lag=RTT (o &lags=a,b,c: RTT de cada invitado con el anfitrión) &jit= &loss=
+   *  &bot=1 &norender=1 (página sin dibujo: solo sim, sesión y bot). Estrella como en el lobby: el anfitrión abre un BcLink de pareja por
+   *  invitado ({slot: 0, to: k}) y cada invitado uno con él. Plazas: equipo s % 2 y puesto s >> 1 (coop: equipo 0, puesto s). Antes de
+   *  la sesión, un «pre» por enlace (como el «lb-go» del lobby): el anfitrión empieza cuando le ha llegado el de todos (o a los 60 s). */
+  function startNetTestN() {
+    var n = Math.max(2, Math.min(12, +Q.n || 2)), slot = Math.max(0, Math.min(n - 1, +Q.slot || 0)), coop = Q.coop === '1';
+    var fmt = Q.fmt === '6v6' || n > 4 ? '6v6' : '2v2', model = Q.model === 'host' ? 'host' : 'precisa', lags = String(Q.lags || '').split(',');
+    var lagOf = function (k) { var v = +lags[k - 1]; return isFinite(v) && lags[k - 1] !== '' && lags[k - 1] != null ? v : +Q.lag || 0; };
+    var mk = function (k, to) { return new VB.Net.BcLink({ room: Q.room || 'prueba', slot: k, to: to, lag: lagOf(k || to), jit: +Q.jit || 0, loss: +Q.loss || 0 }); };
+    var links = [], k;
+    try { if (slot === 0) for (k = 1; k < n; k++) links.push(mk(0, k)); else links.push(mk(slot, 0)); }
+    catch (e) { showFatal('Este navegador no permite la prueba online entre pestañas (BroadcastChannel).', true); return; }
+    var humans = [], simH = [];
+    for (k = 0; k < n; k++) {
+      var h = coop ? { team: 0, idx: k } : { team: k % 2, idx: k >> 1 };
+      humans.push({ team: h.team, idx: h.idx, name: Q['name' + k] || (k ? 'Invi' + k : 'Anfi') });
+      simH.push({ team: h.team, idx: h.idx, aimSet: true, jsetAim: false });
+    }
+    var opts = null;
+    if (slot === 0) {
+      var kind = fmt === '6v6' ? 'hall' : Q.map && isMapId(Q.map) ? VB.Venues.kindOf(Q.map) : (Q.venue === 'beach' || Q.venue === 'hall' ? Q.venue : venueNow());
+      opts = { online: true, seed: +Q.seed || seed(), venue: kind, mapId: Q.map && isMapId(Q.map) ? Q.map : '', bestOf: Q.bo === '3' ? 3 : 1, points: +Q.points || 21,
+        present: true, stats: true, djump: true, format: fmt, humans: simH };
+      if (coop) opts.coop = true;
+      if (!opts.mapId && VB.Venues && VB.Venues.list) { var vl = null; try { vl = VB.Venues.list(kind); } catch (e) { vl = null; } if (vl && vl.length) { var mp = vl[(opts.seed >>> 0) % vl.length]; if (isMapId(mp)) opts.mapId = mp; } }
+    }
+    var got = [], early = links.map(function () { return []; }), sent = -1e9, t0 = performance.now(), pre = JSON.stringify({ k: 'pre', name: humans[slot].name, model: model });
+    var tm = setInterval(function () {
+      var now = performance.now(), i;
+      for (i = 0; i < links.length; i++) {
+        var msgs = links[i].poll(now);
+        for (var j = 0; j < msgs.length; j++) { var c = null; if (msgs[j].ch === 'ctl') { try { c = JSON.parse(msgs[j].data); } catch (e) { } } if (c && c.k === 'pre') got[i] = true; else early[i].push(msgs[j]); }
+      }
+      if (now - sent > 300) { sent = now; for (i = 0; i < links.length; i++) if (slot !== 0 || !got[i]) links[i].send('ctl', pre); }
+      var all = true; for (i = 0; i < links.length; i++) if (!got[i]) all = false;
+      if (!all && now - t0 < 60000) return;
+      clearInterval(tm);
+      if (slot === 0) for (i = 0; i < links.length; i++) links[i].send('ctl', pre);   // (los invitados empiezan al recibir el del anfitrión)
+      // (lo que ya mandó la sesión de un invitado que empezó antes —su saludo— vuelve a la cola del enlace para la sesión)
+      for (i = 0; i < links.length; i++) for (var e2 = 0; e2 < early[i].length; e2++) links[i].q.push({ at: 0, ch: early[i][e2].ch, data: early[i][e2].data, n: -1e6 + e2 });
+      ctx.actions.startOnline({ humans: humans, seat: slot, links: links, linkSeats: slot === 0 ? links.map(function (l) { return l.to; }) : null, opts: opts,
+        name: humans[slot].name, model: model, format: fmt, coop: coop, delay: Q.delay != null ? +Q.delay : undefined, adaptive: Q.delay != null ? false : undefined });   // (&delay=: retraso fijo, pruebas)
+      if (Q.bot === '1') ctx.netBot = VB.Net.bot(slot, +Q.botseed || (slot + 1), Q.botprof === 'flojo' ? 'flojo' : 'bueno', { team: humans[slot].team });
     }, 50);
   }
   /** Equipaciones y looks del partido online (solo estética): las dos equipaciones las decide VB.Players.onlineKits con las de los
@@ -1048,6 +1110,7 @@
     if (v) {
       // Fluida: la pose pintada se pone sobre la partida local solo mientras se copia a la vista (sin la copia entera de más por frame)
       if (net.model === 'fluida' && s.withDisplay) s.withDisplay(VB.NetView.mirror, v, net.me); else VB.NetView.mirror(v, r.g, net.me);
+      if (net.multi && net.model === 'precisa') netBallSmooth(v, realDt);   // (Precisa-N: el salto del balón de un rollback se reparte)
       v.netCr = net.cr;   // (copyGame deja a undefined las claves que no son de la sim)
       netConfirmed(s, r.confirmed);
       if (r.events.length) VB.NetView.mapEvents(r.events, v, net.me, frameEvents);
@@ -1055,6 +1118,27 @@
     }
     netHud(r);
     return v ? realDt : 0;
+  }
+  /** Precisa-N (online de varios, P8): en la estrella, lo de otro invitado llega por dos tramos y la predicción se corrige con rollbacks
+   *  de 10-24 tics: el balón PINTADO saltaba hasta 1,5 m (netdrive 2v2 × 4 a 80 ms: 5-12 saltos por invitado en 90 s). Como el balón
+   *  pintado del modelo host (nethost.js _blend): si el balón de la vista salta respecto a lo esperado (seguir con la velocidad de antes
+   *  o la de ahora) entre 0,25 y 3 m, la diferencia se guarda y se deshace en BALL_TAU = 80 ms. Solo la vista (net.view, que el espejo
+   *  rehace cada frame): la partida no cambia. El 1 contra 1 no pasa por aquí. net.bj = saltos que quedan (> 0,3 m), para netdrive. */
+  function netBallSmooth(v, dt) {
+    var b = v.ball, S = net.bs || (net.bs = { o: [0, 0, 0], L: null }), o = S.o, L = S.L;
+    if (!b || v.mode !== 'rally' || b.held || !(dt > 0) || dt > 0.1) { S.L = null; o[0] = o[1] = o[2] = 0; return; }
+    var px = b.x, py = b.y, pz = b.z;
+    if (L) {
+      var jx = L[0] + L[3] * dt - (px + o[0]), jy = L[1] + L[4] * dt - (py + o[1]), jz = L[2] + L[5] * dt - (pz + o[2]), j = Math.sqrt(jx * jx + jy * jy + jz * jz);
+      var kx = L[0] + b.vx * dt - (px + o[0]), ky = L[1] + b.vy * dt - (py + o[1]), kz = L[2] + b.vz * dt - (pz + o[2]), k = Math.sqrt(kx * kx + ky * ky + kz * kz);
+      if (k < j) { j = k; jx = kx; jy = ky; jz = kz; }
+      if (j > 0.25 && j < 3) { o[0] += jx; o[1] += jy; o[2] += jz; }
+    }
+    var d = Math.pow(0.5, dt * 1000 / 80); o[0] *= d; o[1] *= d; o[2] *= d;
+    var nx = px + o[0], ny = py + o[1], nz = Math.max((VB.C && VB.C.BR) || 0.21, pz + o[2]);
+    if (L) { var mx = nx - (L[0] + b.vx * dt), my = ny - (L[1] + b.vy * dt), mz = nz - (L[2] + b.vz * dt), jm = Math.sqrt(mx * mx + my * my + mz * mz); if (jm > 0.3) { net.bj = (net.bj | 0) + 1; if (jm > (net.bjMax || 0)) net.bjMax = jm; } }
+    b.x = nx; b.y = ny; b.z = nz;
+    S.L = [nx, ny, nz, b.vx || 0, b.vy || 0, b.vz || 0];
   }
   /** Pestaña oculta (fase 3): tu jugador pasa a la IA (bit ai, al instante) y la sesión sigue avanzando con un temporizador (en una
    *  pestaña oculta no hay requestAnimationFrame y el rival se quedaría esperando). Un Worker de un Blob da el pulso: sus mensajes no
@@ -1226,6 +1310,7 @@
         msg = 'Siguiente set en ' + left + ' s' + (mine && wt.length ? ', esperando a: ' + netNamesHtml(wt) : '');
         if (!mine) btn = '<button data-n="skip">Continuar</button>';
       } else if (net.away0) msg += ' (tu jugador lo lleva la IA)';
+      else if (r.meAI) msg += ' | Tu conexión va lenta: te lleva la IA un rato';   // (Precisa-N: el anfitrión te deja de espectador y vuelves solo)
       if (net.menu) btn = '<button data-n="quit">Abandonar (cuenta como derrota)</button>';
     }
     return [msg, btn];
@@ -1495,6 +1580,23 @@
       nums: m.nums || (m.career ? [[m.career.num | 0 || null, m.career.mateNum | 0 || null], m.career.rivalNum != null && (m.career.rivalNum | 0) > 0 ? [m.career.rivalNum | 0, (m.career.rivalNum | 0) === 9 ? 3 : null] : bossNum ? [bossNum, bossNum === 9 ? 3 : null] : null] : undefined) });
     // (si el rival lleva el 9, el 2º CPU, que es el 9 por defecto, pasa al 3: si no, los dos harían de rival en players.js)
     return true;
+  };
+  /** Carrera cooperativa (js/career-coop.js, sprint online-multi P7): el partido de liga o del Open de la Carrera de playa del anfitrión
+   *  con su pareja humana (plaza 1, equipo 0) contra la IA, por el online de varios (Precisa, 2 plazas). o.seat = tu plaza (0 anfitrión,
+   *  1 invitado); el invitado pasa o.humans (nombre y look de cada plaza, los que le manda el anfitrión) y sus opciones le llegan en el
+   *  saludo de la sesión. Enlace: VB.CareerCoop.matchLink (el del lobby; netStop no lo cierra). Solo el anfitrión cierra la jornada
+   *  (VB.CareerCoop: matchDone con los eventos CONFIRMADOS de la sesión). v1 sin ambiente, zona ni «Te tienen estudiado». */
+  ctx.actions.startCoopCareerMatch = function (o) {
+    o = o || {};
+    var CC = VB.CareerCoop; if (!CC || !CC.matchLink) return false;
+    var seat = o.seat === 1 ? 1 : 0, link = CC.matchLink(); if (!link) return false;
+    var mo = null; if (seat === 0) { try { mo = CC.matchOpts(); } catch (e) { reportError('CareerCoop.matchOpts', e); } if (!mo) return false; }
+    var humans = mo ? mo.humans : o.humans; if (!Array.isArray(humans) || humans.length !== 2) return false;
+    if (VB.CareerUI && VB.CareerUI.isOpen && VB.CareerUI.isOpen()) VB.CareerUI.close();
+    if (seat === 0 && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch();   // (la estadística del partido empieza de cero)
+    var ok = ctx.actions.startOnline({ coop: true, humans: humans, seat: seat, links: [link], opts: mo ? mo.opts : null, name: (humans[seat] && humans[seat].name) || '', model: 'precisa' });
+    try { if (CC.matchStarted) CC.matchStarted(seat, ok ? ctx.net : null, mo); } catch (e) { reportError('CareerCoop.matchStarted', e); }
+    return !!ok;
   };
   /** Partidillo de prueba de la oferta i (al elegir club o invitación de mitad / fin de temporada; VB.Career.trialSetup): un solo set a 15 con petos (kit.scrim: los dos
    *  equipos con la camiseta de entreno del club y peto naranja / lima, players.js), en la playa con tu pareja de prueba contra una
@@ -2291,6 +2393,7 @@
     // (S3-C1: con una repetición en marcha, a ritmo completo también en la hoja final: «Jugadas»)
     if (((ctx.state === 'over' && g && (g.finished || (g.drill && g.drill.done)) && !ctx.endHold) || ctx.state === 'paused') && !rpA) idleT += realDt; else idleT = 0;
     if (R) rpDraw(g, R, gdtR, realDt);
+    else if (noDraw && Q.ndfull !== '1') call('UI', 'update', g, gdt, ev);   // (página de prueba sin dibujo: ni escena ni cámara ni efectos)
     else {
     call('Arena', 'update', g, gdt, ev);
     call('Players', 'update', g, gdt, ev);
@@ -2337,6 +2440,7 @@
     if (progWarm.pending && progsPending() && progWarm.gate) throttled = true;
     // programas listos: primer dibujo de todo (variantes de ANGLE) justo antes del primer frame real, aún bajo el telón
     if (needWarmDraw && !throttled && !glLost && !(progWarm.pending && progWarm.gate)) { needWarmDraw = false; warmDraw(); }
+    if (noDraw) { drawn++; throttled = true; noDrawTick(); }   // (?net=bc&norender=1: el telón se quita igual, pero no se pinta nunca)
     if (!throttled && !glLost) {
       drawn++;
       // 4b (B2): un retrato en cola, solo en el menú y en la hoja final (nunca en partido), con el telón ya quitado y sin el

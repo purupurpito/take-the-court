@@ -1439,6 +1439,7 @@
   // =================================================================== render
   function render() {
     if (!root) return;
+    try { root.classList.toggle('cr-coopg', coopGuest()); } catch (e) { }   // (Carrera cooperativa: el invitado ve lo que no puede tocar apagado)
     if (open) { var cc = C() && C().get(); backdrop(cc ? (isHall(cc) ? 'hall' : 'beach') : ''); }   // (cambiar de Carrera playa/pista con el hub abierto)
     try { renderInner(); }
     catch (e) {   // guardado raro que career.js no ha sabido reparar: no dejar el hub vacío y sin salida
@@ -2856,6 +2857,9 @@
     var act = b.getAttribute('data-act'), t = b.getAttribute('data-tab'), sv = b.getAttribute('data-sub'), c = C() && C().get();
     if (t) { setTab(t, b.getAttribute('data-s')); snd('click'); return; }
     if (sv != null) { setSub(sv); snd('click'); return; }
+    // Carrera cooperativa (js/career-coop.js): el invitado ve la Carrera del anfitrión; solo mira, gasta SUS puntos e insignias (en la
+    // copia en memoria, y se le piden al anfitrión) y pulsa «Listo». Lo demás no se puede (con el porqué en la tarjeta del cooperativo)
+    if (coopGuest() && VB.CareerCoop.intent(act, b) === false) { snd('back'); if (view === 'hub' && tab !== 'match') setTab('match'); else render(); focusSel('#crCoop button'); return; }
     // extensiones de la Carrera (VB.CareerUIExt): sus data-act empiezan por su prefix. act(act, b, {form, view}) → null | false |
     // {render, focus, snd} | {tab, s, focus} | {play: {id, arg, auto}} (partido) | {drill: {id, arg, auto}} (ejercicio) | {view: 'create'}
     var xa = act && XUI().filter(function (x) { return typeof x.prefix === 'string' && x.prefix && act.indexOf(x.prefix) === 0 && xFn(x, 'act'); })[0];
@@ -3134,8 +3138,13 @@
     if (!nb || nb.disabled) nb = root.querySelector('#crTrain .pl-s.cur button:not([disabled])') || root.querySelector('#crTrain button:not([disabled])');
     if (nb) focusEl(nb, kbNav); else focusFirst();
   }
+  /** ¿Es esta máquina la invitada de una Carrera cooperativa? (js/career-coop.js) */
+  function coopGuest() { var CO = VB.CareerCoop; try { return !!(CO && CO.guest && CO.guest()); } catch (e) { return false; } }
   function play() {
-    var go = function () { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.startCareerMatch) VB.ctx.actions.startCareerMatch(); };
+    // Carrera cooperativa (anfitrión con pareja conectada): el partido de liga o del Open va por el online (falta su «Listo»: se avisa)
+    var CO = VB.CareerCoop, cp = null; try { cp = CO && CO.hostPlay ? CO.hostPlay() : null; } catch (e) { cp = null; }
+    if (cp && cp.wait) { snd('back'); render(); focusSel('#crCoop button'); return; }
+    var go = cp && cp.go ? cp.go : function () { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.startCareerMatch) VB.ctx.actions.startCareerMatch(); };
     close(true);
     var w = false; try { w = !!(VB.UI && VB.UI.wipe && VB.UI.wipe(2, go)); } catch (e) { w = false; }
     if (!w) go();
@@ -3224,7 +3233,7 @@
     e.stopPropagation();   // ni ui.js (menú de detrás) ni input.js (M = silencio, P = pausa…) mientras está abierta
     if (k === 'Escape') { e.preventDefault(); back(); return; }
     if (k === 'Enter') {
-      if (inInput) { e.preventDefault(); var cb = root.querySelector('[data-act="create"]'); if (cb) cb.click(); return; }
+      if (inInput) { e.preventDefault(); var cb = a.id === 'coCode' ? root.querySelector('[data-act="co-join"]') : root.querySelector('[data-act="create"]'); if (cb) cb.click(); return; }
       if (a && a.tagName === 'BUTTON' && root.contains(a)) return;   // el navegador lo pulsa
       e.preventDefault(); focusFirst(); return;
     }

@@ -100,6 +100,16 @@ const SCREENS = [
   { id: 'online-create', area: 'online', q: M0 + '&online=1&olmock=1', open: "return M.online('create');", primary: '.sp-patch' },
   { id: 'online-room', area: 'online', q: M0 + '&online=1&olmock=1', open: "return M.online('room');", primary: '' },
   { id: 'online-room-rival', area: 'online', q: M0 + '&online=1&olmock=1', open: "return M.online('rival');", primary: '' },
+  // online de varios (sprint online-multi, P6): «Crear sala» con la fila Formato, la sala de espera con las columnas de sitios
+  // (2v2: 4; 6v6: 12, la de 568×320 se desplaza por dentro), la del invitado, el anfitrión con alguien elegido y la hoja de la coop
+  ...['2v2', '6v6'].map((f, k) => ({ id: 'online-create-' + f, area: 'online', q: M0 + '&online=1&olmock=1',
+    open: `if (!(await M.online('create'))) return false; for (let i = 0; i < ${k + 1}; i++) { M.click('#mpOnline [data-ol="fmt"]'); await M.sleep(80); } return !!document.querySelector('#mpOnline [data-ol="fmt"]') && VB.NetLobby._state().view === 'create';`, primary: '.sp-patch' })),
+  ...[['2v2', 'host', '[data-a="start"]'], ['6v6', 'host', '[data-a="start"]'], ['6v6', 'guest', '[data-a="ready"]']].map(x => ({ id: 'online-sala-' + x[0] + (x[1] === 'guest' ? '-invitado' : ''), area: 'online', q: M0 + '&online=1&olmock=1',
+    open: `if (!(await M.online('list'))) return false; VB.NetLobby._mock({ multiDemo: '${x[0]}', role: '${x[1]}' }); await M.sleep(300); return VB.NetLobby._state().view === 'room' && !!document.querySelector('#mpOnline .mx-chip');`, exit: '[data-a="leave"]', primary: x[2] })),
+  { id: 'online-sala-6v6-elegido', area: 'online', q: M0 + '&online=1&olmock=1',
+    open: "if (!(await M.online('list'))) return false; VB.NetLobby._mock({ multiDemo: '6v6', role: 'host', pick: true }); await M.sleep(300); return !!document.querySelector('#mpOnline [data-a=\"kick\"]');", exit: '[data-a="unpick"]', primary: '[data-a="kick"]' },
+  { id: 'online-coop', area: 'online', q: M0 + '&online=1&olmock=1&mx=coop',   // (carga propia: la hoja queda encima de todo)
+    open: "await M.ensureMenu(); VB.NetLobby._mock({ coopDemo: 'host' }); await M.sleep(250); var d = document.getElementById('olCoop'); return !!d && !d.hidden;", exit: '[data-oc="cancel"]', primary: '[data-oc="share"]' },
 
   // ---------------- CARRERA (playa y pista; la de muestra se crea en la página)
   { id: 'carrera-crear-playa', area: 'carrera', q: M0 + '&ma=cc', open: "await M.ensureMenu(); VB.CareerUI.open('create',{from:'main'}); await M.sleep(80); M.click('#career [data-act=\"mode\"][data-m=\"beach\"]'); await M.sleep(80); return VB.CareerUI._state().view==='create';" },

@@ -10,9 +10,12 @@
  *       de subida del anfitrión con 11 invitados, contando cabeceras; aquí solo la carga útil)
  *   (c) partido Precisa de 2 huecos sobre los enlaces 0↔1 de la estrella de 12 con 10 sondas de tráfico A a la vez: huellas iguales y
  *       prueba de oro (que el resto de enlaces no estorba), métricas por par
- * AMPLIAR (P5): añade el adaptador 'host6' a require('./net4test.js').ADAPTERS (peers: 12; make: la sesión de js/nethost.js para la
- *   máquina i; slotOf(i) = su hueco) y una comprobación de marcador y eventos iguales en las 12 (R.st[i].pts ya guarda los puntos confirmados).
- * Uso: node tools/net12test.js [--quick] [--secs 60] [--bundle 220] [--model precisa2|fluida2]   (código 1 si falla)
+ *   (h) P5: el modelo «host» (js/nethost.js) de verdad, 12 humanos con 30-200 ms de RTT (tools/hosttest.js): CPU del anfitrión por tic,
+ *       bytes/s por enlace, corrección pintada de poses y balón, saltos del balón, toques aceptados y puntos iguales en las 12
+ *   (i) P5: el adaptador 'host6' de net4test (runMatch) sobre la estrella de 12: marcador confirmado igual en las 12 (--no-host: sin h/i)
+ *   (d) Precisa-N (P2) con 12 plazas en 6v6 (estrella, el anfitrión reenvía): huellas, prueba de oro con 12 entradas por tic, marcador;
+ *       solo corrección (--no-n la salta)
+ * Uso: node tools/net12test.js [--quick] [--secs 60] [--bundle 220] [--model precisa2|fluida2] [--no-n]   (código 1 si falla)
  */
 'use strict';
 const H = require('./net4test.js');
@@ -71,6 +74,43 @@ function main() {
       const a = R.st[0].pts, b = R.st[1].pts, m = Math.min(a.length, b.length);
       check('marcador confirmado igual en los que juegan (puntos comunes)', a.slice(0, m).join() === b.slice(0, m).join(), { puntos: [a.length, b.length] });
       report(R, 'estrella12:');
+    }
+  }
+  if (!argv.includes('--no-n')) {
+    // (d) Precisa-N (P2) con 12 plazas en 6v6: SOLO para probar que el rollback de N plazas es correcto con 12 (el 6v6 de verdad va
+    //     con el modelo del anfitrión, P5: aquí la subida del anfitrión no es viable y el rollback de 6v6 cuesta demasiado en un móvil)
+    console.log('== (d) Precisa-N con 12 plazas (6v6, 6 humanos por equipo), estrella, RTT 40..140 ms ±8, 2 % de pérdida: prueba de corrección ==');
+    const seats = Array.from({ length: N }, (_, s) => ({ team: s % 2 }));
+    const R = runMatch({ n: N, topo: 'star', relay: false, rtt: rttStar, jit: 8, loss: 2, seed: 43, secs: QUICK ? 20 : 45, model: 'precisaN', seats, opts: H.optsN(43, seats, { format: '6v6' }) });
+    check('12: sin excepciones', !R.err, R.err ? String(R.err.stack).split('\n').slice(0, 3).join(' | ') : undefined);
+    if (!R.err) {
+      check('12: las 12 juegan 6v6 (una plaza por jugador, 6 por equipo)', R.S.every(s => s.gc.size === 6 && s.gc.hum.length === 12 && (s.status === 'playing' || s.status === 'waiting')) &&
+        [0, 1].every(t => R.S[0].gc.hum.filter(h => h.team === t).length === 6), R.S.map(s => s.status));
+      const c = cmpHashes(R); check('12: huellas de gc iguales en las 12', c.n > 5 && c.bad === 0, c);
+      const G = golden(R); check('12: PRUEBA DE ORO (12 entradas por tic)', G.checked > 5 && G.bad === 0 && G.finalOk === true, G);
+      check('12: sin reparaciones ni plazas a la IA', R.S.every(s => !s.mismatches && !s.stats.seatAI), R.S.map(s => [s.mismatches, s.stats.seatAI]));
+      const m = Math.min(...R.st.map(x => x.pts.length));
+      check('12: marcador confirmado igual en las 12', R.st.every(x => x.pts.slice(0, m).join() === R.st[0].pts.slice(0, m).join()), { puntos: m });
+      report(R, '12:');
+      const tr = R.M.traffic(), secs = R.T / 1000; let up = 0; for (let j = 1; j < N; j++) up += tr[0][j].bytes;
+      console.log('        12: subida del anfitrión ' + r1(up / secs / 1024) + ' KB/s de carga útil (Precisa-N no sirve para 12 en producción: modelo del anfitrión, P5)');
+    }
+  }
+  if (!argv.includes('--no-host')) {
+    // P5: el modelo del 6v6 online de verdad (js/nethost.js): 12 humanos con 30-200 ms de RTT, variación y 2 % de pérdida
+    console.log('== (h) modelo host (js/nethost.js): 6v6 con 12 humanos, estrella 30-200 ms, ±10 ms, 2 % de pérdida ==');
+    const HT = require('./hosttest.js');
+    const R = HT.run({ n: N, fmt: '6v6', rtt: k => 30 + (170 * (k - 1)) / (N - 2), jit: 10, loss: 2, seed: 41, secs: QUICK ? 90 : 2 * SECS, points: 15 });
+    HT.summary(R, 'host6:', false);
+    console.log('== (i) host6 con el adaptador de net4test (runMatch, el mismo bucle que los demás modelos) ==');
+    const R2 = runMatch({ n: N, topo: 'star', rtt: rttStar, jit: 10, loss: 2, seed: 43, secs: QUICK ? 40 : SECS, model: 'host6', relay: false });
+    check('host6: sin excepciones', !R2.err, R2.err ? String(R2.err.stack).split('\n').slice(0, 3).join(' | ') : undefined);
+    if (!R2.err) {
+      check('host6: las 12 llegan a jugar', R2.st.every(x => (x.status.playing || 0) > 100), R2.st.map(x => x.status.playing || 0).join(','));
+      const ref = R2.st[0].pts; let bad = 0;
+      for (let i = 1; i < N; i++) { const a = R2.st[i].pts, m = Math.min(a.length, ref.length); if (a.slice(0, m).join() !== ref.slice(0, m).join() || ref.length - a.length > 1) bad++; }
+      check('host6: marcador confirmado igual en las 12 (' + ref.length + ' puntos)', bad === 0 && ref.length >= 1, { distintas: bad });
+      report(R2, 'host6:');
     }
   }
   const { fails, oks } = H.counts();

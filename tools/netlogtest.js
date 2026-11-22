@@ -81,6 +81,69 @@ async function unit() {
   NL.frame(n2, r()); NL.end(n2, 'x'); await sleep(10);
   check('sin enlace WebRTC (pruebas por BroadcastChannel) no escribe', writes.length === 1, writes.length);
   await fluida(NL, writes, () => T, v => { T = v; }, link);
+  await multi(NL, writes, () => T, v => { T = v; });
+}
+
+/* ---------- 1c) online de varios (P6): muestras por par y por plaza ---------- */
+async function multi(NL, writes, getT, setT) {
+  console.log('\nNetLog con un partido de varios simulado (2 contra 2, anfitrión con 3 enlaces)');
+  let T = getT();
+  const mk = (rtt, typ) => ({ info: () => ({ type: typ, rtt: rtt, rtype: typ, proto: 'udp', address: '10.0.0.' + rtt }) });
+  const links = [mk(30, 'host'), mk(80, 'srflx'), mk(140, 'relay')];
+  const sess = { rttSeq: 0, rttLast: 0, stats: { sent: 0, recv: 0, bytesOut: 0, steps: 0, resyncs: 0, depth: 0, maxDepth: 0, waits: 0, frames: 0 }, status: 'starting', delay: 2, adv: 0, cmpBad: -1, rivalName: '', opts: { venue: 'hall', points: 25, format: '2v2' } };
+  const net = { sess, link: links[0], links, slot: 0, seat: 0, team: 0, multi: true, epoch: 0, name: 'Ana', rival: 'Bea y Carla',
+    humans: [{ team: 0, name: 'Ana' }, { team: 0, name: 'Dani' }, { team: 1, name: 'Bea' }, { team: 1, name: 'Carla' }], cr: { mates: ['Dani'], rivals: ['Bea', 'Carla'] } };
+  const r = (o) => Object.assign({ status: sess.status, unstable: false, solo: false, gone: false, result: null, pings: [0, 35, 85, 150] }, o || {});
+  NL.frame(net, r());
+  sess.status = 'playing';
+  for (let f = 0; f < 22 * 60; f++) { T += 1000 / 60; setT(T); if (f % 60 === 0) { sess.rttSeq++; sess.rttLast = 70; } sess.stats.steps++; NL.frame(net, r()); }
+  const cur = NL._report();
+  const w0 = cur && cur.wins[0];
+  check('varios: un ping de red por enlace (pe) en cada ventana', w0 && Array.isArray(w0.pe) && w0.pe.length === 3 && w0.pe[0][1] === 30 && w0.pe[1][1] === 80 && w0.pe[2][3] === 140, w0 && w0.pe);
+  check('varios: ping de la app por plaza (ps), sin la tuya', w0 && Array.isArray(w0.ps) && w0.ps[0] === null && w0.ps[1][1] === 35 && w0.ps[3][1] === 150, w0 && w0.ps);
+  check('varios: el informe dice plaza, equipo, humanos, formato, rutas y compañeros/rivales', cur.multi && cur.multi.plaza === 0 && cur.multi.equipo === 0 && cur.multi.humanos === 4 && cur.multi.fmt === '2v2' &&
+    cur.multi.conns.join() === 'host/host/udp,srflx/srflx/udp,relay/relay/udp' && cur.multi.mates.join() === 'Dani' && cur.multi.rivals.join() === 'Bea,Carla' && cur.rol === 'anfitrion', cur.multi);
+  check('varios: suceso inicio con plaza y enlaces', cur.ev[0].k === 'inicio' && cur.ev[0].plaza === 0 && cur.ev[0].enlaces === 3, cur.ev[0]);
+  check('varios: ninguna IP aunque info() la traiga', !/\d+\.\d+\.\d+\.\d+/.test(JSON.stringify(cur)));
+  sess.status = 'over';
+  NL.frame(net, r({ status: 'over', result: { win: true, why: 'over' } }));
+  NL.end(net, 'cierra');
+  await sleep(20);
+  check('varios: al acabar se escribe una vez', writes.length === 3, writes.length);
+  // 1 contra 1: sin pe/ps/multi (el informe de siempre)
+  const n1 = writes[0] && JSON.parse(JSON.parse(writes[0].o.body).fields.j.stringValue);
+  check('1 contra 1: el informe no trae pe, ps ni multi', n1 && n1.multi === undefined && n1.wins.every(w => w.pe === undefined && w.ps === undefined));
+  netrec();
+}
+
+/* ---------- 1d) récord online (js/netrec.js): compañeros y rivales aparte; solo cuenta que se vayan los RIVALES ---------- */
+function netrec() {
+  console.log('\nRécord online del partido de varios (js/netrec.js)');
+  const store = {};
+  globalThis.localStorage = { getItem: k => (k in store ? store[k] : null), setItem: (k, v) => { store[k] = String(v); }, removeItem: k => { delete store[k]; } };
+  require(path.join(ROOT, 'js/netrec.js'));
+  const R = globalThis.VB.NetRec;
+  const net = { multi: true, seat: 0, team: 0, humans: [{ team: 0 }, { team: 0 }, { team: 1 }, { team: 1 }], cr: { mates: ['Dani'], rivals: ['Bea', 'Carla'] }, base: { format: '2v2' } };
+  globalThis.VB.ctx = { net };
+  let e = R.end('Bea y Carla', { why: 'over', win: true }, true, [2, 1]);
+  check('ganado: rivales y compañeros aparte (n, m) y formato', e.entry.w === 1 && e.entry.n === 'Bea y Carla' && e.entry.m === 'Dani' && e.entry.f === '2v2' && e.entry.s === '2-1', e.entry);
+  e = R.end('Bea y Carla', { why: 'rivalQuit', seat: 2 }, true, null);
+  check('se va un RIVAL (plaza del otro equipo): ganas', e.entry.w === 1, e.entry);
+  e = R.end('Bea y Carla', { why: 'rivalQuit', seat: 1 }, true, null);
+  check('se va un COMPAÑERO (plaza de tu equipo): no cuenta', e.entry.w === -1 && e.outcome.kind === 'mateGone', e.entry);
+  e = R.end('Bea y Carla', { why: 'rivalGone', mate: true }, true, null);
+  check('rivalGone con mate: true: no cuenta', e.entry.w === -1);
+  e = R.end('Bea y Carla', { why: 'mateQuit' }, true, null);
+  check('why mateQuit: no cuenta', e.entry.w === -1);
+  const rec = R.get();
+  check('récord: 2 ganados, 3 que no cuentan, compañeros guardados', rec.wins === 2 && rec.nc === 3 && rec.last.some(x => x.m === 'Dani'), [rec.wins, rec.nc]);
+  net.humans = [{ team: 0 }, { team: 0 }]; net.cr = { mates: ['Dani'], rivals: [] };
+  e = R.end('la IA', { why: 'over', win: false }, true, [0, 2]);
+  check('coop (todos en tu equipo): rival «la IA», f coop', e.entry.n === 'la IA' && e.entry.f === 'coop' && e.entry.w === 0, e.entry);
+  globalThis.VB.ctx = { net: { slot: 1 } };
+  e = R.end('Pepe', { why: 'rivalQuit' }, true, null);
+  check('1 contra 1: rivalQuit sigue siendo victoria y sin m/f', e.entry.w === 1 && e.entry.m === undefined && e.entry.f === undefined, e.entry);
+  delete globalThis.VB.ctx;
 }
 
 /* ---------- 1b) sesión Fluida simulada (Online V2) ---------- */

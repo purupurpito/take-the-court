@@ -13,6 +13,7 @@
  *     Reconectar sin que la sesión se entere: si la conexión se cae ('down'), el lobby negocia otra (offer/answer con gen+1) sobre el
  *     MISMO objeto: la sesión sigue llamando a send/poll y, mientras tanto, las entradas se pierden (la sesión espera) y el control
  *     se guarda en cola (hasta CTL_MAX) y sale al reabrir.
+ *   - Pruebas: ?netlag=&netjit=&netloss= (solo en local) retrasan y pierden lo que llega, como el Shaper de memPair / BcLink.
  *   - Privacidad: las direcciones de red solo viajan dentro de la SDP (sala de Firestore que solo leen los dos jugadores); info()
  *     solo da el TIPO de par (para medir cuántas conexiones son directas). El juego nunca enseña una IP.
  * ===================================================================== */
@@ -43,13 +44,32 @@
     return { cfg: cfg, relay: !!t.relay };
   }
 
+  /* Simulador de red para las pruebas con WebRTC de verdad (P8 del sprint online-multi; tools/netdrive.js --rtc «netlag=80&netjit=15&
+   * netloss=2»): ?netlag= (RTT añadido, ms; cada lado retrasa lo que RECIBE la mitad), ?netjit= (± ms por sentido), ?netloss= (% de
+   * pérdida, solo en 'in'). El mismo Shaper de js/net.js (memPair / BcLink). Solo desde file:// o localhost: en la web publicada, nada. */
+  function nowMs() { return typeof performance !== 'undefined' ? performance.now() : Date.now(); }
+  var SH_Q = null;
+  function shaperFor(o) {
+    if (o.shape === false) return null;
+    if (!SH_Q) {
+      SH_Q = {};
+      try {
+        var L = root.location, local = L && (L.protocol === 'file:' || /^(localhost|127\.0\.0\.1)$/.test(L.hostname));
+        if (local) String(L.search || '').replace(/^\?/, '').split('&').forEach(function (kv) { var a = kv.split('='); if (/^net(lag|jit|loss)$/.test(a[0])) SH_Q[a[0].slice(3)] = +decodeURIComponent(a[1] || '') || 0; });
+      } catch (e) { }
+    }
+    var c = o.shape && typeof o.shape === 'object' ? o.shape : SH_Q, Sh = VB.Net && VB.Net.Shaper;
+    if (!Sh || !(c.lag > 0 || c.jit > 0 || c.loss > 0)) return null;
+    return new Sh({ lag: c.lag, jit: c.jit, loss: c.loss }, ((Math.random() * 1e9) | 0) + 1);
+  }
   function Link(o) {
     o = o || {};
+    this._sh = shaperFor(o);   // (pruebas: ?netlag=&netjit=&netloss=, solo en local)
     this.ice = Array.isArray(o.iceServers) ? o.iceServers : null;   // (null: netconfig/STUN, ver pcConfig)
     this._relay = false; this._pcOpened = false;
     this.q = []; this.pend = []; this.pc = null; this.dIn = null; this.dCtl = null;
     this.state = 'new'; this.onstate = typeof o.onstate === 'function' ? o.onstate : null;
-    this.onclose = null; this._disc = 0; this._type = ''; this._rtt = 0; this.opens = 0;
+    this.onclose = null; this._shN = 0; this._disc = 0; this._type = ''; this._rtt = 0; this.opens = 0;
     var self = this;
     this._tick = setInterval(function () { self._watch(); }, 500);
   }
@@ -73,7 +93,11 @@
     var dCtl = pc.createDataChannel('ctl', { negotiated: true, id: 2, ordered: true });
     this.dIn = dIn; this.dCtl = dCtl;
     var onmsg = function (ch) {
-      return function (ev) { if (self.pc !== pc) return; var d = ev.data; self.q.push({ ch: ch, data: typeof d === 'string' ? d : new Uint8Array(d) }); };
+      return function (ev) {
+        if (self.pc !== pc) return; var d = ev.data, m = { ch: ch, data: typeof d === 'string' ? d : new Uint8Array(d) };
+        if (self._sh) { var at = self._sh.due(ch, nowMs()); if (at < 0) return; m.at = at; m.n = ++self._shN; }
+        self.q.push(m);
+      };
     };
     [dIn, dCtl].forEach(function (dc) {
       dc.binaryType = 'arraybuffer';
@@ -146,7 +170,16 @@
     if (open && this.dCtl && this.dCtl.readyState === 'open' && this._sendCtl(data)) return;
     if (this.pend.length < CTL_MAX) this.pend.push(data);
   };
-  LP.poll = function () { if (!this.q.length) return []; var o = this.q; this.q = []; return o; };
+  LP.poll = function () {
+    if (!this.q.length) return [];
+    if (this._sh) {   // (con el simulador de red: solo lo que ya «ha llegado», en orden de llegada)
+      var t = nowMs(), out = [], keep = [], q = this.q;
+      q.sort(function (a, b) { return a.at - b.at || a.n - b.n; });
+      for (var i = 0; i < q.length; i++) { if (q[i].at <= t) out.push({ ch: q[i].ch, data: q[i].data }); else keep.push(q[i]); }
+      this.q = keep; return out;
+    }
+    var o = this.q; this.q = []; return o;
+  };
   LP.info = function () { if (this.state === 'open') this._stats(); return { type: this._type, rtt: this._rtt, opens: this.opens, rtype: this._rtype || '', proto: this._proto || '', relayProto: this._relayProto || '' }; };
   LP.close = function () {
     if (this.state === 'closed') return;

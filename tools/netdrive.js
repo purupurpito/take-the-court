@@ -18,6 +18,8 @@
  * Fase 3 (--guion): node tools/netdrive.js --guion [lag=80] — partido completo con guion (ver el bloque del final): looks y equipaciones
  *   del rival, tiempo muerto (no existe), challenge, página oculta, corte con «Seguir contra la IA», pausa entre sets saltada por los
  *   dos, hoja final, récord online y gorra, revancha y abandono. Capturas tools/out/net3-*.png.
+ * Online de varios (--multi, P8 del sprint online-multi): ver el bloque «--multi» al final (N páginas, BcLink de pareja, norender).
+ * Carrera cooperativa (--coop): bloque «--coop» al final (lobby de verdad, emulador, WebRTC, de la tarjeta de la Carrera a la XP).
  * Banderas anti-frenado de Chrome (las dos páginas a la vez): --disable-background-timer-throttling --disable-renderer-backgrounding
  * --disable-backgrounding-occluded-windows. Memoria: un solo Chrome, 800×450 por página, calidad baja por defecto.
  */
@@ -25,7 +27,7 @@
 const fs = require('fs'), os = require('os'), path = require('path');
 const CH = require('./chrome.js'), CDP = require('./cdp.js');
 const ROOT = path.join(__dirname, '..'), OUT = path.join(__dirname, 'out');
-const RTC = process.argv.includes('--rtc'), GUION = process.argv.includes('--guion'), ARGV = process.argv.filter(a => a !== '--rtc' && a !== '--guion');
+const RTC = process.argv.includes('--rtc'), GUION = process.argv.includes('--guion'), MULTI = process.argv.includes('--multi'), COOPX = process.argv.includes('--coop'), ARGV = process.argv.filter(a => a !== '--rtc' && a !== '--guion' && a !== '--multi' && a !== '--coop');
 const SECS = +(ARGV[2] || (RTC ? 60 : 120)), LAG = +(ARGV[3] || 80), EXTRA = ARGV[4] != null ? ARGV[4] : 'quality=low';
 const FLUIDA = /(^|&)model=fluida(&|$)/.test(EXTRA);   // (Online V2: la query extra llega a las dos páginas)
 // (fase 4) NDW / NDH / NDTOUCH=1: tamaño y pantalla táctil del modo básico (p. ej. NDW=844 NDH=390 NDTOUCH=1: teléfono apaisado)
@@ -35,7 +37,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 let chrome = null, prof = null;
 function cleanup() { if (chrome) { CH.kill(chrome); chrome = null; } if (prof) { CDP.rmProfile(prof); prof = null; } }
 process.on('exit', cleanup); process.on('SIGINT', () => process.exit(130)); process.on('SIGTERM', () => process.exit(143));
-if (!GUION) setTimeout(() => { console.error('TIEMPO AGOTADO'); process.exit(2); }, (SECS + 150) * 1000).unref();
+if (!GUION && !MULTI && !COOPX) setTimeout(() => { console.error('TIEMPO AGOTADO'); process.exit(2); }, (SECS + 150) * 1000).unref();
 
 let fails = 0, oks = 0;
 function check(name, ok, info) {
@@ -62,7 +64,7 @@ function page(wsUrl, tag) {
   return { tag, ready, send, evalJs, shot, errors, logs, close: () => { try { ws.close(); } catch (e) { } } };
 }
 
-if (!RTC && !GUION) (async () => {
+if (!RTC && !GUION && !MULTI && !COOPX) (async () => {
   const t0 = Date.now();
   prof = fs.mkdtempSync(path.join(os.tmpdir(), 'vb3c-'));
   chrome = CH.launch(prof, 0, W + ',' + (H + 160), ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows']);
@@ -233,11 +235,17 @@ if (RTC) (async () => {
   check('tarjeta «Online» visible en Jugar (publicada: VB.NetLobby.menuOn)', await ev(P[0], "!document.getElementById('btnOnline').hidden"));
   for (const p of P) await ev(p, "VB.UI.menuGo('online')");
   // (fase 4) la primera vez sale «Cómo funciona» antes de la lista; «Entendido» lleva a la lista y no vuelve a salir
-  const helpOn = await waitFor(P[0], "!!document.querySelector('#mpOnline [data-a=helpOk]')", 15000);
-  const helpTxt = helpOn ? await ev(P[0], "document.querySelector('#mpOnline .ol-help').textContent") : '';
-  check('primera vez en Online: «Cómo funciona» (1 contra 1, sin pausa, 10 s entre sets, abandonar = derrota, la gorra)', helpOn && /n.º 1/.test(helpTxt) && /10 s/.test(helpTxt) && /derrota/.test(helpTxt) && /Online Beta Tester/.test(helpTxt), helpTxt.slice(0, 80));
+  // (P8: en el móvil y en 800×450 —html.ph— la ayuda va por páginas con «Siguiente»: se recorre entera y se junta el texto)
+  const helpOn = await waitFor(P[0], "!!document.querySelector('#mpOnline [data-a=helpOk],#mpOnline [data-a=helpNext]')", 15000);
+  let helpTxt = '';
   if (helpOn) console.log('  captura', await P[0].shot(path.join(OUT, 'netrtc-ayuda.png')));
-  for (const p of P) await ev(p, "(function(){var b=document.querySelector('#mpOnline [data-a=helpOk]');if(b)b.click();})()");
+  for (let k = 0; k < 2; k++) for (let i = 0; i < 12; i++) {
+    const t = await ev(P[k], "(function(){var e=document.querySelector('#mpOnline .ol-help,#mpOnline .ol-hpp');var x=e?e.textContent:'';var b=document.querySelector('#mpOnline [data-a=helpNext]');if(b){b.click();return x;}var o=document.querySelector('#mpOnline [data-a=helpOk]');if(o)o.click();return '\u0001'+x;})()");
+    if (k === 0) helpTxt += String(t || '').replace('\u0001', ' ');
+    if (!t || String(t).charAt(0) === '\u0001') break;
+    await sleep(150);
+  }
+  check('primera vez en Online: «Cómo funciona» (1 contra 1, sin pausa, 10 s entre sets, abandonar = derrota, la gorra)', helpOn && /n.º 1/.test(helpTxt) && /10 s/.test(helpTxt) && /derrota/.test(helpTxt) && /Online Beta Tester/.test(helpTxt), helpTxt.slice(0, 80));
   await waitFor(P[0], "!!document.querySelector('#mpOnline [data-a=new]')", 15000);
   await waitFor(P[1], "!!document.querySelector('#mpOnline [data-a=new]')", 15000);
   check('las dos páginas en el lobby (lista de salas)', (await lob(P[0])).view === 'list' && (await lob(P[1])).view === 'list', [await lob(P[0]), await lob(P[1])]);
@@ -268,6 +276,9 @@ if (RTC) (async () => {
   await ev(P[0], "document.querySelector('#mpOnline [data-a=new]').click()");
   await waitFor(P[0], "!!document.querySelector('#mpOnline [data-ol=venue]')", 5000);
   await ev(P[0], "(function(){var b=document.querySelector('#mpOnline [data-ol=venue]');if(b&&!/Playa/.test(b.textContent))b.click();})()");
+  // (P8) NDRTCMODEL=fluida: la fila «Conexión» en Fluida (Online V2); el partido se mide aparte (bloque de abajo) y se acaba ahí
+  const RFL = process.env.NDRTCMODEL === 'fluida';
+  if (RFL) await ev(P[0], "(function(){var b=document.querySelector('#mpOnline [data-ol=net]');if(b&&!/Fluida/.test(b.textContent))b.click();})()");
   await sleep(300);
   console.log('  captura', await P[0].shot(path.join(OUT, 'netrtc-crear.png')));
   await ev(P[0], "document.querySelector('#mpOnline [data-a=open]').click()");
@@ -290,6 +301,20 @@ if (RTC) (async () => {
   const AL = await lob(P[0]), BL = await lob(P[1]);
   check('se conectan por WebRTC y empieza el partido en las dos', both[0] && both[1], [AL, BL]);
   if (!(both[0] && both[1])) { for (const p of P) console.log(p.tag, p.errors.slice(0, 5), p.logs.slice(-12)); cleanup(); process.exit(1); }
+  if (RFL) {   // Fluida por WebRTC de verdad (con el Shaper de netrtc.js si la query lo pide): juega SECS s con bots y mide
+    check('las dos sesiones son Fluida', (await ev(P[0], 'VB.ctx.net.model')) === 'fluida' && (await ev(P[1], 'VB.ctx.net.model')) === 'fluida');
+    for (let k = 0; k < 2; k++) await ev(P[k], "VB.ctx.netBot=VB.Net.bot(" + k + "," + (k + 1) + ",'bueno');(function(){var s=VB.ctx.net.sess,W=window.__nd={wait:0,frames:0,seq:[]};var a=s.advance;s.advance=function(now,inp){var r=a.call(this,now,inp);W.frames++;if(r.status==='waiting'&&r.waitMs>300)W.wait++;var g=this.confirmedGame(),k=g?(g.sets||[]).join('-')+'|'+(g.score||[]).join('-'):'';if(k&&W.seq[W.seq.length-1]!==k)W.seq.push(k);return r;};})()");
+    await sleep(SECS * 1000);
+    const F = []; for (const p of P) F.push(JSON.parse(await ev(p, "JSON.stringify({w:window.__nd.wait,f:window.__nd.frames,seq:window.__nd.seq,hud:(document.getElementById('netHud')||{}).textContent||''})") || 'null'));
+    const sa = F[0].seq, sb = F[1].seq, m = Math.min(sa.length, sb.length); let pre = true; for (let i = 0; i < m; i++) if (sa[i] !== sb[i]) { pre = false; break; }
+    check('Fluida por WebRTC: los dos marcadores pasan por los mismos resultados', pre && m >= 3 && Math.abs(sa.length - sb.length) <= 1, { anf: sa, inv: sb, vista: [await ev(P[0], "JSON.stringify(VB.ctx.net.view.score)"), await ev(P[0], "VB.ctx.net.r.status"), await ev(P[0], "typeof VB.ctx.netBot")] });
+    check('Fluida por WebRTC: sin esperas de más de 0,3 s', F[0].w === 0 && F[1].w === 0, [F[0].w, F[1].w, F[0].hud, F[1].hud]);
+    check('consola sin errores', !P[0].errors.length && !P[1].errors.length, [P[0].errors.slice(0, 3), P[1].errors.slice(0, 3)]);
+    for (const p of P) p.close();
+    cleanup(); killJava();
+    console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)');
+    process.exit(fails ? 1 : 0);
+  }
   {   // (fase 3) el «pre» del lobby lleva looks y equipación de cada uno; los dos ven las mismas equipaciones
     await sleep(1500);
     const K = "JSON.stringify((function(){var n=VB.ctx.net,g=VB.ctx.game,P=VB.Players,T=function(p){var r=P.rigOf(p);return r&&r.tc?r.tc.base:null};return{th:!!(n.look&&n.look.theirs&&n.look.theirs.kit),fits:!!(n.look&&n.look.theirs&&n.look.theirs.fits[0]),me:T(g.teams[0][0]),rv:T(g.teams[1][0])}})())";
@@ -607,3 +632,287 @@ if (GUION) (async () => {
   console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)');
   process.exit(fails ? 1 : 0);
 })().catch(e => { console.error(e); cleanup(); process.exit(1); });
+
+/* ======================= --multi: online de varios con N páginas (P8 del sprint online-multi) =======================
+ * node tools/netdrive.js --multi [n=4] [segundos=90] [lag=80] [query extra="quality=low"]
+ *   N páginas del juego real en UN Chrome (?net=bc&n=N&slot=k, main.js startNetTestN): estrella con el anfitrión (página 0) de centro,
+ *   un BcLink de pareja por invitado (canal y Shaper propios: lag = RTT de cada invitado con el anfitrión, ±15 ms, 2 % de pérdida en
+ *   'in'), un bot por página. Variables:
+ *     NDFMT=2v2|6v6 (por defecto 6v6 si n > 4) · NDMODEL=precisa|host (6v6: host) · NDCOOP=1 (todos en el equipo 0: Carrera coop sin
+ *     la Carrera) · NDRENDER=k (las k primeras páginas pintan; el resto con &norender=1; por defecto 2) · NDCPU=4 (frena la CPU de una
+ *     página, Emulation.setCPUThrottlingRate, como un móvil) y NDCPUPAGE=i (cuál; por defecto la 1) · NDLAGS=a,b,c (RTT por invitado) ·
+ *     NDPOINTS=n (puntos del set; 1 set) · NDEND=1 (juega hasta el final aunque pase de los segundos, máx. 15 min) · NDJSON=fichero ·
+ *     NDRTC=1: en vez de BroadcastChannel, por el LOBBY de verdad (sala de varios v3 en el emulador de Firestore: crear con «Formato»,
+ *     entrar, sentarse, «Listo», «Empezar») y WebRTC local con el Shaper de netrtc.js (?netlag=&netjit=&netloss=).
+ *   Mide por página: frames en «waiting» (congelaciones de la sesión), «inestable», parones de frame (rAF > 100 ms), rollback (máx. y
+ *   p95, Precisa-N), saltos del balón pintado (posición contra la extrapolada del frame anterior, > 0,6 m), coste de la sesión por
+ *   frame y fps. Comprueba: todas juegan, huellas iguales (Precisa-N) o la misma secuencia de puntos (modelo host), cada una lleva a SU
+ *   jugador (g.hum[plaza]) y lo ve en su equipo 0, final del partido en TODAS (estado 'over'), consola sin errores.
+ *   Capturas tools/out/multi-*.png. Una prueba cada vez y con el PC en reposo (las congelaciones dependen de la carga). */
+if (MULTI) (async () => {
+  const t0 = Date.now();
+  const N = Math.max(2, Math.min(12, +(ARGV[2] || 4))), MSECS = +(ARGV[3] || 90), MLAG = +(ARGV[4] || 80), MEXTRA = ARGV[5] != null ? ARGV[5] : 'quality=low';
+  const FMT = process.env.NDFMT || (N > 4 ? '6v6' : '2v2'), MODEL = process.env.NDMODEL || (FMT === '6v6' ? 'host' : 'precisa'), COOP = process.env.NDCOOP === '1';
+  const NREND = Math.max(0, Math.min(N, process.env.NDRENDER != null ? +process.env.NDRENDER : 2)), CPU = +process.env.NDCPU || 0, CPUPAGE = process.env.NDCPUPAGE != null ? +process.env.NDCPUPAGE : 1;
+  const ENDALL = process.env.NDEND === '1', PTS = +process.env.NDPOINTS || 0;
+  setTimeout(() => { console.error('TIEMPO AGOTADO (multi)'); process.exit(2); }, ((ENDALL ? 900 : MSECS) + 240) * 1000).unref();
+  console.log('  ' + N + ' páginas · ' + FMT + (COOP ? ' coop' : '') + ' · modelo ' + MODEL + ' · RTT ' + (process.env.NDLAGS || MLAG) + ' ms · ' + NREND + ' pintan' + (CPU ? ' · CPU ×' + CPU + ' en la página ' + CPUPAGE : ''));
+  prof = fs.mkdtempSync(path.join(os.tmpdir(), 'vb3m-'));
+  chrome = CH.launch(prof, 0, W + ',' + (H + 160), ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows']);
+  let port = 0;
+  for (let i = 0; i < 75 && !port; i++) { await sleep(200); try { port = +fs.readFileSync(path.join(prof, 'DevToolsActivePort'), 'utf8').trim().split(/\s+/)[0] || 0; } catch (e) { } }
+  if (!port) throw new Error('Chrome no arranca');
+  const base = 'http://127.0.0.1:' + port;
+  let list = [];
+  for (let i = 0; i < 25 && !list.length; i++) { await sleep(200); try { list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page'); } catch (e) { } }
+  for (let k = 1; k < N; k++) { await fetch(base + '/json/new?about:blank', { method: 'PUT' }); await sleep(150); }
+  await sleep(400);
+  list = (await (await fetch(base + '/json/list')).json()).filter(t => t.type === 'page');
+  if (list.length < N) throw new Error('solo ' + list.length + ' páginas');
+  const P = list.slice(0, N).map((t, k) => page(t.webSocketDebuggerUrl, k ? 'inv' + k : 'anf'));
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs) if (/\[VB\]/.test(l)) console.log(p.tag + ' ' + l.slice(0, 300)); });
+  const room = 'mx' + Date.now().toString(36);
+  const ev = (p, js) => p.evalJs(js).catch(e => { if (process.env.NDLOG) console.log('  (eval ' + p.tag + ': ' + e.message.slice(0, 160) + ')'); return null; });
+  const J = async (p, js) => { const v = await ev(p, 'JSON.stringify(' + js + ')'); try { return JSON.parse(v); } catch (e) { return null; } };
+  const MRTC = process.env.NDRTC === '1';
+  if (MRTC && !(await startEmu())) { console.log('Sin emulador de Firestore (Java + jar).'); cleanup(); process.exit(3); }
+  for (let k = 0; k < N; k++) {
+    const p = P[k], rend = k < NREND; await p.ready;
+    await p.send('Runtime.enable'); await p.send('Page.enable');
+    await p.send('Emulation.setDeviceMetricsOverride', { width: rend || process.env.NDNRBIG ? W : 320, height: rend || process.env.NDNRBIG ? H : 180, deviceScaleFactor: 1, mobile: TOUCH && rend });
+    await p.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => { });
+    if (CPU > 1 && k === CPUPAGE) await p.send('Emulation.setCPUThrottlingRate', { rate: CPU });
+    if (MRTC) {   // NDRTC=1: por el LOBBY de verdad (sala de varios del esquema v3 en el emulador) y WebRTC local con el Shaper de netrtc.js
+      const q = 'debug=menu&online=1&netemu=' + EMU_PORT + '&netuid=uidM' + k + '&netice=none&name=' + encodeURIComponent((k ? 'Invi' + k : 'Anfi') + ' M') +
+        '&netlag=' + MLAG + '&netjit=15&netloss=2' + (rend ? '' : '&norender=1') + (MEXTRA ? '&' + MEXTRA : '');
+      await p.send('Page.navigate', { url: CH.pageUrl(ROOT, q) });
+      continue;
+    }
+    const q = 'net=bc&n=' + N + '&slot=' + k + '&room=' + room + '&fmt=' + FMT + '&model=' + MODEL + (COOP ? '&coop=1' : '') + '&lag=' + MLAG + (process.env.NDLAGS ? '&lags=' + process.env.NDLAGS : '') +
+      '&jit=15&loss=2&bot=1&botseed=' + (k * 7 + 3) + (PTS ? '&points=' + PTS : '') + (k ? '' : '&map=' + (FMT === '6v6' ? 'palau' : '')) + (rend ? '' : (process.env.NDNRWARM ? '&norender=1' : '&norender=1&prewarm=0&warmdraw=0')) + (MEXTRA ? '&' + MEXTRA : '');
+    await p.send('Page.navigate', { url: CH.pageUrl(ROOT, q) });
+  }
+  if (MRTC) {
+    const waitFor = async (p, js, ms) => { const tEnd = Date.now() + ms; while (Date.now() < tEnd) { if (await ev(p, js)) return true; await sleep(250); } return false; };
+    for (const p of P) await waitFor(p, "!!(window.VB&&VB.ctx&&VB.ctx.state==='menu'&&VB.UI&&VB.NetLobby)", 40000);
+    for (const p of P) await ev(p, "VB.UI.menuGo('online')");
+    // «Cómo funciona» (la primera vez; las páginas comparten localStorage: puede que solo salga en alguna) y a la lista
+    for (const p of P) {
+      await waitFor(p, "!!document.querySelector('#mpOnline [data-a=helpOk],#mpOnline [data-a=helpNext],#mpOnline [data-a=new]')", 15000);
+      for (let i = 0; i < 12; i++) { const r = await ev(p, "(function(){var b=document.querySelector('#mpOnline [data-a=helpNext]');if(b){b.click();return 1;}var o=document.querySelector('#mpOnline [data-a=helpOk]');if(o){o.click();return 2;}return 0;})()"); if (r !== 1) break; await sleep(120); }
+      await waitFor(p, "!!document.querySelector('#mpOnline [data-a=new]')", 15000);
+    }
+    // anfitrión: «Crear sala» con el formato pedido
+    await ev(P[0], "document.querySelector('#mpOnline [data-a=new]').click()");
+    await waitFor(P[0], "!!document.querySelector('#mpOnline [data-ol=fmt]')", 8000);
+    for (let i = 0; i < 3; i++) { const f = await ev(P[0], "VB.NetLobby._state().cfg?VB.NetLobby._state().cfg.fmt:(document.querySelector('#mpOnline [data-ol=fmt]').textContent)"); if (String(f).indexOf(FMT === '6v6' ? '6' : '2') >= 0 && !/1v1|1 contra 1/.test(String(f))) break; await ev(P[0], "document.querySelector('#mpOnline [data-ol=fmt]').click()"); await sleep(250); }
+    console.log('  captura', await P[0].shot(path.join(OUT, 'multi-rtc-crear-' + FMT + '.png')));
+    await ev(P[0], "document.querySelector('#mpOnline [data-a=open]').click()");
+    const open = await waitFor(P[0], "(function(){var s=VB.NetLobby._state();return s.view==='room'&&s.role==='host'&&s.room&&s.room.multi})()", 12000);
+    check('lobby: el anfitrión abre una sala de varios (' + FMT + ') en el emulador con las reglas v3', open, await J(P[0], 'VB.NetLobby._state()'));
+    if (!open) { for (const p of P) console.log(p.tag, p.errors.slice(0, 5), p.logs.slice(-6)); cleanup(); killJava(); process.exit(1); }
+    // invitados: la ven en la lista, entran, se sientan en su sitio (k) y pulsan «Listo»
+    for (let k = 1; k < N; k++) {
+      const p = P[k];
+      await ev(p, "document.querySelector('#mpOnline [data-a=refresh]').click()");
+      await waitFor(p, "!!document.querySelector('#mpOnline [data-a=join][data-id=uidM0]')", 15000);
+      await ev(p, "document.querySelector('#mpOnline [data-a=join][data-id=uidM0]').click()");
+    }
+    const inRoom = await Promise.all(P.slice(1).map(p => waitFor(p, "(function(){var s=VB.NetLobby._state();if(s.view!=='room'||s.role!=='guest'||!s.mx)return false;for(var u in s.mx.links)if(s.mx.links[u]==='open')return true;return false})()", 45000)));
+    check('lobby: los ' + (N - 1) + ' invitados entran y conectan por WebRTC con el anfitrión (estrella, ofertas en paralelo)', inRoom.every(Boolean), inRoom);
+    // (de uno en uno: quien no tiene sitio toca el primero libre; luego «Listo» si no lo está; con la sala que manda el anfitrión)
+    const ME = "(function(){var s=VB.NetLobby._state(),x=s.mx;if(!x||!x.ro||!x.ro.m)return null;var me=null,t={};x.ro.m.forEach(function(m){if(m.c>=0)t[m.c]=1;if(m.u===x.me)me=m;});return{c:me?me.c:-2,r:me?!!me.r:false,t:Object.keys(t).map(Number)}})()";
+    for (let k = 1; k < N; k++) {
+      for (let i = 0; i < 40; i++) {
+        const m = await J(P[k], ME); if (!m) { await sleep(250); continue; }
+        if (m.c < 0) { let f = 0; while (m.t.indexOf(f) >= 0) f++; await ev(P[k], "VB.NetLobby._act('chair'," + f + ")"); await sleep(400); continue; }
+        if (!m.r) { await ev(P[k], "VB.NetLobby._act('ready')"); await sleep(400); continue; }
+        break;
+      }
+    }
+    await sleep(1500);
+    console.log('  captura', await P[0].shot(path.join(OUT, 'multi-rtc-sala-' + FMT + '.png')));
+    if (NREND > 1) console.log('  captura', await P[1].shot(path.join(OUT, 'multi-rtc-sala-inv-' + FMT + '.png')));
+    const canGo = await waitFor(P[0], "(function(){var b=document.querySelector('#mpOnline [data-a=start]');return !!(b&&!b.disabled)})()", 20000);
+    check('lobby: todos sentados y listos: «Empezar» se enciende', canGo, await J(P[0], 'VB.NetLobby._mx&&VB.NetLobby._mx()&&VB.NetLobby._mx().ro'));
+    await ev(P[0], "document.querySelector('#mpOnline [data-a=start]').click()");
+  }
+  // contadores en página (los dos modelos): esperas, parones de frame, rollback, saltos del balón, coste de la sesión
+  const HOOK = "(function(){if(window.__mx)return;var W=window.__mx={frames:0,wait:0,unst:0,ms:0,maxMs:0,cpu:[],dep:{},jumps:0,jMax:0,raf:0,rafBig:0,rafMax:0,H:{},pts:[],over:0,st:{}};" +
+    "var last=0;function raf(t){if(last&&VB.ctx.state==='playing'&&VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.status==='playing'){var d=t-last;W.raf++;if(d>100)W.rafBig++;if(d>W.rafMax)W.rafMax=d;}last=t;requestAnimationFrame(raf);}requestAnimationFrame(raf);" +
+    "setInterval(function(){var n=VB.ctx.net;if(!n||!n.sess||n.sess.__mx)return;var s=n.sess;s.__mx=1;if(s.hstats&&!s.host)s.lateDbg=[];var o=s._hashTick;if(o)s._hashTick=function(){o.call(this);if(this.myHash)W.H[this.gcTick]=this.myHash[this.gcTick];};" +
+    "var pb=null,pt=0,pm='';var a=s.advance;s.advance=function(now,inp){var t=performance.now(),r=a.call(this,now,inp),d=performance.now()-t;W.frames++;W.ms+=d;if(d>W.maxMs)W.maxMs=d;if(W.cpu.length<20000&&r.status==='playing')W.cpu.push(Math.round(d*1000));W.st[r.status]=(W.st[r.status]|0)+1;" +
+    "if(r.status==='waiting')W.wait++;if(r.unstable)W.unst++;if(this.stats&&this.stats.depth!=null&&r.status==='playing'){var k=this.stats.depth|0;W.dep[k]=(W.dep[k]|0)+1;}" +
+    "for(var i=0;i<r.confirmed.length;i++){var e=r.confirmed[i];if(e.type==='point')W.pts.push(e.team);if(e.type==='gameOver')W.over++;}" +
+    "var g=r.g,b=g&&g.ball;if(b&&r.status==='playing'){var m=g.mode;if(pb&&m===pm&&m==='rally'){var dt=(t-pt)/1000,ex=pb[0]+pb[3]*dt,ey=pb[1]+pb[4]*dt,ez=pb[2]+pb[5]*dt-4.9*dt*dt,j=Math.sqrt((b.x-ex)*(b.x-ex)+(b.y-ey)*(b.y-ey)+(b.z-ez)*(b.z-ez));if(j>0.6&&dt<0.1){W.jumps++;if(j>W.jMax)W.jMax=j;}}" +
+    "pb=[b.x,b.y,b.z,b.vx||0,b.vy||0,b.vz||0];pt=t;pm=m;}else pb=null;return r;};},50);})()";
+  const ST = "(function(){var n=VB.ctx.net,r=n&&n.r;if(!n)return{st:VB.ctx.state};var s=n.sess,gc=s.confirmedGame&&s.confirmedGame();" +
+    "return{hai:(function(){var g=n.sess.predictedGame&&n.sess.predictedGame();return g&&g.hum?g.hum.map(function(h){return h.ai?1:0}).join(''):''})(),vis:document.visibilityState,away:!!n.away0,st:VB.ctx.state,ns:r&&r.status,sc:gc&&gc.score,sets:gc&&gc.sets,ping:r&&r.ping,pings:r&&r.pings,wf:r&&r.waitFor,meAI:r&&r.meAI,delay:s.delay,fps:VB.ctx.fps}})()";
+  let all = false;
+  for (let i = 0; i < 180 && !all; i++) {
+    await sleep(500);
+    const S = await Promise.all(P.map(p => J(p, ST)));
+    if (MRTC) for (let k = 0; k < N; k++) if (S[k] && S[k].ns && !S[k].bot) await ev(P[k], "(function(){var n=VB.ctx.net;if(!n||VB.ctx.netBot)return;VB.ctx.netBot=VB.Net.bot(n.seat," + (k * 7 + 3) + ",'bueno',{team:n.team});})()");
+    all = S.every(x => x && x.ns === 'playing');
+    if (all) for (const p of P) await ev(p, HOOK);
+    if (i % 10 === 9) console.log('  esperando…', JSON.stringify(S.map(x => x && (x.ns || x.st))));
+  }
+  check('las ' + N + ' páginas conectan (' + (MRTC ? 'lobby + WebRTC' : 'estrella de BcLink de pareja') + ') y juegan', all, MRTC ? await J(P[0], 'VB.ctx.net&&VB.ctx.net.model') : undefined);
+  if (!all) { for (const p of P) console.log(p.tag, p.errors.slice(0, 5), p.logs.slice(-6)); cleanup(); killJava(); process.exit(1); }
+  const t1 = Date.now(); let shots = 0;
+  while (Date.now() - t1 < (ENDALL ? 900 : MSECS) * 1000) {
+    await sleep(5000);
+    const S = await Promise.all(P.map(p => J(p, ST)));
+    console.log('  ' + Math.round((Date.now() - t1) / 1000) + ' s · ' + S.map((x, k) => k + ':' + (x ? (x.ns || x.st) + (x.sc ? ' ' + x.sc.join('-') : '') + (x.fps ? ' ' + x.fps + 'fps' : '') + (x.meAI ? ' IA' : '') + (x.away ? ' AUSENTE' : '') + (x.hai ? ' ia=' + x.hai : '') + (x.vis && x.vis !== 'visible' ? ' ' + x.vis : '') : '?')).join(' · ') + ' · retraso ' + (S[0] && S[0].delay));
+    if (shots < 1 && Date.now() - t1 > 20000) { shots++; for (let k = 0; k < Math.min(NREND, 2); k++) console.log('  captura', await P[k].shot(path.join(OUT, 'multi-' + FMT + '-' + MODEL + '-' + k + '.png'))); }
+    if (S.every(x => x && (x.st === 'over' || x.ns === 'over' || x.ns === 'ended'))) { await sleep(3000); break; }
+  }
+  const FIN = "(function(){var n=VB.ctx.net,W=window.__mx||{},s=n&&n.sess,gc=s&&s.confirmedGame(),v=n&&n.view;" +
+    "return{st:VB.ctx.state,ns:n&&n.r&&n.r.status,W:{frames:W.frames,wait:W.wait,unst:W.unst,ms:W.frames?W.ms/W.frames:0,maxMs:W.maxMs,dep:W.dep,jumps:W.jumps,jMax:W.jMax,raf:W.raf,rafBig:W.rafBig,rafMax:W.rafMax,over:W.over,pts:W.pts,st:W.st}," +
+    "cpu:(function(){var c=(W.cpu||[]).slice().sort(function(a,b){return a-b});return c.length?[c[c.length>>1],c[Math.floor(c.length*0.99)]]:[0,0]})(),H:W.H," +
+    "sc:gc&&gc.score,sets:gc&&gc.sets,ss:gc&&gc.setScores,myP:gc&&gc.hum&&n&&gc.hum[n.seat]&&gc.hum[n.seat].p.id,viewCtrl:v&&v.ctrl&&v.ctrl.id,viewTeam:v&&v.ctrl&&v.ctrl.team,seat:n&&n.seat,team:n&&n.team," +
+    "maxDepth:s&&s.stats&&s.stats.maxDepth,resyncs:s&&s.stats&&s.stats.resyncs,delay:s&&s.delay,hs:s&&s.hstats?{bJump:s.hstats.bJump,bJumpMax:s.hstats.bJumpMax,tcIn:s.hstats.tcIn,tcFork:s.hstats.tcFork,tcRej:s.hstats.tcRej,rescues:s.hstats.rescues,late:s.hstats.lateC,lateMax:s.hstats.lateMax,bundleMax:s.hstats.bundleMax}:null," +
+    "bj:n&&n.bj|0,bjMax:n&&n.bjMax||0,ld:s&&s.lateDbg&&s.lateDbg.slice(0,12),bytesOut:s&&s.stats&&s.stats.bytesOut,fps:VB.ctx.fps,frameMs:VB.ctx.frameMs,tags:(function(){var e=document.getElementById('netTags');return e?e.textContent:''})(),hud:(function(){var e=document.getElementById('netHud');return e&&!e.hidden?e.textContent:''})()}})()";
+  const R = await Promise.all(P.map(p => J(p, FIN)));
+  const secs = (Date.now() - t1) / 1000;
+  for (let k = 0; k < N; k++) {
+    const r = R[k]; if (!r) { console.log('  ' + P[k].tag + ': sin datos'); continue; }
+    const d = r.W.dep || {}, keys = Object.keys(d).map(Number).sort((a, b) => a - b); let tot = 0; for (const x of keys) tot += d[x];
+    let acc = 0, p95 = 0; for (const x of keys) { acc += d[x]; if (acc >= tot * 0.95) { p95 = x; break; } }
+    r.p95 = p95;
+    console.log('  ' + P[k].tag + (k < NREND ? ' (pinta' + (CPU > 1 && k === CPUPAGE ? ', CPU ×' + CPU : '') + ')' : ' (sin dibujo' + (CPU > 1 && k === CPUPAGE ? ', CPU ×' + CPU : '') + ')') + ': esperas ' + r.W.wait + '/' + r.W.frames + ' frames · inestable ' + r.W.unst +
+      ' · parones rAF>100 ms ' + r.W.rafBig + ' (máx ' + Math.round(r.W.rafMax) + ' ms) · rollback máx ' + r.maxDepth + ' p95 ' + p95 + ' · saltos del balón ' + r.W.jumps + ' (máx ' + (+r.W.jMax || 0).toFixed(2) + ' m)' +
+      (r.hs ? ' · host: bJump ' + r.hs.bJump + ' (máx ' + (+r.hs.bJumpMax || 0).toFixed(2) + ') toques ' + r.hs.tcIn + ' forks ' + r.hs.tcFork + ' rech ' + r.hs.tcRej + ' rescates ' + r.hs.rescues + ' tarde ' + r.hs.late : '') +
+      (MODEL === 'precisa' ? ' · tras suavizar ' + r.bj + ' (máx ' + (+r.bjMax || 0).toFixed(2) + ' m)' : '') + ' · sesión ' + r.cpu[0] + '/' + r.cpu[1] + ' µs (p50/p99) · fps ' + r.fps + ' · frame JS ' + (+r.frameMs || 0).toFixed(1) + ' ms · retraso ' + r.delay + ' · sube ' + Math.round((r.bytesOut || 0) / secs / 1024 * 10) / 10 + ' KB/s');
+  }
+  if (MODEL === 'precisa') {
+    let n = 0, bad = 0;
+    for (let k = 1; k < N; k++) { const A = R[0].H || {}, B = (R[k] || {}).H || {}; for (const t in A) if (B[t] !== undefined) { n++; if (A[t] !== B[t]) bad++; } }
+    check('Precisa-N: huellas de la confirmada iguales en todas las páginas', n > 10 * (N - 1) && bad === 0, { controles: n, distintas: bad, resyncs: R.map(r => r && r.resyncs) });
+  } else {
+    const p0 = (R[0].W.pts || []).join(''), sameSeq = R.every(r => r && (p0.indexOf((r.W.pts || []).join('')) === 0 || (r.W.pts || []).join('').indexOf(p0) === 0));
+    check('modelo host: todas pasan por la misma secuencia de puntos', sameSeq && p0.length >= 3, R.map(r => r && (r.W.pts || []).length));
+  }
+  check('cada página lleva SU jugador (g.hum[plaza]) y lo ve en su equipo 0', R.every(r => r && r.myP === r.viewCtrl && r.viewTeam === 0), R.map(r => r && [r.seat, r.myP, r.viewCtrl, r.viewTeam]));
+  const overAll = R.every(r => r && r.W.over > 0), overSt = R.every(r => r && r.st === 'over');
+  if (overAll || ENDALL) check('final del partido en TODAS las páginas (hoja final: estado over)', overAll && overSt, R.map(r => r && [r.st, r.ns, r.W.over]));
+  const wt = R.reduce((a, r) => a + (r ? r.W.wait : 0), 0);
+  check('congelaciones de la sesión (frames en «waiting») con ' + MLAG + ' ms: como mucho 3 por página', wt <= N * 3, R.map(r => r && r.W.wait));
+  check('consola sin errores', P.every(p => !p.errors.length), P.map(p => p.errors.slice(0, 2)));
+  for (let k = 0; k < Math.min(NREND, 2); k++) console.log('  captura final', await P[k].shot(path.join(OUT, 'multi-' + FMT + '-' + MODEL + '-' + k + '-fin.png')));
+  if (process.env.NDJSON) fs.writeFileSync(process.env.NDJSON, JSON.stringify({ N, FMT, MODEL, COOP, CPU, MLAG, secs, R: R.map(r => r && Object.assign({}, r, { H: undefined })) }, null, 1));
+  for (const p of P) p.close();
+  cleanup(); killJava();
+  console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)');
+  process.exit(fails ? 1 : 0);
+})().catch(e => { console.error(e); cleanup(); killJava(); process.exit(1); });
+
+/* ======================= --coop: Carrera cooperativa de punta a punta (P8 del sprint online-multi) =======================
+ * node tools/netdrive.js --coop — dos páginas del juego real, el LOBBY de verdad (VB.NetLobby.coop, sala 'coop' del esquema v3) contra el
+ * emulador de Firestore (con las reglas de firebase/firestore.rules) y WebRTC local (?netice=none). El anfitrión tiene una Carrera de
+ * playa y pulsa «Jugar en cooperativo» en Carrera › Partido; el invitado (con su propia Carrera) escribe el código en la misma tarjeta y
+ * pulsa «Unirse», recibe la Carrera del anfitrión y pulsa «Listo»; el anfitrión pulsa «Jugar» y el partido cooperativo (Precisa, 2
+ * plazas, equipo 0) se juega con bots (un solo set para que dure poco: matchOpts parcheado solo aquí; ~5 min). Comprueba: hoja final en las DOS
+ * (sin «Revancha»), la jornada avanza solo en el anfitrión, XP del anfitrión y de p2 (en su Carrera y en la copia del invitado), al
+ * volver la Carrera se abre en los dos con la foto nueva, el localStorage del invitado conserva SU Carrera, consola sin errores.
+ * Capturas tools/out/coop-*.png. */
+
+if (COOPX) (async () => {
+  const t0 = Date.now();
+  setTimeout(() => { console.error('TIEMPO AGOTADO (coop)'); process.exit(2); }, 15 * 60 * 1000).unref();
+  if (!(await startEmu())) { console.log('Sin emulador de Firestore (Java + jar).'); process.exit(3); }
+  console.log('  emulador de Firestore en el puerto ' + EMU_PORT);
+  // dos Chrome con perfiles distintos = dos aparatos (cada uno con su localStorage)
+  const ch2 = { c: null, p: null };
+  process.on('exit', () => { if (ch2.c) CH.kill(ch2.c); if (ch2.p) CDP.rmProfile(ch2.p); });
+  const launchOne = async (tag) => {
+    const pf = fs.mkdtempSync(path.join(os.tmpdir(), 'vb3k-'));
+    const c = CH.launch(pf, 0, W + ',' + (H + 160), ['--disable-background-timer-throttling', '--disable-renderer-backgrounding', '--disable-backgrounding-occluded-windows']);
+    let port = 0;
+    for (let i = 0; i < 75 && !port; i++) { await sleep(200); try { port = +fs.readFileSync(path.join(pf, 'DevToolsActivePort'), 'utf8').trim().split(/\s+/)[0] || 0; } catch (e) { } }
+    if (!port) throw new Error('Chrome no arranca');
+    let list = [];
+    for (let i = 0; i < 25 && !list.length; i++) { await sleep(200); try { list = (await (await fetch('http://127.0.0.1:' + port + '/json/list')).json()).filter(t => t.type === 'page'); } catch (e) { } }
+    return { c, pf, pg: page(list[0].webSocketDebuggerUrl, tag) };
+  };
+  const A1 = await launchOne('anfitrión'); chrome = A1.c; prof = A1.pf;
+  const A2 = await launchOne('invitado'); ch2.c = A2.c; ch2.p = A2.pf;
+  const P = [A1.pg, A2.pg];
+  if (process.env.NDLOG) process.on('exit', () => { for (const p of P) for (const l of p.logs.slice(-40)) console.log(p.tag + ' ' + l.slice(0, 300)); });
+  const NAMES = ['Anfi Coop', 'Invi Coop'];
+  for (let k = 0; k < 2; k++) {
+    const p = P[k]; await p.ready;
+    await p.send('Runtime.enable'); await p.send('Page.enable');
+    await p.send('Emulation.setDeviceMetricsOverride', { width: W, height: H, deviceScaleFactor: 1, mobile: false });
+    await p.send('Emulation.setFocusEmulationEnabled', { enabled: true }).catch(() => { });
+    const q = 'debug=menu&online=1&netemu=' + EMU_PORT + '&netuid=uid' + (k ? 'InviC' : 'AnfiC') + '&netice=none&name=' + encodeURIComponent(NAMES[k]) + (EXTRA ? '&' + EXTRA : '');
+    await p.send('Page.navigate', { url: CH.pageUrl(ROOT, q) });
+  }
+  const ev = (p, js) => p.evalJs(js).catch(e => { console.log('  (eval ' + p.tag + ': ' + e.message.slice(0, 200) + ')'); return null; });
+  const J = async (p, js) => { const v = await ev(p, 'JSON.stringify(' + js + ')'); try { return JSON.parse(v); } catch (e) { return null; } };
+  const waitFor = async (p, js, ms) => { const tEnd = Date.now() + ms; while (Date.now() < tEnd) { if (await ev(p, js)) return true; await sleep(250); } return false; };
+  for (const p of P) await waitFor(p, "!!(window.VB&&VB.ctx&&VB.ctx.state==='menu'&&VB.CareerCoop&&VB.CareerUI&&VB.NetLobby)", 40000);
+  // (invitado: se apunta cada clave que escribe en SU localStorage)
+  await ev(P[1], "(function(){var o=Storage.prototype.setItem;Storage.prototype.setItem=function(k,v){if(this===window.localStorage)(window.__w=window.__w||[]).push(k);return o.call(this,k,v);};})()");
+  const mk = (name, seed) => "(function(){var C=VB.Career;var c=C.create({mode:'beach',name:'" + name + "',num:7,role:'atk',seed:" + seed + ",now:Date.now()});C.acceptOffer(c.offers.findIndex(function(x){return !x.trial}),2);return C.load().player.name})()";
+  check('el anfitrión tiene su Carrera de playa', (await ev(P[0], mk('Anfi Coop', 4242))) === 'Anfi Coop');
+  check('el invitado tiene la suya (otro aparato: otro perfil de Chrome)', (await ev(P[1], mk('Invi Propia', 777))) === 'Invi Propia');
+  const own = await ev(P[1], "localStorage.getItem('make-the-cut.career')");
+  await ev(P[1], 'window.__w=[]');
+  for (const p of P) await ev(p, "VB.CareerUI.open('hub',{from:'main'})");
+  await sleep(800);
+  const cardH = await waitFor(P[0], "!!document.querySelector('#crCoop [data-act=co-host]')", 8000);
+  check('Carrera › Partido: tarjeta «Cooperativo» con «Jugar en cooperativo» y el código para unirse', cardH && await ev(P[1], "!!document.querySelector('#crCoop #coCode')"));
+  console.log('  captura', await P[0].shot(path.join(OUT, 'coop-tarjeta.png')));
+  await ev(P[0], "document.querySelector('#crCoop [data-act=co-host]').click()");
+  const okCode = await waitFor(P[0], "!!(VB.NetLobby.coop.state()&&VB.NetLobby.coop.state().code)", 15000);
+  const code = okCode ? await ev(P[0], 'VB.NetLobby.coop.state().code') : '';
+  check('el anfitrión abre la sala cooperativa (código de 6)', /^[2-9A-HJKMNP-Z]{6}$/.test(code || ''), code);
+  await ev(P[1], "(function(){var i=document.getElementById('coCode');i.value='" + code + "';i.dispatchEvent(new Event('input',{bubbles:true}));document.querySelector('#crCoop [data-act=co-join]').click();})()");
+  const paired = await waitFor(P[0], 'VB.CareerCoop.paired()&&!!VB.CareerCoop._S.hi', 40000) && await waitFor(P[1], "VB.CareerCoop.paired()&&VB.Career.get()&&VB.Career.get().player.name==='Invi Coop'", 30000);
+  check('el invitado entra con el código, se conectan por WebRTC y recibe la Carrera del anfitrión (él es la pareja)', paired, [await J(P[0], 'VB.NetLobby.coop.state()'), await J(P[1], 'VB.NetLobby.coop.state()')]);
+  if (!paired) { for (const p of P) console.log(p.tag, p.errors.slice(0, 5), p.logs.slice(-10)); cleanup(); killJava(); process.exit(1); }
+  await sleep(600);
+  console.log('  captura', await P[1].shot(path.join(OUT, 'coop-invitado-hub.png')));
+  const pre = await J(P[0], "(function(){var c=VB.Career.load();return{week:c.week,xp:c.player.xp,lvl:c.player.lvl,m:c.player.matches|0,p2:{xp:c.coop.p2.xp,lvl:c.coop.p2.lvl,m:c.coop.p2.matches|0}}})()");
+  await ev(P[1], "document.querySelector('#crCoop [data-act=co-ready]').click()");
+  check('«Listo» del invitado llega al anfitrión', await waitFor(P[0], 'VB.CareerCoop.ready()', 8000));
+  // (solo en esta prueba: un solo set; las dos partes leen las opciones del anfitrión en el saludo de la sesión)
+  await ev(P[0], "(function(){var CC=VB.CareerCoop,mo=CC.matchOpts;CC.matchOpts=function(o){var r=mo(o);if(r){r.opts.points=11;r.opts.bestOf=1;}return r;};})()");
+  await ev(P[0], "(function(){var b=document.querySelector('#career [data-act=play]');if(b)b.click();})()");
+  const both = await Promise.all(P.map(p => waitFor(p, "!!(VB.ctx.net&&VB.ctx.net.r&&VB.ctx.net.r.status==='playing'&&VB.ctx.net.view)", 40000)));
+  check('«Jugar» del anfitrión: el partido cooperativo empieza en las dos (Precisa, 2 plazas en el equipo 0)', both[0] && both[1] && (await ev(P[0], 'VB.ctx.net.multi&&VB.ctx.net.coopCareer&&VB.ctx.net.team===0')) && (await ev(P[1], 'VB.ctx.net.seat===1&&VB.ctx.net.team===0')));
+  if (!(both[0] && both[1])) { for (const p of P) console.log(p.tag, p.errors.slice(0, 5), p.logs.slice(-10)); cleanup(); killJava(); process.exit(1); }
+  for (let k = 0; k < 2; k++) await ev(P[k], "VB.ctx.netBot=VB.Net.bot(" + k + "," + (k + 5) + ",'bueno',{team:0})");
+  await sleep(15000);
+  console.log('  captura', await P[1].shot(path.join(OUT, 'coop-partido-invitado.png')));
+  let over = false; const tEnd = Date.now() + 9 * 60 * 1000;
+  while (!over && Date.now() < tEnd) {
+    await sleep(5000);
+    const s = await Promise.all(P.map(p => J(p, "(function(){var n=VB.ctx.net;return{st:VB.ctx.state,ns:n&&n.r&&n.r.status,sc:n&&n.view&&n.view.score}})()")));
+    console.log('  ' + JSON.stringify(s));
+    over = s.every(x => x && x.st === 'over');
+  }
+  check('final: hoja final en las DOS páginas (estado over)', over);
+  await sleep(2500);
+  const sheet = await Promise.all(P.map(p => J(p, "(function(){var a=document.getElementById('btnAgain'),m=document.getElementById('btnMenu');return{again:a?a.hidden:null,menu:m?m.textContent:''}})()")));
+  check('hoja final del cooperativo sin «Revancha» y con «Volver a la Carrera»', sheet.every(x => x && x.again === true && /Carrera/.test(x.menu)), sheet);
+  for (let k = 0; k < 2; k++) console.log('  captura', await P[k].shot(path.join(OUT, 'coop-hoja-' + (k ? 'invitado' : 'anfitrion') + '.png')));
+  const post = await J(P[0], "(function(){var c=VB.Career.load();return{week:c.week,xp:c.player.xp,lvl:c.player.lvl,m:c.player.matches|0,p2:{xp:c.coop.p2.xp,lvl:c.coop.p2.lvl,m:c.coop.p2.matches|0},last:c.last&&{xp:c.last.xp,coop:c.last.coop&&c.last.coop.xp}}})()");
+  check('la jornada avanza en la Carrera del anfitrión (' + (pre && pre.week) + ' → ' + (post && post.week) + ')', pre && post && post.week === pre.week + 1);
+  check('XP del anfitrión (+' + (post && post.last && post.last.xp) + ') y de su pareja p2 (+' + (post && post.last && post.last.coop) + ')', pre && post && post.m === pre.m + 1 && post.p2.m === pre.p2.m + 1 && (post.xp !== pre.xp || post.lvl > pre.lvl) && (post.p2.xp !== pre.p2.xp || post.p2.lvl > pre.p2.lvl), [pre, post]);
+  for (const p of P) await ev(p, "document.getElementById('btnMenu').click()");
+  const hubs = await Promise.all(P.map(p => waitFor(p, 'VB.CareerUI.isOpen()', 20000)));
+  check('«Volver a la Carrera»: la Carrera se abre otra vez en las dos', hubs[0] && hubs[1]);
+  const gotSnap = await waitFor(P[1], "(function(){var c=VB.Career.get();return !!(c&&c.player&&c.player.matches>=" + ((pre && pre.p2.m) + 1) + ")})()", 20000);
+  const gv = await J(P[1], "(function(){var c=VB.Career.get(),r=JSON.parse(localStorage.getItem('make-the-cut.coop.p2')||'null');return{name:c.player.name,m:c.player.matches,xp:c.player.xp,lvl:c.player.lvl,rec:r&&r.p2&&{m:r.p2.matches,xp:r.p2.xp,lvl:r.p2.lvl},w:window.__w}})()");
+  check('el invitado recibe la foto nueva: ve SU XP (su jugador p2) y guarda la copia en make-the-cut.coop.p2', gotSnap && gv && post && gv.m === post.p2.m && gv.xp === post.p2.xp && gv.rec && gv.rec.xp === post.p2.xp, gv);
+  check('el invitado conserva SU Carrera en su localStorage: de la Carrera solo escribe make-the-cut.coop.p2 (las de este aparato, como los consejos e1tips, valen)', (await ev(P[1], "localStorage.getItem('make-the-cut.career')")) === own && (gv.w || []).every(k => k === 'make-the-cut.coop.p2' || !/^make-the-cut.(career|hall|season|legend)/.test(k)), gv && gv.w);
+  for (let k = 0; k < 2; k++) console.log('  captura', await P[k].shot(path.join(OUT, 'coop-vuelta-' + (k ? 'invitado' : 'anfitrion') + '.png')));
+  check('consola sin errores', !P[0].errors.length && !P[1].errors.length, [P[0].errors.slice(0, 3), P[1].errors.slice(0, 3)]);
+  for (const p of P) p.close();
+  if (ch2.c) { CH.kill(ch2.c); ch2.c = null; }
+  cleanup(); killJava();
+  console.log('\n' + oks + ' ok, ' + fails + ' fallos (' + ((Date.now() - t0) / 1000).toFixed(0) + ' s)');
+  process.exit(fails ? 1 : 0);
+})().catch(e => { console.error(e); cleanup(); killJava(); process.exit(1); });
