@@ -199,6 +199,11 @@ rama pendientes, sin publicar.
   fovpump, cadera en wide, héroe por muestra— cuentan como «conocido» con tope medido; `CAMZERO=1` exige 0; ver notes/camera_input.md)
   y mobaudit (el informe del rival con carga de página propia). **Pregunta abierta a Ferran (cámara):** en el saque propio, ¿el juez
   de línea cercano entero, fuera o cortado solo por abajo? Hasta que lo decidas, camtest lo tolera.
+  **Pasada de todas las pruebas de tools/ (22-nov, tarde, de una en una):** 86 en verde (los 72 *test*.js, las tres huellas, drive,
+  drive6, padplay, touchplay, csscheck, console.sh 1280 y 844 táctil, mobaudit 568×320 y 844×390). animtest: huella neutra regenerada
+  por la IA variada (comprobada en main y en el commit de la IA variada). **Fallan igual en main 1.21.0, sin tocar:** contacttest
+  (holgura mano-balón en pass/dig, dive y forearm; main da 4 fallos) y balltest (pelota en la banda de las playas de día, nota 23-26
+  con umbral 30; main igual). camtest «clutter» y la fila «home» de mobaudit a 844×390 fallaron una vez por tiempos y pasan solas.
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
