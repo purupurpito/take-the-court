@@ -409,7 +409,8 @@
     call('Replay', 'abort');   // S3-C1: una repetición en curso se corta sin cortinilla (menú, revancha, reiniciar, escenas)
     // «Retomar el partido» (js/resume.js): un partido de verdad nuevo (no el que se retoma) descarta el guardado; la demo, el autopilot y
     // las escenas de depuración no lo tocan. startMatch lo arma después si el partido es apto
-    if (VB.Resume) { try { VB.Resume.disarm(); if (g && !g.demo && !g.autopilot && !ctx.debug && g !== rsKeep) VB.Resume.clear(); } catch (e) { reportError('Resume', e); } }
+    // (el de la Carrera, make-the-cut.resume.career, no: es el candado del partido a medias; startMatch lo quita al empezar uno de Carrera nuevo)
+    if (VB.Resume) { try { VB.Resume.disarm(); if (g && !g.demo && !g.autopilot && !ctx.debug && g !== rsKeep) VB.Resume.clear('quick'); } catch (e) { reportError('Resume', e); } }
     rsKeep = null;
     ctx.game = g; ctx.timeScale = 1; acc = 0; ctx.replaySkipReq = false;
     // g.watch0 = espectador de verdad (?format=6v6, escenas); g.watch se recalcula cada frame con el banquillo (g.watch0 || g.ctrlOut)
@@ -568,6 +569,7 @@
     // (partidillo de prueba: reiniciar o abandonar gasta la prueba; «Reiniciar prueba» la da por suspendida y vuelve a las ofertas)
     if (!opts.career && !opts.autopilot && ctx.game && ctx.game.career && !ctx.game.demo) {
       if (ctx.state === 'over') { ctx.actions.toMenu(); return; }
+      if (careerLocked(ctx.game)) return;   // (partido de Carrera con candado: no se reinicia; la pausa ni lo ofrece)
       if (ctx.state === 'paused' || ctx.state === 'playing') {
         if (ctx.game.career.ext) ctx.actions.startCareerExt(ctx.game.career.ext, ctx.game.career.extArg, false);   // (partido de una extensión: su setup es reentrante)
         else if (ctx.game.career.trial) { if (!trialForfeit(ctx.game.career, 'restart')) ctx.actions.startCareerTrial(ctx.game.career.offer); else ctx.actions.toMenu(); }
@@ -634,7 +636,8 @@
     // el saque de firma (decisión provisional, pendientes-ferran.md: nivel y atributos iguales para todos) y el partido empieza en el marcador de la semana (opts.start)
     var sitO = !!(opts.sit && !cs && opts.start);
     // Partidos cortos (informe 4.5): la fila «Duración» y el 7 de «Puntos por set» del Partido rápido (qs = null en el partido de siempre)
-    var sd0 = rs ? rs.gOpts.seed | 0 : sitO && opts.seed && !Q.seed ? opts.seed | 0 : seed(), qs = rs ? rs.qs || null : quickShort(opts, cs, auto, fmt ? 'hall' : (cvK || venueNow()), sd0);
+    // (Carrera: opts.seed = la del partido, careerSeed: cerrar en la previa y volver da el MISMO partido, no otro sorteo)
+    var sd0 = rs ? rs.gOpts.seed | 0 : (sitO || cs) && opts.seed && !Q.seed ? opts.seed | 0 : seed(), qs = rs ? rs.qs || null : quickShort(opts, cs, auto, fmt ? 'hall' : (cvK || venueNow()), sd0);
     var gOpts = rs ? JSON.parse(JSON.stringify(rs.gOpts)) : { demo: false, seed: sd0, difficulty: dq, autopilot: auto, rookie: cs ? !!opts.rookie : sitO ? false : isRookie(), present: !opts.autopilot,
       start: sitO ? opts.start : qs && qs.from ? qs.start : undefined,
       quick: qs ? true : undefined,   // (la sim solo acepta el set a 7 con quick: Partido rápido)
@@ -672,7 +675,7 @@
     var g = Sim.createGame(gOpts);
     // retomar: la foto encima de la partida recién creada; si no cuadra (huella distinta), se descarta y se queda en el menú
     if (rs && !(VB.Resume && VB.Resume.apply(rs, g))) {
-      if (VB.Resume) VB.Resume.clear();
+      if (VB.Resume && rs.kind !== 'career') VB.Resume.clear('quick');   // (la de Carrera no: resumeMatch resuelve el partido desde su marcador)
       console.warn('[VB] Retomar: la foto guardada no cuadra con esta partida; descartada');
       unforceVenue(); call('UI', 'refreshMenu');
       return false;
@@ -703,19 +706,25 @@
     // «Retomar el partido»: ¿se guarda este partido al acabar cada punto? Partido rápido sí; nunca el online, el autopilot, el espectador,
     // la situación de la semana ni las pruebas de fichaje (ni las extensiones de la Carrera); la Carrera, solo con VB.Resume.CAREER
     var RSM = VB.Resume, rsOk = !!RSM && !!gKeep && !auto && !opts.autopilot && !net && !sitO && !g.watch && !g.drill && (!ctx.debug || Q.resume === '1') &&
-      (!cs || (RSM.CAREER && !cs.trial && !cs.ext && !cs._debug));
+      (!cs || (RSM.CAREER && !cs.trial && !cs._debug));   // (Carrera: la jornada y las extensiones —selección, Estrellas, juvenil—; nunca la prueba)
     if (rs) rsKeep = g;
     setGame(g, opts.kit || null, cs ? careerLookOpts(cs, cvK === 'hall') : lookOptsOf(g));
     if (rsOk) {
       var rsOpts = null; try { rsOpts = JSON.parse(JSON.stringify(opts, function (k, v) { return k === 'career' || k === 'kit' || k === 'resume' ? undefined : v; })); } catch (e) { rsOpts = {}; }
-      try { RSM.arm(g, { kind: cs ? 'career' : 'quick', opts: rsOpts, gOpts: gKeep, map: mapNow(), qs: qs || null, cm: cs ? careerSig() : null, played: !!rs, nc: !!g.rsNc }); } catch (e) { reportError('Resume.arm', e); }
+      var rsX = null; if (cs && cs.ext) { try { rsX = { id: String(cs.ext), arg: JSON.parse(JSON.stringify(cs.extArg === undefined ? null : cs.extArg)), mode: cs.mode || '', cs: JSON.parse(JSON.stringify(cs)) }; } catch (e) { rsX = { id: String(cs.ext), arg: null, mode: cs.mode || '', cs: null }; } }
+      if (cs) { g.rsLock = 1; lockG = null; if (cs.ext && careerExt(cs.ext) && careerExt(cs.ext).quitStrict) g.rsStrict = 1; if (!rs) { try { RSM.clear('career'); } catch (e) { } } }   // (Carrera: candado; un partido de Carrera nuevo quita la foto vieja)
+      try { RSM.arm(g, { kind: cs ? 'career' : 'quick', opts: rsOpts, gOpts: gKeep, map: mapNow(), qs: qs || null, cm: cs ? (rsX ? extSig(rsX.id, rsX.arg) : careerSig()) : null, ext: rsX, played: !!rs, nc: !!g.rsNc }); } catch (e) { reportError('Resume.arm', e); }
     }
     setState('playing');
     // retomar: lo que los módulos llevaban contado (hoja final, estadística, insignias, retos), la cámara en su sitio y el aviso «Seguimos»
     if (rs) {
       try { RSM.mods(rs, g); } catch (e) { reportError('Resume.mods', e); }
       call('CameraRig', 'snap', g);
-      call('UI', 'resumed', g);
+      // Carrera cerrada con el punto en juego (RSM.lost): ese punto no se repite, es para el rival (Sim.concede); la cinta «Seguimos»
+      // sale cuando el punto ya se ha contado (en el frame, rsLostPend) y lo dice
+      g.rsLost = 0;
+      if (cs && RSM.lost && RSM.lost(rs) && concedeLive(g)) { g.rsLost = 1; rsLostPend = g; lockG = null; }
+      else call('UI', 'resumed', g);
     }
     // los jugadores se reconstruyen en onGameStart: sube sus texturas/programas antes del primer frame
     // (sin pintar: aquí no hay telón que tape los objetos ocultos)
@@ -724,23 +733,145 @@
     if (!auto && !rs && !opts.noIntro && Q.intro !== '0' && (!ctx.debug || Q.intro === '1')) introStart(opts);
   };
   var lastOpts = null;
-  /** «Retomar el partido» (js/resume.js, informe 4.9): «Seguir el partido» de la portada. Partido rápido: startMatch con lo guardado. Carrera
-   *  (solo con VB.Resume.CAREER): el mismo partido de la jornada (startCareerMatch) y, si la jornada ya no es la del guardado, se descarta.
-   *  false si no hay nada que retomar o no cuadra (lo guardado se borra). */
-  ctx.actions.resumeMatch = function () {
-    var R = VB.Resume, rec = null; try { rec = R ? R.load() : null; } catch (e) { rec = null; }
-    if (!rec) return false;
+  /** «Retomar el partido» (js/resume.js, informe 4.9): «Seguir el partido» de la portada (kind: 'quick' | 'career'; sin él, lo que
+   *  enseñe la portada: la Carrera primero). Partido rápido: startMatch con lo guardado (si no cuadra, se borra). Carrera: el mismo
+   *  partido de la jornada (startCareerMatch) o de la extensión (startCareerExt) con la foto encima; si la foto no vale (otra versión,
+   *  huella distinta, ya no es el partido que toca), el partido NO vuelve al 0-0: se resuelve desde el marcador guardado (careerLockFix)
+   *  y se abre la Carrera con el resultado. false si no hay nada que retomar. */
+  ctx.actions.resumeMatch = function (kind) {
+    var R = VB.Resume; if (!R) return false;
+    var rec = null; try { rec = R.load(kind); } catch (e) { rec = null; }
+    if (!rec || (rec.kind === 'career' && !R.CAREER)) {
+      if (kind !== 'quick' && careerLockFix() === 'resolved') { careerLockOpen(); return true; }
+      return false;
+    }
     if (rec.kind === 'career') {
-      if (!R.CAREER || careerSig() !== rec.cm) { R.clear(); call('UI', 'refreshMenu'); return false; }
-      return ctx.actions.startCareerMatch({ resume: rec }) !== false && !!R.armed();
+      var ok = false;
+      if (careerRecFits(rec)) {
+        try {
+          if (rec.ext && rec.ext.id) ok = ctx.actions.startCareerExt(rec.ext.id, rec.ext.arg, false, rec) !== false && !!R.armed();
+          else {
+            var md = String(rec.cm || '').split('|')[0], K = VB.Career;
+            if (K && K.setMode && (md === 'hall' || md === 'beach') && K.mode && K.mode() !== md) K.setMode(md);
+            ok = ctx.actions.startCareerMatch({ resume: rec }) !== false && !!R.armed();
+          }
+        } catch (e) { reportError('resumeMatch', e); ok = false; }
+        if (!ok && startWait) ok = true;   // (con la carga aún en marcha el partido espera a empezar: no es que la foto no valga)
+      }
+      if (!ok) { careerLockFix(true); careerLockOpen(); }
+      return true;
     }
     return ctx.actions.startMatch(Object.assign({}, rec.opts || {}, { resume: rec })) !== false && !!R.armed();
   };
-  /** Firma del próximo partido de la Carrera (modo, fase, jornada / ronda y rival) para no retomar un partido que ya no toca. */
+  /** Firma del próximo partido de la Carrera activa (VB.Career.matchSig: modo, temporada, fase, jornada / ronda y rival) para no
+   *  retomar un partido que ya no toca. */
   function careerSig() {
-    var K = VB.Career; if (!K || !K.next) return '';
+    var K = VB.Career; if (!K) return '';
+    if (K.matchSig) { try { return K.matchSig() || ''; } catch (e) { return ''; } }
+    if (!K.next) return '';
     try { var c = K.get ? K.get() : null, n = K.next(c); if (!c || !n) return ''; return [K.MODE || '', c.season | 0, c.phase || '', n.kind || '', n.week | 0, n.round | 0, n.ko || '', n.rival ? n.rival.id : ''].join('|'); } catch (e) { return ''; }
   }
+  // ---------- «Retomar el partido» en la Carrera: candado y antitrampas (js/resume.js, career.js lockResolve, notes/resume.md «Carrera») ----------
+  // Decisión de Ferran (22-nov-2026): «No quiero que sea posible ir reiniciando tu progreso constantemente en los partidos del modo
+  // carrera. Cada vez que se acabe un punto se guarda.» Un partido de Carrera (jornada o extensión) con foto queda «con candado» hasta
+  // acabarlo: salir al menú lo guarda (no lo borra), «Jugar partido» / «Seguir el partido» lo retoman, no se puede reiniciar, simular
+  // ni avanzar la jornada (career.js), cerrar con el punto en juego lo da por perdido (concedeLive) y una foto que ya no vale lo
+  // resuelve desde el marcador guardado (nunca desde el 0-0). El candado va también en el guardado de la Carrera (c.lock: account.js
+  // lo sube), así en otro aparato sin la foto el partido se resuelve igual.
+  var lockG = null, rsLostPend = null, lockBoot = false, LOCK_NOIN = { move: [0, 0], hit: false, jump: false, jset: false, switchPlayer: false };
+  /** Firma de un partido de extensión (id y su arg). */
+  function extSig(id, arg) { var a = ''; try { a = JSON.stringify(arg === undefined ? null : arg); } catch (e) { a = ''; } return 'ext|' + id + '|' + a; }
+  /** Semilla del partido de la jornada (la misma cada vez que se monte ese partido): hash de la semilla de la Carrera y su firma. */
+  function careerSeed(sig) {
+    var K = VB.Career, c = null; try { c = K && K.get ? K.get() : null; } catch (e) { c = null; }
+    var s = String(sig || '') + '|' + (c && c.seed != null ? c.seed : ''), h = 2166136261;
+    for (var i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    return ((h >>> 1) & 0x7fffffff) || 1;
+  }
+  /** ¿La foto de Carrera rec es del partido que toca? (jornada: la firma de su Carrera; extensión: la extensión existe) */
+  function careerRecFits(rec) {
+    var K = VB.Career; if (!rec || !K || typeof rec.cm !== 'string') return false;
+    if (rec.ext && rec.ext.id) return rec.cm === extSig(rec.ext.id, rec.ext.arg) && !!careerExt(rec.ext.id);
+    var md = rec.cm.split('|')[0], E = md === 'hall' ? K.hall : md === 'beach' ? K.beach : null;
+    try { return !!E && !!E.matchSig && E.matchSig() === rec.cm; } catch (e) { return false; }
+  }
+  /** Estado del candado: 'photo' (hay foto del partido a medias: retomarlo), 'resolved' (no había foto que valga: resuelto ahora desde
+   *  el marcador guardado) o '' (nada). bad = la foto ya ha fallado al aplicarse (huella distinta): se resuelve aunque parezca sana. */
+  function careerLockFix(bad) {
+    var K = VB.Career, R = VB.Resume; if (!K || !R || !K.lockAny) return '';
+    var la = null; try { la = K.lockAny(); } catch (e) { la = null; }
+    var rec = null, raw = null; try { rec = R.CAREER ? R.load('career') : null; raw = R.raw('career'); } catch (e) { rec = null; }
+    if (rec && !bad && careerRecFits(rec) && (!la || la.lock.cm === rec.cm)) return 'photo';
+    var lk = la ? la.lock : null;
+    // sin candado pero con una foto de Carrera que no vale (otra versión, rota) que sí es del partido que toca: también se resuelve
+    if (!lk && raw && raw.kind === 'career' && raw.sc && typeof raw.cm === 'string' && careerRecFits(raw)) {
+      lk = { cm: raw.cm, ext: raw.ext || null, sc: raw.sc }; la = { mode: raw.ext ? raw.ext.mode || 'beach' : raw.cm.split('|')[0], lock: lk };
+    }
+    if (!lk) { if (raw) { try { R.clear('career'); } catch (e) { } } return ''; }
+    var sc = raw && raw.cm === lk.cm && raw.sc ? raw.sc : lk.sc;
+    try { careerLockResolve(la.mode, lk, sc); } catch (e) { reportError('careerLockResolve', e); }
+    try { R.clear('career'); } catch (e) { }
+    try { if (VB.CareerUI && VB.CareerUI.syncMenu) VB.CareerUI.syncMenu(); } catch (e) { }
+    call('UI', 'refreshMenu');
+    return 'resolved';
+  }
+  /** Resuelve el partido con candado desde el marcador sc. Jornada: career.js lockResolve (simulado desde sc). Extensión: X.done con el
+   *  resultado simulado desde sc (sin partida: nadie te ve), o X.quit si no sabe; luego fuera el candado. */
+  function careerLockResolve(mode, lk, sc) {
+    var K = VB.Career, E = mode === 'hall' ? K.hall : K.beach; if (!E) return;
+    if (!lk.ext) { if (E.lockResolve) E.lockResolve(sc); else if (E.lockClear) E.lockClear(); return; }
+    var X = careerExt(lk.ext.id), h = 2166136261, ks = String(lk.cm) + '|' + JSON.stringify(sc && sc.score || []);
+    for (var i = 0; i < ks.length; i++) { h ^= ks.charCodeAt(i); h = Math.imul(h, 16777619); }
+    var st = h >>> 0, r = function () { st = (Math.imul(st, 1664525) + 1013904223) >>> 0; return st / 4294967296; };
+    var q = E._simRest ? E._simRest(sc || {}, 0.5, r, (sc && sc.pts) || 21) : null, cs = lk.ext.cs || { ext: lk.ext.id, extArg: lk.ext.arg, mode: lk.ext.mode };
+    if (q && X && typeof X.done === 'function') {
+      try { X.done({ sets: q.sets, setScores: q.setScores, win: q.sets[0] > q.sets[1] }, { career: cs, setScores: q.setScores, autopilot: false, lockSim: true }); }
+      catch (e) { reportError('CareerExt.done (candado)', e); try { if (X.quit) X.quit(cs, 'quit', null); } catch (e2) { } }
+    } else if (X && X.quit) { try { X.quit(cs, 'quit', null); } catch (e) { } }
+    if (E.lockClear) E.lockClear();
+    if (K.abortMatch) K.abortMatch();
+  }
+  /** Tras resolver un partido con candado: la Carrera abierta con el resultado (o el menú si no hay hub). */
+  function careerLockOpen() {
+    call('UI', 'refreshMenu');
+    if (ctx.state === 'menu' && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: true, from: 'main' }); } catch (e) { reportError('CareerUI.open', e); } }
+  }
+  /** Antes de empezar cualquier cosa de la Carrera (jornada, extensión, prueba, ejercicio): con un partido a medias, se retoma ese
+   *  (o, sin foto que valga, se resuelve y se abre el hub). true si ha hecho algo (y quien llama no debe empezar nada). */
+  function careerLockGate() {
+    var st = careerLockFix();
+    if (st === 'photo') { ctx.actions.resumeMatch('career'); return true; }
+    if (st === 'resolved') { careerLockOpen(); return true; }
+    return false;
+  }
+  /** El candado en el guardado de la Carrera (c.lock) con el marcador de la última foto: al primer guardado del partido, al acabar cada
+   *  set, al salir al menú y al irse la página a segundo plano (no en cada punto: account.js subiría la Carrera entera cada vez). */
+  function careerLockSync(g) {
+    var R = VB.Resume, K = VB.Career; if (!R || !K || !g || !g.rsLock || g.demo || R.armed() !== g || g.finished) return false;
+    var rec = null; try { rec = R.raw('career'); } catch (e) { rec = null; }
+    if (!rec || typeof rec.cm !== 'string' || !rec.sc) return false;   // (aún sin foto: el partido no tiene candado)
+    var E = (rec.ext ? rec.ext.mode : (g.career && g.career.mode)) === 'hall' ? K.hall : K.beach;
+    if (!E || !E.lockSet) return false;
+    try { E.lockSet({ cm: rec.cm, ext: rec.ext || null, sc: rec.sc, t: Date.now(), v: String(VB.VERSION || '') }); } catch (e) { reportError('Career.lockSet', e); return false; }
+    lockG = g; return true;
+  }
+  /** ¿El partido g es de Carrera con candado ahora? (armado en VB.Resume) */
+  function careerLocked(g) { var R = VB.Resume; return !!(g && g.rsLock && !g.demo && R && R.armed() === g); }
+  /** Carrera retomada con el punto en juego: el balón vuelve a 'serve' si hacía falta (sin entrada) y el punto es para el rival. */
+  function concedeLive(g) {
+    if (!Sim.concede) return false;
+    for (var n = 0; g.mode !== 'serve' && g.mode !== 'rally' && !g.finished && n < 120 * 40; n++) { try { Sim.step(g, STEP, LOCK_NOIN); } catch (e) { return false; } }
+    try { return !!Sim.concede(g, 0); } catch (e) { reportError('Sim.concede', e); return false; }
+  }
+  document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'hidden' && ctx.game) careerLockSync(ctx.game); });
+  /** Para el hub de la Carrera (career-ui.js): el partido a medias con candado {sub, score, lost, label, ext} o null (si no había foto
+   *  que valga, ya se ha resuelto y devuelve null: el hub enseña el resultado). */
+  ctx.actions.careerLock = function () {
+    if (careerLockFix() !== 'photo') return null;
+    var R = VB.Resume, p = null, rec = null; try { p = R.peek(); rec = R.load('career'); } catch (e) { p = null; }
+    if (!p || p.kind !== 'career' || !rec) return null;
+    return { sub: p.sub, score: p.score, lost: p.lost, label: rec.ext && rec.ext.cs && rec.ext.cs.label ? String(rec.ext.cs.label) : '', ext: rec.ext ? rec.ext.id : '' };
+  };
   /** Partidos cortos (1.22.0, informe 4.5). Solo el Partido rápido elegido desde el menú (y su revancha / reiniciar): nunca la Carrera,
    *  el autopilot, los retos, la situación de la semana, «Jugar ya» ni quien ya trae sets / start / points. Lee los ajustes matchLen
    *  ('full' | 'one' | 'clutch') y setPoints (7 = set a 7); ?len= manda (pruebas). → null con el partido de siempre (al mejor de 3 y
@@ -1253,6 +1384,7 @@
   /** Sesión de entrenamiento de la Carrera (career-ui.js, bloque Entrenamiento): el ejercicio id con tu jugador de Carrera. Si no se
    *  puede entrenar ahora (sin sesiones, fatiga, sin partido), vuelve al hub. auto = la IA juega por ti (pruebas). */
   ctx.actions.startCareerDrill = function (id, auto) {
+    if (!auto && careerLockGate()) return false;   // (partido de Carrera a medias: primero ese)
     var K = VB.Career, s = null;
     try { s = K && K.drillSetup ? K.drillSetup(id) : null; } catch (e) { reportError('Career.drillSetup', e); }
     if (!s || !drillId(id)) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open('hub', { train: true }); return false; }
@@ -1281,7 +1413,9 @@
   /** Partido suelto de la extensión id: X.setup(arg, auto) → opciones como matchSetup (attrs, badges, points, sets, difficulty,
    *  rookie, ref, venue, venueMap | fixture, format '6v6', ctrlRole, ctrlIdx, meSlot, meBench, names, kit, rivalKit, nums, bench,
    *  coach, serveSig, career {…; noAmb, noZone, pause{restart, quit, warn}}). Al acabar, careerEvents llama a X.done. */
-  ctx.actions.startCareerExt = function (id, arg, auto) {
+  ctx.actions.startCareerExt = function (id, arg, auto, rsX) {
+    // («Retomar el partido»: rsX = la foto de este partido; sin ella, con un partido de Carrera a medias se retoma ese, nunca uno de cero)
+    if (!rsX && !auto && careerLockGate()) return false;
     var X = careerExt(id), K = VB.Career, m = null;
     if (!X || typeof X.setup !== 'function') return false;
     try { m = X.setup(arg, !!auto); } catch (e) { reportError('CareerExt.setup ' + id, e); m = null; }
@@ -1292,16 +1426,17 @@
     var vid = m.venueMap || null;
     if (!vid && m.fixture && VB.Venues && VB.Venues.forMatch) { try { vid = VB.Venues.forMatch(m.fixture, m.venue || (six ? 'hall' : 'beach')); } catch (e) { vid = null; } }
     careerEnd = null;
-    ctx.actions.startMatch({ career: cs, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, sets: m.sets === 1 ? 1 : undefined, difficulty: m.difficulty, rookie: !!m.rookie,
+    var rsR = ctx.actions.startMatch({ resume: rsX || undefined, career: cs, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, sets: m.sets === 1 ? 1 : undefined, difficulty: m.difficulty, rookie: !!m.rookie,
       ctrl: 'one', ctrlIdx: m.ctrlIdx | 0, ref: m.ref, autopilot: !!auto, venue: m.venue || (six ? 'hall' : 'beach'), format: six ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined,
       bench: m.bench || undefined, coach: m.coach || undefined, meSlot: m.meSlot, meBench: m.meBench, names: m.names || undefined, serveSig: m.serveSig || undefined,
       kit: m.kit ? Object.assign({}, m.kit, { rival: m.rivalKit || null }, m.scrim ? { scrim: m.scrim } : null) : null,
       nums: m.nums || [[cs.num | 0 || null, cs.mateNum | 0 || null], null] });
-    return true;
+    return rsR !== false;
   };
   /** Ejercicio de la extensión id (concurso…): X.drillSetup(arg) → como VB.Career.drillSetup más {id: ejercicio de VB.DRILL, label,
    *  n, max}. Al acabar (drillEnd) X.drillDone(arg, total, reps, g) → resultado para la hoja (ui.js gymEndShow). */
   ctx.actions.startCareerExtDrill = function (id, arg, auto) {
+    if (!auto && careerLockGate()) return false;
     var X = careerExt(id), s = null;
     if (!X || typeof X.drillSetup !== 'function') return false;
     try { s = X.drillSetup(arg); } catch (e) { reportError('CareerExt.drillSetup ' + id, e); s = null; }
@@ -1359,7 +1494,8 @@
   }, true);
   ctx.actions.startCareerMatch = function (o) {
     var K = VB.Career; if (!K || !K.matchSetup) return false;
-    var rsC = o && o.resume ? o.resume : undefined;   // («Retomar el partido», solo con VB.Resume.CAREER: el mismo partido con la foto encima)
+    var rsC = o && o.resume ? o.resume : undefined;   // («Retomar el partido»: el mismo partido con la foto encima)
+    if (!rsC && careerLockGate()) return true;   // (partido a medias: se retoma ese —o se resuelve—; nunca uno de cero)
     var m = null; try { m = K.matchSetup(); } catch (e) { reportError('Career.matchSetup', e); }
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open(); return false; }
     if (K.abortMatch) K.abortMatch();
@@ -1369,7 +1505,7 @@
     // C3: el jefe del circuito es el n.º 1 rival (su club excluye el de tu rival personal: no coincide con rivalNum)
     var bossNum = m.career && m.career.rivalNum == null && (m.career.bossNum | 0) > 0 ? m.career.bossNum | 0 : 0;
     var n = null; try { n = K.next && K.next(); } catch (e) { } var vid = n && VB.Venues && VB.Venues.forMatch ? VB.Venues.forMatch(n, m.venue || 'beach') : null; // sede del partido (js/venues.js, tabla EMBLEM)
-    var rsR = ctx.actions.startMatch({ resume: rsC, career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined, scout: m.scout || undefined, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
+    var rsR = ctx.actions.startMatch({ resume: rsC, seed: careerSeed(careerSig()), career: m.career, venueMap: vid || undefined, attrs: m.attrs, badges: m.badges, points: m.points, difficulty: m.difficulty, rookie: !!m.rookie, ctrl: 'one', ctrlIdx: 0, ref: m.ref, serveSig: m.serveSig || undefined, scout: m.scout || undefined, // en la Carrera solo llevas a tu jugador (menús v2: ni las carreras guardadas con «los dos»)
       venue: m.venue || 'beach', // vóley playa: Platja Llarga y sus reglas (VB.Career.matchSetup().venue); la Carrera de pista, 'hall'
       format: m.format === '6v6' ? '6v6' : undefined, ctrlRole: m.ctrlRole || undefined, // Carrera de pista (lote C): 6v6 en tu puesto
       // titularidad y cambios (notes/titularidad-y-cambios.md §I.1): tal cual a Sim.createGame
@@ -1389,6 +1525,7 @@
    *  llama a VB.Career.trialDone en vez de matchDone. Reiniciar o abandonar gasta la prueba (trialForfeit: suspendida, se pierde la
    *  oferta). Sin prueba, vuelve a las ofertas. */
   ctx.actions.startCareerTrial = function (i) {
+    if (careerLockGate()) return false;
     var K = VB.Career; if (!K || !K.trialSetup) return false;
     var m = null; try { m = K.trialSetup(i | 0); } catch (e) { reportError('Career.trialSetup', e); }
     if (!m) { if (VB.CareerUI && VB.CareerUI.open) VB.CareerUI.open('pick'); return false; }
@@ -1603,8 +1740,20 @@
   }
   ctx.actions.toMenu = function () {
     netStop(true);   // (online: salir al menú es abandonar)
-    // «Retomar el partido»: salir al menú a mitad es abandonar (lo guardado se borra; acabado, ya lo borró gameOver)
-    if (VB.Resume && ctx.game && VB.Resume.armed() === ctx.game) { try { VB.Resume.clear(); VB.Resume.disarm(); } catch (e) { reportError('Resume', e); } }
+    // «Retomar el partido»: en el Partido rápido salir al menú a mitad es abandonar (lo guardado se borra; acabado, ya lo borró gameOver).
+    // En la Carrera NO: el partido con foto se queda guardado con su candado (keep) y la Carrera bloqueada en él hasta acabarlo; salir
+    // con el punto en juego deja la foto con live: 1 (al volver, ese punto es para el rival). Las Estrellas, que ya castigan más al salir
+    // (se simula sin ti: quitStrict), siguen igual; antes de la primera foto (la previa) no hay nada que guardar
+    var keep = false;
+    if (VB.Resume && ctx.game && VB.Resume.armed() === ctx.game) {
+      try {
+        var g0 = ctx.game, X0 = g0.career && g0.career.ext ? careerExt(g0.career.ext) : null, strict = !!(X0 && X0.quitStrict);
+        if (careerLocked(g0) && !strict && !g0.finished && VB.Resume.raw('career')) { careerLockSync(g0); keep = true; }
+        else if (careerLocked(g0)) { VB.Resume.clear('career'); if (VB.Career && VB.Career.lockDone) VB.Career.lockDone(g0); }
+        else VB.Resume.clear('quick');
+        VB.Resume.disarm();
+      } catch (e) { reportError('Resume', e); }
+    }
     if (intro.left > 0) { intro.left = 0; ctx.introLeft = 0; intro.held.length = 0; call('CameraRig', 'playIntro', 0); call('UI', 'introEnd', true); }
     var fromCareer = !!(ctx.game && ctx.game.career && !ctx.game.demo && !ctx.debug);
     if (ctx.game && ctx.game.sit && !ctx.game.demo && !ctx.debug && VB.Semana) { try { VB.Semana.abandon(ctx.game); } catch (e) { reportError('Semana.abandon', e); } }   // (ya cerrado al acabar: no hace nada)
@@ -1617,7 +1766,7 @@
     // partido o ejercicio de una extensión: a medias, X.quit / X.drillQuit; luego al hub
     var extC = fromCareer && ctx.game.career.ext ? ctx.game.career : null;
     var extD = !!(ctx.game && ctx.game.careerExtDrill && !ctx.game.demo && !ctx.debug) ? ctx.game.careerExtDrill : null;
-    if ((extC && !careerEnd) || (extD && !extD.done)) careerExtQuit(ctx.game, 'quit');
+    if ((extC && !careerEnd && !keep) || (extD && !extD.done)) careerExtQuit(ctx.game, 'quit');
     var trialE = trialC ? careerEnd : null;
     if (fromCareer && !careerEnd && VB.Career && VB.Career.abortMatch) VB.Career.abortMatch(); // partido abandonado: la jornada sigue pendiente
     ctx.frozen = false;
@@ -1625,7 +1774,8 @@
     unforceVenue();   // Carrera en la playa: de vuelta al escenario del ajuste
     setGame(demoGame());
     setState('menu');
-    if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
+    if (keep) { call('UI', 'refreshMenu'); if (VB.CareerUI && VB.CareerUI.syncMenu) { try { VB.CareerUI.syncMenu(); } catch (e) { } } }   // (partido guardado: a la portada, con «Seguir el partido»)
+    else if (drillC && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { train: true, res: drillC.res }); } catch (e) { reportError('CareerUI.open', e); } }
     else if ((extD || extC) && !menuOnly && VB.CareerUI && VB.CareerUI.open) { try { VB.CareerUI.open('hub', { fresh: true, extRes: extD ? extD.res : careerEnd }); } catch (e) { reportError('CareerUI.open', e); } }
     else if (trialC && !menuOnly && VB.CareerUI && VB.CareerUI.open) {
       try { if (trialE && trialE.pass) VB.CareerUI.open('hub', { fresh: true, trialRes: trialE }); else VB.CareerUI.open('pick', { trialRes: trialE && !trialE.none ? trialE : null }); }
@@ -1669,6 +1819,7 @@
   };
   function restartRun() {
     var g = ctx.game, live = !!(g && !g.demo);
+    if (live && careerLocked(g) && !g.finished) return;   // (partido de Carrera con candado: no se repite)
     if (live && g.careerDrill && !g.careerDrill.done && g.drill) { ctx.actions.startCareerDrill(g.drill.kind, !!g.autopilot); return; }
     // ejercicio de extensión a medias: X.drillQuit(arg, 'restart') decide (false = no se puede repetir: vuelta al hub)
     if (live && g.careerExtDrill && g.drill) {
@@ -2100,6 +2251,9 @@
       }
     }
     ctx.portraitBlock = isTouch && ctx.state === 'playing' && ctx.height > ctx.width;
+    // «Retomar el partido» en la Carrera: al arrancar, un partido con candado sin foto que valga (versión nueva, foto rota, otro aparato)
+    // se resuelve desde su marcador antes de que se vea la portada (careerLockFix; con foto, la portada ofrece «Seguir el partido»)
+    if (!lockBoot && ctx.state === 'menu' && ctx.frame > 5 && !ctx.debug && !(VB.UI && VB.UI.bootBusy && VB.UI.bootBusy())) { lockBoot = true; try { careerLockFix(); } catch (e) { reportError('careerLockFix', e); } }
     // (Vestuario abierto: la sim de la demo no avanza; el muñeco de muestra se anima solo en previewUpdate)
     var running = !ctx.frozen && ctx.state !== 'paused' && !ctx.portraitBlock && !lookOn;
 
@@ -2204,6 +2358,12 @@
     if (VB.AmbienteUI) call('AmbienteUI', 'update', g, gdt, ev);   // bocadillos y subtítulos del ambiente de Carrera (js/ambiente-ui.js)
     // «Retomar el partido» (js/resume.js): tras la UI (la hoja final ya ha contado el punto), guarda al acabar cada punto y borra en gameOver
     if (ev !== EMPTY && g && !g.demo && VB.Resume) { try { VB.Resume.onFrame(g, ev); } catch (e) { reportError('Resume.onFrame', e); } }
+    // Carrera: el candado (c.lock) con la primera foto del partido y al acabar cada set; la cinta «Seguimos» del punto en juego perdido,
+    // cuando ese punto ya se ha contado
+    if (ev !== EMPTY && g && g.rsLock && !g.demo) {
+      if (lockG !== g || ev.some(isSetEv)) careerLockSync(g);
+      if (rsLostPend === g && ev.some(isPointEv)) { rsLostPend = null; call('UI', 'resumed', g); g.rsLost = 0; }
+    }
     }
     if (g && g.career && !g.demo) {
       // B6: la hoja final de Carrera = el Resumen de la jornada de ui.js (VB.UI.endCareer, que sustituye a careerEndSheet), tras showEnd,
@@ -2286,6 +2446,8 @@
     bestPend = false; ctx.actions.playBest();
   }
   function isGameOver(e) { return e.type === 'gameOver'; }
+  function isSetEv(e) { return e.type === 'set'; }
+  function isPointEv(e) { return e.type === 'point'; }
   function isDrillEnd(e) { return e.type === 'drillEnd'; }
   /** Partido de Carrera: estadísticas para la nota (VB.Career.ingest) y cierre en gameOver (antes de UI.update). */
   function careerEvents(g, evs) {
@@ -2299,6 +2461,7 @@
         var XD = careerExt(g.career.ext), xr = null;
         try { xr = XD && XD.done ? XD.done({ sets: [e.sets[0], e.sets[1]], setScores: e.setScores || g.setScores, win: e.team === 0 }, g) : null; } catch (er) { reportError('CareerExt.done', er); xr = null; }
         careerEnd = Object.assign({ ext: g.career.ext }, xr || { none: true }); careerEndXv = null;
+        try { if (K.lockDone) K.lockDone(g); } catch (er) { reportError('Career.lockDone', er); }   // (partido acabado: fuera el candado)
         continue;
       }
       // partidillo de prueba: lo cierra trialDone (nota con letra, objetivos, te fichan o no); ni jornada, ni XP, ni entrenador

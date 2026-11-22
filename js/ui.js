@@ -3390,8 +3390,11 @@
   function disarmRestart() {
     restartArm = 0; quitArm = 0; clearTimeout(restartTo);
     if (el.btnRestart && el.btnRestart.classList.contains('arm')) { el.btnRestart.classList.remove('arm'); el.btnRestart.textContent = isDrill() ? 'Reiniciar ejercicio' : isTrial() ? 'Reiniciar prueba' : ctx.game && ctx.game.sit && !ctx.game.demo ? 'Otro intento' : 'Reiniciar partido'; }
-    if (el.btnQuit && el.btnQuit.classList.contains('arm')) { el.btnQuit.classList.remove('arm'); el.btnQuit.textContent = isTrial() ? 'Abandonar la prueba' : 'Salir al menú'; }
+    if (el.btnQuit && el.btnQuit.classList.contains('arm')) { el.btnQuit.classList.remove('arm'); el.btnQuit.textContent = isTrial() ? 'Abandonar la prueba' : isLockedP() ? 'Salir (se guarda)' : 'Salir al menú'; }
   }
+  /** ¿Partido de Carrera con candado («Retomar el partido», main.js g.rsLock)? No se reinicia y salir lo guarda (salvo las Estrellas,
+   *  que al salir se simulan sin ti: g.rsStrict, con su rótulo). */
+  function isLockedP() { var g = ctx && ctx.game, R = VB.Resume; return !!(g && g.rsLock && !g.rsStrict && !g.demo && R && R.armed && R.armed() === g); }
   /** ¿Partido en curso = partidillo de prueba de la Carrera? (main.js: reiniciar o abandonar resuelve la prueba como suspendida) */
   function isTrial() { var g = ctx && ctx.game; return !!(g && g.career && g.career.trial && !g.demo); }
   function armTxt(what) { return (device() === 'touch' ? 'Toca otra vez' : 'Pulsa otra vez') + (isTrial() ? ': pierdes la prueba' : ' para ' + what); }
@@ -3466,6 +3469,10 @@
     // partido o ejercicio de una extensión de la Carrera: sus rótulos (g.career.pause / g.careerExtDrill.pause = {restart, quit, warn})
     var xp = g && !g.demo ? (dr ? g.careerExtDrill && (g.careerExtDrill.pause || {}) : g.career && g.career.ext ? g.career.pause || {} : null) : null;
     if (xp) { if (xp.restart) el.btnRestart.textContent = xp.restart; el.btnQuit.textContent = xp.quit || 'Volver a la Carrera'; }
+    // partido de Carrera con candado («Retomar el partido»): sin «Reiniciar» y salir lo guarda (al volver, sigue donde estaba)
+    var lkP = !dr && !!(g && g.rsLock && !g.demo && VB.Resume && VB.Resume.armed && VB.Resume.armed() === g);
+    if (lkP && !g.rsStrict) el.btnQuit.textContent = 'Salir (se guarda)';
+    if (lkP) { el.btnRestart.hidden = true; el.btnRestart._lkHid = true; } else if (el.btnRestart._lkHid) { el.btnRestart.hidden = false; el.btnRestart._lkHid = false; }
     disarmRestart();
     // partidillo de prueba: el aviso, en una línea pequeña sobre los botones (la ficha de la prueba ya lo decía al empezar)
     if (!el.pWarn && tr) {
@@ -8692,7 +8699,7 @@
     resumed: function (g) {
       if (!g || g.demo) return;
       var R = VB.Resume, sn = g.setNo | 0 || 1, one = !!g.bo1 || (g.toWin | 0) === 1;
-      banner('Seguimos', (g.score[0] | 0) + '-' + (g.score[1] | 0) + ' | ' + (one ? 'Set único' : R && R.setLabel ? R.setLabel(sn) : 'Set ' + sn), g.rsNc ? 'Se cerró con un punto en juego: ya no cuenta' : '', 'neutral', BAN.set, 'newSet');
+      banner('Seguimos', (g.score[0] | 0) + '-' + (g.score[1] | 0) + ' | ' + (one ? 'Set único' : R && R.setLabel ? R.setLabel(sn) : 'Set ' + sn), g.rsLost ? 'Cerraste con el punto en juego: punto para el rival' : g.rsNc ? 'Se cerró con un punto en juego: ya no cuenta' : '', 'neutral', BAN.set, 'newSet');
     },
     resumeSet: function (o) {
       if (!o || !o.stats || !o.stats.t) return;
