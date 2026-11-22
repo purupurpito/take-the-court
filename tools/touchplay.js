@@ -112,6 +112,16 @@ async function runSize(size) {
     await tap('#btnSettings'); await sleep(450);
     check(await evalJs("VB.UI.isPanelOpen&&VB.UI.isPanelOpen()&&!document.getElementById('pnSet').hidden"), 'tocar AJUSTES abre el panel');
     // pestañas: tocar una y deslizar el dedo sobre el contenido
+    // (desde 1.13.0 las pestañas van en una columna que se desplaza; en pantallas bajas (667x375) Equipación queda por debajo,
+    //  así que primero se arrastra la columna con el dedo hasta verla entera, como haría un jugador, y luego se toca)
+    { const VIS = `(function(){var t=document.querySelector('#setTabs .tab[data-tab="kit"]'),w=t&&t.closest('.tb-row')||document.getElementById('setTabs');if(!t)return null;
+        var a=t.getBoundingClientRect(),b=w.getBoundingClientRect();return {in:a.top>=b.top-1&&a.bottom<=b.bottom+1&&a.bottom<=innerHeight,x:b.left+b.width/2,y0:b.top+b.height*0.8,y1:b.top+b.height*0.25}})()`;
+      for (let k = 0; k < 4; k++) {
+        const v = await evalJs(VIS); if (!v || v.in) break;
+        await down(9, v.x, v.y0); for (let s = 1; s <= 8; s++) { await move(9, v.x, v.y0 + (v.y1 - v.y0) * s / 8); await sleep(16); } await up(9); await sleep(350);
+      }
+      const v2 = await evalJs(VIS);
+      check(!v2 || v2.in, 'arrastrar la columna de pestañas deja ver Equipación (' + JSON.stringify(v2 && v2.in) + ')'); }
     await tap('#setTabs .tab[data-tab="kit"]'); await sleep(350);
     const tk = await evalJs("document.querySelector('#setTabs .tab.on').getAttribute('data-tab')+'/'+document.querySelector('#optKit').hidden");
     check(tk === 'kit/false', 'tocar la pestaña Equipación la abre (' + tk + ')');
