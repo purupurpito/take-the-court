@@ -287,6 +287,22 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
     compartir de la semana. Fallos que ya estaban en la base 1.19.2 (a2eef35), comprobados en una copia aparte: camtest serve 2/12 y
     fovpump 0/3 (ver notes/camera_input.md; wide mejora de 1/3 a 2/3), abouttest «og:image absoluta» (la prueba espera ?v=x.y.z y el
     build pone la huella de la imagen) y touchplay «pestaña Equipación» y «deslizar a la izquierda» en Ajustes.
+  - **Rama investigacion: imprescindibles del informe (22-nov-2026, versión 1.22.0 «A tu manera», sin publicar ni fusionar):** sale de
+    main 1.21.0 y hace los 9 imprescindibles de estudios/revision-juegos-voley-2026-11-21.md §4 y los arreglos de §7. Nuevo para el
+    jugador: «¡Jugar ya!» y `?jugar` (4.3), partidos cortos en Partido rápido (Duración: un set o «Desde 20-20», sets a 7; no cuentan
+    nada, 4.5), disposición táctil con modo zurdos (4.2, `make-the-cut.device`), marca de tu jugador y aro de caída graduables (4.6/4.7),
+    IA variada (4.8, `g.aiMem`, sin `g.rng` nuevo) y «Seguir el partido» (4.9, js/resume.js, clave `make-the-cut.resume`; la Carrera
+    detrás de `VB.Resume.CAREER = false`). Arreglos, sin Novedades: el toque flojo dice por qué falla (4.4, `VB.Sim.hitWhy`), récord de
+    puntos seguidos, `toonSfx`/`onoma` guardados con filas en Ajustes › Audio, sin «Data Volley», K1/K2. TURN (4.1) preparado y apagado:
+    Worker en turn-worker/ sin desplegar y `VB.NET_TURN_URL = ''` (pasos en turn-worker/README.md). Notas: notes/resume.md,
+    notes/ia-variada.md, notes/turn.md, notes/ui_main.md («Jugar ya», «Partidos cortos», «Marca de tu jugador…», «Por qué falló el
+    toque») y notes/camera_input.md («Disposición táctil»). Huellas regeneradas a propósito solo por la IA variada (fp-2v2, fp-mastery,
+    fp-salto, referencia §1 de subtest; SIM_BASE 74daeb88); simtest y fluidtest recalibrados como decisión provisional. Pruebas nuevas:
+    hitwhytest, jugaryatest, cortostest, a11ymarktest, touchedittest, variedadtest, resumetest y turntest; filas nuevas de mobaudit
+    (home-jugarya, final-primero, quick-corto, controles-touch-editor*, hud-2v2-zurdos, home-seguir*). Pasada final de una en una: todo
+    OK salvo viewtest («ritual.jug»), touchplay 667×375 (pestañas de Ajustes) y camtest (16 en las dos), que fallan igual en main.
+    Decisiones provisionales, TURN paso a paso, lo que hay que probar a mano y avisos de huellas: notes/pendientes-ferran.md
+    «Imprescindibles 1.22.0».
   - ~~**Después del sprint 5: entrenamientos de la Carrera al estilo NBA 2K**~~ HECHO 15-nov-2026 (1.2.0): Plan del entrenador con
     sesiones Jugar/Rápido/Descanso, notas A+-F, Rápido = récord sin oro, «Simular jornada», entreno automático; y la PRUEBA de club
     como partidillo con petos (1 set a 15, 3 objetivos, nota B ficha). Diseño en notes/pruebas-entrenos-spec.md. PENDIENTE (backlog):
@@ -773,6 +789,8 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `storyuitest.js`, de una en una. Regla de oro, `c.story` y claves de azar `st-*` en notes/carrera.md §«Carrera con vida».
 - Vestuario (1.18.0): `node tools/looktest.js` (también `--gl` y `--sweep`), `lookvis.js`, `lookshots.js`, `lookzoom.js`,
   `vestuxaudit.js`, `vestuxprobe.js` y `vestuxwp6.js`. Plan y lista final en notes/vestuario-plan.md §4; detalle en notes/players.md § Vestuario.
+- Imprescindibles 1.22.0 (rama investigacion): `node tools/hitwhytest.js`, `jugaryatest.js`, `cortostest.js`, `a11ymarktest.js`,
+  `touchedittest.js [568x320]`, `resumetest.js [--node|--browser]`, `turntest.js` y `variedadtest.js [segundos] [--base <ref>]` (13 min).
 - `tools/out/` no se sube (capturas y logs); se regenera.
 
 ## Restricciones (se publicará como Artifact de claude.ai)

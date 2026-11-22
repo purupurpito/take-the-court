@@ -4,7 +4,7 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 **decisión provisional**: cambiarlo es tocar el sitio que se indica. Lo que Ferran sí decidió está en la memoria
 (make-the-cut-ideas-unico) y en las notas de cada idea; aquí no se repite.
 
-Índice: Backlog del 21-nov · Señas · Xaranga · Semana · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
+Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Backlog del 21-nov · Señas · Xaranga · Semana · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
 publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
@@ -90,7 +90,8 @@ rama pendientes, sin publicar.
 - **4.8 «IA que no repite el mismo ataque»** (notes/ia-variada.md). Memoria corta de la IA (`g.aiMem`): no remata ni saca a la misma
   zona tres veces seguidas, cambia de carril si los dos últimos remates fueron por el mismo, no saca tres veces seguidas al mismo receptor y
   en 6v6 el colocador reparte menos al que recibió las dos últimas. Sin azar nuevo (vale en el online). **Aviso de huellas:** cambian los
-  destinos de la IA, así que `fp-2v2`, `fp-mastery` y `fp-salto` se han regenerado (y SIM_BASE de fluidsimtest). **Decisiones provisionales:**
+  destinos de la IA, así que `fp-2v2`, `fp-mastery` y `fp-salto` se han regenerado (y SIM_BASE de fluidsimtest, y la referencia
+  «sin banquillo» de tools/subtest.js §1, rehecha en la pasada final del 22-nov: main 1.21.0 sigue dando las cifras viejas). **Decisiones provisionales:**
   1. En **todas las dificultades** (no solo Difícil/Experto, la alternativa del informe).
   2. La IA solo varía **entre zonas casi tan buenas como la mejor** (`MEM.tol` = 0,6 m de hueco): con la penalización tal cual del informe
      Experto bajaba claramente; así sigue igual de duro (medido con los bots de simtest, tools/variedadtest.js).
@@ -103,6 +104,10 @@ rama pendientes, sin publicar.
      de esfuerzo. Cambios en tools/simtest.js: centro de la banda de remates **0,37** (mismo ancho), la demo pide **un set cerrado** (no dos)
      y los topes del highlight **28 % / 6 %** (antes 25 / 5). simtest vuelve a TODO OK. Si prefieres los topes de antes, se vuelven a poner
      y se retoca HOLD en sim.js (eso movería huellas).
+  6. **fluidtest recalibrado (22-nov, pasada final, decisión provisional).** Con la IA variada los peloteos cambian y el escenario
+     [4 rtt 250 jit 20 pérdida 2 playa s1] da 2 recuperaciones > 300 ms en un lado (máx. 316 ms) con tope 1; en main ya estaba en el
+     borde (1, de 300 ms justos). La red no ha cambiado, solo hay más ocasiones. Tope a **2 por lado con RTT 250** (tools/fluidtest.js);
+     con RTT < 250 sigue sin permitir ninguna. Si prefieres el tope 1, hay que mirar el tirón de recuperación en js/netfluid.js.
 - **4.9 «Retomar el partido tras cerrar el navegador»** (js/resume.js, notes/resume.md). El Partido rápido se guarda al acabar cada punto
   (clave del aparato `make-the-cut.resume`, sellada con la versión) y la portada ofrece **«Seguir el partido 18-15 · 2º set»**; al tocarlo, el
   partido sigue exactamente igual (comprobado con la huella del estado en los saques siguientes). Sin huellas nuevas: no toca la sim.
@@ -144,6 +149,43 @@ rama pendientes, sin publicar.
      haya sesión, Origin y límites, alguien con muchas IP y cuentas nuevas podría usar el TURN de relé y lo que pase del tramo gratis se
      cobra. No hecho: exigir antigüedad de cuenta o sala online activa (el token no trae la fecha de alta; haría falta Firestore).
   4. El aviso de «No se ha podido conectar» no cambia de texto.
+- **TURN paso a paso (solo lo puedes hacer tú; detalle en turn-worker/README.md):**
+  1. Cloudflare → Realtime → TURN Server → Create. Apunta el Turn Token ID y el API Token (este solo se ve una vez: al gestor de
+     contraseñas o a ~/.secrets, nunca al repo). Pon ya una **alerta o tope de gasto** de Realtime TURN.
+  2. En `turn-worker/`: `npx wrangler@4 login` (el token DNS que ya tienes no sirve para Workers).
+  3. `npx wrangler@4 deploy --dry-run` y luego `npx wrangler@4 deploy` (crea turn.takethecourt.com con DNS y certificado). Si protesta
+     por `[[ratelimits]]`, borra ese bloque y vuelve a desplegar: el límite sencillo ya cuenta por cuenta y por IP.
+  4. `npx wrangler@4 secret put TURN_KEY_ID` y `npx wrangler@4 secret put TURN_KEY_API_TOKEN`.
+  5. Comprobar: `curl https://turn.takethecourt.com/health` → `ok`; un POST sin token → 401; desde la consola del juego con sesión, el
+     snippet del README → ttl 7200 y una lista de `turn:`/`turns:`.
+  6. Encenderlo: `VB.NET_TURN_URL = 'https://turn.takethecourt.com/ice'` en js/netconfig.js y publicar (antes se puede probar con
+     `?netturn=…` servido desde localhost:8080). Hasta entonces no sale en las Novedades.
+  7. A los pocos días, mirar en los informes de netlog cuántos partidos salen con type `relay`.
+- **Para probar a mano en el móvil antes de publicar la 1.22.0:**
+  1. Perfil nuevo (o ventana privada): portada con «¡Jugar ya!», un toque y primer punto; `takethecourt.com/?jugar` desde WhatsApp; al
+     acabar, el bloque «Y ahora».
+  2. Partido rápido › Duración: la «?» de la fila y un «Desde 20-20»; la hoja final dice «Partido corto».
+  3. Ajustes › Controles › Táctil › «Disposición de botones»: mover GOLPEAR, tamaño, opacidad, «Zurdos» y jugar un punto (joystick a la
+     derecha).
+  4. Ajustes › Accesibilidad: marca grande + alto contraste en la playa y en el pabellón; un partido en Difícil con el aro en «Auto».
+  5. Matar el navegador a mitad de partido (entre puntos y con el punto en juego) y volver con «Seguir el partido»: el segundo caso dice
+     «ya no cuenta».
+  6. Rótulos de toque flojo en partido y en el Entrenamiento de recepción («Balón muy rápido» es el más largo).
+  7. Ajustes › Audio: apagar «¡PAM!» y comprobar que sigue apagado al recargar.
+  8. Un partido en Experto (2v2 y playa) para ver si se nota la IA variada y si sigue igual de dura.
+  9. Leer las Novedades «A tu manera» de js/version.js.
+- **Avisos de huellas (solo IA variada, 4.8):** `tools/fp-2v2.json`, `fp-mastery.json` y `fp-salto.json` regenerados; SIM_BASE de
+  fluidsimtest 74daeb88 (también la movieron, solo por el texto de sim.js, «Por qué falló» y los cortos); referencia §1 de
+  tools/subtest.js rehecha. Cambian los destinos que elige la IA, **no** el azar: no hay llamadas nuevas a `g.rng` y el online sigue en
+  lockstep (variedadtest: determinismo y copyGame a mitad con `g.aiMem`). Calibraciones tocadas: simtest (4.8.5) y fluidtest (4.8.6).
+- **Estado de las pruebas en la pasada final (22-nov, de una en una):** TODO OK console.sh all (1280×720 y táctil 844×390, 44 escenas
+  sin errores), simtest, fingerprint6 (2v2, maestría y salto), fluidsimtest, subtest, migtest, synctest, abouttest, replaytest,
+  audiotest, hitwhytest, looktest, statstest, turntest, resumetest (node y navegador), csscheck, settest, jugaryatest, cortostest,
+  a11ymarktest, touchedittest (844 y 568), touchtest, retotest, recaptest, badgetest, gymtest, padtest, drive, drive6 (arreglada en esta
+  pasada), padplay, nettest, net3test, netreplaytest, netlogtest, roomtest, fluidtest (tope 4.8.6) y variedadtest. **Fallan igual en
+  main 1.21.0** (comprobado en una copia aparte): viewtest («ritual.jug» sin clasificar en netview.js), touchplay a 667×375 (pestaña
+  Equipación y deslizar en Ajustes) y camtest (16 fallos en las dos, sobre todo «serve» con el oficial cortado y «fovpump»; prueba
+  inestable). Ninguno es de esta rama.
 
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
