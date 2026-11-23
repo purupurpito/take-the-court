@@ -267,7 +267,11 @@ function measure(o) {
     var r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
     if (r.width * r.height > 0.8 * W * H) return;   // capas a pantalla completa (tocar en cualquier sitio), no botones
     var st = clipState(e, r); if (st === 'out') return;
-    T.push({ e: e, r: r, vr: visRect(e, r), st: st, dis: !!e.disabled || e.getAttribute('aria-disabled') === 'true' });
+    // (movil-aire §3.13) el interruptor de fitSeg (.sp-toggle.ph-proxy) se toca en TODA su fila (.ph-trow, splat.js segRow): se mide la fila,
+    // no el dibujo de 52×30. La flecha del final de un selector (.arr.end, sin más opciones a ese lado) cuenta como desactivada.
+    var tr = e.matches('.sp-toggle.ph-proxy') && e.closest('.ph-trow'), rs = r;
+    if (tr) { var rr0 = tr.getBoundingClientRect(); if (rr0.width >= r.width && rr0.height >= r.height) rs = rr0; }
+    T.push({ e: e, r: r, rs: rs, vr: visRect(e, r), st: st, dis: !!e.disabled || e.getAttribute('aria-disabled') === 'true' || e.matches('.arr.end') });
   });
   // un objetivo dentro de otro objetivo: se queda solo si es un control explícito propio (flechas, pestañas…)
   T = T.filter(function (a) {
@@ -281,7 +285,7 @@ function measure(o) {
     a.hit = false;
     if (cx >= 0 && cy >= 0 && cx < W && cy < H) { var h = document.elementFromPoint(cx, cy); a.hit = !!h && (h === a.e || a.e.contains(h)); }
     var info = { s: sel(a.e), t: txt(a.e), r: R(r) };
-    if ((r.width < MIN_T || r.height < MIN_T) && !a.dis) res.targets.small.push(info);
+    if ((a.rs.width < MIN_T || a.rs.height < MIN_T) && !a.dis) res.targets.small.push(info);
     if (!a.hit && !a.dis) res.targets.covered.push(info);
   });
   for (var i = 0; i < vis.length; i++) for (var j = i + 1; j < vis.length; j++) {
@@ -292,7 +296,7 @@ function measure(o) {
     if (ix > -GAP && iy > -GAP && gap < GAP) { if (res.targets.tight.length < 30) res.targets.tight.push({ a: sel(A.e), b: sel(B.e), gap: rnd(gap) }); }
   }
   res.targets.small = res.targets.small.slice(0, 40); res.targets.covered = res.targets.covered.slice(0, 20);
-  res.targets.nSmall = vis.filter(function (a) { return !a.dis && (a.r.width < MIN_T || a.r.height < MIN_T); }).length;
+  res.targets.nSmall = vis.filter(function (a) { return !a.dis && (a.rs.width < MIN_T || a.rs.height < MIN_T); }).length;
   // objetivos desmesurados (> 35 % de la pantalla: una fila que se come la página)
   res.targets.huge = vis.filter(function (a) { var r = a.r, w = Math.min(r.right, W) - Math.max(r.left, 0), h = Math.min(r.bottom, H) - Math.max(r.top, 0); return w > 0 && h > 0 && w * h > 0.35 * W * H; }).map(function (a) { return { s: sel(a.e), t: txt(a.e), r: R(a.r) }; });
   res.targets.nTight = res.targets.tight.length; res.targets.nOverlap = res.targets.overlap.length;
@@ -371,6 +375,17 @@ function measure(o) {
     if (r.scrollLeft + r.clientWidth >= r.scrollWidth - 2 && r.scrollLeft > 0 && host && host.classList.contains('sp-tabs-strip')) return;   // (al final de la tira)
     res.tabOver.push({ s: sel(host || r), sw: r.scrollWidth, cw: r.clientWidth });
   });
+  // (movil-aire §3.13) rótulos NO tocables que se montan unos sobre otros (seña del árbitro, aviso del saque, cinta, consejo, tira de fases)
+  res.rot = { n: 0, list: [] };
+  var ROT = [].slice.call(document.querySelectorAll('#pbug,.sp-sena,#prompt,#banner,#coach,#touchbar')).filter(function (e) {
+    if (!cvis(e)) return false; var r = e.getBoundingClientRect(); return r.width > 2 && r.height > 2 && clipState(e, r) === 'in';
+  });
+  for (var ri = 0; ri < ROT.length; ri++) for (var rj = ri + 1; rj < ROT.length; rj++) {
+    var ea = ROT[ri], eb = ROT[rj]; if (related(ea, eb)) continue;
+    var ra = ea.getBoundingClientRect(), rb = eb.getBoundingClientRect();
+    var ox = Math.min(ra.right, rb.right) - Math.max(ra.left, rb.left), oy = Math.min(ra.bottom, rb.bottom) - Math.max(ra.top, rb.top);
+    if (ox > 2 && oy > 2) { res.rot.n++; if (res.rot.list.length < 10) res.rot.list.push({ a: sel(ea), b: sel(eb), area: Math.round(ox * oy) }); }
+  }
   // (móvil, spec §6.1.6, solo aviso) alcance: la acción principal abajo a la derecha (x > 50 %, y > 55 %)
   if (res.primary && res.primary.r) { var pr = res.primary.r; res.reach = (pr.x + pr.w / 2) > W * 0.5 && (pr.y + pr.h / 2) > H * 0.55; }
   return res;

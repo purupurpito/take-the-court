@@ -3076,8 +3076,13 @@
     }
   }
   function isOut(node) { return !!(node && node._outT); }
+  /** (movil-aire §3.12) la Carrera en un móvil en vertical (html.pv, splat.js): el aviso de girar, sin parar nada (no hay simulación) */
+  function crPortrait() {
+    return ctx.state === 'menu' && document.documentElement.classList.contains('pv') && !!(VB.CareerUI && VB.CareerUI.isOpen && safe(VB.CareerUI.isOpen));
+  }
   function syncScreens(g) {
-    var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (ctx.replay ? 'R' : '') + (panel || '');
+    var crPv = crPortrait();
+    var s = ctx.state, key = s + (ctx.portraitBlock ? 'P' : '') + (crPv ? 'C' : '') + (ctx.endHold ? 'H' : '') + (endGate ? 'G' : '') + (geGate ? 'Q' : '') + (ctx.replay ? 'R' : '') + (panel || '');
     if (key === shown) return;
     shown = key;
     showNode(el.menu, s === 'menu' && !panel);
@@ -3099,7 +3104,7 @@
     // al empezar el partido costaba un frame de 100-120 ms (rasterizado del marcador; medido en Chrome/ANGLE).
     // Así ya está pintado y el primer frame del partido baja a < 35 ms.
     el.hud.hidden = false; el.hud.classList.toggle('warm', s === 'menu');
-    el.rotate.hidden = !ctx.portraitBlock;
+    el.rotate.hidden = !ctx.portraitBlock && !crPv;
     // la viñeta no se suma al velo de las hojas (pausa, final, paneles)
     el.veil.classList.toggle('under', (s === 'paused' || geOn || (s === 'over' && !!g.finished && !ctx.endHold && !endGate && !ctx.replay && !el.end.classList.contains('dock')) || !!panel));
     if (s === 'menu') { hideBanner(); renderMenu(); }
@@ -4545,6 +4550,7 @@
   function pageFocus() { return mpage === 'play' ? el.btnQuick : mpage === 'quick' ? el.btnGo : mpage === 'gym' ? gymRowEl(gymSel) : mpage === 'look' ? lkFocusEl() : mpage === 'retos' ? rtFocusEl() : mpage === 'prof' ? pfFocusEl() : mpage === 'online' ? netLobbyFocus() : segOn && el.btnSeguir && !el.btnSeguir.hidden ? el.btnSeguir : heroOn && el.btnCont && !el.btnCont.hidden ? el.btnCont : nowOn && el.btnNow && !el.btnNow.hidden ? el.btnNow : el.btnPlay; }
   function setPage(p, anim) {
     var was = mpage;
+    if (p !== was) toastsOff();
     if (was === 'look' && p !== 'look') lkClose();   // Vestuario: guarda la copia de trabajo y apaga la vista previa
     if (was === 'prof' && p !== 'prof') pfLeave();   // Perfil: lo nuevo de la pestaña a la vista queda visto
     if (was === 'online' && p !== 'online' && VB.NetLobby) { try { VB.NetLobby.leave(); } catch (e) { console.error('[VB][ERROR] NetLobby.leave: ' + e); } }   // (sale de la sala que hubiera)
@@ -5858,8 +5864,12 @@
     };
     if (!wipeRun(2, f) && !wp.cb) f();
   }
+  /** (móvil, movil-aire §3.10) los avisos cortos de una pantalla no se quedan encima de la siguiente: al abrir o cerrar un panel y al
+   *  cambiar de página del menú (VB.Splat.toastClear; en PC no hace nada). */
+  function toastsOff() { try { if (VB.Splat && VB.Splat.toastClear) VB.Splat.toastClear(); } catch (e) { } }
   function openPanel(name, from) {
     if (!PANELS[name]) return;
+    if (panel !== name) toastsOff();
     if (name === 'set') wipeNote = '';   // (aviso de «Carrera borrada»: solo hasta cerrar Ajustes)
     var o = from && typeof from === 'object' ? from : null;
     if (capCancel) capCancel();
@@ -5900,6 +5910,7 @@
   }
   function closePanel() {
     if (!panel) return false;
+    toastsOff();
     if (capCancel) capCancel();
     if (pstack.length) {   // abierto desde otro panel: vuelve a él (misma pestaña, foco en la fila que lo abrió)
       var pv = pstack.pop();

@@ -27,11 +27,11 @@ const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&am
 
 // métricas resumidas de una pantalla en un tamaño (más = peor salvo minFont)
 const KEYS = [['minFont', 'letra mín', +1], ['n12', '< 12 px', -1], ['n14', '< 14 px', -1], ['smallT', 'toques < 44', -1], ['tight', 'toques juntos', -1], ['overlap', 'solapes', -1],
-  ['covered', 'tapados', -1], ['clipped', 'recortes', -1], ['off', 'fuera', -1], ['exit', 'salida ok', +1], ['primary', 'principal ok', +1], ['chars', 'caracteres', 0], ['targets', 'objetivos', 0], ['scroll', 'con scroll', 0]];
+  ['covered', 'tapados', -1], ['rot', 'rótulos solap.', -1], ['clipped', 'recortes', -1], ['off', 'fuera', -1], ['exit', 'salida ok', +1], ['primary', 'principal ok', +1], ['chars', 'caracteres', 0], ['targets', 'objetivos', 0], ['scroll', 'con scroll', 0]];
 function flat(m) {
   if (!m) return null;
   if (m.err && !m.fonts) return { err: m.err };
-  return { minFont: m.fonts.min, n12: m.fonts.n12, n14: m.fonts.n14, smallT: m.targets.nSmall, tight: m.targets.nTight, overlap: m.targets.nOverlap, covered: m.targets.covered.length,
+  return { minFont: m.fonts.min, n12: m.fonts.n12, n14: m.fonts.n14, smallT: m.targets.nSmall, tight: m.targets.nTight, overlap: m.targets.nOverlap, covered: m.targets.covered.length, rot: m.rot ? m.rot.n : null,
     clipped: m.nClipped, off: m.nOff, exit: m.exit ? (m.exit.ok ? 1 : 0) : null, primary: m.primary ? (m.primary.ok ? 1 : 0) : null, chars: m.density.chars, targets: m.density.targets,
     scroll: m.nScrollNeed, err: m.err || '' };
 }
@@ -72,7 +72,7 @@ for (const id of ids) {
   else if (!sb || !sa) md.push('| ' + id + ' | ' + area + ' | ' + (sb ? '(solo antes)' : '(solo después)') + ' |  |  |  |  |  |  |  |');
   else {
     const d = (k) => { const x = a0 ? a0[k] : null, y = a1 ? a1[k] : null; return x === y ? String(x ?? '–') : (x ?? '–') + ' → **' + (y ?? '–') + '**'; };
-    md.push('| ' + id + ' | ' + area + ' | ' + ['minFont', 'n12', 'n14', 'smallT', 'overlap', 'clipped', 'off'].map(d).join(' | ') + ' | ' + (a0 && a0.exitOk ? 'ok' : 'NO') + ' → ' + (a1 && a1.exitOk ? 'ok' : 'NO') + ' |');
+    md.push('| ' + id + ' | ' + area + ' | ' + ['minFont', 'n12', 'n14', 'smallT', 'overlap', 'clipped', 'off', 'rot'].map(d).join(' | ') + ' | ' + (a0 && a0.exitOk ? 'ok' : 'NO') + ' → ' + (a1 && a1.exitOk ? 'ok' : 'NO') + ' |');
   }
 }
 const totRow = KEYS.filter(k => k[0] !== 'minFont' && k[0] !== 'exit' && k[0] !== 'primary').map(([k, l]) => '<td>' + l + ': ' + (tot.b[k] || 0) + (single ? '' : ' → <b>' + (tot.a[k] || 0) + '</b>') + '</td>').join('');
@@ -95,7 +95,7 @@ fa.onchange=fs.onchange=ap;if(fc)fc.onchange=ap;})();</script></body></html>`;
 fs.mkdirSync(path.dirname(OUT), { recursive: true });
 fs.writeFileSync(OUT, page);
 const mdHead = single ? '| pantalla | área | peor | letra mín | < 12 | < 14 | toques < 44 | recortes | salida |\n|---|---|---|---|---|---|---|---|---|'
-  : '| pantalla | área | letra mín | < 12 | < 14 | toques < 44 | solapes | recortes | fuera | salida |\n|---|---|---|---|---|---|---|---|---|---|';
+  : '| pantalla | área | letra mín | < 12 | < 14 | toques < 44 | solapes | recortes | fuera | rótulos solap. | salida |\n|---|---|---|---|---|---|---|---|---|---|---|';
 const totMd = KEYS.filter(k => !/minFont|exit|primary/.test(k[0])).map(([k, l]) => '- ' + l + ': ' + (tot.b[k] || 0) + (single ? '' : ' → ' + (tot.a[k] || 0))).join('\n');
 fs.writeFileSync(MD, '# ' + (single ? 'Auditoría de móvil' : 'Auditoría de móvil: antes y después') + '\n\n' + (single ? B : B + ' → ' + Aft) + '\n\nTotales (suma de todos los tamaños' + (single ? '' : '; solo lo que está en las dos pasadas') + '):\n' + totMd +
   '\n\nPeor tamaño de cada pantalla' + (single ? '' : ' (antes → después)') + ':\n\n' + mdHead + '\n' + md.join('\n') + '\n');

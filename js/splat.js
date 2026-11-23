@@ -18,6 +18,8 @@
  * Móvil (18-nov-2026, notes/splat.md «Móvil»): .PHONE_MQ · .phone() (html.ph) · evento «vb:ph» · .more(el) · .reveal(el, o) ·
  *      .fitSeg(root) · .sheet(o) / .closeTop() / .sheetOpen() / .sheetEl() · .modal(el) · .info(root) · .tbl(el) · .shorten(root) ·
  *      .toast(html, o) · .kbd() (solo, al cargar).
+ * Móvil «con aire» (23-nov-2026, notes/movil-aire.md §3 y §7): .toastClear() · .phDedupe(container, label) · .phBar(bar) · .pv() (html.pv,
+ *      vertical táctil) · la fila entera de un interruptor de fitSeg (.ph-trow) · sin «Cerrar» al pie de una hoja sin acciones en el móvil.
  */
 (function () {
   'use strict';
@@ -212,6 +214,10 @@
     };
   }
   function phone() { return RT.classList.contains('ph'); }
+  // html.pv (movil-aire §3.12): vertical TÁCTIL de móvil (puntero grueso, ancho ≤ 500 y más alto que ancho). Nunca en PC (ratón). Lo usan
+  // las pegatinas de esquina (.ph-sticker) y el aviso de girar en la Carrera (ui.js syncScreens).
+  var mqCoarse = null; try { mqCoarse = matchMedia('(pointer:coarse)'); } catch (e) { }
+  function pvTier() { var on = !!(mqCoarse && mqCoarse.matches) && innerWidth <= 500 && innerHeight > innerWidth; if (RT.classList.contains('pv') !== on) RT.classList.toggle('pv', on); return on; }
   var phPrev = null, phRaf = 0;
   // Dos avisos en document, ambos con detail {ph, s, w, flip}:
   //  · «vb:tier» cuando cambia CUALQUIERA de las tres clases (ph, ph-s, ph-w). A 667×375 la barra del navegador sube y baja innerHeight
@@ -222,6 +228,7 @@
   function tier() {
     phRaf = 0;
     try { window.__phTier(); } catch (e) { }
+    pvTier();
     var k = tierKey();
     if (phPrev === null) { phPrev = k; return; }
     if (k === phPrev) return;
@@ -335,7 +342,31 @@
     else j = (i + 1) % n;   // tocar el valor: la siguiente (con vuelta)
     if (j !== i && L[j]) L[j].click();
   }
+  /** Fila del interruptor (movil-aire §3.3): en el móvil la fila entera (.opt o [data-ph-trow]) es el objetivo y lleva .ph-trow (se ve al
+   *  pulsarla). Las filas de Ajustes / Controles ya son <button class="opt"> y ui.js pasa al siguiente valor con su clic: ahí solo la clase.
+   *  En otra fila ([data-ph-trow], no botón), tocar fuera de un control (la «i», un enlace, un botón) cambia el interruptor. */
+  var TROW_SKIP = 'button,a,input,select,textarea,label,.sp-info,.sp-q,.sp-toggle,.seg,[role=button],[data-d]';
+  function segRow(s, on) {
+    var row = s._phRow || (s.parentElement && s.parentElement.closest('.opt,[data-ph-trow]'));
+    if (!row) return;
+    if (on && !s._phRow) {
+      s._phRow = row; row.classList.add('ph-trow');
+      if (row.tagName !== 'BUTTON') {
+        s._phRowFn = function (e) {
+          var t = e.target, c = t && t.closest ? t.closest(TROW_SKIP) : null;
+          if (!t || (c && c !== row && row.contains(c)) || !s._phx || s._phx._m !== 'toggle') return;
+          segGo(s, 'toggle', e); press(s._phx);
+        };
+        row.addEventListener('click', s._phRowFn);
+      }
+    } else if (!on && s._phRow) {
+      row.classList.remove('ph-trow');
+      if (s._phRowFn) row.removeEventListener('click', s._phRowFn);
+      s._phRowFn = null; s._phRow = null;
+    }
+  }
   function segUnfit(s) {
+    segRow(s, false);
     if (s._phx) { if (s._phx.parentNode) s._phx.parentNode.removeChild(s._phx); s._phx = null; }
     if (s._phMo) { s._phMo.disconnect(); s._phMo = null; }
     s.classList.remove('ph-hid');
@@ -377,6 +408,7 @@
         if (typeof MutationObserver !== 'undefined') { s._phMo = new MutationObserver(segPaint.bind(null, s)); s._phMo.observe(s, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked'] }); }
       }
       s.classList.add('ph-hid');
+      if (m === 'toggle') segRow(s, true); else segRow(s, false);
       segPaint(s);
     }
     return S.length;
@@ -411,7 +443,8 @@
     p.appendChild(body);
     // o.dock === false: sin barra de acciones (la hoja ya lleva sus botones dentro; solo la ✕ cierra: antes salían dos «cerrar»)
     var acts = o.dock === false ? [] : (o.actions || []).slice(), dock = mk('div', 'sp-dock');
-    if (!acts.length && o.dock !== false) acts = [{ label: 'Cerrar', cls: 'sp-cream' }];
+    // (móvil, movil-aire §3.8: un solo cierre, la ✕ de 44 de arriba; en PC sigue el «Cerrar» crema del pie)
+    if (!acts.length && o.dock !== false && !phone()) acts = [{ label: 'Cerrar', cls: 'sp-cream' }];
     acts.sort(function (a, b) { return (a.primary ? 1 : 0) - (b.primary ? 1 : 0); });   // la principal, la última (abajo a la derecha)
     var first = null;
     acts.forEach(function (a, i) {
@@ -570,6 +603,47 @@
     return api;
   }
 
+  /** toastClear(): en el móvil, quita los avisos cortos que queden (ui.js lo llama al abrir o cerrar un panel y al cambiar de página del
+   *  menú: un aviso de una pantalla no se queda encima de la siguiente). En PC no hace nada (se van solos como siempre). */
+  function toastClear(force) {
+    if (!force && !phone()) return 0;
+    var lane = doc.getElementById('spToasts'), n = 0; if (!lane) return 0;
+    for (var k in toastKeys) if (toastKeys.hasOwnProperty(k)) { toastKeys[k].close(); n++; }
+    while (lane.firstChild) { lane.removeChild(lane.firstChild); n++; }
+    return n;
+  }
+
+  // ---------------------------------------------------------------- componentes «con aire» (movil-aire §3.5, §3.6)
+  function normT(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim(); }
+  /** phDedupe(container, label): en html.ph, el primer sello de tarjeta (.card>h3:first-child, h3.sp-stamp o .cr-ovr) cuyo rótulo repite
+   *  la subpestaña activa (label) se esconde: entero (.ph-dup) si no lleva nada más, o solo el rótulo (.ph-dup-t) si lleva un dato o un «?».
+   *  Solo pone clases (el CSS las esconde en .ph): sin .ph no cambia nada. Devuelve el sello tocado o null. Llamar tras pintar. */
+  function phDedupe(c, label) {
+    c = $el(c); if (!c || !c.querySelectorAll || !label) return null;
+    var want = normT(label); if (!want) return null;
+    var L = c.querySelectorAll('.card>h3:first-child,.card>h3.sp-stamp,.cr-ovr');
+    for (var i = 0; i < L.length; i++) {
+      var h = L[i], own = '', tn = null;
+      for (var n = h.firstChild; n; n = n.nextSibling) if (n.nodeType === 3 && n.nodeValue.trim()) { own += n.nodeValue; if (!tn) tn = n; }
+      if (!tn && h.firstElementChild && !h.firstElementChild.classList.contains('ph-dup-t')) own = h.firstElementChild.textContent;
+      var sp = h.querySelector(':scope>.ph-dup-t'); if (sp) own = sp.textContent;
+      if (normT(own) !== want) continue;
+      var extra = [].some.call(h.children, function (x) { return x !== sp && !x.classList.contains('ph-dup-t') && (x.textContent.trim() || x.matches('.sp-q,button')); });
+      if (!extra) { h.classList.add('ph-dup'); return h; }
+      if (!sp && tn) { sp = mk('span', 'ph-dup-t'); h.insertBefore(sp, tn); sp.appendChild(tn); }
+      return h;
+    }
+    return null;
+  }
+  /** phBar(bar): cabecera compacta .ph-bar: el «‹» (.ph-bk o el .sp-back de siempre) se queda con su texto como aria-label (el CSS lo
+   *  esconde en .ph y quita el bocadillo). Idempotente. */
+  function phBar(bar) {
+    bar = $el(bar); if (!bar || !bar.querySelector) return bar;
+    var b = bar.querySelector(':scope>.ph-bk,:scope>.sp-back');
+    if (b && !b.hasAttribute('aria-label')) { var t = b.textContent.replace(/[‹<]/g, '').trim(); if (t) b.setAttribute('aria-label', t); }
+    return bar;
+  }
+
   // ---------------------------------------------------------------- teclado del móvil
   // visualViewport: si el teclado tapa > 120 px con un campo enfocado → html.sp-kb (+ --kb-h, --vvh), la hoja o panel del campo
   // (.sp-panel, .sp-sheet o [data-kb-pin]) se pega arriba (.kb-pin), [data-kb-hide] se oculta, el [data-kb-row] del campo pasa a una
@@ -606,6 +680,8 @@
     // móvil (notes/splat.md «Móvil»)
     PHONE_MQ: PHONE_MQ, phone: phone, more: more, reveal: reveal, fitSeg: fitSeg, sheet: sheet, sheetOpen: sheetOpen, sheetEl: sheetEl,
     closeTop: closeTop, modal: modal, info: info, infoToggle: infoToggle, tbl: tbl, shorten: shorten, toast: toast, kbd: kbd,
+    // móvil «con aire» (notes/movil-aire.md §3 y §7)
+    toastClear: toastClear, phDedupe: phDedupe, phBar: phBar, pv: function () { return RT.classList.contains('pv'); },
     /** Pruebas: simula el teclado del móvil (on, alto en px) sin visualViewport. */
     _kb: function (on, hgt) { kbApply(on, on ? (hgt || 160) : 0); return kbOn; }
   };

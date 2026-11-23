@@ -3707,7 +3707,7 @@ html.sp-kb [data-kb-hide]{display:none!important}
    Sin .ph no cambia nada: PC y tableta siguen igual.
    ===================================================================== */
 :root.ph{
-  --ph-cap:clamp(12px,10.4px + .29vw,13px);--ph-label:clamp(13px,10.5px + .43vw,14.5px);--ph-body:clamp(14px,10.7px + .58vw,16px);
+  --ph-cap:clamp(13px,11.4px + .29vw,14px);--ph-label:clamp(13px,10.5px + .43vw,14.5px);--ph-body:clamp(14px,10.7px + .58vw,16px);
   --ph-row:clamp(15px,11.7px + .58vw,17px);--ph-btn:clamp(15px,10.1px + .86vw,18px);--ph-num:clamp(17px,8.8px + 1.44vw,22px);
   --ph-head:clamp(18px,11.5px + 1.15vw,22px);--ph-title:clamp(26px,9.6px + 2.88vw,36px);--ph-patch:clamp(22px,8.9px + 2.3vw,30px);
   --ph-hero:clamp(30px,6px + 4.2vw,44px);
@@ -3720,7 +3720,13 @@ html.sp-kb [data-kb-hide]{display:none!important}
   /* entre pestañas: la elegida va inclinada (-1,5°), y en una columna de ~140 px de ancho sube y baja ~2 px; así el hueco sigue ≥ 10 px */
   --ph-tab-gap:calc(var(--ph-hit-gap) + 2px);
   /* en una tira (.sp-tabs-strip), 44 px de alto: la inclinación ensancha ~0,6 px por lado */
-  --ph-strip-gap:calc(var(--ph-hit-gap) + 1px)}
+  --ph-strip-gap:calc(var(--ph-hit-gap) + 1px);
+  /* (movil-aire, 23-nov-2026; notes/movil-aire.md §3) micro = solo marcas (T1 J4, chips decorativos), nunca frases; separaciones contando el
+     adorno (cola, goterón); alturas de fila, cabecera compacta (.ph-bar), CTA y dock; desvanecido de fin de scroll */
+  --ph-micro:12px;--ph-gap-min:8px;--ph-btn-gap:12px;--ph-card-gap:10px;--ph-pad:12px;
+  --ph-bar:48px;--ph-tap:44px;--ph-row-1:44px;--ph-row-h:52px;--ph-row-2:64px;--ph-row-t:36px;--ph-cta-h:52px;--ph-btn-h:44px;
+  --ph-dock-h:calc(var(--ph-cta-h) + var(--ph-gb) + 8px);--ph-fade:24px}
+:root.ph.ph-s{--ph-pad:10px;--ph-bar:44px;--ph-cta-h:48px}
 /* variables de los componentes (todas las pantallas crecen solas) */
 :root.ph:not(#_):not(#_):not(#_) .sp-btn{--sp-fs:var(--ph-btn)}
 :root.ph:not(#_):not(#_):not(#_) .sp-lg{--sp-fs:calc(var(--ph-btn) + 2px)}
@@ -3867,9 +3873,98 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root.ph:not(#_):not(#_):not(#_) #spToasts{top:calc(var(--ph-gt) + 40px);right:var(--ph-g)}
 :root.ph:not(#_):not(#_):not(#_).sp-sh-on #spToasts{top:calc(var(--ph-gt) + 64px)}
 /* REV-6: en Online, los avisos abajo a la izquierda (el hueco junto a CÓDIGO / CREAR SALA); arriba tapaban ENTRAR de la primera sala */
-:root.ph:has(#menu[data-page="online"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:var(--ph-gb);right:auto;left:var(--ph-g);align-items:flex-start;max-width:min(300px,calc(50vw - 80px))}
+:root.ph:has(#menu[data-page="online"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:var(--ph-gb);right:auto;left:var(--ph-g);translate:none;align-items:flex-start;max-width:min(300px,calc(50vw - 80px))}
 /* (móvil · carrera vida, 1.14.0): los avisos de Partido de career-story («Por responder») en botón pequeño no bajan de --ph-cap */
 :root.ph:not(#_):not(#_):not(#_) #career .sp-btn.sp-sm .sp-s{font-size:var(--ph-cap)}
+/* — móvil (.ph) — «con aire» (movil-aire, 23-nov-2026; notes/movil-aire.md §3 y §7). Componentes compartidos para los paquetes de zona; cada
+   pantalla los aplica a lo suyo. Todo bajo :root.ph (o :root.pv, el vertical táctil): en PC no cambia nada. */
+/* utilidad: lo contrario de .ph-only (= .ph-hide, con el nombre de la especificación) */
+:root.ph .ph-no{display:none!important}
+/* suelo de 12 px (--ph-micro): «MOVER», COLOCAR y el número de la lupa en el editor de la disposición táctil (el del partido ya lo tiene) */
+:root.ph:not(#_):not(#_):not(#_) :is(#touch,.vte) .vt-tip{font-size:max(var(--ph-micro),12px);letter-spacing:.08em;color:rgba(255,255,255,.85)}
+:root.ph:not(#_):not(#_):not(#_) :is(#touch,.vte) .vt-set{font-size:max(var(--ph-micro),calc(11px * var(--vts,1)))}
+:root.ph:not(#_):not(#_):not(#_) #career .st-cal-tag{font-size:var(--ph-micro);padding:2px 7px;line-height:1.1}   /* (career-story-ui la deja a 10,5) */
+:root.ph:not(#_):not(#_):not(#_) .vte .vt-zoom b{min-width:18px;height:18px;border-radius:9px;font-size:var(--ph-micro);line-height:18px;right:-4px;bottom:-4px}
+/* .ph-bar: cabecera compacta de --ph-bar (44/48): [‹ 44×44 sin bocadillo] [título a --ph-head en 1 línea — o — pestañas] [acciones de 44].
+   Hijos: .ph-bk (o el .sp-back de siempre: pierde el bocadillo y el texto, que pasa a aria-label con VB.Splat.phBar) · .ph-bt (título) ·
+   .ph-btabs (pestañas) · .ph-ba (acciones, a la derecha). El panel que la lleva empieza en top: calc(var(--ph-gt) + var(--ph-bar) + 4px). */
+:root.ph:not(#_):not(#_):not(#_) .ph-bar{display:flex;align-items:center;gap:var(--ph-s2);box-sizing:border-box;height:var(--ph-bar);min-height:var(--ph-bar);min-width:0;margin:0;padding:0}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>:is(.ph-bk,.sp-back){position:relative;flex:none;display:inline-grid;place-items:center;width:var(--ph-tap);height:var(--ph-tap);min-width:var(--ph-tap);min-height:var(--ph-tap);
+  margin:0;padding:0;border:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none;cursor:pointer;-webkit-tap-highlight-color:transparent}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>:is(.ph-bk,.sp-back)>:not(svg),:root.ph:not(#_):not(#_):not(#_) .ph-bar>:is(.ph-bk,.sp-back)>.sp-blob{display:none}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>:is(.ph-bk,.sp-back)>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>:is(.ph-bk,.sp-back):is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>:is(.ph-bk,.sp-back):active{transform:scale(.92)}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>.ph-bt{flex:1 1 auto;min-width:0;margin:0;font:400 var(--ph-head)/1.15 var(--sp-pop);letter-spacing:.01em;color:var(--sp-cream);text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:2px 2px 0 var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>.ph-btabs{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:var(--ph-tab-gap);overflow-x:auto;overflow-y:hidden;scrollbar-width:none;padding:2px 4px}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>.ph-ba{flex:none;margin-left:auto;display:flex;align-items:center;gap:var(--ph-hit-gap)}
+:root.ph:not(#_):not(#_):not(#_) .ph-bar>.ph-ba>*{min-width:var(--ph-tap);min-height:var(--ph-tap)}
+/* .ph-sticker: pegatina de esquina (sello semanal, Reto del día, kickers «PRIMERA VEZ»…): 60-72 px, arriba a la derecha de su contenedor
+   (que necesita position:relative; .ph-stk-host la da y reserva hueco a la derecha), girada 8°, nunca encima del título. También en vertical. */
+:root.ph:not(#_):not(#_):not(#_) .ph-stk-host,:root.pv:not(#_):not(#_):not(#_) .ph-stk-host{position:relative;padding-right:calc(var(--ph-stk,64px) * .55)}
+:root.ph:not(#_):not(#_):not(#_) .ph-sticker,:root.pv:not(#_):not(#_):not(#_) .ph-sticker{--sp-stamp:var(--ph-stk,64px);position:absolute;top:-14px;right:-10px;left:auto;bottom:auto;z-index:3;width:var(--ph-stk,64px);height:var(--ph-stk,64px);
+  min-width:0;max-width:72px;max-height:72px;margin:0;transform:rotate(8deg);box-sizing:border-box}
+:root.ph.ph-w{--ph-stk:72px}
+:root.ph.ph-s{--ph-stk:60px}
+:root.pv{--ph-stk:64px}
+/* .ph-kv: clave/valor en una sola caja, 2 columnas (3 a .ph-w), filas de 40 px; rótulo --ph-micro en mayúsculas a la izquierda, valor --ph-row a la derecha.
+   Marcado: <div class="ph-kv"><div><span class="k">Sueldo</span><b class="v">1.100 €</b></div>…</div> (sustituye las fichas .fact de 60-100 px) */
+:root.ph:not(#_):not(#_):not(#_) .ph-kv{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));margin:4px 2px 10px;padding:0;overflow:hidden;background:var(--sp-ink);color:var(--sp-cream);
+  border-radius:12px 14px 12px 16px/14px 12px 16px 12px;box-shadow:0 0 0 2.5px rgba(255,244,220,.2),3px 4px 0 2.5px var(--sp-ink)}
+:root.ph.ph-w:not(#_):not(#_):not(#_) .ph-kv{grid-template-columns:repeat(3,minmax(0,1fr))}
+:root.ph:not(#_):not(#_):not(#_) .ph-kv>*{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0;min-height:40px;margin:0;padding:0 var(--ph-pad);box-sizing:border-box;
+  border-bottom:1px solid rgba(255,244,220,.14);border-right:1px solid rgba(255,244,220,.14)}
+:root.ph:not(#_):not(#_):not(#_) .ph-kv>*>.k{flex:none;margin:0;font:700 var(--ph-micro)/1.1 var(--sp-ui);letter-spacing:.05em;text-transform:uppercase;color:var(--sp-gold);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) .ph-kv>*>.v{flex:0 1 auto;min-width:0;margin:0;font:600 var(--ph-row)/1.15 var(--sp-ui);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* .ph-strip: tira de 2-4 cifras en una línea (la pegatina .sp-heros de Ofertas, cr-oh): <div class="sp-heros sp-sm ph-strip"> */
+:root.ph:not(#_):not(#_):not(#_) .sp-heros.ph-strip{margin:8px 2px 12px;transform:rotate(-.6deg)}
+:root.ph:not(#_):not(#_):not(#_) .sp-heros.ph-strip>*{padding:4px 6px}
+:root.ph:not(#_):not(#_):not(#_) .sp-heros.ph-strip .sp-hn{font-size:var(--ph-num);white-space:nowrap;line-height:1.05}
+:root.ph:not(#_):not(#_):not(#_) .sp-heros.ph-strip .sp-hl{font-size:var(--ph-micro);white-space:nowrap}
+/* .ph-row: fila de una línea de --ph-row-h: [.ph-ri icono/escudo 28-36] [.ph-rm: .ph-rt nombre --ph-row + .ph-rs secundario --ph-cap, elipsis] [.ph-ra cifra o acción de 44] */
+:root.ph:not(#_):not(#_):not(#_) .ph-row{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:10px;box-sizing:border-box;min-height:var(--ph-row-h);margin:0;padding:4px var(--ph-pad)}
+:root.ph:not(#_):not(#_):not(#_) .ph-row>.ph-ri{width:32px;height:32px;display:grid;place-items:center}
+:root.ph:not(#_):not(#_):not(#_) .ph-row>.ph-ri>:is(img,svg){max-width:100%;max-height:100%}
+:root.ph:not(#_):not(#_):not(#_) .ph-row>.ph-rm{min-width:0;display:flex;flex-direction:column;gap:1px}
+:root.ph:not(#_):not(#_):not(#_) .ph-row .ph-rt{font:400 var(--ph-row)/1.15 var(--sp-pop);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.ph:not(#_):not(#_):not(#_) .ph-row .ph-rs{font:600 var(--ph-cap)/1.2 var(--sp-ui);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.ph:not(#_):not(#_):not(#_) .ph-row>.ph-ra{min-width:var(--ph-tap);min-height:var(--ph-tap);display:flex;align-items:center;justify-content:flex-end;font:700 var(--ph-num)/1 var(--sp-ui);font-variant-numeric:tabular-nums}
+/* .ph-grid2: rejilla de 2 columnas a 568 (3 a .ph-w) */
+:root.ph:not(#_):not(#_):not(#_) .ph-grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ph-card-gap);align-items:stretch}
+:root.ph.ph-w:not(#_):not(#_):not(#_) .ph-grid2{grid-template-columns:repeat(3,minmax(0,1fr))}
+/* VB.Splat.phDedupe(container, label): el sello de la tarjeta que repite la subpestaña (.ph-dup entero; .ph-dup-t solo el rótulo si lleva dato) */
+:root.ph:not(#_):not(#_):not(#_) .ph-dup,:root.ph:not(#_):not(#_):not(#_) .ph-dup-t{display:none}
+/* dock (§3.7): la principal con ancho automático (máx. 62vw) y en una línea (sin cortar la Ñ); la secundaria, mancha de 44 sin cola.
+   .ph-docked = la zona que se desplaza bajo un dock fijo (#crDock y los equivalentes): reserva su alto + 12 px. .ph-notail = mancha sin goterón. */
+:root.ph:not(#_):not(#_):not(#_) .sp-dock>.sp-patch{max-width:62vw}
+:root.ph:not(#_):not(#_):not(#_) .sp-dock>.sp-patch .sp-t{white-space:nowrap;line-height:1.12}
+:root.ph:not(#_):not(#_):not(#_) .sp-dock{gap:var(--ph-btn-gap)}
+:root.ph:not(#_):not(#_):not(#_) .sp-dock>.sp-btn:not(.sp-patch){--sp-h:var(--ph-btn-h);min-height:var(--ph-btn-h)}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-dock>.sp-btn:not(.sp-patch),.ph-notail)>.sp-blob{overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) :is(.sp-dock>.sp-btn:not(.sp-patch),.ph-notail)>.sp-blob .sp-f circle{display:none}
+:root.ph:not(#_):not(#_):not(#_) .ph-docked{padding-bottom:calc(var(--ph-dock-h) + 12px);scroll-padding-bottom:calc(var(--ph-dock-h) + 12px)}
+/* «queda más» (.sp-more) de los paneles: el desvanecido no pasa de --ph-fade y no se toca (pointer-events:none, ya) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sp-scroll.sp-more::after{height:var(--ph-fade);margin-top:calc(-1 * var(--ph-fade) - var(--sp-g));background-size:18px 18px,auto;background-position:50% 90%,0 0}
+/* hojas de abajo (§3.8): fondo opaco, capa detrás más oscura y un solo ✕ de 44 (sin «Cerrar» al pie si la hoja no tiene acciones: splat.js) */
+:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-catch{background:rgba(10,6,24,.7)}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-sheet:not(.sp-paper){background:var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-sheet.sp-paper{background:var(--sp-cream)}
+/* avisos cortos (§3.10): abajo en el centro, encima del dock, máx. 60vw; una línea (dos como mucho si el texto es largo); se limpian al cambiar de pantalla (ui.js) */
+:root.ph:not(#_):not(#_):not(#_) #spToasts{top:auto;right:auto;left:50%;bottom:calc(var(--ph-dock-h) + 8px);translate:-50% 0;align-items:center;max-width:60vw}
+:root.ph:not(#_):not(#_):not(#_).sp-sh-on #spToasts{top:calc(var(--ph-gt) + 8px);bottom:auto}
+:root.ph:not(#_):not(#_):not(#_) .sp-toast{max-width:60vw;padding:8px 14px;font-size:var(--ph-label);line-height:1.25;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;transform:rotate(-.6deg);animation-name:spToastUp}
+:root.ph:not(#_):not(#_):not(#_) .sp-toast:has(.sp-btn){display:flex;align-items:center;gap:10px;-webkit-line-clamp:none;overflow:visible}
+@keyframes spToastUp{from{transform:translateY(16px) rotate(-.6deg);opacity:0}}
+/* interruptor (§3.3): dibujo de 52×30; la fila entera es el objetivo (fitSeg marca la fila .ph-trow) y se ve al pulsarla */
+:root.ph:not(#_):not(#_):not(#_) .sp-toggle{width:52px;height:30px;border-radius:16px}
+:root.ph:not(#_):not(#_):not(#_) .sp-toggle::before{width:22px;height:22px}
+:root.ph:not(#_):not(#_):not(#_) .sp-toggle:is(.on,[aria-checked="true"])::before{transform:translateX(22px)}
+:root.ph:not(#_):not(#_):not(#_) .sp-toggle::after{inset:-7px -6px}
+:root.ph:not(#_):not(#_):not(#_) .ph-trow{-webkit-tap-highlight-color:transparent}
+:root.ph:not(#_):not(#_):not(#_) .ph-trow:active{box-shadow:inset 0 0 0 999px rgba(255,244,220,.12)}
+/* separación mínima contando el adorno (§3.2): segmentados y filas de botones */
+:root.ph:not(#_):not(#_):not(#_) .sp-seg,:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .seg.sp-seg{gap:var(--ph-gap-min)}
+:root.ph:not(#_):not(#_):not(#_) .ph-btn-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--ph-btn-gap)}
 /* ==== fin SPLAT: sistema de diseño ==== */
 
 /* =====================================================================
@@ -5466,7 +5561,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #spToasts>.sp-toast:last-child{min-height:44px;display:flex;align-items:center}
 /* V-PFTOAST: en Perfil el aviso va en el carril del pie (en el sitio de «Elige un hueco…», que se esconde mientras está) y no
    recoge toques: nunca tapa ni roba la casilla de la rejilla */
-:root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts{top:auto;bottom:var(--ph-gb);right:var(--ph-g);left:auto;transform:none;max-width:min(420px,60vw);pointer-events:none}
+:root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts{top:auto;bottom:var(--ph-gb);right:var(--ph-g);left:auto;transform:none;translate:none;max-width:min(420px,60vw);pointer-events:none}
 :root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts>.sp-toast{pointer-events:none}
 :root.ph:not(#_):not(#_):not(#_):has(#mpProf:not([hidden])):has(#spToasts>.sp-toast) #pfFoot{visibility:hidden}
 :root.ph:not(#_):not(#_):not(#_) #menu .pf-pin.sp-btn{margin-left:auto}
@@ -5640,7 +5735,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 }
 /* avisos del Vestuario en el móvil: sobre la lista (abajo a la izquierda en apaisado, abajo a lo ancho en vertical), no encima de la
    cara del muñeco ni del dado */
-:root.ph:has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:var(--ph-gb);right:auto;left:var(--ph-g);align-items:flex-start;max-width:min(300px,42vw)}
+:root.ph:has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:var(--ph-gb);right:auto;left:var(--ph-g);translate:none;align-items:flex-start;max-width:min(300px,42vw)}
 @media (max-aspect-ratio:5/4) and (max-width:600px){
   :root:not(#_):not(#_):not(#_) #menu[data-page="look"] #lkNote{top:auto;bottom:calc(16px + var(--sbm));left:50%;width:max-content;max-width:calc(100vw - 32px)}
   :root:has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:auto;bottom:calc(16px + var(--sbm));left:16px;right:16px;align-items:center;max-width:none}

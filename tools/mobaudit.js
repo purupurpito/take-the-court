@@ -15,6 +15,9 @@
  *   comparten una carga de página, en orden), open (cuerpo JS async en la página; M = window.__MA, ver mobaudit-page.js
  *   helpers(); devolver false = «no se pudo abrir»), wait (ms tras abrir), exit / primary (selectores; '' = no aplica)}.
  *   Todas las cargas llevan &ma_clean=1 (borra localStorage antes de cargar: sin Carrera ni récord) y &uianim=0.
+ *   Estado fijado entre pantallas (movil-aire, 23-nov-2026): zurdos solo en las filas «-zurdos»; Mensajes abre Bandeja; Liga › Clubes,
+ *   la lista. Columna «rot» = rótulos no tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar). El interruptor
+ *   de fitSeg se mide por su fila (.ph-trow) y la flecha del final de un selector (.arr.end) cuenta como desactivada.
  * Comparar dos pasadas: node tools/mobcompare.js <antes> <después> [salida.html].
  */
 'use strict';
@@ -47,7 +50,8 @@ const SET_TABS = ['audio', 'image', 'cam', 'game', 'a11y', 'kit', 'info'];
 const CTL_TABS = ['keyboard', 'gamepad', 'touch'];
 const LK_TABS = ['pelo', 'cabeza', 'cara', 'cuerpo', 'brazos', 'piernas', 'colores'];
 const PF_TABS = ['vestuario', 'insignias', 'entreno', 'carrera', 'retos', 'sedes', 'hitos', 'cuaderno'];
-const CR_TABS = [['match'], ['inbox'], ['player', 'phys'], ['player', 'def'], ['player', 'atk'], ['player', 'badges'], ['player', 'train'], ['player', 'look'],
+// (movil-aire §3.13) t[2] = sub-pestaña que se FIJA al abrir sin cambiar el id (Mensajes → Bandeja: si no, a 844 salía en Redes, la última vista)
+const CR_TABS = [['match'], ['inbox', '', 'box'], ['player', 'phys'], ['player', 'def'], ['player', 'atk'], ['player', 'badges'], ['player', 'train'], ['player', 'look'],
   ['club', 'info'], ['club', 'mate|team'], ['club', 'contract'], ['club', 'offers'], ['life', 'fame'], ['life', 'shop'], ['life', 'goals'], ['life', 'legacy'],
   ['league', 'table'], ['league', 'cal'], ['league', 'cups'], ['league', 'news'], ['league', 'clubs'], ['honors', 'titles'], ['honors', 'seasons'], ['honors', 'opts'],
   ['inbox', 'wall'], ['club', 'people'], ['life', 'pass'], ['honors', 'stats']];   // (Carrera con vida, 1.13.x)
@@ -124,7 +128,11 @@ const SCREENS = [
   ...['beach', 'hall'].flatMap(m => CR_TABS.filter(t => !(m === 'beach' && t[1] === 'cups')).map(t => {
     const sub = t[1] ? (t[1].split('|')[m === 'hall' ? 1 : 0] || t[1]) : '';
     return { id: 'carrera-' + (m === 'beach' ? 'playa' : 'pista') + '-' + t[0] + (sub ? '-' + sub : ''), area: 'carrera', q: M0 + '&ma=' + (m === 'beach' ? 'cb' : 'ch'),
-      open: `if (!M.seedCareer('${m}')) return false; return M.career('${t[0]}', '${sub}');` };
+      // league-clubs: la lista (no la última ficha abierta) · life-legacy / honors-seasons: en el móvil career-ui funde Fama+Legado y
+      // Vitrina+Temporadas (career-ui.js setSub, LIFE_PH): estas filas capturan la vista FUSIONADA desde arriba (el desplazamiento al
+      // ancla «Legado ↓» / «Temporadas ↓» lo pone el paquete carrera-liga-vida)
+      open: `if (!M.seedCareer('${m}')) return false; ` + (sub === 'clubs' ? `if (VB.CareerWorldUI && VB.CareerWorldUI.reset) VB.CareerWorldUI.reset(); ` : '') +
+        `return M.career('${t[0]}', '${t[2] || sub}');` };
   })),
   { id: 'carrera-playa-club-ficha', area: 'carrera', q: M0 + '&ma=cb', open: "if (!M.seedCareer('beach')) return false; await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
   { id: 'carrera-pista-club-ficha', area: 'carrera', q: M0 + '&ma=ch', open: "if (!M.seedCareer('hall')) return false; await M.career('league','clubs'); await M.sleep(60); if (!document.querySelector('#career .cw-card')) M.click('#career .cw-row'); await M.sleep(60); return !!document.querySelector('#career .cw-card');" },
@@ -278,6 +286,8 @@ async function main() {
             let ok = false, err = '';
             // el scrollAll de la medida anterior no debe dejar la siguiente pantalla (o talla) ya desplazada
             try { await page.evalJs('(' + PG.resetScroll.toString() + ')()'); await sleep(80); } catch (e) { }
+            // (movil-aire §3.13) zurdos solo en las filas «-zurdos»: hud-2v2-peloteo heredaba el espejo de hud-2v2-zurdos (misma carga)
+            if (!/zurdos/.test(s.id)) { try { await page.evalJs("try{if(VB.ctx&&VB.ctx.settings&&VB.ctx.settings.touchMirror===true)VB.ctx.actions.setSetting('touchMirror',false)}catch(e){}"); } catch (e) { } }
             try {
               const r = await withTimeout(page.evalJs('(async()=>{const M=window.__MA;' + s.open + '})()', true), s.openMs || 20000, s.id);   // (openMs: filas que tardan en abrir, p. ej. la ficha de una disputa)
               ok = r !== false && r !== null && r !== 0;
@@ -327,20 +337,22 @@ async function main() {
     const scrOk = Object.values(bs).every(x => !x.afterScroll || ((!x.afterScroll.exit || x.afterScroll.exit.ok || !(x.exit && x.exit.ok)) && (!x.afterScroll.primary || x.afterScroll.primary.ok || !(x.primary && x.primary.ok))));
     const ell = Math.max(0, ...Object.values(bs).map(x => x.nEllBad || 0)), tabs = Math.max(0, ...Object.values(bs).map(x => (x.tabOver || []).length));
     const hscr = Object.values(bs).some(x => x.hscroll);
+    const rot = Math.max(0, ...Object.values(bs).map(x => x.rot ? x.rot.n : 0));   // (movil-aire: rótulos no tocables que se solapan)
     sc.summary = { worst, score: ws, minFont: minF === 99 ? null : minF, n12: m.fonts ? m.fonts.n12 : null, n14: m.fonts ? m.fonts.n14 : null, smallT: m.targets ? m.targets.nSmall : null,
-      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
+      overlap: m.targets ? m.targets.nOverlap : null, huge: m.targets && m.targets.huge ? m.targets.huge.length : null, clipped: m.nClipped != null ? m.nClipped : null, off: m.nOff != null ? m.nOff : null, exitOk, primOk, tierOk, scrOk, ell, tabs, rot, hscr, err: Object.values(bs).some(x => x.err) ? (Object.values(bs).find(x => x.err).err) : '' };
     rows.push([id, sc.area, sc.summary]);
   }
   fs.writeFileSync(path.join(OUT, 'metrics.json'), JSON.stringify(metrics, null, 1));
-  const head = 'pantalla'.padEnd(36) + ' área     peor       letraMin  <12  <14  toq<44 solap enorme recort fuera salida princ tier despl elip pest';
+  const head = 'pantalla'.padEnd(36) + ' área     peor       letraMin  <12  <14  toq<44 solap enorme recort fuera salida princ tier despl elip pest  rot';
   const lines = [head, '-'.repeat(head.length)];
   for (const [id, area, s] of rows) {
     lines.push(id.padEnd(36) + ' ' + area.padEnd(8) + ' ' + String(s.worst || '-').padEnd(10) + ' ' + String(s.minFont == null ? '-' : s.minFont).padStart(8) + ' ' + String(s.n12 ?? '-').padStart(4) + ' ' + String(s.n14 ?? '-').padStart(4) + ' ' +
       String(s.smallT ?? '-').padStart(6) + ' ' + String(s.overlap ?? '-').padStart(5) + ' ' + String(s.huge ?? '-').padStart(6) + ' ' + String(s.clipped ?? '-').padStart(6) + ' ' + String(s.off ?? '-').padStart(5) + ' ' + (s.exitOk ? '  ok  ' : '  NO  ') + (s.primOk ? ' ok  ' : ' NO  ') +
-      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
+      (s.tierOk ? ' ok ' : ' NO ') + (s.scrOk ? '  ok  ' : '  NO  ') + String(s.ell ?? '-').padStart(4) + String(s.tabs ?? '-').padStart(5) + String(s.rot ?? '-').padStart(5) + (s.hscr ? '  ¡scroll lateral!' : '') + (s.err ? '  ! ' + s.err : ''));
   }
   lines.push('', 'tier = html.ph en los tamaños de móvil y sin él en 1280x720 / 1920x1080 / 1024x768 · despl = tras llevar cada zona al final, la salida y la principal',
-    'siguen dentro y pulsables · elip = elipsis que cortan información (salvo .sp-lrow .sp-s y [data-ph-ell]) · pest = filas de pestañas que no caben sin desvanecido.',
+    'siguen dentro y pulsables · elip = elipsis que cortan información (salvo .sp-lrow .sp-s y [data-ph-ell]) · pest = filas de pestañas que no caben sin desvanecido ·',
+    'rot = rótulos NO tocables que se montan (#pbug, .sp-sena, #prompt, #banner, #coach, #touchbar).',
     'En metrics.json además: fonts.read14 / btn15 / tab13 (lectura < 14, rótulos < 15, pestañas < 13), reach (principal abajo a la derecha, aviso), hscroll.');
   const txt = lines.join('\n');
   fs.writeFileSync(path.join(OUT, 'summary.txt'), txt + '\n');
