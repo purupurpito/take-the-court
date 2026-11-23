@@ -6264,7 +6264,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
    Panel 'fb' (#pnFb dentro de #panel.sp-pn, como Acerca de): el tipo en trazos de pincel (tira), UNA hoja con el cuadro de texto en
    papel crema, el contador, «¿Dónde pasó?» en trazos (solo bugs), la línea de lo que se adjunta y el aviso; Cancelar / Enviar abajo a
    la derecha. En el móvil, la rejilla de los paneles: tipo = strip, hoja = body, botones = dock. Y en la pausa, la fila .p-fb con dos
-   manchas pequeñas (Sugerencia, Bug): en PC debajo de las demás; en el móvil, en la columna del marcador, encima de «Cambios».
+   manchas pequeñas (Sugerencia, Bug): en PC debajo de las demás, a la izquierda y separadas; en el móvil, en la columna del marcador,
+   encima de «Cambios» (escondida si sale el aviso rojo de las pruebas: siguen en Ajustes › Info).
    ===================================================================================================================== */
 :root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="fb"]>.sheet{width:clamp(360px,48vw,660px)}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind{flex:none;display:flex;flex-wrap:wrap;gap:12px;margin:0;padding:2px 4px 4px}
@@ -6291,9 +6292,15 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-ok{margin:6px 2px 2px;font:400 clamp(22px,4vh,34px)/1.1 var(--sp-pop);color:var(--sp-gold);transform:rotate(-1.5deg);transform-origin:0 60%}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-ok.fb-q{color:var(--sp-cream)}
 :root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-s{margin:0 2px;font:500 clamp(13px,1.9vh,15px)/1.45 var(--sp-ui);color:rgba(255,244,220,.88)}
-:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-foot{flex:none;display:flex;justify-content:flex-end;gap:14px;margin:0;padding:0 10px 6px 0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-foot{flex:none;display:flex;justify-content:flex-end;align-items:center;gap:14px;margin:0;padding:0 10px 6px 0}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-keys{display:flex;flex-wrap:wrap;flex:1 1 0;min-width:0;gap:4px 12px;margin:0 0 0 4px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-foot>.sp-btn{flex:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l .fb-ls{display:none}
 /* pausa: fila de dos manchas pequeñas, menos alta que las de encima */
 .sp-ov .p-row.p-fb>.sp-btn{--sp-h:clamp(40px,6.6vh,54px);--sp-fs:clamp(11.5px,2vh,16px)}
+/* (en PC, a la izquierda, a su tamaño y 24 px por debajo de Reiniciar / Salir: no parecen opciones del mismo nivel; notes/splat.md) */
+:root:not(#_):not(#_):not(#_) .sp-ov .p-row.p-fb{justify-content:flex-start;margin-top:14px}
+:root:not(#_):not(#_):not(#_) .sp-ov .p-row.p-fb>.sp-btn{flex:0 0 auto;padding:0 18px}
 .sp-ov .p-row.p-fb .sp-ic{--sp-is:clamp(15px,2.5vh,21px)}
 #btnPSug{--sp-d:var(--sp-gold)}#btnPBug{--sp-d:var(--sp-alt)}
 /* — móvil (.ph) — */
@@ -6301,7 +6308,19 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind{grid-area:strip;gap:var(--ph-strip-gap);margin:0 0 var(--ph-s2);padding:3px 4px 5px}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind .sp-tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 14px}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l{font-size:var(--ph-row)}
-:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-t{min-height:96px;max-height:none;font-size:max(16px,var(--ph-body))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-t{min-height:96px;max-height:none;resize:none;font-size:max(16px,var(--ph-body))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-keys{display:none}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l .fb-lf{display:none}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l .fb-ls{display:inline}
+/* teclado del móvil abierto (splat.js kbApply → html.sp-kb): el campo está en #fbBody (.sp-panel, que no se puede subir), así que
+   se sube la hoja entera hasta lo que se ve; [data-kb-hide] quita el tipo, «¿Dónde pasó?», el contador y la línea de lo que se
+   adjunta, y aquí se quitan la cabecera (Volver y título: Cancelar y Esc hacen lo mismo) y la mitad larga de la pregunta. Quedan la
+   pregunta corta, el cuadro y Cancelar / Enviar (con 180 px a la vista, a 844×390 y teclado de 210) */
+:root.ph.sp-kb:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="fb"]>.sheet{top:var(--ph-gt)!important;bottom:auto!important;max-height:calc(var(--vvh,100vh) - var(--ph-gt) - 8px)!important}
+:root.ph.sp-kb:not(#_):not(#_):not(#_) #panel.sp-pn .fb-t{min-height:60px}
+:root.ph.sp-kb:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="fb"]>.sheet>.pn-head{display:none}
+:root.ph.sp-kb:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l .fb-lf{display:none}
+:root.ph.sp-kb:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l .fb-ls{display:inline}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-n{font-size:var(--ph-cap)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-wl{font-size:var(--ph-row)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-wl small{font-size:var(--ph-cap)}
@@ -6310,10 +6329,13 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(.fb-att,.fb-msg){font-size:var(--ph-label)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-s{font-size:var(--ph-body)}
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-foot{grid-area:dock;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--ph-hit-gap);margin:var(--ph-s2) 0 0;padding:0 2px 0 0}
-/* pausa en el móvil: la fila .p-fb (no display:contents) en la columna del marcador, fila 4; el aviso rojo sube a la fila 3 */
-:root.ph:not(#_):not(#_):not(#_) #pause .p-row.p-fb{display:flex;grid-column:1;grid-row:4;align-self:end;justify-self:start;gap:var(--ph-hit-gap);max-width:100%;margin:0}
+/* pausa en el móvil: la fila .p-fb (no display:contents) en la columna del marcador, fila 4, a ≥ 24 px de «Reiniciar». Con el aviso
+   rojo de las pruebas o de la Semana (que se queda donde estaba, filas 3-4 abajo) la fila no cabe sin tapar el marcador: se esconde
+   y las dos opciones siguen en Ajustes › Info. «Sugerencia» en tinta: en turquesa se confundía con «Cambios», justo debajo */
+:root.ph:not(#_):not(#_):not(#_) #pause .p-row.p-fb{display:flex;grid-column:1;grid-row:4;align-self:end;justify-self:start;gap:var(--ph-hit-gap);max-width:calc(100% - 14px);margin:0}
 :root.ph:not(#_):not(#_):not(#_) #pause .p-row.p-fb>.sp-btn{--sp-h:44px;--sp-fs:var(--ph-row);flex:0 1 auto;min-width:0;padding:0 12px}
-:root.ph:not(#_):not(#_):not(#_) #pause .p-warn{grid-row:3}
+:root.ph:not(#_):not(#_):not(#_) #pause>.sp-sheet:has(>.p-warn:not([hidden])) .p-row.p-fb{display:none}
+:root.ph:not(#_):not(#_):not(#_) #pause #btnPSug{--sp-c:var(--sp-ink);--sp-tc:var(--sp-cream);--sp-icc:var(--sp-gold);--sp-cf:var(--sp-gold);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #pause .p-row.p-fb .sp-ic{display:none}
 /* ==== fin SPLAT · OPINIONES ==== */
 /* ====================================================================================================================

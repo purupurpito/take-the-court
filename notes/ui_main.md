@@ -2075,6 +2075,7 @@ Solo visuales: ni la sim, ni `g.rng`, ni las huellas (simtest, fingerprint6 y fl
   estaba (menú/página/panel, pausa, modo y marcador) y la suposición de «¿Dónde pasó?»; fila `data-go="fbview"` (visor) solo con
   `actaOk` (`fbVis()` desde `actaVis()`). API: `VB.UI.openFeedback(kind)`, `VB.UI._fb()` (pruebas).
 - **index.html**: filas de Info, `#pnFb`, fila `.p-row.p-fb` de la pausa y bloque CSS «SPLAT · OPINIONES» (después de «fin SPLAT ·
-  PANELES»; en el móvil la fila de la pausa va en la columna del marcador, fila 4, y `.p-warn` sube a la fila 3).
+  PANELES»; en el móvil la fila de la pausa va en la columna del marcador, fila 4, y se esconde con `:has` si hay `.p-warn` visible,
+  que se queda en las filas 3-4 como antes; en PC la fila va a la izquierda, a su tamaño y 24 px más abajo).
 - **main.js**: el `touchend` que anula el doble toque deja en paz el `textarea`.
 - **Pruebas**: `node tools/feedbacktest.js`; filas `opiniones-sug`, `opiniones-bug` y `pausa-bug` de tools/mobaudit.js.

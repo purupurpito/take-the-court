@@ -14,12 +14,13 @@
  *    console.error «[VB][ERROR]» de main.js/ui.js; las rutas se recortan al nombre del fichero). El uid de la cuenta si hay sesión
  *    ('' si no). El jugador ve en una línea qué se adjunta (ctxLine).
  *  - Guardado: Firestore REST, feedback/{id aleatorio de 20} con documents:commit (t = hora del SERVIDOR, transformación
- *    REQUEST_TIME; currentDocument.exists = false). Campos {kind:'sug'|'bug', text, where?, ver, ctx (JSON ≤ 8000), uid, t,
+ *    REQUEST_TIME; currentDocument.exists = false). Campos {kind:'sug'|'bug', text, where?, ver, ctx (JSON ≤ 4000), uid, t,
  *    state:'nuevo'}. Sin sesión, la escritura va sin Authorization. Reglas en firebase/firestore.rules (bloque FEEDBACK; las
  *    despliega Ferran: hasta entonces el servidor dice 403 y todo queda en la cola).
  *  - Cola: sin red, con 403/401, 429 o 5xx, en 'make-the-cut.feedbackq' (máx. 20; del aparato, nunca a DOCS) y se reintenta al
- *    arrancar (a los 4 s) y al volver la conexión. 400 (no pasa las reglas por formato) se descarta; 409 (ya estaba) cuenta como
- *    enviado. Mensaje: «¡Gracias! Enviado» o «Guardado: se enviará en cuanto se pueda».
+ *    arrancar (a los 4 s) y al volver la conexión. 400/413 se descartan; 409 (ya estaba) cuenta como enviado. Las reglas rechazan
+ *    con 403 (igual que sin desplegar): lo que lleva 30 intentos y más de 14 días en la cola se tira (stale()). La cuenta (uid) se
+ *    fija al mandarlo: al reintentar con otra sesión sale sin cuenta. Mensaje: «¡Gracias! Enviado» o «Guardado: se enviará en cuanto se pueda».
  *  - Anti-spam en el cliente: 1 envío cada 30 s y 10 al día ('make-the-cut.feedbackl' = {d:'AAAAMMDD', n, last}).
  *  - Visor para Ferran: pages/feedback.html (lo copia tools/build-pages.js); la fila «Buzón de opiniones» de Ajustes › Info solo
  *    sale con su cuenta (ui.js, la misma huella que el acta, ACTA_ALLOW). viewerUrl() da la dirección.
@@ -32,7 +33,7 @@
   var root = typeof window !== 'undefined' ? window : globalThis;
   var VB = root.VB = root.VB || {};
   var QKEY = 'make-the-cut.feedbackq', LKEY = 'make-the-cut.feedbackl';
-  var MIN = 5, MAX = 2000, CTX_MAX = 8000, Q_MAX = 20, GAP_MS = 30000, DAY_MAX = 10, ERR_N = 5;
+  var MIN = 5, MAX = 2000, CTX_MAX = 4000, Q_MAX = 20, Q_TRIES = 30, Q_AGE = 14 * 864e5, GAP_MS = 30000, DAY_MAX = 10, ERR_N = 5;
   var KINDS = ['sug', 'bug'];
   var WHERE = [['partido', 'Partido'], ['carrera', 'Carrera'], ['online', 'Online'], ['menus', 'Menús'], ['otro', 'Otro']];
   var WHERE_IDS = WHERE.map(function (w) { return w[0]; });
@@ -41,10 +42,11 @@
 
   // ------------------------------------------------------------------ búfer de errores (solo se adjunta en los bugs)
   var errs = [];
-  /** Quita direcciones y rutas (file:///C:/Users/…/js/ui.js:12:3 → ui.js:12:3): nada del disco ni del dominio. */
+  /** Quita direcciones y rutas (file:///C:/Users/…/js/ui.js:12:3 → ui.js:12:3): nada del disco ni del dominio. Tampoco la
+   *  consulta (?key=…&refresh_token=…) ni el #: queda el nombre del fichero y, si lo hay, :línea:columna. */
   function clean(s) {
-    return String(s == null ? '' : s).replace(/(?:https?|file|blob|chrome-extension):\/\/[^\s)'"]*\/([^\/\s)'"]+)/g, '$1')
-      .replace(/[A-Za-z]:[\\\/][^\s)'"]*[\\\/]([^\\\/\s)'"]+)/g, '$1').replace(/\s+/g, ' ').trim();
+    return String(s == null ? '' : s).replace(/(?:https?|file|blob|chrome-extension):\/\/[^\s)'"]*\/([^\/\s)'"?#]+)(?:[?#][^\s)'":]*)?/g, '$1')
+      .replace(/[A-Za-z]:[\\\/][^\s)'"]*[\\\/]([^\\\/\s)'"?#]+)(?:[?#][^\s)'":]*)?/g, '$1').replace(/\s+/g, ' ').trim();
   }
   function pushErr(k, m, src) {
     m = clean(m).slice(0, 300); if (!m) return;
@@ -55,11 +57,13 @@
   }
   if (root.addEventListener) {
     root.addEventListener('error', function (e) {
-      if (!e || (e.target && e.target !== root && e.target.tagName)) return;   // (recursos que no cargan: no son errores de JS)
-      pushErr('error', e.message || (e.error && e.error.message) || 'Error', (e.filename || '') + (e.lineno ? ':' + e.lineno + (e.colno ? ':' + e.colno : '') : ''));
+      try {
+        if (!e || (e.target && e.target !== root && e.target.tagName)) return;   // (recursos que no cargan: no son errores de JS)
+        pushErr('error', e.message || (e.error && e.error.message) || 'Error', (e.filename || '') + (e.lineno ? ':' + e.lineno + (e.colno ? ':' + e.colno : '') : ''));
+      } catch (x) { }
     });
     root.addEventListener('unhandledrejection', function (e) {
-      var r = e && e.reason; pushErr('promesa', r && (r.message || r.code) ? (r.message || r.code) : String(r), r && r.stack ? String(r.stack).split('\n')[1] || '' : '');
+      try { var r = e && e.reason; pushErr('promesa', r && (r.message || r.code) ? (r.message || r.code) : String(r), r && r.stack ? String(r.stack).split('\n')[1] || '' : ''); } catch (x) { }
     });
   }
   // main.js y ui.js atrapan sus excepciones y las escriben con console.error('[VB][ERROR] …'): esas no llegan a 'error'.
@@ -128,7 +132,7 @@
     if (kind === 'bug') o.errs = errs.slice(-ERR_N).map(function (e) { var x = { k: e.k, m: e.m, t: e.t }; if (e.s) x.s = e.s; if (e.n) x.n = e.n; return x; });
     return o;
   }
-  /** JSON del contexto ≤ 8000 caracteres (si no cabe, primero se recortan los errores). */
+  /** JSON del contexto ≤ 4000 caracteres (si no cabe, primero se recortan los errores). */
   function ctxJson(kind, info) {
     var o = context(kind, info), j = JSON.stringify(o);
     while (j.length > CTX_MAX && o.errs && o.errs.length) { o.errs.shift(); j = JSON.stringify(o); }
@@ -141,7 +145,7 @@
     var bits = ['versión ' + (VB.VERSION || '?'), e.br + ' en ' + e.os, 'pantalla ' + (e.win || e.scr).replace('x', '×')];
     if (qn) bits.push('calidad ' + qn);
     var tail = kind === 'bug' ? 'dónde estabas y los últimos errores del juego (' + Math.min(errs.length, ERR_N) + ')' : 'dónde estabas';
-    return 'Se adjunta: ' + bits.join(', ') + ', ' + tail + '. Nada personal: ni correo ni nombre.';
+    return 'Se adjunta: ' + bits.join(', ') + ', ' + tail + '. Nada personal: ni correo ni nombre; si has entrado, el identificador de tu cuenta.';
   }
 
   // ------------------------------------------------------------------ validación
@@ -169,12 +173,15 @@
     if (!A || !A.netAuth || (A.isIn && !A.isIn()) || (A.user && !A.user())) return Promise.resolve(null);
     return A.netAuth().then(function (a) { return a && a.uid && a.token ? a : null; }, function () { return null; });
   }
-  /** Una escritura: d = {kind, text, where?, ver, ctx}. Resuelve 'ok' | 'keep' (a la cola) | 'drop' (nunca pasará). */
+  /** Una escritura: d = {kind, text, where?, ver, ctx, uid}. d.uid es la cuenta que había AL MANDARLO ('' sin sesión): si al
+   *  reintentar la sesión es otra (o ninguna), sale sin cuenta y sin Authorization, nunca con la cuenta de otro.
+   *  Resuelve 'ok' | 'keep' (a la cola) | 'drop' (nunca pasará). */
   function write(id, d) {
     var b = base(), f = F || (typeof fetch === 'function' ? fetch.bind(root) : null);
     if (!b || !f) return Promise.resolve('keep');
     var name = b.replace(/^https?:\/\/[^\/]+\/v1\//, '') + '/feedback/' + id;
-    return auth().then(function (a) {
+    return (d.uid ? auth() : Promise.resolve(null)).then(function (a) {
+      if (a && a.uid !== d.uid) a = null;
       var flds = { kind: { stringValue: d.kind }, text: { stringValue: d.text }, ver: { stringValue: String(d.ver || '').slice(0, 20) }, ctx: { stringValue: d.ctx },
         uid: { stringValue: a ? a.uid : '' }, state: { stringValue: 'nuevo' } };
       if (d.where) flds.where = { stringValue: d.where };
@@ -186,17 +193,26 @@
       if (r && r.ok) return 'ok';
       if (s === 409) return 'ok';                       // (un intento anterior sí llegó)
       if (s === 400 || s === 413) return 'drop';        // formato que las reglas nunca aceptarán
-      return 'keep';                                    // 401/403 (reglas sin desplegar), 404, 429, 5xx
+      return 'keep';                                    // 401/403 (reglas sin desplegar, o rechazo de las reglas: también es 403), 404, 429, 5xx
     }, function () { return 'keep'; });                  // sin red
   }
   var flushing = null;
+  /** ¿Se tira ya? Firestore contesta 403 tanto con las reglas sin desplegar como a un documento que las reglas nunca aceptarán,
+   *  así que la respuesta no sirve para distinguirlos: lo que lleva Q_TRIES intentos Y más de 14 días en la cola se descarta (si
+   *  no, un elemento malo se reintentaría para siempre). */
+  function stale(x, now) { return (x.tries | 0) >= Q_TRIES && now - (+x.at || 0) > Q_AGE; }
   /** Reintenta la cola. Resuelve {sent, left}. */
   function flush() {
     if (flushing) return flushing;
     var q = queue(); if (!q.length) return Promise.resolve({ sent: 0, left: 0 });
     var sent = 0, keep = [];
     flushing = q.reduce(function (p, x) {
-      return p.then(function () { return write(x.id, x.d).then(function (r) { if (r === 'ok') sent++; else if (r === 'keep') keep.push(x); }); });
+      return p.then(function () {
+        return write(x.id, x.d).then(function (r) {
+          if (r === 'ok') sent++;
+          else if (r === 'keep') { x.tries = (x.tries | 0) + 1; if (!x.at) x.at = Date.now(); if (!stale(x, Date.now())) keep.push(x); }
+        });
+      });
     }, Promise.resolve()).then(function () {
       // lo que haya entrado en la cola mientras tanto se conserva
       var now = queue(), ids = {}; q.forEach(function (x) { ids[x.id] = 1; });
@@ -212,11 +228,15 @@
     var lim = canSend(); if (!lim.ok) return Promise.resolve({ status: 'error', msg: lim.why === 'dia' ? 'Ya has mandado ' + DAY_MAX + ' hoy. ¡Gracias! Mañana puedes mandar más.' : 'Espera ' + lim.wait + ' s antes de mandar otra.', limit: lim.why });
     var d = { kind: o.kind, text: norm(o.text), ver: String(VB.VERSION || ''), ctx: ctxJson(o.kind, { screen: o.screen, mode: o.mode }) };
     if (o.kind === 'bug' && o.where) d.where = o.where;
-    var id = newId(), x = { id: id, d: d, at: Date.now() };
+    var id = newId(), x = { id: id, d: d, at: Date.now(), tries: 1 };
     countSend();
-    var q = queue(); q.push(x); setQueue(q);   // primero a la cola: si la pestaña se cierra a mitad, no se pierde
     var drop = function () { setQueue(queue().filter(function (y) { return y.id !== id; })); };
-    return write(id, d).then(function (r) {
+    // la cuenta se decide AHORA (al mandarlo), no al reintentar: un mensaje de la cola nunca sale con la cuenta de otro
+    return auth().then(function (a) {
+      d.uid = a ? String(a.uid) : '';
+      var q = queue(); q.push(x); setQueue(q);   // primero a la cola: si la pestaña se cierra a mitad, no se pierde
+      return write(id, d);
+    }).then(function (r) {
       if (r === 'ok' || r === 'drop') drop();
       if (r === 'ok') { flush(); return { status: 'sent', msg: '¡Gracias! Enviado', id: id }; }
       if (r === 'drop') return { status: 'error', msg: 'No se ha podido guardar. Prueba con otro texto.' };
@@ -234,9 +254,11 @@
   function viewerUrl() { return root.__vbBuild ? 'feedback.html' : 'pages/feedback.html'; }
 
   // ------------------------------------------------------------------ formulario (lo monta ui.js dentro de #pnFb)
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   var draft = { sug: '', bug: '' }, M = null;
   var LBL = { sug: '¿Qué mejorarías o qué te gustaría ver en el juego?', bug: '¿Qué ha pasado? Cuenta qué hacías y qué esperabas que pasara.' };
+  // (móvil bajo, .ph-s: la pregunta en una línea para que el cuadro quepa en la hoja)
+  var LBL_S = { sug: '¿Qué mejorarías?', bug: '¿Qué ha pasado?' };
   var PH = { sug: 'Por ejemplo: que se pueda elegir el balón de la playa', bug: 'Por ejemplo: en la Carrera, al acabar la jornada, se queda la pantalla en negro' };
   var IC = {
     sug: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V17h6v-1c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5zM9 18.5h6V20a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg>',
@@ -259,25 +281,26 @@
     if (d) {
       h.innerHTML = '<div class="fb sp-panel sp-scroll fb-done" id="fbBody" data-nav>' +
         '<p class="fb-ok' + (d.status === 'queued' ? ' fb-q' : '') + '" role="status">' + esc(d.msg) + '</p>' +
-        '<p class="fb-s">' + (d.status === 'queued' ? 'No hay conexión con el servidor ahora mismo. Lo guardamos en este aparato y se manda solo más tarde.' : (k === 'bug' ? 'Lo miraremos para arreglarlo.' : 'Lo leeremos con calma.')) + '</p></div>' +
+        '<p class="fb-s">' + (d.status === 'queued' ? 'No hemos podido mandarlo ahora. Lo guardamos en este aparato y se manda solo más tarde.' : (k === 'bug' ? 'Lo miraremos para arreglarlo.' : 'Lo leeremos con calma.')) + '</p></div>' +
         '<div class="fb-foot" data-nav data-sp-row>' + spb('close', 'Hecho', 'sp-kit', 2, ' id="fbDone"') + '</div>';
       deco(); return;
     }
     var n = norm(draft[k]).length;
     h.innerHTML =
-      '<div class="fb-kind" data-nav data-sp-row role="radiogroup" aria-label="Qué quieres mandar">' +
+      '<div class="fb-kind" data-nav data-sp-row data-kb-hide role="radiogroup" aria-label="Qué quieres mandar">' +
         KINDS.map(function (x) { return '<button type="button" class="sp-tab" role="radio" data-fbk="' + x + '" aria-checked="' + (x === k) + '">' + IC[x] + '<span>' + (x === 'sug' ? 'Sugerencia' : 'Bug') + '</span></button>'; }).join('') +
       '</div>' +
       '<div class="fb sp-panel sp-scroll" id="fbBody" data-nav>' +
-        '<label class="fb-l" for="fbText">' + esc(LBL[k]) + '</label>' +
+        '<label class="fb-l" for="fbText"><span class="fb-lf">' + esc(LBL[k]) + '</span><span class="fb-ls" aria-hidden="true">' + esc(LBL_S[k]) + '</span></label>' +
         '<textarea id="fbText" class="fb-t" data-focus rows="4" maxlength="' + MAX + '" spellcheck="true" autocomplete="off" placeholder="' + esc(PH[k]) + '"></textarea>' +
-        '<p class="fb-n" id="fbCount" aria-live="off">' + n + ' / ' + MAX + '</p>' +
-        (k === 'bug' ? '<p class="fb-wl" id="fbWl">¿Dónde pasó? <small>(si quieres)</small></p><div class="fb-where" data-sp-row role="radiogroup" aria-labelledby="fbWl">' +
+        '<p class="fb-n" id="fbCount" aria-live="off" data-kb-hide>' + n + ' / ' + MAX + '</p>' +
+        (k === 'bug' ? '<p class="fb-wl" id="fbWl" data-kb-hide>¿Dónde pasó? <small>(si quieres)</small></p><div class="fb-where" data-sp-row data-kb-hide role="radiogroup" aria-labelledby="fbWl">' +
           WHERE.map(function (w) { return '<button type="button" class="sp-tab" role="radio" data-fbw="' + w[0] + '" aria-checked="' + (M.where === w[0]) + '">' + esc(w[1]) + '</button>'; }).join('') + '</div>' : '') +
-        '<p class="fb-att" id="fbAtt">' + esc(ctxLine(k, M.o)) + '</p>' +
+        '<p class="fb-att" id="fbAtt" data-kb-hide>' + esc(ctxLine(k, M.o)) + '</p>' +
         '<p class="fb-msg" id="fbMsg" role="status" aria-live="polite"></p>' +
       '</div>' +
-      '<div class="fb-foot" data-nav data-sp-row>' + spb('cancel', 'Cancelar', 'sp-cream', 1, ' id="fbCancel"') + spb('send', 'Enviar', 'sp-kit', 2, ' id="fbSend"') + '</div>';
+      '<div class="fb-foot" data-nav data-sp-row><p class="fb-keys sp-hints" aria-hidden="true"><span class="kh"><span class="key">Ctrl</span> + <span class="key">Intro</span> envía</span>' +
+        '<span class="kh"><span class="key">Esc</span> cierra</span></p>' + spb('cancel', 'Cancelar', 'sp-cream', 1, ' id="fbCancel"') + spb('send', 'Enviar', 'sp-kit', 2, ' id="fbSend"') + '</div>';
     var ta = h.querySelector('#fbText');
     ta.value = draft[k];
     ta.addEventListener('input', function () { draft[M.kind] = ta.value; count(); });

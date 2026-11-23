@@ -132,7 +132,7 @@ service cloud.firestore {
     // 403 y el juego lo guarda en la cola del aparato ('make-the-cut.feedbackq') y lo vuelve a probar al arrancar y al volver la red.
     // feedback/{id}: id aleatorio de 20 letras y cifras (16-32 admitidas). Campos:
     //   kind ('sug' | 'bug'), text (5-2000), where (opcional: 'partido' | 'carrera' | 'online' | 'menus' | 'otro'), ver (≤ 20, la
-    //   versión del juego), ctx (JSON en texto ≤ 8000: navegador, sistema, pantalla, calidad, idioma, dónde estaba y, en los bugs, los
+    //   versión del juego), ctx (JSON en texto ≤ 4000: navegador, sistema, pantalla, calidad, idioma, dónde estaba y, en los bugs, los
     //   últimos errores; nunca correo, IP ni nombre), uid (el de la cuenta si hay sesión; '' sin sesión), t (= hora del SERVIDOR: el
     //   cliente la manda con la transformación REQUEST_TIME), state ('nuevo' al crear).
     //   - Crear: con o sin sesión (sin sesión, uid ''; con sesión, uid = el suyo), con esos campos y tamaños exactos.
@@ -147,7 +147,7 @@ service cloud.firestore {
           && d.text is string && d.text.size() >= 5 && d.text.size() <= 2000
           && (!('where' in d) || d.where in ['partido', 'carrera', 'online', 'menus', 'otro'])
           && d.ver is string && d.ver.size() <= 20
-          && d.ctx is string && d.ctx.size() <= 8000
+          && d.ctx is string && d.ctx.size() <= 4000
           && d.uid is string && ((request.auth == null && d.uid == '') || (request.auth != null && d.uid == request.auth.uid))
           && d.t == request.time
           && d.state == 'nuevo';

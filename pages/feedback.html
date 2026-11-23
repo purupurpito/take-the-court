@@ -68,7 +68,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(1
   var STATES = ['nuevo', 'visto', 'hecho', 'descartado'], WHERE = { partido: 'Partido', carrera: 'Carrera', online: 'Online', menus: 'Menús', otro: 'Otro' };
   var rows = [], $ = function (id) { return document.getElementById(id); };
   function msg(t) { $('msg').textContent = t; }
-  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function token() {
     var acc = null; try { acc = JSON.parse(localStorage.getItem('make-the-cut.account') || 'null'); } catch (e) { }
     if (!acc || !acc.rt) return Promise.reject(new Error('No hay ninguna cuenta abierta en este navegador. Entra en el juego con tu cuenta y vuelve.'));
@@ -80,10 +80,14 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(1
   function row(doc) {
     var f = doc.fields || {}, o = { id: String(doc.name || '').split('/').pop() };
     ['kind', 'text', 'where', 'ver', 'ctx', 'uid', 't', 'state', 'note'].forEach(function (k) { var v = val(f[k]); if (v != null) o[k] = v; });
-    try { o.ctxObj = JSON.parse(o.ctx || '{}'); } catch (e) { o.ctxObj = null; }
+    // ctx lo escribe cualquiera (crear no pide cuenta): se normaliza aquí y el resto del visor solo ve objetos y listas de verdad
+    var obj = null; try { obj = JSON.parse(o.ctx || '{}'); } catch (e) { obj = null; }
+    o.ctxObj = obj && typeof obj === 'object' && !Array.isArray(obj) ? obj : null;
+    o.errs = o.ctxObj && Array.isArray(o.ctxObj.errs) ? o.ctxObj.errs.filter(function (e) { return e && typeof e === 'object' && !Array.isArray(e); }) : [];
+    ['kind', 'text', 'where', 'ver', 'uid', 'state', 'note'].forEach(function (k) { if (o[k] != null) o[k] = String(o[k]); });
     return o;
   }
-  function ctxTxt(c) {
+  function ctxTxt(c, errs) {
     if (!c) return '';
     var e = c.env || {}, L = [];
     if (e.br || e.os) L.push(esc((e.br || '?') + ' en ' + (e.os || '?')) + (e.mob ? ' (móvil)' : ''));
@@ -92,7 +96,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(1
     if (c.lang) L.push(esc(c.lang));
     if (c.screen) L.push('en <code>' + esc(c.screen) + '</code>');
     if (c.mode) L.push('<code>' + esc(c.mode) + '</code>');
-    if (c.errs && c.errs.length) L.push('<b class="bad">' + c.errs.length + ' error' + (c.errs.length > 1 ? 'es' : '') + '</b>');
+    if (errs && errs.length) L.push('<b class="bad">' + esc(String(errs.length)) + ' error' + (errs.length > 1 ? 'es' : '') + '</b>');
     return L.join(' · ');
   }
   function when(t) { return t ? new Date(t).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit', hour: '2-digit', minute: '2-digit' }) : ''; }
@@ -108,20 +112,25 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(1
     $('list').innerHTML = L.length ? '' : '<p class="sub">' + (rows.length ? 'Nada con estos filtros.' : '') + '</p>';
     L.forEach(function (r) {
       var d = document.createElement('div'); d.className = 'it';
-      var st = r.state || 'nuevo';
-      d.innerHTML = '<div class="hd"><span class="chip k-' + esc(r.kind) + '">' + (r.kind === 'bug' ? 'Bug' : 'Sugerencia') + '</span>'
-        + (r.where ? '<span>' + esc(WHERE[r.where] || r.where) + '</span>' : '') + '<span>' + esc(when(r.t)) + '</span><span>v' + esc(r.ver || '?') + '</span>'
-        + '<span>' + (r.uid ? 'cuenta ' + esc(r.uid.slice(0, 8)) + '…' : 'sin cuenta') + '</span><span class="s-' + esc(st) + '">' + esc(st) + '</span></div>'
-        + '<div class="txt">' + esc(r.text) + '</div><div class="ctx">' + ctxTxt(r.ctxObj) + '</div>'
-        + (r.ctxObj && r.ctxObj.errs && r.ctxObj.errs.length ? '<details><summary>Errores</summary><pre>' + esc(r.ctxObj.errs.map(function (e) { return '[' + e.k + ' ' + e.t + ' s' + (e.n ? ' ×' + e.n : '') + '] ' + e.m + (e.s ? '  (' + e.s + ')' : ''); }).join('\n')) + '</pre></details>' : '')
-        + '<details><summary>Contexto completo</summary><pre>' + esc(JSON.stringify(r.ctxObj || r.ctx, null, 1)) + '</pre></details>'
-        + '<div class="ed"><select aria-label="Estado">' + STATES.map(function (s) { return '<option value="' + s + '"' + (s === st ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>'
-        + '<input type="text" maxlength="1000" placeholder="Nota (solo la ves tú)" aria-label="Nota" value="' + esc(r.note || '') + '"><button type="button">Guardar</button><span class="sv"></span></div>';
-      var sel = d.querySelector('select'), inp = d.querySelector('input'), b = d.querySelector('button'), sv = d.querySelector('.sv');
-      b.onclick = function () { save(r, sel.value, inp.value, b, sv); };
+      try { card(d, r); } catch (e) {   // (un mensaje raro no se lleva por delante a los demás ni el botón de descargar)
+        d.innerHTML = '<div class="hd"><span class="chip k-bug">Ilegible</span><span>' + esc(r.id) + '</span></div><div class="ctx">No se puede mostrar este mensaje: ' + esc(e && e.message || e) + '</div>';
+      }
       $('list').appendChild(d);
     });
     $('dl').disabled = !rows.length;
+  }
+  function card(d, r) {
+    var st = r.state || 'nuevo';
+    d.innerHTML = '<div class="hd"><span class="chip k-' + esc(r.kind) + '">' + (r.kind === 'bug' ? 'Bug' : 'Sugerencia') + '</span>'
+      + (r.where ? '<span>' + esc(WHERE[r.where] || r.where) + '</span>' : '') + '<span>' + esc(when(r.t)) + '</span><span>v' + esc(r.ver || '?') + '</span>'
+      + '<span>' + (r.uid ? 'cuenta ' + esc(r.uid.slice(0, 8)) + '…' : 'sin cuenta') + '</span><span class="s-' + esc(st) + '">' + esc(st) + '</span></div>'
+      + '<div class="txt">' + esc(r.text) + '</div><div class="ctx">' + ctxTxt(r.ctxObj, r.errs) + '</div>'
+      + (r.errs.length ? '<details><summary>Errores</summary><pre>' + esc(r.errs.map(function (e) { return '[' + e.k + ' ' + e.t + ' s' + (e.n ? ' ×' + e.n : '') + '] ' + e.m + (e.s ? '  (' + e.s + ')' : ''); }).join('\n')) + '</pre></details>' : '')
+      + '<details><summary>Contexto completo</summary><pre>' + esc(JSON.stringify(r.ctxObj || r.ctx, null, 1)) + '</pre></details>'
+      + '<div class="ed"><select aria-label="Estado">' + STATES.map(function (s) { return '<option value="' + s + '"' + (s === st ? ' selected' : '') + '>' + s + '</option>'; }).join('') + '</select>'
+      + '<input type="text" maxlength="1000" placeholder="Nota (solo la ves tú)" aria-label="Nota" value="' + esc(r.note || '') + '"><button type="button">Guardar</button><span class="sv"></span></div>';
+    var sel = d.querySelector('select'), inp = d.querySelector('input'), b = d.querySelector('button'), sv = d.querySelector('.sv');
+    b.onclick = function () { save(r, sel.value, inp.value, b, sv); };
   }
   function save(r, state, note, b, sv) {
     b.disabled = true; sv.textContent = 'Guardando…'; sv.className = 'sv';
@@ -153,7 +162,7 @@ pre{white-space:pre-wrap;overflow-wrap:anywhere;font-size:12px;background:rgba(1
   $('load').onclick = load;
   $('fk').onchange = $('fs').onchange = render;
   $('dl').onclick = function () {
-    var out = rows.map(function (r) { var o = Object.assign({}, r); o.ctx = r.ctxObj || r.ctx; delete o.ctxObj; return o; });
+    var out = rows.map(function (r) { var o = Object.assign({}, r); o.ctx = r.ctxObj || r.ctx; delete o.ctxObj; delete o.errs; return o; });
     var txt = JSON.stringify({ juego: 'Take the Court', bajado: new Date().toISOString(), n: out.length, opiniones: out }, null, 1);
     var a = document.createElement('a'), u = URL.createObjectURL(new Blob([txt], { type: 'application/json' }));
     a.href = u; a.download = 'opiniones-' + new Date().toISOString().slice(0, 10) + '.json';

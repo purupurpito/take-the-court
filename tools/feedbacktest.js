@@ -4,7 +4,8 @@
  *  1) SIN navegador (siempre): js/feedback.js en node con un localStorage y un fetch de mentira: validación, envío (documents:commit con
  *     t = REQUEST_TIME, currentDocument.exists = false, sin Authorization sin sesión y con ella con la sesión), cola sin conexión y con
  *     403 (reglas sin desplegar), 400 que se descarta, 409 que cuenta como enviado, tope de 20 en la cola, límites (1 cada 30 s, 10 al
- *     día), contexto sin datos personales (sin arrobas, rutas recortadas, errores solo en los bugs, ≤ 8000) y el visor.
+ *     día), contexto sin datos personales (sin arrobas, rutas recortadas, errores solo en los bugs, ≤ 4000), la cuenta fijada al mandarlo, la cola que se tira tras 30 intentos y 14 días, y el visor
+ *     (que no se rompe con un ctx raro).
  *  2) Con el emulador de Firestore (como tools/roomtest.js; --no-emu la salta): las reglas de feedback con la huella de admin()
  *     cambiada por la de una cuenta de prueba (solo en la copia temporal): crear con y sin sesión, campos de más, tamaños, hora del
  *     cliente, leer/listar/cambiar solo admin (solo state y note), nadie borra; y netlogs sigue leyéndose solo con admin().
@@ -133,7 +134,7 @@ async function nodeTests() {
   check('bug: errores en el contexto con las rutas recortadas (sin carpeta de usuario ni dominio)', cb.errs.length === 2 && cb.errs[0].s === 'ui.js:120:7' && !/Alguien|takethecourt\.com\/js|file:/.test(JSON.stringify(cb.errs)), cb.errs);
   for (let i = 0; i < 9; i++) FB._pushErr('error', 'Error número ' + i + ' ' + 'z'.repeat(400), 'a.js:1');
   const cb2 = FB._ctxJson('bug', { screen: 's'.repeat(500), mode: 'm'.repeat(500) });
-  check('contexto ≤ 8000 y como mucho 5 errores de 300', cb2.length <= 8000 && JSON.parse(cb2).errs.length === 5 && JSON.parse(cb2).errs.every(e => e.m.length <= 300), cb2.length);
+  check('contexto ≤ 4000 y como mucho 5 errores de 300', cb2.length <= 4000 && JSON.parse(cb2).errs.length === 5 && JSON.parse(cb2).errs.every(e => e.m.length <= 300), cb2.length);
   const line = FB.ctxLine('bug', {});
   check('línea de lo que se adjunta (versión, navegador, sistema, pantalla y errores; nada personal)', /^Se adjunta: versión 1\.22\.1, Chrome 130 en Android 14, pantalla 844×390, calidad media, dónde estabas y los últimos errores del juego \(5\)\. Nada personal/.test(line), line);
   check('el contexto no lleva arrobas', !/@/.test(FB._ctxJson('bug', { screen: 'x' }).replace(/"scr":"[^"]*"/, '')));
@@ -141,6 +142,30 @@ async function nodeTests() {
   B.ctx.__vbBuild = { v: '1.22.1', sha: 'abc1234' };
   check('visor: feedback.html en Pages', FB.viewerUrl() === 'feedback.html');
   check('ids aleatorios de 20 letras y cifras', /^[A-Za-z0-9]{20}$/.test(FB._newId()) && FB._newId() !== FB._newId());
+  check('rutas: sin la consulta (?key=…&refresh_token=…) pero con :línea:columna', FB._clean('at https://securetoken.googleapis.com/v1/token?key=AIzaX&refresh_token=abc y https://x.com/js/ui.js?v=1:44:2') === 'at token y ui.js:44:2', FB._clean('at https://securetoken.googleapis.com/v1/token?key=AIzaX&refresh_token=abc y https://x.com/js/ui.js?v=1:44:2'));
+  // la cuenta se fija al mandarlo: lo de la cola nunca sale con la cuenta de otro
+  let who = null;
+  const acc2 = { FS_BASE, user: () => who, netAuth: async () => { if (!who) throw new Error('sin sesión'); return { uid: 'uid' + who, token: 'tok' + who }; } };
+  let B2 = boot({ account: acc2 }), FB2 = B2.FB, f2 = mockFetch(403); FB2._setFetch(f2);
+  let r2 = await FB2.submit({ kind: 'sug', text: 'Mandada sin cuenta' });
+  check('sin sesión → en la cola con uid \'\'', r2.status === 'queued' && FB2.queue()[0].d.uid === '', FB2.queue()[0]);
+  B2.store['make-the-cut.feedbackl'] = JSON.stringify({ d: '20000101', n: 0, last: 0 });
+  who = 'Ana'; r2 = await FB2.submit({ kind: 'sug', text: 'Mandada con la cuenta de Ana' });
+  check('con sesión de Ana → en la cola con su uid', r2.status === 'queued' && FB2.queue()[1].d.uid === 'uidAna', FB2.queue()[1]);
+  who = 'Bea'; f2 = mockFetch(200); FB2._setFetch(f2); await FB2.flush();
+  const fw0 = f2.calls[0], fw1 = f2.calls[1];
+  check('flush con la sesión de Bea: las dos salen sin Authorization y con uid \'\' (nunca el de Bea)', f2.calls.length === 2 && !fw0.opt.headers.Authorization && !fw1.opt.headers.Authorization
+    && fw0.body.writes[0].update.fields.uid.stringValue === '' && fw1.body.writes[0].update.fields.uid.stringValue === '', f2.calls.map(c => [c.opt.headers, c.body.writes[0].update.fields.uid]));
+  // la cola no reintenta para siempre: 30 intentos Y más de 14 días → fuera
+  const now = Date.now(), D = 864e5;
+  B2.store['make-the-cut.feedbackq'] = JSON.stringify([
+    { id: 'Viejo000000000000001', d: { kind: 'sug', text: 'viejo y muy reintentado', ver: '1', ctx: '{}', uid: '' }, at: now - 20 * D, tries: 29 },
+    { id: 'Viejo000000000000002', d: { kind: 'sug', text: 'viejo pero pocos intentos', ver: '1', ctx: '{}', uid: '' }, at: now - 20 * D, tries: 3 },
+    { id: 'Nuevo000000000000003', d: { kind: 'sug', text: 'reciente y muy reintentado', ver: '1', ctx: '{}', uid: '' }, at: now - 2 * D, tries: 50 }]);
+  f2 = mockFetch(403); FB2._setFetch(f2); await FB2.flush();
+  const q2 = FB2.queue().map(x => x.id);
+  check('cola: lo que llega a 30 intentos con más de 14 días se tira; lo demás sigue (con los intentos contados)', q2.length === 2 && q2.indexOf('Viejo000000000000001') < 0
+    && FB2.queue().every(x => x.tries >= 4), FB2.queue());
   // ficheros
   const idx = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
   check('index.html carga js/feedback.js justo después de js/version.js', /<script src="js\/version\.js"><\/script>\n<script src="js\/feedback\.js"><\/script>/.test(idx));
@@ -214,7 +239,7 @@ async function emuTests() {
     check('texto de 4 → 403; de 2000 → 200; de 2001 → 403', await commit(id(8), Object.assign(good(), { text: S('abcd') })) === 403
       && await commit(id(9), Object.assign(good(), { text: S('x'.repeat(2000)) })) === 200 && await commit(id(10), Object.assign(good(), { text: S('x'.repeat(2001)) })) === 403);
     check('where de la lista → 200; fuera → 403', await commit(id(11), Object.assign(good(), { where: S('menus') })) === 200 && await commit(id(12), Object.assign(good(), { where: S('cocina') })) === 403);
-    check('ver de 21 → 403; ctx de 8001 → 403', await commit(id(13), Object.assign(good(), { ver: S('x'.repeat(21)) })) === 403 && await commit(id(14), Object.assign(good(), { ctx: S('x'.repeat(8001)) })) === 403);
+    check('ver de 21 → 403; ctx de 4001 → 403', await commit(id(13), Object.assign(good(), { ver: S('x'.repeat(21)) })) === 403 && await commit(id(14), Object.assign(good(), { ctx: S('x'.repeat(4001)) })) === 403);
     check('state distinto de nuevo → 403', await commit(id(15), Object.assign(good(), { state: S('hecho') })) === 403);
     check('t del cliente (no la del servidor) → 403', await commit(id(16), Object.assign(good(), { t: { timestampValue: new Date().toISOString() } }), null, { clientTime: true }) === 403);
     check('id corto o raro → 403', await commit('abc', good()) === 403 && await commit('Prueba_17-xxxxxxxxxxx', good()) === 403);
@@ -432,6 +457,26 @@ async function browser() {
     S = await st(pg);
     check('B vuelve a la pausa', !S.panel && S.state === 'paused', S);
     check('sin errores de JS', !pg.errors.length, pg.errors.slice(0, 3));
+    pg.close(); pg = null;
+
+    // (g) visor: un ctx raro (lo puede escribir cualquiera) no rompe la página ni se cuela en el HTML
+    console.log('\n3g) Visor con mensajes raros');
+    const VDOC = (id, ctx, text) => ({ document: { name: 'projects/p/databases/(default)/documents/feedback/' + id, fields: { kind: { stringValue: 'bug' }, text: { stringValue: text },
+      ver: { stringValue: '1.22.1' }, ctx: { stringValue: ctx }, uid: { stringValue: '' }, state: { stringValue: 'nuevo' }, t: { timestampValue: new Date().toISOString() } } } });
+    const VLIST = [VDOC('Raro0001', '{"errs":{"length":"<img src=x onerror=window.__xss=1>"}}', 'uno'), VDOC('Raro0002', '{"errs":[null,7,"x"]}', 'dos'),
+      VDOC('Raro0003', '[1,2]', 'tres'), VDOC('Raro0004', 'no es json', 'cuatro'), VDOC('Bien0005', JSON.stringify({ env: { br: 'Chrome 130', os: 'Android 14' }, errs: [{ k: 'error', m: 'x', t: 3 }] }), '<b>cinco</b>')];
+    const VINIT = `(function(){try{localStorage.setItem('make-the-cut.account',JSON.stringify({rt:'r',it:'i',ie:Date.now()+36e5}));}catch(e){}
+      var of=window.fetch;window.fetch=function(u,o){var s=String(u&&u.url||u);if(s.indexOf('firestore.googleapis.com')<0)return of.apply(this,arguments);
+        return Promise.resolve(new Response(${JSON.stringify(JSON.stringify(VLIST))},{status:200,headers:{'Content-Type':'application/json'}}));};})();`;
+    pg = await CDP.open({ size: '1280x720', init: [VINIT] });
+    await pg.send('Page.navigate', { url: require('url').pathToFileURL(path.join(ROOT, 'pages', 'feedback.html')).href });
+    const vok = await waitFor(pg, "document.querySelectorAll('#list .it').length>=5", 8000);
+    check('visor: salen los 5 mensajes (también los de ctx raro) y «Descargar» se activa', vok && (await pg.evalJs("!document.getElementById('dl').disabled")), await pg.evalJs("document.querySelectorAll('#list .it').length"));
+    check('visor: nada del ctx ni del texto se cuela como HTML', !(await pg.evalJs('!!window.__xss||!!document.querySelector("#list img")||!!document.querySelector("#list .txt b")')));
+    check('visor: el bueno enseña su error; los raros, 0 errores', /1 error/.test(await pg.evalJs("document.querySelectorAll('#list .it')[4].textContent")) && !(await pg.evalJs("[0,1,2,3].some(function(i){return /error/.test(document.querySelectorAll('#list .it')[i].querySelector('.ctx').textContent)})")));
+    await pg.evalJs("document.getElementById('fk').value='bug';document.getElementById('fk').onchange()");
+    check('visor: al filtrar sigue entero', (await pg.evalJs("document.querySelectorAll('#list .it').length")) === 5);
+    check('visor: sin errores de JS', !pg.errors.length, pg.errors.slice(0, 3));
     pg.close(); pg = null;
 
     // (e) la fila del visor: solo con la cuenta de Ferran

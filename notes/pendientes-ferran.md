@@ -17,6 +17,10 @@ rama pendientes, sin publicar.
   la pausa; límites 1 cada 30 s y 10 al día; Novedades 1.22.1 «Tu opinión cuenta» (3 frases). El visor «Buzón de opiniones» solo con tu
   cuenta (Ajustes › Info) → feedback.html, con «Descargar todo (JSON)».
 - **Pruebas a mano:** escribir en un iPhone y un Android de verdad (el teclado del sistema tapa media pantalla en apaisado).
+- **Para decidir (seguridad, notes/feedback.md):** (1) ¿entras con Google o con correo y contraseña? Si es con Google (o el correo
+  está verificado), conviene añadir `email_verified` a `admin()`; no se ha puesto para no dejarte sin visor ni netlogs. (2) No hay
+  límite en el servidor: cualquiera puede llenar el buzón con curl. Opciones si pasa: pedir cuenta (Auth anónima), App Check o
+  paginar el visor.
 
 ## Imprescindibles 1.22.0 (rama investigacion; informe estudios/revision-juegos-voley-2026-11-21.md §4)
 - **Revisión de la rama (22-nov).** Arreglos hechos sin preguntar: una llave de más en el CSS del táctil dejaba muerta la regla de zurdos
