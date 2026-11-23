@@ -83,6 +83,9 @@ const SCREENS = [
   ...[0, 1, 2].map(k => ({ id: 'jugadores-g' + k, area: 'portada', q: M0, open: `return M.panel('#btnSquad','#pnSquad','#sqTabs','g${k}');`, primary: '' })),
   { id: 'acerca-novedades', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('news'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'acerca-creditos', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('credits'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
+  // Opiniones (1.22.1, js/feedback.js): el formulario desde Ajustes › Info (sugerencia) y el de bug ya enviado sin red (cola)
+  { id: 'opiniones-sug', area: 'portada', q: M0, open: "if (!(await M.panel('#btnSettings','#pnSet','#setTabs','info'))) return false; M.click('[data-go=\"fbsug\"]'); await M.sleep(150); return VB.UI._settings().panel === 'fb';", primary: '#fbSend' },
+  { id: 'opiniones-bug', area: 'portada', q: M0, open: "await M.ensureMenu(); if (!VB.UI.openFeedback('bug')) return false; await M.sleep(120); return VB.UI._settings().panel === 'fb';", primary: '#fbSend' },
   { id: 'aviso-colocador', area: 'portada', q: M0 + '&setnote=1', open: "await M.ensureMenu(); VB.UI.setterNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="later"]' },
   { id: 'primer-partido', area: 'portada', q: M0 + '&panel=first', open: "return M.until(()=>VB.UI.isPanelOpen(),2000);" },
   { id: 'home-jugarya', area: 'portada', q: M0 + '&now=1', open: 'return M.ensureMenu();', exit: '', primary: '#btnNow' },   // «Jugar ya» (1.22.0): portada de quien no ha jugado nunca
@@ -209,6 +212,7 @@ const SCREENS = [
   { id: 'semana-hoja', area: 'partido', q: 'debug=semana_end', open: "return M.until(()=>VB.ctx.state==='over',8000);", wait: 1500, exit: '', primary: '#btnAgain' },
   { id: 'pausa', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} return VB.ctx.state==='paused' && !VB.UI.isPanelOpen();", wait: 500, exit: PAUSE_EXIT },
   { id: 'pausa-controles', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); if (!VB.UI.isPanelOpen()) M.click('#btnPControls'); await M.sleep(150); return VB.UI.isPanelOpen();", primary: '' },
+  { id: 'pausa-bug', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} M.click('#btnPBug'); await M.sleep(150); return VB.UI._settings().panel === 'fb';", primary: '#fbSend' },
   { id: 'pausa-ajustes', area: 'partido', q: 'debug=pause', open: "await M.until(()=>VB.ctx.state==='paused',5000); for (let i=0;i<4&&VB.UI.isPanelOpen();i++){M.click('#btnPanelBack'); await M.sleep(60);} M.click('#btnPSettings'); await M.sleep(150); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'cambios-6v6', area: 'partido', q: 'debug=subs6menu', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },
   { id: 'cambios-6v6-elegido', area: 'partido', q: 'debug=subs6menu&pick=1', open: "return M.until(()=>VB.UI.isPanelOpen(),5000);", wait: 500, primary: '' },

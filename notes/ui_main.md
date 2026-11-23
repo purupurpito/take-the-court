@@ -2068,3 +2068,13 @@ Solo visuales: ni la sim, ni `g.rng`, ni las huellas (simtest, fingerprint6 y fl
 - **Vista previa**: icono dibujado (SVG) a la derecha del nombre de la fila: marca con su tamaño y contraste, y el vuelo con o sin aro. En
   el móvil va en la 2ª columna de la etiqueta; no sale si la ayuda va recortada (el botón ⓘ ocupa ese sitio) ni por debajo de 600 px de
   ancho (a 568×320 no cabía sin partir el nombre en tres líneas).
+
+## Sugerencias y bugs (1.22.1, 23-nov-2026, rama feedback; detalle en notes/feedback.md)
+- **ui.js**: panel `fb` en `PANELS`/`SP_PN` (`#pnFb`, lo pinta `VB.Feedback.mount`); `openFb(kind, from)` desde las filas `data-go="fbsug"` /
+  `"fbbug"` de Ajustes › Info (se apila) y desde `#btnPSug` / `#btnPBug` de la pausa (vuelve con el foco al botón); `fbWhere()` = dónde
+  estaba (menú/página/panel, pausa, modo y marcador) y la suposición de «¿Dónde pasó?»; fila `data-go="fbview"` (visor) solo con
+  `actaOk` (`fbVis()` desde `actaVis()`). API: `VB.UI.openFeedback(kind)`, `VB.UI._fb()` (pruebas).
+- **index.html**: filas de Info, `#pnFb`, fila `.p-row.p-fb` de la pausa y bloque CSS «SPLAT · OPINIONES» (después de «fin SPLAT ·
+  PANELES»; en el móvil la fila de la pausa va en la columna del marcador, fila 4, y `.p-warn` sube a la fila 3).
+- **main.js**: el `touchend` que anula el doble toque deja en paz el `textarea`.
+- **Pruebas**: `node tools/feedbacktest.js`; filas `opiniones-sug`, `opiniones-bug` y `pausa-bug` de tools/mobaudit.js.

@@ -2169,7 +2169,7 @@
     var lastTE = 0;
     document.addEventListener('touchend', function (e) {
       var t = e.target, now = e.timeStamp || 0;
-      if (now - lastTE < 320 && e.cancelable && !(t && t.closest && t.closest('button,a,input,[role=button],[data-opt]'))) e.preventDefault();
+      if (now - lastTE < 320 && e.cancelable && !(t && t.closest && t.closest('button,a,input,textarea,[role=button],[data-opt]'))) e.preventDefault();
       lastTE = now;
     }, { passive: false });
     syncFs();

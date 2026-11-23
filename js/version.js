@@ -52,16 +52,28 @@
  * 1.22.0 (22-nov-2026, rama investigacion, sin publicar): imprescindibles del informe de la revisión (Jugar ya, partidos cortos,
  *   disposición táctil, marca e indicador de caída, IA variada, Retomar el partido). Versión nueva OBLIGATORIA: la IA variada cambia
  *   lo que simula cada lado y el lobby online y el sello de Retomar separan por VB.VERSION (una 1.21.0 en caché no debe cruzarse).
+ * 1.22.1 (23-nov-2026, rama feedback): botones de Sugerencia y Bug (Ferran: «que guarde el feedback de los usuarios para poder
+ *   resolverlo cuando toque»): js/feedback.js, panel en Ajustes › Info y en la pausa, Firestore feedback/{id} (reglas sin desplegar:
+ *   hasta entonces, cola del aparato) y visor pages/feedback.html para la cuenta de Ferran (notes/feedback.md). La 1.23.0 queda para
+ *   el online multi.
  */
 (function () {
   'use strict';
   var VB = window.VB = window.VB || {};
 
-  VB.VERSION = '1.22.0';
-  VB.VERSION_DATE = '2026-11-22';
+  VB.VERSION = '1.22.1';
+  VB.VERSION_DATE = '2026-11-23';
 
   /** Novedades: {v, d:'AAAA-MM-DD', t (título corto), items[] (frases de 90 caracteres como mucho)}. La más nueva primero. */
   VB.CHANGELOG = [
+    {
+      v: '1.22.1', d: '2026-11-23', t: 'Tu opinión cuenta',
+      items: [
+        'Sugerencias y bugs: mándanos tus ideas o avisa de un fallo desde Ajustes › Info.',
+        'También desde la pausa del partido, con los botones Sugerencia y Bug, sin salir.',
+        'Sin conexión no se pierde nada: se guarda y se manda solo en cuanto se pueda.'
+      ]
+    },
     {
       v: '1.22.0', d: '2026-11-22', t: 'A tu manera',
       items: [

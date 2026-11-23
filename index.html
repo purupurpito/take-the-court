@@ -6260,6 +6260,63 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #btnFirstPlay{min-width:0;align-self:flex-start;padding-left:16px;padding-right:22px}
 /* ==== fin SPLAT · PANELES ==== */
 /* ====================================================================================================================
+   SPLAT · OPINIONES (1.22.1, 23-nov-2026; js/feedback.js, notes/feedback.md): sugerencias y bugs de los jugadores.
+   Panel 'fb' (#pnFb dentro de #panel.sp-pn, como Acerca de): el tipo en trazos de pincel (tira), UNA hoja con el cuadro de texto en
+   papel crema, el contador, «¿Dónde pasó?» en trazos (solo bugs), la línea de lo que se adjunta y el aviso; Cancelar / Enviar abajo a
+   la derecha. En el móvil, la rejilla de los paneles: tipo = strip, hoja = body, botones = dock. Y en la pausa, la fila .p-fb con dos
+   manchas pequeñas (Sugerencia, Bug): en PC debajo de las demás; en el móvil, en la columna del marcador, encima de «Cambios».
+   ===================================================================================================================== */
+:root:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="fb"]>.sheet{width:clamp(360px,48vw,660px)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind{flex:none;display:flex;flex-wrap:wrap;gap:12px;margin:0;padding:2px 4px 4px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind .sp-tab{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 18px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind .sp-tab svg{flex:none;width:20px;height:20px;fill:currentColor}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb{display:flex;flex-direction:column;gap:8px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l{display:block;margin:0 2px;font:400 clamp(14px,2.1vh,18px)/1.2 var(--sp-pop);letter-spacing:.02em;color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-t{display:block;width:100%;box-sizing:border-box;min-height:clamp(96px,18vh,170px);max-height:42vh;resize:vertical;margin:4px 0 0;padding:10px 12px;border:0;
+  border-radius:10px 14px 11px 15px/12px 10px 14px 11px;background:var(--sp-cream);color:var(--sp-ink);font:500 clamp(14px,2vh,16px)/1.4 var(--sp-ui);
+  box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);outline:none;-webkit-user-select:text;user-select:text;touch-action:auto}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-t::placeholder{color:rgba(21,16,42,.5)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-t:is(:focus,.kf){box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5px var(--sp-gold),3px 4px 0 5px var(--sp-ink)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-n{align-self:flex-end;margin:0 4px 0 0;font:600 12.5px/1 var(--sp-ui);color:rgba(255,244,220,.65);font-variant-numeric:tabular-nums}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-n.low{color:var(--sp-gold)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-wl{margin:2px 2px 0;font:400 clamp(13px,1.9vh,16px)/1.2 var(--sp-pop);letter-spacing:.02em;color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-wl small{font:600 12.5px var(--sp-ui);letter-spacing:0;color:rgba(255,244,220,.7)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-where{display:flex;flex-wrap:wrap;gap:10px 12px;padding:2px 2px 4px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-where .sp-tab{min-height:44px;padding:0 14px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-att{margin:2px 2px 0;font:500 12.5px/1.4 var(--sp-ui);color:rgba(255,244,220,.72)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-msg{margin:0 2px;font:700 13.5px/1.35 var(--sp-ui);color:var(--sp-teal)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-msg.bad{color:#ff8a96}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-msg:empty{display:none}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done{gap:6px}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-ok{margin:6px 2px 2px;font:400 clamp(22px,4vh,34px)/1.1 var(--sp-pop);color:var(--sp-gold);transform:rotate(-1.5deg);transform-origin:0 60%}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-ok.fb-q{color:var(--sp-cream)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-s{margin:0 2px;font:500 clamp(13px,1.9vh,15px)/1.45 var(--sp-ui);color:rgba(255,244,220,.88)}
+:root:not(#_):not(#_):not(#_) #panel.sp-pn .fb-foot{flex:none;display:flex;justify-content:flex-end;gap:14px;margin:0;padding:0 10px 6px 0}
+/* pausa: fila de dos manchas pequeñas, menos alta que las de encima */
+.sp-ov .p-row.p-fb>.sp-btn{--sp-h:clamp(40px,6.6vh,54px);--sp-fs:clamp(11.5px,2vh,16px)}
+.sp-ov .p-row.p-fb .sp-ic{--sp-is:clamp(15px,2.5vh,21px)}
+#btnPSug{--sp-d:var(--sp-gold)}#btnPBug{--sp-d:var(--sp-alt)}
+/* — móvil (.ph) — */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="fb"]>.sheet{width:min(var(--ph-ffw),max(60vw,520px))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind{grid-area:strip;gap:var(--ph-strip-gap);margin:0 0 var(--ph-s2);padding:3px 4px 5px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind .sp-tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 14px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-l{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-t{min-height:96px;max-height:none;font-size:max(16px,var(--ph-body))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-n{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-wl{font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-wl small{font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-where{gap:var(--ph-hit-gap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-where .sp-tab{--sp-tbh:44px;--sp-tbs:var(--ph-label);min-height:44px;padding:0 12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(.fb-att,.fb-msg){font-size:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-done .fb-s{font-size:var(--ph-body)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-foot{grid-area:dock;display:flex;align-items:flex-end;justify-content:flex-end;gap:var(--ph-hit-gap);margin:var(--ph-s2) 0 0;padding:0 2px 0 0}
+/* pausa en el móvil: la fila .p-fb (no display:contents) en la columna del marcador, fila 4; el aviso rojo sube a la fila 3 */
+:root.ph:not(#_):not(#_):not(#_) #pause .p-row.p-fb{display:flex;grid-column:1;grid-row:4;align-self:end;justify-self:start;gap:var(--ph-hit-gap);max-width:100%;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #pause .p-row.p-fb>.sp-btn{--sp-h:44px;--sp-fs:var(--ph-row);flex:0 1 auto;min-width:0;padding:0 12px}
+:root.ph:not(#_):not(#_):not(#_) #pause .p-warn{grid-row:3}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #pause .p-row.p-fb .sp-ic{display:none}
+/* ==== fin SPLAT · OPINIONES ==== */
+/* ====================================================================================================================
    SPLAT · AVISO COLOCADOR (salto con impulso, v1.12.0; ui.js setterNote, notes/ui_main.md «Salto con impulso»).
    Hoja .sp-panel pequeña a la izquierda (como los paneles), SIN velo: #setNote es una capa transparente que solo frena los toques a lo
    de detrás. Texto Rubik, kicker y título del sistema, parche «Activar» y dos manchas pequeñas. En apaisado bajo (≤ 430 px de alto),
@@ -6575,6 +6632,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
           <button class="sp-btn sp-md sp-alt" id="btnRestart" data-shape="0"><span class="sp-t">Reiniciar partido</span></button>
           <button class="sp-btn sp-md sp-danger" id="btnQuit" data-shape="3"><span class="sp-t">Salir al menú</span></button>
         </div>
+        <!-- Opiniones (1.22.1, js/feedback.js): dos manchas pequeñas, sin estorbar; abren el panel con el tipo ya elegido -->
+        <div class="p-row p-fb" data-sp-row>
+          <button class="sp-btn sp-sm sp-teal" id="btnPSug" data-shape="2"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.5a6.5 6.5 0 0 0-3.9 11.7c.6.5.9 1.1.9 1.8V17h6v-1c0-.7.3-1.3.9-1.8A6.5 6.5 0 0 0 12 2.5zM9 18.5h6V20a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"/></svg></span><span class="sp-t">Sugerencia</span></button>
+          <button class="sp-btn sp-sm sp-cream" id="btnPBug" data-shape="0"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8.6 4.2 7.4 3l1.2-1.2 1.6 1.6a5 5 0 0 1 3.6 0l1.6-1.6L16.6 3l-1.2 1.2A5 5 0 0 1 17 7H7a5 5 0 0 1 1.6-2.8zM6 8.5h12V10h3v1.6h-3v2h3v1.6h-3.1A6 6 0 0 1 12.8 21V11h-1.6v10a6 6 0 0 1-5.1-5.8H3v-1.6h3v-2H3V10h3z"/></svg></span><span class="sp-t">Bug</span></button>
+        </div>
       </div>
     </div>
   </div>
@@ -6772,10 +6834,16 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
             <button class="opt opt-go" data-go="news"><span>Novedades<small>Qué ha cambiado en esta versión</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button class="opt opt-go" data-go="credits"><span>Créditos<small>Quién lo ha hecho y con qué</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
             <button class="opt opt-go" data-go="mig"><span>Traer tu partida<small>¿Jugabas en Make the Cut? Tráete tu progreso</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
+            <!-- Opiniones (1.22.1, js/feedback.js, notes/feedback.md): sugerencias y bugs; «Buzón de opiniones» solo con la cuenta de Ferran (ui.js fbVis) -->
+            <button class="opt opt-go" data-go="fbsug"><span>Sugerir una mejora<small>Cuéntanos qué te gustaría ver en el juego</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
+            <button class="opt opt-go" data-go="fbbug"><span>Avisar de un bug<small>¿Algo no funciona? Dinos qué ha pasado</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
+            <button class="opt opt-go" data-go="fbview" hidden><span>Buzón de opiniones<small>Lo que han mandado los jugadores (solo tu cuenta)</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>
           </div>
         </div>
         <p class="opt-foot sp-hints" id="optFoot"><span class="kh"><span class="key">←</span><span class="key">→</span> cambia el valor</span><span class="kh"><span class="key">Intro</span> pasa al siguiente</span><span class="kh"><span class="key">Q</span><span class="key">E</span> apartado</span></p>
       </div>
+      <!-- Opiniones (1.22.1): js/feedback.js pinta dentro el tipo (tira), la hoja con el texto y «¿Dónde pasó?», y Cancelar / Enviar (dock) -->
+      <div id="pnFb" hidden></div>
       <div id="pnAbout" hidden>
         <!-- E7: Acerca de, pestañas Novedades y Créditos (datos en js/version.js; ui.js renderAbout los pinta al abrir) -->
         <div id="abTabs" class="sp-tabs" data-ph-tabs="strip" aria-label="Acerca de"></div>
@@ -6864,6 +6932,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/0.149.0/three.min.js"></script>
 <script src="js/version.js"></script>
+<script src="js/feedback.js"></script>
 <script src="js/splat.js"></script>
 <script src="js/update.js"></script>
 <script src="js/account.js"></script>

@@ -8,6 +8,16 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
+## Sugerencias y bugs 1.22.1 (rama feedback, 23-nov-2026; notes/feedback.md)
+- **Desplegar las reglas** (bloque FEEDBACK de firebase/firestore.rules): desde `firebase/`, `npx firebase-tools deploy --only
+  firestore:rules`, y esperar unos minutos. Hasta entonces cada envío da 403 y se queda en la cola del aparato; se manda solo al
+  arrancar o al volver la red cuando las reglas ya estén. `admin()` sale de netlogs a nivel global con el mismo resultado.
+- **Decisiones provisionales:** botones en Ajustes › Info (portada y pausa) y fila de dos manchas pequeñas en la pausa; rótulos
+  «Sugerir una mejora» / «Avisar de un bug» y en la pausa «Sugerencia» / «Bug»; «¿Dónde pasó?» marcado según el partido al abrir desde
+  la pausa; límites 1 cada 30 s y 10 al día; Novedades 1.22.1 «Tu opinión cuenta» (3 frases). El visor «Buzón de opiniones» solo con tu
+  cuenta (Ajustes › Info) → feedback.html, con «Descargar todo (JSON)».
+- **Pruebas a mano:** escribir en un iPhone y un Android de verdad (el teclado del sistema tapa media pantalla en apaisado).
+
 ## Imprescindibles 1.22.0 (rama investigacion; informe estudios/revision-juegos-voley-2026-11-21.md §4)
 - **Revisión de la rama (22-nov).** Arreglos hechos sin preguntar: una llave de más en el CSS del táctil dejaba muerta la regla de zurdos
   de `.vt-zone`; la fila Duración de Partido rápido lleva su «?» en el móvil (allí la ayuda va oculta y no se veía «no cuenta para el

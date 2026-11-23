@@ -104,15 +104,19 @@ service cloud.firestore {
           || (resource != null && resource.data.get('uid', '') == request.auth.uid));
       }
     }
+    // La cuenta de Ferran: SHA-256 del correo (el mismo que js/ui.js usa para el acta; el correo no va en el repo, que es público).
+    // La usan netlogs (leer) y feedback (leer y cambiar el estado). Estaba dentro de netlogs; 23-nov-2026 sale a este nivel con el mismo
+    // resultado (token.get: una cuenta sin correo da false en vez de un error de evaluación, que en una consulta salía como 500).
+    // (va aquí, tras el bloque ONLINE y no arriba del todo: tools/roomtest.js prueba también las reglas sin ese bloque y, sin nadie
+    // que la use, el emulador avisa de función sin usar y con Java en castellano ese aviso sale como error 500)
+    function admin() {
+      return request.auth != null && request.auth.token.get('email', null) is string
+        && hashing.sha256(request.auth.token.email.lower()).toHexString().lower() == 'c0592685221ed4a093808f6d3f8a863be6f6d4a1894b00b91e90b07719048deb';
+    }
     // Informes de red de los partidos online (js/netlog.js, 17-nov-2026): uno por partido y jugador, escrito UNA vez al acabar con su
     // cuenta. Crear/actualizar: solo el propio (id = uid_xxx, campo uid), 4 campos, j ≤ 250 000 caracteres. Leer: solo la cuenta de
-    // Ferran (SHA-256 del correo, el mismo que js/ui.js usa para el acta: el correo no va en el repo, que es público). Nadie borra
-    // desde el cliente.
+    // Ferran (admin(), arriba). Nadie borra desde el cliente.
     match /netlogs/{id} {
-      function admin() {
-        return request.auth != null && request.auth.token.email is string
-          && hashing.sha256(request.auth.token.email.lower()).toHexString().lower() == 'c0592685221ed4a093808f6d3f8a863be6f6d4a1894b00b91e90b07719048deb';
-      }
       function logOk(d) {
         return d.keys().hasOnly(['uid', 'ver', 't', 'j']) && d.keys().hasAll(['uid', 'ver', 't', 'j'])
           && d.uid == request.auth.uid && d.ver is string && d.ver.size() <= 20 && d.t is timestamp
@@ -121,6 +125,39 @@ service cloud.firestore {
       allow get, list: if admin();
       allow create: if request.auth != null && id.matches(request.auth.uid + '_[0-9a-z]{4,24}') && logOk(request.resource.data);
       allow update: if request.auth != null && resource.data.uid == request.auth.uid && logOk(request.resource.data);
+    }
+    // ------------------------------------------------------------------------------------------------------------------------
+    // FEEDBACK (1.22.1, 23-nov-2026; js/feedback.js, notes/feedback.md): sugerencias y bugs que mandan los jugadores desde el juego.
+    // SIN DESPLEGAR: lo hace Ferran (npx firebase-tools deploy --only firestore:rules, desde firebase/). Hasta entonces cada envío da
+    // 403 y el juego lo guarda en la cola del aparato ('make-the-cut.feedbackq') y lo vuelve a probar al arrancar y al volver la red.
+    // feedback/{id}: id aleatorio de 20 letras y cifras (16-32 admitidas). Campos:
+    //   kind ('sug' | 'bug'), text (5-2000), where (opcional: 'partido' | 'carrera' | 'online' | 'menus' | 'otro'), ver (≤ 20, la
+    //   versión del juego), ctx (JSON en texto ≤ 8000: navegador, sistema, pantalla, calidad, idioma, dónde estaba y, en los bugs, los
+    //   últimos errores; nunca correo, IP ni nombre), uid (el de la cuenta si hay sesión; '' sin sesión), t (= hora del SERVIDOR: el
+    //   cliente la manda con la transformación REQUEST_TIME), state ('nuevo' al crear).
+    //   - Crear: con o sin sesión (sin sesión, uid ''; con sesión, uid = el suyo), con esos campos y tamaños exactos.
+    //   - Leer y listar: solo admin(). Cambiar: solo admin() y solo state ('nuevo' | 'visto' | 'hecho' | 'descartado') y note (≤ 1000),
+    //     desde pages/feedback.html. Nadie borra desde el cliente.
+    // ------------------------------------------------------------------------------------------------------------------------
+    match /feedback/{id} {
+      function fbOk(d) {
+        return d.keys().hasOnly(['kind', 'text', 'where', 'ver', 'ctx', 'uid', 't', 'state'])
+          && d.keys().hasAll(['kind', 'text', 'ver', 'ctx', 'uid', 't', 'state'])
+          && d.kind in ['sug', 'bug']
+          && d.text is string && d.text.size() >= 5 && d.text.size() <= 2000
+          && (!('where' in d) || d.where in ['partido', 'carrera', 'online', 'menus', 'otro'])
+          && d.ver is string && d.ver.size() <= 20
+          && d.ctx is string && d.ctx.size() <= 8000
+          && d.uid is string && ((request.auth == null && d.uid == '') || (request.auth != null && d.uid == request.auth.uid))
+          && d.t == request.time
+          && d.state == 'nuevo';
+      }
+      allow create: if id.matches('[A-Za-z0-9]{16,32}') && fbOk(request.resource.data);
+      allow get, list: if admin();
+      allow update: if admin()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['state', 'note'])
+        && request.resource.data.state in ['nuevo', 'visto', 'hecho', 'descartado']
+        && (!('note' in request.resource.data) || (request.resource.data.note is string && request.resource.data.note.size() <= 1000));
     }
   }
 }

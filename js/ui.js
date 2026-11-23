@@ -3939,7 +3939,7 @@
       actaOk = ACTA_ALLOW.indexOf(h) >= 0; actaVis();
     }, function () { actaOk = false; actaVis(); });
   }
-  function actaVis() { if (el.btnActa && !actaOk) el.btnActa.hidden = true; }
+  function actaVis() { if (el.btnActa && !actaOk) el.btnActa.hidden = true; fbVis(); }
   function actaLbl(t) {
     var b = el.btnActa; if (!b) return;
     var sp = b.querySelector('.sp-t') || b.querySelector('span'); if (sp) sp.textContent = t || ACTA_LBL;   // (SPLAT: el rótulo, no el icono)
@@ -5784,12 +5784,12 @@
   //  PANELES: tutorial, controles, ajustes
   // =====================================================================
   // (UI-18: el antetítulo da contexto, nunca repite el título ni las pestañas)
-  var PANELS = { tut: ['pnTut', '', 'Cómo se juega'], ctl: ['pnCtl', '', 'Controles'], set: ['pnSet', '', 'Ajustes'], first: ['pnFirst', '', 'Primer partido'], squad: ['pnSquad', '', 'Jugadores'], about: ['pnAbout', '', 'Acerca de'] };
+  var PANELS = { tut: ['pnTut', '', 'Cómo se juega'], ctl: ['pnCtl', '', 'Controles'], set: ['pnSet', '', 'Ajustes'], first: ['pnFirst', '', 'Primer partido'], squad: ['pnSquad', '', 'Jugadores'], about: ['pnAbout', '', 'Acerca de'], fb: ['pnFb', '', 'Tu sugerencia'] };
   // E3/E7: UNA sola pila de vuelta entre paneles. openPanel(name, {from, tab}) abierto con otro panel delante (Ajustes › Controles,
   // Ajustes › Info › Créditos) apila el de delante; «Volver» / Esc / B / «Entendido» vuelven a él, en la misma pestaña y con el
   // foco en la fila que lo abrió. openPanel(name, 'menu' | 'paused') (forma antigua) empieza una pila nueva.
   var pstack = [];
-  var SP_PN = /^(tut|ctl|set|first|squad|about)$/;   // paneles con el sistema SPLAT (bloque «SPLAT · PANELES» de index.html)
+  var SP_PN = /^(tut|ctl|set|first|squad|about|fb)$/;   // paneles con el sistema SPLAT (bloque «SPLAT · PANELES» de index.html)
   var firstAsked = false;
   /** JUGAR desde el menú: la primera vez (sin partidos ni tutorial) ofrece ver el tutorial o jugar ya. */
   function play() {
@@ -5878,6 +5878,7 @@
     if (name === 'set') { renderOpts(); if (o && o.tab && setTabs) setTabs.set(o.tab, 'api'); setTab(setTabs ? setTabs.get() : 'audio'); }
     if (name === 'squad') renderSquad();
     if (name === 'about') { if (abTabs && o && o.tab) abTabs.set(o.tab, 'api'); renderAbout(); }
+    if (name === 'fb') fbMount(o && o.back);
     var tb = name === 'set' ? setTabs : name === 'squad' ? sqTabs : name === 'ctl' ? ctlTabs : name === 'about' ? abTabs : null;
     if (tb) { tb.hint(); if (ctx.params.tab && !openPanel._t) { openPanel._t = 1; tb.set(ctx.params.tab, 'api'); } }
     var psh = el.panel.querySelector('.sheet');
@@ -5910,7 +5911,7 @@
     shown = ''; syncScreens(ctx.game);
     // en pausa, el foco vuelve al botón que abrió el panel (antes caía en «Seguir jugando»)
     focusLayer(ctx.state === 'menu' ? (was === 'squad' ? el.btnSquad : was === 'tut' ? el.btnTut : was === 'ctl' ? el.btnControls : was === 'first' ? el.btnGo : was === 'about' ? null : el.btnSettings)
-      : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : null) : was === 'mstats' && el.btnMStats && !el.btnMStats.hidden ? el.btnMStats : null);
+      : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : was === 'fb' ? $(fb.kind === 'bug' ? 'btnPBug' : 'btnPSug') : null) : was === 'mstats' && el.btnMStats && !el.btnMStats.hidden ? el.btnMStats : null);
     if (was === 'mstats' && el.btnMStats && kbNow()) setTimeout(function () { if (!panel && document.activeElement === el.btnMStats) focusEl(el.btnMStats, true); }, 45);
     return true;
   }
@@ -6443,7 +6444,44 @@
     if (g === 'ctl') openPanel('ctl', { tab: device() });
     else if (g === 'news' || g === 'credits') openAbout(g);
     else if (g === 'mig' && VB.Migrate && VB.Migrate.manual) VB.Migrate.manual('migcode');   // 1.20.0: traer la partida de Make the Cut a mano
+    else if (g === 'fbsug' || g === 'fbbug') openFb(g === 'fbbug' ? 'bug' : 'sug');           // 1.22.1: sugerencia / bug (se apila Ajustes)
+    else if (g === 'fbview' && actaOk && VB.Feedback) { try { window.open(VB.Feedback.viewerUrl(), '_blank'); } catch (e) { } }   // visor (solo Ferran)
   }
+  // ---------- Opiniones (1.22.1, js/feedback.js, notes/feedback.md): sugerencias y bugs ----------
+  // openFb(kind) abre el panel 'fb' (#pnFb) con el tipo ya elegido; desde Ajustes se apila (Volver regresa a Ajustes › Info) y desde la
+  // pausa vuelve al botón que lo abrió. fbWhere() = texto corto de dónde estaba el jugador (va en el contexto, sin datos personales).
+  var fb = { kind: 'sug', screen: '', mode: '', where: '' };
+  function fbWhere() {
+    var g = ctx.game, st = ctx.state, out = [], CU = VB.CareerUI;
+    if (st === 'menu') out.push('menú' + (mpage && mpage !== 'main' ? ' > ' + mpage : '') + (panel ? ' > ' + panel + (panel === 'set' && setTabs ? ':' + setTabs.get() : '') : ''));
+    else out.push(st === 'paused' ? 'pausa' : String(st || ''));
+    if (CU && CU.isOpen && safe(CU.isOpen)) out.push('carrera abierta');
+    var mode = '';
+    if (g && !g.demo && st !== 'menu') {
+      mode = (g.career ? 'carrera' : ctx.net ? 'online' : g.drill ? 'entreno ' + (g.drill.kind || '') : g.sit ? 'semana' : g.retoOpts ? 'reto' : 'partido rápido') + ' ' + (g.size === 6 ? '6v6' : '2v2');
+      try { mode += ', set ' + (g.setNo | 0) + ' ' + (g.score[0] | 0) + '-' + (g.score[1] | 0); } catch (e) { }
+    }
+    var guess = st === 'menu' ? '' : g && g.career ? 'carrera' : ctx.net ? 'online' : g && !g.demo ? 'partido' : '';
+    return { screen: out.join(', '), mode: mode, where: guess };
+  }
+  function openFb(kind, from) {
+    if (!VB.Feedback || !$('pnFb')) return false;
+    var w = fbWhere();
+    fb.kind = kind === 'bug' ? 'bug' : 'sug'; fb.screen = w.screen; fb.mode = w.mode; fb.where = w.where;
+    openPanel('fb', { from: from || (panel ? panelFrom : ctx.state) });
+    return panel === 'fb';
+  }
+  function fbMount(back) {
+    if (!VB.Feedback) return;
+    if (!back) VB.Feedback.mount($('pnFb'), { kind: fb.kind, where: fb.where, screen: fb.screen, mode: fb.mode,
+      back: function () { if (panel === 'fb') { closePanel(); } },
+      focus: function (b, kb) { focusEl(b, kb); }, sound: function (n) { uiK(n, n === 'error' ? null : 'click'); },
+      kb: function () { return kbNow() || ctx.inputDevice === 'gamepad'; },
+      onKind: function (k) { fb.kind = k; el.pnTitle.textContent = VB.Feedback.title(); fitSheet(el.panel); checkMore(el.panel); phPanel(); } });
+    el.pnTitle.textContent = VB.Feedback.title();
+  }
+  /** Fila «Buzón de opiniones» de Ajustes › Info: solo con la cuenta de Ferran (misma huella que el acta). */
+  function fbVis() { var r = el.panel && el.panel.querySelector('[data-go="fbview"]'); if (r) r.hidden = !actaOk; }
   /** Nombre de la sede (arena.js: ajuste `arena` o ?map=): Palau del Mar / Platja Llarga. */
   function venueName() { return VB.Arena && VB.Arena.venueName ? VB.Arena.venueName() : 'Palau del Mar'; }
   /** Pone el nombre de la sede en los textos fijos del HTML (antetítulo del menú, tarjeta de presentación, cortinilla,
@@ -8326,6 +8364,10 @@
     openSubs: function (pick) { try { return openSubs(!!pick); } catch (e) { console.error('[VB][ERROR] UI.openSubs: ' + e); return false; } },
     /** E7: abre Acerca de ('news' | 'credits'). */
     openAbout: function (tab) { openAbout(tab, panel ? panelFrom : ctx.state); },
+    /** 1.22.1: abre el formulario de opiniones ('sug' | 'bug'). true si se ha abierto. */
+    openFeedback: function (kind) { return openFb(kind); },
+    /** Pruebas (1.22.1): {kind, screen, mode, where} de la última apertura y si se ve la fila del visor. */
+    _fb: function () { var r = el.panel && el.panel.querySelector('[data-go="fbview"]'); return { kind: fb.kind, screen: fb.screen, mode: fb.mode, where: fb.where, viewer: !!(r && !r.hidden), admin: actaOk }; },
     /** Pruebas (E7): {seen, returning, auto: 'off' | 'waiting' | 'shown'}. */
     _about: function () { return { seen: seenGet(), returning: wasReturning, auto: aboutAuto }; },
     /** «Jugar ya» (1.22.0): tiempo hasta el primer punto en este aparato {ms, m, via, d} (ver FP_KEY) o null si aún no hay. Sin analítica. */
@@ -8488,6 +8530,8 @@
       on(el.btnResume, function () { ctx.actions.resume(); });
       on(el.btnPControls, function () { openPanel('ctl', 'paused'); });
       on(el.btnPSettings, function () { openPanel('set', 'paused'); });
+      if ($('btnPSug')) on($('btnPSug'), function () { openFb('sug', 'paused'); });   // 1.22.1: opiniones desde la pausa
+      if ($('btnPBug')) on($('btnPBug'), function () { openFb('bug', 'paused'); });
       // Reiniciar en dos pasos (un dedo que se escapa no tira el partido): 1r toque arma 2 s, el 2º reinicia. Sin confirm().
       on(el.btnRestart, function () {
         if (restartArm > 0 && performance.now() - restartArm < 2000) { disarmRestart();
