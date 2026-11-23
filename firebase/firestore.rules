@@ -1,4 +1,7 @@
 rules_version = '2';
+// OJO (23-nov-2026): lo DESPLEGADO es este fichero + el ESQUEMA v3 de salas de varios de la rama online-multi (fusión limpia de
+// los dos, probada con roomtest de online-multi 251/251 y feedbacktest 74/74). No despliegues este fichero solo hasta fusionar
+// online-multi en main: quitarías las salas de varios.
 // Make the Cut: progreso de cada cuenta. Sin cifrar; solo lo lee y lo cambia su dueño.
 // users/{uid}/saves/{key}: data = JSON en texto (≤ 400 000 caracteres; js/account.js no sube más de 390 000); updatedAt = ms del dispositivo.
 // Claves admitidas (11; todas desplegadas el 16-nov-2026) y qué las enciende en js/account.js:
