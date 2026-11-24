@@ -112,6 +112,13 @@
   // La ✕ va fuera de la hoja y la fila de botones se queda pegada abajo: con poco alto la hoja se desplaza sin que se vayan.
   var P = ':root:not(#_):not(#_):not(#_) ', PP = ':root.ph' + P.slice(5);   // (PP: móvil, html.ph)
   function isPh() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  // (ronda 2, menus-v) en vertical (html.pv) la hoja va anclada abajo con velo (CSS del bloque menus-v de index.html) y lo de detrás, inert
+  var unInert = null;
+  function syncInert() {
+    var on = !!(root && !root.hidden && VB.Splat && VB.Splat.pv && VB.Splat.pv() && VB.Splat.inertBehind);
+    if (on && !unInert) unInert = VB.Splat.inertBehind(root);
+    else if (!on && unInert) { unInert(); unInert = null; }
+  }
   var CSS = [
     '#install{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;padding:calc(14px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(14px + var(--sbm,0px)) calc(14px + var(--sl,0px));',
     'background:rgba(21,16,42,.34);font-family:var(--sp-ui,system-ui,sans-serif)}',
@@ -237,6 +244,7 @@
     }
     go(step);
     refreshBtn();
+    syncInert();
   }
   /** Móvil: enseña el paso i (puntitos, «Siguiente ›» o, en el último, «Entendido» / «Instalar»; la frase de entrada solo en el primero). */
   function go(i) {
@@ -259,12 +267,12 @@
   function open() {
     build(); step = 0; render();
     lastFocus = document.activeElement;
-    root.hidden = false; seen();
+    root.hidden = false; seen(); syncInert();
     try { root.querySelector(isPh() && root.classList.contains('ix-more') ? '[data-in="next"]' : '#inOk').focus({ preventScroll: true }); } catch (e) { }
   }
   function close() {
     if (!root || root.hidden) return;
-    root.hidden = true;
+    root.hidden = true; syncInert();
     try { if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); } catch (e) { }
   }
   function isOpen() { return !!(root && !root.hidden); }

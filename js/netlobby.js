@@ -524,6 +524,9 @@
   var P = ':root:not(#_):not(#_):not(#_) ';
   var PP = ':root.ph' + P.slice(5), PW = ':root.ph.ph-w' + P.slice(5);   // (móvil: html.ph; ancho ≥ 800: html.ph-w)
   function ph() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  /** (ronda 2, menus-v) móvil en vertical (html.pv): la maqueta de PC con su CSS de vertical (index.html, bloque menus-v); los avisos van
+   *  al carril de arriba como en el móvil apaisado y «Este navegador no puede» lleva Copiar enlace y Volver. */
+  function pvv() { return !!(VB.Splat && VB.Splat.pv && VB.Splat.pv()); }
   var CSS = [
     '#menu.sp-full #mpOnline{--sp-colw:clamp(360px,54vw,780px);padding-bottom:calc(var(--sp-pad) + 36px + var(--sbm))}',
     '#mpOnline .ol-body{display:flex;flex-direction:column;gap:var(--sp-gap,12px);flex:0 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;',
@@ -1078,7 +1081,7 @@
     nb.classList.add('kf'); sound('optHover');
     return true;
   }
-  function note() { if (ph()) return '';   // (móvil: el aviso va al carril de avisos de arriba, VB.Splat.toast: ver render)
+  function note() { if (ph() || pvv()) return '';   // (móvil: el aviso va al carril de avisos de arriba, VB.Splat.toast: ver render)
     return L.msg ? '<p class="ol-note' + (L.msgBad ? ' bad' : '') + '" role="status">' + esc(L.msg) + '</p>' : ''; }
   /* ---------------- móvil (html.ph; spec «Online», notes/splat.md «Móvil») ----------------
    * La misma página con otra disposición: en la cabecera, tras «Online», tu nombre en una chapa crema (lista) o en qué paso estás; una
@@ -1193,7 +1196,8 @@
       h = '<div class="ol-card sp-panel"><h3>El online aún no está activado en el servidor</h3><p>Todavía no se puede jugar online. Vuelve a probar dentro de un rato.</p></div>' +
         '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div>';
     } else if (v === 'nortc') {
-      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p></div>';
+      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Prueba con una versión reciente de Chrome, Edge, Firefox o Safari (en el iPhone, sin el modo Aislamiento).</p></div>' +
+        (pvv() ? '<div class="ol-ctas" data-nav>' + row('copylink', 'Copiar enlace', 'Para abrirlo en otro navegador', '', { color: 'sp-gold', shape: 1 }) + row('goback', 'Volver', '', '', { color: 'sp-ink', shape: 2 }) + '</div>' : '');
     } else if (v === 'help') {
       h = helpHTML() + '<div class="ol-bar ol-bar2 hp-go" data-nav><button class="ol-act ol-new sp-btn sp-gold sp-wide" data-shape="2" data-a="helpOk"><span class="sp-t">Entendido</span></button></div>';
     } else if (v === 'list') {
@@ -1287,9 +1291,9 @@
   function render(force) {
     if (!L.host || !L.on) return;
     var body = L.host.querySelector('.ol-body'); if (!body) return;
-    var PH = ph(), hr = L.host.querySelector('.ol-hr'), h = PH ? viewPH() : viewHTML(), hh = PH ? headHTML() : '', all = h + '\u0002' + hh;
+    var PH = ph(), TO = PH || pvv(), hr = L.host.querySelector('.ol-hr'), h = PH ? viewPH() : viewHTML(), hh = PH ? headHTML() : '', all = h + '\u0002' + hh;
     // (móvil: el aviso, una vez, al carril de arriba; la misma frase no se repite hasta que se borra)
-    if (PH && L.msg && L.msg !== L.toasted && VB.Splat && VB.Splat.toast) { try { L.toastApi = VB.Splat.toast(esc(L.msg), { key: 'ol', ms: 6500, cls: L.msgBad ? 'ol-tbad' : '' }); } catch (e) { } }
+    if (TO && L.msg && L.msg !== L.toasted && VB.Splat && VB.Splat.toast) { try { L.toastApi = VB.Splat.toast(esc(L.msg), { key: 'ol', ms: 6500, cls: L.msgBad ? 'ol-tbad' : '' }); } catch (e) { } }
     if (!L.msg && L.toastApi) { L.toastApi.close(); L.toastApi = null; }   // (aviso resuelto o vista nueva: fuera)
     L.toasted = L.msg;
     if (!force && all === lastH) return;
@@ -1297,7 +1301,7 @@
     lastH = all; body.innerHTML = h; body.setAttribute('data-v', L.view);
     if (hr && hr.innerHTML !== hh) hr.innerHTML = hh;
     if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(body); if (hr) VB.Splat.decorate(hr); } catch (e) { } }   // (SPLAT: manchas, brochazos y parche)
-    if (PH && VB.Splat && VB.Splat.more) { var sc = body.querySelectorAll('.ol-scroll'); for (var i = 0; i < sc.length; i++) { try { VB.Splat.more(sc[i]); } catch (e) { } } }
+    if (TO && VB.Splat && VB.Splat.more) { var sc = body.querySelectorAll('.ol-scroll'); for (var i = 0; i < sc.length; i++) { try { VB.Splat.more(sc[i]); } catch (e) { } } }
     var inp = body.querySelector('#olIn');
     if (inp) { bindInput(inp); setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) { } }, 20); return; }
     if (key) { var b = findKey(L.host, key) || first(); if (b) { try { b.focus({ preventScroll: !kf }); } catch (e) { } if (kf) b.classList.add('kf'); } }
@@ -1375,6 +1379,7 @@
     else if (a === 'leave') { leaveRoom(); L.msg = ''; setView('list'); refreshList(true); focusA('new'); }
     else if (a === 'copy') copyCode();
     else if (a === 'copylink') copyLink();
+    else if (a === 'goback') { var gb = document.getElementById('btnOnlineBack'); if (gb) gb.click(); }   // (vertical, «Este navegador no puede»: Volver abajo)
   }
   /** Móvil, sin WebRTC: copia la dirección del juego para abrirla en otro navegador. */
   function copyLink() {
@@ -1385,7 +1390,7 @@
     var c = L.room && L.room.code; if (!c) return;
     var done = function () {
       L.fail = '';
-      if (ph() && VB.Splat && VB.Splat.toast) { VB.Splat.toast('Código copiado: <b>' + esc(c) + '</b>', { key: 'olc' }); return; }   // (móvil: aviso de arriba)
+      if ((ph() || pvv()) && VB.Splat && VB.Splat.toast) { VB.Splat.toast('Código copiado: <b>' + esc(c) + '</b>', { key: 'olc' }); return; }   // (móvil: aviso de arriba)
       var s = L.host.querySelector('.ol-st'); if (s) s.textContent = 'Código copiado: ' + c;
     };
     try { navigator.clipboard.writeText(c).then(done, done); } catch (e) { done(); }

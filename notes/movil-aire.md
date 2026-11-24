@@ -1476,3 +1476,69 @@ repetidas que ya no salen dos veces).
 - Hoja del juvenil: el panel queda con aire de sobra debajo (poco contenido); no se ha añadido nada.
 - Si se gira el móvil con la hoja abierta, el MVP en fichas y «Ver tabla» (oculto fuera de .pv) se quedan como se pintaron hasta la siguiente hoja.
 - «Siguiente: 3ª jornada» del Continental parte en 2 líneas en la barra (entero).
+
+#### 8.6.7 Paquete menus-v (24-nov-2026)
+
+Portada, Jugar, Partido rápido, Entreno, Cómo se juega, Jugadores, Acerca de, Opiniones, avisos, Primer partido, Instalar y Online en vertical
+(html.pv). CSS en el bloque «RONDA 2 · paquete menus-v» al final del `<style>` de `index.html` (prefijo `:root.pv` + 5 `:not(#_)`; las hojas de
+fuera de `#app` con `:root.pv:has(...)`). JS tras `phPv()` / `VB.Splat.pv()`. PC idéntico a `pcbase` y horizontal igual.
+
+**Hecho**
+- *Común*: la versión solo en la portada, con toque de 44; DIRECTO solo en portada y Jugar; rótulos de parche en vertical hasta 2 líneas y el
+  parche crece con su texto (nada de «…»); cabecera compacta compartida para Partido rápido, Entreno, Online y los paneles (tut, first, squad,
+  about, fb): ‹ redondo de 44 + título de 1 línea a `--pv-head` sobre una franja de tinta que llega al notch (el marcador 3D ya no se lee detrás).
+- *Portada*: de arriba abajo ayuda · Jugadores/Vestuario · billete · JUGAR (lo principal en el tercio de abajo); vuelve la línea corta de JUGAR
+  («Rápido, 6 contra 6 y entreno», `ui.js syncHero`: `subOn` = siempre en vertical, en 2 líneas si no cabe) y «Tu aspecto»; ayuda a 13 px en 2
+  líneas; bloque con `max(16px, --pv-gb + 12)` + el pie de 52; Beta a 12. Próximo partido: fila «[BRI] en [PEN] · Próximo partido» con escudos de
+  46 (siglas ≥ 9 px) y la sede ENTERA debajo (clamp 18-24, 2 líneas), «T1 J5 · Continuar» debajo; ¡Jugar ya! / Seguir el partido con el título a
+  clamp(18, 5.6vw, 26) en 2 líneas.
+- *Jugar*: «Entreno» y los rótulos de las tres baldosas a 13; Carrera con el subtítulo entero.
+- *Partido rápido*: fila en dos niveles (`.mi-l` en `display:contents`: FORMATO a la izquierda y ‹ VALOR › a la derecha; la descripción entera a
+  todo el ancho debajo), título «PARTIDO RÁPIDO» en 1 línea (clamp 22-28); la lista se desplaza (degradado y flecha con `VB.Splat.more`, `ui.js
+  setPage`) y termina encima de ¡A JUGAR! fijo abajo (64, sin chips de resumen).
+- *Entreno*: una columna de tarjetas [medalla 48 | título · descripción en 2 líneas · barra · siguiente medalla]; «NUEVO» / «Récord N» como chapa
+  en la esquina (`.gy-rec.gy-new` en `renderGym`: fuera «Sin jugar» mientras hay NUEVO); recuento en la cabecera; Peloteo libre como parche ancho
+  abajo (título 21-26, texto en 2 líneas); el pie entero debajo.
+- *Cómo se juega*: tarjeta flex:1; «Paso N/6» en chapa a la derecha del título; barra abajo [Más detalle] / puntos / [‹ redondo de 56 sin
+  rótulo (aria «Anterior»)][SIGUIENTE]; ilustración con margen bajo «PASO»; paso 6 en 1 columna < 400 px.
+- *Jugadores*: N.º 1 / N.º 2 y Aspecto (icono de 52) en una fila; pestañas con icono + rótulo en 4 columnas («Insig.» visible, «Insignias» para
+  el lector, `sqItems` con `phPv()`); «Nv 1» a 12; la tira MEDIA · NIVEL · XP · PUNTOS de 40 (nivel y XP encima de la barra).
+- *Acerca de*: ENTENDIDO a todo el ancho abajo; texto ≥ 13. *Opiniones*: sin atajos; chips de «¿Dónde pasó?» en rejilla de 3; Cancelar | Enviar
+  iguales abajo.
+- *Aviso del colocador*: «Ahora no» / «No mostrar más» (enlace) encima y ACTIVAR abajo del todo.
+- *Primer partido*: cabecera arriba, el 3D en medio y abajo VER CÓMO SE JUEGA (76) y JUGAR YA (56) a todo el ancho.
+- *Instalar* (`install.js syncInert`): hoja anclada abajo con velo al 70 % y lo de detrás `inert`; ✕ de 44 dentro; los 4 pasos en una columna
+  (dibujo de 72 a la izquierda, texto a 15); Ahora no | Entendido abajo (pegados); DIRECTO fuera mientras está abierta.
+- *Online* (maqueta de PC + CSS de vertical; `netlobby.js pvv()`): sin techo vacío; lista = tu nombre (chapa de 44) / cartelera que se desplaza
+  con degradado y flecha / Crear sala (2/3) + Código (1/3) abajo; ↻ y ? de 44 en la cabecera; sala = «Playa · Platja Llarga» en su línea (2 si
+  hace falta), nombre en 2 líneas sin «…», chips a 12, estado + Entrar debajo; llenas / otra versión atenuadas (.78) con el estado en chapa; el
+  aviso como tostada bajo la cabecera que se cierra sola (ocupa el sitio de tu nombre mientras se ve). Crear sala: selectores con degradado y
+  flecha, la nota fuera, ABRIR SALA a clamp(24, 8vw, 34) con la sede de subtítulo. Sala, ayuda, sin cuenta, apagado: tarjeta arriba y la acción a
+  todo el ancho abajo; los nombres de la sala parten por palabra («JUGADOR / 1120», antes «JUGADO / R 1120»). «Este navegador no puede»: Copiar
+  enlace y Volver abajo (`goback`).
+- Al girar (`vb:ph`): la línea de JUGAR, las pestañas de Jugadores y el desplazamiento de Partido rápido se rehacen.
+- *Arnés*: las entradas `mjIn` / `pgIn` / `pgBack` / `fadeUp` se terminan antes de medir (JUGAR salía «fuera» a media entrada); `reach` en vertical
+  = centro de la principal en el tercio de abajo (a todo el ancho; en apaisado, abajo a la derecha como siempre).
+
+**Métricas** (`…/movil2/r2-menus/`: `v` = 37 ids × 360/390/412, DPR 2; `h` = × 568/844/915; `pc` = × 1280/1024/1920, DPR 1; antes = pasada del
+mismo comando al empezar el paquete, `pk-menus-v/v0`)
+
+| pasada | recortes no perm. | < 12 | < 44 | solapes | tapados | pisados | principal NO / fuera del tercio | despl. lateral | salida |
+|---|---|---|---|---|---|---|---|---|---|
+| antes → **v** | 130 → **0** | 252 → **0** | 66 → **0** | 41 → **0** | 63 → **0** | 3 → 0 | 0 / 16 → **0 / 0** (57 filas con principal) | 0 | ok |
+| r2-recortes/hfull → **h** | 0 → 0 | 0 → 0 | 2 → 0 | 0 → 0 | 57 → 57 | 0 → 0 | igual | igual | ok |
+| pcbase → **pc** | 79 → 79 | 251 → 251 | 75 → 75 | 26 → 26 | 84 → 84 | (nuevo) | – | – | caracteres 43358 = 43358 |
+
+Contra `v1` (sistema-v): recortes 133 → 0, < 12 252 → 0, < 44 69 → 0, solapes 75 → 0, tapados 84 → 0. Por pantalla en V (suma de los 3 tamaños):
+entreno 22 recortes → 0; quick-* 5-8 → 0; home-* 3-8 → 0 (< 12 6-11 → 0); comojuega-2…6 4 → 0 («Anterior» oculto con clip); online-list/-aviso 8
+recortes y 47 < 12 → 0; instalar-* 12-15 solapes y 21 tapados → 0; jugadores-* 12-14 < 12 → 0; online-room(-rival) 12-15 < 12 → 0. H: solo cambian
+«Paso 1/6» en comojuega-1 (la pasada nueva lo enseña ya en el primer paso) y el valor de Dificultad que deja la fila anterior en quick-6v6.
+
+**Pruebas** (primer plano): csscheck, abouttest, feedbacktest (120), jugaryatest, gymtest, roomtest (95), nettest (61), mptest (30), retotest (87),
+a11ymarktest (28), badgetest (53), girotest (26), keytest (44): todas OK.
+
+**Pendiente**
+- La tostada del online tapa un momento la chapa de tu nombre (la esconde mientras se ve); con mensajes de 3+ líneas pisa el rótulo «Salas abiertas».
+- Jugar sigue con el título héroe «JUGAR» arriba y «Volver» abajo a la izquierda (escenario de marketing, como pedía el informe); no es `.pv-bar`.
+- Opiniones y Cómo se juega dejan aire dentro de la tarjeta cuando el texto es corto (la tarjeta llena hasta la barra de abajo).
+- La lista de salas usa la maqueta de PC (no la de `viewPH`): si se toca la de PC, mirar el vertical.

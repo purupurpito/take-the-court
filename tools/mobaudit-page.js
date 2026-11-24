@@ -467,7 +467,9 @@ function measure(o) {
     }
   });
   // (móvil, spec §6.1.6, solo aviso) alcance: la acción principal abajo a la derecha (x > 50 %, y > 55 %)
-  if (res.primary && res.primary.r) { var pr = res.primary.r; res.reach = (pr.x + pr.w / 2) > W * 0.5 && (pr.y + pr.h / 2) > H * 0.55; }
+  // (ronda 2, menus-v) en vertical la zona del pulgar es el tercio de abajo, a todo el ancho (la acción principal va en un dock de borde a
+  // borde: su centro cae justo en la mitad); en apaisado, abajo a la derecha como siempre
+  if (res.primary && res.primary.r) { var pr = res.primary.r; res.reach = H > W ? (pr.y + pr.h / 2) > H * 2 / 3 : (pr.x + pr.w / 2) > W * 0.5 && (pr.y + pr.h / 2) > H * 0.55; }
   return res;
 }
 

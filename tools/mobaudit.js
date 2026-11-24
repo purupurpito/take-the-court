@@ -326,6 +326,9 @@ async function main() {
             const file = path.join(OUT, sz, s.id + '.png');
             // (ronda 2) --probe 'expr JS': se evalúa tras abrir cada pantalla y se imprime (depurar sin otro arnés)
             if (A.probe) { try { console.log('probe ' + s.id + ' @' + sz + ': ' + JSON.stringify(await page.evalJs('(()=>{' + A.probe + '})()'))); } catch (e) { console.log('probe ' + s.id + ': ' + e.message); } }
+            // (ronda 2, menus-v) las entradas de la portada y de las páginas del menú (mjIn, pgIn, fadeUp: deslizan 36 px) se terminan antes
+            // de medir: si no, el primer tamaño de cada carga medía JUGAR a media entrada («fuera» con x < 0)
+            try { await page.evalJs("try{document.getAnimations().forEach(function(a){var n=a.animationName||'';if(/^(mjIn|pgIn|pgBack|fadeUp)$/.test(n))a.finish()})}catch(e){}"); } catch (e) { }
             let m = null;
             try { m = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id); }
             catch (e) { err = err || ('medida: ' + String(e.message || e).slice(0, 160)); }

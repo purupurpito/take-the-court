@@ -3268,7 +3268,8 @@
     if (el.btnPlay.classList.contains('primary') === flat) el.btnPlay.classList.toggle('primary', !flat);
     // (movil-aire §5.1: en el móvil, al revés que en PC: la línea pequeña de JUGAR sale cuando JUGAR es lo primero —el sello ya no la tapa—
     // y se quita cuando hay un billete encima, que baja JUGAR a 52 px)
-    var subOn = phHud() ? !flat : flat;   // (disposición: depende de si el sello tapa la línea; en vertical, como en PC hasta que menus-v la maquete)
+    // (ronda 2, menus-v: en vertical sobra alto, la línea corta sale siempre —el sello va de pegatina encima y no la tapa—)
+    var subOn = phPv() ? true : phHud() ? !flat : flat;   // (disposición: depende de si el sello tapa la línea)
     if (el.playMainSub && el.playMainSub.hidden === subOn) el.playMainSub.hidden = !subOn;
     var mainF = sgOn ? el.btnSeguir : showC ? el.btnCont : nw ? el.btnNow : el.btnPlay;
     if (!showC && document.activeElement === el.btnCont && mpage === 'main') focusEl(mainF, kbNow());
@@ -3349,7 +3350,8 @@
   var SQ_IC = { 'Físico': 'phys', 'Defensa': 'def', 'Ataque': 'atk' };
   function sqItems() {
     var G = (VB.Prog && VB.Prog.GROUPS) || [], it = G.map(function (g, i) { return { id: 'g' + i, label: g[0], icon: TAB_IC[SQ_IC[g[0]]] || '' }; });
-    if (VB.Badges) it.push({ id: 'bd', label: 'Insignias', icon: TAB_IC.badge });
+    // (ronda 2, menus-v: en vertical las 4 pestañas van en columnas de ~77 px con icono encima: «Insig.» escrito a mano, el entero en aria)
+    if (VB.Badges) it.push({ id: 'bd', label: phPv() ? 'Insig<span class="sr">nias</span><span aria-hidden="true">.</span>' : 'Insignias', icon: TAB_IC.badge });
     return it;
   }
   function renderSquad(upKey) {
@@ -3370,7 +3372,7 @@
     if (sqTabs) {
       var items = sqItems(), a0 = d.a[sqSel];
       if (VB.Badges && a0) items.forEach(function (it) { if (it.id === 'bd') it.badge = VB.Badges.equipped(a0).length + '/' + VB.Badges.slots(a0); });
-      var key = JSON.stringify(items.map(function (it) { return it.id + it.badge; }));
+      var key = JSON.stringify(items.map(function (it) { return it.id + it.badge + it.label; }));
       if (sqTabs._k !== key) { sqTabs._k = key; sqTabs.refresh(items); }
     }
     var tab = sqTabs ? sqTabs.get() : 'g0', a = d.a[sqSel], i = sqSel, nd = P.need(a.lvl);
@@ -4711,7 +4713,12 @@
     }
     return false;
   }
-  document.addEventListener('vb:ph', function () { fitAllTabs(); heroDirty = true; if (panel === 'tut' && !el.panel.hidden) tutGo(tut.i); });   // (móvil: al entrar o salir del tier, columna / tira / barra)
+  document.addEventListener('vb:ph', function () {
+    fitAllTabs(); heroDirty = true; if (panel === 'tut' && !el.panel.hidden) tutGo(tut.i);
+    // (ronda 2, menus-v: al girar, la línea corta de JUGAR, las pestañas de Jugadores y el desplazamiento de Partido rápido de vertical)
+    try { if (ctx.state === 'menu' && mpage === 'main') syncHero(); if (panel === 'squad' && !el.panel.hidden) renderSquad(); } catch (e) { }
+    if (mpage === 'quick' && phPv() && VB.Splat && VB.Splat.more) { var qo = document.querySelector('#mpQuick .sp-opts'); if (qo) VB.Splat.more(qo); }
+  });   // (móvil: al entrar o salir del tier, columna / tira / barra)
   // (vb:tier: también al cruzar 345 de alto (.ph-s) o 800 de ancho (.ph-w); p. ej. la barra del navegador a 667×375. Solo lo que monta
   // el JS distinto en .ph-s, sin repintar pantallas enteras)
   document.addEventListener('vb:tier', function () {
@@ -4768,6 +4775,8 @@
     var spf = !!(n && n.hasAttribute('data-sp-full')); if (el.menu.classList.contains('sp-full') !== spf) el.menu.classList.toggle('sp-full', spf);
     if (anim && n) { n.classList.remove('pg-in', 'pg-back'); void n.offsetWidth; n.classList.add(anim === 'back' ? 'pg-back' : 'pg-in'); }
     if (p === 'quick') renderOpts();
+    // (ronda 2, menus-v: en vertical la lista de opciones se desplaza sobre ¡A JUGAR! fijo abajo; degradado y flecha mientras queda algo)
+    if (p === 'quick' && phPv() && VB.Splat && VB.Splat.more) { var qo = document.querySelector('#mpQuick .sp-opts'); if (qo) VB.Splat.more(qo); }
     if (ctx && ctx.state === 'menu') renderMenu();   // pistas de teclado/mando de esta página
     if (p === 'play' && VB.CareerUI && VB.CareerUI.syncMenu) try { VB.CareerUI.syncMenu(); } catch (e) { }
     // R8: los retratos de la previa de Partido rápido (tus n.º 1 y n.º 2, 72 px) se precargan aquí: main.js solo pinta la cola en el
@@ -7479,7 +7488,7 @@
       if (nx && m < 3) aria += '. ' + nx;
       h += '<button class="mi gy-d sp-btn sp-wide sp-calm ' + (GY_COL[d.id] || 'sp-ink') + '" data-shape="' + (k++) + '" data-drill="' + d.id + '" aria-label="' + escT(aria + '. ' + d.help) + '">' +
         '<span class="sp-medal t' + m + '">' + medalSVG(m) + '</span><span class="sp-l"><span class="sp-t">' + escT(d.name) + '</span><small class="sp-s" data-ph-ell' + (GY_SHORT[d.id] ? ' data-ph-short="' + escT(GY_SHORT[d.id]) + '"' : '') + '>' + escT(d.help) + '</small>' + (r && r.n && m < 3 ? spBar(fr) : '') + '</span>' +
-        '<span class="gy-rec"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? '¡Oro!' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
+        '<span class="gy-rec' + (r && r.n ? '' : ' gy-new') + '"><b>' + (r && r.n ? 'Récord ' + r.b : 'Nuevo') + '</b><small>' + (m >= 3 ? '¡Oro!' : r && r.n ? nx : 'Sin jugar') + '</small></span></button>';
     });
     if (el.gymList._h !== h) { el.gymList._h = h; el.gymList.innerHTML = h; gymHov = null; if (VB.Splat) VB.Splat.decorate(el.gymList); }
     if (el.gymFoot && Gm) setSep(el.gymFoot, [{ h: 'Medallas: <b>' + Gm.count() + ' de ' + (Gm.IDS ? Gm.IDS.length * 3 : 15) + '</b>' }, 'Cada medalla nueva da experiencia a tus jugadores'], 'v');
