@@ -471,6 +471,17 @@ durante un tiempo corto». Ya no hay repetición automática.
 - 24-nov: un revisor vio un «1 FALLOS» suelto en replaytest (1 de 3) sin guardar qué comprobación era (los FALLO salen por stderr,
   más arriba del final). Repetida 5 veces seguidas guardando toda la salida: 5 de 5 TODO OK; la cifra de memoria (5a) baila entre 0 y
   128 B, muy lejos del tope de 2 KB. Sin causa encontrada: si vuelve a salir, mirar la línea «FALLO:» de la salida entera.
+- **Pasada final de la rama decisiones (24/25-nov, de una en una):** en verde los 74 *test*.js salvo los de abajo, las huellas
+  (simtest, fingerprint6 2v2/maestría/salto, fluidsimtest), drive, drive6, padplay, touchplay, csscheck, console.sh all 1280×720 y
+  844×390 táctil, mobaudit 568×320 y 844×390 (247 pantallas cada uno, 0 fallos al abrir). Puestas al día (pruebas desfasadas, el juego
+  no cambia): jugaryatest cuenta con el engranaje de Ajustes en la portada de la primera vez; gymtest entra con `record.intro` (la portada
+  de la primera vez esconde JUGAR). gymtest falló una vez en el paso del mando y pasó al repetirla.
+  **Fallan igual en main 1.22.0, sin tocar** (comprobado en una copia aparte de origin/main): contacttest (3 fallos de holgura
+  mano-balón), balltest (pelota en la banda de las playas de día) y camtest: «block» con la semilla 12345 (giro de 77-81 °/s a los 2,6
+  y 40,8 s, en todos los tamaños) y «menu» a 1024×768 (balón en la parte libre 89 %). El 22-nov camtest pasaba: es la cámara del
+  peloteo, que esta rama no toca. Si se quiere mirar, ver notes/camera_input.md.
+  camserve (medida, sin aprobado/suspenso): 2v2, tu saque 100 % quieto en espera y lanzamiento (0 m, 0°); 6v6, el primer saque del
+  partido recompone el encuadre al llegar (4,5 m y 25°, con el balón fuera un instante); los siguientes, 0 m.
 
 ## Lo que queda detrás de un interruptor
 - **Retomar el partido en la Carrera**: `CAREER` de js/resume.js (`VB.Resume.CAREER = false`; `?resumecareer=1` para probar). El Partido

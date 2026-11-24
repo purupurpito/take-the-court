@@ -34,7 +34,7 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 - En tu saque la cámara se queda quieta: del balón en la mano al golpe, sin moverse.
 - Se ve desde un poco más alto: el campo rival, tu sacador y el lanzamiento caben a la vez.
 - Sigue quieta mientras tu saque vuela, hasta que el rival lo toca.
-- En el saque rival también se queda quieta.
+- En el saque rival también se queda quieta, hasta que saca.
 - Solo se mueve, suave y lo justo, si algo se iba a salir de la imagen.
 
 ## Más premios por nivel (decisión de Ferran del 24-nov)
