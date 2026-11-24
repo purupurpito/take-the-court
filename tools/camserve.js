@@ -3,7 +3,7 @@
  * ¿Cuánto se mueve la cámara en el SAQUE? (24-nov-2026; Ferran: «En mi saque, la cámara se mueve demasiado … que sea "fija" excepto cuando
  * NECESITE moverse para encuadrar todo lo que pase»). Juega en vivo con autopilot (2v2: debug=rally&live=1; 6v6: startMatch autopilot, 3ª
  * persona) con el reloj de rAF ×SPEED y, frame a frame (sin cortes ni congelados), mide la cámara REAL por saque y por fase:
- *   - quien   yo (saca el jugador que llevas; en el 2v2 el plano serveUs vale para los dos de tu equipo) · comp (6v6: un compañero) · rival
+ *   - quien   yo (saca el jugador que llevas) · comp (saca un compañero; en el 2v2 el plano serveUs es el mismo) · rival
  *   - fase    espera (balón en la mano, desde 0,5 s tras entrar en el saque: lo de antes es la llegada del corte/transición) · lanz (balón
  *             lanzado hasta el golpe) · vuelo (del golpe de saque al primer toque del que recibe o al bote)
  *   - por fase: m/s (media, p95, máx), giro °/s (cuaternión), lente °/s, % de frames QUIETOS (< 0,05 m/s, < 0,5 °/s, < 0,3 °/s) y
@@ -27,7 +27,7 @@ const HOOK = `(function(){
   var M=window.__m={ph:{},sv:[],err:'',caps:[]}, last=null, lastCut=-1, cur=null, srvT=0, walkT=0, walkD=1, lastMode='', want=${SHOTS ? 'true' : 'false'}, caps={}, hitT=-9;
   function cap(name){ if(!want||(caps[name]||0)>=${NSHOT}||window.__cap) return; caps[name]=(caps[name]||0)+1; window.__cap=name+'-'+caps[name]; M.caps.push(window.__cap); c.frozen=true; }
   function P(k){ return M.ph[k]||(M.ph[k]={n:0,still:0,bOut:0,sp:[],yr:[],fr:[]}); }
-  function who(g){ var t=g.serving; if(t!==0) return 'rival'; return (g.size===6&&g.server!==g.ctrl)?'comp':'yo'; }
+  function who(g){ var t=g.serving; if(t!==0) return 'rival'; return g.server!==g.ctrl?'comp':'yo'; }
   CR.update=function(g,dt,ev){
     // (WALK: el sacador de tu equipo se desplaza a lo ancho antes de que la CPU lance; la cámara lo ve como a un humano)
     if(WALK&&g&&!g.demo&&g.mode==='serve'&&g.serveState==='ready'&&g.serving===0&&g.server&&(g.size!==6||g.server===g.ctrl)&&c.state==='playing'&&!c.frozen){

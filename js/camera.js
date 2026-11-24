@@ -265,7 +265,7 @@
     if (g.mode === 'over' || g.finished || ctx.state === 'over') return 'over';
     if (g.mode === 'point') return (CC.on && CC.t >= CC.start) ? 'court' : quietPoint(g) ? 'rally' : 'point';
     if (g.mode === 'serve') return g.serving === 0 ? 'serveUs' : 'serveThem';
-    if (FX.on && FX.k !== 'rival' && shot === 'serveUs' && fxFlight(g)) return 'serveUs';   // (vuelo de tu saque: la cámara fija sigue)
+    if (FX.on && FX.mine && FX.k !== 'rival' && shot === 'serveUs' && fxFlight(g)) return 'serveUs';   // (vuelo de tu saque: la cámara fija sigue)
     if (FT.on && GAMEPLAY[FT.shot] && FT.shot !== 'serveUs' && FT.shot !== 'serveThem') return FT.shot;   // (seguimiento del remate: el plano no cambia hasta el bote)
     var p = g.ctrl, b = g.ball;
     if (p && p.lastAction === 'spike' && p.actionT < 0.75) return 'attack';
@@ -3040,12 +3040,12 @@
    * y sin trasladarse, salvo que el sacador se desplace a lo ancho (> 1,2 m del sitio fijado: entonces se recompone el encuadre entero,
    * despacio, y se vuelve a fijar cuando se para) o que nada quepa ni con la lente abierta (vuelve al encuadre del plano).
    * Al soltar (primer toque rival, bote o fin del saque rival) la cámara de siempre sigue con su transición suave de plano. */
-  var FX = { on: false, k: '', age: 0, fl: false, rc: false, still: 0, sx: 0.5, sy: 0.5, lsy: 0.5, need: 0, why: '',
+  var FX = { on: false, mine: false, k: '', age: 0, fl: false, rc: false, still: 0, sx: 0.5, sy: 0.5, lsy: 0.5, need: 0, why: '',
              cx: 0.5, cy: 0.5, cz: 0.5, cw: 0.5, cp: 0.5, cf: 0.5,      // pose fijada de ahora (posición, giro, cabeceo, lente)
              tx: 0.5, ty: 0.5, tz: 0.5, tw: 0.5, tp: 0.5, tf: 0.5,      // pose objetivo (a la que va el muelle)
              v: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5], sT: 0.4 };
   (function () { for (var i = 0; i < 6; i++) FX.v[i] = 0; FX.sx = FX.sy = FX.lsy = 0; })();
-  var FXD = { on: false, k: '', need: 0, rc: false, why: '', fl: false, ini: 0 };
+  var FXD = { on: false, k: '', need: 0, rc: false, why: '', fl: false, ini: 0, of: false };   // (of: la red de seguridad de los oficiales corrige este frame)
   // puntos que vigilar [x, y, z, arriba, abajo, lado] (márgenes de fuera, NDC; los de dentro, 0,1 menos), sin objetos nuevos por frame
   var FXP = []; for (var fxi = 0; fxi < 8; fxi++) FXP.push([0.5, 0.5, 0.5, 0.5, -0.5, 0.5]);
   var FXN = 0;
@@ -3060,7 +3060,9 @@
       if (shot === 'tp') return g.serving === 0 ? 'yo' : 'rival';
       return shot === 'serveUs' ? 'yo' : 'rival';
     }
-    if (FX.on && (FX.k === 'yo' || FX.k === 'vuelo') && fxFlight(g)) return 'vuelo';
+    // (el vuelo solo con TU saque: si sacó un compañero, la cámara tiene que ir a por tu jugador igual, y mejor durante el vuelo —en el
+    // 6v6 hacerlo todo al primer toque rival pedía 12 m/s—)
+    if (FX.on && FX.mine && (FX.k === 'yo' || FX.k === 'vuelo') && fxFlight(g)) return 'vuelo';
     return '';
   }
   /** Vuelo de NUESTRO saque: balón en juego, último toque el saque nuestro, sin bote todavía. */
@@ -3147,7 +3149,7 @@
   function fxApply(g) {
     var k = fxKind(g), dt = K.dt;
     if (!k) {
-      if (FX.on) { FX.on = false; FX.age = 0; if (shot === 'tp' && dt > 0) startBlend(0.55, 0.5, 22); }   // (6v6: el plano no cambia de nombre)
+      if (FX.on) { FX.on = false; FX.age = 0; if (shot === 'tp' && dt > 0) startBlend(0.8, 0.6, 16); }   // (6v6: el plano no cambia de nombre; suave, como las transiciones al saque)
       FXD.on = false; dbg.fx = FXD; return;
     }
     var lw = at2(A.y - D.y, A.x - D.x), lp = at2(A.z - D.z, hyp(A.x - D.x, A.y - D.y)), lf = K.fovWant;
@@ -3168,7 +3170,7 @@
       if (shot === 'tp') TP.fov = FX.cf;
       for (var i = 0; i < 6; i++) FX.v[i] = 0;
       FX.on = true; FX.k = k; FX.rc = false; FX.need = wid === 1 && here ? 1 : 0; FX.why = FX.need ? k + ':encuadre' : ''; FX.still = 0; FXD.ini++;
-      var s0 = g.server || g.ctrl; FX.sx = s0.x; FX.sy = s0.y; FX.lsy = s0.y;
+      var s0 = g.server || g.ctrl; FX.sx = s0.x; FX.sy = s0.y; FX.lsy = s0.y; FX.mine = k === 'yo' && g.server === g.ctrl;
       if (dt > 0) FX.age += dt;
       FXD.on = true; FXD.k = k; FXD.need = FX.need; FXD.rc = false; FXD.why = FX.why; FXD.fl = false; dbg.fx = FXD;
       fxBreak();
@@ -3818,8 +3820,8 @@
     } else { OFC.fail = false; OFC.okW = 1; OFC.okY = 0; }
     // (con la cámara fija del saque, la corrección de la lente y el giro llega con un muelle corto en vez de aplicarse de golpe: cuando la
     // cámara fija abre la lente para el lanzamiento del saque en salto, un oficial que cruza un borde daba un tirón de 4-5° en un frame)
-    if (FX.on && FX.age > 0 && dt > 0 && shot === 'serveUs') { OFS.w = sd1(OFS.w, ofW, OFV, 0, 0.18, dt); OFS.y = sd1(OFS.y, ofY, OFV, 1, 0.18, dt); ofW = OFS.w; ofY = OFS.y; }
-    else { OFS.w = ofW; OFS.y = ofY; OFV[0] = OFV[1] = 0; }
+    if (FX.on && FX.age > 0 && dt > 0 && shot === 'serveUs') { var ow0 = OFS.w, oy0 = OFS.y; OFS.w = sd1(OFS.w, ofW, OFV, 0, 0.18, dt); OFS.y = sd1(OFS.y, ofY, OFV, 1, 0.18, dt); ofW = OFS.w; ofY = OFS.y; FXD.of = Math.abs(OFS.w - ow0) > 1e-5 || Math.abs(OFS.y - oy0) > 1e-6; }
+    else { OFS.w = ofW; OFS.y = ofY; OFV[0] = OFV[1] = 0; FXD.of = false; }
     K.ofK = ofW;
     if (Math.abs(ofW - 1) > 0.001) { cam.fov = 2 * Math.atan(Math.tan(cam.fov * DEG / 2) * ofW) / DEG; cam.updateProjectionMatrix(); }
     // (el giro se aplica SOLO a este frame, encima del giro de salida: antes se sumaba también a K.outYaw y, con un oficial cortado varios
