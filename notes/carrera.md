@@ -1262,6 +1262,15 @@ de career.js ya es el ojeador de ofertas; aquí `g.scout` solo en la sim).
   últimos partidos jugados ≥ `STUDY_NOTA` = 7, con al menos 2. Por qué 7: es la vara con la que la Carrera ya dice que destacas
   (ofertas de mitad de temporada con nota media ≥ 7) y, con el calibrado de la nota (novato ~6,1, medio ~7,8, bueno ~9,1 en la playa;
   receptor ~7,3 en pista), deja fuera al que empieza y entra cuando ya rindes.
+  **24-nov-2026 (decisiones de Ferran):** también si en alguno de esos 3 partidos sacaste **más de 9** (`STUDY_TOP`; basta uno, un 9
+  justo no). Y solo en las categorías altas (`studyGate`): **pista**, la 1ª división de cada país (Hiperliga y equivalentes) y lo que
+  juegues desde ella (copa, competiciones internacionales); **playa**, la Hiperliga de Playa, el Continental y el Mundial. En la **2ª
+  categoría** (pista: Hiperliga 2 y equivalentes; playa: el Circuito Nacional) solo en las **finales** (copa de fin de temporada / Open)
+  y en el **tramo final** de la liga = el último cuarto de las jornadas: jornada > ¾ del total (de 14, de la 11ª a la 14ª; de 22, de la
+  17ª a la 22ª). Más abajo (Circuito Regional), nunca. Fuera de esos partidos el informe dice por qué (`me.why`: `nota`, `low` con
+  «eso empieza en la Hiperliga de Playa / la 1ª división (…)», `early` con la jornada desde la que te estudiarán). El carril del rival y
+  a quién sacar salen siempre. Los partidos de categorías sin estudio siguen apuntando su nota en el historial (al subir de categoría ya
+  te conocen).
 - **Historial** `c.study.h = [{d, l, n}]` (remates en diagonal y por la línea y la nota; playa y pista por separado; los simulados, el
   banquillo y la prueba no apuntan). Patrón: ≥ `STUDY_MIN` = 12 remates y ≥ `STUDY_PCT` = 62 % en un carril. Estados: `calm` (aún no te
   estudian), `few` (pocos remates), `none` (repartes), `on` (te cierran ese carril, mk = (pct − 55)/25 entre 0,4 y 1).

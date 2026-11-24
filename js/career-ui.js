@@ -2492,7 +2492,9 @@
     if (m.state === 'on') { me = 'El ' + m.pct + NNB + '% de tus remates van ' + lane(m.lane) + ': hoy te la cierran.' + adapt; chip = ['Te tienen estudiado', 'sp-danger']; }
     else if (m.state === 'none') { me = 'Te estudian, pero repartes los remates: no te cierran nada. Si cargas un lado, lo taparán en el partido.'; chip = ['Repartes', 'sp-cream']; }
     else if (m.state === 'few') { me = 'Te estudian, pero aún no tienen vídeo tuyo rematando. Si cargas un lado, lo taparán en el partido.'; chip = ['Sin vídeo', 'sp-cream']; }
-    else { me = 'Aún no se fijan en ti: con mejores notas empezarán a estudiarte.'; chip = ['Sin vigilar', 'sp-cream']; }
+    else if (m.why === 'low') { me = 'En esta categoría no estudian a nadie: eso empieza en ' + (m.topName ? (/^Hiperliga/.test(m.topName) ? 'la ' : '') + m.topName : 'las categorías altas') + '.'; chip = ['Sin vigilar', 'sp-cream']; }
+    else if (m.why === 'early') { me = (m.hot ? 'Con tus notas ya se fijan en ti, pero' : 'Aún no se fijan en ti. Además,') + ' en esta liga solo estudian a los rivales en el tramo final (desde la jornada ' + m.from + ') y en las finales.'; chip = ['Sin vigilar', 'sp-cream']; }
+    else { me = 'Aún no se fijan en ti: con una media de 7 o un partido de más de 9 empezarán a estudiarte.'; chip = ['Sin vigilar', 'sp-cream']; }
     return { riv: riv, srv: srv, me: me, chip: chip, plain: 'Ellos: ' + riv + (srv ? ' Saque: ' + srv : '') + ' Tú: ' + chip[0] + '. ' + me };
   }
   /** Tarjeta (PC) o tira de una línea (móvil, abre la hoja) del informe, dentro de .cr-next tras los botones. '' sin informe. */

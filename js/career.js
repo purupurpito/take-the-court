@@ -1322,17 +1322,38 @@
   // cerrado si hay patrón (≥ STUDY_MIN remates y ≥ STUDY_PCT en uno) y, en el partido, el rival cambia el plan si le haces daño por
   // el otro lado (sim.js scEv, SC_ADAPT). Romper el plan (sum.study.broke): ≥ BROKE_N remates, ≤ BROKE_MAX por el carril cerrado y
   // ≥ BROKE_K puntos por el otro: la prensa lo cuenta. Determinista (hash de c.seed), nunca g.rng.
-  var STUDY_WIN = 3, STUDY_MIN = 12, STUDY_PCT = 0.62, STUDY_NOTA = 7, STUDY_NOTA_N = 2, BROKE_N = 6, BROKE_MAX = 0.40, BROKE_K = 3;
+  // (24-nov-2026, decisiones de Ferran) También te estudian si en alguno de esos partidos sacaste MÁS de STUDY_TOP (9), aunque sea uno
+  // solo; y solo en las categorías altas (studyGate): desde la Hiperliga (pista: la 1ª división de cada país; playa: la Hiperliga de
+  // Playa, el Continental y el Mundial). En la 2ª categoría (pista: Hiperliga 2 y sus equivalentes; playa: el Circuito Nacional) solo en
+  // las finales (copa de fin de temporada / Open) y en el tramo final de la liga: el último cuarto de las jornadas (jornada > ¾ del
+  // total: de 14, de la 11ª a la 14ª). Más abajo (Circuito Regional), nunca.
+  var STUDY_WIN = 3, STUDY_MIN = 12, STUDY_PCT = 0.62, STUDY_NOTA = 7, STUDY_NOTA_N = 2, STUDY_TOP = 9, BROKE_N = 6, BROKE_MAX = 0.40, BROKE_K = 3;
+  /** ¿Te pueden estudiar en este partido? { ok, why: '' | 'low' (categoría sin estudio) | 'early' (2ª categoría antes del tramo final),
+   *  from: 1ª jornada del tramo final (early), top: nombre de la categoría donde empieza (low) }. Sin partido (n), sí. */
+  function studyGate(c, n, hall) {
+    if (!n || !n.me) return { ok: true, why: '' };
+    var lvl, weeks, top;
+    if (hall) { var L = lg6(c, n.me.lid); if (!L) return { ok: true, why: '' }; lvl = L.lvl; weeks = weeksOf6(c, n.me.lid); var T = lg6(c, L.cc + '1'); top = 'la 1ª división' + (T ? ' (' + T.name + ')' : ''); }
+    else { lvl = n.me.lvl >= 2 ? 1 : n.me.lvl === 1 ? 2 : 3; weeks = WEEKS; top = lname(LEAGUES[2]); }   // (playa: Hiperliga de Playa y más arriba = 1, Circuito Nacional = 2, Regional = 3)
+    if (lvl <= 1) return { ok: true, why: '' };
+    if (lvl > 2) return { ok: false, why: 'low', top: top };
+    var from = Math.floor(weeks * 3 / 4) + 1;
+    if (n.kind !== 'league' || (n.week | 0) + 1 >= from) return { ok: true, why: '' };
+    return { ok: false, why: 'early', from: from };
+  }
   function studySane(c) { if (!c.study || typeof c.study !== 'object' || !Array.isArray(c.study.h)) c.study = { h: [] }; return c.study; }
-  /** Lo que saben de ti: { state: 'calm' (aún no te estudian) | 'few' (pocos remates) | 'none' (repartes) | 'on' (patrón), lane, pct, n, avg }. */
-  function studyMe(c) {
-    var h = (c && c.study && Array.isArray(c.study.h) ? c.study.h : []).slice(-STUDY_WIN), k = h.length, sn = 0, d = 0, l = 0;
-    h.forEach(function (x) { sn += +x.n || 0; d += x.d | 0; l += x.l | 0; });
+  /** Lo que saben de ti: { state: 'calm' (aún no te estudian) | 'few' (pocos remates) | 'none' (repartes) | 'on' (patrón), lane, pct, n, avg,
+   *  top (un partido de más de STUDY_TOP), why ('nota' | 'low' | 'early' con calm), from (early) }. gate: studyGate (sin él, sí se puede). */
+  function studyMe(c, gate) {
+    var h = (c && c.study && Array.isArray(c.study.h) ? c.study.h : []).slice(-STUDY_WIN), k = h.length, sn = 0, d = 0, l = 0, top = false;
+    h.forEach(function (x) { sn += +x.n || 0; d += x.d | 0; l += x.l | 0; if (+x.n > STUDY_TOP) top = true; });
     var avg = k ? round1(sn / k) : null, n = d + l, lane = d >= l ? 'diag' : 'line', mx = Math.max(d, l), pct = n ? Math.round(100 * mx / n) : 0;
-    if (k < STUDY_NOTA_N || avg < STUDY_NOTA) return { state: 'calm', lane: '', pct: 0, n: n, avg: avg };
-    if (n < STUDY_MIN) return { state: 'few', lane: '', pct: 0, n: n, avg: avg };
-    if (mx / n < STUDY_PCT) return { state: 'none', lane: '', pct: pct, n: n, avg: avg };
-    return { state: 'on', lane: lane, pct: pct, n: n, avg: avg };
+    var hot = top || (k >= STUDY_NOTA_N && avg >= STUDY_NOTA);
+    if (gate && !gate.ok) return { state: 'calm', lane: '', pct: 0, n: n, avg: avg, top: top, why: gate.why, hot: hot, from: gate.from | 0, topName: gate.top || '' };
+    if (!hot) return { state: 'calm', lane: '', pct: 0, n: n, avg: avg, top: false, why: 'nota' };
+    if (n < STUDY_MIN) return { state: 'few', lane: '', pct: 0, n: n, avg: avg, top: top };
+    if (mx / n < STUDY_PCT) return { state: 'none', lane: '', pct: pct, n: n, avg: avg, top: top };
+    return { state: 'on', lane: lane, pct: pct, n: n, avg: avg, top: top };
   }
   /** Dorsales del rival en la playa: los de main.js startCareerMatch (rival personal o jefe en el n.º 1; si lleva el 9, el otro el 3). */
   function rivalNums2(cs) {
@@ -1345,7 +1366,7 @@
     try {
       var rv = n.rival || {}, r = rng(hash(c.seed, 'est', rv.id, c.season)), h1 = r(), h2 = r();
       var riv = { lane: h1 < 0.65 ? 'diag' : 'line', pct: 60 + Math.floor(h2 * 16) };
-      var me = studyMe(c), A = out.attrs && out.attrs[1] || [], weak = null;
+      var me = studyMe(c, studyGate(c, n, hall)), A = out.attrs && out.attrs[1] || [], weak = null;
       if (hall) {
         var R = simRoles6(), nm = out.names && out.names[1] || [], nu = out.nums && out.nums[1] || [];
         R.forEach(function (p, i) { if (p !== 'OH' || !A[i]) return; var v = A[i].recv | 0; if (!weak || v < weak.recv) weak = { num: nu[i] | 0, name: String(nm[i] || ''), recv: v }; });
@@ -4089,8 +4110,8 @@
   var F = {
     beach: BEACH, hall: HALL, mode: mode, setMode: setMode, has: hasMode, POS6: POS6, ordn: ordn,   // (ordn: «1r, 2º, 3r», también para main.js)
     // «Te tienen estudiado»: informe del próximo partido (sobre una copia), lo que saben de ti, dorsales rivales de la playa y constantes
-    studyNext: studyNext, studyMe: studyMe, rivalNums2: rivalNums2, _studyClose: studyClose, _studyOf: studyOf,
-    STUDY: { WIN: STUDY_WIN, MIN: STUDY_MIN, PCT: STUDY_PCT, NOTA: STUDY_NOTA, NOTA_N: STUDY_NOTA_N, BROKE_N: BROKE_N, BROKE_MAX: BROKE_MAX, BROKE_K: BROKE_K },
+    studyNext: studyNext, studyMe: studyMe, studyGate: studyGate, rivalNums2: rivalNums2, _studyClose: studyClose, _studyOf: studyOf,
+    STUDY: { WIN: STUDY_WIN, MIN: STUDY_MIN, PCT: STUDY_PCT, NOTA: STUDY_NOTA, NOTA_N: STUDY_NOTA_N, TOP: STUDY_TOP, BROKE_N: BROKE_N, BROKE_MAX: BROKE_MAX, BROKE_K: BROKE_K },
     /** Crear: o.mode 'hall' → Carrera de pista (y pasa a ser la activa); 'beach' → la de playa; sin mode, la activa. */
     create: function (o) {
       var m = o && (o.mode === 'hall' || o.mode === 'beach') ? o.mode : mode();
