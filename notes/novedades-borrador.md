@@ -36,3 +36,11 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 - Sigue quieta mientras tu saque vuela, hasta que el rival lo toca.
 - En el saque rival también se queda quieta.
 - Solo se mueve, suave y lo justo, si algo se iba a salir de la imagen.
+
+## Más premios por nivel (decisión de Ferran del 24-nov)
+- Doce premios nuevos del Vestuario al subir de nivel, del nivel 40 al 99.
+- Tintes lima y medianoche, calcetines de sandía, de balones y de llamas.
+- Manguitos de olas, salpicado, de red y holográfico.
+- Un balón pintado en la mejilla y una mancha de tinta alrededor del ojo.
+- En el nivel 99, el pelo arcoíris: solo se consigue así.
+- Si ya tenías el nivel, te los llevas al entrar.

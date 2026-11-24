@@ -551,10 +551,21 @@ tope de dibujos del 6v6 lo decido yo, abajo en «Menús»; redirección de /vole
 casi»; la moneda: ver «La moneda: salpis»; el 6v6 en JUGAR: ver «Menús».)
 - **Decisión (24-nov, «La música como la veas mejor»): la música sigue procedural**, hecha por js/audio.js como ahora (y como la
   Xaranga). No pesa nada en index.html, funciona sin conexión y no hay que buscar ni licenciar ficheros ogg. No se toca nada.
-6. **Premios por nivel** (Ferran pidió verlos). Hoy son 14, no 8: los objetos del Vestuario con nivel de perfil (`lv(n)` en js/look.js;
-   cada uno también se puede comprar en la tienda). Nivel 2 Tira nasal · 4 Collar de conchas (playa) · 6 Malla larga · 8 Manguito de
-   rayas (pista) · 10 Tinte azul · 12 Calcetines de lunares (pista) · 14 Mitones (playa) · 16 Calcetines caídos (pista) · 18 Una
-   rodillera (pista) · 20 Licra de surf (playa) · 24 Gafas redondas · 28 Zapatillas neón · 32 Malla tres cuartos · 36 Zapatillas
-   bicolor. ¿Te valen, quitas o añades alguno?
+- **Premios por nivel (Ferran, 24-nov: «más premios por nivel»).** Los 14 de antes (Nv 2-36) no cambian. **Decisión provisional
+  del ritmo:** 12 nuevos, **cada 4 niveles del 40 al 60** (40, 44, 48, 52, 56, 60), **cada 5 del 65 al 80** (65, 70, 75, 80), luego
+  **90** y **99** (el máximo). Con la curva del perfil (60 + 20·Nv de XP por nivel) el Nv 60 son ≈ 39 000 XP y el 99 ≈ 103 000: más
+  hueco arriba porque cada nivel cuesta más. Rarezas que nunca bajan: rara (40-56), épica (60-80), la más alta (90 y 99).
+  Nv 40 Tinte lima · 44 Calcetines de sandía (pista) · 48 Manguito de olas (pista) · 52 Balón en la mejilla · 56 Manguito salpicado
+  (pista) · 60 Calcetines de balones (pista) · 65 Tinte medianoche · 70 Manguito de red (pista) · 75 Mancha de tinta · 80 Calcetines
+  de llamas (pista) · 90 Manguito holográfico (pista) · 99 Pelo arcoíris (efecto de pelo).
+  - **Decisión provisional:** como los de antes, cada uno se puede comprar también en la tienda de la Carrera (6 000-8 000 salpis los
+    raros, 15 000-20 000 los épicos, 50 000 el holográfico), **salvo el pelo arcoíris del Nv 99, que solo se gana con el nivel.**
+  - **Decisión provisional:** la mancha de tinta usa el color de acento, pero **nunca rojo** (con rojo, alrededor del ojo, parecía
+    una herida): si el acento es rojo, sale turquesa, el de la tinta del juego. El holográfico es de nácar y no usa fichas de color.
+  - Quien ya tenía nivel alto los recibe al entrar en el menú (lo hace `VB.Profile.check` → `grantLevel`, que ya concedía todo lo
+    de su nivel o menos); si son más de 3 de golpe sale un solo aviso «Nuevo en tu vestuario: N objetos».
+  - Pocos para playa: 7 de los 12 son de pista (calcetines y manguitos solo existen en pista); en playa valen los dos tintes, las
+    dos pinturas de cara y el pelo arcoíris. Pregunta: ¿quieres alguno más de playa (p. ej. una tobillera o una gorra), aunque sea
+    en un nivel ya ocupado? Cambiar nombres, niveles o precios: el `CATALOG` de js/look.js (busca «premios de nivel alto»).
 8. Recargar a mitad de partido o «Reiniciar partido» en la Carrera evita una derrota sin castigo: ¿es a propósito?
 9. Torneo de la semana: ¿lo damos por cubierto con «La jugada del día»? (también arriba, en Backlog del 21-nov).
