@@ -26,7 +26,7 @@
   // Presentación (UI-02/03/04): banKind = qué anuncia el banner visible ('point' | 'set' | 'match' | 'court' | 'info' | 'sp');
   // banGate = cómo acaba ('cut' = con el corte de vuelta al saque; 'court' = al bajar la grúa del cambio de campo)
   var banKind = '', banTier = 0, banRect = null, bugT = 0, bugOut = false;
-  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '', byD: {}, anyMatch: 0 }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
+  var record = { played: 0, wins: 0, bestStreak: 0, winRun: 0, tut: 0, lastA: 0, lastB: 0, lastD: '', byD: {}, anyMatch: 0, intro: 0 }; // last*: sets y dificultad del último Partido rápido (dato de portada, TV D6)
   // byD (B5): {easy:[ganados, perdidos], normal, hard, expert}, solo partidos 2v2 de Partido rápido (la previa dice «3-1 en Normal»)
   var hudScale = 1;            // UI-16: escala del HUD (ctx.settings.hudScale) × vpScale (pantallas grandes; vpFit)
   var hudSet = 1, vpScale = 1; // ajuste del jugador (1 | 1,15 | 1,3) y escala por tamaño de pantalla (--vs)
@@ -451,7 +451,7 @@
       'btnAgain', 'btnMenu', 'btnPanelBack', 'btnTutPrev', 'btnTutNext', 'btnHudPause', 'btnHudMute', 'icoSound',
       'pnKick', 'pnTitle', 'tutBody', 'tutFig', 'tutStep', 'tutTitle', 'tutText', 'tutDots', 'ctlGrid', 'ctlSub', 'navHint', 'menuRecord', 'menuLast',
       'btnQuick', 'btnGo', 'btnPlayBack', 'btnQuickBack', 'mpPlay', 'mpQuick', 'venueHelp', 'ptsHelp', 'ctrlHelp', 'diffHelp', 'optFmt', 'fmtVal', 'fmtHelp', 'optLen', 'lenVal', 'lenHelp', 'optCam6', 'cam6Val', 'cam6Help', 'btn6v6', 'sqPick', 'ctlTabs', 'sqTabs', 'setTabs', 'optList',
-      'diffVal', 'diffLvl', 'playSub', 'qualNote', 'tb1t', 'btnFirstTut', 'btnFirstPlay', 'firstDiff', 'guide', 'guideK', 'guideT', 'skip', 'btnAgainAlt', 'endMvp', 'btnPeek', 'btnEndBack', 'btnEndOpts',
+      'diffVal', 'diffLvl', 'playSub', 'qualNote', 'tb1t', 'btnStartTut', 'btnFirstTut', 'btnFirstPlay', 'firstDiff', 'guide', 'guideK', 'guideT', 'skip', 'btnAgainAlt', 'endMvp', 'btnPeek', 'btnEndBack', 'btnEndOpts',
       'btnVer', 'abTabs', 'abBody', 'btnAbOk', 'optVer', 'optSave', 'resNote', 'ctlMsg',
       // E6: Entrenamiento (tarjeta, página, pastilla del HUD, tarjeta de presentación y hoja final)
       'btnGym', 'mpGym', 'gymList', 'gymFoot', 'btnGymBack', 'gymSub', 'drillBar', 'drillTxt', 'introDrill', 'idTitle', 'idGoal', 'idKeys', 'idMed',
@@ -3180,7 +3180,13 @@
   // «Jugar ya» (1.22.0, informe 4.3): #btnNow solo para quien no ha jugado nunca un partido rápido (récord a 0) y sin Carrera activa; un
   // toque = un set a 15 contra la CPU (main.js playNow), sin Jugar ni «Primer partido» (que sigue saliendo a quien entra por JUGAR).
   // En depuración no sale (mobaudit/capturas: &now=1 lo fuerza). Con él, JUGAR pasa a fila plana con su línea, como con la Carrera.
-  function nowWanted() { return ctx.debug ? ctx.params.now === '1' && !heroOn : !heroOn && !everPlayed(); }
+  function nowWanted() { return ctx.debug ? (ctx.params.now === '1' || ctx.params.first === '1') && !heroOn : !heroOn && !everPlayed(); }
+  // PRIMERA VEZ (24-nov-2026, Ferran: «Cuando alguien se meta al juego por PRIMERA VEZ que le dé de opciones Jugar ya o Tutorial. De ahí,
+  // para adelante, le saldrá el menú normal»): con «¡Jugar ya!» a la vista y sin haber cerrado nunca el tutorial (record.intro), la portada
+  // es solo esos dos billetes (#menu.first-run). Se acaba al jugar cualquier partido (everPlayed) o al CERRAR el tutorial, se acabe o no
+  // (closePanel). Empezar un partido y salir a medias no lo acaba. En depuración, &first=1 la fuerza (mobaudit)
+  var firstOn = false;
+  function firstWanted(nw) { return !!nw && !!el.btnStartTut && (ctx.debug ? ctx.params.first === '1' : !(record.intro > 0 || record.tut > 0)); }   // (tut: ya lo acabó antes de 1.23)
   function syncHero() {
     heroDirty = false;
     if (!el.btnCont) return;
@@ -3194,6 +3200,9 @@
     if (ml && ml.classList.contains('has-cont') !== showC) ml.classList.toggle('has-cont', showC);
     if (el.menuCol && el.menuCol.classList.contains('has-cont') !== showC) el.menuCol.classList.toggle('has-cont', showC);
     var nw = !sgOn && !!el.btnNow && nowWanted(); nowOn = nw;
+    var fr = firstWanted(nw); firstOn = fr;
+    if (el.btnStartTut && el.btnStartTut.hidden === fr) el.btnStartTut.hidden = !fr;
+    if (el.menu && el.menu.classList.contains('first-run') !== fr) el.menu.classList.toggle('first-run', fr);
     if (el.btnSeguir) {
       if (el.btnSeguir.hidden === sgOn) el.btnSeguir.hidden = !sgOn;
       if (sg) {
@@ -3215,6 +3224,7 @@
     var mainF = sgOn ? el.btnSeguir : showC ? el.btnCont : nw ? el.btnNow : el.btnPlay;
     if (!showC && document.activeElement === el.btnCont && mpage === 'main') focusEl(mainF, kbNow());
     if (!nw && el.btnNow && document.activeElement === el.btnNow && mpage === 'main') focusEl(mainF, kbNow());
+    if (!fr && el.btnStartTut && document.activeElement === el.btnStartTut && mpage === 'main') focusEl(mainF, kbNow());
     if (!sgOn && el.btnSeguir && document.activeElement === el.btnSeguir && mpage === 'main') focusEl(mainF, kbNow());
   }
   /** «Continuar carrera»: abre el hub en «Partido» con el foco en «Jugar partido» (el partido no empieza solo; R15: from 'main'). */
@@ -5794,7 +5804,7 @@
   /** JUGAR desde el menú: la primera vez (sin partidos ni tutorial) ofrece ver el tutorial o jugar ya. */
   function play() {
     if (VB.Install && VB.Install.isOpen && VB.Install.isOpen()) return;   // el aviso de instalar está delante: nunca los dos a la vez
-    if (!firstAsked && !record.played && !record.tut && !ctx.debug) {
+    if (!firstAsked && !everPlayed() && !record.tut && !(record.intro > 0) && !ctx.debug) {   // (la portada de la primera vez ya lo ofrece: aquí solo si no salió)
       firstAsked = true; uiSound('click');
       var di = optIndex('difficulty');
       el.firstDiff.textContent = 'Nivel ' + OPT.difficulty.labels[di] + (di === 0 ? ' (recomendado para empezar)' : '') + '. Se cambia en Partido rápido';
@@ -5906,10 +5916,12 @@
       return true;
     }
     var was = panel; panel = null; tutStop();
+    var tutFirst = false;   // primera vez: cerrar el tutorial (acabado o no) da paso a la portada de siempre (record.intro)
+    if (was === 'tut' && !(record.intro > 0) && !ctx.debug) { tutFirst = firstOn; record.intro = 1; saveRecord(); heroDirty = true; }
     if (was === 'mstats') rpBack = true;   // (de vuelta a la hoja final: sin repetir la entrada ni la cuenta de las cifras)
     shown = ''; syncScreens(ctx.game);
     // en pausa, el foco vuelve al botón que abrió el panel (antes caía en «Seguir jugando»)
-    focusLayer(ctx.state === 'menu' ? (was === 'squad' ? el.btnSquad : was === 'tut' ? el.btnTut : was === 'ctl' ? el.btnControls : was === 'first' ? el.btnGo : was === 'about' ? null : el.btnSettings)
+    focusLayer(ctx.state === 'menu' ? (was === 'squad' ? el.btnSquad : was === 'tut' ? (tutFirst && nowOn && el.btnNow ? el.btnNow : el.btnTut) : was === 'ctl' ? el.btnControls : was === 'first' ? el.btnGo : was === 'about' ? null : el.btnSettings)
       : ctx.state === 'paused' ? (was === 'ctl' ? $('btnPControls') : was === 'set' ? $('btnPSettings') : null) : was === 'mstats' && el.btnMStats && !el.btnMStats.hidden ? el.btnMStats : null);
     if (was === 'mstats' && el.btnMStats && kbNow()) setTimeout(function () { if (!panel && document.activeElement === el.btnMStats) focusEl(el.btnMStats, true); }, 45);
     return true;
@@ -8350,7 +8362,7 @@
       return senaShow(s, 'bug', true);
     },
     /** D4 (account.js tras una bajada con ganchos) y Vestuario: vuelve a leer el récord y la portada (B3) y repinta el menú. */
-    refreshMenu: function () { last.rec = null; last.navh = null; last.pf = null; pfDirty = true; heroDirty = true; if (ctx && ctx.state === 'menu') { renderMenu(); if (mpage === 'prof') pfRender(true); } },
+    refreshMenu: function () { loadRecord(); last.rec = null; last.navh = null; last.pf = null; pfDirty = true; heroDirty = true; if (ctx && ctx.state === 'menu') { renderMenu(); if (mpage === 'prof') pfRender(true); } },
     /** D2: el menú en la página Perfil (chip de la portada, escena debug=prof). o = {tab: 'vestuario' | 'insignias' | 'entreno' | 'carrera' | 'retos' | 'sedes' | 'hitos'}. */
     openProfile: openProfile,
     /** Pruebas (D2): estado de la página y del chip. */
@@ -8422,6 +8434,7 @@
       el.btnFirstPlay.addEventListener('click', function () { uiSound('start'); goMatch(); });
       if (el.btnSeguir) el.btnSeguir.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goSeguir(); });
       if (el.btnNow) el.btnNow.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; uiSound('start'); goNow('ya'); });
+      if (el.btnStartTut) el.btnStartTut.addEventListener('click', function () { if (ctx.state !== 'menu' || panel) return; click(); openPanel('tut', 'menu'); });
       // Dificultad: ‹ baja y › sube (zonas propias, UI-06); un clic en el resto de la fila sigue avanzando en ciclo
       el.optDiff.addEventListener('click', function (ev) {
         var a = ev.target && ev.target.closest ? ev.target.closest('[data-d]') : null;

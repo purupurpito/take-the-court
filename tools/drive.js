@@ -68,6 +68,19 @@ const state = () => evalJs('JSON.stringify({s:VB.ctx.state,m:VB.ctx.game&&VB.ctx
     let st = await state(); check(st.s === 'menu' && st.demo, 'arranca en el menú con demo detrás (' + JSON.stringify(st) + ')');
     await shot('1-menu');
     // «Jugar ya» (1.22.0): perfil nuevo → el foco empieza en el billete «¡Jugar ya!» (#btnNow); ↓ baja a JUGAR (este recorrido es el de los menús)
+    // Primera vez (24-nov-2026): la portada es solo «¡Jugar ya!» y «Tutorial»; ↓ llega a Tutorial, Intro lo abre y Esc lo cierra → portada
+    // de siempre con el foco en «¡Jugar ya!»
+    if (await evalJs("document.getElementById('menu').classList.contains('first-run')")) {
+      await press('ArrowDown'); await sleep(250);
+      check(await evalJs("document.activeElement&&document.activeElement.id==='btnStartTut'"), 'primera vez: ↓ desde «¡Jugar ya!» llega a «Tutorial»');
+      await press('ArrowDown'); await sleep(250);
+      check(await evalJs("document.activeElement&&['btnNow','btnStartTut'].indexOf(document.activeElement.id)>=0"), 'primera vez: las flechas no salen de los dos billetes');
+      if (await evalJs("document.activeElement.id!=='btnStartTut'")) { await press('ArrowDown'); await sleep(250); }
+      await press('Enter'); await sleep(500);
+      check(await evalJs("VB.UI.isPanelOpen()&&!document.getElementById('pnTut').hidden"), 'primera vez: Intro en «Tutorial» abre Cómo se juega');
+      await press('Escape'); await sleep(600);
+      check(await evalJs("!VB.UI.isPanelOpen()&&!document.getElementById('menu').classList.contains('first-run')&&document.activeElement.id==='btnNow'"), 'primera vez: Esc cierra el tutorial y deja la portada de siempre con el foco en «¡Jugar ya!»');
+    }
     if (await evalJs("(function(){var b=document.getElementById('btnNow');return !!b&&!b.hidden})()")) {
       await press('ArrowDown'); await sleep(250);
       check(await evalJs("document.activeElement&&document.activeElement.id==='btnPlay'"), 'perfil nuevo: ↓ desde «¡Jugar ya!» llega a JUGAR');

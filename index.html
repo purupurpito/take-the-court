@@ -4019,11 +4019,24 @@ html.sp-kb [data-kb-hide]{display:none!important}
 #menu.mj :is(#btnNow,#btnSeguir){margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
 :root:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir)>:is(.pl-tx,.go){display:none}
 #menu.mj :is(#btnNow,#btnSeguir) .sp-crest svg{width:100%;height:100%}
-:root.ph:not(#_):not(#_):not(#_) #menu.mj.has-now-mj .brand{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.has-now-mj:not(.first-run) .brand{display:none}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-now-mj{--mj-tape:46px}
 :root.ph.ph-s:not(#_):not(#_):not(#_) #menu.mj.has-now-mj .mj-side{gap:8px;padding-top:6px;padding-bottom:4px}
 :root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-now-mj .mj-strip .sp-ic{width:42px;height:42px;padding:11px}
 :root.ph.ph-s:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj.has-now-mj .mj-strip .sp-btn{gap:3px}
+/* PRIMERA VEZ (24-nov-2026; ui.js syncHero pone #menu.first-run): solo dos billetes grandes, «¡Jugar ya!» (dorado) y «Tutorial» (turquesa),
+   con el logotipo encima también en el móvil. El resto de la portada vuelve en cuanto se ha jugado un partido o se ha cerrado el tutorial.
+   Vale también para la portada de antes (?menu=old): todo lo de .mlist menos los dos billetes se esconde */
+:root:not(#_):not(#_):not(#_) #menu.first-run .mlist>:not(#btnNow):not(#btnStartTut){display:none}
+#menu.first-run .pf-wrap,#menu.first-run #menuRecord{display:none}
+#menu.mj #btnStartTut{margin:0 calc(var(--mj-stamp) * .1) 4px 0;max-width:100%}
+:root:not(#_):not(#_):not(#_) #menu.mj #btnStartTut>:is(.pl-tx,.go){display:none}
+#menu.mj #btnStartTut .sp-crest svg{width:100%;height:100%;fill:var(--sp-gold);stroke:var(--sp-ink);stroke-width:2.2;paint-order:stroke fill}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut){--sp-h:clamp(64px,17vh,128px);--sp-cs:clamp(40px,9vh,72px);margin-bottom:clamp(6px,1.6vh,14px)}
+:root:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut) .sp-t{font-size:clamp(20px,4.6vh,40px)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut){--sp-h:clamp(62px,15vh,84px)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj.first-run :is(#btnNow,#btnStartTut) .sp-t{font-size:calc(var(--ph-head) * 1.25)}
+#menu:not(.mj).first-run .mlist>#btnStartTut{height:72px;font-size:26px}
 /* ==== fin SPLAT · PORTADA ==== */
 
 /* =====================================================================
@@ -6409,6 +6422,9 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <!-- «Jugar ya» (1.22.0, informe 4.3): solo para quien no ha jugado nunca (ui.js syncHero). Un set a 15 contra la CPU sin pasar por
              Jugar ni por «Primer partido»; menu-jugador.js lo pinta como billete dorado (.sp-ticket.sp-gold) en el sitio de «Continuar carrera» -->
         <button class="mi primary" id="btnNow" hidden><span class="pl-tx"><span>¡Jugar ya!</span><span class="mi-s">Un set a 15 contra la CPU</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
+        <!-- Primera vez (24-nov-2026, Ferran: «que le dé de opciones Jugar ya o Tutorial»): con #menu.first-run la portada enseña SOLO «¡Jugar ya!»
+             y este «Tutorial» (ui.js syncHero); en cuanto se ha jugado un partido o se ha cerrado el tutorial, la portada de siempre -->
+        <button class="mi primary" id="btnStartTut" hidden><span class="pl-tx"><span>Tutorial</span><span class="mi-s">Cómo se juega, paso a paso</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi primary" id="btnSeguir" hidden><span class="pl-tx"><span>Seguir el partido</span><span class="mi-s" id="seguirS"></span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi primary" id="btnPlay"><span class="pl-tx"><span>Jugar</span><span class="mi-s" id="playMainSub" hidden>Partido rápido, 6 contra 6 y entrenamiento</span></span><span class="go"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></button>
         <button class="mi" id="btnSquad"><span>Jugadores</span><span class="mi-s" id="squadSub">Estadísticas y mejoras</span></button>

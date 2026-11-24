@@ -82,6 +82,14 @@ async function runSize(size) {
     check(E.t && E.m && E.s === 'menu', 'detecta móvil táctil y arranca en el menú');
     check(E.w === W && E.h === H, 'viewport exacto ' + E.w + 'x' + E.h);
     await shot('menu');
+    // Primera vez (24-nov-2026): portada con solo «¡Jugar ya!» y «Tutorial»; tocar Tutorial lo abre y VOLVER da la portada de siempre
+    if (await evalJs("document.getElementById('menu').classList.contains('first-run')")) {
+      check(await evalJs("document.getElementById('btnPlay').offsetParent===null&&document.getElementById('btnStartTut').offsetParent!==null"), 'primera vez: sin JUGAR, con «Tutorial»');
+      await tap('#btnStartTut'); await sleep(500);
+      check(await evalJs("VB.UI.isPanelOpen()&&!document.getElementById('pnTut').hidden"), 'primera vez: tocar «Tutorial» lo abre');
+      await tap('#btnPanelBack'); await sleep(500);
+      check(await evalJs("!VB.UI.isPanelOpen()&&!document.getElementById('menu').classList.contains('first-run')&&document.getElementById('btnPlay').offsetParent!==null"), 'primera vez: VOLVER da la portada de siempre');
+    }
     // menús v2: JUGAR → tarjetas de modos → Partido rápido (preparación con las filas de nivel, puntos, control y escenario)
     await tap('#btnPlay'); await sleep(500);
     check(await evalJs("VB.UI.menuPage()==='play'"), 'tocar JUGAR abre los modos de juego');

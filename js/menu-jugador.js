@@ -12,6 +12,7 @@
  *   - Cómo se juega, Controles y Ajustes: tres .sp-btn.sp-sm de tinta con icono dorado.
  *   - Carrera: .sp-ticket (brochazo turquesa) con tu escudo y el del rival. «¡Jugar ya!» y «Seguir el partido» (partido a medias guardado,
  *     js/resume.js): .sp-ticket.sp-gold en el mismo sitio (ui.js syncHero decide cuál sale).
+ *   - Primera vez (24-nov-2026): solo «¡Jugar ya!» y el billete «Tutorial» (#btnStartTut); #menu.first-run esconde lo demás (ui.js syncHero).
  * Filas con data-sp-row: ←/→ dentro de la fila y ↑/↓ de fila en fila (ui.js adjustFocused / navMove). Pruebas: &mjseed=1 (Carrera de muestra),
  * &mjfocus=<id> (enfoca ese botón). Datos vivos sin coste por frame: una firma, como mucho cada 1,2 s.
  */
@@ -76,6 +77,15 @@
     bNow.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.BALL + '</span></span><span class="sp-tk-main"><small class="sp-k">Primera vez</small>' +
       '<b class="sp-t">¡Jugar ya!</b><small class="sp-s">Un set a 15 contra la CPU</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
     nav.appendChild(bNow);
+  }
+  // Primera vez (24-nov-2026, Ferran): con #menu.first-run (ui.js syncHero) la portada solo enseña «¡Jugar ya!» y este billete turquesa
+  // «Tutorial» con la «?» de Cómo se juega en el talón (abre el mismo panel). Después, la portada de siempre
+  var bST = $('btnStartTut');
+  if (bST) {
+    bST.classList.remove('mi', 'primary'); cls(bST, 'sp-ticket');
+    bST.appendChild(mk('span', 'sp-tk', '<span class="sp-tk-stub"><span class="sp-crest">' + S.ICONS.tut + '</span></span><span class="sp-tk-main"><small class="sp-k">Primera vez</small>' +
+      '<b class="sp-t">Tutorial</b><small class="sp-s">Cómo se juega, paso a paso</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span>'));
+    nav.appendChild(bST);
   }
   // «Seguir el partido» (1.22.0, informe 4.9; js/resume.js, ui.js syncHero lo enseña con un partido a medias guardado): el mismo billete
   // dorado y el mismo sitio; mientras lo hay tapa a «Jugar ya» y a «Continuar carrera». La línea (marcador y set) la escribe ui.js
