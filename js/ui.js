@@ -3149,7 +3149,7 @@
   function spRow(b) { var p = b && b.parentNode; return p && p.closest ? p.closest('[data-sp-row]') : null; }
   function spRowList(r, list) { return list.filter(function (x) { return spRow(x) === r; }); }
   function spNavIdx(list, i, d) {
-    var n = list.length, r = spRow(list[i]), col = r ? spRowList(r, list).indexOf(list[i]) : 0, j = i;
+    var n = list.length, r = spRow(list[i]), col = r && !r.hasAttribute('data-sp-col0') ? spRowList(r, list).indexOf(list[i]) : 0, j = i;   // (data-sp-col0: al salir de la fila, a la 1ª columna de la otra; formato de Jugar → Partido rápido)
     do { j = (j + d + n) % n; } while (r && j !== i && spRow(list[j]) === r);
     var r2 = spRow(list[j]); if (!r2 || r2 === r) return j;
     var L2 = spRowList(r2, list); return list.indexOf(L2[r ? Math.min(col, L2.length - 1) : 0]);
@@ -5818,7 +5818,16 @@
       el.firstDiff.textContent = 'Nivel ' + OPT.difficulty.labels[di] + (di === 0 ? ' (recomendado para empezar)' : '') + '. Se cambia en Partido rápido';
       openPanel('first', 'menu'); return;
     }
+    if (fmt6() && perfFirst(function () { uiSound('start'); goMatch(); })) return;   // rendimiento del 1r 6v6 de este aparato
     uiSound('start'); goMatch();
+  }
+  /** Rendimiento del 1r 6v6 (24-nov-2026, Ferran: «la primera vez que juegues en 6v6 que salga la opción de escogerlo»): antes del primer
+   *  partido 6v6 de este aparato que se empieza DESDE LOS MENÚS (¡A jugar! del Partido rápido en 6 contra 6 y «Jugar partido» de la
+   *  Carrera de pista), la ventana de la calidad (perfNote). Se apunta en q6Asked (solo este aparato) al cerrarla, elija lo que elija,
+   *  y después sigue cb (el partido). true si la ha abierto. Nunca en depuración (salvo &q6=1) ni online. */
+  function perfFirst(cb) {
+    if (ctx.net || (ctx.debug ? ctx.params.q6 !== '1' : ctx.settings.q6Asked)) return false;
+    return perfNote({ from: 'menu' }, cb);
   }
   /** Al partido (menú, revancha, tutorial): bajo la cortinilla de marca (UI-13). */
   //  fmt ('2v2' | '6v6', sin guardarlo en el ajuste): desde un partido (revancha, reiniciar) repite el formato del que acaba; desde
@@ -6695,7 +6704,7 @@
     var snd = document.querySelector('.opt-snd');
     if (snd) { snd.classList.toggle('muted', !!ctx.settings.muted); var mb = snd.querySelector('[data-mute]'); if (mb) mb.setAttribute('aria-checked', ctx.settings.muted ? 'true' : 'false'); }
     var q = ctx.quality && ctx.quality.level, qn = { high: 'alta', medium: 'media', low: 'baja' }[q] || '';
-    el.qualNote.textContent = ctx.settings.quality === 'auto' ? 'Auto la ajusta sola' + (qn ? ' (ahora: ' + qn + ')' : '') : 'Fija' + (qn ? ': ' + qn : '');
+    el.qualNote.textContent = ctx.settings.quality === 'auto' ? 'Auto se ajusta sola a tu aparato' + (qn ? ' (ahora: ' + qn + ')' : '') : 'Fija' + (qn ? ': ' + qn : '');
     // menú: dificultad
     var di = optIndex('difficulty');
     if (el.diffVal.textContent !== OPT.difficulty.labels[di]) {
@@ -8167,7 +8176,7 @@
   // colocador) con la «Colocación en salto con diana» apagada y el aviso sin quitar («No volver a mostrar» = jsetNote false).
   // ?setnote=1 lo saca siempre (capturas). Teclado: flechas / Tab, Intro o Espacio, Esc = «Ahora no» (escucha en captura en window,
   // registrada al cargar ui.js, antes que career-ui.js e input.js). Mando: main.js manda las intenciones a noteNav. Toque: ≥ 44 px.
-  var sn = { open: false, t0: 0, cb: null, from: '', root: null, toast: null, toastT: 0, shown: false, prev: null, ax: 0 };
+  var sn = { open: false, t0: 0, cb: null, from: '', root: null, toast: null, toastT: 0, shown: false, prev: null, ax: 0, kind: '' };
   var SN_FORCE = /[?&]setnote=1(&|$)/.test(location.search || '');
   function snButtons() { return sn.root ? Array.prototype.slice.call(sn.root.querySelectorAll('[data-sn]')) : []; }
   function snFocus(b, kb) {
@@ -8181,15 +8190,18 @@
     if (j === i) { uiSound2('arrowEdge', d); return; }
     snFocus(L[j], true); hoverSound();
   }
-  function snBuild() {
-    if (sn.root) return;
-    var r = document.createElement('div'); r.id = 'setNote'; r.hidden = true;
-    r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-labelledby', 'snH'); r.setAttribute('aria-describedby', 'snT');
-    r.innerHTML = '<div class="sp-panel sn-sheet"><div class="sn-txt"><p class="sp-k">Eres colocador</p><h2 class="sp-h" id="snH">Coloca con la diana</h2>' +
+  // (24-nov-2026) la misma hoja sirve para la ventana de rendimiento del 1r 6v6 (perfNote): kind 'set' | 'perf' rehace el contenido
+  var SN_SET_HTML = '<div class="sp-panel sn-sheet"><div class="sn-txt"><p class="sp-k">Eres colocador</p><h2 class="sp-h" id="snH">Coloca con la diana</h2>' +
       '<p class="sn-t" id="snT"></p><small class="sn-s">Lo cambias cuando quieras en Ajustes, Juego.</small></div>' +
       '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="on"><span class="sp-l"><span class="sp-t">Activar</span></span></button>' +
       '<div class="sn-row"><button type="button" class="sp-btn sp-sm sp-teal" data-shape="2" data-sn="later"><span class="sp-t">Ahora no</span></button>' +
       '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="5" data-sn="never" aria-label="No volver a mostrar"><span class="sp-t"><span class="ph-hide">No volver a mostrar</span><span class="ph-only">No mostrar más</span></span></button></div></div></div>';
+  function snBuild(kind) {
+    kind = kind || 'set';
+    if (sn.root) { if (sn.kind !== kind) { sn.kind = kind; sn.root.innerHTML = kind === 'perf' ? perfHTML() : SN_SET_HTML; if (VB.Splat && VB.Splat.decorate) { try { VB.Splat.decorate(sn.root); } catch (e) { } } } return; }
+    var r = document.createElement('div'); r.id = 'setNote'; r.hidden = true; sn.kind = kind;
+    r.setAttribute('role', 'dialog'); r.setAttribute('aria-modal', 'true'); r.setAttribute('aria-labelledby', 'snH'); r.setAttribute('aria-describedby', 'snT');
+    r.innerHTML = kind === 'perf' ? perfHTML() : SN_SET_HTML;
     r.addEventListener('click', function (e) {
       e.stopPropagation();
       var b = e.target && e.target.closest ? e.target.closest('[data-sn]') : null;
@@ -8213,7 +8225,7 @@
     if (sn.open || !ctx) return false;
     var st = ctx.settings || {};
     if (!SN_FORCE && (sn.shown || st.jsetAim === true || st.jsetNote === false || ctx.net)) return false;
-    snBuild();
+    snBuild('set');
     sn.shown = true; sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
     sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
     var gl = GLYPH[device()] || GLYPH.keyboard;
@@ -8227,11 +8239,43 @@
     uiSound('open');
     return true;
   }
+  /** Rendimiento del 1r 6v6 (24-nov-2026; main.js startMatch): «Auto» recomendada (con el nivel en el que empieza en este aparato) y
+   *  Alta / Media / Baja fijas. La de ahora lleva «Ahora». cb(elección) al cerrarla. false si no toca (ya abierta, online). */
+  function perfHTML() {
+    var cur = ctx.settings.quality || 'auto', st = ctx.qAutoStart ? ctx.qAutoStart() : (ctx.quality && ctx.quality.level) || 'medium';
+    var nm = { high: 'alta', medium: 'media', low: 'baja' }, lb = function (v) { return OPT.quality.labels[OPT.quality.vals.indexOf(v)]; };
+    var now = function (v) { return cur === v ? '<small class="sp-s">Ahora</small>' : ''; };
+    return '<div class="sp-panel sn-sheet sn-perf"><div class="sn-txt"><p class="sp-k">6 contra 6</p><h2 class="sp-h" id="snH">Calidad de imagen</h2>' +
+      '<p class="sn-t" id="snT">Con 12 jugadores en la pista, el 6 contra 6 pide más al aparato. Con menos calidad, va más fluido.</p>' +
+      '<small class="sn-s">Lo cambias cuando quieras en Ajustes, Imagen.</small></div>' +
+      '<div class="sn-acts"><button type="button" class="sp-patch" data-sn="q-auto"><span class="sp-l"><span class="sp-t">Auto</span><small class="sp-s">Recomendada · empieza en ' + (nm[st] || 'media') + '</small></span></button>' +
+      '<div class="sn-row">' + ['high', 'medium', 'low'].map(function (v, i) { return '<button type="button" class="sp-btn sp-sm ' + (i === 2 ? 'sp-cream' : 'sp-teal') + '" data-shape="' + (i + 2) + '" data-sn="q-' + v + '"><span class="sp-l"><span class="sp-t">' + lb(v) + '</span>' + now(v) + '</span></button>'; }).join('') + '</div></div></div>';
+  }
+  function perfNote(o, cb) {
+    o = o || {};
+    if (sn.open || !ctx || ctx.net) return false;
+    sn.kind = ''; snBuild('perf');
+    if (el.menu) el.menu.classList.add('sn-hide');   // (desde el menú: la ventana sola sobre el partido de fondo, sin la página de debajo)
+    sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
+    sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
+    sn.root.hidden = false; sn.root.classList.remove('in');
+    if (sn.rel) { sn.rel(); sn.rel = null; }
+    if (VB.Splat && VB.Splat.modal && VB.Splat.phone && VB.Splat.phone()) sn.rel = VB.Splat.modal(sn.root);
+    requestAnimationFrame(function () { if (sn.root && sn.open) sn.root.classList.add('in'); });
+    snFocus(sn.root.querySelector('[data-sn="q-auto"]'), device() !== 'touch');
+    uiSound('open');
+    return true;
+  }
   function snClose(choice) {
     if (!sn.open) return;
     sn.open = false; sn.root.hidden = true; sn.root.classList.remove('in');
     if (sn.rel) { sn.rel(); sn.rel = null; }
-    if (choice === 'on') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetAim', true); snToast('Colocación con diana activada'); uiSound('click'); }
+    if (el.menu) el.menu.classList.remove('sn-hide');
+    if (sn.kind === 'perf') {   // rendimiento del 1r 6v6: la calidad elegida (Esc / B = la de ahora) y no vuelve a salir en este aparato
+      var qv = /^q-(auto|high|medium|low)$/.exec(choice || '');
+      if (ctx.actions.setSetting) { if (qv) ctx.actions.setSetting('quality', qv[1]); ctx.actions.setSetting('q6Asked', true); }
+      if (qv) { snToast('Calidad: ' + OPT.quality.labels[OPT.quality.vals.indexOf(qv[1])]); uiSound('click'); } else uiSound('back');
+    } else if (choice === 'on') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetAim', true); snToast('Colocación con diana activada'); uiSound('click'); }
     else if (choice === 'never') { if (ctx.actions.setSetting) ctx.actions.setSetting('jsetNote', false); uiSound('back'); }
     else uiSound('back');
     snButtons().forEach(function (x) { x.classList.remove('kf'); });
@@ -8263,13 +8307,17 @@
     if (Math.abs(v) < 0.3) sn.ax = 0;
     if (d && !sn.ax) { sn.ax = 1; snStep(d); }
     var ok = it.navOk != null ? it.navOk : it.hit, bk = it.navBack != null ? it.navBack : it.jump && !it.jset;
-    if (ok) { var a = document.activeElement; snClose(a && a.hasAttribute && a.hasAttribute('data-sn') ? a.getAttribute('data-sn') : 'on'); }
+    if (ok) { var a = document.activeElement; snClose(a && a.hasAttribute && a.hasAttribute('data-sn') ? a.getAttribute('data-sn') : sn.kind === 'perf' ? 'q-auto' : 'on'); }
     else if (bk) snClose('later');
   }
 
   VB.UI = {
     /** Salto con impulso (v1.12.0): aviso de colocador (ver setterNote) y su entrada (main.js). */
     setterNote: setterNote,
+    /** Rendimiento del 1r 6v6 desde los menús: abre la ventana si toca y sigue con cb al cerrarla (career-ui.js play). true si la ha abierto. */
+    perfFirst: perfFirst,
+    /** Rendimiento del 1r 6v6 (24-nov-2026): ventana corta para elegir la calidad antes del partido (main.js startMatch). */
+    perfNote: perfNote,
     noteOpen: function () { return sn.open; },
     noteNav: snNav,
     noteBack: function () { if (!sn.open) return false; snClose('later'); return true; },
@@ -8409,9 +8457,8 @@
       // menús v2: JUGAR → modos; Partido rápido → preparación; ¡A JUGAR! → partido (la Carrera la abre career-ui.js en #btnCareer)
       el.btnPlay.addEventListener('click', function () { menuGo('play'); });
       if (el.btnCont) on(el.btnCont, goCont);   // B3: «Continuar carrera» → hub de la Carrera en «Partido»
-      // tarjeta Partido rápido: la preparación SIEMPRE en 2 contra 2 (la tarjeta 6 contra 6 deja el formato en 6v6; sin esto, mirar
-      // esa tarjeta y volver dejaba el Partido rápido en 6v6). Dentro, la fila Formato se puede cambiar igual
-      if (el.btnQuick) el.btnQuick.addEventListener('click', function () { if (ctx.settings.format !== '2v2') ctx.actions.setSetting('format', '2v2'); menuGo('quick'); });
+      // (24-nov-2026) Partido rápido abre la preparación con el formato elegido en la cabecera de Jugar (#plFmt); antes lo volvía a poner en 2v2
+      if (el.btnQuick) el.btnQuick.addEventListener('click', function () { menuGo('quick'); });
       if (el.btnGo) el.btnGo.addEventListener('click', play);
       [el.btnPlayBack, el.btnQuickBack, el.btnGymBack].forEach(function (b) { if (b) b.addEventListener('click', function () { menuBack(); }); });
       // ONLINE (especialista net): tarjeta en Jugar solo si VB.NetLobby.menuOn() (publicación o ?online=1); su «Volver» sale de la página

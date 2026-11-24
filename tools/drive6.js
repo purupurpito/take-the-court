@@ -184,6 +184,12 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
       if(g.ask6!==window.__s6.lastAsk){window.__s6.lastAsk=g.ask6;if(g.ask6>0)window.__s6.ask++;}};})()`);
     await press('Enter'); await sleep(500);
     if (await evalJs("VB.UI.isPanelOpen&&VB.UI.isPanelOpen()")) { await press('ArrowDown'); await sleep(150); await press('Enter'); } // «Primer partido» → Jugar ya
+    // rendimiento del 1r 6v6 (24-nov-2026): la ventana de la calidad sale antes del partido con «Auto» enfocada; ↓ a «Alta», Esc = la de ahora
+    if (await waitFor('VB.UI.noteOpen&&VB.UI.noteOpen()', 2500)) {
+      check(await evalJs("document.activeElement&&document.activeElement.getAttribute('data-sn')==='q-auto'&&document.getElementById('menu').classList.contains('sn-hide')"), '1r 6v6: la ventana de la calidad sale con «Auto» (recomendada) enfocada');
+      await sleep(450); await press('Escape'); await sleep(300);
+      check(await evalJs("!VB.UI.noteOpen()&&VB.ctx.settings.q6Asked===true&&VB.ctx.settings.quality==='auto'"), '1r 6v6: Esc la cierra sin cambiar la calidad y no vuelve a salir (q6Asked)');
+    }
     check(await waitFor("VB.ctx.state==='playing'&&!VB.ctx.game.demo", 9000), 'empieza el partido');
     if (ROLE) { // el puesto elegido manda (ui.js goMatch → VB.Sim.setCtrlRole): g.ctrlRole y su atleta (g.ctrlBase; al central sustituido le toca el líbero)
       check(await evalJs("(function(g){var b=g.ctrlBase||g.ctrl;return g.size===6&&!g.watch&&!g.autopilot&&g.ctrlMode==='one'&&g.ctrlRole==='" + ROLE + "'&&b.role==='" + ROLE + "'&&b.num===" + ROLE_NUM[ROLE] + "&&(g.ctrl===b||g.ctrl===g.libero[0])&&VB.Arena.venue()==='hall'})(VB.ctx.game)"),

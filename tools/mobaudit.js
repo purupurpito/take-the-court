@@ -84,6 +84,8 @@ const SCREENS = [
   { id: 'acerca-novedades', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('news'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'acerca-creditos', area: 'portada', q: M0, open: "await M.ensureMenu(); VB.UI.openAbout('credits'); await M.sleep(80); return VB.UI.isPanelOpen();", primary: '' },
   { id: 'aviso-colocador', area: 'portada', q: M0 + '&setnote=1', open: "await M.ensureMenu(); VB.UI.setterNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="later"]' },
+  // rendimiento del 1r 6v6 (24-nov-2026): la ventana de la calidad antes del partido (Auto recomendada; Alta, Media y Baja)
+  { id: 'aviso-rendimiento', area: 'portada', q: M0 + '&q6=1', open: "await M.ensureMenu(); VB.UI.perfNote({from:'menu'}); await M.sleep(120); return VB.UI.noteOpen();", exit: '[data-sn="q-low"]', primary: '[data-sn="q-auto"]' },
   { id: 'primer-partido', area: 'portada', q: M0 + '&panel=first', open: "return M.until(()=>VB.UI.isPanelOpen(),2000);" },
   { id: 'home-jugarya', area: 'portada', q: M0 + '&now=1', open: 'return M.ensureMenu();', exit: '', primary: '#btnNow' },   // «Jugar ya» (1.22.0): portada de quien no ha jugado nunca
   { id: 'home-primera', area: 'portada', q: M0 + '&first=1', open: 'return M.ensureMenu();', exit: '', primary: '#btnNow' },   // primera vez (24-nov-2026): solo «¡Jugar ya!» y «Tutorial»

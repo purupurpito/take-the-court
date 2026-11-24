@@ -6323,6 +6323,11 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-s{margin:4px 0 0;font-size:var(--ph-cap)}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts{gap:12px}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-row{flex-direction:column;gap:10px}
+/* rendimiento del 1r 6v6 (24-nov-2026, ui.js perfNote): Alta, Media y Baja en una fila (en columna tapaban la esquina de la versión a 568×320) */
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-perf .sn-row{flex-direction:row;gap:8px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-perf .sn-row .sp-btn{flex:1 1 0;min-width:64px;padding:0 8px}
+#setNote .sn-perf .sn-row .sp-btn .sp-l{align-items:center;text-align:center}
+#menu.sn-hide{visibility:hidden}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-row .sp-btn{--sp-fs:var(--ph-row);min-height:44px;white-space:nowrap;text-align:center;justify-content:center}
 :root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts .sp-patch{min-width:max-content}
 /* (con el aviso o la Cuenta abiertos, la portada se aparta: queda solo el partido de fondo, no dos maquetas solapadas) */
@@ -6449,7 +6454,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
         <div class="mp-tt"><h2 class="mp-t sp-h">Jugar</h2></div>
         <!-- FORMATO (24-nov-2026, Ferran: «6v6 como opción (2v2 o 6v6) en JUGAR»): el del Partido rápido, justo encima de él; es el ajuste
              «Formato» de siempre (ui.js plFmtSync; la fila Formato de la preparación sigue). Antes el 6v6 era una mancha más de la fila de abajo -->
-        <div class="pl-fmt" id="plFmt" data-sp-row role="radiogroup" aria-label="Formato del Partido rápido">
+        <div class="pl-fmt" id="plFmt" data-sp-row data-sp-col0 role="radiogroup" aria-label="Formato del Partido rápido">
           <button type="button" class="sp-tab" role="radio" data-fmt="2v2" aria-checked="true" aria-label="2 contra 2">2<i>v</i>2</button><button type="button" class="sp-tab" role="radio" data-fmt="6v6" aria-checked="false" aria-label="6 contra 6">6<i>v</i>6</button>
         </div>
       </div>

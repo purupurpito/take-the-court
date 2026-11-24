@@ -3161,8 +3161,10 @@
   function play() {
     var go = function () { if (VB.ctx && VB.ctx.actions && VB.ctx.actions.startCareerMatch) VB.ctx.actions.startCareerMatch(); };
     close(true);
-    var w = false; try { w = !!(VB.UI && VB.UI.wipe && VB.UI.wipe(2, go)); } catch (e) { w = false; }
-    if (!w) go();
+    var run = function () { var w = false; try { w = !!(VB.UI && VB.UI.wipe && VB.UI.wipe(2, go)); } catch (e) { w = false; } if (!w) go(); };
+    // Carrera de pista (6v6): el 1r partido 6v6 de este aparato pregunta antes la calidad de imagen (ui.js perfFirst; 24-nov-2026)
+    var asked = false; if (isHall(C().get && C().get())) { try { asked = !!(VB.UI && VB.UI.perfFirst && VB.UI.perfFirst(run)); } catch (e) { asked = false; } }
+    if (!asked) run();
   }
 
   // =================================================================== foco y teclado/mando

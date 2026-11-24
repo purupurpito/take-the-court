@@ -39,7 +39,7 @@
   if (Q.debug === 'mobile') { isTouch = true; isMobile = true; }
 
   // E3: ajustes que solo valen para este dispositivo (make-the-cut.device; ver DEFAULTS)
-  var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead', 'touchLayout', 'touchMirror'];   // (1.22.0: disposición táctil y zurdos, cada móvil la suya)
+  var DEVICE_KEYS = ['resScale', 'fpsCap', 'showFps', 'touchSize', 'padDead', 'touchLayout', 'touchMirror', 'q6Asked'];   // (1.22.0: disposición táctil y zurdos, cada móvil la suya; q6Asked: la ventana de rendimiento del 1r 6v6, cada aparato la suya)
   var ctx = VB.ctx = {
     THREE: THREE,
     container: document.getElementById('stage'),
@@ -80,7 +80,7 @@
       camStable: false, rumble: true, hudScale: 1, softFlash: false, arena: Q.debug ? 'hall' : 'beach', arenaV: 2, beachLight: 'dia',
       volume: 1, crowdVol: 0.85, xarVol: 0.6, resScale: 0, fpsCap: 0, showFps: false, camDist: 'normal', camCuts: 'all', lessMotion: 'auto', cbColors: false, ballStyle: 'clasico',
       keys: {}, padKeys: {}, padDead: 0.18, touchSize: 1, touchLayout: null, touchMirror: false, aimSet: true, jsetAim: false, jsetNote: true, msTiming: false, mapHall: Q.debug ? 'palau' : 'rand', mapV: 1, mapBeach: 'platja', subs6: 'auto',
-      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
+      replays: 'auto', camZoom: 2, ambient: 'full', zone: 'career', serveSig: 'clasico', serveGest: 'normal', toonSfx: true, onoma: true, matchLen: 'full', ctrlMark: 'normal', ctrlMarkCol: 'auto', landAid: 'auto', laSeen: false, q6Asked: false };   // ambient: Ambiente de Carrera ('full' Completo | 'calm' Tranquilo | 'off' Apagado; js/ambiente.js). S3-C1: repeticiones ('auto' bolas de set y de partido | 'end' solo en «Jugadas» | 'off'; Ajustes · Juego)
     // jsetAim / jsetNote (v1.12.0, salto con impulso): colocación en salto con diana (sim opts.jsetAim; Ajustes · Juego, por defecto no)
     // y si sale el aviso de colocador (VB.UI.setterNote; «No volver a mostrar» lo apaga, «Restablecer» lo vuelve a encender)
     // mapHall / mapBeach: sede de cada tipo (js/venues.js: 'palau' | … y 'platja' | 'fanals' | …, o 'rand' = al azar); Ajustes · Imagen.
@@ -220,10 +220,35 @@
   // La calidad adaptativa la baja a 0,8 y luego a 0,67 si en "baja" sigue por debajo de 40 fps.
   var renderScale = 1;
   function autoTop() { return isMobile ? QUALITY.medium : QUALITY.high; }
+  // Calidad «Auto» (24-nov-2026, Ferran: «que se intente adaptar automáticamente al dispositivo, pero que pueda ser escogida»): antes de
+  // medir fps, una primera idea del aparato con lo que el navegador dice de él (memoria, núcleos, GPU y píxeles de la pantalla). Auto
+  // EMPIEZA en el nivel más bajo de los dos (el tope de siempre o lo que diga el aparato) y después la adaptativa (adaptQuality) sube o
+  // baja con los fps medidos como siempre. Solo fuera de depuración (las pruebas y tools/perf.js no cambian). ctx.qGuess = {level, why}.
+  var guessC = null;
+  function deviceGuess() {
+    if (guessC && guessC.gl) return guessC;
+    var top = autoTop().rank, r = top, why = [], nav = window.navigator || {}, mem = +nav.deviceMemory || 0, cores = +nav.hardwareConcurrency || 0, gpu = '', gl = false;
+    try { var c = ctx.renderer && ctx.renderer.getContext(); if (c) { gl = true; var ex = c.getExtension('WEBGL_debug_renderer_info'); gpu = String((ex && c.getParameter(ex.UNMASKED_RENDERER_WEBGL)) || c.getParameter(c.RENDERER) || ''); } } catch (e) { }
+    var dpr = window.devicePixelRatio || 1, mp = 0; try { mp = (screen.width || 0) * (screen.height || 0) * dpr * dpr / 1e6; } catch (e) { }
+    var cap = function (n, w) { if (n < r) { r = n; why.push(w); } };
+    if (/swiftshader|llvmpipe|softpipe|software|basic render/i.test(gpu)) cap(0, 'gpu por software');
+    if (mem && mem <= 2) cap(0, 'memoria ' + mem + ' GB');
+    if (cores && cores <= 2) cap(0, cores + ' núcleos');
+    if (isMobile && mem && mem <= 3) cap(0, 'móvil con ' + mem + ' GB');
+    if (/mali-(4|t[678])|adreno[^0-9]*([2-4]\d\d|50\d)\b|powervr (sgx|rogue ge8)|intel.*(gma|hd graphics [2-5]\d{3}\b)/i.test(gpu)) cap(Math.max(0, top - 1), 'gpu modesta');
+    if ((mem && mem <= 4) || (cores && cores <= 4)) cap(Math.min(top, 1), 'aparato justo');
+    if (!isMobile && mp > 8 && r > 1 && cores && cores <= 6) cap(1, 'pantalla de ' + mp.toFixed(1) + ' Mpx');   // (4K con un PC normalito)
+    guessC = { rank: r, level: BY_RANK[r].level, why: why, gl: gl, gpu: gpu.slice(0, 80) };
+    ctx.qGuess = guessC;
+    return guessC;
+  }
+  /** Nivel con el que empieza «Auto» en este aparato (sin la adaptativa). En depuración, el tope de siempre. */
+  function autoStart() { var t = autoTop(); if (ctx.debug) return t; var gq = deviceGuess(); return BY_RANK[Math.min(t.rank, gq.rank)]; }
+  ctx.qAutoStart = function () { return autoStart().level; };
   function pickQuality() {
     var want = Q.quality || ctx.settings.quality;
     if (QUALITY[want]) return QUALITY[want];
-    return autoTop();
+    return autoStart();
   }
 
   // Módulos en orden de inicialización/actualización
@@ -339,6 +364,7 @@
     ctx.camera = new THREE.PerspectiveCamera(52, 16 / 9, 0.1, 200);
     ctx.camera.position.set(16, 6, 0); ctx.camera.lookAt(0, 1, 0);
     ctx.scene.add(ctx.camera);
+    if (!Q.quality && ctx.settings.quality === 'auto') { guessC = null; q = pickQuality(); }   // (Auto: ahora ya se sabe la GPU)
     ctx.quality = q;
   }
 
