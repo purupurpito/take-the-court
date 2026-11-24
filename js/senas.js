@@ -17,7 +17,8 @@
  *   delay8 → retraso (8 SEGUNDOS) · delay5 → retraso (5 SEGUNDOS) · serveFault → saque (SAQUE)
  *   Fuera del catálogo: 'in' sin red (el «dentro» nunca lleva texto del árbitro) y 'penalty' (la tarjeta ya tiene su rótulo).
  *
- * LÍNEAS DE REGLAMENTO (decisión provisional: Ferran no las ha confirmado; «red» y «posicion» corregidas el 21-nov, ver
+ * LÍNEAS DE REGLAMENTO (decisión provisional: Ferran no las ha confirmado; «red» corregida el 21-nov y «posicion» decidida por Ferran el
+ * 24-nov —sin la 1ª coma de su frase para caber en 80—, ver
  * notes/pendientes-ferran.md): en RULES, justo debajo, para que Ferran las corrija sin tocar nada más (≤ 80 caracteres cada una: caben en
  * 2 líneas del pie del álbum en el móvil).
  */
@@ -35,7 +36,7 @@
     bajo: 'Regla 8.4.5: falta si el balón cruza entero por debajo de la red.',
     ataque: 'Regla 13.3: no se remata el saque rival por encima de la red en zona de ataque.',
     bloqueo: 'Regla 14.6: no se bloquea el saque, ni puede bloquear un zaguero o el líbero.',
-    posicion: 'Reglas 7.4-7.5: al golpe de saque, todos en su sitio de rotación, sin solaparse.',
+    posicion: 'Reglas 7.4-7.5: al saque el equipo que recibe, cada uno en su sitio de rotación.',
     retraso: 'Regla 12.4.4: 8 segundos para sacar desde el silbato (5 en playa).',
     saque: 'Regla 12.4.1: el balón se lanza o se suelta y se golpea con una mano.'
   };
