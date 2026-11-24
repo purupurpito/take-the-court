@@ -8,7 +8,7 @@
  *      portada ya no enseña «¡Jugar ya!»;
  *  (d) ?jugar: directo al partido corto (g.playNow 'jugar') y el enlace queda sin «jugar»;
  *  (e) móvil (táctil, 844×390): el aviso de instalar NO sale antes del primer partido y sí cuando el récord ya tiene uno;
- *  (h) PRIMERA VEZ (24-nov-2026): la portada del novato es solo «¡Jugar ya!» y «Tutorial» (#menu.first-run); cerrar el tutorial (aunque sea a
+ *  (h) PRIMERA VEZ (24-nov-2026): la portada del novato es solo «¡Jugar ya!», «Tutorial» y el engranaje de Ajustes (#menu.first-run); cerrar el tutorial (aunque sea a
  *      medias) da la portada de siempre, también al recargar (record.intro), y «¡Jugar ya!» sigue encima hasta el primer partido.
  * Uso: node tools/jugaryatest.js   (sale con 1 si algo falla)
  */
@@ -37,7 +37,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     ok(por.vis && por.tk && por.cls, 'novato: billete «¡Jugar ya!» a la vista (' + por.txt + ')');
     ok(!por.pri, 'novato: JUGAR pasa a fila plana');
     const fr0 = await pg.evalJs(FIRST).then(JSON.parse);
-    ok(fr0.cls && fr0.tut && !fr0.play && !fr0.squad && !fr0.set, 'primera vez: solo «¡Jugar ya!» y «Tutorial» (' + JSON.stringify(fr0) + ')');
+    ok(fr0.cls && fr0.tut && !fr0.play && !fr0.squad && fr0.set, 'primera vez: solo «¡Jugar ya!», «Tutorial» y el engranaje de Ajustes (' + JSON.stringify(fr0) + ')');
     await pg.evalJs("document.getElementById('btnNow').click()");
     ok(await waitFor(pg, "VB.ctx.state==='playing'&&VB.ctx.game&&!VB.ctx.game.demo", 8000), 'un toque en «¡Jugar ya!» empieza el partido');
     const g = await pg.evalJs("JSON.stringify({pn:VB.ctx.game.playNow,pts:VB.ctx.game.points,tw:VB.ctx.game.toWin,d:VB.ctx.game.difficulty,s:VB.ctx.settings.difficulty,size:VB.ctx.game.size,first:!document.getElementById('pnFirst')||document.getElementById('pnFirst').hidden})").then(JSON.parse);
@@ -108,7 +108,7 @@ const READY = "VB.ctx&&VB.ctx.state==='menu'&&VB.ctx.frame>5&&VB.UI&&VB.UI.bootB
     const h0 = await pg.evalJs(FIRST).then(JSON.parse);
     ok(h0.cls && h0.now && h0.tut && !h0.play, '(h) móvil: primera vez con los dos billetes (' + JSON.stringify(h0) + ')');
     const foc = await pg.evalJs("(function(){var L=[].filter.call(document.querySelectorAll('#menu .mlist button'),function(b){return b.offsetParent!==null&&!b.hidden});return L.map(function(b){return b.id}).join(',')})()");
-    ok(foc === 'btnNow,btnStartTut', '(h) en la portada solo se pueden tocar los dos billetes (' + foc + ')');
+    ok(foc === 'btnNow,btnStartTut,btnSettings', '(h) en la portada solo se pueden tocar los dos billetes y el engranaje (' + foc + ')');
     await pg.evalJs("document.getElementById('btnStartTut').click()");
     ok(await waitFor(pg, "VB.UI.isPanelOpen()&&!document.getElementById('pnTut').hidden", 4000), '(h) «Tutorial» abre Cómo se juega');
     await sleep(500);
