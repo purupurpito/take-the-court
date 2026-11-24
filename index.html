@@ -7671,133 +7671,135 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* ==== RONDA 2 · paquete «carrera-flujo-v» (24-nov-2026; notes/movil-aire.md §8.4 y §8.6.6): hojas de partido de la Carrera (#end.crs), concursos
    y sesiones (#gymEnd) en VERTICAL. Todo bajo :root.pv (prefijo :root.pv + 5 :not(#_), gana a las capas SPLAT de PC); PC y horizontal no cambian.
    Hoja: [antetítulo de 1 línea · ojo de 44 a la derecha] / título de 2 líneas / marcador + sets / panel que se desplaza (etiquetas encima de su
-   contenido, fichas enteras que parten, MVP en dos líneas) / dock [Menú 1/3][principal 2/3] con --pv-gb. */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .sheet{position:absolute;inset:0;width:auto;max-width:none;height:auto;max-height:none;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;margin:0;
+   contenido, fichas enteras que parten, MVP en dos líneas) / dock [Menú 1/3][principal 2/3] con --pv-gb.
+   (partido-v: las reglas de la hoja valen ya para TODAS las hojas finales —#end, no solo #end.crs—; lo propio del Partido rápido, la semana y el
+   reto, en el bloque «partido-v») */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .sheet{position:absolute;inset:0;width:auto;max-width:none;height:auto;max-height:none;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;margin:0;
   padding:var(--pv-gt) var(--pv-g) var(--pv-gb);overflow:hidden;transform:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-hd{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0;padding:0;min-width:0;width:100%}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endKicker{display:flex;align-items:center;box-sizing:border-box;min-height:44px;width:100%;margin:0;padding:0 56px 0 0;white-space:normal;overflow:visible;text-overflow:clip}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endKicker:not(.ek-on){font-size:var(--pv-cap);line-height:1.25}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>.ek-s{font-size:var(--pv-cap);letter-spacing:.06em}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-title{margin:0;font-size:clamp(28px,8.6vw,36px)!important;line-height:1.02;white-space:normal;overflow:visible;text-overflow:clip;max-width:100%;overflow-wrap:break-word}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sc{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:4px 0 0;width:100%}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-score{margin:0;flex:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-score .es-t,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sets span{white-space:nowrap}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sets{display:flex;flex-wrap:wrap;gap:6px;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sets span small{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-hd{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0;padding:0;min-width:0;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end #endKicker{display:flex;align-items:center;box-sizing:border-box;min-height:44px;width:100%;margin:0;padding:0 56px 0 0;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end #endKicker:not(.ek-on){font-size:var(--pv-cap);line-height:1.25}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end #endKicker.ek-on>.ek-s{font-size:var(--pv-cap);letter-spacing:.06em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-title{margin:0;font-size:clamp(28px,8.6vw,36px)!important;line-height:1.02;white-space:normal;overflow:visible;text-overflow:clip;max-width:100%;overflow-wrap:break-word}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sc{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:4px 0 0;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score{margin:0;flex:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score .es-t,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets span{white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets span small{font-size:var(--pv-micro)}
 /* «Ver celebración»: ojo redondo de 44 arriba a la derecha, en la fila del antetítulo (el rótulo queda en el aria-label) */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek{display:block;position:absolute;top:var(--pv-gt);right:var(--pv-g);left:auto;bottom:auto;z-index:3;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-btn{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;justify-content:center;border-radius:50%;transform:none;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-btn>:is(.sp-t,.sp-blob,.sp-drops){display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-btn::after{display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-ic{--sp-is:22px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-peek{display:block;position:absolute;top:var(--pv-gt);right:var(--pv-g);left:auto;bottom:auto;z-index:3;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-peek .sp-btn{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;justify-content:center;border-radius:50%;transform:none;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-peek .sp-btn>:is(.sp-t,.sp-blob,.sp-drops){display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-peek .sp-btn::after{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-peek .sp-ic{--sp-is:22px;margin:0}
 /* panel: ocupa lo que queda; solo el resumen se desplaza */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-body{flex:1 1 auto;min-height:0;width:100%;max-width:none;box-sizing:border-box;margin:0;display:flex;flex-direction:column}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-tabs .tab{--sp-tbh:44px;--sp-tbs:14px;min-height:44px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-tabs .tab .tb-t{font-size:14px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-body>[role="tabpanel"]{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc{display:flex;flex-direction:column;gap:12px;margin:0;padding:0 2px 4px 0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-xp{order:-6}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>:is(.rc-unl,.rc-cup,.rc-bd,.rc-badges){order:-5}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-mvp{order:-4}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-rt{order:-3}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-tb{order:-2}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-hl{order:9;margin:0;font-size:var(--pv-cap);line-height:1.3;color:rgba(255,244,220,.75)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-body{flex:1 1 auto;min-height:0;width:100%;max-width:none;box-sizing:border-box;margin:0;display:flex;flex-direction:column}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-tabs .tab{--sp-tbh:44px;--sp-tbs:14px;min-height:44px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-tabs .tab .tb-t{font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-body>[role="tabpanel"]{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc{display:flex;flex-direction:column;gap:12px;margin:0;padding:0 2px 4px 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc>.rc-xp{order:-6}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc>:is(.rc-unl,.rc-cup,.rc-bd,.rc-badges){order:-5}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc>.rc-mvp{order:-4}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc>.rc-rt{order:-3}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc>.rc-tb{order:-2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc>.rc-hl{order:9;margin:0;font-size:var(--pv-cap);line-height:1.3;color:rgba(255,244,220,.75)}
 /* etiqueta encima de su contenido (no en una columna de 92 px a la izquierda) */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-b{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-b>.rc-h{align-self:flex-start;margin:0;padding:2px 8px 1px;font-size:var(--pv-micro);line-height:1.3;letter-spacing:.06em;white-space:nowrap;overflow:visible}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-c{font-size:var(--pv-body);line-height:1.3;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-b{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-b>.rc-h{align-self:flex-start;margin:0;padding:2px 8px 1px;font-size:var(--pv-micro);line-height:1.3;letter-spacing:.06em;white-space:nowrap;overflow:visible}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-c{font-size:var(--pv-body);line-height:1.3;min-width:0}
 /* MVP: [dorsal] nombre entero · nota / cifras enteras que parten por dato */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-c{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:2px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-pt{grid-row:1/span 2;grid-column:1;width:36px;height:36px;min-width:36px;font-size:16px;align-self:start}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv{display:contents}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>b{grid-column:2;grid-row:1;min-width:0;max-width:none;font-size:17px;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip;display:block}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>small{grid-column:2/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0;font-size:var(--pv-cap);line-height:1.35;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>small .rc-pd{display:inline-flex;align-items:baseline;white-space:nowrap}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>small .rc-pd>.sep{margin:0 8px 0 0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch{gap:6px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch>span{display:inline-flex;align-items:center;min-height:26px;padding:2px 9px;border-radius:8px 11px 9px 12px;background:rgba(255,244,220,.1);color:rgba(255,244,220,.9);white-space:nowrap}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch>span:first-child{background:rgba(255,203,61,.18);color:var(--sp-cream);font-weight:700}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-nota{grid-column:3;grid-row:1;margin:0;font-size:var(--pv-body);white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-c{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-pt{grid-row:1/span 2;grid-column:1;width:36px;height:36px;min-width:36px;font-size:16px;align-self:start}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mv{display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mv>b{grid-column:2;grid-row:1;min-width:0;max-width:none;font-size:17px;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip;display:block}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mv>small{grid-column:2/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0;font-size:var(--pv-cap);line-height:1.35;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mv>small .rc-pd{display:inline-flex;align-items:baseline;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mv>small .rc-pd>.sep{margin:0 8px 0 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mch{gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mch>span{display:inline-flex;align-items:center;min-height:26px;padding:2px 9px;border-radius:8px 11px 9px 12px;background:rgba(255,244,220,.1);color:rgba(255,244,220,.9);white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mch>span:first-child{background:rgba(255,203,61,.18);color:var(--sp-cream);font-weight:700}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-nota{grid-column:3;grid-row:1;margin:0;font-size:var(--pv-body);white-space:nowrap}
 /* progreso: nombre · XP · barra en una fila que parte; «¡Nivel 7! +3 puntos» entero */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-height:28px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr .rc-nm{font-size:var(--pv-body)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr .rc-bar{flex:1 1 80px;min-width:80px;max-width:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr .lv{flex:1 1 100%;font-size:14px;white-space:normal}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tb .rc-c{display:grid;gap:2px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tr{min-height:28px;font-size:15px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tr .mv{font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-xr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-height:28px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-xr .rc-nm{font-size:var(--pv-body)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-xr .rc-bar{flex:1 1 80px;min-width:80px;max-width:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-xr .lv{flex:1 1 100%;font-size:14px;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-tb .rc-c{display:grid;gap:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-tr{min-height:28px;font-size:15px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-tr .mv{font-size:13px}
 :root:not(.pv) #end .rc-tball{display:none}   /* (si se gira el móvil con la hoja abierta: «Ver tabla» es solo de vertical) */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tb .rc-tball{justify-self:end;display:inline-flex;align-items:center;min-height:44px;margin:4px 0 0;padding:0 14px;border:0;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;background:rgba(21,16,42,.55);color:var(--sp-cream);box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);font:700 14px/1.1 var(--sp-ui);cursor:pointer}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tb .rc-tball:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-tb .rc-tball{justify-self:end;display:inline-flex;align-items:center;min-height:44px;margin:4px 0 0;padding:0 14px;border:0;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;background:rgba(21,16,42,.55);color:var(--sp-cream);box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);font:700 14px/1.1 var(--sp-ui);cursor:pointer}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-tb .rc-tball:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs table{width:100%;border-collapse:collapse;font:600 15px/1.3 var(--sp-ui)}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--sp-gold);text-align:right;padding:4px 6px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs td{text-align:right;padding:0 6px;height:40px;border-top:1px solid rgba(255,244,220,.1)}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs :is(th,td).l{text-align:left;width:100%}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs :is(th,td):first-child{text-align:left;width:34px}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs tr.me td{color:var(--sp-gold);font-weight:800}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-l{font-size:var(--pv-body);line-height:1.3}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-l{font-size:var(--pv-body);line-height:1.3}
 /* «Tu partido» / Lo mejor · A mejorar: la etiqueta encima y las fichas ENTERAS a todo el ancho (parten de línea; main.js fitChips ya no
    esconde ninguna: no desbordan) */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt{display:block;width:100%;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-l{display:flex;flex-direction:column;gap:8px;width:100%}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-r{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-h{min-width:0;font-size:var(--pv-micro);letter-spacing:.1em}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-c{display:flex;flex-wrap:wrap;gap:6px;width:100%;min-width:0;overflow:visible}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-c>.sr{display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .chip{flex:0 1 auto;display:inline-flex;align-items:center;max-width:100%;min-height:30px;box-sizing:border-box;padding:3px 10px;font-size:var(--pv-cap);line-height:1.25;white-space:normal}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .chip i{overflow:visible;text-overflow:clip;white-space:normal}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .chip b{flex:none;margin-left:6px;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt{display:block;width:100%;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .er-l{display:flex;flex-direction:column;gap:8px;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .er-r{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .er-h{min-width:0;font-size:var(--pv-micro);letter-spacing:.1em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .er-c{display:flex;flex-wrap:wrap;gap:6px;width:100%;min-width:0;overflow:visible}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .er-c>.sr{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .chip{flex:0 1 auto;display:inline-flex;align-items:center;max-width:100%;min-height:30px;box-sizing:border-box;padding:3px 10px;font-size:var(--pv-cap);line-height:1.25;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .chip i{overflow:visible;text-overflow:clip;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-rt .chip b{flex:none;margin-left:6px;white-space:nowrap}
 /* prueba y juvenil: [nota][veredicto] en una fila y debajo, a todo el ancho, el texto, los objetivos y Lo mejor / A mejorar */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.end-trial,.pro-end){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 14px;width:100%;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t,.pro-et){display:contents}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-l,.pro-en){grid-column:1;grid-row:1}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-l small{font-size:14px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .pro-en{min-width:76px;height:64px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .pro-en small{font-size:var(--pv-micro)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t,.pro-et)>strong{grid-column:2;grid-row:1;min-width:0;font-size:clamp(18px,5.4vw,22px)!important;line-height:1.1;white-space:normal}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .pro-et>strong.pro-sc{white-space:nowrap}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t,.pro-et)>:not(strong){grid-column:1/-1;min-width:0;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t>span,.pro-et>p){font-size:var(--pv-body)!important;line-height:1.35}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals{display:flex;flex-wrap:wrap;gap:8px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals>span{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:32px;box-sizing:border-box;padding:3px 10px;font-size:14px;line-height:1.2;white-space:normal}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals>span>.ph-no{display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals>span>.ph-only{display:inline}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals small{font-size:var(--pv-micro)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endTrialRt{margin:12px 0 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end :is(.end-trial,.pro-end){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 14px;width:100%;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end :is(.et-t,.pro-et){display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end :is(.et-l,.pro-en){grid-column:1;grid-row:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .et-l small{font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .pro-en{min-width:76px;height:64px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .pro-en small{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end :is(.et-t,.pro-et)>strong{grid-column:2;grid-row:1;min-width:0;font-size:clamp(18px,5.4vw,22px)!important;line-height:1.1;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .pro-et>strong.pro-sc{white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end :is(.et-t,.pro-et)>:not(strong){grid-column:1/-1;min-width:0;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end :is(.et-t>span,.pro-et>p){font-size:var(--pv-body)!important;line-height:1.35}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .et-goals{display:flex;flex-wrap:wrap;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .et-goals>span{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:32px;box-sizing:border-box;padding:3px 10px;font-size:14px;line-height:1.2;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .et-goals>span>.ph-no{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .et-goals>span>.ph-only{display:inline}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .et-goals small{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end #endTrialRt{margin:12px 0 0}
 /* Partido de las Estrellas: «Equipo Sol / 21-18 / Equipo Luna» apilado y centrado; «Tu nota 7,8 · MVP: tú» en su línea; la recompensa en el
    recuadro amarillo */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext:has(>.as-sc){display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:8px 6px;margin:0;text-align:center}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-sc{flex:1 1 100%;display:flex;flex-direction:column;align-items:center;gap:2px;margin:0 0 4px;white-space:normal}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .as-sc>b{font-size:18px;line-height:1.15;overflow:visible;text-overflow:clip;white-space:normal;min-width:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .as-sc .as-n{font-size:30px;line-height:1.05;white-space:nowrap}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-p{flex:none;margin:0;font-size:var(--pv-body);white-space:nowrap}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-p:not(.as-gold)+.as-p:not(.as-gold)::before{content:"·";margin:0 6px 0 0;color:rgba(255,244,220,.6)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-gold{flex:1 1 100%;margin:8px 0 0;padding:8px 12px;border-radius:9px 12px 10px 13px;background:rgba(255,203,61,.14);box-shadow:inset 4px 0 0 var(--sp-gold);white-space:normal;text-align:left;line-height:1.35}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-ext:has(>.as-sc){display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:8px 6px;margin:0;text-align:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-ext>.as-sc{flex:1 1 100%;display:flex;flex-direction:column;align-items:center;gap:2px;margin:0 0 4px;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .as-sc>b{font-size:18px;line-height:1.15;overflow:visible;text-overflow:clip;white-space:normal;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .as-sc .as-n{font-size:30px;line-height:1.05;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-ext>.as-p{flex:none;margin:0;font-size:var(--pv-body);white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-ext>.as-p:not(.as-gold)+.as-p:not(.as-gold)::before{content:"·";margin:0 6px 0 0;color:rgba(255,244,220,.6)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-ext>.as-gold{flex:1 1 100%;margin:8px 0 0;padding:8px 12px;border-radius:9px 12px 10px 13px;background:rgba(255,203,61,.14);box-shadow:inset 4px 0 0 var(--sp-gold);white-space:normal;text-align:left;line-height:1.35}
 /* Cifras: «Puntos» arriba, luego el MVP de cada equipo y el resto de barras; «Ver todo ›» (la estadística completa) al pie como enlace;
    rótulos a 12 */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st:not([hidden]){display:flex;flex-direction:column;gap:10px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.stats{display:contents}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st .st-r.tot{order:-2}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.end-mvp{order:-1;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.end-ms{order:10;display:flex;justify-content:flex-end;margin:4px 0 0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.end-rec{order:9}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #btnMStats{--sp-h:44px;height:44px;min-height:44px;padding:0 14px;background:rgba(21,16,42,.55);color:var(--sp-cream);border-radius:12px 15px 11px 16px/14px 11px 16px 12px;box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);transform:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #btnMStats>:is(.sp-blob,.sp-drops,.sp-ic){display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #btnMStats>.sp-t{font:700 14px/1.1 var(--sp-ui);color:var(--sp-cream);text-shadow:none;transform:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .mvp-cols>span,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .mvp-cols>span>span{font-size:var(--pv-micro)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-mvp>.mvp-h{font-size:var(--pv-micro)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .st-r .mid>em{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-st:not([hidden]){display:flex;flex-direction:column;gap:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-st>.stats{display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-st .st-r.tot{order:-2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-st>.end-mvp{order:-1;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-st>.end-ms{order:10;display:flex;justify-content:flex-end;margin:4px 0 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-st>.end-rec{order:9}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end #btnMStats{--sp-h:44px;height:44px;min-height:44px;padding:0 14px;background:rgba(21,16,42,.55);color:var(--sp-cream);border-radius:12px 15px 11px 16px/14px 11px 16px 12px;box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end #btnMStats>:is(.sp-blob,.sp-drops,.sp-ic){display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end #btnMStats>.sp-t{font:700 14px/1.1 var(--sp-ui);color:var(--sp-cream);text-shadow:none;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .mvp-cols>span,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .mvp-cols>span>span{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-mvp>.mvp-h{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .st-r .mid>em{font-size:var(--pv-micro)}
 /* dock: [Menú 1/3 fantasma de 48][principal 2/3 de 56], texto en 2 líneas como mucho, nunca «…» */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn{flex:none;display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;margin:0;padding:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn>#btnAgain{order:2;flex:2 1 0;min-width:0;width:auto;--sp-ph:56px;height:56px;min-height:56px;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn>#btnAgain .sp-t{font-size:clamp(16px,4.8vw,20px);line-height:1.05;white-space:normal;overflow:visible;text-overflow:clip}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn>.end-more{order:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:8px;margin:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn:not([hidden]){flex:none;width:100%;--sp-h:48px;height:48px;min-height:48px;padding:0 8px;background:rgba(21,16,42,.55);color:var(--sp-cream);
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .row-btn{flex:none;display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;margin:0;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .row-btn>#btnAgain{order:2;flex:2 1 0;min-width:0;width:auto;--sp-ph:56px;height:56px;min-height:56px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .row-btn>#btnAgain .sp-t{font-size:clamp(16px,4.8vw,20px);line-height:1.05;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .row-btn>.end-more{order:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:8px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-more>.sp-btn:not([hidden]){flex:none;width:100%;--sp-h:48px;height:48px;min-height:48px;padding:0 8px;background:rgba(21,16,42,.55);color:var(--sp-cream);
   border-radius:12px 15px 11px 16px/14px 11px 16px 12px;box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);transform:none;--sp-fs:var(--pv-cap);justify-content:center}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn>:is(.sp-blob,.sp-drops){display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn>.sp-t{display:block;color:var(--sp-cream);text-shadow:none;font:700 14px/1.12 var(--sp-ui);letter-spacing:.02em;white-space:normal;overflow:visible;text-overflow:clip;text-align:center;transform:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn::after{display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-more>.sp-btn>:is(.sp-blob,.sp-drops){display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-more>.sp-btn>.sp-t{display:block;color:var(--sp-cream);text-shadow:none;font:700 14px/1.12 var(--sp-ui);letter-spacing:.02em;white-space:normal;overflow:visible;text-overflow:clip;text-align:center;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-more>.sp-btn::after{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-more>.sp-btn:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}
 /* concursos de las Estrellas y sesiones de la Carrera (#gymEnd con «Volver a la Carrera»: #btnGeList[data-cr]): título de 32-40 (no media
    pantalla), el resultado se desplaza, clasificación a todo el ancho; abajo [Volver 1/3][principal 2/3] o, con tres botones (concurso), el parche
    entero y debajo [Volver a la Carrera][Siguiente: …] */
@@ -8477,6 +8479,257 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
   :root.ph:not(#_):not(#_):not(#_):not(#_) .vte .vte-sl label{width:94px}
 }
 /* ==== fin RONDA 2 · paneles-v ==== */
+/* ==== RONDA 2 · paquete «partido-v» (24-nov-2026; notes/movil-aire.md §8.4 «Partido, pausa, hoja final, estadística, semana, previa» y
+   §8.6.9): lo que se ve fuera del partido en marcha, en VERTICAL (previa, repetición, pausa, cambios, hoja final, estadística, semana) y los
+   arreglos del HUD en HORIZONTAL. Prefijo :root.pv / :root.ph + 5 :not(#_) (gana a las capas SPLAT y a los bloques de antes); PC no cambia.
+   JS: main.js ctx.pvIntro / ctx.pvReplay (portraitBlock solo con el juego en marcha); ui.js introTick (#intro.pvh), #btnRotPause ==== */
+/* ---- aviso de girar (partido en juego): una salida (Pausa) y nada del banquillo encima ---- */
+#rotate .rot-p{display:inline-flex;align-items:center;gap:8px;min-height:48px;margin:18px 0 0;padding:0 22px;border:0;border-radius:22px 26px 21px 25px/24px 21px 26px 22px;background:var(--sp-cream,#fff4dc);color:var(--sp-ink,#15102a);
+  box-shadow:0 0 0 3px var(--sp-ink,#15102a),3px 4px 0 3px var(--sp-ink,#15102a);font:800 16px/1 var(--sp-ui,system-ui);letter-spacing:.04em;text-transform:uppercase;cursor:pointer}
+#rotate .rot-p[hidden]{display:none}
+#rotate .rot-p svg{width:20px;height:20px;fill:currentColor}
+#rotate .rot-p:is(:focus-visible,.kf){outline:3px solid var(--sp-gold,#ffd23f);outline-offset:3px}
+:root:has(#rotate:not([hidden])) #benchBar{display:none!important}
+/* ---- previa en vertical (ctx.pvIntro → #intro.pvh): Tú / VS / rival a todo el ancho, nombres enteros, la situación y los datos a la vista,
+   la barra quieta y el chip «Gira el móvil para empezar» fijo abajo con el móvil girando ---- */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro{align-items:flex-start;padding:calc(var(--pv-gt) + 64px) 0 calc(var(--pv-gb) + 76px);box-sizing:border-box}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-card{width:var(--pv-fw);margin:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-k{width:auto;max-width:100%;flex-wrap:wrap;justify-content:center;row-gap:2px;font-size:13px;line-height:1.25;text-align:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-nm{display:block;-webkit-line-clamp:unset;overflow:visible;overflow-wrap:normal;hyphens:manual;line-height:1.05}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-t.long .in-nm{font-size:clamp(26px,8vw,34px);line-height:1.05}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-t small{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-tx{min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-meta{display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:6px 12px;width:auto;max-width:100%;font-size:15px;text-align:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-meta>*{white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-lt{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-lt[hidden]{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-lt>span{max-width:100%;padding:5px 14px;font-size:14px;line-height:1.25;white-space:normal;text-align:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-stake{min-width:0;width:max-content;max-width:calc(100% - 8px);padding:8px 18px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-stake b{font-size:clamp(20px,6.4vw,26px);white-space:normal;text-align:center;line-height:1.05}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-stake :is(small,i){white-space:normal;text-align:center;line-height:1.25}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-tr{white-space:normal;line-height:1.15}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro.pvh .in-bar b{animation-play-state:paused}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro.pvh .in-bar{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro.pvh .in-skip{position:fixed;left:50%;bottom:calc(var(--pv-gb) + 12px);z-index:3;display:inline-flex;align-items:center;gap:12px;width:max-content;max-width:var(--pv-fw);box-sizing:border-box;
+  margin:0;padding:10px 20px 10px 14px;transform:translateX(-50%);border-radius:16px 20px 15px 19px/19px 15px 20px 16px;background:var(--sp-cream);color:var(--sp-ink);text-shadow:none;
+  box-shadow:0 0 0 3px var(--sp-ink),4px 5px 0 3px var(--sp-ink);font:800 16px/1.2 var(--sp-ui);letter-spacing:.01em;text-transform:none;animation:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro.pvh .in-rot{flex:none;position:relative;display:block;width:20px;height:32px;box-sizing:border-box;border:3px solid var(--sp-ink);border-radius:6px;animation:rot 2.2s var(--ease) infinite}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro.pvh .in-rot::after{content:"";position:absolute;left:50%;bottom:2px;width:6px;height:2px;margin-left:-3px;border-radius:1px;background:var(--sp-ink)}
+.rm #intro.pvh .in-rot{animation:none}
+/* ---- previa: detalles ---- */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-vs{gap:30px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-t{padding-left:18px;padding-right:18px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #intro .in-sm .in-y{display:block}
+/* ---- pausa en vertical: «Pausa» y el marcador arriba (el partido parado se ve en medio); abajo, en la zona del pulgar, Controles · Ajustes ·
+   Opinar, el aviso de la semana pegado a Reiniciar / Salir (en tinta con borde de color, como en horizontal) y SEGUIR JUGANDO al pie ---- */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause>.sp-sheet{left:var(--pv-g);right:var(--pv-g);top:0;bottom:0;width:auto;max-width:none;box-sizing:border-box;padding:calc(var(--pv-gt) + 8px) 0 calc(var(--pv-gb) + 8px);
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));grid-template-rows:auto auto minmax(0,1fr) auto auto auto auto auto;column-gap:10px;row-gap:10px;align-content:stretch;justify-content:stretch}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause :is(.vlist,.p-row){display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-hd{grid-column:1/-1;grid-row:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-hd .sp-k{font-size:13px;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-score{grid-column:1/-1;grid-row:2;justify-self:start;margin:4px 0 0 3px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-mid{font-size:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .sp-btn{width:auto;min-width:0;margin:0;--sp-h:48px;--sp-fs:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .vlist>#btnPSubs{grid-column:1/-1;grid-row:4;margin:0;--sp-h:48px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnPControls{grid-column:1/3;grid-row:5;padding:0 6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnPSettings{grid-column:3/5;grid-row:5;padding:0 6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-row.p-fb>#btnPSug{grid-column:5/7;grid-row:5;padding:0 6px;--sp-c:var(--sp-ink);--sp-tc:var(--sp-cream);--sp-icc:var(--sp-gold);--sp-cf:var(--sp-gold);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnPBug{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-row .sp-ic{--sp-is:18px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-warn{grid-column:1/-1;grid-row:6;justify-self:start;align-self:end;margin:8px 0 0;padding:0;background:none;box-shadow:none;border-radius:0;transform:none;color:var(--sp-cream);
+  font:600 14px/1.3 var(--sp-ui);text-shadow:1px 1px 0 var(--sp-ink),-1px -1px 0 var(--sp-ink),1px -1px 0 var(--sp-ink),-1px 1px 0 var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .p-warn::before{content:"⚠ ";color:var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnRestart{grid-column:1/4;grid-row:7}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnQuit{grid-column:4/7;grid-row:7}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause>.sp-sheet:has(#btnRestart[hidden]) #btnQuit{grid-column:1/-1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnResume{grid-column:1/-1;grid-row:8;width:auto;margin:4px 0 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause :is(#btnRestart,#btnQuit){--sp-c:var(--sp-ink);--sp-tc:var(--sp-cream);--sp-icc:var(--sp-gold);--sp-ts:none;--sp-cf:var(--sp-gold);--sp-tcf:var(--sp-ink);--sp-icf:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnRestart>.sp-blob .sp-f{stroke:var(--sp-alt);stroke-width:4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause #btnQuit>.sp-blob .sp-f{stroke:var(--sp-danger);stroke-width:4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause :is(#btnRestart,#btnQuit)>.sp-blob{filter:drop-shadow(2px 3px 0 var(--sp-ink))}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause :is(#btnRestart,#btnQuit).arm{--sp-c:var(--sp-danger);--sp-tc:#fff6e4}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause .sp-btn .sp-t{white-space:normal;line-height:1.08;text-align:center}
+@media (max-width:399px){:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pause :is(#btnPControls,#btnPSettings,#btnPSug) .sp-ic{display:none}}
+/* ---- hoja final en vertical (Partido rápido, semana, reto; la base es la de las hojas de la Carrera del bloque «carrera-flujo-v», que
+   ya vale para #end): cabecera compacta (antetítulo de 1 línea, ¡VICTORIA! de ~44 en 1 línea, marcador y sets en una fila), MVP en fichas,
+   «Y ahora» en lista, y abajo [Más difícil][Opciones][Menú] (rótulos cortos, hasta 2 líneas) sobre el parche a todo el ancho con --pv-gb ---- */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-title{font-size:clamp(32px,11vw,44px)!important;white-space:nowrap;line-height:1.05}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-title.long{font-size:clamp(28px,9vw,38px)!important;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sc{flex-wrap:wrap;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score{gap:8px;padding:4px 12px;transform:rotate(-1deg)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score .es-t{font-size:15px;gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score .es-t b{font-size:30px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score .es-sep{font-size:20px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets{flex-wrap:wrap;gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets span{gap:4px;padding:3px 8px;font-size:15px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets span small{font-size:12px;letter-spacing:.06em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .row-btn{flex-direction:column;align-items:stretch;gap:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .row-btn>.end-more{order:1;flex:none;flex-direction:row;gap:8px;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-more>.sp-btn:not([hidden]){flex:1 1 0;width:auto;min-width:0;padding:0 6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .row-btn>#btnAgain{order:2;flex:none;width:100%;--sp-ph:56px;height:56px;min-height:56px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .row-btn>#btnAgain .sp-t{font-size:clamp(18px,5.6vw,22px)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-more>:is(.sp-btn[data-short]:not([data-short=""]),#btnMenu,#btnEndOpts[data-act="opts"])>.sp-t{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-more>:is(.sp-btn[data-short]:not([data-short=""]),#btnMenu,#btnEndOpts[data-act="opts"])::after{content:attr(data-short);display:block;position:relative;z-index:1;
+  font:700 14px/1.12 var(--sp-ui);letter-spacing:.02em;text-transform:uppercase;color:var(--sp-cream);text-align:center;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-more>#btnMenu[id]::after{content:"Menú"}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-more>#btnEndOpts[data-act="opts"]:not([data-short])::after{content:"Opciones"}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end:not(.crs) .end-more>#btnAgainAlt:not([data-act="share"]){box-shadow:inset 0 0 0 2.5px var(--sp-alt)}
+/* MVP en fichas (ui.js rcHTML .rc-mch con mob(), sin «|») */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-mch{display:flex;flex-wrap:wrap;gap:6px}
+/* «Y ahora» (primer partido): lista a todo el ancho, título y subtítulo enteros en dos líneas, 52 de alto, › al final */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-first .rc-fr{display:flex;flex-direction:column;align-items:stretch;gap:8px;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-first .sp-btn{position:relative;width:100%;min-width:0;min-height:52px;height:auto;--sp-h:52px;margin:0;padding:6px 40px 6px 14px;justify-content:flex-start;transform:none;rotate:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-first .sp-btn .sp-l{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;text-align:left}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-first .sp-btn :is(.sp-t,.sp-s){display:block;white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset;text-align:left;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-first .sp-btn .sp-t{font-size:15px;line-height:1.15}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-first .sp-btn .sp-s{font:600 13px/1.25 var(--sp-ui);text-transform:none;letter-spacing:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-first .sp-btn::after{content:"›";position:absolute;right:14px;top:50%;z-index:1;transform:translateY(-52%);font:800 24px/1 var(--sp-ui);color:var(--sp-ink)}
+/* reto del día: sello de 64 a la derecha del título, medallas en una fila, la experiencia en su línea; Retos en una columna */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-hd.has-seal{--sp-stamp:64px;padding-right:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-hd.has-seal .end-title{padding-right:80px;box-sizing:border-box;max-width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-hd.has-seal .end-seal{--sp-stamp:72px;top:calc(44px - 2px);right:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-seal .sp-sc b{font-size:12px;letter-spacing:.02em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-hd.has-seal>#endKicker{padding-right:56px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-day .rc-meds{display:flex;flex-wrap:nowrap;align-items:center;gap:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-day .ge-m{font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-day .rc-x{display:block;margin:6px 0 0;font-size:var(--pv-cap);color:var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-retos .rc-pills{display:flex;flex-direction:column;align-items:flex-start;gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-retos .rc-pill{white-space:normal;font-size:var(--pv-cap);line-height:1.25}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-retos :is(.rc-x,.rc-more){display:block;margin:6px 0 0;font-size:var(--pv-cap)}
+/* situación de la semana: sin MVP aquí (como en horizontal) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc:has(.rc-sit) .rc-mvp{display:none}
+/* sets en una fila con el marcador cuando caben: con dos o más sets, sin «SET n» (el orden ya lo dice; queda para el lector) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-sets:has(>span:nth-child(2)) span small{position:absolute;width:1px;height:1px;margin:-1px;overflow:hidden;clip:rect(0 0 0 0)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score .es-t{font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-score .es-t b{font-size:28px}
+/* ---- hoja del ejercicio (Entreno) en vertical: título de ~40 en una línea, el resultado en medio, REPETIR y debajo, al pie con --pv-gb,
+   Siguiente / Entrenamiento de 52 oscuros (Siguiente con el borde del color del equipo: no compite con el parche) ---- */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .sheet{position:absolute;inset:0;width:auto;max-width:none;height:auto;max-height:none;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;margin:0;padding:calc(var(--pv-gt) + 8px) var(--pv-g) calc(var(--pv-gb) + 4px);overflow:hidden;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-hd{flex:none;margin:0;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) #geKick{margin:0;font-size:var(--pv-cap);line-height:1.25;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-title{margin:4px 0 0;font-size:clamp(28px,10.4vw,40px)!important;--sp-hs:clamp(28px,10.4vw,40px);line-height:1.04;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-body{flex:1 1 auto;min-height:0;overflow-y:auto;width:100%;max-width:none;box-sizing:border-box;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-nx{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-btns{flex:none;display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;margin:0;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) #btnGeAgain{flex:none;width:100%;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more{flex:none;display:flex;flex-direction:row;gap:10px;width:100%;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>.sp-btn:not([hidden]){flex:1 1 0;width:auto;min-width:0;--sp-h:52px;height:52px;min-height:52px;padding:0 8px;--sp-fs:14px;--sp-c:var(--sp-ink);--sp-tc:var(--sp-cream);--sp-ts:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>.sp-btn .sp-t{white-space:normal;line-height:1.08;text-align:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>#btnGeNext>.sp-blob .sp-f{stroke:var(--sp-kit,#ff7a1a);stroke-width:4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-more>.sp-btn>.sp-blob{filter:drop-shadow(2px 3px 0 var(--sp-ink))}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(#btnGeList[data-cr])) .ge-rec>*{font-size:var(--pv-body)}
+/* ---- Cambios (6v6) y Estadística del partido en vertical: hoja a todo el alto (entre el notch y la barra de gestos) con la cabecera compacta
+   de los paneles (‹ redondo de 44 + título de 1 línea sobre la franja de tinta) ---- */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]){display:block;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"])>.sheet{position:absolute;inset:0;width:auto;max-width:none;height:auto;max-height:none;margin:0;padding:0 var(--pv-g) calc(var(--pv-gb) + 8px);box-sizing:border-box;display:flex;flex-direction:column;gap:10px;
+  overflow:hidden;border-radius:0;transform:none;background:rgba(21,16,42,.96);box-shadow:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"])>.sheet>.pn-head{position:relative;z-index:4;flex:none;display:flex;align-items:center;gap:12px;box-sizing:border-box;min-height:calc(var(--pv-bar) + var(--pv-gt) + 4px);margin:0 calc(-1 * var(--pv-g));
+  padding:var(--pv-gt) var(--pv-g) 4px;background:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-head>.sp-back{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;
+  background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-head>.sp-back>:not(svg),:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-head>.sp-back>.sp-blob{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-head>.sp-back>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-head>.sp-back:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-tt{flex:1 1 auto;min-width:0;margin:0;display:flex;flex-direction:column-reverse;align-items:flex-start;gap:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-tt>.sp-k{display:block;margin:0;font-size:13px;line-height:1.2;letter-spacing:.06em;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-tt>.sp-k[hidden],:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel[data-pn="subs"] .pn-tt>.sp-k{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel:is([data-pn="subs"],[data-pn="mstats"]) .pn-head h2{--sp-hs:var(--pv-head);margin:0;font-size:var(--pv-head)!important;line-height:1.15;white-space:nowrap;transform:rotate(-1.5deg);transform-origin:0 60%}
+/* Cambios: la ayuda entera bajo la cabecera; EN PISTA en rejilla 3×2 (4-3-2 / 5-6-1, como en horizontal) de fichas de 72 (dorsal, puesto,
+   «0 pts | 0 err» y la energía como borde de abajo, la zona arriba a la izquierda y «Tú» dentro, arriba a la derecha); BANQUILLO en una tira
+   que se desplaza de lado; con alguien elegido, los válidos con borde verde y el resto atenuado con el puesto tachado */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs:not([hidden]){flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:10px;overflow-y:auto;overflow-x:hidden}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-head{position:static;flex:none;display:flex;flex-direction:column;align-items:stretch;gap:8px;height:auto;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-msg{margin:0;font:700 15px/1.3 var(--sp-ui);color:var(--sp-gold);text-align:left;overflow:visible;display:block;-webkit-line-clamp:unset}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-foot{justify-content:flex-start}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-foot button{min-height:44px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-cols{flex:none;display:flex;flex-direction:column;align-items:stretch;gap:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-cols>div{flex:none;display:flex;flex-direction:column;align-items:flex-start;min-width:0;max-width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-list{flex:none;overflow:visible;max-height:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs h3{margin:0 0 8px 2px;font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:72px;gap:10px;grid-template-areas:"z4 z3 z2" "z5 z6 z1";width:100%;box-sizing:border-box;
+  padding:12px;border-radius:12px;background:rgba(255,214,120,.1);box-shadow:inset 0 3px 0 rgba(255,244,220,.55)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="1"]{grid-area:z1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="2"]{grid-area:z2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="3"]{grid-area:z3}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="4"]{grid-area:z4}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="5"]{grid-area:z5}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn>[data-z="6"]{grid-area:z6}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbBench{display:flex;flex-direction:row;flex-wrap:nowrap;gap:10px;width:100%;box-sizing:border-box;overflow-x:auto;overflow-y:hidden;padding:8px 6px 10px;scrollbar-width:none;
+  -webkit-mask:linear-gradient(90deg,#000 calc(100% - 24px),transparent);mask:linear-gradient(90deg,#000 calc(100% - 24px),transparent)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;flex:none;width:auto;height:72px;min-height:0;padding:4px 4px 10px;box-sizing:border-box;overflow:visible;border-radius:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs #sbBench .sb-p{width:96px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-nm{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p>span:empty{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-z:not(:empty){display:block;position:absolute;top:5px;left:7px;font:700 12px/1 var(--sp-ui);color:rgba(255,244,220,.7)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p b{position:static;width:28px;height:28px;font-size:15px;grid-column:auto;grid-row:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-r{justify-self:auto;font-size:12px;padding:1px 6px 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-st{display:block;font-size:12px;line-height:1.1;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-f{position:absolute;left:6px;right:6px;bottom:3px;height:4px;min-width:0;border-radius:2px;box-shadow:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p b em{position:absolute;top:4px;right:5px;left:auto;transform:none;font-size:12px;padding:1px 5px 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs:has(.sb-p.sel) #sbBench .sb-p[disabled]{opacity:.35}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs:has(.sb-p.sel) #sbBench .sb-p[disabled] .sb-r{text-decoration:line-through;text-decoration-thickness:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs:has(.sb-p.sel) #sbBench .sb-p:not([disabled]){box-shadow:0 0 0 3px #4fe08a,0 0 0 6px var(--sp-ink),2px 3px 0 6px var(--sp-ink)}
+/* (también en horizontal: «Tú» dentro de la ficha, arriba a la derecha, sin pisar el puesto ni el dorsal) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p b em{top:3px;right:4px;left:auto;transform:none;font-size:12px;padding:1px 4px 0}
+/* Estadística: equipos en segmentado, sets en rejilla de N columnas iguales (Partido / Set 1 / Set 2 / Set 3), índice de secciones en una
+   tira pegada arriba, las 6 cifras en rejilla 3×2 sin marco, el gráfico con sus rótulos sin pisarse, 12 px como mínimo */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats:not([hidden]){flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;margin:0 calc(-1 * var(--pv-g));padding:0 var(--pv-g) 12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-top{position:static;margin:0 calc(-1 * var(--pv-g)) 6px;padding:4px var(--pv-g) 8px;background:var(--sp-ink);box-shadow:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sets{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:8px;overflow:visible;padding:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sets button{min-width:0;min-height:52px;padding:6px 4px;gap:3px;font-size:17px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sets button small{font-size:12px;letter-spacing:.06em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-idx{position:sticky;top:0;z-index:3;display:flex;flex-wrap:nowrap;gap:8px;overflow-x:auto;margin:0 calc(-1 * var(--pv-g)) 8px;padding:6px var(--pv-g) 8px;background:var(--sp-ink);scrollbar-width:none;-webkit-mask:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-idx>button{flex:none;min-height:44px;padding:0 14px;border:0;border-radius:22px;background:rgba(255,244,220,.12);color:var(--sp-cream);font:700 14px/1 var(--sp-ui);cursor:pointer;
+  box-shadow:none;transform:none;text-shadow:none;text-transform:none;letter-spacing:.01em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-idx>button:is(:focus-visible,.kf){outline:3px solid var(--sp-gold);outline-offset:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sec{scroll-margin-top:64px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-h{font-size:15px;letter-spacing:.1em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-k{flex-wrap:wrap;row-gap:4px;font-size:13px;letter-spacing:.08em;line-height:1.25}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-k small{font-size:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-note{font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-heros{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:4px 0 12px;padding:0;transform:none;box-shadow:none;background:none;border:0;gap:6px 4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-heros::before,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-heros::after{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-heros>*{min-width:0;min-height:72px;padding:6px 4px 7px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;border:0;box-shadow:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-heros .sp-hn{font-size:26px;line-height:1.05}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-heros .sp-hl{font-size:13px;line-height:1.15;text-align:center;overflow-wrap:normal;hyphens:manual}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-mom{height:200px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-mom svg{top:34px;bottom:26px;height:calc(100% - 60px)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-ml{top:auto;bottom:6px;font-size:12px;letter-spacing:.08em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-mt{font-size:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-mt.them{bottom:auto;top:5px;left:14px;right:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .st thead th,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .st .cl small{font-size:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sec.ph-fold>.ms-h{display:flex;align-items:center;justify-content:space-between;min-height:44px;cursor:pointer}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sec.ph-fold>.ms-h::after{content:"▾";margin-left:10px;font-size:16px;color:var(--sp-gold);transition:transform .15s}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sec.ph-fold.open>.ms-h::after{transform:rotate(180deg)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats .ms-sec.ph-fold:not(.open)>:not(.ms-h){display:none}
+/* ---- HUD en HORIZONTAL (en vertical el partido en juego pide girar) ---- */
+/* consejo (#coach): siempre la cápsula oscura del 2v2 (también con .thrup, el 6v6 y el peloteo), hasta 2 líneas, nunca «…» */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #coach,:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #coach:not(.thru):not(.thrup),:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #coach.thrup:not(.off):not(.thru){white-space:normal;overflow:visible;text-overflow:clip;max-width:min(62vw,520px);line-height:1.25;
+  background:var(--sp-ink);border-color:transparent;box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);text-shadow:none;padding:4px 12px 5px}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #coach,:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #coach:not(.thru):not(.thrup),:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #coach.thrup:not(.off):not(.thru){max-width:60vw}
+/* la seña con la cinta puesta: bajo el marcador, a la izquierda (ui.js senaShow la pega en .sb-bw también con la cinta), nunca en la franja
+   central de arriba; sale con la cinta */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .sb-bw>.sp-sena.sn-ban{display:flex}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #app:not(:has(>#banner.show)) .sb-bw>.sp-sena.sn-ban{display:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #app:has(>#banner.out) .sb-bw>.sp-sena.sn-ban{opacity:0;transition:opacity .2s}
+/* 568: la seña un 15 % menor */
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) .sb-bw{--snb:48px}
+/* cinta de punto de set / jugada (compacta, arriba a la derecha): sin llegar a la lupa ni pisar el marcador */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #app.is-touch #banner.compact{right:calc(140px + var(--sr));max-width:calc(100% - 140px - 196px - var(--sr))}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #app.is-touch #banner.compact #bn1{white-space:normal;text-align:center}
+/* saque con diana detrás del marcador: el tanteo, legible (.6) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .sb.aimthru>*{opacity:.6}
+/* frenar / protestar: la frase entera (2 líneas si hace falta) y, a 568, botones de 44 */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #ambChoice .amc-s{white-space:normal;overflow:visible;text-overflow:clip;max-width:min(70vw,420px);text-align:center;line-height:1.25}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #ambChoice .amc-b{min-height:44px;height:44px}
+/* el rótulo del parche (Seguir jugando, Revancha, Otra vez, Repetir, Otro intento): sin recorte por arriba ni por abajo */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) .sp-ov .sp-patch .sp-t{overflow:visible;line-height:1.15}
+/* (vertical: el consejo, detrás del aviso de girar, tampoco con «…») */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #coach{white-space:normal;overflow:visible;text-overflow:clip;max-width:calc(100% - 32px)}
+/* (568: «Compartir» y «El grupo» de la situación caben en la columna con el ojo, sin salirse de su mancha) */
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-tl>.sp-btn{padding:0 8px}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #end .end-tl>.sp-btn[data-short]:not([data-short=""])::after{font-size:12px;letter-spacing:0}
+/* ==== fin RONDA 2 · partido-v ==== */
 </style>
 
 <div id="app">
@@ -8961,7 +9214,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     </div>
   </div>
 
-  <div id="rotate" hidden><div class="ph"></div><b class="sp-h">Gira el móvil</b><p class="sp-chip">Take the Court se juega en horizontal</p></div>
+  <div id="rotate" hidden><div class="ph"></div><b class="sp-h">Gira el móvil</b><p class="sp-chip">Take the Court se juega en horizontal</p><button type="button" class="rot-p" id="btnRotPause" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h3.5v14H7zm6.5 0H17v14h-3.5z"/></svg><span>Pausa</span></button></div>
   <!-- Logotipo (1.19.1, Ferran: «la Red cruzada»): pista turquesa, red en diagonal con THE en la cinta, TAKE arriba y COURT
        abajo con un balón de 18 paneles como O. Definido una vez aquí y usado con <use href="#mtcLogo"> en el menú, el telón y
        og-image.js. Letras de Anton y Bungee pasadas a trazados (OFL): sin fuentes, sale entero desde el primer frame. Es estático

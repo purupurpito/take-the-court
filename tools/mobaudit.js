@@ -79,7 +79,7 @@ const XAS = r => Object.assign(r, { open: r.open.replace(/return (M\.career\([^)
 const PAUSE_EXIT = '#btnResume';
 // (ronda 2) cura la lesión de las dos Carreras de muestra (playa y pista) sin cambiar nada más; deja el modo como estaba
 const HEAL = "(function(){try{var C=VB.Career;if(!C||!C.get||!C.setMode)return 0;var m0=C.mode?C.mode():null,n=0;['beach','hall'].forEach(function(m){if(C.has&&!C.has(m))return;C.setMode(m);var c=C.get();if(!c)return;var ch=false;if(c.inj&&c.inj.cur){c.inj.cur=null;c.inj.back=0;c.inj.rust=0;ch=true;}if(c.last&&c.last.inj){delete c.last.inj;ch=true;}if(ch){C.save(c);n++;}});if(m0)C.setMode(m0);return n;}catch(e){return -1}})()";
-const HUD_EXIT = '#btnHudPause, #touch .vt-pause';   // (táctil: la pausa es la del overlay)
+const HUD_EXIT = '#btnHudPause, #touch .vt-pause, #btnRotPause';   // (táctil: la pausa es la del overlay; en vertical, la «Pausa» del aviso de girar)
 
 const SCREENS = [
   // ---------------- PORTADA (menú)

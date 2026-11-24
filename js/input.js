@@ -174,7 +174,7 @@
   // el lápiz van por el overlay táctil), solo en partido y nunca sobre un control de la UI, un panel o el overlay táctil.
   var MOUSE_UI = 'button,a,input,select,textarea,label,[role="button"],[data-ui],[data-opt],[data-nav],.screen,.sheet,#touch';
   function mouseOk(e) {
-    if (!ctx || ctx.state !== 'playing' || ctx.portraitBlock || T.shown) return false;
+    if (!ctx || ctx.state !== 'playing' || ctx.portraitBlock || ctx.pvIntro || T.shown) return false;
     var tg = e.target;
     return !(tg && tg.closest && tg.closest(MOUSE_UI));
   }
@@ -687,7 +687,7 @@
     try { el.root.setPointerCapture(id); } catch (_) { }
   }
   function onHiddenDown(e) {
-    if (T.shown || e.pointerType !== 'touch' || !ctx || ctx.state !== 'playing' || ctx.portraitBlock || !el.root) return;
+    if (T.shown || e.pointerType !== 'touch' || !ctx || ctx.state !== 'playing' || ctx.portraitBlock || ctx.pvIntro || !el.root) return;
     var tg = e.target;
     // los controles de la propia UI (pausa del HUD, avisos con botón...) siguen recibiendo su toque
     if (tg && tg.closest && tg.closest('button,a,input,select,textarea,[role="button"],[data-ui]')) return;
@@ -1634,7 +1634,7 @@
 
       // --- overlay táctil: en partido, en horizontal, si se está jugando con el dedo
       var touchy = T.used || ctx.isTouch;
-      var show = touchy && it.device === 'touch' && ctx.state === 'playing' && !ctx.portraitBlock && !(ctx.game && ctx.game.watch) && !ctx.replay;   // (6v6 espectador, g.watch: sin mandos) (repetición C1: tampoco)
+      var show = touchy && it.device === 'touch' && ctx.state === 'playing' && !ctx.portraitBlock && !ctx.pvIntro && !(ctx.game && ctx.game.watch) && !ctx.replay;   // (6v6 espectador, g.watch: sin mandos) (repetición C1: tampoco)
       if (show !== T.shown) setShown(show);
       if (show) { touchContext(); touchVisibility(); }
       return it;

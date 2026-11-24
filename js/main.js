@@ -2241,8 +2241,16 @@
     // siguiente); Esc / Start / B (ctx.replaySkipReq 'all': botón «Salir») → Replay.skip(true), fuera
     var RPL = VB.Replay, rpA = !!(RPL && RPL.active && RPL.active());
     if (rpA) rpInput(it); else ctx.replaySkipReq = false;
+    // (ronda 2, movil-aire §8.2 patrón 9: con el móvil en vertical la previa SE VE —no pide girar— pero la cuenta atrás se para y no se
+    // puede saltar: el chip de abajo dice «Gira el móvil para empezar»; al girar sigue la previa y empieza el saque. La repetición también
+    // se ve en vertical. El partido en juego sigue con ctx.portraitBlock)
+    var pvRaw = isTouch && ctx.state === 'playing' && ctx.height > ctx.width;
+    ctx.pvIntro = !!(pvRaw && intro.left > 0 && !net);
+    ctx.pvReplay = !!(pvRaw && rpA && ctx.replay);
+    if (ctx.pvIntro) { ctx.introSkipReq = false; if (it) { it.hit = it.jump = it.jset = it.switchPlayer = it.confirm = false; } }
     if (intro.left > 0) {
       if (ctx.state !== 'playing') { if (ctx.state !== 'paused') introEnd(true); }
+      else if (ctx.pvIntro) { /* (vertical: la previa espera a que se gire el móvil) */ }
       else if (ctx.introSkipReq || (it && (it.hit || it.jump || it.switchPlayer || it.pause || it.confirm))) {
         introEnd(true);
         if (it) { it.hit = it.jump = it.jset = it.switchPlayer = it.pause = it.confirm = false; }   // el botón que salta no golpea ni pausa
@@ -2290,7 +2298,9 @@
         it.hit = it.jump = it.jset = it.switchPlayer = false;
       }
     }
-    ctx.portraitBlock = isTouch && ctx.state === 'playing' && ctx.height > ctx.width;
+    pvRaw = isTouch && ctx.state === 'playing' && ctx.height > ctx.width;
+    ctx.pvIntro = !!(pvRaw && intro.left > 0 && !net); ctx.pvReplay = !!(pvRaw && ctx.replay && RPL && RPL.active && RPL.active());
+    ctx.portraitBlock = pvRaw && !ctx.pvIntro && !ctx.pvReplay;
     // «Retomar el partido» en la Carrera: al arrancar, un partido con candado sin foto que valga (versión nueva, foto rota, otro aparato)
     // se resuelve desde su marcador antes de que se vea la portada (careerLockFix; con foto, la portada ofrece «Seguir el partido»)
     if (!lockBoot && ctx.state === 'menu' && ctx.frame > 5 && !ctx.debug && !(VB.UI && VB.UI.bootBusy && VB.UI.bootBusy())) { lockBoot = true; try { careerLockFix(); } catch (e) { reportError('careerLockFix', e); } }
@@ -2316,7 +2326,8 @@
     // tarjeta de presentación: la sim espera; el resto del mundo se anima en tiempo real
     if (net) { gdt = netFrame(it, realDt); }   // ONLINE: manda el reloj de la sesión (sin pausa, intro, repetición ni timeScale)
     else if (running && intro.left > 0) {
-      intro.left -= realDt; ctx.introLeft = Math.max(0, intro.left);
+      if (!ctx.pvIntro) intro.left -= realDt;   // (vertical: la cuenta atrás de la previa, parada)
+      ctx.introLeft = Math.max(0, intro.left);
       if (intro.left <= 0) { intro.left = 1e-6; introEnd(false); }
       for (var ih = 0; ih < pendingEvents.length; ih++) frameEvents.push(pendingEvents[ih]);
       pendingEvents.length = 0;

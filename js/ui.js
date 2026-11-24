@@ -691,7 +691,7 @@
     if (!(banT > 0) || !el.banner.classList.contains('show')) return null;
     if (banRect) return banRect;
     var r = null, kids = [el.banner.firstChild, el.bn2, el.bn3];
-    if (sn.host === 'ban' && el.sena && !el.sena.hidden) kids.push(el.sena);   // (la pegatina sobresale de la cinta)
+    if (sn.host === 'ban' && el.sena && !el.sena.hidden && el.sena.parentNode !== (el.pbug && el.pbug.parentNode)) kids.push(el.sena);   // (la pegatina sobresale de la cinta; en el móvil va bajo el marcador)
     for (var i = 0; i < kids.length; i++) {
       var k = kids[i]; if (!k || k.hidden) continue;
       var q = k.getBoundingClientRect(); if (!q.width) continue;
@@ -743,6 +743,8 @@
     // (movil-aire §5.7, móvil: un solo rótulo grande arriba a la vez; la pegatina de la pestaña va BAJO el marcador, en la columna de la
     //  izquierda —hija de .sb-bw, junto a #pbug: sale y se aparta con él por CSS—, no colgada a la derecha de la pestaña)
     if (where !== 'ban' && el.pbug && phHud()) host = el.pbug.parentNode;
+    // (ronda 2, partido-v: con la cinta tampoco va en la franja central de arriba: bajo el marcador, a la izquierda; sale con la cinta por CSS)
+    if (where === 'ban' && el.pbug && phHud()) host = el.pbug.parentNode;
     if (!el.sena || !it || !host) return false;
     if (sn.host === 'bug' && where === 'ban' && el.pbug) el.pbug.classList.remove('sn-on');
     if (el.sena.parentNode !== host) host.appendChild(el.sena);
@@ -812,7 +814,9 @@
       h += '<button type="button" tabindex="-1" class="amc-b ' + ((k === 'protest') !== br ? 'p' : 'd') + '" data-k="' + k + '">' + key + escT(o[i].label || (k === 'protest' ? 'Protestar' : 'Dejarlo')) + '</button>';
     }
     el.ambChR.innerHTML = h;
-    el.ambChS.textContent = cpuTxt(e.sub || '¿Protestas la decisión?');
+    // (ronda 2, partido-v: en el móvil, la frase entera y natural, no «Iker va a por el 1r»)
+    var amS = cpuTxt(e.sub || '¿Protestas la decisión?'); if (phMob()) amS = amS.replace(/ va a por el 1r$/, ' va a protestar al árbitro');
+    el.ambChS.textContent = amS;
     el.ambChS.hidden = !!e.sub && e.sub === amb.lastSay;   // (el compañero ya lo dice en su bocadillo: sin repetirlo)
     amb.ch = { id: e.id, dur: e.dur > 0 ? e.dur : 2.4, def: e.def || 'drop' }; amb.chT = 0; amb.chEnd = 0;
     el.ambChBar.style.transform = 'scaleX(1)';
@@ -1409,6 +1413,7 @@
     el.intro.style.setProperty('--in-dur', (dr ? 2.5 : introUI.dur) + 's');
     var d = device();
     el.introHint.innerHTML = d === 'touch' ? 'Toca para empezar ya' : d === 'gamepad' ? padKey('a') + 'para empezar ya' : 'Pulsa cualquier tecla para empezar ya';
+    introUI.hint = el.introHint.innerHTML; introUI.hold = false;
     el.intro.className = ''; void el.intro.offsetWidth; el.intro.className = 'show' + (dr ? ' drill' : '');
     el.app.classList.add('intro-on'); el.app.classList.remove('hud-in');
     hideBanner(); clearPrompt();
@@ -1426,6 +1431,16 @@
   function introTick(rdt) {
     // B5: beats B y C al cruzar su instante (tiempo de la previa = dur − ctx.introLeft); suena ui('beat', i) con i = 1 (B) o 2 (C)
     var pl = introUI.plan;
+    // (ronda 2, movil-aire §8.2 patrón 9) móvil en vertical durante la previa (main.js ctx.pvIntro): se ve entera (los beats B y C a la vez),
+    // la cuenta atrás se para (barra quieta: #intro.pvh) y el chip de abajo dice «Gira el móvil para empezar» con el móvil girando
+    var hold = !!(introUI.on && ctx.pvIntro);
+    if (hold !== !!introUI.hold) {
+      introUI.hold = hold; el.intro.classList.toggle('pvh', hold);
+      if (hold) {
+        if (pl && pl.beats) { for (var bi = 1; bi < pl.beats.length; bi++) el.intro.classList.add(pl.beats[bi].id === 'C' ? 'b3' : 'b2'); introUI.bi = pl.beats.length; }
+        el.introHint.innerHTML = '<i class="in-rot" aria-hidden="true"></i><span>Gira el móvil para empezar</span>';
+      } else el.introHint.innerHTML = introUI.hint || 'Toca para empezar ya';
+    }
     if (introUI.on && pl && ctx.introLeft > 0 && introUI.bi < pl.beats.length && introUI.dur - ctx.introLeft >= pl.beats[introUI.bi].at) {
       var bt = pl.beats[introUI.bi];
       el.intro.classList.add(bt.id === 'C' ? 'b3' : 'b2');
@@ -3155,6 +3170,9 @@
     // Así ya está pintado y el primer frame del partido baja a < 35 ms.
     el.hud.hidden = false; el.hud.classList.toggle('warm', s === 'menu');
     el.rotate.hidden = !ctx.portraitBlock;
+    // (ronda 2, movil-aire §8.2) en vertical, el aviso de girar lleva una salida: «Pausa» (la pausa sí se ve en vertical). Los botones del
+    // banquillo (#benchBar) no asoman encima del aviso (CSS)
+    var rp = $('btnRotPause'); if (rp) rp.hidden = !(ctx.portraitBlock && s === 'playing');
     // la viñeta no se suma al velo de las hojas (pausa, final, paneles)
     el.veil.classList.toggle('under', (s === 'paused' || geOn || (s === 'over' && !!g.finished && !ctx.endHold && !endGate && !ctx.replay && !el.end.classList.contains('dock')) || !!panel));
     if (s === 'menu') { hideBanner(); renderMenu(); }
@@ -3525,7 +3543,7 @@
     el.pause.classList.toggle('drill', dr);
     // (movil-aire §5.7, móvil: Sugerencia y Bug en un solo botón, «Opinar», que abre el panel con las dos pestañas; el de Bug lo esconde el CSS)
     var sgB = $('btnPSug'), sgT = sgB && sgB.querySelector('.sp-t');
-    if (sgT) { var ph0 = phHud(); sgT.textContent = ph0 ? 'Opinar' : 'Sugerencia'; if (ph0) sgB.setAttribute('aria-label', 'Opinar: sugerencia o bug'); else sgB.removeAttribute('aria-label'); }
+    if (sgT) { var ph0 = phMob(); sgT.textContent = ph0 ? 'Opinar' : 'Sugerencia'; if (ph0) sgB.setAttribute('aria-label', 'Opinar: sugerencia o bug'); else sgB.removeAttribute('aria-label'); }
     var tr = !dr && isTrial();
     el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : tr ? 'Reiniciar prueba' : 'Reiniciar partido';
     el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : tr ? 'Abandonar la prueba' : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
@@ -3815,7 +3833,7 @@
     else if (d.sit) {   // «La situación ◆ Semana 47 | Set único a 25»
       setSep(el.endKicker, [{ h: nw('La situación') }, { h: nw('Semana ' + d.sit.wn) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
       // (movil-aire §5.7, móvil: «¡SALVADA!» sin el resultado, que ya está en el marcador y en los sets)
-      var stt = phHud() ? String(M.title).replace(/\s+\d+\s*[-–]\s*\d+\s*$/, '') : M.title;
+      var stt = phMob() ? String(M.title).replace(/\s+\d+\s*[-–]\s*\d+\s*$/, '') : M.title;
       el.endTitle.textContent = stt; el.endTitle.classList.toggle('long', String(stt).length > 11);
     }
     else if (d.reto) {
@@ -4069,7 +4087,7 @@
     catch (er) { console.error('[VB][ERROR] MatchStats.html: ' + er); html = '<p class="ms-empty">No se ha podido calcular la estadística.</p>'; }
     $('msBody').innerHTML = html;
     // (movil-aire §5.7, móvil: las secciones largas del 6 contra 6, plegadas; se abren al tocar su título o su ficha del índice)
-    if (phHud()) Array.prototype.forEach.call($('msBody').querySelectorAll('.ms-sec.ms-long'), function (sc) { sc.classList.add('ph-fold'); });
+    if (phMob()) Array.prototype.forEach.call($('msBody').querySelectorAll('.ms-sec.ms-long'), function (sc) { sc.classList.add('ph-fold'); });
     if (VB.Splat && VB.Splat.info) VB.Splat.info($('msBody'));   // «i» de «Cifras clave» en el móvil (un escuchador por raíz)
   }
   function msSet(s, kb) {
@@ -4339,7 +4357,8 @@
       var ln = day.newMedal && day.medal ? '¡' + T[day.medal - 1] + '!' : line;
       return '<div class="rc-meds">' + mh + '</div><span class="rc-l rc-dl">' + escT(ln) + (day.xp ? ' <b class="nw">+' + (day.xp | 0) + ' XP</b>' : '') + '</span>';
     }
-    return '<div class="rc-meds">' + mh + '</div><span class="rc-l">' + escT(line) + '</span>' + (day.xp ? '<span class="rc-x">+' + (day.xp | 0) + ' de experiencia (a cada jugador)</span>' : '');
+    // (ronda 2, partido-v: en vertical, la frase entera y «+115 de experiencia» en su línea, sin «(a cada jugador)»)
+    return '<div class="rc-meds">' + mh + '</div><span class="rc-l">' + escT(line) + '</span>' + (day.xp ? '<span class="rc-x">+' + (day.xp | 0) + ' de experiencia' + (phPv() ? '' : ' (a cada jugador)') + '</span>' : '');
   }
   /** HTML del Resumen: bloques del modelo en su orden, cada uno con su etiqueta a la izquierda y entrada escalonada (--i). */
   function rcHTML(M, d) {
@@ -4360,7 +4379,7 @@
           if (M.mvp) {
             // (cada dato entero en su línea: «7 aces» no se parte; nbsp dentro de cada uno; la raya va pegada al dato que la sigue, .rc-pd)
             var mv = M.mvp, parts = [mv.ptsT].concat(mv.parts || []).map(function (p) { return typeof p === 'string' ? p.replace(/ /g, '\u00a0') : p; });
-            if (phHud() || (cs && phPv())) blk('rc-mvp rc-mvph', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small class="rc-mch">' + parts.map(function (t) { return '<span>' + escT(String(t)) + '</span>'; }).join('') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
+            if (phMob()) blk('rc-mvp rc-mvph', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small class="rc-mch">' + parts.map(function (t) { return '<span>' + escT(String(t)) + '</span>'; }).join('') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
             else blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v').replace(/(<span class="sep[^"]*"><span class="sr">, <\/span><\/span>)([^<]*)/g, '<span class="rc-pd">$1$2</span>') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
           } else blk('rc-mvp rv', H.mvp, '<span class="rc-l">' + escT(M.mvpRival.t) + '</span>' + (cs && M.nota ? '<em class="rc-nota">Nota ' + escT(M.nota) + '</em>' : ''));
           break;
@@ -4395,7 +4414,7 @@
         case 'inj': blk('rc-inj', H.inj, '<span class="rc-l"><b>' + escT(M.inj.t) + '</b></span><span class="rc-l">' + sepHTML(M.inj.parts, 'v') + '</span>'); break;
         case 'retos':
           var rp = M.retos.pills.map(function (p) { return '<span class="rc-pill' + (p.nw ? ' nw' : '') + '">' + medalSVG(p.lvl) + escT(p.t) + '</span>'; }).join('');
-          blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + (phHud() ? '' : ' (a cada jugador)') + '</span>' : ''));
+          blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + (phMob() ? '' : ' (a cada jugador)') + '</span>' : ''));
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
@@ -6110,7 +6129,7 @@
     if (!panel || !o || !o.back) panelFrom = (o ? o.from : from) || (panel ? panelFrom : ctx.state);
     panel = name;
     for (var k in PANELS) $(PANELS[k][0]).hidden = k !== name;
-    el.pnKick.textContent = PANELS[name][1]; el.pnKick.hidden = !PANELS[name][1]; el.pnTitle.textContent = name === 'mstats' && phHud() ? 'Estadística' : PANELS[name][2];   // (móvil: título corto, movil-aire §5.7)
+    el.pnKick.textContent = PANELS[name][1]; el.pnKick.hidden = !PANELS[name][1]; el.pnTitle.textContent = name === 'mstats' && phMob() ? 'Estadística' : PANELS[name][2];   // (móvil: título corto, movil-aire §5.7)
     if (name === 'tut') { tutGo(0); }
     if (name === 'ctl') { ctlView = o && o.tab && CTL_IDS[o.tab] ? o.tab : device(); renderCtl(); }
     if (name === 'set') { renderOpts(); if (o && o.tab && setTabs) setTabs.set(o.tab, 'api'); setTab(setTabs ? setTabs.get() : 'audio'); }
@@ -8973,6 +8992,7 @@
       el.btnTutNext.addEventListener('click', tutNext);
       var tmb0 = document.getElementById('btnTutMore'); if (tmb0) tmb0.addEventListener('click', function () { click(); tutMore(); });
       on(el.btnHudPause, function () { ctx.actions.pause(); });
+      if ($('btnRotPause')) on($('btnRotPause'), function () { if (ctx.state === 'playing') ctx.actions.pause(); });   // (vertical: salida del aviso de girar)
       on(el.btnHudMute, function () { ctx.actions.toggleMute(); });
       // opciones: clic en un valor concreto o en la fila (siguiente valor). E3: delegado en el panel (Ajustes y las filas que
       // pinta renderCtl en Controles), más «Restablecer», las teclas reasignables y las filas que abren otro panel

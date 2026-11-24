@@ -89,6 +89,31 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok(await p.evalJs("[].some.call(document.getElementById('app').children,function(c){return c.hasAttribute('inert')})"), 'hoja en vertical: lo de detrás inert');
     await p.evalJs("VB.Splat.closeTop()");
     ok(await p.evalJs("![].some.call(document.getElementById('app').children,function(c){return c.hasAttribute('inert')})"), 'hoja cerrada: nada inert');
+    // (ronda 2, partido-v) la previa en vertical se VE (sin «Gira el móvil»), la cuenta atrás se para y no hay saque; al girar, empieza
+    await p.setSize('390x844', true, 1);
+    await p.navigate('ma_clean=1&uianim=0&debug=menu&intro=1');
+    await p.evalJs(`new Promise(res=>{const t0=Date.now();(function f(){try{if(window.VB&&VB.UI&&VB.UI._boot&&VB.UI._boot().stage>=2)return res(1)}catch(e){} if(Date.now()-t0>20000)return res(0); setTimeout(f,100)})()})`, true);
+    await sleep(400); await p.evalJs('(' + PG.helpers.toString() + ')()');
+    await p.evalJs("(async()=>{ await __MA.ensureMenu(); VB.ctx.actions.startMatch({}); })()", true); await sleep(900);
+    const pv1 = await p.evalJs("JSON.stringify({st:VB.ctx.state, hold:!!VB.ctx.pvIntro, pb:!!VB.ctx.portraitBlock, rot:document.getElementById('rotate').hidden, cls:document.getElementById('intro').className, hint:document.getElementById('introHint').textContent, left:+VB.ctx.introLeft.toFixed(3), touch:!!document.querySelector('#touch:not([hidden]) .vt-btn')})");
+    ok(/"st":"playing"/.test(pv1) && /"hold":true/.test(pv1) && /"pb":false/.test(pv1) && /"rot":true/.test(pv1) && /pvh/.test(pv1) && /Gira el móvil para empezar/.test(pv1), 'previa en vertical: se ve, sin aviso de girar, chip «Gira el móvil para empezar»: ' + pv1);
+    const l1 = await p.evalJs("VB.ctx.introLeft"); await p.evalJs("document.getElementById('app').dispatchEvent(new PointerEvent('pointerdown',{bubbles:true,pointerType:'touch'}))"); await sleep(1500);
+    const l2 = await p.evalJs("VB.ctx.introLeft");
+    ok(l1 > 0 && Math.abs(l2 - l1) < 1e-6 && await p.evalJs("VB.ctx.introLeft > 0 && VB.ctx.state === 'playing'"), 'previa en vertical: la cuenta atrás no corre y un toque no la salta (' + l1 + ' → ' + l2 + ')');
+    await p.setSize('844x390', true, 1); await sleep(400);
+    ok(await p.evalJs("!VB.ctx.pvIntro && !VB.ctx.portraitBlock && !/pvh/.test(document.getElementById('intro').className)"), 'previa al girar a apaisado: sigue la previa (sin .pvh)');
+    await sleep(Math.ceil(l2 * 1000) + 900);
+    ok(await p.evalJs("VB.ctx.introLeft === 0 && VB.ctx.state === 'playing'"), 'previa al girar: acaba y empieza el partido (introLeft 0)');
+    await p.setSize('390x844', true, 1); await sleep(400);
+    ok(await p.evalJs("VB.ctx.portraitBlock === true && document.getElementById('rotate').hidden === false && document.getElementById('btnRotPause').hidden === false"), 'partido en juego en vertical: pide girar, con «Pausa» como salida');
+    await p.evalJs("document.getElementById('btnRotPause').click()"); await sleep(300);
+    ok(await p.evalJs("VB.ctx.state === 'paused' && document.getElementById('rotate').hidden === true"), '«Pausa» del aviso de girar: la pausa, que se ve en vertical');
+    // repetición en vertical: se ve (sin aviso de girar)
+    await p.navigate('ma_clean=1&uianim=0&debug=replay');
+    await p.evalJs(`new Promise(res=>{const t0=Date.now();(function f(){try{if(window.VB&&VB.ctx&&VB.ctx.replay&&VB.Replay.runner&&VB.Replay.runner())return res(1)}catch(e){} if(Date.now()-t0>25000)return res(0); setTimeout(f,100)})()})`, true);
+    await sleep(500);
+    const rp = await p.evalJs("JSON.stringify({rp:!!VB.ctx.replay, pv:!!VB.ctx.pvReplay, pb:!!VB.ctx.portraitBlock, rot:document.getElementById('rotate').hidden, cap:!document.getElementById('rpCap').hidden})");
+    ok(/"rp":true/.test(rp) && /"pb":false/.test(rp) && /"rot":true/.test(rp) && /"cap":true/.test(rp), 'repetición en vertical: se ve con su tarjeta, sin aviso de girar: ' + rp);
     const errs = p.errors.slice(0, 5);
     ok(!errs.length, 'sin errores JS' + (errs.length ? ': ' + JSON.stringify(errs) : ''));
   } catch (e) { out.push('FALLO excepción: ' + (e.stack || e)); }
