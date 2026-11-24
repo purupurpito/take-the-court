@@ -100,6 +100,13 @@ Decisión de Ferran: «Quiero que la IA se adapte excepto en modo Fácil». Es l
   bloqueo y la defensa cambian de sitio; las de CPU contra CPU no (sin humano no hay racha).
 - **Pruebas**: `tools/studytest.js` §8 (racha, signos y tamaños, Fácil/demo/Fluida/compañero/centro nada, junto a `g.scout`, sin azar,
   resim idéntica y estadística). §3, §5 y §7 miden «Te tienen estudiado» solo (`g.aiMem.rd = null` en esas partidas).
-- Cambiar la fuerza: `RD` en js/sim.js (umbral, fuerza a la 3ª, × por dificultad).
+- **Medido** (studytest §8, bot «bueno» que remata siempre en diagonal, 20 partidos de playa y 10 de pista por casilla): playa Normal,
+  remates en diagonal que son punto 16,7 % → 12,0 % (×0,72); pista Normal ×0,69; Experto: playa ×1,11 y pista ×0,90 (ruido: con 60 y
+  40 partidos más de playa Experto, ×0,97 y ×1,0), con más bloqueos (410 → 439, 199 → 237) y los mismos puntos. Con la defensa 2v2 ×1
+  (sin `RDX.lean` 2,5) el efecto en la playa Normal no se veía (15,1 % → 15,2 % en racha, 60 partidos). El bot que alterna no la activa.
+- **Experto no se ablanda** (variedadtest): en la pasada normal el 6v6 medio Experto dio 64,2 % con la lectura y 67,5 % sin ella; con el
+  triple de partido, 66,4 % y 66,5 % (sin memoria, 65,9 %): era ruido de la muestra. Las casillas 6v6 Experto con bot juegan ahora 9 ×
+  SECS (antes 3 ×). `VAR_NORD=1` juega «ahora» sin la lectura y `VAR_RDX='{"blk6":0}'` prueba otros multiplicadores.
+- Cambiar la fuerza: `RD` en js/sim.js (umbral, fuerza a la 3ª, × por dificultad) y `RDX` en js/ai.js (× sobre las distancias).
 
 Cambiar la fuerza: `MEM` en js/ai.js (`VAR_MEM='{"tol":0.4}' node tools/variedadtest.js` prueba otros valores sin tocar el código).

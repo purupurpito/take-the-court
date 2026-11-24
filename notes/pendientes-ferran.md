@@ -4,7 +4,7 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 **decisión provisional**: cambiarlo es tocar el sitio que se indica. Lo que Ferran sí decidió está en la memoria
 (make-the-cut-ideas-unico) y en las notas de cada idea; aquí no se repite.
 
-Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · Backlog del 21-nov · Señas · Xaranga · La jugada del día · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
+Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · IA del 24-nov (rama decisiones) · Backlog del 21-nov · Señas · Xaranga · La jugada del día · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
 publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
@@ -98,8 +98,7 @@ rama pendientes, sin publicar.
   2. La IA solo varía **entre zonas casi tan buenas como la mejor** (`MEM.tol` = 0,6 m de hueco): con la penalización tal cual del informe
      Experto bajaba claramente; así sigue igual de duro (medido con los bots de simtest, tools/variedadtest.js).
   3. Si el jugador pide el balón en 6v6, al humano no se le reparte menos por haber rematado las dos últimas.
-  4. **No hecho:** el bloqueo de la IA que se corre tras 4 remates tuyos seguidos por el mismo carril (fuera de la Carrera). Sigue solo
-     «Te tienen estudiado» en la Carrera. ¿Lo quieres para otro sprint?
+  4. El bloqueo que se corre cuando repites carril: **hecho el 24-nov** («Te leen», rama decisiones; ver «IA: decisiones del 24-nov»).
   5. **simtest recalibrado (22-nov; antes quedaba con 4 fallos). Confirmado el mismo día** con 100 partidos completos de demo (5 grupos
      de 20 semillas, rama y main 1.21.0): puntos grandes 23,9 % en la rama y 21,8 % en main (grupos 22,4-25,2 y 20,9-22,8), ≥ 0,8 fuera de
      punto de set 5,0 % y 4,7 % (main ya pasaba del 5 % en un grupo), remates que son punto 36,4 % y 38,2 %, y los mismos puntos por partido
@@ -242,6 +241,28 @@ Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al h
 - **Confirmado sin tocar**: «Cerrar sesión» no borra el progreso del aparato; el Circuito Mundial sigue como reto; los partidos cortos
   siguen sin dar XP ni nada.
 
+## IA: decisiones de Ferran del 24-nov (rama decisiones, sin versión)
+Ferran: «Quiero que la IA se adapte excepto en modo Fácil» y las reglas nuevas de «Te tienen estudiado». Hecho; lo que he decidido yo:
+- **«Te leen»** (js/sim.js `RD` / `rdEv`, js/ai.js `readShift`, notes/ia-variada.md). **3 remates tuyos seguidos por el mismo carril**
+  (desde un ala) y la CPU corre el bloqueo y se echa la defensa hacia ahí: a la 3ª con el 60 % de la fuerza, entera desde la 4ª. Un remate
+  por el otro carril o por el centro lo corta. Fuerza por dificultad: **Fácil nada**, Normal 0,7, Difícil 0,85, Experto 1. Usa las
+  mismas distancias que «Te tienen estudiado», con la defensa del 2v2 ×2,5 (con ×1 no se notaba). Aviso en pantalla: «Te han leído: te
+  tapan la diagonal / la línea». Si ya te tienen estudiado por ese carril, no se suma (se queda lo más fuerte).
+- **Dónde**: Partido rápido (2v2, 6v6 y playa), Carrera y online Precisa. **No en el online Fluida** (allí cada máquina solo ve los toques
+  de su equipo; hacerlo obligaría a tocar netfluid.js, que es de la sesión del online) ni en Entrenamiento ni en la demo.
+- **Medido con bots** (tools/studytest.js §8, bot que remata siempre en diagonal): playa Normal, en racha, los remates en diagonal que son
+  punto bajan de 15,8 % a 12,6 %; pista 6v6 Normal ×0,7. En **Experto** ya se defiende casi todo y no se mide diferencia en los puntos
+  (solo bloquea más): sigue igual de duro, no más blando. El bot que alterna línea y diagonal no la activa nunca.
+- **Aviso de huellas**: regeneradas las de partido con humano (`tools/fp-2v2.json` human/attrs, `fp-mastery.json`, `fp-salto.json`) y
+  SIM_BASE de fluidsimtest (`e052474f`), porque el bloqueo y la defensa se colocan distinto cuando el bot repite carril. Sin azar nuevo:
+  la huella cpu (CPU contra CPU) sale idéntica; subtest y animtest no se han movido. simtest conoce el evento nuevo `read`.
+- **«Te tienen estudiado»** (js/career.js `studyGate` / `studyMe`). Media ≥ 7 en tus 3 últimos (mín. 2) **o un partido de más de 9**
+  entre esos 3 (un 9 justo no). Categorías: pista, la 1ª división de cada país y lo que se juegue desde ella; playa, la Hiperliga de Playa,
+  el Continental y el Mundial. En la **2ª** (Hiperliga 2 y equivalentes; en la playa el Circuito Nacional) solo en las **finales** (copa de
+  fin de temporada / Open) y en el **tramo final = último cuarto de la liga** (jornada > ¾ del total: de 14 jornadas, de la 11ª a la 14ª).
+  En el Circuito Regional, nunca. El informe del rival dice por qué no te estudian y desde qué jornada lo harán. Los partidos de categorías
+  sin estudio siguen contando para la nota (al subir ya te conocen). Se mantiene «por la línea».
+
 ## Backlog del 21-nov (sedes, jefes de pista, repeticiones 6v6, torneo semanal y S4_SYNC; rama pendientes)
 - **Sedes de la Carrera** (js/venues.js EMBLEM): Cúpula del Far en todas las finales de copa (también la nacional). **Decisión
   provisional: la «élite del 6v6» = rondas internacionales con un local de 1ª de fuerza ≥ 84** (la liga sigue en la sede del club, para
@@ -368,19 +389,13 @@ Ferran decidió: dos apellidos inventados; el lince y el nervioso afectan a las 
      del país de la liga?
 
 ## «Te tienen estudiado» (scouting; js/sim.js g.scout, js/ai.js, js/career.js study*, notes/carrera.md)
-Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el plan.
-- **Decisión provisional: «tus notas mejoran» = media ≥ 7** en tus 3 últimos partidos jugados (con al menos 2), no la tendencia.
+Ferran decidió: empieza cuando tus notas mejoran y el rival va cambiando el plan. El 24-nov: media ≥ 7 o un partido de más de 9, solo
+desde la Hiperliga (y en la Hiperliga 2, finales y final de liga), y «por la línea» (ver «IA: decisiones del 24-nov»).
 - **Decisión provisional: el cambio de plan** salta con 3 puntos de remate por el carril abierto (y 2 más que por el cerrado); te cierra
   ese carril con fuerza ≥ 0,7 y avisa «Cambian el plan: te tapan la línea».
-- **Decisión provisional: te estudian todos los rivales desde la 1ª temporada** si cumples la nota.
-- **Decisión provisional: «por la línea»** en los textos (como las consignas), no «paralela».
 - La defensa de la playa es muy sensible: `DEF_LEAN` 0,08 m y `BLK_SHIFT` 0,3 m (la ficha decía 0,9 y 0,45) están calibrados con bots.
   Conviene probarlo a mano.
-- Preguntas:
-  1. ¿Media ≥ 7 o que la nota suba?
-  2. ¿Te vale el umbral del cambio de plan y el aviso?
-  3. ¿Todos los rivales desde la 1ª temporada, o a partir de cierta liga?
-  4. ¿«Línea» o «paralela»?
+- Pregunta: ¿te vale el umbral del cambio de plan y el aviso?
 
 ## Cámara (js/camera.js, tools/camtest.js, notes/camera_input.md «Zoom 1: la cumbre en la contención»)
 - **Decisión provisional: con el zoom 1-2 en el móvil la cámara solo se echa atrás** cuando la cumbre del balón no cabría (colocaciones
