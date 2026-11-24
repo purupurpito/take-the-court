@@ -124,7 +124,7 @@
   var slow = { t: 0, scale: 1, out: 0.4, total: 0 };
   var reduceMotion = false;
   var DBGX = (root.location && /camdbg=1/.test(root.location.search || "")) ? [0, 0, 0, 0, 0, 0] : null;
-  // PRUEBAS DE LA PRUEBA (CAM-20): &camBreak=clinch|serve|board|menu|block|clutter|hitstop|intro|cut rompe A PROPÓSITO esa regla para
+  // PRUEBAS DE LA PRUEBA (CAM-20): &camBreak=clinch|serve|board|menu|block|clutter|hitstop|intro|cut|still rompe A PROPÓSITO esa regla para
   // comprobar que tools/camtest.js la caza (node tools/camtest.js selftest). Sin el parámetro no cambia nada.
   var BRK = ''; try { var bm = root.location && /[?&]camBreak=([a-z]+)/.exec(root.location.search || ''); BRK = bm ? bm[1] : ''; } catch (e) { BRK = ''; }
   var dbg = { shot: '', yaw: 0, pitch: 0, fov: 0, ballNdcX: 0, ballNdcY: 0, ctrlNdcY: 0, ballVisible: true, netK: 0, focusNdcY: 9, mateLo: -9, mateUp: 0,
@@ -265,6 +265,7 @@
     if (g.mode === 'over' || g.finished || ctx.state === 'over') return 'over';
     if (g.mode === 'point') return (CC.on && CC.t >= CC.start) ? 'court' : quietPoint(g) ? 'rally' : 'point';
     if (g.mode === 'serve') return g.serving === 0 ? 'serveUs' : 'serveThem';
+    if (FX.on && FX.k !== 'rival' && shot === 'serveUs' && fxFlight(g)) return 'serveUs';   // (vuelo de tu saque: la cámara fija sigue)
     if (FT.on && GAMEPLAY[FT.shot] && FT.shot !== 'serveUs' && FT.shot !== 'serveThem') return FT.shot;   // (seguimiento del remate: el plano no cambia hasta el bote)
     var p = g.ctrl, b = g.ball;
     if (p && p.lastAction === 'spike' && p.actionT < 0.75) return 'attack';
@@ -887,7 +888,7 @@
   }
   /** Puntúa el candidato ci del saque propio (sitio lateral, sesgo del sacador, lente) con los datos del frame en SVE: deja la
    *  penalización de oficiales en SVCP[ci] y la total en SVCQ[ci]. */
-  var SVE = { low: false, sv: null, back: 4.3, H: 3.35, XMAX: 15, bx: 0, by: 0, bz: 0, ax: 0, ay: 0, az: 0, tossing: false, sxPref: 0.34, latPref: 1.2, asp: 1.78 };
+  var SVE = { lifted: false, low: false, sv: null, back: 4.3, H: 3.35, XMAX: 15, bx: 0, by: 0, bz: 0, ax: 0, ay: 0, az: 0, tossing: false, sxPref: 0.34, latPref: 1.2, asp: 1.78 };
   function svcEval(ci) {
     SVC.nEval++;
     var sv = SVE.sv, sxPref = SVE.sxPref, XMAX = SVE.XMAX, bx = SVE.bx, by = SVE.by, bz = SVE.bz, ax = SVE.ax, ay = SVE.ay, az = SVE.az;
@@ -900,7 +901,7 @@
     var offP = offStraddle(), m0 = SVC.inMask, fore = SVE.low ? offForeground() : 0;
     // (y con la grúa del saque en salto, que puede llegar: un oficial que entra o sale del cuadro por el camino quedaría cortado; antes del
     // lanzamiento se mira también esa pose, con el balón en la cumbre del salto, y que ningún oficial cambie de dentro a fuera)
-    if (!SVE.tossing && ci % 3 === 0 && fk === 1) {
+    if (!SVE.tossing && ci % 3 === 0 && fk === 1 && !SVE.lifted) {
       var yS = SVC.yaw, pS = SVC.p, tS = SVC.t;
       SVP.ax = sv.x - 0.7; SVP.ay = sv.y; SVP.az = 4.6; SVC.cx = mn(cx + SVLB(SVE.low), XMAX); SVC.cz = cz + 1.4; svcSolve(sv);
       var offL = offStraddle(), m1 = SVC.inMask;
@@ -929,6 +930,11 @@
   function SVBACK() { return 4.3; }
   /** Cuánto se aleja la grúa del saque en salto. */
   function SVLB() { return 0.8; }
+  /** Cámara fija del saque (24-nov-2026): la grúa arriba todo el saque propio (camBreak=still la quita: la cámara de antes). */
+  function svFixed() { return BRK !== 'still'; }
+  /** Altura y distancia de más de la cámara fija del saque: desde ahí caben a la vez el campo rival (fondo >= 0,5 NDC), el sacador de
+   *  rodillas arriba y el lanzamiento más alto (el del saque en salto, 4,6 m): nada la mueve en todo el saque. */
+  var SVFH = 2.0, SVFB = 1.2;
   function svcPrewarm(g) {
     if (shot === 'serveUs' || shot === 'menu' || g.demo || g.serving !== 0 || !g.serverIdx || SVC.idx >= 0 && g.mode === 'serve') return;
     var sv;
@@ -939,11 +945,11 @@
     if (SVC.pwN > 0 && (hyp(sv.x - SVC.pwX, sv.y - SVC.pwY) > 0.05 || SVC.pwLow !== low || Math.abs(SVC.pwAsp - asp) > 0.01)) SVC.pwN = 0;
     if (SVC.pwN >= 84) return;
     if (SVC.pwN === 0) { readOfficials(); SVC.pwX = sv.x; SVC.pwY = sv.y; SVC.pwLow = low; SVC.pwAsp = asp; }
-    var H = low ? 3.5 : 3.35, XMAX = mn(15, K.bX - 0.2), b = g.ball, held = g.mode === 'serve';
+    var lf0 = svFixed() ? 1 : 0, H = (low ? 3.5 : 3.35) + SVFH * lf0, XMAX = mn(15, K.bX - 0.2), b = g.ball, held = g.mode === 'serve';
     var bx = held ? b.x : sv.x - 0.3, by = held ? b.y : sv.y, bz = held ? b.z : 1.05;
     var f0 = K.fovWant, sx0 = SVP.sxN, k0 = SVP.k, ax0 = SVP.ax, ay0 = SVP.ay, az0 = SVP.az;
     K.fovWant = SHOTS.serveUs.fov + 4;   // (la cuenta del giro parte de una lente parecida a la del saque, no de la del punto)
-    svcSetup(sv, low, SHOTS.serveUs, SVBACK(), H, XMAX, bx, by, bz, bx, by, bz, false);
+    svcSetup(sv, low, SHOTS.serveUs, SVBACK() + SVFB * lf0, H, XMAX, bx, by, bz, bx, by, bz, false); SVE.lifted = lf0 > 0;
     for (var i = 0; i < 12 && SVC.pwN < 84; i++) svcEval(SVC.pwN++);
     K.fovWant = f0; SVP.sxN = sx0; SVP.k = k0; SVP.ax = ax0; SVP.ay = ay0; SVP.az = az0;
   }
@@ -953,14 +959,16 @@
     var b = g.ball, low = touchUI() || !!ctx.isTouch || !!ctx.isMobile || (ctx.height || 720) < 480, asp = aspect(), dt = K.dt;
     var tossing = g.serveState === 'toss' && !b.held, Gc = (VB.C && VB.C.G) || 9.81;
     // grúa del lanzamiento en salto (sube en ~0,45 s; baja con el plano siguiente)
-    var liftT = tossing && g.serveJump ? 1 : 0;
+    // (cámara fija del saque, 24-nov-2026: la grúa arriba desde el principio —1,4 m más alta y 0,8 m más atrás—; desde ahí el campo rival
+    // queda alto en el cuadro, el lanzamiento y el arranque del vuelo caben sin mover nada y el saque en salto no sube la cámara)
+    var liftT = svFixed() || (tossing && g.serveJump) ? 1 : 0;
     SVC.liftU = dt > 0 ? (liftT > SVC.liftU ? mn(1, SVC.liftU + dt / 0.45) : mx(0, SVC.liftU - dt / 0.6)) : liftT;
     var lift = smooth01(SVC.liftU);
-    var back = SVBACK() + SVLB(low) * lift, H = (low ? 3.5 : 3.35) + 1.4 * lift, XMAX = mn(15, K.bX - 0.2);
+    var fxd = svFixed(), back = SVBACK() + (fxd ? SVFB : SVLB(low) * lift), H = (low ? 3.5 : 3.35) + (fxd ? SVFH : 1.4 * lift), XMAX = mn(15, K.bX - 0.2);
     // balón que vigilar: en la mano, en el aire o la cumbre prevista del lanzamiento
     var bx = b.x, by = b.y, bz = b.z, ax = bx, ay = by, az = bz;
     if (tossing && b.vz > 0) { var up = b.vz / Gc; ax = b.x + b.vx * up; ay = b.y + b.vy * up; az = b.z + b.vz * up * 0.5; }
-    svcSetup(sv, low, c, back, H, XMAX, bx, by, bz, ax, ay, az, tossing);
+    svcSetup(sv, low, c, back, H, XMAX, bx, by, bz, ax, ay, az, tossing); SVE.lifted = lift > 0.99;
     var sxPref = SVE.sxPref;
     /* BÚSQUEDA REPARTIDA (UI-13: en el móvil, 84 candidatos por frame —y 24 veces en el asentado del corte— costaban 120-140 ms en el
      * corte punto→saque y 23-25 ms por frame en la espera del saque). Ahora:
@@ -2835,6 +2843,7 @@
     else if (s === 'over') overShot(g);
     else if (s === 'serveUs') { gameplayShot(g, SHOTS.serveUs); serveUsComp(g, SHOTS.serveUs); }   // (CAM-15: la composición manda)
     else { gameplayShot(g, SHOTS[s] || SHOTS.rally); lostFollow(g, s, dt); }
+    fxApply(g);   // (cámara fija en el saque: sustituye la pose del plano mientras quepa lo importante)
   }
   /** Balón perdido (lostBall): la mira sigue al balón hasta el bote, como un operador que acompaña un balón que se va a la grada
    *  (aunque pase por detrás del plano de la cámara: ahí el encuadre fino no lo ve). Entra y sale en ~0,2 s. */
@@ -2971,7 +2980,8 @@
     var dt = K.dt;
     // (fuera de los planos de juego sin corte —p. ej. el plano del punto que entra deslizando—, lo que quede vuelve a 0 con sus muelles;
     // en un corte, de golpe)
-    var live = !!(g && g.ctrl && (GAMEPLAY[shot] || shot === 'tp') && !g.watch);
+    // (con la cámara fija del saque —su vuelo incluido— no: ella misma mete lo que se iría; dos correcciones a la vez se pisaban)
+    var live = !!(g && g.ctrl && (GAMEPLAY[shot] || shot === 'tp') && !g.watch && !FX.on);
     CT.act = !!(g && g.ctrl && ctV && !FB.on && !g.watch && (live || CT.e > 0 || CT.dp !== 0 || CT.dy !== 0 || CT.ay !== 0 || CT.ap !== 0));
     if (!CT.act || CUT.frame) { ctReset(); CT.act = false; return; }
     if (!live) CT.on = false;
@@ -3012,6 +3022,188 @@
   }
   /** ¿Hay contención este frame? (update desplaza P solo para apply y lo devuelve después; apply suma CT.dy/CT.dp a la mira) */
   function ctActive() { return CT.act && (CT.e > 0 || CT.dp !== 0 || CT.dy !== 0 || CT.ay !== 0 || CT.ap !== 0); }
+
+  /* CÁMARA FIJA EN EL SAQUE (24-nov-2026; Ferran: «En mi saque, la cámara se mueve demasiado … que sea "fija" excepto cuando NECESITE
+   * moverse para encuadrar todo lo que pase»). Antes, en tu saque la cámara seguía al sacador, repasaba candidatos, subía la grúa del
+   * saque en salto y abría/cerraba la lente con el lanzamiento (giro p95 ~38°/s y lente ~16°/s de media en el lanzamiento) y, nada más
+   * golpear, pasaba a la cámara del peloteo en pleno vuelo del balón (~3 m/s, ~10°/s).
+   * Ahora el encuadre del saque (el de siempre, el de serveUsComp / tpShot / la del saque rival) se FIJA al entrar en el saque y se queda
+   * quieto mientras quepa lo importante. Se mira con la pose fijada (no con la que pediría el plano):
+   *   - tu saque: el sacador (cabeza y rodillas; 6v6 cabeza y pies), el balón y, lanzado, su cumbre prevista; 6v6 con un compañero
+   *     sacando, también tu jugador;
+   *   - el vuelo de tu saque (del golpe al primer toque rival o al bote): la cámara sigue fija —el campo rival, donde caerá, ya está en
+   *     el cuadro—; se mira tu jugador, el balón y dónde va a caer (si cae en la pista o cerca);
+   *   - saque rival (espera y lanzamiento): tu jugador, el sacador rival y su lanzamiento.
+   * Solo si algo se saldría (márgenes de fuera: 0,95 NDC; el balón arriba 0,92, táctil 0,85) la cámara gira, cabecea o abre la lente
+   * lo justo para dejarlo dentro con margen (0,1 NDC más adentro: zona muerta amplia, sin pequeñas correcciones continuas), con un muelle
+   * suave, y se queda ahí. Nunca cierra la lente a mitad de saque ni vuelve sola. Sin seguir balones rápidos (> 15 m/s: regla de 1.8.2)
+   * y sin trasladarse, salvo que el sacador se desplace a lo ancho (> 1,2 m del sitio fijado: entonces se recompone el encuadre entero,
+   * despacio, y se vuelve a fijar cuando se para) o que nada quepa ni con la lente abierta (vuelve al encuadre del plano).
+   * Al soltar (primer toque rival, bote o fin del saque rival) la cámara de siempre sigue con su transición suave de plano. */
+  var FX = { on: false, k: '', age: 0, fl: false, rc: false, still: 0, sx: 0.5, sy: 0.5, lsy: 0.5, need: 0, why: '',
+             cx: 0.5, cy: 0.5, cz: 0.5, cw: 0.5, cp: 0.5, cf: 0.5,      // pose fijada de ahora (posición, giro, cabeceo, lente)
+             tx: 0.5, ty: 0.5, tz: 0.5, tw: 0.5, tp: 0.5, tf: 0.5,      // pose objetivo (a la que va el muelle)
+             v: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5], sT: 0.4 };
+  (function () { for (var i = 0; i < 6; i++) FX.v[i] = 0; FX.sx = FX.sy = FX.lsy = 0; })();
+  var FXD = { on: false, k: '', need: 0, rc: false, why: '', fl: false, ini: 0 };
+  // puntos que vigilar [x, y, z, arriba, abajo, lado] (márgenes de fuera, NDC; los de dentro, 0,1 menos), sin objetos nuevos por frame
+  var FXP = []; for (var fxi = 0; fxi < 8; fxi++) FXP.push([0.5, 0.5, 0.5, 0.5, -0.5, 0.5]);
+  var FXN = 0;
+  function fxPt(x, y, z, top, bot, side) { var q = FXP[FXN++]; q[0] = x; q[1] = y; q[2] = z; q[3] = top; q[4] = bot; q[5] = side; }
+  /** ¿Toca la cámara fija? '' si no; 'yo' (tu saque, 2v2 o 6v6), 'vuelo' (tu saque ya golpeado, hasta el primer toque rival o el bote),
+   *  'rival' (saque rival hasta el golpe). */
+  function fxKind(g) {
+    if (!g || g.demo || g.watch || !g.ctrl || ctx.state === 'menu' || FB.on || RP.on) return '';
+    var srvShot = shot === 'serveUs' || shot === 'serveThem' || shot === 'tp';
+    if (!srvShot) return '';
+    if (g.mode === 'serve' && g.server) {
+      if (shot === 'tp') return g.serving === 0 ? 'yo' : 'rival';
+      return shot === 'serveUs' ? 'yo' : 'rival';
+    }
+    if (FX.on && (FX.k === 'yo' || FX.k === 'vuelo') && fxFlight(g)) return 'vuelo';
+    return '';
+  }
+  /** Vuelo de NUESTRO saque: balón en juego, último toque el saque nuestro, sin bote todavía. */
+  function fxFlight(g) { return g.mode === 'rally' && g.lastKind === 'serve' && g.lastTeam === 0 && !landOk && !g.ball.held; }
+  function fxPoints(g, k, init) {
+    FXN = 0;
+    // (balón arriba hasta 0,95; en el vuelo 0,92 —táctil 0,9—: el balón que va hacia arriba y al campo rival no se pega al marcador ni a
+    // la pausa; el lanzamiento, en el centro de arriba, puede llegar al borde)
+    var b = g.ball, tch = touchUI(), bTop = k === 'vuelo' ? (tch ? 0.9 : 0.92) : 0.95, fast = hyp3(b.vx || 0, b.vy || 0, b.vz || 0) > 15, p = g.ctrl, six = g.size === 6;
+    var G = (VB.C && VB.C.G) || 9.81;
+    if (k === 'yo') {
+      var sv = g.server, sz = mx(0, sv.z || 0);
+      fxPt(sv.x, sv.y, sz + 1.9, 0.95, -1, 0.95);
+      fxPt(sv.x, sv.y, sz + (six ? 0.05 : 0.55), 0.95, six ? -1 : -1, 0.95);
+      // (el balón en la mano o botando en el ritual del sacador no mueve la cámara: solo lanzado)
+      if (!fast && g.serveState === 'toss' && !b.held) fxPt(b.x, b.y, b.z, bTop, -1, 0.95);
+      if (g.serveState === 'toss' && !b.held && b.vz > 0) { var up = b.vz / G; fxPt(b.x + b.vx * up, b.y + b.vy * up, b.z + b.vz * up * 0.5, 0.95, -1, 0.95); }
+      if (six && sv !== p) { fxPt(p.x, p.y, mx(0, p.z) + 1.85, 0.95, -1.02, 0.95); fxPt(p.x, p.y, mx(0, p.z), 0.95, -1.02, 0.95); }
+      // (al fijar el encuadre: la cumbre del lanzamiento más alto —el del saque en salto, 4,6 m, 1,35 m por delante— y el arranque del
+      // vuelo del saque —3 m por delante, 3,7 m de alto— ya dentro, para que ni el lanzamiento ni el golpe la muevan)
+      // (la cumbre del lanzamiento, arriba hasta 0,95 también en el móvil: en el centro de arriba no hay botones ni marcador)
+      if (init) { var sdx = sv.team === 0 ? -1 : 1; fxPt(sv.x + sdx * 1.35, sv.y, sz + 4.6, 0.95, -1, 0.95); fxPt(sv.x + sdx * 3, sv.y, 3.7, 0.95, -1, 0.95); }
+    } else if (k === 'vuelo') {
+      fxPt(p.x, p.y, mx(0, p.z) + 1.85, 0.95, -1.02, 0.95); fxPt(p.x, p.y, mx(0, p.z) + (six ? 0 : 0.5), 0.95, -1.02, 0.95);
+      if (!fast) { fxPt(b.x, b.y, b.z, bTop, -1, 0.95); fxPt(b.x + b.vx * 0.25, b.y + b.vy * 0.25, mx(0.1, b.z + b.vz * 0.25 - 0.5 * G * 0.0625), bTop, -1, 0.95); }
+      var S0 = VB.Sim;
+      if (S0 && S0.predictLanding) {
+        try { S0.predictLanding(g, LBP); } catch (e) { LBP.t = -1; }
+        var HL = g.HL > 0 ? g.HL : ((VB.C && VB.C.HL) || 9), HW = g.HW > 0 ? g.HW : ((VB.C && VB.C.HW) || 4.5);
+        if (LBP.t > 0 && LBP.x === LBP.x && LBP.x < 0 && LBP.x > -HL - 1 && Math.abs(LBP.y) < HW + 1) fxPt(LBP.x, LBP.y, 0.1, 0.95, -1, 0.95);
+      }
+    } else {
+      var rs = g.server, rz = mx(0, rs.z || 0);
+      fxPt(p.x, p.y, mx(0, p.z) + 1.85, 0.95, -1.05, 0.95); fxPt(p.x, p.y, mx(0, p.z) + 0.3, 0.95, -1.05, 0.95);
+      fxPt(rs.x, rs.y, rz + 1.9, 0.95, -1, 0.95);
+      if (!fast) fxPt(b.x, b.y, b.z, bTop, -1, 0.95);
+    }
+  }
+  /** Con la pose objetivo (más el encuadre fino congelado del plano), ¿se sale algo? Si sí, el giro, cabeceo y lente mínimos que lo meten
+   *  con 0,1 NDC de margen (solo abre la lente). Deja el resultado en FX.tw/tp/tf; devuelve 0 (nada), 1 (corregido) o 2 (no cabe). */
+  function fxNeed(asp) {
+    var ex = shot === 'serveThem' ? 1 : 0, yaw = FX.tw + K.exYaw * ex, pitch = FX.tp + K.exPitch * ex, fb = shot === 'serveThem' ? K.fovBoost : 0;
+    var t = Math.tan(mn(mx(FX.tf + fb, 10), 100) * DEG / 2), tW = t * asp, cw = Math.cos(yaw), sw2 = Math.sin(yaw), out = false, i, q;
+    var U = FXU, E = FXE, behind = false;
+    for (i = 0; i < FXN; i++) {
+      q = FXP[i];
+      var dx = q[0] - FX.tx, dy = q[1] - FX.ty, fd = dx * cw + dy * sw2, lat = -(dx * sw2 - dy * cw), hd = hyp(fd, lat);
+      if (fd < 0.5) { U[i] = NaN; E[i] = NaN; behind = true; continue; }
+      U[i] = at2(lat, fd); E[i] = at2(q[2] - FX.tz, hd);
+      // (el mismo modelo —giro y cabeceo por separado— que la corrección de abajo: si no, una diferencia pequeña entre los dos pedía
+      // corregir en cada frame sin mover nada; los márgenes de fuera, 0,95, cubren la diferencia con la proyección exacta)
+      var nx = Math.tan(U[i]) / tW, ny = Math.tan(E[i] - pitch) / t;
+      if (ny > q[3] || ny < q[4] || Math.abs(nx) > q[5]) out = true;
+    }
+    if (behind) return 2;   // (algo detrás de la cámara: girando no se arregla; vuelve el encuadre del plano)
+    if (!out) return 0;
+    // mínimos: lente (solo abrir) y, con ella, el cabeceo y el giro más cercanos a los de ahora que meten todo con 0,1 de margen
+    var tMax = Math.tan(62 * DEG / 2);
+    for (var it = 0; it < 24; it++) {
+      tW = t * asp;
+      var yLo = -9, yHi = 9, pLo = -9, pHi = 9;
+      for (i = 0; i < FXN; i++) {
+        if (!(U[i] === U[i])) continue;
+        q = FXP[i]; var sI = mx(0.5, q[5] - 0.1), tI = q[3] - 0.1, bI = q[4] + 0.1;
+        yLo = mx(yLo, U[i] - Math.atan(sI * tW)); yHi = mn(yHi, U[i] + Math.atan(sI * tW));
+        pLo = mx(pLo, E[i] - Math.atan(tI * t)); pHi = mn(pHi, E[i] - Math.atan(bI * t));
+      }
+      if (yLo <= yHi && pLo <= pHi) {
+        var dyw = clamp(0, yLo, yHi), dp = clamp(pitch, pLo, pHi);
+        FX.tw = wrap(FX.tw + dyw); FX.tp += dp - pitch; FX.tf = 2 * Math.atan(t) / DEG - fb;
+        return 1;
+      }
+      if (t >= tMax) break;
+      t = mn(tMax, t * 1.04);
+    }
+    return 2;
+  }
+  var FXU = [0, 0, 0, 0, 0, 0, 0, 0], FXE = [0, 0, 0, 0, 0, 0, 0, 0], OFV = [0, 0];
+  var OFS = { w: 1, y: 0.5 }; OFS.y = 0;
+  /** Al final de computeDesired: si toca, sustituye D/A/K.fovWant del plano por la pose fijada (ver arriba). */
+  function fxApply(g) {
+    var k = fxKind(g), dt = K.dt;
+    if (!k) {
+      if (FX.on) { FX.on = false; FX.age = 0; if (shot === 'tp' && dt > 0) startBlend(0.55, 0.5, 22); }   // (6v6: el plano no cambia de nombre)
+      FXD.on = false; dbg.fx = FXD; return;
+    }
+    var lw = at2(A.y - D.y, A.x - D.x), lp = at2(A.z - D.z, hyp(A.x - D.x, A.y - D.y)), lf = K.fovWant;
+    FXL.x = D.x; FXL.y = D.y; FXL.z = D.z; FXL.ax = A.x; FXL.ay = A.y; FXL.az = A.z; FXL.f = lf;
+    // empieza (o se asienta: corte, transición fija, dt = 0): la pose fijada es la del plano
+    if (!FX.on || !(dt > 0) || FX.age <= 0 || (k !== FX.k && k !== 'vuelo')) {
+      // (con la cámara ya casi en su sitio —al acabar la transición fija desde el punto, o tras un corte—, se fija DONDE ESTÁ: si no, los
+      // muelles de posición y mira aún daban 0,5 s de pequeños ajustes hasta la pose del plano)
+      var here = dt > 0 && hyp3(P.x - D.x, P.y - D.y, P.z - D.z) < 2;
+      if (here) { FX.tx = P.x; FX.ty = P.y; FX.tz = P.z; FX.tw = at2(L.y - P.y, L.x - P.x); FX.tp = at2(L.z - P.z, hyp(L.x - P.x, L.y - P.y)); FX.tf = K.fovCur - K.fovBoost; }
+      else { FX.tx = D.x; FX.ty = D.y; FX.tz = D.z; FX.tw = lw; FX.tp = lp; FX.tf = lf; }
+      FX.cx = FX.tx; FX.cy = FX.ty; FX.cz = FX.tz; FX.cw = FX.tw; FX.cp = FX.tp; FX.cf = FX.tf;
+      // (el encuadre fijo ya con el lanzamiento y el golpe dentro; tras un corte se pone de golpe, con la cámara en marcha llega con el muelle)
+      var wid = k === 'yo' ? (fxPoints(g, k, true), fxNeed(aspect())) : 0;
+      if (wid === 1 && here) { FX.sT = 0.32; } else { FX.cx = FX.tx; FX.cy = FX.ty; FX.cz = FX.tz; FX.cw = FX.tw; FX.cp = FX.tp; FX.cf = FX.tf; }
+      D.x = FX.cx; D.y = FX.cy; D.z = FX.cz; var cp0 = Math.cos(FX.cp);
+      A.x = D.x + Math.cos(FX.cw) * cp0 * 10; A.y = D.y + Math.sin(FX.cw) * cp0 * 10; A.z = D.z + Math.sin(FX.cp) * 10; K.fovWant = FX.cf;
+      if (shot === 'tp') TP.fov = FX.cf;
+      for (var i = 0; i < 6; i++) FX.v[i] = 0;
+      FX.on = true; FX.k = k; FX.rc = false; FX.need = wid === 1 && here ? 1 : 0; FX.why = FX.need ? k + ':encuadre' : ''; FX.still = 0; FXD.ini++;
+      var s0 = g.server || g.ctrl; FX.sx = s0.x; FX.sy = s0.y; FX.lsy = s0.y;
+      if (dt > 0) FX.age += dt;
+      FXD.on = true; FXD.k = k; FXD.need = FX.need; FXD.rc = false; FXD.why = FX.why; FXD.fl = false; dbg.fx = FXD;
+      fxBreak();
+      return;
+    }
+    FX.age += dt; FX.k = k;
+    // el sacador se desplaza a lo ancho (humano, balón en la mano): se recompone el encuadre del plano, despacio, y se fija al pararse
+    if (k === 'yo' && g.serveState === 'ready') {
+      var sv = g.server, mv = Math.abs(sv.y - FX.lsy) > 0.01; FX.lsy = sv.y;
+      FX.still = mv ? 0 : FX.still + dt;
+      if (!FX.rc && (Math.abs(sv.y - FX.sy) > 1.2 || Math.abs(sv.x - FX.sx) > 0.8)) { FX.rc = true; FX.why = 'recompone'; }
+      if (FX.rc) {
+        FX.tx = D.x; FX.ty = D.y; FX.tz = D.z; FX.tw = lw; FX.tp = lp; FX.tf = lf; FX.sT = 0.55;
+        if (FX.still > 0.35) { FX.rc = false; FX.sx = sv.x; FX.sy = sv.y; }
+      }
+    } else FX.rc = false;
+    if (!FX.rc) {
+      fxPoints(g, k);
+      var r = fxNeed(aspect());
+      // (el lanzamiento del saque en salto sube a 4,6 m en ~0,8 s: ahí el muelle es corto —la lente de apply ya pone su retraso—)
+      if (r === 1) { FX.need++; FX.why = k + ':encuadre'; FX.sT = k === 'yo' && g.serveState === 'toss' ? 0.12 : 0.32; }
+      else if (r === 2) { FX.tx = D.x; FX.ty = D.y; FX.tz = D.z; FX.tw = lw; FX.tp = lp; FX.tf = lf; FX.why = k + ':plano'; FX.sT = 0.45; }
+    }
+    // muelles de la pose fijada hacia el objetivo (críticamente amortiguados; quieta en cuanto llega)
+    var sT = comfort() ? FX.sT * 1.5 : FX.sT;
+    FX.cx = sd1(FX.cx, FX.tx, FX.v, 0, sT, dt); FX.cy = sd1(FX.cy, FX.ty, FX.v, 1, sT, dt); FX.cz = sd1(FX.cz, FX.tz, FX.v, 2, sT, dt);
+    FX.cw = wrap(FX.cw + sd1(0, wrap(FX.tw - FX.cw), FX.v, 3, sT, dt)); FX.cp = sd1(FX.cp, FX.tp, FX.v, 4, sT, dt); FX.cf = sd1(FX.cf, FX.tf, FX.v, 5, sT, dt);
+    D.x = FX.cx; D.y = FX.cy; D.z = FX.cz;
+    var cpf = Math.cos(FX.cp);
+    A.x = D.x + Math.cos(FX.cw) * cpf * 10; A.y = D.y + Math.sin(FX.cw) * cpf * 10; A.z = D.z + Math.sin(FX.cp) * 10;
+    K.fovWant = FX.cf;
+    if (shot === 'tp') TP.fov = FX.cf;   // (la lente del 6v6 sigue desde aquí al soltar, sin salto)
+    FXD.on = true; FXD.k = k; FXD.need = FX.need; FXD.rc = FX.rc; FXD.why = FX.why; FXD.fl = k === 'vuelo'; dbg.fx = FXD;
+    fxBreak();
+  }
+  /** camBreak=still (prueba de la prueba, tools/camtest.js STILL): la cámara del plano de siempre, aunque getDebug().fx diga que está fija. */
+  var FXL = { x: 0.5, y: 0.5, z: 0.5, ax: 0.5, ay: 0.5, az: 0.5, f: 0.5 };
+  function fxBreak() { if (BRK !== 'still') return; D.x = FXL.x; D.y = FXL.y; D.z = FXL.z; A.x = FXL.ax; A.y = FXL.ay; A.z = FXL.az; K.fovWant = FXL.f; }
 
   /** Transición de plano: suavizado más largo y con velocidad máxima, que decae a lo normal. */
   function startBlend(dur, smoothT, maxSpeed) { K.blendDur = K.blendT = dur; K.blendSmooth = smoothT; K.blendMax = maxSpeed; }
@@ -3117,6 +3309,7 @@
     var yaw0 = K.yaw0, pitch0 = K.pitch0, dt = K.dt, wantP = 0, wantY = 0, wantBoost = 0;
     dbg.ballVisible = true; dbg.focusNdcY = 9; dbg.mateLo = -9;
     var mateUpWant = 0;
+    if (FX.on && FX.age > 0 && dt > 0 && shot === 'serveThem') return;   // (saque rival con la cámara fija: el encuadre fino se queda como está)
     if (GAMEPLAY[shot] && shot !== 'serveUs' && g && g.ctrl) {   // (saque propio: la composición de serveUsComp ya es exacta, CAM-15)
       var b = g.ball, p = g.ctrl, touch = touchUI();
       var tanH = Math.tan(K.fovCur * DEG / 2), tanW = tanH * aspect();
@@ -3587,7 +3780,12 @@
       // por frame, 10-15 ms en el móvil. Y la solución del frame anterior se prueba primero: suele seguir valiendo)
       var ofFail = OFC.fail && Math.abs(fx0 - OFC.x) < 0.05 && Math.abs(fy0 - OFC.y) < 0.05 && Math.abs(fz0 - OFC.z) < 0.05 &&
                    Math.abs(wrap(yaw - OFC.w)) < 0.3 * DEG && Math.abs(pitch - OFC.p) < 0.3 * DEG && Math.abs(tl / OFC.t - 1) < 0.005;
-      if (!ofFail && offStraddle() > 0) {
+      // (cámara fija del saque: si la corrección que ya se está aplicando deja a todos enteros o fuera, se queda —sin buscar otra solución
+      // con la cámara quieta, que daba un giro lento de 3-4° nada más empezar el saque—)
+      var fxKeep = FX.on && FX.age > 0 && dt > 0 && (Math.abs(OFS.w - 1) > 0.001 || OFS.y !== 0);
+      if (fxKeep) { SVC.yaw = yaw + OFS.y; SVC.t = tl * OFS.w; fxKeep = offStraddle() === 0; SVC.yaw = yaw; SVC.t = tl; }
+      if (fxKeep) { ofW = OFS.w; ofY = OFS.y; }
+      else if (!ofFail && offStraddle() > 0) {
         ofW = 1;
         var found = false;
         // (primero la solución del frame anterior —lente y giro—: sin parpadeo entre soluciones parecidas)
@@ -3614,6 +3812,10 @@
       OFC.okW = ofW; OFC.okY = ofY;
       SVC.cx = s0x; SVC.cy = s0y; SVC.cz = s0z; SVC.yaw = s0w; SVC.p = s0p; SVC.t = s0t;
     } else { OFC.fail = false; OFC.okW = 1; OFC.okY = 0; }
+    // (con la cámara fija del saque, la corrección de la lente y el giro llega con un muelle corto en vez de aplicarse de golpe: cuando la
+    // cámara fija abre la lente para el lanzamiento del saque en salto, un oficial que cruza un borde daba un tirón de 4-5° en un frame)
+    if (FX.on && FX.age > 0 && dt > 0 && shot === 'serveUs') { OFS.w = sd1(OFS.w, ofW, OFV, 0, 0.18, dt); OFS.y = sd1(OFS.y, ofY, OFV, 1, 0.18, dt); ofW = OFS.w; ofY = OFS.y; }
+    else { OFS.w = ofW; OFS.y = ofY; OFV[0] = OFV[1] = 0; }
     K.ofK = ofW;
     if (Math.abs(ofW - 1) > 0.001) { cam.fov = 2 * Math.atan(Math.tan(cam.fov * DEG / 2) * ofW) / DEG; cam.updateProjectionMatrix(); }
     // (el giro se aplica SOLO a este frame, encima del giro de salida: antes se sumaba también a K.outYaw y, con un oficial cortado varios
@@ -3742,7 +3944,8 @@
     var us = g.serving === 0, tch = touchUI();
     if (us) {
       var si = g.serverIdx ? g.serverIdx[0] : 0;
-      PRED.x = 10.3 + SVBACK() - 0.5; PRED.y = (si ? 1.5 : -1.5) - 1.2; PRED.z = (tch || ctx.isMobile) ? 3.5 : 3.35;   // (CAM-15: serveUsComp)
+      var lfP = svFixed() ? 1 : 0;
+      PRED.x = mn(15, 10.3 + SVBACK() + SVFB * lfP) - 0.5; PRED.y = (si ? 1.5 : -1.5) - 1.2; PRED.z = ((tch || ctx.isMobile) ? 3.5 : 3.35) + SVFH * lfP;   // (CAM-15: serveUsComp)
       return fovFor(40);
     }
     PRED.x = 12.5; PRED.y = 0; PRED.z = ctx.isMobile ? SHOTS.serveThem.hMob : SHOTS.serveThem.h;
@@ -4025,7 +4228,7 @@
         } else if (e.type === 'hit' && e.kind === 'serve' && e.shot === 'jump') {
           // saque en salto: un golpe seco, más suave que un remate
           var pj = hitPower(e);
-          if (e.team === 0 && e.player && e.player === g.ctrl && !g.demo && pj > 0.7) ftStart(g, e);
+          if (e.team === 0 && e.player && e.player === g.ctrl && !g.demo && pj > 0.7 && !FX.on) ftStart(g, e);   // (con la cámara fija del saque, no)
           this.shake((e.team === 0 ? 0.035 : 0.05) * (0.6 + 0.6 * pj) * gradeMul(e.grade), 0.2);
           if (e.human && human) {
             if (e.grade === 'perfect') { this.punch(1.8); this.hitStop(35, 'perfect'); }
