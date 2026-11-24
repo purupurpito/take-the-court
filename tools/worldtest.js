@@ -285,7 +285,7 @@ section('6. Noticia del jefe (C3) y escena ses1 de Faro (entrenos)');
   // ses1
   ok(Wn.BEATS.ses1 && Wn.BEATS.ses1.t === 'El primer entreno' && Wn.BEAT_ORDER[Wn.BEAT_ORDER.length - 1] === 'ses1', 'BEATS.ses1 «El primer entreno», al final de BEAT_ORDER');
   ok(Wn.BEATS.ses1.l.join(' ') === 'Primer entreno hecho. Puedes hacer hasta 3 antes de cada partido: suben un pelín, pero cansan. Jugado de verdad rinde más que en rápido. Y tu entrenador se fija en cómo entrenas.', 'frases exactas de playa');
-  ok(/elegir el seis/.test(Wn.BEATS_H.ses1[1]) && !/arena|playa|circuito|open|pareja/i.test(Wn.BEATS_H.ses1.join(' ')), 'pista: «…para elegir el seis»');
+  ok(/elegir el seis/.test(Wn.BEATS_H.ses1[1]) && !/arena|playa|circuito|\bopen\b|pareja/i.test(Wn.BEATS_H.ses1.join(' ')), 'pista: «…para elegir el seis»');
   ok(Wn.BEATS.ses1.l.concat(Wn.BEATS_H.ses1).every(l => l.length <= Wn.LINE_MAX), 'frases ≤ ' + Wn.LINE_MAX);
   const q0 = cc.world.mentor.q.length + cc.inbox.length;
   ok(Wn._beat(cc, 'ses1') === true && Wn._beat(cc, 'ses1') === false, 'ses1 se dispara una vez');
@@ -358,6 +358,22 @@ section('7. Árbitros: colegio por liga, designación, libreta y «Apagado»');
       }
     });
     ok(!badR.length, 'colegios extranjeros con aire del país (' + Object.keys(Wa.ARB_CC).length + ' países; ' + ['IT', 'BR', 'JP', 'TR'].map(k => ex[k]).join(', ') + ')' + (badR.length ? ' — ' + badR.slice(0, 3).join(', ') : ''));
+    // todos los apellidos que puede dar cada estilo (raíz + final, menos su lista no y lo que panel salta): ni famosos, ni insultos,
+    // ni letras triples o «íí», ni un nombre de pila de ningún estilo («Marko Marko»), ni grupos de consonantes imposibles
+    { const FAM = ['Garneau', 'Vauquelin', 'Vučić', 'Jovović', 'Vučević', 'Dragić', 'Kurosawa', 'Garnier', 'Lindemann', 'Lebedev', 'Pavlov', 'Sokolov', 'Erdoğan',
+        'Yıldırım', 'Papadopoulos', 'Carvalho', 'Mourinho', 'Cabrão', 'Cabralho', 'Carvão', 'Thornton', 'Dalton', 'Fenwick', 'Albuquerque', 'Guimarães'];
+      const FN = new Set([].concat(Wa._arbParts.fn || [], ...Object.keys(Wa.ARB_STY).map(k => Wa.ARB_STY[k].fn)));
+      const badA = []; let nA = 0;
+      Object.keys(Wa.ARB_STY).forEach(k => { const S = Wa.ARB_STY[k]; if (S.es) return;
+        S.r.forEach(r => S.s.forEach(x => { const sn = r + x;
+          if (S.no[sn] || parts.no[sn] || S.fn.indexOf(sn) >= 0 || /(.)\1\1|íí/i.test(sn)) return; nA++;
+          if (FAM.indexOf(sn) >= 0) badA.push(k + ' famoso ' + sn);
+          if (FN.has(sn)) badA.push(k + ' nombre de pila ' + sn);
+          if (/í[aeoáéóí]|czcz|[nś]cz|brcz|khikh|ld[çt]|ırım|lucchu/i.test(sn)) badA.push(k + ' grafía ' + sn);
+        })); });
+      ok(!badA.length, 'apellidos posibles por estilo (' + nA + '): ni famosos, ni insultos, ni nombres de pila, ni grafías rotas' + (badA.length ? ' — ' + badA.slice(0, 4).join(', ') : ''));
+      let mm = 0; for (let s = 1; s <= 400; s++) ['RS1', 'SI1', 'FR1', 'BE1', 'PT1', 'CZ1', 'DE1'].forEach(cc => Wa.arbPanel({ seed: s }, cc).forEach(x => { if (x.first === x.short || FN.has(x.short) || FAM.indexOf(x.short) >= 0) mm++; }));
+      ok(!mm, 'en 400 semillas, ningún 1r con apellido famoso o que sea un nombre de pila (antes «Marko Marko», «Louis Garneau»)'); }
     ok(Wa.arbStyle('ES1') === 'es' && Wa.arbStyle('B2') === 'es' && Wa.arbStyle('IT1') === 'it' && Wa.arbStyle('XX1') === 'es', 'España, la playa y lo desconocido siguen con el estilo español');
     ok(Wa.arbPanel({ seed: 7 }, 'ES1').every(x => x.name.split(' ').length === 3 && !x.sty), 'España: nombre y dos apellidos, como antes'); }
 
@@ -452,6 +468,7 @@ section('7. Árbitros: colegio por liga, designación, libreta y «Apagado»');
     const lines = [];
     ['estricto', 'deja', 'lince', 'nervioso', 'manual'].forEach(t => ['Al-Ghanouri', 'Papadiadis', 'Lu', ''].forEach(sh => lines.push(Wm.arbSay(c, { id: 'IT1-' + sh.length, short: sh, trait: t }, t))));
     ok(lines.every(l => l.length <= Wm.ARB_SAY && /: /.test(l) && !/·|undefined|\{r\}/.test(l)), 'arbSay: ' + lines.length + ' frases ≤ ' + Wm.ARB_SAY + ' letras (p. ej. «' + lines[0] + '»)');
+    ok(lines.every(l => !/\b(este|esta|nervios[oa])\b/i.test(l)), 'arbSay: frases neutras, sin «este» ni «nervioso» (el árbitro no lleva género)');
   }
 }
 

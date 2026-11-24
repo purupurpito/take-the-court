@@ -685,13 +685,14 @@
   var ARB_FAME = { estricto: 'fama de mano dura', deja: 'deja jugar', lince: 'ojo de lince', nervioso: 'los derbis le pesan', manual: 'de manual' };
   // Frase de fama en la previa (24-nov, Ferran): ya no la suelta el juego, te la dice alguien de tu equipo (el entrenador; en la playa,
   // a veces tu pareja). {r} = apellido del 1r; de la más larga a la más corta, la primera que quepa en ARB_SAY letras con «Quién: ».
+  // Sin «este» ni «nervioso»: el árbitro no lleva género y los colegios tienen tantas mujeres como hombres (frases neutras).
   var ARB_SAY = 44;   // (como ARB_LINE: la previa enseña sus dos líneas seguidas en una sola, sin partir)
   var ARB_SAYS = {
-    estricto: ['Ojo, que {r} tiene fama de mano dura', 'Ojo, este tiene fama de mano dura', 'Ojo, fama de mano dura', 'Mano dura'],
-    deja: ['{r} suele dejar jugar', 'Este suele dejar jugar', 'Este deja jugar', 'Deja jugar'],
-    lince: ['Cuidado, {r} tiene ojo de lince', 'Este tiene ojo de lince', 'Ojo de lince'],
-    nervioso: ['A {r} los derbis le pesan', 'Los derbis le pesan', 'Se pone nervioso'],
-    manual: ['{r} es de manual', 'Este es de manual', 'De manual']
+    estricto: ['Ojo, que {r} tiene fama de mano dura', 'Ojo, tiene fama de mano dura', 'Ojo, fama de mano dura', 'Mano dura'],
+    deja: ['{r} suele dejar jugar', 'Suele dejar jugar', 'Deja jugar'],
+    lince: ['Cuidado, {r} tiene ojo de lince', 'Tiene ojo de lince', 'Ojo de lince'],
+    nervioso: ['A {r} los derbis le pesan', 'Los derbis le pesan', 'Se agobia'],
+    manual: ['{r} es de manual', 'Es de manual', 'De manual']
   };
 
   // Nombres con aire del país (24-nov): en las ligas extranjeras de la pista, el colegio sale de su estilo (nombre de pila + UN apellido
@@ -700,37 +701,37 @@
   var ARB_STY = {
     it: { fn: ['Matteo', 'Giulia', 'Lorenzo', 'Chiara', 'Davide', 'Sara', 'Elia', 'Marta', 'Tommaso', 'Ilaria', 'Nicola', 'Greta', 'Fabio', 'Noemi'],
       r: ['Bellat', 'Corv', 'Fant', 'Gald', 'Marchet', 'Pagl', 'Vald', 'Lucch', 'Cald', 'Sproc', 'Tarv', 'Zamp'], s: ['ini', 'etti', 'ucci', 'one', 'ari', 'elli', 'oni', 'azzi'],
-      no: { Fantoni: 1, Pagliari: 1, Valdoni: 1, Zampini: 1, Caldari: 1, Corvini: 1, Lucchini: 1, Paglione: 1, Galdini: 1 } },
+      no: { Fantoni: 1, Pagliari: 1, Valdoni: 1, Zampini: 1, Caldari: 1, Corvini: 1, Lucchini: 1, Paglione: 1, Galdini: 1, Marchetetti: 1, Lucchucci: 1 } },
     fr: { fn: ['Lucas', 'Camille', 'Théo', 'Manon', 'Hugo', 'Léa', 'Mathis', 'Chloé', 'Louis', 'Inès', 'Nathan', 'Jade', 'Bastien', 'Élise'],
       r: ['Beaum', 'Charv', 'Dumarch', 'Fontan', 'Garn', 'Lavr', 'Mercad', 'Rochel', 'Vauquel', 'Pell', 'Montr', 'Gaud'], s: ['ier', 'ard', 'eau', 'in', 'et', 'ac', 'ois', 'and'],
-      no: { Garnier: 1, Pelletier: 1, Mercadier: 1, Garnet: 1, Montrichard: 1, Gaudin: 1, Gaudet: 1, Fontanet: 1, Pellerin: 1, Charvet: 1, Rochelet: 1 } },
+      no: { Garnier: 1, Pelletier: 1, Mercadier: 1, Garnet: 1, Montrichard: 1, Gaudin: 1, Gaudet: 1, Fontanet: 1, Pellerin: 1, Charvet: 1, Rochelet: 1, Garneau: 1, Vauquelin: 1 } },
     de: { fn: ['Lukas', 'Lena', 'Jonas', 'Mia', 'Felix', 'Hanna', 'Moritz', 'Clara', 'Tobias', 'Jana', 'Niklas', 'Pia', 'Malte', 'Greta'],
       r: ['Brenn', 'Falk', 'Gutt', 'Hild', 'Kessl', 'Lind', 'Mart', 'Wend', 'Zell', 'Ober', 'Rink', 'Schald'], s: ['mann', 'berg', 'er', 'hoff', 'ing', 'bach', 'dorf', 'ner'],
-      no: { Lindner: 1, Lindberg: 1, Zeller: 1, Kessler: 1, Brenner: 1, Falkner: 1, Hildebrand: 1, Wendler: 1, Martner: 1, Obermann: 1, Lindemann: 1, Guttmann: 1, Linder: 1, Martin: 1 } },
+      no: { Lindner: 1, Lindberg: 1, Zeller: 1, Kessler: 1, Brenner: 1, Falkner: 1, Hildebrand: 1, Wendler: 1, Martner: 1, Obermann: 1, Lindemann: 1, Guttmann: 1, Linder: 1, Martin: 1, Oberer: 1 } },
     nl: { fn: ['Daan', 'Sanne', 'Bram', 'Fleur', 'Thijs', 'Lotte', 'Joris', 'Femke', 'Ruben', 'Noor', 'Sem', 'Eva'],
       r: ['Bakk', 'Dekk', 'Hoog', 'Kamp', 'Meul', 'Ruyt', 'Sloot', 'Veld', 'Wijn', 'Zand', 'Brouw', 'Kort'], s: ['ers', 'huis', 'man', 'stra', 'enga', 'ink', 'ema', 'dijk'],
       no: { Bakkers: 1, Dekkers: 1, Brouwers: 1, Kortman: 1, Veldman: 1, Zandstra: 1, Hooghuis: 1, Kampman: 1, Wijnman: 1, Meulman: 1, Veldhuis: 1 } },
     pl: { fn: ['Kacper', 'Zofia', 'Szymon', 'Maja', 'Jakub', 'Hanna', 'Filip', 'Lena', 'Bartek', 'Ola', 'Michał', 'Julia'],
       r: ['Brzoz', 'Dąbr', 'Grab', 'Kowal', 'Lis', 'Mrocz', 'Pietr', 'Sob', 'Wiśn', 'Zaj', 'Czarn', 'Krol'], s: ['owski', 'ewicz', 'ak', 'ek', 'czyk', 'iński', 'uk'],
-      no: { Kowalczyk: 1, Grabowski: 1, Dąbrowski: 1, Mroczek: 1, Sobczyk: 1, Kowalewicz: 1, Lisowski: 1, Pietrowski: 1, Krolak: 1, Zajączek: 1, Sobczak: 1, Lisek: 1, Kowalski: 1, Czarnecki: 1 } },
+      no: { Kowalczyk: 1, Grabowski: 1, Dąbrowski: 1, Mroczek: 1, Sobczyk: 1, Kowalewicz: 1, Lisowski: 1, Pietrowski: 1, Krolak: 1, Zajączek: 1, Sobczak: 1, Lisek: 1, Kowalski: 1, Czarnecki: 1, 'Wiśnczyk': 1, Mroczczyk: 1, 'Dąbrczyk': 1, Czarnczyk: 1, Pietrczyk: 1, Lisczyk: 1, 'Mrocziński': 1 } },
     cz: { fn: ['Jakub', 'Tereza', 'Matěj', 'Klára', 'Ondřej', 'Eliška', 'Vojtěch', 'Adéla', 'Tomáš', 'Barbora', 'Lukáš', 'Anna'],
-      r: ['Dvoř', 'Horn', 'Krej', 'Malin', 'Novot', 'Pospí', 'Svob', 'Vesel', 'Zem', 'Bart', 'Hlav', 'Kub'], s: ['ák', 'ek', 'íček', 'ský', 'ka', 'ina', 'al'],
+      r: ['Dvoř', 'Horn', 'Krej', 'Malin', 'Novot', 'Pospěch', 'Svob', 'Vesel', 'Zem', 'Bart', 'Hlav', 'Kub'], s: ['ák', 'ek', 'íček', 'ský', 'ka', 'ina', 'al'],
       no: { Dvořák: 1, Hlavka: 1, Kubík: 1, Zeman: 1, Hornák: 1, Veselka: 1, Bartek: 1, Kubka: 1, Svobodka: 1 } },
     sl: { fn: ['Luka', 'Ana', 'Nikola', 'Mila', 'Stefan', 'Jana', 'Marko', 'Tea', 'Filip', 'Sara', 'Vuk', 'Nina'],
-      r: ['Bran', 'Drag', 'Jov', 'Krst', 'Mil', 'Petr', 'Rad', 'Stoj', 'Vuč', 'Živ', 'Laz', 'Mar'], s: ['ić', 'ović', 'ević', 'ac', 'ko'],
-      no: { Jović: 1, Petrović: 1, Radović: 1, Milić: 1, Marić: 1, Lazić: 1, Dragić: 1, Stojković: 1, Radić: 1, Marković: 1, Milovan: 1, Petrić: 1, Vučević: 1, Živković: 1, Krstić: 1, Branković: 1, Lazović: 1, Jovanović: 1, Milović: 1 } },
+      r: ['Bran', 'Drag', 'Jov', 'Krst', 'Mil', 'Petr', 'Rad', 'Stoj', 'Vuč', 'Živ', 'Laz', 'Mar'], s: ['ić', 'ović', 'ević', 'ac'],
+      no: { Jović: 1, Petrović: 1, Radović: 1, Milić: 1, Marić: 1, Lazić: 1, Dragić: 1, Stojković: 1, Radić: 1, Marković: 1, Milovan: 1, Petrić: 1, Vučević: 1, Živković: 1, Krstić: 1, Branković: 1, Lazović: 1, Jovanović: 1, Milović: 1, 'Vučić': 1, 'Jovović': 1 } },
     ru: { fn: ['Ivan', 'Daria', 'Maxim', 'Polina', 'Artyom', 'Alina', 'Kirill', 'Vera', 'Gleb', 'Sonia', 'Yegor', 'Kira'],
       r: ['Bel', 'Vor', 'Gorb', 'Zhur', 'Kuzn', 'Lebed', 'Morozk', 'Orl', 'Sokol', 'Tikh', 'Pavl', 'Volkh'], s: ['ov', 'ev', 'in', 'enko', 'ikhin', 'anov'],
-      no: { Belov: 1, Orlov: 1, Sokolov: 1, Pavlov: 1, Lebedev: 1, Pavlenko: 1, Belenko: 1, Orlovsky: 1, Gorbov: 1, Zhurov: 1, Volkhov: 1, Tikhonov: 1, Pavlikov: 1, Belin: 1, Sokolin: 1, Vorin: 1, Gorbenko: 1, Belanov: 1, Orlanov: 1, Pavlanov: 1, Tikhanov: 1, Volkhin: 1 } },
+      no: { Belov: 1, Orlov: 1, Sokolov: 1, Pavlov: 1, Lebedev: 1, Pavlenko: 1, Belenko: 1, Orlovsky: 1, Gorbov: 1, Zhurov: 1, Volkhov: 1, Tikhonov: 1, Pavlikov: 1, Belin: 1, Sokolin: 1, Vorin: 1, Gorbenko: 1, Belanov: 1, Orlanov: 1, Pavlanov: 1, Tikhanov: 1, Volkhin: 1, Tikhikhin: 1, Morozkikhin: 1, Volkhikhin: 1 } },
     tr: { fn: ['Emre', 'Elif', 'Kerem', 'Zeynep', 'Mert', 'Ece', 'Burak', 'Defne', 'Can', 'Selin', 'Arda', 'Melis'],
-      r: ['Akd', 'Bayr', 'Çel', 'Dem', 'Erk', 'Gün', 'Kara', 'Öz', 'Sar', 'Tun', 'Yıld', 'Kay'], s: ['oğlu', 'an', 'er', 'ay', 'ırım', 'ten', 'soy', 'çı'],
-      no: { 'Yıldırım': 1, 'Günay': 1, 'Özer': 1, 'Erkan': 1, 'Karaer': 1, 'Demirer': 1, 'Bayraktar': 1, 'Akdoğan': 1, 'Kayan': 1, 'Özten': 1, 'Tunay': 1, 'Karasoy': 1, 'Özsoy': 1, 'Sarıçı': 1, 'Günten': 1, 'Tuner': 1, 'Sarer': 1, 'Kaya': 1, 'Akdan': 1, 'Bayram': 1 } },
+      r: ['Akd', 'Bayr', 'Çel', 'Dem', 'Erk', 'Gün', 'Kara', 'Öz', 'Sar', 'Tun', 'Yıld', 'Kay'], s: ['oğlu', 'an', 'er', 'ay', 'ten', 'soy', 'çı'],
+      no: { 'Yıldırım': 1, 'Günay': 1, 'Özer': 1, 'Erkan': 1, 'Karaer': 1, 'Demirer': 1, 'Bayraktar': 1, 'Akdoğan': 1, 'Kayan': 1, 'Özten': 1, 'Tunay': 1, 'Karasoy': 1, 'Özsoy': 1, 'Sarıçı': 1, 'Günten': 1, 'Tuner': 1, 'Sarer': 1, 'Kaya': 1, 'Akdan': 1, 'Bayram': 1, 'Akdten': 1, 'Akdsoy': 1, 'Akdçı': 1, 'Bayrten': 1, 'Bayrsoy': 1, 'Bayrçı': 1, 'Yıldten': 1, 'Yıldsoy': 1, 'Yıldçı': 1, Karaay: 1, Kayay: 1 } },
     gr: { fn: ['Giorgos', 'Eleni', 'Nikos', 'Katerina', 'Kostas', 'Sofia', 'Dimitris', 'Despina', 'Yannis', 'Ioanna', 'Stavros', 'Myrto'],
       r: ['Andr', 'Christ', 'Kalog', 'Lamb', 'Mavr', 'Papad', 'Stav', 'Theod', 'Vlach', 'Kour', 'Ziog', 'Fragk'], s: ['opoulos', 'akis', 'idis', 'ou', 'iadis', 'atos'],
       no: { Papadopoulos: 1, Papadakis: 1, Mavropoulos: 1, Christakis: 1, Kourakis: 1, Christou: 1, Andreou: 1, Theodorakis: 1, Stavrou: 1, Mavridis: 1, Lambrou: 1, Christodoulou: 1, Vlachou: 1, Kalogeropoulos: 1, Andropoulos: 1, Stavridis: 1, Theodoridis: 1, Lambropoulos: 1 } },
     pt: { fn: ['Tiago', 'Inês', 'Rui', 'Beatriz', 'Duarte', 'Leonor', 'Gonçalo', 'Matilde', 'Afonso', 'Carolina', 'Diogo', 'Mariana'],
       r: ['Barr', 'Carv', 'Figueir', 'Gouv', 'Lour', 'Mour', 'Queir', 'Sarm', 'Tavar', 'Valad', 'Pimen', 'Cabr'], s: ['eira', 'alho', 'ão', 'oso', 'inha', 'edo', 'ares', 'ado'],
-      no: { Carvalho: 1, Barroso: 1, Figueiredo: 1, Figueira: 1, Mourão: 1, Barreira: 1, Cabreira: 1, Lourinha: 1, Valadares: 1, Mouredo: 1, Queiroso: 1, Pimenta: 1, Tavares: 1, Sarmento: 1, Cabral: 1, Valadão: 1, Gouveia: 1, Louro: 1, Barrado: 1 } },
+      no: { Carvalho: 1, Barroso: 1, Figueiredo: 1, Figueira: 1, Mourão: 1, Barreira: 1, Cabreira: 1, Lourinha: 1, Valadares: 1, Mouredo: 1, Queiroso: 1, Pimenta: 1, Tavares: 1, Sarmento: 1, Cabral: 1, Valadão: 1, Gouveia: 1, Louro: 1, Barrado: 1, 'Cabrão': 1, 'Carvão': 1, 'Barrão': 1, 'Pimenão': 1, Cabralho: 1, Cabroso: 1, Tavarares: 1 } },   // (Cabrão es un insulto y Cabralho suena a otro)
     br: { fn: ['Thiago', 'Larissa', 'Gabriel', 'Bruna', 'Lucas', 'Thaís', 'Rafael', 'Camila', 'Mateus', 'Júlia', 'Caio', 'Letícia'],
       r: ['Albuc', 'Bezen', 'Cavald', 'Damar', 'Fagel', 'Guimal', 'Maced', 'Nogal', 'Rangu', 'Siquel', 'Tenar', 'Vascor'], s: ['ante', 'eira', 'es', 'ães', 'inho', 'ela', 'oso', 'ão'],
       no: { Nogales: 1, Macedinho: 1, Damares: 1, Rangel: 1, Macedo: 1, Damarães: 1, Nogaleira: 1, Albuquerque: 1, Cavalcante: 1, Guimarães: 1, Tenares: 1 } },
@@ -780,7 +781,7 @@
     if (S) {   // (liga extranjera: nombre de pila y UN apellido con aire del país)
       for (var q = 0; out.length < ARB_N && q < 400; q++) {
         var f2 = pick(r, S.fn), sr = S.es ? arbSur(r, null) : null, a = sr ? sr.a : pick(r, S.r), b = sr ? sr.b : pick(r, S.s), sn = a + b;
-        if (S.no[sn] || ARB_NO[sn] || sur[sn] || sur['r:' + a] || used[f2]) continue;   // (ni apellido ni raíz repetidos en el colegio)
+        if (S.no[sn] || ARB_NO[sn] || sur[sn] || sur['r:' + a] || used[f2] || S.fn.indexOf(sn) >= 0 || /(.)\1\1|íí/i.test(sn)) continue;   // (ni apellido ni raíz repetidos en el colegio; ni apellido que sea un nombre de pila ni letras triples)
         used[f2] = 1; sur[sn] = 1; sur['r:' + a] = 1;
         out.push({ id: key + '-' + out.length, name: f2 + ' ' + sn, short: sn, first: f2, trait: deck[out.length], sty: sty });
       }
