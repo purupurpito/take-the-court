@@ -388,7 +388,10 @@
       jobMem: [null, null], jobMemT: [-1, -1], jobSwT: [-9, -9], jobHop: [-1, -1], // IA: memoria de quién va al balón (histéresis)
       // IA variada (1.22.0, VB.AI.remember): por equipo, los 3 últimos remates y saques (casilla de openSpot, −1 = nada), los 2 últimos carriles
       // de remate (1 diagonal, 2 línea), receptores del saque y atacantes de la colocación 6v6 (id). Datos planos: copyGame los copia; nunca g.rng
-      aiMem: { atk: [[-1, -1, -1], [-1, -1, -1]], lane: [[0, 0], [0, 0]], srv: [[-1, -1, -1], [-1, -1, -1]], rcv: [[-1, -1], [-1, -1]], set: [[-1, -1], [-1, -1]] },
+      aiMem: { atk: [[-1, -1, -1], [-1, -1, -1]], lane: [[0, 0], [0, 0]], srv: [[-1, -1, -1], [-1, -1, -1]], rcv: [[-1, -1], [-1, -1]], set: [[-1, -1], [-1, -1]],
+        // «Te leen» (24-nov, IA que se adapta; notes/ia-variada.md): racha de remates del humano del equipo t por el mismo carril desde un ala
+        // ([carril 1 diagonal / 2 línea, cuántos seguidos]); el rival corre el bloqueo y la defensa (ai.js readShift). Solo sim.js rdEv la escribe
+        rd: [[0, 0], [0, 0]] },
       digMargin: 0,            // margen de defensa (s) del último remate (>0 el defensor llega con tiempo; <0 al hueco)
       lastPoint: null,         // {team, reason, text, how, highlight, digs, streak, savedSetPoint, clutch, signal, touchedOut, landSide, hold, setWon, matchWon}
       setPoint: -1, matchPoint: -1, // equipo con punto de set/partido en el saque actual (-1 nadie)
@@ -971,7 +974,7 @@
   // (notes/camera_input.md, ronda 2). Pasar cada campo entero por un double al crear el objeto hace esa generalización aquí,
   // al crear el partido, y una sola vez por sitio. La semántica no cambia (mismo valor; simtest da la misma salida).
   function dblFields(o) { for (var k in o) { var v = o[k]; if (typeof v === 'number' && (v | 0) === v) { o[k] = 0.5; o[k] = v; } } return o; }
-  function emit(g, e) { e.t = g.time; dblFields(e); g.events.push(e); if (g.subsOn) subEv(g, e); if (g.zn && e.type !== 'zone') znEv(g, e); if (g.scout && e.type !== 'study') scEv(g, e); return e; }
+  function emit(g, e) { e.t = g.time; dblFields(e); g.events.push(e); if (g.subsOn) subEv(g, e); if (g.zn && e.type !== 'zone') znEv(g, e); if (g.scout && e.type !== 'study') scEv(g, e); if (e.type === 'hit' && g.aiMem && g.aiMem.rd) rdEv(g, e); return e; }
   function rnd(g, a) { return (g.rng() * 2 - 1) * a; }
   function gauss(g) { return (g.rng() + g.rng() + g.rng() + g.rng() - 2) * 1.732; } // ~N(0,1)
 
@@ -3765,7 +3768,7 @@
   /** IA variada: vacía g.aiMem (en el sitio: misma forma para copyGame). */
   function aiMemReset(M) {
     if (!M) return;
-    for (var t = 0; t < 2; t++) { M.atk[t][0] = M.atk[t][1] = M.atk[t][2] = -1; M.srv[t][0] = M.srv[t][1] = M.srv[t][2] = -1; M.lane[t][0] = M.lane[t][1] = 0; M.rcv[t][0] = M.rcv[t][1] = -1; M.set[t][0] = M.set[t][1] = -1; }
+    for (var t = 0; t < 2; t++) { M.atk[t][0] = M.atk[t][1] = M.atk[t][2] = -1; M.srv[t][0] = M.srv[t][1] = M.srv[t][2] = -1; M.lane[t][0] = M.lane[t][1] = 0; M.rcv[t][0] = M.rcv[t][1] = -1; M.set[t][0] = M.set[t][1] = -1; if (M.rd) M.rd[t][0] = M.rd[t][1] = 0; }
   }
   function newGame(g) {
     g.score = [0, 0]; g.sets = [0, 0]; g.setNo = 1; g.serving = 0; g.serverIdx = [0, 1]; g.setScores = [];
@@ -4630,6 +4633,27 @@
         emit(g, { type: 'study', team: 1, lane: L, n: sc.sw });
       }
     }
+  }
+  /* ---------- «Te leen» (24-nov-2026, decisión de Ferran: «Quiero que la IA se adapte excepto en modo Fácil»; notes/ia-variada.md) ----------
+   * Si el humano remata RD.n veces seguidas por el mismo carril (desde un ala, la misma regla que «Te tienen estudiado»), la IA rival
+   * corre el bloqueo y la defensa hacia ese carril (ai.js readShift / readLean / readLean6, con las constantes de «Te tienen estudiado»):
+   * RD.part de la fuerza a la 3ª, entera desde RD.full. Un remate por otro carril o desde el centro rompe la racha; dejadas y demás toques
+   * no cuentan. × RD.k según la dificultad de la CPU (Fácil 0: nunca). Todos los modos con humano (Partido rápido, Carrera, Precisa) salvo
+   * Entrenamiento y Fluida (allí cada máquina solo ve los toques de su equipo; sin racha, nada). Determinista: nunca gasta g.rng y la
+   * racha vive en g.aiMem.rd (copyGame la copia: el rollback de Precisa la rehace igual en los dos lados). Evento 'read' al llegar a RD.n
+   * (aviso «Te han leído»). El challenge no la deshace (el remate existió). */
+  var RD = { n: 3, full: 4, part: 0.6, k: { easy: 0, normal: 0.7, hard: 0.85, expert: 1 } };
+  /** Fuerza (0..1) de la lectura de la CPU del equipo t contra el equipo rival (0 en Fácil, demo, Entrenamiento y Fluida). */
+  function rdK(g, t) { return g.demo || g.drill || g.fl ? 0 : RD.k[g.difficulty] || 0; }
+  /** emit ('hit', con g.aiMem.rd): racha de remates del humano por el mismo carril. */
+  function rdEv(g, e) {
+    if (e.kind !== 'spike' || !e.human || g.fl || g.drill) return;
+    var R = g.aiMem.rd[e.team], tg = e.target || e.aim, cs = g.cs || 1, hy = +e.y || 0;
+    if (!R || !tg) return;
+    var L = Math.abs(hy) >= SC_SIDE * cs ? laneOf(hy, tg[1], cs) : 'mid', c = L === 'diag' ? 1 : L === 'line' ? 2 : 0;
+    if (!c) { R[0] = 0; R[1] = 0; return; }
+    if (R[0] === c) R[1]++; else { R[0] = c; R[1] = 1; }
+    if (R[1] === RD.n && rdK(g, 1 - e.team) > 0) emit(g, { type: 'read', team: 1 - e.team, lane: L, n: R[1] });
   }
   /** endReview (solo con g.scout): el punto anulado no cuenta para el plan del rival. */
   function scUndo(g) {
@@ -5726,7 +5750,7 @@
     znOn: znOn, znMeter: znMeter, znEnergy: znEnergy, znWho: znWho, znDebug: znDebug, ZN: ZN, _znApply: znApply, _znUndo: znUndo,
     sigSane: sigSane, sigLabels: sigLabels, SERVE_SIG: SIG,
     // «Te tienen estudiado» (sin g.scout, nada): carril de un remate y constantes del cambio de plan
-    laneOf: laneOf, SC_ADAPT: SC_ADAPT, SC_ADAPT_MK: SC_ADAPT_MK, _scEv: scEv, _scUndo: scUndo,
+    laneOf: laneOf, RD: RD, rdK: rdK, _rdEv: rdEv, SC_ADAPT: SC_ADAPT, SC_ADAPT_MK: SC_ADAPT_MK, _scEv: scEv, _scUndo: scUndo,
     // ONLINE (fase 0, notes/net.md): huecos humanos, bits de partido y foto serializable del estado
     ONLINE: ONLINE, useSlot: act, slotGet: hget, humOn: humOn, humSlot: humSlot, jsetHum: jsetHum, jsetHumSw: _jh, setSlotAI: slotAI,
     // ONLINE V2 «Fluida» (bloque FLUIDA, notes/online-v2-spec.md §2): todo detrás de g.fl (flInit) // fl-api

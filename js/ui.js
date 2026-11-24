@@ -1042,6 +1042,8 @@
         case 'zone': znEvent(e, g); break;   // la zona (ZN-HUD)
         // «Te tienen estudiado» (Carrera, g.scout): el rival cambia el plan porque le haces daño por el otro carril
         case 'study': if (!e.replay && !g.demo) { var stT = 'Cambian el plan: te tapan ' + (e.lane === 'line' ? 'la línea' : 'la diagonal'); callout(stT, 1, '', 2.0); srSay(stT); } break;
+        // «Te leen» (sim.js rdEv; todos los modos salvo Fácil): 3 remates tuyos seguidos por el mismo carril y la CPU se corre hacia él
+        case 'read': if (!e.replay && !g.demo && e.team === 1) { var rdT = 'Te han leído: te tapan ' + (e.lane === 'line' ? 'la línea' : 'la diagonal'); callout(rdT, 1, '', 1.8); srSay(rdT); } break;
         case 'block':
           if (e.human && e.result === 'stuff') pulse(e.team, false);
           // C4: el bloqueo directo de tu equipo lo dice la cinta cinética («¡Muro!») 0,5 s después: sin aviso duplicado
