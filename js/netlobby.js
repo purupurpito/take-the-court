@@ -95,15 +95,25 @@
     var C = VB.Career; if (!C) return null;
     try { var m = C.mode ? C.mode() : 'beach', E = C[m === 'hall' ? 'hall' : 'beach'], c = E && E.get ? E.get() : null; return c && c.player ? c.player : null; } catch (e) { return null; }
   }
+  /** Nombre por defecto (Google Play, 24-nov-2026): «Jugador NNNN», el mismo siempre en este aparato (VB.NameFilter.anonName,
+   *  'make-the-cut.anon'). Ya NO sale el nombre del personaje de la Carrera ni el usuario de la cuenta: solo lo que escribas a mano. */
   function defaultName() {
-    var p = careerPlayer(), n = p && NR().cleanName(p.name);
-    if (n) return n;
-    var inf = !EMU && VB.Account && VB.Account.netInfo ? VB.Account.netInfo() : null;
-    if (inf && inf.kind === 'user' && NR().cleanName(inf.user)) return NR().cleanName(inf.user);
-    var uid = inf ? inf.uid : String(Q.netuid || 'x'), h = 0; for (var i = 0; i < uid.length; i++) h = (h * 31 + uid.charCodeAt(i)) >>> 0;
-    return 'Jugador ' + (1000 + h % 9000);
+    var F = VB.NameFilter;
+    if (F && F.anonName) return F.anonName();
+    return 'Jugador ' + (1000 + Math.floor(Math.random() * 9000));   // (sin namefilter.js: no pasa en el juego)
   }
-  function myName() { if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name) || 'Jugador'; return NR().cleanName(ls(NICK)) || defaultName(); }
+  /** Tu nombre en el online: el que escribiste en «Tu nombre en el online» si vale (2-16, sin @ ni insultos); si no, el anónimo. */
+  function myName() {
+    if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name) || 'Jugador';
+    var F = VB.NameFilter, n = NR().cleanName(ls(NICK));
+    return (n && !(F && F.bad(n)) ? n : '') || defaultName();
+  }
+  /** Lo que escribiste a mano ('' si juegas con el anónimo): el campo «Tu nombre en el online» empieza con esto y, vacío, enseña el
+   *  anónimo de fondo; guardarlo vacío vuelve al anónimo. */
+  function typedName() { if ((EMU || MOCK) && Q.name) return NR().cleanName(Q.name); var F = VB.NameFilter, n = NR().cleanName(ls(NICK)); return n && !(F && F.bad(n)) ? n : ''; }
+  /** Nombre que llega de otro (sala, «pre», vuelta tras recargar): limpio y, si lleva un insulto, «Jugador NNNN» (seed = su uid). */
+  function theirName(n, seed) { var c = NR().cleanName(n), F = VB.NameFilter; return c && F ? F.shown(c, seed) : c; }
+  function rivalUid() { var r = L.room; return r ? (L.role === 'host' ? r.guest : r.host) || '' : ''; }
   function sanAttrs(st) {
     if (!st || typeof st !== 'object') return null;
     var K = VB.ATTR_KEYS || ['jump', 'speed', 'react', 'recv', 'dig', 'set', 'spike', 'ctl', 'block', 'serve'], o = {}, any = false;
@@ -297,7 +307,7 @@
   function hostConnect(r) {
     abortConn();
     var conn = L.conn = { guest: r.guest, t0: Date.now(), gen: nextGen(), pre: false };
-    L.rival = NR().cleanName(r.gname) || 'Rival'; L.status = 'connecting'; L.fail = ''; render();
+    L.rival = theirName(r.gname, r.guest) || 'Rival'; L.status = 'connecting'; L.fail = ''; render();
     sound('click');
     var link = newLink(), id = L.room.id;
     withTurn(function () { return link.offer(); }).then(function (sdp) {
@@ -347,7 +357,7 @@
     L.msg = ''; L.busy = true; render();
     api().join(id, myName()).then(function (r) {
       L.busy = false;
-      L.room = r; L.role = 'guest'; L.rival = NR().cleanName(r.name) || 'Rival'; L.status = 'connecting'; L.fail = ''; L.started = false;
+      L.room = r; L.role = 'guest'; L.rival = theirName(r.name, r.host) || 'Rival'; L.status = 'connecting'; L.fail = ''; L.started = false;
       setView('room'); sound('click'); turnReady();   // (TURN: se piden ya, mientras llega la oferta)
       L.gotOffer = false;
       guestListen(0);
@@ -447,7 +457,7 @@
   function myJsetAim() { var C = ctx(); return !!(C && C.settings && C.settings.jsetAim === true); }
   function begin(pre, st) {
     var C = ctx(); if (!C || !C.actions || !C.actions.startOnline) { connFail(); return; }
-    var r = L.room, opts = null, rivalName = NR().cleanName(pre.name) || L.rival || 'Rival';
+    var r = L.room, opts = null, rivalName = theirName(pre.name, rivalUid()) || L.rival || 'Rival';
     L.rival = rivalName;
     // Online V2: conexión de la sala. El invitado comprueba que el anfitrión juega con la que anuncia la sala (sin model = Precisa)
     var model = roomModel(r);
@@ -874,7 +884,7 @@
     ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis exactamente lo mismo, con algún tirón si hay mucho ping. Fluida (v2): tu equipo responde al instante y el rival se ve una pizca en diferido.'],
     ['Si se corta', 'El partido espera a tu rival y a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
     ['Récord', 'Abandonar cuenta como derrota. El online no da experiencia ni insignias; al terminar tu primer partido, la gorra «Online Beta Tester» para el Vestuario.'],
-    ['Privacidad', 'El juego solo enseña tu nombre, nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
+    ['Privacidad', 'El juego solo enseña tu nombre (si no eliges uno, «Jugador» y un número), nunca tu correo. La conexión es directa entre los dos aparatos: como en cualquier juego en línea entre jugadores, el aparato de tu rival conoce tu dirección de red.']
   ];
   /** Pegatina redonda de la sede (sombrilla en la playa, pabellón en pista). */
   var VEN_IC = {
@@ -918,7 +928,7 @@
     ['Conexión', 'Quien crea la sala elige. Precisa (v1): los dos veis lo mismo. Fluida (v2): tu equipo responde al instante.'],
     ['Si se corta', 'El partido espera a tu rival; a los 10 s puedes seguir contra la IA. Tu rival tiene 60 s para volver.'],
     ['Récord', 'Abandonar cuenta como derrota. Sin experiencia ni insignias; tu primer partido da la gorra «Online Beta Tester».'],
-    ['Privacidad', 'Solo se ve tu nombre, nunca tu correo. La conexión es directa: el aparato de tu rival conoce tu dirección de red.']
+    ['Privacidad', 'Solo se ve tu nombre (o «Jugador» y un número), nunca tu correo. La conexión es directa: el aparato de tu rival conoce tu dirección de red.']
   ];
   var HP_PER = 2;   // (3 con ancho ≥ 800: html.ph-w)
   function hpPer() { return document.documentElement.classList.contains('ph-w') ? 3 : HP_PER; }
@@ -964,10 +974,10 @@
     if (!L.osk && ph()) return '<div class="ol-edit sp-panel" data-nav data-kb-pin><span class="oe-l">' + (code ? 'Código de la sala' : 'Tu nombre en el online') + '</span>' +
       '<button class="sp-x" type="button" data-a="editX" aria-label="Cancelar">' + IC.x + '</button><div class="oe-f" data-kb-row>' +
       (code ? '<input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="codeOk"><span class="sp-t">Entrar</span></button>'
-        : '<input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button>') + '</div></div>';
+        : '<input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(typedName()) + '" placeholder="' + esc(defaultName()) + '"><button class="ol-act sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button>') + '</div></div>';
     if (!L.osk) {
       if (code) return '<div class="ol-edit"><input id="olIn" class="code" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Código de la sala" placeholder="K7P2QX"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="codeOk"><span class="sp-t">Entrar</span></button></div>';
-      return '<div class="ol-edit"><input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(nm) + '"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button></div>';
+      return '<div class="ol-edit"><input id="olIn" maxlength="16" autocomplete="off" spellcheck="false" aria-label="Tu nombre en el online" value="' + esc(typedName()) + '" placeholder="' + esc(defaultName()) + '"><button class="ol-act ol-new sp-btn sp-kit" data-shape="1" data-a="nameOk"><span class="sp-t">Guardar</span></button></div>';
     }
     var o = L.osk, h = '<div class="ol-osk sp-panel' + (code ? ' code' : '') + '"><div class="osk-show"><span class="osk-lbl">' + (code ? 'Código' : 'Tu nombre') + '</span>' +
       '<b class="osk-val" aria-live="polite">' + esc(o.v) + '<i class="osk-car" aria-hidden="true"></i></b><span class="osk-tip">A escribe. B cancela.</span></div>';
@@ -1250,8 +1260,11 @@
     var inp = L.host && L.host.querySelector('#olIn'), v = inp ? inp.value : L.osk ? L.osk.v : '', k = L.edit;
     L.osk = null;
     if (k === 'name') {
-      var n = NR().cleanName(v);
+      var n = NR().cleanName(v), F = VB.NameFilter;
+      // vacío = volver al nombre anónimo («Jugador NNNN»)
+      if (!String(v || '').trim()) { ls(NICK, null); L.msg = ''; L.edit = ''; render(true); focusA('name'); return; }
       if (!n) { L.msg = 'El nombre tiene que tener entre 2 y 16 caracteres (y no puede ser un correo).'; L.msgBad = true; L.edit = ''; render(true); focusA('name'); return; }
+      if (F && F.bad(n)) { L.msg = F.MSG; L.msgBad = true; L.edit = ''; render(true); focusA('name'); return; }
       ls(NICK, n); L.msg = ''; L.edit = ''; render(true); focusA('name');
     } else if (k === 'code') { L.edit = ''; render(true); joinCode(v); }
   }
@@ -1295,7 +1308,7 @@
     else if (a === 'name' || a === 'code') {
       L.edit = a; L.msg = '';
       // (con mando: teclado en pantalla, con el foco en la primera letra)
-      if (padNow()) { var v0 = a === 'name' ? myName() : ''; L.osk = { v: v0, col: 0, up: !v0, auto: !v0 }; render(true); focusSel('.osk-k[data-r="1"][data-i="0"]', true); }
+      if (padNow()) { var v0 = a === 'name' ? typedName() : ''; L.osk = { v: v0, col: 0, up: !v0, auto: !v0 }; render(true); focusSel('.osk-k[data-r="1"][data-i="0"]', true); }
       else { L.osk = null; render(true); }
     }
     else if (a === 'osk') oskKey(b.getAttribute('data-id'));
@@ -1446,7 +1459,7 @@
   function rejoin(r, b) {
     var C = ctx();
     try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }
-    L.role = 'guest'; L.room = r; L.rival = NR().cleanName(b.rival) || r.name || 'Rival'; L.gen = b.gen | 0; L.started = true; L.status = 'play';
+    L.role = 'guest'; L.room = r; L.rival = theirName(b.rival, r.host) || theirName(r.name, r.host) || 'Rival'; L.gen = b.gen | 0; L.started = true; L.status = 'play';
     var link = newLink();
     link.onclose = function () { matchClosed(link); };
     var ok = C.actions.startOnline({ slot: 1, link: link, opts: null, name: myName(), rivalName: L.rival, look: { mine: myLook(), theirs: saneLook(b.look) }, model: backModel(r, b) });
@@ -1482,7 +1495,7 @@
   function rejoinHost(r, b) {
     var C = ctx();
     try { if (VB.NetRec && VB.NetRec.resume) VB.NetRec.resume(); } catch (e) { }
-    L.role = 'host'; L.room = r; L.rival = NR().cleanName(b.rival) || NR().cleanName(r.gname) || 'Rival'; L.gen = Math.max(L.gen, b.gen | 0); L.started = true; L.status = 'play';
+    L.role = 'host'; L.room = r; L.rival = theirName(b.rival, r.guest) || theirName(r.gname, r.guest) || 'Rival'; L.gen = Math.max(L.gen, b.gen | 0); L.started = true; L.status = 'play';
     every('beat', NR().BEAT_MS, hostBeat); hostBeat();
     var link = newLink();
     link.onclose = function () { matchClosed(link); };

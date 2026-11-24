@@ -113,7 +113,9 @@
     var out = '', cs = Array.from(s);
     for (var i = 0; i < cs.length && out.length + cs[i].length <= 16; i++) out += cs[i];
     s = out.trim();
-    return s.length >= 2 ? s : '';
+    if (s.length < 2) return '';
+    var F = VB.NameFilter;   // (con insultos: «Jugador NNNN», js/namefilter.js)
+    return F ? F.shown(s) : s;
   }
   /** ¿Las opciones del anfitrión son las de la sala anunciada, y la sala es Fluida? (net.js sameRoom + net 'fluida') */
   function sameRoomF(co, e) {

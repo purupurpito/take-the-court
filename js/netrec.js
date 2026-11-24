@@ -36,7 +36,10 @@
   function cleanName(s) {
     s = String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f<>"'`]/g, '').replace(/\s+/g, ' ').trim();
     if (s.indexOf('@') >= 0) s = '';   // (nunca algo con pinta de correo)
-    return s.slice(0, 16) || 'Rival';
+    s = s.slice(0, 16);
+    var F = VB.NameFilter;   // (con insultos, también los guardados de antes: «Jugador NNNN», js/namefilter.js)
+    if (s && F) s = F.shown(s);
+    return s || 'Rival';
   }
   function empty() { return { v: 1, played: 0, wins: 0, losses: 0, quits: 0, nc: 0, streak: 0, best: 0, last: [] }; }
   function sane(o) {

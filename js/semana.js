@@ -28,7 +28,7 @@
  *   _reset(), _now(k AAAAMMDD | 0), _sid (pruebas)
  *
  * Guardado 'make-the-cut.semana' v1 (solo del aparato; nunca va a la cuenta):
- *   {v:1, wk, me (3 caracteres para el nombre sin apodo), days:{AAAAMMDD:n}, open:{sid, i, k}|null, best:{w,a,b,S,A}|null,
+ *   {v:1, wk, me (3 caracteres: el nombre sin apodo de antes; desde el 24-nov-2026 el nombre sin apodo es el anónimo del aparato, «Jugador_NNNN», js/namefilter.js), days:{AAAAMMDD:n}, open:{sid, i, k}|null, best:{w,a,b,S,A}|null,
  *    tries:[{w,a,b,k}] (≤ 21; k = AAAAMMDD), group:{wk, list:[{n,w,a,b,S,A}] ≤ 8}}
  *   Si cambia la semana se vacía todo menos la cadena antigua, que queda en solo lectura hasta que llegue una de la semana nueva.
  *   S y A son cadenas de dígitos 0-6 (zona 1-6 del campo rival, 0 fuera), como mucho 12 de cada.
@@ -130,10 +130,15 @@
   function zs(v) { return String(v == null ? '' : v).replace(/[^0-6]/g, '').slice(0, MAXZ); }
   function res(e) { return e && typeof e === 'object' ? { w: e.w ? 1 : 0, a: num(e.a, 0, 99), b: num(e.b, 0, 99) } : null; }
   function resZ(e) { var r = res(e); if (!r) return null; r.S = zs(e.S); r.A = zs(e.A); return r; }
-  function cleanName(s) {
+  function baseName(s) {
     s = String(s == null ? '' : s);
     if (s.indexOf('@') >= 0) return '';   // (nunca algo con pinta de correo)
     return s.replace(/[^A-Za-z0-9À-ÿÑñ _]/g, '').replace(/[ _]+/g, ' ').trim().slice(0, 12).trim().replace(/ /g, '_');
+  }
+  /** Nombre de la cadena; uno con insultos (de un enlace recibido o guardado) sale como «Jugador_NNNN» (js/namefilter.js). */
+  function cleanName(s) {
+    var n = baseName(s), F = VB.NameFilter;
+    return n && F && F.bad(n.replace(/_/g, ' ')) ? baseName(F.mask(n)) : n;
   }
   function randMe() { var a = 'abcdefghjkmnpqrstuvwxyz23456789', s = ''; for (var i = 0; i < 3; i++) s += a.charAt(Math.floor(Math.random() * a.length)); return s; }
   function empty(wk) { return { v: VER, wk: wk, me: '', days: {}, open: null, best: null, tries: [], group: null }; }
@@ -244,10 +249,13 @@
   }
 
   // ---------------------------------------------------------------- enlace y mapa del grupo
+  /** Tu nombre en la cadena: el que escribiste en «Tu nombre en el online» (si vale y no lleva insultos); si no, el anónimo del
+   *  aparato, el mismo que en el online («Jugador 1234» → «Jugador_1234»). Sin js/namefilter.js, el de antes (3 letras al azar). */
   function myName() {
-    var nk = ''; try { nk = root.localStorage.getItem('make-the-cut.nick') || ''; } catch (e) { }
-    var n = cleanName(nk);
-    return n || 'Jugador_' + load().me;
+    var F = VB.NameFilter, nk = '';
+    if (F) { nk = F.nick(); return baseName(nk) || baseName(F.anonName()); }
+    try { nk = root.localStorage.getItem('make-the-cut.nick') || ''; } catch (e) { }
+    return cleanName(nk) || 'Jugador_' + load().me;
   }
   function entryStr(e) { return e.n + '~' + (e.w ? 'w' : 'l') + e.a + '-' + e.b + '~S' + zs(e.S) + '~A' + zs(e.A); }
   function check(s) { var h = hashStr('mtc-semlink|' + s) % 1679616; return ('000' + h.toString(36)).slice(-4); }   // 36^4

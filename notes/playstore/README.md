@@ -41,6 +41,8 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 | `STRICT_POLICY=1 node tools/build-pages.js` | Build que falla si faltan las páginas legales o quedan huecos. |
 | `node tools/twatest.js` | Pruebas de la TWA: `pages/.well-known/assetlinks.json` (JSON, paquete y formato de las huellas), `android/twa-manifest.json` frente al manifest de la web, sin claves en el repo y assetlinks en el build. `STRICT_TWA=1` falla si quedan huecos en las huellas. |
 | `node tools/offlinetest.js` | Juego sin red (service worker, `notes/offline.md`): primera visita, sin red (menú, partido rápido, Carrera, privacidad), publicación de una versión nueva con «Reiniciar» y caché vieja borrada. Unos 2 min. |
+| `node tools/nametest.js` | Nombre anónimo por defecto y filtro de palabras: insultos que saltan, más de 400 nombres y palabras normales que no, y que salas, saludo, récord y enlace de la semana tapan los nombres con insultos. |
+| `node tools/netlogtest.js` | Informe de red: `exp` a 90 días y reintento sin `exp` con las reglas de antes, contra el emulador con las reglas de origin/main y las de este árbol. |
 | `node tools/storeshots.js --out notes/playstore/graficos` | Vuelve a sacar todos los gráficos del juego (un minuto más o menos). |
 
 ## Huecos para rellenar
@@ -58,16 +60,25 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 
 1. **Nombre del paquete** (permanente). Propuesta: `com.takethecourt.app` (ya puesta en `android/twa-manifest.json` y en `pages/.well-known/assetlinks.json`).
 2. **Nombre público de desarrollador** y si se declara **comerciante en la UE** (si sí, se publican dirección y teléfono).
-3. **Informes de red (netlogs).** Hoy no se borran nunca, ni al borrar la cuenta; las páginas lo dicen. Opciones: Cloud Function
-   que los borre al borrar el usuario (necesita el plan Blaze), plazo de 90 días con TTL de Firestore, o las dos. Si se elige
-   una, cambiar las dos páginas (es y en) y `seguridad-datos.md`.
+3. **Informes de red (netlogs): 90 días con TTL (elegido y hecho en el código el 24-nov-2026).** Las páginas ya dicen «90 días».
+   Para que sea verdad, ANTES de publicar la web con estas páginas (pasos del dueño, en este orden):
+   1. Desplegar las reglas (desde `firebase/`: `npx firebase-tools deploy --only firestore:rules`). El orden con la web da igual:
+      con las reglas de antes, el juego repite el informe sin `exp` (tools/netlogtest.js lo prueba contra las dos).
+   2. Activar la política TTL: `gcloud firestore fields ttls update exp --collection-group=netlogs --enable-ttl --project=make-the-cut-vb`
+      o en la Consola de Firebase/Google Cloud: Firestore › Time-to-live (TTL) › Crear política › grupo de colecciones `netlogs`,
+      campo `exp`. Tarda un rato en activarse. **Comprobar** que el TTL funciona en el plan Spark (gratis): no lo sé seguro; si la
+      Consola pide el plan Blaze, decidir entre pasar a Blaze o quitar «90 días» de las páginas.
+   3. Borrar a mano los informes de antes (no llevan `exp` y el TTL no los toca): visor `netlogs.html` o la Consola.
+   Si además se quiere que se borren al borrar la cuenta: Cloud Function al borrar el usuario (plan Blaze).
 4. **Otro dispositivo con la sesión abierta** puede volver a subir partidas durante una hora como mucho después de borrar la
    cuenta (su token sigue vigente). La página lo avisa. Solo lo arregla del todo una Cloud Function al borrar el usuario.
 5. **Edad.** La política dice 14 años para la cuenta y el online; la ficha recomienda público 16+ (más estricto a propósito,
    explicado en `clasificacion.md` §2.1). Si se quiere una sola cifra, subir la política a 16.
 6. **Identificador del dispositivo** dentro del perfil que se sube: declararlo (como ahora) o dejar de subirlo.
-7. **Contenido de usuarios**: nombre visible por defecto anónimo, filtro de palabras, ocultar o denunciar nombres. Recomendado
-   antes de abrir el público a menores de 16.
+7. **Contenido de usuarios**: nombre visible por defecto anónimo («Jugador NNNN») y filtro básico de palabras HECHOS el
+   24-nov-2026 (js/namefilter.js, tools/nametest.js). Falta ocultar o denunciar nombres (recomendado antes de abrir el público a
+   menores de 16). Ojo: quien no había escrito un nombre y salía con el de su personaje o su usuario pasa a salir como «Jugador
+   NNNN»; en el enlace de la semana, como «Jugador_NNNN» (antes «Jugador_» y 3 letras).
 8. **Ficha en inglés** mientras el juego solo está en español (la descripción en inglés lo avisa al final).
 9. **Icono** dibujado al 82 % para que la máscara redonda no corte la «T» (`ICON_SCALE` en `tools/storeshots.js`).
 10. **«BETA»** en el logotipo del menú: sale en las capturas de portada. Si la ficha es de versión final, quitarlo y repetirlas.

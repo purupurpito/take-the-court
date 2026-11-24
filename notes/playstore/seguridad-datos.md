@@ -11,13 +11,15 @@ La Consola puede cambiar el texto o el orden de las preguntas: si algo no cuadra
 ## 0. Antes de rellenar: requisitos previos
 
 El formulario tiene que decir la verdad el día que se envía. Había tres cosas que impedían contestar «sí» con la conciencia
-tranquila en la parte de borrado; la 2 y la 3 se arreglaron el 24-nov-2026 (ver abajo). Queda la 1, que decide el dueño:
+tranquila en la parte de borrado; las tres tienen ya arreglo en el código (24-nov-2026). La 1 necesita además un paso del dueño:
 
-1. **Los netlogs no se borran nunca.** `netlogs/{uid}_*` no tiene regla `delete` (firebase/firestore.rules:107-124) y
-   `deleteAccount()` no los toca (js/account.js:472-483). Llevan el nombre propio y el del rival, y datos del dispositivo.
-   Opciones: (a) Cloud Function al borrar el usuario de Auth que borre `netlogs/{uid}_*` y `rooms/{uid}`; (b) política TTL de
-   Firestore en `netlogs` (p. ej. 90 días) y borrado manual de los del usuario cuando lo pida por la página de borrado;
-   (c) las dos. Lo que se elija hay que contarlo igual en privacidad.html y en borrar-cuenta.html.
+1. **Los netlogs caducan a los 90 días (cuando el dueño active el TTL).** Desde el 24-nov-2026 cada informe lleva
+   `exp` = ahora + 90 días (js/netlog.js, `KEEP_MS`) y las reglas lo admiten (firebase/firestore.rules, bloque netlogs; SIN
+   DESPLEGAR). Falta que el dueño: (a) despliegue las reglas, (b) active la política TTL de Firestore sobre `netlogs.exp`
+   (`gcloud firestore fields ttls update exp --collection-group=netlogs --enable-ttl --project=make-the-cut-vb`, o en la Consola: Firestore › TTL; notes/net.md
+   «Caducidad de los informes») y (c) borre a mano los informes de antes, que no llevan `exp` y el TTL no toca. Hasta entonces las
+   páginas dirían algo que aún no es verdad. Borrar la cuenta sigue sin borrarlos al momento (no hay regla `delete` ni Cloud
+   Function); las dos páginas lo dicen: «90 días» y, si se pide por correo, se borran antes.
 2. ~~`rooms/{uid}` puede quedarse~~ **Arreglado (24-nov-2026):** `deleteAccount()` borra también `rooms/{uid}` y su `sig/` si existe.
 3. ~~Errores ignorados al borrar documentos~~ **Arreglado (24-nov-2026):** si falla la lista o cualquier DELETE, no se borra la
    cuenta y el juego (y borrar-cuenta.html) dicen «No se ha podido borrar todo. La cuenta sigue: prueba otra vez.». Antes de borrar
@@ -26,8 +28,9 @@ tranquila en la parte de borrado; la 2 y la 3 se arreglaron el 24-nov-2026 (ver 
    con la sesión abierta puede volver a subir partidas durante una hora como mucho (borrar-cuenta.html lo avisa).
 
 Play permite conservar algunos datos tras borrar la cuenta solo por motivos legítimos (seguridad, prevención del fraude,
-obligación legal) y **si se explica**. Los diagnósticos de red no entran en esos motivos. Si se publica sin arreglarlo, la página
-de borrado y la política tienen que decir claramente que los informes de red se conservan X días y cómo pedir que se borren.
+obligación legal) y **si se explica**. Los diagnósticos de red no entran en esos motivos. Por eso la página de borrado y la
+política dicen claramente que los informes de red se conservan 90 días como mucho y cómo pedir que se borren antes. Si se quiere
+que desaparezcan con la cuenta, hace falta una Cloud Function al borrar el usuario (plan Blaze).
 
 Además, si se cambia algo del código de la lista (por ejemplo, se quita el uid de las salas, se añade un interruptor del netlog o
 se enciende el TURN), **hay que volver a revisar este formulario**.
@@ -145,6 +148,9 @@ Justificación:
 
 - **Nombre**: Google incluye los apodos («cómo se llama a sí mismo el usuario, como su nombre o apodo»).
   - Nombre visible del online en `rooms/{uid}` (`name`/`gname`, js/netroom.js:173-177; firestore.rules:30-82) → funcionalidad.
+    Desde el 24-nov-2026, si el jugador no escribe uno, es «Jugador NNNN» (número al azar guardado en el aparato,
+    js/namefilter.js); ya no sale el nombre del personaje ni el usuario de la cuenta. Se sigue declarando «Nombre» porque el
+    jugador puede escribir su apodo.
   - Nombre del personaje de la Carrera («Tu nombre», js/career-ui.js:2699 y :2862) dentro de las partidas en la nube
     (js/account.js:41-60) → funcionalidad.
   - Nombre propio y del rival en el netlog (js/netlog.js:175) → analíticas (rendimiento del online).

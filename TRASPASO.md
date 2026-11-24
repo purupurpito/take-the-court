@@ -793,6 +793,10 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   `touchedittest.js [568x320]`, `resumetest.js [--node|--browser]`, `turntest.js` y `variedadtest.js [segundos] [--base <ref>]` (13 min).
 - Google Play (rama playstore, 24-nov-2026): `node tools/policytest.js` (páginas legales) y `node tools/twatest.js` (app de Android en
   `android/` y `pages/.well-known/assetlinks.json`; `STRICT_TWA=1` antes de publicar la app). Pasos del responsable en notes/playstore/android.md.
+- Nombres y netlogs (rama playstore, 24-nov-2026): `node tools/nametest.js` (nombre anónimo «Jugador NNNN» por defecto y filtro
+  básico de palabras, js/namefilter.js) y `node tools/netlogtest.js` (los informes llevan `exp` a 90 días; con las reglas de antes,
+  reintento sin `exp`). Falta del responsable: desplegar las reglas, activar el TTL de `netlogs.exp` y borrar los informes viejos
+  antes de publicar las páginas (notes/playstore/README.md «Decisiones» 3; comprobar si el TTL va en el plan Spark).
 - Sin red (rama playstore, 24-nov-2026): `node tools/offlinetest.js` (service worker, vendor/, publicación con «Reiniciar»; ~2 min).
   Diseño en notes/offline.md. Desde entonces el juego no pide nada a cdnjs ni a Google Fonts (lo de «file://» de arriba es historia).
   Pasada de revisión (24-nov): un service worker que espera y es de la versión que ya corre la página se activa solo (antes una

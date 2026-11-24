@@ -54,7 +54,7 @@
   // 11 claves están desplegadas desde el 16-nov-2026 (lo publicado en make-the-cut-vb es igual que firebase/firestore.rules).
   // Con false volverían a TRACK: se apunta la hora de cada escritura sin subir, para que la primera fusión sepa qué es más nuevo.
   // NUNCA van a DOCS ni a TRACK (son del aparato): '<clave>.bak', 'make-the-cut.career.prev', 'make-the-cut.career6.prev',
-  // 'make-the-cut.devid', 'make-the-cut.retostab', 'make-the-cut.semana', 'make-the-cut.role6', 'make-the-cut.nick', 'make-the-cut.seen', 'make-the-cut.device'.
+  // 'make-the-cut.devid', 'make-the-cut.retostab', 'make-the-cut.semana', 'make-the-cut.role6', 'make-the-cut.nick', 'make-the-cut.anon', 'make-the-cut.seen', 'make-the-cut.device'.
   var S4_SYNC = true;   // reglas con profile, career6, cmode, legends y retos desplegadas el 16-nov-2026
   var S4_DOCS = { 'make-the-cut.profile': 'profile', 'make-the-cut.career6': 'career6', 'make-the-cut.career.mode': 'cmode', 'make-the-cut.legends': 'legends', 'make-the-cut.retos': 'retos' };
   Object.keys(S4_DOCS).forEach(function (k) { if (S4_SYNC) DOCS[k] = S4_DOCS[k]; else TRACK[k] = 1; });

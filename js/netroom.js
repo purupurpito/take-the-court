@@ -9,7 +9,8 @@
  *     (net = 'fluida' solo en las salas de conexión Fluida, Online V2; sin la clave = Precisa)
  *     (seen = hora del SERVIDOR: transformación REQUEST_TIME en cada escritura del anfitrión; el latido la renueva)
  *   rooms/{uid}/sig/offer = {sdp, gen, to} (anfitrión; to = uid del invitado) · rooms/{uid}/sig/answer = {sdp, gen, uid} (invitado)
- *   Nunca hay correos: del rival solo viaja su nombre visible (name/gname). Cada SDP (con direcciones de red) solo la lee su
+ *   Nunca hay correos: del rival solo viaja su nombre visible (name/gname; al leer, uno con insultos sale como «Jugador NNNN»:
+ *   js/namefilter.js). Cada SDP (con direcciones de red) solo la lee su
  *   destinatario y el anfitrión (nunca un invitado posterior); se borran al conectar, al salir y al reabrir; el juego nunca las enseña.
  *
  * API: VB.NetRoom.create({base, auth, fetch, ver}) → rooms
@@ -117,6 +118,10 @@
       var now = readTime ? Date.parse(readTime) : (doc.updateTime ? Date.parse(doc.updateTime) : Date.now());
       d.age = d.seen ? Math.max(0, now - d.seen) : 1e12;
       d.other = !!ver && d.v !== ver;
+      // nombres de otros: un insulto se enseña como «Jugador NNNN» (VB.NameFilter, número sacado de su uid). Solo al leer: nada de
+      // esto se vuelve a escribir (beat() solo manda los campos del parche)
+      var F = VB.NameFilter;
+      if (F) { if (typeof d.name === 'string') d.name = F.shown(d.name, d.host); if (typeof d.gname === 'string' && d.gname) d.gname = F.shown(d.gname, d.guest); }
       return d;
     }
     /** Escritura con seen = hora del servidor (documents:commit con transformación). mask = campos que se tocan (sin mask: el doc entero). */

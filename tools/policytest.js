@@ -58,9 +58,13 @@ if (SRC['privacidad.html']) {
     ['fecha en vigor 24-nov-2026', /24 de noviembre de 2026/, /24 November 2026/],
     ['cuenta opcional', /cuenta es opcional/, /account is optional/],
     ['informe de red (netlog) y que no se puede desactivar', /Informe de red[\s\S]*no se puede desactivar/, /Network report[\s\S]*cannot be turned off/],
-    ['los informes de red no se borran con la cuenta', /no se borran al borrar la cuenta/, /not deleted when you delete your account/],
+    // (24-nov-2026) netlogs con exp = +90 días y política TTL (notes/net.md «Caducidad de los informes»): la página dice 90 días y
+    // que borrar la cuenta no los adelanta; el código y las reglas se comprueban abajo
+    ['los informes de red caducan a los 90 días y la cuenta no los adelanta', /Informes de red:<\/b> 90 días[\s\S]*no se borran antes de tiempo/, /Network reports:<\/b> 90 days[\s\S]*does not delete them earlier/],
+    ['el informe de red se borra solo a los 90 días', /Se borra solo a los 90 días/, /deleted automatically after 90 days/],
     ['IP al rival y STUN', /dirección IP[\s\S]*STUN|STUN[\s\S]*dirección IP/, /IP address[\s\S]*STUN|STUN[\s\S]*IP address/],
-    ['nombre visible por defecto (personaje o usuario)', /nombre de tu personaje de la Carrera[\s\S]*nombre de usuario/, /Career character's name[\s\S]*username/],
+    ['nombre visible por defecto anónimo («Jugador» y un número, no el de la cuenta ni el del personaje)', /Si no escribes uno, sales como «Jugador» y un número[\s\S]*no se usa el nombre de tu cuenta ni el de tu personaje/, /you appear as "Jugador" plus a number[\s\S]*your account name and your character's name are not used/],
+    ['filtro básico de palabras en los nombres', /filtro básico de palabras/, /basic word filter/],
     ['Firestore en la UE (eur3)', /eur3/, /eur3/],
     ['proveedores: GitHub y Cloudflare', /GitHub Pages[\s\S]*Cloudflare/, /GitHub Pages[\s\S]*Cloudflare/],
     ['copia de los archivos para jugar sin conexión', /copia de los archivos del juego para poder jugar sin conexión/, /copy of the game files so you can play offline/],
@@ -82,6 +86,13 @@ if (SRC['privacidad.html']) {
   check(!/\bTURN\b|turn\.takethecourt/.test(s), 'privacidad: no presenta como activo el TURN (apagado en netconfig.js)');
   const ncfg = fs.readFileSync(path.join(ROOT, 'js', 'netconfig.js'), 'utf8');
   check(/VB\.NET_TURN_URL\s*=\s*''/.test(ncfg), 'netconfig.js: el TURN sigue apagado (si se enciende, hay que cambiar «no usamos servidores de retransmisión»)');
+  // lo que la página promete de los informes y del nombre, frente al código (el TTL lo activa el responsable: notes/net.md)
+  const nlog = fs.readFileSync(path.join(ROOT, 'js', 'netlog.js'), 'utf8'), rules = fs.readFileSync(path.join(ROOT, 'firebase', 'firestore.rules'), 'utf8');
+  check(/var KEEP_MS = 90 \* 86400000;/.test(nlog) && /f\.exp = \{ timestampValue: new Date\(now \+ KEEP_MS\)/.test(nlog), 'netlog.js: cada informe lleva exp = ahora + 90 días (lo que dice «90 días»)');
+  check(/hasOnly\(\['uid', 'ver', 't', 'j', 'exp'\]\)/.test(rules) && /d\.exp is timestamp/.test(rules), 'firestore.rules: netlogs admite exp (timestamp)');
+  const nlob = fs.readFileSync(path.join(ROOT, 'js', 'netlobby.js'), 'utf8');
+  const defN = nlob.slice(nlob.indexOf('function defaultName()'), nlob.indexOf('function sanAttrs('));
+  check(/anonName\(\)/.test(defN) && !/careerPlayer|netInfo/.test(defN) && fs.existsSync(path.join(ROOT, 'js', 'namefilter.js')), 'netlobby.js: nombre por defecto anónimo y filtro de palabras (js/namefilter.js)');
 }
 if (SRC['borrar-cuenta.html']) {
   const s = SRC['borrar-cuenta.html'];
@@ -89,7 +100,8 @@ if (SRC['borrar-cuenta.html']) {
   const acc = fs.readFileSync(path.join(ROOT, 'js', 'account.js'), 'utf8');
   check(/data-ac="del">Borrar la cuenta</.test(acc) && /spb\('delYes', 'Sí, borrar la cuenta'/.test(acc) && /btn\.id = 'btnAcc'/.test(acc), 'account.js sigue teniendo «Borrar la cuenta» y «Sí, borrar la cuenta» (los nombres que cita la página)');
   check(/Qué se borra[\s\S]*Qué se queda/.test(s) && /What is deleted[\s\S]*What remains/.test(s), 'borrar-cuenta: qué se borra y qué se queda (es y en)');
-  check(/Informes de red/.test(s) && /Network reports/.test(s), 'borrar-cuenta: avisa de que los informes de red no se borran solos');
+  check(/Informes de red/.test(s) && /Network reports/.test(s), 'borrar-cuenta: habla de los informes de red');
+  check(/se borran solos a los 90 días[\s\S]*no los borra antes/.test(s) && /deleted automatically 90 days after each match[\s\S]*does not delete them earlier/.test(s), 'borrar-cuenta: informes de red, 90 días y la cuenta no los adelanta (es y en)');
   check(/mailto:\{\{CONTACTO_EMAIL\}\}|mailto:[^"{]+@/.test(s), 'borrar-cuenta: borrado por correo');
   check(!/window\.confirm|\bconfirm\(|\balert\(|\bprompt\(/.test(s), 'borrar-cuenta: sin confirm/alert/prompt');
   const keyA = (/key: '([^']+)'/.exec(acc) || [])[1], keyP = (/var KEY = '([^']+)'/.exec(s) || [])[1];

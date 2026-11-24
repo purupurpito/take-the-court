@@ -5,8 +5,11 @@
  *     escribe UNA vez al acabar, sin direcciones IP aunque getStats las tenga.
  *     Online V2: una sesión Fluida simulada (model 'fluida', sin stats.depth ni s.adv, con flStats): modelo, foto de flStats en
  *     cada ventana y en el total, rb/adv a null y el suceso 'marcador_distinto'. Y que el informe Precisa dice modelo 'precisa'.
+ *  1c) Caducidad (24-nov-2026): cada informe lleva exp = t + 90 días; con las reglas de antes (403) se repite una vez sin exp y
+ *     el resto de la página va sin exp.
  *  2) Con el emulador de Firestore (como tools/roomtest.js): las reglas. Se prueba una COPIA con el hash de un correo de prueba en
- *     vez del de Ferran (el correo de verdad no está en el repo).
+ *     vez del de Ferran (el correo de verdad no está en el repo). Dos pasadas: las de origin/main (las desplegadas, sin exp; con
+ *     git) y las de este árbol (exp opcional entre 80 y 100 días), y en cada una el cliente de verdad contra el emulador.
  * Uso: node tools/netlogtest.js [--no-emu] [--port 8093]
  */
 'use strict';
@@ -68,7 +71,9 @@ async function unit() {
   check('al acabar se escribe UNA vez', writes.length === 1, writes.length);
   const wr = writes[0], body = wr && JSON.parse(wr.o.body);
   check('PATCH a netlogs/uidA_<id>', wr && wr.o.method === 'PATCH' && /\/netlogs\/uidA_[0-9a-z]+$/.test(wr.url), wr && wr.url);
-  check('campos uid, ver, t, j', body && Object.keys(body.fields).sort().join() === 'j,t,uid,ver', body && Object.keys(body.fields));
+  check('campos uid, ver, t, j y exp', body && Object.keys(body.fields).sort().join() === 'exp,j,t,uid,ver', body && Object.keys(body.fields));
+  const expMs = body && Date.parse(body.fields.exp.timestampValue) - Date.parse(body.fields.t.timestampValue);
+  check('exp = t + 90 días (timestamp)', expMs === 90 * 86400000 && /Z$/.test(body.fields.exp.timestampValue), expMs);
   const rep = body && JSON.parse(body.fields.j.stringValue);
   check('el informe Precisa dice modelo precisa y no trae fl', rep && rep.modelo === 'precisa' && rep.fl === undefined && rep.wins.every(w => w.fl === undefined), rep && rep.modelo);
   check('el informe trae resultado y fin', rep && rep.res && rep.res.gana === true && rep.ev.some(e => e.k === 'fin'), rep && rep.res);
@@ -81,6 +86,47 @@ async function unit() {
   NL.frame(n2, r()); NL.end(n2, 'x'); await sleep(10);
   check('sin enlace WebRTC (pruebas por BroadcastChannel) no escribe', writes.length === 1, writes.length);
   await fluida(NL, writes, () => T, v => { T = v; }, link);
+  await noExpUnit();
+}
+
+/* ---------- 1c) reglas de antes (sin exp): 403 → otra vez sin exp, y ya sin exp hasta recargar ---------- */
+function freshNetLog() {
+  const f = require.resolve(path.join(ROOT, 'js/netlog.js'));
+  delete require.cache[f]; globalThis.VB.NetLog = undefined;
+  require(f);
+  return globalThis.VB.NetLog;
+}
+function quickMatch(NL, link, nm) {
+  const sess = { rttSeq: 0, rttLast: 0, stats: { sent: 1, recv: 1, bytesOut: 10, steps: 1, resyncs: 0, depth: 0, maxDepth: 0, waits: 0, frames: 1 }, status: 'playing', delay: 2, adv: 0, cmpBad: -1, rivalName: 'Bea', opts: {} };
+  const net = { sess, link, slot: 0, epoch: 0, name: nm || 'Ana', rival: 'Bea' };
+  NL.frame(net, { status: 'playing', unstable: false, solo: false, gone: false, result: null });
+  const id = NL._cur() && NL._cur().id;
+  NL.end(net, 'fin');
+  return id;
+}
+async function noExpUnit() {
+  console.log('\nNetLog con las reglas de antes (exp no admitido)');
+  const calls = [];
+  globalThis.fetch = async (url, o) => { const b = JSON.parse(o.body); calls.push(Object.keys(b.fields).sort().join()); return { status: 'exp' in b.fields ? 403 : 200 }; };
+  const NL = freshNetLog(), link = { info: () => ({ type: 'host', rtt: 5 }) };
+  check('antes de nada, manda con exp', NL._noExp() === false);
+  quickMatch(NL, link); await sleep(30);
+  check('403 con exp → lo repite UNA vez sin exp', calls.length === 2 && calls[0] === 'exp,j,t,uid,ver' && calls[1] === 'j,t,uid,ver', calls);
+  check('…y se acuerda hasta recargar', NL._noExp() === true);
+  quickMatch(NL, link); await sleep(30);
+  check('el siguiente partido va directamente sin exp (una sola escritura)', calls.length === 3 && calls[2] === 'j,t,uid,ver', calls);
+  // 403 también sin exp (p. ej. sin permiso): no insiste
+  calls.length = 0;
+  globalThis.fetch = async (url, o) => { calls.push(Object.keys(JSON.parse(o.body).fields).sort().join()); return { status: 403 }; };
+  const NL2 = freshNetLog();
+  quickMatch(NL2, link); await sleep(30);
+  check('403 con y sin exp: dos intentos y nada más', calls.length === 2, calls);
+  // reglas nuevas: 200 a la primera, con exp
+  calls.length = 0;
+  globalThis.fetch = async (url, o) => { calls.push(Object.keys(JSON.parse(o.body).fields).sort().join()); return { status: 200 }; };
+  const NL3 = freshNetLog();
+  quickMatch(NL3, link); await sleep(30);
+  check('con las reglas nuevas: una escritura, con exp', calls.length === 1 && calls[0] === 'exp,j,t,uid,ver' && NL3._noExp() === false, calls);
 }
 
 /* ---------- 1b) sesión Fluida simulada (Online V2) ---------- */
@@ -140,25 +186,43 @@ function tok(uid, email) {
   return b64u({ alg: 'none', typ: 'JWT' }) + '.' + b64u(Object.assign({ iss: 'https://securetoken.google.com/' + PROJECT, aud: PROJECT, auth_time: t, user_id: uid, sub: uid, iat: t, exp: t + 3600,
     firebase: { identities: {}, sign_in_provider: 'password' } }, email ? { email: email, email_verified: true } : {})) + '.';
 }
+async function startEmu(jar, rulesText, port) {
+  fs.mkdirSync(path.join(ROOT, 'tools', 'out'), { recursive: true });
+  const tmp = path.join(ROOT, 'tools', 'out', 'netlog-' + port + '.rules'); fs.writeFileSync(tmp, rulesText);
+  const java = spawn('java', ['-Xmx384m', '-jar', jar, '--host', '127.0.0.1', '--port', String(port), '--rules', tmp, '--project_id', PROJECT], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
+  let log = ''; java.stdout.on('data', d => { log += d; }); java.stderr.on('data', d => { log += d; });
+  process.on('exit', () => killTree(java));
+  let up = false;
+  for (let i = 0; i < 120 && !up; i++) { await sleep(500); try { up = (await fetch('http://127.0.0.1:' + port + '/')).status < 500; } catch (e) { } }
+  if (!up) { console.log(log.slice(-1500)); killTree(java); return null; }
+  if (process.env.NLDEBUG) { await sleep(3000); console.log(log.slice(-1500)); }
+  return java;
+}
 async function emu() {
   globalThis.fetch = realFetch; globalThis.performance = realPerf;
   const jar = NO_EMU ? null : findJar();
   if (!jar) { console.log('\n(sin emulador de Firestore: solo la parte 1)'); return; }
-  console.log('\nReglas de netlogs en el emulador');
   const real = fs.readFileSync(path.join(ROOT, 'firebase', 'firestore.rules'), 'utf8');
   const H = 'c0592685221ed4a093808f6d3f8a863be6f6d4a1894b00b91e90b07719048deb';
   check('las reglas leen con el hash del acta (js/ui.js)', real.indexOf(H) > 0 && fs.readFileSync(path.join(ROOT, 'js', 'ui.js'), 'utf8').indexOf(H) > 0);
   const ADMIN = 'Admin@Prueba.invalid', h = crypto.createHash('sha256').update(ADMIN.toLowerCase()).digest('hex');
-  fs.mkdirSync(path.join(ROOT, 'tools', 'out'), { recursive: true });
-  const tmp = path.join(ROOT, 'tools', 'out', 'netlog.rules'); fs.writeFileSync(tmp, real.split(H).join(h));
-  const java = spawn('java', ['-Xmx384m', '-jar', jar, '--host', '127.0.0.1', '--port', String(PORT), '--rules', tmp, '--project_id', PROJECT], { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true });
-  let log = ''; java.stdout.on('data', d => { log += d; }); java.stderr.on('data', d => { log += d; });
-  process.on('exit', () => killTree(java));
-  let up = false;
-  for (let i = 0; i < 120 && !up; i++) { await sleep(500); try { up = (await fetch('http://127.0.0.1:' + PORT + '/')).status < 500; } catch (e) { } }
-  if (!up) { console.log(log.slice(-1500)); check('el emulador arranca con las reglas', false); killTree(java); return; }
-  if (process.env.NLDEBUG) { await sleep(3000); console.log(log.slice(-1500)); }
-  const base = 'http://127.0.0.1:' + PORT + '/v1/projects/' + PROJECT + '/databases/(default)/documents';
+  // las desplegadas hoy (origin/main) y las de este árbol (con exp)
+  let old = '';
+  try { old = require('child_process').execFileSync('git', ['show', 'origin/main:firebase/firestore.rules'], { cwd: ROOT, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }); } catch (e) { old = ''; }
+  const sets = [['reglas de este árbol (exp opcional)', real, true, PORT]];
+  if (old && old.indexOf(H) > 0) sets.unshift(['reglas de origin/main (las desplegadas: sin exp)', old, false, PORT + 1]);
+  else console.log('\n(sin git o sin origin/main: solo las reglas de este árbol)');
+  if (old && /'exp'/.test(old)) console.log('  (aviso: origin/main ya trae exp en las reglas)');
+  for (const [label, text, isNew, port] of sets) {
+    console.log('\nReglas de netlogs en el emulador: ' + label);
+    const java = await startEmu(jar, text.split(H).join(h), port);
+    if (!java) { check('el emulador arranca con las reglas', false); continue; }
+    try { await rulesChecks(port, isNew, ADMIN); } finally { killTree(java); }
+  }
+}
+async function rulesChecks(port, isNew, ADMIN) {
+  globalThis.fetch = realFetch; globalThis.performance = realPerf;
+  const base = 'http://127.0.0.1:' + port + '/v1/projects/' + PROJECT + '/databases/(default)/documents';
   const doc = (uid, j, extra) => ({ fields: Object.assign({ uid: { stringValue: uid }, ver: { stringValue: '1.8.1' }, t: { timestampValue: new Date().toISOString() }, j: { stringValue: j || '{}' } }, extra || {}) });
   const call = async (method, p, body, t) => { const st = (await fetch(base + p, { method, headers: Object.assign({ Authorization: 'Bearer ' + t }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined })).status; if (process.env.NLDEBUG) console.log('    ' + method + ' ' + p + ' -> ' + st); return st; };
   const A = tok('uidA', 'ana@x.invalid'), B = tok('uidB', 'bea@x.invalid'), AD = tok('uidF', ADMIN);
@@ -177,7 +241,41 @@ async function emu() {
   check('el administrador los lista', q.status === 200, q.status);
   const q2 = await fetch(base + ':runQuery', { method: 'POST', headers: { Authorization: 'Bearer ' + B, 'Content-Type': 'application/json' }, body: JSON.stringify({ structuredQuery: { from: [{ collectionId: 'netlogs' }], limit: 50 } }) });
   check('otro jugador no los lista', q2.status === 403, q2.status);
-  killTree(java);
+  // caducidad
+  const D = 86400000, ts = ms => ({ timestampValue: new Date(Date.now() + ms).toISOString() });
+  const e90 = await call('PATCH', '/netlogs/uidA_exp090', doc('uidA', '{}', { exp: ts(90 * D) }), A);
+  if (isNew) {
+    check('exp = ahora + 90 días: se acepta', e90 === 200, e90);
+    check('exp = ahora + 81 y + 99 días: se aceptan', await call('PATCH', '/netlogs/uidA_exp081', doc('uidA', '{}', { exp: ts(81 * D) }), A) === 200
+      && await call('PATCH', '/netlogs/uidA_exp099', doc('uidA', '{}', { exp: ts(99 * D) }), A) === 200);
+    check('exp = ahora + 10 días: no', await call('PATCH', '/netlogs/uidA_exp010', doc('uidA', '{}', { exp: ts(10 * D) }), A) === 403);
+    check('exp = ahora + 200 días: no', await call('PATCH', '/netlogs/uidA_exp200', doc('uidA', '{}', { exp: ts(200 * D) }), A) === 403);
+    check('exp en el pasado: no', await call('PATCH', '/netlogs/uidA_exppas', doc('uidA', '{}', { exp: ts(-D) }), A) === 403);
+    check('exp que no es fecha: no', await call('PATCH', '/netlogs/uidA_expstr', doc('uidA', '{}', { exp: { stringValue: '2099-01-01' } }), A) === 403
+      && await call('PATCH', '/netlogs/uidA_expint', doc('uidA', '{}', { exp: { integerValue: String(Date.now() + 90 * D) } }), A) === 403);
+    check('actualizar quitando exp: sí (sigue siendo opcional)', await call('PATCH', '/netlogs/uidA_exp090', doc('uidA', '{"b":1}'), A) === 200);
+  } else {
+    check('reglas de antes: con exp da 403 (lo que hace saltar el reintento sin exp)', e90 === 403, e90);
+  }
+  // el cliente de verdad (js/netlog.js) contra el emulador
+  const NL = freshNetLog(), sent = [];
+  globalThis.VB.Account = { FS_BASE: base, netAuth: async () => ({ uid: 'uidA', token: A }) };
+  globalThis.fetch = async (u, o) => { if (o && o.method === 'PATCH') sent.push('exp' in JSON.parse(o.body).fields); return realFetch(u, o); };
+  const link = { info: () => ({ type: 'host', rtt: 5 }) };
+  const readLog = async (id) => {
+    for (let i = 0; i < 40; i++) { await sleep(100); const r = await realFetch(base + '/netlogs/uidA_' + id, { headers: { Authorization: 'Bearer ' + AD } }); if (r.status === 200) return r.json(); }
+    return null;
+  };
+  const got = await readLog(quickMatch(NL, link, 'Ana'));
+  if (isNew) {
+    const ms = got && got.fields.exp ? Date.parse(got.fields.exp.timestampValue) - Date.now() : 0;
+    check('cliente: guarda el informe con exp ≈ 90 días, a la primera', !!got && Math.abs(ms - 90 * D) < 60000 && sent.join() === 'true' && NL._noExp() === false, { sent, ms });
+  } else {
+    check('cliente: con las reglas de antes guarda el informe sin exp (403 y reintento)', !!got && !got.fields.exp && sent.join() === 'true,false' && NL._noExp() === true, { sent, keys: got && Object.keys(got.fields) });
+    const got2 = await readLog(quickMatch(NL, link, 'Ana'));
+    check('cliente: el 2º partido va sin exp y a la primera', !!got2 && sent.join() === 'true,false,false', sent);
+  }
+  globalThis.fetch = realFetch;
 }
 
 (async () => {

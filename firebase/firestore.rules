@@ -108,15 +108,20 @@ service cloud.firestore {
     // cuenta. Crear/actualizar: solo el propio (id = uid_xxx, campo uid), 4 campos, j ≤ 250 000 caracteres. Leer: solo la cuenta de
     // Ferran (SHA-256 del correo, el mismo que js/ui.js usa para el acta: el correo no va en el repo, que es público). Nadie borra
     // desde el cliente.
+    // Caducidad (Google Play, 24-nov-2026; SIN DESPLEGAR): 'exp' opcional, timestamp entre ahora + 80 y ahora + 100 días (el cliente
+    // manda ahora + 90). La borra una política TTL de Firestore sobre netlogs.exp (notes/net.md «Caducidad de los informes»).
+    // Con las reglas de antes, un informe con exp da 403 y js/netlog.js lo repite sin exp: se puede desplegar en cualquier orden.
     match /netlogs/{id} {
       function admin() {
         return request.auth != null && request.auth.token.email is string
           && hashing.sha256(request.auth.token.email.lower()).toHexString().lower() == 'c0592685221ed4a093808f6d3f8a863be6f6d4a1894b00b91e90b07719048deb';
       }
       function logOk(d) {
-        return d.keys().hasOnly(['uid', 'ver', 't', 'j']) && d.keys().hasAll(['uid', 'ver', 't', 'j'])
+        return d.keys().hasOnly(['uid', 'ver', 't', 'j', 'exp']) && d.keys().hasAll(['uid', 'ver', 't', 'j'])
           && d.uid == request.auth.uid && d.ver is string && d.ver.size() <= 20 && d.t is timestamp
-          && d.j is string && d.j.size() <= 250000;
+          && d.j is string && d.j.size() <= 250000
+          && (!('exp' in d) || (d.exp is timestamp && d.exp >= request.time + duration.value(80, 'd')
+                && d.exp <= request.time + duration.value(100, 'd')));
       }
       allow get, list: if admin();
       allow create: if request.auth != null && id.matches(request.auth.uid + '_[0-9a-z]{4,24}') && logOk(request.resource.data);

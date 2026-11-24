@@ -36,10 +36,11 @@ Se sustituyen tal cual en los dos ficheros; luego `STRICT_POLICY=1 node tools/bu
 
 ## Si cambia el código, cambia la política
 La política describe la 1.22.0 tal cual (inventario del 24-nov-2026). Hay que tocar las dos páginas (es y en) si:
-- `js/netlog.js` cambia de contenido, gana un interruptor o un plazo (TTL), o deleteAccount empieza a borrar `netlogs/{uid}_*`
-  (hoy: sin plazo, no se borra con la cuenta, no se puede desactivar);
+- `js/netlog.js` cambia de contenido, gana un interruptor, cambia el plazo (`KEEP_MS`, hoy 90 días con TTL) o deleteAccount empieza
+  a borrar `netlogs/{uid}_*` (hoy: 90 días cuando el TTL esté activo, no se borra con la cuenta, no se puede desactivar);
 - se enciende el TURN (`VB.NET_TURN_URL` en js/netconfig.js; la política dice que no hay retransmisión y policytest lo vigila);
-- cambia el nombre por defecto del online (netlobby.js `defaultName`), se añade chat, denuncias o bloqueo;
+- cambia el nombre por defecto del online (netlobby.js `defaultName`, hoy «Jugador NNNN») o el filtro (js/namefilter.js), se
+  añade chat, denuncias o bloqueo;
 - ~~se sirven las fuentes o three.js desde el propio dominio~~ hecho el 24-nov-2026 (`vendor/`, `notes/offline.md`): la política ya no nombra Google Fonts ni cdnjs y dice que el juego guarda una copia de sus archivos para jugar sin conexión. Si un día el index vuelve a pedir algo a otra web, volver a nombrarla (policytest lo vigila);
 - se añade analítica, anuncios, pagos o cualquier servicio nuevo;
 - cambian `DOCS` o `deleteAccount()` de js/account.js (borrar-cuenta.html copia sus llamadas; policytest compara las dos).

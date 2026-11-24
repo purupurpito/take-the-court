@@ -9,9 +9,13 @@
  *    de frames; pestaña oculta. Más una lista de sucesos (esperas largas, conexión inestable, resincronizaciones, huellas que no
  *    cuadran, contra la IA, fin).
  *  - Lo primero es el ping (Ferran): durante el partido NO sale nada por la red; el informe va en memoria y se guarda UNA vez al
- *    acabar (o al cerrar la pestaña, con keepalive) en Firestore como netlogs/{uid}_{id} = {uid, ver, t, j (el informe en JSON)}
+ *    acabar (o al cerrar la pestaña, con keepalive) en Firestore como netlogs/{uid}_{id} = {uid, ver, t, j (el informe en JSON), exp}
  *    con la cuenta del jugador (las reglas solo dejan crear/actualizar el propio; leer, solo la cuenta de Ferran). Visor:
  *    netlogs.html (pages/), con la sesión de la cuenta del mismo navegador.
+ *  - Caducidad (Google Play, 24-nov-2026): exp = ahora + 90 días (timestamp) para que una política TTL de Firestore sobre netlogs.exp
+ *    los borre sola (la activa el responsable: notes/net.md «Caducidad de los informes»). Si las reglas desplegadas son las de antes
+ *    (solo uid, ver, t, j) la escritura da 403: se repite UNA vez sin exp y el resto de la página ya va sin exp (los informes se
+ *    siguen guardando, pero sin caducidad).
  *  - Privacidad: NUNCA direcciones IP ni puertos (de getStats solo el TIPO de candidato y el protocolo), ni el correo. Sí el nombre
  *    de los dos (el mismo que ya enseña el lobby), navegador, sistema y tipo de red que da el navegador.
  *  - Online V2 (modelo Fluida, js/netfluid.js): el informe dice el modelo (modelo: 'precisa' | 'fluida'); cada ventana lleva además
@@ -26,6 +30,8 @@
   var root = typeof window !== 'undefined' ? window : globalThis;
   var VB = root.VB = root.VB || {};
   var WIN_MS = 10000, ICE_MS = 2000, MAX_WIN = 120, MAX_EV = 200, MAX_J = 240000;
+  var KEEP_MS = 90 * 86400000;   // cada informe lleva exp = ahora + 90 días: la política TTL de Firestore lo borra al llegar
+  var noExp = false;             // las reglas desplegadas aún no aceptan exp (403): hasta recargar, se manda sin él
   var cur = null, Q = {};
   try { (root.location && root.location.search || '').replace(/^\?/, '').split('&').forEach(function (kv) { var p = kv.split('='); if (p[0]) Q[p[0]] = decodeURIComponent(p[1] || ''); }); } catch (e) { }
   var FORCE = Q.netlog === '1';
@@ -193,9 +199,19 @@
     c.busy = true;
     A.netAuth().then(function (a) {
       if (!a || !a.uid || !a.token) throw new Error('sin cuenta');
-      var body = JSON.stringify({ fields: { uid: { stringValue: a.uid }, ver: { stringValue: String(VB.VERSION || '') }, t: { timestampValue: new Date().toISOString() }, j: { stringValue: j } } });
-      return fetch(base + '/netlogs/' + a.uid + '_' + c.id, { method: 'PATCH', headers: { Authorization: 'Bearer ' + a.token, 'Content-Type': 'application/json' }, body: body, keepalive: last && body.length < 60000 })
-        .then(function (res) { if (res.status === 403 || res.status === 401) c.noWrite = true; if (FORCE && root.console) console.info('[netlog] guardado ' + res.status); });
+      var send = function (withExp) {
+        var now = Date.now(), f = { uid: { stringValue: a.uid }, ver: { stringValue: String(VB.VERSION || '') }, t: { timestampValue: new Date(now).toISOString() }, j: { stringValue: j } };
+        if (withExp) f.exp = { timestampValue: new Date(now + KEEP_MS).toISOString() };   // caducidad: la borra la política TTL de Firestore
+        var body = JSON.stringify({ fields: f });
+        return fetch(base + '/netlogs/' + a.uid + '_' + c.id, { method: 'PATCH', headers: { Authorization: 'Bearer ' + a.token, 'Content-Type': 'application/json' }, body: body, keepalive: last && body.length < 60000 })
+          .then(function (res) {
+            // 403 con exp = reglas de antes (solo 4 campos): otra vez sin exp, y ya sin exp el resto de la página
+            if (res.status === 403 && withExp) { noExp = true; if (FORCE && root.console) console.info('[netlog] sin exp (reglas de antes)'); return send(false); }
+            if (res.status === 403 || res.status === 401) c.noWrite = true;
+            if (FORCE && root.console) console.info('[netlog] guardado ' + res.status);
+          });
+      };
+      return send(!noExp);
     }).catch(function (e) { if (FORCE && root.console) console.info('[netlog] sin guardar: ' + (e && e.message)); })
       .then(function () { c.busy = false; if (c.again) { c.again = false; flush(c, false); } });
   }
@@ -214,5 +230,5 @@
   // cerrar la pestaña a mitad: el informe sale con lo que haya (keepalive)
   if (root.addEventListener) root.addEventListener('pagehide', function () { if (cur) end(cur.net, 'pestaña'); });
 
-  VB.NetLog = { begin: begin, frame: frame, end: end, _cur: function () { return cur; }, _report: function () { return cur ? report(cur) : null; } };
+  VB.NetLog = { begin: begin, frame: frame, end: end, _cur: function () { return cur; }, _report: function () { return cur ? report(cur) : null; }, _noExp: function () { return noExp; }, KEEP_MS: KEEP_MS };
 })();

@@ -73,8 +73,8 @@ Opciones de la Consola: 5 o menos · 6-8 · 9-12 · 13-15 · 16-17 · 18 o más.
 
 Motivos:
 
-- Hay **online con desconocidos** sin chat pero con nombres libres, sin filtro de palabrotas ni botón de denunciar o bloquear
-  (inventario, gaps 6 y 7).
+- Hay **online con desconocidos** sin chat pero con nombres libres. Desde el 24-nov-2026 el nombre por defecto es anónimo y hay
+  un filtro básico de palabras (js/namefilter.js), pero no hay botón de denunciar ni de bloquear (inventario, gap 7).
 - **No hay control de edad**: la cuenta se crea sin fecha de nacimiento ni verificación del correo (js/account.js:377-385).
 - En España, el consentimiento para el tratamiento de datos de un menor es válido **desde los 14 años** (LOPDGDD art. 7; RGPD
   art. 8 deja a cada país entre 13 y 16). Por debajo hace falta el de los padres.
@@ -83,13 +83,13 @@ Motivos:
 
 **Edad de la cuenta frente a público de la tienda.** La política de privacidad dice que la cuenta y el online son para mayores de
 **14** años (la edad legal de consentimiento en España). El público objetivo de Play recomendado (16+) es **más estricto a
-propósito**: por el online con desconocidos sin filtro de nombres ni denuncia. No se contradicen: 14 es el mínimo legal para tener
+propósito**: por el online con desconocidos sin denuncia ni bloqueo (el filtro de nombres es básico). No se contradicen: 14 es el mínimo legal para tener
 cuenta; 16+ es a quién se dirige la ficha. Si un revisor pregunta, contestar eso. Si se prefiere una sola cifra, subir la política
 a 16 (es y en, y la comprobación «14 años» de tools/policytest.js).
 
 Alternativa «13+» (marcar 13-15, 16-17 y 18 o más): solo si antes se añade una casilla de edad al crear la cuenta o al entrar en
-el online («Tengo 14 años o más» o «Tengo permiso de mi madre, padre o tutor»), el nombre visible por defecto anónimo y un filtro
-básico de nombres. Con 13-15 marcado, Play puede pedir más cosas del contenido para adolescentes (comprobar en la Consola).
+el online («Tengo 14 años o más» o «Tengo permiso de mi madre, padre o tutor»). El nombre visible por defecto anónimo y el filtro
+básico de nombres ya están (24-nov-2026). Con 13-15 marcado, Play puede pedir más cosas del contenido para adolescentes (comprobar en la Consola).
 
 ### 2.2 ¿La ficha o la app podrían atraer sin querer a niños?
 
@@ -191,19 +191,24 @@ online «Online». Las dos cuentas de prueba las crea el responsable desde el ju
 
 ## 6. Contenido generado por usuarios (política de UGC de Play)
 
-Lo único que un usuario puede hacer visible a otros es un **nombre** de 2-16 caracteres (nombre visible del online y, por defecto,
-el nombre del personaje o el usuario de la cuenta; js/netlobby.js:98-106). No hay chat, fotos ni perfiles.
+Lo único que un usuario puede hacer visible a otros es un **nombre** de 2-16 caracteres (nombre visible del online; si no escribe
+uno, «Jugador NNNN»). No hay chat, fotos ni perfiles.
 
 La política de UGC de Play pide, para el contenido que ven otros usuarios: condiciones que prohíban lo inaceptable, una forma de
-denunciar y de bloquear, y moderación razonable. Para un apodo sin chat el riesgo es bajo, pero hoy no hay nada de eso. Mínimo
-recomendado antes de publicar (pista de código, no de este documento):
+denunciar y de bloquear, y moderación razonable. Para un apodo sin chat el riesgo es bajo. Mínimo recomendado antes de publicar:
 
-1. **Nombre visible por defecto anónimo** («Jugador NNNN»), no el usuario de la cuenta (que es media credencial) ni el nombre del
-   personaje (que puede ser un nombre real) (js/netlobby.js:102).
-2. **Filtro básico de palabras** en `cleanName` (js/netroom.js:52-59).
-3. **Ocultar o denunciar** el nombre del rival: botón «Ocultar nombres de rivales» en Ajustes o «Denunciar nombre» en la hoja
+1. ~~Nombre visible por defecto anónimo~~ **Hecho (24-nov-2026):** «Jugador NNNN», el mismo en el aparato
+   (`make-the-cut.anon`, js/namefilter.js `anonName`); ya no el usuario de la cuenta ni el nombre del personaje. Solo sale otro
+   nombre si el jugador lo escribe en «Tu nombre en el online» (js/netlobby.js `myName`).
+2. ~~Filtro básico de palabras~~ **Hecho (24-nov-2026):** js/namefilter.js (lista corta en español, catalán e inglés; tildes,
+   números como letras, letras repetidas y separadores). Rechaza tu nombre («Ese nombre no vale: elige otro.») y enseña como
+   «Jugador NNNN» los nombres con insultos que llegan de otros (salas, saludo, récord online, enlace de la semana), así un
+   cliente modificado tampoco los enseña. Es básico: no entiende contexto ni otros alfabetos. tools/nametest.js lo prueba con
+   insultos y con más de 400 nombres y palabras normales.
+3. **Ocultar o denunciar** (pendiente) el nombre del rival: botón «Ocultar nombres de rivales» en Ajustes o «Denunciar nombre» en la hoja
    final, con envío a `help@takethecourt.com` o a una colección de Firestore.
-4. Una línea en la política de privacidad o en unas condiciones: «No uses nombres ofensivos ni datos personales. Podemos
-   cambiar o borrar nombres que no cumplan esto.»
+4. Una línea en la política de privacidad: ya dice «No pongas tu nombre real ni otros datos personales», que hay un filtro
+   básico y que se puede avisar por correo de un nombre ofensivo. Falta, si se quiere, «Podemos cambiar o borrar nombres que no
+   cumplan esto» (hoy no hay forma de hacerlo desde el servidor: el nombre va en la sala, que dura lo que dura).
 
 Si se publica sin esto, contestar con honestidad si Play pregunta y tenerlo como primera mejora tras el lanzamiento.
