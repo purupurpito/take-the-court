@@ -388,13 +388,17 @@ alguien de tu equipo; nombres con aire del país en las ligas extranjeras. Hecho
   del árbitro en la previa ni en una ficha, así que su cara solo se ve en la silla durante el partido.
 - **Decisión provisional: quién dice la fama.** Siempre el entrenador («Alex (entrenador): Ojo, fama de mano dura»); en la
   playa, la mitad de los árbitros te los presenta tu pareja («Iker (tu pareja): …»), fijo por árbitro. Si cabe, dice el apellido del 1r.
+  Las frases son neutras («Tiene ojo de lince», «Suele dejar jugar», «Se agobia»), sin «este» ni «nervioso»: el árbitro no lleva
+  género y en los colegios hay tantas mujeres como hombres (revisión del 24-nov).
   Frases en `ARB_SAYS` (career-world.js); la línea cabe en 44 letras como antes, así que la frase es corta («Ojo, fama de mano dura»). Con recuerdo (tarjeta, frenada,
   protesta) sigue saliendo «1r: Nombre, te sacó amarilla en la J4».
 - **Decisión provisional: competiciones internacionales** (rival de otro país): pita un colegio NEUTRAL, de un país que no es ni el tuyo
   ni el del rival, como en la CEV (`arbKeyOf`, lista `ARB_NEU`). Las ligas y copas de tu país, el colegio de tu liga.
 - **Decisión provisional: estilos de nombre por país** (`ARB_STY` / `ARB_CC`): Bélgica con nombres franceses, Suiza y Austria alemanes,
   Serbia y Eslovenia comparten estilo, Argentina, Perú y Filipinas usan las piezas españolas con nombres de allí; nombre y UN apellido
-  (en España, dos). Cada estilo tiene su lista de apellidos reales que no pueden salir.
+  (en España, dos). Cada estilo tiene su lista de apellidos reales que no pueden salir. Revisión del 24-nov: fuera Garneau, Vauquelin, Vučić y Jovović
+  (personas famosas), Cabrão y Cabralho (insultos en portugués), los apellidos que son nombres de pila («Marko Marko», finales en -ko) y
+  grafías rotas (Pospííček, Brennner, Wiśnczyk, Tikhikhin, -ırım). tools/worldtest.js repasa ahora todos los apellidos posibles.
 - **Decisión provisional: carreras guardadas.** Los nombres no se guardan (salen de la semilla), así que los árbitros de ligas extranjeras
   ya vistos pasan a llamarse con el nombre del país, de forma coherente en todas partes; la libreta (tarjetas, protestas) sigue con ellos.
   Solo los mensajes viejos de la bandeja conservan el nombre de antes. Los de España y la playa no cambian.
@@ -484,7 +488,8 @@ durante un tiempo corto». Ya no hay repetición automática.
   de Firestore del 16-nov siguen tal cual (el comentario de cabecera de firebase/firestore.rules todavía da «S4_SYNC = true» como
   pendiente; no se ha tocado).
 - Un partido táctil de verdad provocando señas, y una Carrera de pista con un jefe y con un club con rencor.
-- Repasar los apellidos de los árbitros (España y cada país) por si alguno coincide con una persona conocida.
+- Repasar los apellidos de los árbitros de España y la playa (piezas ARB_R + ARB_S) por si alguno coincide con una persona conocida;
+  los de los otros países se repasaron el 24-nov.
 - Al juntar esta rama con main: main ya va por la 1.20.0 (Take the Court) y esta rama sube a la 1.21.0 sin la 1.20.0, así que
   js/version.js chocará y hay que dejar las dos entradas. También hay que pasar a la marca nueva el enlace de `js/semana.js link()` y el
   título de compartir de `js/semana-ui.js share()`.
