@@ -3828,7 +3828,9 @@
     var en = el.end; if (!en) return;
     var sh = en.querySelector('.sp-sheet'); if (!sh) return;
     var side = sh.querySelector(':scope>.end-side');
-    var on = document.documentElement.classList.contains('ph-s') && en.classList.contains('crs');
+    // (ronda final: apagado. Con .end-tl —el ojo de «Ver celebración» y «Opciones» en la columna izquierda— «Tu partido» y los objetivos
+    // quedaban debajo del ojo a 568; ahora se quedan en la hoja de la derecha y la columna izquierda es solo marcador, sets y el ojo)
+    var on = false && document.documentElement.classList.contains('ph-s') && en.classList.contains('crs');
     var back = function () {
       if (!side) return;
       Array.prototype.slice.call(side.children).forEach(function (n) {
@@ -4360,7 +4362,7 @@
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
-        case 'sit': blk('rc-sit', H.sit || 'Situación', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + escT(t) + '</span>'; }).join('')); break;
+        case 'sit': blk('rc-sit', H.sit || 'Situación', M.sit.lines.map(function (t, j) { return '<span class="rc-l' + (j === 2 && M.sit.isBest ? ' up' : '') + '">' + (document.documentElement.classList.contains('ph') ? escT(t).replace(/(\d+-\d+)/g, '<span style="white-space:nowrap">$1</span>') : escT(t)) + '</span>'; }).join('')); break;   // (el resultado «17-15» no se parte)
       }
     });
     return h;

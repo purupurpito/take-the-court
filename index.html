@@ -7385,6 +7385,98 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_) #intro .in-skip{margin-top:12px;font-size:14px}
 :root.ph:not(#_):not(#_):not(#_) #rpCap .rp-sub{font-size:14px}
 /* ==== fin «con aire» · PARTIDO ==== */
+/* ==== «con aire» · RONDA FINAL (movil-aire, 24-nov-2026; notes/movil-aire.md §8). Arreglos de las 7 verificaciones por zona + marketing:
+   primero lo roto (cortes, solapes, cosas perdidas), luego lo apretado. Todo bajo :root.ph con 4 :not(#_) (gana a los bloques de antes
+   sin !important); en PC no cambia nada ==== */
+/* títulos de parche: la caja de la línea ya no corta los rasgos que bajan (J, Q, Ç): +.12em de relleno abajo que el margen negativo devuelve */
+:root.ph:not(#_):not(#_):not(#_):not(#_) .sp-patch .sp-t{padding-bottom:.16em;margin-bottom:-.12em}
+/* ENTRENAMIENTO: la línea de cada prueba en 2 líneas (no «…» con media fila vacía) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu #gymList :is(.gy-d,.gy-free) .sp-s{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:clip;line-height:1.18}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu #gymList .gy-d.sp-btn{padding-top:5px;padding-bottom:5px}
+/* PRIMER PARTIDO: «Ver cómo se juega» entero (nada de «…» en un botón principal) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut .sp-t{font-size:min(var(--ph-patch),24px);overflow:visible;text-overflow:clip;letter-spacing:0}
+/* CÓMO SE JUEGA: «Paso N/6» en placa de tinta (no se mezcla con los rótulos 3D), «Anterior» = el mismo círculo de 44 que ‹ y,
+   a 568, sin los puntos (el paso ya lo dice la placa) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="tut"] .pn-head.ph-bar .pn-ph{flex:none;padding:5px 12px 4px;border-radius:10px 12px 9px 11px;background:var(--sp-ink);box-shadow:0 0 0 2px rgba(255,244,220,.3);font-size:var(--ph-label);text-shadow:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev{width:44px;min-width:44px;height:44px;min-height:44px;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev>.sp-blob{display:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev .sp-ic svg{width:18px;height:18px;fill:var(--sp-cream)}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav .dots{visibility:hidden}
+/* AJUSTES a 844+: el panel llena hasta el margen derecho (a 844 se quedaba en ~450 y partía las ayudas y las muestras) */
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"]>.sheet{width:var(--ph-ffw)}
+/* VESTUARIO a 568: el valor elegido debajo del rótulo (antes «Sin mang…» en la misma línea) */
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_) #menu .lk-r .mi-l{grid-template-columns:minmax(0,1fr);row-gap:1px}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-k{grid-column:1;font-size:12px;line-height:1.1}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-v{grid-column:1;line-height:1.15}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_) #menu .lk-r.sp-btn{min-height:52px}
+/* PERFIL: avisos («Hito…», «¡Perfil Nv 12!») abajo en el centro, nunca encima de la tarjeta de XP; «Elige un hueco…» en píldora de tinta;
+   nombres de hueco que caben (relleno lateral de 2 y espaciado 0); en el Cuaderno el detalle va en una franja abajo a todo el ancho
+   con FIJAR a la derecha: la rejilla conserva sus 4 (6) columnas */
+:root.ph:not(#_):not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts{top:auto;bottom:calc(var(--ph-gb) + 8px);left:50%;right:auto;translate:-50% 0}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu #pfFoot.pf-empty{justify-self:start;width:max-content;max-width:100%;padding:4px 12px;border-radius:10px 12px 9px 11px;background:rgba(21,16,42,.88);font-style:normal;color:var(--sp-cream);text-shadow:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu .pf-s{padding-left:2px;padding-right:2px}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{letter-spacing:-.01em;overflow-wrap:normal;word-break:normal}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpProf:has(#pfFoot.pf-rule){grid-template-columns:auto auto minmax(0,1fr);grid-template-areas:"rail head top" "rail ro ro" "rail grid grid" "rail foot foot"}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpProf:has(#pfFoot.pf-rule) .pf-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpProf:has(#pfFoot.pf-rule) .pf-grid{grid-template-columns:repeat(6,minmax(0,1fr))}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu #mpProf:has(#pfFoot.pf-rule) .pf-foot{flex-direction:row;align-items:center;gap:12px;align-self:stretch;max-height:none;overflow:visible}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu #mpProf:has(#pfFoot.pf-rule) #pfFoot{flex:1 1 auto;min-width:0;max-height:calc(3 * 1.3em + 16px);overflow-y:auto;padding:8px 12px;line-height:1.3;display:block;-webkit-line-clamp:none;text-overflow:clip;white-space:normal}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu #mpProf:has(#pfFoot.pf-rule) .pf-pin.sp-btn{flex:none;align-self:center;margin:0}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu.mj #btnPlay .sp-t{padding-bottom:.16em;margin-bottom:-.12em}
+/* (avisos del Perfil: arriba a la derecha, sobre la Vitrina; ni la tarjeta de XP ni el detalle del Cuaderno quedan debajo) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):has(#mpProf:not([hidden])) #spToasts{top:var(--ph-gt);bottom:auto;left:auto;right:var(--ph-g);translate:none;max-width:min(300px,42vw)}
+/* AJUSTES a 844+: la ayuda en 2 líneas (con el panel ancho caben casi todas; las que no, siguen con su «i») */
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>span:first-child>small{contain:none;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:clip}
+/* ENTRENAMIENTO a 844+: 2 columnas anchas (en 3 las líneas largas no cabían ni en 2 líneas) */
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #menu #gymList{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* PORTADA: la entrada de la lista sube en vez de llegar desde la izquierda (con -36 px, JUGAR asomaba fuera del borde mientras entraba) */
+@keyframes mjInPh{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu.mj .mlist>*{animation-name:mjInPh}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{letter-spacing:-.035em}
+/* HOJAS DE PARTIDO DE LA CARRERA: el MVP solo con nombre y puntos (las cifras de ataque y bloqueo se cortaban con «…» o salían del borde) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch>span:not(:first-child){display:none}
+/* HOJA FINAL › Cifras: el MVP a todo el ancho con una rejilla fija para rótulos y filas (dorsal | puntos | ataque | bloqueo | saque):
+   ya no se lee «Ataque BloqueoSaque» ni «24 19»; los puntos, en su pastilla */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #end #endStatsTab>#endMvp{width:100%;align-self:stretch;box-sizing:border-box}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #end #endMvp :is(.mvp-cols,.mvp){grid-template-columns:34px 52px repeat(3,minmax(0,1fr));column-gap:12px;padding-left:12px;padding-right:12px;box-sizing:border-box}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #end #endMvp .mvp-cols span{font-size:var(--ph-cap);white-space:nowrap;overflow:visible}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #end #endMvp .mvp strong{justify-self:start;padding:1px 8px;border-radius:8px;background:rgba(255,244,220,.12)}
+/* PAUSA: 12 entre «Reiniciar» y «Salir» también a 568 (dos salidas destructivas no van pegadas) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #pause #btnQuit{margin-top:10px}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #pause :is(#btnRestart,#btnQuit){justify-self:stretch;max-width:280px}
+/* HOJA DEL ENTRENO (y concursos de la Carrera): «Siguiente: …» vuelve a ser naranja (la acción que sigue) y «Entrenamiento» oscuro;
+   a 844+ apilados en la columna izquierda como a 568 (en fila, «ENTRENAMIENTO» no cabía) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn.sp-kit{background:var(--sp-kit,#ff7a1a);color:var(--sp-kit-ink,#fff);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(.cdr-g)) .ge-more{flex-direction:column;align-items:stretch}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #gymEnd:not(:has(.cdr-g)) .ge-more>.sp-btn{flex:none;padding:0 16px}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn .sp-t{white-space:nowrap}
+/* HOJAS DE LA CARRERA: «Menú» en tinta sólida con borde crema (el gris translúcido parecía desactivado) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn:not([hidden]),:root.ph:not(#_):not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn:is(.sp-ink,#btnGeList):not(.sp-kit){background:var(--sp-ink);box-shadow:0 0 0 2.5px rgba(255,244,220,.8),2px 3px 0 2.5px var(--sp-ink)}
+/* INSTALAR: «Novedades» de la portada no asoma bajo la hoja (se montaba sobre su botón a 568) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):has(#install:not([hidden])) #btnVer{visibility:hidden}
+/* OPINIONES (y Avisar de un bug en la pausa): «¿Dónde pasó?» parte en 2 filas en vez de cortar «MENÚS» por la derecha */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-where{flex-wrap:wrap;overflow:visible;row-gap:8px}
+/* ACERCA DE › Créditos: el rótulo a 13 (no 12) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card h3{font-size:var(--ph-cap)}
+/* AVISO DEL COLOCADOR: ACTIVAR arriba y «Ahora no» debajo (la principal primero); «No mostrar más» con 44 de alto real */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #setNote .sn-acts{flex-direction:column}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #setNote .sn-row [data-sn="never"]{padding-top:10px;padding-bottom:10px}
+/* CAMBIOS 6v6 a 844+: pista a la izquierda y banquillo a la derecha (no debajo), fichas de 104×72 con «3 pts | 1 err» (lo que sirve para
+   decidir el cambio) y la zona en pequeño en la esquina; «Tú» en la esquina de la ficha, fuera del dorsal */
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-cols{flex-direction:row;align-items:flex-start;justify-content:center;gap:28px}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #pnSubs #sbOn{grid-template-columns:repeat(3,104px);grid-auto-rows:72px}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #pnSubs #sbBench{display:grid;grid-template-columns:repeat(3,104px);grid-auto-rows:72px;gap:8px 10px;overflow:visible;padding:10px 6px 8px}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p{width:104px;height:72px;gap:2px}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-st{display:block;font-size:var(--ph-cap);line-height:1.1;white-space:nowrap}
+:root.ph.ph-w:not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p .sb-z:not(:empty){display:block;position:absolute;top:4px;left:7px;font:700 var(--ph-micro)/1 var(--sp-ui);color:rgba(255,244,220,.7)}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p em{top:-9px;right:-9px}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-t{flex:1 1 0;height:0;min-height:72px}
+:root.ph:not(#_):not(#_):not(#_):not(#_) #pnSubs .sb-p b{position:static}
+/* CONTROLES › Teclado / Mando: la ayuda gris al 78 % (al 65 % y a 13 px se leía mal) */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb .kl>small{color:rgba(255,244,220,.78)}
+/* RETOS › Hoy: las fichas del reto parten de línea (a 568 «A LOS DOS» se quedaba en «A») */
+:root.ph:not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-bits{flex-wrap:wrap;overflow:visible;row-gap:4px}
+/* ==== fin «con aire» · RONDA FINAL ==== */
 </style>
 
 <div id="app">

@@ -315,10 +315,12 @@
     var a = Lf().achList(c), done = a.filter(function (x) { return x.done; }).length;
     a.sort(function (x, y) { return (x.done ? 1 : 0) - (y.done ? 1 : 0) || (y.v / y.n) - (x.v / x.n); });
     if (qph()) {   // móvil (movil-aire §5.4): tarjetas de 3 líneas en 2 columnas, cercanos primero; el contador va en la pestaña y los conseguidos, plegados
+      // (ronda final: la recompensa corta, «+2 pts»; el texto largo se salía de la tarjeta y pisaba la de al lado)
+      var rwS = function (r) { return String(r || '').replace(/ puntos? de mejora/, ' pts').replace(/ seguidores/, ' seg.'); };
       var card = function (x) {
         var v = x.dec ? String(x.v).replace('.', ',') : num(x.v), n = x.dec ? String(x.n).replace('.', ',') : num(x.n);
         return '<div class="lf-a' + (x.done ? ' done' : '') + '">' + (x.done ? '<i class="lf-st" role="img" aria-label="Conseguido">✓</i>' : '') + '<b>' + esc(x.name) + '</b><small>' + esc(x.d) + '</small>' +
-          (x.done ? '<small>' + esc(x.reward) + '</small>' : '<div class="lf-gp">' + bar(x.v / x.n) + '<small>' + (x.pt ? esc(x.pt) : v + '/' + n) + ' · ' + esc(x.reward) + '</small></div>') + '</div>';
+          (x.done ? '<small>' + esc(rwS(x.reward)) + '</small>' : '<div class="lf-gp">' + bar(x.v / x.n) + '<small>' + (x.pt ? esc(String(x.pt).replace(/^Tu liga: nivel (\d+) de (\d+).*$/, 'Nivel $1/$2')) : v + '/' + n) + ' · ' + esc(rwS(x.reward)) + '</small></div>') + '</div>';
       };
       var todo = a.filter(function (x) { return !x.done; }), got = a.filter(function (x) { return x.done; });
       return '<div class="card lf-gph">' + H.q('Logros', 'Cada logro da su premio una sola vez: puntos de mejora, seguidores o dinero. Llevas ' + done + ' de ' + a.length + '.') +

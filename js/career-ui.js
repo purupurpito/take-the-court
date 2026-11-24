@@ -1397,6 +1397,9 @@
     PQ + ' .card>.cr-q:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
     // (en la 1ª tarjeta, más abajo: a -26 px rozaba el sello de la media de la cabecera)
     PQ + ' #crBody>.card:first-child:not(:has(>h3:first-child+.cr-q:last-child))>.cr-q{top:-21px}',
+    // (ronda final: el «?» dentro de la esquina de su tarjeta, no a caballo del borde: se montaba sobre la tarjeta de arriba y su «?»)
+    PQ + ' #crBody .card:not(:has(>h3:first-child+.cr-q:last-child))>.cr-q{top:6px;right:6px;transform:none}',
+    PQ + ' #crBody .card:not(:has(>h3:first-child+.cr-q:last-child)):has(>.cr-q)>h3:first-child{padding-right:52px}',
     // ofertas: nombre en una línea y las 4 cifras del trato a la vista, encima de «Firmar»
     PQ + ' .offer-full .bigname.cr-on{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .offer-full>.row{align-items:center}',
@@ -1441,6 +1444,12 @@
     PQ + ' #crSub.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,#000 calc(100% - 44px),transparent calc(100% - 28px));mask:linear-gradient(to right,#000 calc(100% - 44px),transparent calc(100% - 28px))}',
     PQ + ' #crSub.cr-ml .tb-row{-webkit-mask:linear-gradient(to right,transparent 28px,#000 44px);mask:linear-gradient(to right,transparent 28px,#000 44px)}',
     PQ + ' #crSub.cr-ml.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,transparent 28px,#000 44px,#000 calc(100% - 44px),transparent calc(100% - 28px));mask:linear-gradient(to right,transparent 28px,#000 44px,#000 calc(100% - 44px),transparent calc(100% - 28px))}',
+    // (ronda final: bajo los chevrones no se lee ninguna letra suelta —desvanecido hasta 44 opaco y 60— y la tira encaja pestañas enteras)
+    PQ + ' #crSub.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,#000 calc(100% - 60px),transparent calc(100% - 42px));mask:linear-gradient(to right,#000 calc(100% - 60px),transparent calc(100% - 42px))}',
+    PQ + ' #crSub.cr-ml .tb-row{-webkit-mask:linear-gradient(to right,transparent 42px,#000 60px);mask:linear-gradient(to right,transparent 42px,#000 60px)}',
+    PQ + ' #crSub.cr-ml.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,transparent 42px,#000 60px,#000 calc(100% - 60px),transparent calc(100% - 42px));mask:linear-gradient(to right,transparent 42px,#000 60px,#000 calc(100% - 60px),transparent calc(100% - 42px))}',
+    PQ + ' #crSub .tb-row{scroll-snap-type:x proximity;scroll-padding-inline:48px}',
+    PQ + ' #crSub .tb-row>.tab{scroll-snap-align:start}',
     PQ + ' #crSub.cr-ml::before,' + PQ + ' #crSub.cr-mr::after{content:"‹";position:absolute;top:50%;left:0;z-index:3;width:28px;height:28px;margin-top:-14px;display:grid;place-items:center;border-radius:50%;' +
       'background:var(--sp-ink);color:var(--sp-gold);box-shadow:0 0 0 2px var(--sp-cream);font:400 20px/1 var(--sp-pop);pointer-events:none}',
     PQ + ' #crSub.cr-mr::after{content:"›";left:auto;right:0}',
@@ -1474,7 +1483,8 @@
     PQ + ' .cr-tk .sp-t{max-width:100%;font-size:18px;line-height:1.12;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:unset}',
     PQ + ' .cr-tk .cr-est-b{align-self:flex-start;flex:none;width:auto;min-width:0;max-width:100%;margin:4px 0 0;padding:0 12px;--sp-h:44px;height:44px;min-height:44px;--sp-fs:var(--ph-label)}',
     PQ + ' .cr-tk .cr-est-b .sp-l{display:flex;flex-direction:row;align-items:center;gap:8px;white-space:nowrap}',
-    PQ + ' .cr-tk .cr-est-b .sp-chip{margin:0;font-size:var(--ph-cap)}',
+    PQ + ' .cr-tk .cr-est-b .sp-chip{margin:0;font-size:var(--ph-cap);min-width:0;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-tk .cr-est-b{overflow:hidden}',
     PQ + ' .cr-tk .cr-est-b .sp-t{flex:none;overflow:visible;text-overflow:clip}',
     PQ + ' .cr-next>.card.ph-dec{margin:4px 0 12px}',
     // avisos: pastillas de 44 (icono + una línea + ›), sin cola; la baja una sola vez (con el aviso de «De baja» en el contenido)
@@ -1483,7 +1493,8 @@
     PQ + ' .st-chips .sp-btn .sp-l{display:flex;flex-direction:row;align-items:center;width:100%;min-width:0}',
     PQ + ' .st-chips .sp-btn .sp-t{flex:1 1 auto;min-width:0;white-space:normal;overflow:hidden;line-height:1.12;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}',
     // (≥ 700: ticket y avisos en dos columnas; si la línea de datos no cabe en la del ticket, parte en dos, nunca con puntos suspensivos)
-    '@media (min-width:700px){' + PQ + ' .cr-two{grid-template-columns:minmax(0,1.4fr) minmax(0,1fr)}' + PQ + ' .cr-two .cr-tk .sp-k{display:block;white-space:normal;-webkit-line-clamp:unset;overflow:visible}}',
+    // (ronda final: columna izquierda al 60 % —ticket, selección y propuesta no se parten— y la línea meta en UNA línea con «…», sin subir sobre la tarjeta)
+    '@media (min-width:700px){' + PQ + ' .cr-two{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}' + PQ + ' .cr-two .cr-tk .sp-k{display:block;white-space:nowrap;-webkit-line-clamp:unset;overflow:hidden;text-overflow:ellipsis}}',
     PQ + ' .st-chips .sp-btn .sp-s{display:none}',
     PQ + ' .st-chips .sp-btn .sp-l::after{content:"›";flex:none;margin-left:8px;font:400 20px/1 var(--sp-pop)}',
     PQ + ' #crBody:has(.bench) .st-chips .sp-btn[data-tab="player"][data-s="train"]{display:none}',
@@ -1521,6 +1532,7 @@
     // Estrellas (votación) justo tras el partido; gala de premios arriba del fin de temporada
     PQ + ' #crBody[data-cv^="match"]>.card.as-card{order:-1}',
     PQ + ' #crBody[data-cv^="match"]>.card.cpr-gala{order:-3}',
+    PQ + ' #crBody[data-cv^="match"]>.card.ph-dec-top{order:-4}',   // (ronda final: la selección del verano, encima de la gala)
     // hoja de ligas (fuera de #career: #spSheets)
     '#spSheets .cr-lgs .cr-lgs-g{margin:10px 0 6px;font:400 var(--ph-label,14px)/1.1 var(--sp-pop);letter-spacing:.03em;color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink)}',
     '#spSheets .cr-lgs .cr-lgs-g:first-child{margin-top:0}',
@@ -1721,12 +1733,13 @@
     PQ + ' .cr-matep .cr-mth{align-items:center;gap:12px;flex-wrap:nowrap}',
     PQ + ' .pt.cr-pt48{flex:none;width:48px;height:48px;border-radius:11px}',
     PQ + ' .cr-matep .cr-chn{font-size:18px!important}',
-    PQ + ' .cr-matep .cr-mtc{margin:4px 0 0!important;white-space:nowrap;overflow-x:auto;scrollbar-width:none}',
+    PQ + ' .cr-matep .cr-mtc{margin:4px 0 0!important;white-space:normal;display:flex;flex-wrap:wrap;gap:4px 6px;overflow:visible}',   // (ronda final: las fichas parten de línea; antes se cortaban en seco por la derecha)
     PQ + ' .cr-matep .cr-chem{margin:8px 0 6px}' + PQ + ' .cr-matep .cr-chem>p{font:600 var(--ph-label)/1.2 var(--sp-ui)}',
     PQ + ' .cr-matep .meter{height:8px}',
     // Club › Contrato: la caja de cifras y el rol en una línea con su «?»
     PQ + ' .cr-ctl{display:flex;align-items:center;gap:10px;margin:6px 0 0}',
     PQ + ' .cr-ctl>p{flex:1 1 auto;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-cap)}',
+    PQ + ' .cr-ctl>p.cr-ctr{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-overflow:clip;line-height:1.25}',   // (ronda final: la regla del rol en 2 líneas)
     // Club › Ofertas / cesiones: ofertas de una fila con «Ir cedido» de 48 a la derecha, el bloqueo arriba en rojo, condiciones en una tira
     PQ + ' .ln-ph .ln-why{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 6px;font-size:var(--ph-cap)}',
     PQ + ' .ln-ph .ln-cond{margin:0 0 4px;white-space:nowrap;overflow-x:auto;scrollbar-width:none}',
@@ -1769,6 +1782,7 @@
     PQ + ' .cr-lookp .cr-lkn>b{font:400 var(--ph-num)/1 var(--sp-pop);color:var(--sp-gold)}',
     PQ + ' .cr-lookp .cr-lkn>small{display:block;font-size:var(--ph-cap);opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .cr-lookp .cr-lknu{color:var(--sp-gold);font-weight:700}',
+    PQ + ' .cr-lookp .cr-lkn{white-space:normal;overflow:visible;text-overflow:clip}',   // (ronda final: «67/155 · 2 nuevos» entero; la 2.ª línea lleva su propio «…»)
     PQ + ' .cr-lookp .cr-lkr>.acts{flex:none;margin:0}',
     PQ + ' .cr-lookp .cr-lkr>.acts>.sp-patch{--sp-ph:48px;--sp-pt:18px}',
     PQ + ' .cr-lookp .cr-lkr>.acts>.sp-patch .sp-t{white-space:nowrap}',
@@ -1864,7 +1878,8 @@
     LV('league-table') + ' button.cw-tl-b{line-height:44px;min-height:44px}',
     LV('league-table') + ' table thead th{top:-10px;height:30px;box-shadow:0 -10px 0 var(--sp-ink)}',
     PS + ' #crBody[data-cv="league-table"] td{height:36px}',
-    PS + ' #crBody[data-cv="league-table"] button.cw-tl-b{line-height:36px;min-height:36px}',
+    // (ronda final: el botón del club mide 44 de alto —toque mínimo— con −4 arriba y abajo: la fila se sigue viendo de 36)
+    PS + ' #crBody[data-cv="league-table"] button.cw-tl-b{display:inline-block;line-height:44px;min-height:44px;margin:-4px 0;vertical-align:middle}',
     // ---- Liga › Calendario: filas de 40 separadas 4 y centradas; sin «Pendiente»; desvanecido arriba al desplazar
     LV('league-cal') + '>.card{padding-top:8px}',
     LV('league-cal') + ' .cal{gap:4px}',
@@ -1929,6 +1944,11 @@
     ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .card.tc.tc-ph{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:18px}',   // (a 844+: las vacías, de dos en dos)
     ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .tc-ph .tc-pg:not(.empty){grid-column:1/-1}',
     PQ + ' .tc-ph .tc-pg.empty .tc-n{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+    // (ronda final: el nombre del título vuelve bajo cada hueco —12, 2 líneas— y el rótulo del grupo arriba, entero: «Internacional»)
+    PQ + ' .tc-ph .tc-pg.empty{align-items:start}',
+    PQ + ' .tc-ph .tc-pg.empty>h4.tc-g{white-space:normal;overflow:visible;text-overflow:clip;padding-top:6px}',
+    PQ + ' .tc-ph .tc-pg.empty button.tc-slot{width:76px;min-height:44px;flex-direction:column;justify-content:flex-start;gap:3px}',
+    PQ + ' .tc-ph .tc-pg.empty .tc-n{position:static;width:auto;height:auto;margin:0;overflow:hidden;clip:auto;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font:600 var(--ph-micro)/1.12 var(--sp-ui);text-align:center;opacity:.8}',
     // selección (Vitrina): una línea con «Ver selección» de 44 a la derecha
     LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"]){display:flex;align-items:center;gap:12px;flex-wrap:nowrap}',
     LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"])>p{flex:1 1 auto;min-width:0;margin:0;font-size:var(--ph-cap)}',
@@ -1984,11 +2004,11 @@
     PQ + ' .lf-gph .lf-ach{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}',
     ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .lf-gph .lf-ach{grid-template-columns:repeat(3,minmax(0,1fr))}',
     PQ + ' .lf-gph .lf-a{min-width:0;padding:8px 10px}',
-    PQ + ' .lf-gph .lf-a>b{display:block;font-size:var(--ph-row);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .lf-gph .lf-a>b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font-size:var(--ph-row);line-height:1.15;white-space:normal;overflow:hidden;text-overflow:clip}',   // (ronda final: el nombre en 2 líneas, sin «…»)
     PQ + ' .lf-gph .lf-a>small{display:block;margin:1px 0 0;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    PQ + ' .lf-gph .lf-gp{display:grid;grid-template-columns:minmax(36px,1fr) auto;align-items:center;gap:8px;margin:5px 0 0}',
+    PQ + ' .lf-gph .lf-gp{display:grid;grid-template-columns:minmax(28px,1fr) minmax(0,max-content);align-items:center;gap:8px;margin:5px 0 0}',
     PQ + ' .lf-gph .lf-gp>.bar{height:6px;margin:0}',
-    PQ + ' .lf-gph .lf-gp>small{font:700 var(--ph-micro)/1.2 var(--sp-ui);white-space:nowrap;color:var(--sp-gold)}',
+    PQ + ' .lf-gph .lf-gp>small{font:700 var(--ph-cap)/1.2 var(--sp-ui);white-space:nowrap;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--sp-gold)}',
     PQ + ' .lf-gph .lf-gd{margin:10px 0 0}',
     PQ + ' .lf-gph .lf-gd>summary{display:flex;align-items:center;min-height:44px;padding:0 4px;font:700 var(--ph-label)/1.2 var(--sp-ui);cursor:pointer}',
     PQ + ' .lf-gph .lf-gd>summary:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-gold);border-radius:10px}',
@@ -1999,6 +2019,8 @@
     PQ + ' #crBody .ss-pph .ss-track.ss-hz{display:flex;align-items:center;gap:8px;margin:0 -6px;padding:8px 10px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;' +
       '-webkit-mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 16px),transparent);mask-image:linear-gradient(90deg,transparent,#000 16px,#000 calc(100% - 16px),transparent)}',
     PQ + ' #crBody .ss-hz .ss-n{flex:none;width:60px;min-height:56px;transform:none}',
+    PQ + ' #crBody .ss-hz .ss-n.pz,' + PQ + ' #crBody .ss-hz .ss-n.cur{width:auto;min-width:64px;padding-left:6px;padding-right:6px}',   // (ronda final: «Prenda» entera)
+    PQ + ' #crBody .ss-hz .ss-n small{white-space:nowrap;word-break:keep-all;overflow-wrap:normal}',
     PQ + ' #crBody .ss-hz .ss-n:not(.pz):not(.cur){width:20px;height:20px;min-height:20px;padding:0;border-radius:50%}',
     PQ + ' #crBody .ss-hz .ss-n:not(.pz):not(.cur) b{font:700 12px/1 var(--sp-ui)}',
     PQ + ' #crBody .ss-hz .ss-n.nx{outline:2.5px solid var(--sp-gold);outline-offset:1px}',
@@ -2155,7 +2177,9 @@
     var prop = q('.card.cdv-off:not(.cdv-done)'), ntb = q('.card [data-act="nt-play"],.card [data-act="nt-sim"]'), lnb = q('.card [data-act="ln-go"]');
     var nt = ntb && ntb.closest('.card'), ln = lnb && lnb.closest('.card'), nx = q('.cr-next');
     if (prop && !prop.querySelector('[data-act="dv-pos-ok"]')) prop = null;
-    var cur = prop || nt || ln, dk = prop || (nt && !nx ? nt : null), acts = null;
+    // (ronda final: en el fin de temporada «Ver ofertas» / «Seguir en…» se queda en la barra; la selección va de franja con sus botones dentro)
+    var endS = q('.card>.acts:has(>.pri:is([data-s="offers"],[data-act="stay"]))');
+    var cur = prop || nt || ln, dk = prop || (nt && !nx && !endS ? nt : null), acts = null;
     if (dk === prop && prop) acts = prop.querySelector('.acts:has(>[data-act="dv-pos-ok"])');
     else if (dk) {   // selección sin jornada del club: «Jugar · ESP contra ROU» (o Simular, si no te pone) y Simular; «Ver torneo» se queda
       var play = nt.querySelector('[data-act="nt-play"]'), sim = nt.querySelector('[data-act="nt-sim"]'), vs = nt.querySelector('p b'), main = play || sim;
@@ -2175,6 +2199,7 @@
       if (cur !== prop) { var ps2 = cur.querySelectorAll(':scope>h3,:scope>p'); for (var j = 0; j < ps2.length; j++) ps2[j].setAttribute('data-ph-ell', ''); }
       var tk = nx && nx.querySelector(':scope>.cr-tk');   // (justo bajo el ticket, antes de la baja y de «Jugar»)
       if (tk) tk.parentNode.insertBefore(cur, tk.nextSibling);
+      else if (endS) cur.classList.add('ph-dec-top');   // (sin ticket: arriba del todo, encima de la gala de premios)
     }
   }
   /** Móvil: la acción principal que vive al pie de una ficha larga (Firmar / Pedir más rol de una oferta, Saltar a la pista /
@@ -2411,7 +2436,8 @@
   /** Desplaza el contenido hasta el ancla id (la cabecera pegada queda arriba). */
   function phGo(id, smooth) {
     var t = body && body.querySelector('#' + id); if (!t) return false;
-    try { var y = body.scrollTop + t.getBoundingClientRect().top - body.getBoundingClientRect().top - 2; if (smooth && body.scrollTo) body.scrollTo({ top: y, behavior: 'smooth' }); else body.scrollTop = y; } catch (e) { return false; }
+    // (ronda final: 14 de margen, el sello de la sección asoma entero)
+    try { var y = body.scrollTop + t.getBoundingClientRect().top - body.getBoundingClientRect().top - 14; if (smooth && body.scrollTo) body.scrollTo({ top: y, behavior: 'smooth' }); else body.scrollTop = y; } catch (e) { return false; }
     return true;
   }
   /** Tras pintar (móvil): Temporadas / Legado piden su ancla al entrar; las tiras [data-ph-center] dejan su elegida al centro. */
@@ -2728,7 +2754,7 @@
       var bf = null; try { bf = LIFE() && LIFE().bossFor ? LIFE().bossFor(c, n.rival.id) : null; } catch (e) { bf = null; }   // S3 C3: el jefe del circuito juega en su club
       // SPLAT: entrada en brochazo turquesa (los dos escudos en pegatina), el parche «Jugar partido» y, en una hoja, los detalles
       var jefe = bf ? ' <span class="sp-chip sp-danger">Jefe</span>' : '';
-      var kick = PH() ? phKick(n.label, C().PTS, [lg ? ordn(pr) : '', 'IA ' + esc(n.diffName || diffName(n.diff))]) + jefe : sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + jefe;
+      var kick = PH() ? phKick(n.label, C().PTS, [lg ? ordn(pr) : '', 'IA ' + esc(String(n.diffName || diffName(n.diff)).replace(/ suave$/, ''))]) + jefe : sp(esc(n.label).split(' · ').concat(['Sets a ' + C().PTS]), 'v') + jefe;
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (en .cr-two: dos columnas en el móvil apaisado)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
@@ -3043,7 +3069,7 @@
     try { nu = X.unseen ? (X.unseen() || []).length : 0; } catch (e) { nu = 0; }
     if (PH()) {   // móvil (movil-aire §5.3): una fila (colores · «67/155 · 2 nuevos» · «Vestuario ›») y las frases tras «?»
       return '<div class="card cr-lookp"><div class="cr-lkr">' + (k ? kitSw(k.kit) : '') + '<p class="cr-lkn"><b>' + have + '/' + all.length + '</b>' + (nu ? ' · <span class="cr-lknu">' + plural(nu, 'nuevo', 'nuevos') + '</span>' : '') +
-        (fit ? '<small>' + esc(hallC ? 'En pista' : 'En playa') + ' · ' + esc(lookName(X, fit.style) || '—') + '</small>' : '') + '</p>' +
+        (fit ? ' <small>' + esc(hallC ? 'En pista' : 'En playa') + ' · ' + esc(lookName(X, fit.style) || '—') + '</small>' : '') + '</p>' +
         qBtn('Vestuario', 'Con los colores de tu club. Solo estética: no cambia cómo juegas. ' + (mine ? '' : (hallC ? 'Tu jugador lleva su aspecto de siempre hasta que guardes uno en el vestuario. ' : 'Llevas el aspecto de tu n.º 1 de Partido rápido hasta que guardes uno propio en el vestuario. ')) +
           'Más objetos con la fama, los logros y los premios de la Carrera, o en Fama › Tienda. Lo que ganas vale también en Partido rápido.') +
         '<div class="acts"><button class="pri" data-act="look-open"' + (can ? '' : ' disabled') + '>Vestuario ›</button></div></div></div>';
@@ -3388,7 +3414,7 @@
       var side = storySide(c);   // career-story: avisos, «Tu semana» y el plan plegado (como en la playa)
       var mIn = side && mc && PH(); if (mIn) h = h.slice(0, h.length - mc.length);   // (móvil con avisos: Faro justo bajo el ticket, dentro de .cr-two; detrás de los avisos y los detalles no se veía)
       if (PH()) h += xm;   // (móvil: el botón va en la barra de abajo; en PC el hueco va tras el ticket, para no tapar «Jugar partido»)
-      var k6 = PH() ? phKick(n.label, c.points, [same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short), 'IA ' + esc(n.diffName)]) : sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v');
+      var k6 = PH() ? phKick(n.label, c.points, [same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short), 'IA ' + esc(String(n.diffName || '').replace(/ suave$/, ''))]) : sp(esc(n.label).split(' · ').concat(['Sets a ' + c.points]), 'v');
       h += (side ? '<div class="cr-two">' : '') + '<div class="cr-next">' + ticketHTML(c, n.me, rvShow, k6, (n.atHome ? 'vs ' : 'en ') + esc(PH() ? shortClub(n.rival) : n.rival.name),
         PH() ? [] : [sp([same ? (lg ? ordn(C().posOf(c, n.rival.id)) : '') : esc(RL.short + ', ' + RL.country), 'Media ' + n.ovrRival, 'IA ' + esc(n.diffName),
           alt && alt.kind === '2a' ? '2ª equipación' : alt && alt.kind === 'cpu' ? 'Equipación neutral' : ''], 'v'),
@@ -3474,7 +3500,7 @@
     var T = studyTexts(c); if (!T) return '';
     var chip = '<i class="sp-chip ' + T.chip[1] + '">' + esc(T.chip[0]) + '</i>';
     if (PH()) return '<button type="button" class="sp-btn sp-sm sp-ink cr-est-b" data-act="est" data-shape="7" aria-label="' + esc('Informe del rival. ' + T.plain) + '">' +
-      '<span class="sp-l"><span class="sp-t">Informe</span>' + chip + '</span></button>';
+      '<span class="sp-l"><span class="sp-t">Informe</span>' + chip.replace('>Te tienen estudiado<', '>Te estudian<') + '</span></button>';   // (ronda final: corto, cabe en el botón)
     return '<div class="card cr-est" role="group" aria-label="' + esc('Informe del rival. ' + T.plain) + '"><h3>Informe del rival</h3>' +
       '<p><b>Ellos:</b>' + esc(T.riv) + '</p>' + (T.srv ? '<p><b>Saque:</b>' + esc(T.srv) + '</p>' : '') +
       '<p><b>Tú:</b>' + chip + esc(T.me) + '</p></div>';

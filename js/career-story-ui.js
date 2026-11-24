@@ -195,7 +195,8 @@
       var q = s.feed.filter(function (x) { return x && x.o && x.ans === -1 && !(s.mN > x.exp); }).length;
       if (q) out.push({ p: 2, ic: '✉', t: q === 1 ? 'Un mensaje' : q + ' mensajes', x: 'Por responder', tab: 'inbox', s: 'box' });
     }
-    return out.filter(function (x) { return obj(x) && typeof x.t === 'string' && clean(x.t); }).map(function (x, i) { return { x: x, i: i }; })
+    var phM = !!(VB.Splat && VB.Splat.phone && VB.Splat.phone());   // (móvil: «N mensajes» fuera, ya lo dice el sobre de la cabecera)
+    return out.filter(function (x) { return obj(x) && typeof x.t === 'string' && clean(x.t) && !(phM && x.tab === 'inbox' && x.s === 'box' && x.ic === '✉'); }).map(function (x, i) { return { x: x, i: i }; })
       .sort(function (a, b) { return ((+a.x.p || 0) - (+b.x.p || 0)) || a.i - b.i; }).map(function (o) { return o.x; });
   }
   function chipBtn(ch, i) {

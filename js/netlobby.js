@@ -859,6 +859,10 @@
     PP + '#mpOnline .ol-fx .fx-chips .fx-vchip{max-width:11em}',
     PP + '#mpOnline .ol-fx .fx-go{min-height:44px;padding:0 10px 0 12px}',
     PP + '#mpOnline .ol-fx.fx-off{--sp-c:var(--sp-ink2);--sp-d:var(--sp-ink2);--sp-tc:var(--sp-cream);color:var(--sp-cream)}' + PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.55}',
+    // (ronda final: lo no disponible se sigue leyendo —.8—; «+ Crear sala» en una línea también a 568)
+    PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.82}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act .sp-t{white-space:nowrap}',
+    ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act.ol-new{--sp-fs:var(--ph-label);--sp-px:8px}',
     PP + '#mpOnline .mk-prev .fx-chips i+i::before{content:none}' + PW + '#mpOnline .mk-go .sp-patch .sp-t{font-size:22px;white-space:nowrap}',
     PP + '#mpOnline .ol-who{height:44px;min-height:44px;padding:0 12px 0 14px}',
     PP + '#mpOnline .ol-who small{display:none}',
@@ -945,7 +949,7 @@
       '<span class="sp-tk-main fx-main"><small class="sp-k fx-k">' + kind + (vn && vn !== kind ? '<i class="ol-sep" aria-hidden="true"></i>' + esc(vn) : '') + '</small>' +
       '<span class="fx-line"><b class="fx-name" title="' + esc(r.name) + '">' + esc(r.name) + '</b><i class="fx-vs">VS</i>' +
       '<span class="fx-slot' + (full ? ' in' : '') + '">' + (full ? esc(r.gname || 'Rival') : '?') + '</span></span>' +
-      '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" data-ph-ell aria-hidden="true">' + esc(vn) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
+      '<span class="fx-chips">' + (vn && vn !== kind ? '<i class="fx-vchip" data-ph-ell aria-hidden="true">' + esc(String(vn).replace(/^(Poliesportiu|Polideportivo|Pabellón|Pavelló)\s+/, '')) + '</i>' : '') + chipsHTML(r) + '</span></span>' +
       '<span class="fx-end"><span class="fx-st ' + (r.other ? 'st-ver' : full ? 'st-full' : 'st-open') + '">' + (r.other ? 'Otra versión' : full ? 'Llena' : 'Abierta') + '</span>' +
       (off || o.prev ? '' : '<span class="fx-go">Entrar' + GO_IC + '</span>') + '</span></span></' + tag + '>';
   }

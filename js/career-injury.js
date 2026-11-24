@@ -501,6 +501,9 @@
       PQ + ' .inj .pbar span,' + PQ + ' .inj .pbar b,' + PQ + ' .inj .inj-lbl{font-size:var(--ph-label)}',
       PQ + ' .inj .acts{display:grid;grid-template-columns:1fr 1fr;gap:var(--ph-hit-gap)}',
       PQ + ' .inj .acts>*{min-height:44px;max-width:none;min-width:0}',
+      // (ronda final: la frase de debajo, a más distancia que la cola de los botones-mancha, que la pisaba; «Vuelves en 3» con la letra de la fila)
+      PQ + ' .inj .acts+p.muted{margin-top:16px}',
+      PQ + ' .inj .inj-pb>span:first-child b{font:700 var(--ph-row)/1.15 var(--sp-ui);letter-spacing:0;text-transform:none}',
       PQ + ' .card.inj{margin-top:var(--ph-s3,12px)}',
       PQ + ' .inj .inj-doll{width:clamp(52px,7.5vw,68px)}',
       PQ + ' .inj .sp-btn .sp-s{font-size:var(--ph-cap)}',

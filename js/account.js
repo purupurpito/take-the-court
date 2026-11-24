@@ -660,6 +660,10 @@
     PP + '#account .ac-user{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;column-gap:10px}',
     PP + '#account .ac-user>span:nth-child(2){min-width:0}',
     PP + '#account .ac-user .ac-syncb{margin-left:0}',
+    // (ronda final: «↻ Sincronizar» como píldora de 44 con su palabra, junto a Cerrar sesión; en la tarjeta del nombre partía «jugador / a7»)
+    PP + '#account .ac-c1 .ac-row2 .ac-syncb{width:auto;min-width:44px;margin:0;padding:0 16px 0 12px;display:inline-flex;align-items:center;gap:8px;border-radius:14px 18px 13px 17px/16px 13px 18px 14px;font:700 var(--ph-label)/1 var(--sp-ui);white-space:nowrap}',
+    PP + '#account .ac-user b{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}',
+    PP + '#account .ac-user .ac-sync{white-space:nowrap}',
     PP + '#account .ac-syncb{flex:none;margin-left:auto;width:44px;height:44px;display:grid;place-items:center;padding:0;border:0;border-radius:50%;background:var(--sp-kit,#ff5a2c);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer}',
     PP + '#account .ac-syncb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
     PP + '#account .ac-syncb:disabled{opacity:.5}',
@@ -723,14 +727,14 @@
       var st = status === 'busy' ? 'Sincronizando…' : status === 'error' ? (lastErr || 'Sin conexión') + ' Se reintentará solo.' : 'Nube · ' + ago(lastSync);   // (móvil: corto y en una línea)
       h ='<div class="ac-wrap ac-two"><div class="ac-sheet sp-panel"><div class="ac-c1"><h2 class="ac-sr" id="acTitle">Tu cuenta</h2>' +
         '<div class="ac-user"><span class="ac-av" aria-hidden="true">' + esc(acc.user.charAt(0).toUpperCase()) + '</span><span><b>' + esc(acc.user) + '</b><small class="ac-sync' + cls + '">' + esc(st) + '</small></span>' +
-        (view === 'del' ? '' : '<button type="button" class="ac-syncb" data-ac="sync" aria-label="Sincronizar ahora" title="Sincronizar ahora"' + (status === 'busy' ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3"/><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3"/><path d="M17.8 3v4.2h-4.2"/><path d="M6.2 21v-4.2h4.2"/></svg></button>') + '</div>' +
-        (view === 'del' ? '' : '<div class="ac-row2">' + spb('out', 'Cerrar sesión', 'sp-cream', 1) + '</div>') + '</div><div class="ac-c2">' +
+        '</div>' +
+        (view === 'del' ? '' : '<div class="ac-row2">' + '<button type="button" class="ac-syncb" data-ac="sync"' + (status === 'busy' ? ' disabled' : '') + '><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 0 1-12.8 5.3"/><path d="M4.5 12a7.5 7.5 0 0 1 12.8-5.3"/><path d="M17.8 3v4.2h-4.2"/><path d="M6.2 21v-4.2h4.2"/></svg><span>Sincronizar</span></button>' + spb('out', 'Cerrar sesión', 'sp-cream', 1) + '</div>') + '</div><div class="ac-c2">' +
         (view === 'del'
           ? '<div class="ac-del" role="alert"><h3>¿Borrar la cuenta?</h3><p>Se borran la cuenta y todo lo guardado en ella (jugadores, Carreras, perfil, Vestuario, récord y ajustes). No se puede deshacer. Lo de este dispositivo se queda.</p></div>' +
 ''
           : '<p>Tu progreso se guarda solo en tu cuenta. Entra igual en otro dispositivo' + (acc.kind === 'google' ? ' (con Google)' : '') + ' para seguir donde lo dejaste.</p>' +
             '<button type="button" class="ac-quiet" data-ac="del">Borrar la cuenta</button>') + '</div>' +
-        (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('cancel', 'No, volver', 'sp-cream ac-l', 2) + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger pri', 3) + '</div>' : '') + '</div>';
+        (view === 'del' ? '<div class="ac-acts ac-dacts">' + spb('delYes', 'Sí, borrar la cuenta', 'sp-danger ac-l', 3) + spb('cancel', 'No, volver', 'sp-cream pri', 2) + '</div>' : '') + '</div>';
     } else {
       var create = tab === 'new';
       h = '<div class="ac-wrap"><div class="ac-sheet sp-panel"><h2 class="ac-sr" id="acTitle">Cuenta: ' + (create ? 'crear cuenta' : 'entrar') + '</h2>' +
