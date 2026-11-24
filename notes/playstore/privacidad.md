@@ -36,8 +36,8 @@ Se sustituyen tal cual en los dos ficheros; luego `STRICT_POLICY=1 node tools/bu
 
 ## Si cambia el código, cambia la política
 La política describe la 1.22.0 tal cual (inventario del 24-nov-2026). Hay que tocar las dos páginas (es y en) si:
-- `js/netlog.js` cambia de contenido, gana un interruptor, cambia el plazo (`KEEP_MS`, hoy 90 días con TTL) o deleteAccount empieza
-  a borrar `netlogs/{uid}_*` (hoy: 90 días cuando el TTL esté activo, no se borra con la cuenta, no se puede desactivar);
+- `js/netlog.js` cambia de contenido, gana un interruptor, cambia el plazo (`KEEP_MS`, hoy 90 días: tarea «TTC netlogs» del PC) o deleteAccount empieza
+  a borrar `netlogs/{uid}_*` (hoy: 90 días en el PC del responsable, no se borra con la cuenta, no se puede desactivar);
 - se enciende el TURN (`VB.NET_TURN_URL` en js/netconfig.js; la política dice que no hay retransmisión y policytest lo vigila);
 - cambia el nombre por defecto del online (netlobby.js `defaultName`, hoy «Jugador NNNN») o el filtro (js/namefilter.js), se
   añade chat, denuncias o bloqueo;

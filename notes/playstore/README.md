@@ -60,18 +60,14 @@ En el juego: Ajustes › Info › «Privacidad» abre la política en otra pesta
 
 1. **Nombre del paquete** (permanente). Propuesta: `com.takethecourt.app` (ya puesta en `android/twa-manifest.json` y en `pages/.well-known/assetlinks.json`).
 2. **Nombre público de desarrollador** y si se declara **comerciante en la UE** (si sí, se publican dirección y teléfono).
-3. **Informes de red (netlogs): 90 días con TTL (elegido y hecho en el código el 24-nov-2026).** Las páginas ya dicen «90 días».
-   Para que sea verdad, ANTES de publicar la web con estas páginas (pasos del dueño, en este orden):
-   1. Desplegar las reglas (desde `firebase/`: `npx firebase-tools deploy --only firestore:rules`), mejor ANTES que la web. Con la
-      web primero no se pierde ningún informe (el juego repite sin `exp` y, al cerrar la pestaña, manda sin `exp` si no sabe que se
-      acepta), pero quedan más sin caducidad. En la versión siguiente, `EXP_RULES = true` en js/netlog.js. Cuando no queden clientes
-      1.22.0, hacer `exp` obligatorio en las reglas. Los que se queden sin `exp` (notes/net.md «Caducidad»), borrarlos a mano.
-   2. Activar la política TTL: `gcloud firestore fields ttls update exp --collection-group=netlogs --enable-ttl --project=make-the-cut-vb`
-      o en la Consola de Firebase/Google Cloud: Firestore › Time-to-live (TTL) › Crear política › grupo de colecciones `netlogs`,
-      campo `exp`. Tarda un rato en activarse. **Comprobar** que el TTL funciona en el plan Spark (gratis): no lo sé seguro; si la
-      Consola pide el plan Blaze, decidir entre pasar a Blaze o quitar «90 días» de las páginas.
-   3. Borrar a mano los informes de antes (no llevan `exp` y el TTL no los toca): visor `netlogs.html` o la Consola.
-   Si además se quiere que se borren al borrar la cuenta: Cloud Function al borrar el usuario (plan Blaze).
+3. **Informes de red (netlogs): 90 días, guardados en el PC de Ferran (decidido el 24-nov-2026).** El TTL de Firestore pide el plan
+   Blaze (la Consola da «billing disabled»), así que Firestore `netlogs` es solo el buzón de paso: la tarea programada «TTC netlogs»
+   de ese PC (`carpetas/ttc-netlogs`, fuera del repo) los baja cada día a archivos, los borra de Firestore y borra los archivos de
+   más de 90 días; también se lleva los informes viejos sin `exp`. Las páginas lo dicen así. Reglas ya desplegadas (24-nov, aceptan
+   `exp`, que ahora es solo informativo). Falta [TÚ]: crear la cuenta de servicio (rol «Usuario de Cloud Datastore»), descargar su
+   clave JSON y ejecutar `carpetas/ttc-netlogs/guardar-clave.ps1` con ella. Si el PC pasa días apagado, los informes esperan en
+   Firestore hasta que se encienda.
+   Si además se quiere que se borren al borrar la cuenta: Cloud Function al borrar el usuario (plan Blaze), o pedirlo por correo.
 4. **Otro dispositivo con la sesión abierta** puede volver a subir partidas durante una hora como mucho después de borrar la
    cuenta (su token sigue vigente). La página lo avisa. Solo lo arregla del todo una Cloud Function al borrar el usuario.
 5. **Edad.** La política dice 14 años para la cuenta y el online; la ficha recomienda público 16+ (más estricto a propósito,

@@ -61,7 +61,8 @@ if (SRC['privacidad.html']) {
     // (24-nov-2026) netlogs con exp = +90 días y política TTL (notes/net.md «Caducidad de los informes»): la página dice 90 días y
     // que borrar la cuenta no los adelanta; el código y las reglas se comprueban abajo
     ['los informes de red caducan a los 90 días y la cuenta no los adelanta', /Informes de red:<\/b> 90 días[\s\S]*no se borran antes de tiempo/, /Network reports:<\/b> 90 days[\s\S]*does not delete them earlier/],
-    ['el informe de red se borra solo a los 90 días', /Se borra solo a los 90 días/, /deleted automatically after 90 days/],
+    ['el informe de red se borra solo a los 90 días', /se borra solo a los 90 días/i, /deleted automatically after 90 days/],
+    ['el informe de red se guarda en un ordenador del responsable y pasa por la base de datos solo hasta descargarlo', /ordenador del responsable[^]*solo hasta que lo descargamos/, /computer of the controller[^]*only until we download it/],
     ['IP al rival y STUN', /dirección IP[\s\S]*STUN|STUN[\s\S]*dirección IP/, /IP address[\s\S]*STUN|STUN[\s\S]*IP address/],
     ['nombre visible por defecto anónimo («Jugador» y un número, no el de la cuenta ni el del personaje)', /Si no escribes uno, sales como «Jugador» y un número[\s\S]*no se usa el nombre de tu cuenta ni el de tu personaje/, /you appear as "Jugador" plus a number[\s\S]*your account name and your character's name are not used/],
     ['filtro básico de palabras en los nombres', /filtro básico de palabras/, /basic word filter/],
