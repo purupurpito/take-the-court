@@ -3703,6 +3703,12 @@
     var was = {}; unl0.forEach(function (id) { was[id] = 1; });
     return lkUnseen().filter(function (id) { return !was[id]; });
   }
+  /** Solo depuración: &pflv=N enseña en la hoja final la subida al Nv N del perfil con su premio (VB.Look.lvlPrize; mobaudit «final-nivel»). */
+  function dbgProf() {
+    var n = ctx.debug && ctx.params && +ctx.params.pflv; if (!(n > 1)) return null;
+    var id = VB.Look && VB.Look.lvlPrize ? VB.Look.lvlPrize(n) : '', nm = id && VB.Look.name ? VB.Look.name(id) : '';
+    return { xp: 45, lvl: n, lvlUp: true, prize: nm || '' };
+  }
   function replayN() { if (ctx.settings && ctx.settings.replays === 'off') return 0; try { return VB.Replay && VB.Replay.bestCount ? VB.Replay.bestCount() | 0 : 0; } catch (e) { return 0; } }
   /** Datos de la hoja para VB.Recap.endModel (los de headline más los del Resumen). x = extras de la Carrera (main.js). */
   function endData(e, g, sum, x) {
@@ -3715,7 +3721,7 @@
     var d = { seed: (g && g.seed) >>> 0, win: e.team === 0, sets: [e.sets[0] | 0, e.sets[1] | 0], setScores: (e.setScores || (g && g.setScores) || []).map(function (s) { return [s[0] | 0, s[1] | 0]; }),
       to: (g && g.points) || 25, size: (g && g.size) || 2, career: cs, cpu: g && g.netCr ? 'el rival' : 'la CPU', pl: pl, spSaved: stats.spSaved.slice(), moments: mo, close: stats.close,
       longest: stats.longest, watch: !!(g && g.watch0 && !g.demo), drill: false, reto: g && g.reto && !cs ? g.reto : null, plays: replayN(), unlocks: endUnlocks(),
-      profile: profEnd || null };
+      profile: profEnd || dbgProf() };
     if (g && g.sit && !g.demo && !cs) d.sit = semData(g);   // la situación de la semana (recap.js: título, bloque «Situación» y botones)
     if (cs) {
       d.sum = sum || null; x = x || {};
