@@ -177,7 +177,7 @@
     { id: 'rayoOjo', name: 'Rayo en el ojo', slot: 'paint', pc: 'A', rarity: 2, unlock: [reto('r_kills', 3), shop(15000)], g: 'm' },
     // (premios de nivel alto, 24-nov: ver «premios de nivel alto» junto a los manguitos)
     { id: 'balonCara', name: 'Balón en la mejilla', slot: 'paint', pc: 'A', rarity: 1, unlock: [shop(8000), lv(52)], g: 'm', hint: 'Con las costuras del color de acento' },
-    { id: 'manchaTinta', name: 'Mancha de tinta', slot: 'paint', pc: 'A', rarity: 2, unlock: [shop(20000), lv(75)], g: 'f', hint: 'Un manchurrón del acento alrededor del ojo, con goterones' },
+    { id: 'manchaTinta', name: 'Mancha de tinta', slot: 'paint', pc: 'A', rarity: 2, unlock: [shop(20000), lv(75)], g: 'f', hint: 'Salpicón de tinta del acento alrededor del ojo; turquesa si es rojo' },
     { id: 'pecas', name: 'Pecas', slot: 'marks', g: 'f', pl: 1 },
     { id: 'tirita', name: 'Tirita', slot: 'marks', unlock: [{ ach: 'm50' }, rec('played', 50)], g: 'f' },
     { id: 'tiraNasal', name: 'Tira nasal', slot: 'marks', pc: 'A', unlock: [shop(500), lv(2)], g: 'f' },
