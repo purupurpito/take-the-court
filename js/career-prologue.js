@@ -839,6 +839,98 @@
       PQ + ' .card.x-go.pro-bar:empty{display:none}',
       // móvil bajo (≤ 345 de alto): la presentación sin adornos para que las tres formas de ser quepan sobre la barra (la letra no baja)
       PS + ' .pro-panel{margin-top:var(--ph-s3,12px);padding-top:var(--ph-s3,12px)}' + PS + ' .pro-who .pro-av{width:36px;height:36px;font-size:17px}' + PS + ' .pro-who small+small{display:none}' + PS + ' .pro-lbl{margin-top:2px}',
+      // ==== movil-aire, paquete carrera-flujo (24-nov-2026; notes/movil-aire.md §5.5). Solo html.ph; PC igual.
+      // presentación: tu ficha en una línea (avatar 36), el premio como chip en la pregunta, formas de ser con 10 de hueco y 2 líneas
+      PQ + ' .pro-panel.p1 .pro-who{gap:10px;margin:0 0 6px}',
+      PQ + ' .pro-panel.p1 .pro-who .pro-av{width:36px;height:36px;font-size:17px}',
+      PQ + ' .pro-panel.p1 .pro-who>div{display:flex;align-items:baseline;gap:4px 10px;min-width:0;flex-wrap:nowrap}',
+      PQ + ' .pro-panel.p1 .pro-who>div>b{flex:none;font-size:var(--ph-row,16px)}',
+      PQ + ' .pro-panel.p1 .pro-who>div>small{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-cap,13px)}',
+      PQ + ' .pro-panel.p1 .pro-who>div>small+small{display:none}',
+      PQ + ' .pro-lbl{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;margin:4px 0 8px}',
+      PQ + ' .pro-gchip{display:inline-block;padding:2px 9px;border-radius:7px 10px 8px 11px;background:var(--sp-ink,#15102a);color:var(--sp-gold,#ffcb3d);font:700 var(--ph-cap,13px)/1.3 var(--sp-ui,sans-serif);letter-spacing:0}',
+      PQ + ' .pro-panel .roles.pro-pers{gap:10px}',
+      PQ + ' .pro-panel .roles.pro-pers button{min-height:52px;padding:6px 10px}',
+      PQ + ' .pro-panel .roles.pro-pers button small{font-size:var(--ph-cap,13px);line-height:1.2;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}',
+      // «Ir directo a las pruebas» (1ª página) como botón fantasma pequeño arriba a la derecha (lo sube career-ui phFlow a la cabecera)
+      PQ + ' .cr-head>.pro-skiph{grid-area:sb;justify-self:end;align-self:center;position:relative;min-height:44px;height:44px;margin:0;padding:0 14px;border:0;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;background:rgba(21,16,42,.72);color:var(--sp-cream,#fff4dc);box-shadow:inset 0 0 0 2px rgba(255,244,220,.55);font:700 var(--ph-cap,13px)/1.1 var(--sp-ui,sans-serif);letter-spacing:.01em;text-transform:none;white-space:nowrap;cursor:pointer}',
+      PQ + ' .cr-head>.pro-skiph.armed{background:var(--sp-danger,#e4572e);box-shadow:0 0 0 2px var(--sp-ink,#15102a)}',
+      PQ + ' .cr-head>.pro-skiph:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold,#ffcb3d),0 0 0 3px var(--sp-gold,#ffcb3d)}',
+      PQ + ' .cr-head:has(>.pro-skiph)>.cr-title{padding-right:calc(var(--pk-sw,190px) + 12px)}',
+      // temporada: jornada en tres filas («J3 A vs B» con escudos de 28 / «1 set a 15 | IA Fácil» / objetivos de 32); entrenador en 1 línea
+      PQ + ' .card.pro-go{padding:10px 12px}',
+      PQ + ' .card.pro-go>h3:first-child{display:none}',
+      PQ + ' .pro-go .pro-vs{flex-wrap:nowrap;gap:8px;margin:0 0 4px;min-width:0}',
+      PQ + ' .pro-go .pro-vs .pro-j{flex:none;padding:2px 8px;border-radius:7px 10px 8px 11px;background:var(--sp-gold,#ffcb3d);color:var(--sp-ink,#15102a);font:400 var(--ph-label,14px)/1.2 var(--sp-pop,sans-serif);font-style:normal}',
+      PQ + ' .pro-go .pro-vs .cr-kit{flex:none;width:28px;height:28px}',
+      PQ + ' .pro-go .pro-vs b{min-width:0;font-size:var(--ph-row,16px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      PQ + ' .pro-go .pro-vs i{flex:none}',
+      PQ + ' .pro-go>p.muted{margin:0 0 6px;font-size:var(--ph-cap,13px)}',
+      PQ + ' .pro-go .pro-pills{margin:0 0 6px;gap:8px}',
+      PQ + ' .pro-go .pro-pill{min-height:32px;padding:2px 10px;font-size:var(--ph-cap,13px)}',
+      PQ + ' .pro-go .pro-say{margin:0;align-items:center;gap:8px}',
+      PQ + ' .pro-go .pro-say .pro-av{width:28px;height:28px;font-size:14px}',
+      PQ + ' .pro-go .pro-say p{padding:5px 10px;font-size:var(--ph-cap,13px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      PQ + ' .pro-go .pro-note:empty{display:none}',
+      PQ + ' .cr-dock>.sp-btn[data-act="pro-sim"] :is(.sp-s,small){display:none}',
+      // tus partidos / invitaciones: encabezado en línea de 12 (sin el sello) para que asomen bajo la jornada
+      PQ + ' .card.pro-ih{padding:8px 12px 10px}',
+      PQ + ' .card.pro-ih>h3:first-child{margin:0 0 4px;padding:0;background:none;box-shadow:none;border:0;transform:none;font:800 var(--ph-micro,12px)/1.3 var(--sp-ui,sans-serif);letter-spacing:.1em;text-transform:uppercase;color:var(--sp-gold,#ffcb3d);text-shadow:none}',
+      PQ + ' .card.pro-ih>h3:first-child::before,' + PQ + ' .card.pro-ih>h3:first-child::after{display:none}',
+      PQ + ' .pro-cols>div>.card{margin-bottom:10px}',
+      PQ + ' .cr-head>.cr-q.pro-hq{grid-area:sb;justify-self:end;align-self:center;position:relative;top:auto;right:auto;transform:none;margin:0}',
+      PQ + ' .cr-head:has(>.pro-hq)>.cr-title{padding-right:56px}',
+      PQ + ' .pro-cols .card:has(.pro-rows){padding:10px 12px}',
+      PQ + ' .pro-cols .pro-rows{gap:4px}',
+      PQ + ' .pro-cols .pro-row{min-height:40px;padding:4px 10px;font-size:var(--ph-label,14px)}',
+      PQ + ' .pro-cols .pro-row b{font-size:var(--ph-label,14px)}',
+      // equipo: una lista (secciones de 12 px; filas de 56 con la bio al tocar); a .ph-w, dos columnas
+      PQ + ' .card.pro-tl{padding:8px 12px 10px}',
+      PQ + ' .pro-tg{display:grid;grid-template-columns:minmax(0,1fr);gap:4px 16px}',
+      ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .pro-tg{grid-template-columns:repeat(2,minmax(0,1fr))}',
+      PQ + ' .pro-sec{display:block;margin:6px 0 2px;font:800 var(--ph-micro,12px)/1.3 var(--sp-ui,sans-serif);letter-spacing:.1em;text-transform:uppercase;color:var(--sp-gold,#ffcb3d)}',
+      PQ + ' .pro-acc>summary{display:flex;align-items:center;gap:10px;min-height:56px;padding:0 4px;list-style:none;cursor:pointer;border-radius:10px}',
+      PQ + ' .pro-acc>summary::-webkit-details-marker{display:none}',
+      PQ + ' .pro-acc>summary:is(:focus-visible,.kf){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold,#ffcb3d)}',
+      PQ + ' .pro-acc .pro-av{width:36px;height:36px;font-size:17px}',
+      PQ + ' .pro-an{display:flex;flex-direction:column;min-width:0;flex:1 1 auto}',
+      PQ + ' .pro-an b{font:400 var(--ph-row,16px)/1.15 var(--sp-pop,sans-serif);color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      PQ + ' .pro-an small{font:600 var(--ph-cap,13px)/1.3 var(--sp-ui,sans-serif);color:rgba(255,244,220,.75);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      PQ + ' .pro-ar{flex:none;font:400 var(--ph-row,16px) var(--sp-pop,sans-serif);color:var(--sp-gold,#ffcb3d)}',
+      PQ + ' .pro-chev{flex:none;font-style:normal;color:rgba(255,244,220,.7);transition:transform .15s}',
+      PQ + ' .pro-acc[open] .pro-chev{transform:rotate(180deg)}',
+      PQ + ' .pro-acc>p{margin:0 4px 8px 50px;font-size:var(--ph-cap,13px)}',
+      PQ + ' .pro-mates{gap:2px}',
+      PQ + ' .pro-mates .pro-row{min-height:44px;padding:4px 8px;font-size:var(--ph-label,14px);background:none;border-bottom:1px solid rgba(255,244,220,.1);border-radius:0}',
+      PQ + ' .pro-mates .pro-row b{font-size:var(--ph-label,14px)}',
+      // chat: avatar 28, nombre en la línea del mensaje, burbuja sin borde; seguidos del mismo, sin avatar ni nombre
+      PQ + ' .pro-msgs:has(>.pm-ph){gap:6px}',
+      PQ + ' .pro-msg.pm-ph{grid-template-columns:28px minmax(0,1fr);gap:8px}',
+      PQ + ' .pro-msg.pm-ph .pro-av{width:28px;height:28px;font-size:14px}',
+      PQ + ' .pro-msg.pm-ph.cont{margin-top:-2px}',
+      PQ + ' .pro-msg.pm-ph>div{padding:8px 10px;box-shadow:none;border-radius:4px 14px 14px 14px}',
+      PQ + ' .pro-msg.pm-ph.cont>div{border-radius:14px}',
+      PQ + ' .pro-msg.pm-ph.un>div{box-shadow:inset 3px 0 0 var(--sp-gold,#ffcb3d)}',
+      PQ + ' .pro-msg.pm-ph p{margin:0;font-size:var(--ph-body,15px);line-height:1.35}',
+      PQ + ' .pro-msg.pm-ph .pm-n{color:var(--av,#fff);filter:brightness(1.35);font-weight:800}',
+      // informe: cifras y el círculo de 52 en una banda de 56; la frase en una línea; las invitaciones en filas de 44
+      PQ + ' .pro-band{display:flex;align-items:center;gap:12px;min-height:56px}',
+      PQ + ' .pro-band .pro-stamp{float:none;flex:none;width:52px;height:52px;margin:0;box-shadow:0 0 0 2.5px var(--sp-ink,#15102a),2px 3px 0 2.5px var(--sp-ink,#15102a)}',
+      PQ + ' .pro-band .pro-stamp b{font-size:18px}',
+      PQ + ' .pro-band .pro-stamp small{display:none}',   // (el nivel ya lo dice la frase de debajo y la etiqueta del círculo)
+      PQ + ' .pro-band .sp-heros{flex:1 1 auto;min-width:0;margin:0}',
+      PQ + ' .pro-band .sp-heros>*{padding:3px 6px}',
+      PQ + ' .pro-band .sp-heros .sp-hn{font-size:var(--ph-row,16px)}',
+      PQ + ' .pro-band .sp-heros .sp-hl{font-size:var(--ph-micro,12px)}',
+      PQ + ' .card.pro-sc{padding:10px 12px}',
+      PQ + ' .card.pro-sc .pro-inv{margin:6px 0 0;font-size:var(--ph-cap,13px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      PQ + ' .card.pro-iv{padding:10px 12px}',
+      PQ + ' .card.pro-iv .pro-rows{gap:4px}',
+      PQ + ' .card.pro-iv .pro-row{min-height:44px;padding:4px 10px;font-size:var(--ph-label,14px)}',
+      PQ + ' .card.pro-iv .pro-row b{font-size:var(--ph-label,14px)}',
+      PQ + ' .card.pro-iv .pro-ivn{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+      PQ + ' .card.pro-iv>p.muted{margin:6px 0 0;font-size:var(--ph-cap,13px)}',
+      PS + ' .card.pro-sc h3,' + PS + ' .card.pro-iv h3{margin-bottom:4px}',
       // hoja final del partido (main.js careerExtSheet → #endExt)
       EQ + ' .pro-end{display:flex;align-items:center;gap:14px;width:100%;text-align:left}',
       EQ + ' .pro-en{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:84px;height:66px;padding:0 8px;box-sizing:border-box;border-radius:14px;background:var(--rc,#d9a520);color:#fff;box-shadow:0 0 0 2.5px var(--tk,#1d1530),3px 4px 0 var(--tk,#1d1530)}',
@@ -886,9 +978,9 @@
       b += '<div class="pro-panel p1"><span class="pro-pt">Tú</span><div class="pro-who">' + av('team', first(c.player.name).charAt(0), true) + '<div><b>' + h.esc(c.player.name) + '</b><small>' +
         h.sp(['17 años', h.esc(roleName(c, myPos(c))), 'n.º ' + (c.player.num | 0)], 'v') + '</small><small>' + h.esc(x.sch[0].n + ', ' + x.city) + '</small></div></div>' +
         '<p class="ph-hide">Último curso y una temporada para que te vean.</p>' +
-        '<span class="pro-lbl" id="proPersL">¿Cómo eres en la pista?</span><div class="roles pro-pers" role="group" aria-labelledby="proPersL">' + PERS_K.map(function (k) {
+        '<span class="pro-lbl" id="proPersL">¿Cómo eres en la pista?' + (h.ph() ? ' <span class="pro-gchip">' + h.esc(p.pers ? 'Premio: ' + PERS[p.pers].gift : 'Cada una trae un premio') + '</span>' : '') + '</span><div class="roles pro-pers" role="group" aria-labelledby="proPersL">' + PERS_K.map(function (k) {
           return '<button data-act="pro-pers-' + k + '" aria-pressed="' + (p.pers === k) + '">' + h.esc(PERS[k].name) + '<small>' + h.esc(PERS[k].hint) + '</small></button>';
-        }).join('') + '</div><p class="pro-gift">' + h.esc(p.pers ? 'Premio: ' + PERS[p.pers].gift + '.' : 'Cada forma de ser trae un pequeño premio.') + '</p>' +
+        }).join('') + '</div>' + (h.ph() ? '' : '<p class="pro-gift">' + h.esc(p.pers ? 'Premio: ' + PERS[p.pers].gift + '.' : 'Cada forma de ser trae un pequeño premio.') + '</p>') +
         '<p class="pro-note" role="status" aria-live="polite">' + h.esc(note) + '</p></div>';
     } else if (pg === 1) {
       var C0 = COACHES[x.coach.p];
@@ -914,10 +1006,11 @@
     var p = c.pro, x = p.cast, m = p.m[p.i]; if (!m || m.opp < 0) return '';
     var op = x.sch[m.opp], ln = (LINES[m.id] || LINES.j1)[x.coach.p] || '', V = vars(c, p.i);
     ln = ln.replace(/\{(\w+)\}/g, function (a, k) { return V[k] != null ? V[k] : ''; });
-    var ai = aiOf(c, m.id);
+    var ai = aiOf(c, m.id), ko = m.id === 'sf' || m.id === 'f' || m.id === 'p3', ph = h.ph();
+    // (móvil, movil-aire §5.5: tres filas compactas «J3 A vs B» / «1 set a 15 | IA Fácil» / objetivos; la competición ya va en la cabecera)
     return '<div class="card x-go pro-go"><h3>' + h.esc(MATCH[m.id].lbl) + '</h3>' +
-      '<div class="pro-vs">' + h.kitSw(kitObj(x.sch[0])) + '<b>' + h.esc(x.sch[0].n) + '</b><i>vs</i>' + h.kitSw(kitObj(op)) + '<b>' + h.esc(op.n) + '</b></div>' +
-      '<p class="muted">' + h.sp(['1 set a ' + m.pts, m.id === 'sf' || m.id === 'f' || m.id === 'p3' ? h.esc(x.comp.cup) : h.esc(x.comp.lg), 'IA ' + h.esc(ai.name)], 'v') + (m.id === 'sf' || m.id === 'f' || m.id === 'p3' ? ' <span class="tag y">Ojeadores</span>' : '') + '</p>' +
+      '<div class="pro-vs">' + (ph ? '<em class="pro-j">' + h.esc(MATCH[m.id].short) + '</em>' : '') + h.kitSw(kitObj(x.sch[0])) + '<b>' + h.esc(x.sch[0].n) + '</b><i>vs</i>' + h.kitSw(kitObj(op)) + '<b>' + h.esc(op.n) + '</b></div>' +
+      '<p class="muted">' + h.sp(['1 set a ' + m.pts, ph ? '' : ko ? h.esc(x.comp.cup) : h.esc(x.comp.lg), 'IA ' + h.esc(ai.name)], 'v') + (ko ? ' <span class="tag y">Ojeadores</span>' : '') + '</p>' +
       pills(h, m.goals, null) +
       '<div class="pro-say">' + av('coach', x.coach.n.charAt(0)) + '<p>' + h.esc(ln) + '</p></div>' +
       '<p class="pro-note" role="status" aria-live="polite">' + h.esc(note) + '</p>' +
@@ -933,7 +1026,7 @@
       return '<div class="pro-row">' + lbl + '<span><span class="' + (m.res.w ? 'w' : 'l') + '">' + (m.res.w ? '✓' : '✗') + '</span> ' + h.esc(scoreTxt(c, m)) + '</span><span class="r">' +
         h.sp(['nota ' + fmt1(m.res.nota), m.res.sim ? 'simulado' : met + ' de 2'], 'v') + '</span></div>';
     }).join('');
-    return '<div class="card"><h3>Tus partidos</h3><div class="pro-rows">' + rows + '</div></div>';
+    return '<div class="card' + (h.ph() ? ' pro-ih' : '') + '"><h3>Tus partidos</h3><div class="pro-rows">' + rows + '</div></div>';
   }
   function tableCard(c, h) {
     var x = c.pro.cast, t = table(c);
@@ -956,7 +1049,28 @@
     var foot = '<div class="card pro-skip"><p class="muted">¿Prisa? Simula lo que falta y pasa al informe. Nadie te verá jugar.</p><button class="warn" data-act="pro-rest">' + (sk ? 'Confirmar: saltar el juvenil' : 'Saltar el juvenil') + '</button></div>';
     return '<div class="pro-cols"><div>' + left + '</div><div>' + right + foot + '</div></div>';
   }
+  /** Móvil (movil-aire §5.5): Equipo como UNA lista con secciones de 12 px; cada persona, fila de 56 (avatar, nombre y dato) y la bio
+   *  al tocarla (details/summary, sin JS); a .ph-w, dos columnas. */
+  function teamPh(c, h) {
+    var p = c.pro, x = p.cast, hall = hallC(c), C0 = COACHES[x.coach.p], rv = x.rival, L = VB.CareerLife, ab = armed('pro-abandon');
+    var sn = L && L.BOSS_STYLES && L.BOSS_STYLES[rv.style] ? L.BOSS_STYLES[rv.style].name : STYLE_NAME[rv.style];
+    var row = function (sec, k, nm, sub, right, bio) {
+      return '<div class="pro-ts"><span class="pro-sec">' + h.esc(sec) + '</span><details class="pro-acc"><summary>' + av(k, nm.charAt(0)) + '<span class="pro-an"><b>' + h.esc(nm) + '</b><small>' + sub + '</small></span>' +
+        (right ? '<span class="pro-ar">' + right + '</span>' : '') + '<i class="pro-chev" aria-hidden="true">▾</i></summary>' + bio + '</details></div>';
+    };
+    var b = '<div class="card pro-tl"><div class="pro-tg">' +
+      row('Te entrena', 'coach', x.coach.n, h.esc(C0.name), '', '<p>' + h.esc(C0.line) + '</p>') +
+      row(hall ? 'Tu mejor amistad' : 'Tu pareja', 'friend', x.friend.n, h.sp(['n.º ' + x.friend.num, h.esc(roleName(c, x.friend.pos))], 'v'), '', '<p>Os conocéis desde primaria y os lo contáis todo.' + (hall ? '' : ' En la arena sois dos y no hay dónde esconderse.') + '</p>') +
+      row('Tu rival', 'rival', rv.n, h.sp([h.esc(x.sch[3].n), 'n.º ' + rv.num], 'v'), '<b>' + p.h2h[0] + '-' + p.h2h[1] + '</b>', '<p>Estilo: ' + h.esc(sn) + '. ' + h.esc(RIVAL_STORY[rv.style]) + '</p><p>Cara a cara: ' + p.h2h[0] + '-' + p.h2h[1] + '</p>') +
+      '</div>';
+    if (hall) b += '<span class="pro-sec">' + h.esc(x.sch[0].n) + '</span><div class="pro-rows pro-mates">' + x.mates.map(function (mt) {
+      return '<div class="pro-row"><b>n.º ' + mt.num + '</b><span>' + h.esc(mt.n) + '</span><span class="r muted">' + h.esc(roleName(c, mt.pos)) + '</span></div>';
+    }).join('') + '</div>';
+    b += '</div><div class="card pro-skip"><p class="muted">Abandonar borra esta Carrera. No se puede deshacer.</p><button class="warn" data-act="pro-abandon">' + (ab ? 'Confirmar: abandonar la Carrera' : 'Abandonar la Carrera') + '</button></div>';
+    return b;
+  }
   function renderTeam(c, h) {
+    if (h.ph()) return teamPh(c, h);
     var p = c.pro, x = p.cast, hall = hallC(c), C0 = COACHES[x.coach.p], rv = x.rival, L = VB.CareerLife;
     var sn = L && L.BOSS_STYLES && L.BOSS_STYLES[rv.style] ? L.BOSS_STYLES[rv.style].name : STYLE_NAME[rv.style], ab = armed('pro-abandon');
     var b = '<div class="pro-two">' +
@@ -973,8 +1087,11 @@
   }
   function renderChat(c, h) {
     var p = c.pro, l = p.chat.slice().reverse();
+    var ph = h.ph(), prev = '';
     var b = '<div class="card"><h3>' + h.esc('Juvenil ' + p.cast.city) + '</h3><div class="pro-msgs">' + (l.length ? l.map(function (e) {
-      var T = CH[e.b], k = T.k, nm = senderName(c, k);
+      var T = CH[e.b], k = T.k, nm = senderName(c, k), same = ph && nm === prev; prev = nm;
+      if (ph) return '<div class="pro-msg pm-ph' + (e.r ? '' : ' un') + (same ? ' cont' : '') + '">' + (same ? '<span class="pro-av0" aria-hidden="true"></span>' : av(k, nm.charAt(0))) + '<div style="--av:' + (AV[k] || '#fff') + '"><p>' +
+        (same ? '<span class="sr">' + h.esc(nm) + ': </span>' : '<b class="pm-n">' + h.esc(nm) + '</b> ') + h.esc(text(c, e)) + '</p></div></div>';
       return '<div class="pro-msg' + (e.r ? '' : ' un') + '">' + av(k, nm.charAt(0)) + '<div style="--av:' + (AV[k] || '#fff') + '"><small>' + h.esc(nm) + '</small><p>' + h.esc(text(c, e)) + '</p></div></div>';
     }).join('') : '<p class="muted">Aún no hay mensajes.</p>') + '</div></div>';
     var n = 0; p.chat.forEach(function (e) { if (!e.r) { e.r = 1; n++; } });
@@ -985,6 +1102,7 @@
     var p = c.pro, x = p.cast, sp = scoreParts(c), t = p.tier || tierOf(sp.s), T = TIER[t], E = K(c);
     var inv = (c.offers || []).filter(function (o) { return o && obj(o.pscout); }), nt = (c.offers || []).filter(function (o) { return !o.trial; }).length;
     var why = 'La nota sale de tu nota media (hasta 40), los objetivos cumplidos (hasta 25) y las victorias (hasta 35). Simular cuenta poco: nadie te ve jugar.';
+    if (h.ph()) return scoutPh(c, h, sp, t, T, inv, nt, why);
     var b = '<div class="card"><h3>Lo que han visto ' + h.q('Informe de los ojeadores', why) + '</h3>' +
       '<div class="pro-stamp t-' + t + '" role="img" aria-label="' + h.esc('Nivel ' + T.name + ', ' + sp.s + ' de 100') + '"><span><b>' + sp.s + '</b><small>' + h.esc(T.name) + '</small></span></div>' +
       '<div class="sp-heros sp-sm" role="group" aria-label="Resumen del juvenil"><span><b class="sp-hn">' + fmt1(sp.avg) + '</b><small class="sp-hl">Nota media</small></span><span><b class="sp-hn">' + sp.met + ' de 10</b><small class="sp-hl">Objetivos</small></span><span><b class="sp-hn">' + sp.wins + ' de 5</b><small class="sp-hl">Victorias</small></span></div>' +
@@ -996,6 +1114,22 @@
       '<div class="pro-say">' + av('coach', x.coach.n.charAt(0)) + '<p>' + h.esc(text(c, { b: 'end_coach', i: 5 })) + '</p></div></div>';
     b += '<div class="card x-go pro-bar"><div class="acts"><button class="pri" data-act="pro-offers">Ver ofertas</button></div></div>';
     return { view: 'scout', head: head(h, ['Juvenil', x.comp.cup], 'Informe de los ojeadores'), tabs: [], tab: '', body: b };
+  }
+  function scoutPh(c, h, sp, t, T, inv, nt, why) {
+    var x = c.pro.cast, E = K(c), tl = tierLine(t, hallC(c));
+    var b = '<div class="card pro-sc"><div class="pro-band">' +
+      '<div class="pro-stamp t-' + t + '" role="img" aria-label="' + h.esc('Nivel ' + T.name + ', ' + sp.s + ' de 100') + '"><span><b>' + sp.s + '</b><small>' + h.esc(T.name) + '</small></span></div>' +
+      '<div class="sp-heros sp-sm" role="group" aria-label="Resumen del juvenil"><span><b class="sp-hn">' + fmt1(sp.avg) + '</b><small class="sp-hl">Nota</small></span><span><b class="sp-hn">' + sp.met + '/10</b><small class="sp-hl">Objetivos</small></span><span><b class="sp-hn">' + sp.wins + '/5</b><small class="sp-hl">Victorias</small></span></div></div>' +
+      '<p class="pro-inv">' + h.esc(tl) + '</p></div>';
+    b += '<div class="card pro-iv pro-ih"><h3>Invitaciones</h3>' + (inv.length ? '<div class="pro-rows">' + inv.map(function (o) {
+      var k = E.club(c, o.club); return '<div class="pro-row"><b>Prueba</b><span class="pro-ivn">' + h.sp([h.esc(k ? k.name : ''), '<span class="muted">' + h.esc(cap(ligaOf(c, o))) + '</span>'], 'v') + '</span><span class="r">' + Math.round((o.chance || 0) * 100) + ' %</span></div>';
+    }).join('') + '</div>' : '<p class="muted">Ninguna invitación a prueba esta vez.</p>') + '<p class="muted">' + h.esc(plural(nt, 'oferta', 'ofertas') + ' de clubes modestos te esperan también.') + '</p></div>';
+    b += '<div class="card"><h3>Hasta pronto</h3><div class="pro-say">' + av('rival', x.rival.n.charAt(0)) + '<p>' + h.esc(x.rival.n + ' también busca club. Os volveréis a ver.') + '</p></div>' +
+      '<div class="pro-say">' + av('coach', x.coach.n.charAt(0)) + '<p>' + h.esc(text(c, { b: 'end_coach', i: 5 })) + '</p></div></div>';
+    b += '<div class="card x-go pro-bar"><div class="acts"><button class="pri" data-act="pro-offers">Ver ofertas</button></div></div>';
+    // (el «?» con la explicación, en la cabecera: fuera el sello «Lo que han visto»)
+    var hq = h.q('Informe de los ojeadores', tl + ' ' + why).replace('class="sp-q cr-q"', 'class="sp-q cr-q pro-hq"');
+    return { view: 'scout', head: head(h, ['Juvenil', x.comp.cup], 'Informe de los ojeadores') + hq, tabs: [], tab: '', body: b };
   }
   function tierLine(t, hall) {
     return { joya: hall ? 'Joya. Tres invitaciones a prueba, una en un club de arriba. Los ojeadores se pelean por tu teléfono.' : 'Joya. Tres invitaciones a prueba, una muy por encima de tu nivel. Los ojeadores se pelean por tu teléfono.',
@@ -1048,7 +1182,9 @@
     injectCss();
     var h = H(HLP); if (!form) return '';
     if (form.pro !== 'skip') form.pro = 'pro';
-    return '<div><label>Inicio</label><div class="roles" role="group" aria-label="Cómo empiezas">' +
+    // (móvil, movil-aire §5.5: la explicación entera tras el «?»; en el botón, una línea)
+    var qi = h.ph() ? h.q('Inicio', 'Desde juvenil: una temporada corta con tu instituto y un torneo con ojeadores; según lo que vean, llegan invitaciones a prueba. Directo a las pruebas: las ofertas llegan ya.') : '';
+    return '<div><label>Inicio' + qi + '</label><div class="roles" role="group" aria-label="Cómo empiezas">' +
       '<button data-act="pro-start" data-v="pro" aria-pressed="' + (form.pro === 'pro') + '">Desde juvenil<small>Una temporada corta con tu instituto y un torneo con ojeadores</small></button>' +
       '<button data-act="pro-start" data-v="skip" aria-pressed="' + (form.pro === 'skip') + '">Directo a las pruebas<small>Las ofertas llegan ya</small></button></div></div>';
   }
@@ -1064,7 +1200,10 @@
   function sheetData(d) {
     var gl = (d.goals || []).map(function (g) {
       var ok = g.ok === true, no = g.ok === false;
-      return '<span class="' + (ok ? 'ok' : no ? 'no' : '') + '"><i aria-hidden="true">' + (ok ? '✓' : no ? '✗' : '–') + '</i>' + esc(g.txt) + (g.v != null ? ' <small>(' + (g.v | 0) + ')</small>' : '') + '<span class="sr">' + (ok ? ', cumplido' : no ? ', no cumplido' : ', nadie te vio') + '</span></span>';
+      // (móvil, movil-aire §5.5: el objetivo en corto en una ficha de una línea; en PC, el largo: .ph-only / .ph-no)
+      var gs = String(g.txt || '').replace(/^Como mucho (\d+)/, '≤ $1').replace(/^Nota de ([\d,]+) o más$/, 'Nota ≥ $1');
+      var gt = gs !== g.txt ? '<span class="ph-no">' + esc(g.txt) + '</span><span class="ph-only" aria-hidden="true">' + esc(gs) + '</span>' : esc(g.txt);
+      return '<span class="' + (ok ? 'ok' : no ? 'no' : '') + '"><i aria-hidden="true">' + (ok ? '✓' : no ? '✗' : '–') + '</i>' + gt + (g.v != null ? ' <small>(' + (g.v | 0) + ')</small>' : '') + '<span class="sr">' + (ok ? ', cumplido' : no ? ', no cumplido' : ', nadie te vio') + '</span></span>';
     }).join('');
     var html = '<div class="pro-end"><div class="pro-en ' + rtBand(d.nota) + '" aria-label="' + esc('Nota ' + fmt1(d.nota)) + '"><b>' + fmt1(d.nota) + '</b><small>NOTA</small></div>' +
       '<div class="pro-et"><strong class="pro-sc">' + esc(d.score) + '</strong>' + (gl ? '<div class="et-goals">' + gl + '</div>' : '') +
@@ -1112,9 +1251,11 @@
   }
   function endDemo(k) {
     var lose = k === 'lose';
-    return sheetData({ title: titleOf(k === 'final' ? 'f' : 'j2', !lose), kicker: ['Juvenil', 'Jornada 2: el derbi'], nota: lose ? 5.8 : 7.4,
+    var out = sheetData({ title: titleOf(k === 'final' ? 'f' : 'j2', !lose), kicker: ['Juvenil', 'Jornada 2: el derbi'], nota: lose ? 5.8 : 7.4,
       goals: [{ txt: 'Gana el derbi', ok: !lose, v: null }, { txt: 'Como mucho 2 errores', ok: true, v: 1 }],
       score: lose ? 'FAR 12-15 MON' : 'FAR 15-11 MON', line: lose ? 'Perder también se entrena. Mañana, más.' : '¡ESO ES, FAMILIA! Mañana más.', scouts: false, last: false, win: !lose });
+    out.dbgSets = [lose ? [12, 15] : [15, 11]];   // (main.js: el marcador de la cabecera, el mismo que el de la hoja)
+    return out;
   }
 
   // ================================================================== API y registros

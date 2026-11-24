@@ -497,3 +497,47 @@ Todo bajo `html.ph` (PQ / `RL` = rejilla con raíl, `NT` = secundarios sin cola,
 - **Pendiente**: el raíl mide 252 de 252 a 568x320 (el brochazo sobresale 3 px: sin desvanecido); la franja `.ph-dec` corta con elipsis
   marcada (`data-ph-ell`) la línea de la selección a 568; fin de cesión y verano de selección salen con la gala de la muestra (Faro en cola);
   las tarjetas «Tu semana»/plan y el bloque de detalles `.cr-nd` no se tocaron; objetivo/entrenador del fin de temporada siguen en una línea.
+
+### 7.5 Paquete `carrera-flujo` (24-nov-2026)
+
+Todo bajo `html.ph` (PQ / PS de `js/career-ui.js` y `js/career-prologue.js`; bloque «— móvil (.ph) — «con aire» · paquete CARRERA-FLUJO» al
+final del `<style>` de `index.html` para `#end`, `#gymEnd`, `#benchBar`, `#intro` y la hoja del informe). PC sin cambios: métricas de los 38 ids
+a 1280x720 idénticas a una pasada de la base con el mismo comando, salvo la hoja del Partido de las Estrellas (un set en vez de dos, por el
+arreglo de la muestra de abajo).
+- **Crear jugador**: cabecera de una franja (‹ 44 · «Crea tu jugador» · Playa 2v2 | Pista 6v6 en píldora de 2 de 44, `phModeSeg`; fuera la
+  tarjeta «Carrera»; la Carrera guardada, punto lima). Campos en tarjetas de 2 columnas (3 a .ph-w, padding 10, gap 8, rótulo inline de 12):
+  Nombre | Dificultad (2×2, frase del nivel en 2 líneas) | Dorsal; Inicio a todo el ancho; Rol/Puesto a todo el ancho; Nombre y Dificultad a
+  la vista a 568x320. Reglas de playa en 1 línea + «?» (`phRules`); explicación de Inicio tras «?». Pista: «País: España ▸» abre `SP.sheet`
+  con continentes en pestañas y fichas de 44 (`phCountrySheet`, acción `cc-sheet`). Barra: «Crear jugador» (resto en small, `createTxt`) y a
+  su izquierda «Falta: tu nombre» / «✓ Listo: …» (`phCreateCnt`, se actualiza al escribir).
+- **Ofertas** (también rencor; `phFlow` antes de splatify): club en una línea de 44 (escudo 32, nombre, estrellas; liga y sede a la «i»),
+  «1/4», cifras de 52, fichas Estilo · Compañero (pista: Tu sitio · Estilo; Rol y Puesto ya están en las cifras o son tuyos) y la «i» con
+  todo lo de PC (hechos, rol, contrato en vigor, rencor, prueba). Rencor/cariño = ficha roja/verde con «?» en la línea del club (hoja con el
+  motivo, `bondP` → `.off-bp`). «Duración» + años en una fila. «Pedir ser titular» ya era sp-md sin cola (carrera-marco).
+- **Informe del rival**: hoja `.cr-ests` a pantalla completa (8 px), opaca, una sola ✕; Ellos/Saque/Tú encabezado de 12 encima; la ficha
+  «Te tienen estudiado» en su línea.
+- **Juvenil**: presentación con tu ficha en 1 línea (avatar 36) y el premio como ficha en la pregunta; «Ir directo a las pruebas» sube a la
+  cabecera como botón fantasma (`.pro-skiph`, mismo doble toque). Temporada: «J3 · escudos 28 · A vs B» / «1 set a 15 · IA» / objetivos
+  de 32 / entrenador en 1 línea; TUS PARTIDOS con encabezado inline (asoma a 568). Equipo: una lista con secciones de 12 y filas de 56
+  (`details` con la bio; 2 columnas a .ph-w; `teamPh`). Chat: avatar 28, nombre en la línea, burbuja sin borde, seguidos sin repetir autor.
+  Informe: banda círculo 52 + cifras, frase en 1 línea, «?» en la cabecera, INVITACIONES a la vista (filas de 44; `scoutPh`).
+- **Prueba previa**: cabecera de 56 (escudo 36, nombre 22), objetivos en fichas de 40 de una línea (14 px, «≤ 2 errores»), «1 set a 15 ·
+  con petos» + «i» (cómo es y qué nota hace falta), fuera la frase del cuerpo técnico; todo sin desplazar a 568x320.
+- **Partido a medias**: «Seguir el partido» a la barra; «Se guarda cada punto.» a 12.
+- **Hojas de partido** (`#end.crs`, la pone `ui.js endRecap` y main.js en las de extensión y prueba): antetítulo corto de una línea
+  (`ui.js crKick` → `.ek-s`: «Regional · J3/14», «Continental · Clasif. 2º», «Continental · Grupo B · J2», «Prueba · Voley Valencia»,
+  «Juvenil · J2», «Estrellas»), título clamp 22-28 en 2 líneas, «Menú» fantasma de 44. Panel: Progreso → premios → Tu partido → MVP (1 línea:
+  nombre · 1.ª cifra · nota) → Clasificación (3 filas); fuera la frase del punto final. En .ph-s `ui.js endSplit` lleva el bloque secundario
+  (objetivos de la prueba / juvenil, «Tu partido» con ▲▼ y la 1.ª ficha) a la columna izquierda bajo los sets (`.end-side`, área `lm`; vuelve a
+  su sitio al cambiar de tamaño). Estrellas: recompensa primero, marcador del panel en 1 línea, «Tu nota · MVP» en una línea.
+  Concurso (`#gymEnd`): recompensa en fichas bajo la cifra, top 3 + tu fila, «Siguiente» de 44 sin cola, «Volver» fantasma; sesión: igual
+  (medallas en la fila de la nota, barra de 16). Banquillo: una barra de 44 [×3] [Saltar hasta entrar] [⏭ Final] y «En el banquillo» como
+  ficha bajo el marcador. Previa de la Carrera: píldoras de 14, una por dato con flex-wrap; la del árbitro en corto («(amarilla en la J4)»).
+- **Incoherencias (punto 7)**: las tres eran del **fixture** de depuración (`debug=over&cr=1&ext=…`: la cabecera salía del partido simulado,
+  2-0 a 25), no del juego. Arreglado con `dbgSets` en los `_endDemo` (`career-prologue.js` 15-11, `career-allstar.js` 21-18,
+  `career-natl.js` derrota 21-25 23-25) que `main.js` aplica a `g.sets`/`g.setScores` y al evento `gameOver` de la muestra.
+- **Métricas** (38 ids × 3 tamaños): ver la pasada final; textos < 12: 0; toques < 44: 0; toques juntos 71 → ~30; recortes nuevos solo en
+  fichas de una línea con su «i»/hoja (fichas de oferta largas, MVP).
+- **Pendiente**: a 844 la ficha de Rol/Puesto de crear queda bajo el pliegue (se desplaza; el contador de la barra avisa); la hoja final
+  a .ph-w no reparte columnas (solo .ph-s); la ✕ de la hoja del informe cuenta como solape con el sello de la media del hub (que queda debajo,
+  tapado por la hoja opaca); TUS PARTIDOS asoma solo con el encabezado a 568x320; «Atrás» del juvenil (intro 2/3) sigue como mancha sp-md.

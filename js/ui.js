@@ -1345,6 +1345,7 @@
       t = [{ nm: (cs && cs.me) || 'TÚ', sm: cs && cs.meName ? cs.meName : p6 ? 'N.º ' + p6.num + ', ' + r6 : '', tr: null, pos: '' },
         { nm: (cs && cs.rival) || 'CPU', sm: cs && cs.rivalName ? cs.rivalName : six ? 'Equipo rival' : 'Pareja rival', tr: null, pos: '' }];
     }
+    var icd = el.intro.querySelector('.in-card'); if (icd) icd.classList.toggle('in-cr', !!(g && g.career));   // (movil-aire: previa de la Carrera, solo CSS de .ph)
     var bl = el.intro.querySelectorAll('.in-t');
     for (var i = 0; i < 2 && i < bl.length; i++) {
       var B = bl[i], d = t[i] || {};
@@ -1363,7 +1364,9 @@
     }
     // beat B: dos datos como mucho (se reserva su hueco desde el principio: la tarjeta no salta al entrar)
     var b = plan && plan.b && plan.b.length ? plan.b : null;
-    if (el.introLT) { el.introLT.innerHTML = b ? '<span>' + sepHTML(b, 'v') + '</span>' : ''; el.introLT.hidden = !b; }
+    // (móvil, movil-aire §5.5: una píldora por dato, que parten de línea con flex-wrap; la del árbitro, en corto)
+    var bph = b && document.documentElement.classList.contains('ph');
+    if (el.introLT) { el.introLT.innerHTML = !b ? '' : bph ? b.map(function (x) { return '<span>' + sepHTML([typeof x === 'string' ? x.replace(/, te sacó (amarilla|roja) en la (J\d+)$/, ' ($1 en la $2)') : x], 'v') + '</span>'; }).join('') : '<span>' + sepHTML(b, 'v') + '</span>'; el.introLT.classList.toggle('lt-ph', !!bph); el.introLT.hidden = !b; }
     // beat C: lo que está en juego (con el jefe, su pista debajo)
     var c = plan && plan.c, sk = el.introStake;
     if (sk) {
@@ -3719,6 +3722,7 @@
   // su desvanecido la recortaba); en el resto, otra vez en su sitio, delante del acta. CSS: index.html «(carrera, 18-nov-2026)».
   // Lo llaman el final del partido y «vb:tier» (la barra del navegador cruza 345 de alto con el final abierto).
   function placeMStats() {
+    try { endSplit(); } catch (e) { console.error('[VB][ERROR] endSplit: ' + e); }
     if (!el.btnMStats) return;
     var msHome = $('endStatsTab') && $('endStatsTab').querySelector('.end-ms'), msBody = el.end && el.end.querySelector('.end-body');
     // (en .end-body dentro de su propio [data-nav] (display:contents): si no, el teclado y el mando no llegaban a él)
@@ -3737,7 +3741,8 @@
     recapM = M; recapD = d;
     var cs = d.career;
     // antetítulo y título: los de la Carrera (competición y «Gana el …») y del reto del día; Partido rápido, los de showEnd
-    if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
+    el.end.classList.toggle('crs', !!cs);   // (movil-aire, carrera-flujo: hoja de un partido de Carrera; solo la usa el CSS de html.ph)
+    if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); crKick(M.kicker); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
     else if (d.sit) {   // «La situación ◆ Semana 47 | Set único a 25»
       setSep(el.endKicker, [{ h: nw('La situación') }, { h: nw('Semana ' + d.sit.wn) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
       el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 11);
@@ -3757,6 +3762,47 @@
     endPanes(tabs, q === 'stats' && tabs.indexOf('stats') >= 0 ? 'stats' : q === 'plays' && tabs.indexOf('plays') >= 0 ? 'plays' : tabs[0], watch, M.tabLabels);
     // sonidos de la entrada escalonada (a los 700 ms la flecha de la tabla, a los 800 ms el desbloqueo): al verse la hoja (syncScreens)
     endRcSnd = { rank: M.table && M.table.move ? M.table.move.d | 0 : 0, unl: !!M.unlocks };
+  }
+  /** Móvil bajo (.ph-s, movil-aire §5.5): en la hoja de un partido de Carrera (#end.crs) el bloque secundario (objetivos de la prueba o del
+   *  juvenil, «Tu partido») pasa a la columna izquierda, bajo los sets (.end-side, área «lm»), y el panel derecho queda para el progreso, el
+   *  MVP y la clasificación. Cada nodo deja un marcador para volver a su sitio si cambia el tamaño. Lo llaman placeMStats (final y vb:tier)
+   *  y main.js tras pintar sus bloques. Sin .ph-s, todo en su sitio de siempre (PC igual). */
+  function endSplit() {
+    var en = el.end; if (!en) return;
+    var sh = en.querySelector('.sp-sheet'); if (!sh) return;
+    var side = sh.querySelector(':scope>.end-side');
+    var on = document.documentElement.classList.contains('ph-s') && en.classList.contains('crs');
+    var back = function () {
+      if (!side) return;
+      Array.prototype.slice.call(side.children).forEach(function (n) {
+        var mk = en.querySelector('i.es-mk[data-es="' + n.getAttribute('data-es-id') + '"]');
+        if (mk && mk.parentNode) mk.parentNode.replaceChild(n, mk); else if (n.parentNode) n.parentNode.removeChild(n);
+      });
+    };
+    back();
+    Array.prototype.slice.call(en.querySelectorAll('i.es-mk')).forEach(function (m) { if (m.parentNode) m.parentNode.removeChild(m); });
+    if (!on) { if (side) side.hidden = true; return; }
+    if (!side) { side = document.createElement('div'); side.className = 'end-side ph-only'; sh.appendChild(side); }
+    var L = [], q = function (s) { var n = en.querySelector(s); if (n && !side.contains(n)) L.push(n); };
+    q('#endSum > #endRt'); q('#endSum .end-trial .et-goals'); q('#endSum .pro-et .et-goals');
+    L.forEach(function (n, i) {
+      var id = 'es' + i, mk = document.createElement('i'); mk.className = 'es-mk'; mk.hidden = true; mk.setAttribute('data-es', id);
+      n.setAttribute('data-es-id', id); n.parentNode.replaceChild(mk, n); side.appendChild(n);
+    });
+    side.hidden = !L.length;
+  }
+  /** Móvil (movil-aire §5.5, hoja de partido de la Carrera): antetítulo corto de una línea («Regional · J3/14», «Continental · Clasif. 2º»,
+   *  «Prueba · Voley Valencia») en un .ph-only al final de #endKicker; el CSS de .ph esconde el largo. En PC no se ve (ph-only). */
+  function crKick(parts) {
+    var k = el.endKicker; if (!k) return;
+    var t = (Array.isArray(parts) ? parts : [parts]).map(function (p) { return String(p && typeof p === 'object' ? p.h || '' : p || '').replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim(); }).filter(Boolean).join(' · ');
+    var s = t.replace(/Partidillo de prueba/, 'Prueba').replace(/Partido de las Estrellas/, 'Estrellas').replace(/Circuito (Regional|Nacional|Internacional|Mundial)/g, '$1')
+      .replace(/Jornada (\d+) de (\d+)/g, 'J$1/$2').replace(/Jornada (\d+)(:[^·]*)?/g, 'J$1').replace(/[Cc]lasificación, (\d+)º partido/, 'Clasif. $1º')
+      .replace(/[Gg]rupo ([A-D]), (\d+)ª jornada/, 'Grupo $1 · J$2').replace(/\s+/g, ' ').trim();
+    var cm = s.split(', '); if (cm.length > 1) s = cm[0].split(' ')[0] + ' · ' + cm.slice(1).join(' · ');
+    var o = k.querySelector('.ek-s'); if (o) o.parentNode.removeChild(o);
+    k.classList.toggle('ek-on', !!s && s !== t);
+    if (s && s !== t) k.insertAdjacentHTML('beforeend', '<span class="ph-only ek-s" aria-hidden="true">' + escT(s) + '</span>');
   }
   /** SPLAT: hoja final del reto del día → sello dorado (.sp-stamp, decorativo) junto al título con la medalla de hoy (la mejor del
    *  día); el detalle sigue en el bloque «Reto del día» del Resumen. Sin reto, escondido. */
@@ -8103,7 +8149,9 @@
         var kk = function (x) { return d === 'touch' ? '' : ' ' + x; };
         var f = $('bbFast'); f.innerHTML = '×3' + kk(gl.jump); f.classList.toggle('on', !!B.fast); f.setAttribute('aria-pressed', B.fast ? 'true' : 'false');
         f.setAttribute('aria-label', B.fast ? 'Velocidad normal' : 'Ver a ×3');
-        $('bbIn').innerHTML = 'Saltar hasta que entres' + kk(gl.hit); $('bbEnd').innerHTML = 'Saltar al final' + kk(gl.sw);
+        // (móvil, movil-aire §5.5: una barra de 44 con rótulos cortos; .ph-no / .ph-only, en PC el largo)
+        $('bbIn').innerHTML = '<span class="ph-no">Saltar hasta que entres</span><span class="ph-only" aria-hidden="true">Saltar hasta entrar</span>' + kk(gl.hit); $('bbIn').setAttribute('aria-label', 'Saltar hasta que entres');
+        $('bbEnd').innerHTML = '<span class="ph-no">Saltar al final</span><span class="ph-only" aria-hidden="true">⏭ Final</span>' + kk(gl.sw); $('bbEnd').setAttribute('aria-label', 'Saltar al final');
       }
     }
     if (subUI.veil.hidden === ff) subUI.veil.hidden = !ff;
@@ -8342,6 +8390,10 @@
     _profEnd: function () { return profEnd; },
     /** B6: hoja final de un partido de Carrera (main.js, tras VB.Career.matchDone). x = {tbl, myId, short, pos, next, bar, ses}. */
     endCareer: endCareer,
+    /** Móvil (movil-aire): antetítulo corto de la hoja de un partido de Carrera (main.js: extensiones y prueba, tras poner el suyo). */
+    crKick: crKick,
+    /** Móvil (movil-aire): reparte la hoja de Carrera en .ph-s (main.js, tras sus bloques: «Tu partido», prueba, extensiones). */
+    endSplit: function () { try { endSplit(); } catch (e) { console.error('[VB][ERROR] endSplit: ' + e); } },
     /** S3-C1: cortinilla de VB.Replay (false si ya hay una en marcha) y fin de las jugadas vistas desde la hoja (foco al «Ver»). */
     replayWipe: replayWipe, replayDone: replayDone,
     /** Pruebas (B6): último modelo de la hoja, sus datos y la pestaña abierta. */

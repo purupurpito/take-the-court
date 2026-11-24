@@ -786,6 +786,7 @@
     sum.cup = loss ? '' : '¡Billete para ' + theEv(ei) + '!';
     if (loss) sum.next = 'Siguiente: grupo B, 3ª jornada contra ' + natOf('PR').name;
     sum.cs = { label: lbl, me: me.ab, rival: rv.ab, meName: me.name, rivalName: rv.name };
+    if (loss) sum.dbgSets = [[21, 25], [23, 25]];   // (main.js: la derrota con su marcador; antes salía el 2-0 del partido simulado)
     return sum;
   }
 

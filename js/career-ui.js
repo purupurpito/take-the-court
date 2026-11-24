@@ -1519,7 +1519,125 @@
     // hoja de ligas (fuera de #career: #spSheets)
     '#spSheets .cr-lgs .cr-lgs-g{margin:10px 0 6px;font:400 var(--ph-label,14px)/1.1 var(--sp-pop);letter-spacing:.03em;color:var(--sp-gold);text-shadow:2px 2px 0 var(--sp-ink)}',
     '#spSheets .cr-lgs .cr-lgs-g:first-child{margin-top:0}',
-    '#spSheets .cr-lgs .cr-lgs-r{display:flex;flex-wrap:wrap;gap:12px 10px;padding:2px 2px 6px}'
+    '#spSheets .cr-lgs .cr-lgs-r{display:flex;flex-wrap:wrap;gap:12px 10px;padding:2px 2px 6px}',
+    // ==== movil-aire, paquete carrera-flujo (24-nov-2026; notes/movil-aire.md §5.5). Solo html.ph (PQ / PS); PC igual.
+    // ---- crear jugador: cabecera de una franja (‹ 44 · título · Playa | Pista en píldora de 2), campos en tarjetas de 2 columnas
+    // (3 a .ph-w) con Nombre y Dificultad arriba, «Crear jugador» de una línea en la barra y, a su izquierda, lo que falta
+    PQ + ' .cr-in:has(>.cr-body>.cf){grid-template-columns:44px minmax(0,1fr);grid-template-rows:var(--ph-bar) minmax(0,1fr) auto;gap:8px 12px}',
+    PQ + ' .cr-in:has(>.cr-body>.cf)>.cr-head>.sp-back{justify-self:center;align-self:center;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;' +
+      'background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none;filter:none}',
+    PQ + ' .cr-in:has(>.cr-body>.cf)>.cr-head>.sp-back>:not(svg),' + PQ + ' .cr-in:has(>.cr-body>.cf)>.cr-head>.sp-back>.sp-blob{display:none}',
+    PQ + ' .cr-in:has(>.cr-body>.cf)>.cr-head>.sp-back>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}',
+    PQ + ' .cr-in:has(>.cr-body>.cf)>.cr-head>.sp-back:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    PQ + ' .cr-in:has(>.cr-body>.cf)>.cr-head>.cr-title{--cm-w:min(260px,48vw);padding:0 calc(var(--cm-w) + 12px) 0 2px}',
+    PQ + ' .cr-in:has(>.cr-body>.cf)>.cr-head>.cr-title b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-cmode{grid-area:sb;justify-self:end;align-self:center;display:flex;flex-wrap:nowrap;gap:12px;width:min(268px,48vw);margin:0}',
+    PQ + ' .cr-cmode>button{position:relative;flex:1 1 0;min-width:0;height:44px;min-height:44px;padding:0 8px;white-space:nowrap;font-size:var(--ph-label)}',
+    PQ + ' .cr-cmode .cm-sv{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--sp-lime,#b6f03c);box-shadow:0 0 0 2px var(--sp-ink)}',
+    PQ + ' .cr-body:has(>.cf){padding:8px 6px 12px 2px}',
+    PQ + ' .cf{grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-flow:row dense;gap:8px;align-items:start}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .cf{grid-template-columns:repeat(3,minmax(0,1fr))}',
+    PQ + ' .cf-col{display:contents}',
+    PQ + ' .cf-col>div{order:6;min-width:0;padding:10px;border-radius:16px 20px 15px 19px/19px 15px 20px 16px;background:rgba(21,16,42,.93);box-shadow:0 0 0 2.5px var(--sp-ink),inset 0 0 0 2px rgba(255,244,220,.12),3px 4px 0 var(--sp-ink)}',
+    PQ + ' .cf-col>div:has(>#crName){order:1}',
+    PQ + ' .cf-col>div:has(>.diffs){order:2;grid-row:span 2}',
+    PQ + ' .cf-col>div:has(>.stp){order:3}',
+    PQ + ' .cf-col>div:has([data-act="pro-start"]){order:4;grid-column:1/-1}',
+    PQ + ' .cf-col>div:has(>.cf-cc){order:4}',
+    // (.ph-w, 3 columnas: Nombre | Dificultad | Inicio con sus dos opciones en filas; el dorsal bajo el nombre)
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .cf-col>div:has([data-act="pro-start"]){order:3;grid-column:auto;grid-row:span 2}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .cf .roles:has([data-act="pro-start"]){grid-template-columns:minmax(0,1fr)}',
+    ':root.ph.ph-w:not(#_):not(#_):not(#_) #career .cf-col>div:has(>.stp){order:4}',
+    // dorsal y país: el rótulo en la misma línea que el control (tarjeta de 64)
+    PQ + ' .cf-col>div:is(:has(>.stp),:has(>.cf-cc)){display:flex;align-items:center;gap:10px}',
+    PQ + ' .cf-col>div:is(:has(>.stp),:has(>.cf-cc))>label{flex:none;margin:0}',
+    PQ + ' .cf-col>div:has(>.stp)>.stp{margin-left:auto}',
+    PQ + ' .cf-col>div:has(>.cf-cc)>.cf-cc{flex:1 1 auto;min-width:0}',
+    PQ + ' .cf-col>div:has(>.roles:not(.diffs)):not(:has([data-act="pro-start"])){order:5;grid-column:1/-1}',
+    PQ + ' .cf .roles:not(.diffs):not(:has([data-act="pro-start"])){display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}',
+    PQ + ' .cf-col>.card.confirm,' + PQ + ' .cf-col>.acts{order:9;grid-column:1/-1}',
+    PQ + ' .cf>.card:not(.confirm){order:10;grid-column:1/-1;margin:4px 0 0;padding:10px 12px}',
+    PQ + ' .cf>.card:not(.confirm) p{font-size:var(--ph-cap);line-height:1.35;margin:0}',
+    PQ + ' .cf label{display:flex;align-items:center;gap:6px;min-height:18px;margin:0 0 6px;font:800 var(--ph-micro)/1.2 var(--sp-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--sp-gold);text-shadow:none}',
+    PQ + ' .cf label:has(>.cr-q){margin-bottom:14px}',
+    PQ + ' .cf label .cr-q{position:relative;top:auto;right:auto;width:44px;height:44px;min-width:44px;min-height:44px;margin:-13px -8px -13px auto;font-size:15px;color:var(--sp-cream);transform:none;background:none;box-shadow:none;isolation:isolate}',
+    PQ + ' .cf label .cr-q::before{content:"";position:absolute;inset:8px;z-index:-1;border-radius:50%;background:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-cream)}',
+    PQ + ' .cf input{min-height:48px;height:48px;font-size:18px}',
+    PQ + ' .cf .roles.diffs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}',
+    PQ + ' .cf .roles.diffs button{min-height:44px;height:44px;padding:0 6px;font-size:var(--ph-label)}',
+    PQ + ' .cf .dh{margin:6px 0 0;font-size:var(--ph-cap);line-height:1.3;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}',
+    PQ + ' .cf .dh~p.muted,' + PQ + ' .cf .seg~p.muted,' + PQ + ' .cf .roles~p.muted:not(.dh){display:none}',
+    PQ + ' .cf .roles:not(.diffs){gap:10px 12px}',
+    PQ + ' .cf .roles:not(.diffs) button{min-height:52px;padding:4px 8px;font-size:var(--ph-row);line-height:1.1}',
+    PQ + ' .cf .roles:not(.diffs) button small{display:block;margin-top:2px;font-size:var(--ph-cap)!important;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cf .roles:has([data-act="pro-start"]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}',
+    PQ + ' .cf .roles [data-act="pro-start"]{min-height:56px!important}',
+    PQ + ' .cf .prev-box{margin:8px 0 0!important;padding:8px 10px}',
+    PQ + ' .cf .prev-box>h3{display:none}',
+    PQ + ' .cf .prev{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:2px 10px;font-size:var(--ph-cap)}',
+    PQ + ' .cf .prev b{font-size:var(--ph-label)}',
+    PQ + ' .cf .stp{justify-content:flex-start;gap:12px}',
+    PQ + ' .cf .stp b{font-size:26px;min-width:2ch;text-align:center}',
+    PQ + ' .cf .stp button{width:44px;height:44px;min-width:44px;min-height:44px}',
+    PQ + ' .cf p.cf-rl{margin:0;font-size:var(--ph-cap);line-height:1.3}',
+    PQ + ' .cf .seg{gap:12px}' + PQ + ' .cf .seg button{min-height:44px;height:44px}',
+    PQ + ' .cf-cc{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:48px;padding:0 14px;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);font:400 var(--ph-row)/1.1 var(--sp-pop);text-transform:none;letter-spacing:.01em}',
+    PQ + ' .cf-cc>span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cf-cc>i{flex:none;font-style:normal;font-size:20px}',
+    PQ + ' .cf-cc:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold)}',
+    PQ + ' .cr-dock .cf-cnt{flex:1 1 auto;min-width:0;margin:0 auto 0 4px;font:700 var(--ph-cap)/1.25 var(--sp-ui);color:var(--sp-cream);text-shadow:1px 1px 0 var(--sp-ink);display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}',
+    PQ + ' .cr-dock .cf-cnt b{color:var(--sp-gold);font-weight:800}',
+    PQ + ' .cr-dock .cf-cnt.ok b{color:var(--sp-lime,#b6f03c)}',
+    // hoja del país (fuera de #career: #spSheets): continentes en pestañas y chips de 44 con 8 de hueco
+    ':root.ph #spSheets .cc-sheet .cc-regs{display:flex;gap:8px;margin:0 0 12px}',
+    ':root.ph #spSheets .cc-sheet .cc-regs>button{flex:1 1 0;min-height:44px}',
+    ':root.ph #spSheets .cc-sheet .cc-chips{display:flex;flex-wrap:wrap;gap:8px}',
+    ':root.ph #spSheets .cc-sheet .cc-chips[hidden]{display:none}',
+    ':root.ph #spSheets .cc-sheet .cc-chips>button{min-height:44px;padding:0 14px}',
+    // ---- ficha de oferta (también con rencor): club en una línea de 44 (escudo 32), cifras de 52, fichas de resumen y «i»
+    PQ + ' .card.offer-full{padding:10px 12px}',
+    PQ + ' .card.offer-full>.row{display:flex;flex-wrap:nowrap;align-items:center;gap:10px;min-height:44px;margin:0}',
+    PQ + ' .card.offer-full>.row>:is(svg,.cr-kit,.sp-crest){flex:none;width:32px!important;height:32px!important}',
+    PQ + ' .card.offer-full>.row>.grow{display:flex;align-items:baseline;gap:10px;min-width:0;flex:1 1 auto}',
+    PQ + ' .card.offer-full>.row .bigname.cr-on{flex:0 1 auto;min-width:0;margin:0;font-size:var(--ph-head)!important}',
+    PQ + ' .card.offer-full>.row .grow>p.muted{flex:1 1 0;min-width:0;margin:0!important;font-size:var(--ph-cap)}',
+    PQ + ' .of-n{flex:none;align-self:center;padding:3px 9px;border-radius:8px 11px 9px 12px;background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 2px var(--sp-ink);font:700 var(--ph-micro)/1.2 var(--sp-ui);font-variant-numeric:tabular-nums}',
+    PQ + ' .card.offer-full>.sp-heros.cr-oh{min-height:52px;margin:8px 0 10px}',
+    PQ + ' .card.offer-full>.sp-heros.cr-oh>*{padding:3px 6px;justify-content:center}',
+    PQ + ' .card.offer-full>.sp-heros.cr-oh .sp-hl{font-size:var(--ph-micro);line-height:1.15}',
+    PQ + ' .of-chips{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;margin:0 0 8px;min-width:0}',
+    PQ + ' .of-chip{flex:0 1 auto;min-width:0}',
+    PQ + ' .card.offer-full>.row .grow>p.of-hl{flex:none}',
+    PQ + ' .card.offer-full>.row>.of-bond{flex:none}',
+    PQ + ' .of-chip{display:inline-flex;align-items:baseline;gap:6px;max-width:100%;min-height:32px;box-sizing:border-box;padding:6px 10px;border-radius:9px 12px 10px 13px;background:rgba(255,244,220,.1);box-shadow:inset 0 0 0 1.5px rgba(255,244,220,.18);' +
+      'font:700 var(--ph-label)/1.2 var(--sp-ui);color:var(--sp-cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .of-chip small{flex:none;font:800 var(--ph-micro)/1.2 var(--sp-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--sp-gold)}',
+    PQ + ' .of-chips>.cr-q{position:relative;top:auto;right:auto;flex:none;width:44px;height:44px;min-width:44px;min-height:44px;transform:none;font:700 17px/1 var(--sp-ui)}',
+    PQ + ' :is(.of-chips,.offer-full>.row)>.of-bond{position:relative;display:inline-flex;align-items:center;gap:8px;width:auto;min-width:0;height:44px;min-height:44px;padding:0 8px 0 12px;border:0;border-radius:10px 13px 11px 14px;color:#fff;box-shadow:0 0 0 2px var(--sp-ink),2px 2px 0 2px var(--sp-ink);font:700 var(--ph-label)/1 var(--sp-ui);letter-spacing:0;text-transform:none;cursor:pointer}',
+    PQ + ' .of-bond.r{background:var(--sp-danger,#e4572e)!important}' + PQ + ' .of-bond.g{background:#2a9d61!important}',
+    PQ + ' .of-bond i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;background:rgba(21,16,42,.35);font-style:normal}',
+    PQ + ' .of-bond:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2px var(--sp-ink),0 0 0 5px var(--sp-gold)}',
+    PQ + ' .card.offer-full>p.of-yl{display:inline-block;margin:0 10px 0 0!important;font:800 var(--ph-micro)/1.2 var(--sp-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--sp-gold)}',
+    PQ + ' .card.offer-full>p.of-yl+.seg{display:inline-flex;vertical-align:middle;flex-wrap:nowrap;gap:12px}',
+    PQ + ' .card.offer-full>p.of-yl+.seg button{min-width:52px;height:44px;min-height:44px;flex:0 0 auto}',
+    PQ + ' .card.offer-full>.ph-no,' + PQ + ' .card.tp .ph-no,' + PQ + ' .card.offer-full .ph-no{display:none!important}',
+    // ---- partido a medias: el marcador a 22, la nota en una línea de 12; «Seguir el partido» en la barra
+    PQ + ' .card.cr-lock .cr-lock-sc b{font-size:22px}',
+    PQ + ' .card.cr-lock .cr-lk-n{margin:4px 0 0;font-size:var(--ph-micro)}',
+    // ---- previa de la prueba: cabecera de 56 (escudo 36, nombre 22), objetivos en minúscula de 14 en fichas de 40 de una línea,
+    // «1 set a 15 · con petos» (con la «i») debajo; fuera la frase del cuerpo técnico. Todo sin desplazar a 568×320
+    PQ + ' .card.tp{padding:8px 12px 10px}',
+    PQ + ' .card.tp .tp-hero{min-height:56px;padding:4px 10px;gap:10px;margin:0 0 8px}',
+    PQ + ' .card.tp .tp-hero :is(svg,.cr-kit){width:36px!important;height:36px!important}',
+    PQ + ' .card.tp .tp-hero small{display:none}',
+    PQ + ' .card.tp .tp-hero b{font-size:22px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .card.tp .tp-hero .muted{font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .card.tp .tp-eye{display:none}',
+    PQ + ' .card.tp .tp-goals,' + PS + ' .card.tp .tp-goals{order:-1;display:flex;flex-wrap:nowrap;gap:8px;margin:0 0 8px;min-width:0}',
+    PQ + ' .card.tp .tp-goals li,' + PS + ' .card.tp .tp-goals li{flex:0 1 auto;min-height:40px;max-width:100%;box-sizing:border-box;padding:4px 12px;font:700 14px/1.15 var(--sp-ui);letter-spacing:0;text-transform:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;hyphens:manual}',
+    PQ + ' .card.tp .tp-goals li i,' + PS + ' .card.tp .tp-goals li i{display:none}',   // (el orden no importa: tres fichas de una línea)
+    PQ + ' .card.tp .tp-fmt{order:0;display:flex;align-items:center;flex-wrap:wrap;gap:4px 8px;margin:0;font-size:var(--ph-label)}',
+    PQ + ' .card.tp .tp-fmt>.cr-q{position:relative;top:auto;right:auto;width:44px;height:44px;min-width:44px;min-height:44px;margin:-4px 0 -4px auto;transform:none;font:700 17px/1 var(--sp-ui)}'
   ].join('\n');
 
   // =================================================================== construcción
@@ -1543,7 +1661,7 @@
       if (!PH()) return; var t = e.target, m = t && t.closest ? t.closest('.cw-mentor') : null;
       if (m && !t.closest('button')) m.classList.toggle('ph-open');
     });
-    root.addEventListener('input', function (e) { if (e.target && e.target.id === 'crName') form.name = e.target.value; });
+    root.addEventListener('input', function (e) { if (e.target && e.target.id === 'crName') { form.name = e.target.value; phCreateCnt(); } });
     root.addEventListener('pointerdown', function () { var k = root.querySelectorAll('.kf'); for (var i = 0; i < k.length; i++) k[i].classList.remove('kf'); }, { passive: true });
     window.addEventListener('keydown', onKey, true);
     document.addEventListener('vb:ph', function () { if (open) render(); });   // (móvil ↔ PC: columna de apartados, tira, nombres cortos)
@@ -1572,9 +1690,82 @@
       try { if (window.console) console.error('CareerUI.render', e); } catch (e2) { }
       renderBroken();
     }
+    try { phFlow(); } catch (e) { }
     try { phDecide(); } catch (e) { }
     try { splatify(); } catch (e) { }
     try { phDock(); } catch (e) { }
+  }
+  /** Botón «?»/«i» de explicación (VB.Splat.info abre la hoja) con el HTML tal cual (lo que en PC se lee en la ficha). */
+  function qNode(title, html, ch) {
+    var b = document.createElement('button'); b.type = 'button'; b.className = 'sp-q cr-q';
+    b.setAttribute('aria-label', 'Qué es: ' + title); b.setAttribute('data-q-title', title); b.setAttribute('data-q-html', html); b.textContent = ch || '?';
+    return b;
+  }
+  /** Móvil (movil-aire §5.5, paquete carrera-flujo): retoques de la ficha de oferta, la previa de la prueba, el partido a medias y la
+   *  presentación del juvenil, después de pintar y antes de splatify (decide qué botones son manchas). Sin .ph no hace nada. */
+  function phFlow() {
+    if (!body || !PH()) return;
+    var all = function (sel, r) { return Array.prototype.slice.call((r || body).querySelectorAll(sel)); };
+    // juvenil, presentación (1ª página): «Ir directo a las pruebas» sube a la cabecera como botón fantasma pequeño
+    var sk = body.querySelector('.pro-bar [data-act="pro-skip"]');
+    if (sk && head) { sk.classList.remove('warn'); sk.classList.add('pro-skiph'); sk.classList.toggle('armed', /^Confirmar/.test(sk.textContent)); head.appendChild(sk); }
+    // partido a medias: «Seguir el partido» a la barra de abajo; la nota en una línea
+    var lk = body.querySelector('.card.cr-lock');
+    if (lk) {
+      var la = lk.querySelector(':scope>.acts'); if (la) la.setAttribute('data-ph-dock', '');
+      var ln = lk.querySelector(':scope>p.muted'); if (ln && !/punto es para el rival/.test(ln.textContent)) { ln.textContent = 'Se guarda cada punto.'; ln.classList.add('cr-lk-n'); }
+    }
+    // previa de la prueba: lo que se lee (cómo es y qué nota hace falta) tras la «i» de la línea «1 set a 15 · con petos»
+    all('.card.tp').forEach(function (tp) {
+      var fm = tp.querySelector('.tp-fmt'), ps = all(':scope>p.muted', tp); if (!fm || !ps.length || fm.querySelector('.cr-q')) return;
+      fm.appendChild(qNode('La prueba', ps.map(function (x) { return '<p>' + x.innerHTML + '</p>'; }).join(''), 'i'));
+      ps.forEach(function (x) { x.classList.add('ph-no'); });
+    });
+    // ficha de oferta: club en una línea (escudo 32 · nombre · estrellas) con «1/4»; 3-4 fichas de resumen (Estilo · Compañero · Rol) y
+    // lo demás tras la «i»; el rencor o el cariño como ficha con «?» (su efecto, en la hoja)
+    all('.card.offer-full').forEach(function (of) {
+      if (of.querySelector('.of-chips')) return;
+      var rw = of.querySelector(':scope>.row'), tabs = all('.tab', tabsEl).filter(function (t) { return !/Comparar/.test(t.textContent); });
+      var on = tabs.filter(function (t) { return t.classList.contains('on') || t.getAttribute('aria-selected') === 'true'; })[0];
+      if (rw && tabs.length > 1 && on) rw.insertAdjacentHTML('beforeend', '<span class="of-n" aria-label="' + esc('Oferta ' + (tabs.indexOf(on) + 1) + ' de ' + tabs.length) + '">' + (tabs.indexOf(on) + 1) + '/' + tabs.length + '</span>');
+      var fc = of.querySelector(':scope>.fact'), chips = document.createElement('div'); chips.className = 'of-chips';
+      var det = '';
+      if (fc) {
+        det += '<div class="fact">' + fc.innerHTML + '</div>';
+        all(':scope>div', fc).forEach(function (d) {
+          var l = d.querySelector('small'), v = d.querySelector('b'); if (!l || !v) return;
+          var vt = v.cloneNode(true); all('.muted', vt).forEach(function (m) { m.parentNode.removeChild(m); });
+          var lt = l.textContent.replace(/ \(ficticio\)$/, '');
+          if (/^(Rol prometido|Puesto)$/.test(lt)) return;   // (el rol ya va en las cifras; el puesto es el tuyo: los dos, en la «i»)
+          var ch = document.createElement('span'); ch.className = 'of-chip'; ch.innerHTML = '<small>' + esc(lt) + '</small> ' + esc(vt.textContent.trim());
+          chips.appendChild(ch);
+        });
+        fc.classList.add('ph-no');
+      }
+      var bd = of.querySelector('.off-bond'), bp = null;
+      all(':scope>p.muted', of).forEach(function (x) {
+        var nx = x.nextElementSibling;
+        if (nx && nx.classList && nx.classList.contains('seg')) { x.classList.add('of-yl'); x.textContent = 'Duración'; return; }   // («Duración del contrato:» + años: se queda)
+        if (x.classList.contains('off-bp')) bp = x;
+        det += '<p>' + x.innerHTML + '</p>'; x.classList.add('ph-no');
+      });
+      var hl = rw && rw.querySelector('.grow>p.muted');
+      if (hl && !hl.querySelector('.of-st')) {   // (la línea del club: solo las estrellas; liga y sede, a la «i»)
+        var stS = hl.querySelector('.stars'); det = '<p>' + hl.innerHTML + '</p>' + det;
+        if (stS) { var st2 = stS.cloneNode(true); st2.classList.add('of-st'); hl.innerHTML = ''; hl.appendChild(st2); hl.classList.add('of-hl'); }
+      }
+      if (bd) {
+        var tg = bd.querySelector('.tag'), bad = tg && tg.classList.contains('r');
+        var qb = qNode(bad ? 'Te guardan rencor' : 'Te tienen cariño', bp ? '<p>' + bp.innerHTML + '</p>' : '<p>' + esc(tg ? tg.textContent : '') + '</p>', '?');
+        qb.className = 'sp-q of-bond ' + (bad ? 'r' : 'g'); qb.innerHTML = '<span>' + (bad ? 'Rencor' : 'Cariño') + '</span><i aria-hidden="true">?</i>';
+        var on2 = rw && rw.querySelector('.of-n');
+        if (rw) rw.insertBefore(qb, on2 || null); else chips.insertBefore(qb, chips.firstChild);
+        bd.classList.add('ph-no');
+      }
+      if (det) chips.appendChild(qNode('Detalles de la oferta', det, 'i'));
+      var hr = of.querySelector(':scope>.sp-heros'), at = hr || rw;
+      if (at && at.parentNode === of) of.insertBefore(chips, at.nextSibling); else of.appendChild(chips);
+    });
   }
   /** Móvil (movil-aire §3.7 y §5.2): decisión pendiente en Partido, una a la vez (propuesta de puesto > selección > cesión). Va justo
    *  bajo el ticket; la propuesta (y la selección cuando no hay jornada del club por delante) lleva además sus botones a la barra de
@@ -1627,7 +1818,7 @@
     src.parentNode.removeChild(src);
     dock.hidden = false;
     try { if (VB.Splat && VB.Splat.sync) VB.Splat.sync(); } catch (e) { }
-    if (PH()) { phFitDock(); try { requestAnimationFrame(phFitDock); } catch (e) { } }
+    if (PH()) { phCreateCnt(); phFitDock(); try { requestAnimationFrame(phFitDock); } catch (e) { } }
   }
   /** Móvil (movil-aire §3.7): el rótulo del parche de la barra va en UNA línea; si no cabe en su ancho (máx. 62vw), baja la letra de
    *  punto en punto hasta 15 px (nunca se corta ni parte en dos). */
@@ -2219,7 +2410,7 @@
   }
   /** Rencor o cariño del club de la oferta (career.js bondMark → o.bond; career-life bondLine, el motivo). */
   function bondTag(o) { var t = o && o.bond > 0 ? '<span class="tag g">Te tienen cariño</span>' : o && o.bond < 0 ? '<span class="tag r">Te guardan rencor</span>' : ''; return t ? '<p class="off-bond" style="margin:3px 0 0">' + t + '</p>' : ''; }   // (línea propia: la de meta se corta con elipsis en el móvil)
-  function bondP(c, o) { var Lf = VB.CareerLife, t = ''; try { t = Lf && Lf.bondLine ? Lf.bondLine(c, o) : ''; } catch (e) { t = ''; } return t ? '<p class="muted">' + esc(t) + '</p>' : ''; }
+  function bondP(c, o) { var Lf = VB.CareerLife, t = ''; try { t = Lf && Lf.bondLine ? Lf.bondLine(c, o) : ''; } catch (e) { t = ''; } return t ? '<p class="muted off-bp">' + esc(t) + '</p>' : ''; }
   function offerCard(c, o, i, full) {
     if (isHall(c)) return offerCard6(c, o, i, full);
     var k = C().club(c, o.club), f = C().clubInfo(c, k, o.lvl != null ? o.lvl : k.lvl, o.q), mp = o.mateP, y = yrs[o.club] || o.years || 1;
@@ -2600,6 +2791,47 @@
       '<button data-act="mode" data-m="beach" aria-pressed="' + (m === 'beach') + '">Playa (2v2)' + (C().has('beach') ? ' <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(guardada)</small>' : '') + '</button>' +
       '<button data-act="mode" data-m="hall" aria-pressed="' + (m === 'hall') + '"' + (hav ? '' : ' disabled') + '>Pista (6v6)' + (C().has('hall') ? ' <small style="font:600 12px var(--ui);text-transform:none;letter-spacing:0">(guardada)</small>' : '') + '</button></div></div>';
   }
+  /** Móvil (movil-aire §5.5): Playa / Pista como píldora de 2 en la cabecera de crear (fuera la tarjeta «Carrera»). */
+  function phModeSeg() {
+    var hav = C().hall && C().hall.available(), m = form.mode === 'hall' ? 'hall' : 'beach';
+    var sv = function (k) { return C().has(k) ? '<i class="cm-sv" aria-label="(guardada)" title="Guardada"></i>' : ''; };
+    return '<div class="seg cr-cmode" role="group" aria-label="Tipo de Carrera">' +
+      '<button data-act="mode" data-m="beach" aria-pressed="' + (m === 'beach') + '">Playa 2v2' + sv('beach') + '</button>' +
+      '<button data-act="mode" data-m="hall" aria-pressed="' + (m === 'hall') + '"' + (hav ? '' : ' disabled') + '>Pista 6v6' + sv('hall') + '</button></div>';
+  }
+  /** Móvil: el país como una fila «País: España ▸» que abre una hoja con los continentes en pestañas (phCountrySheet). */
+  function phCountryRow(cos) {
+    var co = cos.filter(function (x) { return x.code === form.country; })[0] || {};
+    return '<button class="cf-cc" data-act="cc-sheet" aria-haspopup="dialog" aria-label="' + esc('País: ' + (co.country || '') + '. Cambiar') + '"><span>' + esc(co.country || '—') + '</span><i aria-hidden="true">▸</i></button>';
+  }
+  function phCountrySheet() {
+    var SP = VB.Splat, H6 = C().hall; if (!SP || !SP.sheet || !H6) return false;
+    var s = sortCountries(H6.countries()), regs = [];
+    s.forEach(function (x) { if (regs.indexOf(x.region) < 0) regs.push(x.region); });
+    var cur = (s.filter(function (x) { return x.code === form.country; })[0] || s[0] || {}).region;
+    var nd = document.createElement('div'); nd.className = 'cc-sh';
+    nd.innerHTML = (regs.length > 1 ? '<div class="seg cc-regs" role="group" aria-label="Continente">' + regs.map(function (r) { return '<button type="button" data-r="' + esc(r) + '" aria-pressed="' + (r === cur) + '">' + esc(r || '—') + '</button>'; }).join('') + '</div>' : '') +
+      regs.map(function (r) {
+        return '<div class="cc-chips" data-r="' + esc(r) + '" role="group" aria-label="' + esc('País' + (r ? ', ' + r : '')) + '"' + (r === cur || regs.length < 2 ? '' : ' hidden') + '>' + s.filter(function (x) { return x.region === r; }).map(function (x) {
+          return '<button type="button" data-cc="' + esc(x.code) + '" aria-pressed="' + (x.code === form.country) + '">' + esc(x.country) + '</button>';
+        }).join('') + '</div>';
+      }).join('');
+    var api = SP.sheet({ title: 'País', node: nd, cls: 'cc-sheet' });
+    nd.addEventListener('click', function (e) {
+      var b = e.target && e.target.closest ? e.target.closest('button') : null; if (!b) return;
+      if (b.hasAttribute('data-r')) {
+        var r = b.getAttribute('data-r');
+        Array.prototype.forEach.call(nd.querySelectorAll('.cc-regs>button'), function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+        Array.prototype.forEach.call(nd.querySelectorAll('.cc-chips'), function (g) { g.hidden = g.getAttribute('data-r') !== r; });
+        snd('select'); return;
+      }
+      var cc = b.getAttribute('data-cc'); if (!cc) return;
+      var inp = root.querySelector('#crName'); if (inp) form.name = inp.value;
+      form.country = cc; snd('select'); if (api && api.close) api.close(true); render();
+      var rb = root.querySelector('[data-act="cc-sheet"]'); if (rb) focusEl(rb, kbNav);
+    });
+    return true;
+  }
   /** Palmarés › Opciones: pasar a la otra Carrera (las dos se guardan aparte) y, en la pista, tu puesto. */
   function optsModeHTML(c) {
     var hall = isHall(c), other = hall ? 'beach' : 'hall', oName = hall ? 'de playa (2v2)' : 'de pista (6v6)', h = '';
@@ -2911,10 +3143,10 @@
     if (!cos.some(function (x) { return x.code === form.country; })) form.country = cos.some(function (x) { return x.code === 'ES'; }) ? 'ES' : (cos[0] && cos[0].code);
     if (ps.indexOf(form.pos) < 0) form.pos = ps[0];
     var st = C().genSt(H6.START_OVR, form.pos, null), P = VB.Prog, co = cos.filter(function (x) { return x.code === form.country; })[0] || {}, P6 = C().POS6;
-    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>';
-    tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PH() ? phModeSeg() : '');
+    tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = ''; body.setAttribute('data-cv', 'create');
     var has = C().has('hall');
-    var h = '<div class="cf">' + modeSeg() + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
+    var h = '<div class="cf">' + (PH() ? '' : modeSeg()) + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
       '<div class="card"><p>Vóley de pista, 6 contra 6, en el pabellón. Empiezas con una media de ' + H6.START_OVR + ' en un club modesto de tu país' + (co.divs > 1 ? ' (2ª división, o una prueba en la 1ª)' : '') + '. Liga por jornadas, copa nacional y, si tu club se clasifica, copas internacionales. Ascensos y descensos. Si destacas, los ojeadores de las ligas fuertes (también de fuera) te ficharán. Controlas solo a tu jugador, en su puesto.' +
       (VB.Leagues && VB.Leagues.provisional ? ' <span class="tag y">Ligas provisionales</span>' : '') + '</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
@@ -2923,12 +3155,12 @@
         return '<button data-act="pos" data-p="' + k + '" aria-pressed="' + (form.pos === k) + '">' + esc(P6[k].name) + '<small>' + esc(P6[k].hint) + '</small></button>';
       }).join('') + '</div>' + (ps.length < 4 ? '<p class="muted" style="margin:6px 0 0">Colocador, opuesto y central llegarán pronto: la lista crece sola.</p>' : '') +
       '<div class="prev" style="margin-top:8px">' + C().KEYS.map(function (k) { return '<span>' + esc(P && P.LABEL ? P.LABEL[k] : k) + ' <b>' + st[k] + '</b></span>'; }).join('') + '</div></div></div>' +
-      '<div class="cf-col"><div><label>País</label>' + countryPick(cos) + '</div>' + (CD() ? createDiff() : '') +
+      '<div class="cf-col"><div><label>País</label>' + (PH() ? phCountryRow(cos) : countryPick(cos)) + '</div>' + (CD() ? createDiff() : '') +
       '<div><label>Puntos por set</label><div class="seg" role="group" aria-label="Puntos por set">' + H6.POINTS.map(function (v) {
         return '<button data-act="pts6" data-v="' + v + '" aria-pressed="' + (form.pts6 === v) + '">' + v + '</button>';
       }).join('') + '</div><p class="muted" style="margin:6px 0 0">Al mejor de 3 sets; el tercero, a 15. Con 15 la temporada se juega más rápido.</p></div>' + xCreateRows() + lookRow() +
       (has ? '<div class="card confirm"><p>Ya tienes una Carrera de pista. Para empezar otra, abandónala antes en Palmarés › Opciones.</p><div class="acts"><button class="pri" data-act="openmode" data-m="hall">Abrir la Carrera de pista</button></div></div>' :
-        '<div class="acts"><button class="pri" data-act="create">' + esc(xCreateLabel()) + '</button></div>') +
+        '<div class="acts"><button class="pri" data-act="create">' + createTxt() + '</button></div>') +
       '</div></div>';
     body.innerHTML = h;
   }
@@ -2981,7 +3213,7 @@
       '<p class="muted">' + (t.hall ? 'Juegas en tu puesto con los suplentes del club contra sus titulares, en el pabellón' + (t.ai ? ' (' + t.ai + ')' : '') + '.'
         : 'Juegas con tu pareja de prueba' + (t.mate ? ', ' + esc(t.mate) + ',' : '') + ' contra una pareja del club, en la arena' + (t.ai ? ' (' + t.ai + ')' : '') + '.') +
       (t.when === 'off' ? ' Si te fichan, juegas con ellos la temporada que viene.' : t.when === 'mid' ? ' Si te fichan, te vas ya: lo que queda de temporada, con ellos.' : '') + '</p>' +
-      '<h3 class="tp-gh" style="margin-top:10px">Objetivos del entrenador</h3><ol class="tp-goals" aria-label="Objetivos del entrenador">' + t.goals.map(function (g, j) { return '<li><i>' + (j + 1) + '</i>' + esc(g.txt) + '</li>'; }).join('') + '</ol>' +
+      '<h3 class="tp-gh" style="margin-top:10px">Objetivos del entrenador</h3><ol class="tp-goals" aria-label="Objetivos del entrenador">' + t.goals.map(function (g, j) { var gt = PH() ? String(g.txt).replace(/^Como mucho (\d+)/, '≤ $1') : g.txt; return '<li' + (gt !== g.txt ? ' aria-label="' + esc(g.txt) + '"' : '') + '><i>' + (j + 1) + '</i>' + esc(gt) + '</li>'; }).join('') + '</ol>' +
       '<p class="muted">Hace falta nota B: con A+, A o B te fichan; con C decide la suerte (ganar el partidillo ayuda un poco); con D o F no te quedas. Cada objetivo cumplido sube la nota. Si reinicias o abandonas, pierdes la prueba' +
       (t.pend ? ' (la tienes a medias de antes: puedes jugarla una vez más)' : '') + '.</p>' +
       '<div class="tp-acts"><button class="pri" data-act="trial-play" data-i="' + t.i + '">Saltar a la pista</button>' +
@@ -3070,24 +3302,44 @@
   function xCreateRows() { var hall = form.mode === 'hall'; return XUI().map(function (x) { return String(xTry(x, 'createRow', [form, hall, HLP], '') || ''); }).join(''); }
   /** Rótulo del botón de crear (createLabel(form) de una extensión, o el de siempre). */
   function xCreateLabel() { var v = ''; XUI().some(function (x) { v = String(xTry(x, 'createLabel', [form], '') || ''); return !!v; }); return v || 'Crear y ver ofertas'; }
+  function rulesTxt(B) { return 'Sets a ' + B.PTS + ' y el tercero a ' + B.PTS3 + '. Pista de 16 × 8, cambio de campo cada 7 puntos (5 en el tercero), el bloqueo cuenta como toque y la dejada va de nudillos. ' + B.WEEKS + ' jornadas a doble vuelta y el Open de los 4 primeros.'; }
+  /** Móvil: las reglas de playa en una línea con el dato clave; el párrafo, tras el «?» (hoja). */
+  function phRules(B) {
+    return '<div><label>Reglas de playa' + qBtn('Reglas de playa', rulesTxt(B)) + '</label><p class="muted cf-rl">' + sp(['Sets a ' + B.PTS + ', el 3º a ' + B.PTS3, B.WEEKS + ' jornadas + Open'], 'v') + '</p></div>';
+  }
+  /** Móvil: lo que falta para crear, a la izquierda de «Crear jugador» en la barra (se actualiza al escribir el nombre). */
+  function phCreateCnt() {
+    if (!PH() || !dock || dock.hidden || !dock.querySelector('[data-act="create"]')) return;
+    var p = dock.querySelector('.cf-cnt');
+    if (!p) { p = document.createElement('p'); p.className = 'cf-cnt'; p.setAttribute('aria-live', 'polite'); dock.insertBefore(p, dock.firstChild); }
+    var ok = !!String(form.name || '').trim();
+    p.classList.toggle('ok', ok);
+    p.innerHTML = ok ? '<b>✓</b> Listo: ' + esc(String(form.name).trim()) : '<b>Falta:</b> tu nombre';
+  }
+  /** Rótulo del botón de crear; en el móvil «Crear jugador» y el resto debajo, en pequeño (movil-aire §3.7). */
+  function createTxt() {
+    var l = xCreateLabel(); if (!PH()) return esc(l);
+    var m = /^Crear (y .+)$/.exec(l);
+    return 'Crear jugador' + (m ? '<small>' + esc(m[1].charAt(0).toUpperCase() + m[1].slice(1)) + '</small>' : '');
+  }
   function lookRow() { return LOOK() ? '<div><label>Aspecto</label><p class="muted" style="margin:0">El de tu n.º 1 de Partido rápido (cámbialo luego en el vestuario).</p></div>' : ''; }
   function renderCreate(c) {
     if (!form.mode) form.mode = C().mode ? C().mode() : 'beach';
     if (form.mode === 'hall' && C().hall) { renderCreate6(c); return; }
     var B = C().beach || C();   // la ficha es de playa aunque la Carrera activa sea la de pista (la fachada mandaría league(0), START_OVR y WEEKS a la pista)
     var R = B.ROLES, st = B.genSt(B.START_OVR, form.role, null), P = VB.Prog;
-    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>';
-    tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = '';
-    var h = '<div class="cf">' + modeSeg() + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PH() ? phModeSeg() : '');
+    tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = ''; body.setAttribute('data-cv', 'create');
+    var h = '<div class="cf">' + (PH() ? '' : modeSeg()) + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
       '<div class="card"><p>Empiezas con media ' + B.START_OVR + ' y sin club. Los clubes del <b>' + esc(B.league(0).name) + '</b> te harán ofertas: cada uno te da un compañero distinto.</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
       '<div><label>Dorsal</label><div class="stp"><button data-act="num" data-d="-1" aria-label="Dorsal anterior">−</button><b aria-live="polite">' + form.num + '</b><button data-act="num" data-d="1" aria-label="Dorsal siguiente">+</button></div></div>' +
       '<div><label>Rol</label><div class="roles" role="group" aria-label="Rol">' + ['atk', 'uni', 'cr'].map(function (k) {
         return '<button data-act="role" data-r="' + k + '" aria-pressed="' + (form.role === k) + '">' + esc(R[k].name) + '<small>' + esc(R[k].hint) + '</small></button>';
       }).join('') + '</div><div class="card prev-box" style="margin:8px 0 0"><h3>' + sp(['Tus atributos', esc(R[form.role].name)], 'v') + '</h3><div class="prev">' + C().KEYS.map(function (k) { return '<span>' + esc(P && P.LABEL ? P.LABEL[k] : k) + ' <b>' + st[k] + '</b></span>'; }).join('') + '</div></div></div></div>' +
-      '<div class="cf-col">' + (CD() ? createDiff() : '') + '<div><label>Reglas de playa</label><p class="muted" style="margin:0">' + 'Sets a ' + B.PTS + ' y el tercero a ' + B.PTS3 + '. Pista de 16 × 8, cambio de campo cada 7 puntos (5 en el tercero), el bloqueo cuenta como toque y la dejada va de nudillos. ' + B.WEEKS + ' jornadas a doble vuelta y el Open de los 4 primeros.</p></div>' + xCreateRows() + lookRow() +
+      '<div class="cf-col">' + (CD() ? createDiff() : '') + (PH() ? phRules(B) : '<div><label>Reglas de playa</label><p class="muted" style="margin:0">' + rulesTxt(B) + '</p></div>') + xCreateRows() + lookRow() +
       (C().has('beach') ? '<div class="card confirm"><p>Ya tienes una Carrera de playa. Para empezar otra, abandónala antes en Palmarés › Opciones.</p><div class="acts"><button class="pri" data-act="openmode" data-m="beach">Abrir la Carrera de playa</button></div></div>' :
-        '<div class="acts"><button class="pri" data-act="create">' + esc(xCreateLabel()) + '</button></div>') +
+        '<div class="acts"><button class="pri" data-act="create">' + createTxt() + '</button></div>') +
       '</div></div>';
     body.innerHTML = h;
   }
@@ -3165,6 +3417,7 @@
       case 'num': form.num = ((form.num - 1 + (+b.getAttribute('data-d')) + 99) % 99) + 1; snd('select'); keepFocus(b, render); return;
       case 'role': form.role = b.getAttribute('data-r'); snd('select'); keepFocus(b, render); return;
       case 'cdiff': form.diff = b.getAttribute('data-d'); snd('select'); keepFocus(b, render); return;
+      case 'cc-sheet': { var inp0 = root.querySelector('#crName'); if (inp0) form.name = inp0.value; if (phCountrySheet()) snd('click'); return; }
       case 'cdiff-set': {
         var dk2 = b.getAttribute('data-d'), dr = C().setDifficulty ? C().setDifficulty(dk2) : '';
         dnote = dr === 'ok' ? 'Dificultad: ' + dName(dk2) + '. Se aplica desde el próximo partido.' : '';

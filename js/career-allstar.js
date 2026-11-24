@@ -943,7 +943,9 @@
   function _endDemo() {
     cssIn();
     var cur = { sel: { mine: 0 }, m: { w: 0, sc: [21, 18], nota: 7.8, mvp: 'Tú', mvpMe: true, me: true, fame: 640, money: 1000, look: 'Estrella en la mejilla' } };
-    return matchSheet({ player: { name: 'Tú' } }, cur);
+    var out = matchSheet({ player: { name: 'Tú' } }, cur);
+    if (out && typeof out === 'object') out.dbgSets = [cur.m.sc.slice()];   // (main.js: la cabecera con el mismo 21-18 de la hoja)
+    return out;
   }
   function _drillDemo(k) {
     cssIn(); k = CT() && CT().CONTESTS[k] ? k : 'srv';

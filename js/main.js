@@ -1500,7 +1500,8 @@
     if (mn) { if (!mn.getAttribute('data-cr')) mn.setAttribute('data-cr', mn.textContent); mn.textContent = 'Menú principal'; mn.hidden = false; }
     if (alt) alt.hidden = true;
     if (t) { t.classList.remove('long'); if (s.title) t.textContent = s.title; }
-    if (k && s.kicker) { var kp = Array.isArray(s.kicker) ? s.kicker : [s.kicker]; try { if (VB.UI && VB.UI.setSep) VB.UI.setSep(k, kp, 'd'); else k.textContent = kp.join(' | '); } catch (e) { k.textContent = kp.join(' | '); } }
+    if (k && s.kicker) { var kp = Array.isArray(s.kicker) ? s.kicker : [s.kicker]; try { if (VB.UI && VB.UI.setSep) VB.UI.setSep(k, kp, 'd'); else k.textContent = kp.join(' | '); } catch (e) { k.textContent = kp.join(' | '); } try { if (VB.UI && VB.UI.crKick) VB.UI.crKick(kp); } catch (e) { } }
+    if (en) en.classList.add('crs');   // (movil-aire: hoja de Carrera; solo CSS de html.ph)
     var sm = $('endSum'), box = document.createElement('div'); box.id = 'endExt'; box.className = 'rc-b end-rec end-ext';
     box.innerHTML = typeof s.html === 'string' ? s.html : '';
     if (sm) { sm.innerHTML = ''; sm.appendChild(box); }
@@ -1590,7 +1591,7 @@
     var tr = document.getElementById('endTrialRt'); if (tr && tr.parentNode) tr.parentNode.removeChild(tr);   // (y su «Lo mejor / A mejorar»)
     var er = document.getElementById('endRt'); if (er && er.parentNode) er.parentNode.removeChild(er);   // (el de la nota en directo del Resumen)
     var ex = document.getElementById('endExt'); if (ex && ex.parentNode) ex.parentNode.removeChild(ex);   // (hoja de un partido de extensión)
-    var e = document.getElementById('end'); if (e) e.classList.remove('career', 'trial'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
+    var e = document.getElementById('end'); if (e) e.classList.remove('career', 'trial', 'crs'); // CSS de la hoja de Carrera a 667×375 (career-ui.js)
     var a = document.getElementById('btnAgain'); if (a && a.getAttribute('data-cr')) { a.textContent = a.getAttribute('data-cr'); a.removeAttribute('data-cr'); }
     var m = document.getElementById('btnMenu'); if (m && m.getAttribute('data-cr')) { m.textContent = m.getAttribute('data-cr'); m.removeAttribute('data-cr'); }
   }
@@ -1622,6 +1623,7 @@
     var mv = sum.querySelector('.rc-mvp'), ref = mv ? mv.nextSibling : sum.querySelector('.rc-b');
     if (mv) bx.style.setProperty('--i', mv.style.getPropertyValue('--i') || '0');
     sum.insertBefore(bx, ref || null);
+    if (VB.UI && VB.UI.endSplit) VB.UI.endSplit();   // (movil-aire: en .ph-s, «Tu partido» a la columna izquierda)
     fitChips(rb);
   }
   /** Franja de color de la nota (notes/nota-en-directo-spec.md §6.4; la misma que la píldora de ui.js). */
@@ -1684,6 +1686,8 @@
     if (en) en.classList.add('trial');
     // (sin «1 set a 15»: ya lo dice la pastilla del set; en el móvil el antetítulo partía en 2 líneas y la 2.ª pisaba el título)
     if (k) { var kp = ['Partidillo de prueba', club]; if (VB.UI && VB.UI.sep) k.innerHTML = VB.UI.sep(kp, 'd'); else k.textContent = kp.filter(Boolean).join(', '); }
+    if (k) { try { if (VB.UI && VB.UI.crKick) VB.UI.crKick(['Partidillo de prueba', club]); } catch (e) { } }
+    if (en) en.classList.add('crs');   // (movil-aire: hoja de Carrera; solo CSS de html.ph)
     if (!s || s.none) {   // (la oferta ya no estaba: guardado tocado a mano o la Carrera cambió por detrás)
       if (t) { t.textContent = 'Prueba sin resolver'; t.classList.add('long'); }
       if (rec) { var dn = document.createElement('div'); dn.className = 'end-xp'; dn.innerHTML = '<span>La oferta de la prueba ya no está disponible.</span>'; rec.appendChild(dn); }
@@ -2410,6 +2414,7 @@
         if (careerEnd.ext && (typeof careerEnd.html === 'string' || careerEnd.none || (xEnd && xEnd.sheet))) { try { careerExtSheet(g, careerEnd); } catch (e) { reportError('careerExtSheet', e); } }   // (extensión: su hoja; sin html, el Resumen de siempre)
         else if (careerEnd.trial || (g.career && g.career.trial)) { try { careerTrialSheet(g, careerEnd); } catch (e) { reportError('careerTrialSheet', e); } }
         else { call('UI', 'endCareer', careerEnd, g, careerEndXv); try { careerRtBlock(careerEnd); } catch (e) { reportError('careerRtBlock', e); } }
+        if (VB.UI && VB.UI.endSplit) VB.UI.endSplit();   // (movil-aire: en .ph-s, el bloque secundario a la columna izquierda)
       }
       // (marcador con las abreviaturas de los clubes: lo pinta ui.js con g.career.me / g.career.rival)
     }
@@ -2908,6 +2913,14 @@
           // &ext=<id>&k=<tipo>: la hoja de un partido de extensión con datos de muestra (X._endDemo(k) → lo que devolvería X.done)
           var XE = Q.ext ? careerExt(Q.ext) : null;
           if (XE && XE._endDemo) { var xs = null; try { xs = XE._endDemo(Q.k || ''); } catch (e) { reportError('CareerExt._endDemo', e); } if (xs) { g.career.ext = Q.ext; if (xs.cs) Object.assign(g.career, xs.cs); trialDbg = Object.assign({ ext: Q.ext }, xs); } }
+          // (movil-aire, 24-nov-2026) dbgSets = los sets de la muestra (tu lado primero): el marcador de la cabecera sale del partido simulado
+          // (2-0 a 25) y no casaba con la hoja (juvenil 15-11, Estrellas 21-18, derrota de la selección con «Gana …» y 2-0 tuyo)
+          if (xs && Array.isArray(xs.dbgSets) && xs.dbgSets.length) {
+            var dss = xs.dbgSets.map(function (s) { return [s[0] | 0, s[1] | 0]; }), dsw = [0, 0];
+            dss.forEach(function (s) { dsw[s[0] > s[1] ? 0 : 1]++; });
+            g.sets = dsw.slice(); g.setScores = dss.map(function (s) { return s.slice(); });
+            keep.forEach(function (ev) { if (ev && ev.type === 'gameOver') { ev.sets = dsw.slice(); ev.setScores = dss.map(function (s) { return s.slice(); }); ev.team = dsw[0] > dsw[1] ? 0 : 1; } });
+          }
         }
         break;
       // E6: ejercicios del Entrenamiento con la IA jugando por ti (autopilot) y congelados en un momento que se lea en la captura:

@@ -6487,6 +6487,140 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:has(#account:not([hidden])) #menu .menu-col{opacity:0;pointer-events:none;transition:opacity .15s}
 :root.ph #account .ac-sync:not(.err){white-space:nowrap}
 /* ==== fin SPLAT · AVISO COLOCADOR ==== */
+/* =====================================================================================================================================
+   — móvil (.ph) — «con aire» · paquete CARRERA-FLUJO (movil-aire, 24-nov-2026; notes/movil-aire.md §5.5 y §7.5). Hojas de partido de la
+   Carrera (#end.crs: la pone ui.js endRecap / main.js en las hojas de extensión y de la prueba), concursos y sesiones (#gymEnd), banquillo
+   y previa. Todo bajo :root.ph; PC sin cambios.
+   ===================================================================================================================================== */
+/* columna izquierda: antetítulo corto de una línea (ui.js crKick → .ek-s), título de 2 líneas como mucho, «Menú» fantasma de 44 */
+:root.ph:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on{font-size:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.ph:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>:not(.ek-s){display:none}
+:root.ph:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>.ek-s{display:inline;font-size:var(--ph-label);line-height:1.2}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-hd .sp-k{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-title{font-size:clamp(22px,13px + 2.6vh,28px)!important;line-height:1.04;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;text-overflow:clip}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-score .es-t,:root.ph:not(#_):not(#_):not(#_) #end.crs .end-sets span{white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-more{align-self:end;gap:var(--ph-btn-gap)}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn:not([hidden]){flex:0 0 auto;--sp-h:44px;height:44px;min-height:44px;padding:0 18px;background:rgba(21,16,42,.55);color:var(--sp-cream);
+  border-radius:12px 15px 11px 16px/14px 11px 16px 12px;box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);transform:none;--sp-fs:var(--ph-label)}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn>:is(.sp-blob,.sp-drops){display:none}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn::after{color:var(--sp-cream);text-shadow:none}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}
+/* panel derecho: lo que gratifica primero (progreso y premios → tu partido → MVP → clasificación); MVP en una línea; fuera la frase
+   del punto final en .ph-s */
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc{display:flex;flex-direction:column;gap:10px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end.crs .rc{gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc>.rc-xp{order:-6}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc>:is(.rc-unl,.rc-cup,.rc-bd,.rc-badges){order:-5}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc>.rc-rt{order:-4}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc>.rc-mvp{order:-3}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc>.rc-tb{order:-2}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc>.rc-hl{display:none}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-tr:not(.me){display:grid}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-b{row-gap:4px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-b>.rc-h{padding:2px 8px 1px;font-size:var(--ph-micro);letter-spacing:.06em}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-c{display:flex;align-items:center;gap:10px;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-pt{flex:none;width:32px;height:32px;min-width:32px;font-size:15px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv{display:flex;flex-direction:row;align-items:baseline;gap:8px;flex:1 1 auto;min-width:0;white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv b{flex:0 1 auto;min-width:0;max-width:60%;font-size:var(--ph-row);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;-webkit-line-clamp:unset}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv small{flex:1 1 0;min-width:0;font-size:var(--ph-cap);white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv small::before{content:"· "}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv small .sep-v{display:inline;margin:0 4px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-nota{flex:none;margin-left:auto;font-size:var(--ph-row);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-xr{display:flex;align-items:center;flex-wrap:wrap;gap:4px 10px;min-height:28px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-xr .rc-bar{flex:1 1 60px;min-width:60px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-tb .rc-c{display:grid;gap:2px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-tr{min-height:28px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-rt .er-r{display:flex;align-items:center;flex-wrap:nowrap;gap:8px;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-rt .er-h{flex:none;font-size:var(--ph-cap)}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-rt .er-c{display:flex;flex-wrap:nowrap;gap:6px;min-width:0;overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-rt .chip{flex:none;min-height:28px;display:inline-flex;align-items:center;white-space:nowrap;padding:2px 8px}
+/* hojas de extensión y de la prueba: la nota con el resultado al lado, objetivos en fichas de 32 de una línea */
+:root.ph:not(#_):not(#_):not(#_) #end.crs .et-goals{display:flex;flex-wrap:wrap;gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .et-goals>span{min-height:32px;display:inline-flex;align-items:center;gap:6px;box-sizing:border-box;padding:2px 10px;white-space:nowrap;line-height:1.15}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-trial .et-t span:not(.sr):not(.ok):not(.no){font-size:var(--ph-cap);line-height:1.3}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-trial{gap:12px;align-items:flex-start}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-trial .et-t strong{font-size:var(--ph-row)!important;line-height:1.1}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-trial .et-l{flex:none}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .pro-end{gap:12px;align-items:flex-start}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .pro-en{min-width:72px;height:60px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .pro-et p{font-size:var(--ph-cap)!important;line-height:1.3}
+:root.ph:not(#_):not(#_):not(#_) #end.crs #endTrialRt{margin-top:8px}
+/* Partido de las Estrellas: el marcador del panel en una línea, «Nota · MVP» en una línea */
+:root.ph:not(#_):not(#_):not(#_) #end.crs .as-sc{display:flex;align-items:baseline;gap:8px;flex-wrap:nowrap;white-space:nowrap;margin:0 0 6px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .as-sc>b{min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-row)}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .as-sc .as-n{flex:none;font-size:var(--ph-num)}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-ext:has(>.as-sc){display:flex;flex-wrap:wrap;align-items:baseline;column-gap:14px;row-gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-ext>.as-sc{flex:1 1 100%}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .end-ext>.as-gold{order:-1;flex:1 1 100%;margin:0 0 4px;padding:6px 10px;border-radius:9px 12px 10px 13px;background:rgba(255,203,61,.14);box-shadow:inset 4px 0 0 var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .as-p{margin:0;font-size:var(--ph-label)}
+
+/* (.ph-s) columna izquierda: sets en una fila y el bloque secundario (objetivos / «Tu partido», ui.js endSplit) bajo ellos */
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end.crs .end-sets{flex-wrap:nowrap;gap:6px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end.crs .end-sets span{padding:2px 7px;font-size:13px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #end.crs .end-sets span small{font-size:var(--ph-micro)}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side{grid-area:lm;align-self:start;min-width:0;max-width:100%;overflow:hidden;display:flex;flex-direction:column;gap:6px;margin:0;padding:0 0 4px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side>*{max-width:100%;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side :is(.rc-c,.end-rt,.er-l,.er-r){width:100%;max-width:100%;min-width:0;box-sizing:border-box}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side[hidden]{display:none}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side>.et-goals{display:flex;flex-direction:column;align-items:flex-start;gap:6px;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side>.et-goals>span{min-height:30px;max-width:100%;box-sizing:border-box;white-space:normal;font-size:var(--ph-cap);line-height:1.2;padding-top:3px;padding-bottom:3px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side>.rc-b{display:flex;flex-direction:column;gap:4px;margin:0;padding:0}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side>.rc-b>.rc-h{align-self:flex-start;padding:2px 8px 1px;font-size:var(--ph-micro)}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-l{display:flex;flex-direction:column;gap:4px}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-r{display:flex;align-items:center;gap:6px;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-h{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-r::before{flex:none;width:16px;font:700 14px/1 var(--sp-ui);text-align:center}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-r.up::before{content:"▲";color:#6fe39a}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-r.dn::before{content:"▼";color:#ff8f7f}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-c{display:flex;flex:1 1 auto;flex-wrap:nowrap;gap:6px;min-width:0;overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-c>.chip:not(:first-of-type){display:none!important}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .er-c>.chip:first-of-type{display:block!important;line-height:24px;max-width:100%;box-sizing:border-box}
+:root.ph:not(#_):not(#_):not(#_) #end .end-side .end-rt .chip{flex:0 1 auto;min-width:0;min-height:28px;display:inline-flex;align-items:center;padding:2px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-cap)}
+/* MVP en una línea: nombre (sin cortar si cabe) · primera cifra · nota; en .ph-s solo la primera cifra */
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv b{max-width:72%;flex:0 0 auto}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv small{flex:0 1 auto;display:block}
+:root.ph:not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv small .rc-pd{display:none}
+
+/* informe del rival (hoja .cr-ests, career-ui studySheet): a pantalla completa (8 px de margen), opaca, una sola ✕; Ellos / Saque / Tú como
+   encabezado de 12 px encima de su texto y «Te tienen estudiado» en su propia línea */
+:root.ph:not(#_):not(#_):not(#_) #spSheets .sp-sheet.cr-ests{left:max(8px,var(--sl));right:max(8px,var(--sr));top:8px;bottom:8px;width:auto;max-width:none;max-height:none;translate:none;transform:none}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .cr-ests .cr-ests-kv{display:block;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .cr-ests .cr-ests-kv dt{display:block;margin:10px 0 2px;padding:0;font:800 12px/1.3 var(--sp-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .cr-ests .cr-ests-kv dt:first-child{margin-top:0}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .cr-ests .cr-ests-kv dd{display:block;margin:0;padding:0;font-size:var(--ph-body);line-height:1.35}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .cr-ests .cr-ests-kv dd>.sp-chip{display:table;margin:2px 0 6px}
+
+/* concurso de las Estrellas y sesión de la Carrera (#gymEnd): la recompensa en una franja de fichas bajo la cifra, top 3 + tu fila,
+   «Siguiente» de 44 sin cola y «Volver» fantasma; en la sesión, medallas en una fila junto a la nota */
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-rec:has(.as-rank){display:flex;flex-wrap:wrap;align-items:center;gap:6px 8px}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-rec:has(.as-rank)>.as-p{order:-1;flex:0 1 auto;margin:0;padding:4px 10px;border-radius:8px 11px 9px 12px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);
+  font:700 var(--ph-cap)/1.25 var(--sp-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-rec:has(.as-rank)>.as-rank{flex:1 1 100%;margin:2px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .as-rank li{min-height:22px;padding-top:1px;padding-bottom:1px}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .as-rank li:nth-child(n+4):not(.me){display:none}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn{--sp-h:44px;height:44px;min-height:44px;flex:none;padding:0 16px;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;transform:none}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn>:is(.sp-blob,.sp-drops){display:none}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn.sp-kit{background:var(--sp-kit,#ff7a1a);color:var(--sp-kit-ink,#fff);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn:is(.sp-ink,#btnGeList){background:rgba(21,16,42,.55);color:var(--sp-cream);box-shadow:inset 0 0 0 2px rgba(255,244,220,.6)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more>.sp-btn:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-more{gap:var(--ph-btn-gap)}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-top:has(.cdr-g),:root.ph:not(#_):not(#_):not(#_) #gymEnd .ge-top{flex-wrap:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #gymEnd .cdr-bar .bar{height:16px}
+
+/* banquillo (6v6, Carrera): una sola barra de 44 abajo a la derecha [×3] [Saltar hasta entrar] [⏭ Final] y «En el banquillo» como
+   ficha junto al marcador */
+:root.ph:not(#_):not(#_):not(#_) #benchBar{grid-template-columns:auto auto auto;grid-template-areas:"f in end";gap:8px;align-items:center}
+:root.ph:not(#_):not(#_):not(#_) #benchBar button{min-height:44px;height:44px;padding:0 14px;--sp-fs:var(--ph-label);font-size:var(--ph-label);transform:none}
+:root.ph:not(#_):not(#_):not(#_) #benchBar #bbIn{min-height:44px}
+:root.ph:not(#_):not(#_):not(#_) #benchBar #bbFast{width:44px;min-width:44px;height:44px}
+:root.ph:not(#_):not(#_):not(#_) #benchBar .bb-t{position:fixed;top:calc(var(--ph-gt) + 112px);left:var(--ph-g);right:auto;font-size:var(--ph-cap);padding:3px 10px 2px}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #benchBar .bb-t{top:calc(var(--ph-gt) + 124px)}
+
+/* previa de la Carrera: píldoras a 14 (una por dato, parten de línea) */
+:root.ph:not(#_):not(#_):not(#_) #intro .in-card.in-cr .in-meta,:root.ph:not(#_):not(#_):not(#_) #intro .in-card.in-cr .in-chip,:root.ph:not(#_):not(#_):not(#_) #intro .in-card.in-cr .in-lt>span{font-size:14px}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-lt.lt-ph{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 10px}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-lt.lt-ph[hidden]{display:none}
+:root.ph:not(#_):not(#_):not(#_) #intro .in-lt.lt-ph>span{max-width:100%;padding:5px 14px}
 </style>
 
 <div id="app">
