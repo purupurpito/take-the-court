@@ -4474,7 +4474,7 @@
     // carrera, una frase corta como la de Partido rápido
     var chip = '';
     var hl = isHall(c);
-    if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : 'Playa o pista: crea tu jugador, elige club y ficha';
+    if (!c) t = C().lost && C().lost() ? 'Guardado dañado: crea otro jugador' : VB.Splat && VB.Splat.phone && VB.Splat.phone() ? 'Playa o pista: crea tu jugador' : 'Playa o pista: crea tu jugador, elige club y ficha';   // (móvil: una línea)
     else if (xTake(c) && xFn(xTake(c), 'hero')) { var xq = xTry(xTake(c), 'hero', [c], {}) || {}; chip = xq.chip || ''; t = xq.line || xq.title || ''; }
     else if (lockPeek()) { chip = 'Partido a medias'; t = lockPeek().sub; }
     else if (c.phase === 'pick') { chip = plural((c.offers || []).length, 'oferta', 'ofertas'); t = 'Elige club'; }

@@ -3264,7 +3264,10 @@
     if (el.menu && el.menu.classList.contains('has-now-mj') !== tk) el.menu.classList.toggle('has-now-mj', tk);
     var flat = show || nw || sgOn;
     if (el.btnPlay.classList.contains('primary') === flat) el.btnPlay.classList.toggle('primary', !flat);
-    if (el.playMainSub && el.playMainSub.hidden === flat) el.playMainSub.hidden = !flat;
+    // (movil-aire §5.1: en el móvil, al revés que en PC: la línea pequeña de JUGAR sale cuando JUGAR es lo primero —el sello ya no la tapa—
+    // y se quita cuando hay un billete encima, que baja JUGAR a 52 px)
+    var subOn = VB.Splat && VB.Splat.phone && VB.Splat.phone() ? !flat : flat;
+    if (el.playMainSub && el.playMainSub.hidden === subOn) el.playMainSub.hidden = !subOn;
     var mainF = sgOn ? el.btnSeguir : showC ? el.btnCont : nw ? el.btnNow : el.btnPlay;
     if (!showC && document.activeElement === el.btnCont && mpage === 'main') focusEl(mainF, kbNow());
     if (!nw && el.btnNow && document.activeElement === el.btnNow && mpage === 'main') focusEl(mainF, kbNow());
@@ -4660,7 +4663,7 @@
     }
     return false;
   }
-  document.addEventListener('vb:ph', function () { fitAllTabs(); });   // (móvil: al entrar o salir del tier, columna / tira / barra)
+  document.addEventListener('vb:ph', function () { fitAllTabs(); heroDirty = true; if (panel === 'tut' && !el.panel.hidden) tutGo(tut.i); });   // (móvil: al entrar o salir del tier, columna / tira / barra)
   // (vb:tier: también al cruzar 345 de alto (.ph-s) o 800 de ancho (.ph-w); p. ej. la barra del navegador a 667×375. Solo lo que monta
   // el JS distinto en .ph-s, sin repintar pantallas enteras)
   document.addEventListener('vb:tier', function () {
@@ -5949,7 +5952,15 @@
   // Ajustes › Info › Créditos) apila el de delante; «Volver» / Esc / B / «Entendido» vuelven a él, en la misma pestaña y con el
   // foco en la fila que lo abrió. openPanel(name, 'menu' | 'paused') (forma antigua) empieza una pila nueva.
   var pstack = [];
-  var SP_PN = /^(tut|ctl|set|first|squad|about|fb)$/;   // paneles con el sistema SPLAT (bloque «SPLAT · PANELES» de index.html)
+  var SP_PN = /^(tut|ctl|set|first|squad|about|fb)$/;
+  var PH_BAR = /^(tut|first|squad|about|fb|set|ctl)$/;   // (set y ctl: paquete paneles, sin título y con las pestañas en la franja)
+  /** Rótulo corto de la cabecera compacta (Cómo se juega: «Paso 1/6»); solo se ve con html.ph. */
+  function pnPh() {
+    var pp = document.getElementById('pnPh'); if (pp) return pp;
+    var ptt = el.panel && el.panel.querySelector('.pn-head .pn-tt'); if (!ptt) return null;
+    pp = document.createElement('span'); pp.id = 'pnPh'; pp.className = 'pn-ph'; pp.setAttribute('aria-hidden', 'true'); ptt.appendChild(pp);
+    return pp;
+  }   // (movil-aire: paneles con la cabecera compacta del móvil; Ajustes y Controles, en su paquete)   // paneles con el sistema SPLAT (bloque «SPLAT · PANELES» de index.html)
   var firstAsked = false;
   /** JUGAR desde el menú: la primera vez (sin partidos ni tutorial) ofrece ver el tutorial o jugar ya. */
   function play() {
@@ -6055,6 +6066,12 @@
     // SPLAT · PANELES (notes/splat.md): Cómo se juega, Controles, Ajustes, Primer partido, Jugadores y Acerca de con el sistema
     // (#panel.sp-pn: sin velo, columna a la izquierda y el contenido en una hoja .sp-panel con su propio desplazamiento)
     el.panel.classList.toggle('sp-pn', SP_PN.test(name)); el.panel.setAttribute('data-pn', name);
+    // movil-aire §3.5: cabecera compacta (.ph-bar, solo cambia algo con html.ph) en Cómo se juega, Jugadores, Acerca de, Opiniones y Primer partido
+    var phd = el.panel.querySelector('.pn-head');
+    if (phd) {
+      phd.classList.toggle('ph-bar', PH_BAR.test(name));
+      pnPh();
+    }
     psh.scrollTop = 0;
     var sc = el.panel.querySelectorAll('.sp-scroll'); for (var si = 0; si < sc.length; si++) sc[si].scrollTop = 0;
     shown = '';
@@ -6124,6 +6141,7 @@
     if (!el.abBody) return;
     var tab = abTabs ? abTabs.get() : 'news';
     el.abBody.innerHTML = tab === 'credits' ? aboutCreditsHTML() : aboutNewsHTML();
+    el.abBody.classList.toggle('ab-cr', tab === 'credits');   // (móvil: Créditos en filas clave/valor, sin tarjeta por fila)
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); }
   }
   /** Abre Acerca de en una pestaña ('news' | 'credits'); desde Ajustes se apila (Volver regresa a Ajustes › Info). */
@@ -7200,6 +7218,30 @@
     { step: 'Paso 6 de 6', title: 'Reglas y faltas', faults: true,
       text: function () { return ''; }, rule: '' }
   ];
+  // movil-aire §5.1 (Cómo se juega en el móvil): 2-3 viñetas cortas por paso (≤ 90 caracteres a la vista) y el texto entero de PC en la
+  // hoja «Más detalle» (VB.Splat.sheet). Solo con html.ph (tutGo); en PC, el texto de siempre.
+  var TUT_PH = [
+    function (g) { return ['Con ' + g.move + ' te mueves por el fondo.', g.serve + ' saca flotante; ' + g.jump + ', saque en salto.', 'Mueve la <b>diana</b> con ' + g.aim + ' y pulsa ' + g.serve + ' al bajar el balón: va exacto.']; },
+    function (g) { return ['Sale un <b>círculo</b> donde cae el balón: ve hasta él.', 'Pulsa ' + g.hit + ' cuando se cierre: <b>recepción</b> a tu pareja.', 'Tú solo te colocas y golpeas: el toque lo elige el juego.']; },
+    function (g) {
+      var both = device() === 'touch' ? g.hit : g.hit + ' o ' + g.jset;
+      return [oneMode() ? 'Tu pareja (la IA) coloca; si el 1r toque es suyo, colocas tú.' : 'El control pasa a tu pareja: ponte bajo el balón.',
+        'Pulsa ' + both + ': <b>colocación</b>. Sin dirección, va alta a la 4.', '<b>3 toques</b> por equipo; nadie toca dos veces seguidas.'];
+    },
+    function (g) { return ['Bajo la colocación: ' + g.jump + ' para <b>saltar</b> y ' + g.hit + ' arriba: <b>remate</b>.', 'En el aire, mueve la <b>diana</b> con ' + g.aim + ': en el momento justo, va exacta.', 'Sin saltar, el 3r toque pasa en globo (<b>balón libre</b>).']; },
+    function (g) {
+      var a = oneMode() ? ['Sube a la red frente al atacante para bloquear tú.', 'Pulsa ' + g.jump + ' cuando golpea: si te da en las manos, <b>bloqueo</b>.']
+        : ['Cuando la CPU coloca, tu pareja bloquea y tú defiendes.', 'Para bloquear tú: ' + g.sw + ', ve a la red y ' + g.jump + ' al golpe.'];
+      return a.concat([tutBeach() ? 'En la playa el <b>bloqueo cuenta como toque</b>.' : 'El <b>bloqueo no cuenta como toque</b>.']);
+    }
+  ];
+  /** Hoja «Más detalle» del paso i (móvil): el texto largo de PC y la regla, tal cual. */
+  function tutMore() {
+    var S = TUT[tut.i], g = G(), rl = tutBeach() && S.ruleBeach ? S.ruleBeach : S.rule, SP = VB.Splat;
+    if (!SP || !SP.sheet || S.faults) return;
+    if (rl && tutBeach()) rl = rl.replace('<b>8 segundos</b>', '<b>5 segundos</b>');
+    SP.sheet({ title: S.title, cls: 'tut-sheet', html: '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '') });
+  }
   var FAULTS = '<ul class="faults">' +
     '<li><b>Fuera</b>El balón cae fuera de las líneas: punto para el rival de quien lo tocó por última vez.</li>' +
     '<li><b>Antena</b>El balón toca la antena o cruza por fuera de ella.</li>' +
@@ -7233,7 +7275,11 @@
     var S = TUT[i], g = G(), rl = tutBeach() && S.ruleBeach ? S.ruleBeach : S.rule;
     if (rl && tutBeach()) rl = rl.replace('<b>8 segundos</b>', '<b>5 segundos</b>'); // en la playa, 5 s para sacar (sim C.SERVE_CLOCK_BEACH)
     el.tutStep.textContent = S.step; el.tutTitle.innerHTML = coachHTML(escT(S.title)); // «1r toque» en pastilla
-    el.tutText.innerHTML = S.faults ? faultsHtml() : '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '');
+    var tph = !S.faults && TUT_PH[i] && VB.Splat && VB.Splat.phone && VB.Splat.phone();
+    var tmb = document.getElementById('btnTutMore'); if (tmb) tmb.hidden = !tph;
+    el.tutText.innerHTML = S.faults ? faultsHtml() : tph ? '<ul class="tut-ph">' + TUT_PH[i](g).map(function (x) { return '<li>' + x + '</li>'; }).join('') + '</ul>'
+      : '<p class="tut-text">' + S.text(g) + '</p>' + (rl ? '<div class="tut-rule">' + rl + '</div>' : '');
+    var pph = pnPh(); if (pph) pph.textContent = 'Paso ' + (i + 1) + '/' + TUT.length;
     restartAnim(el.tutBody, 'tut-anim');
     el.tutFig.hidden = !!S.faults;
     el.tutBody.style.gridTemplateColumns = S.faults ? '1fr' : '';
@@ -7632,7 +7678,8 @@
     b.innerHTML = '<span class="pf-ring" aria-hidden="true"><svg viewBox="0 0 36 36"><circle class="tr" cx="18" cy="18" r="15"/><circle class="ar" cx="18" cy="18" r="15" pathLength="100" stroke-dasharray="' +
       (fr * 100).toFixed(1) + ' 100"/></svg><small>Nv</small><b>' + lv.lvl + '</b></span>' +
       (S.vit.length ? '<span class="pf-vi" aria-hidden="true">' + S.vit.map(function (it) { return '<i class="pf-ic t' + pfTier(it) + '">' + pfIcon(it) + '</i>'; }).join('') + '</span>' : '') +
-      '<span class="pf-al">Álbum ' + S.have + '/' + S.total + '</span>' + (S.un ? '<i class="pf-dot" aria-hidden="true"></i>' : '');
+      '<span class="pf-al">Álbum ' + S.have + '/' + S.total + '</span>' + (S.un ? '<i class="pf-dot" aria-hidden="true"></i>' : '') +
+      '<i class="pf-n ph-only" aria-hidden="true">' + S.have + '</i>';   // (móvil, movil-aire §5.1: el álbum como círculo con su contador)
     b.setAttribute('aria-label', 'Perfil: nivel ' + lv.lvl + ', álbum ' + S.have + ' de ' + S.total + (S.un ? '. Hay novedades' : ''));
   }
   // ---- avisos (#pfNote): de 2,6 a 3,4 s cada uno, como mucho 3 en cola (si hay más, un resumen) ----
@@ -8434,6 +8481,8 @@
       '<button type="button" class="sp-btn sp-sm sp-cream" data-shape="5" data-sn="never" aria-label="No volver a mostrar"><span class="sp-t"><span class="ph-hide">No volver a mostrar</span><span class="ph-only">No mostrar más</span></span></button></div></div></div>';
     r.addEventListener('click', function (e) {
       e.stopPropagation();
+      var m = e.target && e.target.closest ? e.target.closest('[data-snm]') : null;
+      if (m) { r.classList.add('sn-x'); m.setAttribute('aria-expanded', 'true'); click(); return; }
       var b = e.target && e.target.closest ? e.target.closest('[data-sn]') : null;
       if (!b || performance.now() - sn.t0 < 400) return;   // (los primeros 400 ms no cuentan: el toque o el botón que lo abrió)
       snClose(b.getAttribute('data-sn'));
@@ -8459,7 +8508,10 @@
     sn.shown = true; sn.open = true; sn.cb = typeof cb === 'function' ? cb : null; sn.from = o.from || '';
     sn.prev = document.activeElement; sn.t0 = performance.now(); sn.ax = 0;
     var gl = GLYPH[device()] || GLYPH.keyboard;
-    sn.root.querySelector('.sn-t').innerHTML = 'En la colocación en salto puedes llevar la diana, como en el remate: muévela con ' + gl.aim + ' y la colocación va al atacante que tenga más cerca; el marcador de color dice adónde. Si no la tocas, todo sigue como ahora.';
+    // (movil-aire §5.1: en el móvil, dos frases y «Más» abre el resto; en PC, el texto entero de siempre)
+    sn.root.classList.remove('sn-x');
+    sn.root.querySelector('.sn-t').innerHTML = '<span class="ph-only sn-sh">En la colocación en salto puedes llevar la diana, como en el remate. Si no la tocas, todo sigue como ahora. ' +
+      '<button type="button" class="sn-more" data-snm aria-expanded="false">Más</button></span><span class="sn-lg">En la colocación en salto puedes llevar la diana, como en el remate: muévela con ' + gl.aim + ' y la colocación va al atacante que tenga más cerca; el marcador de color dice adónde. Si no la tocas, todo sigue como ahora.</span>';
     sn.root.hidden = false; sn.root.classList.remove('in');
     // móvil: tinte del 20 % detrás mientras está abierto (VB.Splat.modal); en PC, como siempre
     if (sn.rel) { sn.rel(); sn.rel = null; }
@@ -8742,6 +8794,13 @@
         var i = +b.getAttribute('data-i'), k = b.getAttribute('data-up');
         if (VB.Prog.bump(i, k, 1)) { uiSound('click'); renderSquad(i + ':' + k); } else uiSound2('optHover');
       });
+      // (movil-aire §5.1: en el móvil la fila del atributo va en una línea; tocar el nombre o la barra abre la descripción en la fila)
+      if (el.sqBody) el.sqBody.addEventListener('click', function (ev) {
+        if (!VB.Splat || !VB.Splat.phone || !VB.Splat.phone()) return;
+        var t = ev.target && ev.target.closest ? ev.target : null, r = t && t.closest('.sq-r');
+        if (!r || t.closest('button')) return;
+        var on = r.getAttribute('aria-expanded') !== 'true'; r.setAttribute('aria-expanded', on ? 'true' : 'false'); click();
+      });
       if (el.sqBody) {
         // insignias: equipar / quitar (ratón, táctil, teclado y mando: son botones de [data-nav]) y detalle al enfocar o señalar
         el.sqBody.addEventListener('click', function (ev) {
@@ -8840,6 +8899,7 @@
       for (var h = 0; h < hb.length; h++) hb[h].addEventListener('pointerenter', function (ev) { if (ev.pointerType === 'mouse') { if (this.classList.contains('opt')) uiSound2('optHover'); else hoverSound(); } });
       el.btnTutPrev.addEventListener('click', function () { click(); tutGo(tut.i - 1); });
       el.btnTutNext.addEventListener('click', tutNext);
+      var tmb0 = document.getElementById('btnTutMore'); if (tmb0) tmb0.addEventListener('click', function () { click(); tutMore(); });
       on(el.btnHudPause, function () { ctx.actions.pause(); });
       on(el.btnHudMute, function () { ctx.actions.toggleMute(); });
       // opciones: clic en un valor concreto o en la fila (siguiente valor). E3: delegado en el panel (Ajustes y las filas que

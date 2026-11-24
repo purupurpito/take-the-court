@@ -300,7 +300,10 @@
         '<p class="fb-msg" id="fbMsg" role="status" aria-live="polite"></p>' +
       '</div>' +
       '<div class="fb-foot" data-nav data-sp-row><p class="fb-keys sp-hints" aria-hidden="true"><span class="kh"><span class="key">Ctrl</span> + <span class="key">Intro</span> envía</span>' +
-        '<span class="kh"><span class="key">Esc</span> cierra</span></p>' + spb('cancel', 'Cancelar', 'sp-cream', 1, ' id="fbCancel"') + spb('send', 'Enviar', 'sp-kit', 2, ' id="fbSend"') + '</div>';
+        '<span class="kh"><span class="key">Esc</span> cierra</span></p>' +
+        // (movil-aire §5.1: en el móvil «Se adjunta…» va tras esta «i», en la columna de Enviar; .ph-only = no existe en PC)
+        '<button type="button" class="sp-q fb-attq ph-only" data-kb-hide aria-label="Qué se manda con tu mensaje" data-q-title="Qué se manda" data-q-src="#fbAtt">i</button>' +
+        spb('cancel', 'Cancelar', 'sp-cream', 1, ' id="fbCancel"') + spb('send', 'Enviar', 'sp-kit', 2, ' id="fbSend"') + '</div>';
     var ta = h.querySelector('#fbText');
     ta.value = draft[k];
     ta.addEventListener('input', function () { draft[M.kind] = ta.value; count(); });
@@ -323,6 +326,7 @@
       });
     }
     count(); deco();
+    try { if (VB.Splat && VB.Splat.info) VB.Splat.info(h); } catch (e) { }
   }
   function deco() { try { if (VB.Splat && VB.Splat.decorate) VB.Splat.decorate(M.host); } catch (e) { } }
   function snd(n) { try { if (M && M.o.sound) M.o.sound(n); } catch (e) { } }
@@ -330,6 +334,7 @@
   function count() {
     var c = M && M.host.querySelector('#fbCount'); if (!c) return;
     var n = norm(draft[M.kind]).length; c.textContent = n + ' / ' + MAX; c.classList.toggle('low', n > 0 && n < MIN);
+    c.classList.toggle('near', n >= MAX - 200);   // (móvil: el contador solo sale cerca del límite)
   }
   function say(t, bad) { var m = M && M.host.querySelector('#fbMsg'); if (m) { m.textContent = t || ''; m.classList.toggle('bad', !!bad); } }
   function send() {

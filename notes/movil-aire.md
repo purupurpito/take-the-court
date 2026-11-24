@@ -498,6 +498,50 @@ Todo bajo `html.ph` (PQ / `RL` = rejilla con raíl, `NT` = secundarios sin cola,
   marcada (`data-ph-ell`) la línea de la selección a 568; fin de cesión y verano de selección salen con la gala de la muestra (Faro en cola);
   las tarjetas «Tu semana»/plan y el bloque de detalles `.cr-nd` no se tocaron; objetivo/entrenador del fin de temporada siguen en una línea.
 
+### 7.4 Paquete `menus` (24-nov-2026)
+
+Todo bajo `html.ph` (vertical: `html.pv`); CSS nuevo en el bloque «— móvil (.ph) — «con aire» · paquete MENÚS» al final del `<style>` de
+`index.html` (antes de `</style>`), y lo del online en `js/netlobby.js` (CSS `PP`/`PW`) e Instalar en `js/install.js`. PC sin cambios: las
+métricas de los 38 ids a 1280x720 son idénticas a una pasada de la base con el mismo comando (`--desktop --sizes 1280x720`).
+- **Portada**: sello semanal = `.ph-sticker` en la esquina de JUGAR (`menu-jugador.js`: `#btnMjReto.ph-sticker`, `.mj-go.ph-stk-host`) y vuelve
+  la línea pequeña de JUGAR («Rápido, 6 contra 6 y entreno» con `data-ph-short`); en el móvil `ui.js syncHero` la enseña cuando JUGAR es lo
+  primero y la quita con billete encima (al revés que en PC). `.sp-t` de JUGAR lh 1.1 + 2 px. Billetes (¡Jugar ya!, Seguir, Carrera) de 56 y
+  JUGAR de 52 debajo; antetítulo «PRIMERA VEZ / PARTIDO A MEDIAS» como pastilla de tinta en el canto. Carrera: un escudo de 40, título en una
+  línea con «…», «T1 J5 · Continuar» (`menu-jugador.js ticket`, corto en .ph). Fuera las pastillas «Nv» de Jugadores. Ayuda a 844+ con 18 px de
+  hueco; a 568 rótulos sin espaciado (máx. 30vw). Perfil = círculo de 48 con el contador del álbum en insignia (`.pf-n.ph-only`).
+- **Jugar**: cabecera solo con ‹ de 44 (sin la palabra), Retos = `.ph-sticker` en la esquina del parche, Carrera en una línea («Playa o pista:
+  crea tu jugador», `career-ui.js syncMenu0` en .ph), 12 entre filas, manchas de 88 (80 en .ph-s) con icono 40.
+- **Partido rápido**: Escenario deja la columna del «?» (valores alineados), flechas del final al 35 % sin contorno, `span.arr:empty` sin
+  eventos, 12 bajo la cabecera; a `.ph-w` ¡A JUGAR! en columna derecha de 230 a media altura.
+- **Entrenamiento**: `.mp-head.ph-bar` (también Jugar), rejilla de 2 (3 a .ph-w) de tarjetas de 52 (medalla 32, nombre + 1 línea, un solo estado:
+  «Nuevo» o «Récord N»); PELOTEO LIBRE = primera tarjeta (parche), ya no flota encima de la lista.
+- **Paneles** (`ui.js PH_BAR`: tut, first, squad, about, fb → `.pn-head.ph-bar`): ‹ de 44 sin bocadillo; título a `--ph-head`.
+  - Cómo se juega: «Paso N/6» en la franja (`#pnPh`), `TUT_PH` = 2-3 viñetas por paso (≤ 90 car.) y «Más detalle ⓘ» (`#btnTutMore`, en el
+    pie junto a ‹) abre `SP.sheet` con el texto y la regla de PC (`tutMore`); dibujo `min(28%,150px)`; pie ‹ 48 · puntos · SIGUIENTE de
+    `--ph-cta-h`; paso 6 en rejilla de 2 (3 a .ph-w) sobre tinta al 96 %. Se repinta con `vb:ph`.
+  - Jugadores: N.º1/N.º2 como dos fichas de 44 en la franja + «Aspecto» como icono 44 a la derecha; fila de atributo de 48 en una línea
+    (nombre · barra · número · +1 de 44), la descripción al tocar la fila (`aria-expanded`, `ui.js`); fuera el «1» suelto.
+  - Acerca de: pestañas en la franja, sin título ni ENTENDIDO, un solo marco; Créditos en filas clave/valor (`#abBody.ab-cr`).
+  - Opiniones: pestañas Sugerencia/Bug en la franja; rejilla «cuadro | 140 px» con ENVIAR abajo a la derecha, sin CANCELAR; «Se adjunta…» tras
+    la «i» (`.fb-attq.ph-only`, hoja con `#fbAtt`); contador solo desde 1800 (`.fb-n.near`); con teclado se esconden también las pestañas.
+  - Primer partido: sin la ficha «6 pasos»; JUGAR YA a la izquierda de VER CÓMO SE JUEGA en una fila.
+- **Aviso del colocador**: 2 frases + «Más» (`.sn-sh` / `.sn-lg`, `#setNote.sn-x`); ACTIVAR abajo, «Ahora no» encima, «No mostrar más» como enlace.
+- **Instalar**: capa al 70 %, número del paso en línea (32), dibujo de 80, SIGUIENTE de 48 dentro de la hoja.
+- **Online**: lista en rejilla «salas | 150 px» también a 568 (CÓDIGO / CREAR SALA a la derecha); sala de 56 en una fila (sede 36 · nombre ·
+  «Platja Llarga · 1 set a 21» · ENTRAR), sin «VS ?»; las no disponibles en tinta al 55 %; «Juegas como» = ficha de 44 con el nombre y el lápiz.
+  Aviso en la columna derecha encima de los botones. Crear sala: rejilla de 2 de selectores (rótulo encima, ‹ valor › debajo; 72 / 58 en .ph-s),
+  vista previa solo a .ph-w (260). Cómo funciona a 2 columnas a .ph-w. noacc/off/nortc: el botón dentro de la hoja; nortc con «Copiar enlace»
+  (`copyLink`). Sala: reglas en una fila.
+- **Vertical** (`html.pv`): los dos sellos con `.ph-sticker` (Retos encima del parche, sin tapar el título) y «Volver» de Jugar fijo abajo a la
+  izquierda (48) con hueco bajo las manchas.
+- **Métricas** (38 ids × 3 tamaños, contra la base del mismo comando): textos < 12: 0 → 0; solapes 10 → 3 (los 3 de Instalar son la ✕ sobre
+  el canto, igual que antes); caracteres 26.284 → 22.471; contenedores con scroll 48 → 19; recortes con elipsis nuevos solo en descripciones
+  de una línea (Entrenamiento, sede larga de la sala). Toques < 44 0, salvo «Más» del aviso (área de 44 tras el ajuste).
+- **Pendiente**: online-room sigue con «Salir de la sala» + «Compartir» (no se quitó la salida: la ‹ de la cabecera no sale de la sala);
+  Partido rápido a 568 sin cambio de columna para la CTA (cabe con el parche abajo); el contacto plegado de Bug no se hizo (el formulario no
+  tiene campo de contacto); Instalar no se probó en vertical; las descripciones de las salas con sede larga cortan con «…» (está la ficha
+  de la sala al entrar).
+
 ### 7.5 Paquete `carrera-flujo` (24-nov-2026)
 
 Todo bajo `html.ph` (PQ / PS de `js/career-ui.js` y `js/career-prologue.js`; bloque «— móvil (.ph) — «con aire» · paquete CARRERA-FLUJO» al

@@ -840,6 +840,54 @@
     PP + '#mpOnline .ol-ctas{width:min(100%,600px);justify-content:flex-end;margin:var(--ph-s3) 0 0;padding:0}',
     PP + '#mpOnline .ol-ctas .sp-btn{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:24px;width:auto;flex:none}',
     PP + '#mpOnline .ol-ctas .sp-s{display:none}',
+    // movil-aire §5.1 (paquete menús, 24-nov-2026): lista con CÓDIGO / CREAR SALA en una columna de 150 a la derecha también a 568; sala de 56 en
+    // una fila (sede 36 · nombre · «Platja Llarga · 1 set a 21» · ENTRAR 44); las no disponibles, oscuras al 55 %; «Juegas como» = ficha de 44
+    PP + '#mpOnline .ol-body[data-v="list"]{display:grid;grid-template-columns:minmax(0,1fr) 150px;grid-template-rows:minmax(0,1fr);column-gap:12px}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-rooms{grid-column:1;grid-row:1}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock{grid-column:2;grid-row:1;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:14px;padding:4px 4px 4px 2px}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act{width:100%;flex:none;--sp-px:10px}',
+    PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act.ol-new{--sp-h:56px;--sp-fs:var(--ph-btn);--sp-px:10px}',
+    PP + '#mpOnline .ol-fx{--sp-h:56px;--sp-cs:36px}',
+    PP + '#mpOnline .ol-fx .sp-tk-main{gap:2px;padding:4px 8px 4px 4px}',
+    PP + '#mpOnline .ol-fx .fx-line{gap:6px}',
+    PP + '#mpOnline .ol-fx:not(.fx-prev) :is(.fx-vs,.fx-slot:not(.in)){display:none}',
+    PP + '#mpOnline .ol-fx .fx-name{font-size:var(--ph-row);line-height:1.1;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:none}',
+    PP + '#mpOnline .ol-fx .fx-chips{gap:0;overflow:hidden;white-space:nowrap}',
+    PP + '#mpOnline .ol-fx .fx-chips i{background:none;padding:0;border-radius:0;font-size:var(--ph-label);font-weight:600;line-height:1.2;color:inherit;opacity:.88}',
+    PP + '#mpOnline .ol-fx .fx-chips i:nth-child(n+3){display:none}',
+    PP + '#mpOnline .ol-fx .fx-chips i+i::before{content:"·";margin:0 6px}',
+    PP + '#mpOnline .ol-fx .fx-chips .fx-vchip{max-width:11em}',
+    PP + '#mpOnline .ol-fx .fx-go{min-height:44px;padding:0 10px 0 12px}',
+    PP + '#mpOnline .ol-fx.fx-off{--sp-c:var(--sp-ink2);--sp-d:var(--sp-ink2);--sp-tc:var(--sp-cream);color:var(--sp-cream)}' + PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.55}',
+    PP + '#mpOnline .mk-prev .fx-chips i+i::before{content:none}' + PW + '#mpOnline .mk-go .sp-patch .sp-t{font-size:22px;white-space:nowrap}',
+    PP + '#mpOnline .ol-who{height:44px;min-height:44px;padding:0 12px 0 14px}',
+    PP + '#mpOnline .ol-who small{display:none}',
+    PP + '#mpOnline .ol-who b{display:block;max-width:9.5em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-label)}',
+    // Crear sala: rejilla de 2 de selectores (rótulo encima, ‹ valor › debajo; 72 de alto, 64 en .ph-s): a 568 se ven 5; vista previa fuera
+    // hasta 800 y de 260 desde 800
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-sels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;align-content:start}',
+    PP + '#menu #mpOnline .ol-sel{width:100%;min-height:72px;grid-template-columns:minmax(0,1fr);grid-template-areas:"l" "v";justify-items:stretch;padding:6px 6px 4px;gap:2px 0}',
+    PP + '#menu #mpOnline .ol-sel .mi-l{justify-self:center;align-items:center;text-align:center}',
+    PP + '#menu #mpOnline .ol-sel .mi-v{width:100%;justify-content:space-between}',
+    PP + '#menu #mpOnline .ol-sel .mv-val{width:auto;flex:1 1 auto;min-width:0}',
+    PP + '#menu #mpOnline .ol-sel .mv-val b{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PP + '#menu #mpOnline .ol-sel:is(.kf,.ol-on,:focus) .ol-hint{display:none}',
+    ':root.ph.ph-s' + P.slice(5) + '#menu #mpOnline .ol-sel{min-height:58px;padding:2px 6px 1px;gap:0}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="create"] .mk-sels{gap:10px 12px;padding-top:2px}',
+    ':root.ph.ph-s' + P.slice(5) + '#menu #mpOnline .ol-sel .mi-l{line-height:1.05}' + ':root.ph.ph-s' + P.slice(5) + '#mpOnline .mk-go .sp-patch{--sp-ph:var(--ph-cta-h)}',
+    '@media (min-width:720px){',
+    PP + '#mpOnline .ol-body[data-v="create"] .mk-prev{display:none}',
+    '}',
+    PW + '#mpOnline .ol-body[data-v="create"]{grid-template-columns:minmax(0,1fr) 260px}',
+    PW + '#mpOnline .ol-body[data-v="create"] .mk-prev{display:block}',
+    // Cómo funciona: a 844+ los puntos de la página en 2 columnas; «Siguiente» de 52. Avisos: el botón dentro de la hoja. Sala: reglas en una fila
+    PW + '#mpOnline .ol-hpp{columns:2;column-gap:24px}',
+    PW + '#mpOnline .hp-pt{break-inside:avoid}',
+    PP + '#mpOnline .hp-go .ol-act.ol-new{--sp-h:52px}',
+    PP + '#mpOnline .ol-card{width:min(100%,var(--ph-fw))}',
+    PP + '#mpOnline .ol-card .ol-ctas{width:auto;display:flex;justify-content:flex-end;margin:14px 0 0}',
+    PP + '#mpOnline .ol-card .ol-ctas .sp-btn{--sp-h:48px;--sp-fs:var(--ph-btn)}',
+    PP + '#mpOnline .ol-rules{flex-wrap:nowrap;gap:8px}',
+    PP + '#mpOnline .ol-rules i{font-size:var(--ph-label);white-space:nowrap}',
     // vertical (teléfono de pie): columna a todo lo ancho, cabecera arriba y el lobby abajo; barra en dos filas
     '@media (max-aspect-ratio:5/4){',
     '#mpOnline .ol-act{--sp-h:48px;--sp-fs:14px}',
@@ -1035,14 +1083,17 @@
   function viewPH() {
     var v = L.view, h = '';
     if (v === 'noacc') {
-      h = '<div class="ol-card sp-panel"><h3>Necesitas una cuenta para jugar online</h3><p>Entra con tu cuenta (o créala, es gratis) y vuelve aquí. Tu rival solo verá tu nombre.</p></div>' +
-        '<div class="ol-ctas" data-nav>' + row('acc', 'Ir a Cuenta', '', '', { color: 'sp-kit', shape: 0 }) + '</div>';
+      // (movil-aire §5.1: el botón dentro de la hoja, bajo el texto; una sola pieza centrada)
+      h = '<div class="ol-card sp-panel"><h3>Necesitas una cuenta para jugar online</h3><p>Entra con tu cuenta (o créala, es gratis) y vuelve aquí. Tu rival solo verá tu nombre.</p>' +
+        '<div class="ol-ctas" data-nav>' + row('acc', 'Ir a Cuenta', '', '', { color: 'sp-kit', shape: 0 }) + '</div></div>';
     } else if (v === 'off') {
       h = '<div class="ol-card sp-panel"><h3>El online aún no está activado</h3><p>Todavía no se puede jugar online desde el servidor. Vuelve a probar dentro de un rato.</p>' +
-        '<span class="ol-retry" role="status">Lo intentamos otra vez en 30 s</span></div>' +
-        '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div>';
+        '<span class="ol-retry" role="status">Lo intentamos otra vez en 30 s</span>' +
+        '<div class="ol-ctas" data-nav>' + row('retry', 'Volver a probar', '', '', { color: 'sp-gold', shape: 1 }) + '</div></div>';
     } else if (v === 'nortc') {
-      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Ábrelo en Chrome o Safari actualizados (en el iPhone, sin el modo Aislamiento).</p></div>';
+      // (con «Copiar enlace»: para abrir el juego en el otro navegador sin teclear la dirección)
+      h = '<div class="ol-card sp-panel"><h3>Este navegador no puede jugar online</h3><p>Ábrelo en Chrome o Safari actualizados (en el iPhone, sin el modo Aislamiento).</p>' +
+        '<div class="ol-ctas" data-nav>' + row('copylink', 'Copiar enlace', '', '', { color: 'sp-gold', shape: 1 }) + '</div></div>';
     } else if (v === 'help') {
       var pg = Math.max(0, Math.min(hpPages() - 1, L.hpPage | 0)), last = pg >= hpPages() - 1, dots = '';
       for (var d = 0; d < hpPages(); d++) dots += '<i' + (d === pg ? ' class="on"' : '') + '></i>';
@@ -1304,6 +1355,12 @@
     else if (a === 'refresh') refreshList(true);
     else if (a === 'leave') { leaveRoom(); L.msg = ''; setView('list'); refreshList(true); focusA('new'); }
     else if (a === 'copy') copyCode();
+    else if (a === 'copylink') copyLink();
+  }
+  /** Móvil, sin WebRTC: copia la dirección del juego para abrirla en otro navegador. */
+  function copyLink() {
+    var url = shareSite(), done = function () { if (VB.Splat && VB.Splat.toast) VB.Splat.toast('Enlace copiado: ábrelo en Chrome o Safari', { key: 'olc' }); };
+    try { navigator.clipboard.writeText(url).then(done, done); } catch (e) { done(); }
   }
   function copyCode() {
     var c = L.room && L.room.code; if (!c) return;

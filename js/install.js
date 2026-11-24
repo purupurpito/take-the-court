@@ -171,6 +171,17 @@
     PP + '#install .ix-dots i{width:10px;height:10px;border-radius:50%;background:rgba(255,244,220,.4);box-shadow:0 0 0 2px var(--sp-ink)}',
     PP + '#install .ix-dots i.on{width:24px;border-radius:6px;background:var(--sp-gold)}',
     PP + '#install .ix-x{top:-4px;right:-6px}',
+    // (movil-aire §5.1: capa de detrás al 70 % y la hoja opaca; número del paso en línea con el texto (32), dibujo de 80; «Siguiente» de 48
+    // dentro de la hoja con 12 debajo; la tarjeta del paso sin alto mínimo)
+    PP + '#install{background:rgba(10,6,24,.7)}',
+    PP + '#install h2.sp-h{--sp-hs:calc(var(--ph-head) + 4px)}',
+    PP + '#install .ix-steps{flex:0 1 auto}',
+    PP + '#install .ix-steps li{gap:14px;padding:10px 14px 10px 10px}',
+    PP + '#install .ix-steps svg{height:80px;max-height:80px;max-width:30%}' + PP + '#install.ix-p1 .ix-steps svg{max-height:80px}',
+    PP + '#install .ix-tx{flex-direction:row;align-items:flex-start;gap:10px}',
+    PP + '#install .ix-n{width:32px;height:32px;font-size:16px;margin-top:2px}',
+    PP + '#install .ix-steps p{font-size:var(--ph-body)}',
+    PP + '#install .ix-acts{padding:8px 18px 12px}' + PP + '#install .ix-acts .sp-btn{--sp-h:48px;--sp-fs:var(--ph-btn)}',
     P + '#install .ix-dots,' + P + '#install [data-in="next"]{display:none}',
     PP + '#install .ix-dots{display:flex}',
     PP + '#install.ix-more [data-in="next"]{display:inline-flex}' + PP + '#install.ix-more #inOk{display:none}',

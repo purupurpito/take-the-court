@@ -6487,6 +6487,241 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:has(#account:not([hidden])) #menu .menu-col{opacity:0;pointer-events:none;transition:opacity .15s}
 :root.ph #account .ac-sync:not(.err){white-space:nowrap}
 /* ==== fin SPLAT · AVISO COLOCADOR ==== */
+/* ====================================================================================================================
+   — móvil (.ph) — «con aire» · paquete MENÚS (movil-aire, 24-nov-2026; notes/movil-aire.md §5.1 y §7.4). Portada, Jugar, Partido rápido,
+   Entrenamiento, Cómo se juega, Jugadores, Acerca de, Opiniones, aviso del colocador, Primer partido e Instalar (el online, en
+   js/netlobby.js). Todo bajo :root.ph (o :root.pv, el vertical táctil): en PC no cambia nada. Va al final para ganar, con el mismo prefijo,
+   a las reglas «— móvil (.ph) —» de cada pantalla.
+   ==================================================================================================================== */
+/* ---- PORTADA: el sello semanal es pegatina de esquina de JUGAR (.ph-sticker, menu-jugador.js) y la línea pequeña vuelve debajo ---- */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-go.ph-stk-host{padding-right:calc(var(--ph-stk) * .3)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-go>.sp-patch{--sp-pr:calc(var(--ph-stk) * .7)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj .mj-go>#btnMjReto.ph-sticker{top:-16px;right:-6px;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj #btnPlay .sp-t{line-height:1.1;padding-bottom:2px}
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj #playMainSub{display:block}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj #playMainSub{font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* con un billete encima (¡Jugar ya!, Seguir el partido, Carrera): billete de 56 y JUGAR de 52 sin línea pequeña (ui.js la esconde) */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir,#btnCont){--sp-h:56px;min-height:56px}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj:is(.has-now-mj,.has-cont-mj) .mj-go{--sp-ph:52px}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj:is(.has-now-mj,.has-cont-mj) .mj-side{padding-top:calc(var(--ph-gt) + 8px)}
+/* antetítulo «PRIMERA VEZ» / «PARTIDO A MEDIAS»: pastilla con fondo en el canto del billete (antes asomaba por encima, sin fondo) */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir){position:relative}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir) .sp-tk .sp-k{position:absolute;z-index:2;top:-10px;left:58px;padding:2px 8px 1px;border-radius:6px 9px 7px 8px;background:var(--sp-ink);color:var(--sp-gold);
+  font:800 var(--ph-micro)/1.15 var(--sp-ui);letter-spacing:.08em;transform:rotate(-2deg);box-shadow:0 0 0 2px var(--sp-cream)}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir) .sp-tk .sp-t{font-size:var(--ph-head);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj :is(#btnNow,#btnSeguir,#btnCont) .sp-tk .sp-s{font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* Carrera: un escudo de 40 (el del rival, que es el título), sin «en/vs»; título en una línea con «…» */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj #btnCont .sp-tk-stub>.sp-crest:not(:last-child),:root.ph:not(#_):not(#_):not(#_) #menu.mj #btnCont .sp-tk-stub>.sp-vs{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj #btnCont .sp-tk-stub>.sp-crest{--sp-cs:40px;width:40px;height:40px}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj #btnCont .sp-tk .sp-t{font-size:var(--ph-row);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+/* Jugadores y Vestuario: fuera las pastillas «Nv 1» (con puntos sin gastar sí sale «3 puntos de mejora») */
+:root.ph:not(#_):not(#_):not(#_) #menu.mj #btnSquad .sp-s:has(.dn){display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.mj #btnSquad:has(.sp-s .dn) .sp-t{grid-row:1/3;align-self:center}
+/* ayuda con ancho (844+): las tres manchas con aire (los goterones ya no se tocan) */
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.mj .mj-strip{gap:calc(var(--ph-hit-gap) + 8px)}
+/* ayuda sin ancho (568-740): los rótulos de los círculos sin espaciado y sin pasar del 30 % */
+:root.ph:not(.ph-w):not(#_):not(#_):not(#_) #menu.mj .mj-strip .sp-btn .sp-t{letter-spacing:0;max-width:30vw;overflow:hidden;text-overflow:ellipsis}
+/* perfil y álbum: un círculo de 48 con el contador en insignia (sin «Álbum 2/225» también a 844+); la versión, pequeña y apagada */
+:root.ph:not(#_):not(#_):not(#_) #btnProf .pf-al{display:none}
+:root.ph:not(#_):not(#_):not(#_) #btnProf.pf-chip{position:relative;width:48px;height:48px;padding:0;gap:0;justify-content:center;border-radius:50%}
+:root.ph:not(#_):not(#_):not(#_) #btnProf .pf-n{position:absolute;right:-6px;bottom:-4px;min-width:20px;height:20px;padding:0 5px;box-sizing:border-box;border-radius:10px;background:var(--sp-gold);color:var(--sp-ink);
+  font:700 var(--ph-micro)/20px var(--sp-ui);font-style:normal;text-align:center;box-shadow:0 0 0 2px var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .menu-foot .ver{font-size:var(--ph-micro);opacity:.6}
+/* ---- JUGAR: cabecera sin la palabra (solo ‹ de 44: la miga ya la dice la pantalla); Retos de pegatina en la esquina del parche;
+   Carrera en una línea; 12 entre filas; las tres manchas de 88 con icono de 40 ---- */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .mp-head .mp-tt{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .mp-head{min-height:var(--ph-bar);margin-bottom:0}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .mp-head .sp-back{width:var(--ph-tap);min-width:var(--ph-tap);height:var(--ph-tap);padding:0;justify-content:center}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .mp-head .sp-back>span{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair.ph-stk-host{margin-right:0;padding-right:calc(var(--ph-stk) * .3);margin-top:8px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair>.sp-patch{--sp-pr:calc(var(--ph-stk) * .7)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair #btnRetos.ph-sticker{top:-16px;right:-6px;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes{gap:12px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer{margin-right:0;margin-bottom:6px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #btnCareer .sp-s{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;-webkit-line-clamp:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row>.sp-btn{--sp-h:88px;min-height:88px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row .sp-crest{--sp-cs:40px}
+:root.ph.ph-s:not(#_):not(#_):not(#_) #menu.sp-full .sp-modes>.sp-row>.sp-btn{--sp-h:80px;min-height:80px}
+/* cabecera compacta de las páginas del menú (.mp-head.ph-bar: Jugar y Entrenamiento): ‹ de 44 sin bocadillo y el título a --ph-head */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .mp-head.ph-bar{min-height:var(--ph-bar);height:var(--ph-bar);margin:0;padding:0;gap:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .mp-head.ph-bar>.mp-tt{flex:1 1 auto;min-width:0;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full .mp-head.ph-bar .sp-h{--sp-hs:var(--ph-head);font-size:var(--ph-head);line-height:1.15;transform:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),2px 3px 0 var(--sp-ink)}
+/* ---- PARTIDO RÁPIDO: la columna del «?» reservada también en las filas que no lo llevan (los valores de la derecha alineados); flechas del
+   final apagadas al 35 % y sin contorno; a 844+ «¡A jugar!» en una columna a la derecha, a media altura ---- */
+:root.ph:not(#_):not(#_):not(#_) #menu #mpQuick .sp-opts>#optVenue.sp-opt{width:calc(100% - 55px);justify-self:start}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpQuick .sp-select .arr.end{opacity:.35}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpQuick .sp-select .arr.end::before{box-shadow:none}
+:root.ph:not(#_):not(#_):not(#_) #menu .sp-select span.arr:empty{pointer-events:none}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick .mp-head{margin-bottom:12px}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick{--sp-colw:min(var(--ph-ffw),800px)}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick .sp-opts{grid-template-columns:minmax(0,1fr) minmax(0,1fr) 230px;column-gap:14px}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick #btnGo{grid-column:3;grid-row:1/span 3;align-self:center;margin:0;--sp-pt:26px}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.sp-full #mpQuick #btnGo .sp-t{font-size:21px;white-space:nowrap;overflow:visible;text-overflow:clip;letter-spacing:0}
+/* ---- ENTRENAMIENTO: cabecera compacta con «0 de 15» a la derecha; rejilla de 2 columnas (3 a 844+) de tarjetas de 52 (medalla 32, nombre,
+   una línea y UN estado: «Nuevo» o el récord); el peloteo libre, la primera tarjeta (parche crema), sin flotar encima de la lista ---- */
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #mpGym{gap:var(--ph-s2)}
+:root.ph:not(#_):not(#_):not(#_) #menu #mpGym .gy-chip{flex:none;margin:0 4px 0 auto}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:minmax(52px,auto);gap:var(--ph-card-gap) 12px;align-content:start;padding:8px 8px 12px 4px}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu.sp-full #mpGym{--sp-colw:min(var(--ph-ffw),880px)}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #menu #gymList{grid-template-columns:repeat(3,minmax(0,1fr))}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #gymList .gy-free{position:relative;bottom:auto;order:-1;margin:0;--sp-ph:52px;--sp-pt:var(--ph-row);min-height:52px}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #gymList .gy-free .sp-t{font-size:var(--ph-row);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.ph:not(#_):not(#_):not(#_) #menu.sp-full #gymList .gy-free .sp-s{font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d.sp-btn{min-height:52px;height:auto;padding:3px 10px 3px 6px;gap:8px;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d>.sp-blob{overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d>.sp-blob .sp-f circle{display:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d .sp-medal{--sp-md:32px}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d .sp-l{min-width:0;flex:1 1 auto}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d .sp-t{font-size:var(--ph-row);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d .sp-s{font-size:var(--ph-cap);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;-webkit-line-clamp:none}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-d .sp-bar{height:5px;margin:2px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-rec{flex:none;max-width:40%}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-rec b{font-size:var(--ph-label);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #menu #gymList .gy-rec small{display:none}
+/* ---- PANELES con cabecera compacta (ui.js PH_BAR: Cómo se juega, Jugadores, Acerca de, Opiniones y Primer partido): una franja de
+   --ph-bar con ‹ de 44 (sin bocadillo) y, a su lado, el título corto, o las pestañas (Acerca de, Opiniones) o los dos jugadores (Jugadores) ---- */
+.pn-ph{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head.ph-bar{min-height:var(--ph-bar);height:var(--ph-bar);margin:0 0 6px;padding:0;gap:var(--ph-s3)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head.ph-bar>.pn-tt{flex:1 1 auto;min-width:0;margin:0;display:flex;align-items:center}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .pn-head.ph-bar :is(.sp-h,.pn-ph){--sp-hs:var(--ph-head);font:400 var(--ph-head)/1.15 var(--sp-pop);letter-spacing:.01em;text-transform:uppercase;color:var(--sp-cream);transform:none;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),2px 3px 0 var(--sp-ink)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="tut"] .pn-head.ph-bar .sp-h{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="tut"] .pn-head.ph-bar .pn-ph{display:block}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head.ph-bar .sp-h{display:none}
+/* pestañas (Acerca de, Opiniones) y jugadores (Jugadores) en la franja, a la derecha del ‹ */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn :is(#abTabs,.fb-kind,.sq-top){position:absolute;z-index:2;top:0;left:calc(var(--ph-tap) + var(--ph-s3));right:0;height:var(--ph-bar);margin:0;box-sizing:border-box}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abTabs.sp-tabs-strip .tb-row{height:100%;align-items:center;padding:0 4px;justify-content:flex-start}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abTabs.sp-tabs-strip .tab{flex:0 1 auto;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .fb-kind{display:flex;align-items:center;flex-wrap:nowrap;padding:0 4px}
+/* ---- CÓMO SE JUEGA: «Paso 1/6» en la franja; dibujo al 28 % (máx. 150); 2-3 viñetas cortas y «Más detalle» (hoja con el texto de PC);
+   pie: ‹ de 48 a la izquierda, los puntos del progreso y SIGUIENTE de 52 a la derecha; el paso 6 en rejilla de 2 (3) sobre tinta opaca ---- */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{grid-template-columns:min(28%,150px) minmax(0,1fr);gap:14px;align-items:start}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="tut"]>.sheet{width:min(var(--ph-ffw),780px)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{align-self:start;max-height:100%;box-sizing:border-box}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-fig{margin:4px 4px 6px 4px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-step{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-title{margin:2px 0 8px;font-size:var(--ph-head)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-ph{margin:0;padding:0 0 0 18px;display:flex;flex-direction:column;gap:8px;font:500 var(--ph-body)/1.35 var(--sp-ui);color:var(--sp-cream)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-ph li::marker{color:var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-ph b{color:var(--sp-gold);font-weight:700}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-ph .key{font-size:max(13px,.86em);padding:1px 6px;vertical-align:1px}
+/* («Más detalle» va en el pie, junto a ‹: #btnTutMore, .ph-only; en el paso 6 no sale) */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody>div:last-child{min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav .dots i{width:10px;height:10px;min-width:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-more.sp-pill{flex:none;--sp-fs:var(--ph-cap);min-height:44px;margin:0;padding:2px 10px 2px 14px;gap:6px;white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-more.sp-pill b{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--sp-gold);color:var(--sp-ink);font:700 13px/1 var(--sp-ui);text-transform:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav{align-items:center}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav .dots{display:flex;flex:1 1 auto;justify-content:center;gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev{flex:none;margin-right:0;width:48px;min-width:48px;height:48px;min-height:48px;padding:0;justify-content:center}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev>.sp-t{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev .sp-ic{margin:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev>.sp-blob{overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutPrev>.sp-blob .sp-f circle{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .tut-nav #btnTutNext{--sp-ph:var(--ph-cta-h);--sp-pt:var(--ph-patch);flex:none;min-width:min(220px,40vw);max-width:50%}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .faults{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--ph-card-gap)}
+:root.ph.ph-w:not(#_):not(#_):not(#_) #panel.sp-pn .faults{grid-template-columns:repeat(3,minmax(0,1fr))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .faults li{min-height:0;padding:7px 10px 8px;font-size:var(--ph-cap);line-height:1.3}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .faults li b{display:block;font-size:var(--ph-label);margin-bottom:2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody:has(.faults){background:rgba(21,16,42,.96)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #tutBody .faults+.tut-rule{font-size:var(--ph-cap);margin-top:10px}
+/* hoja «Más detalle» */
+:root.ph:not(#_):not(#_):not(#_) #spSheets .tut-sheet .tut-text{margin:0;font:500 var(--ph-body)/1.45 var(--sp-ui);color:var(--sp-cream)}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .tut-sheet .tut-text b{color:var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .tut-sheet .tut-rule{margin-top:10px;padding:8px 12px;border-radius:10px;background:rgba(255,244,220,.08);font:500 var(--ph-label)/1.4 var(--sp-ui);color:var(--sp-cream)}
+:root.ph:not(#_):not(#_):not(#_) #spSheets .tut-sheet .key{font-size:max(13px,.86em)}
+/* ---- JUGADORES: N.º 1 / N.º 2 como conmutador de dos fichas en la franja y «Aspecto» como icono de 44 a la derecha; filas de atributo
+   de 48 en una línea (nombre · barra · número · +1 de 44) y la descripción al tocar la fila ---- */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top{display:flex;flex-direction:row;align-items:center;gap:10px;width:auto;padding:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-top .sq-pick{display:flex;flex:1 1 auto;min-width:0;gap:10px;padding:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{flex:1 1 0;min-width:0;max-width:230px;height:44px;min-height:44px;padding:0 10px 0 4px;gap:6px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-num{width:30px;height:30px;font-size:16px;flex:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn{min-width:0;font-size:var(--ph-label);line-height:1.05;white-space:nowrap;overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pn small{display:block;font-size:var(--ph-micro);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.15}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pm{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-lk{flex:none;padding:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook{width:44px;min-width:44px;height:44px;min-height:44px;padding:0;justify-content:center}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook>.sp-t{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #btnSqLook .sp-ic{margin:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #sqTabs.sp-tabs-strip{margin:6px 0 6px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs{gap:10px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-sheet{padding-top:8px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r{grid-template-columns:minmax(0,1fr) minmax(64px,30%) 2.1em 44px;min-height:48px;padding:2px 4px 2px 12px;gap:10px;cursor:pointer}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child small{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child>.sp-info{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r[aria-expanded="true"]>span:first-child{white-space:normal}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r[aria-expanded="true"]>span:first-child small{display:block;margin-top:2px;font-size:var(--ph-label);line-height:1.3;white-space:normal;-webkit-line-clamp:none;overflow:visible}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r .bar{height:12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .sq-r button{width:44px;height:44px;padding:0}
+/* ---- ACERCA DE: sin título (lo dicen las pestañas), sin «Entendido» (sale con ‹), un solo marco (la tarjeta crema sin la hoja de tinta
+   alrededor); Créditos en filas clave/valor en una sola caja ---- */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .ab-foot{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.sp-panel{background:none;box-shadow:none;border:0;padding:4px 6px 10px 2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody .card{padding:12px 16px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody .card :is(ul,p){font-size:var(--ph-body);line-height:1.35}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody .card li+li{margin-top:8px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr{gap:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr>*{flex:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .ab-lics{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .ab-tg.sp-pill{align-self:auto;margin:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card{display:grid;grid-template-columns:112px minmax(0,1fr);align-items:baseline;column-gap:12px;margin:0;padding:9px 14px;min-height:40px;box-sizing:border-box;
+  border-radius:0;background:var(--sp-ink);color:var(--sp-cream);box-shadow:none;border-bottom:1px solid rgba(255,244,220,.14);transform:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card:first-child{border-radius:12px 14px 0 0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card:nth-last-child(1 of .card){border-radius:0 0 12px 14px;border-bottom:0}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card h3{margin:0;font:700 var(--ph-micro)/1.2 var(--sp-ui);letter-spacing:.06em;text-transform:uppercase;color:var(--sp-gold)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card>:not(h3){grid-column:2;margin:0;font-size:var(--ph-label);line-height:1.35;color:var(--sp-cream)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card ul{padding-left:16px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr .card li+li{margin-top:2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #abBody.ab-cr :is(.ab-note,.ab-build){margin:10px 4px 0;color:var(--sp-cream)}
+/* ---- OPINIONES: tipo (Sugerencia | Bug) en la franja, sin título; el cuadro crece con la hoja (sin desplazar el panel); Enviar en una
+   columna de 140 a la derecha, sin Cancelar (sale con ‹ o Esc); «Se adjunta…» tras la «i» de esa columna; contador solo cerca del límite ---- */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb:not([hidden]){grid-template:"body dock" minmax(0,1fr) / minmax(0,1fr) 140px;column-gap:12px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb>.fb{grid-area:body;display:flex;flex-direction:column;overflow:hidden}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb>.fb.fb-done{overflow-y:auto}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-t{flex:1 1 auto;min-height:96px;height:auto}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-att{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-n:not(.near){display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-foot{grid-area:dock;flex-direction:column;align-items:stretch;justify-content:flex-end;gap:12px;margin:0;padding:0 0 2px}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-foot #fbCancel{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-foot>.sp-btn{width:100%;min-height:var(--ph-cta-h);--sp-h:var(--ph-cta-h)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-attq.sp-q{align-self:flex-end;position:relative;width:44px;height:44px;min-width:44px;font:700 17px/1 var(--sp-ui);text-transform:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #pnFb .fb-where{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;flex:none}
+:root.ph.sp-kb:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="fb"] .fb-kind{display:none}
+/* ---- PRIMER PARTIDO: sin la ficha «6 pasos, 1 minuto»; «Jugar ya» a la izquierda de «Ver cómo se juega», en la misma fila de abajo ---- */
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="first"]>.sheet{width:min(560px,var(--ph-ffw))}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .first-lead{display:none}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts{flex-direction:row-reverse;align-items:center;justify-content:flex-start;gap:var(--ph-btn-gap)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{flex:1 1 auto;min-width:0;--sp-ph:var(--ph-cta-h)}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut .sp-t{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:root.ph:not(#_):not(#_):not(#_) #panel.sp-pn #btnFirstPlay{flex:none;align-self:center;min-height:var(--ph-btn-h)}
+/* ---- AVISO DEL COLOCADOR: dos frases y «Más» (el resto sale al tocarlo); ACTIVAR abajo a la derecha (52), «Ahora no» de 44 encima y
+   «No mostrar más» como enlace; 12 entre botones ---- */
+:root.ph:not(#_):not(#_):not(#_) #setNote:not(.sn-x) :is(.sn-lg,.sn-s){display:none}
+:root.ph:not(#_):not(#_):not(#_) #setNote.sn-x .sn-sh{display:none}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-more{display:inline-flex;align-items:center;min-height:44px;min-width:44px;vertical-align:middle;margin:-12px 0;padding:0 6px;border:0;background:none;color:var(--sp-gold);font:700 var(--ph-body)/1 var(--sp-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-sheet{width:min(640px,100%)}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts{display:flex;flex-direction:column-reverse;gap:12px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-acts .sp-patch{--sp-ph:var(--ph-cta-h)}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-row{flex-direction:column-reverse;gap:12px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-row [data-sn="never"]{--sp-h:44px;min-height:44px;background:none;box-shadow:none;color:var(--sp-cream);text-decoration:underline;text-underline-offset:3px}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-row [data-sn="never"]>.sp-blob{display:none}
+:root.ph:not(#_):not(#_):not(#_) #setNote .sn-row [data-sn="never"] .sp-t{font:600 var(--ph-label)/1.2 var(--sp-ui);text-transform:none;letter-spacing:0;color:var(--sp-cream);text-shadow:none;transform:none}
+/* ---- ONLINE: el aviso corto en la columna de la derecha, encima de CÓDIGO / CREAR SALA (antes, abajo a la izquierda tapaba la lista) ---- */
+:root.ph:has(#mpOnline:not([hidden]) .ol-hsal):not(#_):not(#_):not(#_):not(#_) #spToasts{top:calc(var(--ph-gt) + var(--ph-hh) + 12px);bottom:auto;left:auto;right:var(--ph-g);translate:none;align-items:stretch;width:150px;max-width:150px}
+:root.ph.ph-w:has(#mpOnline:not([hidden]) .ol-hsal):not(#_):not(#_):not(#_):not(#_) #spToasts{width:clamp(212px,26vw,240px);max-width:240px}
+:root.ph:has(#mpOnline:not([hidden]) .ol-hsal):not(#_):not(#_):not(#_):not(#_) .sp-toast{max-width:none;-webkit-line-clamp:5;font-size:var(--ph-cap)}
+/* ---- VERTICAL (html.pv): los dos sellos de pegatina (en vertical no había .ph: aquí van todas sus medidas) y «Volver» de Jugar abajo
+   a la izquierda, a 48, en la zona del pulgar ---- */
+:root.pv:not(#_):not(#_):not(#_) #menu.mj .mj-go.ph-stk-host{padding-right:calc(var(--ph-stk) * .3)}
+:root.pv:not(#_):not(#_):not(#_) #menu.mj .mj-go>.sp-patch,:root.pv:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair>.sp-patch{--sp-pr:calc(var(--ph-stk) * .7)}
+:root.pv:not(#_):not(#_):not(#_) #menu.mj .mj-go>#btnMjReto.ph-sticker,:root.pv:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair #btnRetos.ph-sticker{top:-18px;right:-6px;bottom:auto;margin:0}
+:root.pv:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair.ph-stk-host{padding-right:0}
+:root.pv:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair>.sp-patch{--sp-pr:14px}
+:root.pv:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-pair #btnRetos.ph-sticker{top:calc(-1 * var(--ph-stk) + 12px);right:-4px}
+:root.pv:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .sp-modes{margin-bottom:64px}
+:root.pv:not(#_):not(#_):not(#_) #menu.sp-full #mpPlay .mp-head .sp-back{position:fixed;left:max(16px,var(--sl,0px));bottom:max(12px,var(--sbm,0px));top:auto;z-index:5;min-height:48px;--sp-h:48px}
+/* ==== fin «con aire» · MENÚS ==== */
 /* =====================================================================================================================================
    — móvil (.ph) — «con aire» · paquete CARRERA-FLUJO (movil-aire, 24-nov-2026; notes/movil-aire.md §5.5 y §7.5). Hojas de partido de la
    Carrera (#end.crs: la pone ui.js endRecap / main.js en las hojas de extensión y de la prueba), concursos y sesiones (#gymEnd), banquillo
@@ -7260,15 +7495,15 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
          manchas (.sp-btn) de la equipación, del contraste y de tinta. Mismos ids y manejadores (ui.js, career-ui.js syncMenu, netlobby). ←/→ dentro
          de cada fila (data-sp-row) y ↑/↓ de fila en fila (ui.js navMove). 6 contra 6 abre la preparación con la fila Formato en 6 contra 6 -->
     <div class="mpage sp-page" id="mpPlay" data-page="play" data-sp-full hidden>
-      <div class="mp-head sp-head">
+      <div class="mp-head sp-head ph-bar">
         <button class="mp-back sp-back" id="btnPlayBack" aria-label="Volver al menú principal" data-shape="3"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
         <div class="mp-tt"><h2 class="mp-t sp-h">Jugar</h2></div>
       </div>
       <nav class="modes sp-modes" data-nav aria-label="Modos de juego">
-        <div class="sp-pair" data-sp-row>
+        <div class="sp-pair ph-stk-host" data-sp-row>
           <button class="mode m-quick sp-patch" id="btnQuick"><span class="sp-l"><span class="sp-t">Partido rápido</span><small class="sp-s">Un partido contra la CPU, a tu medida</small></span></button>
           <!-- D1: Retos (reto del día y maestría) en sello; ui.js renderRetoStrip pinta la medalla de hoy en #retoMeds y el texto en #retoSub (para el lector) -->
-          <span class="rt-wrap"><button class="sp-stamp" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETO DEL DÍA ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
+          <span class="rt-wrap"><button class="sp-stamp ph-sticker" id="btnRetos" aria-label="Retos" data-ring="RETOS ★ RETO DEL DÍA ★"><span class="sp-sc"><svg class="sp-ball" viewBox="1.4 1.4 21.2 21.2" aria-hidden="true" focusable="false"><circle class="b0" cx="12" cy="12" r="10"/><path class="b1" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z"/><path class="b2" d="M12 12C12 8 10.5 4.5 8 2.8A10 10 0 0 1 13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8C16 13.9 13.7 13 12 12Z" transform="rotate(120 12 12)"/><g class="bs"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></g><circle class="b3" cx="12" cy="12" r="10"/></svg><span class="rt-meds" id="retoMeds" aria-hidden="true"></span></span><span class="sr" id="retoSub">Reto del día y retos de maestría</span></button></span>
         </div>
         <button class="mode m-career sp-ticket" id="btnCareer"><span class="sp-tk"><span class="sp-tk-stub"><span class="sp-crest" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M16 8h32v12c0 12-7 19-16 20-9-1-16-8-16-20zM16 12H8v6c0 7 4 11 9 12l1-4c-4-1-6-4-6-8v-2h4zM48 12h8v6c0 7-4 11-9 12l-1-4c4-1 6-4 6-8v-2h-4zM28 39h8v9h-8zM20 48h24l2 8H18z"/></svg></span></span><span class="sp-tk-main"><small class="sp-k">Tu jugador, tu club</small><b class="sp-t">Carrera</b><small class="sp-s" id="careerSub">Playa o pista: crea tu jugador, elige club y ficha</small></span><span class="sp-go" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></span></span></button>
         <div class="sp-row" data-sp-row>
@@ -7310,7 +7545,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
     <!-- ENTRENAMIENTO (E6, sprint 5; SPLAT 17-nov-2026): 5 ejercicios con medallas en pegatinas de colores (medalla en pegatina redonda,
          récord y barra de pintura hasta la siguiente medalla) y el peloteo libre en parche cosido (filas de js/gym.js; ui.js renderGym) -->
     <div class="mpage sp-page" id="mpGym" data-page="gym" data-sp-full hidden>
-      <div class="mp-head sp-head">
+      <div class="mp-head sp-head ph-bar">
         <button class="mp-back sp-back" id="btnGymBack" aria-label="Volver a los modos de juego" data-shape="2"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
         <div class="mp-tt"><p class="kicker sp-k">Jugar</p><h2 class="mp-t sp-h">Entrenamiento</h2></div>
         <i class="sp-chip ph-only gy-chip" id="gymChip" hidden></i>
@@ -7498,7 +7733,8 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
           <div><div class="tut-step" id="tutStep"></div><div class="tut-title" id="tutTitle"></div><div id="tutText"></div></div>
         </div>
         <div class="tut-nav" data-nav>
-          <button class="ghost sp-btn sp-sm sp-ink" id="btnTutPrev" data-shape="1"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 6.5 12l8.5 7.5z"/></svg></span><span class="sp-t">Anterior</span></button>
+          <button class="ghost sp-btn sp-sm sp-ink" id="btnTutPrev" data-shape="1" aria-label="Anterior"><span class="sp-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4.5 6.5 12l8.5 7.5z"/></svg></span><span class="sp-t">Anterior</span></button>
+          <button type="button" class="tut-more sp-pill ph-only" id="btnTutMore" data-tut-more>Más detalle <b aria-hidden="true">i</b></button>
           <div class="dots" id="tutDots"></div>
           <button class="sp-patch" id="btnTutNext"><span class="sp-l"><span class="sp-t">Siguiente</span></span></button>
         </div>
