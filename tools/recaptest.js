@@ -306,7 +306,7 @@ ok(M.table === null && M.cup === '' && M.life.length === 0, 'rápido: sin tabla,
 M = R.endModel(Object.assign({}, dull, { sets: [0, 2], setScores: [[15, 21], [16, 21]], win: false, plays: 3, pl: pl0.map((p, i) => i === 2 ? Object.assign({}, p, { pts: 10 }) : p) }));
 ok(M.title === 'Gana la CPU' && M.mvp === null && M.mvpRival && M.mvpRival.t === 'MVP rival: N.º 1, 10 puntos', 'derrota: «Gana la CPU» y MVP rival en pequeño (' + (M.mvpRival && M.mvpRival.t) + ')');
 ok(M.tabs.join() === 'sum,stats,plays' && M.tabLabels.plays === 'Jugadas (3)', 'con jugadas: pestaña «Jugadas (3)»');
-ok(R.endModel(Object.assign({}, dull, { plays: 3, size: 6 })).tabs.length === 2, '6v6: sin pestaña de jugadas');
+ok(R.endModel(Object.assign({}, dull, { plays: 3, size: 6 })).tabs.length === 3, '6v6: con pestaña de jugadas (repeticiones en el 6v6 desde el 24-nov-2026)');
 ok(R.endModel(Object.assign({}, dull, { plays: 3, drill: true })).tabs.length === 2, 'Entrenamiento: sin pestaña de jugadas');
 ok(R.endModel(Object.assign({}, dull, { watch: true })).buttons === null, '6v6 espectador: botones de hoy (null)');
 M = R.endModel(Object.assign({}, dull, { reto: true }));
@@ -358,7 +358,7 @@ labelsOk(M, 'pista');
 ok(M.nota === 's. c.', 'pista: nota null → «s. c.»');
 ok(M.part && M.part.t === 'Entraste en el 2º set | 9 de 52 puntos', 'pista: línea de minutos (' + (M.part && M.part.t) + ')');
 ok(M.mvpRival && M.mvpRival.t === 'MVP rival: N.º 10 (PAL), 14 puntos', 'pista: MVP rival «N.º 10 (PAL)» (' + (M.mvpRival && M.mvpRival.t) + ')');
-ok(M.tabs.length === 2, 'pista (6v6): sin «Jugadas»');
+ok(M.tabs.length === 3 && M.tabs[2] === 'plays', 'pista (6v6): con «Jugadas» (24-nov-2026)');
 ok(M.kicker.join(' | ') === 'Liga Sur | Jornada 4', 'pista: antetítulo');
 M = R.endModel({ career: csHall, sum: Object.assign({}, sumHall, { phase: 'ko', label: 'Copa Ibérica · Final' }), size: 6, win: true, sets: [3, 1], setScores: [], pl: [] });
 ok(M.cup === '¡Campeones de la Copa Ibérica!', 'pista: copa ganada (' + M.cup + ')');
