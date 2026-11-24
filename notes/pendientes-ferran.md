@@ -198,8 +198,8 @@ rama pendientes, sin publicar.
   **Arreglados el 22-nov (después):** viewtest (netview.js clasifica `ritual.jug`), touchplay (la prueba arrastra la columna de
   pestañas antes de tocar Equipación), camtest (sin tocar la cámara: los fallos conocidos —oficiales asomando en el saque, balón fuera en
   fovpump, cadera en wide, héroe por muestra— cuentan como «conocido» con tope medido; `CAMZERO=1` exige 0; ver notes/camera_input.md)
-  y mobaudit (el informe del rival con carga de página propia). **Pregunta abierta a Ferran (cámara):** en el saque propio, ¿el juez
-  de línea cercano entero, fuera o cortado solo por abajo? Hasta que lo decidas, camtest lo tolera.
+  y mobaudit (el informe del rival con carga de página propia). (La pregunta del juez de línea cercano en tu saque queda como decisión
+  provisional en «Cámara», abajo: fuera de la imagen.)
   **Pasada de todas las pruebas de tools/ (22-nov, tarde, de una en una):** 86 en verde (los 72 *test*.js, las tres huellas, drive,
   drive6, padplay, touchplay, csscheck, console.sh 1280 y 844 táctil, mobaudit 568×320 y 844×390). animtest: huella neutra regenerada
   por la IA variada (comprobada en main y en el commit de la IA variada). **Fallan igual en main 1.21.0, sin tocar:** contacttest
@@ -394,17 +394,30 @@ desde la Hiperliga (y en la Hiperliga 2, finales y final de liga), y «por la l�
   Conviene probarlo a mano.
 - Pregunta: ¿te vale el umbral del cambio de plan y el aviso?
 
-## Cámara (js/camera.js, tools/camtest.js, notes/camera_input.md «Zoom 1: la cumbre en la contención»)
+## Cámara (js/camera.js, tools/camtest.js, notes/camera_input.md «Zoom 1: la cumbre en la contención» y «Cámara fija en el saque»)
+Sprint pedido por Ferran el 24-nov («en mi saque, la cámara se mueve demasiado»), rama decisiones, sin versión. Medido: en tu saque la
+cámara recorría 0,4-2 m y giraba 9-28° por saque; ahora 0 en todos los tamaños, pista y playa, 2v2 y 6v6.
+- **Decisión provisional: la cámara del saque se fija al empezar y no se mueve** en tu saque, en el vuelo de tu saque (hasta que el rival
+  lo toca o bota) ni en el saque rival. Solo se mueve, suave y lo justo, si algo se iba a salir: el balón, tu jugador, el sacador o
+  donde va a caer. Si mueves al sacador a lo ancho más de 1,2 m, la cámara se recoloca despacio y se vuelve a fijar. Cambiarlo: `FX` en
+  js/camera.js (márgenes en `fxPoints`, recolocar en `fxApply`).
+- **Decisión provisional: el encuadre de tu saque es más alto** (2 m más alto y algo más atrás, como la grúa que antes salía solo en el
+  saque en salto). Así caben a la vez el campo rival, tu sacador y el lanzamiento más alto, y no hace falta mover nada. A cambio se ve
+  más pista propia y tu sacador sale algo más pequeño. Cambiarlo: `SVFH` / `SVFB` en js/camera.js.
+- **Decisión provisional: el vuelo se queda fijo solo con tu saque.** Si saca un compañero, la cámara va a por tu jugador durante el vuelo
+  (como antes): hacerlo de golpe al primer toque rival era un movimiento muy rápido.
+- **Decisión provisional: juez de línea cercano en tu saque, fuera de la imagen.** Con el encuadre nuevo queda fuera solo (y la silla del
+  1r árbitro ya no asoma por arriba).
+- No se ha tocado el resto del punto (peloteo): sigue la cámara de antes de 1.5.4 con la contención.
 - **Decisión provisional: con el zoom 1-2 en el móvil la cámara solo se echa atrás** cuando la cumbre del balón no cabría (colocaciones
   altas del 6v6). No gira ni cabecea por eso. El zoom normal (3) y los de lejos quedan exactamente como antes. Medido: el balón ya no se
   sale por arriba en tu propia colocación (antes, el 1 % de los frames).
 - **Decisión provisional: la regla de «no perseguir balones muy rápidos»** (más de 15 m/s, o el balón que ya va a la grada) también
   cuenta en el 2v2 al medir la cámara en las pruebas. La cámara del juego no cambia por esto.
 - Preguntas:
-  1. **Juez de línea en tu saque**: con el balón en la mano, el juez cercano sale cortado por abajo (en pantallas anchas es una figura
-     grande en primer plano) y la silla del 1r árbitro asoma por arriba. No hay un cambio pequeño de cámara que lo arregle sin bajar el
-     campo rival. ¿Lo quieres entero, fuera de la imagen, o te vale cortado por abajo cuando está en primer plano?
-  2. ¿Te vale que la cámara se eche atrás con el zoom 1 en las colocaciones altas?
+  1. ¿Te vale que la cámara se eche atrás con el zoom 1 en las colocaciones altas?
+  2. ¿Te gusta el encuadre más alto de tu saque, o prefieres el de antes (más cerca del sacador) aunque en el saque en salto la cámara
+     tenga que abrirse un poco al lanzar?
 
 ## Repeticiones con botón (decisión de Ferran del 24-nov; js/replay.js, rama decisiones, sin versión)
 Ferran: «la repetición con un botón por si quieres verla. En PC que sea "Pulsa V para ver la repetición", en móvil sale un pequeño botón

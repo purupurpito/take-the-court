@@ -29,3 +29,10 @@ Solo novedades, en castellano llano y frases cortas. Los arreglos no van aquí. 
 ## La moneda (decisión de Ferran del 24-nov)
 - El dinero del juego ahora son los salpis, con su gota de tinta.
 - Sueldos, premios y la tienda de la Carrera van en salpis.
+
+## Cámara del saque (pedido de Ferran del 24-nov)
+- En tu saque la cámara se queda quieta: del balón en la mano al golpe, sin moverse.
+- Se ve desde un poco más alto: el campo rival, tu sacador y el lanzamiento caben a la vez.
+- Sigue quieta mientras tu saque vuela, hasta que el rival lo toca.
+- En el saque rival también se queda quieta.
+- Solo se mueve, suave y lo justo, si algo se iba a salir de la imagen.
