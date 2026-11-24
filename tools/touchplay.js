@@ -85,6 +85,11 @@ async function runSize(size) {
     // Primera vez (24-nov-2026): portada con solo «¡Jugar ya!» y «Tutorial»; tocar Tutorial lo abre y VOLVER da la portada de siempre
     if (await evalJs("document.getElementById('menu').classList.contains('first-run')")) {
       check(await evalJs("document.getElementById('btnPlay').offsetParent===null&&document.getElementById('btnStartTut').offsetParent!==null"), 'primera vez: sin JUGAR, con «Tutorial»');
+      check(await evalJs("(function(){var b=document.getElementById('btnSettings');return !!b&&b.offsetParent!==null&&b.getAttribute('aria-label')==='Ajustes'&&document.getElementById('btnControls').offsetParent===null})()"), 'primera vez: el engranaje de Ajustes a la vista (sin Controles)');
+      await tap('#btnSettings'); await sleep(500);
+      check(await evalJs("VB.UI.isPanelOpen()&&!document.getElementById('pnSet').hidden"), 'primera vez: tocar el engranaje abre Ajustes');
+      await tap('#btnPanelBack'); await sleep(500);
+      check(await evalJs("!VB.UI.isPanelOpen()&&document.getElementById('menu').classList.contains('first-run')"), 'primera vez: VOLVER de Ajustes deja la portada de la primera vez');
       await tap('#btnStartTut'); await sleep(500);
       check(await evalJs("VB.UI.isPanelOpen()&&!document.getElementById('pnTut').hidden"), 'primera vez: tocar «Tutorial» lo abre');
       await tap('#btnPanelBack'); await sleep(500);

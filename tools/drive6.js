@@ -125,8 +125,8 @@ const DECIDE = `(function(){var g=VB.ctx.game,p=g.ctrl,S=VB.Sim,o={m:g.mode,mv:n
       await press('ArrowDown'); await sleep(250);
       check(await evalJs("document.activeElement&&document.activeElement.id==='btnStartTut'"), 'primera vez: ↓ desde «¡Jugar ya!» llega a «Tutorial»');
       await press('ArrowDown'); await sleep(250);
-      check(await evalJs("document.activeElement&&['btnNow','btnStartTut'].indexOf(document.activeElement.id)>=0"), 'primera vez: las flechas no salen de los dos billetes');
-      if (await evalJs("document.activeElement.id!=='btnStartTut'")) { await press('ArrowDown'); await sleep(250); }
+      check(await evalJs("document.activeElement&&['btnNow','btnStartTut','btnSettings'].indexOf(document.activeElement.id)>=0"), 'primera vez: las flechas no salen de los dos billetes y el engranaje de Ajustes');
+      for (let i = 0; i < 3 && await evalJs("document.activeElement.id!=='btnStartTut'"); i++) { await press('ArrowUp'); await sleep(250); }
       await press('Enter'); await sleep(500);
       check(await evalJs("VB.UI.isPanelOpen()&&!document.getElementById('pnTut').hidden"), 'primera vez: Intro en «Tutorial» abre Cómo se juega');
       await press('Escape'); await sleep(600);
