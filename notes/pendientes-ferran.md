@@ -5,7 +5,7 @@ Lo que Ferran no respondió (o respondió a medias) se ha hecho con la **propues
 (make-the-cut-ideas-unico) y en las notas de cada idea; aquí no se repite.
 
 Índice: Imprescindibles 1.22.0 (rama investigacion: decisiones, TURN paso a paso, pruebas a mano, huellas) · Menús del 24-nov (rama decisiones) · IA del 24-nov (rama decisiones) · Repeticiones con botón (24-nov, rama decisiones) · Backlog del 21-nov · Señas · Xaranga · La jugada del día · Rencor · Árbitros · Scouting · Cámara · Pruebas · Interruptores · Antes de
-publicar · Chat rápido (30 frases para marcar) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
+publicar · Chat rápido (lista final aprobada) · «El Corte» · Preguntas abiertas de TRASPASO. Todo esto va en la versión 1.21.0 de la
 rama pendientes, sin publicar.
 
 ## Imprescindibles 1.22.0 (rama investigacion; informe estudios/revision-juegos-voley-2026-11-21.md §4)
@@ -482,47 +482,30 @@ durante un tiempo corto». Ya no hay repetición automática.
   js/version.js chocará y hay que dejar las dos entradas. También hay que pasar a la marca nueva el enlace de `js/semana.js link()` y el
   título de compartir de `js/semana-ui.js share()`.
 
-## Chat rápido: 30 frases propuestas (marca sí o no)
-(★) = va en la rueda principal (8). (†) = pique sano: si quieres una beta «solo positivas», se quitan las (†) y quedan 24.
-Todas tienen 28 caracteres o menos. El chat NO está construido: esto es solo para elegir las frases.
+## Chat rápido: lista FINAL aprobada (Ferran, 24-nov; el chat sigue SIN construir)
+Ferran eligió las frases y la tecla: **en el PC, la tecla T** («La tecla T me sirve, sí»). (★) = va en la rueda principal.
+(†) = pique sano, aprobado así. Son 22 frases; todas caben en 28 caracteres.
 
-| # | Frase | Momento | ¿Sí? |
-|---|---|---|---|
-| 1 | ¡Hola! (★) | Saludo | [ ] sí [ ] no |
-| 2 | ¡Suerte! (★) | Saludo | [ ] sí [ ] no |
-| 3 | ¡Que gane el mejor! | Saludo | [ ] sí [ ] no |
-| 4 | ¡A disfrutar! | Saludo | [ ] sí [ ] no |
-| 5 | ¡Hoy no te dejo ni una! (†) | Saludo | [ ] sí [ ] no |
-| 6 | ¡Vamos! (★) | Durante el partido | [ ] sí [ ] no |
-| 7 | ¡Venga, que se puede! | Durante el partido | [ ] sí [ ] no |
-| 8 | ¡Ahora verás mi saque! (†) | Durante el partido | [ ] sí [ ] no |
-| 9 | ¡Estaba dentro! | Durante el partido | [ ] sí [ ] no |
-| 10 | ¡Eso es red! | Durante el partido | [ ] sí [ ] no |
-| 11 | ¡Challenge! (es broma) | Durante el partido | [ ] sí [ ] no |
-| 12 | Tengo arena en los ojos (solo en playa) | Durante el partido | [ ] sí [ ] no |
-| 13 | ¡Buen punto! (★) | Tras un punto | [ ] sí [ ] no |
-| 14 | ¡Buen saque! | Tras un punto | [ ] sí [ ] no |
-| 15 | ¡Qué defensa! | Tras un punto | [ ] sí [ ] no |
-| 16 | ¡Vaya remate! | Tras un punto | [ ] sí [ ] no |
-| 17 | ¡Qué recepción! | Tras un punto | [ ] sí [ ] no |
-| 18 | ¡Bloqueo de libro! | Tras un punto | [ ] sí [ ] no |
-| 19 | ¡Toma ya! (†) | Tras un punto | [ ] sí [ ] no |
-| 20 | ¡Tocada! Lo vi yo (†) | Tras un punto | [ ] sí [ ] no |
-| 21 | ¡Uy, por poco! (★) | Reacciones | [ ] sí [ ] no |
-| 22 | ¡Perdón por la red! (★) | Reacciones | [ ] sí [ ] no |
-| 23 | ¡Jajaja! | Reacciones | [ ] sí [ ] no |
-| 24 | La red me tiene manía | Reacciones | [ ] sí [ ] no |
-| 25 | ¡Eso es doble! (guiño arbitral) | Reacciones | [ ] sí [ ] no |
-| 26 | Eso ha sido suerte… ¿no? (†) | Reacciones | [ ] sí [ ] no |
-| 27 | ¡Buen partido! (★) | Final | [ ] sí [ ] no |
-| 28 | ¿Otra? ¡Revancha! (★) | Final | [ ] sí [ ] no |
-| 29 | ¡Choca esa! | Final | [ ] sí [ ] no |
-| 30 | Te invito a un granizado | Final | [ ] sí [ ] no |
+| Momento | Frases |
+|---|---|
+| Saludo | ¡Hola! ★ · ¡Suerte! ★ · ¡Que gane el mejor! · ¡A disfrutar! · Vas a pillar |
+| Durante el partido | ¡Vamos! ★ · ¡Venga, que se puede! · ¡Ahora verás! † · Tenía arena en los ojos (solo en playa) |
+| Tras un punto | ¡Buen punto! ★ · ¡Buen saque! · ¡Qué defensa! · ¡Vaya remate! · ¡Qué recepción! · ¡Vaya bloqueo! · ¡Toma ya! † |
+| Reacciones | ¡Uy, por poco! ★ · ¡Jajaja! · Eso ha sido suerte… ¿no? |
+| Final | ¡Buen partido! ★ · ¡Revancha! ★ · Has tenido suerte |
 
-Cómo iría (resumen de la ficha): botón de chat al final de la pastilla del online, solo con el balón muerto; rueda con las 8 (★) y
-«Más» con la lista entera; viaja solo el número de la frase; bocadillo de 2,5 s sobre el jugador; como mucho 1 frase cada 3 s y 3 por
-punto; «Silenciar a X» para ese partido. En el PC, con la tecla T (Ferran, 24-nov: «La tecla T me sirve, sí»). Pregunta: ¿beta solo
-con frases positivas (sin las †)?
+- **Decisión provisional: «¡Buen saque!» es la 8ª de la rueda.** Hay 7 ★ y la rueda es de 8: la rueda queda ¡Hola!, ¡Suerte!,
+  ¡Vamos!, ¡Buen punto!, ¡Buen saque!, ¡Uy, por poco!, ¡Buen partido! y ¡Revancha!. Las otras 14 van en «Más».
+- Fuera de la lista (no se reproponen): ¡Hoy no te dejo ni una!, ¡Estaba dentro!, ¡Eso es red!, ¡Challenge!, ¡Tocada! Lo vi yo,
+  ¡Perdón por la red!, La red me tiene manía, ¡Eso es doble!, ¡Choca esa!, Te invito a un granizado. Cambiadas de texto: «¡Ahora verás
+  mi saque!» → «¡Ahora verás!», «Tengo arena…» → «Tenía arena en los ojos», «¡Bloqueo de libro!» → «¡Vaya bloqueo!», «¿Otra?
+  ¡Revancha!» → «¡Revancha!».
+- «Tenía arena en los ojos» solo sale en partidos de playa (en pista no está en la lista).
+
+Cómo iría (resumen de la ficha, para quien lo construya): botón de chat al final de la pastilla del online, solo con el balón muerto;
+rueda con las 8 de arriba y «Más» con la lista entera; viaja solo el número de la frase (el orden de esta tabla; no cambiarlo una vez
+publicado, solo añadir al final); bocadillo de 2,5 s sobre el jugador; como mucho 1 frase cada 3 s y 3 por punto; «Silenciar a X»
+para ese partido. En el PC, la tecla T abre la rueda.
 
 ## «El Corte» (la gran idea del sprint; sin construir, lo decides tú)
 Cada bote a menos de 5 cm de la línea se convierte en un momento propio del juego:
