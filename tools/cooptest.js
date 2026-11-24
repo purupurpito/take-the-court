@@ -420,6 +420,7 @@ const link = () => ({ state: 'open', q: [], poll() { const o = this.q; this.q = 
     const k0 = cc.coop.ss2 && cc.coop.ss2.st.kills;
     B.CC.adopt(cc, { id: 'luis', name: 'Luis' }, 2);
     const gvL = B.CC.guestView(cc);
+    ok(!('lock' in B.CC.guestView(Object.assign({}, cc, { lock: { cm: 'beach|x|1', x: 1 } }))), 'el candado del anfitrión (c.lock) no llega al invitado');
     ok(k0 === 9 && !cc.coop.ss2 && gvL.stats.played === 0 && gvL.stats.kills === 0, 'otro invitado no hereda la temporada del anterior (ss2): 0 jugados, 0 remates');
     B.CC.adopt(cc, { id: 'ana', name: 'Ana' }, 3);
     ok(cc.coop.ss2 && cc.coop.ss2.st.kills === 9 && cc.coop.ss2.st.played === 1, 'Ana vuelve: recupera su temporada');

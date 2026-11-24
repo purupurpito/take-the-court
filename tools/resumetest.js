@@ -611,6 +611,17 @@ async function partB() {
     ok(!r1.h && r1.foto, 'se resuelve el de pista y la foto de playa se queda');
     const r2 = await J(pg, "VB.ctx.actions.careerLock()");
     ok(!!r2 && typeof r2.sub === 'string', 'el partido de playa se sigue pudiendo retomar (' + (r2 && r2.sub) + ')');
+    // (1.23.0, revisión del 24-nov) invitado del cooperativo: VB.Career lee la Carrera del anfitrión en memoria (_useStore, como
+    // career-coop installGuest), con SU candado de otro partido; ni el candado ni la foto de la Carrera PROPIA se tocan (hub incluido)
+    const fotoG = await pg.evalJs("localStorage.getItem('" + KC + "')"), lockG = await pg.evalJs("JSON.stringify(JSON.parse(localStorage.getItem('make-the-cut.career')).lock)");
+    await pg.evalJs("(function(){var m={};window.__mem={getItem:function(k){return k in m?m[k]:null},setItem:function(k,v){m[k]=String(v)},removeItem:function(k){delete m[k]}};var c=JSON.parse(localStorage.getItem('make-the-cut.career'));c.season=(c.season|0)+3;c.lock=Object.assign({},c.lock,{cm:'beach|otro|1',x:1});window.__mem.setItem('make-the-cut.career',JSON.stringify(c));window.__mem.setItem('make-the-cut.career.mode','beach');VB.Career._useStore(window.__mem)})()");
+    const g1 = await J(pg, "(function(){var a=VB.ctx.actions.careerLock();return {a:a,lk:!!VB.Career.get().lock}})()");
+    await pg.evalJs("VB.CareerUI.open('hub',{from:'main'})"); await sleep(500);
+    const g2 = await J(pg, "{foto:localStorage.getItem('" + KC + "'),lock:JSON.stringify(JSON.parse(localStorage.getItem('make-the-cut.career')).lock),lk:!!VB.Career.get().lock}");
+    ok(g1.a === null && g2.foto === fotoG && g2.lock === lockG && g1.lk && g2.lk, 'invitado del cooperativo: careerLock y el hub no tocan la foto ni el candado propios, ni resuelven el del anfitrión');
+    await pg.evalJs("try{VB.CareerUI.close&&VB.CareerUI.close()}catch(e){}"); await pg.evalJs("VB.Career._useStore(null)"); await sleep(300);
+    const g3 = await J(pg, "VB.ctx.actions.careerLock()");
+    ok(!!g3 && g3.sub === r2.sub && await pg.evalJs("localStorage.getItem('" + KC + "')") === fotoG, '… y al salir del cooperativo su partido a medias se sigue pudiendo retomar (' + (g3 && g3.sub) + ')');
     // (revisión) cuenta: la MISMA Carrera (semilla y creación) nunca se pregunta: gana la más avanzada, aunque la de la cuenta sea más
     // nueva o sea la primera entrada (cerrar sesión, jugar y perder, y volver a entrar ya no recupera la de antes del partido)
     const acc = await J(pg, "(function(){var A=VB.Account,K='make-the-cut.career',L=localStorage.getItem(K),c=JSON.parse(L);" +

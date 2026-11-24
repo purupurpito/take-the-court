@@ -547,6 +547,13 @@ Entre sprints no se empieza nada: solo se apunta aquí. Lo de abajo está apunta
   - `tools/drive.js` falló 1 vez de 4 («el humano llega a tocar el balón», con el PC al 60 % de CPU); las otras 3, TODO OK. Vigilar.
 
 ### Hecho
+- **Revisión de la fusión 1.23.0: candado de la Carrera e invitado del cooperativo (24-nov-2026, sin publicar):** con la Carrera del
+  anfitrión en memoria (`VB.Career._useStore`), el candado de main (`careerLockFix`, que el hub llama en cada render) comparaba la foto de
+  la Carrera PROPIA del invitado (`make-the-cut.resume.career`) con el partido del anfitrión: la borraba y, al salir del cooperativo,
+  resolvía su partido a medias en vez de dejarlo retomar. Arreglo: js/main.js `careerLockFix` devuelve '' mientras hay almacén en memoria
+  (ni candado ni foto se tocan) y js/career-coop.js `guestView` quita `c.lock` (el candado del anfitrión nunca llega al invitado).
+  Pruebas: resumetest --browser (invitado con foto propia + almacén en memoria + hub → foto y candado intactos; al salir, «Seguir el
+  partido» sigue) y cooptest (guestView sin `lock`).
 - **Fusión de main 1.22.0 en online-multi → 1.23.0 (24-nov-2026, sin publicar):** merge de origin/main 34bffd4 (investigacion, «A tu
   manera») en online-multi. Conflictos: js/career.js (almacén en memoria de la coop + «dos pestañas» de main: `store()` mira primero
   `memStore`; con él, `freshen` y el evento 'storage' no hacen nada; `_useStore` y `_reset` vacían `seen`), js/main.js (dos bloques

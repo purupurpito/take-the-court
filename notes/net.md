@@ -1454,7 +1454,8 @@ su propio jugador `c.coop.p2` (XP, nivel, puntos, insignias; química propia). S
 estudiado». Flujo: Carrera › Partido › tarjeta «Cooperativo» → «Jugar en cooperativo» (sala coop, código) → el invitado escribe el
 código y «Unirse» → recibe la Carrera (foto gzip troceada) → «Listo» → el anfitrión «Jugar» → `ctx.actions.startCoopCareerMatch` en
 los dos → partido Precisa-N de 2 plazas → solo el anfitrión cierra la jornada con los eventos CONFIRMADOS → hoja final sin «Revancha»
-y con «Volver a la Carrera» → la Carrera se abre en los dos con la foto nueva. Pruebas: `node tools/cooptest.js` (~60-80 s: la
+y con «Volver a la Carrera» → la Carrera se abre en los dos con la foto nueva. Candado de partido a medias (notes/resume.md): en el
+invitado no se mira (`careerLockFix` → '' con almacén en memoria; `guestView` sin `c.lock`): su foto y su partido propios se quedan. Pruebas: `node tools/cooptest.js` (~60-80 s: la
 sección 5d juega dos partidos Precisa-N de verdad), `node tools/netdrive.js --coop`.
 Pulido (L4, 22-nov-2026): las insignias de los dos humanos se cuentan con los eventos CONFIRMADOS (`feed`; ui.js no las cuenta con
 `ctx.net.coopCareer`): error 0 en 24 partidos de prueba (antes 4,1 %, hasta 8 % a 200 ms). Tras matchDone el anfitrión manda `sum`

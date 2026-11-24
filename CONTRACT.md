@@ -1650,7 +1650,8 @@ notes/online-multi-requests.md. El 1 contra 1 (Precisa y Fluida) no cambia de AP
   del balón de L1, `pDel` / `_capBind`). `netBallSmooth` deshace como mucho 15 m/s (≤ 0,25 m por frame) y reparte saltos de hasta 4 m. Pruebas de N páginas: `?net=bc&n=N&slot=k&fmt=2v2|6v6&coop=1&model=precisa|host
   &lag= (o &lags=a,b,c)&jit=&loss=&bot=1&norender=1&delay=` (`startNetTestN`; `&norender=1` también con `?netemu=`).
 - `js/career.js` (**carrera**, P7): almacén intercambiable `VB.Career._useStore(store|null)` / `_memStore()`; `closeMine` con
-  `extra.coop` no toca química ni forma del compañero de la IA; `B().endMatch(g, win, [c.player, c.coop.p2])`.
+  `extra.coop` no toca química ni forma del compañero de la IA; `B().endMatch(g, win, [c.player, c.coop.p2])`. Con almacén en memoria,
+  main.js `careerLockFix` no hace nada (la foto de VB.Resume es de la Carrera propia del invitado) y `guestView` quita `c.lock`.
 - `js/ui.js` (**ui_main**, hoja final online): compañeros y rivales aparte, revancha «Esperando a los demás (k/n)»; en la Carrera
   cooperativa (`ctx.net.coopCareer`) sin «Revancha» y con «Volver a la Carrera».
 

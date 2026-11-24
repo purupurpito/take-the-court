@@ -206,7 +206,9 @@
   }
   /** La Carrera c vista por el invitado: él es el protagonista (c.player = su p2) y el anfitrión su compañero (c.mate). Copia. */
   function guestView(c) {
-    var v = copy(c), o = v.coop, p2 = o && o.p2, me = v.player; if (!p2 || !me) return v;
+    var v = copy(c), o = v.coop, p2 = o && o.p2, me = v.player;
+    delete v.lock;   // (el candado de un partido a medias es del anfitrión: nunca llega al invitado)
+    if (!p2 || !me) return v;
     v.player = p2;
     if (v.mate) {
       var m = v.mate;

@@ -807,6 +807,9 @@
    *  el marcador guardado) o '' (nada). bad = la foto ya ha fallado al aplicarse (huella distinta): se resuelve aunque parezca sana. */
   function careerLockFix(bad) {
     var K = VB.Career, R = VB.Resume; if (!K || !R || !K.lockAny) return '';
+    // (invitado del cooperativo: VB.Career lee la Carrera del ANFITRIÓN en memoria, pero la foto de VB.Resume es la de la Carrera
+    //  PROPIA del invitado. Ni se mira ni se toca: su partido a medias sigue ahí al salir del cooperativo)
+    if (K._memStore && K._memStore()) return '';
     var la = null; try { la = K.lockAny(); } catch (e) { la = null; }
     var rec = null, raw = null; try { rec = R.CAREER ? R.load('career') : null; raw = R.raw('career'); } catch (e) { rec = null; }
     if (rec && !bad && careerRecFits(rec) && (!la || la.lock.cm === rec.cm)) return 'photo';

@@ -78,6 +78,7 @@ previa, antes de la primera foto, y volver da el mismo partido, no otro sorteo.
   extensión, `X.done` con el resultado simulado): lo que falta del partido, punto a punto, con la proporción de puntos que llevabas en ese
   partido suavizada con la de las medias (20 puntos de peso), estadísticas y nota de partido simulado y XP a medias, y un mensaje «Partido
   resuelto» en la bandeja. Nunca vuelve al 0-0. Se hace al arrancar el juego (antes de la portada), al abrir el hub y al intentar retomar.
+  (1.23.0) Nunca con la Carrera del anfitrión en memoria (invitado del cooperativo, `VB.Career._memStore()`): no se toca nada.
   La foto de Carrera de otra versión no se tira al leerla (`VB.Resume.raw`): de ella sale el marcador.
 - e) **Otras vías.**
   - El candado va también en el guardado de la Carrera (`c.lock = {cm, ext, sc, t, v, x}`, que account.js sube con la Carrera): al
