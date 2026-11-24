@@ -7581,6 +7581,79 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* RETOS › Hoy: las fichas del reto parten de línea (a 568 «A LOS DOS» se quedaba en «A») */
 :root.ph:not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-bits{flex-wrap:wrap;overflow:visible;row-gap:4px}
 /* ==== fin «con aire» · RONDA FINAL ==== */
+/* ==== RONDA 2 · paquete «recortes» (24-nov-2026; notes/movil-aire.md §8.3 y §8.6.2): nada cortado a mitad de palabra en horizontal.
+   Si no cabe: dos líneas, otra columna, texto corto escrito a mano o tras un toque. Todo bajo :root.ph (o :root:is(.ph,.pv) si es contenido),
+   prefijo de 5 :not(#_) para ganar a las capas anteriores. PC no cambia. */
+/* la «i» de las ayudas (.sp-info): un círculo con la i dibujada en SVG (en Lilita la «i» se leía como una «I» de palo) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .sp-info>b{display:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) .sp-info::after{content:"";position:absolute;left:9px;top:9px;width:26px;height:26px;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 26 26'%3E%3Ccircle cx='13' cy='7.6' r='2.1' fill='%2315102a'/%3E%3Crect x='11.1' y='11' width='3.8' height='9.4' rx='1.9' fill='%2315102a'/%3E%3C/svg%3E") center/26px 26px no-repeat;pointer-events:none}
+/* AJUSTES: la ayuda ENTERA (2-3 líneas, sin clamp ni «…»); el control en su columna. El rótulo no parte; la ayuda sí */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt{grid-template-columns:minmax(0,1fr) auto}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt:has(.slider){grid-template-columns:minmax(0,1fr) minmax(150px,44%)}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt.opt-snd:has(.slider){grid-template-columns:minmax(0,1fr) minmax(190px,50%)}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>span:first-child{white-space:normal}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>span:first-child>small{contain:none;display:block;white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none;padding-bottom:2px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .opt>span:first-child>small{-webkit-line-clamp:none;display:block;overflow:visible}
+/* CONTROLES › Mando / Teclado: la ayuda en dos líneas, sin «…» */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb .kl>small{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.25}
+/* CONTROLES › Táctil (y pausa): tarjeta por acción con la ayuda ENTERA; las largas (Colocar, Finta, Al colocar, Salto con dirección), a lo ancho */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t{align-items:start;grid-auto-flow:row dense}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div{align-items:start;padding-top:8px;padding-bottom:8px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div>.ks{align-self:center}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div.ctl-w{grid-column:1/-1}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t .kl>small{display:block;-webkit-line-clamp:none;overflow:visible;line-height:1.3;margin-top:2px}
+/* PERFIL › fichas: el nombre entero (hasta 3 líneas); a 568, 3 columnas («Incombustible» no cabía en 4) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{-webkit-line-clamp:3;line-clamp:3;max-height:3.5em}
+:root.ph.ph-s:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-grid{grid-template-columns:repeat(3,minmax(0,1fr));column-gap:14px}
+/* CARRERA › Selección: los datos del partido («Grupo B · J2 · ESP–ROU · Fuerza 62-53») parten entre trozos, no dentro de «Fuerza 62-53» */
+:root:is(.ph,.pv) #career .nt-ln .nw{white-space:nowrap}
+/* HOJAS FINALES › MVP: el nombre ENTERO en la 1.ª línea y todas sus cifras en fichas que parten de línea (antes «Ares Belmo…» y «2…»;
+   la hoja de la Carrera escondía ataque, bloqueo y aces) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mch{display:flex;flex-wrap:wrap;gap:4px 6px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end .rc-mvp .rc-c{align-items:center}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-c{display:grid;grid-template-columns:32px minmax(0,1fr) auto;grid-template-areas:"pt nm nt" "ch ch ch";align-items:center;gap:6px 10px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-pt{grid-area:pt}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv{display:contents}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>b{grid-area:nm}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>small{grid-area:ch}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-nota{grid-area:nt;margin:0}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv b{flex:none;max-width:100%;white-space:normal;overflow:visible;text-overflow:clip;display:block;line-height:1.1}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv small{flex:none;max-width:100%;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv small::before{content:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch>span:not(:first-child){display:inline-block}
+/* PARCHES con título y subtítulo (Ver cómo se juega, Peloteo libre, Abrir sala): 8 px más de alto; el título ya no toca el borde de arriba */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .first-opts #btnFirstTut{--sp-ph:calc(var(--ph-cta-h) + 8px)}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #gymList .gy-free{--sp-ph:60px;min-height:60px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-go .ol-act.ol-new.sp-patch{--sp-ph:64px;--sp-h:64px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-go .ol-act.ol-new.sp-patch .sp-s{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.1}
+/* ONLINE › Crear sala › «Así sale en la lista»: el nombre entero; fuera la chapa VS y el hueco vacío del rival (en la muestra no aportan) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-prev .fx-line>:not(.fx-name){display:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-prev .fx-name{overflow:visible;text-overflow:clip;white-space:normal;flex:1 1 auto}
+/* AVISO DEL COLOCADOR: «Más» sin la sombra de botón genérico (se leía como una raya que tachaba «remate») y el título sin pisar «Eres colocador» */
+:root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-more{box-shadow:none;background:none;text-decoration:underline;text-underline-offset:3px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sp-h{margin-top:8px}
+/* ESTADÍSTICA: los sets y el índice de secciones son tiras que se desplazan: desvanecido en el borde derecho (se ve que hay más) */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #pnMstats :is(.ms-sets,.ms-idx){-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);padding-right:28px}
+/* JUGADORES: vuelve lo que quitó la ronda 1 — la tira «50 MEDIA · NIVEL 1 · 0/120 XP · PUNTOS 0» (36 px), «Nv 1 · Media 50» en las fichas y
+   la descripción de cada atributo en una 2.ª línea pequeña */
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:12px;min-height:36px;margin:0 0 8px;padding:2px 12px;border-radius:12px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum .sq-ovr{display:flex;align-items:baseline;gap:6px;font-size:var(--ph-head);line-height:1}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum .sq-ovr small{font-size:var(--ph-micro)}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum .sq-xp{display:flex;align-items:center;gap:8px;min-width:0;font:700 var(--ph-micro)/1.1 var(--sp-ui);white-space:nowrap}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum .sq-xl{font-size:var(--ph-micro)}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum .trk{flex:1 1 auto;min-width:24px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum .sq-pts{flex-direction:row;align-items:baseline;gap:6px;font-size:var(--ph-micro);letter-spacing:.04em}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #sqBody .sq-sum .sq-pts b{font-size:var(--ph-row);margin:0}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk.sp-btn{height:auto;min-height:44px;padding-top:3px;padding-bottom:3px}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pm{display:block;font-size:var(--ph-micro);white-space:nowrap;opacity:.85}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .sq-pk .sq-pm .sep{display:none}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child{white-space:normal;overflow:visible;text-overflow:clip}
+:root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .sq-attrs .sq-r>span:first-child small{display:block;margin-top:2px;font:600 var(--ph-micro)/1.25 var(--sp-ui);letter-spacing:0;text-transform:none;white-space:normal;-webkit-line-clamp:none;overflow:visible;color:rgba(255,244,220,.75)}
+/* RETOS › Maestría: dos líneas por medalla — qué mide («Aces en un partido») y debajo «récord 0 · bronce 2» */
+:root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s .rt-what{display:block;font-weight:700;opacity:.92}
+:root:is(.ph,.pv):not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s{white-space:normal;overflow:visible;text-overflow:clip;line-height:1.2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s{font-size:var(--pv-micro)}
+/* ==== fin RONDA 2 · recortes ==== */
 </style>
 
 <div id="app">

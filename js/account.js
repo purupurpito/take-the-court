@@ -610,6 +610,10 @@
     PP + '#account .ac-err{font-size:var(--ph-body)}',
     PP + '#account .ac-acts{display:flex;flex-wrap:nowrap;align-items:center;justify-content:flex-end;gap:12px;margin:4px -16px 0;padding:10px 16px 12px;bottom:0}',
     PP + '#account .ac-acts .ac-link{flex:1 1 auto;min-width:0;margin:0 auto 0 0;padding:0 2px;text-align:left;font-size:var(--ph-label);white-space:nowrap}',
+    PP + '#account .ac-acts .ac-l2{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:0;margin-right:auto}',
+    PP + '#account .ac-acts .ac-note{display:block;font:600 var(--ph-label)/1.3 var(--sp-ui);color:#ffe08a;white-space:normal}',
+    PP + '#account .ac-acts .ac-l2 .ac-link{flex:none;min-height:44px}',
+    PP + '#account .ac-sheet:has(#acHint:not([hidden])) .ac-note{display:none}',
     PP + '#account .ac-sheet .sp-btn{--sp-h:48px;--sp-fs:var(--ph-btn)}',
     PP + '#account .ac-sheet .sp-btn.pri{--sp-h:56px;--sp-fs:calc(var(--ph-btn) + 2px);--sp-px:24px;flex:none}',
     // con sesión (y borrar): dos columnas
@@ -745,7 +749,8 @@
         (create ? '<p class="ac-hint" id="acHint" hidden>Sin @ es un usuario: si olvidas la contraseña, no se puede recuperar. Apúntala bien.</p>' : '') +
         '<label for="acPass">Contraseña</label><input id="acPass" name="password" type="password" autocomplete="' + (create ? 'new-password' : 'current-password') + '" minlength="6" placeholder="' + (create ? 'Mínimo 6 caracteres' : 'Tu contraseña') + '" required>' +
         '<p class="ac-err" role="alert">' + esc(msg) + '</p>' +
-        '<div class="ac-acts">' + (create ? '' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
+        // (ronda 2, recortes: vuelve el aviso de la contraseña de los usuarios sin @ y «Ahora no» como enlace, a la izquierda del botón)
+        '<div class="ac-acts">' + (create ? '<span class="ac-l2"><small class="ac-note">Con usuario (sin @) no podrás recuperar la contraseña.</small><button type="button" class="ac-link" data-ac="close">Ahora no</button></span>' : '<button type="button" class="ac-link" data-ac="forgot">¿Olvidaste la contraseña?</button>') +
         spb('submit', busy ? 'Un momento…' : create ? 'Crear cuenta' : 'Entrar', 'sp-kit pri', 3, busy ? ' disabled' : '') + '</div></form></div>';
     }
     return h + '<button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy ? ' hidden' : '') + '>' + XIC + '</button></div>';

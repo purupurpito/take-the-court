@@ -1185,7 +1185,7 @@
     // (móvil, movil-aire §5.5: la explicación entera tras el «?»; en el botón, una línea)
     var qi = h.ph() ? h.q('Inicio', 'Desde juvenil: una temporada corta con tu instituto y un torneo con ojeadores; según lo que vean, llegan invitaciones a prueba. Directo a las pruebas: las ofertas llegan ya.') : '';
     return '<div><label>Inicio' + qi + '</label><div class="roles" role="group" aria-label="Cómo empiezas">' +
-      '<button data-act="pro-start" data-v="pro" aria-pressed="' + (form.pro === 'pro') + '">Desde juvenil<small>Una temporada corta con tu instituto y un torneo con ojeadores</small></button>' +
+      '<button data-act="pro-start" data-v="pro" aria-pressed="' + (form.pro === 'pro') + '">Desde juvenil<small>' + (h.ph() ? 'Una temporada con tu instituto' : 'Una temporada corta con tu instituto y un torneo con ojeadores') + '</small></button>' +
       '<button data-act="pro-start" data-v="skip" aria-pressed="' + (form.pro === 'skip') + '">Directo a las pruebas<small>Las ofertas llegan ya</small></button></div></div>';
   }
   function offerLine(c, o, HLP) {

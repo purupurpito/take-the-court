@@ -603,7 +603,7 @@
     if (H.ph && H.ph()) {   // móvil (movil-aire §5.3): sello «Cedido» a secas, las 4 cifras en una tira y «Vuelves a…» en una línea con «?»
       return '<div class="card x-top ln-on6"><h3>Cedido</h3>' + help(H, 'Cesión', LOAN_HELP + ' No recibes ofertas mientras estás cedido.') + '<div class="row">' + (H.crest ? H.crest(k, 44) : '') +
         '<div class="grow" style="min-width:0"><p class="bigname ln-on">' + H.esc(k ? k.name : on.name) + '</p><p class="muted ln-om">' +
-        H.sp([on.len === 'season' ? 'Toda la temporada' : 'Hasta el final', H.esc('Vuelves a ' + (hk ? hk.name : on.home.name))], 'v') + '</p></div></div>' +
+        H.sp([on.len === 'season' ? 'Toda la temporada' : 'Hasta el final', H.esc('Vuelves a ' + (hk ? (H.shortClub ? H.shortClub(hk) : hk.name) : on.home.name))], 'v') + '</p></div></div>' +
         '<div class="sp-heros sp-sm ph-strip ln-st">' + [[g.n, 'Partidos'], [dec(g.avg), 'Nota'], [g.out, 'Sin jugar'], [g.n >= 2 ? g.letter : '—', 'Vas para']].map(function (x) {
           return '<div class="sp-hero"><span class="sp-hn">' + x[0] + '</span><span class="sp-hl">' + x[1] + '</span></div>'; }).join('') + '</div><p class="muted ln-om">No recibes ofertas mientras estás cedido.</p>' + logLine(c, H) + '</div>';
     }
@@ -625,8 +625,11 @@
       l.opts.forEach(function (o, i) {
         var k = club(c, o.club); if (!k) return;
         var tg = hall(c) ? (o.depth && o.depth.start ? '<span class="tag g">De inicio</span>' : '<span class="tag y">Pelearás el sitio</span>') : o.mateP ? '<span class="tag">Pareja ' + H.esc(String(o.mateP.name).split(' ')[0]) + ', ' + o.mate + '</span>' : '';
-        hp += '<div class="offer-x ln-o"><div class="row">' + (H.crest ? H.crest(k, 40) : '') + '<div class="grow" style="min-width:0"><p class="bigname ln-on">' + H.esc(k.name) + '</p>' +
-          '<p class="muted ln-om">' + H.sp([H.esc(lgName(c, o)), 'Media ' + o.ovr, H.esc(eur(o.salary)) + '/mes'], 'v') + ' ' + tg + '</p></div>' +
+        // (ronda 2, recortes: nombre corto del club y el largo debajo; los datos en 2 líneas; «Ir cedido» debajo a la derecha)
+        var kn = H.shortClub ? H.shortClub(k) : k.name;
+        hp += '<div class="offer-x ln-o"><div class="row">' + (H.crest ? H.crest(k, 40) : '') + '<div class="grow" style="min-width:0"><p class="bigname ln-on">' + H.esc(kn) + '</p>' +
+          (kn !== k.name ? '<p class="muted ln-ol">' + H.esc(k.name) + '</p>' : '') +
+          '<p class="muted ln-om"><span class="ln-l">' + H.sp([H.esc(lgName(c, o)), 'Media ' + o.ovr], 'v') + '</span><span class="ln-l">' + H.esc(eur(o.salary)) + '/mes ' + tg + '</span></p></div>' +
           '<div class="acts">' + btn('ln-take', 'Ir cedido', { i: i, off: inj, title: inj ? 'Estás de baja' : '' }) + '</div></div></div>';
       });
       return hp + '<div class="acts ln-pass">' + btn('ln-pass', 'No, gracias') + '</div></div>';

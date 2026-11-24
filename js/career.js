@@ -2153,6 +2153,12 @@
     'Juegas siempre, salvo que el entrenador esté descontento (menos de ' + BENCH[1].coach + '). Si te sienta, incumple la promesa y puedes irte sin pegas.',
     'Juegas siempre y la confianza del entrenador nunca baja de ' + ROLE_FLOOR[2] + '.'
   ];
+  // (ronda 2, recortes: la regla del rol en una frase corta escrita a mano para el móvil; la larga, tras el «?»)
+  var ROLE_SHORT = [
+    'Juegas si la confianza pasa de ' + BENCH[0].coach + '; con ' + PROMOTE_AT + ', titular.',
+    'Juegas siempre salvo con menos de ' + BENCH[1].coach + ' de confianza. Si te sienta, puedes irte sin pegas.',
+    'Juegas siempre; la confianza nunca baja de ' + ROLE_FLOOR[2] + '.'
+  ];
   function roleIdx(c) { return c && c.contract ? Math.max(0, ROLE_LV.indexOf(c.contract.role)) : 1; }
   function wkKey(c) { return (c.season | 0) * 1000 + (c.phase === 'cup' ? 500 + (c.cup ? c.cup.round | 0 : 0) : c.week | 0); }
   /** ¿Te sienta el entrenador en la jornada f? (solo liga; determinista por temporada y jornada) */
@@ -2343,6 +2349,11 @@
     'Compites por el puesto: juega quien llegue mejor (media, forma, nota del último partido, confianza y fatiga). Si sales de inicio ' + STARTS_PROMOTE + ' jornadas seguidas, pasas a titular.',
     'El entrenador cuenta contigo de inicio salvo que estés muy por debajo o con mucha fatiga. Si te deja ' + TIT_BROKEN + ' jornadas en el banquillo, incumple la promesa y puedes irte sin pegas.',
     'Sales siempre de inicio (salvo con fatiga de ' + FAT_REST_TOP + ' o más) y no te cambian por jugar mal. La confianza del entrenador nunca baja de ' + ROLE_FLOOR[2] + '.'
+  ];
+  var ROLE_SHORT6 = [
+    'Juega quien llegue mejor; ' + STARTS_PROMOTE + ' jornadas seguidas de inicio y pasas a titular.',
+    'Juegas de inicio. Si te deja ' + TIT_BROKEN + ' jornadas en el banquillo, puedes irte sin pegas.',
+    'Siempre de inicio y la confianza nunca baja de ' + ROLE_FLOOR[2] + '.'
   ];
   function cap1(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
   function yE(name) { return /^(h?[iíIÍ])/i.test(String(name || '')) && !/^h?i[aeoáéó]/i.test(String(name || '')) ? ' e ' : ' y '; }
@@ -3991,7 +4002,7 @@
     _joinClub: joinClub6, _newSeason: newSeason6, _endOffers: endOffers6, _startOffers: genStartOffers6, _startOffer: startOffer6, _setPos: setPosC6,
     _myClub: myClub, _club: club, _lg: lg6, _labelOf: labelOf6,
     // titularidad (13-nov-2026): plantilla, seis de la jornada, profundidad en las ofertas y textos de rol de la pista
-    ROLE_HINT: ROLE_HINT6, benchWhy: whyText6, whyText: whyText6, WHY: WHY6, lineup: lineup6, squad: squad6, squadWeek: squadWeek6, depth: depth6, depthNow: depthNow6,
+    ROLE_HINT: ROLE_HINT6, ROLE_SHORT: ROLE_SHORT6, benchWhy: whyText6, whyText: whyText6, WHY: WHY6, lineup: lineup6, squad: squad6, squadWeek: squadWeek6, depth: depth6, depthNow: depthNow6,
     capRole: capRole6, meRules: meRules6, SQ_SIZE: SQ_SIZE, SQ_BIG: SQ_BIG, SLOTS: SLOTS6, LIST: LIST6, ME_EDGE: ME_EDGE, ME_EDGE_STEP: ME_EDGE_STEP, ME_EDGE_MIN: ME_EDGE_MIN, meEdge: meEdge6, SEL_IMP: SEL_IMP, OUT_COACH: OUT_COACH, FAT_REST: FAT_REST, FAT_REST_TOP: FAT_REST_TOP,
     TIT_BONUS: TIT_BONUS, STARTS_PROMOTE: STARTS_PROMOTE, TIT_BROKEN: TIT_BROKEN, TRAIN_COACH: TRAIN_COACH, IMPACT_COACH: IMPACT_COACH, FIT_START: FIT_START, FIT_DEEP: FIT_DEEP,
     NOTA_MIN_R: NOTA_MIN_R, NOTA_MIN_SUB: NOTA_MIN_SUB, lastSel: lastSel6, BENCH_XP: BENCH_XP, XP_K: XP_K6,
@@ -4036,7 +4047,7 @@
     earlyExit: earlyExit, ROLE_COACH: ROLE_COACH, STYLE_TRAIN: STYLE_TRAIN, STYLE_PROG: STYLE_PROG, EARLY_COACH: EARLY_COACH, NEG_COACH: NEG_COACH,
     unread: unread, readMsg: readMsg, readAll: readAll,
     // escalón Normal suave, rol prometido y sueldo (11-nov-2026)
-    SOFT: SOFT, softFor: softFor, diffLabel: diffLabel, MATE_CAP: MATE_CAP, mateFormCap: mateFormCap, BENCH: BENCH, PROMOTE_AT: PROMOTE_AT, ROLE_FLOOR: ROLE_FLOOR, ROLE_HINT: ROLE_HINT,
+    SOFT: SOFT, softFor: softFor, diffLabel: diffLabel, MATE_CAP: MATE_CAP, mateFormCap: mateFormCap, BENCH: BENCH, PROMOTE_AT: PROMOTE_AT, ROLE_FLOOR: ROLE_FLOOR, ROLE_HINT: ROLE_HINT, ROLE_SHORT: ROLE_SHORT,
     BROKEN_BONUS: BROKEN_BONUS, PAY_WEEK: PAY_WEEK, PHYSIO_FAT: PHYSIO_FAT, benchNext: benchNext, benchWhy: benchWhy, BENCH_REST: BENCH_REST, physio: physio, physioCost: physioCost, roleIdx: roleIdx, _beachTrophies: beachTrophies,
     // vida de la Carrera (career-life.js)
     _msg: msg, _addXP: addXP, _wkKey: wkKey, XP_K: XP_K,

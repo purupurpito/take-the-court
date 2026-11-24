@@ -7,7 +7,7 @@
  *   objetivos tapados, recortes (elipsis, line-clamp, overflow oculto), cosas fuera del viewport, salida/acción principal
  *   dentro y pulsables (elementFromPoint), contenedores con desplazamiento y densidad (caracteres y objetivos).
  * Uso: node tools/mobaudit.js [--out dir=tools/out/mobaudit] [--only regex] [--area portada|carrera|online|partido]
- *        [--sizes 568x320,...] [--desktop] [--list] [--merge]
+ *        [--sizes 568x320,...] [--desktop] [--list] [--merge] [--probe 'cuerpo JS que devuelve algo']
  *   --merge: conserva las demás pantallas de <out>/metrics.json (repasar unas pocas sin repetir la pasada entera).
  *   Env: SIZES=… (igual que --sizes), DESKTOP=1 (añade 1280x720,1920x1080,1024x768 sin táctil; con --desktop solo esos si
  *   no se dan --sizes), DPR=2 (deviceScaleFactor), TOUCH=0 (sin táctil en los tamaños de móvil), GL=swiftshader.
@@ -324,6 +324,8 @@ async function main() {
             if (landNow) { await page.setSize(sz, prof.touch, DPR); await sleep(450); }
             // (ronda 2, sistema-v: la Carrera ya no pide girar —fuera crPortrait de ui.js—; el aviso #rotate se mide tal cual: columna «girar»)
             const file = path.join(OUT, sz, s.id + '.png');
+            // (ronda 2) --probe 'expr JS': se evalúa tras abrir cada pantalla y se imprime (depurar sin otro arnés)
+            if (A.probe) { try { console.log('probe ' + s.id + ' @' + sz + ': ' + JSON.stringify(await page.evalJs('(()=>{' + A.probe + '})()'))); } catch (e) { console.log('probe ' + s.id + ': ' + e.message); } }
             let m = null;
             try { m = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id); }
             catch (e) { err = err || ('medida: ' + String(e.message || e).slice(0, 160)); }

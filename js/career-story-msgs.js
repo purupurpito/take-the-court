@@ -914,10 +914,13 @@
     var esc = escF(H), L = convs(c);
     var h = '<div class="st-ctop"><b>Mensajes</b>' + (L.some(function (v) { return v.open; }) ? '<small>' + L.filter(function (v) { return v.open; }).length + ' esperan respuesta</small>' : '') + '</div>';
     if (!L.length) return phone(h + '<p class="st-empty">Aún no te ha escrito nadie.</p>');
+    // (ronda 2, recortes: en el móvil la vista previa va cortada POR PALABRA a dos líneas —SP.cutWords, data-trunc="preview"— y el mensaje, al tocar)
+    var SPm = VB.Splat && VB.Splat.mob && VB.Splat.mob() && VB.Splat.cutWords ? VB.Splat : null;
     h += '<div class="st-clist" data-nav>' + L.map(function (v) {
+      var pv = preview(c, v.last), pvh = SPm ? '<small class="st-pv" data-trunc="preview">' + esc(SPm.cutWords(pv, 64)) + '</small>' : '<small>' + esc(pv) + '</small>';
       var badge = v.open ? '<span class="st-badge st-q" title="Espera respuesta">!</span>' : v.un ? '<span class="st-badge">' + v.un + '</span>' : '';
       return '<button class="st-conv' + (v.open || v.un ? ' st-new' : '') + '" data-act="st-msgs-chat" data-v="' + esc(v.key) + '">' + avatar(esc, v.k, v.name) +
-        '<span class="st-cmid"><b>' + esc(v.name) + '</b><small>' + esc(preview(c, v.last)) + '</small></span><span class="st-cend"><small>' + esc(whenOf(v.last)) + '</small>' + badge + '</span></button>';
+        '<span class="st-cmid"><b>' + esc(v.name) + '</b>' + pvh + '</span><span class="st-cend"><small>' + esc(whenOf(v.last)) + '</small>' + badge + '</span></button>';
     }).join('') + '</div>';
     return phone(h);
   }

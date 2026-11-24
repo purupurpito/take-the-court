@@ -1003,7 +1003,10 @@
     var h = '<div class="card new"><h3>' + esc('Selección: ' + (w.kind === 'q' ? 'clasificación' : w.name)) + '</h3>';
     // (móvil: la fuerza en la 1ª línea; la tarjeta es más baja y sus botones no quedan bajo la barra de abajo)
     var fz = 'Fuerza ' + Math.round(Sof(c, w.my, cyc)) + (ph ? '-' : ' contra ') + Math.round(Sof(c, rv, cyc));
-    h += '<p>' + Hh.sp([esc(roundLabel(w, f)), '<b>' + esc(ph ? nat.ab + ' contra ' + natOf(rv).ab : nat.name + ' contra ' + natOf(rv).name) + '</b>', ph ? fz : ''], 'v') + '</p>';
+    // (ronda 2, recortes: en el móvil, «Grupo B | J2 | ESP–ROU | Fuerza 62-53» en su línea, que puede partir; nada se corta)
+    if (ph) h += '<p class="nt-ln">' + Hh.sp(roundLabel(w, f).split(', ').filter(function (t) { return !(w.kind === 'q' && t === 'Clasificación'); })
+      .map(function (t) { return esc(t.replace(/^(\d+)ª jornada$/, 'J$1')); }).concat(['<b>' + esc(nat.ab + '–' + natOf(rv).ab) + '</b>', '<span class="nw">' + fz + '</span>']), 'v') + '</p>';
+    else h += '<p>' + Hh.sp([esc(roundLabel(w, f)), '<b>' + esc(nat.name + ' contra ' + natOf(rv).name) + '</b>', ''], 'v') + '</p>';
     if (!ph) h += '<p class="muted">' + Hh.sp([fz, w.host ? 'En ' + esc(natOf(w.host).name) : ''], 'v') + '</p>';
     if (on && pr >= 2 && nerv) h += '<p>' + esc(pr >= 3 ? (f.r === 'f' ? 'Presión alta: tu primera final.' : 'Presión alta: partido grande y poca experiencia.') : 'Presión: aún te pesan los nervios.') + '</p>';
     else if (on && n.car.caps < 3) h += '<p>' + esc(n.car.caps ? 'Aún te pesan los nervios.' : 'Tu debut: los nervios te restan un poco.') + '</p>';

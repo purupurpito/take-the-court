@@ -861,6 +861,17 @@
     PP + '#mpOnline .ol-fx.fx-off{--sp-c:var(--sp-ink2);--sp-d:var(--sp-ink2);--sp-tc:var(--sp-cream);color:var(--sp-cream)}' + PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.55}',
     // (ronda final: lo no disponible se sigue leyendo —.8—; «+ Crear sala» en una línea también a 568)
     PP + '#mpOnline .ol-fx.fx-off>.sp-tk{opacity:.82}',
+    // (ronda 2, recortes: la sala no disponible, atenuada pero LEGIBLE —el nombre iba en tinta sobre tinta—, con su estado «Llena» /
+    //  «Otra versión» a la derecha, y vuelve la chapa «Igualado» —3.ª ficha— que la ronda 1 escondía)
+    PP + '#mpOnline .ol-fx.fx-off .fx-name{color:var(--sp-cream)}',
+    PP + '#mpOnline .ol-fx.fx-off .fx-end .fx-st{display:inline-flex;color:var(--sp-cream);font-size:var(--ph-cap)}',
+    PP + '#mpOnline .ol-fx .fx-chips i:nth-child(3){display:inline}',
+    // (las fichas parten de línea si no caben —la sala crece—: ni la sede ni «Con sus atributos» se cortan)
+    PP + '#mpOnline .ol-rooms .ol-fx:not(.fx-prev){--sp-h:auto;min-height:56px}',
+    PP + '#mpOnline .ol-fx .fx-chips{flex-wrap:wrap;row-gap:2px;white-space:normal;overflow:visible}',
+    PP + '#mpOnline .ol-fx .fx-chips i{white-space:nowrap}',
+    PP + '#mpOnline .ol-fx .fx-chips .fx-vchip{max-width:none;overflow:visible;text-overflow:clip}',
+    ':root.ph:not(#_):not(#_):not(#_):not(#_) #mpOnline .mk-prev .fx-chips i+i::before{content:"·";margin:0 6px}',
     PP + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act .sp-t{white-space:nowrap}',
     ':root.ph.ph-s' + P.slice(5) + '#mpOnline .ol-body[data-v="list"] .ol-dock .ol-act.ol-new{--sp-fs:var(--ph-label);--sp-px:8px}',
     PP + '#mpOnline .mk-prev .fx-chips i+i::before{content:none}' + PW + '#mpOnline .mk-go .sp-patch .sp-t{font-size:22px;white-space:nowrap}',

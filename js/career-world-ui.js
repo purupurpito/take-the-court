@@ -81,8 +81,11 @@
     PQ + ' .card.cw-mentor>div:not(.acts){grid-column:2;grid-row:1;min-width:0}',
     PQ + ' .card.cw-mentor .cw-who{display:none}',
     PQ + ' .card.cw-mentor h3{display:block;margin:0;font-size:var(--ph-row);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    PQ + ' .card.cw-mentor .cw-line{margin:1px 0 0;font-size:var(--ph-cap);line-height:1.25;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}',
-    PQ + ' .card.cw-mentor.ph-open .cw-line{display:block;-webkit-line-clamp:unset;overflow:visible}',
+    // (ronda 2, recortes: la primera oración entera —sin «…»— y «Ver más»; al tocar, la frase entera)
+    PQ + ' .card.cw-mentor .cw-line{margin:1px 0 0;font-size:var(--ph-cap);line-height:1.25;display:block;overflow:visible}',
+    PQ + ' .card.cw-mentor:not(.ph-open) .cw-rest{display:none}',
+    PQ + ' .card.cw-mentor .cw-more{display:inline;font-weight:800;text-decoration:underline;text-underline-offset:2px;white-space:nowrap;color:var(--sp-teal-d)}',
+    PQ + ' .card.cw-mentor.ph-open .cw-more{display:none}',
     PQ + ' .card.cw-mentor .acts{display:contents}',
     PQ + ' .card.cw-mentor .acts>.cw-ok{grid-column:3;grid-row:1;align-self:center;flex:none;width:44px;height:44px;min-width:44px;min-height:44px;max-width:none;margin:0;padding:0;border:0;border-radius:50%;' +
       'background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);display:grid;place-items:center;transform:none;filter:none}',
@@ -102,6 +105,7 @@
     Q + ' .cw-mentor .cw-n{color:rgba(21,16,42,.6);font:700 12px var(--sp-ui)}',
     Q + ' .cw-mentor .cw-line{color:var(--sp-ink);font:600 clamp(14px,2.2vh,16px)/1.35 var(--sp-ui)}',
     Q + ' .cw-mentor .acts{justify-content:flex-end;margin-top:8px}',
+    Q + ' .cw-mentor .cw-more{display:none}',
     '@media (min-aspect-ratio:5/4){' + Q + ' .cw-mentor .acts{margin:0 0 6px}}',   // (REV-11: «Vale» a la derecha; los 6 px, para la cola del bocadillo)
     Q + ' .cw-mentor .acts>.sp-btn{flex:0 0 auto;min-width:120px}',
     // recortes de noticias (papel crema, cada uno un poco torcido) y filas de clubes (pegatinas de tinta clara)
@@ -240,6 +244,14 @@
   function css() { if (typeof document === 'undefined' || document.getElementById('careerWorldCss')) return; var s = document.createElement('style'); s.id = 'careerWorldCss'; s.textContent = CSS; document.head.appendChild(s); }
 
   // ---------------------------------------------------------------- Partido: escena de Faro
+  /** (ronda 2, recortes) Frase de Faro: en el móvil, la primera oración entera (nunca cortada a media palabra) y el resto tras un toque
+   *  (career-ui añade .ph-open a la tarjeta) con «Ver más» al lado; en PC, la frase tal cual. */
+  function lineHTML(t) {
+    t = String(t || ''); var mob = !!(VB.Splat && VB.Splat.mob && VB.Splat.mob());
+    var m = mob ? /^(.{12,}?[.!?…])\s+(\S[\s\S]*)$/.exec(t) : null;
+    if (!m) return esc(t);
+    return '<span class="cw-l1">' + esc(m[1]) + '</span><span class="cw-rest"> ' + esc(m[2]) + '</span> <span class="cw-more" aria-hidden="true">Ver más</span>';
+  }
   /** Tarjeta del mentor (o '' si no hay escena o están apagadas). La frase actual vive aquí (li); solo «Vale» llama a mentorDone. */
   function mentorCard(c, h0) {
     H = h0; css();
@@ -251,7 +263,7 @@
     return '<div class="card cw-mentor" role="region" aria-label="Faro, tu mentor">' + FACE +
       '<div><small class="cw-who">' + sp([esc(sc.who.nick), esc(sc.who.role)], 'd') + '</small>' +
       '<h3>' + esc(sc.title) + (n > 1 ? ' <span class="cw-n">' + (li + 1) + '/' + n + '</span>' : '') + '</h3>' +
-      '<p class="cw-line" aria-live="polite" data-ph-ell>' + esc(sc.lines[li]) + '</p></div>' +
+      '<p class="cw-line" aria-live="polite" data-ph-ell>' + lineHTML(sc.lines[li]) + '</p></div>' +
       '<div class="acts"><button class="cw-ok" data-act="cw-next" aria-label="' + (last ? 'Vale' : 'Seguir') + '"' + (last ? ' data-last' : '') + '>' + (last ? 'Vale' : 'Seguir') + '</button>' +
       (go ? '<button data-act="cw-go" data-tab-go="' + esc(go[0]) + '" data-s-go="' + esc(go[1] || '') + '">' + esc(sc.actLabel || 'Ver') + '</button>'
         : last ? '' : '<button data-act="cw-skip">Saltar</button>') + '</div></div>';
@@ -319,7 +331,8 @@
         var k = C().club ? C().club(c, r.id) : null, nm = k && H.shortClub ? H.shortClub(k) : r.name;
         var al = r.name + (r.mine ? ', tu club' : r.rival ? ', juega tu rival' : '') + (r.pj ? ', ' + ordn(r.pos) : '') + ', media ' + r.ovr + (r.vs ? ', tú ' + r.vs.g + '-' + r.vs.p : '');
         return '<button class="cw-row cw-rph' + (r.mine ? ' me' : r.rival ? ' rv' : '') + '" data-act="cw-club" data-id="' + r.id + '" aria-label="' + esc(al) + '">' + (k && H.crest ? H.crest(k, 28, { c: c }) : kitMini(c, r)) +
-          '<b class="cw-rnm">' + esc(nm) + '</b><span class="cw-rs">' + (r.pj ? ordn(r.pos) + ' · ' : '') + r.ovr + '</span><span class="cw-go" aria-hidden="true">›</span></button>';
+          // (ronda 2, recortes: vuelve la marca de la fila —«Tu club» / «Rival»— que la ronda 1 quitó; solo quedaba el borde de color)
+          '<b class="cw-rnm" data-trunc="name">' + esc(nm) + '</b>' + (r.mine ? '<span class="cw-mk">Tu club</span>' : r.rival ? '<span class="cw-mk rv">Rival</span>' : '') + '<span class="cw-rs">' + (r.pj ? ordn(r.pos) + ' · ' : '') + r.ovr + '</span><span class="cw-go" aria-hidden="true">›</span></button>';
       }).join('') + '</div></div>';
     }
     return '<div class="card">' + (sw != null ? sw : lgSw(lvl)) + '<h3>' + sp([esc(L.name), plural(rows.length, 'club', 'clubes')], 'd') + '</h3><div class="cw-list">' + rows.map(function (r) {

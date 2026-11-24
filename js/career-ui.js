@@ -1507,10 +1507,11 @@
     PQ + ' .st-side>.st-chips{margin-bottom:22px}',   // (la pastilla de 2 líneas no pisa el sello de «Tu semana»)
     PQ + ' .bench p{margin:0}',
     // decisión pendiente: la franja de 56 px bajo el ticket (uno a la vez; su botón a la derecha) y la propuesta, con sus botones abajo
-    PQ + ' .card.ph-dec{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h a" "p a";align-items:center;gap:2px 10px;min-height:56px;margin:0 0 12px;padding:6px 6px 6px 12px}',
-    PQ + ' .card.ph-dec>h3:first-child{grid-area:h;justify-self:start;max-width:100%;min-width:0;margin:0;padding:1px 8px 2px;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transform:none}',
+    // (ronda 2, recortes: el rótulo en su propia línea a todo el ancho y debajo los datos —pueden partir en 2 líneas— con el botón a la derecha)
+    PQ + ' .card.ph-dec{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"h h" "p a";align-items:center;gap:4px 10px;min-height:56px;margin:0 0 12px;padding:6px 6px 6px 12px}',
+    PQ + ' .card.ph-dec>h3:first-child{grid-area:h;justify-self:start;max-width:100%;min-width:0;margin:0;padding:1px 8px 2px;font-size:var(--ph-cap);white-space:normal;overflow:visible;text-overflow:clip;transform:none}',
     PQ + ' .card.ph-dec>h3:first-child>.cr-q{display:none}',
-    PQ + ' .card.ph-dec>p{grid-area:p;min-width:0;margin:0;font-size:var(--ph-cap);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .card.ph-dec>p{grid-area:p;min-width:0;margin:0;font-size:var(--ph-cap);line-height:1.25;white-space:normal;overflow:visible;text-overflow:clip}',
     PQ + ' .card.ph-dec>p~p{display:none}',
     PQ + ' .card.ph-dec>.acts{grid-area:a;display:flex;margin:0}',
     PQ + ' .card.ph-dec>.acts>:not(:last-child){display:none}',
@@ -1591,7 +1592,7 @@
     PQ + ' .cf .dh~p.muted,' + PQ + ' .cf .seg~p.muted,' + PQ + ' .cf .roles~p.muted:not(.dh){display:none}',
     PQ + ' .cf .roles:not(.diffs){gap:10px 12px}',
     PQ + ' .cf .roles:not(.diffs) button{min-height:52px;padding:4px 8px;font-size:var(--ph-row);line-height:1.1}',
-    PQ + ' .cf .roles:not(.diffs) button small{display:block;margin-top:2px;font-size:var(--ph-cap)!important;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cf .roles:not(.diffs) button small{display:block;margin-top:2px;font-size:var(--ph-cap)!important;line-height:1.2;white-space:normal;overflow:visible;text-overflow:clip}',   // (ronda 2: hasta 2 líneas, sin «…»)
     PQ + ' .cf .roles:has([data-act="pro-start"]){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 12px}',
     PQ + ' .cf .roles [data-act="pro-start"]{min-height:56px!important}',
     PQ + ' .cf .prev-box{margin:8px 0 0!important;padding:8px 10px}',
@@ -1713,7 +1714,8 @@
     PQ + ' .cr-chd{align-items:center;gap:12px;flex-wrap:nowrap;margin:0 0 8px}',
     PQ + ' .cr-chd>:is(svg,.cr-kit,.sp-crest){flex:none;width:56px!important;height:56px!important}',
     PQ + ' .cr-chn{margin:0;font-size:20px!important;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    PQ + ' .cr-chs{margin:2px 0 0;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .cr-chs{margin:2px 0 0;font-size:var(--ph-cap);line-height:1.25;white-space:normal;overflow:visible;text-overflow:clip}',
+    PQ + ' .cr-chs>span{display:block}',   // (ronda 2: patrocinador y categoría en 2 líneas si hace falta)
     PQ + ' .ph-kv>.w{grid-column:1/-1}',
     PQ + ' .ph-kv .cr-dots{display:inline-flex;gap:6px}',
     PQ + ' .ph-kv .cr-dot{width:18px;height:18px}',
@@ -1744,16 +1746,22 @@
     // Club › Contrato: la caja de cifras y el rol en una línea con su «?»
     PQ + ' .cr-ctl{display:flex;align-items:center;gap:10px;margin:6px 0 0}',
     PQ + ' .cr-ctl>p{flex:1 1 auto;min-width:0;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:var(--ph-cap)}',
-    PQ + ' .cr-ctl>p.cr-ctr{white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;text-overflow:clip;line-height:1.25}',   // (ronda final: la regla del rol en 2 líneas)
+    PQ + ' .cr-ctl>p.cr-ctr{white-space:normal;display:block;text-overflow:clip;overflow:visible;line-height:1.25}',   // (ronda 2: la frase corta del rol, entera; la larga tras el «?»)   // (ronda final: la regla del rol en 2 líneas)
     // Club › Ofertas / cesiones: ofertas de una fila con «Ir cedido» de 48 a la derecha, el bloqueo arriba en rojo, condiciones en una tira
     PQ + ' .ln-ph .ln-why{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin:0 0 6px;font-size:var(--ph-cap)}',
-    PQ + ' .ln-ph .ln-cond{margin:0 0 4px;white-space:nowrap;overflow-x:auto;scrollbar-width:none}',
+    PQ + ' .ln-ph .ln-cond{margin:0 0 4px;display:flex;flex-wrap:wrap;gap:4px 6px;white-space:normal;overflow:visible}',   // (ronda 2: las condiciones con wrap, ninguna cortada)
     PQ + ' .ln-ph .offer-x.ln-o{padding:10px 0!important;border-top:1px solid rgba(255,244,220,.12)}',
-    PQ + ' .ln-o>.row{align-items:center;gap:10px;flex-wrap:nowrap}',
+    PQ + ' .ln-o>.row{align-items:center;gap:6px 10px;flex-wrap:wrap}',
+    PQ + ' .ln-o>.row>.grow{flex:1 1 0}',
+    PQ + ' .ln-o .ln-ol{margin:1px 0 0!important;font-size:var(--ph-micro);line-height:1.2;opacity:.85}',
+    PQ + ' .ln-o .ln-om .ln-l{display:block}',
+    PQ + ' .ln-o .ln-om .tag{margin-left:4px}',
     PQ + ' .ln-o>.row>:is(svg,.cr-kit,.sp-crest){flex:none;width:40px!important;height:40px!important}',
-    PQ + ' :is(.ln-o,.ln-on6) .ln-on{margin:0;font-size:var(--ph-row)!important;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    PQ + ' :is(.ln-o,.ln-on6) .ln-om{margin:3px 0 0!important;font-size:var(--ph-cap);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-    PQ + ' .ln-o>.row>.acts{flex:none;margin:0}',
+    PQ + ' :is(.ln-o,.ln-on6) .ln-on{margin:0;font-size:var(--ph-row)!important;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip}',
+    PQ + ' :is(.ln-o,.ln-on6) .ln-om{margin:3px 0 0!important;font-size:var(--ph-cap);line-height:1.3;white-space:normal;overflow:visible;text-overflow:clip}',
+    PQ + ' .ln-o>.row>.acts{flex:none;margin:0 0 0 auto}',
+    PQ.replace('.ph', '.ph.ph-s') + ' .ln-o>.row>.acts{flex:1 0 100%;justify-content:flex-end}',
+    PQ.replace('.ph', '.ph.ph-s') + ' .ln-o>.row>.acts>.sp-btn{flex:0 0 auto;width:auto;min-width:140px;max-width:none}',
     PQ + ' .ln-o>.row>.acts>.sp-btn{min-height:48px;--sp-h:48px}',
     PQ + ' .ln-ph>.acts.ln-pass{justify-content:flex-start;margin:10px 0 0}',
     PQ + ' .ln-ph>.acts.ln-pass>.sp-btn{flex:0 0 auto;width:auto}',
@@ -1857,6 +1865,7 @@
     PX + ' .st-av{width:38px;height:38px}',
     PX + ' .st-cmid b{font-size:var(--ph-row);line-height:1.15}',
     PX + ' .st-cmid small{font-size:var(--ph-body);line-height:1.25}',
+    PX + ' .st-cmid small.st-pv{text-align:left;white-space:normal;text-overflow:clip;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}',   // (ronda 2: ya cortada por palabra)
     PX + ' .st-cend small{font-size:var(--ph-micro);opacity:.75}',
     PX + ' .st-empty{background:#f3ecdf;border-radius:12px;color:#1d1530}',
     // ---- Mensajes › Redes: sin sello; la frase como subtítulo de 13; los 3 tonos en una fila de 3 (64-72, sin cola, gap 10)
@@ -1908,7 +1917,7 @@
     LV('league-news') + ' .cw-nb small{display:block;white-space:normal;font:800 var(--ph-micro)/1.15 var(--sp-ui);letter-spacing:0;text-align:center}',
     LV('league-news') + ' .cw-nb small .cw-mk{display:none}',
     LV('league-news') + ' .cw-nb.fresh small::after{display:block;margin:3px auto 0}',
-    LV('league-news') + ' .cw-nb b{font:600 var(--ph-body)/1.3 var(--sp-ui);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}',
+    LV('league-news') + ' .cw-nb b{font:600 var(--ph-body)/1.3 var(--sp-ui);display:block;overflow:visible}',   // (ronda 2: el titular entero, en 3 líneas si hace falta)
     LV('league-news') + ' :is(button,div).cw-nb:not(.fresh){background:var(--sp-ink2);color:var(--sp-cream)}',
     LV('league-news') + ' .cw-nb:not(.fresh) b{color:var(--sp-cream)}' + LV('league-news') + ' .cw-nb:not(.fresh) small{color:rgba(255,244,220,.7)}',
     // ---- Liga › Clubes: el número de clubes dentro del selector; filas de 48 en una línea (escudo 28 · nombre corto · «1r · 62» · ›)
@@ -1917,6 +1926,9 @@
     LV('league-clubs') + ' .cr-lgp{margin-bottom:16px}',
     PQ + ' button.cw-row.cw-rph{display:grid;grid-template-columns:28px minmax(0,1fr) auto 14px;align-items:center;gap:10px;min-height:48px;padding:0 12px}',
     PQ + ' .cw-rph>:is(svg,.cw-crest,.cr-kit){width:28px!important;height:28px!important}',
+    PQ + ' button.cw-row.cw-rph:has(>.cw-mk){grid-template-columns:28px minmax(0,1fr) auto auto 14px}',
+    PQ + ' .cw-rph>.cw-mk{margin:0;padding:2px 7px;white-space:nowrap}',
+    PQ.replace('.ph', '.pv') + ' .cw-rph>.cw-mk{font-size:12px}',
     PQ + ' .cw-rph .cw-rnm{min-width:0;font:400 var(--ph-row)/1.15 var(--sp-pop);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left}',
     PQ + ' .cw-rph .cw-rs{font:700 var(--ph-label)/1 var(--sp-ui);font-variant-numeric:tabular-nums;white-space:nowrap;opacity:.9}',
     // ---- Vitrina (Palmarés, selección, Estrellas): el contador como ficha y «Temporadas ↓»; 5 huecos por fila (6-7 a .ph-w), iconos de 48
@@ -1937,7 +1949,7 @@
     PQ + ' .tc-ph button.tc-slot{min-height:0;padding:2px 0 4px;gap:4px;transform:none}',
     PQ + ' .tc-ph .tc-st{width:48px;height:48px}',
     PS + ' .tc-ph .tc-st{width:40px;height:40px}',
-    PQ + ' .tc-ph .tc-n{-webkit-line-clamp:2;font:700 var(--ph-cap)/1.15 var(--sp-ui);text-align:center}',
+    PQ + ' .tc-ph .tc-n{display:block;-webkit-line-clamp:unset;overflow:visible;font:700 var(--ph-cap)/1.15 var(--sp-ui);text-align:center}',   // (ronda 2: el nombre del trofeo entero, 3 líneas si hace falta)
     PQ + ' .tc-ph .tc-slot.empty .tc-st{border:0;background:rgba(255,244,220,.1);opacity:.4}',
     PQ + ' .tc-ph .tc-slot.empty .tc-n{opacity:.75}',
     PQ + ' .tc-ph .tc-pg.empty{display:grid;grid-template-columns:minmax(92px,28%) minmax(0,1fr);align-items:center;gap:8px;margin:0 0 8px}',
@@ -1953,7 +1965,7 @@
     PQ + ' .tc-ph .tc-pg.empty{align-items:start}',
     PQ + ' .tc-ph .tc-pg.empty>h4.tc-g{white-space:normal;overflow:visible;text-overflow:clip;padding-top:6px}',
     PQ + ' .tc-ph .tc-pg.empty button.tc-slot{width:76px;min-height:44px;flex-direction:column;justify-content:flex-start;gap:3px}',
-    PQ + ' .tc-ph .tc-pg.empty .tc-n{position:static;width:auto;height:auto;margin:0;overflow:hidden;clip:auto;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;font:600 var(--ph-micro)/1.12 var(--sp-ui);text-align:center;opacity:.8}',
+    PQ + ' .tc-ph .tc-pg.empty .tc-n{position:static;width:auto;height:auto;margin:0;overflow:visible;clip:auto;white-space:normal;display:block;-webkit-line-clamp:unset;overflow-wrap:normal;hyphens:manual;font:600 var(--ph-micro)/1.12 var(--sp-ui);text-align:center;opacity:.8}',
     // selección (Vitrina): una línea con «Ver selección» de 44 a la derecha
     LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"]){display:flex;align-items:center;gap:12px;flex-wrap:nowrap}',
     LV('honors-') + ' .card:has(>.acts>[data-act="nt-go"])>p{flex:1 1 auto;min-width:0;margin:0;font-size:var(--ph-cap)}',
@@ -2035,7 +2047,7 @@
     PQ + ' .as-rph>.as-rt{grid-area:t;display:flex;align-items:center;gap:8px;min-width:0;margin:0}',
     PQ + ' .as-rph>.as-rt>.as-rn{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .as-rph>.as-rt>.as-tag{flex:none;margin:0}',
-    PQ + ' .as-rph>.as-rm{grid-area:m;min-width:0;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    PQ + ' .as-rph>.as-rm{grid-area:m;min-width:0;font-size:13px;white-space:normal;overflow:visible;text-overflow:clip}',   // (ronda 2: «Marca a batir: 18 de Hugo Dubois | 1 intento» entera)
     PQ + ' .as-rph>.as-pod{grid-area:p;display:flex;gap:6px;min-width:0;margin:2px 0 0;overflow:hidden}',
     PQ + ' .as-pod>span{flex:0 1 auto;min-width:0;padding:2px 8px;border-radius:8px 10px 8px 11px;background:rgba(21,16,42,.4);font:700 14px/1.25 var(--sp-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
     PQ + ' .as-pod>span.me{background:var(--sp-gold);color:var(--sp-ink)}',
@@ -2743,7 +2755,8 @@
   function phOff(h, mc) { return mc && PH() && phQueue(h) ? h.replace(mc, '') : h; }
   /** Botón de una baja de una extensión (lesión…) junto a «Ver la jornada»; en el móvil, «Baja» con icono. */
   function outBtn(o) {
-    return PH() ? '<button data-act="' + esc(o.act) + '" aria-label="' + esc(o.actT || 'Ver') + '"><i class="cr-bi" aria-hidden="true">✚</i>Baja</button>'
+    // (ronda 2: «Ver baja» en palabras; la cruz «✚ Baja» se leía como «+ BAJA», como si añadiera algo)
+    return PH() ? '<button data-act="' + esc(o.act) + '" aria-label="' + esc(o.actT || 'Ver') + '">Ver baja</button>'
       : '<button data-act="' + esc(o.act) + '">' + esc(o.actT || 'Ver') + '</button>';
   }
   function renderMatch(c) {
@@ -3153,7 +3166,8 @@
   function phClubHead(c, k, more, q) {
     var p = clubParts(k);
     return '<div class="row cr-chd">' + crest(k, 56, c) + '<div class="grow" style="min-width:0"><p class="bigname cr-chn">' + esc(p.name) + '</p>' +
-      '<p class="muted cr-chs">' + sp([p.spon ? esc(p.spon) : ''].concat(more || []), 'v') + '</p></div>' + (q || '') + '</div>';
+      // (ronda 2, recortes: patrocinador en una línea y «★★ · Hiperliga 2» en otra; antes «Autoescuela La Rotación, ★★★★★, Hiperl…»)
+      '<p class="muted cr-chs">' + (p.spon ? '<span class="cr-chsp">' + esc(p.spon) + '</span>' : '') + '<span class="cr-chsm">' + sp(more || [], 'v') + '</span></p></div>' + (q || '') + '</div>';
   }
   function coachKv(c) {
     var coach = c.coach, cc = coach < 30 ? '#d8364a' : coach < 50 ? '#e07b2b' : coach < 70 ? '#d9a520' : '#2fbf71';
@@ -3241,7 +3255,7 @@
       var hint = C().ROLE_HINT ? C().ROLE_HINT[rl] : '';
       h = '<div class="card cr-ctp"><div class="ph-kv">' + kv('Rol', esc(ct.role || '—')) + kv(yl === 1 ? 'Queda' : 'Quedan', yl === 1 ? 'Esta' : yl + ' temp.') + kv('Sueldo', ct.salary ? eur(ct.salary) + '/mes' : '—') +
         kv('Ahorros', eur(c.money || 0)) + (lo ? kv('Cesión', 'Hasta el final') : kv('Firmado', 'T' + (ct.since || 1) + ' · ' + (ct.years | 0) + ' temp.')) + '</div>' +
-        '<div class="cr-ctl"><p class="muted cr-ctr">' + (hint ? '<b>' + esc(ct.role || '') + ':</b> ' + esc(hint) : 'Sueldo, ahorros y renovación') + '</p>' +
+        '<div class="cr-ctl"><p class="muted cr-ctr">' + (hint ? '<b>' + esc(ct.role || '') + ':</b> ' + esc((C().ROLE_SHORT && C().ROLE_SHORT[rl]) || hint) : 'Sueldo, ahorros y renovación') + '</p>' +
         qBtn('Contrato', (ct.role || '') + ': ' + hint + st6 + ' Cobras el sueldo cada jornada (la mitad del mensual) y lo ahorras: sirve para el fisio (Jugador › Estado).' +
           (lo ? '' : ' Al acabar la última temporada del contrato, el club te propone renovar (el rol depende de la confianza del entrenador) y eliges la duración.')) + '</div>' +
         (brk ? '<p class="bench" style="margin:6px 0"><b>Promesa incumplida.</b> Te fichó como titular y te ha sentado: hasta final de temporada puedes irte sin pegas y los clubes se interesan más por ti.</p>' : '') + '</div>';

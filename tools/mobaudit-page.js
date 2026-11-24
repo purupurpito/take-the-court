@@ -346,7 +346,8 @@ function measure(o) {
     else if (!ownTxt && (/hidden|clip/.test(cs2.overflowX + cs2.overflowY) ? (e2.scrollWidth > e2.clientWidth + 2 || e2.scrollHeight > e2.clientHeight + 2) : xMute(e2, cs2)) && cs2.display !== 'inline') {
       var cr = e2.getBoundingClientRect(), bl = parseFloat(cs2.borderLeftWidth) || 0, bt = parseFloat(cs2.borderTopWidth) || 0;
       var box = { l: cr.left + bl, t: cr.top + bt, r: cr.left + bl + e2.clientWidth, b: cr.top + bt + e2.clientHeight };
-      var hx = /hidden|clip|auto|scroll/.test(cs2.overflowX), hy = /hidden|clip/.test(cs2.overflowY);
+      // (lo que se sale de lado en una fila que se desplaza CON señal —desvanecido o máscara— se alcanza desplazando: no es recorte)
+      var hx = /hidden|clip/.test(cs2.overflowX) || (/auto|scroll/.test(cs2.overflowX) && xMute(e2, cs2)), hy = /hidden|clip/.test(cs2.overflowY);
       var tw2 = document.createTreeWalker(e2, NodeFilter.SHOW_TEXT, null), tn, cut = null;
       while (!cut && (tn = tw2.nextNode())) {
         if (!tn.nodeValue.trim()) continue;

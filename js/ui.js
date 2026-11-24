@@ -3687,7 +3687,7 @@
         '<strong aria-hidden="true"><i data-cu="' + best.pts + '" class="mvp-pts">' + best.pts + '</i></strong>' + cell(best.kills) + cell(best.blocks) + cell(best.aces) + '</div>';
       nMv++;
     }
-    el.endMvp.innerHTML = nMv ? '<span class="mvp-h" aria-hidden="true">MVP</span><div class="mvp-cols" aria-hidden="true"><span></span><span></span><span>Ataque</span><span>Bloqueo</span><span>Saque</span></div>' + mv : '';
+    el.endMvp.innerHTML = nMv ? '<span class="mvp-h" aria-hidden="true">MVP</span><div class="mvp-cols" aria-hidden="true"><span></span><span></span>' + [['Ataque', 'Ata.'], ['Bloqueo', 'Bloq.'], ['Saque', 'Saq.']].map(function (t) { return '<span><span class="ph-no">' + t[0] + '</span><span class="ph-only">' + t[1] + '</span></span>'; }).join('') + '</div>' + mv : '';   // (ronda 2: en el móvil, rótulos cortos que no se pisan)
     el.endMvp.classList.toggle('two', nMv > 1);
     // B6: el Vestuario de Partido rápido (récord, Entrenamiento, retos y nivel de perfil) se concede ya, sin aviso, para enseñarlo en
     // el Resumen (el aviso del menú, lkCheckNew, ya no lo repite). En la Carrera lo concede VB.Career.matchDone
@@ -4152,7 +4152,8 @@
   /** Pestañas de la hoja: ids de M.tabs; una sola (o sin recap.js) = sin barra. */
   function endPanes(tabs, cur, noBar, labels) {
     // (móvil: si la tira no cabe, fitTabs pone los rótulos cortos; «Jugadas (3)» → «Jugadas»)
-    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas'), short: t === 'stats' ? 'Cifras' : t === 'plays' ? 'Jugadas' : '' }; });
+    // (ronda 2: en el móvil la pestaña se llama «Cifras» en las dos orientaciones —antes «Cifras» en horizontal y «Estadísticas» en vertical—)
+    var L = labels || {}, items = tabs.map(function (t) { return { id: t, label: t === 'stats' && phMob() ? 'Cifras' : L[t] || (t === 'sum' ? 'Resumen' : t === 'stats' ? 'Estadísticas' : 'Jugadas'), short: t === 'stats' ? 'Cifras' : t === 'plays' ? 'Jugadas' : '' }; });
     var bar = !noBar && items.length > 1;
     if (el.endTabs) {
       el.endTabs.hidden = !bar;
@@ -4210,8 +4211,8 @@
     if (el.btnEndOpts) { el.btnEndOpts.hidden = !o; if (o) { el.btnEndOpts.textContent = o.label; el.btnEndOpts.setAttribute('data-act', o.id); } }
     el.btnMenu.hidden = !has.menu; if (has.menu) el.btnMenu.textContent = has.menu.label;
     el.btnAgain.parentNode.setAttribute('data-n', String((has.againAlt || has.share ? 1 : 0) + (o ? 1 : 0) + (has.menu ? 1 : 0)));
-    el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : has.share ? 'Enviar' : '');
-    if (el.btnEndOpts) { if (o && o.id === 'group') el.btnEndOpts.setAttribute('data-short', 'Grupo'); else el.btnEndOpts.removeAttribute('data-short'); }   // (móvil: rótulos cortos de la situación)
+    el.btnAgainAlt.setAttribute('data-short', has.againAlt ? altShort(has.againAlt.label) : has.share ? 'Compartir' : '');   // (ronda 2: «Compartir», no «Enviar»)
+    if (el.btnEndOpts) { if (o && o.id === 'group') el.btnEndOpts.setAttribute('data-short', 'El grupo'); else el.btnEndOpts.removeAttribute('data-short'); }   // (móvil: rótulos cortos de la situación)
     endOptsPill(has.againAlt && o && o.id === 'opts' ? o.label : '');
   }
   /** «Jugar ya» (1.22.0, informe 4.3): al acabar el PRIMER partido (récord de 0 a 1), una fila al final del Resumen con lo que hasta
@@ -6328,14 +6329,15 @@
         h += '<div class="ctl ctl-t">';
         for (var j = 0; j < R.length; j++) {
           var keys = R[j][0], d = R[j][1], si = d.indexOf('<small>'), tt = si < 0 ? d : d.slice(0, si), help = '';
-          if (si >= 0) help = d.slice(si).replace(/<\/?small>/g, '').replace(/^\s*\(|\)\s*$/g, '').split(';')[0].trim();
+          // (ronda 2, recortes: la ayuda ENTERA, no solo la primera frase: Colocar vuelve a decir lo del 3r toque y lo del suelo)
+          if (si >= 0) help = d.slice(si).replace(/<\/?small>/g, '').replace(/^\s*\(|\)\s*$/g, '').trim();
           var jh = '<small>' + joyHalf() + '</small>';
           if (keys.indexOf(jh) >= 0) { keys = keys.replace(jh, ''); help = 'Joystick: ' + joyHalf() + (help ? '; ' + help : ''); }
           // (movil-aire §5.6: un título que es una frase entera, «Al colocar: sin dirección…», se queda en «Al colocar» y el resto va a la ayuda)
           var tc = tt.replace(/<[^>]*>/g, '').trim(), ci = tc.indexOf(':');
           if (tc.length > 24 && ci > 0 && ci < 20 && tt.indexOf('<') < 0) { help = tc.slice(ci + 1).trim() + (help ? '; ' + help : ''); tt = tc.slice(0, ci); }
           if (help) help = help.charAt(0).toUpperCase() + help.slice(1);
-          h += '<div><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
+          h += '<div' + (help.length > 40 ? ' class="ctl-w"' : '') + '><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
         }
         h += '</div>';
         // (movil-aire §5.7: en la pausa de un teléfono táctil solo se ve la pestaña Táctil; Teclado y Mando, tras «Otros mandos ›»)
@@ -7556,7 +7558,7 @@
           if (b.grp !== G.id) return;
           var pg = R.progress(b.id) || { lvl: 0, txt: '', frac: 0 }, lvl = pg.lvl | 0;
           h += '<button class="mi rt-r sp-btn sp-wide sp-calm ' + (lvl >= 3 ? 'sp-gold' : GC[gi % GC.length]) + (U[b.id] ? ' new sp-dot' : '') + '" data-shape="' + (k++) + '" data-rt="' + b.id + '" aria-label="' + escT(b.name + ': ' + (lvl ? RC_MED[lvl] : 'sin medalla') + '. ' + pg.txt + (b.help ? '. ' + b.help : '')) + '">' +
-            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s" data-ph-ell>' + escT(rtPh ? rtTxtPh(pg.txt) : pg.txt) + '</small>' +
+            '<span class="sp-medal t' + lvl + '">' + medalSVG(lvl, lvl ? '' : 'off') + '</span><span class="sp-l"><span class="sp-t">' + escT(b.name) + '</span><small class="sp-s" data-ph-ell>' + (rtPh ? rtWhatPh(pg.txt) + escT(rtTxtPh(pg.txt)) : escT(pg.txt)) + '</small>' +
             (lvl < 3 && (lvl || pg.frac > 0) ? spBar(pg.frac) : '') + (b.help ? '<small class="rt-help">' + escT(b.help) + '</small>' : '') + '</span></button>';
         });
       });
@@ -7594,6 +7596,11 @@
     if (R && rtTab === 'maestria' && R.markSeen) { try { if (R.unseen().length) { R.markSeen(R.unseen()); rtStrip = ''; } } catch (e) { } }
   }
   /** (móvil, movil-aire §5.6) «Aces en un partido: récord 0, bronce con 2» → «récord 0 · bronce 2» (lo de antes de «:» ya lo dice el nombre). */
+  /** (ronda 2, recortes) Lo que mide la medalla («Aces en un partido»), que la ronda 1 quitó: en el móvil va en su propia línea, encima. */
+  function rtWhatPh(t) {
+    t = String(t || ''); var i = t.indexOf(': ');
+    return i > 0 && i < 60 ? '<span class="rt-what">' + escT(t.slice(0, i)) + '</span>' : '';
+  }
   function rtTxtPh(t) {
     t = String(t || ''); var i = t.indexOf(': '); if (i > 0 && i < 60) t = t.slice(i + 2);
     return t.replace(/, (bronce|plata|oro) con /g, ' · $1 ').replace(/, /g, ' · ');
