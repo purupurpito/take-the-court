@@ -44,6 +44,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok(await p.evalJs("!!document.querySelector('#crTabs.sp-vtabs') && !!document.querySelector('#career .cr-mail')"), 'Carrera al girar a apaisado: raíl y sobre');
     await p.setSize('390x844', true, 1); await sleep(700);
     ok(await p.evalJs("!document.querySelector('#crTabs.sp-vtabs') && document.getElementById('rotate').hidden"), 'Carrera al volver a vertical: sin raíl ni aviso');
+    // (ronda 2, carrera-marco-v) marco vertical: barra de 5 apartados abajo, tira de arriba, cabecera de dos niveles; girar conserva la pestaña
+    await p.evalJs("VB.CareerUI._tab('league','cal')"); await sleep(300);
+    const fr = () => p.evalJs("(function(){var t=document.getElementById('crTabs'),s=document.getElementById('crSub'),r=t.getBoundingClientRect(),on=t.querySelector('.tab.on');return JSON.stringify({tbar:t.classList.contains('pv-tbar'),vt:t.classList.contains('sp-vtabs'),bottom:Math.round(innerHeight-r.bottom),top:Math.round(r.top),n:t.querySelectorAll('.tab').length,on:on&&on.getAttribute('data-tab'),sub:(s.querySelector('.tab.on')||{}).textContent||'',strip:s.classList.contains('pv-tstrip'),cv:document.getElementById('crBody').getAttribute('data-cv'),hd:Math.round(document.querySelector('#career .cr-head').getBoundingClientRect().height),cl:(document.querySelector('#career .cr-title small')||{}).textContent||''})})()");
+    let f1 = JSON.parse(await fr());
+    ok(f1.tbar && !f1.vt && f1.bottom <= 1 && f1.n === 5 && f1.on === 'league', 'Carrera vertical: barra de 5 apartados abajo con Liga elegida: ' + JSON.stringify(f1));
+    ok(f1.strip && /Jornadas/.test(f1.sub) && f1.hd <= 120 && /^T\d+ · .+ · .+/.test(f1.cl), 'Carrera vertical: tira de arriba (Jornadas) y cabecera compacta (≤ 120 px, «T1 · liga · club»)');
+    await p.setSize('844x390', true, 1); await sleep(700);
+    let f2 = JSON.parse(await fr());
+    ok(f2.vt && !f2.tbar && f2.cv === 'league-cal', 'Carrera al girar a apaisado: raíl y la misma pestaña (Liga › Jornadas): ' + JSON.stringify(f2));
+    await p.setSize('390x844', true, 1); await sleep(700);
+    let f3 = JSON.parse(await fr());
+    ok(f3.tbar && !f3.vt && f3.cv === 'league-cal' && f3.bottom <= 1, 'Carrera al volver a vertical: barra abajo y Liga › Jornadas sigue');
+    ok(await p.evalJs("!!document.getElementById('careerPvCopy') && document.getElementById('careerPvCopy').textContent.length > 1000"), 'Carrera vertical: contenido del móvil copiado de .ph (careerPvCopy)');
+    await p.evalJs("VB.CareerUI._tab('match')"); await sleep(300);
     // Carrera: nombre a medio escribir en crear jugador
     await p.evalJs("(async()=>{await __MA.ensureMenu(); VB.CareerUI.open('create',{from:'main'});})()", true); await sleep(300);
     await p.evalJs("var n=document.querySelector('#crName'); if(n){n.value='Nadia Giro'; n.dispatchEvent(new Event('input',{bubbles:true}));}");

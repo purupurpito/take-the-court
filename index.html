@@ -4063,6 +4063,12 @@ html.sp-kb [data-kb-hide]{display:none!important}
 :root.pv:not(#_):not(#_):not(#_) #setNote:not(.sn-x) :is(.sn-lg,.sn-s){display:none}
 :root.pv:not(#_):not(#_):not(#_) #setNote.sn-x .sn-sh{display:none}
 :root.pv:not(#_):not(#_):not(#_) #setNote .sn-more{display:inline-flex;align-items:center;min-height:44px;min-width:44px;vertical-align:middle;margin:-12px 0;padding:0 6px;border:0;background:none;color:var(--sp-gold);font:700 var(--pv-body)/1 var(--sp-ui);text-decoration:underline;cursor:pointer}
+/* (ronda 2, carrera-marco-v) aviso del colocador en vertical: «No mostrar más» como enlace (la hoja ya lleva Activar abajo) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-row>[data-sn="never"]{background:none;box-shadow:none;color:var(--sp-cream);text-decoration:underline;text-underline-offset:3px;min-height:44px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-row>[data-sn="never"]>.sp-blob{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-row>[data-sn="never"] .sp-t{color:var(--sp-cream);text-shadow:none;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-acts>.sp-patch .sp-t{overflow:visible;text-overflow:clip;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #setNote .sn-acts{margin-top:16px}
 :root.pv:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>:not(.ek-s){display:none}
 :root.pv:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on{font-size:0}
 :root.pv:not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>.ek-s{display:inline;font-size:var(--pv-cap);line-height:1.25}

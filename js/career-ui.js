@@ -57,6 +57,8 @@
   // En horizontal PH() == PHL(): la salida apaisada no cambia.
   function PH() { var de = typeof document !== 'undefined' && document.documentElement; return !!(de && de.classList && (de.classList.contains('ph') || de.classList.contains('pv'))); }
   function PHL() { var de = typeof document !== 'undefined' && document.documentElement; return !!(de && de.classList && de.classList.contains('ph')); }
+  /** (ronda 2, carrera-marco-v) VERT() = solo el vertical (html.pv; PV es el prefijo CSS): DÓNDE VA en vertical (cabecera de dos niveles, barra de abajo, Faro en hoja). */
+  function VERT() { var de = typeof document !== 'undefined' && document.documentElement; return !!(de && de.classList && de.classList.contains('pv')); }
   var ICO = function (d) { return '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">' + d + '</svg>'; };
   var TAB_IC = {
     match: ICO('<circle cx="12" cy="12" r="8.5"/><path d="M12 3.5c-2 3-2 6 0 8.5s2 5.5 0 8.5M4.2 9c3 1.2 6.5 1.6 7.8 3s4.8 1.8 7.8 3"/>'),
@@ -2078,6 +2080,7 @@
     // móvil (movil-aire §5.2): Faro en una franja de una línea; tocarla enseña la frase entera (los botones van aparte)
     body.addEventListener('click', function (e) {
       if (!PH()) return; var t = e.target, m = t && t.closest ? t.closest('.cw-mentor') : null;
+      if (m && VERT() && m.classList.contains('cw-fold') && (!t.closest('button') || t.closest('.cw-pv'))) { pvMentor(m); return; }   // (vertical: la escena, en hoja)
       if (m && !t.closest('button')) m.classList.toggle('ph-open');
     });
     root.addEventListener('input', function (e) { if (e.target && e.target.id === 'crName') { form.name = e.target.value; phCreateCnt(); } });
@@ -2113,6 +2116,93 @@
     try { phDecide(); } catch (e) { }
     try { splatify(); } catch (e) { }
     try { phDock(); } catch (e) { }
+    try { pvAfter(); } catch (e) { }
+  }
+  // ---- (ronda 2, carrera-marco-v) Carrera en VERTICAL (html.pv). notes/movil-aire.md §8.6.3.
+  /** El contenido del móvil (PH = mob) en vertical se pinta con el CSS de contenido de horizontal: copia de las reglas «:root.ph … #career»
+   *  de TODAS las hojas de la Carrera (career-ui y extensiones, también las que se inyectan más tarde) como «:root.pv.pv …» (una clase más:
+   *  gana a las reglas de PC y a las «:root:not(.ph)»), SIN las del marco (cabecera, raíl, tira, barra de abajo, sobre: las pone PV_CSS con
+   *  PW, que gana a la copia) ni las de .ph-s / .ph-w. Y las variables de los componentes SPLAT de index.html (:root.ph … .sp-btn{…}), como
+   *  «:root.pv … #career .sp-btn{…}» con el mismo peso. Una vez por hoja (se repasa si su texto crece). Sin .pv no hace nada. */
+  var pvSeen = typeof WeakMap !== 'undefined' ? new WeakMap() : null, pvEl = null;
+  var PV_SKIP = /\.cr-(in|head|tabs|sub|dock|mail|title|ovr|hcr)\b|#cr(Tabs|Sub|Dock)\b|#career$/;
+  var PV_SP = /^:root\.ph:not\(#_\):not\(#_\):not\(#_\) ((?:\.sp-|:is\(\.sp-|\[data-sp-s)[^#]*)$/;
+  function selSplit(s) {
+    var out = [], d = 0, a = 0;
+    for (var i = 0; i < s.length; i++) { var ch = s[i]; if (ch === '(' || ch === '[') d++; else if (ch === ')' || ch === ']') d--; else if (ch === ',' && !d) { out.push(s.slice(a, i).trim()); a = i + 1; } }
+    out.push(s.slice(a).trim()); return out;
+  }
+  function pvWalk(rules, out) {
+    for (var i = 0; i < rules.length; i++) {
+      var r = rules[i];
+      if (r.type === 1) {
+        var ps = selSplit(r.selectorText || ''), keep = [];
+        ps.forEach(function (p) {
+          if (/\.ph-[sw]\b/.test(p) || !/:root\.ph(?![\w-])/.test(p)) return;
+          var m = PV_SP.exec(p);
+          if (m) { keep.push(':root.pv:not(#_):not(#_) #career ' + m[1]); return; }
+          if (p.indexOf('#career') < 0 || PV_SKIP.test(p)) return;
+          keep.push(p.replace(/:root\.ph(?![\w-])/g, ':root.pv.pv'));
+        });
+        if (!keep.length || !r.style || !r.style.cssText) continue;
+        var ct = r.style.cssText, sel = keep.join(',');
+        // (sin recortes, §8.3) lo que en horizontal cabe en una línea con «…», en vertical parte en dos (salvo los nombres data-trunc)
+        if (!/data-trunc/.test(sel)) ct = ct.replace(/text-overflow:\s*ellipsis/g, 'text-overflow: clip').replace(/white-space:\s*nowrap/g, /text-overflow/.test(ct) ? 'white-space: normal' : 'white-space: nowrap').replace(/-webkit-line-clamp:\s*\d+/g, '-webkit-line-clamp: unset');
+        out.push(sel + '{' + ct + '}');
+      } else if (r.type === 4 && r.cssRules) {
+        var inn = []; pvWalk(r.cssRules, inn); if (inn.length) out.push('@media ' + r.media.mediaText + '{' + inn.join('\n') + '}');
+      } else if (r.type === 12 && r.cssRules) {
+        var ins = []; pvWalk(r.cssRules, ins); if (ins.length) out.push('@supports ' + r.conditionText + '{' + ins.join('\n') + '}');
+      }
+    }
+  }
+  function pvClone() {
+    if (!pvSeen || !VERT() || typeof document === 'undefined') return;
+    var L = document.querySelectorAll('style'), add = [];
+    for (var i = 0; i < L.length; i++) {
+      var st = L[i]; if (st === pvEl) continue;
+      var tx = st.textContent || '', n = tx.length; if (pvSeen.get(st) === n) continue; pvSeen.set(st, n);
+      if (tx.indexOf(':root.ph') < 0) continue;
+      var rs = null; try { rs = st.sheet && st.sheet.cssRules; } catch (e) { rs = null; }
+      if (rs) pvWalk(rs, add);
+    }
+    if (!add.length) return;
+    if (!pvEl) { pvEl = document.createElement('style'); pvEl.id = 'careerPvCopy'; }
+    pvEl.textContent += add.join('\n') + '\n';
+    (document.head || document.body).appendChild(pvEl);
+  }
+  /** Tras pintar (vertical): Faro plegado en una tira bajo lo que da nombre a la pantalla (la escena entera, en hoja), la tira de
+   *  sub-pestañas como segmentado si caben (≤ 4) y la barra de abajo como pie (dock encima). */
+  function pvAfter() {
+    if (!root || !VERT()) return;
+    pvClone();
+    var m = body && body.querySelector('.cw-mentor');
+    if (m && !m.querySelector('.cw-pv')) {
+      var nx = body.querySelector('.cr-next'), dec = body.querySelector('.ph-dec,.ph-decp');
+      var at = dec && dec.parentNode === m.parentNode ? dec : nx && nx.parentNode === m.parentNode ? nx : null;
+      if (at && (at.compareDocumentPosition(m) & 2)) at.parentNode.insertBefore(m, at.nextSibling);   // (Faro iba antes: pasa detrás)
+      var b = document.createElement('button'); b.type = 'button'; b.className = 'cw-pv'; b.setAttribute('aria-label', 'Leer lo que dice Faro'); b.textContent = 'Ver';
+      var h3 = m.querySelector('h3'); (h3 && h3.parentNode ? h3.parentNode.parentNode : m).appendChild(b);
+      m.classList.add('cw-fold');
+    }
+    var row = subEl && !subEl.hidden && subEl.querySelector('.tb-row');
+    if (row) {
+      var nt = row.querySelectorAll('.tab').length;
+      subEl.classList.remove('cr-seg');
+      if (nt && nt <= 4) { subEl.classList.add('cr-seg'); if (row.scrollWidth > row.clientWidth + 2) subEl.classList.remove('cr-seg'); }
+      try { phStrip(); } catch (e) { }
+    }
+  }
+  /** Vertical: la escena de Faro entera en una hoja, con sus botones (que pulsan los de la tarjeta). */
+  function pvMentor(m) {
+    if (!(VB.Splat && VB.Splat.sheet)) return;
+    var h3 = m.querySelector('h3'), who = m.querySelector('.cw-who'), ln = m.querySelector('.cw-line');
+    var t = ln ? ln.cloneNode(true) : null; if (t) { var mo = t.querySelector('.cw-more'); if (mo) mo.parentNode.removeChild(mo); }
+    var acts = Array.prototype.slice.call(m.querySelectorAll('.acts>button'));
+    VB.Splat.sheet({ title: h3 ? h3.textContent : 'Faro', html: (who ? '<p class="muted">' + esc(who.textContent) + '</p>' : '') + '<p>' + esc(t ? t.textContent.replace(/\s+/g, ' ').trim() : '') + '</p>',
+      actions: acts.map(function (b, i) {
+        return { label: (b.textContent || '').trim(), primary: i === acts.length - 1, cls: i === acts.length - 1 ? 'sp-kit' : 'sp-cream', fn: function () { setTimeout(function () { try { b.click(); } catch (e) { } }, 0); } };
+      }) });
   }
   /** Botón «?»/«i» de explicación (VB.Splat.info abre la hoja) con el HTML tal cual (lo que en PC se lee en la ficha). */
   function qNode(title, html, ch) {
@@ -2133,6 +2223,8 @@
     if (lk) {
       var la = lk.querySelector(':scope>.acts'); if (la) la.setAttribute('data-ph-dock', '');
       var ln = lk.querySelector(':scope>p.muted'); if (ln && !/punto es para el rival/.test(ln.textContent)) { ln.textContent = 'Se guarda cada punto.'; ln.classList.add('cr-lk-n'); }
+      var lh = VERT() && lk.querySelector(':scope>h3');   // (vertical: «Regional · J5/14»)
+      if (lh) lh.textContent = lh.textContent.replace(/^Circuito /, '').replace(/Jornada (\d+) de (\d+)/, 'J$1/$2');
     }
     // previa de la prueba: lo que se lee (cómo es y qué nota hace falta) tras la «i» de la línea «1 set a 15 · con petos»
     all('.card.tp').forEach(function (tp) {
@@ -2346,6 +2438,9 @@
     head.innerHTML = backBtn() + ptHTML(c, 'me', 44, 'cr-pt', 'Retrato de ' + c.player.name) +
       '<div class="cr-title"><small>' + sp(['Carrera', 'Temporada ' + c.season, esc(L.name)], 'd') + '</small><b>' + sp([esc(c.player.name), esc(PH() ? shortClub(k) : k.name)], 's') + '</b></div>' +
       '<span class="cr-hcr sp-crest">' + crest(k, 40, c) + '</span>' + ovrStamp(C().playerOvr(c));
+    // (ronda 2, carrera-marco-v) vertical: una fila [‹][retrato 40][escudo] … [sobre][sello] y debajo el nombre y «T1 · Liga · club corto»
+    if (VERT()) head.innerHTML = backBtn() + ptHTML(c, 'me', 40, 'cr-pt', 'Retrato de ' + c.player.name) + '<span class="cr-hcr sp-crest">' + crest(k, 40, c) + '</span>' + ovrStamp(C().playerOvr(c)) +
+      '<div class="cr-title"><b>' + esc(c.player.name) + '</b><small>' + ['T' + c.season, esc(L.name), esc(shortClub(k))].join(' · ') + '</small></div>';
     // bandeja: lo no leído se marca como leído ANTES de pintar (el contador ya no sigue en la pestaña mientras la miras); el
     // resaltado de lo nuevo se conserva en este pintado (freshIds)
     var freshIds = {};
@@ -2749,6 +2844,10 @@
   function phKick(label, pts, more) {
     var parts = String(label || '').split(' · '), j = '';
     parts.forEach(function (p) { var m = /Jornada (\d+) de (\d+)/.exec(p); if (m && !j) j = 'J' + m[1] + '/' + m[2]; });
+    if (VERT()) {   // (ronda 2, vertical: dos fichas que parten, «J5/14 · Sets a 21» / «8º · IA Fácil», dentro del ticket)
+      var kb = (more || []).filter(function (x) { return !!x; });
+      return '<span class="pv-kc">' + sp([esc(j || parts[parts.length - 1] || ''), 'Sets a ' + pts], 'v') + '</span>' + (kb.length ? '<span class="pv-kc">' + sp(kb, 'v') + '</span>' : '');
+    }
     return sp([esc(j || parts[parts.length - 1] || '')].concat(['Sets a ' + pts], more || []), 'v');
   }
   /** Móvil: con la propuesta de puesto pendiente (Aceptar/Rechazar en la barra) o la gala de premios en Partido, Faro espera (sigue en cola). */
@@ -3799,7 +3898,7 @@
   }
   function renderTrialPre(t) {
     head.innerHTML = backB('trial-back', 'Ofertas', 'Volver a las ofertas') +
-      '<div class="cr-title"><small>' + sp(['Carrera', 'Prueba'], 'd') + '</small><b>' + sp(PH() ? [esc(t.player)] : [esc(t.player), esc(t.name)], 's') + '</b></div>' +   // (móvil: el club ya es el título de la ficha)
+      '<div class="cr-title"><small>' + (VERT() ? 'Prueba' : sp(['Carrera', 'Prueba'], 'd')) + '</small><b>' + sp(PH() ? [esc(t.player)] : [esc(t.player), esc(t.name)], 's') + '</b></div>' +   // (móvil: el club ya es el título de la ficha)
       ovrStamp(t.ovrMe);
     tabsEl.hidden = true; subEl.hidden = true;
     var bb = trialBibs(t.kit), tpc = typeof t.kit.shirt === 'number' ? hex(t.kit.shirt) : '#3a3168';
@@ -4532,18 +4631,162 @@
   }
   // (ronda 2, sistema-v) Carrera en VERTICAL (html.pv): aún sin maquetar (lo hace el paquete carrera-marco-v). Aquí solo lo mínimo para que lo
   // que PH() ya pinta en vertical (el sobre de Mensajes de la cabecera) no salga con el dibujo de PC sin medidas. Prefijo PV = :root.pv + 3 ids.
-  var PV = Q.replace(':root', ':root.pv');
+  var PV = Q.replace(':root', ':root.pv'), PW = ':root.pv:not(#_):not(#_):not(#_):not(#_) #career';
   var PV_CSS = [
     PV + ' .cr-mail{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0 6px;padding:0;border:0;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;' +
       'background:var(--sp-ink2);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink);cursor:pointer;-webkit-tap-highlight-color:transparent}',
     PV + ' .cr-mail svg{width:22px;height:22px;fill:none;stroke:currentColor}',
     PV + ' .cr-mail.on{background:var(--sp-gold);color:var(--sp-ink)}',
-    PV + ' .cr-dock .sp-t,' + PV + ' .cr-dock .sp-s{white-space:normal;overflow:visible;text-overflow:clip}',   // (la barra de abajo ya lleva la decisión: nunca «JUGAR P…»)
-    PV + ' .cr-dock{display:flex;align-items:stretch;gap:12px}',
-    PV + ' .cr-dock>.sp-btn{flex:1 1 0;min-width:0;max-width:none;width:auto}',
-    PV + ' .cr-dock>.sp-patch{flex:2 1 0}',
-    PV + ' .cr-dock>.sp-btn .sp-t{font-size:clamp(15px,4.6vw,20px);line-height:1.08;overflow-wrap:break-word}',
-    PV + ' .cr-mail .tb-b{position:absolute;top:-7px;right:-9px;min-width:20px;padding:1px 5px;box-sizing:border-box;border-radius:7px 9px 7px 8px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2px var(--sp-ink);font:700 12px/1.2 var(--sp-ui);font-style:normal;text-align:center;pointer-events:none}'
+    PV + ' .cr-mail .tb-b{position:absolute;top:-7px;right:-9px;min-width:20px;padding:1px 5px;box-sizing:border-box;border-radius:7px 9px 7px 8px;background:var(--sp-danger);color:#fff6e4;box-shadow:0 0 0 2px var(--sp-ink);font:700 12px/1.2 var(--sp-ui);font-style:normal;text-align:center;pointer-events:none}',
+    // ---- (ronda 2, carrera-marco-v) MARCO de la Carrera en vertical. Las reglas de contenido del móvil llegan copiadas de .ph (pvClone,
+    // «:root.pv.pv»); aquí, con PW (4 :not(#_)), lo que manda sobre la copia: variables del móvil, cabecera de dos niveles, tira de arriba
+    // opaca, cuerpo, barra de acción (dock) y la barra de 5 apartados abajo. Nombres para los paquetes siguientes: notes/movil-aire.md §8.6.3.
+    // variables del móvil (--ph-*) en la Carrera vertical, con valores fijos de teléfono estrecho (la copia de .ph las usa)
+    PV + '{--ph-cap:13px;--ph-label:13px;--ph-body:15px;--ph-row:15px;--ph-btn:16px;--ph-num:18px;--ph-head:clamp(18px,5.4vw,22px);--ph-title:26px;--ph-patch:22px;--ph-hero:30px;' +
+      '--sp-h-sm:44px;--sp-h-md:48px;--sp-h-lg:56px;--sp-r:12px;--sp-sh:2px 3px 0 var(--sp-ink);--ph-s1:4px;--ph-s2:8px;--ph-s3:12px;--ph-s4:16px;--ph-s5:24px;' +
+      '--ph-g:var(--pv-g);--ph-gt:var(--pv-gt);--ph-gb:var(--pv-gb);--ph-hh:48px;--ph-vt:112px;--ph-fw:var(--pv-fw);--ph-ffw:var(--pv-fw);--ph-colw:var(--pv-fw);' +
+      '--ph-hit-gap:10px;--ph-tab-gap:12px;--ph-strip-gap:11px;--ph-micro:12px;--ph-gap-min:8px;--ph-btn-gap:12px;--ph-card-gap:10px;--ph-pad:12px;--ph-bar:48px;--ph-tap:44px;' +
+      '--ph-row-1:44px;--ph-row-h:52px;--ph-row-2:64px;--ph-row-t:36px;--ph-cta-h:56px;--ph-btn-h:48px;--ph-dock-h:calc(56px + var(--pv-gb) + 8px);--ph-fade:24px;--sp-stamp:44px}',
+    PW + '{padding:var(--pv-gt) 0 0;background:linear-gradient(180deg,rgba(29,21,48,.93),rgba(29,21,48,.86) 45%,rgba(29,21,48,.8))}',
+    PW + ' .cr-in{width:100%;max-width:none;height:100%;zoom:1;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto minmax(0,1fr) auto auto;grid-template-areas:"hd" "sb" "bd" "dk" "tb";gap:0;margin:0;min-height:0}',
+    // cabecera: fila [‹ 44][retrato 40][escudo 40] … [sobre 44][sello 44]; debajo el nombre (1 línea) y «T1 · Liga · club» (parte por palabras)
+    PW + ' .cr-head{grid-area:hd;display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;min-width:0;margin:0;padding:0 var(--pv-g) 6px}',
+    PW + ' .cr-head>.sp-back{flex:none;order:0;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;' +
+      'background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none;filter:none}',
+    PW + ' .cr-head>.sp-back>:not(svg),' + PW + ' .cr-head>.sp-back>.sp-blob{display:none}',
+    PW + ' .cr-head>.sp-back>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}',
+    PW + ' .cr-head>.sp-back:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}',
+    PW + ' .cr-head>.pt.cr-pt{display:block;flex:none;order:1;width:40px;height:40px;border-radius:10px}',
+    PW + ' .cr-head>.cr-hcr{display:flex;flex:none;order:2;margin:0;padding:0}',
+    PW + ' .cr-head>.cr-hcr>:is(svg,.cw-crest,.cr-kit){width:36px;height:40px}',
+    PW + ' .cr-head>.cr-mail{order:4;margin:0 0 0 auto}',
+    PW + ' .cr-head>.cr-ovr{order:5;flex:none;--sp-stamp:44px;margin:0 2px 0 0;transform:rotate(-8deg)}',
+    PW + ' .cr-head>.cr-mail+.cr-ovr{margin-left:6px}',
+    PW + ' .cr-head>.cr-ovr:first-of-type:not(.cr-mail+*){margin-left:auto}',
+    PW + ' .cr-head>.cr-ovr .sp-sc b{font-size:19px}',
+    PW + ' .cr-head>.cr-title{order:3;flex:1 1 0;min-width:0;padding:0;margin:0}',
+    PW + ' .cr-head:has(>.pt)>.cr-title,' + PW + ' .cr-head:has(>.cr-hcr)>.cr-title{order:9;flex:1 1 100%}',
+    PW + ' .cr-title b{display:block;font-size:var(--pv-head);line-height:1.12;letter-spacing:.02em;white-space:normal;overflow:visible;text-overflow:clip;overflow-wrap:break-word;transform:none;padding:0}',
+    PW + ' .cr-title small{display:block;margin:2px 0 0;font:700 var(--pv-cap)/1.25 var(--sp-ui);letter-spacing:.01em;text-transform:none;color:var(--sp-gold);white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none}',
+    PW + ' .cr-head:has(>.pt) .cr-title small{color:rgba(255,244,220,.82)}',
+    PW + ' .cr-title small .sep{display:inline}',
+    // tira de sub-pestañas: fondo opaco a todo el ancho (no se lee el 3D), desvanecido + chevrón en el borde con más, ≤ 4 que caben: segmentado
+    PW + ' .cr-sub{grid-area:sb;position:relative;display:block;min-width:0;margin:0;padding:6px var(--pv-g);background:var(--sp-ink);box-shadow:0 2px 0 rgba(255,244,220,.1),0 8px 14px -6px rgba(0,0,0,.5);z-index:2}',
+    PW + ' .cr-sub[hidden]{display:none}',
+    PW + ' .cr-sub>.tb-k{display:none}',
+    PW + ' .cr-sub .tb-row{display:flex;gap:10px;min-width:0;margin:0;padding:2px 2px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:none;background:none;box-shadow:none;scroll-padding-inline:44px}',
+    PW + ' .cr-sub .tb-row::-webkit-scrollbar{display:none}',
+    PW + ' .cr-sub .tab{--sp-tbh:44px;--sp-tbs:14px;flex:0 0 auto;min-width:0;min-height:44px;height:44px;padding:0 12px;letter-spacing:.02em;transform:none}',
+    PW + ' .cr-sub .tab::before{inset:3px -1px}',
+    PW + ' .cr-sub .tab:not(.on):not(.kf):not(:focus-visible)::before{opacity:1;background:var(--sp-ink2)}',
+    PW + ' .cr-sub .tab:is(.on,[aria-selected="true"]){color:var(--sp-kit-ink);text-shadow:var(--sp-kit-ts)}',
+    PW + ' .cr-sub .tab:is(.on,[aria-selected="true"])::before{background:var(--sp-kit)}',
+    PW + ' .cr-sub.cr-seg .tab{flex:1 1 0;padding:0 6px}',
+    PW + ' .cr-sub.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,#000 calc(100% - 44px),transparent calc(100% - 20px));mask:linear-gradient(to right,#000 calc(100% - 44px),transparent calc(100% - 20px))}',
+    PW + ' .cr-sub.cr-ml .tb-row{-webkit-mask:linear-gradient(to right,transparent 20px,#000 44px);mask:linear-gradient(to right,transparent 20px,#000 44px)}',
+    PW + ' .cr-sub.cr-ml.cr-mr .tb-row{-webkit-mask:linear-gradient(to right,transparent 20px,#000 44px,#000 calc(100% - 44px),transparent calc(100% - 20px));mask:linear-gradient(to right,transparent 20px,#000 44px,#000 calc(100% - 44px),transparent calc(100% - 20px))}',
+    PW + ' .cr-sub.cr-ml::before,' + PW + ' .cr-sub.cr-mr::after{content:"‹";position:absolute;top:50%;left:6px;z-index:3;width:26px;height:26px;margin-top:-13px;display:grid;place-items:center;border-radius:50%;' +
+      'background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:900 18px/1 var(--sp-ui);pointer-events:none}',
+    PW + ' .cr-sub.cr-mr::after{content:"›";left:auto;right:6px}',
+    PW + ' .cr-sub .tab .tb-b{position:static;flex:none;margin:0 0 0 6px;min-width:20px;padding:2px 6px;border-radius:8px 10px 8px 9px;background:var(--sp-ink);color:var(--sp-gold);font:800 12px/1.1 var(--sp-ui);text-shadow:none}',
+    // contenido: la única zona que se desplaza; sin desvanecido de PC (el de la copia, solo con .sp-more)
+    PW + ' .cr-body{grid-area:bd;min-height:0;margin:0;padding:22px var(--pv-g) 16px;scroll-padding:12px;-webkit-mask-image:none;mask-image:none}',
+    PW + ' .cr-body>.card:first-child{margin-top:0}',
+    // barra de acción (#crDock) encima de la barra de apartados: principal 2/3, secundario 1/3; texto en 2 líneas, nunca cortado
+    PW + ' .cr-dock{grid-area:dk;display:flex;align-items:stretch;justify-content:stretch;gap:12px;margin:0;padding:8px var(--pv-g);background:linear-gradient(180deg,rgba(29,21,48,0),rgba(29,21,48,.9) 40%)}',
+    PW + ' .cr-dock[hidden]{display:none}',
+    PW + ' .cr-in:has(>.cr-tabs[hidden]) .cr-dock{padding-bottom:var(--pv-gb)}',
+    PW + ' .cr-dock>.sp-btn{flex:2 1 0;min-width:0;max-width:none;width:auto;min-height:var(--pv-btn-h);margin:0;--sp-px:8px}',
+    PW + ' .cr-dock>.sp-patch{flex:3 1 0;min-height:var(--pv-cta-h);--sp-ph:var(--pv-cta-h)}',
+    PW + ' .cr-dock>:only-child{flex:1 1 100%;max-width:none;width:100%}',
+    PW + ' #crBody:has(>.card.cr-lock:only-child){display:flex;flex-direction:column;justify-content:center}',
+    PW + ' .cr-dock .sp-t,' + PW + ' .cr-dock .sp-s{white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none;display:block;overflow-wrap:normal;word-break:normal;hyphens:manual}',
+    PW + ' .cr-dock>.sp-patch .sp-t{font-size:clamp(17px,5.2vw,22px);line-height:1.08}',
+    PW + ' .cr-dock>.sp-btn:not(.sp-patch) .sp-t{font-size:clamp(14px,4vw,17px);line-height:1.1}',
+    PW + ' .cr-dock>.sp-btn:not(.sp-patch) small{display:block;font-size:12px!important}',
+    PW + ' .cr-dock>.sp-btn:not(.sp-patch) .sp-blob .sp-f>path+path,' + PW + ' .cr-dock>.sp-btn:not(.sp-patch) .sp-blob .sp-f circle{display:none}',
+    // barra de los 5 apartados abajo (los de horizontal: Partido, Jugador, Club, Liga, Vida), icono 24 + rótulo 12, la activa con la mancha
+    PW + ' .cr-tabs.pv-tbar{grid-area:tb;position:relative;display:block;min-height:0;margin:0;padding:4px 4px var(--pv-gb);overflow:visible;background:var(--sp-ink);box-shadow:0 -2px 0 rgba(255,244,220,.12),0 -10px 18px -8px rgba(0,0,0,.55);z-index:3}',
+    PW + ' .cr-tabs.pv-tbar>.tb-k{display:none}',
+    PW + ' .cr-tabs.pv-tbar .tb-row{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:0;margin:0;padding:0;overflow:visible;background:none;box-shadow:none;-webkit-mask:none;mask:none}',
+    PW + ' .cr-tabs.pv-tbar .tab{position:relative;isolation:isolate;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-width:0;min-height:52px;height:auto;margin:0;padding:4px 2px 2px;' +
+      'background:none;box-shadow:none;border:0;color:rgba(255,244,220,.74);font:700 12px/1.1 var(--sp-ui);letter-spacing:0;text-transform:none;text-shadow:none;transform:none;--sp-tbh:52px;--sp-tbs:12px}',
+    PW + ' .cr-tabs.pv-tbar .tab::before{content:none;display:none;-webkit-mask:none;mask:none;clip-path:none;filter:none}',
+    PW + ' .cr-tabs.pv-tbar .tab::after{content:none}',
+    PW + ' .cr-tabs.pv-tbar .tab>svg{position:relative;z-index:1;display:block!important;width:24px;height:24px;flex:none;fill:none;stroke:currentColor}',
+    PW + ' .cr-tabs.pv-tbar .tab .tb-t{position:static;display:block;max-width:100%;font:700 12px/1.1 var(--sp-ui);white-space:nowrap;overflow:visible;text-overflow:clip;letter-spacing:0;text-transform:none}',
+    PW + ' .cr-tabs.pv-tbar .tab:is(.on,[aria-selected="true"]){color:var(--sp-cream)}',
+    PW + ' .cr-tabs.pv-tbar .tab:is(.on,[aria-selected="true"])::before{content:"";display:block;position:absolute;z-index:0;left:50%;top:1px;right:auto;bottom:auto;inset:1px auto auto 50%;width:52px;height:32px;margin-left:-26px;' +
+      'background:var(--sp-gold);border-radius:14px 18px 13px 17px/16px 13px 18px 14px;box-shadow:0 0 0 2px var(--sp-ink);transform:rotate(-4deg);opacity:1;-webkit-mask:none;mask:none;clip-path:none;filter:none}',
+    PW + ' .cr-tabs.pv-tbar .tab:is(.on,[aria-selected="true"])>svg{color:var(--sp-ink)}',
+    PW + ' .cr-tabs.pv-tbar .tab:is(.kf,:focus-visible){outline:none;color:var(--sp-gold)}',
+    PW + ' .cr-tabs.pv-tbar .tab .dot{position:absolute;top:2px;left:calc(50% + 10px);z-index:2;width:10px;height:10px;margin:0;border-radius:50%;background:var(--sp-danger);box-shadow:0 0 0 2px var(--sp-ink)}',
+    // ofertas (elegir club) / extensión con pestañas propias: la tira de arriba (pv-tstrip) en el sitio de las sub-pestañas
+    PW + ' .cr-tabs.pv-tstrip{grid-area:sb;display:block;margin:0;padding:6px var(--pv-g);background:var(--sp-ink);z-index:2}',
+    PW + ' .cr-tabs.pv-tstrip>.tb-k{display:none}',
+    PW + ' .cr-tabs.pv-tstrip .tb-row{display:flex;gap:10px;overflow-x:auto;scrollbar-width:none;padding:2px;background:none;box-shadow:none}',
+    PW + ' .cr-tabs.pv-tstrip .tab{flex:0 0 auto;--sp-tbh:44px;--sp-tbs:14px;min-height:44px;padding:0 12px}',
+    // ticket del Partido en vertical: fichas de datos arriba (dentro del padding), escudos + rival (2 líneas como mucho) y el informe debajo
+    PW + ' .cr-tk .sp-tk{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"k k" "s x" "t t";align-items:center;gap:8px 10px;height:auto;min-height:0;padding:14px 14px 18px}',
+    PW + ' .cr-tk .sp-tk-main{display:contents}',
+    PW + ' .cr-tk .sp-k{grid-area:k;display:flex;flex-wrap:wrap;gap:6px;margin:0;padding:0;white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none;font-size:var(--pv-micro)}',
+    PW + ' .cr-tk .sp-k>.pv-kc{display:inline-flex;align-items:center;min-height:24px;padding:2px 9px;border-radius:8px 11px 8px 12px;background:rgba(21,16,42,.78);color:var(--sp-cream);font:700 var(--pv-micro)/1.15 var(--sp-ui);letter-spacing:.02em;text-transform:none;white-space:nowrap}',
+    PW + ' .cr-tk .sp-k>.pv-kc .sep-v{margin:0 5px}',
+    PW + ' .cr-tk .sp-k>.sp-chip{align-self:center}',
+    PW + ' .cr-tk .sp-tk-stub{grid-area:s;display:flex;align-items:center;gap:4px}',
+    PW + ' .cr-tk .sp-tk-stub .sp-crest :is(svg,.cw-crest,.cr-kit){width:36px;height:40px}',
+    PW + ' .cr-tk .sp-t{grid-area:t;min-width:0;margin:0;font-size:clamp(16px,4.7vw,20px);line-height:1.1;white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none;display:block;overflow-wrap:normal}',
+    PW + ' .cr-tk .sp-tk-main>:not(.sp-k):not(.sp-t):not(.sp-s){grid-area:x;justify-self:end;margin:0}',
+    PW + ' .cr-tk .sp-tk-main>.sp-s{grid-column:1/-1}',
+    // pastillas de avisos del Partido (2 por fila): el rótulo entero, hasta 3 líneas (nunca «Selección: partido…»)
+    PW + ' .st-chips .sp-btn .sp-t{display:block;-webkit-line-clamp:none;overflow:visible;text-overflow:clip;overflow-wrap:normal;font-size:14px;line-height:1.12}',
+    PW + ' .st-chips{gap:10px}',
+    PW + ' .st-chips .sp-btn{min-height:48px;--sp-h:48px}',
+    // «?» de una tarjeta con sello: asoma por encima (nunca encima de la primera línea)
+    PW + ' .card>.cr-q{top:-24px}',
+    PW + ' .cr-pcard{grid-template-columns:minmax(0,1fr)}',   // (atributos en una columna: el nombre entero junto a su número)
+    PW + ' #crBody .card.ph-decp>.cr-q{top:-22px!important}',
+    PW + ' #crBody .card.ph-decp>h3:first-child{margin-right:52px}',
+    // secundarios del cuerpo (Simular, Ver torneo, Mirar, Ver los 6…): 48, dos por fila
+    PW + ' .cr-next>.acts.cr-go{display:grid;grid-template-columns:1fr 1fr;gap:10px}',
+    PW + ' .cr-next>.acts.cr-go>.sp-btn{min-height:48px;max-width:none;min-width:0}',
+    PW + ' .cr-next>.acts.cr-go>.sp-btn .sp-t{white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none;display:block;font-size:clamp(14px,4.2vw,17px);line-height:1.1}',
+    // informe del rival (botón del ticket): «Informe» y su ficha caben junto a los escudos; si no, la ficha baja debajo
+    PW + ' .cr-tk .cr-est-b{max-width:100%;height:auto;min-height:44px;padding:4px 10px}',
+    PW + ' .cr-tk .cr-est-b .sp-l{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:2px 8px}',
+    PW + ' .cr-tk .cr-est-b .sp-t{font-size:15px;white-space:nowrap;overflow:visible}',
+    PW + ' .cr-tk .cr-est-b .sp-chip{font-size:12px;white-space:nowrap;overflow:visible;max-width:none}',
+    PW + ' .cr-tk{height:auto;min-height:0}',
+    // Estrellas, fin de semana: una fila por concurso apilada (nombre + estado / marca / botones de 48 en fila de 2 / podio)
+    PW + ' .as-event .as-row.as-rph{grid-template-columns:minmax(0,1fr);grid-template-areas:"t" "m" "a" "p";gap:4px 0;padding:8px 10px}',
+    PW + ' .as-rph>.as-rt{flex-wrap:wrap}',
+    PW + ' .as-rph>.as-rt>.as-rn{white-space:normal;overflow:visible;text-overflow:clip}',
+    PW + ' .as-rph>.acts.as-acts{display:flex;flex-wrap:wrap;gap:10px;margin:6px 0 2px}',
+    PW + ' .as-rph>.acts.as-acts>.sp-btn{flex:1 1 0;min-height:48px;height:auto;--sp-h:48px;max-width:none}',
+    PW + ' .as-rph>.as-pod{flex-wrap:wrap;overflow:visible}',
+    // lesión (Jugador › Estado): Volver antes / Fisio en fila de 2 de 56, la letra pequeña entera
+    PW + ' .inj .acts{display:grid;grid-template-columns:1fr 1fr;gap:12px}',
+    PW + ' .inj .acts>.sp-btn{min-height:56px;max-width:none;min-width:0}',
+    PW + ' .inj .acts .sp-s,' + PW + ' .inj .acts .sp-t{white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:none;display:block}',
+    PW + ' .inj .acts .sp-t{font-size:15px;line-height:1.08}',
+    PW + ' .inj .acts .sp-s{font-size:12px;line-height:1.15}',
+    PW + ' .card.inj>h3{font-size:14px}',
+    // datos clave/valor (.fact) por línea: «Partidos ··· 10» (sin cajas de dos pisos)
+    PW + ' #crBody .fact{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin:8px 0}',
+    PW + ' #crBody .fact>div{display:flex;align-items:baseline;justify-content:space-between;gap:12px;min-width:0;min-height:40px;padding:6px 12px;box-sizing:border-box}',
+    PW + ' #crBody .fact>div>small{flex:1 1 auto;min-width:0;margin:0;font-size:13px;white-space:normal}',
+    PW + ' #crBody .fact>div>b{flex:none;max-width:60%;margin:0;text-align:right;font-size:15px;white-space:normal}',
+    // hojas de la Carrera en vertical (.pv-sheet de VB.Splat.sheet): suelo de letra 12 en las fichas del informe del rival
+    ':root.pv:not(#_):not(#_):not(#_):not(#_) #spSheets .pv-sheet :is(.cr-ests-kv,.sp-kv) .sp-chip{font-size:12px}',
+    // Faro (y mentor) plegado: una tira de una línea [cara 32][título][Ver]; la escena entera, en hoja (pvMentor)
+    PW + ' .cw-mentor.cw-fold{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;min-height:56px;margin:0 0 12px;padding:6px 6px 6px 10px;cursor:pointer}',
+    PW + ' .cw-mentor.cw-fold>div:not(.acts){display:contents}',
+    PW + ' .cw-mentor.cw-fold :is(.cw-who,.cw-line,.cw-more){display:none}',
+    PW + ' .cw-mentor.cw-fold>.acts{display:none}',
+    PW + ' .cw-mentor.cw-fold>:first-child{width:36px;height:36px;flex:none}',
+    PW + ' .cw-mentor.cw-fold h3{grid-column:2;margin:0;font-size:var(--pv-body);line-height:1.2;white-space:normal;overflow:visible;text-overflow:clip}',
+    PW + ' .cw-mentor.cw-fold .cw-pv{grid-column:3;min-width:64px;min-height:44px;margin:0;padding:0 14px;border-radius:12px 15px 11px 16px;background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink),2px 3px 0 2px var(--sp-ink);' +
+      'font:800 14px/1 var(--sp-ui);letter-spacing:.02em;text-transform:none;text-shadow:none}'
   ].join('\n');
   /** El <style> de la Carrera, una vez (al cargar: también lleva la hoja final del partido de Carrera, #end.career). */
   function ensureCss() {

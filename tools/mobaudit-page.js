@@ -264,6 +264,7 @@ function measure(o) {
   cand.forEach(function (e) {
     if (e.closest('[aria-hidden="true"]') && !e.matches('button,a')) return;
     if (e.matches('[tabindex="-1"][aria-hidden="true"]')) return;
+    if (e.closest('[inert]')) return;   // (ronda 2, carrera-marco-v: detrás de una hoja vertical —inert— no se toca ni se mide)
     if (!cvis(e)) return;
     var cs = getComputedStyle(e); if (cs.pointerEvents === 'none') return;
     var r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1) return;
@@ -418,8 +419,10 @@ function measure(o) {
     if (!cvis(r) || r.getBoundingClientRect().width < 10 || r.scrollWidth <= r.clientWidth + 2) return;
     var host = r.closest('.tabs,.sp-tabs,.sp-tabs-strip');
     if (host && host.classList.contains('sp-vtabs')) return;
-    if (host && host.classList.contains('sp-tabs-strip') && r.classList.contains('sp-more-x')) return;
-    if (r.scrollLeft + r.clientWidth >= r.scrollWidth - 2 && r.scrollLeft > 0 && host && host.classList.contains('sp-tabs-strip')) return;   // (al final de la tira)
+    // (ronda 2, carrera-marco-v) en vertical la tira de la Carrera es .pv-tstrip, con desvanecido + chevrón en el borde (.cr-ml / .cr-mr)
+    var strip = !!host && (host.classList.contains('sp-tabs-strip') || host.classList.contains('pv-tstrip'));
+    if (strip && (r.classList.contains('sp-more-x') || host.classList.contains('cr-mr') || host.classList.contains('cr-ml'))) return;
+    if (r.scrollLeft + r.clientWidth >= r.scrollWidth - 2 && r.scrollLeft > 0 && strip) return;   // (al final de la tira)
     res.tabOver.push({ s: sel(host || r), sw: r.scrollWidth, cw: r.clientWidth });
   });
   // (movil-aire §3.13) rótulos NO tocables que se montan unos sobre otros (seña del árbitro, aviso del saque, cinta, consejo, tira de fases)

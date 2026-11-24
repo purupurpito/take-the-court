@@ -1254,3 +1254,63 @@ synctest (55), proftest (96), consignatest (99), ambientetest (124), a11ymarktes
   bajo la barra), pisado transitorio del aviso del Perfil sobre el pie a 360. Los 177 recortes verticales restantes son de maqueta vertical.
 - carrera-pista-honors-stats a 568: el contador «2/31» de la tira sigue a la izquierda (la sub-pestaña activa ya se ve entera).
 - Ajustes › Ambiente con el selector debajo cuando el panel < 600: a 568 cabe en su columna con la ayuda en 2 líneas; no hizo falta.
+
+#### 8.6.3 Paquete carrera-marco-v (24-nov-2026)
+
+Marco de la Carrera en vertical (html.pv) y hub del Partido. PC: todo bajo `:root.pv` y JS tras `VERT()`; pasada de PC de las 133 `carrera-*`
+(1280x720 y 1024x768) idéntica a `pc1` (una sola diferencia de 1 «toque junto», ruido). Horizontal sin cambios de código (las diferencias con
+`r2-recortes/hfull` son de la muestra: Faro en vez de la Selección en el hub).
+
+**Nombres exactos (para carrera-jugador-club-v, carrera-liga-vida-v y carrera-flujo-v)**
+- `js/career-ui.js`: `VERT()` = html.pv (DÓNDE VA en vertical; `PV` es el prefijo CSS `:root.pv` + 3 ids). `PW` = `:root.pv` + **4** `:not(#_)` +
+  `#career`: el prefijo del marco y de todo arreglo vertical (gana a la copia).
+- **Copia del contenido del móvil** (`pvClone()`, `<style id="careerPvCopy">`, al final del `<head>`): cada regla `:root.ph … #career` de
+  TODAS las hojas (career-ui, extensiones, las que se inyectan tarde) se copia como `:root.pv.pv …` (una clase más: gana a PC y a `:root:not(.ph)`),
+  sin las del marco (`PV_SKIP`: `.cr-in/.cr-head/.cr-tabs/.cr-sub/.cr-dock/.cr-mail/.cr-title/.cr-ovr/.cr-hcr`, `#crTabs/#crSub/#crDock`, la raíz
+  `#career`) ni las `.ph-s`/`.ph-w`; en la copia, `text-overflow:ellipsis` → `clip`, su `nowrap` → `normal` y `-webkit-line-clamp` → `unset`
+  (regla sin recortes; salvo selectores con `data-trunc`). Las variables de componentes SPLAT de index.html (`:root.ph … .sp-btn{…}`) se copian
+  como `:root.pv:not(#_):not(#_) #career …` (mismo peso). Las `--ph-*` valen en `#career` vertical con valores fijos (PV_CSS, cabeza del bloque).
+  → En los paquetes siguientes: lo que en vertical deba ser distinto de horizontal, con `PW`; lo de contenido común, en `PQ` y llega solo.
+- **Cabecera** (`renderInner`, con `VERT()`): `.cr-head` en flex que parte: `‹` (`.sp-back`, redondo 44, aria «Volver al menú») · retrato 40
+  (`.pt.cr-pt`) · escudo (`.cr-hcr`) · … · sobre `.cr-mail` (44, globo) · sello `.cr-ovr` 44; debajo `.cr-title` con `<b>` nombre (1 línea) y
+  `<small>` «T1 · Liga · club corto» (parte por palabras). Sin retrato (a medias, crear, prueba), el título va en la fila del ‹. Alto 112 → ~104.
+  Juvenil (career-prologue.js): antetítulo «J3 de 5» y la liga de título; prueba: «Prueba» + nombre.
+- **Barra de apartados** `#crTabs.pv-tbar` (ui.js `fitTabs` con `data-ph-tabs="rail"` en vertical; nunca solo-icono): fila de rejilla abajo
+  (área `tb`), 5 apartados de horizontal con icono 24 + rótulo 12, mancha amarilla detrás del icono, `.dot`, `padding-bottom: --pv-gb`.
+  `data-ph-tabs="strip"` en vertical = `.pv-tstrip` (ofertas, extensiones con pestañas propias: arriba, área `sb`).
+- **Tira** `#crSub` (área `sb`): fondo `--sp-ink` opaco a todo el ancho, `.cr-ml`/`.cr-mr` (desvanecido 20-44 + chevrón dorado de 26) con la
+  activa centrada (`phStrip`, `fitTabs`); con ≤ 4 que caben, `.cr-seg` (segmentado). Tercer nivel: el componente que ya existe `lgPick()` →
+  `.cr-lgp` («‹ España · Hiperliga 2 ›», el valor abre la hoja `lgsheet`); en vertical se ve con la copia.
+- **Rejilla** `.cr-in`: filas `hd / sb / bd / dk / tb` (`#career` sin padding lateral; cada zona lleva `--pv-g`). Cuerpo `.cr-body` con 22 arriba
+  (los sellos asoman). **Dock** `#crDock` (área `dk`, encima de la barra): principal `flex:3`, secundarios `flex:2` (`--sp-px:8px`), texto en 2
+  líneas sin cortar palabras; una sola acción a todo el ancho. Las decisiones (`phDecide`) siguen llevando su par al dock.
+- **Faro plegado** (`pvAfter()` → `.cw-mentor.cw-fold` + botón `.cw-pv` «Ver»): tira de una línea [cara][título][Ver] detrás de la franja de
+  decisión o del ticket; tocarla abre `pvMentor()` = `VB.Splat.sheet` con quién, la frase entera y los botones de la escena (pulsan los de la tarjeta).
+- **Ticket** (`phKick` con `VERT()`): dos fichas `.pv-kc` («J5/14 · Sets a 21» / «8º · IA Fácil») dentro del padding; rejilla `k / s x / t`:
+  escudos + Informe (la ficha baja debajo si no cabe) y el rival a todo el ancho en una línea («en Voley Socuellamino»).
+- Otros: pastillas `.st-chips` enteras (hasta 3 líneas, 48); secundarios del cuerpo (Jugar/Simular con decisión, Mirar, Ver los 6) de 48 en
+  fila de 2; Estrellas › fin de semana apilado; lesión con Volver antes / Fisio de 56 y la letra pequeña entera; `.fact` clave/valor por línea;
+  atributos en una columna; «?» de la propuesta fuera del texto; a medias con «Regional · J5/14», centrada y «Seguir el partido» a todo el ancho;
+  aviso del colocador (index.html): «No mostrar más» como enlace, «Más» separado de Activar.
+- **Arnés**: `pest` acepta la tira vertical (`.pv-tstrip` con `.cr-ml/.cr-mr`); lo que está bajo `[inert]` (detrás de una hoja vertical) ya no
+  cuenta como objetivo (solapes y tapados falsos). `girotest` +6: barra abajo con Liga elegida, tira y cabecera ≤ 120, giro 390x844 ↔ 844x390
+  que conserva Liga › Jornadas, la copia presente.
+
+**Métricas** (`…/movil2/r2-marco/`: `v` = vertical de las 133 `carrera-*`, 3 tamaños, DPR 2; `pc`; `h` = H de 31 ids)
+
+| pasada | recortes no perm. | < 12 | < 44 | solapes | tapados | pisados | girar |
+|---|---|---|---|---|---|---|---|
+| v1 → **v** (toda la Carrera) | 227 → **128** | 570 → **184** | 70 → **32** | 25 → 12 | 134 → 12 | 36 → 40 | 0 fuera del partido (banquillo y previas: «girar (partido)») |
+| ids del paquete (22 × 3) | 21 → **0** | 44 → **0** | 0 | 0 | – | 0 | 0; principal SÍ en todas; tapado-pie 0 |
+
+Cabecera, barra y tira: 0 recortes en toda la Carrera vertical; sin desplazamiento lateral nuevo (fuera 3 = 3). Pruebas: csscheck, careertest,
+storytest, storyuitest, storymsgtest (113), storyweektest (86), storyseasontest (83), storywalltest (88), worldtest (155), lifetest (110),
+natltest (180), injurytest (146), loantest (188), allstartest (210), racetest (2485), devtest (237), prologuetest (1807), a11ymarktest (28),
+girotest (26): todas OK.
+
+**Pendiente** (para los paquetes de zona): los 128 recortes que quedan en vertical son de ofertas (chips, «3 temporadas», nombre), premios-datos /
+league-race (club pequeño con «…»), hojas finales (#end: fichas «8 × Remate ganado», < 12), previas (ROC/SOL), natl-clasif (tabla), league-cal,
+crear (parche «Crear jugador» `o`), ficha/rencor de club (chips `o`), look («En playa · Tupé»); < 44 en honors-opts (7-8) y crear-juvenil (3);
+`< 14` sube (rótulos de 12-13 de la barra, fichas y tira: dentro de lo permitido). Lesión: el sello «De baja ◆ Esguince…» sigue en 2 líneas
+(no cabe en una con el «?»; la franja de 1 línea queda para carrera-jugador-club-v). Faro en hoja: «Seguir» de una escena de varias frases
+cierra la hoja (hay que volver a tocar «Ver»).

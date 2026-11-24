@@ -1149,7 +1149,9 @@
     var un = unreadChat(c), body = tab === 'team' ? renderTeam(c, h) : tab === 'chat' ? renderChat(c, h) : renderSeason(c, h);
     note = '';
     var m = p.m[Math.min(4, p.i)], x = p.cast;
-    return { view: tab, head: head(h, ['Juvenil', 'J' + (p.i + 1) + ' de 5', m && (m.id === 'sf' || m.id === 'f' || m.id === 'p3' || !m.id) ? x.comp.cup : x.comp.lg], 'Juvenil'),
+    var lgN = m && (m.id === 'sf' || m.id === 'f' || m.id === 'p3' || !m.id) ? x.comp.cup : x.comp.lg;
+    var pvV = !!(VB.Splat && VB.Splat.pv && VB.Splat.pv());   // (ronda 2, vertical: antetítulo de una pieza «J3 de 5» y la liga de título)
+    return { view: tab, head: pvV ? head(h, ['J' + (p.i + 1) + ' de 5'], lgN) : head(h, ['Juvenil', 'J' + (p.i + 1) + ' de 5', lgN], 'Juvenil'),
       tabs: [['season', 'Temporada', false], ['team', 'Equipo', false], ['chat', 'Chat', tab !== 'chat' && un > 0]], tab: tab, body: body };
   }
   function twoTap(k) { if (armed(k)) { arm = { k: '', t: 0 }; return true; } arm = { k: k, t: now() }; return false; }

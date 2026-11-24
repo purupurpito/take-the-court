@@ -4653,9 +4653,20 @@
     if (api.el.classList.contains('sp-vtabs') !== (ph && phm === 'rail')) api.el.classList.toggle('sp-vtabs', ph && phm === 'rail');
     if (api.el.classList.contains('sp-tabs-strip') !== (ph && phm === 'strip')) api.el.classList.toggle('sp-tabs-strip', ph && phm === 'strip');
     if (phm && !ph && S && S.shorten) S.shorten(api.el, true);   // (vuelven los rótulos largos)
+    // (ronda 2, carrera-marco-v) vertical (html.pv): "rail" → barra inferior de apartados (.pv-tbar) y "strip" → tira de arriba (.pv-tstrip);
+    // nunca solo-icono. Sin .pv se quitan (PC y apaisado como antes)
+    var pvm = !!phm && !ph && document.documentElement.classList.contains('pv');
+    if (api.el.classList.contains('pv-tbar') !== (pvm && phm === 'rail')) api.el.classList.toggle('pv-tbar', pvm && phm === 'rail');
+    if (api.el.classList.contains('pv-tstrip') !== (pvm && phm === 'strip')) api.el.classList.toggle('pv-tstrip', pvm && phm === 'strip');
     if (api.el.offsetParent === null) return;
     var row = api.el.querySelector('.tb-row'); if (!row) return;
     api.el.classList.remove('tabs-ic');
+    if (pvm) {
+      if (S && S.more) S.more(row);
+      var onv = row.querySelector('.tab.on');
+      if (onv && phm === 'strip' && row.scrollWidth > row.clientWidth + 2) { try { var rr = row.getBoundingClientRect(), br = onv.getBoundingClientRect(); row.scrollLeft += (br.left + br.width / 2) - (rr.left + rr.width / 2); } catch (e) { } }
+      return;
+    }
     if (ph) {
       var on = row.querySelector('.tab.on');
       if (phm === 'strip' && S && S.shorten) {
