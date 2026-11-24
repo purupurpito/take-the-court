@@ -33,7 +33,20 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
     ok(await p.evalJs("(document.querySelector('#acUser')||{}).value") === 'girador7' && await p.evalJs("(document.querySelector('#acPass')||{}).value") === 'secreto123', 'cuenta: el usuario y la contraseña siguen tras girar a apaisado');
     await p.setSize('390x844', true, 1); await sleep(700);
     ok(await p.evalJs("(document.querySelector('#acUser')||{}).value") === 'girador7', 'cuenta: siguen tras volver a vertical');
+    // (ronda 2, paneles-v) la cuenta en vertical: hoja con lo de detrás inert; al cerrarla, nada inert
+    ok(await p.evalJs("document.getElementById('app').hasAttribute('inert')"), 'cuenta en vertical: lo de detrás inert');
     await p.evalJs("VB.Account.close()");
+    ok(await p.evalJs("!document.getElementById('app').hasAttribute('inert')"), 'cuenta cerrada: nada inert');
+    // (ronda 2, paneles-v) Ajustes: en vertical el interruptor y el segmentado de 3 a todo el ancho; al girar se rehacen
+    await p.evalJs("(async()=>{ await __MA.ensureMenu(); await __MA.panel('#btnSettings','#pnSet','#setTabs','game'); })()", true); await sleep(400);
+    const sv1 = await p.evalJs("JSON.stringify({tg:!!document.querySelector('#optList [data-opt=showHelp] .ph-proxy.sp-toggle'), sec:(document.getElementById('pnSec')||{}).textContent, amb:(function(){var r=document.querySelector('#optList [data-opt=ambient]');return r?(r.querySelector('.ph-proxy.sp-select')?'select':r.querySelector('.seg:not(.ph-hid)')?'seg':'?'):'-'})()})");
+    ok(/"tg":true/.test(sv1) && /"sec":"Juego"/.test(sv1), 'Ajustes en vertical: interruptor en la fila y «Juego» de título: ' + sv1);
+    await p.setSize('844x390', true, 1); await sleep(700);
+    const sv2 = await p.evalJs("JSON.stringify({tg:!!document.querySelector('#optList [data-opt=showHelp] .ph-proxy.sp-toggle'), tab:(document.querySelector('#setTabs .tab.on')||{}).getAttribute&&document.querySelector('#setTabs .tab.on').getAttribute('data-tab'), rail:!!document.querySelector('#setTabs.sp-vtabs')})");
+    ok(/"tg":true/.test(sv2) && /"tab":"game"/.test(sv2) && /"rail":true/.test(sv2), 'Ajustes al girar a apaisado: raíl, la misma pestaña e interruptor: ' + sv2);
+    await p.setSize('390x844', true, 1); await sleep(700);
+    ok(await p.evalJs("!!document.querySelector('#optList [data-opt=showHelp] .ph-proxy.sp-toggle') && !document.querySelector('#setTabs.sp-vtabs') && (document.getElementById('pnSec')||{}).textContent==='Juego'"), 'Ajustes al volver a vertical: interruptor, sin raíl, «Juego»');
+    await p.evalJs("(async()=>{ await __MA.ensureMenu(); })()", true); await sleep(200);
     // Carrera: abrir en vertical (sin aviso de girar) y girar
     ok(await p.evalJs("(async()=>{ if(!__MA.seedCareer('beach')) return false; return await __MA.career('match'); })()", true), 'Carrera abierta en vertical');
     await sleep(300);

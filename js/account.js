@@ -465,7 +465,7 @@
   function showConflicts(r) {
     if (!conflicts.length) return;
     build(); pending = conflicts[0]; pendRes = { remote: false, enter: { changed: !!(r && r.changed) } }; view = 'conflict'; render();
-    lastFocus = document.activeElement; root.hidden = false;
+    lastFocus = document.activeElement; root.hidden = false; syncInert();
   }
   function signOut() { acc = null; dirty = {}; jset(SES, null); jset(SES + '.out', Date.now()); setStatus('off'); }
   function lost() { acc = null; jset(SES, null); setStatus('off'); toast('Se ha cerrado la sesión de tu cuenta. Vuelve a entrar desde «Cuenta».'); }
@@ -507,7 +507,7 @@
   function setStatus(s, e) { status = acc ? s : 'off'; lastErr = e ? errText(e) : ''; listeners.forEach(function (f) { try { f(status); } catch (x) { } }); refreshBtn(); if (root && !root.hidden && view === 'in') render(); }
   var toastT = 0;
   function toast(msg) {
-    if (phone() && VB.Splat && VB.Splat.toast) { try { VB.Splat.toast(esc(msg), { key: 'acc' }); return; } catch (e) { } }
+    if (mob() && VB.Splat && VB.Splat.toast) { try { VB.Splat.toast(esc(msg), { key: 'acc' }); return; } catch (e) { } }
     var t = document.getElementById('accToast');
     if (!t) { t = document.createElement('div'); t.id = 'accToast'; t.setAttribute('role', 'status'); document.body.appendChild(t); }
     t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 3500);
@@ -519,7 +519,18 @@
   // pintura (.sp-btn); la ✕ es una pegatina fuera de la hoja y la fila de abajo (Entrar / Hecho) se queda pegada al borde: con poco alto
   // la hoja se desplaza por dentro sin que se vayan. Teléfono apaisado bajo: dos columnas (título y Google | formulario).
   var P = ':root:not(#_):not(#_):not(#_) ', PP = ':root.ph' + P.slice(5);   // (PP: móvil, html.ph)
+  var PV = ':root.pv' + P.slice(5);   // (ronda 2, paneles-v: móvil en vertical, html.pv)
   function phone() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  /** (ronda 2, paneles-v) contenido del móvil (apaisado o vertical): la disposición de phHTML, los textos de ejemplo y los avisos */
+  function mob() { return !!(VB.Splat && VB.Splat.mob && VB.Splat.mob()); }
+  function pvOn() { return !!(VB.Splat && VB.Splat.pv && VB.Splat.pv()); }
+  /** (ronda 2, paneles-v) en vertical la cuenta es una hoja a pantalla casi completa: lo de detrás, inert (no se toca ni se lee) */
+  var unInert = null;
+  function syncInert() {
+    var on = !!(root && !root.hidden && pvOn() && VB.Splat.inertBehind);
+    if (on && !unInert) unInert = VB.Splat.inertBehind(root);
+    else if (!on && unInert) { unInert(); unInert = null; }
+  }
   var CSS = [
     '#account{position:fixed;inset:0;z-index:190;display:flex;align-items:center;justify-content:center;padding:calc(14px + var(--st,0px)) calc(14px + var(--sr,0px)) calc(14px + var(--sbm,0px)) calc(14px + var(--sl,0px));',
     'background:rgba(21,16,42,.34);font-family:var(--sp-ui,system-ui,sans-serif)}',
@@ -674,6 +685,61 @@
     'body #account .ac-syncb:focus-visible{outline:2.5px solid var(--sp-gold);outline-offset:3px}',
     PP + '#account .ac-two .ac-sheet:has(.ac-del) .ac-c2{grid-column:1/-1;padding-right:0;min-height:0}',
     PP + '#account .ac-two .ac-sheet:has(.ac-del) .ac-c1{padding-bottom:10px;max-width:min(100%,420px)}',
+    // — móvil en VERTICAL (ronda 2, paneles-v; notes/movil-aire.md §8.4 y §8.6.8): hoja a pantalla casi completa anclada abajo, velo opaco
+    // al 70 % (lo de detrás, inert: syncInert), ✕ de 44 dentro arriba a la derecha, los textos de ejemplo de horizontal, campos de 52 y la
+    // acción principal abajo a todo el ancho con la barra de gestos. Con sesión: Sincronizar principal, Cerrar sesión secundaria y «Borrar
+    // la cuenta» como enlace al final. Borrar: «No, volver» y «Sí, borrar la cuenta» apilados (primero el seguro)
+    PV + '#account{align-items:flex-end;justify-content:center;padding:calc(var(--pv-gt) + 24px) 0 0;background:rgba(10,6,24,.7)}',
+    PV + '#account .ac-wrap,' + PV + '#account .ac-wrap.ac-two{width:100%;max-width:none;height:calc(100dvh - var(--pv-gt) - 24px);max-height:none}',
+    PV + '#account .ac-sheet{display:flex;flex-direction:column;padding:18px var(--pv-g) 0;border-radius:20px 20px 0 0;background:#1b1534;box-shadow:0 -2px 0 rgba(255,244,220,.18)}',
+    PV + '#account .ac-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+    PV + '#account .ac-x{position:absolute;top:12px;right:12px;z-index:3;width:44px;--sp-h:44px;--sp-px:0}',
+    PV + '#account p{font-size:15px;line-height:1.4}',
+    PV + '#account .ac-tabs{flex:none;margin:0 56px 14px 0;gap:10px}',
+    PV + '#account .ac-tabs .sp-tab{--sp-tbh:48px;--sp-tbs:15px}',
+    PV + '#account .ac-g{flex:none;min-height:52px;margin:0 0 12px;font-size:16px}',
+    PV + '#account .ac-or{flex:none;margin:0 0 12px;font:700 13px/1 var(--sp-ui);letter-spacing:0;text-transform:none}',
+    PV + '#account #acForm{flex:1 1 auto;display:flex;flex-direction:column;min-height:0}',
+    PV + '#account label{margin:0 0 6px 2px;font-size:13px;letter-spacing:.04em}',
+    PV + '#account input{flex:none;height:52px;margin:0 0 14px;font-size:17px}',
+    PV + '#account input::placeholder{color:rgba(21,16,42,.45);font-size:15px}',
+    PV + '#account .ac-hint{margin:-6px 0 12px 2px;font:600 13px/1.3 var(--sp-ui);color:#ffe08a}',
+    PV + '#account .ac-err{font-size:15px}',
+    PV + '#account .ac-acts{position:sticky;bottom:0;z-index:2;display:flex;flex-direction:column;flex-wrap:nowrap;align-items:stretch;gap:12px;margin:auto calc(-1 * var(--pv-g)) 0;padding:12px var(--pv-g) calc(var(--pv-gb) + 12px);background:linear-gradient(rgba(27,21,52,0),#1b1534 18px)}',
+    PV + '#account .ac-acts .ac-link{order:0;align-self:center;margin:0;padding:0 8px;font-size:14px;white-space:normal;text-align:center}',
+    PV + '#account .ac-acts .ac-l2{display:flex;flex-direction:column;align-items:center;gap:2px;text-align:center}',
+    PV + '#account .ac-acts .ac-note{display:block;font:600 13px/1.3 var(--sp-ui);color:#ffe08a;white-space:normal}',
+    PV + '#account .ac-sheet:has(#acHint:not([hidden])) .ac-note{display:none}',
+    PV + '#account .ac-sheet .sp-btn{--sp-h:48px;--sp-fs:15px}',
+    PV + '#account .ac-acts .sp-btn{width:100%;margin:0;justify-content:center}',
+    PV + '#account .ac-acts .sp-btn.pri{order:1;--sp-h:56px;--sp-fs:18px}',
+    // con sesión
+    PV + '#account .ac-two .ac-sheet{display:flex;flex-direction:column}',
+    PV + '#account .ac-two .ac-c1{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding-bottom:12px}',
+    PV + '#account .ac-two .ac-c2{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;padding-bottom:calc(var(--pv-gb) + 8px)}',
+    PV + '#account .ac-user{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:12px;margin:0 56px 4px 0;padding:10px 14px;box-sizing:border-box}',
+    PV + '#account .ac-av{width:48px;height:48px;font-size:24px}',
+    PV + '#account .ac-user b{font-size:18px;-webkit-line-clamp:2;overflow-wrap:anywhere}',
+    PV + '#account .ac-sync{display:inline-flex;align-items:center;gap:6px;margin-top:5px;padding:3px 9px;border-radius:7px 10px 7px 9px;background:rgba(21,16,42,.1);color:var(--sp-ink);font:700 13px/1.2 var(--sp-ui)}',
+    PV + '#account .ac-sync::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:#1cc4b4;box-shadow:0 0 0 1.5px var(--sp-ink)}',
+    PV + '#account .ac-sync.busy::before{background:var(--sp-gold)}' + PV + '#account .ac-sync.err::before{background:#ff6a5a}',
+    PV + '#account .ac-row2{display:flex;flex-direction:column;align-items:stretch;gap:12px;width:100%}',
+    PV + '#account .ac-row2 .ac-syncb{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;height:56px;margin:0;padding:0 16px;border:0;border-radius:16px 20px 15px 19px/18px 15px 20px 16px;background:var(--sp-kit,#ff5a2c);color:var(--sp-ink);' +
+      'box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);font:400 18px/1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;cursor:pointer}',
+    PV + '#account .ac-row2 .ac-syncb svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}',
+    PV + '#account .ac-row2 .ac-syncb:disabled{opacity:.55}',
+    PV + '#account .ac-row2 .sp-btn{width:100%;--sp-h:48px;margin:0 0 10px;justify-content:center}',
+    PV + '#account .ac-quiet{margin:auto 0 0;align-self:center;min-height:44px;padding:0 8px;border:0;background:none;color:#ffa3ad;font:700 14px/1.2 var(--sp-ui);text-decoration:underline;text-underline-offset:3px;cursor:pointer}',
+    PV + '#account .ac-del{margin:0 0 4px;padding:12px 14px;border-radius:12px 16px 11px 15px/14px 11px 16px 12px;background:#2a1530;box-shadow:0 0 0 3px var(--sp-danger),3px 4px 0 3px var(--sp-ink)}',
+    PV + '#account .ac-del h3{margin:0 0 6px;font:400 20px/1.1 var(--sp-pop);color:#ffb3bc;text-shadow:2px 2px 0 var(--sp-ink)}',
+    PV + '#account .ac-del p{margin:0}',
+    PV + '#account .ac-two .ac-sheet>.ac-dacts{margin-top:auto}',
+    PV + '#account .ac-dacts [data-ac=cancel]{order:0}' + PV + '#account .ac-dacts [data-ac=delYes]{order:2}',
+    PV + '#account .ac-gcw{width:100%}',
+    PV + '#account .ac-gc .ac-h{--sp-hs:var(--pv-title);margin:0 56px 10px 0}',
+    PV + '#account .ac-gc .ac-acts{flex-direction:column}',
+    PV + '#account .ac-gc .ac-go{order:0;width:100%;min-height:56px;font-size:18px}',
+    ':root.pv:has(#account:not([hidden])) #btnVer{visibility:hidden}',
     '@media (prefers-reduced-motion:reduce){#account .ac-g,#account .ac-user{transition:none}}'
   ].join('');
   var root = null, view = 'enter', tab = 'in', busy = false, msg = '', pending = null, lastFocus = null;
@@ -756,7 +822,7 @@
     return h + '<button type="button" class="ac-x sp-btn sp-cream sp-sq" data-shape="1" data-ac="close" aria-label="Cerrar"' + (busy ? ' hidden' : '') + '>' + XIC + '</button></div>';
   }
   function render() {
-    var hp = view === 'gconfirm' ? gcHTML() : phone() ? phHTML() : null;
+    var hp = view === 'gconfirm' ? gcHTML() : mob() ? phHTML() : null;   // (ronda 2: la disposición del móvil también en vertical)
     var h = '<div class="ac-wrap"><div class="ac-sheet sp-panel">';
     if (hp) h = '';
     else if (view === 'conflict' && pending) {
@@ -871,12 +937,12 @@
   function focusFirst() { try { var i = root.querySelector('#acUser') || root.querySelector('[data-ac=close]'); if (i) i.focus({ preventScroll: true }); } catch (e) { } }
   function open() {
     build(); view = acc ? 'in' : 'enter'; msg = ''; render();
-    lastFocus = document.activeElement; root.hidden = false; focusFirst();
+    lastFocus = document.activeElement; root.hidden = false; syncInert(); focusFirst();
     gWarm();
   }
   function close() {
     if (!root || root.hidden) return;
-    root.hidden = true;
+    root.hidden = true; syncInert();
     try { if (lastFocus && lastFocus.focus) lastFocus.focus({ preventScroll: true }); } catch (e) { }
   }
   function isOpen() { return !!(root && !root.hidden); }
@@ -908,7 +974,7 @@
     refreshBtn(); placeBtn(); setInterval(placeBtn, 700);
   }
 
-  document.addEventListener('vb:ph', function () { if (root && !root.hidden) render(); });
+  document.addEventListener('vb:ph', function () { if (root && !root.hidden) render(); syncInert(); });
   function boot() {
     build(); initBtn();
     try { var t = sessionStorage.getItem('make-the-cut.account.toast'); if (t) { sessionStorage.removeItem('make-the-cut.account.toast'); setTimeout(function () { toast(t); }, 900); } } catch (e) { }
@@ -941,8 +1007,8 @@
       o = o || {}; build(); var save = acc;
       if (v === 'in' || v === 'del') acc = { user: o.user || 'jugadora7@correo.es', kind: o.kind || 'mail', uid: 'preview', rt: 'preview' };
       view = v === 'del' ? 'del' : v === 'in' ? 'in' : v === 'gconfirm' ? 'gconfirm' : 'enter'; tab = o.tab || 'in'; msg = o.msg || ''; busy = !!o.busy; lastSync = Date.now() - 120000;
-      render(); acc = save; busy = false; lastFocus = document.activeElement; root.hidden = false; return true;
+      render(); acc = save; busy = false; lastFocus = document.activeElement; root.hidden = false; syncInert(); return true;
     },
-    _showConflicts: function (list) { conflicts = (list || []).slice(); if (!conflicts.length) return false; build(); pending = conflicts[0]; pendRes = { remote: false, enter: null }; view = 'conflict'; render(); lastFocus = document.activeElement; root.hidden = false; return true; }
+    _showConflicts: function (list) { conflicts = (list || []).slice(); if (!conflicts.length) return false; build(); pending = conflicts[0]; pendRes = { remote: false, enter: null }; view = 'conflict'; render(); lastFocus = document.activeElement; root.hidden = false; syncInert(); return true; }
   };
 })();

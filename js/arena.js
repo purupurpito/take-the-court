@@ -3203,6 +3203,7 @@
     // Vestuario (vista previa del muñeco en el menú): los marcadores, apagados al 12 %. Revisión final: el colgado («LOCAL 0 VISITA 0»)
     // quedaba justo detrás de la cabeza en los encuadres de pelo y cara y competía con ella.
     var shw = ctx.state === 'menu' && VB.Doll && VB.Doll.preview && VB.Doll.preview.active && VB.Doll.preview.active();
+    if (shw) RT.pvLook = document.documentElement.classList.contains('pv');
     for (var i = 0; i < screens.vis.length; i++) {
       var S = screens.vis[i], want = 1;
       if (!S.top) { S.top = VB.toThree(S.x, S.y, S.z1, new THREE.Vector3()); S.bot = VB.toThree(S.x, S.y, S.z0, new THREE.Vector3()); } // fijos: una vez
@@ -3224,7 +3225,8 @@
       }
       if (shw && want > 0.12) want = 0.12;
       S.v += (want - S.v) * (rdt > 0 ? k : 1);
-      var mv = 0.02 + 0.98 * S.v, dw = mv - S.w;
+      // (ronda 2, paneles-v: en el Vestuario en vertical táctil la pantalla queda justo detrás de la cabeza: negra del todo, sin «LOCAL 0 VISITA 0»)
+      var mv = shw && RT.pvLook ? 0 : 0.02 + 0.98 * S.v, dw = mv - S.w;
       if (dw > 1e-4 || dw < -1e-4) { // asentada: sin escribir uniformes cada frame (cada double nuevo es un HeapNumber)
         S.w = mv;
         for (var m = 0; m < S.mats.length; m++) S.mats[m].uniforms.vis.value = mv;

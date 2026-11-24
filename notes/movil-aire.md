@@ -1542,3 +1542,63 @@ a11ymarktest (28), badgetest (53), girotest (26), keytest (44): todas OK.
 - Jugar sigue con el título héroe «JUGAR» arriba y «Volver» abajo a la izquierda (escenario de marketing, como pedía el informe); no es `.pv-bar`.
 - Opiniones y Cómo se juega dejan aire dentro de la tarjeta cuando el texto es corto (la tarjeta llena hasta la barra de abajo).
 - La lista de salas usa la maqueta de PC (no la de `viewPH`): si se toca la de PC, mirar el vertical.
+
+#### 8.6.8 Paquete paneles-v (24-nov-2026)
+
+Ajustes, Controles (el editor táctil pide girar), Vestuario, Perfil, Retos y Cuenta en vertical (html.pv). CSS en el bloque «RONDA 2 · paquete
+«paneles-v»» al final del `<style>` de `index.html` (prefijo `:root.pv` + 5 `:not(#_)`); la cuenta, en el CSS de `js/account.js` (prefijo `PV`);
+el aviso del editor, en el CSS de `js/input.js`. JS tras `mob()` / `pv()`. PC idéntico a `pcbase`; horizontal igual (y 12 px entre la barra del
+editor y la lupa a < 640, antes 9).
+
+**Hecho**
+- *Común*: cabecera compacta de menus-v también en Ajustes / Controles (lista `:is([data-pn=…])` del bloque menus-v + `set`, `ctl`) y en
+  `#mpLook` / `#mpProf` / `#mpRetos` (‹ redondo de 44 + título de 1 línea sobre franja de tinta hasta el notch); pestañas sobre franja opaca.
+- *Ajustes*: `VB.Splat.fitSeg` vale con `mob()` (en vertical se vuelve a decidir al girar: `_pv`); en vertical sí/no → interruptor en la fila
+  del título (la fila entera se toca), 2-3 opciones → segmentado en su fila a todo el ancho (una casilla por opción: COMPLETO / TRANQUILO /
+  APAGADO), 4 → segmentado si cabe, 5+ → selector ‹ valor › a todo el ancho con el «ahora» (`phNow` con `mob()`, solo si hay selector);
+  descripciones ENTERAS (helpFit sigue solo apaisado); deslizadores a todo el ancho con el % en columna fija (1fr 3.5em) y el silencio en la
+  fila del título; 7 pestañas solo icono de 44 (el rótulo, oculto para la vista y no para el lector) y el nombre del apartado de título
+  (`#pnSec`, `.pv-only`, lo pone `setTab`); panel hasta abajo; Equipación con muestras de 44 desde la izquierda; Info con título y valor en
+  la misma fila. Al girar con Ajustes abierto: `renderOpts` + `setTab` (vb:ph).
+- *Controles*: Táctil | Teclado | Mando en segmentado de 3 («en uso» en chapa); Teclado / Mando en una columna con teclas de 44; Táctil en
+  tarjetas (nombre + chips arriba, la descripción entera debajo: `renderCtl` usa la rama `.ctl-t` con `mob()`).
+- *Editor táctil*: en vertical, aviso propio `.vte-rot` (estilo de #rotate) «Gira el móvil para colocar los botones como en el partido» +
+  «Volver» (`close(true)`: cierra sin guardar; lo soltado ya se guardaba al soltarlo); lo de detrás inert; nada se arrastra. Al girar,
+  el editor normal. Arnés: `.vte-rot` cuenta como «girar (partido)» y la salida es `.vte-ok, .vte-back`.
+- *Vestuario*: muñeco en el 38 % de arriba (`--lky`), UNA fila de 44 bajo él [⟲ ↻ ⟳] … [Probar · azar · ⋯] (`lkPlace`: en vertical táctil,
+  filas → el hueco acaba encima), jugador/sede, 7 pestañas de icono y la lista de una línea con flex:1; nota de Colores arriba en panel
+  oscuro; marcadores del pabellón negros del todo en el Vestuario vertical (`arena.js`, `RT.pvLook`: vis 0; antes 12 %, se leía «LOCAL 0
+  VISITA 0» detrás de la cabeza); avisos en `#spToasts` (`lkNote`/`pfNote` con `mob()`), de uno en uno, bajo la cabecera.
+- *Perfil*: tarjeta en 3 líneas sin «…» (contadores como fichas: `sepHTML(…,'c')` en vertical), vitrina en fila, 8 pestañas en rejilla 4×2
+  (rótulo corto + contador; `pfTabItems` y `pfGroup` con `mob()`), álbum en 3 columnas a 13 px que se desplaza; Cuaderno con la ficha
+  elegida en panel oscuro a todo el ancho y «Fijar en la vitrina» abajo; se repinta al girar.
+- *Retos*: segmentado de 3; pie con fondo y --pv-gb (cada dato en su línea). Hoy: sello de 104 con la fecha, sede en 2 líneas, sin la
+  doble «Oro:», ¡A JUGAR! fijo abajo (clamp 28-44, sin «…»). Maestría: «Aces en un partido» / «récord 0 · bronce 2» a 13. Semana: ¡A jugar!
+  fijo abajo (`.sem-l`/`.sem-acts` en `display:contents`), Compartir con icono + texto en la fila de los intentos, mapa en panel oscuro a todo
+  el ancho (28dvh: las 6 zonas y la RED a la vista a 390), título sin contorno.
+- *Cuenta*: la disposición del móvil (`phHTML`) con `mob()`: mismos textos de ejemplo; hoja a pantalla casi completa con velo al 70 % y lo de
+  detrás inert (`syncInert`, también en `_preview` / conflictos y al girar); ✕ dentro; principal abajo a todo el ancho; con sesión,
+  Sincronizar principal, Cerrar sesión secundaria y «Borrar la cuenta» como enlace al final; borrar: «No, volver» y «Sí, borrar» apilados.
+- *girotest* +5: cuenta inert / nada inert al cerrar; Ajustes interruptor + «Juego» de título, giro a apaisado (raíl, misma pestaña) y vuelta.
+
+**Métricas** (`…/movil2/r2-paneles/`: `v` = 36 ids × 360/390/412 DPR 2; `h` = × 568/844/915; `pc` = × 1280/1024/1920 DPR 1)
+
+| pasada | recortes no perm. | < 12 | < 44 | solapes | tapados | pisados | tapado-pie | despl. lateral | girar |
+|---|---|---|---|---|---|---|---|---|---|
+| v1 → **v** | 63 → **0** | 174 → **0** | 57 → **0** | 93 → **0** | 123 → **0** | 4 → 0 | 0 → 0 | 0 | solo el editor («girar (partido)», esperado) |
+| r2-recortes/hfull → **h** | 0 → 0 | 0 → 0 | 0 → 0 | 48 → 48 | 39 → 39 | 0 → 0 | 0 → 0 | igual | – |
+| pcbase → **pc** | igual (solo `o` nuevos del arnés) | 645 → 645 | 143 → 143 | 72 → 72 | 123 → 123 | – | – | – | ruido de controles-keyboard (< 14 53 → 52); a ojo, igual |
+
+Principal y salida SÍ en todas (también tras desplazar); «con scroll» V 124 → 48. `< 14` y «toques juntos» suben en V (rótulos de 12-13 y
+pestañas de icono de 44 con 2 px de hueco; interruptores en filas contiguas).
+
+**Pruebas** (primer plano): csscheck, settest (86), touchtest (34), touchedittest (52), keytest (44), padtest (54), a11ymarktest (28),
+looktest, kittest (34), proftest (96), retotest (87), semanatest (66), synctest (55), googletest (72), consignatest (99), ambientetest (124),
+audiotest, girotest (31): todas OK.
+
+**Pendiente**
+- Hoy: el balón del sello pisa un poco el «2» de «24 NOV» a 104 px.
+- Cuenta sin sesión: la hoja casi completa deja aire entre los campos y la acción (a propósito: acción en la zona del pulgar).
+- Vestuario: las filas usan la mancha de PC (el «churretón» queda por debajo del texto); a 360 se ven ~4,5 filas (5-6 a 390-412).
+- Editor: el 6v6 (botón Pedir) en vertical sale igual (solo el aviso); no probado el giro con un arrastre a medias en un móvil real.
+- La pausa › Ajustes (partido-v) hereda esta maqueta sin revisar a ojo.

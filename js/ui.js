@@ -4717,6 +4717,9 @@
     fitAllTabs(); heroDirty = true; if (panel === 'tut' && !el.panel.hidden) tutGo(tut.i);
     // (ronda 2, menus-v: al girar, la línea corta de JUGAR, las pestañas de Jugadores y el desplazamiento de Partido rápido de vertical)
     try { if (ctx.state === 'menu' && mpage === 'main') syncHero(); if (panel === 'squad' && !el.panel.hidden) renderSquad(); } catch (e) { }
+    try { if (ctx.state === 'menu' && mpage === 'prof') pfRender(true); } catch (e) { }   // (ronda 2, paneles-v: Perfil, fichas y pestañas de vertical)
+    // (ronda 2, paneles-v: Ajustes rehace sus textos y controles al girar —interruptor / segmentado / selector según el ancho—)
+    try { if (panel === 'set' && !el.panel.hidden) { renderOpts(); setTab(setTabs ? setTabs.get() : 'audio'); } } catch (e) { }
     if (mpage === 'quick' && phPv() && VB.Splat && VB.Splat.more) { var qo = document.querySelector('#mpQuick .sp-opts'); if (qo) VB.Splat.more(qo); }
   });   // (móvil: al entrar o salir del tier, columna / tira / barra)
   // (vb:tier: también al cruzar 345 de alto (.ph-s) o 800 de ancho (.ph-w); p. ej. la barra del navegador a 667×375. Solo lo que monta
@@ -5025,7 +5028,8 @@
     if (!t) { el.lkNote.classList.remove('on'); lkNT = 0; return; }
     lkNT = t.length > 40 ? 3.4 : 2.6;
     // móvil: al carril de avisos de arriba a la derecha (VB.Splat.toast)
-    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.lkNote.classList.remove('on'); el.lkNote.textContent = t; lkNoteApi = VB.Splat.toast(escT(t), { key: 'lknote', ms: lkNT * 1000 }); return; }
+    if (VB.Splat && VB.Splat.mob && VB.Splat.mob() && VB.Splat.toast) { el.lkNote.classList.remove('on');   // (ronda 2, paneles-v: también en vertical)
+      el.lkNote.textContent = t; lkNoteApi = VB.Splat.toast(escT(t), { key: 'lknote', ms: lkNT * 1000 }); return; }
     el.lkNote.textContent = t; restartAnim(el.lkNote, 'on');
   }
   /** Lo ganado fuera de la Carrera (récord y Entrenamiento): VB.Look.checkGlobal y aviso «Nuevo en tu vestuario». */
@@ -5218,8 +5222,10 @@
       var gd = lk.grid ? rc(el.lkGrid) : null;
       T = hd ? hd.bottom + 6 : 0;
       B = lk.tryFull ? H - 10 : gd ? gd.top - 6 : top ? top.top - 6 : H * 0.5;   // («Probar»: la lista se aparta, toda la altura)
-      if (foot && foot.left > W * 0.5) R = Math.min(R, foot.left - 6);
-      if (rot && rot.right < W * 0.5) L = Math.max(L, rot.right + 6);
+      // (ronda 2, paneles-v: en vertical táctil —html.pv— el giro y las acciones van en UNA fila bajo el muñeco: el hueco acaba encima)
+      var rowF = phPv() && foot && foot.width > foot.height * 1.3, rowR = phPv() && rot && rot.width > rot.height * 1.3;
+      if (rowF) B = Math.min(B, foot.top - 6); else if (foot && foot.left > W * 0.5) R = Math.min(R, foot.left - 6);
+      if (rowR) B = Math.min(B, rot.top - 6); else if (rot && rot.right < W * 0.5) L = Math.max(L, rot.right + 6);
       // WP6 (ronda 1): por debajo del hueco (jugador y sede, pestañas, lista o rejilla) el muñeco no se pinta: de cerca, el cuerpo corría
       // por detrás de las fichas y las pestañas («sin pegatinas que se pisen»); queda un busto arriba (doll.js preview.pass)
       clip = (H - (B + 4)) / H; clipT = T > 8 ? (T - 4) / H : 0;
@@ -6359,7 +6365,7 @@
       if (ctlView === 'touch') h += '<div class="opt-g"><button class="opt" data-opt="touchSize" data-need="Input"><span>Tamaño de botones<small>Golpear, Saltar y Colocar</small></span><span class="seg sp-seg" data-seg="touchSize"></span></button>' +
         // 1.22.0 (imprescindible 4.2): editor de disposición (VB.Input.editLayout): mover, tamaño y opacidad por botón, zurdos y restablecer
         (VB.Input && VB.Input.editLayout ? '<button class="opt opt-go" data-tedit="1"><span>' + (phMob() ? 'Editar disposición' : 'Disposición de botones') + '<small>' + (ctx.settings.touchMirror === true ? 'Zurdos. ' : '') + (ctx.settings.touchLayout ? 'A tu gusto' : 'De fábrica') + '; mover, tamaño, opacidad</small></span><span class="go-ic" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9.5 5.5 16 12l-6.5 6.5"/></svg></span></button>' : '') + '</div>';
-      if (ctlView === 'touch' && VB.Splat && VB.Splat.phone && VB.Splat.phone()) {
+      if (ctlView === 'touch' && VB.Splat && VB.Splat.mob && VB.Splat.mob()) {   // (ronda 2, paneles-v: también en vertical, en tarjetas)
         // V-TOUCHCTL (móvil): Táctil con las mismas filas que Teclado / Mando: rótulo dorado + UNA línea de ayuda a la izquierda
         // (primera frase del paréntesis; «i» con helpFit si no cabe) y los botones a la derecha. En PC sigue la <dl>.
         h += '<div class="ctl ctl-t">';
@@ -6490,13 +6496,15 @@
   function setTab(id) {
     var gs = el.optList ? el.optList.querySelectorAll('.opt-g[data-tab]') : [];
     for (var i = 0; i < gs.length; i++) gs[i].hidden = gs[i].getAttribute('data-tab') !== id;
+    // (ronda 2, paneles-v: en vertical las 7 pestañas son solo icono y el nombre del apartado va de título; #pnSec es .pv-only)
+    var sec = document.getElementById('pnSec'); if (sec) { var lb = ''; for (var j = 0; j < SET_TABS.length; j++) if (SET_TABS[j][0] === id) lb = SET_TABS[j][1]; sec.textContent = lb; }
     if (!el.panel.hidden) { fitSheet(el.panel); checkMore(el.panel); phPanel(); }
   }
   /** Móvil (notes/ui_main.md «Móvil (v-next)»): en Ajustes, segmentados según el número de opciones (VB.Splat.fitSeg: interruptor,
    *  segmentado o selector) y ayudas de una línea con «i» (VB.Splat.helpFit); en Jugadores, las ayudas de los atributos. Sin html.ph
    *  no cambia nada (fitSeg quita sus controles). */
   function phPanel() {
-    var S = VB.Splat; if (!S || !S.fitSeg || !S.phone || !S.phone() || el.panel.hidden) return;   // (fitSeg y helpFit se deshacen solos con vb:ph)
+    var S = VB.Splat; if (!S || !S.fitSeg || !S.mob || !S.mob() || el.panel.hidden) return;   // (fitSeg y helpFit se deshacen solos con vb:ph; ronda 2: también en vertical, helpFit sigue solo apaisado)
     if (panel === 'set') {
       S.fitSeg(el.optList); phNow(); if (S.helpFit) S.helpFit(el.optList, '.opt');
       // V-KIT: tira de muestras desplazable de lado (desvanecido si queda algo a la derecha) y la elegida a la vista
@@ -6517,10 +6525,10 @@
   /** (móvil, movil-aire §5.6) Calidad y Resolución en Auto: el «(ahora …)» de la ayuda pasa debajo del valor del selector (data-now de
    *  .mv-val, lo pinta el CSS) y la ayuda se queda en una línea. Sin html.ph, la ayuda entera de siempre (renderOpts). */
   function phNow() {
-    var ph = !!(VB.Splat && VB.Splat.phone && VB.Splat.phone());
+    var ph0 = !!(VB.Splat && VB.Splat.mob && VB.Splat.mob());
     [['quality', el.qualNote], ['resScale', el.resNote]].forEach(function (p) {
       var row = el.optList && el.optList.querySelector('[data-opt="' + p[0] + '"]'), sm = p[1]; if (!row || !sm) return;
-      var mv = row.querySelector('.ph-proxy .mv-val'), m = /^(.*?)\s*\(ahora:? ([^)]*)\)\s*$/.exec(sm.textContent);
+      var mv = row.querySelector('.ph-proxy .mv-val'), ph = ph0 && !!mv, m = /^(.*?)\s*\(ahora:? ([^)]*)\)\s*$/.exec(sm.textContent);
       if (m) {   // (renderOpts acaba de poner el texto entero)
         if (ph) { sm.textContent = sm._phs = m[1].replace(/^Auto:? */, '').replace(/^./, function (c) { return c.toUpperCase(); }); sm.setAttribute('data-ph-now', m[2]); }
         else sm.removeAttribute('data-ph-now');
@@ -7757,7 +7765,8 @@
     if (!t) { el.pfNote.classList.remove('on'); pf.noteT = 0; return; }
     pf.noteT = t.length > 34 ? 3.4 : 2.6;
     // móvil: al carril de avisos de arriba a la derecha (VB.Splat.toast); #pfNote se queda con el texto para el lector
-    if (VB.Splat && VB.Splat.phone && VB.Splat.phone() && VB.Splat.toast) { el.pfNote.classList.remove('on'); el.pfNote.textContent = t; VB.Splat.toast(escT(t), { key: 'pfnote', ms: pf.noteT * 1000 }); return; }
+    if (VB.Splat && VB.Splat.mob && VB.Splat.mob() && VB.Splat.toast) { el.pfNote.classList.remove('on');   // (ronda 2, paneles-v: también en vertical, una cola arriba)
+      el.pfNote.textContent = t; VB.Splat.toast(escT(t), { key: 'pfnote', ms: pf.noteT * 1000 }); return; }
     el.pfNote.textContent = t; restartAnim(el.pfNote, 'on');
   }
   /** Al entrar en el menú: VB.Profile.check() (insignias, logros, hitos, nivel y premios de nivel) y sus avisos. Los hitos que sellan
@@ -7804,7 +7813,7 @@
   }
   function pfTabItems(alb) {
     // (móvil: la columna de pestañas es estrecha; «Cuaderno del árbitro» en dos líneas se salía de su mancha → el rótulo corto)
-    var ph = !!(VB.Splat && VB.Splat.phone && safe(VB.Splat.phone));
+    var ph = !!(VB.Splat && VB.Splat.mob && safe(VB.Splat.mob));   // (ronda 2, paneles-v: también en vertical, pestañas en rejilla 4×2)
     return alb.tabs.map(function (tb) { return { id: tb.id, label: escT(ph && tb.short ? tb.short : tb.label), short: tb.short ? escT(tb.short) : '', badge: tb.have + '/' + tb.total, cls: tb.items.some(function (i) { return i.isNew; }) ? 'lk-new' : '' }; });
   }
   /** Pinta la página entera: cabecera, tarjeta de nivel, vitrina, pestañas, rejilla y pie (keep: conserva el foco en el mismo hueco). */
@@ -7828,7 +7837,7 @@
     var m = st.m | 0, w = st.w | 0;
     var ch = '<div class="pf-lv"><b class="pf-n"><small>Nv</small>' + lv.lvl + '</b><div class="pf-bx"><i class="pf-bar" aria-hidden="true"><i style="--w:' + pc + '%"></i></i>' +
       '<span class="pf-xp">' + (lv.next ? lv.into + ' / ' + lv.next + ' XP' : lv.total + ' XP') + '</span></div></div>' +
-      '<p class="pf-nx">' + escT(nx) + '</p><p class="pf-st">' + sepHTML([m + (m === 1 ? ' partido' : ' partidos'), w + (w === 1 ? ' victoria' : ' victorias'), (st.ven | 0) + ' de ' + (st.venAll | 0) + ' sedes'], 'v') + '</p>';
+      '<p class="pf-nx">' + escT(nx) + '</p><p class="pf-st">' + sepHTML([m + (m === 1 ? ' partido' : ' partidos'), w + (w === 1 ? ' victoria' : ' victorias'), (st.ven | 0) + ' de ' + (st.venAll | 0) + ' sedes'], phPv() ? 'c' : 'v') + '</p>';   // (ronda 2, paneles-v: en vertical, fichas que no parten)
     if (el.pfCard._h !== ch) {
       el.pfCard._h = ch; el.pfCard.innerHTML = ch; el.pfCard.setAttribute('aria-label', 'Perfil nivel ' + lv.lvl + '. ' + nx);
       if (VB.Splat) { el.pfCard.classList.remove('sp-dec'); VB.Splat.decorate(el.pfCard); }   // (SPLAT: el brochazo crema se rehace tras innerHTML)
@@ -7855,7 +7864,7 @@
     var tb = alb.tabs.filter(function (t) { return t.id === pf.tab; })[0], gh = '';
     // (móvil, movil-aire §5.6: Insignias y Entreno, UNA baldosa por prueba con sus tres puntos bronce / plata / oro; se elige el nivel más
     //  alto conseguido o, si no hay ninguno, el bronce. En PC, una baldosa por nivel como siempre)
-    var grp = /^(insignias|entreno)$/.test(pf.tab) && !!(VB.Splat && VB.Splat.phone && safe(VB.Splat.phone)) ? pfGroup(tb.items) : null;
+    var grp = /^(insignias|entreno)$/.test(pf.tab) && !!(VB.Splat && VB.Splat.mob && safe(VB.Splat.mob)) ? pfGroup(tb.items) : null;   // (también en vertical)
     if (grp) grp.forEach(function (g) {
       var it = g.best, pin = g.L.some(function (x) { return pf.pins.indexOf(x.aid) >= 0; }), nw = g.L.some(function (x) { return x.isNew; }), hv = g.L.filter(function (x) { return x.have; });
       var dots = '<span class="pf-td" aria-hidden="true">' + g.L.map(function (x) { return '<i class="t' + (x.tier | 0) + (x.have ? ' on' : '') + '"></i>'; }).join('') + '</span>';

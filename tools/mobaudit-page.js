@@ -205,6 +205,9 @@ function measure(o) {
   res.tier = { ph: RC.contains('ph'), pv: RC.contains('pv'), s: RC.contains('ph-s'), w: RC.contains('ph-w') };   // (movil-aire ronda 2: pv = móvil en vertical)
   // (ronda 2) aviso de girar visible (partido en juego en vertical): la pantalla no se mide como tal
   try { var rt0 = document.getElementById('rotate'); res.rotate = !!(rt0 && !rt0.hidden && rt0.getClientRects().length); res.rotateGame = !!(window.VB && VB.ctx && VB.ctx.portraitBlock); } catch (e) { }
+  // (ronda 2, paneles-v) el editor de la disposición táctil en vertical pide girar con su propio aviso (.vte-rot, input.js): cuenta como
+  // «girar» esperado (girar (partido)): editar los botones solo tiene sentido en apaisado, como el partido
+  try { var vr0 = document.querySelector('.vte .vte-rot'); if (vr0 && getComputedStyle(vr0).display !== 'none' && vr0.getClientRects().length) { res.rotate = true; res.rotateGame = true; } } catch (e) { }
   var se = document.scrollingElement || document.documentElement;
   res.hscroll = se.scrollWidth > W + 1;
 

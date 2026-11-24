@@ -545,7 +545,19 @@
     '.vte-act{display:flex;gap:11px;justify-content:space-between}.vte-act .sp-btn{flex:1 1 0;min-width:0;min-height:44px;--sp-px:6px;--sp-fs:clamp(12px,3.6vh,15px)}.vte-act .vte-rst{flex-grow:1.35}.vte-act .vte-ok{flex-grow:.85}' +
     '@media (max-height:340px){.vte-in{padding:6px 8px;gap:10px}}' +
     // (móvil, movil-aire §5.6: con html.ph la barra es UNA fila de 52 con iconos; el CSS está en index.html, bloque «PANELES»)
-    '.vte-ic{display:none}';
+    '.vte-ic{display:none}' +
+    // (ronda 2, paneles-v) en vertical táctil (html.pv) el editor pide girar: el aviso de #rotate (estilo SPLAT) con su texto y «Volver»
+    // (cierra sin guardar lo que estuviera a medias); al girar a horizontal, el editor de siempre. Fuera de .pv no existe
+    '.vte-rot{display:none}' +
+    ':root.pv .vte>:not(.vte-rot){visibility:hidden}:root.pv .vte::after{display:none}' +
+    ':root.pv .vte .vte-rot{position:absolute;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;box-sizing:border-box;' +
+    'padding:calc(24px + env(safe-area-inset-top)) 24px calc(24px + env(safe-area-inset-bottom));text-align:center;background:radial-gradient(70% 55% at 50% 42%,rgba(47,37,96,.97),rgba(21,16,42,.99))}' +
+    '.vte-rot .ph{position:relative;width:58px;height:96px;margin-bottom:16px;border-radius:14px 16px 14px 15px;background:var(--sp-cream,#fff4dc);box-shadow:0 0 0 3px var(--sp-ink,#15102a),inset 0 0 0 6px var(--sp-cream,#fff4dc),inset 0 0 0 9px var(--sp-ink,#15102a),5px 6px 0 3px var(--sp-ink,#15102a);animation:rot 2.2s var(--ease,ease) infinite}' +
+    '.vte-rot .ph::after{content:"";position:absolute;left:50%;bottom:4px;width:14px;height:3px;margin-left:-7px;border-radius:2px;background:var(--sp-ink,#15102a)}' +
+    '.vte-rot b{font:400 clamp(28px,8.5vw,46px)/1.05 var(--sp-pop,system-ui,sans-serif);letter-spacing:.01em;text-transform:uppercase;color:var(--sp-cream,#fff4dc);text-shadow:2px 0 0 #15102a,-2px 0 0 #15102a,0 2px 0 #15102a,0 -2px 0 #15102a,3px 4px 0 #15102a;transform:rotate(-2deg)}' +
+    '.vte-rot p{max-width:min(84vw,320px);margin:0;padding:8px 14px;border-radius:12px 14px 11px 13px;background:var(--sp-ink,#15102a);color:var(--sp-cream,#fff4dc);font:700 16px/1.3 var(--sp-ui,system-ui,sans-serif);box-shadow:0 0 0 2px rgba(255,244,220,.35)}' +
+    '.vte-rot .vte-back{min-width:160px;min-height:48px;margin-top:10px;--sp-fs:17px}' +
+    '@media (prefers-reduced-motion:reduce){.vte-rot .ph{animation:none}}';
 
   var ICON_HIT = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><g><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(120 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g><g transform="rotate(240 12 12)"><path d="M12 12C12 8 10.5 4.5 8 2.8"/><path d="M13.8 2.2C16.5 5.5 17.8 9.5 17.3 13.8"/></g></svg>';
   var ICON_JUMP = '<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 13l6-6 6 6M6 19l6-6 6 6"/></svg>';
@@ -1173,6 +1185,8 @@
       '<div class="vt-btn vt-set" data-k="set" role="button" aria-label="Colocar">' + ICON_SET + '<span>COLOCAR</span></div>' +
       '<div class="vt-btn vt-pause vte-fix" aria-hidden="true">' + ICON_PAUSE + '</div>' +
       '<div class="vt-btn vt-zoom vte-fix" aria-hidden="true">' + ICON_ZOOM + '<b>3</b></div><div class="vt-safe"></div>' +
+      '<div class="vte-rot" role="alertdialog" aria-labelledby="vteRotT" aria-describedby="vteRotD"><div class="ph" aria-hidden="true"></div><b id="vteRotT">Gira el móvil</b>' +
+        '<p id="vteRotD">Gira el móvil para colocar los botones como en el partido</p><button type="button" class="sp-btn sp-cream vte-back" data-shape="2"><span class="sp-t">Volver</span></button></div>' +
       '<div class="vte-bar"><div class="vte-in sp-panel">' +
         '<div class="vte-hd"><b class="vte-nm">Golpear</b><small class="vte-tip"></small></div>' +
         '<div class="vte-sl"><label class="vte-ls">Tamaño <input type="range" class="vte-s" min="70" max="150" step="5" aria-label="Tamaño del botón"><output class="vte-sv"></output></label>' +
@@ -1185,7 +1199,7 @@
     var q = function (s) { return root.querySelector(s); };
     var E = { joy: q('.vt-joy'), hit: q('.vt-hit'), jump: q('.vt-jump'), set: q('.vt-set'), sw: q('.vt-sw'), pause: q('.vt-pause'), zoom: q('.vt-zoom'),
               safe: q('.vt-safe'), bar: q('.vte-bar'), nm: q('.vte-nm'), tip: q('.vte-tip'), s: q('.vte-s'), o: q('.vte-o'), sv: q('.vte-sv'), ov: q('.vte-ov'), ls: q('.vte-ls'),
-              mir: q('.vte-mir'), rst: q('.vte-rst'), ok: q('.vte-ok') };
+              mir: q('.vte-mir'), rst: q('.vte-rst'), ok: q('.vte-ok'), back: q('.vte-back') };
     if (ctx.game && ctx.game.ctrlMode === 'one' && ctx.game.size !== 6) E.sw.style.display = 'none';
     try { if (VB.Splat && VB.Splat.decorate) VB.Splat.decorate(root); } catch (_) { }
     var sa = { t: 0, r: 0, b: 0, l: 0 }, P = null, sel = 'hit', drag = null, moved = false;   // (moved: tras el primer arrastre ya no sale «Arrastra…»)
@@ -1242,7 +1256,16 @@
       return best;
     }
     function xy(ev) { var r = root.getBoundingClientRect(); return { x: ev.clientX - r.left, y: ev.clientY - r.top }; }
+    function vert() { return document.documentElement.classList.contains('pv'); }
+    // (en vertical el aviso tapa todo: lo de detrás, inert —ni se toca ni se lee— mientras dure; al girar a horizontal, como siempre)
+    var unInert = null;
+    function syncInert() {
+      var on = !!(ED && vert() && VB.Splat && VB.Splat.inertBehind);
+      if (on && !unInert) unInert = VB.Splat.inertBehind(root);
+      else if (!on && unInert) { unInert(); unInert = null; }
+    }
     function onDown(ev) {
+      if (vert()) return;   // (en vertical solo está el aviso de girar: nada se arrastra)
       // en la barra, sus mandos mandan; en su fondo, un botón que haya quedado debajo se puede seguir cogiendo
       if (E.bar.contains(ev.target) && (ev.target.closest('input,button,label,output') || !pick(xy(ev).x, xy(ev).y))) return;
       if (ev.cancelable) ev.preventDefault();
@@ -1280,14 +1303,14 @@
       ev.stopImmediatePropagation();
       if (ev.key === 'Escape' && ev.type === 'keydown') { if (ev.cancelable) ev.preventDefault(); close(); }
     }
-    function onResize() { place(); }
-    function close() {
+    function onResize() { place(); syncInert(); if (vert() && E.back && root.contains(document.activeElement) && document.activeElement !== E.back) try { E.back.focus({ preventScroll: true }); } catch (_) { } }
+    function close(noSave) {
       if (!ED) return;
       drag = null;
-      save();
+      if (noSave !== true) save();   // («Volver» del aviso de girar: lo que estuviera a medias no se guarda; lo soltado ya se guardó al soltarlo)
       window.removeEventListener('keydown', onKey, true); window.removeEventListener('keyup', onKey, true); window.removeEventListener('resize', onResize);
       if (root.parentNode) root.parentNode.removeChild(root);
-      ED = null;
+      ED = null; syncInert();
       if (o.onClose) { try { o.onClose(); } catch (_) { } }
     }
     root.addEventListener('pointerdown', onDown, { passive: false });
@@ -1299,10 +1322,11 @@
     E.mir.addEventListener('click', function () { mir = !mir; place(); save(); });
     E.rst.addEventListener('click', function () { lay = {}; place(); save(); });
     E.ok.addEventListener('click', close);
+    E.back.addEventListener('click', function () { close(true); });
     window.addEventListener('keydown', onKey, true); window.addEventListener('keyup', onKey, true); window.addEventListener('resize', onResize);
     ED = { close: close, root: root, state: function () { return { sel: sel, mirror: mir, lay: cleanLayout(lay), P: JSON.parse(JSON.stringify(P)), sa: { t: sa.t, r: sa.r, b: sa.b, l: sa.l }, low: E.bar.classList.contains('low') }; } };
-    place();
-    try { E.ok.focus({ preventScroll: true }); } catch (_) { }
+    place(); syncInert();
+    try { (vert() ? E.back : E.ok).focus({ preventScroll: true }); } catch (_) { }
     return true;
   }
 

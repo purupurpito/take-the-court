@@ -7971,28 +7971,28 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* ================= PANELES del menú en vertical (Cómo se juega, Primer partido, Jugadores, Acerca de, Opiniones): la hoja a pantalla
    completa entre el notch y la barra de gestos; cabecera compacta (‹ redondo de 44 + título de 1 línea) sobre una franja de tinta que llega
    arriba (el marcador 3D no se lee detrás); el contenido se desplaza y la acción va abajo ================= */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]){display:block;padding:0}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"])>.sheet{position:absolute;top:0;bottom:0;left:0;right:0;width:auto;max-width:none;height:auto;max-height:none;
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]){display:block;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"])>.sheet{position:absolute;top:0;bottom:0;left:0;right:0;width:auto;max-width:none;height:auto;max-height:none;
   margin:0;padding:0 var(--pv-g) calc(var(--pv-gb) + 8px);gap:12px;box-sizing:border-box;display:flex;flex-direction:column}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"])>.sheet>[id^="pn"]:not([hidden]){flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:12px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head{position:relative;z-index:4;flex:none;display:flex;align-items:center;gap:12px;box-sizing:border-box;
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"])>.sheet>[id^="pn"]:not([hidden]){flex:1 1 auto;min-height:0;display:flex;flex-direction:column;gap:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-head{position:relative;z-index:4;flex:none;display:flex;align-items:center;gap:12px;box-sizing:border-box;
   min-height:calc(var(--pv-bar) + var(--pv-gt) + 8px);margin:0 calc(-1 * var(--pv-g));padding:var(--pv-gt) var(--pv-g) 8px;background:linear-gradient(var(--sp-ink) calc(100% - 12px),rgba(21,16,42,0))}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head>.sp-back{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-head>.sp-back{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;
   margin:0;padding:0;border:0;border-radius:50%;background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head>.sp-back>:not(svg),
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head>.sp-back>.sp-blob{display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head>.sp-back>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head>.sp-back:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-tt{flex:1 1 auto;min-width:0;margin:0;display:flex;align-items:center;gap:10px}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-tt>.sp-k{display:none}
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .pn-head .sp-h{--sp-hs:var(--pv-head);flex:0 1 auto;min-width:0;font-size:var(--sp-hs);line-height:1.15;white-space:normal;transform:rotate(-1.5deg);
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-head>.sp-back>:not(svg),
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-head>.sp-back>.sp-blob{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-head>.sp-back>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-head>.sp-back:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-tt{flex:1 1 auto;min-width:0;margin:0;display:flex;align-items:center;gap:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-tt>.sp-k{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="first"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .pn-head .sp-h{--sp-hs:var(--pv-head);flex:0 1 auto;min-width:0;font-size:var(--sp-hs);line-height:1.15;white-space:normal;transform:rotate(-1.5deg);
   text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),2px 3px 0 var(--sp-ink)}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .pn-head .pn-ph{display:none}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="tut"] .pn-head .pn-ph{display:block;flex:none;margin-left:auto;padding:5px 10px 4px;border-radius:10px 12px 9px 11px;background:var(--sp-gold);color:var(--sp-ink);
   font:400 13px/1.1 var(--sp-pop);letter-spacing:.03em;text-transform:uppercase;box-shadow:0 0 0 2px var(--sp-ink);transform:rotate(2deg)}
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="tut"] .pn-head .pn-ph:empty{display:none}
 /* hojas que se desplazan: lo que queda, con degradado y flecha (el de los paneles) */
-:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"]) .sp-scroll{flex:1 1 auto;min-height:0;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="tut"],[data-pn="squad"],[data-pn="about"],[data-pn="fb"],[data-pn="set"],[data-pn="ctl"]) .sp-scroll{flex:1 1 auto;min-height:0;margin:0}
 
 /* ---- CÓMO SE JUEGA: la tarjeta ocupa lo que queda; barra fija abajo [‹ redondo de 56][SIGUIENTE] con los puntos encima ---- */
 :root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #tutBody{display:flex;flex-direction:column;align-items:stretch;gap:12px;padding:14px 14px 16px}
@@ -8192,6 +8192,291 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 /* (mientras el aviso está a la vista ocupa el sitio de tu nombre, que vuelve al cerrarse) */
 :root.pv:has(#spToasts .sp-toast):not(#_):not(#_):not(#_):not(#_) #mpOnline .ol-body[data-v="list"] .ol-act[data-a="name"]{visibility:hidden}
 /* ==== fin RONDA 2 · menus-v ==== */
+/* ==== RONDA 2 · paquete «paneles-v» (24-nov-2026; notes/movil-aire.md §8.4 «Ajustes, controles, vestuario, perfil, retos, cuenta» y §8.6.8):
+   Ajustes, Controles (el editor táctil pide girar), Vestuario, Perfil, Retos y Cuenta en VERTICAL (html.pv). Prefijo :root.pv + 5 :not(#_)
+   (gana a PC y a las medias de PC en vertical). Nada de esto existe sin html.pv (salvo, al final, 12 px entre la barra del editor táctil y la
+   lupa en horizontal a < 640): PC igual. ==== */
+
+/* ================= AJUSTES (también desde la pausa): cabecera compacta de los paneles (bloque menus-v) con el NOMBRE DEL APARTADO de
+   título (#pnSec); 7 pestañas solo icono de 44 (7×44 + 6×4 = 332, caben en 360); filas de .ph: título y descripción ENTERA a la izquierda y
+   el interruptor en la misma fila (la fila entera se toca); deslizadores a todo el ancho con el % en columna fija y el silencio en la fila
+   del título; segmentados de 2-4 opciones a todo el ancho (una casilla por opción) y selectores ‹ valor › de 5+ a todo el ancho ================= */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .pn-tt>#pnTitle{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .pn-tt>.pn-sec{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .pn-tt>.pn-sec{display:block}
+/* franja opaca de la cabecera a las pestañas (el 3D no se lee detrás) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn:is([data-pn="set"],[data-pn="ctl"]) .pn-head{background:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn :is(#setTabs,#ctlTabs){flex:none;margin:-12px calc(-1 * var(--pv-g)) -4px;padding:2px var(--pv-g) 12px;background:linear-gradient(var(--sp-ink) calc(100% - 12px),rgba(21,16,42,0));position:relative;z-index:3}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #setTabs .tb-k{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #setTabs .tb-row{display:flex;flex-direction:row;justify-content:space-between;gap:2px;margin:0;padding:2px 4px 4px;overflow:visible;-webkit-mask:none;mask:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #setTabs .tab{flex:0 0 44px;width:44px;min-width:44px;max-width:44px;height:44px;min-height:44px;--sp-tbh:44px;padding:0;justify-content:center;align-items:center;gap:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #setTabs .tab svg{display:block;width:22px;height:22px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #setTabs .tab .tb-t{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] #optList{max-height:none;padding:10px 8px 12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-g{gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-h{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt{grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:10px;min-height:56px;padding:10px 8px 10px 12px;font-size:15px;line-height:1.15;letter-spacing:.02em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>span:first-child{min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>span:first-child>small{display:block;margin-top:3px;font-size:13px;line-height:1.3;white-space:normal;overflow:visible;-webkit-line-clamp:unset;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>span:first-child>.a11y-pv{float:right;width:30px;height:30px;margin:0 0 0 8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.ph-proxy.sp-toggle{grid-column:2;grid-row:1;align-self:center;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) .ph-trow{-webkit-tap-highlight-color:transparent}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) .ph-trow:active{box-shadow:inset 0 0 0 999px rgba(255,244,220,.12)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) :is(#panel,#menu) .sp-toggle::after{content:"";display:block;position:absolute;inset:-7px -6px;background:none;box-shadow:none}
+/* segmentado visible (2-4 opciones con texto): su propia fila a todo el ancho, una casilla por opción */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.seg.sp-seg:not(.ph-hid){grid-column:1/-1;grid-row:2;display:flex;flex-wrap:nowrap;justify-content:stretch;gap:4px;width:100%;justify-self:stretch}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.seg.sp-seg:not(.ph-hid)>span{flex:1 1 0;min-width:0;--sp-tbh:44px;--sp-tbs:13px;padding:0 2px;letter-spacing:0;white-space:nowrap;justify-content:center;text-align:center}
+/* selector ‹ valor › (5+ opciones): su fila a todo el ancho; el valor parte en 2 líneas si hace falta; el «ahora» (Calidad, Resolución) al lado */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.ph-proxy.sp-select{grid-column:1/-1;grid-row:2;display:flex;width:100%;justify-content:space-between;gap:4px;justify-self:stretch}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.ph-proxy.sp-select .arr{flex:none;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.ph-proxy.sp-select .mv-val{flex:1 1 auto;min-width:0;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:center;column-gap:4px;padding:4px 8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.ph-proxy.sp-select .mv-val b{font-size:15px;white-space:normal;text-align:center;line-height:1.1;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.ph-proxy.sp-select .mv-val[data-now]::after{content:"·" attr(data-now);font:800 13px/1 var(--sp-ui);text-transform:none;letter-spacing:0;color:var(--sp-ink);opacity:.8;white-space:nowrap}
+/* deslizadores: a todo el ancho bajo el título, el % en columna fija; el silencio en la fila del título */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt:has(.slider){grid-template-columns:minmax(0,1fr) auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt>.slider.sp-slider,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-snd .snd>.slider.sp-slider{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:minmax(0,1fr) 3.5em;align-items:center;gap:14px;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .slider.sp-slider .trk{width:auto;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .slider.sp-slider .v{min-width:0;text-align:right}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-snd .snd{display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-snd .snd>.mute{grid-column:2;grid-row:1;align-self:center;width:44px;height:44px}
+/* Equipación: muestras de 44 desde la izquierda (las 8 de camiseta en 1-2 filas) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt.opt-kit{grid-template-columns:minmax(0,1fr)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt.opt-kit>.seg.kit{grid-column:1/-1;display:grid;grid-template-columns:repeat(auto-fill,44px);justify-content:start;gap:8px;width:100%;margin:0;padding:2px 0 4px;overflow:visible;-webkit-mask:none;mask:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt.opt-kit>.seg.kit>span{width:44px;height:44px}
+/* Info: título y valor en la misma fila (el valor parte si no cabe); lo que abre algo, arriba */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-g[data-tab="info"]>.opt-go{order:-1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-g[data-tab="info"]>:is(.opt-wipe,.opt-wipe-n){order:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-g[data-tab="info"]>.opt.info{order:2;display:flex;flex-wrap:wrap;align-items:baseline;justify-content:space-between;column-gap:12px;row-gap:2px;min-height:44px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt.info .iv{font-size:14px;white-space:normal;text-align:right;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="set"] .opt-go .go-ic{width:36px;height:36px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .opt-reset.sp-pill{--sp-fs:13px;min-height:44px;margin:10px 0 4px 4px;padding:4px 18px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .opt-wipe-n{font-size:14px}
+
+/* ================= CONTROLES: Táctil | Teclado | Mando como segmentado a todo el ancho («en uso» en chapa); Teclado y Mando en una
+   columna (subtítulo a 13 debajo del rótulo, teclas de 40); Táctil en tarjetas: nombre + botones arriba y la descripción ENTERA debajo ===== */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #ctlTabs .tb-k{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #ctlTabs .tb-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:10px 2px 0;overflow:visible;-webkit-mask:none;mask:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #ctlTabs .tab{position:relative;min-width:0;width:auto;height:44px;min-height:44px;--sp-tbh:44px;--sp-tbs:14px;padding:0 6px;justify-content:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #ctlTabs .tab .tb-t{white-space:nowrap;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn #ctlTabs .tab .tb-b{position:absolute;top:-9px;right:-2px;margin:0;padding:1px 6px;font-size:12px;line-height:1.2;transform:rotate(3deg)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .ctl-sheet{max-height:none;padding:10px 10px 12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] :is(.ctl-note,.ctl-fixed,.ctl-msg){font-size:13px;line-height:1.4}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb>div{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;padding:4px 8px 4px 14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb .kl{min-width:0;display:flex;flex-direction:column;justify-content:center;font-size:15px;line-height:1.15;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb .kl>small{display:block;margin-top:2px;font-size:13px;line-height:1.25;color:rgba(255,244,220,.7);white-space:normal;overflow:visible;text-overflow:clip;text-transform:none;letter-spacing:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb .ks{flex:none;display:flex;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.kb .kslot{position:relative;height:44px;min-height:44px;min-width:44px;padding:0 8px;font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt-g{gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt{grid-template-columns:minmax(0,1fr) auto;column-gap:12px;row-gap:10px;min-height:56px;padding:10px 10px 10px 14px;font-size:15px;line-height:1.15}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt>span:first-child>small{font-size:13px;line-height:1.3;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt>.seg.sp-seg{grid-column:1/-1;grid-row:2;display:flex;flex-wrap:nowrap;gap:4px;width:100%;justify-self:stretch}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt>.seg.sp-seg>span{flex:1 1 0;min-width:0;--sp-tbh:44px;--sp-tbs:14px;padding:0 4px;justify-content:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt>.slider.sp-slider{grid-column:1/-1;grid-row:2;display:grid;grid-template-columns:minmax(0,1fr) 3.5em;align-items:center;gap:14px;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .slider.sp-slider .trk{width:auto;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt.opt-go[data-tedit]{min-height:56px;margin:2px 0 4px;background:var(--sp-kit,#ff5a2c);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),3px 4px 0 2.5px var(--sp-ink);border-radius:14px 12px 16px 12px/12px 16px 12px 14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt.opt-go[data-tedit]>span:first-child{color:var(--sp-ink);text-shadow:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt.opt-go[data-tedit]>span:first-child>small{color:rgba(21,16,42,.78)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn[data-pn="ctl"] .opt.opt-go .go-ic{width:36px;height:36px}
+/* Táctil: una tarjeta por acción (nombre + chips de botones en la cabecera, la descripción entera debajo a todo el ancho) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:6px;min-height:52px;padding:10px 10px 10px 14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div>.kl{display:contents;font-size:15px;line-height:1.15}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div>.kl>small{grid-column:1/-1;grid-row:2;display:block;margin:0;font-size:13px;line-height:1.35;white-space:normal;overflow:visible;-webkit-line-clamp:unset;text-overflow:clip;text-transform:none;letter-spacing:0;color:rgba(255,244,220,.8)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div>.kl>.sp-info{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #panel.sp-pn .ctl.ctl-t>div>.ks{grid-column:2;grid-row:1;display:flex;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:6px;max-width:190px}
+
+/* ================= CABECERA COMPACTA de Vestuario, Perfil y Retos (la de Partido rápido / Entreno / Online): ‹ redondo de 44 + título de
+   1 línea sobre una franja de tinta que llega al notch; el marcador 3D no se lee detrás ================= */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos){left:0;right:0;top:0;bottom:0;width:auto;max-width:none;max-height:none;margin:0;padding:0 0 var(--pv-gb);gap:8px;justify-content:flex-start;box-sizing:border-box}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>:not(.mp-head){width:auto;max-width:none;align-self:stretch;box-sizing:border-box;margin-left:var(--pv-g);margin-right:var(--pv-g)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head{position:relative;z-index:4;flex:none;display:flex;align-items:center;gap:12px;box-sizing:border-box;width:auto;height:auto;min-height:calc(var(--pv-bar) + var(--pv-gt) + 10px);
+  margin:0;padding:var(--pv-gt) var(--pv-g) 10px;background:linear-gradient(var(--sp-ink) calc(100% - 14px),rgba(21,16,42,0))}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head>.sp-back{position:relative;flex:none;display:inline-grid;place-items:center;width:44px;height:44px;min-width:44px;min-height:44px;margin:0;padding:0;border:0;border-radius:50%;
+  background:var(--sp-ink);color:var(--sp-cream);box-shadow:0 0 0 2.5px var(--sp-cream),2px 3px 0 2.5px var(--sp-ink);transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head>.sp-back>:not(svg),
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head>.sp-back>.sp-blob{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head>.sp-back>svg:not(.sp-blob){width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head>.sp-back:is(.kf,:focus-visible){outline:none;background:var(--sp-gold);color:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head .mp-tt{flex:1 1 auto;min-width:0;margin:0;display:flex;align-items:center;gap:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head .kicker{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full :is(#mpLook,#mpProf,#mpRetos)>.mp-head .sp-h{display:block;--sp-hs:var(--pv-head);font-size:var(--sp-hs);line-height:1.15;white-space:nowrap;transform:rotate(-1.5deg);
+  text-shadow:2px 0 0 var(--sp-ink),-2px 0 0 var(--sp-ink),0 2px 0 var(--sp-ink),0 -2px 0 var(--sp-ink),2px 3px 0 var(--sp-ink)}
+
+/* ================= VESTUARIO: el muñeco en el 38 % de arriba (ui.js lkPlace: entre la cabecera y la fila de botones), debajo UNA fila de
+   botones de 44 [⟲ ↻ ⟳] … [Probar · Al azar · ⋯], luego jugador y sede, las 7 pestañas de icono y la lista de una línea por pieza con
+   flex:1 (5-6 filas a la vista); el marcador colgado del pabellón, apagado (arena.js) ================= */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpLook{--lky:38dvh}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .mp-tt .lk-tchip{display:inline-flex;flex:none;margin:0;--sp-chs:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-top{flex:none;margin-top:max(0px,calc(var(--lky) + 56px - var(--pv-gt) - 62px - 8px));display:flex;flex-wrap:nowrap;justify-content:space-between;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook :is(.lk-pick,.lk-ven){gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook :is(.lk-pick,.lk-ven) .sp-tab{min-width:44px;min-height:44px;padding:0 10px;--sp-tbs:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-sx{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-bar{flex:none;position:static;display:block;width:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs.sp-tabs{width:auto;max-width:none;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs .tb-row{display:flex;justify-content:space-between;gap:2px;padding:2px 4px 4px;overflow:visible;scrollbar-width:none;-webkit-mask:none;mask:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs .tb-row::-webkit-scrollbar{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs .tab{position:relative;flex:0 0 44px;width:44px;min-width:44px;max-width:44px;height:44px;--sp-tbh:44px;padding:0;justify-content:center;gap:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs .tab svg{display:block;flex:none;width:22px;height:22px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs .tab .tb-t{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap;border:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #lkTabs .tab.lk-new::after{position:absolute;top:2px;right:2px}
+/* fila de botones bajo el muñeco: giro a la izquierda, acciones a la derecha */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-foot{position:absolute;z-index:3;left:auto;right:var(--pv-g);top:calc(var(--lky) + 4px);bottom:auto;display:flex;flex-direction:row;gap:8px;padding:0;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-foot .sp-btn{width:44px;height:44px;min-width:44px;min-height:44px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #lkSpin .lk-rot{position:fixed;z-index:3;left:var(--pv-g);right:auto;top:calc(var(--lky,38dvh) + 4px);bottom:auto;display:flex;flex-direction:row;gap:8px;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #lkSpin .lk-rot .sp-btn{width:44px;height:44px;min-width:44px;min-height:44px}
+:root.pv #lkSpin{--lky:38dvh}
+/* lista: una línea por pieza «Etiqueta · Valor» (13 dorada / 15) con flechas de 44, sin el contador «▦ 32»; ocupa lo que queda */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook #lkHelp{flex:none;font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook #lkList{flex:1 1 auto;min-height:0;max-height:none;gap:8px;margin-top:0;margin-bottom:0;padding:4px 2px 12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r.sp-btn{min-height:52px;padding:2px 4px 2px 12px;--sp-aw:32px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .mi-l{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;column-gap:8px;row-gap:2px;width:100%;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-k{grid-column:1;font-size:13px;transform:none;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-cnt{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-v{grid-column:2;flex-wrap:wrap;min-width:0;font-size:15px;align-items:center;gap:4px 6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-v .lk-n{min-width:0;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.15}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-v :is(.lk-sw,.lk-st){flex:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-sw{width:20px;height:20px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .lk-st{font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r .mi-h{grid-column:1/-1;display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .lk-r:is(.h-lock,.h-warn,.h-use,.h-dim) .mi-h{display:block;font-size:13px;line-height:1.25;-webkit-line-clamp:unset;line-clamp:unset;overflow:visible}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook .lk-r .mi-v .arr{width:44px;height:44px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook #lkGrid{flex:1 1 auto;height:auto;max-height:none;min-height:0;margin-top:max(0px,calc(var(--lky) + 56px - var(--pv-gt) - 62px - 8px))}
+/* Colores: la nota «Los demás colores salen…» en un panel oscuro, sin contorno sobre la letra */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpLook #lkHelp:not([hidden]){display:block;margin-top:0;margin-bottom:0;padding:8px 12px;border-radius:12px;background:rgba(21,16,42,.86);color:var(--sp-cream);-webkit-text-stroke:0;text-shadow:none;line-height:1.3}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpLook #lkList>.lk-empty.lk-off{order:-1;flex:none;margin:0 0 2px;padding:8px 12px;border-radius:12px;background:rgba(21,16,42,.86);color:var(--sp-cream);font-size:13px;line-height:1.3;text-shadow:none;-webkit-text-stroke:0}
+/* avisos del Vestuario en vertical: arriba bajo la cabecera, a todo el ancho */
+:root.pv:has(#menu[data-page="look"]:not([hidden])):not(#_):not(#_):not(#_):not(#_):not(#_):not(.sp-sh-on) #spToasts{top:calc(var(--pv-gt) + 62px);bottom:auto;left:var(--pv-g);right:var(--pv-g);translate:none;align-items:stretch;max-width:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu[data-page="look"] #lkNote{top:calc(var(--pv-gt) + 62px);bottom:auto;left:50%;width:max-content;max-width:calc(100vw - 2 * var(--pv-g))}
+
+/* ================= PERFIL: tarjeta de nivel en 3 líneas sin «…» («240 / 300 XP»; «Siguiente premio…» en 2 líneas si hace falta; los
+   contadores como fichas que no parten «212 partidos» «131 victorias» «4 de 6 sedes»); vitrina en una fila; 8 pestañas en rejilla 4×2
+   (rótulo corto + contador); álbum en 3 columnas (letra ≥ 12) que se desplaza; pie «Elige un hueco…» con la barra de gestos; avisos
+   en una sola cola arriba bajo el notch, de uno en uno ================= */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-top{flex:none;display:flex;flex-direction:column;align-items:stretch;gap:10px;margin-top:-4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket{flex:none;display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;row-gap:4px;align-content:center;width:auto;max-width:none;min-height:0;height:auto;padding:10px 14px 10px 10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket>.sp-tail,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card.sp-ticket::after{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-n{width:56px;height:56px;font-size:22px;line-height:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-n small{font-size:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-bx{gap:4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-xp{font-size:14px;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-nx{margin:2px 0 0;font-size:15px;line-height:1.2;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-st{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 0;white-space:normal;overflow:visible;text-overflow:clip;font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-st>.sep{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-card .pf-st .chip{white-space:nowrap;padding:3px 9px;border-radius:9px;background:rgba(21,16,42,.12);box-shadow:inset 0 0 0 1.5px rgba(21,16,42,.35);color:var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-vit{display:flex;flex-direction:row;align-items:center;gap:10px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-vk{flex:none;font-size:13px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-vs{gap:12px;padding:2px 4px 4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-v{width:48px;height:48px;font-size:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-v .pf-vn{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-v.free{font-size:12px}
+/* pestañas: rejilla 4×2 de fichas compactas (rótulo corto arriba, contador debajo); fondo opaco detrás */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfTabs.sp-tabs{flex:none;width:auto;min-width:0;max-width:none;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfTabs .tb-k{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfTabs .tb-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px 6px;margin:0;padding:4px 4px 6px;overflow:visible;-webkit-mask:none;mask:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfTabs .tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;width:auto;min-width:0;max-width:none;height:auto;min-height:52px;--sp-tbh:52px;padding:4px 2px;--sp-tbs:13px;font-size:13px;line-height:1.1;letter-spacing:0;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfTabs .tab .tb-t{max-width:100%;overflow:visible;text-overflow:clip;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfTabs .tab .tb-b{margin:0;padding:1px 6px;font-size:12px;line-height:1.2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfTabs .tab.lk-new::after{position:absolute;top:2px;right:2px}
+/* álbum */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-grid{flex:1 1 auto;min-height:0;grid-template-columns:repeat(3,minmax(0,1fr));grid-auto-rows:auto;gap:12px 10px;margin:0;padding:6px 4px 14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s{min-height:76px;padding:8px 4px 6px;gap:4px;font-size:13px;line-height:1.15}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-si{width:26px;height:26px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s.off .pf-si{width:20px;height:20px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-sn{flex:none;display:block;max-width:100%;overflow:visible;-webkit-line-clamp:unset;line-clamp:unset;hyphens:auto;-webkit-hyphens:auto;overflow-wrap:normal;word-break:normal;text-align:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s>*{flex-shrink:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s.new::after{top:6px;right:6px;width:10px;height:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s.pf-cur{box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold);transform:rotate(-2deg);z-index:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-td{display:flex;gap:4px;margin-top:1px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-td i{width:9px;height:9px;border-radius:50%;box-shadow:0 0 0 1.5px var(--sp-ink);background:rgba(255,244,220,.25)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-td i.on.t1{background:#d98a4e}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-td i.on.t2{background:#dfe6ee}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .pf-s .pf-td i.on.t3{background:#ffcb3d}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-grid:has(.pf-s[data-aid^="sen:"]) .pf-si{width:28px;height:28px}
+/* pie: «Elige un hueco…» como texto; el detalle elegido en un panel oscuro a todo el ancho y «Fijar en la vitrina» a todo el ancho debajo */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-foot{flex:none;display:flex;flex-direction:column;align-items:stretch;gap:10px;min-height:0;margin-top:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfFoot.pf-empty{background:none;padding:2px;font-size:13px;font-style:italic;color:rgba(255,244,220,.85);text-shadow:1px 1px 0 var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #pfFoot:not(.pf-empty){max-height:34dvh;overflow-y:auto;margin:0;padding:10px 12px;border-radius:12px;background:rgba(21,16,42,.92);color:var(--sp-cream);font-size:14px;line-height:1.4;white-space:normal;-webkit-line-clamp:unset;text-overflow:clip;box-shadow:0 0 0 2px rgba(255,244,220,.2)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-pin.sp-btn{width:auto;min-height:48px;margin:0;align-self:stretch;justify-content:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpProf .pf-pin.sp-btn[hidden]{display:none}
+/* avisos: una cola arriba bajo el notch, a todo el ancho, de uno en uno */
+:root.pv:has(#mpProf:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts{top:calc(var(--pv-gt) + 62px);bottom:auto;left:var(--pv-g);right:var(--pv-g);translate:none;align-items:stretch;max-width:none}
+:root.pv:has(#mpProf:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts>.sp-toast:not(:last-child){display:none}
+:root.pv:has(#menu[data-page="look"]:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts>.sp-toast:not(:last-child){display:none}
+:root.pv:has(#mpProf:not([hidden])):not(.sp-sh-on):not(#_):not(#_):not(#_):not(#_):not(#_) #spToasts>.sp-toast{max-width:none;min-height:44px;box-sizing:border-box;text-align:center}
+
+/* ================= RETOS: cabecera compacta + Semana | Hoy | Maestría como segmentado a todo el ancho sobre franja opaca; el cuerpo se
+   desplaza (flex:1) y el pie, en 2 filas limpias con la barra de gestos. Hoy: sello de 96 con la fecha, sede entera, fichas, las medallas
+   y ¡A JUGAR! fijo abajo (clamp, sin «…»). Maestría: tarjeta de 1 columna con «Aces en un partido» / «récord 0 · bronce 2» a 13. Semana:
+   sello pequeño, fichas que parten, el mapa del grupo en el flujo a todo el ancho (las 6 zonas y la RED), Compartir con icono + texto ===== */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpRetos #rtTabs{flex:none;position:relative;z-index:3;margin:-12px 0 0;padding:0 var(--pv-g) 10px;margin-left:0;margin-right:0;background:linear-gradient(var(--sp-ink) calc(100% - 10px),rgba(21,16,42,0))}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtTabs .tb-k{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtTabs .tb-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0;padding:2px 2px 0;overflow:visible;-webkit-mask:none;mask:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtTabs .tab{min-width:0;width:auto;height:44px;min-height:44px;--sp-tbh:44px;--sp-tbs:15px;padding:0 6px;justify-content:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtTabs .tab .tb-t{white-space:nowrap;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpRetos #rtBody{flex:1 1 auto;min-height:0;max-height:none;margin-top:-4px;padding:6px 2px 12px;gap:12px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpRetos{padding-bottom:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #mpRetos>.rt-foot{flex:none;margin:-8px 0 0;padding:10px var(--pv-g) calc(var(--pv-gb) + 4px);font-size:13px;line-height:1.3;background:linear-gradient(rgba(21,16,42,0),rgba(21,16,42,.9) 10px);position:relative;z-index:2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #mpRetos .rt-foot .sep{display:block;width:100%;height:0;overflow:hidden;margin:0;border:0}
+/* Hoy */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody>.rt-day.sp-ticket{flex:none;display:flex;flex-wrap:nowrap;align-items:center;gap:10px;padding:12px 16px 14px 10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .sp-stamp{--sp-stamp:104px;flex:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-k{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-dm{flex:1 1 0;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-map{font-size:clamp(20px,6.4vw,26px);line-height:1.05;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-bits{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .sp-chip{--sp-chs:12.5px;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-bits .rt-dc{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-day .rt-stamp .sp-sc>b.rt-sd{font-size:12px!important;letter-spacing:0;white-space:nowrap;line-height:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody>.rt-tiers{flex:none;display:flex;flex-direction:column;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody>.rt-tiers .rt-tier{flex:none;min-height:44px;font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody>.rt-tiers .rt-tier>.rt-ts{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody>.rt-tiers .rt-tier>span{-webkit-line-clamp:unset;line-clamp:unset;overflow:visible;display:block}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #rtBody>.rt-go{flex:none;position:sticky;bottom:0;z-index:3;margin-top:auto;--sp-ph:76px;--sp-pt:clamp(28px,9vw,44px)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #rtBody>.rt-go .sp-t{font-size:clamp(28px,9vw,44px);white-space:nowrap;overflow:visible;text-overflow:clip;line-height:1.1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu.sp-full #rtBody>.rt-go .sp-s{font-size:13px}
+/* Maestría */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody>.rt-grp{flex:none;margin:4px 0 -2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r.sp-btn{min-height:60px;padding:6px 14px 8px 8px;gap:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-medal{width:40px;height:40px;flex:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-t{font-size:17px;line-height:1.1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s{display:block;font-size:13px;line-height:1.3;white-space:normal;overflow:visible;text-overflow:clip;-webkit-line-clamp:unset}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .sp-s .rt-what{display:block}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu .rt-r .rt-help{display:none}
+/* Semana */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-l{display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-l>*{flex:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-tk.sp-ticket{display:flex;align-items:center;gap:10px;padding:10px 14px 12px 10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-stamp{--sp-stamp:76px;flex:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-tm{flex:1 1 0;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-sc{font-size:clamp(40px,13vw,56px);line-height:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-sub{font-size:13px;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-ch{display:flex;flex-wrap:wrap;gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-ch .sp-chip{--sp-chs:12.5px;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-tries{display:flex;align-items:center;gap:8px;min-height:44px;padding-right:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-tries:has(+.sem-acts .sem-share){padding-right:150px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-tries .sem-tt{font-size:13px;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-acts{display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-acts .sem-go{order:9;flex:none;position:sticky;bottom:0;z-index:3;margin-top:auto;width:100%;--sp-ph:72px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-acts .sem-go .sp-t{font-size:clamp(26px,8.4vw,36px);white-space:nowrap;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-acts .sem-share{order:1;flex:none;align-self:flex-end;position:relative;z-index:2;margin-left:auto;margin-right:0;width:max-content;max-width:150px;min-height:44px;margin-top:-56px;padding:0 16px 0 10px;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-acts .sem-share .sem-st{display:inline;font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-r{order:3;flex:none;display:flex;flex-direction:column;gap:8px;min-height:0;padding:10px 10px 12px;border-radius:14px 12px 16px 12px;background:rgba(21,16,42,.88)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-gh{display:flex;align-items:center;justify-content:space-between;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-gh>b{font:400 17px/1.1 var(--sp-pop);color:var(--sp-gold);-webkit-text-stroke:0;text-shadow:none;letter-spacing:.02em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-seg{display:flex;gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-seg>button{min-height:44px;min-width:64px;padding:0 12px;font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-seg>button.on{color:var(--sp-ink);text-shadow:none;-webkit-text-stroke:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-r svg{display:block;align-self:center;width:100%;height:auto;max-height:28dvh;max-width:100%;aspect-ratio:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-list{font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #menu #rtBody .sem-old{font-size:13px}
+
+/* ================= EDITOR TÁCTIL en horizontal estrecho (< 640, p. ej. 568×320): la barra deja 12 px hasta la lupa y la pausa (antes, 9) ===== */
+@media (max-width:639px){
+  :root.ph:not(#_):not(#_):not(#_):not(#_) .vte .vte-bar{right:calc(124px + var(--sr,0px))}
+  :root.ph:not(#_):not(#_):not(#_):not(#_) .vte .vte-sl label{width:94px}
+}
+/* ==== fin RONDA 2 · paneles-v ==== */
 </style>
 
 <div id="app">
@@ -8532,7 +8817,7 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
       <!-- SPLAT (paneles): Volver en mancha de tinta a la izquierda y el título en Titan One torcido (focusables pone Volver el último) -->
       <div class="pn-head sp-head">
         <button class="ghost pn-close sp-back" id="btnPanelBack" data-shape="3" aria-label="Volver"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.5 5.5 8 12l6.5 6.5"/></svg><span>Volver</span></button>
-        <div class="pn-tt"><p class="sh-k sp-k" id="pnKick">Tutorial</p><h2 id="pnTitle" class="sp-h">Cómo se juega</h2></div>
+        <div class="pn-tt"><p class="sh-k sp-k" id="pnKick">Tutorial</p><h2 id="pnTitle" class="sp-h">Cómo se juega</h2><p class="sp-h pn-sec pv-only" id="pnSec"></p></div>
       </div>
       <div id="pnTut" hidden>
         <div class="tut sp-panel sp-scroll" id="tutBody">

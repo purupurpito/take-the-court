@@ -344,7 +344,8 @@
     var f = s.getAttribute('data-ph-ctl');
     if (f === 'seg' || f === 'select' || f === 'toggle') return f;
     if (L.length === 2 && YESNO.test(L[0].textContent.trim()) && YESNO.test(L[1].textContent.trim())) return 'toggle';
-    if (L.length >= 4) return 'select';
+    if (L.length >= (pv() ? 5 : 4)) return 'select';   // (ronda 2, paneles-v: en vertical el segmentado va en su fila a todo el ancho y caben 4)
+    if (pv() && L.length <= 3) return 'seg';   // (ronda 2, paneles-v: en vertical el segmentado de 2-3 va en su fila a todo el ancho)
     // 2-3 opciones con texto: segmentado si cabe en su sitio (el ancho del padre, sin desbordar)
     var p = s.parentElement;
     if (p && s.offsetWidth && (s.scrollWidth > s.clientWidth + 1 || s.getBoundingClientRect().right > p.getBoundingClientRect().right + 1)) return 'select';
@@ -416,9 +417,9 @@
     for (var i = 0; i < S.length; i++) {
       var s = S[i];
       if (s.classList.contains('ph-proxy')) continue;
-      if (!phone()) { segUnfit(s); continue; }
+      if (!mob()) { segUnfit(s); continue; }   // (ronda 2, paneles-v: también en vertical)
       var L = segSpans(s); if (!L.length) continue;
-      var was = s._phx ? s._phx._m : null;
+      var was = s._phx && s._phx._pv === pv() ? s._phx._m : null;   // (al girar se vuelve a decidir: en vertical hay más ancho)
       if (s._phx) s.classList.remove('ph-hid');   // medir el original a la vista
       var m = s.getAttribute('data-ph-ctl') || was || segMode(s, L);
       if (m === 'seg') { segUnfit(s); continue; }
@@ -434,11 +435,12 @@
             return function (e) { var a = e.target.closest ? e.target.closest('[data-d]') : null; segGo(s0, a ? +a.getAttribute('data-d') : 0, e); if (a && !a.classList.contains('end')) press(a); };
           }(s));
         }
-        x._m = m;
+        x._m = m; x._pv = pv();
         s.parentNode.insertBefore(x, s.nextSibling);
         s._phx = x;
         if (typeof MutationObserver !== 'undefined') { s._phMo = new MutationObserver(segPaint.bind(null, s)); s._phMo.observe(s, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'aria-checked'] }); }
       }
+      s._phx._pv = pv();
       s.classList.add('ph-hid');
       if (m === 'toggle') segRow(s, true); else segRow(s, false);
       segPaint(s);
