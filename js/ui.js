@@ -2945,6 +2945,8 @@
   /** (ronda 2, movil-aire §8.2) ¿móvil en cualquier orientación? (html.ph o html.pv): decide QUÉ SE DICE (textos cortos, una sola salida);
    *  la disposición (dónde va cada cosa) sigue con phHud() / VB.Splat.phone() en horizontal. En PC, false. */
   function phMob() { return !!(VB.Splat && VB.Splat.mob && VB.Splat.mob()); }
+  /** (ronda 2, carrera-flujo-v) móvil en vertical (html.pv): solo disposición de las hojas de la Carrera. */
+  function phPv() { return !!(VB.Splat && VB.Splat.pv && VB.Splat.pv()); }
   /** Móvil táctil (movil-aire §5.7): los avisos del saque («Espera el silbato» y «SACAR flotante · SALTAR potente», en UNA línea) van en la
    *  franja de abajo, en el hueco entre el joystick y los botones (encima del sacador, que está de espaldas abajo), nunca arriba junto a la
    *  seña o la cinta. Busca, de abajo arriba, la franja donde cabe el aviso sin pisar un botón (touchBoxes) y lo centra en su hueco. Clase
@@ -3785,6 +3787,17 @@
     var mT = el.btnMStats.querySelector('.sp-t');   // (movil-aire §5.7: en el móvil, «Ver todo ›» al pie de Cifras)
     if (mT) { var ph1 = phHud(); mT.textContent = ph1 ? 'Ver todo ›' : 'Estadística del partido'; if (ph1) el.btnMStats.setAttribute('aria-label', 'Estadística del partido'); else el.btnMStats.removeAttribute('aria-label'); }
   }
+  /** (ronda 2, carrera-flujo-v) «Ver tabla» de la hoja de la Carrera en vertical: la clasificación entera en una hoja (VB.Splat.sheet). */
+  function endTableSheet() {
+    var d = recapD, t = d && d.table, SP = VB.Splat; if (!t || !t.rows || !SP || !SP.sheet) return;
+    var C0 = VB.Career, c0 = null; try { c0 = C0 && C0.get ? C0.get() : null; } catch (e) { c0 = null; }
+    var nm = function (id) { var k = null; try { k = c0 && C0.club ? C0.club(c0, id) : null; } catch (e) { k = null; } return (k && k.name) || (t.shortOf && t.shortOf(id)) || String(id); };
+    var ord = function (n) { n = n | 0; return n + (n === 1 || n === 3 ? 'r' : 'º'); };
+    var nd = document.createElement('div'); nd.className = 'rc-tbsh';
+    nd.innerHTML = '<table><thead><tr><th scope="col">#</th><th scope="col" class="l">Club</th><th scope="col"><abbr title="Partidos jugados">PJ</abbr></th><th scope="col"><abbr title="Puntos">Pts</abbr></th></tr></thead><tbody>' +
+      t.rows.map(function (r, i) { return '<tr' + (r.id === t.myId ? ' class="me"' : '') + '><td>' + ord(r.pos | 0 || i + 1) + '</td><td class="l">' + escT(nm(r.id)) + '</td><td>' + (r.pj | 0) + '</td><td>' + (r.pts | 0) + '</td></tr>'; }).join('') + '</tbody></table>';
+    SP.sheet({ title: 'Clasificación', node: nd, cls: 'rc-tbs' });
+  }
   function endRecap(e, g, sum, x) {
     recapM = null; recapD = null; endRcSnd = null;
     var R = VB.Recap, watch = !!(g && g.watch0 && !g.demo);
@@ -3809,6 +3822,7 @@
       setSep(el.endKicker, [{ h: nw('Reto del día') }, { h: nw(escT(venueName())) + '<span class="ph-hide">' + SEP_V + nw('Nivel ' + escT(dn || '')) + SEP_V + nw('Sets a ' + ((g && g.points) || 25)) + '</span>' }], 'd');
     }
     el.endSum.innerHTML = watch ? '' : rcHTML(M, d);
+    if (!el.endSum._tb) { el.endSum._tb = 1; el.endSum.addEventListener('click', function (ev) { var b = ev.target && ev.target.closest ? ev.target.closest('[data-rc="tbl"]') : null; if (b) { uiSound('click'); endTableSheet(); } }); }
     endSeal(!watch && d.reto && retoEnd && retoEnd.day ? retoEnd.day : null);   // (SPLAT: reto del día → sello dorado junto al título)
     renderPlays(watch ? 0 : d.plays | 0);
     if (!watch) endButtons(M);
@@ -4344,7 +4358,7 @@
           if (M.mvp) {
             // (cada dato entero en su línea: «7 aces» no se parte; nbsp dentro de cada uno; la raya va pegada al dato que la sigue, .rc-pd)
             var mv = M.mvp, parts = [mv.ptsT].concat(mv.parts || []).map(function (p) { return typeof p === 'string' ? p.replace(/ /g, '\u00a0') : p; });
-            if (phHud()) blk('rc-mvp rc-mvph', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small class="rc-mch">' + parts.map(function (t) { return '<span>' + escT(String(t)) + '</span>'; }).join('') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
+            if (phHud() || (cs && phPv())) blk('rc-mvp rc-mvph', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small class="rc-mch">' + parts.map(function (t) { return '<span>' + escT(String(t)) + '</span>'; }).join('') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
             else blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v').replace(/(<span class="sep[^"]*"><span class="sr">, <\/span><\/span>)([^<]*)/g, '<span class="rc-pd">$1$2</span>') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
           } else blk('rc-mvp rv', H.mvp, '<span class="rc-l">' + escT(M.mvpRival.t) + '</span>' + (cs && M.nota ? '<em class="rc-nota">Nota ' + escT(M.nota) + '</em>' : ''));
           break;
@@ -4367,6 +4381,8 @@
             var mvT = r.me && M.table.move && M.table.move.txt ? M.table.move : null;
             tb += '<span class="rc-tr' + (r.me ? ' me' : '') + '"><em>' + escT(r.posT) + '</em>' + (mvT ? '<i class="mv ' + (mvT.d > 0 ? 'up' : mvT.d < 0 ? 'dn' : 'eq') + '">' + escT(mvT.txt) + '</i>' : '<i class="mv"></i>') + '<b>' + escT(r.short) + '</b><span>' + r.pts + '</span></span>';
           });
+          // (ronda 2, carrera-flujo-v: en vertical, «Ver tabla» abre la clasificación entera en una hoja; aquí, tu fila ±1)
+          if (cs && phPv() && d.table && d.table.rows && d.table.rows.length > 3) tb += '<button type="button" class="rc-tball" data-rc="tbl">Ver tabla</button>';
           blk('rc-tb', H.table, tb);
           break;
         case 'cup': blk('rc-cup', H.cup, '<span class="rc-l">' + escT(M.cup) + '</span>'); break;

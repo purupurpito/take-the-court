@@ -7668,6 +7668,175 @@ body #account .ac-sheet input:focus{box-shadow:0 0 0 3px var(--sp-ink),0 0 0 6.5
 :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-mvp{order:-4}
 :root.ph:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-rt{order:-3}
 /* ==== fin RONDA 2 · recortes ==== */
+/* ==== RONDA 2 · paquete «carrera-flujo-v» (24-nov-2026; notes/movil-aire.md §8.4 y §8.6.6): hojas de partido de la Carrera (#end.crs), concursos
+   y sesiones (#gymEnd) en VERTICAL. Todo bajo :root.pv (prefijo :root.pv + 5 :not(#_), gana a las capas SPLAT de PC); PC y horizontal no cambian.
+   Hoja: [antetítulo de 1 línea · ojo de 44 a la derecha] / título de 2 líneas / marcador + sets / panel que se desplaza (etiquetas encima de su
+   contenido, fichas enteras que parten, MVP en dos líneas) / dock [Menú 1/3][principal 2/3] con --pv-gb. */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .sheet{position:absolute;inset:0;width:auto;max-width:none;height:auto;max-height:none;display:flex;flex-direction:column;gap:10px;box-sizing:border-box;margin:0;
+  padding:var(--pv-gt) var(--pv-g) var(--pv-gb);overflow:hidden;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-hd{position:relative;flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:4px;margin:0;padding:0;min-width:0;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endKicker{display:flex;align-items:center;box-sizing:border-box;min-height:44px;width:100%;margin:0;padding:0 56px 0 0;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endKicker:not(.ek-on){font-size:var(--pv-cap);line-height:1.25}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endKicker.ek-on>.ek-s{font-size:var(--pv-cap);letter-spacing:.06em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-title{margin:0;font-size:clamp(28px,8.6vw,36px)!important;line-height:1.02;white-space:normal;overflow:visible;text-overflow:clip;max-width:100%;overflow-wrap:break-word}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sc{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px;margin:4px 0 0;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-score{margin:0;flex:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-score .es-t,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sets span{white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sets{display:flex;flex-wrap:wrap;gap:6px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-sets span small{font-size:var(--pv-micro)}
+/* «Ver celebración»: ojo redondo de 44 arriba a la derecha, en la fila del antetítulo (el rótulo queda en el aria-label) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek{display:block;position:absolute;top:var(--pv-gt);right:var(--pv-g);left:auto;bottom:auto;z-index:3;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-btn{width:44px;height:44px;min-width:44px;min-height:44px;padding:0;justify-content:center;border-radius:50%;transform:none;background:var(--sp-cream);color:var(--sp-ink);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-btn>:is(.sp-t,.sp-blob,.sp-drops){display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-btn::after{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-peek .sp-ic{--sp-is:22px;margin:0}
+/* panel: ocupa lo que queda; solo el resumen se desplaza */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-body{flex:1 1 auto;min-height:0;width:100%;max-width:none;box-sizing:border-box;margin:0;display:flex;flex-direction:column}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-tabs .tab{--sp-tbh:44px;--sp-tbs:14px;min-height:44px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-tabs .tab .tb-t{font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-body>[role="tabpanel"]{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc{display:flex;flex-direction:column;gap:12px;margin:0;padding:0 2px 4px 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-xp{order:-6}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>:is(.rc-unl,.rc-cup,.rc-bd,.rc-badges){order:-5}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-mvp{order:-4}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-rt{order:-3}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-tb{order:-2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc>.rc-hl{order:9;margin:0;font-size:var(--pv-cap);line-height:1.3;color:rgba(255,244,220,.75)}
+/* etiqueta encima de su contenido (no en una columna de 92 px a la izquierda) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-b{display:flex;flex-direction:column;align-items:stretch;gap:6px;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-b>.rc-h{align-self:flex-start;margin:0;padding:2px 8px 1px;font-size:var(--pv-micro);line-height:1.3;letter-spacing:.06em;white-space:nowrap;overflow:visible}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-c{font-size:var(--pv-body);line-height:1.3;min-width:0}
+/* MVP: [dorsal] nombre entero · nota / cifras enteras que parten por dato */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-c{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:center;column-gap:10px;row-gap:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-pt{grid-row:1/span 2;grid-column:1;width:36px;height:36px;min-width:36px;font-size:16px;align-self:start}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv{display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>b{grid-column:2;grid-row:1;min-width:0;max-width:none;font-size:17px;line-height:1.15;white-space:normal;overflow:visible;text-overflow:clip;display:block}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>small{grid-column:2/-1;grid-row:2;display:flex;flex-wrap:wrap;align-items:baseline;gap:0 8px;min-width:0;font-size:var(--pv-cap);line-height:1.35;white-space:normal!important;overflow:visible!important;text-overflow:clip!important}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>small .rc-pd{display:inline-flex;align-items:baseline;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mv>small .rc-pd>.sep{margin:0 8px 0 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch{gap:6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch>span{display:inline-flex;align-items:center;min-height:26px;padding:2px 9px;border-radius:8px 11px 9px 12px;background:rgba(255,244,220,.1);color:rgba(255,244,220,.9);white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-mch>span:first-child{background:rgba(255,203,61,.18);color:var(--sp-cream);font-weight:700}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-mvp .rc-nota{grid-column:3;grid-row:1;margin:0;font-size:var(--pv-body);white-space:nowrap}
+/* progreso: nombre · XP · barra en una fila que parte; «¡Nivel 7! +3 puntos» entero */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr{display:flex;flex-wrap:wrap;align-items:center;gap:4px 12px;min-height:28px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr .rc-nm{font-size:var(--pv-body)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr .rc-bar{flex:1 1 80px;min-width:80px;max-width:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-xr .lv{flex:1 1 100%;font-size:14px;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tb .rc-c{display:grid;gap:2px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tr{min-height:28px;font-size:15px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tr .mv{font-size:13px}
+:root:not(.pv) #end .rc-tball{display:none}   /* (si se gira el móvil con la hoja abierta: «Ver tabla» es solo de vertical) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tb .rc-tball{justify-self:end;display:inline-flex;align-items:center;min-height:44px;margin:4px 0 0;padding:0 14px;border:0;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;background:rgba(21,16,42,.55);color:var(--sp-cream);box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);font:700 14px/1.1 var(--sp-ui);cursor:pointer}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-tb .rc-tball:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs table{width:100%;border-collapse:collapse;font:600 15px/1.3 var(--sp-ui)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--sp-gold);text-align:right;padding:4px 6px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs td{text-align:right;padding:0 6px;height:40px;border-top:1px solid rgba(255,244,220,.1)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs :is(th,td).l{text-align:left;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs :is(th,td):first-child{text-align:left;width:34px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .rc-tbs tr.me td{color:var(--sp-gold);font-weight:800}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .rc-l{font-size:var(--pv-body);line-height:1.3}
+/* «Tu partido» / Lo mejor · A mejorar: la etiqueta encima y las fichas ENTERAS a todo el ancho (parten de línea; main.js fitChips ya no
+   esconde ninguna: no desbordan) */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt{display:block;width:100%;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-l{display:flex;flex-direction:column;gap:8px;width:100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-r{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-h{min-width:0;font-size:var(--pv-micro);letter-spacing:.1em}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-c{display:flex;flex-wrap:wrap;gap:6px;width:100%;min-width:0;overflow:visible}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .er-c>.sr{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .chip{flex:0 1 auto;display:inline-flex;align-items:center;max-width:100%;min-height:30px;box-sizing:border-box;padding:3px 10px;font-size:var(--pv-cap);line-height:1.25;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .chip i{overflow:visible;text-overflow:clip;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-rt .chip b{flex:none;margin-left:6px;white-space:nowrap}
+/* prueba y juvenil: [nota][veredicto] en una fila y debajo, a todo el ancho, el texto, los objetivos y Lo mejor / A mejorar */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.end-trial,.pro-end){display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px 14px;width:100%;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t,.pro-et){display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-l,.pro-en){grid-column:1;grid-row:1}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-l small{font-size:14px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .pro-en{min-width:76px;height:64px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .pro-en small{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t,.pro-et)>strong{grid-column:2;grid-row:1;min-width:0;font-size:clamp(18px,5.4vw,22px)!important;line-height:1.1;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .pro-et>strong.pro-sc{white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t,.pro-et)>:not(strong){grid-column:1/-1;min-width:0;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs :is(.et-t>span,.pro-et>p){font-size:var(--pv-body)!important;line-height:1.35}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals{display:flex;flex-wrap:wrap;gap:8px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals>span{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:32px;box-sizing:border-box;padding:3px 10px;font-size:14px;line-height:1.2;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals>span>.ph-no{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals>span>.ph-only{display:inline}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .et-goals small{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #endTrialRt{margin:12px 0 0}
+/* Partido de las Estrellas: «Equipo Sol / 21-18 / Equipo Luna» apilado y centrado; «Tu nota 7,8 · MVP: tú» en su línea; la recompensa en el
+   recuadro amarillo */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext:has(>.as-sc){display:flex;flex-direction:row;flex-wrap:wrap;justify-content:center;align-items:baseline;gap:8px 6px;margin:0;text-align:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-sc{flex:1 1 100%;display:flex;flex-direction:column;align-items:center;gap:2px;margin:0 0 4px;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .as-sc>b{font-size:18px;line-height:1.15;overflow:visible;text-overflow:clip;white-space:normal;min-width:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .as-sc .as-n{font-size:30px;line-height:1.05;white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-p{flex:none;margin:0;font-size:var(--pv-body);white-space:nowrap}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-p:not(.as-gold)+.as-p:not(.as-gold)::before{content:"·";margin:0 6px 0 0;color:rgba(255,244,220,.6)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-ext>.as-gold{flex:1 1 100%;margin:8px 0 0;padding:8px 12px;border-radius:9px 12px 10px 13px;background:rgba(255,203,61,.14);box-shadow:inset 4px 0 0 var(--sp-gold);white-space:normal;text-align:left;line-height:1.35}
+/* Cifras: «Puntos» arriba, luego el MVP de cada equipo y el resto de barras; «Ver todo ›» (la estadística completa) al pie como enlace;
+   rótulos a 12 */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st:not([hidden]){display:flex;flex-direction:column;gap:10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.stats{display:contents}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st .st-r.tot{order:-2}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.end-mvp{order:-1;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.end-ms{order:10;display:flex;justify-content:flex-end;margin:4px 0 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-st>.end-rec{order:9}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #btnMStats{--sp-h:44px;height:44px;min-height:44px;padding:0 14px;background:rgba(21,16,42,.55);color:var(--sp-cream);border-radius:12px 15px 11px 16px/14px 11px 16px 12px;box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #btnMStats>:is(.sp-blob,.sp-drops,.sp-ic){display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs #btnMStats>.sp-t{font:700 14px/1.1 var(--sp-ui);color:var(--sp-cream);text-shadow:none;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .mvp-cols>span,:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .mvp-cols>span>span{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-mvp>.mvp-h{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .st-r .mid>em{font-size:var(--pv-micro)}
+/* dock: [Menú 1/3 fantasma de 48][principal 2/3 de 56], texto en 2 líneas como mucho, nunca «…» */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn{flex:none;display:flex;flex-direction:row;align-items:center;gap:12px;width:100%;margin:0;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn>#btnAgain{order:2;flex:2 1 0;min-width:0;width:auto;--sp-ph:56px;height:56px;min-height:56px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn>#btnAgain .sp-t{font-size:clamp(16px,4.8vw,20px);line-height:1.05;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .row-btn>.end-more{order:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:8px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn:not([hidden]){flex:none;width:100%;--sp-h:48px;height:48px;min-height:48px;padding:0 8px;background:rgba(21,16,42,.55);color:var(--sp-cream);
+  border-radius:12px 15px 11px 16px/14px 11px 16px 12px;box-shadow:inset 0 0 0 2px rgba(255,244,220,.6);transform:none;--sp-fs:var(--pv-cap);justify-content:center}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn>:is(.sp-blob,.sp-drops){display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn>.sp-t{display:block;color:var(--sp-cream);text-shadow:none;font:700 14px/1.12 var(--sp-ui);letter-spacing:.02em;white-space:normal;overflow:visible;text-overflow:clip;text-align:center;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn::after{display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #end.crs .end-more>.sp-btn:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}
+/* concursos de las Estrellas y sesiones de la Carrera (#gymEnd con «Volver a la Carrera»: #btnGeList[data-cr]): título de 32-40 (no media
+   pantalla), el resultado se desplaza, clasificación a todo el ancho; abajo [Volver 1/3][principal 2/3] o, con tres botones (concurso), el parche
+   entero y debajo [Volver a la Carrera][Siguiente: …] */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .sheet{position:absolute;inset:0;width:auto;max-width:none;height:auto;max-height:none;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;margin:0;padding:calc(var(--pv-gt) + 8px) var(--pv-g) var(--pv-gb);overflow:hidden;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-hd{flex:none;margin:0;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) #geKick{margin:0;font-size:var(--pv-cap);line-height:1.25;white-space:normal}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-title{margin:4px 0 0;font-size:clamp(32px,10vw,40px)!important;line-height:1.02;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-body{flex:1 1 auto;min-height:0;overflow-y:auto;width:100%;max-width:none;box-sizing:border-box;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-rec{display:block;margin:12px 0 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-rec>*{font-size:var(--pv-body)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .as-rank{margin:0 0 10px;gap:4px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .as-rank li{min-height:32px;align-items:center;padding:3px 10px;font-size:var(--pv-body)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-rec>.as-p{margin:6px 0 0;font-size:var(--pv-body);line-height:1.35}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-btns{flex:none;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;gap:12px;width:100%;margin:0;padding:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) #btnGeAgain{order:2;flex:2 1 0;min-width:0;width:auto;--sp-ph:56px;height:56px;min-height:56px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) #btnGeAgain .sp-t{font-size:clamp(17px,5.2vw,22px);line-height:1.05;white-space:normal;overflow:visible;text-overflow:clip}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-btns:not(:has(#btnGeNext:not([hidden]))) #btnGeAgain .sp-t{font-size:clamp(16px,4.6vw,20px);line-height:1.02}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-more{order:1;flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:8px;margin:0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-more>.sp-btn:not([hidden]){flex:1 1 0;width:100%;--sp-h:48px;height:48px;min-height:48px;padding:0 8px;justify-content:center;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;transform:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-more>.sp-btn>:is(.sp-blob,.sp-drops){display:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-more>.sp-btn>.sp-t{font:700 14px/1.12 var(--sp-ui);letter-spacing:.02em;white-space:normal;overflow:visible;text-overflow:clip;text-align:center;transform:none;text-shadow:none}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-more>#btnGeList{background:rgba(21,16,42,.55);color:var(--sp-cream);box-shadow:inset 0 0 0 2px rgba(255,244,220,.6)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-more>#btnGeNext{background:var(--sp-kit,#ff7a1a);color:var(--sp-kit-ink,#fff);box-shadow:0 0 0 2.5px var(--sp-ink),2px 3px 0 2.5px var(--sp-ink)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-more>.sp-btn:is(.kf,:focus-visible){outline:none;box-shadow:0 0 0 2.5px var(--sp-ink),0 0 0 5.5px var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-btns:not(:has(#btnGeNext:not([hidden]))) #btnGeAgain{flex:1.5 1 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-btns:not(:has(#btnGeNext:not([hidden]))) .ge-more{flex:0 0 128px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) #geMeds .cdr-g small{font-size:var(--pv-micro)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-btns:has(#btnGeNext:not([hidden])) #btnGeAgain{flex:1 1 100%}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-btns:has(#btnGeNext:not([hidden])) .ge-more{order:3;flex:1 1 100%;flex-direction:row}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #gymEnd:has(#btnGeList[data-cr]) .ge-btns:has(#btnGeNext:not([hidden])) #btnGeList{order:-1}
+/* hoja «Detalles de la oferta» (la «i» de la ficha, career-ui phFlow): clave encima de su valor (antes «PuestoReceptor» pegados) y las
+   estrellas apagadas en tenue */
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .pv-sheet .fact{display:block;margin:8px 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .pv-sheet .fact>div{display:flex;flex-direction:column;gap:2px;margin:0 0 10px}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .pv-sheet .fact>div>small{font:800 12px/1.2 var(--sp-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--sp-gold)}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .pv-sheet .fact>div>b{font-size:var(--pv-body);line-height:1.35}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .pv-sheet .fact .chip{display:inline-block;margin:2px 4px 2px 0}
+:root.pv:not(#_):not(#_):not(#_):not(#_):not(#_) #spSheets .pv-sheet .stars .off{opacity:.3}
+/* ==== fin RONDA 2 · carrera-flujo-v (hojas) ==== */
 </style>
 
 <div id="app">

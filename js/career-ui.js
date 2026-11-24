@@ -2175,9 +2175,20 @@
   }
   /** Tras pintar (vertical): Faro plegado en una tira bajo lo que da nombre a la pantalla (la escena entera, en hoja), la tira de
    *  sub-pestañas como segmentado si caben (≤ 4) y la barra de abajo como pie (dock encima). */
+  /** (ronda 2, carrera-flujo-v) .pv-sq: marca .pv-nl el dato que empieza una línea nueva (su «|» de delante no se pinta). */
+  function pvSq() {
+    if (!body || !VERT()) return;
+    Array.prototype.forEach.call(body.querySelectorAll('.pv-sq'), function (q) {
+      var y = null;
+      Array.prototype.forEach.call(q.children, function (k) { k.classList.remove('pv-nl'); });
+      Array.prototype.forEach.call(q.children, function (k) { var t = k.offsetTop; if (y != null && t > y + 2) k.classList.add('pv-nl'); y = t; });
+    });
+  }
   function pvAfter() {
     if (!root || !VERT()) return;
     pvClone();
+    // (carrera-flujo-v) datos que parten de línea (.pv-sq, career-prologue spv): el «|» de delante, fuera en el que empieza línea
+    try { requestAnimationFrame(pvSq); } catch (e) { pvSq(); }
     var m = body && body.querySelector('.cw-mentor');
     if (m && !m.querySelector('.cw-pv')) {
       var nx = body.querySelector('.cr-next'), dec = body.querySelector('.ph-dec,.ph-decp');
@@ -2224,7 +2235,7 @@
     var all = function (sel, r) { return Array.prototype.slice.call((r || body).querySelectorAll(sel)); };
     // juvenil, presentación (1ª página): «Ir directo a las pruebas» sube a la cabecera como botón fantasma pequeño
     var sk = body.querySelector('.pro-bar [data-act="pro-skip"]');
-    if (sk && head && PHL()) { sk.classList.remove('warn'); sk.classList.add('pro-skiph'); sk.classList.toggle('armed', /^Confirmar/.test(sk.textContent)); head.appendChild(sk); }
+    if (sk && head && (PHL() || VERT())) { sk.classList.remove('warn'); sk.classList.add('pro-skiph'); sk.classList.toggle('armed', /^Confirmar/.test(sk.textContent)); head.appendChild(sk); }
     // partido a medias: «Seguir el partido» a la barra de abajo; la nota en una línea
     var lk = body.querySelector('.card.cr-lock');
     if (lk) {
@@ -2283,6 +2294,30 @@
       if (det) chips.appendChild(qNode('Detalles de la oferta', det, 'i'));
       var hr = of.querySelector(':scope>.sp-heros'), at = hr || rw;
       if (at && at.parentNode === of) of.insertBefore(chips, at.nextSibling); else of.appendChild(chips);
+    });
+    if (VERT()) pvFlow(all);
+  }
+  /** (ronda 2, carrera-flujo-v) VERTICAL (html.pv), tras phFlow: crear → la explicación plegada a una vista previa cortada por palabra con
+   *  «Ver más» (el texto entero al tocar); ofertas → el nombre oficial (con patrocinador) pequeño bajo el corto, el rencor / cariño con las
+   *  fichas (no pisa el nombre) y la duración en cifra grande + «temporada(s)» (antes «3 te» cortado). notes/movil-aire.md §8.6.6. */
+  function pvFlow(all) {
+    var ex = body.querySelector('.cf>.card:not(.confirm):not(.cf-ex)'), SP = VB.Splat;
+    var ep = ex && ex.querySelector(':scope>p');
+    if (ep && SP && SP.cutWords && ep.textContent.length > 130) {
+      ex.classList.add('cf-ex');
+      ex.innerHTML = '<p class="cf-exs"><span data-trunc="preview">' + esc(SP.cutWords(ep.textContent, 104)) + '</span> <button type="button" class="cf-more" data-act="cf-more" aria-expanded="false">Ver más</button></p>' +
+        '<p class="cf-exl" hidden>' + ep.innerHTML + '</p>';
+    }
+    all('.card.offer-full').forEach(function (of) {
+      var bn = of.querySelector(':scope>.row .bigname.cr-on'), tt = bn && String(bn.getAttribute('title') || '').trim();
+      if (bn && tt && tt !== bn.textContent.trim() && !of.querySelector('.of-on')) bn.insertAdjacentHTML('afterend', '<p class="of-on">' + esc(tt) + '</p>');
+      var bd = of.querySelector(':scope>.row>.of-bond'), ch = of.querySelector(':scope>.of-chips');
+      if (bd && ch) ch.insertBefore(bd, ch.firstChild);
+      all('.seg>[data-act="yrs"]', of).forEach(function (b) {
+        if (b.querySelector('.of-y')) return;
+        var n = b.getAttribute('data-y') || '', t = b.textContent.trim();
+        b.setAttribute('aria-label', t); b.innerHTML = '<b class="of-y">' + esc(n) + '</b><small>' + (n === '1' ? 'temporada' : 'temporadas') + '</small>';
+      });
     });
   }
   /** Móvil (movil-aire §3.7 y §5.2): decisión pendiente en Partido, una a la vez (propuesta de puesto > selección > cesión). Va justo
@@ -3849,10 +3884,10 @@
     if (!cos.some(function (x) { return x.code === form.country; })) form.country = cos.some(function (x) { return x.code === 'ES'; }) ? 'ES' : (cos[0] && cos[0].code);
     if (ps.indexOf(form.pos) < 0) form.pos = ps[0];
     var st = C().genSt(H6.START_OVR, form.pos, null), P = VB.Prog, co = cos.filter(function (x) { return x.code === form.country; })[0] || {}, P6 = C().POS6;
-    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PHL() ? phModeSeg() : '');
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title">' + (VERT() ? '' : '<small>' + sp(['Carrera', 'Pista 6 contra 6'], 'd') + '</small>') + '<b>Crea tu jugador</b></div>' + (PHL() || VERT() ? phModeSeg() : '');   // (vertical: sin el small, lo dice el selector Playa | Pista)
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = ''; body.setAttribute('data-cv', 'create');
     var has = C().has('hall');
-    var h = '<div class="cf">' + (PHL() ? '' : modeSeg()) + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
+    var h = '<div class="cf">' + (PHL() || VERT() ? '' : modeSeg()) + (!has && H6.lost() ? '<div class="card confirm"><p><b>Tu Carrera de pista guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career6.bak).</p></div>' : '') +
       '<div class="card"><p>Vóley de pista, 6 contra 6, en el pabellón. Empiezas con una media de ' + H6.START_OVR + ' en un club modesto de tu país' + (co.divs > 1 ? ' (2ª división, o una prueba en la 1ª)' : '') + '. Liga por jornadas, copa nacional y, si tu club se clasifica, copas internacionales. Ascensos y descensos. Si destacas, los ojeadores de las ligas fuertes (también de fuera) te ficharán. Controlas solo a tu jugador, en su puesto.' +
       (VB.Leagues && VB.Leagues.provisional ? ' <span class="tag y">Ligas provisionales</span>' : '') + '</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
@@ -4034,9 +4069,9 @@
     if (form.mode === 'hall' && C().hall) { renderCreate6(c); return; }
     var B = C().beach || C();   // la ficha es de playa aunque la Carrera activa sea la de pista (la fachada mandaría league(0), START_OVR y WEEKS a la pista)
     var R = B.ROLES, st = B.genSt(B.START_OVR, form.role, null), P = VB.Prog;
-    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title"><small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small><b>Crea tu jugador</b></div>' + (PHL() ? phModeSeg() : '');
+    head.innerHTML = backB(c ? 'hub' : 'close', 'Volver', 'Volver') + '<div class="cr-title">' + (VERT() ? '' : '<small>' + sp(['Carrera', 'Vóley playa 2 contra 2'], 'd') + '</small>') + '<b>Crea tu jugador</b></div>' + (PHL() || VERT() ? phModeSeg() : '');   // (vertical: sin el small, lo dice el selector Playa | Pista)
     tabsEl.hidden = true; tabsEl.innerHTML = ''; subEl.hidden = true; subEl.innerHTML = ''; body.setAttribute('data-cv', 'create');
-    var h = '<div class="cf">' + (PHL() ? '' : modeSeg()) + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
+    var h = '<div class="cf">' + (PHL() || VERT() ? '' : modeSeg()) + (!c && B.lost && B.lost() ? '<div class="card confirm"><p><b>Tu carrera guardada estaba dañada</b> y no se ha podido recuperar. Hay una copia aparte en este dispositivo (make-the-cut.career.bak).</p></div>' : '') +
       '<div class="card"><p>Empiezas con media ' + B.START_OVR + ' y sin club. Los clubes del <b>' + esc(B.league(0).name) + '</b> te harán ofertas: cada uno te da un compañero distinto.</p></div>' +
       '<div class="cf-col"><div><label for="crName">Nombre</label><input id="crName" maxlength="18" autocomplete="off" spellcheck="false" placeholder="Tu nombre" value="' + esc(form.name) + '"></div>' +
       '<div><label>Dorsal</label><div class="stp"><button data-act="num" data-d="-1" aria-label="Dorsal anterior">−</button><b aria-live="polite">' + form.num + '</b><button data-act="num" data-d="1" aria-label="Dorsal siguiente">+</button></div></div>' +
@@ -4124,6 +4159,7 @@
       case 'num': form.num = ((form.num - 1 + (+b.getAttribute('data-d')) + 99) % 99) + 1; snd('select'); keepFocus(b, render); return;
       case 'role': form.role = b.getAttribute('data-r'); snd('select'); keepFocus(b, render); return;
       case 'cdiff': form.diff = b.getAttribute('data-d'); snd('select'); keepFocus(b, render); return;
+      case 'cf-more': { var cx = b.closest('.cf-ex'); if (cx) { var xs = cx.querySelector('.cf-exs'), xl = cx.querySelector('.cf-exl'); if (xs) xs.hidden = true; if (xl) xl.hidden = false; } snd('click'); return; }   // (vertical: la explicación de crear, entera)
       case 'cc-sheet': { var inp0 = root.querySelector('#crName'); if (inp0) form.name = inp0.value; if (phCountrySheet()) snd('click'); return; }
       case 'cdiff-set': {
         var dk2 = b.getAttribute('data-d'), dr = C().setDifficulty ? C().setDifficulty(dk2) : '';
@@ -4894,7 +4930,7 @@
     '@media (min-width:385px){' + PW + ' .tc-ph .tc-pr,' + PW + ' .tc-ph .tc-pg.empty .tc-pr{grid-template-columns:repeat(3,minmax(0,1fr))}}',
     PW + ' .tc-ph .tc-pg.empty button.tc-slot{width:auto;min-height:44px;padding:2px 0 4px;justify-content:flex-start}',
     PW + ' .tc-ph .tc-n{font-size:13px}'
-  ].concat(PV_LV()).join('\n');
+  ].concat(PV_LV(), PV_FL()).join('\n');
   /** (ronda 2, carrera-liga-vida-v) Mensajes, Liga, Vida, Palmarés, premios y Vitrina de Estrellas en VERTICAL. notes/movil-aire.md §8.6.5.
    *  Prefijo PW (gana a la copia de .ph); W(cv) = la vista concreta (#crBody[data-cv]; con «-» al final, por prefijo). */
   function PV_LV() {
@@ -5015,6 +5051,130 @@
       W('life-pass') + ' .ss-track.ss-hz>li>b{font:400 16px/1 var(--sp-pop)}',
       W('life-pass') + ' .ss-track.ss-hz>li>small{font-size:12px;line-height:1.1}',
       W('life-pass') + ' .ss-track.ss-hz>li::before,' + W('life-pass') + ' .ss-track.ss-hz>li::after{display:none}'
+    ];
+  }
+  /** (ronda 2, carrera-flujo-v) Crear jugador y ofertas en VERTICAL (prefijo PW, gana a la copia de .ph). notes/movil-aire.md §8.6.6.
+   *  Crear: Playa | Pista en la cabecera (sin el small), [Nombre][Dorsal −/+] en una fila, Dificultad en 4, País, Puntos, Inicio, Rol / Puesto en
+   *  rejilla de 2, explicación plegada (pvFlow, «Ver más»), reglas, aspecto; abajo «Falta: tu nombre» en su línea y el parche a todo el ancho.
+   *  Ofertas: cabecera del club (escudo 40 + nombre corto a 22 en 2 líneas + nombre oficial pequeño + estrellas), cifras en 2×2, fichas
+   *  Rencor / Estilo / Compañero que parten + «i» (la ficha entera, en hoja), duración en 3 casillas de 56 con la cifra grande. */
+  function PV_FL() {
+    var CH = PW + ' .cr-in:has(>.cr-body>.cf)>.cr-head', CF = PW + ' #crBody[data-cv="create"]', OF = PW + ' .card.offer-full';
+    var NOCUT = 'white-space:normal!important;overflow:visible!important;text-overflow:clip!important';
+    return [
+      // ---- crear: selector Playa | Pista a todo el ancho bajo el título (con el punto lima de «guardada»)
+      CH + '>.cr-cmode{order:10;flex:1 1 100%;display:flex;flex-wrap:nowrap;gap:12px;width:auto;margin:6px 0 2px;justify-self:auto}',
+      CH + '>.cr-cmode>button{position:relative;flex:1 1 0;min-width:0;height:44px;min-height:44px;padding:0 8px;font-size:15px;white-space:nowrap}',
+      CH + '>.cr-cmode .cm-sv{position:absolute;top:-3px;right:-3px;width:12px;height:12px;border-radius:50%;background:var(--sp-lime,#b6f03c);box-shadow:0 0 0 2px var(--sp-ink)}',
+      CF + ' .cf{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-auto-flow:row;gap:10px;align-items:stretch;padding:0 0 12px}',
+      CF + ' .cf-col{display:contents}',
+      CF + ' .cf-col>div{order:10;grid-column:1/-1;min-width:0;margin:0;padding:12px}',
+      CF + ' .cf-col>div:has(>#crName){order:1;grid-column:1}',
+      CF + ' .cf-col>div:has(>.stp){order:2;grid-column:2;display:block}',
+      CF + ' .cf-col>div:has(>.stp)>label{margin:0 0 6px}',
+      CF + ' .cf .stp{display:flex;align-items:center;justify-content:flex-start;gap:6px;margin:0}',
+      CF + ' .cf .stp b{font-size:22px;min-width:2ch;text-align:center}',
+      CF + ' .cf-col>div:has(>.diffs){order:3;grid-row:auto}',
+      CF + ' .cf .roles.diffs{grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}',
+      CF + ' .cf label:has(>.cr-q){margin-bottom:20px}',
+      CF + ' .cf .roles.diffs button{height:44px;min-height:44px;padding:0 2px;font-size:14px;white-space:nowrap}',
+      CF + ' .cf .roles.diffs button small{display:none}',
+      CF + ' .cf .dh{margin:8px 0 0;font-size:var(--pv-cap);line-height:1.35;display:block}',
+      CF + ' .cf-col>div:has(>.cf-cc){order:4}',
+      CF + ' .cf-col>div:has([data-act="pts6"]){order:5;display:flex;align-items:center;gap:12px}',
+      CF + ' .cf-col>div:has([data-act="pts6"])>label{flex:1 1 auto;margin:0}',
+      CF + ' .cf-col>div:has([data-act="pts6"])>.seg{flex:none;display:flex;gap:10px}',
+      CF + ' .cf-col>div:has([data-act="pts6"])>.seg button{width:52px;min-width:52px}',
+      CF + ' .cf-col>div:has([data-act="pro-start"]){order:6}',
+      CF + ' .cf-col>div:has(>.roles:not(.diffs)):not(:has([data-act="pro-start"])){order:7}',
+      CF + ' .cf .roles:not(.diffs):not(:has([data-act="pro-start"])){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}',
+      CF + ' .cf .roles:not(.diffs) button{min-height:56px;padding:6px 10px;text-align:left}',
+      CF + ' .cf .roles:not(.diffs) button small{font-size:var(--pv-micro)!important;line-height:1.25}',
+      CF + ' .cf .prev{grid-template-columns:repeat(2,minmax(0,1fr));gap:4px 10px}',
+      CF + ' .cf>.card:not(.confirm){order:8;grid-column:1/-1;margin:0;padding:12px}',
+      CF + ' .cf>.card:not(.confirm) p{margin:0;font-size:var(--pv-cap);line-height:1.4}',
+      CF + ' .cf>.card.cf-ex .cf-more{display:inline-flex;align-items:center;min-height:44px;margin:-12px 0 -14px;padding:0 4px;border:0;background:none;box-shadow:none;color:var(--sp-gold);' +
+        'font:700 var(--pv-cap)/1 var(--sp-ui);text-transform:none;letter-spacing:0;text-decoration:underline;text-underline-offset:3px;cursor:pointer;vertical-align:baseline}',
+      CF + ' .cf>.card.cf-ex .cf-more:is(.kf,:focus-visible){outline:2px solid var(--sp-gold);outline-offset:2px}',
+      CF + ' .cf-col>div:has(>.cf-rl){order:9}',
+      CF + ' .cf p.cf-rl{font-size:var(--pv-cap)}',
+      CF + ' .cf-col>.card.confirm,' + CF + ' .cf-col>.acts{order:11;grid-column:1/-1}',
+      // barra: «Falta: tu nombre» / «✓ Listo» en su línea encima y el parche a todo el ancho (título + «Y empezar el juvenil» enteros)
+      PW + ' .cr-dock:has(>.cf-cnt){flex-wrap:wrap;row-gap:6px}',
+      PW + ' .cr-dock>.cf-cnt{flex:1 1 100%;margin:0;font:700 var(--pv-cap)/1.25 var(--sp-ui);' + NOCUT + ';display:block;text-align:center}',
+      PW + ' .cr-dock:has(>.cf-cnt)>.sp-patch{flex:1 1 100%;width:100%;max-width:none;--sp-ph:64px;height:64px;min-height:64px}',
+      PW + ' .cr-dock>.sp-patch .sp-t small{display:block;margin-top:2px;font:700 13px/1.15 var(--sp-ui);letter-spacing:0;text-transform:none}',
+      // ---- juvenil (career-prologue.js), presentación: «Ir directo a las pruebas» fantasma pequeño en la fila del ‹ (no bocadillo rojo en la
+      // barra: abajo queda Siguiente a todo el ancho); tu ficha con los datos en su línea (sin «|» suelto); las tres formas de ser, una por fila
+      PW + ' .cr-head>.pro-skiph{order:4;flex:none;position:relative;min-height:44px;height:44px;margin:0 0 0 auto;padding:0 14px;border:0;border-radius:12px 15px 11px 16px/14px 11px 16px 12px;' +
+        'background:rgba(21,16,42,.72);color:var(--sp-cream);box-shadow:inset 0 0 0 2px rgba(255,244,220,.55);font:700 var(--pv-cap)/1.1 var(--sp-ui);letter-spacing:.01em;text-transform:none;white-space:nowrap;cursor:pointer}',
+      PW + ' .cr-head>.pro-skiph.armed{background:var(--sp-danger,#e4572e);box-shadow:0 0 0 2px var(--sp-ink)}',
+      PW + ' .cr-head>.pro-skiph:is(.kf,:focus-visible){outline:none;box-shadow:inset 0 0 0 2px var(--sp-gold),0 0 0 3px var(--sp-gold)}',
+      PW + ' .pv-sq{display:inline-flex;flex-wrap:wrap;column-gap:6px;row-gap:0;max-width:100%}',
+      PW + ' .pv-sq>span{white-space:nowrap}',
+      PW + ' .pv-sq>span+span::before{content:"|";display:inline-block;width:14px;text-align:left;opacity:.45}',
+      PW + ' .pv-sq>span.pv-nl{margin-left:-14px}',
+      PW + ' .pv-sq>span.pv-nl::before{visibility:hidden}',
+      PW + ' .pro-panel.p1 .pro-who>div,' + PW + ' .pro-panel.p3 .pro-who>div{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0}',
+      PW + ' .pro-panel .pro-who>div>small{display:block;' + NOCUT + ';font-size:var(--pv-cap);line-height:1.3}',
+      PW + ' .pro-panel .roles.pro-pers{grid-template-columns:minmax(0,1fr);gap:16px}',
+      PW + ' .pro-panel .roles.pro-pers button{min-height:52px;padding:6px 12px;text-align:left}',
+      PW + ' .pro-panel .roles.pro-pers button small{display:block;' + NOCUT + ';font-size:var(--pv-cap)!important;line-height:1.25}',
+      // temporada: el partido apilado, un equipo por línea con su escudo (la jornada a la izquierda; «vs» solo para el lector)
+      PW + ' .pro-go .pro-vs{display:grid;grid-template-columns:auto 28px minmax(0,1fr);column-gap:10px;row-gap:6px;align-items:center;margin:0 0 8px}',
+      PW + ' .pro-go .pro-vs>.pro-j{grid-column:1;grid-row:1/3;align-self:center}',
+      PW + ' .pro-go .pro-vs>:nth-child(2){grid-column:2;grid-row:1;width:28px;height:28px}',
+      PW + ' .pro-go .pro-vs>b:nth-of-type(1){grid-column:3;grid-row:1}',
+      PW + ' .pro-go .pro-vs>:nth-child(5){grid-column:2;grid-row:2;width:28px;height:28px}',
+      PW + ' .pro-go .pro-vs>b:nth-of-type(2){grid-column:3;grid-row:2}',
+      PW + ' .pro-go .pro-vs>b{min-width:0;font-size:17px;line-height:1.15;' + NOCUT + '}',
+      PW + ' .pro-go .pro-vs>i:not(.cr-kit){position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}',
+      PW + ' .pro-go .pro-vs{position:relative}',
+      PW + ' .pro-go>p.muted{font-size:var(--pv-cap)}',
+      PW + ' .pro-row .r,' + PW + ' .pro-row>span:nth-child(2){white-space:normal}',
+      // informe: [círculo][nivel][?] en una fila y debajo las tres cifras («8/10», «4/5»); la frase entera
+      PW + ' .pro-band{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"st tn q" "hr hr hr";align-items:center;gap:10px 12px;min-height:0}',
+      PW + ' .pro-band>.pro-stamp{grid-area:st;float:none;width:56px;height:56px;margin:0}',
+      PW + ' .pro-band>.pro-stamp small{display:none}',
+      PW + ' .pro-band>.pro-tn{grid-area:tn;min-width:0;font:400 22px/1.1 var(--sp-pop);color:var(--sp-gold);letter-spacing:.02em}',
+      PW + ' .pro-band>.cr-q{grid-area:q;position:relative;top:auto;right:auto;left:auto;transform:none;margin:0}',
+      PW + ' .pro-band>.sp-heros{grid-area:hr;margin:0}',
+      PW + ' .pro-band>.sp-heros .sp-hn{font-size:18px;white-space:nowrap}',
+      PW + ' .pro-band>.sp-heros .sp-hl{font-size:var(--pv-micro)}',
+      PW + ' .card.pro-sc .pro-inv{' + NOCUT + ';font-size:var(--pv-cap);line-height:1.35}',
+      // previa de la prueba: objetivos en fichas que parten de línea (enteros)
+      PW + ' .card.tp .tp-goals{flex-wrap:wrap}',
+      PW + ' .card.tp .tp-goals li{flex:0 1 auto;' + NOCUT + ';min-height:40px;line-height:1.2}',
+      // ---- ofertas: tira de clubes con chevrón en el borde que tiene más
+      PW + ' .cr-tabs.pv-tstrip{position:relative}',
+      PW + ' .cr-tabs.pv-tstrip:has(>.tb-row.sp-more-x)::after{content:"›";position:absolute;top:50%;right:6px;z-index:3;width:26px;height:26px;margin-top:-13px;display:grid;place-items:center;border-radius:50%;' +
+        'background:var(--sp-gold);color:var(--sp-ink);box-shadow:0 0 0 2px var(--sp-ink);font:900 18px/1 var(--sp-ui);pointer-events:none}',
+      // cabecera del club
+      OF + '{padding:12px}',
+      OF + '>.row{display:flex;flex-wrap:nowrap;align-items:flex-start;gap:10px;min-height:44px;margin:0 0 12px}',
+      OF + '>.row>:is(svg,.cr-kit,.sp-crest){flex:none;width:40px!important;height:40px!important;margin-top:2px}',
+      OF + '>.row>.grow{display:flex;flex-direction:column;align-items:flex-start;gap:2px;flex:1 1 auto;min-width:0}',
+      OF + '>.row .bigname.cr-on{margin:0;font-size:22px!important;line-height:1.08;' + NOCUT + ';overflow-wrap:break-word;max-width:100%}',
+      OF + ' .of-on{margin:0;font:600 var(--pv-micro)/1.3 var(--sp-ui);color:rgba(255,244,220,.72);overflow-wrap:break-word}',
+      OF + '>.row .grow>p.of-hl{margin:2px 0 0!important}',
+      OF + '>.row>.of-n{flex:none;align-self:flex-start;margin-top:4px;font-size:13px}',
+      // cifras: rejilla 2×2 (Rol / Sueldo / Media / Objetivo)
+      OF + '>.sp-heros.cr-oh{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;min-height:0;margin:0 0 12px;padding:0;background:none;box-shadow:none;border-radius:0}',
+      OF + '>.sp-heros.cr-oh>*{min-width:0;min-height:60px;padding:8px 10px;border:0;border-radius:10px 13px 11px 14px;background:var(--sp-ink);box-shadow:inset 0 0 0 1.5px rgba(255,244,220,.14);justify-content:center}',
+      OF + '>.sp-heros.cr-oh>*+*{border-left:0}',
+      OF + '>.sp-heros.cr-oh .sp-hn{font-size:21px;line-height:1.05;white-space:normal}',
+      OF + '>.sp-heros.cr-oh .sp-hl{font-size:var(--pv-micro);line-height:1.2;white-space:normal}',
+      // fichas: Rencor / Estilo / Compañero enteras (parten de línea) y la «i» al final
+      PW + ' .of-chips{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 12px}',
+      PW + ' .of-chip{flex:0 1 auto;min-height:40px;align-items:center;padding:6px 10px;' + NOCUT + ';line-height:1.2}',
+      PW + ' .of-chip small{font-size:var(--pv-micro)}',
+      PW + ' .of-chips>.cr-q{margin-left:auto}',
+      // duración: rótulo encima y 3 casillas de 56 con la cifra grande y «temporada(s)» debajo
+      OF + '>p.of-yl{display:block;margin:0 0 6px!important;font-size:var(--pv-micro)}',
+      OF + '>p.of-yl+.seg{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;width:100%}',
+      OF + '>p.of-yl+.seg button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;width:auto;height:56px;min-height:56px;padding:2px 4px;line-height:1}',
+      OF + '>p.of-yl+.seg button .of-y{font-size:21px;line-height:1}',
+      OF + '>p.of-yl+.seg button small{font-size:var(--pv-micro);line-height:1.1;letter-spacing:.02em}'
     ];
   }
   /** El <style> de la Carrera, una vez (al cargar: también lleva la hoja final del partido de Carrera, #end.career). */

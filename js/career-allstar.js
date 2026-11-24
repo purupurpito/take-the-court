@@ -954,6 +954,9 @@
     var cur = { sel: { mine: 0 }, m: { w: 0, sc: [21, 18], nota: 7.8, mvp: 'Tú', mvpMe: true, me: true, fame: 640, money: 1000, look: 'Estrella en la mejilla' } };
     var out = matchSheet({ player: { name: 'Tú' } }, cur);
     if (out && typeof out === 'object') out.dbgSets = [cur.m.sc.slice()];   // (main.js: la cabecera con el mismo 21-18 de la hoja)
+    // (ronda 2, carrera-flujo-v) la cabecera con los equipos de verdad (SOL / LUN, como el partido real: setup pone career.me/rival = TEAMS[].k);
+    // la muestra salía con el TÚ / VAL genérico de debug=over&cr=1
+    if (out && typeof out === 'object') out.cs = { me: TEAMS[0].k, rival: TEAMS[1].k, meName: TEAMS[0].name, rivalName: TEAMS[1].name, clubName: TEAMS[0].name };
     return out;
   }
   function _drillDemo(k) {

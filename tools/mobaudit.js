@@ -7,7 +7,7 @@
  *   objetivos tapados, recortes (elipsis, line-clamp, overflow oculto), cosas fuera del viewport, salida/acción principal
  *   dentro y pulsables (elementFromPoint), contenedores con desplazamiento y densidad (caracteres y objetivos).
  * Uso: node tools/mobaudit.js [--out dir=tools/out/mobaudit] [--only regex] [--area portada|carrera|online|partido]
- *        [--sizes 568x320,...] [--desktop] [--list] [--merge] [--probe 'cuerpo JS que devuelve algo']
+ *        [--sizes 568x320,...] [--desktop] [--list] [--merge] [--probe 'cuerpo JS que devuelve algo'] [--preshot 'JS antes de cada captura']
  *   --merge: conserva las demás pantallas de <out>/metrics.json (repasar unas pocas sin repetir la pasada entera).
  *   Env: SIZES=… (igual que --sizes), DESKTOP=1 (añade 1280x720,1920x1080,1024x768 sin táctil; con --desktop solo esos si
  *   no se dan --sizes), DPR=2 (deviceScaleFactor), TOUCH=0 (sin táctil en los tamaños de móvil), GL=swiftshader.
@@ -329,6 +329,9 @@ async function main() {
             let m = null;
             try { m = await withTimeout(page.evalJs('(' + PG.measure.toString() + ')(' + JSON.stringify({ exit: s.exit, primary: s.primary }) + ')'), 20000, 'medir ' + s.id); }
             catch (e) { err = err || ('medida: ' + String(e.message || e).slice(0, 160)); }
+            // (ronda 2, carrera-flujo-v) --preshot 'JS': se evalúa justo antes de la captura (p. ej. llevar el contenido arriba: la medida
+            // puede desplazar y la captura sale a media lista); no cambia las métricas
+            if (A.preshot) { try { await page.evalJs('(()=>{' + A.preshot + '})()'); await sleep(120); } catch (e) { } }
             try { await page.shot(file); } catch (e) { }
             // (móvil, spec §6.1.5) cada zona desplazable al final y otra medida: salida y principal siguen dentro y pulsables
             if (m && !m.err && !err) {

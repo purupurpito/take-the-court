@@ -1417,3 +1417,62 @@ worldtest (155), lifetest (110), racetest (2485), allstartest (210), girotest (2
 - Cifras: «En toda tu carrera» sigue en una fila de 4 (cabe a 360 sin cortar); Temporadas no se ha fundido con Cifras.
 - Horizontal: los totales de Temporadas a 568 siguen con algún «|» al principio de línea (no tocado: el paquete es vertical).
 - Fama: queda aire entre el sello «Celebración» y la primera fila (el «?» va encima).
+
+#### 8.6.6 Paquete carrera-flujo-v (24-nov-2026)
+
+Crear jugador, ofertas, juvenil, prueba y hojas de partido de la Carrera en vertical (html.pv). CSS de `#career` en `PV_FL()` (`js/career-ui.js`, tras
+`PV_LV`; prefijo `PW`) y de las hojas (`#end.crs`, `#gymEnd` de la Carrera = `#gymEnd:has(#btnGeList[data-cr])`, hojas `#spSheets`) en el bloque
+«RONDA 2 · paquete carrera-flujo-v» al final del `<style>` de `index.html` (`:root.pv` + 5 `:not(#_)`). JS tras `VERT()` / `pvOn()` / `phPv()`.
+PC y horizontal sin cambios (salvo el dato de la muestra de Estrellas, abajo).
+
+**Hecho**
+- *Crear* (`renderCreate`/`renderCreate6`): sin el `small` de la cabecera en vertical; Playa 2v2 | Pista 6v6 (`phModeSeg`) a todo el ancho bajo el
+  título (fuera la tarjeta «Carrera» del cuerpo). Rejilla `[Nombre][Dorsal −/+]` / Dificultad en 4 (la frase entera debajo) / País / Puntos por
+  set (rótulo + 15·21·25 en su fila) / Inicio / Rol o Puesto en 2 columnas / explicación plegada (`pvFlow`: vista previa por palabra
+  `SP.cutWords` con `data-trunc="preview"` + «Ver más», acción `cf-more`, el texto entero al tocar) / reglas / aspecto. Barra: «Falta: tu
+  nombre» en su línea y el parche a todo el ancho de 64 («Crear jugador» + «Y empezar el juvenil» enteros; antes «CREAR JUGADOR / Y empezar el»
+  cortado por el `max-width:62vw` de la copia de .ph).
+- *Ofertas* (`pvFlow` tras `phFlow`): escudo 40 + nombre corto a 22 en hasta 2 líneas + nombre oficial pequeño (`.of-on`, el `title` con
+  patrocinador) + estrellas; «1/4» arriba a la derecha; cifras en rejilla 2×2; Rencor/Cariño pasa a las fichas (no pisa el nombre), fichas
+  enteras que parten y la «i» con la ficha completa (hoja: clave encima del valor, antes «PuestoReceptor»); duración en 3 casillas de 56 con la
+  cifra grande y «temporada(s)» (antes «3 te» cortado). Tira de clubes con desvanecido y chevrón dorado. Barra [Pedir más rol][Firmar].
+- *Juvenil* (`career-prologue.js`): «Ir directo a las pruebas» fantasma pequeño en la fila del ‹ (como en H; abajo Siguiente a todo el ancho);
+  tu ficha y la del rival con los datos en su línea (`spv`: datos `nowrap` en `.pv-sq`, el «|» va delante de cada dato y `pvSq` lo oculta en el
+  que empieza línea); las tres formas de ser, una por fila con su frase entera. Temporada: el partido apilado (J3 a la izquierda, un equipo por
+  línea con su escudo, «vs» solo para el lector). Equipo y chat ya iban (lista de 1 columna con ▾; cabecera del marco). Informe: [círculo 74]
+  «Promesa» [?] en una fila (el «?» sale de la cabecera) y debajo «7,3 · 8/10 · 4/5»; la frase entera; Ver ofertas en la barra.
+- *Prueba previa*: objetivos en fichas que parten (antes «2 recepciones perfectas» y «≤ 2 errores» cortados a 360). El resto ya iba (marco).
+- *Hojas de partido* (`#end.crs`): hoja a pantalla completa [antetítulo corto + ojo redondo de 44 a la derecha] / título 28-36 en 2 líneas /
+  marcador + sets / panel que se desplaza / barra [Menú principal 1/3 fantasma][principal 2/3, 2 líneas]. Etiquetas encima de su contenido a 12;
+  orden Progreso → premios → MVP → Tu partido → Clasificación → resto, la frase del punto final al pie. MVP: [dorsal] nombre entero · nota y las
+  cifras en fichas que parten (`rcHTML` usa `rc-mch` también con `cs && phPv()`). Lo mejor / A mejorar: etiqueta encima y TODAS las fichas
+  enteras (parten de línea; `fitChips` ya no esconde ninguna). Prueba / juvenil: [nota][veredicto] y debajo, a todo el ancho, el texto, los
+  objetivos («≤ 2 errores») y Lo mejor / A mejorar. Cifras: «Puntos» arriba, MVP, el resto de barras y «Estadística del partido» como enlace al
+  pie (fuera el bocadillo de arriba); rótulos a 12. Resumen de jornada: tu fila ±1 y «Ver tabla» (`endTableSheet`: la clasificación entera en
+  una hoja; solo vertical). Estrellas: «Equipo Sol / 21-18 / Equipo Luna» apilado, «Tu nota 7,8 · MVP: tú», la recompensa en el recuadro dorado.
+- *Concurso / sesión* (`#gymEnd`): título 32-40 en una línea, resultado que se desplaza, clasificación a todo el ancho; barra [Volver a la
+  Carrera][Siguiente: …] (sesión: 128 px + parche) o, con tres botones (concurso), «2º intento» entero a todo el ancho y debajo [Volver][Siguiente].
+- *Marcador de Estrellas*: en el juego de verdad la cabecera ya dice SOL / LUN (`setup` pone `career.me/rival = TEAMS[].k`); el TÚ / VAL era
+  de la muestra (`debug=over&cr=1`). Arreglado en la muestra: `_endDemo` devuelve `cs` con los equipos (en PC solo cambia ese dato).
+- *Arnés*: `mobaudit --preshot 'JS'` (se evalúa justo antes de la captura; la medida puede desplazar y la captura salía a media lista).
+
+**Métricas** (`…/movil2/r2-flujo/`: `v` = 32 ids × 360/390/412, DPR 2; `h` = × 568/844/915; `pc` = × 1280/1024/1920, DPR 1)
+
+| pasada | recortes no perm. (o) | < 12 | < 44 | solapes | tapado-pie | pisados | fuera | principal NO | girar |
+|---|---|---|---|---|---|---|---|---|---|
+| r2-marco/v → **v** | 65 (21) → **0 (0)** | 184 → **0** | 6 → **0** | 3 → 0 | 0 → 0 | 27 → **0** | 3 → 0 | 0 → 0 | 0 |
+| r2-recortes/hfull → **h** | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | 0 → 0 | igual por pantalla (+3 caracteres: SOL/LUN) |
+| pcbase → **pc** | solo las conocidas (dbgSets de juvenil-hoja y estrellas-partido-hoja; `o`/pisados nuevos = métricas que `pcbase` no tenía); frente a `r2-marco/pc` (1280/1024) idéntico salvo +2 caracteres (SOL/LUN); a ojo, igual |
+
+Toques juntos V 42 → 40; caracteres V 38332 → 33754 (la explicación de crear plegada tras «Ver más», el `small` de la cabecera de crear, fichas
+repetidas que ya no salen dos veces).
+
+**Pruebas** (primer plano): csscheck, careertest (2248), prologuetest (1807), allstartest (210), natltest (180), recaptest (312), statstest
+(1172), storytest (68), storyuitest (145), girotest (26): todas OK.
+
+**Pendiente**
+- «Ver tabla» en la muestra (`debug=over&cr=1`) sale con abreviaturas y PJ 0 (filas de muestra sin nombres ni partidos); en una Carrera de
+  verdad lleva el nombre del club (`VB.Career.club`) y los partidos jugados.
+- Hoja del juvenil: el panel queda con aire de sobra debajo (poco contenido); no se ha añadido nada.
+- Si se gira el móvil con la hoja abierta, el MVP en fichas y «Ver tabla» (oculto fuera de .pv) se quedan como se pintaron hasta la siguiente hoja.
+- «Siguiente: 3ª jornada» del Continental parte en 2 líneas en la barra (entero).
