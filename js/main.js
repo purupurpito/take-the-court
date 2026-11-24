@@ -3199,7 +3199,8 @@
       if (Q.duel === '1') { g.career.duel = true; g.career.rivalInfo = { name: 'Dani Roca', w: 2, l: 3 }; }
       // 1r designado (career-world.js): &arb=1 con recuerdo (antes del Reto), &arb=2 sin recuerdo (después)
       if (Q.arb === '1' || Q.arb === '2') g.career.arb = { id: 'B0-3', name: 'Nerea Quirada Garbero', short: 'Quirada', trait: 'estricto', mem: 0, rec: Q.arb === '1',
-        line: Q.arb === '1' ? '1r: Nerea Quirada, te sacó amarilla en la J4' : '1r: Nerea Quirada Garbero, fama de mano dura', r2: 'Teo Urdón Albrero', sc: 'Jon Sorbuela Ebredo' };
+        line: Q.arb === '1' ? '1r: Nerea Quirada, te sacó amarilla en la J4' : 'Alex (entrenador): Ojo, fama de mano dura', r2: 'Teo Urdón Albrero', sc: 'Jon Sorbuela Ebredo', lk: 4242, sty: 'es' };
+      if (Q.arb === '2') delete g.career.goal;   // (sin Reto: la fama dicha por el entrenador sale en la previa)
       // ambiente de Carrera: &derby=1 (derbi de ciudad en pista: «DERBI», career.js ambCtx), &revancha=1, &cumbre=1
       if (Q.derby === '1' || Q.revancha === '1' || Q.cumbre === '1') {
         if (Q.derby === '1') g.career.mode = 'hall';
