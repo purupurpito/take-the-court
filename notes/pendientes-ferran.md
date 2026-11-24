@@ -468,6 +468,9 @@ durante un tiempo corto». Ya no hay repetición automática.
 - **Decisión provisional:** la semilla de la prueba de repeticiones automáticas se calcula solo en pabellón, y los saltos de la
   repetición que pasan de 0,4 s se repiten una vez antes de darlos por malos (como otras pruebas con el PC cargado). No cambia nada del
   juego.
+- 24-nov: un revisor vio un «1 FALLOS» suelto en replaytest (1 de 3) sin guardar qué comprobación era (los FALLO salen por stderr,
+  más arriba del final). Repetida 5 veces seguidas guardando toda la salida: 5 de 5 TODO OK; la cifra de memoria (5a) baila entre 0 y
+  128 B, muy lejos del tope de 2 KB. Sin causa encontrada: si vuelve a salir, mirar la línea «FALLO:» de la salida entera.
 
 ## Lo que queda detrás de un interruptor
 - **Retomar el partido en la Carrera**: `CAREER` de js/resume.js (`VB.Resume.CAREER = false`; `?resumecareer=1` para probar). El Partido
