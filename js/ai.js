@@ -85,9 +85,9 @@
   // (defensor 2v2 ×2,5: con ×1 el defensor apenas se movía 6 cm en Normal y la diagonal repetida hacía el mismo punto; con ×2,5, en racha,
   //  15,8 % → 12,6 % en la playa Normal, 40 partidos. En Experto la defensa ya llega a casi todo y no se mide diferencia en los puntos:
   //  solo más bloqueos. Pista 6v6 con ×1: ×0,7 en Normal)
-  var RDX = { blk: 1, lean: 2.5, lean6: 1 };
+  var RDX = { blk: 1, lean: 2.5, blk6: 1, lean6: 1 };
   /** m que el bloqueador del equipo t se corre por la lectura (0 sin racha). */
-  function readShift(g, t) { var d = readSide(g, t); return d ? d * BLK_SHIFT * RDX.blk * (0.5 + 0.5 * (g.prof[t].block || 0)) * (g.cs || 1) : 0; }
+  function readShift(g, t) { var d = readSide(g, t); return d ? d * BLK_SHIFT * (g.rot ? RDX.blk6 : RDX.blk) * (0.5 + 0.5 * (g.prof[t].block || 0)) * (g.cs || 1) : 0; }
   /** m (mundo) que el defensor 2v2 se echa hacia el carril leído. */
   function readLean(g, t) { var d = readSide(g, t); return d ? d * DEF_LEAN * RDX.lean * (g.cs || 1) : 0; }
   /** Zagueros 6v6 (coordenadas locales de defPos). */
