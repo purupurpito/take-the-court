@@ -740,6 +740,9 @@
   function senaShow(s, where, nueva, sr) {
     var S = VB.Senas, it = s && S && S.BY ? S.BY[s.id] : null;
     var host = where === 'ban' ? el.banner && el.banner.firstChild : el.pbug;
+    // (movil-aire §5.7, móvil: un solo rótulo grande arriba a la vez; la pegatina de la pestaña va BAJO el marcador, en la columna de la
+    //  izquierda —hija de .sb-bw, junto a #pbug: sale y se aparta con él por CSS—, no colgada a la derecha de la pestaña)
+    if (where !== 'ban' && el.pbug && phHud()) host = el.pbug.parentNode;
     if (!el.sena || !it || !host) return false;
     if (sn.host === 'bug' && where === 'ban' && el.pbug) el.pbug.classList.remove('sn-on');
     if (el.sena.parentNode !== host) host.appendChild(el.sena);
@@ -2937,8 +2940,50 @@
     prC[2] = (yT + promptH > hy - 4) || hitTouch(TB, xT, yT, wd, promptH) ? 9 : overlapAt(xT, yT) + 0.05; // arriba: solo si gana (tapa algo de vista sobre la jugada)
     promptW = w0; _prX[0] = xR; _prX[1] = xL; _prX[2] = xT;
   }
+  /** Móvil (html.ph; movil-aire §5.7): ¿es un teléfono? (la clase la pone splat.js; sin ella, PC y tableta igual que siempre). */
+  function phHud() { return !!(VB.Splat && VB.Splat.phone && VB.Splat.phone()); }
+  /** Móvil táctil (movil-aire §5.7): los avisos del saque («Espera el silbato» y «SACAR flotante · SALTAR potente», en UNA línea) van en la
+   *  franja de abajo, en el hueco entre el joystick y los botones (encima del sacador, que está de espaldas abajo), nunca arriba junto a la
+   *  seña o la cinta. Busca, de abajo arriba, la franja donde cabe el aviso sin pisar un botón (touchBoxes) y lo centra en su hueco. Clase
+   *  .phb (CSS: una línea). Devuelve false (el aviso vuelve a su sitio de siempre) si no es un teléfono táctil, no es del saque o no cabe. */
+  var phbNo = '';
+  function phStrip() {
+    var ok = phHud() && el.app.classList.contains('is-touch') && /^(wait|serve)\|/.test(promptCur || ''), cl = el.prompt.classList;
+    if (ok && phbNo === promptCur + '|' + ctx.width + 'x' + ctx.height) ok = false;   // (ya se probó y no cabía: no se reintenta en cada frame)
+    if (!ok) { if (cl.contains('phb')) { cl.remove('phb'); promptW = 0; } return false; }
+    if (!cl.contains('phb')) { cl.add('phb'); promptW = 0; }
+    if (prKonly) setKonly(false);
+    if (!promptW) { promptW = (el.prompt.offsetWidth || 180) * hudScale; promptH = (el.prompt.offsetHeight || 36) * hudScale; }
+    var W = ctx.width, H = ctx.height, TB = touchBoxes() || [], wd = promptW, ht = promptH, m = 12;
+    var gb = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ph-gb')) || 8;
+    for (var y = H - gb - ht - 14; y > H * 0.42; y -= 8) {
+      // huecos libres de la fila [y, y + ht] entre los márgenes: se quitan las cajas de los botones que la cruzan
+      var segs = [[m, W - m]];
+      for (var i = 0; i < TB.length; i++) {
+        var o = TB[i]; if (!(y < o.b && y + ht > o.t)) continue;
+        var nx = [];
+        for (var j = 0; j < segs.length; j++) { var s = segs[j]; if (o.r <= s[0] || o.l >= s[1]) { nx.push(s); continue; } if (o.l > s[0]) nx.push([s[0], o.l]); if (o.r < s[1]) nx.push([o.r, s[1]]); }
+        segs = nx;
+      }
+      var best = null;
+      for (var k = 0; k < segs.length; k++) if (segs[k][1] - segs[k][0] >= wd && (!best || segs[k][1] - segs[k][0] > best[1] - best[0])) best = segs[k];
+      if (best) {
+        // centrado en el hueco, pero sin alejarse del centro de la pantalla más de lo que el hueco obliga
+        var x = Math.max(best[0], Math.min(best[1] - wd, W * 0.5 - wd * 0.5));
+        if (!anchorOn) { anchorOn = true; el.prompt.classList.add('anch'); }
+        if (prThru) { prThru = false; el.prompt.classList.remove('thru'); }
+        prX = x; prY = y;
+        el.prompt.style.transform = 'translate3d(' + x.toFixed(1) + 'px,' + y.toFixed(1) + 'px,0)';
+        prLast.x = x; prLast.y = y; prLast.w = wd; prLast.h = ht;
+        return true;
+      }
+    }
+    phbNo = promptCur + '|' + W + 'x' + H; cl.remove('phb'); promptW = 0;
+    return false;
+  }
   function placePrompt(g, p) {
     var cam = ctx.camera, W = ctx.width, H = ctx.height;
+    if (phStrip()) return;
     if (!cam || !p || !VB.toThree || !ctx.THREE) return anchorBottom();
     if (!_pv) { _pv = new ctx.THREE.Vector3(); _ph = new ctx.THREE.Vector3(); }
     VB.toThree(p.x, p.y, (p.z || 0) + 1.15, _pv); _pv.project(cam);
@@ -3471,6 +3516,9 @@
     // E6: en un ejercicio no hay marcador; «Reiniciar ejercicio» y «Salir al entrenamiento»
     var dr = !!(g && g.drill && !g.demo);
     el.pause.classList.toggle('drill', dr);
+    // (movil-aire §5.7, móvil: Sugerencia y Bug en un solo botón, «Opinar», que abre el panel con las dos pestañas; el de Bug lo esconde el CSS)
+    var sgB = $('btnPSug'), sgT = sgB && sgB.querySelector('.sp-t');
+    if (sgT) { var ph0 = phHud(); sgT.textContent = ph0 ? 'Opinar' : 'Sugerencia'; if (ph0) sgB.setAttribute('aria-label', 'Opinar: sugerencia o bug'); else sgB.removeAttribute('aria-label'); }
     var tr = !dr && isTrial();
     el.btnRestart.textContent = dr ? 'Reiniciar ejercicio' : tr ? 'Reiniciar prueba' : 'Reiniciar partido';
     el.btnQuit.textContent = dr ? (g.careerDrill ? 'Volver a la Carrera' : 'Salir al entrenamiento') : tr ? 'Abandonar la prueba' : 'Salir al menú';   // (sesión de Carrera: sin gastarla)
@@ -3723,13 +3771,16 @@
   // Lo llaman el final del partido y «vb:tier» (la barra del navegador cruza 345 de alto con el final abierto).
   function placeMStats() {
     try { endSplit(); } catch (e) { console.error('[VB][ERROR] endSplit: ' + e); }
+    try { endTools(); } catch (e) { console.error('[VB][ERROR] endTools: ' + e); }
     if (!el.btnMStats) return;
     var msHome = $('endStatsTab') && $('endStatsTab').querySelector('.end-ms'), msBody = el.end && el.end.querySelector('.end-body');
     // (en .end-body dentro de su propio [data-nav] (display:contents): si no, el teclado y el mando no llegaban a él)
     var msPh = msBody && msBody.querySelector('.end-ms-ph');
     if (msBody && !msPh) { msPh = document.createElement('span'); msPh.className = 'end-ms-ph'; msPh.setAttribute('data-nav', ''); msPh.setAttribute('data-sp-row', ''); msBody.appendChild(msPh); }
-    var msTo = document.documentElement.classList.contains('ph-s') ? msPh : msHome;
+    var msTo = document.documentElement.classList.contains('ph-s') && !phHud() ? msPh : msHome;   // (movil-aire §5.7: en el móvil, al pie de Cifras)
     if (msTo && el.btnMStats.parentNode !== msTo) msTo.insertBefore(el.btnMStats, msTo === msHome ? msHome.firstChild : null);
+    var mT = el.btnMStats.querySelector('.sp-t');   // (movil-aire §5.7: en el móvil, «Ver todo ›» al pie de Cifras)
+    if (mT) { var ph1 = phHud(); mT.textContent = ph1 ? 'Ver todo ›' : 'Estadística del partido'; if (ph1) el.btnMStats.setAttribute('aria-label', 'Estadística del partido'); else el.btnMStats.removeAttribute('aria-label'); }
   }
   function endRecap(e, g, sum, x) {
     recapM = null; recapD = null; endRcSnd = null;
@@ -3745,7 +3796,9 @@
     if (cs) { setSep(el.endKicker, M.kicker, 'd'); el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 16); crKick(M.kicker); }   // «Gana el Litoral Puertoluz Marina»: a dos líneas, más pequeño
     else if (d.sit) {   // «La situación ◆ Semana 47 | Set único a 25»
       setSep(el.endKicker, [{ h: nw('La situación') }, { h: nw('Semana ' + d.sit.wn) + '<span class="ph-hide">' + SEP_V + nw(escT(d.sit.label)) + '</span>' }], 'd');
-      el.endTitle.textContent = M.title; el.endTitle.classList.toggle('long', String(M.title).length > 11);
+      // (movil-aire §5.7, móvil: «¡SALVADA!» sin el resultado, que ya está en el marcador y en los sets)
+      var stt = phHud() ? String(M.title).replace(/\s+\d+\s*[-–]\s*\d+\s*$/, '') : M.title;
+      el.endTitle.textContent = stt; el.endTitle.classList.toggle('long', String(stt).length > 11);
     }
     else if (d.reto) {
       var dn = VB.DIFF && g && VB.DIFF[g.difficulty] && VB.DIFF[g.difficulty].name;
@@ -3760,6 +3813,7 @@
     if (ctx.net) { onlineEndButtons(); onlineEndRec(); }
     var tabs = watch ? ['stats'] : M.tabs, q = ctx.debug && ctx.params.tab;
     endPanes(tabs, q === 'stats' && tabs.indexOf('stats') >= 0 ? 'stats' : q === 'plays' && tabs.indexOf('plays') >= 0 ? 'plays' : tabs[0], watch, M.tabLabels);
+    try { endTools(); } catch (er2) { console.error('[VB][ERROR] endTools: ' + er2); }
     // sonidos de la entrada escalonada (a los 700 ms la flecha de la tabla, a los 800 ms el desbloqueo): al verse la hoja (syncScreens)
     endRcSnd = { rank: M.table && M.table.move ? M.table.move.d | 0 : 0, unl: !!M.unlocks };
   }
@@ -3790,6 +3844,38 @@
       n.setAttribute('data-es-id', id); n.parentNode.replaceChild(mk, n); side.appendChild(n);
     });
     side.hidden = !L.length;
+  }
+  /** Móvil (html.ph, movil-aire §5.7): «Ver celebración» y «Cambiar opciones» (en la situación de la semana, también «Enviar») salen de la
+   *  hoja y de la fila de abajo a la columna izquierda, bajo los sets, como botones de 44 (.end-tl, área «tl»), igual en las 3 pestañas; tras
+   *  el primer partido, ahí van también las fichas de «Y ahora» (la hoja de la derecha empieza arriba) y «Cambiar opciones» se queda abajo
+   *  junto a «Menú». Abajo queda «Más difícil · Menú · Revancha». Cada nodo deja un marcador para volver a su sitio (PC o al salir del
+   *  móvil). Lo llaman endRecap (tras pintar) y placeMStats (final y vb:tier). */
+  function endTools() {
+    var en = el.end; if (!en) return;
+    var sh = en.querySelector('.sp-sheet'); if (!sh) return;
+    var tl = sh.querySelector(':scope>.end-tl');
+    if (tl) Array.prototype.slice.call(tl.children).forEach(function (n) {
+      var mk = en.querySelector('i.tl-mk[data-tl="' + n.getAttribute('data-tl-id') + '"]');
+      if (mk && mk.parentNode) mk.parentNode.replaceChild(n, mk); else if (n.parentNode) n.parentNode.removeChild(n);
+    });
+    Array.prototype.slice.call(en.querySelectorAll('i.tl-mk')).forEach(function (m) { if (m.parentNode) m.parentNode.removeChild(m); });
+    en.classList.remove('ph-tl', 'ph-tl1');
+    if (!phHud() || ctx.net) { if (tl) tl.hidden = true; return; }
+    if (!tl) { tl = document.createElement('div'); tl.className = 'end-tl ph-only'; tl.setAttribute('data-nav', ''); tl.setAttribute('data-sp-row', ''); sh.appendChild(tl); }
+    var first0 = en.querySelector('#endSum > .rc-first'), first = document.documentElement.classList.contains('ph-s') ? null : first0, L = [];
+    if (first) L.push(first);
+    // (tras el primer partido, fuera «Más difícil»: «Cambiar opciones» vuelve a la fila de abajo, junto a «Menú»)
+    if (first0 && el.btnAgainAlt && el.btnAgainAlt.getAttribute('data-act') !== 'share') el.btnAgainAlt.hidden = true;
+    var pk = sh.querySelector(':scope>.end-peek'); if (pk) L.push(pk);
+    if (el.btnAgainAlt && el.btnAgainAlt.getAttribute('data-act') === 'share') L.push(el.btnAgainAlt);
+    if (el.btnEndOpts && !first0) L.push(el.btnEndOpts);
+    L.forEach(function (n, i) {
+      var id = 'tl' + i, mk = document.createElement('i'); mk.className = 'tl-mk'; mk.hidden = true; mk.setAttribute('data-tl', id);
+      n.setAttribute('data-tl-id', id); n.parentNode.replaceChild(mk, n); tl.appendChild(n);
+    });
+    // (568×320: «Cambiar opciones» → «Opciones», con el ::after de data-short como los rótulos cortos de la fila de abajo)
+    if (el.btnEndOpts && el.btnEndOpts.getAttribute('data-act') === 'opts') { if (document.documentElement.classList.contains('ph-s') || first0) el.btnEndOpts.setAttribute('data-short', 'Opciones'); else el.btnEndOpts.removeAttribute('data-short'); }
+    tl.hidden = false; en.classList.add('ph-tl'); en.classList.toggle('ph-tl1', !!first0);
   }
   /** Móvil (movil-aire §5.5, hoja de partido de la Carrera): antetítulo corto de una línea («Regional · J3/14», «Continental · Clasif. 2º»,
    *  «Prueba · Voley Valencia») en un .ph-only al final de #endKicker; el CSS de .ph esconde el largo. En PC no se ve (ph-only). */
@@ -3918,6 +4004,16 @@
       var b = ev.target && ev.target.closest ? ev.target.closest('button[data-set]') : null; if (!b) return;
       msSet(+b.getAttribute('data-set'), ev.detail === 0 || kbNow());
     });
+    // (movil-aire §5.7, móvil) índice de secciones (.ms-idx, ph-only) y secciones plegadas (.ph-fold): tocar abre y baja hasta ella
+    $('msBody').addEventListener('click', function (ev) {
+      var t = ev.target && ev.target.closest ? ev.target : null; if (!t) return;
+      var j = t.closest('button[data-msj]'), hd = !j && t.closest('.ph-fold>.ms-h');
+      if (hd) { hd.parentNode.classList.toggle('open'); uiSound('click'); return; }
+      if (!j) return;
+      var sc = $('msh-' + j.getAttribute('data-msj')); sc = sc && sc.parentNode; if (!sc) return;
+      sc.classList.add('open'); uiSound('click');
+      try { sc.scrollIntoView({ block: 'start', behavior: rm() ? 'auto' : 'smooth' }); } catch (e) { sc.scrollIntoView(); }
+    });
     return true;
   }
   /** Nombres de los equipos: [para títulos y pestañas], [dentro de una frase]. */
@@ -3951,6 +4047,8 @@
     try { html = M.html(msModel(ms.set), ms.team, { names: ms.nm.names, inl: ms.nm.inl, pnames: ms.nm.pn, sep: sepHTML, you: 'Tú' }); }
     catch (er) { console.error('[VB][ERROR] MatchStats.html: ' + er); html = '<p class="ms-empty">No se ha podido calcular la estadística.</p>'; }
     $('msBody').innerHTML = html;
+    // (movil-aire §5.7, móvil: las secciones largas del 6 contra 6, plegadas; se abren al tocar su título o su ficha del índice)
+    if (phHud()) Array.prototype.forEach.call($('msBody').querySelectorAll('.ms-sec.ms-long'), function (sc) { sc.classList.add('ph-fold'); });
     if (VB.Splat && VB.Splat.info) VB.Splat.info($('msBody'));   // «i» de «Cifras clave» en el móvil (un escuchador por raíz)
   }
   function msSet(s, kb) {
@@ -4196,6 +4294,11 @@
     var T = ['Bronce', 'Plata', 'Oro'], best = Math.max(day.best | 0, day.medal | 0), mh = '';
     for (var k = 1; k <= 3; k++) mh += '<span class="ge-m' + (best >= k ? ' on' : '') + (day.newMedal && day.medal === k ? ' new' : '') + '">' + medalSVG(best >= k ? k : 0, best >= k ? '' : 'off') + T[k - 1] + '</span>';
     var line = day.newMedal && day.medal ? '¡Medalla de ' + RC_MED[day.medal] + ' en el reto del día!' : day.prev && day.medal <= day.prev ? 'Hoy ya tenías ' + RC_MED[day.prev] : 'Sin medalla: gana un set para el bronce';
+    // (movil-aire §5.7, móvil: la medalla y la experiencia en una línea, «¡Plata! +55 XP», sin «(a cada jugador)»)
+    if (phHud()) {
+      var ln = day.newMedal && day.medal ? '¡' + T[day.medal - 1] + '!' : line;
+      return '<div class="rc-meds">' + mh + '</div><span class="rc-l rc-dl">' + escT(ln) + (day.xp ? ' <b class="nw">+' + (day.xp | 0) + ' XP</b>' : '') + '</span>';
+    }
     return '<div class="rc-meds">' + mh + '</div><span class="rc-l">' + escT(line) + '</span>' + (day.xp ? '<span class="rc-x">+' + (day.xp | 0) + ' de experiencia (a cada jugador)</span>' : '');
   }
   /** HTML del Resumen: bloques del modelo en su orden, cada uno con su etiqueta a la izquierda y entrada escalonada (--i). */
@@ -4217,7 +4320,8 @@
           if (M.mvp) {
             // (cada dato entero en su línea: «7 aces» no se parte; nbsp dentro de cada uno; la raya va pegada al dato que la sigue, .rc-pd)
             var mv = M.mvp, parts = [mv.ptsT].concat(mv.parts || []).map(function (p) { return typeof p === 'string' ? p.replace(/ /g, '\u00a0') : p; });
-            blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v').replace(/(<span class="sep[^"]*"><span class="sr">, <\/span><\/span>)([^<]*)/g, '<span class="rc-pd">$1$2</span>') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
+            if (phHud()) blk('rc-mvp rc-mvph', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small class="rc-mch">' + parts.map(function (t) { return '<span>' + escT(String(t)) + '</span>'; }).join('') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
+            else blk('rc-mvp', H.mvp, rcPortrait(mv, cs) + '<span class="rc-mv"><b>' + escT(mv.name) + '</b><small>' + sepHTML(parts, 'v').replace(/(<span class="sep[^"]*"><span class="sr">, <\/span><\/span>)([^<]*)/g, '<span class="rc-pd">$1$2</span>') + '</small></span>' + (mv.nota ? '<em class="rc-nota">' + escT(mv.nota) + '</em>' : ''));
           } else blk('rc-mvp rv', H.mvp, '<span class="rc-l">' + escT(M.mvpRival.t) + '</span>' + (cs && M.nota ? '<em class="rc-nota">Nota ' + escT(M.nota) + '</em>' : ''));
           break;
         case 'xp':
@@ -4249,7 +4353,7 @@
         case 'inj': blk('rc-inj', H.inj, '<span class="rc-l"><b>' + escT(M.inj.t) + '</b></span><span class="rc-l">' + sepHTML(M.inj.parts, 'v') + '</span>'); break;
         case 'retos':
           var rp = M.retos.pills.map(function (p) { return '<span class="rc-pill' + (p.nw ? ' nw' : '') + '">' + medalSVG(p.lvl) + escT(p.t) + '</span>'; }).join('');
-          blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + ' (a cada jugador)</span>' : ''));
+          blk('rc-retos', H.retos, '<span class="rc-pills">' + rp + (M.retos.moreT ? '<span class="rc-more">' + escT(M.retos.moreT) + '</span>' : '') + '</span>' + (M.retos.xpT ? '<span class="rc-x">' + escT(M.retos.xpT) + (phHud() ? '' : ' (a cada jugador)') + '</span>' : ''));
           break;
         case 'profile': blk('rc-prof', H.profile, '<span class="rc-l">' + escT(M.profile.t) + '</span>' + (M.profile.up ? '<span class="rc-l up">' + escT(M.profile.up) + '</span>' : '')); break;
         case 'part': blk('rc-part', H.part, '<span class="rc-l">' + sepHTML(M.part.parts, 'v') + '</span>'); break;
@@ -5932,7 +6036,7 @@
     if (!panel || !o || !o.back) panelFrom = (o ? o.from : from) || (panel ? panelFrom : ctx.state);
     panel = name;
     for (var k in PANELS) $(PANELS[k][0]).hidden = k !== name;
-    el.pnKick.textContent = PANELS[name][1]; el.pnKick.hidden = !PANELS[name][1]; el.pnTitle.textContent = PANELS[name][2];
+    el.pnKick.textContent = PANELS[name][1]; el.pnKick.hidden = !PANELS[name][1]; el.pnTitle.textContent = name === 'mstats' && phHud() ? 'Estadística' : PANELS[name][2];   // (móvil: título corto, movil-aire §5.7)
     if (name === 'tut') { tutGo(0); }
     if (name === 'ctl') { ctlView = o && o.tab && CTL_IDS[o.tab] ? o.tab : device(); renderCtl(); }
     if (name === 'set') { renderOpts(); if (o && o.tab && setTabs) setTabs.set(o.tab, 'api'); setTab(setTabs ? setTabs.get() : 'audio'); }
@@ -5943,6 +6047,8 @@
     if (tb) { tb.hint(); if (ctx.params.tab && !openPanel._t) { openPanel._t = 1; tb.set(ctx.params.tab, 'api'); } }
     var psh = el.panel.querySelector('.sheet');
     psh.classList.toggle('first', name === 'first');
+    // (movil-aire §5.7: panel abierto desde la pausa; solo lo usa el CSS de html.ph —Ajustes con 4 pestañas, Controles con Táctil y «Otros mandos ›»)
+    psh.classList.toggle('ph-pz', panelFrom === 'paused'); if (name !== 'ctl') psh.classList.remove('ph-allc');
     psh.classList.toggle('ms', name === 'mstats');
     psh.classList.remove('wide');
     psh.classList.toggle('tabbed', !!tb);
@@ -6194,6 +6300,8 @@
           h += '<div><span class="kl">' + tt.trim() + (help ? '<small>' + help + '</small>' : '') + '</span><span class="ks">' + keys + '</span></div>';
         }
         h += '</div>';
+        // (movil-aire §5.7: en la pausa de un teléfono táctil solo se ve la pestaña Táctil; Teclado y Mando, tras «Otros mandos ›»)
+        if (panelFrom === 'paused' && el.app.classList.contains('is-touch')) h += '<div class="ph-allc-row ph-only"><button type="button" class="ph-allc-b" data-allc="1">Otros mandos ›</button></div>';
       } else {
         h += '<dl class="ctl">';
         for (var j2 = 0; j2 < R.length; j2++) h += '<div><dt>' + R[j2][0] + '</dt><dd>' + R[j2][1] + '</dd></div>';
@@ -6201,6 +6309,8 @@
       }
     }
     el.ctlGrid.innerHTML = h;
+    var allc = el.ctlGrid.querySelector('[data-allc]');
+    if (allc) allc.addEventListener('click', function () { uiSound('click'); var sh = el.panel.querySelector('.sheet'); if (sh) sh.classList.add('ph-allc'); if (allc.parentNode) allc.parentNode.removeChild(allc); if (ctlTabs) ctlTabs.focus(true); });
     if (!capturing && el.ctlMsg && ctlMsgFor !== ctlView) ctlMsgSet('');
     renderOpts();
     var note = el.pnCtl.querySelector('.ctl-note');
@@ -7862,7 +7972,7 @@
     else rec += '<span>Récord: <b>' + best + '</b></span>';
     if (res.newMedal && res.medal) rec += '<span class="new">¡Medalla de ' + MEDAL_N[res.medal].toLowerCase() + '!</span>';
     if (res.xp > 0) rec += '<span><b>+' + res.xp + ' de experiencia</b> (a cada jugador)</span>';
-    if (res.medal < 3 && M[res.medal] < 99) rec += '<span>' + MEDAL_N[res.medal + 1] + ': ' + M[res.medal] + ' puntos</span>';
+    if (res.medal < 3 && M[res.medal] < 99) rec += '<span class="ge-nx">' + MEDAL_N[res.medal + 1] + ': ' + M[res.medal] + ' puntos</span>';   // (móvil: fuera, las medallas ya lo dicen)
     if (cdr) rec = careerDrillRec(cdr, total, res.medal);
     el.geRec.innerHTML = rec;
     var nx = Gm && Gm.nextOf && !cdr ? Gm.nextOf(id) : null;
@@ -8255,7 +8365,7 @@
       var st = subUI.stat[p.id] || {}, P = stats && stats.p && stats.p[p.id];
       var cls = 'sb-p' + (subUI.pick === p ? ' sel' : '') + (q && (q.out === p || q.inn === p) ? ' q' : '');
       var lab = (onC ? 'Zona ' + zone + ', ' : '') + 'dorsal ' + p.num + (p.name ? ' ' + p.name : '') + ', ' + (ROLE_AB[p.role] || '') + (me ? ', tú' : '');
-      return '<button type="button" class="' + cls + '" data-pid="' + p.id + '" data-on="' + (onC ? 1 : 0) + '"' + (can ? '' : ' disabled') + ' aria-label="' + escT(lab) + '">' +
+      return '<button type="button" class="' + cls + '" data-pid="' + p.id + '" data-on="' + (onC ? 1 : 0) + '"' + (onC ? ' data-z="' + zone + '"' : '') + (can ? '' : ' disabled') + ' aria-label="' + escT(lab) + '">' +
         '<span class="sb-z">' + (onC ? 'Z' + zone : '') + '</span><b>' + p.num + (me ? '<em>Tú</em>' : '') + '</b>' + (p.name ? '<span class="sb-nm">' + escT(subShort(p.name)) + '</span>' : '') + '<span class="sb-r">' + (ROLE_AB[p.role] || '') + '</span>' +
         '<span class="sb-st">' + ((P && P.pts) | 0) + ' pts | ' + (st.err | 0) + ' err' + (inf.state === 'out' ? ' | fuera' : inf.state === 'in' ? ' | entró' : '') + '</span><span></span>' +
         '<i class="sb-f"><u style="width:' + Math.round(100 * Math.min(1, p.tired || 0)) + '%"></u></i></button>';
@@ -8264,6 +8374,8 @@
     var B = S.benchOf(g, 0); for (var i = 0; i < B.length; i++) hb += row(B[i], false, 0);
     $('sbOn').innerHTML = hon; $('sbBench').innerHTML = hb;
     var m = subUI.msg || (q ? 'Cambio pedido: entra el ' + q.inn.num + ' por el ' + q.out.num + ' al acabar la jugada' : 'Quedan ' + S.subsLeft(g, 0) + ' de ' + (S.SUB_MAX || 6) + ' cambios en este set. Toca quién sale y luego quién entra');
+    // (movil-aire §5.7, móvil: la ayuda corta, en la cabecera: «6/6 cambios · sale → entra»)
+    if (phHud() && !subUI.msg && !q) m = S.subsLeft(g, 0) + '/' + (S.SUB_MAX || 6) + ' cambios · toca quién sale → quién entra';
     $('sbMsg').textContent = m;
     $('sbCancel').hidden = !q;
     if (focusSel) { var f = subUI.pn.querySelector(focusSel); if (f && !f.disabled) focusEl(f, kbNow() || ctx.inputDevice === 'gamepad'); }

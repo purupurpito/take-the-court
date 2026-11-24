@@ -687,3 +687,49 @@ controles-keyboard que vienen de la escena 3D de fondo (el panel se ve igual a o
   («Sin segundo…») se cortan; nombres de una palabra larga en Perfil («Rompemano») se cortan sin «…»; a 844 el ‹ de Ajustes queda solo en
   su franja (sin título por especificación); el editor no se probó con el 6v6 (botón Pedir) ni en vertical; «Mapa del grupo» sin segmento
   cuando no hay lista; la tira de pestañas del Vestuario (7×44+6×6) sobresale 28 px de la columna a 568 (no toca el muñeco).
+
+### 7.9 Paquete `partido` (24-nov-2026)
+
+Todo bajo `html.ph`: CSS en el bloque «— «con aire» · PARTIDO» al final del `<style>` de `index.html` (tras PANELES); JS en `ui.js` (`phHud`,
+`phStrip`, `endTools`, `senaShow` en .ph, `rcDayHTML` / `rcHTML` / `renderPause` / `renderSubs` / `placeMStats` / `msRender` con su rama de
+móvil) y `matchstats.js` (índice `.ms-idx` ph-only y `.ms-long` en el 6v6). PC sin cambios: métricas de los 35 ids a 1280x720 idénticas a una
+pasada de la base de este paquete con el mismo comando (`--desktop --sizes 1280x720`, 0 pantallas con diferencias) y capturas iguales a ojo.
+- **Rótulos del HUD** (un solo rótulo grande arriba a la vez): la seña ya no cuelga a la derecha de `#pbug`: en el móvil `senaShow` la pega en
+  `.sb-bw` y el CSS la pone bajo el marcador en la columna izquierda (56 px reales, palabra con tinta de 3; sale/se aparta con la pestaña por
+  `:has(#pbug.show.sn-on|.out|.held)`); «⇄ Saque» es la 2.ª línea pequeña dentro de la pestaña; con seña o cinta se ocultan «● Punto de set» y
+  JUGADA. «Espera el silbato» y el aviso del saque van a la franja de abajo (`phStrip`: busca de abajo arriba el hueco entre joystick y botones
+  con `touchBoxes()`, `#prompt.phb`), en UNA línea «SACAR flotante · SALTAR potente» (firma: «SACAR De abajo»…). Con la cinta (`#banner.show`)
+  se aparta la tira de fases. Zona: llama en vez de «ZONA», «RACHA» = llama de 12. Métrica `rot`: 22 → **0** en los 3 tamaños.
+- **HUD pequeño**: marcador al 85 % en `.ph-s` (`--sbs:.663`, letra compensada, misma forma); lupa a 12 de la pausa con el número dentro; ⇄ / mano
+  de pedir de 56, opacidad ≥ .6 (también bloqueado) y 24 px sobre GOLPEAR; consejo de una línea pegado a la tira de fases (top 46); CAMBIO como
+  pastilla de 36 bajo el marcador en `.ph-s` (en una fila «CAMBIO ▲8 ▼4 Cambios: 1/6»).
+- **Frenar / protestar**: durante la decisión, fuera seña, «⇄ Saque», subtítulo de la pestaña y JUGADA; bloque abajo entre los pulgares (pregunta
+  16, botones 160×52 —150 a 568— con 16 de hueco, barra de 6).
+- **Pausa**: «Pausa» + marcador a su medida arriba; a la izquierda Reiniciar y Salir en tinta con borde verde / rojo y «Opinar» (Sugerencia+Bug en
+  un botón que abre el panel con las dos pestañas; el aviso de la semana va en su sitio como texto con ⚠ sin caja); a la derecha Controles | Ajustes
+  sobre SEGUIR JUGANDO; huecos de 12 (8 a 568). Paneles desde la pausa (`.sheet.ph-pz`): Ajustes con Audio, Cámara, Juego y Accesibilidad; Controles
+  en táctil solo con Táctil y «Otros mandos ›» al final (`.ph-allc`). pausa-bug ya salía como Opiniones de `menus`; pausa-ajustes como `paneles`.
+- **Cambios 6v6**: pista en rejilla 3×2 (4-3-2 / 5-6-1, `data-z`) de fichas 76×56 (52 a 568) con número, puesto y la energía como borde de 4;
+  banquillo en una tira; sin desplazar; ayuda corta a la derecha de la cabecera («6/6 cambios · toca quién sale → quién entra»); con alguien
+  elegido, los no compatibles a .35 con el puesto tachado y los válidos con borde verde.
+- **Hoja final** (`endTools` → `.end-tl`, área «tl»): «Ver celebración» (solo el ojo a 568) y «Cambiar opciones» («Opciones» a 568) en la columna
+  izquierda en las 3 pestañas; la situación lleva ahí «Enviar» y «Grupo»; abajo «Más difícil · Menú · Revancha» con «Más difícil» en tinta y
+  borde verde. MVP en fichas 2×2 sin «|». Primer partido: «Y ahora» en la columna izquierda a 844+ (a 568 no cabe: sube al principio del Resumen,
+  fichas de 44), «Más difícil» oculto y «Opciones» junto a «Menú». Cifras: Puntos primero, MVP de 40, «Ver todo ›» al pie. Jugadas: la fila entera
+  es el botón (▶ 40 + «Bloqueo del n.º 1 · 2º set | 9-6»), 48 de alto. Reto: medallas en una fila, «¡Oro! +115 XP», sin MVP ni frase, sin «(a cada
+  jugador)». Entreno: sin «Oro: 24 puntos» (`.ge-nx`), Siguiente / Entrenamiento oscuros de 48. Situación: título sin el resultado, sin MVP.
+- **Estadística**: título «Estadística» y ‹ de 44 en la franja; equipos + sets en una fila pegada arriba (sets que se deslizan, 44); índice de
+  secciones en fichas (Cifras · Marcha · Jugadores · Rotaciones · Mapas · Errores) que baja a cada una; las 6 cifras en rejilla 3×2 de 64 sin
+  marco; en el 6v6 Rotaciones, Mapas, Errores y Por jugador plegadas (se abren con su título o su ficha).
+- **Previa / repetición**: kicker, «Toca para empezar» y subtítulo de la repetición a 14, tira de datos 8 más abajo.
+- **Métricas** (35 ids × 568/844/915 frente a la base del paquete): < 12 px 0 → 0; toques < 44 0 → 0; solapes 0 → 0; `rot` 22 → 0;
+  contenedores que piden desplazar 34 → 17 (Cambios 6 → 0); caracteres en las hojas y la pausa −10 a −60 %. Contra «antes» (mobcompare):
+  < 14 px 591 → 487, toques < 44 1 → 0, toques juntos 89 → 81, con scroll 46 → 25, caracteres 11.339 → 10.400 (el recorte que queda es la
+  ayuda de una fila de Controles a 844, de `paneles`, con su «i»). Pruebas: csscheck, settest, touchtest, touchedittest, keytest, padtest,
+  a11ymarktest, abouttest, jugaryatest, retotest, replaytest, statstest, recaptest, semanatest, ambientetest, gymtest, senatest, subtest,
+  zonetest: OK; feedbacktest OK salvo la comprobación del orden de los `<script>`, que falla igual sin este paquete (la copia de trabajo de
+  index.html tiene CRLF y la expresión busca un salto de línea sin CR); se actualizaron sus comprobaciones de móvil («Opinar» en vez de Sugerencia + Bug, sin Cancelar).
+- **Pendiente**: el MVP de Cifras sigue con su tabla de PC encogida (en 568 asoma el 2.º); la Estadística del 6v6 a 568 sigue desplazándose
+  (es una tabla larga, ahora plegada); «Y ahora» a 568 queda dentro de la hoja derecha y no en la columna (no cabe con los sets); el aviso del saque
+  en la franja se probó con la disposición de fábrica y zurdos (con botones movidos a mano usa los mismos `touchBoxes`, sin prueba propia);
+  la cinta de punto de set sobre la seña sigue la regla de PC (la cinta va arriba y la pegatina colgando de ella).

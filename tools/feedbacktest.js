@@ -421,11 +421,13 @@ async function browser() {
     await sleep(400);
     const inView = sel => pg.evalJs(`(function(){var e=document.querySelector(${JSON.stringify(sel)});if(!e)return 'no';var r=e.getBoundingClientRect();return r.left>=0&&r.top>=0&&r.right<=innerWidth+.5&&r.bottom<=innerHeight+.5&&r.width>=44&&r.height>=44?'ok':JSON.stringify([r.left,r.top,r.right,r.bottom]);})()`);
     check('html.ph en el móvil', await pg.evalJs("document.documentElement.classList.contains('ph')"));
-    const a1 = await inView('#btnPSug'), a2 = await inView('#btnPBug');
-    check('pausa: «Sugerencia» y «Bug» dentro de la pantalla y de ≥ 44 px', a1 === 'ok' && a2 === 'ok', [a1, a2]);
+    // (movil-aire §5.7: en el móvil, Sugerencia y Bug son UN botón, «Opinar», que abre el panel con las dos pestañas; Bug no se ve)
+    const a1 = await inView('#btnPSug'), a2 = await pg.evalJs("getComputedStyle(document.getElementById('btnPBug')).display"), a3 = await pg.evalJs("document.querySelector('#btnPSug .sp-t').textContent");
+    check('pausa (móvil): «Opinar» dentro de la pantalla y de ≥ 44 px; «Bug» oculto', a1 === 'ok' && a2 === 'none' && a3 === 'Opinar', [a1, a2, a3]);
     await click(pg, '#btnPSug'); await sleep(450);
-    const b1 = await inView('#fbSend'), b2 = await inView('#fbCancel'), b3 = await inView('#btnPanelBack'), b4 = await inView('#fbText');
-    check('panel en el móvil: Enviar, Cancelar, Volver y el cuadro dentro', b1 === 'ok' && b2 === 'ok' && b3 === 'ok' && b4 === 'ok', [b1, b2, b3, b4]);
+    // (movil-aire §5.1/§5.7: en el móvil sin «Cancelar»; la ‹ de la franja sale)
+    const b1 = await inView('#fbSend'), b3 = await inView('#btnPanelBack'), b4 = await inView('#fbText');
+    check('panel en el móvil: Enviar, Volver y el cuadro dentro', b1 === 'ok' && b3 === 'ok' && b4 === 'ok', [b1, b3, b4]);
     const fz = await pg.evalJs("parseFloat(getComputedStyle(document.getElementById('fbText')).fontSize)");
     check('letra del cuadro ≥ 16 px en el móvil (iPhone no amplía la página al escribir): ' + fz, fz >= 16);
     await click(pg, '#fbCancel'); await sleep(300);
