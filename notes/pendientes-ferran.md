@@ -212,7 +212,9 @@ Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al h
   quien no ha jugado nunca es solo «¡Jugar ya!» y «Tutorial», con el logotipo encima también en el móvil. **Se acaba** al jugar cualquier
   partido (el mismo `everPlayed` de «Jugar ya») **o al cerrar el tutorial, se acabe o no** (`record.intro = 1`). Empezar un partido y
   salir a medias no la acaba. Después sale la portada de siempre, con el billete «¡Jugar ya!» encima hasta el primer partido (como en
-  1.22.0). Quien ya acabó el tutorial antes (`record.tut`) no la ve. El panel «Primer partido» (tutorial o jugar ya, al pulsar ¡A jugar!)
+  1.22.0). **Decisión (revisión):** en esa portada queda un engranaje pequeño de Ajustes (sin texto, abajo a la derecha encima de la
+  versión) para quien necesite quitar el sonido o agrandar los botones táctiles; Cómo se juega y Controles no (el Tutorial ya lo enseña).
+  El billete del Tutorial lleva «Aprende a jugar» encima (antes los dos ponían «Primera vez»). Quien ya acabó el tutorial antes (`record.tut`) no la ve. El panel «Primer partido» (tutorial o jugar ya, al pulsar ¡A jugar!)
   ya solo sale a quien no pasó por esa portada (p. ej. con una Carrera empezada y sin partidos). En depuración, `&first=1`.
 - **6v6 en JUGAR** (index.html `#plFmt`, js/ui.js `plFmtSync`). Hoy el 6v6 ya estaba en Jugar, pero como una mancha más («6 contra 6»)
   al lado de Entrenamiento. Ahora el formato es una **opción** en la cabecera de Jugar, justo encima del Partido rápido: dos pestañas
@@ -220,8 +222,8 @@ Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al h
   vuelve a ponerte en 2v2** al entrar. La fila Formato de la preparación sigue (es la misma opción). Teclado y mando: ↑ desde Partido
   rápido llega al formato, ←/→ entre los dos, Intro/A lo elige y ↓ vuelve a Partido rápido.
 - **Dorsales en el 2v2** (js/ui.js `sqRole`). En los menús tus dos jugadores van **por su papel** («Bloqueador», «Universal», de
-  js/prog.js): selector de Jugadores (con la inicial en el disco), selector del Vestuario (en el móvil solo la inicial, «B» y «U»: el
-  nombre entero no cabe junto a Pista/Playa), Controlar «Un jugador» («Llevas al bloqueador; la IA lleva al universal»), la línea de
+  js/prog.js): selector de Jugadores (con la inicial en el disco), selector del Vestuario (en el móvil abreviado, «Bloq.» y «Univ.»;
+  a 568×320 se esconde para ello el chip con el nombre de la pestaña, que ya va marcada en la tira de iconos), Controlar «Un jugador» («Llevas al bloqueador; la IA lleva al universal»), la línea de
   Jugadores de la portada («Nivel 3 los dos» / «Niveles 3 y 2») y la XP e insignias de la hoja final. **No cambia nada guardado**: el
   dorsal sigue en `VB.Prog` y en la camiseta, y en lo que pasa en la pista (consejos, MVP, cambios del 6v6) se sigue diciendo el número.
 - **Rendimiento** (js/main.js `deviceGuess` / `autoStart`). «Auto» ya bajaba y subía con los fps medidos; ahora además **empieza** según
@@ -230,9 +232,10 @@ Lo que pidió Ferran está hecho; aquí van las decisiones que he tomado yo al h
   Nunca empieza por encima del tope de siempre (alta en PC, media en móvil). En depuración no se aplica (las pruebas y perf.js no
   cambian). Ajustes › Imagen sigue con Auto / Alta / Media / Baja (la nota dice «Auto se ajusta sola a tu aparato (ahora: media)»).
 - **Ventana del 1r 6v6** (js/ui.js `perfFirst` / `perfNote`, la misma hoja del aviso de colocador). Sale antes del primer partido 6v6
-  de este aparato **que se empieza desde los menús**: ¡A jugar! del Partido rápido en 6 contra 6 y «Jugar partido» de la Carrera de
-  pista. Opciones: **Auto (recomendada, con el nivel en el que empezaría)**, Alta, Media y Baja; la de ahora dice «Ahora». Esc / B =
-  dejarla como está. Se apunta en `q6Asked` (solo este aparato, `make-the-cut.device`) elija lo que elija y el partido empieza al
+  de este aparato **que se empieza desde los menús**: ¡A jugar! del Partido rápido en 6 contra 6, «Jugar partido» de la Carrera de
+  pista, la jugada del día y el reto del día cuando son 6v6, y el panel «Primer partido» con el formato en 6v6. Opciones: **Auto (recomendada, con el nivel en el que empezaría)**, Alta, Media y Baja; la de ahora dice «Ahora». Esc / B =
+  dejarla como está. Debajo de Auto pone «Recomendada · se ajusta sola (ahora: media)». **Decisión:** si sale esta ventana, el aviso de
+  colocador («Coloca con la diana») ya no sale detrás en esa sesión: nunca dos hojas seguidas antes del partido. Se apunta en `q6Asked` (solo este aparato, `make-the-cut.device`) elija lo que elija y el partido empieza al
   cerrarla. No sale en la revancha, al reiniciar, al retomar ni en el online. Recomiendo Auto y no un nivel fijo porque Auto ya
   empieza en lo que diga el aparato y se corrige con los fps; si prefieres que recomiende un nivel fijo, es `perfHTML` en js/ui.js.
 - **Tope de dibujos del 6v6 en calidad baja: se queda en 45** (tools/perf.js `CALLS_LOW`). Bajarlo a 33-35 como el 2v2 obligaría a juntar
@@ -323,8 +326,10 @@ sea un pop-up para completarlo.» Hecho así (rama decisiones, sin versión):
   vuelve a 0. Sale en la ventana, en la pestaña (gota dorada con el número) y en el sello de la portada (chapa crema con el número; con
   la de hoy cumplida, una marca dorada en lugar de los puntos de intentos).
 - **Ventana al entrar:** lo primero tras la carga, una hoja SPLAT con la jugada, la racha y «¡A por ella!» / «Ahora no».
-- **Decisión provisional: nombre «La jugada del día»** (el «Reto del día» ya existe y sigue igual en la pestaña Hoy). La pestaña de Retos
-  pasa de «Semana» a «Jugada». Cambiarlo: textos en js/semana-ui.js, ui.js (previa, pausa, hoja, pestaña, ventana) y menu-jugador.js.
+- **Decisión provisional: nombre «La jugada del día»** (el «Reto del día» ya existe). La pestaña de Retos pasa de «Semana» a «Jugada» y,
+  para no confundirlas, la del reto del día pasa de «Hoy» a «Reto» (Retos: «Jugada | Reto | Maestría»). El sello de la jugada (portada y
+  pestaña) es verde azulado; el dorado queda para el reto del día. El sello de Retos en Jugar dice «RETOS» (antes «RETOS ★ RETO DEL DÍA»).
+  La hoja final llama al bloque «Jugada del día» (antes «Situación»). Cambiarlo: textos en js/semana-ui.js, ui.js (previa, pausa, hoja, pestaña, ventana) y menu-jugador.js.
 - **Decisión provisional: 3 intentos al día, como antes.** Si pierdes los tres, ese día no la cumples y mañana la racha empieza de cero
   («Me gusta que sea un reto»). Cambiarlo: `TRIES` en js/semana.js.
 - **Decisión provisional: la racha solo en el aparato**, como los intentos (no va por S4_SYNC de account.js: habría que inventar cómo
@@ -334,6 +339,13 @@ sea un pop-up para completarlo.» Hecho así (rama decisiones, sin versión):
   o el aviso de instalar abiertos; más de una vez por sesión (al recargar la pestaña no vuelve; al abrir el juego otro día o en otra
   pestaña, sí). Las Novedades de una versión nueva esperan a que la cierres; ese día el reto del día ya no se abre solo (si no sale la
   ventana, el reto del día se abre como siempre).
+- **Decisión (revisión): una ventana detrás de otra, nunca encima.** Con la jugada abierta, la portada no cuenta como libre (ni el aviso de
+  instalar, ni las Novedades, ni el online se abren encima); el aviso de instalar espera a que la jugada salga y se cierre. **Como mucho dos
+  ventanas solas al entrar:** si ya han salido la jugada y el aviso de instalar, las Novedades esperan a la próxima visita. Si la jugada no
+  llega a salir (te vas a jugar antes, o pasa 1 minuto sin portada libre), ya no sale después del partido y el reto del día recupera su turno.
+- **Intento colgado:** si cierras la pestaña (o el móvil la mata) a mitad de un intento, ese intento cuenta como perdido, pero **la ventana
+  vuelve a salir** al abrir el juego: la pestaña que juega da señal de vida cada 20 s y un intento sin señal en 75 s es de una pestaña
+  muerta. Con otra pestaña jugando de verdad, no sale.
 - **Decisión provisional: la jugada de cada día no se repite casi nunca** (dos días seguidos iguales: menos del 5 %), pero sí puede salir
   el mismo marcador otro día.
 - El guardado `make-the-cut.semana` pasa a v2; el semanal se migra quedándose solo con tu nombre de jugador (su mejor era de otra
