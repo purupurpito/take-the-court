@@ -777,3 +777,307 @@ pasada de la base de este paquete con el mismo comando (`--desktop --sizes 1280x
   (es una tabla larga, ahora plegada); «Y ahora» a 568 queda dentro de la hoja derecha y no en la columna (no cabe con los sets); el aviso del saque
   en la franja se probó con la disposición de fábrica y zurdos (con botones movidos a mano usa los mismos `touchBoxes`, sin prueba propia);
   la cinta de punto de set sobre la seña sigue la regla de PC (la cinta va arriba y la pegatina colgando de ella).
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+## 8. Ronda 2 (24-nov-2026): sin recortes y bien en vertical
+
+Lo que dijo Ferran tras la ronda 1: «Se tienen que ver bien tanto en vertical como en horizontal». Base de la ronda: pasadas de `mobaudit` en
+`C:/Users/Puru/AppData/Local/Temp/claude/256b3765683db9c6/7d7e82ec-6440-4b76-aa17-571f5ef4d6f9/scratchpad/movil2/` — `pcbase` (rama feedback
+f7945e7, antes del rediseño), `pc0` (movil-aire 4d8fd7f), `h0` (horizontal 568x320 / 844x390 / 915x412, DPR 2), `v0` (vertical 360x740 / 390x844 /
+412x915, DPR 2; la Carrera se pasó en `v0c` y se fusionó). 7 revisiones UX por zona (notas H y V por pantalla) y un informe de marketing vertical.
+**Orden de objetivos**: (1) nada importante cortado; (2) vertical bien en todo lo que no es el partido en juego; (3) horizontal igual o mejor;
+(4) PC EXACTAMENTE igual que `pcbase` (todo selector nuevo bajo `html.ph` o `html.pv`; todo JS de disposición tras `SP.phone()` / `SP.pv()`).
+
+### 8.1 Diagnóstico
+
+**Recortes.** La ronda 1 ganó aire recortando: de 94 recortes «antes» a 209 tras los paquetes en horizontal (88 en `h0` tras la ronda final,
+en 63 filas pantalla×tamaño). Cinco clases:
+1. *Descripción de una línea con clamp + ⓘ* (Ajustes «En la Carrera, el entrenador te pide cos…», Controles «En el aire: toca Golpear pronto y
+   desliz…», contrato «Rotación: Juegas cuando… Con 7…», vitrina «Final a Cuatro…»): se corta justo el dato.
+2. *Rótulo compuesto que comparte fila con un botón* («SELECCIÓN: EUROPEO VEC DE PL…», «Grupo B, 2ª jornada, ESP contra RO…» junto a «Ver torneo»;
+   «Circuito Regional, Media 35, 500 €/mes P…» junto a «Ir cedido»; «Clasificación, 1r partido, ESP contra SR…»).
+3. *Texto de mensaje o aviso cortado* (vistas previas de la Bandeja; mentor «Hugo Dubois va diciendo que es mejor que…»; «Una temporada corta con tu ins…»).
+4. *Fichas que no caben* (MVP «Ares Belmo…» / «2…» en el resumen de jornada; «Incombustibl»; «Director de orquesta (pista)»; «Jugador 1120» en Crear sala).
+5. *Invisibles para las métricas*: lo tapado por el degradado del pie (MVP de la hoja final a 844, «2 aces» en vertical, consecuencias de la
+   propuesta de puesto a 568, tabla del grupo de la selección a 568), filas de chips con `overflow:hidden` («Caducan al j»), tablas que se salen
+   (columna Nota de Estadísticas de la Carrera) y rótulos que se pisan (Ataque/Bloqueo/Saque de Cifras a 568).
+
+Además, la ronda 1 **quitó información** que no era decorativa: Jugadores perdió MEDIA/NIVEL/XP/PUNTOS, «Nv · Media» y las descripciones de
+atributo; Maestría perdió qué mide cada medalla; Colocar (táctil) quedó en «En el aire, en salto»; Crear cuenta a 568 perdió «con un usuario
+(sin @) no podrás recuperar la contraseña»; «Enviar» / «Grupo» sustituyen a Compartir / Ver el grupo; Clubes a 568 perdió «Tu rival juega aquí»;
+la hoja final llama «Cifras» en H a lo que en V es «Estadísticas». Criterio de la ronda 2 para cada `display:none` de `.ph`: detrás de un toque, no borrado.
+
+**Vertical.** En vertical no hay `.ph` (PHONE_MQ pide alto ≤ 500 y apaisado), así que en 360-412 px se pinta el CSS de PC, con los textos largos
+de PC: 830 recortes en 458 filas (contra 88 en horizontal). Patrones:
+(a) cuadrículas y filas de PC encajonadas («icono | título+descripción | estado») que dejan 100-150 px al texto (Partido rápido, Entreno, saques de
+firma, equipo del juvenil, resumen del juvenil «FAR / 15- / 11»);
+(b) la Carrera con la cabecera de PC (~290 px: MENÚ + avatar + migas cortadas «CIRCUITO REGI…» + nombre y club en 3 líneas) y 2-3 tiras de
+pestañas arriba que se cortan («PARTIDO / MENSAJES / JU…»), y los nombres largos de club con patrocinador («vs Clu…», «en Colchones …»);
+(c) la acción principal fuera de pantalla o a media altura (Firmar, Ver ofertas, Saltar a la pista, Ver la jornada, Ir al plan: «principal NO»);
+(d) modales de PC flotando sobre el menú, que se ve y se mide detrás (cuenta, instalar, aviso del colocador), con la ✕ fuera del panel;
+(e) Ajustes con el SÍ/NO en fila aparte y el panel con un max-height de PC (Restablecer cortado con 200 px vacíos debajo);
+(f) letra de 9,4-11,5 px (etiquetas de las hojas finales, rótulos de ficha, chips del online, escudos de 6,5 px en la portada);
+(g) pantallas que no son juego en marcha tapadas por «Gira el móvil»: 119 de la Carrera (crPortrait, ronda 1) y previa, semana-previa,
+carrera-previa, carrera-previa-arbitro y repetición (portraitBlock, con la cuenta atrás corriendo debajo), y el banquillo (botones vivos sobre el velo);
+(h) el editor de la disposición táctil roto en vertical («ZU…», «REST…», «LI…»), cuando además no tiene sentido editar en vertical.
+
+Lo que YA funciona en vertical y hay que copiar: online-help, acerca-creditos, online-room (tarjeta + desplazamiento con degradado y flecha +
+acción abajo) y la portada / Jugar (3D arriba, botones abajo).
+
+### 8.2 Sistema VERTICAL (paquete `sistema-v`)
+
+**Cuándo.** `html.pv` (ya existe: `pvTier()` en `js/splat.js`) = `pointer:coarse` && `innerWidth ≤ 500` && `innerHeight > innerWidth`. Nunca
+en PC (ratón). Se añade el forzado `?pv=1|0` (como `?ph=`) para pruebas. Tablets en vertical (> 500 de ancho) siguen fuera de alcance.
+
+**Contenido = móvil; disposición = orientación.** Helper nuevo `SP.mob()` = `ph || pv`:
+- Lo que decide QUÉ SE DICE (textos cortos escritos a mano, nombres cortos de club, fusión de pestañas de la Carrera en 5 apartados con
+  Mensajes en el sobre y Palmarés dentro de Vida, rótulos cortos Firma/Ropa/Jornadas/Tabla/Cifras/Ajustes, `phDedupe`, una sola salida en las
+  hojas, `data-ph-short`, `.ph-only` / `.ph-no`) pasa a valer con `mob()`. En `career-ui.js` el `PH()` (80 usos) se parte en `PH()` = mob para
+  contenido y `PHL()` = phone para disposición (raíl, medidas); igual en `ui.js`, `career-story-ui.js`, `career-world-ui.js`, `account.js`,
+  `install.js`, `menu-jugador.js` y `netlobby.js` (unos 30 `phone()` / `contains('ph')`): cada uso se clasifica a mano.
+- Lo que decide DÓNDE VA queda con `phone()` (horizontal) y `pv()` (vertical). CSS: `.ph-only` / `.ph-no` valen en `:root:is(.ph,.pv)`; nuevas
+  `.pv-only` / `.pv-no` / `.pvh-no` (fuera solo en horizontal). Si un `.ph-only` resulta ser de disposición apaisada, se le añade `.pv-no`.
+- `tierKey()` incluye `v`; `vb:tier` salta también al cambiar `pv`, y `vb:ph` salta cuando cambia `mob()` **o** `pv` (girar el móvil repinta Carrera,
+  cuenta, sala online y paneles abiertos). Probar el giro en caliente (390x844 ↔ 844x390) sin perder lo escrito.
+
+**Tokens `--pv-*`** (bloque nuevo junto a `--ph-*`, todo bajo `:root.pv`):
+
+| Token | Valor | Uso |
+|---|---|---|
+| `--pv-g` | max(16px, var(--sl), var(--sr)) | margen lateral |
+| `--pv-gt` | max(12px, env(safe-area-inset-top)) | notch / barra de estado |
+| `--pv-gb` | max(12px, env(safe-area-inset-bottom)) | barra de gestos |
+| `--pv-fw` | calc(100vw - 2 * var(--pv-g)) | ancho de panel / hoja |
+| `--pv-body` / `--pv-cap` / `--pv-micro` | 15px / 13px / 12px | cuerpo, secundario, marcas (suelo absoluto 12) |
+| `--pv-head` | clamp(18px, 5.4vw, 22px) | título de la cabecera compacta |
+| `--pv-title` | clamp(24px, 7.2vw, 30px) | título de pantalla sin cabecera (portada, hojas) |
+| `--pv-bar` | 52px | cabecera compacta |
+| `--pv-tab-h` | calc(56px + var(--pv-gb)) | barra inferior de pestañas |
+| `--pv-cta-h` | 56px | CTA principal (secundario 48px) |
+| `--pv-dock-h` | calc(var(--pv-cta-h) + 16px) | dock (más `--pv-tab-h` si hay barra) |
+| `--pv-fade` | 24px | degradado de fin de scroll |
+
+**Patrones.**
+1. **Una columna.** Paneles a `--pv-fw`; rejillas de PC → 1 columna (< 400 px) o 2 (≥ 400) con `min-width:0` en las celdas de texto; la fila
+   «icono | texto | estado» pasa a dos niveles (arriba título + valor/selector, debajo la descripción a todo el ancho) o el estado a una chapa
+   absoluta en la esquina. «Etiqueta | contenido» (hojas finales, fichas) → etiqueta encima. Tablas anchas → tarjetas o las columnas de `.ph`.
+2. **Cabecera compacta `.pv-bar`** de 52 px en `top: var(--pv-gt)`: [‹ redondo de 44 con aria-label] [título de 1 línea, texto corto a mano]
+   [1-2 acciones de 44]. Fuera los títulos héroe de PC en dos o tres líneas («CÓMO SE / JUEGA», «ESTADÍSTICA / DEL / PARTIDO»).
+3. **Pestañas.** Carrera: **barra inferior fija `.pv-tabbar`** con los 5 apartados del raíl de horizontal (Partido, Jugador, Club, Liga, Vida),
+   icono 24 + rótulo 12, la activa con la mancha amarilla SPLAT detrás del icono, punto rojo, `padding-bottom: var(--pv-gb)`; Mensajes = sobre en
+   la cabecera (como en H). Sub-pestañas: con 2-3, segmentado a todo el ancho; con más, tira desplazable con desvanecido en el borde, chevron y la
+   activa centrada (`scrollIntoView({inline:'center'})`), o rejilla 2×3 con los rótulos cortos. Un tercer nivel (Regional/Nacional/Hiperliga, país)
+   es un selector «‹ España · Hiperliga 2 ›» de 44 o un desplegable en el título del panel. Fondo opaco detrás de toda tira (no se lee el 3D).
+4. **Dock de acción `.pv-dock`** fijo abajo (encima de la barra de pestañas si la hay): principal a todo el ancho, o 2/3 con el secundario 1/3 a la
+   izquierda; texto con `clamp()` según el ancho, hasta 2 líneas (`white-space:normal`), **nunca elipsis**; lo que se desplaza lleva
+   `padding-bottom` = dock + barra + 12. Si hay una decisión pendiente (Firmar, Aceptar, Renovar, Ver ofertas), el dock lleva esa decisión.
+5. **Hoja inferior `.pv-sheet`** (modales: cuenta, instalar, avisos, informe del rival, ficha de club, detalle de saque, «Ver más»): anclada abajo,
+   ancho completo, radio 20 arriba con asa, `max-height: calc(100dvh - var(--pv-gt) - 24px)`, fondo opaco, velo `rgba(10,6,24,.7)` que tapa TODO
+   (cabecera y pestañas incluidas) y deja `inert` lo de detrás; ✕ de 44 dentro (top/right 12); acciones al pie con `--pv-gb`. Vía `SP.sheet()` /
+   `SP.modal()` con `pv()`.
+6. **El 3D detrás.** Portada, Jugar, Vestuario y previa: el pabellón ocupa la mitad de arriba (identidad) y los botones van abajo. Pantallas de
+   datos: panel de borde a borde y el 3D solo asoma velado; nada de huecos reservados al 3D (online-list tiene ~450 px de techo vacío). El marcador
+   3D del pabellón no debe leerse detrás de un título o de una tira.
+7. **Márgenes seguros.** Todo lo fijo se coloca con `--pv-gt` / `--pv-gb` / `--pv-g`. Comprobar que el viewport lleva `viewport-fit=cover`.
+8. **Mínimos.** Texto ≥ 12 px (cuerpo 15, secundario 13); objetivo ≥ 44×44; separación ≥ 8 contando el adorno. Atajos de teclado (`kbd`,
+   Ctrl+Intro / Esc) fuera en `:root:is(.ph,.pv)`.
+9. **Girar el móvil** solo en el partido en juego (portraitBlock) y en el editor de la disposición táctil (el mismo `#rotate`, texto «Gira el móvil
+   para colocar los botones como en el partido», con «Volver»). Fuera `crPortrait()` de `js/ui.js` (la Carrera entera en vertical). Previa,
+   semana-previa, carrera-previa(-arbitro) y repetición se ven en vertical; en la previa la cuenta atrás se PARA y un chip abajo dice «Gira el móvil
+   para empezar» (empieza al girar). Banquillo: sigue pidiendo girar pero sin botones vivos encima del velo (opción mínima; la tarjeta de banquillo
+   en vertical queda anotada como mejora).
+10. **SPLAT intacto.** Bocadillos con chorretón, parche cosido para LA acción principal (una por pantalla), sellos como `.ph-sticker` en esquinas,
+   tipografía héroe en portada y hojas, paleta y manchas (menos, pero se quedan).
+
+### 8.3 La regla SIN RECORTES
+
+Si no cabe, se reorganiza: dos líneas, otra columna, otra fila, un texto más corto y natural **escrito a mano** (no cortado), o el resto detrás
+de un toque (ⓘ en SVG, «Ver más», hoja). Nunca se corta a mitad de palabra. Permitido con «…»: (1) **nombres propios largos dentro de listas**
+con el texto entero a un toque (ficha), marcado `data-trunc="name"`; (2) **vistas previas de mensajes** cortadas **por palabra** en JS (helper
+`SP.cutWords(texto, n)`), 2 líneas, el mensaje entero al tocar, marcado `data-trunc="preview"`. `mobaudit` cuenta esos dos aparte («recortes
+permitidos»); todo lo demás debe dar 0. Botones y títulos de botón: nunca `text-overflow`; letra con `clamp()` y hasta 2 líneas.
+
+| Mal (hoy) | Bien |
+|---|---|
+| «En la Carrera, el entrenador te pide cos…» | 2 líneas sin clamp con columna fija para el control, o «El entrenador te pide cosas; si cumples, sube tu nota» |
+| «SELECCIÓN: EUROPEO VEC DE PL…» + «ESP contra RO…» | Línea propia «Selección · Europeo VEC de Playa» y debajo «Grupo B · J2 · ESP–ROU · Fuera»; «Ver torneo» debajo a la derecha |
+| «vs Plátanos El Pipe Voley Niva…» | Nombre corto del club «vs Voley Nivaria» (el de `.ph`); el largo con patrocinador en la ficha |
+| «Tranquilidad, tu momento lleg…» | 2 líneas cortadas por palabra («Tranquilidad, tu momento llegará. Pero si…») y el mensaje al tocar |
+| «Rotación: … Con 7…» | «Rotación: juegas si la confianza pasa de 60; con 70, titular» + ? con el resto |
+| «Aces en un partido: récord 0, bronce …» / «Pegada · récord 0 · bronce 2» | Dos líneas: «Aces en un partido» / «récord 0 · bronce 2» |
+| «ABRIR S…», «SEGUIR EL PA…», «VER LA JORNA…» | `clamp(20px, 7vw, 32px)` y 2 líneas; o el rótulo corto de horizontal («Vestuario ›», «Ver jornada») |
+| MVP «Ares Belmo…» + chip «2…» | Línea 1: dorsal + «Ares Belmonte»; línea 2: «24 puntos · 19 ataque · 3 bloqueo · 2 aces · Nota 7,8» con `flex-wrap` |
+| «2 aces» bajo el degradado | `padding-bottom` = alto del degradado; degradado solo si `scrollHeight > clientHeight`, con flecha ⌄ |
+| «C… / Tu …» (Y ahora) | Lista a todo el ancho: icono + «Carrera» / «Tu propio jugador» en dos líneas |
+| «Incombustibl» | `hyphens:auto` (lang es) + 3 líneas en la ficha, o 3 columnas a < 640 |
+| Separador «|» huérfano al final de línea | `gap` + `flex-wrap` con el separador en `::before` del elemento siguiente; cifras en `.nw` |
+
+### 8.4 Tabla por pantalla (ronda 2)
+
+H = horizontal (568/844/915), V = vertical (360/390/412); notas de las revisiones (H/V). `*` = playa y pista. Paquete entre corchetes. Lo común a
+una zona (cabecera, pestañas, dock, hoja, letra mínima) lo hace el paquete de esa zona para todas sus pantallas; aquí va lo propio de cada una.
+
+**Portada, Jugar, menús, online, opiniones [menus-v]**
+
+| id | H/V | arreglo |
+|---|---|---|
+| home | 8/7 | V: vuelven el subtítulo corto de JUGAR y «Tu aspecto»; bloque de botones con `--pv-gb` + 12; secundarios a 13 px; v1.22.1 con toque de 44 |
+| home-carrera | 8/4 | V: tarjeta Próximo: fila pequeña «BRI en PEN · T1 J5» y la sede entera debajo (2 líneas, clamp 18-24); «Continuar» aparte; siglas ≥ 9 px o fuera |
+| home-seguir, home-seguir-carrera, home-jugarya | 8/5-6 | V: título de la tarjeta Seguir clamp(18px, 5.6vw, 26px) en 2 líneas; subtítulo corto de JUGAR |
+| jugar | 8/8 | V: «Entreno» (rótulo de .ph) y 13 px en las tres baldosas |
+| quick-2v2, quick-6v6, quick-corto | 8/5 | V: fila en dos niveles (etiqueta + ‹ valor › arriba, descripción entera debajo); título en 1 línea; ¡A JUGAR! en el dock; lista con degradado en 740 |
+| entreno | 7/3 | V: estado como chapa NUEVO en la esquina; descripción en 2 líneas; Peloteo libre como botón ancho abajo (título ~26 px). H568: padding-top en Peloteo |
+| comojuega-1 … comojuega-6 | 8/6-7 | V: `.pv-bar` con notch; tarjeta flex:1; Anterior/Siguiente abajo; Anterior = ‹ redondo de 56; -4: margen entre ilustración y «PASO»; -6: reglas en 1 columna < 400 |
+| jugadores-g0, -g1, -g2 | 6/7 | H: vuelve la tira «50 MEDIA · NIVEL 1 · 0/120 XP · PUNTOS 0» y la descripción del atributo (ⓘ por fila o 2ª línea). V: pestañas con icono + rótulo; «Nv 1» a 12 |
+| acerca-novedades, acerca-creditos | 8/8 | V: ENTENDIDO en el dock; el texto de 11 a 12 |
+| opiniones-sug, opiniones-bug | 8/6 | V: fuera los atajos kbd; Cancelar/Enviar en barra de dos abajo |
+| aviso-colocador | 7/7 | V: `.pv-sheet` opaca con velo; «No volver a mostrar» como enlace. H: quitar la raya que tacha «remate» |
+| primer-partido | 7/4 | V: cabecera arriba, VER CÓMO SE JUEGA y JUGAR YA a todo el ancho abajo. H568: padding-top del título del botón |
+| instalar-ios, -android, -app | 8/6 | V: `.pv-sheet`; ✕ dentro; pasos en 1 columna (dibujo de 72 a la izquierda); DIRECTO oculto con hoja abierta |
+| online-list, online-aviso | 5/5 | V: Crear sala + Código en el dock; ? y refrescar en la cabecera; sede en 2 líneas con padding-top 8; chips a 12; salas llenas con la tarjeta atenuada y el texto legible; aviso como tostada arriba. H: contraste de Llena / Otra versión y vuelve la chapa Igualado |
+| online-create | 6/4 | V: rótulo del botón con clamp sin elipsis; lista con degradado y flecha; nota fuera del scroll. H: «Jugador 1120» y la sede enteros (Titan 20 o sin la chapa VS) |
+| online-room | 7/8 | H844/915: la tarjeta crece con su contenido; la tostada debajo, sin pisar las chapas |
+| online-help, online-noacc, online-off, online-nortc, online-room-rival | 8/8-9 | Mantener; V: botón principal a todo el ancho; Volver abajo en nortc |
+
+**Ajustes, controles, vestuario, perfil, retos, cuenta [paneles-v]**
+
+| id | H/V | arreglo |
+|---|---|---|
+| ajustes-audio, -image, -cam, -a11y, -info | 8-9/6-7 | V: fila de .ph (texto a la izquierda, toggle a la derecha en la misma fila); deslizador a todo el ancho con el % en columna fija; selectores de 3+ a todo el ancho; 7 pestañas de icono de 44 que caben en 360 (el nombre de la sección como título del panel); panel hasta abajo (100dvh); info: título y valor en la misma fila |
+| ajustes-game | 6/7 | H568: descripción en 2 líneas con columna fija de ~150 para el control; Ambiente con el selector debajo si el panel < 600; ⓘ en SVG. V: como audio |
+| ajustes-kit | 8/4 | V: panel con altura de 100dvh; muestras en `repeat(auto-fill, 44px)` desde la izquierda; Restablecer como pie fijo; ⌄ en su pie |
+| controles-keyboard | 8/7 | V: subtítulos a 12; teclas de 40×40 |
+| controles-gamepad | 6/7 | H568: «En el suelo: coloca o pasa» sin clamp o 1 columna < 640; teclas de 44 de alto. V: 12 px |
+| controles-touch, pausa-controles | 6/6 | H y V: tarjeta por acción (nombre + chips de botones arriba, descripción ENTERA debajo); en H 2 columnas con `align-items:start` y las largas (Finta, Al colocar, Colocar, Salto con dirección) a `grid-column:1/-1`; Colocar recupera su texto completo |
+| controles-touch-editor, -zurdos | 8/2 | V: pide girar (`#rotate` con su texto y Volver). H568: lupa y pausa ocultas mientras se edita (o 12 px de margen) |
+| vestuario-pelo, -cabeza, -cara, -cuerpo, -brazos, -piernas | 8/7 | V: muñeco en el 40-45 % de arriba y la lista con flex:1; botones de giro en una fila bajo el muñeco; marcador 3D oculto; margen del notch. H915: margen entre la lista y la columna derecha |
+| vestuario-colores | 7/6 | V: la nota encima de la lista o en panel oscuro con `--pv-gb`; sin text-stroke (también H) |
+| perfil-vestuario, -insignias, -entreno, -carrera, -retos, -sedes, -hitos, -cuaderno | 7/4 | V: cabecera en 3 líneas («240 / 300 XP», «Siguiente premio: Nv 14 · …», chips nowrap «212 partidos» «131 victorias» «4 de 6 sedes»); pestañas en rejilla 4×2 (icono + contador) o tira con la activa centrada; avisos en una cola arriba bajo el notch; 12 px. H: raíl lateral desplazable con la activa visible (llega a Cuaderno); -carrera H568: `hyphens:auto` y 3 líneas en las fichas |
+| perfil-cuaderno-pie | 8/3 | V: descripción entera en un panel a todo el ancho (o hoja) sobre fondo oscuro y «Fijar en la vitrina» a todo el ancho abajo |
+| retos-hoy | 8/5 | V: ¡A JUGAR! clamp(28px, 9vw, 44px) sin elipsis, fijo abajo; sello a 120 px; fecha nowrap «24 nov»; pie en 2 filas limpias |
+| retos-maestria | 6/4 | H y V: dos líneas por medalla («Aces en un partido» / «récord 0 · bronce 2»); V una columna a 13 px; H rejilla sin huecos (`dense`, rótulos de grupo a todo el ancho) |
+| retos-semana | 8/6 | V: sello pequeño; chips en 2 filas; pie con `--pv-gb`; sin overflow en ¡A jugar! |
+| retos-semana-grupo | 7/5 | V: mapa en el flujo con aspect-ratio (se ven las 6 zonas y la RED). H y V: chip activo con texto oscuro; título sin contorno; Compartir con icono + texto. H568: padding-bottom para la RED |
+| cuenta-entrar, -crear, -dentro, -borrar | 6-8/7-8 | V: `.pv-sheet` con velo; ✕ dentro; placeholders; acciones apiladas a todo el ancho (borrar: «No, volver» primero). H568 crear: vuelve el aviso «Con usuario (sin @) no podrás recuperar la contraseña» y «Ahora no» como enlace |
+
+**Partido, pausa, hoja final, estadística, semana, previa [partido-v]**
+
+| id | H/V | arreglo |
+|---|---|---|
+| final-resumen | 7/6 | V: cabecera compacta (rótulo de 1 línea, ¡VICTORIA! ~44, marcador y sets en una fila, «Ver celebración» como ojo junto al título o en las acciones); etiquetas encima del contenido; MVP en 2×2 sin degradado encima; 12 px. H844: el panel crece hasta Revancha o padding = degradado |
+| final-primero | 5/3 | V: «Y ahora» como lista a todo el ancho bajo el MVP (icono + título + subtítulo, 48 px). H568: orden resumen → MVP → «Y ahora» |
+| final-stats | 5/6 | H y V: cabeceras de columna «Ata.» «Bloq.» «Saq.» (o iconos) en columnas fijas de 44; Puntos arriba; «Estadística del partido» como enlace al pie |
+| final-jugadas | 6/8 | H568: filas de 48 y «Verlas todas» en la cabecera de la pestaña |
+| final-reto | 7/5 | V: sello de 64 junto a ¡VICTORIA!, sets en una fila, medallas en una fila, XP con margen. H844: el reto primero y el MVP en una línea |
+| final-entreno | 8/7 | V: título ~40 en una línea; secundarios de 52 al pie con `--pv-gb` |
+| semana-hoja | 5/7 | H: «Compartir» y «El grupo» (o icono + texto); MVP en una línea al final de Situación. V: etiquetas encima, 12 px |
+| pausa, semana-pausa | 8/7 | V: marcador bajo PAUSA arriba; acciones abajo con `--pv-gb`; «Opinar» (como en H); el aviso de la semana pegado a sus botones; sin overflow en SEGUIR JUGANDO |
+| pausa-bug | 7/5 | V: fuera kbd; título de 1 línea; chips en rejilla de 3; Cancelar/Enviar abajo |
+| pausa-ajustes | 8/6 | V: igual que Ajustes (pestañas de icono que caben; toggle en la fila) |
+| cambios-6v6, -elegido | 8/7 | V: hoja anclada abajo; pista en rejilla 3×2 como en H; banquillo en tira; «Tú» dentro de la ficha (también H) |
+| estadistica-2v2, -6v6 | 5/6 | H568: ‹ + «Estadística» + equipos en una fila; sets y secciones en una tira con desvanecido. V: título de 1 línea, sets en rejilla de N columnas, índice de secciones pegado arriba; etiqueta del gráfico sin pisar SET; 12 px |
+| previa, semana-previa, carrera-previa, carrera-previa-arbitro | 8/2 | V: se ven (Tú / VS / CPU apilados, la situación, chips de árbitro enteros, ROC/SOL sin clamp con line-height ≥ 1.1); cuenta atrás parada y chip «Gira el móvil para empezar» |
+| repeticion | 8/2 | V: lienzo con la cámara de repetición y la tarjeta abajo; si no se ve bien, banner «Gira para verla mejor» en la zona del pulgar, no el aviso a pantalla completa |
+| carrera-banquillo | 8/3 | V: sigue pidiendo girar; botones del banquillo ocultos bajo el velo; salida visible |
+| hud-sena-cinta | 5/8 | H: con la cinta activa, la seña bajo el marcador (nunca en la franja central de arriba) |
+| hud-6v6, hud-2v2-zurdos, hud-2v2-peloteo | 6-8/8 | H y V: `#coach` con cápsula, `white-space:normal`, 2 líneas, sin elipsis; 568 max-width 60vw |
+| partido-frenar-playa, -pista | 7/8 | Texto completo y natural («Iker se lanza a por el balón»); 568: botones de 44 que no pisan Saltar |
+| hud-punto, hud-saque-firma, hud-entreno, hud-sena, hud-sena-bajo, hud-sena-5s | 7-8/8 | H568: cinta con max-width que no llega a los botones; marcador a .6 con la diana; contador del zoom separado en el entreno; seña un 15 % menor |
+| hud-2v2, hud-cambio, hud-zona, hud-zona-6v6 | 8/8 | Mantener (V: aviso de girar, lo esperado) |
+
+**Carrera: marco y hub del Partido [carrera-marco-v]** (y lo común a TODA la Carrera en vertical: cabecera, barra inferior, sub-pestañas, dock, Faro)
+
+| id | H/V | arreglo |
+|---|---|---|
+| carrera-*-match | 6/4 | V: tarjeta del rival con la meta en dos chips dentro del padding y el rival con nombre corto; mentor plegado a una tira (avatar + título + ⓘ → hoja) debajo de las acciones; Jugar/Simular en el dock. H: línea de la Selección en su fila (2 líneas, códigos ESP–ROU); mentor en 2 líneas completas o texto corto a mano |
+| carrera-*-informe, carrera-*-informe-tira | 7/5 | V: etiqueta del partido en dos filas; pabellón a 18 en 2 líneas; tira del mentor plegable. H: la tira en 2 líneas y un toque abre el mensaje |
+| carrera-*-partido-baja | 6/4-5 | H: Selección sin cortar; «+ BAJA» → «Más (3)»; 568 padding-bottom = barra. V: «Ver jornada» sin elipsis; meta abreviada; Selección visible en la primera pantalla |
+| carrera-pista-natl-tarjeta, carrera-pista-cesion-aviso | 6/4-5 | H: Selección / Clasificación en 2 líneas. V: la tarjeta de la Selección / el aviso de cesión arriba; Faro plegado |
+| carrera-playa-natl-verano, carrera-playa-fin-cesion, carrera-pista-gala | 6-8/4 | V: la noticia arriba (Selección / fin de cesión / Gala) y el resumen plegado; «Ver ofertas» / «Seguir» en el dock; «Fin de la T1»; datos clave/valor por línea. H: fin de cesión antes de la Gala |
+| carrera-pista-propuesta-puesto | 6/3 | V: la propuesta arriba y Aceptar/Rechazar en el dock. H568: padding-bottom para leer las consecuencias |
+| carrera-*-estrellas-voto, carrera-*-estrellas-finde | 7-8/5-6 | V: «Pedir el voto · 2/3» (texto de H); secundarios de 48; podio con nombres de pila; dock con «Ver la jornada» |
+| carrera-a-medias | 8/4 | V: «Seguir el partido» en el dock sin elipsis; tarjeta centrada; «Regional · J5/14» |
+| carrera-*-lesion | 8/6 | V: franja en 1 línea con el ? a la derecha; Volver antes / Fisio en fila de 2 (56); principal en el dock |
+| carrera-pista-aviso-colocador | 8/5 | V: `.pv-sheet` opaca sobre toda la Carrera; Activar abajo. H: la raya sobre «remate» |
+
+**Carrera: Jugador, Club, selección, cesiones, traspasos, plan [carrera-jugador-club-v]**
+
+| id | H/V | arreglo |
+|---|---|---|
+| carrera-*-player-phys, -def, -atk | 8/6 | V: ficha compacta de 1 fila con chip «12 puntos»; atributo en dos niveles (nombre + número + +1 de 44 / barra a todo el ancho); pie del entreno en 1 línea con ⓘ |
+| carrera-*-player-badges, carrera-playa-saque-firma | 8/2 | V: lista de 1 columna (2 desde 390) de tarjetas: título + «✓ GOLPEAR y SALTAR» / «🔒 Pide saque 62», descripción breve de .ph y la larga tras ⓘ; gestos en 2×2; sub-pestaña «Firma» |
+| carrera-*-player-train | 6-8/6 | H568: «Elegir plan» sin pisar el ?. V: ? en la fila del título; botones de lesión de 56-64 en fila de 2; «Elegir plan» visible o en el dock |
+| carrera-*-player-look | 8/5 | V: «Vestuario ›» (o «Abrir el vestuario» con clamp, sin elipsis) en el dock; título de 1 línea; contador en chip |
+| carrera-*-club-info | 7-8/6 | H568: subtítulo en 2 líneas (patrocinador / «★★ · Hiperliga 2»). V: nombre corto de título y patrocinador pequeño; `.ph-kv` de una columna; 12 px |
+| carrera-playa-club-mate, carrera-pista-club-team, carrera-*-club-people | 8/7 | V: Titular/Suplente en la fila del nombre; «+3 · Partido con el equipo · esta jornada» como chip |
+| carrera-*-club-contract, carrera-pista-traspaso-renovar, carrera-pista-traspaso-no | 6-9/3-6 | H568: «Titular: juegas de inicio. Si te deja 2 jornadas en el banquillo, puedes irte sin pegas.» + ?. V: clave/valor de 1 columna; la decisión (Renovación / propuesta) ARRIBA y Firmar/Aceptarlo + Prefiero salir en el dock; cobros tras ⓘ |
+| carrera-*-club-offers | 8/6-7 | V: texto corto + ⓘ; acción de 48 si existe |
+| carrera-*-club-ficha, carrera-*-club-rencor | 8-9/6 | V: ficha como hoja: ‹ redondo + escudo + nombre corto, «Hiperliga 2 · 1967 · La Colmena», nombre largo pequeño; franja de rencor arriba |
+| carrera-*-club-natl, carrera-pista-club-natl-clasif, carrera-playa-club-natl-verano | 7-8/5-6 | V: Jugar + Simular en el dock; bandera de 40 en línea; cabecera de la tabla a 12. H568: la tabla del grupo visible al desplazar (padding-bottom) |
+| carrera-*-cesiones | 6/7 | H568: datos en 2 líneas, chips con wrap, nombre corto + largo debajo, «Ir cedido» debajo a la derecha. V: «Estás de baja…» encima del botón |
+| carrera-pista-cedido | 7/6 | H: «Vuelves a Voley Sanroqueño». V: franja «CEDIDO» sin nombre; «Sin jugar»; 12 px |
+| carrera-playa-plan, carrera-pista-pedir-puesto | 7/5-6 | V: explicación tras ⓘ; Cerrar como ✕; ★ Recomendado delante del título. H: ? junto al ✕ |
+| carrera-pista-natl-palmares | 6/6 | V: rótulos a 12-13, 2 columnas a 360; sub-pestaña «Vitrina». H568: la categoría como título encima de su fila |
+
+**Carrera: Mensajes, Liga, Vida, Palmarés, premios [carrera-liga-vida-v]**
+
+| id | H/V | arreglo |
+|---|---|---|
+| carrera-*-inbox | 7/5-6 | H y V: vista previa con `SP.cutWords` a 2 líneas (o un campo `preview` escrito a mano). V: Bandeja · Redes como segmentado; contador en la pestaña; avatares de 40 |
+| carrera-*-inbox-wall | 8/6 | V: 3 botones de publicar compactos (64 de alto) con los efectos en chips nowrap «Fama ▲»; 12-13 px |
+| carrera-*-league-table | 8-9/4 | V: «Circuito Regional ▾ · J4/14» o selector «‹ España · Hiperliga 2 ›» de 44; fila «# · escudo 24 · nombre corto · PJ G P PTS» de 44; tu fila a la vista |
+| carrera-*-league-cal | 9/3 | V: nombre corto del rival; sin «Pendiente» (fila apagada); «Próximo» como chip; JEFE como chip de 12 o 👑 |
+| carrera-*-league-news | 7-8/6-7 | H568: titular sin clamp (3 líneas) o titular corto en los datos. V: nombres cortos, cuerpo 15, T1 J4 a 12, marcadores nowrap |
+| carrera-pista-league-cups | 8/6 | V: lista de 3 filas con su condición debajo |
+| carrera-*-league-clubs | 8/5-6 | V: selector de categoría; filas de una línea «1r · 62 ›». H568: chip «Rival» en la fila marcada. Ordinales en una sola forma |
+| carrera-*-honors-titles, carrera-*-estrellas-vitrina | 7-8/6 | H: nombres de trofeo enteros (3 líneas o «Final a 4 Mundial», «Naciones de Playa»). V: lista o rejilla con icono de 40-64, detalle al tocar, 12-13 px; sub-pestaña «Vitrina» |
+| carrera-*-honors-seasons | 8/6-7 | Con el marco nuevo basta |
+| carrera-*-honors-opts | 8-9/4-6 | V: dificultad en 2×2 o «‹ Normal ›»; explicación de 1 línea + ?; «Crear Carrera de pista» con el subtítulo en 2 líneas |
+| carrera-*-honors-stats | 8/4-5 | V: temporadas como tarjetas (T1 · club corto / Puesto PJ PG Puntos Nota); caja 2×2. H568: la sub-pestaña activa centrada |
+| carrera-*-life-fame, carrera-*-life-legacy | 8/7 | V: explicaciones a 1-2 líneas + ⓘ; los nombres como en H (Vida › Fama…) |
+| carrera-*-life-shop | 9/6-7 | V: nombre en letra de cuerpo en 1 línea; botón de precio compacto «1.500 €»; Ahorros tras ⓘ |
+| carrera-*-life-goals | 8-9/6-7 | V: logro en 3 líneas (título + premio / descripción / barra con «1/5») |
+| carrera-*-life-pass | 8/7 | V: rejilla de niveles de 4-5 columnas (56); etiquetas cortas en la caja |
+| carrera-*-league-race, carrera-*-premios-datos | 8/5 | V: rejilla [pos 32][nombre 1fr][nota], club y edad en una 2ª línea con wrap; pestañas de premio con los rótulos de H; reglas tras ⓘ |
+
+**Carrera: creación, ofertas, juvenil, prueba, hojas [carrera-flujo-v]**
+
+| id | H/V | arreglo |
+|---|---|---|
+| carrera-crear-playa, -pista, -juvenil | 7/5-6 | H: subtítulo de Inicio en 2 líneas o «Una temporada con tu instituto»; 568 sin tarjetas asomando bajo el sticky. V: sin el `small` de la cabecera; Nombre+Dorsal, Inicio, Rol/Puesto (2×3); explicación plegada con «Ver más»; dock de 2 líneas |
+| carrera-ofertas-playa, -pista, -rencor-playa, -rencor-pista | 8/4 | V: maqueta compacta de H (cabecera del club a 22 px en 2 líneas, 2×2 Rol/Sueldo/Media/Objetivo, chips, ficha en hoja); dock [Pedir más rol][Firmar]; pestañas de clubes con desvanecido y «1/4». H568 rencor: la última pestaña no queda bajo el sello |
+| carrera-juvenil-intro-*, carrera-juvenil-intro3-* | 8/7 | V: dock con Siguiente (o [Atrás][¡A la liguilla!]); «Ir directo a las pruebas» secundario discreto; sin «|» huérfanos |
+| carrera-juvenil-temporada-* | 8/6 | V: kicker «J3 de 5», la liga en el título (2 líneas); partido apilado, un equipo por línea; dock [Simular][Jugar partido] |
+| carrera-juvenil-equipo-* | 8/3 | V: lista de 1 columna con ▾ (la de H) |
+| carrera-juvenil-chat-* | 8/8 | Solo la cabecera del juvenil |
+| carrera-juvenil-informe-* | 8/5 | V: «8/10», «4/5»; el círculo de la nota en su fila; Ver ofertas en el dock; ? sin montarse |
+| carrera-juvenil-hoja | 8/3 | V (PC NO se toca): nota arriba y resumen debajo a todo el ancho (`min-width:0`); «≤ 2 errores»; 12 px |
+| carrera-prueba-previa-playa, -pista | 8/3-4 | V: kicker «Prueba», título «Ari Lluch»; dock [Simular (21 %)][Saltar a la pista] sin elipsis; reglamento tras ⓘ; objetivos en chips |
+| carrera-prueba-hoja, carrera-prueba-suspendida | 8/7 | V: «Ver celebración» como ojo en la esquina; nota 6,9 a 13; chips a todo el ancho |
+| carrera-hoja-final, carrera-natl-partido-hoja, carrera-natl-partido-hoja-derrota | 7/6 | H: MVP en la primera pantalla (línea compacta) y sin degradado encima. V: chips Lo mejor / A mejorar enteros a todo el ancho; MVP en una fila con wrap; kicker sin pisar; 12 px |
+| carrera-resumen-jornada | 6/6 | H568 y V: MVP en 2 líneas (nombre entero / cifras con wrap); en V etiquetas encima; Clasificación con tu fila ±1 y «Ver tabla» |
+| carrera-resumen-stats | 8/7 | V: fuera el bocadillo redundante; barras de ataque y bloqueo; cabeceras a 12 |
+| carrera-sesion-hoja, carrera-estrellas-concurso-hoja | 8/6-7 | V: título de 36-40; dock [Volver a la Carrera][Siguiente]; clasificación a todo el ancho; «2º intento» sin rebosar |
+| carrera-estrellas-partido-hoja | 8/3 | V: «Equipo Sol / 21-18 / Equipo Luna» apilado; «Tu nota 7,8 · MVP: tú» debajo; la tarjeta arriba. Revisar el marcador TÚ/VAL frente a Sol/Luna |
+
+### 8.5 Paquetes de la ronda 2 (en serie sobre el mismo worktree)
+
+1. `sistema-v` — `SP.mob()`, tokens `--pv-*`, componentes `.pv-bar` / `.pv-tabbar` / `.pv-dock` / `.pv-sheet`, utilidades, `SP.cutWords`,
+   `data-trunc`, fuera `crPortrait`, eventos de giro y arreglos de `mobaudit` (métricas nuevas, estado entre pantallas).
+2. `recortes` — los 88 recortes de horizontal y la información que quitó la ronda 1 (todo bajo `.ph`).
+3. `carrera-marco-v` — cabecera, barra inferior, sub-pestañas, dock y Faro de la Carrera en vertical; hub del Partido y avisos/decisiones.
+4. `carrera-jugador-club-v` — Jugador, Club, selección, lesiones, cesiones, traspasos, plan.
+5. `carrera-liga-vida-v` — Mensajes, Liga, Vida, Palmarés, premios, vitrina de Estrellas.
+6. `carrera-flujo-v` — crear, ofertas, juvenil, prueba, hojas de partido de la Carrera.
+7. `menus-v` — portada, Jugar, partido rápido, entreno, Cómo se juega, Jugadores, Acerca de, Opiniones, Instalar, avisos, Online.
+8. `paneles-v` — Ajustes, Controles (y editor), Vestuario, Perfil, Retos, Cuenta.
+9. `partido-v` — previa y repetición en vertical, pausa, cambios, hoja final, estadística, semana, banquillo; y los arreglos del HUD en horizontal.
+
+Cada paquete: commits en castellano con las dos líneas de atribución; sin push / merge / deploy / versión; sin `git stash`; pasadas y pruebas en
+primer plano; anotar bajo «### 8.6 Registro de la ronda 2» qué se hizo, las métricas (recortes no permitidos, < 12, < 44, principal NO, girar)
+y lo pendiente.
+
+### 8.6 Registro de la ronda 2
+
+(Cada paquete añade aquí su apartado: `#### 8.6.N Paquete <key> (fecha)`.)
